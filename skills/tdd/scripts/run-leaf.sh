@@ -53,25 +53,15 @@ else
 fi
 
 stream_tmp="$(mktemp)"
-# The leaf's private global config. A file rather than a directory because
-# GIT_CONFIG_GLOBAL names a file, and it must exist and be writable for `git config
-# --global` to succeed in it.
 leaf_gitconfig="$(mktemp)"
 trap 'rm -f "$stream_tmp" "$leaf_gitconfig"' EXIT
-# Private must not mean empty: the copy starts as the operator's own global config, so a
-# credential helper or `url.*.insteadOf` configured there still works inside the leaf.
 if [[ -f "$HOME/.gitconfig" ]]; then
   cp "$HOME/.gitconfig" "$leaf_gitconfig"
 fi
 export GIT_CONFIG_GLOBAL="$leaf_gitconfig"
 
-# Stream the leaf's events to stdout (the supervisor captures this — every event is a
-# heartbeat) while teeing them aside for result extraction. set +e so pipefail can't abort
-# before we read the leaf's real exit status from PIPESTATUS.
+# hazard: set -e with pipefail would abort before PIPESTATUS is read.
 set +e
-# `--model` only when a model was chosen: an empty array expanded through the `[@]+` guard
-# (the same idiom solvable-issues.sh:54 explains) contributes NOTHING, where a quoted
-# `"$model"` would pass an empty argument the CLI would have to reject.
 model_args=()
 [[ -n "${VERI_LEAF_MODEL:-}" ]] && model_args=(--model "$VERI_LEAF_MODEL")
 "${CLAUDE_BIN:-claude}" -p "$prompt" --output-format stream-json --verbose \
@@ -79,7 +69,6 @@ model_args=()
 rc="${PIPESTATUS[0]}"
 set -e
 
-# Append the clean final result text so the captured output ends with a parseable verdict.
 printf '\n'
 "$HERE/extract-result.sh" < "$stream_tmp"
 

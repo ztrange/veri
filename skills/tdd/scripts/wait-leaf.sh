@@ -27,19 +27,11 @@ exitfile=".tdd/$name.exit"
 pidfile=".tdd/$name.pid"
 deadline=$(( $(date +%s) + max ))
 
-# `number_in` is shared with supervise.sh, which has to accept exactly what this wait does —
-# the lib file's header is where that coupling is written down.
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# shellcheck source=lib/number-in.sh
 source "$HERE/lib/number-in.sh"
 
-# recorded_code — echo the supervisor's final code, or fail when the file holds no status
-# yet. Only a plain code ends the wait.
 recorded_code() { number_in "$exitfile"; }
 
-# supervising <pid> — succeed when that pid runs `supervise.sh <name> …`. Pids are reused, so
-# a process merely being alive under the recorded number does not make it this leaf's
-# supervisor.
 supervising() {
   local args
   args="$(ps -p "$1" -o args= 2>/dev/null)" || return 1
@@ -48,8 +40,6 @@ supervising() {
 
 while :; do
   ec="$(recorded_code)" && exit "$ec"
-  # A supervisor that died never writes its completion file, so a recorded pid that no
-  # longer runs this leaf's supervisor ends the wait with 2 — after one last look, in case it wrote just before.
   if pid="$(number_in "$pidfile")" && ! supervising "$pid"; then
     ec="$(recorded_code)" && exit "$ec"
     echo "wait-leaf.sh: supervisor for leaf '$name' (pid $pid) exited without recording a status" >&2
