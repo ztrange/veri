@@ -72,6 +72,9 @@
 #  19. SKILL.md's Draft PR step never counts a pending check as green, and bounds its CI
 #      wait: a check still pending when the bound runs out bails with a cause
 #      `classify-bail.sh` classifies (issue #542).
+#  20. SKILL.md's Draft PR step bounds the command that waits on the readied PR's checks
+#      itself — a timeout or a polling loop with a deadline — rather than running an
+#      unbounded `gh pr checks --watch` (issue #542).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -799,6 +802,27 @@ if step_or_problem '### 4. Draft PR' "what the step does with a check still pend
     done < <(grep -o '`[^`]*`' <<< "$bail" | tr -d '`')
     [[ -n "$classified" ]] ||
       problems+=("$skill_md's Draft PR step bails on a check still pending past its bound with no cause classify-bail.sh classifies: $(printf '%.120s' "$bail")")
+  fi
+fi
+report "$name"
+
+# 20. The criterion, as one case (issue #542): a bound stated only in prose is one the shell
+#     never enforces, so the command block that waits must carry it.
+name="$skill_md's Draft PR step bounds the command that waits on the readied PR's checks itself, with a timeout or a polling loop with a deadline, rather than an unbounded gh pr checks --watch (#542)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "whether the step's CI wait is bounded by its own command"; then
+  commands="$(section_commands)"
+  ready="$(line_of 'gh pr ready')"
+  rollup="$(line_of 'gh pr view .*--json statuscheckrollup')"
+  wait_lines="$(awk -v a="${ready:-0}" -v b="${rollup:-0}" 'NR > a && (b == 0 || NR < b)' <<< "$commands")"
+  checks="$(first_record "$wait_lines" -F 'gh pr checks')"
+  if [[ -z "$ready" || -z "$checks" ]]; then
+    problems+=("$skill_md's Draft PR step runs no gh pr checks after gh pr ready, so there is no CI wait to bound")
+  elif ! grep -E '(^|[;&|( ])g?timeout [0-9]' > /dev/null <<< "$checks" &&
+       ! { grep -E '(^|[;&|( ])(while|until) ' > /dev/null <<< "$wait_lines" &&
+           grep -E 'deadline|date \+%s|\$seconds' > /dev/null <<< "$wait_lines"; }; then
+    problems+=("$skill_md's Draft PR step waits on the readied PR's checks with no bound on the command itself: $(printf '%.120s' "$checks")")
   fi
 fi
 report "$name"
