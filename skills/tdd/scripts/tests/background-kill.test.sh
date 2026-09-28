@@ -298,5 +298,40 @@ fi
 
 report "a shell whose record file is gone by the time it exits reports nothing, rather than failing to read it on the caller's stderr"
 
+# 5. A shell that armed its own EXIT trap before bg_start still runs it at exit, and still
+# reports the survivor. The earlier trap writes a marker file, so whether it ran is read off
+# the disk after the subshell is reaped.
+record5="$work/trapped.pids"
+self_pid5="$work/victim5.pid"
+marker5="$work/caller-trap.ran"
+victim5="$work/victim5"
+make_victim "$victim5" "$self_pid5"
+
+problems=()
+
+trapped_err="$work/trapped.err"
+( trap "touch '$marker5'" EXIT; source "$LIB" && bg_start "$record5" "$victim5" ) \
+  > /dev/null 2>"$trapped_err"
+trapped_code=$?
+
+if ! appeared "$record5" "$PATIENCE"; then
+  problems+=("sourcing $LIB and calling bg_start under a caller's EXIT trap: recorded no pid in $record5 (exit $trapped_code, stderr: '$(flat "$trapped_err")')")
+else
+  read -r victim5_pid _ < "$record5" || true
+  victims+=("$victim5_pid")
+  said5="$(flat "$trapped_err")"
+
+  if [[ "$victim5_pid" =~ ^[0-9]+$ ]]; then survived "$victim5_pid"; fi
+
+  [[ -e "$marker5" ]] \
+    || problems+=("the EXIT trap the caller set before bg_start never ran: $marker5 was not created (exit $trapped_code, stderr: '$said5')")
+  grep -F "$victim5_pid" "$trapped_err" > /dev/null \
+    || problems+=("the shell that set its own EXIT trap before bg_start exited with pid $victim5_pid still running and did not name it: stderr said '$said5'")
+
+  end_victim "$victim5_pid"
+fi
+
+report "#536: a shell that set an EXIT trap before bg_start still runs that trap at exit, and still reports a survivor"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
