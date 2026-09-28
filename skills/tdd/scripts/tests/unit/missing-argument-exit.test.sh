@@ -66,6 +66,7 @@ roster=(
   build-develop-prompt.sh
   build-verify-prompt.sh
   clear-refactor-pending.sh
+  comment-class.sh
   coverage-blocker.sh
   criterion-finished.sh
   detach-leaf.sh
