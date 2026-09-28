@@ -66,13 +66,13 @@ check() {
   printf '{"__typename":"CheckRun","name":"gates","workflowName":"ci","status":"%s","conclusion":"%s"}' "$1" "$2"
 }
 
-# wait_in <dir> <name> <bound> <err> — run wait-ci.sh from <dir> against fixture <name> with a
-# <bound>-second limit on a clock that moves 60 s a reading, stderr to <err>, and echo its
+# wait_in <dir> <name> <err> <bound>... — run wait-ci.sh from <dir> against fixture <name> with
+# <bound>... as its limits on a clock that moves 60 s a reading, stderr to <err>, and echo its
 # exit code.
 wait_in() {
   ( cd "$1" && env VERI_POLL=0 VERI_CLOCK_STEP=60 VERI_CLOCK_LOG="$work/$2.clock" \
       PR_URL="$PR" ROLLUP="$work/$2.json" PATH="$work/bin:$PATH" \
-      "$WAIT" "$PR" "$3" >/dev/null 2>"$4" )
+      "$WAIT" "$PR" "${@:4}" >/dev/null 2>"$3" )
   echo $?
 }
 
@@ -82,7 +82,7 @@ waited() {
   local dir
   dir="$(mktemp -d "$work/cwd.XXXXXX")"; mkdir "$dir/.tdd"
   : > "$work/$1.clock"; : > "$work/$1.json.calls"
-  wait_in "$dir" "$1" "${2:-1800}" "$work/$1.err"
+  wait_in "$dir" "$1" "$work/$1.err" "${2:-1800}"
 }
 
 # expect_exit <name> <code> [bound] — waited <name> [bound], and record a problem unless it
@@ -130,8 +130,8 @@ problems=()
 rollup across.json "$(check IN_PROGRESS '')" fedcba9876543210fedcba9876543210fedcba98
 mkdir -p "$work/across/.tdd"
 : > "$work/across.clock"; : > "$work/across.json.calls"
-got_first="$(wait_in "$work/across" across 120 "$work/across.first.err")"
-got_second="$(wait_in "$work/across" across 120 "$work/across.second.err")"
+got_first="$(wait_in "$work/across" across "$work/across.first.err" 120)"
+got_second="$(wait_in "$work/across" across "$work/across.second.err" 120)"
 [[ "$got_first" == 3 ]] || problems+=("first call: want exit 3, got $got_first (stderr: $(cat "$work/across.first.err"))")
 [[ "$got_second" == 2 ]] || problems+=("second call past the recorded deadline: want exit 2, got $got_second (stderr: $(cat "$work/across.second.err"))")
 report "$name"
@@ -173,9 +173,7 @@ rollup total.json "$(check IN_PROGRESS '')" 00112233445566778899aabbccddeeff0011
 mkdir -p "$work/total/.tdd"
 : > "$work/total.clock"; : > "$work/total.json.calls"
 for call in first second; do
-  got="$( cd "$work/total" && env VERI_POLL=0 VERI_CLOCK_STEP=60 VERI_CLOCK_LOG="$work/total.clock" \
-      PR_URL="$PR" ROLLUP="$work/total.json" PATH="$work/bin:$PATH" \
-      "$WAIT" "$PR" 540 1800 >/dev/null 2>"$work/total.$call.err"; echo $? )"
+  got="$(wait_in "$work/total" total "$work/total.$call.err" 540 1800)"
   [[ "$got" == 3 ]] || problems+=("$call call, slice 540, total 1800: want exit 3, got $got (stderr: $(cat "$work/total.$call.err"))")
 done
 calls="$(grep -F 'wait-ci.sh <pr-url>' "$HERE/../../SKILL.md")"
