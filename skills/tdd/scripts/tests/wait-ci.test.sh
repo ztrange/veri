@@ -94,6 +94,12 @@ shared() {
   : > "$work/$1.clock"; : > "$work/$1.json.calls"
 }
 
+# again <name> <call> [arg...] — wait_in fixture <name>'s shared directory with [arg...] as
+# wait-ci.sh's arguments after the PR, stderr to <name>.<call>.err.
+again() {
+  wait_in "$work/$1" "$1" "$work/$1.$2.err" "${@:3}"
+}
+
 # expect_exit <name> <code> [bound] — waited <name> [bound], and record a problem unless it
 # exited <code>.
 expect_exit() {
@@ -138,8 +144,8 @@ name="wait-ci.sh enforces its bound across calls: a second call for the same hea
 problems=()
 rollup across.json "$(check IN_PROGRESS '')" fedcba9876543210fedcba9876543210fedcba98
 shared across
-got_first="$(wait_in "$work/across" across "$work/across.first.err" 120)"
-got_second="$(wait_in "$work/across" across "$work/across.second.err" 120)"
+got_first="$(again across first 120)"
+got_second="$(again across second 120)"
 [[ "$got_first" == 3 ]] || problems+=("first call: want exit 3, got $got_first (stderr: $(cat "$work/across.first.err"))")
 [[ "$got_second" == 2 ]] || problems+=("second call past the recorded deadline: want exit 2, got $got_second (stderr: $(cat "$work/across.second.err"))")
 report "$name"
@@ -180,7 +186,7 @@ problems=()
 rollup total.json "$(check IN_PROGRESS '')" 00112233445566778899aabbccddeeff00112233
 shared total
 for call in first second; do
-  got="$(wait_in "$work/total" total "$work/total.$call.err" 540 1800)"
+  got="$(again total "$call" 540 1800)"
   [[ "$got" == 3 ]] || problems+=("$call call, slice 540, total 1800: want exit 3, got $got (stderr: $(cat "$work/total.$call.err"))")
 done
 calls="$(grep -F 'wait-ci.sh <pr-url>' "$HERE/../../SKILL.md")"
@@ -211,8 +217,8 @@ cp "$work/stale-across.json.1" "$work/stale-across.json.2"
 rollup stale-across.json "$(check COMPLETED SUCCESS)" 76543210fedcba9876543210fedcba9876543210
 shared stale-across
 sha=89abcdef0123456789abcdef0123456789abcdef
-got_first="$(wait_in "$work/stale-across" stale-across "$work/stale-across.first.err" 60 60 "$sha")"
-got_second="$(wait_in "$work/stale-across" stale-across "$work/stale-across.second.err" 60 60 "$sha")"
+got_first="$(again stale-across first 60 60 "$sha")"
+got_second="$(again stale-across second 60 60 "$sha")"
 [[ "$got_first" == 3 ]] || problems+=("first call: want exit 3, got $got_first (stderr: $(cat "$work/stale-across.first.err"))")
 [[ "$got_second" == 2 ]] || problems+=("second call for $sha past the recorded deadline, PR reporting another head: want exit 2, got $got_second (stderr: $(cat "$work/stale-across.second.err"))")
 report "$name"
