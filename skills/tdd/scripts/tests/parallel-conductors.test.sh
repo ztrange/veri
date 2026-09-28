@@ -842,6 +842,19 @@ done
 [[ -z "$bad" ]] \
   && ok || no "#505 VERI_MAX_ISSUES not a whole number >= 1 (a word, 0, a negative, a fraction) is exit 2 naming it and the value, with no conductor launched ($bad )"
 
+# 23. VERI_MAX_ISSUES set but empty is exit 2 naming the variable, and launches nothing — the way
+# VERI_PRIORITY_LABEL set but empty is.
+gh23="$work/gh23"
+solvable_fixture "$gh23" 7
+capped23="$work/capped23"
+cap23_stub="$work/claude-cap23"
+record_stub "$cap23_stub" "$capped23" "$gh23"
+run_launcher "$gh23" "$cap23_stub" "$work/cap23.out" VERI_MAX_ISSUES=
+named=no
+grep -F "VERI_MAX_ISSUES must be a whole number >= 1: ''" "$work/cap23.out" > /dev/null && named=yes
+[[ "$code" == 2 && ! -e "$capped23" && "$named" == yes ]] \
+  && ok || no "#505 VERI_MAX_ISSUES set but empty is exit 2 naming it and the empty value '', with no conductor launched ( [exit=$code want 2, launched: $([[ -e "$capped23" ]] && echo yes || echo no), named: $named] $(cat "$work/cap23.out") )"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
