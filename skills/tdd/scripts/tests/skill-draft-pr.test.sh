@@ -1042,6 +1042,7 @@ report "$name"
 #     the structural thing both the append and the test must share.
 name="$skill_md's Draft PR step appends its CI repair step with a ⟦ci-repair⟧ text and recognises a second red by that mark, not by the repair step's prose (#544)"
 problems=()
+ci_repair_mark='⟦ci-repair⟧'
 
 if step_or_problem '### 4. Draft PR' "how the step marks and recognises a CI repair step"; then
   commands="$(section_commands)"
@@ -1049,15 +1050,15 @@ if step_or_problem '### 4. Draft PR' "how the step marks and recognises a CI rep
   if [[ -z "$appended" ]]; then
     problems+=("no command line of $skill_md's Draft PR step appends a CI repair step through add-ledger-step.sh")
   else
-    grep -F '⟦ci-repair⟧' > /dev/null <<< "$appended" ||
-      problems+=("$skill_md's Draft PR step appends its CI repair step without the ⟦ci-repair⟧ mark: $(printf '%.160s' "$appended")")
+    grep -F "$ci_repair_mark" > /dev/null <<< "$appended" ||
+      problems+=("$skill_md's Draft PR step appends its CI repair step without the $ci_repair_mark mark: $(printf '%.160s' "$appended")")
   fi
   red="$(first_record "$commands" -E '^[^#]*[$]s/event[.]sh bail cause=ci-red')"
   if [[ -z "$red" ]]; then
     problems+=("no command line of $skill_md's Draft PR step bails with cause ci-red, so how it recognises a second red could not be checked")
   else
-    grep -F '⟦ci-repair⟧' > /dev/null <<< "$red" ||
-      problems+=("$skill_md's Draft PR step recognises a second red CI result without the ⟦ci-repair⟧ mark: $(printf '%.160s' "$red")")
+    grep -F "$ci_repair_mark" > /dev/null <<< "$red" ||
+      problems+=("$skill_md's Draft PR step recognises a second red CI result without the $ci_repair_mark mark: $(printf '%.160s' "$red")")
     grep -F 'fix the ci failure' > /dev/null <<< "$red" &&
       problems+=("$skill_md's Draft PR step recognises a second red CI result by the repair step's prose: $(printf '%.160s' "$red")")
   fi
