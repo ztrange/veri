@@ -85,6 +85,14 @@ waited() {
   wait_in "$dir" "$1" "${2:-1800}" "$work/$1.err"
 }
 
+# expect_exit <name> <code> [bound] — waited <name> [bound], and record a problem unless it
+# exited <code>.
+expect_exit() {
+  local got
+  got="$(waited "$1" "${3:-1800}")"
+  [[ "$got" == "$2" ]] || problems+=("$1, bound ${3:-1800}: want exit $2, got $got (stderr: $(cat "$work/$1.err"))")
+}
+
 rollup pending.json "$(check COMPLETED SUCCESS),$(check IN_PROGRESS '')"
 rollup green.json   "$(check COMPLETED SUCCESS),$(check COMPLETED NEUTRAL),$(check COMPLETED SKIPPED)"
 rollup red.json     "$(check COMPLETED SUCCESS),$(check COMPLETED FAILURE)"
@@ -93,9 +101,7 @@ rollup empty.json   ""
 name="wait-ci.sh exits 3 while a check is pending, 0 when every check completed SUCCESS, NEUTRAL or SKIPPED, 1 on any other conclusion, and never 0 on an empty rollup (#544)"
 problems=()
 for want in pending:3 green:0 red:1; do
-  fx="${want%%:*}" code="${want##*:}"
-  got="$(waited "$fx")"
-  [[ "$got" == "$code" ]] || problems+=("$fx rollup: want exit $code, got $got (stderr: $(cat "$work/$fx.err"))")
+  expect_exit "${want%%:*}" "${want##*:}"
 done
 got="$(waited empty)"
 [[ "$got" != 0 ]] || problems+=("empty rollup: exited 0")
@@ -107,10 +113,8 @@ cp "$work/late.json.1" "$work/late.json.2"
 
 name="wait-ci.sh polls a pending check until its bound runs out: a check that completes on the third read exits 0 within 1800 s and 3 within 60 s (#544)"
 problems=()
-got="$(waited late 1800)"
-[[ "$got" == 0 ]] || problems+=("bound 1800: want exit 0, got $got (stderr: $(cat "$work/late.err"))")
-got="$(waited late 60)"
-[[ "$got" == 3 ]] || problems+=("bound 60: want exit 3, got $got (stderr: $(cat "$work/late.err"))")
+expect_exit late 0 1800
+expect_exit late 3 60
 report "$name"
 
 name="wait-ci.sh exits 2 and names the PR when gh cannot read its checks, rather than waiting its bound out as if they were pending (#544)"
@@ -149,10 +153,9 @@ context() {
 name="wait-ci.sh reads a legacy StatusContext by its state: PENDING or EXPECTED is pending and exits 3, never 0; FAILURE or ERROR is failed and exits 1 (#544)"
 problems=()
 for want in PENDING:3 EXPECTED:3 FAILURE:1 ERROR:1; do
-  st="${want%%:*}" code="${want##*:}"
+  st="${want%%:*}"
   rollup "legacy-$st.json" "$(check COMPLETED SUCCESS),$(context "$st")"
-  got="$(waited "legacy-$st")"
-  [[ "$got" == "$code" ]] || problems+=("legacy $st: want exit $code, got $got (stderr: $(cat "$work/legacy-$st.err"))")
+  expect_exit "legacy-$st" "${want##*:}"
 done
 report "$name"
 
