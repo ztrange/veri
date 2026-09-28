@@ -64,18 +64,16 @@ finish() {
   exit "$1"
 }
 
+require_whole_number() {
+  if [[ ! "$2" =~ ^[0-9]+$ ]] || (( 10#$2 < 1 )); then
+    echo "parallel-conductors: $1 must be a whole number >= 1: '$2'" >&2
+    finish 2
+  fi
+}
+
 parallel="${VERI_PARALLEL-1}"
-
-if [[ ! "$parallel" =~ ^[0-9]+$ ]] || (( 10#$parallel < 1 )); then
-  echo "parallel-conductors: VERI_PARALLEL must be a whole number >= 1: '$parallel'" >&2
-  finish 2
-fi
-
-if [[ -n "${VERI_MAX_ISSUES:-}" ]] \
-  && { [[ ! "$max_issues" =~ ^[0-9]+$ ]] || (( 10#$max_issues < 1 )); }; then
-  echo "parallel-conductors: VERI_MAX_ISSUES must be a whole number >= 1: '$max_issues'" >&2
-  finish 2
-fi
+require_whole_number VERI_PARALLEL "$parallel"
+[[ -n "${VERI_MAX_ISSUES:-}" ]] && require_whole_number VERI_MAX_ISSUES "$max_issues"
 
 # A conductor whose supervise.sh exits non-zero leaves that status in this directory, one file
 # per issue: exit 2 there is a conductor its supervisor killed.
