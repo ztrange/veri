@@ -504,6 +504,7 @@ section_commands() {
 # so the lookup is written here once rather than as an awk per probe.
 line_of() { awk -v re="$1" '$0 ~ ("^" re) { print NR; exit }' <<< "$commands"; }
 done_mark='veri_issue=[^ ]* veri_actor=conductor [$]s/event[.]sh done'
+metrics_commit='git commit -m "metrics:'
 rollup_read='gh pr view .*--json statuscheckrollup'
 wait_ci_run='[^#]*[$]s/wait-ci[.]sh '
 log_failed_read='[^#]*gh run view [^#]*--log-failed'
@@ -655,7 +656,7 @@ if step_or_problem '### 4. Draft PR' "where the step rebases onto the default br
     for before in 'git status --porcelain' '[$]s/next-pending-refactor[.]sh'; do
       rebase_runs after "$before"
     done
-    for after in "$done_mark" '[$]s/metrics[.]sh' 'git commit -m "metrics:' 'gh pr ready'; do
+    for after in "$done_mark" '[$]s/metrics[.]sh' "$metrics_commit" 'gh pr ready'; do
       rebase_runs before "$after"
     done
     plain="$(unmarked_records)"
@@ -866,7 +867,7 @@ if step_or_problem '### 4. Draft PR' "whether the step reads CI before recording
       problems+=("$skill_md's Draft PR step runs no $ci, so its order against the done mark could not be checked")
       continue
     fi
-    for recorded in "$done_mark" 'git commit -m "metrics:'; do
+    for recorded in "$done_mark" "$metrics_commit"; do
       at="$(line_of "$recorded")"
       if [[ -z "$at" ]]; then
         problems+=("$skill_md's Draft PR step runs no $recorded, so the CI read's order against it could not be checked")
@@ -1012,12 +1013,12 @@ problems=()
 
 if step_or_problem '### 4. Draft PR' "whether a CI bail stops the step"; then
   commands="$(section_commands)"
-  followed="$(awk -v done_re="$done_mark" '
+  followed="$(awk -v done_re="$done_mark" -v metrics_re="$metrics_commit" '
       /^```/ { block++; fenced = !fenced; next }
       !fenced { next }
       /^[^#]*[$]s\/event[.]sh bail cause=ci-(timeout|red)/ {
         match($0, /cause=ci-(timeout|red)/); bails[block] = bails[block] " " substr($0, RSTART + 6, RLENGTH - 6); next }
-      bails[block] != "" && ($0 ~ ("^" done_re) || $0 ~ /^git commit -m "metrics:/) {
+      bails[block] != "" && ($0 ~ ("^" done_re) || $0 ~ ("^" metrics_re)) {
         print "after" bails[block] ": " $0 }' <<< "$commands")"
   bailed="$(grep -F 'event.sh bail cause=ci-' <<< "$commands")"
   [[ -n "$bailed" ]] ||
