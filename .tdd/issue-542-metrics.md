@@ -1,9 +1,9 @@
 ### 📊 Metrics — issue 542
 
-Wall time for the issue: 5760 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1478 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 6 of 7 planned.
-Outcome: the run bailed — untestable-criterion, a process failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/543.
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
 
 #### By phase
@@ -14,6 +14,7 @@ Cost is every leaf of the run, and the conductor own spending is not in it: this
 | red | 15 | 7 | 0 | 0 | 699 | 586 | 139 | 270 | 58710 | 7186025 | 762135 | 8.71 |
 | green | 16 | 7 | 1 | 0 | 3744 | 813 | 203 | 394 | 81256 | 10373977 | 768847 | 9.85 |
 | refactor | 13 | 6 | 0 | 0 | 774 | 306 | 87 | 172 | 28982 | 3995489 | 576299 | 5.99 |
+| structural | 1 | 0 | 0 | 0 | 893 | 145 | 50 | 90 | 13256 | 3093226 | 89165 | 1.60 |
 
 #### Rework and waste, by phase
 
@@ -23,6 +24,7 @@ Cost is every leaf of the run, and the conductor own spending is not in it: this
 | red | 0 | 0.00 | 27 | 0.51 |
 | green | 1061 | 2.06 | 0 | 0.00 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
+| structural | 0 | 0.00 | 0 | 0.00 |
 | develop-red | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
@@ -50,17 +52,23 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | SKILL.md's Draft PR step answers a failed CI check by appending a repair step to the ledger whose text quotes the failing suite and its `FAIL -` line (or the error line) read from `gh run view --log-failed`, committing it, and returning to the cycle loop so the run resumes into that step ⟦criterion 2⟧ | 1 | 1/5 | structural-owed | PASS | 0 | 90 | 1.09 |
 | SKILL.md's Draft PR step bails on a second red CI result after a CI repair step, with a cause token `classify-bail.sh` maps to a system or process label, never a silent stop ⟦criterion 3⟧ | 1 | 1/5 | structural-owed | PASS | 0 | 69 | 0.93 |
 
+#### Structural pass
+
+| pass | refactor | stopped |
+| --- | ---: | --- |
+| issue | 0/10 | candidates-done |
+
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 1 | 1 | 0 | 10 | 92 | 0 | 113 | 93 | 0 | 1 | 1 | 1 | 1 | 0 | 92 | 0 | 114 | 1 | 0 | 2 | 0 | 114 | 0 | 114 | 114 | 2 | 1 | 0 | 115 | 1 | 114 | 0 | 115 | 1 | 2 | 0 | 114 | 115 | 2 | 1 | 2 | 2 | 0 | 115 | 115 | 115 | 2 | 2 | 0 | 1 | 2 | 0 | 2 | 0 | 115 | 116 | 2 | 0 | 2 |
-| fast | 7 | 6 | 7 | 6 | 6 | 7 | 7 | 6 | 6 | 7 | 6 | 6 | 7 | 6 | 6 | 7 | 7 | 7 | 7 | 6 | 6 | 7 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 1 | 0 | 1 | 1 | 2 | 2 | 1 | 2 | 2 | 2 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| all | 523 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 1 | 1 | 0 | 10 | 92 | 0 | 113 | 93 | 0 | 1 | 1 | 1 | 1 | 0 | 92 | 0 | 114 | 1 | 0 | 2 | 0 | 114 | 0 | 114 | 114 | 2 | 1 | 0 | 115 | 1 | 114 | 0 | 115 | 1 | 2 | 0 | 114 | 115 | 2 | 1 | 2 | 2 | 0 | 115 | 115 | 115 | 2 | 2 | 0 | 1 | 2 | 0 | 2 | 0 | 115 | 116 | 2 | 0 | 2 | 0 | 53 | 32 |
+| fast | 7 | 6 | 7 | 6 | 6 | 7 | 7 | 6 | 6 | 7 | 6 | 6 | 7 | 6 | 6 | 7 | 7 | 7 | 7 | 6 | 6 | 7 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 1 | 0 | 1 | 1 | 2 | 2 | 1 | 2 | 2 | 2 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 523 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 431 | 840 | 170330 | 21611386 | 2145993 | 24.90 |
+| total | 481 | 930 | 183586 | 24704612 | 2235158 | 26.50 |
