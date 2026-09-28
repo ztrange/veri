@@ -1513,6 +1513,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    git commit -m "metrics: what solving #<n> cost (#<n>)"
    $S/push-branch.sh
    $S/wait-ci.sh <pr-url> 540 1800 "$(git rev-parse HEAD)"; ci=$?    # exit 3 → run this line again, in a new Bash call
+   [ "$ci" != 1 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)"
+   [ "$ci" != 2 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh pr edit <pr-url> --title "<type>: <criterion summary> (#<n>)" --body "<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md, followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by its ⟦human-owed⟧ lines under ## Owed by a human>"
    ```
