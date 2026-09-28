@@ -1,0 +1,2 @@
+### parallel-conductors.sh exits 2, naming VERI_MAX_ISSUES and the value, when VERI_MAX_ISSUES is set to a value that is not a whole number >= 1 (a word like abc, zero, a negative, a fraction), and launches no conductor ⟦criterion 1⟧
+- parallel-conductors.test.sh case 7: `for cap in 2` with a one-arm `case` is a loop over one value now that `0` was dropped — inline it, or let step 3's unset-means-no-cap case take the second arm
