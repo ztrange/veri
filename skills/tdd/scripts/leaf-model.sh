@@ -37,13 +37,10 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# shellcheck source=lib/leaf-model.sh
 source "$HERE/lib/leaf-model.sh"
 
-# Exit 2, not the 1 a `${1:?…}` expansion aborts with — CLAUDE.md, "Exit codes are the API" (#270).
+# hazard: `${1:?}` aborts with status 1, not the 2 bad arguments owe.
 [[ -n "${1:-}" ]] || { echo "usage: leaf-model.sh <leaf-name>" >&2; exit 2; }
 name="$1"
 
-# The last statement: `leaf_model` prints on stdout and returns 0, or prints its own
-# diagnostic on stderr and returns 2 — this script exits with whatever it returns.
 leaf_model "$name"

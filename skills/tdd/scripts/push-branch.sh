@@ -22,26 +22,18 @@
 # to `.tdd/events.jsonl` through event.sh, and that line is the only way a human reading the
 # run afterwards learns the branch is not on the remote.
 
-# record <event> [key=value…] — append an event, or exit 2 if it cannot be written. A log
-# that cannot be written is a system failure, whichever push outcome it was recording.
-# event.sh is found beside this script only here, when an event is written, so a unit suite
-# that mocks `record` runs main with no `dirname` on PATH.
 record() {
   local here
   here="$(cd "$(dirname "$0")" && pwd)"
   "$here/event.sh" "$@" || exit 2
 }
 
-# main — the whole script. Its logic lives behind this function so a unit suite can source
-# the file and run nothing (#339); executed directly, the guard at the bottom calls it.
 main() {
   set -uo pipefail
 
   local retries backoff tunable attempt out branch remote_sha
   local -a lease=()
 
-  # The one force this script makes is pinned to a sha: a bare `--force` or an unpinned
-  # `--force-with-lease` would replace whatever the remote holds, so either is bad arguments.
   if (( $# > 0 )); then
     if [[ $# -ne 1 || ! "$1" =~ ^--force-with-lease=[^:]+:[0-9a-f]{7,40}$ ]]; then
       echo "push-branch.sh: the only argument is --force-with-lease=<branch>:<sha>, got '$*'" >&2
@@ -50,21 +42,9 @@ main() {
     lease=("$1")
   fi
 
-  # `--set-upstream` so the first call creates the remote branch and later ones fast-forward
-  # against it; `HEAD` rather than a branch name so the script reads the branch off the
-  # worktree it was run in instead of being told, the way every other conductor script does.
-  # The push's own output is kept: it is what says WHY the copy did not land, and a reader of
-  # the event log gets no second chance to ask git.
-  #
-  # A failed push is retried VERI_PUSH_RETRIES more times (extra attempts after the first,
-  # the same semantics as VERI_STUCK_RETRIES): an unreachable origin is usually a blip. Only
-  # when every attempt has failed does the run hear about it — one stderr line and one event,
-  # however many attempts it took. Between attempts the script waits VERI_PUSH_BACKOFF
-  # seconds, doubled after each wait (2, 4, 8 by default); none follows the last attempt.
   retries="${VERI_PUSH_RETRIES:-3}"
   backoff="${VERI_PUSH_BACKOFF:-2}"
-  # A non-integer tunable is bad arguments, caught before any push: `(( attempt <= retries ))`
-  # would otherwise read a word as a variable name and a fraction as a syntax error.
+  # hazard: `(( ))` reads a word as a variable name and a fraction as a syntax error.
   for tunable in "VERI_PUSH_RETRIES=$retries" "VERI_PUSH_BACKOFF=$backoff"; do
     if [[ ! "${tunable#*=}" =~ ^[0-9]+$ ]]; then
       echo "push-branch.sh: ${tunable%%=*} must be a non-negative integer, got '${tunable#*=}'" >&2
@@ -77,9 +57,6 @@ main() {
     if out="$(git push "${lease[@]}" --set-upstream origin HEAD 2>&1)"; then
       exit 0
     fi
-    # A ref rejection is not a blip: the remote holds commits HEAD does not, so every retry
-    # would fail identically. Name the remote's sha and exit 1 — whether to force or rebase
-    # is a judgement, and it belongs to a leaf, not to this script.
     if [[ "$out" == *"[rejected]"* && ( "$out" == *non-fast-forward* || "$out" == *"fetch first"* || "$out" == *"stale info"* ) ]]; then
       branch="$(git rev-parse --abbrev-ref HEAD)"
       remote_sha="$(git ls-remote origin "refs/heads/$branch" | cut -f1)"

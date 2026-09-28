@@ -19,28 +19,10 @@
 # not green. What a caller must never be handed is 0.
 set -uo pipefail
 
-# The call this script accepts, spelled once: the check below quotes it back. A caller who
-# dropped the argument ran no suite at all, so it is exit 2 — "no answer could be obtained" —
-# never the exit 1 a suite that ran and failed earns (#270).
 USAGE="usage: run-suite.sh <suite>"
 [[ $# -ge 1 && -n "$1" ]] || { echo "$USAGE" >&2; exit 2; }
 suite="$1"
 
-# The guard itself, fetched rather than written out here. What a count line looks like and what
-# a suite that never printed one is told are the two judgements this script and the `test`
-# recipe have to make identically, and a copy of them here would be a second guard: tighten the
-# pattern or reword the refusal in one place and the other goes on reporting the suite it was
-# handed the old way, so whether a partially-dead suite reads as green would come down to how
-# the leaf invoked it — the very split #418 exists to close. So the Makefile declares both once,
-# as COUNT_LINE and COUNTLESS, and its `count-line-guard` target prints them as shell
-# assignments for the eval below. make is asked rather than the file parsed because the value of
-# a make variable is make's to say.
-#
-# The repository root is this script's own grandparent's parent — skills/tdd/scripts/ is where
-# it lives — so the Makefile found is the one next to the suites being run, never whichever
-# directory the caller happened to be in. A root with no Makefile, or a make that cannot answer,
-# is exit 2 and not exit 1: no suite has been run and no judgement about one can be reached, so
-# there is no answer to give (CLAUDE.md, "Exit codes are the API").
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 eval "$(make -s --no-print-directory -C "$ROOT" count-line-guard 2>/dev/null)"
 [[ -n "${COUNT_LINE:-}" && -n "${COUNTLESS:-}" ]] || {
@@ -51,15 +33,11 @@ eval "$(make -s --no-print-directory -C "$ROOT" count-line-guard 2>/dev/null)"
 out="$(mktemp)"
 trap 'rm -f "$out"' EXIT
 
-# `tee` rather than a plain capture, so a slow suite's lines still appear while it runs; the
-# file is read only once the suite is done. The status wanted is the suite's, not tee's, so it
-# comes off PIPESTATUS. stdin is /dev/null for the reason the recipe gives: a suite that
-# inherits a leaf's stdin can block on it for as long as the leaf lives.
+# hazard: the pipeline's status is tee's; the suite's comes off PIPESTATUS.
 "$suite" < /dev/null 2>&1 | tee "$out"
 code=${PIPESTATUS[0]}
 
 tail -n 1 "$out" | grep -Eq "$COUNT_LINE" || {
-  # shellcheck disable=SC2059 — COUNTLESS is the Makefile's format string, not caller input.
   printf "$COUNTLESS" "$(basename "$suite")"
   exit 1
 }

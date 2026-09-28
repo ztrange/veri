@@ -44,9 +44,6 @@ gh_json() {  # gh_json <fixture-file> <gh args…> -> that document on stdout
   fi
 }
 
-# The remote-tracking refs outlive the remote: without reaching `origin` they may name
-# branches it no longer has, so an unreachable `origin` is no answer, not an empty one.
-# `ls-remote` reads the remote and writes no ref.
 if ! git ls-remote --heads origin > /dev/null; then
   echo "invisible-work.sh: cannot reach origin" >&2
   exit 2
@@ -58,12 +55,9 @@ if ! issues_json="$(gh_json issues.json issue list --state all --limit 10000 --j
   exit 2
 fi
 
-# The default branch as `origin` names it: `refs/remotes/origin/HEAD` -> `origin/main`.
 default="$(git symbolic-ref --short refs/remotes/origin/HEAD)"
 default="${default#origin/}"
 
-# One line per branch on origin: `<name> <tip> <commits ahead of the default branch>`.
-# The default branch is not a finding, under its own name or its `HEAD` alias.
 branches=""
 while read -r ref tip; do
   name="${ref#refs/remotes/origin/}"
@@ -72,7 +66,6 @@ while read -r ref tip; do
   branches+="$name $tip $ahead"$'\n'
 done < <(git for-each-ref --format='%(refname) %(objectname)' refs/remotes/origin/)
 
-# The worktree each local branch is checked out in: `refs/heads/<name>` -> its path.
 declare -A worktree_of=()
 while read -r key value; do
   case "$key" in
@@ -81,8 +74,6 @@ while read -r key value; do
   esac
 done < <(git worktree list --porcelain)
 
-# Invariant 1 (#191): one line per local branch `origin` does not carry:
-# `<name> <tip> <commits no origin ref holds> [<worktree>]`.
 locals=""
 while read -r ref tip; do
   name="${ref#refs/heads/}"
@@ -124,6 +115,5 @@ for row in sys.argv[4].splitlines():
 for finding in findings:
     print(finding)
 
-# 0: a finding was printed. 3: nothing to report — the healthy state, not an error.
 sys.exit(0 if findings else 3)
 ' "$issues_json" "$branches" "$prs_json" "$locals"

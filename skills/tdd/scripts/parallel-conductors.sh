@@ -11,27 +11,15 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# shellcheck source=lib/appendable.sh
 source "$HERE/lib/appendable.sh"
 
-# --continue-on-bail keeps launching past a bailed or killed conductor; without it the first one
-# stops new launches, and the conductors already running are still waited to completion.
 continue_on_bail=""
 [[ "${1:-}" == --continue-on-bail ]] && continue_on_bail=1
 
-# VERI_MAX_ISSUES caps the launches of one invocation, as at rung 2; unset is no cap.
 max_issues="${VERI_MAX_ISSUES-0}"
 
-# VERI_RUN_TIMEOUT is the wall-clock cap on one conductor, and the figure a killed one is reported
-# with — a killed conductor is not retried here; /tdd <n> resumes it.
 run_timeout="${VERI_RUN_TIMEOUT:-14400}"
 
-# The outer supervise.sh runs with heartbeat and timeout both VERI_RUN_TIMEOUT and no stuck
-# retries — pinned equal, because a conductor's stdout is silent for the length of a leaf. Those
-# values are for the outer supervisor only: the conductor gets the caller's own four leaf
-# tunables back exactly as they were, set or unset, through `env` — leaking
-# VERI_STUCK_RETRIES=0 into a conductor once turned its own baseline red (#87).
-# `env -u` strips all four, then the caller's set ones are re-added as they were.
 caller_env=()
 caller_set=()
 for var in VERI_HEARTBEAT VERI_TIMEOUT VERI_STUCK_RETRIES VERI_POLL; do
@@ -40,14 +28,6 @@ for var in VERI_HEARTBEAT VERI_TIMEOUT VERI_STUCK_RETRIES VERI_POLL; do
 done
 caller_env+=("${caller_set[@]+"${caller_set[@]}"}")
 
-# The launcher's supervisors write `.tdd/conductor-<n>.{log,rc,exit}` into the caller's checkout,
-# and each conductor's first check is that `git status --porcelain` there is empty. So `.tdd/*` goes
-# into the shared info/exclude before anything is written — never the .gitignore, which is tracked
-# and would dirty the very tree it is meant to keep clean. --git-common-dir resolves a linked
-# worktree back to the primary's git dir, which every worktree reads, and answers relative to the
-# current directory when it answers relatively. make_appendable keeps the caller's own last line
-# from being glued to ours. Only when the line is absent, so a second invocation does not grow the
-# file.
 common_dir="$(git rev-parse --git-common-dir)"
 exclude="$common_dir/info/exclude"
 if ! grep -xF '.tdd/*' "$exclude" > /dev/null 2>&1; then
@@ -55,9 +35,6 @@ if ! grep -xF '.tdd/*' "$exclude" > /dev/null 2>&1; then
   echo '.tdd/*' >> "$exclude"
 fi
 
-# finish <code> — exit with <code>, leaving it in `.tdd/parallel.exit` first, so whoever waits
-# on a detached launcher reads the final code from a file on every exit path, the refusals
-# included. The exclude above is already in place, so the file never dirties the checkout.
 finish() {
   mkdir -p .tdd
   echo "$1" > .tdd/parallel.exit
@@ -75,24 +52,13 @@ parallel="${VERI_PARALLEL-1}"
 require_whole_number VERI_PARALLEL "$parallel"
 [[ -n "${VERI_MAX_ISSUES+set}" ]] && require_whole_number VERI_MAX_ISSUES "$max_issues"
 
-# A conductor whose supervise.sh exits non-zero leaves that status in this directory, one file
-# per issue: exit 2 there is a conductor its supervisor killed.
 rc_dir="$(mktemp -d)"
 trap 'rm -rf "$rc_dir"' EXIT
 
-# The loop: while fewer than VERI_PARALLEL conductors are in flight — launched here and not yet
-# seen to finish — select with solvable-issues.sh and launch the first printed issue this
-# invocation has not launched yet, in the background: one it already ran and saw finish may still
-# be printed (a run that left no claim behind), and is never launched a second time. Then wait
-# for whichever in-flight conductor ends first and select again: a blocker only closes when a
-# human merges, so the set is recomputed after every completion rather than cached. With nothing
-# in flight and nothing left to launch, the loop ends with solvable-issues.sh's own status —
-# exit 3 once nothing is left.
 declare -A in_flight=()   # issue number -> pid of its supervise.sh
 declare -A launched=()    # every issue number this invocation has launched
 order=()                  # the same numbers, in launch order: the order the report follows
 
-# prs_json — the open PRs: the VERI_GH_JSON fixture when one is set.
 prs_json() {
   if [[ -n "${VERI_GH_JSON:-}" ]]; then
     cat "$VERI_GH_JSON/prs.json"
@@ -101,10 +67,6 @@ prs_json() {
   fi
 }
 
-# outcome <n> <prs> — issue <n>'s outcome, read from its PR and its run's event log rather than
-# the conductor's exit code, which is 0 for a finished run and a bail alike: `killed after
-# <VERI_RUN_TIMEOUT>s` when its supervise.sh exited 2, `done <url>` for a ready PR saying `Closes #<n>`, `bailed <url>` for a
-# draft one whose `.tdd/wt/<n>` event log ends in a bail; nothing otherwise.
 outcome() {
   local n="$1" prs="$2" pr last
   if [[ "$(cat "$rc_dir/$n" 2>/dev/null)" == 2 ]]; then
@@ -127,15 +89,11 @@ for pr in json.loads(sys.argv[1]):
   return 0
 }
 
-# is_failure <outcome> — true for a bailed or killed outcome: the kind that stops new launches
-# and makes the invocation exit 1.
 is_failure() {
   case "$1" in killed\ *|bailed\ *) return 0 ;; esac
   return 1
 }
 
-# report — one line per launched issue, in launch order; sets `failed` when any of them bailed
-# or was killed.
 failed=""
 report() {
   local prs n got
@@ -173,9 +131,6 @@ while :; do
     order+=("$n")
   done
   if (( ${#in_flight[@]} == 0 )); then
-    # Exit 2 when solvable-issues.sh could not answer, 1 when any launch bailed or was killed,
-    # 3 when nothing was launched at all, 0 when every launched issue is done.
-    # The report closes with one line naming what stopped the loop.
     report
     echo "stopped: ${stopped:-$why}"
     [[ -z "$plumbing" ]] || finish 2
