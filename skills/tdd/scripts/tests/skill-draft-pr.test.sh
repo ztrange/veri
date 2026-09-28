@@ -496,6 +496,7 @@ section_commands() {
 # so the lookup is written here once rather than as an awk per probe.
 line_of() { awk -v re="$1" '$0 ~ ("^" re) { print NR; exit }' <<< "$commands"; }
 done_mark='veri_issue=[^ ]* veri_actor=conductor [$]s/event[.]sh done'
+rollup_read='gh pr view .*--json statuscheckrollup'
 
 # unmarked_records — `records` with its Markdown emphasis and code marks stripped, so a probe
 # reads "rebase-onto-default.sh's exit 1" whether the document bolds it, backticks it or both.
@@ -776,7 +777,7 @@ if step_or_problem '### 4. Draft PR' "whether the step reads the readied PR's CI
   commands="$(section_commands)"
   ready="$(line_of 'gh pr ready')"
   watch="$(line_of 'gh pr checks .*--watch')"
-  rollup="$(line_of 'gh pr view .*--json statuscheckrollup')"
+  rollup="$(line_of "$rollup_read")"
   [[ -n "$ready" && -n "$watch" && "$watch" -gt "$ready" ]] ||
     problems+=("$skill_md's Draft PR step runs no gh pr checks --watch after gh pr ready, so nothing waits for the readied PR's CI to finish")
   [[ -n "$watch" && -n "$rollup" && "$rollup" -gt "$watch" ]] ||
@@ -824,7 +825,7 @@ problems=()
 if step_or_problem '### 4. Draft PR' "whether the step's CI wait is bounded by its own command"; then
   commands="$(section_commands)"
   ready="$(line_of 'gh pr ready')"
-  rollup="$(line_of 'gh pr view .*--json statuscheckrollup')"
+  rollup="$(line_of "$rollup_read")"
   wait_lines="$(awk -v a="${ready:-0}" -v b="${rollup:-0}" 'NR > a && (b == 0 || NR < b)' <<< "$commands")"
   checks="$(first_record "$wait_lines" -F 'gh pr checks')"
   if [[ -z "$ready" || -z "$checks" ]]; then
@@ -846,7 +847,7 @@ problems=()
 
 if step_or_problem '### 4. Draft PR' "whether the step reads CI before recording the run done"; then
   commands="$(section_commands)"
-  for ci in 'gh pr checks' 'gh pr view .*--json statuscheckrollup'; do
+  for ci in 'gh pr checks' "$rollup_read"; do
     ci_at="$(line_of "$ci")"
     if [[ -z "$ci_at" ]]; then
       problems+=("$skill_md's Draft PR step runs no $ci, so its order against the done mark could not be checked")
@@ -897,7 +898,7 @@ problems=()
 
 if step_or_problem '### 4. Draft PR' "whether the step repairs a failed CI check"; then
   commands="$(section_commands)"
-  rollup="$(line_of 'gh pr view .*--json statuscheckrollup')"
+  rollup="$(line_of "$rollup_read")"
   done_at="$(line_of "$done_mark")"
   log="$(line_of '[^#]*gh run view [^#]*--log-failed')"
   if [[ -z "$rollup" || -z "$done_at" ]]; then
