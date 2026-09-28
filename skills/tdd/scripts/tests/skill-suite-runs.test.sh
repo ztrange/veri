@@ -247,6 +247,24 @@ else
 fi
 report "$name"
 
+# 6. A step's cycle — from the Red heading to "4. Draft PR" — names no full-suite run: every
+#    "full suite" in it is negated, and a "full-suite run" points at the Draft PR step, so a
+#    run carries one tier-all run per PR plus one per repair step.
+name="$skill_md names no full-suite run inside a step's cycle"
+problems=()
+text="$(awk 'index($0, "#### Red") == 1 { s = 1 } index($0, "### 4. Draft PR") == 1 { exit } s' "$skill_path" | plain | tr -s '\n ' ' ')"
+if [[ -n "${text// /}" ]]; then
+  negated='(^| )(not|neither|nor|never|no)( [a-z-]+){0,5} full suite'
+  to_draft_pr='full[- ]suite run (in|at) (4\. )?draft pr'
+  while [[ "$text" =~ $negated ]]; do text="${text/"${BASH_REMATCH[0]}"/}"; done
+  while [[ "$text" =~ $to_draft_pr ]]; do text="${text/"${BASH_REMATCH[0]}"/}"; done
+  [[ "$text" =~ [^.]{0,60}(full\ suite|full-suite\ run)[^.]{0,40} ]] &&
+    problems+=("$skill_md names a full-suite run inside a step's cycle: ${BASH_REMATCH[0]}")
+else
+  problems+=("$skill_md has no text from '#### Red' to '### 4. Draft PR' to read")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
