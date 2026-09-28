@@ -9,7 +9,8 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-CLASSIFY="$HERE/../../comment-class.sh"
+SCRIPTS="$HERE/../.."
+CLASSIFY="$SCRIPTS/comment-class.sh"
 pass=0 fail=0
 
 work="$(mktemp -d)"
@@ -150,7 +151,7 @@ verdict "the sweepable report omits a leading contract header and a comment mark
 
 # 11. the sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh.
 problems=""
-classify --sweepable "$HERE/../../metrics.sh" "$HERE/../../event.sh" "$HERE/../../harvest-usage.sh"
+classify --sweepable "$SCRIPTS/metrics.sh" "$SCRIPTS/event.sh" "$SCRIPTS/harvest-usage.sh"
 if [[ -n "$out" ]]; then
   problems+="    want an empty sweepable report, got:"$'\n'"$out"$'\n'
 fi
