@@ -65,6 +65,18 @@ classify "$f" "$g"
 want_line "$g:1:1" "want a line '$g:1:1'"
 verdict "a heredoc left open at the end of one file does not carry into the next"
 
+# 4. a quoted or <<- heredoc delimiter opens a heredoc; a here-string <<< opens none.
+problems=""
+f="$work/delims.sh"
+printf '%s\n' "cat <<'EOF'" '# in a single-quoted heredoc' 'EOF' 'cat <<"EOF"' '# in a double-quoted heredoc' 'EOF' \
+  'cat <<-EOF' '# in a dash heredoc' $'\tEOF' 'cat <<< word' '# a comment after a here-string' > "$f"
+classify "$f"
+want_line "$f:2:[23]" "want line 2 reported as class 2 or 3"
+want_line "$f:5:[23]" "want line 5 reported as class 2 or 3"
+want_line "$f:8:[23]" "want line 8 reported as class 2 or 3"
+want_line "$f:11:1" "want a line '$f:11:1' after a here-string"
+verdict "a # line in a quoted or <<- heredoc is never class 1, and a here-string opens no heredoc"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
