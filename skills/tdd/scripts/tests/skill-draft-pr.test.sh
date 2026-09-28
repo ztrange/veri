@@ -84,6 +84,9 @@
 #  23. SKILL.md's Draft PR step answers a failed CI check by reading `gh run view --log-failed`,
 #      appending a repair step that quotes the failing suite and its `FAIL -` line, committing
 #      it and returning to the cycle loop, all before the `done` mark (issue #542).
+#  24. SKILL.md's Draft PR step bails on a second red CI result after a CI repair step: its
+#      command block runs a bail between the `--log-failed` read and the `done` mark, with a
+#      cause `classify-bail.sh` maps to `system` or `process`, and its prose says so (#542).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -921,6 +924,42 @@ if step_or_problem '### 4. Draft PR' "whether the step repairs a failed CI check
       grep -E 'step 3|cycle loop' > /dev/null <<< "$record" ||
         problems+=("$skill_md's Draft PR step never says the run returns to the cycle loop after appending the CI repair step: $(printf '%.120s' "$record")")
     fi
+  fi
+fi
+report "$name"
+
+# 24. The criterion, as one case (issue #542): a second red CI result after a CI repair step
+#     bails, the way a second red full run does, so the repair step is one more cycle and not a
+#     loop. The bail is a command line after the failed log is read and before the run marks
+#     itself done, and its cause is one `classify-bail.sh` classifies — the real script is
+#     asked, so a token it does not know is a bail no human-facing label can name.
+name="$skill_md's Draft PR step bails on a second red CI result after a CI repair step with a cause classify-bail.sh maps to system or process (#542)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "whether the step bails on a second red CI result"; then
+  commands="$(section_commands)"
+  log="$(line_of '[^#]*gh run view [^#]*--log-failed')"
+  done_at="$(line_of "$done_mark")"
+  if [[ -z "$log" || -z "$done_at" ]]; then
+    problems+=("$skill_md's Draft PR step reads no --log-failed or runs no done mark, so where it bails on a second red CI result could not be checked")
+  else
+    cause="$(awk -v from="$log" -v to="$done_at" \
+      'NR > from && NR < to && sub(/^[^#]*[$]s\/event[.]sh bail cause=/, "") && $1 != "ci-timeout" { print $1; exit }' <<< "$commands")"
+    if [[ -z "$cause" ]]; then
+      problems+=("no command line of $skill_md's Draft PR step bails (event.sh bail cause=…) between the --log-failed read and the done mark, so a second red CI result stops silently")
+    else
+      label="$("$ROOT/skills/tdd/scripts/classify-bail.sh" "$cause" 2> /dev/null)"
+      [[ "$label" == system || "$label" == process ]] ||
+        problems+=("$skill_md's Draft PR step bails on a second red CI result with cause $cause, which classify-bail.sh maps to no system or process label")
+    fi
+  fi
+  plain="$(unmarked_records)"
+  record="$(first_record "$plain" -F 'second red' -E 'red ci|ci (check|result)')"
+  if [[ -z "$record" ]]; then
+    problems+=("no record of $skill_md's Draft PR step says what a second red CI result after a repair step does")
+  else
+    grep -F 'bail' > /dev/null <<< "$record" ||
+      problems+=("$skill_md's Draft PR step never says a second red CI result bails: $(printf '%.120s' "$record")")
   fi
 fi
 report "$name"
