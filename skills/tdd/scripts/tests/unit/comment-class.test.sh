@@ -33,7 +33,7 @@ classify() {
 
 want_line() {
   if ! grep -E "^$1(:|$)" <<< "$out" > /dev/null; then
-    problems+="    $2, got:"$'\n'"$out"$'\n'
+    problems+="    want a line matching '$1', got:"$'\n'"$out"$'\n'
   fi
 }
 
@@ -42,7 +42,7 @@ problems=""
 f="$work/plain.sh"
 printf '%s\n' 'echo one' '# a comment in code' 'echo two' > "$f"
 classify "$f"
-want_line "$f:2:1" "want a line '$f:2:1'"
+want_line "$f:2:1"
 verdict "a comment in code outside any heredoc is reported as class 1 with its file and line"
 
 # 2. a `#` line inside a heredoc is reported apart from a comment in the same file, never as class 1.
@@ -50,9 +50,9 @@ problems=""
 f="$work/mixed.sh"
 printf '%s\n' 'echo one' '# a comment in code' 'cat << EOF' '# a line in a heredoc' 'EOF' '# a comment after the heredoc' > "$f"
 classify "$f"
-want_line "$f:2:1" "want a line '$f:2:1'"
-want_line "$f:4:[23]" "want line 4 reported as class 2 or 3"
-want_line "$f:6:1" "want a line '$f:6:1' once the heredoc closes"
+want_line "$f:2:1"
+want_line "$f:4:[23]"
+want_line "$f:6:1"
 verdict "a # line inside a heredoc is counted apart from a comment in the same file, never as class 1"
 
 # 3. a heredoc left open at the end of one file does not carry into the next.
@@ -62,7 +62,7 @@ g="$work/after.sh"
 printf '%s\n' 'cat <<EOF' '# a line in a heredoc' > "$f"
 printf '%s\n' '# a comment in code' > "$g"
 classify "$f" "$g"
-want_line "$g:1:1" "want a line '$g:1:1'"
+want_line "$g:1:1"
 verdict "a heredoc left open at the end of one file does not carry into the next"
 
 # 4. a quoted or <<- heredoc delimiter opens a heredoc; a here-string <<< opens none.
@@ -71,10 +71,10 @@ f="$work/delims.sh"
 printf '%s\n' "cat <<'EOF'" '# in a single-quoted heredoc' 'EOF' 'cat <<"EOF"' '# in a double-quoted heredoc' 'EOF' \
   'cat <<-EOF' '# in a dash heredoc' $'\tEOF' 'cat <<< word' '# a comment after a here-string' > "$f"
 classify "$f"
-want_line "$f:2:[23]" "want line 2 reported as class 2 or 3"
-want_line "$f:5:[23]" "want line 5 reported as class 2 or 3"
-want_line "$f:8:[23]" "want line 8 reported as class 2 or 3"
-want_line "$f:11:1" "want a line '$f:11:1' after a here-string"
+want_line "$f:2:[23]"
+want_line "$f:5:[23]"
+want_line "$f:8:[23]"
+want_line "$f:11:1"
 verdict "a # line in a quoted or <<- heredoc is never class 1, and a here-string opens no heredoc"
 
 echo "----"
