@@ -19,7 +19,7 @@ source "$HERE/lib/appendable.sh"
 continue_on_bail=""
 [[ "${1:-}" == --continue-on-bail ]] && continue_on_bail=1
 
-# VERI_MAX_ISSUES caps the launches of one invocation, as at rung 2; 0, the default, is no cap.
+# VERI_MAX_ISSUES caps the launches of one invocation, as at rung 2; unset is no cap.
 max_issues="${VERI_MAX_ISSUES:-0}"
 
 # VERI_RUN_TIMEOUT is the wall-clock cap on one conductor, and the figure a killed one is reported
@@ -68,6 +68,12 @@ parallel="${VERI_PARALLEL-1}"
 
 if [[ ! "$parallel" =~ ^[0-9]+$ ]] || (( 10#$parallel < 1 )); then
   echo "parallel-conductors: VERI_PARALLEL must be a whole number >= 1: '$parallel'" >&2
+  finish 2
+fi
+
+if [[ -n "${VERI_MAX_ISSUES:-}" ]] \
+  && { [[ ! "$max_issues" =~ ^[0-9]+$ ]] || (( 10#$max_issues < 1 )); }; then
+  echo "parallel-conductors: VERI_MAX_ISSUES must be a whole number >= 1: '$max_issues'" >&2
   finish 2
 fi
 
