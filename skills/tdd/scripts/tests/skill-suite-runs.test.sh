@@ -219,6 +219,33 @@ if need_text '#### Green' '^1\. '; then
 fi
 report "$name"
 
+# 5. CLAUDE.md's "Testing idiom" paragraph on where the docs suites live — the one opening
+#    "a suite whose subject is the docs pipeline" — states what runs per step (red and
+#    refactor leaves: the affected suites; develop-green, verify-green and verify-refactor:
+#    the fast tier plus the affected suites) and per PR (the full suite once before the PR
+#    is readied, plus once per repair step), and no longer says three leaves per step run it.
+name="$claude_md's Testing idiom paragraph states what runs per step and per PR"
+problems=()
+text="$(paragraphs "$claude_path" | grep -E '^a suite whose subject is the docs pipeline')"
+if [[ -n "$text" ]]; then
+  says 'fast (tier|command)' \
+    "$claude_md's Testing idiom paragraph never names the fast tier, which develop-green, verify-green and verify-refactor run per step"
+  says 'affected suites' \
+    "$claude_md's Testing idiom paragraph never names the affected suites, which every leaf of a step runs"
+  says 'develop-green' "$claude_md's Testing idiom paragraph never names develop-green"
+  says 'verify-green' "$claude_md's Testing idiom paragraph never names verify-green"
+  says 'verify-refactor' "$claude_md's Testing idiom paragraph never names verify-refactor"
+  says '(per|once a|each|one) pr|pr is readied|readying the pr|readies the pr' \
+    "$claude_md's Testing idiom paragraph never says the full suite runs once per PR, before the PR is readied"
+  says 'repair step' \
+    "$claude_md's Testing idiom paragraph never says a repair step runs the full suite again"
+  [[ "$text" =~ three\ leaves\ per\ step ]] &&
+    problems+=("$claude_md's Testing idiom paragraph still says three leaves per step run the full suite")
+else
+  problems+=("$claude_md has no paragraph opening 'a suite whose subject is the docs pipeline' to read")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
