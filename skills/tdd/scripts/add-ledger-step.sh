@@ -40,17 +40,14 @@ added_steps() {
   local line="$1" crit text
   crit="$(criterion_of "$line")"
   for text in "${texts[@]}"; do
-    if is_repair "$text"; then
-      printf '%s\n' "- [ ] $text$crit"
-    else
-      printf '%s\n' "- [ ] $text $added$crit"
-    fi
+    printf '%s\n' "- [ ] $text$(added_mark "$text")$crit"
   done
 }
 
 is_anchor_step() { [[ "$1" == "- ["*"]"* && "$1" == *"$anchor"* ]]; }
 is_added_step() { [[ "$1" == *"$added"* ]]; }
 is_repair() { [[ "$1" == *"$repair"* ]]; }
+added_mark() { is_repair "$1" || printf ' %s' "$added"; }
 
 count_lines() {
   local pred="$1" line n=0
