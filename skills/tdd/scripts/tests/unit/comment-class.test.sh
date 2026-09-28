@@ -32,6 +32,13 @@ classify() {
   fi
 }
 
+want_empty_sweepable() {
+  classify --sweepable "$@"
+  if [[ -n "$out" ]]; then
+    problems+="    want an empty sweepable report, got:"$'\n'"$out"$'\n'
+  fi
+}
+
 want_line() {
   if ! grep -E "^$1(:|$)" <<< "$out" > /dev/null; then
     problems+="    want a line matching '$1', got:"$'\n'"$out"$'\n'
@@ -138,10 +145,7 @@ f="$work/header-hazard.sh"
 printf '%s\n' '#!/usr/bin/env bash' '# tool.sh — print its one argument.' '#' '# Usage: tool.sh <arg>' \
   '# Exit: 0 printed, 2 bad arguments.' 'set -uo pipefail' '' \
   '# hazard: under set -u an unset name exits with the status of the previous command' 'echo "${1:-}"' > "$f"
-classify --sweepable "$f"
-if [[ -n "$out" ]]; then
-  problems+="    want an empty sweepable report, got:"$'\n'"$out"$'\n'
-fi
+want_empty_sweepable "$f"
 printf '%s\n' '# print the argument, or nothing' 'echo "${1:-}"' >> "$f"
 classify --sweepable "$f"
 if [[ "$out" != "$f:10:1" ]]; then
@@ -151,20 +155,14 @@ verdict "the sweepable report omits a leading contract header and a comment mark
 
 # 11. the sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh.
 problems=""
-classify --sweepable "$SCRIPTS/metrics.sh" "$SCRIPTS/event.sh" "$SCRIPTS/harvest-usage.sh"
-if [[ -n "$out" ]]; then
-  problems+="    want an empty sweepable report, got:"$'\n'"$out"$'\n'
-fi
+want_empty_sweepable "$SCRIPTS/metrics.sh" "$SCRIPTS/event.sh" "$SCRIPTS/harvest-usage.sh"
 verdict "the sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh"
 
 # 12. the sweepable report is empty for supervise.sh, run-leaf.sh, detach-leaf.sh, wait-leaf.sh
 #     and run-verdict.sh.
 problems=""
-classify --sweepable "$SCRIPTS/supervise.sh" "$SCRIPTS/run-leaf.sh" "$SCRIPTS/detach-leaf.sh" \
+want_empty_sweepable "$SCRIPTS/supervise.sh" "$SCRIPTS/run-leaf.sh" "$SCRIPTS/detach-leaf.sh" \
   "$SCRIPTS/wait-leaf.sh" "$SCRIPTS/run-verdict.sh"
-if [[ -n "$out" ]]; then
-  problems+="    want an empty sweepable report, got:"$'\n'"$out"$'\n'
-fi
 verdict "the sweepable report is empty for supervise.sh, run-leaf.sh, detach-leaf.sh, wait-leaf.sh and run-verdict.sh"
 
 echo "----"
