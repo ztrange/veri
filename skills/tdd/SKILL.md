@@ -1501,6 +1501,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    gh pr view <pr-url> --json statusCheckRollup
    [ "$(gh pr view <pr-url> --json statusCheckRollup -q '[.statusCheckRollup[] | select(.status == "PENDING" or .status == "IN_PROGRESS" or .status == "QUEUED")] | length')" = 0 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
    gh run view <run-id> --log-failed          # a failed check only → its suite and FAIL - line
+   grep -F 'fix the CI failure:' .tdd/issue-<n>.md > /dev/null && VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)"
    VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(awk 'sub(/^- \[x\] /, "") { last = $0 } END { print last }' .tdd/issue-<n>.md)" $S/event.sh step-added anchor="$(awk 'sub(/^- \[x\] /, "") { last = $0 } END { print last }' .tdd/issue-<n>.md)" added=1
    $S/add-ledger-step.sh .tdd/issue-<n>.md after "$(awk 'sub(/^- \[x\] /, "") { last = $0 } END { print last }' .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>>'
    git add .tdd/issue-<n>.md
@@ -1525,6 +1526,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    line — or the error line, when the suite died before writing one — commit the ledger, and
    return to step 3, *The cycle loop*, without the `done` mark: the quoted line is that
    step's red evidence, the same way a red full run's repair step is.
+   A second red CI result after a CI repair step does **bail**, with cause `ci-red`, the way
+   a second red full run does — the repair step is one more cycle, not a loop.
    The `done` mark comes before the render because `metrics.sh` reads it for both the Outcome
    and the issue's wall time: a report rendered before it exists says `unknown` for both. The
    body is rewritten only after the `metrics:` commit is pushed, so it never quotes a file the
@@ -1813,6 +1816,8 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   over-budget leaf answers.
 - `ci-timeout` — a readied PR's check was still pending when the Draft PR step's bounded CI
   wait ran out → **system** failure (CI never answered, not the methodology).
+- `ci-red` — a readied PR's CI check failed again after a CI repair step → **process**
+  failure (CI answered, and the repair did not fix what it said).
 
 **A bail reached first stays a bail**, whatever stop is waiting behind it: the methodology or
 the plumbing has already answered, and a pause would hide that answer from the resume. Ask
