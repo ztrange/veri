@@ -515,6 +515,7 @@ done_mark='veri_issue=[^ ]* veri_actor=conductor [$]s/event[.]sh done'
 metrics_commit='git commit -m "metrics:'
 rollup_read='gh pr view .*--json statuscheckrollup'
 wait_ci_run='[^#]*[$]s/wait-ci[.]sh '
+push_run='[^#]*([$]s/push-branch[.]sh|git push)'
 log_failed_read='[^#]*gh run view [^#]*--log-failed'
 
 # unmarked_records — `records` with its Markdown emphasis and code marks stripped, so a probe
@@ -1081,9 +1082,9 @@ if step_or_problem '### 4. Draft PR' "whether a push after the CI read has its r
   if [[ -z "$read_at" ]]; then
     problems+=("$skill_md's Draft PR step runs no \$S/wait-ci.sh, so whether a later push has its CI run read could not be checked")
   else
-    unread="$(awk -v from="$read_at" -v wait_re="^$wait_ci_run" '
+    unread="$(awk -v from="$read_at" -v wait_re="^$wait_ci_run" -v push_re="^$push_run" '
         NR <= from { next }
-        /^[^#]*([$]s\/push-branch[.]sh|git push)/ { pushed = $0; next }
+        $0 ~ push_re { pushed = $0; next }
         pushed != "" && $0 ~ wait_re { pushed = "" }
         END { print pushed }' <<< "$commands")"
     [[ -z "$unread" ]] ||
@@ -1101,8 +1102,8 @@ problems=()
 
 if step_or_problem '### 4. Draft PR' "which head sha the step's CI waits are given"; then
   commands="$(section_commands)"
-  unpinned="$(awk -v wait_re="^$wait_ci_run" '
-      /^[^#]*([$]s\/push-branch[.]sh|git push)/ { delete sha }
+  unpinned="$(awk -v wait_re="^$wait_ci_run" -v push_re="^$push_run" '
+      $0 ~ push_re { delete sha }
       match($0, /^[a-z_][a-z0-9_]*="?[$][(]git rev-parse head[)]"?/) {
         split($0, lhs, "="); sha[lhs[1]] = 1 }
       $0 ~ wait_re {
