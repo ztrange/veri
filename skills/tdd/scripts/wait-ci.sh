@@ -29,9 +29,14 @@ rollup_state() {
 import json, sys
 doc = json.loads(sys.argv[1])
 rows = doc.get("statusCheckRollup") or []
-if not rows or any(r.get("status") != "COMPLETED" for r in rows):
+def outcome(r):
+    if r.get("__typename") == "StatusContext":
+        return None if r.get("state") in ("PENDING", "EXPECTED") else r.get("state")
+    return r.get("conclusion") if r.get("status") == "COMPLETED" else None
+outcomes = [outcome(r) for r in rows]
+if not rows or None in outcomes:
     state = "pending"
-elif all(r.get("conclusion") in ("SUCCESS", "NEUTRAL", "SKIPPED") for r in rows):
+elif all(o in ("SUCCESS", "NEUTRAL", "SKIPPED") for o in outcomes):
     state = "green"
 else:
     state = "red"
