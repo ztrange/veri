@@ -31,14 +31,18 @@ classify() {
   fi
 }
 
+want_line() {
+  if ! grep -E "^$1(:|$)" <<< "$out" > /dev/null; then
+    problems+="    $2, got:"$'\n'"$out"$'\n'
+  fi
+}
+
 # 1. a comment in code, outside any heredoc, is reported with its file and line as class 1.
 problems=""
 f="$work/plain.sh"
 printf '%s\n' 'echo one' '# a comment in code' 'echo two' > "$f"
 classify "$f"
-if ! grep -E "^$f:2:1(:|$)" <<< "$out" > /dev/null; then
-  problems+="    want a line '$f:2:1', got:"$'\n'"$out"$'\n'
-fi
+want_line "$f:2:1" "want a line '$f:2:1'"
 verdict "a comment in code outside any heredoc is reported as class 1 with its file and line"
 
 # 2. a `#` line inside a heredoc is reported apart from a comment in the same file, never as class 1.
@@ -46,15 +50,9 @@ problems=""
 f="$work/mixed.sh"
 printf '%s\n' 'echo one' '# a comment in code' 'cat << EOF' '# a line in a heredoc' 'EOF' '# a comment after the heredoc' > "$f"
 classify "$f"
-if ! grep -E "^$f:2:1(:|$)" <<< "$out" > /dev/null; then
-  problems+="    want a line '$f:2:1', got:"$'\n'"$out"$'\n'
-fi
-if ! grep -E "^$f:4:[23](:|$)" <<< "$out" > /dev/null; then
-  problems+="    want line 4 reported as class 2 or 3, got:"$'\n'"$out"$'\n'
-fi
-if ! grep -E "^$f:6:1(:|$)" <<< "$out" > /dev/null; then
-  problems+="    want a line '$f:6:1' once the heredoc closes, got:"$'\n'"$out"$'\n'
-fi
+want_line "$f:2:1" "want a line '$f:2:1'"
+want_line "$f:4:[23]" "want line 4 reported as class 2 or 3"
+want_line "$f:6:1" "want a line '$f:6:1' once the heredoc closes"
 verdict "a # line inside a heredoc is counted apart from a comment in the same file, never as class 1"
 
 # 3. a heredoc left open at the end of one file does not carry into the next.
@@ -64,9 +62,7 @@ g="$work/after.sh"
 printf '%s\n' 'cat <<EOF' '# a line in a heredoc' > "$f"
 printf '%s\n' '# a comment in code' > "$g"
 classify "$f" "$g"
-if ! grep -E "^$g:1:1(:|$)" <<< "$out" > /dev/null; then
-  problems+="    want a line '$g:1:1', got:"$'\n'"$out"$'\n'
-fi
+want_line "$g:1:1" "want a line '$g:1:1'"
 verdict "a heredoc left open at the end of one file does not carry into the next"
 
 echo "----"
