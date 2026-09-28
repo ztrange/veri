@@ -18,4 +18,4 @@
 - [x] The sweepable report is empty for every shell file under `skills/tdd/scripts/lib/` ⟦criterion 4⟧
 - [x] No comment line in `skills/tdd/scripts/*.sh` or `skills/tdd/scripts/lib/*.sh`, the leading contract header included, cites an issue number (`#<digits>`), so the headers keep the contract and drop the rationale ⟦added⟧ ⟦criterion 4⟧
 - [x] `make test` is green on the swept tree: CLAUDE.md's unit-tier suite count matches the unit suites on disk, now that `emitted-text.test.sh` exists ⟦criterion 5⟧
-- [ ] The suites covering each touched file stay green: `make test` passes on the swept tree ⟦full-suite⟧ ⟦criterion 5⟧
+- [x] The suites covering each touched file stay green: `make test` passes on the swept tree ⟦full-suite⟧ ⟦criterion 5⟧
