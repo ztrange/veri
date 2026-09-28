@@ -250,6 +250,12 @@ of planned. Committed beside the ledger and posted with the run's final comment.
 metrics are the sum over its issues' and are never committed.
 _Avoid_: stats, telemetry, report
 
+**Entry point**:
+A place veri is invoked from by name: a script invocation in `SKILL.md`, a Makefile target,
+or a git hook. Its command-line contract is fixed, so a refactor keeps it byte-identical and
+moves what is behind it. Functionality reachable from no entry point is dead. ADR-0026.
+_Avoid_: main, public API
+
 ## Scope ladder
 
 The framework grows in three rungs, each wrapping the previous — never a rewrite. Issue
