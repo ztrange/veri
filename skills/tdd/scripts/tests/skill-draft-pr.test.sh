@@ -66,27 +66,29 @@
 #      `REBASE: FAILED`, `REVISE_BUDGET` exhausted, or a killed leaf — resets the branch to
 #      `<pre-rebase-sha>`, leaves the PR a draft and bails with a comment naming every
 #      conflicting file (issue #238).
-#  18. SKILL.md's Draft PR step, after `gh pr ready`, waits on `gh pr checks --watch` and then
+#  18. SKILL.md's Draft PR step, after `gh pr ready`, waits on `wait-ci.sh` and then
 #      reads the readied PR's statusCheckRollup fail-closed: an empty rollup is never a pass, and a conclusion other than SUCCESS,
 #      NEUTRAL or SKIPPED counts as failed (issue #542).
 #  19. SKILL.md's Draft PR step never counts a pending check as green, and bounds its CI
 #      wait: a check still pending when the bound runs out bails with a cause
 #      `classify-bail.sh` classifies (issue #542).
 #  20. SKILL.md's Draft PR step bounds the command that waits on the readied PR's checks
-#      itself — a timeout or a polling loop with a deadline — rather than running an
-#      unbounded `gh pr checks --watch` (issue #542).
+#      itself: `wait-ci.sh` with no max-seconds, or one under a tool call's 600, and no
+#      `gh pr checks` after `gh pr ready` (issues #542, #544).
 #  21. SKILL.md's Draft PR step waits on the readied PR's checks and reads their rollup before
 #      the `done` mark and the `metrics:` commit, so a red CI result or a `ci-timeout` bail is
 #      never reached by a run that already recorded itself done (issue #542).
-#  22. SKILL.md's Draft PR command block itself reads the rollup for a check still pending
-#      once the wait's bound has run out, and bails with cause `ci-timeout`, between the wait
-#      and the `done` mark (issue #542).
+#  22. SKILL.md's Draft PR command block itself bails with cause `ci-timeout` on `wait-ci.sh`'s
+#      exit 2, between the wait and the `done` mark, and its prose says so (issues #542, #544).
 #  23. SKILL.md's Draft PR step answers a failed CI check by reading `gh run view --log-failed`,
 #      appending a repair step that quotes the failing suite and its `FAIL -` line, committing
 #      it and returning to the cycle loop, all before the `done` mark (issue #542).
 #  24. SKILL.md's Draft PR step bails on a second red CI result after a CI repair step: its
 #      command block runs a bail between the `--log-failed` read and the `done` mark, with a
 #      cause `classify-bail.sh` maps to `system` or `process`, and its prose says so (#542).
+#  25. SKILL.md's Draft PR step waits on CI by calling `wait-ci.sh` after `gh pr ready` and
+#      again on its exit 3, with no wait loop inside one command block and no pending test
+#      that reads `.status` alone (#544).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -500,6 +502,7 @@ section_commands() {
 line_of() { awk -v re="$1" '$0 ~ ("^" re) { print NR; exit }' <<< "$commands"; }
 done_mark='veri_issue=[^ ]* veri_actor=conductor [$]s/event[.]sh done'
 rollup_read='gh pr view .*--json statuscheckrollup'
+wait_ci_run='[^#]*[$]s/wait-ci[.]sh '
 log_failed_read='[^#]*gh run view [^#]*--log-failed'
 
 # unmarked_records — `records` with its Markdown emphasis and code marks stripped, so a probe
@@ -770,22 +773,22 @@ report "$name"
 
 # 18. The criterion, as one case (issue #542): a readied PR's CI is the Linux half of the
 #     portability promise, so a run that stops at `gh pr ready` never sees a Linux-only red.
-#     What is pinned: `gh pr checks --watch` runs after `gh pr ready`, a `gh pr view` reading
+#     What is pinned: `wait-ci.sh` runs after `gh pr ready`, a `gh pr view` reading
 #     `statusCheckRollup` runs after that wait, and the step reads it the way the merge skill
 #     does — an empty rollup is never a pass, and a completed check whose conclusion is not
 #     SUCCESS, NEUTRAL or SKIPPED counts as failed.
-name="$skill_md's Draft PR step, after gh pr ready, waits on gh pr checks --watch and reads the readied PR's statusCheckRollup fail-closed: an empty rollup is never a pass and a conclusion other than SUCCESS, NEUTRAL or SKIPPED counts as failed (#542)"
+name="$skill_md's Draft PR step, after gh pr ready, waits on wait-ci.sh and reads the readied PR's statusCheckRollup fail-closed: an empty rollup is never a pass and a conclusion other than SUCCESS, NEUTRAL or SKIPPED counts as failed (#542)"
 problems=()
 
 if step_or_problem '### 4. Draft PR' "whether the step reads the readied PR's CI"; then
   commands="$(section_commands)"
   ready="$(line_of 'gh pr ready')"
-  watch="$(line_of 'gh pr checks .*--watch')"
+  watch="$(line_of "$wait_ci_run")"
   rollup="$(line_of "$rollup_read")"
   [[ -n "$ready" && -n "$watch" && "$watch" -gt "$ready" ]] ||
-    problems+=("$skill_md's Draft PR step runs no gh pr checks --watch after gh pr ready, so nothing waits for the readied PR's CI to finish")
+    problems+=("$skill_md's Draft PR step runs no \$S/wait-ci.sh after gh pr ready, so nothing waits for the readied PR's CI to finish")
   [[ -n "$watch" && -n "$rollup" && "$rollup" -gt "$watch" ]] ||
-    problems+=("$skill_md's Draft PR step runs no gh pr view --json statusCheckRollup after its gh pr checks --watch, so the run reads CI before it has answered")
+    problems+=("$skill_md's Draft PR step runs no gh pr view --json statusCheckRollup after its \$S/wait-ci.sh, so the run reads CI before it has answered")
   plain="$(unmarked_records)"
   said="$(first_record "$plain" -F 'rollup' -wF 'empty' -E 'never[a-z ]* pass')"
   [[ -n "$said" ]] ||
@@ -822,23 +825,26 @@ fi
 report "$name"
 
 # 20. The criterion, as one case (issue #542): a bound stated only in prose is one the shell
-#     never enforces, so the command block that waits must carry it.
-name="$skill_md's Draft PR step bounds the command that waits on the readied PR's checks itself, with a timeout or a polling loop with a deadline, rather than an unbounded gh pr checks --watch (#542)"
+#     never enforces, so the command that waits must carry it (#544): one Bash call is killed at
+#     600 seconds, so a `wait-ci.sh` slice longer than that ends the call rather than the slice,
+#     and a `gh pr checks` after `gh pr ready` is a second, unbounded wait.
+name="$skill_md's Draft PR step bounds the command that waits on the readied PR's checks itself: wait-ci.sh with no max-seconds or one under 600, and no gh pr checks after gh pr ready (#542, #544)"
 problems=()
 
 if step_or_problem '### 4. Draft PR' "whether the step's CI wait is bounded by its own command"; then
   commands="$(section_commands)"
   ready="$(line_of 'gh pr ready')"
-  rollup="$(line_of "$rollup_read")"
-  wait_lines="$(awk -v a="${ready:-0}" -v b="${rollup:-0}" 'NR > a && (b == 0 || NR < b)' <<< "$commands")"
-  checks="$(first_record "$wait_lines" -F 'gh pr checks')"
-  if [[ -z "$ready" || -z "$checks" ]]; then
-    problems+=("$skill_md's Draft PR step runs no gh pr checks after gh pr ready, so there is no CI wait to bound")
-  elif ! grep -E '(^|[;&|( ])g?timeout [0-9]' > /dev/null <<< "$checks" &&
-       ! { grep -E '(^|[;&|( ])(while|until) ' > /dev/null <<< "$wait_lines" &&
-           grep -E 'deadline|date \+%s|\$seconds' > /dev/null <<< "$wait_lines"; }; then
-    problems+=("$skill_md's Draft PR step waits on the readied PR's checks with no bound on the command itself: $(printf '%.120s' "$checks")")
+  waits="$(line_of "$wait_ci_run")"
+  if [[ -z "$ready" || -z "$waits" || "$waits" -le "$ready" ]]; then
+    problems+=("$skill_md's Draft PR step runs no \$S/wait-ci.sh after gh pr ready, so there is no CI wait to bound")
+  else
+    slice="$(awk -v at="$waits" 'NR == at { sub(/^[^#]*[$]s\/wait-ci[.]sh +[^ ]+/, ""); print $1 }' <<< "$commands")"
+    [[ ! "$slice" =~ ^[0-9]+$ || "$slice" -lt 600 ]] ||
+      problems+=("$skill_md's Draft PR step gives wait-ci.sh a slice of $slice seconds, longer than one Bash call lives")
   fi
+  checks="$(awk -v a="${ready:-0}" 'NR > a && /^[^#]*gh pr checks/ { print; exit }' <<< "$commands")"
+  [[ -z "$checks" ]] ||
+    problems+=("$skill_md's Draft PR step still waits with gh pr checks after gh pr ready: $(printf '%.120s' "$checks")")
 fi
 report "$name"
 
@@ -851,7 +857,7 @@ problems=()
 
 if step_or_problem '### 4. Draft PR' "whether the step reads CI before recording the run done"; then
   commands="$(section_commands)"
-  for ci in 'gh pr checks' "$rollup_read"; do
+  for ci in "$wait_ci_run" "$rollup_read"; do
     ci_at="$(line_of "$ci")"
     if [[ -z "$ci_at" ]]; then
       problems+=("$skill_md's Draft PR step runs no $ci, so its order against the done mark could not be checked")
@@ -870,26 +876,29 @@ fi
 report "$name"
 
 # 22. The criterion, as one case (issue #542): a bail stated only in prose is one the conductor
-#     has to infer, so the command block that waits must itself ask the rollup whether a check
-#     is still pending and bail with `ci-timeout` on the answer, before the run marks itself
-#     done. A `#` comment in the block is not a command, so what follows one is not read.
-name="$skill_md's Draft PR command block itself checks the rollup for a still-pending check once the wait's bound has run out and bails with cause ci-timeout (#542)"
+#     has to infer, so the command block that waits must itself bail with `ci-timeout` before
+#     the run marks itself done. Since #544 the pending check is `wait-ci.sh`'s to see, and a
+#     check still pending past the deadline recorded across calls is its exit 2, so the bail is
+#     keyed on that exit. A `#` comment in the block is not a command, so what follows one is
+#     not read.
+name="$skill_md's Draft PR command block bails with cause ci-timeout on wait-ci.sh's exit 2, before the done mark (#542, #544)"
 problems=()
 
 if step_or_problem '### 4. Draft PR' "whether the step's command block bails on a check still pending"; then
   commands="$(section_commands)"
-  checks="$(line_of 'gh pr checks')"
+  waits="$(line_of "$wait_ci_run")"
   done_at="$(line_of "$done_mark")"
-  pending="$(line_of '[^#]*statuscheckrollup[^#]*(pending|in_progress|queued)')"
   timeout="$(line_of '[^#]*ci-timeout')"
-  if [[ -z "$checks" || -z "$done_at" ]]; then
-    problems+=("$skill_md's Draft PR step runs no gh pr checks wait or no done mark, so where it bails on a pending check could not be checked")
+  if [[ -z "$waits" || -z "$done_at" ]]; then
+    problems+=("$skill_md's Draft PR step runs no \$S/wait-ci.sh or no done mark, so where it bails on a pending check could not be checked")
   else
-    [[ -n "$pending" && "$pending" -gt "$checks" && "$pending" -lt "$done_at" ]] ||
-      problems+=("no command line of $skill_md's Draft PR step reads the statusCheckRollup for a check still pending (PENDING, IN_PROGRESS or QUEUED) between the CI wait and the done mark")
-    [[ -n "$pending" && -n "$timeout" && "$timeout" -ge "$pending" && "$timeout" -lt "$done_at" ]] ||
-      problems+=("no command line of $skill_md's Draft PR step bails with cause ci-timeout on that pending-check read before the done mark")
+    [[ -n "$timeout" && "$timeout" -ge "$waits" && "$timeout" -lt "$done_at" ]] ||
+      problems+=("no command line of $skill_md's Draft PR step bails with cause ci-timeout between \$S/wait-ci.sh and the done mark")
   fi
+  plain="$(unmarked_records)"
+  said="$(first_record "$plain" -F 'wait-ci.sh' -wF '2' -F 'ci-timeout')"
+  [[ -n "$said" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step says wait-ci.sh's exit 2 bails with cause ci-timeout")
 fi
 report "$name"
 
@@ -962,6 +971,33 @@ if step_or_problem '### 4. Draft PR' "whether the step bails on a second red CI 
     grep -F 'bail' > /dev/null <<< "$record" ||
       problems+=("$skill_md's Draft PR step never says a second red CI result bails: $(printf '%.120s' "$record")")
   fi
+fi
+report "$name"
+
+# 25. The criterion, as one case (issue #544): one Bash call is killed at 10 minutes, so the wait
+#     is `wait-ci.sh` called again on its exit 3, never a loop in the block; and a legacy
+#     StatusContext row has `.state` and no `.status`, so a pending test on `.status` alone
+#     never sees it.
+name="$skill_md's Draft PR step waits on CI by calling wait-ci.sh again on its exit 3, with no wait loop inside one Bash call and no pending test that reads .status alone (#544)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "how the step waits on the readied PR's CI"; then
+  commands="$(section_commands)"
+  ready="$(line_of 'gh pr ready')"
+  wait_ci="$(line_of "$wait_ci_run")"
+  done_at="$(line_of "$done_mark")"
+  [[ -n "$ready" && -n "$wait_ci" && -n "$done_at" && "$wait_ci" -gt "$ready" && "$wait_ci" -lt "$done_at" ]] ||
+    problems+=("no command line of $skill_md's Draft PR step runs \$S/wait-ci.sh between gh pr ready and the done mark")
+  plain="$(unmarked_records)"
+  said="$(first_record "$plain" -F 'wait-ci.sh' -wF '3' -E 'again')"
+  [[ -n "$said" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step says to call wait-ci.sh again on its exit 3")
+  loop="$(first_record "$commands" -E '^(while|until) .*; *do( |$)|^sleep [0-9]|^gh pr checks .*--watch')"
+  [[ -z "$loop" ]] ||
+    problems+=("$skill_md's Draft PR command block waits inside one Bash call: $(printf '%.120s' "$loop")")
+  status_only="$(first_record "$commands" -E '[.]status *==')"
+  [[ -z "$status_only" ]] || grep -F '__typename' > /dev/null <<< "$status_only" ||
+    problems+=("$skill_md's Draft PR command block tests a check pending by .status alone, so a legacy StatusContext row is never pending: $(printf '%.120s' "$status_only")")
 fi
 report "$name"
 
