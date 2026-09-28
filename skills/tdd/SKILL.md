@@ -1483,9 +1483,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh structural-pass stopped=nothing-structural
    ```
-2. **Close the run's log with the PR's URL, render the metrics, commit them, then rewrite the
-   PR into its final form and mark it ready for review** — one sub-step, in this order, from
-   inside the worktree. **This step opens no PR.** Step 2.3 opened it at the plan commit, so
+2. **Mark the PR ready for review and read its CI, then close the run's log with the PR's
+   URL, render the metrics, commit them, and rewrite the PR into its final form** — one
+   sub-step, in this order, from inside the worktree. **This step opens no PR.** Step 2.3 opened it at the plan commit, so
    there is nothing left here for `gh pr create` to do: a second one against a branch that
    already has an open PR is either a refusal that ends the run at its last step, or a second
    PR for the same branch — and then the claim another machine reads and the page a human is
@@ -1493,6 +1493,12 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    run remembers it, so a resumed run edits the PR its branch already has:
    ```
    gh pr view --json url -q .url          # → <pr-url>, the PR step 2.3 opened
+   gh pr ready <pr-url>
+   gh pr checks <pr-url> --watch > /dev/null & watch=$!
+   deadline=$(( $(date +%s) + 1800 ))
+   while kill -0 "$watch" 2> /dev/null && [ "$(date +%s)" -lt "$deadline" ]; do sleep 30; done
+   kill "$watch" 2> /dev/null
+   gh pr view <pr-url> --json statusCheckRollup
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>
    $S/metrics.sh <n> > .tdd/issue-<n>-metrics.md
    git add .tdd/issue-<n>-metrics.md
@@ -1500,18 +1506,14 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    $S/push-branch.sh
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh pr edit <pr-url> --title "<type>: <criterion summary> (#<n>)" --body "<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md, followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by its ⟦human-owed⟧ lines under ## Owed by a human>"
-   gh pr ready <pr-url>
-   gh pr checks <pr-url> --watch > /dev/null & watch=$!
-   deadline=$(( $(date +%s) + 1800 ))
-   while kill -0 "$watch" 2> /dev/null && [ "$(date +%s)" -lt "$deadline" ]; do sleep 30; done
-   kill "$watch" 2> /dev/null
-   gh pr view <pr-url> --json statusCheckRollup
    ```
    The readied PR's CI is read fail-closed, the way the `merge` skill reads it: an empty
    rollup is never a pass, and a completed check whose conclusion is anything other than
    `SUCCESS`, `NEUTRAL` or `SKIPPED` counts as failed. A pending check never counts as
    green, and the wait is bounded at 30 minutes: a check still pending when that bound runs
-   out does **bail**, with cause `ci-timeout`, rather than waiting on.
+   out does **bail**, with cause `ci-timeout`, rather than waiting on. Both are read before
+   the `done` mark and the `metrics:` commit, so a run that goes on to repair or bail has not
+   already recorded itself done.
    The `done` mark comes before the render because `metrics.sh` reads it for both the Outcome
    and the issue's wall time: a report rendered before it exists says `unknown` for both. The
    body is rewritten only after the `metrics:` commit is pushed, so it never quotes a file the

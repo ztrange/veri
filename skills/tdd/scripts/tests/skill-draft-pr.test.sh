@@ -75,6 +75,9 @@
 #  20. SKILL.md's Draft PR step bounds the command that waits on the readied PR's checks
 #      itself — a timeout or a polling loop with a deadline — rather than running an
 #      unbounded `gh pr checks --watch` (issue #542).
+#  21. SKILL.md's Draft PR step waits on the readied PR's checks and reads their rollup before
+#      the `done` mark and the `metrics:` commit, so a red CI result or a `ci-timeout` bail is
+#      never reached by a run that already recorded itself done (issue #542).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -824,6 +827,33 @@ if step_or_problem '### 4. Draft PR' "whether the step's CI wait is bounded by i
            grep -E 'deadline|date \+%s|\$seconds' > /dev/null <<< "$wait_lines"; }; then
     problems+=("$skill_md's Draft PR step waits on the readied PR's checks with no bound on the command itself: $(printf '%.120s' "$checks")")
   fi
+fi
+report "$name"
+
+# 21. The criterion, as one case (issue #542): a run that marks itself `done` and commits its
+#     metrics before reading CI has already recorded a finish that a red check or a
+#     `ci-timeout` bail then contradicts. Read off the section's command lines, in the order
+#     the conductor types them.
+name="$skill_md's Draft PR step waits on the readied PR's checks and reads their rollup before the done mark and the metrics commit (#542)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "whether the step reads CI before recording the run done"; then
+  commands="$(section_commands)"
+  for ci in 'gh pr checks' 'gh pr view .*--json statuscheckrollup'; do
+    ci_at="$(line_of "$ci")"
+    if [[ -z "$ci_at" ]]; then
+      problems+=("$skill_md's Draft PR step runs no $ci, so its order against the done mark could not be checked")
+      continue
+    fi
+    for recorded in 'veri_issue=[^ ]* veri_actor=conductor [$]s/event[.]sh done' 'git commit -m "metrics:'; do
+      at="$(line_of "$recorded")"
+      if [[ -z "$at" ]]; then
+        problems+=("$skill_md's Draft PR step runs no $recorded, so the CI read's order against it could not be checked")
+      elif [[ "$at" -le "$ci_at" ]]; then
+        problems+=("$skill_md's Draft PR step runs $ci (command line $ci_at) after $recorded (command line $at)")
+      fi
+    done
+  done
 fi
 report "$name"
 
