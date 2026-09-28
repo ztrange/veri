@@ -36,7 +36,11 @@ if [[ ! -r .tdd/events.jsonl ]]; then
   exit 2
 fi
 
-awk -v step="$step" -v all="$all" -v per_step="$per_step" '
+source "$(dirname "${BASH_SOURCE[0]}")/lib/json-escape.sh"
+json_escape_string escaped_step "$step"
+
+# hazard: `awk -v` expands backslash escapes, so the escaped step goes through ENVIRON.
+STEP_COST_STEP="$escaped_step" awk -v all="$all" -v per_step="$per_step" '
   function value(line, key,    rest) {
     if (!match(line, "\"" key "\": \"[^\"]*\"")) return ""
     rest = substr(line, RSTART, RLENGTH)
@@ -51,7 +55,7 @@ awk -v step="$step" -v all="$all" -v per_step="$per_step" '
     dollars[s] += value($0, "total_cost_usd"); leaves[s]++; seen = 1
     next
   }
-  all || value($0, "step") == step { sum += value($0, "total_cost_usd"); seen = 1 }
+  all || value($0, "step") == ENVIRON["STEP_COST_STEP"] { sum += value($0, "total_cost_usd"); seen = 1 }
   END {
     if (!seen) exit 3
     if (per_step) {
