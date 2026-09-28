@@ -235,12 +235,13 @@ proven by the script's integration suite passing unmodified in `tests/`, where i
 
 **A suite whose subject is the docs pipeline lives in `docs/tests/`, not here**, and runs by
 existing — `make docs-test` globs that directory, so a suite added there owes no Makefile
-edit (#137). `make test` is the **full suite**, and three leaves per step run it:
-`develop-green` once before it reports, and the two blind verifiers (verify-green and
-verify-refactor). The red and refactor leaves run one suite instead — the one holding the new
-case, the ones covering the files a transform touched (#144) — so a docs suite under
-`make test`'s glob still taxes every step three times over, with a tool that is not
-functional (ADR 0016). `docs-guard-filter.test.sh` and `docs-owed.test.sh` were moved out on
+edit (#137). Per step, the red and refactor leaves run the affected suites — the one holding
+the new case, the ones covering the files a transform touched (#144) — and `develop-green`
+and the two blind verifiers (verify-green and verify-refactor) run the fast tier plus the
+affected suites. `make test` is the **full suite**, and the conductor runs it once per PR,
+before the PR is readied, plus once per repair step a red result there appends (#539) — so a
+docs suite under `make test`'s glob still taxes every PR's full run, and every step whose
+affected set names it, with a tool that is not functional (ADR 0016). `docs-guard-filter.test.sh` and `docs-owed.test.sh` were moved out on
 2026-09-12 for that reason: together ~30 s of an 81 s `make test`. `docs-gap-adr.test.sh`
 followed on 2026-09-13 — its subject is a record under `docs/adr/`, and the only thing that
 had kept it here was the recipe line the glob replaced. `suite-lanes.test.sh`, also under
