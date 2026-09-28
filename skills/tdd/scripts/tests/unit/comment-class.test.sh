@@ -77,6 +77,20 @@ want_line "$f:8:[23]"
 want_line "$f:11:1"
 verdict "a # line in a quoted or <<- heredoc is never class 1, and a here-string opens no heredoc"
 
+# 5. a `#` line in a heredoc redirected to a file is class 2; one sent to a model, a variable, stdout or stderr is class 3.
+problems=""
+f="$work/targets.sh"
+printf '%s\n' 'cat > "$dir/fixture.txt" <<EOF' '# written to a file' 'EOF' 'claude -p <<EOF' '# sent to a model' 'EOF' \
+  'prompt="$(cat <<EOF' '# held in a variable' 'EOF' ')"' 'cat <<EOF' '# printed to stdout' 'EOF' \
+  'cat >&2 <<EOF' '# printed to stderr' 'EOF' > "$f"
+classify "$f"
+want_line "$f:2:2"
+want_line "$f:5:3"
+want_line "$f:8:3"
+want_line "$f:12:3"
+want_line "$f:15:3"
+verdict "a # line in a heredoc redirected to a file is class 2, and one sent to a model, a variable, stdout or stderr is class 3"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

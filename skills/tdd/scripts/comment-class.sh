@@ -3,7 +3,8 @@
 #
 # Usage: comment-class.sh <file>…
 #
-# Class 1 is a comment in code, 3 a `#` line inside a heredoc.
+# Class 1 is a comment in code, 2 a `#` line inside a heredoc redirected to a file,
+# 3 a `#` line inside any other heredoc.
 #
 # Exit: 0 printed, 2 bad arguments.
 set -uo pipefail
@@ -19,12 +20,13 @@ awk '
     end = $0
     if (dash) sub(/^\t+/, "", end)
     if (end == delim) delim = ""
-    else if ($0 ~ /^[[:space:]]*#/) print FILENAME ":" FNR ":3"
+    else if ($0 ~ /^[[:space:]]*#/) print FILENAME ":" FNR ":" cls
     next
   }
   /^[[:space:]]*#/ { print FILENAME ":" FNR ":1"; next }
   { line = $0; gsub(/<<</, "", line) }
   match(line, /<<-?[[:space:]]*["'\'']?[A-Za-z_][A-Za-z0-9_]*/) {
+    cls = line ~ />[[:space:]]*[^&[:space:]]/ ? 2 : 3
     delim = substr(line, RSTART + 2, RLENGTH - 2)
     dash = delim ~ /^-/
     sub(/^-?[[:space:]]*["'\'']?/, "", delim)
