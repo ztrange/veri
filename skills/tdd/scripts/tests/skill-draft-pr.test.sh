@@ -78,6 +78,9 @@
 #  21. SKILL.md's Draft PR step waits on the readied PR's checks and reads their rollup before
 #      the `done` mark and the `metrics:` commit, so a red CI result or a `ci-timeout` bail is
 #      never reached by a run that already recorded itself done (issue #542).
+#  22. SKILL.md's Draft PR command block itself reads the rollup for a check still pending
+#      once the wait's bound has run out, and bails with cause `ci-timeout`, between the wait
+#      and the `done` mark (issue #542).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -854,6 +857,30 @@ if step_or_problem '### 4. Draft PR' "whether the step reads CI before recording
       fi
     done
   done
+fi
+report "$name"
+
+# 22. The criterion, as one case (issue #542): a bail stated only in prose is one the conductor
+#     has to infer, so the command block that waits must itself ask the rollup whether a check
+#     is still pending and bail with `ci-timeout` on the answer, before the run marks itself
+#     done. A `#` comment in the block is not a command, so what follows one is not read.
+name="$skill_md's Draft PR command block itself checks the rollup for a still-pending check once the wait's bound has run out and bails with cause ci-timeout (#542)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "whether the step's command block bails on a check still pending"; then
+  commands="$(section_commands)"
+  checks="$(line_of 'gh pr checks')"
+  done_at="$(line_of 'veri_issue=[^ ]* veri_actor=conductor [$]s/event[.]sh done')"
+  pending="$(line_of '[^#]*statuscheckrollup[^#]*(pending|in_progress|queued)')"
+  timeout="$(line_of '[^#]*ci-timeout')"
+  if [[ -z "$checks" || -z "$done_at" ]]; then
+    problems+=("$skill_md's Draft PR step runs no gh pr checks wait or no done mark, so where it bails on a pending check could not be checked")
+  else
+    [[ -n "$pending" && "$pending" -gt "$checks" && "$pending" -lt "$done_at" ]] ||
+      problems+=("no command line of $skill_md's Draft PR step reads the statusCheckRollup for a check still pending (PENDING, IN_PROGRESS or QUEUED) between the CI wait and the done mark")
+    [[ -n "$pending" && -n "$timeout" && "$timeout" -ge "$pending" && "$timeout" -lt "$done_at" ]] ||
+      problems+=("no command line of $skill_md's Draft PR step bails with cause ci-timeout on that pending-check read before the done mark")
+  fi
 fi
 report "$name"
 

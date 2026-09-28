@@ -1499,6 +1499,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    while kill -0 "$watch" 2> /dev/null && [ "$(date +%s)" -lt "$deadline" ]; do sleep 30; done
    kill "$watch" 2> /dev/null
    gh pr view <pr-url> --json statusCheckRollup
+   [ "$(gh pr view <pr-url> --json statusCheckRollup -q '[.statusCheckRollup[] | select(.status == "PENDING" or .status == "IN_PROGRESS" or .status == "QUEUED")] | length')" = 0 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>
    $S/metrics.sh <n> > .tdd/issue-<n>-metrics.md
    git add .tdd/issue-<n>-metrics.md
