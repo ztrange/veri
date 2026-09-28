@@ -3,7 +3,7 @@
 #
 # Usage: comment-class.sh <file>…
 #
-# Class 1 is a comment in code, 2 a `#` line inside a heredoc redirected to a file or piped to tee,
+# Class 1 is a comment in code, 2 a `#` line inside a heredoc redirected to a file or piped to tee, dd or sponge,
 # 3 a `#` line inside any other heredoc.
 #
 # Exit: 0 printed, 2 bad arguments.
@@ -27,7 +27,7 @@ awk '
   { line = $0; gsub(/<<</, "", line) }
   match(line, /<<-?[[:space:]]*["'\'']?[A-Za-z_][A-Za-z0-9_]*/) {
     out = line; gsub(/[02-9]>+[[:space:]]*[^[:space:]]*/, "", out)
-    cls = out ~ />[[:space:]]*[^&[:space:]]/ || out ~ /\|[[:space:]]*tee[[:space:]]/ ? 2 : 3
+    cls = out ~ />[[:space:]]*[^&[:space:]]/ || out ~ /\|[[:space:]]*(tee|dd|sponge)[[:space:]]/ ? 2 : 3
     delim = substr(line, RSTART + 2, RLENGTH - 2)
     dash = delim ~ /^-/
     sub(/^-?[[:space:]]*["'\'']?/, "", delim)

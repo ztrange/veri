@@ -107,6 +107,16 @@ classify "$f"
 want_line "$f:2:2"
 verdict "a # line in a heredoc piped to tee writing a file is class 2"
 
+# 8. a `#` line in a heredoc piped to a file writer other than tee, such as dd or sponge, is class 2.
+problems=""
+f="$work/piped-writers.sh"
+printf '%s\n' 'cat <<EOF | dd of="$dir/fixture.txt"' '# written to a file through dd' 'EOF' \
+  'cat <<EOF | sponge "$dir/fixture.txt"' '# written to a file through sponge' 'EOF' > "$f"
+classify "$f"
+want_line "$f:2:2"
+want_line "$f:5:2"
+verdict "a # line in a heredoc piped to dd or sponge writing a file is class 2"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
