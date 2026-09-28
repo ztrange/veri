@@ -1,2 +1,4 @@
 ### SKILL.md's verify-refactor entry (Refactor loop, sub-step 5) says the verdict is on the fast tier plus the affected suites still green, in the same terms as verify-refactor.md, and no longer says the full suite runs in the refactor phase ⟦criterion 1⟧
 - fold SKILL.md:1335's new "Neither the refactor leaf nor verify-refactor runs the full suite" paragraph into 4. Draft PR's own "the only full-suite gate left in the cycle" sentence (SKILL.md:1344), so the fact is stated once — belongs to criterion 2's step, which owns that sentence
+### SKILL.md's Green section says develop-green keeps the fast tier plus the affected suites green before it reports, as develop-green.md does, and no longer says it keeps the full suite green
+- fold SKILL.md:1063-1064 (Green verify entry) into the Refactor loop's sentence at SKILL.md:1337-1339 — blocked: skill-suite-runs.test.sh case 1 needs the Green section to name "full suite", and that sentence is now the only place it does
