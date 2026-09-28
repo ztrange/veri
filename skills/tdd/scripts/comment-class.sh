@@ -16,13 +16,17 @@ fi
 awk '
   FNR == 1 { delim = "" }
   delim != "" {
-    if ($0 == delim) delim = ""
+    end = $0
+    if (dash) sub(/^\t+/, "", end)
+    if (end == delim) delim = ""
     else if ($0 ~ /^[[:space:]]*#/) print FILENAME ":" FNR ":3"
     next
   }
   /^[[:space:]]*#/ { print FILENAME ":" FNR ":1"; next }
-  match($0, /<<[[:space:]]*[A-Za-z_][A-Za-z0-9_]*/) {
-    delim = substr($0, RSTART + 2, RLENGTH - 2)
-    sub(/^[[:space:]]+/, "", delim)
+  { line = $0; gsub(/<<</, "", line) }
+  match(line, /<<-?[[:space:]]*["'\'']?[A-Za-z_][A-Za-z0-9_]*/) {
+    delim = substr(line, RSTART + 2, RLENGTH - 2)
+    dash = delim ~ /^-/
+    sub(/^-?[[:space:]]*["'\'']?/, "", delim)
   }
 ' "$@"
