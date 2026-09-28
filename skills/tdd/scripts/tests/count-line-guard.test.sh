@@ -1097,6 +1097,15 @@ refusal_from() {
     problems+=("want a line beginning '$1$GUARD_MESSAGE'; it said: $(flat "$scratch_out")")
 }
 
+called_empty() {
+  scratch_suite_run "$1" "$2" || return 0
+  refusal_from "$1"
+  grep -E "^$1: .*: ?$" <<< "$refusal" > /dev/null &&
+    problems+=("want no line quoting an empty last line; from the refusal on it said: $(flat "$refusal")")
+  grep -E "^$1: .*empty" <<< "$refusal" > /dev/null ||
+    problems+=("want a line naming the suite and saying its output was empty; from the refusal on it said: $(flat "$refusal")")
+}
+
 # 17. A countless suite's refusal quotes the line that came last (#508).
 name="make test quotes a countless suite's last line verbatim in its refusal (#508)"
 problems=()
@@ -1116,14 +1125,7 @@ report "$name"
 name="make test reports a suite that printed nothing as empty rather than quoting an empty line (#508)"
 problems=()
 
-empty_name='prints-nothing.test.sh'
-if scratch_suite_run "$empty_name" ':'; then
-  refusal_from "$empty_name"
-  grep -E "^$empty_name: .*: ?$" <<< "$refusal" > /dev/null &&
-    problems+=("want no line quoting an empty last line; from the refusal on it said: $(flat "$refusal")")
-  grep -E "^$empty_name: .*empty" <<< "$refusal" > /dev/null ||
-    problems+=("want a line naming the suite and saying its output was empty; from the refusal on it said: $(flat "$refusal")")
-fi
+called_empty 'prints-nothing.test.sh' ':'
 
 report "$name"
 
@@ -1131,15 +1133,8 @@ report "$name"
 name="make test reports a suite that printed only blank lines as empty rather than quoting an empty line (#508)"
 problems=()
 
-blank_name='prints-blank-lines.test.sh'
-if scratch_suite_run "$blank_name" 'echo
-echo'; then
-  refusal_from "$blank_name"
-  grep -E "^$blank_name: .*: ?$" <<< "$refusal" > /dev/null &&
-    problems+=("want no line quoting an empty last line; from the refusal on it said: $(flat "$refusal")")
-  grep -E "^$blank_name: .*empty" <<< "$refusal" > /dev/null ||
-    problems+=("want a line naming the suite and saying its output was empty; from the refusal on it said: $(flat "$refusal")")
-fi
+called_empty 'prints-blank-lines.test.sh' 'echo
+echo'
 
 report "$name"
 
