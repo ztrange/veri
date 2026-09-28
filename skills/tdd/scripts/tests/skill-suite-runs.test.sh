@@ -103,6 +103,13 @@ says() {
   [[ "$text" =~ $1 ]] || problems+=("$2")
 }
 
+# says_fast_plus_affected <where> <why> — `$text` names the fast tier and the affected suites;
+# <where> names the text read, <why> finishes "which …" in each problem.
+says_fast_plus_affected() {
+  says 'fast (tier|command)' "$1 never names the fast tier, which $2"
+  says 'affected suites|suites affected-suites\.sh' "$1 never names the affected suites, which $2"
+}
+
 # paragraphs <file> — the file's blank-line-separated paragraphs, one per line, normalised
 # through `plain`. CLAUDE.md is prose that wraps mid-sentence, so a paragraph is the unit a
 # claim about it can be asked of: a match on the whole file would let "full suite" in one
@@ -169,10 +176,8 @@ name="$skill_md's verify-refactor entry says the verdict is on the fast tier plu
 problems=()
 if need_text '#### Refactor loop' '^5\. '; then
   text="${text%%6. narrate*}"
-  says 'fast (tier|command)' \
-    "$skill_md's verify-refactor entry never names the fast tier, which verify-refactor.md tells the verifier to run"
-  says 'affected suites|suites affected-suites\.sh' \
-    "$skill_md's verify-refactor entry never names the affected suites, which verify-refactor.md tells the verifier to run"
+  says_fast_plus_affected "$skill_md's verify-refactor entry" \
+    'verify-refactor.md tells the verifier to run'
   [[ "$text" =~ full\ suite ]] &&
     problems+=("$skill_md's verify-refactor entry still says the full suite runs in the refactor phase, which verify-refactor.md never asks of the verifier")
 fi
@@ -210,10 +215,8 @@ name="$skill_md's Green entry says develop-green keeps the fast tier plus the af
 problems=()
 if need_text '#### Green' '^1\. '; then
   text="${text%%2. verify*}"
-  says 'fast (tier|command)' \
-    "$skill_md's develop-green entry never names the fast tier, which develop-green.md tells the leaf to run before it reports"
-  says 'affected suites|suites affected-suites\.sh' \
-    "$skill_md's develop-green entry never names the affected suites, which develop-green.md tells the leaf to run before it reports"
+  says_fast_plus_affected "$skill_md's develop-green entry" \
+    'develop-green.md tells the leaf to run before it reports'
   [[ "$text" =~ full\ suite ]] &&
     problems+=("$skill_md's develop-green entry still says develop-green keeps the full suite green, which develop-green.md never asks of the leaf")
 fi
@@ -228,10 +231,8 @@ name="$claude_md's Testing idiom paragraph states what runs per step and per PR"
 problems=()
 text="$(paragraphs "$claude_path" | grep -E '^a suite whose subject is the docs pipeline')"
 if [[ -n "$text" ]]; then
-  says 'fast (tier|command)' \
-    "$claude_md's Testing idiom paragraph never names the fast tier, which develop-green, verify-green and verify-refactor run per step"
-  says 'affected suites' \
-    "$claude_md's Testing idiom paragraph never names the affected suites, which every leaf of a step runs"
+  says_fast_plus_affected "$claude_md's Testing idiom paragraph" \
+    'develop-green, verify-green and verify-refactor run per step'
   says 'develop-green' "$claude_md's Testing idiom paragraph never names develop-green"
   says 'verify-green' "$claude_md's Testing idiom paragraph never names verify-green"
   says 'verify-refactor' "$claude_md's Testing idiom paragraph never names verify-refactor"
