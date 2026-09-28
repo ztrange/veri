@@ -89,6 +89,9 @@
 #  25. SKILL.md's Draft PR step waits on CI by calling `wait-ci.sh` after `gh pr ready` and
 #      again on its exit 3, with no wait loop inside one command block and no pending test
 #      that reads `.status` alone (#544).
+#  26. SKILL.md's Draft PR step stops at a `ci-timeout` or `ci-red` bail: neither the `done`
+#      mark nor the `metrics:` commit follows the bail in its command block, and its prose
+#      sends the run to *Bailing* (#544).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -998,6 +1001,36 @@ if step_or_problem '### 4. Draft PR' "how the step waits on the readied PR's CI"
   status_only="$(first_record "$commands" -E '[.]status *==')"
   [[ -z "$status_only" ]] || grep -F '__typename' > /dev/null <<< "$status_only" ||
     problems+=("$skill_md's Draft PR command block tests a check pending by .status alone, so a legacy StatusContext row is never pending: $(printf '%.120s' "$status_only")")
+fi
+report "$name"
+
+# 26. The criterion, as one case (issue #544): the conductor types a command block top to
+#     bottom, so a bail line with the `done` mark or the `metrics:` commit after it in the same
+#     block is a bail the run then walks past, recording itself done.
+name="$skill_md's Draft PR step stops at a ci-timeout or ci-red bail: no done mark and no metrics commit follow it in its command block, and it goes to Bailing (#544)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "whether a CI bail stops the step"; then
+  followed="$(section_lines "$section_heading" "$section_closer" | tr '[:upper:]' '[:lower:]' |
+    awk -v done_re="$done_mark" '
+      /^[[:space:]]*```/ { block++; fenced = !fenced; next }
+      !fenced { next }
+      { sub(/^[[:space:]]+/, "") }
+      /^[^#]*[$]s\/event[.]sh bail cause=ci-(timeout|red)/ {
+        match($0, /cause=ci-(timeout|red)/); bails[block] = bails[block] " " substr($0, RSTART + 6, RLENGTH - 6); next }
+      bails[block] != "" && ($0 ~ ("^" done_re) || $0 ~ /^git commit -m "metrics:/) {
+        print "after" bails[block] ": " $0 }')"
+  bailed="$(section_lines "$section_heading" "$section_closer" | grep -F 'event.sh bail cause=ci-')"
+  [[ -n "$bailed" ]] ||
+    problems+=("$skill_md's Draft PR step runs no event.sh bail cause=ci-timeout or cause=ci-red, so whether a CI bail stops the step could not be checked")
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    problems+=("$skill_md's Draft PR command block records the run finished after a CI bail — $(printf '%.160s' "$line")")
+  done <<< "$followed"
+  plain="$(unmarked_records)"
+  said="$(first_record "$plain" -E 'ci-timeout|ci-red' -F 'bailing')"
+  [[ -n "$said" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step sends a ci-timeout or ci-red bail to Bailing")
 fi
 report "$name"
 

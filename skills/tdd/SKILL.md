@@ -1503,6 +1503,10 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    $S/add-ledger-step.sh .tdd/issue-<n>.md after "$(awk 'sub(/^- \[x\] /, "") { last = $0 } END { print last }' .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>>'
    git add .tdd/issue-<n>.md
    git commit -m "plan: repair the red CI check (#<n>)"
+   ```
+   A `ci-timeout` or `ci-red` bail ends the step there and goes to *Bailing*: neither the
+   `done` mark nor the `metrics:` commit below follows it. Otherwise:
+   ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>
    $S/metrics.sh <n> > .tdd/issue-<n>-metrics.md
    git add .tdd/issue-<n>-metrics.md
