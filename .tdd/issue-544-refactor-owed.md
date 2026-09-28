@@ -1,0 +1,2 @@
+### `wait-ci.sh`'s bound is enforced across calls, not within one: the deadline is recorded on the first call for the PR's head commit, and a later call that still finds a check pending past that deadline exits 2 rather than starting a fresh bound ⟦criterion 1⟧
+- the headless case in wait-ci.test.sh writes its fixture with its own printf, repeating rollup()'s document format; removing it would need rollup() to accept a missing head, an option no other test needs
