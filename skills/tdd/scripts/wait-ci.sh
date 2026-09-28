@@ -4,10 +4,10 @@
 # Usage:
 #   wait-ci.sh <pr-url> [slice-seconds] [total-seconds]
 #
-# Status: 0 every check completed SUCCESS, NEUTRAL or SKIPPED · 1 a completed check
+# Status: 0 every check completed SUCCESS, NEUTRAL or SKIPPED, not all SKIPPED · 1 a completed check
 # concluded anything else · 2 no answer (bad arguments, gh failed, unreadable rollup), or a
 # check still pending past the deadline an earlier call recorded for the same head commit ·
-# 3 a check is still pending, or none has appeared yet, when this call's <slice-seconds> run
+# 3 a check is still pending, none has appeared yet, or every one was SKIPPED, when this call's <slice-seconds> run
 # out.
 #
 # The deadline, <total-seconds> (default <slice-seconds>) after the first call for a head
@@ -38,7 +38,7 @@ def outcome(r):
         return None if r.get("state") in ("PENDING", "EXPECTED") else r.get("state")
     return r.get("conclusion") if r.get("status") == "COMPLETED" else None
 outcomes = [outcome(r) for r in rows]
-if not rows or None in outcomes:
+if not rows or None in outcomes or all(o == "SKIPPED" for o in outcomes):
     state = "pending"
 elif all(o in ("SUCCESS", "NEUTRAL", "SKIPPED") for o in outcomes):
     state = "green"
