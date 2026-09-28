@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # leaf-model.sh — say which model one leaf runs on, so a run can price the two leaf roles
-# separately (issue #171). Today no leaf chooses: `run-leaf.sh` passes no `--model`, so
+# separately. Today no leaf chooses: `run-leaf.sh` passes no `--model`, so
 # developer and verifier alike run on whatever the operator's `~/.claude/settings.json`
 # says, and an experiment that moves one role to a cheaper model cannot be set up at all.
 #

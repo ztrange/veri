@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# leaf-role.sh — turn a leaf's NAME into the role its events are logged under (issue #107,
-# ADR-0014: observability is a per-run event log written by the scripts, not a service).
+# leaf-role.sh — turn a leaf's NAME into the role its events are logged under (ADR-0014:
+# observability is a per-run event log written by the scripts, not a service).
 #
 # The mapping itself lives in lib/leaf-role.sh's `leaf_role`, sourced below: every in-process
 # writer (supervise.sh, verify.sh, harvest-usage.sh, leaf-model.sh) sources that file directly

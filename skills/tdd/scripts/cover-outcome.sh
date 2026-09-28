@@ -4,7 +4,7 @@
 #
 # Reads a cover leaf's report on stdin. The leaf mutated the behaviour by hand, ran the
 # suite and restored the edit; it ends with `COVERED: yes|no` and a `CAUGHT_BY:` line
-# naming the test that went red under the mutation (issue #499).
+# naming the test that went red under the mutation.
 #
 # Usage:   cover-outcome.sh < <the leaf's report>
 #

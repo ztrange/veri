@@ -10,12 +10,12 @@
 #   build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
 #   build-verify-prompt.sh rebase <issue-spec-file> <onto-sha> <pre-rebase-sha>
 #     phase = red | green | refactor | pin | plan | rebase | transform
-#              for plan the third positional names the proposed ledger, not a test (#439);
+#              for plan the third positional names the proposed ledger, not a test;
 #              for transform it names the step's predicate record, and the fourth is the
-#              step's base sha (#499)
-#     --step = the ledger's own line for the step under judgement (#223): it scopes the
+#              step's base sha
+#     --step = the ledger's own line for the step under judgement: it scopes the
 #              verdict to that criterion, and carries the conductor's words, not the leaf's
-#     --fast-cmd = the fast tier's test command (#341), required for green and refactor:
+#     --fast-cmd = the fast tier's test command, required for green and refactor:
 #              verify-green and verify-refactor run it plus the affected suites, and a verifier in a target repository has
 #              no detect-test-command.sh of its own to ask. It is a command the conductor
 #              detected, never anything the developer leaf wrote.

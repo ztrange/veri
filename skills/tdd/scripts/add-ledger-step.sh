@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # add-ledger-step.sh <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]
-# — grow the plan while a run is under way (issue #360).
+# — grow the plan while a run is under way.
 #
 # Inserts each <text> as an unchecked step `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` on the lines
 # after the step containing <anchor-substring>, or on the lines before it, in the order
 # given. `instead-of` puts them where that step was and drops the step itself — the
-# placement a step that turned out to be several behaviours takes (issue #408).
+# placement a step that turned out to be several behaviours takes.
 # VERI_STEP_GROWTH (default 3) caps how many ⟦added⟧ steps one ledger may hold, and
 # the call is all or nothing: a batch that would exceed the cap inserts nothing, exits 1 and
 # records every text as a plain bullet under `## Owed steps`, where next-unchecked.sh will

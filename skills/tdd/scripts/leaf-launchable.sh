@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# leaf-launchable.sh — preflight's check that a leaf can actually be LAUNCHED (issue #187).
+# leaf-launchable.sh — preflight's check that a leaf can actually be LAUNCHED.
 #
 # It sits beside the `claude auth status` check SKILL.md preflight 0.2 already makes, and is
 # there for the same reason that one gives: every leaf is a `claude -p` subprocess, so a fault

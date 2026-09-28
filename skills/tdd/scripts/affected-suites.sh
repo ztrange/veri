@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # affected-suites.sh — print the suites one change affects, so a red or refactor leaf can run a
-# narrow slice of `make test` instead of all of it (issue #337).
+# narrow slice of `make test` instead of all of it.
 #
 # Usage:   affected-suites.sh <base>..<head>
 #

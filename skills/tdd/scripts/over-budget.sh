@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# over-budget.sh — turn one recorded test-command run into a yes or no (issue #342, part
-# of PRD #335). timed-test-run.sh records a tier and its seconds, tier-usual.sh says what
+# over-budget.sh — turn one recorded test-command run into a yes or no.
+# timed-test-run.sh records a tier and its seconds, tier-usual.sh says what
 # that tier usually costs and time-budget.sh resolves the tunables; this is the one that
 # compares them, so the conductor's narration has something to say a word about.
 #

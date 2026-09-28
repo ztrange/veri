@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # time-budget.sh — the two tunables that decide whether a recorded test-command run is
-# worth a word in the narration (issue #342, part of PRD #335). tier-usual.sh says what a
+# worth a word in the narration. tier-usual.sh says what a
 # tier usually costs; these say how far past usual — or past a fixed ceiling for the unit
 # tier, which has a budget in its own right rather than only a history — is far enough.
 #

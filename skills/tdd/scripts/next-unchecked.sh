@@ -11,11 +11,11 @@
 # the step is checked off.
 #
 # A step marked `⟦full-suite⟧` is skipped: it is covered by the run's full-suite gate,
-# not by a Red/Green cycle, so it is never handed to a leaf (#481). A step marked
+# not by a Red/Green cycle, so it is never handed to a leaf. A step marked
 # `⟦human-owed⟧` is skipped too: its deliverable is the record of a manual check, owed by
-# a human, which no leaf may produce (#481). A marker counts only where *Scope & plan*
+# a human, which no leaf may produce. A marker counts only where *Scope & plan*
 # writes it, immediately before the closing `⟦criterion k⟧`; a step whose text quotes one
-# anywhere else is an ordinary step and is printed (#484).
+# anywhere else is an ordinary step and is printed.
 #
 # Usage:   next-unchecked.sh < .tdd/issue-<n>.md
 set -euo pipefail

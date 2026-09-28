@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # transform-touches-tests.sh — reject a refactor-kind transform whose commits change a test
-# file (issue #499).
+# file.
 #
 # A transform moves structure and must leave the tests that pin the behaviour alone, or a
 # green suite stops meaning the behaviour is unchanged. A long refactor has no green commit,

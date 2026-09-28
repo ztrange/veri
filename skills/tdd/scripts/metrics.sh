@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# metrics.sh — what one issue's run cost, read back out of its event log (issue #108, and
-# #107/ADR-0014 before it: observability is a per-run event log written by the scripts, not
+# metrics.sh — what one issue's run cost, read back out of its event log (ADR-0014:
+# observability is a per-run event log written by the scripts, not
 # a service).
 #
 # Usage:   metrics.sh <issue-number>
@@ -40,8 +40,8 @@
 #              question — which step cost the watchdog its patience — which is why the
 #              column is here and not in the phase section.
 #   no-verdict — `relaunch` events carrying `cause=no-verdict`. verify.sh writes one each time
-#              a verifier leaf exited cleanly with no VERDICT: line and is launched again
-#              (issue #219): protocol compliance, `VERI_NO_VERDICT_RETRIES`, so neither a
+#              a verifier leaf exited cleanly with no VERDICT: line and is launched again:
+#              protocol compliance, `VERI_NO_VERDICT_RETRIES`, so neither a
 #              retry (liveness) nor a revise (verdict).
 #
 # Every line carries a step, the conductor's marks included, so the section is keyed by
@@ -129,8 +129,8 @@
 # same claim the `unknown` cells make, about a figure that has no cell to make it in.
 #
 # A fifth section is TIME AGAIN, read off a different mark and keyed by neither a phase nor
-# a step: the seconds every test-command run recorded, one row per tier (#342, part of PRD
-# #335). timed-test-run.sh writes one `test-run` mark per run of the test command, carrying
+# a step: the seconds every test-command run recorded, one row per tier.
+# timed-test-run.sh writes one `test-run` mark per run of the test command, carrying
 # the tier it used, the suites it covered and the wall seconds it took, and this section
 # lists those seconds per tier in the order the log carries them — a trend, which is what
 # makes "is this run typical" a question a reader can answer by eye.

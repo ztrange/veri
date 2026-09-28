@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # harvest-usage.sh — turn one finished leaf's closing accounting into a `usage` event
-# (issue #107, ADR-0014: observability is a per-run event log written by the scripts, not a
+# (ADR-0014: observability is a per-run event log written by the scripts, not a
 # service).
 #
 # Usage:   harvest-usage.sh <leaf-name>

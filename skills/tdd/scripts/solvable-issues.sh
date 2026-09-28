@@ -13,7 +13,7 @@
 # heading rather than the literal word. A reference is spelled either way GitHub writes one:
 # `#<n>`, or the full `https://github.com/<owner>/<repo>/issues/<n>` URL its autocomplete
 # inserts — and that URL blocks only when its `<owner>/<repo>` is this repository's, since
-# another project's #120 is not this one's.
+# another project's `#<n>` is not this one's.
 #
 # The open PR is the claim, and it is the only mark of a run every machine can see. The
 # conductor pushes the branch and opens its draft PR as the first act after the plan commit, so
@@ -28,7 +28,7 @@
 # is NOT a second claim: it is the worktree guard, and it guards one machine's worktree only.
 # While the pid in there still answers `kill -0`, no second conductor on that same machine may
 # enter the live run's tree and follow *Resume*, whose `git reset --hard HEAD` throws the live
-# leaf's uncommitted work away (#170). A pid is a machine-local name — it means nothing on
+# leaf's uncommitted work away. A pid is a machine-local name — it means nothing on
 # another computer — so a lock nobody answers for frees the worktree and never the issue: a
 # bailed run's issue stays out of the pool on the strength of its still-open draft PR, whatever
 # its pid says (ADR-0024).
@@ -36,7 +36,7 @@
 # The repository's issues and pull requests are read as the JSON `gh` emits:
 #   gh issue list --limit 10000 --json number,title,labels,body,state
 #   gh pr list    --limit 10000 --json body,state
-# gh returns a page, not the repository — 30 items unless told `--limit` (#244) — and has no
+# gh returns a page, not the repository — 30 items unless told `--limit` — and has no
 # "all", so the limit is a number no repository here comes near.
 # VERI_GH_JSON overrides both calls at once: it names a directory holding `issues.json` and
 # `prs.json` fixtures with those exact shapes, which is what makes this testable with no

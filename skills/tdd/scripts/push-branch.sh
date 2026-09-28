@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# push-branch.sh — copy the run's branch to the remote, from the worktree it runs in
-# (issue #191).
+# push-branch.sh — copy the run's branch to the remote, from the worktree it runs in.
 #
 # The conductor calls this at the two points that already write to the ledger: after a
 # step's green commit, and after a verify-refactor PASS clears the mark. Until then a run's
@@ -10,7 +9,7 @@
 # Usage:   push-branch.sh          # run from the issue's worktree
 #          push-branch.sh --force-with-lease=<branch>:<sha>
 #                                  # replace the remote copy only if it is still at <sha>
-#                                  # (issue #238: publishing a rebase). Never a bare force.
+#                                  # (publishing a rebase). Never a bare force.
 #
 # **An unreachable remote is not a bail, so that failure exits 0.** (A non-fast-forward
 # rejection is different, and exits 1: see the loop below.) A run

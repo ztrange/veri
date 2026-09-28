@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# session-cost.sh — what a day of Claude sessions cost, read from the session transcripts
-# (issue #201).
+# session-cost.sh — what a day of Claude sessions cost, read from the session transcripts.
 #
 # Usage:   session-cost.sh --since <ISO date> [--json] [<transcript.jsonl> ...]
 #

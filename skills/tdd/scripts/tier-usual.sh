@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# tier-usual.sh — what one tier's test-command run usually costs (issue #342, part of
-# PRD #335). timed-test-run.sh records a `seconds` per run, but a recorded number is only a
+# tier-usual.sh — what one tier's test-command run usually costs.
+# timed-test-run.sh records a `seconds` per run, but a recorded number is only a
 # number until there is something to compare it against. The usual is that something: the
 # median of the tier's last 10 `test-run` events.
 #

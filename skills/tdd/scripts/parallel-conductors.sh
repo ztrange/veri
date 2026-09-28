@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # parallel-conductors.sh — rung 3 of the scope ladder: run several issue-conductors at once
-# over the solvable set, from the target repo's primary checkout (#102).
+# over the solvable set, from the target repo's primary checkout.
 #
 # VERI_PARALLEL is how many conductors run at once, default 1. N conductors are N concurrent
 # `claude -p` sessions, billed as such, so a value that is not a whole number >= 1 — zero, a

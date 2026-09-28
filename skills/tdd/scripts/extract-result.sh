@@ -9,7 +9,7 @@
 # If the input contains no stream-json result event (e.g. a plain-text leaf, or a test
 # stub), the input is passed through unchanged — extraction is a no-op on non-stream data.
 #
-# A leaf re-invoked after it answered (a background task completing, issue #228) writes a
+# A leaf re-invoked after it answered (a background task completing) writes a
 # later result record with no verdict in it, so the newest record whose text carries a
 # `VERDICT:` line wins over a merely newer one; with none, the last record wins.
 #

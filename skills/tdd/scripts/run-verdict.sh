@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # run-verdict.sh — launch one verification, taking the step title through argv rather than
-# through a shell command string (#426).
+# through a shell command string.
 #
 # Usage:  run-verdict.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
 #

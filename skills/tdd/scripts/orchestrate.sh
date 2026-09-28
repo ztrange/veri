@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# orchestrate.sh — the loop above the conductor (issue #217): ask solvable-issues.sh which
+# orchestrate.sh — the loop above the conductor: ask solvable-issues.sh which
 # issues veri may take, launch one conductor for the first of them through run-conductor.sh,
 # and ask again, until nothing is left to take.
 #
@@ -20,14 +20,14 @@
 # ~2.2x a conductor's 53k first request) is stopped only at a step boundary: once its stream
 # shows the Bash call to `event.sh step-done` and that call's result, orchestrate.sh stops
 # reading and SIGTERMs the conductor's process group. Never mid-leaf — a leaf killed in Red
-# or Green leaves work a resume does not reset (#194).
+# or Green leaves work a resume does not reset.
 #
 # Closing the stream is not itself the stop. A write to a pipe no one reads raises SIGPIPE
 # only where SIGPIPE is fatal, and it is not everywhere: on CI's Linux the stopped conductor's
 # writes came back as plain `echo: I/O error` and it ran on to the end of its step, so the
 # case pinning "stopped after step-done" was green on this Mac and red there. The stop is
 # therefore an explicit signal to a recorded pid, which is why the launch goes through
-# bg_start and a session of its own rather than a pipeline (#424, #422).
+# bg_start and a session of its own rather than a pipeline.
 #
 # A conductor that halts with a question writes it to .tdd/parked/<n>.md. orchestrate.sh
 # prints `parked <n>`, leaves that run's branch and ledger as they are, and skips the issue on

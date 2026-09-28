@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # rebase-onto-default.sh — rebase the run's branch onto origin/<default> before its PR is
-# marked ready, when the default branch moved while the run worked (issue #238).
+# marked ready, when the default branch moved while the run worked.
 #
 # Usage:   rebase-onto-default.sh          # run from the issue's worktree
 #

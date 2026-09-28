@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # render-leaf-log.sh — turn a leaf's stream-json log into the readable lines the
-# dashboard's Chatter pane shows (issue #255). One line per thing said or done:
+# dashboard's Chatter pane shows. One line per thing said or done:
 #
 #   <assistant text>                  what the leaf said
 #   > <tool>: <first input line>      a tool call, with the first line of its input

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # leaf-timeout.sh — size the run's hard timeout from the green-baseline run's wall time,
 # so a repo whose suite takes minutes does not have every leaf killed as stuck while it is
-# working (issue #121: a 900 s timeout against a 140-250 s `make docs-test`).
+# working.
 #
 # Given the baseline's wall time in seconds as $1, print the timeout every leaf of the run
 # should get: the larger of 900 (today's fixed default, which a quick suite keeps) and
@@ -19,15 +19,15 @@
 # fails closed here rather than burning the issue looking like model failure.
 #
 # The refactor leaf is the one exception to "every leaf of the run gets the same timeout":
-# it applies the whole step's transforms itself rather than one per leaf (issue #150), so
+# it applies the whole step's transforms itself rather than one per leaf, so
 # it is asked for as many leaves' worth of work as the budget it may spend, and its cap is
 # the run's derived timeout times that budget. An explicit VERI_TIMEOUT stays unmultiplied
 # — the budget is the cost axis, and it must not move a cap the operator set on liveness.
 #
-# Preflight measures the FAST tier — `make unit` on this repo since #341, a few seconds —
+# Preflight measures the FAST tier — `make unit` on this repo, a few seconds —
 # but no leaf runs it: a developer leaf runs the suites covering the files it touched and a
 # verifier runs the full tier. Sizing from the fast measurement therefore bounded work
-# nobody does, and #300's green leaf was killed at the floor twice over while working. So a
+# nobody does, and a green leaf was killed at the floor twice over while working. So a
 # caller that has both measurements hands in both, and the derivation runs over the full
 # one; the fast argument stays first and stays validated, because it is still the baseline
 # a caller with only one measurement has. The full one is validated the same way and for a

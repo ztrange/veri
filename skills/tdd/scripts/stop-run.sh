@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # stop-run.sh — the operator's stop command: ask a run to stop, where its conductor looks.
 #
-# The write half of the stop mechanism whose read half stop-requested.sh is (#386). Typed
+# The write half of the stop mechanism whose read half stop-requested.sh is. Typed
 # from anywhere in the repository, it names either one issue's run or `--all` of them, and
 # `--mode` says when the stop takes effect: `at-ledger` (the default), `at-leaf` or `now`.
 #

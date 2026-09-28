@@ -5,7 +5,7 @@
 # What a reader of a troubled step wants is the tree the leaf produced — the rejected file —
 # and a rejected file is never committed to the work branch: a green commit lands only after
 # verify-green PASSes. So it goes to a side ref, which git keeps, `git log` on the branch
-# never shows, and a rebase-merge never carries (issue #409).
+# never shows, and a rebase-merge never carries.
 #
 # The snapshot is taken through a temporary index rather than the repository's own, so a
 # leaf's staged-or-not state is left exactly as it was: this script reads the worktree and

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# coverage-blocker.sh — what a refactor-kind run does when Cover answers `COVERED: no` (#499).
+# coverage-blocker.sh — what a refactor-kind run does when Cover answers `COVERED: no`.
 #
 # Files an unlabelled coverage issue for the refactor issue — no opt-in label, so the queue
 # never takes it itself — and names that new issue under the refactor issue's `## Blocked by`

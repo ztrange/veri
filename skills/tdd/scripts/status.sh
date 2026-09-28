@@ -2,7 +2,7 @@
 # status.sh — render every veri run under the repository's main working tree.
 #
 # Runs are discovered from `.tdd/wt/*` under the MAIN working tree, resolved through
-# lib/main-working-tree.sh (#166), never the checkout this script was called from.
+# lib/main-working-tree.sh, never the checkout this script was called from.
 #
 # Usage:   status.sh [--json] [--scope <name>] [--watch [seconds]]   (no --scope: VERI_LABEL, when set, names the scope)
 #          --json prints the same runs and scope totals as one JSON document.

@@ -4,7 +4,7 @@
 # The conductor-level counterpart of run-leaf.sh. A conductor typed as `/tdd <n>` into an
 # interactive session IS an interactive chat session, and pays for a harness surface it
 # never touches: the skills roster, the full tool schemas, the interactive system prompt —
-# ~25,000 tokens on every request, re-sent and re-billed each turn (issue #207). Everything
+# ~25,000 tokens on every request, re-sent and re-billed each turn. Everything
 # a conductor does is Bash, Read, Write, Edit and `gh`; it invokes no skill, because it is
 # the skill. Running it in print mode buys that surface back.
 #
@@ -34,11 +34,11 @@
 # and the rest exactly as one started from a chat session does. VERI_NEW_SKILL is the one
 # exception: it is not a tunable but this launch's instruction to re-pin, spent by the pin
 # decision below before any conductor exists. Handed on, it would reach every process the
-# conductor spawns, a leaf's `make test` among them (issue #285).
+# conductor spawns, a leaf's `make test` among them.
 #
 # The procedure goes in on STDIN, not as the argument to `-p`. SKILL.md's first line is the
 # YAML frontmatter fence `---`, and the CLI parses a leading-dash argument as an option, so
-# passing it by argv died on `unknown option '---` before any conductor existed (issue #221).
+# passing it by argv died on `unknown option '---` before any conductor existed.
 # Nothing parses options on stdin, so the fence — and any future first line — arrives intact.
 #
 # CLAUDE_BIN overrides the `claude` binary (used by the tests to inject a stub).
