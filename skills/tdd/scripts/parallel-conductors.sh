@@ -20,7 +20,7 @@ continue_on_bail=""
 [[ "${1:-}" == --continue-on-bail ]] && continue_on_bail=1
 
 # VERI_MAX_ISSUES caps the launches of one invocation, as at rung 2; unset is no cap.
-max_issues="${VERI_MAX_ISSUES:-0}"
+max_issues="${VERI_MAX_ISSUES-0}"
 
 # VERI_RUN_TIMEOUT is the wall-clock cap on one conductor, and the figure a killed one is reported
 # with — a killed conductor is not retried here; /tdd <n> resumes it.
@@ -73,7 +73,7 @@ require_whole_number() {
 
 parallel="${VERI_PARALLEL-1}"
 require_whole_number VERI_PARALLEL "$parallel"
-[[ -n "${VERI_MAX_ISSUES:-}" ]] && require_whole_number VERI_MAX_ISSUES "$max_issues"
+[[ -n "${VERI_MAX_ISSUES+set}" ]] && require_whole_number VERI_MAX_ISSUES "$max_issues"
 
 # A conductor whose supervise.sh exits non-zero leaves that status in this directory, one file
 # per issue: exit 2 there is a conductor its supervisor killed.
