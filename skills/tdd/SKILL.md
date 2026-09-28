@@ -1498,9 +1498,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    [ "$ci" != 2 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
    gh pr view <pr-url> --json statusCheckRollup
    gh run view <run-id> --log-failed          # a failed check only → its suite and FAIL - line
-   grep -F 'fix the CI failure:' .tdd/issue-<n>.md > /dev/null && VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)"
+   grep -F '⟦ci-repair⟧' .tdd/issue-<n>.md > /dev/null && VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)"
    VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(awk 'sub(/^- \[x\] /, "") { last = $0 } END { print last }' .tdd/issue-<n>.md)" $S/event.sh step-added anchor="$(awk 'sub(/^- \[x\] /, "") { last = $0 } END { print last }' .tdd/issue-<n>.md)" added=1
-   $S/add-ledger-step.sh .tdd/issue-<n>.md after "$(awk 'sub(/^- \[x\] /, "") { last = $0 } END { print last }' .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>>'
+   $S/add-ledger-step.sh .tdd/issue-<n>.md after "$(awk 'sub(/^- \[x\] /, "") { last = $0 } END { print last }' .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>> ⟦ci-repair⟧'
    git add .tdd/issue-<n>.md
    git commit -m "plan: repair the red CI check (#<n>)"
    ```
