@@ -18,22 +18,14 @@ if [[ -z "$n" ]]; then
   exit 2
 fi
 
-# The issue's labels, one name per line, asked once: `-q` returns the filter's output rather
-# than the document, so the body is asked for on its own below — one filter answering both
-# questions would have to encode the labels alongside the body, and any marker the body could
-# also contain is a marker the body can forge.
 labels="$(gh issue view "$n" --json labels -q '.labels[].name')"
 
-# has_label <name> — whether the issue carries that label, matched as a whole name.
 has_label() { grep -qxF -- "$1" <<<"$labels"; }
 
 body="$(gh issue view "$n" --json body -q .body)"
 
 printf '%s\n' "$body"
 
-# One `## ` section of the body, heading dropped: the lines from the wanted heading to the
-# next `## `. The parts are re-emitted under `### ` headings below, so the whole report sits
-# inside one `## Bug` section rather than four top-level ones a reader has to collect.
 part() {
   awk -v want="## $1" '
     /^## / { inside = ($0 == want); next }
@@ -41,8 +33,6 @@ part() {
   ' <<<"$body"
 }
 
-# No label, no section: an issue that reports no bug has no reproduction to describe, and a
-# `## Bug` heading over four empty parts would tell the blind verifier there is one.
 if has_label bug; then
   printf '\n## Bug\n'
   for heading in 'What happened' 'Expected' 'Steps to reproduce' 'Environment'; do
@@ -51,10 +41,6 @@ if has_label bug; then
   done
 fi
 
-# No label, no section, for the same reason: the section tells the verifier the run kind, and
-# an issue that is not a refactor must not be read as one. The kind (#499) reaches the blind
-# verifier the way the bug report does: through this file, the one channel it reads, rather
-# than through a new parameter that could carry the developer's reasoning.
 if has_label refactor; then
   printf '\n## Refactor\n\nRun kind: refactor. This issue changes structure, not behaviour.\n'
 fi

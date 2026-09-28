@@ -27,8 +27,6 @@ body="$(gh issue view "$n" --json body -q .body)"
 
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
-# Inside the `## Blocked by` section, a `None` line becomes the new blocker; with no `None`
-# line, the new blocker goes after the last one already listed there.
 printf '%s\n' "$body" | awk -v blocker="- #$new" '
   /^## / { in_blocked = ($0 ~ /^## Blocked by/) }
   in_blocked && /^None/ { line[++n] = blocker; next }

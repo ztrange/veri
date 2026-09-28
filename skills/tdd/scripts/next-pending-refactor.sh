@@ -11,9 +11,6 @@
 # Usage:   next-pending-refactor.sh < .tdd/issue-<n>.md
 set -euo pipefail
 
-# The mark spelled as tick-ledger.sh --refactor-pending writes it, named apart from the
-# checkbox grammar around it so the line the regex matches reads as "a ticked step, plus
-# the mark". Nothing in it is a regex metacharacter, so it interpolates as a literal.
 mark=' ⟂ refactor pending'
 re="^[[:space:]]*- \[x\] (.*)${mark}$"
 

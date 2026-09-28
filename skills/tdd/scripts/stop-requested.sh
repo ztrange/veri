@@ -37,10 +37,6 @@ usage() {
   exit 2
 }
 
-# One argument at most: `--clear` takes none of its own, so a word after it is as
-# unrecognised as one in its place. The count is checked before the case below, because a
-# case branching on the first argument alone reads `--clear --bogus` as `--clear` and
-# removes the file — throwing away a request an operator is waiting on, over a typo.
 (( $# <= 1 )) || usage
 
 case "${1:-}" in

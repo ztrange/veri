@@ -18,8 +18,6 @@
 # it is in no figure this script prints — never quote one as "what this step cost" in full.
 set -uo pipefail
 
-# A call that cannot be answered exits 2 with stdout empty, so a caller capturing stdout
-# never reads a diagnostic as a figure.
 usage='usage: step-cost.sh <step-text> | --run | --steps'
 if [[ $# -ne 1 ]]; then
   echo "step-cost.sh: expected exactly one argument, got $#; $usage" >&2
@@ -39,7 +37,6 @@ if [[ ! -r .tdd/events.jsonl ]]; then
 fi
 
 awk -v step="$step" -v all="$all" -v per_step="$per_step" '
-  # value <line> <key> — the string value of "key": "…" on one event line, or empty.
   function value(line, key,    rest) {
     if (!match(line, "\"" key "\": \"[^\"]*\"")) return ""
     rest = substr(line, RSTART, RLENGTH)

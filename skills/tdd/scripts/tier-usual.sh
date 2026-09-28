@@ -22,10 +22,7 @@ tier="$1"
 
 log=".tdd/events.jsonl"
 
-# The lib the parse comes from, reached the way status.sh reaches it: PYTHONPATH, and the
-# program on stdin as a quoted heredoc. A quoted heredoc is not a shell string, so an
-# apostrophe inside the program below is just an apostrophe — the trap metrics.sh and
-# event.sh still carry with `python3 -c` is not one here.
+# hazard: a quoted heredoc, so an apostrophe in the program is literal where `python3 -c` would end the string.
 lib="$(cd "$(dirname "$0")" && pwd)/lib"
 
 PYTHONPATH="$lib" exec python3 - "$tier" "$log" <<'PY'

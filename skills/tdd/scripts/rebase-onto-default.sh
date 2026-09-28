@@ -18,9 +18,6 @@
 # be fetched, or a fetch leaves origin/<default> behind the remote's own branch: the local
 # copy is stale, so no rebase is attempted onto it.
 
-# rebase_in_progress — succeed when git holds a rebase in progress. Which directory holds it
-# depends on the backend: rebase-merge for the merge backend, rebase-apply for
-# rebase.backend=apply.
 rebase_in_progress() {
   local d
   for d in rebase-merge rebase-apply; do
@@ -29,22 +26,15 @@ rebase_in_progress() {
   return 1
 }
 
-# main — the whole script. Its logic lives behind this function so a unit suite can source
-# the file and run nothing (#339); executed directly, the guard at the bottom calls it.
 main() {
   set -uo pipefail
 
-  # The default branch is whatever the remote says it is — origin/HEAD, which a clone
-  # records — rather than a name this script assumes.
   local default
   default="$(git rev-parse --abbrev-ref origin/HEAD)"
 
-  # What the clone last fetched may be stale: rebasing onto it would be rebasing onto a
-  # guess, so an origin that cannot be fetched is no answer at all — exit 2.
   git fetch -q origin >/dev/null 2>&1 || exit 2
 
-  # A fetch that exits 0 need not have refreshed origin/<default> — a fetch refspec can
-  # leave it out — so the remote's own answer for the branch must match what the clone holds.
+  # hazard: a fetch that exits 0 need not have refreshed origin/<default>.
   local remote_sha onto
   remote_sha="$(git ls-remote origin "refs/heads/${default#origin/}" 2>/dev/null)" || exit 2
   onto="$(git rev-parse "$default")"
@@ -55,8 +45,6 @@ main() {
   local pre
   pre="$(git rev-parse HEAD)"
   if ! git rebase -q "$onto" >/dev/null; then
-    # A rebase git refused to start — a dirty tree, say — leaves no rebase in progress.
-    # That is no conflict to name: the plumbing failed, so it is exit 2, not 1.
     rebase_in_progress || exit 2
     local conflicts
     conflicts="$(git diff --name-only --diff-filter=U)"

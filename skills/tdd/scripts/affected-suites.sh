@@ -11,8 +11,7 @@ set -euo pipefail
 range="$1"
 scripts=skills/tdd/scripts
 
-# A malformed range is a plumbing failure, not an answer. Without the `..` check a single
-# revision reaches `git diff` as "against the working tree", which it answers happily.
+# hazard: git diff reads a range with no `..` as a revision against the working tree.
 [[ "$range" == *..* ]] ||
   { echo "affected-suites: '$range' is not a <base>..<head> range" >&2; exit 2; }
 for rev in "${range%%..*}" "${range#*..}"; do
@@ -20,36 +19,23 @@ for rev in "${range%%..*}" "${range#*..}"; do
     { echo "affected-suites: cannot resolve revision '$rev'" >&2; exit 2; }
 done
 
-# suites_naming <pattern>... — every suite whose source contains one of the fixed strings.
 suites_naming() {
   local args=() p
   for p in "$@"; do args+=(-e "$p"); done
   grep -lF "${args[@]}" "$scripts"/tests/*.test.sh || true
 }
 
-# suite_of <path> — the suites a touched file affects: a suite is its own, a script's is the
-# one named after it, under tests/ or tests/unit/, and a lib file's are those of every script
-# that sources it. Returns 1 for a file no rule places.
 suite_of() {
   local f="$1" name script
   case "$f" in
     CLAUDE.md|Makefile|skills/*/SKILL.md)
-      # A guard suite names its document as a whole quoted path, as model-knobs-recorded does
-      # claude_md="CLAUDE.md", or at the end of one, as count-line-guard does "$ROOT/Makefile".
       suites_naming "\"$f\"" "/$f\"" ;;
     "$scripts"/tests/*.test.sh) echo "$f" ;;
     "$scripts"/tests/fixtures/*)
-      # A suite references a fixture by its path under tests/, as count-line-guard does
-      # "$HERE/fixtures/silent-death/…".
       suites_naming "${f#"$scripts"/tests/}" ;;
     "$scripts"/prompts/*.md)
-      # A suite names a prompt by its path under scripts/, as build-develop-prompt.test.sh does
-      # "$HERE/../prompts/develop-reconcile.md".
       suites_naming "${f#"$scripts"/}" ;;
     "$scripts"/lib/*.sh)
-      # A sourcing script names the lib file on a `source` line, as event.sh does
-      # `source "$HERE/lib/json-escape.sh"`, or ends that line in a `\` continuation, as
-      # build-develop-prompt.sh does (#487); a comment naming it is not a dependency.
       name="$(basename "$f")"
       for script in "$scripts"/*.sh; do
         if grep -qE "^[[:space:]]*(source|\.)[[:space:]].*lib/$name\"?[[:space:]]*(\\\\)?$" "$script"; then
@@ -64,49 +50,34 @@ suite_of() {
         echo "$scripts/tests/$name.test.sh"
       fi ;;
     .tdd/*)
-      # Run state, not an input to any suite: the ledger is rewritten by every green commit, so
-      # a range spanning one would otherwise fall through and widen the whole answer (#416).
       ;;
     *) return 1 ;;
   esac
 }
 
-# An empty diff is "nothing to do" (exit 3), not an empty answer.
 files="$(git diff --name-only "$range")"
 [[ -n "$files" ]] || exit 3
 
-# One file no rule places widens the whole answer to every suite (fail-closed): a partial list
-# would narrow the run to what the other rules happened to find.
 placed="" unplaced=""
 while IFS= read -r f; do
   if suites="$(suite_of "$f")"; then
     if [[ -n "$suites" ]]; then placed+="$suites"$'\n'; fi
   else
-    # Accumulated already comma-joined: the list is only ever printed, never iterated.
     unplaced+="${unplaced:+,}$f"
   fi
 done <<<"$files"
 
-# A suite or script file added or deleted changes the counts CLAUDE.md hand-types against the
-# files on disk, which claude-md-counts.test.sh is the suite that checks. It asserts on a count
-# of files rather than on any file's contents, so no touched path points at it and a run that
-# added a suite used to discover the broken count only in a later full-tier run (#416). The
-# second pathspec is `:(glob)` so its `*` stops at a `/`, matching the `scripts/*.sh` the
-# document counts and not the libs, prompts and suites nested below it.
 if [[ -n "$(git diff --name-only --diff-filter=AD "$range" -- \
              "$scripts/tests" ":(glob)$scripts/*.sh")" ]]; then
   placed+="$scripts/tests/claude-md-counts.test.sh"$'\n'
 fi
 
 if [[ -n "$unplaced" ]]; then
-  # Say which file widened the answer, so the next unplaced kind is visible rather than silent.
   printf 'affected-suites: no rule places %s; widening to every suite\n' "$unplaced" >&2
   for suite in "$scripts"/tests/*.test.sh "$scripts"/tests/unit/*.test.sh; do
     if [[ -f "$suite" ]]; then echo "$suite"; fi
   done | sort -u
 else
-  # Every changed file placed as affecting no suite (run state alone) is "nothing to do", the
-  # same answer as an empty diff: an empty stdout would read to a leaf as an empty tier (#416).
   [[ -n "$placed" ]] || exit 3
   printf '%s' "$placed" | sort -u
 fi
