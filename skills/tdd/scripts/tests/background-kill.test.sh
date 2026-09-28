@@ -333,5 +333,55 @@ fi
 
 report "#536: a shell that set an EXIT trap before bg_start still runs that trap at exit, and still reports a survivor"
 
+# 6. The same shell as case 5, calling bg_start three times: twice into one record, then into
+# a second. Each survivor is named on exactly one line and the earlier trap appends exactly
+# one line to its marker, whichever call armed what.
+record6a="$work/repeat-a.pids"
+record6b="$work/repeat-b.pids"
+marker6="$work/caller-trap-repeat.ran"
+victim6a1="$work/victim6a1"
+victim6a2="$work/victim6a2"
+victim6b="$work/victim6b"
+make_victim "$victim6a1" "$work/victim6a1.pid"
+make_victim "$victim6a2" "$work/victim6a2.pid"
+make_victim "$victim6b" "$work/victim6b.pid"
+
+problems=()
+
+repeat_err="$work/repeat.err"
+( trap "echo ran >> '$marker6'" EXIT; source "$LIB" && bg_start "$record6a" "$victim6a1" \
+    && bg_start "$record6a" "$victim6a2" && bg_start "$record6b" "$victim6b" ) \
+  > /dev/null 2>"$repeat_err"
+repeat_code=$?
+
+if ! appeared "$record6a" "$PATIENCE" || ! appeared "$record6b" "$PATIENCE"; then
+  problems+=("three bg_start calls under a caller's EXIT trap recorded nothing in $record6a or $record6b (exit $repeat_code, stderr: '$(flat "$repeat_err")')")
+else
+  victim6a1_pid="" victim6a2_pid="" victim6b_pid=""
+  { read -r victim6a1_pid _; read -r victim6a2_pid _; } < "$record6a" || true
+  read -r victim6b_pid _ < "$record6b" || true
+  victims+=("$victim6a1_pid" "$victim6a2_pid" "$victim6b_pid")
+  said6="$(flat "$repeat_err")"
+
+  for probe_pid in "$victim6a1_pid" "$victim6a2_pid" "$victim6b_pid"; do
+    if [[ ! "$probe_pid" =~ ^[0-9]+$ ]]; then
+      problems+=("the records hold '$probe_pid' where a pid was expected")
+      continue
+    fi
+    survived "$probe_pid"
+    lines="$(grep -c -F "$probe_pid" "$repeat_err" || true)"
+    [[ "$lines" -eq 1 ]] \
+      || problems+=("the survivor $probe_pid is named on $lines lines of the starting shell's stderr, not 1: stderr said '$said6'")
+  done
+
+  ran="$(grep -c -F ran "$marker6" 2>/dev/null || true)"
+  [[ "${ran:-0}" -eq 1 ]] \
+    || problems+=("the EXIT trap the caller set before bg_start ran ${ran:-0} times, not 1 (exit $repeat_code)")
+
+  for probe_pid in "$victim6a1_pid" "$victim6a2_pid" "$victim6b_pid"; do end_victim "$probe_pid"; done
+fi
+
+report "#536: a shell that set an EXIT trap and calls bg_start again, on the same record and on a second, names each survivor once and runs its own trap once"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
