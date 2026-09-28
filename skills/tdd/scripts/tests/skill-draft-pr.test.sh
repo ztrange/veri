@@ -492,6 +492,7 @@ section_commands() {
 # nothing. Cases 14 and 15 both order one command line of the Draft PR step against another,
 # so the lookup is written here once rather than as an awk per probe.
 line_of() { awk -v re="$1" '$0 ~ ("^" re) { print NR; exit }' <<< "$commands"; }
+done_mark='veri_issue=[^ ]* veri_actor=conductor [$]s/event[.]sh done'
 
 # unmarked_records — `records` with its Markdown emphasis and code marks stripped, so a probe
 # reads "rebase-onto-default.sh's exit 1" whether the document bolds it, backticks it or both.
@@ -640,7 +641,7 @@ if step_or_problem '### 4. Draft PR' "where the step rebases onto the default br
     for before in 'git status --porcelain' '[$]s/next-pending-refactor[.]sh'; do
       rebase_runs after "$before"
     done
-    for after in 'veri_issue=[^ ]* veri_actor=conductor [$]s/event[.]sh done' '[$]s/metrics[.]sh' 'git commit -m "metrics:' 'gh pr ready'; do
+    for after in "$done_mark" '[$]s/metrics[.]sh' 'git commit -m "metrics:' 'gh pr ready'; do
       rebase_runs before "$after"
     done
     plain="$(unmarked_records)"
@@ -848,7 +849,7 @@ if step_or_problem '### 4. Draft PR' "whether the step reads CI before recording
       problems+=("$skill_md's Draft PR step runs no $ci, so its order against the done mark could not be checked")
       continue
     fi
-    for recorded in 'veri_issue=[^ ]* veri_actor=conductor [$]s/event[.]sh done' 'git commit -m "metrics:'; do
+    for recorded in "$done_mark" 'git commit -m "metrics:'; do
       at="$(line_of "$recorded")"
       if [[ -z "$at" ]]; then
         problems+=("$skill_md's Draft PR step runs no $recorded, so the CI read's order against it could not be checked")
@@ -870,7 +871,7 @@ problems=()
 if step_or_problem '### 4. Draft PR' "whether the step's command block bails on a check still pending"; then
   commands="$(section_commands)"
   checks="$(line_of 'gh pr checks')"
-  done_at="$(line_of 'veri_issue=[^ ]* veri_actor=conductor [$]s/event[.]sh done')"
+  done_at="$(line_of "$done_mark")"
   pending="$(line_of '[^#]*statuscheckrollup[^#]*(pending|in_progress|queued)')"
   timeout="$(line_of '[^#]*ci-timeout')"
   if [[ -z "$checks" || -z "$done_at" ]]; then
