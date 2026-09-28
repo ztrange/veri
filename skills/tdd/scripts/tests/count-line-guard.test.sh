@@ -1091,6 +1091,12 @@ fi
 
 report "$name"
 
+refusal_from() {
+  refusal="$(awk -v p="$1$GUARD_MESSAGE" 'index($0, p) == 1 { f = 1 } f' <<< "$scratch_out")"
+  [[ -n "$refusal" ]] ||
+    problems+=("want a line beginning '$1$GUARD_MESSAGE'; it said: $(flat "$scratch_out")")
+}
+
 # 17. A countless suite's refusal quotes the line that came last (#508).
 name="make test quotes a countless suite's last line verbatim in its refusal (#508)"
 problems=()
@@ -1099,9 +1105,7 @@ quoted_name='count-then-rm.test.sh'
 quoted_line="rm: cannot remove '/tmp/clone26/.git': Directory not empty"
 if scratch_suite_run "$quoted_name" "echo '27 passed, 0 failed'
 echo \"$quoted_line\""; then
-  refusal="$(awk -v p="$quoted_name$GUARD_MESSAGE" 'index($0, p) == 1 { f = 1 } f' <<< "$scratch_out")"
-  [[ -n "$refusal" ]] ||
-    problems+=("want a line beginning '$quoted_name$GUARD_MESSAGE'; it said: $(flat "$scratch_out")")
+  refusal_from "$quoted_name"
   grep -F "$quoted_line" <<< "$refusal" > /dev/null ||
     problems+=("want the refusal to quote the suite's last line '$quoted_line'; from the refusal on it said: $(flat "$refusal")")
 fi
@@ -1114,9 +1118,7 @@ problems=()
 
 empty_name='prints-nothing.test.sh'
 if scratch_suite_run "$empty_name" ':'; then
-  refusal="$(awk -v p="$empty_name$GUARD_MESSAGE" 'index($0, p) == 1 { f = 1 } f' <<< "$scratch_out")"
-  [[ -n "$refusal" ]] ||
-    problems+=("want a line beginning '$empty_name$GUARD_MESSAGE'; it said: $(flat "$scratch_out")")
+  refusal_from "$empty_name"
   grep -E "^$empty_name: .*: ?$" <<< "$refusal" > /dev/null &&
     problems+=("want no line quoting an empty last line; from the refusal on it said: $(flat "$refusal")")
   grep -E "^$empty_name: .*empty" <<< "$refusal" > /dev/null ||
