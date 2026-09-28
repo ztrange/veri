@@ -66,17 +66,23 @@ check() {
   printf '{"__typename":"CheckRun","name":"gates","workflowName":"ci","status":"%s","conclusion":"%s"}' "$1" "$2"
 }
 
-# waited <name> [bound] — run wait-ci.sh against fixture <name> with a <bound>-second limit
-# (default 1800) on a clock that moves 60 s a reading, from a working directory of its own,
-# and echo its exit code.
+# wait_in <dir> <name> <bound> <err> — run wait-ci.sh from <dir> against fixture <name> with a
+# <bound>-second limit on a clock that moves 60 s a reading, stderr to <err>, and echo its
+# exit code.
+wait_in() {
+  ( cd "$1" && env VERI_POLL=0 VERI_CLOCK_STEP=60 VERI_CLOCK_LOG="$work/$2.clock" \
+      PR_URL="$PR" ROLLUP="$work/$2.json" PATH="$work/bin:$PATH" \
+      "$WAIT" "$PR" "$3" >/dev/null 2>"$4" )
+  echo $?
+}
+
+# waited <name> [bound] — wait_in a working directory of its own, on a fresh clock, with a
+# <bound>-second limit (default 1800), stderr to <name>.err.
 waited() {
   local dir
   dir="$(mktemp -d "$work/cwd.XXXXXX")"; mkdir "$dir/.tdd"
   : > "$work/$1.clock"; : > "$work/$1.json.calls"
-  ( cd "$dir" && env VERI_POLL=0 VERI_CLOCK_STEP=60 VERI_CLOCK_LOG="$work/$1.clock" \
-      PR_URL="$PR" ROLLUP="$work/$1.json" PATH="$work/bin:$PATH" \
-      "$WAIT" "$PR" "${2:-1800}" >/dev/null 2>"$work/$1.err" )
-  echo $?
+  wait_in "$dir" "$1" "${2:-1800}" "$work/$1.err"
 }
 
 rollup pending.json "$(check COMPLETED SUCCESS),$(check IN_PROGRESS '')"
@@ -120,14 +126,8 @@ problems=()
 rollup across.json "$(check IN_PROGRESS '')" fedcba9876543210fedcba9876543210fedcba98
 mkdir -p "$work/across/.tdd"
 : > "$work/across.clock"; : > "$work/across.json.calls"
-across() {
-  ( cd "$work/across" && env VERI_POLL=0 VERI_CLOCK_STEP=60 VERI_CLOCK_LOG="$work/across.clock" \
-      PR_URL="$PR" ROLLUP="$work/across.json" PATH="$work/bin:$PATH" \
-      "$WAIT" "$PR" 120 >/dev/null 2>"$work/across.$1.err" )
-  echo $?
-}
-got_first="$(across first)"
-got_second="$(across second)"
+got_first="$(wait_in "$work/across" across 120 "$work/across.first.err")"
+got_second="$(wait_in "$work/across" across 120 "$work/across.second.err")"
 [[ "$got_first" == 3 ]] || problems+=("first call: want exit 3, got $got_first (stderr: $(cat "$work/across.first.err"))")
 [[ "$got_second" == 2 ]] || problems+=("second call past the recorded deadline: want exit 2, got $got_second (stderr: $(cat "$work/across.second.err"))")
 report "$name"
