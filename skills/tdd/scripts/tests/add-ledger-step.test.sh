@@ -148,6 +148,21 @@ want='# Plan for #42
 check_code "instead-of: replaces the anchor step with the texts, and over budget owes them instead" \
   "$code1/$code2" "0/1" "$want"
 
+# 8. A step marked ⟦ci-repair⟧ is inserted even when VERI_STEP_GROWTH is already spent, and
+#    carries no ⟦added⟧, and next-unchecked.sh hands it over as the next step (#544).
+seed_lines '- [x] lowercase the slug ⟦criterion 1⟧' '- [x] an extra edge case ⟦added⟧ ⟦criterion 1⟧'
+VERI_STEP_GROWTH=1 "$ADD" "$led" after 'an extra edge case' \
+  'fix the CI failure: x.test.sh ⟦ci-repair⟧'; code=$?
+next="$("$HERE/../next-unchecked.sh" < "$led")"; ncode=$?
+if [[ "$code/$ncode" == "0/0" && "$next" == "fix the CI failure: x.test.sh ⟦ci-repair⟧"* ]] \
+  && grep -Fx -- '- [ ] fix the CI failure: x.test.sh ⟦ci-repair⟧ ⟦criterion 1⟧' "$led" > /dev/null \
+  && ! grep -F '## Owed steps' "$led" > /dev/null; then
+  ok
+else
+  no "#544: a ⟦ci-repair⟧ step, unmarked ⟦added⟧, skips the spent VERI_STEP_GROWTH and next-unchecked hands it over (code=$code, next-code=$ncode, next=$next)"
+  sed 's/^/    /' "$led"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
