@@ -2,25 +2,29 @@
 # wait-ci.sh — wait a bounded slice for a PR's checks to finish, and be called again.
 #
 # Usage:
-#   wait-ci.sh <pr-url> [max-seconds]
+#   wait-ci.sh <pr-url> [slice-seconds] [total-seconds]
 #
 # Status: 0 every check completed SUCCESS, NEUTRAL or SKIPPED · 1 a completed check
 # concluded anything else · 2 no answer (bad arguments, gh failed, unreadable rollup), or a
 # check still pending past the deadline an earlier call recorded for the same head commit ·
-# 3 a check is still pending, or none has appeared yet, when <max-seconds> run out.
+# 3 a check is still pending, or none has appeared yet, when this call's <slice-seconds> run
+# out.
 #
-# The deadline is recorded on the first call for a head commit, in .tdd/ci-deadline-<sha>.
+# The deadline, <total-seconds> (default <slice-seconds>) after the first call for a head
+# commit, is recorded in .tdd/ci-deadline-<sha>.
 #
 # Tunables (env): VERI_POLL poll interval secs (default 10).
 set -uo pipefail
 
-[[ -n "${1:-}" ]] || { echo "usage: wait-ci.sh <pr-url> [max-seconds]" >&2; exit 2; }
+[[ -n "${1:-}" ]] || { echo "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds]" >&2; exit 2; }
 pr="$1"
 max="${2:-540}"
+total="${3:-$max}"
 poll="${VERI_POLL:-10}"
 
 deadline=""
 inherited=""
+slice_end=""
 
 rollup_state() {
   local doc
@@ -51,18 +55,21 @@ while :; do
     green) exit 0 ;;
     red) exit 1 ;;
   esac
+  now="$(date +%s)"
   if [[ -z "$deadline" ]]; then
+    slice_end=$(( now + max ))
     mark=".tdd/ci-deadline-$head"
     if [[ -f "$mark" ]]; then
       deadline="$(< "$mark")"; inherited=1
     else
-      deadline=$(( $(date +%s) + max )); echo "$deadline" > "$mark"
+      deadline=$(( now + total )); echo "$deadline" > "$mark"
     fi
   fi
-  if (( $(date +%s) >= deadline )); then
+  if (( now >= deadline )); then
     [[ -n "$inherited" ]] && { echo "wait-ci.sh: checks of $pr still pending past the deadline recorded for $head" >&2; exit 2; }
     break
   fi
+  (( now >= slice_end )) && break
   sleep "$poll"
 done
 

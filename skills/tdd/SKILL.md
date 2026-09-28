@@ -1494,7 +1494,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    gh pr view --json url -q .url          # → <pr-url>, the PR step 2.3 opened
    gh pr ready <pr-url>
-   $S/wait-ci.sh <pr-url>; ci=$?             # exit 3 → run this line again, in a new Bash call
+   $S/wait-ci.sh <pr-url> 540 1800; ci=$?    # exit 3 → run this line again, in a new Bash call
    [ "$ci" != 2 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
    gh pr view <pr-url> --json statusCheckRollup
    gh run view <run-id> --log-failed          # a failed check only → its suite and FAIL - line
@@ -1512,7 +1512,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    git add .tdd/issue-<n>-metrics.md
    git commit -m "metrics: what solving #<n> cost (#<n>)"
    $S/push-branch.sh
-   $S/wait-ci.sh <pr-url>; ci=$?             # exit 3 → run this line again, in a new Bash call
+   $S/wait-ci.sh <pr-url> 540 1800; ci=$?    # exit 3 → run this line again, in a new Bash call
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh pr edit <pr-url> --title "<type>: <criterion summary> (#<n>)" --body "<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md, followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by its ⟦human-owed⟧ lines under ## Owed by a human>"
    ```
