@@ -76,13 +76,15 @@ wait_in() {
   echo $?
 }
 
-# waited <name> [bound] — wait_in a working directory of its own, on a fresh clock, with a
-# <bound>-second limit (default 1800), stderr to <name>.err.
+# waited <name> [arg...] — wait_in a working directory of its own, on a fresh clock, with
+# [arg...] as wait-ci.sh's arguments after the PR (default a 1800-second limit), stderr to
+# <name>.err.
 waited() {
   local dir
+  [[ $# -gt 1 ]] || set -- "$1" 1800
   dir="$(mktemp -d "$work/cwd.XXXXXX")"; mkdir "$dir/.tdd"
   : > "$work/$1.clock"; : > "$work/$1.json.calls"
-  wait_in "$dir" "$1" "$work/$1.err" "${2:-1800}"
+  wait_in "$dir" "$1" "$work/$1.err" "${@:2}"
 }
 
 # expect_exit <name> <code> [bound] — waited <name> [bound], and record a problem unless it
@@ -193,9 +195,7 @@ report "$name"
 name="wait-ci.sh takes the head sha it waits for, and exits 3 at the end of its slice while the PR still reports a different head, even one whose checks all completed SUCCESS (#550)"
 problems=()
 rollup stale-head.json "$(check COMPLETED SUCCESS)" 0123456789abcdef0123456789abcdef01234567
-mkdir -p "$work/stale-head/.tdd"
-: > "$work/stale-head.clock"; : > "$work/stale-head.json.calls"
-got="$(wait_in "$work/stale-head" stale-head "$work/stale-head.err" 60 60 89abcdef0123456789abcdef0123456789abcdef)"
+got="$(waited stale-head 60 60 89abcdef0123456789abcdef0123456789abcdef)"
 [[ "$got" == 3 ]] || problems+=("PR reports a green previous head, waiting for 89abcdef…: want exit 3, got $got (stderr: $(cat "$work/stale-head.err"))")
 report "$name"
 
