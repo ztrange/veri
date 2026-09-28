@@ -23,15 +23,16 @@ fi
 
 awk -v sweepable="$sweepable" '
   FNR == 1 { delim = ""; header = /^#!/ }
-  !/^[[:space:]]*#/ { header = 0 }
+  { comment = /^[[:space:]]*#/ }
+  !comment { header = 0 }
   delim != "" {
     end = $0
     if (dash) sub(/^\t+/, "", end)
     if (end == delim) delim = ""
-    else if ($0 ~ /^[[:space:]]*#/ && !(sweepable && cls == 3)) print FILENAME ":" FNR ":" cls
+    else if (comment && !(sweepable && cls == 3)) print FILENAME ":" FNR ":" cls
     next
   }
-  /^[[:space:]]*#/ {
+  comment {
     if (!(sweepable && (header || /^[[:space:]]*# hazard:/))) print FILENAME ":" FNR ":1"
     next
   }
