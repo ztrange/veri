@@ -2,7 +2,7 @@
 
 - [x] SKILL.md's Draft PR step, after `gh pr ready`, waits for the readied PR's CI checks and reads their statusCheckRollup fail-closed the way the merge skill does: an empty rollup is never a pass, and any completed check whose conclusion is not SUCCESS (or NEUTRAL/SKIPPED) counts as failed ⟦criterion 1⟧
 - [x] SKILL.md's CI wait never counts a pending check as green, and is bounded: a check still pending when the bound runs out bails the run with a cause `classify-bail.sh` classifies, rather than waiting on ⟦criterion 4⟧
-- [x] SKILL.md's Draft PR step waits on CI and reads the rollup before the run's `done` mark and `metrics:` commit, so a red CI result or a `ci-timeout` bail is never reached by a run that already recorded itself done ⟦added⟧ ⟦criterion 4⟧ ⟂ refactor pending
+- [x] SKILL.md's Draft PR step waits on CI and reads the rollup before the run's `done` mark and `metrics:` commit, so a red CI result or a `ci-timeout` bail is never reached by a run that already recorded itself done ⟦added⟧ ⟦criterion 4⟧
 - [ ] SKILL.md's Draft PR command block itself checks the rollup for a still-pending check once the wait's bound has run out and bails with cause `ci-timeout`, rather than leaving the conductor to infer it from prose ⟦added⟧ ⟦criterion 4⟧
 - [ ] SKILL.md's Draft PR step answers a failed CI check by appending a repair step to the ledger whose text quotes the failing suite and its `FAIL -` line (or the error line) read from `gh run view --log-failed`, committing it, and returning to the cycle loop so the run resumes into that step ⟦criterion 2⟧
 - [ ] SKILL.md's Draft PR step bails on a second red CI result after a CI repair step, with a cause token `classify-bail.sh` maps to a system or process label, never a silent stop ⟦criterion 3⟧
