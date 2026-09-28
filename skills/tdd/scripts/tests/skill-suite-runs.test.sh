@@ -162,6 +162,22 @@ grep -qE 'develop-green|verify-green|verifier' <<<"$full_suite_paragraphs" ||
 
 report "$name"
 
+# 2. SKILL.md's verify-refactor entry — the Refactor loop's sub-step 5, up to sub-step 6 —
+#    states the verdict in verify-refactor.md's own terms: the fast tier plus the affected
+#    suites still green, and no full-suite run inside the refactor phase.
+name="$skill_md's verify-refactor entry says the verdict is on the fast tier plus the affected suites, not the full suite"
+problems=()
+if need_text '#### Refactor loop' '^5\. '; then
+  text="${text%%6. narrate*}"
+  says 'fast (tier|command)' \
+    "$skill_md's verify-refactor entry never names the fast tier, which verify-refactor.md tells the verifier to run"
+  says 'affected suites|suites affected-suites\.sh' \
+    "$skill_md's verify-refactor entry never names the affected suites, which verify-refactor.md tells the verifier to run"
+  [[ "$text" =~ full\ suite ]] &&
+    problems+=("$skill_md's verify-refactor entry still says the full suite runs in the refactor phase, which verify-refactor.md never asks of the verifier")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
