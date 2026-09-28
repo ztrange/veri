@@ -148,6 +148,14 @@ if [[ "$out" != "$f:10:1" ]]; then
 fi
 verdict "the sweepable report omits a leading contract header and a comment marked as a shell-hazard warning"
 
+# 11. the sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh.
+problems=""
+classify --sweepable "$HERE/../../metrics.sh" "$HERE/../../event.sh" "$HERE/../../harvest-usage.sh"
+if [[ -n "$out" ]]; then
+  problems+="    want an empty sweepable report, got:"$'\n'"$out"$'\n'
+fi
+verdict "the sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
