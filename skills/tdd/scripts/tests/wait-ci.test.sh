@@ -199,5 +199,19 @@ got="$(waited stale-head 60 60 89abcdef0123456789abcdef0123456789abcdef)"
 [[ "$got" == 3 ]] || problems+=("PR reports a green previous head, waiting for 89abcdef…: want exit 3, got $got (stderr: $(cat "$work/stale-head.err"))")
 report "$name"
 
+name="wait-ci.sh records its total bound against the head sha it was given, not the PR's reported head: a later call for the same sha that still finds the PR reporting a different head past that recorded deadline exits 2 (#550)"
+problems=()
+rollup stale-across.json.1 "$(check COMPLETED SUCCESS)" 0123456789abcdef0123456789abcdef01234567
+cp "$work/stale-across.json.1" "$work/stale-across.json.2"
+rollup stale-across.json "$(check COMPLETED SUCCESS)" 76543210fedcba9876543210fedcba9876543210
+mkdir -p "$work/stale-across/.tdd"
+: > "$work/stale-across.clock"; : > "$work/stale-across.json.calls"
+sha=89abcdef0123456789abcdef0123456789abcdef
+got_first="$(wait_in "$work/stale-across" stale-across "$work/stale-across.first.err" 60 60 "$sha")"
+got_second="$(wait_in "$work/stale-across" stale-across "$work/stale-across.second.err" 60 60 "$sha")"
+[[ "$got_first" == 3 ]] || problems+=("first call: want exit 3, got $got_first (stderr: $(cat "$work/stale-across.first.err"))")
+[[ "$got_second" == 2 ]] || problems+=("second call for $sha past the recorded deadline, PR reporting another head: want exit 2, got $got_second (stderr: $(cat "$work/stale-across.second.err"))")
+report "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
