@@ -33,32 +33,21 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# shellcheck source=lib/candidate-line.sh
 source "$HERE/lib/candidate-line.sh"
 
 structural=()
 candidates_seen=0
 
-# `|| [[ -n "$line" ]]` so a report whose last line has no trailing newline is still read:
-# `read` returns non-zero at EOF even when it did fill the variable.
+# hazard: `read` fails at EOF on a last line with no newline, even though it filled the variable.
 while IFS= read -r line || [[ -n "$line" ]]; do
   [[ "$line" =~ ^CANDIDATES:[[:space:]]*(.*)$ ]] || continue
   candidates_seen=1
   class_and_transform="${BASH_REMATCH[1]}"
 
-  # What a structural candidate line looks like is lib/candidate-line.sh's to say — it is
-  # the one shape refactor-owed.sh reads out of the same report, for the leftovers it
-  # carries into the PR. The transforms are collected rather than printed as they are
-  # found: the malformed line that sends this script to exit 2 can come after them, and
-  # exit 2 owes an empty stdout.
   if structural_candidate "$line"; then
     structural+=("$STRUCTURAL_TRANSFORM")
   elif [[ "$class_and_transform" =~ ^cosmetic[[:space:]]*[|] ]] ||
        [[ "$class_and_transform" =~ ^none[[:space:]]*$ ]]; then
-    # Both are a real answer, and neither is one worth a leaf: a cosmetic transform the
-    # leaf is no longer allowed to apply, or `CANDIDATES: none`, the leaf seeing nothing
-    # left at all. One branch because the script does nothing different with them —
-    # telling them apart is the conductor's job, from the report it already has.
     :
   else
     echo "refactor-triage: candidate line has no class, or one that is neither structural nor cosmetic: $line" >&2
@@ -66,8 +55,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   fi
 done
 
-# The loop is not a pipeline, so its body ran in this shell and both variables survive it
-# — `cat report | while …` would have filled them in a subshell and left them empty here.
+# hazard: `cat report | while …` would fill these variables in a subshell and leave them empty here.
 if [[ "$candidates_seen" -eq 0 ]]; then
   echo "refactor-triage: the report has no CANDIDATES: line" >&2
   exit 2

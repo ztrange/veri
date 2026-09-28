@@ -44,16 +44,7 @@
 set -euo pipefail
 
 baseline="${1:-}"
-# The second argument is either the leaf's role or the --full flag, never both, and the two
-# are split apart here so that `role` only ever holds a role: the refactor test far below is
-# then a question about which leaf is asking, not about which of two argument shapes arrived.
 role="${2:-}"
-# The full-tier measurement displaces the fast one as what the derivation runs over — it is
-# not a second input mixed with the first, so `baseline` is reassigned rather than held
-# alongside: there is one measurement the timeout is sized from, and this says which.
-# `full_given` carries whether the flag arrived, separately from what followed it, because
-# `--full` with nothing behind it is a broken call and not a caller who handed in no pair:
-# a single empty variable would read as the latter and derive from the fast tier instead.
 full_given=0
 full=""
 if [[ "$role" == --full ]]; then
@@ -61,10 +52,6 @@ if [[ "$role" == --full ]]; then
   full="${3:-}"
   role=""
 fi
-# `override`, not `timeout`: both branches print a timeout, so the name has to say which of
-# the two this one is. It is the value VERI_TIMEOUT arrived with — checked and printed back
-# as the answer, never mixed with the floor and scaled baseline the other branch derives
-# from — which is what keeps the liveness axis the operator's to set.
 override="${VERI_TIMEOUT:-}"
 
 if [[ -n "$override" ]]; then
@@ -76,10 +63,6 @@ if [[ -n "$override" ]]; then
   exit 0
 fi
 
-# require_seconds <parameter-name> <value> — refuse a measurement that is not a whole number
-# of seconds. The fast baseline and the full-tier measurement owe the same refusal for the same
-# reason — a number the timeout is sized from that is not a measurement of anything — so the
-# shape is written once and the parameter's own name is all the two diagnostics differ by.
 require_seconds() {
   local name="$1" value="$2"
   if [[ ! "$value" =~ ^[0-9]+$ ]]; then
@@ -95,13 +78,7 @@ if [[ "$full_given" == 1 ]]; then
   baseline="$full"
 fi
 
-# The floor is named once rather than written into both branches: it is one decision —
-# today's fixed default, which a quick suite keeps — and the comparison and the value
-# printed when it wins must never drift apart.
 floor=900
-# `scaled`, not `derived`: the derived timeout is whichever of the two wins, so naming the
-# 6 × half after the whole answer made the else branch read as printing something other
-# than a derived timeout. The pair the comparison is between is floor and scaled baseline.
 scaled=$((baseline * 6))
 
 if [[ "$scaled" -gt "$floor" ]]; then
@@ -110,14 +87,6 @@ else
   derived="$floor"
 fi
 
-# The budget's default lives in refactor-budget.sh, and is repeated here rather than asked
-# for because that script answers a different question (may another transform run?) and
-# answers it with an exit code. A run that never set the variable is the common one, so
-# reading a missing budget as 1 would quietly hand a five-transform leaf one leaf's cap.
-# `max(1, …)`: VERI_REFACTOR_BUDGET=0 switches refactoring off in refactor-budget.sh, so a
-# caller asking for this timeout anyway gets one leaf's worth, never a zero-second cap that
-# kills the leaf the instant it starts. A budget that is not a number is preflight's to
-# refuse (CLAUDE.md: caught in preflight, not mid-loop), not this script's.
 if [[ "$role" == refactor ]]; then
   budget="${VERI_REFACTOR_BUDGET:-5}"
   if [[ "$budget" -lt 1 ]]; then

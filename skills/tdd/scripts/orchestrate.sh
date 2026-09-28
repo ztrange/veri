@@ -41,8 +41,6 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
-# bg_start records the pid of what it starts, so the stop below names a process rather than a
-# row in a job table this shell may no longer have (#424).
 . "$HERE/lib/background.sh"
 
 budget="${VERI_CONDUCTOR_CTX_BUDGET:-120000}"
@@ -51,9 +49,6 @@ if [[ ! "$budget" =~ ^[0-9]+$ ]]; then
   exit 2
 fi
 
-# watch_context <issue>: read a conductor's stream-json on stdin and print one
-# `context <issue> <tokens>` line per assistant event, as each event arrives. Returns, closing
-# the stream, at the first step-done result seen while the context is over the budget.
 watch_context() {
   local line read_re='"cache_read_input_tokens":([0-9]+)' create_re='"cache_creation_input_tokens":([0-9]+)'
   local cache_read context=0 step_done=0
@@ -72,29 +67,17 @@ watch_context() {
   done
 }
 
-# launch <issue> <fifo>: become run-conductor.sh for <issue>, with its stdout on <fifo>, in a
-# session of its own. `exec` twice, so the pid bg_start recorded is the conductor's own and
-# nothing of this function is left in the process tree; os.setsid makes that pid a session and
-# so a process-group leader, which is what lets `stop` reach the `claude` the conductor forks.
-# python3's setsid rather than the binary, for the reason detach-leaf.sh:16 gives: macOS ships
-# no `setsid`. The fifo is what a pipeline would have been, and it exists so the pid is
-# knowable — `$!` in `a | b` names b.
+# hazard: macOS ships no setsid binary, so python3's os.setsid stands in.
 launch() {
   exec > "$2"
   exec python3 -c 'import os, sys; os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])' \
     "$HERE/run-conductor.sh" "$1"
 }
 
-# stop <pid>: end the conductor whose stream watch_context stopped reading. The signal goes to
-# the process GROUP, the way supervise.sh:155 sends it and with the same fallback to the pid
-# alone, because the conductor forks `claude`: a TERM to the conductor by itself would leave
-# that child alive, writing into a fifo nobody reads. A pid already gone is not an error — the
-# point of the call is that nothing of the conductor is left running.
 stop() {
   kill -TERM -"$1" 2>/dev/null || kill -TERM "$1" 2>/dev/null || true
 }
 
-# parked <issue>: true when that issue's run halted with a question in .tdd/parked/<issue>.md.
 parked() { [[ -e ".tdd/parked/$1.md" ]]; }
 
 while :; do

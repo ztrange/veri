@@ -184,6 +184,17 @@ want_empty_sweepable "$SCRIPTS/build-develop-prompt.sh" "$SCRIPTS/build-verify-p
   "$SCRIPTS/run-conductor.sh" "$SCRIPTS/stop-run.sh" "$SCRIPTS/preserve-attempt.sh"
 verdict "the sweepable report is empty for build-develop-prompt.sh, build-verify-prompt.sh, run-conductor.sh, stop-run.sh and preserve-attempt.sh"
 
+# 16. the sweepable report is empty for leaf-timeout.sh, ensure-run-state-ignored.sh,
+#     orchestrate.sh, parallel-conductors.sh, workqueue.sh, push-branch.sh, refactor-triage.sh,
+#     invisible-work.sh, over-budget.sh, run-suite.sh, leaf-model.sh and leaf-launchable.sh.
+problems=""
+want_empty_sweepable "$SCRIPTS/leaf-timeout.sh" "$SCRIPTS/ensure-run-state-ignored.sh" \
+  "$SCRIPTS/orchestrate.sh" "$SCRIPTS/parallel-conductors.sh" "$SCRIPTS/workqueue.sh" \
+  "$SCRIPTS/push-branch.sh" "$SCRIPTS/refactor-triage.sh" "$SCRIPTS/invisible-work.sh" \
+  "$SCRIPTS/over-budget.sh" "$SCRIPTS/run-suite.sh" "$SCRIPTS/leaf-model.sh" \
+  "$SCRIPTS/leaf-launchable.sh"
+verdict "the sweepable report is empty for leaf-timeout.sh, ensure-run-state-ignored.sh, orchestrate.sh, parallel-conductors.sh, workqueue.sh, push-branch.sh, refactor-triage.sh, invisible-work.sh, over-budget.sh, run-suite.sh, leaf-model.sh and leaf-launchable.sh"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
