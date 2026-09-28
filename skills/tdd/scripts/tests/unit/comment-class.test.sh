@@ -171,6 +171,12 @@ want_empty_sweepable "$SCRIPTS/issue-worktree.sh" "$SCRIPTS/verify.sh" "$SCRIPTS
   "$SCRIPTS/extract-result.sh"
 verdict "the sweepable report is empty for issue-worktree.sh, verify.sh, parse-verdict.sh and extract-result.sh"
 
+# 14. the sweepable report is empty for detect-test-command.sh, solvable-issues.sh and session-cost.sh.
+problems=""
+want_empty_sweepable "$SCRIPTS/detect-test-command.sh" "$SCRIPTS/solvable-issues.sh" \
+  "$SCRIPTS/session-cost.sh"
+verdict "the sweepable report is empty for detect-test-command.sh, solvable-issues.sh and session-cost.sh"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
