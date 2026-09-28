@@ -159,5 +159,13 @@ for want in PENDING:3 EXPECTED:3 FAILURE:1 ERROR:1; do
 done
 report "$name"
 
+name="wait-ci.sh reads a legacy StatusContext whose state is SUCCESS as a completed green check: beside a pending CheckRun it exits 3, beside only green checks it exits 0 (#544)"
+problems=()
+rollup legacy-success-pending.json "$(check IN_PROGRESS ''),$(context SUCCESS)"
+rollup legacy-success-green.json "$(check COMPLETED SUCCESS),$(context SUCCESS)"
+expect_exit legacy-success-pending 3
+expect_exit legacy-success-green 0
+report "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
