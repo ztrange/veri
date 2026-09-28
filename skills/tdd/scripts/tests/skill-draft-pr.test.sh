@@ -98,6 +98,8 @@
 #  28. SKILL.md's Draft PR step leaves no CI run on the readied PR that nothing reads: every push
 #      its command lines make after the first `wait-ci.sh` call has a `wait-ci.sh` call after
 #      it (#544).
+#  29. SKILL.md's Draft PR step passes every `wait-ci.sh` call the sha it just pushed, read
+#      with `git rev-parse HEAD` after its last push, as the head it waits for (#550).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -1087,6 +1089,35 @@ if step_or_problem '### 4. Draft PR' "whether a push after the CI read has its r
     [[ -z "$unread" ]] ||
       problems+=("$skill_md's Draft PR step pushes after the CI read with no wait-ci.sh after it, leaving that push's CI run unread: $(printf '%.120s' "$unread")")
   fi
+fi
+report "$name"
+
+# 29. The criterion, as one case (issue #550): right after a push the PR still reports the
+#     previous head and its finished checks, so a wait given no sha answers for that commit.
+#     Each call's fourth argument must be `$(git rev-parse HEAD)` itself, or a variable some
+#     command line assigned from it after the last push before that call.
+name="$skill_md's Draft PR step passes every wait-ci.sh call the sha it just pushed, from git rev-parse HEAD, as the head it waits for (#550)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "which head sha the step's CI waits are given"; then
+  commands="$(section_commands)"
+  unpinned="$(awk -v wait_re="^$wait_ci_run" '
+      /^[^#]*([$]s\/push-branch[.]sh|git push)/ { delete sha }
+      match($0, /^[a-z_][a-z0-9_]*="?[$][(]git rev-parse head[)]"?/) {
+        split($0, lhs, "="); sha[lhs[1]] = 1 }
+      $0 ~ wait_re {
+        call = $0; sub(/#.*/, "", call); sub(/;.*/, "", call)
+        gsub(/"?[$][(]git rev-parse head[)]"?/, "@head@", call)
+        n = split(call, w, " ")
+        arg = (n >= 5 ? w[5] : "")
+        v = arg; gsub(/["${}]/, "", v)
+        if (arg != "@head@" && !(arg ~ /^"?[$]/ && (v in sha))) print $0 }' <<< "$commands")"
+  [[ -n "$(line_of "$wait_ci_run")" ]] ||
+    problems+=("$skill_md's Draft PR step runs no \$S/wait-ci.sh, so which head its CI waits are given could not be checked")
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    problems+=("$skill_md's Draft PR step calls wait-ci.sh with no head sha from git rev-parse HEAD after its last push: $(printf '%.120s' "$line")")
+  done <<< "$unpinned"
 fi
 report "$name"
 
