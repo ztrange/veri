@@ -538,6 +538,10 @@ unauthenticated baseline never gets a cycle.
    Exit 0 and exit 3 both mean it parses (3 only says the budget is 0 — a run with the
    refactor loop switched off), so continue.
 
+   Then run `$S/refactor-budget.sh --issue 0` once, which reads `VERI_ISSUE_REFACTOR_BUDGET`,
+   the structural pass's budget, the same way: **exit 2** is the same stop, its stderr
+   reported verbatim; exit 0 and exit 3 both mean it parses.
+
    Then the plan-growth budget, which `add-ledger-step.sh` reads the same way: it must be
    unset, or a whole number ≥ 0. There is nothing to run, since that script refuses an
    anchor it cannot find before it ever looks at the budget, so read the value here:
@@ -1463,7 +1467,14 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    `$S/transform-touches-tests.sh <base-sha>` — exit 1 rejects the transform, exit 2 is no
    answer — then judged by the long
    refactor's blind `transform` verifier against `<base-sha>`, one commit per transform —
-   both before the next candidate's leaf is launched. A `REJECT` resets to `<base-sha>` and moves on to the next candidate. No candidate — `list`
+   both before the next candidate's leaf is launched. A `REJECT` resets to `<base-sha>` and moves on to the next candidate.
+   Once the pass ends — the candidates run out, or the budget is spent — mark it once, with
+   the transforms it landed, its budget and why it stopped (`candidates-done` or
+   `budget-spent`):
+   ```
+   VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh structural-pass transforms=<count> budget=<VERI_ISSUE_REFACTOR_BUDGET> stopped=<reason>
+   ```
+   No candidate — `list`
    exits 3 — skips the pass with no bail, marking the log and going straight on to readying
    the PR:
    ```
