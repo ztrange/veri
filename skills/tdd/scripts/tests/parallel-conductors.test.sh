@@ -855,6 +855,19 @@ grep -F "VERI_MAX_ISSUES must be a whole number >= 1: ''" "$work/cap23.out" > /d
 [[ "$code" == 2 && ! -e "$capped23" && "$named" == yes ]] \
   && ok || no "#505 VERI_MAX_ISSUES set but empty is exit 2 naming it and the empty value '', with no conductor launched ( [exit=$code want 2, launched: $([[ -e "$capped23" ]] && echo yes || echo no), named: $named] $(cat "$work/cap23.out") )"
 
+# 24. VERI_MAX_ISSUES unset is no cap: every issue in a three-issue solvable set is launched, and
+# the launcher exits 0.
+gh24="$work/gh24"
+solvable_fixture "$gh24" 7 8 9
+capped24="$work/capped24"
+cap24_stub="$work/claude-cap24"
+record_stub "$cap24_stub" "$capped24" "$gh24"
+run_launcher "$gh24" "$cap24_stub" "$work/cap24.out"
+want24="$(printf 'start 7\nstart 8\nstart 9')"
+got24="$(cat "$capped24" 2>/dev/null)"
+[[ "$code" == 0 && "$got24" == "$want24" ]] \
+  && ok || no "#505 VERI_MAX_ISSUES unset applies no cap and launches every solvable issue ( [exit=$code want 0, launched '$(printf '%s' "$got24" | tr '\n' ',')' want '$(printf '%s' "$want24" | tr '\n' ',')'] $(cat "$work/cap24.out") )"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
