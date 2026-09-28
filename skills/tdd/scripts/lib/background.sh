@@ -35,16 +35,10 @@ _bg_remember() {
     [[ "$known" == "$1" ]] && return 0
   done
   _bg_records+=("$1")
-  local earlier
   # hazard: a subshell's `trap -p` prints its parent's traps until it sets one; untrappable KILL clears them.
   trap - KILL
-  earlier="$(trap -p EXIT)"
-  if [[ -n "$earlier" ]]; then
-    eval "set -- $earlier"
-    trap "$3"$'\n'_bg_report_survivors EXIT
-  else
-    trap _bg_report_survivors EXIT
-  fi
+  eval "set -- $(trap -p EXIT)"
+  trap "${3:+$3$'\n'}_bg_report_survivors" EXIT
 }
 
 bg_kill() {
