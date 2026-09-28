@@ -208,10 +208,11 @@ verdict "the sweepable report is empty for every shell file under scripts/lib/"
 # 19. no class 1 line in scripts/*.sh or scripts/lib/*.sh, the leading contract header included,
 #     cites an issue number.
 problems=""
-classify "$SCRIPTS"/*.sh "$SCRIPTS"/lib/*.sh
+files=("$SCRIPTS"/*.sh "$SCRIPTS"/lib/*.sh)
+classify "${files[@]}"
 cited="$(awk -F: 'NR == FNR { if ($NF == 1) want[$1 ":" $2] = 1; next }
   (FILENAME ":" FNR) in want && /#[0-9]/ { print FILENAME ":" FNR ": " $0 }' \
-  - "$SCRIPTS"/*.sh "$SCRIPTS"/lib/*.sh <<< "$out")"
+  - "${files[@]}" <<< "$out")"
 if [[ -n "$cited" ]]; then
   problems+="    want no comment line citing an issue number, got:"$'\n'"$cited"$'\n'
 fi
