@@ -2,3 +2,5 @@
 - the `across` and `total` cases in wait-ci.test.sh repeat the same persistent-dir setup (`mkdir -p "$work/<n>/.tdd"; : > <n>.clock; : > <n>.json.calls`), which a small helper could replace — code from before this cycle, so not applied here
 ### SKILL.md's Draft PR step passes the sha it just pushed (`git rev-parse HEAD`) to every `wait-ci.sh` call ⟦criterion 2⟧
 - cases 28 and 29 of skill-draft-pr.test.sh both check `line_of "$wait_ci_run"` and add a near-identical "runs no $S/wait-ci.sh, so … could not be checked" problem; that could be one helper
+### a legacy StatusContext row carrying no `state` key makes `wait-ci.sh` exit 2 (no answer could be obtained) on its first read, instead of waiting out the bound ⟦criterion 3⟧
+- wait-ci.test.sh's new case writes its stateless StatusContext row as inline JSON, next to the `context <state>` helper that builds the same row with a state. Folding the two together would mean giving `context` a no-state mode that no other test asks for, so it is not applied
