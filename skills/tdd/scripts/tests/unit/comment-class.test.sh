@@ -130,6 +130,24 @@ if grep -E "^$f:6(:|$)" <<< "$out" > /dev/null; then
 fi
 verdict "the sweepable report lists class 1 and class 2 lines and never a class 3 line"
 
+# 10. the sweepable report omits the leading contract header and a comment marked `# hazard:`,
+#     and still lists a code comment after the header.
+problems=""
+f="$work/header-hazard.sh"
+printf '%s\n' '#!/usr/bin/env bash' '# tool.sh — print its one argument.' '#' '# Usage: tool.sh <arg>' \
+  '# Exit: 0 printed, 2 bad arguments.' 'set -uo pipefail' '' \
+  '# hazard: under set -u an unset name exits with the status of the previous command' 'echo "${1:-}"' > "$f"
+classify --sweepable "$f"
+if [[ -n "$out" ]]; then
+  problems+="    want an empty sweepable report, got:"$'\n'"$out"$'\n'
+fi
+printf '%s\n' '# print the argument, or nothing' 'echo "${1:-}"' >> "$f"
+classify --sweepable "$f"
+if [[ "$out" != "$f:10:1" ]]; then
+  problems+="    want only $f:10:1 once a code comment follows the header, got:"$'\n'"$out"$'\n'
+fi
+verdict "the sweepable report omits a leading contract header and a comment marked as a shell-hazard warning"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

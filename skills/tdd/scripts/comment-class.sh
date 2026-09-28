@@ -4,7 +4,8 @@
 # Usage: comment-class.sh [--sweepable] <file>…
 #
 # Class 1 is a comment in code, 2 a `#` line inside a heredoc redirected to a file or piped to tee, dd or sponge,
-# 3 a `#` line inside any other heredoc. --sweepable prints classes 1 and 2 only.
+# 3 a `#` line inside any other heredoc. --sweepable prints classes 1 and 2 only, less the comment block
+# after a leading `#!` line and any comment starting `# hazard:`.
 #
 # Exit: 0 printed, 2 bad arguments.
 set -uo pipefail
@@ -21,7 +22,8 @@ if (( $# == 0 )); then
 fi
 
 awk -v sweepable="$sweepable" '
-  FNR == 1 { delim = "" }
+  FNR == 1 { delim = ""; header = /^#!/ }
+  !/^[[:space:]]*#/ { header = 0 }
   delim != "" {
     end = $0
     if (dash) sub(/^\t+/, "", end)
@@ -29,7 +31,10 @@ awk -v sweepable="$sweepable" '
     else if ($0 ~ /^[[:space:]]*#/ && !(sweepable && cls == 3)) print FILENAME ":" FNR ":" cls
     next
   }
-  /^[[:space:]]*#/ { print FILENAME ":" FNR ":1"; next }
+  /^[[:space:]]*#/ {
+    if (!(sweepable && (header || /^[[:space:]]*# hazard:/))) print FILENAME ":" FNR ":1"
+    next
+  }
   { line = $0; gsub(/<<</, "", line) }
   match(line, /<<-?[[:space:]]*["'\'']?[A-Za-z_][A-Za-z0-9_]*/) {
     out = line; gsub(/[02-9]>+[[:space:]]*[^[:space:]]*/, "", out)
