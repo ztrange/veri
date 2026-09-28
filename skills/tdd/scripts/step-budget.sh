@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# step-budget.sh — the two money budgets (issue #449, part of #447): VERI_STEP_BUDGET, what
+# step-budget.sh — the two money budgets: VERI_STEP_BUDGET, what
 # one step may spend, and VERI_RUN_BUDGET, what the whole run may.
 #
 # Usage:   step-budget.sh          # prints the resolved step budget, then the resolved run budget

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# timed-test-run.sh — run a test command and record what it cost (issue #342, part of
-# PRD #335). Nothing in a run said which tier a test-command invocation used, which suites
+# timed-test-run.sh — run a test command and record what it cost.
+# Nothing in a run said which tier a test-command invocation used, which suites
 # it covered, or how long it took, so "is this run typical" was a question only a human
 # reading the log by eye could answer. Every test-command run a leaf or the conductor makes
 # goes through this wrapper, and each one leaves exactly one `test-run` line in

@@ -3,7 +3,7 @@
 #
 # Reads a finished refactor leaf's report on stdin — its last lines, verbatim, as
 # develop-refactor.md asks for them — and answers from the `CANDIDATES:` lines it finds.
-# Since #149 every one of those carries the class of the transform it names — `structural`
+# Every one of those carries the class of the transform it names — `structural`
 # or `cosmetic`, as prompts/develop-refactor.md's *The two classes of candidate* defines
 # them:
 #

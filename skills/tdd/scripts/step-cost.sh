@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # step-cost.sh — what one step of the run has spent on leaves so far, read off the run's
-# `usage` events (issue #448).
+# `usage` events.
 #
 # Usage:   step-cost.sh <step-text>     # run from the run's worktree
 #          step-cost.sh --run           # the whole run, whatever step each event carries

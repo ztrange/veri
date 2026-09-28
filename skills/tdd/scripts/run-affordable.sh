@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-affordable.sh — can this run still afford to finish (issue #453, part of #447)?
+# run-affordable.sh — can this run still afford to finish?
 #
 # Usage:   run-affordable.sh <steps-remaining>     # run from the run's worktree
 #

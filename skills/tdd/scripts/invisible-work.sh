@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # invisible-work.sh — report work that is not visible, naming the invariant each finding
-# breaks (issue #197). Reads, never writes: it deletes nothing, pushes nothing, opens nothing.
+# breaks. Reads, never writes: it deletes nothing, pushes nothing, opens nothing.
 #
-# Invariant 2 (#195): a branch is never created without a PR. A branch on `origin` for which
+# Invariant 2: a branch is never created without a PR. A branch on `origin` for which
 # no PR was ever opened — not open, not closed, not merged — is reported with its tip, its
 # commit count ahead of the default branch, and, when its name has the `tdd/<n>-<slug>`
 # shape, the number and state of issue <n>: that is what tells a live run from an abandoned
 # one. An issue the repository does not have — a typo'd number, a transferred or deleted
 # issue — has its state named `unknown` rather than guessed.
 #
-# Invariant 1 (#191): work in progress never lives only in a local branch. A local branch
+# Invariant 1: work in progress never lives only in a local branch. A local branch
 # `origin` does not carry is reported with its tip, how many of its commits no `origin` ref
 # holds, and the worktree it is checked out in, when there is one. A local branch whose PR was
 # merged or closed is residue — its branch on `origin` deleted after the decision, as GitHub's

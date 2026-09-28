@@ -9,7 +9,7 @@
 # symbol — and the developer and the blind verifier learn what that reason is through the
 # one channel that already exists, this file. The verifier is blind by construction, so a
 # fact not written here is a fact it cannot have. `## Refactor`, from the `refactor` label,
-# names the run kind (#499) through the same channel.
+# names the run kind through the same channel.
 set -euo pipefail
 
 n="${1:-}"

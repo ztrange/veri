@@ -2,7 +2,7 @@
 # exhausted-outcome.sh — say which of the three outcomes an exhausted step's last leaf reported.
 #
 # When a step's revise budget runs out, the conductor sends one more leaf and asks it which of
-# two things is true of the criterion nothing could satisfy (issue #408): that it carries more
+# two things is true of the criterion nothing could satisfy: that it carries more
 # than one behaviour, reported as `SPLIT:` lines the way Green already accepts them, or that it
 # needs a decision the run has no authority to make, reported as `NEEDS_USER:`. Answering
 # neither is the third outcome, and it is not an error: the conductor bails the step exactly as

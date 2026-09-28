@@ -12,16 +12,16 @@
 # Usage:
 #   verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
 #     phase = red | green | refactor | pin
-#     --step = the ledger's own line for the step under judgement (#223), passed straight
+#     --step = the ledger's own line for the step under judgement, passed straight
 #              through to build-verify-prompt.sh
-#     --fast-cmd = the fast tier's test command (#341), required for green, passed straight
+#     --fast-cmd = the fast tier's test command, required for green, passed straight
 #              through to build-verify-prompt.sh
 #
 # stdout: the verifier's reason (mirror it to the issue thread).
 # exit:   0 PASS · 1 REJECT · 2 malformed verdict or build error.
 #
-# One `verdict` event is appended to the run's event log, `.tdd/events.jsonl` (issue #107,
-# ADR-0014), carrying the phase judged, the PASS/REJECT/malformed word of the exit line above
+# One `verdict` event is appended to the run's event log, `.tdd/events.jsonl` (ADR-0014),
+# carrying the phase judged, the PASS/REJECT/malformed word of the exit line above
 # and the first line of the reason. A leaf name leaf-role.sh cannot read leaves no line at
 # all, rather than one whose actor and phase were invented — the tolerance supervise.sh's
 # own marks have.

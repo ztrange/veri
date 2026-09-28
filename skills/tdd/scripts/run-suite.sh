@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # run-suite.sh — run ONE suite and hold it to the same count-line contract the `test` recipe
-# holds every suite to (issue #418).
+# holds every suite to.
 #
 # Usage:   run-suite.sh <suite>
 #
 # Until this script existed, that contract lived in the Makefile and nowhere else, so it
 # reached only the suites `make test`'s glob — or a `TESTS=` override — handed it. A leaf
 # running one suite by itself (`bash skills/tdd/scripts/tests/<suite>.test.sh`) got no check
-# at all: not the exit code, which #157 established lies — under `set -u`, which every suite
+# at all: not the exit code, which lies — under `set -u`, which every suite
 # here declares, an unbound name inside a numeric comparison kills the script, and a script
 # killed that way exits with the status of the command before it, routinely 0 — and not the
-# count line, which nothing read. On #415 the leaf that ran a suite that way was the blind
+# count line, which nothing read. The leaf that once ran a suite that way was the blind
 # verifier, the one component whose whole purpose is to establish ground truth independently.
 #
 # So: a suite whose last line is not `<n> passed, <m> failed` is refused here, named, however

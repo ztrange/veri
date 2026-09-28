@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# event.sh — append one line to the run's event log (issue #107, ADR-0014: observability is
+# event.sh — append one line to the run's event log (ADR-0014: observability is
 # a per-run event log written by the scripts, not a service). This is the writer every
 # conductor mark goes through, and the first clock in the system.
 #
@@ -10,7 +10,7 @@
 # always carries the nine fixed keys `ts`, `awake`, `issue`, `actor`, `phase`, `step`,
 # `event`, `attempt` and `skill_commit`, plus one key per `key=value` argument.
 #
-# `skill_commit` is the commit of the skill the line was written under (issue #165). A run
+# `skill_commit` is the commit of the skill the line was written under. A run
 # executes whatever is installed at `~/.claude/skills/tdd`, a symlink into a clone that `main`
 # moves under a running conductor, so which version a leaf was launched with is a fact only
 # the log can carry — and because it is written per line rather than per run, a skill that
@@ -27,7 +27,7 @@
 # key anyway, empty — the nine keys are the line's promise to a reader that groups by phase
 # or counts attempts, so "absent" must never be the spelling of "unknown".
 #
-# Perf (issue #290): this used to `exec python3 -c …` purely to escape and compose the line —
+# Perf: this used to `exec python3 -c …` purely to escape and compose the line —
 # `json.dumps` was the whole reason python3 was a dependency of a leaf launch at all. A
 # supervision calls this three to five times (supervise.sh's launch, an optional retry per
 # killed-stuck attempt, and exit; harvest-usage.sh's usage mark on top of that), each paying
@@ -35,8 +35,8 @@
 # The line is now composed in bash: `lib/json-escape.sh`'s `json_escape_string` matches
 # `json.dumps(str, ensure_ascii=True)`'s escape table byte for byte (json-escape.test.sh
 # proves it against a live python3, not by inspection), and `ts` comes from bash's own
-# `printf '%(%s)T'` clock (bash 4.2+, required since #320's bash-5 floor) instead of forking
-# `date`. The processes this script starts itself are `mkdir -p .tdd` below and, since #486,
+# `printf '%(%s)T'` clock (bash 4.2+) instead of forking
+# `date`. The processes this script starts itself are `mkdir -p .tdd` below and
 # the awake-clock read: one python3 per event for `time.monotonic()` unless VERI_AWAKE_CLOCK
 # names another executable — composing the line still starts none.
 #

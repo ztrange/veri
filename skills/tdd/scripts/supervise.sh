@@ -7,7 +7,7 @@
 #   * heartbeat — activity on the leaf's progress log within a window tells "slow but
 #     working" from "hung". A leaf silent past the window is killed.
 #   * hard timeout — a leaf that exceeds the time cap is killed even if still noisy.
-# Both windows count only time the machine spent awake (issue #472). The clock is Python's
+# Both windows count only time the machine spent awake. The clock is Python's
 # time.monotonic(): on macOS that is mach_absolute_time(), which does not advance while the
 # Mac is asleep, and on Linux it is CLOCK_MONOTONIC, which does not advance while the machine
 # is suspended. The wall clock (`date +%s`) keeps running through a suspend, so an hour with
@@ -17,12 +17,12 @@
 # The heartbeat is the leaf's; a `verdict-<phase>` supervision is the wrapper around a
 # verifier leaf that is already supervised under its own name, so it keeps only the hard
 # timeout and never kills for a silence that is the wrapper's rather than the verifier's
-# (issue #415 — the reasoning is where `heartbeat_watched` is set, below).
+# (the reasoning is where `heartbeat_watched` is set, below).
 # A killed leaf is retried up to VERI_STUCK_RETRIES times (default 1) on a fresh attempt; if
 # it still can't recover it is reported as `killed-stuck`, which the conductor turns into a
 # clean bail — unless its log already holds the leaf's closing result record, in which case the
-# kill landed on a finished process and the leaf's own outcome is reported instead (issue
-# #212). A kill and a rendered verdict can coexist because the watchdog's only sensor for
+# kill landed on a finished process and the leaf's own outcome is reported instead.
+# A kill and a rendered verdict can coexist because the watchdog's only sensor for
 # "the leaf is done" is the subshell's rc file, and the leaf's stream finishes before the
 # subshell writes `.tdd/<name>.rc` — so between the last line of output and that file
 # landing there is a window in which a finished leaf is indistinguishable from a silent
@@ -40,10 +40,10 @@
 # `.tdd/<name>.exit` on every path — so a leaf launched detached can be waited on by
 # polling that file instead of by reading this script's stdout. The one exception is a leaf
 # that recorded a code in that file itself, as the verifier's launch wrapper does with
-# `verify.sh`'s verdict code: the leaf's own record is the answer and is left alone (#415).
+# `verify.sh`'s verdict code: the leaf's own record is the answer and is left alone.
 #
-# Three kinds of event are appended to the run's event log, `.tdd/events.jsonl` (issue #107,
-# ADR-0014): one `launch` — the leaf's name, the command behind it, the model it runs on
+# Three kinds of event are appended to the run's event log, `.tdd/events.jsonl` (ADR-0014):
+# one `launch` — the leaf's name, the command behind it, the model it runs on
 # (empty when the run chose none) and the attempt its name encodes — one `retry` per
 # relaunch, carrying the cause the watchdog killed the previous attempt for, and one `exit`
 # — the 0/1/2 status above, the kill cause when there is one, and how many wall seconds the

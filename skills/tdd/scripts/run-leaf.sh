@@ -22,7 +22,7 @@
 #
 # CLAUDE_BIN overrides the `claude` binary (used by the tests to inject a stub).
 #
-# A leaf gets its OWN global git config (issue #276). `GIT_CONFIG_GLOBAL` names the single
+# A leaf gets its OWN global git config. `GIT_CONFIG_GLOBAL` names the single
 # file git reads and writes for `--global`, so pointing it at a per-leaf file makes a
 # leaf's `git config --global` land there and die with the leaf. It is not a refusal: the
 # leaf writes and reads its own keys back normally, which is what a leaf legitimately
@@ -33,8 +33,8 @@
 # 2026-09-17.
 #
 # VERI_LEAF_MODEL is the model this leaf runs on, resolved by leaf-model.sh and exported by
-# supervise.sh — the one choke point that knows the leaf's name, and so its role (issue
-# #171). It is read here rather than resolved here because the run's `launch` event must
+# supervise.sh — the one choke point that knows the leaf's name, and so its role.
+# It is read here rather than resolved here because the run's `launch` event must
 # report the very value the command line was built from, not a second reading of the
 # environment. Unset or empty means no `--model` flag at all, and the command line is then
 # byte-identical to the one this script built before the variable existed.

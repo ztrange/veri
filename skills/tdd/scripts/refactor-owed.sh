@@ -3,7 +3,7 @@
 #
 # When a step's refactor stops with structural candidates still listed, nothing had
 # recorded them: `.tdd/develop-refactor.out` is overwritten by the next step, so by the
-# draft PR every step's leftovers but the last were gone (#359, part of #354). This
+# draft PR every step's leftovers but the last were gone. This
 # script appends them to a file that survives the run — `.tdd/issue-<n>-refactor-owed.md`,
 # which the ledger's .gitignore rule already tracks — so the work a follow-up owes is in
 # front of the human deciding the merge. `render` prints that file back as the
@@ -16,7 +16,7 @@
 # Reads a finished refactor leaf's report on stdin, the same lines refactor-triage.sh
 # reads, and appends the transform of every `CANDIDATES: structural | …` line to <file>
 # under the named step. Cosmetic candidates are never written: a reflowed comment put in
-# front of the merge decision is the mixed backlog #149 already refused once.
+# front of the merge decision is a mixed backlog.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
