@@ -20,12 +20,9 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# shellcheck source=lib/candidate-line.sh
 source "$HERE/lib/candidate-line.sh"
 
 verb="${1:-}"
-# Both verbs take the owed file as their second argument — `append` writes it, `render`
-# reads it — so the argument is named once here rather than in each branch.
 file="${2:-}"
 
 case "$verb" in
@@ -33,20 +30,13 @@ case "$verb" in
     step="${3:-}"
 
     structural=()
-    # `|| [[ -n "$line" ]]` so a report whose last line has no trailing newline is still
-    # read: `read` returns non-zero at EOF even when it did fill the variable.
+    # hazard: `|| [[ -n "$line" ]]` keeps a last line that has no trailing newline.
     while IFS= read -r line || [[ -n "$line" ]]; do
-      # What a structural candidate line looks like is lib/candidate-line.sh's to say:
-      # refactor-triage.sh reads the same line for the loop's own answer, and one copy of
-      # that shape drifting from the other is a leftover silently recorded by neither.
       if structural_candidate "$line"; then
         structural+=("$STRUCTURAL_TRANSFORM")
       fi
     done
 
-    # The step's name goes in first, and only when it left something behind: the file
-    # accumulates across a whole run, so a candidate that does not say which step owes it
-    # cannot be acted on.
     if [[ "${#structural[@]}" -gt 0 ]]; then
       {
         printf '### %s\n' "$step"
@@ -55,16 +45,8 @@ case "$verb" in
     fi
     ;;
   render)
-    # Nothing to render is not an error, it is exit 3 (CLAUDE.md, *Exit codes are the
-    # API*): a run whose every refactor finished clean never creates the file, and one
-    # that exists with nothing in it is the same answer. The heading is printed after
-    # this check, never before, so a PR body cannot end up carrying a `## Refactor owed`
-    # promising leftovers nobody left.
     [[ -s "$file" ]] || exit 3
 
-    # The heading is the only thing render adds: `append` already wrote each step and its
-    # candidates in the markdown the PR body wants, in the order they were recorded, so
-    # the section is that file under a heading a reader can find it by.
     printf '## Refactor owed\n\n'
     cat "$file"
     ;;

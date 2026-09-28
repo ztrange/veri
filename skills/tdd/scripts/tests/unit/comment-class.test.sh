@@ -195,6 +195,11 @@ want_empty_sweepable "$SCRIPTS/leaf-timeout.sh" "$SCRIPTS/ensure-run-state-ignor
   "$SCRIPTS/leaf-launchable.sh"
 verdict "the sweepable report is empty for leaf-timeout.sh, ensure-run-state-ignored.sh, orchestrate.sh, parallel-conductors.sh, workqueue.sh, push-branch.sh, refactor-triage.sh, invisible-work.sh, over-budget.sh, run-suite.sh, leaf-model.sh and leaf-launchable.sh"
 
+# 17. the sweepable report is empty for every skills/tdd/scripts/*.sh, comment-class.sh included.
+problems=""
+want_empty_sweepable "$SCRIPTS"/*.sh
+verdict "the sweepable report is empty for every scripts/*.sh, the classifier itself included"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

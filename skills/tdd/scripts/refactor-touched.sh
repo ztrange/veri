@@ -20,15 +20,11 @@ if [[ "$rev" == --issue ]]; then
 fi
 [[ -n "$rev" ]] || { echo "$usage" >&2; exit 2; }
 
-# A commit the repository cannot resolve is a plumbing failure, not an empty answer: without
-# this check `git diff` fails, `grep -v` then reads no input and returns 1 under `pipefail`,
-# and the refactor prompt reads that 1 as a clean "nothing touched".
+# hazard: under pipefail, `grep -v` on a failed `git diff` exits 1, read as nothing touched.
 git rev-parse --verify --quiet "$rev^{commit}" >/dev/null ||
   { echo "refactor-touched: cannot resolve commit '$rev'" >&2; exit 2; }
 
-# A commit whose files are all under `.tdd/` leaves a refactor nothing to tidy. That is an
-# answer, not a failure, so it is the "nothing to do" code with an empty stdout: `grep`
-# finding no line exits 1, and under `pipefail` that 1 would otherwise be the script's.
+# hazard: `grep` finding no line exits 1, which pipefail makes the script's.
 touched="$(git diff --name-only "$from" "$to" | grep -v '^\.tdd/' || true)"
 [[ -n "$touched" ]] || exit 3
 

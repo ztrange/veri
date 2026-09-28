@@ -26,11 +26,6 @@ file="$1"
 matcher="${2:-}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
-# mark_ticked_line <pre-tick-file> <mark>  < ticked-text -> that text on stdout, with <mark>
-# appended to the one line tick-criterion.sh changed. Which line that is, is read off the
-# two texts rather than re-derived: the pre-tick file and the ticked text go in as awk's two
-# inputs, and the first line where they differ is the tick. Line counts match, so FNR —
-# awk's per-input line number — indexes both, and `-` is the ticked text on stdin.
 mark_ticked_line() {
   local before="$1"
   MARK="$2" awk '

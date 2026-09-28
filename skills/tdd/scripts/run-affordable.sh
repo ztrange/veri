@@ -13,7 +13,6 @@
 # live in one place.
 set -euo pipefail
 
-# A count of steps is a whole number; a word or a fraction is no count, so no answer.
 remaining="${1-}"
 if [[ ! "$remaining" =~ ^[0-9]+$ ]]; then
   echo "usage: run-affordable.sh <steps-remaining> (a whole number): '$remaining'" >&2
@@ -22,20 +21,12 @@ fi
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
-# Two lines, step budget then run budget; only the second is this script's.
 budgets="$("$HERE/step-budget.sh")"
 ceiling="${budgets##*$'\n'}"
 
 steps="$("$HERE/step-cost.sh" --steps)"
 
-# The step costs sorted ascending, so the median is read by position. Every step counts
-# toward spent, but only a full step toward the median: a pin or an already-satisfied step
-# is two leaves (red and its verify), a full step more, and costs a quarter of one — so a
-# median over all steps would project a remainder cheaper than the one actually left. No
-# full step yet is exit 3, silent: there is no median to project with, and one borrowed
-# from elsewhere would be a claim about a repository, not about this run. The
-# comparison and the arithmetic are awk's: every figure is a decimal, and bash's arithmetic
-# is integer.
+# hazard: bash arithmetic is integer and every figure is a decimal, so awk does the arithmetic.
 sort -n <<< "$steps" | awk -v n="$remaining" -v ceiling="$ceiling" '
   { spent += $1 }
   $2 > 2 { cost[++full] = $1 }

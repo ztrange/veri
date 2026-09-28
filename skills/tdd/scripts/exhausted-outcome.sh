@@ -20,16 +20,12 @@
 #          answer gave an answer, not a plumbing failure, so this is veri's "nothing to do".
 set -euo pipefail
 
-# Read stdin into an array of lines. The `|| [[ -n ... ]]` keeps a final line that lacks a
-# trailing newline.
+# hazard: `|| [[ -n ... ]]` keeps a last line that has no trailing newline.
 lines=()
 while IFS= read -r line || [[ -n "$line" ]]; do
   lines+=( "$line" )
 done
 
-# One pass over the lines: the split criteria are every `SPLIT:` line's tail, in the order the
-# leaf gave them, and a `NEEDS_USER:` line yields both its own tail and its index, since the
-# lines below it continue the answer.
 criteria=()
 uidx=-1
 utail=""
@@ -47,8 +43,6 @@ if (( ${#criteria[@]} > 0 )); then
   exit 0
 fi
 
-# The needs-user answer: the label line's tail plus the lines that continue it, which is how a
-# leaf writes a sentence long enough to wrap.
 if (( uidx >= 0 )); then
   answer=( "$utail" "${lines[@]:uidx+1}" )
   printf '%s\n' "${answer[@]}"

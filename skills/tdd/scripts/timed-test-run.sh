@@ -30,15 +30,9 @@
 # slow is a comparison against a tier's usual, which a later reader makes.
 set -uo pipefail
 
-# The call this script accepts, spelled once: both checks below quote it back, and two
-# spellings of one synopsis are two chances for the one a reader is shown to be the stale one.
 USAGE="usage: timed-test-run.sh <tier> <suites> <cmd> [args …]"
 
-# The tier and the command are required and must be non-empty; <suites> is required as a
-# word but may be empty, since a run covering the whole suite has no list to name. None of
-# them is read through a `${N?…}` expansion, which aborts the shell with status 1 — the
-# code reserved for a real answer, and here for a test command that ran and failed. A
-# caller who dropped an argument ran no command at all, so this is exit 2 (#270).
+# hazard: `${N?}` aborts with status 1, not the 2 bad arguments owe.
 [[ $# -ge 3 && -n "$1" && -n "$3" ]] || { echo "$USAGE" >&2; exit 2; }
 tier="$1"
 suites="$2"

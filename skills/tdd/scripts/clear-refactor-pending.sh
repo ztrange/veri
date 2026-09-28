@@ -15,20 +15,12 @@ set -euo pipefail
 file="$1"
 matcher="${2:-}"
 
-# The mark spelled as tick-ledger.sh --refactor-pending writes it. Nothing in it is a regex
-# metacharacter, so it interpolates into awk's dynamic regex as a literal.
 mark=' ⟂ refactor pending'
 
-# strip_mark <ledger-file> <matcher> <mark>  -> that file's text on stdout, with <mark> gone
-# from the first ticked step that both contains <matcher> and carries it; exit 3 if no step
-# did. Named apart from the rewrite below so the transform reads on its own, and so the
-# rewrite reads as the two steps it is: transform the whole text, then write it back.
 strip_mark() {
   MATCHER="$2" MARK="$3" awk '
     BEGIN {
       matcher = ENVIRON["MATCHER"]; mark = ENVIRON["MARK"]; done = 0
-      # The checkbox grammar of a ticked step, named apart from the matcher and the mark so
-      # the test below reads as "a ticked step, containing the matcher, carrying the mark".
       ticked = "^[[:space:]]*-[[:space:]]\\[x\\]"
     }
     {

@@ -8,7 +8,6 @@
 # one, at the point `refactor-budget.sh 0` already occupies in SKILL.md step 5.
 set -euo pipefail
 
-# It answers one question and has nothing to select, so any argument is a caller's mistake.
 [[ $# -eq 0 ]] || { echo "usage: step-budget.sh (takes no arguments)" >&2; exit 2; }
 
 step="${VERI_STEP_BUDGET-12}"
@@ -16,8 +15,6 @@ run="${VERI_RUN_BUDGET-120}"
 
 number='^[0-9]+(\.[0-9]+)?$'
 
-# require_number <name> <value> — exit 2, naming <name> on stderr, unless <value> is a
-# non-negative decimal number.
 require_number() {
   if [[ ! "$2" =~ $number ]]; then
     echo "step-budget: $1 must be a non-negative decimal number: $2" >&2

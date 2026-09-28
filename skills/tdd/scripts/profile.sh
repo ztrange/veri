@@ -27,8 +27,6 @@ trap 'rm -f "$trace"' EXIT
 for suite in "$@"; do
   PS4='+${EPOCHREALTIME} ${LINENO} ' BASH_XTRACEFD=9 \
     bash -x "$suite" 9>"$trace" >/dev/null 2>&1 < /dev/null || true
-  # A top-level trace line is one `+` glued to the stamp (nothing while EPOCHREALTIME is
-  # unset), then the line number and the command as bash expanded it.
   awk -v suite="$suite" -v threshold="$threshold" '
     /^\+[^+]/ {
       stamp = substr($1, 2)

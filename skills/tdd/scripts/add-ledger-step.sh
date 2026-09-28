@@ -24,14 +24,9 @@ anchor="$3"
 shift 3
 texts=("$@")
 
-# The mark an added step carries, named once: `added_steps` writes it and `is_added_step`
-# counts it against the budget, so the two must spell it the same way. Other ledger readers
-# name their mark the same way — clear-refactor-pending.sh's `mark`, criterion-finished.sh's
-# `tag`.
 added='⟦added⟧'
 
-# criterion_of <step-line> -> ` ⟦criterion k⟧`, or nothing when the line carries none.
-# Read with globs rather than a regex: the marks are multibyte and suites run under LC_ALL=C.
+# hazard: the marks are multibyte, and under LC_ALL=C a regex reads them byte by byte.
 criterion_of() {
   local line="$1" k
   [[ "$line" == *"⟦criterion "*"⟧"* ]] || return 0
@@ -39,7 +34,6 @@ criterion_of() {
   printf ' ⟦criterion %s⟧' "${k%%⟧*}"
 }
 
-# added_steps <anchor-line> -> one `- [ ] …` line per text, in the order given.
 added_steps() {
   local line="$1" crit text
   crit="$(criterion_of "$line")"
@@ -48,12 +42,9 @@ added_steps() {
   done
 }
 
-# is_anchor_step <line> — the line is a step (`- [ ]` or `- [x]`) holding the anchor
-# substring; is_added_step <line> — the line is one an earlier call added.
 is_anchor_step() { [[ "$1" == "- ["*"]"* && "$1" == *"$anchor"* ]]; }
 is_added_step() { [[ "$1" == *"$added"* ]]; }
 
-# count_lines <predicate> -> how many of the ledger's lines the named predicate accepts.
 count_lines() {
   local pred="$1" line n=0
   while IFS= read -r line; do
@@ -62,17 +53,12 @@ count_lines() {
   printf '%s' "$n"
 }
 
-# The anchor has to name one step and no other: none means the plan has moved on, more than
-# one means the caller cannot have known where the step would land, and both are refusals
-# rather than a guess.
 [[ "$(count_lines is_anchor_step)" == 1 ]] || {
   printf 'add-ledger-step.sh: anchor matches no single step: %s\n' "$anchor" >&2
   exit 2
 }
 
-# Unset means three. Set-but-empty is read with `-` rather than `:-` so it reaches the guard
-# as the empty string instead of silently falling back to the default: a budget that is not a
-# whole number >= 0 is a refusal, like an anchor that names no single step.
+# hazard: `-`, not `:-`, so set-but-empty reaches the guard rather than the default.
 budget="${VERI_STEP_GROWTH-3}"
 
 if [[ ! "$budget" =~ ^[0-9]+$ ]]; then
