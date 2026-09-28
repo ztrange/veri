@@ -60,7 +60,8 @@ while :; do
   now="$(date +%s)"
   if [[ -z "$deadline" ]]; then
     slice_end=$(( now + max ))
-    mark=".tdd/ci-deadline-$head"
+    key="${want:-$head}"
+    mark=".tdd/ci-deadline-$key"
     if [[ -f "$mark" ]]; then
       deadline="$(< "$mark")"; inherited=1
     else
@@ -68,7 +69,7 @@ while :; do
     fi
   fi
   if (( now >= deadline )); then
-    [[ -n "$inherited" ]] && { echo "wait-ci.sh: checks of $pr still pending past the deadline recorded for $head" >&2; exit 2; }
+    [[ -n "$inherited" ]] && { echo "wait-ci.sh: checks of $pr still pending past the deadline recorded for $key" >&2; exit 2; }
     break
   fi
   (( now >= slice_end )) && break
