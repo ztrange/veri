@@ -16,5 +16,5 @@
 - [x] The sweepable report is empty for leaf-timeout.sh, ensure-run-state-ignored.sh, orchestrate.sh, parallel-conductors.sh, workqueue.sh, push-branch.sh, refactor-triage.sh, invisible-work.sh, over-budget.sh, run-suite.sh, leaf-model.sh and leaf-launchable.sh ⟦criterion 4⟧
 - [x] The sweepable report is empty for every remaining `skills/tdd/scripts/*.sh`, the classifier itself included ⟦criterion 4⟧
 - [x] The sweepable report is empty for every shell file under `skills/tdd/scripts/lib/` ⟦criterion 4⟧
-- [x] No comment line in `skills/tdd/scripts/*.sh` or `skills/tdd/scripts/lib/*.sh`, the leading contract header included, cites an issue number (`#<digits>`), so the headers keep the contract and drop the rationale ⟦added⟧ ⟦criterion 4⟧ ⟂ refactor pending
+- [x] No comment line in `skills/tdd/scripts/*.sh` or `skills/tdd/scripts/lib/*.sh`, the leading contract header included, cites an issue number (`#<digits>`), so the headers keep the contract and drop the rationale ⟦added⟧ ⟦criterion 4⟧
 - [ ] The suites covering each touched file stay green: `make test` passes on the swept tree ⟦full-suite⟧ ⟦criterion 5⟧
