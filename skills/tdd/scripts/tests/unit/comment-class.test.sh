@@ -200,6 +200,11 @@ problems=""
 want_empty_sweepable "$SCRIPTS"/*.sh
 verdict "the sweepable report is empty for every scripts/*.sh, the classifier itself included"
 
+# 18. the sweepable report is empty for every shell file under skills/tdd/scripts/lib/.
+problems=""
+want_empty_sweepable "$SCRIPTS"/lib/*.sh
+verdict "the sweepable report is empty for every shell file under scripts/lib/"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
