@@ -148,7 +148,7 @@ test unit:
 	  last_line="$$(tail -n 1 "$$suite_out")"; \
 	  printf '%s\n' "$$last_line" | grep -E '$(COUNT_LINE)' > /dev/null || { \
 	    printf '$(COUNTLESS)' "$$suite_name"; \
-	    if [ -s "$$suite_out" ]; then printf '%s: its last line was: %s\n' "$$suite_name" "$$last_line"; \
+	    if grep '[^[:space:]]' "$$suite_out" > /dev/null; then printf '%s: its last line was: %s\n' "$$suite_name" "$$last_line"; \
 	    else printf '%s: its output was empty\n' "$$suite_name"; fi; fail=1; \
 	  }; \
 	  while IFS= read -r reached; do \
