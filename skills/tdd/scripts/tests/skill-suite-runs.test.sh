@@ -203,6 +203,22 @@ if need_text '#### Refactor loop'; then
 fi
 report "$name"
 
+# 4. SKILL.md's develop-green entry — the Green section's sub-step 1, up to sub-step 2 —
+#    says what develop-green.md tells the leaf to keep green before it reports: the fast
+#    tier plus the affected suites, not the full suite.
+name="$skill_md's Green entry says develop-green keeps the fast tier plus the affected suites green, not the full suite"
+problems=()
+if need_text '#### Green' '^1\. '; then
+  text="${text%%2. verify*}"
+  says 'fast (tier|command)' \
+    "$skill_md's develop-green entry never names the fast tier, which develop-green.md tells the leaf to run before it reports"
+  says 'affected suites|suites affected-suites\.sh' \
+    "$skill_md's develop-green entry never names the affected suites, which develop-green.md tells the leaf to run before it reports"
+  [[ "$text" =~ full\ suite ]] &&
+    problems+=("$skill_md's develop-green entry still says develop-green keeps the full suite green, which develop-green.md never asks of the leaf")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
