@@ -1512,6 +1512,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    git add .tdd/issue-<n>-metrics.md
    git commit -m "metrics: what solving #<n> cost (#<n>)"
    $S/push-branch.sh
+   $S/wait-ci.sh <pr-url>; ci=$?             # exit 3 → run this line again, in a new Bash call
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh pr edit <pr-url> --title "<type>: <criterion summary> (#<n>)" --body "<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md, followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by its ⟦human-owed⟧ lines under ## Owed by a human>"
    ```
@@ -1531,6 +1532,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    step's red evidence, the same way a red full run's repair step is.
    A second red CI result after a CI repair step does **bail**, with cause `ci-red`, the way
    a second red full run does — the repair step is one more cycle, not a loop.
+   The `metrics:` push starts a CI run of its own on the readied PR, so it is read the same
+   way, by `wait-ci.sh` after the push; the commit carries no code, so its red is not a
+   repair step: exit 1 bails with cause `ci-red` and exit 2 with cause `ci-timeout`.
    The `done` mark comes before the render because `metrics.sh` reads it for both the Outcome
    and the issue's wall time: a report rendered before it exists says `unknown` for both. The
    body is rewritten only after the `metrics:` commit is pushed, so it never quotes a file the
