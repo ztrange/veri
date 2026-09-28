@@ -157,6 +157,16 @@ if [[ -n "$out" ]]; then
 fi
 verdict "the sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh"
 
+# 12. the sweepable report is empty for supervise.sh, run-leaf.sh, detach-leaf.sh, wait-leaf.sh
+#     and run-verdict.sh.
+problems=""
+classify --sweepable "$SCRIPTS/supervise.sh" "$SCRIPTS/run-leaf.sh" "$SCRIPTS/detach-leaf.sh" \
+  "$SCRIPTS/wait-leaf.sh" "$SCRIPTS/run-verdict.sh"
+if [[ -n "$out" ]]; then
+  problems+="    want an empty sweepable report, got:"$'\n'"$out"$'\n'
+fi
+verdict "the sweepable report is empty for supervise.sh, run-leaf.sh, detach-leaf.sh, wait-leaf.sh and run-verdict.sh"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
