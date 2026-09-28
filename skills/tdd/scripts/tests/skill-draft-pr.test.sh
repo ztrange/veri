@@ -500,6 +500,7 @@ section_commands() {
 line_of() { awk -v re="$1" '$0 ~ ("^" re) { print NR; exit }' <<< "$commands"; }
 done_mark='veri_issue=[^ ]* veri_actor=conductor [$]s/event[.]sh done'
 rollup_read='gh pr view .*--json statuscheckrollup'
+log_failed_read='[^#]*gh run view [^#]*--log-failed'
 
 # unmarked_records — `records` with its Markdown emphasis and code marks stripped, so a probe
 # reads "rebase-onto-default.sh's exit 1" whether the document bolds it, backticks it or both.
@@ -903,7 +904,7 @@ if step_or_problem '### 4. Draft PR' "whether the step repairs a failed CI check
   commands="$(section_commands)"
   rollup="$(line_of "$rollup_read")"
   done_at="$(line_of "$done_mark")"
-  log="$(line_of '[^#]*gh run view [^#]*--log-failed')"
+  log="$(line_of "$log_failed_read")"
   if [[ -z "$rollup" || -z "$done_at" ]]; then
     problems+=("$skill_md's Draft PR step reads no statusCheckRollup or runs no done mark, so where it repairs a failed check could not be checked")
   elif [[ -z "$log" || "$log" -le "$rollup" || "$log" -ge "$done_at" ]]; then
@@ -938,7 +939,7 @@ problems=()
 
 if step_or_problem '### 4. Draft PR' "whether the step bails on a second red CI result"; then
   commands="$(section_commands)"
-  log="$(line_of '[^#]*gh run view [^#]*--log-failed')"
+  log="$(line_of "$log_failed_read")"
   done_at="$(line_of "$done_mark")"
   if [[ -z "$log" || -z "$done_at" ]]; then
     problems+=("$skill_md's Draft PR step reads no --log-failed or runs no done mark, so where it bails on a second red CI result could not be checked")
