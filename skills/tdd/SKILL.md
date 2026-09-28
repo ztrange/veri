@@ -1018,8 +1018,8 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
 #### Green — minimum implementation (developer leaf), then verify-green (blind)
 
 1. **Develop.** Build the prompt from the `green` template — the **minimum** production
-   code, no generality the test does not demand, the **test itself untouched**, full suite
-   green — and launch **through the supervisor** (exit **2** → **bail**, after the stop
+   code, no generality the test does not demand, the **test itself untouched**, the
+   fast command and the affected suites green — and launch **through the supervisor** (exit **2** → **bail**, after the stop
    check in *Launching a leaf*):
    ```
    $S/build-develop-prompt.sh green .tdd/issue-<n>-spec.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' <test-path> '<target-test-id>' '<fast-cmd>' > .tdd/develop-green.prompt
@@ -1059,7 +1059,9 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    insertion would take the ledger past `VERI_STEP_GROWTH`, so the script has already filed
    the criteria under `## Owed steps`: the step's own red is discarded and the smaller steps
    it needs are not in the plan, so there is nothing for the run to go on with.
-2. **Verify (blind)** — the verifier shape again, and the wait's code is again the verdict:
+2. **Verify (blind)** — the verifier shape again, and the wait's code is again the verdict.
+   Neither this verifier nor the develop leaf runs the full suite: a break outside the
+   affected suites surfaces at the one full-suite run in *4. Draft PR*.
    ```
    rm -f .tdd/verdict-green.exit .tdd/verdict-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-green $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err
