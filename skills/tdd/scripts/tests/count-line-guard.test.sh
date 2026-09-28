@@ -1138,6 +1138,22 @@ echo'
 
 report "$name"
 
+# 20. A suite that ends in its count line gets no refusal and no quoted line (#508).
+name="make test prints no count-line refusal for a suite whose last line is its count line (#508)"
+problems=()
+
+counted_name='ends-in-count.test.sh'
+if scratch_suite_run "$counted_name" "echo 'a case ran'
+echo '4 passed, 0 failed'"; then
+  [[ "$scratch_code" == 0 ]] ||
+    problems+=("want 'make test' to pass a suite whose last line is its count line; it exited $scratch_code and said: $(flat "$scratch_out")")
+  if said="$(grep -F "$counted_name:" <<< "$scratch_out")"; then
+    problems+=("want no line reporting on $counted_name, which reached its count line; it said: $(flat "$said")")
+  fi
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
