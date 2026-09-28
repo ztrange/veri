@@ -8,4 +8,4 @@
 - [x] SKILL.md's Draft PR step stops at a `ci-timeout` or `ci-red` bail: it goes to *Bailing*, and neither the `done` mark nor the `metrics:` commit follows it in that step's command block ⟦criterion 3⟧
 - [x] `add-ledger-step.sh` inserts a CI repair step marked `⟦ci-repair⟧` without counting it against `VERI_STEP_GROWTH`, and `next-unchecked.sh` still hands that step over ⟦criterion 6⟧
 - [x] SKILL.md's Draft PR step appends its CI repair step through that `⟦ci-repair⟧` path and recognises a second red by the `⟦ci-repair⟧` mark on a ledger line, not by matching the repair step's prose ⟦criterion 4⟧
-- [x] SKILL.md's Draft PR step leaves no CI run on the readied PR that nothing reads: a push after the CI read has its own run read by `wait-ci.sh`, or no push follows the CI read ⟦criterion 5⟧ ⟂ refactor pending
+- [x] SKILL.md's Draft PR step leaves no CI run on the readied PR that nothing reads: a push after the CI read has its own run read by `wait-ci.sh`, or no push follows the CI read ⟦criterion 5⟧
