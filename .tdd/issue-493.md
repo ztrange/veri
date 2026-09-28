@@ -1,0 +1,17 @@
+# Plan for #493 — a heredoc-aware comment predicate, and the sweep across the scripts and lib
+
+- [ ] A committed script under `skills/tdd/scripts/`, given shell files, prints every `#` line with its file, line number and class, and reports a comment in code outside any heredoc as class 1 ⟦criterion 1⟧
+- [ ] On a file containing both a comment and a heredoc carrying `#` lines, the classifier counts the heredoc's `#` lines separately from the comment, never as class 1 ⟦criterion 2⟧
+- [ ] A `#` line inside a heredoc whose output is redirected to a file is class 2, and a `#` line inside any other heredoc — one sent to a model, a variable or stdout — is class 3 ⟦criterion 1⟧
+- [ ] The classifier's sweepable report lists class 1 and class 2 lines only, and never a class 3 line ⟦criterion 3⟧
+- [ ] The sweepable report omits a file's leading contract header and any comment marked as a shell-hazard warning, so a file whose comments are only those reports nothing sweepable ⟦criterion 4⟧
+- [ ] Every script's usage output on a missing argument, and each prompt builder's output for fixed inputs, is pinned byte-identical to what it prints before the sweep ⟦criterion 5⟧
+- [ ] The sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh ⟦criterion 4⟧
+- [ ] The sweepable report is empty for supervise.sh, run-leaf.sh, detach-leaf.sh, wait-leaf.sh and run-verdict.sh ⟦criterion 4⟧
+- [ ] The sweepable report is empty for issue-worktree.sh, verify.sh, parse-verdict.sh and extract-result.sh ⟦criterion 4⟧
+- [ ] The sweepable report is empty for detect-test-command.sh, solvable-issues.sh and session-cost.sh ⟦criterion 4⟧
+- [ ] The sweepable report is empty for build-develop-prompt.sh, build-verify-prompt.sh, run-conductor.sh, stop-run.sh and preserve-attempt.sh ⟦criterion 4⟧
+- [ ] The sweepable report is empty for leaf-timeout.sh, ensure-run-state-ignored.sh, orchestrate.sh, parallel-conductors.sh, workqueue.sh, push-branch.sh, refactor-triage.sh, invisible-work.sh, over-budget.sh, run-suite.sh, leaf-model.sh and leaf-launchable.sh ⟦criterion 4⟧
+- [ ] The sweepable report is empty for every remaining `skills/tdd/scripts/*.sh`, the classifier itself included ⟦criterion 4⟧
+- [ ] The sweepable report is empty for every shell file under `skills/tdd/scripts/lib/` ⟦criterion 4⟧
+- [ ] The suites covering each touched file stay green: `make test` passes on the swept tree ⟦full-suite⟧ ⟦criterion 5⟧
