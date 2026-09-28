@@ -351,13 +351,13 @@ want_unblock="$(printf 'start 7\nstart 8')"
 got_unblock="$(cat "$unblock" 2>/dev/null)"
 expect_lines "an issue that became solvable while another conductor ran is launched next" "$want_unblock" "$got_unblock" "$work/unblock.out"
 
-# 7. VERI_MAX_ISSUES caps the launches of one invocation, 0 meaning no cap. The fixture holds
-# three solvable issues, #7, #8 and #9; each stub conductor records `start <n>` and answers
-# "done" with a ready PR, so its issue leaves the set. With VERI_MAX_ISSUES=2 the launcher starts
-# 7 and 8 and stops, with 9 still solvable; with VERI_MAX_ISSUES=0 it starts all three. Each run
-# gets a fresh fixture and record; every value that misbehaves is named in the single FAIL line.
+# 7. VERI_MAX_ISSUES caps the launches of one invocation. The fixture holds three solvable
+# issues, #7, #8 and #9; each stub conductor records `start <n>` and answers "done" with a ready
+# PR, so its issue leaves the set. With VERI_MAX_ISSUES=2 the launcher starts 7 and 8 and stops,
+# with 9 still solvable. Each run gets a fresh fixture and record; every value that misbehaves is
+# named in the single FAIL line.
 bad=""
-for cap in 2 0; do
+for cap in 2; do
   gh7="$work/gh7-$cap"
   solvable_fixture "$gh7" 7 8 9
   capped="$work/capped-$cap"
@@ -366,7 +366,6 @@ for cap in 2 0; do
   run_launcher "$gh7" "$cap_stub" "$work/cap-$cap.out" VERI_MAX_ISSUES="$cap"
   case "$cap" in
     2) want_cap="$(printf 'start 7\nstart 8')" ;;
-    0) want_cap="$(printf 'start 7\nstart 8\nstart 9')" ;;
   esac
   got_cap="$(cat "$capped" 2>/dev/null)"
   if [[ "$got_cap" != "$want_cap" ]]; then
@@ -375,7 +374,7 @@ for cap in 2 0; do
 done
 
 [[ -z "$bad" ]] \
-  && ok || no "VERI_MAX_ISSUES caps the launches of one invocation, 0 meaning no cap ($bad )"
+  && ok || no "VERI_MAX_ISSUES caps the launches of one invocation ($bad )"
 
 # 8. A finished conductor's outcome is read from its PR and its run's event log, and reported one
 # line per issue: #7's stub conductor opens a ready PR — done — and #8's opens a draft PR and ends
@@ -819,6 +818,29 @@ done
 
 [[ -z "$bad" ]] \
   && ok || no "CONTEXT.md records rung 3: its entry names parallel-conductors.sh, In flight is defined as local to one invocation, and a new ADR is cited ($bad )"
+
+# 22. VERI_MAX_ISSUES that is not a whole number >= 1 — a word, zero, a negative, a fraction — is
+# exit 2 naming the variable and the value, and launches nothing. Each value gets a fresh fixture
+# holding one solvable issue and a fresh record; every value that misbehaves is named in the
+# single FAIL line.
+bad=""
+for value in abc 0 -1 1.5; do
+  tag="${value//[^a-z0-9]/_}"
+  gh22="$work/gh22-$tag"
+  solvable_fixture "$gh22" 7
+  capped22="$work/capped22-$tag"
+  cap22_stub="$work/claude-cap22-$tag"
+  record_stub "$cap22_stub" "$capped22" "$gh22"
+  run_launcher "$gh22" "$cap22_stub" "$work/cap22-$tag.out" VERI_MAX_ISSUES="$value"
+  named=no
+  grep -F 'VERI_MAX_ISSUES' "$work/cap22-$tag.out" | grep -F -- "$value" > /dev/null && named=yes
+  if [[ "$code" != 2 || -e "$capped22" || "$named" != yes ]]; then
+    bad+=" [VERI_MAX_ISSUES='$value': exit=$code want 2, launched: $([[ -e "$capped22" ]] && echo yes || echo no), named: $named]"
+  fi
+done
+
+[[ -z "$bad" ]] \
+  && ok || no "#505 VERI_MAX_ISSUES not a whole number >= 1 (a word, 0, a negative, a fraction) is exit 2 naming it and the value, with no conductor launched ($bad )"
 
 echo "----"
 echo "$pass passed, $fail failed"
