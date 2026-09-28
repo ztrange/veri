@@ -99,6 +99,14 @@ classify "$f"
 want_line "$f:2:3"
 verdict "a heredoc sent to a command whose opener redirects only stderr to a file is class 3, not class 2"
 
+# 7. a `#` line in a heredoc piped to a file writer such as tee is class 2.
+problems=""
+f="$work/piped-tee.sh"
+printf '%s\n' 'cat <<EOF | tee "$dir/fixture.txt"' '# written to a file through tee' 'EOF' > "$f"
+classify "$f"
+want_line "$f:2:2"
+verdict "a # line in a heredoc piped to tee writing a file is class 2"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
