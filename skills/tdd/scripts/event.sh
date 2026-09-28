@@ -47,8 +47,6 @@
 # line to a reader, and this does not manufacture the ambiguity, only fails to hide it.
 set -euo pipefail
 
-# Exit 2, not the 1 a `${1:?…}` expansion aborts with — CLAUDE.md, "Exit codes are the API" (#270).
-# The refusal comes before the mkdir below, so a mis-called event.sh leaves no trace.
 [[ -n "${1:-}" ]] || { echo "usage: event.sh <event> [key=value …]" >&2; exit 2; }
 event="$1"
 shift
@@ -56,27 +54,18 @@ shift
 mkdir -p .tdd
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# shellcheck source=lib/json-escape.sh
 source "$HERE/lib/json-escape.sh"
 
-# Seconds since the epoch, read by the shell itself: `-1` is this bash builtin's own spelling
-# of "now" (strftime under the hood), the way `date +%s` with no `-d`/`-r` already means it.
+# hazard: printf's %(…)T needs bash 4.2 or newer.
 ts=""
 printf -v ts '%(%s)T' -1
 
-# Whole seconds the machine spent awake (#486), from the same clock supervise.sh measures its
-# windows on: the executable VERI_AWAKE_CLOCK names, or python's time.monotonic() — which,
-# unlike `ts`, does not advance while the machine sleeps, so metrics.sh can subtract the sleep.
 if [[ -n "${VERI_AWAKE_CLOCK:-}" ]]; then
   awake="$("$VERI_AWAKE_CLOCK")"
 else
   awake="$(python3 -c 'import time; print(int(time.monotonic()))')"
 fi
 
-# Each `json_escape_string OUT VALUE` writes into OUT by nameref rather than being captured
-# from a `$(...)`: a command substitution still forks a subshell, and this line runs the
-# escaper eight-plus times — once per fixed key below, once per payload argument in the loop
-# after — so a fork apiece would put back a chunk of exactly the cost issue #290 is cutting.
 declare esc_issue esc_actor esc_phase esc_step esc_event esc_attempt esc_skill_commit
 json_escape_string esc_issue        "${VERI_ISSUE:-}"
 json_escape_string esc_actor        "${VERI_ACTOR:-}"
@@ -86,18 +75,8 @@ json_escape_string esc_event        "$event"
 json_escape_string esc_attempt      "${VERI_ATTEMPT:-}"
 json_escape_string esc_skill_commit "${VERI_SKILL_COMMIT:-}"
 
-# `ts` and `awake` are written unquoted (JSON numbers, `ts` matching `int(time.time())` before
-# it); the other seven fixed keys are always strings, in the same field order the old python dict
-# literal declared them in — `metrics.sh` and the suites read either shape the same way, but
-# byte-identity is the goal here, not merely equivalence.
 line="{\"ts\": $ts, \"awake\": $awake, \"issue\": \"$esc_issue\", \"actor\": \"$esc_actor\", \"phase\": \"$esc_phase\", \"step\": \"$esc_step\", \"event\": \"$esc_event\", \"attempt\": \"$esc_attempt\", \"skill_commit\": \"$esc_skill_commit\"}"
 
-# The payload, one key=value argument at a time. `partition` splits on the FIRST `=` only
-# (python's own rule, kept here) — what leaves `cmd=env VERI_TIMEOUT=1200 …` intact instead
-# of truncated at the second one — so both bash patterns below stop at the first `=` too:
-# `%%=*` (strip from the first `=` to the end) for the key, `#*=` (strip up to the first `=`)
-# for the value. An argument with no `=` at all is the key with an empty value, the same as
-# python's `partition` returns for one.
 for arg in "$@"; do
   if [[ "$arg" == *=* ]]; then
     key="${arg%%=*}"
