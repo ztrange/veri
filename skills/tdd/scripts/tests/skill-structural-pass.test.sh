@@ -124,6 +124,33 @@ fi
 
 report "$name"
 
+# tunables_parse — preflight step 5, from its heading up to step 6, backticks and emphasis
+# dropped and joined onto one line.
+tunables_parse() {
+  awk 'index($0, "5. **Tunables parse.**") == 1 { inside = 1 }
+       inside && index($0, "6. **Leaf models parse.**") == 1 { exit }
+       inside' "$skill_path" | tr -d '*`' | tr '\n' ' '
+}
+preflight="$(tunables_parse)"
+
+name="$skill_md's structural pass ends with one event.sh structural-pass mark carrying transforms, budget and stopped, and preflight refuses a VERI_ISSUE_REFACTOR_BUDGET refactor-budget.sh --issue 0 cannot read"
+problems=()
+
+if ! missing_pass 'how the pass is marked when it ends'; then
+  require 'event.sh structural-pass transforms=<count> budget=<VERI_ISSUE_REFACTOR_BUDGET> stopped=<reason>' "$pass_text" \
+    "$skill_md's structural pass never writes an event.sh structural-pass transforms=<count> budget=<VERI_ISSUE_REFACTOR_BUDGET> stopped=<reason> mark once it ends, so metrics.sh has no transforms or budget to report"
+fi
+if [[ -z "${preflight// /}" ]]; then
+  problems+=("$skill_md has no '5. Tunables parse.' preflight step to read — whether VERI_ISSUE_REFACTOR_BUDGET is checked could not be established")
+else
+  require 'refactor-budget.sh --issue 0' "$preflight" \
+    "$skill_md's preflight never runs refactor-budget.sh --issue 0, so an unreadable VERI_ISSUE_REFACTOR_BUDGET surfaces only at the structural pass"
+  require 'VERI_ISSUE_REFACTOR_BUDGET' "$preflight" \
+    "$skill_md's preflight never names VERI_ISSUE_REFACTOR_BUDGET as a budget it refuses"
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
