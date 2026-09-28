@@ -178,6 +178,31 @@ if need_text '#### Refactor loop' '^5\. '; then
 fi
 report "$name"
 
+# 3. The sentence in the Refactor loop saying what catches a break in a suite outside the
+#    affected set — from "break in a suite" to its full stop — names the Draft PR step's
+#    full-suite run and its repair step, and no longer hands that break to verify-refactor.
+#    A digit's full stop ("4. Draft PR") is masked first so it does not end the sentence.
+name="$skill_md's sentence on a break outside the affected set points at the Draft PR step's full run and its repair step, not at verify-refactor"
+problems=()
+if need_text '#### Refactor loop'; then
+  if [[ "$text" == *"break in a suite"* ]]; then
+    text="${text#*break in a suite}"
+    text="${text//[0-9]./#}"
+    text="${text%%. *}"
+    says 'draft pr' \
+      "$skill_md's sentence on a break outside the affected set never names the Draft PR step, where the one full-suite run is"
+    says 'full[- ]suite run|full run|full suite' \
+      "$skill_md's sentence on a break outside the affected set never names the full-suite run that catches it"
+    says 'repair step' \
+      "$skill_md's sentence on a break outside the affected set never names the repair step a red full run appends"
+    [[ "$text" =~ surfaces\ here|verify-refactor|verifier|reject ]] &&
+      problems+=("$skill_md's sentence on a break outside the affected set still hands that break to verify-refactor")
+  else
+    problems+=("$skill_md's Refactor loop never says what catches a break in a suite outside the affected set")
+  fi
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
