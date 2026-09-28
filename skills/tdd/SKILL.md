@@ -1220,11 +1220,8 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-refactor $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' refactor .tdd/issue-<n>-spec.md <test-path> <green-sha> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err
    $S/wait-leaf.sh verdict-refactor  # foreground; on exit 3 call it again
    ```
-   — one verdict on the final state (**full suite** still green, code up to standard, no
-   smuggled generality). This is where the full suite runs in this phase: the refactor leaf
-   ran only the suites covering the files it touched, so a break in a suite none of its
-   transforms touched surfaces here, as a REJECT the revise loop answers rather than a
-   revert inside the leaf.
+   — one verdict on the final state (the **fast tier** plus the **affected suites** still
+   green, code up to standard, no smuggled generality).
 6. **Narrate + branch.** Post `### 🛠️ Refactor` (the transforms applied, or "no refactor
    warranted", plus any triangulation flagged) and `### 🔎 verify-refactor — PASS|REJECT`.
    Say **how many transforms landed** — the `git rev-list --count` figure, never the leaf's
@@ -1334,6 +1331,10 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    - **REJECT (exit 1):** enter the **revise loop**; on recovered PASS, mirror and loop; on
      budget-exhausted, **bail**. (Earlier steps' commits are preserved.)
    - **Malformed / killed-stuck (exit 2):** **bail**. (Earlier steps' commits are preserved.)
+
+Neither the refactor leaf nor verify-refactor runs the full suite: a break in a suite none of
+the step's transforms touched surfaces at the one full-suite run in *4. Draft PR*, where a red
+result appends a repair step.
 
 ### 4. Draft PR
 
