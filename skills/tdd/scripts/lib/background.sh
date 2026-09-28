@@ -38,6 +38,7 @@ _bg_remember() {
   # hazard: a subshell's `trap -p` prints its parent's traps until it sets one; untrappable KILL clears them.
   trap - KILL
   eval "set -- $(trap -p EXIT)"
+  [[ "${3-}" == *_bg_report_survivors ]] && return 0
   trap "${3:+$3$'\n'}_bg_report_survivors" EXIT
 }
 
