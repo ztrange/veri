@@ -20,18 +20,15 @@
 #          status: the verifier's judgement is ground truth the conductor branches on.
 set -euo pipefail
 
-# Read stdin into an array of lines (bash 3.2 has no mapfile). The `|| [[ -n ... ]]`
-# keeps a final line that lacks a trailing newline.
+# hazard: `|| [[ -n $line ]]` keeps a last line that has no trailing newline.
 lines=()
 while IFS= read -r line || [[ -n "$line" ]]; do
   lines+=( "$line" )
 done
 
-# ltrim/rtrim helpers operating on a single string value.
 ltrim() { printf '%s' "${1#"${1%%[![:space:]]*}"}"; }
 rtrim() { printf '%s' "${1%"${1##*[![:space:]]}"}"; }
 
-# Find the last VERDICT: line; everything after the colon is its tail.
 vidx=-1
 for i in "${!lines[@]}"; do
   if [[ "${lines[$i]}" =~ ^[[:space:]]*[Vv][Ee][Rr][Dd][Ii][Cc][Tt]:[[:space:]]*(.*)$ ]]; then
@@ -47,7 +44,6 @@ fi
 [[ "${lines[$vidx]}" =~ ^[[:space:]]*[Vv][Ee][Rr][Dd][Ii][Cc][Tt]:[[:space:]]*(.*)$ ]]
 tail="${BASH_REMATCH[1]}"
 
-# Verdict word = first whitespace-delimited token of the tail, normalised to upper.
 word="${tail%%[[:space:]]*}"
 word="$(printf '%s' "$word" | tr '[:lower:]' '[:upper:]')"
 case "$word" in
@@ -56,14 +52,11 @@ case "$word" in
   *) echo "parse-verdict: unrecognised verdict word '$word'" >&2; exit 2 ;;
 esac
 
-# Inline reason = the verdict line after the word, with a leading separator stripped.
 inline="${tail#"${tail%%[[:space:]]*}"}"   # drop the first (verdict) token
 inline="$(ltrim "$inline")"
 for sep in '—' '–' '-' ':'; do inline="${inline#"$sep"}"; done
 inline="$(ltrim "$inline")"
 
-# Following reason = the lines after the verdict line, with a leading REASON: label
-# stripped from the first of them. This is the common, multi-line-capable form.
 following=""
 if (( vidx + 1 < ${#lines[@]} )); then
   rest=( "${lines[@]:vidx+1}" )
@@ -73,17 +66,12 @@ if (( vidx + 1 < ${#lines[@]} )); then
   printf -v following '%s\n' "${rest[@]}"
 fi
 
-# Prefer a non-empty following block; otherwise the inline reason. Trim the edges
-# (including blank leader/trailer lines) but preserve internal line breaks.
 reason="$following"
 reason="$(rtrim "$reason")"
 [[ -z "$reason" ]] && reason="$inline"
 reason="$(ltrim "$reason")"
 reason="$(rtrim "$reason")"
 
-# A leaf often wraps its verdict block in a ``` (or ~~~) code fence; the opening fence
-# sits above the VERDICT line and is ignored, but the closing fence trails the reason.
-# Drop a trailing fence-only line so it doesn't leak into the mirrored reason.
 fence_re='^[[:space:]]*(```|~~~)[[:space:]]*$'
 last="${reason##*$'\n'}"
 if [[ "$last" =~ $fence_re ]]; then
