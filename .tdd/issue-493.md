@@ -5,7 +5,7 @@
 - [x] A `#` line inside a heredoc opened with a quoted delimiter (`<<'EOF'`, `<<"EOF"`) or with `<<-` is never class 1, and a here-string `<<<` opens no heredoc ⟦added⟧ ⟦criterion 2⟧
 - [x] A `#` line inside a heredoc whose output is redirected to a file is class 2, and a `#` line inside any other heredoc — one sent to a model, a variable or stdout — is class 3 ⟦criterion 1⟧
 - [x] A `#` line inside a heredoc piped to a file writer (`cat <<EOF | tee "$f"`) is class 2 ⟦added⟧ ⟦criterion 1⟧
-- [x] The classifier's sweepable report lists class 1 and class 2 lines only, and never a class 3 line ⟦criterion 3⟧ ⟂ refactor pending
+- [x] The classifier's sweepable report lists class 1 and class 2 lines only, and never a class 3 line ⟦criterion 3⟧
 - [ ] The sweepable report omits a file's leading contract header and any comment marked as a shell-hazard warning, so a file whose comments are only those reports nothing sweepable ⟦criterion 4⟧
 - [ ] Every script's usage output on a missing argument, and each prompt builder's output for fixed inputs, is pinned byte-identical to what it prints before the sweep ⟦criterion 5⟧
 - [ ] The sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh ⟦criterion 4⟧
