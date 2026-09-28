@@ -165,6 +165,12 @@ want_empty_sweepable "$SCRIPTS/supervise.sh" "$SCRIPTS/run-leaf.sh" "$SCRIPTS/de
   "$SCRIPTS/wait-leaf.sh" "$SCRIPTS/run-verdict.sh"
 verdict "the sweepable report is empty for supervise.sh, run-leaf.sh, detach-leaf.sh, wait-leaf.sh and run-verdict.sh"
 
+# 13. the sweepable report is empty for issue-worktree.sh, verify.sh, parse-verdict.sh and extract-result.sh.
+problems=""
+want_empty_sweepable "$SCRIPTS/issue-worktree.sh" "$SCRIPTS/verify.sh" "$SCRIPTS/parse-verdict.sh" \
+  "$SCRIPTS/extract-result.sh"
+verdict "the sweepable report is empty for issue-worktree.sh, verify.sh, parse-verdict.sh and extract-result.sh"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
