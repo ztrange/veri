@@ -36,6 +36,8 @@ doc = json.loads(sys.argv[1])
 rows = doc.get("statusCheckRollup") or []
 def outcome(r):
     if r.get("__typename") == "StatusContext":
+        if "state" not in r:
+            sys.exit(2)
         return None if r.get("state") in ("PENDING", "EXPECTED") else r.get("state")
     return r.get("conclusion") if r.get("status") == "COMPLETED" else None
 outcomes = [outcome(r) for r in rows]
