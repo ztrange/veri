@@ -92,6 +92,9 @@
 #  26. SKILL.md's Draft PR step stops at a `ci-timeout` or `ci-red` bail: neither the `done`
 #      mark nor the `metrics:` commit follows the bail in its command block, and its prose
 #      sends the run to *Bailing* (#544).
+#  27. SKILL.md's Draft PR step appends its CI repair step with a `⟦ci-repair⟧` text and
+#      recognises a second red by that mark on a ledger line, not by the repair step's prose
+#      (#544).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -1031,6 +1034,33 @@ if step_or_problem '### 4. Draft PR' "whether a CI bail stops the step"; then
   said="$(first_record "$plain" -E 'ci-timeout|ci-red' -F 'bailing')"
   [[ -n "$said" ]] ||
     problems+=("no instruction of $skill_md's Draft PR step sends a ci-timeout or ci-red bail to Bailing")
+fi
+report "$name"
+
+# 27. The criterion, as one case (issue #544): a second red is recognised by the repair step's
+#     prose, so rewording that prose silently turns a second red into a first one; the mark is
+#     the structural thing both the append and the test must share.
+name="$skill_md's Draft PR step appends its CI repair step with a ⟦ci-repair⟧ text and recognises a second red by that mark, not by the repair step's prose (#544)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "how the step marks and recognises a CI repair step"; then
+  commands="$(section_commands)"
+  appended="$(first_record "$commands" -E '^[^#]*[$]s/add-ledger-step[.]sh ' -F 'ci failure')"
+  if [[ -z "$appended" ]]; then
+    problems+=("no command line of $skill_md's Draft PR step appends a CI repair step through add-ledger-step.sh")
+  else
+    grep -F '⟦ci-repair⟧' > /dev/null <<< "$appended" ||
+      problems+=("$skill_md's Draft PR step appends its CI repair step without the ⟦ci-repair⟧ mark: $(printf '%.160s' "$appended")")
+  fi
+  red="$(first_record "$commands" -E '^[^#]*[$]s/event[.]sh bail cause=ci-red')"
+  if [[ -z "$red" ]]; then
+    problems+=("no command line of $skill_md's Draft PR step bails with cause ci-red, so how it recognises a second red could not be checked")
+  else
+    grep -F '⟦ci-repair⟧' > /dev/null <<< "$red" ||
+      problems+=("$skill_md's Draft PR step recognises a second red CI result without the ⟦ci-repair⟧ mark: $(printf '%.160s' "$red")")
+    grep -F 'fix the ci failure' > /dev/null <<< "$red" &&
+      problems+=("$skill_md's Draft PR step recognises a second red CI result by the repair step's prose: $(printf '%.160s' "$red")")
+  fi
 fi
 report "$name"
 
