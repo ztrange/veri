@@ -1494,12 +1494,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    gh pr view --json url -q .url          # → <pr-url>, the PR step 2.3 opened
    gh pr ready <pr-url>
-   gh pr checks <pr-url> --watch > /dev/null & watch=$!
-   deadline=$(( $(date +%s) + 1800 ))
-   while kill -0 "$watch" 2> /dev/null && [ "$(date +%s)" -lt "$deadline" ]; do sleep 30; done
-   kill "$watch" 2> /dev/null
+   $S/wait-ci.sh <pr-url>; ci=$?             # exit 3 → run this line again, in a new Bash call
+   [ "$ci" != 2 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
    gh pr view <pr-url> --json statusCheckRollup
-   [ "$(gh pr view <pr-url> --json statusCheckRollup -q '[.statusCheckRollup[] | select(.status == "PENDING" or .status == "IN_PROGRESS" or .status == "QUEUED")] | length')" = 0 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
    gh run view <run-id> --log-failed          # a failed check only → its suite and FAIL - line
    grep -F 'fix the CI failure:' .tdd/issue-<n>.md > /dev/null && VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)"
    VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(awk 'sub(/^- \[x\] /, "") { last = $0 } END { print last }' .tdd/issue-<n>.md)" $S/event.sh step-added anchor="$(awk 'sub(/^- \[x\] /, "") { last = $0 } END { print last }' .tdd/issue-<n>.md)" added=1
@@ -1517,8 +1514,10 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    The readied PR's CI is read fail-closed, the way the `merge` skill reads it: an empty
    rollup is never a pass, and a completed check whose conclusion is anything other than
    `SUCCESS`, `NEUTRAL` or `SKIPPED` counts as failed. A pending check never counts as
-   green, and the wait is bounded at 30 minutes: a check still pending when that bound runs
-   out does **bail**, with cause `ci-timeout`, rather than waiting on. Both are read before
+   green, and the wait is `wait-ci.sh`, one bounded slice per Bash call: its exit 3 means a
+   check is still pending, so call it again in a new Bash call; its exit 2 — a check still
+   pending past the deadline its first call recorded, or no answer from `gh` — does
+   **bail**, with cause `ci-timeout`, rather than waiting on. Both are read before
    the `done` mark and the `metrics:` commit, so a run that goes on to repair or bail has not
    already recorded itself done.
    A failed check does not bail: read its run's log with `gh run view <run-id> --log-failed`,
