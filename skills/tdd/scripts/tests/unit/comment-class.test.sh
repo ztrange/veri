@@ -91,6 +91,14 @@ want_line "$f:12:3"
 want_line "$f:15:3"
 verdict "a # line in a heredoc redirected to a file is class 2, and one sent to a model, a variable, stdout or stderr is class 3"
 
+# 6. a heredoc whose opener redirects only a file descriptor such as stderr to a file is class 3, not class 2.
+problems=""
+f="$work/fd-redirect.sh"
+printf '%s\n' 'claude -p 2>/dev/null <<EOF' '# sent to a model with stderr discarded' 'EOF' > "$f"
+classify "$f"
+want_line "$f:2:3"
+verdict "a heredoc sent to a command whose opener redirects only stderr to a file is class 3, not class 2"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
