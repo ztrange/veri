@@ -204,6 +204,18 @@ for leaf in plan-red develop; do
 done
 report "$name"
 
+# 5. The message change moved no exit code and no accepted name (#506).
+name="leaf-role.sh still refuses plan-red, develop and develop- with exit 2 and still maps develop-red, revise-green-2, verify-refactor and conductor-506 to the same actor and phase (#506)"
+problems=()
+refusal_probe plan-red
+refusal_probe develop
+refusal_probe develop-
+role_probe develop-red     VERI_ACTOR=developer VERI_PHASE=red      VERI_ATTEMPT=1
+role_probe revise-green-2  VERI_ACTOR=developer VERI_PHASE=green    VERI_ATTEMPT=2
+role_probe verify-refactor VERI_ACTOR=verifier  VERI_PHASE=refactor
+role_probe conductor-506   VERI_ACTOR=conductor VERI_PHASE=506      VERI_ATTEMPT=1
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
