@@ -45,6 +45,14 @@ esac
 G
 chmod +x "$work/bin/date" "$work/bin/gh"
 
+report() {
+  if [[ "${#problems[@]}" -eq 0 ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1)); echo "FAIL - $1"; printf '    %s\n' "${problems[@]}"
+  fi
+}
+
 # rollup <name> <rows> — write the fixture document gh serves for the PR, rows being the
 # JSON array's contents. A file <name>.json.<n> beside it is served on the n-th read instead.
 rollup() { printf '{"statusCheckRollup":[%s]}\n' "$2" > "$work/$1.json"; }
@@ -78,11 +86,7 @@ for want in pending:3 green:0 red:1; do
 done
 got="$(waited empty)"
 [[ "$got" != 0 ]] || problems+=("empty rollup: exited 0")
-if [[ "${#problems[@]}" -eq 0 ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1)); echo "FAIL - $name"; printf '    %s\n' "${problems[@]}"
-fi
+report "$name"
 
 rollup late "$(check COMPLETED SUCCESS)"
 printf '{"statusCheckRollup":[%s]}\n' "$(check IN_PROGRESS '')" > "$work/late.json.1"
@@ -94,11 +98,7 @@ got="$(waited late 1800)"
 [[ "$got" == 0 ]] || problems+=("bound 1800: want exit 0, got $got (stderr: $(cat "$work/late.err"))")
 got="$(waited late 60)"
 [[ "$got" == 3 ]] || problems+=("bound 60: want exit 3, got $got (stderr: $(cat "$work/late.err"))")
-if [[ "${#problems[@]}" -eq 0 ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1)); echo "FAIL - $name"; printf '    %s\n' "${problems[@]}"
-fi
+report "$name"
 
 name="wait-ci.sh exits 2 and names the PR when gh cannot read its checks, rather than waiting its bound out as if they were pending (#544)"
 problems=()
@@ -106,11 +106,7 @@ got="$(GH_FAIL=1 waited pending)"
 [[ "$got" == 2 ]] || problems+=("failing gh: want exit 2, got $got")
 grep -F "could not read the checks of $PR" "$work/pending.err" > /dev/null \
   || problems+=("failing gh: stderr does not name the PR: $(cat "$work/pending.err")")
-if [[ "${#problems[@]}" -eq 0 ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1)); echo "FAIL - $name"; printf '    %s\n' "${problems[@]}"
-fi
+report "$name"
 
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
