@@ -1,3 +1,5 @@
 ### A `#` line inside a heredoc opened with a quoted delimiter (`<<'EOF'`, `<<"EOF"`) or with `<<-` is never class 1, and a here-string `<<<` opens no heredoc ⟦added⟧ ⟦criterion 2⟧
 - in comment-class.sh's awk program, the `#`-line pattern `/^[[:space:]]*#/` appears twice (the heredoc branch and the code branch). It could be tested once per line and the class chosen by whether a heredoc is open. I did not apply it: that restructures the classifier's control flow, which is more than removing duplication in the lines this cycle added.
 - every case in comment-class.test.sh opens with `problems=""`; `verdict` could reset it instead. The pattern predates this cycle, so I left it.
+### A `#` line inside a heredoc whose output is redirected to a file is class 2, and a `#` line inside any other heredoc — one sent to a model, a variable or stdout — is class 3 ⟦criterion 1⟧
+- comment-class.sh's awk tests `/^[[:space:]]*#/` twice, once for a heredoc body line and once for a code comment. An earlier cycle wrote both, not this one, so it is out of this step's bounds
