@@ -1,0 +1,2 @@
+### `wait-ci.sh` takes the head sha it waits for as an argument, and while the PR's reported `headRefOid` is a different commit it exits 3 (pending) at the end of its slice even when that other commit's checks all completed SUCCESS ⟦criterion 1⟧
+- the `across` and `total` cases in wait-ci.test.sh repeat the same persistent-dir setup (`mkdir -p "$work/<n>/.tdd"; : > <n>.clock; : > <n>.json.calls`), which a small helper could replace — code from before this cycle, so not applied here
