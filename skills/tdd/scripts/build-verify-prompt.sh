@@ -24,30 +24,11 @@
 # phase, a missing template/spec file, or a green or refactor call without --fast-cmd.
 set -euo pipefail
 
-# bash 5.2 added the `patsub_replacement` option and turned it ON by default: inside
-# ${var//pattern/replacement}, an unescaped & in the *replacement* now expands to the text
-# the pattern just matched, the way sed's & does. A spec reading "Frob & Nitz" would then
-# reach the verifier as "Frob {{ISSUE_SPEC}} Nitz" — silently, with no error anywhere.
-# Turning the option off restores the older meaning the substitutions below are written
-# for: the replacement is literal text, so every value is carried through verbatim. This
-# has to be a runtime guard rather than a fixed assumption because the same scripts run on
-# macOS's bash 3.2, where `patsub_replacement` does not exist and `shopt -u` on an unknown
-# option fails; there is nothing to disable there, so discarding that failure makes the
-# line a no-op on 3.2 while it does the real work on 5.2+.
+# hazard: bash 5.2's patsub_replacement makes an unescaped & in a ${var//…/…} replacement the matched text; off, every value is literal.
 shopt -u patsub_replacement 2>/dev/null || true
 
-# The step is a flag, never read from ambient VERI_STEP, so only the caller can scope a
-# verdict. Without it the prompt is what it always was: a resumed run passes no step.
-# --fast-cmd is a flag for the same reason: an ambient VERI_TEST_CMD is never read.
-#
-# The call this script accepts, spelled once: both refusals below quote it back.
 USAGE="usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]"
 
-# Both flags take a value and neither may be given an empty one, so the refusal is written
-# once for the pair and names whichever flag `$1` holds, the way verify.sh's own loop does —
-# two spellings of it are two chances for the one a caller is shown to be the stale one. The
-# inner `case` is then all that is left of what the two arms differ in: which name the value
-# lands in.
 step="" fast_cmd=""
 while :; do
   case "${1:-}" in
@@ -62,11 +43,7 @@ while :; do
   shift 2
 done
 
-# Every required positional is checked here, in one place, rather than each being read
-# through a `${N:?…}` expansion: that expansion aborts the shell with status 1, the code
-# reserved for an answer the call came back with, and a call missing an argument came back
-# with none — which is exit 2 (#270). `$#` is asked first and `[[ … && … ]]` stops at the
-# first false operand, so `$2` and `$3` are only read once they exist.
+# hazard: `${N:?}` would abort with status 1, the code reserved for an answer.
 [[ $# -ge 3 && -n "$1" && -n "$2" && -n "$3" ]] || { echo "$USAGE" >&2; exit 2; }
 phase="$1"
 spec_file="$2"
@@ -78,33 +55,22 @@ case "$phase" in
   *) echo "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin|plan|rebase|transform)" >&2; exit 2 ;;
 esac
 
-# Green and refactor name the fast command in their checks; without one the verifier would be
-# told to run a command nobody named (#341).
 if [[ ( "$phase" == green || "$phase" == refactor ) && -z "$fast_cmd" ]]; then
   echo "build-verify-prompt: $phase needs --fast-cmd '<fast-tier test command>'" >&2
   exit 2
 fi
 
-# need_sha <what> <value>: exit 2 unless <value> is a commit name, 7-40 lowercase hex. The
-# one shape a sha slot accepts, for every phase that has one (#151, #238).
 need_sha() {
   [[ "$2" =~ ^[0-9a-f]{7,40}$ ]] && return 0
   echo "build-verify-prompt: $phase needs $1 as 7-40 lowercase hex characters, got '$2'" >&2
   exit 2
 }
 
-# For refactor, the 4th slot is the step's green commit, and only a sha may arrive in it:
-# a slot that accepted free text would be a channel for the developer's rationale (#151).
-# A transform step has no green commit, so its 4th slot is the step's base sha, under the
-# same guard (#499).
 base_sha="${4:-}"
 if [[ "$phase" == refactor || "$phase" == transform ]]; then
   need_sha '<base-sha>' "$base_sha"
 fi
 
-# For rebase, the two slots after the spec are the commit the branch was rebased onto and the
-# one it stood at before, and #151's guard holds for both: a sha is all either may carry, so
-# the resolving leaf's account of what it did has no way in (#238).
 onto_sha="" pre_rebase_sha=""
 if [[ "$phase" == rebase ]]; then
   onto_sha="$3" pre_rebase_sha="${4:-}"
@@ -116,42 +82,19 @@ fi
 HERE="$(cd "$(dirname "$0")" && pwd)"
 tpl_file="$HERE/prompts/verify-$phase.md"
 shared_file="$HERE/prompts/_shared.md"
-# The reproduction paragraph, and the one condition under which it is emitted (#112). An
-# issue labelled `bug` reaches the verifier through the one channel there is — `capture-spec.sh`
-# copies the report into the blind spec under a `## Bug` heading — so the spec's own text is
-# what this asks, rather than a new parameter: a fifth would be a channel the developer's
-# rationale could travel down, and the four this builder takes are the blindness guarantee
-# (ADR-0003). No section, no paragraph, and not a word of difference: a verifier told to
-# compare the failure against a report nobody filed has nothing to compare it with.
-#
-# The question itself is `spec_has_bug_section`, sourced below, because the developer's
-# builder asks the same one of the same file and the two answers have to agree; lib/bug-section.sh
-# says what breaks when they do not. Asked here, ahead of the readability loop, so the
-# paragraph's file joins the others in it rather than carrying a second copy of the same
-# refusal further down.
-#
-# `||` rather than a bare `source`, so a lib file that is not there is refused the way every
-# other unreadable input to this builder is — exit 2, a diagnostic, no prompt — instead of
-# dying under `set -e` with 1, the code reserved for an answer that came back.
-# shellcheck source=lib/bug-section.sh
+# hazard: `||` on `source`, or a missing lib file dies under set -e with 1 instead of 2.
 source "$HERE/lib/bug-section.sh" \
   || { echo "build-verify-prompt: cannot read '$HERE/lib/bug-section.sh'" >&2; exit 2; }
 bug_file=""
 if spec_has_bug_section "$spec_file"; then
   bug_file="$HERE/prompts/_verify-red-bug.md"
 fi
-# The refactor kind reaches the plan verifier the same way (#499): `capture-spec.sh` writes a
-# `## Refactor` section into the blind spec, and that section is what asks for the checks a
-# plan of named refactorings owes — never a new parameter.
 refactor_plan_file=""
 if [[ "$phase" == plan ]] && grep -qE '^## Refactor[[:space:]]*$' "$spec_file" 2>/dev/null; then
   refactor_plan_file="$HERE/prompts/_verify-plan-refactor.md"
 fi
 
-# The ledger is read by this builder rather than by the leaf, so it joins the list of
-# files whose unreadability is this script's refusal: `cat` failing under `set -e` would
-# exit 1, the code reserved for an answer that came back, and no prompt is an answer
-# nobody got (#439).
+# hazard: `cat` on an unreadable file under set -e would exit 1, the code reserved for an answer.
 readable=("$tpl_file" "$shared_file" "$spec_file")
 if [[ -n "$bug_file" ]]; then
   readable+=("$bug_file")
@@ -173,10 +116,6 @@ bug_reproduction=""
 if [[ -n "$bug_file" ]]; then bug_reproduction="$(cat "$bug_file")"; fi
 refactor_plan=""
 if [[ -n "$refactor_plan_file" ]]; then refactor_plan="$(cat "$refactor_plan_file")"; fi
-# The plan is its phase's subject, so its own text goes into the prompt — a verifier given
-# only a path, in a target repository, would judge a file it was never handed. The read
-# belongs here, beside the prompt's other on-disk inputs, rather than up among the argument
-# checks: every file whose contents reach the prompt is then opened in one place.
 ledger=""
 if [[ "$phase" == plan ]]; then
   ledger="$(cat "$test_path")"
@@ -193,9 +132,6 @@ criteria belong to other steps of the plan.
 "
 fi
 
-# Literal substitution via bash parameter expansion — no sed, and with the
-# patsub_replacement guard above holding, so &, \, / and {} in the spec are carried
-# through verbatim.
 out="${tpl//\{\{SHARED\}\}/$shared}"
 out="${out//\{\{STEP\}\}/$step_block}"
 out="${out//\{\{ISSUE_SPEC\}\}/$spec}"
@@ -208,8 +144,6 @@ out="${out//\{\{BASE_SHA\}\}/$base_sha}"
 out="${out//\{\{FAST_CMD\}\}/$fast_cmd}"
 out="${out//\{\{ONTO_SHA\}\}/$onto_sha}"
 out="${out//\{\{PRE_REBASE_SHA\}\}/$pre_rebase_sha}"
-# The wrapper every test-command run goes through (#373), named at an absolute path: a
-# verifier works in the target repository, where the bare name resolves to nothing.
 out="${out//\{\{TIMED_TEST_RUN\}\}/$HERE/timed-test-run.sh}"
 
 printf '%s\n' "$out"

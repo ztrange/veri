@@ -12,7 +12,7 @@
 - [x] The sweepable report is empty for supervise.sh, run-leaf.sh, detach-leaf.sh, wait-leaf.sh and run-verdict.sh ⟦criterion 4⟧
 - [x] The sweepable report is empty for issue-worktree.sh, verify.sh, parse-verdict.sh and extract-result.sh ⟦criterion 4⟧
 - [x] The sweepable report is empty for detect-test-command.sh, solvable-issues.sh and session-cost.sh ⟦criterion 4⟧
-- [ ] The sweepable report is empty for build-develop-prompt.sh, build-verify-prompt.sh, run-conductor.sh, stop-run.sh and preserve-attempt.sh ⟦criterion 4⟧
+- [x] The sweepable report is empty for build-develop-prompt.sh, build-verify-prompt.sh, run-conductor.sh, stop-run.sh and preserve-attempt.sh ⟦criterion 4⟧ ⟂ refactor pending
 - [ ] The sweepable report is empty for leaf-timeout.sh, ensure-run-state-ignored.sh, orchestrate.sh, parallel-conductors.sh, workqueue.sh, push-branch.sh, refactor-triage.sh, invisible-work.sh, over-budget.sh, run-suite.sh, leaf-model.sh and leaf-launchable.sh ⟦criterion 4⟧
 - [ ] The sweepable report is empty for every remaining `skills/tdd/scripts/*.sh`, the classifier itself included ⟦criterion 4⟧
 - [ ] The sweepable report is empty for every shell file under `skills/tdd/scripts/lib/` ⟦criterion 4⟧

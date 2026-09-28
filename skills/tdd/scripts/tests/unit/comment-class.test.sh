@@ -177,6 +177,13 @@ want_empty_sweepable "$SCRIPTS/detect-test-command.sh" "$SCRIPTS/solvable-issues
   "$SCRIPTS/session-cost.sh"
 verdict "the sweepable report is empty for detect-test-command.sh, solvable-issues.sh and session-cost.sh"
 
+# 15. the sweepable report is empty for build-develop-prompt.sh, build-verify-prompt.sh,
+#     run-conductor.sh, stop-run.sh and preserve-attempt.sh.
+problems=""
+want_empty_sweepable "$SCRIPTS/build-develop-prompt.sh" "$SCRIPTS/build-verify-prompt.sh" \
+  "$SCRIPTS/run-conductor.sh" "$SCRIPTS/stop-run.sh" "$SCRIPTS/preserve-attempt.sh"
+verdict "the sweepable report is empty for build-develop-prompt.sh, build-verify-prompt.sh, run-conductor.sh, stop-run.sh and preserve-attempt.sh"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
