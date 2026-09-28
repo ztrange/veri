@@ -26,7 +26,8 @@ awk '
   /^[[:space:]]*#/ { print FILENAME ":" FNR ":1"; next }
   { line = $0; gsub(/<<</, "", line) }
   match(line, /<<-?[[:space:]]*["'\'']?[A-Za-z_][A-Za-z0-9_]*/) {
-    cls = line ~ />[[:space:]]*[^&[:space:]]/ ? 2 : 3
+    out = line; gsub(/[02-9]>+[[:space:]]*[^[:space:]]*/, "", out)
+    cls = out ~ />[[:space:]]*[^&[:space:]]/ ? 2 : 3
     delim = substr(line, RSTART + 2, RLENGTH - 2)
     dash = delim ~ /^-/
     sub(/^-?[[:space:]]*["'\'']?/, "", delim)
