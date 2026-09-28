@@ -37,6 +37,40 @@ if ! grep -E "^$f:2:1(:|$)" <<< "$out" > /dev/null; then
 fi
 verdict "a comment in code outside any heredoc is reported as class 1 with its file and line"
 
+# 2. a `#` line inside a heredoc is reported apart from a comment in the same file, never as class 1.
+problems=""
+f="$work/mixed.sh"
+printf '%s\n' 'echo one' '# a comment in code' 'cat << EOF' '# a line in a heredoc' 'EOF' '# a comment after the heredoc' > "$f"
+out="$("$CLASSIFY" "$f" 2>"$work/stderr")" && code=0 || code=$?
+if [[ "$code" != 0 ]]; then
+  problems+="    want exit 0, got $code; stderr: $(cat "$work/stderr")"$'\n'
+fi
+if ! grep -E "^$f:2:1(:|$)" <<< "$out" > /dev/null; then
+  problems+="    want a line '$f:2:1', got:"$'\n'"$out"$'\n'
+fi
+if ! grep -E "^$f:4:[23](:|$)" <<< "$out" > /dev/null; then
+  problems+="    want line 4 reported as class 2 or 3, got:"$'\n'"$out"$'\n'
+fi
+if ! grep -E "^$f:6:1(:|$)" <<< "$out" > /dev/null; then
+  problems+="    want a line '$f:6:1' once the heredoc closes, got:"$'\n'"$out"$'\n'
+fi
+verdict "a # line inside a heredoc is counted apart from a comment in the same file, never as class 1"
+
+# 3. a heredoc left open at the end of one file does not carry into the next.
+problems=""
+f="$work/open.sh"
+g="$work/after.sh"
+printf '%s\n' 'cat <<EOF' '# a line in a heredoc' > "$f"
+printf '%s\n' '# a comment in code' > "$g"
+out="$("$CLASSIFY" "$f" "$g" 2>"$work/stderr")" && code=0 || code=$?
+if [[ "$code" != 0 ]]; then
+  problems+="    want exit 0, got $code; stderr: $(cat "$work/stderr")"$'\n'
+fi
+if ! grep -E "^$g:1:1(:|$)" <<< "$out" > /dev/null; then
+  problems+="    want a line '$g:1:1', got:"$'\n'"$out"$'\n'
+fi
+verdict "a heredoc left open at the end of one file does not carry into the next"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
