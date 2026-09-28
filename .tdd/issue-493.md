@@ -9,7 +9,7 @@
 - [x] The sweepable report omits a file's leading contract header and any comment marked as a shell-hazard warning, so a file whose comments are only those reports nothing sweepable ⟦criterion 4⟧
 - [x] Every script's usage output on a missing argument, and each prompt builder's output for fixed inputs, is pinned byte-identical to what it prints before the sweep ⟦criterion 5⟧
 - [x] The sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh ⟦criterion 4⟧
-- [x] The sweepable report is empty for supervise.sh, run-leaf.sh, detach-leaf.sh, wait-leaf.sh and run-verdict.sh ⟦criterion 4⟧ ⟂ refactor pending
+- [x] The sweepable report is empty for supervise.sh, run-leaf.sh, detach-leaf.sh, wait-leaf.sh and run-verdict.sh ⟦criterion 4⟧
 - [ ] The sweepable report is empty for issue-worktree.sh, verify.sh, parse-verdict.sh and extract-result.sh ⟦criterion 4⟧
 - [ ] The sweepable report is empty for detect-test-command.sh, solvable-issues.sh and session-cost.sh ⟦criterion 4⟧
 - [ ] The sweepable report is empty for build-develop-prompt.sh, build-verify-prompt.sh, run-conductor.sh, stop-run.sh and preserve-attempt.sh ⟦criterion 4⟧
