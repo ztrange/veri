@@ -347,12 +347,17 @@ probe_count_line_check_lets_its_writer_finish() {
     echo "note: no Makefile at $ROOT, so no count-line check was run: nothing this case could ask about"
     return 0
   fi
-  check="$(grep -m 1 'tail -n 1 "\$\$suite_out"' "$ROOT/Makefile")"
+  # The check spans two recipe lines since #508: `last_line="$$(tail -n 1 …)"; \` and the
+  # `printf … | grep -E '$(COUNT_LINE)' > /dev/null || {` that tests it. Both are taken, the
+  # recipe's `\`-newline continuation is joined back into one line — `sh -c` given a
+  # trailing `\` runs it as a command, exit 127 under dash — and everything from `||` is cut.
+  check="$(awk '/tail -n 1 "\$\$suite_out"/ { print; if ((getline nxt) > 0) print nxt; exit }' "$ROOT/Makefile")"
   if [[ -z "$check" ]]; then
     problems+=("no count-line check reading \"\$\$suite_out\" through tail was found in the Makefile, so the criterion went unasked")
     return 0
   fi
   eval "$(make -s -C "$ROOT" count-line-guard)"
+  check="${check//$'\\\n'/ }"
   check="${check%%||*}"
   check="${check//\$\$/\$}"
   check="${check//\$(COUNT_LINE)/$COUNT_LINE}"
