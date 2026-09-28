@@ -100,6 +100,8 @@
 #      it (#544).
 #  29. SKILL.md's Draft PR step passes every `wait-ci.sh` call the sha it just pushed, read
 #      with `git rev-parse HEAD` after its last push, as the head it waits for (#550).
+#  30. SKILL.md's Draft PR step bails on the `metrics:` push's CI wait with a command in its
+#      block — `ci-red` on exit 1, `ci-timeout` on exit 2 — not only in prose (#550).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -1119,6 +1121,37 @@ if step_or_problem '### 4. Draft PR' "which head sha the step's CI waits are giv
     [[ -n "$line" ]] || continue
     problems+=("$skill_md's Draft PR step calls wait-ci.sh with no head sha from git rev-parse HEAD after its last push: $(printf '%.120s' "$line")")
   done <<< "$unpinned"
+fi
+report "$name"
+
+# 30. The criterion, as one case (issue #550): the conductor types the block and reads the
+#     prose around it only when a command sends it there, so a bail written only after the
+#     `done` mark is one the `metrics:` push's red or timed-out CI never reaches. The bail must
+#     be a command line after that push's `wait-ci.sh` call, in the same block, keyed on its
+#     exit code.
+name="$skill_md's Draft PR step bails on the metrics: push's CI wait with a command in its block, ci-red on exit 1 and ci-timeout on exit 2 (#550)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "whether the metrics: push's CI wait bails"; then
+  commands="$(section_commands)"
+  metrics_at="$(line_of "$metrics_commit")"
+  if [[ -z "$metrics_at" ]]; then
+    problems+=("$skill_md's Draft PR step makes no metrics: commit, so whether its push's CI wait bails could not be checked")
+  else
+    bails="$(awk -v from="$metrics_at" -v wait_re="^$wait_ci_run" '
+        NR <= from { next }
+        /^```/ { if (waited) exit; next }
+        $0 ~ wait_re { waited = 1; next }
+        waited && match($0, /[$]s\/event[.]sh bail cause=ci-(red|timeout)/) {
+          cause = substr($0, RSTART + 23, RLENGTH - 23)
+          print cause " " substr($0, 1, RSTART - 1) }' <<< "$commands")"
+    for want in 'ci-red 1' 'ci-timeout 2'; do
+      cause="${want% *}" code="${want#* }"
+      keyed="$(awk -v c="$cause" -v k="$code" '$1 == c && (" " $0 " ") ~ ("[^0-9]" k "[^0-9]")' <<< "$bails")"
+      [[ -n "$keyed" ]] ||
+        problems+=("no command line of $skill_md's Draft PR step bails with cause $cause on the metrics: push's wait-ci.sh exit $code, in the block after that wait")
+    done
+  fi
 fi
 report "$name"
 
