@@ -1,9 +1,9 @@
 ### 📊 Metrics — issue 536
 
-Wall time for the issue: 1781 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: -1 s, excluded from it.
+Wall time for the issue: 730 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 2 of 3 planned.
-Outcome: the run bailed — untestable-criterion, a process failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/547.
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
 
 #### By phase
@@ -41,6 +41,12 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | --- | ---: | ---: | --- | --- | ---: | ---: | ---: |
 | A shell that set an EXIT trap before calling `bg_start` still runs that earlier trap at exit, and still gets the survivor report for a process left running ⟦criterion 1⟧ | 1 | 1/5 | structural-owed | PASS | 0 | 111 | 1.01 |
 | A shell that set an EXIT trap and then calls `bg_start` more than once, with the same record and with a second record, reports each survivor exactly once and runs its own earlier trap exactly once ⟦criterion 2⟧ | 1 | 1/5 | structural-owed | PASS | 0 | 102 | 1.06 |
+
+#### Structural pass
+
+| pass | refactor | stopped |
+| --- | ---: | --- |
+| issue | 0/10 | candidates-done |
 
 #### Test-command seconds, by tier
 
