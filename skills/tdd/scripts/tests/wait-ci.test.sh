@@ -184,5 +184,11 @@ while IFS= read -r line; do
 done <<< "$calls"
 report "$name"
 
+name="wait-ci.sh never reads a rollup whose every check concluded SKIPPED as green: it exits 3 while its bound lasts, since a check skipped on a draft push has not tested the head (#544)"
+problems=()
+rollup all-skipped.json "$(check COMPLETED SKIPPED),$(check COMPLETED SKIPPED)"
+expect_exit all-skipped 3
+report "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
