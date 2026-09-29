@@ -15,7 +15,7 @@ lib="$(dirname "$0")/lib"
 source "$lib/main-working-tree.sh"
 [[ ! -f "$lib/ledger.sh" ]] || source "$lib/ledger.sh"
 
-ledger_step() {  # ledger_step <ledger> -> "<n> of <m>"
+step_of_total() {  # step_of_total <ledger> -> "<n> of <m>"
   local index state rest total=0 step=0
   while IFS=$'\t' read -r index state rest; do
     total="$index"
@@ -174,7 +174,7 @@ for run in "${runs[@]}"; do
   heading="${heading#\# Plan for #}"
   issue="${heading%% — *}"
   title="${heading#* — }"
-  step="$(ledger_step "$ledger")"
+  step="$(step_of_total "$ledger")"
   if [[ "$json" -eq 1 ]]; then
     run_objects+=("$(python3 -c '
 import json, sys
