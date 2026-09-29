@@ -33,18 +33,19 @@ printf '%s\n' "$now" | tee -a "$VERI_CLOCK_LOG"
 D
 cat > "$work/bin/gh" <<'G'
 #!/bin/sh
+served() {
+  n="$(wc -l < "$ROLLUP.calls" | tr -d ' ')"
+  if [ -f "$ROLLUP.$n$1" ]; then echo "$ROLLUP.$n$1"; else echo "$ROLLUP$1"; fi
+}
 case "$*" in
   *-q*|*--jq*|*--template*) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
   "pr view $PR_URL --json "*statusCheckRollup*)
     if [ -n "${GH_FAIL:-}" ]; then echo "HTTP 502: Bad Gateway" >&2; exit 1; fi
     echo >> "$ROLLUP.calls"
-    n="$(wc -l < "$ROLLUP.calls" | tr -d ' ')"
-    if [ -f "$ROLLUP.$n" ]; then cat "$ROLLUP.$n"; else cat "$ROLLUP"; fi ;;
+    cat "$(served '')" ;;
   "api "*"repos/o/r/commits/"*/check-runs*)
     if [ -n "${GH_API_FAIL:-}" ]; then echo '{"message":"Not Found"}'; echo "gh: Not Found (HTTP 404)" >&2; exit 1; fi
-    n="$(wc -l < "$ROLLUP.calls" | tr -d ' ')"
-    f="$ROLLUP.check-runs"; [ -f "$ROLLUP.$n.check-runs" ] && f="$ROLLUP.$n.check-runs"
-    python3 - "$f" "$@" <<'P'
+    python3 - "$(served .check-runs)" "$@" <<'P'
 import json, re, sys
 runs = json.load(open(sys.argv[1]))["check_runs"]
 args = sys.argv[2:]
@@ -64,8 +65,7 @@ P
     ;;
   "api repos/o/r/commits/"*/status)
     if [ -n "${GH_STATUS_FAIL:-}" ]; then echo '{"message":"Not Found"}'; echo "gh: Not Found (HTTP 404)" >&2; exit 1; fi
-    n="$(wc -l < "$ROLLUP.calls" | tr -d ' ')"
-    if [ -f "$ROLLUP.$n.status" ]; then cat "$ROLLUP.$n.status"; else cat "$ROLLUP.status"; fi ;;
+    cat "$(served .status)" ;;
   *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
 esac
 G
