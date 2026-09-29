@@ -46,39 +46,22 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 pass=0 fail=0
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-# The tunable whose default is stated three times, the script that encodes it and the suite
-# that owns that script — repo-relative, which is what the recipe's TESTS variable is handed,
-# what the failure messages quote and what resolves against both trees. The suite's basename
-# besides, because the runner announces each suite by basename (`== <name>`), which is how
-# this case knows the narrowed roster was not empty.
 TUNABLE='VERI_REFACTOR_BUDGET'
 SCRIPT='skills/tdd/scripts/refactor-budget.sh'
 SUITE='skills/tdd/scripts/tests/refactor-budget.test.sh'
 SUITE_NAME="${SUITE##*/}"
 
-# The two prose statements the plant leaves behind, each as the text a failure line about it
-# must contain: the document's name for the one in SKILL.md, and the word for the part of the
-# file for the one in the script's own comment header. Matched loosely on purpose — the
-# criterion is that the red names these two sentences, not how the guard words its
-# complaint.
 SKILL_MARKER='SKILL.md'
 HEADER_MARKER='header'
 
-# What the recipe prints when a suite it ran came back red — the runner's own verdict, which
-# is the thing this case reads rather than the exit code alone (#157: a suite that dies
-# partway routinely exits 0, and the recipe's answer is what the conductor branches on).
 FAILED_LINE='SUITES FAILED'
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which half of the contract broke rather than just that the case did.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -90,20 +73,10 @@ report() {
   fi
 }
 
-# flat <text> — one line of it, for a failure message: newlines become slashes so a runner's
-# output stays readable inside an indented problem line.
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
-# why <output> — the part of a runner's output that says what went wrong, flattened onto one
-# problem line: every `FAIL - …` line a suite printed plus the last few lines, which is where
-# the count line and the runner's own verdict are.
 why() { flat "$( { grep -E '^FAIL - ' <<< "$1"; tail -5 <<< "$1"; } )"; }
 
-# figure <file> <extended-regex> — the number the first match of <regex> states, or '<none>'
-# when the pattern is nowhere in the file. The figure is the LAST run of digits in the match,
-# which is why each regex below stops at it. The same shape refactor-budget.test.sh case 8
-# reads its sites with, because the probe below has to read the same three statements to say
-# whether the plant really parted them.
 figure() {
   local hit
   hit="$(head -1 < <(grep -oE "$2" "$1"))"
@@ -115,15 +88,6 @@ ENCODED_RE="$TUNABLE:-[0-9]+"
 HEADER_RE="$TUNABLE \(default [0-9]+"
 SKILL_RE="$TUNABLE.{0,3} \(default [0-9]+"
 
-# tree_whose_default_moved — a disposable copy of this tree with the constant bumped by one
-# and no sentence about it touched, printed as a path. Named, and out of the case body, so
-# the case reads as the three steps it is: build the tree, prove the plant really parted the
-# statements, ask the runner.
-#
-# The plant rewrites the assignment and only the assignment: the pattern carries `:-`, which
-# is the substitution shape, so the header's `(default N)` three lines above it is not a
-# match and neither is anything in SKILL.md. Bumped by one rather than set to a literal, so
-# this file states no figure of its own and cannot itself drift.
 tree_whose_default_moved() {
   local planted="$WORK/tree" here_default
   mkdir -p "$planted"
@@ -137,10 +101,6 @@ tree_whose_default_moved() {
   printf '%s' "$planted"
 }
 
-# probe_plant_is_real <dir> — the plant is only a plant if the copy's code and the copy's
-# prose now state different numbers: a copy whose constant did not move, or whose sentences
-# moved with it, is an ordinary tree, and red over it would mean nothing. Appends to
-# `$problems` the way report() reads it.
 probe_plant_is_real() {
   local moved here site
   moved="$(figure "$1/$SCRIPT" "$ENCODED_RE")"
@@ -157,11 +117,6 @@ SKILL.md-refactor|skills/tdd/SKILL.md|$SKILL_RE
 SITES
 }
 
-# 1. The criterion: the constant moves, neither sentence stating it does, and the development
-#    lane's runner refuses the tree — and says which sentences were left behind. Exit code and
-#    the runner's own verdict line together, for the reason the recipe itself checks both
-#    (#157); the suite's `== <name>` announcement too, because a TESTS list that resolved to
-#    nothing would leave the criterion observed over an empty roster.
 name="\`make test\` is red over a tree whose $TUNABLE default has moved and whose two prose statements of it have not, naming both"
 problems=()
 

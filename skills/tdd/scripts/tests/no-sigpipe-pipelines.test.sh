@@ -50,68 +50,24 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
-# The repository itself, four directories up: what case 2 asks `make` about, and what the
-# repo-relative paths a roster line carries are resolved against.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The declaration that makes the shape a bug: `set -uo pipefail`, `set -o pipefail`, or any
-# other spelling of the option on a `set` line.
 PIPEFAIL_DECL='^[[:space:]]*set[[:space:]].*pipefail'
 
-# One reader half: a grep whose short-option cluster carries `q`, which is `grep -q`,
-# `grep -qF --`, `grep -Eqi` and `grep -vq` alike. The cluster has to be one of the option
-# words that follow the command — everything before it is another option word — rather than
-# a dash-word anywhere on the line, or `[[ "$(… | grep -c '^')" -eq 1 ]]` reads as one on
-# the strength of its `-eq` (verify.test.sh:715, which counts lines and asserts on the
-# count, so its reader consumes to EOF and there is nothing there to catch).
 GREP_READER='(grep|egrep|fgrep)([[:space:]]+-[A-Za-z]*)*[[:space:]]+-[A-Za-z]*q'
-# The other: `head`, which leaves as soon as it has the lines it was asked for, with the
-# same consequence for the writer behind it — a closed pipe, SIGPIPE, and `pipefail`
-# handing that 141 up as the pipeline's status. A different reason to leave, the same
-# inversion. It has to be a whole command word, or `ahead`, `header` and `$HEAD_SHA` all
-# read as one; no option list is required after it, because a bare `head` is `head -n 10`.
 HEAD_READER='head([[:space:]]|$)'
-# Either reader, for the one pattern below: what makes the shape a bug is that the reader
-# leaves before EOF, not which of the two it is.
 READER="($GREP_READER|$HEAD_READER)"
-# The pipe half, prefixed to it: a `|` that is not one of a `||`, which is a boolean and not
-# a pipeline at all. Written as two halves for the reason the header gives — a line of this
-# file spelling the whole shape would be its own first offender.
 PIPE_INTO_READER="(^|[^|])\\|[[:space:]]*[^|]*(^|[[:space:]])$READER"
 
-# A pipeline is not a line: the shell joins a line whose last token is a `|` to the one
-# below it, so the ordinary way to write a long pipeline — the pipe ending one line and the
-# reader opening the next — is the same offence written differently, and a guard that only
-# reads a line on its own is one an author escapes by pressing return. The two halves are
-# matched a line apart: this one is the trailing `|`, again not one of a `||`.
 WRAPPING_PIPE='(^|[^|])\|[[:space:]]*$'
-# And this one is the reader opening the line below it, with nothing but indentation before
-# it — a reader further along that line is fed by something else on it, not by the pipe
-# above.
 READER_OPENS="^[[:space:]]*$READER"
 
-# EXEMPT[<suite>:<line>]="<reason>" — a site where the reader's early exit is the point,
-# each with the sentence that says why: what the writer is, and why its SIGPIPE cannot be
-# mistaken for the answer there. The reason is what makes an entry an exemption; a bare key
-# is a site someone once wanted quiet, and the next reader has no way to tell the two apart,
-# so an entry with no reason fails the run instead of excusing anything.
 declare -A EXEMPT=(
-  # The one site this issue did not repair. It is not a line of the suite at all: it is a
-  # line of the `#!/bin/sh` stub `claude` the suite writes out in a quoted heredoc, and that
-  # stub declares no `pipefail` of its own — so the writer's SIGPIPE is the status of
-  # nothing there, the `sed` feeding it is one `$(…)` whose value is then tested with
-  # `[ -n "$base" ]`, and the repair this file prescribes is not available either, since
-  # process substitution is bash's and the stub is POSIX sh by design. A text read cannot
-  # tell a heredoc from the shell around it, which is why the entry is here rather than in
-  # the pattern.
-  [run-conductor.test.sh:66]="a line of the POSIX-sh stub \`claude\` the suite writes in a heredoc, not of the suite: that shell sets no pipefail, so the sed's SIGPIPE is never a status anything reads, and bash's process substitution is not available there to repair it with"
+  [run-conductor.test.sh:51]="a line of the POSIX-sh stub \`claude\` the suite writes in a heredoc, not of the suite: that shell sets no pipefail, so the sed's SIGPIPE is never a status anything reads, and bash's process substitution is not available there to repair it with"
 )
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which line broke the rule rather than just that some line did.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -123,20 +79,10 @@ report() {
   fi
 }
 
-# flat <text> — one line of it, for a failure message: newlines become slashes so a quoted
-# line stays one line. Pure parameter expansion rather than a pipe into `tr`, which is two
-# processes per problem line.
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
-# declares_pipefail <file> — true when the suite turns the option on. Asked once per suite
-# rather than once per line, because it is a property of the file.
 declares_pipefail() { grep -Eq "$PIPEFAIL_DECL" "$1"; }
 
-# wrapped_sites <file> — the lines of <file> that open with an early-exiting reader and are
-# fed by a `|` ending the line above them, one `<lineno>:<text>` per line. Two greps and a
-# lookup rather than a line-by-line read of the file: each half is a question grep answers
-# over the whole file at once, and what makes the pair a pipeline is only that their line
-# numbers are one apart.
 wrapped_sites() {
   local file="$1" hit lineno
   local -A ends_in_pipe=()
@@ -151,17 +97,6 @@ wrapped_sites() {
   return 0
 }
 
-# loop_break_sites <file> — the lines of <file> that close a loop on a process substitution
-# when that loop can `break`, one `<lineno>:<text>` per line (#526). The third early-leaving
-# reader: once the loop breaks nothing reads the pipe behind it, and a writer with bytes still
-# to push dies of SIGPIPE — GNU `tail` then says so on stderr, after the suite's count line,
-# which is what failed skill-event-marks.test.sh case 13 on CI. The site is the closing line,
-# because that is where the writer is and so where the repair is made. One awk over the file
-# keeps a stack of open loops: an opener is a line whose first word is `while`, `until` or
-# `for`, or one that pipes a writer into a `while` or `until`, a closer one whose first word is
-# the loop's end, and a `break` marks the innermost loop open around it. A comment line is not
-# read. A loop fed by a pipe (`writer … | while …`) is named at its opening line instead,
-# because that is where its writer is.
 loop_break_sites() {
   awk '
     /^[[:space:]]*#/ { next }
@@ -179,13 +114,6 @@ loop_break_sites() {
   ' "$1"
 }
 
-# unexempted_sites <file> — the lines of <file> that feed a writer into a reader leaving
-# before EOF and are neither a comment nor an exemption, one `<lineno>:<text>` per line.
-# Both cases ask exactly this of a file and differ only in the consequence they then name,
-# so the reading — the pipefail condition, the pattern, the comment skip and the table
-# lookup keyed on the suite's basename — is written here once rather than in each of them.
-# A file that declares no `pipefail` names no site: the writer's SIGPIPE is not the
-# pipeline's status there, so there is nothing to report.
 unexempted_sites() {
   local file="$1" name hit lineno text
   local -A seen=()
@@ -196,9 +124,6 @@ unexempted_sites() {
     text="${hit#*:}"
     [[ "$text" =~ ^[[:space:]]*# ]] && continue
     [[ -n "${EXEMPT[$name:$lineno]:-}" ]] && continue
-    # One site is one report however many of the two readings reached it: a line that is
-    # both fed by the pipe above it and ends a pipeline of its own is still one line to
-    # repair.
     [[ -n "${seen[$lineno]:-}" ]] && continue
     seen["$lineno"]=1
     printf '%s:%s\n' "$lineno" "$text"
@@ -206,13 +131,6 @@ unexempted_sites() {
   return 0
 }
 
-# probe_no_pipefail_suite_ends_a_pipeline_in_an_early_exiting_reader — the criterion. Every
-# suite in this directory that declares `pipefail` is asked for the lines that feed a writer
-# into either early-exiting reader; a comment is not one, because a comment cannot run anything
-# and the prose here discusses the shape at length.
-#
-# The suites are found by globbing this directory rather than by a list, because the list is
-# what the next one would be added outside of; `make test` finds them the same way.
 probe_no_pipefail_suite_ends_a_pipeline_in_an_early_exiting_reader() {
   local f name site
   for f in "$HERE"/*.test.sh; do
@@ -225,10 +143,6 @@ probe_no_pipefail_suite_ends_a_pipeline_in_an_early_exiting_reader() {
   return 0
 }
 
-# probe_every_exemption_carries_a_reason — the table's own contract. An entry whose value
-# is empty exempts nothing: it is reported here, named by its key, and the complaint says
-# that the reason is what is missing — so the author is told their exemption is not one
-# rather than left reading a pipeline report they thought they had already answered.
 probe_every_exemption_carries_a_reason() {
   local key
   for key in "${!EXEMPT[@]}"; do
@@ -238,12 +152,6 @@ probe_every_exemption_carries_a_reason() {
   return 0
 }
 
-# 1. One criterion, one case: nothing in this directory reads its own writer's SIGPIPE as an
-#    answer. One case rather than one per suite, because the rule is about the directory — a
-#    suite added tomorrow is covered by existing, and a per-suite roster would be the list
-#    the glob above exists to avoid. The table's own contract is probed in the same case:
-#    an entry with no reason is not an exemption, and saying so is part of saying the
-#    directory is clean.
 name="no suite under skills/tdd/scripts/tests/ that declares pipefail ends a pipeline in a reader that leaves before EOF"
 problems=()
 
@@ -252,21 +160,8 @@ probe_no_pipefail_suite_ends_a_pipeline_in_an_early_exiting_reader
 
 report "$name"
 
-# roster <target> — the suite paths <target> would run, one repo-relative path per line.
-# `make -n` prints the recipe with the target's wildcards already expanded and executes none
-# of it, which is the only way to ask this question: running `make test` to find out what
-# `make test` runs is the recursion, and it costs ~154 s besides. Same idiom as
-# no-docs-reads.test.sh's roster helper and suite-lanes.test.sh's, which read their targets'
-# lists the same way.
 roster() { make -C "$ROOT" -n "$1" 2>&1 | grep -o '[^ ]*\.test\.sh' | sort -u; }
 
-# probe_no_suite_the_target_runs_ends_a_pipeline_in_an_early_exiting_reader — the same
-# question asked of the roster `make test` would run rather than of this directory's glob,
-# and answered the same way, line by line, through the same exemption table. A roster entry
-# is exempted by its basename, as the table's `<suite>:<line>` key says: a site is one site
-# whichever of the two probes reaches it, and one key per site is what keeps a reason from
-# having to be written twice. What an empty roster means, and why it is said rather than
-# failed over, is at the line that says it.
 probe_no_suite_the_target_runs_ends_a_pipeline_in_an_early_exiting_reader() {
   local rel site
   local -a listed=()
@@ -277,29 +172,11 @@ probe_no_suite_the_target_runs_ends_a_pipeline_in_an_early_exiting_reader() {
       problems+=("$rel:${site%%:*} ends a pipeline in a reader that leaves before EOF, under a suite that declares pipefail, so \`make test\` — the baseline preflight reads, the Green leaf runs and both blind verifiers run — asserts on the writer's SIGPIPE rather than the reader's answer: $(flat "${site#*:}")")
     done < <(unexempted_sites "$ROOT/$rel")
   done < <(roster test)
-  # An empty roster is something this case found, not an offence it discovered: a tree with
-  # no Makefile — every scratch tree sigpipe-guard.test.sh plants — has no suite `make test`
-  # would run, so nothing in it reads its own writer's SIGPIPE as an answer and there is
-  # nothing to fail over. Failing there would make the guard's verdict about such a tree
-  # unreadable: red whatever was planted in it. What replaces the failure is not silence —
-  # the finding is said, naming the question that was asked, so an empty roster in a real
-  # tree is still visible to whoever reads the output.
   [[ "${#listed[@]}" -gt 0 ]] ||
     echo "note: \`make -n test\` named no suite at all, so no roster was read: nothing this case could ask about"
   return 0
 }
 
-# 2. The same rule asked of the target instead of the directory. Case 1 is the rule an
-#    author breaks, and it finds its suites by globbing the directory they are written in.
-#    This case is the consequence the rule is for: `make test` is what preflight reads its
-#    baseline off, what every Green leaf runs and what both blind verifiers run, and it is
-#    the run that goes red on Linux while the Mac that launched it stayed green. So what has
-#    to hold is that nothing *that target runs* reads its own writer's SIGPIPE as an answer.
-#
-#    The two are not the same file list: the target also runs the fast tier under `unit/`,
-#    which case 1's glob does not descend into, and a suite named into the target from
-#    outside this directory would reach the baseline the same way. Asking the target itself
-#    costs one `make -n`.
 name="no suite \`make test\` runs that declares pipefail ends a pipeline in a reader that leaves before EOF"
 problems=()
 
@@ -307,26 +184,15 @@ probe_no_suite_the_target_runs_ends_a_pipeline_in_an_early_exiting_reader
 
 report "$name"
 
-# probe_no_recipe_ends_a_pipeline_in_an_early_exiting_reader — the criterion asked of the
-# repository's Makefile: every recipe line that ends a pipeline in either early-exiting reader
-# is named as `Makefile:<line>`. No `pipefail` condition here: the recipe shell is `/bin/sh`,
-# which declares none, and the hazard does not need it — a writer killed mid-write complains
-# on stderr and exits non-zero, and a reader's early exit is what kills it (#524, where GNU
-# tail's `Broken pipe` failed a green suite).
 probe_no_recipe_ends_a_pipeline_in_an_early_exiting_reader() {
   local site
   while IFS= read -r site; do
-    # A recipe site is exempted the way a suite's is, keyed `Makefile:<line>`; a key with no
-    # reason exempts nothing here, and case 1 fails the run naming it.
     [[ -n "${EXEMPT[Makefile:${site%%:*}]:-}" ]] && continue
     problems+=("Makefile:${site%%:*} ends a pipeline in a reader that leaves before EOF, so the writer feeding it can die of SIGPIPE, complain and fail the recipe over an answer the reader already had: $(flat "${site#*:}")")
   done < <(grep -nE "$PIPE_INTO_READER" "$ROOT/Makefile")
   return 0
 }
 
-# 3. The same rule asked of the recipes that enforce it (#524). The `make test` recipe's own
-#    count-line check ended a pipeline in a reader leaving before EOF and failed a green suite
-#    on CI, while cases 1 and 2 read only suites.
 name="no Makefile recipe line ends a pipeline in a reader that leaves before EOF"
 problems=()
 
@@ -334,23 +200,12 @@ probe_no_recipe_ends_a_pipeline_in_an_early_exiting_reader
 
 report "$name"
 
-# probe_count_line_check_lets_its_writer_finish — the recipe's own count-line check, run as
-# make would run it, behind a stub `tail` that writes the count line and then 1 MB more —
-# past any pipe buffer, on either runner — and records whether it got to write it all. A
-# reader that consumes to EOF lets it finish; one that leaves at its first match closes the
-# pipe under it, and the stub's write is cut, which is the SIGPIPE GNU tail complained of on
-# CI (#524). The check is read out of the Makefile rather than restated, and its make
-# variables are asked of make through the `count-line-guard` target, as run-suite.sh does.
 probe_count_line_check_lets_its_writer_finish() {
   local check scratch status
   if [[ ! -e "$ROOT/Makefile" ]]; then
     echo "note: no Makefile at $ROOT, so no count-line check was run: nothing this case could ask about"
     return 0
   fi
-  # The check spans two recipe lines since #508: `last_line="$$(tail -n 1 …)"; \` and the
-  # `printf … | grep -E '$(COUNT_LINE)' > /dev/null || {` that tests it. Both are taken, the
-  # recipe's `\`-newline continuation is joined back into one line — `sh -c` given a
-  # trailing `\` runs it as a command, exit 127 under dash — and everything from `||` is cut.
   check="$(awk '/tail -n 1 "\$\$suite_out"/ { print; if ((getline nxt) > 0) print nxt; exit }' "$ROOT/Makefile")"
   if [[ -z "$check" ]]; then
     problems+=("no count-line check reading \"\$\$suite_out\" through tail was found in the Makefile, so the criterion went unasked")
@@ -378,8 +233,6 @@ STUB
   return 0
 }
 
-# 4. The repair itself, as behaviour rather than text (#524): case 3 asks what the recipe
-#    lines spell, this asks what the count-line check does to the writer feeding it.
 name="make test's count-line check reads the suite's last line to EOF, so its writer is never cut off (#524)"
 problems=()
 

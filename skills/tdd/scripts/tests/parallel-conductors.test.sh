@@ -25,7 +25,6 @@ pass=0 fail=0
 ok() { pass=$((pass + 1)); }
 no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 
-# fresh_repo <dir> [git-init option]... — a new repository at <dir> with one empty commit on main.
 fresh_repo() {
   local dir="$1"
   shift
@@ -33,16 +32,10 @@ fresh_repo() {
   git -C "$dir" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init >/dev/null 2>&1
 }
 
-# The target repo every case launches from: a fresh repository with one commit, standing in for
-# the primary checkout of a repo that has never seen veri. The suite's cwd from here down, for
-# the reason solvable-issues.test.sh gives for its own: a claim lock under THIS repository's
-# `.tdd/wt/<n>` must never answer a question a case asked of its fixture.
 target="$work/target"
 fresh_repo "$target"
 cd "$target" || exit 2
 
-# The solvable set: one open, opted-in, unblocked, unclaimed issue, so a launcher that ignored
-# a bad VERI_PARALLEL would have something to launch.
 gh_json="$work/gh"
 mkdir -p "$gh_json"
 printf '[]\n' > "$gh_json/prs.json"
@@ -58,16 +51,11 @@ cat > "$gh_json/issues.json" <<'JSON'
 ]
 JSON
 
-# The stub conductor: any launch that got as far as the model leaves a line in $launched.
 launched="$work/launched"
 stub="$work/claude"
 printf '#!/bin/sh\necho "$*" >> "%s"\n' "$launched" > "$stub"
 chmod +x "$stub"
 
-# 1. VERI_PARALLEL that is not a whole number ≥ 1 — zero, a word, set-but-empty — is exit 2
-# and launches nothing: the stub never ran, and the launcher wrote no `.tdd/conductor-<n>.*`
-# file in the target. The three values are the criterion's three shapes of "not a whole number
-# ≥ 1", observed as one case; every one that misbehaves is named in the single FAIL line.
 bad=""
 for value in 0 two ''; do
   rm -f "$launched"
@@ -83,28 +71,12 @@ done
 [[ -z "$bad" ]] \
   && ok || no "VERI_PARALLEL not a whole number >= 1 (0, a word, set-but-empty) is exit 2 with no conductor launched ($bad )"
 
-# 2. With VERI_PARALLEL unset — the default, 1 — two solvable issues' conductors run one after
-# another: the second starts only after the first has ended. Observed through what each stub
-# conductor writes to a shared timeline: `start <n>` when it begins, `end <n>` when it is done,
-# and `overlap <n>` if another conductor was already running when it began — the running one
-# holds a `mkdir` lock, which is atomic, so two at once cannot both miss it. Each stub then holds
-# for up to $PATIENCE s, released early the moment another conductor starts, so a launcher that
-# ran them together would be caught overlapping rather than winning a race by being slow.
-#
-# The launcher runs from a copy of the skill outside any git clone: from the real one,
-# run-conductor.sh would fetch this repository's `origin` to pin its skill, and a suite never
-# reaches a remote. Unpinned, it runs the copy as it is, which is all this case asks of it.
-# Each stub answers "done" by opening a ready PR saying `Closes #<n>` in the fixture, so its
-# issue leaves the solvable set the way a finished run's does.
 skill="$work/skill"
 mkdir -p "$skill"
 cp "$HERE/../../SKILL.md" "$skill/SKILL.md"
 cp -R "$HERE/.." "$skill/scripts"
 rm -rf "$skill/scripts/tests"
 
-# gh_fixture <dir> — a VERI_GH_JSON directory whose issues.json is read from stdin, and no PR
-# yet. `prs.lines` is where a stub conductor appends its PR, one JSON object per line, and
-# rebuilds `prs.json` from.
 gh_fixture() {
   mkdir -p "$1"
   : > "$1/prs.lines"
@@ -112,8 +84,6 @@ gh_fixture() {
   cat > "$1/issues.json"
 }
 
-# solvable_fixture <dir> <n>... — a gh_fixture holding one solvable issue per number given:
-# open, opted in, blocked by nothing.
 solvable_fixture() {
   local dir="$1" n sep="" issues="["
   shift
@@ -124,10 +94,6 @@ solvable_fixture() {
   printf '%s]\n' "$issues" | gh_fixture "$dir"
 }
 
-# run_launcher <gh-dir> <stub> <out> [VAR=value ...] [-- <arg>...] — run the copied skill's
-# launcher over the fixture <gh-dir> with <stub> as the conductor's model, the caller's selection
-# tunables stripped, any VAR=value given set and any <arg> after `--` passed to it, its output in
-# <out>. Sets `code` to the launcher's exit status.
 run_launcher() {
   local gh="$1" stub="$2" out="$3" vars=()
   shift 3
@@ -138,8 +104,6 @@ run_launcher() {
     "$skill/scripts/parallel-conductors.sh" "$@" > "$out" 2>&1 && code=0 || code=$?
 }
 
-# expect_lines <what> <want> <got> <out> — pass when <got> equals <want>; otherwise fail naming
-# <what> with the launcher's exit status, a diff of the two, and the launcher's output in <out>.
 expect_lines() {
   [[ "$3" == "$2" ]] \
     && ok || no "$1 (exit=$code)
@@ -151,9 +115,6 @@ $(cat "$4")"
 gh2="$work/gh2"
 solvable_fixture "$gh2" 7 8
 
-# open_pr <gh-dir> <is-draft> — print the stub source that appends a PR saying `Closes #$n`,
-# `isDraft` <is-draft>, to <gh-dir>'s `prs.lines` and rebuilds `prs.json` from it, so the issue
-# leaves the solvable set the way a run that opened its PR does.
 open_pr() {
   cat <<SH
 printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": $2, "url": "https://example.test/pull/%s"}\n' "\$n" "\$n" >> "$1/prs.lines"
@@ -161,11 +122,8 @@ printf '[%s]\n' "\$(paste -sd, "$1/prs.lines")" > "$1/prs.json"
 SH
 }
 
-# ready_pr <gh-dir> — the stub source a conductor ends with to answer "done": a ready PR.
 ready_pr() { open_pr "$1" false; }
 
-# bailed_pr <gh-dir> — the stub source a conductor ends with to answer "bailed": a `bail` last in
-# its run's `.tdd/wt/$n` event log, and a draft PR.
 bail_event='{"ts": 1, "issue": "7", "actor": "conductor", "phase": "develop-red", "step": "1", "event": "bail", "attempt": "1", "skill_commit": "", "cause": "revise-budget"}'
 bailed_pr() {
   cat <<SH
@@ -175,9 +133,6 @@ SH
   open_pr "$1" true
 }
 
-# conductor_stub <path> — write an executable stub conductor to <path> whose body is read from
-# stdin: it opens by reading the issue number the prompt names into `$n`, and closes by printing
-# a successful result line and exiting 0, the way a finished `claude -p` session does.
 conductor_stub() {
   {
     cat <<'HEAD'
@@ -193,8 +148,6 @@ TAIL
   chmod +x "$1"
 }
 
-# record_stub <path> <record> <gh-dir> — write a stub conductor that appends `start <n>` to
-# <record> and answers "done" with a ready PR in <gh-dir>, so its issue leaves the solvable set.
 record_stub() {
   conductor_stub "$1" <<STUB
 echo "start \$n" >> "$2"
@@ -202,11 +155,6 @@ $(ready_pr "$3")
 STUB
 }
 
-# timeline_stub <path> <timeline> <gh-dir> [<lock-dir>] — write the stub conductor cases 2 and 3
-# share: it records `start <n>`, holds until a second conductor has started (or $PATIENCE s
-# pass), records `end <n>`, then answers "done" by opening a ready PR in <gh-dir>. Given a
-# <lock-dir>, it also holds that `mkdir` lock while it runs and records `overlap <n>` first when
-# another conductor already holds it.
 timeline_stub() {
   local path="$1" timeline="$2" gh="$3" lock="${4:-}" lock_take="" lock_drop=""
   if [[ -n "$lock" ]]; then
@@ -235,11 +183,6 @@ want_timeline="$(printf 'start 7\nend 7\nstart 8\nend 8')"
 got_timeline="$(cat "$timeline" 2>/dev/null)"
 expect_lines "VERI_PARALLEL unset runs two solvable issues' conductors one after another" "$want_timeline" "$got_timeline" "$work/seq.out"
 
-# 3. With VERI_PARALLEL=2, two solvable issues' conductors run at once: both have started before
-# either has ended. The same stub shape as case 2's, over a fixture and timeline of its own —
-# each conductor records `start <n>`, holds until a second conductor has started (or $PATIENCE s
-# pass), then records `end <n>` and opens its ready PR. A launcher that ran them one after
-# another shows an `end` among the first two lines, after the first stub has waited out its hold.
 gh3="$work/gh3"
 solvable_fixture "$gh3" 7 8
 
@@ -259,12 +202,6 @@ $got_timeline
 launcher output:
 $(cat "$work/par.out")"
 
-# 4. Launches follow solvable-issues.sh's printed order and never include an issue it did not
-# print. The fixture holds four open issues: #5 is not opted in, #6 is opted in but blocked by
-# the open #9, #7 is solvable in the unlabelled band and #8 in the `priority` band — so
-# solvable-issues.sh prints 8 then 7, out of numeric order, and never 5, 6 or 9. Each stub
-# conductor records `start <n>` and answers "done" with a ready PR, so its issue leaves the set.
-# At the default VERI_PARALLEL=1 the launch order is the whole timeline: 8, then 7, nothing else.
 gh4="$work/gh4"
 gh_fixture "$gh4" <<'JSON'
 [
@@ -290,11 +227,6 @@ want_order="$(printf 'start 8\nstart 7')"
 got_order="$(cat "$order" 2>/dev/null)"
 expect_lines "launches follow solvable-issues.sh's printed order and never an issue it did not print" "$want_order" "$got_order" "$work/order.out"
 
-# 5. An issue solvable-issues.sh still prints after its conductor finished is not launched a
-# second time in the same invocation. The stub conductor for #7 records `start 7` and ends
-# without opening a PR — a run that left no claim behind — so #7 stays in the solvable set when
-# the launcher re-selects. A second launch of the same number is the failure; that stub opens
-# a ready PR on it, so a launcher that relaunches still ends rather than looping.
 gh5="$work/gh5"
 gh_fixture "$gh5" <<'JSON'
 [
@@ -317,12 +249,6 @@ want_again="start 7"
 got_again="$(cat "$again" 2>/dev/null)"
 expect_lines "an issue still solvable after its conductor finished is not launched a second time" "$want_again" "$got_again" "$work/again.out"
 
-# 6. The solvable set is re-asked after every completion, so an issue that became solvable while
-# another conductor ran is launched next. The fixture holds #7, solvable, and #8, blocked by the
-# open #9 — so the first selection prints only 7. #7's stub conductor closes #9 while it runs, the
-# way a human's merge would, and answers "done" with a ready PR; #8 is solvable only from then on.
-# A launcher that re-selects after #7 finishes launches #8 next; one that cached its first answer
-# has nothing left to launch and ends after #7 alone.
 gh6="$work/gh6"
 gh_fixture "$gh6" <<'JSON'
 [
@@ -351,11 +277,6 @@ want_unblock="$(printf 'start 7\nstart 8')"
 got_unblock="$(cat "$unblock" 2>/dev/null)"
 expect_lines "an issue that became solvable while another conductor ran is launched next" "$want_unblock" "$got_unblock" "$work/unblock.out"
 
-# 7. VERI_MAX_ISSUES caps the launches of one invocation. The fixture holds three solvable
-# issues, #7, #8 and #9; each stub conductor records `start <n>` and answers "done" with a ready
-# PR, so its issue leaves the set. With VERI_MAX_ISSUES=2 the launcher starts 7 and 8 and stops,
-# with 9 still solvable. Each run gets a fresh fixture and record; every value that misbehaves is
-# named in the single FAIL line.
 bad=""
 for cap in 2; do
   gh7="$work/gh7-$cap"
@@ -376,13 +297,6 @@ done
 [[ -z "$bad" ]] \
   && ok || no "VERI_MAX_ISSUES caps the launches of one invocation ($bad )"
 
-# 8. A finished conductor's outcome is read from its PR and its run's event log, and reported one
-# line per issue: #7's stub conductor opens a ready PR — done — and #8's opens a draft PR and ends
-# its run's event log, `.tdd/wt/8/.tdd/events.jsonl` in the target, in a `bail` — bailed. Both
-# PRs say `Closes #<n>`, so each issue leaves the solvable set. #9's stub opens a draft PR too, but
-# its event log only *contains* a bail — a resumed run's `launch` follows it — so its draft is not a
-# bail and #9 must not be reported bailed. At the default VERI_PARALLEL=1 the launcher runs 7, 8
-# then 9, and its output carries `#7 — done <url>` and `#8 — bailed <url>`, and no bailed line for 9.
 gh8="$work/gh8"
 solvable_fixture "$gh8" 7 8 9
 
@@ -406,18 +320,9 @@ want_outcome="$(printf '#7 — done https://example.test/pull/7\n#8 — bailed h
 got_outcome="$(grep -E '^#[0-9]+ — ' "$work/outcome.out")"
 expect_lines "a ready PR is reported '#<n> — done <pr-url>', a draft PR whose event log ends in a bail '#<n> — bailed <pr-url>', and a draft PR whose log does not end in one never bailed" "$want_outcome" "$got_outcome" "$work/outcome.out"
 
-# 9. A conductor its supervisor killed — `supervise.sh` exit 2 — is reported `#<n> — killed after
-# <VERI_RUN_TIMEOUT>s`. #7's stub conductor never answers: it holds for up to $PATIENCE s and
-# opens no PR. The supervisor's awake clock is injected (VERI_AWAKE_CLOCK) as a stub that jumps
-# 1000 s on every reading, so any hard timeout is exceeded at the first poll and the kill lands
-# without waiting on wall time. With VERI_RUN_TIMEOUT=60 the launcher's report carries
-# `#7 — killed after 60s`.
 gh9="$work/gh9"
 solvable_fixture "$gh9" 7
 
-# clock_stub <path> <count-file> <step> [<gate-file>] — write a stub awake clock to <path> that
-# keeps its reading in <count-file> and moves it <step> s on every reading — once <gate-file>
-# exists, when one is named, and standing still before that.
 clock_stub() {
   printf '#!/bin/sh\nc="$(cat "%s" 2>/dev/null || echo 0)"\n[ -e "%s" ] && c=$((c + %s))\necho "$c" > "%s"\necho "$c"\n' \
     "$2" "${4:-/}" "$3" "$2" > "$1"
@@ -427,7 +332,6 @@ clock_stub() {
 jump_clock="$work/awake-clock"
 clock_stub "$jump_clock" "$work/awake-count" 1000
 
-# hang — the stub source a conductor that never answers runs: it holds for up to $PATIENCE s.
 hang() {
   cat <<SH
 i=0
@@ -443,16 +347,6 @@ want_killed="#7 — killed after 60s"
 got_killed="$(grep -E '^#[0-9]+ — ' "$work/killed.out")"
 expect_lines "a conductor its supervisor killed (supervise exit 2) is reported '#<n> — killed after <VERI_RUN_TIMEOUT>s'" "$want_killed" "$got_killed" "$work/killed.out"
 
-# 10. The first bail stops new launches while the conductors already running are waited to
-# completion, and --continue-on-bail keeps launching and skips the bailed number. The fixture
-# holds three solvable issues, #11, #12 and #13, at VERI_PARALLEL=2, so #11 and #12 start
-# together. #11's stub conductor bails at once: a draft PR saying `Closes #11` and an event log
-# at `.tdd/wt/11/.tdd/events.jsonl` ending in a `bail`. #12's is still running when it does —
-# it holds until #13 has started (or $PATIENCE s pass), then records `end 12` and answers "done"
-# with a ready PR — and #13's records `start 13` and answers "done". Without the flag the
-# launcher never starts #13 and still waits for #12 (`end 12` recorded, `#12 — done` reported);
-# with it, #13 is launched and #11 is never launched a second time. Each run gets a fresh
-# fixture, record and event log; every mode that misbehaves is named in the single FAIL line.
 bad=""
 for mode in stop continue; do
   gh10="$work/gh10-$mode"
@@ -499,11 +393,6 @@ done
 [[ -z "$bad" ]] \
   && ok || no "the first bail stops new launches while running conductors finish, and --continue-on-bail keeps launching and skips the bailed number ($bad )"
 
-# 11. The first kill stops new launches the way the first bail does. Two solvable issues, #7 and
-# #8, at the default VERI_PARALLEL=1, with case 9's never-answering stub conductor and jumping
-# awake clock, so every conductor's supervisor kills it at the first poll. #7 is killed, so the
-# launcher never starts #8: the report holds `#7 — killed after 60s` and no line for #8, which a
-# launcher that kept going would report killed too.
 gh11="$work/gh11"
 solvable_fixture "$gh11" 7 8
 rm -f "$work/awake-count"
@@ -513,15 +402,6 @@ want_kill_stop="#7 — killed after 60s"
 got_kill_stop="$(grep -E '^#[0-9]+ — ' "$work/kill-stop.out")"
 expect_lines "the first kill stops new launches: #8 is never launched after #7 is killed" "$want_kill_stop" "$got_kill_stop" "$work/kill-stop.out"
 
-# 12. The caller's VERI_HEARTBEAT, VERI_TIMEOUT, VERI_STUCK_RETRIES and VERI_POLL reach each
-# conductor exactly as they were, set or unset: whatever the launcher sets for its own outer
-# supervisor must not leak into the conductor's environment, where `VERI_STUCK_RETRIES=0` once
-# turned a baseline red (#87). The stub conductor records every one of the four it can see, as
-# `NAME=value`, then answers "done" with a ready PR. Two runs, each over one solvable issue: in
-# the first the caller sets VERI_HEARTBEAT and VERI_STUCK_RETRIES and VERI_POLL and leaves
-# VERI_TIMEOUT unset; in the second it sets only VERI_TIMEOUT. The record must equal the caller's
-# own set of the four exactly — a value changed, a variable added or one dropped is the failure.
-# Every run that misbehaves is named in the single FAIL line.
 bad=""
 for shape in a b; do
   gh12="$work/gh12-$shape"
@@ -550,17 +430,6 @@ done
 [[ -z "$bad" ]] \
   && ok || no "the caller's VERI_HEARTBEAT, VERI_TIMEOUT, VERI_STUCK_RETRIES and VERI_POLL reach each conductor exactly as they were, set or unset ($bad )"
 
-# 13. The outer supervisor of each conductor runs with heartbeat and timeout both
-# VERI_RUN_TIMEOUT and no stuck retries, whatever the caller set for its own leaves. The caller
-# sets VERI_HEARTBEAT=1, VERI_TIMEOUT=1 and VERI_STUCK_RETRIES=3, and VERI_RUN_TIMEOUT=60. #7's
-# stub conductor records `start 7` each time it is launched and never answers. The supervisor's
-# awake clock is injected as a stub that stands still until the conductor has started and then
-# moves 30 s on every reading, so the first poll after the start sees 30 s of awake time and 30 s
-# of silence — past the caller's 1 s windows, short of 60 — and the second
-# sees 60 s, the hard timeout. So the supervisor's status line names `hard timeout 60s exceeded`
-# (a caller's timeout would name 1s, a caller's heartbeat `no heartbeat … (window 1s)`), and the
-# conductor started exactly once with no `retry` line from its supervisor (a stuck retry would
-# print one, and may start it again).
 gh13="$work/gh13"
 solvable_fixture "$gh13" 7
 rm -f "$work/step-count"
@@ -581,18 +450,8 @@ want_outer="$(printf 'start 7\nsupervise[conductor-7]: killed-stuck — hard tim
 got_outer="$(cat "$outer_starts" 2>/dev/null; grep -E '^supervise\[conductor-7\]: (retry|killed-stuck|failure|success)' "$work/outer.out")"
 expect_lines "the outer supervisor runs with heartbeat and timeout both VERI_RUN_TIMEOUT and no stuck retries" "$want_outer" "$got_outer" "$work/outer.out"
 
-# 14. In a target repo that has never seen veri, the caller's `git status --porcelain` stays
-# empty after a launch: whatever the launcher and its supervisor write under `.tdd/` must be
-# ignored before it is written, or the first conductor's own preflight (a clean tree) fails on
-# the files that launched it. A fresh repository with one commit, no `.tdd/` and nothing in
-# `info/exclude` about it — not the suite's shared target, where earlier cases' stubs left
-# `.tdd/wt/<n>` event logs. One solvable issue; its stub conductor writes nothing in the tree
-# and answers "done" with a ready PR in the fixture.
 fresh="$work/fresh"
 fresh_repo "$fresh"
-# status_after_launch <repo> <name> — launch over a one-issue fixture from <repo>, set `code`, and
-# set `got_status` to the repo's `git status --porcelain` afterwards, flagged when the stub
-# conductor never ran — an empty status from a launch that launched nothing proves nothing.
 status_after_launch() {
   local repo="$1" name="$2"
   solvable_fixture "$work/gh-$name" 7
@@ -605,18 +464,12 @@ status_after_launch() {
 status_after_launch "$fresh" clean
 expect_lines "in a target repo that has never seen veri, the caller's git status --porcelain stays empty after a launch" "" "$got_status" "$work/clean.out"
 
-# 15. The same holds in a repository whose git dir has no `info/` at all — `git init` from an
-# empty template directory makes one — so the launcher creates it rather than failing to write
-# the exclude.
 bare_info="$work/no-info"
 fresh_repo "$bare_info" --template=
 rm -rf "$bare_info/.git/info"
 status_after_launch "$bare_info" no-info
 expect_lines "a repo with no info/ directory still has an empty git status --porcelain after a launch" "" "$got_status" "$work/no-info.out"
 
-# 16. The caller's own exclude survives the launcher: a last line without a trailing newline is
-# not glued to `.tdd/*`, and a second invocation does not add the line again. Two launches, each
-# over its own one-issue fixture, in a repo whose exclude ends in `*.scratch` with no newline.
 own_exclude="$work/own-exclude"
 fresh_repo "$own_exclude"
 printf '*.scratch' > "$own_exclude/.git/info/exclude"
@@ -630,12 +483,6 @@ got_exclude="$(cat "$own_exclude/.git/info/exclude")"
 expect_lines "the caller's exclude keeps its last line intact and gains .tdd/* exactly once over two launches" \
   "$(printf '*.scratch\n.tdd/*')" "$got_exclude" "$work/own-exclude-2.out"
 
-# 17. Supervising a `conductor-<n>` prints no leaf-role.sh refusal. supervise.sh hands every name
-# it is given to leaf-role, which refuses any leading word but develop/revise/verify with a
-# `leaf-role: …` line on stderr — and the launcher's supervisor is named `conductor-7`. One launch
-# from a fresh repository over a one-issue fixture; its output must carry no `leaf-role:` line.
-# Distinct lines only: how many of supervise.sh's callers reach leaf-role before something else
-# stops them is not this case's subject, only whether any refusal is printed at all.
 role_repo="$work/role"
 fresh_repo "$role_repo"
 status_after_launch "$role_repo" role
@@ -643,15 +490,6 @@ got_refusals="$(grep -F 'leaf-role:' "$work/role.out" | sort -u)"
 [[ -s "$work/role-record" ]] || got_refusals+="<conductor never ran>"
 expect_lines "supervising a conductor-<n> prints no leaf-role.sh refusal" "" "$got_refusals" "$work/role.out"
 
-# 18. The launcher's exit code says how the invocation went, and `.tdd/parallel.exit` in the
-# caller's checkout carries that same code on every exit path. Six runs, each from a fresh
-# repository over a fixture of its own: `done` — #7's stub conductor answers with a ready PR —
-# is 0; `bailed` — it opens a draft PR and ends its run's event log in a `bail` — is 1;
-# `killed` — case 9's never-answering stub under its jumping awake clock — is 1 too;
-# `plumbing` — VERI_PRIORITY_LABEL set but empty, so solvable-issues.sh exits 2 — is 2;
-# `nothing` — no issue in the fixture, nothing launched — is 3; and `bad-parallel` —
-# VERI_PARALLEL=0, refused before anything is launched — is 2. Every run that misbehaves is
-# named in the single FAIL line.
 bad=""
 for shape in done bailed killed plumbing nothing bad-parallel; do
   repo="$work/exit-$shape"
@@ -686,20 +524,6 @@ done
 [[ -z "$bad" ]] \
   && ok || no "exit 0 all done, 1 a bail or a kill, 2 plumbing, 3 nothing solvable, and .tdd/parallel.exit carries the final code on every exit path ($bad )"
 
-# 19. The report is one line per issue in launch order, then one line naming what stopped the
-# loop. Five runs, each from a fresh repository over a fixture of its own holding #7 and #8:
-# `drain` — both stub conductors answer "done" with a ready PR, so the loop ends on an empty
-# solvable set, `stopped: nothing solvable`; `bail` — #7's opens a draft PR and ends its run's
-# event log in a `bail`, so #8 is never launched and the loop ends on that bail,
-# `stopped: #7 bailed`; `cap` — VERI_MAX_ISSUES=1, so #8 is still solvable when the loop ends,
-# `stopped: VERI_MAX_ISSUES reached`; `plumbing` — VERI_PRIORITY_LABEL set but empty, so
-# solvable-issues.sh exits 2 before anything is launched, `stopped: solvable-issues.sh could not
-# answer`; and `first-bail` — VERI_PARALLEL=2, both conductors bail, #8 only once #7's supervisor
-# has written `.tdd/conductor-7.exit` and a second has passed for the launcher to read it, so the
-# stop line names the bail that stopped the loop, `stopped: #7 bailed`, not the later one. The
-# report lines — `#<n> — …` and `stopped: …` — are read in the order printed; a missing stop
-# line, a second one, or one ahead of an issue line is the failure. Every run that misbehaves is
-# named in the single FAIL line.
 bad=""
 for shape in drain bail cap plumbing first-bail; do
   repo="$work/stop-$shape"
@@ -745,15 +569,8 @@ done
 [[ -z "$bad" ]] \
   && ok || no "the report prints one line per issue in launch order, then one line naming what stopped the loop ($bad )"
 
-# 20. /tdd <scope> gains VERI_PARALLEL: SCOPE-LOOP.md reads it as `${VERI_PARALLEL:-1}`, says that
-# at 1 nothing about rung 2 changes, and that above 1 the loop runs parallel-conductors.sh
-# detach-then-wait and relays its report. Read from the skill's own SCOPE-LOOP.md, one sentence
-# at a time — the file joined into one line and split after every `. ` — so a probe's two halves
-# must stand in the same sentence rather than anywhere in the file. Every probe that finds
-# nothing is named in the single FAIL line.
 scope_loop_md="$HERE/../../SCOPE-LOOP.md"
 sentences="$(tr '\n' ' ' < "$scope_loop_md" | tr -s ' ' | sed 's/\. /.\n/g')"
-# said <pattern>... — true when one sentence of SCOPE-LOOP.md matches every pattern, case-folded.
 said() {
   local lines="$sentences" pattern
   for pattern in "$@"; do
@@ -776,17 +593,7 @@ said 'relay' 'report' \
 [[ -z "$bad" ]] \
   && ok || no "SCOPE-LOOP.md documents VERI_PARALLEL: at 1 rung 2 is unchanged, above 1 it runs parallel-conductors.sh detach-then-wait and relays the report ($bad )"
 
-# 21. Rung 3 is recorded: CONTEXT.md's scope-ladder entry for rung 3 names parallel-conductors.sh,
-# a glossary entry `**In flight**:` defines the word as local to one invocation, and one of the
-# two sends a reader to a new decision record — an ADR numbered above 0024, the last one before
-# this issue. The ADR itself is a file in the documentation tree, which a suite here may not
-# name (no-docs-reads.test.sh, #143), so the pointer is the whole of what this case can ask of
-# it, as skill-refactor-leaf.test.sh's case 2 asks of ADR-0017. Each record is read as one line
-# — CONTEXT.md wraps mid-sentence — from its opening line to the blank line or next rung that
-# ends it. Every record short of what it owes is named in the single FAIL line.
 context_md="$HERE/../../../../CONTEXT.md"
-# record <opening ERE> — the CONTEXT.md record opening with a line matching it, joined into one.
-# The ERE escapes with brackets, not backslashes: `awk -v` eats a backslash before `.` or `*`.
 record() {
   awk -v open="$1" '
     hit && (/^$/ || /^[0-9]+\. / || /^## /) { exit }
@@ -819,10 +626,6 @@ done
 [[ -z "$bad" ]] \
   && ok || no "CONTEXT.md records rung 3: its entry names parallel-conductors.sh, In flight is defined as local to one invocation, and a new ADR is cited ($bad )"
 
-# 22. VERI_MAX_ISSUES that is not a whole number >= 1 — a word, zero, a negative, a fraction — is
-# exit 2 naming the variable and the value, and launches nothing. Each value gets a fresh fixture
-# holding one solvable issue and a fresh record; every value that misbehaves is named in the
-# single FAIL line.
 bad=""
 for value in abc 0 -1 1.5; do
   tag="${value//[^a-z0-9]/_}"
@@ -842,8 +645,6 @@ done
 [[ -z "$bad" ]] \
   && ok || no "#505 VERI_MAX_ISSUES not a whole number >= 1 (a word, 0, a negative, a fraction) is exit 2 naming it and the value, with no conductor launched ($bad )"
 
-# 23. VERI_MAX_ISSUES set but empty is exit 2 naming the variable, and launches nothing — the way
-# VERI_PRIORITY_LABEL set but empty is.
 gh23="$work/gh23"
 solvable_fixture "$gh23" 7
 capped23="$work/capped23"
@@ -855,8 +656,6 @@ grep -F "VERI_MAX_ISSUES must be a whole number >= 1: ''" "$work/cap23.out" > /d
 [[ "$code" == 2 && ! -e "$capped23" && "$named" == yes ]] \
   && ok || no "#505 VERI_MAX_ISSUES set but empty is exit 2 naming it and the empty value '', with no conductor launched ( [exit=$code want 2, launched: $([[ -e "$capped23" ]] && echo yes || echo no), named: $named] $(cat "$work/cap23.out") )"
 
-# 24. VERI_MAX_ISSUES unset is no cap: every issue in a three-issue solvable set is launched, and
-# the launcher exits 0.
 gh24="$work/gh24"
 solvable_fixture "$gh24" 7 8 9
 capped24="$work/capped24"

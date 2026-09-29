@@ -57,37 +57,18 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
-# The repository itself, four directories up: what case 2 asks `make` about, and what the
-# repo-relative paths a roster line carries are resolved against.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The tree the development lane stays out of, written once and without its trailing slash,
-# so that no line of this file is its own first offender.
 DOCS_DIR='docs'
 
-# A path in that tree, as an ERE. The character before it may be a slash or a quote — a
-# suite spells one as "$ROOT/" followed by the tree's name — but not a word character, so a
-# directory whose name merely ends in those letters is not one.
 DOCS_PATH="(^|[^[:alnum:]_.-])$DOCS_DIR/"
 
-# A line that writes its path out rather than using it: a redirect whose target is a quoted
-# word or a variable, which is how a fixture is written (`> "$body"`, `>> "$work/body.md"`).
-# Matching the target and not the bare `>` is what keeps `2>&1` and a `<span…>` quoted out
-# of an HTML fixture from reading as one.
 WRITES_OUT='>[[:space:]]*["'"'"'$]'
 
-# What disqualifies a line from that exemption even so: it also reads. A line that writes a
-# fixture does not open the tree, but `grep … "$ROOT/$p" > "$out"` does, and only the verb
-# tells them apart. The verb must start a word and end in whitespace, so
-# `solvable-issues.sh as it now stands` is not a command and `commentary.py-budgets-diagram`
-# is not a `diff`.
 READ_VERB='(^|[^[:alnum:]_./-])(grep|egrep|fgrep|cat|sed|awk|head|tail|wc|cmp|diff|source|python3|python|bash)[[:space:]]'
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which line broke the rule rather than just that some line did.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -99,39 +80,16 @@ report() {
   fi
 }
 
-# flat <text> — one line of it, for a failure message: newlines become slashes so a quoted
-# line stays one line.
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
-# exempt <line> — true when a line naming a path in that tree is nonetheless allowed to,
-# which is the header's two cases and nothing else:
-#
-#   - a comment, by its first non-blank character. A comment cannot open anything.
-#   - fixture text: written out, and not read on the way.
-#
-# One predicate rather than two tests in the loop, because "may a line name one?" is a
-# single question the header answers once, and a third exemption belongs here rather than
-# as a third shape inside the sweep.
 exempt() {
   local text="$1"
   [[ "$text" =~ ^[[:space:]]*# ]] && return 0
   [[ "$text" =~ $WRITES_OUT ]] && ! [[ "$text" =~ $READ_VERB ]]
 }
 
-# roster <target> — the suite paths <target> would run, one repo-relative path per line.
-# `make -n` prints the recipe with the target's wildcard already expanded and executes none
-# of it, which is the only way to ask this question: running `make test` to find out what
-# `make test` runs is the recursion, and it costs 80 s besides. Same idiom as
-# suite-lanes.test.sh's roster helper, which reads both targets' lists the same way.
 roster() { make -C "$ROOT" -n "$1" 2>&1 | grep -o '[^ ]*\.test\.sh' | sort -u; }
 
-# probe_no_suite_reaches_into_the_tree — the criterion. Every suite beside this one is asked
-# for the lines naming a path in that tree, and each of those for one of the two exemptions.
-# The suites are found by globbing this directory rather than by a list, because the list is
-# what a sixth site would be added outside of; `make test` finds them the same way.
-#
-# One problem per offending line, naming the suite and the line number, because what sends
-# the next author to the site is the address rather than the file.
 probe_no_suite_reaches_into_the_tree() {
   local f name hit lineno text
   for f in "$HERE"/*.test.sh; do
@@ -147,10 +105,6 @@ probe_no_suite_reaches_into_the_tree() {
   return 0
 }
 
-# 1. One criterion, one case: nothing in this directory reaches into that tree. One case
-#    rather than one per suite, because the rule is about the directory — a suite added
-#    tomorrow is covered by existing, and a per-suite roster would be the list the glob
-#    above exists to avoid.
 name="no suite under skills/tdd/scripts/tests/ names a path in the generated-documentation tree outside a comment or fixture text"
 problems=()
 
@@ -158,13 +112,6 @@ probe_no_suite_reaches_into_the_tree
 
 report "$name"
 
-# probe_no_suite_the_target_runs_reaches_into_the_tree — the same question asked of the
-# roster `make test` would run rather than of this directory's glob, and answered the same
-# way, line by line through the same exemptions.
-#
-# An empty roster is a problem rather than a pass: a probe that finds no suite to read has
-# not established that none of them names a path, and a recipe reworded past the `-n`
-# expansion this reads would otherwise turn the case green by saying nothing.
 probe_no_suite_the_target_runs_reaches_into_the_tree() {
   local rel hit lineno text
   local -a listed=()
@@ -183,20 +130,6 @@ probe_no_suite_the_target_runs_reaches_into_the_tree() {
   return 0
 }
 
-# 2. The same rule asked of the target instead of the directory. Case 1 is the rule an
-#    author breaks, and it finds its suites by globbing the directory they are written in.
-#    This case is the consequence the rule is for: `make test` is what preflight reads its
-#    baseline off, what every Green leaf runs and what both blind verifiers run, so what
-#    has to be true is that nothing *that target runs* opens a file in the generated-
-#    documentation tree — and rewording a figure in the commentary then cannot turn a
-#    development run red over prose no development change touched.
-#
-#    The two are the same file list today, since the target's `TESTS` is the same wildcard
-#    this suite globs, and they are still not the same claim: a roster that stops matching
-#    that glob — a suite named into the target from outside this directory, a wildcard
-#    narrowed to a list — leaves case 1 reading files the baseline no longer runs and blind
-#    to the ones it does, and this sentence is the one that stops being true. Asking the
-#    target itself costs one `make -n`.
 name="no suite \`make test\` runs names a path in the generated-documentation tree outside a comment or fixture text"
 problems=()
 

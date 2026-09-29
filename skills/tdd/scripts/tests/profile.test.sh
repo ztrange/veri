@@ -29,16 +29,12 @@ pass=0 fail=0
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 
-# write_fixture <name> — write stdin to an executable fixture suite under $scratch and
-# leave its path in `fixture`.
 write_fixture() {
   fixture="$scratch/$1"
   cat > "$fixture"
   chmod +x "$fixture"
 }
 
-# expect_line <rest> <secs> — `out` is exactly one line `<secs> <rest>`, its seconds field a
-# number equal to <secs> (compared as a number, not as a digit count); otherwise a problem.
 expect_line() {
   local rest="$1" want="$2"
   if [[ "$out" =~ ^([0-9]+(\.[0-9]+)?)\ (.*)$ && "${BASH_REMATCH[3]}" == "$rest" ]]; then
@@ -49,13 +45,10 @@ expect_line() {
   fi
 }
 
-# case_order — the case numbers in `out`, in the order printed, each followed by a space.
 case_order() {
   awk '{ printf "%s ", $4 }' <<< "$out"
 }
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -67,9 +60,6 @@ report() {
   fi
 }
 
-# 1. a fixture whose case 2 spans 2.5 fabricated seconds and whose case 3 spans 0.25,
-#    profiled at a threshold of 1: the report is one line, and it is case 2's. Case 1 is
-#    the fixture's anchor (see the header) and must not be printed either.
 name="threshold 1: the 2.5 s case is printed, the 0.25 s case is not"
 problems=()
 write_fixture two-cases.test.sh <<'EOF'
@@ -92,10 +82,6 @@ lines=()
 [[ "$out" != *" case 3 "* ]] || problems+=("case 3 (0.25 s) was printed: $(printf '%q' "$out")")
 report "$name"
 
-# 2. the printed line is exactly `<secs> <suite> case <n> L<a>-<b>`: the fixture's case 2
-#    starts on line 5, the first line after case 1's boundary on line 4, and ends at its
-#    own boundary on line 8, spanning 13 - 10 = 3 fabricated seconds. The seconds field is
-#    pinned as a number equal to 3, not as a digit count.
 name="the printed line is <secs> <suite> case 2 L5-8, secs equal to 3"
 problems=()
 write_fixture format.test.sh <<'EOF'
@@ -114,12 +100,6 @@ out="$(VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 ||
 expect_line "$fixture case 2 L5-8" 3
 report "$name"
 
-# 3. only a top-level assignment that raises `pass` or `fail` ends a case. The fixture's
-#    `pass=0 fail=0` on line 2 raises nothing, `passed=1` on line 6 names another variable,
-#    the function's `local passed=1` and `local pass=9` are not top-level, and `fail=0` on
-#    line 10 lowers nothing. Read right, case 2 runs from line 5 to the increment on line
-#    12, 35 - 10 = 25 fabricated seconds; any of those read as a boundary would renumber
-#    the cases or cut case 2 short.
 name="boundaries: only top-level increments of pass/fail, so case 2 is L5-12"
 problems=()
 write_fixture boundaries.test.sh <<'EOF'
@@ -142,8 +122,6 @@ out="$(VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 ||
 expect_line "$fixture case 2 L5-12" 25
 report "$name"
 
-# 4. three cases over the threshold, written out of order — case 2 spans 2 fabricated
-#    seconds, case 3 spans 5, case 4 spans 3 — are printed slowest first: 3, 4, 2.
 name="slowest first: cases spanning 2, 5 and 3 s print as case 3, case 4, case 2"
 problems=()
 write_fixture order.test.sh <<'EOF'
@@ -166,10 +144,6 @@ order="$(case_order)"
   problems+=("want cases in the order 3 4 2, got: $(printf '%q' "$out")")
 report "$name"
 
-# 5. case 4's fixture, the same fabricated timestamps — cases spanning 2, 5 and 3 s —
-#    profiled at three thresholds: which cases print is the threshold's doing alone. At 1
-#    all three do (3 4 2), at 2.5 the 2 s case drops out (3 4), at 4 only the 5 s case is
-#    left (3).
 name="threshold changes which cases print: 1 → 3 4 2, 2.5 → 3 4, 4 → 3"
 problems=()
 fixture="$scratch/order.test.sh"
@@ -183,10 +157,6 @@ for probe in "1:3 4 2 " "2.5:3 4 " "4:3 "; do
 done
 report "$name"
 
-# 6. no answer could be obtained, twice over: a threshold that is not a number of seconds
-#    (case 4's well-formed fixture, so the threshold is the only thing wrong), and a
-#    fixture whose trace never raises `pass` or `fail` (the default threshold, so the trace
-#    is the only thing wrong) — nothing to cut into cases. Both are exit 2, not a report.
 name="exit 2: a non-numeric threshold, and a suite that never increments pass/fail"
 problems=()
 out="$(VERI_PROFILE_THRESHOLD=abc "$PROFILE" "$scratch/order.test.sh" 2>/dev/null)" && code=0 || code=$?
@@ -200,10 +170,6 @@ out="$(env -u VERI_PROFILE_THRESHOLD "$PROFILE" "$fixture" 2>/dev/null)" && code
 [[ "$code" == 2 ]] || problems+=("no increment: want exit 2, got $code")
 report "$name"
 
-# 7. VERI_PROFILE_THRESHOLD unset: the threshold is 1 second. A fixture whose case 2 spans
-#    exactly 1 fabricated second and whose case 3 spans 0.9 prints case 2 alone, L5-6; a
-#    fixture whose cases span 0.9 and 0.5 reaches the threshold nowhere, prints nothing,
-#    and still exits 0 — an empty report is a report, not a failure.
 name="default threshold 1: a 1 s case prints, 0.9 s does not; none reaching it exits 0"
 problems=()
 write_fixture default-at.test.sh <<'EOF'
@@ -236,12 +202,6 @@ out="$(env -u VERI_PROFILE_THRESHOLD "$PROFILE" "$fixture" 2>/dev/null)" && code
 [[ -z "$out" ]] || problems+=("no case reaching 1 s: want no output, got: $(printf '%q' "$out")")
 report "$name"
 
-# 8. `make -n profile` is read as text beside `make -n test`: every suite `make -n test`
-#    names (the TESTS glob, expanded), profile names too, and no other; and every fragment
-#    of the offline environment test's recipe gives a suite — the offline shims on PATH, the
-#    reach log, the real git, git's transport allowlist and proxy, the dead proxies, the C
-#    locale, stdin from /dev/null — profile's recipe carries as well. `-n` prints a recipe
-#    without running it, so nothing here runs a real suite.
 name="make -n profile: the same suites as make -n test, in the same offline environment"
 problems=()
 ROOT="$(cd "$HERE/../../../.." && pwd)"
@@ -268,12 +228,6 @@ else
 fi
 report "$name"
 
-# 9. `test` and `profile` are independent targets: neither runs the other, as a prerequisite
-#    or from its recipe. `make -n` prints a prerequisite's recipe ahead of the target's own
-#    and runs a `$(MAKE)` line even under -n, so either route would put the other target's
-#    recipe into this one's text: test's is the only one to print `all suites green`, and
-#    profile's the only one to run `scripts/profile.sh`. A `make <target>` spelt out
-#    literally in a recipe is looked for as text.
 name="make -n test never runs profile, make -n profile never runs test"
 problems=()
 test_recipe="$(make --no-print-directory -n -C "$ROOT" test 2>&1)" && code=0 || code=$?
@@ -290,13 +244,6 @@ grep -Eq '(^|[^[:alnum:]_.-])make[^;]*[[:space:]]test([[:space:];]|$)' <<< "$pro
   problems+=("make -n profile calls make test")
 report "$name"
 
-# 10. this suite costs no clock and runs no real suite, and `make test` runs it. Read as
-#     text, the way no-docs-reads.test.sh reads a suite: no line outside a comment runs
-#     `sleep` as a command, and every call to the profiler hands it a fixture this suite
-#     wrote under $scratch — never a path under skills/tdd/scripts/tests/. Then the suite
-#     is among those case 9's `make -n test` names, so the TESTS glob covers it with no
-#     recipe edit. The two words searched for are spelt in halves so this case's own
-#     lines do not match them.
 name="this suite runs no clock and no real suite, and make -n test names it"
 problems=()
 self="$HERE/$(basename "$0")"

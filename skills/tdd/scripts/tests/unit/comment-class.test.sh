@@ -393,6 +393,11 @@ classify "$f"
 want_line "$f:2:3"
 verdict "a # line inside a heredoc written to a variable assigned a .md path is class 3"
 
+# 31. the sweepable report is empty for every top-level tests/*.sh whose name starts with n through r.
+problems=""
+want_empty_sweepable "$SCRIPTS"/tests/[n-r]*.sh
+verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with n through r"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

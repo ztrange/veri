@@ -23,7 +23,6 @@ trap 'rm -rf "$stubdir" "$work"' EXIT
 cat > "$stubdir/claude" <<'STUB'
 #!/bin/sh
 printf '%s\n' "$@" > "$ARGV_OUT"
-# A minimal stream-json stream: a system event, an assistant event, then the result.
 printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
 printf '{"type":"assistant","message":{"content":[{"type":"text","text":"%s"}]}}\n' "${FAKE_RESULT:-ok}"
 printf '{"type":"result","subtype":"success","is_error":false,"result":"%s"}\n' "${FAKE_RESULT:-ok}"
@@ -40,31 +39,24 @@ run() {  # run <prompt-file> <fake-result> <fake-code> [extra args...]
 
 printf 'Verify the test for issue 3.' > "$work/prompt.txt"
 
-# 1. the EXTRACTED final result text reaches the caller (clean, for parse-verdict)
 out="$(run "$work/prompt.txt" 'VERDICT: PASS' 0)"
 [[ "$out" == *'VERDICT: PASS'* ]] && ok || no "returns extracted result text"
 
-# 2. the RAW stream is also emitted (it is what grows the supervisor's heartbeat log)
 [[ "$out" == *'"type":"result"'* ]] && ok || no "streams raw events for heartbeat"
 
-# 3. runs claude in stream-json with the prompt via -p
 grep -q -- '-p' "$work/argv" && grep -q 'Verify the test for issue 3.' "$work/argv" \
   && grep -q -- 'stream-json' "$work/argv" && ok || no "passes prompt via -p in stream-json"
 
-# 4. propagates the leaf's non-zero exit status
 run "$work/prompt.txt" 'VERDICT: REJECT' 1 >/dev/null; code=$?
 [[ "$code" == 1 ]] && ok || no "propagates leaf exit status (got $code)"
 
-# 5. passes extra args through to the leaf (e.g. a tool allowlist)
 run "$work/prompt.txt" ok 0 --allowed-tools 'Read,Bash' >/dev/null
 grep -q -- '--allowed-tools' "$work/argv" && grep -q 'Read,Bash' "$work/argv" \
   && ok || no "passes extra args through"
 
-# 6. prompt-file of "-" reads the prompt from stdin
 out="$(printf 'piped prompt body' | run - 'VERDICT: PASS' 0)"
 grep -q 'piped prompt body' "$work/argv" && ok || no "reads prompt from stdin on -"
 
-# 7. it does NOT create a progress log itself — that is the supervisor's job now
 run "$work/prompt.txt" ok 0 >/dev/null
 [[ ! -e "$work/.tdd" ]] && ok || no "does not own a .tdd log"
 

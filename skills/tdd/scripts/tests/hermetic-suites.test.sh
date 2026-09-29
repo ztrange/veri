@@ -193,14 +193,9 @@ newskill_cases=(
   "a re-pinning launch with VERI_NEW_SKILL=1 hands the conductor no VERI_NEW_SKILL"
 )
 newskill_cut="$(mktemp "$HERE/.hermetic-newskill-slice.XXXXXX")"
-awk '
-  /^tree_clone "\$work\/tree"$/ {skip=1}
-  /^# 9\. / {skip=0}
-  /^# 10\. / {skip=1}
-  /^# 17\. / {skip=0}
-  /^# 20\. / {skip=1}
-  /^# 24\. / {skip=0}
-  /^# 25\. / {skip=1}
+awk -v keep=" 9 17 18 19 24 " '
+  /^tree_clone "\$work\/tree"$/ {skip=1; cut=1}
+  cut && /^name="/ {n++; skip = !index(keep, " " n " ")}
   !skip
 ' "$HERE/run-conductor.test.sh" > "$newskill_cut"
 printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$newskill_cut"
@@ -210,7 +205,7 @@ for newskill_case in "${newskill_cases[@]}"; do
   grep -qF "name=\"$newskill_case\"" "$newskill_cut" || newskill_missing+=("$newskill_case")
 done
 if [[ "${#newskill_missing[@]}" -gt 0 ]]; then
-  problems+=("no case could be asked from run-conductor.test.sh under VERI_NEW_SKILL=1 — the slice is missing case(s): $(printf '%s | ' "${newskill_missing[@]}") — the '# 9. '/'# 10. '/'# 17. '/'# 20. '/'# 24. '/'# 25. ' markers may have moved")
+  problems+=("no case could be asked from run-conductor.test.sh under VERI_NEW_SKILL=1 — the slice is missing case(s): $(printf '%s | ' "${newskill_missing[@]}") — cases 9, 17, 18, 19 and 24, counted by name= line, may have moved")
 else
   out="$(VERI_NEW_SKILL=1 "$newskill_cut" 2>/dev/null)" && code=0 || code=$?
   [[ "$code" == 0 ]] ||
@@ -292,15 +287,14 @@ problems=()
 skillcommit_case="every event a launched run writes carries origin's tip as skill_commit, and the prompt names it"
 skillcommit_cut="$(mktemp "$HERE/.hermetic-skillcommit-slice.XXXXXX")"
 awk '
-  /^tree_clone "\$work\/tree"$/ {skip=1}
-  /^# 15\. / {skip=0}
-  /^# 16\. / {skip=1}
+  /^tree_clone "\$work\/tree"$/ {skip=1; cut=1}
+  cut && /^name="/ {n++; skip = (n != 15)}
   !skip
 ' "$HERE/run-conductor.test.sh" > "$skillcommit_cut"
 printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$skillcommit_cut"
 chmod +x "$skillcommit_cut"
 if ! grep -qF "name=\"$skillcommit_case\"" "$skillcommit_cut"; then
-  problems+=("no case could be asked from run-conductor.test.sh under VERI_NEW_SKILL=1 and VERI_SKILL_COMMIT — the slice is missing the case: $skillcommit_case — the '# 15. '/'# 16. ' markers may have moved")
+  problems+=("no case could be asked from run-conductor.test.sh under VERI_NEW_SKILL=1 and VERI_SKILL_COMMIT — the slice is missing the case: $skillcommit_case — case 15, counted by name= line, may have moved")
 else
   out="$(VERI_NEW_SKILL=1 VERI_SKILL_COMMIT=deadbeefdeadbeefdeadbeefdeadbeefdeadbeef "$skillcommit_cut" 2>/dev/null)" && code=0 || code=$?
   [[ "$code" == 0 ]] ||
@@ -317,17 +311,21 @@ if [[ -z "${HERMETIC_SKILLCOMMIT_PROBE:-}" ]]; then
   sha_work="$(mktemp -d)"
   trap 'rm -rf "$lock_work" "${rerun_work:-}" "${leak_work:-}" "${share_work:-}" "$sha_work"' EXIT
   mkdir -p "$sha_work/scripts/tests"
-  printf '%s\n' \
-    '#!/usr/bin/env bash' \
-    'set -uo pipefail' \
-    'pass=0 fail=0' \
-    'tree_clone "$work/tree"' \
-    '# 15. The one case of this suite that can observe the sha.' \
-    'name="every event a launched run writes carries origin'\''s tip as skill_commit, and the prompt names it"' \
-    'if [[ -z "${VERI_SKILL_COMMIT:-}" ]]; then pass=$((pass + 1)); else fail=$((fail + 1)); echo "FAIL - $name"; fi' \
-    '# 16. Past the cut, and never run.' \
-    'exit 9' \
-    > "$sha_work/scripts/tests/run-conductor.test.sh"
+  {
+    printf '%s\n' \
+      '#!/usr/bin/env bash' \
+      'set -uo pipefail' \
+      'pass=0 fail=0' \
+      'tree_clone "$work/tree"'
+    for filler in $(seq 1 14); do
+      printf '%s\n' "name=\"filler $filler\"" 'exit 9'
+    done
+    printf '%s\n' \
+      'name="every event a launched run writes carries origin'\''s tip as skill_commit, and the prompt names it"' \
+      'if [[ -z "${VERI_SKILL_COMMIT:-}" ]]; then pass=$((pass + 1)); else fail=$((fail + 1)); echo "FAIL - $name"; fi' \
+      'name="past the cut"' \
+      'exit 9'
+  } > "$sha_work/scripts/tests/run-conductor.test.sh"
   cp "$HERE/$(basename "$0")" "$sha_work/scripts/tests/"
   chmod +x "$sha_work/scripts/tests/"*.test.sh
   sha_out="$(HERMETIC_SKILLCOMMIT_PROBE=1 HERMETIC_SHARE_PROBE=1 HERMETIC_LEAK_PROBE=1 HERMETIC_RERUN_PROBE=1 \
