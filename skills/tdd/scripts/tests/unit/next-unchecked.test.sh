@@ -129,14 +129,9 @@ ledger_steps() {
   printf '3\topen\tstep\t0\t0\t3\tasked the module ⟦criterion 3⟧\n'
 }
 EOF
-printf -- '- [ ] found in the markdown ⟦criterion 1⟧\n' > "$work/ledger.md"
-name="the first open ordinary step comes from lib/ledger.sh's ledger_steps (#495)"
-want="asked the module ⟦criterion 3⟧"
-out="$("$work/next-unchecked.sh" < "$work/ledger.md")" && code=0 || code=$?
-if [[ "$code" == 0 && "$out" == "$want" ]]; then pass=$((pass + 1)); else
-  fail=$((fail + 1)); echo "FAIL - $name (want exit 0, got $code)"
-  diff <(printf '%s\n' "$want") <(printf '%s\n' "$out") | sed 's/^/    /'
-fi
+NEXT="$work/next-unchecked.sh"
+check "the first open ordinary step comes from lib/ledger.sh's ledger_steps (#495)" 0 \
+  "- [ ] found in the markdown ⟦criterion 1⟧" "asked the module ⟦criterion 3⟧"
 
 echo "----"
 echo "$pass passed, $fail failed"
