@@ -93,7 +93,15 @@ sha_runs() {
   local f="$1"; shift
   local IFS=,
   printf '{"total_count":%s,"check_runs":[%s]}\n' "$#" "$*" > "$work/$f.check-runs"
-  printf '{"state":"pending","sha":"%s","total_count":0,"statuses":[]}\n' "$sha" > "$work/$f.status"
+  sha_statuses "$f" pending
+}
+
+# sha_statuses <file> <state> <row>... — write, beside fixture <file>, the /status document
+# gh api serves for $sha, combined state <state>, holding <row>....
+sha_statuses() {
+  local f="$1" state="$2"; shift 2
+  local IFS=,
+  printf '{"state":"%s","sha":"%s","total_count":%s,"statuses":[%s]}\n' "$state" "$sha" "$#" "$*" > "$work/$f.status"
 }
 
 # sha_run <name> <status> <conclusion> — one check run of $sha, <conclusion> as JSON.
@@ -318,7 +326,7 @@ for stale in failure:"$(check COMPLETED FAILURE)" pending:"$(check IN_PROGRESS '
   f="greensha-${stale%%:*}"
   rollup "$f.json" "$(check COMPLETED SUCCESS),${stale#*:}" "$sha"
   sha_runs "$f.json" "$(sha_run gates completed '"success"')"
-  printf '{"state":"success","sha":"%s","total_count":1,"statuses":[{"context":"legacy","state":"success"}]}\n' "$sha" > "$work/$f.json.status"
+  sha_statuses "$f.json" success '{"context":"legacy","state":"success"}'
   got="$(waited "$f" 60 60 "$sha")"
   [[ "$got" == 0 ]] || problems+=("rollup ${stale%%:*} for $sha, its own check run and status success: want exit 0, got $got (stderr: $(cat "$work/$f.err"))")
 done
