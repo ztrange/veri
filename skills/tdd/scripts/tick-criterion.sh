@@ -11,14 +11,7 @@
 # Usage: tick-criterion.sh <matcher>  < body.md > new-body.md
 set -euo pipefail
 
-MATCHER="${1:-}" awk '
-  BEGIN { m = ENVIRON["MATCHER"]; done = 0 }
-  {
-    if (!done && $0 ~ /^[[:space:]]*-[[:space:]]\[ \]/ && (m == "" || index($0, m) > 0)) {
-      sub(/\[ \]/, "[x]")
-      done = 1
-    }
-    print
-  }
-  END { if (!done) exit 3 }
-'
+HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/ledger.sh"
+
+ledger_tick "${1:-}"
