@@ -9,3 +9,6 @@
 - wait-ci.sh sha_state works out owner/repo from $pr again on every poll; it could be set once next to pr=
 - wait-ci.sh sha_state's `pages if isinstance(pages, list) else [pages]` is dead code under `gh api --paginate --slurp`
 - wait-ci.test.sh gh stub's non-`--paginate` and non-`--slurp` output branches are never taken by wait-ci.sh
+### wait-ci.sh exits 3, never 0, when every one of the given sha's own check runs concluded skipped ⟦added⟧ ⟦criterion 1⟧
+- wait-ci.test.sh: the race, redsha, quietsha and skippedsha cases repeat the same body (a green `rollup` at `$sha`, then `sha_runs`, then `waited … 60 60 "$sha"`, then an exit-code assert). It could become one helper such as `sha_case <name> <want-exit> <runs…>`, but that would rewrite three cases from earlier cycles to take out one instance from this cycle, and each case's failure message is specific to it.
+- wait-ci.sh: `rollup_state` and `sha_state` hold two parallel Python classifiers (upper-case versus lower-case conclusions, and each has its own "all skipped is pending" rule). They are not merged because the order of their checks differs: the rollup checks pending before red, and the sha check checks red before pending. Unifying them would change behaviour, so it is not a pure refactor.
