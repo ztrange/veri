@@ -22,7 +22,17 @@ if (( $# == 0 )); then
 fi
 
 awk -v sweepable="$sweepable" '
-  FNR == 1 { delim = ""; header = /^#!/ }
+  function scan(s,   i, c) {
+    for (i = 1; i <= length(s); i++) {
+      c = substr(s, i, 1)
+      if (q == "\047") { if (c == "\047") q = ""; continue }
+      if (c == "\\") { i++; continue }
+      if (q == "\"") { if (c == "\"") q = ""; continue }
+      if (c == "#" && substr(s, i - 1, 1) ~ /[[:space:]]/) return
+      if (c == "\047" || c == "\"") q = c
+    }
+  }
+  FNR == 1 { delim = ""; q = ""; header = /^#!/ }
   { comment = /^[[:space:]]*#/ }
   !comment { header = 0 }
   delim != "" {
@@ -32,11 +42,12 @@ awk -v sweepable="$sweepable" '
     else if (comment && !(sweepable && cls == 3)) print FILENAME ":" FNR ":" cls
     next
   }
+  q != "" { scan($0); next }
   comment {
     if (!(sweepable && (header || /^[[:space:]]*# hazard:/))) print FILENAME ":" FNR ":1"
     next
   }
-  { line = $0; gsub(/<<</, "", line) }
+  { scan($0); line = $0; gsub(/<<</, "", line) }
   match(line, /<<-?[[:space:]]*["'\'']?[A-Za-z_][A-Za-z0-9_]*/) {
     out = line; gsub(/[02-9]>+[[:space:]]*[^[:space:]]*/, "", out)
     cls = out ~ />[[:space:]]*[^&[:space:]]/ || out ~ /\|[[:space:]]*(tee|dd|sponge)[[:space:]]/ ? 2 : 3

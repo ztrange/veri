@@ -259,6 +259,30 @@ if [[ "$got" != "$expected" ]]; then
 fi
 verdict "the text of every class 3 line in the suites is unchanged, in its file and in its order"
 
+# 21. a `#` line inside a multi-line single- or double-quoted string is not reported as a comment.
+problems=""
+f="$work/quoted.sh"
+printf '%s\n' "x='first" '# inside a single-quoted string' "last'" 'y="first' '# inside a double-quoted string' \
+  'last"' '# a comment in code' > "$f"
+classify "$f"
+if grep -E "^$f:(2|5)(:|$)" <<< "$out" > /dev/null; then
+  problems+="    want no line for $f:2 or $f:5, a # line inside a quoted string, got:"$'\n'"$out"$'\n'
+fi
+want_line "$f:7:1"
+verdict "a # line inside a multi-line single- or double-quoted string is not reported as a comment"
+
+# 22. an escaped quote, a trailing comment and a `#` inside a word neither open nor close a quoted string.
+problems=""
+f="$work/quote-edges.sh"
+printf '%s\n' 'a="say \"hi' '# inside, after an escaped quote' 'bye"' "b=1 # it's a trailing comment" \
+  '# a comment after a trailing one' "echo c#'" '# inside, after a # inside a word' "'" > "$f"
+classify "$f"
+if grep -E "^$f:(2|7)(:|$)" <<< "$out" > /dev/null; then
+  problems+="    want no line for $f:2 or $f:7, a # line inside a quoted string, got:"$'\n'"$out"$'\n'
+fi
+want_line "$f:5:1"
+verdict "an escaped quote, a trailing comment and a # inside a word neither open nor close a quoted string"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
