@@ -167,6 +167,76 @@ Extract the parser.
 Test command: make test'
 expect_edit 4 "$name" "$body" "$want"
 
+refuseddir="$work/refused"
+mkdir -p "$refuseddir"
+cat > "$refuseddir/gh" <<'STUB'
+#!/bin/sh
+refusal='GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)'
+unexpected() { echo "gh stub: unexpected call: gh $*" >&2; exit 1; }
+case "$1" in
+  issue|pr|repo) echo "HTTP 403: $refusal" >&2; exit 1 ;;
+esac
+record() {
+  : > "$1"
+  prev=""
+  for a in "$@"; do
+    printf '%s\n' "$a" >> "$1"
+    case "$a" in
+      *=@-) cat >> "$1" ;;
+      *=@*) cat "${a#*=@}" >> "$1" ;;
+    esac
+    if [ "$prev" = "--input" ]; then
+      if [ "$a" = "-" ]; then cat >> "$1"; else cat "$a" >> "$1"; fi
+    fi
+    prev="$a"
+  done
+}
+case "$*" in
+  "api graphql"*) echo "HTTP 403: $refusal" >&2; exit 1 ;;
+  "api "*"repos/"*"/issues/60"|"api "*"repos/"*"/issues/60 "*)
+    case "$*" in
+      *PATCH*) record "$FAKE_OUT" "$@"; echo '{}' ;;
+      *-f*|*-F*|*--field*|*--raw-field*|*--input*|*-X*|*--method*) unexpected "$@" ;;
+      *"-q .body"*|*"--jq .body"*) printf '%s\n' "$FAKE_BODY" ;;
+      *-q*|*--jq*|*--template*) unexpected "$@" ;;
+      *) python3 -c 'import json, sys; print(json.dumps({"number": 60, "body": sys.argv[1], "labels": []}))' "$FAKE_BODY" ;;
+    esac ;;
+  "api "*"repos/"*"/issues"|"api "*"repos/"*"/issues "*)
+    record "$FAKE_CREATE" "$@"
+    case "$*" in
+      *"-q .html_url"*|*"--jq .html_url"*) echo "https://github.com/owner/name/issues/77" ;;
+      *-q*|*--jq*|*--template*) unexpected "$@" ;;
+      *) echo '{"number": 77, "html_url": "https://github.com/owner/name/issues/77"}' ;;
+    esac ;;
+  *) unexpected "$@" ;;
+esac
+STUB
+chmod +x "$refuseddir/gh"
+
+name="under a gh that refuses GraphQL and answers REST, files the coverage issue and records the block with the same stdout and exit as a working gh (#568)"
+body='## What to build
+
+Extract the parser.
+
+## Blocked by
+
+None (can start immediately).
+'
+working_out="$work/working-out" refused_out="$work/refused-out" refused_edit="$work/refused-edit"
+run_blocker "$body" "$work/working-create" "$work/working-edit" 60 > "$working_out" 2>/dev/null && working_code=0 || working_code=$?
+env PATH="$refuseddir:$PATH" FAKE_BODY="$body" FAKE_CREATE="$work/refused-create" FAKE_OUT="$refused_edit" \
+  "$BLOCKER" 60 > "$refused_out" 2>"$work/refused.err" && code=0 || code=$?
+cmp -s "$working_out" "$refused_out" && same=yes || same=no
+blocked=no
+[[ -f "$refused_edit" ]] && grep -Fx -- "- #77" "$refused_edit" > /dev/null \
+  && ! grep -F "None (can start" "$refused_edit" > /dev/null && blocked=yes
+if [[ "$working_code" == 0 && "$code" == "$working_code" && "$same" == yes && "$blocked" == yes ]]; then
+  ok
+else
+  no "$name (exit want $working_code got $code; stdout same=$same; blocked=$blocked want yes)
+$(cat "$work/refused.err")"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
