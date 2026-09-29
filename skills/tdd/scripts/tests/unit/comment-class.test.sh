@@ -416,4 +416,20 @@ classify --sweepable "$f"
 want_no_line "$f:2"
 verdict "the sweepable report omits a tab-indented #! line that opens a <<- heredoc's body"
 
+# 38. a `#` line after a `"$(cmd 'a "b')"` shape is still classified, not dropped.
+problems=""
+f="$work/quote-in-subst.sh"
+printf '%s\n' "x=\"\$(echo 'a \"b')\"" '# a comment in code' > "$f"
+classify "$f"
+want_line "$f:2:1"
+verdict "comment-class.sh classifies a # line after a \"\$(cmd 'a \"b')\" shape as class 1"
+
+# 39. a subshell's `(…)` inside `"$(…)"` does not close the substitution early.
+problems=""
+f="$work/subshell-in-subst.sh"
+printf '%s\n' "x=\"\$( (cd /) && echo 'a \"b')\"" '# a comment in code' > "$f"
+classify "$f"
+want_line "$f:2:1"
+verdict "comment-class.sh classifies a # line after a \"\$( (cmd) && cmd 'a \"b')\" shape as class 1"
+
 finish

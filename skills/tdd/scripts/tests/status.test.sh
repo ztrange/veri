@@ -328,7 +328,6 @@ if [[ "$phases" == "phase=red bail_phase=green" && "$code" -eq 0 ]]; then ok; el
   diff <(printf 'phase=red bail_phase=green\nexit 0\n') <(printf '%s\nexit %s\n' "$phases" "$code")
 fi
 
-# --- a run directory's own ledger is its run, not every committed ledger beside it (#343) ---
 own="$(repo own)"
 run="$(fabricate_run "$own" 7 tdd/7-widgets-spin)"
 cat > "$run/.tdd/issue-7.md" <<'EOF'
