@@ -130,5 +130,19 @@ want="${doc/- \[ \] trim/- [x] trim}."
 expect_records "ledger_tick '' output differs" "$want" "$(tick_of '' "$doc")"
 verdict "ledger_tick ticks the first open step containing the matcher, or the first open step for an empty one, changing no other byte"
 
+# 7. ledger_tick <matcher> pending: the ticked line also gains the refactor-pending mark.
+problems=""
+tick_pending_of() {
+  printf '%s' "$2" | (source "$LIB" && ledger_tick "$1" pending) 2>&1
+  printf '.'
+}
+doc='- [x] lowercase the slug ⟦criterion 1⟧
+- [ ] trim whitespace ⟦criterion 2⟧
+- [ ] strip the slug ⟦criterion 3⟧
+'
+want="${doc/- \[ \] strip the slug ⟦criterion 3⟧/- [x] strip the slug ⟦criterion 3⟧ ⟂ refactor pending}."
+expect_records "ledger_tick 'strip' pending output differs" "$want" "$(tick_pending_of 'strip' "$doc")"
+verdict "ledger_tick <matcher> pending ticks the step and appends the refactor-pending mark in the same write"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
