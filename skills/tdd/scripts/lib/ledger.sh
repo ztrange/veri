@@ -23,7 +23,7 @@
 # directly after the last step line; every other byte is copied unchanged.
 # Assigns the caller's local `re`: bash scopes a callee's assignment dynamically.
 _ledger_step_re() {
-  re='^([[:space:]]*- )\[([ xX])\] (.*)$'
+  re='^([[:space:]]*-[[:space:]])\[([ xX])\]( (.*))?$'
 }
 
 _ledger_read_line() {
@@ -48,7 +48,7 @@ ledger_steps() {
     index=$((index + 1))
     state=done
     [[ "${BASH_REMATCH[2]}" == " " ]] && state=open
-    text="${BASH_REMATCH[3]}"
+    text="${BASH_REMATCH[4]}"
     kind=step
     [[ "$text" =~ $kind_re ]] && kind="${BASH_REMATCH[1]}"
     added=0
@@ -70,7 +70,7 @@ ledger_tick() {
   _ledger_step_re
   while _ledger_read_line; do
     if ((ticked == 0)) && [[ "$line" =~ $re && "${BASH_REMATCH[2]}" == " " && "$line" == *"$matcher"* ]]; then
-      line="${BASH_REMATCH[1]}[x] ${BASH_REMATCH[3]}$suffix"
+      line="${BASH_REMATCH[1]}[x]${BASH_REMATCH[3]}$suffix"
       ticked=1
     fi
     printf '%s%s' "$line" "$nl"

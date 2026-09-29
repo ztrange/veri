@@ -202,5 +202,16 @@ want='# Plan for the slug
 expect_records "ledger_add_step output differs" "$want" "$(rewrite_of ledger_add_step "$doc" 'collapse hyphens' 3)"
 verdict "ledger_add_step writes an open added step tagged with its criterion directly after the last step line, changing no other byte"
 
+# 11. ledger_tick reads a step line as the dash, any whitespace (a tab included), then the box,
+#     with or without text after it: `-<TAB>[ ] text` and a bare `- [ ]` both tick.
+problems=""
+doc=$'# Plan\n\n-\t[ ] tabbed step\n- [ ] later step\n'
+want=$'# Plan\n\n-\t[x] tabbed step\n- [ ] later step\n.'
+expect_records "ledger_tick 'step' output differs for a tab after the dash" "$want" "$(rewrite_of ledger_tick "$doc" 'step')"
+doc=$'- [ ]\n- [ ] later step\n'
+want=$'- [x]\n- [ ] later step\n.'
+expect_records "ledger_tick '' output differs for a bare box" "$want" "$(rewrite_of ledger_tick "$doc" '')"
+verdict "ledger_tick ticks a step with a tab between the dash and the box, and a bare box with no text after it"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
