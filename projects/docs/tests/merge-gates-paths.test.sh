@@ -34,6 +34,11 @@ mkrepo() {
   git -C "$1" commit -q -am change
 }
 
+# gates <repo> [VAR=val...]: run the script in <repo> against base, combined output.
+gates() {
+  (cd "$1" && env -u VERI_GATES VERI_GATES_BASE=base "${@:2}" bash "$SCRIPT" 2>&1)
+}
+
 report() {
   if [[ "${#problems[@]}" -eq 0 ]]; then
     pass=$((pass + 1))
@@ -46,7 +51,7 @@ report() {
 
 name="merge-gates.sh plans docs-fresh only for a changed projects/docs/walkthrough.html"
 mkrepo "$tmp/r1" projects/docs/walkthrough.html 0
-out="$(cd "$tmp/r1" && env -u VERI_GATES VERI_GATES_BASE=base VERI_GATES_PLAN=1 bash "$SCRIPT" 2>&1)"
+out="$(gates "$tmp/r1" VERI_GATES_PLAN=1)"
 rc=$?
 problems=()
 [[ "$rc" -eq 0 ]] || problems+=("want exit 0, got $rc")
@@ -57,7 +62,7 @@ report
 
 name="merge-gates.sh plans docs-test and docs-fresh for a changed projects/docs/wt/ file"
 mkrepo "$tmp/r2" projects/docs/wt/app.js 0
-out="$(cd "$tmp/r2" && env -u VERI_GATES VERI_GATES_BASE=base VERI_GATES_PLAN=1 bash "$SCRIPT" 2>&1)"
+out="$(gates "$tmp/r2" VERI_GATES_PLAN=1)"
 rc=$?
 problems=()
 [[ "$rc" -eq 0 ]] || problems+=("want exit 0, got $rc")
@@ -69,7 +74,7 @@ report
 
 name="merge-gates.sh runs projects/docs/check-walkthrough.py for the docs-fresh gate"
 mkrepo "$tmp/r3" projects/docs/walkthrough.html 1
-out="$(cd "$tmp/r3" && env -u VERI_GATES VERI_GATES_BASE=base bash "$SCRIPT" 2>&1)"
+out="$(gates "$tmp/r3")"
 rc=$?
 problems=()
 [[ "$rc" -eq 0 ]] || problems+=("want exit 0, got $rc; got: $out")
