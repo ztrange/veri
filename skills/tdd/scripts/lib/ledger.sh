@@ -39,11 +39,11 @@ _ledger_pending_mark=' ⟂ refactor pending'
 _ledger_added_mark='⟦added⟧'
 
 ledger_steps() {
-  local line state kind pending added criterion text index=0 re open_step done_box
+  local line nl state kind pending added criterion text index=0 re open_step done_box
   _ledger_step_re
   local criterion_re='⟦criterion ([0-9]+)⟧'
   local kind_re="⟦(full-suite|human-owed)⟧ $criterion_re"
-  while IFS= read -r line || [[ -n "$line" ]]; do
+  while _ledger_read_line; do
     [[ "$line" =~ $re ]] || continue
     index=$((index + 1))
     state=done
