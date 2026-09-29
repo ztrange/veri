@@ -71,5 +71,33 @@ grep -E '^gh api .*pulls/42/ccr/ready_for_review' "$calls" > /dev/null ||
   problems+="    want a 'gh api …pulls/42/ccr/ready_for_review' call, got: $(printf '%q' "$(cat "$calls")")"$'\n'
 record
 
+# 3. a GitHub failure that is not the GraphQL refusal gives no answer, so gh_pr_ready returns
+#    2 — a 404 on the ordinary route, a 502 on the ccr route
+name="gh_pr_ready 42 returns 2 when gh pr ready fails with a 404, and when pulls/42/ccr/ready_for_review fails with a 502"
+err="$scratch/err3"
+(
+  gh() { echo "HTTP 404: Not Found (https://api.github.com/graphql)" >&2; return 1; }
+  source "$LIB"
+  gh_pr_ready 42
+) > /dev/null 2> "$err"
+rc_ordinary=$?
+(
+  refusal='GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)'
+  gh() {
+    case "$1" in
+      issue|pr|repo) echo "HTTP 403: $refusal" >&2; return 1 ;;
+      api) echo "HTTP 502: Bad Gateway" >&2; return 1 ;;
+    esac
+    return 1
+  }
+  source "$LIB"
+  gh_pr_ready 42
+) > /dev/null 2>> "$err"
+rc_ccr=$?
+problems=""
+[[ "$rc_ordinary" -eq 2 ]] || problems+="    want return 2 from the ordinary route's 404, got $rc_ordinary"$'\n'
+[[ "$rc_ccr" -eq 2 ]] || problems+="    want return 2 from the ccr route's 502, got $rc_ccr"$'\n'
+record
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
