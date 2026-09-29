@@ -1,6 +1,6 @@
 # Plan for #552 — wait-ci.sh still reads a previous head's green: the PR's head moves before its rollup clears
 
-- [x] Given a stub whose PR rollup shows a previous head's green while the sha's own check runs (`gh api repos/<owner>/<repo>/commits/<sha>/check-runs`) are still in progress, wait-ci.sh exits 3 ⟦criterion 3⟧ ⟂ refactor pending
+- [x] Given a stub whose PR rollup shows a previous head's green while the sha's own check runs (`gh api repos/<owner>/<repo>/commits/<sha>/check-runs`) are still in progress, wait-ci.sh exits 3 ⟦criterion 3⟧
 - [ ] wait-ci.sh exits 1 when the given sha's own check runs hold a completed failure, even while the PR rollup reads all green ⟦criterion 1⟧
 - [ ] wait-ci.sh exits 0 when the given sha's own check runs and statuses have all succeeded, even while the PR rollup still shows a previous head's failed or pending checks ⟦criterion 1⟧
 - [ ] wait-ci.sh exits 1 when a legacy status context of the sha, read from `gh api repos/<owner>/<repo>/commits/<sha>/status`, is in a failure or error state, even when the sha's check runs all succeeded ⟦criterion 1⟧
