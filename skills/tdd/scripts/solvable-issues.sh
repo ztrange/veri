@@ -77,14 +77,15 @@ label="${VERI_LABEL:-ready-for-agent}"
 refuse_if_empty VERI_PRIORITY_LABEL
 priority_label="${VERI_PRIORITY_LABEL:-priority}"
 
+source "$(dirname "$0")/lib/github.sh"
+
 # hazard: the `[@]+` expansion keeps an empty array from becoming an empty argument.
 gh_json() {  # gh_json <fixture-file> <rest-path> <gh args…> -> that document on stdout
   local fixture="$1" rest="$2"; shift 2
   if [[ -n "${VERI_GH_JSON:-}" ]]; then
     cat "$VERI_GH_JSON/$fixture"
   else
-    gh "$@" "${repo_args[@]+"${repo_args[@]}"}" 2> /dev/null ||
-      gh api --paginate "repos/${repo:-"{owner}/{repo}"}/$rest"
+    gh_list "repos/${repo:-"{owner}/{repo}"}/$rest" "$@" "${repo_args[@]+"${repo_args[@]}"}"
   fi
 }
 
