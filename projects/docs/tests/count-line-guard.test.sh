@@ -14,6 +14,16 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 DOCS="$HERE/.."
 pass=0 fail=0
 
+record() {
+  if [[ "${#problems[@]}" -eq 0 ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name"
+    printf '    %s\n' "${problems[@]}"
+  fi
+}
+
 name="make test fails, naming the suite, for a suite that exits 0 without a count line"
 
 scratch="$(mktemp -d)"
@@ -31,13 +41,7 @@ problems=()
 [[ "$out" == *"dies-quietly.test.sh: never reached its count line"* ]] ||
   problems+=("output does not name the suite as never reaching its count line: $(printf '%s\n' "$out" | tail -n 2 | tr '\n' '|')")
 
-if [[ "${#problems[@]}" -eq 0 ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - $name"
-  printf '    %s\n' "${problems[@]}"
-fi
+record
 
 name="make test fails, naming the suite, for a suite that runs one case then dies on an unbound variable and exits 0"
 
@@ -65,13 +69,7 @@ problems=()
 [[ "$out" == *"unbound.test.sh: never reached its count line"* ]] ||
   problems+=("output does not name the suite as never reaching its count line: $(printf '%s\n' "$out" | tail -n 2 | tr '\n' '|')")
 
-if [[ "${#problems[@]}" -eq 0 ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - $name"
-  printf '    %s\n' "${problems[@]}"
-fi
+record
 
 name="make test passes a suite that ends in its count line with 0 failed and exits 0"
 
@@ -91,13 +89,7 @@ problems=()
 [[ "$out" == *"all suites green"* ]] ||
   problems+=("output lacks 'all suites green': $(printf '%s\n' "$out" | tail -n 2 | tr '\n' '|')")
 
-if [[ "${#problems[@]}" -eq 0 ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - $name"
-  printf '    %s\n' "${problems[@]}"
-fi
+record
 
 name="make test reports a suite that prints a non-count last line and exits 3 as nothing to do, and does not fail"
 
@@ -117,13 +109,7 @@ problems=()
 [[ "$out" == *"all suites green"* ]] ||
   problems+=("output lacks 'all suites green': $(printf '%s\n' "$out" | tail -n 3 | tr '\n' '|')")
 
-if [[ "${#problems[@]}" -eq 0 ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - $name"
-  printf '    %s\n' "${problems[@]}"
-fi
+record
 
 echo "----"
 echo "$pass passed, $fail failed"
