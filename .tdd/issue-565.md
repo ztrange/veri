@@ -8,7 +8,7 @@ Scope: every shell file under `skills/tdd/scripts/tests/`. "The sweepable report
 - [x] The sweepable report is empty for `tests/unit/ledger.test.sh`, the one unit suite starting with a letter no criterion names
 - [x] The sweepable report is empty for every shell file under `tests/unit/` whose name starts with m through p ⟦criterion 4⟧
 - [x] The sweepable report is empty for `tests/unit/red-divergence.test.sh` ⟦criterion 5⟧
-- [x] The sweepable report is empty for `tests/unit/run-affordable.test.sh` ⟦criterion 5⟧ ⟂ refactor pending
+- [x] The sweepable report is empty for `tests/unit/run-affordable.test.sh` ⟦criterion 5⟧
 - [ ] The sweepable report is empty for `tests/unit/step-budget.test.sh` and `tests/unit/step-cost.test.sh` ⟦criterion 6⟧
 - [ ] The sweepable report is empty for `tests/unit/stop-requested.test.sh` ⟦criterion 6⟧
 - [ ] The sweepable report is empty for every shell file under `tests/fixtures/`, and for `tests/unit-guard/git` and `tests/offline/gh` ⟦criterion 7⟧
