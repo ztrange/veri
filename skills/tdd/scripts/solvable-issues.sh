@@ -78,17 +78,18 @@ refuse_if_empty VERI_PRIORITY_LABEL
 priority_label="${VERI_PRIORITY_LABEL:-priority}"
 
 # hazard: the `[@]+` expansion keeps an empty array from becoming an empty argument.
-gh_json() {  # gh_json <fixture-file> <gh args…> -> that document on stdout
-  local fixture="$1"; shift
+gh_json() {  # gh_json <fixture-file> <rest-path> <gh args…> -> that document on stdout
+  local fixture="$1" rest="$2"; shift 2
   if [[ -n "${VERI_GH_JSON:-}" ]]; then
     cat "$VERI_GH_JSON/$fixture"
   else
-    gh "$@" "${repo_args[@]+"${repo_args[@]}"}"
+    gh "$@" "${repo_args[@]+"${repo_args[@]}"}" ||
+      gh api --paginate "repos/{owner}/{repo}/$rest"
   fi
 }
 
-issues_json="$(gh_json issues.json issue list --limit 10000 --json number,title,labels,body,state)"
-prs_json="$(gh_json prs.json pr list --limit 10000 --json body,state)"
+issues_json="$(gh_json issues.json issues issue list --limit 10000 --json number,title,labels,body,state)"
+prs_json="$(gh_json prs.json pulls pr list --limit 10000 --json body,state)"
 
 source "$(dirname "$0")/lib/main-working-tree.sh"
 main_tree="$(main_working_tree)"
@@ -99,8 +100,15 @@ import json, os, re, sys
 
 import blocked_by
 
-issues = json.loads(sys.argv[1])
-prs = json.loads(sys.argv[2])
+def documents(text):
+    items, at, decoder = [], 0, json.JSONDecoder()
+    while at < len(text):
+        page, at = decoder.raw_decode(text, at)
+        items.extend(page)
+    return items
+
+issues = documents(sys.argv[1])
+prs = documents(sys.argv[2])
 label = sys.argv[3]
 priority_label = sys.argv[4]
 this_repo = sys.argv[5]
@@ -152,7 +160,7 @@ def solvable(issue):
     still_open = number in open_issues
     opted_in = has_label(issue, label)
     unclaimed = number not in claimed and not in_flight(number)
-    unblocked = all(n not in open_issues for n in blocked_by.blockers(issue.get("body", ""), this_repo))
+    unblocked = all(n not in open_issues for n in blocked_by.blockers(issue.get("body") or "", this_repo))
     return still_open and opted_in and unclaimed and unblocked
 
 def order(issue):

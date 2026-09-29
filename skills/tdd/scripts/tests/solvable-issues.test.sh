@@ -1069,6 +1069,78 @@ claim_passage solvable-issues.sh the-header-comment-itself "$claim_header"
   && ok || no "$context_md's Solvable entry and solvable-issues.sh's header say an open PR is the claim every machine sees and the conductor.pid lock is only that machine's worktree guard, each citing the ADR that records it (missing:$claim_missing)"
 
 
+fx="$(fixture graphql-refused)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {"number": 70, "title": "unblocked", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
+   "body": "## Blocked by\n\nNone.\n"},
+  {"number": 71, "title": "blocked by an open one", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
+   "body": "## Blocked by\n\n#72\n"},
+  {"number": 72, "title": "not opted in", "labels": [], "state": "OPEN", "body": ""},
+  {"number": 73, "title": "claimed by an open PR", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
+   "body": "## Blocked by\n\nNone.\n"},
+  {"number": 74, "title": "priority", "labels": [{"name": "ready-for-agent"}, {"name": "priority"}], "state": "OPEN",
+   "body": "## Blocked by\n\nNone.\n"}
+]
+JSON
+cat > "$fx/prs.json" <<'JSON'
+[{"state": "OPEN", "body": "Draft PR opened by a /tdd run.\n\nCloses #73\n"}]
+JSON
+python3 -c '
+import json, sys
+fx = sys.argv[1]
+filler = [{"number": 100 + k, "title": "filler", "labels": [], "state": "OPEN", "body": ""} for k in range(110)]
+json.dump(filler + json.load(open(fx + "/issues.json")), open(fx + "/issues.json", "w"))
+json.dump([{"state": "OPEN", "body": ""}] * 105 + json.load(open(fx + "/prs.json")), open(fx + "/prs.json", "w"))
+issues = json.load(open(fx + "/issues.json"))
+for i in issues:
+    i["state"] = i["state"].lower()
+    i["body"] = i["body"] or None
+    i["labels"] = [dict(l, id=100 + k, color="ededed") for k, l in enumerate(i["labels"])]
+json.dump(issues, open(fx + "/rest-issues.json", "w"))
+prs = json.load(open(fx + "/prs.json"))
+pulls = [dict(p, number=900 + k, state=p["state"].lower(), draft=True) for k, p in enumerate(prs)]
+json.dump(pulls, open(fx + "/rest-pulls.json", "w"))
+' "$fx"
+
+refusedir="$work/graphql-refusing-bin"
+mkdir -p "$refusedir"
+cat > "$refusedir/gh" <<'STUB'
+#!/bin/sh
+refusal='GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)'
+case "$1" in
+  issue|pr|repo) echo "HTTP 403: $refusal" >&2; exit 1 ;;
+esac
+case "$*" in
+  "api graphql"*) echo "HTTP 403: $refusal" >&2; exit 1 ;;
+  *-q*|*--jq*|*--template*) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
+  "api "*"repos/{owner}/{repo}/issues"*) file="$GH_REST_ISSUES" ;;
+  "api "*"repos/{owner}/{repo}/pulls"*) file="$GH_REST_PULLS" ;;
+  *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
+esac
+case " $* " in *" --paginate "*) paginate=1 ;; *) paginate=0 ;; esac
+per_page="$(printf '%s\n' "$*" | sed -n 's/.*[?&]per_page=\([0-9]*\).*/\1/p')"
+exec python3 -c '
+import json, sys
+items = json.load(open(sys.argv[1]))
+size = min(int(sys.argv[3] or 30), 100)
+pages = [items[k:k + size] for k in range(0, len(items), size)] or [[]]
+sys.stdout.write("".join(json.dumps(p) for p in (pages if sys.argv[2] == "1" else pages[:1])))
+' "$file" "$paginate" "$per_page"
+STUB
+chmod +x "$refusedir/gh"
+
+gh_run "$work/argv-graphql-working"; working="$out" working_code="$code"
+
+out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$refusedir:$PATH" \
+       GH_REST_ISSUES="$fx/rest-issues.json" GH_REST_PULLS="$fx/rest-pulls.json" \
+       "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+
+{ [[ "$working_code" == 0 && "$working" == $'74\n70' ]] \
+  && [[ "$code" == "$working_code" && "$out" == "$working" ]]; } \
+  && ok || no "against a gh that refuses GraphQL with the 403 and answers REST under repos/{owner}/{repo}/ a page at a time, no arguments prints the same issue numbers and exit code as a working gh, across more than one 100-item page (#568) (working gh: exit=$working_code stdout='$(tr '\n' '|' <<<"$working")' want 0 and '74|70'; GraphQL refused: exit=$code stdout='$(tr '\n' '|' <<<"$out")' want the same)"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
