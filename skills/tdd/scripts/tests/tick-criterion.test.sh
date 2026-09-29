@@ -60,9 +60,6 @@ check "skips already checked" 0 "creates a branch" "$mixed" '- [x] reads the iss
 nested='  - [ ] nested criterion'
 check "nested checkbox" 0 "nested" "$nested" '  - [x] nested criterion'
 
-# 8. the tick is lib/ledger.sh's, not one the script makes in the markdown itself: beside
-# a stub module whose `ledger_tick` answers for the body, the stub's answer is what is
-# printed (#495)
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 mkdir "$work/lib"

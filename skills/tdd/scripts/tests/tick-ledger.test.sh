@@ -58,8 +58,6 @@ want_led="$(printf -- '- [x] add lowercasing ⟦criterion 1⟧\n- [x] collapse t
   && [[ "$(cat "$led")" == "$want_led" ]]; } \
   && ok || no "criterion notation: the four ledger scripts match and print step text as without it (codes=$c_next$c_tick$c_pend$c_clear next='$next' marked='$marked_line' pending='$pending' ledger='$(cat "$led")')"
 
-# 6. --refactor-pending is lib/ledger.sh's `ledger_tick … pending`, with no mark of the
-#    script's own: beside a stub module, the file holds exactly what the stub answered
 stub="$work/stub"
 mkdir -p "$stub/lib"
 cp "$TICK" "$stub/tick-ledger.sh"

@@ -2709,9 +2709,6 @@ structural_section_says "$unstructured_out" "$unstructured" "1/5" "absent"
 
 report_on "$name" "$structural_out"
 
-# The planned count is lib/ledger.sh's `ledger_steps` (#495): beside a stub module that numbers
-# three steps, a ledger holding one box of its own reports 1 of 3, where a count of the
-# ledger's own boxes would say 1 of 1.
 name="#495 the planned-step count is the number of lib/ledger.sh ledger_steps records, counting no box of its own"
 problems=()
 
