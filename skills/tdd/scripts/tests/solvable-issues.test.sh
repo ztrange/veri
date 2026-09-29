@@ -1130,11 +1130,12 @@ sys.stdout.write("".join(json.dumps(p) for p in (pages if sys.argv[2] == "1" els
 STUB
 chmod +x "$refusedir/gh"
 
-refused_run() {  # refused_run <gh-dir> [script args...]; sets $out and $code
+refused_run() {  # refused_run <gh-dir> [script args...]; sets $out, $err and $code
   local dir="$1"; shift
   out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$dir:$PATH" \
          GH_REST_ISSUES="$fx/rest-issues.json" GH_REST_PULLS="$fx/rest-pulls.json" \
-         "$SOLVABLE" "$@" 2>/dev/null)" && code=0 || code=$?
+         "$SOLVABLE" "$@" 2>"$work/refused-stderr")" && code=0 || code=$?
+  err="$(cat "$work/refused-stderr")"
 }
 
 gh_run "$work/argv-graphql-working"; working="$out" working_code="$code"
@@ -1162,10 +1163,8 @@ refused_run "$nameddir" --repo owner/name
 env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$stubdir:$PATH" ARGV_OUT="$work/argv-stderr-working" \
   GH_ISSUES="$fx/issues.json" GH_PRS="$fx/prs.json" \
   "$SOLVABLE" >/dev/null 2>"$work/stderr-working" || true
-env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$refusedir:$PATH" \
-  GH_REST_ISSUES="$fx/rest-issues.json" GH_REST_PULLS="$fx/rest-pulls.json" \
-  "$SOLVABLE" >/dev/null 2>"$work/stderr-refused" || true
-working_err="$(cat "$work/stderr-working")" refused_err="$(cat "$work/stderr-refused")"
+refused_run "$refusedir"; refused_err="$err"
+working_err="$(cat "$work/stderr-working")"
 
 { [[ -z "$working_err" && -z "$refused_err" ]]; } \
   && ok || no "against a gh that refuses GraphQL with the 403, solvable-issues.sh writes nothing to stderr, the same as against a working gh: the refusal is not passed through to the caller (#568) (working gh stderr='$(tr '\n' '|' <<<"$working_err")' want ''; GraphQL refused stderr='$(tr '\n' '|' <<<"$refused_err")' want '')"
