@@ -45,6 +45,12 @@ want_line() {
   fi
 }
 
+want_no_line() {
+  if grep -E "^$1(:|$)" <<< "$out" > /dev/null; then
+    problems+="    want no line matching '$1', got:"$'\n'"$out"$'\n'
+  fi
+}
+
 # 1. a comment in code, outside any heredoc, is reported with its file and line as class 1.
 problems=""
 f="$work/plain.sh"
@@ -133,9 +139,7 @@ printf '%s\n' '# a comment in code' 'cat > "$dir/fixture.txt" <<EOF' '# written 
 classify --sweepable "$f"
 want_line "$f:1:1"
 want_line "$f:3:2"
-if grep -E "^$f:6(:|$)" <<< "$out" > /dev/null; then
-  problems+="    want no line for $f:6, a class 3 line, got:"$'\n'"$out"$'\n'
-fi
+want_no_line "$f:6"
 verdict "the sweepable report lists class 1 and class 2 lines and never a class 3 line"
 
 # 10. the sweepable report omits the leading contract header and a comment marked `# hazard:`,
@@ -265,9 +269,7 @@ f="$work/quoted.sh"
 printf '%s\n' "x='first" '# inside a single-quoted string' "last'" 'y="first' '# inside a double-quoted string' \
   'last"' '# a comment in code' > "$f"
 classify "$f"
-if grep -E "^$f:(2|5)(:|$)" <<< "$out" > /dev/null; then
-  problems+="    want no line for $f:2 or $f:5, a # line inside a quoted string, got:"$'\n'"$out"$'\n'
-fi
+want_no_line "$f:(2|5)"
 want_line "$f:7:1"
 verdict "a # line inside a multi-line single- or double-quoted string is not reported as a comment"
 
@@ -277,9 +279,7 @@ f="$work/quote-edges.sh"
 printf '%s\n' 'a="say \"hi' '# inside, after an escaped quote' 'bye"' "b=1 # it's a trailing comment" \
   '# a comment after a trailing one' "echo c#'" '# inside, after a # inside a word' "'" > "$f"
 classify "$f"
-if grep -E "^$f:(2|7)(:|$)" <<< "$out" > /dev/null; then
-  problems+="    want no line for $f:2 or $f:7, a # line inside a quoted string, got:"$'\n'"$out"$'\n'
-fi
+want_no_line "$f:(2|7)"
 want_line "$f:5:1"
 verdict "an escaped quote, a trailing comment and a # inside a word neither open nor close a quoted string"
 
