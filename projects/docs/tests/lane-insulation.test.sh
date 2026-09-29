@@ -303,6 +303,22 @@ fi
 
 report "$name"
 
+# 4. The same survival claim, asked of the one case that reads the build's stderr as numbers.
+#    ONLY names it, so the run costs one sandboxed build instead of the suite's whole roster,
+#    and the count line is still there for a run that died on the way to it.
+GIT_BUDGET_FILTER='a build asks git once per script'
+name="ONLY='$GIT_BUDGET_FILTER' $GUARDS_SUITE reaches its count line over a tree owing prose"
+problems=()
+planted="$(tree_owing_prose)"
+
+probe_plant_is_debt "$planted"
+
+run_in_copy "$planted" "$GUARDS_SUITE" "$GIT_BUDGET_FILTER"
+{ [[ "$code" == 0 ]] && grep -Fq '1 passed, 0 failed' <<< "$out"; } ||
+  problems+=("want ONLY='$GIT_BUDGET_FILTER' $GUARDS_SUITE to reach '1 passed, 0 failed' over a tree owing prose for $SCRIPT_NAME; got $code: $(tail_of "$out")")
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
