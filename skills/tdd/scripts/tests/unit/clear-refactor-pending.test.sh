@@ -37,8 +37,6 @@ check() {  # check <name> <expected-exit> <matcher> <expected-ledger-text>
   fi
 }
 
-# 1. the mark leaves the first step that both contains the matcher and carries it: the
-#    unmarked `collapse to single hyphen` above it is skipped, the other step's mark stays
 check "clears the first matching marked step" 0 "collapse to single hyphen" '# Plan for #42
 
 - [x] add the slugify lowercasing ⟂ refactor pending
@@ -46,11 +44,8 @@ check "clears the first matching marked step" 0 "collapse to single hyphen" '# P
 - [x] collapse to single hyphen (again)
 - [ ] percent-encode the remainder'
 
-# 2. no marked step contains the matcher → exit 3, the ledger byte-identical to the seed
 check "no matching marked step exits 3, ledger untouched" 3 "percent-encode the remainder" "$ledger"
 
-# 3. the strip is lib/ledger.sh's `ledger_clear_pending`, with no pattern or mark of the
-#    script's own: beside a stub module, the file holds exactly what the stub answered
 stub="$work/stub"
 mkdir -p "$stub/lib"
 cp "$CLEAR" "$stub/clear-refactor-pending.sh"
