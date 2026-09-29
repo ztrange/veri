@@ -1,6 +1,6 @@
 # Plan for #134 — Walkthrough: every script on disk is on the page — one with no commentary renders verbatim as owed, and docs-owed.sh lists it
 
-- [x] projects/docs/build-walkthrough.py renders a skills/tdd/scripts/*.sh that has no commentary.SCRIPTS entry in a sandbox build: exit 0, a section whose id is derived from the filename, and the script's source verbatim ⟦criterion 1⟧ ⟂ refactor pending
+- [x] projects/docs/build-walkthrough.py renders a skills/tdd/scripts/*.sh that has no commentary.SCRIPTS entry in a sandbox build: exit 0, a section whose id is derived from the filename, and the script's source verbatim ⟦criterion 1⟧
 - [ ] that unlisted script's whole file sits under the existing "commentary owed" mark, and the build's stderr `owed:` summary names it (owed: <script> L1–<last>) ⟦criterion 1⟧
 - [ ] the masthead and table-of-contents counts (script count, total source lines, the upkeep table and rail) include the unlisted script, and an unlisted script adds no git question beyond the one-per-script budget ⟦criterion 1⟧
 - [ ] projects/docs/check-walkthrough.py passes on a page built from a sandbox carrying an unlisted script ⟦criterion 1⟧
