@@ -180,22 +180,30 @@ does_not_hold 'resume' \
   "$(head -1 < <(section_records '## Resume' | grep -E 'go to the \*?\*?draft pr'))"
 report "$name"
 
+# reads_ledger_steps <anchor> <box> <lines> — each of <lines>, the instructions running <anchor>,
+# must read ledger-steps.sh and spell no <box> checkbox pattern of its own. Fails closed on
+# empty <lines>: no instruction runs <anchor>, so the rule could not be checked.
+reads_ledger_steps() {
+  local anchor="$1" box="$2" lines="$3" line
+  if [[ -z "$lines" ]]; then
+    problems+=("no instruction of $skill_md runs '$anchor' — the rule could not be checked")
+    return
+  fi
+  while IFS= read -r line; do
+    [[ "$line" == *'ledger-steps.sh'* ]] ||
+      problems+=("'$anchor' reads without ledger-steps.sh: $line")
+    [[ "$line" != *"$box"* ]] ||
+      problems+=("'$anchor' still spells its own checkbox pattern: $line")
+  done <<< "$lines"
+}
+
 # 8. One criterion (#495) — criterion k's text, handed to tick-issue-criterion.sh, is read out of
 #    the issue body's `## Acceptance criteria` section as ledger-steps.sh's records rather than by
 #    a checkbox pattern the procedure spells itself.
 name="#495: every $skill_md instruction that ticks criterion k in the issue body reads its text from ledger-steps.sh's records, spelling no checkbox pattern of its own"
 problems=()
-ticks="$(records_of < "$skill_path" | grep -F 'tick-issue-criterion.sh <n> "$(' || true)"
-if [[ -z "$ticks" ]]; then
-  problems+=("no instruction of $skill_md hands tick-issue-criterion.sh a criterion text read out of the issue body — the rule could not be checked")
-else
-  while IFS= read -r rec; do
-    [[ "$rec" == *'ledger-steps.sh'* ]] ||
-      problems+=("reads criterion k's text without ledger-steps.sh: $(printf '%.160s' "${rec#*tick-issue-criterion.sh}")")
-    [[ "$rec" != *'\[[ x]\]'* ]] ||
-      problems+=("still spells its own checkbox pattern: $(printf '%.160s' "${rec#*tick-issue-criterion.sh}")")
-  done <<< "$ticks"
-fi
+anchor='tick-issue-criterion.sh <n> "$('
+reads_ledger_steps "$anchor" '\[[ x]\]' "$(records_of < "$skill_path" | grep -F -- "$anchor" || true)"
 report "$name"
 
 # 9. One criterion (#495) — the last ticked step, named to event.sh step-done, to event.sh pin and
@@ -204,17 +212,8 @@ report "$name"
 name="#495: every $skill_md instruction that names the last ticked step reads it from ledger-steps.sh's records, spelling no checkbox pattern of its own"
 problems=()
 for anchor in 'event.sh step-done' 'event.sh pin' 'event.sh step-added anchor="$(' "add-ledger-step.sh .tdd/issue-<n>.md after \"\$("; do
-  hits="$(grep -F -- "$anchor" "$skill_path" | grep -vF -e 'next-unchecked.sh' -e 'next-pending-refactor.sh' || true)"
-  if [[ -z "$hits" ]]; then
-    problems+=("no instruction of $skill_md runs '$anchor' on the last ticked step — the rule could not be checked")
-    continue
-  fi
-  while IFS= read -r line; do
-    [[ "$line" == *'ledger-steps.sh'* ]] ||
-      problems+=("'$anchor' reads the last ticked step without ledger-steps.sh: $(printf '%.160s' "$line")")
-    [[ "$line" != *'\[x\]'* ]] ||
-      problems+=("'$anchor' still spells its own checkbox pattern: $(printf '%.160s' "$line")")
-  done <<< "$hits"
+  reads_ledger_steps "$anchor" '\[x\]' \
+    "$(grep -F -- "$anchor" "$skill_path" | grep -vF -e 'next-unchecked.sh' -e 'next-pending-refactor.sh' || true)"
 done
 report "$name"
 
