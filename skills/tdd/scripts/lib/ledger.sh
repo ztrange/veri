@@ -22,7 +22,7 @@
 # ledger_add_step <text> <k> — stdin → stdout: `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` is written
 # directly after the last step line; every other byte is copied unchanged. Empty stdin: the step alone.
 # Assigns the caller's locals `re`, `open_step` and `done_box`: bash scopes a callee's assignment dynamically.
-_ledger_step_re() {
+_ledger_step_grammar() {
   re='^([[:space:]]*-[[:space:]])\[([ xX])\]( (.*))?$' open_step='- [ ]' done_box='[x]'
 }
 
@@ -41,7 +41,7 @@ _ledger_criterion_tag='⟦criterion '
 
 ledger_steps() {
   local line nl state kind pending added criterion text index=0 re open_step done_box
-  _ledger_step_re
+  _ledger_step_grammar
   local criterion_re="${_ledger_criterion_tag}([0-9]+)⟧"
   local kind_re="⟦(full-suite|human-owed)⟧ $criterion_re"
   while _ledger_read_line; do
@@ -68,7 +68,7 @@ ledger_steps() {
 ledger_tick() {
   local matcher="$1" suffix= line nl ticked=0 re open_step done_box
   [[ "${2:-}" == pending ]] && suffix="$_ledger_pending_mark"
-  _ledger_step_re
+  _ledger_step_grammar
   while _ledger_read_line; do
     if ((ticked == 0)) && [[ "$line" =~ $re && "${BASH_REMATCH[2]}" == " " && "$line" == *"$matcher"* ]]; then
       line="${BASH_REMATCH[1]}$done_box${BASH_REMATCH[3]}$suffix"
@@ -81,7 +81,7 @@ ledger_tick() {
 
 ledger_clear_pending() {
   local matcher="$1" line nl cleared=0 re open_step done_box
-  _ledger_step_re
+  _ledger_step_grammar
   while _ledger_read_line; do
     if ((cleared == 0)) && [[ "$line" =~ $re && "${BASH_REMATCH[2]}" != " " && "$line" == *"$matcher"* && "$line" == *"$_ledger_pending_mark" ]]; then
       line="${line%"$_ledger_pending_mark"}"
@@ -95,7 +95,7 @@ ledger_clear_pending() {
 ledger_add_step() {
   local step line nl re open_step done_box i last=-1
   local -a lines=() nls=()
-  _ledger_step_re
+  _ledger_step_grammar
   step="$open_step $1 $_ledger_added_mark $_ledger_criterion_tag$2⟧"
   while _ledger_read_line; do
     [[ "$line" =~ $re ]] && last=${#lines[@]}
