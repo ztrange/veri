@@ -75,6 +75,32 @@ else
   pass=$((pass + 1))
 fi
 
+# 4. whether criterion k is finished is decided from lib/ledger.sh's step records, not from
+#    the markdown: beside a stub module whose `ledger_steps` answers criterion 1 done and
+#    verified, a ledger whose only criterion-1 line is unticked still exits 0 (#495)
+name="criterion 1 is finished when lib/ledger.sh's ledger_steps says so: exits 0 (#495)"
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+mkdir "$work/lib"
+cp "$FINISHED" "$work/criterion-finished.sh"
+cat > "$work/lib/ledger.sh" <<'EOF'
+ledger_steps() {
+  cat > /dev/null
+  printf '1\tdone\tstep\t0\t0\t1\tfinished in the module ⟦criterion 1⟧\n'
+  printf '2\topen\tstep\t0\t0\t2\tstill open in the module ⟦criterion 2⟧\n'
+}
+EOF
+FINISHED="$work/criterion-finished.sh"
+markdown_open='# Plan for #42
+
+- [ ] found open in the markdown ⟦criterion 1⟧'
+got_module="$(code_for 1 "$markdown_open")"
+if [[ "$got_module" != 0 ]]; then
+  fail=$((fail + 1)); echo "FAIL - $name (module says criterion 1 done: want exit 0, got $got_module)"
+else
+  pass=$((pass + 1))
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
