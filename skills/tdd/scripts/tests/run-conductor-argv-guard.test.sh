@@ -40,11 +40,8 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The three paths the scratch tree reproduces, relative to the root, because the subject
-# reaches for the script and the procedure by walking up from wherever it stands.
 SKILL_DIR='skills/tdd'
 SCRIPTS_DIR="$SKILL_DIR/scripts"
 TESTS_DIR="$SCRIPTS_DIR/tests"
@@ -55,20 +52,12 @@ SCRIPT_NAME='run-conductor.sh'
 SCRIPT_PATH="$ROOT/$SCRIPTS_DIR/$SCRIPT_NAME"
 SKILL_NAME='SKILL.md'
 
-# Case 4 of the subject, by the name it reports under: the one case whose criterion #221 is.
 CASE4_NAME='a frontmatter-fenced procedure launches and reaches the binary whole'
 
-# The regression, as the one `sed` rewrite that causes it: the launch stops piping the
-# procedure into `claude -p` and hands it over as the argument instead — the exact line #221
-# replaced, put back. Delimited with `#` because the line it matches contains both `%` (the
-# printf format) and `/` (nothing here, but the format's siblings elsewhere do).
 ARGV_LAUNCH='s#^printf .* | \(.*\) -p \\$#\1 -p "$prompt" \\#'
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which way the subject failed to notice rather than just that it did.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -80,18 +69,11 @@ report() {
   fi
 }
 
-# flat <text> — one line of it, for a failure message.
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
 trees=()
 trap 'rm -rf "${trees[@]+"${trees[@]}"}"' EXIT
 
-# run_case4 <arm> <sed-rewrite|''> — stand up one arm's tree and run case 4 in it, leaving the
-# run's output in `out_<arm>`, its status in `code_<arm>` and the script copy's path in
-# `script_<arm>`. An empty rewrite copies run-conductor.sh untouched. The suite, the procedure
-# and the script are committed before anything runs, for the reason in the header. Case 4 is
-# cut the way run-conductor.test.sh's case 21 cuts it: the preamble, case 4 and a count line,
-# so the subject's own case is what is asked, as written, and nothing else in it.
 run_case4() {
   local arm="$1" rewrite="$2" tree script cut out code
   tree="$(mktemp -d)" || { problems+=("could not make the $arm arm's scratch tree"); return; }
@@ -106,7 +88,7 @@ run_case4() {
     git -C "$tree" -c user.name=guard -c user.email=guard@example.invalid commit -qm tree ||
     problems+=("could not commit the $arm arm's scratch tree, so the subject had no committed skill to launch")
   cut="$tree/$TESTS_DIR/case4-only.test.sh"
-  awk '/^# 1\. / {skip=1} /^# 4\. / {skip=0} /^# 5\. / {skip=1} !skip' \
+  awk '/^name=/ {skip = ++n != 4} !skip' \
     "$tree/$TESTS_DIR/$SUBJECT_NAME" > "$cut"
   printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$cut"
   chmod +x "$cut"
@@ -118,15 +100,12 @@ run_case4() {
   printf -v "script_$arm" '%s' "$script"
 }
 
-# probe_sabotage_is_real — the planted arm's script differs from the real one.
 probe_sabotage_is_real() {
   cmp -s "$SCRIPT_PATH" "$script_planted" &&
     problems+=("the rewrite left $SCRIPT_NAME byte-identical, so the argv launch was never put back and the planted arm asks nothing")
   return 0
 }
 
-# probe_planted_arm_fails_case4 — the criterion: with the procedure back on argv, case 4 fails,
-# by name, and the run's count line says so.
 probe_planted_arm_fails_case4() {
   [[ "$code_planted" != 0 ]] ||
     problems+=("with the procedure back on argv, case 4 of $SUBJECT_NAME exited 0: a launch no real binary would accept reads as a checked one. It said: $(flat "$out_planted")")
@@ -136,8 +115,6 @@ probe_planted_arm_fails_case4() {
     problems+=("with the procedure back on argv, case 4's count line was not '0 passed, 1 failed': $(flat "$(tail -n 1 <<< "$out_planted")")")
 }
 
-# probe_untouched_arm_passes_case4 — the control: the same tree with the real launch passes the
-# same case, so the planted arm's red was the plant's doing and not the tree's.
 probe_untouched_arm_passes_case4() {
   [[ "$code_untouched" == 0 && "$(tail -n 1 <<< "$out_untouched")" == "1 passed, 0 failed" ]] ||
     problems+=("with the launch untouched, case 4 of $SUBJECT_NAME did not pass in the same kind of tree (exit $code_untouched), so a red in the planted arm says nothing about the plant. It said: $(flat "$out_untouched")")

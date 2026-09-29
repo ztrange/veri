@@ -42,27 +42,14 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
-# The two files #202 is about, as an ERE — the repository's agent notes and the conductor's
-# procedure, matched by name rather than by path so that a suite spelling either against
-# $ROOT, against a fixture root or bare is asked the same question.
 MD_FILES='(CLAUDE|SKILL)\.md'
 
-# Measuring a file, as an ERE. The verb must start a word and end in whitespace, so
-# `wc-of-the-plan` is not one. These three are what this tree has ever used to ask how big
-# something is; `ls -l` is not among them and would be caught by the size it then compares
-# against, not by the listing.
 SIZE_VERB='(^|[^[:alnum:]_./-])(wc|stat|du)[[:space:]]'
 
-# A line binding a name to one of those files: `doc="$ROOT/…"`, with or without `local`.
-# The captured name is what the measuring line three lines down will spell as a variable.
 BINDS="^[[:space:]]*(local[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)=.*$MD_FILES"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which line put a ceiling on which document rather than just that some
-# line did.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -74,14 +61,8 @@ report() {
   fi
 }
 
-# flat <text> — one line of it, for a failure message: newlines become slashes so a quoted
-# line stays one line.
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
-# subjects <file> — the ERE matching a reference to either document in <file>: the two names
-# themselves, plus every variable the file binds to one of them. Built per suite rather than
-# once for the tree, because `$doc` in one suite is one of these documents and in the next
-# one is the issue body.
 subjects() {
   local names joined
   names="$(sed -nE "s/$BINDS.*/\2/p" "$1" | sort -u | tr '\n' '|')"
@@ -93,16 +74,6 @@ subjects() {
   fi
 }
 
-# probe_no_suite_measures_either_file — the criterion. Every suite beside this one is asked
-# for its measuring lines, and each of those for a reference to one of the two documents.
-# The suites are found by globbing this directory rather than by a list, because a list is
-# what the next suite would be added outside of; `make test` finds them the same way.
-#
-# One problem per offending line, naming the suite and the line number, because what sends
-# the next author to the site is the address rather than the file.
-#
-# One grep across every suite first names the few that hold a size-verb line at all, so only
-# those pay the per-file sed and grep below (#332).
 probe_no_suite_measures_either_file() {
   local f name subj hit lineno text
   local -a suites=("$HERE"/*.test.sh) matched=()
@@ -114,8 +85,6 @@ probe_no_suite_measures_either_file() {
     while IFS= read -r hit; do
       lineno="${hit%%:*}"
       text="${hit#*:}"
-      # A comment cannot assert anything, and the prose in this tree discusses both
-      # documents' size at length — #202 is an issue about bytes.
       [[ "$text" =~ ^[[:space:]]*# ]] && continue
       [[ "$text" =~ $subj ]] || continue
       problems+=("$name:$lineno measures the size of one of the two files every request is billed for, which is the ceiling #202 refuses — the guard against those documents growing back is that every rule in them is still stated, never how many bytes it took: $(flat "$text")")
@@ -124,9 +93,6 @@ probe_no_suite_measures_either_file() {
   return 0
 }
 
-# 1. One criterion, one case: nothing in this directory puts a maximum size on either file.
-#    One case rather than one per document, because the rule is one sentence about both —
-#    and the problem lines say which document a ceiling was put on.
 name="no suite under skills/tdd/scripts/tests/ asserts a maximum size for CLAUDE.md or the conductor's SKILL.md"
 problems=()
 
@@ -134,37 +100,13 @@ probe_no_suite_measures_either_file
 
 report "$name"
 
-# Cases 2-4 below ask three shapes of the exemption logic above that the real tree never
-# happens to exercise: a comment, a variable bound three lines above its measuring line, and
-# a suite that measures something else entirely with the same three verbs. Moved from
-# no-size-assertion-forks.test.sh (#332), which used to observe them as a side effect of
-# counting that suite's own grep/sed starts; the count is gone (a suite asserts behaviour,
-# not cost — CLAUDE.md's "Testing idiom"), these three behaviours are not.
-#
-# Each asks its question by running a fresh COPY of this very file against a one-suite
-# fixture directory, the way skill-leaf-env.test.sh relaunches a copy of itself to ask about
-# a nested environment. That copy carries cases 2-4 too, and would relaunch a copy of
-# itself in turn without `NO_SIZE_ASSERTION_NESTED` — set once here, checked once below —
-# the same guard skill-leaf-env.test.sh's own `SKILL_LEAF_ENV_NESTED` is for. Case 1 still
-# runs in a nested copy (it is the one thing being observed); only 2-4 do not recurse.
 if [[ -z "${NO_SIZE_ASSERTION_NESTED:-}" ]]; then
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-# The document's name, spelled without its `.md` so no line here both measures and names it
-# (the same reason no-size-assertion-forks.test.sh, where these three cases came from, split
-# it the same way): this suite scans itself too, and a fixture body written out with the two
-# halves already joined would be a ceiling on CLAUDE.md as far as its own probe can tell.
 md=CLAUDE
 
-# observe <dir> <suite-name> <format> [<arg>…] — a fresh copy of THIS suite, run NESTED (see
-# above) in its own fixture directory beside one suite <suite-name> written by `printf
-# <format> <arg>…`; the observed suite's combined output lands in `out`. Each case's own
-# directory, so one case's fixture cannot be found by another's copy. The copy is of this
-# file, not of a different suite: `tok == self` in no-nested-suites.test.sh's guard is
-# exactly this shape, a suite proving its own exemption logic against a fixture rather than
-# another suite's.
 observe() {
   local dir="$tmp/$1" suite="$2" format="$3"
   shift 3
@@ -174,10 +116,6 @@ observe() {
   out="$(NO_SIZE_ASSERTION_NESTED=1 "$dir/no-size-assertion.test.sh" 2>&1)"
 }
 
-# 2. The criterion: a suite whose only size-verb line is a comment is not reported, even when
-#    that comment names the document — so the comment exemption, not a missing subject, is
-#    what keeps it green.
-#      → the observed suite `1 passed, 0 failed`, and no line naming the fixture suite.
 name="a suite whose only size-verb line is inside a comment is not reported, even when the comment names the document"
 problems=()
 
@@ -190,10 +128,6 @@ observe commented comment-only.test.sh \
 
 report "$name"
 
-# 3. The criterion: a suite binding a variable to the document three lines above the line
-#    that measures it is still reported — the measuring line names only `$doc`, so only the
-#    binding the probe reads out of the same suite makes it a ceiling.
-#      → the observed suite `0 passed, 1 failed`, naming binds-doc.test.sh:5, the `wc` line.
 name="a suite binding a variable to the document three lines above the line measuring it is still reported, naming the suite and line"
 problems=()
 
@@ -206,10 +140,6 @@ observe bound binds-doc.test.sh \
 
 report "$name"
 
-# 4. The criterion: a suite that measures something else entirely with `wc`, `stat` and `du`
-#    is not reported — even when the same suite names the document on a line that measures
-#    nothing, so only the per-line subject check keeps it green.
-#      → the observed suite `1 passed, 0 failed`, and no line naming the fixture suite.
 name="a suite that measures something else entirely with wc, stat and du is not reported, even when it also names the document on an unrelated line"
 problems=()
 

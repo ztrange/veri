@@ -65,9 +65,6 @@ suites_dir="skills/tdd/scripts/tests"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem, so
-# the output says which suite and line broke the rule rather than just that one did.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -79,22 +76,9 @@ report() {
   fi
 }
 
-# flat <text> — one line of it, for a failure message: newlines become slashes so a quoted
-# line stays one line. Pure parameter expansion rather than `printf … | tr`, which forks two
-# processes per problem line: with dozens of them possible in one red run, that fork pair was
-# most of this file's own wall time (0.65s of it, measured before this change), the same tax
-# a `.test.sh` file anywhere in this tree exists to stop other suites paying.
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
-# EXEMPT[<suite>]="<reason>" — a suite allowed to name another real suite outside a comment,
-# each because its own subject genuinely IS that other suite's behaviour and nothing cheaper
-# establishes it: a plant that has to run the real thing to prove a seam still catches a
-# regression, or a runner's own verdict over a real tree. Never add a suite whose rule this
-# file's own commit moved into a call-scoped check instead — a rule that can live in the
-# suite it is about does not belong here.
 declare -A EXEMPT=(
-  # This file's own header and this table necessarily name real suites outside a comment —
-  # the table's keys and the prose explaining each one. Those are policy, not a launch.
   [no-nested-suites.test.sh]="its own exemption table and header name every suite below by basename outside a comment; that is the policy this file states, not a launch of any of them"
 
   [hermetic-suites.test.sh]="its subject is whether a REAL suite's own output changes under an ambient VERI_* variable — solvable-issues.test.sh, supervise-retry.test.sh, leaf-model.test.sh and run-conductor.test.sh are each launched with and without one set and diffed; a copy or a fixture would be a fact about the copy, not about hermeticity"
@@ -110,11 +94,6 @@ declare -A EXEMPT=(
   [prose-drift-red.test.sh]="its subject is the verdict \`make test\`'s own runner reaches over a tree — \`make -C \$planted test TESTS=refactor-budget.test.sh\` — not the product; only the real recipe over the real suite produces that verdict"
 )
 
-# roster: every real suite's basename under $suites_dir and its unit/ tier — not fixtures/,
-# not offline/, not unit-guard/, the way `make test`'s own TESTS/UNIT_TESTS wildcards read
-# only this level and that one subdirectory.
-# No `basename`/`xargs` here (each is a process; `xargs -n1` is one PER name): a suite's own
-# `${path##*/}` strips the directory for free, which is the whole reason this file exists.
 mapfile -t SUITE_PATHS < <(cd "$ROOT" && printf '%s\n' "$suites_dir"/*.test.sh "$suites_dir"/unit/*.test.sh 2>/dev/null)
 SUITES=()
 for p in "${SUITE_PATHS[@]}"; do
@@ -122,12 +101,6 @@ for p in "${SUITE_PATHS[@]}"; do
 done
 mapfile -t SUITES < <(printf '%s\n' "${SUITES[@]}" | sort -u)
 
-# The full roster joined with a separator no suite name contains, and the list of files to
-# scan (skipping an exempted suite's file entirely rather than reading it just to discard
-# every hit) — both handed to ONE awk process below instead of one per suite. A first cut of
-# this file ran one awk (and, before that, one grep) per LINE of every suite: 65s to check a
-# tree awk reads in a fraction of a second, which is exactly the cost this issue exists to
-# cut, just paid by the guard meant to catch it instead of by the suites it catches.
 SUITE_LIST="$(IFS='|'; echo "${SUITES[*]}")"
 
 FILES=()
@@ -141,10 +114,6 @@ done
 
 problems=()
 
-# One awk pass over every non-exempt suite file. `FNR == 1` resets the per-file state (the
-# launch-verb gate and the path-form hits withheld until that file's own EOF, since the gate
-# can appear after the hit) and flushes the PREVIOUS file's pending hits, so this reads as
-# the same per-file logic as before with the file loop moved inside awk instead of around it.
 while IFS=$'\t' read -r suite lineno other text; do
   [[ -n "$lineno" ]] || continue
   problems+=("$suite:$lineno names $other outside a comment, in a shape this file treats as launching it, with no exemption recorded: $(flat "$text")")
@@ -190,20 +159,9 @@ done < <(awk -v suites="$SUITE_LIST" -v dir="$suites_dir" '
   END { flush_pending() }
 ' "${FILES[@]}")
 
-# 1. the whole-tree rule: every non-exempt suite, every line, no launch of another suite.
 scanned=("${problems[@]}")
 report "no suite under skills/tdd/scripts/tests/ (or its unit/ tier) launches another real suite outside the exemptions recorded here"
 
-# 2. the other half of that rule, stated as its own case because a false positive fails the
-#    run just as loudly as a missed launch and is fixed somewhere else entirely: a suite that
-#    names another suite WITHOUT starting it must not be reported. affected-suites.test.sh is
-#    where that shape lives (#416) — it writes a scratch fixture file at $s/tests/<name> and
-#    quotes the same basename in its case names, because the suite under test is
-#    affected-suites.sh and that basename is a line of the ANSWER it prints. It launches
-#    nothing; the four mentions are data, not a command. Read from case 1's own scan rather
-#    than a second pass, so this case costs nothing and cannot disagree with it.
-# mentions_reported <basename>... — the entries of case 1's scan that report affected-suites.test.sh
-# for naming any of the given suite basenames, collected into problems.
 mentions_reported() {
   local reported name
   problems=()
@@ -217,10 +175,6 @@ mentions_reported() {
 mentions_reported claude-md-counts.test.sh
 report "affected-suites.test.sh's fixture and case-name mentions of claude-md-counts.test.sh are not read as launching it"
 
-# 3. the same false-positive half for the pin #487 added: affected-suites.test.sh asserts that
-#    a change to lib/bug-section.sh selects build-develop-prompt.test.sh and
-#    build-verify-prompt.test.sh, so those two basenames are lines of the ANSWER
-#    affected-suites.sh prints — data, not a command. Read from case 1's scan, like case 2.
 mentions_reported build-develop-prompt.test.sh build-verify-prompt.test.sh
 report "#487: affected-suites.test.sh's mentions of build-develop-prompt.test.sh and build-verify-prompt.test.sh are not read as launching them"
 

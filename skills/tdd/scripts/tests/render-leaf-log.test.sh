@@ -27,8 +27,6 @@ check() {  # check <name> <fixture> <expected-stdout>
   fi
 }
 
-# 1. a captured leaf log renders as assistant text, each tool call's name and first input
-#    line, and a truncated tool result — one per line
 check "renders text, tool calls and truncated results one per line" \
 "$FIXTURES/leaf.out" \
 'Reading the suite before adding the case.
@@ -40,15 +38,11 @@ check "renders text, tool calls and truncated results one per line" \
 < 3 passed, 0 failed
 The case is added and fails as predicted.'
 
-# The input both of the non-JSON cases give the renderer: one record it can render, then a
-# line it cannot. Written once because the two assert on different halves of the same run —
-# case 2 on the status it exits with, case 3 on what it left on stdout.
 render_after_bad_line() {  # render_after_bad_line — the renderer's own stdout, stderr and status
   printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"text","text":"hi"}]}}' \
     'not json at all' | "$RENDER"
 }
 
-# 2. a line that is not JSON is no answer the renderer can give — exit 2, not a traceback's 1
 name="exits 2 on a line that is not JSON"
 render_after_bad_line >/dev/null 2>&1
 rc=$?
@@ -57,10 +51,6 @@ if [[ "$rc" -eq 2 ]]; then pass=$((pass + 1)); else
   echo "    expected exit 2, got $rc"
 fi
 
-# 3. the header's account of a line that is not JSON says what the script does with the
-#    records BEFORE it: they are discarded too, because the accumulated output is written
-#    only after the loop that exit leaves. "no rendering can be given" alone leaves a reader
-#    to guess whether the pane gets what the script managed — it gets nothing (#384).
 name="the header says a non-JSON line discards the records already rendered"
 header="$(sed -n '2,/^set -euo pipefail$/p' "$RENDER" | sed -n 's/^#[[:space:]]\{0,1\}//p')"
 rendered_before="$(render_after_bad_line 2>/dev/null)"

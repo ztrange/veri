@@ -33,10 +33,6 @@
 # that never could.
 set -uo pipefail
 
-# EXEMPT[<suite-basename>:<stub-name>]="<reason>" — a stub whose real waiting is deliberate,
-# each because the thing it waits for is not the supervisor's clock and cannot be moved onto
-# it. Two entries, both in supervise.test.sh. Never add one for a leaf that could have
-# jumped the clock instead: the entry would record the flake this file exists to prevent.
 declare -A EXEMPT=(
   [supervise.test.sh:leaf-term-sleep]="case 30 sends TERM to the supervisor and then asks whether the leaf is still alive, so the leaf must be a LIVE process for the whole case; it \`exec\`s into the sleep to be that process, and its own progress is never what the case reads — a clock jump would change nothing about it"
   [supervise.test.sh:await-poll]="not a leaf: the helper a stub leaf calls to be sure the supervisor has read the injected clock again. Its 0.01s poll waits on a counter the fake \`date\` appends to, an observed fact like the kill-grace polls above, and it returns the moment that fact lands rather than after any window"
@@ -53,18 +49,8 @@ for f in "$@"; do
   fi
 done
 
-# The exemption keys joined with a `|`, a character no suite or stub name contains, so awk
-# is asked once rather than the shell being asked per stub: a file's stubs are found and
-# judged in the same pass that reads it. Joined rather than newline-separated because an
-# `awk -v` assignment is one line — a newline inside one is a syntax error, not a value.
 keys="$(IFS='|'; echo "${!EXEMPT[*]}")"
 
-# One awk pass over every file named. Per file it tracks whether it is inside a stub body
-# (`in_body`, opened by the `cat > "$stub/<name>" <<TERM` line, closed by a line that is
-# the terminator alone) and accumulates two facts about that body: does it wait, does it
-# jump. `\$stub` is matched literally — a line that writes the same heredoc into a PLANTED
-# suite escapes its quotes (`cat > \"\$stub/…`) and is text being generated, not a stub
-# being written here, which is how this file can be run over a suite that plants one.
 found=0
 while IFS=$'\t' read -r file lineno stub; do
   found=1

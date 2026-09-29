@@ -30,27 +30,14 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 pass=0 fail=0
 
-# The issue asked for. A number nothing else in an argv would carry, so a probe that finds
-# it has found the one this script was given and not a version, a budget or a port.
 issue=4242
 
 stubdir="$(mktemp -d)"
 work="$(mktemp -d)"
 trap 'rm -rf "$stubdir" "$work"' EXIT
 
-# The stub `claude`: parses its argv the way the binary does and dies on an option it does
-# not know, then records its argv one argument per line to $ARGV_OUT and whatever arrives on
-# stdin to $PROMPT_OUT, emits a minimal stream-json stream, and exits with $STUB_EXIT — 0
-# unless a case asks for another status, which is the seam the exit-forwarding case below
-# drives. Same shape as run-leaf.test.sh's, plus the option parsing case 4 is the reason for:
-# a stub that accepts an argv the binary would reject makes an argv-shape bug invisible, so
-# the strictness is the stub's and every case gets it rather than case 4 alone. Stdin is
-# drained in every case, not only the ones that probe it: a prompt nobody reads fills the
-# pipe and stalls the writer.
 cat > "$stubdir/claude" <<'STUB'
 #!/bin/sh
-# A word beginning with a dash is an option, and an unknown one is fatal. Everything that is
-# not an option is left alone, so a value like `stream-json` still passes.
 for arg in "$@"; do
   case "$arg" in
     -p|--verbose|--output-format|--permission-mode) ;;
@@ -60,8 +47,6 @@ done
 printf '%s\n' "$@" > "$ARGV_OUT"
 cat > "${PROMPT_OUT:-/dev/null}"
 [ -n "${ENV_OUT:-}" ] && env > "$ENV_OUT"
-# A case that asks for the base directory and gets a prompt naming none is refused loudly:
-# an empty base would make the copy below `cp -R /.` — the whole filesystem (issue #256).
 if [ -n "${BASE_OUT:-}" ] || [ -n "${CONDUCTOR_HOOK:-}" ]; then
   base="$(sed -n 's/^Base directory for this skill: //p' "${PROMPT_OUT:-/dev/null}" 2>/dev/null | head -n 1)"
   [ -n "$base" ] && [ -d "$base" ] || { echo "stub: the prompt names no base directory" >&2; exit 2; }
@@ -78,10 +63,6 @@ argv="$work/argv"
 prompt="$work/prompt"
 launch_err="$work/launch.err"
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output names the flag that is missing rather than just saying the launch was wrong.
-# Same helper, same shape, as hermetic-suites.test.sh's.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -93,36 +74,20 @@ report() {
   fi
 }
 
-# flag <name> — the launch carried <name> as an argument of its own. Whole lines, because
-# the stub writes one argument per line: a substring match would accept `--verbose` found
-# inside a prompt that merely mentions it.
 flag() {
   grep -qx -- "$1" "$argv" ||
     problems+=("the launch does not carry $1")
 }
 
-# valued <flag> <value> — <flag> was passed with <value> as the argument right after it,
-# which is what `claude` reads and what a bare `grep` for the two words separately cannot
-# tell from them landing at opposite ends of the command line.
 valued() {
   grep -qx -- "$2" < <(grep -A1 -x -- "$1" "$argv") ||
     problems+=("the launch does not carry $1 $2")
 }
 
-# prompt_base — the base directory the last launch's prompt handed the conductor, or
-# nothing when the prompt names none.
 prompt_base() {
   head -n 1 < <(sed -n 's/^Base directory for this skill: //p' "$prompt" 2>/dev/null)
 }
 
-# differing_files <expected> <copy> — the files under <expected>, one path per line, that
-# <copy> does not hold byte for byte. Fails when <expected> cannot be entered.
-#
-# One `cksum` manifest per side — the same batching clone_state's `xargs -0 cksum` already
-# uses below (case 13) — instead of a `cmp` fork (and a `find`-loop `read`) per file: the
-# 143-file skill tree cost 143 forks here before, now 2 (`find|xargs cksum`) regardless of
-# tree size. Both manifests are sorted before diffing so a traversal-order
-# difference alone (not a content one) never reads as a change.
 differing_files() {
   local expected="$1" copy="$2" exp_manifest cop_manifest out
   exp_manifest="$(cd "$expected" && find . -type f -print0 | xargs -0 cksum | sort)" || return 1
@@ -132,9 +97,6 @@ differing_files() {
   printf '%s\n' "$out"
 }
 
-# holds_skill <base> <expected> <what> <detail> — <base>, the directory a launch was handed,
-# holds a skill, and it is <expected>'s files byte for byte; <what> names the launch and
-# <detail> the commit in the problem recorded otherwise.
 holds_skill() {
   if [[ ! -f "$1/SKILL.md" ]]; then
     problems+=("the $3 base directory held no skill while the conductor ran: $4")
@@ -145,8 +107,6 @@ holds_skill() {
   fi
 }
 
-# repin_in <log> <commit> — exit 0 when the event log <log> holds a `skill-repin` line naming
-# <commit>; exit 1 when it holds none, or cannot be read.
 repin_in() {
   python3 - "$1" "$2" <<'PY'
 import json, sys
@@ -159,22 +119,11 @@ sys.exit(0 if any(l.get("event") == "skill-repin" and sys.argv[2] in l.values()
 PY
 }
 
-# loose_skill <dir> — this skill copied under <dir>/skills/tdd, with no git of its own: the
-# fixture an unpinned case launches from, and what skill_clone commits.
 loose_skill() {
   mkdir -p "$1/skills"
   cp -R "$HERE/../.." "$1/skills/tdd"
 }
 
-# skill_clone <dir> — a git clone at <dir> holding this skill under skills/tdd, committed
-# once: the fixture a snapshot case launches run-conductor.sh from, so the skill commit it
-# resolves is one the case controls. Prints nothing; read the commit with rev-parse.
-#
-# The 143-file tree under test is the same for every case, so the first call builds one
-# canonical commit under $work/base-clone — loose_skill + commit_once, same work every call
-# used to redo on its own — and every call after just `cp -R`s it. A copied `.git` is its own
-# object store: two skill_clone dirs never share one, so a git operation on one (advance_clone,
-# a case's own sabotaging edit) cannot reach another case's clone.
 base_clone=""
 skill_clone() {
   if [[ -z "$base_clone" ]]; then
@@ -185,36 +134,22 @@ skill_clone() {
   cp -R "$base_clone/." "$1"
 }
 
-# commit_once <dir> — <dir> made a git repository whose one commit holds everything under it.
 commit_once() {
   git -C "$1" init -q
   git -C "$1" add -A
   git -C "$1" -c user.name=t -c user.email=t@t commit -qm skill
 }
 
-# cloned_skill <remote> <clone> — a skill_clone at <remote> and a plain `git clone` of it at
-# <clone>: a clone with an `origin`, which is what makes a launch fetch before it pins.
 cloned_skill() {
   skill_clone "$1"
   git clone -q "$1" "$2"
 }
 
-# advance_clone <clone> <line> — a second skill commit on <clone>, appending <line> to its
-# supervise.sh: the clone moving under a run, so the commit a launch pins is no longer HEAD.
 advance_clone() {
   echo "$2" >> "$1/skills/tdd/scripts/supervise.sh"
   git -C "$1" -c user.name=t -c user.email=t@t commit -qam pulled
 }
 
-# launch_from <caller> <clone> [VAR=value…] — run <clone>'s run-conductor.sh for the issue from
-# inside <caller>, against the stub, with any extra VAR=value in its environment: the one way
-# every snapshot case launches, so the cases differ only in what they add. The launch's stderr
-# lands in $launch_err, and its exit status is the function's.
-#
-# VERI_NEW_SKILL is cleared first (#285): run-conductor.sh reads it to choose between keeping a
-# resume's recorded pin and re-pinning, so a case that does not pass it must not inherit the
-# caller's — a run resumed with VERI_NEW_SKILL=1 hands it to its leaves' `make test`. A case
-# that does pass it still gets it: the `env` assignments are applied after the unset.
 launch_from() {
   local caller="$1" clone="$2"
   shift 2
@@ -222,26 +157,16 @@ launch_from() {
       "$clone/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>"$launch_err"
 }
 
-# caller_repo <dir> — an empty git repository at <dir>: the checkout a snapshot case launches
-# run-conductor.sh from, whose `.tdd/` holds the run state the launch records.
 caller_repo() {
   mkdir -p "$1"
   git -C "$1" init -q
 }
 
-# skill_archive <clone> <commit> <dir> — <commit>'s skills/tdd, extracted under <dir>, so
-# <dir>/skills/tdd is what a snapshot of that commit must hold file for file.
 skill_archive() {
   mkdir -p "$3"
   git -C "$1" archive "$2" skills/tdd | tar -x -C "$3"
 }
 
-# tree_clone <dir> — a git repository at <dir> whose one commit is the skill as the tree under
-# test has it committed, with the tree's working copy laid over it uncommitted: the tree under
-# test as cases 1–5 ask about it, minus its origin. They launch from here rather than from the
-# run-conductor.sh beside this suite (issue #258), because a launch there fetches this
-# checkout's real origin over the network and pins whatever origin/main holds. Committed and
-# uncommitted stay apart because cases 21 and 22 ask about exactly that difference.
 tree_clone() {
   local root prefix
   root="$(cd "$HERE/../.." && git rev-parse --show-toplevel)"
@@ -255,12 +180,6 @@ tree_clone() {
 tree_clone "$work/tree"
 CONDUCTOR="$work/tree/skills/tdd/scripts/run-conductor.sh"
 
-# The eight handles a nested `claude` would otherwise inherit from the session that launched
-# it — the messaging socket and token most of all, which wire a second session into the
-# first one's IPC channel. Each carries the value it is set to, because the list that sets
-# them and the list that then looks for them gone must be the same list: a name set here but
-# probed under a second spelling is a probe that passes having watched nothing. Read by
-# assert_case2, defined below; declared here so it exists wherever that runs.
 handles=(
   CLAUDECODE=1
   CLAUDE_CODE_SESSION_ID=parent-session
@@ -274,46 +193,24 @@ handles=(
 
 envfile="$work/env"
 
-# assert_case1..assert_case5 <conductor> — cases 1-5's own bodies, as functions taking the
-# run-conductor.sh to launch instead of reading the global $CONDUCTOR: each writes its
-# findings into `problems`, the same array `flag`/`valued` already write into, reset by
-# whichever case calls it. No namerefs — same style as the rest of this file.
-#
-# Factored out so cases 21-23 can ask "does case N hold against this other clone's
-# run-conductor.sh" by calling the function directly, instead of awk-cutting case N out of a
-# copy of this whole suite and running that copy as a child process (which is what they did
-# until this refactor: a full second tree_clone, a full second stub `claude`, one launch tax
-# per nested case). run-conductor-argv-guard.test.sh still awk-slices case 4 out of this file
-# for its own reasons (planting a bug in a scratch run-conductor.sh) — that still works
-# unchanged, because these functions live in the shared preamble the slice always keeps, and
-# case 4's own block below is still exactly the two lines the slice needs: reset `problems`,
-# call the function, report.
 
-# assert_case1 — the criterion: one conductor, launched as `claude -p` for the issue,
-# streaming events.
 assert_case1() {
   local conductor="$1"
 
   ( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
       "$conductor" "$issue" ) >/dev/null 2>&1
 
-  # Fail closed: no argv file means the stub was never reached, so every probe below would be
-  # reading a file that does not exist and reporting four problems for one. One says it.
   if [[ ! -f "$argv" ]]; then
     problems+=("the conductor binary was never launched — $conductor recorded no argv")
   else
     flag -p
     valued --output-format stream-json
     flag --verbose
-    # The prompt travels on stdin, not argv — case 4 is why — so the issue is looked for
-    # where it now goes.
     grep -q -- "$issue" "$prompt" 2>/dev/null ||
       problems+=("issue $issue does not reach the prompt the launch carries")
   fi
 }
 
-# assert_case2 — the environment the child is handed: the session handles severed, the
-# tunables intact.
 assert_case2() {
   local conductor="$1"
 
@@ -334,11 +231,6 @@ assert_case2() {
   fi
 }
 
-# assert_case3 — the status: a conductor that died is a conductor the caller must be able to
-# see died, so the child's status is the script's and not a status the script invents. 17
-# because it is neither 0 nor one of the four codes this repository's scripts speak, so a
-# script that forwards it cannot be a script that happens to produce the same number some
-# other way.
 assert_case3() {
   local conductor="$1" status
 
@@ -350,27 +242,12 @@ assert_case3() {
     problems+=("the script exited $status, not the child's 17")
 }
 
-# assert_case4 — the procedure's first line is the frontmatter fence `---`, and to a real
-# `claude` a word beginning with a dash is an option, not a prompt: the launch dies on
-# `unknown option` before a conductor exists. The stub parses options for that reason, so a
-# procedure passed by argv makes this case's launch exit non-zero the way the binary's does;
-# what is left to ask is whether the whole procedure arrived anyway.
 assert_case4() {
   local conductor="$1" status cwd
-  # The procedure compared against is the SKILL.md in the directory the launch was handed,
-  # not the one beside this script: the run pins origin/<default>'s commit (#251), so a
-  # working tree whose SKILL.md differs from that commit — any branch that edits it — would
-  # otherwise fail here for a launch that handed over its own procedure whole.
   local handed="$work/handed-skill"
   rm -rf "$prompt" "$handed"
   mkdir -p "$handed"
   local SKILL="$handed/SKILL.md"
-  # A fresh cwd per call, not the shared $work: run-conductor.sh records its pin as
-  # .tdd/issue-<n>-skill-commit under whatever directory it is run from, and this function is
-  # now called more than once against different conductors (case 4 itself, then 21 and 22 —
-  # case 21's note explains why). Sharing $work as the cwd across those calls would leave the
-  # first call's record on disk for the second to find and refuse to re-pin over (issue #253's
-  # own protection, tripped by this test rather than by anything under test).
   cwd="$(mktemp -d -p "$work")"
 
   ( cd "$cwd" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
@@ -386,19 +263,10 @@ assert_case4() {
   elif ! IFS= read -r fence < "$SKILL" || [[ "$fence" != "---" ]]; then
     problems+=("the procedure handed over does not open with the frontmatter fence this case is about")
   elif [[ "$(cat "$prompt")" != "$(cat "$SKILL")"* ]]; then
-    # Verbatim-prefix, compared as text rather than by taking the procedure's first N lines
-    # off the front of what arrived: a line count is a size, and #202 forbids any suite here
-    # from applying a size verb to SKILL.md. The tail the prefix leaves is the issue line,
-    # which case 1 is the one that asserts on.
     problems+=("what reached the binary does not begin with $SKILL verbatim")
   fi
 }
 
-# assert_case5 — print mode has nobody to approve a tool call, so without this flag the
-# `gh`, the `make` and the nested `claude` a conductor needs are all denied and it is a
-# process that can read but cannot act. Asserted as a flag-with-value rather than as two
-# words found anywhere, because `--permission-mode` reads whatever argument follows it: the
-# pair landing at opposite ends of the command line is a different launch from this one.
 assert_case5() {
   local conductor="$1"
 
@@ -412,51 +280,31 @@ assert_case5() {
   fi
 }
 
-# 1. The criterion: one conductor, launched as `claude -p` for the issue, streaming events.
 name="run-conductor.sh <issue> launches claude -p for that issue in stream-json"
 problems=()
 assert_case1 "$CONDUCTOR"
 report "$name"
 
-# 2. The environment the child is handed: the session handles severed, the tunables intact.
 name="the launch severs the eight session handles and passes VERI_* through"
 problems=()
 assert_case2 "$CONDUCTOR"
 report "$name"
 
-# 3. The status: a conductor that died is a conductor the caller must be able to see died,
-# so the child's status is the script's and not a status the script invents.
 name="a non-zero child exit is the script's exit"
 problems=()
 assert_case3 "$CONDUCTOR"
 report "$name"
 
-# 4. The procedure's first line is the frontmatter fence `---`, and to a real `claude` a
-# word beginning with a dash is an option, not a prompt: the launch dies on `unknown option`
-# before a conductor exists. The stub parses options for that reason, so a procedure passed
-# by argv makes this case's launch exit non-zero the way the binary's does; what is left to
-# ask is whether the whole procedure arrived anyway.
 name="a frontmatter-fenced procedure launches and reaches the binary whole"
 problems=()
 assert_case4 "$CONDUCTOR"
 report "$name"
 
-# 5. Print mode has nobody to approve a tool call, so without this flag the `gh`, the `make`
-# and the nested `claude` a conductor needs are all denied and it is a process that can read
-# but cannot act. Asserted as a flag-with-value rather than as two words found anywhere,
-# because `--permission-mode` reads whatever argument follows it: the pair landing at
-# opposite ends of the command line is a different launch from this one.
 name="the launch carries --permission-mode bypassPermissions"
 problems=()
 assert_case5 "$CONDUCTOR"
 report "$name"
 
-# 6. The run pins its skill (issue #237). A conductor in print mode is not handed a base
-# directory by a harness, so it is handed one in its prompt, in the harness's own words —
-# `Base directory for this skill: …` — which is the phrase SKILL.md tells it to read `S` from.
-# The fixture is a clone of this skill with one committed state and one uncommitted edit on
-# top: a base directory that is the clone's own `skills/tdd` fails the first probe, and one
-# that is a copy of the working tree rather than of the commit fails the second, on the edit.
 name="the conductor's base directory is a snapshot of the skill commit, not the clone"
 problems=()
 
@@ -471,8 +319,6 @@ skill_archive "$clone" "$commit" "$committed"
 caller="$work/caller"
 caller_repo "$caller"
 rm -f "$prompt"
-# The snapshot is the launch's to remove once the conductor returns, so its files are copied
-# out by the stub while the conductor is still running, and compared from that copy.
 live="$work/live-base"
 mkdir -p "$live"
 
@@ -491,13 +337,6 @@ fi
 
 report "$name"
 
-# 7. The pin holds for what a leaf executes, not only for what the conductor is told. While
-# the conductor is running, the hook sabotages the clone the skill was launched from — its
-# supervise.sh replaced by one that exits 42, its run-leaf.sh deleted, its develop-red
-# template rewritten — and only then launches a leaf the way SKILL.md does, from the base
-# directory's scripts: the prompt built by build-develop-prompt.sh, the leaf run by
-# supervise.sh over run-leaf.sh. A leaf that runs, and is handed the committed template
-# rather than the rewritten one, is a leaf that read none of the three from the clone.
 name="a leaf launched mid-run executes the snapshot's supervise.sh, run-leaf.sh and template, not the clone's"
 problems=()
 
@@ -508,7 +347,6 @@ leafdir="$work/leaf"
 mkdir -p "$leafdir"
 echo "spec" > "$leafdir/spec.md"
 
-# The leaf's own `claude`: records the prompt it is handed with `-p` and emits a result.
 cat > "$stubdir/leaf-claude" <<'STUB'
 #!/bin/sh
 while [ "$#" -gt 0 ]; do
@@ -528,17 +366,12 @@ rm -f "\$src/run-leaf.sh"
 echo "SABOTAGED-TEMPLATE" > "\$src/prompts/develop-red.md"
 cd "$leafdir" || exit 1
 "\$base/scripts/build-develop-prompt.sh" red spec.md "the step" "make test" > leaf.prompt 2> build.err
-# VERI_POLL=0.02 (the same value verify.test.sh and supervise.test.sh inject): the rule here
-# is which binary ran and what got logged, not wall-clock behavior, so the mandatory poll
-# sleep before supervise.sh can observe an already-finished leaf is pure cost to shrink.
 env CLAUDE_BIN="$stubdir/leaf-claude" LEAF_PROMPT_OUT="$leafdir/leaf-received" VERI_POLL=0.02 \
   "\$base/scripts/supervise.sh" develop-red "\$base/scripts/run-leaf.sh" leaf.prompt > supervise.out 2> supervise.err
 echo \$? > supervise.rc
 HOOK
 chmod +x "$stubdir/hook"
 
-# A caller of its own: the shared one already holds a pin from case 6's clone, which clone2
-# cannot resolve, and a resume over an unresolvable pin refuses (issue #253).
 caller2="$work/caller2"
 caller_repo "$caller2"
 launch_from "$caller2" "$clone2" CONDUCTOR_HOOK="$stubdir/hook"
@@ -561,12 +394,6 @@ fi
 
 report "$name"
 
-# 8. A resume keeps its pin. The issue is launched once from a clone at commit A, then the
-# clone moves to commit B — a `git pull` in another thread, as far as the run can tell — and
-# the same issue is launched again from the same caller, which is a resume of that run. The
-# first launch's snapshot is gone by then (the launch removes it on exit), so the second
-# launch has to re-materialise one, and it has to be A's: a base directory holding B's
-# supervise.sh is a resume that took the new skill as a side effect of the pull.
 name="a resume of the run is handed a re-materialised snapshot of the recorded commit, not the clone's new HEAD"
 problems=()
 
@@ -603,12 +430,6 @@ fi
 
 report "$name"
 
-# 9. Taking the new skill is an explicit act, and a recorded one. The run is launched from a
-# clone at commit A, the clone moves to commit B, and the same issue is launched again with
-# VERI_NEW_SKILL=1 — the operator asking for the new skill on this resume. That launch is
-# handed B's files, not the recorded A's, and the run worktree's event log carries a
-# `skill-repin` line naming B (issue #265: never the caller's, although no worktree exists yet):
-# a re-pin nobody can find in the log is the side effect the pin exists to stop.
 name="a resume with VERI_NEW_SKILL=1 is re-pinned to the clone's current commit and logs a skill-repin event"
 problems=()
 
@@ -638,11 +459,6 @@ repin_in "$caller4/.tdd/wt/$issue/.tdd/events.jsonl" "$current" ||
 
 report "$name"
 
-# 10. A skill that is not in a git clone has no commit to pin. The run still proceeds, from
-# the skill directory as it is, and says so on stderr: an unpinned run nobody was told about is
-# the silent drift the pin exists to end. GIT_CEILING_DIRECTORIES stops git from finding a
-# repository above the fixture, so "no resolvable commit" does not depend on where the
-# scratch directory happens to live.
 name="with no resolvable skill commit the run proceeds unpinned and warns on stderr"
 problems=()
 
@@ -664,12 +480,6 @@ fi
 
 report "$name"
 
-# 11. The snapshot is run state, and run state is ignored. The caller is a checkout with one
-# commit and nothing else, so `git status --porcelain` there is empty before the launch; the
-# clone the skill is launched from is the same. Both are asked while the conductor is still
-# running — the snapshot and the recorded commit exist then, whatever the launch removes on
-# exit — and again once it has returned. Any line either prints is something the pin left
-# behind in a tree a later `git add -A` would sweep up.
 name="the snapshot leaves git status --porcelain empty in the caller's checkout and in the skill clone"
 problems=()
 
@@ -709,11 +519,6 @@ fi
 
 report "$name"
 
-# 12. The pin is origin's tip, not the clone's HEAD (issue #251). The skill's clone is cut
-# from a remote at commit A, then the remote moves to commit B — a PR landing on the default
-# branch — and nobody pulls the clone. A launch from that clone is handed B's files: the
-# base directory holding A's supervise.sh is a run executing a skill the remote has already
-# replaced, which is the 50-commits-behind primary this issue was filed over.
 name="a launch from a clone behind origin/<default> is handed a snapshot of origin's tip"
 problems=()
 
@@ -738,12 +543,6 @@ holds_skill "$tip_base" "$tipdir/skills/tdd" "launch's" "origin's tip $tip: $(ca
 
 report "$name"
 
-# 13. Reaching origin's tip never moves the clone (issue #251). The clone is the primary other
-# live runs share, so the launch that pins origin's tip must not get there by pulling or
-# checking out: the clone is left behind the remote, on its branch, with an uncommitted edit
-# to a file the remote's new commit does not touch — so a fast-forward pull would succeed and
-# move HEAD rather than refusing — and its HEAD, branch and working tree are read before the
-# launch and again after it.
 name="a launch leaves the skill clone's HEAD, branch and working tree unchanged"
 problems=()
 
@@ -753,8 +552,6 @@ cloned_skill "$remote7" "$clone7"
 advance_clone "$remote7" "# a commit that landed on the remote after the clone was cut"
 echo "# an uncommitted edit in the clone" >> "$clone7/skills/tdd/SKILL.md"
 
-# clone_state <clone> — the clone's HEAD commit, its branch, its porcelain status and the
-# bytes of every file it tracks as they sit in the working tree, one block.
 clone_state() {
   git -C "$1" rev-parse HEAD
   git -C "$1" symbolic-ref -q HEAD || echo "detached"
@@ -780,20 +577,11 @@ fi
 
 report "$name"
 
-# 14. A fetch that fails is a launch that fails (issue #251). The clone's origin is a path
-# that no longer holds a repository — a remote nobody can reach — so the tip the pin needs
-# cannot be learned. The launch exits 2 without starting a conductor, and says on stderr that
-# it was the fetch that failed: falling back to the clone's HEAD would be a run on a stale
-# skill that nobody was told about, which is the defect this issue exists to end.
 name="a failed fetch of origin exits 2 before any conductor is launched and names the fetch on stderr"
 problems=()
 
 remote8="$work/remote8"
 clone8="$work/clone8"
-# clone8 must hold this skill's real, current run-conductor.sh — it is what launch_from
-# actually executes — but remote8 exists only to be cloned from (for a valid origin url in
-# clone8's config) and then removed: its own content never has to be a skill, so it is a bare
-# repository nothing checks a working tree out of, cheaper than a full skill clone.
 skill_clone "$clone8"
 git init -q --bare "$remote8"
 git -C "$clone8" remote add origin "$remote8"
@@ -815,13 +603,6 @@ grep -qi 'fetch' "$launch_err" ||
 
 report "$name"
 
-# 15. The pin is on the record (issue #251). The clone is behind a remote that moved, so the
-# commit the run pinned is origin's tip and not the clone's HEAD. While the conductor runs, the
-# hook does what a conductor does from its base directory — writes a mark through event.sh and
-# launches a leaf through supervise.sh — in the caller's checkout; every line either writes to
-# `.tdd/events.jsonl` must carry the tip as `skill_commit`, and the prompt the conductor was
-# handed must name the tip for its plan comment. A sha asked of the snapshot's own git is no
-# answer: the snapshot has none, so it reads empty or `unknown` rather than the commit pinned.
 name="every event a launched run writes carries origin's tip as skill_commit, and the prompt names it"
 problems=()
 
@@ -839,15 +620,11 @@ cat > "$stubdir/record-hook" <<HOOK
 base="\$1"
 cd "$caller9" || exit 1
 "\$base/scripts/event.sh" conductor-mark
-# Same VERI_POLL rationale as the hook above: this case reads skill_commit off events and
-# the prompt, never wall-clock behavior.
 VERI_POLL=0.02 "\$base/scripts/supervise.sh" develop-red echo ok > /dev/null 2>&1
 HOOK
 chmod +x "$stubdir/record-hook"
 
 rm -f "$prompt"
-# Launched with no VERI_SKILL_COMMIT of its own, so the sha a line carries is the one the launch
-# put there and not one inherited from whatever session runs this suite.
 ( unset VERI_SKILL_COMMIT; launch_from "$caller9" "$clone9" CONDUCTOR_HOOK="$stubdir/record-hook" )
 
 if [[ ! -s "$caller9/.tdd/events.jsonl" ]]; then
@@ -870,12 +647,6 @@ grep -q -- "$tip9" "$prompt" 2>/dev/null ||
 
 report "$name"
 
-# 16. A resume keeps its pin when origin moves (issue #251). The run is first launched from a
-# clone whose origin is at commit A, so A is the pin recorded. Then the remote moves to B — a
-# PR landing between the two launches — and the same issue is launched again from the same
-# caller. That launch fetches and sees B as origin's tip, and must still be handed A's files
-# and name A in its prompt: a resume that follows origin's tip is a run whose skill changed
-# mid-run without anyone asking for it.
 name="a resumed run keeps its recorded pin when origin/<default> has moved since the first launch"
 problems=()
 
@@ -910,12 +681,6 @@ fi
 
 report "$name"
 
-# 17. Asking for the new skill takes origin's tip, not the clone's HEAD (issue #251). The run is
-# first launched from a clone whose origin is at commit A. Then the remote moves to B — a PR
-# landing — while the clone moves to a commit C of its own that origin never saw, so the two
-# answers a re-pin could give are different files. The same issue is launched again with
-# VERI_NEW_SKILL=1, and that launch must be handed B's files and name B in its prompt: a re-pin
-# to the clone's HEAD is the operator asking for the new skill and getting a stale one.
 name="a resume with VERI_NEW_SKILL=1 re-pins to origin/<default> as just fetched, not to the clone's HEAD"
 problems=()
 
@@ -951,12 +716,6 @@ fi
 
 report "$name"
 
-# 18. A recorded pin this clone cannot resolve is not a licence to re-pin (issue #253). The run
-# is launched once, then its record is made to name a commit from another repository — what a
-# second clone, a shallow one or a pruned branch looks like to `git cat-file -e`. A plain resume
-# must refuse with exit 2 before any conductor exists; the same resume with VERI_NEW_SKILL=1 is
-# the operator taking the new skill, and is re-pinned to HEAD with a `skill-repin` event naming
-# it. Both logs a run may write are read, because which one holds the line is a later step's.
 name="an unresolvable recorded skill commit refuses with exit 2 unless VERI_NEW_SKILL=1, which re-pins and logs a skill-repin event"
 problems=()
 
@@ -997,10 +756,6 @@ repin_in "$caller12/.tdd/events.jsonl" "$head12" ||
 
 report "$name"
 
-# 19. The re-pin is logged where the run's other events are (issue #253). A re-pin is a resume,
-# so the run's worktree `.tdd/wt/<n>` already exists; the `skill-repin` line must land in that
-# worktree's `.tdd/events.jsonl` — the log metrics.sh reads — and not in the log of the
-# directory the operator happened to launch from, which no reader of the run ever opens.
 name="the skill-repin event lands in the run worktree's .tdd/wt/<n>/.tdd/events.jsonl, never the caller's .tdd/events.jsonl"
 problems=()
 
@@ -1028,13 +783,6 @@ fi
 
 report "$name"
 
-# 20. The unpinned case reaches the conductor, and the plan comment says so (issue #253). A run
-# with no resolvable skill commit warns on stderr, but stderr is the operator's terminal, not the
-# thread a run is read back from: the conductor must be told in its environment — the one channel
-# every process of the run inherits — as VERI_SKILL_UNPINNED=1, and SKILL.md's plan-comment step
-# (2.4, the `### 🗺️ Plan` item) must name that variable, so the comment that names a pinned
-# commit says "unpinned" instead of naming none. Launched with no VERI_SKILL_UNPINNED of its own,
-# so a value the child holds is one the launch put there.
 name="an unpinned launch hands the conductor VERI_SKILL_UNPINNED=1, and SKILL.md's plan-comment step names it"
 problems=()
 
@@ -1051,9 +799,6 @@ elif ! grep -qx 'VERI_SKILL_UNPINNED=1' "$env14"; then
   problems+=("the unpinned launch handed the conductor no VERI_SKILL_UNPINNED=1 in its environment")
 fi
 
-# The step is matched by its name, not its number: the draft PR #195 added ahead of it
-# moved it from 2.3 to 2.4, and a probe pinned to a digit fails a document that still says
-# exactly what this case is about.
 plan_step14="$(awk '/^[0-9]+\. \*\*Mirror the plan\*\*/ {on=1} on && /^$/ {exit} on' "$HERE/../../SKILL.md")"
 if [[ -z "$plan_step14" ]]; then
   problems+=("SKILL.md has no plan-comment step (2.4, **Mirror the plan**) to read")
@@ -1063,15 +808,6 @@ fi
 
 report "$name"
 
-# 21. Case 4 holds in a tree whose SKILL.md carries an uncommitted edit (issue #256). A green
-# leaf edits SKILL.md before it commits, so a case 4 that compared against the working tree's
-# SKILL.md rather than the committed one the launch hands over would make every such step red.
-# The fixture is a skill clone committed once, then edited; assert_case4 (case 4's own body,
-# factored out above) is called directly against that clone's run-conductor.sh, so it is case
-# 4 as written that is asked, against a launch pinned to the clone's commit — no cutting a
-# copy of this suite out of the clone and running it as a child process, which is how this
-# case and 22-23 used to ask the same question (up to ~2s each, mostly a second tree_clone and
-# a second stub `claude`, to run code already loaded in this process).
 name="case 4 passes with an uncommitted edit to SKILL.md in the tree under test"
 problems=()
 
@@ -1083,20 +819,6 @@ assert_case4 "$clone21/skills/tdd/scripts/run-conductor.sh"
 
 report "$name"
 
-# 22. Case 4 still fails when what reaches the binary is not the committed SKILL.md (issue
-# #256). Case 21 is the half where passing is right; this is the half where it is not, so a
-# case 4 made to pass by comparing against whatever arrived cannot pass both. The fixture is
-# case 21's — a skill clone committed once, its SKILL.md then edited — with the clone's
-# run-conductor.sh reading the procedure from that edited working tree while it still hands
-# over the committed snapshot as the base. The edit is a line put before the fence rather
-# than after the end, because committed text followed by more text still begins with the
-# committed text and case 4's prefix check would rightly pass it. Case 4 must fail on the
-# comparison itself, not on a launch that never happened.
-#
-# assert_case4 is called directly (case 21's note explains why), so what it means for "case 4"
-# to fail here is that it writes exactly the one, specific verbatim-prefix problem to
-# `problems` — no problem at all would mean it wrongly passed; any other problem would mean it
-# failed for the wrong reason, e.g. the launch never running at all.
 name="case 4 fails when what reaches the binary differs from the committed SKILL.md"
 problems=()
 
@@ -1126,24 +848,6 @@ fi
 
 report "$name"
 
-# 23. Cases 1–5 need no network and no particular origin/main (issue #258). Since #251 a launch
-# fetches the skill clone's `origin` before it pins, so a case that launches the run-conductor.sh
-# beside this suite fetches whatever origin this checkout has — the real repository, over the
-# network — and case 4 then holds only for what origin/main happens to point at. The fixture is
-# a skill clone whose origin is a URL nothing listens on; cases 1–5 are cut out of that clone's
-# copy of this suite — the preamble through case 5, and the count line — and run there, the way
-# case 21 used to run case 4, so a case that still launches from the tree it sits in fetches that
-# dead origin and fails, and one that launches from a fixture it controls does not.
-#
-# Unlike 21 and 22, this one keeps the cut-and-subprocess shape rather than calling
-# assert_case1..assert_case5 directly: clone23's own run-conductor.sh is the negative control —
-# its unreachable origin exists so that *launching it directly* always fails the fetch and
-# never reaches `claude` at all. What cases 1-5 must be asked against is tree_clone's fixture as
-# built from *inside* clone23 — origin-less by construction (tree_clone's own doc, above) — and
-# that only happens if $HERE resolves inside clone23 when tree_clone runs, which needs a process
-# whose own $0 sits there. Calling the functions directly, in this process, would parameterize
-# them with clone23's own adjacent script — the one thing this case's fixture guarantees always
-# fails — inverting what "cases 1-5 pass" is asking.
 name="cases 1-5 pass when the checkout under test has an unreachable origin"
 problems=()
 
@@ -1152,7 +856,7 @@ skill_clone "$clone23"
 git -C "$clone23" remote add origin "https://127.0.0.1:1/veri.git"
 
 suite23="$clone23/skills/tdd/scripts/tests/cases1-5-only.test.sh"
-awk '/^# 6\. / {exit} 1' "$clone23/skills/tdd/scripts/tests/run-conductor.test.sh" > "$suite23"
+awk '/^name=/ && ++n == 6 {exit} 1' "$clone23/skills/tdd/scripts/tests/run-conductor.test.sh" > "$suite23"
 printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$suite23"
 chmod +x "$suite23"
 
@@ -1166,12 +870,6 @@ fi
 
 report "$name"
 
-# 24. VERI_NEW_SKILL=1 is this launch's instruction, not the run's (issue #285). It decides one
-# thing — whether this resume keeps its recorded pin or takes the new skill — and that decision
-# is made before the conductor exists. Handed on, it reaches every process the conductor spawns,
-# a leaf's `make test` among them, where it turns this suite's resume cases red. The run is
-# launched once, the clone moves, and the same issue is resumed with VERI_NEW_SKILL=1: that
-# launch must still re-pin and log it, and the conductor it starts must see no VERI_NEW_SKILL.
 name="a re-pinning launch with VERI_NEW_SKILL=1 hands the conductor no VERI_NEW_SKILL"
 problems=()
 
@@ -1200,17 +898,6 @@ fi
 
 report "$name"
 
-# 25. Each phase's launch is built with its own tier of test command (#341). While the
-# conductor runs, the hook launches every leaf phase the way SKILL.md does, from the base
-# directory's scripts — the three developer prompts built by build-develop-prompt.sh and run
-# by supervise.sh over run-leaf.sh, the three verifiers run by verify.sh — handing each the
-# full command and the fast one as two marker strings, every verifier getting `--fast-cmd`
-# alike, so that what a phase runs is decided by the phase and not by what the hook withheld —
-# and then verify-refactor once more without it, which must be refused, as green's is.
-# The leaf's stub `claude` records the prompt it was handed, and the prompt is read for which
-# command the leaf is told to run: the fast marker is `fast`, `affected-suites.sh` is
-# `affected`, both are `fast+affected`, and a prompt naming only the full marker is `all` —
-# the tier no leaf gets, since the conductor runs it itself, once, before the PR is readied.
 name="each phase's leaf is launched with its tier: red and refactor affected, green, verify-green and verify-refactor fast+affected"
 problems=()
 
@@ -1223,8 +910,6 @@ echo "spec" > "$tiers/spec.md"
 fast25="make FAST-TIER-7781"
 all25="make ALL-TIER-7781"
 
-# The leaves' own `claude`: records the prompt it is handed with `-p` to $LEAF_PROMPT_OUT and
-# answers with a verdict, so a verifier leaf is parsed and not retried for want of one.
 cat > "$stubdir/tier-claude" <<'STUB'
 #!/bin/sh
 while [ "$#" -gt 0 ]; do
@@ -1261,8 +946,6 @@ caller25="$work/caller25"
 caller_repo "$caller25"
 launch_from "$caller25" "$clone25" CONDUCTOR_HOOK="$stubdir/hook25"
 
-# tier_of <file> — the command the prompt in <file> tells its leaf to run, in the four words
-# the criterion uses.
 tier_of() {
   local fast="" affected=""
   grep -qF -- "$fast25" "$1" && fast=fast
@@ -1285,9 +968,6 @@ for want in develop-red=affected verify-red=affected develop-green=fast+affected
   fi
 done
 
-# verify-refactor's fast half must not hang on the hook having passed it: a launch that omits
-# `--fast-cmd` is refused (exit 2) before any leaf is asked, the way green's is, so a refactor
-# verifier can never be told to run a fast command nobody named.
 bare25="$(cat "$tiers/verify-refactor-bare.exit" 2>/dev/null)"
 if [[ "$bare25" != 2 || -e "$tiers/verify-refactor-bare.received" ]]; then
   problems+=("verify-refactor launched without --fast-cmd exited ${bare25:-nothing} and its leaf $([[ -e "$tiers/verify-refactor-bare.received" ]] && echo received || echo "never received") a prompt, want exit 2 and no prompt")
@@ -1295,11 +975,6 @@ fi
 
 report "$name"
 
-# 26. The re-pin is the run's event even before the run has a worktree (issue #265). Case 19
-# re-pins a resume whose `.tdd/wt/<n>` already exists; here the first launch never got as far
-# as creating one, so the re-pin runs with no worktree directory at all. The `skill-repin` line
-# still belongs in the worktree's `.tdd/events.jsonl` — the log metrics.sh reads — and never in
-# the caller's, which no reader of the run opens: a fallback to the caller's log is the gap.
 name="a VERI_NEW_SKILL=1 re-pin that runs before .tdd/wt/<n> exists writes its skill-repin event to the run worktree's .tdd/events.jsonl and never to the caller's"
 problems=()
 
@@ -1328,12 +1003,6 @@ fi
 
 report "$name"
 
-# 27. A direct launch needs nothing the orchestrator adds (issue #217). orchestrate.sh sits
-# above run-conductor.sh and brings three things of its own: itself, VERI_CONDUCTOR_CTX_BUDGET
-# and `.tdd/parked/<n>.md`. A `/tdd <n>` launched straight through run-conductor.sh, from a
-# caller with no `.tdd/` at all and no budget in its environment, must still reach the
-# conductor and exit 0, and the procedure it hands that conductor must name none of the three:
-# a procedure that did would be a direct run asked to do what only the orchestrator provides.
 name="run-conductor.sh launched directly, with no orchestrator, exits 0 and hands the conductor a procedure naming nothing orchestrate.sh adds"
 problems=()
 

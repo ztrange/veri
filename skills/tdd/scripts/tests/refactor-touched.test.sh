@@ -28,29 +28,19 @@ no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-# git_q <repo> <args…> — git with a fixed identity, so a commit does not depend on the
-# user.name/user.email of the machine running the suite (CI carries none).
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
-# commit_all <repo> <message> — stage everything in <repo> and commit it. Every case here
-# builds its fixture the same way, and the noise of the two quieted calls is not the point
-# of any of them.
 commit_all() {
   git_q "$1" add -A >/dev/null 2>&1
   git_q "$1" commit -q -m "$2" >/dev/null 2>&1
 }
 
-# new_repo <name> -> path — a repository of the case's own under $work, so the answer never
-# depends on the repository `make test` was typed in.
 new_repo() {
   local dir="$work/$1"
   git init -q -b main "$dir" >/dev/null 2>&1
   echo "$dir"
 }
 
-# 1. a green commit touching the ledger and two source files → exactly the two source files,
-#    in git diff order. The source files are written zeta-first so creation order and diff
-#    order disagree, and the ledger sorts first so a list that kept it would lead with it.
 repo="$(new_repo green)"
 mkdir -p "$repo/.tdd" "$repo/lib" "$repo/src"
 printf -- '- [ ] a step\n' > "$repo/.tdd/issue-7.md"
@@ -68,9 +58,6 @@ if [[ "$code" == 0 && "$got" == "$expected" ]]; then ok; else
   diff <(printf '%s\n' "$expected") <(printf '%s\n' "$got") | sed 's/^/    /'
 fi
 
-# 2. a commit name the repository cannot resolve → exit 2, the code for "no answer could be
-#    obtained", and a stderr diagnostic naming the commit. The failure is the plumbing's, not
-#    the methodology's: a 1 here would reach the refactor prompt as a clean empty answer.
 repo="$(new_repo unresolvable)"
 printf 'alpha\n' > "$repo/alpha.sh"
 commit_all "$repo" "feat: alpha"
@@ -80,10 +67,6 @@ if [[ "$code" == 2 && "$err" == *"$missing"* ]]; then ok; else
   no "unresolvable commit → exit 2 with a stderr diagnostic naming it (code=$code, stderr=$err)"
 fi
 
-# 3. a commit that touches only `.tdd/` → exit 3, the code for "nothing to do", and nothing on
-#    stdout. There is nothing for a refactor to tidy, which is an answer, not a failure: under
-#    `pipefail` the filtering `grep` used to make that case exit 1, indistinguishable from the
-#    leaf having run and failed.
 repo="$(new_repo ledger-only)"
 mkdir -p "$repo/.tdd"
 printf 'alpha\n' > "$repo/alpha.sh"
@@ -96,10 +79,6 @@ if [[ "$code" == 3 && -z "$out" ]]; then ok; else
   no "commit touching only .tdd/ → exit 3 and nothing on stdout (code=$code, stdout=$out)"
 fi
 
-# 4. `--issue <base>` → every file changed between <base> and HEAD outside `.tdd/`, comma-joined
-#    in `git diff --name-only` order, across several commits; exit 3 and nothing on stdout when
-#    everything after <base> is under `.tdd/`; exit 2 when <base> does not resolve. HEAD itself
-#    touches only the ledger, so reading HEAD's own commit instead of the range answers 3.
 repo="$(new_repo issue-range)"
 mkdir -p "$repo/.tdd" "$repo/lib" "$repo/src"
 printf -- '- [ ] a step\n' > "$repo/.tdd/issue-11.md"
@@ -123,7 +102,6 @@ if [[ "$code" == 0 && "$out" == "lib/alpha.test.sh,src/zeta.sh" \
   no "--issue <base> → base..HEAD files outside .tdd/ comma-joined, 3 when none, 2 when unresolvable (code=$code, stdout=$out; none_code=$none_code, none_out=$none_out; bad_code=$bad_code, bad_err=$bad_err)"
 fi
 
-# 5. `--issue` with no base → exit 2 naming the usage, nothing on stdout.
 out="$(cd "$repo" && "$TOUCHED" --issue 2>/dev/null)"; code=$?
 err="$(cd "$repo" && "$TOUCHED" --issue 2>&1 >/dev/null)"
 if [[ "$code" == 2 && -z "$out" && "$err" == *"usage: refactor-touched.sh"* ]]; then ok; else

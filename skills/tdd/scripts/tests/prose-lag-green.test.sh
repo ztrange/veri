@@ -66,30 +66,19 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 pass=0 fail=0
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-# The fixture script the plant grows and the fixture suite that owns it, repo-relative — which
-# is what the recipe's TESTS variable is handed and what the failure messages quote. Neither
-# exists in this repository outside the planted tree: they are invented for this case alone,
-# for the reason the header gives.
 SCRIPT='skills/tdd/scripts/fixture-prose-lag.sh'
 SCRIPT_NAME="${SCRIPT##*/}"
 SUITE='skills/tdd/scripts/tests/fixture-prose-lag.test.sh'
 SUITE_NAME="${SUITE##*/}"
 
-# What the recipe prints when every suite it ran came back green — the runner's own verdict,
-# which is the thing this case reads rather than the exit code alone (#157: a suite that dies
-# partway routinely exits 0, and the recipe's answer is what the conductor branches on).
 GREEN_LINE='all suites green'
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the message says which half of the contract broke rather than just that the case did.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -101,29 +90,12 @@ report() {
   fi
 }
 
-# flat <text> — one line of it, for a failure message: newlines become slashes so a runner's
-# output stays readable inside an indented problem line.
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
-# why <output> — the part of a runner's output that says what went wrong, flattened onto one
-# problem line: every `FAIL - …` line a suite printed — the line every suite in this tree
-# reports a failed case with — plus the last few lines, which is where the count line and the
-# runner's own verdict are.
 why() { flat "$( { grep -E '^FAIL - ' <<< "$1"; tail -5 <<< "$1"; } )"; }
 
-# lines_of <path> — how long a file is, as the builder counts it. The number
-# probe_plant_is_real watches move between the pristine fixture and the planted one.
 lines_of() { awk 'END {print NR}' "$1"; }
 
-# tree_grown_past_its_prose — a disposable tree holding only a Makefile and the fixture
-# script/suite pair, the script one line longer than the pristine copy this function keeps at
-# $WORK/pristine, printed as a path. Named, and out of the case body, so the case reads as the
-# three steps it is: build the tree, prove the plant is really a plant, ask the runner.
-#
-# The Makefile is the runner itself, copied so `make -C $planted test` is the same recipe
-# every other suite in this tree runs under. Nothing else from this repository is copied —
-# the fixture pair is written fresh — which is what makes this case's cost independent of how
-# large skills/ or docs/ have grown.
 tree_grown_past_its_prose() {
   local planted="$WORK/tree"
   mkdir -p "$planted/$(dirname "$SCRIPT")" "$planted/$(dirname "$SUITE")"
@@ -156,10 +128,6 @@ tree_grown_past_its_prose() {
   printf '%s' "$planted"
 }
 
-# probe_plant_is_real <dir> — the plant is only a plant if the script in the copy is no longer
-# the pristine one this case wrote first, and its length is what says so: a copy whose script
-# is still the same length is a tree the deleted case would have passed over too, and green
-# there would mean nothing. Appends to `$problems` the way report() reads it.
 probe_plant_is_real() {
   local grown here
   grown="$(lines_of "$1/$SCRIPT")"
@@ -168,15 +136,6 @@ probe_plant_is_real() {
     problems+=("the case is vacuous: $SCRIPT is $grown lines in the planted tree against $here in the pristine fixture, so nothing in the fixture was left describing a file that has moved on")
 }
 
-# 1. The criterion: a script grows, no rebuild follows, and the development lane's runner is
-#    still green over the result. Exit code and the runner's own verdict line together, for
-#    the reason the recipe itself checks both (#157) — a run that died before it reached its
-#    answer must not read as the answer.
-#
-#    The suite's `== <name>` announcement is asserted too, because a TESTS list that resolved
-#    to nothing would have the recipe print `all suites green` over an empty roster: the
-#    narrowed roster has to have actually run the suite that stands in for the one that used
-#    to go red here, or the case observes an empty loop.
 name="\`make test\` is green over a tree whose $SCRIPT_NAME has grown past the prose listing it, with nothing rebuilt in between"
 problems=()
 

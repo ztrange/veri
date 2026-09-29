@@ -27,8 +27,6 @@ pass=0 fail=0
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -40,20 +38,10 @@ report() {
   fi
 }
 
-# plain — stdin with emphasis marks and backticks dropped and the case folded, so the
-# probes match however a template marks the words up.
 plain() {
   tr -d '*`' | tr '[:upper:]' '[:lower:]'
 }
 
-# runs_affected <phase label> <prompt> — the prompt has a line that tells the leaf to run
-# what affected-suites.sh prints, not merely one that mentions the script.
-#
-# Every probe here reads a here-string rather than a pipe, because `grep -q` leaves on its
-# first match: piped into one, a writer with bytes still to push dies of SIGPIPE, `pipefail`
-# hands that 141 up as the pipeline's status, and the probe answers about its writer instead
-# of about the prompt (#422). Folding and filtering into variables first puts the status on
-# the reader alone, where the question is.
 runs_affected() {
   local label="$1" prompt="$2" named
   named="$(grep -E 'affected-suites\.sh' <<< "$(plain <<< "$prompt")")"
@@ -62,9 +50,6 @@ runs_affected() {
   fi
 }
 
-# runs_fast_plus_affected <phase label> <prompt> — the prompt names detect-test-command.sh's
-# `--tier fast`, tells the leaf to run what affected-suites.sh prints, and no longer tells it
-# to run, or keep green, the full suite.
 runs_fast_plus_affected() {
   local label="$1" prompt="$2" folded
   folded="$(plain <<< "$prompt")"
@@ -77,10 +62,6 @@ runs_fast_plus_affected() {
   fi
 }
 
-# timed_through <phase label> <prompt> <tier> [tier …] — the prompt names timed-test-run.sh
-# at a path the leaf can run (a leaf works in the target repository, where the bare name
-# resolves to nothing), and tells its leaf to run through that wrapper under each tier
-# named — the wrapper's first argument, and what every later reader groups by.
 timed_through() {
   local label="$1" prompt="$2"; shift 2
   local runnable="" cand tier folded
@@ -98,12 +79,6 @@ timed_through() {
   done
 }
 
-# names_suite_runner <label> <prompt> — the prompt names run-suite.sh, the runner one suite
-# is run through in this repository (#418), and no longer leaves that invocation for the leaf
-# to work out for itself. The second half is what the first would otherwise not catch: a
-# prompt that names the runner and still says the leaf should establish the convention has
-# named no single invocation at all, which is how the developer and the verifier of #415's
-# step 1 ran the same suite two different ways.
 names_suite_runner() {
   local label="$1" prompt="$2"
   if ! plain <<< "$prompt" | grep -F 'run-suite.sh' > /dev/null; then
@@ -114,13 +89,6 @@ names_suite_runner() {
   fi
 }
 
-# names_runner_fallback <label> <prompt> — the numbered item that names run-suite.sh also
-# tells the leaf what to run when the runner is not there (#418). A leaf works in the target
-# repository, not in veri's own, and most target repositories have no run-suite.sh at all: a
-# prompt that names it and stops leaves that leaf with no invocation, which is the same gap
-# — a leaf choosing for itself — that naming the runner was meant to close. The item is read
-# on its own through numbered_item, so a fallback sentence elsewhere in the prompt, about
-# some other run, cannot satisfy the probe.
 names_runner_fallback() {
   local label="$1" prompt="$2" item
   item="$(plain <<< "$prompt" | numbered_item 'run-suite\.sh')"
@@ -133,12 +101,6 @@ names_runner_fallback() {
   fi
 }
 
-# numbered_item <ere> — from the prompt on stdin, the first numbered item (`N. ` up to the
-# next `N. `) whose text matches <ere>, printed as the item's own lines. <ere> is matched
-# against the item joined onto one line (each line preceded by a space), so a template may
-# wrap the matched words anywhere; the lines stay unjoined so runs_affected still demands
-# "run" and affected-suites.sh on one line. Reading the item on its own means a mention
-# elsewhere cannot satisfy a probe.
 numbered_item() {
   awk -v re="$1" '
     /^[0-9]+\. /{if (item ~ re) {printf "%s", lines; done=1; exit} item=""; lines=""}
@@ -148,7 +110,6 @@ numbered_item() {
 
 printf 'zorblat must return frob\n' > "$work/spec.md"
 
-# 1. The red leaf and its verifier run the affected suites (criterion 2).
 name="develop-red and verify-red name affected-suites.sh, not one hand-named suite, as what they run"
 problems=()
 red="$("$DEVELOP" red "$work/spec.md" 'QWIXTLE step' 'make test' 2>/dev/null)" ||
@@ -162,8 +123,6 @@ if grep -qE 'run the suite that holds the new case' <<< "$(plain <<< "$red")"; t
 fi
 report "$name"
 
-# 2. verify-refactor's checklist item 1 runs the affected suites (criterion 3), read on its
-#    own through numbered_item.
 name="verify-refactor's checklist item 1 names affected-suites.sh, not the project's full test suite"
 problems=()
 verify_refactor="$("$VERIFY" --fast-cmd 'make unit' refactor "$work/spec.md" 'tests/zorblat.test.sh' 'abc1234' 2>/dev/null)" ||
@@ -178,9 +137,6 @@ fi
 runs_affected "verify-refactor's checklist item 1" "$item1"
 report "$name"
 
-# 3. The refactor leaf runs, after each transform, the suites affected-suites.sh prints when
-#    fed refactor-touched.sh's output — the numbered item that says "after each transform",
-#    read on its own through numbered_item.
 name="develop-refactor runs affected-suites.sh fed refactor-touched.sh's output after each transform"
 problems=()
 refactor="$("$DEVELOP" refactor "$work/spec.md" 'QWIXTLE step' 'make test' 'src/zorblat.sh' 2>/dev/null)" ||
@@ -195,10 +151,6 @@ if ! grep -qF 'refactor-touched.sh' <<< "$after_each"; then
 fi
 report "$name"
 
-# 4. The green leaf and its verifier run the fast command plus the affected suites
-#    (criterion 4): each prompt names detect-test-command.sh's `--tier fast` and tells its
-#    leaf to run what affected-suites.sh prints, and neither still tells it to run, or keep
-#    green, the full suite.
 name="develop-green and verify-green name the fast command plus the affected suites, not the full suite"
 problems=()
 green="$("$DEVELOP" green "$work/spec.md" 'QWIXTLE step' 'make test' 'tests/zorblat.test.sh' 'zorblat case' 'make unit' 2>/dev/null)" ||
@@ -209,20 +161,11 @@ runs_fast_plus_affected develop-green "$green"
 runs_fast_plus_affected verify-green "$verify_green"
 report "$name"
 
-# 5. The green leaf's two runs go through timed-test-run.sh (#373), which is what leaves a
-#    `test-run` mark in the log — probed by timed_through above, whose header carries why a
-#    runnable path and a named tier are what it demands. Read off case 4's `green`, the same
-#    prompt built from the same arguments, rather than building it a second time.
 name="develop-green runs the fast command and the affected suites through timed-test-run.sh, under tiers fast and affected"
 problems=()
 timed_through develop-green "$green" fast affected
 report "$name"
 
-# 6. The developer prompts other than green time their runs the same way (#373): red and
-#    refactor run the suites affected-suites.sh prints, so tier `affected`; revise and
-#    reconcile run the whole test command, so tier `all` — the tier word
-#    detect-test-command.sh already uses for it. Red's and refactor's prompts are the ones
-#    cases 1 and 3 built, read again rather than built a second time.
 name="develop-red, develop-refactor, develop-revise and develop-reconcile run their test commands through timed-test-run.sh, each naming its tier"
 problems=()
 printf 'the verifier objected to the fixture path\n' > "$work/reason.md"
@@ -236,12 +179,6 @@ timed_through develop-revise "$revise" all
 timed_through develop-reconcile "$reconcile" all
 report "$name"
 
-# 7. The verifier prompts time their runs the same way (#373). Each names the wrapper at a
-#    runnable path and the tier every test-command run it asks for belongs to: verify-red
-#    runs the affected suites, so `affected`; verify-green and verify-refactor run the fast
-#    command and then the affected suites, so `fast` and `affected`; verify-pin runs the
-#    target test alone, before and after its mutation, so `target`. The first three prompts
-#    are the ones cases 1, 4 and 2 built, read again rather than built a second time.
 name="verify-red, verify-green, verify-refactor and verify-pin run their test commands through timed-test-run.sh, each naming its tier"
 problems=()
 verify_pin="$("$VERIFY" pin "$work/spec.md" 'tests/zorblat.test.sh' 'zorblat case' 2>/dev/null)" ||
@@ -252,11 +189,6 @@ timed_through verify-refactor "$verify_refactor" fast affected
 timed_through verify-pin "$verify_pin" target
 report "$name"
 
-# 8. verify-green's check 1 — the target-test run — goes through the wrapper too (#373),
-#    under tier `target`, the tier verify-pin already uses for a run of the target test
-#    alone. Read on its own through numbered_item, so the wrapper lines check 2 already
-#    carries cannot satisfy it; the item is read raw rather than plain-folded, because
-#    timed_through tests the path it finds with -x and a case-folded path is another path.
 name="verify-green's check 1 runs the target test through timed-test-run.sh, under tier target"
 problems=()
 check1="$(numbered_item 'The target test passes' <<< "$verify_green")"
@@ -266,17 +198,8 @@ fi
 timed_through "verify-green's check 1" "$check1" target
 report "$name"
 
-# The developer prompts that run a single suite, as <label> <prompt> pairs: the two cases
-# below both probe this set, and spelling it once is what keeps them from drifting apart — a
-# prompt added to one roster and not the other would be a prompt that names the runner with no
-# fallback behind it, or owes a fallback for a runner it never names. The three prompts are
-# the ones cases 1, 4 and 3 built, read again rather than built a second time; revise and
-# reconcile run the whole test command instead, so they run no single suite.
 suite_running_prompts=(develop-red "$red" develop-green "$green" develop-refactor "$refactor")
 
-# probe_prompts <probe> <roster array name> — call <probe> once per <label> <prompt> pair in
-# the named roster. Both rosters below are probed by two cases each, so the loop lives here
-# once: a case says which roster and which probe, and nothing else.
 probe_prompts() {
   local probe="$1" i
   local -n roster="$2"
@@ -285,36 +208,16 @@ probe_prompts() {
   done
 }
 
-# 9. Every developer prompt that runs suites names the same single-suite invocation (#418,
-#    criterion 2) — probed by names_suite_runner above, whose header carries why naming the
-#    runner and dropping the sentence that left the invocation to the leaf are both what it
-#    demands.
 name="every developer prompt that runs a suite names run-suite.sh as the single-suite invocation"
 problems=()
 probe_prompts names_suite_runner suite_running_prompts
 report "$name"
 
-# 10. Every developer prompt that names run-suite.sh says what to run when the target
-#     repository has no such runner (#418, criterion 2) — probed by names_runner_fallback
-#     above, whose header carries why the item that names the runner is the one that owes the
-#     fallback.
 name="every developer prompt that names run-suite.sh tells its leaf what to run when the repository has none"
 problems=()
 probe_prompts names_runner_fallback suite_running_prompts
 report "$name"
 
-# 11. Every blind verifier prompt names that same single-suite invocation (#418,
-#     criterion 3) — probed by names_suite_runner above, whose header carries why naming the
-#     runner and dropping the sentence that left the invocation to the leaf are both what it
-#     demands. This case is separate from case 9 because a verifier's PASS is what lets a
-#     green commit land: a verifier reading a suite that died partway as green is the one
-#     leaf whose mistake ends the step. All four are blind verifiers that run a suite and
-#     render a verdict on what it printed — the three that run the affected suites, and
-#     verify-pin, whose check 1 runs the target test against unmodified code. The prompts
-#     are the ones cases 1, 4, 2 and 7 built, read again rather than built a second time.
-#     The roster is spelled once, above, for the same reason the developers' is: a verifier
-#     added to one of the two cases and not the other would name the runner with no fallback
-#     behind it, or owe a fallback for a runner it never names.
 verifier_prompts=(
   verify-red "$verify_red"
   verify-green "$verify_green"
@@ -326,34 +229,15 @@ problems=()
 probe_prompts names_suite_runner verifier_prompts
 report "$name"
 
-# 12. Every blind verifier prompt that names run-suite.sh says what to run when the target
-#     repository has no such runner (#418, criterion 3) — probed by names_runner_fallback
-#     above, whose header carries why the item that names the runner is the one that owes the
-#     fallback. Separate from case 10 for case 11's reason: a verifier left with an
-#     invocation the target repository cannot run is the leaf whose choice ends the step.
-#     The roster is case 11's, read again rather than built a second time.
 name="every blind verifier prompt that names run-suite.sh tells its leaf what to run when the repository has none"
 problems=()
 probe_prompts names_runner_fallback verifier_prompts
 report "$name"
 
 
-# 13. The probes above answer from the prompt they read, not from the writer feeding them
-#    (#422) — the inversion runs_affected's header describes, and what every probe reading
-#    a here-string rather than a pipe is for. On this Mac the race behind it cannot happen:
-#    BSD grep buffers ~16 KB, so the writer needs one write, while a glibc pipe holds 4096
-#    bytes and a writer with more still to push is preempted between two — which is why
-#    #416 was green here and red on CI.
-#    So the preemption is injected rather than raced for: `plain` is replaced by one that
-#    writes the same bytes and then returns 141, the status a writer killed by SIGPIPE
-#    leaves, and the probes must reach the same verdict as they do with it intact — on a
-#    prompt that matches and on one that does not.
 name="the prompt probes give the same verdict on a matching and a non-matching prompt when the writer is preempted"
 problems=()
 
-# verdict <prompt> — what the probes collect for one prompt: the count first, then one line
-# per problem, so two runs compare as text. `problems` is declared local here, so the probes
-# append to this array rather than to the case's own.
 verdict() {
   local problems=()
   runs_fast_plus_affected develop-green "$1"
@@ -361,11 +245,6 @@ verdict() {
   printf '%s\n' "${#problems[@]}" "${problems[@]}"
 }
 
-# The preempted writer is `plain` itself with 141 appended, not a second copy of its body:
-# `declare -f plain` prints the whole definition as text, so stripping the name off the
-# front of it and eval'ing the rest under another one gives `honest_plain`, the same fold
-# the probes above run. Repeating the body here instead would let the case go on exercising
-# a fold `plain` no longer does. The same saved text puts `plain` back afterwards.
 unpreempted="$(declare -f plain)"
 eval "honest_plain${unpreempted#plain}"
 matching="$green"   # case 4's prompt, which every probe above accepts

@@ -24,9 +24,6 @@ trap 'rm -rf "$work"' EXIT
 scripts="$work/scripts"
 mkdir -p "$scripts"
 cp "$HERE/../orchestrate.sh" "$scripts/orchestrate.sh" 2>/dev/null
-# orchestrate.sh sources lib/background.sh from beside itself, so every scratch scripts
-# directory below carries the real lib too — the suite stubs what orchestrate.sh RUNS, not
-# what it sources.
 cp -R "$HERE/../lib" "$scripts/"
 
 cat > "$scripts/solvable-issues.sh" <<'STUB'
@@ -46,18 +43,11 @@ mv "$SOLVABLE.next" "$SOLVABLE"
 STUB
 chmod +x "$scripts"/*.sh
 
-# orchestrate <dir>: run the orchestrate.sh copied into <dir> from the scratch root, with no
-# stdin, its stdout and stderr in $work/out and $work/err; sets rc to its exit status.
 orchestrate() {
   (cd "$work" && "$1/orchestrate.sh") < /dev/null > "$work/out" 2> "$work/err"
   rc=$?
 }
 
-# conductor_stub <dir>: make <dir> a scratch scripts directory holding the real
-# orchestrate.sh, the suite's solvable-issues.sh stub and a run-conductor.sh that first hands
-# its issue to the suite's base stub, for the bookkeeping, then runs the body read on stdin.
-# The body may call `heartbeats <n>`, which streams <n> heartbeat lines ~10 ms apart, and
-# `await_context <line>`, which waits up to ~2 s for orchestrate.sh to have printed <line>.
 conductor_stub() {
   mkdir -p "$1"
   cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$1/"
@@ -87,11 +77,6 @@ PRELUDE
   chmod +x "$1"/*.sh
 }
 
-# await_gone: wait up to ~4 s for every conductor incarnation of the case to be gone, so a
-# case asserting that a stopped conductor never wrote a mark reads $MARKS after the window in
-# which a LIVE one would have written it. Without this barrier those cases assert an absence
-# against a conductor that is merely still streaming, and pass or fail on how fast the machine
-# is — which is how case 4 came back green here and red on CI.
 await_gone() {
   local i=0 pid alive=1
   [[ -r "$MARKS.pid" ]] || return 0
@@ -104,8 +89,6 @@ await_gone() {
   done
 }
 
-# seed <tag> <issue>...: point $SOLVABLE, $LAUNCHES and $MARKS at fresh files for the case
-# <tag>, the solvable set holding <issue>... one per line and the other two empty.
 seed() {
   export SOLVABLE="$work/solvable-$1" LAUNCHES="$work/launches-$1" MARKS="$work/marks-$1"
   shift
@@ -114,8 +97,6 @@ seed() {
   : > "$MARKS"
 }
 
-# expect_exit0_output: pass the case $name when orchestrate.sh exited 0 and $actual equals
-# $expected; otherwise fail it, showing the exit, the diff and orchestrate.sh's stderr.
 expect_exit0_output() {
   if [[ "$rc" -eq 0 && "$actual" == "$expected" ]]; then
     pass=$((pass + 1))
@@ -128,8 +109,6 @@ expect_exit0_output() {
   fi
 }
 
-# expect_exit2_no_launch [<needle>]: pass the case $name when orchestrate.sh exited 2, launched
-# no conductor and, given <needle>, wrote it to stderr; otherwise fail it, showing all three.
 expect_exit2_no_launch() {
   launched="$(wc -l < "$LAUNCHES" | tr -d ' ')"
   if [[ "$rc" -eq 2 && "$launched" -eq 0 ]] && { [[ $# -eq 0 ]] || grep -F -- "$1" "$work/err" > /dev/null; }; then
@@ -144,8 +123,6 @@ expect_exit2_no_launch() {
   fi
 }
 
-# 1. Every issue the solvable set holds gets one conductor, launched through
-#    run-conductor.sh with that issue's number, and the loop exits 0 once the set is empty.
 name="launches one conductor per solvable issue through run-conductor.sh and exits 0 on an empty set"
 seed basic 101 102
 orchestrate "$scripts"
@@ -153,9 +130,6 @@ expected="$(printf '%s\n' 101 102)"
 actual="$(cat "$LAUNCHES")"
 expect_exit0_output
 
-# 2. A solvable-issues.sh that exits with anything but 0 or 3 gave no answer about the
-#    solvable set, so orchestrate.sh launches nothing and exits 2. The stub here exits 2 on
-#    its first call and 3 on every later one, so a loop that ignores the 2 still ends.
 name="exits 2 without launching a conductor when solvable-issues.sh exits other than 0 or 3"
 broken="$work/broken"
 mkdir -p "$broken"
@@ -173,14 +147,6 @@ seed broken 201
 orchestrate "$broken"
 expect_exit2_no_launch
 
-# 3. The conductor's context is each assistant event's cache_read_input_tokens +
-#    cache_creation_input_tokens, computed per event as the launched stream arrives: every
-#    assistant event yields one `context <issue> <tokens>` line on orchestrate.sh's stdout.
-#    The stub's stream closes on a {"type":"result"} record whose usage carries its own
-#    cache_read + cache_creation total (115438), so a context read from that record would
-#    print that number and not the two per-event ones, and a parser that did not filter on
-#    the assistant type would print it as a third line; input_tokens and output_tokens are
-#    present and must not be counted, and a non-assistant event yields no line.
 name="reports each assistant event's cache_read + cache_creation tokens as the conductor's context, and none from the result record"
 streaming="$work/streaming"
 conductor_stub "$streaming" <<STUB
@@ -198,16 +164,6 @@ expected="$(printf '%s\n' 'context 301 53438' 'context 301 62000')"
 actual="$(grep '^context ' "$work/out")"
 expect_exit0_output
 
-# 4. A conductor whose context crosses VERI_CONDUCTOR_CTX_BUDGET mid-step is left running
-#    until the step's step-done mark, and stopped once that mark is seen. With the budget at
-#    100000, the stub's first incarnation streams an assistant event at 150000, then waits —
-#    up to ~2 s, polling orchestrate.sh's stdout — until orchestrate.sh has printed that
-#    event's context line, so the event is known to have been read, and only then writes
-#    `mid-step` (a conductor stopped on crossing the budget never gets there). It then streams
-#    the step-done mark as a real conductor does — the Bash call to `event.sh step-done` and
-#    its result — and keeps streaming heartbeat lines for ~2 s before writing `after-step-done`:
-#    a conductor that is stopped, by a signal or by its stream being closed, never writes it.
-#    Every later incarnation just leaves the solvable set, so the loop ends.
 name="a conductor over VERI_CONDUCTOR_CTX_BUDGET mid-step is not stopped until step-done, and is stopped after it"
 budget="$work/budget"
 conductor_stub "$budget" <<STUB
@@ -227,13 +183,6 @@ expected="mid-step"
 actual="$(cat "$MARKS")"
 expect_exit0_output
 
-# 5. A step-done seen while the context is under the budget does not stop the conductor, and
-#    does not arm a stop for later: with VERI_CONDUCTOR_CTX_BUDGET unset, so its default
-#    applies, the stub's first incarnation streams the step-done mark at 110000 — under the
-#    default, over 100000 — then an assistant event at 150000 that is no step-done, then that
-#    event's tool result, and keeps streaming heartbeat lines for ~2 s before writing
-#    `after-step-done`. A conductor stopped at the under-budget step-done, or at the tool
-#    result that follows the later crossing, never writes it.
 name="a step-done under VERI_CONDUCTOR_CTX_BUDGET's default does not stop the conductor, then or at a later non-step-done crossing"
 underbudget="$work/underbudget"
 conductor_stub "$underbudget" <<STUB
@@ -252,14 +201,6 @@ expected="after-step-done"
 actual="$(cat "$MARKS")"
 expect_exit0_output
 
-# 6. Over the budget, a conductor is stopped after the step-done call's result, not at the
-#    call itself: the call is streamed before its Bash command runs, and a conductor writes
-#    more before that result arrives. With the budget at 100000, the stub's first incarnation
-#    streams the step-done call at 150100, waits — up to ~2 s, polling orchestrate.sh's
-#    stdout — until orchestrate.sh has printed that event's context line, then streams
-#    heartbeat lines for ~0.5 s before writing `before-result` and the call's result, then
-#    heartbeats for ~2 s more before writing `after-step-done`. A conductor stopped at the
-#    call dies in the first heartbeats and never writes `before-result`.
 name="a conductor over VERI_CONDUCTOR_CTX_BUDGET is stopped after the step-done call's result, not at the call"
 atresult="$work/atresult"
 conductor_stub "$atresult" <<STUB
@@ -279,13 +220,6 @@ expected="before-result"
 actual="$(cat "$MARKS")"
 expect_exit0_output
 
-# 7. A conductor whose context never crosses VERI_CONDUCTOR_CTX_BUDGET is never stopped and
-#    never restarted, however many steps it finishes. With the budget at 100000, the stub's
-#    first incarnation streams two step-done marks — each the Bash call to `event.sh
-#    step-done` and its result — at 60000 and at 99100, both under the budget, then heartbeat
-#    lines for ~0.5 s before writing `after-step-done`: a conductor stopped at either mark
-#    never writes it. Every launch appends its issue to $LAUNCHES, so a restart shows there as
-#    a second `701`.
 name="a conductor that never crosses VERI_CONDUCTOR_CTX_BUDGET is never stopped or restarted"
 never="$work/never"
 conductor_stub "$never" <<STUB
@@ -303,22 +237,11 @@ expected="$(printf '%s\n' after-step-done 701)"
 actual="$(cat "$MARKS" "$LAUNCHES")"
 expect_exit0_output
 
-# 8. VERI_CONDUCTOR_CTX_BUDGET is a whole token count. A value that is not one — `120k` here —
-#    is refused before any conductor launches: orchestrate.sh exits 2, $LAUNCHES stays empty,
-#    and its stderr names the variable.
 name="refuses a VERI_CONDUCTOR_CTX_BUDGET that is not a whole number with exit 2 before any conductor launches"
 seed badbudget 801
 VERI_CONDUCTOR_CTX_BUDGET=120k orchestrate "$scripts"
 expect_exit2_no_launch VERI_CONDUCTOR_CTX_BUDGET
 
-# 9. With VERI_CONDUCTOR_CTX_BUDGET unset, 120000 is the budget in force: a conductor whose
-#    context crosses it — by one token, at 120001 — is stopped after its next step-done. The
-#    stub's first incarnation streams an assistant event at 120001, waits — up to ~2 s,
-#    polling orchestrate.sh's stdout — until orchestrate.sh has printed that event's context
-#    line, writes `mid-step`, then streams the step-done mark at 120001 — the Bash call to
-#    `event.sh step-done` and its result — and heartbeat lines for ~2 s before writing
-#    `after-step-done`: a conductor stopped at that mark never writes it, and one under a
-#    default above 120001 always does.
 name="with VERI_CONDUCTOR_CTX_BUDGET unset, a conductor crossing 120000 is stopped after its next step-done"
 defaultbudget="$work/defaultbudget"
 conductor_stub "$defaultbudget" <<STUB
@@ -339,13 +262,6 @@ expected="mid-step"
 actual="$(cat "$MARKS")"
 expect_exit0_output
 
-# 10. A conductor stopped over the budget is relaunched for the same issue through
-#     run-conductor.sh with the same argv as its first launch, so the second incarnation
-#     takes the ledger's resume path rather than re-planning. Every incarnation records its
-#     argv to $MARKS. With the budget at 100000, the first puts 1001 back into the solvable
-#     set — a stopped run has not finished — then streams the step-done mark at 150100 and
-#     heartbeat lines for ~2 s before writing `after-step-done`, which a stopped conductor
-#     never writes. The second just leaves the solvable set, so the loop ends.
 name="a conductor stopped over VERI_CONDUCTOR_CTX_BUDGET is relaunched for the same issue with the same argv"
 relaunch="$work/relaunch"
 conductor_stub "$relaunch" <<STUB
@@ -364,13 +280,6 @@ expected="$(printf '%s\n' 'argv 1: [1001]' 'argv 1: [1001]')"
 actual="$(cat "$MARKS")"
 expect_exit0_output
 
-# 11. A conductor's exit 0 says nothing about whether its run finished; an issue still in the
-#     solvable set, whose ledger still has an unchecked step, is unfinished and is launched
-#     again before the next issue is taken. The solvable set holds 1101 then 1102, and
-#     .tdd/issue-1101.md in the scratch root, where orchestrate.sh runs, has one ticked and
-#     one unchecked step. The first incarnation for 1101 puts it back at the head of the set
-#     and exits 0 streaming nothing; every later launch just leaves the set. An orchestrator
-#     that took the exit 0 as done would go on to 1102 without relaunching 1101.
 name="a conductor exiting 0 with its issue still solvable and an unchecked ledger step is relaunched, not treated as done"
 exitzero="$work/exitzero"
 conductor_stub "$exitzero" <<STUB
@@ -387,13 +296,6 @@ expected="$(printf '%s\n' 1101 1101 1102)"
 actual="$(cat "$LAUNCHES")"
 expect_exit0_output
 
-# 12. A run that halts with a question writes .tdd/parked/<n>.md; orchestrate.sh records the
-#     issue as parked with a `parked <n>` line on its stdout, leaves its ledger as it found
-#     it, skips it on every later pass and takes the next solvable issue. The solvable set
-#     holds 1201 then 1202, and .tdd/issue-1201.md in the scratch root has one ticked and one
-#     unchecked step. Every launch for 1201 writes .tdd/parked/1201.md and puts 1201 back at
-#     the head of the set, since a parked run has not finished; 1202 just leaves the set. An
-#     orchestrator that ignored the parked file would relaunch 1201 until the stub's call cap.
 name="a conductor that wrote .tdd/parked/<n>.md is recorded as parked, its ledger left intact, and skipped for the next solvable issue"
 parked="$work/parked"
 conductor_stub "$parked" <<STUB
