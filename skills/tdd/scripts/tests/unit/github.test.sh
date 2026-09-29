@@ -14,6 +14,16 @@ pass=0 fail=0
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 
+record() {
+  if [[ -z "$problems" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1)); echo "FAIL - $name"
+    printf '%s' "$problems"
+    echo "    stderr: $(printf '%q' "$(cat "$err")")"
+  fi
+}
+
 # 1. against a gh whose GraphQL works, gh_pr_ready marks the draft ready through the ordinary
 #    `gh pr ready` route, returns 0, and never calls the cloud session's ccr route
 name="gh_pr_ready 42 against a gh that answers GraphQL runs gh pr ready 42, returns 0, and never calls pulls/42/ccr/ready_for_review"
@@ -32,13 +42,7 @@ grep -Fx "gh pr ready 42" "$calls" > /dev/null ||
 if grep -F "ccr/ready_for_review" "$calls" > /dev/null; then
   problems+="    want no ccr/ready_for_review call, got one"$'\n'
 fi
-if [[ -z "$problems" ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1)); echo "FAIL - $name"
-  printf '%s' "$problems"
-  echo "    stderr: $(printf '%q' "$(cat "$err")")"
-fi
+record
 
 # 2. against a gh that refuses GraphQL with the cloud session's 403, gh_pr_ready marks the
 #    draft ready through the REST route that 403 names, pulls/{n}/ccr/ready_for_review
@@ -65,13 +69,7 @@ problems=""
 [[ "$rc" -eq 0 ]] || problems+="    want return 0, got $rc"$'\n'
 grep -E '^gh api .*pulls/42/ccr/ready_for_review' "$calls" > /dev/null ||
   problems+="    want a 'gh api …pulls/42/ccr/ready_for_review' call, got: $(printf '%q' "$(cat "$calls")")"$'\n'
-if [[ -z "$problems" ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1)); echo "FAIL - $name"
-  printf '%s' "$problems"
-  echo "    stderr: $(printf '%q' "$(cat "$err")")"
-fi
+record
 
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
