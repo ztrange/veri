@@ -111,6 +111,27 @@ problems=()
 
 record
 
+name="make test checks a second suite added beside an existing one with the unedited Makefile, naming only the one that never reached its count line"
+
+mkdir "$scratch/pair"
+mkdir "$scratch/pair/tests"
+cp "$DOCS/Makefile" "$scratch/pair/Makefile"
+printf '#!/bin/sh\necho "ok - a case"\necho "1 passed, 0 failed"\nexit 0\n' > "$scratch/pair/tests/existing.test.sh"
+printf '#!/bin/sh\necho "half way there"\nexit 0\n' > "$scratch/pair/tests/added-later.test.sh"
+chmod +x "$scratch/pair/tests/existing.test.sh" "$scratch/pair/tests/added-later.test.sh"
+
+out="$(env -u VERI_TEST_CMD make -C "$scratch/pair" test 2>&1 < /dev/null)"
+rc=$?
+
+problems=()
+[[ "$rc" -ne 0 ]] || problems+=("want a non-zero exit, got 0")
+[[ "$out" == *"added-later.test.sh: never reached its count line"* ]] ||
+  problems+=("output does not name the added suite as never reaching its count line: $(printf '%s\n' "$out" | tail -n 3 | tr '\n' '|')")
+[[ "$out" != *"existing.test.sh: never reached its count line"* ]] ||
+  problems+=("output flags the suite that reached its count line: $(printf '%s\n' "$out" | tail -n 3 | tr '\n' '|')")
+
+record
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
