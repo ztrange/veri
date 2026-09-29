@@ -26,7 +26,7 @@
 - [x] `metrics.sh`'s Python reads the ledger's steps as `ledger_steps` records rather than through its own `STEP_BOX` regex (`metrics.sh:214` gone), with its report unchanged (its existing suite passes unmodified) ⟦criterion 3⟧
 - [x] SKILL.md's done/total count for the PR body (`grep -c '^- \[x\]'` of `grep -c '^- \['`, the Green PASS branch) reads `ledger-steps.sh`'s records instead ⟦criterion 3⟧
 - [x] SKILL.md's three "criterion k's first line out of the issue body" pipelines (`sed -n '/^## Acceptance criteria/,/^## /s/^[[:space:]]*- \[[ x]\] //p' | sed -n '<k>p'`) read `ledger-steps.sh`'s records of that section instead ⟦criterion 3⟧
-- [x] SKILL.md's "last ticked step" pipelines — the two `sed -n 's/^[[:space:]]*- \[x\] //p' … | tail -1` and the CI-repair `awk 'sub(/^- \[x\] /, "") …'` lines — read `ledger-steps.sh`'s records instead ⟦criterion 3⟧ ⟂ refactor pending
+- [x] SKILL.md's "last ticked step" pipelines — the two `sed -n 's/^[[:space:]]*- \[x\] //p' … | tail -1` and the CI-repair `awk 'sub(/^- \[x\] /, "") …'` lines — read `ledger-steps.sh`'s records instead ⟦criterion 3⟧
 - [ ] SKILL.md's count of unchecked ordinary steps handed to `run-affordable.sh` (`grep '^[[:space:]]*- \[ \] ' … | grep -cvE …`) reads `ledger-steps.sh`'s records instead ⟦criterion 3⟧
 - [ ] SKILL.md's reconcile check (`diff <(grep -F -e '[x]' -e '⟂ refactor pending' …) …`) compares `ledger-steps.sh`'s state and pending fields instead of grepping the markdown ⟦criterion 3⟧
 - [ ] The literal ` ⟂ refactor pending` appears — code and comments alike — in exactly one `.sh` or `.py` file under `skills/tdd/scripts/` outside `tests/`, namely `lib/ledger.sh`, pinned by a unit-tier audit suite that names any other file carrying it ⟦criterion 1⟧
