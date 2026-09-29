@@ -2779,6 +2779,14 @@ owes "a script with no commentary entry is rendered from disk" \
   "" \
   bash -c 'printf "#!/usr/bin/env bash\n# an unlisted probe line\nexit 0\n" > skills/tdd/scripts/unlisted-probe.sh'
 
+# 3e. and that script's whole file is debt: under the owed mark, and named on stderr from
+#     its first line to its last.
+owes "an unlisted script is owed from L1 to its last line" \
+  'id="unlisted-probe"
+commentary owed' \
+  "owed: unlisted-probe.sh L1–3" \
+  bash -c 'printf "#!/usr/bin/env bash\n# an unlisted probe line\nexit 0\n" > skills/tdd/scripts/unlisted-probe.sh'
+
 # 4. unknown-reference guard — a typo'd id must not become a dead tooltip
 refuses "unknown reference id is refused" "unknown primer ref" \
   bash -c 'sed_commentary "s/{{p-strict|set -euo pipefail}}/{{p-stirct|set -euo pipefail}}/"'
