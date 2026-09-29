@@ -32,7 +32,8 @@ if [[ "${1:-}" == next ]]; then
   if [[ -n "${VERI_GH_JSON:-}" ]]; then
     issues_json="$(cat "$VERI_GH_JSON/issues.json")"
   else
-    issues_json="$(gh issue list --state all --limit 10000 --json number,body,state)"
+    issues_json="$(gh issue list --state all --limit 10000 --json number,body,state 2> /dev/null ||
+      gh api --paginate "repos/{owner}/{repo}/issues?state=all&per_page=100")"
   fi
   origin_url="$(git remote get-url origin 2>/dev/null || true)"
   origin_url="${origin_url%.git}"
@@ -45,7 +46,10 @@ import json, sys
 
 import blocked_by
 
-issues = json.loads(sys.argv[1])
+issues, at, decoder = [], 0, json.JSONDecoder()
+while at < len(sys.argv[1]):
+    page, at = decoder.raw_decode(sys.argv[1], at)
+    issues.extend(page)
 worker = sys.argv[2]
 open_issues = {i["number"] for i in issues if i.get("state", "").upper() == "OPEN"}
 bodies = {i["number"]: i.get("body") or "" for i in issues}
