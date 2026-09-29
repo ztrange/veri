@@ -31,7 +31,11 @@ passing="success neutral skipped"
 
 pr_head() {
   local doc
-  doc="$(gh pr view "$pr" --json headRefOid,statusCheckRollup)" || return 2
+  doc="$(gh pr view "$pr" --json headRefOid,statusCheckRollup 2> /dev/null)" ||
+    doc="$(gh api "repos/$repo/pulls/${pr##*/pull/}" | python3 -c '
+import json, sys
+print(json.dumps({"headRefOid": json.load(sys.stdin)["head"]["sha"]}))
+')" || return 2
   python3 -c '
 import json, sys
 doc = json.loads(sys.argv[1])

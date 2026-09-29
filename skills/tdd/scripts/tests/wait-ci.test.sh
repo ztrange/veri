@@ -37,8 +37,21 @@ served() {
   n="$(wc -l < "$ROLLUP.calls" | tr -d ' ')"
   if [ -f "$ROLLUP.$n$1" ]; then echo "$ROLLUP.$n$1"; else echo "$ROLLUP$1"; fi
 }
+refusal='GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)'
+if [ "${GH_GRAPHQL:-}" = refused ]; then
+  case "$1" in
+    issue|pr|repo) echo "HTTP 403: $refusal" >&2; exit 1 ;;
+  esac
+  case "$*" in
+    "api graphql"*) echo "HTTP 403: $refusal" >&2; exit 1 ;;
+  esac
+fi
 case "$*" in
   *-q*|*--jq*|*--template*) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
+  "api repos/o/r/pulls/1")
+    if [ -n "${GH_FAIL:-}" ]; then echo "HTTP 502: Bad Gateway" >&2; exit 1; fi
+    echo >> "$ROLLUP.calls"
+    python3 -c 'import json, sys; print(json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": json.load(open(sys.argv[1])).get("headRefOid")}}))' "$(served '')" ;;
   "pr view $PR_URL --json "*statusCheckRollup*)
     if [ -n "${GH_FAIL:-}" ]; then echo "HTTP 502: Bad Gateway" >&2; exit 1; fi
     echo >> "$ROLLUP.calls"
@@ -390,6 +403,29 @@ sha_head nohead.json
 sha_runs nohead.json "$(sha_run gates in_progress null)"
 got="$(waited nohead 60 60)"
 [[ "$got" == 3 ]] || problems+=("no head-sha given, PR head $sha, rollup green, its own check run in_progress: want exit 3, got $got (stderr: $(cat "$work/nohead.err"))")
+report "$name"
+
+name="wait-ci.sh called with no head-sha against a gh that refuses GraphQL with the 403 and answers REST reads the PR's head sha and exits 0, 1, 3 and 2 on green, red, pending and unreadable checks, the same as against a working gh (#568)"
+problems=()
+sha_head gql-green.json
+sha_runs gql-green.json "$(sha_run gates completed '"success"')"
+sha_statuses gql-green.json success
+sha_head gql-red.json
+sha_runs gql-red.json "$(sha_run gates completed '"failure"')"
+sha_head gql-pending.json
+sha_runs gql-pending.json "$(sha_run gates in_progress null)"
+sha_head gql-unread.json
+for route in working refused; do
+  for want in green:0 red:1 pending:3 unread:2; do
+    f="gql-${want%%:*}"
+    if [[ "$f" == gql-unread ]]; then
+      got="$(GH_GRAPHQL="$route" GH_API_FAIL=1 waited "$f" 60 60)"
+    else
+      got="$(GH_GRAPHQL="$route" waited "$f" 60 60)"
+    fi
+    [[ "$got" == "${want##*:}" ]] || problems+=("$route GraphQL, ${want%%:*} checks on the PR's head $sha: want exit ${want##*:}, got $got (stderr: $(cat "$work/$f.err"))")
+  done
+done
 report "$name"
 
 echo "$pass passed, $fail failed"
