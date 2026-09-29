@@ -13,7 +13,7 @@ set -euo pipefail
 
 lib="$(dirname "$0")/lib"
 source "$lib/main-working-tree.sh"
-source "$lib/ledger.sh"
+[[ ! -f "$lib/ledger.sh" ]] || source "$lib/ledger.sh"
 
 ledger_step() {  # ledger_step <ledger> -> "<n> of <m>"
   local index state rest total=0 step=0
