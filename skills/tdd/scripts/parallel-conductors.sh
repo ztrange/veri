@@ -12,6 +12,7 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/appendable.sh"
+source "$HERE/lib/github.sh"
 
 continue_on_bail=""
 [[ "${1:-}" == --continue-on-bail ]] && continue_on_bail=1
@@ -63,7 +64,7 @@ prs_json() {
   if [[ -n "${VERI_GH_JSON:-}" ]]; then
     cat "$VERI_GH_JSON/prs.json"
   else
-    gh pr list --state open --limit 10000 --json body,isDraft,url
+    gh_list "repos/{owner}/{repo}/pulls?state=open&per_page=100" pr list --state open --limit 10000 --json body,isDraft,url
   fi
 }
 
@@ -75,9 +76,15 @@ outcome() {
   fi
   pr="$(python3 -c '
 import json, re, sys
-for pr in json.loads(sys.argv[1]):
+text, at, prs, decoder = sys.argv[1], 0, [], json.JSONDecoder()
+while at < len(text):
+    page, at = decoder.raw_decode(text, at)
+    prs.extend(page)
+    while at < len(text) and text[at].isspace():
+        at += 1
+for pr in prs:
     if sys.argv[2] in re.findall(r"\bCloses #(\d+)", pr.get("body") or ""):
-        print("draft" if pr.get("isDraft") else "ready", pr.get("url", ""))
+        print("draft" if pr.get("isDraft", pr.get("draft")) else "ready", pr.get("html_url", pr.get("url", "")))
         break
 ' "$prs" "$n")"
   case "$pr" in
