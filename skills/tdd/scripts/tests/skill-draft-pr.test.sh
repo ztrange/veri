@@ -838,6 +838,20 @@ if step_or_problem '### 4. Draft PR' "whether the metrics: push's CI wait bails"
 fi
 report "$name"
 
+# 31. The criterion, as one case (issue #495): the done-of-total count is read off the ledger's
+#     step records, not off a box pattern the procedure spells itself.
+name="$skill_md's Green PASS branch counts the PR body's done-of-total from ledger-steps.sh's records (#495)"
+problems=()
+
+if pass_or_problem '#### Green' "where the PR body's step count is read from"; then
+  grep -F 'ledger-steps.sh' <<< "$record" > /dev/null ||
+    problems+=("$skill_md's Green PASS branch never runs ledger-steps.sh, so the PR body's done-of-total is not read off the ledger's step records: $(printf '%.120s' "$record")")
+  spelled="$(grep -oF "grep -c '^- \\[" <<< "$record" || true)"
+  [[ -z "$spelled" ]] ||
+    problems+=("$skill_md's Green PASS branch still counts steps with its own box pattern: $(head -1 <<< "$spelled")")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -1083,8 +1083,8 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      gh pr edit --body "Closes #<n> — work in progress: <done> of <total> steps done. The ledger .tdd/issue-<n>.md is the source of truth."
      ```
      `<done>` is the ticked checkboxes of the run's ledger `.tdd/issue-<n>.md` and
-     `<total>` all of its steps — `grep -c '^- \[x\]'` of `grep -c '^- \['` over that file,
-     counted after the tick above so the step just closed is in the number. The draft PR
+     `<total>` all of its steps — of the records `$S/ledger-steps.sh < .tdd/issue-<n>.md`
+     prints, those whose second field is `done` of all of them, counted after the tick above so the step just closed is in the number. The draft PR
      opened at the plan commit is the only thing another machine can read for the hours a
      multi-step run takes, and a body written once there says the same at step 1 as at step
      7; the tick is where the count changes, so it is where the body is rewritten.
