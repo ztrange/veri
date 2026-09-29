@@ -8,8 +8,8 @@
 - [x] `make -C projects/docs test` runs every suite globbed from projects/docs/tests/ and fails, naming the suite, one that never reaches its count line ⟦criterion 1⟧
 - [x] projects/docs/Makefile also carries the `docs`, `fresh` and `check` targets, working from the copy's paths
 - [x] projects/docs/CLAUDE.md carries the docs project's working notes (the one trap, the docs command rows, the docs-suite rules) written for the projects/docs/ paths
-- [ ] the change touches only paths under projects/docs/, checked by `git diff --stat origin/main...HEAD` ⟦full-suite⟧ ⟦criterion 3⟧
-- [ ] the repo-root `make test` and `make docs-test` are green and run exactly the suites they ran before, compared by `make -n` rosters ⟦full-suite⟧ ⟦criterion 4⟧
+- [x] the change touches only paths under projects/docs/, checked by `git diff --stat origin/main...HEAD` ⟦full-suite⟧ ⟦criterion 3⟧
+- [x] the repo-root `make test` and `make docs-test` are green and run exactly the suites they ran before, compared by `make -n` rosters ⟦full-suite⟧ ⟦criterion 4⟧
 
 ## Owed steps
 
