@@ -157,5 +157,32 @@ expect_records "ledger_tick exit status differs" "3" "$?"
 expect_records "ledger_tick 'slug' output differs" "$doc." "$got"
 verdict "ledger_tick returns 3 and writes the document unchanged when no open step contains the matcher"
 
+# 9. ledger_clear_pending: the first ticked step containing the matcher and carrying the mark
+#    loses it; prose, an unmarked ticked step and an open marked step are passed over. With no
+#    such step: exit 3, the document unchanged.
+problems=""
+clear_of() {
+  local doc="$1" status
+  shift
+  printf '%s' "$doc" | (source "$LIB" && ledger_clear_pending "$@") 2>&1
+  status=$?
+  printf '.'
+  return "$status"
+}
+doc='# Plan for the slug ⟂ refactor pending
+
+- [x] lowercase the slug ⟦criterion 1⟧
+- [ ] trim the slug ⟦criterion 2⟧ ⟂ refactor pending
+  - [x] collapse the slug ⟦criterion 3⟧ ⟂ refactor pending
+- [x] strip the slug ⟦criterion 4⟧ ⟂ refactor pending'
+want="${doc/collapse the slug ⟦criterion 3⟧ ⟂ refactor pending/collapse the slug ⟦criterion 3⟧}."
+got="$(clear_of "$doc" 'slug')"
+expect_records "ledger_clear_pending 'slug' exit status differs" "0" "$?"
+expect_records "ledger_clear_pending 'slug' output differs" "$want" "$got"
+got="$(clear_of "$doc" 'lowercase')"
+expect_records "ledger_clear_pending 'lowercase' exit status differs" "3" "$?"
+expect_records "ledger_clear_pending 'lowercase' output differs" "$doc." "$got"
+verdict "ledger_clear_pending strips the pending mark from the first marked ticked step containing the matcher, changing no other byte, and returns 3 with the document unchanged when none does"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
