@@ -111,6 +111,12 @@ sha_run() {
   printf '{"name":"%s","head_sha":"%s","status":"%s","conclusion":%s}' "$1" "$sha" "$2" "$3"
 }
 
+# sha_head <file> — write fixture <file>: a PR reporting $sha as its head, its rollup one
+# completed SUCCESS check.
+sha_head() {
+  rollup "$1" "$(check COMPLETED SUCCESS)" "$sha"
+}
+
 # wait_in <dir> <name> <err> <bound>... — run wait-ci.sh from <dir> against fixture <name> with
 # <bound>... as its limits on a clock that moves 60 s a reading, stderr to <err>, and echo its
 # exit code.
@@ -280,7 +286,7 @@ report "$name"
 name="wait-ci.sh exits 3 while the sha's own check runs are still in progress, even when the PR already reports that sha as its head and its rollup still shows a previous head's green (#552)"
 problems=()
 sha=89abcdef0123456789abcdef0123456789abcdef
-rollup race.json "$(check COMPLETED SUCCESS)" "$sha"
+sha_head race.json
 sha_runs race.json "$(sha_run gates in_progress null)"
 got="$(waited race 60 60 "$sha")"
 [[ "$got" == 3 ]] || problems+=("rollup green for $sha, its own check run in_progress: want exit 3, got $got (stderr: $(cat "$work/race.err"))")
@@ -288,7 +294,7 @@ report "$name"
 
 name="wait-ci.sh exits 2 naming the sha when gh cannot read that sha's own check runs, even though gh printed a body (#552)"
 problems=()
-rollup unread.json "$(check COMPLETED SUCCESS)" "$sha"
+sha_head unread.json
 got="$(GH_API_FAIL=1 waited unread 60 60 "$sha")"
 [[ "$got" == 2 ]] || problems+=("gh api check-runs failed: want exit 2, got $got (stderr: $(cat "$work/unread.err"))")
 grep -F "could not read the checks of $sha" "$work/unread.err" > /dev/null \
@@ -297,7 +303,7 @@ report "$name"
 
 name="wait-ci.sh exits 1 when the sha's own check runs hold a completed failure, even while the PR rollup reads all green (#552)"
 problems=()
-rollup redsha.json "$(check COMPLETED SUCCESS)" "$sha"
+sha_head redsha.json
 sha_runs redsha.json "$(sha_run gates completed '"failure"')"
 got="$(waited redsha 60 60 "$sha")"
 [[ "$got" == 1 ]] || problems+=("rollup green for $sha, its own check run completed failure: want exit 1, got $got (stderr: $(cat "$work/redsha.err"))")
@@ -305,7 +311,7 @@ report "$name"
 
 name="wait-ci.sh never reads a completed NEUTRAL or SKIPPED run among the sha's own check runs as red: with another still in progress it exits 3 (#552)"
 problems=()
-rollup quietsha.json "$(check COMPLETED SUCCESS)" "$sha"
+sha_head quietsha.json
 sha_runs quietsha.json "$(sha_run lint completed '"neutral"')" "$(sha_run docs completed '"skipped"')" "$(sha_run gates in_progress null)"
 got="$(waited quietsha 60 60 "$sha")"
 [[ "$got" == 3 ]] || problems+=("sha's own runs neutral, skipped and in_progress: want exit 3, got $got (stderr: $(cat "$work/quietsha.err"))")
@@ -313,7 +319,7 @@ report "$name"
 
 name="wait-ci.sh reads every page of the sha's own check runs: a failed run beyond the first page exits 1, even while the PR rollup reads all green (#552)"
 problems=()
-rollup pagedsha.json "$(check COMPLETED SUCCESS)" "$sha"
+sha_head pagedsha.json
 runs=()
 for i in $(seq 1 100); do runs+=("$(sha_run "gates-$i" completed '"success"')"); done
 runs+=("$(sha_run gates-101 completed '"failure"')")
@@ -336,7 +342,7 @@ report "$name"
 
 name="wait-ci.sh exits 3, never 0, when every one of the sha's own check runs concluded skipped, even while the PR rollup reads all green (#552)"
 problems=()
-rollup skippedsha.json "$(check COMPLETED SUCCESS)" "$sha"
+sha_head skippedsha.json
 sha_runs skippedsha.json "$(sha_run gates completed '"skipped"')" "$(sha_run docs completed '"skipped"')"
 got="$(waited skippedsha 60 60 "$sha")"
 [[ "$got" == 3 ]] || problems+=("rollup green for $sha, its own check runs all skipped: want exit 3, got $got (stderr: $(cat "$work/skippedsha.err"))")
@@ -346,7 +352,7 @@ name="wait-ci.sh exits 1 when a legacy status context of the sha is in a failure
 problems=()
 for state in failure error; do
   f="statussha-$state"
-  rollup "$f.json" "$(check COMPLETED SUCCESS)" "$sha"
+  sha_head "$f.json"
   sha_runs "$f.json" "$(sha_run gates completed '"success"')"
   sha_statuses "$f.json" "$state" "{\"context\":\"legacy\",\"state\":\"$state\"}"
   got="$(waited "$f" 60 60 "$sha")"
@@ -356,13 +362,13 @@ report "$name"
 
 name="wait-ci.sh exits 2 naming the sha when gh cannot read its /status, and reads a /status with no statuses as none, while its own check runs all succeeded (#552)"
 problems=()
-rollup unstatus.json "$(check COMPLETED SUCCESS)" "$sha"
+sha_head unstatus.json
 sha_runs unstatus.json "$(sha_run gates completed '"success"')"
 got="$(GH_STATUS_FAIL=1 waited unstatus 60 60 "$sha")"
 [[ "$got" == 2 ]] || problems+=("gh api status failed: want exit 2, got $got (stderr: $(cat "$work/unstatus.err"))")
 grep -F "could not read the checks of $sha" "$work/unstatus.err" > /dev/null \
   || problems+=("gh api status failed: want stderr naming $sha, got: $(cat "$work/unstatus.err")")
-rollup nostatuses.json "$(check COMPLETED SUCCESS)" "$sha"
+sha_head nostatuses.json
 sha_runs nostatuses.json "$(sha_run gates completed '"success"')"
 printf '{"state":"pending","sha":"%s","total_count":0}\n' "$sha" > "$work/nostatuses.json.status"
 got="$(waited nostatuses 60 60 "$sha")"
