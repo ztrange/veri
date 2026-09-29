@@ -40,6 +40,15 @@ steps_of() {
   records_of '$1 "\t" $2 "\t" $NF' "$1"
 }
 
+rewrite_of() {
+  local fn="$1" doc="$2" status
+  shift 2
+  printf '%s' "$doc" | (source "$LIB" && "$fn" "$@") 2>&1
+  status=$?
+  printf '.'
+  return "$status"
+}
+
 # 1. index, state and text: one record per step line at any indent, index counting step lines
 #    only, `[x]` and `[X]` both done, and headings, prose and `## Owed steps` bullets skipped.
 problems=""
@@ -113,14 +122,6 @@ verdict "ledger_steps added is 1 for a step carrying the added mark and criterio
 # 6. ledger_tick: the first open step containing the matcher (empty: the first open step)
 #    becomes `- [x]`; prose and ticked lines that match are passed over, every other byte kept.
 problems=""
-tick_of() {
-  local doc="$1" status
-  shift
-  printf '%s' "$doc" | (source "$LIB" && ledger_tick "$@") 2>&1
-  status=$?
-  printf '.'
-  return "$status"
-}
 doc='# Plan for the slug
 
 Prose about the slug.
@@ -129,9 +130,9 @@ Prose about the slug.
   - [ ] collapse the slug ⟦criterion 3⟧
 - [ ] strip the slug ⟦criterion 4⟧'
 want="${doc/  - \[ \] collapse/  - [x] collapse}."
-expect_records "ledger_tick 'slug' output differs" "$want" "$(tick_of "$doc" 'slug')"
+expect_records "ledger_tick 'slug' output differs" "$want" "$(rewrite_of ledger_tick "$doc" 'slug')"
 want="${doc/- \[ \] trim/- [x] trim}."
-expect_records "ledger_tick '' output differs" "$want" "$(tick_of "$doc" '')"
+expect_records "ledger_tick '' output differs" "$want" "$(rewrite_of ledger_tick "$doc" '')"
 verdict "ledger_tick ticks the first open step containing the matcher, or the first open step for an empty one, changing no other byte"
 
 # 7. ledger_tick <matcher> pending: the ticked line also gains the refactor-pending mark.
@@ -141,7 +142,7 @@ doc='- [x] lowercase the slug ⟦criterion 1⟧
 - [ ] strip the slug ⟦criterion 3⟧
 '
 want="${doc/- \[ \] strip the slug ⟦criterion 3⟧/- [x] strip the slug ⟦criterion 3⟧ ⟂ refactor pending}."
-expect_records "ledger_tick 'strip' pending output differs" "$want" "$(tick_of "$doc" 'strip' pending)"
+expect_records "ledger_tick 'strip' pending output differs" "$want" "$(rewrite_of ledger_tick "$doc" 'strip' pending)"
 verdict "ledger_tick <matcher> pending ticks the step and appends the refactor-pending mark in the same write"
 
 # 8. ledger_tick with no open step containing the matcher: exit 3, the document unchanged,
@@ -152,7 +153,7 @@ doc='# Plan for the slug
 - [x] lowercase the slug ⟦criterion 1⟧
 - [ ] trim whitespace ⟦criterion 2⟧
 '
-got="$(tick_of "$doc" 'slug')"
+got="$(rewrite_of ledger_tick "$doc" 'slug')"
 expect_records "ledger_tick exit status differs" "3" "$?"
 expect_records "ledger_tick 'slug' output differs" "$doc." "$got"
 verdict "ledger_tick returns 3 and writes the document unchanged when no open step contains the matcher"
@@ -161,14 +162,6 @@ verdict "ledger_tick returns 3 and writes the document unchanged when no open st
 #    loses it; prose, an unmarked ticked step and an open marked step are passed over. With no
 #    such step: exit 3, the document unchanged.
 problems=""
-clear_of() {
-  local doc="$1" status
-  shift
-  printf '%s' "$doc" | (source "$LIB" && ledger_clear_pending "$@") 2>&1
-  status=$?
-  printf '.'
-  return "$status"
-}
 doc='# Plan for the slug ⟂ refactor pending
 
 - [x] lowercase the slug ⟦criterion 1⟧
@@ -176,10 +169,10 @@ doc='# Plan for the slug ⟂ refactor pending
   - [x] collapse the slug ⟦criterion 3⟧ ⟂ refactor pending
 - [x] strip the slug ⟦criterion 4⟧ ⟂ refactor pending'
 want="${doc/collapse the slug ⟦criterion 3⟧ ⟂ refactor pending/collapse the slug ⟦criterion 3⟧}."
-got="$(clear_of "$doc" 'slug')"
+got="$(rewrite_of ledger_clear_pending "$doc" 'slug')"
 expect_records "ledger_clear_pending 'slug' exit status differs" "0" "$?"
 expect_records "ledger_clear_pending 'slug' output differs" "$want" "$got"
-got="$(clear_of "$doc" 'lowercase')"
+got="$(rewrite_of ledger_clear_pending "$doc" 'lowercase')"
 expect_records "ledger_clear_pending 'lowercase' exit status differs" "3" "$?"
 expect_records "ledger_clear_pending 'lowercase' output differs" "$doc." "$got"
 verdict "ledger_clear_pending strips the pending mark from the first marked ticked step containing the matcher, changing no other byte, and returns 3 with the document unchanged when none does"
