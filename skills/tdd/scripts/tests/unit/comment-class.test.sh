@@ -385,6 +385,14 @@ problems=""
 want_empty_sweepable "$SCRIPTS"/tests/[k-m]*.sh
 verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with k through m"
 
+# 30. a `#` line inside a heredoc written to a variable assigned a `.md` path is class 3.
+problems=""
+f="$work/md-var.sh"
+printf '%s\n' 'f="$dir/x.md"; cat > "$f" <<'"'EOF'" '# a markdown heading' 'EOF' > "$f"
+classify "$f"
+want_line "$f:2:3"
+verdict "a # line inside a heredoc written to a variable assigned a .md path is class 3"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
