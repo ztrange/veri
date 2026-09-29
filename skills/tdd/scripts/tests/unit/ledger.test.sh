@@ -72,5 +72,17 @@ expect_records "ledger_steps records differ for an unterminated last line" "$wan
   "$(steps_of $'- [x] first\n- [ ] last step')"
 verdict "ledger_steps emits a record for a final step line with no trailing newline"
 
+# 3. kind: the marker counts only when it sits immediately before the criterion tag.
+problems=""
+doc='- [ ] plain step ⟦criterion 1⟧
+- [ ] the whole suite is green ⟦full-suite⟧ ⟦criterion 2⟧
+- [ ] a person checks the page ⟦human-owed⟧ ⟦criterion 3⟧
+- [ ] mentions ⟦full-suite⟧ in passing ⟦criterion 4⟧
+'
+want=$'1\tstep\n2\tfull-suite\n3\thuman-owed\n4\tstep'
+expect_records "ledger_steps kind differs" "$want" \
+  "$(printf '%s' "$doc" | (source "$LIB" && ledger_steps) 2>&1 | awk -F '\t' '{ print $1 "\t" $3 }')"
+verdict "ledger_steps kind is full-suite or human-owed only for a marker right before the criterion tag, step otherwise"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

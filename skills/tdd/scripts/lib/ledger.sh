@@ -2,16 +2,22 @@
 # lib/ledger.sh — sourced, not run: defines `ledger_steps`.
 #
 # ledger_steps — stdin → one tab-separated record per step line, in document order:
-# index  state  text. `index` is 1-based over step lines only; `state` is `open` for `[ ]`
-# and `done` for `[x]` or `[X]`. A line with no box is skipped.
+# index  state  kind  text. `index` is 1-based over step lines only; `state` is `open` for
+# `[ ]` and `done` for `[x]` or `[X]`; `kind` is `full-suite` or `human-owed` when that marker
+# sits immediately before the step's `⟦criterion k⟧`, `step` otherwise. A line with no box is
+# skipped.
 ledger_steps() {
-  local line state index=0
+  local line state kind text index=0
   local re='^[[:space:]]*- \[([ xX])\] (.*)$'
+  local kind_re='⟦(full-suite|human-owed)⟧ ⟦criterion [0-9]+⟧'
   while IFS= read -r line || [[ -n "$line" ]]; do
     [[ "$line" =~ $re ]] || continue
     index=$((index + 1))
     state=done
     [[ "${BASH_REMATCH[1]}" == " " ]] && state=open
-    printf '%s\t%s\t%s\n' "$index" "$state" "${BASH_REMATCH[2]}"
+    text="${BASH_REMATCH[2]}"
+    kind=step
+    [[ "$text" =~ $kind_re ]] && kind="${BASH_REMATCH[1]}"
+    printf '%s\t%s\t%s\t%s\n' "$index" "$state" "$kind" "$text"
   done
 }
