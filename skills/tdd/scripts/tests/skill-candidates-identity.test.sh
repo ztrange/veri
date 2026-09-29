@@ -22,20 +22,14 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The two halves of the identity, each written down exactly once: the directory Claude Code
-# loads the skill from, and the command name its frontmatter must declare. Neither is derived
-# from the other, so a half-finished rename still fails.
 skill_dir="skills/tdd-candidates"
 want_name="tdd-candidates"
 skill_md="$skill_dir/SKILL.md"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -47,62 +41,39 @@ report() {
   fi
 }
 
-# frontmatter_name <file> — the value of the first `name:` inside the leading `---` block,
-# empty if the block or the field is missing. Same helper as skill-fix-identity.test.sh's.
 frontmatter_name() {
   awk 'NR == 1 && $0 == "---" { inside = 1; next }
        inside && $0 == "---" { exit }
        inside && sub(/^name:[[:space:]]*/, "") { print; exit }' "$1"
 }
 
-# body_text <file> — everything after the frontmatter block, emphasis marks and backticks
-# dropped, case folded and joined onto one line. The frontmatter is excluded on purpose: the
-# `description:` field is written for the command picker and must not answer for the
-# procedure the session reads.
 body_text() {
   awk 'NR == 1 && $0 == "---" { inside = 1; next }
        inside && $0 == "---" { inside = 0; body = 1; next }
        body { print }' "$1" | tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
 }
 
-# says <regex> <fact> — one thing the body has to carry; <fact> names it if nothing matches.
 says() {
   [[ "$text" =~ $1 ]] || problems+=("$2")
 }
 
-# not_filed — the words that say the skill files nothing for a candidate, near enough to a
-# verb of filing that the sentence is about filing it.
 not_filed='(not|never|nothing)[^.]{0,20}files?'
 
-# paged_lookup — the command that lists every issue the repository holds, page by page: `gh api
-# --paginate` over the issues endpoint follows GitHub's pages to the last one. Not `gh issue
-# list`, whose `--limit` caps the listing at a fixed count, nor `gh search issues`, which the
-# search API stops at 1,000 results.
 paged_lookup='gh api --paginate[^.]{0,80}/issues'
 
-# says_near <a> <b> <gap> <fact> — the body has <a> and <b> in one sentence, at most <gap>
-# characters apart, in either order.
 says_near() {
   says "$1[^.]{0,$3}$2|$2[^.]{0,$3}$1" "$4"
 }
 
-# has_skill_md — true when the SKILL.md exists; otherwise records that as the case's problem,
-# so each case reports a missing file in the same words and reads nothing further.
 has_skill_md() {
   [[ -f "$ROOT/$skill_md" ]] && return 0
   problems+=("want a SKILL.md at $skill_md, found none")
   return 1
 }
 
-# The body every case reads, read once: empty when the SKILL.md is missing, which each case
-# reports on its own terms.
 text=""
 [[ -f "$ROOT/$skill_md" ]] && text="$(body_text "$ROOT/$skill_md")"
 
-# 1. The skill exists under the name a user types, and it says what its job is and is not.
-#    Both halves are one criterion: a document under a directory Claude Code does not load is
-#    not a command, and a command that surveys, ranks or judges is not the one this issue asks
-#    for. Read as prose because prose is the whole of a SKILL.md.
 name="$skill_md is the /$want_name skill and says it shapes and files candidates without surveying, ranking or judging them"
 problems=()
 [[ -d "$ROOT/$skill_dir" ]] ||
@@ -112,7 +83,6 @@ if has_skill_md; then
   [[ "$got" == "$want_name" ]] ||
     problems+=("$skill_md frontmatter: want name '$want_name', got $(printf '%q' "$got")")
   if [[ -z "${text// /}" ]]; then
-    # Fail closed: an unread body must not read as a pass.
     problems+=("$skill_md has no body after its frontmatter — its scope could not be read")
   else
     says 'shapes?[^.]{0,80}files?[^.]{0,80}candidates?|candidates?[^.]{0,80}shapes?[^.]{0,80}files?' \
@@ -127,11 +97,6 @@ if has_skill_md; then
 fi
 report "$name"
 
-# 2. Criterion 1 of #501: handed candidates in the conversation, the skill files one GitHub
-#    issue per module — not one per smell, since a single smell is one step and a run's fixed
-#    overhead is too large to spend on one — and each issue's acceptance criteria are
-#    structural predicates carrying a runnable check where one exists. Read as prose: the
-#    procedure is the whole of what the session filing the issues follows.
 name="$skill_md files one issue per module from conversation candidates, criteria as predicates with a runnable check"
 problems=()
 if has_skill_md; then
@@ -152,10 +117,6 @@ if has_skill_md; then
 fi
 report "$name"
 
-# 3. Criterion 2 of #501: handed the path to the analysis's HTML report instead of candidates
-#    in the conversation — a cleared context has lost the list, and the report on disk is all
-#    that is left of it — the skill reads the candidates from that file and files the same
-#    issues it would have filed from the conversation. Read as prose, like case 2.
 name="$skill_md reads the candidates from the analysis's HTML report path and files the same issues"
 problems=()
 if has_skill_md; then
@@ -168,10 +129,6 @@ if has_skill_md; then
 fi
 report "$name"
 
-# 4. Criterion 3 of #501: every issue the skill files ends its body with a final
-#    `Test command:` line — the line veri reads to know how to run the issue's tests — and
-#    lists under `## Blocked by` only real blockers, since veri reads every #N there as one
-#    and would hold the issue back for a mere reference. Read as prose, like case 2.
 name="$skill_md ends every issue with a final Test command: line and lists only real blockers under ## Blocked by"
 problems=()
 if has_skill_md; then
@@ -184,11 +141,6 @@ if has_skill_md; then
 fi
 report "$name"
 
-# 5. Criterion 4 of #501: a candidate with no checkable predicate — nothing about the tree
-#    that is true or false and a check could settle — is not filed, since an issue whose
-#    criteria no verifier can hold the code against is one veri cannot finish; and the skill
-#    says which candidate it skipped and why, so a silent drop never reads as a complete
-#    filing. Read as prose, like case 2.
 name="$skill_md files nothing for a candidate with no checkable predicate and says which it skipped and why"
 problems=()
 if has_skill_md; then
@@ -203,12 +155,6 @@ if has_skill_md; then
 fi
 report "$name"
 
-# 6. Criterion 5 of #501: re-running the skill over candidates it has already filed files no
-#    duplicate — a second pass after a cleared context, or over the same report, is the
-#    normal way the skill gets re-run, and a queue holding the same module twice is two runs
-#    spent on one piece of work. So before filing, it looks among the repository's existing
-#    issues for one it already filed for that candidate, and files nothing when one is there.
-#    Read as prose, like case 2.
 name="$skill_md looks for an issue it already filed for a candidate and files no duplicate on a re-run"
 problems=()
 if has_skill_md; then
@@ -219,12 +165,6 @@ if has_skill_md; then
 fi
 report "$name"
 
-# 7. Criterion 5 of #501, triangulated: the re-run's check for an issue already filed must not
-#    rest on the issue's title. A title is edited by people — renamed, rephrased, the module
-#    spelled differently — and a lookup that searches titles for the module name then finds
-#    nothing and files the candidate a second time. So each filed issue carries an identity
-#    marker for its candidate in its body, the re-run looks for that marker, and the skill
-#    says the check does not depend on the title. Read as prose, like case 2.
 name="$skill_md recognises an already-filed candidate by a marker in the issue body, not by its title"
 problems=()
 if has_skill_md; then
@@ -237,12 +177,6 @@ if has_skill_md; then
 fi
 report "$name"
 
-# 8. Criterion 5 of #501, at scale: the lookup for an issue already filed must see every issue
-#    the repository holds. A listing capped at a fixed count — `--limit 1000` — silently stops
-#    short in a repository with more issues than that, misses the marker on the ones past the
-#    cap, and files those candidates a second time. So the procedure lists the issues with a
-#    paginated lookup that follows every page, carries no fixed cap on it, and says the marker
-#    is found however many issues the repository holds. Read as prose, like case 2.
 name="$skill_md finds an already-filed marker however many issues the repository holds"
 problems=()
 if has_skill_md; then

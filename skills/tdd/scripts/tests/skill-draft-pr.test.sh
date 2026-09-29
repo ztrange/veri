@@ -107,19 +107,13 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The document twice, the way skill-refactor-pending.test.sh names its two: the path as
-# every problem message spells it, and the same path resolved for the reader below to open.
-# One constant for each, so a message can never name a file the reader did not read.
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -131,13 +125,6 @@ report() {
   fi
 }
 
-# records_of — the lines on stdin as records: the document's numbered steps, bullets and
-# paragraphs, one per line and lowercased. A record runs from a `N. ` or a `- ` (indented or
-# not) in column one, or from the first line after a blank, up to the next such line or the
-# next blank; a fenced command block inside a bullet is part of that bullet's record, which
-# is what lets a probe ask whether the instruction that opens the PR is the one carrying the
-# command. Runs of whitespace collapse to one space, so a wrapped sentence reads as one, and
-# case is folded last because the sentences are the writer's.
 records_of() {
   awk '
     function flush() { if (rec != "") { gsub(/[[:space:]]+/, " ", rec); print rec } rec = "" }
@@ -148,30 +135,14 @@ records_of() {
     END { flush() }' | tr '[:upper:]' '[:lower:]'
 }
 
-# section_lines <heading prefix> <closer regex> — the document's lines, verbatim, from the
-# heading that STARTS WITH <heading prefix> to the next line matching <closer regex>. Every
-# read here is scoped to a section, because the document pushes a branch and takes a PASS
-# branch on several paths: an unscoped read would answer one criterion with another path's
-# instruction, and fail a document that had done exactly what was asked. Which headings close
-# a section is the caller's, since the levels differ by section. A prefix rather than the
-# whole heading because a heading may carry trailing prose after an em dash; the prefix is
-# what identifies it and is quotable in a problem message. The slicing is here alone because
-# two readings are taken of the same slice — as records and as command lines — and a section
-# read two ways by two copies of this awk is a section that can come to mean two things.
 section_lines() {
   awk -v h="$1" -v closers="$2" \
     '$0 ~ closers { inside = (index($0, h) == 1); next } inside' "$skill_path"
 }
 
-# section_records <heading prefix> <closer regex> — that slice as records.
 section_records() { section_lines "$1" "$2" | records_of; }
 
-# first_record <text> [<grep-options> <pattern>]... — the first record of <text> that
-# matches every option-and-pattern pair given, or nothing when none does. Six cases ask the
-# document this same question and differ only in the filters and in the complaint they then
-# file, so the reading is written here once. The filters run over a variable rather than as a
-# pipeline into `head`, which is what keeps a filter's own SIGPIPE — `head` leaving as soon as
-# it has its line, under this suite's `pipefail` — from ever being the answer (issue #422).
+# hazard: a `grep … | head` pipeline under pipefail can answer with grep's SIGPIPE.
 first_record() {
   local text="$1"
   shift
@@ -182,17 +153,6 @@ first_record() {
   head -1 <<< "$text"
 }
 
-# section_or_problem <heading prefix> <closer regex> <what> — read into `records` the section
-# whose heading starts with <heading prefix>, <closer regex> ending it, or record the one
-# problem that says the case could not be read at all, naming <what> it could therefore not
-# check. Non-zero when the section is gone, so each case below is its probes alone rather than
-# its probes and its own missing-section branch: every case here asks the document for one
-# slice first, and would otherwise spell the same fetch and the same fail-closed message eight
-# times over. The closer is a parameter because the cases read sections at two levels — the
-# numbered steps, which a heading of either level ends, and since #195 `## Resume`, which only
-# another `## ` does. Which slice it read is recorded in `section_heading`/`section_closer`,
-# so a case wanting the same slice's command lines asks `section_commands` for them rather
-# than spelling the heading and the closer a second time.
 section_or_problem() {
   section_heading="$1" section_closer="$2"
   records="$(section_records "$1" "$2")"
@@ -201,23 +161,8 @@ section_or_problem() {
   return 1
 }
 
-# step_or_problem <heading prefix> <what> — that reader for a numbered step, whose closer is
-# always the same. The heading stays a parameter because the cases read two steps —
-# `### 4. Draft PR` and, since #195, `### 2. Scope & plan`, which `### 2b. Start comment` ends.
 step_or_problem() { section_or_problem "$1" '^## |^### ' "$2"; }
 
-# 1. The criterion, as one case: the step asks for review on a branch that is already on the
-#    remote, and pushes nothing itself. It used to anchor on `gh pr create` first, so that a
-#    section emptied of its PR instruction could not read as "it no longer pushes" — since
-#    #195 that anchor is case 10's, which asks the same slice which PR commands it issues and
-#    fails closed on its own three positive probes. Asking it here too would be the same
-#    question twice, and the two answers would now have to disagree: the step must run
-#    `gh pr create` for the old probe and must not for case 10's, a requirement met only by a
-#    document that names the command in prose. What remains here is the push, and the section
-#    being unreadable is still one problem line, from `step_or_problem`. `git push` rather
-#    than the word "push": the step's first sub-step still refuses to go on while there is
-#    nothing *fit* to push, and that refusal is #116's gate, not a push. What this criterion
-#    is about is whether the step issues the command.
 name="$skill_md's Draft PR step readies the PR against the already-pushed branch, with no push of its own"
 problems=()
 
@@ -228,12 +173,6 @@ if step_or_problem '### 4. Draft PR' "whether the step still pushes"; then
 fi
 report "$name"
 
-# pass_or_problem <heading prefix> <what> — read into `record` the PASS branch inside the
-# `####` section whose heading starts with <heading prefix>, or record the one problem that
-# says the case could not be read at all, naming <what> it could therefore not check.
-# Non-zero when there is no such section or no such branch in it, so each case below is its
-# probes alone, the way `step_or_problem` does it for a numbered step. Any heading ends one
-# of these sections, the document's innermost level.
 pass_or_problem() {
   record="$(first_record "$(section_records "$1" '^#')" -E '^ *- \*\*pass')"
   [[ -n "$record" ]] && return 0
@@ -241,17 +180,6 @@ pass_or_problem() {
   return 1
 }
 
-# 2. The criterion, as one case: the branch reaches the remote at both of the points that
-#    already write the ledger. Those two points are branches of the procedure, not sections
-#    of it — Green's PASS, which ticks the step and commits, and verify-refactor's PASS,
-#    which clears the mark and commits — so what is pinned is that each of those two
-#    records carries the call. A push written elsewhere in either section would leave the
-#    REJECT and bail paths pushing commits the PASS path does not.
-#
-#    `push-branch.sh` by name: the script is where the not-a-bail rule lives, so an
-#    instruction that pushed with a bare `git push` instead would make a transport failure
-#    stop a run the methodology said was fine. The two sections are probed in one loop and
-#    each contributes its own problem line, so the output says which of the two is missing.
 name="$skill_md's Green PASS and verify-refactor PASS both push the branch, at the two points that write the ledger"
 problems=()
 
@@ -263,20 +191,12 @@ for heading in '#### Green' '#### Refactor loop'; do
 done
 report "$name"
 
-# names_the_full_gate <record> — true when <record> runs `detect-test-command.sh --tier all`'s
-# command and says it runs exactly once, as the only full-suite gate.
 names_the_full_gate() {
   grep -qE 'detect-test-command\.sh --tier all' <<< "$1" &&
     grep -qF 'exactly once' <<< "$1" &&
     grep -qwF 'only' <<< "$1"
 }
 
-# 3. The criterion, as one case (issue #341): the full command runs once per cycle, here. Every
-#    leaf now runs the fast command, the affected suites, or both, so the Draft PR step is the
-#    one place `detect-test-command.sh --tier all`'s command still runs — and the Guardrails
-#    invariant that says the full suite is green before the PR opens must name the same
-#    command, or the two would read as two different gates. Both are asked of their own slice:
-#    the Draft PR step as a whole, and the one Guardrails record that speaks of opening the PR.
 name="$skill_md's Draft PR step and its closing invariant both run detect-test-command.sh --tier all's command exactly once, as the only full-suite gate"
 problems=()
 
@@ -292,15 +212,6 @@ elif ! names_the_full_gate "$invariant"; then
 fi
 report "$name"
 
-# 4. The criterion, as one case (issue #341): a red result on the one full run is not a bail.
-#    The fast tier and the affected suites are what every leaf ran, so a suite that only the
-#    full command reaches can go red for the first time here — and that is a gap in the tiers,
-#    which the methodology answers with another cycle, not a stop. What is pinned is that the
-#    Draft PR step has a record that, on red, adds a "repair step" to the ledger, and that the
-#    step's text says the two things that make it a repair rather than a retry: a unit-tier
-#    test when the failure exposes a gap, and a verifier judging the fix against the full
-#    command. The record is asked for first so the case fails closed — a step with no repair
-#    record at all gets one problem line, not three that read as partial progress.
 name="$skill_md's Draft PR step adds a repair step to the ledger on a red full run, rather than bailing"
 problems=()
 
@@ -317,13 +228,6 @@ if step_or_problem '### 4. Draft PR' "what a red full run does"; then
 fi
 report "$name"
 
-# 5. The criterion, as one case (issue #341): the repair step is one more cycle, not a loop.
-#    A full run that is red again after the repair step has had its chance ends the run, and
-#    the bail names every suite still red — a report naming only the first would send the
-#    human who reads it to fix one suite and find the next on the rerun. What is pinned is a
-#    record of the Draft PR step that bails on a second red full run after a repair step, and
-#    that the same record names every suite still red. The record is asked for first so the
-#    case fails closed, the way case 4 does.
 name="$skill_md's Draft PR step bails on a second red full run after a repair step, naming every suite still red"
 problems=()
 
@@ -337,19 +241,6 @@ if step_or_problem '### 4. Draft PR' "what a second red full run does"; then
 fi
 report "$name"
 
-# 6. The criterion, as one case (issue #359, part of #354): the leftovers reach the human
-#    who decides the merge. `refactor-owed.sh append` already writes every step's structural
-#    candidates into the run's own `.tdd/issue-<n>-refactor-owed.md`, and that file is
-#    committed with each step's refactor-pending clear — but a file nobody reads records
-#    nothing a reviewer sees. The Draft PR step is where it is read, so what is pinned is
-#    that the step runs `render` on that file and puts its output in the PR body, and that an
-#    exit 3 from it — no step left anything behind — leaves the section out rather than
-#    quoting an empty one. The render call is asked for first so the case fails closed: a step
-#    that never renders gets one problem line, not three reading as partial progress. The exit
-#    3 half is asked of the step's records rather than of the render record alone, since
-#    whether that answer is a clause of the same bullet or the sentence after it is the
-#    writer's — but it is asked together with `refactor-owed`, because the step already reads
-#    an exit 3 from `next-pending-refactor.sh` and a bare probe would answer with that one.
 name="$skill_md's Draft PR step puts refactor-owed.sh render's output in the PR body, and omits the section on exit 3"
 problems=()
 
@@ -370,18 +261,6 @@ if step_or_problem '### 4. Draft PR' "whether the run's refactor leftovers reach
 fi
 report "$name"
 
-# 7. The criterion, as one case (issue #360, part of #354): a step the run could not add
-#    still reaches the human. When `add-ledger-step.sh` cannot fit a text inside
-#    `VERI_STEP_GROWTH`, it appends it as a plain bullet under the ledger's trailing
-#    `## Owed steps` heading — a checkbox `next-unchecked.sh` never returns, so nothing in
-#    the run will ever read it again. The Draft PR step is the last place it can be read, so
-#    what is pinned is that the step copies those bullets out of the run's own ledger and
-#    into the PR body under the same `## Owed steps` heading. The copy is asked for first so
-#    the case fails closed: a step that never mentions the section gets one problem line
-#    rather than two reading as partial progress. The source half asks for the ledger by
-#    name — `.tdd/issue-<n>.md` — because the run holds a second file whose name carries
-#    "owed", `.tdd/issue-<n>-refactor-owed.md`, and a step that rendered the owed *steps*
-#    out of the refactor leftovers would copy the wrong list.
 name="$skill_md's Draft PR step copies the ledger's ## Owed steps bullets into the PR body under ## Owed steps"
 problems=()
 
@@ -398,28 +277,10 @@ if step_or_problem '### 4. Draft PR' "whether the ledger's owed steps reach the 
 fi
 report "$name"
 
-# 8. The criterion, as one case (issue #195): the claim every other machine can see is made
-#    as soon as there is a commit to hang it on. A PR needs a commit ahead of the base and the
-#    plan commit is the run's first, so the draft PR opens there — not at step 4, which for a
-#    multi-step issue is hours later, and until then a second machine running `/tdd <scope>`
-#    reads the issue as free and takes it again (four such runs were live unseen on
-#    2026-09-14). What is pinned is the instruction and its place in the order: the record that
-#    runs `gh pr create` sits inside the `### 2. Scope & plan` section, after the record
-#    carrying the plan commit and before the one posting the Plan comment, and it carries the
-#    two things that make the PR a claim rather than a PR — `Closes #<n>`, which is what names
-#    the issue it claims, and a title saying the work is in progress, which is what stops a
-#    reader taking a draft for a finished branch. The `gh pr create` record is asked for first
-#    so the case fails closed: a section that never opens a PR gets one problem line rather
-#    than five reading as partial progress. The push is asked for by script name, the way case
-#    2 asks it, because `push-branch.sh` is where the not-a-bail rule lives.
 name="$skill_md's Scope & plan step pushes and opens the draft PR after the plan commit, before the Plan comment"
 problems=()
 
-# record_number <grep-options> <pattern> — the 1-based position of the first record of
-# `records` matching, or nothing when none does. The section's records are in document order,
-# so this is what places the three instructions relative to one another. The match is collected
-# into a variable before `head` reads it: a `grep … | head -1` pipeline would let the reader
-# leave first and hand this suite's `pipefail` grep's SIGPIPE as the answer (issue #422).
+# hazard: a `grep … | head` pipeline under pipefail can answer with grep's SIGPIPE.
 record_number() {
   local hits
   hits="$(grep -n "$1" -- "$2" <<< "$records")"
@@ -428,9 +289,6 @@ record_number() {
 }
 
 if step_or_problem '### 2. Scope & plan' "where the run's draft PR is opened"; then
-  # The position first and the record read off it, rather than a `first_record` search for the
-  # same string: one read of the document answers both what the instruction says and where it
-  # sits, so the two can never be answered by different records.
   pr_at="$(record_number -F 'gh pr create')"
   if [[ -z "$pr_at" ]]; then
     problems+=("$skill_md's Scope & plan step never runs gh pr create, so a multi-step run puts no claim on origin until its last step and a second machine reads the issue as free for the whole of it")
@@ -459,19 +317,6 @@ if step_or_problem '### 2. Scope & plan' "where the run's draft PR is opened"; t
 fi
 report "$name"
 
-# 9. The criterion, as one case (issue #195): the claim on origin says how far the run has
-#    got. The draft PR now opens at the plan commit, hours before the run ends, so for the
-#    whole of a multi-step issue its body is the only thing another machine can read — and a
-#    body written once at the plan commit says the same thing at step 1 and at step 7. The
-#    ledger already holds the answer: every step is a checkbox, and the tick that closes a
-#    step is where the count changes. So what is pinned is that the Green PASS branch — the
-#    one place a step is ticked and committed — also edits the PR body, and that the edit
-#    names the ledger it counts and states the count as done-of-total rather than a bare
-#    "in progress". The `gh pr edit` probe runs first so the case fails closed: a PASS branch
-#    that never edits the PR gets one problem line rather than three reading as partial
-#    progress. The record is the Green PASS branch's own, the way case 2 reads it, because an
-#    unscoped read would answer with step 4's own `gh pr edit`, which rewrites the body once
-#    at the end and is a different instruction on a different path.
 name="$skill_md's Green PASS branch updates the PR body with the ledger's done-of-total step count"
 problems=()
 
@@ -489,17 +334,6 @@ if pass_or_problem '#### Green' "whether the step tick updates the PR body"; the
 fi
 report "$name"
 
-# section_commands — the second reading of the slice `section_or_problem` last took: its
-# command lines, leading indent stripped, a trailing `\` joined to the line after it the way
-# the shell joins one, and case folded last. Cases 10 to 12 ask which `gh` commands a section
-# issues, and `records_of` cannot answer that: it glues a bullet's whole fenced block into one
-# record, so a record holding `gh pr create --title` would answer "the step retitles the PR"
-# for a document that only creates one. The continuation join is what keeps a flag written on
-# the next line — as `gh pr create`'s own `--title` is today — part of the command that carries
-# it. It takes no arguments and re-reads what `section_or_problem` recorded, because a case
-# that named its heading and closer a second time here could name a different section than the
-# one its records came from, and then its positive and negative probes would be answered by
-# two different slices of the document.
 section_commands() {
   section_lines "$section_heading" "$section_closer" |
   awk '{ sub(/^[[:space:]]+/, "")
@@ -509,9 +343,6 @@ section_commands() {
        END { if (cont) print buf }' | tr '[:upper:]' '[:lower:]'
 }
 
-# line_of <ere> — the number of the first line of `commands` matching <ere> at its start, or
-# nothing. Cases 14 and 15 both order one command line of the Draft PR step against another,
-# so the lookup is written here once rather than as an awk per probe.
 line_of() { awk -v re="$1" '$0 ~ ("^" re) { print NR; exit }' <<< "$commands"; }
 done_mark='veri_issue=[^ ]* veri_actor=conductor [$]s/event[.]sh done'
 metrics_commit='git commit -m "metrics:'
@@ -520,23 +351,8 @@ wait_ci_run='[^#]*[$]s/wait-ci[.]sh '
 push_run='[^#]*([$]s/push-branch[.]sh|git push)'
 log_failed_read='[^#]*gh run view [^#]*--log-failed'
 
-# unmarked_records — `records` with its Markdown emphasis and code marks stripped, so a probe
-# reads "rebase-onto-default.sh's exit 1" whether the document bolds it, backticks it or both.
-# Cases 14, 15 and 16 all read the Draft PR step's prose this way, so the set of marks
-# stripped is written once rather than as three copies that could come to strip different ones.
 unmarked_records() { tr -d '*`' <<< "$records"; }
 
-# 10. The criterion, as one case (issue #195): the run has had a PR since its plan commit, so
-#     the step named for opening one must open none. A second `gh pr create` against a branch
-#     that already has an open PR is not a no-op — it is either a refusal that ends the run at
-#     its last step, or a second PR for the same branch, and then the claim another machine
-#     reads and the PR a human is asked to merge are two different pages. What is left for the
-#     step is the three edits that turn the claim into a review request: the title stops saying
-#     the work is in progress, the body is rewritten into its final form, and the draft is
-#     marked ready. The three positive probes run before the negative one so the case fails
-#     closed — a step emptied or renamed must not read as "it creates no PR" — and each probe
-#     anchors at the start of a command line, so prose naming `gh pr create` to say the step no
-#     longer runs it is not read as the step running it.
 name="$skill_md's Draft PR step creates no PR: it retitles and rewrites the open one and marks it ready for review"
 problems=()
 
@@ -554,26 +370,10 @@ if step_or_problem '### 4. Draft PR' "whether the step creates a second PR"; the
 fi
 report "$name"
 
-# 11. The criterion, as one case (issue #195): a resume finds the claim already on its branch
-#     and uses it. The PR is opened at the plan commit by step 2.3, and a resume skips step 2
-#     outright — so the section that governs a re-run is the only place that can say what
-#     becomes of the PR the first run left open. Said nowhere, a resumed run has no url to
-#     hand the tick's `gh pr edit` and step 4's rewrite, and the reading that fills the gap is
-#     the one this criterion forbids: open one. A second `gh pr create` against a branch that
-#     already has an open PR is either a refusal that ends the resume where it started, or a
-#     second PR for the same branch — two pages claiming one issue, which is the failure the
-#     whole of #195 exists to prevent. So what is pinned is the pair: the section reads the
-#     branch's PR with `gh pr view`, and it issues no `gh pr create` that is not conditioned on
-#     there being no open PR to reuse — the run killed inside step 2.3's own window left a
-#     branch with none, and opening the first one is not opening a second. The positive probe
-#     runs first so the case fails closed: a section that says nothing about the PR at all gets
-#     the one problem line that says so, not a pass earned by never naming `gh pr create`.
 name="$skill_md's Resume reuses the open PR already on its branch and opens no second one"
 problems=()
 
 if section_or_problem '## Resume' '^## ' "what a resumed run does with the PR its branch already carries"; then
-  # The command lines rather than the records for the positive probe, the way case 10 asks its
-  # three: prose naming `gh pr view` to explain a neighbouring step is not the resume issuing it.
   grep -qE '^gh pr view' <<< "$(section_commands)" ||
     problems+=("$skill_md's Resume section never runs gh pr view, so a resumed run never reads the open PR its branch already carries and has no url for the tick's gh pr edit or step 4's rewrite")
   creates="$(first_record "$records" -F 'gh pr create')"
@@ -584,23 +384,10 @@ if section_or_problem '## Resume' '^## ' "what a resumed run does with the PR it
 fi
 report "$name"
 
-# 12. The criterion, as one case (issue #195): the run has had a draft PR since its plan
-#     commit, and a bail is the ending that most needs it. The PR is the cross-machine claim —
-#     `solvable-issues.sh` leaves out an issue an open PR says `Closes #<n>` for — so a bail
-#     that took the PR down would hand the issue back to the pool for the next machine to
-#     re-take and re-bail, and would discard the visible record a bail exists to leave. A bail
-#     also means a human has to look, and the draft PR is where they look: the diagnostic the
-#     issue thread gets has to reach the PR too, or the page a reader opens says a run is in
-#     progress when it stopped. So what is pinned is the pair: the section puts the bail
-#     diagnostic on the PR, and it neither closes that PR nor still instructs the run to open
-#     none. The positive probe runs first so the case fails closed — a Bailing section emptied
-#     of every PR instruction must not read as "it leaves the PR open" by never naming one.
 name="$skill_md's Bailing section leaves the draft PR open carrying the bail diagnostic, and opens no PR"
 problems=()
 
 if section_or_problem '## Bailing' '^## ' "what a bailed run does with the draft PR its branch already carries"; then
-  # The command lines for the positive probe, the way cases 10 and 11 ask theirs: prose
-  # naming a `gh pr` command to explain a neighbouring step is not the bail issuing it.
   commands="$(section_commands)"
   grep -qE '^gh pr comment|^gh pr edit .*--body' <<< "$commands" ||
     problems+=("$skill_md's Bailing section runs neither gh pr comment nor gh pr edit --body, so the bail diagnostic reaches the issue thread and never the draft PR a human is pointed at, which still reads as a run in progress")
@@ -613,17 +400,6 @@ if section_or_problem '## Bailing' '^## ' "what a bailed run does with the draft
 fi
 report "$name"
 
-# 13. The criterion, as one case (issue #195): step 1.2's pid lock is explained by saying what
-#     the run has instead of it, and what it has changed. The passage justifying the lock rests
-#     on the draft PR being opened "once every step is green" — the order #195 reversed: the PR
-#     now opens at the plan commit, minutes into the run, so the hours-long window the passage
-#     describes is gone and the sentence tells a conductor the opposite of what the procedure
-#     it is reading does. A stale rationale is not a harmless leftover here: it is the one
-#     paragraph that says which of the two signals covers what, so a reader who believes it
-#     reads the pid lock as the only claim for the whole run and the PR as an end-of-run
-#     artefact, which is the model #195 exists to replace. So what is pinned is the absence of
-#     that premise from the step that carries the lock: no record of `### 1.` says the PR is
-#     opened once every step is green.
 name="$skill_md's worktree step no longer says the draft PR is opened once every step is green"
 problems=()
 
@@ -634,15 +410,6 @@ if step_or_problem '### 1. Read the issue' "what step 1.2 says the claim is befo
 fi
 report "$name"
 
-# 14. The criterion, as one case (issue #238): two runs branch from the same `main`, and when
-#     the first merges the second's branch owes a rebase. That rebase used to happen after veri
-#     finished, in the operator's merge routine, with nothing re-verified; `rebase-onto-default.sh`
-#     now does it inside the run, and a script's exit code is only an answer if the prose that
-#     calls it branches on it. Where it runs is read off the section's command lines, the order
-#     the conductor types them in: after sub-step 1's two questions, so it never rebases a tree
-#     holding work no verifier has seen, and before the `done` mark, the `metrics:` commit and
-#     `gh pr ready`, so nothing is recorded as finished and no human is asked to look at a branch
-#     still behind the default one. What its exit codes do is read off the records naming it.
 name="$skill_md's Draft PR step runs rebase-onto-default.sh after its dirty-tree and pending-refactor check and before the done mark, the metrics commit and gh pr ready; exit 3 continues unchanged, exit 2 bails with no-verdict"
 problems=()
 
@@ -652,8 +419,6 @@ if step_or_problem '### 4. Draft PR' "where the step rebases onto the default br
   if [[ -z "$rebase" ]]; then
     problems+=("$skill_md's Draft PR step runs no \$S/rebase-onto-default.sh, so a branch behind the default one is still readied for review un-rebased")
   else
-    # rebase_runs <after|before> <ere> — record a problem unless rebase-onto-default.sh runs
-    # on the side of the first command line matching <ere> that <after|before> names.
     rebase_runs() {
       local at
       at="$(line_of "$2")"
@@ -681,17 +446,6 @@ if step_or_problem '### 4. Draft PR' "where the step rebases onto the default br
 fi
 report "$name"
 
-# 15. The criterion, as one case (issue #238): a rebase that changed the tree has made a tip no
-#     suite has run on — two green branches can combine into a red one — and has rewritten the
-#     history already on origin, so the branch's remote copy can only be replaced, not
-#     fast-forwarded. What is pinned is the pair that makes that safe. The records: the full
-#     test command runs once on the rebased tip, and a red result there bails with the PR left
-#     a draft rather than readied. The command lines: the push after it is
-#     `$S/push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>`, run after the rebase,
-#     pinned to the sha the branch held before it, so a remote copy another writer moved in the
-#     meantime is refused rather than clobbered — and no command line of the step pushes with a
-#     bare force, which would clobber it. The positive probes run before the negative one so the
-#     case fails closed: a step that never pushes at all must not read as "never a bare force".
 name="$skill_md's Draft PR step runs the full test command once on a rebased tip, bails on red without readying the PR, and on green pushes with push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>, never a bare force"
 problems=()
 
@@ -717,16 +471,6 @@ if step_or_problem '### 4. Draft PR' "what the step does after a rebase that cha
 fi
 report "$name"
 
-# 16. The criterion, as one case (issue #238): a rebase that conflicts is exit 1 from
-#     `rebase-onto-default.sh`, and its resolution is new code no verifier has seen. So a leaf
-#     resolves it, launched through the supervisor like every other, and a blind verifier
-#     judges it before any human is asked to look. What is pinned, off the command lines: a
-#     `develop-rebase` leaf launched through `supervise.sh`, then a `verdict-rebase` launch of
-#     `run-verdict.sh … rebase`, both after the rebase and both before `gh pr ready`. Off the
-#     records: the step names `rebase-onto-default.sh`'s exit 1 as what launches the leaf, a
-#     `REJECT` goes round the revise loop within `REVISE_BUDGET`, and the PR is readied only
-#     after a verify-rebase `PASS`. The positive probes are all there is, so a step emptied of
-#     the path fails rather than reading as one that never needed it.
 name="$skill_md's Draft PR step, on rebase-onto-default.sh exit 1, launches a develop-rebase leaf through supervise.sh, then a blind verify-rebase through run-verdict.sh, revises on REJECT within REVISE_BUDGET, and readies the PR only after a verify-rebase PASS"
 problems=()
 
@@ -760,15 +504,6 @@ if step_or_problem '### 4. Draft PR' "what the step does with a conflicted rebas
 fi
 report "$name"
 
-# 17. The criterion, as one case (issue #238): the conflicted-rebase path of case 16 can end
-#     without a resolution — the leaf reports `REBASE: FAILED`, `REVISE_BUDGET` runs out on
-#     verify-rebase `REJECT`s, or the leaf is killed — and then the branch holds a half-made
-#     resolution no verifier has passed. What is pinned, off the records: the step names all
-#     three of those endings together, it resets the branch hard to `<pre-rebase-sha>` so the
-#     branch is left un-rebased, and its bail leaves the PR a draft with a comment naming every
-#     conflicting file, so the human the bail hands the conflict to knows where it is. The
-#     positive probes are all there is, so a step emptied of the path fails rather than
-#     reading as one that never needed it.
 name="$skill_md's Draft PR step, on a rebase not resolved within budget (REBASE: FAILED, REVISE_BUDGET exhausted or a killed leaf), resets the branch to <pre-rebase-sha>, leaves the PR a draft and bails naming every conflicting file"
 problems=()
 
@@ -786,12 +521,6 @@ if step_or_problem '### 4. Draft PR' "what the step does with a rebase it could 
 fi
 report "$name"
 
-# 18. The criterion, as one case (issue #542): a readied PR's CI is the Linux half of the
-#     portability promise, so a run that stops at `gh pr ready` never sees a Linux-only red.
-#     What is pinned: `wait-ci.sh` runs after `gh pr ready`, a `gh pr view` reading
-#     `statusCheckRollup` runs after that wait, and the step reads it the way the merge skill
-#     does — an empty rollup is never a pass, and a completed check whose conclusion is not
-#     SUCCESS, NEUTRAL or SKIPPED counts as failed.
 name="$skill_md's Draft PR step, after gh pr ready, waits on wait-ci.sh and reads the readied PR's statusCheckRollup fail-closed: an empty rollup is never a pass and a conclusion other than SUCCESS, NEUTRAL or SKIPPED counts as failed (#542)"
 problems=()
 
@@ -814,8 +543,6 @@ if step_or_problem '### 4. Draft PR' "whether the step reads the readied PR's CI
 fi
 report "$name"
 
-# 19. The criterion, as one case (issue #542): the bail's cause is handed to classify-bail.sh
-#     itself, so a cause the script does not know fails here rather than at the bail.
 name="$skill_md's Draft PR step never counts a pending check as green, and a check still pending when its bounded CI wait runs out bails with a cause classify-bail.sh classifies (#542)"
 problems=()
 
@@ -839,10 +566,6 @@ if step_or_problem '### 4. Draft PR' "what the step does with a check still pend
 fi
 report "$name"
 
-# 20. The criterion, as one case (issue #542): a bound stated only in prose is one the shell
-#     never enforces, so the command that waits must carry it (#544): one Bash call is killed at
-#     600 seconds, so a `wait-ci.sh` slice longer than that ends the call rather than the slice,
-#     and a `gh pr checks` after `gh pr ready` is a second, unbounded wait.
 name="$skill_md's Draft PR step bounds the command that waits on the readied PR's checks itself: wait-ci.sh with no max-seconds or one under 600, and no gh pr checks after gh pr ready (#542, #544)"
 problems=()
 
@@ -863,10 +586,6 @@ if step_or_problem '### 4. Draft PR' "whether the step's CI wait is bounded by i
 fi
 report "$name"
 
-# 21. The criterion, as one case (issue #542): a run that marks itself `done` and commits its
-#     metrics before reading CI has already recorded a finish that a red check or a
-#     `ci-timeout` bail then contradicts. Read off the section's command lines, in the order
-#     the conductor types them.
 name="$skill_md's Draft PR step waits on the readied PR's checks and reads their rollup before the done mark and the metrics commit (#542)"
 problems=()
 
@@ -890,12 +609,6 @@ if step_or_problem '### 4. Draft PR' "whether the step reads CI before recording
 fi
 report "$name"
 
-# 22. The criterion, as one case (issue #542): a bail stated only in prose is one the conductor
-#     has to infer, so the command block that waits must itself bail with `ci-timeout` before
-#     the run marks itself done. Since #544 the pending check is `wait-ci.sh`'s to see, and a
-#     check still pending past the deadline recorded across calls is its exit 2, so the bail is
-#     keyed on that exit. A `#` comment in the block is not a command, so what follows one is
-#     not read.
 name="$skill_md's Draft PR command block bails with cause ci-timeout on wait-ci.sh's exit 2, before the done mark (#542, #544)"
 problems=()
 
@@ -917,10 +630,6 @@ if step_or_problem '### 4. Draft PR' "whether the step's command block bails on 
 fi
 report "$name"
 
-# 23. The criterion, as one case (issue #542): a red check is answered the way a red full run
-#     is — a repair step the run resumes into — and that step's evidence is the failed log, so
-#     the command block reads it, appends the step and commits the ledger before the run marks
-#     itself done, and the prose says what the step quotes and where the run goes next.
 name="$skill_md's Draft PR step answers a failed CI check with a repair step quoting the gh run view --log-failed FAIL line, committed, resuming the cycle loop (#542)"
 problems=()
 
@@ -953,11 +662,6 @@ if step_or_problem '### 4. Draft PR' "whether the step repairs a failed CI check
 fi
 report "$name"
 
-# 24. The criterion, as one case (issue #542): a second red CI result after a CI repair step
-#     bails, the way a second red full run does, so the repair step is one more cycle and not a
-#     loop. The bail is a command line after the failed log is read and before the run marks
-#     itself done, and its cause is one `classify-bail.sh` classifies — the real script is
-#     asked, so a token it does not know is a bail no human-facing label can name.
 name="$skill_md's Draft PR step bails on a second red CI result after a CI repair step with a cause classify-bail.sh maps to system or process (#542)"
 problems=()
 
@@ -989,10 +693,6 @@ if step_or_problem '### 4. Draft PR' "whether the step bails on a second red CI 
 fi
 report "$name"
 
-# 25. The criterion, as one case (issue #544): one Bash call is killed at 10 minutes, so the wait
-#     is `wait-ci.sh` called again on its exit 3, never a loop in the block; and a legacy
-#     StatusContext row has `.state` and no `.status`, so a pending test on `.status` alone
-#     never sees it.
 name="$skill_md's Draft PR step waits on CI by calling wait-ci.sh again on its exit 3, with no wait loop inside one Bash call and no pending test that reads .status alone (#544)"
 problems=()
 
@@ -1016,9 +716,6 @@ if step_or_problem '### 4. Draft PR' "how the step waits on the readied PR's CI"
 fi
 report "$name"
 
-# 26. The criterion, as one case (issue #544): the conductor types a command block top to
-#     bottom, so a bail line with the `done` mark or the `metrics:` commit after it in the same
-#     block is a bail the run then walks past, recording itself done.
 name="$skill_md's Draft PR step stops at a ci-timeout or ci-red bail: no done mark and no metrics commit follow it in its command block, and it goes to Bailing (#544)"
 problems=()
 
@@ -1045,9 +742,6 @@ if step_or_problem '### 4. Draft PR' "whether a CI bail stops the step"; then
 fi
 report "$name"
 
-# 27. The criterion, as one case (issue #544): a second red is recognised by the repair step's
-#     prose, so rewording that prose silently turns a second red into a first one; the mark is
-#     the structural thing both the append and the test must share.
 name="$skill_md's Draft PR step appends its CI repair step with a ⟦ci-repair⟧ text and recognises a second red by that mark, not by the repair step's prose (#544)"
 problems=()
 ci_repair_mark='⟦ci-repair⟧'
@@ -1073,8 +767,6 @@ if step_or_problem '### 4. Draft PR' "how the step marks and recognises a CI rep
 fi
 report "$name"
 
-# 28. The criterion, as one case (issue #544): a push to a PR already out of draft starts a CI
-#     run, so a push after the CI read with no `wait-ci.sh` after it is a run nothing reads.
 name="$skill_md's Draft PR step leaves no CI run on the readied PR that nothing reads: every push after the CI read is followed by a wait-ci.sh call (#544)"
 problems=()
 
@@ -1095,10 +787,6 @@ if step_or_problem '### 4. Draft PR' "whether a push after the CI read has its r
 fi
 report "$name"
 
-# 29. The criterion, as one case (issue #550): right after a push the PR still reports the
-#     previous head and its finished checks, so a wait given no sha answers for that commit.
-#     Each call's fourth argument must be `$(git rev-parse HEAD)` itself, or a variable some
-#     command line assigned from it after the last push before that call.
 name="$skill_md's Draft PR step passes every wait-ci.sh call the sha it just pushed, from git rev-parse HEAD, as the head it waits for (#550)"
 problems=()
 
@@ -1124,11 +812,6 @@ if step_or_problem '### 4. Draft PR' "which head sha the step's CI waits are giv
 fi
 report "$name"
 
-# 30. The criterion, as one case (issue #550): the conductor types the block and reads the
-#     prose around it only when a command sends it there, so a bail written only after the
-#     `done` mark is one the `metrics:` push's red or timed-out CI never reaches. The bail must
-#     be a command line after that push's `wait-ci.sh` call, in the same block, keyed on its
-#     exit code.
 name="$skill_md's Draft PR step bails on the metrics: push's CI wait with a command in its block, ci-red on exit 1 and ci-timeout on exit 2 (#550)"
 problems=()
 

@@ -24,15 +24,11 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which mark is missing rather than just that some mark is.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -44,17 +40,6 @@ report() {
   fi
 }
 
-# instructions — the document's numbered steps, bullets and paragraphs, one per line and
-# lowercased. A record runs from a `N. ` or a `- ` (indented or not) in column one, or from
-# the first line after a blank, up to the next such line or the next blank. Joining it onto
-# one line is what lets each mark below ask whether ONE instruction carries both halves —
-# the comment and the event — rather than two sentences in different sections that happen
-# to share a word, which is exactly the drift this criterion is about.
-#
-# Runs of whitespace collapse to one space as the record is closed: a sentence wrapped
-# across two lines keeps the second line's indentation otherwise, so `### ✅ Step\n
-# done` would fold to `step      done` and no readable regex would match it. Case is
-# folded away last, because the sentences are the writer's.
 instructions() {
   awk '
     function flush() { if (rec != "") { gsub(/[[:space:]]+/, " ", rec); print rec } rec = "" }
@@ -65,46 +50,28 @@ instructions() {
     END { flush() }' "$ROOT/$skill_md" | tr '[:upper:]' '[:lower:]'
 }
 
-# calls_event <instruction> <event> — does this instruction prescribe `event.sh <event>`?
-#
-# The event name is bounded on the right so a mark cannot answer for one whose name it is a
-# prefix of — `event.sh bailed` is not `event.sh bail`, and the hyphen is excluded for the
-# same reason `done` must not be satisfied by `step-done`. Every case that reads a call out of
-# the document asks through here, so that boundary is one decision rather than one per case.
 calls_event() {
   [[ "$1" =~ event\.sh[[:space:]]+"$2"([^a-z0-9-]|$) ]]
 }
 
-# at_over_budget <instruction> <event> — does its `event.sh <event>` carry `at=over-budget`, the
-# spelling that tells a cost-driven mark from the same event written for another cause?
 at_over_budget() {
   [[ "$1" =~ event\.sh\ "$2".*[[:space:]]at=over-budget([[:space:]]|$) ]]
 }
 
-# cost_check_at — the line number of the `#### The step's cost check` heading, or nothing: the
-# point every case reading the crossing's branches starts from.
 cost_check_at() {
   grep -m1 -nE "^#### The step's cost check" "$ROOT/$skill_md" | cut -d: -f1
 }
 
-# exit_bullet_after <line> <code> — the line number of the first `- **exit <code> ` branch
-# bullet after line <line>, or nothing. The cost check's three branches are read this way by
-# every case that needs where one of them starts, so what counts as a branch is one decision.
 exit_bullet_after() {
   awk -v from="$1" -v n="$2" 'NR > from && index($0, "- **exit " n " ") == 1 { print NR; exit }' "$ROOT/$skill_md"
 }
 
-# cost_bullet_at <code> — the line of the cost check's `- **exit <code>` bullet, or nothing when
-# the heading or the bullet is missing.
 cost_bullet_at() {
   local section_at
   section_at="$(cost_check_at)"
   [[ -z "$section_at" ]] || exit_bullet_after "$section_at" "$1"
 }
 
-# cost_branch <code> <next> — "<start> <end>": the line of the cost check's `- **exit <code>`
-# bullet and of the `- **exit <next>` bullet after it, which bound that branch — or nothing when
-# either is missing. The cases pinning one branch's mark read its bounds this way.
 cost_branch() {
   local from to=""
   from="$(cost_bullet_at "$1")"
@@ -112,36 +79,14 @@ cost_branch() {
   [[ -z "$to" ]] || echo "$from $to"
 }
 
-# insertion_re — how this document spells a call to `add-ledger-step.sh`, as a regex over a
-# lowercased record: the call, not a mention. Every script the document orders run is written
-# `$S/<script>`, and preflight names `add-ledger-step.sh` bare while reading its budget, so the
-# `$S/` prefix is what tells the two apart. Three cases below ask it of a record, so the
-# spelling is one decision rather than three.
 insertion_re='\$s/add-ledger-step\.sh'
 
-# have_records <what> — the guard every case that reads the document opens with. Fail closed:
-# no records means SKILL.md was renamed or emptied and not one probe below ran, which must not
-# read as a pass. Returns non-zero with the problem already filed, naming <what> went unchecked,
-# so the case's body is skipped.
 have_records() {
   [[ -n "$records" ]] && return 0
   problems+=("$skill_md has no instructions to read — $1 could not be checked")
   return 1
 }
 
-# mark <event> <what the instruction prescribes> <anchor-regex>… — assert that a single
-# instruction of the global `records` matches every <anchor-regex> AND prescribes
-# `event.sh <event>`, in two stages, because the two failures have different fixes.
-#
-# No instruction matches the anchors at all: the comment this mark mirrors has been
-# reworded or moved, so where the call belongs could not be read. That is reported rather
-# than passed over — fail closed, or a renamed section reads as a mark nobody has to write.
-#
-# Anchors match but none of them carries the call: that is the criterion failing, and the
-# message quotes the instruction so the fix is an edit to a line already in front of you.
-#
-# On a pass, the global `marked` holds the instruction that carried the call, so a case
-# asking more of the call than its name reads it from there rather than re-matching anchors.
 mark() {
   local event="$1" what="$2" line re anchored=""
   shift 2
@@ -149,8 +94,6 @@ mark() {
     for re in "$@"; do
       [[ "$line" =~ $re ]] || continue 2
     done
-    # The first anchored instruction, kept for the message; the loop goes on because a
-    # later one may be the instruction that carries the call.
     [[ -n "$anchored" ]] || anchored="$line"
     calls_event "$line" "$event" && { marked="$line"; return 0; }
   done <<< "$records"
@@ -161,35 +104,21 @@ mark() {
   fi
 }
 
-# comment_mark <event> <heading> <anchor-regex>… — a `mark` whose anchor is the issue
-# comment it mirrors, which is every mark but `step-start`: the heading names the comment
-# in the failure message, and `comment` joins the anchors so an instruction that merely
-# mentions the heading in passing cannot answer for the one that posts it. Six of the seven
-# go through here, so what is left spelled out at `step-start` is the one real difference —
-# a step begins at a command, not at a comment.
 comment_mark() {
   local event="$1" heading="$2"
   shift 2
   mark "$event" "posts the \`$heading\` comment" "$@" 'comment'
 }
 
-# refactor_mark — the `mark` every refactor case starts from: the instruction that posts the
-# `### 🛠️ Refactor` comment and narrates the `git rev-list --count` figure (the plan comment
-# lists that heading too, and is not where the count is known).
 refactor_mark() {
   mark refactor 'posts the `### 🛠️ Refactor` comment' '### [^ ]+ refactor( |`|$)' 'post' 'rev-list --count'
 }
 
-# refactor_call — sets the global `call` to the `event.sh refactor …` call in `marked`.
 refactor_call() {
   [[ "$marked" =~ (event\.sh[[:space:]]+refactor([^a-z0-9-][^\`]*)?) ]]
   call="${BASH_REMATCH[1]}"
 }
 
-# 1. The whole of this step's criterion, as one case: seven marks, each beside the comment
-#    it mirrors. They are one case because they are one wiring — an event log missing any
-#    one of them cannot answer when a step started, why a run stopped, or what it cost —
-#    and because the fix to any of them is one edit to one document.
 name="$skill_md prescribes an event.sh call for each of the conductor's seven marks, beside the issue comment it mirrors"
 problems=()
 records="$(instructions)"
@@ -205,12 +134,6 @@ if have_records 'no mark'; then
 fi
 report "$name"
 
-# 2. The refactor mark (issue #230): `metrics.sh` reads a `refactor` mark's `transforms`,
-#    `budget` and `stopped` into the per-step `refactor` and `stopped` cells, and nothing
-#    wrote one, so every step read `unknown`. The three values are the ones the
-#    `### 🛠️ Refactor` comment already states, so the call belongs in the instruction that
-#    posts it (see `refactor_mark`) — and a call carrying fewer than all three keys still
-#    leaves a cell unknown.
 name="$skill_md writes an event.sh refactor mark carrying transforms, budget and stopped, beside the Refactor comment"
 problems=()
 if have_records 'the refactor mark'; then
@@ -225,20 +148,11 @@ if have_records 'the refactor mark'; then
 fi
 report "$name"
 
-# 3. The refactor mark's count (issue #230): the figure is only worth logging if it is the
-#    one `git rev-list --count` observed, and a count over the budget is the leaf ignoring
-#    it — so an overrun clamped to the budget is exactly the event the log exists to show,
-#    erased. The narration already says both about the comment; this case asks the sentence
-#    that prescribes the *mark* to say them, because a mark instruction that only says
-#    `transforms=<count>` leaves the session free to write the leaf's own account, or
-#    `min(count, budget)`, and every cell downstream would still read as a real number.
 name="$skill_md prescribes the refactor mark's transforms as the observed git rev-list count, unclamped on an overrun"
 problems=()
 if have_records "the refactor mark's count"; then
   refactor_mark
   if [[ "${#problems[@]}" -eq 0 ]]; then
-    # The sentence that introduces the call: everything before `event.sh refactor`, from
-    # the last sentence break on — the narration's own sentences do not count for the mark.
     before="${marked%%event.sh refactor*}"
     sentence="${before##*. }"
     [[ "$sentence" =~ observed|rev-list ]] ||
@@ -249,14 +163,6 @@ if have_records "the refactor mark's count"; then
 fi
 report "$name"
 
-# 4. The refactor mark reaches the report (issue #230): cases 2 and 3 read the call as text,
-#    and a call that reads right can still write a line `metrics.sh` does not read — a key
-#    spelled differently, a quoted value — and every cell would stay `unknown` exactly as it
-#    did before the mark existed. So this case runs the call SKILL.md prescribes, verbatim
-#    but for its placeholders, through the real `event.sh` into a fixture log, beside a
-#    second step that writes no refactor mark, and reads both rows of the real report: the
-#    marked step says `7/5` (an overrun, so a clamp would show) and `budget`, the unmarked
-#    one still says `unknown` in both cells rather than a borrowed or zero figure.
 name="a run whose SKILL.md refactor mark is present renders real refactor and stopped cells for that step, and unknown for a step without one"
 problems=()
 S="$(cd "$HERE/.." && pwd)"
@@ -273,8 +179,6 @@ else
   call="${call//<count>/7}"
   call="${call//<VERI_REFACTOR_BUDGET>/5}"
   call="${call//<reason>/budget}"
-  # The mark reads its step out of the committed ledger (#437), which stands with the tidied
-  # step ticked and pending its refactor when the mark is written.
   mkdir -p "$fixture/.tdd"
   printf -- '- [x] %s ⟂ refactor pending\n- [ ] %s\n' "$tidied" "$untidied" > "$fixture/.tdd/issue-230.md"
   for s in "$tidied" "$untidied"; do
@@ -286,8 +190,6 @@ else
     problems+=("the call $skill_md prescribes did not run: $call")
   report_out="$( cd "$fixture" && "$S/metrics.sh" 230 2>&1 )" ||
     problems+=("want metrics.sh to exit 0, it did not: $report_out")
-  # cell_of <step> <heading> — the cell under <heading> in the row for <step>, read from the
-  # header of the table that row sits in.
   cell_of() {
     awk -F'|' -v step="$1" -v want="$2" '
       function trim(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
@@ -307,13 +209,6 @@ else
 fi
 report "$name"
 
-# 5. The refactor mark's stop reason (issue #250): `refactor-triage.sh` gives two real
-#    answers — exit 3, nothing structural is left and the tidying owes nothing; exit 0,
-#    structural candidates remain and a follow-up owes them — and one `stopped=triage` value
-#    for both leaves a log reader unable to tell them apart. So the record that prescribes
-#    the mark must name `nothing-structural` against exit 3 and `structural-owed` against
-#    exit 0, each within a short clause of its exit so a swapped pairing cannot pass, must no
-#    longer offer `triage`, and must still offer the three reasons that did not change.
 name="$skill_md names stopped=nothing-structural for refactor-triage.sh exit 3 and stopped=structural-owed for exit 0, no stopped=triage, and keeps malformed, nothing-left and budget"
 problems=()
 if have_records "the refactor mark's stop reasons"; then
@@ -336,13 +231,6 @@ if have_records "the refactor mark's stop reasons"; then
 fi
 report "$name"
 
-# 6. The plan grows mid-run (issue #360): `add-ledger-step.sh` inserts a step the scoping pass
-#    never wrote, and a plan that changes without a record leaves the log unable to say which
-#    steps the run chose for itself — metrics counts them, and a bail reader cannot otherwise
-#    tell an original step from one a leaf asked for. The script is prose to the session like
-#    every other mark here, so the event exists only where this document prescribes it: beside
-#    the insertion, and beside EVERY insertion, since a second call site added later with no
-#    mark of its own is exactly the drift this suite exists to catch.
 name="$skill_md prescribes an event.sh step-added call beside every add-ledger-step.sh insertion"
 problems=()
 if have_records 'the step-added mark'; then
@@ -353,19 +241,11 @@ if have_records 'the step-added mark'; then
     calls_event "$line" step-added ||
       problems+=("$skill_md inserts a step with no \`event.sh step-added\` beside it: $(printf '%.130s' "$line")")
   done <<< "$records"
-  # Fail closed: no insertion prescribed anywhere means the loop asked nothing, which must not
-  # read as a pass.
   [[ "$insertions" -gt 0 ]] ||
     problems+=("$skill_md prescribes no \`\$S/add-ledger-step.sh\` call — where \`event.sh step-added\` belongs could not be read")
 fi
 report "$name"
 
-# 7. The Refactor phase's own insertion (issue #361): case 6 asks that every insertion
-#    prescribed anywhere carries the mark, which a section that prescribes no insertion at all
-#    satisfies vacuously. This case asks the one the Refactor phase makes — the call that grows
-#    the plan with the `uncovered-spec` flags (#175) after verify-refactor's final PASS, in the same
-#    breath as the refactor-pending clear — to carry it, so dropping that call or its mark from
-#    the phase that grows the plan mid-run is caught where it happens.
 name="$skill_md marks the Refactor section's own plan insertion with an event.sh step-added call beside it"
 problems=()
 if have_records "the Refactor section's step-added mark"; then
@@ -374,21 +254,9 @@ if have_records "the Refactor section's step-added mark"; then
 fi
 report "$name"
 
-# 8. The three outcomes at exhaustion (issue #408): a step whose revise budget runs out no
-#    longer ends one way but three — the criteria the leaf named replace it, it is parked for
-#    the user, or it bails exactly as it did before — and marks that cannot be told apart
-#    leave a log reader unable to say afterwards which of the three a run took. The bailed one
-#    already carries its own cause token; the other two are new, and the split needs more than
-#    a mark of its own: the Green section's volunteered split writes the very same call, so a
-#    plan that grew at exhaustion and one that grew because a leaf asked read identically
-#    unless this branch's mark carries something that one does not.
 name="$skill_md marks the exhausted-budget split and the needs-user park in the event log, the split told apart from a leaf-volunteered one"
 problems=()
 if have_records 'the exhausted-budget marks'; then
-  # The three branch records and the Green section's volunteered split, each anchored on what
-  # only it says: the answer file plus its placement, the answer file plus the park, the third
-  # answer's exit code beside the cause it keeps, and the `before` insertion that is the
-  # leaf-volunteered split's own.
   split_rec="" park_rec="" bail_rec="" volunteered_rec=""
   while IFS= read -r line; do
     if [[ "$line" =~ exhausted-answer && "$line" =~ instead-of ]]; then split_rec="$line"
@@ -398,22 +266,12 @@ if have_records 'the exhausted-budget marks'; then
     fi
   done <<< "$records"
 
-  # event_calls <record> — every `event.sh <mark> [key=value …]` the record prescribes, one
-  # per line. The call ends at the first word that is neither a mark name nor a key=value, so
-  # the shell command that follows it in the same fenced block is not read as part of it.
   event_calls() { grep -oE 'event\.sh [a-z][a-z-]*( [a-z]+=[^ ]+)*' <<< "$1"; }
 
-  # mark_names <calls> — the mark name of each of those calls, one per line: the name alone is
-  # what two outcomes have to differ in for a log reader to tell them apart at a glance, its
-  # keys aside.
   mark_names() { awk '{print $2}' <<< "$1"; }
 
-  # The split branch's calls, read once: both halves below ask about them — the split's own,
-  # against the volunteered split's, and the park's, against these.
   split_calls="$(event_calls "$split_rec")"
 
-  # The split branch, and the half of this criterion nothing else pins: its mark must say
-  # something the volunteered split's does not.
   if [[ -z "$split_rec" ]]; then
     problems+=("$skill_md prescribes no instead-of insertion beside .tdd/exhausted-answer.txt — where the split outcome's mark belongs could not be read")
   elif [[ -z "$volunteered_rec" ]]; then
@@ -428,9 +286,6 @@ if have_records 'the exhausted-budget marks'; then
       problems+=("$skill_md marks the split a run reaches at exhaustion with nothing a leaf-volunteered split does not write too, so the log cannot say which of the two grew the plan: $(printf '%.130s' "$split_rec")")
   fi
 
-  # The needs-user branch, which writes no mark at all until this step: an escalation is the
-  # one outcome that stops the run without a bail, so a log without it says only that the run
-  # stopped saying nothing.
   if [[ -z "$park_rec" ]]; then
     problems+=("$skill_md prescribes no park beside .tdd/exhausted-answer.txt — where the escalated outcome's mark belongs could not be read")
   else
@@ -438,8 +293,6 @@ if have_records 'the exhausted-budget marks'; then
     if [[ -z "$park_calls" ]]; then
       problems+=("$skill_md parks a step at exhaustion with no \`event.sh\` call beside it, so the outcome that stops a run without bailing it leaves no mark in the log")
     else
-      # And a mark of its own: a park logged under the name the split writes is a third
-      # outcome the log still reads as the first.
       split_names="$(mark_names "$split_calls")"
       own=""
       while IFS= read -r call; do
@@ -450,20 +303,11 @@ if have_records 'the exhausted-budget marks'; then
     fi
   fi
 
-  # The third outcome, which already has its mark: the bail's cause token, kept beside the
-  # answer that takes it, so all three ways out of exhaustion are named in one case.
   [[ -n "$bail_rec" ]] ||
     problems+=("$skill_md no longer names the revise-exhausted cause against exhausted-outcome.sh's exit 3, so the bailed outcome's own mark could not be read")
 fi
 report "$name"
 
-# 9. The crossing's own mark (issue #452): the step's cost check reacts to a crossing by
-#    launching the over-budget leaf, and what that leaf answers — split, park, carry on — is a
-#    second fact. A log that records only the reaction cannot count how often the budget fired,
-#    and one written after the leaf records nothing for a crossing whose leaf never came back.
-#    So one `event.sh step-over-budget` carrying both figures is prescribed before the launch
-#    of `develop-over-budget`, read off the raw document in order: the call has to precede the
-#    `detach-leaf.sh` line that starts the leaf, and exactly one such call does.
 name="$skill_md writes one event.sh step-over-budget carrying spent= and budget= at the crossing, before the over-budget leaf is launched"
 problems=()
 launch_at="$(grep -m1 -nE 'detach-leaf\.sh.*develop-over-budget' "$ROOT/$skill_md" | cut -d: -f1)"
@@ -486,12 +330,6 @@ else
 fi
 report "$name"
 
-# 10. Every crossing carries that mark (issue #452): the over-budget leaf's answer sends the step
-#    one of three ways — split (exit 0), park (exit 1), carry on (exit 3) — and a mark written in
-#    only one of those branches would count the crossings that took it and miss the rest. So the
-#    call has to sit on the path all three share: a top-level line (not indented under one
-#    branch's bullet) between the cost-check heading and the `exhausted-outcome.sh` read of the
-#    over-budget leaf's answer, and all three branch bullets have to come after that read.
 name="$skill_md writes step-over-budget on every crossing, before the branch that splits, parks or carries on"
 problems=()
 section_at="$(cost_check_at)"
@@ -516,13 +354,6 @@ else
 fi
 report "$name"
 
-# 11. The cost-driven split's own spelling (issue #452): three causes now grow a plan — a Green
-#    leaf volunteering a split (no `at=`), a spent revise budget (`at=exhausted`, #408) and a
-#    crossed cost budget. Without a spelling of its own the third reads in the log as one of the
-#    other two. So the over-budget leaf's exit 0 branch — from its `- **exit 0` bullet under the
-#    cost-check heading up to the `- **exit 1` bullet after it — prescribes `event.sh step-split`
-#    carrying `at=over-budget`, and the revise-exhausted split's `step-split at=exhausted` is
-#    still spelled that way outside that branch.
 name="$skill_md's over-budget exit 0 branch writes step-split carrying at=over-budget, and the revise-exhausted split keeps at=exhausted"
 problems=()
 read -r split_at park_at <<< "$(cost_branch 0 1)"
@@ -546,11 +377,6 @@ else
 fi
 report "$name"
 
-# 12. The cost-driven park's own spelling (issue #452): a park because a verifier could not be
-#    satisfied and a park because the step got expensive are different facts, and the comment on
-#    the issue thread is not the log. So the over-budget leaf's exit 1 branch — from its `- **exit 1`
-#    bullet under the cost-check heading up to the `- **exit 3` bullet after it — prescribes
-#    `event.sh step-escalated` carrying `at=over-budget`.
 name="$skill_md's over-budget exit 1 branch writes step-escalated carrying at=over-budget"
 problems=()
 read -r park_at carry_at <<< "$(cost_branch 1 3)"
@@ -568,21 +394,13 @@ else
 fi
 report "$name"
 
-# 13. The carry-on writes nothing of its own (issue #452): when the over-budget leaf answers
-#    neither split nor park, the step goes on, and the `step-over-budget` written before the
-#    launch already says the whole of it — the budget was crossed, a leaf was asked, the run went
-#    on. A second mark there (a `step-not-split`, say) would be a mark for a non-event, and a log
-#    reader counting marks would count the crossing twice. So the exit 3 branch — its `- **exit 3`
-#    bullet under the cost-check heading and the indented lines that continue it, up to the next
-#    line in column one — prescribes no `event.sh` call at all.
 name="$skill_md's over-budget exit 3 branch writes no event mark beyond the crossing's step-over-budget"
 problems=()
 carry_at="$(cost_bullet_at 3)"
 if [[ -z "$carry_at" ]]; then
   problems+=("$skill_md's cost check has no \`- **exit 3\` branch — where the carry-on writes nothing could not be read")
 else
-  # Read from a redirection, not a pipe: the loop `break`s a few lines in, and a writer
-  # left with bytes to push would die of SIGPIPE or say so on stderr (#526).
+  # hazard: fed by a pipe, the writer would die of SIGPIPE when the loop breaks.
   mapfile -t -s "$((carry_at - 1))" branch < "$ROOT/$skill_md"
   lineno="$carry_at"
   for line in "${branch[@]}"; do
@@ -594,24 +412,12 @@ else
 fi
 report "$name"
 
-# 14. Case 13's reading leaves no writer mid-stream, and still names a mark it finds (issue #526).
-#    Case 13 fed its loop from `tail` and `break`s a few lines in, so on Linux CI `tail` still had
-#    bytes to push, found the pipe closed, and printed `tail: error writing 'standard output':
-#    Broken pipe` on stderr — after the count line, which is what `make test` reads. That stderr
-#    line needs a writer that outlives its reader AND a SIGPIPE it does not die of; the CI runner
-#    supplies the second, so this case supplies it too: it runs case 13's own code — cut out of
-#    this file's source, from its `# 13.` header up to its `report` — under an ignored SIGPIPE,
-#    over a copy of SKILL.md long enough past the branch that no pipe buffer holds it whole. The
-#    copy carries one planted `event.sh` mark inside the exit 3 branch, so the same code has to
-#    name it by its line. Its stderr is read through a command substitution, which returns only
-#    once every holder of the pipe — a writer left behind included — has closed it, so a late
-#    error is not missed.
 name="case 13 reads $skill_md's exit 3 branch without leaving a writer mid-stream, and still names a mark planted there by its line (#526)"
 problems=()
 scratch="$(mktemp -d)"
 mkdir -p "$scratch/$(dirname "$skill_md")"
 fixture="$scratch/$skill_md"
-case13="$(awk '/^# 13\. / { on = 1 } on && /^report "\$name"$/ { exit } on { print }' "${BASH_SOURCE[0]}")"
+case13="$(awk '/^name=".*over-budget exit 3 branch writes no event mark/ { on = 1 } on && /^report "\$name"$/ { exit } on { print }' "${BASH_SOURCE[0]}")"
 carry_at="$(cost_bullet_at 3)"
 if [[ -z "$case13" ]]; then
   problems+=("case 13's code could not be cut out of this suite's source, so how it reads the branch could not be asked")
@@ -644,10 +450,6 @@ fi
 rm -rf "$scratch"
 report "$name"
 
-# 15. The refactor mark's pass index (issue #502): a step runs the refactor phase twice when the
-#     triangulation path resumes the loop, and two marks with nothing to tell them apart leave
-#     the report keeping only the last. So the call carries `pass=`, and the record prescribing
-#     it says the first pass is 1 and that each triangulation resume counts one more.
 name="$skill_md writes the refactor mark with pass=<k>: 1 for a step's first pass, one more each time the triangulation path resumes the refactor loop"
 problems=()
 if have_records "the refactor mark's pass index"; then
