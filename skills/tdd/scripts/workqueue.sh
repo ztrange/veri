@@ -24,6 +24,7 @@
 set -euo pipefail
 
 source "$(dirname "$0")/lib/main-working-tree.sh"
+source "$(dirname "$0")/lib/github.sh"
 
 main_tree="$(main_working_tree)"
 queue="$main_tree/.tdd/workqueue"
@@ -32,8 +33,8 @@ if [[ "${1:-}" == next ]]; then
   if [[ -n "${VERI_GH_JSON:-}" ]]; then
     issues_json="$(cat "$VERI_GH_JSON/issues.json")"
   else
-    issues_json="$(gh issue list --state all --limit 10000 --json number,body,state 2> /dev/null ||
-      gh api --paginate "repos/{owner}/{repo}/issues?state=all&per_page=100")"
+    issues_json="$(gh_list "repos/{owner}/{repo}/issues?state=all&per_page=100" \
+      issue list --state all --limit 10000 --json number,body,state)"
   fi
   origin_url="$(git remote get-url origin 2>/dev/null || true)"
   origin_url="${origin_url%.git}"
