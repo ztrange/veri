@@ -18,6 +18,9 @@
 # Usage:   preserve-attempt.sh 409 3 develop-green 1 [<mark>]   # run from the issue's worktree
 set -euo pipefail
 
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HERE/lib/ledger.sh"
+
 [[ -n "${1:-}" && -n "${2:-}" && -n "${3:-}" && -n "${4:-}" ]] \
   || { echo "usage: preserve-attempt.sh <issue> <step> <phase> <attempt> [<mark>]" >&2; exit 2; }
 issue="$1" step="$2" phase="$3" attempt="$4"
@@ -33,16 +36,14 @@ GIT_INDEX_FILE="$index" git add -A
 tree="$(GIT_INDEX_FILE="$index" git write-tree)"
 
 ledger_step_index() {
-  local ledger="$1" prose="$2"
-  local box_re='^[[:space:]]*- \[[ xX]\] (.*)$'
-  local line n=0
+  local ledger="$1" prose="$2" record tab=$'\t'
   [[ -f "$ledger" ]] || return 1
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    if [[ "$line" =~ $box_re ]]; then
-      n=$((n + 1))
-      if [[ "${BASH_REMATCH[1]}" == *"$prose"* ]]; then LEDGER_STEP_INDEX="$n"; return 0; fi
+  # hazard: `IFS=$'\t' read` merges adjacent tabs, so an empty field would shift the rest; the record is cut by hand.
+  while IFS= read -r record; do
+    if [[ "${record#*"$tab"*"$tab"*"$tab"*"$tab"*"$tab"*"$tab"}" == *"$prose"* ]]; then
+      LEDGER_STEP_INDEX="${record%%"$tab"*}"; return 0
     fi
-  done < "$ledger"
+  done < <(ledger_steps < "$ledger")
   return 1
 }
 
