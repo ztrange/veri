@@ -99,13 +99,15 @@ esac
 STUB
 chmod +x "$refuseddir/gh"
 
-name="under a gh that refuses GraphQL and answers REST, ticks the criterion over REST with the same stdout and exit as a working gh (#568)"
 working_out="$stubdir/working-out"; refused_out="$stubdir/refused-out"; edit="$stubdir/refused-edit"
+working_err="$stubdir/working-err"; refused_err="$stubdir/refused-err"
 rm -f "$stubdir/out" "$edit"
 env PATH="$stubdir:$PATH" FAKE_BODY="$FAKE_BODY" FAKE_OUT="$stubdir/out" \
-  "$WRAP" 7 alpha > "$working_out" 2>/dev/null && working_code=0 || working_code=$?
+  "$WRAP" 7 alpha > "$working_out" 2> "$working_err" && working_code=0 || working_code=$?
 env PATH="$refuseddir:$PATH" REFUSED_DIR="$refuseddir" FAKE_OUT="$edit" \
-  "$WRAP" 7 alpha > "$refused_out" 2>/dev/null && code=0 || code=$?
+  "$WRAP" 7 alpha > "$refused_out" 2> "$refused_err" && code=0 || code=$?
+
+name="under a gh that refuses GraphQL and answers REST, ticks the criterion over REST with the same stdout and exit as a working gh (#568)"
 ok=1
 [[ "$working_code" == 0 && "$code" == "$working_code" ]] || ok=0
 cmp -s "$working_out" "$refused_out" && same=yes || { same=no; ok=0; }
@@ -118,12 +120,6 @@ else
 fi
 
 name="under a gh that refuses GraphQL, writes nothing to stderr, the same as against a working gh: the refusal is not passed through (#568)"
-working_err="$stubdir/working-err"; refused_err="$stubdir/refused-err"
-rm -f "$stubdir/out" "$edit"
-env PATH="$stubdir:$PATH" FAKE_BODY="$FAKE_BODY" FAKE_OUT="$stubdir/out" \
-  "$WRAP" 7 alpha > /dev/null 2> "$working_err" || true
-env PATH="$refuseddir:$PATH" REFUSED_DIR="$refuseddir" FAKE_OUT="$edit" \
-  "$WRAP" 7 alpha > /dev/null 2> "$refused_err" || true
 if [[ ! -s "$working_err" && ! -s "$refused_err" ]]; then
   pass=$((pass + 1))
 else
