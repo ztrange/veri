@@ -78,16 +78,16 @@ name="solvable-issues.test.sh: an ambient VERI_PRIORITY_LABEL gives the same exi
 problems=()
 label_cut="$(mktemp "$HERE/.hermetic-label-slice.XXXXXX")"
 awk '
-  /^# 1\. / {skip=1}
-  /^# 22\. / {skip=0}
-  /^# 28\. / {skip=1}
+  /^fx="\$\(fixture unblocked\)"$/ {skip=1}
+  /^fx="\$\(fixture bug-band\)"$/ {skip=0}
+  /^narration="\$\(loop_bullet / {skip=1}
   !skip
 ' "$HERE/solvable-issues.test.sh" > "$label_cut"
 printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$label_cut"
 chmod +x "$label_cut"
 label_assertions="$(grep -c 'ok || no ' "$label_cut")"
 if [[ "$label_assertions" -ne 6 ]]; then
-  problems+=("the slice of solvable-issues.test.sh between '# 22. ' and '# 28. ' held $label_assertions assertions, want 6 — the markers may have moved")
+  problems+=("the slice of solvable-issues.test.sh from the bug-band fixture to the narration case held $label_assertions assertions, want 6 — the markers may have moved")
 else
   cleared_label_out="$(env -u VERI_PRIORITY_LABEL "$label_cut" 2>/dev/null)" && cleared_label_code=0 || cleared_label_code=$?
   ambient_label_out="$(env VERI_PRIORITY_LABEL=ready-for-agent "$label_cut" 2>/dev/null)" && ambient_label_code=0 || ambient_label_code=$?

@@ -18,17 +18,12 @@ pass=0 fail=0
 ok() { pass=$((pass + 1)); }
 no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 
-# A repository of the case's own, so the answer never depends on the runs live in the
-# repository `make test` was typed in. A `git init` with no commit is enough: `git worktree
-# list` prints it as the main tree.
 repo() {  # repo <name> -> path
   local dir="$work/$1"
   git init -q -b main "$dir" >/dev/null 2>&1
   echo "$dir"
 }
 
-# A fabricated run, not a real worktree: .tdd/wt/<n> under <repo> is a repository of its own
-# whose unborn branch is the issue branch, with an empty .tdd/ for the ledger and event log.
 fabricate_run() {  # fabricate_run <repo> <n> <branch> -> path
   local dir="$1/.tdd/wt/$2"
   git init -q -b "$3" "$dir" >/dev/null 2>&1
@@ -36,14 +31,11 @@ fabricate_run() {  # fabricate_run <repo> <n> <branch> -> path
   echo "$dir"
 }
 
-# Run the script from inside <dir>, leaving stdout in $out and the exit code in $code.
 run_in() {  # run_in <dir> [script args…]; sets $out and $code
   local dir="$1"; shift
   out="$(cd "$dir" && "$STATUS" "$@" 2>/dev/null)" && code=0 || code=$?
 }
 
-# Pass when every wanted piece was found in $out and the script exited 0; otherwise name the
-# case, the pieces missing and what the script did print.
 expect_nothing_missing() {  # expect_nothing_missing <case name>; reads $missing, $out, $code
   if [[ ${#missing[@]} -eq 0 && "$code" -eq 0 ]]; then ok; else
     no "$1"
@@ -52,7 +44,6 @@ expect_nothing_missing() {  # expect_nothing_missing <case name>; reads $missing
   fi
 }
 
-# --- no .tdd/wt/* runs under the main working tree: "no runs", exit 3 ---
 empty="$(repo empty)"
 run_in "$empty"
 if [[ "$out" == "no runs" && "$code" -eq 3 ]]; then ok; else
@@ -60,10 +51,6 @@ if [[ "$out" == "no runs" && "$code" -eq 3 ]]; then ok; else
   diff <(printf 'no runs\nexit 3\n') <(printf '%s\nexit %s\n' "$out" "$code")
 fi
 
-# --- one run: issue number and title from the ledger heading, branch, step n of m ---
-# A fabricated run, not a real worktree: the run's directory is a repository of its own whose
-# unborn branch is the issue branch, and its ledger has one of three steps ticked — so the
-# step the run is on is the second.
 one="$(repo one)"
 run="$(fabricate_run "$one" 7 tdd/7-widgets-spin)"
 cat > "$run/.tdd/issue-7.md" <<'EOF'
@@ -80,10 +67,6 @@ for want in "#7" "widgets spin when clicked" "tdd/7-widgets-spin" "step 2 of 3";
 done
 expect_nothing_missing "a run under .tdd/wt/* is listed with its issue number, title, branch and step n of m"
 
-# --- one run mid-Green: phase, actor, current leaf and its elapsed seconds, attempts in step ---
-# The event log is what these are read from. The previous step launched three leaves; the
-# current one has launched develop-green twice (a stuck retry), the second 100 s ago — so the
-# run is in green, driven by the developer, on leaf develop-green for ~100 s, attempt 2.
 live="$(repo live)"
 run="$(fabricate_run "$live" 8 tdd/8-gears-turn)"
 cat > "$run/.tdd/issue-8.md" <<'EOF'
@@ -115,10 +98,6 @@ done
 [[ "$out" =~ (^|[^0-9])10[0-5]s([^0-9a-z]|$) ]] || missing+=("elapsed 100s-105s")
 expect_nothing_missing "a run shows its current phase, actor, leaf name, leaf elapsed seconds and attempts in the step, from its event log"
 
-# --- one run: cost so far in dollars and tokens, summed from the event log's usage lines ---
-# Two leaves have closed with their own accounting (harvest-usage.sh writes one `usage` line
-# each, every value a string as event.sh writes it). $0.50 + $1.25 is $1.75; the four token
-# kinds of both leaves, 4700 + 6300, are 11000 tokens. Lines that are not `usage` carry no cost.
 spent="$(repo spent)"
 run="$(fabricate_run "$spent" 9 tdd/9-cogs-mesh)"
 cat > "$run/.tdd/issue-9.md" <<'EOF'
@@ -140,12 +119,6 @@ missing=()
 [[ "$out" =~ (^|[^0-9])11,?000\ tokens ]] || missing+=("11000 tokens")
 expect_nothing_missing "a run shows its cost so far in dollars and tokens, summed from its event log"
 
-# --- each run's state: running, done with its PR url, bailed with phase and classification, stale ---
-# Four runs in one repository. #11's last event is 10 s old and its conductor.pid is this
-# suite's own shell, which answers `kill -0`: running. #12's log ends in `done pr=<url>`. #13's
-# ends in a `bail` in phase green, classified system — its only launch was in red, so "green"
-# on its line can come from the bail alone. #14's last event is 1000 s old, past a VERI_TIMEOUT
-# of 600, and its conductor.pid names a process that has already exited: stale.
 states="$(repo states)"
 now="$(date +%s)"
 sleep 0 & dead_pid=$!
@@ -178,10 +151,6 @@ for want in "11 running" "12 done" "12 https://github.com/o/r/pull/12" "13 baile
 done
 expect_nothing_missing "a run shows its state: running, done with its PR url, bailed with phase and classification, or stale"
 
-# --- a done run keeps its last step's attempt count (#278) ---
-# #15's one step launched develop-red twice, then the run ended. `event.sh done` runs with no
-# VERI_STEP, so the trailing done line's step is "" — it closes the run, it starts no step, and
-# the line must still say attempt 2, not attempt 0.
 finished="$(repo finished)"
 now="$(date +%s)"
 run="$(launched_run "$finished" 15 $((now - 40)))"
@@ -194,16 +163,11 @@ missing=()
 [[ "$out" == *"attempt 2 "* ]] || missing+=("attempt 2")
 expect_nothing_missing "a finished run's line reports its last step's attempt count, not attempt 0, when the done event carries an empty step"
 
-# The `stop mode=at-leaf at=planned` mark the conductor writes on *Stopping*, appended to <run>'s log.
 stop_mark() {  # stop_mark <run> <n> <ts>
   printf '{"ts": %s, "issue": "%s", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "stop", "attempt": "", "skill_commit": "abc", "mode": "at-leaf", "at": "planned"}\n' \
     "$3" "$2" >> "$1/.tdd/events.jsonl"
 }
 
-# --- a stopped run: `stopped <mode>`, and in --json "state": "stopped" with stop_mode (#390) ---
-# #16 launched develop-red, then the operator stopped it at the next leaf: its log ends in the
-# `stop mode=at-leaf at=planned` mark the conductor writes on *Stopping*. Both events are recent,
-# so nothing about the run is stale — the stop mark alone is what makes it read stopped.
 paused="$(repo paused)"
 now="$(date +%s)"
 run="$(launched_run "$paused" 16 $((now - 20)))"
@@ -223,10 +187,6 @@ except (ValueError, KeyError, IndexError, TypeError) as err:
 [[ "$stopped" == "stopped at-leaf" ]] || missing+=("--json state and stop_mode \"stopped at-leaf\", got: $stopped")
 expect_nothing_missing "a run whose log ends with a stop mark reads stopped <mode>, and --json reports state stopped with the mode in stop_mode"
 
-# --- a stopped run that was resumed reads running again (#390) ---
-# #17 was stopped at the next leaf, then the operator resumed it: the conductor wrote its
-# `resume` mark after the `stop`. A stop is not terminal the way done and bail are, so the
-# resume clears it. Every event is recent, so the run is not stale either.
 resumed="$(repo resumed)"
 now="$(date +%s)"
 run="$(launched_run "$resumed" 17 $((now - 30)))"
@@ -239,12 +199,6 @@ run_in "$resumed"
 [[ "$out" != *"stopped"* ]] || missing+=("no stopped")
 expect_nothing_missing "a resume mark after a stop mark makes the run read running again"
 
-# --- --scope <name>: the scope's totals — attempted, done, bailed, wall time, dollars ---
-# Three runs in one repository. Wall time is each run's span from its first event to its last,
-# summed, so it is read from the files alone and never drifts with the clock: #21 is running,
-# 60 s from launch to its last usage line, $0.25; #22 is done, 200 s, $1.50; #23 bailed, 100 s,
-# $0.50. The scope has attempted 3, done 1, bailed 1, wall 360 s and $2.25 — a total no single
-# run's line carries. VERI_GH_JSON points at an empty fixture so nothing reaches the network.
 scoped="$(repo scoped)"
 now="$(date +%s)"
 scope_run() {  # scope_run <n> <launch ts> <usage ts> <dollars> -> path
@@ -266,9 +220,7 @@ gh_json="$work/scoped-gh"
 mkdir -p "$gh_json"
 echo '[]' > "$gh_json/issues.json"
 echo '[]' > "$gh_json/prs.json"
-# The one line of $out naming lamps-label: the scope's totals line.
 lamps_scope_line() { printf '%s\n' "$out" | grep 'lamps-label' || true; }
-# The totals the three runs above add up to, looked for on that line.
 expect_lamps_totals() {  # expect_lamps_totals <case name>; reads $out, $code
   local scope_line want
   scope_line="$(lamps_scope_line)"
@@ -281,16 +233,9 @@ expect_lamps_totals() {  # expect_lamps_totals <case name>; reads $out, $code
 VERI_GH_JSON="$gh_json" VERI_TIMEOUT=600 run_in "$scoped" --scope lamps-label
 expect_lamps_totals "--scope <name> adds the scope's totals: issues attempted, done, bailed, total wall time and dollars"
 
-# --- no --scope, VERI_LABEL set: the same totals line, for the scope VERI_LABEL names ---
-# The same three runs as the case above, typed with no argument at all: the label the solvable
-# set is opted into by is the scope, so the line is the one --scope lamps-label printed.
 VERI_GH_JSON="$gh_json" VERI_TIMEOUT=600 VERI_LABEL=lamps-label run_in "$scoped"
 expect_lamps_totals "with no --scope, VERI_LABEL names the scope and adds the same totals line"
 
-# --- --scope <name>: the totals include the count still solvable, from solvable-issues.sh ---
-# The same three runs, with a VERI_GH_JSON fixture of three open, unblocked, unclaimed issues:
-# #31 and #32 carry lamps-label, #33 another label. solvable-issues.sh for that scope lists
-# #31 and #32, so the totals line says `solvable 2` — read from the fixture, never the network.
 solvable_gh="$work/solvable-gh"
 mkdir -p "$solvable_gh"
 cat > "$solvable_gh/issues.json" <<'JSON'
@@ -306,12 +251,6 @@ missing=()
 [[ "$(lamps_scope_line)" == *"solvable 2"* ]] || missing+=("solvable 2")
 expect_nothing_missing "--scope <name> totals include the count still solvable, from solvable-issues.sh for that scope"
 
-# --- --json: the same per-run and scope data, as one JSON document ---
-# The same three runs and the same solvable fixture as the case above. The whole of stdout must
-# parse as one JSON document, and its values — never its key names — must carry what the text
-# lines do: each run's issue number, title, branch and PR url and a bail's classification, and
-# the scope's name, wall seconds, dollars and solvable count, as values of their own rather than
-# fragments of a rendered line ("360", not "wall 360s").
 VERI_GH_JSON="$solvable_gh" VERI_TIMEOUT=600 run_in "$scoped" --json --scope lamps-label
 missing=()
 while IFS= read -r want; do
@@ -344,9 +283,6 @@ for want in wanted:
 ')
 expect_nothing_missing "--json emits the same per-run and scope data as one JSON document"
 
-# --- --json: scope.solvable is a JSON number, like every other numeric field (#279) ---
-# The same runs and solvable fixture. The case above flattens every leaf to a string, so it
-# cannot tell 2 from "2"; a consumer reading scope.solvable can. It must be the number 2.
 VERI_GH_JSON="$solvable_gh" VERI_TIMEOUT=600 run_in "$scoped" --json --scope lamps-label
 solvable="$(printf '%s' "$out" | python3 -c '
 import json, sys
@@ -360,10 +296,6 @@ if [[ "$solvable" == "2" && "$code" -eq 0 ]]; then ok; else
   diff <(printf '2\nexit 0\n') <(printf '%s\nexit %s\n' "$solvable" "$code")
 fi
 
-# --- solvable-issues.sh gives no answer: the count renders as ?, in text and in JSON ---
-# The same three runs, with an issues.json that is not JSON: solvable-issues.sh dies parsing it
-# (exit 1, neither a list nor exit 3's "nothing takeable"), so the count is unknown. It must
-# say so — `solvable ?` on the text line, "solvable": "?" in the JSON — never 0, never a crash.
 broken_gh="$work/broken-gh"
 mkdir -p "$broken_gh"
 echo 'not json' > "$broken_gh/issues.json"
@@ -385,10 +317,6 @@ out="$text_out"$'\n'"$out"
 [[ "$text_code" -eq 0 ]] || code="$text_code"
 expect_nothing_missing "solvable-issues.sh exiting other than 0 or 3 renders the solvable count as ?, in text and JSON"
 
-# --- --json: a bailed run's bail_phase is the bail event's phase, not its last launch's ---
-# The four runs of the state case above. #13's only launch was in red and its bail in green,
-# so the two keys disagree: phase must say red, from the launch, and bail_phase green, from
-# the bail — a bail_phase read off the launch would say red twice.
 VERI_TIMEOUT=600 run_in "$states" --json
 phases="$(printf '%s' "$out" | python3 -c '
 import json, sys
@@ -404,10 +332,6 @@ if [[ "$phases" == "phase=red bail_phase=green" && "$code" -eq 0 ]]; then ok; el
 fi
 
 # --- a run directory's own ledger is its run, not every committed ledger beside it (#343) ---
-# Ledgers are committed, so a run worktree carries a copy of every earlier issue's plan. The
-# run under .tdd/wt/7 is issue #7 and nothing else: its own issue-7.md is the one reported, and
-# the committed issue-3.md and issue-5.md beside it are other issues' plans, not runs of their
-# own — in the text rendering (exactly one `#` line, #7) and in --json (exactly one object).
 own="$(repo own)"
 run="$(fabricate_run "$own" 7 tdd/7-widgets-spin)"
 cat > "$run/.tdd/issue-7.md" <<'EOF'
@@ -443,11 +367,6 @@ except (ValueError, KeyError, TypeError) as err:
 [[ "$issues" == "7" ]] || missing+=("--json runs exactly [7], got: $issues")
 expect_nothing_missing "a run directory is one run, its own issue's ledger, not every committed ledger beside it"
 
-# --- two run directories, each holding the other's committed ledger (#343) ---
-# The rule above, with a second run beside the first: .tdd/wt/7 and .tdd/wt/9 each carry their
-# own ledger, the other's committed copy, and a third issue's (#4). --json must print exactly
-# two objects, #7 and #9, and each must carry its OWN directory's event log totals — #7's
-# $0.25 and #9's $1.50 — never the other's, and never #4 at all.
 pair="$(repo pair)"
 pair_run() {  # pair_run <n> <dollars> -> path; own ledger, two committed ones beside it, one usage line
   local dir other
@@ -477,11 +396,6 @@ if [[ "$pairs" == "7=0.25 9=1.50" && "$code" -eq 0 ]]; then ok; else
   diff <(printf '7=0.25 9=1.50\nexit 0\n') <(printf '%s\nexit %s\n' "$pairs" "$code")
 fi
 
-# --- a run directory with no ledger of its own is not yet a run (#343) ---
-# A run directory is made before its ledger is written, so between the two it holds only the
-# committed copies of earlier issues' plans. .tdd/wt/8 here has issue-3.md and issue-5.md and
-# no issue-8.md: it contributes no run — no line in the text rendering, no object in --json —
-# and its half-born state is not an error, so the script still exits 0.
 unborn="$(repo unborn)"
 run="$(fabricate_run "$unborn" 8 tdd/8-lamps-glow)"
 cat > "$run/.tdd/issue-3.md" <<'EOF'
@@ -509,16 +423,6 @@ except (ValueError, KeyError, TypeError) as err:
 [[ "$issues" == "(none)" ]] || missing+=("--json runs empty, got: $issues")
 expect_nothing_missing "a run directory with no ledger of its own contributes no run and is not an error"
 
-# --- --watch [seconds]: redraws in place, recomputing every run from disk on each render ---
-# One running run, watched with stdout to a file. `--watch 0` rather than `--watch 1`: a real
-# 1s interval between redraws made this case's second wait_for below sit out up to a full
-# second of real wall time for the SECOND render to notice the appended `done` event — 0 is a
-# legitimate value (status.sh's own `^[0-9]+$` accepts it) that keeps the redraw loop running
-# flat out instead, so the next render lands as soon as this test's own polling below can see
-# it. Once its first render is on screen, a `done` event is appended to the run's log. The
-# watcher must still be going, must have moved the cursor back to redraw in place (an ESC [ or
-# ESC c sequence), and a later render must say #41 is done — read from the file it changed,
-# not remembered from the first render.
 watched="$(repo watched)"
 now="$(date +%s)"
 run="$(launched_run "$watched" 41 $((now - 10)))"
