@@ -37,11 +37,12 @@ _ledger_read_line() {
 
 _ledger_pending_mark=' ⟂ refactor pending'
 _ledger_added_mark='⟦added⟧'
+_ledger_criterion_tag='⟦criterion '
 
 ledger_steps() {
   local line nl state kind pending added criterion text index=0 re open_step done_box
   _ledger_step_re
-  local criterion_re='⟦criterion ([0-9]+)⟧'
+  local criterion_re="${_ledger_criterion_tag}([0-9]+)⟧"
   local kind_re="⟦(full-suite|human-owed)⟧ $criterion_re"
   while _ledger_read_line; do
     [[ "$line" =~ $re ]] || continue
@@ -95,7 +96,7 @@ ledger_add_step() {
   local step line nl re open_step done_box i last=-1
   local -a lines=() nls=()
   _ledger_step_re
-  step="$open_step $1 $_ledger_added_mark ⟦criterion $2⟧"
+  step="$open_step $1 $_ledger_added_mark $_ledger_criterion_tag$2⟧"
   while _ledger_read_line; do
     [[ "$line" =~ $re ]] && last=${#lines[@]}
     lines+=("$line")
