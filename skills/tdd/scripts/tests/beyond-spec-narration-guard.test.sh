@@ -52,32 +52,18 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The guard, twice, and neither name substitutes for the other: repo-relative is what a failure
-# message quotes and what the plant rebuilds the path from, absolute is what copying it into the
-# plant needs. Same pairing flag-class-amendment-guard.test.sh uses on its own guard.
 GUARD='skills/tdd/scripts/tests/skill-refactor-leaf.test.sh'
 GUARD_PATH="$ROOT/$GUARD"
 
-# The document the plant rewrites, the same way twice and for the same reason.
 SKILL='skills/tdd/SKILL.md'
 SKILL_PATH="$ROOT/$SKILL"
 
-# The other two documents the guard opens — its case 2 reads CONTEXT.md's Cycle entry and
-# CLAUDE.md's budget invariant — copied into the tree untouched. They are not what this plant is
-# about, but a tree missing them would make the guard red for a reason that is not the plant, and
-# the red half below would then say nothing.
 COMPANIONS=(CONTEXT.md CLAUDE.md)
 
-# The class this plant is about, named once so a message can never be about another one.
 CLASS='beyond-spec'
 
-# The clause the document denies the planning with, and what the plant turns it into: the same
-# sentence granting what it used to refuse. A grant rather than a deletion because the criterion
-# is a section that PLANS and BUILDS the class, and a section with the clause merely cut would be
-# a section that says nothing either way — a weaker document than the one the rule is against.
 DENIAL='is not planned and not built in this run'
 GRANT='is planned and built in this run'
 
@@ -85,9 +71,6 @@ pass=0 fail=0
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty array
-# is a pass, otherwise one FAIL line for the case and one indented line per problem, so the
-# output says which half of the contract broke rather than just that the case did.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -99,14 +82,8 @@ report() {
   fi
 }
 
-# flat <text> — one line of it, for a failure message: newlines become slashes so a guard's whole
-# output quoted inside an indented problem line stays one line.
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
-# failures_in <output> — the number a suite's own count line states it failed, or '<none>' when
-# it printed no count line at all. A suite's exit code alone is not trusted (#157: a suite that
-# dies partway routinely comes back 0), so both probes below read the verdict the guard printed
-# as well as the status it exited with — the same pair the `test` recipe reads.
 failures_in() {
   local line
   line="$(grep -E '^[0-9]+ passed, [0-9]+ failed$' <<< "$1" | tail -1)"
@@ -115,10 +92,6 @@ failures_in() {
   printf '%s' "${line% failed}"
 }
 
-# plant — the scratch tree the guard runs inside, and the rewritten document it is asked about.
-# Leaves the tree in `tree`, the guard's copy in `guard_copy` and the planted document in
-# `planted_skill`. Non-zero when the tree cannot be made, so the caller stops rather than
-# reporting on a tree it never built.
 plant() {
   local companion
   tree="$scratch/tree"
@@ -136,8 +109,6 @@ plant() {
   done
 
   planted_skill="$scratch/planted-SKILL.md"
-  # One literal substitution per occurrence, done with awk's `index`/`substr` rather than sed so
-  # that nothing in either clause has to be escaped into a pattern.
   FROM="$DENIAL" TO="$GRANT" awk '
     {
       out = ""
@@ -152,8 +123,6 @@ plant() {
   return 0
 }
 
-# probe_guard_is_there — the premise every probe below rests on, and the one that answers while
-# the guard does not exist yet: there is a suite at that path and it can be run.
 probe_guard_is_there() {
   [[ -f "$GUARD_PATH" ]] || {
     problems+=("there is no guard suite at $GUARD, so nothing checks that $SKILL's Refactor section keeps a $CLASS flag out of the plan")
@@ -165,13 +134,6 @@ probe_guard_is_there() {
   }
 }
 
-# probe_plant_is_what_it_claims — the plant's premises, asserted rather than assumed. The
-# committed document has to deny the planning at all, or there is nothing to turn into a grant
-# and the red below would be about a document that never routed the class; it must not already
-# carry the grant, or the planted document is indistinguishable from the committed one on the
-# very clause the plant is about; and the planted document has to differ from the committed one
-# on exactly the lines that carried the denial and no other, since a red over a document changed
-# twice is not about where a beyond-spec flag goes.
 probe_plant_is_what_it_claims() {
   local carriers changed
   carriers="$(grep -cF "$DENIAL" "$SKILL_PATH")"
@@ -191,18 +153,11 @@ probe_plant_is_what_it_claims() {
   return 0
 }
 
-# run_guard_over <document> — put <document> in the tree as the document the guard reads, run the
-# guard there once, and leave what it said in `guard_out` and how it exited in `guard_code`. A
-# step of its own because both halves below ask about one such run over the same tree.
 run_guard_over() {
   cp "$1" "$tree/$SKILL"
   guard_out="$("$guard_copy" 2>&1)" && guard_code=0 || guard_code=$?
 }
 
-# probe_guard_is_green_unplanted — the half that makes the other half mean something. The guard is
-# run over the tree with the document exactly as committed: it has to pass, and its own count
-# line has to say nothing failed. A guard red over this tree is red over every tree, and the
-# plant below would prove nothing about it.
 probe_guard_is_green_unplanted() {
   local failures
   run_guard_over "$SKILL_PATH"
@@ -213,10 +168,6 @@ probe_guard_is_green_unplanted() {
     problems+=("want ${GUARD##*/}'s own count line to state 0 failed over $SKILL as committed; it stated '$failures': $(flat "$guard_out")")
 }
 
-# probe_guard_names_the_narration_case — the criterion. Not "the guard fails" — a guard deleted
-# down to `exit 1` would satisfy that, and so would one whose other seven cases broke on the copy
-# — but a failure whose count line says one case failed, and whose `FAIL -` line is the one about
-# where a beyond-spec flag goes, naming that class.
 probe_guard_names_the_narration_case() {
   local failures failed_cases
   run_guard_over "$planted_skill"
@@ -234,10 +185,6 @@ probe_guard_names_the_narration_case() {
   fi
 }
 
-# 1. One criterion — the narration guard is known to go red over a section that plans and builds
-#    a $CLASS flag, and green without it — and so one case: both runs are of the same guard over
-#    the same tree, and a case that asked only about the planted one would pass over a guard that
-#    refuses everything.
 name="${GUARD##*/} fails over a $SKILL whose Refactor section plans and builds a $CLASS flag instead of only narrating it, naming that case and no other, and passes over the document as committed"
 problems=()
 tree=""

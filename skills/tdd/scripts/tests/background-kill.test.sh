@@ -35,14 +35,10 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LIB="$HERE/../lib/background.sh"
 
-# How long, at most, anything here waits, in seconds. A passing run never reaches it.
 PATIENCE=3
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which half of the contract broke rather than just that the case did.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -56,21 +52,13 @@ report() {
 
 work="$(mktemp -d)"
 
-# Every pid a case has started, appended as soon as the case knows it, so the cleanup below
-# needs no roster of its own to keep in step with the cases.
 victims=()
 
-# end_victim <pid> — make sure <pid> is not running, quietly. A pid that is already gone, or
-# an empty one a case never got, is not an error: the point of the call is that nothing is
-# left running.
 end_victim() {
   [[ -n "$1" ]] || return 0
   kill -KILL "$1" 2>/dev/null || true
 }
 
-# The victim outlives the shell that started it by design, so a run that ends before the kill
-# — a failing case, an interrupt — must not leave it behind: this suite's own cleanup kills
-# it by the pid it read, which is the same rule the helper under test is here to enforce.
 cleanup() {
   local pid
   for pid in "${victims[@]}"; do end_victim "$pid"; done
@@ -78,9 +66,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# poll_until <seconds> <cmd> [args…] — true once <cmd> succeeds, looked at fifty times a
-# second up to a budget and returning on the first look that succeeds. The budget only bounds
-# how long a failing run takes to say so: a passing run never reaches it.
 poll_until() {
   local cap=$(( $1 * 50 )) looks=0
   shift
@@ -92,39 +77,27 @@ poll_until() {
   "$@"
 }
 
-# dead <pid> — true once <pid> is no longer a running process. A killed process is not gone
-# the instant the signal is sent, which is why callers poll this rather than read it once.
 dead() {
   ! kill -0 "$1" 2>/dev/null
 }
 
-# appeared <file> <seconds> — true once <file> holds something.
 appeared() {
   poll_until "$2" test -s "$1"
 }
 
-# gone <pid> <seconds> — true once <pid> is no longer a running process.
 gone() {
   poll_until "$2" dead "$1"
 }
 
-# flat <file> — <file>'s contents on one line. A problem message is printed as one indented
-# line, so a multi-line stderr quoted raw inside it would break out of that shape.
 flat() {
   tr '\n' ' ' < "$1"
 }
 
-# survived <pid> — a case's premise that <pid> really did outlive the shell that started it,
-# so there was something for that shell to report. Without it a case could go green over a
-# report about a process that had already died on its own. It appends to `problems` rather
-# than returning a status, the way the assertions it sits among do.
 survived() {
   kill -0 "$1" 2>/dev/null \
     || problems+=("the process bg_start recorded as $1 was already gone when its starting shell exited, so there was nothing to report")
 }
 
-# named_once <pid> <stderr-file> — <pid> is named on exactly one line of <stderr-file>, so a
-# survivor reported twice over is told apart from one reported once.
 named_once() {
   local lines
   lines="$(grep -c -F "$1" "$2" || true)"
@@ -132,12 +105,6 @@ named_once() {
     || problems+=("the survivor $1 is named on $lines lines of the starting shell's stderr, not 1: stderr said '$(flat "$2")'")
 }
 
-# make_victim <path> <pid-file> — a background process that reports its own pid and then
-# `exec`s a sleep, so the pid in the file is the pid still running when the kill arrives, and
-# the record can be checked to be that process rather than a number that merely looks like one.
-# It is a sleep and not a busy loop, so a broken helper leaves an idle process for the trap
-# above rather than a spinner like the ones that made this issue. `#!/bin/sh`, like every stub
-# in these suites, since Homebrew's bash costs three times as much to start.
 make_victim() {
   cat > "$1" <<VICTIM
 #!/bin/sh
@@ -147,7 +114,6 @@ VICTIM
   chmod +x "$1"
 }
 
-# 1. A recorded pid kills a process whose starting shell is gone.
 record="$work/started.pids"
 self_pid="$work/victim.pid"
 
@@ -156,8 +122,6 @@ make_victim "$victim" "$self_pid"
 
 problems=()
 
-# The starting shell, and it exits: a subshell that sources the helper, starts the victim
-# through it, and returns. From here on there is no job table anywhere that holds the victim.
 start_err="$work/start.err"
 ( source "$LIB" && bg_start "$record" "$victim" ) > /dev/null 2>"$start_err"
 start_code=$?
@@ -165,8 +129,6 @@ start_code=$?
 if ! appeared "$record" "$PATIENCE"; then
   problems+=("sourcing $LIB and calling bg_start: recorded no pid in $record (exit $start_code, stderr: '$(flat "$start_err")')")
 else
-  # The first field of the first recorded line, so a record that also names what started the
-  # process reads the same way as one that holds the bare number.
   recorded=""
   read -r recorded _ < "$record" || true
   appeared "$self_pid" "$PATIENCE" || true
@@ -177,12 +139,9 @@ else
 
   if [[ "$recorded" =~ ^[0-9]+$ ]]; then
     victims+=("$recorded")
-    # The premise: the victim is alive when the kill goes out. Without it a case could go
-    # green over a process that had already died of something else.
     kill -0 "$recorded" 2>/dev/null \
       || problems+=("the process bg_start recorded as $recorded was already gone before bg_kill was called")
 
-    # The kill, from a shell that never started it — where a job spec names nothing.
     kill_err="$work/kill.err"
     ( source "$LIB" && bg_kill "$record" ) > /dev/null 2>"$kill_err"
     kill_code=$?
@@ -194,11 +153,6 @@ fi
 
 report "a background process bg_start started is killed by its recorded pid, so bg_kill ends it from a shell that is not the one that started it"
 
-# 2. A process still running when the shell that started it exits is reported by that shell,
-# naming the pid and what started it. Asked the only way it can be: a subshell sources the
-# helper, starts the victim and then RETURNS without killing it, and the case reads what that
-# subshell wrote to its own stderr as it went. Nothing else here waits on the victim — the
-# report is written at the exit, so it is on the file the moment the subshell is reaped.
 record2="$work/abandoned.pids"
 self_pid2="$work/victim2.pid"
 
@@ -230,10 +184,6 @@ fi
 
 report "a process still running when its starting shell exits is reported on that shell's stderr, naming its pid and what started it"
 
-# 3. One record started into twice is reported once per survivor, not once per call. The
-# report walks the records this shell started something into, so a record remembered twice
-# would be read twice and every survivor in it named twice — two processes, four lines. The
-# case counts the lines that name each pid, which is the only thing that tells the two apart.
 record3="$work/pair.pids"
 self_pid3a="$work/victim3a.pid"
 self_pid3b="$work/victim3b.pid"
@@ -258,7 +208,6 @@ else
   if [[ ! "$victim3a_pid" =~ ^[0-9]+$ || ! "$victim3b_pid" =~ ^[0-9]+$ ]]; then
     problems+=("two bg_start calls on one record left '$victim3a_pid' and '$victim3b_pid' in $record3, not two pids")
   else
-    # Both, since the count below could otherwise be right for the wrong reason.
     for probe_pid in "$victim3a_pid" "$victim3b_pid"; do survived "$probe_pid"; done
 
     for probe_pid in "$victim3a_pid" "$victim3b_pid"; do named_once "$probe_pid" "$pair_err"; done
@@ -270,15 +219,6 @@ fi
 
 report "a record started into twice names each survivor once when the starting shell exits, not once per bg_start call"
 
-# 4. A record that is gone by the time the shell exits is passed over silently. The ordinary
-# shape of a caller is bg_start, bg_kill, then throw the scratch directory away — and the
-# report runs after all three, on a path that no longer exists. Reading it anyway is the
-# shell's own "No such file or directory" on the caller's stderr, at the one moment the
-# caller has already finished and cannot answer for it.
-# The victim is a bare `sleep`, not one of the reporting stubs above: this case kills it
-# before the shell exits, so a pid file it wrote for itself would be a race it never needs
-# to win. What cleanup needs instead is the record, and the shell copies it aside on its way
-# past so a bg_kill that failed still leaves a pid this suite can end.
 record4="$work/removed.pids"
 kept4="$work/removed.copy"
 
@@ -302,9 +242,6 @@ fi
 
 report "a shell whose record file is gone by the time it exits reports nothing, rather than failing to read it on the caller's stderr"
 
-# 5. A shell that armed its own EXIT trap before bg_start still runs it at exit, and still
-# reports the survivor. The earlier trap writes a marker file, so whether it ran is read off
-# the disk after the subshell is reaped.
 record5="$work/trapped.pids"
 self_pid5="$work/victim5.pid"
 marker5="$work/caller-trap.ran"
@@ -337,9 +274,6 @@ fi
 
 report "#536: a shell that set an EXIT trap before bg_start still runs that trap at exit, and still reports a survivor"
 
-# 6. The same shell as case 5, calling bg_start three times: twice into one record, then into
-# a second. Each survivor is named on exactly one line and the earlier trap appends exactly
-# one line to its marker, whichever call armed what.
 record6a="$work/repeat-a.pids"
 record6b="$work/repeat-b.pids"
 marker6="$work/caller-trap-repeat.ran"

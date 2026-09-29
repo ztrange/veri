@@ -365,6 +365,11 @@ want_line "$f:2:3"
 want_line "$g:2:3"
 verdict "a # line inside a heredoc piped to dd of= or sponge writing a .md file is class 3"
 
+# 26. the sweepable report is empty for every top-level tests/*.sh whose name starts with a or b.
+problems=""
+want_empty_sweepable "$SCRIPTS"/tests/[ab]*.sh
+verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with a or b"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

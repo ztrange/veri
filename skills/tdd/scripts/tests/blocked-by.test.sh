@@ -17,7 +17,6 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 LIB="$HERE/../lib"
 pass=0 fail=0
 
-# check <name> <expected> <actual>
 check() {
   if [[ "$2" == "$3" ]]; then
     pass=$((pass + 1))
@@ -28,7 +27,6 @@ check() {
   fi
 }
 
-# blockers <repo slug> — the module's answer for the body on stdin, as a Python list literal.
 blockers() {
   python3 -c '
 import sys
@@ -38,7 +36,6 @@ print(blockers(sys.stdin.read(), sys.argv[2]))
 ' "$LIB" "$1" 2>&1
 }
 
-# 1. Both reference forms: a `#<n>` and the full URL GitHub renders for this repository.
 body='## Problem
 
 Something.
@@ -51,7 +48,6 @@ Something.
 check "blocked_by.blockers reads both the #<n> form and the full https://github.com/<owner>/<name>/issues/<n> URL of the given repository" \
   "[12, 34]" "$(printf '%s' "$body" | blockers acme/widgets)"
 
-# 2. No blockers: a section reading `None.`, and a body with no `## Blocked by` section at all.
 none_body='## Problem
 
 Something about #7.
@@ -72,9 +68,6 @@ check "blocked_by.blockers returns no blockers for a section reading None. and f
   "[]
 []" "$(printf '%s' "$none_body" | blockers acme/widgets; printf '%s' "$absent_body" | blockers acme/widgets)"
 
-# 3. The slug decides which URLs are local: given one, another repository's issue #56 is not a
-#    blocker; given none (the empty slug solvable-issues.sh passes without --repo), every
-#    github.com issue URL is read as local.
 mixed_body='## Blocked by
 
 - #1
@@ -85,7 +78,6 @@ check "blocked_by.blockers ignores another repository's issue URL when a slug is
   "[1, 34]
 [1, 56, 34]" "$(printf '%s' "$mixed_body" | blockers acme/widgets; printf '%s' "$mixed_body" | blockers '')"
 
-# 4. The section ends at the next `## ` heading: a `#<n>` under a later heading is not a blocker.
 later_body='## Blocked by
 
 - #3
@@ -97,10 +89,6 @@ See #9.
 check "blocked_by.blockers stops reading the section at the next ## heading, so a #<n> under a later heading is not a blocker" \
   "[3]" "$(printf '%s' "$later_body" | blockers acme/widgets)"
 
-# 5. solvable-issues.sh takes its answer from this module rather than a parsing of its own: a
-#    copy of the script beside a planted blocked_by.py that names #99 as every body's blocker
-#    must hold back issue 5, whose own section reads `None.`, for as long as #99 is open. A
-#    script still parsing the section itself would read `None.` and list 5.
 scratch="$(mktemp -d)"
 mkdir -p "$scratch/scripts" "$scratch/gh" "$scratch/cwd"
 cp "$HERE/../solvable-issues.sh" "$scratch/scripts/"
@@ -123,10 +111,6 @@ rm -rf "$scratch"
 check "solvable-issues.sh takes its blocker parsing from the blocked-by module rather than defining its own" \
   "code=3 out=" "code=$planted_code out=$planted_out"
 
-# 6. A caller that is not solvable-issues.sh gets the same answers in-process: imported from a
-#    scratch directory outside any repository, with PATH naming no gh and every way Python starts
-#    a child process replaced by a spy that records the attempt, the module must answer cases
-#    1-4 and the spy must record nothing.
 scratch="$(mktemp -d)"
 py="$(command -v python3)"
 inproc_out="$(cd "$scratch" && env PATH=/nonexistent GIT_CEILING_DIRECTORIES="$scratch" \
