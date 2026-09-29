@@ -226,6 +226,20 @@ anchor='run-affordable.sh "$('
 reads_ledger_steps "$anchor" '\[ \]' "$(grep -F -- "$anchor" "$skill_path" || true)"
 report "$name"
 
+# 11. One criterion (#495) — the reconcile check compares the ticks and refactor-pending marks
+#     before and after the leaf as ledger-steps.sh's state and pending fields rather than by
+#     grepping the markdown for a checkbox or the mark itself.
+name="#495: $skill_md's reconcile check compares ledger-steps.sh's state and pending fields, grepping the markdown for neither a tick nor the pending mark"
+problems=()
+anchor='diff <('
+lines="$(grep -F -- "$anchor" "$skill_path" | grep -F -- '.tdd/reconcile-ledger.before' || true)"
+reads_ledger_steps "$anchor" '[x]' "$lines"
+while IFS= read -r line; do
+  [[ -z "$line" || "$line" != *'⟂ refactor pending'* ]] ||
+    problems+=("'$anchor' still greps for the pending mark itself: $line")
+done <<< "$lines"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
