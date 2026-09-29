@@ -25,7 +25,6 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
@@ -34,11 +33,8 @@ pass=0 fail=0
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-# git_q <repo> <args…> — git with a fixed identity, so a commit does not depend on the
-# user.name/user.email of the machine running the suite (CI carries none).
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
-# 1. Both places give the bounds without the ledger, and both through the one script.
 name="$skill_md computes the refactor touched-files list through refactor-touched.sh in the cycle loop and in Resume, and both name only the green commit's source files"
 problems=()
 

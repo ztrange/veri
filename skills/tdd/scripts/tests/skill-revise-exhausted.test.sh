@@ -17,18 +17,13 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The document twice: the path as every failure message spells it, and the same path resolved
-# for the probes to read, so a message can never name a file the probes did not open.
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -40,58 +35,34 @@ report() {
   fi
 }
 
-# plain — stdin with emphasis marks and backticks dropped, the case folded and the lines
-# joined onto one, because `SPLIT:` and **split** are the same word and a claim that wraps
-# across two lines is still one claim.
 plain() {
   tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
 }
 
-# The heading the section is found by, spelled once: the probes look for it and the
-# fail-closed message names it.
 revise_heading='## Revising on a REJECT'
 
-# revise_lines — the raw lines after that heading, up to the next heading of any level.
 revise_lines() {
   awk -v h="$revise_heading" \
     'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path"
 }
 
-# revise_section — those lines normalised through `plain`.
 revise_section() {
   revise_lines | plain
 }
 section="$(revise_section)"
 
-# unreadable — empty unless the section could not be read at all, in which case it is the
-# half of the failure message the case would otherwise have to invent. Fail closed rather
-# than probing an empty string, which would let "the section is gone" read as "it is right".
 unreadable=""
 [[ -n "${section// /}" ]] ||
   unreadable="$skill_md has no '$revise_heading' section to read —"
 
-# win <text> <extended-regex> — <text> within 250 characters either side of the first match,
-# or the empty string when there is none: the text a reader meets while working out what to
-# do about that answer. The text it reads is a parameter because the cases below read two of
-# them — the whole revise section, and one outcome's bullet sliced out of it — and a second
-# spelling of this window is a second place for the bound to be got wrong. 250 rather than a
-# rounder, larger number because BSD grep — the one on the development machine this
-# repository holds itself portable to — refuses an interval whose bound is over 255.
+# hazard: BSD grep refuses an interval bound over 255.
 win() {
   head -1 < <(grep -oE ".{0,250}$2.{0,250}" <<<"$1")
 }
 
-# The three things the section is probed for by name, spelled once each for the guard that
-# looks for them and the window read around them, the way skill-green-split.test.sh spells its
-# own `add-ledger-step.sh` probe: a suite re-pointed at a renamed script or a reworded answer
-# cannot then go on telling a reader it searched for both spellings. `$s` and not `$S` because
-# `plain` folds the section's case; the `$` and the `.` are escaped because these are extended
-# regexes and not paths.
 outcome_reader='\$s/exhausted-outcome\.sh'
 add_ledger_step='\$s/add-ledger-step\.sh'
 needs_user='needs_user|needs-user|needs the user'
-# The bail cause the third outcome keeps, likewise spelled once: it is both the token the
-# section must still carry and the anchor the window around it is read from.
 bail_cause='revise-exhausted'
 
 name="$skill_md's exhausted-budget branch launches the exhausted leaf and acts on exhausted-outcome.sh's three answers: replace the step on a split, park it on needs-user, bail revise-exhausted on neither"
@@ -100,14 +71,9 @@ problems=()
 if [[ -n "$unreadable" ]]; then
   problems+=("$unreadable what the conductor does when a step's revise budget runs out could not be established")
 else
-  # 1. The leaf. Without it the last REJECT goes straight to the bail it does today and
-  #    nothing ever asks the leaf which of the two conditions the step is in.
   grep -qE '\$s/build-develop-prompt\.sh exhausted' <<<"$section" ||
     problems+=("$skill_md's revise section never builds an exhausted-phase prompt, so a step whose budget ran out is bailed without anything asking whether it should have been split")
 
-  # 2. The reader. The leaf answers in free-form prose around its report lines, and
-  #    exhausted-outcome.sh is what resolves that to one of the three outcomes — a
-  #    conductor reading the report itself makes the branch a judgement per run.
   if ! grep -qE "$outcome_reader" <<<"$section"; then
     problems+=("$skill_md's revise section never runs exhausted-outcome.sh on the exhausted leaf's report, so which of the three outcomes it reported is decided by reading rather than by exit code")
   else
@@ -120,9 +86,6 @@ else
       problems+=("$skill_md's revise section runs exhausted-outcome.sh without saying exit 3 is neither answer, so the outcome that must bail exactly as today has no branch of its own")
   fi
 
-  # 3. The split branch: the criteria the leaf named take the place of the step that could
-  #    not be satisfied — `instead-of`, not `before`, because the step itself is what was
-  #    wrong — and the run carries on from the first of them.
   if ! grep -qE "$add_ledger_step" <<<"$section"; then
     problems+=("$skill_md's revise section never runs add-ledger-step.sh on a split at exhaustion, so the criteria the leaf named are narrated and the plan the run reads is unchanged")
   else
@@ -135,9 +98,6 @@ else
       problems+=("$skill_md's revise section never returns to next-unchecked.sh after replacing the step, so the run does not continue from the first of the criteria it just filed")
   fi
 
-  # 4. The needs-user branch: a leaf that says the step needs a decision the run has no
-  #    authority to make is answered by parking the step, not by bailing it as a
-  #    methodology failure.
   if ! grep -qE "$needs_user" <<<"$section"; then
     problems+=("$skill_md's revise section never names the needs-user answer, so a leaf that escalates a step to the user is treated as one that volunteered nothing")
   else
@@ -146,8 +106,6 @@ else
       problems+=("$skill_md's revise section names the needs-user answer without parking the step on it, so an escalation the leaf made deliberately ends as the same bail as saying nothing")
   fi
 
-  # 5. And the third outcome, unchanged: neither answer is still the bail the section does
-  #    today, with the same cause token a human's classification is read from.
   if ! grep -qE "$bail_cause" <<<"$section"; then
     problems+=("$skill_md's revise section no longer names the revise-exhausted cause, so a leaf that volunteered neither answer leaves the conductor to invent a stop for a step it already had one for")
   else
@@ -159,20 +117,9 @@ fi
 
 report "$name"
 
-# The needs-user branch again, this time for what the user is left with. Parking stops the
-# run; unless the stop is written on the issue thread the only account of *why* is a leaf log
-# inside a worktree, which is exactly the reading this criterion exists to spare them.
-#
-# The branch is longer than the 250 characters `win` reads either side of a match, and the
-# claim spans the whole of it — the answer file is named at the top of the bullet and the
-# park several lines down — so this case slices the bullet itself rather than a window:
-# from the line that opens it to the line that opens the next outcome's.
 needs_user_open='exit 1 — the step needs the user'
 needs_user_close='exit 3'
 
-# needs_user_branch — that slice, normalised through `plain` like the section is. The open
-# marker carries its em dash so the one-line summary of all three outcomes above ("exit 1
-# the step needs the user and is parked") cannot be mistaken for the branch itself.
 needs_user_branch() {
   awk -v o="$needs_user_open" -v c="$needs_user_close" \
     '!inside && index($0, o) { inside = 1 }
@@ -181,14 +128,8 @@ needs_user_branch() {
 }
 branch="$(needs_user_branch)"
 
-# The mirror, spelled once for the guard and the window both: the two ways this document
-# tells the conductor to write on the issue thread — the bare `gh issue comment <n> --body`
-# of *Starting*, and the "post a `### …` comment" every narration section uses.
 issue_mirror='gh issue comment|post a [^.]{0,120}comment'
 
-# The claim both fail-closed messages end in, spelled once: the two ways this case can fail
-# to read anything — no section at all, or a section with no such branch — leave the reader
-# with the same thing unestablished, and a second spelling is one that can drift from it.
 unestablished="what a parked step leaves the user could not be established"
 
 name="$skill_md's needs-user branch mirrors the parked step to the issue thread, carrying the leaf's answer and the verifier's last rejection reason"
@@ -212,19 +153,8 @@ fi
 
 report "$name"
 
-# The step budget (#451), whose crossing is answered by a leaf built on the exhausted one's
-# pattern. step-cost.sh (#448), step-budget.sh (#449) and the over-budget prompt (#450) exist,
-# and nothing calls them: a step is only ever stopped at its budget if the procedure asks
-# step-cost.sh after each leaf that runs before the step's green commit — after that commit
-# there is nothing left for a crossing to change.
-
-# The cost check, spelled once for the probe and the message both.
 step_cost='step-cost.sh'
 
-# after_wait <leaf> — the raw lines after `wait-leaf.sh <leaf>` (the leaf has exited), up to
-# the next leaf launched (`detach-leaf.sh`) or the green commit's tick (`tick-ledger.sh`),
-# whichever comes first: what the conductor does between this leaf's answer and the next thing
-# that spends money or closes the step. Empty when the document never waits on that leaf.
 after_wait() {
   awk -v w="wait-leaf.sh $1" \
     '!inside && index($0, w) { inside = 1; next }
@@ -232,7 +162,6 @@ after_wait() {
      inside' "$skill_path"
 }
 
-# The five leaves that run before a step's green commit, by the name each is waited on under.
 pre_commit_leaves=(develop-red verdict-red 'revise-<phase>-<k>' develop-green verdict-green)
 
 name="$skill_md checks $step_cost after develop-red, verify-red, each revise attempt, develop-green and verify-green, before the next leaf launches or the green commit ticks"
@@ -253,17 +182,6 @@ fi
 
 report "$name"
 
-# The shared revise block serves red, green and refactor alike, and only the first two run
-# before the green commit, so its cost check must be skipped for a refactor-phase revise. An
-# inline comment in the fenced command is the only place that said so; a conductor reading
-# the section's prose is told nothing, so the rule has to be a sentence of that prose.
-
-# Naming step-cost.sh, refactor and a negation is not yet the rule: "step-cost.sh is not
-# refactor-safe" holds all three and never says when the check does run. So the same sentence
-# must also state the condition — the phase being revised is red or green.
-
-# revise_prose_sentences — the revise section with its fenced blocks dropped, normalised
-# through `plain`, one sentence per line: what the section says outside its commands.
 revise_prose_sentences() {
   revise_lines |
     awk '/^[[:space:]]*```/ { fenced = !fenced; next } !fenced' |
@@ -285,29 +203,19 @@ fi
 
 report "$name"
 
-# The other half of the placement: the leaves after the green commit — the refactor leaf and
-# its blind verifier — are followed by no cost check, and the check's own section says why, so
-# a reader who notices the gap does not "fix" it by adding one.
-
-# The heading the cost check's section is found by, spelled once for the probe and the message.
 cost_heading="#### The step's cost check"
 
-# cost_check_lines — that section's raw lines, up to the next heading of level two to four:
-# the commands are probed as written, `$S` and all, and a sub-heading inside the section does
-# not end it.
 cost_check_lines() {
   awk -v h="$cost_heading" \
     'index($0, h) == 1 { inside = 1; next } inside && /^(##|###|####) / { exit } inside' "$skill_path"
 }
 
-# cost_check_sentences — those lines normalised through `plain`, one sentence per line.
 cost_check_sentences() {
   cost_check_lines |
     plain |
     awk '{ n = split($0, s, /[.!?] /); for (i = 1; i <= n; i++) print s[i] }'
 }
 
-# The two leaves that run after a step's green commit, by the name each is waited on under.
 post_commit_leaves=(develop-refactor verdict-refactor)
 
 name="$skill_md checks $step_cost after neither develop-refactor nor verify-refactor, and '$cost_heading' says why no check follows the green commit"
@@ -333,10 +241,6 @@ fi
 
 report "$name"
 
-# When in a leaf's life the check runs: only once that leaf has exited and supervise.sh has
-# harvested its `usage` event, which step-cost.sh sums — a check run while the leaf is still
-# going, or before its accounting is on disk, reads a figure short of what the step has spent.
-
 name="'$cost_heading' says the check runs only once the leaf has exited and its usage event has been harvested"
 problems=()
 
@@ -352,10 +256,6 @@ else
 fi
 
 report "$name"
-
-# How often the check fires: at most once per step. Once its crossing branch has run, the
-# check is disarmed for the rest of the step and nothing re-arms it, so a step that goes on to
-# cost three times its budget is not asked about again at every remaining leaf.
 
 name="'$cost_heading' says the check fires at most once per step and is not re-armed"
 problems=()
@@ -374,9 +274,6 @@ fi
 
 report "$name"
 
-# What exit 3 means: step-cost.sh exits 3 when no leaf of this step has reported a usage
-# event yet, and that is nothing to act on — not a crossing, so the branch does not run.
-
 name="'$cost_heading' says $step_cost exit 3 (no leaf of the step has reported yet) is not a crossing"
 problems=()
 
@@ -391,11 +288,6 @@ else
 fi
 
 report "$name"
-
-# The crossing branch: on a crossing the run asks one leaf what to do, built on the exhausted
-# leaf's pattern — the `over-budget` prompt, launched through supervise.sh like every other
-# leaf so stuck-detection still covers it, and its prose answer resolved by
-# exhausted-outcome.sh to an exit code rather than read and judged per run.
 
 name="'$cost_heading' builds the over-budget prompt, launches its leaf through supervise.sh, and reads its answer with exhausted-outcome.sh, never by eye"
 problems=()
@@ -427,15 +319,6 @@ fi
 
 report "$name"
 
-# The over-budget leaf's split (exit 0), which is the revise-exhausted path's split exactly:
-# the step's uncommitted work is thrown away first, so it cannot become the first replacement
-# step's inherited start; the criteria replace the step in ONE add-ledger-step.sh call, so
-# VERI_STEP_GROWTH is spent on them all or on none; and the ledger is committed before the run
-# goes on, because the committed ledger is what a resumed run reads.
-
-# first_line <fixed-string> — the number of the first line of the cost check's section that
-# holds <fixed-string>, or nothing when none does: the order the branch's commands are written
-# in is the order the conductor runs them in.
 first_line() {
   head -1 < <(cost_check_lines | grep -nF -- "$1" | cut -d: -f1)
 }
@@ -468,11 +351,6 @@ fi
 
 report "$name"
 
-# The over-budget split meets the same growth budget the other two plan-growing paths do:
-# add-ledger-step.sh exit 1 (VERI_STEP_GROWTH reached) is a step-too-big bail, as it already is
-# for a Green leaf's volunteered split and the revise-exhausted split — all three are plan
-# growth, so none of them may grow the plan past that budget.
-
 name="'$cost_heading' says that add-ledger-step.sh exit 1 on the over-budget split is a bail with cause step-too-big"
 problems=()
 
@@ -487,13 +365,6 @@ fi
 
 report "$name"
 
-# The over-budget leaf's exit 1: the step needs the user. Parked — the run stops there, with
-# the leaf's answer and the two figures that made it a crossing (what the step has spent, and
-# the step budget) in hand, and the plan left as it is so the user's decision picks the run
-# back up — the same park the revise-exhausted path takes.
-
-# over_budget_exit <code> — the cost check section's `exit <code>` bullet, from its own line
-# up to the first line that is not indented under it, normalised through `plain`.
 over_budget_exit() {
   cost_check_lines |
     awk -v code="$1" '$0 ~ "^- \\*\\*exit " code { inside = 1; print; next } inside && !/^  / { exit } inside' |
@@ -525,12 +396,6 @@ fi
 
 report "$name"
 
-# The over-budget leaf's exit 3: neither answer. This is where the over-budget path parts
-# from the revise-exhausted one, whose exit 3 bails as a process failure. Here nothing has
-# failed — every verdict may be a PASS and the step is merely dear — so the crossing is
-# recorded and the step goes on to finish, and the bullet says so in so many words: not a bail,
-# and why.
-
 name="'$cost_heading' records the crossing and continues the step on the over-budget leaf's exit 3, and says it is not a bail because nothing has failed"
 problems=()
 
@@ -553,11 +418,6 @@ else
 fi
 
 report "$name"
-
-# Why a crossing is not a failure, stated once: the exit branches above each act on it, but a
-# reader should not have to derive from them that an expensive step has not failed, nor that
-# the check leaves every script's exit code meaning what it already meant — 1 is still a
-# process failure, 2 still a system one, 3 still nothing to do.
 
 name="'$cost_heading' states once why a crossing is not a failure, and that no exit code changes meaning"
 problems=()
@@ -584,12 +444,6 @@ fi
 
 report "$name"
 
-# The over-budget leaf that never answers: a supervisor exit 2 on it is a `killed-stuck` bail
-# like any other developer leaf's, and the step's budget stays crossed — the check was
-# disarmed when its branch began, and a hung leaf is no reason to arm it again.
-
-# supervisor_exit_2 — the paragraph of the cost check's section that names a supervisor exit 2,
-# normalised through `plain`; empty when the section names none.
 supervisor_exit_2() {
   cost_check_lines |
     awk 'BEGIN { RS = "" } { p = $0; gsub(/[*`]/, "", p); if (tolower(p) ~ /supervisor exit 2/) print }' |

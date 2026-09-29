@@ -83,41 +83,20 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The document twice, the way skill-suite-runs.test.sh names its two: the path as every
-# problem message spells it, and the same path resolved for the probes to open, so a message
-# can never name a file the probes did not read.
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
 
-# This repository's own two documents, named the same way and for the same reason. They are
-# what a session is handed before it opens SKILL.md at all: CONTEXT.md says what a cycle is,
-# CLAUDE.md says what may never be broken about the budgets. A message about one must never
-# spell the other's path, which is why each is a pair rather than a path built at the call
-# site.
 context_md="CONTEXT.md"
 context_path="$ROOT/$context_md"
 claude_md="CLAUDE.md"
 claude_path="$ROOT/$claude_md"
 
-# The claim itself, spelled once. Three probes ask for it and they span all three documents —
-# SKILL.md's Refactor section in case 1, CONTEXT.md's Cycle entry and CLAUDE.md's budget
-# invariant in case 2. That they ask in the *same* words is the claim and not an incidental
-# repetition: what any one of them fails with is that the procedure and the account of it can
-# be reworded apart without either noticing, and three independent literals here would leave
-# this suite free to drift exactly that way itself. The optional noun is whichever one a
-# document puts between the number and the leaf; the alternation is the union of the three,
-# because which of them a given document reaches for is the writer's business and not a fact
-# about the phase.
 one_leaf='(one|a single) (refactor |developer |transform )?leaf'
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which half of the conductor's job broke rather than just that it did.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -129,150 +108,71 @@ report() {
   fi
 }
 
-# plain — stdin with emphasis marks and backticks dropped and the case folded, because
-# `refuse` and **refuse** are the same sentence. Borrowed from skill-suite-runs.test.sh,
-# which reads this same section for what its leaf runs.
 plain() {
   tr -d '*`' | tr '[:upper:]' '[:lower:]'
 }
 
-# The heading the section is found by, spelled once: the probes look for it and the three
-# fail-closed messages below name it, and a suite where those are separate literals can be
-# re-pointed at a renamed heading while still telling a reader it searched for the old one.
 refactor_heading='#### Refactor'
 
-# flat — stdin normalised through `plain` and joined onto one line: none of the probes below
-# is about order, and a claim that wraps across two lines is still one claim. Spelled once for
-# the section and for the whole document case 11 reads, so the two cannot normalise apart.
 flat() {
   plain | tr '\n' ' '
 }
 
-# refactor_section — the lines after the first heading starting `$refactor_heading`, up to
-# the next heading of any level, flattened. The prefix stops at the word the phase is named
-# for, so a heading reworded from "Refactor loop" — which is what this issue stops it being —
-# is still the section found.
 refactor_section() {
   awk -v h="$refactor_heading" \
     'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path" | flat
 }
 section="$(refactor_section)"
 
-# unreadable_section — true when there is no section to probe: a heading renamed away from
-# `#### Refactor`, or one with nothing under it. Spelled once for the two cases that fail
-# closed on it, so the normalisation — a section of nothing but spaces is as unreadable as an
-# empty one — cannot be tightened in one case and left loose in the other, which is the state
-# where "the phase is gone" reads as a pass in one of them.
 unreadable_section() {
   [[ -z "${section// /}" ]]
 }
 
-# unreadable_problem <what-could-not-be-established> — the message the three fail-closed
-# cases share, differing only in what each of them was about to ask. Spelled once for the
-# same reason `unreadable_section` is: three copies of the sentence are three chances for one
-# of them to keep naming a heading this suite has stopped looking for.
 unreadable_problem() {
   printf "%s has no '%s' section to read — %s" "$skill_md" "$refactor_heading" "$1"
 }
 
-# unnamed_class_problem <class> <what-that-costs> — the message cases 6 and 7 share when the
-# section never names the flag class they are about. Both are the same complaint — the leaf's
-# FLAGS: line carries a class and the document ignores it, so the conductor routes the flag on
-# its own judgement — and both end in the same measurement, the six `plan: amend` commits #175
-# counted, which is what that judgement produced. Spelled once for the reason `unreadable_problem`
-# above is: two copies drift, and a reader then gets two different accounts of what an unrouted
-# flag costs. Only the class and the clause naming its own cost differ.
 unnamed_class_problem() {
   printf "%s's Refactor section never names the %s class the leaf's FLAGS: line carries, so %s — the six plan: amend commits this issue counted" "$skill_md" "$1" "$2"
 }
 
-# windows <extended-regex> [radius] — the section text within <radius> characters either side
-# of every match, one window per line, or nothing when there is none. The default 250 rather
-# than a rounder, larger number because BSD grep — the one on the development machine this
-# repository holds itself portable to — refuses an interval whose bound is over 255. A probe
-# passes a narrower radius when 250 would reach a neighbouring bullet that answers its
-# question for it. `win` and `wins` below are the two readings of this one answer, and they
-# share it so that a radius clamped for BSD grep in one is clamped in the other too.
+# hazard: BSD grep refuses an interval bound over 255.
 windows() {
   local radius="${2:-250}"
   grep -oE ".{0,$radius}$1.{0,$radius}" <<<"$section"
 }
 
-# win <extended-regex> [radius] — the first of those windows, or the empty string when there
-# is none: the text a reader meets while working out what to do about that check. The reader
-# consumes to EOF through the process substitution rather than a pipe, so `head` leaving early
-# never lands on the writer as a SIGPIPE `pipefail` would hand up as the probe's answer (#422).
+# hazard: fed by a pipe, head's early exit would hand grep's SIGPIPE up under pipefail.
 win() {
   head -1 < <(windows "$@")
 }
 
-# phrase <extended-regex> <text> — the first phrase of <text> that matches, or the empty
-# string when nothing does. Every "is the superseded wording still here" probe below asks
-# exactly that and then quotes the answer back in its complaint, so what they have in common
-# — take the matches, keep the first, and keep the reader's exit off the writer's status
-# (#422) — is written here rather than once per probe. `win` above is the other question:
-# that one is about a match's surroundings, this one about the match itself.
 phrase() {
   head -1 < <(grep -oE "$1" <<<"$2")
 }
 
-# wins <extended-regex> [radius] — every one of those windows rather than the first, joined
-# onto one line. Case 6 asks about a word the section already uses for something else: the
-# refactor template's account of itself says the leaf flags overfit code, and the PASS branch
-# says the leaf was forbidden to generalize it, so the FIRST overfit in this section is never
-# the routing rule that case is about. Taking only that one would fail a document that carries
-# the rule perfectly well a paragraph further down.
 wins() {
   windows "$@" | tr '\n' ' '
 }
 
-# either_order <a> <b> <gap> — one parenthesised regex for "<a> and <b> in the same clause",
-# whichever of them the writer put first: `((<a>)<gap>(<b>)|(<b>)<gap>(<a>))`. Every proximity
-# probe below wants that and nothing narrower — which way round a document says it is the
-# writer's business — and each of them used to spell the mirror out by hand, where the two
-# halves can drift apart unnoticed and the probe silently stops accepting one of the two orders.
-# <gap> is passed rather than fixed because what counts as "the same clause" differs:
-# `.{0,120}` reaches across a sentence boundary, `[^.]{0,200}` refuses to.
-#
-# Each operand is grouped HERE rather than trusted to arrive grouped, because an alternation
-# passed in bare binds looser than the mirror this builds: `a|b` as <b> yields
-# `(<a><gap>a|b|b<gap><a>)`, whose second branch is the bare word `b` and matches anywhere in
-# the section — a probe that reads as a proximity check and is answered by one word. Grouping
-# an operand that already carries its own parentheses is a no-op, so the call sites that spell
-# them stay correct.
 either_order() {
   printf '((%s)%s(%s)|(%s)%s(%s))' "$1" "$3" "$2" "$2" "$3" "$1"
 }
 
-# What a refusal looks like, spelled once for the two probes that ask for one. Both checks
-# below — the dirty tree and the non-refactor: commit — owe the same thing beyond the git
-# question itself: that the section says the answer STOPS the conductor rather than merely
-# informing it, and either check reduced to advice is the same hole. Two literals for one
-# question would let a probe be widened to accept a wording the other still rejects, and the
-# next writer would then read two different answers to "what counts as refusing". The
-# alternation is the union of how this document already writes it; `don.t` rather than
-# `don't` because the apostrophe this repository types is a typographic one.
 refusal='refus|do(es)? not (go on|continue|proceed)|don.t (go on|continue)|not continue|bail'
 
 name="$skill_md's Refactor section launches one leaf per step and refuses verify-refactor over a dirty tree or a non-refactor: commit since the green commit, narrating the count against the budget"
 problems=()
 
 if unreadable_section; then
-  # Fail closed: a renamed or emptied section is reported as unreadable rather than probed
-  # as an empty string, which would let "the phase is gone" read as "the phase is right".
   problems+=("$(unreadable_problem "how the refactor leaf is launched and what is asked of its result could not be established")")
 else
-  # 1. One leaf for the step. Both faces, because either alone passes a document that is
-  #    half-rewritten: it has to SAY one leaf, and it must no longer tell the conductor to
-  #    come back round for the next transform.
   [[ "$section" =~ $one_leaf ]] ||
     problems+=("$skill_md's Refactor section never says one leaf applies the step's transforms, so the conductor is not told that the cold start and the spec re-read are paid once rather than once per transform")
   relaunch="$(phrase 'repeatedly|(each|every|the next) iteration' "$section")"
   [[ -z "$relaunch" ]] ||
     problems+=("$skill_md's Refactor section still launches a leaf per transform — it says '$relaunch' — so the leaf-per-transform cost this issue measured is still prescribed")
 
-  # 2. A dirty tree. The transform a killed leaf left on disk is work no verifier has seen,
-  #    and verify-refactor judges the settled tree, so it is the conductor or nothing.
   dirty="$(win 'git status --porcelain')"
   if [[ -z "$dirty" ]]; then
     problems+=("$skill_md's Refactor section never asks git status --porcelain, so the conductor walks into verify-refactor over whatever a killed leaf left uncommitted")
@@ -281,10 +181,6 @@ else
       problems+=("$skill_md's Refactor section asks git status --porcelain without saying a non-empty answer stops it, so the check is asked and its answer is advisory")
   fi
 
-  # 3. A commit since the green one that is not a refactor:. The green commit is the
-  #    boundary because it is the one carrying the ledger tick (ADR-0007); a subject that is
-  #    not `refactor:` in that range is production code the blind verifier of a
-  #    behavior-preserving phase would never be shown.
   subjects="$(win '(--(format|pretty)=%s|subject)')"
   if [[ -z "$subjects" ]]; then
     problems+=("$skill_md's Refactor section never reads the subjects of the commits since the green commit, so a leaf that committed something other than a refactor: goes to verify-refactor unchallenged")
@@ -295,9 +191,6 @@ else
       problems+=("$skill_md's Refactor section never says a non-refactor: commit since the green commit stops it, so the check has no branch and the run continues either way")
   fi
 
-  # 4. The count, and the budget it is read against. `rev-list --count` is named rather than
-  #    left to the conductor because the number narrated has to be the number of commits in
-  #    the range, not the leaf's own account of what it applied.
   counted="$(win 'rev-list --count')"
   if [[ -z "$counted" ]]; then
     problems+=("$skill_md's Refactor section never counts the refactor: commits with git rev-list --count, so what it narrates is the leaf's word for what it did rather than what is in the history")
@@ -306,21 +199,12 @@ else
       problems+=("$skill_md's Refactor section counts the refactor: commits without narrating them against the budget, so the cost axis this issue is about is not reported at all")
   fi
 
-  # 5. And the count that is ABOVE the budget, which is the one a run needs to see: the
-  #    budget reaches the leaf as a number now, so an overrun is the leaf ignoring it, and a
-  #    narration that silently clamps to the budget hides exactly that.
   grep -qE 'overrun|over the budget|above the budget|exceed' <<<"$section" ||
     problems+=("$skill_md's Refactor section never says a count above the budget is narrated as an overrun, so a leaf that ran past the number it was given reads in the thread as one that did not")
 fi
 
 report "$name"
 
-# records_of <path> — the document's bullets and paragraphs as records, one per line and
-# normalised through `plain`: a record runs from a `- ` in column one (indented or not) or
-# from the first line after a blank, up to the next such line or the next blank, with runs
-# of whitespace collapsed so a claim wrapped across four lines still reads as one claim.
-# The grammar skill-refactor-pending.test.sh reads these same two documents with, spelled
-# the same way here so that "what a record is" does not get a second answer in this tree.
 records_of() {
   awk '
     function flush() { if (rec != "") { gsub(/[[:space:]]+/, " ", rec); print rec } rec = "" }
@@ -331,12 +215,6 @@ records_of() {
     END { flush() }' "$1" | plain
 }
 
-# record <path> <regex>... — the first record of <path> matching every <regex>, or the empty
-# string when none does. Each record is found by what it SAYS and not by the heading it sits
-# under or the position it holds: the glossary entry opens with its own name, and the
-# invariant is the only record in CLAUDE.md naming all three budget variables. A document
-# re-ordered or re-sectioned therefore still answers, and a document that stopped making the
-# claim answers with nothing — which is the failure the case wants, not a silent pass.
 record() {
   local path="$1"; shift
   local rec re ok
@@ -347,11 +225,6 @@ record() {
   done < <(records_of "$path")
 }
 
-# adr_pointer <text> — the first `ADR-NNNN` reference in <text> that is not the superseded
-# 0010, or the empty string when there is none. The number is compared rather than the
-# string, because this repository writes the reference both ways — `(ADR-0007)` and
-# `ADR 0016` — and a probe that matched on spelling would accept `adr 10` as a new record.
-# `10#` forces decimal so the leading zeros of `0010` are not read as octal.
 adr_pointer() {
   local ref digits
   while IFS= read -r ref; do
@@ -362,43 +235,12 @@ adr_pointer() {
   done < <(grep -oE 'adr[- ]?[0-9]+' <<<"$1")
 }
 
-# 2. One criterion — the account of the cycle this repository hands the next agent describes
-#    the shape the procedure now runs — and so one case. Case 1 pins SKILL.md, the document
-#    the conductor executes; this one pins the two documents a human or an agent reads to
-#    find out what the conductor does, before either has opened SKILL.md. As they stand both
-#    describe ADR-0010's shape: CONTEXT.md's Cycle entry says "one behavior-preserving
-#    transformation per leaf, suite-gated, until none remain", and CLAUDE.md's invariant
-#    explains VERI_REFACTOR_BUDGET by "a refactor leaf asked for one always finds one" — a
-#    sentence that is only true of a leaf asked for a single transform. Prose that
-#    contradicts the procedure is worse than prose that says nothing, because it is the
-#    account that is trusted: an agent that re-derives the old shape from it puts the loop
-#    back, and reads the conductor's one-leaf launch as the bug.
-#
-#    Both halves in one case, because it is one fact owed by two records and any repair to it
-#    is one edit to each — the same reason skill-refactor-pending.test.sh asks its ledger
-#    invariant and its glossary entry together. `problems` says which record is short of it.
-#
-#    The superseding ADR is asked for here as the pointer these two records carry, and that
-#    is the whole of what this suite can ask about it. The record itself is a file under
-#    docs/adr/, and a suite in this directory may not name a path there: no-docs-reads.test.sh
-#    fails `make test` for it, because that target is the baseline preflight reads and the one
-#    both blind verifiers run, and a record in that tree must never be able to turn a
-#    development run red. The ADR set has a reader of its own on the other lane's cadence —
-#    docs/tests/docs-gap-adr.test.sh, run by `make docs-test`. So what is established from
-#    here is that a reader of either record is sent to a decision record that is not the
-#    superseded 0010; that the file it names says what it must is that suite's question.
 name="$context_md's Cycle entry and $claude_md's budget invariant describe one refactor leaf per step and point at the ADR that records it"
 problems=()
 
-# The glossary entry, by its own heading line — `**Cycle**:` opens the record, and a bare
-# `cycle` anchor would match the entries around it that use the word in passing.
 cycle="$(record "$context_path" '^cycle:')"
-# The invariant, by the three variables it is the invariant ABOUT. Naming all three is what
-# makes it unique: VERI_REFACTOR_BUDGET alone appears in four other records of that document.
 invariant="$(record "$claude_path" 'veri_stuck_retries' 'revise_budget' 'veri_refactor_budget')"
 
-# Fail closed on either record being unreadable, the way case 1 does on a renamed section: a
-# glossary entry that was deleted must not read as one that was updated.
 if [[ -z "$cycle" ]]; then
   problems+=("$context_md has no Cycle glossary entry to read — what this repository tells the next agent a refactor step is could not be established")
 else
@@ -419,47 +261,17 @@ else
     problems+=("$claude_md's budget invariant still explains the budget by '$stale_invariant', which is only true of a leaf asked for a single transform")
 fi
 
-# The pointer, asked of the pair rather than of each: what the criterion owes a reader is
-# that the records name the decision, and a citation in one of them is a reader sent there.
 [[ -n "$(adr_pointer "$cycle $invariant")" ]] ||
   problems+=("neither $context_md's Cycle entry nor $claude_md's budget invariant names an ADR other than the superseded 0010, so nothing in either record points a reader at the decision that replaced one transform per leaf")
 
 report "$name"
 
-# The invocation the growth of the plan is found by, spelled once for the three probes that
-# ask for it — case 3 counts them, case 3 and case 5 each read the window around the one.
-# `$s` and not `$S` because `plain` folds the section's case; the `$` and the `.` are escaped
-# because this is an extended regex and not a path. A suite where the three were separate
-# literals could be re-pointed at a renamed script in one probe and go on telling a reader it
-# looked for the old one in the other two.
 add_ledger_step='\$s/add-ledger-step\.sh'
 
-# 3. One criterion — the refactor leaf's `NEW_STEP:` lines become steps in the plan — and so
-#    one case. Case 1 pins what the conductor checks about the leaf's commits; this pins what
-#    it does with the one part of the leaf's report that is not a leftover and not a
-#    transform: the behaviour-level criterion that would force the general implementation of
-#    overfit code the leaf was forbidden to generalize itself. ADR-0009 promised the refactor
-#    leaf "confirms the plan contains" such a step, and until this issue nothing added one:
-#    the line was narrated into the thread and the plan stayed as it was, so the triangulation
-#    the leaf refused to do by hand was owed to nobody.
-#
-#    The insertion and the commit are one criterion for the same reason the append and its
-#    commit are one in skill-refactor-owed.test.sh: resume reads the COMMITTED ledger, so a
-#    step inserted into a file nothing commits is a step the next run never sees, and it is
-#    the refactor-pending clear that is the one commit a completed step always makes.
-#
-#    `one` call is asked as the number of `$S/add-ledger-step.sh` invocations the section
-#    holds, because the script takes every text at once and reads the growth budget per call:
-#    a call per value would refuse the third `NEW_STEP:` line of a step under the default
-#    `VERI_STEP_GROWTH` while the one call this criterion asks for either fits them all or
-#    files them all as owed. A mention that is not an invocation — the script named in a
-#    sentence about what its exit 1 means — carries no `$S/` and is not counted.
 name="$skill_md's Refactor section passes the flags' behaviours to one add-ledger-step.sh call after the step, and commits the grown ledger with the refactor-pending clear"
 problems=()
 
 if unreadable_section; then
-  # Fail closed, the same way case 1 does: a renamed or emptied section is unreadable, not
-  # silently right.
   problems+=("$(unreadable_problem "what becomes of the leaf's NEW_STEP: lines could not be established")")
 else
   calls="$(grep -oE "$add_ledger_step" <<<"$section" | grep -c '')"
@@ -478,9 +290,6 @@ else
       problems+=("$skill_md's Refactor section runs add-ledger-step.sh without anchoring the insertion after the step just refactored, so the triangulating step lands somewhere other than next to the code it triangulates")
   fi
 
-  # And the commit. `clear-refactor-pending.sh` is the anchor for the same reason
-  # skill-refactor-owed.test.sh uses it: that clear is the one commit a completed step always
-  # makes, and a ledger grown but not committed is a plan the next run never reads.
   cleared="$(win 'clear-refactor-pending\.sh')"
   if [[ -z "$cleared" ]]; then
     problems+=("$skill_md's Refactor section never clears the refactor-pending mark, so the commit the grown ledger is supposed to ride does not exist to be read for")
@@ -492,26 +301,10 @@ fi
 
 report "$name"
 
-# 4. One criterion — a plan-growth budget that cannot hold the leaf's `NEW_STEP:` values is
-#    not a run-ending fault — and so one case. `add-ledger-step.sh` exit 1 is the fifth
-#    axis's refusal: nothing is inserted, every text is appended as a plain bullet under the
-#    ledger's trailing `## Owed steps` heading, and `render-pr-body.sh` puts that heading in
-#    front of the human who decides the merge. The step is therefore recorded, just not
-#    planned — which is a narration, not a bail. A section that left exit 1 unspoken leaves
-#    the conductor to read a non-zero exit as the failure every other non-zero exit in this
-#    phase is, and a run whose refactor verified PASS would end on the one answer that means
-#    the plan grew past its budget.
-#
-#    Asked of the clause itself and not of the section at large, for the reason the refusals
-#    in case 1 are: this section already says bail four times over, for the leaf's exit 2,
-#    for a malformed verdict and for an exhausted revise budget, and a probe reading the
-#    whole section would be answered by those and pass a document that bails here too.
 name="$skill_md's Refactor section narrates add-ledger-step.sh exit 1 as owed steps and does not bail on it"
 problems=()
 
 if unreadable_section; then
-  # Fail closed, the same way cases 1 and 3 do: a renamed or emptied section is unreadable,
-  # not silently right.
   problems+=("$(unreadable_problem "what the conductor does when the plan-growth budget cannot hold the leaf's NEW_STEP: values could not be established")")
 else
   # The claim, found by what it says rather than by where it sits: an exit 1 spoken of in
@@ -525,8 +318,6 @@ else
   else
     # And that the clause does not end the run. The window is the claim with about a clause
     # either side of it, not the section: `win`'s default 250 would reach the REJECT and
-    # killed-stuck bullets from the end of the PASS one, and this probe would then be
-    # answered by a bail that is not this one's.
     clause="$(win "$owed_claim" 150)"
     bailed="$(phrase 'bail|abort' "$clause")"
     [[ -z "$bailed" ]] ||
@@ -536,29 +327,10 @@ fi
 
 report "$name"
 
-# 5. One criterion — the passing verify-refactor verdict's `NEW_STEP:` values join the leaf's
-#    in that same one call — and so one case. Issue #362 stops the refactor verifier
-#    REJECTing an unhandled edge case the spec implies: handling one changes behaviour, which
-#    the revise leaf is forbidden to do untested, so the verifier proposes it as a `NEW_STEP:`
-#    line before the final `VERDICT:`/`REASON:` pair instead. A proposal nothing reads is the
-#    same nothing case 3 was written against — the line narrated into the thread and the plan
-#    left as it was — so the verdict's values go where the leaf's already go: the one
-#    `add-ledger-step.sh … after '<STEP>'` call the PASS branch makes. One call and not a
-#    second of its own, because the script reads `VERI_STEP_GROWTH` once per call, and two
-#    calls would let the verifier's proposals be refused for a budget the leaf's had already
-#    spent.
-#
-#    Asked of the text around that call rather than of the section at large, the way case 1
-#    asks its refusals: this section names verify-refactor throughout — launching it, waiting
-#    on it, branching on its verdict — and a probe reading the whole section would be answered
-#    by one of those sentences and pass a document where the verifier's proposals still reach
-#    nobody.
 name="$skill_md's Refactor section passes the passing verify-refactor verdict's uncovered-spec flags to the same add-ledger-step.sh call as the leaf's"
 problems=()
 
 if unreadable_section; then
-  # Fail closed, the same way cases 1, 3 and 4 do: a renamed or emptied section is
-  # unreadable, not silently right.
   problems+=("$(unreadable_problem "what becomes of the verify-refactor verdict's NEW_STEP: lines could not be established")")
 else
   added="$(win "$add_ledger_step")"
@@ -596,32 +368,16 @@ report "$name"
 # does NOT buy it. Two lists for that one question is how they drift — case 8's carried
 # `neither` where case 6's carried `without` — and a probe widened on its own then accepts a
 # wording the others still reject, leaving the next writer several answers to "what counts as
-# denying it". The alternation is the union of how this document already writes a denial.
 denial_word='no|never|neither|without|not'
 
-# ...and how far from its noun it may sit, for the two probes of case 6 that ask for a noun
-# phrase: the gap is `[^.]` so the denial and its noun have to sit in one sentence rather than
-# a paragraph apart. Case 8 denies a VERB, and spells the adjacency it needs at its own probe,
-# where the reason for it is written.
 denial="($denial_word)[^.]{0,80}"
 
-# What growing the plan looks like, spelled once for the two probes that name it from opposite
-# sides: case 6 asks that an overfit flag is DENIED it, case 7 that an uncovered-spec flag is
-# the one class granted it. That is one question — which words does this document use for a
-# step the plan gains — and two literals for it would let one side accept a wording the other
-# still rejects, so a document could read as both "overfit is denied an amendment" and
-# "uncovered-spec is never granted one" over the very same sentence, which is the routing
-# neither case would then be checking. The alternation is the union of how this document
-# already writes it, `add-ledger-step` among them because the script's own name is one of the
-# ways it says so.
 amendment='amend|ledger (step|line)|add-ledger-step|grow'
 
 name="$skill_md's Refactor section answers an overfit flag with one triangulating red/green pair inside the step, adding no ledger step and no second step-done, and resumes that step's refactor loop with the budget it had left"
 problems=()
 
 if unreadable_section; then
-  # Fail closed, the same way cases 1, 3, 4 and 5 do: a renamed or emptied section is
-  # unreadable, not silently right.
   problems+=("$(unreadable_problem "what the conductor does with an overfit flag could not be established")")
 else
   flagged="$(wins 'overfit')"
@@ -660,41 +416,23 @@ report "$name"
 #    work at all, so a document that amends the plan from a flag without saying which class
 #    buys it is the document #175 measured: six `plan: amend` commits on `origin/main`, none
 #    of them behaviour the issue's spec asked for. Two probes, because either alone passes a
-#    half-written section — one that names the class but not that it is the only one still
-#    lets every flag grow the plan, and one that says "only this class" without saying which
-#    leaves the conductor to pick.
-#
-#    Asked of the text around `uncovered-spec` rather than of the section at large, the way
-#    cases 1 and 6 ask theirs: this section already runs `add-ledger-step.sh` for the leaf's
-#    and the verifier's `NEW_STEP:` values, and a probe reading the whole section would be
-#    answered by those sentences and pass a document that never routes a flag by its class.
 name="$skill_md's Refactor section amends the plan from an uncovered-spec flag and from no other flag class"
 problems=()
 
 if unreadable_section; then
-  # Fail closed, the same way cases 1, 3, 4, 5 and 6 do: a renamed or emptied section is
-  # unreadable, not silently right.
   problems+=("$(unreadable_problem "which flag class grows the plan could not be established")")
 else
   uncovered="$(wins 'uncovered-spec')"
   if [[ -z "$uncovered" ]]; then
     problems+=("$(unnamed_class_problem uncovered-spec "no flag is routed to a plan amendment by its class and the conductor amends from whichever flag it reads")")
   else
-    # a. That class becomes a plan amendment: the one flag the plan is allowed to grow for.
     grep -qE "$amendment" <<<"$uncovered" ||
       problems+=("$skill_md's Refactor section names the uncovered-spec class without saying it is what amends the plan, so a behaviour the spec requires and no step covers is narrated and never planned")
 
-    # b. And that it is the only one. Without that, the class is named and every other flag
-    #    still buys a step of its own, which is the cost this issue is against.
     grep -qE '(only|alone|no other|the one (flag|class))' <<<"$uncovered" ||
       problems+=("$skill_md's Refactor section amends the plan from an uncovered-spec flag without saying that no other flag class does, so an overfit or beyond-spec flag still becomes a ledger step with a refactor loop of its own")
   fi
 
-  # c. And that the call which grows the plan is fed from that class. Cases 3 and 10 ask
-  #    that its texts are flags' behaviours; which class is this case's question alone, so
-  #    a call handed another class's flags fails here and nowhere else — a rule that says
-  #    "only uncovered-spec" over a call fed `beyond-spec` is the routing broken in the
-  #    one place the conductor actually executes.
   grown="$(win "$add_ledger_step")"
   if [[ -n "$grown" ]] && ! grep -F 'uncovered-spec' >/dev/null <<<"$grown"; then
     problems+=("$skill_md's Refactor section runs add-ledger-step.sh without saying its texts are the uncovered-spec flags' behaviours, so the plan grows from a class other than the one allowed to grow it")
@@ -703,33 +441,10 @@ fi
 
 report "$name"
 
-# 8. One criterion — a `beyond-spec` flag is narrated as a follow-up and built by nobody in
-#    this run — and so one case. It is the third of the three classes, and the only one that
-#    is not this run's work at all: it names an input class or an edge the issue's spec never
-#    asked for, so a step made from it builds behaviour no criterion of the issue states and
-#    no verifier can judge against the spec. Narration is therefore the whole of what it
-#    earns, and narration in the two places a human actually reads: the `### 🛠️ Refactor`
-#    comment, which is where the step accounts for itself while the run is live, and the PR
-#    body, which is what the human deciding the merge reads afterwards. A flag narrated only
-#    in a comment is lost by the time the merge is decided, which is how a follow-up nobody
-#    files becomes the plan amendment #175 measured.
-#
-#    Three probes, because each names a different way the class is mishandled and a document
-#    missing one is wrong in that way: no Refactor comment and the flag never surfaces during
-#    the run, no PR body and it never outlives it, no denial and it is narrated AND planned,
-#    which costs exactly what the amendment cost.
-#
-#    Asked of the text around `beyond-spec` rather than of the section at large, the way cases
-#    1, 6 and 7 ask theirs: this section already narrates transforms, counts and leftover
-#    candidates into that same comment and that same PR body, and a probe reading the whole
-#    of it would be answered by those sentences and pass a document that never says where a
-#    beyond-spec flag goes.
 name="$skill_md's Refactor section narrates a beyond-spec flag as a follow-up in the Refactor comment and in the PR body, planning and building neither"
 problems=()
 
 if unreadable_section; then
-  # Fail closed, the same way cases 1, 3, 4, 5, 6 and 7 do: a renamed or emptied section is
-  # unreadable, not silently right.
   problems+=("$(unreadable_problem "where a beyond-spec flag goes could not be established")")
 else
   beyond="$(wins 'beyond-spec')"
@@ -751,11 +466,6 @@ else
     #    `[^.]{0,80}` gap, which case 6 uses. The gap is right for those two — what
     #    they deny is a noun phrase a writer may put words in front of — but here it reads
     #    the bullet's own rationale instead of its rule: "without costing it a step: one
-    #    made from a beyond-spec flag would build behaviour no criterion of the issue
-    #    states" puts `without` within eighty characters of `build`, so the probe was
-    #    answered by the sentence explaining WHY the class is not planned and passed a
-    #    document whose clause granted both. The denial this case is about is written
-    #    against the verb itself, so that is what it matches.
     grep -qE "($denial_word) (planned|plan|built|build)" <<<"$beyond" ||
       problems+=("$skill_md's Refactor section narrates a beyond-spec flag without saying it is neither planned nor built in this run, so the run still builds behaviour the issue's spec never asked for")
   fi
@@ -763,31 +473,10 @@ fi
 
 report "$name"
 
-# 9. One criterion — a step triangulates at most once — and so one case. Case 6 lets an
-#    overfit flag interrupt the step for a triangulating pair and then resume that step's own
-#    refactor loop, and that resumed loop is another refactor leaf reading the same files: it
-#    can flag the same code again, and a document that answers the second flag the way it
-#    answered the first has rebuilt the chain #107 paid for — three amendments from 01:31 to
-#    past 03:06, each one flagged by the refactor loop of the step the previous one created,
-#    only now inside a single step instead of across the ledger. So the flag raised inside a
-#    triangulation's own refactor loop about the same code is narrated, like a beyond-spec
-#    one at case 8, and never triangulated a second time.
-#
-#    Two probes, because either alone passes a half-written section: a ceiling with nothing
-#    said about what happens to the flag that hits it leaves the conductor to drop it
-#    silently, and "narrate the second flag" without the ceiling is advice a conductor that
-#    triangulates again has not disobeyed.
-#
-#    Asked of the text around `triangulat` rather than of the section at large, the way cases
-#    1, 6, 7 and 8 ask theirs: this section already narrates counts, leftovers and flags into
-#    the `### 🛠️ Refactor` comment, and a probe reading the whole of it would be answered by
-#    those sentences and pass a document that never puts a ceiling on the triangulation.
 name="$skill_md's Refactor section runs a step's triangulation at most once, narrating a flag raised inside that triangulation's own refactor loop about the same code rather than triangulating it again"
 problems=()
 
 if unreadable_section; then
-  # Fail closed, the same way cases 1, 3, 4, 5, 6, 7 and 8 do: a renamed or emptied section
-  # is unreadable, not silently right.
   problems+=("$(unreadable_problem "whether a step's triangulation runs more than once could not be established")")
 else
   triangulation="$(wins 'triangulat')"
@@ -798,8 +487,6 @@ else
     grep -qE "at most once|only once|once (per|a) step|(${denial_word}) ((a )?(second|further|another) (triangulat[a-z]*|time)|triangulat[a-z]* (it |them )?(again|a second time))" <<<"$triangulation" ||
       problems+=("$skill_md's Refactor section puts no ceiling on a step's triangulation, so the loop it resumes can flag the same code again and buy a second pair — the #107 chain this issue is against, moved inside one step")
 
-    # b. And what the flag that hits the ceiling earns instead. Narration, the way a
-    #    beyond-spec flag earns it at case 8: the second flag is said out loud, not dropped.
     grep -qE "$(either_order 'narrat' '(again|a second (time|triangulation)|same code)' '[^.]{0,200}')" <<<"$triangulation" ||
       problems+=("$skill_md's Refactor section never says a flag raised inside a triangulation's own refactor loop about the same code is narrated, so what the second flag found is dropped without a word")
   fi
@@ -807,18 +494,6 @@ fi
 
 report "$name"
 
-# 10. One criterion — the plan grows from the leaf's FLAGS: classes alone — and so one case.
-#     skill-refactor-footer.test.sh establishes that the built refactor prompt asks for no `NEW_STEP:` line: the
-#     overfit finding moved onto a classed `FLAGS:` line. A procedure that still feeds "the
-#     leaf's NEW_STEP: values" to add-ledger-step.sh reads a line no leaf writes, so the one
-#     class that is allowed to grow the plan (case 7) never reaches the call that grows it;
-#     and a procedure that grew the plan from `CANDIDATES:` would turn leftover tidying into
-#     ledger steps, the cost #175 measured. Asked of the whole document rather than the
-#     Refactor section, because the criterion says anywhere: a second reader of the leaf's
-#     report elsewhere would be the same hole.
-#
-#     Three probes, the criterion's parts: the call is fed from the flag class, no sentence
-#     reads the leaf's NEW_STEP:, and no sentence grows the plan from CANDIDATES:.
 name="$skill_md grows the plan from the refactor leaf's FLAGS: classes alone, reading no NEW_STEP: or CANDIDATES: line of the leaf's into it"
 problems=()
 
@@ -827,9 +502,6 @@ whole="$(flat <"$skill_path")"
 if unreadable_section; then
   problems+=("$(unreadable_problem "what the plan is grown from could not be established")")
 else
-  # a. The one plan-growing call's texts are the behaviours of the leaf's flags of a class —
-  #    `<leaf … <class> behaviour>`. Which class is case 7's question, so a plant that hands
-  #    the amendment to the wrong class fails there and not here too.
   grown="$(win "$add_ledger_step")"
   if [[ -z "$grown" ]]; then
     problems+=("$skill_md's Refactor section never runs add-ledger-step.sh, so no flag is ever planned")
@@ -839,12 +511,10 @@ else
   fi
 fi
 
-# b. No sentence reads a NEW_STEP: line of the leaf's — the built prompt asks for none.
 leaf_new_step="$(phrase "$(either_order "leaf's" 'new_step' '[^.]{0,30}')" "$whole")"
 [[ -z "$leaf_new_step" ]] ||
   problems+=("$skill_md still reads a NEW_STEP: line from the refactor leaf — it says '$leaf_new_step' — a line the built refactor prompt never asks for, so the conductor grows the plan from a report line no leaf writes")
 
-# c. No sentence grows the plan from CANDIDATES: — those are leftovers a follow-up owes.
 candidate_growth="$(phrase "$(either_order 'candidates:' "($amendment)" '[^.]{0,80}')" "$whole")"
 [[ -z "$candidate_growth" ]] ||
   problems+=("$skill_md grows the plan from the leaf's CANDIDATES: lines — it says '$candidate_growth' — so leftover tidying becomes ledger steps with refactor loops of their own")

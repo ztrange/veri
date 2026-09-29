@@ -19,7 +19,6 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 skill_md="skills/tdd/SKILL.md"
@@ -27,8 +26,6 @@ skill_path="$ROOT/$skill_md"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -40,36 +37,17 @@ report() {
   fi
 }
 
-# The heading the section is found by, the same one skill-refactor-leaf.test.sh reads.
 refactor_heading='#### Refactor'
 
-# refactor_lines — the lines after the first heading starting `$refactor_heading`, up to the
-# next heading of any level, as the document has them: the fences and the numbered items are
-# what this case walks.
 refactor_lines() {
   awk -v h="$refactor_heading" \
     'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path"
 }
 
-# unreadable_problem <what-could-not-be-established> — the fail-closed message.
 unreadable_problem() {
   printf "%s has no '%s' section to read — %s" "$skill_md" "$refactor_heading" "$1"
 }
 
-# 1. One criterion — SKILL.md describes the refactor leaf's report footer as the built prompt
-#    actually writes it — and so one case. The conductor reads that footer through SKILL.md's
-#    account of it, never through the template: a line the account names and the prompt never
-#    asks for is a line the conductor waits on and never gets, and a line the prompt asks for
-#    and the account never names is one the leaf writes and nothing reads. Issue #175 moved
-#    the overfit finding from `NEW_STEP:` onto a classed `FLAGS:` line, and it is the account
-#    that lagged: the prompt said `FLAGS:` while SKILL.md still said `NEW_STEP:`.
-#
-#    So the case asks the builder itself for the prompt, the way the conductor does, and
-#    compares the labels of that prompt's report lines with the labels SKILL.md's account of
-#    the footer names — both directions, since either gap is its own failure. The account is
-#    the prose after the first mention of `.tdd/develop-refactor.out` outside a fenced block,
-#    up to the next numbered item: the launch command also names that file, inside a fence,
-#    and says nothing about what the leaf's report contains.
 name="$skill_md's Refactor section names exactly the report lines the built refactor prompt asks the leaf for"
 problems=()
 

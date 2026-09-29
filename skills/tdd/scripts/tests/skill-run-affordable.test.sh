@@ -27,15 +27,12 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -47,25 +44,19 @@ report() {
   fi
 }
 
-# plain — stdin with emphasis and code markup (`*`, backticks) dropped and case folded, so
-# `**park**` and `Park` read the same to every probe.
 plain() {
   tr -d '*`' | tr '[:upper:]' '[:lower:]'
 }
 
-# cycle_loop — the lines of `### 3. The cycle loop`, up to `### 4.`, verbatim and in order.
 cycle_loop() {
   awk '/^### 3\. The cycle loop/ { inside = 1; next } /^### 4\./ { inside = 0 } inside' "$skill_path"
 }
 
-# Every case reads the same cycle loop, and anchors on the same line of it: the call. Cases 2
-# and 3 read what follows it, from the call to the end of the loop.
 loop="$(cycle_loop)"
 call_at="$(grep -n -m1 '\$S/run-affordable\.sh' <<<"$loop" | cut -d: -f1)"
 after_call=""
 [[ -n "$call_at" ]] && after_call="$(sed -n "${call_at},\$p" <<<"$loop")"
 
-# 1. The step boundary asks run-affordable.sh, and parks on its exit 1 carrying the projection.
 name="$skill_md calls run-affordable.sh at the step boundary, after the step's ledger commit, with the count next-unchecked.sh implies, and parks on exit 1 carrying spent, steps remaining, the median, the projection, the ceiling and the two answers"
 problems=()
 

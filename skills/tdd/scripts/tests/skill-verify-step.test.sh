@@ -33,34 +33,17 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The document twice: the path as every failure message spells it, and the same path
-# resolved for the probe to read, so a message can never name a file the probe did not open.
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
 
-# What a call has to carry, written down once so the probe and the message it fails with
-# cannot drift apart: verify.sh's own flag, spelled with the placeholder the document uses
-# for the ledger's step text everywhere else, in the DOUBLE quotes SKILL.md's step-title rule
-# now sets (#431): a title is the planning leaf's own English, and an apostrophe in it closes
-# a single-quoted `'<STEP>'` early, killing the line in the shell the conductor typed it into.
 flag='--step "<STEP>"'
 
-# The one pattern the probe below matches a launch line with, built from that same `flag` so
-# the two cannot drift: nothing in the flag's spelling is an ERE metacharacter, so it goes in
-# as it stands. The phase alternation after it is what pins the POSITION — `--step` has to
-# sit between `verify.sh` and the phase the call judges, which is a word in a concrete launch
-# and the `<phase>` placeholder in the revise loop's. Green's call also passes the fast tier's
-# command (#341), after the step and still ahead of the phase.
 call_re="verify\.sh $flag( --fast-cmd '<fast-cmd>')? (red|green|refactor|pin|<phase>)"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output names the launch lines that are wrong rather than just saying the case is.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -72,21 +55,11 @@ report() {
   fi
 }
 
-# verify_calls — the verify.sh calls of SKILL.md, each prefixed with its line number.
-#
-# The spec file is the mark of a call, in either spelling the document uses for it: the
-# launch lines name `.tdd/issue-<n>-spec.md` and the resume paragraph names `<spec-file>`.
-# The synopsis is dropped by the alternation only it spells, rather than by its line number,
-# which moves with every edit above it.
 verify_calls() {
   grep -nE 'verify\.sh.*(<spec-file>|\.tdd/issue-<n>-spec\.md)' "$skill_path" |
     grep -vF '<red|green|refactor|pin|plan>'
 }
 
-# 1. One criterion — every verify.sh call the conductor makes says which step it is about —
-#    and so one case. The flag is asked for in the one position verify.sh accepts it, ahead
-#    of the phase and the positionals that follow it, because a `--step` after the phase is
-#    read as the target test id and the verdict is scoped by nothing.
 name="$skill_md passes $flag on every verify.sh call it tells the conductor to run"
 problems=()
 
@@ -105,11 +78,6 @@ fi
 
 report "$name"
 
-# 2. A call that can judge green passes the fast tier's command too (#341): green is the one
-#    phase build-verify-prompt.sh refuses without `--fast-cmd`, exit 2, and the conductor
-#    reads exit 2 as a system failure. The revise loop's re-verify spells its phase
-#    `<phase>`, which is green whenever a green was rejected, so it owes the flag as much as
-#    the green launch does — a revised green would otherwise bail instead of being judged.
 fast_flag="--fast-cmd '<fast-cmd>'"
 green_re="verify\.sh $flag( $fast_flag)? (green|<phase>) "
 name="$skill_md passes $fast_flag on every verify.sh call that can judge green"

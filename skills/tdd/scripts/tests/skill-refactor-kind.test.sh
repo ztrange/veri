@@ -25,19 +25,13 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The document twice: the path as every failure message spells it, and the same path
-# resolved for the probes to read, so a message can never name a file the probes did not
-# open.
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -49,16 +43,10 @@ report() {
   fi
 }
 
-# plain — stdin with emphasis marks and backticks dropped, the case folded and the lines
-# joined onto one, so a sentence that wraps across two lines is still one sentence.
 plain() {
   tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
 }
 
-# section <heading-prefix> — the lines after the first heading STARTING WITH that literal,
-# up to the next heading of level two or three, normalised through `plain`. Not "any level":
-# the Scope & plan section quotes a ledger in a code block whose first line is `# Plan for`,
-# and a level-one match there would end the section inside its own example.
 section() {
   awk -v h="$1" \
     'index($0, h) == 1 { inside = 1; next } inside && /^###? / { exit } inside' "$skill_path" |
@@ -67,13 +55,9 @@ section() {
 
 plan_heading='### 2. Scope & plan'
 
-# The whole document through `plain`, for the cases that probe it by `window` rather than by
-# `section`.
 skill_text="$(plain < "$skill_path")"
 
-# window <text> <extended-regex> — the text within 250 characters either side of the first
-# match, or the empty string when there is none. 250 because BSD grep refuses an interval
-# bound over 255.
+# hazard: BSD grep refuses an interval bound over 255.
 window() {
   head -1 < <(grep -oE ".{0,250}$2.{0,250}" <<<"$1")
 }
@@ -101,12 +85,6 @@ else
 fi
 report "$name"
 
-# 2. Cover (criterion 4). Before a refactoring moves code, a cover leaf proves some test
-#    catches that code breaking: it mutates the code by hand, runs the suite, expects red,
-#    restores the edit and proves the tree is as it found it, then reports `COVERED:` and
-#    `CAUGHT_BY:`. A leaf that forgets to restore leaves its mutation for the transform to
-#    commit as a "refactoring", so SKILL.md does not take its word for it: a non-empty
-#    `git status --porcelain` after Cover refuses the run rather than continuing.
 name="the develop-cover prompt tells the leaf to mutate, run the suite, expect red, restore and prove the tree unchanged, ending in COVERED: and CAUGHT_BY:; $skill_md refuses to continue past Cover on a non-empty git status --porcelain"
 problems=()
 
@@ -134,12 +112,6 @@ if ! grep -F 'git status --porcelain' <<<"$cover_near" | grep -E 'refus|stop|bai
 fi
 report "$name"
 
-# 3. Cover answers `COVERED: no` (criterion 5). The code the step would move has no test
-#    that catches it breaking, so transforming it would be unverifiable. SKILL.md refuses:
-#    it bails with the cause `uncovered` (which classify-bail.sh maps to a methodology
-#    answer), says what the human should do next — find a seam and surround the behaviour
-#    with tests — and runs coverage-blocker.sh, which files the coverage issue and blocks
-#    the refactor issue on it so the queue cannot retake it only to refuse again.
 name="$skill_md's Cover step on COVERED: no bails with cause uncovered, narrates the remedy (find a seam, surround the behaviour) and runs coverage-blocker.sh"
 problems=()
 
@@ -158,13 +130,6 @@ else
 fi
 report "$name"
 
-# 4. The cycle (criterion 6). A refactor-kind step is Cover, then Transform, then Verify —
-#    not Red, Green, Refactor. A transform changes structure only, so a commit in its range
-#    that edits a test file has moved the goalposts: SKILL.md runs transform-touches-tests.sh
-#    over the range and rejects the transform when it exits 1. A step that is abandoned has
-#    no untracked test to clean — its transform commits are the work — so it is abandoned by
-#    resetting to the step's base sha, `git reset --hard <base-sha>` (never matching the
-#    rebase's `<pre-rebase-sha>`, which the leading `<` rules out).
 name="$skill_md's refactor-kind cycle runs Cover → Transform → Verify, rejects a transform whose commits touch a test file via transform-touches-tests.sh, and abandons a step by resetting to its base sha"
 problems=()
 
@@ -181,11 +146,6 @@ grep -E 'git reset --hard <base-sha>|reset(ting)? (it )?to (its|the step.s) base
   problems+=("$skill_md never abandons a refactor-kind step by resetting to its base sha, so an abandoned transform's commits stay on the branch")
 report "$name"
 
-# 5. The PR title (criterion 7). The Draft PR step picks the title's `<type>` from the
-#    issue's labels: `fix` for a bug run, `feat` otherwise. A refactor run adds no capability
-#    and repairs no regression, so a PR titled either way misdescribes it to the human deciding
-#    the merge; SKILL.md gives it a third branch, the `refactor:` prefix, for an issue labelled
-#    `refactor`, stated beside the other two so the conductor meets all three in one place.
 pr_heading='### 4. Draft PR'
 name="$skill_md's Draft PR step titles a run on an issue labelled refactor with the refactor: prefix, beside fix: and feat:"
 problems=()
