@@ -64,7 +64,7 @@ runs = [r for p in pages for r in p.get("check_runs") or []]
 outcomes = [r.get("conclusion") if r.get("status") == "completed" else None for r in runs]
 if any(o is not None and o not in ("success", "neutral", "skipped") for o in outcomes):
     print("red")
-elif None in outcomes:
+elif None in outcomes or all(o == "skipped" for o in outcomes):
     print("pending")
 else:
     print("green")

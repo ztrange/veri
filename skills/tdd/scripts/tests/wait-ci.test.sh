@@ -332,5 +332,13 @@ for stale in failure:"$(check COMPLETED FAILURE)" pending:"$(check IN_PROGRESS '
 done
 report "$name"
 
+name="wait-ci.sh exits 3, never 0, when every one of the sha's own check runs concluded skipped, even while the PR rollup reads all green (#552)"
+problems=()
+rollup skippedsha.json "$(check COMPLETED SUCCESS)" "$sha"
+sha_runs skippedsha.json "$(sha_run gates completed '"skipped"')" "$(sha_run docs completed '"skipped"')"
+got="$(waited skippedsha 60 60 "$sha")"
+[[ "$got" == 3 ]] || problems+=("rollup green for $sha, its own check runs all skipped: want exit 3, got $got (stderr: $(cat "$work/skippedsha.err"))")
+report "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
