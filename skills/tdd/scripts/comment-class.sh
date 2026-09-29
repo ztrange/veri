@@ -52,7 +52,7 @@ awk -v sweepable="$sweepable" '
   match(line, /<<-?[[:space:]]*["'\'']?[A-Za-z_][A-Za-z0-9_]*/) {
     out = line; gsub(/[02-9]>+[[:space:]]*[^[:space:]]*/, "", out)
     cls = out ~ />[[:space:]]*[^&[:space:]]/ || out ~ /\|[[:space:]]*(tee|dd|sponge)[[:space:]]/ ? 2 : 3
-    if (out ~ /(>|\|[[:space:]]*tee[[:space:]][^|]*)[[:space:]]*[^&|[:space:]]*\.md["\047]?([[:space:]]|$)/) cls = 3
+    if (out ~ /(>|\|[[:space:]]*(tee|dd|sponge)[[:space:]][^|]*)[[:space:]]*[^&|[:space:]]*\.md["\047]?([[:space:]]|$)/) cls = 3
     delim = substr(line, RSTART + 2, RLENGTH - 2)
     dash = delim ~ /^-/
     body = 1

@@ -354,6 +354,17 @@ want_line "$f:2:3"
 want_line "$g:2:3"
 verdict "a # line inside a heredoc written to a .md file is class 3"
 
+# 25. a `#` line inside a heredoc piped to dd or sponge writing a `.md` file is class 3.
+problems=""
+f="$work/md-dd.sh"
+printf '%s\n' 'cat <<EOF | dd of="$dir/CLAUDE.md"' '# a markdown heading' 'EOF' > "$f"
+g="$work/md-sponge.sh"
+printf '%s\n' 'cat <<EOF | sponge "$dir/SPEC.md"' '# a markdown heading' 'EOF' > "$g"
+classify "$f" "$g"
+want_line "$f:2:3"
+want_line "$g:2:3"
+verdict "a # line inside a heredoc piped to dd of= or sponge writing a .md file is class 3"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
