@@ -2709,6 +2709,38 @@ structural_section_says "$unstructured_out" "$unstructured" "1/5" "absent"
 
 report_on "$name" "$structural_out"
 
+# The planned count is lib/ledger.sh's `ledger_steps` (#495): beside a stub module that numbers
+# three steps, a ledger holding one box of its own reports 1 of 3, where a count of the
+# ledger's own boxes would say 1 of 1.
+name="#495 the planned-step count is the number of lib/ledger.sh ledger_steps records, counting no box of its own"
+problems=()
+
+fixture_work ledger_steps_work
+counted_step="a step the stub module numbers first of three"
+sv "$counted_step" 90000 conductor "" step-start ""
+sv "$counted_step" 90100 conductor "" step-done  ""
+plan_of "$counted_step"
+
+stub="$ledger_steps_work/stub"
+mkdir -p "$stub"
+cp "$METRICS" "$HERE/../ledger-steps.sh" "$stub/"
+cp -R "$HERE/../lib" "$stub/lib"
+cat > "$stub/lib/ledger.sh" <<'EOF'
+ledger_steps() {
+  cat >/dev/null
+  printf '1\tdone\tstep\t0\t0\t\ta step the stub module numbers first of three\n'
+  printf '2\topen\tstep\t0\t0\t\ta second step\n'
+  printf '3\topen\tstep\t0\t0\t\ta third step\n'
+}
+EOF
+
+ledger_steps_out="$ledger_steps_work/report.md"
+METRICS="$stub/metrics.sh" render "$ledger_steps_work" "$ledger_steps_out"
+
+progress_says "$ledger_steps_out" 1 3
+
+report_on "$name" "$ledger_steps_out"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
