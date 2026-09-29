@@ -45,22 +45,13 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The document twice — the path as every failure message spells it, and the same path
-# resolved for the probe to read — so a message can never name a file the probe did not
-# open. The pairing claude-md-counts.test.sh and model-knobs-recorded.test.sh both use.
 claude_md="CLAUDE.md"
 claude_path="$ROOT/$claude_md"
 
 pass=0 fail=0
 
-# run_case <name> <probe> — one case: empty the `problems` array, run <probe> to collect into
-# it, then close the case. An empty array is a pass, otherwise one FAIL line for the case and
-# one indented line per problem, so the output says which rule is no longer recorded rather
-# than just that one is not. Written once so a case is added as its name and its probe, never
-# as another copy of the reset-run-and-report around them.
 run_case() {
   local name="$1" probe="$2"
   problems=()
@@ -74,52 +65,25 @@ run_case() {
   fi
 }
 
-# plain — stdin with emphasis marks and backticks dropped and the case folded, so a regex
-# below is written one way and still matches prose that marked the same words up as
-# `make docs` or **never merged**. The normalisation lane-rule-recorded.test.sh and
-# model-knobs-recorded.test.sh both use on this document.
 plain() { tr -d '*`' | tr '[:upper:]' '[:lower:]'; }
 
-# The awk program `records` and `section_records` both split their input with, named once
-# because the two read the same document and a copy that drifted would leave one of them
-# answering a different question about it. A program rather than a function because awk is
-# what does the splitting, and the only difference between the two readers is what they hand
-# it: the whole file, or one section of it.
 RECORD_SPLIT='/^([-*] |\| )/ { if (rec != "") print rec; rec = $0; next }
               /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
               rec == "" { rec = $0; next }
               { rec = rec " " $0 }
               END { if (rec != "") print rec }'
 
-# records — the document as one line per record, normalised through `plain`. A record runs
-# from a `- `, a `* ` or a `| ` in column one, or from the first line after a blank, up to
-# the next such line or the next blank. Table rows start one of their own because half this
-# document's rules are a row of the commands table, and a table read as a single record
-# would let a rule be answered by the row below it. CLAUDE.md wraps mid-sentence, so joining
-# a record onto one line is also what keeps a claim split over a line break readable as one
-# sentence. Same shape as model-knobs-recorded.test.sh's `records`.
 records() {
   awk "$RECORD_SPLIT" "$claude_path" | plain
 }
 
-# section_records <heading> — the records of ONE section of the document: from the heading to
-# the next `## `, split and normalised exactly as `records` splits the whole file. Read by
-# heading where a rule belongs to a section rather than to the document, which is the reading
-# lane-rule-recorded.test.sh uses on this same file: a sentence three sections away answers
-# for prose the agent reading that section does not have in front of it.
 section_records() {
   awk -v heading="$1" '$0 == heading { f = 1; next } f && /^## / { exit } f' "$claude_path" |
     awk "$RECORD_SPLIT" | plain
 }
 
-# The document as records, read once: the four cases below all ask their question of the same
-# text, and `records` is an awk pass over the file, so asking it once and passing the answer
-# around costs one process instead of four. Read at load, before any case runs.
 ALL_RECORDS="$(records)"
 
-# one_record_matches <text> <regex>... — exit 0 when one line of <text> (a record, as
-# `records` prints them) matches every regex, 1 otherwise. Asked of one record at a time for
-# the reason the header gives: fragments of a rule sections apart must not answer for it.
 one_record_matches() {
   local text="$1" line
   shift
@@ -129,11 +93,6 @@ one_record_matches() {
   return 1
 }
 
-# all_regexes_match <line> <regex>... — exit 0 when <line> matches every regex, 1 otherwise.
-# The one place a rule is compared against a record, because `one_record_matches` and
-# `count_matching_records` differ only in what they do with the answer — whether any record
-# carries the rule, and how many do — and a second copy of the comparison is a place for the
-# two readings of the same roster line to drift apart.
 all_regexes_match() {
   local line="$1" re
   shift
@@ -143,22 +102,11 @@ all_regexes_match() {
   return 0
 }
 
-# no_records <text> <problem> — collect <problem> and exit 0 when <text> holds no record at
-# all, so a caller reads `no_records … && return`. The fail-closed half of every case:
-# whitespace matches no regex, so text that could not be read would otherwise report the rule
-# missing rather than the reading broken, and the two want different repairs. Written once so
-# a case that reads a new slice of the document cannot forget it.
 no_records() {
   [[ -z "${1// /}" ]] || return 1
   problems+=("$2")
 }
 
-# records_carry <text> <problem> <regex>... — the shape every invariant case below shares:
-# pass when one record of <text> matches all of <regex>, and collect <problem> when none does.
-# Written once so an invariant is added as the regexes that carry it and the message naming
-# what left, never as another copy of the guard-and-append around them. <text> is a parameter
-# because a rule is asked either of the whole document or of one section of it, and those two
-# readings differ in nothing but which records they read.
 records_carry() {
   local text="$1" problem="$2"
   shift 2
@@ -166,25 +114,10 @@ records_carry() {
   problems+=("$problem")
 }
 
-# record_carries <problem> <regex>... — `records_carry` over the whole document, which is how
-# every rule that belongs to no one section is asked.
 record_carries() {
   records_carry "$ALL_RECORDS" "$@"
 }
 
-# The roster: one rule per line, `;`-separated — the rule as a failure message names it,
-# then every regex a record carrying it has to match. A semicolon rather than a pipe because
-# the regexes alternate. Read from a heredoc rather than written as a function call each, so
-# the rules read as the list of claims they are and a rule is added as a line.
-#
-# No apostrophe appears in a roster line: bash 3.2 parses a `$(…)` by scanning for the
-# closing paren and reads a lone quote inside the heredoc as one that was opened, which is a
-# syntax error at the end of the file rather than at the line that caused it.
-#
-# Two or three regexes per rule, and they are the parts a reader could not act without: the
-# identifier (`supervise.sh`, `GIT_COMMITTER_DATE`, `--sort=-v:refname`) and the verb that
-# makes it a rule rather than a mention (`never`, `refuse`, `not tested`). A rule cut down to
-# one sentence and a pointer still carries both; a rule that left does not.
 ROSTER=$(cat <<'ROWS'
 make test is the baseline, and a red one stops a run before it starts;make test;baseline|stay green;refuse|refus
 make docs publishes the page by hand only, never on a merge;make docs;by hand|disabled;publish|deploy
@@ -213,10 +146,6 @@ a guard never watched to fail is not tested;guard|failure path;not tested|watche
 ROWS
 )
 
-# probe_every_rule_is_carried_by_one_record — the roster against the document. The records
-# are read once and every rule asked of them, so a document that could not be read at all
-# reports every rule missing from the same empty text; that is fail-closed by construction,
-# since there is no way to read CLAUDE.md as blank and have a rule answer.
 probe_every_rule_is_carried_by_one_record() {
   local row rule
 
@@ -231,22 +160,9 @@ probe_every_rule_is_carried_by_one_record() {
   done <<< "$ROSTER"
 }
 
-# 1. One criterion, one case: every rule the document carried is still discoverable from it.
-#    One case rather than one per rule, because what the next agent needs is not a count of
-#    surviving sentences but a document that still holds every rule it is the record of — and
-#    the problem lines say which rule left with its paragraph.
 run_case "$claude_md still states every rule it is the only record of, in full or in one sentence with a pointer" \
   probe_every_rule_is_carried_by_one_record
 
-# probe_budgets_invariant_names_the_fourth_axis — issue #219 gave the verifier a relaunch
-# budget of its own, `VERI_NO_VERDICT_RETRIES`, for a leaf that exited cleanly without a
-# `VERDICT:` line. It is not `VERI_STUCK_RETRIES`: that one answers liveness (the process
-# never finished), this one protocol compliance (the process finished and ignored the output
-# contract). The budgets invariant is where the document says why budgets are never merged,
-# so a fourth axis it does not name is one the next reader is free to fold into the stuck
-# retries. Asked of ONE record, like the roster above: the new variable, the one it must not
-# be merged with, that there are now four, the two failures each answers, and the verb that
-# keeps them apart.
 probe_budgets_invariant_names_the_fourth_axis() {
   record_carries \
     "$claude_md has no single record naming VERI_NO_VERDICT_RETRIES as a fourth budget axis beside VERI_STUCK_RETRIES, liveness against protocol compliance, never merged" \
@@ -254,18 +170,9 @@ probe_budgets_invariant_names_the_fourth_axis() {
     'liveness' 'protocol|contract|compliance' 'never merged|not merged|one knob'
 }
 
-# 2. One criterion, one case: the budgets invariant names VERI_NO_VERDICT_RETRIES as a fourth
-#    axis and why it is not merged with VERI_STUCK_RETRIES (#219).
 run_case "$claude_md's budgets invariant names VERI_NO_VERDICT_RETRIES as a fourth axis and why it is not merged with VERI_STUCK_RETRIES" \
   probe_budgets_invariant_names_the_fourth_axis
 
-# probe_blind_invariant_names_the_base_sha — issue #151 gave the refactor verifier a 4th
-# positional, `<base-sha>`, the step's green commit, so it can review what the refactor
-# changed. The blind-verifier invariant is where the document says no parameter can carry the
-# developer's rationale, so a new parameter it does not name — and does not say why it cannot
-# leak — reads as the silent end of the guarantee that invariant warns about. Asked of ONE
-# record, like the roster above: the invariant, the builder, the parameter, the phase it
-# belongs to, what shape confines it (hex), and that it cannot carry rationale.
 probe_blind_invariant_names_the_base_sha() {
   record_carries \
     "$claude_md has no single record naming <base-sha> as the refactor phase parameter of build-verify-prompt.sh in the blind-verifier invariant, and why a hex sha cannot leak rationale" \
@@ -273,20 +180,9 @@ probe_blind_invariant_names_the_base_sha() {
     'hex|0-9a-f' 'rationale|leak'
 }
 
-# 3. One criterion, one case: the blind-verifier invariant names the base-sha parameter and
-#    why a sha cannot leak rationale (#151).
 run_case "$claude_md's blind-verifier invariant names the refactor base-sha parameter and why a sha cannot leak rationale" \
   probe_blind_invariant_names_the_base_sha
 
-# probe_budgets_invariant_names_the_fifth_axis — issue #360 gave the plan itself a budget,
-# `VERI_STEP_GROWTH`: how many steps one ledger may hold marked `⟦added⟧`, so a run that
-# discovers work as it goes can grow its plan without growing it without end. It is a fifth
-# axis, not a bigger refactor budget: `VERI_REFACTOR_BUDGET` bounds what one step's tidying
-# costs, this one bounds how much plan a run may add. Folded into any of the other four, "let
-# the run plan more" and "let a leaf retry / revise / refactor more" would be one decision,
-# which is the same collapse this invariant already refuses three times over. Asked of ONE
-# record, like the roster above: the new variable, one of the four it must not be merged
-# with, that there are now five, the axis it answers, and the verb that keeps them apart.
 probe_budgets_invariant_names_the_fifth_axis() {
   record_carries \
     "$claude_md has no single record naming VERI_STEP_GROWTH as a fifth budget axis beside the other four, plan growth, never merged" \
@@ -294,33 +190,15 @@ probe_budgets_invariant_names_the_fifth_axis() {
     'plan' 'never merged|not merged|one knob'
 }
 
-# 4. One criterion, one case: the budgets invariant names VERI_STEP_GROWTH as a fifth axis,
-#    plan growth, never merged with the other four (#360).
 run_case "$claude_md's budgets invariant names VERI_STEP_GROWTH as a fifth axis, plan growth, never merged with the other four" \
   probe_budgets_invariant_names_the_fifth_axis
 
-# The section a suite in this directory is written under, exactly as the document spells it:
-# the rule below belongs to it and not to the document at large, because the reader it is
-# written for is an author part-way through a new suite, and that author is reading this
-# section.
 IDIOM_HEADING="## Testing idiom"
 
-# probe_idiom_records_the_sigpipe_rule — issue #422: a suite that declares `set -uo pipefail`
-# and ends a pipeline in a reader that leaves before EOF — a `grep` whose options carry `q`,
-# or a `head` — asserts on its own writer's SIGPIPE rather than on the reader's answer. The
-# writer dies of 141 on the closed pipe, `pipefail` hands that up as the pipeline's status,
-# and the assertion is inverted. It is green on the development Mac and red on CI, so the
-# leaf and the blind verifier both say green and the PR is red; it cost two consecutive runs
-# (#418, #416). `no-sigpipe-pipelines.test.sh` fails the run when a suite is written that
-# way, but a guard is read after the fact — the author who reads this section first is the
-# one who never writes the shape. Asked of ONE record of the *Testing idiom* section, like
-# the roster above: the option that makes it a bug, both readers, the signal, the guard by
-# name, the repair, and the verb that makes it a rule rather than a note.
 probe_idiom_records_the_sigpipe_rule() {
   local idiom_records
   idiom_records="$(section_records "$IDIOM_HEADING")"
 
-  # The repair an unreadable section wants is the heading, not the prose: say so.
   no_records "$idiom_records" \
     "$claude_md has no '$IDIOM_HEADING' section to read, so nothing states the pipefail/SIGPIPE rule where the agent writing a suite would find it" && return
 
@@ -335,18 +213,9 @@ probe_idiom_records_the_sigpipe_rule() {
     'never|must not|does not|no suite'
 }
 
-# 5. One criterion, one case: the section an author writing a suite reads states the
-#    pipefail/SIGPIPE rule, in one record rather than in fragments a reader has to assemble
-#    (#422).
 run_case "$claude_md's testing idiom section states the pipefail/SIGPIPE rule" \
   probe_idiom_records_the_sigpipe_rule
 
-# count_matching_records <text> <regex>... — how many records of <text> match every regex.
-# `one_record_matches` answers whether a rule is recorded at all, which is what every case
-# above asks of this document; the case below has to answer "once", so it needs the number
-# rather than the first hit. Two copies of one rule are two records to keep in step, and the
-# trim this suite exists to survive takes one of them away without the other — after which
-# the document states the rule and contradicts it, which is worse than either.
 count_matching_records() {
   local text="$1" line n=0
   shift
@@ -356,15 +225,6 @@ count_matching_records() {
   printf '%s\n' "$n"
 }
 
-# The job-spec rule as the regexes any wording carrying it would match, in the order a reader
-# meets them: the shape that is forbidden, the shape written out, the name used instead, the
-# helper that does it, the guard that fails the run, and the verb that makes the whole a rule
-# rather than a story about last September. Named once because the case below asks the same
-# list twice over — of the document, and of the count.
-#
-# No element spells a kill of a numbered job: `no-job-spec-kills.test.sh` reads every file
-# under skills/, this one included, and a regex that spelled the whole shape would be its
-# first offender.
 JOB_SPEC_RULE=(
   'job spec'
   'kill %'
@@ -374,15 +234,6 @@ JOB_SPEC_RULE=(
   'never|must not|not by'
 )
 
-# probe_job_spec_rule_is_stated_once — issue #424: a background process started with `&` and
-# ended by a job spec survives the shell that started it, because a job spec names a row in
-# that shell's own job table and the table dies with it. It cost twelve hours of ten orphaned
-# busy-loops at ~988% of CPU on 2026-09-22, silently distorting every timing this repository
-# measures. `no-job-spec-kills.test.sh` fails the run on the next site, but a guard is read
-# after the fact by an author who has already written the line; this document is what the
-# agent reads before it opens a file. Asked of ONE record, like every rule above — and asked
-# for exactly one, which no other case here needs: the criterion is that the rule is stated
-# once, and a document holding it twice is one trim away from holding two halves of it.
 probe_job_spec_rule_is_stated_once() {
   local found
   found="$(count_matching_records "$ALL_RECORDS" "${JOB_SPEC_RULE[@]}")"
@@ -396,8 +247,6 @@ probe_job_spec_rule_is_stated_once() {
   esac
 }
 
-# 6. One criterion, one case: the document states once that a background process is killed by
-#    its recorded pid and never by a job spec (#424).
 run_case "$claude_md states once that a background process is killed by its recorded pid, never by a job spec" \
   probe_job_spec_rule_is_stated_once
 

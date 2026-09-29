@@ -25,9 +25,6 @@ no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-# A stub `gh`: `issue create` records its argv to $FAKE_CREATE and prints the new issue's URL,
-# as the real one does; `issue view` prints $FAKE_BODY; `issue edit` copies its --body-file to
-# $FAKE_OUT so the test can read what would have been written.
 stubdir="$work/bin"
 mkdir -p "$stubdir"
 cat > "$stubdir/gh" <<'STUB'
@@ -47,15 +44,12 @@ fi
 STUB
 chmod +x "$stubdir/gh"
 
-# run_blocker <body> <create-file> <out-file> [args...] — runs coverage-blocker.sh against the stub.
 run_blocker() {
   local body="$1" create="$2" out="$3"
   shift 3
   env PATH="$stubdir:$PATH" FAKE_BODY="$body" FAKE_CREATE="$create" FAKE_OUT="$out" "$BLOCKER" "$@"
 }
 
-# expect_edit <case> <name> <body> <want> — runs coverage-blocker.sh on refactor issue #60 with
-# <body> as its current body, and passes when it exits 0 having written exactly <want>.
 expect_edit() {
   local case="$1" name="$2" body="$3" want="$4" code new_body=""
   local edited="$work/edited$case.body"
@@ -70,16 +64,10 @@ $(cat "$work/blocker$case.err")"
   fi
 }
 
-# solvable-issues.sh reads a run's claim off the main working tree of the repository it is run
-# in; a repository of the suite's own claims nothing, so only the fixture answers.
 no_claims="$work/no-claims"
 git init -q -b main "$no_claims" >/dev/null 2>&1
 cd "$no_claims" || exit 2
 
-# 1. The refactor issue #60 is opted in and reads `None` under `## Blocked by`, so it is
-# takeable. coverage-blocker.sh files #77 with no label, and rewrites #60's body so the heading
-# names #77 in place of the `None` line. Fed that body with #77 open, solvable-issues.sh no
-# longer lists #60 — and does not list #77, which carries no opt-in label.
 name="coverage-blocker files an unlabelled issue and blocks the refactor issue on it"
 body='## What to build
 
@@ -121,9 +109,6 @@ else
 $(cat "$work/blocker.err")"
 fi
 
-# 2. Only the `None` under `## Blocked by` is replaced. A `None` line in another section is the
-# issue's own prose, and survives the edit byte for byte, while the one under the heading still
-# becomes the new blocker.
 name="coverage-blocker replaces only the None line under ## Blocked by"
 body='## What to build
 
@@ -142,7 +127,6 @@ None of the callers change.
 - #77'
 expect_edit 2 "$name" "$body" "$want"
 
-# 3. Called with no issue number, it refuses with exit 2 and a usage line, and files nothing.
 name="coverage-blocker with no issue number exits 2 with a usage line and files no issue"
 create3="$work/create3.args"
 err="$(run_blocker x "$create3" "$work/edited3.body" 2>&1 >/dev/null)" && code=0 || code=$?
@@ -152,9 +136,6 @@ else
   no "$name (exit=$code want 2; stderr='$err' want a usage line; issue created=$([[ -f "$create3" ]] && echo yes || echo no) want no)"
 fi
 
-# 4. A `## Blocked by` section that already lists a blocker has no `None` line to replace; the
-# new issue is appended after the blockers already there, which stay, and the prose after them
-# survives. A `- #N` bullet in a later section is not a blocker, so nothing is appended there.
 name="coverage-blocker appends the new blocker to a Blocked by section that already lists blockers"
 body='## What to build
 

@@ -42,19 +42,12 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The document, named for the failure messages only: this suite never opens it. What it
-# asks is whether the four suites that do open it are content with what is in there.
 claude_md="CLAUDE.md"
 
-# This directory, repo-relative — the spelling `make test`'s roster uses and the one the
-# failure messages have to, so a message can never name a path the roster was not read for.
 suites_dir="skills/tdd/scripts/tests"
 
-# The four, in the order #202 lists them. A guard is added to this issue's acceptance test
-# by being added here.
 GUARDS=(
   claude-md-counts.test.sh
   lane-rule-recorded.test.sh
@@ -62,16 +55,10 @@ GUARDS=(
   docs-targets-refuse.test.sh
 )
 
-# The line every suite prints last, as an ERE, with the failure count pinned to zero: the
-# Makefile asks each suite for the same line because an exit code alone is not trusted
-# (#157), and a suite that stopped asserting halfway comes back 0 without one.
 COUNT_LINE='^[0-9]+ passed, 0 failed$'
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which guard is not green rather than just that one is not.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -83,33 +70,15 @@ report() {
   fi
 }
 
-# roster — the suites `make test` would run, one path per line, asked of make itself with
-# `-n` rather than re-globbed here. A glob spelled in this file would agree with the recipe
-# by coincidence; what the criterion is about is the command the conductor types.
 roster() {
   make -C "$ROOT" -n test 2>/dev/null | grep -oE "$suites_dir/[A-Za-z0-9_.-]*\.test\.sh"
 }
 
-# probe_every_guard_is_rostered_and_green — the four against the roster and against the
-# document, in one sweep. The roster is read once for all four: it is a fact about the
-# baseline, not about any one guard, so a roster that could not be read is said once and
-# the membership question is then not asked at all, rather than answered "missing" four
-# times for a reason that is about this probe.
-#
-# The four runs launch together rather than one after another: they are independent child
-# processes reading the same committed document, none writes anywhere the others read, and
-# `make test` itself runs them the same way — this suite's own recipe just serialises
-# something the four never needed serial. Wall time then tracks the slowest of the four
-# (count-line-guard.test.sh, itself real business logic per that suite's own header) rather
-# than their sum, which is the whole of the saving: every assertion below is unchanged, only
-# when each guard's output becomes available to read.
 probe_every_guard_is_rostered_and_green() {
   local rost guard out code last cases guard_work
   rost="$(roster)"
 
   if [[ -z "$rost" ]]; then
-    # Fail closed: with no roster read, every membership question below would answer
-    # "missing" for a reason that is about this probe rather than about the tree.
     problems+=("\`make -n test\` named no suite in $suites_dir, so the roster a green run covers could not be read")
   fi
 
@@ -128,8 +97,6 @@ probe_every_guard_is_rostered_and_green() {
     out="$(cat "$guard_work/$guard.out")"
     code="$(cat "$guard_work/$guard.status")"
     last="$(tail -n 1 <<< "$out")"
-    # The suite's own FAIL lines, joined onto one line with `|`, so the message says which
-    # claim about the document the guard withheld rather than only that it withheld one.
     cases="$(grep '^FAIL - ' <<< "$out" | tr '\n' '|')"
     if [[ "$code" -ne 0 ]] || ! [[ "$last" =~ $COUNT_LINE ]]; then
       problems+=("$guard is not green against $claude_md: exit $code, last line '$last'${cases:+ — ${cases%|}}")
@@ -139,10 +106,6 @@ probe_every_guard_is_rostered_and_green() {
   rm -rf "$guard_work"
 }
 
-# 1. One criterion, one case: the four guards #202 names as its acceptance test are all in
-#    the baseline's roster and all green against the committed document. One case rather
-#    than one per guard, because what an accepted trim needs is not four verdicts but one —
-#    and the problem lines say which guard withheld it.
 name="the four suites that hold $claude_md are in \`make test\`'s roster and green against the committed document"
 problems=()
 

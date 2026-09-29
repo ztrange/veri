@@ -370,6 +370,11 @@ problems=""
 want_empty_sweepable "$SCRIPTS"/tests/[ab]*.sh
 verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with a or b"
 
+# 27. the sweepable report is empty for every top-level tests/*.sh whose name starts with c or d.
+problems=""
+want_empty_sweepable "$SCRIPTS"/tests/[cd]*.sh
+verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with c or d"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
