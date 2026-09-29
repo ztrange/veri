@@ -14,25 +14,9 @@ set -euo pipefail
 [[ -n "${1:-}" ]] || { echo "usage: clear-refactor-pending.sh <ledger-file> <matcher>" >&2; exit 2; }
 file="$1"
 matcher="${2:-}"
+HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/ledger.sh"
 
-mark=' ⟂ refactor pending'
-
-strip_mark() {
-  MATCHER="$2" MARK="$3" awk '
-    BEGIN {
-      matcher = ENVIRON["MATCHER"]; mark = ENVIRON["MARK"]; done = 0
-      ticked = "^[[:space:]]*-[[:space:]]\\[x\\]"
-    }
-    {
-      if (!done && $0 ~ ticked && index($0, matcher) > 0 && sub(mark "$", "")) {
-        done = 1
-      }
-      print
-    }
-    END { if (!done) exit 3 }
-  ' "$1"
-}
-
-new="$(strip_mark "$file" "$matcher" "$mark")" || exit $?
+new="$(ledger_clear_pending "$matcher" < "$file")" || exit $?
 
 printf '%s\n' "$new" > "$file"
