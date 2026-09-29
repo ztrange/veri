@@ -9,7 +9,7 @@
 - [x] `ledger_tick <matcher> pending` also appends ` ⟂ refactor pending` to the line it ticks, in the same write — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧
 - [x] `ledger_tick` returns 3 and writes the document unchanged when no open step contains `<matcher>` — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧
 - [x] `ledger_clear_pending <matcher>` in `lib/ledger.sh`, stdin → stdout, strips the pending mark from the first ticked step that contains `<matcher>` and carries the mark, changing no other byte, and returns 3 with the document unchanged when no such step exists — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧
-- [x] `ledger_add_step <text> <k>` in `lib/ledger.sh`, stdin → stdout, writes `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` directly after the document's last step line, changing no other byte — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧ ⟂ refactor pending
+- [x] `ledger_add_step <text> <k>` in `lib/ledger.sh`, stdin → stdout, writes `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` directly after the document's last step line, changing no other byte — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧
 - [ ] A new entry point `skills/tdd/scripts/ledger-steps.sh` prints `ledger_steps`'s records for the document on its stdin, and nothing else — pinned by its own suite ⟦criterion 3⟧
 - [ ] `next-unchecked.sh` sources `lib/ledger.sh` and asks it for the first open ordinary step, spelling no checkbox pattern of its own, with its stdout and exit codes unchanged (its existing suite passes unmodified) ⟦criterion 3⟧
 - [ ] `next-pending-refactor.sh` sources `lib/ledger.sh` and asks it for the first ticked step carrying the pending mark, spelling neither a checkbox pattern nor the mark of its own, with its stdout and exit codes unchanged (its existing suite passes unmodified) ⟦criterion 3⟧
@@ -32,3 +32,7 @@
 - [ ] No non-comment line of a `.sh` or `.py` file under `skills/tdd/scripts/` outside `tests/` other than `lib/ledger.sh`, and no line of `skills/tdd/SKILL.md`, spells a box pattern — an escaped `\[` box or a `'[x]'` / `"- [x] "` / `"- [ ] "` literal — pinned by the audit suite, naming any file and line that does ⟦criterion 2⟧
 - [ ] The callers' suites stay green under the full suite ⟦full-suite⟧ ⟦criterion 4⟧
 - [ ] The behaviour of every affected script is unchanged — every caller's pre-existing suite passes unmodified — with one transform per commit ⟦full-suite⟧ ⟦criterion 5⟧
+
+## Owed steps
+
+- `ledger_add_step <text> <k>` on a document holding no step line appends the new step line at the end of the document rather than writing nothing — pinned in `tests/unit/ledger.test.sh`
