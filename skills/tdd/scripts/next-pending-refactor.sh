@@ -11,14 +11,15 @@
 # Usage:   next-pending-refactor.sh < .tdd/issue-<n>.md
 set -euo pipefail
 
-mark=' ⟂ refactor pending'
-re="^[[:space:]]*- \[x\] (.*)${mark}$"
+HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/ledger.sh"
 
-while IFS= read -r line || [[ -n "$line" ]]; do
-  if [[ "$line" =~ $re ]]; then
-    printf '%s\n' "${BASH_REMATCH[1]}"
-    exit 0
-  fi
-done
+pending_step=$'^[0-9]+\tdone\t[^\t]*\t1\t[^\t]*\t[^\t]*\t(.*)$'
+
+while IFS= read -r record; do
+  [[ "$record" =~ $pending_step ]] || continue
+  printf '%s\n' "${BASH_REMATCH[1]}"
+  exit 0
+done < <(ledger_steps)
 
 exit 3

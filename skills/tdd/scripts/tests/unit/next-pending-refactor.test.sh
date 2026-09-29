@@ -39,6 +39,25 @@ settled='# Plan for #42
 - [ ] collapse non-alphanumerics to a single hyphen'
 check "no pending step exits 3" 3 "$settled" ""
 
+# 3. the step printed is the first pending step of lib/ledger.sh's records, not one the
+# script finds in the markdown itself: beside a stub module whose `ledger_steps` answers
+# for the ledger, the stub's answer is what is printed (#495)
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+mkdir "$work/lib"
+cp "$PENDING" "$work/next-pending-refactor.sh"
+cat > "$work/lib/ledger.sh" <<'EOF'
+ledger_steps() {
+  cat > /dev/null
+  printf '1\tdone\tstep\t0\t0\t1\ttidied in the module ⟦criterion 1⟧\n'
+  printf '2\topen\tstep\t0\t0\t2\tstill open in the module ⟦criterion 2⟧\n'
+  printf '3\tdone\tstep\t1\t0\t3\tasked the module ⟦criterion 3⟧\n'
+}
+EOF
+PENDING="$work/next-pending-refactor.sh"
+check "the first pending step comes from lib/ledger.sh's ledger_steps (#495)" 0 \
+  "- [x] found in the markdown ⟦criterion 1⟧ ⟂ refactor pending" "asked the module ⟦criterion 3⟧"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
