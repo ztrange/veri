@@ -42,7 +42,9 @@ case "$*" in
     if [ -f "$ROLLUP.$n" ]; then cat "$ROLLUP.$n"; else cat "$ROLLUP"; fi ;;
   "api "*"repos/o/r/commits/"*/check-runs*)
     if [ -n "${GH_API_FAIL:-}" ]; then echo '{"message":"Not Found"}'; echo "gh: Not Found (HTTP 404)" >&2; exit 1; fi
-    python3 - "$ROLLUP.check-runs" "$@" <<'P'
+    n="$(wc -l < "$ROLLUP.calls" | tr -d ' ')"
+    f="$ROLLUP.check-runs"; [ -f "$ROLLUP.$n.check-runs" ] && f="$ROLLUP.$n.check-runs"
+    python3 - "$f" "$@" <<'P'
 import json, re, sys
 runs = json.load(open(sys.argv[1]))["check_runs"]
 args = sys.argv[2:]
@@ -62,7 +64,8 @@ P
     ;;
   "api repos/o/r/commits/"*/status)
     if [ -n "${GH_STATUS_FAIL:-}" ]; then echo '{"message":"Not Found"}'; echo "gh: Not Found (HTTP 404)" >&2; exit 1; fi
-    cat "$ROLLUP.status" ;;
+    n="$(wc -l < "$ROLLUP.calls" | tr -d ' ')"
+    if [ -f "$ROLLUP.$n.status" ]; then cat "$ROLLUP.$n.status"; else cat "$ROLLUP.status"; fi ;;
   *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
 esac
 G
@@ -77,11 +80,25 @@ report() {
 }
 
 # rollup <file> <rows> [head] — write the fixture document gh serves for the PR, rows being
-# the JSON array's contents and <head> its head commit. A file <name>.json.<n> beside
+# the JSON array's contents and <head> its head commit, and beside it the head's own
+# check-runs and /status documents holding the same rows. A file <name>.json.<n> beside
 # <name>.json is served on the n-th read.
 rollup() {
   printf '{"headRefOid":"%s","statusCheckRollup":[%s]}\n' \
     "${3:-0123456789abcdef0123456789abcdef01234567}" "$2" > "$work/$1"
+  python3 - "$work/$1" <<'P'
+import json, sys
+doc = json.load(open(sys.argv[1]))
+rows = doc["statusCheckRollup"]
+runs = [{"name": r["name"], "head_sha": doc["headRefOid"], "status": r["status"].lower(),
+         "conclusion": r["conclusion"].lower() or None}
+        for r in rows if r["__typename"] == "CheckRun"]
+statuses = [{"context": r["context"], "state": {"EXPECTED": "pending"}.get(r["state"], r["state"].lower())}
+            for r in rows if r["__typename"] == "StatusContext" and "state" in r]
+json.dump({"total_count": len(runs), "check_runs": runs}, open(sys.argv[1] + ".check-runs", "w"))
+json.dump({"state": "pending", "sha": doc["headRefOid"], "total_count": len(statuses), "statuses": statuses},
+          open(sys.argv[1] + ".status", "w"))
+P
 }
 
 # check <status> <conclusion> — one CheckRun row of the rollup.
@@ -175,7 +192,7 @@ report "$name"
 
 rollup late.json "$(check COMPLETED SUCCESS)"
 rollup late.json.1 "$(check IN_PROGRESS '')"
-cp "$work/late.json.1" "$work/late.json.2"
+rollup late.json.2 "$(check IN_PROGRESS '')"
 
 name="wait-ci.sh polls a pending check until its bound runs out: a check that completes on the third read exits 0 within 1800 s and 3 within 60 s (#544)"
 problems=()
@@ -390,6 +407,14 @@ sha_head nonesha.json
 sha_runs nonesha.json
 got="$(waited nonesha 60 60 "$sha")"
 [[ "$got" == 3 ]] || problems+=("rollup green for $sha, no check runs and no statuses of its own: want exit 3, got $got (stderr: $(cat "$work/nonesha.err"))")
+report "$name"
+
+name="wait-ci.sh called with no head-sha reads the PR's head sha and exits 3 while that sha's own check runs are in progress, even when the PR rollup reads all green (#552)"
+problems=()
+sha_head nohead.json
+sha_runs nohead.json "$(sha_run gates in_progress null)"
+got="$(waited nohead 60 60)"
+[[ "$got" == 3 ]] || problems+=("no head-sha given, PR head $sha, rollup green, its own check run in_progress: want exit 3, got $got (stderr: $(cat "$work/nohead.err"))")
 report "$name"
 
 echo "$pass passed, $fail failed"

@@ -81,8 +81,8 @@ while :; do
     || { echo "wait-ci.sh: could not read the checks of $pr" >&2; exit 2; }
   if [[ -n "$want" && "$head" != "$want" ]]; then
     state=pending
-  elif [[ -n "$want" ]]; then
-    state="$(sha_state "$want")" || { echo "wait-ci.sh: could not read the checks of $want" >&2; exit 2; }
+  else
+    state="$(sha_state "$head")" || { echo "wait-ci.sh: could not read the checks of $head" >&2; exit 2; }
   fi
   case "$state" in
     green) exit 0 ;;
