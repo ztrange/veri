@@ -29,28 +29,17 @@ inherited=""
 slice_end=""
 passing="success neutral skipped"
 
-rollup_state() {
+pr_head() {
   local doc
   doc="$(gh pr view "$pr" --json headRefOid,statusCheckRollup)" || return 2
   python3 -c '
 import json, sys
 doc = json.loads(sys.argv[1])
-rows = doc.get("statusCheckRollup") or []
-def outcome(r):
-    if r.get("__typename") == "StatusContext":
-        if "state" not in r:
-            sys.exit(2)
-        return None if r.get("state") in ("PENDING", "EXPECTED") else r.get("state")
-    return r.get("conclusion") if r.get("status") == "COMPLETED" else None
-outcomes = [outcome(r) for r in rows]
-if not rows or None in outcomes or all(o == "SKIPPED" for o in outcomes):
-    state = "pending"
-elif all(o in sys.argv[2].upper().split() for o in outcomes):
-    state = "green"
-else:
-    state = "red"
-print(state, doc.get("headRefOid") or "")
-' "$doc" "$passing"
+if any(r.get("__typename") == "StatusContext" and "state" not in r
+       for r in doc.get("statusCheckRollup") or []):
+    sys.exit(2)
+print(doc.get("headRefOid") or "")
+' "$doc"
 }
 
 sha_state() {
@@ -76,7 +65,7 @@ else:
 }
 
 while :; do
-  read -r state head < <(rollup_state) && [[ -n "$head" ]] \
+  read -r head < <(pr_head) && [[ -n "$head" ]] \
     || { echo "wait-ci.sh: could not read the checks of $pr" >&2; exit 2; }
   if [[ -n "$want" && "$head" != "$want" ]]; then
     state=pending
