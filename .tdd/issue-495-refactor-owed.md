@@ -4,3 +4,5 @@
 - `ledger_steps` could also use `_ledger_read_line` instead of its own `read -r line || [[ -n "$line" ]]` loop. Not applied because `ledger_steps` came from an earlier cycle, not this one
 ### `ledger_add_step <text> <k>` in `lib/ledger.sh`, stdin → stdout, writes `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` directly after the document's last step line, changing no other byte — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧
 - `⟦criterion k⟧` is spelled twice in lib/ledger.sh — as `criterion_re` in `ledger_steps` and as a literal in `ledger_add_step`; sharing it needs a prefix constant both can build from
+### `next-unchecked.sh` sources `lib/ledger.sh` and asks it for the first open ordinary step, spelling no checkbox pattern of its own, with its stdout and exit codes unchanged (its existing suite passes unmodified) ⟦criterion 3⟧
+- next-unchecked.sh spells the ledger_steps record layout itself (`open_step` regex over seven tab-separated fields); a lib/ledger.sh accessor for "first open ordinary step" would keep the record format inside the module, but that is a cross-file extraction, out of scope here
