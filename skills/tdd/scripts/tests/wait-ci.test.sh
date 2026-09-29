@@ -375,5 +375,14 @@ got="$(waited nostatuses 60 60 "$sha")"
 [[ "$got" == 0 ]] || problems+=("/status with no statuses key, check runs success: want exit 0, got $got (stderr: $(cat "$work/nostatuses.err"))")
 report "$name"
 
+name="wait-ci.sh exits 3 while a legacy status context of the sha is still pending, even when the sha's own check runs all succeeded (#552)"
+problems=()
+sha_head pendingstatus.json
+sha_runs pendingstatus.json "$(sha_run gates completed '"success"')"
+sha_statuses pendingstatus.json pending '{"context":"legacy","state":"pending"}'
+got="$(waited pendingstatus 60 60 "$sha")"
+[[ "$got" == 3 ]] || problems+=("status pending for $sha, its own check runs success: want exit 3, got $got (stderr: $(cat "$work/pendingstatus.err"))")
+report "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

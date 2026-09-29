@@ -68,7 +68,8 @@ outcomes = [r.get("conclusion") if r.get("status") == "completed" else None for 
 if any(o is not None and o not in ("success", "neutral", "skipped") for o in outcomes) \
         or any(s.get("state") in ("failure", "error") for s in statuses):
     print("red")
-elif None in outcomes or all(o == "skipped" for o in outcomes):
+elif None in outcomes or all(o == "skipped" for o in outcomes) \
+        or any(s.get("state") == "pending" for s in statuses):
     print("pending")
 else:
     print("green")
