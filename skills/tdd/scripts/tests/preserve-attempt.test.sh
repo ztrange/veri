@@ -199,6 +199,28 @@ if [[ "$err" == *preserve-attempt.sh* && "$err" == *409* && "$err" == *develop-g
 { [[ "$code" != 0 ]] && [[ "$said" == yes ]]; } \
   && ok || no "says on stderr that it could not preserve the attempt when the ref write fails for another reason (code=$code said=$said err='$err')"
 
+# 12. the step's index is lib/ledger.sh's `ledger_steps`, with no checkbox pattern of the
+#     script's own: beside a stub module that numbers the ledger's one step 7, the attempt is
+#     preserved under `.../409/7/...`, where a count of the ledger's own boxes would say 1
+repo="$work/ledgermodule"
+dirty_repo "$repo"
+prose="A leaf's output is kept under refs/veri, not the branch"
+write_ledger "$repo" "$prose"
+stub="$work/stub"
+mkdir -p "$stub/lib"
+cp "$PRESERVE" "$stub/preserve-attempt.sh"
+cat > "$stub/lib/ledger.sh" <<'EOF'
+ledger_steps() {
+  cat >/dev/null
+  printf '7\tdone\tstep\t0\t0\t\t%s\n' "A leaf's output is kept under refs/veri, not the branch"
+}
+EOF
+( cd "$repo" && env "${ident[@]}" "$stub/preserve-attempt.sh" 409 "$prose" develop-green 1 ) >/dev/null 2>&1; code=$?
+ref_resolves "$repo" "refs/veri/attempts/409/7/develop-green-1"; resolved=$?
+refs="$(git_q "$repo" for-each-ref --format='%(refname)' refs/veri/attempts 2>&1 | tr '\n' ' ')"
+{ [[ "$code" == 0 ]] && [[ "$resolved" == 0 ]]; } \
+  && ok || no "finds the step through lib/ledger.sh's ledger_steps (code=$code resolved=$([[ "$resolved" == 0 ]] && echo yes || echo no) refs='$refs')"
+
 
 echo "----"
 echo "$pass passed, $fail failed"
