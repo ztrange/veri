@@ -1130,11 +1130,16 @@ sys.stdout.write("".join(json.dumps(p) for p in (pages if sys.argv[2] == "1" els
 STUB
 chmod +x "$refusedir/gh"
 
+refused_run() {  # refused_run <gh-dir> [script args...]; sets $out and $code
+  local dir="$1"; shift
+  out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$dir:$PATH" \
+         GH_REST_ISSUES="$fx/rest-issues.json" GH_REST_PULLS="$fx/rest-pulls.json" \
+         "$SOLVABLE" "$@" 2>/dev/null)" && code=0 || code=$?
+}
+
 gh_run "$work/argv-graphql-working"; working="$out" working_code="$code"
 
-out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$refusedir:$PATH" \
-       GH_REST_ISSUES="$fx/rest-issues.json" GH_REST_PULLS="$fx/rest-pulls.json" \
-       "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+refused_run "$refusedir"
 
 { [[ "$working_code" == 0 && "$working" == $'74\n70' ]] \
   && [[ "$code" == "$working_code" && "$out" == "$working" ]]; } \
@@ -1147,9 +1152,7 @@ chmod +x "$nameddir/gh"
 
 gh_run "$work/argv-graphql-working-named" --repo owner/name; working="$out" working_code="$code"
 
-out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$nameddir:$PATH" \
-       GH_REST_ISSUES="$fx/rest-issues.json" GH_REST_PULLS="$fx/rest-pulls.json" \
-       "$SOLVABLE" --repo owner/name 2>/dev/null)" && code=0 || code=$?
+refused_run "$nameddir" --repo owner/name
 
 { [[ "$working_code" == 0 && "$working" == $'74\n70' ]] \
   && [[ "$code" == "$working_code" && "$out" == "$working" ]]; } \
