@@ -38,12 +38,6 @@ stub="$(mktemp -d)"
 work="$(mktemp -d)"
 trap 'rm -rf "$stub" "$work"' EXIT
 
-# flaky leaf: hangs (silent) the FIRST time it runs, succeeds the SECOND time.
-#   first run  → drop a marker, jump the clock past the heartbeat window, then sleep so the
-#                supervisor's poll loop — reading the injected clock, not real time — is what
-#                notices the silence
-#   later runs → see the marker, print the success line, exit 0 right away
-# The marker lives in cwd ($work), which the supervisor preserves across attempts.
 cat > "$stub/leaf-flaky" <<'L'
 #!/bin/sh
 if [ -e .retry-marker ]; then
@@ -53,13 +47,6 @@ echo "leaf: starting"; : > .retry-marker; clock-jump "$(( ${VERI_HEARTBEAT:-999}
 L
 chmod +x "$stub"/leaf-*
 
-# The injected clock, ported from supervise.test.sh's rig (see that file's header for the full
-# explanation). supervise.sh reads time two ways, both resolved on PATH: `date +%s` for now,
-# and `stat` for the leaf's log mtime (the heartbeat sensor). `clock-jump <s>` advances both by
-# appending `<real time> <offset>` to ./.test-clock, so a hanging leaf can jump straight past
-# its window instead of waiting it out for real. This case's leaf never needs `await-poll` —
-# unlike supervise.test.sh's leaf-slow/leaf-runaway, it jumps once and then goes silent — so
-# that helper is left out.
 realdate="$(command -v date)"
 realstat="$(command -v stat)"
 cat > "$stub/date" <<D
@@ -109,19 +96,10 @@ C
 chmod +x "$stub/date" "$stub/stat" "$stub/clock-jump"
 export PATH="$stub:$PATH"
 
-# Drive it through the supervisor with a tight heartbeat window and the DEFAULT retry
-# budget: `env -u VERI_STUCK_RETRIES` clears the variable for the child, so the default of
-# 1 must suffice and a value exported by the shell that ran `make test` cannot change the
-# answer. VERI_POLL=0.02 is a real interval still (the supervisor's poll loop sleeps for
-# real between clock reads), kept small so the handful of polls this case needs cost
-# milliseconds rather than the 0.2s the pre-clock version paid per poll. VERI_KILL_POLL=0.01
-# does the same for kill_tree's grace loop, which the retry's kill still goes through — it
-# polls `kill -0`, a real OS fact, not the injected clock, so it is real sleep regardless.
 out="$( cd "$work" && env -u VERI_STUCK_RETRIES VERI_HEARTBEAT=1 VERI_TIMEOUT=30 VERI_POLL=0.02 \
           VERI_KILL_POLL=0.01 "$SUP" flaky "$stub/leaf-flaky" 2>"$work/err" )"
 code=$?
 
-# Acceptance: recovered on the retry → success (exit 0) with the success path captured.
 { [[ "$code" == 0 ]] && [[ "$out" == *'recovered on retry'* ]]; } && ok \
   || no "killed-stuck-then-succeeds leaf is retried → success (code=$code, err=$(cat "$work/err"))"
 

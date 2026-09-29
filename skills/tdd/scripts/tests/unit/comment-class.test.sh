@@ -398,6 +398,11 @@ problems=""
 want_empty_sweepable "$SCRIPTS"/tests/[n-r]*.sh
 verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with n through r"
 
+# 32. the sweepable report is empty for tests/supervise.test.sh and tests/supervise-retry.test.sh.
+problems=""
+want_empty_sweepable "$SCRIPTS"/tests/supervise.test.sh "$SCRIPTS"/tests/supervise-retry.test.sh
+verdict "the sweepable report is empty for tests/supervise.test.sh and tests/supervise-retry.test.sh"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
