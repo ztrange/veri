@@ -62,7 +62,6 @@ sha_state() {
 import json, sys
 pages = json.loads(sys.argv[1])
 statuses = json.loads(sys.argv[2]).get("statuses") or []
-pages = pages if isinstance(pages, list) else [pages]
 runs = [r for p in pages for r in p.get("check_runs") or []]
 outcomes = [r.get("conclusion") if r.get("status") == "completed" else None for r in runs]
 if any(o is not None and o not in sys.argv[3].split() for o in outcomes) \
