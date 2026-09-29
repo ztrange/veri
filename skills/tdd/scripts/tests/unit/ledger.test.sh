@@ -87,5 +87,17 @@ expect_records "ledger_steps kind differs" "$want" \
   "$(records_of '$1 "\t" $3' "$doc")"
 verdict "ledger_steps kind is full-suite or human-owed only for a marker right before the criterion tag, step otherwise"
 
+# 4. pending: 1 only for a ticked step ending in the refactor-pending mark, which leaves its text.
+problems=""
+doc='- [x] tidied ⟦criterion 1⟧
+- [x] green ⟦criterion 2⟧ ⟂ refactor pending
+- [ ] open ⟦criterion 3⟧
+- [ ] open but marked ⟦criterion 4⟧ ⟂ refactor pending
+'
+want=$'1\t0\ttidied ⟦criterion 1⟧\n2\t1\tgreen ⟦criterion 2⟧\n3\t0\topen ⟦criterion 3⟧\n4\t0\topen but marked ⟦criterion 4⟧ ⟂ refactor pending'
+expect_records "ledger_steps pending differs" "$want" \
+  "$(records_of '$1 "\t" $4 "\t" $NF' "$doc")"
+verdict "ledger_steps pending is 1 for a ticked step ending in the pending mark, 0 otherwise, and the mark leaves its text"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
