@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# lib/ledger.sh — sourced, not run: defines `ledger_steps` and `ledger_tick`.
+# lib/ledger.sh — sourced, not run: defines `ledger_steps`, `ledger_tick` and `ledger_clear_pending`.
 #
 # ledger_steps — stdin → one tab-separated record per step line, in document order:
 # index  state  kind  pending  added  criterion  text. `index` is 1-based over step lines only; `state` is `open` for
@@ -13,6 +13,10 @@
 # (an empty matcher: the first open step) becomes `[x]`, and with `pending` also gains
 # ` ⟂ refactor pending` at its end; every other byte is copied unchanged.
 # Exit: 0 a step was ticked; 3 no open step contains <matcher>.
+#
+# ledger_clear_pending <matcher> — stdin → stdout: the first done step whose line contains <matcher>
+# and ends in ` ⟂ refactor pending` loses that mark; every other byte is copied unchanged.
+# Exit: 0 a mark was cleared; 3 no such step.
 # Assigns the caller's local `re`: bash scopes a callee's assignment dynamically.
 _ledger_step_re() {
   re='^([[:space:]]*- )\[([ xX])\] (.*)$'
@@ -64,4 +68,23 @@ ledger_tick() {
     printf '%s%s' "$line" "$nl"
   done
   ((ticked)) || return 3
+}
+
+ledger_clear_pending() {
+  local matcher="$1" line nl cleared=0 re
+  _ledger_step_re
+  while true; do
+    if IFS= read -r line; then
+      nl=$'\n'
+    else
+      [[ -n "$line" ]] || break
+      nl=
+    fi
+    if ((cleared == 0)) && [[ "$line" =~ $re && "${BASH_REMATCH[2]}" != " " && "$line" == *"$matcher"* && "$line" == *"$_ledger_pending_mark" ]]; then
+      line="${line%"$_ledger_pending_mark"}"
+      cleared=1
+    fi
+    printf '%s%s' "$line" "$nl"
+  done
+  ((cleared)) || return 3
 }
