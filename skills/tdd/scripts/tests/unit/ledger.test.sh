@@ -62,5 +62,15 @@ if [[ "$got" != "$want" ]]; then
 fi
 verdict "ledger_steps prints index, state and text per step line at any indent, skipping lines with no box"
 
+# 2. a final step line with no trailing newline still yields its record.
+problems=""
+want=$'1\tdone\tfirst\n2\topen\tlast step'
+got="$(steps_of $'- [x] first\n- [ ] last step')"
+if [[ "$got" != "$want" ]]; then
+  problems+="    ledger_steps records differ for an unterminated last line (want, then got):"$'\n'
+  problems+="$(diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /')"$'\n'
+fi
+verdict "ledger_steps emits a record for a final step line with no trailing newline"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -7,7 +7,7 @@
 ledger_steps() {
   local line state index=0
   local re='^[[:space:]]*- \[([ xX])\] (.*)$'
-  while IFS= read -r line; do
+  while IFS= read -r line || [[ -n "$line" ]]; do
     [[ "$line" =~ $re ]] || continue
     index=$((index + 1))
     state=done
