@@ -142,5 +142,18 @@ want="${doc/- \[ \] strip the slug ⟦criterion 3⟧/- [x] strip the slug ⟦cri
 expect_records "ledger_tick 'strip' pending output differs" "$want" "$(tick_of "$doc" 'strip' pending)"
 verdict "ledger_tick <matcher> pending ticks the step and appends the refactor-pending mark in the same write"
 
+# 8. ledger_tick with no open step containing the matcher: exit 3, the document unchanged,
+#    even where prose and a ticked step contain it.
+problems=""
+doc='# Plan for the slug
+
+- [x] lowercase the slug ⟦criterion 1⟧
+- [ ] trim whitespace ⟦criterion 2⟧
+'
+expect_records "ledger_tick 'slug' output differs" "$doc." "$(tick_of "$doc" 'slug')"
+printf '%s' "$doc" | (source "$LIB" && ledger_tick 'slug') > /dev/null 2>&1
+expect_records "ledger_tick exit status differs" "3" "$?"
+verdict "ledger_tick returns 3 and writes the document unchanged when no open step contains the matcher"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
