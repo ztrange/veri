@@ -29,27 +29,14 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root
-# whichever name the skill currently carries — the path this case is about is then
-# spelled out in full below rather than derived from where this file happens to live.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The two halves of the identity, each written down exactly once: the directory Claude Code
-# loads the skill from, and the command name its frontmatter must declare. Neither is
-# derived from the other, so a half-finished move — tree renamed, frontmatter not, or the
-# reverse — still fails; and every message below quotes these rather than re-spelling them,
-# so there is one place to edit if the skill is ever renamed again.
 skill_dir="skills/tdd"
 want_name="tdd"
-# The frontmatter's file, named in the same terms as the directory: both paths in this suite
-# are relative to $ROOT, and $ROOT is applied where they are used. Mixing the two bases — one
-# variable relative, one already absolute — is what made the probes below read inconsistently.
 skill_md="$skill_dir/SKILL.md"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -61,20 +48,12 @@ report() {
   fi
 }
 
-# frontmatter_name <file> — the value of the first `name:` inside the leading `---` block,
-# empty if the block or the field is missing. The frontmatter is the leading `---` block
-# and only its first `name:` counts: the exit at the closing `---` stops a later `name:`
-# in the prose from answering for it. sub() edits $0 and returns how many replacements it
-# made, so it doubles as the "this line is the name field" test; print then emits what is
-# left, the value. Used by case 1 for the skill's own name.
 frontmatter_name() {
   awk 'NR == 1 && $0 == "---" { inside = 1; next }
        inside && $0 == "---" { exit }
        inside && sub(/^name:[[:space:]]*/, "") { print; exit }' "$1"
 }
 
-# 1. Both halves of the skill's identity, as one criterion: the directory it lives in and
-#    the name its frontmatter declares.
 name="the skill ships at $skill_dir/ and its frontmatter reads name: $want_name"
 problems=()
 [[ -d "$ROOT/$skill_dir" ]] ||
@@ -88,49 +67,14 @@ else
 fi
 report "$name"
 
-# The skill's former home, and the scripts directory inside it that the Makefile, the docs
-# build and the demo fixtures used to point at. Assembled from two pieces on purpose: the
-# probe below greps the whole repository for the joined string, so spelling it out here
-# would make this file its own first offender.
 old_skill_dir="skills/solve-issue"
 old_scripts_dir="$old_skill_dir/scripts"
-# The two files the move deliberately leaves behind under the old names, each a stub whose
-# body forwards to /tdd. They are allowed to name the old home; nothing else is.
 stubs=("$old_skill_dir/SKILL.md" "skills/solve-issues/SKILL.md")
 
-# stub_name <stub-path> — the old name a stub answers to, which is its own directory's name:
-# Claude Code resolves a command by the directory it loads the skill from. Case 5 wants it
-# slash-led, as a user types it; deriving it from here keeps `stubs` the one place either old
-# name is spelled, which is what lets this file sweep the repository for strings it must not
-# itself contain.
 stub_name() { basename "$(dirname "$1")"; }
 
-# exempt <path> — true for the files allowed to go on naming the old home: anything under
-# .tdd/, whose ledgers are run state quoting each issue's own words back verbatim, including
-# this one's. The two stubs were exempt too until #412 removed them; a file back at either
-# path is an offender like any other. Named as a predicate so the probe below reads as one
-# condition per file.
 exempt() { [[ "$1" == .tdd/* ]]; }
 
-# sweep <git-grep-flag> <pattern> — the tracked files matching <pattern>, one per line, in the
-# global `swept`. Tracked, via `git grep`, because the repository's content is what ships.
-# Both absence cases below want the same thing and neither should re-derive it: run the grep,
-# and tell "found nothing" apart from "the probe itself broke". git grep exits 1 for no
-# matches, which is the pass those cases are after, and 2+ for a real failure — collapsing
-# the two would turn a broken probe into a silent green. So 1 comes back from here as an
-# empty list and a zero return, while 2+ comes back as that same non-zero, for the caller to
-# turn into a problem. `swept` is a newline-joined string rather than an array because a
-# caller reads it with `while read`, and an empty array under `set -u` is an error on the
-# bash 3.2 this repo still targets.
-#
-# The generated-documentation trees — docs/, and projects/docs/, the docs project #554 copies
-# it into — are excluded by pathspec, and that exclusion is the whole of what either case says
-# about them (#143). A sweep that entered it would be a development
-# suite reading the page and its commentary, so a rewording there — or a page nobody had
-# rebuilt yet — could fail `make test`, the command preflight reads its baseline off and
-# every leaf runs (ADR 0016). Prose lagging behind code is `docs-owed.sh`'s reading and
-# `docs-fresh`'s failure at a docs merge, not this suite's. `:!` is git's own spelling for
-# "and not this path", so the exclusion holds for every caller of this helper.
 swept=""
 sweep() {
   local code
@@ -142,9 +86,6 @@ sweep() {
   return 0
 }
 
-# offenders — the files in `swept` that `exempt` does not cover, one per line. Case 11 asks
-# it of both sweeps and differs only in which file it expects back, so the filter is written
-# once here rather than at each.
 offenders() {
   local f
   while IFS= read -r f; do
@@ -153,9 +94,6 @@ offenders() {
   done <<< "$swept"
 }
 
-# 2. The plumbing moved with the skill. Stated as the absence it has to produce rather than
-#    as a list of files to check, so a path constant hiding somewhere this test never heard
-#    of still counts: no tracked file names the old scripts directory except the exempt ones.
 name="no tracked file outside the two stubs still names $old_scripts_dir"
 problems=()
 sweep --fixed-strings "$old_scripts_dir" || problems+=("git grep failed with exit $?")
@@ -165,71 +103,28 @@ while IFS= read -r f; do
 done <<< "$swept"
 report "$name"
 
-# 3. was "the walkthrough is generated from skills/tdd/scripts": it read the SCRIPTS_DIR
-#    constant out of the page's two python entry points and the set of listings out of its
-#    commentary, so that a generator left pointed at the skill's old home failed here. That
-#    claim is the docs lane's (#143). Reading those three files from `make test` — the
-#    command preflight reads its baseline off, that every Green leaf runs and that both
-#    blind verifiers run — let an edit to the page's generator stop a TDD cycle on a red the
-#    scripts did not cause, which is the coupling ADR 0016 rules out. It moved whole to
-#    docs/tests/generator-inputs.test.sh (#146), which `make docs-test` globs; the numbers
-#    below are left as they were, so the cases above still cite the right ones, and
-#    no-docs-reads.test.sh is what keeps the read from coming back.
 
-# 4. was "both old-name SKILL.md stubs forward $ARGUMENTS to /tdd": it read each stub's
-#    frontmatter for its old name and its body for `/tdd` and `$ARGUMENTS`. The stubs were
-#    never installed — Claude Code resolves a command from the directories symlinked into
-#    ~/.claude/skills, and only skills/tdd is — so they forwarded nothing, and #412 deleted
-#    them; case 10 pins their absence. The numbers are left as they were, as for case 3.
 
-# The two old commands as a user types them: a slash, then the name each stub answers to.
-# And the two old skill directories, each its stub's own, for the cases that ask after the
-# directory rather than the file.
 old_cmds=()
 old_dirs=()
 for stub in "${stubs[@]}"; do
   old_cmds+=("/$(stub_name "$stub")")
   old_dirs+=("$(dirname "$stub")")
 done
-# Those two names as one alternation, since every probe that looks for either wants both:
-# case 5 anchors this to a "not part of a path" boundary to sweep the sources. Written once
-# here so no probe re-lists the names — which is also what keeps this file out of its own
-# results, the strings being assembled from `stubs` and never spelled anywhere.
 old_cmd_alt="(${old_cmds[0]}|${old_cmds[1]})"
-# An old name used as a COMMAND and not as a path: the alternation preceded by the "not part of
-# a path" test — start of line, or a character that cannot be the tail of a path component.
-# That boundary is what keeps `skills/solve-issue/SKILL.md` out of the two sweeps below and in
-# case 2's, so naming a stub's file stays legal while telling a reader to invoke a command that
-# no longer resolves to a procedure does not. Hoisted next to the alternation it is built from
-# because case 5 matches on it, over the sources.
 cmd_re="(^|[^[:alnum:]_/.-])$old_cmd_alt"
 
-# 5. The prose followed the skill too. Same shape as case 2, for the same reason: stated as
-#    an absence swept for across the whole repository rather than a list of files someone
-#    has to remember to extend, so a stale instruction in a file this test never heard of
-#    still counts. What it looks for is the COMMAND and not the path — a slash-led old name
-#    whose slash does not continue a path — so that naming a stub's file, which the prose
-#    describing the stubs has to do, stays legal, while telling a reader to invoke a command
-#    that no longer resolves to a procedure does not.
 name="no tracked file outside the two stubs names ${old_cmds[0]} or ${old_cmds[1]}"
 problems=()
 sweep -E "$cmd_re" || problems+=("git grep failed with exit $?")
 while IFS= read -r f; do
   [[ -n "$f" ]] || continue
   exempt "$f" && continue
-  # Quote the first offending line, trimmed: the case is about a file set, but the fix is
-  # always a line, and finding it again by hand is the tedious half.
   where="$(cd "$ROOT" && head -1 < <(git grep -nE -e "$cmd_re" -- "$f") | cut -c1-100)"
   problems+=("$f still names an old command: $where")
 done <<< "$swept"
 report "$name"
 
-# fold_bullets — markdown on stdin, one line per bullet and lowercased. A bullet is a `- ` in
-# column one plus the indented lines continuing it, up to the next such line or a blank one;
-# joining it onto one line is what lets a claim ask whether ONE bullet carries both halves of
-# its pair, rather than two sentences that happen to share a word. Case is folded away last:
-# the sentences are the writer's, and `Integer` must answer for `integer`. Both readers below
-# want exactly this and differ only in what they feed it, so it is written once here.
 fold_bullets() {
   awk '/^- / { if (rec != "") print rec; rec = $0; next }
        /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
@@ -237,31 +132,14 @@ fold_bullets() {
        END { if (rec != "") print rec }' | tr '[:upper:]' '[:lower:]'
 }
 
-# inputs_text <skill-md> — the `## Inputs` section verbatim. The section is cut out because
-# the words the cases below look for all occur again further down, so a file-wide read would
-# answer "yes" for a section that still said only "the issue number".
 inputs_text() {
   awk '/^## Inputs$/ { inside = 1; next }
        inside && /^## / { exit }
        inside' "$1"
 }
 
-# inputs_bullets <skill-md> — the bullets of that section alone, folded. The section is read
-# both ways: as bullets, by case 6, for the three-way resolution; and unfolded, by
-# `loop_md_path`, for the pointer — a filename is prose, not necessarily inside a bullet.
 inputs_bullets() { inputs_text "$1" | fold_bullets; }
 
-# claim <what one bullet must say> <regex>… — assert that a single line of the global
-# `bullets` matches every <regex>, recording a problem naming <what> if none does. Each claim
-# below is a pair — for case 6 the argument and the procedure it selects, for case 7 the scope
-# and the label it derives — and a pair split across two bullets is not a derivation: it is
-# two sentences that happen to share a word. `continue 2` leaves the regex loop and takes the
-# next bullet, so a bullet matching some but not all of the pair is simply not the one. The
-# probe and the sentence it fails with belong together: the claims differ only in that pair
-# and in the sentence, so the surrounding "…: no bullet …" is written once here rather than
-# at each of the six. Both `bullets` and `bullets_from` — the part of the document those
-# bullets were read out of, which names the failure — are the caller's to set, so the two
-# cases differ in the globals they set and not in a helper each.
 claim() {
   local what="$1" line re
   shift
@@ -274,13 +152,6 @@ claim() {
   problems+=("$bullets_from: no bullet $what")
 }
 
-# loop_md_path <skill-md> — the repo-relative path of the sibling file `## Inputs` sends a
-# scope to, empty if that section names none. Any `.md` path in the section other than a
-# SKILL.md counts: the destination is what the criterion is about, not the words wrapped
-# around it or what the file is called. A pointer carrying a slash is repo-relative; a bare
-# filename sits beside the SKILL.md that names it — the two spellings a document can
-# reasonably use for its own sibling. Asked by case 6, which pins that the pointer leads
-# somewhere, and by case 7, which reads its bullets out of wherever it leads.
 loop_md_path() {
   local p
   p="$(head -1 < <(inputs_text "$1" | grep -oE '[A-Za-z0-9_./-]+\.md' | grep -vE '(^|/)SKILL\.md$'))"
@@ -291,36 +162,11 @@ loop_md_path() {
   esac
 }
 
-# 6. What the one command does with its argument. The move left a single skill where there
-#    were two, so the question that used to be "which command did the user type" is now "what
-#    does this one's argument say", and the answer is a three-way resolution: an integer is
-#    the single-issue procedure, any other word is a scope to drain, and no argument at all
-#    is the scope `plain`. It is stated in prose because prose is the whole of a SKILL.md —
-#    the session reads this section before it does anything else, so an Inputs section that
-#    still admits only an issue number is a `/tdd docs` that stops and asks for one.
-#
-#    The two structural halves of the same criterion ride along, and neither is covered
-#    elsewhere. First, the scope branch must have somewhere to send the reader, and that
-#    somewhere is no longer this document: the loop is procedure only the scope branch ever
-#    executes, and an integer argument takes *Procedure* and never comes back, so a loop
-#    resident here bills every single-issue conductor ~1,676 tokens it will not read (#202).
-#    So the pointer is pinned as the pair it has to be, since either half alone is a broken
-#    skill — the loop has left $skill_md, AND `## Inputs` names a file that exists and holds
-#    it. A pointer at nothing is not a destination: a scope that resolves to a failed Read is
-#    a run that cannot start, so the pointer is followed here rather than merely counted, and
-#    deleting it puts this case back in the red.
-#
-#    Second, the path the loop used to reach its sibling skill's scripts must be gone, since
-#    a skill with no sibling cannot resolve it. Case 2 cannot see that path — it sweeps for
-#    the `skills/`-led spelling, which the `../` one does not contain — so it is asked here,
-#    of the one file that ever spelled it.
 name="$skill_md resolves its argument: an integer is one issue, any other word a scope, bare is plain"
 problems=()
 bullets="$(inputs_bullets "$ROOT/$skill_md")"
 bullets_from="$skill_md Inputs"
 if [[ -z "$bullets" ]]; then
-  # Fail closed: no bullets means the section was renamed or emptied and not one claim below
-  # was tested, which must not read as three passes.
   problems+=("$skill_md has no bullets under '## Inputs' — how the argument resolves could not be read")
 else
   claim 'sends an integer argument to the single-issue procedure' \
@@ -346,35 +192,11 @@ else
   grep -qE '^#+ Loop ' "$ROOT/$loop_md" ||
     problems+=("$loop_md has no 'Loop *' sub-sections, so the loop's steps did not move with it")
 fi
-# The sibling path assembled rather than written out, as in case 2: the probe greps this
-# skill's own document for the string, and spelling it here would make the suite's subject
-# and its first offender the same file.
 sibling_scripts="../$(basename "$old_skill_dir")/scripts"
 grep -qF "$sibling_scripts" "$ROOT/$skill_md" &&
   problems+=("$skill_md still locates its scripts at $sibling_scripts, a sibling that is no longer there")
 report "$name"
 
-# 7. Which label a scope selects on. Case 6 pins that a non-integer argument is a scope; a
-#    scope is only a pool once the document says which label names it, and the mapping is
-#    not the identity: the scope `plain` selects on the bare `ready-for-agent` label —
-#    every issue opted in today carries that, so the default invocation must keep draining
-#    it — while any other scope selects on `ready-for-agent:<scope>`, which is the
-#    namespacing that lets `/tdd docs` and `/tdd scripts` draw from disjoint pools.
-#    `VERI_LABEL` stays what it was, an override of whatever the scope derived, because a
-#    launcher naming a pool that no scope word spells must still be able to.
-#
-#    Stated in prose and read here as prose, like case 6: `solvable-issues.sh` takes the
-#    label from the environment and knows nothing of scopes, so the derivation exists only
-#    in what the skill tells the session to set. A document that names the scope and the
-#    label in different breaths leaves the session to guess the colon.
-#
-#    Read out of the file case 6 pins the pointer to, not out of $skill_md: these three
-#    bullets are the loop's own inputs, so they travel with it (#202), and asking $skill_md
-#    for them after the move would be asking the one document that no longer says it. Read
-#    out of the WHOLE of that file, too, with no section cut first as case 6 cuts one: the
-#    criterion is that the derivation be written where the scope branch will read it, not
-#    that it sit under some one heading, and each claim below pairs the scope with the label
-#    spelling, so no unrelated bullet can answer for one.
 name="the loop file derives a scope's label: ready-for-agent for plain, ready-for-agent:<scope> otherwise, VERI_LABEL overriding"
 problems=()
 loop_md="$(loop_md_path "$ROOT/$skill_md")"
@@ -385,13 +207,8 @@ if [[ -n "$loop_md" && -f "$ROOT/$loop_md" ]]; then
   bullets_from="$loop_md"
 fi
 if [[ -z "$bullets" ]]; then
-  # Fail closed, as case 6 does: no readable loop file, or one with no bullets in it, means
-  # not one claim below was tested, which must not read as three passes.
   problems+=("the loop file $skill_md Inputs points at could not be read for bullets — how a scope's label is derived was not tested")
 else
-  # `plain` bounded by non-alphanumerics so `explain` and `plain text` cannot answer for the
-  # scope's name; the other two are distinctive enough as substrings, the colon in
-  # `ready-for-agent:` being the whole of what claim two is about.
   claim 'gives the scope plain the bare ready-for-agent label' \
     '(^|[^[:alnum:]])plain([^[:alnum:]]|$)' 'ready-for-agent'
   claim 'gives any other scope the label ready-for-agent:<scope>' \
@@ -401,43 +218,13 @@ else
 fi
 report "$name"
 
-# 8. was "the generated page names no old command outside the capability index": it read
-#    the committed page, cut out the tag-derived index and swept the rest for either old
-#    command, the way case 5 sweeps the sources, so that a rename not yet carried into the
-#    page failed here — and it could not spell those names either, for the reason case 5's
-#    own `old_cmd_alt` gives above. That
-#    claim is the docs lane's (#143), for the reason case 3's note gives — and doubly so,
-#    since what it asked for was that somebody had run `make docs`, which is the docs lane's
-#    work by definition. Case 5 no longer needs its exemption as a result: its sweep does not
-#    enter that tree at all.
 
-# 9. Who pays for the loop, and what the scope branch still gets. Case 6 pins that the loop
-#    left $skill_md and that `## Inputs` leads somewhere real; neither half says the move
-#    saved a single-issue run anything, nor that a scope run still ends up in the same
-#    procedure. Both are the criterion this case is about (#202).
-#
-#    The saving first: a `Read` of the loop file written anywhere a single-issue run passes
-#    — a step of *Procedure*, a preamble, a "see also" — hands those ~1,676 tokens straight
-#    back, and case 6 stays green while it happens, because the section it cuts is still
-#    clean. So the loop file's name is pinned to `## Inputs` alone: that section is the one
-#    place the argument has not yet been resolved, and every line naming it elsewhere is a
-#    line an integer argument reaches. The offending line is quoted, as case 5 quotes its
-#    own, because the fix is always a line.
-#
-#    Then what did not change: the single-issue procedure is still resident here — a move
-#    that took *Procedure* with it would satisfy every probe above and leave the one command
-#    unable to solve an issue — and the loop still delegates to it rather than restating it,
-#    which is the whole of "a scope run reaches the same procedure it always did". A
-#    restated copy would drift from this file silently, and the first symptom would be two
-#    procedures disagreeing about a step.
 name="only the scope branch is sent to the loop file, $skill_md keeps Procedure, and the loop delegates back to it"
 problems=()
 loop_md="$(loop_md_path "$ROOT/$skill_md")"
 grep -qE '^#+ Procedure$' "$ROOT/$skill_md" ||
   problems+=("$skill_md no longer holds a 'Procedure' section, so the single-issue path did not stay put")
 if [[ -z "$loop_md" || ! -f "$ROOT/$loop_md" ]]; then
-  # Fail closed, as cases 6 and 7 do: with no readable loop file neither claim below was
-  # tested, and that must not read as a pass.
   problems+=("$skill_md '## Inputs' points at no readable loop file — who is sent to read it could not be tested")
 else
   loop_base="$(basename "$loop_md")"
@@ -454,11 +241,6 @@ else
 fi
 report "$name"
 
-# 10. The old names are gone, not forwarded (#412). The stubs case 4 pinned were never
-#     installed — Claude Code resolves a command from the directories symlinked into
-#     ~/.claude/skills, and only skills/tdd is — so they forwarded nothing. Stated as the
-#     observable absence: neither old directory exists in the tree. Each comes from its
-#     entry in `old_dirs`, so this file still never writes an old home out in full.
 name="neither old skill directory is left in the tree"
 problems=()
 for old_dir in "${old_dirs[@]}"; do
@@ -467,14 +249,6 @@ for old_dir in "${old_dirs[@]}"; do
 done
 report "$name"
 
-# 11. With the stubs gone, their paths are no longer exempt (#412). Asked of a scratch
-#     repository rather than this one, since this one no longer has a file at either path:
-#     each stub path is tracked there again, one naming the old scripts directory and the
-#     other invoking an old command, and cases 2 and 5's own sweeps are run over it through
-#     `exempt`. Both files must come back as offenders — a stub path that still answers
-#     true to `exempt` would let the old home back in under the one name nobody checks.
-#     The fixture's contents are assembled from the same variables as the sweeps, so this
-#     file still spells neither old home nor old command out.
 name="a tracked file at a former stub path fails both sweeps: exempt no longer covers the stub paths"
 problems=()
 real_root="$ROOT"
@@ -496,11 +270,6 @@ rm -rf "$ROOT"
 ROOT="$real_root"
 report "$name"
 
-# 12. .tdd/ stays exempt from both sweeps (#412). A run's ledger quotes its issue's own words
-#     back, so it may name anything — the old home and the old commands included. Asked of a
-#     scratch repository, as case 11 is, since whether this one's .tdd/ holds such a file on
-#     any given day is not something to lean on: one tracked file there names the old scripts
-#     directory and another invokes an old command, and neither sweep may report either.
 name="a tracked file under .tdd/ naming the old home or an old command passes both sweeps"
 problems=()
 real_root="$ROOT"
@@ -528,13 +297,6 @@ rm -rf "$ROOT"
 ROOT="$real_root"
 report "$name"
 
-# 13. ADR 0013's line 18 stays as written, and both sweeps still pass over it (#412). It names
-#     the old home as a path — the user-level symlink under ~/.claude/skills that the decision
-#     was about — inside a record of a decision that was true when it was made, and an ADR is
-#     not rewritten to suit a later change. Asked of a scratch repository holding that line at
-#     that record's own path, as cases 11 and 12 are, so this suite never opens the real one:
-#     neither sweep may report the record. The line is assembled from `old_skill_dir`, so this
-#     file still spells no old home out.
 name="ADR 0013's line 18, naming the old home as a path passes both sweeps"
 problems=()
 real_root="$ROOT"
@@ -557,12 +319,6 @@ rm -rf "$ROOT"
 ROOT="$real_root"
 report "$name"
 
-# 14. README's install step is the install that works (#412). Claude Code resolves a command
-#     from the directories symlinked into ~/.claude/skills, and the working install is one
-#     link, $skill_dir to ~/.claude/skills/$want_name — so the `## Install` section's `ln -s`
-#     lines must include that one and none naming an old skill directory, which would tell a
-#     new clone to link a directory the tree no longer has. The old directories are each
-#     stub's own, so this file still spells neither out.
 name="README.md's install step symlinks $skill_dir alone and no old skill directory"
 problems=()
 readme="README.md"
@@ -577,11 +333,6 @@ for old_dir in "${old_dirs[@]}"; do
 done
 report "$name"
 
-# 15. CLAUDE.md's opening names the product where it lives (#412). The paragraph under the
-#     title is the first thing an agent reads in this repository, and it names the directory
-#     that holds the whole product — so it must name $skill_dir/ there, and no old skill
-#     directory, which the tree no longer has. Only that first paragraph is read: the rest
-#     of the file is free to tell the rename's history.
 name="CLAUDE.md's opening paragraph names $skill_dir/ as the product and no old skill directory"
 problems=()
 claude_md="CLAUDE.md"
