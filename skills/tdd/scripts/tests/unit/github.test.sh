@@ -13,6 +13,7 @@ LIB="$HERE/../../lib/github.sh"
 pass=0 fail=0
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
+refusal='GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)'
 
 record() {
   if [[ -z "$problems" ]]; then
@@ -50,7 +51,6 @@ name="gh_pr_ready 42 against a gh that refuses GraphQL with the 403 calls pulls/
 calls="$scratch/calls2" err="$scratch/err2"
 : > "$calls"
 (
-  refusal='GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)'
   gh() {
     echo "gh $*" >> "$calls"
     case "$1" in
@@ -82,7 +82,6 @@ err="$scratch/err3"
 ) > /dev/null 2> "$err"
 rc_ordinary=$?
 (
-  refusal='GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)'
   gh() {
     case "$1" in
       issue|pr|repo) echo "HTTP 403: $refusal" >&2; return 1 ;;
