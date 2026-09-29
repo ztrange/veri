@@ -389,8 +389,8 @@ verdict "a # line inside a heredoc written to a variable assigned a .md path is 
 # 31. the sweepable report is empty for every top-level tests/*.sh whose name starts with n through r.
 sweep_verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with n through r" "$SCRIPTS"/tests/[n-r]*.sh
 
-# 32. the sweepable report is empty for tests/supervise.test.sh and tests/supervise-retry.test.sh.
-sweep_verdict "the sweepable report is empty for tests/supervise.test.sh and tests/supervise-retry.test.sh" "$SCRIPTS"/tests/supervise.test.sh "$SCRIPTS"/tests/supervise-retry.test.sh
+# 32. the sweepable report is empty for the supervisor's two suites, tests/supervise*.test.sh.
+sweep_verdict "the sweepable report is empty for the supervisor's two suites, tests/supervise*.test.sh" "$SCRIPTS"/tests/supervise*.test.sh
 
 # 33. the sweepable report is empty for every top-level tests/s*.sh but the skill-* and supervise* files.
 files=()
