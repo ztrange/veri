@@ -4,7 +4,7 @@
 # Usage: comment-class.sh [--sweepable] <file>…
 #
 # Class 1 is a comment in code, 2 a `#` line inside a heredoc redirected to a file or piped to tee, dd or sponge,
-# 3 a `#` line inside any other heredoc. --sweepable prints classes 1 and 2 only, less the comment block
+# 3 a `#` line inside any other heredoc, including one written to a `.md` file. --sweepable prints classes 1 and 2 only, less the comment block
 # after a leading `#!` line, a `#!` line opening a heredoc's body and any comment starting `# hazard:`.
 #
 # Exit: 0 printed, 2 bad arguments.
@@ -52,6 +52,7 @@ awk -v sweepable="$sweepable" '
   match(line, /<<-?[[:space:]]*["'\'']?[A-Za-z_][A-Za-z0-9_]*/) {
     out = line; gsub(/[02-9]>+[[:space:]]*[^[:space:]]*/, "", out)
     cls = out ~ />[[:space:]]*[^&[:space:]]/ || out ~ /\|[[:space:]]*(tee|dd|sponge)[[:space:]]/ ? 2 : 3
+    if (out ~ /(>|\|[[:space:]]*tee[[:space:]][^|]*)[[:space:]]*[^&|[:space:]]*\.md["\047]?([[:space:]]|$)/) cls = 3
     delim = substr(line, RSTART + 2, RLENGTH - 2)
     dash = delim ~ /^-/
     body = 1
