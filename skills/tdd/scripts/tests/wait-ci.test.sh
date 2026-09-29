@@ -418,11 +418,8 @@ sha_head gql-unread.json
 for route in working refused; do
   for want in green:0 red:1 pending:3 unread:2; do
     f="gql-${want%%:*}"
-    if [[ "$f" == gql-unread ]]; then
-      got="$(GH_GRAPHQL="$route" GH_API_FAIL=1 waited "$f" 60 60)"
-    else
-      got="$(GH_GRAPHQL="$route" waited "$f" 60 60)"
-    fi
+    api_fail=""; [[ "$f" == gql-unread ]] && api_fail=1
+    got="$(GH_GRAPHQL="$route" GH_API_FAIL="$api_fail" waited "$f" 60 60)"
     [[ "$got" == "${want##*:}" ]] || problems+=("$route GraphQL, ${want%%:*} checks on the PR's head $sha: want exit ${want##*:}, got $got (stderr: $(cat "$work/$f.err"))")
   done
 done
