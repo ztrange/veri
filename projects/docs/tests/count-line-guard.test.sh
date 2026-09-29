@@ -73,6 +73,32 @@ else
   printf '    %s\n' "${problems[@]}"
 fi
 
+name="make test passes a suite that ends in its count line with 0 failed and exits 0"
+
+mkdir "$scratch/clean"
+mkdir "$scratch/clean/tests"
+cp "$DOCS/Makefile" "$scratch/clean/Makefile"
+printf '#!/bin/sh\necho "ok - a case"\necho "----"\necho "2 passed, 0 failed"\nexit 0\n' > "$scratch/clean/tests/clean.test.sh"
+chmod +x "$scratch/clean/tests/clean.test.sh"
+
+out="$(env -u VERI_TEST_CMD make -C "$scratch/clean" test 2>&1 < /dev/null)"
+rc=$?
+
+problems=()
+[[ "$rc" -eq 0 ]] || problems+=("want exit 0, got $rc")
+[[ "$out" != *"never reached its count line"* ]] ||
+  problems+=("output flags a suite that reached its count line: $(printf '%s\n' "$out" | tail -n 2 | tr '\n' '|')")
+[[ "$out" == *"all suites green"* ]] ||
+  problems+=("output lacks 'all suites green': $(printf '%s\n' "$out" | tail -n 2 | tr '\n' '|')")
+
+if [[ "${#problems[@]}" -eq 0 ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - $name"
+  printf '    %s\n' "${problems[@]}"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
