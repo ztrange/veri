@@ -1140,6 +1140,21 @@ out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$refusedir
   && [[ "$code" == "$working_code" && "$out" == "$working" ]]; } \
   && ok || no "against a gh that refuses GraphQL with the 403 and answers REST under repos/{owner}/{repo}/ a page at a time, no arguments prints the same issue numbers and exit code as a working gh, across more than one 100-item page (#568) (working gh: exit=$working_code stdout='$(tr '\n' '|' <<<"$working")' want 0 and '74|70'; GraphQL refused: exit=$code stdout='$(tr '\n' '|' <<<"$out")' want the same)"
 
+nameddir="$work/graphql-refusing-named-bin"
+mkdir -p "$nameddir"
+sed 's#"repos/{owner}/{repo}/#"repos/owner/name/#' "$refusedir/gh" > "$nameddir/gh"
+chmod +x "$nameddir/gh"
+
+gh_run "$work/argv-graphql-working-named" --repo owner/name; working="$out" working_code="$code"
+
+out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$nameddir:$PATH" \
+       GH_REST_ISSUES="$fx/rest-issues.json" GH_REST_PULLS="$fx/rest-pulls.json" \
+       "$SOLVABLE" --repo owner/name 2>/dev/null)" && code=0 || code=$?
+
+{ [[ "$working_code" == 0 && "$working" == $'74\n70' ]] \
+  && [[ "$code" == "$working_code" && "$out" == "$working" ]]; } \
+  && ok || no "--repo owner/name, against a gh that refuses GraphQL and answers REST only under repos/owner/name/, prints the same issue numbers and exit code as a working gh (#568) (working gh: exit=$working_code stdout='$(tr '\n' '|' <<<"$working")' want 0 and '74|70'; GraphQL refused: exit=$code stdout='$(tr '\n' '|' <<<"$out")' want the same)"
+
 
 echo "----"
 echo "$pass passed, $fail failed"
