@@ -42,8 +42,7 @@ case "$*" in
     if [ -f "$ROLLUP.$n" ]; then cat "$ROLLUP.$n"; else cat "$ROLLUP"; fi ;;
   "api "*"repos/o/r/commits/"*/check-runs*)
     if [ -n "${GH_API_FAIL:-}" ]; then echo '{"message":"Not Found"}'; echo "gh: Not Found (HTTP 404)" >&2; exit 1; fi
-    if [ ! -f "$ROLLUP.check-runs.all" ]; then cat "$ROLLUP.check-runs"; exit 0; fi
-    python3 - "$ROLLUP.check-runs.all" "$@" <<'P'
+    python3 - "$ROLLUP.check-runs" "$@" <<'P'
 import json, re, sys
 runs = json.load(open(sys.argv[1]))["check_runs"]
 args = sys.argv[2:]
@@ -305,11 +304,10 @@ report "$name"
 name="wait-ci.sh reads every page of the sha's own check runs: a failed run beyond the first page exits 1, even while the PR rollup reads all green (#552)"
 problems=()
 rollup pagedsha.json "$(check COMPLETED SUCCESS)" "$sha"
-sha_runs pagedsha.json
 runs=()
 for i in $(seq 1 100); do runs+=("$(sha_run "gates-$i" completed '"success"')"); done
 runs+=("$(sha_run gates-101 completed '"failure"')")
-( IFS=,; printf '{"total_count":%s,"check_runs":[%s]}\n' "${#runs[@]}" "${runs[*]}" ) > "$work/pagedsha.json.check-runs.all"
+sha_runs pagedsha.json "${runs[@]}"
 got="$(waited pagedsha 60 60 "$sha")"
 [[ "$got" == 1 ]] || problems+=("rollup green for $sha, a failed run on its check runs' second page: want exit 1, got $got (stderr: $(cat "$work/pagedsha.err"))")
 report "$name"
