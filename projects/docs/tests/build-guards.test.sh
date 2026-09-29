@@ -2800,6 +2800,11 @@ owes "an unlisted script is counted in the masthead, the upkeep table and the ra
   "" \
   bash -c 'printf "#!/usr/bin/env bash\n# an unlisted probe line\nexit 0\n" > skills/tdd/scripts/unlisted-probe.sh'
 
+# 3g. and the checker, which `make docs-check` branches on, passes on a page carrying that
+#     script: the build and the checker agree about the markup an unlisted script gets.
+checks_git "the checker passes on a page carrying an unlisted script" \
+  bash -c 'printf "#!/usr/bin/env bash\n# an unlisted probe line\nexit 0\n" > skills/tdd/scripts/unlisted-probe.sh'
+
 # 4. unknown-reference guard — a typo'd id must not become a dead tooltip
 refuses "unknown reference id is refused" "unknown primer ref" \
   bash -c 'sed_commentary "s/{{p-strict|set -euo pipefail}}/{{p-stirct|set -euo pipefail}}/"'
