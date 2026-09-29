@@ -168,6 +168,67 @@ problems=("${run_problems[@]}" "${problems[@]}")
 
 report "$name"
 
+refuse_graphql() {
+  python3 -c 'import json, sys; print(json.dumps({"number": int(sys.argv[2]), "body": open(sys.argv[1]).read() or None, "labels": [{"name": l} for l in sys.argv[3].split()]}))' \
+    "$1/body.md" "$2" "$3" > "$1/issue.json"
+  cat > "$1/bin/gh" <<'STUB'
+#!/bin/sh
+refusal='GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)'
+case "$1" in
+  issue|pr|repo) echo "HTTP 403: $refusal" >&2; exit 1 ;;
+esac
+case "$*" in
+  "api graphql"*) echo "HTTP 403: $refusal" >&2; exit 1 ;;
+  *-q*|*--jq*|*--template*) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
+  "api "*"repos/"*"/issues/$ISSUE") cat "$FIXTURES/issue.json" ;;
+  *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
+esac
+STUB
+  chmod +x "$1/bin/gh"
+}
+
+name='against a gh that refuses GraphQL with the 403 and answers REST, the spec and exit code match a working gh (#568)'
+out="$tmp/working-spec.md"
+run_spec "$bugdir" 'bug refactor' 112 "$out"
+want_problems=("${problems[@]}")
+restdir="$tmp/rest"
+mkdir -p "$restdir/bin"
+cp "$bugdir/body.md" "$restdir/body.md"
+refuse_graphql "$restdir" 112 'bug refactor'
+code=0
+env PATH="$restdir/bin:$PATH" FIXTURES="$restdir" ISSUE=112 "$SCRIPT" 112 \
+  > "$tmp/rest-spec.md" 2> "$tmp/rest-spec.err" || code=$?
+problems=("${want_problems[@]}")
+[[ "$code" == 0 ]] ||
+  problems+=("exit want 0 (as against a working gh) got $code; stderr: $(head -2 "$tmp/rest-spec.err")")
+cmp -s "$out" "$tmp/rest-spec.md" ||
+  problems+=("stdout differs from the working-gh spec: $(diff "$out" "$tmp/rest-spec.md")")
+cmp -s "$out.err" "$tmp/rest-spec.err" ||
+  problems+=("stderr differs from the working gh's: $(diff "$out.err" "$tmp/rest-spec.err")")
+
+report "$name"
+
+name='an issue with no body, which REST answers as null, gives the same spec against the GraphQL-refusing gh as against a working one (#568)'
+emptydir="$tmp/empty"
+new_fixture "$emptydir" < /dev/null
+out="$tmp/empty-working-spec.md"
+run_spec "$emptydir" '' 114 "$out"
+want_problems=("${problems[@]}")
+emptyrest="$tmp/empty-rest"
+mkdir -p "$emptyrest/bin"
+: > "$emptyrest/body.md"
+refuse_graphql "$emptyrest" 114 ''
+code=0
+env PATH="$emptyrest/bin:$PATH" FIXTURES="$emptyrest" ISSUE=114 "$SCRIPT" 114 \
+  > "$tmp/empty-rest-spec.md" 2> "$tmp/empty-rest-spec.err" || code=$?
+problems=("${want_problems[@]}")
+[[ "$code" == 0 ]] ||
+  problems+=("exit want 0 (as against a working gh) got $code; stderr: $(head -2 "$tmp/empty-rest-spec.err")")
+cmp -s "$out" "$tmp/empty-rest-spec.md" ||
+  problems+=("stdout differs from the working-gh spec: $(diff "$out" "$tmp/empty-rest-spec.md")")
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
