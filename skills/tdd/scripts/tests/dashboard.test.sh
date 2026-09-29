@@ -31,10 +31,6 @@ STATUS="$HERE/../status.sh"
 METRICS="$HERE/../metrics.sh"
 scripts="$(cd "$HERE/.." && pwd)"
 
-# The server's python module, found the way anyone reading dashboard.sh would find it — the
-# `.py` beside it that its `exec python3` line names — so no case cares what it is called.
-# Found once here for every case that imports it; $module_problem is why it could not be, or
-# nothing, and each of those cases fails on it rather than on a module it never loaded.
 exec_line="$(grep -E '^exec python3 ' "$DASH" || :)"
 module="$(sed -nE 's/^exec python3 .*"\$HERE\/([A-Za-z_][A-Za-z0-9_]*)\.py".*/\1/p' <<< "$exec_line")"
 module_problem=""
@@ -44,12 +40,6 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 pass=0 fail=0
 
-# Every server this suite starts, counted (#330): a `python3` first on PATH for the whole
-# suite that appends one line to $starts whenever it is handed a .py file beside dashboard.sh
-# as its script — which is what `dashboard.sh` execs to serve, and nothing else here does —
-# then execs the real interpreter with the same arguments. Counted at the exec rather than by
-# timing anything, so the last case can ask how many starts there were, not how long they
-# took. `#!/bin/sh` like every stub here (#322): it runs once per python3 the suite spawns.
 starts="$work/server-starts.log"
 : > "$starts"
 mkdir -p "$work/shim"
@@ -63,15 +53,8 @@ EOF
 chmod +x "$work/shim/python3"
 export PATH="$work/shim:$PATH"
 
-# The default port the criterion names. Spelled once, because both the URL the case fetches
-# and the "is anything already there?" probe below have to mean the same number: a case that
-# fetched one port and checked another for squatters could pass against a stranger's server.
 PORT=8765
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which half of the contract broke rather than just that it did. Same
-# helper as claude-md-counts.test.sh's.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -83,9 +66,6 @@ report() {
   fi
 }
 
-# add_problems — one problem per non-empty line of stdin. Every case that hands its assertions
-# to a python3 program reads what that program printed this way: the program says nothing when
-# the case passes, and one line per thing that broke when it does not.
 add_problems() {
   local line
   while IFS= read -r line; do
@@ -93,12 +73,6 @@ add_problems() {
   done
 }
 
-# ask_page <program> [<arg>…] — run a python3 program over the dashboard.html beside
-# dashboard.sh and file what it prints as this case's problems, or file the missing page as the
-# one problem when there is nothing there to read. Every case that reads the page off disk reads
-# it this way; what differs between them is only what their program looks for once it has it.
-# The page is the program's argv[1] and any further arguments follow it, which is how one
-# program serves several cases that differ only in what they name.
 ask_page() {
   local program="$1"
   shift
@@ -109,9 +83,6 @@ ask_page() {
   fi
 }
 
-# fetches_endpoints <pane>=<path>… — file a problem for every named pane whose endpoint the
-# page never fetches. Two cases ask this, of different panes and of nothing else, so what they
-# ask lives here once and takes the panes it is asked about as arguments.
 fetches_endpoints() {
   ask_page '
 import re
@@ -132,19 +103,12 @@ for arg in sys.argv[2:]:
 ' "$@"
 }
 
-# A repository of the case's own, so the dashboard is started from a target repo rather than
-# from whichever repository `make test` was typed in. A `git init` with no commit is enough,
-# exactly as status.test.sh's `repo` helper makes one.
 repo() {  # repo <name> -> path
   local dir="$work/$1"
   git init -q -b main "$dir" >/dev/null 2>&1
   echo "$dir"
 }
 
-# A fabricated run, not a real worktree: .tdd/wt/<n> under <repo> is a repository of its own
-# whose unborn branch is the issue branch, with an empty .tdd/ for the ledger and event log.
-# Same helper as status.test.sh's, because a run is what status.sh reads and what the endpoint
-# under test has to answer with.
 fabricate_run() {  # fabricate_run <repo> <n> <branch> -> path
   local dir="$1/.tdd/wt/$2"
   git init -q -b "$3" "$dir" >/dev/null 2>&1
@@ -152,25 +116,12 @@ fabricate_run() {  # fabricate_run <repo> <n> <branch> -> path
   echo "$dir"
 }
 
-# reachable <host> <port> — true when something accepts a connection at that address. Both
-# questions this suite asks of a socket are this one. Of another host it asks the second half
-# of the criterion: a server bound to 0.0.0.0 answers on this machine's LAN address as
-# readily as on 127.0.0.1, and one bound to 127.0.0.1 refuses there, so asking it of the
-# loopback alone could never tell the two apart. Of the loopback BEFORE a launch it fails the
-# case closed: with a stranger's server on the port, the fetch below would succeed without
-# dashboard.sh having bound anything, and a case that cannot tell the two apart must not
-# report a pass.
 reachable() {  # reachable <host> <port>
   python3 -c 'import socket, sys
 s = socket.socket(); s.settimeout(1.0)
 sys.exit(0 if s.connect_ex((sys.argv[1], int(sys.argv[2]))) == 0 else 1)' "$1" "$2"
 }
 
-# other_addr — one IPv4 address of this machine that is NOT loopback, or nothing. The UDP
-# "connect" sends no packet: it only asks the routing table which local address would be used
-# to reach a documentation-range address (RFC 5737, never routed anywhere), which is how a
-# host's own address is had without a name server or a live network. `gethostname` is the
-# fallback for a machine with no default route.
 other_addr() {
   python3 -c 'import socket
 found = set()
@@ -188,21 +139,11 @@ for a in sorted(x for x in found if not x.startswith("127.")):
     print(a); break'
 }
 
-# free_port — a port the kernel says is free right now: bind 0, read back what it chose,
-# close. A hard-coded second port would collide with whatever else this machine is running,
-# and the case would then blame dashboard.sh for a stranger. The `reachable` probe below is
-# still asked, because "free a moment ago" and "free now" are not the same claim.
 free_port() {
   python3 -c 'import socket
 s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()'
 }
 
-# fetch <url> — GET it with python3, printing the status code on the first line, the
-# Content-Type on the second and the body after that; non-zero exit when no answer could be
-# had at all, which is what the poll below reads as "not up yet". python3 rather than curl
-# because the suites here already lean on python3 (status.test.sh, metrics.test.sh) and on
-# nothing else, and an HTTP server that ships as stdlib is fair to question with the stdlib
-# client that comes with it.
 fetch() {  # fetch <url>
   python3 -c 'import sys, urllib.request, urllib.error
 try:
@@ -216,18 +157,10 @@ except Exception as e:
     print(e, file=sys.stderr); sys.exit(1)' "$1"
 }
 
-# The three parts of what `fetch` printed, read back by name. Which line carries the status
-# and which the Content-Type is the envelope `fetch` above writes, so it is known here beside
-# it rather than in every case that reads one: a case asks for the status, not for line 1.
 http_status() { sed -n 1p <<< "$1"; }
 http_ctype()  { sed -n 2p <<< "$1"; }
 http_body()   { sed -n '3,$p' <<< "$1"; }
 
-# answer_problem <url> <log> <answer> — why <answer> is not this server's 200, or nothing.
-# The two ways a fetch can fail before a case has a body to assert on are the same in every
-# case here: nothing ever answered, and something answered with the wrong status. The
-# server's own output is quoted for the first, because a server that died has said why on
-# <log> and nothing else will.
 answer_problem() {  # answer_problem <url> <log> <answer>
   local url="$1" log="$2" answer="$3" status
   if [[ -z "$answer" ]]; then
@@ -238,11 +171,6 @@ answer_problem() {  # answer_problem <url> <log> <answer>
   [[ "$status" == 200 ]] || echo "GET $url answered $status, want 200"
 }
 
-# serve_until_up <url> — poll <url> until it answers, up to 10 s, and print what `fetch`
-# returned; print nothing at all when it never answered, which is what a case reads as "the
-# server never came up". Ten seconds is generous because a cold python3 start is the slowest
-# thing here, and a poll that gave up early would report "no page" for a server that was
-# merely still starting.
 serve_until_up() {  # serve_until_up <url>
   local page i=0
   while [[ "$i" -lt 100 ]]; do
@@ -255,28 +183,12 @@ serve_until_up() {  # serve_until_up <url>
   done
 }
 
-# launch <dash> <repo> <log> [port] — start <dash> in the background from <repo>, its output
-# on <log>, and leave its pid in `$!` for the caller to interrupt and wait on. Which
-# dashboard.sh is the caller's because the script reads the status.sh sitting beside itself,
-# so the concurrency case starts the copy in a directory whose status.sh is its stub while
-# every other case starts $DASH; everything else about the start is the same in all of them
-# and so is spelled here. `exec` inside the subshell so that pid is the server's own and not
-# a shell wrapping it — the SIGINT has to reach the thing that is serving. PYTHONPATH cleared
-# and PYTHONNOUSERSITE set so an importable package in the caller's environment cannot be
-# what makes it work: "stdlib-only" is part of the criterion, and a server that needed a
-# third-party module would have it to hand otherwise. Started here rather than in a command
-# substitution because a pid the calling shell is not the parent of cannot be `wait`ed on,
-# and the exit status after SIGINT is half of what the first case asks.
 launch() {  # launch <dash> <repo> <log> [port]
   local dash="$1" dir="$2" out="$3"
   shift 3
   (cd "$dir" && PYTHONPATH= PYTHONNOUSERSITE=1 exec "$dash" "$@" >"$out" 2>&1) &
 }
 
-# port_problem <port> — the reason this case cannot be asked of that port, or nothing. Every
-# case here has the same two: the kernel had none to give, and somebody else is already on the
-# one it did. Both fail the case closed rather than skipping it, because a fetch answered by a
-# stranger's server looks exactly like a fetch answered by dashboard.sh.
 port_problem() {  # port_problem <port>
   if [[ -z "$1" ]]; then
     echo "could not get a free port from the kernel, so there was nothing to pass dashboard.sh"
@@ -285,24 +197,11 @@ port_problem() {  # port_problem <port>
   fi
 }
 
-# stop <pid> — interrupt a launched server and reap it, returning the status it exited
-# with. SIGINT rather than SIGTERM because that is the stop the script documents, and the
-# status is returned rather than swallowed because for the first case it IS half the
-# criterion: a server killed by the signal it is meant to shut down on comes back 130.
-# Both `kill` and `wait` are quiet: a server that already died has no pid to signal, and the
-# case's own probes are what should say so, not a stray shell message.
 stop() {  # stop <pid>
   kill -INT "$1" 2>/dev/null
   wait "$1" 2>/dev/null
 }
 
-# call_endpoint <repo> <fn> <err> <query> <out> [<query> <out> …] — import the module in
-# <repo>, with the argv dashboard.sh hands it when started with no port argument, and call its
-# endpoint function <fn> once per <query> — the parsed query string as JSON, `?issue=41` being
-# {"issue": ["41"]} — leaving each answer's bytes on the <out> after it and python's stderr on
-# <err>. One python3 process however many calls, and no socket: this is how the payload cases
-# ask an endpoint a question without a server. An <out> that was never written is the case's
-# sign the call raised, and <err> says why.
 call_endpoint() {  # call_endpoint <repo> <fn> <err> <query> <out> [<query> <out> …]
   local dir="$1" fn="$2" err="$3"
   shift 3
@@ -322,13 +221,6 @@ for query, out in zip(calls[0::2], calls[1::2]):
 ' "$scripts" "$module" "$PORT" "$fn" "$@") 2> "$err"
 }
 
-# The half of an events case that is the same in both of them: two answers call_endpoint
-# wrote, each loaded and checked to be an object with an "events" array, and the run log
-# they are answers about, parsed the way events_json parses it. Handed
-# <body> <issue> <body> <issue> <log>, it leaves `answers` keyed by issue number and `want`
-# the log's lines, and says which half of a malformed answer broke rather than dying on it.
-# What differs between the two cases is only what they compare those to — the program each
-# appends to this one — so the shape check and the log read are written here once.
 events_answers='
 import json, sys
 
@@ -351,13 +243,6 @@ with open(sys.argv[5]) as f:
     want = [json.loads(raw) for raw in f if raw.strip()]
 '
 
-# The half of a metrics payload case that is the same in all three of them: the answer
-# call_endpoint wrote, loaded and checked to be an object with an "issues" object keyed by the
-# runs the fixture made. Handed <body> <issue>[,<issue>…] and whatever else the case names
-# after them, it leaves `issues` keyed by issue number, and says which half of a malformed
-# answer broke rather than dying on it. What differs between the three cases is only what they
-# compare those reports to — the program each appends to this one — so the shape check and the
-# roster check are written here once.
 metrics_issues='
 import json, sys
 
@@ -380,12 +265,6 @@ if sorted(issues) != sorted(want_issues):
     sys.exit()
 '
 
-# The half of a Tests case that is the same in all three of them: the answer call_endpoint
-# wrote, loaded and checked to be an object with a "tests" array. Handed <body> <issue> and
-# whatever else the case names after them, it leaves `runs` that array and `got` the whole
-# answer, and says which half of a malformed one broke rather than dying on it. What differs
-# between the three cases is only what they compare those runs to — the program each appends
-# to this one — so the shape check is written here once.
 tests_runs='
 import json, sys
 
@@ -405,15 +284,6 @@ if not isinstance(got, dict) or not isinstance(got.get("tests"), list):
 runs = got["tests"]
 '
 
-# The half of a Chatter case that is the same in all three of them: reading one answer
-# call_endpoint wrote. `chatter(<body>, <issue>)` loads it, checks it is an object with a
-# "chatter" key, takes the rendering as the renderer’s own text or as the lines of it, and
-# hands it back with its surrounding blank lines off — or says which half of a malformed
-# answer broke, and hands back None, rather than dying on it. `want(<path>)` reads
-# render-leaf-log.sh’s own rendering the same way, so the two sides of every comparison below
-# are stripped alike. The third argument names WHICH answer, for the one case that asks twice
-# over one run; the two that ask once leave it off. What differs between the cases is only
-# what they say when the two sides disagree.
 chatter_rendering='
 import json, sys
 
@@ -451,23 +321,11 @@ def want(path):
         return f.read().strip("\n")
 '
 
-# want_rendering <fixture> <want> <what> — render <fixture> with render-leaf-log.sh itself and
-# leave its answer on <want>, or file the refusal as this case's problem. Every Chatter case
-# compares against the renderer's own answer rather than a second spelling of its rules — a
-# case that spelled them again would pass a pane that rendered the log its own way — so all
-# five of those renderings go through here, and <what> names which fixture went unrendered.
 want_rendering() {  # want_rendering <fixture> <want> <what>
   "$HERE/../render-leaf-log.sh" < "$1" > "$2" 2>/dev/null ||
     problems+=("render-leaf-log.sh could not render $3, which this case compares against")
 }
 
-# chatter_answer <repo> <issue> <tag> — ask <repo>'s chatter_json about <issue> once and leave
-# the answer it wrote on `$answer`, or leave `$answer` empty after filing why the case has none
-# to compare: the module never loaded, a fixture this case needs was already a problem, or the
-# call raised and wrote nothing. Every Chatter case that asks once shares this half; what
-# differs between them is only what they compare the answer to. The one that asks twice over a
-# run that moves between the two calls spells its own, since what it pins is what happens in
-# between.
 chatter_answer() {  # chatter_answer <repo> <issue> <tag>
   local repo="$1" issue="$2" tag="$3" err="$work/$3.err"
   answer=""
@@ -484,12 +342,6 @@ chatter_answer() {  # chatter_answer <repo> <issue> <tag>
   answer="$work/$tag-$issue.json"
 }
 
-# The ledger and spec every Tests case fabricates before an endpoint will answer about its
-# run: the `.tdd/issue-<n>.md` run_for_issue looks for, and the `.tdd/issue-<n>-spec.md` whose
-# `Test command:` line tests_json reads. Those two facts are the whole of what any case here
-# reads out of either file — the title, the step and the spec's prose are flavour — so the
-# pair is written in one place, and a case names only what it varies: which run, which issue,
-# and the test command when it is not `make test`.
 fabricate_plan() {  # fabricate_plan <run> <n> <title> <step> [<test-command>]
   cat > "$1/.tdd/issue-$2.md" <<EOF
 # Plan for #$2 — $3
@@ -505,12 +357,6 @@ Test command: ${5:-make test}
 EOF
 }
 
-# The `test-run` marks the two mark-reading cases below fabricate, written the way
-# timed-test-run.sh appends them (timed-test-run.sh:45): a step-start mark first, so a log
-# line that is no test run is there to be left out, then three test runs disagreeing on both
-# axes the pane reports — a whole-suite run that passed, a named-suite run that failed, and a
-# named-suite run that passed. One case counts those marks and the other reads the fields off
-# them, so the log they share is written here once.
 fabricate_marks() {  # fabricate_marks <run> <n> <step> <failed-suite> <passed-suite>
   local now; now="$(date +%s)"
   cat > "$1/.tdd/events.jsonl" <<EOF
@@ -521,7 +367,6 @@ fabricate_marks() {  # fabricate_marks <run> <n> <step> <failed-suite> <passed-s
 EOF
 }
 
-# --- no argument: the page at / on the default port, and exit 0 on SIGINT ---
 name="dashboard.sh with no argument serves the page at / on port 8765 and exits 0 when sent SIGINT"
 problems=()
 served="$(repo served)"
@@ -544,29 +389,18 @@ else
     ctype="$(http_ctype "$page")"
     body="$(http_body "$page")"
     [[ "$ctype" == text/html* ]] || problems+=("GET / is Content-Type '$ctype', want text/html")
-    # The one HTML page, asked of it as the two things any HTML document has and a JSON
-    # body or an error page does not. Not the page's contents: what it holds is the later
-    # steps' business, and this step only pins that / is where it is served from.
     for want in "<html" "</html>"; do
       [[ "$body" == *"$want"* ]] ||
         problems+=("the body of GET / has no '$want'; it starts: $(printf '%q' "${body:0:200}")")
     done
   fi
 
-  # The other half of the criterion: SIGINT, and an exit status of 0 — a server killed by
-  # the signal it is meant to shut down on comes back 130, and that is a distinct failure
-  # from never having served the page.
   stop "$dash_pid" && int_code=0 || int_code=$?
   [[ "$int_code" -eq 0 ]] || problems+=("exited $int_code after SIGINT, want 0")
 fi
 
 report "$name"
 
-# --- make test runs this suite ---
-# The roster is read off `make -n test` from the repository root, the way suite-lanes.test.sh
-# reads it: make prints the recipe with its `$(TESTS)` glob expanded and runs nothing, so what
-# it lists is exactly what `make test` would run — and a Makefile whose glob stopped reaching
-# this directory, or that filtered this suite out, fails here rather than silently dropping it.
 name="make test runs this suite"
 problems=()
 root="$(cd "$HERE/../../../.." && pwd)"
@@ -577,17 +411,6 @@ fi
 
 report "$name"
 
-# --- an argument: that port, no interface but loopback, and every pane endpoint of one life ---
-# One running server, three questions (#330: the suite's second and last server start). The
-# page has to answer on the port the argument named (not the default); the same port has to
-# refuse a connection made to this machine's other address; and the same process has to go on
-# answering each of the three pane endpoints with the JSON document that pane reads, so a
-# server that answered its first request and then stopped serving, or that could only be asked
-# one question per life, fails here. Two servers could not answer the loopback question together
-# — a second one on the same port would fail to bind — so it is one launch. What each payload
-# holds is asked of runs_json, metrics_json and events_json directly below; the one payload
-# fact only a live server has is that /api/runs's `elapsed_seconds` is counted, so the Runs
-# answer is also compared with `status.sh --json` here, that field as numbers seconds apart.
 name="dashboard.sh with a port argument serves the page on that port, binds 127.0.0.1 only, and answers every pane endpoint with JSON"
 problems=()
 arg_repo="$(repo argport)"
@@ -617,17 +440,11 @@ else
   launch "$DASH" "$arg_repo" "$arg_log" "$arg_port"
   arg_pid=$!
 
-  # The URL is the port the argument named, so anything wrong with the fetch of it is the
-  # first half of the criterion failing: the server did not bind the port it was given.
-  # Nothing here reads the body — that the page is served at / is the case above.
   arg_url="http://127.0.0.1:$arg_port/"
   arg_page="$(serve_until_up "$arg_url")"
   problem="$(answer_problem "$arg_url" "$arg_log" "$arg_page")"
   [[ -z "$problem" ]] || problems+=("$problem")
 
-  # The other interface. Fails closed when this machine has no non-loopback address: a case
-  # that quietly skipped the half it exists to ask would report a pass for a server bound to
-  # 0.0.0.0.
   elsewhere="$(other_addr)"
   if [[ -z "$elsewhere" ]]; then
     problems+=("this machine has no non-loopback IPv4 address, so 'binds 127.0.0.1 only' could not be asked of it")
@@ -635,8 +452,6 @@ else
     problems+=("the server answered on $elsewhere:$arg_port as well, so it is bound to every interface; want 127.0.0.1 only")
   fi
 
-  # status.sh's own answer, asked from the same repository and with the same environment the
-  # launch gave the server, so any difference is the endpoint's.
   (cd "$arg_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 "$STATUS" --json) \
     > "$work/argport-status.json" 2>/dev/null
   for path in /api/runs /api/metrics "/api/events?issue=51"; do
@@ -707,15 +522,6 @@ fi
 
 report "$name"
 
-# --- the two server starts, together: every lifecycle fact asked of a live process ---
-# Right after the second of them on purpose (#330): the payloads and the page moved to a
-# function or a file, so what only a process can answer — the default port, a port argument,
-# loopback only, exit 0 on SIGINT, one process answering more than one request — has to be
-# answered by the two starts above and nothing else. Read off what they left behind: the
-# port each start's python3 was handed, on the shim's $starts log; the answers each fetched
-# and the status the first exited with; and the problems the second collected, still in
-# `problems` here, for the one fact — refused on another interface — that leaves no answer.
-# A fact neither start answered fails here by name, even when both cases above passed.
 name="the two dashboard.sh servers together answer on 8765 with no argument, on a port argument instead, on loopback only, exit 0 on SIGINT, and one of them answers more than once"
 arg_problems=("${problems[@]}")
 problems=()
@@ -751,18 +557,6 @@ fi
 
 report "$name"
 
-# --- the server's python is a module beside dashboard.sh, and importing it binds nothing ---
-# The endpoints are pure functions of the filesystem and of status.sh/metrics.sh, so a case
-# should be able to ask one a question without starting a server (#330). That needs the python
-# to be a file on disk dashboard.sh execs, not a heredoc on its stdin, and the file to bind its
-# port only when run as the program, never when imported. The module is the one found at the
-# top of the suite. It is imported with the argv dashboard.sh hands
-# when started with no port argument, so the port it would bind is the default: the port asked about
-# afterwards is the one an unguarded bootstrap would have taken. That question is asked inside
-# the importing process, while the module is still loaded — after it exits, whatever it bound
-# is released and the answer would say nothing. An alarm that raises bounds the whole of it,
-# because an import that falls into serve_forever never returns on its own; the process says
-# `checked` last, so one that died on the way is a failure and not a silent pass.
 name="importing the dashboard's python module and calling its endpoint functions never binds port 8765"
 problems=()
 imported="$(repo imported)"
@@ -815,16 +609,6 @@ fi
 
 report "$name"
 
-# --- the Runs endpoint's payload, asked of runs_json directly: status.sh --json, byte for byte ---
-# The Runs pane is a reader of `status.sh --json`, so the criterion is an equality, asked of the
-# function that answers the endpoint rather than of a server answering it (#330): the module is
-# imported the way the case above imports it, runs_json is called in the fixture repository, and what it returns is
-# compared with what `status.sh --json` prints there, byte for byte. No dashboard.sh is started
-# and no socket is opened, so nothing here waits on a server coming up.
-#
-# Byte-identical is only a fair ask of a fixture with no clock in its answer, so the run here has
-# a ledger and no event log: status.sh then reports its issue, title, branch and step and no
-# `elapsed_seconds`, which would otherwise count the gap between the two calls.
 name="runs_json, called directly, returns status.sh --json byte for byte"
 problems=()
 direct_repo="$(repo runsdirect)"
@@ -853,14 +637,6 @@ fi
 
 report "$name"
 
-# --- the Metrics endpoint's payload, asked of metrics_json directly: live and committed ---
-# The Metrics pane's two equalities — live for a running run, the committed report for a
-# finished one (SKILL.md:858) — asked of the function that answers the endpoint rather than of a server answering it (#330): a running run's report is
-# what metrics.sh prints for it, recomputed, and a finished run's is its committed
-# `.tdd/issue-<n>-metrics.md` verbatim. Both runs carry a committed report that metrics.sh
-# would never print, so a function that read the file for both fails on the running run and
-# one that recomputed both fails on the finished one. The module is imported the way the
-# runs_json case above imports it, in the fixture repository, and no dashboard.sh is started.
 name="metrics_json, called directly, recomputes a running run and returns the committed report for a finished one"
 problems=()
 mdirect_repo="$(repo metricsdirect)"
@@ -908,8 +684,6 @@ if [[ -n "$module_problem" ]]; then
   problems+=("$module_problem")
 else
   call_endpoint "$mdirect_repo" metrics_json "$work/metrics-direct.err" '{}' "$work/metrics-direct.json"
-  # metrics.sh's own answer for the running run, asked from that run's worktree the way the
-  # conductor asks it, so a difference is the function's and not the fixture's.
   (cd "$mdirect_live" && PYTHONPATH= PYTHONNOUSERSITE=1 "$METRICS" 31) \
     > "$work/metrics-direct-live.md" 2>/dev/null
   if [[ ! -f "$work/metrics-direct.json" ]]; then
@@ -938,14 +712,6 @@ fi
 
 report "$name"
 
-# --- the Metrics endpoint's payload for a BAILED run: the committed report, verbatim ---
-# A run can end two ways, and the pane's reading has to be the same for both: `done` and
-# `bail` are the pair that ends a log (status.sh:76), and the Bailing procedure commits
-# `.tdd/issue-<n>-metrics.md` before the push exactly as draft-PR time does (SKILL.md:858).
-# So a run whose log ends in a `bail` mark is quoted, not recomputed — asked of metrics_json
-# directly (#330), with no dashboard.sh started. The committed report here is a sentence
-# metrics.sh would never print, so a function that recomputed a bailed run fails the equality
-# rather than passing on a coincidence.
 name="metrics_json, called directly, returns the committed report for a run that ended in a bail mark"
 problems=()
 mbail_repo="$(repo metricsbail)"
@@ -991,16 +757,6 @@ fi
 
 report "$name"
 
-# --- the Metrics endpoint's payload for an ended run whose committed report is MISSING ---
-# Both endings commit `.tdd/issue-<n>-metrics.md` before the run stops, but a bail that never
-# reached that step of the Bailing procedure leaves a run whose log says ended and whose report
-# is not there. `run_ended` is still true, so the pane quotes a file that does not exist — and
-# quoting nothing reads on the page as "this run had nothing to report" rather than "the report
-# is missing". So the reading for that run is a marker: never the empty string, and naming the
-# file that is not there, which is the whole of what tells it apart from a real empty report.
-# Asked of metrics_json directly (#330), with no dashboard.sh started; the run carries no
-# committed report at all, so a function that returned the file's contents has nothing to
-# return and only a marker can pass.
 name="metrics_json, called directly, reports a marker for an ended run whose committed metrics file is missing"
 problems=()
 mgone_repo="$(repo metricsgone)"
@@ -1043,11 +799,6 @@ fi
 
 report "$name"
 
-# --- run_ended for a STOPPED run: not ended, so the Metrics pane keeps recomputing it ---
-# A stop mark (#388) is not the third ending beside `done` and `bail`: a stopped run is
-# resumed, commits no report, and is still spending, so the pair that splits recomputed from
-# quoted stays the pair it was (#390). Asked of run_ended directly, with no dashboard.sh
-# started, over a log that carries a stop mark and neither of the two that end a run.
 name="run_ended, called directly, answers false for a run whose log carries a stop mark and no done or bail"
 problems=()
 rstop_repo="$(repo runendedstop)"
@@ -1079,21 +830,6 @@ fi
 
 report "$name"
 
-# --- the Metrics endpoint keys a run by its own directory, and runs metrics.sh once for it ---
-# Ledgers are committed, so a run worktree carries a copy of every earlier issue's plan: the
-# run under `.tdd/wt/7/` here holds issue-3.md and issue-5.md beside its own issue-7.md. The
-# rule the criterion names is the directory, not the glob — `.tdd/wt/<n>/` is issue `<n>`, and
-# its ledger is `.tdd/issue-<n>.md` — so the payload has exactly one entry, keyed 7, and
-# metrics.sh is run exactly once, for 7, in that directory.
-#
-# The call count IS the behaviour here, so it is pinned with an in-process spy rather than a
-# PATH shim counting processes: `capture` is the one wrapper every shell-out in the module goes
-# through, and the case replaces it with a same-named function that records the metrics.sh
-# calls and answers them with a stub. Everything else — the `git worktree list` that finds the
-# runs — still goes to the real one, so what is faked is only the script whose calls are counted.
-# The directory a call was made in is compared as a real path: the runs are found through git,
-# which resolves `/var` to `/private/var` on a Mac, and the same directory spelled two ways
-# would otherwise fail a correct implementation.
 name="metrics_json keys one entry per run directory by its own issue number and runs metrics.sh once for a live run"
 problems=()
 mown_repo="$(repo metricsown)"
@@ -1104,9 +840,6 @@ cat > "$mown_run/.tdd/issue-7.md" <<'EOF'
 - [x] a lamp exists
 - [ ] a lamp glows
 EOF
-# The earlier runs' committed plans, which differ from each other in nothing the rule reads:
-# the criterion is that a ledger which is not this directory's own is passed over, whatever it
-# says, so what each of them says is the same sentence.
 for mown_other in 3 5; do
   cat > "$mown_run/.tdd/issue-$mown_other.md" <<EOF
 # Plan for #$mown_other — an earlier run's committed plan
@@ -1157,14 +890,6 @@ fi
 
 report "$name"
 
-# --- the Events endpoint's payload, asked of events_json directly: the selected run, or nothing ---
-# The Events pane's contract — the selected run's log, newest last — asked of the function that
-# answers the endpoint rather than of a server answering it (#330): events_json is handed the query string
-# the endpoint parses, `?issue=41` read as {"issue": ["41"]}, and returns a contiguous suffix of
-# that run's `.tdd/events.jsonl` ending at its newest line. A second run's log is there and must
-# not be answered with. And an issue no run holds a ledger for — 99 here — is the empty list,
-# not another run's log and not an error. The module is imported the way the runs_json case
-# above imports it, in the fixture repository, and no dashboard.sh is started.
 name="events_json, called directly, returns the selected run's events newest last, and none for an issue no run holds"
 problems=()
 edirect_repo="$(repo eventsdirect)"
@@ -1224,12 +949,6 @@ fi
 
 report "$name"
 
-# --- the Events endpoint answers by the run directory's own issue number ---
-# The other half of the rule the Metrics case above pins, asked of the Events pane. Ledgers
-# are committed, so the run under `.tdd/wt/7/` carries a copy of #3's plan; deciding which run
-# an issue belongs to by who holds its ledger therefore answered `?issue=3` with run 7's log
-# (#343). The directory is the rule — `.tdd/wt/<n>/` is issue `<n>` — so issue 3, which has no
-# run directory of its own, is the empty list, and issue 7 is still its own run's events.
 name="events_json answers by the run directory's own issue, so an issue present only as a committed ledger copy is the empty list"
 problems=()
 eown_repo="$(repo eventsown)"
@@ -1277,16 +996,6 @@ fi
 
 report "$name"
 
-# --- the Tests endpoint's payload, asked of tests_json directly: the selected run's leaf test runs ---
-# The Tests pane's contract — the test runs the LEAVES performed, read back out of their
-# stream-json logs — asked of the function that answers the endpoint rather than of a server
-# answering it, the way the events cases above ask theirs. tests_json is handed the parsed
-# query string, `?issue=51` read as {"issue": ["51"]}, and returns one entry per Bash tool
-# call in that run's leaf logs whose command is the run's own test command — the `Test
-# command:` line of its `.tdd/issue-<n>-spec.md` — carrying that command, whether it passed
-# (the tool result's exit status: `is_error` false is a pass, true a fail) and the tail of
-# its output. A leaf's other Bash calls are no test run of the suite and are not listed, and
-# a second run, whose leaf ran the same command, must not be answered with.
 name="tests_json, called directly, lists the selected run's leaf test runs with command, pass/fail and output tail"
 problems=()
 tdirect_repo="$(repo testsdirect)"
@@ -1348,15 +1057,6 @@ fi
 
 report "$name"
 
-# --- the Tests endpoint runs no suite: the test command is read, never executed ---
-# The other half of the Tests pane's contract. What the pane lists is the runs the LEAVES
-# performed, so the endpoint's own work is reading logs — a dashboard that ran the command
-# itself would spend minutes of a suite on every poll, and would run it against whatever the
-# worktree holds mid-step. Asked as behaviour rather than as "no subprocess": the run's spec
-# names a test command whose execution leaves a trace on disk, its leaf log carries a Bash
-# call of exactly that command, and after tests_json has answered, the trace is not there.
-# The answer itself is checked too, so a marker missing because the endpoint raised before it
-# ever looked at the command is a failure of this case and not a pass.
 name="tests_json reads the run's test command and never executes it, so a command that would leave a trace leaves none"
 problems=()
 tnoexec_repo="$(repo testsnoexec)"
@@ -1393,17 +1093,6 @@ fi
 
 report "$name"
 
-# --- the Tests endpoint counts `test-run` marks, not leaf Bash calls ---
-# Since #342 every test-command run goes through `timed-test-run.sh <tier> <suites> <cmd>`,
-# which is also what appends the `test-run` line to `.tdd/events.jsonl`. So a leaf no longer
-# types its test command as a bare Bash call, the string match against the spec's `Test
-# command:` line never held, and the pane was empty on a live run that had already run its
-# suite seven times (#383). The mark is the thing to count: one entry per `test-run` line of
-# the selected run's event log.
-#
-# The fixture makes the two rules disagree on purpose — three marks in the event log, and one
-# leaf Bash call whose command is exactly the spec's `make test`. An endpoint counting Bash
-# calls answers one; an endpoint counting marks answers three.
 name="tests_json lists one entry per test-run mark in the run's event log, not per leaf Bash call matching the spec's command"
 problems=()
 tmarks_repo="$(repo testsmarks)"
@@ -1436,17 +1125,6 @@ fi
 
 report "$name"
 
-# --- each Tests entry names the suites its run covered and whether it passed ---
-# Counting the marks is half the pane: a reader watching a run wants to know WHICH suites a
-# test run covered and whether it came back green. Both are on the mark already — `suites` is
-# the list timed-test-run.sh was handed (empty for a whole-suite tier), and `status` is the
-# test command's own exit status, recorded since this issue's first step. So each entry names
-# the suites its mark carries and says whether that status was success.
-#
-# The fixture's three marks disagree on both axes on purpose: one whole-suite run that passed,
-# one named-suite run that failed, one named-suite run that passed. An endpoint handing back
-# the same fields for all three — or none of them — is not answering "which suites, and did it
-# pass".
 name="tests_json entries name the suites their test-run mark covered and whether that run passed"
 problems=()
 tfields_repo="$(repo testsfields)"
@@ -1479,19 +1157,6 @@ fi
 
 report "$name"
 
-# --- a run with no `test-run` mark is the empty list, and never another run's marks ---
-# The other end of the rule the two cases above pin. What the pane lists is one entry per
-# `test-run` mark in THE SELECTED RUN's own event log, so a run whose log holds none has no
-# test run to report — the empty list, not the bare Bash calls its leaves happen to have
-# typed, and not the marks of the run next door. A run predating #342 is the honest case of
-# the first: its leaves ran the suite and nothing recorded it, and a pane that guessed from
-# a matching Bash call would be reporting a number it cannot stand behind.
-#
-# The fixture puts both wrong answers within reach at once. The selected run, 57, has an
-# event log carrying no `test-run` line and a leaf log holding a bare `make test` Bash call
-# whose command is exactly its spec's; the run beside it, 58, carries three `test-run` marks.
-# An endpoint falling back to leaf logs answers 1, one reading every run's log answers 3, and
-# only one reading the selected run's marks alone answers 0.
 name="tests_json answers the empty list for a run whose event log holds no test-run mark, and never another run's marks"
 problems=()
 tempty_repo="$(repo testsempty)"
@@ -1532,18 +1197,6 @@ fi
 
 report "$name"
 
-# --- the Chatter endpoint's payload, asked of chatter_json directly: the current leaf's log ---
-# The Chatter pane's contract — the rendered log of the leaf the selected run is CURRENTLY on
-# — asked of the function that answers the endpoint rather than of a server answering it, the
-# way the Tests and Events cases above ask theirs. Which leaf that is, is the run's own event
-# log's answer: the newest `launch` event's `name`, which is the same leaf status.sh reports a
-# run as being on (status.sh:79), and its log is `.tdd/<name>.out`. So the fixture run has two
-# leaf logs and an event log whose newest launch names the second: an endpoint that handed back
-# the first, or both, is not answering "the leaf it is currently on".
-#
-# What "rendered" means is render-leaf-log.sh's answer and not a second spelling of it, so the
-# case renders the fixture with that script and compares — a case that spelled the renderer's
-# rules again would pass a pane that rendered the log its own way.
 name="chatter_json, called directly, returns the rendered log of the leaf the selected run is currently on"
 problems=()
 chat_repo="$(repo chatterdirect)"
@@ -1590,18 +1243,6 @@ fi
 
 report "$name"
 
-# --- the Chatter endpoint on a verifier leaf: the log every leaf writes, not the duplicate ---
-# Criterion 1 of #384. `.out` is a shell redirection the conductor types on a DEVELOPER leaf's
-# launch line alone (SKILL.md:617); a verifier goes through verify.sh, whose outer redirect
-# goes to /dev/null (SKILL.md:307), so no verify-*.out is ever written. What every leaf does
-# get is supervise.sh's own capture of its combined output, `.tdd/<leaf>.log`
-# (supervise.sh:211) — the same bytes the .out holds for the leaves that have both.
-#
-# So this fixture run is currently on a verifier, and that leaf's transcript is there as
-# verify-red.log with no .out beside it: an endpoint that spells a leaf's transcript `.out`
-# finds nothing and answers the empty string, which is the pane going blank for the whole
-# verifier half of a run. What "rendered" means is render-leaf-log.sh's answer, as in the case
-# above, so the case renders the fixture with that script and compares.
 name="chatter_json returns the current verifier leaf's transcript, which is written as .log and never as .out"
 problems=()
 vlog_repo="$(repo chatterverifier)"
@@ -1642,20 +1283,6 @@ fi
 
 report "$name"
 
-# --- the Chatter endpoint on a closed leaf: the result text appended after the records ---
-# Criterion 2 of #384. A leaf's transcript is records first and prose last: once the leaf
-# closes, run-leaf.sh appends a blank line and then the plain-text result (run-leaf.sh:82-83).
-# render-leaf-log.sh exits 2 on the first line that is not JSON and writes its accumulated
-# output only after the loop (render-leaf-log.sh:33-46), so that tail throws away every line it
-# had already rendered — and the pane goes blank the moment a leaf finishes, developer leaves
-# included.
-#
-# The fixture has that shape: a run currently on develop-green whose transcript carries four
-# stream-json records, then the blank line, then the result text. What the case asks for is
-# that the records' own rendering — render-leaf-log.sh's answer for the records alone, as in
-# the two cases above — is THERE in what the endpoint hands back, and not that the trailing
-# prose is rendered one particular way: whether the fix relaxes the renderer's contract or
-# stops handing it the tail is the solving run's call (#384), and both satisfy the criterion.
 name="chatter_json renders a leaf transcript whose plain-text result is appended after its stream-json records"
 problems=()
 tail_repo="$(repo chattertail)"
@@ -1701,20 +1328,6 @@ fi
 
 report "$name"
 
-# --- the Chatter endpoint with nothing to render: no leaf, and a leaf with no transcript ---
-# Criterion 3 of #384. The two causes above are both about a transcript the pane failed to
-# find or failed to render, and both fixes widen what it looks at: the log every leaf writes,
-# and the records inside a log whose tail is prose. Neither may widen it into an answer where
-# there is no transcript at all — the pane's own contract is that a run with nothing to show
-# shows nothing, and an endpoint that answered with a placeholder, or with another leaf's log,
-# or that raised on the missing file, would break that while satisfying both criteria above.
-#
-# The two shapes a run has nothing to show in, asked of one repository holding both: a run
-# whose event log carries no `launch` at all, so status.sh's question "which leaf is it on"
-# has no answer (#63), and a run whose newest launch names a leaf whose transcript is not
-# there yet — neither `.log` nor `.out`, which is every leaf for the moment between the
-# conductor's launch line and supervise.sh's first write (#65). Both answer the empty
-# rendering, and the case says which of the two broke.
 name="chatter_json answers the empty rendering for a run on no leaf and for a leaf that has written nothing yet"
 problems=()
 blank_repo="$(repo chatterblank)"
@@ -1759,19 +1372,6 @@ fi
 
 report "$name"
 
-# --- the Chatter endpoint follows the run: a new current leaf switches what it returns ---
-# The pane's other half of the contract: "the leaf the run is CURRENTLY on" is a question
-# re-asked of the run on every poll, not one answered once. The case above pins WHICH leaf a
-# static run is on; this one pins that the answer MOVES — the run launches a second leaf while
-# the pane is polling, and the next answer is that leaf's log and not the first's. An endpoint
-# that read the event log once, or that cached what it found there, answers the first case and
-# not this one.
-#
-# Asked of chatter_json twice over one run whose event log grows between the two calls, which
-# is what a run does: the conductor appends a `launch` line when it starts the next leaf. Both
-# renderings come from render-leaf-log.sh, for the reason the case above gives, and they are
-# also required to differ from each other — two identical fixtures would let an endpoint stuck
-# on the first leaf pass.
 name="chatter_json switches to the new leaf when the selected run's current leaf changes"
 problems=()
 switch_repo="$(repo chatterswitch)"
@@ -1808,7 +1408,6 @@ if [[ -n "$module_problem" ]]; then
 elif [[ "${#problems[@]}" -eq 0 ]]; then
   call_endpoint "$switch_repo" chatter_json "$work/switch-first.err" \
     '{"issue": ["55"]}' "$work/switch-55-first.json"
-  # The run moves on: the conductor's next leaf is launched, and the log says so.
   cat >> "$switch_run/.tdd/events.jsonl" <<EOF
 {"ts": $((switch_now - 60)), "issue": "55", "actor": "developer", "phase": "green", "step": "a lamp dims", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-green", "seq": 3}
 EOF
@@ -1840,19 +1439,6 @@ fi
 
 report "$name"
 
-# --- the page on disk: one endpoint per pane, no server started ---
-# The criterion is what the BROWSER does with the page, and nothing here is a browser: the
-# suites depend on bash and python3 and nothing else (ci.yml). So it is asked of dashboard.html
-# as it sits beside dashboard.sh rather than of a running server's answer (#330): the server hands the file out
-# byte for byte with no per-request computation, so the file's own text is what the browser
-# gets, and a server started only to read it back adds a process start and nothing else. Every
-# pane's endpoint is fetched from a literal. A page that fetched an endpoint for no pane fails;
-# a page whose three fetches sit behind one scheduler passes, since proving which fetch a timer
-# reaches needs the engine this case lacks.
-#
-# What schedules the next fetch is the case below (#344), which took this one's timer half
-# with it: this case demanded a setInterval at 2000 ms, and a page that fires on a fixed clock
-# is the bug #344 fixes — the two cannot both be asked of one page.
 name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
 problems=()
 disk_page="$scripts/dashboard.html"
@@ -1861,20 +1447,6 @@ fetches_endpoints Runs=/api/runs Metrics=/api/metrics Events=/api/events
 
 report "$name"
 
-# --- the page on disk: the next request is scheduled by the previous one answering ---
-# The bug (#344) is an unbounded queue: a pane on a fixed clock issues a request every 2 s
-# whether or not its last one has answered, so against a slow endpoint the requests pile up
-# and no pane ever fills. The fix is that a pane schedules its next request only from the
-# settlement of its previous one — both the resolve path and the reject path, since a pane
-# whose fetch rejects and never reschedules is a pane that dies on the first hiccup — and so
-# has at most one request in flight. Read off dashboard.html the way the case above reads it,
-# for the same reason: nothing here is a browser.
-#
-# String literals and comments are blanked before anything is looked for, so a page whose
-# own prose says "no setInterval" is not failed for its prose. A setTimeout counts as
-# scheduled by an answer when it sits inside the argument list of a .then, .catch or .finally
-# — which is the settlement handler the fetch promise calls — and the delay stays the 2000 ms
-# the case above used to ask of setInterval.
 name="dashboard.html, read off disk, schedules each pane's next request only from the previous one settling"
 problems=()
 
@@ -2014,19 +1586,6 @@ else:
 
 report "$name"
 
-# --- the page on disk: a pane apiece for the Tests and Chatter endpoints ---
-# The two endpoints the page does not yet poll. Asked of dashboard.html as it sits beside
-# dashboard.sh, the way the two cases above ask theirs and for the same reason: nothing here
-# is a browser, and the server hands the file out byte for byte with no per-request
-# computation, so the file's own text is what a browser gets.
-#
-# Each of the two panes has an endpoint of its own, fetched from a literal — an endpoint
-# named only in a comment or in the prose of a heading is not a poll. What schedules that
-# fetch is the settlement case above, which is asked of the whole page rather than of one
-# pane: it fails on a setInterval anywhere on the page and on any setTimeout outside a
-# .then, .catch or .finally body, so a Tests or Chatter pane put on a fixed clock of its own
-# reddens it. Proving which fetch a given timer reaches needs the engine these cases lack,
-# which is why the scheduling half is not re-asked here pane by pane.
 name="dashboard.html, read off disk, gives the Tests and Chatter panes an endpoint apiece to poll"
 problems=()
 
@@ -2034,13 +1593,6 @@ fetches_endpoints Tests=/api/tests Chatter=/api/chatter
 
 report "$name"
 
-# --- the page served at / is dashboard.html, so the poll checks above are the served page's ---
-# Before #330 the poll contract was asked of the page a running server handed out, so a server
-# serving any other HTML failed it; the case above asks it of the file instead, and the first
-# case only asks that / is some HTML. This ties the two back together without a third server
-# start: the body the start with no argument answered at / is compared with dashboard.html's
-# own text, and any difference means the checks above were made of a page no browser gets.
-# Both sides lose their trailing newlines to a command substitution, and nothing else.
 name="the page dashboard.sh serves at / is dashboard.html, byte for byte"
 problems=()
 if [[ "$(http_status "${page:-}")" != 200 ]]; then
@@ -2058,18 +1610,6 @@ fi
 
 report "$name"
 
-# --- a slow /api/runs must not starve /api/events: ordering, not elapsed time ---
-# The one fact only a live process can answer about concurrency: while one request is still
-# inside status.sh, another request to a different endpoint gets its answer. Asked by
-# ordering — the Events answer arrives, and only afterwards does this case release the
-# blocked Runs request — so nothing here is timed and no threshold in seconds is asserted.
-#
-# The server is started from a directory of symlinks to dashboard.sh, its python module and
-# the page, beside a `status.sh` that is a stub blocking on a marker file. It has to be:
-# dashboard.sh hands the server the `status.sh` sitting beside itself, so the only way to
-# have a Runs request that is still computing when the Events request is made is a scripts
-# directory whose status.sh is the stub. That is also why the shim at the top of the suite
-# does not count this start — its argv names a .py under $work, not under $scripts.
 name="/api/events answers while an /api/runs request is still blocked inside status.sh"
 problems=()
 slow_repo="$(repo slowruns)"
@@ -2090,8 +1630,6 @@ slow_dir="$work/slow-scripts"
 mkdir -p "$slow_dir"
 cat > "$slow_dir/status.sh" <<EOF
 #!/bin/sh
-# The slow endpoint, stopped at a marker rather than at a duration: it says it has been
-# entered, waits for the case to let it go, and only then answers the empty document.
 : > '$slow_entered'
 while [ ! -e '$slow_release' ]; do sleep 0.05; done
 printf '{"runs": []}\n'
@@ -2113,9 +1651,6 @@ else
   launch "$slow_dir/dashboard.sh" "$slow_repo" "$slow_log" "$slow_port"
   slow_pid=$!
 
-  # The three URLs this case fetches are three paths on one server, so its address is
-  # spelled once: the page it waits to come up, the Runs request that blocks, and the Events
-  # request that has to be answered while it does.
   slow_base="http://127.0.0.1:$slow_port"
   slow_url="$slow_base/"
   slow_page="$(serve_until_up "$slow_url")"
@@ -2123,11 +1658,6 @@ else
   if [[ -n "$problem" ]]; then
     problems+=("$problem")
   else
-    # The Runs request, in the background, and the wait is for the stub to say it has been
-    # entered — not for a number of seconds — so what follows happens with that request
-    # provably still inside status.sh.
-    # The marker is written only where the fetch came back with an answer, so `slow_settled`
-    # means the server answered the Runs request and never that the client gave up on it.
     (fetch "$slow_base/api/runs" >/dev/null 2>&1 && : > "$slow_settled") &
     slow_runs_pid=$!
     slow_i=0
@@ -2141,8 +1671,6 @@ else
     else
       events_url="$slow_base/api/events?issue=77"
       events_answer="$(fetch "$events_url" 2>/dev/null || :)"
-      # Read before the stub is released: an /api/runs that had already answered would mean
-      # the two were never in flight together, whatever the Events answer was.
       [[ -e "$slow_settled" ]] && slow_runs_settled=1 || slow_runs_settled=""
 
       if [[ -z "$events_answer" ]]; then
@@ -2165,12 +1693,6 @@ fi
 
 report "$name"
 
-# --- the whole suite starts at most two servers ---
-# Last on purpose: it reads the count every case above left on $starts, through the shim
-# installed at the top (#330). Only the lifecycle facts — the default port, a port argument,
-# loopback only, exit 0 on SIGINT, one process answering more than once — need a process;
-# every payload and the page's own text are asked of a function or a file. A count of zero
-# is the shim not counting, not a suite that started nothing, and fails as that.
 name="the dashboard suite starts at most 2 dashboard.sh servers, counted at python3's exec"
 problems=()
 server_starts="$(wc -l < "$starts" | tr -d ' ')"

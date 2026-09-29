@@ -49,52 +49,27 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The guard, twice, and neither name substitutes for the other: repo-relative is what a
-# failure message quotes, absolute is what copying it into the plant needs.
 GUARD='skills/tdd/scripts/tests/no-docs-reads.test.sh'
 GUARD_PATH="$ROOT/$GUARD"
 GUARD_NAME="$(basename "$GUARD")"
 
-# Where a suite lives, and so where the plant puts one: the guard is handed a tree, not a
-# list, and it has to find both fixtures by the directory they sit in.
 TESTS_DIR='skills/tdd/scripts/tests'
 
-# The two planted suites. Named for what each does with a docs/ path rather than for a
-# script, because neither has a subject — they exist to be read by the guard, and the
-# failure messages below quote their names as the guard would have to.
 READER='reads-the-commentary.test.sh'
 QUOTER='quotes-a-docs-path.test.sh'
 
-# The tree in question, and the two paths in it the fixtures carry — assembled here rather
-# than written out, for the reason the header gives. Real paths: wt/commentary.py is the
-# file supervise.test.sh case 10 and refactor-budget.test.sh case 8 open today, and
-# wt/app.js is one of the two detect-test-command.test.sh:171 seeds into an issue body as
-# prose. A guard that told them apart by name rather than by what the suite does with them
-# would pass this case and fail the tree it ships against.
 DOCS_DIR='docs'
 DOCS_READ_PATH="$DOCS_DIR/wt/commentary.py"
 DOCS_FIXTURE_PATH="$DOCS_DIR/wt/app.js"
 
-# The comment the binding line ends in, so this suite can find that line's number without
-# searching the fixture for a path of its own — see the header. Nothing about the mark is
-# visible to the guard: it is an ordinary trailing comment on an ordinary line of bash.
 MARK='the-binding'
 
-# The line the planted reader opens the bound path on, written once because two places must
-# spell it identically: `plant` prints it into the fixture, and `probe_plant_is_what_it_claims`
-# asserts the read is really there. It reaches the file through `$commentary` and never names
-# the tree itself, which is the indirection this whole case exists to pin — a guard matching a
-# path beside a read verb finds nothing on this line.
 READ_SITE='stated="$(grep -c VERI_HEARTBEAT "$ROOT/$commentary")"'
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which half of the contract broke rather than just that the case did.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -106,20 +81,11 @@ report() {
   fi
 }
 
-# flat <text> — one line of it, for a failure message: newlines become slashes so a run's
-# output quoted inside an indented problem line stays one line.
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
-# plant_reader — write the suite the guard must catch, at `reader_path`: it binds a file in
-# the documentation tree to a variable and opens it four lines later, to read a figure out
-# of the prose. That is the shape of every site this issue deletes — the path and the read
-# verb never share a line. A whole suite down to the count line, for the reason `plant`
-# gives, and executable, because the guard meets it in a directory of runnable suites.
 plant_reader() {
   cat > "$reader_path" <<'EOF'
 #!/usr/bin/env bash
-# Unit tests for supervise.sh's heartbeat default — the half of this case that compares the
-# code to the page's prose is the shape the guard has to catch.
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
@@ -136,14 +102,9 @@ EOF
   chmod 755 "$reader_path"
 }
 
-# plant_quoter — write the suite the guard must leave alone, at `quoter_path`: its path in
-# that tree is a string it writes into a file of its own and greps there, never a file it
-# opens in the documentation tree. Whole and executable for the same reasons.
 plant_quoter() {
   cat > "$quoter_path" <<'EOF'
 #!/usr/bin/env bash
-# Unit tests for detect-test-command.sh — the path here is fixture text handed to the
-# subject, the shape the guard must not refuse.
 set -uo pipefail
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -160,20 +121,6 @@ EOF
   chmod 755 "$quoter_path"
 }
 
-# plant — build the scratch tree the case is asked about and leave its path in `tree`, the
-# three files in it in `reader_path`, `quoter_path` and `guard_copy`, and the line number of
-# the binding line in `reader_line`. Both fixtures are whole suites down to the count line,
-# because the guard is run over the directory rather than handed a file and a directory of
-# half-suites is not the thing it will meet.
-#
-# Each fixture is written by a function of its own above, so that this one reads as the
-# order the tree is built in — two suites and a copy of the guard, staged — rather than as
-# sixty lines in which the two shapes being contrasted are two heredocs apart.
-#
-# The tree is made a git repository with both fixtures staged. Nothing in the contract says
-# how the guard enumerates the suites it reads, and `git ls-files` is as reasonable an
-# answer as a glob; an unstaged plant would make this case report on that choice instead of
-# on the detection it is asking about.
 plant() {
   tree="$(mktemp -d)" || {
     problems+=("could not make a scratch tree to plant the two suites in, so the criterion went unasked")
@@ -181,10 +128,6 @@ plant() {
   }
   mkdir -p "$tree/$TESTS_DIR"
 
-  # Where each of the three files lands, named once here rather than reassembled at each of
-  # the fourteen places that writes, copies, greps or runs one. `tree` is only known from the
-  # line above, so these cannot sit with the constants at the top of the file; they are the
-  # plant's output the same way `reader_line` is, and the probes below read them as such.
   reader_path="$tree/$TESTS_DIR/$READER"
   quoter_path="$tree/$TESTS_DIR/$QUOTER"
   guard_copy="$tree/$TESTS_DIR/$GUARD_NAME"
@@ -197,18 +140,10 @@ plant() {
   git -C "$tree" add -A >/dev/null 2>&1
 
   reader_line="$(grep -n "$MARK" "$reader_path" | cut -d: -f1)"
-  # Not the status of that assignment (#183). Under `set -uo pipefail` without `-e` a grep
-  # that found no mark — a renamed mark, a reader fixture that was never written — made
-  # `plant` return non-zero, the case skip all four probes, and `report` count an empty
-  # `problems` array as a pass: a guard suite saying the one thing it must never be able to
-  # say. The tree is planted; whether it is what it claims is `probe_plant_is_what_it_claims`'s
-  # question, and it names the broken premise when the answer is no.
+  # hazard: without -e, a grep that found no mark would leave plant returning non-zero.
   return 0
 }
 
-# probe_guard_is_there — the premise every probe below rests on, and the one that answers
-# while the guard does not exist yet: there is a suite at that path and it can be run.
-# Returns non-zero so the case stops here rather than reporting a plant it never made.
 probe_guard_is_there() {
   [[ -f "$GUARD_PATH" ]] || {
     problems+=("there is no guard suite at $GUARD, so nothing under $TESTS_DIR is checked for reaching into the documentation tree")
@@ -220,15 +155,6 @@ probe_guard_is_there() {
   }
 }
 
-# probe_plant_is_what_it_claims — the plant's premises, asserted rather than assumed, and
-# two of the four are what make this a case about indirection rather than about a literal.
-# The binding line has to be findable by its mark and has to really name the path, or
-# `reader_line` below is a number the guard was never owed. It has to be the ONLY line of
-# the reader naming that tree, and the reader has to open the file through the variable it
-# bound — together, those say the guard can have caught the read only by following the
-# binding, which is the objection this case exists to pin. The quoter has to really carry
-# such a path, or "the guard said nothing about it" is true of a fixture with nothing to
-# say about.
 probe_plant_is_what_it_claims() {
   [[ "$reader_line" =~ ^[0-9]+$ ]] || {
     problems+=("the planted reader has no single marked line to name (found '$reader_line'), so the criterion cannot be asked")
@@ -247,19 +173,10 @@ probe_plant_is_what_it_claims() {
     problems+=("the planted quoter carries no path in that tree at all, so a guard that refuses fixture text would still pass this case")
 }
 
-# run_guard — run the guard over the planted tree once, leaving what it said in `guard_out`
-# and how it exited in `guard_code`. A step of its own rather than the first line of the
-# probe below, because both probes ask about that one run: as a side effect of the first,
-# the second's subject existed only as long as nobody reordered them.
 run_guard() {
   guard_out="$("$guard_copy" 2>&1)" && guard_code=0 || guard_code=$?
 }
 
-# probe_guard_names_the_reader_with_its_line — the first half of the criterion, and it asks
-# for both halves of what a guard is: a failure, and an address. Not "the output mentions
-# the suite" — a guard that listed every suite it read would satisfy that — but a line of
-# output that names the reading suite AND carries the line number of the binding, which is
-# the only thing that sends the next author to the site rather than to the file.
 probe_guard_names_the_reader_with_its_line() {
   [[ "$guard_code" != 0 ]] ||
     problems+=("want the guard to fail over a suite that binds $DOCS_READ_PATH and opens it on a later line; it exited 0 and said: $(flat "$guard_out")")
@@ -273,10 +190,6 @@ probe_guard_names_the_reader_with_its_line() {
     problems+=("the guard named $READER but not line $reader_line, where the path enters the suite; the lines naming it were: $(flat "$named")")
 }
 
-# probe_guard_leaves_the_quoter_alone — the other half, and the half that keeps the guard
-# from being a grep for the tree's name. A suite whose only such path is fixture text it
-# writes and reads back is doing nothing this issue forbids, and the guard must have
-# nothing to say about it — not a softer complaint, no complaint.
 probe_guard_leaves_the_quoter_alone() {
   local named
   named="$(grep -F "$QUOTER" <<< "$guard_out")"
@@ -284,11 +197,6 @@ probe_guard_leaves_the_quoter_alone() {
     problems+=("the guard named $QUOTER, whose only such path is the fixture text it writes into a file of its own: $(flat "$named")")
 }
 
-# 1. One criterion, one case: the guard tells a read from a mention, follows the read
-#    through the variable it is bound to, and says where the binding is. The two halves are
-#    probed over one run of the guard against one tree holding both fixtures, because that
-#    is the tree it ships against — a guard asked about each shape in isolation could answer
-#    "everything here reads that tree" to the first and be caught by nothing.
 name="no-docs-reads.test.sh names a suite that binds a path in the documentation tree and opens it later, with the line of the binding, and says nothing about one whose path is only fixture text"
 problems=()
 tree=""
