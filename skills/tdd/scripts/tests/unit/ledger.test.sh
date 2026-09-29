@@ -25,6 +25,13 @@ verdict() {
   fi
 }
 
+expect_records() {
+  if [[ "$3" != "$2" ]]; then
+    problems+="    $1 (want, then got):"$'\n'
+    problems+="$(diff <(printf '%s\n' "$2") <(printf '%s\n' "$3") | sed 's/^/    /')"$'\n'
+  fi
+}
+
 steps_of() {
   printf '%s' "$1" | (source "$LIB" && ledger_steps) 2>&1 |
     awk -F '\t' '{ print $1 "\t" $2 "\t" $NF }'
@@ -55,21 +62,14 @@ Some prose about the plan.
 - a bullet with no box
 '
 want=$'1\tdone\tlowercase the slug\n2\topen\tcollapse non-alphanumerics to one hyphen\n3\tdone\tstrip leading hyphens'
-got="$(steps_of "$doc")"
-if [[ "$got" != "$want" ]]; then
-  problems+="    ledger_steps index/state/text differ (want, then got):"$'\n'
-  problems+="$(diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /')"$'\n'
-fi
+expect_records "ledger_steps index/state/text differ" "$want" "$(steps_of "$doc")"
 verdict "ledger_steps prints index, state and text per step line at any indent, skipping lines with no box"
 
 # 2. a final step line with no trailing newline still yields its record.
 problems=""
 want=$'1\tdone\tfirst\n2\topen\tlast step'
-got="$(steps_of $'- [x] first\n- [ ] last step')"
-if [[ "$got" != "$want" ]]; then
-  problems+="    ledger_steps records differ for an unterminated last line (want, then got):"$'\n'
-  problems+="$(diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /')"$'\n'
-fi
+expect_records "ledger_steps records differ for an unterminated last line" "$want" \
+  "$(steps_of $'- [x] first\n- [ ] last step')"
 verdict "ledger_steps emits a record for a final step line with no trailing newline"
 
 echo "$pass passed, $fail failed"
