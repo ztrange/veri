@@ -40,12 +40,8 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The two documents. Each twice — the path as a failure message spells it, and the same
-# path resolved for the probes to read — so a message can never name a file the probes did
-# not open. The pairing claude-md-counts.test.sh and skill-leaf-launch.test.sh both use.
 claude_md="CLAUDE.md"
 claude_path="$ROOT/$claude_md"
 skill_md="skills/tdd/SKILL.md"
@@ -53,34 +49,14 @@ skill_path="$ROOT/$skill_md"
 
 pass=0 fail=0
 
-# report, plain, records, bullet and says: the helpers the *-recorded.test.sh suites
-# share (issue #225). `bullet` reads "$skill_path"; `says` reads the passage_ globals.
-# shellcheck source=record-helpers.sh
 source "$HERE/record-helpers.sh"
 
-# The three variables, as the regexes that tell them apart. The bare `VERI_MODEL` is
-# bounded on the right, because `veri_model_developer` contains it: without the bound a
-# document that named only the two role variables would read as one that named all three.
 MODEL_ANY='veri_model([^_a-z]|$)'
 MODEL_DEV='veri_model_developer'
 MODEL_VER='veri_model_verifier'
 
-# passage_text / passage_from — the passage a probe last read and the label a failure names
-# it by, filled by the two readers below and read by `names_all_three` and `says`. Globals
-# because bash has no way to hand back a string; the `passage_` prefix is what marks the
-# pair as one thing written by a reader and read by a claim, the convention
-# lane-rule-recorded.test.sh's `section_` pair follows.
 passage_text="" passage_from=""
 
-# need_supervise_bullet — SKILL.md's `supervise.sh` bullet into those globals, or one
-# problem naming it and a non-zero return. The reader and the fail-closed check are one
-# step, and the label and the problem are derived here rather than passed in, so no caller
-# can report a bullet under a name the probe did not read — the shape
-# lane-rule-recorded.test.sh's `need_section` has, for the same reason.
-#
-# Fail closed: an empty string matches no regex, so every fact asked of a bullet that is
-# not there would be reported missing — true, but it names three edits when the repair is
-# that one bullet moved.
 need_supervise_bullet() {
   passage_from="$skill_md's supervise.sh bullet"
   passage_text="$(bullet '^[-*] .*supervise\.sh')"
@@ -89,10 +65,6 @@ need_supervise_bullet() {
   return 1
 }
 
-# need_claude_md_records — all of CLAUDE.md's records into the same globals, for the claims
-# that are about what a document says rather than about where it says it. CLAUDE.md is read
-# whole on purpose: the step asks that the document name the variables and give the reason,
-# not that either sit under a heading this suite picked.
 need_claude_md_records() {
   passage_from="$claude_md"
   passage_text="$(records < "$claude_path")"
@@ -101,29 +73,18 @@ need_claude_md_records() {
   return 1
 }
 
-# names_all_three <what> — the three variables in one record of the passage last read.
-# Written once because both documents owe it and a copy that drifted would leave one of
-# them held to a shorter list than the other.
 names_all_three() {
   local what="$1"
   says "$what — it names no single passage carrying VERI_MODEL, VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER" \
     "$MODEL_ANY" "$MODEL_DEV" "$MODEL_VER"
 }
 
-# probe_skill_bullet_lists_the_tunables — the launcher's bullet is where every leaf tunable
-# is listed, and a fourth axis that is not in that list is one an operator has no way to
-# find: `VERI_HEARTBEAT`, `VERI_TIMEOUT` and `VERI_STUCK_RETRIES` are all read off it.
 probe_skill_bullet_lists_the_tunables() {
   need_supervise_bullet || return
 
   names_all_three "lists the three model tunables beside the ones it already lists"
 }
 
-# probe_claude_md_names_them_and_why — the document an agent reads first, and the two facts
-# it owes: the names, and the reason the developer's and the verifier's are two knobs. The
-# reason is asked in the terms the failure takes — a changed verdict distribution on one
-# side, more revise cycles on the other — because that is what makes the sentence load-
-# bearing rather than a restatement that there happen to be two variables.
 probe_claude_md_names_them_and_why() {
   need_claude_md_records || return
 
@@ -137,11 +98,6 @@ probe_claude_md_names_them_and_why() {
     'revise'
 }
 
-# 1. One criterion, one case: the tunables are documented where they are looked up, with
-#    the reason that keeps them apart. One case rather than three, because a reader given
-#    two of the three names, or the three names without the reason, has been handed the
-#    same unusable record — and the problem lines say which sentence is missing from which
-#    document.
 name="$skill_md's supervise.sh bullet and $claude_md name VERI_MODEL, VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER, and $claude_md says why developer and verifier are separate knobs"
 problems=()
 
@@ -150,26 +106,15 @@ probe_claude_md_names_them_and_why
 
 report "$name"
 
-# 2. The docs-record suites' shared helpers (issue #225): one file under this directory,
-#    named outside make test's `*.test.sh` glob so it is sourced and never run as a suite,
-#    that defines `report` and `plain` behaving the way every *-recorded.test.sh suite's own
-#    copy does. Asked of fixed inputs and outputs rather than of this suite's copy, so the
-#    case still means something once that copy is gone. Run in a subshell with the local
-#    definitions unset first, so a pass is the shared file's answer and never this suite's,
-#    and so its counters and `problems` never touch this suite's own.
 helpers_rel="skills/tdd/scripts/tests/record-helpers.sh"
 helpers_path="$ROOT/$helpers_rel"
 
-# need_helpers_file <helpers> — the shared file is there to source, or one problem naming
-# the helpers a probe went looking for in it and a non-zero return.
 need_helpers_file() {
   [[ -f "$helpers_path" ]] && return 0
   problems+=("$helpers_rel does not exist, so there is no shared $1 to source")
   return 1
 }
 
-# same_as_copies <helpers> <copies> <got> <expected> — what calling the shared <helpers>
-# printed is what <copies> print, or one problem quoting both.
 same_as_copies() {
   [[ "$3" == "$4" ]] && return 0
   problems+=("sourcing $helpers_rel and calling $1 printed:" "$3" "where $2 print:" "$4")
@@ -213,14 +158,6 @@ probe_shared_report_and_plain
 
 report "$name"
 
-# 3. The same shared file also defines `records`, `bullet` and `says` (issue #225), the
-#    three helpers this suite and selection-order-recorded.test.sh carry identical copies
-#    of. Asked the same way as case 2: fixed inputs and the outputs those copies give, in a
-#    subshell with every local definition unset first. `bullet` reads the file named by
-#    `skill_path` and `says` reads `passage_text` / `passage_from`, the globals a sourcing
-#    suite sets, so the probe sets them to fixtures — `skill_path` is /dev/stdin, fed by a
-#    here-string, so no scratch file is left behind (a process substitution is closed
-#    before `bullet` reads it).
 probe_shared_records_bullet_says() {
   need_helpers_file "records, bullet or says" || return
 
@@ -259,25 +196,11 @@ probe_shared_records_bullet_says
 
 report "$name"
 
-# 4. The two suites that carried identical copies of all five helpers now read them from
-#    the shared file (issue #225): each sources record-helpers.sh at its top level and
-#    defines no `report`, `plain`, `records`, `bullet` or `says` of its own, so a fix to the
-#    shared file is the fix every one of them runs. Asked of each suite's source as text,
-#    the way a reader checks it: a top-level `source` or `.` line naming the file, and no
-#    line opening a function by one of the five names. The subshell sources in cases 2 and 3
-#    are indented and name `$helpers_path`, so they answer neither question.
 
-# defines_function <text> <fn> — whether some line of <text> opens a function named <fn>,
-# with or without the `function` keyword.
 defines_function() {
   [[ "$1" =~ (^|$'\n')[[:space:]]*(function[[:space:]]+)?$2[[:space:]]*\(\) ]]
 }
 
-# probe_suite_uses_shared_helpers <stem> <helper>... — one problem when the suite
-# <stem>.test.sh does not source the shared file at its top level, and one per <helper> it
-# still defines itself.
-# Given the stem, not the file name: a sibling suite's name written out in full outside a
-# comment is what no-nested-suites.test.sh reads as launching it, and this only reads it.
 probe_suite_uses_shared_helpers() {
   local suite_rel="skills/tdd/scripts/tests/$1.test.sh" text fn
   shift
@@ -302,14 +225,7 @@ done
 
 report "$name"
 
-# 5. The two suites whose `says` reads a section rather than records carry only `report` and
-#    `plain` as the shared copy (issue #225): each sources record-helpers.sh at its top level
-#    and defines no `report` or `plain` of its own, but still defines its own `says` — sourced
-#    first, a local definition is the one the suite runs, so its different question survives.
-#    Asked of the source as text, as case 4 asks it.
 
-# probe_suite_keeps_own_says <stem> — one problem when the suite <stem>.test.sh no longer
-# opens a `says` function of its own.
 probe_suite_keeps_own_says() {
   local suite_rel="skills/tdd/scripts/tests/$1.test.sh" text
   text="$(cat "$ROOT/$suite_rel" 2>/dev/null)" || return
@@ -327,12 +243,6 @@ done
 
 report "$name"
 
-# 6. The shared file defines all five helpers whatever directory it is sourced from (issue
-#    #225): a file that reached a sibling by a path relative to the working directory would
-#    work from the repo root, where make test runs, and come back short from anywhere else.
-#    Sourced by its absolute path from `/`, which is never the repo root, in a subshell with
-#    every local definition unset first, as cases 2 and 3 do; each helper `declare -F` does
-#    not find there is named.
 probe_shared_helpers_from_elsewhere() {
   need_helpers_file "report, plain, records, bullet or says" || return
 
@@ -359,17 +269,7 @@ probe_shared_helpers_from_elsewhere
 
 report "$name"
 
-# 7. Each of the four suites reaches the shared file by a path built from its own location
-#    (issue #225), and still prints its own count line. Asked of each suite's source as
-#    text, as cases 4 and 5 ask it: the top-level `source` or `.` line names
-#    record-helpers.sh under a variable, and that variable is assigned at top level from the
-#    suite's own path (`$0` or `BASH_SOURCE`) — a bare or working-directory-relative name
-#    would work from the repo root and nowhere else. And a line echoing the suite's own
-#    `$pass passed, $fail failed`, the count line make test's recipe waits for.
 
-# probe_suite_resolves_helpers_from_itself <stem> — one problem when the suite
-# <stem>.test.sh sources the shared file by a path not derived from its own location, and
-# one when it prints no count line of its own.
 probe_suite_resolves_helpers_from_itself() {
   local suite_rel="skills/tdd/scripts/tests/$1.test.sh" text var
   if ! text="$(cat "$ROOT/$suite_rel" 2>/dev/null)"; then
@@ -396,13 +296,6 @@ done
 
 report "$name"
 
-# 8. The shared file keeps the plain-shell idiom and brings in nothing from outside the repo
-#    (issue #225). Sourced in a subshell whose PATH names no directory, over counters a
-#    suite already moved: sourcing it prints nothing, fails nothing, leaves `pass` and
-#    `fail` where the suite put them — the counters and the count line stay the suite's —
-#    and defines no function but the five, which is what a test framework would add. And
-#    each of the four suites still sets its own `pass=0 fail=0` at top level, and every
-#    top-level `source` or `.` line it has names a path under its own `$HERE` or `$ROOT`.
 probe_shared_helpers_plain_shell() {
   need_helpers_file "report, plain, records, bullet or says" || return
 
@@ -413,7 +306,6 @@ probe_shared_helpers_plain_shell() {
     pass=3 fail=5
     out="$(
       PATH="/nonexistent-$$"
-      # shellcheck source=/dev/null
       source "$helpers_path" 2>&1
       printf 'status %s\n' "$?"
     )"

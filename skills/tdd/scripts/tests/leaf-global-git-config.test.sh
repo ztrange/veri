@@ -25,9 +25,6 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 LEAF="$HERE/../run-leaf.sh"
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which half of the criterion broke rather than just that it did.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -44,10 +41,6 @@ work="$(mktemp -d)"
 home="$(mktemp -d)"
 trap 'rm -rf "$stubdir" "$work" "$home"' EXIT
 
-# The stub `claude` is the leaf that misbehaves: it writes a key with
-# `git config --global` and reads it straight back, reporting what it saw in the
-# stream-json result event run-leaf appends via extract-result.sh. Both halves of the
-# criterion are observable from outside — the file on disk, and this line of output.
 cat > "$stubdir/claude" <<'STUB'
 #!/bin/sh
 git config --global veri.probe wrote-it 2>/dev/null || true
@@ -58,32 +51,16 @@ printf '{"type":"result","subtype":"success","is_error":false,"result":"read-bac
 STUB
 chmod +x "$stubdir/claude"
 
-# The operator's global config as it stands at launch. A real one is never empty, so the
-# probe is a file with content: a truncation, an appended section and a rewritten file all
-# have to show up as a difference, and only a byte-for-byte comparison catches all three.
 printf '[user]\n\tname = Operator\n' > "$home/.gitconfig"
 cp "$home/.gitconfig" "$work/gitconfig.before"
 
 printf 'Write the failing test for issue 276.' > "$work/prompt.txt"
 
-# launch_leaf <stub> — run run-leaf.sh with <stub> as the leaf's `claude`, printing its
-# output. `HOME` is the operator here: the suite must never write the machine's real
-# ~/.gitconfig, which is the very accident this issue is about, and `env -u` clears an
-# ambient GIT_CONFIG_GLOBAL so the answer is a fact about run-leaf.sh rather than about
-# the shell that ran the suite (hermetic-suites.test.sh's concern). XDG_CONFIG_HOME is
-# pointed inside the sandbox for the same reason — git falls back to it for --global
-# writes, so leaving the operator's own would aim a misbehaving leaf at it.
 launch_leaf() {
   ( cd "$work" && env -u GIT_CONFIG_GLOBAL HOME="$home" XDG_CONFIG_HOME="$home/.config" \
       CLAUDE_BIN="$1" "$LEAF" "$work/prompt.txt" 2>&1 )
 }
 
-# 1. Criterion 1. The leaf's `git config --global` must be private to the leaf, which is
-#    two facts and not one: the operator's file is untouched, AND the leaf reads its own
-#    write back. Either alone is satisfiable the wrong way — a run-leaf that pointed
-#    GIT_CONFIG_GLOBAL at /dev/null or an unwritable path would leave the operator's file
-#    perfect while silently breaking every leaf that legitimately configures git for
-#    itself, and a leaf that read the value back proves nothing about where it landed.
 name="a leaf's git config --global leaves the operator's global config byte-identical and the leaf reads the value back"
 problems=()
 out="$(launch_leaf "$stubdir/claude")"
@@ -93,12 +70,6 @@ cmp -s "$work/gitconfig.before" "$home/.gitconfig" ||
   problems+=("want the leaf to read its own write back (read-back: wrote-it), got: $(printf '%q' "$out")")
 report "$name"
 
-# 2. Criterion 2. Private must not mean empty: the leaf's copy starts as the operator's
-#    global config, so what the operator configured for git — a credential helper,
-#    `url.*.insteadOf` — still works inside the leaf. A run-leaf that handed every leaf a
-#    blank file would pass case 1 while breaking every authenticated push a leaf makes.
-#    The probe is a key the operator's file holds and the leaf only reads, so the answer
-#    is about what the copy started with, not about what the leaf wrote into it.
 cat > "$stubdir/claude-reader" <<'STUB'
 #!/bin/sh
 seen="$(git config --global --get credential.helper 2>/dev/null)" || seen="<unset>"
