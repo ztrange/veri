@@ -13,7 +13,7 @@ Scope: every shell file under `skills/tdd/scripts/tests/` — the `*.sh` files (
 - [x] The sweepable report is empty for every top-level `tests/*.sh` whose name starts with n through r ⟦criterion 1⟧
 - [x] The sweepable report is empty for `tests/supervise.test.sh` and `tests/supervise-retry.test.sh` ⟦criterion 1⟧
 - [x] The sweepable report is empty for every top-level `tests/*.sh` whose name starts with s, other than the `skill-*` and `supervise*` files ⟦criterion 1⟧
-- [x] The sweepable report is empty for every top-level `tests/*.sh` whose name starts with t through z ⟦criterion 1⟧ ⟂ refactor pending
+- [x] The sweepable report is empty for every top-level `tests/*.sh` whose name starts with t through z ⟦criterion 1⟧
 - [ ] The sweepable report is empty for every `tests/skill-*.test.sh` whose name after `skill-` starts with a through l ⟦criterion 1⟧
 - [ ] The sweepable report is empty for every `tests/skill-*.test.sh` whose name after `skill-` starts with m through z ⟦criterion 1⟧
 - [ ] The sweepable report is empty for every shell file under `tests/unit/` and `tests/fixtures/`, and for `tests/unit-guard/git` and `tests/offline/gh` ⟦criterion 1⟧
