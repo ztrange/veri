@@ -384,5 +384,13 @@ got="$(waited pendingstatus 60 60 "$sha")"
 [[ "$got" == 3 ]] || problems+=("status pending for $sha, its own check runs success: want exit 3, got $got (stderr: $(cat "$work/pendingstatus.err"))")
 report "$name"
 
+name="wait-ci.sh exits 3, never 0, while the sha has no check runs and no statuses yet, even when the PR rollup reads all green (#552)"
+problems=()
+sha_head nonesha.json
+sha_runs nonesha.json
+got="$(waited nonesha 60 60 "$sha")"
+[[ "$got" == 3 ]] || problems+=("rollup green for $sha, no check runs and no statuses of its own: want exit 3, got $got (stderr: $(cat "$work/nonesha.err"))")
+report "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
