@@ -23,17 +23,18 @@ fi
 
 awk -v sweepable="$sweepable" '
   BEGIN { writer = "\\|[[:space:]]*(tee|dd|sponge)[[:space:]]"; name = "[A-Za-z_][A-Za-z0-9_]*" }
+  function pop() { q = substr(q, 1, length(q) - 1) }
   function scan(s,   i, c, t) {
     for (i = 1; i <= length(s); i++) {
       c = substr(s, i, 1); t = substr(q, length(q))
-      if (t == "\047") { if (c == "\047") q = substr(q, 1, length(q) - 1); continue }
+      if (t == "\047") { if (c == "\047") pop(); continue }
       if (c == "\\") { i++; continue }
       if (t == "\"") {
-        if (c == "\"") q = substr(q, 1, length(q) - 1)
+        if (c == "\"") pop()
         else if (c == "$" && substr(s, i + 1, 1) == "(") { q = q "("; i++ }
         continue
       }
-      if (t == "(" && c == ")") { q = substr(q, 1, length(q) - 1); continue }
+      if (t == "(" && c == ")") { pop(); continue }
       if (t == "(" && c == "(") { q = q "("; continue }
       if (c == "#" && substr(s, i - 1, 1) ~ /[[:space:]]/) return
       if (c == "\047" || c == "\"") q = q c
