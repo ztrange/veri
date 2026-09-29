@@ -1,2 +1,5 @@
 ### a projects/docs/Makefile exists, so the copied scripts and suites that call make from projects/docs/ resolve ⟦added⟧ ⟦criterion 1⟧
 - make the guard a shared prerequisite instead of repeating `@$(DEV_RUN_GUARD)` in `docs`, `test` and `fresh`. No test requires it, so I left it.
+### the seven pipeline suites (build-guards, commentary-figures, docs-guard-filter, docs-owed, generator-inputs, lane-insulation, merge-gates) are copied to projects/docs/tests/ naming projects/docs/… paths, and each ends in its `<n> passed, 0 failed` count line when run directly, with the ADR suites and suite-lanes not copied ⟦criterion 1⟧
+- `projects/docs/Makefile` `test` recipe repeats the root Makefile's count-line loop. Merging them would edit the root Makefile, which this issue puts out of scope, so it belongs to the removal issue.
+- `check-walkthrough.py` still spells `docs/walkthrough.html` in its stale message and in `merge-gates.sh`'s hook text. I only compared the diffs against `docs/`, not the whole files, so I don't know how many other places there are.
