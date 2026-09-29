@@ -451,4 +451,7 @@ sweep_verdict "the sweepable report is empty for tests/unit/red-divergence.test.
 # 44. the sweepable report is empty for tests/unit/run-affordable.test.sh.
 sweep_verdict "the sweepable report is empty for tests/unit/run-affordable.test.sh" "$SCRIPTS"/tests/unit/run-affordable.test.sh
 
+# 45. the sweepable report is empty for tests/unit/step-budget.test.sh and tests/unit/step-cost.test.sh.
+sweep_verdict "the sweepable report is empty for tests/unit/step-budget.test.sh and tests/unit/step-cost.test.sh" "$SCRIPTS"/tests/unit/step-budget.test.sh "$SCRIPTS"/tests/unit/step-cost.test.sh
+
 finish
