@@ -96,6 +96,28 @@ refactor-budget-assignment|skills/tdd/scripts/refactor-budget.sh|VERI_REFACTOR_B
 SITES
 report "$name"
 
+# --- no chunk claims a line past the end of its script (#533) -------------------------
+name="#533 no chunk in docs/wt/commentary.py claims a line past the end of its script"
+
+problems=()
+while read -r script first last; do
+  path="$ROOT/skills/tdd/scripts/$script"
+  if [[ ! -f "$path" ]]; then
+    problems+=("$COMMENTARY: chunk L$first-L$last names $script, which is not under skills/tdd/scripts/")
+    continue
+  fi
+  total="$(awk 'END { print NR }' "$path")"
+  if [[ "$last" -gt "$total" ]]; then
+    problems+=("$script: chunk L$first-L$last in $COMMENTARY runs past the script's $total lines")
+  fi
+done < <(awk '
+  /^    file="/ { match($0, /"[^"]+"/); file = substr($0, RSTART + 1, RLENGTH - 2) }
+  match($0, /lines=\([0-9]+, *[0-9]+\)/) {
+    range = substr($0, RSTART, RLENGTH); gsub(/[^0-9,]/, "", range)
+    split(range, ab, ","); print file, ab[1], ab[2]
+  }' "$ROOT/$COMMENTARY")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
