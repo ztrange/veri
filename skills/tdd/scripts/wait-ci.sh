@@ -26,6 +26,7 @@ poll="${VERI_POLL:-10}"
 deadline=""
 inherited=""
 slice_end=""
+passing="success neutral skipped"
 
 rollup_state() {
   local doc
@@ -43,12 +44,12 @@ def outcome(r):
 outcomes = [outcome(r) for r in rows]
 if not rows or None in outcomes or all(o == "SKIPPED" for o in outcomes):
     state = "pending"
-elif all(o in ("SUCCESS", "NEUTRAL", "SKIPPED") for o in outcomes):
+elif all(o in sys.argv[2].upper().split() for o in outcomes):
     state = "green"
 else:
     state = "red"
 print(state, doc.get("headRefOid") or "")
-' "$doc"
+' "$doc" "$passing"
 }
 
 sha_state() {
@@ -65,7 +66,7 @@ statuses = json.loads(sys.argv[2]).get("statuses") or []
 pages = pages if isinstance(pages, list) else [pages]
 runs = [r for p in pages for r in p.get("check_runs") or []]
 outcomes = [r.get("conclusion") if r.get("status") == "completed" else None for r in runs]
-if any(o is not None and o not in ("success", "neutral", "skipped") for o in outcomes) \
+if any(o is not None and o not in sys.argv[3].split() for o in outcomes) \
         or any(s.get("state") in ("failure", "error") for s in statuses):
     print("red")
 elif None in outcomes or all(o == "skipped" for o in outcomes) \
@@ -73,7 +74,7 @@ elif None in outcomes or all(o == "skipped" for o in outcomes) \
     print("pending")
 else:
     print("green")
-' "$runs" "$statuses"
+' "$runs" "$statuses" "$passing"
 }
 
 while :; do
