@@ -51,10 +51,20 @@ print(state, doc.get("headRefOid") or "")
 ' "$doc"
 }
 
+sha_state() {
+  local repo
+  repo="${pr#https://github.com/}"; repo="${repo%/pull/*}"
+  gh api "repos/$repo/commits/$1/check-runs" > /dev/null || return 2
+  echo pending
+}
+
 while :; do
   read -r state head < <(rollup_state) && [[ -n "$head" ]] \
     || { echo "wait-ci.sh: could not read the checks of $pr" >&2; exit 2; }
   [[ -n "$want" && "$head" != "$want" ]] && state=pending
+  if [[ -n "$want" && "$state" == green ]]; then
+    state="$(sha_state "$want")" || { echo "wait-ci.sh: could not read the checks of $want" >&2; exit 2; }
+  fi
   case "$state" in
     green) exit 0 ;;
     red) exit 1 ;;

@@ -40,6 +40,10 @@ case "$*" in
     echo >> "$ROLLUP.calls"
     n="$(wc -l < "$ROLLUP.calls" | tr -d ' ')"
     if [ -f "$ROLLUP.$n" ]; then cat "$ROLLUP.$n"; else cat "$ROLLUP"; fi ;;
+  "api repos/o/r/commits/"*/check-runs)
+    if [ -n "${GH_API_FAIL:-}" ]; then echo '{"message":"Not Found"}'; echo "gh: Not Found (HTTP 404)" >&2; exit 1; fi
+    cat "$ROLLUP.check-runs" ;;
+  "api repos/o/r/commits/"*/status) cat "$ROLLUP.status" ;;
   *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
 esac
 G
@@ -230,6 +234,25 @@ got="$(waited stateless)"
 reads="$(wc -l < "$work/stateless.json.calls" | tr -d ' ')"
 [[ "$got" == 2 ]] || problems+=("StatusContext with no state: want exit 2, got $got (stderr: $(cat "$work/stateless.err"))")
 [[ "$reads" == 1 ]] || problems+=("StatusContext with no state: want 1 read of the checks, got $reads")
+report "$name"
+
+name="wait-ci.sh exits 3 while the sha's own check runs are still in progress, even when the PR already reports that sha as its head and its rollup still shows a previous head's green (#552)"
+problems=()
+sha=89abcdef0123456789abcdef0123456789abcdef
+rollup race.json "$(check COMPLETED SUCCESS)" "$sha"
+printf '{"total_count":1,"check_runs":[{"name":"gates","head_sha":"%s","status":"in_progress","conclusion":null}]}\n' "$sha" > "$work/race.json.check-runs"
+printf '{"state":"pending","sha":"%s","total_count":0,"statuses":[]}\n' "$sha" > "$work/race.json.status"
+got="$(waited race 60 60 "$sha")"
+[[ "$got" == 3 ]] || problems+=("rollup green for $sha, its own check run in_progress: want exit 3, got $got (stderr: $(cat "$work/race.err"))")
+report "$name"
+
+name="wait-ci.sh exits 2 naming the sha when gh cannot read that sha's own check runs, even though gh printed a body (#552)"
+problems=()
+rollup unread.json "$(check COMPLETED SUCCESS)" "$sha"
+got="$(GH_API_FAIL=1 waited unread 60 60 "$sha")"
+[[ "$got" == 2 ]] || problems+=("gh api check-runs failed: want exit 2, got $got (stderr: $(cat "$work/unread.err"))")
+grep -F "could not read the checks of $sha" "$work/unread.err" > /dev/null \
+  || problems+=("gh api check-runs failed: want stderr naming $sha, got: $(cat "$work/unread.err")")
 report "$name"
 
 echo "$pass passed, $fail failed"
