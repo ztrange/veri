@@ -1301,7 +1301,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      post a `### ✅ Step done` comment, then ask whether the step's criterion is finished
      (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`, k from the step's `⟦criterion k⟧`):
      on exit **0** tick it in the **issue body** (`$S/tick-issue-criterion.sh <n>
-     "$(gh issue view <n> --json body -q .body | sed -n '/^## Acceptance criteria/,/^## /s/^[[:space:]]*- \[[ x]\] //p' | sed -n '<k>p')"`, the human mirror); on exit **3** tick nothing, since a step serving it is
+     "$(gh issue view <n> --json body -q .body | sed -n '/^## Acceptance criteria/,/^## /p' | $S/ledger-steps.sh | sed -n '<k>p' | cut -f7-)"`, the human mirror); on exit **3** tick nothing, since a step serving it is
      still open or pending. Mark
      the same moment in the log —
      `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(sed -n 's/^[[:space:]]*- \[x\] //p' .tdd/issue-<n>.md | tail -1)" $S/event.sh step-done`.
@@ -1365,7 +1365,7 @@ branch, this step's own run otherwise. Tick each with `tick-ledger.sh`, handed t
 matcher `'⟦full-suite⟧'` and called again until it exits 3, and without `--refactor-pending`,
 so the line carries no refactor-pending mark (it has no refactor loop to clear one); for each
 line's `⟦criterion k⟧` tick the issue criterion it finishes (`$S/tick-issue-criterion.sh <n>
-"$(gh issue view <n> --json body -q .body | sed -n '/^## Acceptance criteria/,/^## /s/^[[:space:]]*- \[[ x]\] //p' | sed -n '<k>p')"`),
+"$(gh issue view <n> --json body -q .body | sed -n '/^## Acceptance criteria/,/^## /p' | $S/ledger-steps.sh | sed -n '<k>p' | cut -f7-)"`),
 and commit the ledger before sub-step 2. A red run ticks nothing: never tick a `⟦full-suite⟧` line after a
 red full-suite run, whatever an earlier run said.
 
@@ -1606,7 +1606,7 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
   Then **mirror**: post a `### 📌 Already satisfied — <STEP>` comment carrying the
   verifier's reason, ask whether the step's criterion is finished
   (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`) and on exit **0** tick it in the
-  **issue body** (`$S/tick-issue-criterion.sh <n> "$(gh issue view <n> --json body -q .body | sed -n '/^## Acceptance criteria/,/^## /s/^[[:space:]]*- \[[ x]\] //p' | sed -n '<k>p')"`) — on exit **3** tick
+  **issue body** (`$S/tick-issue-criterion.sh <n> "$(gh issue view <n> --json body -q .body | sed -n '/^## Acceptance criteria/,/^## /p' | $S/ledger-steps.sh | sed -n '<k>p' | cut -f7-)"`) — on exit **3** tick
   nothing — and mark it in the log —
   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(sed -n 's/^[[:space:]]*- \[x\] //p' .tdd/issue-<n>.md | tail -1)" VERI_PHASE=pin $S/event.sh pin`.
   The step is **done** — **no Green and no Refactor**, since there is no new production
