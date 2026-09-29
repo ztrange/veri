@@ -70,6 +70,28 @@ printf '%s\n' "$out" | grep -Fx 'unlisted: orphan.sh' > /dev/null ||
   problems+=("want a line 'unlisted: orphan.sh'; got: $out")
 report
 
+name="docs-owed.sh exits 3 with no output when every script on disk is listed in commentary.SCRIPTS and covered"
+repo="$tmp/r3"
+git init -q "$repo"
+git -C "$repo" config user.email t@example.com
+git -C "$repo" config user.name t
+mkdir -p "$repo/projects/docs/wt" "$repo/skills/tdd/scripts"
+cp "$SCRIPT" "$repo/projects/docs/docs-owed.sh"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$repo/skills/tdd/scripts/covered.sh"
+git -C "$repo" add -A
+git -C "$repo" commit -q -m script
+echo '<html></html>' > "$repo/projects/docs/walkthrough.html"
+printf 'import sys\n' > "$repo/projects/docs/build-walkthrough.py"
+printf 'SCRIPTS = [{"file": "covered.sh"}]\n' > "$repo/projects/docs/wt/commentary.py"
+git -C "$repo" add -A
+git -C "$repo" commit -q -m page
+out="$(cd "$repo" && bash projects/docs/docs-owed.sh 2>&1)"
+rc=$?
+problems=()
+[[ "$rc" -eq 3 ]] || problems+=("want exit 3, got $rc; got: $out")
+[[ -z "$out" ]] || problems+=("want no output; got: $out")
+report
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
