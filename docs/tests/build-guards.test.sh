@@ -2766,7 +2766,7 @@ commentary owed' \
 #     finding them proves the gap cost the reader no source.
 owes "an interior gap is owed with its own range" \
   '<span class="l"><span class="k">case</span> <span class="s">"</span><span class="v">$cause</span><span class="s">"</span> <span class="k">in</span></span>
-<span class="l">  killed-stuck | no-verdict)</span>
+<span class="l">'"$(sed -n 13p "$SAMPLE_SCRIPT")"'</span>
 commentary owed' \
   "owed: classify-bail.sh L12–13" \
   bash -c 'sed_commentary "s/lines=(12, 18)/lines=(14, 18)/"'
