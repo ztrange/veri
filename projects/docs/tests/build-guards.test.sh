@@ -2787,6 +2787,19 @@ commentary owed' \
   "owed: unlisted-probe.sh L1–3" \
   bash -c 'printf "#!/usr/bin/env bash\n# an unlisted probe line\nexit 0\n" > skills/tdd/scripts/unlisted-probe.sh'
 
+# 3f. and that script is counted: the masthead's script and line totals, its row in the upkeep
+#     table and its link in the rail all include it. The totals are read off the disk this
+#     tree ships plus the probe's three lines, not off the page.
+disk_scripts=$(ls "$ROOT"/skills/tdd/scripts/*.sh | wc -l | tr -d ' ')
+disk_lines=$(cat "$ROOT"/skills/tdd/scripts/*.sh | wc -l | tr -d ' ')
+owes "an unlisted script is counted in the masthead, the upkeep table and the rail" \
+  '<span><b>'"$((disk_scripts + 1))"'</b> scripts</span>
+<span><b>'"$((disk_lines + 3))"'</b> lines, all shown</span>
+<tr><td><a href="#unlisted-probe"><code>unlisted-probe.sh</code></a></td><td class="num">3</td>
+<a href="#unlisted-probe"><span class="mono">unlisted-probe.sh</span></a>' \
+  "" \
+  bash -c 'printf "#!/usr/bin/env bash\n# an unlisted probe line\nexit 0\n" > skills/tdd/scripts/unlisted-probe.sh'
+
 # 4. unknown-reference guard — a typo'd id must not become a dead tooltip
 refuses "unknown reference id is refused" "unknown primer ref" \
   bash -c 'sed_commentary "s/{{p-strict|set -euo pipefail}}/{{p-stirct|set -euo pipefail}}/"'
