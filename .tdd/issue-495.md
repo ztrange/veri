@@ -16,7 +16,7 @@
 - [x] `criterion-finished.sh` sources `lib/ledger.sh` and decides from its step records whether criterion k is finished, spelling neither a checkbox pattern nor the mark of its own, with its exit codes unchanged (its existing suite passes unmodified) ⟦criterion 3⟧
 - [x] `criterion-finished.sh <k>` exits 3 for a ticked step that carries no criterion tag, even when its text is `k` — a `ledger_steps` record with an empty field is split without collapsing adjacent tabs ⟦added⟧ ⟦criterion 3⟧
 - [x] `tick-criterion.sh` sources `lib/ledger.sh` and ticks through `ledger_tick`, spelling no checkbox pattern of its own, with its stdout and exit codes unchanged (its existing suite passes unmodified) ⟦criterion 3⟧
-- [x] the step-line grammar in `lib/ledger.sh` accepts any whitespace (a tab included) between the dash and the box, and a box with no text after it, so `tick-criterion.sh` still ticks `-<TAB>[ ] text` and a bare `- [ ]` as it did before the migration — pinned in `tests/unit/ledger.test.sh` ⟦added⟧ ⟦criterion 3⟧ ⟂ refactor pending
+- [x] the step-line grammar in `lib/ledger.sh` accepts any whitespace (a tab included) between the dash and the box, and a box with no text after it, so `tick-criterion.sh` still ticks `-<TAB>[ ] text` and a bare `- [ ]` as it did before the migration — pinned in `tests/unit/ledger.test.sh` ⟦added⟧ ⟦criterion 3⟧
 - [ ] `tick-ledger.sh` sources `lib/ledger.sh` and appends the pending mark through `ledger_tick … pending`, spelling no mark literal of its own, with the file it writes and its exit codes unchanged (its existing suite passes unmodified) ⟦criterion 3⟧
 - [ ] `clear-refactor-pending.sh` sources `lib/ledger.sh` and strips the mark through `ledger_clear_pending`, spelling neither a checkbox pattern nor the mark of its own, with the file it writes and its exit codes unchanged (its existing suite passes unmodified) ⟦criterion 3⟧
 - [ ] `preserve-attempt.sh` sources `lib/ledger.sh` and finds the step it names through `ledger_steps`, spelling no checkbox pattern of its own (the `box_re` at `preserve-attempt.sh:37` gone), with its output and exit codes unchanged (its existing suite passes unmodified) ⟦criterion 3⟧
@@ -38,3 +38,7 @@
 ## Owed steps
 
 - `ledger_add_step <text> <k>` on a document holding no step line appends the new step line at the end of the document rather than writing nothing — pinned in `tests/unit/ledger.test.sh`
+
+## Owed steps
+
+- `tick-criterion.sh` still ticks a box followed directly by text or a tab (`- [ ]text`, `- [ ]<TAB>text`), as its pre-migration awk did
