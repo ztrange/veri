@@ -6,7 +6,7 @@
 - [x] capture-spec.sh prints the same spec and exit code under the GraphQL-refusing stub as it does today against a working `gh`, reading the issue over REST ⟦criterion 1⟧
 - [x] solvable-issues.sh, run with no arguments under the GraphQL-refusing gh stub (which answers only `gh api` REST calls under `repos/{owner}/{repo}/`), prints the same issue numbers and exit code as it does against a working `gh` ⟦added⟧ ⟦criterion 1⟧
 - [x] solvable-issues.sh --repo owner/name, run under the GraphQL-refusing gh stub, reads that named repository's issues and pull requests over REST (the stub answers only `repos/owner/name/...` paths) and prints the same issue numbers and exit code as it does against a working `gh` ⟦added⟧ ⟦criterion 1⟧
-- [x] solvable-issues.sh writes nothing to stderr under the GraphQL-refusing gh stub, the same as against a working `gh`: the GraphQL-403 refusal message is not passed through to the caller ⟦added⟧ ⟦criterion 1⟧ ⟂ refactor pending
+- [x] solvable-issues.sh writes nothing to stderr under the GraphQL-refusing gh stub, the same as against a working `gh`: the GraphQL-403 refusal message is not passed through to the caller ⟦added⟧ ⟦criterion 1⟧
 - [ ] workqueue.sh produces the same stdout and exit code under the GraphQL-refusing stub as it does today against a working `gh` ⟦criterion 1⟧
 - [ ] tick-issue-criterion.sh ticks the issue body's criterion and exits as today under the GraphQL-refusing stub, reading and writing the body over REST ⟦criterion 1⟧
 - [ ] coverage-blocker.sh files the coverage issue and records the block, with the same stdout and exit code, under the GraphQL-refusing stub ⟦criterion 1⟧
