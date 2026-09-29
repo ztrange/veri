@@ -298,23 +298,6 @@ dirty_after="$(git_q "$clone" status --porcelain --untracked-files=no)"
   && ok || no "creating the issue branch leaves the local default branch ref and the caller's working tree untouched (exit=$code want 0, stdout='$out' want '$want', refs/heads/main='$main_after' want the clone's own $main_before not origin's $remote_tip, HEAD='$head_after' want '$head_before', current branch='$branch_after' want '$branch_before', tracked files $( [[ -z "$dirty_after" ]] && echo "clean, good" || echo "modified:
 $dirty_after" ), landed.txt $( [[ -e "$clone/landed.txt" ]] && echo "was written into the caller's checkout" || echo "absent, good" ))"
 
-# 15. the new issue branch has no upstream (issue #174).
-#
-# Cutting from `origin/<default>` — what cases 13 and 14 pin — is exactly the shape git reads as
-# "and you presumably want to track it": with branch.autoSetupMerge at its default, a branch
-# created from a remote-tracking ref comes out with branch.<name>.remote/.merge already written,
-# so `tdd/<n>-<slug>` would arrive tracking the default branch. A bare `git pull` in the issue
-# worktree would then pull the default branch into the issue branch, and a bare `git push` would
-# aim at the default branch on the remote. The branch that carries a PR must point nowhere by
-# itself.
-#
-# This is a cost of the fix and not of the old behaviour: cutting from a *local* `main` set up no
-# tracking at all, so the tracking arrives with the remote base and has to be turned off with it.
-#
-# The seed is the upstream+clone pair cases 13 and 14 use, which is what makes `origin/main` the
-# base at all — against a repo with no remote the local fallback is taken and the assertion could
-# not fail. The assertion is git's own answer for the branch's upstream (`%(upstream:short)`,
-# which is what `git pull` and `git push` consult), and it must be empty.
 upstream="$work/no-tracking-upstream"
 make_repo "$upstream"
 clone="$work/no-tracking-clone"
@@ -328,31 +311,6 @@ tracks="$(git_q "$clone" for-each-ref --format='%(upstream:short)' refs/heads/td
 { [[ "$code" == 0 ]] && [[ "$out" == "$want" ]] && [[ -z "$tracks" ]]; } \
   && ok || no "the new issue branch has no upstream (exit=$code want 0, stdout='$out' want '$want', tdd/39-no-upstream's upstream=$( [[ -z "$tracks" ]] && echo "none, good" || echo "'$tracks' want none" ))"
 
-# 16. the fetch fails — the remote is unreachable — so the script refuses rather than falling back
-# to the stale local branch (issue #174).
-#
-# This is the failure path of cases 13–15. `refs/remotes/origin/main` is still there in the clone
-# and still points at the tip the clone was taken at, so a script that shrugged off `git fetch`'s
-# exit code would carry on and cut the branch from that ref: exit 0, a worktree, and a base that is
-# silently as stale as the local `main` the fetch was added to get away from. Whether the run is
-# built on the remote's tip would then depend on whether the network happened to be up, which is
-# the one thing a base must not depend on. Exit 2, "no answer could be obtained" — the remote we
-# were told to cut from could not be read, which is plumbing broken before any TDD cycle starts.
-#
-# The seed is the upstream+clone pair of cases 13–15 with the upstream deleted after the clone is
-# taken: origin/HEAD and origin/main survive in the clone (so the remote arm is genuinely the one
-# taken, not the local fallback), and the path they point at no longer exists, so `git fetch origin
-# main` comes back 128. Deleting the directory rather than pointing origin at a bad URL keeps the
-# clone's own refs exactly as a working clone's are.
-#
-# Four things asserted together, the way case 8 asks them, because a refusal that still printed a
-# path or still cut a branch would be worse than a crash: exit 2, nothing on stdout (the caller
-# `cd`s into whatever that line says), a diagnostic on stderr naming the fetch — git's own failure
-# text says "Could not read from remote repository" and never the word, so this pins the script's
-# own message and distinguishes the refusal from case 8's "default branch" — and git's registry
-# byte-identical either side, which is where a stray `tdd/41-...` branch would show up. The
-# worktree path's absence from disk is asserted too, since a directory git never registered would
-# not appear in the snapshot.
 upstream="$work/unreachable-upstream"
 make_repo "$upstream"
 clone="$work/unreachable-clone"
@@ -374,27 +332,6 @@ $before
 --- after
 $after" ))"
 
-# 17. the repository has no remote at all — the fetch arm is not reached and the branch is still
-# cut from the local default branch (issue #174).
-#
-# Cases 1 and 7 pin *which* local branch the fallback picks, `main` and `master`, and they were
-# written when that was the only arm there was. What neither of them can see is the half #174 added
-# beside it: the remote arm now runs `git fetch origin <default>` before cutting, and turns a failed
-# fetch into a refusal. A guard written the wrong way round — fetch first and fall back only when it
-# fails, or fetch whenever a remote is merely configured — reaches the network in a repository that
-# has none, and the answer it cuts from then depends on what the network said.
-#
-# The seed is a make_repo repo with no remote whose checkout is parked on a `side` branch one commit
-# ahead of `main`, the same guard case 1 uses: with the checkout sitting on `main` itself, "cut from
-# main" and "cut from whatever HEAD was" would be the same commit and the tip assertion would prove
-# nothing.
-#
-# Two things asserted together, because "the local branch, and nothing went to the remote for it" is
-# one criterion and neither half carries it alone: the new worktree's HEAD is the local `main`'s tip,
-# and stderr is silent. That second half is what makes this case catch what cases 1 and 7 cannot —
-# both of them send stderr to /dev/null, so a fetch attempted and then shrugged off (`|| true`, a
-# warning, a fall-through) leaves them green while the script has gone to the network for an answer
-# it did not need. git's own complaint about a remote that is not configured goes to stderr, so
 repo="$work/no-remote"
 make_repo "$repo"
 main_tip="$(git_q "$repo" rev-parse main)"

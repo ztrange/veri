@@ -246,7 +246,6 @@ run_case "every leaf $skill_md launches through supervise.sh sees the run's test
 check_verifier_launch() {
   local launch="$1" clean phase spec subject
   clean="$(sed -E "s/ --(step|fast-cmd) ('[^']*'|\"[^\"]*\")//g" <<< "$launch")"
-  # The launcher's three positionals in one read of the words that follow it: the phase, the
   read -r phase spec subject _ <<< "${clean#*run-verdict.sh }"
   expect_sentinel "verify-$phase" "$launch" "$spec" "$subject"
 }

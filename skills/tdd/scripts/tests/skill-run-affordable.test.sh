@@ -60,8 +60,6 @@ else
   elif (( call_at < commit_at )); then
     problems+=("\$S/run-affordable.sh is called at line $call_at of the cycle loop, before the step's ledger commit at line $commit_at")
   fi
-  # The call and the text that answers it: from a few lines before the call (where the count
-  # may be computed) to the end of the cycle loop.
   from=$(( call_at > 5 ? call_at - 5 : 1 ))
   around="$(sed -n "${from},\$p" <<<"$loop" | plain)"
   for probe in 'next-unchecked.sh' 'exit 1' 'park' 'spent' 'steps remaining' 'median' \
@@ -73,14 +71,12 @@ else
 fi
 report "$name"
 
-# 2. The step boundary also answers run-affordable.sh's exit 3 and exit 2.
 name="$skill_md says what the step boundary does when run-affordable.sh exits 3 (no full step done yet, carry on) or exits 2 (no answer could be obtained)"
 problems=()
 
 if [[ -z "$call_at" ]]; then
   problems+=("the cycle loop has no \$S/run-affordable.sh call")
 else
-  # The boundary: from the call to the next verdict bullet, which belongs to verify-refactor.
   boundary="$(awk '/^[[:space:]]*- \*\*REJECT/ { exit } { print }' <<<"$after_call" | plain)"
   for probe in 'exit 3' 'no full step' 'exit 2' 'no answer'; do
     [[ "$boundary" == *"$probe"* ]] ||
@@ -89,14 +85,12 @@ else
 fi
 report "$name"
 
-# 3. The affordability park is not a bail, and classify-bail.sh is not called on it.
 name="$skill_md says an affordability park on run-affordable.sh exit 1 is not a bail and that classify-bail.sh is not called on it"
 problems=()
 
 if [[ -z "$call_at" ]]; then
   problems+=("the cycle loop has no \$S/run-affordable.sh call")
 else
-  # The park: from the exit 1 answer after the call up to the exit 2 answer, which is a bail.
   park="$(plain <<<"$after_call" |
     awk '/on exit 1/ { inside = 1 } /on exit 2/ { exit } inside')"
   if [[ -z "$park" ]]; then

@@ -182,16 +182,9 @@ else
     problems+=("$skill_md's refactor loop calls refactor-triage.sh (line $triage_at of the section) before it commits the transform (line $commit_at), so the report is triaged against a transform that is not in the history yet")
   fi
 
-  # The call and the 250 characters after it, one window per mention: the text a reader meets
-  # while working out what to do with each answer. Newlines go first so a sentence that wraps
-  # is still one window. 250 rather than a rounder, larger number because BSD grep — the one
-  # on the development machine this repository holds itself portable to — refuses an interval
-  # whose bound is over 255.
+  # hazard: BSD grep refuses an interval bound over 255.
   windows="$(tr '\n' ' ' <<<"$loop_lines" | grep -oE 'refactor-triage\.sh.{0,250}')"
 
-  # Either order for each pair — the document may reach the code before the consequence or the
-  # other way round — but both words within one window, which is what ties the branch to this
-  # script rather than to the budget's.
   grep -qE '(exits? 3.{0,120}stop|stop.{0,120}exits? 3)' <<<"$windows" ||
     problems+=("$skill_md's refactor loop never says refactor-triage.sh's exit 3 stops it, so the third stop condition is documented nowhere the conductor reads")
   grep -qE '(exits? 2.{0,160}narrat|narrat.{0,160}exits? 2)' <<<"$windows" ||
@@ -200,29 +193,9 @@ fi
 
 report "$name"
 
-# 5. what the conductor writes down when the loop ends. Case 4 asks where the script is
-#    called and which branch each answer takes; this one asks what survives the run. The
-#    `### 🛠️ Refactor` comment is the only place a human reads why a step's tidying stopped,
-#    and since #149 there are three ways it can stop rather than two — so a comment that
-#    still offers only "ran dry" and "budget spent" narrates a triage-ended loop as one of
-#    the other two, and the measurement the issue exists to produce (how often the new
-#    condition fires) cannot be read back off the thread. The same comment is where the
-#    leftovers are filed, and a structural leftover is work a follow-up owes while a cosmetic
-#    one is not: run together in one list, neither is worth anything to whoever reads it.
-#
-#    Two claims, one criterion — the comment names which of the three ended the loop, and it
-#    keeps the two classes of leftover apart — so one case, with `problems` saying which the
-#    document dropped. Each probe accepts any wording that carries its fact.
-#
-#    The probes read the narration sub-step alone rather than the section at large, for case
-#    4's reason turned the other way: sub-step 1 lists the loop's own three stop conditions
-#    and names `nothing left to tidy` and the budget while doing it, so a probe over the
-#    whole section would be answered there and pass a document whose `### 🛠️ Refactor`
-#    comment mentions neither.
 name="$skill_md's ### 🛠️ Refactor comment names which of the three stop conditions ended the loop and files the leftovers by class"
 problems=()
 
-# The narration sub-step as one line: from the section's first line that names a `###`
 narration="$(awk '!inside && /###/ && /refactor/ { inside = 1 }
                   inside && /^ *- pass:/ { exit }
                   inside' <<<"$loop_lines" | tr '\n' ' ')"

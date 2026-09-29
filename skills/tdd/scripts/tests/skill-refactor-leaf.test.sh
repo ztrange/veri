@@ -270,12 +270,9 @@ else
   elif [[ "$calls" -gt 1 ]]; then
     problems+=("$skill_md's Refactor section runs add-ledger-step.sh $calls times, so a step's NEW_STEP: values are inserted a call at a time and the growth budget is read once per value rather than once for the step")
   else
-    # The texts are a flag's behaviour; which class of flag is case 7's question, so a plant
-    # that hands the amendment to the wrong class fails there and not here too.
     added="$(win "$add_ledger_step")"
     grep -qE "'<[^>]*behaviou?r>'" <<<"$added" ||
       problems+=("$skill_md's Refactor section runs add-ledger-step.sh without saying the texts are the flags' behaviours, so what the inserted step says is left to judgement")
-    # The anchor is the step's title, spelled `<STEP>` or read out of the ledger (#437).
     grep -qE "after ['\"]?(<step>|\\$\\(\\\$s/next-pending-refactor\\.sh)" <<<"$added" ||
       problems+=("$skill_md's Refactor section runs add-ledger-step.sh without anchoring the insertion after the step just refactored, so the triangulating step lands somewhere other than next to the code it triangulates")
   fi
@@ -297,17 +294,10 @@ problems=()
 if unreadable_section; then
   problems+=("$(unreadable_problem "what the conductor does when the plan-growth budget cannot hold the leaf's NEW_STEP: values could not be established")")
 else
-  # The claim, found by what it says rather than by where it sits: an exit 1 spoken of in
-  # the same clause as the owed steps it files. 120 characters either way is about one
-  # clause, which is what keeps this from matching the other two exit 1s this section
-  # carries — the rejected push's and the REJECT verdict's, neither of which has the word
-  # `owed` anywhere near it.
   owed_claim="$(either_order 'exit 1' 'owed' '.{0,120}')"
   if ! grep -qE "$owed_claim" <<<"$section"; then
     problems+=("$skill_md's Refactor section never says what add-ledger-step.sh exit 1 means, so a conductor meeting the plan-growth budget's refusal is left to read it as the failure every other non-zero exit in this phase is, and the NEW_STEP: values it filed as owed steps go unmentioned")
   else
-    # And that the clause does not end the run. The window is the claim with about a clause
-    # either side of it, not the section: `win`'s default 250 would reach the REJECT and
     clause="$(win "$owed_claim" 150)"
     bailed="$(phrase 'bail|abort' "$clause")"
     [[ -z "$bailed" ]] ||
@@ -334,30 +324,6 @@ fi
 
 report "$name"
 
-# 6. One criterion — an `overfit` flag is answered inside the step that raised it — and so
-#    one case. Issue #175 measured what the absence costs: six `plan: amend` commits on
-#    `origin/main` were made from refactor flags, and #107's three ran from 01:31 to past
-#    03:06 for three one-line `fix:` commits and seventeen `refactor:` ones, because a step
-#    made from a flag has a refactor loop of its own and that loop flagged the next sibling.
-#    The flag now carries its class, so `overfit` — the code passes this step's test without
-#    implementing the behaviour this step's criterion states — is this step's own debt: one
-#    triangulating red and green pair here, and then the refactor loop this step was already
-#    in, with what was left of its budget. Its four probes are its parts, and a document
-#    missing any one of them routes the flag somewhere it costs a whole step: a pair with no
-#    "and no new ledger line" is the amendment this issue is against, and a pair that never
-#    comes back is a refactor loop abandoned mid-budget.
-#
-#    Asked of the text around the word `overfit` rather than of the section at large — the
-#    way case 1 asks its refusals — because this section already talks about triangulation,
-#    about ledger steps and about what a step owes, and a probe reading the whole of it would
-#    be answered by the PASS branch's `add-ledger-step.sh` sentences and pass a document that
-#    still turns every flag into a plan amendment.
-# The words this document denies with, spelled once for the three probes that ask for one —
-# case 6's two and case 8's — the way `refusal` above is spelled once for case 1's two. All
-# three owe the same thing beyond the verb or noun each names: that the section says the flag
-# does NOT buy it. Two lists for that one question is how they drift — case 8's carried
-# `neither` where case 6's carried `without` — and a probe widened on its own then accepts a
-# wording the others still reject, leaving the next writer several answers to "what counts as
 denial_word='no|never|neither|without|not'
 
 denial="($denial_word)[^.]{0,80}"
@@ -374,23 +340,14 @@ else
   if [[ -z "$flagged" ]]; then
     problems+=("$(unnamed_class_problem overfit "the conductor branches on its own judgement rather than on the leaf's word")")
   else
-    # a. The pair itself, and that it is verified: a triangulating test written inside the
-    #    step is still a red and a green the blind verifiers see, which is what tells this
-    #    apart from the leaf hand-generalizing the code it flagged.
     grep -qE "$(either_order 'triangulat[a-z]*' 'verify-(red|green)' '[^.]{0,200}')" <<<"$flagged" ||
       problems+=("$skill_md's Refactor section never says an overfit flag is answered by a triangulating red and green pair, so the case the leaf named is either built unverified or not built at all")
 
-    # b. And that the pair is all it is. The whole cost this issue measured is the flag
-    #    becoming a ledger step, so a document that runs the pair AND amends the plan has
-    #    paid for it twice.
     grep -qE "$denial($amendment)" <<<"$flagged" ||
       problems+=("$skill_md's Refactor section answers an overfit flag without saying the plan does not grow for it, so the triangulation becomes a ledger step with a refactor loop of its own — the #107 chain this issue is against")
     grep -qE "$denial(second )?step.done" <<<"$flagged" ||
       problems+=("$skill_md's Refactor section answers an overfit flag without saying the step is not mirrored done a second time, so one step reports itself finished twice and the issue thread stops saying how many steps ran")
 
-    # c. And that the step goes back to where it was. The refactor loop was interrupted by
-    #    the flag, not ended by it, and a loop resumed with a fresh budget would let one flag
-    #    buy a second step's worth of transforms.
     grep -qE "$(either_order '(resum|return|back)' 'budget' '[^.]{0,160}')" <<<"$flagged" ||
       problems+=("$skill_md's Refactor section never says the step resumes its own refactor loop with the budget it had left after the triangulation, so the tidying the flag interrupted is either abandoned or restarted with a budget the step has already spent")
   fi
@@ -398,14 +355,6 @@ fi
 
 report "$name"
 
-# 7. One criterion — the plan grows from an `uncovered-spec` flag and from no other class —
-#    and so one case. The classes the leaf now reports are three, and only one of them is a
-#    step the plan is missing: `uncovered-spec` names a behaviour the spec requires that no
-#    ledger step covers, which is the gap the planner is already asked to catch at scoping
-#    time. `overfit` is this step's own debt (case 6) and `beyond-spec` is not this run's
-#    work at all, so a document that amends the plan from a flag without saying which class
-#    buys it is the document #175 measured: six `plan: amend` commits on `origin/main`, none
-#    of them behaviour the issue's spec asked for. Two probes, because either alone passes a
 name="$skill_md's Refactor section amends the plan from an uncovered-spec flag and from no other flag class"
 problems=()
 
@@ -441,21 +390,12 @@ else
   if [[ -z "$beyond" ]]; then
     problems+=("$(unnamed_class_problem beyond-spec "the class the spec never asked for is routed on the conductor's own judgement, the way the classes were before the leaf carried them")")
   else
-    # a. It is narrated as a follow-up, in the comment the step accounts for itself in.
     grep -qE "$(either_order 'follow.?up' '(🛠️ )?refactor comment|narrat|post' '[^.]{0,200}')" <<<"$beyond" ||
       problems+=("$skill_md's Refactor section never says a beyond-spec flag is narrated as a follow-up in the 🛠️ Refactor comment, so what the leaf found is neither built nor said out loud and the run ends having dropped it")
 
-    # b. And it outlives the run, in the body the human deciding the merge reads.
     grep -qE 'pr body|body of the (draft )?pr|pull request body' <<<"$beyond" ||
       problems+=("$skill_md's Refactor section never carries a beyond-spec flag into the PR body, so the follow-up is buried in one step's comment and the human deciding the merge never sees it")
 
-    # c. And narration is ALL it earns. A flag narrated and also planned has cost exactly
-    #    what this issue measured, whatever the comment said about it.
-    #
-    #    Asked with the denial word ADJACENT to the verb rather than through `$denial`'s
-    #    `[^.]{0,80}` gap, which case 6 uses. The gap is right for those two — what
-    #    they deny is a noun phrase a writer may put words in front of — but here it reads
-    #    the bullet's own rationale instead of its rule: "without costing it a step: one
     grep -qE "($denial_word) (planned|plan|built|build)" <<<"$beyond" ||
       problems+=("$skill_md's Refactor section narrates a beyond-spec flag without saying it is neither planned nor built in this run, so the run still builds behaviour the issue's spec never asked for")
   fi
@@ -473,7 +413,6 @@ else
   if [[ -z "$triangulation" ]]; then
     problems+=("$skill_md's Refactor section never mentions triangulation at all, so there is no ceiling on it to read and an overfit flag raised inside one is answered with another")
   else
-    # a. The ceiling itself: once per step, not once per flag.
     grep -qE "at most once|only once|once (per|a) step|(${denial_word}) ((a )?(second|further|another) (triangulat[a-z]*|time)|triangulat[a-z]* (it |them )?(again|a second time))" <<<"$triangulation" ||
       problems+=("$skill_md's Refactor section puts no ceiling on a step's triangulation, so the loop it resumes can flag the same code again and buy a second pair — the #107 chain this issue is against, moved inside one step")
 

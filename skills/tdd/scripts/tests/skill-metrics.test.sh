@@ -185,11 +185,6 @@ if [[ -n "${block_pr_line:-}" && -n "${block_commit_line:-}" && "$block_commit_l
 fi
 report "$name"
 
-# Issue #240, second half of the order: the 📊 block reaches the PR body through `gh pr edit`,
-# and that edit must come after the `metrics:` commit AND after `push-branch.sh`, or the body
-# quotes a file the pushed branch does not yet carry. Ordered by SKILL.md line number, the
-# way the case above orders gh pr create against the commit. Every anchor must exist first,
-# so a step that dropped one fails closed rather than reading as ordered.
 name="$skill_md's Draft PR command block runs gh pr edit after the metrics: commit and push-branch.sh, ordered line by line"
 problems=()
 
@@ -207,11 +202,6 @@ if [[ -n "${block_edit_line:-}" && -n "${block_push_line:-}" && "$block_edit_lin
 fi
 report "$name"
 
-# Issue #240, the whole order at once: the two cases above each pin one pair, and this one
-# walks the Draft PR command block's six commands in the order SKILL.md gives them — read the
-# open PR's URL, write its done mark, render, commit, push, then put the report in the body — and asks
-# that each sits on a later SKILL.md line than the one before it. Every anchor must exist
-# first, so a step that dropped one fails closed rather than reading as ordered.
 name="$skill_md's Draft PR command block runs gh api …/pulls?head=, event.sh done, metrics.sh, the metrics: commit, push-branch.sh and gh api -X PATCH in that order"
 problems=()
 
@@ -229,8 +219,6 @@ for anchor in "$pr_read" 'event.sh done pr=' 'metrics.sh <n>' 'git commit -m "me
 done
 report "$name"
 
-# Issue #240, the 📊-in-PR-body probe asked of the right command: since #236 the block reaches
-# the PR body through `gh pr edit`, and the first case's record probe is answered by the whole
 name="$skill_md's Draft PR gh pr edit command puts the committed 📊 metrics report in the PR body"
 problems=()
 
