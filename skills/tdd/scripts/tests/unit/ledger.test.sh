@@ -110,5 +110,25 @@ expect_records "ledger_steps added/criterion differ" "$want" \
   "$(records_of '$1 "\t" $5 "\t" $6' "$doc")"
 verdict "ledger_steps added is 1 for a step carrying the added mark and criterion is its k, empty with no tag"
 
+# 6. ledger_tick: the first open step containing the matcher (empty: the first open step)
+#    becomes `- [x]`; prose and ticked lines that match are passed over, every other byte kept.
+problems=""
+tick_of() {
+  printf '%s' "$2" | (source "$LIB" && ledger_tick "$1") 2>&1
+  printf '.'
+}
+doc='# Plan for the slug
+
+Prose about the slug.
+- [x] lowercase the slug ⟦criterion 1⟧
+- [ ] trim whitespace ⟦criterion 2⟧
+  - [ ] collapse the slug ⟦criterion 3⟧
+- [ ] strip the slug ⟦criterion 4⟧'
+want="${doc/  - \[ \] collapse/  - [x] collapse}."
+expect_records "ledger_tick 'slug' output differs" "$want" "$(tick_of 'slug' "$doc")"
+want="${doc/- \[ \] trim/- [x] trim}."
+expect_records "ledger_tick '' output differs" "$want" "$(tick_of '' "$doc")"
+verdict "ledger_tick ticks the first open step containing the matcher, or the first open step for an empty one, changing no other byte"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
