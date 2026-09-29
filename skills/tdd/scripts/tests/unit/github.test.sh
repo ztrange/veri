@@ -40,5 +40,38 @@ else
   echo "    stderr: $(printf '%q' "$(cat "$err")")"
 fi
 
+# 2. against a gh that refuses GraphQL with the cloud session's 403, gh_pr_ready marks the
+#    draft ready through the REST route that 403 names, pulls/{n}/ccr/ready_for_review
+name="gh_pr_ready 42 against a gh that refuses GraphQL with the 403 calls pulls/42/ccr/ready_for_review over gh api and returns 0"
+calls="$scratch/calls2" err="$scratch/err2"
+: > "$calls"
+(
+  refusal='GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)'
+  gh() {
+    echo "gh $*" >> "$calls"
+    case "$1" in
+      issue|pr|repo) echo "HTTP 403: $refusal" >&2; return 1 ;;
+      api)
+        if [[ "${2:-}" == graphql ]]; then echo "HTTP 403: $refusal" >&2; return 1; fi
+        return 0 ;;
+    esac
+    return 1
+  }
+  source "$LIB"
+  gh_pr_ready 42
+) > /dev/null 2> "$err"
+rc=$?
+problems=""
+[[ "$rc" -eq 0 ]] || problems+="    want return 0, got $rc"$'\n'
+grep -E '^gh api .*pulls/42/ccr/ready_for_review' "$calls" > /dev/null ||
+  problems+="    want a 'gh api …pulls/42/ccr/ready_for_review' call, got: $(printf '%q' "$(cat "$calls")")"$'\n'
+if [[ -z "$problems" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1)); echo "FAIL - $name"
+  printf '%s' "$problems"
+  echo "    stderr: $(printf '%q' "$(cat "$err")")"
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
