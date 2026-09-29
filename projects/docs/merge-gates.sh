@@ -82,8 +82,8 @@ changed="$( { git diff --name-only "$mb" HEAD; git diff --name-only HEAD; git ls
 # Declared in the order they are applied below: exempt drops a path (#146) before either of
 # the two rules under it judges it; then stale, then pipeline.
 exempt_re='^docs/adr/'
-stale_re='^docs/walkthrough\.html$'
-pipeline_re='^docs/'
+stale_re='^projects/docs/walkthrough\.html$'
+pipeline_re='^projects/docs/'
 
 run_test=0 run_fresh=0 why_test="" why_fresh=""
 if [ "$mode" = all ]; then
@@ -121,7 +121,7 @@ if [ $run_test -eq 1 ]; then
   env -u VERI_GATES -u VERI_GATES_PLAN -u VERI_GATES_BASE make docs-test || rc=1
 fi
 if [ $run_fresh -eq 1 ]; then
-  python3 docs/check-walkthrough.py || {
+  python3 projects/docs/check-walkthrough.py || {
     rc=1
     echo "merge-gates: if the page is merely stale, regenerate it as its own commit on the branch:" >&2
     echo "             make docs && git add docs/walkthrough.html && git commit -m 'docs: regenerate walkthrough'" >&2
