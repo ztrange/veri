@@ -10,7 +10,7 @@
 - [x] workqueue.sh produces the same stdout and exit code under the GraphQL-refusing stub as it does today against a working `gh` ⟦criterion 1⟧
 - [x] tick-issue-criterion.sh ticks the issue body's criterion and exits as today under the GraphQL-refusing stub, reading and writing the body over REST ⟦criterion 1⟧
 - [x] coverage-blocker.sh files the coverage issue and records the block, with the same stdout and exit code, under the GraphQL-refusing stub ⟦criterion 1⟧
-- [ ] parallel-conductors.sh produces the same stdout and exit code under the GraphQL-refusing stub as it does today against a working `gh` ⟦criterion 1⟧
+- [x] parallel-conductors.sh produces the same stdout and exit code under the GraphQL-refusing stub as it does today against a working `gh` ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] wait-ci.sh reads a PR's head sha and check state and exits 0/1/2/3 as today under the GraphQL-refusing stub ⟦criterion 1⟧
 - [ ] invisible-work.sh produces the same stdout and exit code under the GraphQL-refusing stub as it does today against a working `gh` ⟦criterion 1⟧
 - [ ] Each converted script still exits 2, never 1, when its REST call to GitHub fails for a reason other than the GraphQL refusal (network error, 404, 5xx) ⟦criterion 5⟧

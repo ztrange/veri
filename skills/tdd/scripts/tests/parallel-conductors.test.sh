@@ -669,6 +669,54 @@ got24="$(cat "$capped24" 2>/dev/null)"
 [[ "$code" == 0 && "$got24" == "$want24" ]] \
   && ok || no "#505 VERI_MAX_ISSUES unset applies no cap and launches every solvable issue ( [exit=$code want 0, launched '$(printf '%s' "$got24" | tr '\n' ',')' want '$(printf '%s' "$want24" | tr '\n' ',')'] $(cat "$work/cap24.out") )"
 
+refusing_gh="$work/graphql-refusing-bin"
+mkdir -p "$refusing_gh"
+cat > "$refusing_gh/gh" <<'STUB'
+#!/bin/sh
+refusal='GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)'
+if [ "$GH_GRAPHQL" = refused ]; then
+  case "$1" in
+    issue|pr|repo) echo "HTTP 403: $refusal" >&2; exit 1 ;;
+  esac
+  case "$*" in
+    "api graphql"*) echo "HTTP 403: $refusal" >&2; exit 1 ;;
+  esac
+fi
+case "$*" in
+  "issue list"*) exec cat "$GH_FX/issues.json" ;;
+  "pr list"*) exec cat "$GH_FX/prs.json" ;;
+  *-q*|*--jq*|*--template*) ;;
+  "api "*"repos/{owner}/{repo}/issues"*) exec cat "$GH_FX/rest-issues.json" ;;
+  "api "*"repos/{owner}/{repo}/pulls"*) exec cat "$GH_FX/rest-pulls.json" ;;
+esac
+echo "gh stub: unexpected call: gh $*" >&2
+exit 1
+STUB
+chmod +x "$refusing_gh/gh"
+
+graphql_run() {  # graphql_run <working|refused>; sets $out and $code
+  local fx="$work/gh25-$1" stub="$work/claude-gh25-$1"
+  mkdir -p "$fx"
+  printf '[]\n' > "$fx/prs.json"
+  printf '[]\n' > "$fx/rest-pulls.json"
+  printf '%s\n' '[{"number": 7, "title": "issue 7", "labels": [{"name": "ready-for-agent"}], "state": "OPEN", "body": "## Blocked by\n\nNone.\n"}]' > "$fx/issues.json"
+  printf '%s\n' '[{"number": 7, "title": "issue 7", "labels": [{"id": 1, "name": "ready-for-agent", "color": "ededed"}], "state": "open", "body": "## Blocked by\n\nNone.\n"}]' > "$fx/rest-issues.json"
+  conductor_stub "$stub" <<STUB
+mkdir -p ".tdd/wt/\$n/.tdd"
+printf '%s\n' '$bail_event' >> ".tdd/wt/\$n/.tdd/events.jsonl"
+printf '[{"body": "Closes #%s", "state": "OPEN", "isDraft": true, "url": "https://example.test/pull/%s"}]\n' "\$n" "\$n" > "$fx/prs.json"
+printf '[{"number": 906, "body": "Closes #906", "state": "open", "draft": true, "html_url": "https://example.test/pull/906", "url": "https://api.github.test/repos/o/r/pulls/906"}]\n[{"number": 907, "body": "Closes #%s", "state": "open", "draft": true, "html_url": "https://example.test/pull/%s", "url": "https://api.github.test/repos/o/r/pulls/907"}]\n' "\$n" "\$n" > "$fx/rest-pulls.json"
+STUB
+  run_launcher "" "$stub" "$work/gh25-$1.out" PATH="$refusing_gh:$PATH" GH_GRAPHQL="$1" GH_FX="$fx"
+  out="$(grep -E '^(#[0-9]+ — |stopped: )' "$work/gh25-$1.out")"
+}
+
+graphql_run working; working="$out" working_code="$code"
+graphql_run refused
+[[ "$working_code" == 1 && "$working" == "$(printf '#7 — bailed https://example.test/pull/7\nstopped: #7 bailed')" \
+   && "$code" == "$working_code" && "$out" == "$working" ]] \
+  && ok || no "#568 against a gh that refuses GraphQL with the 403 and answers REST in two pages, the draft PR on the second, parallel-conductors.sh prints the same report and exit code as against a working gh ( [working gh: exit=$working_code want 1, report '$(printf '%s' "$working" | tr '\n' '|')' want '#7 — bailed https://example.test/pull/7|stopped: #7 bailed'; GraphQL refused: exit=$code want $working_code, report '$(printf '%s' "$out" | tr '\n' '|')' want the same] $(tr '\n' '|' < "$work/gh25-refused.out") )"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
