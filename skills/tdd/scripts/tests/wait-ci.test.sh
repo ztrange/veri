@@ -70,6 +70,20 @@ check() {
   printf '{"__typename":"CheckRun","name":"gates","workflowName":"ci","status":"%s","conclusion":"%s"}' "$1" "$2"
 }
 
+# sha_runs <file> <row>... — write, beside fixture <file>, the check-runs document gh api
+# serves for $sha holding <row>..., and a /status document with no statuses.
+sha_runs() {
+  local f="$1"; shift
+  local IFS=,
+  printf '{"total_count":%s,"check_runs":[%s]}\n' "$#" "$*" > "$work/$f.check-runs"
+  printf '{"state":"pending","sha":"%s","total_count":0,"statuses":[]}\n' "$sha" > "$work/$f.status"
+}
+
+# sha_run <name> <status> <conclusion> — one check run of $sha, <conclusion> as JSON.
+sha_run() {
+  printf '{"name":"%s","head_sha":"%s","status":"%s","conclusion":%s}' "$1" "$sha" "$2" "$3"
+}
+
 # wait_in <dir> <name> <err> <bound>... — run wait-ci.sh from <dir> against fixture <name> with
 # <bound>... as its limits on a clock that moves 60 s a reading, stderr to <err>, and echo its
 # exit code.
@@ -240,8 +254,7 @@ name="wait-ci.sh exits 3 while the sha's own check runs are still in progress, e
 problems=()
 sha=89abcdef0123456789abcdef0123456789abcdef
 rollup race.json "$(check COMPLETED SUCCESS)" "$sha"
-printf '{"total_count":1,"check_runs":[{"name":"gates","head_sha":"%s","status":"in_progress","conclusion":null}]}\n' "$sha" > "$work/race.json.check-runs"
-printf '{"state":"pending","sha":"%s","total_count":0,"statuses":[]}\n' "$sha" > "$work/race.json.status"
+sha_runs race.json "$(sha_run gates in_progress null)"
 got="$(waited race 60 60 "$sha")"
 [[ "$got" == 3 ]] || problems+=("rollup green for $sha, its own check run in_progress: want exit 3, got $got (stderr: $(cat "$work/race.err"))")
 report "$name"
@@ -258,8 +271,7 @@ report "$name"
 name="wait-ci.sh exits 1 when the sha's own check runs hold a completed failure, even while the PR rollup reads all green (#552)"
 problems=()
 rollup redsha.json "$(check COMPLETED SUCCESS)" "$sha"
-printf '{"total_count":1,"check_runs":[{"name":"gates","head_sha":"%s","status":"completed","conclusion":"failure"}]}\n' "$sha" > "$work/redsha.json.check-runs"
-printf '{"state":"pending","sha":"%s","total_count":0,"statuses":[]}\n' "$sha" > "$work/redsha.json.status"
+sha_runs redsha.json "$(sha_run gates completed '"failure"')"
 got="$(waited redsha 60 60 "$sha")"
 [[ "$got" == 1 ]] || problems+=("rollup green for $sha, its own check run completed failure: want exit 1, got $got (stderr: $(cat "$work/redsha.err"))")
 report "$name"
@@ -267,8 +279,7 @@ report "$name"
 name="wait-ci.sh never reads a completed NEUTRAL or SKIPPED run among the sha's own check runs as red: with another still in progress it exits 3 (#552)"
 problems=()
 rollup quietsha.json "$(check COMPLETED SUCCESS)" "$sha"
-printf '{"total_count":3,"check_runs":[{"name":"lint","head_sha":"%s","status":"completed","conclusion":"neutral"},{"name":"docs","head_sha":"%s","status":"completed","conclusion":"skipped"},{"name":"gates","head_sha":"%s","status":"in_progress","conclusion":null}]}\n' "$sha" "$sha" "$sha" > "$work/quietsha.json.check-runs"
-printf '{"state":"pending","sha":"%s","total_count":0,"statuses":[]}\n' "$sha" > "$work/quietsha.json.status"
+sha_runs quietsha.json "$(sha_run lint completed '"neutral"')" "$(sha_run docs completed '"skipped"')" "$(sha_run gates in_progress null)"
 got="$(waited quietsha 60 60 "$sha")"
 [[ "$got" == 3 ]] || problems+=("sha's own runs neutral, skipped and in_progress: want exit 3, got $got (stderr: $(cat "$work/quietsha.err"))")
 report "$name"
