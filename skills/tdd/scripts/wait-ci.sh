@@ -18,6 +18,7 @@ set -uo pipefail
 
 [[ -n "${1:-}" ]] || { echo "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]" >&2; exit 2; }
 pr="$1"
+repo="${pr#https://github.com/}"; repo="${repo%/pull/*}"
 max="${2:-540}"
 total="${3:-$max}"
 want="${4:-}"
@@ -53,8 +54,6 @@ print(state, doc.get("headRefOid") or "")
 }
 
 sha_state() {
-  local repo
-  repo="${pr#https://github.com/}"; repo="${repo%/pull/*}"
   local runs
   runs="$(gh api --paginate --slurp "repos/$repo/commits/$1/check-runs")" || return 2
   local statuses
