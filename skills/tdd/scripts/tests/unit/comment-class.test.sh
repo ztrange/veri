@@ -403,6 +403,15 @@ problems=""
 want_empty_sweepable "$SCRIPTS"/tests/supervise.test.sh "$SCRIPTS"/tests/supervise-retry.test.sh
 verdict "the sweepable report is empty for tests/supervise.test.sh and tests/supervise-retry.test.sh"
 
+# 33. the sweepable report is empty for every top-level tests/s*.sh but the skill-* and supervise* files.
+problems=""
+files=()
+for f in "$SCRIPTS"/tests/s*.sh; do
+  case "${f##*/}" in skill-*|supervise*) ;; *) files+=("$f") ;; esac
+done
+want_empty_sweepable "${files[@]}"
+verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with s, other than the skill-* and supervise* files"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
