@@ -123,8 +123,9 @@ exempt() { [[ "$1" == .tdd/* ]]; }
 # caller reads it with `while read`, and an empty array under `set -u` is an error on the
 # bash 3.2 this repo still targets.
 #
-# The generated-documentation tree is excluded by pathspec, and that exclusion is the whole
-# of what either case says about it (#143). A sweep that entered it would be a development
+# The generated-documentation trees — docs/, and projects/docs/, the docs project #554 copies
+# it into — are excluded by pathspec, and that exclusion is the whole of what either case says
+# about them (#143). A sweep that entered it would be a development
 # suite reading the page and its commentary, so a rewording there — or a page nobody had
 # rebuilt yet — could fail `make test`, the command preflight reads its baseline off and
 # every leaf runs (ADR 0016). Prose lagging behind code is `docs-owed.sh`'s reading and
@@ -133,7 +134,7 @@ exempt() { [[ "$1" == .tdd/* ]]; }
 swept=""
 sweep() {
   local code
-  swept="$(cd "$ROOT" && git grep --files-with-matches "$1" -e "$2" -- ':!docs')" && code=0 || code=$?
+  swept="$(cd "$ROOT" && git grep --files-with-matches "$1" -e "$2" -- ':!docs' ':!projects/docs')" && code=0 || code=$?
   if [[ "$code" -gt 1 ]]; then
     swept=""
     return "$code"
