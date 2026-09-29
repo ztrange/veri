@@ -48,7 +48,7 @@ proc = subprocess.run([sys.executable, str(HERE / "build-walkthrough.py"), "--st
 if proc.returncode != 0:
     bad.append("generator failed:\n" + proc.stderr.strip())
 elif proc.stdout != doc:
-    bad.append("docs/walkthrough.html is stale — run `make docs` "
+    bad.append("projects/docs/walkthrough.html is stale — run `make docs` "
                "(generated output differs from the committed file)")
     print("regenerated: %d bytes / committed: %d bytes" % (len(proc.stdout), len(doc)))
 else:
