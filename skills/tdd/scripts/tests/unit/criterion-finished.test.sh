@@ -90,11 +90,10 @@ ledger_steps() {
   printf '2\topen\tstep\t0\t0\t2\tstill open in the module ⟦criterion 2⟧\n'
 }
 EOF
-FINISHED="$work/criterion-finished.sh"
 markdown_open='# Plan for #42
 
 - [ ] found open in the markdown ⟦criterion 1⟧'
-got_module="$(code_for 1 "$markdown_open")"
+got_module="$(FINISHED="$work/criterion-finished.sh" code_for 1 "$markdown_open")"
 if [[ "$got_module" != 0 ]]; then
   fail=$((fail + 1)); echo "FAIL - $name (module says criterion 1 done: want exit 0, got $got_module)"
 else
@@ -104,7 +103,6 @@ fi
 # 5. a ticked step carrying no criterion tag serves no criterion even when its text is `k`:
 #    its empty criterion field is not collapsed away so that the text is read in its place → 3
 name="a ticked untagged step whose text is 3 does not finish criterion 3: exits 3"
-FINISHED="$HERE/../../criterion-finished.sh"
 text_is_k='# Plan for #42
 
 - [x] 3'
