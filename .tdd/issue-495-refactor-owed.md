@@ -16,3 +16,5 @@
 ### the step-line grammar in `lib/ledger.sh` accepts any whitespace (a tab included) between the dash and the box, and a box with no text after it, so `tick-criterion.sh` still ticks `-<TAB>[ ] text` and a bare `- [ ]` as it did before the migration — pinned in `tests/unit/ledger.test.sh` ⟦added⟧ ⟦criterion 3⟧
 - `ledger_steps` repeats the read-to-EOF loop (`while IFS= read -r line || [[ -n "$line" ]]`) that `_ledger_read_line` already provides. This cycle did not write that code, so it is out of scope for this step.
 - the `⟦criterion ` literal is spelled twice: in `ledger_add_step`'s step template and in `ledger_steps`'s `criterion_re`. It is pre-existing and was not written this cycle.
+### `tick-ledger.sh` sources `lib/ledger.sh` and appends the pending mark through `ledger_tick … pending`, spelling no mark literal of its own, with the file it writes and its exit codes unchanged (its existing suite passes unmodified) ⟦criterion 3⟧
+- delete the dead `cp "$HERE/../tick-criterion.sh" "$stub/tick-criterion.sh"` in tick-ledger.test.sh case 6 — tick-ledger.sh no longer calls tick-criterion.sh, so the stub never uses it
