@@ -17,6 +17,9 @@
 # Usage:   add-ledger-step.sh .tdd/issue-<n>.md after 'collapse to single hyphen' 'a unicode dash too'
 set -euo pipefail
 
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HERE/lib/ledger.sh"
+
 usage='usage: add-ledger-step.sh <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]'
 [[ $# -ge 4 && -n "$1" && -n "$2" && -n "$3" ]] || { printf '%s\n' "$usage" >&2; exit 2; }
 file="$1"
@@ -44,7 +47,7 @@ added_steps() {
   done
 }
 
-is_anchor_step() { [[ "$1" == "- ["*"]"* && "$1" == *"$anchor"* ]]; }
+is_anchor_step() { [[ "$1" == *"$anchor"* && -n "$(ledger_steps <<< "$1")" ]]; }
 is_added_step() { [[ "$1" == *"$added"* ]]; }
 is_repair() { [[ "$1" == *"$repair"* ]]; }
 added_mark() { is_repair "$1" || printf ' %s' "$added"; }

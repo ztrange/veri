@@ -135,6 +135,32 @@ else
   sed 's/^/    /' "$led"
 fi
 
+# 9. The anchor step is recognised through lib/ledger.sh's `ledger_steps`, with no checkbox
+#    pattern of the script's own: beside a stub module that reads `* [ ]` lines as steps, the
+#    anchor on one is found and the text inserted after it, where the script's own `- [`
+#    pattern would match no step and exit 2.
+stub="$work/stub"
+mkdir -p "$stub/lib"
+cp "$ADD" "$stub/add-ledger-step.sh"
+cat > "$stub/lib/ledger.sh" <<'EOF'
+ledger_steps() {
+  local line i=0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ "$line" == '* ['?'] '* ]] || continue
+    i=$((i + 1))
+    printf '%s\topen\tstep\t0\t0\t\t%s\n' "$i" "${line#'* ['?'] '}"
+  done
+}
+EOF
+seed_lines '* [ ] a lamp glows'
+"$stub/add-ledger-step.sh" "$led" after 'a lamp glows' 'a lamp dims'; code=$?
+want='# Plan for #42
+
+* [ ] a lamp glows
+- [ ] a lamp dims ⟦added⟧'
+check "finds the anchor step through lib/ledger.sh's ledger_steps, matching no checkbox of its own" \
+  "$code" "$want"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
