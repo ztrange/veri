@@ -9,8 +9,9 @@
 # otherwise; `added` is `1` for a step carrying `⟦added⟧`, `0` otherwise; `criterion` is the `k` of
 # its `⟦criterion k⟧`, empty when it carries none. A line with no box is skipped.
 #
-# ledger_tick <matcher> — stdin → stdout: the first open step whose line contains <matcher> (an
-# empty matcher: the first open step) becomes `[x]`; every other byte is copied unchanged.
+# ledger_tick <matcher> [pending] — stdin → stdout: the first open step whose line contains <matcher>
+# (an empty matcher: the first open step) becomes `[x]`, and with `pending` also gains
+# ` ⟂ refactor pending` at its end; every other byte is copied unchanged.
 # Assigns the caller's local `re`: bash scopes a callee's assignment dynamically.
 _ledger_step_re() {
   re='^([[:space:]]*- )\[([ xX])\] (.*)$'
@@ -44,7 +45,8 @@ ledger_steps() {
 }
 
 ledger_tick() {
-  local matcher="$1" line nl ticked=0 re
+  local matcher="$1" suffix= line nl ticked=0 re
+  [[ "${2:-}" == pending ]] && suffix=' ⟂ refactor pending'
   _ledger_step_re
   while true; do
     if IFS= read -r line; then
@@ -54,7 +56,7 @@ ledger_tick() {
       nl=
     fi
     if ((ticked == 0)) && [[ "$line" =~ $re && "${BASH_REMATCH[2]}" == " " && "$line" == *"$matcher"* ]]; then
-      line="${BASH_REMATCH[1]}[x] ${BASH_REMATCH[3]}"
+      line="${BASH_REMATCH[1]}[x] ${BASH_REMATCH[3]}$suffix"
       ticked=1
     fi
     printf '%s%s' "$line" "$nl"
