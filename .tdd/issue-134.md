@@ -4,6 +4,6 @@
 - [x] that unlisted script's whole file sits under the existing "commentary owed" mark, and the build's stderr `owed:` summary names it (owed: <script> L1–<last>) ⟦criterion 1⟧
 - [x] the masthead and table-of-contents counts (script count, total source lines, the upkeep table and rail) include the unlisted script, and an unlisted script adds no git question beyond the one-per-script budget ⟦criterion 1⟧
 - [x] projects/docs/check-walkthrough.py passes on a page built from a sandbox carrying an unlisted script ⟦criterion 1⟧
-- [ ] projects/docs/docs-owed.sh lists a script present on disk but absent from commentary.SCRIPTS as `unlisted: <script>`, whether or not the page has been rebuilt since ⟦criterion 2⟧
+- [x] projects/docs/docs-owed.sh lists a script present on disk but absent from commentary.SCRIPTS as `unlisted: <script>`, whether or not the page has been rebuilt since ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] projects/docs/docs-owed.sh still exits 3 with no output when every script is listed and covered ⟦criterion 2⟧
 - [ ] `make docs-check` passes on this repo with leaf-timeout.sh rendered as owed: regenerate projects/docs/walkthrough.html with `make -C projects/docs docs` from a human shell, then run `make docs-check` ⟦human-owed⟧ ⟦criterion 3⟧

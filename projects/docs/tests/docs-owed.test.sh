@@ -47,6 +47,29 @@ problems=()
   problems+=("want a 'commentary owed: stub.sh L1' line; got: $out")
 report
 
+name="docs-owed.sh lists a script on disk that commentary.SCRIPTS omits as 'unlisted: <script>', though the page was built after it"
+repo="$tmp/r2"
+git init -q "$repo"
+git -C "$repo" config user.email t@example.com
+git -C "$repo" config user.name t
+mkdir -p "$repo/projects/docs/wt" "$repo/skills/tdd/scripts"
+cp "$SCRIPT" "$repo/projects/docs/docs-owed.sh"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$repo/skills/tdd/scripts/orphan.sh"
+git -C "$repo" add -A
+git -C "$repo" commit -q -m script
+echo '<html></html>' > "$repo/projects/docs/walkthrough.html"
+printf 'import sys\n' > "$repo/projects/docs/build-walkthrough.py"
+printf 'SCRIPTS = []\n' > "$repo/projects/docs/wt/commentary.py"
+git -C "$repo" add -A
+git -C "$repo" commit -q -m page
+out="$(cd "$repo" && bash projects/docs/docs-owed.sh 2>&1)"
+rc=$?
+problems=()
+[[ "$rc" -eq 0 ]] || problems+=("want exit 0, got $rc; got: $out")
+printf '%s\n' "$out" | grep -Fx 'unlisted: orphan.sh' > /dev/null ||
+  problems+=("want a line 'unlisted: orphan.sh'; got: $out")
+report
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
