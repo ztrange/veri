@@ -228,37 +228,87 @@ TESTS="$SCRIPTS/tests"
 files=("$TESTS"/*.sh "$TESTS"/unit/*.sh "$TESTS"/fixtures/*/*.sh "$TESTS/unit-guard/git" "$TESTS/offline/gh")
 classify "${files[@]}"
 got="$(awk -F: -v tests="$TESTS/" 'NR == FNR { if ($NF == 3) want[$1 ":" $2] = 1; next }
-  (FILENAME ":" FNR) in want { f = FILENAME; sub("^" tests, "", f); print f ":" $0 }' \
+  (FILENAME ":" FNR) in want { f = FILENAME; sub("^" tests, "", f); sub(/\.test\.sh$/, "", f); print f ":" $0 }' \
   - "${files[@]}" <<< "$out")"
 IFS= read -r -d '' expected <<'EOF' || true
-capture-spec.test.sh:## What happened
-capture-spec.test.sh:## Expected
-capture-spec.test.sh:## Steps to reproduce
-capture-spec.test.sh:## Environment
-capture-spec.test.sh:## Acceptance criteria
-capture-spec.test.sh:## What to build
-capture-spec.test.sh:## Acceptance criteria
-orchestrate.test.sh:# A stopped conductor must be stopped by a signal, not by its writes failing, so this stub
-orchestrate.test.sh:# IGNORES SIGPIPE — the state CI's Linux was observed in, where a write to the closed stream
-orchestrate.test.sh:# came back as plain \`echo: I/O error\` and the conductor ran on. On this Mac SIGPIPE is fatal
-orchestrate.test.sh:# and would end the stub whatever orchestrate.sh did, so without this line the cases below
-orchestrate.test.sh:# cannot go red here at all, and the regression they exist for is only visible on CI. This is
-orchestrate.test.sh:# a stub imitating a platform, not a suite repairing its own pipeline (#422).
-parallel-conductors.test.sh:#!/bin/sh
-run-verdict.test.sh:#!/bin/sh
-run-verdict.test.sh:# Stub verifier: record the argv handed to it, one argument per line, and answer like a
-run-verdict.test.sh:# verifier that passed — what this case reads is the record, not the verdict.
-run-verdict.test.sh:#!/bin/sh
-run-verdict.test.sh:# Stub verifier: copy the phase's reason file, as it stands now, into the record this case
-run-verdict.test.sh:# reads — an unreadable or absent file records as nothing, which is the same answer as a
-run-verdict.test.sh:# cleared one and the answer this case wants.
-skill-refactor-pending.test.sh:## The scripts (this skill's `scripts/` directory)
-skill-refactor-pending.test.sh:## The scripts (this skill's `scripts/` directory)
-solvable-issues.test.sh:#!/bin/sh
+build-develop-prompt:## Bug
+build-develop-prompt:### What happened
+build-develop-prompt:### Expected
+build-develop-prompt:### Steps to reproduce
+build-develop-prompt:### Environment
+build-verify-prompt:# Plan for #426
+build-verify-prompt:# Plan for #439
+build-verify-prompt:## Bug
+build-verify-prompt:### What happened
+build-verify-prompt:### Expected
+build-verify-prompt:### Steps to reproduce
+build-verify-prompt:### Environment
+capture-spec:## What happened
+capture-spec:## Expected
+capture-spec:## Steps to reproduce
+capture-spec:## Environment
+capture-spec:## Acceptance criteria
+capture-spec:## What to build
+capture-spec:## Acceptance criteria
+dashboard:# Plan for #$2 — $3
+dashboard:## What to build
+dashboard:# Plan for #51 — lamps hum
+dashboard:# Plan for #22 — lamps glow
+dashboard:# Plan for #31 — lamps glow
+dashboard:# a stale committed report for #31 that metrics.sh would never print
+dashboard:# Plan for #32 — lamps dim
+dashboard:# What solving #32 cost — the committed report, verbatim
+dashboard:# Plan for #33 — lamps flicker
+dashboard:# What solving #33 cost — the committed report of a bailed run, verbatim
+dashboard:# Plan for #34 — lamps gutter
+dashboard:# Plan for #7 — lamps glow
+dashboard:# Plan for #$mown_other — an earlier run's committed plan
+dashboard:# Plan for #51 — lamps flicker
+dashboard:# Plan for #52 — lamps dim
+dashboard:# Plan for #7 — lamps glow
+dashboard:# Plan for #3 — an earlier run's committed plan
+dashboard:# Plan for #54 — lamps buzz
+dashboard:# Plan for #59 — lamps flare
+dashboard:# Plan for #61 — lamps flicker
+dashboard:# Plan for #63 — lamps dim
+dashboard:# Plan for #65 — lamps hum
+dashboard:# Plan for #55 — lamps dim
+dashboard:# Plan for #77 — a kettle boils
+orchestrate:# A stopped conductor must be stopped by a signal, not by its writes failing, so this stub
+orchestrate:# IGNORES SIGPIPE — the state CI's Linux was observed in, where a write to the closed stream
+orchestrate:# came back as plain \`echo: I/O error\` and the conductor ran on. On this Mac SIGPIPE is fatal
+orchestrate:# and would end the stub whatever orchestrate.sh did, so without this line the cases below
+orchestrate:# cannot go red here at all, and the regression they exist for is only visible on CI. This is
+orchestrate:# a stub imitating a platform, not a suite repairing its own pipeline (#422).
+parallel-conductors:#!/bin/sh
+run-verdict:#!/bin/sh
+run-verdict:# Stub verifier: record the argv handed to it, one argument per line, and answer like a
+run-verdict:# verifier that passed — what this case reads is the record, not the verdict.
+run-verdict:#!/bin/sh
+run-verdict:# Stub verifier: copy the phase's reason file, as it stands now, into the record this case
+run-verdict:# reads — an unreadable or absent file records as nothing, which is the same answer as a
+run-verdict:# cleared one and the answer this case wants.
+skill-refactor-pending:## The scripts (this skill's `scripts/` directory)
+skill-refactor-pending:## The scripts (this skill's `scripts/` directory)
+solvable-issues:#!/bin/sh
+status:# Plan for #7 — widgets spin when clicked
+status:# Plan for #8 — gears turn
+status:# Plan for #9 — cogs mesh
+status:# Plan for #7 — widgets spin when clicked
+status:# Plan for #3 — gears turn
+status:# Plan for #5 — lamps glow
+status:# Plan for #3 — gears turn
+status:# Plan for #5 — lamps glow
+unit/emitted-text:## What to build
+unit/emitted-text:## Acceptance criteria
+unit/emitted-text:## Bug
+unit/emitted-text:## Acceptance criteria
+unit/emitted-text:## Refactor
+unit/emitted-text:# Plan for #1 — fixed
 EOF
 expected="${expected%$'\n'}"
 if [[ "$got" != "$expected" ]]; then
-  problems+="    want the 24 class 3 lines unchanged (< want, > got):"$'\n'
+  problems+="    want the 74 class 3 lines unchanged (< want, > got):"$'\n'
   problems+="$(diff <(printf '%s\n' "$expected") <(printf '%s\n' "$got"))"$'\n'
 fi
 verdict "the text of every class 3 line in the suites is unchanged, in its file and in its order"
@@ -292,6 +342,17 @@ want_no_line "$f:2"
 want_line "$f:4:2"
 want_line "$f:5:2"
 verdict "the sweepable report omits the #! line that opens a heredoc's body, and no later #! line"
+
+# 24. a `#` line inside a heredoc written to a `.md` file is class 3.
+problems=""
+f="$work/md-writer.sh"
+printf '%s\n' 'cat > "$dir/CLAUDE.md" <<EOF' '# a markdown heading' 'EOF' > "$f"
+g="$work/md-tee.sh"
+printf '%s\n' 'cat <<EOF | tee -a "$dir/SPEC.md"' '# a markdown heading' 'EOF' > "$g"
+classify "$f" "$g"
+want_line "$f:2:3"
+want_line "$g:2:3"
+verdict "a # line inside a heredoc written to a .md file is class 3"
 
 echo "----"
 echo "$pass passed, $fail failed"
