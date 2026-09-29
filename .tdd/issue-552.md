@@ -5,7 +5,7 @@
 - [x] wait-ci.sh reads every page of the given sha's check runs, so a failed run beyond the first page of results still exits 1 ⟦added⟧ ⟦criterion 1⟧
 - [x] wait-ci.sh exits 0 when the given sha's own check runs and statuses have all succeeded, even while the PR rollup still shows a previous head's failed or pending checks ⟦criterion 1⟧
 - [x] wait-ci.sh exits 3, never 0, when every one of the given sha's own check runs concluded skipped ⟦added⟧ ⟦criterion 1⟧
-- [x] wait-ci.sh exits 1 when a legacy status context of the sha, read from `gh api repos/<owner>/<repo>/commits/<sha>/status`, is in a failure or error state, even when the sha's check runs all succeeded ⟦criterion 1⟧ ⟂ refactor pending
+- [x] wait-ci.sh exits 1 when a legacy status context of the sha, read from `gh api repos/<owner>/<repo>/commits/<sha>/status`, is in a failure or error state, even when the sha's check runs all succeeded ⟦criterion 1⟧
 - [ ] wait-ci.sh exits 3 when a legacy status context of the sha, read from its `/status` endpoint, is still pending, even when the sha's check runs all succeeded ⟦criterion 1⟧
 - [ ] No check runs and no statuses for the given sha is pending: wait-ci.sh exits 3, never 0 ⟦criterion 2⟧
 - [ ] Called with no head-sha argument, wait-ci.sh reads the PR's current head sha and judges that sha's own check runs and statuses, never the PR rollup
