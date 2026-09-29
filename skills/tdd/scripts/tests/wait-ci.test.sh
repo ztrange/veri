@@ -60,7 +60,9 @@ else:
     print(json.dumps(doc(page)))
 P
     ;;
-  "api repos/o/r/commits/"*/status) cat "$ROLLUP.status" ;;
+  "api repos/o/r/commits/"*/status)
+    if [ -n "${GH_STATUS_FAIL:-}" ]; then echo '{"message":"Not Found"}'; echo "gh: Not Found (HTTP 404)" >&2; exit 1; fi
+    cat "$ROLLUP.status" ;;
   *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
 esac
 G
@@ -338,6 +340,33 @@ rollup skippedsha.json "$(check COMPLETED SUCCESS)" "$sha"
 sha_runs skippedsha.json "$(sha_run gates completed '"skipped"')" "$(sha_run docs completed '"skipped"')"
 got="$(waited skippedsha 60 60 "$sha")"
 [[ "$got" == 3 ]] || problems+=("rollup green for $sha, its own check runs all skipped: want exit 3, got $got (stderr: $(cat "$work/skippedsha.err"))")
+report "$name"
+
+name="wait-ci.sh exits 1 when a legacy status context of the sha is in a failure or error state, even while the sha's own check runs all succeeded (#552)"
+problems=()
+for state in failure error; do
+  f="statussha-$state"
+  rollup "$f.json" "$(check COMPLETED SUCCESS)" "$sha"
+  sha_runs "$f.json" "$(sha_run gates completed '"success"')"
+  sha_statuses "$f.json" "$state" "{\"context\":\"legacy\",\"state\":\"$state\"}"
+  got="$(waited "$f" 60 60 "$sha")"
+  [[ "$got" == 1 ]] || problems+=("status $state for $sha, its own check runs success: want exit 1, got $got (stderr: $(cat "$work/$f.err"))")
+done
+report "$name"
+
+name="wait-ci.sh exits 2 naming the sha when gh cannot read its /status, and reads a /status with no statuses as none, while its own check runs all succeeded (#552)"
+problems=()
+rollup unstatus.json "$(check COMPLETED SUCCESS)" "$sha"
+sha_runs unstatus.json "$(sha_run gates completed '"success"')"
+got="$(GH_STATUS_FAIL=1 waited unstatus 60 60 "$sha")"
+[[ "$got" == 2 ]] || problems+=("gh api status failed: want exit 2, got $got (stderr: $(cat "$work/unstatus.err"))")
+grep -F "could not read the checks of $sha" "$work/unstatus.err" > /dev/null \
+  || problems+=("gh api status failed: want stderr naming $sha, got: $(cat "$work/unstatus.err")")
+rollup nostatuses.json "$(check COMPLETED SUCCESS)" "$sha"
+sha_runs nostatuses.json "$(sha_run gates completed '"success"')"
+printf '{"state":"pending","sha":"%s","total_count":0}\n' "$sha" > "$work/nostatuses.json.status"
+got="$(waited nostatuses 60 60 "$sha")"
+[[ "$got" == 0 ]] || problems+=("/status with no statuses key, check runs success: want exit 0, got $got (stderr: $(cat "$work/nostatuses.err"))")
 report "$name"
 
 echo "$pass passed, $fail failed"
