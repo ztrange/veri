@@ -448,4 +448,7 @@ sweep_verdict "the sweepable report is empty for every tests/unit/*.sh whose nam
 # 43. the sweepable report is empty for tests/unit/red-divergence.test.sh.
 sweep_verdict "the sweepable report is empty for tests/unit/red-divergence.test.sh" "$SCRIPTS"/tests/unit/red-divergence.test.sh
 
+# 44. the sweepable report is empty for tests/unit/run-affordable.test.sh.
+sweep_verdict "the sweepable report is empty for tests/unit/run-affordable.test.sh" "$SCRIPTS"/tests/unit/run-affordable.test.sh
+
 finish

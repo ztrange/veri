@@ -19,10 +19,6 @@ problems=""
 work="$(scratch_dir)"
 mkdir -p "$work/.tdd"
 
-# run_affordable [env assignments…] -- [args…] — run the script from the run's worktree with
-# both budget names cleared from the environment, then the assignments given, so an
-# operator's ambient VERI_* cannot change what a case sees; leaves its stdout in `out`, its
-# exit code in `code` and its stderr in `err`.
 run_affordable() {
   local assigns=()
   while [[ $# -gt 0 && "$1" != "--" ]]; do assigns+=("$1"); shift; done
@@ -32,28 +28,21 @@ run_affordable() {
   err="$(cat "$work/stderr")"
 }
 
-# expect_code <code> — add to the case's `problems` unless the run just made exited <code>.
 expect_code() {
   if [[ "$code" != "$1" ]]; then
     problems+="    want exit $1, got exit $code and stdout '$out' (stderr '$err')"$'\n'
   fi
 }
 
-# expect_silent <what> — add to the case's `problems` unless the run just made printed
-# nothing on stdout; <what> names the log it ran on, or is empty.
 expect_silent() {
   [[ -z "$out" ]] || problems+="    want empty stdout${1:+ for $1}, got '$out'"$'\n'
 }
 
-# expect_figure <what> <figure> — add to the case's `problems` unless stdout carries <figure>
-# as a word of its own; <what> names the figure in the line.
 expect_figure() {
   grep -Fw -- "$2" <<< "$out" > /dev/null ||
     problems+="    want stdout to carry $1 '$2', got '$out'"$'\n'
 }
 
-# expect_figures <spent> <remaining> <median> <projection> — expect_figure for each of the
-# four figures a projection over the ceiling prints, in the order the script prints them.
 expect_figures() {
   expect_figure "spent" "$1"
   expect_figure "steps remaining" "$2"
@@ -61,9 +50,6 @@ expect_figures() {
   expect_figure "the projection" "$4"
 }
 
-# verdict <name> — report one case from the `problems` the case just filled: empty is a
-# pass, otherwise a FAIL line naming the case and the indented lines it collected. Then
-# empty it for the next case. Same accounting idiom as step-cost.test.sh's verdict().
 verdict() {
   if [[ -z "$problems" ]]; then
     ok
@@ -74,9 +60,6 @@ verdict() {
   problems=""
 }
 
-# step_leaves <step> <dollars…> — the `usage` events of one completed step, one per leaf,
-# each carrying the dollars given, appended to the fixture log. Six leaves make a full step
-# and two a pin (pin_step): the count is what run-affordable.sh tells them apart by.
 step_leaves() {
   local step="$1" d; shift
   for d in "$@"; do
@@ -85,23 +68,14 @@ step_leaves() {
   done
 }
 
-# pin_step <step> — the two `usage` events of one pin, a step already satisfied: its red leaf
-# and its verify-pin, at 0.25 each, so the step costs 0.50 against a full step's six leaves.
 pin_step() { step_leaves "$1" 0.25 0.25; }
 
-# three_full_steps — three completed full steps of six leaves each, costing 5.25, 7.50 and
-# 9.75, appended to the fixture log: spent 22.50, median full step 7.50.
 three_full_steps() {
   step_leaves "step one"   0.25 1.00 1.00 1.00 1.00 1.00
   step_leaves "step two"   0.50 1.00 1.50 1.50 1.50 1.50
   step_leaves "step three" 0.75 1.50 1.50 2.00 2.00 2.00
 }
 
-# 1. three completed full steps of six leaves each, costing 5.25, 7.50 and 9.75: spent is
-#    22.50 and the median full step 7.50, so four steps still to go project 22.50 + 4 × 7.50
-#    = 52.50, over a 50 ceiling. The run cannot afford to finish: exit 1, and stdout carries
-#    the four figures it decided on — spent, steps remaining, median and projection. No
-#    figure is another's substring, so each is read on its own.
 : > "$work/.tdd/events.jsonl"
 three_full_steps
 run_affordable VERI_RUN_BUDGET=50 -- 4
@@ -109,12 +83,6 @@ expect_code 1
 expect_figures 22.50 4 7.50 52.50
 verdict "a projection over VERI_RUN_BUDGET exits 1 printing spent, steps remaining, median and projection"
 
-# 2. four completed full steps, logged out of cost order at 9.00, 3.00, 7.00 and 5.00: the
-#    median of an even count is the mean of the middle two once sorted, (5.00 + 7.00) / 2 =
-#    6.00, so five steps to go project 24.00 + 5 × 6.00 = 54.00 over a 50 ceiling — exit 1.
-#    Read in log order the middle two are 3.00 and 7.00, a 5.00 median and a 49.00
-#    projection under the ceiling; so the sort and the even-count mean are both what this
-#    case needs.
 : > "$work/.tdd/events.jsonl"
 step_leaves "step one"   1.50 1.50 1.50 1.50 1.50 1.50
 step_leaves "step two"   0.50 0.50 0.50 0.50 0.50 0.50
@@ -125,9 +93,6 @@ expect_code 1
 expect_figures 24.00 5 6.00 54.00
 verdict "the median of an even count of steps logged out of order is the mean of the sorted middle two"
 
-# 3. case 1's three completed full steps — spent 22.50, median 7.50 — with three steps to go
-#    project 22.50 + 3 × 7.50 = 45.00, within a 50 ceiling. The run can afford to finish:
-#    exit 0, and stdout is empty, so a caller reads the answer from the code alone.
 : > "$work/.tdd/events.jsonl"
 three_full_steps
 run_affordable VERI_RUN_BUDGET=50 -- 3
@@ -135,11 +100,6 @@ expect_code 0
 expect_silent
 verdict "a projection within VERI_RUN_BUDGET exits 0 printing nothing"
 
-# 4. three completed full steps costing 6.00, 8.00 and 10.00 among five pins of two leaves
-#    at 0.50 each: spent is 24.00 + 2.50 = 26.50 and the median full step 8.00, so three
-#    steps to go project 26.50 + 3 × 8.00 = 50.50, over a 50 ceiling — exit 1. A median over
-#    all eight steps is the mean of two pins, 0.50, projecting 28.00 under the ceiling; so
-#    only a median over the full steps, told apart by their leaf count, parks this run.
 : > "$work/.tdd/events.jsonl"
 pin_step  "pin one"
 step_leaves "step one"   1.00 1.00 1.00 1.00 1.00 1.00
@@ -154,9 +114,6 @@ expect_code 1
 expect_figures 26.50 3 8.00 50.50
 verdict "the median is over completed full steps only, so a log of mostly pins still projects at the full-step median"
 
-# 5. no completed full step, so there is no median to project with: first a log of two pins
-#    and nothing else, then a log holding no `usage` event at all. Each exits 3 — nothing to
-#    decide, not an answer — with stdout empty, so a caller never reads a figure off it.
 : > "$work/.tdd/events.jsonl"
 pin_step "pin one"
 pin_step "pin two"
@@ -169,11 +126,6 @@ expect_code 3
 expect_silent "a log with no usage"
 verdict "no completed full step, only pins or no usage at all, exits 3 printing nothing"
 
-# 6. case 3's log — spent 22.50, median 7.50, affordable for any count up to three — run with
-#    no <steps-remaining> at all, then with a word and with a fraction in its place. None is
-#    a number of steps, so none is an answer: each exits 2 with stdout empty, rather than
-#    reading the word as zero steps or projecting a fraction of one, which both land under
-#    the 50 ceiling and would say exit 0.
 : > "$work/.tdd/events.jsonl"
 three_full_steps
 for arg in "" two 1.5; do
@@ -183,19 +135,12 @@ for arg in "" two 1.5; do
 done
 verdict "a missing or non-whole-number <steps-remaining> exits 2 printing nothing"
 
-# 7. no .tdd/events.jsonl at all in the run's worktree, with a valid count and ceiling. There
-#    is no spend to read, so no answer: exit 2 with stdout empty — not exit 3, which would
-#    say the run has no full step yet when nothing about the run could be read.
 rm -f "$work/.tdd/events.jsonl"
 run_affordable VERI_RUN_BUDGET=50 -- 3
 expect_code 2
 expect_silent "a missing event log"
 verdict "a missing .tdd/events.jsonl exits 2 printing nothing"
 
-# 8. case 3's log — spent 22.50, median 7.50, three steps to go projecting 45.00 — run with
-#    VERI_RUN_BUDGET set to a word, to a negative number and to the empty string. None is a
-#    ceiling, so none is an answer: each exits 2 with stdout empty, rather than comparing the
-#    projection against a ceiling that is no number and printing figures as if it had.
 : > "$work/.tdd/events.jsonl"
 three_full_steps
 for budget in fifty -5 ""; do
@@ -205,11 +150,6 @@ for budget in fifty -5 ""; do
 done
 verdict "a VERI_RUN_BUDGET that is not a non-negative decimal number exits 2 printing nothing"
 
-# 9. #409's shape: a run at 8 of 9 steps done, eight completed full steps costing 5.50,
-#    5.80, 6.00, 6.10, 6.20, 6.40, 6.56 and 6.80 — spent 49.36, the median full step
-#    (6.10 + 6.20) / 2 = 6.15 — with the one step left projecting 49.36 + 1 × 6.15 = 55.51,
-#    under a 60 ceiling. A converging run near its finish can afford to finish: exit 0 with
-#    stdout empty, so it is not parked one step from its draft PR.
 : > "$work/.tdd/events.jsonl"
 step_leaves "step one"   1.00 1.00 1.00 1.00 1.00 0.50
 step_leaves "step two"   1.00 1.00 1.00 1.00 1.00 0.80
@@ -224,11 +164,6 @@ expect_code 0
 expect_silent "a run at 8 of 9 steps"
 verdict "a run at 8 of 9 steps with one median step left and a ceiling above the projection exits 0"
 
-# 10. a run early in a long plan: two completed full steps costing 7.00 and 8.00 — spent
-#     15.00, far under a 50 ceiling, the median full step (7.00 + 8.00) / 2 = 7.50 — with ten
-#     steps still to go projecting 15.00 + 10 × 7.50 = 90.00, over the ceiling. Nothing has
-#     crossed the ceiling yet, but the run already knows it cannot finish: exit 1 with the
-#     four figures, so it parks while parking is still cheap rather than at the crossing.
 : > "$work/.tdd/events.jsonl"
 step_leaves "step one" 1.00 1.00 1.00 1.00 1.00 2.00
 step_leaves "step two" 1.00 1.00 1.00 1.00 2.00 2.00
