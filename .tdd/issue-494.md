@@ -11,7 +11,7 @@ Scope: every shell file under `skills/tdd/scripts/tests/` — the `*.sh` files (
 - [x] The sweepable report is empty for every top-level `tests/*.sh` whose name starts with e through j ⟦criterion 1⟧
 - [x] The sweepable report is empty for every top-level `tests/*.sh` whose name starts with k through m ⟦criterion 1⟧
 - [x] The sweepable report is empty for every top-level `tests/*.sh` whose name starts with n through r ⟦criterion 1⟧
-- [x] The sweepable report is empty for `tests/supervise.test.sh` and `tests/supervise-retry.test.sh` ⟦criterion 1⟧ ⟂ refactor pending
+- [x] The sweepable report is empty for `tests/supervise.test.sh` and `tests/supervise-retry.test.sh` ⟦criterion 1⟧
 - [ ] The sweepable report is empty for every top-level `tests/*.sh` whose name starts with s, other than the `skill-*` and `supervise*` files ⟦criterion 1⟧
 - [ ] The sweepable report is empty for every top-level `tests/*.sh` whose name starts with t through z ⟦criterion 1⟧
 - [ ] The sweepable report is empty for every `tests/skill-*.test.sh` whose name after `skill-` starts with a through l ⟦criterion 1⟧
@@ -24,3 +24,7 @@ Scope: every shell file under `skills/tdd/scripts/tests/` — the `*.sh` files (
 ## Owed steps
 
 - a tab-indented `#!` opening a `<<-` heredoc body is omitted from the sweepable report, since bash strips the tabs before writing it
+
+## Owed steps
+
+- The leading header block of every shell file under `skills/tdd/scripts/tests/` carries only its contract (what the suite pins, how to run it) — no history, commit shas or "before this…" rationale
