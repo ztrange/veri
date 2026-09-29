@@ -48,6 +48,17 @@ solvable_in() {
   (cd "$dir" && env "$@" "$HERE/solvable-issues.test.sh" 2>/dev/null)
 }
 
+slice_run_conductor() {
+  local keep="$1" cut="$2"
+  awk -v keep=" $keep " '
+    /^tree_clone "\$work\/tree"$/ {skip=1; cut=1}
+    cut && /^name="/ {n++; skip = !index(keep, " " n " ")}
+    !skip
+  ' "$HERE/run-conductor.test.sh" > "$cut"
+  printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$cut"
+  chmod +x "$cut"
+}
+
 name="supervise-retry.test.sh: ambient VERI_STUCK_RETRIES=0 still gives 1 passed, 0 failed"
 problems=()
 out="$(VERI_STUCK_RETRIES=0 "$HERE/supervise-retry.test.sh" 2>/dev/null)" && code=0 || code=$?
@@ -193,13 +204,7 @@ newskill_cases=(
   "a re-pinning launch with VERI_NEW_SKILL=1 hands the conductor no VERI_NEW_SKILL"
 )
 newskill_cut="$(mktemp "$HERE/.hermetic-newskill-slice.XXXXXX")"
-awk -v keep=" 9 17 18 19 24 " '
-  /^tree_clone "\$work\/tree"$/ {skip=1; cut=1}
-  cut && /^name="/ {n++; skip = !index(keep, " " n " ")}
-  !skip
-' "$HERE/run-conductor.test.sh" > "$newskill_cut"
-printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$newskill_cut"
-chmod +x "$newskill_cut"
+slice_run_conductor "9 17 18 19 24" "$newskill_cut"
 newskill_missing=()
 for newskill_case in "${newskill_cases[@]}"; do
   grep -qF "name=\"$newskill_case\"" "$newskill_cut" || newskill_missing+=("$newskill_case")
@@ -286,13 +291,7 @@ name="run-conductor.test.sh: an ambient VERI_NEW_SKILL=1 with a VERI_SKILL_COMMI
 problems=()
 skillcommit_case="every event a launched run writes carries origin's tip as skill_commit, and the prompt names it"
 skillcommit_cut="$(mktemp "$HERE/.hermetic-skillcommit-slice.XXXXXX")"
-awk '
-  /^tree_clone "\$work\/tree"$/ {skip=1; cut=1}
-  cut && /^name="/ {n++; skip = (n != 15)}
-  !skip
-' "$HERE/run-conductor.test.sh" > "$skillcommit_cut"
-printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$skillcommit_cut"
-chmod +x "$skillcommit_cut"
+slice_run_conductor 15 "$skillcommit_cut"
 if ! grep -qF "name=\"$skillcommit_case\"" "$skillcommit_cut"; then
   problems+=("no case could be asked from run-conductor.test.sh under VERI_NEW_SKILL=1 and VERI_SKILL_COMMIT — the slice is missing the case: $skillcommit_case — case 15, counted by name= line, may have moved")
 else
