@@ -48,14 +48,12 @@ if [ "${GH_GRAPHQL:-}" = refused ]; then
 fi
 case "$*" in
   *-q*|*--jq*|*--template*) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
-  "api repos/o/r/pulls/1")
+  "api repos/o/r/pulls/1"|"pr view $PR_URL --json "*statusCheckRollup*)
     if [ -n "${GH_FAIL:-}" ]; then echo "HTTP 502: Bad Gateway" >&2; exit 1; fi
     echo >> "$ROLLUP.calls"
-    python3 -c 'import json, sys; print(json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": json.load(open(sys.argv[1])).get("headRefOid")}}))' "$(served '')" ;;
-  "pr view $PR_URL --json "*statusCheckRollup*)
-    if [ -n "${GH_FAIL:-}" ]; then echo "HTTP 502: Bad Gateway" >&2; exit 1; fi
-    echo >> "$ROLLUP.calls"
-    cat "$(served '')" ;;
+    if [ "$1" = pr ]; then cat "$(served '')"; else
+      python3 -c 'import json, sys; print(json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": json.load(open(sys.argv[1])).get("headRefOid")}}))' "$(served '')"
+    fi ;;
   "api "*"repos/o/r/commits/"*/check-runs*)
     if [ -n "${GH_API_FAIL:-}" ]; then echo '{"message":"Not Found"}'; echo "gh: Not Found (HTTP 404)" >&2; exit 1; fi
     python3 - "$(served .check-runs)" "$@" <<'P'
