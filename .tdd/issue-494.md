@@ -28,3 +28,7 @@ Scope: every shell file under `skills/tdd/scripts/tests/` — the `*.sh` files (
 ## Owed steps
 
 - The leading header block of every shell file under `skills/tdd/scripts/tests/` carries only its contract (what the suite pins, how to run it) — no history, commit shas or "before this…" rationale
+
+## Owed steps
+
+- comment-class.sh classifies every `#` line of a suite, dropping none after a `"$(cmd 'a "b')"` shape (a `"` inside a single-quoted argument inside `"$(…)"`), so the sweepable report is not empty merely because the scanner lost its place
