@@ -40,7 +40,7 @@ awk -v sweepable="$sweepable" '
     end = $0
     if (dash) sub(/^\t+/, "", end)
     if (end == delim) delim = ""
-    else if (comment && !(sweepable && (cls == 3 || (body && /^#!/)))) print FILENAME ":" FNR ":" cls
+    else if (comment && !(sweepable && (cls == 3 || (body && end ~ /^#!/)))) print FILENAME ":" FNR ":" cls
     body = 0
     next
   }
