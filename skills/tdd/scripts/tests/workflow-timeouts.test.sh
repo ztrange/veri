@@ -35,9 +35,6 @@ CI_YML="$ROOT/.github/workflows/ci.yml"
 PAGES_YML="$ROOT/.github/workflows/pages.yml"
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which half of the contract broke rather than just that the case did.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -49,12 +46,6 @@ report() {
   fi
 }
 
-# probe <message> <regex>... — one fact the comment under test has to carry, written as the
-# regexes that would show it is there: all of them have to match, and `message` names the
-# fact once if any does not. Reads `$lc` and appends to `$problems`, the way report() reads
-# `$problems` — the subject of every probe in this suite is the same lowercased comment.
-# Each regex accepts any wording that carries the fact, so a case pins what the comment
-# says and not how it is phrased.
 probe() {
   local msg="$1"; shift
   local re
@@ -63,20 +54,11 @@ probe() {
   done
 }
 
-# probe_ceiling — the one fact both comments owe, named once. Every other probe in this
-# suite is specific to its job, but the 6-hour default is what both budgets exist to bound,
-# so the two cases asserted it with the same message and the same regex; sharing them keeps
-# the wording from drifting apart on one side only.
 probe_ceiling() {
   probe "comment beside the timeout does not name the 6-hour default ceiling" \
     '(6[ -]?h|six[ -]?hour)'
 }
 
-# job_block <file> <job> -> the lines that belong to one job's mapping, on stdout.
-# A job key sits at indent 2 under `jobs:` and everything of its own is indented further,
-# so the block runs from the line after `  <job>:` to the next line that starts at indent
-# 2 — the next job. Scoping to the block is what makes "the gates job declares it" a
-# different assertion from "the file mentions it somewhere".
 job_block() {
   awk -v key="  $2:" '
     $0 == key { inside = 1; next }
@@ -85,12 +67,6 @@ job_block() {
   ' "$1"
 }
 
-# job_names <file> -> every job key that file defines, one per line.
-# Only the keys under the top-level `jobs:` mapping count: indent 2 is also where
-# `permissions:` and `concurrency:` put their own keys, so scanning the whole file for
-# indent-2 keys would report `group` and `contents` as jobs. The block runs from `jobs:`
-# to the next line that starts at column 0, the way job_block runs to the next indent-2
-# line. This is what lets a case sweep the jobs that exist rather than name them.
 job_names() {
   awk '
     /^jobs:[[:space:]]*$/ { inside = 1; next }
@@ -101,13 +77,6 @@ job_names() {
   ' "$1"
 }
 
-# timeout_comment <file> <job> <minutes> — locate that job's own `timeout-minutes: <minutes>`
-# and set `$lc` to the lowercased comment beside it, which is what every probe() reads.
-# Returns non-zero, with the reason appended to `$problems`, when there is no comment to
-# read. Three states, each with its own message and only one of them reported: no job at
-# all, a job without the declaration, or the declaration to read the comment around. A
-# missing job would otherwise also report as a missing timeout, which is true but says the
-# wrong thing about what to go fix.
 timeout_comment() {
   local file="$1" job="$2" minutes="$3"
   local line n idx i j ctx re
@@ -116,9 +85,6 @@ timeout_comment() {
   while IFS= read -r line; do block+=("$line"); done < <(job_block "$file" "$job")
   n="${#block[@]}"
 
-  # The declaration has to be the job's own, not a step's: job keys in these files sit at
-  # indent 4, beside `runs-on`. A trailing comment on the same line is allowed — that is
-  # one of the two shapes "a comment beside it" can take.
   re="^    timeout-minutes:[ ]*${minutes}[ ]*(#.*)?$"
   idx=-1
   i=0
@@ -136,8 +102,6 @@ timeout_comment() {
     return 1
   fi
 
-  # "Beside it" is the timeout line itself plus the run of comment lines directly above
-  # it — the register both workflow headers already use for a decision that needs a why.
   ctx="${block[$idx]}"
   j=$((idx - 1))
   while [[ "$j" -ge 0 ]] && [[ "${block[$j]}" =~ ^[[:space:]]*# ]]; do
@@ -147,9 +111,6 @@ timeout_comment() {
   lc="$(printf '%s' "$ctx" | tr 'A-Z' 'a-z')"
 }
 
-# 1. The contract above. The four facts in the comment are one criterion — the number is
-#    only defensible with its reasoning beside it — so they report as one case, with
-#    `problems` naming whichever fact is missing.
 name="ci.yml gates: timeout-minutes 5, with a comment citing the 6-hour ceiling, the measured 160-175 s, ~230 s, the temporary raise, and docs gates staying out of CI"
 problems=()
 
@@ -166,10 +127,6 @@ if timeout_comment "$CI_YML" gates 5; then
 fi
 report "$name"
 
-# 2. The same shape for the other workflow: the `deploy` job in pages.yml caps at 10, and
-#    its comment has to carry the three facts that make 10 the right number rather than a
-#    copy of the gates job's 3 — the ceiling it protects against, the duration it leaves
-#    headroom over, and why this job's budget is the larger one.
 name="pages.yml deploy: timeout-minutes 10, with a comment citing the 6-hour ceiling, 11-23 s, and why it is larger than gates"
 problems=()
 
@@ -184,14 +141,6 @@ if timeout_comment "$PAGES_YML" deploy 10; then
 fi
 report "$name"
 
-# 3. The two cases above pin the two jobs that exist today, by name. This one is for the
-#    job that does not exist yet: it enumerates every job in every workflow file and asks
-#    only that each declares a job-level timeout-minutes, whatever the number and whatever
-#    the comment. A job added later without one inherits the same 6-hour ceiling, and the
-#    named cases would stay green the whole time it did.
-#    The sweep also has to fail when it reads nothing — no workflow files, or a file whose
-#    jobs it could not enumerate — because a sweep that found no jobs would otherwise
-#    report "every job declares one" as a pass.
 name="every job in every .github/workflows file declares a job-level timeout-minutes"
 problems=()
 

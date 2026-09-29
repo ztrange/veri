@@ -38,14 +38,6 @@ report() {
   fi
 }
 
-# 1. The whole of this step's criterion, as one case: the defaults both variables resolve
-#    to when neither is set, and the refusal each of them gets when it is set to something
-#    that is not a number. `env -u` clears them for the first invocation rather than trusting
-#    the caller's environment, which `hermetic-suites.test.sh` requires of every suite here.
-#    The two bad values are words a hurried operator could plausibly type — `ten` for the
-#    seconds, `1,5` for the ratio, a comma being the decimal point in the locale this repo's
-#    author writes in — and each is checked to name its own variable, so a diagnostic that
-#    named the wrong one, or neither, is not a pass.
 name="time-budget.sh: unset tunables resolve to 10 and 1.5; a non-numeric one exits 2 naming the variable"
 problems=()
 

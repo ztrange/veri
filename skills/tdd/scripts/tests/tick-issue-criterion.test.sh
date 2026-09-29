@@ -12,8 +12,6 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 WRAP="$HERE/../tick-issue-criterion.sh"
 pass=0 fail=0
 
-# Build a stub `gh`: `issue view` prints $FAKE_BODY; `issue edit` copies the
-# --body-file contents to $FAKE_OUT so the test can inspect what would be written.
 stubdir="$(mktemp -d)"
 trap 'rm -rf "$stubdir"' EXIT
 cat > "$stubdir/gh" <<'STUB'
@@ -56,13 +54,10 @@ run() {  # run <name> <expected-exit> <expect-edit:yes|no> <env-assignment> <mat
   fi
 }
 
-# 1. regression: no GH_REPO (empty repo-args) must not crash, and ticks the box
 run "no GH_REPO ticks" 0 yes "" "alpha"
 
-# 2. GH_REPO set still works
 run "with GH_REPO ticks" 0 yes "GH_REPO=owner/name" "alpha"
 
-# 3. no match → exit 3, no edit written
 run "no match no edit" 3 no "" "nonexistent"
 
 echo "----"

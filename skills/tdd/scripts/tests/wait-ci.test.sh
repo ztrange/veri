@@ -79,10 +79,6 @@ report() {
   fi
 }
 
-# rollup <file> <rows> [head] — write the fixture document gh serves for the PR, rows being
-# the JSON array's contents and <head> its head commit, and beside it the head's own
-# check-runs and /status documents holding the same rows. A file <name>.json.<n> beside
-# <name>.json is served on the n-th read.
 rollup() {
   printf '{"headRefOid":"%s","statusCheckRollup":[%s]}\n' \
     "${3:-0123456789abcdef0123456789abcdef01234567}" "$2" > "$work/$1"
@@ -101,13 +97,10 @@ json.dump({"state": "pending", "sha": doc["headRefOid"], "total_count": len(stat
 P
 }
 
-# check <status> <conclusion> — one CheckRun row of the rollup.
 check() {
   printf '{"__typename":"CheckRun","name":"gates","workflowName":"ci","status":"%s","conclusion":"%s"}' "$1" "$2"
 }
 
-# sha_runs <file> <row>... — write, beside fixture <file>, the check-runs document gh api
-# serves for $sha holding <row>..., and a /status document with no statuses.
 sha_runs() {
   local f="$1"; shift
   local IFS=,
@@ -115,28 +108,20 @@ sha_runs() {
   sha_statuses "$f" pending
 }
 
-# sha_statuses <file> <state> <row>... — write, beside fixture <file>, the /status document
-# gh api serves for $sha, combined state <state>, holding <row>....
 sha_statuses() {
   local f="$1" state="$2"; shift 2
   local IFS=,
   printf '{"state":"%s","sha":"%s","total_count":%s,"statuses":[%s]}\n' "$state" "$sha" "$#" "$*" > "$work/$f.status"
 }
 
-# sha_run <name> <status> <conclusion> — one check run of $sha, <conclusion> as JSON.
 sha_run() {
   printf '{"name":"%s","head_sha":"%s","status":"%s","conclusion":%s}' "$1" "$sha" "$2" "$3"
 }
 
-# sha_head <file> — write fixture <file>: a PR reporting $sha as its head, its rollup one
-# completed SUCCESS check.
 sha_head() {
   rollup "$1" "$(check COMPLETED SUCCESS)" "$sha"
 }
 
-# wait_in <dir> <name> <err> <bound>... — run wait-ci.sh from <dir> against fixture <name> with
-# <bound>... as its limits on a clock that moves 60 s a reading, stderr to <err>, and echo its
-# exit code.
 wait_in() {
   ( cd "$1" && env VERI_POLL=0 VERI_CLOCK_STEP=60 VERI_CLOCK_LOG="$work/$2.clock" \
       PR_URL="$PR" ROLLUP="$work/$2.json" PATH="$work/bin:$PATH" \
@@ -144,9 +129,6 @@ wait_in() {
   echo $?
 }
 
-# waited <name> [arg...] — wait_in a working directory of its own, on a fresh clock, with
-# [arg...] as wait-ci.sh's arguments after the PR (default a 1800-second limit), stderr to
-# <name>.err.
 waited() {
   local dir
   [[ $# -gt 1 ]] || set -- "$1" 1800
@@ -155,21 +137,15 @@ waited() {
   wait_in "$dir" "$1" "$work/$1.err" "${@:2}"
 }
 
-# shared <name> — give fixture <name> a fresh clock and read count, and the working directory
-# $work/<name> that successive wait_in calls share.
 shared() {
   mkdir -p "$work/$1/.tdd"
   : > "$work/$1.clock"; : > "$work/$1.json.calls"
 }
 
-# again <name> <call> [arg...] — wait_in fixture <name>'s shared directory with [arg...] as
-# wait-ci.sh's arguments after the PR, stderr to <name>.<call>.err.
 again() {
   wait_in "$work/$1" "$1" "$work/$1.$2.err" "${@:3}"
 }
 
-# expect_exit <name> <code> [bound] — waited <name> [bound], and record a problem unless it
-# exited <code>.
 expect_exit() {
   local got
   got="$(waited "$1" "${3:-1800}")"
@@ -227,7 +203,6 @@ grep -F "could not read the checks of $PR" "$work/headless.err" > /dev/null \
   || problems+=("no headRefOid: stderr does not name the PR: $(cat "$work/headless.err")")
 report "$name"
 
-# context <state> — one legacy StatusContext row of the rollup: a state and no status key.
 context() {
   printf '{"__typename":"StatusContext","context":"legacy","state":"%s"}' "$1"
 }

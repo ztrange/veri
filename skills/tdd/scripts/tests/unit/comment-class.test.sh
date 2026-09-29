@@ -412,6 +412,11 @@ done
 want_empty_sweepable "${files[@]}"
 verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with s, other than the skill-* and supervise* files"
 
+# 34. the sweepable report is empty for every top-level tests/*.sh whose name starts with t through z.
+problems=""
+want_empty_sweepable "$SCRIPTS"/tests/[t-z]*.sh
+verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with t through z"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
