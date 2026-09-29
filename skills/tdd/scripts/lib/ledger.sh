@@ -12,8 +12,8 @@ ledger_steps() {
   local line state kind pending added criterion text index=0
   local mark=' ⟂ refactor pending'
   local re='^[[:space:]]*- \[([ xX])\] (.*)$'
-  local kind_re='⟦(full-suite|human-owed)⟧ ⟦criterion [0-9]+⟧'
   local criterion_re='⟦criterion ([0-9]+)⟧'
+  local kind_re="⟦(full-suite|human-owed)⟧ $criterion_re"
   while IFS= read -r line || [[ -n "$line" ]]; do
     [[ "$line" =~ $re ]] || continue
     index=$((index + 1))
