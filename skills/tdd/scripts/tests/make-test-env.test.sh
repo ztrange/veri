@@ -37,11 +37,8 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# Repo-relative, because that is what the recipe is handed; the fixture is never run on its
-# own, since everything it reports is a fact about the runner.
 FIXTURE='skills/tdd/scripts/tests/fixtures/make-test-env/reports-env.test.sh'
 
 work="$(mktemp -d)"
@@ -50,8 +47,6 @@ probe="$work/probe"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -63,13 +58,8 @@ report() {
   fi
 }
 
-# flat <text> — one line of it, for a failure message.
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
-# recipe <stdin> [<VAR=value>...] — run this repository's `test` recipe over the fixture alone,
-# with <stdin> as make's stdin and the assignments added to its environment, and leave the
-# fixture's report in `probe`. A recipe that did not pass the fixture is a problem of its own:
-# the report of a run that failed is not an answer about the environment.
 recipe() {
   local in="$1"; shift
   rm -f "$probe"
@@ -81,19 +71,13 @@ recipe() {
     problems+=("the fixture wrote no report, so the recipe never ran it: $(flat "$recipe_out")")
 }
 
-# saw <key> — the value the fixture reported for <key>, or nothing.
 saw() { sed -n "s/^$1=//p" "$probe" 2>/dev/null; }
 
-# expect <key> <want> <why> — one problem unless the fixture saw <want> for <key>.
 expect() {
   local got; got="$(saw "$1")"
   [[ "$got" == "$2" ]] || problems+=("a suite saw $1=${got:-<nothing>}, want $2 — $3")
 }
 
-# An xcrun of our own, first on PATH for cases 3 and 4, so what xcrun answers is the case's
-# choice rather than the machine's: on Linux there is no xcrun at all, and on a Mac it always
-# answers. It names $XCRUN_GIT for `-f git` when that is set and fails otherwise, as xcrun does
-# on a machine without developer tools.
 stub="$work/bin"
 mkdir -p "$stub"
 cat > "$stub/xcrun" <<'EOF'
@@ -104,27 +88,16 @@ exit 1
 EOF
 chmod +x "$stub/xcrun"
 
-# A real (if fake) binary for xcrun to name in case 3: the recipe now symlinks `git` on a
-# suite's PATH straight to whatever it resolves as real, and a dangling symlink — one whose
-# target does not exist — is invisible to `command -v`, which skips it and keeps searching.
-# Naming a path that is not actually there would silently fall through to the real system git
-# instead of pinning what the recipe chose.
 xcrun_git="$work/xcrun-git/git"
 mkdir -p "$(dirname "$xcrun_git")"
 printf '#!/bin/sh\necho fake xcrun git\n' > "$xcrun_git"
 chmod +x "$xcrun_git"
 
-# 1. The locale. Asked with the caller in the UTF-8 locale a terminal sets, which is the one
-#    that made the text-processing suites twelve times slower.
 problems=()
 recipe /dev/null LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
 expect LC_ALL C "the recipe passed the caller's locale through, and BSD text tools run ~12x slower in UTF-8"
 report "make test runs every suite under LC_ALL=C, whatever locale it was invoked in"
 
-# 2. stdin. Asked with make's stdin a pipe that is open and will never be written to or closed:
-#    fd 3 holds the FIFO open for writing, so a reader gets neither data nor end-of-file — the
-#    shape of the socket a backgrounded command gets. The fixture only compares, so a red here
-#    reports rather than hangs.
 problems=()
 fifo="$work/stdin"
 if mkfifo "$fifo" && exec 3<>"$fifo"; then
@@ -136,13 +109,6 @@ else
 fi
 report "make test gives every suite /dev/null as stdin, whatever stdin it was given"
 
-# 3. xcrun answers. OFFLINE_REAL_GIT is cleared because a suite running under `make test`
-#    inherits the outer run's value, and the recipe keeps an inherited one on purpose (a nested
-#    run must not re-resolve real git through its own, already-shadowed PATH); cleared, the
-#    recipe has to resolve it. GIT_LINK_TARGET is the immediate target of the `git` symlink the
-#    recipe puts on PATH — the fixture's own `command -v git` finds that symlink, not a bash
-#    wrapper, so `readlink` names the real binary the recipe resolved rather than a shim it
-#    forwards to.
 problems=()
 recipe /dev/null -u OFFLINE_REAL_GIT PATH="$stub:$PATH" XCRUN_GIT="$xcrun_git"
 expect OFFLINE_REAL_GIT "$xcrun_git" \
@@ -151,8 +117,6 @@ expect GIT_LINK_TARGET "$xcrun_git" \
   "the git symlink on a suite's PATH should point straight at the same binary OFFLINE_REAL_GIT names, with no wrapper in between"
 report "make test's git symlink points at the git xcrun names, when xcrun answers"
 
-# 4. xcrun does not answer — the machine CI runs on. The expected value is computed under the
-#    same PATH the recipe gets, so the case asks what the recipe chose, not what this machine has.
 problems=()
 want_git="$(PATH="$stub:$PATH" command -v git)"
 recipe /dev/null -u OFFLINE_REAL_GIT PATH="$stub:$PATH"

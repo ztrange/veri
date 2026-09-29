@@ -23,8 +23,6 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -36,12 +34,6 @@ report() {
   fi
 }
 
-# 1. One helper, and both scripts resolve through it.
-#
-# A repository with one commit (`git worktree add` refuses a repo with nothing to check out)
-# and a linked worktree of it, so "called from a linked worktree" is a real registration and
-# not a directory that merely looks like one. The expected path is git's own first registry
-# line, read from the main tree, so a /var vs /private/var difference on macOS cannot fail it.
 main_repo="$work/main"
 git init -q -b main "$main_repo" >/dev/null 2>&1
 git -C "$main_repo" -c user.name=veri -c user.email=veri@example.test \
@@ -53,15 +45,10 @@ want_main="${first_line#worktree }"
 
 problems=()
 
-# The real helper, sourced from inside the linked worktree.
 got_main="$(cd "$linked" && source "$HELPER" 2>/dev/null && main_working_tree 2>/dev/null)"
 [[ -n "$want_main" && "$got_main" == "$want_main" ]] \
   || problems+=("sourcing $HELPER from a linked worktree: main_working_tree printed '$got_main', want '$want_main'")
 
-# Both scripts, copied beside a stand-in helper that answers a decoy directory instead. The
-# real main tree above has no runs and no locks; the decoy has run #5 holding a live lock (this
-# suite's own pid). So a script that reads the decoy resolved the main tree through the helper,
-# and one that reads the real main tree carries its own copy of the rule.
 decoy="$work/decoy"
 git init -q -b tdd/5-decoy "$decoy/.tdd/wt/5" >/dev/null 2>&1
 mkdir -p "$decoy/.tdd/wt/5/.tdd"
@@ -71,9 +58,6 @@ printf '%s\n' "$$" > "$decoy/.tdd/wt/5/.tdd/conductor.pid"
 copy="$work/scripts"
 mkdir -p "$copy/lib"
 cp "$SCRIPTS/status.sh" "$SCRIPTS/solvable-issues.sh" "$copy/"
-# solvable-issues.sh imports its `## Blocked by` parsing from lib/blocked_by.py (#460); without
-# it the copy dies on the import, and a script that could not run is indistinguishable from one
-# that read the wrong tree. It is copied as is — only the main-working-tree helper is a stand-in.
 cp "$SCRIPTS/lib/blocked_by.py" "$copy/lib/"
 printf 'main_working_tree() { printf "%%s\\n" %q; }\n' "$decoy" > "$copy/lib/main-working-tree.sh"
 
