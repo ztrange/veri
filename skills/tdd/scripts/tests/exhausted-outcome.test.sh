@@ -19,24 +19,9 @@ pass=0 fail=0
 ok() { pass=$((pass + 1)); }
 no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 
-# run <report> — feed one report to the script and leave its answer in `out` and `code`. The
-# `&& code=0 || code=$?` dance is what reads an exit code without `set -e` killing the suite,
-# and it is spelled here once so a case below says what it asserts and not how it asked.
 out="" code=0
 run() { out="$(printf '%s' "$1" | "$OUTCOME")" && code=0 || code=$?; }
 
-# 1. the three outcomes one exhausted leaf may report (issue #408). A step whose revise budget
-#    ran out is sent one last leaf, asked which of two things is true of the criterion nothing
-#    could satisfy: that it carries more than one behaviour (`SPLIT:` lines, the condition Green
-#    already splits on), or that it needs a decision the run has no authority to make
-#    (`NEEDS_USER:`). Answering neither is the third outcome, and it is not an error — the
-#    conductor bails the step exactly as it does today. The three are one contract, so one case:
-#    which outcome a report holds and what the conductor is handed for it are the same question,
-#    and the three exits are only meaningful against each other. Exit 3 is veri's "nothing to
-#    do", never 2, because a leaf that volunteered neither answer is an answer, not a plumbing
-#    failure. The criteria come back as their bare texts, one per line, because add-ledger-step.sh
-#    takes them as positional arguments; the needs-user text comes back verbatim because it is
-#    what the user reads on the issue.
 problems=""
 
 split_report='The step names four behaviours at once, so no one green could carry it.

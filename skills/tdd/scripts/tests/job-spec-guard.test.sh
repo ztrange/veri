@@ -44,66 +44,33 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The guard, twice, and neither name substitutes for the other: repo-relative is what a
-# failure message quotes, absolute is what copying it into the plant needs.
 GUARD='skills/tdd/scripts/tests/no-job-spec-kills.test.sh'
 GUARD_PATH="$ROOT/$GUARD"
 GUARD_NAME="$(basename "$GUARD")"
 
-# Where the plant's two files live, and where its copy of the guard goes. The guard is run
-# from inside the planted tree, so it has to sit at the path it sits at here — its own
-# notion of the repository root is counted off its own location.
 SCRIPTS_DIR='skills/tdd/scripts'
 TESTS_DIR='skills/tdd/scripts/tests'
 
-# The two fixtures, repo-relative, because that is the address a guard over the whole of
-# skills/ has to quote: a basename says which file only as long as no two of them share one.
-# Ordinary scripts rather than suites, since the criterion is about a file under skills/ and
-# the shape that cost this machine twelve hours was written in a script, not in a test.
 OFFENDER_REL="$SCRIPTS_DIR/probe-load.sh"
 INNOCENT_REL="$SCRIPTS_DIR/probe-load-by-pid.sh"
 OFFENDER_NAME="$(basename "$OFFENDER_REL")"
 INNOCENT_NAME="$(basename "$INNOCENT_REL")"
 
-# The offending line, in halves. `KILL` and `JOB_SPEC` are apart for the reason the header
-# gives — joined, this line would be the first thing the guard caught, in the suite that
-# tests it.
 KILL='kill'
-# A job spec: the first job of the shell that started it, which is a name in that shell's
-# job table and nowhere else.
 JOB_SPEC='%1'
-# What the innocent kills with instead: the pid it recorded in `$!` when it started the
-# process. A system-wide name, so it still reaches the process from a shell that never held
-# the job.
 RECORDED_PID='"$victim"'
 
-# The comments the two planted lines end in, so this suite can find each line's number
-# without carrying a copy of the shape of its own — see the header. Nothing about either
-# mark is visible to the guard: both are ordinary trailing comments on ordinary lines of
-# bash. Distinct words rather than one, because both files carry one and the offender's line
-# number is the address this case is about.
 MARK='job-spec-probe'
 SAFE_MARK='recorded-pid-probe'
 
-# The exemption table's own line, which is what an entry is added after. Named here because
-# two things need it identically: the premise that asks whether the guard carries a table at
-# all, and the injection that puts an entry in it.
 EXEMPT_DECL='declare -A EXEMPT=('
 
-# The reason a real entry carries — one sentence saying why the job spec is the right name
-# at that site, which is the only thing an exemption is ever for. Its content is nothing the
-# guard reads; that it is non-empty is the whole of what the table's half of this case is
-# about.
 EXEMPT_REASON='the job spec is the point here: the line is quoted prose inside a heredoc, not a kill this shell ever runs'
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which half of the contract broke rather than just that the case did.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -115,16 +82,8 @@ report() {
   fi
 }
 
-# flat <text> — one line of it, for a failure message: newlines become slashes so a run's
-# output quoted inside an indented problem line stays one line. Pure parameter expansion
-# rather than a pipe into `tr`, which is two processes per problem line.
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
-# write_plant <path> <kill-argument> <mark> <comment> — write one fixture script, whole and
-# executable. The two fixtures differ only in what their kill names and what their comment
-# says; the script around those is written once, here, rather than copied per fixture. Both
-# start a real background process, because a guard reading a kill in a file that starts
-# nothing is being asked about a shape that is not the one this issue is about.
 write_plant() {
   local path="$1" arg="$2" mark="$3" comment="$4"
   {
@@ -138,12 +97,6 @@ write_plant() {
   chmod 755 "$path"
 }
 
-# plant — the tree this case is asked about: both fixtures and the guard, in one repository.
-# The tree is made a git repository with what is in it staged because nothing in the contract
-# says how the guard enumerates the files it reads — `git ls-files` is as reasonable an answer
-# as a glob, and an unstaged plant would make the case report on that choice instead of on
-# the detection it asks about. Leaves the offending line's number in `offender_line`, and
-# returns non-zero, with the broken premise recorded, when there is no tree to plant in.
 plant() {
   tree="$(mktemp -d)" || {
     problems+=("could not make a scratch tree to plant this case's files in, so the criterion went unasked")
@@ -163,45 +116,24 @@ plant() {
   install_guard
 
   offender_line="$(grep -n "$MARK" "$offender_path" | cut -d: -f1)"
-  # Not the status of that assignment (#183): a grep that found no mark must not make the
-  # case skip its probes and report an empty `problems` array as a pass. Whether the plant is
-  # what it claims is a premises probe's question, and it names the broken premise when the
-  # answer is no.
   return 0
 }
 
-# stage_guard — the copy of the guard in the tree made runnable and put in git's index. Both
-# the writers of that copy end here — the plant's own install below and the `exempt` that
-# rewrites it per run — because a run of the guard is only ever over the tree as git knows
-# it, and a copy that is staged but not executable, or executable but not staged, answers
-# about a tree that is not the one the case is asking about.
 stage_guard() {
   chmod 755 "$guard_copy"
   git -C "$tree" add -A >/dev/null 2>&1
 }
 
-# install_guard — the guard's own copy put into the tree, and the tree made a repository.
-# Called by the plant; `exempt` below writes that copy again for each of its runs.
 install_guard() {
   cp "$GUARD_PATH" "$guard_copy"
   git init -q "$tree" >/dev/null 2>&1
   stage_guard
 }
 
-# drop_tree — the scratch tree this case planted, removed. Guarded on the name because a
-# case whose `plant` failed has no tree to remove.
 drop_tree() {
   [[ -z "${tree:-}" ]] || rm -rf "$tree"
 }
 
-# exempt <key> <reason> — put the guard's own copy back and add exactly one entry to its
-# exemption table. The copy is rewritten first because this case runs the guard three times
-# and each run must meet a table holding only the entry its own probe is about rather than
-# the one the run before it left behind.
-#
-# awk rather than sed: the reason is arbitrary prose and sed would read a `/` or a `&` in it
-# as syntax. The entry goes immediately after the table's opening line, which is where a
-# human adding one puts it.
 exempt() {
   local key="$1" reason="$2" entry
   entry="  [$key]=\"$reason\""
@@ -212,9 +144,6 @@ exempt() {
   stage_guard
 }
 
-# probe_guard_is_there — the premise every probe below rests on, and the one that answers
-# while the guard does not exist yet: there is a suite at that path and it can be run.
-# Returns non-zero so the case stops here rather than reporting a plant it never made.
 probe_guard_is_there() {
   [[ -f "$GUARD_PATH" ]] || {
     problems+=("there is no guard suite at $GUARD, so nothing under skills/ is checked for a background process killed by a job spec")
@@ -226,11 +155,6 @@ probe_guard_is_there() {
   }
 }
 
-# probe_guard_carries_an_exemption_table — the premise the table's half of this case rests
-# on, and the one that answers while the guard has no table yet: there is somewhere to record
-# a site where the job spec is the right name, with the reason that says why. Returns
-# non-zero so the case stops rather than running a guard whose table it never managed to
-# write into.
 probe_guard_carries_an_exemption_table() {
   grep -qF -- "$EXEMPT_DECL" "$GUARD_PATH" || {
     problems+=("$GUARD carries no exemption table ('$EXEMPT_DECL'), so a site where a job spec is the right name cannot be recorded with its reason and the only way past the guard is to delete it")
@@ -238,12 +162,6 @@ probe_guard_carries_an_exemption_table() {
   }
 }
 
-# probe_plant_is_what_it_claims — the plant's premises, asserted rather than assumed. The
-# offending line has to be findable by its mark and has to really kill by a job spec, and the
-# innocent has to really kill the pid it recorded, or `offender_line` is a number the guard
-# was never owed and "the guard said nothing about the innocent" is true of a file with
-# nothing to say about. Returns non-zero when there is no marked line, since every probe
-# below is about a line there is none of.
 probe_plant_is_what_it_claims() {
   [[ "$offender_line" =~ ^[0-9]+$ ]] || {
     problems+=("the planted offender has no single marked line to name (found '$offender_line'), so the criterion cannot be asked")
@@ -256,26 +174,12 @@ probe_plant_is_what_it_claims() {
     problems+=("the planted innocent kills nothing by its recorded pid, so a guard that refused every kill in the tree would still pass this case")
 }
 
-# run_guard — run the guard over the planted tree once, leaving what it said in `guard_out`
-# and how it exited in `guard_code`. A step of its own rather than the first line of each
-# probe, because this case runs it three times and every probe below asks about exactly one
-# of those runs.
 run_guard() {
   guard_out="$("$guard_copy" 2>&1)" && guard_code=0 || guard_code=$?
 }
 
-# naming <needle> — the lines of the last run's output that carry <needle>, empty when none
-# do. Every probe below asks that one question of `guard_out` — did the guard say anything
-# about this file, this address, this entry — and the answer is quoted back in whatever the
-# probe reports, so the author reads the guard's own words rather than a verdict about them.
-# A here-string rather than a pipe, so a grep that stops reading cannot hand a SIGPIPE up as
-# this suite's status.
 naming() { grep -F "$1" <<< "$guard_out"; }
 
-# probe_guard_names_the_offender_with_its_line — the criterion, and it asks for both halves
-# of what a guard is: a failure, and an address. Not "the output mentions the file" — a guard
-# that listed every file it read would satisfy that — but `<file>:<line>`, which is the only
-# thing that sends the next author to the site rather than to the file.
 probe_guard_names_the_offender_with_its_line() {
   local named
   [[ "$guard_code" != 0 ]] ||
@@ -289,11 +193,6 @@ probe_guard_names_the_offender_with_its_line() {
     problems+=("the guard named $OFFENDER_NAME but not as $OFFENDER_REL:$offender_line, where the kill is; the lines naming it were: $(flat "$named")")
 }
 
-# probe_guard_leaves_the_innocent_alone — the other half of the condition the criterion
-# states, and the half that keeps the guard from being a grep for `kill`. A file that kills
-# the pid it recorded reaches its process from any shell, which is the repair this issue
-# shipped, and the guard must have nothing to say about it — not a softer complaint, no
-# complaint.
 probe_guard_leaves_the_innocent_alone() {
   local named
   named="$(naming "$INNOCENT_NAME")"
@@ -301,9 +200,6 @@ probe_guard_leaves_the_innocent_alone() {
     problems+=("the guard named $INNOCENT_REL, which kills the same process by the pid it recorded: $(flat "$named")")
 }
 
-# probe_entry_is_in_the_table <key> — the premise each run after an injection rests on: the
-# entry `exempt` wrote is really in the guard's copy. Without it, a silent guard is a guard
-# that read no table rather than one that honoured an entry.
 probe_entry_is_in_the_table() {
   grep -qF -- "[$1]" "$guard_copy" || {
     problems+=("the entry [$1] is not in the guard copy's exemption table, so what the run below reports is not about an exemption at all")
@@ -311,10 +207,6 @@ probe_entry_is_in_the_table() {
   }
 }
 
-# probe_guard_exempts_the_listed_site <key> — what the table buys: a site listed in it with a
-# reason is not a failure. Both halves of that, because a guard that named the site in a
-# softer voice and still exited non-zero would leave the run red and the author with nothing
-# to do about it — the guard passes, and says nothing about the site.
 probe_guard_exempts_the_listed_site() {
   local named
   [[ "$guard_code" == 0 ]] ||
@@ -324,15 +216,6 @@ probe_guard_exempts_the_listed_site() {
     problems+=("the guard still named $OFFENDER_REL:$offender_line, which its exemption table lists as [$1] with a reason: $(flat "$named")")
 }
 
-# probe_guard_refuses_a_reasonless_entry <key> — what the table costs to use: an entry with
-# no reason is not an exemption. A table whose entries may be bare keys is a list of sites
-# someone once wanted quiet, and the next reader has no way to tell a considered exemption
-# from a silenced complaint — which is why the reason is what makes the entry, and its
-# absence has to fail the run rather than exempt anything.
-#
-# The output has to say `reason` on the line naming the key, or a guard that simply ignored
-# the bare entry and reported the site as the offence it is would pass this probe while
-# telling the author nothing about what is wrong with their table.
 probe_guard_refuses_a_reasonless_entry() {
   local key="$1" named
   [[ "$guard_code" != 0 ]] ||
@@ -346,14 +229,6 @@ probe_guard_refuses_a_reasonless_entry() {
     problems+=("the guard named $key but never said its reason is what is missing, so the author is told a kill is there rather than that their exemption is not one: $(flat "$named")")
 }
 
-# 1. One criterion, one case: the guard fails over a file under skills/ that kills a
-#    background process by a job spec, says where as `<file>:<line>`, says nothing about the
-#    same process killed by its recorded pid, and honours an exemption entry only when it
-#    carries a reason. All four over one plant, run three times — as it stands, with the site
-#    exempted with a reason, and with the same entry's reason taken away — because that is
-#    what the criterion states as one sentence: what the guard catches, what it must not
-#    catch, and what the table buys and costs. Separate trees would ask the exemption halves
-#    about a site the first run never named.
 name="no-job-spec-kills.test.sh names a file under skills/ that kills a background process by a job spec as <file>:<line>, leaves a kill by recorded pid alone, and honours an exemption entry only when it carries a reason"
 problems=()
 
@@ -382,23 +257,11 @@ drop_tree
 
 report "$name"
 
-# remove_plant — the planted offender taken out of the tree, and git's index told about it,
-# so the run after this differs from the run before it in exactly one thing: the file that
-# broke the rule is no longer there. The index is kept in step for the same reason `plant`
-# put it there at all — nothing in the guard's contract says how it enumerates what it
-# reads, and a removal git still held would leave the run below reporting on that choice
-# rather than on the tree as it now stands.
 remove_plant() {
   rm -f "$offender_path"
   git -C "$tree" add -A >/dev/null 2>&1
 }
 
-# probe_plant_is_red_first — the premise the criterion's own sentence opens with, and the
-# one that makes the green below mean anything: over this tree, as planted, the guard is red
-# and the failure it reports is the planted line's address. Without it a guard that passed
-# over everything would satisfy the half under it, and a green bar would be recorded for a
-# check that never fired. Returns non-zero so the case stops rather than removing a plant
-# whose detection was never observed.
 probe_plant_is_red_first() {
   [[ "$guard_code" != 0 ]] || {
     problems+=("want the guard to fail over the tree as planted, whose $OFFENDER_REL ends a background process by a job spec at line $offender_line; it exited 0 and said: $(flat "$guard_out")")
@@ -410,10 +273,6 @@ probe_plant_is_red_first() {
   }
 }
 
-# probe_plant_is_gone — the other premise, asserted rather than assumed: `remove_plant`
-# really took the file out. A removal that silently failed would leave the run below meeting
-# the same tree as the run above, and the case would report on a guard's answer to a
-# question it was never asked.
 probe_plant_is_gone() {
   [[ ! -e "$offender_path" ]] || {
     problems+=("$OFFENDER_REL is still in the planted tree, so the run below is not the one this case asks about")
@@ -421,11 +280,6 @@ probe_plant_is_gone() {
   }
 }
 
-# probe_guard_is_green_once_the_plant_is_removed — the criterion. The same guard, over the
-# same tree, with the one offending file gone: it passes, and says nothing about the file
-# that is no longer there. Both halves, because a guard that kept naming a site it had once
-# read — from a cache, from git's index, from a roster written when it first ran — would
-# leave the next author deleting a file and still reading their own complaint back.
 probe_guard_is_green_once_the_plant_is_removed() {
   local named
   [[ "$guard_code" == 0 ]] ||
@@ -435,14 +289,6 @@ probe_guard_is_green_once_the_plant_is_removed() {
     problems+=("the guard still named $OFFENDER_NAME, whose file is no longer in the tree: $(flat "$named")")
 }
 
-# 2. One criterion, one case: the guard's red is the plant's, and it goes away with the
-#    plant. The red half above is this case's premise rather than its subject — case 1 is
-#    what asks how the guard reports an offender — because "green again" is a claim about a
-#    change: a guard that always passed and a guard that always failed each satisfy one half
-#    of the sentence, and only the pair over one tree, before and after the one removal, says
-#    the answer came from the file. This is the discipline the repository asks of a guard
-#    written by hand — break it on purpose, watch it go red, put it back — asked of this one
-#    on every run rather than once, on the day it was written, by whoever wrote it.
 name="no-job-spec-kills.test.sh goes red naming the planted offender and green again once that file is removed"
 problems=()
 

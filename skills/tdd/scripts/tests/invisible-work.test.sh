@@ -36,9 +36,6 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which of the four facts is missing rather than just that the case broke.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -50,20 +47,9 @@ report() {
   fi
 }
 
-# git_q <repo> <args…> — git with an identity of its own, so the suite does not depend on
-# whatever user.name/user.email the machine running it happens to carry (CI carries none).
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
-# unpr_branch_clone <dir> <branch> <ahead> — a clone in the shape invariant 2 is broken in:
-# `origin` carries <branch>, <ahead> commits past the default branch `main`, and the clone
-# knows it only as a remote-tracking ref. Nothing local is off `origin`, so the only thing
-# there is to report is the branch with no PR. Prints the clone's path, and nothing else: the
-# case reads the tip out of the clone afterwards, because a command substitution runs this in
-# a subshell and any variable it set there would be gone by the time the case asked for it.
 unpr_branch_clone() {
-  # Two statements rather than one: bash makes every name in a `local` local before it
-  # assigns any of them, so `src="$dir/src"` on the same line would read `dir` while it is
-  # still unset and die under `set -u`.
   local dir="$1" branch="$2" ahead="$3"
   local src="$dir/src" bare="$dir/origin.git" clone="$dir/clone" i
   mkdir -p "$src"
@@ -81,11 +67,6 @@ unpr_branch_clone() {
   echo "$clone"
 }
 
-# read_tip <clone> <branch> — set `tip` to <branch>'s tip as `origin` holds it, which is the
-# sha the finding has to name. Set as a variable rather than printed, because a command
-# substitution would run this in a subshell and lose the problem it records; and checked for
-# being there at all: an empty `tip` would make a probe ask whether the empty string is in
-# the report, which anything answers.
 read_tip() {
   local clone="$1" branch="$2"
   tip="$(git_q "$clone" rev-parse "refs/remotes/origin/$branch" 2>/dev/null)"
@@ -93,9 +74,6 @@ read_tip() {
     problems+=("the fixture put $branch on origin: want a tip sha for refs/remotes/origin/$branch, got none")
 }
 
-# push_control_branch <dir> <branch> — a second branch with no PR, pushed to the `origin` of
-# the case unpr_branch_clone built in <dir> and fetched into its clone, so a case that
-# expects a branch left out can tell "left out" from "the script printed nothing at all".
 push_control_branch() {
   local dir="$1" branch="$2"
   git_q "$dir/src" checkout -q -b "$branch" main
@@ -104,10 +82,6 @@ push_control_branch() {
   git_q "$dir/clone" fetch -q origin
 }
 
-# fixture <dir> — the `VERI_GH_JSON` override's two documents, in the exact shape
-# solvable-issues.sh already establishes for them: what `gh issue list --json …` and
-# `gh pr list --json …` emit. `prs.json` is an empty list because the whole of the case is
-# that no PR was ever opened — not open, not closed, not merged. Prints the directory.
 fixture() {
   local dir="$1"
   mkdir -p "$dir"
@@ -118,29 +92,18 @@ JSON
   echo "$dir"
 }
 
-# names <label> <haystack> <needle> — one probe: the report carries this fact. `%q` on the
-# haystack because a report that came back empty, or multi-line, would otherwise break the
-# one-problem-per-line shape the case reports in.
 names() {
   local label="$1" haystack="$2" needle="$3"
   [[ "$haystack" == *"$needle"* ]] ||
     problems+=("$label: want $(printf '%q' "$needle") in the report, got $(printf '%q' "$haystack")")
 }
 
-# omits <label> <haystack> <needle> — the other probe: the report leaves this out. Paired
-# with a `names` on a control in the same case, so an empty report cannot pass it alone.
 omits() {
   local label="$1" haystack="$2" needle="$3"
   [[ "$haystack" != *"$needle"* ]] ||
     problems+=("$label: want no $(printf '%q' "$needle") in the report, got $(printf '%q' "$haystack")")
 }
 
-# finding <report> <branch> — set `line` to the one line of the report that names the
-# branch, and `rest` to that line with the branch name and every sha cut out of it: both
-# carry digits of their own — a sha is hex, and the branch name carries the issue number —
-# so a number left in `rest` is one the script stated. Read with mapfile rather than `head`,
-# which would leave the pipeline before EOF and hand grep's SIGPIPE up as the status under
-# `pipefail` (#422).
 finding() {
   local report="$1" branch="$2" hits
   mapfile -t hits < <(grep -F "$branch" <<< "$report")
@@ -148,19 +111,12 @@ finding() {
   rest="$(sed -E 's/[0-9a-f]{7,40}//g' <<< "${line//"$branch"/}")"
 }
 
-# states <label> <rest> <n> — one probe: <n> stands in <rest> as a number of its own, not as
-# the digits of a larger one.
 states() {
   local label="$1" rest="$2" n="$3"
   [[ "$rest" =~ (^|[^0-9])$n([^0-9]|$) ]] ||
     problems+=("$label: want $n stated apart from the branch name and the sha, got $(printf '%q' "$rest")")
 }
 
-# 1. Issue #197, criterion 1: a branch on `origin` for which no PR has ever been opened is
-#    reported, naming the branch, its tip, its commit count ahead of the default branch, and
-#    the number and state of the issue its `tdd/<n>-<slug>` name refers to. This is the shape
-#    that went unnoticed for two days on 2026-09-12: 12 commits on `origin`, no PR, so
-#    neither GitHub's review queue nor solvable-issues.sh listed it, and no human did either.
 name="invisible-work.sh: a branch on origin with no PR is reported with its tip, its commits ahead and its issue's state"
 problems=()
 branch="tdd/71-walkthrough-version-the-commentary-too"
@@ -172,19 +128,11 @@ out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"
 finding "$out" "$branch"
 names "the report names the branch" "$out" "$branch"
 names "the finding names the branch's tip" "$line" "${tip:0:7}"
-# A `3` left in `rest` is the script having counted the commits ahead, and a `71` there is it
-# having resolved the slug to an issue rather than just echoing the name.
 states "the finding states the commits ahead of main" "$rest" 3
 states "the finding names the issue the slug refers to" "$rest" 71
 names "the finding names that issue's state" "${rest^^}" "OPEN"
 report "$name"
 
-# 2. Issue #197, criterion 1, the other side of it: invariant 2 is a branch with NO PR at all,
-#    so a branch on `origin` whose PR is still open is left out of the report — that branch is
-#    visible in GitHub's review queue already. A second branch on the same `origin` has no PR
-#    and must still be reported: without it, a script that printed nothing, or died before
-#    printing, would leave the open-PR branch out too and pass this case for the wrong reason.
-#    `prs.json` is what `gh pr list --state all --json headRefName,state` emits.
 name="invisible-work.sh: a branch on origin whose PR is still open is left out of the report"
 problems=()
 branch="tdd/71-walkthrough-version-the-commentary-too"
@@ -200,14 +148,6 @@ names "the branch with no PR is still reported" "$out" "$control"
 omits "the branch with an open PR is left out" "$out" "$branch"
 report "$name"
 
-# 3. Issue #197, criterion 1, when the slug names an issue the repository does not have: a
-#    `tdd/<n>-<slug>` branch whose <n> is absent from `issues.json` — a typo'd number, an
-#    issue transferred or deleted — is still a branch with no PR, so it is still reported with
-#    its tip and its commits ahead, and its issue's state is named as unknown rather than
-#    guessed. The lookup that fails must not take the report down with it: a second branch
-#    with no PR sorts ahead of it on `origin`, so a script that dies on the lookup has already
-#    printed that one — partial output a caller could mistake for the whole report — and
-#    leaves a traceback on stderr.
 name="invisible-work.sh: a tdd branch whose issue is not in the repository is reported with its issue state unknown, with no traceback"
 problems=()
 branch="tdd/999-an-issue-nobody-filed"
@@ -228,14 +168,6 @@ names "the finding names the issue's state as unknown" "${rest,,}" "unknown"
   problems+=("the script does not die on the lookup: want no traceback on stderr, got $(printf '%q' "$err")")
 report "$name"
 
-# 4. Issue #197, criterion 2: a local branch absent from `origin` is reported, naming the
-#    branch, its tip, how many commits it holds that `origin` does not, and the worktree
-#    holding it. This is invariant 1 (#191), the shape that nearly lost 71 commits across
-#    #150, #163, #170 and #174: runs that lived only in worktrees on one machine, with no
-#    branch on `origin` for any of them. The branch is cut from `main`, which `origin` does
-#    hold, so of its four commits past the initial one exactly four are ones `origin` lacks.
-#    The worktree path is matched as the case wrote it or as the filesystem resolves it,
-#    since a temporary directory on macOS sits behind the `/var` -> `/private/var` symlink.
 name="invisible-work.sh: a local branch absent from origin is reported with its tip, the commits origin lacks and its worktree"
 problems=()
 clone="$(unpr_branch_clone "$work/case4" "chore/pushed-already" 1)"
@@ -255,19 +187,11 @@ names "the report names the branch" "$out" "$branch"
 names "the finding names the branch's tip" "$line" "${tip:0:7}"
 [[ "$line" == *"$wt"* || "$line" == *"$wt_real"* ]] ||
   problems+=("the finding names the worktree holding it: want $(printf '%q' "$wt_real") in the finding, got $(printf '%q' "$line")")
-# The worktree path carries digits of its own (`wt-150`, and the temporary directory's
-# name), so it is cut out of the line before `finding` cuts the rest and the count is read.
 line="${line//"$wt_real"/}"; line="${line//"$wt"/}"
 finding "$line" "$branch"
 states "the finding states the commits origin does not hold" "$rest" 4
 report "$name"
 
-# 5. Issue #197, criterion 2, the other side of it: invariant 1 is a local branch `origin`
-#    does NOT carry, so a local branch that is on `origin` too is left out of the report. The
-#    case's local branch shares its name with a branch on `origin` whose PR is open, which
-#    keeps it out of the invariant-2 half as well — so any line naming it is an invariant-1
-#    finding the filter should have withheld. A second local branch, never pushed, must still
-#    be reported: without it, a script that printed nothing would pass this case too.
 name="invisible-work.sh: a local branch that origin carries too is left out of the report"
 problems=()
 pushed="chore/pushed-already"
@@ -286,11 +210,6 @@ names "the local branch origin lacks is still reported" "$out" "$control"
 omits "the local branch origin carries is left out" "$out" "$pushed"
 report "$name"
 
-# 6. Issue #197, criterion 2, the worktree clause's other side: the worktree is named "if
-#    any", so a local branch origin lacks that no worktree holds is still reported, and its
-#    finding says nothing about a worktree — not an empty one, not the clone's own. The
-#    branch is committed to from the clone's main checkout, which then returns to `main`,
-#    so the branch exists only as a ref, checked out nowhere.
 name="invisible-work.sh: a local branch absent from origin that no worktree holds is reported with no worktree"
 problems=()
 clone="$(unpr_branch_clone "$work/case6" "chore/pushed-already" 1)"
@@ -306,13 +225,6 @@ names "the report names the branch" "$out" "$branch"
   problems+=("the finding names no worktree: want no worktree in the finding, got $(printf '%q' "$line")")
 report "$name"
 
-# 7. Issue #197, criterion 3: a branch whose PR is merged or closed is residue — a cleanup
-#    question, not a violation — so it is left out of the report, and so is the default
-#    branch itself, whether `origin` names it as `main` or through its `HEAD` alias. None of
-#    the three has a PR open, so a script that filters on open PRs alone would report them.
-#    A second branch with no PR must still be reported, so an empty report cannot pass. No
-#    branch name in the case carries `main` or `HEAD`, so either word in the report can only
-#    be the default branch reported.
 name="invisible-work.sh: a branch whose PR is merged or closed is left out of the report, and so is the default branch"
 problems=()
 merged="tdd/4-supervised-leaves"
@@ -334,15 +246,6 @@ omits "the default branch is left out" "$out" "main"
 omits "the default branch's HEAD alias is left out" "$out" "HEAD"
 report "$name"
 
-# 8. Issue #197, criterion 3, on the invariant-1 side: a local branch whose PR was merged or
-#    closed, and whose branch on `origin` was deleted after it — what GitHub's "delete branch
-#    on merge" leaves behind in every clone — is residue too, a cleanup question, so it is not
-#    reported as a local branch `origin` lacks. Both branches reached `origin`, got a decided
-#    PR, and were then deleted there and pruned here, so each exists only as a local ref. A
-#    third local branch, never pushed and with no PR, must still be reported, so an empty
-#    report cannot pass. A fourth took the same path but its PR is still OPEN: nothing was
-#    decided, so it is not residue, and with its branch gone from `origin` it is exactly the
-#    work invariant 1 is about — reported, so a skip keyed on "has any PR" cannot pass.
 name="invisible-work.sh: a local branch absent from origin whose PR was merged or closed is not reported as an invariant-1 finding"
 problems=()
 merged="tdd/4-supervised-leaves"
@@ -373,13 +276,6 @@ omits "the local branch whose PR was merged is left out" "$out" "$merged"
 omits "the local branch whose PR was closed is left out" "$out" "$closed"
 report "$name"
 
-# 9. Issue #197, criterion 4: the exit code is the report's first answer. A finding printed
-#    is exit 0; nothing to report is exit 3 with nothing on stdout — the healthy state, not an
-#    error, and a caller must be able to tell it from a report without reading the text.
-#    Three clones: one whose `origin` carries a branch no PR was ever opened for; one whose
-#    only finding is a local branch `origin` lacks, since each invariant's half has to answer
-#    0 on its own; and one whose only branch off `main` has a merged PR, which is residue and
-#    so leaves nothing to report.
 name="invisible-work.sh: exits 0 when it printed a finding and 3 with empty stdout when there is nothing to report"
 problems=()
 clone="$(unpr_branch_clone "$work/case9-finding" "chore/nobody-opened-a-pr" 1)"
@@ -403,7 +299,6 @@ names "the report names the local branch origin lacks" "$out" "$local_only"
 omits "the report leaves out the branch with a merged PR" "$out" "$merged"
 [[ "$rc" -eq 0 ]] ||
   problems+=("a local-only branch printed: want exit 0, got $rc")
-# The clean clone reuses the local clone's fixture: the same merged PR for the same branch.
 clone="$(unpr_branch_clone "$work/case9-clean" "$merged" 1)"
 out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"; rc=$?
 [[ -z "$out" ]] ||
@@ -412,18 +307,6 @@ out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"; rc=$?
   problems+=("nothing to report: want exit 3, got $rc")
 report "$name"
 
-# 10. Issue #197, criterion 4, the third code: when no answer could be obtained the script
-#     exits 2, says why on stderr, and prints nothing on stdout — so a caller can never read a
-#     fetch failure as a clean repository, nor a partial report as the whole one. Two clones,
-#     one per way of not knowing. In the first, `origin` is gone from disk after the clone was
-#     made: its remote-tracking refs still name a branch with no PR, so a script that trusts
-#     them without reaching `origin` prints a finding for work it cannot vouch for. In the
-#     second, `origin` is fine and `gh` cannot be read: no `VERI_GH_JSON`, and a `gh` stub
-#     first on PATH exits 4, gh's own code for an unauthenticated call. The stub says nothing
-#     on stderr, so whatever the script leaves there is its own diagnostic, not gh's.
-# no_answer <label> <stderr-file> — the three probes of one way of not knowing, read off the
-# run just made (`rc`, `out`) and the file its stderr went to: exit 2, nothing on stdout, and
-# something on stderr.
 no_answer() {
   local label="$1" err
   err="$(cat "$2")"
@@ -449,14 +332,6 @@ out="$(cd "$clone" && env -u VERI_GH_JSON PATH="$work/case10-gh/bin:$PATH" "$INV
 no_answer "gh unreadable" "$work/case10-gh/stderr"
 report "$name"
 
-# 11. Issue #197, criterion 5: every finding names the invariant it breaks, so a reader can
-#     tell a branch with no PR (invariant 2, #195) from a branch that never reached `origin`
-#     (invariant 1, #191) without knowing how the script found it. One clone holds one of
-#     each: a branch on `origin` no PR was ever opened for, and a local branch `origin` lacks.
-#     Each finding must name its own invariant and not the other one, and every line of the
-#     report must name one, so a line that names neither cannot hide among them. Neither
-#     branch name carries a `1` or a `2`, so the number read after `invariant` is the script's.
-# names_invariant <label> <line> <n> — one probe: <line> names invariant <n>, and no other.
 names_invariant() {
   local label="$1" line="${2,,}" n="$3"
   [[ "$line" =~ invariant[^0-9]*$n([^0-9]|$) ]] ||
@@ -486,16 +361,6 @@ while IFS= read -r row; do
 done <<< "$out"
 report "$name"
 
-# 12. Issue #197, criterion 5: the issue and PR documents are the JSON `gh` emits, parsed as
-#     JSON, and `VERI_GH_JSON` names a directory whose `issues.json` and `prs.json` stand in
-#     for `gh` entirely, so the suite drives the script with no network. The two documents are
-#     written the way a JSON encoder may legally write them and a line-oriented reader would
-#     misread: pretty-printed across lines, keys in another order, the merged PR's branch name
-#     with its `/` escaped as `\/`, and issue #71's state spelled `OPEN`. Only a JSON
-#     parser reads those as `tdd/4-supervised-leaves` and `OPEN`. A `gh` stub first on PATH
-#     answers the opposite of the fixture — the control branch's PR open, the merged one's
-#     absent, #71 closed — so a script that reached for `gh` despite the override reports
-#     what the stub says rather than what the fixture says.
 name="invisible-work.sh: reads gh's issues and PRs as JSON from the VERI_GH_JSON fixture directory, never from gh"
 problems=()
 branch="tdd/71-walkthrough-version-the-commentary-too"
@@ -540,19 +405,6 @@ names "the finding names issue 71's state as the fixture decodes it" "${rest^^}"
 omits "the finding does not name the state gh would have given" "${rest^^}" "CLOSED"
 report "$name"
 
-# 13. Issue #197, criterion 5: the script reads and never writes — it creates, moves and
-#     deletes no ref, in the clone or on `origin`. Every ref both repositories hold is read
-#     before and after one run, and the two readings must be byte-identical. The clone is
-#     built so that each of the ways a sweep could plausibly write shows up in that reading:
-#     `origin` gained a branch after the clone's last fetch and lost one the clone still
-#     tracks, so a `fetch` creates a remote-tracking ref and a `fetch --prune` deletes one; a
-#     local branch whose PR is merged, a local branch `origin` lacks in a worktree of its own,
-#     and a branch with no PR give a `push`, a `branch -D` or a `worktree remove` something
-#     to act on; and a tag and each worktree's HEAD are read too. The run must also have
-#     printed its findings, so "nothing changed" cannot be a script that died before reading
-#     anything.
-# ref_state <clone> <origin> — every ref of both repositories with the object it names or the
-# ref it points at, then each worktree's HEAD, as one text to compare.
 ref_state() {
   local clone="$1" origin="$2"
   git -C "$clone" for-each-ref --format='clone %(refname) %(objectname) %(symref)'
