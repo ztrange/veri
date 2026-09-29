@@ -168,7 +168,7 @@ check "finds the anchor step through lib/ledger.sh's ledger_steps, matching no c
 #     respelled `* [ ]`, the inserted step comes out in that spelling.
 stub="$work/stub-add"
 stub_script
-sed 's/local step="- \[ \] /local step="* [ ] /' "$HERE/../lib/ledger.sh" > "$stub/lib/ledger.sh"
+sed "s/open_step='- \[ \]'/open_step='* [ ]'/" "$HERE/../lib/ledger.sh" > "$stub/lib/ledger.sh"
 seed_lines '- [ ] a lamp glows ⟦criterion 2⟧'
 "$stub/add-ledger-step.sh" "$led" after 'a lamp glows' 'a lamp dims'; code=$?
 want='# Plan for #42

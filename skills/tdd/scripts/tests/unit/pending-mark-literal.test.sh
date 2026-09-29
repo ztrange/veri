@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Audits where the pending mark is spelled: of every `.sh` and `.py` file under
 # skills/tdd/scripts/ outside tests/, only lib/ledger.sh may carry ` ⟂ refactor pending`,
-# code and comments alike. Names each other file that does.
+# code and comments alike. Names each other file that does. And audits where the step-line
+# pattern is spelled: lib/ledger.sh carries a box on one non-comment line, the one definition
+# its readers and writers share. Names each line that does when more than one does.
 #
 # Admitted to the fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
@@ -35,6 +37,20 @@ if ! grep -F -e "$mark" "$SCRIPTS/lib/ledger.sh" > /dev/null; then
   problems+="    lib/ledger.sh does not carry the pending mark"$'\n'
 fi
 verdict "the pending mark is spelled in lib/ledger.sh only"
+
+# 2. lib/ledger.sh spells a box — `\[`, `[x]`, `[X]` or `[ ]` — on exactly one non-comment line.
+problems=""
+spellers="$(grep -nF -e '\[' -e '[x]' -e '[X]' -e '[ ]' "$SCRIPTS/lib/ledger.sh" \
+  | grep -vE '^[0-9]+:[[:space:]]*#')"
+count=0
+[[ -n "$spellers" ]] && count="$(wc -l <<< "$spellers" | tr -d ' ')"
+if [[ "$count" -ne 1 ]]; then
+  problems+="    lib/ledger.sh spells a box on $count lines, expected 1:"$'\n'
+  while IFS= read -r hit; do
+    [[ -n "$hit" ]] && problems+="      lib/ledger.sh:$hit"$'\n'
+  done <<< "$spellers"
+fi
+verdict "the step-line pattern is spelled on one line of lib/ledger.sh"
 
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

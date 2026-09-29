@@ -21,9 +21,9 @@
 #
 # ledger_add_step <text> <k> — stdin → stdout: `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` is written
 # directly after the last step line; every other byte is copied unchanged.
-# Assigns the caller's local `re`: bash scopes a callee's assignment dynamically.
+# Assigns the caller's locals `re`, `open_step` and `done_box`: bash scopes a callee's assignment dynamically.
 _ledger_step_re() {
-  re='^([[:space:]]*-[[:space:]])\[([ xX])\]( (.*))?$'
+  re='^([[:space:]]*-[[:space:]])\[([ xX])\]( (.*))?$' open_step='- [ ]' done_box='[x]'
 }
 
 _ledger_read_line() {
@@ -39,7 +39,7 @@ _ledger_pending_mark=' ⟂ refactor pending'
 _ledger_added_mark='⟦added⟧'
 
 ledger_steps() {
-  local line state kind pending added criterion text index=0 re
+  local line state kind pending added criterion text index=0 re open_step done_box
   _ledger_step_re
   local criterion_re='⟦criterion ([0-9]+)⟧'
   local kind_re="⟦(full-suite|human-owed)⟧ $criterion_re"
@@ -65,12 +65,12 @@ ledger_steps() {
 }
 
 ledger_tick() {
-  local matcher="$1" suffix= line nl ticked=0 re
+  local matcher="$1" suffix= line nl ticked=0 re open_step done_box
   [[ "${2:-}" == pending ]] && suffix="$_ledger_pending_mark"
   _ledger_step_re
   while _ledger_read_line; do
     if ((ticked == 0)) && [[ "$line" =~ $re && "${BASH_REMATCH[2]}" == " " && "$line" == *"$matcher"* ]]; then
-      line="${BASH_REMATCH[1]}[x]${BASH_REMATCH[3]}$suffix"
+      line="${BASH_REMATCH[1]}$done_box${BASH_REMATCH[3]}$suffix"
       ticked=1
     fi
     printf '%s%s' "$line" "$nl"
@@ -79,7 +79,7 @@ ledger_tick() {
 }
 
 ledger_clear_pending() {
-  local matcher="$1" line nl cleared=0 re
+  local matcher="$1" line nl cleared=0 re open_step done_box
   _ledger_step_re
   while _ledger_read_line; do
     if ((cleared == 0)) && [[ "$line" =~ $re && "${BASH_REMATCH[2]}" != " " && "$line" == *"$matcher"* && "$line" == *"$_ledger_pending_mark" ]]; then
@@ -92,9 +92,10 @@ ledger_clear_pending() {
 }
 
 ledger_add_step() {
-  local step="- [ ] $1 $_ledger_added_mark ⟦criterion $2⟧" line nl re i last=-1
+  local step line nl re open_step done_box i last=-1
   local -a lines=() nls=()
   _ledger_step_re
+  step="$open_step $1 $_ledger_added_mark ⟦criterion $2⟧"
   while _ledger_read_line; do
     [[ "$line" =~ $re ]] && last=${#lines[@]}
     lines+=("$line")
