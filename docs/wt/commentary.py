@@ -2979,32 +2979,6 @@ SCRIPTS += [dict(
   it &mdash; <code>$0</code> reaches awk as awk's "whole current line", not as the shell's
   script name.
 </p>'''),
-        dict(lines=(15, 22), html=r'''<p>{{p-awk|The awk program}} is three rules:</p>
-<ul>
-  <li><code>BEGIN</code> &mdash; before any input: read the matcher, clear a
-      <code>done</code> flag.</li>
-  <li>The <strong>bare block</strong> runs for every line. Its condition is a three-way and:
-      not yet done, the line looks like an unchecked box, and either the matcher is empty or
-      <code>index($0, m) &gt; 0</code> &mdash; a <strong>literal substring</strong> search,
-      not a regex. If it holds, <code>sub()</code> replaces the first <code>[ ]</code> with
-      <code>[x]</code>.</li>
-</ul>
-<div class="note"><span class="tag">The placement of print is the contract</span><p>
-  <code>print</code> on line 21 is <strong>outside</strong> the <code>if</code>. Every line is
-  emitted, modified or not. That single indentation choice is what makes this a filter that
-  changes exactly one line and passes everything else through byte-for-byte &mdash; which is
-  what both callers depend on when they write the result back over the original.
-</p></div>'''),
-        dict(lines=(23, 24), html=r'''<p>
-  <code>END</code>: if nothing was ticked, <code>exit 3</code>. awk's exit status becomes the
-  script's, so a caller can branch on it.
-</p><p>
-  <span class="ec ec-3"><b>3</b></span> again, for the same reason as in
-  <a href="#next-unchecked">stage 1</a>: "no box matched" is neither a crash nor a success.
-  It usually means the matcher drifted from the step text, which a caller may treat as benign
-  or fatal depending on context &mdash; so the script reports it precisely and lets the
-  caller decide.
-</p>'''),
     ]),
 ]
 
