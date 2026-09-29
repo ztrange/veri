@@ -187,24 +187,25 @@ STUB
   chmod +x "$1/bin/gh"
 }
 
+run_refused() {
+  local src="$1" dir="$2" labels="$3" issue="$4" out="$5" code=0
+  mkdir -p "$dir/bin"
+  cp "$src/body.md" "$dir/body.md"
+  refuse_graphql "$dir" "$issue" "$labels"
+  env PATH="$dir/bin:$PATH" FIXTURES="$dir" ISSUE="$issue" "$SCRIPT" "$issue" \
+    > "$out" 2> "$out.err" || code=$?
+  [[ "$code" == 0 ]] ||
+    problems+=("exit want 0 (as against a working gh) got $code; stderr: $(head -2 "$out.err")")
+}
+
 name='against a gh that refuses GraphQL with the 403 and answers REST, the spec and exit code match a working gh (#568)'
 out="$tmp/working-spec.md"
 run_spec "$bugdir" 'bug refactor' 112 "$out"
-want_problems=("${problems[@]}")
-restdir="$tmp/rest"
-mkdir -p "$restdir/bin"
-cp "$bugdir/body.md" "$restdir/body.md"
-refuse_graphql "$restdir" 112 'bug refactor'
-code=0
-env PATH="$restdir/bin:$PATH" FIXTURES="$restdir" ISSUE=112 "$SCRIPT" 112 \
-  > "$tmp/rest-spec.md" 2> "$tmp/rest-spec.err" || code=$?
-problems=("${want_problems[@]}")
-[[ "$code" == 0 ]] ||
-  problems+=("exit want 0 (as against a working gh) got $code; stderr: $(head -2 "$tmp/rest-spec.err")")
+run_refused "$bugdir" "$tmp/rest" 'bug refactor' 112 "$tmp/rest-spec.md"
 cmp -s "$out" "$tmp/rest-spec.md" ||
   problems+=("stdout differs from the working-gh spec: $(diff "$out" "$tmp/rest-spec.md")")
-cmp -s "$out.err" "$tmp/rest-spec.err" ||
-  problems+=("stderr differs from the working gh's: $(diff "$out.err" "$tmp/rest-spec.err")")
+cmp -s "$out.err" "$tmp/rest-spec.md.err" ||
+  problems+=("stderr differs from the working gh's: $(diff "$out.err" "$tmp/rest-spec.md.err")")
 
 report "$name"
 
@@ -213,17 +214,7 @@ emptydir="$tmp/empty"
 new_fixture "$emptydir" < /dev/null
 out="$tmp/empty-working-spec.md"
 run_spec "$emptydir" '' 114 "$out"
-want_problems=("${problems[@]}")
-emptyrest="$tmp/empty-rest"
-mkdir -p "$emptyrest/bin"
-: > "$emptyrest/body.md"
-refuse_graphql "$emptyrest" 114 ''
-code=0
-env PATH="$emptyrest/bin:$PATH" FIXTURES="$emptyrest" ISSUE=114 "$SCRIPT" 114 \
-  > "$tmp/empty-rest-spec.md" 2> "$tmp/empty-rest-spec.err" || code=$?
-problems=("${want_problems[@]}")
-[[ "$code" == 0 ]] ||
-  problems+=("exit want 0 (as against a working gh) got $code; stderr: $(head -2 "$tmp/empty-rest-spec.err")")
+run_refused "$emptydir" "$tmp/empty-rest" '' 114 "$tmp/empty-rest-spec.md"
 cmp -s "$out" "$tmp/empty-rest-spec.md" ||
   problems+=("stdout differs from the working-gh spec: $(diff "$out" "$tmp/empty-rest-spec.md")")
 
