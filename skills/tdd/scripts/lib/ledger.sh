@@ -36,6 +36,7 @@ _ledger_read_line() {
 }
 
 _ledger_pending_mark=' ⟂ refactor pending'
+_ledger_added_mark='⟦added⟧'
 
 ledger_steps() {
   local line state kind pending added criterion text index=0 re
@@ -51,7 +52,7 @@ ledger_steps() {
     kind=step
     [[ "$text" =~ $kind_re ]] && kind="${BASH_REMATCH[1]}"
     added=0
-    [[ "$text" == *'⟦added⟧'* ]] && added=1
+    [[ "$text" == *"$_ledger_added_mark"* ]] && added=1
     criterion=
     [[ "$text" =~ $criterion_re ]] && criterion="${BASH_REMATCH[1]}"
     pending=0
@@ -91,7 +92,7 @@ ledger_clear_pending() {
 }
 
 ledger_add_step() {
-  local step="- [ ] $1 ⟦added⟧ ⟦criterion $2⟧" line nl re i last=-1
+  local step="- [ ] $1 $_ledger_added_mark ⟦criterion $2⟧" line nl re i last=-1
   local -a lines=() nls=()
   _ledger_step_re
   while _ledger_read_line; do
