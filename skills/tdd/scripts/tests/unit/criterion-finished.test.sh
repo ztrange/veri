@@ -101,6 +101,20 @@ else
   pass=$((pass + 1))
 fi
 
+# 5. a ticked step carrying no criterion tag serves no criterion even when its text is `k`:
+#    its empty criterion field is not collapsed away so that the text is read in its place → 3
+name="a ticked untagged step whose text is 3 does not finish criterion 3: exits 3"
+FINISHED="$HERE/../../criterion-finished.sh"
+text_is_k='# Plan for #42
+
+- [x] 3'
+got_text_k="$(code_for 3 "$text_is_k")"
+if [[ "$got_text_k" != 3 ]]; then
+  fail=$((fail + 1)); echo "FAIL - $name (untagged ticked step with text 3: want exit 3, got $got_text_k)"
+else
+  pass=$((pass + 1))
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
