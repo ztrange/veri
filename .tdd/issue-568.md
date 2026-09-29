@@ -3,7 +3,7 @@
 - [x] A helper sourced from skills/tdd/scripts/lib/ marks a draft PR ready for review through the ordinary `gh pr ready` route when the `gh` on PATH answers GraphQL ⟦criterion 3⟧
 - [x] With a `gh` stub that refuses every `issue`/`pr`/`repo` subcommand and `api graphql` with the GraphQL-403 message, the helper's ready-for-review marks the PR ready by calling `pulls/{n}/ccr/ready_for_review` over `gh api` ⟦criterion 3⟧
 - [x] The helper's ready-for-review returns exit 2 when GitHub fails for a reason other than the GraphQL refusal (network error, 404, 5xx), on either route ⟦criterion 5⟧
-- [x] capture-spec.sh prints the same spec and exit code under the GraphQL-refusing stub as it does today against a working `gh`, reading the issue over REST ⟦criterion 1⟧ ⟂ refactor pending
+- [x] capture-spec.sh prints the same spec and exit code under the GraphQL-refusing stub as it does today against a working `gh`, reading the issue over REST ⟦criterion 1⟧
 - [ ] solvable-issues.sh prints the same issue numbers and exit code under the GraphQL-refusing stub as it does today against a working `gh` ⟦criterion 1⟧
 - [ ] workqueue.sh produces the same stdout and exit code under the GraphQL-refusing stub as it does today against a working `gh` ⟦criterion 1⟧
 - [ ] tick-issue-criterion.sh ticks the issue body's criterion and exits as today under the GraphQL-refusing stub, reading and writing the body over REST ⟦criterion 1⟧

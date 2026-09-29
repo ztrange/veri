@@ -1,2 +1,5 @@
 ### The helper's ready-for-review returns exit 2 when GitHub fails for a reason other than the GraphQL refusal (network error, 404, 5xx), on either route ⟦criterion 5⟧
 - merge the near-identical GraphQL-refusing `gh()` stubs of github.test.sh cases 2 and 3 into one helper (they differ in how `gh api` answers, so this needs a parameter no test requires yet)
+### capture-spec.sh prints the same spec and exit code under the GraphQL-refusing stub as it does today against a working `gh`, reading the issue over REST ⟦criterion 1⟧
+- the GraphQL-403 refusal stub is spelled in both capture-spec.test.sh (refuse_graphql) and github.test.sh; the other converted scripts' suites will need it too, so it could move into one shared test helper — that means extracting a module, which is out of scope here
+- capture-spec.sh calls gh_issue_view twice (labels, then body), so under the refusal it makes two GraphQL attempts and two identical REST calls; one fetch could serve both fields
