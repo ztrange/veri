@@ -12,6 +12,8 @@
 # ledger_tick <matcher> [pending] — stdin → stdout: the first open step whose line contains <matcher>
 # (an empty matcher: the first open step) becomes `[x]`, and with `pending` also gains
 # ` ⟂ refactor pending` at its end; every other byte is copied unchanged.
+_ledger_pending_mark=' ⟂ refactor pending'
+
 # Assigns the caller's local `re`: bash scopes a callee's assignment dynamically.
 _ledger_step_re() {
   re='^([[:space:]]*- )\[([ xX])\] (.*)$'
@@ -19,7 +21,6 @@ _ledger_step_re() {
 
 ledger_steps() {
   local line state kind pending added criterion text index=0 re
-  local mark=' ⟂ refactor pending'
   _ledger_step_re
   local criterion_re='⟦criterion ([0-9]+)⟧'
   local kind_re="⟦(full-suite|human-owed)⟧ $criterion_re"
@@ -36,9 +37,9 @@ ledger_steps() {
     criterion=
     [[ "$text" =~ $criterion_re ]] && criterion="${BASH_REMATCH[1]}"
     pending=0
-    if [[ "$state" == done && "$text" == *"$mark" ]]; then
+    if [[ "$state" == done && "$text" == *"$_ledger_pending_mark" ]]; then
       pending=1
-      text="${text%"$mark"}"
+      text="${text%"$_ledger_pending_mark"}"
     fi
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$index" "$state" "$kind" "$pending" "$added" "$criterion" "$text"
   done
@@ -46,7 +47,7 @@ ledger_steps() {
 
 ledger_tick() {
   local matcher="$1" suffix= line nl ticked=0 re
-  [[ "${2:-}" == pending ]] && suffix=' ⟂ refactor pending'
+  [[ "${2:-}" == pending ]] && suffix="$_ledger_pending_mark"
   _ledger_step_re
   while true; do
     if IFS= read -r line; then
