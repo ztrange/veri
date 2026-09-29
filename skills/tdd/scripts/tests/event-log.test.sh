@@ -22,8 +22,6 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -35,13 +33,6 @@ report() {
   fi
 }
 
-# 1. One parse and one sum, both functions read through them, figures unchanged.
-#
-# A repository holding one fabricated run (#9) whose log has blank and whitespace-only lines
-# between its events and two `usage` lines, every value a string as event.sh writes it:
-# $0.50 + $1.25 is $1.75, the four token kinds 4700 + 6300 are 11000 tokens, and the log spans
-# 200 s from its first event to its last. VERI_GH_JSON points at an empty fixture so the
-# scope's solvable count never reaches the network.
 repo="$work/repo"
 git init -q -b main "$repo" >/dev/null 2>&1
 run="$repo/.tdd/wt/9"
@@ -64,8 +55,6 @@ mkdir -p "$gh_json"
 echo '[]' > "$gh_json/issues.json"
 echo '[]' > "$gh_json/prs.json"
 
-# status <script> [args…] — run a status.sh from inside the repository; stdout in $out, and
-# its #9 run line and scope line in $run_line and $scope_line.
 status() {
   local script="$1"; shift
   out="$(cd "$repo" && env -u VERI_LABEL VERI_GH_JSON="$gh_json" VERI_TIMEOUT=600 \
@@ -76,7 +65,6 @@ status() {
 
 problems=()
 
-# The real scripts: the figures the log adds up to, as text and as --json.
 status "$SCRIPTS/status.sh"
 for want in "develop-green" "attempt 1" '$1.75' "11000 tokens"; do
   [[ "$run_line" == *"$want"* ]] || problems+=("status.sh run line lacks '$want': '$run_line' (exit $code)")
@@ -100,11 +88,6 @@ want_figures="leaf=develop-green attempts=1 dollars=1.75 tokens=11000 scope_doll
 [[ "$figures" == "$want_figures" ]] \
   || problems+=("status.sh --json figures: '$figures' (exit $code), want '$want_figures'")
 
-# status.sh copied beside a stand-in lib/event_log.py that ignores the file: read_events answers
-# a decoy launch of leaf `decoy-leaf` and a usage event 77 s later, usage_totals answers $3 and
-# 1234 tokens whatever it is given. A copy that prints the decoy's figures on both its run line
-# and its scope line read the log through the module; one that prints #9's own figures carries
-# its own parse and sum.
 copy="$work/scripts"
 mkdir -p "$copy/lib"
 cp "$SCRIPTS/status.sh" "$SCRIPTS/solvable-issues.sh" "$copy/"

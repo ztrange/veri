@@ -20,8 +20,6 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -33,17 +31,6 @@ report() {
   fi
 }
 
-# same_answer <baseline arm> <baseline exit> <baseline stdout> <other exit> <other stdout> —
-# the comparison every case below makes, once: the two arms agreed on their exit and on their
-# stdout, and the baseline arm was green at all. `<baseline arm>` names the arm in the failure
-# lines ("cleared", "no-lock"), since what makes an arm the baseline differs per case — a name
-# the case cleared, or a lock it did not write.
-#
-# Asked as "the same answer both ways" rather than against a hardcoded count line, which is what
-# case 1 below can do with a suite holding a single case: a suite that has several cases and will
-# grow would fail a count spelled here for a case added there rather than for a leak. The baseline
-# arm is also probed for being green at all, since two identically red runs agree on nothing worth
-# pinning.
 same_answer() {
   local baseline="$1" base_code="$2" base_out="$3" other_code="$4" other_out="$5"
 
@@ -56,18 +43,11 @@ same_answer() {
     problems+=("want the $baseline run's stdout $(printf '%q' "$base_out"), got: $(printf '%q' "$other_out")")
 }
 
-# solvable_in <dir> <env setting…> — solvable-issues.test.sh's stdout, run with <dir> as its cwd
-# and the settings forwarded to `env` verbatim; its exit status is the suite's. Cases 3, 4 and 5
-# run every arm through here, so an arm can differ from the reference only by its cwd or its
-# settings.
 solvable_in() {
   local dir="$1"; shift
   (cd "$dir" && env "$@" "$HERE/solvable-issues.test.sh" 2>/dev/null)
 }
 
-# 1. The contract above, probed by running the whole suite as a child process: the leak is
-#    in how supervise-retry.test.sh spawns the supervisor, so only a real run of it walks
-#    that path — there is nothing to assert in-process.
 name="supervise-retry.test.sh: ambient VERI_STUCK_RETRIES=0 still gives 1 passed, 0 failed"
 problems=()
 out="$(VERI_STUCK_RETRIES=0 "$HERE/supervise-retry.test.sh" 2>/dev/null)" && code=0 || code=$?
@@ -77,46 +57,12 @@ out="$(VERI_STUCK_RETRIES=0 "$HERE/supervise-retry.test.sh" 2>/dev/null)" && cod
   problems+=("want '1 passed, 0 failed' on stdout, got: $(printf '%q' "$out")")
 report "$name"
 
-# 2. The same rule for the three model variables issue #171 adds, and the suite whose whole
-#    subject is them: leaf-model.sh answers `sonnet` or nothing depending on VERI_MODEL,
-#    VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER, so every case in leaf-model.test.sh that
-#    asserts the unset contract — "no variable set prints NOTHING, and the `claude` command
-#    line is byte-identical to today's" — is asserting it about whatever shell typed
-#    `make test`, unless that suite clears the three names for itself.
-#
-#    One ambient name, VERI_MODEL, because it is the one that reaches BOTH roles: a leak of
-#    the run-wide knob changes every probe in that suite, where a role variable could only
-#    change half of them. The two role names are cleared in both arms so that a shell which
-#    exported one cannot make the arms differ by something this case did not set.
-#
-#    leaf-model.test.sh (~0.3 s) and not supervise.test.sh, whose `sup_run_no_model` is the
-#    other guard of the same rule: this file runs inside `make test`, which three leaves of
-#    every step run, and supervising real leaves again as a child costs ~24 s of each of them
-#    — the cost issue #171 exists to cut. That guard is left to the suite that owns it.
 name="leaf-model.test.sh: an ambient VERI_MODEL gives the same exit and the same stdout as a cleared run"
 cleared_out="$(env -u VERI_MODEL -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER "$HERE/leaf-model.test.sh" 2>/dev/null)" && cleared_code=0 || cleared_code=$?
 ambient_out="$(env -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER VERI_MODEL=sonnet "$HERE/leaf-model.test.sh" 2>/dev/null)" && ambient_code=0 || ambient_code=$?
 same_answer cleared "$cleared_code" "$cleared_out" "$ambient_code" "$ambient_out"
 report "$name"
 
-# 3. The same rule for the label tunables issue #113 adds, and the suite that owns them:
-#    solvable-issues.sh reads `${VERI_PRIORITY_LABEL:-priority}` to decide which band an issue
-#    sorts in, so every case in solvable-issues.test.sh that asserts the DEFAULT band order is
-#    asserting it about whatever shell typed `make test`, unless that suite clears the name for
-#    itself. An operator steering a loop exports exactly this variable, and the inner `make
-#    test` of a run on veri's own repository inherits it — the shape of #87 again.
-#
-#    Every place a fixture's label is literally "priority" or "bug" — the only way an ambient
-#    VERI_PRIORITY_LABEL could change what a case prints — sits between solvable-issues.test.sh's
-#    `# 22. ` and `# 28. ` markers (cases 22-27, the band-order and label-tunable cases); no
-#    other case names either word. So the witness is a slice of the suite's own text between
-#    those two markers, the awk cut run-conductor-argv-guard.test.sh already uses for the same
-#    reason, rather than its other ~24 cases' worth of unrelated fixtures — which is a suite
-#    fact, not a script fact: a case elsewhere in solvable-issues.test.sh that started reading
-#    VERI_PRIORITY_LABEL without clearing it would not be caught by calling solvable-issues.sh
-#    directly with one fixture, only by asking the suite itself. A slice that finds a different
-#    number of assertions than today's six fails closed, naming the count, rather than silently
-#    asking a narrower question about a file whose markers have moved.
 name="solvable-issues.test.sh: an ambient VERI_PRIORITY_LABEL gives the same exit and the same stdout as a cleared run"
 problems=()
 label_cut="$(mktemp "$HERE/.hermetic-label-slice.XXXXXX")"
@@ -139,35 +85,11 @@ fi
 rm -f "$label_cut"
 report "$name"
 
-# Cases 4 and 5, below, still run the whole of solvable-issues.test.sh rather than a slice: their
-# criterion is "no case anywhere in the suite reads a conductor lock outside a repository it
-# built itself", asked of every fixture number the suite carries TODAY (case 5's own point,
-# #226) — a property about arbitrary future cases and numbers, which a fixed slice would
-# silently stop covering the moment a case outside it is added. So their reference arm is still
-# a real run of the suite, shared between them (#301).
 lock_work="$(mktemp -d)"
 trap 'rm -rf "$lock_work"' EXIT
 git init -q -b main "$lock_work/no-lock" >/dev/null 2>&1
 unlocked_out="$(solvable_in "$lock_work/no-lock" -u VERI_PRIORITY_LABEL)" && unlocked_code=0 || unlocked_code=$?
 
-# 4. The same rule for ambient state that is not an environment variable at all: the lock a run
-#    in flight leaves at <main_tree>/.tdd/wt/<n>/.tdd/conductor.pid. solvable-issues.sh reads it
-#    out of the MAIN working tree of the repository the SCRIPT runs in (#166), and the
-#    band-ordering cases invoke the script in the suite's own cwd, so on a machine where veri is
-#    solving one of the numbers those fixtures name the live lock answers a question the case only
-#    asked of its fixture — the suite goes red for what the run itself did by claiming its issue
-#    (#226).
-#
-#    Probed by cwd rather than by `env`, because this ambient value is a file in a repository
-#    rather than a name in the environment: both arms run the suite inside a scratch repository
-#    built here, and the arms differ only by the locks under it. Nothing is written into the
-#    surrounding repository, so the case cannot itself become the ambient state it is about.
-#
-#    The numbers locked are 108, 117, 120 and 124, the ones the band-ordering fixtures carry: a
-#    number no fixture names claims nothing, changes no answer, and would make this case pass
-#    while the leak it exists for stayed open — the same trap case 3 records for its label. The
-#    pid written is this suite's own, which is alive by construction, since `in_flight` is
-#    fail-open and a stale lock would likewise change nothing.
 name="solvable-issues.test.sh: a live conductor lock in the surrounding repository gives the same exit and the same stdout as a run with none"
 git init -q -b main "$lock_work/locked" >/dev/null 2>&1
 for n in 108 117 120 124; do
@@ -180,22 +102,6 @@ locked_out="$(solvable_in "$lock_work/locked" -u VERI_PRIORITY_LABEL)" && locked
 same_answer no-lock "$unlocked_code" "$unlocked_out" "$locked_code" "$locked_out"
 report "$name"
 
-# 5. The same lock, asked of EVERY number the fixtures in solvable-issues.test.sh name rather than
-#    the four the report in #226 happened to catch. Case 4 pins the numbers a live run had claimed
-#    on the day the leak was found; this one pins the rule underneath them — no case in that suite
-#    reads a conductor lock outside a repository the case itself built — for the fixture numbers it
-#    carries TODAY, which is the only list that stays true as cases are added.
-#
-#    The numbers are read out of the suite's own text, the way workflow-timeouts.test.sh reads
-#    ci.yml as text (#99): a hand-kept list here would be one edit behind the next case that
-#    invents a number, and the leak this case exists for reopens for exactly that number with the
-#    case still green. A fixture number is a `"number": <n>` field, since that is the key the
-#    VERI_GH_JSON fixtures use to say which issue they describe.
-#
-#    That derivation is itself probed — a pattern that matched nothing would lock nothing, make
-#    both arms identical and report a pass about a machine that was never put under the condition.
-#    It is the trap cases 3 and 4 record for their label and their numbers, one level up: here the
-#    thing that can silently name nothing is the pattern rather than the value.
 name="solvable-issues.test.sh: a live conductor lock for every number its own fixtures name gives the same exit and the same stdout as a run with none"
 git init -q -b main "$lock_work/every-locked" >/dev/null 2>&1
 fixture_numbers=($(sed -n 's/.*"number"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$HERE/solvable-issues.test.sh" | sort -u))
@@ -211,19 +117,6 @@ same_answer no-lock "$unlocked_code" "$unlocked_out" "$every_locked_code" "$ever
   problems+=("no \"number\": <n> fixture was found in solvable-issues.test.sh, so no lock was written and the two arms cannot differ")
 report "$name"
 
-# 6. The same rule for a window rather than a name (#242): push-branch.sh waits
-#    `${VERI_PUSH_BACKOFF:-2}` seconds, doubled per retry, before each retry of an unreachable
-#    remote, so a suite that runs it without the knob pays that wait on real wall time — 14 s
-#    on every `make test` for the #191 case, which three leaves of every step run. The testing
-#    idiom injects every window a test would otherwise wait on; this pins that for every suite
-#    here that invokes the script, including ones not written yet.
-#
-#    Read as text, the way case 5 reads its fixture numbers: a command is a run of lines joined
-#    by trailing backslashes and named by the line it starts on, and it invokes the script when
-#    it expands a variable some assignment in that suite sets to a path ending in /push-branch.sh, or spells the
-#    script's path in quotes. "In its environment" is a `VERI_PUSH_BACKOFF=` setting on that
-#    command; an `-u` alone clears the name, it does not set it. A sweep that recognised no
-#    invocation at all would pass about nothing, so that is probed too.
 name="every suite that invokes push-branch.sh sets VERI_PUSH_BACKOFF in its environment"
 problems=()
 push_invocations=0
@@ -264,20 +157,6 @@ done
   problems+=("no suite here was recognised as invoking push-branch.sh, so nothing was checked")
 report "$name"
 
-# 7 and 8, which asked which suites reach the network and whether one fetches this checkout's
-#    own origin (#258), are gone: this suite now runs no other suite a second time for either
-#    (#301). `make test` runs every suite once under the offline shims in tests/offline/, with a
-#    per-suite reach log, and fails naming the suite and what it tried; count-line-guard pins both
-#    — a fetch of a remote URL and a fetch of this checkout's own origin. Asking again here ran
-#    about a third of the suites twice on every `make test`, for the same answer.
-#
-# 9. Probed by running a copy of this file in a scratch tree beside a stand-in for each kind of
-#    script cases 7 and 8 selected on — one that fetches and pushes, named run-conductor.sh and
-#    push-branch.sh — and one probe suite that names both and appends a line to a log each time it
-#    runs. Cases 1 to 5 name their subjects by file, and the probe is none of them, so any line in
-#    the log is a re-run by some other case. The copy is run with HERMETIC_RERUN_PROBE set, which
-#    this case reads to skip itself in the child: the copy's own case 9 would otherwise copy the
-#    copy, forever.
 name="hermetic-suites.test.sh re-runs no suite for the offline or own-origin cases"
 if [[ -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
   problems=()
@@ -286,8 +165,6 @@ if [[ -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
   rerun_log="$rerun_work/runs"
   mkdir -p "$rerun_work/scripts/tests"
   : > "$rerun_log"
-  # The stand-ins are named by a loop variable rather than spelled as paths, since case 6 reads a
-  # quoted path ending in the push script's name as an invocation of it.
   for stand_in in "run-conductor:fetch origin main" "push-branch:push origin HEAD"; do
     printf '#!/usr/bin/env bash\ngit %s\n' "${stand_in#*:}" > "$rerun_work/scripts/${stand_in%%:*}.sh"
   done
@@ -306,32 +183,6 @@ if [[ -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
   report "$name"
 fi
 
-# 9. The same rule for the one-shot re-pin instruction (#285): run-conductor.sh reads
-#    `${VERI_NEW_SKILL:-}` to decide whether a resume keeps its recorded skill pin or takes the
-#    clone's newer commit, so every case in run-conductor.test.sh that resumes without setting it
-#    — "keep the recorded pin", "refuse an unresolvable one with exit 2" — is asserting it about
-#    whatever shell typed `make test`, unless that suite clears the name for itself. A run resumed
-#    with VERI_NEW_SKILL=1, the operator's documented way to take a newer skill, hands the name to
-#    its leaves' `make test` — the shape of #87 again, observed on #200's resume.
-#
-#    One arm, asked the way case 1 asks supervise-retry.test.sh — green under the ambient value —
-#    rather than compared against a cleared run. A leak turns the suite's keep-the-pin cases red,
-#    so green is the answer; a second, cleared run would double the cost for the one leak that
-#    changes the output while every case still passes.
-#
-#    Only five of run-conductor.test.sh's 25 cases ever set VERI_NEW_SKILL=1 in a `launch_from`
-#    call — the rest cannot observe this leak at all — so the witness is those five, cut out of
-#    the suite's own text the way run-conductor-argv-guard.test.sh already cuts its one case,
-#    rather than paying for a real git clone and event log per case for the other twenty. The
-#    cut also drops `tree_clone "$work/tree"`, the one call before case 1 that recursively copies
-#    this whole skill tree to build $CONDUCTOR — none of the five cases below reads $CONDUCTOR,
-#    only cases 1-5 do, and that copy was the suite's single most expensive step. A cut that
-#    cannot find one of the five case markers, or the five cases' own `name=` lines, fails
-#    closed naming what is missing, rather than silently asking about fewer cases than today's
-#    five.
-#
-#    Depends on run-conductor.test.sh's `# 9. `, `# 10. `, `# 17. `, `# 20. `, `# 24. ` and
-#    `# 25. ` markers, and the literal line `tree_clone "$work/tree"`.
 name="run-conductor.test.sh: an ambient VERI_NEW_SKILL=1 still leaves it green"
 problems=()
 newskill_cases=(
@@ -370,15 +221,6 @@ fi
 rm -f "$newskill_cut"
 report "$name"
 
-# 10. Cases 1 to 5 and 9 still fail, named, on a suite that leaks (#301). Probed the way case 9 is: a copy
-#     of this file runs in a scratch tree beside a stand-in for each suite those cases name, and
-#     every stand-in is green when run clean but goes red on exactly the ambient value its case
-#     sets — VERI_STUCK_RETRIES, VERI_MODEL, VERI_PRIORITY_LABEL, VERI_NEW_SKILL, or a conductor
-#     lock under its cwd. Case 9 is here because it was not, once: #301's refactor deleted the
-#     helper it called, and it went on reporting a pass without running anything, unnoticed. A stand-in that were red either way would make its case fail for "nothing to compare
-#     against", which is a failure but not the one this pins, so each is green clean by
-#     construction. The copy is run with HERMETIC_LEAK_PROBE and HERMETIC_RERUN_PROBE set, which
-#     this case and case 9 read to skip themselves in the child.
 name="a suite whose answer changes with an ambient VERI_* value or a live conductor lock fails hermetic-suites.test.sh, named"
 if [[ -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
   problems=()
@@ -413,22 +255,11 @@ if [[ -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
     [[ "$leak_out" == *"FAIL - $leaked"* ]] ||
       problems+=("want a FAIL line naming '$leaked', got: $(printf '%q' "$leak_out")")
   done
-  # A FAIL line alone does not prove case 9 ran: a case that asserted nothing reports whatever
-  # an earlier case left in `problems`, and in this child cases 1-5 all leave some. So case 9's
-  # own finding is asked for by the words only it writes.
   [[ "$leak_out" == *"from run-conductor.test.sh under VERI_NEW_SKILL=1"* ]] ||
     problems+=("want case 9 to fail on its own finding, run-conductor.test.sh red under VERI_NEW_SKILL=1, not on problems an earlier case left; got: $(printf '%q' "$leak_out")")
   report "$name"
 fi
 
-# 11. Cases 3, 4 and 5 each compare an ambient arm of solvable-issues.test.sh against a reference
-#     arm — VERI_PRIORITY_LABEL cleared, no conductor lock under its cwd — and the reference is the
-#     same run each time, so it is run once and shared (#301). Probed the way cases 9 and 10 are: a
-#     copy of this file runs in a scratch tree beside a stand-in solvable-issues.test.sh that is
-#     green every way and appends a line to a log whenever it is run as the reference — neither
-#     the label nor a lock in sight. The copy is run from a scratch cwd holding no lock, with
-#     HERMETIC_SHARE_PROBE, HERMETIC_LEAK_PROBE and HERMETIC_RERUN_PROBE set, which this case and
-#     cases 9 and 10 read to skip themselves in the child.
 name="hermetic-suites.test.sh runs solvable-issues.test.sh's reference arm once, shared by its ambient and lock cases"
 if [[ -z "${HERMETIC_SHARE_PROBE:-}" && -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
   problems=()
@@ -456,28 +287,6 @@ if [[ -z "${HERMETIC_SHARE_PROBE:-}" && -z "${HERMETIC_LEAK_PROBE:-}" && -z "${H
   report "$name"
 fi
 
-# 12. The same rule for the pin that travels beside that instruction (#305): a run resumed with
-#     VERI_NEW_SKILL=1 re-pins, and run-conductor.sh then exports VERI_SKILL_COMMIT so every
-#     event.sh and supervise.sh of the run carries the sha — which means the `make test` a leaf of
-#     that run executes inherits BOTH names, not just the one case 9 asks about. Observed on #282's
-#     resume: the preflight baseline on `main` came back red, and the conductor overrode its own
-#     baseline gate to continue.
-#
-#     One case of run-conductor.test.sh can observe the sha at all — case 15, which reads
-#     `skill_commit` off every event a launched run writes and compares it to origin's tip — so
-#     that case is the witness, cut out of the suite's own text the way case 9 cuts its five and
-#     for the same reason: the other twenty-four would pay for a git clone apiece to answer a
-#     question they cannot be asked. The cut drops `tree_clone "$work/tree"` too, the recursive
-#     copy of this skill tree that builds $CONDUCTOR for cases 1-5; case 15 does not read it.
-#
-#     The ambient sha is forty hex digits naming no commit anywhere, so a green arm is green
-#     because the name was ignored and not because it happened to agree with the fixture's tip.
-#     Both names are set at once rather than the sha alone: that is the pair a resume exports, and
-#     a leak of either turns the arm red. A cut that cannot find case 15's marker or its `name=`
-#     line fails closed, naming what is missing, rather than silently asking about nothing.
-#
-#     Depends on run-conductor.test.sh's `# 15. ` and `# 16. ` markers, and the literal line
-#     `tree_clone "$work/tree"`.
 name="run-conductor.test.sh: an ambient VERI_NEW_SKILL=1 with a VERI_SKILL_COMMIT still leaves it green"
 problems=()
 skillcommit_case="every event a launched run writes carries origin's tip as skill_commit, and the prompt names it"
@@ -502,25 +311,6 @@ fi
 rm -f "$skillcommit_cut"
 report "$name"
 
-# 13. Case 12 itself fails, named, on a suite that leaks (#305) — the half of the criterion that
-#     case 12 cannot ask about itself. Probed the way cases 9, 10 and 11 are: a copy of this file
-#     runs in a scratch tree beside a stand-in run-conductor.test.sh that goes red on exactly the
-#     ambient value case 12 sets, and the copy's output is asked for case 12's OWN finding rather
-#     than merely a FAIL line carrying its name. That distinction is the trap case 10 records for
-#     case 9, one level up: case 12 also fails closed when it cannot cut its slice at all, and both
-#     failures name the same suite, so only the words the leaked arm writes prove an arm ran.
-#
-#     The stand-in is a suite case 12's awk cut can slice: it carries the `tree_clone
-#     "$work/tree"` line that cut skips from, the `# 15. ` and `# 16. ` markers it cuts between,
-#     case 15's own `name=` line, and the `pass`/`fail` counters the appended count line reads. It
-#     is `#!/usr/bin/env bash` rather than `#!/bin/sh` like the other stand-ins here, because the
-#     three lines the cut appends are bash's `[[`. Green run clean and red only with the sha in its
-#     environment, by construction, so case 12 fails for the leak and not for an arm that was never
-#     green either way.
-#
-#     The copy is run with HERMETIC_SKILLCOMMIT_PROBE set, which this case reads to skip itself in
-#     the child — its own case 13 would otherwise copy the copy, forever — and with the three names
-#     cases 9, 10 and 11 read, none of which has a stand-in in this tree.
 name="a suite whose answer changes with an ambient VERI_SKILL_COMMIT fails hermetic-suites.test.sh, named"
 if [[ -z "${HERMETIC_SKILLCOMMIT_PROBE:-}" ]]; then
   problems=()
