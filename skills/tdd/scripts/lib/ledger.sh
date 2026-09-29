@@ -22,6 +22,16 @@ _ledger_step_re() {
   re='^([[:space:]]*- )\[([ xX])\] (.*)$'
 }
 
+# Assigns the caller's locals `line` and `nl`; fails at end of input.
+_ledger_read_line() {
+  if IFS= read -r line; then
+    nl=$'\n'
+  else
+    nl=
+    [[ -n "$line" ]]
+  fi
+}
+
 _ledger_pending_mark=' ⟂ refactor pending'
 
 ledger_steps() {
@@ -54,13 +64,7 @@ ledger_tick() {
   local matcher="$1" suffix= line nl ticked=0 re
   [[ "${2:-}" == pending ]] && suffix="$_ledger_pending_mark"
   _ledger_step_re
-  while true; do
-    if IFS= read -r line; then
-      nl=$'\n'
-    else
-      [[ -n "$line" ]] || break
-      nl=
-    fi
+  while _ledger_read_line; do
     if ((ticked == 0)) && [[ "$line" =~ $re && "${BASH_REMATCH[2]}" == " " && "$line" == *"$matcher"* ]]; then
       line="${BASH_REMATCH[1]}[x] ${BASH_REMATCH[3]}$suffix"
       ticked=1
@@ -73,13 +77,7 @@ ledger_tick() {
 ledger_clear_pending() {
   local matcher="$1" line nl cleared=0 re
   _ledger_step_re
-  while true; do
-    if IFS= read -r line; then
-      nl=$'\n'
-    else
-      [[ -n "$line" ]] || break
-      nl=
-    fi
+  while _ledger_read_line; do
     if ((cleared == 0)) && [[ "$line" =~ $re && "${BASH_REMATCH[2]}" != " " && "$line" == *"$matcher"* && "$line" == *"$_ledger_pending_mark" ]]; then
       line="${line%"$_ledger_pending_mark"}"
       cleared=1
