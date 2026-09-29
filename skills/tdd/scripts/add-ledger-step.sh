@@ -44,7 +44,7 @@ added_steps() {
   k="$(criterion_of "$line")"
   crit="${k:+ ⟦criterion $k⟧}"
   for text in "${texts[@]}"; do
-    step="$(ledger_add_step "$text" "$k" <<< "$line" | tail -n 1)"
+    step="$(ledger_add_step "$text" "$k" < /dev/null)"
     printf '%s\n' "${step% $added ⟦criterion $k⟧}$(added_mark "$text")$crit"
   done
 }
