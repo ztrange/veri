@@ -1263,7 +1263,7 @@ SCRIPTS += [dict(
   <code>branch_exists()</code> above rather than its own <code>show-ref</code> call &mdash;
   the same question this function asks of the issue branch, now asked of these two as well.
 </p>'''),
-        dict(lines=(143, 167), html=r'''<p>
+        dict(lines=(143, 148), html=r'''<p>
   One <code>git worktree add</code>, in one of two shapes, and a single print of the path
   afterwards regardless of which shape ran &mdash; earlier versions of this script ended each
   shape with its own <code>printf</code>, two copies of the one line that matters.
@@ -1299,8 +1299,8 @@ SCRIPTS += [dict(
   script chose. The three exit&nbsp;2s in this script (the dirty <code>--remove</code>, the
   stolen checkout, the unnamed default branch) are its own deliberate refusals; anything git
   itself rejects surfaces as whatever git returns for it.
-</p></div>'''),
-        dict(lines=(168, 169), html=r'''<p>
+</p></div>
+<p>
   Stdout past this point belongs to exactly one thing regardless of which branch above ran:
   the path, printed last, for the caller to <code>cd</code> into.
 </p>'''),
@@ -1426,7 +1426,7 @@ SCRIPTS += [dict(
   would inherit that failure, which <code>set -e</code> would turn into the script dying
   instead of reporting "not there" as an empty string.
 </p>'''),
-        dict(lines=(66, 95), html=r'''<p>
+        dict(lines=(66, 69), html=r'''<p>
   {{p-func|has_rule()}} is the standard, and it is stricter than "all three lines exist":
   <strong>already present means the whole rule, in git's reading order, never a subset and
   never the same three lines shuffled.</strong> With the negation last,
@@ -1450,8 +1450,8 @@ SCRIPTS += [dict(
   step&nbsp;1.4 on a resumed run; nothing commits <code>info/exclude</code> and nothing reads
   it back, so an append made blind would sit in the caller's ignore rules forever, three more
   lines every run.
-</p>'''),
-        dict(lines=(96, 105), html=r'''<p>
+</p>
+<p>
   The word the conductor keys off is decided <em>here</em>, before either file is written,
   and it is about the <code>.gitignore</code> alone: <code>added</code> when that file does
   not yet carry the rule, <code>already present</code> when it does.
@@ -1462,8 +1462,8 @@ SCRIPTS += [dict(
   written &mdash; but it is <strong>appended</strong> last, after the exclude file. Holding
   the answer as the word it will print keeps those two moments apart without a yes/no
   sentinel whose spelling would have to stay in step with two separate echo sites.
-</p>'''),
-        dict(lines=(106, 119), html=r'''<p>
+</p>
+<p>
   The two writes, then the report. The exclude file is ensured <strong>whatever the
   <code>.gitignore</code> turned out to be</strong>: a repo that already carries the rule in
   history &mdash; veri's own does &mdash; still has a caller's
@@ -1629,7 +1629,7 @@ SCRIPTS += [dict(
   position is exempt from strict mode by construction, which is what lets this rule ask its
   question instead of dying when the answer is no.
 </p>'''),
-        dict(lines=(129, 142), html=r'''<p>
+        dict(lines=(129, 138), html=r'''<p>
   <strong>Rule 3: the Makefile.</strong> A <code>test:</code> target names <code>make
   test</code>. <code>grep -qE '^test[[:space:]]*:'</code> anchors the match to the
   <em>start</em> of a line, so a <code>test :</code> spelling still matches while
@@ -1642,8 +1642,8 @@ SCRIPTS += [dict(
   <code>pytest</code> with whatever else the suite needs beyond it &mdash; so the target gets
   to answer, and <code>pytest.ini</code> is left to speak only for repos that wrote no target
   at all.
-</p></div>'''),
-        dict(lines=(143, 170), html=r'''<p>
+</p></div>
+<p>
   <strong>Rule 4: pytest configuration.</strong> Three files, asked about differently on
   purpose. <code>pytest.ini</code> exists only to configure pytest, so the filename alone is
   the whole claim &mdash; the file may well be empty. <code>pyproject.toml</code> makes no
@@ -1666,8 +1666,8 @@ SCRIPTS += [dict(
 </p><p>
   <code>-q</code> on the eventual <code>pytest -q</code> is not cosmetic: the conductor reads
   the exit status, not the dots, so quiet output is what a leaf should actually see.
-</p>'''),
-        dict(lines=(171, 186), html=r'''<p>
+</p>
+<p>
   <strong>Rules 5 and 6: the two compiled stacks.</strong> Each names its toolchain's own
   runner. Unlike <code>pyproject.toml</code> above, neither <code>go.mod</code> nor
   <code>Cargo.toml</code> belongs to any other kind of project, so the filename alone is the
@@ -1677,8 +1677,8 @@ SCRIPTS += [dict(
   without it, <code>go test</code> runs only the root package and quietly skips the rest of
   the suite. <code>cargo test</code> needs no such argument &mdash; it already walks the
   whole crate.
-</p>'''),
-        dict(lines=(187, 203), html=r'''<p>
+</p>
+<p>
   <strong>Rule 7, the last before giving up:</strong> a python repo that committed no runner
   configuration at all still has a suite if <code>tests/</code> holds files named
   <code>test_*.py</code>, and the stdlib can run them with nothing installed &mdash;
@@ -1692,8 +1692,8 @@ SCRIPTS += [dict(
   is left as its own literal, non-existent filename, which <code>[ -f "$f" ]</code> is false
   for. The loop answers on the first real match and simply falls through when there was none,
   with no need for the <code>nullglob</code> shell option.
-</p>'''),
-        dict(lines=(204, 207), html=r'''<p>
+</p>
+<p>
   Nothing decided: say nothing, and let <span class="ec ec-3"><b>3</b></span> &mdash;
   &ldquo;nothing to do&rdquo;, not an error &mdash; send the question to the human, the same
   code <a href="#next-unchecked"><code>next-unchecked.sh</code></a> uses when the ledger has
@@ -2914,7 +2914,7 @@ SCRIPTS += [dict(
   to empty and correctly loses to the inline reason, then trim both edges of whichever won.
   Internal line breaks are preserved throughout &mdash; a multi-line reason stays multi-line.
 </p>'''),
-        dict(lines=(83, 92), html=r'''<p>
+        dict(lines=(83, 84), html=r'''<p>
   The last defence. Models like to wrap a structured block in a code fence, and while the
   <em>opening</em> fence sits above the <code>VERDICT</code> line and is ignored naturally,
   the closing one trails the reason.
@@ -2927,8 +2927,8 @@ SCRIPTS += [dict(
   None of this is elegant, and it does not need to be. It is a boundary layer between a
   probabilistic producer and a deterministic consumer. Extracting it here is what keeps that
   mess out of the conductor.
-</p>'''),
-        dict(lines=(93, 95), html=r'''<p>
+</p>
+<p>
   Reason to stdout, verdict as the exit code. The same contract every script in the suite
   honours.
 </p>'''),
