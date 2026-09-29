@@ -283,6 +283,16 @@ want_no_line "$f:(2|7)"
 want_line "$f:5:1"
 verdict "an escaped quote, a trailing comment and a # inside a word neither open nor close a quoted string"
 
+# 23. the sweepable report omits the `#!` line that opens a heredoc's body, and only that one.
+problems=""
+f="$work/stub-writer.sh"
+printf '%s\n' "cat > stub <<'EOF'" '#!/bin/sh' 'echo hi' '# a comment later in the body' '#!/bin/sh later in the body' 'EOF' > "$f"
+classify --sweepable "$f"
+want_no_line "$f:2"
+want_line "$f:4:2"
+want_line "$f:5:2"
+verdict "the sweepable report omits the #! line that opens a heredoc's body, and no later #! line"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

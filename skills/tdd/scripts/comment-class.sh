@@ -5,7 +5,7 @@
 #
 # Class 1 is a comment in code, 2 a `#` line inside a heredoc redirected to a file or piped to tee, dd or sponge,
 # 3 a `#` line inside any other heredoc. --sweepable prints classes 1 and 2 only, less the comment block
-# after a leading `#!` line and any comment starting `# hazard:`.
+# after a leading `#!` line, a `#!` line opening a heredoc's body and any comment starting `# hazard:`.
 #
 # Exit: 0 printed, 2 bad arguments.
 set -uo pipefail
@@ -39,7 +39,8 @@ awk -v sweepable="$sweepable" '
     end = $0
     if (dash) sub(/^\t+/, "", end)
     if (end == delim) delim = ""
-    else if (comment && !(sweepable && cls == 3)) print FILENAME ":" FNR ":" cls
+    else if (comment && !(sweepable && (cls == 3 || (body && /^#!/)))) print FILENAME ":" FNR ":" cls
+    body = 0
     next
   }
   q != "" { scan($0); next }
@@ -53,6 +54,7 @@ awk -v sweepable="$sweepable" '
     cls = out ~ />[[:space:]]*[^&[:space:]]/ || out ~ /\|[[:space:]]*(tee|dd|sponge)[[:space:]]/ ? 2 : 3
     delim = substr(line, RSTART + 2, RLENGTH - 2)
     dash = delim ~ /^-/
+    body = 1
     sub(/^-?[[:space:]]*["'\'']?/, "", delim)
   }
 ' "$@"
