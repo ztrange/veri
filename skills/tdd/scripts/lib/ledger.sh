@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# lib/ledger.sh — sourced, not run: defines `ledger_steps`, `ledger_tick` and `ledger_clear_pending`.
+# lib/ledger.sh — sourced, not run: defines `ledger_steps`, `ledger_tick`, `ledger_clear_pending` and
+# `ledger_add_step`.
 #
 # ledger_steps — stdin → one tab-separated record per step line, in document order:
 # index  state  kind  pending  added  criterion  text. `index` is 1-based over step lines only; `state` is `open` for
@@ -17,6 +18,9 @@
 # ledger_clear_pending <matcher> — stdin → stdout: the first done step whose line contains <matcher>
 # and ends in ` ⟂ refactor pending` loses that mark; every other byte is copied unchanged.
 # Exit: 0 a mark was cleared; 3 no such step.
+#
+# ledger_add_step <text> <k> — stdin → stdout: `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` is written
+# directly after the last step line; every other byte is copied unchanged.
 # Assigns the caller's local `re`: bash scopes a callee's assignment dynamically.
 _ledger_step_re() {
   re='^([[:space:]]*- )\[([ xX])\] (.*)$'
@@ -84,4 +88,22 @@ ledger_clear_pending() {
     printf '%s%s' "$line" "$nl"
   done
   ((cleared)) || return 3
+}
+
+ledger_add_step() {
+  local step="- [ ] $1 ⟦added⟧ ⟦criterion $2⟧" line nl re i last=-1
+  local -a lines=() nls=()
+  _ledger_step_re
+  while _ledger_read_line; do
+    [[ "$line" =~ $re ]] && last=${#lines[@]}
+    lines+=("$line")
+    nls+=("$nl")
+  done
+  for i in "${!lines[@]}"; do
+    if ((i == last)); then
+      printf '%s\n%s%s' "${lines[i]}" "$step" "${nls[i]}"
+    else
+      printf '%s%s' "${lines[i]}" "${nls[i]}"
+    fi
+  done
 }
