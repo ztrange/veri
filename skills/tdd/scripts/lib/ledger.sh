@@ -22,7 +22,6 @@ _ledger_step_re() {
   re='^([[:space:]]*- )\[([ xX])\] (.*)$'
 }
 
-# Assigns the caller's locals `line` and `nl`; fails at end of input.
 _ledger_read_line() {
   if IFS= read -r line; then
     nl=$'\n'
