@@ -23,7 +23,9 @@ test:
 	  suite_name="$$(basename "$$t")"; \
 	  printf '== %s\n' "$$suite_name"; \
 	  { "$$t" < /dev/null; echo $$? > "$$suite_status"; } | tee "$$suite_out"; \
-	  [ "$$(cat "$$suite_status")" -eq 0 ] || fail=1; \
+	  status="$$(cat "$$suite_status")"; \
+	  if [ "$$status" -eq 3 ]; then printf '%s: nothing to do\n' "$$suite_name"; continue; fi; \
+	  [ "$$status" -eq 0 ] || fail=1; \
 	  last_line="$$(tail -n 1 "$$suite_out")"; \
 	  printf '%s\n' "$$last_line" | grep -E '$(COUNT_LINE)' > /dev/null || { \
 	    printf '$(COUNTLESS)' "$$suite_name"; fail=1; \
