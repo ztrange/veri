@@ -376,10 +376,6 @@ def render_reference():
     return "".join(groups)
 
 
-_listed = {s["file"] for s in com.SCRIPTS}
-com.SCRIPTS += [dict(file=f.name, id=f.stem, stage=com.STAGES[-1]["n"], chunks=[])
-                for f in sorted(SCRIPTS_DIR.glob("*.sh")) if f.name not in _listed]
-
 SCRIPT_ID = {s["file"]: s["id"] for s in com.SCRIPTS}
 
 # The version layer, read once. None in a tree with no git or no tags — which is the
