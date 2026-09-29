@@ -50,14 +50,14 @@ sha_state() {
   python3 -c '
 import json, sys
 pages = json.loads(sys.argv[1])
-statuses = json.loads(sys.argv[2]).get("statuses") or []
+states = [s.get("state") for s in json.loads(sys.argv[2]).get("statuses") or []]
 runs = [r for p in pages for r in p.get("check_runs") or []]
 outcomes = [r.get("conclusion") if r.get("status") == "completed" else None for r in runs]
 if any(o is not None and o not in sys.argv[3].split() for o in outcomes) \
-        or any(s.get("state") in ("failure", "error") for s in statuses):
+        or any(s in ("failure", "error") for s in states):
     print("red")
 elif None in outcomes or all(o == "skipped" for o in outcomes) \
-        or any(s.get("state") == "pending" for s in statuses):
+        or "pending" in states:
     print("pending")
 else:
     print("green")
