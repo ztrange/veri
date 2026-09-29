@@ -6,3 +6,5 @@
 - the `\.md["\047]?(…|$)` suffix appears twice in comment-class.sh: in the `.md` assignment match (line 53, ends on `[[:space:];]`) and in the `.md` redirect check (line 59, ends on `[[:space:]]`). Merging them would change what each one matches, so it is not a pure dedup
 ### The sweepable report is empty for every top-level `tests/*.sh` whose name starts with n through r ⟦criterion 1⟧
 - hermetic-suites.test.sh still slices solvable-issues.test.sh with its own awk + the same three-line count-line append and chmod (lines ~81–86); this cycle did not write it, so it was out of scope, but it could share one "append count line and make executable" helper with slice_run_conductor
+### The sweepable report is empty for `tests/supervise.test.sh` and `tests/supervise-retry.test.sh` ⟦criterion 1⟧
+- `unit/comment-class.test.sh` cases 26–29, 31 and 32 repeat the same three-line block (`problems=""`, `want_empty_sweepable <glob>`, `verdict <name>`). A table of (glob, name) pairs driven by one loop would remove the repetition. I didn't apply it: only case 32 is from this cycle, the others are from earlier ones, so the change would mostly tidy code this cycle didn't write.
