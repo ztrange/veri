@@ -312,5 +312,17 @@ got="$(waited pagedsha 60 60 "$sha")"
 [[ "$got" == 1 ]] || problems+=("rollup green for $sha, a failed run on its check runs' second page: want exit 1, got $got (stderr: $(cat "$work/pagedsha.err"))")
 report "$name"
 
+name="wait-ci.sh exits 0 when the sha's own check runs and statuses have all succeeded, even while the PR rollup still shows a previous head's failed or pending checks (#552)"
+problems=()
+for stale in failure:"$(check COMPLETED FAILURE)" pending:"$(check IN_PROGRESS '')"; do
+  f="greensha-${stale%%:*}"
+  rollup "$f.json" "$(check COMPLETED SUCCESS),${stale#*:}" "$sha"
+  sha_runs "$f.json" "$(sha_run gates completed '"success"')"
+  printf '{"state":"success","sha":"%s","total_count":1,"statuses":[{"context":"legacy","state":"success"}]}\n' "$sha" > "$work/$f.json.status"
+  got="$(waited "$f" 60 60 "$sha")"
+  [[ "$got" == 0 ]] || problems+=("rollup ${stale%%:*} for $sha, its own check run and status success: want exit 0, got $got (stderr: $(cat "$work/$f.err"))")
+done
+report "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

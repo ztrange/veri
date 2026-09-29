@@ -61,16 +61,22 @@ import json, sys
 pages = json.loads(sys.argv[1])
 pages = pages if isinstance(pages, list) else [pages]
 runs = [r for p in pages for r in p.get("check_runs") or []]
-red = any(r.get("status") == "completed" and r.get("conclusion") not in ("success", "neutral", "skipped") for r in runs)
-print("red" if red else "pending")
+outcomes = [r.get("conclusion") if r.get("status") == "completed" else None for r in runs]
+if any(o is not None and o not in ("success", "neutral", "skipped") for o in outcomes):
+    print("red")
+elif None in outcomes:
+    print("pending")
+else:
+    print("green")
 ' "$runs"
 }
 
 while :; do
   read -r state head < <(rollup_state) && [[ -n "$head" ]] \
     || { echo "wait-ci.sh: could not read the checks of $pr" >&2; exit 2; }
-  [[ -n "$want" && "$head" != "$want" ]] && state=pending
-  if [[ -n "$want" && "$state" == green ]]; then
+  if [[ -n "$want" && "$head" != "$want" ]]; then
+    state=pending
+  elif [[ -n "$want" ]]; then
     state="$(sha_state "$want")" || { echo "wait-ci.sh: could not read the checks of $want" >&2; exit 2; }
   fi
   case "$state" in
