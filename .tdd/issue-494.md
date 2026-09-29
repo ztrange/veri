@@ -32,3 +32,12 @@ Scope: every shell file under `skills/tdd/scripts/tests/` — the `*.sh` files (
 ## Owed steps
 
 - comment-class.sh classifies every `#` line of a suite, dropping none after a `"$(cmd 'a "b')"` shape (a `"` inside a single-quoted argument inside `"$(…)"`), so the sweepable report is not empty merely because the scanner lost its place
+
+## Owed steps
+
+- The sweepable report is empty for every shell file under `tests/unit/` whose name starts with c through e, other than `comment-class.test.sh`
+- The sweepable report is empty for every shell file under `tests/unit/` whose name starts with m through p
+- The sweepable report is empty for every shell file under `tests/unit/` whose name starts with r
+- The sweepable report is empty for every shell file under `tests/unit/` whose name starts with s
+- The sweepable report is empty for every shell file under `tests/fixtures/`, and for `tests/unit-guard/git` and `tests/offline/gh`
+- The sweepable report is empty for `tests/unit/comment-class.test.sh`, the case labels of its own sweepable-report cases included
