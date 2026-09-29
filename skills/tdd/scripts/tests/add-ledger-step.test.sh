@@ -151,6 +151,7 @@ ledger_steps() {
     printf '%s\topen\tstep\t0\t0\t\t%s\n' "$i" "${line#'* ['?'] '}"
   done
 }
+ledger_add_step() { cat; printf -- '- [ ] %s ⟦added⟧ ⟦criterion %s⟧\n' "$1" "$2"; }
 EOF
 seed_lines '* [ ] a lamp glows'
 "$stub/add-ledger-step.sh" "$led" after 'a lamp glows' 'a lamp dims'; code=$?
@@ -159,6 +160,22 @@ want='# Plan for #42
 * [ ] a lamp glows
 - [ ] a lamp dims ⟦added⟧'
 check "finds the anchor step through lib/ledger.sh's ledger_steps, matching no checkbox of its own" \
+  "$code" "$want"
+
+# 10. Each new step line is produced by lib/ledger.sh's `ledger_add_step`, with no step line
+#     spelled by the script itself: beside the real module with only that function's box
+#     respelled `* [ ]`, the inserted step comes out in that spelling.
+stub="$work/stub-add"
+mkdir -p "$stub/lib"
+cp "$ADD" "$stub/add-ledger-step.sh"
+sed 's/local step="- \[ \] /local step="* [ ] /' "$HERE/../lib/ledger.sh" > "$stub/lib/ledger.sh"
+seed_lines '- [ ] a lamp glows ⟦criterion 2⟧'
+"$stub/add-ledger-step.sh" "$led" after 'a lamp glows' 'a lamp dims'; code=$?
+want='# Plan for #42
+
+- [ ] a lamp glows ⟦criterion 2⟧
+* [ ] a lamp dims ⟦added⟧ ⟦criterion 2⟧'
+check "writes each new step line through lib/ledger.sh's ledger_add_step, spelling no box of its own" \
   "$code" "$want"
 
 echo "----"

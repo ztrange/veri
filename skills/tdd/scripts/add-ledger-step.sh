@@ -36,14 +36,16 @@ criterion_of() {
   local line="$1" k
   [[ "$line" == *"⟦criterion "*"⟧"* ]] || return 0
   k="${line##*⟦criterion }"
-  printf ' ⟦criterion %s⟧' "${k%%⟧*}"
+  printf '%s' "${k%%⟧*}"
 }
 
 added_steps() {
-  local line="$1" crit text
-  crit="$(criterion_of "$line")"
+  local line="$1" k crit text step
+  k="$(criterion_of "$line")"
+  crit="${k:+ ⟦criterion $k⟧}"
   for text in "${texts[@]}"; do
-    printf '%s\n' "- [ ] $text$(added_mark "$text")$crit"
+    step="$(ledger_add_step "$text" "$k" <<< "$line" | tail -n 1)"
+    printf '%s\n' "${step% $added ⟦criterion $k⟧}$(added_mark "$text")$crit"
   done
 }
 
