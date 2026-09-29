@@ -15,7 +15,7 @@ Scope: every shell file under `skills/tdd/scripts/tests/` — the `*.sh` files (
 - [x] The sweepable report is empty for every top-level `tests/*.sh` whose name starts with s, other than the `skill-*` and `supervise*` files ⟦criterion 1⟧
 - [x] The sweepable report is empty for every top-level `tests/*.sh` whose name starts with t through z ⟦criterion 1⟧
 - [x] The sweepable report is empty for every `tests/skill-*.test.sh` whose name after `skill-` starts with a through l ⟦criterion 1⟧
-- [x] The sweepable report is empty for every `tests/skill-*.test.sh` whose name after `skill-` starts with m through z ⟦criterion 1⟧ ⟂ refactor pending
+- [x] The sweepable report is empty for every `tests/skill-*.test.sh` whose name after `skill-` starts with m through z ⟦criterion 1⟧
 - [ ] The sweepable report is empty for every shell file under `tests/unit/` and `tests/fixtures/`, and for `tests/unit-guard/git` and `tests/offline/gh` ⟦criterion 1⟧
 - [ ] No class 1 comment line in any shell file under `skills/tdd/scripts/tests/`, a leading contract header included, cites an issue number (`#<digits>`), so headers keep the contract and drop the rationale ⟦criterion 1⟧
 - [ ] Class 2 lines are swept only where the writing suite stays green: `make test` passes on the swept tree ⟦full-suite⟧ ⟦criterion 2⟧
