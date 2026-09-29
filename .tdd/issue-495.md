@@ -7,7 +7,7 @@
 - [x] `ledger_steps`'s `added` field is `1` for a step carrying `⟦added⟧` and its `criterion` field is `k` for a step carrying `⟦criterion k⟧` (empty when it carries none) — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧
 - [x] `ledger_tick <matcher>` in `lib/ledger.sh`, stdin → stdout, ticks the first open step whose line contains `<matcher>` (an empty matcher: the first open step) to `- [x]` and changes no other byte — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧
 - [x] `ledger_tick <matcher> pending` also appends ` ⟂ refactor pending` to the line it ticks, in the same write — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧
-- [ ] `ledger_tick` returns 3 and writes the document unchanged when no open step contains `<matcher>` — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧
+- [x] `ledger_tick` returns 3 and writes the document unchanged when no open step contains `<matcher>` — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧ ⟂ refactor pending
 - [ ] `ledger_clear_pending <matcher>` in `lib/ledger.sh`, stdin → stdout, strips the pending mark from the first ticked step that contains `<matcher>` and carries the mark, changing no other byte, and returns 3 with the document unchanged when no such step exists — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧
 - [ ] `ledger_add_step <text> <k>` in `lib/ledger.sh`, stdin → stdout, writes `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` directly after the document's last step line, changing no other byte — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧
 - [ ] A new entry point `skills/tdd/scripts/ledger-steps.sh` prints `ledger_steps`'s records for the document on its stdin, and nothing else — pinned by its own suite ⟦criterion 3⟧

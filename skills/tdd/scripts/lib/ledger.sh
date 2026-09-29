@@ -12,6 +12,7 @@
 # ledger_tick <matcher> [pending] — stdin → stdout: the first open step whose line contains <matcher>
 # (an empty matcher: the first open step) becomes `[x]`, and with `pending` also gains
 # ` ⟂ refactor pending` at its end; every other byte is copied unchanged.
+# Exit: 0 a step was ticked; 3 no open step contains <matcher>.
 # Assigns the caller's local `re`: bash scopes a callee's assignment dynamically.
 _ledger_step_re() {
   re='^([[:space:]]*- )\[([ xX])\] (.*)$'
@@ -62,4 +63,5 @@ ledger_tick() {
     fi
     printf '%s%s' "$line" "$nl"
   done
+  ((ticked)) || return 3
 }
