@@ -7,3 +7,4 @@
 - [ ] projects/docs/docs-owed.sh lists a script present on disk but absent from commentary.SCRIPTS as `unlisted: <script>`, whether or not the page has been rebuilt since ⟦criterion 2⟧
 - [ ] projects/docs/docs-owed.sh still exits 3 with no output when every script is listed and covered ⟦criterion 2⟧
 - [ ] `make docs-check` passes on this repo with leaf-timeout.sh (and the other unlisted scripts) rendered as owed, the committed projects/docs/walkthrough.html regenerated to match — a docs-lane step, run by the docs regen recipe ⟦criterion 3⟧
+- [ ] `make docs-check` passes on this repo with leaf-timeout.sh rendered as owed: regenerate projects/docs/walkthrough.html with `make -C projects/docs docs` from a human shell, then run `make docs-check` ⟦human-owed⟧ ⟦criterion 3⟧
