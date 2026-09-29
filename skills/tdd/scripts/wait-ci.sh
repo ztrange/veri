@@ -54,8 +54,14 @@ print(state, doc.get("headRefOid") or "")
 sha_state() {
   local repo
   repo="${pr#https://github.com/}"; repo="${repo%/pull/*}"
-  gh api "repos/$repo/commits/$1/check-runs" > /dev/null || return 2
-  echo pending
+  local runs
+  runs="$(gh api "repos/$repo/commits/$1/check-runs")" || return 2
+  python3 -c '
+import json, sys
+runs = json.loads(sys.argv[1]).get("check_runs") or []
+red = any(r.get("status") == "completed" and r.get("conclusion") not in ("success", "neutral", "skipped") for r in runs)
+print("red" if red else "pending")
+' "$runs"
 }
 
 while :; do

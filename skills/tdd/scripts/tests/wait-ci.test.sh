@@ -255,5 +255,23 @@ grep -F "could not read the checks of $sha" "$work/unread.err" > /dev/null \
   || problems+=("gh api check-runs failed: want stderr naming $sha, got: $(cat "$work/unread.err")")
 report "$name"
 
+name="wait-ci.sh exits 1 when the sha's own check runs hold a completed failure, even while the PR rollup reads all green (#552)"
+problems=()
+rollup redsha.json "$(check COMPLETED SUCCESS)" "$sha"
+printf '{"total_count":1,"check_runs":[{"name":"gates","head_sha":"%s","status":"completed","conclusion":"failure"}]}\n' "$sha" > "$work/redsha.json.check-runs"
+printf '{"state":"pending","sha":"%s","total_count":0,"statuses":[]}\n' "$sha" > "$work/redsha.json.status"
+got="$(waited redsha 60 60 "$sha")"
+[[ "$got" == 1 ]] || problems+=("rollup green for $sha, its own check run completed failure: want exit 1, got $got (stderr: $(cat "$work/redsha.err"))")
+report "$name"
+
+name="wait-ci.sh never reads a completed NEUTRAL or SKIPPED run among the sha's own check runs as red: with another still in progress it exits 3 (#552)"
+problems=()
+rollup quietsha.json "$(check COMPLETED SUCCESS)" "$sha"
+printf '{"total_count":3,"check_runs":[{"name":"lint","head_sha":"%s","status":"completed","conclusion":"neutral"},{"name":"docs","head_sha":"%s","status":"completed","conclusion":"skipped"},{"name":"gates","head_sha":"%s","status":"in_progress","conclusion":null}]}\n' "$sha" "$sha" "$sha" > "$work/quietsha.json.check-runs"
+printf '{"state":"pending","sha":"%s","total_count":0,"statuses":[]}\n' "$sha" > "$work/quietsha.json.status"
+got="$(waited quietsha 60 60 "$sha")"
+[[ "$got" == 3 ]] || problems+=("sha's own runs neutral, skipped and in_progress: want exit 3, got $got (stderr: $(cat "$work/quietsha.err"))")
+report "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
