@@ -200,12 +200,17 @@ else:
     else:
         phases = arm.group(1).split("|")
         drawn = re.findall(r">([A-Z][a-z]+) &mdash; ", fig)
-        if [d.lower() for d in drawn] != phases:
+        # The figure draws the loop's phases, not every phase the builder accepts: plan
+        # (#439), rebase (#238) and transform (#499) verify other things than a cycle
+        # step. So each drawn phase must be one the builder accepts, in its order; a
+        # renamed or reordered loop phase still fails, which is what this guards.
+        lowered = [d.lower() for d in drawn]
+        if not drawn or [p for p in phases if p in lowered] != lowered:
             bad.append("the TDD-loop figure draws phases %s; build-verify-prompt.sh "
                        "accepts %s" % (drawn, phases))
         else:
-            print("TDD loop: %d phases, in the order build-verify-prompt.sh accepts"
-                  % len(phases))
+            print("TDD loop: %d phases, each accepted by build-verify-prompt.sh, in its order"
+                  % len(drawn))
 
     budget = re.search(r"`REVISE_BUDGET`[^.]*?\*\*default (\d+)\*\*", SKILL.read_text())
     claimed = set(re.findall(r"&le; (\d+) attempts", prose))
