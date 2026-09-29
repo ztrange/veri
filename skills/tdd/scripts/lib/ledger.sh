@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# lib/ledger.sh — sourced, not run: defines `ledger_steps`.
+# lib/ledger.sh — sourced, not run: defines `ledger_steps` and `ledger_tick`.
 #
 # ledger_steps — stdin → one tab-separated record per step line, in document order:
 # index  state  kind  pending  added  criterion  text. `index` is 1-based over step lines only; `state` is `open` for
@@ -8,6 +8,9 @@
 # `done` step whose line ends in ` ⟂ refactor pending`, which is then cut from `text`, and `0`
 # otherwise; `added` is `1` for a step carrying `⟦added⟧`, `0` otherwise; `criterion` is the `k` of
 # its `⟦criterion k⟧`, empty when it carries none. A line with no box is skipped.
+#
+# ledger_tick <matcher> — stdin → stdout: the first open step whose line contains <matcher> (an
+# empty matcher: the first open step) becomes `[x]`; every other byte is copied unchanged.
 ledger_steps() {
   local line state kind pending added criterion text index=0
   local mark=' ⟂ refactor pending'
@@ -32,5 +35,23 @@ ledger_steps() {
       text="${text%"$mark"}"
     fi
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$index" "$state" "$kind" "$pending" "$added" "$criterion" "$text"
+  done
+}
+
+ledger_tick() {
+  local matcher="$1" line nl ticked=0
+  local re='^([[:space:]]*- )\[ \]( .*)$'
+  while true; do
+    if IFS= read -r line; then
+      nl=$'\n'
+    else
+      [[ -n "$line" ]] || break
+      nl=
+    fi
+    if ((ticked == 0)) && [[ "$line" =~ $re && "$line" == *"$matcher"* ]]; then
+      line="${BASH_REMATCH[1]}[x]${BASH_REMATCH[2]}"
+      ticked=1
+    fi
+    printf '%s%s' "$line" "$nl"
   done
 }
