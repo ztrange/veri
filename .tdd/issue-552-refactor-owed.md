@@ -4,3 +4,8 @@
 ### wait-ci.sh reads every page of the given sha's check runs, so a failed run beyond the first page of results still exits 1 ⟦added⟧ ⟦criterion 1⟧
 - skills/tdd/scripts/wait-ci.sh sha_state: `pages if isinstance(pages, list) else [pages]` is now dead code, because `gh api --paginate --slurp` always returns a list and the stub now always serves that list. It is dead-code removal rather than duplication removal, so it is out of this phase's scope.
 - skills/tdd/scripts/tests/wait-ci.test.sh gh stub: wait-ci.sh never takes the stub's non-`--paginate` and non-`--slurp` output branches. Those branches are dead code in this suite.
+### wait-ci.sh exits 0 when the given sha's own check runs and statuses have all succeeded, even while the PR rollup still shows a previous head's failed or pending checks ⟦criterion 1⟧
+- wait-ci.sh sha_state now repeats rollup_state's pass/pending/red classification and its passing set ("success","neutral","skipped" vs "SUCCESS","NEUTRAL","SKIPPED"); a shared classifier needs an extraction across two python -c snippets whose rules differ (the rollup reads all-SKIPPED and empty as pending), so it is not plain duplication removal
+- wait-ci.sh sha_state works out owner/repo from $pr again on every poll; it could be set once next to pr=
+- wait-ci.sh sha_state's `pages if isinstance(pages, list) else [pages]` is dead code under `gh api --paginate --slurp`
+- wait-ci.test.sh gh stub's non-`--paginate` and non-`--slurp` output branches are never taken by wait-ci.sh
