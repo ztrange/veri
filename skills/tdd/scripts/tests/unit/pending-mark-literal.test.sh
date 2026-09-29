@@ -3,7 +3,9 @@
 # skills/tdd/scripts/ outside tests/, only lib/ledger.sh may carry ` ⟂ refactor pending`,
 # code and comments alike. Names each other file that does. And audits where the step-line
 # pattern is spelled: lib/ledger.sh carries a box on one non-comment line, the one definition
-# its readers and writers share. Names each line that does when more than one does.
+# its readers and writers share. Names each line that does when more than one does. And audits
+# that no other script or module (non-comment lines) and no line of SKILL.md spells a box —
+# an escaped `\[` box or a `'[x]'` / `"- [x] "` / `"- [ ] "` literal. Names each file and line.
 #
 # Admitted to the fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
@@ -51,6 +53,21 @@ if [[ "$count" -ne 1 ]]; then
   done <<< "$spellers"
 fi
 verdict "the step-line pattern is spelled on one line of lib/ledger.sh"
+
+# 3. no script or module but lib/ledger.sh, and no line of SKILL.md, spells a box.
+problems=""
+box=(-e '\\\[\(?([ xX]|\[[^]]*\])\)?\\\]' -e "'\[x\]'" -e '"- \[[ x]\] "')
+spellers="$( (cd "$SCRIPTS" && grep -rnE --include='*.sh' --include='*.py' "${box[@]}" .) \
+  | sed 's|^\./||' | awk '$0 !~ /^tests\// && $0 !~ /^lib\/ledger\.sh:/' \
+  | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#')"
+while IFS= read -r hit; do
+  [[ -n "$hit" ]] && problems+="    ${hit%%:*}:$(cut -d: -f2 <<< "$hit") spells a box"$'\n'
+done <<< "$spellers"
+spellers="$(grep -nE "${box[@]}" "$SCRIPTS/../SKILL.md")"
+while IFS= read -r hit; do
+  [[ -n "$hit" ]] && problems+="    SKILL.md:${hit%%:*} spells a box"$'\n'
+done <<< "$spellers"
+verdict "no script or module but lib/ledger.sh, and no line of SKILL.md, spells a box"
 
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

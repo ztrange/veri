@@ -31,7 +31,7 @@
 - [x] SKILL.md's reconcile check (`diff <(grep -F -e '[x]' -e '⟂ refactor pending' …) …`) compares `ledger-steps.sh`'s state and pending fields instead of grepping the markdown ⟦criterion 3⟧
 - [x] The literal ` ⟂ refactor pending` appears — code and comments alike — in exactly one `.sh` or `.py` file under `skills/tdd/scripts/` outside `tests/`, namely `lib/ledger.sh`, pinned by a unit-tier audit suite that names any other file carrying it ⟦criterion 1⟧
 - [x] Inside `lib/ledger.sh` the step-line pattern is defined once and every reader and writer in the module (bash and awk alike) uses that one definition — pinned by the audit suite ⟦criterion 2⟧
-- [ ] No non-comment line of a `.sh` or `.py` file under `skills/tdd/scripts/` outside `tests/` other than `lib/ledger.sh`, and no line of `skills/tdd/SKILL.md`, spells a box pattern — an escaped `\[` box or a `'[x]'` / `"- [x] "` / `"- [ ] "` literal — pinned by the audit suite, naming any file and line that does ⟦criterion 2⟧
+- [x] No non-comment line of a `.sh` or `.py` file under `skills/tdd/scripts/` outside `tests/` other than `lib/ledger.sh`, and no line of `skills/tdd/SKILL.md`, spells a box pattern — an escaped `\[` box or a `'[x]'` / `"- [x] "` / `"- [ ] "` literal — pinned by the audit suite, naming any file and line that does ⟦criterion 2⟧
 - [ ] The callers' suites stay green under the full suite ⟦full-suite⟧ ⟦criterion 4⟧
 - [ ] The behaviour of every affected script is unchanged — every caller's pre-existing suite passes unmodified — with one transform per commit ⟦full-suite⟧ ⟦criterion 5⟧
 
