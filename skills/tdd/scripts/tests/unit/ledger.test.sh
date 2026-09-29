@@ -49,8 +49,6 @@ rewrite_of() {
   return "$status"
 }
 
-# 1. index, state and text: one record per step line at any indent, index counting step lines
-#    only, `[x]` and `[X]` both done, and headings, prose and `## Owed steps` bullets skipped.
 problems=""
 if [[ ! -f "$LIB" ]]; then
   problems+="    want $LIB to exist"$'\n'
@@ -77,14 +75,12 @@ want=$'1\tdone\tlowercase the slug\n2\topen\tcollapse non-alphanumerics to one h
 expect_records "ledger_steps index/state/text differ" "$want" "$(steps_of "$doc")"
 verdict "ledger_steps prints index, state and text per step line at any indent, skipping lines with no box"
 
-# 2. a final step line with no trailing newline still yields its record.
 problems=""
 want=$'1\tdone\tfirst\n2\topen\tlast step'
 expect_records "ledger_steps records differ for an unterminated last line" "$want" \
   "$(steps_of $'- [x] first\n- [ ] last step')"
 verdict "ledger_steps emits a record for a final step line with no trailing newline"
 
-# 3. kind: the marker counts only when it sits immediately before the criterion tag.
 problems=""
 doc='- [ ] plain step ⟦criterion 1⟧
 - [ ] the whole suite is green ⟦full-suite⟧ ⟦criterion 2⟧
@@ -96,7 +92,6 @@ expect_records "ledger_steps kind differs" "$want" \
   "$(records_of '$1 "\t" $3' "$doc")"
 verdict "ledger_steps kind is full-suite or human-owed only for a marker right before the criterion tag, step otherwise"
 
-# 4. pending: 1 only for a ticked step ending in the refactor-pending mark, which leaves its text.
 problems=""
 doc='- [x] tidied ⟦criterion 1⟧
 - [x] green ⟦criterion 2⟧ ⟂ refactor pending
@@ -108,7 +103,6 @@ expect_records "ledger_steps pending differs" "$want" \
   "$(records_of '$1 "\t" $4 "\t" $NF' "$doc")"
 verdict "ledger_steps pending is 1 for a ticked step ending in the pending mark, 0 otherwise, and the mark leaves its text"
 
-# 5. added and criterion: `⟦added⟧` sets added, `⟦criterion k⟧` gives k, no tag gives empty.
 problems=""
 doc='- [x] planned ⟦criterion 1⟧
 - [ ] discovered ⟦added⟧ ⟦criterion 12⟧
@@ -119,8 +113,6 @@ expect_records "ledger_steps added/criterion differ" "$want" \
   "$(records_of '$1 "\t" $5 "\t" $6' "$doc")"
 verdict "ledger_steps added is 1 for a step carrying the added mark and criterion is its k, empty with no tag"
 
-# 6. ledger_tick: the first open step containing the matcher (empty: the first open step)
-#    becomes `- [x]`; prose and ticked lines that match are passed over, every other byte kept.
 problems=""
 doc='# Plan for the slug
 
@@ -135,7 +127,6 @@ want="${doc/- \[ \] trim/- [x] trim}."
 expect_records "ledger_tick '' output differs" "$want" "$(rewrite_of ledger_tick "$doc" '')"
 verdict "ledger_tick ticks the first open step containing the matcher, or the first open step for an empty one, changing no other byte"
 
-# 7. ledger_tick <matcher> pending: the ticked line also gains the refactor-pending mark.
 problems=""
 doc='- [x] lowercase the slug ⟦criterion 1⟧
 - [ ] trim whitespace ⟦criterion 2⟧
@@ -145,8 +136,6 @@ want="${doc/- \[ \] strip the slug ⟦criterion 3⟧/- [x] strip the slug ⟦cri
 expect_records "ledger_tick 'strip' pending output differs" "$want" "$(rewrite_of ledger_tick "$doc" 'strip' pending)"
 verdict "ledger_tick <matcher> pending ticks the step and appends the refactor-pending mark in the same write"
 
-# 8. ledger_tick with no open step containing the matcher: exit 3, the document unchanged,
-#    even where prose and a ticked step contain it.
 problems=""
 doc='# Plan for the slug
 
@@ -158,9 +147,6 @@ expect_records "ledger_tick exit status differs" "3" "$?"
 expect_records "ledger_tick 'slug' output differs" "$doc." "$got"
 verdict "ledger_tick returns 3 and writes the document unchanged when no open step contains the matcher"
 
-# 9. ledger_clear_pending: the first ticked step containing the matcher and carrying the mark
-#    loses it; prose, an unmarked ticked step and an open marked step are passed over. With no
-#    such step: exit 3, the document unchanged.
 problems=""
 doc='# Plan for the slug ⟂ refactor pending
 
@@ -177,8 +163,6 @@ expect_records "ledger_clear_pending 'lowercase' exit status differs" "3" "$?"
 expect_records "ledger_clear_pending 'lowercase' output differs" "$doc." "$got"
 verdict "ledger_clear_pending strips the pending mark from the first marked ticked step containing the matcher, changing no other byte, and returns 3 with the document unchanged when none does"
 
-# 10. ledger_add_step <text> <k>: an open `⟦added⟧ ⟦criterion k⟧` step lands directly after the
-#     document's last step line, before the prose and unboxed bullets that follow it.
 problems=""
 doc='# Plan for the slug
 
@@ -202,8 +186,6 @@ want='# Plan for the slug
 expect_records "ledger_add_step output differs" "$want" "$(rewrite_of ledger_add_step "$doc" 'collapse hyphens' 3)"
 verdict "ledger_add_step writes an open added step tagged with its criterion directly after the last step line, changing no other byte"
 
-# 11. ledger_tick reads a step line as the dash, any whitespace (a tab included), then the box,
-#     with or without text after it: `-<TAB>[ ] text` and a bare `- [ ]` both tick.
 problems=""
 doc=$'# Plan\n\n-\t[ ] tabbed step\n- [ ] later step\n'
 want=$'# Plan\n\n-\t[x] tabbed step\n- [ ] later step\n.'

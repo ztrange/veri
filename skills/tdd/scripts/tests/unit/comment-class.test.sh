@@ -439,4 +439,7 @@ for f in "$SCRIPTS"/tests/unit/[c-e]*.sh; do
 done
 sweep_verdict "the sweepable report is empty for every tests/unit/*.sh whose name starts with c through e, other than comment-class.test.sh" "${files[@]}"
 
+# 41. the sweepable report is empty for tests/unit/ledger.test.sh.
+sweep_verdict "the sweepable report is empty for tests/unit/ledger.test.sh" "$SCRIPTS"/tests/unit/ledger.test.sh
+
 finish
