@@ -11,18 +11,23 @@
 #
 # ledger_tick <matcher> — stdin → stdout: the first open step whose line contains <matcher> (an
 # empty matcher: the first open step) becomes `[x]`; every other byte is copied unchanged.
+# Assigns the caller's local `re`: bash scopes a callee's assignment dynamically.
+_ledger_step_re() {
+  re='^([[:space:]]*- )\[([ xX])\] (.*)$'
+}
+
 ledger_steps() {
-  local line state kind pending added criterion text index=0
+  local line state kind pending added criterion text index=0 re
   local mark=' ⟂ refactor pending'
-  local re='^[[:space:]]*- \[([ xX])\] (.*)$'
+  _ledger_step_re
   local criterion_re='⟦criterion ([0-9]+)⟧'
   local kind_re="⟦(full-suite|human-owed)⟧ $criterion_re"
   while IFS= read -r line || [[ -n "$line" ]]; do
     [[ "$line" =~ $re ]] || continue
     index=$((index + 1))
     state=done
-    [[ "${BASH_REMATCH[1]}" == " " ]] && state=open
-    text="${BASH_REMATCH[2]}"
+    [[ "${BASH_REMATCH[2]}" == " " ]] && state=open
+    text="${BASH_REMATCH[3]}"
     kind=step
     [[ "$text" =~ $kind_re ]] && kind="${BASH_REMATCH[1]}"
     added=0
@@ -39,8 +44,8 @@ ledger_steps() {
 }
 
 ledger_tick() {
-  local matcher="$1" line nl ticked=0
-  local re='^([[:space:]]*- )\[ \]( .*)$'
+  local matcher="$1" line nl ticked=0 re
+  _ledger_step_re
   while true; do
     if IFS= read -r line; then
       nl=$'\n'
@@ -48,8 +53,8 @@ ledger_tick() {
       [[ -n "$line" ]] || break
       nl=
     fi
-    if ((ticked == 0)) && [[ "$line" =~ $re && "$line" == *"$matcher"* ]]; then
-      line="${BASH_REMATCH[1]}[x]${BASH_REMATCH[2]}"
+    if ((ticked == 0)) && [[ "$line" =~ $re && "${BASH_REMATCH[2]}" == " " && "$line" == *"$matcher"* ]]; then
+      line="${BASH_REMATCH[1]}[x] ${BASH_REMATCH[3]}"
       ticked=1
     fi
     printf '%s%s' "$line" "$nl"
