@@ -29,39 +29,18 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The document twice: the path as every failure message spells it, and the same path
-# resolved for the readers to open, so a message can never name a file the probes did not
-# read.
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
 
-# The three anchors, each an ERE written without a single backslash: `line_of` hands these to
-# `awk -v`, which processes escape sequences in the value it is given, so `\.` would reach
-# the matcher as a bare `.` — a metacharacter, quietly matching more than it was meant to.
-# `[.]` is the same character class with nothing for -v to eat.
-#
-# The two that bracket the span are the run's own landmarks rather than headings: the ledger
-# is committed by one named command, and the cycle loop opens with one numbered heading.
 commit_re='git commit -m "plan: scope'
 loop_re='^### 3[.] The cycle loop'
-# A verdict launch for the `plan` phase, in either spelling the document uses to reach the
-# verify verb — `run-verdict.sh`, the launcher the cycle loop execs since #426, or
-# `verify.sh` itself, which the prose still names directly. The phase is a bare word after
-# the script and whatever flags the call carries.
 plan_launch_re='(run-verdict|verify)[.]sh.* plan '
-# The outcome that carries no verdict, named by the code every script in this suite's subject
-# speaks: exit 2 is "no answer could be obtained" — killed stuck, or output with no parseable
-# `VERDICT:` line. The parentheses are classes for the same reason the dots above are.
 exit2_re='[(]exit 2[)]'
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which half of the criterion is missing rather than just that one is.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -73,33 +52,20 @@ report() {
   fi
 }
 
-# line_of <ere> — the 1-based number of the document's first line matching <ere>, or 0 when
-# none does. Position is what a criterion about order is asking for: not whether the launch
-# is written down, but whether it sits between the two landmarks.
 line_of() {
   awk -v re="$1" 'n == 0 && match($0, re) { n = NR } END { print n + 0 }' "$skill_path"
 }
 
-# span_text <from> <to> — the lines strictly between two line numbers, lowercased and
-# flattened to one line, so a sentence wrapped across two lines still reads as one.
 span_text() {
   awk -v a="$1" -v b="$2" 'NR > a && NR < b' "$skill_path" |
     tr '[:upper:]' '[:lower:]' | tr '\n' ' '
 }
 
-# line_in_span <from> <to> <ere> — like `line_of`, but blind to everything outside the span:
-# the document names exit 2 in a dozen other places, and only this span's answer is the
-# criterion's subject.
 line_in_span() {
   awk -v a="$1" -v b="$2" -v re="$3" \
     'n == 0 && NR > a && NR < b && match($0, re) { n = NR } END { print n + 0 }' "$skill_path"
 }
 
-# bullet_text <from> <to> <ere> — the span's first bullet matching <ere> together with the
-# lines that continue it (a bullet ends at the next bullet or at a blank line), lowercased and
-# flattened. The directive under test is one sentence wrapped across lines, and it is that
-# bullet's own text that has to carry it: the span as a whole already says "bail" for the
-# REJECT path, so a probe over the whole span would pass on the wrong bullet's words.
 bullet_text() {
   awk -v a="$1" -v b="$2" -v re="$3" '
     NR <= a || NR >= b { next }
@@ -120,8 +86,6 @@ if [[ "$commit_line" -eq 0 ]]; then
 elif [[ "$loop_line" -eq 0 ]]; then
   problems+=("$skill_md has no cycle-loop heading (no line matching /$loop_re/), so there is no point in the run before which the plan has to have been verified")
 else
-  # The span both probes below judge against, named once: two spellings of it are two chances
-  # for the line numbers a failure quotes to disagree with the ones the probe actually used.
   span_desc="the ledger commit (line $commit_line) and the cycle loop (line $loop_line)"
   launch_line="$(line_of "$plan_launch_re")"
   if [[ "$launch_line" -eq 0 ]]; then
@@ -141,12 +105,6 @@ fi
 
 report "$name"
 
-# Case 2 — the same span's answer to the third exit code. A verifier leaf that was killed
-# stuck, or one whose output carries no parseable `VERDICT:` line, leaves `wait-leaf.sh`
-# exiting 2: no verdict was rendered at all. The two real verdicts are already written down
-# above; the criterion here is that the third outcome is not quietly folded into the good one
-# — a plan nobody looked at must bail the run as a **system** failure, never continue as if
-# it had PASSed.
 name="SKILL.md bails as a system failure when the plan verification rendered no verdict"
 problems=()
 
@@ -169,33 +127,16 @@ fi
 
 report "$name"
 
-# Case 3 — the script inventory, which is prose rather than a launch line: the entries at
-# SKILL.md:129, :131 and :138 are where a conductor reads what each script accepts, and all
-# three spell the phase as one alternation in angle brackets. A `plan` phase the scripts
-# take and the inventory does not list is a capability nothing tells the reader about.
-#
-# The three scripts, by name. Each one's inventory bullet is found by the same ERE, built
-# from that name below: the bullet anchored at the start of a line, so the many other
-# mentions of these scripts cannot stand in for one. Naming only the scripts keeps the one
-# pattern in one place — three hand-written copies of it are three chances for one of them to
-# anchor or escape differently from the other two, and to go on passing while it does.
 entry_scripts=(build-verify-prompt.sh verify.sh run-verdict.sh)
 
-# The phases an entry has to name: the four cycles, and the fifth this step adds. Read as a
-# set rather than as a spelling, so the order the entry lists them in is free.
 want_phases=(red green refactor pin plan)
 
-# The pattern the alternation is read out of, named here so the comment at its use site and
-# the pattern itself cannot drift apart.
 alternation_re='[<]([a-z|]*red[a-z|]*)[>]'
 
 name="$skill_md's script entries for the verifier scripts name the plan phase beside the four cycle phases"
 problems=()
 
 for script in "${entry_scripts[@]}"; do
-  # The bullet's ERE, written without a backslash for the same reason as the anchors above —
-  # `line_of` hands the value to `awk -v`, which eats escape sequences — so `[$]` is the
-  # literal dollar, and every dot of the script's name becomes the class `[.]`.
   entry_re='^- .[$]S/'"${script//./[.]}"' '
   entry_line="$(line_of "$entry_re")"
   if [[ "$entry_line" -eq 0 ]]; then
@@ -203,11 +144,6 @@ for script in "${entry_scripts[@]}"; do
     continue
   fi
   line="$(sed -n "${entry_line}p" "$skill_path")"
-  # The entry's phase alternation: the one angle-bracketed run of lowercase words and pipes
-  # that names `red`. The classes are written `[<]` and `[>]` rather than escaped because
-  # `\<` is a word boundary, not a literal, in some ERE engines this suite may meet — and the
-  # whole pattern is held in a variable because an unquoted `<` inside `[[ … ]]` is read as
-  # the redirection operator before the match is ever attempted.
   if [[ ! "$line" =~ $alternation_re ]]; then
     problems+=("$skill_md:$entry_line, the entry for $script, spells no phase alternation among its arguments: $line")
     continue

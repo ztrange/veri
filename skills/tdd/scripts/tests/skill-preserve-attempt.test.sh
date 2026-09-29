@@ -25,15 +25,11 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which of the two marks is uncovered rather than just that one is.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -45,11 +41,6 @@ report() {
   fi
 }
 
-# instructions — the document's numbered steps, bullets and paragraphs, one per line and
-# lowercased, exactly as skill-event-marks.test.sh reads them. Joining a record onto one
-# line is what lets the prediction-diverged probe ask whether ONE instruction carries both
-# halves — the mark and the preservation — rather than two sentences in different sections
-# that happen to share a word.
 instructions() {
   awk '
     function flush() { if (rec != "") { gsub(/[[:space:]]+/, " ", rec); print rec } rec = "" }
@@ -60,31 +51,17 @@ instructions() {
     END { flush() }' "$ROOT/$skill_md" | tr '[:upper:]' '[:lower:]'
 }
 
-# preserve_re — how this document spells a call to `preserve-attempt.sh`, as a regex over a
-# lowercased record or line: the call, not a mention. Every script the document orders run is
-# written `$S/<script>`, so the `$S/` prefix is what tells a prescribed call from prose about
-# one. Both probes ask it, so the spelling is one decision rather than two.
 preserve_re='\$s/preserve-attempt\.sh'
 
-# bail_section — the `## Bailing` section's lines, each prefixed with its line number in the
-# document and lowercased. Bounded by the next `## ` heading: the Resume section that follows
-# resets the worktree too, and a preservation prescribed there is not one a bail performs.
 bail_section() {
   awk 'BEGIN { inside = 0 }
     /^## / { inside = ($0 == "## Bailing") ; next }
     inside { print NR ": " $0 }' "$ROOT/$skill_md" | tr '[:upper:]' '[:lower:]'
 }
 
-# 1. The whole of this step's criterion, as one case: the two conductor-side marks, each
-#    preserving the attempt the way the three leaf-side ones already do. They are one case
-#    because they are one wiring — the point of the issue is that a troubled step keeps its
-#    evidence, and a run that keeps it on three of the five marks keeps it on none of the
-#    runs that ended the other two ways.
 name="$skill_md preserves the attempt on a bail, before the bail's reset, and beside every prediction-diverged mark"
 problems=()
 
-# The bail half. Two line numbers out of the section: the first prescribed preservation, and
-# the reset that would otherwise have thrown the tree away first.
 section="$(bail_section)"
 if [[ -z "$section" ]]; then
   problems+=("$skill_md has no \`## Bailing\` section to read — the bail's preservation could not be checked")
@@ -100,24 +77,17 @@ else
   fi
 fi
 
-# The prediction-diverged half. Every record that writes the mark, because the document
-# prescribes it twice — once in Red and once in the revise loop — and a preservation added to
-# only one of them leaves whichever branch a run actually took uncovered half the time.
 records="$(instructions)"
 if [[ -z "$records" ]]; then
   problems+=("$skill_md has no instructions to read — the prediction-diverged preservation could not be checked")
 else
   marks=0
   while IFS= read -r line; do
-    # Bounded on the right so a longer mark name this document may grow later cannot answer
-    # for this one, the way skill-event-marks.test.sh bounds its own event names.
     [[ "$line" =~ event\.sh[[:space:]]+prediction-diverged([^a-z0-9-]|$) ]] || continue
     marks=$((marks + 1))
     [[ "$line" =~ $preserve_re ]] ||
       problems+=("$skill_md marks a prediction-diverged attempt with no \`\$S/preserve-attempt.sh\` beside it: $(printf '%.130s' "$line")")
   done <<< "$records"
-  # Fail closed: no mark prescribed anywhere means the loop asked nothing, which must not
-  # read as a pass.
   [[ "$marks" -gt 0 ]] ||
     problems+=("$skill_md prescribes no \`event.sh prediction-diverged\` call — where its preservation belongs could not be read")
 fi

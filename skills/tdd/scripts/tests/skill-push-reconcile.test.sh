@@ -21,15 +21,12 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -41,14 +38,10 @@ report() {
   fi
 }
 
-# plain — stdin with emphasis and code markup (`*`, backticks) dropped and lowercased, so
-# `exit **1**` and `Exit 1` read the same to every probe.
 plain() {
   tr -d '*`' | tr '[:upper:]' '[:lower:]'
 }
 
-# records — the document's numbered steps, bullets and paragraphs, one per line, the same
-# grammar skill-event-marks.test.sh reads with, put through plain.
 records() {
   awk '
     function flush() { if (rec != "") { gsub(/[[:space:]]+/, " ", rec); print rec } rec = "" }
@@ -59,19 +52,15 @@ records() {
     END { flush() }' "$skill_path" | plain
 }
 
-# reconcile_section — the records under any heading that names reconciling, up to the next
-# heading. Empty when the document keeps its reconcile instructions under no such heading.
 reconcile_section() {
   awk '/^#/ { inside = (tolower($0) ~ /reconcil/); next } inside' "$skill_path" \
     | plain | tr -s '[:space:]' ' '
 }
 
-# ---------------------------------------------------------------------------
 name="both push-branch.sh call sites branch exit 1 to a supervised develop-reconcile leaf and exit 2 to a bail, the reconcile re-pushes and checks the ledger or bails reconcile-failed, and exits 0 either way is gone"
 problems=()
 all="$(records)"
 if [[ -z "$all" ]]; then
-  # Fail closed: an empty read means not one probe below ran.
   problems+=("$skill_md has no instructions to read — nothing could be checked")
 else
   for site in 'tick-ledger\.sh --refactor-pending' 'clear-refactor-pending\.sh'; do

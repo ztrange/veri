@@ -24,20 +24,13 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The document twice: the path as every failure message spells it, and the same path
-# resolved for the probes to read, so a message can never name a file the probes did not
-# open.
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which half of the contract broke rather than just that the case did.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -49,20 +42,10 @@ report() {
   fi
 }
 
-# plain — stdin with emphasis marks and backticks dropped and the case folded, because
-# `**PREDICTION: MATCHED**` and "prediction: matched" are the same sentence. The probes'
-# regexes are then written one way and match however the author chose to mark the words up.
 plain() {
   tr -d '*`' | tr '[:upper:]' '[:lower:]'
 }
 
-# doc_text <heading-prefix> <from-regex> — the text of the first SKILL.md section whose
-# heading STARTS WITH the literal <heading-prefix>, from the first line matching
-# <from-regex>, up to the line before the next heading of any level. Anchoring at the
-# narrate sub-step is what keeps this case about the comment: the word "prediction" three
-# sub-steps above, where the leaf's report is read, is not an instruction to narrate it.
-# The text is normalised through `plain` and joined onto one line, so a sentence split over
-# a line break still reads as one.
 doc_text() {
   awk -v h="$1" -v from="$2" '
     !in_s && index($0, h) == 1 { in_s = 1; next }
@@ -73,11 +56,6 @@ doc_text() {
     }' "$skill_path" | plain | tr '\n' ' '
 }
 
-# section <heading-prefix> <from-regex> <missing-message> — set `text` to that section's words
-# from <from-regex> on, and say whether a case's probes can run at all. Nothing matching means
-# the anchor is gone — the section was renamed, or the instruction moved — so the message goes
-# into `problems` and 1 comes back: a case whose anchor vanished must read as one failure, never
-# as a row of passes over an empty string.
 section() {
   text="$(doc_text "$1" "$2")"
   [[ -n "${text// /}" ]] && return 0
@@ -85,31 +63,17 @@ section() {
   return 1
 }
 
-# The two sections the cases below anchor in, each heading written once so a rename to either is
-# one edit here rather than one per case: `#### Red` holds the Red phase's own instructions, and
-# `## Revising on a REJECT` the revise loop that owes the same check a second time.
 red_section()    { section '#### Red' "$@"; }
 revise_section() { section '## Revising on a REJECT' "$@"; }
 
-# says <regex> <fact> — one thing the narration text has to carry, written as the regex of
-# any wording that would carry it; `fact` names it once if nothing matches.
 says() {
   [[ "$text" =~ $1 ]] || problems+=("$2")
 }
 
-# The one probe both divergence cases owe: any wording naming exit 0 and exit 2 together as the
-# codes that take the diverged path. Written once because the Red section and the revise loop
-# each have to say it, and a regex copied into two cases is one chance for a rewording to be
-# pinned in only one of them. The failure messages stay per-case: each names its own section.
 exit_0_or_2='exit(s| code)? 0 (or|\|) 2|0 or 2|\b0\b[^.]*\b2\b'
 
-# 1. One criterion — the Red comment carries the prediction and whether it matched — and so
-#    one case: a thread showing only one of the two halves cannot be read for divergence,
-#    and the fix to either is one edit to one instruction.
 name="$skill_md's Red narration puts the leaf's prediction and whether it matched in the \`### 🔴 Red\` comment"
 problems=()
-# The narrate sub-step: the one that posts the comment, found by the heading it posts
-# rather than by its number, which a reordering would move.
 if red_section '### 🔴 Red' \
   "$skill_md's Red section has no instruction posting the \`### 🔴 Red\` comment — what that comment carries could not be read"; then
   says 'predicted_failure|predicted failure|prediction it (made|wrote)|what it predicted' \
@@ -119,17 +83,8 @@ if red_section '### 🔴 Red' \
 fi
 report "$name"
 
-# 2. The other half of the same report line (#356): a DIVERGED prediction is the conductor's
-#    gate, not a verifier's — verify-red is blind and the prediction is the developer's
-#    reasoning, so nothing downstream can act on it. One criterion, one case: the Red
-#    section has to run `red-divergence.sh` on the leaf's report and, when it answers 0
-#    (diverged) or 2 (no prediction anyone can read), take the step down the revise path
-#    instead of the verify one. All five facts are one instruction, so one case reads them.
 name="$skill_md's Red section runs red-divergence.sh and sends a diverged prediction to the red revise loop"
 problems=()
-# Anchored at the first line naming the script, so the case reads the divergence
-# instruction itself rather than the verify-red prose three sub-steps above, which already
-# speaks of `.tdd/verify-red.reason` and of a revise loop.
 if red_section 'red-divergence' \
   "$skill_md's Red section never runs \`red-divergence.sh\` on the leaf's report, so a \`PREDICTION: DIVERGED\` goes to verify-red like a matched one"; then
   says "$exit_0_or_2" \
@@ -145,16 +100,8 @@ if red_section 'red-divergence' \
 fi
 report "$name"
 
-# 3. The second hole the same report line opens (#356): a revise leaf rewrites the red test
-#    and reports its own `PREDICTION:`, so the revise loop owes the same check the Red
-#    section does before it re-verifies. One criterion, one case: the loop has to run
-#    `red-divergence.sh` on a revise-red report and, on exit 0 or 2, spend the attempt
-#    without launching the verifier at all.
 name="$skill_md's revise loop checks a revise-red report with red-divergence.sh and spends the attempt without re-verifying"
 problems=()
-# Anchored at the first line naming the script inside the revise loop, so the case reads the
-# loop's own check rather than the Red section's, which sits above it and already names both
-# the script and its exit codes.
 if revise_section 'red-divergence' \
   "$skill_md's \`Revising on a REJECT\` section never runs \`red-divergence.sh\` on a revise-red report, so a rewritten red test that failed for the wrong reason goes straight back to the blind verifier"; then
   says 'revise-red|revise of red|red revise|phase is red|<phase> is red' \

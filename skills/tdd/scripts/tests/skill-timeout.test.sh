@@ -24,15 +24,11 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which half of the contract is missing rather than just that it is.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -44,12 +40,6 @@ report() {
   fi
 }
 
-# section <heading-regex> — the lines of the first `### ` section whose heading matches,
-# up to the next `### `. The document says several things about timeouts in several
-# places — the supervisor's default is described under `## The scripts`, and `## Bailing`
-# names the killed-stuck it causes — so a file-wide read would answer "yes, it is in
-# there" for a procedure that never derives anything. Each claim below is about what one
-# STEP tells the session to do, so the step's section is cut out first.
 section() {
   awk -v want="$1" '
     $0 ~ want { inside = 1; print; next }
@@ -57,14 +47,6 @@ section() {
     inside' "$ROOT/$skill_md"
 }
 
-# paragraphs — markdown on stdin, one line per paragraph or numbered step, lowercased. A
-# record runs from a `N. ` in column one, or from the first line after a blank, up to the
-# next such line or the next blank; joining it onto one line is what lets a claim ask
-# whether ONE step carries both halves of its pair, rather than two sentences several
-# steps apart that happen to share a word. Both a numbered step and a plain paragraph
-# count, because which of the two a conductor writes an instruction as is a choice about
-# the document's shape and not about what it tells the session to do. Case is folded away
-# last: the sentences are the writer's, and `VERI_TIMEOUT` must answer for `veri_timeout`.
 paragraphs() {
   awk '/^[0-9]+\. / { if (rec != "") print rec; rec = $0; next }
        /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
@@ -73,13 +55,6 @@ paragraphs() {
        END { if (rec != "") print rec }' | tr '[:upper:]' '[:lower:]'
 }
 
-# records_of <label> <heading-regex> <problem> — load the paragraphs of one section into
-# the globals the claims read: `records`, the text a claim searches, and `records_from`,
-# the label a failure is named by. Returns 1 when the section is missing or empty, having
-# recorded <problem> instead — that is the fail-closed half, and the reason this is a
-# return and not just an assignment: a renamed or emptied section has to read as one
-# problem saying so, never as claims that quietly passed because there was no text to
-# contradict them.
 records_of() {
   records_from="$skill_md $1"
   records="$(section "$2" | paragraphs)"
@@ -88,14 +63,6 @@ records_of() {
   return 1
 }
 
-# claim <what one step must say> <regex>… — assert that a single line of the global
-# `records` matches every <regex>, recording a problem naming <what> if none does. Each
-# claim below is a pair or a triple — the measurement and what is done with it, the
-# variable and who it reaches — and a pair split across two steps is not an instruction:
-# it is two sentences that happen to share a word. `continue 2` leaves the regex loop and
-# takes the next record, so a record matching some but not all of the group is simply not
-# the one. Every regex accepts any wording that carries the fact, so a claim pins what the
-# document says and not how it is phrased.
 claim() {
   local what="$1" line re
   shift
@@ -108,20 +75,8 @@ claim() {
   problems+=("$records_from: no step $what")
 }
 
-# A word about elapsed wall time, bounded on both sides so that `timeout` — and
-# `leaf-timeout.sh`, which every claim here sits next to — cannot answer for `time`. The
-# trailing class excludes the hyphen for that reason; the leading one keeps `sometimes`
-# out. `sec` catches both `seconds` and the `secs` a shell variable holding the
-# measurement is usually called.
 elapsed_re='(^|[^a-z])(time|timed|times|timing|elapsed|wall|duration|sec)([^a-z-]|$)'
 
-# preflight_records / plan_records — the two sections every case here reads, each naming its
-# heading regex and its missing-section problem once, so a case says which section it is about
-# and nothing else. Both are matched by the word rather than by the number, so renumbering the
-# procedure does not fail a case; `[0-9]+\.` is what tells the preflight step from `### Loop 0.
-# Preflight — none of its own`, the loop's section, which delegates every check to here. The
-# plan section holds the step that mirrors the plan to the issue thread, and the criterion is
-# that THAT comment carry the number.
 preflight_records() {
   records_of preflight '^### [0-9]+\..*[Pp]reflight' \
     "$skill_md has no numbered '### … Preflight' section — what preflight does with the timeout could not be read"
@@ -131,22 +86,11 @@ plan_records() {
     "$skill_md has no numbered '### … plan' section — what the plan comment states could not be read"
 }
 
-# claim_exports_timeout — the claim both cases make word for word: the derived number has to
-# reach the environment every leaf is launched from. That is the same assertion whichever tier
-# the measurement was of, so it is written once and called from each case.
 claim_exports_timeout() {
   claim 'exports the result as VERI_TIMEOUT so every leaf of the run is launched under it' \
     'veri_timeout' 'export|every leaf|each leaf|all leaves|every launch|rest of the run'
 }
 
-# 1. The whole of this step's criterion, as one case: the procedure has to measure, derive,
-#    export and announce, and three of those four are individually useless. A timing step
-#    whose number reaches nothing changes no leaf; a derivation nobody exports changes no
-#    leaf either; and a run whose leaves get a number no comment states is #71 again, where
-#    the timeout in force had to be reconstructed from the timestamps of two bails.
-#
-#    Each claim names the pair it is about, so a failure says which one is missing rather
-#    than that the document as a whole is wrong.
 name="$skill_md's preflight times the baseline run, derives the timeout with leaf-timeout.sh and exports it as VERI_TIMEOUT for every leaf, and the plan comment states it with the baseline it came from"
 problems=()
 
@@ -166,18 +110,9 @@ then
 fi
 report "$name"
 
-# 2. The same four things, now about the tier the measurement is of (issue #377). Preflight
-#    times the FAST tier — `make unit` on this repo since #341, a few seconds — but no leaf
-#    runs it: a developer leaf runs the suites covering the files it touched and a verifier
-#    runs the full tier. A timeout sized from the fast measurement therefore bounds work
-#    nobody does, which is how #300's green leaf was killed at the 900 s floor twice over
-#    while it was working. So the measurement handed to `leaf-timeout.sh` has to be of the
-#    full tier, and the plan comment has to say which tier the number came from — a reader
-#    who cannot tell the two apart cannot tell this bug from a run that is simply slow.
 name="$skill_md's preflight times the full tier, hands that measurement to leaf-timeout.sh and exports it as VERI_TIMEOUT for every leaf, and the plan comment names the tier the number came from"
 problems=()
 
-# `full` as a word, hyphen included on the right so `full-tier` counts and `fully` does not.
 full_re='(^|[^a-z])full(-[a-z]+)?([^a-z-]|$)'
 
 if preflight_records

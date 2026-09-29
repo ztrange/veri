@@ -54,18 +54,11 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The document twice — the path as every failure message spells it, and the same path
-# resolved for the probes to read — so a message can never name a file the probes did not
-# open. The pairing skill-test-command.test.sh and skill-conductor-launch.test.sh both use.
 skill_md="skills/tdd/SKILL.md"
 md="$ROOT/$skill_md"
 
-# The two scripts an item is recognised by, and the heading the items live under, each
-# written down once: every one of them is both a pattern a probe searches for and a string a
-# failure message spells, so a message can never name something the probe never looked for.
 launchable="leaf-launchable.sh"
 detector="detect-test-command.sh"
 growth='VERI_STEP_GROWTH'
@@ -76,9 +69,6 @@ preflight='### 0. Preflight'
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem, so
-# the output says which half of the wiring is wrong rather than just that one is.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -90,11 +80,6 @@ report() {
   fi
 }
 
-# section <heading> — the lines under the first heading STARTING WITH the literal <heading>,
-# up to the line before the next heading of any level, into `sec_start`/`sec_end`. Non-zero
-# when no such heading exists, so a renamed section is reported rather than probed as an
-# empty range. A line RANGE rather than the text, because the claim below is about order and
-# line numbers are what make "before" answerable. Same shape as skill-test-command.test.sh's.
 sec_start=0 sec_end=0
 section() {
   sec_start="$(awk -v h="$1" 'index($0, h) == 1 { print NR; exit }' "$md")"
@@ -109,26 +94,11 @@ section() {
   return 0
 }
 
-# call_at <script> — the line number the first mention of <script> inside the current
-# section is on, empty when the section never names it. A LINE, not the numbered item that
-# contains it: preflight's items are prose paragraphs and one of them can hold two calls, so
-# an item-granular position would read a launchability check buried in the baseline item's
-# last sentence as coming *before* the baseline call in that same item's first. The line is
-# also the position a reader sent to the failure message wants.
-#
-# One pattern rule and no END block, so `exit` cannot print twice: awk runs END after `exit`
-# as well as after the last record, and a two-line answer here would reach `-gt` below as a
-# bash syntax error — the ordering check would go quiet exactly when an item moved.
 call_at() {
   awk -v s="$sec_start" -v e="$sec_end" -v want="$1" \
     'NR >= s && NR <= e && index($0, want) { print NR; exit }' "$md"
 }
 
-# item_around <line> — the text of the numbered preflight item that contains <line>: from the
-# last `N.` item opener at or before it to the line before the next opener, or the section's
-# end when it is the last item. The item rather than the line, because a check is announced on
-# one line and its refusal spelled on the next; the opener rather than blank lines, because an
-# item's continuation lines are indented prose with blank lines of their own.
 item_around() {
   local at="$1" start end next
   start="$(awk -v s="$sec_start" -v at="$at" 'NR >= s && NR <= at && /^[0-9]+\./ { n = NR } END { print n + 0 }' "$md")"
@@ -138,11 +108,6 @@ item_around() {
   sed -n "${start},${end}p" "$md"
 }
 
-# paragraph_around <line> — the paragraph that contains <line>, bounded by blank lines and by
-# numbered item openers, since preflight's items follow one another with no blank line. Narrower
-# than item_around: item 5 already spells exit 2 for the refactor budget, so a check that read
-# the whole item would find that sentence and never ask whether the money budgets' call has one
-# of its own.
 paragraph_around() {
   awk -v at="$1" '
     NR <= at { if ($0 ~ /^[[:space:]]*$/) buf = ""; else if ($0 ~ /^[0-9]+\./) buf = $0 "\n"; else buf = buf $0 "\n"; next }
@@ -151,19 +116,12 @@ paragraph_around() {
     END { printf "%s", buf }' "$md"
 }
 
-# preflight_or_problem <what> — enter the preflight section, or record the one problem that
-# says the case could not be read at all. Non-zero when the heading is gone, so each case
-# below is a probe run inside the section rather than a probe and its own missing-section
-# branch: both cases ask the same question first and would otherwise spell the same
-# fail-closed message twice, once per case.
 preflight_or_problem() {
   section "$preflight" && return 0
   problems+=("$skill_md has no '$preflight' section — where $1 would sit could not be read")
   return 1
 }
 
-# 1. One criterion, one case: the check the earlier steps built is the one a real run
-#    performs, and it runs before the run has paid for anything.
 name="$skill_md's preflight runs $launchable before the baseline suite"
 problems=()
 
@@ -181,8 +139,6 @@ fi
 
 report "$name"
 
-# 2. The fifth budget is checked where the third one is: a value that cannot be read stops the
-#    run before it starts, rather than surfacing when a leaf first tries to grow the plan.
 name="$skill_md's preflight refuses to start on a bad $growth"
 problems=()
 
@@ -197,9 +153,6 @@ fi
 
 report "$name"
 
-# 3. The money budgets are checked where the refactor budget is: `step-budget.sh` is called in
-#    the preflight item that runs `refactor-budget.sh 0`, and its exit 2 stops the run there,
-#    before any leaf is launched.
 name="$skill_md's preflight calls $step_budget beside $refactor_budget and stops on its exit 2"
 problems=()
 

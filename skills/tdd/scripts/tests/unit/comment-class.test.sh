@@ -405,6 +405,9 @@ sweep_verdict "the sweepable report is empty for every top-level tests/*.sh whos
 # 35. the sweepable report is empty for every tests/skill-*.test.sh whose name after skill- starts with a through l.
 sweep_verdict "the sweepable report is empty for every tests/skill-*.test.sh whose name after skill- starts with a through l" "$SCRIPTS"/tests/skill-[a-l]*.test.sh
 
+# 36. the sweepable report is empty for every tests/skill-*.test.sh whose name after skill- starts with m through z.
+sweep_verdict "the sweepable report is empty for every tests/skill-*.test.sh whose name after skill- starts with m through z" "$SCRIPTS"/tests/skill-[m-z]*.test.sh
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

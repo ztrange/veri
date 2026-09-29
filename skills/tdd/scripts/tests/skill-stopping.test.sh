@@ -36,16 +36,12 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which half of the sequence is missing rather than just that some is.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -57,17 +53,10 @@ report() {
   fi
 }
 
-# plain — stdin with emphasis and code markup (`*`, backticks) dropped and case folded, so
-# `**reset**` and `git reset --hard HEAD` read the same to every probe. Every slice of
-# SKILL.md this suite reads passes through it, so no two slices are read by different rules.
 plain() {
   tr -d '*`' | tr '[:upper:]' '[:lower:]'
 }
 
-# skill_section <heading> — the lines of the `## <heading>` section, up to the next `## `
-# heading, read plain; <heading> is matched case-folded and as a whole word, so `Launching a
-# leaf` finds `## Launching a leaf — detach, then wait in the foreground`. Line order is kept,
-# because whether the wait comes before the reset is half of what the Stopping cases ask.
 skill_section() {
   awk -v want="$(plain <<<"$1")" '
     /^## / {
@@ -77,9 +66,6 @@ skill_section() {
     inside' "$skill_path" | plain
 }
 
-# load_section <heading> — put the `## <heading>` section in `section` for a case's probes to
-# read, or record the fail-closed problem and return 1 when the document has no such section:
-# no probe below can say anything about a section that is not there.
 load_section() {
   section="$(skill_section "$1")"
   [[ -n "$section" ]] && return 0
@@ -87,11 +73,6 @@ load_section() {
   return 1
 }
 
-# require <pattern> <problem> — record <problem> unless the text in `section` matches
-# <pattern>; and refuse <pattern> <problem> — record <problem> when it does. Every probe below but the two
-# ordering ones is one of these two shapes, so what they share — which text is read, how it
-# is matched, where a problem lands — is written once here rather than eleven times, and a
-# case reads as the list of claims it makes.
 require() {
   grep -qE -- "$1" <<<"$section" || problems+=("$2")
 }
@@ -100,55 +81,30 @@ refuse() {
   return 0
 }
 
-# first_line_matching <pattern> — the 1-based number of the section's first line matching
-# <pattern>, or empty when none does. Ordering is asked of these numbers rather than of a
-# single joined blob, so "before" means what a reader means by it.
 first_line_matching() {
   grep -nE -m1 -- "$1" <<<"$section" | cut -d: -f1
 }
 
-# reset_line — the 1-based number of the line where the section reaches for the tree, empty
-# when it never does. Both cases ask their ordering question against this one line, so the
-# pattern that finds it is written once: a copy that drifted would leave one of them measuring
-# "before" against a line the other does not call the reset.
 reset_line() {
   first_line_matching 'git reset --hard head'
 }
 
-# joined — the text in `section` on one line, runs of spaces squeezed, so a sentence wrapped
-# over two lines is one sentence to a probe. Every case that reads a clause rather than a line
-# joins through this, so no two of them join by different rules.
 joined() {
   tr '\n' ' ' <<<"$section" | tr -s ' '
 }
 
-# word <w> — a pattern matching <w> as a whole word, where a hyphen counts as part of a word,
-# so `now` is never found inside `known` and `at-leaf` never inside `at-leaf-x`. Both cases
-# that name a mode read it through this, so no two of them bound a word by different rules.
 word() {
   printf '(^|[^a-z-])%s([^a-z-]|$)' "$1"
 }
 
-# either_order <a> <b> — a pattern matching <a> and <b> inside one clause (no `.` or `;`
-# between them), in either order, so a claim reads the same whichever way the sentence puts
-# it. Every two-part claim below is read through this, so no two of them bound a clause or
-# spell the swap by different rules.
 either_order() {
   printf '%s[^.;]*%s|%s[^.;]*%s' "$1" "$2" "$2" "$1"
 }
 
-# after <line> <other> — true when both are real line numbers and <line> falls after
-# <other>. Both cases ask their ordering question through this one predicate, for the same
-# reason reset_line is written once: a second spelling of the comparison is where "before
-# the reset" comes to mean two things in one suite, and an empty line number — a probe
-# above has already said what is missing — is never an ordering answer.
 after() {
   [[ -n "$1" && -n "$2" && "$1" -gt "$2" ]]
 }
 
-# ledger_branch <start> <end> — the lines of `section` from its first line matching <start> to
-# the first line after it matching <end>: one ledger commit's branch. Both probes of a ledger
-# commit slice through this, so no two of them read a different branch for the same commit.
 ledger_branch() {
   start="$1" end="$2" awk '
     !inside && $0 ~ ENVIRON["start"] { inside = 1 }
@@ -156,21 +112,11 @@ ledger_branch() {
     inside && $0 ~ ENVIRON["end"] { exit }' <<<"$section"
 }
 
-# joined_branch <start> <end> — `section` narrowed to the ledger_branch from <start> to <end>,
-# then joined. The cases that read a claim anywhere in one step's text slice and join through
-# this, so no two of them narrow the same way by different spellings.
 joined_branch() {
   section="$(ledger_branch "$1" "$2")"
   section="$(joined)"
 }
 
-# ledger_checkpoint <what> <start> <end> <anchor> — probe one ledger commit's branch for the
-# checkpoint that follows it. The branch is read out of `section` from its first line matching
-# <start> to the first line after it matching <end>; stop-requested.sh must come after the
-# first line matching <anchor> — the commit's push, or the commit itself where there is none —
-# and the branch must send whatever mode it printed to Stopping. Every ledger commit is asked
-# the same three questions, so they are written once here: a copy that drifted would leave one
-# commit's checkpoint held to a looser rule than another's.
 ledger_checkpoint() {
   local what="$1" anchor="$4" anchor_at stop_at
   section="$(ledger_branch "$2" "$3")"
@@ -190,7 +136,6 @@ ledger_checkpoint() {
     "$what never says any mode stop-requested.sh prints goes to Stopping there"
 }
 
-# ---------------------------------------------------------------------------
 name="the Stopping section waits with wait-leaf.sh on every .tdd/<name>.pid still running supervise.sh <name> before it touches the tree, and reaches only for git reset --hard HEAD, never git checkout"
 problems=()
 if load_section 'Stopping'; then
@@ -214,7 +159,6 @@ if load_section 'Stopping'; then
 fi
 report "$name"
 
-# ---------------------------------------------------------------------------
 name="the Stopping section resets nothing and records at=unsettled when rebase-merge, rebase-apply or MERGE_HEAD is present in the worktree"
 problems=()
 if load_section 'Stopping'; then
@@ -234,7 +178,6 @@ if load_section 'Stopping'; then
 fi
 report "$name"
 
-# ---------------------------------------------------------------------------
 name="the Stopping section runs push-branch.sh and records push=rejected with the sha its stderr names on exit 1, launching no reconcile leaf and bailing not at all"
 problems=()
 if load_section 'Stopping'; then
@@ -256,13 +199,9 @@ if load_section 'Stopping'; then
 fi
 report "$name"
 
-# ---------------------------------------------------------------------------
 name="the Stopping section writes exactly one event.sh stop mode=<mode> at=<at> mark, with at one of unplanned, planned, green, step-done or unsettled, and names classify-bail.sh nowhere"
 problems=()
 if load_section 'Stopping'; then
-  # grep -c answers 1 when it matches nothing, and this suite runs under `set -o pipefail`,
-  # so the count is taken with `|| true`: "no mark at all" is a problem to report, not a
-  # reason for the case to die before it reports it.
   marks="$(grep -cE 'event\.sh stop' <<<"$section" || true)"
   if [[ "$marks" -eq 0 ]]; then
     problems+=("the Stopping section never writes an event.sh stop mark — nothing in the run log would say the run paused")
@@ -283,7 +222,6 @@ if load_section 'Stopping'; then
 fi
 report "$name"
 
-# ---------------------------------------------------------------------------
 name="the Stopping section renders metrics.sh <n> into a ### ⏹️ Stopped — <mode> comment and commits no metrics file"
 problems=()
 if load_section 'Stopping'; then
@@ -292,14 +230,11 @@ if load_section 'Stopping'; then
   require '### ⏹️ stopped — <mode>' \
     "the Stopping section never posts a '### ⏹️ Stopped — <mode>' comment — nothing on the issue would say the run paused rather than bailed"
 
-  # A metrics commit marks an ending; a stopped run will be resumed, so the section stages
-  # and commits nothing at all — the one reach for the tree it has is the reset above.
   refuse 'git (add|commit)' \
     "the Stopping section stages or commits — a metrics commit marks an ending, and a stop is not one"
 fi
 report "$name"
 
-# ---------------------------------------------------------------------------
 name="the Stopping section ends the run with stop-requested.sh --clear, opening no PR, removing no worktree and deleting no .tdd/conductor.pid"
 problems=()
 if load_section 'Stopping'; then
@@ -311,8 +246,6 @@ if load_section 'Stopping'; then
     problems+=("the Stopping section clears the stop request (line $clear_at) before it reports the pause (line $report_at) — the clear is what ends the run")
   fi
 
-  # A stopped run will be resumed: the PR, the worktree and the conductor's pid file are
-  # what the resume picks up, and liveness — the conductor exiting — is what frees the issue.
   refuse 'gh pr (create|ready)' \
     "the Stopping section opens or readies a PR; a stop pauses the run, it does not finish it"
   refuse 'git worktree remove' \
@@ -322,14 +255,8 @@ if load_section 'Stopping'; then
 fi
 report "$name"
 
-# ---------------------------------------------------------------------------
-# The Stopping section calls stop-requested.sh twice — for the mode it was entered with, and
-# with --clear at its end — so the script's contract belongs where every other script's is
-# read: its own entry in "The scripts" list, from its `- `$S/stop-requested.sh` bullet up to
-# the next bullet or heading, read plain like the section above.
 name="SKILL.md's script reference list has an entry for stop-requested.sh saying what it prints and which exit codes it answers with"
 problems=()
-# The entry is loaded where the section's text goes, so its probes are the same require.
 section="$(awk '
   /^## / { in_list = ($0 ~ /^## The scripts/); in_entry = 0; next }
   !in_list { next }
@@ -341,10 +268,6 @@ else
   for mode in 'at-ledger' 'at-leaf' 'now'; do
     require "$mode" "the stop-requested.sh entry never names the mode $mode it can print"
   done
-  # The mode's channel is asked of the sentence that names exit 0, not of the whole entry:
-  # the entry also says "nothing on stdout" of exit 3 and exit 2, and a probe over the
-  # whole entry would still find `stdout` there after exit 0 stopped naming it. Lines are
-  # joined and split at ". ", so a sentence wrapped over two lines is still one sentence.
   one_line="$(joined)"
   exit0_sentence="$(grep -E 'exit 0([^0-9]|$)' <<<"${one_line//. /.$'\n'}")"
   section="$exit0_sentence" require 'printed on stdout' \
@@ -356,11 +279,6 @@ else
 fi
 report "$name"
 
-# ---------------------------------------------------------------------------
-# The first checkpoint lives in *Launching a leaf*, not in this section, so the case loads
-# that section where the probes read — joined onto one line, so a sentence wrapped over two
-# lines is one sentence, and every pattern kept inside one clause with `[^.;]*`, so a mode
-# and what it does are read from the same clause rather than from anywhere in the section.
 name="Launching a leaf runs stop-requested.sh before every leaf launch: exit 3 launches as normal, at-ledger launches the leaf anyway, at-leaf and now launch nothing and go to Stopping"
 problems=()
 if load_section 'Launching a leaf'; then
@@ -382,12 +300,6 @@ if load_section 'Launching a leaf'; then
 fi
 report "$name"
 
-# ---------------------------------------------------------------------------
-# The second checkpoint sits after a ledger commit, not before a launch: the green PASS
-# branch's atomic tick-and-commit and its push are the boundary `at-ledger` waits for, so
-# the case reads that branch alone — from its `git commit -m "feat: …` line to the line that
-# sends the run on to the Refactor loop — and asks that stop-requested.sh runs after the push
-# and that whatever mode it printed goes to Stopping.
 name="the green PASS branch runs stop-requested.sh immediately after the atomic green commit's push, and any mode it prints goes to Stopping"
 problems=()
 if load_section 'Procedure'; then
@@ -396,13 +308,6 @@ if load_section 'Procedure'; then
 fi
 report "$name"
 
-# ---------------------------------------------------------------------------
-# The same checkpoint follows the two other ledger commits: the refactor PASS branch's clear
-# of the refactor-pending mark, read from its `$S/clear-refactor-pending.sh` call to the line
-# that loops back to step 3, and the pin's `test:` commit in *Already satisfied — the pin*,
-# read from its `git commit -m "test: pin …` line to the same loop-back. Each is asked that
-# stop-requested.sh runs after its ledger commit lands — after the push where there is one —
-# and that whatever mode it printed goes to Stopping.
 name="the refactor-pending clear's push and a pin's test: commit are each followed by stop-requested.sh, and any mode it prints goes to Stopping"
 problems=()
 if load_section 'Procedure'; then
@@ -415,10 +320,6 @@ if load_section 'Already satisfied'; then
 fi
 report "$name"
 
-# require_unreadable_at_ledger <what> — the joined text in `section` answers stop-requested.sh's
-# exit 2 as a stop in mode at-ledger and narrates that the request was unreadable, each claim
-# kept inside one clause. Every checkpoint owes the same answer, so it is asked once here: a
-# copy that drifted would hold one checkpoint to a looser reading than another.
 require_unreadable_at_ledger() {
   require 'exit 2[^.;]*at-ledger' \
     "$1 never says stop-requested.sh's exit 2 is a stop in mode at-ledger"
@@ -426,11 +327,6 @@ require_unreadable_at_ledger() {
     "$1 never says to narrate that the stop request was unreadable on exit 2"
 }
 
-# ---------------------------------------------------------------------------
-# An unreadable request is still a request: `.tdd/stop` exists, so somebody meant to stop the
-# run and only the urgency is in doubt, and the mode that cannot be wrong is the one that
-# loses nothing. The checkpoints are spelled once in *Launching a leaf*, so that is where the
-# exit 2 answer is read — joined, and each claim kept inside one clause as the case above does.
 name="Launching a leaf treats stop-requested.sh exit 2 as a stop in mode at-ledger, narrating that the request was unreadable"
 problems=()
 if load_section 'Launching a leaf'; then
@@ -439,15 +335,8 @@ if load_section 'Launching a leaf'; then
 fi
 report "$name"
 
-# ---------------------------------------------------------------------------
-# The same exit 2 answer is owed at the three ledger-commit checkpoints, which do not go
-# through *Launching a leaf*: each branch is read from its ledger commit to its loop-back, as
-# the two cases above read it, and only the text after its stop-requested.sh call is asked —
-# the push's own exit 2, earlier in the green branch, is a bail and says nothing about a stop.
 name="the three ledger-commit checkpoints send stop-requested.sh exit 2 to Stopping as at-ledger, narrating that the request was unreadable"
 problems=()
-# ledger_exit2 <what> <start> <end> — probe one ledger commit's branch, sliced by
-# ledger_branch, for the exit 2 answer after its stop-requested.sh call.
 ledger_exit2() {
   local what="$1" text
   text="$(ledger_branch "$2" "$3" | tr '\n' ' ' | tr -s ' ')"
@@ -472,12 +361,6 @@ if load_section 'Already satisfied'; then
 fi
 report "$name"
 
-# ---------------------------------------------------------------------------
-# A `now` stop kills the live leaf, so the wait on it comes back 2 exactly as a hung leaf's
-# does. Read as killed-stuck, the stop the operator asked for would end the run as a bail. So
-# before any leaf's exit 2 is read that way, stop-requested.sh is asked, and a pending `now`
-# sends the run to Stopping rather than Bailing. The rule belongs to every leaf, so it is read
-# where every launch is spelled — *Launching a leaf* — joined, each claim inside one clause.
 name="Launching a leaf asks stop-requested.sh before reading a leaf's wait-leaf.sh exit 2 as killed-stuck, and a pending now goes to Stopping instead of Bailing"
 problems=()
 if load_section 'Launching a leaf'; then
@@ -489,17 +372,8 @@ if load_section 'Launching a leaf'; then
 fi
 report "$name"
 
-# ---------------------------------------------------------------------------
-# The rule above is spelled once, so every phase's own exit-2 branch has to lead a reader back
-# to it: a conductor reading *Develop (red)*'s "exits 2 (killed-stuck) — bail" in isolation
-# bails on the operator's own `now` stop. Each phase's branch is read as the paragraph — or
-# list item — holding its exit-2 clause, inside that phase's own heading, and asked to name
-# *Launching a leaf*.
 name="each phase's leaf-exit-2 branch (develop-red, green, refactor, revise, verify-plan) points back to Launching a leaf, where stop-requested.sh is asked before the exit 2 is read as killed-stuck"
 problems=()
-# phase_exit2 <heading> <anchor> — the paragraph holding the first line matching <anchor>
-# inside the `##`–`####` heading matching <heading>, read plain and joined; a paragraph ends
-# at a blank line (a code fence reads as one once plain drops its backticks) or a new list item.
 phase_exit2() {
   heading="$1" awk '
     /^#{2,4} / { inside = (tolower($0) ~ ENVIRON["heading"]); next }
@@ -528,12 +402,6 @@ revise|^## revising on a reject|exit 2 → bail
 PHASES
 report "$name"
 
-# ---------------------------------------------------------------------------
-# A stop request does not outrank a bail the run has already reached: a REJECT that spends the
-# last of REVISE_BUDGET, or a leaf killed-stuck with no `now` pending to explain it, is the
-# methodology or the plumbing speaking, and a pause would hide that answer from the resume. So
-# *Bailing* asks stop-requested.sh, bails anyway, and its comment says a stop was pending when
-# one was — joined, each claim inside one clause, as the cases above read theirs.
 name="Bailing keeps a bail reached first — REVISE_BUDGET exhausted, or killed-stuck with no now pending — as a bail, and its comment says a stop was pending when one was"
 problems=()
 if load_section 'Bailing'; then
@@ -550,12 +418,6 @@ if load_section 'Bailing'; then
 fi
 report "$name"
 
-# ---------------------------------------------------------------------------
-# Once next-unchecked.sh exits 3 there is no next ledger commit, and what the Draft PR step
-# does launches no leaf and loses nothing: a pending stop does not interrupt it. The run
-# finishes, clears the request, and its final `### ✅ Done` comment says a stop arrived after
-# the last step. The step is read from its `### 4. Draft PR` heading to the end of Procedure,
-# joined; the Done comment is read as sub-step 4's own list item, up to its first blank line.
 name="the Draft PR step runs to completion with a stop request pending, clears it with stop-requested.sh --clear, and its final ### ✅ Done comment says a stop arrived after the last step"
 problems=()
 if load_section 'Procedure'; then
@@ -576,12 +438,6 @@ if load_section 'Procedure'; then
 fi
 report "$name"
 
-# ---------------------------------------------------------------------------
-# The Draft PR step's exemption from the checkpoints has one exception: the repair step a red
-# full run appends is a step like any other — it launches leaves and ends in a ledger commit —
-# so both checkpoints apply to it. A reader who takes "no checkpoint runs here" for the whole
-# step would let a stop requested during a repair run on to its end. Read from the step's
-# `### 4. Draft PR` heading to the end of Procedure, joined, so the claim may sit anywhere in it.
 name="the Draft PR step says both checkpoints apply to the repair step a red full run appends, like any other step"
 problems=()
 if load_section 'Procedure'; then
@@ -591,11 +447,6 @@ if load_section 'Procedure'; then
 fi
 report "$name"
 
-# ---------------------------------------------------------------------------
-# A request a killed run never got to clear is still in `.tdd/stop` when the next run takes
-# the worktree, and would stop that run at its first checkpoint. So step 1.2 clears it in the
-# same breath as the `.tdd/conductor.pid` write that takes the worktree. Read as step 1's
-# sub-step 2, from its `2. derive the slug` item to the `3.` item after it, joined.
 name="step 1.2 runs stop-requested.sh --clear beside the .tdd/conductor.pid write, so a stale request from a killed run cannot stop the run that resumes it"
 problems=()
 if load_section 'Procedure'; then
@@ -609,29 +460,14 @@ if load_section 'Procedure'; then
 fi
 report "$name"
 
-# ---------------------------------------------------------------------------
-# And where a scope run stops (issue #391): SCOPE-LOOP.md drains a scope one issue at a time,
-# and its *Loop 4* stop conditions are the only thing that ends the drain. A stopped issue
-# satisfied none of them, so an operator who stopped the issue in flight got the issue stopped
-# and the loop carrying on to the next one. Read from the stop-condition bullet alone, so the
-# bail bullet's own "continue at Loop 1" must not answer for it.
 scope_loop_md="skills/tdd/SCOPE-LOOP.md"
 
-# scope_loop_section <n> — print SCOPE-LOOP.md's *Loop <n>* raw, from its `### Loop <n>.`
-# heading to the next `### `; empty when there is no such section. The #391 cases read Loop 4
-# and Loop 5, so they slice a loop by one rule here.
 scope_loop_section() {
   n="$1" awk '
     /^### / { inside = ($0 ~ ("^### Loop " ENVIRON["n"] "\\.")); next }
     inside' "$ROOT/$scope_loop_md"
 }
 
-# load_scope_stop [<problem>] — put SCOPE-LOOP.md's stopped-issue condition in `section`,
-# joined, for a case's probes to read: *Loop 4* from its `### Loop 4` heading to the next
-# `### `, split into its bullets, and the bullet whose bold label names a stop. Records the
-# fail-closed problem and returns 1 when there is no Loop 4, or <problem> when Loop 4 has no
-# such bullet — by default, that nothing could be checked. Every #391 case reads that bullet,
-# so they slice it by one rule here.
 scope_stop_unchecked="$scope_loop_md's Loop 4 lists no issue that ended in a stop — nothing could be checked"
 load_scope_stop() {
   section="$(scope_loop_section 4 | plain)"
@@ -662,11 +498,6 @@ if load_scope_stop "$scope_loop_md's Loop 4 lists no issue that ended in a stop 
 fi
 report "$name"
 
-# ---------------------------------------------------------------------------
-# And a stop is not a bail (issue #391): a bail stops the loop unless `--continue-on-bail`
-# says to keep going, and a reader who finds the stop condition beside it could take that
-# option to cover a stop too. It must not — a stop is the operator speaking, and the loop has
-# no business overruling it. Read from the same stop-condition bullet as the case above.
 name="SCOPE-LOOP.md says a stop, unlike a bail, has no continue-past option — no --continue-on-bail equivalent, because a stop is the operator speaking"
 problems=()
 if load_scope_stop; then
@@ -677,13 +508,6 @@ if load_scope_stop; then
 fi
 report "$name"
 
-# ---------------------------------------------------------------------------
-# And what the scope run reports (issue #391): *Loop 5* prints one line per issue attempted
-# and one naming what stopped the loop. A stopped issue had no per-issue form — only a PR
-# url, `bailed:` or `skipped:` — and the stop was not among the things that could have
-# stopped the loop, so the report could not say what happened. The per-issue template is read
-# from Loop 5's code fence alone and the stop-naming sentence from the prose after it, so the
-# template's `stopped: <mode>` cannot answer for the sentence that names the stop.
 name="SCOPE-LOOP.md's Loop 5 report gives a stopped issue a stopped: <mode> per-issue line, and names the stop and the stopped issue's mode as what stopped the loop"
 problems=()
 loop5="$(scope_loop_section 5)"
@@ -702,13 +526,6 @@ else
 fi
 report "$name"
 
-# ---------------------------------------------------------------------------
-# And how a stopped scope run picks up again (issue #391): the stop condition ends the loop,
-# and an operator reading it has to know what the same command does next. It resumes the
-# stopped issue from its committed ledger — the single-issue resume, no new machinery — and
-# then carries on draining the scope rather than ending with that one issue. Read from the
-# same stop-condition bullet as the cases above, so Loop 5's general mid-issue sentence must
-# not answer for it, and the drain must come after the resume, not before it.
 name="SCOPE-LOOP.md says re-invoking the same command after a stop resumes the stopped issue from its committed ledger and then carries on draining the scope"
 problems=()
 if load_scope_stop; then

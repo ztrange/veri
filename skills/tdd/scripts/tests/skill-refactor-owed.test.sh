@@ -28,20 +28,13 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The document twice, the way skill-refactor-leaf.test.sh names its own: the path as every
-# problem message spells it, and the same path resolved for the probes to open, so a message
-# can never name a file the probes did not read.
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which half of the record broke rather than just that it did.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -53,18 +46,10 @@ report() {
   fi
 }
 
-# plain — stdin with emphasis marks and backticks dropped and the case folded, because
-# `append` and **append** are the same sentence. Borrowed from skill-refactor-leaf.test.sh,
-# which reads this same section for the shape of its leaf.
 plain() {
   tr -d '*`' | tr '[:upper:]' '[:lower:]'
 }
 
-# refactor_section — the lines after the first heading starting `#### Refactor`, up to the
-# next heading of any level, normalised through `plain` and joined onto one line: none of
-# the probes below is about order, and a claim that wraps across two lines is still one
-# claim. Spelled the way skill-refactor-leaf.test.sh spells it, so "which text is the
-# Refactor section" does not get a second answer in this tree.
 refactor_section() {
   awk -v h='#### Refactor' \
     'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path" |
@@ -72,11 +57,7 @@ refactor_section() {
 }
 section="$(refactor_section)"
 
-# win <extended-regex> — the section text within 250 characters either side of the first
-# match, or the empty string when there is none: the text a reader meets while working out
-# what to do about that instruction. 250 rather than a rounder, larger number because BSD
-# grep — the one on the development machine this repository holds itself portable to —
-# refuses an interval whose bound is over 255.
+# hazard: BSD grep refuses an interval bound over 255.
 win() {
   head -1 < <(grep -oE ".{0,250}$1.{0,250}" <<<"$section")
 }
@@ -85,14 +66,8 @@ name="$skill_md's Refactor section appends the step's structural leftovers to th
 problems=()
 
 if [[ -z "${section// /}" ]]; then
-  # Fail closed: a renamed or emptied section is reported as unreadable rather than probed
-  # as an empty string, which would let "the phase is gone" read as "the phase is right".
   problems+=("$skill_md has no '#### Refactor' section to read — whether a step's structural leftovers are recorded anywhere could not be established")
 else
-  # 1. The append itself, on the leaf's own report and into the run's owed file, under the
-  #    step. All three together, because the leftovers are only findable afterwards if they
-  #    come from the report the leaf wrote, land in the file the run keeps, and say which
-  #    step owes them.
   append="$(win 'refactor-owed\.sh append')"
   if [[ -z "$append" ]]; then
     problems+=("$skill_md's Refactor section never runs refactor-owed.sh append, so a step's structural leftovers live only in .tdd/develop-refactor.out and are gone as soon as the next step overwrites it")
@@ -105,9 +80,6 @@ else
       problems+=("$skill_md's Refactor section runs refactor-owed.sh append without the step, so a run's leftovers pile up with nothing saying which step owes which")
   fi
 
-  # 2. And the commit. `clear-refactor-pending.sh` is the anchor because that clear is the
-  #    one commit a completed step always makes, and a file left uncommitted beside it is
-  #    lost with the worktree — the same reason the clear itself is committed there.
   cleared="$(win 'clear-refactor-pending\.sh')"
   if [[ -z "$cleared" ]]; then
     problems+=("$skill_md's Refactor section never clears the refactor-pending mark, so the commit the owed file is supposed to ride does not exist to be read for")

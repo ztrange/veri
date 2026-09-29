@@ -12,7 +12,6 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
@@ -30,13 +29,10 @@ report() {
   fi
 }
 
-# require <needle> <text> <problem> — records <problem> when <text> does not hold <needle>.
 require() {
   grep -F -- "$1" > /dev/null <<<"$2" || problems+=("$3")
 }
 
-# before_ready — the Draft PR section's lines up to its first `gh pr ready`, backticks and
-# emphasis dropped and joined onto one line.
 before_ready() {
   awk -v h='### 4. Draft PR' \
     'index($0, h) == 1 { inside = 1; next }
@@ -67,8 +63,6 @@ pass_text="${section#*one structural pass}"
 touches_phrase='transform-touches-tests.sh <base-sha>'
 verifier_phrase='transform verifier against <base-sha>'
 
-# missing_pass <what> — when the Draft PR step has no 'one structural pass', records that <what>
-# could not be established and succeeds; fails otherwise.
 missing_pass() {
   [[ "$pass_text" == "$section" ]] || return 1
   problems+=("$skill_md's Draft PR step has no 'one structural pass' before gh pr ready — $1 could not be established")
@@ -88,7 +82,6 @@ fi
 
 report "$name"
 
-# offset <needle> <text> — the byte offset of <needle>'s first occurrence in <text>, or -1.
 offset() {
   local head="${2%%"$1"*}"
   if [[ "$head" == "$2" ]]; then echo -1; else echo "${#head}"; fi
@@ -124,8 +117,6 @@ fi
 
 report "$name"
 
-# tunables_parse — preflight step 5, from its heading up to step 6, backticks and emphasis
-# dropped and joined onto one line.
 tunables_parse() {
   awk 'index($0, "5. **Tunables parse.**") == 1 { inside = 1 }
        inside && index($0, "6. **Leaf models parse.**") == 1 { exit }
