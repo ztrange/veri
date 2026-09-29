@@ -1313,7 +1313,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      `⟦full-suite⟧` and `⟦human-owed⟧` lines it skips, since no cycle closes those and
      counting them would overstate what is left and park a run about to finish:
      ```
-     $S/next-unchecked.sh < .tdd/issue-<n>.md > /dev/null && $S/run-affordable.sh "$(grep '^[[:space:]]*- \[ \] ' .tdd/issue-<n>.md | grep -cvE ' ⟦(full-suite|human-owed)⟧ ⟦criterion [0-9]+⟧$')"
+     $S/next-unchecked.sh < .tdd/issue-<n>.md > /dev/null && $S/run-affordable.sh "$($S/ledger-steps.sh < .tdd/issue-<n>.md | awk -F'\t' '$2 == "open" && $3 == "step" {c++} END {print c+0}')"
      ```
      On exit **0** — or exit **3**, when no full step has completed yet and so there is no
      median to project with — loop back to the top of **step 3** for the next unchecked

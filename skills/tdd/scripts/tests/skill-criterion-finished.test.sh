@@ -217,6 +217,15 @@ for anchor in 'event.sh step-done' 'event.sh pin' 'event.sh step-added anchor="$
 done
 report "$name"
 
+# 10. One criterion (#495) — the count of unchecked ordinary steps handed to run-affordable.sh is
+#     read off ledger-steps.sh's records rather than by a checkbox pattern the procedure spells
+#     itself.
+name="#495: every $skill_md instruction that counts the steps left for run-affordable.sh reads them from ledger-steps.sh's records, spelling no checkbox pattern of its own"
+problems=()
+anchor='run-affordable.sh "$('
+reads_ledger_steps "$anchor" '\[ \]' "$(grep -F -- "$anchor" "$skill_path" || true)"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
