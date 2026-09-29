@@ -177,5 +177,30 @@ expect_records "ledger_clear_pending 'lowercase' exit status differs" "3" "$?"
 expect_records "ledger_clear_pending 'lowercase' output differs" "$doc." "$got"
 verdict "ledger_clear_pending strips the pending mark from the first marked ticked step containing the matcher, changing no other byte, and returns 3 with the document unchanged when none does"
 
+# 10. ledger_add_step <text> <k>: an open `⟦added⟧ ⟦criterion k⟧` step lands directly after the
+#     document's last step line, before the prose and unboxed bullets that follow it.
+problems=""
+doc='# Plan for the slug
+
+- [x] lowercase the slug ⟦criterion 1⟧
+  - [ ] trim the slug ⟦criterion 2⟧
+
+## Owed steps
+
+- a bullet with no box
+'
+want='# Plan for the slug
+
+- [x] lowercase the slug ⟦criterion 1⟧
+  - [ ] trim the slug ⟦criterion 2⟧
+- [ ] collapse hyphens ⟦added⟧ ⟦criterion 3⟧
+
+## Owed steps
+
+- a bullet with no box
+.'
+expect_records "ledger_add_step output differs" "$want" "$(rewrite_of ledger_add_step "$doc" 'collapse hyphens' 3)"
+verdict "ledger_add_step writes an open added step tagged with its criterion directly after the last step line, changing no other byte"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
