@@ -114,7 +114,9 @@ verdict "ledger_steps added is 1 for a step carrying the added mark and criterio
 #    becomes `- [x]`; prose and ticked lines that match are passed over, every other byte kept.
 problems=""
 tick_of() {
-  printf '%s' "$2" | (source "$LIB" && ledger_tick "$1") 2>&1
+  local doc="$1"
+  shift
+  printf '%s' "$doc" | (source "$LIB" && ledger_tick "$@") 2>&1
   printf '.'
 }
 doc='# Plan for the slug
@@ -125,23 +127,19 @@ Prose about the slug.
   - [ ] collapse the slug ⟦criterion 3⟧
 - [ ] strip the slug ⟦criterion 4⟧'
 want="${doc/  - \[ \] collapse/  - [x] collapse}."
-expect_records "ledger_tick 'slug' output differs" "$want" "$(tick_of 'slug' "$doc")"
+expect_records "ledger_tick 'slug' output differs" "$want" "$(tick_of "$doc" 'slug')"
 want="${doc/- \[ \] trim/- [x] trim}."
-expect_records "ledger_tick '' output differs" "$want" "$(tick_of '' "$doc")"
+expect_records "ledger_tick '' output differs" "$want" "$(tick_of "$doc" '')"
 verdict "ledger_tick ticks the first open step containing the matcher, or the first open step for an empty one, changing no other byte"
 
 # 7. ledger_tick <matcher> pending: the ticked line also gains the refactor-pending mark.
 problems=""
-tick_pending_of() {
-  printf '%s' "$2" | (source "$LIB" && ledger_tick "$1" pending) 2>&1
-  printf '.'
-}
 doc='- [x] lowercase the slug ⟦criterion 1⟧
 - [ ] trim whitespace ⟦criterion 2⟧
 - [ ] strip the slug ⟦criterion 3⟧
 '
 want="${doc/- \[ \] strip the slug ⟦criterion 3⟧/- [x] strip the slug ⟦criterion 3⟧ ⟂ refactor pending}."
-expect_records "ledger_tick 'strip' pending output differs" "$want" "$(tick_pending_of 'strip' "$doc")"
+expect_records "ledger_tick 'strip' pending output differs" "$want" "$(tick_of "$doc" 'strip' pending)"
 verdict "ledger_tick <matcher> pending ticks the step and appends the refactor-pending mark in the same write"
 
 echo "$pass passed, $fail failed"
