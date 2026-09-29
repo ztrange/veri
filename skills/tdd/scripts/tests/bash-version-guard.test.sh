@@ -27,15 +27,11 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 SCRIPTS="$HERE/.."
 
-# The words every refusal carries, and so the words each case looks for.
 REQUIREMENT='needs bash 5 or newer'
 
-# A suite that passes, handed to the `make test` recipe as its only suite; count-line-guard.test.sh
-# keeps it for the same use.
 GREEN_FIXTURE='skills/tdd/scripts/tests/fixtures/live-suites/ends-green.test.sh'
 
 pass=0 fail=0
@@ -56,8 +52,6 @@ flat() { printf '%s' "$1" | tr '\n' '/'; }
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-# A stub `claude` that answers `--version` and records that it was run at all, so a case can
-# ask whether a refusal came before anything was launched.
 cat > "$work/claude" <<'C'
 #!/bin/sh
 : > "$LAUNCHED"
@@ -65,7 +59,6 @@ echo "2.1.0 (Claude Code)"
 C
 chmod +x "$work/claude"
 
-# 1. make test.
 name="make test refuses before any suite runs when the bash on PATH is older than 5, and runs them when it is not"
 problems=()
 old_out="$(env VERI_BASH_MAJOR=3 make -C "$ROOT" test TESTS="$GREEN_FIXTURE" 2>&1)" && old_code=0 || old_code=$?
@@ -77,7 +70,6 @@ new_out="$(env VERI_BASH_MAJOR=5 make -C "$ROOT" test TESTS="$GREEN_FIXTURE" 2>&
   problems+=("want the suite run and green with VERI_BASH_MAJOR=5, got exit $new_code: $(flat "$new_out")")
 report "$name"
 
-# 2. run-conductor.sh.
 name="run-conductor.sh refuses with exit 2 before launching anything when bash is older than 5"
 problems=()
 mkdir -p "$work/conductor"
@@ -88,7 +80,6 @@ rc_err="$( cd "$work/conductor" && env VERI_BASH_MAJOR=3 CLAUDE_BIN="$work/claud
 [[ ! -e "$work/conductor/launched" ]] || problems+=("the conductor's binary was launched before the refusal")
 report "$name"
 
-# 3. leaf-launchable.sh.
 name="leaf-launchable.sh refuses with exit 2 when bash is older than 5, and still answers 0 for a launchable binary on bash 5"
 problems=()
 ll_err="$(env VERI_BASH_MAJOR=3 CLAUDE_BIN="$work/claude" LAUNCHED="$work/ll-launched" \
@@ -100,8 +91,6 @@ env VERI_BASH_MAJOR=5 CLAUDE_BIN="$work/claude" LAUNCHED="$work/ll-launched" \
 [[ "$ll5" == 0 ]] || problems+=("want exit 0 for a launchable binary with VERI_BASH_MAJOR=5, got $ll5")
 report "$name"
 
-# 4. A real old bash, where this machine has one: /bin/bash on macOS is 3.2. Run the check
-#    the way a stale PATH would, through that bash itself, with no stand-in set.
 if [[ -x /bin/bash ]] && [[ "$(/bin/bash -c 'echo "${BASH_VERSINFO[0]}"')" -lt 5 ]]; then
   name="on a real bash older than 5 (/bin/bash), leaf-launchable.sh refuses with exit 2"
   problems=()
