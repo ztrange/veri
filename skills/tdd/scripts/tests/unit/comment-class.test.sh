@@ -39,6 +39,13 @@ want_empty_sweepable() {
   fi
 }
 
+sweep_verdict() {
+  local name="$1"; shift
+  problems=""
+  want_empty_sweepable "$@"
+  verdict "$name"
+}
+
 want_line() {
   if ! grep -E "^$1(:|$)" <<< "$out" > /dev/null; then
     problems+="    want a line matching '$1', got:"$'\n'"$out"$'\n'
@@ -158,9 +165,7 @@ fi
 verdict "the sweepable report omits a leading contract header and a comment marked as a shell-hazard warning"
 
 # 11. the sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh.
-problems=""
-want_empty_sweepable "$SCRIPTS/metrics.sh" "$SCRIPTS/event.sh" "$SCRIPTS/harvest-usage.sh"
-verdict "the sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh"
+sweep_verdict "the sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh" "$SCRIPTS/metrics.sh" "$SCRIPTS/event.sh" "$SCRIPTS/harvest-usage.sh"
 
 # 12. the sweepable report is empty for supervise.sh, run-leaf.sh, detach-leaf.sh, wait-leaf.sh
 #     and run-verdict.sh.
@@ -200,14 +205,10 @@ want_empty_sweepable "$SCRIPTS/leaf-timeout.sh" "$SCRIPTS/ensure-run-state-ignor
 verdict "the sweepable report is empty for leaf-timeout.sh, ensure-run-state-ignored.sh, orchestrate.sh, parallel-conductors.sh, workqueue.sh, push-branch.sh, refactor-triage.sh, invisible-work.sh, over-budget.sh, run-suite.sh, leaf-model.sh and leaf-launchable.sh"
 
 # 17. the sweepable report is empty for every skills/tdd/scripts/*.sh, comment-class.sh included.
-problems=""
-want_empty_sweepable "$SCRIPTS"/*.sh
-verdict "the sweepable report is empty for every scripts/*.sh, the classifier itself included"
+sweep_verdict "the sweepable report is empty for every scripts/*.sh, the classifier itself included" "$SCRIPTS"/*.sh
 
 # 18. the sweepable report is empty for every shell file under skills/tdd/scripts/lib/.
-problems=""
-want_empty_sweepable "$SCRIPTS"/lib/*.sh
-verdict "the sweepable report is empty for every shell file under scripts/lib/"
+sweep_verdict "the sweepable report is empty for every shell file under scripts/lib/" "$SCRIPTS"/lib/*.sh
 
 # 19. no class 1 line in scripts/*.sh or scripts/lib/*.sh, the leading contract header included,
 #     cites an issue number.
@@ -366,24 +367,16 @@ want_line "$g:2:3"
 verdict "a # line inside a heredoc piped to dd of= or sponge writing a .md file is class 3"
 
 # 26. the sweepable report is empty for every top-level tests/*.sh whose name starts with a or b.
-problems=""
-want_empty_sweepable "$SCRIPTS"/tests/[ab]*.sh
-verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with a or b"
+sweep_verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with a or b" "$SCRIPTS"/tests/[ab]*.sh
 
 # 27. the sweepable report is empty for every top-level tests/*.sh whose name starts with c or d.
-problems=""
-want_empty_sweepable "$SCRIPTS"/tests/[cd]*.sh
-verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with c or d"
+sweep_verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with c or d" "$SCRIPTS"/tests/[cd]*.sh
 
 # 28. the sweepable report is empty for every top-level tests/*.sh whose name starts with e through j.
-problems=""
-want_empty_sweepable "$SCRIPTS"/tests/[e-j]*.sh
-verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with e through j"
+sweep_verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with e through j" "$SCRIPTS"/tests/[e-j]*.sh
 
 # 29. the sweepable report is empty for every top-level tests/*.sh whose name starts with k through m.
-problems=""
-want_empty_sweepable "$SCRIPTS"/tests/[k-m]*.sh
-verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with k through m"
+sweep_verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with k through m" "$SCRIPTS"/tests/[k-m]*.sh
 
 # 30. a `#` line inside a heredoc written to a variable assigned a `.md` path is class 3.
 problems=""
@@ -394,33 +387,23 @@ want_line "$f:2:3"
 verdict "a # line inside a heredoc written to a variable assigned a .md path is class 3"
 
 # 31. the sweepable report is empty for every top-level tests/*.sh whose name starts with n through r.
-problems=""
-want_empty_sweepable "$SCRIPTS"/tests/[n-r]*.sh
-verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with n through r"
+sweep_verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with n through r" "$SCRIPTS"/tests/[n-r]*.sh
 
 # 32. the sweepable report is empty for tests/supervise.test.sh and tests/supervise-retry.test.sh.
-problems=""
-want_empty_sweepable "$SCRIPTS"/tests/supervise.test.sh "$SCRIPTS"/tests/supervise-retry.test.sh
-verdict "the sweepable report is empty for tests/supervise.test.sh and tests/supervise-retry.test.sh"
+sweep_verdict "the sweepable report is empty for tests/supervise.test.sh and tests/supervise-retry.test.sh" "$SCRIPTS"/tests/supervise.test.sh "$SCRIPTS"/tests/supervise-retry.test.sh
 
 # 33. the sweepable report is empty for every top-level tests/s*.sh but the skill-* and supervise* files.
-problems=""
 files=()
 for f in "$SCRIPTS"/tests/s*.sh; do
   case "${f##*/}" in skill-*|supervise*) ;; *) files+=("$f") ;; esac
 done
-want_empty_sweepable "${files[@]}"
-verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with s, other than the skill-* and supervise* files"
+sweep_verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with s, other than the skill-* and supervise* files" "${files[@]}"
 
 # 34. the sweepable report is empty for every top-level tests/*.sh whose name starts with t through z.
-problems=""
-want_empty_sweepable "$SCRIPTS"/tests/[t-z]*.sh
-verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with t through z"
+sweep_verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with t through z" "$SCRIPTS"/tests/[t-z]*.sh
 
 # 35. the sweepable report is empty for every tests/skill-*.test.sh whose name after skill- starts with a through l.
-problems=""
-want_empty_sweepable "$SCRIPTS"/tests/skill-[a-l]*.test.sh
-verdict "the sweepable report is empty for every tests/skill-*.test.sh whose name after skill- starts with a through l"
+sweep_verdict "the sweepable report is empty for every tests/skill-*.test.sh whose name after skill- starts with a through l" "$SCRIPTS"/tests/skill-[a-l]*.test.sh
 
 echo "----"
 echo "$pass passed, $fail failed"
