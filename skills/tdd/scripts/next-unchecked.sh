@@ -6,9 +6,8 @@
 # are no checkbox steps — it exits 3 with no output, which is the conductor's signal that
 # the loop is complete / nothing remains to resume.
 #
-# The checkbox grammar matches tick-criterion.sh (optionally indented `- [ ] <text>`), so
-# the description printed here is a stable substring to hand back to tick-criterion.sh when
-# the step is checked off.
+# The step grammar is lib/ledger.sh's `ledger_steps`, so the description printed here is a
+# stable substring to hand back to tick-criterion.sh when the step is checked off.
 #
 # A step marked `⟦full-suite⟧` is skipped: it is covered by the run's full-suite gate,
 # not by a Red/Green cycle, so it is never handed to a leaf. A step marked
@@ -20,15 +19,15 @@
 # Usage:   next-unchecked.sh < .tdd/issue-<n>.md
 set -euo pipefail
 
-re='^[[:space:]]*- \[ \] (.*)$'
-marked=' ⟦(full-suite|human-owed)⟧ ⟦criterion [0-9]+⟧$'
+HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/ledger.sh"
 
-while IFS= read -r line || [[ -n "$line" ]]; do
-  [[ "$line" =~ $re ]] || continue
-  step="${BASH_REMATCH[1]}"
-  [[ "$line" =~ $marked ]] && continue
-  printf '%s\n' "$step"
+open_step=$'^[0-9]+\topen\tstep\t[^\t]*\t[^\t]*\t[^\t]*\t(.*)$'
+
+while IFS= read -r record; do
+  [[ "$record" =~ $open_step ]] || continue
+  printf '%s\n' "${BASH_REMATCH[1]}"
   exit 0
-done
+done < <(ledger_steps)
 
 exit 3

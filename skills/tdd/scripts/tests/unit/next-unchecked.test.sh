@@ -114,6 +114,30 @@ ticked_ledger='# Plan for #42
 - [x] pin the third step ⟦criterion 3⟧'
 check "a fully ticked ledger quoting markers still exits 3 (#484)" 3 "$ticked_ledger" ""
 
+# 14. the step printed is the first open ordinary step of lib/ledger.sh's records, not one
+# the script finds in the markdown itself: beside a stub module whose `ledger_steps` answers
+# for the ledger, the stub's answer is what is printed (#495)
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+mkdir "$work/lib"
+cp "$NEXT" "$work/next-unchecked.sh"
+cat > "$work/lib/ledger.sh" <<'EOF'
+ledger_steps() {
+  cat > /dev/null
+  printf '1\tdone\tstep\t0\t0\t1\tticked in the module ⟦criterion 1⟧\n'
+  printf '2\topen\tfull-suite\t0\t0\t2\tgated in the module ⟦full-suite⟧ ⟦criterion 2⟧\n'
+  printf '3\topen\tstep\t0\t0\t3\tasked the module ⟦criterion 3⟧\n'
+}
+EOF
+printf -- '- [ ] found in the markdown ⟦criterion 1⟧\n' > "$work/ledger.md"
+name="the first open ordinary step comes from lib/ledger.sh's ledger_steps (#495)"
+want="asked the module ⟦criterion 3⟧"
+out="$("$work/next-unchecked.sh" < "$work/ledger.md")" && code=0 || code=$?
+if [[ "$code" == 0 && "$out" == "$want" ]]; then pass=$((pass + 1)); else
+  fail=$((fail + 1)); echo "FAIL - $name (want exit 0, got $code)"
+  diff <(printf '%s\n' "$want") <(printf '%s\n' "$out") | sed 's/^/    /'
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
