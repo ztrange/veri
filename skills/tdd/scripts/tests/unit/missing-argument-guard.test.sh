@@ -36,15 +36,6 @@ show_run() {  # show_run <exit> <stdout-file> <stderr-file> — print what a fai
   echo "    stderr: $(printf '%q' "$(cat "$3")")"
 }
 
-# judge <name> <want-stdout> <fn> [args …] — run one case and record its result. <fn> is a
-# function the library defines, so it runs in a subshell that sources the library: both
-# halves of the audit `return` rather than `exit`, to hand their caller an offender instead
-# of tearing it down, and a subshell is what keeps a failing one from ending this suite too.
-#
-# Green means the audit did both things a guard is worth having for: returned 1, so the
-# suite calling it goes red, and said on stdout exactly which script offended and how. Both
-# cases below are judged that way, so the block lives here once rather than once per case —
-# the shape tests/unit/missing-argument-exit.test.sh's own `verdict` takes.
 judge() {
   local name="$1" want="$2"; shift 2
   local rc=0
@@ -57,10 +48,6 @@ judge() {
   fi
 }
 
-# 1. the offender is a script that says how it is called and then exits 1 — the shape
-#    `${1:?usage: …}` produced in all seventeen scripts #270 measured. The audit has to
-#    report it: a usage line on stderr is not enough when the status is an answer the
-#    conductor would branch on as a methodology failure.
 name="the guard names a script that exits 1, not 2, when its required argument is missing"
 plant="$scratch/scripts"
 mkdir -p "$plant"
@@ -74,11 +61,6 @@ chmod +x "$plant/exits-one.sh"
 judge "$name" 'exits-one.sh: want exit 2, got 1' \
   missing_argument_offender "$plant" exits-one.sh
 
-# 2. the guard's other half, and the reason it reads source as well as exit codes: a script
-#    whose refusal is a bare `${N:?…}` expansion. That expansion aborts the shell with 1, and
-#    it can sit on a position no roster call reaches — a `${4:?…}` guarding the fourth
-#    argument of a script whose first three are checked properly. Reading the tree instead of
-#    calling it also covers a script added tomorrow by existing, with no roster to edit.
 name="the guard names a script guarding a required argument with a bare \${N:?…} expansion"
 scan="$scratch/scan"
 mkdir -p "$scan"
@@ -92,15 +74,9 @@ cat > "$scan/checked.sh" <<'STUB'
 [[ -n "${1:-}" ]] || { echo "usage: checked.sh <n>" >&2; exit 2; }
 echo "$1"
 STUB
-# The prose at the head of eight scripts quotes the very shape it is telling the reader not
-# to use, so a scan that read comments would make the guard red for explaining itself. A
-# whole line commented out is skipped; a `${N:?…}` in a trailing comment beside code is not,
-# and there is no case for that here because it is not a promise the scan makes.
-cat > "$scan/explains.sh" <<'STUB'
-#!/usr/bin/env bash
-  # Checked rather than read through `${1:?…}`, which aborts the shell with status 1.
-[[ -n "${1:-}" ]] || { echo "usage: explains.sh <n>" >&2; exit 2; }
-STUB
+printf '%s\n' '#!/usr/bin/env bash' \
+  '  # Checked rather than read through `${1:?…}`, which aborts the shell with status 1.' \
+  '[[ -n "${1:-}" ]] || { echo "usage: explains.sh <n>" >&2; exit 2; }' > "$scan/explains.sh"
 chmod +x "$scan/bare.sh" "$scan/checked.sh" "$scan/explains.sh"
 
 judge "$name" 'bare.sh:2: guards $1 with a bare ${N:?…} expansion, which exits 1, not 2' \

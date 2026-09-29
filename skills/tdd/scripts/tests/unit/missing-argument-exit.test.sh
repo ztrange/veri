@@ -35,19 +35,11 @@ source "$HERE/../../lib/missing-argument-exit.sh"
 source "$HERE/../lib/harness.sh"
 offenders=()
 
-# refuses <script> [args …] — call it, and record an offender unless it came back with exit 2
-# and said on stderr how it is called. The judging is lib/missing-argument-exit.sh's, so that
-# the check this suite's whole worth rests on has a suite of its own
-# (tests/unit/missing-argument-guard.test.sh): every script in the rosters below answers
-# correctly today, so no case here can tell a working check from a broken one.
 refuses() {
   local line
   line="$(missing_argument_offender "$SCRIPTS" "$@")" || offenders+=( "$line" )
 }
 
-# verdict <name> — one case's result: green unless `refuses` recorded an offender above, and
-# the offender lines are what a failing case prints in place of a diff. Both cases below are
-# judged the same way, so the block lives here once rather than once per roster.
 verdict() {
   if (( ${#offenders[@]} > 0 )); then
     no "$1"
@@ -57,8 +49,6 @@ verdict() {
   fi
 }
 
-# 1. called with no arguments at all — the emptiest bad-arguments case there is — every script
-#    that requires a positional argument refuses with exit 2 and says how it is called.
 name="a script requiring a positional argument exits 2 with a usage line when called with none"
 roster=(
   add-ledger-step.sh
@@ -95,11 +85,6 @@ for script in "${roster[@]}"; do
 done
 verdict "$name"
 
-# 2. the same contract one argument in: each call below passes everything the script needs
-#    except its last required argument, so the refusal it owes is for a LATER position than
-#    case 1 tests — the position a `${N:?…}` expansion used to guard, aborting the shell with
-#    status 1 and telling the conductor a methodology failure. A flag's required value counts:
-#    `--since` with no date named nothing, the same way a dropped positional does.
 name="a script exits 2 with a usage line when a later required argument is missing"
 offenders=()
 refuses add-ledger-step.sh .tdd/issue-1.md after anchor   # no <text>
@@ -121,16 +106,6 @@ refuses verify.sh green spec                              # no <test-path> — t
 refuses verify.sh --step                                  # no step text
 verdict "$name"
 
-# 3. the same contract read off the source instead of off a call: no script under scripts/
-#    still guards a required positional with a bare `${N:?…}` expansion. The two rosters
-#    above cannot settle this on their own — an expansion can sit on a position no call in
-#    them reaches, and a script added tomorrow is in neither — so this case asks the tree
-#    rather than a list, and covers a new script by existing. What it reports is a line
-#    number, because that is what a `${N:?…}` has instead of an exit code worth calling.
-#
-#    lib/missing-argument-exit.sh does the reading, and its own suite
-#    (tests/unit/missing-argument-guard.test.sh) plants an offender to prove the scan finds
-#    one: scripts/ is clean today, so a green here says nothing about whether the scan works.
 name="no script guards a required positional argument with a bare \${N:?…} expansion"
 mapfile -t offenders < <(bare_expansion_offenders "$SCRIPTS")
 verdict "$name"
