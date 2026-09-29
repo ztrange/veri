@@ -2,7 +2,7 @@
 # next-pending-refactor.sh — print the first step that is green but not yet tidied.
 #
 # Reads a ledger (checkbox markdown) on stdin and writes the description of the FIRST
-# `- [x]` step whose line ends in ` ⟂ refactor pending` — the mark tick-ledger.sh appends
+# `- [x]` step lib/ledger.sh reports as refactor-pending — the mark tick-ledger.sh appends
 # with the green commit — then exits 0. The mark is stripped, so what is printed is the
 # same description next-unchecked.sh hands the loop and tick-criterion.sh matches on. If no
 # step carries the mark it exits 3 with no output: every step that is green has also been
