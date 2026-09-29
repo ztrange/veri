@@ -1159,6 +1159,17 @@ refused_run "$nameddir" --repo owner/name
   && ok || no "--repo owner/name, against a gh that refuses GraphQL and answers REST only under repos/owner/name/, prints the same issue numbers and exit code as a working gh (#568) (working gh: exit=$working_code stdout='$(tr '\n' '|' <<<"$working")' want 0 and '74|70'; GraphQL refused: exit=$code stdout='$(tr '\n' '|' <<<"$out")' want the same)"
 
 
+env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$stubdir:$PATH" ARGV_OUT="$work/argv-stderr-working" \
+  GH_ISSUES="$fx/issues.json" GH_PRS="$fx/prs.json" \
+  "$SOLVABLE" >/dev/null 2>"$work/stderr-working" || true
+env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$refusedir:$PATH" \
+  GH_REST_ISSUES="$fx/rest-issues.json" GH_REST_PULLS="$fx/rest-pulls.json" \
+  "$SOLVABLE" >/dev/null 2>"$work/stderr-refused" || true
+working_err="$(cat "$work/stderr-working")" refused_err="$(cat "$work/stderr-refused")"
+
+{ [[ -z "$working_err" && -z "$refused_err" ]]; } \
+  && ok || no "against a gh that refuses GraphQL with the 403, solvable-issues.sh writes nothing to stderr, the same as against a working gh: the refusal is not passed through to the caller (#568) (working gh stderr='$(tr '\n' '|' <<<"$working_err")' want ''; GraphQL refused stderr='$(tr '\n' '|' <<<"$refused_err")' want '')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
