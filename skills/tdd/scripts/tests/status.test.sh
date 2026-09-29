@@ -470,7 +470,7 @@ ledger_steps() {
   printf '3\topen\tstep\t0\t0\t\ta lamp dims\n'
 }
 EOF
-out="$(cd "$counted" && "$stub/status.sh" 2>/dev/null)" && code=0 || code=$?
+STATUS="$stub/status.sh" run_in "$counted"
 missing=()
 [[ "$out" == *"step 2 of 3"* ]] || missing+=("step 2 of 3")
 expect_nothing_missing "finds the step through lib/ledger.sh's ledger_steps, counting no checkbox of its own"
