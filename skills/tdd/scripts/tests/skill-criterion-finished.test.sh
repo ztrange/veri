@@ -198,6 +198,26 @@ else
 fi
 report "$name"
 
+# 9. One criterion (#495) — the last ticked step, named to event.sh step-done, to event.sh pin and
+#    to the CI-repair step-added event and add-ledger-step.sh anchor, is read off ledger-steps.sh's
+#    records rather than by a checkbox pattern the procedure spells itself.
+name="#495: every $skill_md instruction that names the last ticked step reads it from ledger-steps.sh's records, spelling no checkbox pattern of its own"
+problems=()
+for anchor in 'event.sh step-done' 'event.sh pin' 'event.sh step-added anchor="$(' "add-ledger-step.sh .tdd/issue-<n>.md after \"\$("; do
+  hits="$(grep -F -- "$anchor" "$skill_path" | grep -vF -e 'next-unchecked.sh' -e 'next-pending-refactor.sh' || true)"
+  if [[ -z "$hits" ]]; then
+    problems+=("no instruction of $skill_md runs '$anchor' on the last ticked step — the rule could not be checked")
+    continue
+  fi
+  while IFS= read -r line; do
+    [[ "$line" == *'ledger-steps.sh'* ]] ||
+      problems+=("'$anchor' reads the last ticked step without ledger-steps.sh: $(printf '%.160s' "$line")")
+    [[ "$line" != *'\[x\]'* ]] ||
+      problems+=("'$anchor' still spells its own checkbox pattern: $(printf '%.160s' "$line")")
+  done <<< "$hits"
+done
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

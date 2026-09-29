@@ -354,7 +354,8 @@ and a verifier's launch reads `--step` the same way, so the title never passes t
 line as text. The conductor's own lines read it the same way: every `event.sh` mark's
 `VERI_STEP` and `anchor=`, every `preserve-attempt.sh` call, and the matcher `tick-ledger.sh`,
 `clear-refactor-pending.sh` and `tick-issue-criterion.sh` are handed to find the checkbox
-they tick — once the step is ticked and cleared, as the last `- [x]` line of the ledger.
+they tick — once the step is ticked and cleared, as the text of the last `done` record
+`ledger-steps.sh` prints for the ledger.
 `tick-issue-criterion.sh` is the exception: it ticks the **issue body**, whose criteria are
 the issue's own words and not the ledger's reworded steps, so its matcher is criterion k's
 first line read out of that body's `## Acceptance criteria` — still data, never retyped. Where a
@@ -1304,7 +1305,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      "$(gh issue view <n> --json body -q .body | sed -n '/^## Acceptance criteria/,/^## /p' | $S/ledger-steps.sh | sed -n '<k>p' | cut -f7-)"`, the human mirror); on exit **3** tick nothing, since a step serving it is
      still open or pending. Mark
      the same moment in the log —
-     `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(sed -n 's/^[[:space:]]*- \[x\] //p' .tdd/issue-<n>.md | tail -1)" $S/event.sh step-done`.
+     `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/ledger-steps.sh < .tdd/issue-<n>.md | awk -F'\t' '$2 == "done"' | tail -1 | cut -f7-)" $S/event.sh step-done`.
      **Then ask whether the run can still afford to finish** — this step boundary is where
      the run first knows what is left. When `next-unchecked.sh` exits 3 there is no next
      step and nothing to ask; otherwise pass it the count of steps it has still to hand
@@ -1499,8 +1500,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    gh pr view <pr-url> --json statusCheckRollup
    gh run view <run-id> --log-failed          # a failed check only → its suite and FAIL - line
    grep -F '⟦ci-repair⟧' .tdd/issue-<n>.md > /dev/null && VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)"
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(awk 'sub(/^- \[x\] /, "") { last = $0 } END { print last }' .tdd/issue-<n>.md)" $S/event.sh step-added anchor="$(awk 'sub(/^- \[x\] /, "") { last = $0 } END { print last }' .tdd/issue-<n>.md)" added=1
-   $S/add-ledger-step.sh .tdd/issue-<n>.md after "$(awk 'sub(/^- \[x\] /, "") { last = $0 } END { print last }' .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>> ⟦ci-repair⟧'
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/ledger-steps.sh < .tdd/issue-<n>.md | awk -F'\t' '$2 == "done"' | tail -1 | cut -f7-)" $S/event.sh step-added anchor="$($S/ledger-steps.sh < .tdd/issue-<n>.md | awk -F'\t' '$2 == "done"' | tail -1 | cut -f7-)" added=1
+   $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh < .tdd/issue-<n>.md | awk -F'\t' '$2 == "done"' | tail -1 | cut -f7-)" '<fix the CI failure: <suite> — <its FAIL - line>> ⟦ci-repair⟧'
    git add .tdd/issue-<n>.md
    git commit -m "plan: repair the red CI check (#<n>)"
    ```
@@ -1608,7 +1609,7 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
   (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`) and on exit **0** tick it in the
   **issue body** (`$S/tick-issue-criterion.sh <n> "$(gh issue view <n> --json body -q .body | sed -n '/^## Acceptance criteria/,/^## /p' | $S/ledger-steps.sh | sed -n '<k>p' | cut -f7-)"`) — on exit **3** tick
   nothing — and mark it in the log —
-  `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(sed -n 's/^[[:space:]]*- \[x\] //p' .tdd/issue-<n>.md | tail -1)" VERI_PHASE=pin $S/event.sh pin`.
+  `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/ledger-steps.sh < .tdd/issue-<n>.md | awk -F'\t' '$2 == "done"' | tail -1 | cut -f7-)" VERI_PHASE=pin $S/event.sh pin`.
   The step is **done** — **no Green and no Refactor**, since there is no new production
   code to write or to tidy. Loop back to the top of **step 3** for the next unchecked
   ledger step.
