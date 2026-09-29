@@ -18,11 +18,13 @@ if [[ -z "$n" ]]; then
   exit 2
 fi
 
-labels="$(gh issue view "$n" --json labels -q '.labels[].name')"
+source "$(cd "$(dirname "$0")" && pwd)/lib/github.sh"
+
+labels="$(gh_issue_view "$n" labels)"
 
 has_label() { grep -qxF -- "$1" <<<"$labels"; }
 
-body="$(gh issue view "$n" --json body -q .body)"
+body="$(gh_issue_view "$n" body)"
 
 printf '%s\n' "$body"
 
