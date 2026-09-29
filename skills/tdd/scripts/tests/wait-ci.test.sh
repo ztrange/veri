@@ -40,9 +40,27 @@ case "$*" in
     echo >> "$ROLLUP.calls"
     n="$(wc -l < "$ROLLUP.calls" | tr -d ' ')"
     if [ -f "$ROLLUP.$n" ]; then cat "$ROLLUP.$n"; else cat "$ROLLUP"; fi ;;
-  "api repos/o/r/commits/"*/check-runs)
+  "api "*"repos/o/r/commits/"*/check-runs*)
     if [ -n "${GH_API_FAIL:-}" ]; then echo '{"message":"Not Found"}'; echo "gh: Not Found (HTTP 404)" >&2; exit 1; fi
-    cat "$ROLLUP.check-runs" ;;
+    if [ ! -f "$ROLLUP.check-runs.all" ]; then cat "$ROLLUP.check-runs"; exit 0; fi
+    python3 - "$ROLLUP.check-runs.all" "$@" <<'P'
+import json, re, sys
+runs = json.load(open(sys.argv[1]))["check_runs"]
+args = sys.argv[2:]
+text = " ".join(args)
+per = re.search(r"per_page=(\d+)", text)
+per = min(int(per.group(1)) if per else 30, 100)
+page = re.search(r"(?<![_a-z])page=(\d+)", text)
+page = int(page.group(1)) if page else 1
+def doc(p):
+    return {"total_count": len(runs), "check_runs": runs[(p - 1) * per:p * per]}
+if "--paginate" in args:
+    pages = [doc(p) for p in range(page, max(1, -(-len(runs) // per)) + 1)]
+    print(json.dumps(pages) if "--slurp" in args else "".join(json.dumps(d) for d in pages))
+else:
+    print(json.dumps(doc(page)))
+P
+    ;;
   "api repos/o/r/commits/"*/status) cat "$ROLLUP.status" ;;
   *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
 esac
@@ -282,6 +300,18 @@ rollup quietsha.json "$(check COMPLETED SUCCESS)" "$sha"
 sha_runs quietsha.json "$(sha_run lint completed '"neutral"')" "$(sha_run docs completed '"skipped"')" "$(sha_run gates in_progress null)"
 got="$(waited quietsha 60 60 "$sha")"
 [[ "$got" == 3 ]] || problems+=("sha's own runs neutral, skipped and in_progress: want exit 3, got $got (stderr: $(cat "$work/quietsha.err"))")
+report "$name"
+
+name="wait-ci.sh reads every page of the sha's own check runs: a failed run beyond the first page exits 1, even while the PR rollup reads all green (#552)"
+problems=()
+rollup pagedsha.json "$(check COMPLETED SUCCESS)" "$sha"
+sha_runs pagedsha.json
+runs=()
+for i in $(seq 1 100); do runs+=("$(sha_run "gates-$i" completed '"success"')"); done
+runs+=("$(sha_run gates-101 completed '"failure"')")
+( IFS=,; printf '{"total_count":%s,"check_runs":[%s]}\n' "${#runs[@]}" "${runs[*]}" ) > "$work/pagedsha.json.check-runs.all"
+got="$(waited pagedsha 60 60 "$sha")"
+[[ "$got" == 1 ]] || problems+=("rollup green for $sha, a failed run on its check runs' second page: want exit 1, got $got (stderr: $(cat "$work/pagedsha.err"))")
 report "$name"
 
 echo "$pass passed, $fail failed"

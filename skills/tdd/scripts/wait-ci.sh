@@ -55,10 +55,12 @@ sha_state() {
   local repo
   repo="${pr#https://github.com/}"; repo="${repo%/pull/*}"
   local runs
-  runs="$(gh api "repos/$repo/commits/$1/check-runs")" || return 2
+  runs="$(gh api --paginate --slurp "repos/$repo/commits/$1/check-runs")" || return 2
   python3 -c '
 import json, sys
-runs = json.loads(sys.argv[1]).get("check_runs") or []
+pages = json.loads(sys.argv[1])
+pages = pages if isinstance(pages, list) else [pages]
+runs = [r for p in pages for r in p.get("check_runs") or []]
 red = any(r.get("status") == "completed" and r.get("conclusion") not in ("success", "neutral", "skipped") for r in runs)
 print("red" if red else "pending")
 ' "$runs"
