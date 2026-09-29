@@ -24,7 +24,9 @@ if [[ -n "${GH_REPO:-}" ]]; then
   repo_args=(--repo "$GH_REPO")
 fi
 
-body="$(gh issue view "$n" "${repo_args[@]+"${repo_args[@]}"}" --json body -q .body)"
+source "$HERE/lib/github.sh"
+
+body="$(gh_issue_view "$n" body)"
 
 new="$(printf '%s' "$body" | "$HERE/tick-criterion.sh" "$matcher")" || {
   status=$?
@@ -37,4 +39,5 @@ new="$(printf '%s' "$body" | "$HERE/tick-criterion.sh" "$matcher")" || {
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 printf '%s' "$new" > "$tmp"
-gh issue edit "$n" "${repo_args[@]+"${repo_args[@]}"}" --body-file "$tmp" >/dev/null
+gh issue edit "$n" "${repo_args[@]+"${repo_args[@]}"}" --body-file "$tmp" >/dev/null 2>&1 ||
+  gh api -X PATCH "repos/{owner}/{repo}/issues/$n" -F "body=@$tmp" >/dev/null
