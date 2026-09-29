@@ -8,4 +8,4 @@
 - [x] wait-ci.sh exits 1 when a legacy status context of the sha, read from `gh api repos/<owner>/<repo>/commits/<sha>/status`, is in a failure or error state, even when the sha's check runs all succeeded ⟦criterion 1⟧
 - [x] wait-ci.sh exits 3 when a legacy status context of the sha, read from its `/status` endpoint, is still pending, even when the sha's check runs all succeeded ⟦criterion 1⟧
 - [x] No check runs and no statuses for the given sha is pending: wait-ci.sh exits 3, never 0 ⟦criterion 2⟧
-- [x] Called with no head-sha argument, wait-ci.sh reads the PR's current head sha and judges that sha's own check runs and statuses, never the PR rollup ⟂ refactor pending
+- [x] Called with no head-sha argument, wait-ci.sh reads the PR's current head sha and judges that sha's own check runs and statuses, never the PR rollup
