@@ -13,15 +13,14 @@ set -euo pipefail
 
 lib="$(dirname "$0")/lib"
 source "$lib/main-working-tree.sh"
+source "$lib/ledger.sh"
 
 ledger_step() {  # ledger_step <ledger> -> "<n> of <m>"
-  local line total=0 step=0
-  while IFS= read -r line; do
-    case "$line" in
-      "- [x] "*) total=$((total + 1)) ;;
-      "- [ ] "*) total=$((total + 1)); [[ "$step" -eq 0 ]] && step="$total" ;;
-    esac
-  done < "$1"
+  local index state rest total=0 step=0
+  while IFS=$'\t' read -r index state rest; do
+    total="$index"
+    [[ "$state" == open && "$step" -eq 0 ]] && step="$index"
+  done < <(ledger_steps < "$1")
   [[ "$step" -eq 0 ]] && step="$total"
   printf '%s of %s\n' "$step" "$total"
 }

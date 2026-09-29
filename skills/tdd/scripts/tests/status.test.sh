@@ -452,5 +452,28 @@ code=0
 [[ "$out" == *"done https://github.com/o/r/pull/41"* ]] || missing+=("#41 done after its event log changed")
 expect_nothing_missing "--watch [seconds] redraws in place, recomputing every run from disk on each render"
 
+# --- the step count and the current step are lib/ledger.sh's `ledger_steps` (#495) ---
+# Beside a stub module that numbers three steps, the first done and the other two open, the run
+# is on step 2 of 3 — where a count of the ledger's own one open box would say 1 of 1.
+counted="$(repo counted)"
+run="$(fabricate_run "$counted" 31 tdd/31-lamps)"
+printf '# Plan for #31 — lamps glow\n\n- [ ] a lamp glows\n' > "$run/.tdd/issue-31.md"
+stub="$work/stub"
+mkdir -p "$stub"
+cp "$STATUS" "$stub/status.sh"
+cp -R "$HERE/../lib" "$stub/lib"
+cat > "$stub/lib/ledger.sh" <<'EOF'
+ledger_steps() {
+  cat >/dev/null
+  printf '1\tdone\tstep\t0\t0\t\ta lamp exists\n'
+  printf '2\topen\tstep\t0\t0\t\ta lamp glows\n'
+  printf '3\topen\tstep\t0\t0\t\ta lamp dims\n'
+}
+EOF
+out="$(cd "$counted" && "$stub/status.sh" 2>/dev/null)" && code=0 || code=$?
+missing=()
+[[ "$out" == *"step 2 of 3"* ]] || missing+=("step 2 of 3")
+expect_nothing_missing "finds the step through lib/ledger.sh's ledger_steps, counting no checkbox of its own"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
