@@ -218,6 +218,47 @@ if [[ -n "$cited" ]]; then
 fi
 verdict "no comment line in scripts/*.sh or scripts/lib/*.sh, the contract header included, cites an issue number"
 
+# 20. the text of every class 3 line in the suites is unchanged, in its file and in its order.
+problems=""
+TESTS="$SCRIPTS/tests"
+files=("$TESTS"/*.sh "$TESTS"/unit/*.sh "$TESTS"/fixtures/*/*.sh "$TESTS/unit-guard/git" "$TESTS/offline/gh")
+classify "${files[@]}"
+got="$(awk -F: -v tests="$TESTS/" 'NR == FNR { if ($NF == 3) want[$1 ":" $2] = 1; next }
+  (FILENAME ":" FNR) in want { f = FILENAME; sub("^" tests, "", f); print f ":" $0 }' \
+  - "${files[@]}" <<< "$out")"
+IFS= read -r -d '' expected <<'EOF' || true
+capture-spec.test.sh:## What happened
+capture-spec.test.sh:## Expected
+capture-spec.test.sh:## Steps to reproduce
+capture-spec.test.sh:## Environment
+capture-spec.test.sh:## Acceptance criteria
+capture-spec.test.sh:## What to build
+capture-spec.test.sh:## Acceptance criteria
+orchestrate.test.sh:# A stopped conductor must be stopped by a signal, not by its writes failing, so this stub
+orchestrate.test.sh:# IGNORES SIGPIPE — the state CI's Linux was observed in, where a write to the closed stream
+orchestrate.test.sh:# came back as plain \`echo: I/O error\` and the conductor ran on. On this Mac SIGPIPE is fatal
+orchestrate.test.sh:# and would end the stub whatever orchestrate.sh did, so without this line the cases below
+orchestrate.test.sh:# cannot go red here at all, and the regression they exist for is only visible on CI. This is
+orchestrate.test.sh:# a stub imitating a platform, not a suite repairing its own pipeline (#422).
+parallel-conductors.test.sh:#!/bin/sh
+run-verdict.test.sh:#!/bin/sh
+run-verdict.test.sh:# Stub verifier: record the argv handed to it, one argument per line, and answer like a
+run-verdict.test.sh:# verifier that passed — what this case reads is the record, not the verdict.
+run-verdict.test.sh:#!/bin/sh
+run-verdict.test.sh:# Stub verifier: copy the phase's reason file, as it stands now, into the record this case
+run-verdict.test.sh:# reads — an unreadable or absent file records as nothing, which is the same answer as a
+run-verdict.test.sh:# cleared one and the answer this case wants.
+skill-refactor-pending.test.sh:## The scripts (this skill's `scripts/` directory)
+skill-refactor-pending.test.sh:## The scripts (this skill's `scripts/` directory)
+solvable-issues.test.sh:#!/bin/sh
+EOF
+expected="${expected%$'\n'}"
+if [[ "$got" != "$expected" ]]; then
+  problems+="    want the 24 class 3 lines unchanged (< want, > got):"$'\n'
+  problems+="$(diff <(printf '%s\n' "$expected") <(printf '%s\n' "$got"))"$'\n'
+fi
+verdict "the text of every class 3 line in the suites is unchanged, in its file and in its order"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

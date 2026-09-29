@@ -2,7 +2,7 @@
 
 Scope: every shell file under `skills/tdd/scripts/tests/` — the `*.sh` files (top level, `unit/`, `fixtures/`) and the shims `unit-guard/git` and `offline/gh`. "The sweepable report" is `skills/tdd/scripts/comment-class.sh --sweepable <files>`; it is empty when it prints nothing.
 
-- [ ] The text of every class 3 `#` line in the suites (24 lines, in capture-spec, orchestrate, parallel-conductors, run-verdict, skill-refactor-pending and solvable-issues) is pinned, so a sweep that edits, moves or deletes one turns a suite red ⟦criterion 3⟧
+- [x] The text of every class 3 `#` line in the suites (24 lines, in capture-spec, orchestrate, parallel-conductors, run-verdict, skill-refactor-pending and solvable-issues) is pinned, so a sweep that edits, moves or deletes one turns a suite red ⟦criterion 3⟧
 - [ ] The sweepable report is empty for every top-level `tests/*.sh` whose name starts with a or b ⟦criterion 1⟧
 - [ ] The sweepable report is empty for every top-level `tests/*.sh` whose name starts with c or d ⟦criterion 1⟧
 - [ ] The sweepable report is empty for every top-level `tests/*.sh` whose name starts with e through j ⟦criterion 1⟧
