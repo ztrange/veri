@@ -18,3 +18,5 @@
 - the `⟦criterion ` literal is spelled twice: in `ledger_add_step`'s step template and in `ledger_steps`'s `criterion_re`. It is pre-existing and was not written this cycle.
 ### `tick-ledger.sh` sources `lib/ledger.sh` and appends the pending mark through `ledger_tick … pending`, spelling no mark literal of its own, with the file it writes and its exit codes unchanged (its existing suite passes unmodified) ⟦criterion 3⟧
 - delete the dead `cp "$HERE/../tick-criterion.sh" "$stub/tick-criterion.sh"` in tick-ledger.test.sh case 6 — tick-ledger.sh no longer calls tick-criterion.sh, so the stub never uses it
+### `clear-refactor-pending.sh` sources `lib/ledger.sh` and strips the mark through `ledger_clear_pending`, spelling neither a checkbox pattern nor the mark of its own, with the file it writes and its exit codes unchanged (its existing suite passes unmodified) ⟦criterion 3⟧
+- `tests/unit/clear-refactor-pending.test.sh` case 3 repeats `check()`'s exit-code/`cmp`/diff verdict block; a shared verdict helper would remove that, but it rewrites `check()`, which belongs to the pre-existing suite this step promises passes unmodified, so I left it alone
