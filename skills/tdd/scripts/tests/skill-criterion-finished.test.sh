@@ -180,6 +180,24 @@ does_not_hold 'resume' \
   "$(head -1 < <(section_records '## Resume' | grep -E 'go to the \*?\*?draft pr'))"
 report "$name"
 
+# 8. One criterion (#495) — criterion k's text, handed to tick-issue-criterion.sh, is read out of
+#    the issue body's `## Acceptance criteria` section as ledger-steps.sh's records rather than by
+#    a checkbox pattern the procedure spells itself.
+name="#495: every $skill_md instruction that ticks criterion k in the issue body reads its text from ledger-steps.sh's records, spelling no checkbox pattern of its own"
+problems=()
+ticks="$(records_of < "$skill_path" | grep -F 'tick-issue-criterion.sh <n> "$(' || true)"
+if [[ -z "$ticks" ]]; then
+  problems+=("no instruction of $skill_md hands tick-issue-criterion.sh a criterion text read out of the issue body — the rule could not be checked")
+else
+  while IFS= read -r rec; do
+    [[ "$rec" == *'ledger-steps.sh'* ]] ||
+      problems+=("reads criterion k's text without ledger-steps.sh: $(printf '%.160s' "${rec#*tick-issue-criterion.sh}")")
+    [[ "$rec" != *'\[[ x]\]'* ]] ||
+      problems+=("still spells its own checkbox pattern: $(printf '%.160s' "${rec#*tick-issue-criterion.sh}")")
+  done <<< "$ticks"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
