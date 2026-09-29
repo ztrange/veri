@@ -22,7 +22,7 @@ if (( $# == 0 )); then
 fi
 
 awk -v sweepable="$sweepable" '
-  BEGIN { writer = "\\|[[:space:]]*(tee|dd|sponge)[[:space:]]" }
+  BEGIN { writer = "\\|[[:space:]]*(tee|dd|sponge)[[:space:]]"; name = "[A-Za-z_][A-Za-z0-9_]*" }
   function scan(s,   i, c) {
     for (i = 1; i <= length(s); i++) {
       c = substr(s, i, 1)
@@ -50,10 +50,10 @@ awk -v sweepable="$sweepable" '
     next
   }
   { scan($0); line = $0; gsub(/<<</, "", line) }
-  match(line, /[A-Za-z_][A-Za-z0-9_]*=[^[:space:];]*\.md["\047]?([[:space:];]|$)/) {
+  match(line, name "=[^[:space:];]*\\.md[\"\047]?([[:space:];]|$)") {
     v = substr(line, RSTART, RLENGTH); sub(/=.*/, "", v); mdvar[v] = 1
   }
-  match(line, /<<-?[[:space:]]*["'\'']?[A-Za-z_][A-Za-z0-9_]*/) {
+  match(line, "<<-?[[:space:]]*[\"\047]?" name) {
     out = line; gsub(/[02-9]>+[[:space:]]*[^[:space:]]*/, "", out)
     cls = out ~ />[[:space:]]*[^&[:space:]]/ || out ~ writer ? 2 : 3
     if (out ~ "(>|" writer "[^|]*)[[:space:]]*[^&|[:space:]]*\\.md[\"\047]?([[:space:]]|$)") cls = 3
@@ -61,7 +61,7 @@ awk -v sweepable="$sweepable" '
     dash = delim ~ /^-/
     body = 1
     sub(/^-?[[:space:]]*["'\'']?/, "", delim)
-    if (match(out, />[[:space:]]*"?\$[A-Za-z_][A-Za-z0-9_]*/)) {
+    if (match(out, ">[[:space:]]*\"?\\$" name)) {
       v = substr(out, RSTART, RLENGTH); sub(/^>[[:space:]]*"?\$/, "", v)
       if (v in mdvar) cls = 3
     }
