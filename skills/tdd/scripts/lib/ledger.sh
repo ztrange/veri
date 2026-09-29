@@ -12,12 +12,12 @@
 # ledger_tick <matcher> [pending] — stdin → stdout: the first open step whose line contains <matcher>
 # (an empty matcher: the first open step) becomes `[x]`, and with `pending` also gains
 # ` ⟂ refactor pending` at its end; every other byte is copied unchanged.
-_ledger_pending_mark=' ⟂ refactor pending'
-
 # Assigns the caller's local `re`: bash scopes a callee's assignment dynamically.
 _ledger_step_re() {
   re='^([[:space:]]*- )\[([ xX])\] (.*)$'
 }
+
+_ledger_pending_mark=' ⟂ refactor pending'
 
 ledger_steps() {
   local line state kind pending added criterion text index=0 re
