@@ -1795,7 +1795,7 @@ committed ledger `.tdd/issue-<n>.md` still carries every `[x]` tick and every
 ` ⟂ refactor pending` mark `.tdd/reconcile-ledger.before` had:
 
 ```
-diff <(grep -F -e '[x]' -e '⟂ refactor pending' .tdd/reconcile-ledger.before) <(git show HEAD:.tdd/issue-<n>.md | grep -F -e '[x]' -e '⟂ refactor pending')
+diff <($S/ledger-steps.sh < .tdd/reconcile-ledger.before | awk -F'\t' '$2 == "done" {print $4 "\t" $7}') <(git show HEAD:.tdd/issue-<n>.md | $S/ledger-steps.sh | awk -F'\t' '$2 == "done" {print $4 "\t" $7}')
 ```
 
 Then continue where the push was called. A leaf exit 1 or 2, a second `push-branch.sh` exit
