@@ -20,7 +20,7 @@
 # Exit: 0 a mark was cleared; 3 no such step.
 #
 # ledger_add_step <text> <k> — stdin → stdout: `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` is written
-# directly after the last step line; every other byte is copied unchanged.
+# directly after the last step line; every other byte is copied unchanged. Empty stdin: the step alone.
 # Assigns the caller's locals `re`, `open_step` and `done_box`: bash scopes a callee's assignment dynamically.
 _ledger_step_re() {
   re='^([[:space:]]*-[[:space:]])\[([ xX])\]( (.*))?$' open_step='- [ ]' done_box='[x]'
@@ -102,6 +102,7 @@ ledger_add_step() {
     lines+=("$line")
     nls+=("$nl")
   done
+  ((${#lines[@]})) || printf '%s\n' "$step"
   for i in "${!lines[@]}"; do
     if ((i == last)); then
       printf '%s\n%s%s' "${lines[i]}" "$step" "${nls[i]}"
