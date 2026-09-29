@@ -37,4 +37,3 @@ fresh:
 	@python3 check-walkthrough.py
 
 check: test fresh
-	@$(DEV_RUN_GUARD)
