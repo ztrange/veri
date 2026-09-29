@@ -9,7 +9,7 @@
 - [x] solvable-issues.sh writes nothing to stderr under the GraphQL-refusing gh stub, the same as against a working `gh`: the GraphQL-403 refusal message is not passed through to the caller ⟦added⟧ ⟦criterion 1⟧
 - [x] workqueue.sh produces the same stdout and exit code under the GraphQL-refusing stub as it does today against a working `gh` ⟦criterion 1⟧
 - [x] tick-issue-criterion.sh ticks the issue body's criterion and exits as today under the GraphQL-refusing stub, reading and writing the body over REST ⟦criterion 1⟧
-- [x] coverage-blocker.sh files the coverage issue and records the block, with the same stdout and exit code, under the GraphQL-refusing stub ⟦criterion 1⟧ ⟂ refactor pending
+- [x] coverage-blocker.sh files the coverage issue and records the block, with the same stdout and exit code, under the GraphQL-refusing stub ⟦criterion 1⟧
 - [ ] parallel-conductors.sh produces the same stdout and exit code under the GraphQL-refusing stub as it does today against a working `gh` ⟦criterion 1⟧
 - [ ] wait-ci.sh reads a PR's head sha and check state and exits 0/1/2/3 as today under the GraphQL-refusing stub ⟦criterion 1⟧
 - [ ] invisible-work.sh produces the same stdout and exit code under the GraphQL-refusing stub as it does today against a working `gh` ⟦criterion 1⟧
@@ -21,3 +21,7 @@
 ## Owed steps
 
 - solvable-issues.sh under the GraphQL-refusing stub does not count a pull request (a /issues REST item carrying pull_request) as a solvable issue, even when it carries the opt-in label
+
+## Owed steps
+
+- coverage-blocker.sh writes nothing to stderr under the GraphQL-refusing stub, the same as against a working gh
