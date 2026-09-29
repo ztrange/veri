@@ -23,8 +23,6 @@ show_run() {  # show_run <exit> <stdout-file> <stderr-file> — print what a fai
   echo "    stderr: $(printf '%q' "$(cat "$3")")"
 }
 
-# 1. sourcing the script runs nothing: no git call, no exit out of the sourcing shell, and a
-#    `main` function left defined for a caller to run
 name="sourcing push-branch.sh runs nothing and defines main"
 calls="$scratch/calls"
 : > "$calls"
@@ -45,11 +43,6 @@ else
   ok
 fi
 
-# 2. executed directly, the guard still runs main and the CLI contract is byte-identical to
-#    the one the integration suite (tests/push-branch.test.sh, left unmodified) holds the
-#    script to: a bad tunable is caught before any push — nothing on stdout, exactly one
-#    stderr line naming the tunable and the value, exit 2. No git, gh or sleep runs on this
-#    path, which is why it can be checked here without a mock.
 name="executed directly, push-branch.sh keeps its CLI contract: VERI_PUSH_RETRIES=x prints nothing on stdout, one exact stderr line, and exits 2"
 out="$scratch/out" err="$scratch/err"
 VERI_PUSH_RETRIES=x VERI_PUSH_BACKOFF=0 "$PUSH" > "$out" 2> "$err"
@@ -62,10 +55,6 @@ else
   ok
 fi
 
-# 3. sourced, with git, sleep and the event recording mocked as same-named functions and PATH
-#    an empty directory, main runs the whole failed-push path in-process: every attempt
-#    pushes, one wait between the two, one push-failed event, one stderr line, exit 0 — and
-#    no real process is started, since PATH holds nothing one could be started from
 name="sourced with git, sleep and record mocked as functions and PATH empty, main runs a failed push to its push-failed event, starting no real process"
 calls="$scratch/calls3" err="$scratch/err3" nobin="$scratch/nobin"
 mkdir -p "$nobin"
@@ -94,9 +83,6 @@ else
   ok
 fi
 
-# 4. this suite's own header comment — the `#` lines between the shebang and the first line of
-#    code — says why push-branch.sh is the script migrated first (#339): it was chosen by a
-#    process-count proxy, not by measured seconds. Read with bash alone, so it starts nothing.
 name="the unit suite's header comment records push-branch.sh as the chosen script, by a process-count proxy and not measured seconds"
 header=""
 {

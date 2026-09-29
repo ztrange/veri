@@ -22,7 +22,6 @@ check() {  # check <name> <expected-exit> <input> <expected-stdout>
   fi
 }
 
-# 1. the first marked step's description, with the mark stripped
 pending='# Plan for #42
 
 - [x] add the slugify lowercasing
@@ -32,16 +31,12 @@ pending='# Plan for #42
 check "first pending description, mark stripped" 0 "$pending" \
   "collapse non-alphanumerics to a single hyphen"
 
-# 2. no step carries the mark → exit 3, no output (nothing to re-enter)
 settled='# Plan for #42
 
 - [x] add the slugify lowercasing
 - [ ] collapse non-alphanumerics to a single hyphen'
 check "no pending step exits 3" 3 "$settled" ""
 
-# 3. the step printed is the first pending step of lib/ledger.sh's records, not one the
-# script finds in the markdown itself: beside a stub module whose `ledger_steps` answers
-# for the ledger, the stub's answer is what is printed (#495)
 work="$(scratch_dir)"
 mkdir "$work/lib"
 cp "$PENDING" "$work/next-pending-refactor.sh"

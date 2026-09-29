@@ -28,7 +28,6 @@ verdict() {
 
 mark=' ⟂ refactor pending'
 
-# 1. the mark is spelled in lib/ledger.sh and in no other script or module.
 problems=""
 carriers="$(cd "$SCRIPTS" && grep -rlF --include='*.sh' --include='*.py' -e "$mark" . \
   | sed 's|^\./||' | awk '$0 !~ /^tests\// && $0 != "lib/ledger.sh"' | sort)"
@@ -40,7 +39,6 @@ if ! grep -F -e "$mark" "$SCRIPTS/lib/ledger.sh" > /dev/null; then
 fi
 verdict "the pending mark is spelled in lib/ledger.sh only"
 
-# 2. lib/ledger.sh spells a box — `\[`, `[x]`, `[X]` or `[ ]` — on exactly one non-comment line.
 problems=""
 spellers="$(grep -nF -e '\[' -e '[x]' -e '[X]' -e '[ ]' "$SCRIPTS/lib/ledger.sh" \
   | grep -vE '^[0-9]+:[[:space:]]*#')"
@@ -54,7 +52,6 @@ if [[ "$count" -ne 1 ]]; then
 fi
 verdict "the step-line pattern is spelled on one line of lib/ledger.sh"
 
-# 3. no script or module but lib/ledger.sh, and no line of SKILL.md, spells a box.
 problems=""
 box=(-e '\\\[\(?([ xX]|\[[^]]*\])\)?\\\]' -e "'\[x\]'" -e '"- \[[ x]\] "')
 spellers="$( (cd "$SCRIPTS" && grep -rnE --include='*.sh' --include='*.py' "${box[@]}" .) \

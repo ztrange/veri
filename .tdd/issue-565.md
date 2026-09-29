@@ -6,7 +6,7 @@ Scope: every shell file under `skills/tdd/scripts/tests/`. "The sweepable report
 - [x] comment-class.sh classifies every `#` line of a file and drops none after a `"$(cmd 'a "b')"` shape (a `"` inside a single-quoted argument inside `"$(…)"`) ⟦criterion 2⟧
 - [x] The sweepable report is empty for every shell file under `tests/unit/` whose name starts with c through e, other than `comment-class.test.sh` ⟦criterion 3⟧
 - [x] The sweepable report is empty for `tests/unit/ledger.test.sh`, the one unit suite starting with a letter no criterion names
-- [ ] The sweepable report is empty for every shell file under `tests/unit/` whose name starts with m through p ⟦criterion 4⟧
+- [x] The sweepable report is empty for every shell file under `tests/unit/` whose name starts with m through p ⟦criterion 4⟧ ⟂ refactor pending
 - [ ] The sweepable report is empty for `tests/unit/red-divergence.test.sh` ⟦criterion 5⟧
 - [ ] The sweepable report is empty for `tests/unit/run-affordable.test.sh` ⟦criterion 5⟧
 - [ ] The sweepable report is empty for `tests/unit/step-budget.test.sh` and `tests/unit/step-cost.test.sh` ⟦criterion 6⟧

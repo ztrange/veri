@@ -442,4 +442,7 @@ sweep_verdict "the sweepable report is empty for every tests/unit/*.sh whose nam
 # 41. the sweepable report is empty for tests/unit/ledger.test.sh.
 sweep_verdict "the sweepable report is empty for tests/unit/ledger.test.sh" "$SCRIPTS"/tests/unit/ledger.test.sh
 
+# 42. the sweepable report is empty for every tests/unit/*.sh whose name starts with m through p.
+sweep_verdict "the sweepable report is empty for every tests/unit/*.sh whose name starts with m through p" "$SCRIPTS"/tests/unit/[m-p]*.sh
+
 finish
