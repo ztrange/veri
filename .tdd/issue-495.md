@@ -32,6 +32,7 @@
 - [x] The literal ` ⟂ refactor pending` appears — code and comments alike — in exactly one `.sh` or `.py` file under `skills/tdd/scripts/` outside `tests/`, namely `lib/ledger.sh`, pinned by a unit-tier audit suite that names any other file carrying it ⟦criterion 1⟧
 - [x] Inside `lib/ledger.sh` the step-line pattern is defined once and every reader and writer in the module (bash and awk alike) uses that one definition — pinned by the audit suite ⟦criterion 2⟧
 - [x] No non-comment line of a `.sh` or `.py` file under `skills/tdd/scripts/` outside `tests/` other than `lib/ledger.sh`, and no line of `skills/tdd/SKILL.md`, spells a box pattern — an escaped `\[` box or a `'[x]'` / `"- [x] "` / `"- [ ] "` literal — pinned by the audit suite, naming any file and line that does ⟦criterion 2⟧
+- [ ] repair the full suite: `event-log.test.sh` and `main-working-tree.test.sh` go red because each copies `status.sh` beside stand-in libs with no `lib/ledger.sh` (`FAIL - run_activity and scope_totals read the event log through lib/event_log.py…`; `FAIL - a shared lib/main-working-tree.sh defines main_working_tree, and status.sh and solvable-issues.sh both resolve…`) — both suites green again with their assertions unchanged ⟦added⟧ ⟦criterion 2⟧
 - [ ] The callers' suites stay green under the full suite ⟦full-suite⟧ ⟦criterion 4⟧
 - [ ] The behaviour of every affected script is unchanged — every caller's pre-existing suite passes unmodified — with one transform per commit ⟦full-suite⟧ ⟦criterion 5⟧
 
