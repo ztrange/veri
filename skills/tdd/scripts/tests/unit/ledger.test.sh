@@ -32,9 +32,12 @@ expect_records() {
   fi
 }
 
+records_of() {
+  printf '%s' "$2" | (source "$LIB" && ledger_steps) 2>&1 | awk -F '\t' "{ print $1 }"
+}
+
 steps_of() {
-  printf '%s' "$1" | (source "$LIB" && ledger_steps) 2>&1 |
-    awk -F '\t' '{ print $1 "\t" $2 "\t" $NF }'
+  records_of '$1 "\t" $2 "\t" $NF' "$1"
 }
 
 # 1. index, state and text: one record per step line at any indent, index counting step lines
@@ -81,7 +84,7 @@ doc='- [ ] plain step ⟦criterion 1⟧
 '
 want=$'1\tstep\n2\tfull-suite\n3\thuman-owed\n4\tstep'
 expect_records "ledger_steps kind differs" "$want" \
-  "$(printf '%s' "$doc" | (source "$LIB" && ledger_steps) 2>&1 | awk -F '\t' '{ print $1 "\t" $3 }')"
+  "$(records_of '$1 "\t" $3' "$doc")"
 verdict "ledger_steps kind is full-suite or human-owed only for a marker right before the criterion tag, step otherwise"
 
 echo "$pass passed, $fail failed"
