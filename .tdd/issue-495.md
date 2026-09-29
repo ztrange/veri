@@ -1,7 +1,7 @@
 # Plan for #495 — the ledger's grammar lives in one module instead of five copies
 
 - [x] `skills/tdd/scripts/lib/ledger.sh` exists — its header says "sourced, not run", it has no main guard — and its own unit suite `tests/unit/ledger.test.sh` pins `ledger_steps`'s `index`, `state` and `text` fields: stdin → one tab-separated record per step line, index 1-based over step lines only, state `open` for `[ ]` and `done` for `[x]` or `[X]`, any indent accepted, every line with no box (headings, prose, `## Owed steps` bullets) skipped ⟦criterion 4⟧
-- [x] `ledger_steps` emits a record for a final step line that has no trailing newline — pinned in `tests/unit/ledger.test.sh` ⟦added⟧ ⟦criterion 4⟧ ⟂ refactor pending
+- [x] `ledger_steps` emits a record for a final step line that has no trailing newline — pinned in `tests/unit/ledger.test.sh` ⟦added⟧ ⟦criterion 4⟧
 - [ ] `ledger_steps`'s `kind` field is `full-suite` or `human-owed` for a step whose line ends in that marker immediately before its `⟦criterion k⟧`, and `step` otherwise — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧
 - [ ] `ledger_steps`'s `pending` field is `1` for a ticked step whose line ends in ` ⟂ refactor pending` and `0` otherwise, and the mark is not part of that record's `text` — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧
 - [ ] `ledger_steps`'s `added` field is `1` for a step carrying `⟦added⟧` and its `criterion` field is `k` for a step carrying `⟦criterion k⟧` (empty when it carries none) — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧
