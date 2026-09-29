@@ -2771,6 +2771,14 @@ commentary owed' \
   "owed: classify-bail.sh L12–13" \
   bash -c 'sed_commentary "s/lines=(12, 18)/lines=(14, 18)/"'
 
+# 3d. a script on disk that commentary.SCRIPTS does not list still builds: exit 0, a
+#     section whose id comes from the filename, and its source verbatim.
+owes "a script with no commentary entry is rendered from disk" \
+  'id="unlisted-probe"
+<span class="c"># an unlisted probe line</span>' \
+  "" \
+  bash -c 'printf "#!/usr/bin/env bash\n# an unlisted probe line\nexit 0\n" > skills/tdd/scripts/unlisted-probe.sh'
+
 # 4. unknown-reference guard — a typo'd id must not become a dead tooltip
 refuses "unknown reference id is refused" "unknown primer ref" \
   bash -c 'sed_commentary "s/{{p-strict|set -euo pipefail}}/{{p-stirct|set -euo pipefail}}/"'
