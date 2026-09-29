@@ -114,10 +114,12 @@ verdict "ledger_steps added is 1 for a step carrying the added mark and criterio
 #    becomes `- [x]`; prose and ticked lines that match are passed over, every other byte kept.
 problems=""
 tick_of() {
-  local doc="$1"
+  local doc="$1" status
   shift
   printf '%s' "$doc" | (source "$LIB" && ledger_tick "$@") 2>&1
+  status=$?
   printf '.'
+  return "$status"
 }
 doc='# Plan for the slug
 
@@ -150,9 +152,9 @@ doc='# Plan for the slug
 - [x] lowercase the slug ⟦criterion 1⟧
 - [ ] trim whitespace ⟦criterion 2⟧
 '
-expect_records "ledger_tick 'slug' output differs" "$doc." "$(tick_of "$doc" 'slug')"
-printf '%s' "$doc" | (source "$LIB" && ledger_tick 'slug') > /dev/null 2>&1
+got="$(tick_of "$doc" 'slug')"
 expect_records "ledger_tick exit status differs" "3" "$?"
+expect_records "ledger_tick 'slug' output differs" "$doc." "$got"
 verdict "ledger_tick returns 3 and writes the document unchanged when no open step contains the matcher"
 
 echo "$pass passed, $fail failed"
