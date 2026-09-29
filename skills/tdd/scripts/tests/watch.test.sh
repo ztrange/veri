@@ -36,8 +36,6 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -49,9 +47,6 @@ report() {
   fi
 }
 
-# phony_rule <target> — <target>'s rule line in make's database (`db`): the `<target>:`
-# line, printed only when make's `#  Phony target` note follows it, so nothing when the
-# target is missing or not phony.
 phony_rule() {
   awk -v t="$1:" '
     prev != "" && /^#  Phony target/ { print prev }
@@ -59,14 +54,10 @@ phony_rule() {
   ' <<< "$db"
 }
 
-# prereqs <target> — the prerequisites on <target>'s phony rule line, one per line.
 prereqs() {
   phony_rule "$1" | sed 's/^[^:]*://' | tr ' ' '\n' | sed '/^$/d'
 }
 
-# bounded <cmd…> — run <cmd…> in the background and wait for it, killing it if it is still
-# running after 30 s: a watchdog on the real sleep bounds a loop that never ends on its own.
-# On a passing run the watchdog is killed before it fires.
 bounded() {
   "$@" &
   local watched=$! watchdog
@@ -76,8 +67,6 @@ bounded() {
   kill "$watchdog" 2>/dev/null; wait "$watchdog" 2>/dev/null
 }
 
-# 1. `make -np watch` exits 0, and its database marks `watch` phony, with no prerequisite
-#    among test, unit and merge-gates — and none of those three lists `watch` as one.
 name="make -n watch: its own .PHONY target, separate from test, unit and merge-gates"
 problems=()
 db="$(make --no-print-directory -np -C "$ROOT" watch 2>&1)" && code=0 || code=$?
@@ -90,10 +79,6 @@ for t in test unit merge-gates; do
 done
 report "$name"
 
-# 2. A malformed VERI_WATCH_INTERVAL exits 2 naming the variable; unset, the loop's first
-#    wait between passes is `sleep 1`. The stub sleep records its argument and kills its
-#    caller, so the loop ends at its first wait; `bounded` covers a loop that never reaches
-#    a wait at all.
 name="VERI_WATCH_INTERVAL: malformed exits 2 naming the variable, unset defaults to 1"
 problems=()
 scratch="$(mktemp -d)"
@@ -104,7 +89,6 @@ printf '%s\n' "$1" >> "$SLEEP_LOG"
 kill -TERM "$PPID"
 STUB
 chmod +x "$scratch/bin/sleep"
-# stubbed_watch — `make watch` with the stub sleep first on PATH, logging to sleep.log.
 stubbed_watch() {
   SLEEP_LOG="$scratch/sleep.log" PATH="$scratch/bin:$PATH" \
     make --no-print-directory -s -C "$ROOT" watch
@@ -123,12 +107,6 @@ first_wait="$(head -n1 "$scratch/sleep.log")"
 rm -rf "$scratch"
 report "$name"
 
-# 3. Against a fixture repo — a copy of this Makefile and the watch library it sources, one
-#    tracked file, and a fixture unit
-#    suite that logs each `make unit` run — the stub sleep is the loop's clock: it counts its
-#    calls, fabricates a change to the tracked file (new content and an explicit mtime) on
-#    calls 2 and 4, and ends the loop at call 6. The fixture suite logs the call count each
-#    time it runs, so one rerun per change and none between them reads `2 4`.
 name="make watch: reruns make unit once per detected change, never between changes"
 problems=()
 scratch="$(mktemp -d)"
@@ -165,18 +143,11 @@ runs="$(tr '\n' ' ' < "$scratch/unit.log" | sed 's/ $//')"
 rm -rf "$scratch"
 report "$name"
 
-# 4. One poll pass is `watch_snapshot` from skills/tdd/scripts/lib/watch.sh, which the recipe
-#    sources; it hands the tracked files to its stat wrapper, `watch_stat`. With the library
-#    sourced into this shell and `watch_stat` replaced by a spy that logs each call, one pass
-#    over a fixture repo of 1 tracked file and one over 40 each call the wrapper exactly once —
-#    one call per pass whatever the file count, which is what makes polling cheap enough to
-#    take over the fswatch/entr fallback.
 name="make watch: one poll pass calls its stat wrapper exactly once, whatever the number of tracked files"
 problems=()
 lib="$ROOT/skills/tdd/scripts/lib/watch.sh"
 scratch="$(mktemp -d)"
 if [[ -f "$lib" ]]; then
-  # shellcheck source=/dev/null
   source "$lib"
 else
   problems+=("no stat-wrapper library to source at ${lib#"$ROOT"/}")
@@ -201,12 +172,6 @@ fi
 rm -rf "$scratch"
 report "$name"
 
-# 5. The loop never runs a make target besides `unit`. Against a fixture repo like case 3's,
-#    the outer `make watch` is handed MAKE=<wrapper> on its command line — the loop names make
-#    as $(MAKE), which a command-line value overrides — and the wrapper logs the goals of every
-#    make the loop starts, then execs the real one. The stub sleep fabricates one change on
-#    its call 2 and ends the loop at call 4, so the loop reruns at least once; every make it
-#    starts must have asked for `unit` and nothing else.
 name="make watch: never runs any make target besides unit"
 problems=()
 scratch="$(mktemp -d)"
@@ -262,11 +227,6 @@ done < "$scratch/make.log"
 rm -rf "$scratch"
 report "$name"
 
-# 6. The Makefile documents `make watch` the way it documents `make profile`: a comment
-#    paragraph opening "# `make watch`" that calls it a developer convenience (or low
-#    priority), says it is not part of `test`, and that nothing gates on it. Read off the
-#    Makefile as text, since a comment is what make itself never shows, and joined into one
-#    line first so where the prose wraps cannot decide the case.
 name="Makefile: comment header documents make watch as a low-priority developer convenience, like profile and docs"
 problems=()
 header="$(awk '
@@ -286,9 +246,6 @@ else
 fi
 report "$name"
 
-# 7. This suite runs in `make test`'s lane and not in `make unit`'s. Each roster is read
-#    off `make -n <target>`, which prints the recipe with its glob already expanded and
-#    runs none of it — the target's own list, not a copy of its glob written out here.
 name="watch.test.sh: run by make test's glob, not by make unit's"
 problems=()
 roster() { make --no-print-directory -C "$ROOT" -n "$1" 2>&1 | grep -o '[^ ]*\.test\.sh' | sort -u; }

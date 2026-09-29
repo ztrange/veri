@@ -26,11 +26,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 TIMED="$HERE/../timed-test-run.sh"
-# The reader at the other end of the mark, for case 2: the same report the conductor commits
-# beside the ledger and pastes into the issue thread.
 METRICS="$HERE/../metrics.sh"
-# The other reader of the mark, for case 3: the figure a later comparison judges a run
-# against.
 USUAL="$HERE/../tier-usual.sh"
 pass=0 fail=0
 
@@ -45,10 +41,6 @@ report() {
   fi
 }
 
-# jget <file> <key> — the value of <key> on the file's first line, or `<<missing>>`. The same
-# `json.loads` read metrics.sh makes of this log, so a value read back here is what a reader
-# of the run would get, not merely what bytes landed. python3 rather than jq: the repo already
-# depends on the interpreter and not on jq.
 jget() {
   python3 -c '
 import sys, json
@@ -58,10 +50,6 @@ print(obj[key] if key in obj else "<<missing>>")
 ' "$1" "$2" 2>/dev/null
 }
 
-# wrote_log <tree> — sets `log` to the events log under <tree> and answers whether the wrapper
-# wrote one at all. Both cases that read a mark back ask this first: jget over a file that is
-# not there answers `<<missing>>` for every key, so an absent log would otherwise be reported
-# once per key read instead of once.
 wrote_log() {
   log="$1/.tdd/events.jsonl"
   [[ -f "$log" ]] && return 0
@@ -69,12 +57,6 @@ wrote_log() {
   return 1
 }
 
-# wrapped <tree> <issue> <phase> <tier> <suites> <cmd> [args …] — one run of the wrapper under
-# <tree>, quietly, handing back the status it handed its caller. Every case below is one or
-# more of these, so the launch line is spelled here once: `env` sets the run context for that
-# child only, so an answer is a fact about the script and not about whatever the shell running
-# `make test` exported (hermetic-suites.test.sh's concern), and the three keys no case varies —
-# actor, step, attempt — are fixed here rather than restated at each call.
 wrapped() {
   local tree="$1" issue="$2" phase="$3" tier="$4" suites="$5"
   shift 5
@@ -82,14 +64,6 @@ wrapped() {
       VERI_STEP=1 VERI_ATTEMPT=1 "$TIMED" "$tier" "$suites" "$@" ) >/dev/null 2>&1
 }
 
-# 1. The whole of this step's criterion, as one case: one wrapped run writes one `test-run`
-#    line carrying its tier, its suites and its seconds, and hands the caller back the
-#    command's own status.
-#
-#    The command is `sh -c 'exit 7'` — neither 0 nor 1, so a wrapper that reports its own
-#    success, or event.sh's, or a plain "the command failed", is caught rather than passed.
-#    The suites argument holds two paths separated by a space, which is what a caller already
-#    has in hand: affected-suites.sh prints one suite path per line and a caller joins them.
 name="timed-test-run.sh <tier> <suites> <cmd>: runs the command, writes one test-run event carrying tier, suites and seconds, and exits with the command's own status"
 problems=()
 work="$(mktemp -d)"
@@ -100,8 +74,6 @@ wrapped "$work" 342 green fast "$suites" sh -c 'exit 7' && code=0 || code=$?
   problems+=("want the command's own exit status 7, got $code")
 
 if wrote_log "$work"; then
-  # Exactly one line for exactly one run: a wrapper that marked both a start and an end would
-  # make every reader of this log count each run twice.
   lines="$(wc -l < "$log" | tr -d ' ')"
   [[ "$lines" == 1 ]] ||
     problems+=("want exactly 1 line in .tdd/events.jsonl, got $lines")
@@ -118,8 +90,6 @@ if wrote_log "$work"; then
   [[ "$got_suites" == "$suites" ]] ||
     problems+=("suites: want $(printf '%q' "$suites"), got $(printf '%q' "$got_suites")")
 
-  # Present and a whole number of seconds — the value itself is the run's to report and this
-  # suite's never to pin.
   got_seconds="$(jget "$log" seconds)"
   [[ "$got_seconds" =~ ^[0-9]+$ ]] ||
     problems+=("seconds: want a whole number of seconds, got $(printf '%q' "$got_seconds")")
@@ -127,17 +97,6 @@ fi
 rm -rf "$work"
 report "$name"
 
-# 2. The other end of the same mark. Case 1 says the wrapper writes a `test-run` line; this
-#    says that line is one metrics.sh renders a row from — the seam the two halves meet at,
-#    which neither suite establishes on its own. metrics.test.sh has a per-tier case, but its
-#    marks are hand-written JSON: a writer that spelled a key differently, or stopped writing
-#    `seconds` at all, would leave that case green and every real run rowless, which is the
-#    state #373 found (`.tdd/issue-344-metrics.md` renders the heading with nothing under it).
-#
-#    So nothing here is fabricated: the log is whatever timed-test-run.sh itself left behind,
-#    and the assertion is made on the report metrics.sh printed over it. The command is
-#    `true`, so the run costs no wall time and the recorded seconds — 0, whatever they are —
-#    are never asserted on, the same rule as case 1.
 name="a log carrying timed-test-run.sh's own test-run marks renders at least one row under the report's per-tier section"
 problems=()
 work="$(mktemp -d)"
@@ -149,9 +108,6 @@ report_out="$work/report.md"
 [[ "$code" == 0 ]] ||
   problems+=("want metrics.sh to exit 0 over the log the wrapper wrote, it exited $code")
 
-# The rows under the heading, as the report prints them: every table line between it and the
-# next section, less the column headings and the markdown alignment rule under them. Their
-# first cell is the tier, which is the key this section is by.
 tiers="$(python3 -c '
 import sys
 heading = "#### Test-command seconds, by tier"
@@ -182,19 +138,6 @@ rm -rf "$work"
 report "$name"
 
 
-# 3. The third reader of the same mark, and the last of the three #373 found wired to
-#    nothing. Case 2 says the wrapper's line renders a metrics row; this says the same line
-#    is one tier-usual.sh computes its figure from. tier-usual.test.sh has a median case, but
-#    its log is hand-written JSON, so a writer that spelled `seconds` differently, or stopped
-#    writing it, would leave that case green while every real run left tier-usual.sh medianing
-#    an empty list — which over an empty list is not a smaller figure but no figure at all,
-#    since there is no middle element to take (`tier-usual.sh:44`).
-#
-#    So nothing here is fabricated either: the log is whatever timed-test-run.sh itself left
-#    behind, two runs of it under one tier. The assertion is that an answer came back at all —
-#    exit 0 and a number on stdout — never which number: the seconds a `true` happens to take
-#    on this machine are a cost, and a suite here asserts behaviour (CLAUDE.md, "Testing
-#    idiom").
 name="a log carrying timed-test-run.sh's own test-run marks gives tier-usual.sh a figure to answer with"
 problems=()
 work="$(mktemp -d)"
@@ -216,15 +159,6 @@ rm -rf "$work"
 report "$name"
 
 
-# 4. Whether the wrapped run passed. Cases 1–3 pin the tier, the suites and the seconds; the
-#    one thing a reader of the mark could not say is the answer the run gave — a `test-run`
-#    line looked the same whether the suite was green or red. The exit status the wrapper
-#    already hands back to its caller goes on the line too, under `status`, the key supervise.sh
-#    already writes an exit code under (`supervise.sh:417`).
-#
-#    Two wrapped runs of `sh -c "exit <want>"`, each in its own tree so each log holds the one
-#    line jget reads: 7, which is neither 0 nor 1 and so catches a status hardcoded to either,
-#    and 0, which catches a status that merely records "it failed" for every run alike.
 name="timed-test-run.sh records the command's own exit status on the test-run event, so a reader can say whether that run passed"
 problems=()
 for want in 7 0; do

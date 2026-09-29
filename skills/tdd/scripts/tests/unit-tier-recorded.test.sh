@@ -27,7 +27,6 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 claude_md="CLAUDE.md"
@@ -36,16 +35,8 @@ section_name="Testing idiom"
 
 pass=0 fail=0
 
-# report, plain and records: the helpers the *-recorded.test.sh suites share (issue #225).
-# This suite's `says` asks a different question and stays below, defined after the source.
-# shellcheck source=record-helpers.sh
 source "$HERE/record-helpers.sh"
 
-# section_records — the "Testing idiom" section of CLAUDE.md, from its `## ` heading to the
-# next one, split into records by the shared `records`. A fact is asked of one record so two
-# sentences sections apart that share a word do not read as a statement. Read by section
-# rather than whole-file: the step asks that the rule sit where the other rules about where
-# a suite goes are written.
 section_records() {
   awk -v want="## $section_name" '
     $0 == want { inside = 1; next }
@@ -55,8 +46,6 @@ section_records() {
 
 passage_text=""
 
-# read_section — load the section's records into `passage_text` for `says` to search, or
-# append the problem that there is no section to read and return 1. Every case starts here.
 read_section() {
   passage_text="$(section_records)"
   [[ -n "${passage_text// /}" ]] && return 0
@@ -64,8 +53,6 @@ read_section() {
   return 1
 }
 
-# says <fact> <regex>... — some ONE record of the section has to match every <regex>, or
-# one problem naming the fact is appended.
 says() {
   local fact="$1" line re
   shift
@@ -78,8 +65,6 @@ says() {
   problems+=("$claude_md's '$section_name' section does not say $fact")
 }
 
-# 1. One criterion, one case: the fast tier is named where an agent choosing a directory
-#    reads, together with the bar a suite has to clear to be put there.
 name="$claude_md's '$section_name' section names skills/tdd/scripts/tests/unit/ as the fast tier and states its admission bar"
 problems=()
 
@@ -98,11 +83,6 @@ fi
 
 report "$name"
 
-# 2. One criterion, one case: the migration pattern a script follows into the unit tier is
-#    written where the tier is, with push-branch.sh named as the worked example (#339). The
-#    four parts are asked of ONE record, so a later migration reads the whole recipe in one
-#    place: the main guard, the unit suite sourcing the script, its dependencies mocked as
-#    same-named shell functions, and the CLI contract left unchanged.
 name="$claude_md's '$section_name' section documents the unit-tier migration pattern, naming push-branch.sh as the worked example"
 problems=()
 

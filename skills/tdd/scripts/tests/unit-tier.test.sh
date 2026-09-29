@@ -27,17 +27,12 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The fast tier's directory, repo-relative — what a roster line says and what the failure
-# messages quote.
 UNIT_DIR='skills/tdd/scripts/tests/unit'
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -49,12 +44,8 @@ report() {
   fi
 }
 
-# flat <text> — one line of it, for a failure message: newlines become slashes.
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
-# roster <dir> <target> — the suite paths `make -n <target>` names over the Makefile in <dir>,
-# one per line, duplicates kept so a case can count them — none is an empty answer, not a
-# failure, hence the `|| :` on grep. When make fails, the problem line instead, and status 1.
 roster() {
   local recipe code
   recipe="$(make --no-print-directory -n -C "$1" "$2" 2>&1)" && code=0 || code=$?
@@ -65,13 +56,10 @@ roster() {
   printf '%s\n' "$recipe" | grep -o '[^ ]*\.test\.sh' || :
 }
 
-# run_make <target> [<var>=<value>...] — the real recipe over this repository's Makefile, stdin
-# from /dev/null: its combined output into `out`, its exit status into `code`.
 run_make() {
   out="$(make --no-print-directory -C "$ROOT" "$@" 2>&1 < /dev/null)" && code=0 || code=$?
 }
 
-# 1. `make -n unit` names only the fast tier's suites, and all of them.
 name="make -n unit lists only suites matching $UNIT_DIR/*.test.sh"
 problems=()
 
@@ -94,10 +82,6 @@ fi
 
 report "$name"
 
-# 2. `make -n test` names both directories' suites, each once. Read off a scratch copy of the
-# Makefile over a fixture tree holding one suite in each directory, so the answer does not
-# depend on which real suites have moved yet — with unit/ still empty in the repo, a check
-# against the real tree would pass vacuously.
 name="make -n test lists suites from both skills/tdd/scripts/tests/*.test.sh and $UNIT_DIR/*.test.sh, none twice"
 problems=()
 
@@ -121,11 +105,6 @@ fi
 
 report "$name"
 
-# 3. `make unit` applies `make test`'s two guards. Each fixture is handed to the real recipe as
-# `make unit UNIT_TESTS=<fixture>`, the way make-test-env.test.sh hands one to `test` as
-# TESTS=<fixture>: the target's SUITES reads UNIT_TESTS, so the fixture is all it runs. Neither
-# fixture calls git or python3, so the case asks only the two guards and nothing the fast tier
-# may add on top of them.
 name="make unit applies make test's count-line check and OFFLINE_BIN reach-log guard"
 problems=()
 
@@ -156,11 +135,6 @@ grep -qF 'veri-unit-gh-probe' < <(grep -F 'reaches-gh.test.sh: tried the network
 
 report "$name"
 
-# 4. `make unit` fixes the two environment facts make-test-env.test.sh pins for `make test`: the
-# locale and stdin. Asked the same way — the caller in a UTF-8 locale, make's stdin a FIFO that
-# fd 3 holds open, so a reader would get neither data nor end-of-file — through a fixture that
-# only compares and writes down what it saw. The fixture uses bash builtins alone, so nothing a
-# fast tier may shim ahead of PATH stands between it and its report.
 name="make unit runs each suite with LC_ALL=C and stdin from /dev/null, as make test does"
 problems=()
 
@@ -193,12 +167,6 @@ fi
 
 report "$name"
 
-# 5. The admission bar's guard: `make unit` shims git, gh, curl and python3 ahead of PATH, so a
-# unit suite that runs one of them as a process fails loudly, named. `make test` adds no such
-# shim, so the same fixture passes through its recipe — handed over as TESTS=<fixture> with
-# UNIT_TESTS emptied, so it is all that recipe runs — and a sibling that mocks git as a shell
-# function passes under `make unit`, since a function is found before anything on PATH. The
-# fixtures' names and output avoid the word git, so a line naming it can only be the shim's.
 name="make unit shims git, gh, curl and python3 to fail naming themselves; make test does not"
 problems=()
 
@@ -235,16 +203,9 @@ run_make unit UNIT_TESTS="$scratch/mocks-vcs.test.sh"
 
 report "$name"
 
-# 6. The fast tier is populated: at least five suites that already lived in the flat directory
-# have moved under unit/, and no copy is left behind (a flat suite of the same name with
-# different content is not a copy: it is a script's integration suite, kept beside the unit
-# suite that sources the script, #339) — each saying in its header comment why it qualifies, as a count of
-# its own git, python3, server and sleep usage on one line (`git <n>, python3 <n>, server <n>,
-# sleep <n>`), and all of them passing under the real `make unit`, admission-bar guard and all.
 name="at least five existing suites move into $UNIT_DIR/, each passing and recording its git/python3/server/sleep count in its header"
 problems=()
 
-# The line a header must carry, as an ERE: the four counts, in that order.
 USAGE_COUNTS='(^|[^a-z0-9])git [0-9]+, python3 [0-9]+, server [0-9]+, sleep [0-9]+'
 
 moved=0
@@ -254,7 +215,6 @@ for f in "$ROOT/$UNIT_DIR"/*.test.sh; do
   moved=$((moved + 1))
   [[ -e "$HERE/$base" ]] && cmp -s "$f" "$HERE/$base" &&
     problems+=("$base is under $UNIT_DIR/ and still in skills/tdd/scripts/tests/ too")
-  # The header: the comment lines after the shebang, up to the first line that is not one.
   header="$(sed -n '2,$p' "$f" | sed '/^#/!q' | grep '^#')"
   grep -Eq "$USAGE_COUNTS" <<< "$header" ||
     problems+=("$base's header comment has no 'git <n>, python3 <n>, server <n>, sleep <n>' line")

@@ -23,20 +23,13 @@ no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-# git_q <repo> <args…> — git with a fixed identity, so a commit does not depend on the
-# user.name/user.email of the machine running the suite (CI carries none).
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
-# commit_all <repo> <message> — stage everything in <repo> and commit it.
 commit_all() {
   git_q "$1" add -A >/dev/null 2>&1
   git_q "$1" commit -q -m "$2" >/dev/null 2>&1
 }
 
-# 1. a transform range whose commits change only production code → exit 0; one more commit
-#    in the range that changes a test file → exit 1, and the output names that file. The test
-#    file is touched by the range's *first* commit and a production file by its last, so a
-#    script that read only HEAD's own diff would miss it.
 repo="$work/transform"
 git init -q -b main "$repo" >/dev/null 2>&1
 mkdir -p "$repo/src" "$repo/tests"
@@ -56,9 +49,6 @@ if [[ "$clean_code" == 0 && "$dirty_code" == 1 && "$dirty_out" == *"tests/widget
   no "transform range: production-only → exit 0; a test file changed → exit 1 naming it (clean code=$clean_code out=$clean_out; dirty code=$dirty_code out=$dirty_out)"
 fi
 
-# 2. a <base-sha> that resolves to no commit → exit 2 with a diagnostic naming it, never 0:
-#    an unreadable range is no answer, and reading it as "changed no test file" would pass a
-#    transform nothing checked.
 bogus="0123456789abcdef0123456789abcdef01234567"
 bad_out="$(cd "$repo" && "$TOUCHES" "$bogus" 2>&1)"; bad_code=$?
 if [[ "$bad_code" == 2 && "$bad_out" == *"$bogus"* ]]; then ok; else

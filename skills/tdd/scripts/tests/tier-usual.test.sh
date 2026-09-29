@@ -33,27 +33,11 @@ report() {
   fi
 }
 
-# ev <event> <tier> <seconds> — one log line in the shape event.sh writes: the eight fixed
-# keys first, the payload after. Only `event`, `tier` and `seconds` vary between the lines
-# below, because only those three decide which lines the answer is computed from.
 ev() {
   printf '{"ts": 1700000000, "issue": "342", "actor": "developer", "phase": "green", "step": "1", "event": "%s", "attempt": "1", "skill_commit": "abc1234", "tier": "%s", "suites": "one.test.sh", "seconds": "%s"}\n' \
     "$1" "$2" "$3"
 }
 
-# 1. The whole of this step's criterion, as one case. The fixture holds, for tier `fast`,
-#    twelve `test-run` lines: two old ones at 100 s and 200 s, then ten at 1–10 s in a
-#    shuffled order. The answer is the median of the LAST TEN only — sorted, that is
-#    1…10, whose two middle values are 5 and 6, so 5.5 — and each of the three ways the
-#    answer could be got wrong changes it:
-#      · counting all twelve would make it 6.5, so the window is pinned;
-#      · reading the lines in file order rather than by value would make it 9.5 (the two
-#        middle of `7 3 10 1 9 5 2 8 4 6`), so the sort is pinned;
-#      · a median defined as one of the two middles would be 5 or 6, so the even-count
-#        rule — the mean of the two — is pinned.
-#    Two lines that must NOT count are mixed in: a `test-run` for another tier and a
-#    non-`test-run` event of this tier, both at 900 s, either of which would drag the
-#    answer well off 5.5 if it were counted.
 name="tier-usual.sh <tier>: the usual is the median of that tier's last 10 test-run events' seconds"
 problems=()
 work="$(mktemp -d)"
