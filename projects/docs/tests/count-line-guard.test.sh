@@ -99,6 +99,32 @@ else
   printf '    %s\n' "${problems[@]}"
 fi
 
+name="make test reports a suite that prints a non-count last line and exits 3 as nothing to do, and does not fail"
+
+mkdir "$scratch/nothing"
+mkdir "$scratch/nothing/tests"
+cp "$DOCS/Makefile" "$scratch/nothing/Makefile"
+printf '#!/bin/sh\necho "no case matches ONLY=absent"\nexit 3\n' > "$scratch/nothing/tests/only.test.sh"
+chmod +x "$scratch/nothing/tests/only.test.sh"
+
+out="$(env -u VERI_TEST_CMD make -C "$scratch/nothing" test 2>&1 < /dev/null)"
+rc=$?
+
+problems=()
+[[ "$rc" -eq 0 ]] || problems+=("want exit 0, got $rc")
+[[ "$out" != *"never reached its count line"* ]] ||
+  problems+=("output flags an exit-3 suite as never reaching its count line: $(printf '%s\n' "$out" | tail -n 3 | tr '\n' '|')")
+[[ "$out" == *"all suites green"* ]] ||
+  problems+=("output lacks 'all suites green': $(printf '%s\n' "$out" | tail -n 3 | tr '\n' '|')")
+
+if [[ "${#problems[@]}" -eq 0 ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - $name"
+  printf '    %s\n' "${problems[@]}"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
