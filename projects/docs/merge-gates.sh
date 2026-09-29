@@ -124,7 +124,7 @@ if [ $run_fresh -eq 1 ]; then
   python3 projects/docs/check-walkthrough.py || {
     rc=1
     echo "merge-gates: if the page is merely stale, regenerate it as its own commit on the branch:" >&2
-    echo "             make docs && git add docs/walkthrough.html && git commit -m 'docs: regenerate walkthrough'" >&2
+    echo "             make docs && git add projects/docs/walkthrough.html && git commit -m 'docs: regenerate walkthrough'" >&2
   }
 fi
 [ $rc -eq 0 ] && echo "merge-gates: all gates passed" || echo "merge-gates: a gate FAILED" >&2
