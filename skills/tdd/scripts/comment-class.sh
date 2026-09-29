@@ -22,6 +22,7 @@ if (( $# == 0 )); then
 fi
 
 awk -v sweepable="$sweepable" '
+  BEGIN { writer = "\\|[[:space:]]*(tee|dd|sponge)[[:space:]]" }
   function scan(s,   i, c) {
     for (i = 1; i <= length(s); i++) {
       c = substr(s, i, 1)
@@ -51,8 +52,8 @@ awk -v sweepable="$sweepable" '
   { scan($0); line = $0; gsub(/<<</, "", line) }
   match(line, /<<-?[[:space:]]*["'\'']?[A-Za-z_][A-Za-z0-9_]*/) {
     out = line; gsub(/[02-9]>+[[:space:]]*[^[:space:]]*/, "", out)
-    cls = out ~ />[[:space:]]*[^&[:space:]]/ || out ~ /\|[[:space:]]*(tee|dd|sponge)[[:space:]]/ ? 2 : 3
-    if (out ~ /(>|\|[[:space:]]*(tee|dd|sponge)[[:space:]][^|]*)[[:space:]]*[^&|[:space:]]*\.md["\047]?([[:space:]]|$)/) cls = 3
+    cls = out ~ />[[:space:]]*[^&[:space:]]/ || out ~ writer ? 2 : 3
+    if (out ~ "(>|" writer "[^|]*)[[:space:]]*[^&|[:space:]]*\\.md[\"\047]?([[:space:]]|$)") cls = 3
     delim = substr(line, RSTART + 2, RLENGTH - 2)
     dash = delim ~ /^-/
     body = 1
