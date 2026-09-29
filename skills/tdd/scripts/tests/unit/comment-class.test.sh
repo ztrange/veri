@@ -432,4 +432,11 @@ classify "$f"
 want_line "$f:2:1"
 verdict "comment-class.sh classifies a # line after a \"\$( (cmd) && cmd 'a \"b')\" shape as class 1"
 
+# 40. the sweepable report is empty for every tests/unit/*.sh from c through e but comment-class.test.sh.
+files=()
+for f in "$SCRIPTS"/tests/unit/[c-e]*.sh; do
+  [[ "${f##*/}" == comment-class.test.sh ]] || files+=("$f")
+done
+sweep_verdict "the sweepable report is empty for every tests/unit/*.sh whose name starts with c through e, other than comment-class.test.sh" "${files[@]}"
+
 finish

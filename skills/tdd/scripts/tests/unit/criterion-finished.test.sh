@@ -18,8 +18,6 @@ code_for() {  # code_for <criterion> <ledger> — print the script's exit code
   echo "$code"
 }
 
-# 1. two steps serve criterion 1: only the first done → 3; second ticked but refactor
-#    pending → 3; both done → 0
 name="two steps serve criterion 1: exits 3 until both are ticked and verified, then 0"
 half='# Plan for #42
 
@@ -46,8 +44,6 @@ else
   ok
 fi
 
-# 2. a ticked step with no criterion token finishes nothing: criterion 2, served by no step,
-#    is not finished even when every step in the ledger is ticked and verified → 3
 name="a step serving no criterion makes no criterion finished: criterion 2 served by no step exits 3"
 all_done='# Plan for #42
 
@@ -60,8 +56,6 @@ else
   ok
 fi
 
-# 3. a step added mid-run carries ⟦added⟧ before its criterion mark: while one such step is
-#    unchecked, criterion 1 is not finished even though every originally-planned step is → 3
 name="an unchecked ⟦added⟧ step serving criterion 1 keeps it unfinished: exits 3"
 with_added='# Plan for #42
 
@@ -75,9 +69,6 @@ else
   ok
 fi
 
-# 4. whether criterion k is finished is decided from lib/ledger.sh's step records, not from
-#    the markdown: beside a stub module whose `ledger_steps` answers criterion 1 done and
-#    verified, a ledger whose only criterion-1 line is unticked still exits 0 (#495)
 name="criterion 1 is finished when lib/ledger.sh's ledger_steps says so: exits 0 (#495)"
 work="$(scratch_dir)"
 mkdir "$work/lib"
@@ -99,8 +90,6 @@ else
   ok
 fi
 
-# 5. a ticked step carrying no criterion tag serves no criterion even when its text is `k`:
-#    its empty criterion field is not collapsed away so that the text is read in its place → 3
 name="a ticked untagged step whose text is 3 does not finish criterion 3: exits 3"
 text_is_k='# Plan for #42
 

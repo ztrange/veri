@@ -17,15 +17,10 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 COVER_OUTCOME="$HERE/../../cover-outcome.sh"
 source "$HERE/../lib/harness.sh"
 
-# run_on <report> — feed the report to the script on stdin and leave what it printed on
-# stdout in `out` and what it exited with in `code`.
 run_on() {
   out="$(printf '%s' "$1" | "$COVER_OUTCOME" 2>/dev/null)" && code=0 || code=$?
 }
 
-# verdict <name> — report one case from the `problems` array the case just filled: empty is
-# a pass, otherwise a FAIL line naming the case and one indented line per problem. Same
-# accounting idiom as red-divergence.test.sh's verdict().
 verdict() {
   local name="$1" p
   if (( ${#problems[@]} )); then
@@ -39,10 +34,6 @@ verdict() {
 caught_by='widget.test.sh: a stubbed widget stays blue'
 mutation='widget.sh: painted the widget red'
 
-# 1. The three answers a cover report can carry: covered, naming the test that went red under
-#    the mutation, is exit 0 with that test on stdout; not covered is exit 1, a clean
-#    negative the conductor refuses the step on; a report with no COVERED: line is exit 2,
-#    because no answer was obtained.
 name="COVERED: yes exits 0 printing CAUGHT_BY, COVERED: no exits 1, neither exits 2"
 problems=()
 run_on "some narration

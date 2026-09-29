@@ -24,8 +24,6 @@ verdict() {
   fi
 }
 
-# pin <want-cksum> <what> <script> [args …] — <what> is `usage` (exit code plus stdout and
-# stderr) or `prompt` (stdout), with the scripts and scratch directories masked.
 pin() {
   local want="$1" what="$2" script="$3"; shift 3
   local text code=0 got
@@ -75,8 +73,6 @@ cat > "$work/ledger.md" <<'EOF'
 EOF
 echo "the test pins nothing" > "$work/reason.md"
 
-# 1. what every script prints on a missing argument, and what each prompt builder prints for
-#    fixed inputs, is byte-identical to what it printed before the comment sweep.
 name="usage output on a missing argument and prompt output for fixed inputs are unchanged"
 problems=""
 pin '1022369698 110' usage add-ledger-step.sh
