@@ -137,10 +137,6 @@ else
   sed 's/^/    /' "$led"
 fi
 
-# 9. The anchor step is recognised through lib/ledger.sh's `ledger_steps`, with no checkbox
-#    pattern of the script's own: beside a stub module that reads `* [ ]` lines as steps, the
-#    anchor on one is found and the text inserted after it, where the script's own `- [`
-#    pattern would match no step and exit 2.
 stub="$work/stub"
 stub_script
 cat > "$stub/lib/ledger.sh" <<'EOF'
@@ -163,9 +159,6 @@ want='# Plan for #42
 check "finds the anchor step through lib/ledger.sh's ledger_steps, matching no checkbox of its own" \
   "$code" "$want"
 
-# 10. Each new step line is produced by lib/ledger.sh's `ledger_add_step`, with no step line
-#     spelled by the script itself: beside the real module with only that function's box
-#     respelled `* [ ]`, the inserted step comes out in that spelling.
 stub="$work/stub-add"
 stub_script
 sed "s/open_step='- \[ \]'/open_step='* [ ]'/" "$HERE/../lib/ledger.sh" > "$stub/lib/ledger.sh"

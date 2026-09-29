@@ -180,9 +180,6 @@ does_not_hold 'resume' \
   "$(head -1 < <(section_records '## Resume' | grep -E 'go to the \*?\*?draft pr'))"
 report "$name"
 
-# reads_ledger_steps <anchor> <box> <lines> — each of <lines>, the instructions running <anchor>,
-# must read ledger-steps.sh and spell no <box> checkbox pattern of its own. Fails closed on
-# empty <lines>: no instruction runs <anchor>, so the rule could not be checked.
 reads_ledger_steps() {
   local anchor="$1" box="$2" lines="$3" line
   if [[ -z "$lines" ]]; then
@@ -197,18 +194,12 @@ reads_ledger_steps() {
   done <<< "$lines"
 }
 
-# 8. One criterion (#495) — criterion k's text, handed to tick-issue-criterion.sh, is read out of
-#    the issue body's `## Acceptance criteria` section as ledger-steps.sh's records rather than by
-#    a checkbox pattern the procedure spells itself.
 name="#495: every $skill_md instruction that ticks criterion k in the issue body reads its text from ledger-steps.sh's records, spelling no checkbox pattern of its own"
 problems=()
 anchor='tick-issue-criterion.sh <n> "$('
 reads_ledger_steps "$anchor" '\[[ x]\]' "$(records_of < "$skill_path" | grep -F -- "$anchor" || true)"
 report "$name"
 
-# 9. One criterion (#495) — the last ticked step, named to event.sh step-done, to event.sh pin and
-#    to the CI-repair step-added event and add-ledger-step.sh anchor, is read off ledger-steps.sh's
-#    records rather than by a checkbox pattern the procedure spells itself.
 name="#495: every $skill_md instruction that names the last ticked step reads it from ledger-steps.sh's records, spelling no checkbox pattern of its own"
 problems=()
 for anchor in 'event.sh step-done' 'event.sh pin' 'event.sh step-added anchor="$(' "add-ledger-step.sh .tdd/issue-<n>.md after \"\$("; do
@@ -217,18 +208,12 @@ for anchor in 'event.sh step-done' 'event.sh pin' 'event.sh step-added anchor="$
 done
 report "$name"
 
-# 10. One criterion (#495) — the count of unchecked ordinary steps handed to run-affordable.sh is
-#     read off ledger-steps.sh's records rather than by a checkbox pattern the procedure spells
-#     itself.
 name="#495: every $skill_md instruction that counts the steps left for run-affordable.sh reads them from ledger-steps.sh's records, spelling no checkbox pattern of its own"
 problems=()
 anchor='run-affordable.sh "$('
 reads_ledger_steps "$anchor" '\[ \]' "$(grep -F -- "$anchor" "$skill_path" || true)"
 report "$name"
 
-# 11. One criterion (#495) — the reconcile check compares the ticks and refactor-pending marks
-#     before and after the leaf as ledger-steps.sh's state and pending fields rather than by
-#     grepping the markdown for a checkbox or the mark itself.
 name="#495: $skill_md's reconcile check compares ledger-steps.sh's state and pending fields, grepping the markdown for neither a tick nor the pending mark"
 problems=()
 anchor='diff <('

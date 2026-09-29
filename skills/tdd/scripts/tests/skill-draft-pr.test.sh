@@ -838,8 +838,6 @@ if step_or_problem '### 4. Draft PR' "whether the metrics: push's CI wait bails"
 fi
 report "$name"
 
-# 31. The criterion, as one case (issue #495): the done-of-total count is read off the ledger's
-#     step records, not off a box pattern the procedure spells itself.
 name="$skill_md's Green PASS branch counts the PR body's done-of-total from ledger-steps.sh's records (#495)"
 problems=()
 

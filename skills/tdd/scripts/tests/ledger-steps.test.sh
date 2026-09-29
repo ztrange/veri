@@ -14,8 +14,6 @@ no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-# 1. stdout is exactly ledger_steps's records for stdin — prose and headings skipped, a done
-#    step's pending mark cut into its own field — with nothing on stderr and exit 0
 printf '# Plan for #42\n\nprose\n\n- [x] add lowercasing ⟦criterion 1⟧ ⟂ refactor pending\n- [ ] strip edge hyphens ⟦added⟧ ⟦criterion 2⟧\n' > "$work/ledger.md"
 want="$(printf '1\tdone\tstep\t1\t0\t1\tadd lowercasing ⟦criterion 1⟧\n2\topen\tstep\t0\t1\t2\tstrip edge hyphens ⟦added⟧ ⟦criterion 2⟧')"
 got="$("$STEPS" < "$work/ledger.md" 2> "$work/err")"; code=$?

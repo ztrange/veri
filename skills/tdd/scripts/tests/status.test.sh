@@ -452,9 +452,6 @@ code=0
 [[ "$out" == *"done https://github.com/o/r/pull/41"* ]] || missing+=("#41 done after its event log changed")
 expect_nothing_missing "--watch [seconds] redraws in place, recomputing every run from disk on each render"
 
-# --- the step count and the current step are lib/ledger.sh's `ledger_steps` (#495) ---
-# Beside a stub module that numbers three steps, the first done and the other two open, the run
-# is on step 2 of 3 — where a count of the ledger's own one open box would say 1 of 1.
 counted="$(repo counted)"
 run="$(fabricate_run "$counted" 31 tdd/31-lamps)"
 printf '# Plan for #31 — lamps glow\n\n- [ ] a lamp glows\n' > "$run/.tdd/issue-31.md"

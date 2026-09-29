@@ -199,9 +199,6 @@ if [[ "$err" == *preserve-attempt.sh* && "$err" == *409* && "$err" == *develop-g
 { [[ "$code" != 0 ]] && [[ "$said" == yes ]]; } \
   && ok || no "says on stderr that it could not preserve the attempt when the ref write fails for another reason (code=$code said=$said err='$err')"
 
-# 12. the step's index is lib/ledger.sh's `ledger_steps`, with no checkbox pattern of the
-#     script's own: beside a stub module that numbers the ledger's one step 7, the attempt is
-#     preserved under `.../409/7/...`, where a count of the ledger's own boxes would say 1
 repo="$work/ledgermodule"
 dirty_repo "$repo"
 prose="A leaf's output is kept under refs/veri, not the branch"
