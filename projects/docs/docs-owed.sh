@@ -138,6 +138,12 @@ while IFS= read -r path; do
   owed+=("page behind: $name — its last commit is newer than the page's build")
 done <<< "$touched"
 
+for path in "$SCRIPTS_DIR"/*.sh; do
+  [ -e "$path" ] || continue
+  name="${path##*/}"
+  lists "$listed" "$name" || owed+=("unlisted: $name")
+done
+
 # ── page misquotes: a listing header that disagrees with the script beside it ────
 # The reading the two rules above cannot make, because both of them ask about HISTORY: one
 # about which commits came after the page's, the other about what the build says of the
