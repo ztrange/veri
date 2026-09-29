@@ -151,11 +151,13 @@ log=".tdd/events.jsonl"
 
 ledger=".tdd/issue-$issue.md"
 
+HERE="$(cd "$(dirname "$0")" && pwd)"
+
 # hazard: the python block is one single-quoted string, so an apostrophe inside it ends it.
 exec python3 -c '
-import json, re, sys
+import json, subprocess, sys
 
-issue, path, ledger = sys.argv[1], sys.argv[2], sys.argv[3]
+issue, path, ledger, here = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 
 COUNTS = ["attempts", "PASS", "REJECT", "kills"]
 
@@ -211,15 +213,14 @@ def awake_span_or_wall(start, end):
     awake = span(reading(start, "awake"), reading(end, "awake"))
     return awake if awake is not None else span(reading(start, "ts"), reading(end, "ts"))
 
-STEP_BOX = re.compile(r"^[ \t]*- \[[ xX]\] .")
-
 def planned_steps(path):
     try:
         with open(path) as f:
-            found = sum(1 for line in f if STEP_BOX.match(line))
+            records = subprocess.run([here + "/ledger-steps.sh"], stdin=f, capture_output=True,
+                                     text=True).stdout
     except OSError:
         return None
-    return counted(found)
+    return counted(len(records.splitlines()))
 
 counts = {}
 steps = {}
@@ -513,4 +514,4 @@ if structural is not None:
     row(["issue", refactor_spent(structural), structural["stopped"]])
 tier_section("#### Test-command seconds, by tier", "tier")
 section("#### Total", "run", COST_COLUMNS, totals)
-' "$issue" "$log" "$ledger"
+' "$issue" "$log" "$ledger" "$HERE"
