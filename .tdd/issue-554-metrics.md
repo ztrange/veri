@@ -58,3 +58,19 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | pass | refactor | stopped |
 | --- | ---: | --- |
+| issue | 0/5 | nothing-structural |
+
+#### Test-command seconds, by tier
+
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 2 | 2 | 4 | 3 | 4 | 0 | 0 | 4 | 0 | 0 | 242 | 0 | 0 | 3 | 3 | 0 | 0 | 3 | 0 | 1 | 1 | 0 | 4 | 1 | 0 | 3 | 1 | 0 | 0 | 0 | 5 | 0 | 0 | 1 | 0 | 0 | 648 | 318 | 0 | 0 | 0 | 0 | 0 | 0 | 311 | 316 | 0 |
+| fast | 21 | 3 | 3 | 3 | 3 | 4 | 3 | 3 | 3 | 3 | 3 | 4 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 | 3 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 4 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 321 | 321 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+
+#### Total
+
+| run | turns | input | output | cache read | cache creation | $ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| total | 325 | 630 | 128332 | 13600130 | 1934903 | 11.74 |
