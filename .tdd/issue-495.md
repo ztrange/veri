@@ -4,7 +4,7 @@
 - [x] `ledger_steps` emits a record for a final step line that has no trailing newline — pinned in `tests/unit/ledger.test.sh` ⟦added⟧ ⟦criterion 4⟧
 - [x] `ledger_steps`'s `kind` field is `full-suite` or `human-owed` for a step whose line ends in that marker immediately before its `⟦criterion k⟧`, and `step` otherwise — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧
 - [x] `ledger_steps`'s `pending` field is `1` for a ticked step whose line ends in ` ⟂ refactor pending` and `0` otherwise, and the mark is not part of that record's `text` — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧
-- [ ] `ledger_steps`'s `added` field is `1` for a step carrying `⟦added⟧` and its `criterion` field is `k` for a step carrying `⟦criterion k⟧` (empty when it carries none) — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧
+- [x] `ledger_steps`'s `added` field is `1` for a step carrying `⟦added⟧` and its `criterion` field is `k` for a step carrying `⟦criterion k⟧` (empty when it carries none) — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧ ⟂ refactor pending
 - [ ] `ledger_tick <matcher>` in `lib/ledger.sh`, stdin → stdout, ticks the first open step whose line contains `<matcher>` (an empty matcher: the first open step) to `- [x]` and changes no other byte — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧
 - [ ] `ledger_tick <matcher> pending` also appends ` ⟂ refactor pending` to the line it ticks, in the same write — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧
 - [ ] `ledger_tick` returns 3 and writes the document unchanged when no open step contains `<matcher>` — pinned in `tests/unit/ledger.test.sh` ⟦criterion 4⟧

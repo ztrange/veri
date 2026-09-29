@@ -99,5 +99,16 @@ expect_records "ledger_steps pending differs" "$want" \
   "$(records_of '$1 "\t" $4 "\t" $NF' "$doc")"
 verdict "ledger_steps pending is 1 for a ticked step ending in the pending mark, 0 otherwise, and the mark leaves its text"
 
+# 5. added and criterion: `⟦added⟧` sets added, `⟦criterion k⟧` gives k, no tag gives empty.
+problems=""
+doc='- [x] planned ⟦criterion 1⟧
+- [ ] discovered ⟦added⟧ ⟦criterion 12⟧
+- [ ] untagged
+'
+want=$'1\t0\t1\n2\t1\t12\n3\t0\t'
+expect_records "ledger_steps added/criterion differ" "$want" \
+  "$(records_of '$1 "\t" $5 "\t" $6' "$doc")"
+verdict "ledger_steps added is 1 for a step carrying the added mark and criterion is its k, empty with no tag"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
