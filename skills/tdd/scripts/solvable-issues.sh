@@ -84,7 +84,7 @@ gh_json() {  # gh_json <fixture-file> <rest-path> <gh args…> -> that document 
     cat "$VERI_GH_JSON/$fixture"
   else
     gh "$@" "${repo_args[@]+"${repo_args[@]}"}" ||
-      gh api --paginate "repos/{owner}/{repo}/$rest"
+      gh api --paginate "repos/${repo:-"{owner}/{repo}"}/$rest"
   fi
 }
 
