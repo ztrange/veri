@@ -408,4 +408,12 @@ sweep_verdict "the sweepable report is empty for every tests/skill-*.test.sh who
 # 36. the sweepable report is empty for every tests/skill-*.test.sh whose name after skill- starts with m through z.
 sweep_verdict "the sweepable report is empty for every tests/skill-*.test.sh whose name after skill- starts with m through z" "$SCRIPTS"/tests/skill-[m-z]*.test.sh
 
+# 37. the sweepable report omits a tab-indented `#!` line that opens a `<<-` heredoc's body.
+problems=""
+f="$work/stub-writer-dash.sh"
+printf '%s\n' "cat > stub <<-'EOF'" $'\t#!/bin/sh' $'\techo hi' $'\tEOF' > "$f"
+classify --sweepable "$f"
+want_no_line "$f:2"
+verdict "the sweepable report omits a tab-indented #! line that opens a <<- heredoc's body"
+
 finish
