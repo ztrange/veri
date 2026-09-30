@@ -1,2 +1,5 @@
 ### solvable-issues.sh prints the same numbers and exits 0 for a VERI_GH_JSON fixture whose issues.json is larger than 256 KiB as for the same issues with short bodies, and no argument it hands python3 carries the JSON document ⟦criterion 1⟧
 - move the argv-capping python3 stub (solvable-issues.test.sh:1188-1200) into a shared test helper once the workqueue/invisible-work/wait-ci suites need the same stub
+### workqueue.sh reads an issues document larger than 256 KiB and gives the same output and exit code as for a small one, and no argument it hands python3 carries the JSON document ⟦criterion 2⟧
+- workqueue.sh next: read `$VERI_GH_JSON/issues.json` straight into python3's stdin instead of `cat` into `$issues_json` then `printf` it back out (changes the data path, not duplication removal, so out of scope here)
+- the multi-page `json.JSONDecoder().raw_decode` loop in workqueue.sh's embedded python is duplicated in solvable-issues.sh (and likely invisible-work.sh); it could be extracted into skills/tdd/scripts/lib/ (extract-module, not allowed in this phase)
