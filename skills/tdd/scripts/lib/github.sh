@@ -14,8 +14,9 @@
 # gh_list <rest-path> <gh args…> — print `gh <gh args…>`'s JSON, or else `gh_rest_list
 #   <rest-path>`'s; 2 when GitHub gave no answer on either route.
 #
-# gh_rest_list <rest-path> — print every page of `gh api <rest-path>`, requested as page=1, 2, …
-#   until one comes back empty, one JSON array per page, back to back; 2 when GitHub gave no answer.
+# gh_rest_list <rest-path> [empty-regex] — print every page of `gh api <rest-path>`, requested as
+#   page=1, 2, … until one matches <empty-regex> (default: a bare `[]`), one JSON document per
+#   page, back to back; 2 when GitHub gave no answer.
 
 gh_pr_ready() {
   gh pr ready "$1" ||
@@ -48,9 +49,9 @@ gh_list() {
 }
 
 gh_rest_list() {
-  local sep='?' page=1 body
+  local sep='?' page=1 body empty="${2:-^\[\]$}"
   [[ "$1" == *\?* ]] && sep='&'
-  while body="$(gh api "$1${sep}page=$page")" || return 2; [[ "$body" != "[]" ]]; do
+  while body="$(gh api "$1${sep}page=$page")" || return 2; [[ ! "$body" =~ $empty ]]; do
     printf '%s' "$body"
     page=$((page + 1))
   done

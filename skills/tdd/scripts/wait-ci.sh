@@ -15,6 +15,7 @@
 #
 # Tunables (env): VERI_POLL poll interval secs (default 10).
 set -uo pipefail
+source "$(dirname "$0")/lib/github.sh"
 
 [[ -n "${1:-}" ]] || { echo "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]" >&2; exit 2; }
 pr="$1"
@@ -37,12 +38,8 @@ print(json.load(sys.stdin)["head"]["sha"] or "")
 }
 
 sha_state() {
-  local runs="" page=1 body empty='"check_runs": *\[ *\]'
-  while body="$(gh api "repos/$repo/commits/$1/check-runs?page=$page")" || return 2
-        [[ ! "$body" =~ $empty ]]; do
-    runs+="$body"$'\n'; page=$((page + 1))
-  done
-  local statuses
+  local runs statuses
+  runs="$(gh_rest_list "repos/$repo/commits/$1/check-runs" '"check_runs": *\[ *\]')" || return 2
   statuses="$(gh api "repos/$repo/commits/$1/status")" || return 2
   python3 -c '
 import json, sys
