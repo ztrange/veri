@@ -9,8 +9,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 STEPS="$HERE/../ledger-steps.sh"
 source "$HERE/lib/harness.sh"
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 printf '# Plan for #42\n\nprose\n\n- [x] add lowercasing ⟦criterion 1⟧ ⟂ refactor pending\n- [ ] strip edge hyphens ⟦added⟧ ⟦criterion 2⟧\n' > "$work/ledger.md"
 want="$(printf '1\tdone\tstep\t1\t0\t1\tadd lowercasing ⟦criterion 1⟧\n2\topen\tstep\t0\t1\t2\tstrip edge hyphens ⟦added⟧ ⟦criterion 2⟧')"

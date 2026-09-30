@@ -40,8 +40,7 @@ PATIENCE=3
 
 source "$HERE/lib/harness.sh"
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 mkdir -p "$work/.tdd"
 
 DETACHED_EXIT="$work/.tdd/detached-leaf.exit"

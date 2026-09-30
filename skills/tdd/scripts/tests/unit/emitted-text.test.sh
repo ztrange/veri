@@ -13,8 +13,7 @@ source "$HERE/../lib/harness.sh"
 unset "${!VERI_@}"
 export LC_ALL=C
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 verdict() {
   if [[ -z "$problems" ]]; then

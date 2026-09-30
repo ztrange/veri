@@ -33,8 +33,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
 PUSH="$HERE/../push-branch.sh"
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 unchanged() {
   local label="$1" before="$2" after="$3"
@@ -45,7 +44,7 @@ unchanged() {
 run_fixture() {
   local repo="$1" branch="$2" issue="$3"
   mkdir -p "$repo/.tdd"
-  git init -q -b main "$repo" >/dev/null 2>&1
+  new_repo -b main "$repo" >/dev/null 2>&1
   git_q "$repo" commit -q --allow-empty -m "initial" >/dev/null 2>&1
   git_q "$repo" checkout -q -b "$branch" >/dev/null 2>&1
   cat > "$repo/.tdd/issue-$issue.md"
@@ -124,7 +123,7 @@ name="push-branch.sh: a push that lands leaves the branch on the remote at the c
 problems=()
 repo="$work/landed"
 remote="$work/origin.git"
-git init -q --bare "$remote" >/dev/null 2>&1
+new_repo --bare "$remote" >/dev/null 2>&1
 branch=tdd/191-run-commits-live-on-one-disk
 run_fixture "$repo" "$branch" 191 <<'LEDGER'
 
@@ -219,7 +218,7 @@ name="push-branch.sh: an origin that fails the first push attempt and accepts th
 problems=()
 repo="$work/second-attempt"
 remote="$work/origin-second-attempt.git"
-git init -q --bare "$remote" >/dev/null 2>&1
+new_repo --bare "$remote" >/dev/null 2>&1
 branch=tdd/232-push-second-attempt
 run_fixture "$repo" "$branch" 232 <<'LEDGER'
 
@@ -309,7 +308,7 @@ for bad in VERI_PUSH_RETRIES=abc VERI_PUSH_BACKOFF=1.5; do
   var="${bad%%=*}"
   repo="$work/bad-$var"
   remote="$work/origin-bad-$var.git"
-  git init -q --bare "$remote" >/dev/null 2>&1
+  new_repo --bare "$remote" >/dev/null 2>&1
   run_fixture "$repo" tdd/232-push-bad-arguments 232 <<'LEDGER'
 
 - [ ] Non-integer VERI_PUSH_RETRIES or VERI_PUSH_BACKOFF exits 2 without attempting a push
@@ -337,7 +336,7 @@ name="push-branch.sh: a non-fast-forward rejection exits 1 after exactly one att
 problems=()
 repo="$work/non-ff"
 remote="$work/origin-non-ff.git"
-git init -q --bare "$remote" >/dev/null 2>&1
+new_repo --bare "$remote" >/dev/null 2>&1
 branch=tdd/232-push-non-ff
 run_fixture "$repo" "$branch" 232 <<'LEDGER'
 
@@ -388,7 +387,7 @@ name="push-branch.sh: a push that lands exits 0, writes nothing to stderr beyond
 problems=()
 repo="$work/quiet-success"
 remote="$work/origin-quiet-success.git"
-git init -q --bare "$remote" >/dev/null 2>&1
+new_repo --bare "$remote" >/dev/null 2>&1
 branch=tdd/232-push-quiet-success
 run_fixture "$repo" "$branch" 232 <<'LEDGER'
 
@@ -455,7 +454,7 @@ push_unwritable_tdd "$repo"
 
 repo="$work/event-fails-non-ff"
 remote="$work/origin-event-fails-non-ff.git"
-git init -q --bare "$remote" >/dev/null 2>&1
+new_repo --bare "$remote" >/dev/null 2>&1
 branch=tdd/232-event-fails-non-ff
 run_fixture "$repo" "$branch" 232 <<'LEDGER'
 
@@ -489,7 +488,7 @@ lease_push() {
 lease_fixture() {
   repo="$work/lease-$1"
   remote="$work/origin-lease-$1.git"
-  git init -q --bare "$remote" >/dev/null 2>&1
+  new_repo --bare "$remote" >/dev/null 2>&1
   run_fixture "$repo" "$branch" 238 <<'LEDGER'
 
 - [ ] push-branch.sh pushes under a lease

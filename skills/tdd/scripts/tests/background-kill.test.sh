@@ -40,7 +40,7 @@ PATIENCE=3
 
 source "$HERE/lib/harness.sh"
 
-work="$(mktemp -d)"
+work="$(scratch_dir)"
 
 victims=()
 
@@ -54,7 +54,7 @@ cleanup() {
   for pid in "${victims[@]}"; do end_victim "$pid"; done
   rm -rf "$work"
 }
-trap cleanup EXIT
+on_exit cleanup
 
 poll_until() {
   local cap=$(( $1 * 50 )) looks=0

@@ -71,7 +71,7 @@ report "$name"
 
 name="VERI_WATCH_INTERVAL: malformed exits 2 naming the variable, unset defaults to 1"
 problems=()
-scratch="$(mktemp -d)"
+scratch="$(scratch_dir)"
 mkdir "$scratch/bin"
 cat > "$scratch/bin/sleep" <<'STUB'
 #!/bin/sh
@@ -99,7 +99,7 @@ report "$name"
 
 name="make watch: reruns make unit once per detected change, never between changes"
 problems=()
-scratch="$(mktemp -d)"
+scratch="$(scratch_dir)"
 fixture="$scratch/repo"
 mkdir -p "$scratch/bin" "$fixture/skills/tdd/scripts/tests/unit" "$fixture/skills/tdd/scripts/lib"
 cp "$ROOT/Makefile" "$fixture/Makefile"
@@ -136,7 +136,7 @@ report "$name"
 name="make watch: one poll pass calls its stat wrapper exactly once, whatever the number of tracked files"
 problems=()
 lib="$ROOT/skills/tdd/scripts/lib/watch.sh"
-scratch="$(mktemp -d)"
+scratch="$(scratch_dir)"
 if [[ -f "$lib" ]]; then
   source "$lib"
 else
@@ -164,7 +164,7 @@ report "$name"
 
 name="make watch: never runs any make target besides unit"
 problems=()
-scratch="$(mktemp -d)"
+scratch="$(scratch_dir)"
 fixture="$scratch/repo"
 real_make="$(command -v make)"
 mkdir -p "$scratch/bin" "$fixture/skills/tdd/scripts/tests/unit" "$fixture/skills/tdd/scripts/lib"

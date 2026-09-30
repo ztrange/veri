@@ -70,13 +70,12 @@ print(n)
 
 launch_leaf() {
   local stub_dir="$1" work_dir="$2" leaf="$3"
-  cat > "$stub_dir/claude" <<STUB
-#!/bin/sh
+  claude_stub "$stub_dir" "$(cat <<STUB
 printf '%s\n' '{"event":"fixture-leaf"}' >> .tdd/events.jsonl
 cat "$stub_dir/stream.jsonl"
 exit 0
 STUB
-  chmod +x "$stub_dir/claude"
+)"
   mkdir -p "$work_dir/.tdd"
   printf 'do the step.' > "$work_dir/.tdd/$leaf.prompt"
   local code=0
@@ -90,9 +89,8 @@ has_result_record() {
   grep -q '"type":"result"' "$1/.tdd/$2.log" 2>/dev/null
 }
 
-stub="$(mktemp -d)"
-work="$(mktemp -d)"
-trap 'rm -rf "$stub" "$work"' EXIT
+stub="$(scratch_dir)"
+work="$(scratch_dir)"
 
 name="a finished leaf: the harvester appends one usage event carrying the wall ms, API ms, turns, four token counts and dollars from that leaf's closing stream-json result record"
 problems=()

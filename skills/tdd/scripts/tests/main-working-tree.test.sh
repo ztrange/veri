@@ -20,11 +20,10 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
 SCRIPTS="$HERE/.."
 HELPER="$SCRIPTS/lib/main-working-tree.sh"
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 main_repo="$work/main"
-git init -q -b main "$main_repo" >/dev/null 2>&1
+new_repo -b main "$main_repo" >/dev/null 2>&1
 git -C "$main_repo" -c user.name=veri -c user.email=veri@example.test \
   commit -q --allow-empty -m initial >/dev/null 2>&1
 linked="$work/linked"
@@ -39,7 +38,7 @@ got_main="$(cd "$linked" && source "$HELPER" 2>/dev/null && main_working_tree 2>
   || problems+=("sourcing $HELPER from a linked worktree: main_working_tree printed '$got_main', want '$want_main'")
 
 decoy="$work/decoy"
-git init -q -b tdd/5-decoy "$decoy/.tdd/wt/5" >/dev/null 2>&1
+new_repo -b tdd/5-decoy "$decoy/.tdd/wt/5" >/dev/null 2>&1
 mkdir -p "$decoy/.tdd/wt/5/.tdd"
 printf '# Plan for #5 — decoy run\n\n- [ ] a step\n' > "$decoy/.tdd/wt/5/.tdd/issue-5.md"
 printf '%s\n' "$$" > "$decoy/.tdd/wt/5/.tdd/conductor.pid"

@@ -30,8 +30,7 @@ skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
 source "$HERE/lib/harness.sh"
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
@@ -39,7 +38,7 @@ name="$skill_md computes the refactor touched-files list through refactor-touche
 problems=()
 
 repo="$work/green"
-git init -q -b main "$repo" >/dev/null 2>&1
+new_repo -b main "$repo" >/dev/null 2>&1
 mkdir -p "$repo/.tdd" "$repo/lib" "$repo/src"
 printf -- '- [ ] a step\n' > "$repo/.tdd/issue-7.md"
 git_q "$repo" add -A >/dev/null 2>&1

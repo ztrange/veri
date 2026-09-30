@@ -18,8 +18,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 TOUCHES="$HERE/../transform-touches-tests.sh"
 source "$HERE/lib/harness.sh"
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
@@ -29,7 +28,7 @@ commit_all() {
 }
 
 repo="$work/transform"
-git init -q -b main "$repo" >/dev/null 2>&1
+new_repo -b main "$repo" >/dev/null 2>&1
 mkdir -p "$repo/src" "$repo/tests"
 printf 'widget() { echo 1; }\n' > "$repo/src/widget.sh"
 printf 'widget | grep 1\n' > "$repo/tests/widget.test.sh"

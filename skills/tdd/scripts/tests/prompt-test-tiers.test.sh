@@ -24,8 +24,7 @@ source "$HERE/lib/harness.sh"
 DEVELOP="$HERE/../build-develop-prompt.sh"
 VERIFY="$HERE/../build-verify-prompt.sh"
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 plain() {
   tr -d '*`' | tr '[:upper:]' '[:lower:]'

@@ -26,20 +26,18 @@ LEAF="$HERE/../run-leaf.sh"
 
 source "$HERE/lib/harness.sh"
 
-stubdir="$(mktemp -d)"
-work="$(mktemp -d)"
-home="$(mktemp -d)"
-trap 'rm -rf "$stubdir" "$work" "$home"' EXIT
+stubdir="$(scratch_dir)"
+work="$(scratch_dir)"
+home="$(scratch_dir)"
 
-cat > "$stubdir/claude" <<'STUB'
-#!/bin/sh
+claude_stub "$stubdir" "$(cat <<'STUB'
 git config --global veri.probe wrote-it 2>/dev/null || true
 readback="$(git config --global --get veri.probe 2>/dev/null)" || readback="<unset>"
 printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
 printf '{"type":"result","subtype":"success","is_error":false,"result":"read-back: %s"}\n' \
   "$readback"
 STUB
-chmod +x "$stubdir/claude"
+)"
 
 printf '[user]\n\tname = Operator\n' > "$home/.gitconfig"
 cp "$home/.gitconfig" "$work/gitconfig.before"

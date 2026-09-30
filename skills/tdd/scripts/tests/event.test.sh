@@ -87,7 +87,7 @@ want_present() {
 
 name="event.sh <event> key=value appends one line to .tdd/events.jsonl that parses as JSON and carries ts, issue, actor, phase, step, event and attempt plus every payload given"
 problems=()
-ctx_work="$(mktemp -d)"
+ctx_work="$(scratch_dir)"
 ctx_log="$ctx_work/.tdd/events.jsonl"
 before="$(date +%s)"
 ( cd "$ctx_work" && env VERI_ISSUE=107 VERI_ACTOR=conductor VERI_PHASE=red VERI_STEP=3 \
@@ -128,7 +128,7 @@ report "$name"
 
 name="no run context in the environment: the line is still appended, still parses, and still carries all seven fixed keys"
 problems=()
-noctx_work="$(mktemp -d)"
+noctx_work="$(scratch_dir)"
 noctx_log="$noctx_work/.tdd/events.jsonl"
 ( cd "$noctx_work" && env -u VERI_ISSUE -u VERI_ACTOR -u VERI_PHASE -u VERI_STEP -u VERI_ATTEMPT \
     "$EVENT" resume ) >/dev/null 2>&1
@@ -145,7 +145,7 @@ report "$name"
 
 name="successive calls accumulate: the first creates the log and each later one appends, leaving one line per call in the order they happened"
 problems=()
-acc_work="$(mktemp -d)"
+acc_work="$(scratch_dir)"
 acc_log="$acc_work/.tdd/events.jsonl"
 acc_want="step-start pin step-done"
 
@@ -168,7 +168,7 @@ report "$name"
 
 name="event.sh writes VERI_SKILL_COMMIT from the environment as the fixed key skill_commit, present on every line whether or not the variable is set"
 problems=()
-sc_work="$(mktemp -d)"
+sc_work="$(scratch_dir)"
 sc_log="$sc_work/.tdd/events.jsonl"
 sc_sha="9f3c1ab7d0e4f52618bc90a7de4415f0b2c83d61"
 
@@ -182,7 +182,7 @@ elif want_parses "$sc_log"; then
   want_field "$sc_log" skill_commit "$sc_sha"
 fi
 
-unset_work="$(mktemp -d)"
+unset_work="$(scratch_dir)"
 unset_log="$unset_work/.tdd/events.jsonl"
 ( cd "$unset_work" && env -u VERI_SKILL_COMMIT "$EVENT" launch ) >/dev/null 2>&1 ||
   problems+=("want exit 0 from the call with VERI_SKILL_COMMIT unset, got $?")
@@ -224,7 +224,7 @@ print(json.dumps(d))
 
 name="a payload with a double quote, a backslash, a newline, a tab, a control byte and two non-ASCII characters (one past the Basic Multilingual Plane) round-trips through event.sh into a line byte-identical to json.dumps's own, and metrics.sh's own json.loads reads it back unchanged"
 problems=()
-esc_work="$(mktemp -d)"
+esc_work="$(scratch_dir)"
 esc_log="$esc_work/.tdd/events.jsonl"
 esc_payload=$'a "quoted" \ word
 next line	indented  café 😀 end'
@@ -252,7 +252,7 @@ report "$name"
 
 name="#486: event.sh writes an awake-clock reading on every line — the answer of the executable VERI_AWAKE_CLOCK names when set, and time.monotonic()'s whole seconds when it is unset"
 problems=()
-aw_work="$(mktemp -d)"
+aw_work="$(scratch_dir)"
 cat > "$aw_work/awake-clock" <<'C'
 echo 424242
 C
@@ -290,7 +290,7 @@ report "$name"
 
 name="#563: event.sh's awake reading is the system-wide awake clock, so it advances across processes under a python3 whose time.monotonic() restarts per process"
 problems=()
-rs_work="$(mktemp -d)"
+rs_work="$(scratch_dir)"
 rs_real="$(command -v python3)"
 cat > "$rs_work/python3" <<P
 if [ "\$1" = -c ]; then

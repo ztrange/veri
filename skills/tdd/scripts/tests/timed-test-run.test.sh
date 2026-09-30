@@ -56,7 +56,7 @@ wrapped() {
 
 name="timed-test-run.sh <tier> <suites> <cmd>: runs the command, writes one test-run event carrying tier, suites and seconds, and exits with the command's own status"
 problems=()
-work="$(mktemp -d)"
+work="$(scratch_dir)"
 suites='skills/tdd/scripts/tests/unit/next-unchecked.test.sh skills/tdd/scripts/tests/event.test.sh'
 wrapped "$work" 342 green fast "$suites" sh -c 'exit 7' && code=0 || code=$?
 
@@ -89,7 +89,7 @@ report "$name"
 
 name="a log carrying timed-test-run.sh's own test-run marks renders at least one row under the report's per-tier section"
 problems=()
-work="$(mktemp -d)"
+work="$(scratch_dir)"
 wrapped "$work" 373 green fast 'skills/tdd/scripts/tests/event.test.sh' true ||
   problems+=("want the wrapped run to exit 0 like the command it ran, it did not")
 
@@ -130,7 +130,7 @@ report "$name"
 
 name="a log carrying timed-test-run.sh's own test-run marks gives tier-usual.sh a figure to answer with"
 problems=()
-work="$(mktemp -d)"
+work="$(scratch_dir)"
 for _ in 1 2; do
   wrapped "$work" 373 green fast 'skills/tdd/scripts/tests/event.test.sh' true ||
     problems+=("want the wrapped run to exit 0 like the command it ran, it did not")
@@ -152,7 +152,7 @@ report "$name"
 name="timed-test-run.sh records the command's own exit status on the test-run event, so a reader can say whether that run passed"
 problems=()
 for want in 7 0; do
-  work="$(mktemp -d)"
+  work="$(scratch_dir)"
   wrapped "$work" 383 red fast 'skills/tdd/scripts/tests/event.test.sh' sh -c "exit $want" &&
     code=0 || code=$?
 

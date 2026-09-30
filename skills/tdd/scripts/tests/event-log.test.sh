@@ -19,13 +19,12 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
 SCRIPTS="$HERE/.."
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 repo="$work/repo"
-git init -q -b main "$repo" >/dev/null 2>&1
+new_repo -b main "$repo" >/dev/null 2>&1
 run="$repo/.tdd/wt/9"
-git init -q -b tdd/9-cogs-mesh "$run" >/dev/null 2>&1
+new_repo -b tdd/9-cogs-mesh "$run" >/dev/null 2>&1
 mkdir -p "$run/.tdd"
 printf '# Plan for #9 — cogs mesh\n\n- [x] a cog exists\n- [ ] two cogs mesh\n' > "$run/.tdd/issue-9.md"
 now="$(date +%s)"

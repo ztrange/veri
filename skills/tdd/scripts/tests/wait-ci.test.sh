@@ -21,8 +21,7 @@ source "$HERE/lib/harness.sh"
 WAIT="$HERE/../wait-ci.sh"
 PR="https://github.com/o/r/pull/1"
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 mkdir -p "$work/.tdd" "$work/bin"
 
 cat > "$work/bin/date" <<'D'
@@ -136,7 +135,7 @@ wait_in() {
 waited() {
   local dir
   [[ $# -gt 1 ]] || set -- "$1" 1800
-  dir="$(mktemp -d "$work/cwd.XXXXXX")"; mkdir "$dir/.tdd"
+  dir="$(scratch_dir)"; mkdir "$dir/.tdd"
   : > "$work/$1.clock"; : > "$work/$1.json.calls"
   wait_in "$dir" "$1" "$work/$1.err" "${@:2}"
 }

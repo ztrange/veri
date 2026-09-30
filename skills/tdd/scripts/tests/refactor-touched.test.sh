@@ -23,8 +23,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 TOUCHED="$HERE/../refactor-touched.sh"
 source "$HERE/lib/harness.sh"
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
@@ -33,13 +32,13 @@ commit_all() {
   git_q "$1" commit -q -m "$2" >/dev/null 2>&1
 }
 
-new_repo() {
+make_repo() {
   local dir="$work/$1"
-  git init -q -b main "$dir" >/dev/null 2>&1
+  new_repo -b main "$dir" >/dev/null 2>&1
   echo "$dir"
 }
 
-repo="$(new_repo green)"
+repo="$(make_repo green)"
 mkdir -p "$repo/.tdd" "$repo/lib" "$repo/src"
 printf -- '- [ ] a step\n' > "$repo/.tdd/issue-7.md"
 commit_all "$repo" "plan: scope #7"
@@ -56,7 +55,7 @@ if [[ "$code" == 0 && "$got" == "$expected" ]]; then ok; else
   diff <(printf '%s\n' "$expected") <(printf '%s\n' "$got") | sed 's/^/    /'
 fi
 
-repo="$(new_repo unresolvable)"
+repo="$(make_repo unresolvable)"
 printf 'alpha\n' > "$repo/alpha.sh"
 commit_all "$repo" "feat: alpha"
 missing="deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
@@ -65,7 +64,7 @@ if [[ "$code" == 2 && "$err" == *"$missing"* ]]; then ok; else
   no "unresolvable commit → exit 2 with a stderr diagnostic naming it (code=$code, stderr=$err)"
 fi
 
-repo="$(new_repo ledger-only)"
+repo="$(make_repo ledger-only)"
 mkdir -p "$repo/.tdd"
 printf 'alpha\n' > "$repo/alpha.sh"
 commit_all "$repo" "feat: alpha"
@@ -77,7 +76,7 @@ if [[ "$code" == 3 && -z "$out" ]]; then ok; else
   no "commit touching only .tdd/ → exit 3 and nothing on stdout (code=$code, stdout=$out)"
 fi
 
-repo="$(new_repo issue-range)"
+repo="$(make_repo issue-range)"
 mkdir -p "$repo/.tdd" "$repo/lib" "$repo/src"
 printf -- '- [ ] a step\n' > "$repo/.tdd/issue-11.md"
 commit_all "$repo" "plan: scope #11"

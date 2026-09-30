@@ -62,11 +62,10 @@ source "$HERE/lib/harness.sh"
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
 trees=()
-trap 'rm -rf "${trees[@]+"${trees[@]}"}"' EXIT
 
 run_case4() {
   local arm="$1" rewrite="$2" tree script cut out code
-  tree="$(mktemp -d)" || { problems+=("could not make the $arm arm's scratch tree"); return; }
+  tree="$(scratch_dir)" || { problems+=("could not make the $arm arm's scratch tree"); return; }
   trees+=("$tree")
   mkdir -p "$tree/$TESTS_DIR"
   cp "$SUBJECT_PATH" "$tree/$TESTS_DIR/$SUBJECT_NAME"

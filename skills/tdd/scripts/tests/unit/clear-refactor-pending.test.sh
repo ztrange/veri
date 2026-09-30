@@ -14,8 +14,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 CLEAR="$HERE/../../clear-refactor-pending.sh"
 source "$HERE/../lib/harness.sh"
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 led="$work/issue-42.md"
 
 ledger='# Plan for #42

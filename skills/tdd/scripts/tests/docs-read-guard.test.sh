@@ -96,8 +96,7 @@ plant_quoter() {
   cat > "$quoter_path" <<'EOF'
 #!/usr/bin/env bash
 set -uo pipefail
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 pass=0; fail=0
 EOF
   printf 'echo "## Notes. %s is generated. Test command: make docs-test" > "$work/body.md"\n' \
@@ -112,7 +111,7 @@ EOF
 }
 
 plant() {
-  tree="$(mktemp -d)" || {
+  tree="$(scratch_dir)" || {
     problems+=("could not make a scratch tree to plant the two suites in, so the criterion went unasked")
     return 1
   }
@@ -127,7 +126,7 @@ plant() {
 
   cp "$GUARD_PATH" "$guard_copy"
   mkdir -p "${guard_copy%/*}/lib" && cp "$HERE/lib/harness.sh" "${guard_copy%/*}/lib/"
-  git init -q "$tree" >/dev/null 2>&1
+  new_repo "$tree" >/dev/null 2>&1
   git -C "$tree" add -A >/dev/null 2>&1
 
   reader_line="$(grep -n "$MARK" "$reader_path" | cut -d: -f1)"

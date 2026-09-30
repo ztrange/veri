@@ -20,9 +20,8 @@ SCRIPTS="$HERE/.."
 SUP="$SCRIPTS/supervise.sh"
 source "$HERE/lib/harness.sh"
 
-stub="$(mktemp -d)"
-work="$(mktemp -d)"
-trap 'rm -rf "$stub" "$work"' EXIT
+stub="$(scratch_dir)"
+work="$(scratch_dir)"
 
 cat > "$stub/leaf-ok" <<'L'
 #!/bin/sh
@@ -691,7 +690,7 @@ preserve_issue=409
 preserve_step=6
 preserve_window=1
 mkdir -p "$preserve_work"
-git init -q -b main "$preserve_work" >/dev/null 2>&1
+new_repo -b main "$preserve_work" >/dev/null 2>&1
 git -C "$preserve_work" config user.name veri
 git -C "$preserve_work" config user.email veri@example.test
 printf '.tdd/\n.test-clock*\n' > "$preserve_work/.gitignore"
@@ -1016,7 +1015,7 @@ slept_secs="$(event_field   "$slept_work" exit secs)"
 slept_exit_ok "$slept_status" "$slept_secs" && ok \
   || no "#486: a leaf awake ${awake_spent}s and suspended 100s reports the awake seconds as its exit event's secs, not the wall seconds (status=$slept_status want 0, secs=$slept_secs want $awake_spent..$(( awake_spent + 1 )))"
 
-suspend_probe="$(mktemp -d)"
+suspend_probe="$(scratch_dir)"
 mkdir -p "$suspend_probe/spy" "$suspend_probe/cwd"
 cat > "$suspend_probe/awake-read" <<C
 echo "\$("$stub/awake-clock") \$("$realdate" +%s)" >> .test-awake-reads
@@ -1054,7 +1053,7 @@ across_polls="$(grep -c '^yes yes$' "$across_work/.test-awake-spy" 2>/dev/null)"
   && slept_exit_ok "$across_status" "$across_secs"; } && ok \
   || no "#512: case 50's slept-through leaf stays suspended across two watchdog polls before it exits 0, and still reports status 0 with secs in the awake range (polls while suspended=$across_polls want >=2, status=$across_status want 0, secs=$across_secs want $awake_spent..$(( awake_spent + 1 )))"
 
-atomic_probe="$(mktemp -d)"
+atomic_probe="$(scratch_dir)"
 mkdir -p "$atomic_probe/spy" "$atomic_probe/cwd"
 cat > "$atomic_probe/both-read" <<C
 echo "\$("$stub/awake-clock") \$("$stub/date" +%s) \$("$realdate" +%s)" >> .test-both-reads
@@ -1077,7 +1076,7 @@ rm -rf "$atomic_probe"
 { [[ "$atomic_code" == 0 ]] && [[ -z "$atomic_torn" ]] && [[ "$atomic_last" == both ]]; } && ok \
   || no "#512: clock-suspend 100 moves the wall clock and the awake clock together, so no reading during its run sees one moved without the other (code=$atomic_code want 0, torn readings: '${atomic_torn//$'\n'/; }' want none, last reading: $atomic_last want both, all readings (awake wall real): '${atomic_reads//$'\n'/; }')"
 
-restart_py="$(mktemp -d)"
+restart_py="$(scratch_dir)"
 realpy="$(command -v python3)"
 cat > "$restart_py/python3" <<P
 if [ "\$1" = -c ]; then

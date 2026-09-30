@@ -242,11 +242,11 @@ report "$name"
 name="a tracked file at a former stub path fails both sweeps: exempt no longer covers the stub paths"
 problems=()
 real_root="$ROOT"
-ROOT="$(mktemp -d)"
+ROOT="$(scratch_dir)"
 mkdir -p "$ROOT/${old_dirs[0]}" "$ROOT/${old_dirs[1]}"
 printf 'scripts live at %s/run.sh\n' "$old_scripts_dir" > "$ROOT/${stubs[0]}"
 printf 'Invoke %s 12 and follow it.\n' "${old_cmds[0]}" > "$ROOT/${stubs[1]}"
-if ! (cd "$ROOT" && git init -q && git add -A); then
+if ! (new_repo "$ROOT" && cd "$ROOT" && git add -A); then
   problems+=("could not build the scratch repository at $ROOT")
 else
   sweep --fixed-strings "$old_scripts_dir" || problems+=("old-home sweep: git grep failed with exit $?")
@@ -263,11 +263,11 @@ report "$name"
 name="a tracked file under .tdd/ naming the old home or an old command passes both sweeps"
 problems=()
 real_root="$ROOT"
-ROOT="$(mktemp -d)"
+ROOT="$(scratch_dir)"
 mkdir -p "$ROOT/.tdd"
 printf 'scripts live at %s/run.sh\n' "$old_scripts_dir" > "$ROOT/.tdd/issue-1-plan.md"
 printf 'Invoke %s 12 and follow it.\n' "${old_cmds[0]}" > "$ROOT/.tdd/issue-2-plan.md"
-if ! (cd "$ROOT" && git init -q && git add -A); then
+if ! (new_repo "$ROOT" && cd "$ROOT" && git add -A); then
   problems+=("could not build the scratch repository at $ROOT")
 else
   sweep --fixed-strings "$old_scripts_dir" || problems+=("old-home sweep: git grep failed with exit $?")
@@ -290,10 +290,10 @@ report "$name"
 name="ADR 0013's line 18, naming the old home as a path passes both sweeps"
 problems=()
 real_root="$ROOT"
-ROOT="$(mktemp -d)"
+ROOT="$(scratch_dir)"
 adr_line="$(printf 'the user-level `~/.claude/%s` symlink into the primary clone silently' "$old_skill_dir")"
 mkdir -p "$ROOT/docs/adr" && printf '%s\n' "$adr_line" > "$ROOT/docs/adr/0013-issue-branch-in-its-own-worktree.md"
-if ! (cd "$ROOT" && git init -q && git add -A); then
+if ! (new_repo "$ROOT" && cd "$ROOT" && git add -A); then
   problems+=("could not build the scratch repository at $ROOT")
 else
   sweep --fixed-strings "$old_scripts_dir" || problems+=("old-home sweep: git grep failed with exit $?")

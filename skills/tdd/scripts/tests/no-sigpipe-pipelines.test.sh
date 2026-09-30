@@ -63,7 +63,7 @@ WRAPPING_PIPE='(^|[^|])\|[[:space:]]*$'
 READER_OPENS="^[[:space:]]*$READER"
 
 declare -A EXEMPT=(
-  [run-conductor.test.sh:51]="a line of the POSIX-sh stub \`claude\` the suite writes in a heredoc, not of the suite: that shell sets no pipefail, so the sed's SIGPIPE is never a status anything reads, and bash's process substitution is not available there to repair it with"
+  [run-conductor.test.sh:49]="a line of the POSIX-sh stub \`claude\` the suite writes in a heredoc, not of the suite: that shell sets no pipefail, so the sed's SIGPIPE is never a status anything reads, and bash's process substitution is not available there to repair it with"
 )
 
 
@@ -206,7 +206,7 @@ probe_count_line_check_lets_its_writer_finish() {
   check="${check%%||*}"
   check="${check//\$\$/\$}"
   check="${check//\$(COUNT_LINE)/$COUNT_LINE}"
-  scratch="$(mktemp -d)"
+  scratch="$(scratch_dir)"
   cat > "$scratch/tail" <<'STUB'
 #!/bin/sh
 printf '13 passed, 0 failed\n'

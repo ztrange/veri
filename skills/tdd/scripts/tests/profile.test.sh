@@ -26,8 +26,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
 PROFILE="$HERE/../profile.sh"
 
-scratch="$(mktemp -d)"
-trap 'rm -rf "$scratch"' EXIT
+scratch="$(scratch_dir)"
 
 write_fixture() {
   fixture="$scratch/$1"

@@ -12,8 +12,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 BUILD="$HERE/../build-verify-prompt.sh"
 source "$HERE/lib/harness.sh"
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 cat > "$work/spec.md" <<'SPEC'
 slugify("Hello & World/Foo") must return "hello-world-foo" — see {ref}\n done.

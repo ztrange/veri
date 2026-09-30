@@ -117,8 +117,7 @@ check "a fully ticked ledger quoting markers still exits 3 (#484)" 3 "$ticked_le
 # 14. the step printed is the first open ordinary step of lib/ledger.sh's records, not one
 # the script finds in the markdown itself: beside a stub module whose `ledger_steps` answers
 # for the ledger, the stub's answer is what is printed (#495)
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 mkdir "$work/lib"
 cp "$NEXT" "$work/next-unchecked.sh"
 cat > "$work/lib/ledger.sh" <<'EOF'

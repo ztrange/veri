@@ -8,7 +8,7 @@
 #
 # The subject is git's own storage, so this suite is not in the fast tier: the behaviour under
 # test IS a real repository's refs, and a fake git could not answer `git show`. Every case runs
-# against a throwaway `git init` repo with one commit, and asks git rather than the filesystem —
+# against a throwaway make_repo repo with one commit, and asks git rather than the filesystem —
 # a file written under .git by hand would pass a filesystem check and be no commit at all.
 #
 # Run: scripts/tests/preserve-attempt.test.sh
@@ -16,9 +16,8 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PRESERVE="$HERE/../preserve-attempt.sh"
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
 source "$HERE/lib/harness.sh"
+work="$(scratch_dir)"
 
 ident=(GIT_AUTHOR_NAME=veri GIT_AUTHOR_EMAIL=veri@example.test
        GIT_COMMITTER_NAME=veri GIT_COMMITTER_EMAIL=veri@example.test)
@@ -37,9 +36,9 @@ copy_path() { printf '%s/%s-develop-green-1-%s.%s' "$(attempts_dir "$1")" "$2" "
 
 copy_text() { if [[ -f "$1" ]]; then cat "$1"; else echo "<missing>"; fi; }
 
-new_repo() {
+make_repo() {
   mkdir -p "$1"
-  git init -q -b main "$1" >/dev/null 2>&1
+  new_repo -b main "$1" >/dev/null 2>&1
   printf 'committed\n' > "$1/stop-run.sh"
   git_q "$1" add stop-run.sh >/dev/null 2>&1
   git_q "$1" commit -q -m "initial" >/dev/null 2>&1
@@ -48,7 +47,7 @@ new_repo() {
 REJECTED="rejected work"
 
 dirty_repo() {
-  new_repo "$1"
+  make_repo "$1"
   printf '%s\n' "$REJECTED" > "$1/stop-run.sh"
 }
 
@@ -99,7 +98,7 @@ log_after="$(git_q "$repo" log --oneline 2>&1)"
   && ok || no "leaves HEAD, the index and git log untouched (code=$code head=$head_before/$head_after index_changed=$([[ "$index_after" == "$index_before" ]] && echo no || echo yes) log_changed=$([[ "$log_after" == "$log_before" ]] && echo no || echo yes))"
 
 repo="$work/leafoutput"
-new_repo "$repo"
+make_repo "$repo"
 leaf_output "$repo" 'streamed progress' 'final result text'
 preserve "$repo" 409 3 develop-green 1 reject >/dev/null 2>&1; code=$?
 log_copy="$(copy_path "$repo" 3 reject log)"
@@ -112,7 +111,7 @@ out_text="$(copy_text "$out_copy")"
   && ok || no "copies the leaf's log and final output to names carrying step, phase, attempt and mark (code=$code log='$log_text' out='$out_text')"
 
 repo="$work/nooutput"
-new_repo "$repo"
+make_repo "$repo"
 leaf_output "$repo" 'streamed progress'
 preserve "$repo" 409 3 develop-green 1 stuck >/dev/null 2>&1; code=$?
 log_copy="$(copy_path "$repo" 3 stuck log)"
@@ -174,7 +173,7 @@ shown="$(git_q "$repo" show "$found:stop-run.sh" 2>&1)"
   && ok || no "preserves the attempt under a ref git accepts when the step title carries spaces, an apostrophe and a slash (code=$code ref='$found' legal=$([[ "$legal" == 0 ]] && echo yes || echo no) shown='$shown')"
 
 repo="$work/ledgercopies"
-new_repo "$repo"
+make_repo "$repo"
 prose="A leaf's output is kept under refs/veri, not the branch"
 write_ledger "$repo" "The first step, already done" "$prose"
 leaf_output "$repo" 'streamed progress' 'final result text'

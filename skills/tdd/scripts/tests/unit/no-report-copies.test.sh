@@ -56,4 +56,24 @@ else
   printf '%s' "$problems"
 fi
 
+name="no suite builds its own scratch directory, exit trap or tmp git repository"
+problems=""
+copies="$(cd "$TESTS" && grep -nE \
+  -e 'mktemp[ ]-d' \
+  -e '^[[:space:]]*trap[[:space:]].*EXIT' \
+  -e 'git[ ]init' \
+  ./*.sh ./unit/*.sh | grep -v '^\./unit/harness\.test\.sh:')"
+while IFS= read -r hit; do
+  [[ -n "$hit" ]] || continue
+  file="${hit%%:*}"
+  rest="${hit#*:}"
+  problems+="    ${file#./}:${rest%%:*} builds its own scratch instead of the harness's"$'\n'
+done <<< "$copies"
+if [[ -z "$problems" ]]; then
+  ok
+else
+  no "$name"
+  printf '%s' "$problems"
+fi
+
 finish

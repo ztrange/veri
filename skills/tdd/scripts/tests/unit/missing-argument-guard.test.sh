@@ -28,8 +28,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LIB="$HERE/../../lib/missing-argument-exit.sh"
 source "$HERE/../lib/harness.sh"
-scratch="$(mktemp -d)"
-trap 'rm -rf "$scratch"' EXIT
+scratch="$(scratch_dir)"
 out="$scratch/out" err="$scratch/err"
 
 show_run() {  # show_run <exit> <stdout-file> <stderr-file> — print what a failing case got

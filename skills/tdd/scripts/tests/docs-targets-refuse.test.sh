@@ -69,8 +69,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-WORK="$(mktemp -d)"
-trap 'rm -rf "$WORK"' EXIT
+WORK="$(scratch_dir)"
 
 MAKEFILE="$ROOT/Makefile"
 LOG="$WORK/ran.log"

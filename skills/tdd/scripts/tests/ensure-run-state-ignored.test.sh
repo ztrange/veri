@@ -18,13 +18,12 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ENSURE="$HERE/../ensure-run-state-ignored.sh"
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
 source "$HERE/lib/harness.sh"
+work="$(scratch_dir)"
 
-new_repo() {
+make_repo() {
   mkdir -p "$1"
-  git init -q "$1" >/dev/null 2>&1
+  new_repo "$1" >/dev/null 2>&1
 }
 
 ignored() {
@@ -32,7 +31,7 @@ ignored() {
 }
 
 repo="$work/fresh"
-new_repo "$repo"
+make_repo "$repo"
 
 "$ENSURE" "$repo" >/dev/null 2>&1
 
@@ -43,7 +42,7 @@ ignored "$repo" .tdd/issue-7.md && ledger_code=0 || ledger_code=$?
   && ok || no "no .gitignore: creates one ignoring .tdd/develop-red.log but not .tdd/issue-7.md (develop-red.log=$log_code want 0 ignored, issue-7.md=$ledger_code want 1 not ignored)"
 
 repo="$work/twice"
-new_repo "$repo"
+make_repo "$repo"
 
 "$ENSURE" "$repo" >/dev/null 2>&1
 before="$work/twice.gitignore.before"
@@ -56,7 +55,7 @@ cmp -s "$before" "$repo/.gitignore" && same=0 || same=$?
   && ok || no "already carries the rule: leaves .gitignore byte-identical and reports already present (cmp=$same want 0 identical, exit=$code want 0, stdout='$out' want it to contain 'already present')"
 
 repo="$work/unrelated"
-new_repo "$repo"
+make_repo "$repo"
 printf 'node_modules/\n*.log' > "$repo/.gitignore"
 
 out="$("$ENSURE" "$repo" 2>/dev/null)" && code=0 || code=$?
@@ -74,7 +73,7 @@ ignored "$repo" .tdd/issue-7.md && ledger_code=0 || ledger_code=$?
 refuses() {
   local slug="$1" why="$2"; shift 2
   local repo="$work/$slug" before="$work/$slug.before" err="$work/$slug.stderr" code same diag
-  new_repo "$repo"
+  make_repo "$repo"
   printf '%s\n' "$@" > "$repo/.gitignore"
   cp "$repo/.gitignore" "$before"
 
@@ -91,7 +90,7 @@ refuses partial 'only .tdd/issue-*-spec.md' '.tdd/issue-*-spec.md'
 refuses misordered 'negation last' '.tdd/*' '.tdd/issue-*-spec.md' '!.tdd/issue-*.md'
 
 repo="$work/trailing-newline"
-new_repo "$repo"
+make_repo "$repo"
 printf 'node_modules/\n' > "$repo/.gitignore"
 want="$work/trailing-newline.want"
 printf 'node_modules/\n.tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-spec.md\n' > "$want"
@@ -106,7 +105,7 @@ git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email
 
 repo="$work/caller"
 mkdir -p "$repo"
-git init -q -b main "$repo" >/dev/null 2>&1
+new_repo -b main "$repo" >/dev/null 2>&1
 git_q "$repo" commit -q --allow-empty -m "initial" >/dev/null 2>&1
 git_q "$repo" worktree add "$repo/.tdd/wt/1" -b tdd/1 >/dev/null 2>&1
 
@@ -129,7 +128,7 @@ ignored "$wt" .tdd/issue-1.md && ledger_code=0 || ledger_code=$?
 
 repo="$work/twice-both"
 mkdir -p "$repo"
-git init -q -b main "$repo" >/dev/null 2>&1
+new_repo -b main "$repo" >/dev/null 2>&1
 git_q "$repo" commit -q --allow-empty -m "initial" >/dev/null 2>&1
 git_q "$repo" worktree add "$repo/.tdd/wt/1" -b tdd/1 >/dev/null 2>&1
 wt="$repo/.tdd/wt/1"

@@ -12,8 +12,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 WRAP="$HERE/../tick-issue-criterion.sh"
 source "$HERE/lib/harness.sh"
 
-stubdir="$(mktemp -d)"
-trap 'rm -rf "$stubdir"' EXIT
+stubdir="$(scratch_dir)"
 cat > "$stubdir/gh" <<'STUB'
 #!/bin/sh
 if [ "$1" = "issue" ] && [ "$2" = "view" ]; then

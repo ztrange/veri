@@ -23,8 +23,7 @@ check_code() {
 
 check() { check_code "$1" "$2" 0 "$3"; }
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 led="$work/issue-42.md"
 

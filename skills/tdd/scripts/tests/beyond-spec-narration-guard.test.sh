@@ -68,8 +68,7 @@ CLASS='beyond-spec'
 DENIAL='is not planned and not built in this run'
 GRANT='is planned and built in this run'
 
-scratch="$(mktemp -d)"
-trap 'rm -rf "$scratch"' EXIT
+scratch="$(scratch_dir)"
 
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 

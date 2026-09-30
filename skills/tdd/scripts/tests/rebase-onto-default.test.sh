@@ -27,8 +27,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
 REBASE="$HERE/../rebase-onto-default.sh"
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 report_stderr() {
   local before="$fail"
@@ -48,8 +47,8 @@ identify() { git -C "$1" config user.name veri && git -C "$1" config user.email 
 origin_fixture() {
   local dir="$1"
   mkdir -p "$dir"
-  git init -q --bare -b main "$dir/origin.git" >/dev/null 2>&1
-  git init -q -b main "$dir/seed" >/dev/null 2>&1
+  new_repo --bare -b main "$dir/origin.git" >/dev/null 2>&1
+  new_repo -b main "$dir/seed" >/dev/null 2>&1
   echo "base" > "$dir/seed/file.txt"
   git_q "$dir/seed" add -A >/dev/null 2>&1
   git_q "$dir/seed" commit -q -m "initial" >/dev/null 2>&1

@@ -227,14 +227,14 @@ table_says() {
 }
 
 fixture_works=()
-trap '[[ "${#fixture_works[@]}" -eq 0 ]] || rm -rf "${fixture_works[@]}"' EXIT
+on_exit '[[ "${#fixture_works[@]}" -eq 0 ]] || rm -rf "${fixture_works[@]}"'
 
 probe_spool="$(mktemp)"
 fixture_works+=("$probe_spool")
 
 fixture_work() {
   local dir
-  dir="$(mktemp -d)"
+  dir="$(scratch_dir)"
   mkdir -p "$dir/.tdd"
   fixture_works+=("$dir")
   printf -v "$1" '%s' "$dir"

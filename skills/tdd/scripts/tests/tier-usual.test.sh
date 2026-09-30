@@ -30,7 +30,7 @@ ev() {
 
 name="tier-usual.sh <tier>: the usual is the median of that tier's last 10 test-run events' seconds"
 problems=()
-work="$(mktemp -d)"
+work="$(scratch_dir)"
 mkdir -p "$work/.tdd"
 {
   ev test-run fast 100

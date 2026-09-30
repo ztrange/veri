@@ -33,8 +33,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
 INVISIBLE="$HERE/../invisible-work.sh"
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
@@ -42,9 +41,9 @@ unpr_branch_clone() {
   local dir="$1" branch="$2" ahead="$3"
   local src="$dir/src" bare="$dir/origin.git" clone="$dir/clone" i
   mkdir -p "$src"
-  git init -q -b main "$src"
+  new_repo -b main "$src"
   git_q "$src" commit -q --allow-empty -m "initial"
-  git init -q --bare -b main "$bare"
+  new_repo --bare -b main "$bare"
   git_q "$src" remote add origin "$bare"
   git_q "$src" push -q -u origin main
   git_q "$src" checkout -q -b "$branch"

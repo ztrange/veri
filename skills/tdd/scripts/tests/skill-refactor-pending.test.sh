@@ -255,7 +255,7 @@ removal_verb_probe() {
 probes_against_planted() {
   local probes="$1" unreadable="$2"
   local planted_dir real_skill_path
-  planted_dir="$(mktemp -d)"
+  planted_dir="$(scratch_dir)"
   cat > "$planted_dir/SKILL.md"
   real_skill_path="$skill_path"
   skill_path="$planted_dir/SKILL.md"

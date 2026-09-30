@@ -15,8 +15,7 @@ STEP_BUDGET="$HERE/../../step-budget.sh"
 source "$HERE/../lib/harness.sh"
 problems=""
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 # run_budget [env assignments…] -- [args…] — run the script with both budget names cleared
 # from the environment, then the assignments given, so an operator's ambient VERI_* cannot

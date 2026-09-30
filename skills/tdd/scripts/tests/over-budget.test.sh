@@ -114,8 +114,7 @@ report "$name"
 name="over-budget.sh: a run over budget still ends on its leaf's own verdict, with no retry and no bail"
 problems=()
 
-fixture="$(mktemp -d)"
-trap 'rm -rf "$fixture"' EXIT
+fixture="$(scratch_dir)"
 
 over_seconds=40
 mkdir -p "$fixture/.tdd"
@@ -128,11 +127,10 @@ mkdir -p "$fixture/.tdd"
 
 printf 'slugify must lowercase the title and join words with hyphens.\n' > "$fixture/spec.md"
 
-cat > "$fixture/claude" <<'STUB'
-#!/bin/sh
+claude_stub "$fixture" "$(cat <<'STUB'
 printf 'VERDICT: PASS\nREASON: the new case fails for the reason the step names.\n'
 STUB
-chmod +x "$fixture/claude"
+)"
 
 usual="$(cd "$fixture" && "$HERE/../tier-usual.sh" unit)"
 ( cd "$fixture" && "$CHECK" unit "$over_seconds" "$usual" ) >/dev/null 2>&1 && tripped=0 || tripped=$?
