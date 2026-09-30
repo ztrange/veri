@@ -611,4 +611,61 @@ else
   echo "    long stderr: $(cat "$work/next-large-doc.long.err")"
 fi
 
+
+repo="$work/next-three-pages"
+make_repo "$repo"
+seed_queue "$repo" 'alpha\t71\tqueued\t\nalpha\t73\tqueued\t\n'
+issue_pages=(
+  '{"number": 70, "title": "a", "labels": [], "body": "", "state": "closed"}, {"number": 71, "title": "b", "labels": [], "body": "Work.\n\n## Blocked by\n\n- #74\n", "state": "open"}'
+  '{"number": 72, "title": "c", "labels": [], "body": "", "state": "closed"}, {"number": 73, "title": "d", "labels": [], "body": "Work.\n\n## Blocked by\n\n- #72\n", "state": "open"}'
+  '{"number": 74, "title": "e", "labels": [], "body": "", "state": "open"}, {"number": 75, "title": "f", "labels": [], "body": "", "state": "closed"}'
+)
+mkdir -p "$work/next-three-pages.one" "$work/next-three-pages.three" "$work/next-three-pages.bin"
+for i in 0 1 2; do
+  printf '[%s]\n' "${issue_pages[i]}" > "$work/next-three-pages.three/issues-$((i + 1)).json"
+done
+(IFS=,; printf '[%s]\n' "${issue_pages[*]}" > "$work/next-three-pages.one/issues-1.json")
+cat > "$work/next-three-pages.bin/gh" <<'STUB'
+#!/bin/sh
+proxy='gh: Numeric-ID repository paths (repositories/{id}/...) are not supported through this proxy. Use repos/{owner}/{repo}/... endpoints instead. (HTTP 403)'
+case "$1" in
+  api) shift ;;
+  *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
+esac
+paginate="" path=""
+for arg in "$@"; do
+  case "$arg" in
+    --paginate) paginate=1 ;;
+    -*) echo "gh stub: unsupported flag $arg" >&2; exit 1 ;;
+    *) path="$arg" ;;
+  esac
+done
+case "$path" in
+  *repositories/*) echo "$proxy" >&2; exit 1 ;;
+  "repos/{owner}/{repo}/issues"*) ;;
+  *) echo "gh stub: unexpected path $path" >&2; exit 1 ;;
+esac
+page="$(printf '%s\n' "$path" | sed -n 's/.*[?&]page=\([0-9][0-9]*\).*/\1/p')"
+[ -n "$page" ] || page=1
+if [ -f "$GH_FX/issues-$page.json" ]; then cat "$GH_FX/issues-$page.json"; else echo '[]'; fi
+if [ -n "$paginate" ] && [ -f "$GH_FX/issues-$((page + 1)).json" ]; then echo "$proxy" >&2; exit 1; fi
+exit 0
+STUB
+chmod +x "$work/next-three-pages.bin/gh"
+paged_next() {  # paged_next <one|three>; sets $out and $code
+  out="$(cd "$repo" && env -u VERI_GH_JSON PATH="$work/next-three-pages.bin:$PATH" \
+    GH_FX="$work/next-three-pages.$1" "$SCRIPT" next alpha 2>"$work/next-three-pages.$1.err")" &&
+    code=0 || code=$?
+}
+paged_next one; one_out="$out" one_code="$code"
+paged_next three
+if [[ "$one_code" == 0 && "$one_out" == 73 && "$code" == "$one_code" && "$out" == "$one_out" ]]; then
+  ok
+else
+  no "next, against a gh that serves issues over three pages on repos/{owner}/{repo} and refuses repositories/{id} with the proxy's 403, prints the same issue and exit code as against a single-page fixture holding the same issues (#592)"
+  echo "    single page: exit $one_code (want 0), stdout: '$one_out' (want '73')"
+  echo "    three pages: exit $code (want $one_code), stdout: '$out' (want '$one_out')"
+  echo "    three pages stderr: $(cat "$work/next-three-pages.three.err")"
+fi
+
 finish
