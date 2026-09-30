@@ -39,7 +39,7 @@ chmod +x "$BLOCKER"
 KILLER="$work/killer.sh"
 cat > "$KILLER" <<'K'
 #!/bin/sh
-kill -9 -- "-$(ps -o pgid= -p $$ | tr -d ' ')"
+kill -9 "$PPID"
 K
 chmod +x "$KILLER"
 
