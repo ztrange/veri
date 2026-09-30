@@ -1082,7 +1082,6 @@ rm -rf "$atomic_probe"
 restart_py="$(mktemp -d)"
 realpy="$(command -v python3)"
 cat > "$restart_py/python3" <<P
-#!/bin/sh
 if [ "\$1" = -c ]; then
   shift
   exec "$realpy" -c 'import sys, time
@@ -1094,6 +1093,7 @@ exec(_code)' "\$@"
 fi
 exec "$realpy" "\$@"
 P
+{ printf '%s\n' '#!/bin/sh'; cat "$restart_py/python3"; } > "$restart_py/python3.new" && mv "$restart_py/python3.new" "$restart_py/python3"
 printf '%s\n' '#!/bin/sh' 'echo "leaf: starting"; sleep 4; echo "leaf: finished on its own"' > "$restart_py/leaf-quiet"
 chmod +x "$restart_py/python3" "$restart_py/leaf-quiet"
 restart_work="$work/restart-clock"
