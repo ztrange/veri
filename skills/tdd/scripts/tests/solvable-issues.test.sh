@@ -1213,4 +1213,62 @@ out="$(PATH="$argcapdir:$PATH" VERI_GH_JSON="$long_fx" "$SOLVABLE" 2>/dev/null)"
   && [[ "$code" == 0 && "$out" == "$short_out" ]]; } \
   && ok || no "a VERI_GH_JSON issues.json larger than 256 KiB prints the same numbers and exits 0 as the same issues with short bodies, under a python3 that refuses any argument over 128 KiB the way Linux does (#591) (long issues.json=$long_size bytes want >262144; short: exit=$short_code stdout='$(tr '\n' '|' <<<"$short_out")' want 0 and '2|4|…|40'; long: exit=$code stdout='$(tr '\n' '|' <<<"$out")' want the same)"
 
+
+issue_pages=(
+  '{"number": 70, "title": "a", "labels": [{"name": "ready-for-agent"}], "body": "## Blocked by\n\n- #74\n", "state": "open"}, {"number": 71, "title": "b", "labels": [{"name": "ready-for-agent"}], "body": "", "state": "closed"}'
+  '{"number": 72, "title": "c", "labels": [{"name": "ready-for-agent"}], "body": "", "state": "open"}, {"number": 73, "title": "d", "labels": [{"name": "ready-for-agent"}, {"name": "bug"}], "body": "", "state": "open"}'
+  '{"number": 74, "title": "e", "labels": [], "body": "", "state": "open"}, {"number": 75, "title": "f", "labels": [{"name": "ready-for-agent"}, {"name": "priority"}], "body": "", "state": "open"}'
+)
+pull_pages=(
+  '{"number": 1, "state": "closed", "body": "Closes #73"}, {"number": 2, "state": "open", "body": ""}'
+  '{"number": 3, "state": "open", "body": ""}, {"number": 4, "state": "closed", "body": ""}'
+  '{"number": 5, "state": "open", "body": "Closes #72"}, {"number": 6, "state": "closed", "body": ""}'
+)
+mkdir -p "$work/three-pages/one" "$work/three-pages/three" "$work/three-pages/bin"
+for i in 0 1 2; do
+  printf '[%s]\n' "${issue_pages[i]}" > "$work/three-pages/three/issues-$((i + 1)).json"
+  printf '[%s]\n' "${pull_pages[i]}" > "$work/three-pages/three/pulls-$((i + 1)).json"
+done
+(IFS=,; printf '[%s]\n' "${issue_pages[*]}" > "$work/three-pages/one/issues-1.json"
+ printf '[%s]\n' "${pull_pages[*]}" > "$work/three-pages/one/pulls-1.json")
+cat > "$work/three-pages/bin/gh" <<'STUB'
+#!/bin/sh
+proxy='gh: Numeric-ID repository paths (repositories/{id}/...) are not supported through this proxy. Use repos/{owner}/{repo}/... endpoints instead. (HTTP 403)'
+case "$1" in
+  issue|pr|repo) echo "HTTP 403: GitHub GraphQL is not available from Claude Code sessions" >&2; exit 1 ;;
+  api) shift ;;
+  *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
+esac
+paginate="" path=""
+for arg in "$@"; do
+  case "$arg" in
+    --paginate) paginate=1 ;;
+    -*) echo "gh stub: unsupported flag $arg" >&2; exit 1 ;;
+    *) path="$arg" ;;
+  esac
+done
+case "$path" in
+  *repositories/*) echo "$proxy" >&2; exit 1 ;;
+  "repos/{owner}/{repo}/issues"*) list=issues ;;
+  "repos/{owner}/{repo}/pulls"*) list=pulls ;;
+  *) echo "gh stub: unexpected path $path" >&2; exit 1 ;;
+esac
+page="$(printf '%s\n' "$path" | sed -n 's/.*[?&]page=\([0-9][0-9]*\).*/\1/p')"
+[ -n "$page" ] || page=1
+if [ -f "$GH_FX/$list-$page.json" ]; then cat "$GH_FX/$list-$page.json"; else echo '[]'; fi
+if [ -n "$paginate" ] && [ -f "$GH_FX/$list-$((page + 1)).json" ]; then echo "$proxy" >&2; exit 1; fi
+exit 0
+STUB
+chmod +x "$work/three-pages/bin/gh"
+three_page_run() {  # three_page_run <one|three>; sets $out and $code
+  out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$work/three-pages/bin:$PATH" \
+         GH_FX="$work/three-pages/$1" "$SOLVABLE" 2>"$work/three-pages/$1.err")" && code=0 || code=$?
+}
+three_page_run one; one_out="$out" one_code="$code"
+three_page_run three
+
+{ [[ "$one_code" == 0 && "$one_out" == $'75\n73' ]] \
+  && [[ "$code" == "$one_code" && "$out" == "$one_out" ]]; } \
+  && ok || no "against a gh that serves issues and PRs over three pages on repos/{owner}/{repo} and refuses repositories/{id} with the proxy's 403, prints the same issue numbers and exit code as against a single-page fixture holding the same issues and PRs (#592) (single page: exit=$one_code stdout='$(tr '\n' '|' <<<"$one_out")' want 0 and '75|73'; three pages: exit=$code stdout='$(tr '\n' '|' <<<"$out")' want the same; three pages stderr='$(tr '\n' '|' < "$work/three-pages/three.err")')"
+
 finish
