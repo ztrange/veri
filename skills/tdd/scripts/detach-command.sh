@@ -20,6 +20,8 @@ mode="$1"; name="$2"; shift 2
 exit_file=".tdd/$name.exit"
 pid_file=".tdd/$name.pid"
 
+exit_if_recorded() { [[ -f "$exit_file" ]] && exit "$(cat "$exit_file")"; return 0; }
+
 case "$mode" in
   start)
     [[ $# -gt 0 ]] || usage
@@ -34,11 +36,9 @@ case "$mode" in
     poll="${VERI_POLL:-1}"
     start=$SECONDS
     while :; do
-      if [[ -f "$exit_file" ]]; then
-        exit "$(cat "$exit_file")"
-      fi
+      exit_if_recorded
       if ! kill -0 "$(cat "$pid_file" 2>/dev/null)" 2>/dev/null; then
-        [[ -f "$exit_file" ]] && exit "$(cat "$exit_file")"
+        exit_if_recorded
         exit 2
       fi
       (( SECONDS - start >= max )) && exit 3
