@@ -10,3 +10,4 @@ __pycache__/
 .tdd/*
 !.tdd/issue-*.md
 .tdd/issue-*-spec.md
+skills/**/.tdd/

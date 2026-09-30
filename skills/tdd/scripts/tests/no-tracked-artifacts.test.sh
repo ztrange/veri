@@ -44,4 +44,14 @@ done < <(tracked_artifacts "$ROOT")
 
 report "$name"
 
+name="git ignores the event log a suite run writes under a nested .tdd/ directory (#598)"
+problems=()
+
+for path in skills/tdd/scripts/.tdd/events.jsonl skills/tdd/scripts/tests/.tdd/events.jsonl; do
+  git -C "$ROOT" check-ignore -q "$path" \
+    || problems+=("$path is not ignored, so a suite run leaves the tree dirty: ignore nested .tdd/ directories")
+done
+
+report "$name"
+
 finish
