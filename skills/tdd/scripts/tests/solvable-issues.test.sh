@@ -1184,4 +1184,43 @@ out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$refusedir
 { [[ "$code" == 0 && "$out" == "70" ]]; } \
   && ok || no "against a gh that refuses GraphQL, a /issues REST item carrying pull_request is not counted as a solvable issue even with the opt-in label (#568) (exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '70')"
 
+
+argcapdir="$work/argcap-bin"
+mkdir -p "$argcapdir"
+real_python3="$(command -v python3)"
+cat > "$argcapdir/python3" <<STUB
+#!/bin/sh
+for arg in "\$@"; do
+  if [ "\${#arg}" -gt 131072 ]; then
+    echo "python3: Argument list too long" >&2
+    exit 126
+  fi
+done
+exec "$real_python3" "\$@"
+STUB
+chmod +x "$argcapdir/python3"
+
+short_fx="$(fixture large-doc-short)" long_fx="$(fixture large-doc-long)"
+python3 -c '
+import json, sys
+def issues(pad):
+    return [{"number": n, "title": "issue %d" % n,
+             "labels": [{"name": "ready-for-agent"}] if n % 2 == 0 else [],
+             "state": "OPEN",
+             "body": "## What to build\n\n" + pad + "\n\n## Blocked by\n\nNone.\n"}
+            for n in range(1, 41)]
+json.dump(issues("short"), open(sys.argv[1] + "/issues.json", "w"))
+json.dump(issues("x" * 8192), open(sys.argv[2] + "/issues.json", "w"))
+' "$short_fx" "$long_fx"
+long_size="$(wc -c < "$long_fx/issues.json" | tr -d ' ')"
+
+out="$(PATH="$argcapdir:$PATH" VERI_GH_JSON="$short_fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+short_out="$out" short_code="$code"
+out="$(PATH="$argcapdir:$PATH" VERI_GH_JSON="$long_fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+
+{ [[ "$long_size" -gt 262144 ]] \
+  && [[ "$short_code" == 0 && "$short_out" == "$(seq 2 2 40)" ]] \
+  && [[ "$code" == 0 && "$out" == "$short_out" ]]; } \
+  && ok || no "a VERI_GH_JSON issues.json larger than 256 KiB prints the same numbers and exits 0 as the same issues with short bodies, under a python3 that refuses any argument over 128 KiB the way Linux does (#591) (long issues.json=$long_size bytes want >262144; short: exit=$short_code stdout='$(tr '\n' '|' <<<"$short_out")' want 0 and '2|4|…|40'; long: exit=$code stdout='$(tr '\n' '|' <<<"$out")' want the same)"
+
 finish

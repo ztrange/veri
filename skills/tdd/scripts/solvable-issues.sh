@@ -108,12 +108,13 @@ def documents(text):
         items.extend(page)
     return items
 
-issues = [i for i in documents(sys.argv[1]) if "pull_request" not in i]
-prs = documents(sys.argv[2])
-label = sys.argv[3]
-priority_label = sys.argv[4]
-this_repo = sys.argv[5]
-main_tree = sys.argv[6]
+issues_text, prs_text = sys.stdin.read().split("\0")
+issues = [i for i in documents(issues_text) if "pull_request" not in i]
+prs = documents(prs_text)
+label = sys.argv[1]
+priority_label = sys.argv[2]
+this_repo = sys.argv[3]
+main_tree = sys.argv[4]
 
 def is_open(record):
     return record.get("state", "").upper() == "OPEN"
@@ -179,4 +180,4 @@ for number in numbers:
 
 if not numbers:
     sys.exit(3)
-' "$issues_json" "$prs_json" "$label" "$priority_label" "$repo" "$main_tree"
+' "$label" "$priority_label" "$repo" "$main_tree" < <(printf '%s\0%s' "$issues_json" "$prs_json")
