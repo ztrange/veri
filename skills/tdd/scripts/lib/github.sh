@@ -15,8 +15,8 @@
 #   `gh api --paginate <rest-path>`, one JSON array per page, back to back; 2 when GitHub gave
 #   no answer on either route.
 #
-# gh_rest_list <rest-path> — print every page of `gh api --paginate <rest-path>`, one JSON array
-#   per page, back to back; 2 when GitHub gave no answer.
+# gh_rest_list <rest-path> — print every page of `gh api <rest-path>`, requested as page=1, 2, …
+#   until one comes back empty, one JSON array per page, back to back; 2 when GitHub gave no answer.
 
 gh_pr_ready() {
   gh pr ready "$1" ||
@@ -49,5 +49,10 @@ gh_list() {
 }
 
 gh_rest_list() {
-  gh api --paginate "$1" || return 2
+  local sep='?' page=1 body
+  [[ "$1" == *\?* ]] && sep='&'
+  while body="$(gh api "$1${sep}page=$page")" || return 2; [[ "$body" != "[]" ]]; do
+    printf '%s' "$body"
+    page=$((page + 1))
+  done
 }

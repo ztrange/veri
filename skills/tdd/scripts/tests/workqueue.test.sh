@@ -257,13 +257,15 @@ case "$*" in
 esac
 case " $* " in *" --paginate "*) paginate=1 ;; *) paginate=0 ;; esac
 per_page="$(printf '%s\n' "$*" | sed -n 's/.*[?&]per_page=\([0-9]*\).*/\1/p')"
+page="$(printf '%s\n' "$*" | sed -n 's/.*[?&]page=\([0-9]*\).*/\1/p')"
 exec python3 -c '
 import json, sys
 items = json.load(open(sys.argv[1]))
 size = min(int(sys.argv[3] or 30), 100)
 pages = [items[k:k + size] for k in range(0, len(items), size)] or [[]]
-sys.stdout.write("".join(json.dumps(p) for p in (pages if sys.argv[2] == "1" else pages[:1])))
-' "$GH_REST_ISSUES" "$paginate" "$per_page"
+n = int(sys.argv[4] or 1)
+sys.stdout.write("".join(json.dumps(p) for p in (pages if sys.argv[2] == "1" else pages[n - 1:n] or [[]])))
+' "$GH_REST_ISSUES" "$paginate" "$per_page" "$page"
 STUB
 chmod +x "$work/next-graphql-refused.bin/gh"
 gh_next() {  # gh_next <working|refused>; sets $out and $code
