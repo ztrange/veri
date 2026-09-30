@@ -472,8 +472,10 @@ JSON
 cat > "$gh_fx/rest-pulls.json" <<JSON
 [{"number": 4, "state": "closed", "merged_at": null, "body": "", "head": {"ref": "chore/an-earlier-page"}}][{"number": 5, "state": "open", "merged_at": null, "body": "", "head": {"ref": "$opened"}}]
 JSON
-mkdir -p "$work/case568/bin"
-cat > "$work/case568/bin/gh" <<'STUB'
+refusing_gh_stub() {  # refusing_gh_stub <path> < <body> -> an executable gh that refuses GraphQL when GH_GRAPHQL=refused, then runs <body>
+  mkdir -p "$(dirname "$1")"
+  {
+    cat <<'STUB'
 #!/bin/sh
 refusal='GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)'
 if [ "$GH_GRAPHQL" = refused ]; then
@@ -484,6 +486,13 @@ if [ "$GH_GRAPHQL" = refused ]; then
     "api graphql"*) echo "HTTP 403: $refusal" >&2; exit 1 ;;
   esac
 fi
+STUB
+    cat
+  } > "$1"
+  chmod +x "$1"
+}
+
+refusing_gh_stub "$work/case568/bin/gh" <<'STUB'
 case "$*" in
   "issue list"*) exec cat "$GH_FX/issues.json" ;;
   "pr list"*) exec cat "$GH_FX/prs.json" ;;
@@ -494,7 +503,6 @@ esac
 echo "gh stub: unexpected call: gh $*" >&2
 exit 1
 STUB
-chmod +x "$work/case568/bin/gh"
 run_both_ghs "$clone" "$gh_fx" "$work/case568/stderr"
 want="invariant 2 (no PR): $branch tip $tip 3 commits ahead, issue #71 OPEN"
 [[ "$working_rc" -eq 0 && "$working" == "$want" ]] ||
@@ -526,21 +534,11 @@ report "$name"
 name="every script converted to REST exits 2, never 1, when its REST call fails with a network error, a 404 or a 5xx under a gh that refuses GraphQL (#568)"
 problems=()
 clone="$(unpr_branch_clone "$work/case568-noanswer" "chore/nobody-opened-a-pr" 1)"
-mkdir -p "$work/case568-noanswer/bin"
-cat > "$work/case568-noanswer/bin/gh" <<'STUB'
-#!/bin/sh
-refusal='GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)'
-case "$1" in
-  issue|pr|repo) echo "HTTP 403: $refusal" >&2; exit 1 ;;
-esac
-case "$*" in
-  "api graphql"*) echo "HTTP 403: $refusal" >&2; exit 1 ;;
-esac
+refusing_gh_stub "$work/case568-noanswer/bin/gh" <<'STUB'
 echo "$*" >> "$GH_REST_LOG"
 echo "$GH_FAILURE" >&2
 exit 1
 STUB
-chmod +x "$work/case568-noanswer/bin/gh"
 for failure in "error connecting to api.github.com" "HTTP 404: Not Found (https://api.github.com/repos/o/r/issues/7)" "HTTP 502: Bad Gateway"; do
   for run in "capture-spec.sh 7" "solvable-issues.sh" "workqueue.sh next w1" \
     "tick-issue-criterion.sh 7 criterion" "coverage-blocker.sh 7" "parallel-conductors.sh" \
@@ -548,7 +546,7 @@ for failure in "error connecting to api.github.com" "HTTP 404: Not Found (https:
     read -r -a argv <<< "$run"
     : > "$work/case568-noanswer/rest.log"
     (cd "$clone" && env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_PARALLEL \
-      -u VERI_MAX_ISSUES PATH="$work/case568-noanswer/bin:$PATH" GH_FAILURE="$failure" \
+      -u VERI_MAX_ISSUES PATH="$work/case568-noanswer/bin:$PATH" GH_GRAPHQL=refused GH_FAILURE="$failure" \
       GH_REST_LOG="$work/case568-noanswer/rest.log" \
       "$HERE/../${argv[0]}" "${argv[@]:1}" > /dev/null 2>&1); rc=$?
     [[ -s "$work/case568-noanswer/rest.log" ]] ||
