@@ -11,22 +11,19 @@ ok() { pass=$((pass + 1)); }
 no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 
 report() {
-  local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
+    ok
   else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
+    no "$1"
     printf '    %s\n' "${problems[@]}"
   fi
 }
 
 expect_eq() {
   if [[ "$2" == "$3" ]]; then
-    pass=$((pass + 1))
+    ok
   else
-    fail=$((fail + 1))
-    echo "FAIL - $1"
+    no "$1"
     printf '    expected: %s\n    actual:   %s\n' "$2" "$3"
   fi
 }
