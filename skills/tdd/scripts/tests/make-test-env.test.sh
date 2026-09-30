@@ -78,6 +78,12 @@ expect() {
   [[ "$got" == "$2" ]] || problems+=("a suite saw $1=${got:-<nothing>}, want $2 — $3")
 }
 
+fake_git_with_exec_path() {
+  mkdir -p "$(dirname "$1")"
+  printf '#!/bin/sh\n[ "$1" = --exec-path ] && echo "%s"\n' "$work/fake-libexec" > "$1"
+  chmod +x "$1"
+}
+
 stub="$work/bin"
 mkdir -p "$stub"
 cat > "$stub/xcrun" <<'EOF'
@@ -127,9 +133,7 @@ report "make test's git symlink points at the git on PATH, when xcrun does not a
 
 problems=()
 exec_git="$work/exec-git/git"
-mkdir -p "$(dirname "$exec_git")"
-printf '#!/bin/sh\n[ "$1" = --exec-path ] && echo "%s"\n' "$work/fake-libexec" > "$exec_git"
-chmod +x "$exec_git"
+fake_git_with_exec_path "$exec_git"
 recipe /dev/null -u OFFLINE_REAL_GIT -u GIT_EXEC_PATH PATH="$stub:$PATH" XCRUN_GIT="$exec_git"
 expect GIT_EXEC_PATH "$work/fake-libexec" \
   "git run through the symlink derives its prefix from the symlink's directory and names a libexec that does not exist"
@@ -137,9 +141,7 @@ report "make test gives every suite the GIT_EXEC_PATH the real git reports at it
 
 problems=()
 tmpl_git="$work/tmpl-git/bin/git"
-mkdir -p "$(dirname "$tmpl_git")"
-printf '#!/bin/sh\n[ "$1" = --exec-path ] && echo "%s"\n' "$work/fake-libexec" > "$tmpl_git"
-chmod +x "$tmpl_git"
+fake_git_with_exec_path "$tmpl_git"
 mkdir -p "$work/tmpl-git/share/git-core/templates"
 recipe /dev/null -u OFFLINE_REAL_GIT -u GIT_TEMPLATE_DIR PATH="$stub:$PATH" XCRUN_GIT="$tmpl_git"
 got_templates="$(saw GIT_TEMPLATE_DIR)"
