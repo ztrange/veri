@@ -40,4 +40,4 @@ tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 printf '%s' "$new" > "$tmp"
 gh issue edit "$n" "${repo_args[@]+"${repo_args[@]}"}" --body-file "$tmp" >/dev/null 2>&1 ||
-  gh api -X PATCH "repos/{owner}/{repo}/issues/$n" -F "body=@$tmp" >/dev/null
+  gh api -X PATCH "repos/{owner}/{repo}/issues/$n" -F "body=@$tmp" >/dev/null || exit 2

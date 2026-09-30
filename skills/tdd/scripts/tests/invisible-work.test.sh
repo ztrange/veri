@@ -557,6 +557,29 @@ for failure in "error connecting to api.github.com" "HTTP 404: Not Found (https:
 done
 report "$name"
 
+name="coverage-blocker.sh and tick-issue-criterion.sh exit 2, never 1, when a gh that refuses GraphQL answers the issue GET and POST over REST but fails the body PATCH with a 5xx (#568)"
+problems=()
+refusing_gh_stub "$work/case568-patch/bin/gh" <<'STUB'
+case "$*" in
+  "api -X PATCH "*) echo "$*" >> "$GH_PATCH_LOG"; echo "HTTP 502: Bad Gateway" >&2; exit 1 ;;
+  "api repos/{owner}/{repo}/issues -f "*) echo "https://github.com/o/r/issues/8" ;;
+  "api repos/{owner}/{repo}/issues/7") printf '%s\n' '{"number": 7, "labels": [], "body": "- [ ] the criterion\n\n## Blocked by\n\nNone\n"}' ;;
+  *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
+esac
+STUB
+for run in "coverage-blocker.sh 7" "tick-issue-criterion.sh 7 criterion"; do
+  read -r -a argv <<< "$run"
+  : > "$work/case568-patch/patch.log"
+  (cd "$work/case568-patch" && env -u GH_REPO PATH="$work/case568-patch/bin:$PATH" GH_GRAPHQL=refused \
+    GH_PATCH_LOG="$work/case568-patch/patch.log" \
+    "$HERE/../${argv[0]}" "${argv[@]:1}" > /dev/null 2>&1); rc=$?
+  [[ -s "$work/case568-patch/patch.log" ]] ||
+    problems+=("$run: never reached the body PATCH")
+  [[ "$rc" -eq 2 ]] ||
+    problems+=("$run: want exit 2, got $rc")
+done
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
