@@ -9,7 +9,7 @@
 #   .veri/test-command override, npm/pnpm/yarn, make, pytest, go, cargo, unittest —
 #   otherwise exit 3.
 #
-# Each case seeds a throwaway `mktemp -d` repo with only the marker files it is about:
+# Each case seeds a throwaway scratch repo with only the marker files it is about:
 # the script inspects files, it never runs the command, so no toolchain is needed.
 # Sibling style: classify-bail.test.sh, ensure-run-state-ignored.test.sh.
 #
@@ -18,9 +18,8 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 DETECT="$HERE/../detect-test-command.sh"
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
 source "$HERE/lib/harness.sh"
+work="$(scratch_dir)"
 
 detect() {  # detect <args...> -> runs the script, sets $out/$code
   out="$("$DETECT" "$@" 2>/dev/null)"

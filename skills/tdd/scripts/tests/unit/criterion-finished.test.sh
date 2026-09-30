@@ -79,8 +79,7 @@ fi
 #    the markdown: beside a stub module whose `ledger_steps` answers criterion 1 done and
 #    verified, a ledger whose only criterion-1 line is unticked still exits 0 (#495)
 name="criterion 1 is finished when lib/ledger.sh's ledger_steps says so: exits 0 (#495)"
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 mkdir "$work/lib"
 cp "$FINISHED" "$work/criterion-finished.sh"
 cat > "$work/lib/ledger.sh" <<'EOF'

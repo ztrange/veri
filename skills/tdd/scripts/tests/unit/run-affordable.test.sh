@@ -16,8 +16,7 @@ RUN_AFFORDABLE="$HERE/../../run-affordable.sh"
 source "$HERE/../lib/harness.sh"
 problems=""
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 mkdir -p "$work/.tdd"
 
 # run_affordable [env assignments…] -- [args…] — run the script from the run's worktree with

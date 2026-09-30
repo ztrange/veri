@@ -59,8 +59,7 @@ check "skips already checked" 0 "creates a branch" "$mixed" '- [x] reads the iss
 nested='  - [ ] nested criterion'
 check "nested checkbox" 0 "nested" "$nested" '  - [x] nested criterion'
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 mkdir "$work/lib"
 cp "$TICK" "$work/tick-criterion.sh"
 cat > "$work/lib/ledger.sh" <<'EOF'

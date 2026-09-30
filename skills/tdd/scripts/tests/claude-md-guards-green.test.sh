@@ -72,7 +72,7 @@ probe_every_guard_is_rostered_and_green() {
     problems+=("\`make -n test\` named no suite in $suites_dir, so the roster a green run covers could not be read")
   fi
 
-  guard_work="$(mktemp -d)"
+  guard_work="$(scratch_dir)"
 
   for guard in "${GUARDS[@]}"; do
     if [[ -n "$rost" ]] && ! grep -qxF "$suites_dir/$guard" <<< "$rost"; then

@@ -58,8 +58,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 BUILD="$HERE/../build-develop-prompt.sh"
 source "$HERE/lib/harness.sh"
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 cat > "$work/spec.md" <<'SPEC'
 zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux" — see {ref}\n done.

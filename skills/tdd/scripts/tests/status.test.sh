@@ -12,19 +12,18 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 STATUS="$HERE/../status.sh"
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
 source "$HERE/lib/harness.sh"
+work="$(scratch_dir)"
 
 repo() {  # repo <name> -> path
   local dir="$work/$1"
-  git init -q -b main "$dir" >/dev/null 2>&1
+  new_repo -b main "$dir" >/dev/null 2>&1
   echo "$dir"
 }
 
 fabricate_run() {  # fabricate_run <repo> <n> <branch> -> path
   local dir="$1/.tdd/wt/$2"
-  git init -q -b "$3" "$dir" >/dev/null 2>&1
+  new_repo -b "$3" "$dir" >/dev/null 2>&1
   mkdir -p "$dir/.tdd"
   echo "$dir"
 }

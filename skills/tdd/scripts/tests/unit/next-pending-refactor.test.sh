@@ -42,8 +42,7 @@ check "no pending step exits 3" 3 "$settled" ""
 # 3. the step printed is the first pending step of lib/ledger.sh's records, not one the
 # script finds in the markdown itself: beside a stub module whose `ledger_steps` answers
 # for the ledger, the stub's answer is what is printed (#495)
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 mkdir "$work/lib"
 cp "$PENDING" "$work/next-pending-refactor.sh"
 cat > "$work/lib/ledger.sh" <<'EOF'

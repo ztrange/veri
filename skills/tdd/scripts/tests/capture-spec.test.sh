@@ -21,8 +21,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
 SCRIPT="$HERE/../capture-spec.sh"
 
-tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
+tmp="$(scratch_dir)"
 
 new_fixture() {
   mkdir -p "$1/bin"

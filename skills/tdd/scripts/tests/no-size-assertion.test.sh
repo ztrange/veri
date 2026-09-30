@@ -92,8 +92,7 @@ report "$name"
 
 if [[ -z "${NO_SIZE_ASSERTION_NESTED:-}" ]]; then
 
-tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
+tmp="$(scratch_dir)"
 
 md=CLAUDE
 

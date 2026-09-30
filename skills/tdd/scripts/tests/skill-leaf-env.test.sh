@@ -71,8 +71,7 @@ problem() {
   problems+=("$skill_md:$lineno $1:$line")
 }
 
-WORK="$(mktemp -d)"
-trap 'rm -rf "$WORK"' EXIT
+WORK="$(scratch_dir)"
 stub="$WORK/stub"       # the fake `claude` every launch below ends in
 run="$WORK/run"         # one tree per launch line, named for its leaf
 mkdir -p "$stub" "$run"
@@ -84,12 +83,11 @@ SENTINEL_STEP='pin the sentinel step'
 
 cleared_run_context=(env -u VERI_TEST_CMD -u VERI_ISSUE -u VERI_STEP)
 
-cat > "$stub/claude" <<'STUB'
-#!/bin/sh
+claude_stub "$stub" "$(cat <<'STUB'
 printf '%s\n' "${VERI_TEST_CMD-<unset>}" > "$SEEN"
 printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
 STUB
-chmod +x "$stub/claude"
+)"
 
 
 launch_over() {

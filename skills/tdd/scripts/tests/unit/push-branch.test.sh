@@ -16,8 +16,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PUSH="$HERE/../../push-branch.sh"
 source "$HERE/../lib/harness.sh"
-scratch="$(mktemp -d)"
-trap 'rm -rf "$scratch"' EXIT
+scratch="$(scratch_dir)"
 
 show_run() {  # show_run <exit> <stdout-file> <stderr-file> — print what a failing case got
   echo "    exit $1"; echo "    stdout: $(printf '%q' "$(cat "$2")")"

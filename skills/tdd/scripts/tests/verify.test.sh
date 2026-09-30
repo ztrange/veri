@@ -14,9 +14,8 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 VERIFY="$HERE/../verify.sh"
 source "$HERE/lib/harness.sh"
 
-stubdir="$(mktemp -d)"
-work="$(mktemp -d)"
-trap 'rm -rf "$stubdir" "$work"' EXIT
+stubdir="$(scratch_dir)"
+work="$(scratch_dir)"
 
 export VERI_POLL=0.02
 export VERI_KILL_POLL=0.01
@@ -70,13 +69,12 @@ with open(sys.argv[2], "a") as f:
 C
 chmod +x "$clockbin/date" "$clockbin/stat" "$clockbin/clock-jump"
 export PATH="$clockbin:$PATH"
-cat > "$stubdir/claude" <<'STUB'
-#!/bin/sh
+claude_stub "$stubdir" "$(cat <<'STUB'
 printf '%s\n' "$@" > "$ARGV_OUT"
 printf '%s' "${FAKE_OUT_TEXT:-}"
 exit 0
 STUB
-chmod +x "$stubdir/claude"
+)"
 
 printf 'slugify must lowercase the title and join words with hyphens.' > "$work/spec.md"
 
@@ -243,7 +241,7 @@ state_delta() {
 fixture_repo() {
   local dir="$1" extra
   shift
-  git init -q -b main "$dir" >/dev/null 2>&1
+  new_repo -b main "$dir" >/dev/null 2>&1
   git -C "$dir" config user.name veri
   git -C "$dir" config user.email veri@example.test
   printf 'the developer committed this\n' > "$dir/src.txt"
@@ -448,7 +446,7 @@ prompt_launches="$(cat "$prompt_dir/launches" 2>/dev/null || echo 0)"
   && cmp -s "$prompt_dir/expected" "$prompt_dir/prompt.1"; } && ok \
   || no "a relaunched verifier's prompt is byte-identical to the first attempt's and to build-verify-prompt.sh's four-argument output (launches=$prompt_launches want 2; diff first→relaunch: $(head -5 < <(diff "$prompt_dir/prompt.1" "$prompt_dir/prompt.2" 2>&1) | tr '\n' '|'); diff builder→first: $(head -5 < <(diff "$prompt_dir/expected" "$prompt_dir/prompt.1" 2>&1) | tr '\n' '|'))"
 
-sha_dir="$(mktemp -d)"
+sha_dir="$(scratch_dir)"
 verify_in "$sha_dir" refactor 'VERDICT: PASS
 REASON: behaviour preserved.' >/dev/null 2>"$sha_dir/err"
 sha_code=$?
@@ -456,7 +454,7 @@ sha_code=$?
   || no "verify.sh refactor passes the base sha through to the verifier prompt (code=$sha_code; prompt lines naming a sha: $(head -1 < <(grep -o 'git diff [^ ]*' "$sha_dir/argv" 2>/dev/null)); stderr: $(head -1 "$sha_dir/err"))"
 rm -rf "$sha_dir"
 
-step_dir="$(mktemp -d)"
+step_dir="$(scratch_dir)"
 ( export VERI_STEP='AMBIENT-STEP-must-not-appear'
   verify_in "$step_dir" green 'VERDICT: PASS
 REASON: ok' '' 'FLAG-STEP slugify joins words with hyphens' >/dev/null 2>"$step_dir/err" )

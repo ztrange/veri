@@ -13,8 +13,7 @@ SCRIPTS="$HERE/../.."
 CLASSIFY="$SCRIPTS/comment-class.sh"
 source "$HERE/../lib/harness.sh"
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 verdict() {
   if [[ -z "$problems" ]]; then

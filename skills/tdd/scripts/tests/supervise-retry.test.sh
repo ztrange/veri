@@ -32,9 +32,8 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 SUP="$HERE/../supervise.sh"
 source "$HERE/lib/harness.sh"
 
-stub="$(mktemp -d)"
-work="$(mktemp -d)"
-trap 'rm -rf "$stub" "$work"' EXIT
+stub="$(scratch_dir)"
+work="$(scratch_dir)"
 
 cat > "$stub/leaf-flaky" <<'L'
 #!/bin/sh

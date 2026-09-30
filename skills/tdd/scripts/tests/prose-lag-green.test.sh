@@ -69,8 +69,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-WORK="$(mktemp -d)"
-trap 'rm -rf "$WORK"' EXIT
+WORK="$(scratch_dir)"
 
 SCRIPT='skills/tdd/scripts/fixture-prose-lag.sh'
 SCRIPT_NAME="${SCRIPT##*/}"

@@ -150,7 +150,7 @@ report "$name"
 
 probe_added_suite_gets_the_check() {
   local tree out code
-  tree="$(mktemp -d)" || {
+  tree="$(scratch_dir)" || {
     problems+=("could not make a scratch tree to add a suite to, so the criterion went unasked")
     return
   }
@@ -268,7 +268,7 @@ report "$name"
 
 probe_reaching_suite_is_refused_and_named() {
   local tree suite reach tried
-  tree="$(mktemp -d)" || {
+  tree="$(scratch_dir)" || {
     problems+=("could not make a scratch tree to hold a suite that reaches the network, so the criterion went unasked")
     return
   }
@@ -306,14 +306,14 @@ report "$name"
 
 probe_git_transport_allowlist() {
   local tree suite own_origin
-  tree="$(mktemp -d)" || {
+  tree="$(scratch_dir)" || {
     problems+=("could not make a scratch tree to hold the git-allowlist probe, so the criterion went unasked")
     return
   }
-  git init -q -b main "$tree/src" >/dev/null 2>&1
+  new_repo -b main "$tree/src" >/dev/null 2>&1
   ( cd "$tree/src" && : > f && git add f && git -c user.email=a@b.c -c user.name=a commit -q -m init ) \
     >/dev/null 2>&1
-  git init -q -b main "$tree/dest" >/dev/null 2>&1
+  new_repo -b main "$tree/dest" >/dev/null 2>&1
   own_origin="$(git -C "$ROOT" remote get-url origin 2>/dev/null)"
 
   suite="$tree/checks-transport-allowlist.test.sh"
@@ -374,11 +374,11 @@ report "$name"
 
 probe_unswallowed_git_reach_fails_visibly() {
   local tree suite
-  tree="$(mktemp -d)" || {
+  tree="$(scratch_dir)" || {
     problems+=("could not make a scratch tree to hold the unswallowed-reach probe, so the criterion went unasked")
     return
   }
-  git init -q -b main "$tree/dest" >/dev/null 2>&1
+  new_repo -b main "$tree/dest" >/dev/null 2>&1
   suite="$tree/reach-not-swallowed.test.sh"
   {
     printf '#!/usr/bin/env bash\nset -uo pipefail\n'
@@ -436,7 +436,7 @@ report "$name"
 probe_runner_runs_the_named_suite_with_no_TESTS() {
   local tree probe seen
   have_runner "so there is no invocation to ask this of" || return
-  tree="$(mktemp -d)" || {
+  tree="$(scratch_dir)" || {
     problems+=("could not make a scratch directory to write a suite into, so the criterion went unasked")
     return
   }
@@ -517,7 +517,7 @@ report "$name"
 
 ran_in_root() {
   local tree body="$1" probe
-  tree="$(mktemp -d)" || {
+  tree="$(scratch_dir)" || {
     problems+=("could not make a scratch directory to stand a runner up in, so the question went unasked")
     return 1
   }
@@ -625,7 +625,7 @@ problems=()
 
 scratch_suite_run() {
   local tree
-  tree="$(mktemp -d)" || {
+  tree="$(scratch_dir)" || {
     problems+=("could not make a scratch tree to hold the suite, so the criterion went unasked")
     return 1
   }

@@ -88,7 +88,7 @@ See #9.
 check "blocked_by.blockers stops reading the section at the next ## heading, so a #<n> under a later heading is not a blocker" \
   "[3]" "$(printf '%s' "$later_body" | blockers acme/widgets)"
 
-scratch="$(mktemp -d)"
+scratch="$(scratch_dir)"
 mkdir -p "$scratch/scripts" "$scratch/gh" "$scratch/cwd"
 cp "$HERE/../solvable-issues.sh" "$scratch/scripts/"
 cp -R "$LIB" "$scratch/scripts/lib"
@@ -110,7 +110,7 @@ rm -rf "$scratch"
 check "solvable-issues.sh takes its blocker parsing from the blocked-by module rather than defining its own" \
   "code=3 out=" "code=$planted_code out=$planted_out"
 
-scratch="$(mktemp -d)"
+scratch="$(scratch_dir)"
 py="$(command -v python3)"
 inproc_out="$(cd "$scratch" && env PATH=/nonexistent GIT_CEILING_DIRECTORIES="$scratch" \
   PYTHONDONTWRITEBYTECODE=1 "$py" -c '

@@ -51,7 +51,7 @@ STUB
 
 name='leaf-launchable.sh refuses when the leaf binary cannot launch — exit 2, nothing on stdout, a diagnostic on stderr naming the cause and the supported invocation'
 problems=()
-tmp="$(mktemp -d)"
+tmp="$(scratch_dir)"
 failing_stub "$tmp/claude"
 out="$tmp/out" err="$tmp/err"
 env -u CLAUDECODE CLAUDE_BIN="$tmp/claude" "$LAUNCHABLE" >"$out" 2>"$err" && code=0 || code=$?
@@ -69,7 +69,7 @@ report "$name"
 
 name='leaf-launchable.sh refuses without a side effect — no worktree, no spec, no test command, no issue comment'
 problems=()
-tmp="$(mktemp -d)"
+tmp="$(scratch_dir)"
 failing_stub "$tmp/claude"
 
 stubdir="$tmp/bin"
@@ -103,14 +103,13 @@ report "$name"
 
 name='leaf-launchable.sh passes when the leaf binary launches — exit 0, nothing on stdout, nothing on stderr'
 problems=()
-tmp="$(mktemp -d)"
-cat > "$tmp/claude" <<'STUB'
-#!/bin/sh
+tmp="$(scratch_dir)"
+claude_stub "$tmp" "$(cat <<'STUB'
 printf '%s\n' '1.2.3 (Claude Code)'
 printf '%s\n' 'some chatter the probe did not ask for' >&2
 exit 0
 STUB
-chmod +x "$tmp/claude"
+)"
 out="$tmp/out" err="$tmp/err"
 env -u CLAUDECODE CLAUDE_BIN="$tmp/claude" "$LAUNCHABLE" >"$out" 2>"$err" && code=0 || code=$?
 err_text="$(cat "$err")" out_text="$(cat "$out")"

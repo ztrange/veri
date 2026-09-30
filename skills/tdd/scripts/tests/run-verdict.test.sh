@@ -67,8 +67,7 @@ source "$HERE/lib/harness.sh"
 
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 probe_launcher_is_there() {
   [[ -f "$LAUNCHER_PATH" ]] || {

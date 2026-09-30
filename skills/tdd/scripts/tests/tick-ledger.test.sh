@@ -9,8 +9,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 TICK="$HERE/../tick-ledger.sh"
 source "$HERE/lib/harness.sh"
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work" "$work"' EXIT
+work="$(scratch_dir)"
 
 led="$work/issue-42.md"
 seed() { printf '# Plan for #42\n\n- [ ] add lowercasing\n- [ ] collapse to single hyphen\n- [ ] strip edge hyphens\n' > "$led"; }

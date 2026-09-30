@@ -32,12 +32,10 @@ source "$HERE/lib/harness.sh"
 
 issue=4242
 
-stubdir="$(mktemp -d)"
-work="$(mktemp -d)"
-trap 'rm -rf "$stubdir" "$work"' EXIT
+stubdir="$(scratch_dir)"
+work="$(scratch_dir)"
 
-cat > "$stubdir/claude" <<'STUB'
-#!/bin/sh
+claude_stub "$stubdir" "$(cat <<'STUB'
 for arg in "$@"; do
   case "$arg" in
     -p|--verbose|--output-format|--permission-mode) ;;
@@ -57,7 +55,7 @@ printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
 printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
 exit "${STUB_EXIT:-0}"
 STUB
-chmod +x "$stubdir/claude"
+)"
 
 argv="$work/argv"
 prompt="$work/prompt"
@@ -237,7 +235,7 @@ assert_case4() {
   rm -rf "$prompt" "$handed"
   mkdir -p "$handed"
   local SKILL="$handed/SKILL.md"
-  cwd="$(mktemp -d -p "$work")"
+  cwd="$(scratch_dir)"
 
   ( cd "$cwd" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
       BASE_OUT="$handed" "$conductor" "$issue" ) >/dev/null 2>&1
@@ -572,7 +570,7 @@ problems=()
 remote8="$work/remote8"
 clone8="$work/clone8"
 skill_clone "$clone8"
-git init -q --bare "$remote8"
+new_repo --bare "$remote8"
 git -C "$clone8" remote add origin "$remote8"
 rm -rf "$remote8"
 

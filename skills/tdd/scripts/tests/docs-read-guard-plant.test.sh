@@ -52,7 +52,7 @@ source "$HERE/lib/harness.sh"
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
 plant_subject() {
-  tree="$(mktemp -d)" || {
+  tree="$(scratch_dir)" || {
     problems+=("could not make a scratch tree to stand the subject up in, so the criterion went unasked")
     return 1
   }

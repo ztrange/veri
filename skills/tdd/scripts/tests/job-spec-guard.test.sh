@@ -88,7 +88,7 @@ write_plant() {
 }
 
 plant() {
-  tree="$(mktemp -d)" || {
+  tree="$(scratch_dir)" || {
     problems+=("could not make a scratch tree to plant this case's files in, so the criterion went unasked")
     return 1
   }
@@ -117,7 +117,7 @@ stage_guard() {
 install_guard() {
   cp "$GUARD_PATH" "$guard_copy"
   mkdir -p "${guard_copy%/*}/lib" && cp "$HERE/lib/harness.sh" "${guard_copy%/*}/lib/"
-  git init -q "$tree" >/dev/null 2>&1
+  new_repo "$tree" >/dev/null 2>&1
   stage_guard
 }
 

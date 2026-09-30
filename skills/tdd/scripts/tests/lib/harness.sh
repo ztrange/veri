@@ -60,9 +60,9 @@ scratch_dir() {
 on_exit() { _harness_exits+=("$*"); }
 
 new_repo() {
-  git init -q "$1"
-  git -C "$1" config user.name "Test"
-  git -C "$1" config user.email "test@example.com"
+  git init -q "$@" || return
+  git -C "${!#}" config user.name "Test"
+  git -C "${!#}" config user.email "test@example.com"
 }
 
 claude_stub() {

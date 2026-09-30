@@ -19,14 +19,13 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PARALLEL="$HERE/../parallel-conductors.sh"
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
 source "$HERE/lib/harness.sh"
+work="$(scratch_dir)"
 
 fresh_repo() {
   local dir="$1"
   shift
-  git init -q -b main "$@" "$dir" >/dev/null 2>&1
+  new_repo -b main "$@" "$dir" >/dev/null 2>&1
   git -C "$dir" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init >/dev/null 2>&1
 }
 
@@ -470,7 +469,7 @@ expect_lines "a repo with no info/ directory still has an empty git status --por
 
 own_exclude="$work/own-exclude"
 fresh_repo "$own_exclude"
-# hazard: git init makes info/ from templates, which make test's symlinked git misses on macOS (#581).
+# hazard: git-init makes info/ from templates, which make test's symlinked git misses on macOS (#581).
 mkdir -p "$own_exclude/.git/info"
 printf '*.scratch' > "$own_exclude/.git/info/exclude"
 for run in 1 2; do

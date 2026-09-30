@@ -47,7 +47,7 @@ JOB_SPEC='%[0-9]'
 JOB_SPEC_KILL="$KILL_WORD$JOB_ARGS$JOB_SPEC"
 
 declare -A EXEMPT=(
-  [skills/tdd/scripts/tests/skill-leaf-env.test.sh:443]="a step title's text, single-quoted, that the case hands a launch line as data (#437): the backticks around it are the character under test, and a fixed launch never runs it; an unfixed one runs it in a bash -c with no job table, where it reaches no process at all"
+  [skills/tdd/scripts/tests/skill-leaf-env.test.sh:441]="a step title's text, single-quoted, that the case hands a launch line as data (#437): the backticks around it are the character under test, and a fixed launch never runs it; an unfixed one runs it in a bash -c with no job table, where it reaches no process at all"
 )
 
 

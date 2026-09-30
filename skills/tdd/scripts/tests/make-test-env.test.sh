@@ -42,8 +42,8 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 FIXTURE='skills/tdd/scripts/tests/fixtures/make-test-env/reports-env.test.sh'
 
-work="$(mktemp -d)"
-trap 'exec 3>&- 2>/dev/null; rm -rf "$work"' EXIT
+work="$(scratch_dir)"
+on_exit 'exec 3>&- 2>/dev/null'
 probe="$work/probe"
 
 

@@ -160,7 +160,7 @@ call="$(grep -m1 'event\.sh refactor ' "$ROOT/$skill_md" | sed 's/^[[:space:]]*/
 if [[ -z "$call" ]]; then
   problems+=("$skill_md has no \`event.sh refactor\` call line to run — the report could not be checked")
 else
-  fixture="$(mktemp -d)"
+  fixture="$(scratch_dir)"
   tidied="the step whose refactor mark was written"
   untidied="the step that wrote no refactor mark"
   call="${call//\$S/$S}"
@@ -404,7 +404,7 @@ report "$name"
 
 name="case 13 reads $skill_md's exit 3 branch without leaving a writer mid-stream, and still names a mark planted there by its line (#526)"
 problems=()
-scratch="$(mktemp -d)"
+scratch="$(scratch_dir)"
 mkdir -p "$scratch/$(dirname "$skill_md")"
 fixture="$scratch/$skill_md"
 case13="$(awk '/^name=".*over-budget exit 3 branch writes no event mark/ { on = 1 } on && /^report "\$name"$/ { exit } on { print }' "${BASH_SOURCE[0]}")"

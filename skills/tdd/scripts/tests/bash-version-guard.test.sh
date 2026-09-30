@@ -39,15 +39,13 @@ source "$HERE/lib/harness.sh"
 
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
-cat > "$work/claude" <<'C'
-#!/bin/sh
+claude_stub "$work" "$(cat <<'C'
 : > "$LAUNCHED"
 echo "2.1.0 (Claude Code)"
 C
-chmod +x "$work/claude"
+)"
 
 name="make test refuses before any suite runs when the bash on PATH is older than 5, and runs them when it is not"
 problems=()

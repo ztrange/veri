@@ -21,12 +21,11 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SOLVABLE="$HERE/../solvable-issues.sh"
 REPO_ROOT="$(cd "$HERE/../../../.." && pwd)"
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
 source "$HERE/lib/harness.sh"
+work="$(scratch_dir)"
 
 no_claims="$work/no-claims"
-git init -q -b main "$no_claims" >/dev/null 2>&1
+new_repo -b main "$no_claims" >/dev/null 2>&1
 cd "$no_claims" || exit 2
 
 fixture() {  # fixture <name> -> path
@@ -505,7 +504,7 @@ JSON
 
 flight_repo="$work/in-flight"
 mkdir -p "$flight_repo"
-git init -q -b main "$flight_repo" >/dev/null 2>&1
+new_repo -b main "$flight_repo" >/dev/null 2>&1
 git -C "$flight_repo" -c user.name=veri -c user.email=veri@example.test \
   commit -q --allow-empty -m initial >/dev/null 2>&1
 
@@ -604,10 +603,10 @@ JSON
 pushed_repo="$work/pushed"
 pushed_remote="$work/pushed-remote.git"
 mkdir -p "$pushed_repo"
-git init -q -b main "$pushed_repo" >/dev/null 2>&1
+new_repo -b main "$pushed_repo" >/dev/null 2>&1
 git -C "$pushed_repo" -c user.name=veri -c user.email=veri@example.test \
   commit -q --allow-empty -m initial >/dev/null 2>&1
-git init -q --bare "$pushed_remote" >/dev/null 2>&1
+new_repo --bare "$pushed_remote" >/dev/null 2>&1
 git -C "$pushed_repo" remote add origin "$pushed_remote"
 
 pushed_wt="$pushed_repo/.tdd/wt/191"

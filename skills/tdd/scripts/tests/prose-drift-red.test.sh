@@ -49,8 +49,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-WORK="$(mktemp -d)"
-trap 'rm -rf "$WORK"' EXIT
+WORK="$(scratch_dir)"
 
 TUNABLE='VERI_REFACTOR_BUDGET'
 SCRIPT='skills/tdd/scripts/refactor-budget.sh'

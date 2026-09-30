@@ -15,18 +15,16 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 LEAF="$HERE/../run-leaf.sh"
 source "$HERE/lib/harness.sh"
 
-stubdir="$(mktemp -d)"
-work="$(mktemp -d)"
-trap 'rm -rf "$stubdir" "$work"' EXIT
-cat > "$stubdir/claude" <<'STUB'
-#!/bin/sh
+stubdir="$(scratch_dir)"
+work="$(scratch_dir)"
+claude_stub "$stubdir" "$(cat <<'STUB'
 printf '%s\n' "$@" > "$ARGV_OUT"
 printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
 printf '{"type":"assistant","message":{"content":[{"type":"text","text":"%s"}]}}\n' "${FAKE_RESULT:-ok}"
 printf '{"type":"result","subtype":"success","is_error":false,"result":"%s"}\n' "${FAKE_RESULT:-ok}"
 exit "${FAKE_CODE:-0}"
 STUB
-chmod +x "$stubdir/claude"
+)"
 
 run() {  # run <prompt-file> <fake-result> <fake-code> [extra args...]
   local pf="$1" res="$2" fcode="$3"; shift 3

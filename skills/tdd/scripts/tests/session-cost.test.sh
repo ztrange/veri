@@ -85,8 +85,7 @@ expect_split() {
     problems+=("the report was: $(printf '%q' "$out")")
 }
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 name="a day's transcript: session-cost.sh totals its cost, split into cache read, cache write and output"
 problems=()
@@ -120,7 +119,7 @@ report "$name"
 name="project directories: every slug prefixed by the repo root's is summed, an unrelated one is not"
 problems=()
 
-tree="$(mktemp -d "${TMPDIR:-/tmp}/sessioncostXXXXXX")"
+tree="$(scratch_dir)"
 root="$tree/repo"
 mkdir -p "$root"
 root="$(cd "$root" && pwd -P)"

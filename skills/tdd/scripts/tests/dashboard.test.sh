@@ -37,8 +37,7 @@ module="$(sed -nE 's/^exec python3 .*"\$HERE\/([A-Za-z_][A-Za-z0-9_]*)\.py".*/\1
 module_problem=""
 [[ -n "$module" ]] ||
   module_problem="dashboard.sh execs no .py module beside it; its exec line is: $(printf '%q' "$exec_line")"
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 starts="$work/server-starts.log"
 : > "$starts"
@@ -94,13 +93,13 @@ for arg in sys.argv[2:]:
 
 repo() {  # repo <name> -> path
   local dir="$work/$1"
-  git init -q -b main "$dir" >/dev/null 2>&1
+  new_repo -b main "$dir" >/dev/null 2>&1
   echo "$dir"
 }
 
 fabricate_run() {  # fabricate_run <repo> <n> <branch> -> path
   local dir="$1/.tdd/wt/$2"
-  git init -q -b "$3" "$dir" >/dev/null 2>&1
+  new_repo -b "$3" "$dir" >/dev/null 2>&1
   mkdir -p "$dir/.tdd"
   echo "$dir"
 }

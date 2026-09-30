@@ -14,8 +14,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 STOP="$HERE/../../stop-requested.sh"
 source "$HERE/../lib/harness.sh"
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 mkdir -p "$work/.tdd"
 
 # run_stop [args…] — run the script from the run's worktree with the arguments given,

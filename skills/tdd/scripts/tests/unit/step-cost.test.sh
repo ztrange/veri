@@ -15,8 +15,7 @@ STEP_COST="$HERE/../../step-cost.sh"
 source "$HERE/../lib/harness.sh"
 problems=""
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 mkdir -p "$work/.tdd"
 
 # run_cost [args…] — run the script from the run's worktree with the arguments given,

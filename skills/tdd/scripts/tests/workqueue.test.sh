@@ -23,12 +23,11 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPT="$HERE/../workqueue.sh"
 SKILL_DIR="$HERE/../.."
 source "$HERE/../lib/background.sh"
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
 source "$HERE/lib/harness.sh"
+work="$(scratch_dir)"
 
-new_repo() {
-  git init -q -b main "$1" >/dev/null 2>&1
+make_repo() {
+  new_repo -b main "$1" >/dev/null 2>&1
   git -C "$1" -c user.name=veri -c user.email=veri@example.test \
     commit -q --allow-empty -m initial >/dev/null 2>&1
 }
@@ -101,18 +100,18 @@ expect_unchanged() {
 }
 
 repo="$work/assign-order"
-new_repo "$repo"
+make_repo "$repo"
 expect_queue assign-order 'alpha\t12\tqueued\t\nalpha\t7\tqueued\t\nalpha\t30\tqueued\t' \
   "assign appends one queued line per issue, in the order given" assign alpha 12 7 30
 
 repo="$work/unknown-subcommand"
-new_repo "$repo"
+make_repo "$repo"
 seed_queue "$repo" 'beta\t4\tqueued\t\n'
 expect_unchanged unknown-subcommand 2 \
   "an unknown subcommand exits 2 and leaves the queue file byte-identical" frobnicate alpha 12
 
 repo="$work/unknown-subcommand-no-queue"
-new_repo "$repo"
+make_repo "$repo"
 out="$(cd "$repo" && "$SCRIPT" frobnicate alpha 12 2>&1)" && code=0 || code=$?
 if [[ "$code" -eq 2 && ! -e "$repo/.tdd/workqueue" ]]; then
   ok
@@ -123,7 +122,7 @@ else
 fi
 
 repo="$work/assign-held"
-new_repo "$repo"
+make_repo "$repo"
 seed_queue "$repo" 'beta\t4\tqueued\t\ngamma\t9\trunning\t\n'
 expect_unchanged assign-held 2 \
   "assign refuses with exit 2 an issue already queued for another worker" assign alpha 4
@@ -131,14 +130,14 @@ expect_unchanged assign-held 2 \
   "assign refuses with exit 2 an issue already running for another worker" assign alpha 9
 
 repo="$work/assign-finished"
-new_repo "$repo"
+make_repo "$repo"
 seed_queue "$repo" 'beta\t4\tmerged\tabc1234\ngamma\t9\tparked\tsecond bail\nbeta\t11\tskipped\t\n'
 expect_queue assign-finished \
   'beta\t4\tmerged\tabc1234\ngamma\t9\tparked\tsecond bail\nbeta\t11\tskipped\t\nalpha\t4\tqueued\t\nalpha\t9\tqueued\t\nalpha\t11\tqueued\t' \
   "assign takes an issue held only as merged, parked or skipped" assign alpha 4 9 11
 
 repo="$work/next-unblocked"
-new_repo "$repo"
+make_repo "$repo"
 seed_queue "$repo" 'beta\t21\tqueued\t\nalpha\t20\tqueued\t\nalpha\t22\tqueued\t\n'
 issues_fixture next-unblocked <<'JSON'
 [
@@ -155,7 +154,7 @@ expect_next next-unblocked 0 22 \
   "next prints the worker's first queued issue whose Blocked by names no open issue"
 
 repo="$work/next-foreign-url"
-new_repo "$repo"
+make_repo "$repo"
 git -C "$repo" remote add origin https://github.com/ztrange/veri.git
 seed_queue "$repo" 'alpha\t131\tqueued\t\n'
 issues_fixture next-foreign-url <<'JSON'
@@ -169,7 +168,7 @@ expect_next next-foreign-url 0 131 \
   "next does not read a Blocked by URL naming another repository's issue as a blocker"
 
 repo="$work/next-own-url"
-new_repo "$repo"
+make_repo "$repo"
 git -C "$repo" remote add origin https://github.com/ztrange/veri.git
 seed_queue "$repo" 'alpha\t131\tqueued\t\nalpha\t132\tqueued\t\n'
 issues_fixture next-own-url <<'JSON'
@@ -184,7 +183,7 @@ expect_next next-own-url 0 132 \
   "next reads a Blocked by URL naming this repository, origin ending in .git, as a blocker"
 
 repo="$work/next-ssh-origin"
-new_repo "$repo"
+make_repo "$repo"
 git -C "$repo" remote add origin git@github.com:ztrange/veri.git
 seed_queue "$repo" 'alpha\t131\tqueued\t\n'
 issues_fixture next-ssh-origin <<'JSON'
@@ -199,7 +198,7 @@ expect_next next-ssh-origin 0 131 \
   GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 
 repo="$work/next-none"
-new_repo "$repo"
+make_repo "$repo"
 seed_queue "$repo" 'alpha\t30\tqueued\t\nalpha\t31\trunning\t\nbeta\t32\tqueued\t\n'
 issues_fixture next-none <<'JSON'
 [
@@ -290,21 +289,21 @@ else
 fi
 
 repo="$work/start-queued"
-new_repo "$repo"
+make_repo "$repo"
 seed_queue "$repo" 'alpha\t12\tparked\tsecond bail\nbeta\t4\tqueued\t\nalpha\t12\tqueued\t\nalpha\t7\tqueued\t\n'
 expect_queue start-queued \
   'alpha\t12\tparked\tsecond bail\nbeta\t4\tqueued\t\nalpha\t12\trunning\t\nalpha\t7\tqueued\t' \
   "start moves that worker's queued item to running" start alpha 12
 
 repo="$work/done-running"
-new_repo "$repo"
+make_repo "$repo"
 seed_queue "$repo" 'beta\t4\trunning\t\nalpha\t12\trunning\t\nalpha\t7\tqueued\t\n'
 expect_queue done-running \
   'beta\t4\trunning\t\nalpha\t12\tmerged\tabc1234\nalpha\t7\tqueued\t' \
   "done moves that worker's running item to merged, recording the sha" done alpha 12 abc1234
 
 repo="$work/park-running"
-new_repo "$repo"
+make_repo "$repo"
 seed_queue "$repo" 'beta\t4\trunning\t\nalpha\t12\trunning\t\nalpha\t7\tqueued\t\n'
 expect_queue park-running \
   'beta\t4\trunning\t\nalpha\t12\tparked\tsecond bail\nalpha\t7\tqueued\t' \
@@ -312,7 +311,7 @@ expect_queue park-running \
   park alpha 12 "second bail"
 
 repo="$work/foreign-item"
-new_repo "$repo"
+make_repo "$repo"
 seed_queue "$repo" 'alpha\t12\tqueued\t\nalpha\t13\trunning\t\n'
 expect_unchanged foreign-item 1 \
   "start naming another worker's queued item exits 1 and leaves the file byte-identical" \
@@ -325,7 +324,7 @@ expect_unchanged foreign-item 1 \
   park beta 13 "second bail"
 
 repo="$work/wrong-state"
-new_repo "$repo"
+make_repo "$repo"
 seed_queue "$repo" 'alpha\t12\tqueued\t\nalpha\t13\trunning\t\n'
 expect_unchanged wrong-state 1 \
   "start on an item not queued exits 1 and leaves the file byte-identical" \
@@ -338,7 +337,7 @@ expect_unchanged wrong-state 1 \
   park alpha 12 "second bail"
 
 repo="$work/never-removed"
-new_repo "$repo"
+make_repo "$repo"
 for call in "assign alpha 12 7" "assign beta 30" "assign beta 12" "start alpha 12" \
   "start beta 7" "done alpha 12 abc1234" "start alpha 7" "done alpha 7" "park alpha 7 why" \
   "park alpha 30 why" "start beta 30" "frobnicate beta 30"; do
@@ -357,7 +356,7 @@ else
 fi
 
 repo="$work/parallel-writes"
-new_repo "$repo"
+make_repo "$repo"
 seed=""
 for i in $(seq 1 20); do
   seed="${seed}alpha\t$((100 + i))\tqueued\t\n"
@@ -393,7 +392,7 @@ else
 fi
 
 repo="$work/lock-held"
-new_repo "$repo"
+make_repo "$repo"
 seed_queue "$repo" 'alpha\t12\tqueued\t\n'
 before="$(cat "$repo/.tdd/workqueue")"
 mkdir "$repo/.tdd/workqueue.lock"
@@ -421,18 +420,18 @@ else
   diff <(printf '%s\n' "$before") <(printf '%s\n' "$after") | sed 's/^/    /'
 fi
 
-new_repo "$work/show-grouped"
+make_repo "$work/show-grouped"
 seed_queue "$work/show-grouped" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\nalpha\t7\tqueued\t\n'
 expect_show show-grouped 'alpha\n\t12\trunning\n\t7\tqueued\nbeta\n\t4\tqueued' \
   "show prints every item grouped by worker, each with its issue and state"
 
-new_repo "$work/show-one"
+make_repo "$work/show-one"
 seed_queue "$work/show-one" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\nalpha\t7\tqueued\t\n'
 expect_show show-one 'alpha\n\t12\trunning\n\t7\tqueued' \
   "show <worker> prints only that worker's items" alpha
 
 repo="$work/linked-worktree"
-new_repo "$repo"
+make_repo "$repo"
 git -C "$repo" worktree add -q -b side "$work/linked-worktree.wt" >/dev/null 2>&1
 seed_queue "$repo" 'beta\t4\tqueued\t\n'
 want_queue="$(printf 'beta\t4\tqueued\t\nalpha\t7\tqueued\t')"
@@ -491,7 +490,7 @@ else
 fi
 
 repo="$work/assign-missing-args"
-new_repo "$repo"
+make_repo "$repo"
 seed_queue "$repo" 'beta\t4\tqueued\t\ngamma\t9\trunning\t\n'
 expect_unchanged assign-missing-args 2 \
   "assign with no worker exits 2 and leaves the queue file byte-identical" assign
@@ -500,28 +499,28 @@ expect_unchanged assign-missing-args 2 \
   assign alpha
 
 repo="$work/assign-duplicate-issue"
-new_repo "$repo"
+make_repo "$repo"
 seed_queue "$repo" 'beta\t4\tqueued\t\n'
 expect_unchanged assign-duplicate-issue 2 \
   "assign naming the same issue twice in one call exits 2 and leaves the queue file byte-identical" \
   assign alpha 12 12
 
 repo="$work/assign-empty-issue"
-new_repo "$repo"
+make_repo "$repo"
 seed_queue "$repo" 'beta\t4\tqueued\t\n'
 expect_unchanged assign-empty-issue 2 \
   "assign given an empty issue argument exits 2 and leaves the queue file byte-identical" \
   assign alpha ''
 
 repo="$work/done-missing-sha"
-new_repo "$repo"
+make_repo "$repo"
 seed_queue "$repo" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\n'
 expect_unchanged done-missing-sha 2 \
   "done with a worker and an issue but no merge sha exits 2 and leaves the queue file byte-identical" \
   done alpha 12
 
 repo="$work/done-empty-sha"
-new_repo "$repo"
+make_repo "$repo"
 seed_queue "$repo" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\n'
 expect_unchanged done-empty-sha 2 \
   "done given an empty merge sha argument exits 2 and leaves the queue file byte-identical" \
@@ -529,7 +528,7 @@ expect_unchanged done-empty-sha 2 \
 
 park_outcome() {
   local name="$1" reason="$2" queue="$work/$1/.tdd/workqueue" code lines
-  new_repo "$work/$name"
+  make_repo "$work/$name"
   seed_queue "$work/$name" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\n'
   cp "$queue" "$work/$name.before"
   (cd "$work/$name" && "$SCRIPT" park alpha 12 "$reason" >/dev/null 2>&1) && code=0 || code=$?
@@ -559,7 +558,7 @@ else
   echo "    newline: $newline_outcome"
 fi
 
-new_repo "$work/show-no-items"
+make_repo "$work/show-no-items"
 seed_queue "$work/show-no-items" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\nalpha\t7\tqueued\t\n'
 (cd "$work/show-no-items" && "$SCRIPT" show beta > "$work/show-no-items.beta" \
   2>"$work/show-no-items.err") && beta_code=0 || beta_code=$?

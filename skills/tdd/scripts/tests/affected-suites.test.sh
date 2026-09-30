@@ -17,8 +17,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 AFFECTED="$HERE/../affected-suites.sh"
 source "$HERE/lib/harness.sh"
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
@@ -30,9 +29,9 @@ commit_all() {
 commit_base() { commit_all "$repo" "base"; base="$(git -C "$repo" rev-parse HEAD)"; }
 commit_head() { commit_all "$repo" "head"; head="$(git -C "$repo" rev-parse HEAD)"; }
 
-new_repo() {
+make_repo() {
   repo="$work/$1"
-  git init -q -b main "$repo" >/dev/null 2>&1
+  new_repo -b main "$repo" >/dev/null 2>&1
   s="$repo/skills/tdd/scripts"
 }
 
@@ -90,7 +89,7 @@ write_refactor_owed() {
   printf 'refactor owed [%s]\n' "$1" > "$repo/.tdd/issue-416-refactor-owed.md"
 }
 
-new_repo sorted
+make_repo sorted
 mkdir -p "$s/tests/unit"
 printf 'wolf\n' > "$s/wolf.sh"
 printf 'zulu\n' > "$s/zulu.sh"
@@ -105,7 +104,7 @@ expect_suites "resolvable range → one suite per line, sorted, no duplicate" \
   skills/tdd/scripts/tests/unit/zulu.test.sh \
   skills/tdd/scripts/tests/wolf.test.sh
 
-new_repo malformed
+make_repo malformed
 mkdir -p "$s"
 printf 'wolf\n' > "$s/wolf.sh"
 commit_head
@@ -121,7 +120,7 @@ if [[ -z "$bad" ]]; then ok; else
   no "malformed argument → exit 2 with a diagnostic ($bad)"
 fi
 
-new_repo empty
+make_repo empty
 mkdir -p "$s/tests"
 printf 'wolf\n' > "$s/wolf.sh"
 printf '# wolf suite\n' > "$s/tests/wolf.test.sh"
@@ -130,7 +129,7 @@ git_q "$repo" commit -q --allow-empty -m "head" >/dev/null 2>&1
 head="$(git -C "$repo" rev-parse HEAD)"
 expect_nothing_to_do "empty diff → exit 3 and prints nothing"
 
-new_repo rule1
+make_repo rule1
 foo_bar_tree
 commit_base
 printf 'foo 2\n' > "$s/foo.sh"
@@ -138,7 +137,7 @@ commit_head
 expect_suites "rule 1: a change to scripts/foo.sh prints exactly tests/foo.test.sh" \
   "skills/tdd/scripts/tests/foo.test.sh"
 
-new_repo rule1-unit
+make_repo rule1-unit
 mkdir -p "$s/tests/unit"
 printf 'foo\n' > "$s/foo.sh"
 printf 'bar\n' > "$s/bar.sh"
@@ -150,7 +149,7 @@ commit_head
 expect_suites "rule 1 via tests/unit/: a change to scripts/foo.sh prints exactly tests/unit/foo.test.sh" \
   "skills/tdd/scripts/tests/unit/foo.test.sh"
 
-new_repo rule2
+make_repo rule2
 mkdir -p "$s/tests" "$s/lib"
 printf 'bar_fn() { :; }\n' > "$s/lib/bar.sh"
 for name in alpha beta; do
@@ -166,7 +165,7 @@ expect_suites "rule 2: a change to scripts/lib/bar.sh prints the suite of every 
   skills/tdd/scripts/tests/alpha.test.sh \
   skills/tdd/scripts/tests/beta.test.sh
 
-new_repo rule3-suite
+make_repo rule3-suite
 foo_bar_tree
 commit_base
 printf '# foo suite 2\n' > "$s/tests/foo.test.sh"
@@ -174,7 +173,7 @@ commit_head
 expect_suites "rule 3: a change to the suite tests/foo.test.sh itself prints exactly that suite" \
   "skills/tdd/scripts/tests/foo.test.sh"
 
-new_repo rule3-fixture
+make_repo rule3-fixture
 mkdir -p "$s/tests/fixtures"
 printf '# plan\n' > "$s/tests/fixtures/plan.md"
 printf '# other\n' > "$s/tests/fixtures/other.md"
@@ -190,7 +189,7 @@ expect_suites "rule 3: a change to the fixture tests/fixtures/plan.md prints eve
   skills/tdd/scripts/tests/alpha.test.sh \
   skills/tdd/scripts/tests/beta.test.sh
 
-new_repo rule4
+make_repo rule4
 mkdir -p "$s/tests"
 printf '# veri\n' > "$repo/CLAUDE.md"
 printf '# tdd\n' > "$repo/skills/tdd/SKILL.md"
@@ -210,7 +209,7 @@ expect_suites "rule 4: a change to SKILL.md, CLAUDE.md and Makefile prints their
   skills/tdd/scripts/tests/makefile-guard.test.sh \
   skills/tdd/scripts/tests/skill-md-guard.test.sh
 
-new_repo rule5
+make_repo rule5
 mkdir -p "$s/tests/unit" "$repo/docs"
 printf 'foo\n' > "$s/foo.sh"
 printf 'bar\n' > "$s/bar.sh"
@@ -228,7 +227,7 @@ expect_suites "rule 5: a rule-1 file plus a file no rule matches prints every su
   skills/tdd/scripts/tests/foo.test.sh \
   skills/tdd/scripts/tests/unit/baz.test.sh
 
-new_repo rule5-converse
+make_repo rule5-converse
 mkdir -p "$s/tests/unit" "$s/tests/fixtures" "$s/lib"
 printf '# veri\n' > "$repo/CLAUDE.md"
 printf 'foo\n' > "$s/foo.sh"
@@ -254,7 +253,7 @@ expect_suites "rule 5: a diff touching only files rules 1–4 match never falls 
   skills/tdd/scripts/tests/claude-md-guard.test.sh \
   skills/tdd/scripts/tests/foo.test.sh
 
-new_repo rule6-prompt
+make_repo rule6-prompt
 mkdir -p "$s/tests" "$s/prompts"
 printf '# red template\n' > "$s/prompts/develop-red.md"
 printf '# green template\n' > "$s/prompts/develop-green.md"
@@ -267,7 +266,7 @@ commit_head
 expect_suites "rule 6: a change to the prompt prompts/develop-red.md prints every suite that names it, and no others" \
   "skills/tdd/scripts/tests/alpha.test.sh"
 
-new_repo rule6-prompt-and-suite
+make_repo rule6-prompt-and-suite
 mkdir -p "$s/tests" "$s/prompts"
 printf '# red template\n' > "$s/prompts/develop-red.md"
 printf '#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\ncat "$HERE/../prompts/develop-red.md"\n' > "$s/tests/alpha.test.sh"
@@ -281,7 +280,7 @@ expect_suites "rule 6: a prompt and a suite in one range print that suite and th
   skills/tdd/scripts/tests/alpha.test.sh \
   skills/tdd/scripts/tests/delta.test.sh
 
-new_repo unplaced-only
+make_repo unplaced-only
 mkdir -p "$s/tests/unit" "$s/prompts" "$repo/docs"
 printf 'foo\n' > "$s/foo.sh"
 printf 'bar\n' > "$s/bar.sh"
@@ -299,7 +298,7 @@ expect_suites "fail-closed: a range whose only changed file matches no rule prin
   skills/tdd/scripts/tests/foo.test.sh \
   skills/tdd/scripts/tests/unit/baz.test.sh
 
-new_repo widening-names-the-file
+make_repo widening-names-the-file
 foo_tree
 printf '# notes\n' > "$repo/notes.md"
 commit_base
@@ -307,7 +306,7 @@ printf '# notes 2\n' > "$repo/notes.md"
 commit_head
 expect_widening_names "a widened answer names on stderr the file that forced the widening" notes.md
 
-new_repo run-state-ledger
+make_repo run-state-ledger
 foo_bar_tree
 write_ledger ' '
 commit_base
@@ -317,7 +316,7 @@ commit_head
 expect_suites "run state: a .tdd/ ledger alongside a script change prints exactly that script's suite" \
   "skills/tdd/scripts/tests/foo.test.sh"
 
-new_repo run-state-only
+make_repo run-state-only
 foo_tree
 write_ledger ' '
 write_refactor_owed ' '
@@ -327,7 +326,7 @@ write_refactor_owed x
 commit_head
 expect_nothing_to_do "run state alone → exit 3 and prints nothing"
 
-new_repo run-state-with-unplaced
+make_repo run-state-with-unplaced
 foo_bar_tree
 write_ledger ' '
 printf '# notes\n' > "$repo/notes.md"
@@ -339,7 +338,7 @@ expect_suites "fail-closed: run state alongside a file no rule places still prin
   skills/tdd/scripts/tests/bar.test.sh \
   skills/tdd/scripts/tests/foo.test.sh
 
-new_repo widening-names-every-file
+make_repo widening-names-every-file
 foo_tree
 printf '# notes\n' > "$repo/notes.md"
 printf '# memo\n' > "$repo/memo.md"
@@ -349,7 +348,7 @@ printf '# memo 2\n' > "$repo/memo.md"
 commit_head
 expect_widening_names "a widening caused by two unplaced files names both on stderr" notes.md memo.md
 
-new_repo green-commit-shape
+make_repo green-commit-shape
 foo_bar_tree
 write_ledger ' '
 write_refactor_owed ' '
@@ -361,7 +360,7 @@ commit_head
 expect_suites "a green commit's shape — ledger, refactor-owed file and a source change — prints exactly that script's suite" \
   "skills/tdd/scripts/tests/foo.test.sh"
 
-new_repo suite-added-counts
+make_repo suite-added-counts
 foo_tree
 mkdir -p "$s/tests/unit"
 counts_suite
@@ -374,7 +373,7 @@ expect_suites "a range that adds a suite file under tests/ or tests/unit/ pulls 
   skills/tdd/scripts/tests/newbie.test.sh \
   skills/tdd/scripts/tests/unit/rookie.test.sh
 
-new_repo suite-edited-counts
+make_repo suite-edited-counts
 foo_tree
 counts_suite
 commit_base
@@ -383,7 +382,7 @@ commit_head
 expect_suites "editing an existing suite's contents does not pull in skills/tdd/scripts/tests/claude-md-counts.test.sh" \
   "skills/tdd/scripts/tests/foo.test.sh"
 
-new_repo script-added-counts
+make_repo script-added-counts
 foo_bar_tree
 counts_suite
 commit_base
@@ -395,7 +394,7 @@ expect_suites "a range that adds or deletes a script under scripts/ pulls in ski
   skills/tdd/scripts/tests/claude-md-counts.test.sh \
   skills/tdd/scripts/tests/newbie.test.sh
 
-new_repo rule2-continuation
+make_repo rule2-continuation
 mkdir -p "$s/tests" "$s/lib"
 printf 'bar_fn() { :; }\n' > "$s/lib/bar.sh"
 printf '#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\nsource "$HERE/lib/bar.sh" \\\n  || { echo "alpha: cannot read lib/bar.sh" >&2; exit 2; }\n' > "$s/alpha.sh"
@@ -407,7 +406,7 @@ commit_head
 expect_suites "#487: a lib file whose caller's source line ends in a \\ continuation maps to that caller's suite" \
   skills/tdd/scripts/tests/alpha.test.sh
 
-new_repo rule2-line-end
+make_repo rule2-line-end
 mkdir -p "$s/tests" "$s/lib"
 printf 'bar_fn() { :; }\n' > "$s/lib/bar.sh"
 hdr='#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\n'
@@ -426,7 +425,7 @@ expect_suites "#487: a caller whose source line ends at the lib path, with or wi
   skills/tdd/scripts/tests/delta.test.sh \
   skills/tdd/scripts/tests/epsilon.test.sh
 
-new_repo rule2-comment
+make_repo rule2-comment
 mkdir -p "$s/tests" "$s/lib"
 printf 'bar_fn() { :; }\n' > "$s/lib/bar.sh"
 hdr='#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\n'
@@ -440,7 +439,7 @@ commit_head
 expect_suites "#487: a comment that names a lib file is still not a dependency" \
   skills/tdd/scripts/tests/alpha.test.sh
 
-new_repo rule2-bug-section
+make_repo rule2-bug-section
 mkdir -p "$s/lib"
 for f in "$HERE"/../*.sh "$HERE/../lib/bug-section.sh"; do
   rel="${f#"$HERE"/../}"
@@ -453,7 +452,7 @@ expect_suites "#487: in the real repo, a change to lib/bug-section.sh selects bo
   skills/tdd/scripts/tests/build-develop-prompt.test.sh \
   skills/tdd/scripts/tests/build-verify-prompt.test.sh
 
-new_repo harness-adopters
+make_repo harness-adopters
 mkdir -p "$s/tests/lib" "$s/tests/unit"
 printf 'ok() { :; }\n' > "$s/tests/lib/harness.sh"
 printf '#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\nsource "$HERE/lib/harness.sh"\n' > "$s/tests/alpha.test.sh"

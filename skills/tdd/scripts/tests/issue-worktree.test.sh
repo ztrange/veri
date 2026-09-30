@@ -7,7 +7,7 @@
 #   issue-worktree.sh <n> <slug>   creates/reuses <repo-root>/.tdd/wt/<n> on branch
 #                                  tdd/<n>-<slug>, prints its absolute path, exit 0
 #
-# Every behavioural case is asserted against a throwaway `git init` repo with one commit —
+# Every behavioural case is asserted against a throwaway make_repo repo with one commit —
 # worktrees need a commit to check out — and through git's own answers (`worktree list`,
 # `rev-parse`) rather than by looking at the directory, because a plain `mkdir` would pass the
 # latter. The last case is of the other kind: its subject is SKILL.md's paragraph about this
@@ -19,15 +19,14 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 WT="$HERE/../issue-worktree.sh"
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
 source "$HERE/lib/harness.sh"
+work="$(scratch_dir)"
 
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
-new_repo() {
+make_repo() {
   mkdir -p "$1"
-  git init -q -b main "$1" >/dev/null 2>&1
+  new_repo -b main "$1" >/dev/null 2>&1
   git_q "$1" commit -q --allow-empty -m "initial" >/dev/null 2>&1
 }
 
@@ -47,7 +46,7 @@ linked_worktree() {
 ahead_pair() {
   upstream="$work/$1-upstream"
   clone="$work/$1-clone"
-  new_repo "$upstream"
+  make_repo "$upstream"
   git clone -q "$upstream" "$clone" >/dev/null 2>&1
   git_q "$upstream" commit -q --allow-empty -m "landed while the clone was busy" >/dev/null 2>&1
   remote_tip="$(git_q "$upstream" rev-parse main)"
@@ -55,7 +54,7 @@ ahead_pair() {
 }
 
 repo="$work/fresh"
-new_repo "$repo"
+make_repo "$repo"
 main_tip="$(git_q "$repo" rev-parse main)"
 git_q "$repo" switch -q -c side >/dev/null 2>&1
 git_q "$repo" commit -q --allow-empty -m "work on side" >/dev/null 2>&1
@@ -73,7 +72,7 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
   && ok || no "fresh call: creates a worktree at .tdd/wt/7 on new branch tdd/7-add-worktree off the default branch and prints its path (exit=$code want 0, stdout='$out' want '$want', toplevel='$top' want '$want', branch='$branch' want 'tdd/7-add-worktree', tip='$tip' want main's $main_tip not side's $side_tip)"
 
 repo="$work/again"
-new_repo "$repo"
+make_repo "$repo"
 want="$(wt_path "$repo" 9)"
 
 first="$(cd "$repo" && "$WT" 9 resume-me 2>/dev/null)" && first_code=0 || first_code=$?
@@ -91,7 +90,7 @@ $before
 $after" ))"
 
 repo="$work/taken"
-new_repo "$repo"
+make_repo "$repo"
 other="$(linked_worktree "$repo" taken-elsewhere tdd/11-collide)"
 mine="$(wt_path "$repo" 11)"
 before="$(registry "$repo")"
@@ -108,7 +107,7 @@ $before
 $after" ))"
 
 repo="$work/remove-clean"
-new_repo "$repo"
+make_repo "$repo"
 want="$(wt_path "$repo" 13)"
 (cd "$repo" && "$WT" 13 done-with-this >/dev/null 2>&1)
 
@@ -116,7 +115,7 @@ want="$(wt_path "$repo" 13)"
 clean_after="$(registry "$repo")"
 
 repo="$work/remove-dirty"
-new_repo "$repo"
+make_repo "$repo"
 dirty="$(wt_path "$repo" 14)"
 (cd "$repo" && "$WT" 14 still-working >/dev/null 2>&1)
 printf 'work in progress\n' > "$dirty/notes.txt"
@@ -135,7 +134,7 @@ $dirty_before
 $dirty_after" ))"
 
 repo="$work/existing-branch"
-new_repo "$repo"
+make_repo "$repo"
 main_tip="$(git_q "$repo" rev-parse main)"
 git_q "$repo" switch -q -c tdd/17-resume >/dev/null 2>&1
 git_q "$repo" commit -q --allow-empty -m "work from the previous run" >/dev/null 2>&1
@@ -153,7 +152,7 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
   && ok || no "existing branch, no worktree: checks the branch out into .tdd/wt/17 instead of failing on -b (exit=$code want 0, stdout='$out' want '$want', branch='$branch' want 'tdd/17-resume', tip='$tip' want the existing branch's $branch_tip not main's $main_tip)"
 
 upstream="$work/upstream-trunk"
-new_repo "$upstream"
+make_repo "$upstream"
 git_q "$upstream" branch -m main trunk >/dev/null 2>&1
 clone="$work/clone-trunk"
 git clone -q "$upstream" "$clone" >/dev/null 2>&1
@@ -169,7 +168,7 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
   && ok || no "origin/HEAD names a default branch that is neither main nor master: cuts the new worktree from it (exit=$code want 0, tip='$tip' want origin/trunk's $trunk_tip)"
 
 repo="$work/local-master"
-new_repo "$repo"
+make_repo "$repo"
 git_q "$repo" branch -m main master >/dev/null 2>&1
 master_tip="$(git_q "$repo" rev-parse master)"
 git_q "$repo" switch -q -c side >/dev/null 2>&1
@@ -187,7 +186,7 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
   && ok || no "no remote and only a local master: cuts tdd/23-local-master from master (exit=$code want 0, stdout='$out' want '$want', branch='$branch' want 'tdd/23-local-master', tip='$tip' want master's $master_tip not side's $side_tip)"
 
 repo="$work/no-default"
-new_repo "$repo"
+make_repo "$repo"
 git_q "$repo" branch -m main trunk >/dev/null 2>&1
 before="$(registry "$repo")"
 
@@ -205,7 +204,7 @@ $before
 $after" ))"
 
 repo="$work/from-linked"
-new_repo "$repo"
+make_repo "$repo"
 linked="$(linked_worktree "$repo" from-linked-session session)"
 want="$(wt_path "$repo" 27)"
 nested="$(wt_path "$linked" 27)"
@@ -219,7 +218,7 @@ top="$(git -C "$want" rev-parse --show-toplevel 2>/dev/null)"
   && ok || no "called from a linked worktree: creates and prints the main working tree's .tdd/wt/27, not one nested inside the caller (exit=$code want 0, stdout='$out' want '$want', toplevel='$top' want '$want', '$nested' $( [[ -e "$nested" ]] && echo "was created inside the linked worktree" || echo "absent, good" ))"
 
 repo="$work/cross-caller"
-new_repo "$repo"
+make_repo "$repo"
 linked="$(linked_worktree "$repo" cross-caller-session cross-session)"
 want="$(wt_path "$repo" 29)"
 
@@ -238,7 +237,7 @@ $before
 $after" ))"
 
 repo="$work/remove-from-linked"
-new_repo "$repo"
+make_repo "$repo"
 want="$(wt_path "$repo" 31)"
 (cd "$repo" && "$WT" 31 remove-from-linked >/dev/null 2>&1)
 linked="$(linked_worktree "$repo" remove-from-linked-session remove-session)"
@@ -250,7 +249,7 @@ after="$(registry "$repo")"
   && ok || no "--remove from a linked worktree: removes the main working tree's .tdd/wt/31 (exit=$code want 0, '$want' $( [[ -e "$want" ]] && echo "still on disk" || echo "gone, good" ), still in git's registry: $( [[ "$after" == *"worktree $want"* ]] && echo yes || echo no ))"
 
 repo="$work/symlinked"
-new_repo "$repo"
+make_repo "$repo"
 via="$work/reached-by-symlink"
 ln -s "$(cd "$repo" && pwd -P)" "$via"
 want="$(wt_path "$repo" 33)"
@@ -273,7 +272,7 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
   && ok || no "origin's default branch is ahead of the local one: cuts tdd/35-from-remote-tip from origin's tip (exit=$code want 0, stdout='$out' want '$want', tip='$tip' want origin's $remote_tip not the stale local main's $stale_tip)"
 
 upstream="$work/untouched-upstream"
-new_repo "$upstream"
+make_repo "$upstream"
 clone="$work/untouched-clone"
 git clone -q "$upstream" "$clone" >/dev/null 2>&1
 printf 'landed while the clone was busy\n' > "$upstream/landed.txt"
@@ -317,7 +316,7 @@ $dirty_after" ), landed.txt $( [[ -e "$clone/landed.txt" ]] && echo "was written
 # not fail. The assertion is git's own answer for the branch's upstream (`%(upstream:short)`,
 # which is what `git pull` and `git push` consult), and it must be empty.
 upstream="$work/no-tracking-upstream"
-new_repo "$upstream"
+make_repo "$upstream"
 clone="$work/no-tracking-clone"
 git clone -q "$upstream" "$clone" >/dev/null 2>&1
 want="$(wt_path "$clone" 39)"
@@ -355,7 +354,7 @@ tracks="$(git_q "$clone" for-each-ref --format='%(upstream:short)' refs/heads/td
 # worktree path's absence from disk is asserted too, since a directory git never registered would
 # not appear in the snapshot.
 upstream="$work/unreachable-upstream"
-new_repo "$upstream"
+make_repo "$upstream"
 clone="$work/unreachable-clone"
 git clone -q "$upstream" "$clone" >/dev/null 2>&1
 rm -rf "$upstream"
@@ -385,7 +384,7 @@ $after" ))"
 # fails, or fetch whenever a remote is merely configured — reaches the network in a repository that
 # has none, and the answer it cuts from then depends on what the network said.
 #
-# The seed is a `git init` repo with no remote whose checkout is parked on a `side` branch one commit
+# The seed is a make_repo repo with no remote whose checkout is parked on a `side` branch one commit
 # ahead of `main`, the same guard case 1 uses: with the checkout sitting on `main` itself, "cut from
 # main" and "cut from whatever HEAD was" would be the same commit and the tip assertion would prove
 # nothing.
@@ -397,7 +396,7 @@ $after" ))"
 # warning, a fall-through) leaves them green while the script has gone to the network for an answer
 # it did not need. git's own complaint about a remote that is not configured goes to stderr, so
 repo="$work/no-remote"
-new_repo "$repo"
+make_repo "$repo"
 main_tip="$(git_q "$repo" rev-parse main)"
 git_q "$repo" switch -q -c side >/dev/null 2>&1
 git_q "$repo" commit -q --allow-empty -m "work on side" >/dev/null 2>&1
@@ -417,7 +416,7 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
 $err" ))"
 
 upstream="$work/resume-no-fetch-upstream"
-new_repo "$upstream"
+make_repo "$upstream"
 clone="$work/resume-no-fetch-clone"
 git clone -q "$upstream" "$clone" >/dev/null 2>&1
 git_q "$clone" switch -q -c tdd/45-resume-no-fetch >/dev/null 2>&1
@@ -480,7 +479,7 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
   && ok || no "an origin remote but no refs/remotes/origin/HEAD: cuts tdd/47-no-origin-head from origin's freshly fetched tip (exit=$code want 0, stdout='$out' want '$want', the clone's refs/remotes/origin/HEAD $( [[ -z "$origin_head" ]] && echo "absent as seeded, good" || echo "was '$origin_head' — the seed did not remove it, so this case cannot tell the arms apart" ), tip='$tip' want origin's $remote_tip not the stale local main's $stale_tip)"
 
 upstream="$work/remote-only-upstream"
-new_repo "$upstream"
+make_repo "$upstream"
 git_q "$upstream" switch -q -c tdd/49-remote-only >/dev/null 2>&1
 mkdir -p "$upstream/.tdd"
 printf -- '- [x] 1. the step the previous run finished\n' > "$upstream/.tdd/issue-49.md"
@@ -509,7 +508,7 @@ ledger_got="$(cat "$want/.tdd/issue-49.md" 2>/dev/null)"
   && ok || no "a branch that exists only on the remote: checked out at its own tip with its ledger present, not re-cut from the default branch (exit=$code want 0, the clone's refs/heads/tdd/49-remote-only=$local_ref want absent, its refs/remotes/origin/tdd/49-remote-only='$remote_ref' want $remote_branch_tip, stdout='$out' want '$want', branch='$branch' want 'tdd/49-remote-only', tip='$tip' want the remote branch's $remote_branch_tip not main's $main_tip, .tdd/issue-49.md $( [[ "$ledger_got" == "$ledger_want" ]] && echo "present, good" || echo "read back as '$ledger_got' want '$ledger_want'" ))"
 
 upstream="$work/tracks-upstream"
-new_repo "$upstream"
+make_repo "$upstream"
 git_q "$upstream" switch -q -c tdd/51-tracks >/dev/null 2>&1
 git_q "$upstream" commit -q --allow-empty -m "the previous run's work" >/dev/null 2>&1
 git_q "$upstream" switch -q main >/dev/null 2>&1
@@ -528,7 +527,7 @@ tracks="$(git_q "$clone" for-each-ref --format='%(upstream:short)' refs/heads/td
   && ok || no "a worktree made for a remote-only branch tracks that remote branch (exit=$code want 0, the clone's refs/heads/tdd/51-tracks=$local_ref want absent before the call, stdout='$out' want '$want', tdd/51-tracks's upstream=$( [[ -n "$tracks" ]] && echo "'$tracks'" || echo "none" ) want 'origin/tdd/51-tracks')"
 
 upstream="$work/local-ahead-upstream"
-new_repo "$upstream"
+make_repo "$upstream"
 git_q "$upstream" switch -q -c tdd/53-local-ahead >/dev/null 2>&1
 git_q "$upstream" commit -q --allow-empty -m "the tip the previous run pushed" >/dev/null 2>&1
 remote_branch_tip="$(git_q "$upstream" rev-parse tdd/53-local-ahead)"
@@ -555,7 +554,7 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
   && ok || no "a local branch ahead of its remote: checked out at its own tip, not rewound to the remote's (exit=$code want 0, the clone's refs/heads/tdd/53-local-ahead='$local_ref' want the local tip $local_branch_tip, its refs/remotes/origin/tdd/53-local-ahead='$remote_ref' want the remote tip $remote_branch_tip $( [[ "$local_branch_tip" != "$remote_branch_tip" ]] && echo "— they differ, good" || echo "— the seed left them equal, so this case cannot tell the arms apart" ), stdout='$out' want '$want', branch='$branch' want 'tdd/53-local-ahead', tip='$tip' want the local branch's $local_branch_tip not the remote's $remote_branch_tip)"
 
 upstream="$work/neither-upstream"
-new_repo "$upstream"
+make_repo "$upstream"
 git_q "$upstream" switch -q -c tdd/99-some-other-run >/dev/null 2>&1
 git_q "$upstream" commit -q --allow-empty -m "another issue's run, pushed" >/dev/null 2>&1
 other_tip="$(git_q "$upstream" rev-parse tdd/99-some-other-run)"
@@ -579,7 +578,7 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
   && ok || no "a name in neither namespace, in a repo that has a remote: still cut from the default branch (exit=$code want 0, the clone's refs/heads/tdd/55-neither=$local_ref and refs/remotes/origin/tdd/55-neither=$remote_ref want both absent, stdout='$out' want '$want', branch='$branch' want 'tdd/55-neither', tip='$tip' want the default branch's $main_tip — not the other remote branch tdd/99-some-other-run's $other_tip)"
 
 repo="$work/live-holder"
-new_repo "$repo"
+make_repo "$repo"
 live="$(wt_path "$repo" 61)"
 
 first="$(cd "$repo" && "$WT" 61 live-run 2>/dev/null)" && first_code=0 || first_code=$?
@@ -601,7 +600,7 @@ $before
 $after" ))"
 
 repo="$work/seeded-log"
-new_repo "$repo"
+make_repo "$repo"
 seeded="$(wt_path "$repo" 62)"
 mkdir -p "$seeded/.tdd"
 line='{"event": "skill-repin", "commit": "0123456"}'

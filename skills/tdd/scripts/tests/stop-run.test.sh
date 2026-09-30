@@ -15,7 +15,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
 STOP="$HERE/../stop-run.sh"
 
-work="$(mktemp -d)"
+work="$(scratch_dir)"
 alive=()
 cleanup() {
   local pid
@@ -23,10 +23,10 @@ cleanup() {
   for pid in ${alive[@]+"${alive[@]}"}; do wait "$pid" 2>/dev/null; done
   rm -rf "$work"
 }
-trap cleanup EXIT
+on_exit cleanup
 
 repo="$work/repo"
-git init -q -b main "$repo" >/dev/null 2>&1
+new_repo -b main "$repo" >/dev/null 2>&1
 run="$repo/.tdd/wt/5"
 mkdir -p "$run/.tdd"
 
@@ -195,7 +195,7 @@ check_no_stop "$dead"
 
 label="--all with no live run"
 quiet="$work/quiet"
-git init -q -b main "$quiet" >/dev/null 2>&1
+new_repo -b main "$quiet" >/dev/null 2>&1
 quiet_dead="$quiet/.tdd/wt/9"
 dead_conductor "$quiet_dead"
 run_stop_in "$quiet" --all

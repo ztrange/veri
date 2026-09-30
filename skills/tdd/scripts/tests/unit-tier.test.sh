@@ -75,8 +75,7 @@ report "$name"
 name="make -n test lists suites from both skills/tdd/scripts/tests/*.test.sh and $UNIT_DIR/*.test.sh, none twice"
 problems=()
 
-scratch="$(mktemp -d)"
-trap 'rm -rf "$scratch"' EXIT
+scratch="$(scratch_dir)"
 mkdir -p "$scratch/$UNIT_DIR"
 cp "$ROOT/Makefile" "$scratch/Makefile"
 flat_suite='skills/tdd/scripts/tests/fixture-flat.test.sh'

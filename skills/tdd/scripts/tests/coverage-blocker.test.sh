@@ -20,8 +20,7 @@ BLOCKER="$HERE/../coverage-blocker.sh"
 SOLVABLE="$HERE/../solvable-issues.sh"
 source "$HERE/lib/harness.sh"
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 stubdir="$work/bin"
 mkdir -p "$stubdir"
@@ -63,7 +62,7 @@ $(cat "$work/blocker$case.err")"
 }
 
 no_claims="$work/no-claims"
-git init -q -b main "$no_claims" >/dev/null 2>&1
+new_repo -b main "$no_claims" >/dev/null 2>&1
 cd "$no_claims" || exit 2
 
 name="coverage-blocker files an unlabelled issue and blocks the refactor issue on it"

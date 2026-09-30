@@ -68,8 +68,7 @@ MISSING='supervise.sh'
 
 VERIFIER='run-verdict.sh'
 
-scratch="$(mktemp -d)"
-trap 'rm -rf "$scratch"' EXIT
+scratch="$(scratch_dir)"
 
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 

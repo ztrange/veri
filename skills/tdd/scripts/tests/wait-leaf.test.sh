@@ -25,8 +25,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 WAIT="$HERE/../wait-leaf.sh"
 source "$HERE/lib/harness.sh"
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 mkdir -p "$work/.tdd"
 
 clockbin="$work/clockbin"; mkdir -p "$clockbin"
