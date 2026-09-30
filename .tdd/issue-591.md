@@ -5,4 +5,4 @@
 - [x] invisible-work.sh reads issues and PR documents larger than 256 KiB and gives the same output and exit code as for small ones, and no argument it hands python3 carries a JSON document ⟦criterion 2⟧
 - [x] wait-ci.sh reads check-run and status documents larger than 256 KiB and gives the same output and exit code as for small ones, and no argument it hands python3 carries a JSON document ⟦criterion 2⟧
 - [x] a suite fails naming <file>:<line> when a script under skills/tdd/scripts/ passes a variable holding a gh JSON document as an argument to python3, against an exemption table carrying a reason per entry ⟦criterion 3⟧
-- [ ] CI (Linux) stays green ⟦full-suite⟧ ⟦criterion 4⟧
+- [x] CI (Linux) stays green ⟦full-suite⟧ ⟦criterion 4⟧
