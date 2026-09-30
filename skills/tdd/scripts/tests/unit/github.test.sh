@@ -186,4 +186,64 @@ problems=""
 [[ "$got" == "1 2 3 " ]] || problems+="    want items 1 2 3, got: $(printf '%q' "$got")"$'\n'
 record
 
+# 6. when the gh subcommand route fails, gh_list falls back to REST, which pages on the
+#    repos/{owner}/{repo} path through the same three-page stub as case 4
+name="gh_list repos/{owner}/{repo}/issues?per_page=2 with gh issue list refused and a gh serving three pages on repos/…?page=N and refusing repositories/ with the proxy's 403 prints items 1–6 and returns 0"
+calls="$scratch/calls6" err="$scratch/err6" out="$scratch/out6"
+: > "$calls"
+(
+  gh() {
+    echo "gh $*" >> "$calls"
+    if [[ "${1:-}" != api ]]; then echo "HTTP 403: $refusal" >&2; return 1; fi
+    shift
+    local path="" paginate="" include="" query="" page body link
+    while (($#)); do
+      case "$1" in
+        --paginate) paginate=1 ;;
+        -i|--include) include=1 ;;
+        -X|--method) [[ "$2" == GET ]] || return 1; shift ;;
+        -f|-F|--field|--raw-field) query+="&$2"; shift ;;
+        -*) echo "stub gh: unsupported flag $1" >&2; return 1 ;;
+        *) path="$1" ;;
+      esac
+      shift
+    done
+    if [[ "$path" == *repositories/* ]]; then echo "$proxy" >&2; return 1; fi
+    [[ "$path" == *repos/* ]] || { echo "stub gh: unexpected path $path" >&2; return 1; }
+    query="${path#*\?}&$query"
+    [[ "$path" == *\?* ]] || query="&$query"
+    page=1
+    [[ "&$query" =~ \&page=([0-9]+) ]] && page="${BASH_REMATCH[1]}"
+    case "$page" in
+      1) body='[{"number":1},{"number":2}]' ;;
+      2) body='[{"number":3},{"number":4}]' ;;
+      3) body='[{"number":5},{"number":6}]' ;;
+      *) body='[]' ;;
+    esac
+    link=""
+    ((page < 3)) &&
+      link="Link: <https://api.github.com/repositories/1275470346/issues?per_page=2&page=$((page + 1))>; rel=\"next\""
+    if [[ -n "$include" ]]; then
+      printf 'HTTP/2.0 200 OK\n'
+      [[ -n "$link" ]] && printf '%s\n' "$link"
+      printf '\n'
+    fi
+    printf '%s\n' "$body"
+    if [[ -n "$paginate" && -n "$link" ]]; then echo "$proxy" >&2; return 1; fi
+    return 0
+  }
+  source "$LIB"
+  gh_list 'repos/{owner}/{repo}/issues?per_page=2' issue list --state all --json number
+) > "$out" 2> "$err"
+rc=$?
+got="$(numbers_in "$out")"
+problems=""
+[[ "$rc" -eq 0 ]] || problems+="    want return 0, got $rc"$'\n'
+[[ "$got" == "1 2 3 4 5 6 " ]] ||
+  problems+="    want items 1 2 3 4 5 6, got: $(printf '%q' "$got")"$'\n'
+if grep -F "repositories/" "$calls" > /dev/null; then
+  problems+="    want no repositories/ request, got: $(printf '%q' "$(grep -F repositories/ "$calls")")"$'\n'
+fi
+record
+
 finish

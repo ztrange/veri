@@ -683,6 +683,7 @@ case "$*" in
   "issue list"*) exec cat "$GH_FX/issues.json" ;;
   "pr list"*) exec cat "$GH_FX/prs.json" ;;
   *-q*|*--jq*|*--template*) ;;
+  "api "*[?\&]page=[!1]*|"api "*[?\&]page=1?*) echo '[]'; exit 0 ;;
   "api "*"repos/{owner}/{repo}/issues"*) exec cat "$GH_FX/rest-issues.json" ;;
   "api "*"repos/{owner}/{repo}/pulls"*) exec cat "$GH_FX/rest-pulls.json" ;;
 esac
