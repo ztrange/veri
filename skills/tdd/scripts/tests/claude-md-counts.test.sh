@@ -299,4 +299,19 @@ moved_with "skills/tdd/scripts/rebase-onto-default.sh" "skills/tdd/scripts/tests
 
 report "$name"
 
+name="$claude_md's counts moved with the detach-test-command suite (#601)"
+problems=()
+
+detach_suite="skills/tdd/scripts/tests/skill-detach-test-command.test.sh"
+
+present "$detach_suite"
+
+if [[ "${#problems[@]}" -eq 0 ]]; then
+  if readable "$idiom" "$claude_md has no '## $section_name' section" "the suite count it states"; then
+    moved_by "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites" "$detach_suite"
+  fi
+fi
+
+report "$name"
+
 finish
