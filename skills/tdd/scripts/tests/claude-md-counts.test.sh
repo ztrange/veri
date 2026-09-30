@@ -219,20 +219,23 @@ fi
 
 report "$name"
 
+unit_count_matches() {
+  local n_unit
+  present "$1"
+  n_unit="$(how_many "$unit_path")"
+  nonempty "unit suite" "$n_unit" "$unit_glob"
+
+  if [[ "${#problems[@]}" -eq 0 ]]; then
+    if readable "$idiom" "$claude_md has no '## $section_name' section" "the unit suite count it states"; then
+      check "*$section_name* unit suite count" "$(claimed "$idiom" "$unit_claim" 1)" "$n_unit"
+    fi
+  fi
+}
+
 name="$claude_md's unit-tier suite count matches the unit suites on disk, including push-branch.sh's"
 problems=()
 
-unit_suite="skills/tdd/scripts/tests/unit/push-branch.test.sh"
-
-present "$unit_suite"
-n_unit="$(how_many "$unit_path")"
-nonempty "unit suite" "$n_unit" "$unit_glob"
-
-if [[ "${#problems[@]}" -eq 0 ]]; then
-  if readable "$idiom" "$claude_md has no '## $section_name' section" "the unit suite count it states"; then
-    check "*$section_name* unit suite count" "$(claimed "$idiom" "$unit_claim" 1)" "$n_unit"
-  fi
-fi
+unit_count_matches "skills/tdd/scripts/tests/unit/push-branch.test.sh"
 
 report "$name"
 
@@ -317,13 +320,7 @@ report "$name"
 name="$claude_md's unit-tier suite count moved with the unit/gh-fixture suite (#588)"
 problems=()
 
-present "skills/tdd/scripts/tests/unit/gh-fixture.test.sh"
-
-if [[ "${#problems[@]}" -eq 0 ]]; then
-  if readable "$idiom" "$claude_md has no '## $section_name' section" "the unit suite count it states"; then
-    check "*$section_name* unit suite count" "$(claimed "$idiom" "$unit_claim" 1)" "$(how_many "$unit_path")"
-  fi
-fi
+unit_count_matches "skills/tdd/scripts/tests/unit/gh-fixture.test.sh"
 
 report "$name"
 
