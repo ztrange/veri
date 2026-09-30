@@ -433,11 +433,11 @@ report "$name"
 
 push_unwritable_tdd() {
   local repo="$1"
-  chmod 555 "$repo/.tdd"
+  mkdir "$repo/.tdd/events.jsonl"
   ( cd "$repo" && env VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 \
       VERI_ISSUE=232 VERI_ACTOR=conductor VERI_STEP='A failing event write exits 2' \
       "$PUSH" ) >/dev/null 2>&1 && code=0 || code=$?
-  chmod 755 "$repo/.tdd"
+  rmdir "$repo/.tdd/events.jsonl"
 }
 
 name="push-branch.sh: a failing event write exits 2 for both an unreachable origin and a non-fast-forward rejection"
