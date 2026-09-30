@@ -563,4 +563,37 @@ for run in "coverage-blocker.sh 7" "tick-issue-criterion.sh 7 criterion"; do
 done
 report "$name"
 
+name="invisible-work.sh reads issues and PR documents larger than 256 KiB and gives the same output and exit code as for small ones, under a python3 that refuses any argument over 128 KiB the way Linux does (#591)"
+problems=()
+clone="$(unpr_branch_clone "$work/case591-large" "tdd/71-version-the-commentary" 2)"
+argcap_python3_stub "$work/case591-large/bin"
+mkdir -p "$work/case591-large/short" "$work/case591-large/long"
+python3 -c '
+import json, sys
+def issues(pad):
+    return [{"number": n, "title": "issue %d" % n, "labels": [], "state": "OPEN", "body": pad}
+            for n in range(40, 80)]
+def prs(pad):
+    return [{"headRefName": "tdd/%d-other" % n, "state": "MERGED", "body": pad}
+            for n in range(100, 140)]
+for d, pad in ((sys.argv[1], "short"), (sys.argv[2], "x" * 8192)):
+    json.dump(issues(pad), open(d + "/issues.json", "w"))
+    json.dump(prs(pad), open(d + "/prs.json", "w"))
+' "$work/case591-large/short" "$work/case591-large/long"
+for doc in issues prs; do
+  size="$(wc -c < "$work/case591-large/long/$doc.json" | tr -d ' ')"
+  [[ "$size" -gt 262144 ]] || problems+=("long $doc.json: $size bytes (want >262144)")
+done
+large_sweep() {  # large_sweep <short|long>; sets $out and $code
+  out="$(cd "$clone" && PATH="$work/case591-large/bin:$PATH" VERI_GH_JSON="$work/case591-large/$1" \
+    "$INVISIBLE" 2>"$work/case591-large/$1.err")" && code=0 || code=$?
+}
+large_sweep short; short_out="$out" short_code="$code"
+large_sweep long
+[[ "$short_code" -eq 0 && "$short_out" == *"tdd/71-version-the-commentary"*"issue #71 OPEN"* ]] ||
+  problems+=("short: want exit 0 and a finding naming tdd/71-version-the-commentary and issue #71 OPEN, got exit $short_code and $(printf '%q' "$short_out")")
+[[ "$code" == "$short_code" && "$out" == "$short_out" ]] ||
+  problems+=("long: want exit $short_code and $(printf '%q' "$short_out"), got exit $code and $(printf '%q' "$out"); stderr: $(cat "$work/case591-large/long.err")")
+report "$name"
+
 finish
