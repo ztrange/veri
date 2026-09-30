@@ -97,13 +97,14 @@ def documents(text):
 def head(pr):
     return pr["headRefName"] if "headRefName" in pr else pr["head"]["ref"]
 
-issues = {i["number"]: i["state"].upper() for i in documents(sys.argv[1])}
-prs = documents(sys.argv[3])
+issues_text, prs_text = sys.stdin.read().split("\0")
+issues = {i["number"]: i["state"].upper() for i in documents(issues_text)}
+prs = documents(prs_text)
 with_pr = {head(p) for p in prs}
 decided = {head(p) for p in prs if p["state"].upper() in ("MERGED", "CLOSED")}
 findings = []
 
-for row in sys.argv[2].splitlines():
+for row in sys.argv[1].splitlines():
     name, tip, ahead = row.split()
     if name in with_pr:
         continue
@@ -115,7 +116,7 @@ for row in sys.argv[2].splitlines():
         finding += f", issue #{n} {state}"
     findings.append(finding)
 
-for row in sys.argv[4].splitlines():
+for row in sys.argv[2].splitlines():
     name, tip, lacks, worktree = row.split(" ", 3)
     if name in decided:
         continue
@@ -128,4 +129,4 @@ for finding in findings:
     print(finding)
 
 sys.exit(0 if findings else 3)
-' "$issues_json" "$branches" "$prs_json" "$locals"
+' "$branches" "$locals" < <(printf '%s\0%s' "$issues_json" "$prs_json")
