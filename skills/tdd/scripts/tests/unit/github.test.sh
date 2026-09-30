@@ -97,4 +97,89 @@ problems=""
 [[ "$rc_ccr" -eq 2 ]] || problems+="    want return 2 from the ccr route's 502, got $rc_ccr"$'\n'
 record
 
+# 4. the cloud session's proxy refuses the repositories/{id} paths GitHub's Link: rel="next"
+#    names, so gh_rest_list pages on the repos/{owner}/{repo} path it was given instead
+name="gh_rest_list repos/{owner}/{repo}/issues?per_page=2 against a gh serving three pages on repos/…?page=N and refusing repositories/ with the proxy's 403 prints items 1–6 and returns 0"
+calls="$scratch/calls4" err="$scratch/err4" out="$scratch/out4"
+proxy='gh: Numeric-ID repository paths (repositories/{id}/...) are not supported through this proxy. Use repos/{owner}/{repo}/... endpoints instead. (HTTP 403)'
+: > "$calls"
+(
+  gh() {
+    echo "gh $*" >> "$calls"
+    [[ "${1:-}" == api ]] || return 1
+    shift
+    local path="" paginate="" include="" query="" page body link
+    while (($#)); do
+      case "$1" in
+        --paginate) paginate=1 ;;
+        -i|--include) include=1 ;;
+        -X|--method) [[ "$2" == GET ]] || return 1; shift ;;
+        -f|-F|--field|--raw-field) query+="&$2"; shift ;;
+        -*) echo "stub gh: unsupported flag $1" >&2; return 1 ;;
+        *) path="$1" ;;
+      esac
+      shift
+    done
+    if [[ "$path" == *repositories/* ]]; then echo "$proxy" >&2; return 1; fi
+    [[ "$path" == *repos/* ]] || { echo "stub gh: unexpected path $path" >&2; return 1; }
+    query="${path#*\?}&$query"
+    [[ "$path" == *\?* ]] || query="&$query"
+    page=1
+    [[ "&$query" =~ \&page=([0-9]+) ]] && page="${BASH_REMATCH[1]}"
+    case "$page" in
+      1) body='[{"number":1},{"number":2}]' ;;
+      2) body='[{"number":3},{"number":4}]' ;;
+      3) body='[{"number":5},{"number":6}]' ;;
+      *) body='[]' ;;
+    esac
+    link=""
+    ((page < 3)) &&
+      link="Link: <https://api.github.com/repositories/1275470346/issues?per_page=2&page=$((page + 1))>; rel=\"next\""
+    if [[ -n "$include" ]]; then
+      printf 'HTTP/2.0 200 OK\n'
+      [[ -n "$link" ]] && printf '%s\n' "$link"
+      printf '\n'
+    fi
+    printf '%s\n' "$body"
+    if [[ -n "$paginate" && -n "$link" ]]; then echo "$proxy" >&2; return 1; fi
+    return 0
+  }
+  source "$LIB"
+  gh_rest_list 'repos/{owner}/{repo}/issues?per_page=2'
+) > "$out" 2> "$err"
+rc=$?
+got="$(grep -oE '"number": *[0-9]+' "$out" | grep -oE '[0-9]+$' | tr '\n' ' ')"
+problems=""
+[[ "$rc" -eq 0 ]] || problems+="    want return 0, got $rc"$'\n'
+[[ "$got" == "1 2 3 4 5 6 " ]] ||
+  problems+="    want items 1 2 3 4 5 6, got: $(printf '%q' "$got")"$'\n'
+if grep -F "repositories/" "$calls" > /dev/null; then
+  problems+="    want no repositories/ request, got: $(printf '%q' "$(grep -F repositories/ "$calls")")"$'\n'
+fi
+record
+
+# 5. a rest-path with no query string of its own gets page=N as its query string
+name="gh_rest_list repos/{owner}/{repo}/pulls against a gh serving only repos/{owner}/{repo}/pulls?page=N prints items 1–3 and returns 0"
+calls="$scratch/calls5" err="$scratch/err5" out="$scratch/out5"
+: > "$calls"
+(
+  gh() {
+    echo "gh $*" >> "$calls"
+    case "$*" in
+      'api repos/{owner}/{repo}/pulls?page=1') printf '%s\n' '[{"number":1},{"number":2}]' ;;
+      'api repos/{owner}/{repo}/pulls?page=2') printf '%s\n' '[{"number":3}]' ;;
+      'api repos/{owner}/{repo}/pulls?page='*) printf '%s\n' '[]' ;;
+      *) echo 'gh: Not Found (HTTP 404)' >&2; return 1 ;;
+    esac
+  }
+  source "$LIB"
+  gh_rest_list 'repos/{owner}/{repo}/pulls'
+) > "$out" 2> "$err"
+rc=$?
+got="$(grep -oE '"number": *[0-9]+' "$out" | grep -oE '[0-9]+$' | tr '\n' ' ')"
+problems=""
+[[ "$rc" -eq 0 ]] || problems+="    want return 0, got $rc; gh saw: $(printf '%q' "$(cat "$calls")")"$'\n'
+[[ "$got" == "1 2 3 " ]] || problems+="    want items 1 2 3, got: $(printf '%q' "$got")"$'\n'
+record
+
 finish
