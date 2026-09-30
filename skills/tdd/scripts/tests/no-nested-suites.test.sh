@@ -153,25 +153,23 @@ scanned=("${problems[@]}")
 report "no suite under skills/tdd/scripts/tests/ (or its unit/ tier) launches another real suite outside the exemptions recorded here"
 
 mentions_reported() {
-  local reported name
+  local from="$1" reported name
+  shift
   problems=()
   for reported in "${scanned[@]}"; do
     for name in "$@"; do
-      [[ "$reported" == affected-suites.test.sh:*"$name"* ]] && { problems+=("$reported"); break; }
+      [[ "$reported" == "$from":*"$name"* ]] && { problems+=("$reported"); break; }
     done
   done
 }
 
-mentions_reported claude-md-counts.test.sh
+mentions_reported affected-suites.test.sh claude-md-counts.test.sh
 report "affected-suites.test.sh's fixture and case-name mentions of claude-md-counts.test.sh are not read as launching it"
 
-mentions_reported build-develop-prompt.test.sh build-verify-prompt.test.sh
+mentions_reported affected-suites.test.sh build-develop-prompt.test.sh build-verify-prompt.test.sh
 report "#487: affected-suites.test.sh's mentions of build-develop-prompt.test.sh and build-verify-prompt.test.sh are not read as launching them"
 
-problems=()
-for reported in "${scanned[@]}"; do
-  [[ "$reported" == claude-md-counts.test.sh:*"names gh-fixture.test.sh"* ]] && problems+=("$reported")
-done
+mentions_reported claude-md-counts.test.sh "names gh-fixture.test.sh"
 report "#588: claude-md-counts.test.sh's case name mentioning gh-fixture.test.sh is not read as launching it"
 
 finish
