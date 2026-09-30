@@ -32,7 +32,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTS="$HERE/../.."
 source "$HERE/../../lib/missing-argument-exit.sh"
-pass=0 fail=0
+source "$HERE/../lib/harness.sh"
 offenders=()
 
 # refuses <script> [args …] — call it, and record an offender unless it came back with exit 2
@@ -135,6 +135,4 @@ name="no script guards a required positional argument with a bare \${N:?…} exp
 mapfile -t offenders < <(bare_expansion_offenders "$SCRIPTS")
 verdict "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

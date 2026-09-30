@@ -23,7 +23,6 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
 DEVELOP="$HERE/../build-develop-prompt.sh"
 VERIFY="$HERE/../build-verify-prompt.sh"
-pass=0 fail=0
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -259,6 +258,4 @@ if [[ "$preempted_miss" != "$honest_miss" ]]; then
   problems+=("a preempted writer changes the probes' verdict on a non-matching prompt: ${honest_miss%%$'\n'*} problems become ${preempted_miss%%$'\n'*}")
 fi
 report "$name"
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

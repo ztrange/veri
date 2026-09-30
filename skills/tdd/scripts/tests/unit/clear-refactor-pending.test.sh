@@ -12,7 +12,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 CLEAR="$HERE/../../clear-refactor-pending.sh"
-pass=0 fail=0
+source "$HERE/../lib/harness.sh"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -72,6 +72,4 @@ else
   diff "$want" "$led" | sed 's/^/    /'
 fi
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

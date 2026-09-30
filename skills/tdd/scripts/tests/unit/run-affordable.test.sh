@@ -13,7 +13,8 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 RUN_AFFORDABLE="$HERE/../../run-affordable.sh"
-pass=0 fail=0 problems=""
+source "$HERE/../lib/harness.sh"
+problems=""
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -237,6 +238,4 @@ expect_code 1
 expect_figures 15.00 10 7.50 90.00
 verdict "a run early in a long plan whose projection exceeds VERI_RUN_BUDGET exits 1 while spent is still under it"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

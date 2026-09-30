@@ -9,7 +9,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTS="$(cd "$HERE/../.." && pwd)"
-pass=0 fail=0
+source "$HERE/../lib/harness.sh"
 unset "${!VERI_@}"
 export LC_ALL=C
 
@@ -152,6 +152,4 @@ pin '3733575378 4812' prompt build-verify-prompt.sh rebase "$spec" 0123456 89abc
 pin '1153397306 4495' prompt build-verify-prompt.sh transform "$spec" "$work/reason.md" 0123456
 verdict "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

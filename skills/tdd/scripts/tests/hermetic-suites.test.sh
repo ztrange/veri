@@ -18,7 +18,6 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -46,7 +45,7 @@ slice_run_conductor() {
     cut && /^name="/ {n++; skip = !index(keep, " " n " ")}
     !skip
   ' "$HERE/run-conductor.test.sh" > "$cut"
-  printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$cut"
+  printf '%s\n' 'echo "----"' 'echo "${pass:-0} passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$cut"
   chmod +x "$cut"
 }
 
@@ -74,7 +73,7 @@ awk '
   /^narration="\$\(loop_bullet / {skip=1}
   !skip
 ' "$HERE/solvable-issues.test.sh" > "$label_cut"
-printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$label_cut"
+printf '%s\n' 'echo "----"' 'echo "${pass:-0} passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$label_cut"
 chmod +x "$label_cut"
 label_assertions="$(grep -c 'ok || no ' "$label_cut")"
 if [[ "$label_assertions" -ne 6 ]]; then
@@ -333,6 +332,4 @@ if [[ -z "${HERMETIC_SKILLCOMMIT_PROBE:-}" ]]; then
   report "$name"
 fi
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

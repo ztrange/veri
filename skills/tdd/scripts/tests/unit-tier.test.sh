@@ -31,7 +31,6 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 UNIT_DIR='skills/tdd/scripts/tests/unit'
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -219,5 +218,4 @@ run_make unit
 
 report "$name"
 
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

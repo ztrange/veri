@@ -7,9 +7,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 STEPS="$HERE/../ledger-steps.sh"
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -21,6 +19,4 @@ got="$("$STEPS" < "$work/ledger.md" 2> "$work/err")"; code=$?
   && ok || no "prints ledger_steps's records for its stdin, and nothing else (code=$code stderr='$(cat "$work/err")')
 $(diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /')"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

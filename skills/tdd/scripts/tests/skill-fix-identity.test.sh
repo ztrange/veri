@@ -28,7 +28,6 @@ skill_dir="skills/tdd-fix"
 want_name="tdd-fix"
 skill_md="$skill_dir/SKILL.md"
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -207,6 +206,4 @@ if [[ -d "$ROOT/$skill_dir" ]]; then
 fi
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

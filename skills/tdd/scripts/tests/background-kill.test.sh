@@ -37,7 +37,6 @@ LIB="$HERE/../lib/background.sh"
 
 PATIENCE=3
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -309,5 +308,4 @@ fi
 
 report "#536: a shell that set an EXIT trap and calls bg_start again, on the same record and on a second, names each survivor once and runs its own trap once"
 
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

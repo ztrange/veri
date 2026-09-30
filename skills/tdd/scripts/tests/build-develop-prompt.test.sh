@@ -56,9 +56,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 BUILD="$HERE/../build-develop-prompt.sh"
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -780,6 +778,4 @@ says_both_ways "$structural" "does not say to touch no test file" \
 [[ -z "$problems" ]] \
   && ok || no "develop-structural builds a transform prompt for one structural candidate, bounded to the issue's touched files, committed as its own refactor: commit, touching no test file (${problems#; })"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

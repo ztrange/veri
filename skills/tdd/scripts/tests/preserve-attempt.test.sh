@@ -18,9 +18,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 PRESERVE="$HERE/../preserve-attempt.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
 ident=(GIT_AUTHOR_NAME=veri GIT_AUTHOR_EMAIL=veri@example.test
        GIT_COMMITTER_NAME=veri GIT_COMMITTER_EMAIL=veri@example.test)
@@ -219,6 +217,4 @@ refs="$(git_q "$repo" for-each-ref --format='%(refname)' refs/veri/attempts 2>&1
   && ok || no "finds the step through lib/ledger.sh's ledger_steps (code=$code resolved=$([[ "$resolved" == 0 ]] && echo yes || echo no) refs='$refs')"
 
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

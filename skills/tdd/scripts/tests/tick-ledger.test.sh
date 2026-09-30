@@ -7,9 +7,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 TICK="$HERE/../tick-ledger.sh"
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work" "$work"' EXIT
@@ -76,6 +74,4 @@ want='ledger_tick [collapse to single hyphen] [pending]'
   && ok || no "--refactor-pending ticks through lib/ledger.sh's ledger_tick … pending (code=$code)
 $(diff <(printf '%s\n' "$want") <(printf '%s\n' "$got"))"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

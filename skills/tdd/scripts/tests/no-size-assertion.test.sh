@@ -48,7 +48,6 @@ SIZE_VERB='(^|[^[:alnum:]_./-])(wc|stat|du)[[:space:]]'
 
 BINDS="^[[:space:]]*(local[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)=.*$MD_FILES"
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -150,6 +149,4 @@ report "$name"
 
 fi # NO_SIZE_ASSERTION_NESTED
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

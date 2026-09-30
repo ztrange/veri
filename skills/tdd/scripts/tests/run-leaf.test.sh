@@ -13,9 +13,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LEAF="$HERE/../run-leaf.sh"
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
 stubdir="$(mktemp -d)"
 work="$(mktemp -d)"
@@ -60,6 +58,4 @@ grep -q 'piped prompt body' "$work/argv" && ok || no "reads prompt from stdin on
 run "$work/prompt.txt" ok 0 >/dev/null
 [[ ! -e "$work/.tdd" ]] && ok || no "does not own a .tdd log"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

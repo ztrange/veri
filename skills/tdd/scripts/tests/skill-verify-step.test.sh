@@ -42,7 +42,6 @@ flag='--step "<STEP>"'
 
 call_re="verify\.sh $flag( --fast-cmd '<fast-cmd>')? (red|green|refactor|pin|<phase>)"
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -87,6 +86,4 @@ fi
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

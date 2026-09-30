@@ -14,7 +14,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LIB="$HERE/../../lib/ledger.sh"
-pass=0 fail=0
+source "$HERE/../lib/harness.sh"
 
 verdict() {
   if [[ -z "$problems" ]]; then
@@ -213,5 +213,4 @@ want=$'- [x]\n- [ ] later step\n.'
 expect_records "ledger_tick '' output differs for a bare box" "$want" "$(rewrite_of ledger_tick "$doc" '')"
 verdict "ledger_tick ticks a step with a tab between the dash and the box, and a bare box with no text after it"
 
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

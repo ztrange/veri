@@ -16,7 +16,7 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-pass=0 fail=0
+source "$HERE/lib/harness.sh"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -314,5 +314,4 @@ actual="$(grep '^parked ' "$work/out"; cat "$LAUNCHES" "$work/.tdd/issue-1201.md
 expect_exit0_output
 
 echo
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

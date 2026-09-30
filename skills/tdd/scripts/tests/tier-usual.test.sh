@@ -20,7 +20,6 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 USUAL="$HERE/../tier-usual.sh"
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -61,6 +60,4 @@ out="$( cd "$work" && "$USUAL" fast 2>/dev/null )" && code=0 || code=$?
 rm -rf "$work"
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

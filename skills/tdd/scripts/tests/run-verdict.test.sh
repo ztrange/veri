@@ -55,7 +55,6 @@ REASON=".tdd/verify-$PHASE.reason"
 
 CALL=(--step "$STEP" "$PHASE" "$SPEC" "$TEST_PATH" a-target-test-id)
 
-pass=0 fail=0
 
 launch() {
   local scripts_dir="$1" run_dir="$2"
@@ -238,6 +237,4 @@ if probe_launcher_is_there && stage_watching_reason; then
 fi
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

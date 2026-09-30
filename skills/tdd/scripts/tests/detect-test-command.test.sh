@@ -20,9 +20,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 DETECT="$HERE/../detect-test-command.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
 detect() {  # detect <args...> -> runs the script, sets $out/$code
   out="$("$DETECT" "$@" 2>/dev/null)"
@@ -520,6 +518,4 @@ done
 [[ -z "$misread" ]] \
   && ok || no "--tier fast/all: run against veri's own repo root, fast prints make unit and all prints make test, from veri's CLAUDE.md —$misread"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

@@ -11,7 +11,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 NEXT="$HERE/../../next-unchecked.sh"
-pass=0 fail=0
+source "$HERE/../lib/harness.sh"
 check() {  # check <name> <expected-exit> <input> <expected-stdout>
   local name="$1" exp_code="$2" input="$3" exp="$4" out code
   out="$(printf '%s' "$input" | "$NEXT")" && code=0 || code=$?
@@ -133,6 +133,4 @@ NEXT="$work/next-unchecked.sh"
 check "the first open ordinary step comes from lib/ledger.sh's ledger_steps (#495)" 0 \
   "- [ ] found in the markdown ⟦criterion 1⟧" "asked the module ⟦criterion 3⟧"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

@@ -45,7 +45,6 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LEAF_TIMEOUT="$HERE/../leaf-timeout.sh"
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -199,6 +198,4 @@ bad_probe "fast 5 full missing" 5 --full
 report "$name"
 
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

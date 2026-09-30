@@ -46,7 +46,6 @@ work="$(mktemp -d)"
 trap 'exec 3>&- 2>/dev/null; rm -rf "$work"' EXIT
 probe="$work/probe"
 
-pass=0 fail=0
 
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
@@ -144,6 +143,4 @@ recipe /dev/null -u OFFLINE_REAL_GIT GIT_TEMPLATE_DIR="$work/ambient-templates" 
 expect GIT_TEMPLATE_DIR "<unset>" "with no templates directory beside the real git, the recipe must leave GIT_TEMPLATE_DIR unset"
 report "make test gives every suite a GIT_TEMPLATE_DIR beside the real git when that directory exists, and none when it does not (#582)"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

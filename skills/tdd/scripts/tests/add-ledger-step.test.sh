@@ -8,9 +8,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ADD="$HERE/../add-ledger-step.sh"
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
 check_code() {
   local name="$1" code="$2" want_code="$3" want="$4" got
@@ -171,6 +169,4 @@ want='# Plan for #42
 check "writes each new step line through lib/ledger.sh's ledger_add_step, spelling no box of its own" \
   "$code" "$want"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

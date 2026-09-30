@@ -12,9 +12,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 VERIFY="$HERE/../verify.sh"
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
 stubdir="$(mktemp -d)"
 work="$(mktemp -d)"
@@ -692,6 +690,4 @@ rb_malformed_code=$rv_code rb_malformed_name="$rv_name"
   && [[ "$rb_malformed_name" == verify-rebase ]]; } && ok \
   || no "run-verdict.sh rebase returns a verify-rebase leaf's verdict, supervised under that name (PASS arm: code=$rb_pass_code want 0, leaf=$rb_pass_name; REJECT arm: code=$rb_reject_code want 1, leaf=$rb_reject_name; malformed arm: code=$rb_malformed_code want 2, leaf=$rb_malformed_name; every leaf want verify-rebase)"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

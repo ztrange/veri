@@ -21,9 +21,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 PARALLEL="$HERE/../parallel-conductors.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
 fresh_repo() {
   local dir="$1"
@@ -717,6 +715,4 @@ graphql_run refused
    && "$code" == "$working_code" && "$out" == "$working" ]] \
   && ok || no "#568 against a gh that refuses GraphQL with the 403 and answers REST in two pages, the draft PR on the second, parallel-conductors.sh prints the same report and exit code as against a working gh ( [working gh: exit=$working_code want 1, report '$(printf '%s' "$working" | tr '\n' '|')' want '#7 — bailed https://example.test/pull/7|stopped: #7 bailed'; GraphQL refused: exit=$code want $working_code, report '$(printf '%s' "$out" | tr '\n' '|')' want the same] $(tr '\n' '|' < "$work/gh25-refused.out") )"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

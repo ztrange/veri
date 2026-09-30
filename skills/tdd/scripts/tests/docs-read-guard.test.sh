@@ -68,7 +68,6 @@ MARK='the-binding'
 
 READ_SITE='stated="$(grep -c VERI_HEARTBEAT "$ROOT/$commentary")"'
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -80,14 +79,14 @@ plant_reader() {
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
-pass=0 fail=0
+pass=0; fail=0
 EOF
   printf 'commentary="%s" # %s\n' "$DOCS_READ_PATH" "$MARK" >> "$reader_path"
   printf '%s\n' "$READ_SITE" >> "$reader_path"
   cat >> "$reader_path" <<'EOF'
 [[ "$stated" -gt 0 ]] && pass=1 || fail=1
 echo "----"
-echo "$pass passed, $fail failed"
+echo "${pass:-0} passed, $fail failed"
 [[ "$fail" -eq 0 ]]
 EOF
   chmod 755 "$reader_path"
@@ -99,14 +98,14 @@ plant_quoter() {
 set -uo pipefail
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-pass=0 fail=0
+pass=0; fail=0
 EOF
   printf 'echo "## Notes. %s is generated. Test command: make docs-test" > "$work/body.md"\n' \
     "$DOCS_FIXTURE_PATH" >> "$quoter_path"
   cat >> "$quoter_path" <<'EOF'
 grep -q 'make docs-test' "$work/body.md" && pass=1 || fail=1
 echo "----"
-echo "$pass passed, $fail failed"
+echo "${pass:-0} passed, $fail failed"
 [[ "$fail" -eq 0 ]]
 EOF
   chmod 755 "$quoter_path"
@@ -209,6 +208,4 @@ fi
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

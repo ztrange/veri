@@ -67,7 +67,6 @@ WRITES_OUT='>[[:space:]]*["'"'"'$]'
 
 READ_VERB='(^|[^[:alnum:]_./-])(grep|egrep|fgrep|cat|sed|awk|head|tail|wc|cmp|diff|source|python3|python|bash)[[:space:]]'
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -128,6 +127,4 @@ probe_no_suite_the_target_runs_reaches_into_the_tree
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

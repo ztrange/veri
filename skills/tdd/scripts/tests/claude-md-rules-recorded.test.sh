@@ -50,7 +50,7 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 claude_md="CLAUDE.md"
 claude_path="$ROOT/$claude_md"
 
-pass=0 fail=0
+source "$HERE/lib/harness.sh"
 
 run_case() {
   local name="$1" probe="$2"
@@ -250,6 +250,4 @@ probe_job_spec_rule_is_stated_once() {
 run_case "$claude_md states once that a background process is killed by its recorded pid, never by a job spec" \
   probe_job_spec_rule_is_stated_once
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

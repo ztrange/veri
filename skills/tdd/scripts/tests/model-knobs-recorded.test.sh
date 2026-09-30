@@ -47,7 +47,7 @@ claude_path="$ROOT/$claude_md"
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
 
-pass=0 fail=0
+source "$HERE/lib/harness.sh"
 
 source "$HERE/record-helpers.sh"
 
@@ -130,7 +130,7 @@ probe_shared_report_and_plain() {
   local got expected
   got="$(
     unset -f report plain
-    pass=0 fail=0
+    pass=0; fail=0
     # shellcheck source=/dev/null
     source "$helpers_path"
     printf 'plain: %s\n' "$(printf '**Never** `VERI_MODEL` Merged\n' | plain)"
@@ -164,7 +164,7 @@ probe_shared_records_bullet_says() {
   local got expected
   got="$(
     unset -f report plain records bullet says
-    pass=0 fail=0
+    pass=0; fail=0
     # shellcheck source=/dev/null
     source "$helpers_path"
     printf 'records: [%s]\n' "$(printf -- '- One\n  cont\n\npara line1\nline2\n* **Two** `x`\n' | records)"
@@ -283,8 +283,8 @@ probe_suite_resolves_helpers_from_itself() {
   else
     problems+=("$suite_rel does not source record-helpers.sh by a path under a variable holding its own directory")
   fi
-  [[ "$text" =~ (^|$'\n')echo[[:space:]]+\"\$pass\ passed,\ \$fail\ failed\" ]] ||
-    problems+=("$suite_rel prints no \$pass passed, \$fail failed count line of its own")
+  [[ "$text" =~ (^|$'\n')finish($'\n'|$) ]] ||
+    problems+=("$suite_rel does not end in the harness's finish, which prints its count line")
 }
 
 name="the selection-order-recorded, lane-rule-recorded, unit-tier-recorded and model-knobs-recorded suites each resolve $helpers_rel from their own location and each print their own count line"
@@ -327,8 +327,8 @@ new functions: [bullet plain records report says ]"
       problems+=("$suite_rel could not be read")
       continue
     fi
-    [[ "$text" =~ (^|$'\n')pass=0\ fail=0($'\n'|$) ]] ||
-      problems+=("$suite_rel does not set its own pass=0 fail=0 at top level")
+    [[ "$text" =~ (^|$'\n')source\ \"\$HERE/lib/harness.sh\"($'\n'|$) ]] ||
+      problems+=("$suite_rel does not source the harness for its counters at top level")
     while IFS= read -r line; do
       [[ "$line" =~ ^(source|\.)[[:space:]] ]] || continue
       [[ "$line" =~ ^(source|\.)[[:space:]]+\"?\$\{?(HERE|ROOT)\}?/ ]] ||
@@ -344,6 +344,4 @@ probe_shared_helpers_plain_shell
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

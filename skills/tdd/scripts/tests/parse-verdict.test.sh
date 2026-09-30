@@ -14,7 +14,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PARSE="$HERE/../parse-verdict.sh"
-pass=0 fail=0
+source "$HERE/lib/harness.sh"
 
 check() {
   local name="$1" exp_code="$2" input="$3" exp_out="$4"
@@ -100,6 +100,4 @@ else
   diff <(printf '%s\n' "$ns_out_plain") <(printf '%s\n' "$ns_out_proposing") | sed 's/^/    /'
 fi
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

@@ -52,7 +52,7 @@ skill_path="$ROOT/$skill_md"
 claude_md="CLAUDE.md"
 claude_path="$ROOT/$claude_md"
 
-pass=0 fail=0
+source "$HERE/lib/harness.sh"
 
 source "$HERE/record-helpers.sh"
 
@@ -141,6 +141,4 @@ probe_claude_md_names_the_tunable_and_the_bound
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

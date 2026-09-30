@@ -29,7 +29,6 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 HARVEST="$HERE/../harvest-usage.sh"
 RUN_LEAF="$HERE/../run-leaf.sh"
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -208,6 +207,4 @@ refused_usage_lines="$(event_count "$refused_work" usage)"
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

@@ -25,7 +25,6 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
 PROFILE="$HERE/../profile.sh"
-pass=0 fail=0
 
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
@@ -54,14 +53,14 @@ name="threshold 1: the 2.5 s case is printed, the 0.25 s case is not"
 problems=()
 write_fixture two-cases.test.sh <<'EOF'
 unset EPOCHREALTIME
-pass=0 fail=0
+pass=0; fail=0
 EPOCHREALTIME=100.000000
 pass=$((pass + 1))
 EPOCHREALTIME=102.500000
 pass=$((pass + 1))
 EPOCHREALTIME=102.750000
 pass=$((pass + 1))
-echo "$pass passed, $fail failed"
+echo "${pass:-0} passed, $fail failed"
 EOF
 out="$(VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
@@ -76,14 +75,14 @@ name="the printed line is <secs> <suite> case 2 L5-8, secs equal to 3"
 problems=()
 write_fixture format.test.sh <<'EOF'
 unset EPOCHREALTIME
-pass=0 fail=0
+pass=0; fail=0
 EPOCHREALTIME=10.000000
 pass=$((pass + 1))
 EPOCHREALTIME=11.000000
 x=1
 EPOCHREALTIME=13.000000
 pass=$((pass + 1))
-echo "$pass passed, $fail failed"
+echo "${pass:-0} passed, $fail failed"
 EOF
 out="$(VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
@@ -94,7 +93,7 @@ name="boundaries: only top-level increments of pass/fail, so case 2 is L5-12"
 problems=()
 write_fixture boundaries.test.sh <<'EOF'
 unset EPOCHREALTIME
-pass=0 fail=0
+pass=0; fail=0
 EPOCHREALTIME=10.000000
 pass=$((pass + 1))
 EPOCHREALTIME=20.000000
@@ -105,7 +104,7 @@ bump
 fail=0
 EPOCHREALTIME=35.000000
 pass=$((pass + 1))
-echo "$pass passed, $fail failed"
+echo "${pass:-0} passed, $fail failed"
 EOF
 out="$(VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
@@ -116,7 +115,7 @@ name="slowest first: cases spanning 2, 5 and 3 s print as case 3, case 4, case 2
 problems=()
 write_fixture order.test.sh <<'EOF'
 unset EPOCHREALTIME
-pass=0 fail=0
+pass=0; fail=0
 EPOCHREALTIME=10.000000
 pass=$((pass + 1))
 EPOCHREALTIME=12.000000
@@ -125,7 +124,7 @@ EPOCHREALTIME=17.000000
 pass=$((pass + 1))
 EPOCHREALTIME=20.000000
 pass=$((pass + 1))
-echo "$pass passed, $fail failed"
+echo "${pass:-0} passed, $fail failed"
 EOF
 out="$(VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
@@ -152,9 +151,9 @@ problems=()
 out="$(VERI_PROFILE_THRESHOLD=abc "$PROFILE" "$scratch/order.test.sh" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 2 ]] || problems+=("threshold abc: want exit 2, got $code")
 write_fixture no-increment.test.sh <<'EOF'
-pass=0 fail=0
+pass=0; fail=0
 x=1
-echo "$pass passed, $fail failed"
+echo "${pass:-0} passed, $fail failed"
 EOF
 out="$(env -u VERI_PROFILE_THRESHOLD "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 2 ]] || problems+=("no increment: want exit 2, got $code")
@@ -164,28 +163,28 @@ name="default threshold 1: a 1 s case prints, 0.9 s does not; none reaching it e
 problems=()
 write_fixture default-at.test.sh <<'EOF'
 unset EPOCHREALTIME
-pass=0 fail=0
+pass=0; fail=0
 EPOCHREALTIME=10.000000
 pass=$((pass + 1))
 EPOCHREALTIME=11.000000
 pass=$((pass + 1))
 EPOCHREALTIME=11.900000
 pass=$((pass + 1))
-echo "$pass passed, $fail failed"
+echo "${pass:-0} passed, $fail failed"
 EOF
 out="$(env -u VERI_PROFILE_THRESHOLD "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 0 ]] || problems+=("1 s case: want exit 0, got $code")
 expect_line "$fixture case 2 L5-6" 1
 write_fixture default-under.test.sh <<'EOF'
 unset EPOCHREALTIME
-pass=0 fail=0
+pass=0; fail=0
 EPOCHREALTIME=10.000000
 pass=$((pass + 1))
 EPOCHREALTIME=10.900000
 pass=$((pass + 1))
 EPOCHREALTIME=11.400000
 pass=$((pass + 1))
-echo "$pass passed, $fail failed"
+echo "${pass:-0} passed, $fail failed"
 EOF
 out="$(env -u VERI_PROFILE_THRESHOLD "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 0 ]] || problems+=("no case reaching 1 s: want exit 0, got $code")
@@ -257,6 +256,4 @@ done < "$self"
   problems+=("make -n test does not name skills/tdd/scripts/tests/$(basename "$0")")
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

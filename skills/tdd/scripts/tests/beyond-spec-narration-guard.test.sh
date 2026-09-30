@@ -68,7 +68,6 @@ CLASS='beyond-spec'
 DENIAL='is not planned and not built in this run'
 GRANT='is planned and built in this run'
 
-pass=0 fail=0
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 
@@ -192,6 +191,4 @@ if probe_guard_is_there && plant; then
 fi
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

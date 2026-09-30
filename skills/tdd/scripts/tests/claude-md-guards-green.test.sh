@@ -57,7 +57,6 @@ GUARDS=(
 
 COUNT_LINE='^[0-9]+ passed, 0 failed$'
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -104,6 +103,4 @@ probe_every_guard_is_rostered_and_green
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

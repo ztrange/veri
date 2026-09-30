@@ -20,7 +20,6 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
 SCRIPT="$HERE/../capture-spec.sh"
-pass=0 fail=0
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
@@ -211,6 +210,4 @@ cmp -s "$out" "$tmp/empty-rest-spec.md" ||
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

@@ -35,7 +35,6 @@ source "$HERE/lib/harness.sh"
 PUSH="$HERE/../push-branch.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-pass=0 fail=0
 
 unchanged() {
   local label="$1" before="$2" after="$3"
@@ -539,6 +538,4 @@ for args in "--force-with-lease" "--force-with-lease=$branch" \
 done
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

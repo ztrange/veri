@@ -10,7 +10,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 WRAP="$HERE/../tick-issue-criterion.sh"
-pass=0 fail=0
+source "$HERE/lib/harness.sh"
 
 stubdir="$(mktemp -d)"
 trap 'rm -rf "$stubdir"' EXIT
@@ -144,6 +144,4 @@ else
   echo "FAIL - $name (exit want 0 got $code; edit-written=$([[ -f "$silent_edit" ]] && echo yes || echo no))"
 fi
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

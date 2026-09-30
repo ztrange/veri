@@ -25,7 +25,6 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 BUDGET="$HERE/../time-budget.sh"
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -68,6 +67,4 @@ out="$( VERI_TIME_WARN_RATIO=1,5 "$BUDGET" 2>/dev/null )" || true
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

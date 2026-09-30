@@ -23,7 +23,6 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LEAF="$HERE/../run-leaf.sh"
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -77,6 +76,4 @@ out="$(launch_leaf "$stubdir/claude-reader")"
   problems+=("want the leaf to see the operator's credential.helper (sees: veri-test-helper), got: $(printf '%q' "$out")")
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

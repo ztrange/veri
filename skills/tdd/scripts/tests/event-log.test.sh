@@ -21,7 +21,6 @@ source "$HERE/lib/harness.sh"
 SCRIPTS="$HERE/.."
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-pass=0 fail=0
 
 repo="$work/repo"
 git init -q -b main "$repo" >/dev/null 2>&1
@@ -104,5 +103,4 @@ done
 
 report "run_activity and scope_totals read the event log through lib/event_log.py's one parse and one dollar/token sum, with status.sh's text and --json figures unchanged over a log with blank lines and usage events"
 
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

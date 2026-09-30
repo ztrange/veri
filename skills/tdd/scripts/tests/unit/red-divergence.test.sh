@@ -18,7 +18,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 DIVERGENCE="$HERE/../../red-divergence.sh"
-pass=0 fail=0
+source "$HERE/../lib/harness.sh"
 
 # run_on <report> — feed the report to the script on stdin and leave what it said in `out`
 # (stdout and stderr together, so a case can assert that a silent exit really is silent) and
@@ -211,5 +211,4 @@ for mark in ',' ';' ':' '.'; do
 done
 verdict "$name"
 
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

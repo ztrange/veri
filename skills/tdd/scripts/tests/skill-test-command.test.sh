@@ -30,7 +30,6 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
 md="$ROOT/$skill_md"
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -117,6 +116,4 @@ if need_section '### 0. Preflight' 'what the baseline runs could not be read'; t
 fi
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

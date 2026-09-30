@@ -34,7 +34,6 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -246,6 +245,4 @@ in_unit="$(roster unit | grep '/watch\.test\.sh$')"
 [[ -z "$in_unit" ]] || problems+=("make -n unit lists $in_unit; want it absent from the fast tier")
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

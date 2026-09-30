@@ -33,7 +33,6 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 CI_YML="$ROOT/.github/workflows/ci.yml"
 PAGES_YML="$ROOT/.github/workflows/pages.yml"
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -152,6 +151,4 @@ done
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

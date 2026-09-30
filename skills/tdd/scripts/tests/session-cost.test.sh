@@ -55,7 +55,6 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SESSION_COST="$HERE/../session-cost.sh"
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -582,6 +581,4 @@ band cli "${want_cli_preambles[@]}"
 report "$name"
 
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

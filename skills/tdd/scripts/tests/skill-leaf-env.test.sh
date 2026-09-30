@@ -64,7 +64,6 @@ SCRIPTS="$(cd "$HERE/.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
 md="$ROOT/$skill_md"
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -338,10 +337,10 @@ _fixture_report_case() {
 scan_message_format() {
   local out want
   out="$(
-    pass=0 fail=0
+    pass=0; fail=0
     _fixture_report_case
     echo "----"
-    echo "$pass passed, $fail failed"
+    echo "${pass:-0} passed, $fail failed"
   )"
   want=$'FAIL - sample case\n    skills/tdd/SKILL.md:999 sample problem:sample line text\n----\n0 passed, 1 failed'
   [[ "$out" == "$want" ]] ||
@@ -760,6 +759,4 @@ STUB
 run_case "a launch line that reaches no supervisor at all is reported as <no leaf ran> (#457)" \
   scan_no_leaf_ran
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

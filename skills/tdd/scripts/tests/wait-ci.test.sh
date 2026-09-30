@@ -20,7 +20,6 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
 WAIT="$HERE/../wait-ci.sh"
 PR="https://github.com/o/r/pull/1"
-pass=0 fail=0
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -427,5 +426,4 @@ got="$(GH_PR_VIEW_HEAD=fedcba9876543210fedcba9876543210fedcba98 waited rest-only
 [[ "$got" == 0 ]] || problems+=("working gh whose pr view reports another head: want exit 0, got $got (stderr: $(cat "$work/rest-only.err"))")
 report "$name"
 
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

@@ -82,7 +82,6 @@ reset_command='git (reset|checkout|restore|clean)'
 
 dirty_tree='git status --porcelain'
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -575,6 +574,4 @@ for want in \
 done
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

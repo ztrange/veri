@@ -5,7 +5,7 @@
 - [x] A suite that sources the harness and dies before calling `finish` still fails the recipe's count-line check, and one that calls `finish` after a failing case exits non-zero with its own `<n> passed, <m> failed` line ⟦criterion 2⟧
 - [x] `affected-suites.sh` maps `tests/lib/harness.sh` to every suite that sources it, so a harness change selects the suites that adopt it
 - [x] Every suite that carries its own copy of the `report` helper (including the record-helpers suites via `tests/record-helpers.sh`) sources the harness instead and defines no `report` of its own ⟦criterion 4⟧
-- [ ] Every suite that carries its own `ok`/`no` pair, `pass=0 fail=0` initialisation, diff-on-failure idiom or closing count line sources the harness and uses its versions, ending in `finish` ⟦criterion 4⟧
+- [x] Every suite that carries its own `ok`/`no` pair, `pass=0 fail=0` initialisation, diff-on-failure idiom or closing count line sources the harness and uses its versions, ending in `finish` ⟦criterion 4⟧ ⟂ refactor pending
 - [ ] Every suite that builds its own `mktemp -d` plus `trap … EXIT` scratch, its own tmp git repository or its own `claude` stub heredoc uses the harness's `scratch_dir`, `on_exit`, `new_repo` and `claude_stub` instead ⟦criterion 4⟧
 - [ ] The cross-suite hermeticity test still passes with the harness in place ⟦full-suite⟧ ⟦criterion 3⟧
 - [ ] `make test` is green and no suite's subject or assertions changed ⟦full-suite⟧ ⟦criterion 5⟧

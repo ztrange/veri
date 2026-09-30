@@ -15,9 +15,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 AFFECTED="$HERE/../affected-suites.sh"
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -468,6 +466,4 @@ expect_suites "#496: a change to tests/lib/harness.sh prints every suite that so
   skills/tdd/scripts/tests/alpha.test.sh \
   skills/tdd/scripts/tests/unit/beta.test.sh
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

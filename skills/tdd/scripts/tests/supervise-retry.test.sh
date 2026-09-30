@@ -30,9 +30,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SUP="$HERE/../supervise.sh"
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
 stub="$(mktemp -d)"
 work="$(mktemp -d)"
@@ -103,6 +101,4 @@ code=$?
 { [[ "$code" == 0 ]] && [[ "$out" == *'recovered on retry'* ]]; } && ok \
   || no "killed-stuck-then-succeeds leaf is retried → success (code=$code, err=$(cat "$work/err"))"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

@@ -15,7 +15,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PUSH="$HERE/../../push-branch.sh"
-pass=0 fail=0
+source "$HERE/../lib/harness.sh"
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 
@@ -115,6 +115,4 @@ else
   pass=$((pass + 1))
 fi
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

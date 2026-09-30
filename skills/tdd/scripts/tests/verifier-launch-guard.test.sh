@@ -68,7 +68,6 @@ MISSING='supervise.sh'
 
 VERIFIER='run-verdict.sh'
 
-pass=0 fail=0
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 
@@ -339,6 +338,4 @@ if probe_guard_is_there && plant_step_title; then
 fi
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

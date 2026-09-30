@@ -35,7 +35,6 @@ source "$HERE/lib/harness.sh"
 INVISIBLE="$HERE/../invisible-work.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-pass=0 fail=0
 
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
@@ -565,6 +564,4 @@ for run in "coverage-blocker.sh 7" "tick-issue-criterion.sh 7 criterion"; do
 done
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish
