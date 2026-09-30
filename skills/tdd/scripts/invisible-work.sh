@@ -35,12 +35,14 @@
 #          VERI_GH_JSON=<dir> invisible-work.sh
 set -euo pipefail
 
-gh_json() {  # gh_json <fixture-file> <gh args…> -> that document on stdout
-  local fixture="$1"; shift
+source "$(dirname "$0")/lib/github.sh"
+
+gh_json() {  # gh_json <fixture-file> <rest-path> <gh args…> -> that document on stdout
+  local fixture="$1" rest="$2"; shift 2
   if [[ -n "${VERI_GH_JSON:-}" ]]; then
     cat "$VERI_GH_JSON/$fixture"
   else
-    gh "$@"
+    gh_list "repos/{owner}/{repo}/$rest" "$@"
   fi
 }
 
@@ -49,8 +51,8 @@ if ! git ls-remote --heads origin > /dev/null; then
   exit 2
 fi
 
-if ! issues_json="$(gh_json issues.json issue list --state all --limit 10000 --json number,state)" ||
-   ! prs_json="$(gh_json prs.json pr list --state all --limit 10000 --json headRefName,state)"; then
+if ! issues_json="$(gh_json issues.json "issues?state=all&per_page=100" issue list --state all --limit 10000 --json number,state)" ||
+   ! prs_json="$(gh_json prs.json "pulls?state=all&per_page=100" pr list --state all --limit 10000 --json headRefName,state)"; then
   echo "invisible-work.sh: cannot read issues and PRs from gh (unauthenticated?)" >&2
   exit 2
 fi
@@ -85,10 +87,20 @@ done < <(git for-each-ref --format='%(refname) %(objectname)' refs/heads/)
 exec python3 -c '
 import json, re, sys
 
-issues = {i["number"]: i["state"] for i in json.loads(sys.argv[1])}
-prs = json.loads(sys.argv[3])
-with_pr = {p["headRefName"] for p in prs}
-decided = {p["headRefName"] for p in prs if p["state"] in ("MERGED", "CLOSED")}
+def documents(text):
+    items, at, decoder = [], 0, json.JSONDecoder()
+    while at < len(text):
+        page, at = decoder.raw_decode(text, at)
+        items.extend(page)
+    return items
+
+def head(pr):
+    return pr["headRefName"] if "headRefName" in pr else pr["head"]["ref"]
+
+issues = {i["number"]: i["state"].upper() for i in documents(sys.argv[1])}
+prs = documents(sys.argv[3])
+with_pr = {head(p) for p in prs}
+decided = {head(p) for p in prs if p["state"].upper() in ("MERGED", "CLOSED")}
 findings = []
 
 for row in sys.argv[2].splitlines():
