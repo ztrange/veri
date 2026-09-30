@@ -20,23 +20,13 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/harness.sh"
 DEVELOP="$HERE/../build-develop-prompt.sh"
 VERIFY="$HERE/../build-verify-prompt.sh"
 pass=0 fail=0
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
 
 plain() {
   tr -d '*`' | tr '[:upper:]' '[:lower:]'

@@ -47,21 +47,12 @@ JOB_SPEC='%[0-9]'
 JOB_SPEC_KILL="$KILL_WORD$JOB_ARGS$JOB_SPEC"
 
 declare -A EXEMPT=(
-  [skills/tdd/scripts/tests/skill-leaf-env.test.sh:453]="a step title's text, single-quoted, that the case hands a launch line as data (#437): the backticks around it are the character under test, and a fixed launch never runs it; an unfixed one runs it in a bash -c with no job table, where it reaches no process at all"
+  [skills/tdd/scripts/tests/skill-leaf-env.test.sh:444]="a step title's text, single-quoted, that the case hands a launch line as data (#437): the backticks around it are the character under test, and a fixed launch never runs it; an unfixed one runs it in a bash -c with no job table, where it reaches no process at all"
 )
 
 pass=0 fail=0
 
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
+source "$HERE/lib/harness.sh"
 
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 

@@ -17,6 +17,7 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/harness.sh"
 WAIT="$HERE/../wait-ci.sh"
 PR="https://github.com/o/r/pull/1"
 pass=0 fail=0
@@ -82,14 +83,6 @@ P
 esac
 G
 chmod +x "$work/bin/date" "$work/bin/gh"
-
-report() {
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1)); echo "FAIL - $1"; printf '    %s\n' "${problems[@]}"
-  fi
-}
 
 rollup() {
   printf '{"headRefOid":"%s","statusCheckRollup":[%s]}\n' \

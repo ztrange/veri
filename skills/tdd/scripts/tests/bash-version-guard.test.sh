@@ -36,16 +36,7 @@ GREEN_FIXTURE='skills/tdd/scripts/tests/fixtures/live-suites/ends-green.test.sh'
 
 pass=0 fail=0
 
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
+source "$HERE/lib/harness.sh"
 
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 

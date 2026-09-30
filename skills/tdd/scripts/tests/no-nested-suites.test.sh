@@ -65,16 +65,7 @@ suites_dir="skills/tdd/scripts/tests"
 
 pass=0 fail=0
 
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
+source "$HERE/lib/harness.sh"
 
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 

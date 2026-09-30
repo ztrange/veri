@@ -26,6 +26,7 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/harness.sh"
 DASH="$HERE/../dashboard.sh"
 STATUS="$HERE/../status.sh"
 METRICS="$HERE/../metrics.sh"
@@ -54,17 +55,6 @@ chmod +x "$work/shim/python3"
 export PATH="$work/shim:$PATH"
 
 PORT=8765
-
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
 
 add_problems() {
   local line

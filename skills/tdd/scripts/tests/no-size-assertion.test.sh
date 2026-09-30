@@ -50,16 +50,7 @@ BINDS="^[[:space:]]*(local[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)=.*$MD_FILES"
 
 pass=0 fail=0
 
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
+source "$HERE/lib/harness.sh"
 
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
@@ -112,6 +103,7 @@ observe() {
   shift 3
   mkdir -p "$dir"
   cp "$HERE/no-size-assertion.test.sh" "$dir/"
+  mkdir -p "$dir/lib" && cp "$HERE/lib/harness.sh" "$dir/lib/"
   printf "$format" "$@" > "$dir/$suite"
   out="$(NO_SIZE_ASSERTION_NESTED=1 "$dir/no-size-assertion.test.sh" 2>&1)"
 }

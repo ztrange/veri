@@ -28,6 +28,7 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/harness.sh"
 pass=0 fail=0
 
 issue=4242
@@ -62,17 +63,6 @@ chmod +x "$stubdir/claude"
 argv="$work/argv"
 prompt="$work/prompt"
 launch_err="$work/launch.err"
-
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
 
 flag() {
   grep -qx -- "$1" "$argv" ||

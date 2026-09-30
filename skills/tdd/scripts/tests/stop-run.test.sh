@@ -12,6 +12,7 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/harness.sh"
 STOP="$HERE/../stop-run.sh"
 pass=0 fail=0
 
@@ -68,18 +69,10 @@ dead_conductor() {
 live_conductor "$run"
 run_conductor_pid="$conductor_pid"
 
-problems=""
+problems=()
 
-note() { problems+="    ${label:+$label: }$1"$'\n'; }
+note() { problems+=("${label:+$label: }$1"); }
 
-report() {
-  local name="$1"
-  if [[ -z "$problems" ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1)); echo "FAIL - $name"; printf '%s' "$problems"
-  fi
-}
 
 run_stop_in() {
   local dir="$1"; shift
@@ -122,7 +115,7 @@ check_refused "a non-integer issue" --mode now five
 
 report "an unknown --mode, both an issue and --all, neither, and a non-integer issue each exit 2, write no .tdd/stop and signal nothing"
 
-problems=""
+problems=()
 check_refused "--mode with no value" --mode
 
 report "--mode with no value exits 2 with the script's own complaint, writes no .tdd/stop and signals nothing"
@@ -139,7 +132,7 @@ check_stop() {
   [[ "$lines" == 1 ]] || note "want '$want' as the only line of $path, it has $lines lines"
 }
 
-problems=""
+problems=()
 run_stop --mode now 5
 check_code 0
 [[ "$out" == *5* ]] || note "want the run named on stdout, got '$out'"
@@ -147,7 +140,7 @@ check_stop "$run" now
 
 report "--mode now <n> writes now as the only line of that run's .tdd/stop, names the run on stdout and exits 0"
 
-problems=""
+problems=()
 rm -f "$run/.tdd/stop"
 run_stop 5
 check_code 0
@@ -155,14 +148,14 @@ check_stop "$run" at-ledger
 
 report "<n> with no --mode writes at-ledger into that run's .tdd/stop"
 
-problems=""
+problems=()
 run_stop --mode now 5
 check_code 0
 check_stop "$run" now
 
 report "a second call for the same run overwrites the mode already in .tdd/stop"
 
-problems=""
+problems=()
 rm -f "$run/.tdd/stop"
 
 live2="$repo/.tdd/wt/7"
@@ -188,7 +181,7 @@ check_no_stop "$dead"
 
 report "--all writes the mode into every live run's .tdd/stop and into no other"
 
-problems=""
+problems=()
 
 label="an issue with no worktree"
 run_stop 404
@@ -215,7 +208,7 @@ report "an issue with no worktree, an issue whose conductor names no live proces
 live_supervisor "$run" develop-red
 sup_pid="$supervisor_pid"
 
-problems=""
+problems=()
 rm -f "$run/.tdd/stop"
 
 outside="$work/outside"; mkdir -p "$outside"
@@ -223,7 +216,7 @@ check_refused_in "$outside" "no main working tree" --mode now 5
 
 report "a command typed where no main working tree resolves exits 2, writes no .tdd/stop and signals nothing"
 
-problems=""
+problems=()
 label=""
 rm -f "$run/.tdd/stop"
 
@@ -254,7 +247,7 @@ check_still_answering "$impostor" "the pid running something other than a superv
 
 report "--mode now <n> sends TERM to the pid in <run>/.tdd/<name>.pid whose process runs supervise.sh <name>, and to no pid whose process is gone or runs something else"
 
-problems=""
+problems=()
 
 live_supervisor "$run" develop-red
 quiet_sup="$supervisor_pid"
@@ -271,7 +264,7 @@ label=""
 
 report "--mode at-ledger <n> and --mode at-leaf <n> write the mode and signal nothing"
 
-problems=""
+problems=()
 label=""
 
 conductor_run="$repo/.tdd/wt/11"

@@ -70,16 +70,7 @@ READ_SITE='stated="$(grep -c VERI_HEARTBEAT "$ROOT/$commentary")"'
 
 pass=0 fail=0
 
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
+source "$HERE/lib/harness.sh"
 
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
@@ -136,6 +127,7 @@ plant() {
   plant_quoter
 
   cp "$GUARD_PATH" "$guard_copy"
+  mkdir -p "${guard_copy%/*}/lib" && cp "$HERE/lib/harness.sh" "${guard_copy%/*}/lib/"
   git init -q "$tree" >/dev/null 2>&1
   git -C "$tree" add -A >/dev/null 2>&1
 

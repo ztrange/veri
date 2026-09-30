@@ -58,16 +58,7 @@ ARGV_LAUNCH='s#^printf .* | \(.*\) -p \\$#\1 -p "$prompt" \\#'
 
 pass=0 fail=0
 
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
+source "$HERE/lib/harness.sh"
 
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
@@ -80,6 +71,7 @@ run_case4() {
   trees+=("$tree")
   mkdir -p "$tree/$TESTS_DIR"
   cp "$SUBJECT_PATH" "$tree/$TESTS_DIR/$SUBJECT_NAME"
+  mkdir -p "$tree/$TESTS_DIR/lib" && cp "$HERE/lib/harness.sh" "$tree/$TESTS_DIR/lib/"
   cp "$ROOT/$SKILL_DIR/$SKILL_NAME" "$tree/$SKILL_DIR/$SKILL_NAME"
   script="$tree/$SCRIPTS_DIR/$SCRIPT_NAME"
   if [[ -n "$rewrite" ]]; then sed "$rewrite" "$SCRIPT_PATH" > "$script"; else cp "$SCRIPT_PATH" "$script"; fi

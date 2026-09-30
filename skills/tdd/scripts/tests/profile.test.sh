@@ -23,6 +23,7 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/harness.sh"
 PROFILE="$HERE/../profile.sh"
 pass=0 fail=0
 
@@ -47,17 +48,6 @@ expect_line() {
 
 case_order() {
   awk '{ printf "%s ", $4 }' <<< "$out"
-}
-
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
 }
 
 name="threshold 1: the 2.5 s case is printed, the 0.25 s case is not"

@@ -20,16 +20,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 pass=0 fail=0
 
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
+source "$HERE/lib/harness.sh"
 
 same_answer() {
   local baseline="$1" base_code="$2" base_out="$3" other_code="$4" other_out="$5"
@@ -186,6 +177,7 @@ if [[ -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
     printf 'echo "1 passed, 0 failed"\n'
   } > "$rerun_work/scripts/tests/probe.test.sh"
   cp "$HERE/$(basename "$0")" "$rerun_work/scripts/tests/"
+  mkdir -p "$rerun_work/scripts/tests/lib" && cp "$HERE/lib/harness.sh" "$rerun_work/scripts/tests/lib/"
   chmod +x "$rerun_work/scripts/"*.sh "$rerun_work/scripts/tests/"*.test.sh
   HERMETIC_RERUN_PROBE=1 "$rerun_work/scripts/tests/$(basename "$0")" >/dev/null 2>&1
   reruns="$(wc -l < "$rerun_log" | tr -d ' ')"
@@ -240,6 +232,7 @@ if [[ -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
     } > "$leak_work/scripts/tests/${stand_in%%:*}.test.sh"
   done
   cp "$HERE/$(basename "$0")" "$leak_work/scripts/tests/"
+  mkdir -p "$leak_work/scripts/tests/lib" && cp "$HERE/lib/harness.sh" "$leak_work/scripts/tests/lib/"
   chmod +x "$leak_work/scripts/tests/"*.test.sh
   leak_out="$(HERMETIC_LEAK_PROBE=1 HERMETIC_RERUN_PROBE=1 "$leak_work/scripts/tests/$(basename "$0")" 2>/dev/null)" &&
     leak_code=0 || leak_code=$?
@@ -277,6 +270,7 @@ if [[ -z "${HERMETIC_SHARE_PROBE:-}" && -z "${HERMETIC_LEAK_PROBE:-}" && -z "${H
     printf 'echo "1 passed, 0 failed"\n'
   } > "$share_work/scripts/tests/solvable-issues.test.sh"
   cp "$HERE/$(basename "$0")" "$share_work/scripts/tests/"
+  mkdir -p "$share_work/scripts/tests/lib" && cp "$HERE/lib/harness.sh" "$share_work/scripts/tests/lib/"
   chmod +x "$share_work/scripts/tests/"*.test.sh
   (cd "$share_work/cwd" &&
     HERMETIC_SHARE_PROBE=1 HERMETIC_LEAK_PROBE=1 HERMETIC_RERUN_PROBE=1 \
@@ -326,6 +320,7 @@ if [[ -z "${HERMETIC_SKILLCOMMIT_PROBE:-}" ]]; then
       'exit 9'
   } > "$sha_work/scripts/tests/run-conductor.test.sh"
   cp "$HERE/$(basename "$0")" "$sha_work/scripts/tests/"
+  mkdir -p "$sha_work/scripts/tests/lib" && cp "$HERE/lib/harness.sh" "$sha_work/scripts/tests/lib/"
   chmod +x "$sha_work/scripts/tests/"*.test.sh
   sha_out="$(HERMETIC_SKILLCOMMIT_PROBE=1 HERMETIC_SHARE_PROBE=1 HERMETIC_LEAK_PROBE=1 HERMETIC_RERUN_PROBE=1 \
     "$sha_work/scripts/tests/$(basename "$0")" 2>/dev/null)" && sha_code=0 || sha_code=$?

@@ -71,16 +71,7 @@ EXEMPT_REASON='the job spec is the point here: the line is quoted prose inside a
 
 pass=0 fail=0
 
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
+source "$HERE/lib/harness.sh"
 
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
@@ -126,6 +117,7 @@ stage_guard() {
 
 install_guard() {
   cp "$GUARD_PATH" "$guard_copy"
+  mkdir -p "${guard_copy%/*}/lib" && cp "$HERE/lib/harness.sh" "${guard_copy%/*}/lib/"
   git init -q "$tree" >/dev/null 2>&1
   stage_guard
 }

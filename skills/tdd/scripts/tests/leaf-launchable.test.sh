@@ -33,16 +33,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 LAUNCHABLE="$HERE/../leaf-launchable.sh"
 pass=0 fail=0
 
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
+source "$HERE/lib/harness.sh"
 
 binary_said='Error: Claude Code cannot be launched inside another Claude Code session.'
 
