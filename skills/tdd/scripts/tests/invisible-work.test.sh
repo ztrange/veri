@@ -443,6 +443,18 @@ names "the run reported the local branch origin lacks" "$out" "$local_only"
   problems+=("the refs after a run: want byte-identical to before, got this diff: $(diff <(echo "$before") <(echo "$after") | grep -E '^[<>]' | tr '\n' ';')")
 report "$name"
 
+run_both_ghs() {  # run_both_ghs <clone> <gh-fixture-dir> <stderr-file> -> sets working, working_rc, refused, rc
+  local clone="$1" fx="$2" err="$3"
+  working="$(cd "$clone" && env -u VERI_GH_JSON PATH="$work/case568/bin:$PATH" GH_GRAPHQL=working GH_FX="$fx" "$INVISIBLE" 2>/dev/null)"; working_rc=$?
+  refused="$(cd "$clone" && env -u VERI_GH_JSON PATH="$work/case568/bin:$PATH" GH_GRAPHQL=refused GH_FX="$fx" "$INVISIBLE" 2> "$err")"; rc=$?
+}
+
+same_under_refusal() {
+  local err="$1"
+  [[ "$rc" -eq "$working_rc" && "$refused" == "$working" ]] ||
+    problems+=("against a gh refusing GraphQL: want exit $working_rc and $(printf '%q' "$working"), got exit $rc and $(printf '%q' "$refused") (stderr: $(tr '\n' '|' < "$err"))")
+}
+
 name="invisible-work.sh: against a gh that refuses GraphQL with the 403 and answers REST, prints the same report and exit code as against a working gh (#568)"
 problems=()
 branch="tdd/71-walkthrough-version-the-commentary-too"
@@ -483,13 +495,11 @@ echo "gh stub: unexpected call: gh $*" >&2
 exit 1
 STUB
 chmod +x "$work/case568/bin/gh"
-working="$(cd "$clone" && env -u VERI_GH_JSON PATH="$work/case568/bin:$PATH" GH_GRAPHQL=working GH_FX="$gh_fx" "$INVISIBLE" 2>/dev/null)"; working_rc=$?
-refused="$(cd "$clone" && env -u VERI_GH_JSON PATH="$work/case568/bin:$PATH" GH_GRAPHQL=refused GH_FX="$gh_fx" "$INVISIBLE" 2> "$work/case568/stderr")"; rc=$?
+run_both_ghs "$clone" "$gh_fx" "$work/case568/stderr"
 want="invariant 2 (no PR): $branch tip $tip 3 commits ahead, issue #71 OPEN"
 [[ "$working_rc" -eq 0 && "$working" == "$want" ]] ||
   problems+=("against a working gh: want exit 0 and $(printf '%q' "$want"), got exit $working_rc and $(printf '%q' "$working")")
-[[ "$rc" -eq "$working_rc" && "$refused" == "$working" ]] ||
-  problems+=("against a gh refusing GraphQL: want exit $working_rc and $(printf '%q' "$working"), got exit $rc and $(printf '%q' "$refused") (stderr: $(tr '\n' '|' < "$work/case568/stderr"))")
+same_under_refusal "$work/case568/stderr"
 report "$name"
 
 name="invisible-work.sh: against a gh that refuses GraphQL, a local branch whose PR REST reports as \"closed\" is left out, as against a working gh (#568)"
@@ -507,12 +517,10 @@ JSON
 git_q "$clone" branch -q "$closed" "origin/$closed"
 git_q "$work/case568-closed/src" push -q origin --delete "$closed"
 git_q "$clone" fetch -q --prune origin
-working="$(cd "$clone" && env -u VERI_GH_JSON PATH="$work/case568/bin:$PATH" GH_GRAPHQL=working GH_FX="$gh_fx" "$INVISIBLE" 2>/dev/null)"; working_rc=$?
-refused="$(cd "$clone" && env -u VERI_GH_JSON PATH="$work/case568/bin:$PATH" GH_GRAPHQL=refused GH_FX="$gh_fx" "$INVISIBLE" 2> "$work/case568-closed/stderr")"; rc=$?
+run_both_ghs "$clone" "$gh_fx" "$work/case568-closed/stderr"
 [[ "$working_rc" -eq 3 && -z "$working" ]] ||
   problems+=("against a working gh: want exit 3 and empty stdout, got exit $working_rc and $(printf '%q' "$working")")
-[[ "$rc" -eq "$working_rc" && "$refused" == "$working" ]] ||
-  problems+=("against a gh refusing GraphQL: want exit $working_rc and $(printf '%q' "$working"), got exit $rc and $(printf '%q' "$refused") (stderr: $(tr '\n' '|' < "$work/case568-closed/stderr"))")
+same_under_refusal "$work/case568-closed/stderr"
 report "$name"
 
 echo "----"
