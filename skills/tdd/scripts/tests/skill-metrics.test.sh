@@ -18,9 +18,9 @@
 #
 # Contract under test (one criterion, one case):
 #   SKILL.md's `### 4. Draft PR` step runs, in this order (since #236, and since #195 opening
-#   no PR of its own), `gh pr view` for the URL of the PR the plan commit already opened,
+#   no PR of its own), `gh api …/pulls?head=` for the URL of the PR the plan commit already opened,
 #   `event.sh done pr=<pr-url>`, `metrics.sh`, a `metrics:` commit of
-#   `.tdd/issue-<n>-metrics.md`, `push-branch.sh`, and `gh pr edit`, which carries the
+#   `.tdd/issue-<n>-metrics.md`, `push-branch.sh`, and `gh api -X PATCH`, which carries the
 #   `### 📊 Metrics` block into the PR body; the same block goes into the final `✅ Done`
 #   comment; SKILL.md's `## Bailing` section commits
 #   the same file on the pushed branch and puts the block on the `⛔ Bailed` comment.
@@ -92,7 +92,7 @@ else
   first_record_line "$pr_records" 'metrics:' 'metrics.md' >/dev/null ||
     problems+=("$skill_md's Draft PR step has no instruction committing .tdd/issue-<n>-metrics.md in a metrics: commit, so the report is never beside the ledger it describes")
 
-  first_record_line "$pr_records" 'gh pr edit' >/dev/null ||
+  first_record_line "$pr_records" 'gh api -x patch' >/dev/null ||
     problems+=("$skill_md's Draft PR step never runs gh pr edit, so the run ends with no PR carrying the metrics it committed")
 
   first_record_line "$pr_records" '✅ done' '📊 metrics' >/dev/null ||
@@ -144,9 +144,9 @@ body_at="$(offset_of "$pr_text" 'contents of .tdd/issue-<n>-metrics.md')" ||
   problems+=("$skill_md's Draft PR step never puts the contents of .tdd/issue-<n>-metrics.md into the PR body")
 if [[ -n "${body_at:-}" ]]; then
   body_cmd="${pr_text:0:$body_at}"
-  body_cmd="gh pr ${body_cmd##*gh pr }"
-  [[ "$body_cmd" == *"--body"* ]] ||
-    problems+=("$skill_md mentions the contents of .tdd/issue-<n>-metrics.md outside a gh pr --body, so the PR body never gets the committed report")
+  body_cmd="gh api ${body_cmd##*gh api }"
+  [[ "$body_cmd" == *"-f body="* ]] ||
+    problems+=("$skill_md mentions the contents of .tdd/issue-<n>-metrics.md outside a gh api -f body=, so the PR body never gets the committed report")
   if [[ -n "${render_at:-}" && "$body_at" -lt "$render_at" ]]; then
     problems+=("$skill_md pastes the report into the PR body at offset $body_at, BEFORE it is rendered after done at offset $render_at: $(printf '%.120s' "$body_cmd")")
   fi
@@ -183,12 +183,12 @@ first_fenced_line() {
   return 1
 }
 
-block_pr_line="$(first_fenced_line 'gh pr view')" ||
-  problems+=("$skill_md's Draft PR command block never runs gh pr view to read the open PR's URL")
+block_pr_line="$(first_fenced_line 'pulls?head=')" ||
+  problems+=("$skill_md's Draft PR command block never runs gh api …/pulls?head= to read the open PR's URL")
 block_commit_line="$(first_fenced_line 'git commit -m "metrics:')" ||
   problems+=("$skill_md's Draft PR command block never runs git commit -m \"metrics: …\"")
 if [[ -n "${block_pr_line:-}" && -n "${block_commit_line:-}" && "$block_commit_line" -lt "$block_pr_line" ]]; then
-  problems+=("$skill_md commits the metrics report at SKILL.md:$block_commit_line, BEFORE gh pr view at SKILL.md:$block_pr_line, so the report is rendered and committed with no PR URL for the done mark to name")
+  problems+=("$skill_md commits the metrics report at SKILL.md:$block_commit_line, BEFORE gh api …/pulls?head= at SKILL.md:$block_pr_line, so the report is rendered and committed with no PR URL for the done mark to name")
 fi
 report "$name"
 
@@ -200,7 +200,7 @@ report "$name"
 name="$skill_md's Draft PR command block runs gh pr edit after the metrics: commit and push-branch.sh, ordered line by line"
 problems=()
 
-block_edit_line="$(first_fenced_line 'gh pr edit')" ||
+block_edit_line="$(first_fenced_line 'gh api -X PATCH')" ||
   problems+=("$skill_md's Draft PR command block never runs gh pr edit, so the PR body never gets the 📊 block")
 block_commit_line="$(first_fenced_line 'git commit -m "metrics:')" ||
   problems+=("$skill_md's Draft PR command block never runs git commit -m \"metrics: …\"")
@@ -219,11 +219,11 @@ report "$name"
 # open PR's URL, write its done mark, render, commit, push, then put the report in the body — and asks
 # that each sits on a later SKILL.md line than the one before it. Every anchor must exist
 # first, so a step that dropped one fails closed rather than reading as ordered.
-name="$skill_md's Draft PR command block runs gh pr view, event.sh done, metrics.sh, the metrics: commit, push-branch.sh and gh pr edit in that order"
+name="$skill_md's Draft PR command block runs gh api …/pulls?head=, event.sh done, metrics.sh, the metrics: commit, push-branch.sh and gh api -X PATCH in that order"
 problems=()
 
 prev_anchor="" prev_line=""
-for anchor in 'gh pr view' 'event.sh done pr=' 'metrics.sh <n>' 'git commit -m "metrics:' 'push-branch.sh' 'gh pr edit'; do
+for anchor in 'pulls?head=' 'event.sh done pr=' 'metrics.sh <n>' 'git commit -m "metrics:' 'push-branch.sh' 'gh api -X PATCH'; do
   if ! line="$(first_fenced_line "$anchor")"; then
     problems+=("$skill_md's Draft PR command block never runs $anchor")
     prev_anchor="" prev_line=""
@@ -241,16 +241,16 @@ report "$name"
 name="$skill_md's Draft PR gh pr edit command puts the committed 📊 metrics report in the PR body"
 problems=()
 
-if ! edit_line="$(first_fenced_line 'gh pr edit')"; then
+if ! edit_line="$(first_fenced_line 'gh api -X PATCH')"; then
   problems+=("$skill_md's Draft PR command block never runs gh pr edit, so no command puts the 📊 block in the PR body")
 else
   edit_cmd="$(sed -n "${edit_line}p" "$skill_path")"
-  [[ "$edit_cmd" == *"--body"*".tdd/issue-<n>-metrics.md"* ]] ||
-    problems+=("$skill_md's gh pr edit at SKILL.md:$edit_line does not put the contents of .tdd/issue-<n>-metrics.md in its --body, so the PR body never gets the 📊 block: $(printf '%.120s' "$edit_cmd")")
+  [[ "$edit_cmd" == *"-f body="*".tdd/issue-<n>-metrics.md"* ]] ||
+    problems+=("$skill_md's gh pr edit at SKILL.md:$edit_line does not put the contents of .tdd/issue-<n>-metrics.md in its -f body=, so the PR body never gets the 📊 block: $(printf '%.120s' "$edit_cmd")")
 fi
 report "$name"
 
-name="skill-metrics.test.sh's header comment states the Draft PR order gh pr view, event.sh done, metrics.sh, the metrics: commit, push-branch.sh, gh pr edit"
+name="skill-metrics.test.sh's header comment states the Draft PR order gh api …/pulls?head=, event.sh done, metrics.sh, the metrics: commit, push-branch.sh, gh api -X PATCH"
 problems=()
 
 suite_md="skills/tdd/scripts/tests/skill-metrics.test.sh"
@@ -260,7 +260,7 @@ if [[ -z "$contract" ]]; then
   problems+=("$suite_md has no Contract under test paragraph in its header to read")
 else
   prev_anchor="" prev_at=""
-  for anchor in 'gh pr view' 'event.sh done' 'metrics.sh' 'metrics:' 'push-branch.sh' 'gh pr edit'; do
+  for anchor in 'pulls?head=' 'event.sh done' 'metrics.sh' 'metrics:' 'push-branch.sh' 'gh api -X PATCH'; do
     if ! at="$(offset_of "$contract" "$anchor")"; then
       problems+=("$suite_md's Contract under test never names $anchor")
       continue

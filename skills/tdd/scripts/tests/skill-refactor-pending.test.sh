@@ -391,10 +391,10 @@ name="$skill_md's Draft PR step refuses to open the PR while git status --porcel
 problems=()
 if records_from draft_pr_instructions \
     "$skill_md has no ### 4. Draft PR section to read — what guards the PR could not be checked"; then
-  precedes "$dirty_tree" 'gh pr create' \
+  precedes "$dirty_tree" 'pr-creating `gh api`' \
     "$skill_md's Draft PR step never checks git status --porcelain, so the transform a killed refactor leaf left uncommitted reaches the PR with no verifier having seen it" \
     "$skill_md's Draft PR step no longer opens the PR, so there is nothing for the check to guard" \
-    "$skill_md's Draft PR step checks the tree only after gh pr create, so the dirty worktree is already up for review by the time anything notices"
+    "$skill_md's Draft PR step checks the tree only after the PR-creating gh api call, so the dirty worktree is already up for review by the time anything notices"
 
   if reads_dirty_tree_gate; then
     says 'next-pending-refactor\.sh' \

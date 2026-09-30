@@ -102,6 +102,11 @@
 #      with `git rev-parse HEAD` after its last push, as the head it waits for (#550).
 #  30. SKILL.md's Draft PR step bails on the `metrics:` push's CI wait with a command in its
 #      block — `ci-red` on exit 1, `ci-timeout` on exit 2 — not only in prose (#550).
+#  31. SKILL.md reads the default branch, reads and comments on the issue, and creates, views,
+#      edits, readies and comments on the PR without `gh repo view`, `gh issue view|comment`
+#      or `gh pr create|view|edit|ready|comment`: it readies the PR through lib/github.sh's
+#      `gh_pr_ready` and reaches the rest through `gh api`, reading REST's `default_branch`
+#      (#568).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -289,12 +294,12 @@ record_number() {
 }
 
 if step_or_problem '### 2. Scope & plan' "where the run's draft PR is opened"; then
-  pr_at="$(record_number -F 'gh pr create')"
+  pr_at="$(record_number -F 'gh api repos/{owner}/{repo}/pulls -f draft=true')"
   if [[ -z "$pr_at" ]]; then
     problems+=("$skill_md's Scope & plan step never runs gh pr create, so a multi-step run puts no claim on origin until its last step and a second machine reads the issue as free for the whole of it")
   else
     pr_record="$(sed -n "${pr_at}p" <<< "$records")"
-    grep -qF -- '--draft' <<< "$pr_record" ||
+    grep -qF -- 'draft=true' <<< "$pr_record" ||
       problems+=("$skill_md's Scope & plan step opens the PR without --draft, so a run one step in reads as a branch offered for review: $(printf '%.120s' "$pr_record")")
     grep -qF 'closes #<n>' <<< "$pr_record" ||
       problems+=("$skill_md's Scope & plan step opens the PR without Closes #<n> in its body, so nothing on the PR names the issue it claims: $(printf '%.120s' "$pr_record")")
@@ -321,10 +326,10 @@ name="$skill_md's Green PASS branch updates the PR body with the ledger's done-o
 problems=()
 
 if pass_or_problem '#### Green' "whether the step tick updates the PR body"; then
-  if ! grep -qF 'gh pr edit' <<< "$record"; then
+  if ! grep -qF 'gh api -x patch' <<< "$record"; then
     problems+=("$skill_md's Green PASS branch never runs gh pr edit, so the draft PR opened at the plan commit still reads as step 0 for the whole of a multi-step run")
   else
-    grep -qF -- '--body' <<< "$record" ||
+    grep -qF -- '-f body=' <<< "$record" ||
       problems+=("$skill_md's Green PASS branch edits the PR without --body, so nothing a reader of the PR sees carries the run's progress: $(printf '%.120s' "$record")")
     grep -qF '.tdd/issue-<n>.md' <<< "$record" ||
       problems+=("$skill_md's Green PASS branch edits the PR body without naming the run's .tdd/issue-<n>.md ledger as where the count is read from, so which file answers how far the run has got is left to judgement: $(printf '%.120s' "$record")")
@@ -346,7 +351,7 @@ section_commands() {
 line_of() { awk -v re="$1" '$0 ~ ("^" re) { print NR; exit }' <<< "$commands"; }
 done_mark='veri_issue=[^ ]* veri_actor=conductor [$]s/event[.]sh done'
 metrics_commit='git commit -m "metrics:'
-rollup_read='gh pr view .*--json statuscheckrollup'
+rollup_read='gh api [^#]*/check-runs'
 wait_ci_run='[^#]*[$]s/wait-ci[.]sh '
 push_run='[^#]*([$]s/push-branch[.]sh|git push)'
 log_failed_read='[^#]*gh run view [^#]*--log-failed'
@@ -358,13 +363,13 @@ problems=()
 
 if step_or_problem '### 4. Draft PR' "whether the step creates a second PR"; then
   commands="$(section_commands)"
-  grep -qE '^gh pr edit .*--title' <<< "$commands" ||
+  grep -qE '^gh api -x patch .*-f title=' <<< "$commands" ||
     problems+=("$skill_md's Draft PR step never runs gh pr edit with --title, so the PR keeps the work-in-progress title it was opened with at the plan commit and a reader of origin cannot tell the finished branch from a run mid-flight")
-  grep -qE '^gh pr edit .*--body' <<< "$commands" ||
+  grep -qE '^gh api -x patch .*-f body=' <<< "$commands" ||
     problems+=("$skill_md's Draft PR step never runs gh pr edit with --body, so the body a human reads at the merge is still the one-line claim the plan commit opened")
-  grep -qE '^gh pr ready' <<< "$commands" ||
+  grep -qE '^[^#]*gh_pr_ready' <<< "$commands" ||
     problems+=("$skill_md's Draft PR step never runs gh pr ready, so a finished run leaves a draft nobody is asked to review")
-  creates="$(first_record "$commands" -E '^gh pr create')"
+  creates="$(first_record "$commands" -E '^gh api repos/[{]owner[}]/[{]repo[}]/pulls -f')"
   [[ -z "$creates" ]] ||
     problems+=("$skill_md's Draft PR step still runs gh pr create, so a run whose draft PR has been open since its plan commit either fails at its last step or opens a second PR for the same branch: $(printf '%.120s' "$creates")")
 fi
@@ -374,9 +379,9 @@ name="$skill_md's Resume reuses the open PR already on its branch and opens no s
 problems=()
 
 if section_or_problem '## Resume' '^## ' "what a resumed run does with the PR its branch already carries"; then
-  grep -qE '^gh pr view' <<< "$(section_commands)" ||
+  grep -qE '^gh api [^#]*pulls[?]head=' <<< "$(section_commands)" ||
     problems+=("$skill_md's Resume section never runs gh pr view, so a resumed run never reads the open PR its branch already carries and has no url for the tick's gh pr edit or step 4's rewrite")
-  creates="$(first_record "$records" -F 'gh pr create')"
+  creates="$(first_record "$records" -F 'pr-creating `gh api`')"
   if [[ -n "$creates" ]]; then
     grep -qE 'no open pr|no pr|none|no such pr' <<< "$creates" ||
       problems+=("$skill_md's Resume section runs gh pr create without conditioning it on there being no open PR to reuse, so a resume of a run that already opened one leaves the issue claimed by two pages: $(printf '%.120s' "$creates")")
@@ -389,7 +394,7 @@ problems=()
 
 if section_or_problem '## Bailing' '^## ' "what a bailed run does with the draft PR its branch already carries"; then
   commands="$(section_commands)"
-  grep -qE '^gh pr comment|^gh pr edit .*--body' <<< "$commands" ||
+  grep -qE '^gh api [^#]*/issues/<pr-number>/comments|^gh api -x patch .*-f body=' <<< "$commands" ||
     problems+=("$skill_md's Bailing section runs neither gh pr comment nor gh pr edit --body, so the bail diagnostic reaches the issue thread and never the draft PR a human is pointed at, which still reads as a run in progress")
   closes="$(first_record "$commands" -E '^gh pr close')"
   [[ -z "$closes" ]] ||
@@ -432,7 +437,7 @@ if step_or_problem '### 4. Draft PR' "where the step rebases onto the default br
     for before in 'git status --porcelain' '[$]s/next-pending-refactor[.]sh'; do
       rebase_runs after "$before"
     done
-    for after in "$done_mark" '[$]s/metrics[.]sh' "$metrics_commit" 'gh pr ready'; do
+    for after in "$done_mark" '[$]s/metrics[.]sh' "$metrics_commit" '[^#]*gh_pr_ready'; do
       rebase_runs before "$after"
     done
     plain="$(unmarked_records)"
@@ -479,7 +484,7 @@ if step_or_problem '### 4. Draft PR' "what the step does with a conflicted rebas
   rebase="$(line_of '[$]s/rebase-onto-default[.]sh')"
   develop="$(line_of '.*[$]s/supervise[.]sh develop-rebase ')"
   verdict="$(line_of '.*[$]s/supervise[.]sh verdict-rebase [$]s/run-verdict[.]sh .* rebase ')"
-  ready="$(line_of 'gh pr ready')"
+  ready="$(line_of '[^#]*gh_pr_ready')"
   if [[ -z "$develop" ]]; then
     problems+=("$skill_md's Draft PR step launches no develop-rebase leaf through \$S/supervise.sh, so a conflicted rebase has nothing to resolve it")
   fi
@@ -526,7 +531,7 @@ problems=()
 
 if step_or_problem '### 4. Draft PR' "whether the step reads the readied PR's CI"; then
   commands="$(section_commands)"
-  ready="$(line_of 'gh pr ready')"
+  ready="$(line_of '[^#]*gh_pr_ready')"
   watch="$(line_of "$wait_ci_run")"
   rollup="$(line_of "$rollup_read")"
   [[ -n "$ready" && -n "$watch" && "$watch" -gt "$ready" ]] ||
@@ -571,7 +576,7 @@ problems=()
 
 if step_or_problem '### 4. Draft PR' "whether the step's CI wait is bounded by its own command"; then
   commands="$(section_commands)"
-  ready="$(line_of 'gh pr ready')"
+  ready="$(line_of '[^#]*gh_pr_ready')"
   waits="$(line_of "$wait_ci_run")"
   if [[ -z "$ready" || -z "$waits" || "$waits" -le "$ready" ]]; then
     problems+=("$skill_md's Draft PR step runs no \$S/wait-ci.sh after gh pr ready, so there is no CI wait to bound")
@@ -698,7 +703,7 @@ problems=()
 
 if step_or_problem '### 4. Draft PR' "how the step waits on the readied PR's CI"; then
   commands="$(section_commands)"
-  ready="$(line_of 'gh pr ready')"
+  ready="$(line_of '[^#]*gh_pr_ready')"
   wait_ci="$(line_of "$wait_ci_run")"
   done_at="$(line_of "$done_mark")"
   [[ -n "$ready" && -n "$wait_ci" && -n "$done_at" && "$wait_ci" -gt "$ready" && "$wait_ci" -lt "$done_at" ]] ||
@@ -848,6 +853,18 @@ if pass_or_problem '#### Green' "where the PR body's step count is read from"; t
   [[ -z "$spelled" ]] ||
     problems+=("$skill_md's Green PASS branch still counts steps with its own box pattern: $(head -1 <<< "$spelled")")
 fi
+report "$name"
+
+name="$skill_md reaches the default branch, the issue and the PR through the helper or gh api, never gh repo/issue/pr"
+problems=()
+
+while IFS= read -r hit; do
+  problems+=("$skill_md:$hit")
+done < <(grep -nE '\bgh (repo view|issue (view|comment)|pr (create|view|edit|ready|comment))\b' "$skill_path")
+for route in 'gh_pr_ready' 'lib/github.sh' 'gh api ' 'default_branch'; do
+  grep -F -- "$route" "$skill_path" > /dev/null ||
+    problems+=("$skill_md never names $route")
+done
 report "$name"
 
 echo "----"

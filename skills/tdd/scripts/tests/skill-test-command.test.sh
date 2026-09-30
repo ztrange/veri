@@ -84,7 +84,7 @@ problems=()
 
 if need_section '### 0. Preflight' 'where the baseline reads its test command could not be read'; then
   detect_at="$(at 'detect-test-command\.sh')"
-  body_at="$(at 'gh issue view')"
+  body_at="$(at 'gh api repos/[{]owner[}]/[{]repo[}]/issues/<n> -q [.]body')"
   if [[ -z "$detect_at" ]]; then
     problems+=("$skill_md preflight never names detect-test-command.sh, so the baseline runs a command from nowhere")
   else
@@ -93,7 +93,7 @@ if need_section '### 0. Preflight' 'where the baseline reads its test command co
       problems+=("$skill_md:$detect_at detects the test command without --issue, so the issue's own line cannot answer: $detect_line")
   fi
   if [[ -z "$body_at" ]]; then
-    problems+=("$skill_md preflight never reads the issue body (no gh issue view), so there is no body file to pass as --issue")
+    problems+=("$skill_md preflight never reads the issue body (no gh api read of issues/<n>), so there is no body file to pass as --issue")
   elif [[ -n "$detect_at" ]] && [[ "$body_at" -gt "$detect_at" ]]; then
     problems+=("$skill_md reads the issue body at line $body_at, after detecting the test command at line $detect_at — the baseline runs before the issue's line is known")
   fi
