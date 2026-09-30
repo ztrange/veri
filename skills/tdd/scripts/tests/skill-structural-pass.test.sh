@@ -36,7 +36,7 @@ require() {
 before_ready() {
   awk -v h='### 4. Draft PR' \
     'index($0, h) == 1 { inside = 1; next }
-     inside && (/^#/ || /gh pr ready/) { exit }
+     inside && (/^#/ || /gh_pr_ready/) { exit }
      inside' "$skill_path" | tr -d '*`' | tr '\n' ' '
 }
 section="$(before_ready)"

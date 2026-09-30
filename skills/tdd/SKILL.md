@@ -509,7 +509,7 @@ unauthenticated baseline never gets a cycle.
 3. **Suite is green at baseline — and time it.** The issue may name its own test command,
    so read its body first — into a temp file, since the caller's checkout must stay clean:
    ```
-   body="$(mktemp)" && gh issue view <n> --json body -q .body > "$body"
+   body="$(mktemp)" && gh api repos/{owner}/{repo}/issues/<n> -q .body > "$body"
    ```
    Then get the fast tier's command from `$S/detect-test-command.sh --tier fast --issue "$body"`
    (see *Detecting the test command*) and run it. If already red, stop and report — a cycle must
@@ -531,7 +531,7 @@ unauthenticated baseline never gets a cycle.
    and costs one full-tier run the Draft PR gate pays for anyway. If it is red, stop and
    report, for the same reason a red fast tier stops the run.
 4. **Default branch.** Capture it for the PR base:
-   `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
+   `gh api repos/{owner}/{repo} -q .default_branch`.
 5. **Tunables parse.** Run `$S/refactor-budget.sh 0` once. **Exit 2** means
    `VERI_REFACTOR_BUDGET` is not a whole number ≥ 0 — stop and report its stderr diagnostic
    verbatim. A budget that cannot be read is a poisoned baseline like a red suite, not a
@@ -593,7 +593,7 @@ unauthenticated baseline never gets a cycle.
 
 ### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)
 
-1. Read the issue: `gh issue view <n> --json number,title,body,url`.
+1. Read the issue: `gh api repos/{owner}/{repo}/issues/<n> -q '{number, title, body, url: .html_url}'`.
 2. **Derive the slug and enter the issue's worktree.** Slug from the title — lowercase,
    non-alphanumerics to `-`, collapse and trim `-`, cap to ~6 words. Then let the script
    make (or hand back) the worktree the issue branch lives in, and move into it:
@@ -733,9 +733,10 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    the plan commit, from inside the worktree:
    ```
    $S/push-branch.sh
-   gh pr create --draft --base <default-branch> \
-     --title "WIP: <type>: <criterion summary> (#<n>)" \
-     --body "Closes #<n> — work in progress: <k> steps planned. The ledger .tdd/issue-<n>.md is the source of truth."
+   gh api repos/{owner}/{repo}/pulls -F draft=true -f base=<default-branch> -f head="$(git branch --show-current)" \
+     -f title="WIP: <type>: <criterion summary> (#<n>)" \
+     -f body="Closes #<n> — work in progress: <k> steps planned. The ledger .tdd/issue-<n>.md is the source of truth." \
+     -q .html_url                         # → <pr-url>; <pr-number> is its last path segment
    ```
    An open PR saying `Closes #<n>` is the claim every other machine can see, and the plan
    commit is the run's first — a PR needs a commit ahead of the base, so this is the
@@ -765,7 +766,7 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
 
 Post a short comment announcing veri has started, naming the branch (and the worktree it is
 running in) and the number of plan steps, and noting each phase will be blind-verified:
-`gh issue comment <n> --body "..."`.
+`gh api repos/{owner}/{repo}/issues/<n>/comments -f body="..."`.
 
 ### 2c. Verify the plan (blind)
 
@@ -1081,7 +1082,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      $S/tick-ledger.sh --refactor-pending .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"
      git add -A && git commit -m "feat: <STEP summary> (#<n>)"
      $S/push-branch.sh
-     gh pr edit --body "Closes #<n> — work in progress: <done> of <total> steps done. The ledger .tdd/issue-<n>.md is the source of truth."
+     gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f body="Closes #<n> — work in progress: <done> of <total> steps done. The ledger .tdd/issue-<n>.md is the source of truth."
      ```
      `<done>` is the ticked checkboxes of the run's ledger `.tdd/issue-<n>.md` and
      `<total>` all of its steps — of the records `$S/ledger-steps.sh < .tdd/issue-<n>.md`
@@ -1302,7 +1303,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      post a `### ✅ Step done` comment, then ask whether the step's criterion is finished
      (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`, k from the step's `⟦criterion k⟧`):
      on exit **0** tick it in the **issue body** (`$S/tick-issue-criterion.sh <n>
-     "$(gh issue view <n> --json body -q .body | sed -n '/^## Acceptance criteria/,/^## /p' | $S/ledger-steps.sh | sed -n '<k>p' | cut -f7-)"`, the human mirror); on exit **3** tick nothing, since a step serving it is
+     "$(gh api repos/{owner}/{repo}/issues/<n> -q .body | sed -n '/^## Acceptance criteria/,/^## /p' | $S/ledger-steps.sh | sed -n '<k>p' | cut -f7-)"`, the human mirror); on exit **3** tick nothing, since a step serving it is
      still open or pending. Mark
      the same moment in the log —
      `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/ledger-steps.sh < .tdd/issue-<n>.md | awk -F'\t' '$2 == "done"' | tail -1 | cut -f7-)" $S/event.sh step-done`.
@@ -1366,7 +1367,7 @@ branch, this step's own run otherwise. Tick each with `tick-ledger.sh`, handed t
 matcher `'⟦full-suite⟧'` and called again until it exits 3, and without `--refactor-pending`,
 so the line carries no refactor-pending mark (it has no refactor loop to clear one); for each
 line's `⟦criterion k⟧` tick the issue criterion it finishes (`$S/tick-issue-criterion.sh <n>
-"$(gh issue view <n> --json body -q .body | sed -n '/^## Acceptance criteria/,/^## /p' | $S/ledger-steps.sh | sed -n '<k>p' | cut -f7-)"`),
+"$(gh api repos/{owner}/{repo}/issues/<n> -q .body | sed -n '/^## Acceptance criteria/,/^## /p' | $S/ledger-steps.sh | sed -n '<k>p' | cut -f7-)"`),
 and commit the ledger before sub-step 2. A red run ticks nothing: never tick a `⟦full-suite⟧` line after a
 red full-suite run, whatever an earlier run said.
 
@@ -1487,17 +1488,17 @@ step, so both checkpoints apply to the repair step as they do in step 3.
 2. **Mark the PR ready for review and read its CI, then close the run's log with the PR's
    URL, render the metrics, commit them, and rewrite the PR into its final form** — one
    sub-step, in this order, from inside the worktree. **This step opens no PR.** Step 2.3 opened it at the plan commit, so
-   there is nothing left here for `gh pr create` to do: a second one against a branch that
+   there is nothing left here for a PR-creating `gh api` call to do: a second one against a branch that
    already has an open PR is either a refusal that ends the run at its last step, or a second
    PR for the same branch — and then the claim another machine reads and the page a human is
    asked to merge are two different pages. Read the existing PR's URL rather than assuming the
    run remembers it, so a resumed run edits the PR its branch already has:
    ```
-   gh pr view --json url -q .url          # → <pr-url>, the PR step 2.3 opened
-   gh pr ready <pr-url>
+   gh api 'repos/{owner}/{repo}/pulls?head={owner}:{branch}' -q '.[0].html_url // empty'   # → <pr-url>, the PR step 2.3 opened; <pr-number> is its last path segment
+   . $S/lib/github.sh && gh_pr_ready <pr-number>
    $S/wait-ci.sh <pr-url> 540 1800 "$(git rev-parse HEAD)"; ci=$?    # exit 3 → run this line again, in a new Bash call
    [ "$ci" != 2 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
-   gh pr view <pr-url> --json statusCheckRollup
+   gh api "repos/{owner}/{repo}/commits/$(git rev-parse HEAD)/check-runs" -q '.check_runs[] | {name, status, conclusion}'
    gh run view <run-id> --log-failed          # a failed check only → its suite and FAIL - line
    grep -F '⟦ci-repair⟧' .tdd/issue-<n>.md > /dev/null && VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)"
    VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/ledger-steps.sh < .tdd/issue-<n>.md | awk -F'\t' '$2 == "done"' | tail -1 | cut -f7-)" $S/event.sh step-added anchor="$($S/ledger-steps.sh < .tdd/issue-<n>.md | awk -F'\t' '$2 == "done"' | tail -1 | cut -f7-)" added=1
@@ -1517,7 +1518,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    [ "$ci" != 1 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)"
    [ "$ci" != 2 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
-   gh pr edit <pr-url> --title "<type>: <criterion summary> (#<n>)" --body "<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md, followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by its ⟦human-owed⟧ lines under ## Owed by a human>"
+   gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)" -f body="<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md, followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by its ⟦human-owed⟧ lines under ## Owed by a human>"
    ```
    The readied PR's CI is read fail-closed, the way the `merge` skill reads it: an empty
    rollup is never a pass, and a completed check whose conclusion is anything other than
@@ -1541,7 +1542,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    and the issue's wall time: a report rendered before it exists says `unknown` for both. The
    body is rewritten only after the `metrics:` commit is pushed, so it never quotes a file the
    branch does not yet carry. The title drops the `WIP:` prefix step 2.3 opened it with, and
-   `gh pr ready` is what turns the run's claim into a review request: a finished run that left
+   `gh_pr_ready` is what turns the run's claim into a review request: a finished run that left
    a draft behind asks nobody to look.
    `<type>` is **`fix`** on a bug run — the issue carries the `bug` label, so the title
    starts with the `fix:` prefix, the same prefix its green commits took — **`refactor`** on
@@ -1607,7 +1608,7 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
   Then **mirror**: post a `### 📌 Already satisfied — <STEP>` comment carrying the
   verifier's reason, ask whether the step's criterion is finished
   (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`) and on exit **0** tick it in the
-  **issue body** (`$S/tick-issue-criterion.sh <n> "$(gh issue view <n> --json body -q .body | sed -n '/^## Acceptance criteria/,/^## /p' | $S/ledger-steps.sh | sed -n '<k>p' | cut -f7-)"`) — on exit **3** tick
+  **issue body** (`$S/tick-issue-criterion.sh <n> "$(gh api repos/{owner}/{repo}/issues/<n> -q .body | sed -n '/^## Acceptance criteria/,/^## /p' | $S/ledger-steps.sh | sed -n '<k>p' | cut -f7-)"`) — on exit **3** tick
   nothing — and mark it in the log —
   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/ledger-steps.sh < .tdd/issue-<n>.md | awk -F'\t' '$2 == "done"' | tail -1 | cut -f7-)" VERI_PHASE=pin $S/event.sh pin`.
   The step is **done** — **no Green and no Refactor**, since there is no new production
@@ -1880,8 +1881,8 @@ To bail:
    they look — so the comment sub-step 6 posted to the issue thread reaches the PR too, or the
    page a reader opens still says a run is in progress when it stopped:
    ```
-   gh pr view --json url -q .url          # → <pr-url>, the PR step 2.3 opened
-   gh pr comment <pr-url> --body "<the same ### ⛔ Bailed — <phase> (<classification> failure) comment, or a link to the issue comment sub-step 6 posted>"
+   gh api 'repos/{owner}/{repo}/pulls?head={owner}:{branch}' -q '.[0].html_url // empty'   # → <pr-url>, the PR step 2.3 opened; <pr-number> is its last path segment
+   gh api repos/{owner}/{repo}/issues/<pr-number>/comments -f body="<the same ### ⛔ Bailed — <phase> (<classification> failure) comment, or a link to the issue comment sub-step 6 posted>"
    ```
    It stays a **draft**: nobody is asked to review a run that stopped. The ledger's completed
    steps stay checked, so a re-run resumes from the failing step (see *Resume*) and edits this
@@ -2018,16 +2019,16 @@ is nothing to re-create or switch. The **resume check** then finds an existing
    **reuse the claim the previous run left on the branch**, which every tick of the cycle
    loop edits and step 4 rewrites:
    ```
-   gh pr view --json url -q .url          # → <pr-url>, the PR step 2.3 opened
+   gh api 'repos/{owner}/{repo}/pulls?head={owner}:{branch}' -q '.[0].html_url // empty'   # → <pr-url>, the PR step 2.3 opened; <pr-number> is its last path segment
    ```
    A resumed run skips step 2 outright, so this is where the url comes from: it is read off
    the branch, never remembered. It edits that PR and opens **no second one** — a second
-   `gh pr create` against a branch that already has an open PR is either a refusal that ends
+   PR-creating `gh api` call against a branch that already has an open PR is either a refusal that ends
    the resume where it started, or two pages claiming one issue, which is the failure #195
    exists to prevent. Only when this prints nothing is there **no open PR** to reuse: the
    previous run was killed inside step 2.3's own window, between the plan commit and the
-   `gh pr create` that follows it. Then, and only then, run that sub-step's push and
-   `gh pr create` here — opening the first PR a branch has ever had is not opening a second.
+   PR-creating `gh api` call that follows it. Then, and only then, run that sub-step's push and
+   PR-creating `gh api` call here — opening the first PR a branch has ever had is not opening a second.
    Then run the cycle loop as normal. Go to the **draft PR** only when
    `next-pending-refactor.sh` and `next-unchecked.sh` have **both** exited 3: every step is
    checked, and every checked step's refactor is verified. An unchecked `⟦full-suite⟧` or
