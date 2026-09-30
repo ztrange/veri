@@ -3,3 +3,6 @@
 ### Every suite that carries its own `ok`/`no` pair, `pass=0 fail=0` initialisation, diff-on-failure idiom or closing count line sources the harness and uses its versions, ending in `finish` ⟦criterion 4⟧
 - blocked-by, extract-result, render-leaf-log, classify-bail, push-branch, parse-verdict and workqueue each carry a `check`-style helper that prints a `diff` on failure, which duplicates `expect_eq`; the harness's indented expected/actual output differs, so adopting it changes what a failing run prints
 - `verdict()` in unit/comment-class, emitted-text, pending-mark-literal and ledger re-implements `report` over a string `problems` rather than an array
+### Every suite that builds its own `mktemp -d` plus `trap … EXIT` scratch, its own tmp git repository or its own `claude` stub heredoc uses the harness's `scratch_dir`, `on_exit`, `new_repo` and `claude_stub` instead ⟦criterion 4⟧
+- run-conductor-argv-guard.test.sh:77 builds its scratch tree with a bare `git init` and its own `-c user.name=guard` identity, which `new_repo` could replace
+- the `git commit -c user.name=t -c user.email=t@t` overrides in parallel-conductors.test.sh, run-conductor.test.sh and others repeat the identity `new_repo` already sets
