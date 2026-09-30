@@ -2727,6 +2727,25 @@ grep -F 'nothing-structural' "$bare_structural_work/section.txt" > /dev/null ||
 
 report_on "$name" "$bare_structural_out"
 
+name="#585 a structural-pass mark carrying only stopped=nothing-structural shows that stop reason with no spent/budget figure"
+problems=()
+
+fixture_work bare_figure_work
+bare_figure="a step followed by a structural pass that found nothing to do"
+structural_log "$bare_figure"
+sv "" 80030 conductor "" structural-pass "" '"stopped": "nothing-structural"'
+sv "" 80040 conductor "" done "" '"pr": "https://github.com/ztrange/veri/pull/999"'
+bare_figure_out="$bare_figure_work/report.md"
+render "$bare_figure_work" "$bare_figure_out"
+awk '/^#### Structural pass/ {on=1; next} /^####/ {on=0} on' "$bare_figure_out" > "$bare_figure_work/section.txt"
+grep -F 'nothing-structural' "$bare_figure_work/section.txt" > /dev/null ||
+  problems+=("want the structural section to name nothing-structural, got: $(cat "$bare_figure_work/section.txt")")
+if grep -E '[0-9]+/[0-9]+' "$bare_figure_work/section.txt" > /dev/null; then
+  problems+=("want the structural section without a spent/budget figure, got: $(cat "$bare_figure_work/section.txt")")
+fi
+
+report_on "$name" "$bare_figure_out"
+
 name="#495 the planned-step count is the number of lib/ledger.sh ledger_steps records, counting no box of its own"
 problems=()
 
