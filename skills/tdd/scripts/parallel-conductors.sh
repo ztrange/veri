@@ -76,17 +76,17 @@ outcome() {
   fi
   pr="$(python3 -c '
 import json, re, sys
-text, at, prs, decoder = sys.argv[1], 0, [], json.JSONDecoder()
+text, at, prs, decoder = sys.stdin.read(), 0, [], json.JSONDecoder()
 while at < len(text):
     page, at = decoder.raw_decode(text, at)
     prs.extend(page)
     while at < len(text) and text[at].isspace():
         at += 1
 for pr in prs:
-    if sys.argv[2] in re.findall(r"\bCloses #(\d+)", pr.get("body") or ""):
+    if sys.argv[1] in re.findall(r"\bCloses #(\d+)", pr.get("body") or ""):
         print("draft" if pr.get("isDraft", pr.get("draft")) else "ready", pr.get("html_url", pr.get("url", "")))
         break
-' "$prs" "$n")"
+' "$n" <<< "$prs")"
   case "$pr" in
     ready\ *) echo "done ${pr#ready }" ;;
     draft\ *)
