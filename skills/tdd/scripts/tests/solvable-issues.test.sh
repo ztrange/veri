@@ -1169,6 +1169,24 @@ working_err="$(cat "$work/stderr-working")"
 { [[ -z "$working_err" && -z "$refused_err" ]]; } \
   && ok || no "against a gh that refuses GraphQL with the 403, solvable-issues.sh writes nothing to stderr, the same as against a working gh: the refusal is not passed through to the caller (#568) (working gh stderr='$(tr '\n' '|' <<<"$working_err")' want ''; GraphQL refused stderr='$(tr '\n' '|' <<<"$refused_err")' want '')"
 
+python3 -c '
+import json, sys
+fx = sys.argv[1]
+issues = [
+    {"number": 70, "title": "unblocked", "labels": [{"name": "ready-for-agent"}], "state": "open", "body": "## Blocked by\n\nNone.\n"},
+    {"number": 75, "title": "a pull request", "labels": [{"name": "ready-for-agent"}], "state": "open", "body": "",
+     "pull_request": {"url": "https://api.github.com/repos/owner/name/pulls/75"}},
+]
+json.dump(issues, open(fx + "/rest-issues-with-pr.json", "w"))
+' "$fx"
+GH_ISSUES_WITH_PR="$fx/rest-issues-with-pr.json"
+out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$refusedir:$PATH" \
+       GH_REST_ISSUES="$GH_ISSUES_WITH_PR" GH_REST_PULLS="$fx/rest-pulls.json" \
+       "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+
+{ [[ "$code" == 0 && "$out" == "70" ]]; } \
+  && ok || no "against a gh that refuses GraphQL, a /issues REST item carrying pull_request is not counted as a solvable issue even with the opt-in label (#568) (exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '70')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
