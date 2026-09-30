@@ -16,18 +16,7 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 GH_CALL='(^|[^[:alnum:]_.-])gh[[:space:]]+(issue|pr|repo)([[:space:]]|$)'
 
-pass=0 fail=0
-
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
+source "$HERE/lib/harness.sh"
 
 probe_no_graphql_call_is_left() {
   local hit file rest line text
@@ -49,6 +38,4 @@ probe_no_graphql_call_is_left
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

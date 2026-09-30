@@ -10,16 +10,15 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LIB="$HERE/../../lib/github.sh"
-pass=0 fail=0
-scratch="$(mktemp -d)"
-trap 'rm -rf "$scratch"' EXIT
+source "$HERE/../lib/harness.sh"
+scratch="$(scratch_dir)"
 refusal='GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)'
 
 record() {
   if [[ -z "$problems" ]]; then
-    pass=$((pass + 1))
+    ok
   else
-    fail=$((fail + 1)); echo "FAIL - $name"
+    no "$name"
     printf '%s' "$problems"
     echo "    stderr: $(printf '%q' "$(cat "$err")")"
   fi
@@ -98,5 +97,4 @@ problems=""
 [[ "$rc_ccr" -eq 2 ]] || problems+="    want return 2 from the ccr route's 502, got $rc_ccr"$'\n'
 record
 
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish
