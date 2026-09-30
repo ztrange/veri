@@ -472,6 +472,8 @@ expect_lines "a repo with no info/ directory still has an empty git status --por
 
 own_exclude="$work/own-exclude"
 fresh_repo "$own_exclude"
+# hazard: git init makes info/ from templates, which make test's symlinked git misses on macOS (#581).
+mkdir -p "$own_exclude/.git/info"
 printf '*.scratch' > "$own_exclude/.git/info/exclude"
 for run in 1 2; do
   solvable_fixture "$work/gh16-$run" 7
