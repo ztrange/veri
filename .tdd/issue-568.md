@@ -14,7 +14,7 @@
 - [x] wait-ci.sh reads a PR's head sha and check state and exits 0/1/2/3 as today under the GraphQL-refusing stub ⟦criterion 1⟧
 - [x] invisible-work.sh produces the same stdout and exit code under the GraphQL-refusing stub as it does today against a working `gh` ⟦criterion 1⟧
 - [x] Each converted script still exits 2, never 1, when its REST call to GitHub fails for a reason other than the GraphQL refusal (network error, 404, 5xx) ⟦criterion 5⟧
-- [x] SKILL.md's steps that read the default branch, read or comment on the issue, and create, view, edit, ready or comment on the PR do it through the helper or `gh api`, and the `skill-*` suites pinning those steps still pass ⟦criterion 4⟧ ⟂ refactor pending
+- [x] SKILL.md's steps that read the default branch, read or comment on the issue, and create, view, edit, ready or comment on the PR do it through the helper or `gh api`, and the `skill-*` suites pinning those steps still pass ⟦criterion 4⟧
 - [ ] A suite fails naming `<file>:<line>` for any `gh issue`, `gh pr` or `gh repo` call left in skills/tdd/SKILL.md or skills/tdd/scripts/*.sh, exempting only the helper's ready-for-review route ⟦criterion 2⟧
 - [ ] `make test` stays green on CI (Linux) ⟦full-suite⟧ ⟦criterion 6⟧
 
