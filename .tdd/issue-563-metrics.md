@@ -44,3 +44,19 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | pass | refactor | stopped |
 | --- | ---: | --- |
+| issue | 0/10 | nothing-structural |
+
+#### Test-command seconds, by tier
+
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 31 | 29 | 29 | 29 | 0 | 28 | 1 | 33 | 0 | 1 | 0 | 23 | 1 | 21 | 3 | 0 | 0 | 0 | 1 | 1 | 22 | 1 | 1 | 25 |
+| fast | 19 | 6 | 6 | 6 | 5 | 5 | 5 | 5 | 5 | 5 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 22 | 21 | 1 | 1 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 502 | 456 | 439 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+
+#### Total
+
+| run | turns | input | output | cache read | cache creation | $ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| total | 145 | 286 | 47496 | 6102919 | 651348 | 4.30 |
