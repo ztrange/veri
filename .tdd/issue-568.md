@@ -20,6 +20,6 @@
 - [x] `coverage-blocker.sh` files the coverage issue and edits the refactor issue's body through `gh api` only, with `coverage-blocker.test.sh`'s working-`gh` stub answering REST instead of `issue create` and `issue edit`, and the suite's assertions unchanged. ⟦added⟧ ⟦criterion 2⟧
 - [x] `tick-issue-criterion.sh` writes the ticked body back through `gh api` only, with `tick-issue-criterion.test.sh`'s stub answering the REST PATCH instead of `issue edit`, and the no-`GH_REPO` and with-`GH_REPO` cases unchanged. ⟦added⟧ ⟦criterion 2⟧
 - [x] `wait-ci.sh` reads the PR head through `gh api` only, with `wait-ci.test.sh`'s stubs serving the REST pull, and the #544 (missing head exits 2 naming the PR) and #550 (a state-less status row exits 2) cases keeping their behaviour. ⟦added⟧ ⟦criterion 2⟧
-- [ ] coverage-blocker.sh writes nothing to stderr under the GraphQL-refusing stub, the same as against a working gh ⟦added⟧ ⟦criterion 2⟧
+- [x] coverage-blocker.sh writes nothing to stderr under the GraphQL-refusing stub, the same as against a working gh ⟦added⟧ ⟦criterion 2⟧
 - [ ] A suite fails naming `<file>:<line>` for any `gh issue`, `gh pr` or `gh repo` call left in skills/tdd/SKILL.md or skills/tdd/scripts/*.sh, exempting only the helper's ready-for-review route ⟦criterion 2⟧
 - [ ] `make test` stays green on CI (Linux) ⟦full-suite⟧ ⟦criterion 6⟧
