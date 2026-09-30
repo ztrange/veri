@@ -6,7 +6,7 @@
 - [x] With that same stub, workqueue.sh gives the output it gives against a single-page fixture holding the same issues ⟦criterion 2⟧
 - [x] With that same stub, solvable-issues.sh gives the output it gives against a single-page fixture holding the same issues and PRs ⟦criterion 2⟧
 - [x] With that same stub, parallel-conductors.sh gives the output it gives against a single-page fixture holding the same PRs ⟦criterion 2⟧
-- [ ] wait-ci.sh reads check-runs spread over more than one page through that stub and reaches the same verdict as with the same check-runs on one page ⟦criterion 3⟧
+- [x] wait-ci.sh reads check-runs spread over more than one page through that stub and reaches the same verdict as with the same check-runs on one page ⟦criterion 3⟧ ⟂ refactor pending
 - [ ] When a page request after the first fails for a reason other than the proxy refusal (network error, HTTP 5xx), gh_rest_list and gh_list exit 2 ⟦criterion 4⟧
 - [ ] When a check-runs page request after the first fails for a reason other than the proxy refusal, wait-ci.sh treats it as no answer from GitHub, exactly as it treats a failed single-page read ⟦criterion 4⟧
 - [ ] CI (Linux) stays green ⟦full-suite⟧ ⟦criterion 5⟧
