@@ -37,13 +37,13 @@ got_half="$(code_for 1 "$half")"
 got_pending="$(code_for 1 "$pending")"
 got_both="$(code_for 1 "$both")"
 if [[ "$got_half" != 3 ]]; then
-  fail=$((fail + 1)); echo "FAIL - $name (half-ticked: want exit 3, got $got_half)"
+  no "$name (half-ticked: want exit 3, got $got_half)"
 elif [[ "$got_pending" != 3 ]]; then
-  fail=$((fail + 1)); echo "FAIL - $name (both ticked, second refactor pending: want exit 3, got $got_pending)"
+  no "$name (both ticked, second refactor pending: want exit 3, got $got_pending)"
 elif [[ "$got_both" != 0 ]]; then
-  fail=$((fail + 1)); echo "FAIL - $name (both ticked: want exit 0, got $got_both)"
+  no "$name (both ticked: want exit 0, got $got_both)"
 else
-  pass=$((pass + 1))
+  ok
 fi
 
 # 2. a ticked step with no criterion token finishes nothing: criterion 2, served by no step,
@@ -55,9 +55,9 @@ all_done='# Plan for #42
 - [x] reject an empty title'
 got_unserved="$(code_for 2 "$all_done")"
 if [[ "$got_unserved" != 3 ]]; then
-  fail=$((fail + 1)); echo "FAIL - $name (criterion 2 served by no step: want exit 3, got $got_unserved)"
+  no "$name (criterion 2 served by no step: want exit 3, got $got_unserved)"
 else
-  pass=$((pass + 1))
+  ok
 fi
 
 # 3. a step added mid-run carries ⟦added⟧ before its criterion mark: while one such step is
@@ -70,9 +70,9 @@ with_added='# Plan for #42
 - [x] collapse non-alphanumerics to a single hyphen ⟦criterion 1⟧'
 got_added="$(code_for 1 "$with_added")"
 if [[ "$got_added" != 3 ]]; then
-  fail=$((fail + 1)); echo "FAIL - $name (unchecked added step serving criterion 1: want exit 3, got $got_added)"
+  no "$name (unchecked added step serving criterion 1: want exit 3, got $got_added)"
 else
-  pass=$((pass + 1))
+  ok
 fi
 
 # 4. whether criterion k is finished is decided from lib/ledger.sh's step records, not from
@@ -95,9 +95,9 @@ markdown_open='# Plan for #42
 - [ ] found open in the markdown ⟦criterion 1⟧'
 got_module="$(FINISHED="$work/criterion-finished.sh" code_for 1 "$markdown_open")"
 if [[ "$got_module" != 0 ]]; then
-  fail=$((fail + 1)); echo "FAIL - $name (module says criterion 1 done: want exit 0, got $got_module)"
+  no "$name (module says criterion 1 done: want exit 0, got $got_module)"
 else
-  pass=$((pass + 1))
+  ok
 fi
 
 # 5. a ticked step carrying no criterion tag serves no criterion even when its text is `k`:
@@ -108,9 +108,9 @@ text_is_k='# Plan for #42
 - [x] 3'
 got_text_k="$(code_for 3 "$text_is_k")"
 if [[ "$got_text_k" != 3 ]]; then
-  fail=$((fail + 1)); echo "FAIL - $name (untagged ticked step with text 3: want exit 3, got $got_text_k)"
+  no "$name (untagged ticked step with text 3: want exit 3, got $got_text_k)"
 else
-  pass=$((pass + 1))
+  ok
 fi
 
 finish

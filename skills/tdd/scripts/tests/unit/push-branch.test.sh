@@ -39,11 +39,11 @@ got="$(
 want="source returned
 main defined"
 if [[ -s "$calls" ]]; then
-  fail=$((fail + 1)); echo "FAIL - $name (sourcing ran commands, want none):"; cat "$calls"
+  no "$name (sourcing ran commands, want none):"; cat "$calls"
 elif [[ "$got" != "$want" ]]; then
-  fail=$((fail + 1)); echo "FAIL - $name"; diff <(echo "$want") <(echo "$got")
+  no "$name"; diff <(echo "$want") <(echo "$got")
 else
-  pass=$((pass + 1))
+  ok
 fi
 
 # 2. executed directly, the guard still runs main and the CLI contract is byte-identical to
@@ -57,10 +57,10 @@ VERI_PUSH_RETRIES=x VERI_PUSH_BACKOFF=0 "$PUSH" > "$out" 2> "$err"
 rc=$?
 want_err="push-branch.sh: VERI_PUSH_RETRIES must be a non-negative integer, got 'x'"
 if [[ "$rc" -ne 2 || -s "$out" || "$(cat "$err")" != "$want_err" ]]; then
-  fail=$((fail + 1)); echo "FAIL - $name (want exit 2, empty stdout, stderr '$want_err'):"
+  no "$name (want exit 2, empty stdout, stderr '$want_err'):"
   show_run "$rc" "$out" "$err"
 else
-  pass=$((pass + 1))
+  ok
 fi
 
 # 3. sourced, with git, sleep and the event recording mocked as same-named functions and PATH
@@ -88,11 +88,11 @@ git push --set-upstream origin HEAD
 record push-failed error=fatal: unable to access origin attempts=2"
 want_err="push-branch.sh: push failed after 2 attempts; the branch is not on the remote"
 if [[ "$rc" -ne 0 || -s "$scratch/out3" || "$(cat "$err")" != "$want_err" || "$(cat "$calls")" != "$want_calls" ]]; then
-  fail=$((fail + 1)); echo "FAIL - $name (want exit 0, empty stdout, stderr '$want_err'):"
+  no "$name (want exit 0, empty stdout, stderr '$want_err'):"
   show_run "$rc" "$scratch/out3" "$err"
   diff <(echo "$want_calls") "$calls"
 else
-  pass=$((pass + 1))
+  ok
 fi
 
 # 4. this suite's own header comment — the `#` lines between the shebang and the first line of
@@ -110,9 +110,9 @@ missing=()
 [[ "$header" == *"process-count proxy"* ]] || missing+=("'process-count proxy'")
 [[ "$header" =~ not[[:space:]]+(by[[:space:]]+)?(a[[:space:]]+)?measured([[:space:]]+wall-clock)?[[:space:]]+second ]] || missing+=("'not measured seconds'")
 if [[ "${#missing[@]}" -gt 0 ]]; then
-  fail=$((fail + 1)); echo "FAIL - $name (header lacks: ${missing[*]}):"; printf '%s' "$header"
+  no "$name (header lacks: ${missing[*]}):"; printf '%s' "$header"
 else
-  pass=$((pass + 1))
+  ok
 fi
 
 finish

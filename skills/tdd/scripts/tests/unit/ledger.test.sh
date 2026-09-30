@@ -18,9 +18,9 @@ source "$HERE/../lib/harness.sh"
 
 verdict() {
   if [[ -z "$problems" ]]; then
-    pass=$((pass + 1))
+    ok
   else
-    fail=$((fail + 1)); echo "FAIL - $1"
+    no "$1"
     printf '%s' "$problems"
   fi
 }

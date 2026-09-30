@@ -50,10 +50,10 @@ refuses() {
 # judged the same way, so the block lives here once rather than once per roster.
 verdict() {
   if (( ${#offenders[@]} > 0 )); then
-    fail=$((fail + 1)); echo "FAIL - $1"
+    no "$1"
     printf '    %s\n' "${offenders[@]}"
   else
-    pass=$((pass + 1))
+    ok
   fi
 }
 

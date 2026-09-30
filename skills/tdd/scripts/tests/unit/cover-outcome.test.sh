@@ -29,11 +29,10 @@ run_on() {
 verdict() {
   local name="$1" p
   if (( ${#problems[@]} )); then
-    fail=$((fail + 1))
-    echo "FAIL - $name"
+    no "$name"
     for p in "${problems[@]}"; do echo "    $p"; done
   else
-    pass=$((pass + 1))
+    ok
   fi
 }
 

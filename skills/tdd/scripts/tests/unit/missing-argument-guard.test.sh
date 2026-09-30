@@ -51,11 +51,10 @@ judge() {
   local rc=0
   ( source "$LIB"; "$@" ) > "$out" 2> "$err" || rc=$?
   if [[ "$rc" -ne 1 || "$(cat "$out")" != "$want" ]]; then
-    fail=$((fail + 1))
-    echo "FAIL - $name (want exit 1 and stdout '$want'):"
+    no "$name (want exit 1 and stdout '$want'):"
     show_run "$rc" "$out" "$err"
   else
-    pass=$((pass + 1))
+    ok
   fi
 }
 
