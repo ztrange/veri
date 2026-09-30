@@ -43,11 +43,12 @@ sha_state() {
   statuses="$(gh api "repos/$repo/commits/$1/status")" || return 2
   python3 -c '
 import json, sys
-pages = json.loads(sys.argv[1])
-states = [s["state"] for s in json.loads(sys.argv[2]).get("statuses") or []]
+text = sys.stdin.read()
+pages, at = json.JSONDecoder().raw_decode(text)
+states = [s["state"] for s in json.loads(text[at:]).get("statuses") or []]
 runs = [r for p in pages for r in p.get("check_runs") or []]
 outcomes = [r.get("conclusion") if r.get("status") == "completed" else None for r in runs]
-if any(o is not None and o not in sys.argv[3].split() for o in outcomes) \
+if any(o is not None and o not in sys.argv[1].split() for o in outcomes) \
         or any(s in ("failure", "error") for s in states):
     print("red")
 elif None in outcomes or all(o == "skipped" for o in outcomes) \
@@ -55,7 +56,7 @@ elif None in outcomes or all(o == "skipped" for o in outcomes) \
     print("pending")
 else:
     print("green")
-' "$runs" "$statuses" "$passing"
+' "$passing" < <(printf '%s\n%s' "$runs" "$statuses")
 }
 
 while :; do

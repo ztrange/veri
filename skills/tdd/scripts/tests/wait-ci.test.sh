@@ -425,4 +425,34 @@ got="$(GH_PR_VIEW_HEAD=fedcba9876543210fedcba9876543210fedcba98 waited rest-only
 [[ "$got" == 0 ]] || problems+=("working gh whose pr view reports another head: want exit 0, got $got (stderr: $(cat "$work/rest-only.err"))")
 report "$name"
 
+name="wait-ci.sh reads check-run and status documents larger than 256 KiB and gives the same output and exit code as for small ones, under a python3 that refuses any argument over 128 KiB the way Linux does (#591)"
+problems=()
+sha=0123456789abcdef0123456789abcdef01234567
+argcap_python3_stub "$work/argcap-bin"
+for size in short long; do
+  sha_head "large-$size.json"
+  python3 - "$work/large-$size.json" "$sha" "$size" <<'P'
+import json, sys
+path, sha, size = sys.argv[1:]
+pad = "x" * 8192 if size == "long" else "short"
+runs = [{"name": "gates-%d" % n, "head_sha": sha, "status": "completed", "conclusion": "success",
+         "output": {"summary": pad}} for n in range(40)]
+statuses = [{"context": "legacy-%d" % n, "state": "success", "description": pad} for n in range(40)]
+json.dump({"total_count": len(runs), "check_runs": runs}, open(path + ".check-runs", "w"))
+json.dump({"state": "success", "sha": sha, "total_count": len(statuses), "statuses": statuses},
+          open(path + ".status", "w"))
+P
+done
+for doc in check-runs status; do
+  size="$(wc -c < "$work/large-long.json.$doc" | tr -d ' ')"
+  [[ "$size" -gt 262144 ]] || problems+=("long .$doc: $size bytes (want >262144)")
+done
+short_code="$(PATH="$work/argcap-bin:$PATH" waited large-short 60 60 "$sha")"
+code="$(PATH="$work/argcap-bin:$PATH" waited large-long 60 60 "$sha")"
+[[ "$short_code" == 0 && ! -s "$work/large-short.err" ]] ||
+  problems+=("short: want exit 0 and no stderr, got exit $short_code (stderr: $(cat "$work/large-short.err"))")
+[[ "$code" == "$short_code" && "$(cat "$work/large-long.err")" == "$(cat "$work/large-short.err")" ]] ||
+  problems+=("long: want exit $short_code and the short run's stderr, got exit $code (stderr: $(cat "$work/large-long.err"))")
+report "$name"
+
 finish
