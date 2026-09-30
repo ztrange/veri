@@ -183,7 +183,10 @@ first_fenced_line() {
   return 1
 }
 
-block_pr_line="$(first_fenced_line 'pulls?head=')" ||
+pr_read='pulls?head='
+pr_edit='gh api -X PATCH'
+
+block_pr_line="$(first_fenced_line "$pr_read")" ||
   problems+=("$skill_md's Draft PR command block never runs gh api …/pulls?head= to read the open PR's URL")
 block_commit_line="$(first_fenced_line 'git commit -m "metrics:')" ||
   problems+=("$skill_md's Draft PR command block never runs git commit -m \"metrics: …\"")
@@ -200,7 +203,7 @@ report "$name"
 name="$skill_md's Draft PR command block runs gh pr edit after the metrics: commit and push-branch.sh, ordered line by line"
 problems=()
 
-block_edit_line="$(first_fenced_line 'gh api -X PATCH')" ||
+block_edit_line="$(first_fenced_line "$pr_edit")" ||
   problems+=("$skill_md's Draft PR command block never runs gh pr edit, so the PR body never gets the 📊 block")
 block_commit_line="$(first_fenced_line 'git commit -m "metrics:')" ||
   problems+=("$skill_md's Draft PR command block never runs git commit -m \"metrics: …\"")
@@ -223,7 +226,7 @@ name="$skill_md's Draft PR command block runs gh api …/pulls?head=, event.sh d
 problems=()
 
 prev_anchor="" prev_line=""
-for anchor in 'pulls?head=' 'event.sh done pr=' 'metrics.sh <n>' 'git commit -m "metrics:' 'push-branch.sh' 'gh api -X PATCH'; do
+for anchor in "$pr_read" 'event.sh done pr=' 'metrics.sh <n>' 'git commit -m "metrics:' 'push-branch.sh' "$pr_edit"; do
   if ! line="$(first_fenced_line "$anchor")"; then
     problems+=("$skill_md's Draft PR command block never runs $anchor")
     prev_anchor="" prev_line=""
@@ -241,7 +244,7 @@ report "$name"
 name="$skill_md's Draft PR gh pr edit command puts the committed 📊 metrics report in the PR body"
 problems=()
 
-if ! edit_line="$(first_fenced_line 'gh api -X PATCH')"; then
+if ! edit_line="$(first_fenced_line "$pr_edit")"; then
   problems+=("$skill_md's Draft PR command block never runs gh pr edit, so no command puts the 📊 block in the PR body")
 else
   edit_cmd="$(sed -n "${edit_line}p" "$skill_path")"
@@ -260,7 +263,7 @@ if [[ -z "$contract" ]]; then
   problems+=("$suite_md has no Contract under test paragraph in its header to read")
 else
   prev_anchor="" prev_at=""
-  for anchor in 'pulls?head=' 'event.sh done' 'metrics.sh' 'metrics:' 'push-branch.sh' 'gh api -X PATCH'; do
+  for anchor in "$pr_read" 'event.sh done' 'metrics.sh' 'metrics:' 'push-branch.sh' "$pr_edit"; do
     if ! at="$(offset_of "$contract" "$anchor")"; then
       problems+=("$suite_md's Contract under test never names $anchor")
       continue
