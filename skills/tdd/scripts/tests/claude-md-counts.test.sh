@@ -314,4 +314,17 @@ fi
 
 report "$name"
 
+name="$claude_md's unit-tier suite count moved with unit/gh-fixture.test.sh (#588)"
+problems=()
+
+present "skills/tdd/scripts/tests/unit/gh-fixture.test.sh"
+
+if [[ "${#problems[@]}" -eq 0 ]]; then
+  if readable "$idiom" "$claude_md has no '## $section_name' section" "the unit suite count it states"; then
+    check "*$section_name* unit suite count" "$(claimed "$idiom" "$unit_claim" 1)" "$(how_many "$unit_path")"
+  fi
+fi
+
+report "$name"
+
 finish
