@@ -11,9 +11,8 @@
 # gh_issue_edit <n> <body-file> — replace issue <n>'s body with the contents of <body-file>;
 #   2 when GitHub gave no answer.
 #
-# gh_list <rest-path> <gh args…> — print `gh <gh args…>`'s JSON, or else every page of
-#   `gh api --paginate <rest-path>`, one JSON array per page, back to back; 2 when GitHub gave
-#   no answer on either route.
+# gh_list <rest-path> <gh args…> — print `gh <gh args…>`'s JSON, or else `gh_rest_list
+#   <rest-path>`'s; 2 when GitHub gave no answer on either route.
 #
 # gh_rest_list <rest-path> — print every page of `gh api <rest-path>`, requested as page=1, 2, …
 #   until one comes back empty, one JSON array per page, back to back; 2 when GitHub gave no answer.
@@ -45,7 +44,7 @@ gh_issue_edit() {
 
 gh_list() {
   local rest="$1"; shift
-  gh "$@" 2> /dev/null || gh api --paginate "$rest" || return 2
+  gh "$@" 2> /dev/null || gh_rest_list "$rest"
 }
 
 gh_rest_list() {
