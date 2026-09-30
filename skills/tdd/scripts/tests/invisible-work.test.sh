@@ -597,4 +597,74 @@ large_sweep long
   problems+=("long: want exit $short_code and $(printf '%q' "$short_out"), got exit $code and $(printf '%q' "$out"); stderr: $(cat "$work/case591-large/long.err")")
 report "$name"
 
+name="invisible-work.sh: against a gh that serves issues and PRs over three pages on repos/{owner}/{repo} and refuses repositories/{id} with the proxy's 403, prints the same report and exit code as against a single-page fixture holding the same items (#592)"
+problems=()
+late="tdd/75-an-issue-on-the-last-page"
+opened="chore/a-pr-on-the-last-page"
+closed="chore/closed-on-page-two"
+clone="$(unpr_branch_clone "$work/case592" "$late" 2)"
+push_control_branch "$work/case592" "$opened"
+git_q "$clone" checkout -q -b "$closed" main
+git_q "$clone" commit -q --allow-empty -m "feat: a step whose PR was closed"
+git_q "$clone" checkout -q main
+read_tip "$clone" "$late"
+issue_pages=(
+  '{"number": 70, "title": "a", "labels": [], "body": "", "state": "closed"}, {"number": 71, "title": "b", "labels": [], "body": "", "state": "open"}'
+  '{"number": 72, "title": "c", "labels": [], "body": "", "state": "closed"}, {"number": 73, "title": "d", "labels": [], "body": "", "state": "open"}'
+  '{"number": 74, "title": "e", "labels": [], "body": "", "state": "closed"}, {"number": 75, "title": "f", "labels": [], "body": "", "state": "open"}'
+)
+pull_pages=(
+  '{"number": 1, "state": "closed", "merged_at": null, "body": "", "head": {"ref": "chore/one"}}, {"number": 2, "state": "open", "merged_at": null, "body": "", "head": {"ref": "chore/two"}}'
+  "{\"number\": 3, \"state\": \"closed\", \"merged_at\": null, \"body\": \"\", \"head\": {\"ref\": \"$closed\"}}, {\"number\": 4, \"state\": \"open\", \"merged_at\": null, \"body\": \"\", \"head\": {\"ref\": \"chore/four\"}}"
+  "{\"number\": 5, \"state\": \"open\", \"merged_at\": null, \"body\": \"\", \"head\": {\"ref\": \"$opened\"}}, {\"number\": 6, \"state\": \"closed\", \"merged_at\": null, \"body\": \"\", \"head\": {\"ref\": \"chore/six\"}}"
+)
+mkdir -p "$work/case592/one" "$work/case592/three" "$work/case592/bin"
+for i in 0 1 2; do
+  printf '[%s]\n' "${issue_pages[i]}" > "$work/case592/three/issues-$((i + 1)).json"
+  printf '[%s]\n' "${pull_pages[i]}" > "$work/case592/three/pulls-$((i + 1)).json"
+done
+(IFS=,; printf '[%s]\n' "${issue_pages[*]}" > "$work/case592/one/issues-1.json"
+ printf '[%s]\n' "${pull_pages[*]}" > "$work/case592/one/pulls-1.json")
+cat > "$work/case592/bin/gh" <<'STUB'
+#!/bin/sh
+proxy='gh: Numeric-ID repository paths (repositories/{id}/...) are not supported through this proxy. Use repos/{owner}/{repo}/... endpoints instead. (HTTP 403)'
+case "$1" in
+  issue|pr|repo) echo "HTTP 403: GitHub GraphQL is not available from Claude Code sessions" >&2; exit 1 ;;
+  api) shift ;;
+  *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
+esac
+paginate="" path=""
+for arg in "$@"; do
+  case "$arg" in
+    --paginate) paginate=1 ;;
+    -*) echo "gh stub: unsupported flag $arg" >&2; exit 1 ;;
+    *) path="$arg" ;;
+  esac
+done
+case "$path" in
+  *repositories/*) echo "$proxy" >&2; exit 1 ;;
+  "repos/{owner}/{repo}/issues"*) list=issues ;;
+  "repos/{owner}/{repo}/pulls"*) list=pulls ;;
+  *) echo "gh stub: unexpected path $path" >&2; exit 1 ;;
+esac
+page="$(printf '%s\n' "$path" | sed -n 's/.*[?&]page=\([0-9][0-9]*\).*/\1/p')"
+[ -n "$page" ] || page=1
+if [ -f "$GH_FX/$list-$page.json" ]; then cat "$GH_FX/$list-$page.json"; else echo '[]'; fi
+if [ -n "$paginate" ] && [ -f "$GH_FX/$list-$((page + 1)).json" ]; then echo "$proxy" >&2; exit 1; fi
+exit 0
+STUB
+chmod +x "$work/case592/bin/gh"
+paged_sweep() {  # paged_sweep <one|three>; sets $out and $code
+  out="$(cd "$clone" && env -u VERI_GH_JSON PATH="$work/case592/bin:$PATH" GH_FX="$work/case592/$1" \
+    "$INVISIBLE" 2>"$work/case592/$1.err")" && code=0 || code=$?
+}
+paged_sweep one; one_out="$out" one_code="$code"
+paged_sweep three
+want="invariant 2 (no PR): $late tip $tip 2 commits ahead, issue #75 OPEN"
+[[ "$one_code" -eq 0 && "$one_out" == "$want" ]] ||
+  problems+=("single page: want exit 0 and $(printf '%q' "$want"), got exit $one_code and $(printf '%q' "$one_out"); stderr: $(cat "$work/case592/one.err")")
+[[ "$code" == "$one_code" && "$out" == "$one_out" ]] ||
+  problems+=("three pages: want exit $one_code and $(printf '%q' "$one_out"), got exit $code and $(printf '%q' "$out"); stderr: $(cat "$work/case592/three.err")")
+report "$name"
+
 finish
