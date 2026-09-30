@@ -15,7 +15,6 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 OWED="$HERE/../refactor-owed.sh"
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -209,6 +208,4 @@ answers_none list "; want nothing"
 report "$name"
 
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

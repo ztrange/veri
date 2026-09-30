@@ -14,7 +14,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTS="$(cd "$HERE/../.." && pwd)"
-pass=0 fail=0
+source "$HERE/../lib/harness.sh"
 export LC_ALL=C
 
 verdict() {
@@ -69,5 +69,4 @@ while IFS= read -r hit; do
 done <<< "$spellers"
 verdict "no script or module but lib/ledger.sh, and no line of SKILL.md, spells a box"
 
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

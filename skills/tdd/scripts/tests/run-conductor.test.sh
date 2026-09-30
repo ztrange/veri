@@ -29,7 +29,6 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
-pass=0 fail=0
 
 issue=4242
 
@@ -847,7 +846,7 @@ git -C "$clone23" remote add origin "https://127.0.0.1:1/veri.git"
 
 suite23="$clone23/skills/tdd/scripts/tests/cases1-5-only.test.sh"
 awk '/^name=/ && ++n == 6 {exit} 1' "$clone23/skills/tdd/scripts/tests/run-conductor.test.sh" > "$suite23"
-printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$suite23"
+printf '%s\n' 'echo "----"' 'echo "${pass:-0} passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$suite23"
 chmod +x "$suite23"
 
 if [[ "$(grep -c '^name=' "$suite23")" -ne 5 ]]; then
@@ -1018,6 +1017,4 @@ fi
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

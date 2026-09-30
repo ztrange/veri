@@ -11,7 +11,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTS="$HERE/../.."
 CLASSIFY="$SCRIPTS/comment-class.sh"
-pass=0 fail=0
+source "$HERE/../lib/harness.sh"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -409,6 +409,4 @@ sweep_verdict "the sweepable report is empty for every tests/skill-*.test.sh who
 # 36. the sweepable report is empty for every tests/skill-*.test.sh whose name after skill- starts with m through z.
 sweep_verdict "the sweepable report is empty for every tests/skill-*.test.sh whose name after skill- starts with m through z" "$SCRIPTS"/tests/skill-[m-z]*.test.sh
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

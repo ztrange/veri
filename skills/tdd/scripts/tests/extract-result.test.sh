@@ -9,7 +9,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 EXTRACT="$HERE/../extract-result.sh"
-pass=0 fail=0
+source "$HERE/lib/harness.sh"
 check() {  # check <name> <input> <expected-stdout>
   local name="$1" input="$2" exp="$3" out
   out="$(printf '%s' "$input" | "$EXTRACT")"
@@ -53,6 +53,4 @@ check "json but no result event" \
 '{"type":"system","subtype":"init"}
 {"type":"assistant","message":{"content":[]}}'
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

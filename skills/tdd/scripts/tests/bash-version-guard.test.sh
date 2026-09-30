@@ -34,7 +34,6 @@ REQUIREMENT='needs bash 5 or newer'
 
 GREEN_FIXTURE='skills/tdd/scripts/tests/fixtures/live-suites/ends-green.test.sh'
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -92,6 +91,4 @@ if [[ -x /bin/bash ]] && [[ "$(/bin/bash -c 'echo "${BASH_VERSINFO[0]}"')" -lt 5
   report "$name"
 fi
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

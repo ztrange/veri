@@ -60,7 +60,6 @@ COUNT_LINE='^[0-9]+ passed, [0-9]+ failed$'
 
 CLAUDE_MD="$ROOT/CLAUDE.md"
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -728,6 +727,4 @@ fi
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

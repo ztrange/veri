@@ -37,7 +37,6 @@ DETACH="$HERE/../detach-leaf.sh"
 
 PATIENCE=3
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -172,6 +171,4 @@ probe_the_term_was_fatal_in_that_group
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

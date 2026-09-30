@@ -16,7 +16,6 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 BUDGET="$HERE/../refactor-budget.sh"
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -165,6 +164,4 @@ no flag VERI_REFACTOR_BUDGET=2 count 2|VERI_REFACTOR_BUDGET=2 VERI_ISSUE_REFACTO
 PROBES
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

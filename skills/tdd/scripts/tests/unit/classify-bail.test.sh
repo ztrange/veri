@@ -21,7 +21,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 CLASSIFY="$HERE/../../classify-bail.sh"
-pass=0 fail=0
+source "$HERE/../lib/harness.sh"
 
 # check <name> <cause> <expected-exit> <expected-first-line>
 check() {
@@ -124,6 +124,4 @@ fi
 #     not the plumbing breaking.
 check "uncovered is process" uncovered 0 process
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

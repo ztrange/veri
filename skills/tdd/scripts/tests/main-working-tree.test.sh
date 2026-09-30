@@ -22,7 +22,6 @@ SCRIPTS="$HERE/.."
 HELPER="$SCRIPTS/lib/main-working-tree.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-pass=0 fail=0
 
 main_repo="$work/main"
 git init -q -b main "$main_repo" >/dev/null 2>&1
@@ -73,5 +72,4 @@ solvable_out="$(cd "$linked" && env -u VERI_LABEL -u VERI_PRIORITY_LABEL VERI_GH
 
 report "a shared lib/main-working-tree.sh defines main_working_tree, and status.sh and solvable-issues.sh both resolve the main working tree through it"
 
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

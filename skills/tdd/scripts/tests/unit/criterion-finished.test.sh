@@ -11,7 +11,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 FINISHED="$HERE/../../criterion-finished.sh"
-pass=0 fail=0
+source "$HERE/../lib/harness.sh"
 code_for() {  # code_for <criterion> <ledger> — print the script's exit code
   local code
   printf '%s' "$2" | "$FINISHED" "$1" >/dev/null && code=0 || code=$?
@@ -113,6 +113,4 @@ else
   pass=$((pass + 1))
 fi
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

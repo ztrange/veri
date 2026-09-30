@@ -31,7 +31,6 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LAUNCHABLE="$HERE/../leaf-launchable.sh"
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -124,6 +123,4 @@ err_text="$(cat "$err")" out_text="$(cat "$out")"
 rm -rf "$tmp"
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

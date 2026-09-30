@@ -33,7 +33,6 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 CHECK="$HERE/../over-budget.sh"
 skill_md="skills/tdd/SKILL.md"
 skill_path="$(cd "$HERE/../../../.." && pwd)/$skill_md"
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -162,6 +161,4 @@ after="$(sed -n "$((before + 1)),\$p" "$fixture/.tdd/events.jsonl")"
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

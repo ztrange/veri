@@ -65,7 +65,6 @@ PIPEFAIL_LINE='set -uo pipefail'
 
 MARK='the-probe'
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -103,7 +102,7 @@ write_plant() {
     echo 'if '"$probe"
     echo 'then pass=1; else fail=1; fi'
     echo 'echo "----"'
-    echo 'echo "$pass passed, $fail failed"'
+    echo 'echo "${pass:-0} passed, $fail failed"'
     echo '[[ "$fail" -eq 0 ]]'
   } > "$path"
   chmod 755 "$path"
@@ -623,7 +622,7 @@ plant_loop_suite() {
     echo 'if [[ "$line" == "$want" ]]'
     echo 'then pass=1; else fail=1; fi'
     echo 'echo "----"'
-    echo 'echo "$pass passed, $fail failed"'
+    echo 'echo "${pass:-0} passed, $fail failed"'
     echo '[[ "$fail" -eq 0 ]]'
   } > "$offender_path"
   chmod 755 "$offender_path"
@@ -770,6 +769,4 @@ drop_tree
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

@@ -28,7 +28,6 @@ skill_dir="skills/tdd-candidates"
 want_name="tdd-candidates"
 skill_md="$skill_dir/SKILL.md"
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -181,6 +180,4 @@ if has_skill_md; then
 fi
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

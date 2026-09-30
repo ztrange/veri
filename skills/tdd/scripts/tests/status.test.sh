@@ -14,9 +14,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 STATUS="$HERE/../status.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
 repo() {  # repo <name> -> path
   local dir="$work/$1"
@@ -472,5 +470,4 @@ missing=()
 [[ "$out" == *"step 2 of 3"* ]] || missing+=("step 2 of 3")
 expect_nothing_missing "finds the step through lib/ledger.sh's ledger_steps, counting no checkbox of its own"
 
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

@@ -21,9 +21,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 WT="$HERE/../issue-worktree.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
@@ -617,6 +615,4 @@ log="$(cat "$seeded/.tdd/events.jsonl" 2>/dev/null || true)"
 { [[ "$code" == 0 ]] && [[ "$out" == "$seeded" ]] && [[ "$top" == "$seeded" ]] && [[ "$log" == *"$line"* ]]; } \
   && ok || no "a path holding only a seeded .tdd/events.jsonl: the worktree is made there and the log survives (exit=$code want 0, stdout='$out' want '$seeded', git toplevel there='$top' want '$seeded', log='$log' want it to hold '$line', stderr='$(cat "$errfile")')"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

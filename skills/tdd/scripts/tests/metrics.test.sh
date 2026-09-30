@@ -34,7 +34,6 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 METRICS="$HERE/../metrics.sh"
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -2765,6 +2764,4 @@ progress_says "$ledger_steps_out" 1 3
 
 report_on "$name" "$ledger_steps_out"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

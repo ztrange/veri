@@ -25,7 +25,7 @@ SKILL_DIR="$HERE/../.."
 source "$HERE/../lib/background.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-pass=0 fail=0
+source "$HERE/lib/harness.sh"
 
 new_repo() {
   git init -q -b main "$1" >/dev/null 2>&1
@@ -589,5 +589,4 @@ else
   echo "    stderr: $(cat "$work/show-no-items.err")"
 fi
 
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

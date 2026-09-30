@@ -18,9 +18,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 BLOCKER="$HERE/../coverage-blocker.sh"
 SOLVABLE="$HERE/../solvable-issues.sh"
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -300,6 +298,4 @@ else
 $(cat "$work/rest.err")"
 fi
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

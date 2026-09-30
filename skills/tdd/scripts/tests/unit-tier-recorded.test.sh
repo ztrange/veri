@@ -33,7 +33,7 @@ claude_md="CLAUDE.md"
 claude_path="$ROOT/$claude_md"
 section_name="Testing idiom"
 
-pass=0 fail=0
+source "$HERE/lib/harness.sh"
 
 source "$HERE/record-helpers.sh"
 
@@ -100,6 +100,4 @@ fi
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

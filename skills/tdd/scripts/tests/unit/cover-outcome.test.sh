@@ -15,7 +15,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 COVER_OUTCOME="$HERE/../../cover-outcome.sh"
-pass=0 fail=0
+source "$HERE/../lib/harness.sh"
 
 # run_on <report> — feed the report to the script on stdin and leave what it printed on
 # stdout in `out` and what it exited with in `code`.
@@ -61,5 +61,4 @@ run_on "some narration with no report lines at all"
 [[ "$code" == 2 ]] || problems+=("no COVERED: line: want exit 2, got $code")
 verdict "$name"
 
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

@@ -63,10 +63,9 @@ WRAPPING_PIPE='(^|[^|])\|[[:space:]]*$'
 READER_OPENS="^[[:space:]]*$READER"
 
 declare -A EXEMPT=(
-  [run-conductor.test.sh:52]="a line of the POSIX-sh stub \`claude\` the suite writes in a heredoc, not of the suite: that shell sets no pipefail, so the sed's SIGPIPE is never a status anything reads, and bash's process substitution is not available there to repair it with"
+  [run-conductor.test.sh:51]="a line of the POSIX-sh stub \`claude\` the suite writes in a heredoc, not of the suite: that shell sets no pipefail, so the sed's SIGPIPE is never a status anything reads, and bash's process substitution is not available there to repair it with"
 )
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -231,6 +230,4 @@ probe_count_line_check_lets_its_writer_finish
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

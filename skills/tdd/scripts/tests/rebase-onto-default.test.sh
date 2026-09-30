@@ -29,7 +29,6 @@ source "$HERE/lib/harness.sh"
 REBASE="$HERE/../rebase-onto-default.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-pass=0 fail=0
 
 report_stderr() {
   local before="$fail"
@@ -236,6 +235,4 @@ git -C "$repo" remote set-head origin -d >/dev/null 2>&1
 expect_refused "$repo" "$dir/stdout" ", with no default branch to rebase onto"
 report_stderr "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

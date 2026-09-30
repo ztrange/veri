@@ -56,7 +56,6 @@ CASE4_NAME='a frontmatter-fenced procedure launches and reaches the binary whole
 
 ARGV_LAUNCH='s#^printf .* | \(.*\) -p \\$#\1 -p "$prompt" \\#'
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -82,7 +81,7 @@ run_case4() {
   cut="$tree/$TESTS_DIR/case4-only.test.sh"
   awk '/^name=/ {skip = ++n != 4} !skip' \
     "$tree/$TESTS_DIR/$SUBJECT_NAME" > "$cut"
-  printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$cut"
+  printf '%s\n' 'echo "----"' 'echo "${pass:-0} passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$cut"
   chmod +x "$cut"
   grep -qF "name=\"$CASE4_NAME\"" "$cut" ||
     problems+=("case 4 could not be cut out of $SUBJECT_NAME in the $arm arm: no line names '$CASE4_NAME'")
@@ -122,6 +121,4 @@ probe_planted_arm_fails_case4
 probe_untouched_arm_passes_case4
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

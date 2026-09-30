@@ -15,7 +15,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LIB="$HERE/../lib"
-pass=0 fail=0
+source "$HERE/lib/harness.sh"
 
 check() {
   if [[ "$2" == "$3" ]]; then
@@ -147,5 +147,4 @@ check "a caller that is not solvable-issues.sh imports the blocked-by module and
 [3]
 spawned=[]" "$inproc_out"
 
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

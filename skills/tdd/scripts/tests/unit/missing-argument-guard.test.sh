@@ -27,7 +27,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LIB="$HERE/../../lib/missing-argument-exit.sh"
-pass=0 fail=0
+source "$HERE/../lib/harness.sh"
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 out="$scratch/out" err="$scratch/err"
@@ -108,6 +108,4 @@ chmod +x "$scan/bare.sh" "$scan/checked.sh" "$scan/explains.sh"
 judge "$name" 'bare.sh:2: guards $1 with a bare ${N:?…} expansion, which exits 1, not 2' \
   bare_expansion_offenders "$scan"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

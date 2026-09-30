@@ -14,7 +14,6 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
 STOP="$HERE/../stop-run.sh"
-pass=0 fail=0
 
 work="$(mktemp -d)"
 alive=()
@@ -298,6 +297,4 @@ done
 
 report "stop-run.sh never signals the pid in .tdd/conductor.pid"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

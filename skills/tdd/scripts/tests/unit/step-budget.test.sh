@@ -12,7 +12,8 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 STEP_BUDGET="$HERE/../../step-budget.sh"
-pass=0 fail=0 problems=""
+source "$HERE/../lib/harness.sh"
+problems=""
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -130,6 +131,4 @@ header="$(sed -n '2,$p' "$self" | sed '/^#/!q' | grep '^#')"
   problems+="    want the header to state '$BAR', got '$header'"$'\n'
 verdict "the suite lives in tests/unit/ and its header states the fast-tier bar it clears"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

@@ -7,7 +7,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 TICK="$HERE/../tick-criterion.sh"
-pass=0 fail=0
+source "$HERE/lib/harness.sh"
 
 check() {
   local name="$1" exp_code="$2" matcher="$3" input="$4" exp_out="$5"
@@ -74,6 +74,4 @@ TICK="$work/tick-criterion.sh"
 check "the tick comes from lib/ledger.sh's ledger_tick (#495)" 0 "markdown" \
   "- [ ] found in the markdown" "ticked by the module: markdown"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

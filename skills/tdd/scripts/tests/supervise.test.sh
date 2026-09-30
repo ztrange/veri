@@ -18,9 +18,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTS="$HERE/.."
 SUP="$SCRIPTS/supervise.sh"
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
 stub="$(mktemp -d)"
 work="$(mktemp -d)"
@@ -1113,6 +1111,4 @@ rm -rf "$restart_py"
   && [[ "$restart_heartbeat_code" == 2 ]] && [[ "$restart_heartbeat_err" == *'no heartbeat'* ]]; } && ok \
   || no "#563: under a python3 whose time.monotonic() restarts per process, a 4s-quiet leaf is still killed by a 1s hard timeout and by a 1s heartbeat (timeout code=$restart_timeout_code want 2, err=$restart_timeout_err; heartbeat code=$restart_heartbeat_code want 2, err=$restart_heartbeat_err)"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

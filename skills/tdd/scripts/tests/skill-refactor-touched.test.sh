@@ -28,7 +28,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
-pass=0 fail=0
+source "$HERE/lib/harness.sh"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -71,6 +71,4 @@ if [[ "${#problems[@]}" -eq 0 ]]; then pass=$((pass + 1)); else
   printf '    %s\n' "${problems[@]}"
 fi
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

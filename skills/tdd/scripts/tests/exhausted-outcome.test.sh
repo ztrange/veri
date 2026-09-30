@@ -15,9 +15,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 OUTCOME="$HERE/../exhausted-outcome.sh"
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
 out="" code=0
 run() { out="$(printf '%s' "$1" | "$OUTCOME")" && code=0 || code=$?; }
@@ -50,6 +48,4 @@ run "$neither_report"
 [[ -z "$problems" ]] \
   && ok || no "exhausted-outcome answers exit 0 with the SPLIT: criteria, exit 1 with the needs-user answer, exit 3 and nothing for neither (${problems#; })"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

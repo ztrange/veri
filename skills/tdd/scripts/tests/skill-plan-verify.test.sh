@@ -39,7 +39,6 @@ loop_re='^### 3[.] The cycle loop'
 plan_launch_re='(run-verdict|verify)[.]sh.* plan '
 exit2_re='[(]exit 2[)]'
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -150,6 +149,4 @@ done
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

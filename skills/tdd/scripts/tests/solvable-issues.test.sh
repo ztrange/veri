@@ -23,9 +23,7 @@ SOLVABLE="$HERE/../solvable-issues.sh"
 REPO_ROOT="$(cd "$HERE/../../../.." && pwd)"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
 no_claims="$work/no-claims"
 git init -q -b main "$no_claims" >/dev/null 2>&1
@@ -1187,6 +1185,4 @@ out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$refusedir
 { [[ "$code" == 0 && "$out" == "70" ]]; } \
   && ok || no "against a gh that refuses GraphQL, a /issues REST item carrying pull_request is not counted as a solvable issue even with the opt-in label (#568) (exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '70')"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

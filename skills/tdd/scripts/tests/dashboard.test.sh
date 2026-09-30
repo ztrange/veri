@@ -39,7 +39,6 @@ module_problem=""
   module_problem="dashboard.sh execs no .py module beside it; its exec line is: $(printf '%q' "$exec_line")"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-pass=0 fail=0
 
 starts="$work/server-starts.log"
 : > "$starts"
@@ -1696,6 +1695,4 @@ elif [[ "$server_starts" -gt 2 ]]; then
 fi
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

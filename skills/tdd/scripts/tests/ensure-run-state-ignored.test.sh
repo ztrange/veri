@@ -20,9 +20,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ENSURE="$HERE/../ensure-run-state-ignored.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
 new_repo() {
   mkdir -p "$1"
@@ -148,6 +146,4 @@ cmp -s "$work/twice-both.exclude.before" "$exclude" && ex_same=0 || ex_same=$?
 { [[ "$gi_same" == 0 ]] && [[ "$ex_same" == 0 ]] && [[ "$code" == 0 ]]; } \
   && ok || no "second run on the same repo: leaves the worktree .gitignore and info/exclude byte-identical and exits 0 (.gitignore cmp=$gi_same want 0 identical, info/exclude cmp=$ex_same want 0 identical, exit=$code want 0)"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

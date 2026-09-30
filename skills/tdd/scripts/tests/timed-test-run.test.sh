@@ -28,7 +28,6 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 TIMED="$HERE/../timed-test-run.sh"
 METRICS="$HERE/../metrics.sh"
 USUAL="$HERE/../tier-usual.sh"
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -170,6 +169,4 @@ done
 report "$name"
 
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

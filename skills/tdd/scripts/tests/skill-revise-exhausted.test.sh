@@ -22,7 +22,6 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -462,6 +461,4 @@ fi
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

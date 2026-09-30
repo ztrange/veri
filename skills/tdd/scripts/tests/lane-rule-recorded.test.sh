@@ -55,7 +55,7 @@ IDIOM_HEADING='## Testing idiom'
 
 DOCS_LANE='docs[ -]lane|documentation lane|docs issue|docs merge'
 
-pass=0 fail=0
+source "$HERE/lib/harness.sh"
 
 source "$HERE/record-helpers.sh"
 
@@ -115,6 +115,4 @@ probe_idiom_records_the_rule_and_the_checks
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

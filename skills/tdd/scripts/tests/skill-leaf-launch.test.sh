@@ -88,7 +88,6 @@ single_quoted_fragment="'$fragment_ph'"
 declare -A EXEMPT=(
 )
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -428,6 +427,4 @@ done
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

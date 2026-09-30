@@ -67,7 +67,6 @@ refactor_budget='refactor-budget.sh 0'
 refusal='exits? 2'
 preflight='### 0. Preflight'
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -161,6 +160,4 @@ fi
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

@@ -35,7 +35,6 @@ skill_dir="skills/tdd"
 want_name="tdd"
 skill_md="$skill_dir/SKILL.md"
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -338,6 +337,4 @@ for old_dir in "${old_dirs[@]}"; do
 done
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

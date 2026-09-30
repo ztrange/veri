@@ -35,7 +35,6 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 EVENT="$HERE/../event.sh"
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -327,6 +326,4 @@ fi
 rm -rf "$rs_work"
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

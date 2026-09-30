@@ -12,7 +12,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 STOP="$HERE/../../stop-requested.sh"
-pass=0 fail=0
+source "$HERE/../lib/harness.sh"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -161,6 +161,4 @@ for phrase in "fast tier" "no git" "no network" "no server" "no real sleep" "no 
 done
 verdict "this suite lives in the fast tier's directory and its header states the bar it clears"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

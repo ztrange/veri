@@ -95,7 +95,6 @@ claude_path="$ROOT/$claude_md"
 
 one_leaf='(one|a single) (refactor |developer |transform )?leaf'
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -512,6 +511,4 @@ candidate_growth="$(phrase "$(either_order 'candidates:' "($amendment)" '[^.]{0,
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

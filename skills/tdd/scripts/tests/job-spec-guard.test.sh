@@ -69,7 +69,6 @@ EXEMPT_DECL='declare -A EXEMPT=('
 
 EXEMPT_REASON='the job spec is the point here: the line is quoted prose inside a heredoc, not a kill this shell ever runs'
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -300,6 +299,4 @@ drop_tree
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

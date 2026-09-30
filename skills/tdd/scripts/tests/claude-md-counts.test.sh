@@ -46,7 +46,6 @@ unit_path="$ROOT/$unit_glob"
 
 section_name="Testing idiom"
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -300,6 +299,4 @@ moved_with "skills/tdd/scripts/rebase-onto-default.sh" "skills/tdd/scripts/tests
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

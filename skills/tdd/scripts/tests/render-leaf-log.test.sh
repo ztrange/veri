@@ -17,7 +17,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 RENDER="$HERE/../render-leaf-log.sh"
 FIXTURES="$HERE/fixtures/render-leaf-log"
-pass=0 fail=0
+source "$HERE/lib/harness.sh"
 check() {  # check <name> <fixture> <expected-stdout>
   local name="$1" fixture="$2" exp="$3" out
   out="$("$RENDER" < "$fixture" 2>&1)"
@@ -65,6 +65,4 @@ else
   grep -n 'not JSON' <<< "$header" | sed 's/^/    /'
 fi
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

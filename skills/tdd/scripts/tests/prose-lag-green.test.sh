@@ -69,7 +69,6 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-pass=0 fail=0
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
@@ -109,7 +108,7 @@ tree_grown_past_its_prose() {
     printf 'out="$("$here/../%s" 2>/dev/null)"\n' "$SCRIPT_NAME"
     printf '[[ "$out" == ok ]] && pass=$((pass + 1)) || { fail=$((fail + 1)); echo "FAIL - %s still prints ok"; }\n' "$SCRIPT_NAME"
     printf 'echo "----"\n'
-    printf 'echo "$pass passed, $fail failed"\n'
+    printf 'echo "${pass:-0} passed, $fail failed"\n'
     printf '[[ "$fail" -eq 0 ]]\n'
   } > "$planted/$SUITE"
   chmod 755 "$planted/$SUITE"
@@ -143,6 +142,4 @@ grep -Fqx "== $SUITE_NAME" <<< "$out" ||
 
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

@@ -10,9 +10,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 BUILD="$HERE/../build-verify-prompt.sh"
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -596,6 +594,4 @@ done
 [[ -z "$problems" ]] && ok \
   || no "a contract header or a shell-hazard warning is not grounds for REJECT (${problems#; })"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

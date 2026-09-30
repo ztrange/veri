@@ -31,7 +31,6 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 TRIAGE="$HERE/../refactor-triage.sh"
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -289,6 +288,4 @@ same_code_probe "a report with no CANDIDATES: line" "$malformed_report"
 rm -f "$structural_report" "$none_report" "$malformed_report"
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

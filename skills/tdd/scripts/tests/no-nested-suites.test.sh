@@ -63,7 +63,6 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 suites_dir="skills/tdd/scripts/tests"
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -169,6 +168,4 @@ report "affected-suites.test.sh's fixture and case-name mentions of claude-md-co
 mentions_reported build-develop-prompt.test.sh build-verify-prompt.test.sh
 report "#487: affected-suites.test.sh's mentions of build-develop-prompt.test.sh and build-verify-prompt.test.sh are not read as launching them"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

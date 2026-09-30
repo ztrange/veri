@@ -38,7 +38,6 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LEAF_ROLE="$HERE/../leaf-role.sh"
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -131,6 +130,4 @@ role_probe verify-refactor VERI_ACTOR=verifier  VERI_PHASE=refactor
 role_probe conductor-506   VERI_ACTOR=conductor VERI_PHASE=506      VERI_ATTEMPT=1
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

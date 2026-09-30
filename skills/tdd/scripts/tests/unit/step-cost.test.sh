@@ -12,7 +12,8 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 STEP_COST="$HERE/../../step-cost.sh"
-pass=0 fail=0 problems=""
+source "$HERE/../lib/harness.sh"
+problems=""
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -228,6 +229,4 @@ run_cost "cost a step — its title ⟦criterion 1⟧"
 expect 0 "0.42"
 verdict "#521: a step title carrying an em dash and ⟦criterion k⟧ is summed to the figure --steps prints for it"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

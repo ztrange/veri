@@ -28,7 +28,6 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
 md="$ROOT/$skill_md"
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -150,6 +149,4 @@ if need_scripts_prose; then
 fi
 report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish

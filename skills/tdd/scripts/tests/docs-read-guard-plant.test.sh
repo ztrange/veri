@@ -46,7 +46,6 @@ GUARD_NAME='no-docs-reads.test.sh'
 SUBJECT_NAME='docs-read-guard.test.sh'
 SUBJECT_PATH="$ROOT/$TESTS_DIR/$SUBJECT_NAME"
 
-pass=0 fail=0
 
 source "$HERE/lib/harness.sh"
 
@@ -158,6 +157,4 @@ fi
 tree=""
 
 report "$name"
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish
