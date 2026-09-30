@@ -574,4 +574,51 @@ else
   echo "    stderr: $(cat "$work/show-no-items.err")"
 fi
 
+argcapdir="$work/argcap-bin"
+mkdir -p "$argcapdir"
+real_python3="$(command -v python3)"
+cat > "$argcapdir/python3" <<STUB
+#!/bin/sh
+for arg in "\$@"; do
+  if [ "\${#arg}" -gt 131072 ]; then
+    echo "python3: Argument list too long" >&2
+    exit 126
+  fi
+done
+exec "$real_python3" "\$@"
+STUB
+chmod +x "$argcapdir/python3"
+
+repo="$work/next-large-doc"
+make_repo "$repo"
+seed_queue "$repo" 'alpha\t2\tqueued\t\nalpha\t3\tqueued\t\n'
+mkdir -p "$work/next-large-doc.short" "$work/next-large-doc.long"
+python3 -c '
+import json, sys
+def issues(pad):
+    return [{"number": n, "title": "issue %d" % n, "labels": [], "state": "OPEN",
+             "body": "## What to build\n\n" + pad + "\n\n## Blocked by\n\n"
+                     + ("- #1\n" if n == 2 else "None.\n")}
+            for n in range(1, 41)]
+json.dump(issues("short"), open(sys.argv[1] + "/issues.json", "w"))
+json.dump(issues("x" * 8192), open(sys.argv[2] + "/issues.json", "w"))
+' "$work/next-large-doc.short" "$work/next-large-doc.long"
+long_size="$(wc -c < "$work/next-large-doc.long/issues.json" | tr -d ' ')"
+large_next() {  # large_next <short|long>; sets $out and $code
+  out="$(cd "$repo" && PATH="$argcapdir:$PATH" VERI_GH_JSON="$work/next-large-doc.$1" \
+    "$SCRIPT" next alpha 2>"$work/next-large-doc.$1.err")" && code=0 || code=$?
+}
+large_next short; short_out="$out" short_code="$code"
+large_next long
+if [[ "$long_size" -gt 262144 && "$short_code" == 0 && "$short_out" == 3 &&
+  "$code" == "$short_code" && "$out" == "$short_out" ]]; then
+  ok
+else
+  no "next reads an issues document larger than 256 KiB and prints the same issue and exit code as for a small one, under a python3 that refuses any argument over 128 KiB the way Linux does (#591)"
+  echo "    long issues.json: $long_size bytes (want >262144)"
+  echo "    short: exit $short_code (want 0), stdout: '$short_out' (want '3')"
+  echo "    long: exit $code (want $short_code), stdout: '$out' (want '$short_out')"
+  echo "    long stderr: $(cat "$work/next-large-doc.long.err")"
+fi
+
 finish
