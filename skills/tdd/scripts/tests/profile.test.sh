@@ -197,11 +197,9 @@ real_bash="$(command -v bash)"
 for mode in unset override; do
   shim="$scratch/no-ps4-$mode"
   mkdir -p "$shim"
-  if [[ "$mode" == unset ]]; then
-    printf '#!/bin/sh\nunset PS4\nexec "%s" "$@"\n' "$real_bash" > "$shim/bash"
-  else
-    printf '#!/bin/sh\nPS4="+ "\nexport PS4\nexec "%s" "$@"\n' "$real_bash" > "$shim/bash"
-  fi
+  ps4_line='unset PS4'
+  [[ "$mode" == unset ]] || ps4_line='PS4="+ "; export PS4'
+  printf '#!/bin/sh\n%s\nexec "%s" "$@"\n' "$ps4_line" "$real_bash" > "$shim/bash"
   chmod +x "$shim/bash"
   out="$(PATH="$shim:$PATH" VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
   [[ "$code" == 0 ]] || problems+=("PS4 $mode: want exit 0, got $code")
