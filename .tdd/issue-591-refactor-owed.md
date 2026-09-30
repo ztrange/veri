@@ -1,0 +1,2 @@
+### solvable-issues.sh prints the same numbers and exits 0 for a VERI_GH_JSON fixture whose issues.json is larger than 256 KiB as for the same issues with short bodies, and no argument it hands python3 carries the JSON document ⟦criterion 1⟧
+- move the argv-capping python3 stub (solvable-issues.test.sh:1188-1200) into a shared test helper once the workqueue/invisible-work/wait-ci suites need the same stub
