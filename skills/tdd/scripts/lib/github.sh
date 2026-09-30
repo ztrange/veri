@@ -5,10 +5,12 @@
 #   0  marked ready
 #   2  GitHub gave no answer on either route
 #
-# gh_issue_view <n> body|labels — print issue <n>'s body, or its label names one per line.
+# gh_issue_view <n> body|labels — print issue <n>'s body, or its label names one per line;
+#   2 when GitHub gave no answer on either route.
 #
 # gh_list <rest-path> <gh args…> — print `gh <gh args…>`'s JSON, or else every page of
-#   `gh api --paginate <rest-path>`, one JSON array per page, back to back.
+#   `gh api --paginate <rest-path>`, one JSON array per page, back to back; 2 when GitHub gave
+#   no answer on either route.
 
 gh_pr_ready() {
   gh pr ready "$1" ||
@@ -28,10 +30,10 @@ if sys.argv[1] == "labels":
         print(label["name"])
 else:
     print(issue["body"] or "")
-' "$2"
+' "$2" || return 2
 }
 
 gh_list() {
   local rest="$1"; shift
-  gh "$@" 2> /dev/null || gh api --paginate "$rest"
+  gh "$@" 2> /dev/null || gh api --paginate "$rest" || return 2
 }

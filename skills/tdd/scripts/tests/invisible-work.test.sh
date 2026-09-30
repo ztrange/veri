@@ -523,6 +523,42 @@ run_both_ghs "$clone" "$gh_fx" "$work/case568-closed/stderr"
 same_under_refusal "$work/case568-closed/stderr"
 report "$name"
 
+name="every script converted to REST exits 2, never 1, when its REST call fails with a network error, a 404 or a 5xx under a gh that refuses GraphQL (#568)"
+problems=()
+clone="$(unpr_branch_clone "$work/case568-noanswer" "chore/nobody-opened-a-pr" 1)"
+mkdir -p "$work/case568-noanswer/bin"
+cat > "$work/case568-noanswer/bin/gh" <<'STUB'
+#!/bin/sh
+refusal='GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)'
+case "$1" in
+  issue|pr|repo) echo "HTTP 403: $refusal" >&2; exit 1 ;;
+esac
+case "$*" in
+  "api graphql"*) echo "HTTP 403: $refusal" >&2; exit 1 ;;
+esac
+echo "$*" >> "$GH_REST_LOG"
+echo "$GH_FAILURE" >&2
+exit 1
+STUB
+chmod +x "$work/case568-noanswer/bin/gh"
+for failure in "error connecting to api.github.com" "HTTP 404: Not Found (https://api.github.com/repos/o/r/issues/7)" "HTTP 502: Bad Gateway"; do
+  for run in "capture-spec.sh 7" "solvable-issues.sh" "workqueue.sh next w1" \
+    "tick-issue-criterion.sh 7 criterion" "coverage-blocker.sh 7" "parallel-conductors.sh" \
+    "wait-ci.sh https://github.com/o/r/pull/5" "invisible-work.sh"; do
+    read -r -a argv <<< "$run"
+    : > "$work/case568-noanswer/rest.log"
+    (cd "$clone" && env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_PARALLEL \
+      -u VERI_MAX_ISSUES PATH="$work/case568-noanswer/bin:$PATH" GH_FAILURE="$failure" \
+      GH_REST_LOG="$work/case568-noanswer/rest.log" \
+      "$HERE/../${argv[0]}" "${argv[@]:1}" > /dev/null 2>&1); rc=$?
+    [[ -s "$work/case568-noanswer/rest.log" ]] ||
+      problems+=("$run under '$failure': never made a REST call")
+    [[ "$rc" -eq 2 ]] ||
+      problems+=("$run under '$failure': want exit 2, got $rc")
+  done
+done
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
