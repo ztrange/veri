@@ -113,7 +113,10 @@ OFFLINE_PROXY := http://127.0.0.1:1
 # reads $git_bin, $real_git and $reach_log from the recipe that expands it.
 OFFLINE_GIT := real_git="$${OFFLINE_REAL_GIT:-$$(xcrun -f git 2>/dev/null || command -v git)}"; \
 	ln -sf "$$real_git" "$$git_bin/git"; \
-	exec_path="$$("$$real_git" --exec-path)"
+	exec_path="$$("$$real_git" --exec-path)"; \
+	if [ -d "$$(dirname "$$real_git")/../share/git-core/templates" ]; then \
+	  export GIT_TEMPLATE_DIR="$$(dirname "$$real_git")/../share/git-core/templates"; \
+	else unset GIT_TEMPLATE_DIR; fi
 OFFLINE_ENV = PATH="$(GUARD_PATH)$$git_bin:$(OFFLINE_BIN):$$PATH" OFFLINE_REAL_GIT="$$real_git" GIT_EXEC_PATH="$$exec_path" OFFLINE_REACH_LOG="$$reach_log" \
 	GIT_CONFIG_COUNT=3 GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=$(OFFLINE_PROXY) \
 	GIT_CONFIG_KEY_1=protocol.allow GIT_CONFIG_VALUE_1=never \

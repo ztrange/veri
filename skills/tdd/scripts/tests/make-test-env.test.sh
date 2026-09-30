@@ -135,6 +135,23 @@ expect GIT_EXEC_PATH "$work/fake-libexec" \
   "git run through the symlink derives its prefix from the symlink's directory and names a libexec that does not exist"
 report "make test gives every suite the GIT_EXEC_PATH the real git reports at its own path (#582)"
 
+problems=()
+tmpl_git="$work/tmpl-git/bin/git"
+mkdir -p "$(dirname "$tmpl_git")"
+printf '#!/bin/sh\n[ "$1" = --exec-path ] && echo "%s"\n' "$work/fake-libexec" > "$tmpl_git"
+chmod +x "$tmpl_git"
+mkdir -p "$work/tmpl-git/share/git-core/templates"
+recipe /dev/null -u OFFLINE_REAL_GIT -u GIT_TEMPLATE_DIR PATH="$stub:$PATH" XCRUN_GIT="$tmpl_git"
+got_templates="$(saw GIT_TEMPLATE_DIR)"
+got_resolved="$(cd "$got_templates" 2>/dev/null && pwd -P)"
+want_resolved="$(cd "$work/tmpl-git/share/git-core/templates" && pwd -P)"
+[[ "$got_resolved" == "$want_resolved" ]] ||
+  problems+=("a suite saw GIT_TEMPLATE_DIR=${got_templates:-<nothing>}, want the templates directory beside the real git ($want_resolved) — git run through the symlink looks for templates under a prefix that does not exist")
+rm -rf "$work/tmpl-git/share"
+recipe /dev/null -u OFFLINE_REAL_GIT GIT_TEMPLATE_DIR="$work/ambient-templates" PATH="$stub:$PATH" XCRUN_GIT="$tmpl_git"
+expect GIT_TEMPLATE_DIR "<unset>" "with no templates directory beside the real git, the recipe must leave GIT_TEMPLATE_DIR unset"
+report "make test gives every suite a GIT_TEMPLATE_DIR beside the real git when that directory exists, and none when it does not (#582)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
