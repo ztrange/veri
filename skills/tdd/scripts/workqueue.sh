@@ -31,9 +31,10 @@ queue="$main_tree/.tdd/workqueue"
 
 if [[ "${1:-}" == next ]]; then
   if [[ -n "${VERI_GH_JSON:-}" ]]; then
-    issues_json="$(cat "$VERI_GH_JSON/issues.json")"
+    exec 3< "$VERI_GH_JSON/issues.json"
   else
     issues_json="$(gh_rest_list "repos/{owner}/{repo}/issues?state=all&per_page=100")"
+    exec 3< <(printf '%s' "$issues_json")
   fi
   origin_url="$(git remote get-url origin 2>/dev/null || true)"
   origin_url="${origin_url%.git}"
@@ -46,7 +47,7 @@ import json, sys
 
 import blocked_by
 
-text = sys.stdin.read()
+text = sys.stdin.read().rstrip("\n")
 issues, at, decoder = [], 0, json.JSONDecoder()
 while at < len(text):
     page, at = decoder.raw_decode(text, at)
@@ -63,7 +64,7 @@ with open(sys.argv[2]) as f:
             print(issue)
             sys.exit(0)
 sys.exit(3)
-' "$2" "$queue" "$repo" < <(printf '%s' "$issues_json")
+' "$2" "$queue" "$repo" <&3 3<&-
 fi
 
 # hazard: BSD has no flock; mkdir is the atomic lock.
