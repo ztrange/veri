@@ -356,6 +356,7 @@ wait_ci_run='[^#]*[$]s/wait-ci[.]sh '
 push_run='[^#]*([$]s/push-branch[.]sh|git push)'
 log_failed_read='[^#]*gh run view [^#]*--log-failed'
 ready_run='[^#]*gh_pr_ready'
+body_edit='gh api -x patch .*-f body='
 
 unmarked_records() { tr -d '*`' <<< "$records"; }
 
@@ -366,7 +367,7 @@ if step_or_problem '### 4. Draft PR' "whether the step creates a second PR"; the
   commands="$(section_commands)"
   grep -qE '^gh api -x patch .*-f title=' <<< "$commands" ||
     problems+=("$skill_md's Draft PR step never runs gh pr edit with --title, so the PR keeps the work-in-progress title it was opened with at the plan commit and a reader of origin cannot tell the finished branch from a run mid-flight")
-  grep -qE '^gh api -x patch .*-f body=' <<< "$commands" ||
+  grep -qE "^$body_edit" <<< "$commands" ||
     problems+=("$skill_md's Draft PR step never runs gh pr edit with --body, so the body a human reads at the merge is still the one-line claim the plan commit opened")
   grep -qE "^$ready_run" <<< "$commands" ||
     problems+=("$skill_md's Draft PR step never runs gh pr ready, so a finished run leaves a draft nobody is asked to review")
@@ -395,7 +396,7 @@ problems=()
 
 if section_or_problem '## Bailing' '^## ' "what a bailed run does with the draft PR its branch already carries"; then
   commands="$(section_commands)"
-  grep -qE '^gh api [^#]*/issues/<pr-number>/comments|^gh api -x patch .*-f body=' <<< "$commands" ||
+  grep -qE "^gh api [^#]*/issues/<pr-number>/comments|^$body_edit" <<< "$commands" ||
     problems+=("$skill_md's Bailing section runs neither gh pr comment nor gh pr edit --body, so the bail diagnostic reaches the issue thread and never the draft PR a human is pointed at, which still reads as a run in progress")
   closes="$(first_record "$commands" -E '^gh pr close')"
   [[ -z "$closes" ]] ||
