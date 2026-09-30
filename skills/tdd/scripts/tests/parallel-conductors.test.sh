@@ -715,4 +715,66 @@ graphql_run refused
    && "$code" == "$working_code" && "$out" == "$working" ]] \
   && ok || no "#568 against a gh that refuses GraphQL with the 403 and answers REST in two pages, the draft PR on the second, parallel-conductors.sh prints the same report and exit code as against a working gh ( [working gh: exit=$working_code want 1, report '$(printf '%s' "$working" | tr '\n' '|')' want '#7 — bailed https://example.test/pull/7|stopped: #7 bailed'; GraphQL refused: exit=$code want $working_code, report '$(printf '%s' "$out" | tr '\n' '|')' want the same] $(tr '\n' '|' < "$work/gh25-refused.out") )"
 
+pr_pages=(
+  '{"number": 901, "body": "Closes #901", "state": "open", "draft": true, "html_url": "https://example.test/pull/901"}, {"number": 902, "body": "", "state": "open", "draft": false, "html_url": "https://example.test/pull/902"}'
+  '{"number": 903, "body": "Closes #903", "state": "open", "draft": false, "html_url": "https://example.test/pull/903"}, {"number": 904, "body": "", "state": "open", "draft": true, "html_url": "https://example.test/pull/904"}'
+  '{"number": 905, "body": "Closes #%s", "state": "open", "draft": true, "html_url": "https://example.test/pull/%s"}'
+)
+proxy_gh="$work/proxy-refusing-bin"
+mkdir -p "$proxy_gh"
+cat > "$proxy_gh/gh" <<'STUB'
+#!/bin/sh
+proxy='gh: Numeric-ID repository paths (repositories/{id}/...) are not supported through this proxy. Use repos/{owner}/{repo}/... endpoints instead. (HTTP 403)'
+case "$1" in
+  issue|pr|repo) echo "HTTP 403: GitHub GraphQL is not available from Claude Code sessions" >&2; exit 1 ;;
+  api) shift ;;
+  *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
+esac
+paginate="" path=""
+for arg in "$@"; do
+  case "$arg" in
+    --paginate) paginate=1 ;;
+    -*) echo "gh stub: unsupported flag $arg" >&2; exit 1 ;;
+    *) path="$arg" ;;
+  esac
+done
+case "$path" in
+  *repositories/*) echo "$proxy" >&2; exit 1 ;;
+  "repos/{owner}/{repo}/issues"*) list=issues ;;
+  "repos/{owner}/{repo}/pulls"*) list=pulls ;;
+  *) echo "gh stub: unexpected path $path" >&2; exit 1 ;;
+esac
+page="$(printf '%s\n' "$path" | sed -n 's/.*[?&]page=\([0-9][0-9]*\).*/\1/p')"
+[ -n "$page" ] || page=1
+if [ -f "$GH_FX/$list-$page.json" ]; then cat "$GH_FX/$list-$page.json"; else echo '[]'; fi
+if [ -n "$paginate" ] && [ -f "$GH_FX/$list-$((page + 1)).json" ]; then echo "$proxy" >&2; exit 1; fi
+exit 0
+STUB
+chmod +x "$proxy_gh/gh"
+
+paged_run() {  # paged_run <one|three>; sets $out and $code
+  local fx="$work/gh26-$1" stub="$work/claude-gh26-$1" i
+  mkdir -p "$fx"
+  printf '%s\n' '[{"number": 7, "title": "issue 7", "labels": [{"id": 1, "name": "ready-for-agent", "color": "ededed"}], "state": "open", "body": "## Blocked by\n\nNone.\n"}]' > "$fx/issues-1.json"
+  {
+    printf '%s\n' "mkdir -p \".tdd/wt/\$n/.tdd\""
+    printf '%s\n' "printf '%s\\n' '$bail_event' >> \".tdd/wt/\$n/.tdd/events.jsonl\""
+    if [[ "$1" == one ]]; then
+      printf "printf '[%s]\\\\n' \"\$n\" \"\$n\" > \"%s/pulls-1.json\"\n" "$(IFS=,; printf '%s' "${pr_pages[*]}")" "$fx"
+    else
+      for i in 0 1 2; do
+        printf "printf '[%s]\\\\n' \"\$n\" \"\$n\" > \"%s/pulls-%s.json\"\n" "${pr_pages[i]}" "$fx" "$((i + 1))"
+      done
+    fi
+  } | conductor_stub "$stub"
+  run_launcher "" "$stub" "$work/gh26-$1.out" PATH="$proxy_gh:$PATH" GH_FX="$fx"
+  out="$(grep -E '^(#[0-9]+ — |stopped: )' "$work/gh26-$1.out")"
+}
+
+paged_run one; one_out="$out" one_code="$code"
+paged_run three
+[[ "$one_code" == 1 && "$one_out" == "$(printf '#7 — bailed https://example.test/pull/7\nstopped: #7 bailed')" \
+   && "$code" == "$one_code" && "$out" == "$one_out" ]] \
+  && ok || no "#592 against a gh that serves open PRs over three pages on repos/{owner}/{repo}, the draft PR on the third, and refuses repositories/{id} with the proxy's 403, parallel-conductors.sh prints the same report and exit code as against a single-page fixture holding the same PRs ( [single page: exit=$one_code want 1, report '$(printf '%s' "$one_out" | tr '\n' '|')' want '#7 — bailed https://example.test/pull/7|stopped: #7 bailed'; three pages: exit=$code want $one_code, report '$(printf '%s' "$out" | tr '\n' '|')' want the same] $(tr '\n' '|' < "$work/gh26-three.out") )"
+
 finish
