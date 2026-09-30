@@ -34,10 +34,9 @@ report "$name"
 name="VERI_REFACTOR_BUDGET=0: count 0 exits 3, so the refactor loop never runs"
 VERI_REFACTOR_BUDGET=0 "$BUDGET" 0 >/dev/null 2>&1 && code=0 || code=$?
 if [[ "$code" == 3 ]]; then
-  pass=$((pass + 1))
+  ok
 else
-  fail=$((fail + 1))
-  echo "FAIL - $name (want exit 3, got $code)"
+  no "$name (want exit 3, got $code)"
 fi
 
 name="a non-numeric or negative VERI_REFACTOR_BUDGET exits 2 with a diagnostic on stderr and no status on stdout"

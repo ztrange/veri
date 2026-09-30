@@ -21,10 +21,9 @@ check() {
   local out code
   out="$(printf '%s' "$input" | "$PARSE")" && code=0 || code=$?
   if [[ "$code" == "$exp_code" && "$out" == "$exp_out" ]]; then
-    pass=$((pass + 1))
+    ok
   else
-    fail=$((fail + 1))
-    echo "FAIL - $name (want exit $exp_code, got $code)"
+    no "$name (want exit $exp_code, got $code)"
     diff <(printf '%s\n' "$exp_out") <(printf '%s\n' "$out") | sed 's/^/    /'
   fi
 }
@@ -93,10 +92,9 @@ REASON: The transform is behaviour-preserving and the suite is green.'
 ns_out_plain="$(printf '%s' "$ns_plain" | "$PARSE")" && ns_code_plain=0 || ns_code_plain=$?
 ns_out_proposing="$(printf '%s' "$ns_proposing" | "$PARSE")" && ns_code_proposing=0 || ns_code_proposing=$?
 if [[ "$ns_code_proposing" == "$ns_code_plain" && "$ns_out_proposing" == "$ns_out_plain" ]]; then
-  pass=$((pass + 1))
+  ok
 else
-  fail=$((fail + 1))
-  echo "FAIL - new_step lines before the verdict pair change nothing (want exit $ns_code_plain, got $ns_code_proposing)"
+  no "new_step lines before the verdict pair change nothing (want exit $ns_code_plain, got $ns_code_proposing)"
   diff <(printf '%s\n' "$ns_out_plain") <(printf '%s\n' "$ns_out_proposing") | sed 's/^/    /'
 fi
 

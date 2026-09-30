@@ -13,8 +13,8 @@ source "$HERE/lib/harness.sh"
 check() {  # check <name> <input> <expected-stdout>
   local name="$1" input="$2" exp="$3" out
   out="$(printf '%s' "$input" | "$EXTRACT")"
-  if [[ "$out" == "$exp" ]]; then pass=$((pass + 1)); else
-    fail=$((fail + 1)); echo "FAIL - $name"
+  if [[ "$out" == "$exp" ]]; then ok; else
+    no "$name"
     diff <(printf '%s\n' "$exp") <(printf '%s\n' "$out") | sed 's/^/    /'
   fi
 }

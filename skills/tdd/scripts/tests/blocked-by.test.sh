@@ -19,10 +19,9 @@ source "$HERE/lib/harness.sh"
 
 check() {
   if [[ "$2" == "$3" ]]; then
-    pass=$((pass + 1))
+    ok
   else
-    fail=$((fail + 1))
-    echo "FAIL - $1"
+    no "$1"
     diff <(printf '%s\n' "$2") <(printf '%s\n' "$3") | sed 's/^/    /'
   fi
 }
