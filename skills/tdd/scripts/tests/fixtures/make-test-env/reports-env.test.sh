@@ -2,9 +2,9 @@
 # Fixture for make-test-env.test.sh. It lives under fixtures/ so `make test`'s own glob never
 # picks it up: only that suite runs it, and only through the recipe, as `make test TESTS=<this>`.
 #
-# It judges nothing. It writes down four facts about the environment the recipe ran it in —
+# It judges nothing. It writes down five facts about the environment the recipe ran it in —
 # the locale, the resolved real git (still handed down as OFFLINE_REAL_GIT), what the `git` on
-# PATH symlinks straight to, and whether its stdin is /dev/null — one `key=value` line each to
+# PATH symlinks straight to, the GIT_EXEC_PATH it was given, and whether its stdin is /dev/null — one `key=value` line each to
 # $PROBE_OUT, and reports a pass so the recipe itself stays green. Whether those facts are the
 # right ones is the suite's question, asked of the file.
 #
@@ -25,6 +25,7 @@ git_link_target="$(readlink "$git_path" 2>/dev/null || echo '<not-a-symlink>')"
   printf 'LC_ALL=%s\n' "${LC_ALL-<unset>}"
   printf 'OFFLINE_REAL_GIT=%s\n' "${OFFLINE_REAL_GIT-<unset>}"
   printf 'GIT_LINK_TARGET=%s\n' "$git_link_target"
+  printf 'GIT_EXEC_PATH=%s\n' "${GIT_EXEC_PATH-<unset>}"
   printf 'stdin=%s\n' "$stdin"
 } > "$out"
 echo "1 passed, 0 failed"
