@@ -23,4 +23,4 @@
 - [x] coverage-blocker.sh writes nothing to stderr under the GraphQL-refusing stub, the same as against a working gh ⟦added⟧ ⟦criterion 2⟧
 - [x] A suite fails naming `<file>:<line>` for any `gh issue`, `gh pr` or `gh repo` call left in skills/tdd/SKILL.md or skills/tdd/scripts/*.sh, exempting only the helper's ready-for-review route ⟦criterion 2⟧
 - [x] CLAUDE.md states the *Testing idiom* suite count as the count on disk — claude-md-counts.test.sh: FAIL - CLAUDE.md's stated script and suite counts match the scripts and suites on disk (CLAUDE.md says '124'; there are 125 on disk) ⟦added⟧ ⟦criterion 6⟧
-- [ ] `make test` stays green on CI (Linux) ⟦full-suite⟧ ⟦criterion 6⟧
+- [x] `make test` stays green on CI (Linux) ⟦full-suite⟧ ⟦criterion 6⟧
