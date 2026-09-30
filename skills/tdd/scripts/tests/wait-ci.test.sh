@@ -509,4 +509,32 @@ done
 [[ "$proxy_three" == "$proxy_one" ]] || problems+=("three pages, the failed run on the third: want exit $proxy_one as on one page, got $proxy_three (stderr: $(cat "$work/proxy-three.err"))")
 report "$name"
 
+name="wait-ci.sh exits 2 naming the sha when a check-runs page after the first fails with a 5xx, the same exit and stderr as when the first and only page read fails (#592)"
+problems=()
+sha=89abcdef0123456789abcdef0123456789abcdef
+mkdir -p "$work/flaky-bin"
+cat > "$work/flaky-bin/gh" <<'G'
+#!/bin/sh
+case "$*" in
+  *"check-runs"*"page=$GH_FAIL_PAGE"*) echo "HTTP 502: Bad Gateway" >&2; exit 1 ;;
+esac
+exec "$GH_REAL" "$@"
+G
+chmod +x "$work/flaky-bin/gh"
+for broken in 1 2; do
+  dir="$(scratch_dir)"; mkdir "$dir/.tdd"; : > "$work/flaky-$broken.clock"
+  code="$( ( cd "$dir" && env VERI_POLL=0 VERI_CLOCK_STEP=60 VERI_CLOCK_LOG="$work/flaky-$broken.clock" \
+      GH_SHA="$sha" GH_FX="$work/proxy-three" GH_FAIL_PAGE="$broken" GH_REAL="$work/proxy-bin/gh" \
+      PATH="$work/flaky-bin:$work/bin:$PATH" \
+      "$WAIT" "$PR" 60 60 "$sha" >/dev/null 2>"$work/flaky-$broken.err" ); echo $? )"
+  printf -v "flaky_$broken" '%s' "$code"
+done
+[[ "$flaky_1" == 2 ]] || problems+=("first page 502: want exit 2, got $flaky_1 (stderr: $(cat "$work/flaky-1.err"))")
+grep -F "could not read the checks of $sha" "$work/flaky-1.err" > /dev/null \
+  || problems+=("first page 502: want stderr naming $sha, got: $(cat "$work/flaky-1.err")")
+[[ "$flaky_2" == "$flaky_1" ]] || problems+=("second page 502: want exit $flaky_1 as on a failed first page, got $flaky_2 (stderr: $(cat "$work/flaky-2.err"))")
+[[ "$(cat "$work/flaky-2.err")" == "$(cat "$work/flaky-1.err")" ]] \
+  || problems+=("second page 502: want the failed first page's stderr, got: $(cat "$work/flaky-2.err")")
+report "$name"
+
 finish
