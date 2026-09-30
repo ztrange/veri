@@ -237,6 +237,24 @@ else
 $(cat "$work/refused.err")"
 fi
 
+name="under a gh that refuses GraphQL, coverage-blocker writes nothing to stderr, the same as against a working gh (#568)"
+body='## What to build
+
+Extract the parser.
+
+## Blocked by
+
+None (can start immediately).
+'
+run_blocker "$body" "$work/quiet-working-create" "$work/quiet-working-edit" 60 > /dev/null 2>"$work/quiet-working.err" && working_code=0 || working_code=$?
+env PATH="$refuseddir:$PATH" FAKE_BODY="$body" FAKE_CREATE="$work/quiet-refused-create" FAKE_OUT="$work/quiet-refused-edit" \
+  "$BLOCKER" 60 > /dev/null 2>"$work/quiet-refused.err" && code=0 || code=$?
+if [[ "$code" == 0 && "$working_code" == 0 && ! -s "$work/quiet-working.err" && ! -s "$work/quiet-refused.err" ]]; then
+  ok
+else
+  no "$name (exit want 0 got $code, working $working_code; stderr want empty, got '$(cat "$work/quiet-refused.err")', working '$(cat "$work/quiet-working.err")')"
+fi
+
 restdir="$work/rest"
 mkdir -p "$restdir"
 cat > "$restdir/gh" <<'STUB'
