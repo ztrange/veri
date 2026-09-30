@@ -22,8 +22,7 @@ source "$(cd "$(dirname "$0")" && pwd)/lib/github.sh"
 
 title="Cover the behaviour #$n refactors"
 text="Refactor #$n refused: its Cover probe found the code it would move uncovered (\`COVERED: no\`). Find a seam and surround the behaviour with tests, then #$n can be retaken."
-url="$(gh issue create --title "$title" --body "$text" ||
-  gh api "repos/{owner}/{repo}/issues" -f "title=$title" -f "body=$text" -q .html_url)" || exit 2
+url="$(gh api "repos/{owner}/{repo}/issues" -f "title=$title" -f "body=$text" -q .html_url)" || exit 2
 new="${url##*/}"
 
 body="$(gh_issue_view "$n" body)"
@@ -42,6 +41,5 @@ printf '%s\n' "$body" | awk -v blocker="- #$new" '
     }
   }
 ' > "$tmp"
-gh issue edit "$n" --body-file "$tmp" > /dev/null ||
-  gh api -X PATCH "repos/{owner}/{repo}/issues/$n" -F "body=@$tmp" > /dev/null || exit 2
+gh api -X PATCH "repos/{owner}/{repo}/issues/$n" -F "body=@$tmp" > /dev/null || exit 2
 echo "$url"

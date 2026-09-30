@@ -29,18 +29,18 @@ stubdir="$work/bin"
 mkdir -p "$stubdir"
 cat > "$stubdir/gh" <<'STUB'
 #!/bin/sh
-if [ "$1" = "issue" ] && [ "$2" = "create" ]; then
-  printf '%s\n' "$@" > "$FAKE_CREATE"
-  echo "https://github.com/owner/name/issues/77"
-elif [ "$1" = "issue" ] && [ "$2" = "view" ]; then
-  printf '%s' "$FAKE_BODY"
-elif [ "$1" = "issue" ] && [ "$2" = "edit" ]; then
-  prev=""
-  for a in "$@"; do
-    [ "$prev" = "--body-file" ] && cp "$a" "$FAKE_OUT"
-    prev="$a"
-  done
-fi
+case "$*" in
+  *PATCH*)
+    for a in "$@"; do
+      case "$a" in *=@*) cp "${a#*=@}" "$FAKE_OUT" ;; esac
+    done
+    echo '{}' ;;
+  "api "*"repos/"*"/issues/60"*) printf '%s' "$FAKE_BODY" ;;
+  "api "*"repos/"*"/issues"*)
+    printf '%s\n' "$@" > "$FAKE_CREATE"
+    echo "https://github.com/owner/name/issues/77" ;;
+  "issue view"*) printf '%s' "$FAKE_BODY" ;;
+esac
 STUB
 chmod +x "$stubdir/gh"
 
@@ -235,6 +235,51 @@ if [[ "$working_code" == 0 && "$code" == "$working_code" && "$same" == yes && "$
 else
   no "$name (exit want $working_code got $code; stdout same=$same; blocked=$blocked want yes)
 $(cat "$work/refused.err")"
+fi
+
+restdir="$work/rest"
+mkdir -p "$restdir"
+cat > "$restdir/gh" <<'STUB'
+#!/bin/sh
+echo "$*" >> "$FAKE_CALLS"
+case "$1 $2" in
+  "issue create"|"issue edit") exit 1 ;;
+  "issue view") printf '%s' "$FAKE_BODY"; exit 0 ;;
+esac
+case "$*" in
+  *PATCH*)
+    for a in "$@"; do
+      case "$a" in *=@*) cp "${a#*=@}" "$FAKE_OUT" ;; esac
+    done
+    echo '{}' ;;
+  "api "*"repos/"*"/issues"*) echo "https://github.com/owner/name/issues/77" ;;
+  *) exit 1 ;;
+esac
+STUB
+chmod +x "$restdir/gh"
+
+name="coverage-blocker files the issue and edits the body through gh api only, never gh issue create or edit (#568)"
+body='## What to build
+
+Extract the parser.
+
+## Blocked by
+
+None (can start immediately).
+'
+calls="$work/rest-calls" rest_edit="$work/rest-edit"
+: > "$calls"
+env PATH="$restdir:$PATH" FAKE_BODY="$body" FAKE_CALLS="$calls" FAKE_OUT="$rest_edit" \
+  "$BLOCKER" 60 > "$work/rest-out" 2>"$work/rest.err" && code=0 || code=$?
+issue_calls="$(grep -E '^issue (create|edit)' "$calls")"
+blocked=no
+[[ -f "$rest_edit" ]] && grep -Fx -- "- #77" "$rest_edit" > /dev/null && blocked=yes
+if [[ "$code" == 0 && -z "$issue_calls" && "$blocked" == yes \
+      && "$(cat "$work/rest-out")" == "https://github.com/owner/name/issues/77" ]]; then
+  ok
+else
+  no "$name (exit want 0 got $code; issue create/edit calls='$issue_calls' want none; blocked=$blocked want yes)
+$(cat "$work/rest.err")"
 fi
 
 echo "----"
