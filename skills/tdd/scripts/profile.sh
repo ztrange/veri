@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # profile.sh — say which of a suite's cases are the slow ones, measured rather than guessed.
 #
-# Runs each suite given under `bash -x`, its trace sent to a file nothing else reads, every
+# Sources each suite given into a `bash -c` that sets PS4 and `set -x` itself — bash run as
+# uid 0 takes no PS4 from its environment — its trace sent to a file nothing else reads, every
 # trace line stamped by PS4 with ${EPOCHREALTIME} (no subprocess, unlike `date +%s.%N`) and
 # ${LINENO}. A case ends at each top-level assignment that raises `pass` or `fail` above its
 # previous value — the two counters every suite in this tree keeps — so a case's cost is
@@ -25,11 +26,11 @@ trace="$(mktemp)"
 trap 'rm -f "$trace"' EXIT
 
 for suite in "$@"; do
-  PS4='+${EPOCHREALTIME} ${LINENO} ' BASH_XTRACEFD=9 \
-    bash -x "$suite" 9>"$trace" >/dev/null 2>&1 < /dev/null || true
+  BASH_XTRACEFD=9 bash -c 'PS4='\''+${EPOCHREALTIME} ${LINENO} '\''; set -x; . "$0"' \
+    "$suite" 9>"$trace" >/dev/null 2>&1 < /dev/null || true
   awk -v suite="$suite" -v threshold="$threshold" '
-    /^\+[^+]/ {
-      stamp = substr($1, 2)
+    /^\+\+[^+]/ {
+      stamp = substr($1, 3)
       if (stamp != "" && start == "") start = stamp
       lineno = $2
       cmd = $3
