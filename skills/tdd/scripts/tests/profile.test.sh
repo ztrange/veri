@@ -190,6 +190,35 @@ out="$(env -u VERI_PROFILE_THRESHOLD "$PROFILE" "$fixture" 2>/dev/null)" && code
 [[ -z "$out" ]] || problems+=("no case reaching 1 s: want no output, got: $(printf '%q' "$out")")
 report "$name"
 
+name="a traced bash that takes no PS4 from its environment still gets stamped lines"
+problems=()
+real_bash="$(command -v bash)"
+for mode in unset override; do
+  shim="$scratch/no-ps4-$mode"
+  mkdir -p "$shim"
+  if [[ "$mode" == unset ]]; then
+    printf '#!/bin/sh\nunset PS4\nexec "%s" "$@"\n' "$real_bash" > "$shim/bash"
+  else
+    printf '#!/bin/sh\nPS4="+ "\nexport PS4\nexec "%s" "$@"\n' "$real_bash" > "$shim/bash"
+  fi
+  chmod +x "$shim/bash"
+  write_fixture "no-ps4-$mode.test.sh" <<'EOF'
+unset EPOCHREALTIME
+pass=0; fail=0
+EPOCHREALTIME=10.000000
+pass=$((pass + 1))
+EPOCHREALTIME=11.000000
+x=1
+EPOCHREALTIME=13.000000
+pass=$((pass + 1))
+echo "${pass:-0} passed, $fail failed"
+EOF
+  out="$(PATH="$shim:$PATH" VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
+  [[ "$code" == 0 ]] || problems+=("PS4 $mode: want exit 0, got $code")
+  expect_line "$fixture case 2 L5-8" 3
+done
+report "$name"
+
 name="make -n profile: the same suites as make -n test, in the same offline environment"
 problems=()
 ROOT="$(cd "$HERE/../../../.." && pwd)"
