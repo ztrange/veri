@@ -46,23 +46,24 @@ import json, sys
 
 import blocked_by
 
+text = sys.stdin.read()
 issues, at, decoder = [], 0, json.JSONDecoder()
-while at < len(sys.argv[1]):
-    page, at = decoder.raw_decode(sys.argv[1], at)
+while at < len(text):
+    page, at = decoder.raw_decode(text, at)
     issues.extend(page)
-worker = sys.argv[2]
+worker = sys.argv[1]
 open_issues = {i["number"] for i in issues if i.get("state", "").upper() == "OPEN"}
 bodies = {i["number"]: i.get("body") or "" for i in issues}
-with open(sys.argv[3]) as f:
+with open(sys.argv[2]) as f:
     for line in f:
         owner, issue, state = line.rstrip("\n").split("\t")[:3]
         if owner != worker or state != "queued":
             continue
-        if all(n not in open_issues for n in blocked_by.blockers(bodies.get(int(issue), ""), sys.argv[4])):
+        if all(n not in open_issues for n in blocked_by.blockers(bodies.get(int(issue), ""), sys.argv[3])):
             print(issue)
             sys.exit(0)
 sys.exit(3)
-' "$issues_json" "$2" "$queue" "$repo"
+' "$2" "$queue" "$repo" < <(printf '%s' "$issues_json")
 fi
 
 # hazard: BSD has no flock; mkdir is the atomic lock.
