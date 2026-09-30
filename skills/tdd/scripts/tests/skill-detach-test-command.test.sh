@@ -40,4 +40,22 @@ while IFS= read -r line; do
 done < <(undetached "$md")
 report "$name"
 
+no_background_rule() {
+  awk '/[Nn]o step/ && /background/ && /end(s)? (its|the|their)? ?turn/ { found = 1 }
+       END { if (!found) print "SKILL.md: no line says that no step backgrounds a command and ends its turn" }' "$1"
+}
+
+name="#601 $skill_md says no step backgrounds a command and ends its turn"
+problems=()
+
+planted="$(scratch_dir)/SKILL.md"
+printf '%s\n' 'Never launch a leaf in a background Bash call and then wait for its notification.' > "$planted"
+expect_eq "$name (scanner flags a leaf-only rule)" \
+  'SKILL.md: no line says that no step backgrounds a command and ends its turn' "$(no_background_rule "$planted")"
+
+while IFS= read -r line; do
+  problems+=("$line")
+done < <(no_background_rule "$md")
+report "$name"
+
 finish
