@@ -314,7 +314,7 @@ fi
 
 report "$name"
 
-name="$claude_md's unit-tier suite count moved with unit/gh-fixture.test.sh (#588)"
+name="$claude_md's unit-tier suite count moved with the unit/gh-fixture suite (#588)"
 problems=()
 
 present "skills/tdd/scripts/tests/unit/gh-fixture.test.sh"

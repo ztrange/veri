@@ -168,4 +168,10 @@ report "affected-suites.test.sh's fixture and case-name mentions of claude-md-co
 mentions_reported build-develop-prompt.test.sh build-verify-prompt.test.sh
 report "#487: affected-suites.test.sh's mentions of build-develop-prompt.test.sh and build-verify-prompt.test.sh are not read as launching them"
 
+problems=()
+for reported in "${scanned[@]}"; do
+  [[ "$reported" == claude-md-counts.test.sh:*"names gh-fixture.test.sh"* ]] && problems+=("$reported")
+done
+report "#588: claude-md-counts.test.sh's case name mentioning gh-fixture.test.sh is not read as launching it"
+
 finish
