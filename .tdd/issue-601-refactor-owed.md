@@ -1,0 +1,2 @@
+### Repair the red full suite: claude-md-counts.test.sh — FAIL - CLAUDE.md's stated script and suite counts match the scripts and suites on disk (CLAUDE.md says the *Testing idiom* suite count is '129'; there are 130 on disk, since skill-detach-test-command.test.sh was added) ⟦added⟧ ⟦criterion 1⟧
+- the new case at `claude-md-counts.test.sh:302` repeats the present / readable / `moved_by` scaffold of the earlier per-script cases. A shared helper would be a cross-case extraction, which is outside this step's bounds.
