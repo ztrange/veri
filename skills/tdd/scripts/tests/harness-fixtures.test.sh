@@ -6,12 +6,9 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+source "$HERE/lib/harness.sh"
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+work="$(scratch_dir)"
 
 name="fixtures: scratch_dir is removed at exit, on_exit runs, new_repo commits, claude_stub runs, and a later bg_start keeps the trap"
 cat > "$work/child.sh" <<CHILD
@@ -39,13 +36,6 @@ dir="$(cat "$work/dir" 2>/dev/null)"
 [[ "$(cat "$work/stub-out" 2>/dev/null)" == stubbed ]] || problems+=("claude_stub output: $(cat "$work/stub-out" 2>/dev/null)")
 grep -F "still running at exit" "$work/err" > /dev/null || problems+=("bg_start survivor report lost from the EXIT trap")
 while read -r pid _; do kill "$pid" 2>/dev/null || true; done < "$work/rec" 2>/dev/null
-if [[ "${#problems[@]}" -eq 0 ]]; then
-  ok
-else
-  no "$name"
-  printf '    %s\n' "${problems[@]}"
-fi
+report "$name"
 
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+finish
