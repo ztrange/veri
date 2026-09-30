@@ -125,6 +125,16 @@ expect GIT_LINK_TARGET "$want_git" \
   "the git symlink on a suite's PATH should point straight at the same binary OFFLINE_REAL_GIT names, with no wrapper in between"
 report "make test's git symlink points at the git on PATH, when xcrun does not answer"
 
+problems=()
+exec_git="$work/exec-git/git"
+mkdir -p "$(dirname "$exec_git")"
+printf '#!/bin/sh\n[ "$1" = --exec-path ] && echo "%s"\n' "$work/fake-libexec" > "$exec_git"
+chmod +x "$exec_git"
+recipe /dev/null -u OFFLINE_REAL_GIT -u GIT_EXEC_PATH PATH="$stub:$PATH" XCRUN_GIT="$exec_git"
+expect GIT_EXEC_PATH "$work/fake-libexec" \
+  "git run through the symlink derives its prefix from the symlink's directory and names a libexec that does not exist"
+report "make test gives every suite the GIT_EXEC_PATH the real git reports at its own path (#582)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

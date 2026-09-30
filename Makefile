@@ -112,8 +112,9 @@ OFFLINE_PROXY := http://127.0.0.1:1
 # $git_bin; OFFLINE_ENV is the assignments and the locale a suite is started under, and
 # reads $git_bin, $real_git and $reach_log from the recipe that expands it.
 OFFLINE_GIT := real_git="$${OFFLINE_REAL_GIT:-$$(xcrun -f git 2>/dev/null || command -v git)}"; \
-	ln -sf "$$real_git" "$$git_bin/git"
-OFFLINE_ENV = PATH="$(GUARD_PATH)$$git_bin:$(OFFLINE_BIN):$$PATH" OFFLINE_REAL_GIT="$$real_git" OFFLINE_REACH_LOG="$$reach_log" \
+	ln -sf "$$real_git" "$$git_bin/git"; \
+	exec_path="$$("$$real_git" --exec-path)"
+OFFLINE_ENV = PATH="$(GUARD_PATH)$$git_bin:$(OFFLINE_BIN):$$PATH" OFFLINE_REAL_GIT="$$real_git" GIT_EXEC_PATH="$$exec_path" OFFLINE_REACH_LOG="$$reach_log" \
 	GIT_CONFIG_COUNT=3 GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=$(OFFLINE_PROXY) \
 	GIT_CONFIG_KEY_1=protocol.allow GIT_CONFIG_VALUE_1=never \
 	GIT_CONFIG_KEY_2=protocol.file.allow GIT_CONFIG_VALUE_2=always \
