@@ -51,7 +51,8 @@ case "$*" in
   "api repos/o/r/pulls/1"|"pr view $PR_URL --json "*statusCheckRollup*)
     if [ -n "${GH_FAIL:-}" ]; then echo "HTTP 502: Bad Gateway" >&2; exit 1; fi
     echo >> "$ROLLUP.calls"
-    if [ "$1" = pr ]; then cat "$(served '')"; else
+    if [ "$1" = pr ] && [ -n "${GH_PR_VIEW_HEAD:-}" ]; then printf '{"headRefOid":"%s","statusCheckRollup":[]}\n' "$GH_PR_VIEW_HEAD"
+    elif [ "$1" = pr ]; then cat "$(served '')"; else
       python3 -c 'import json, sys; print(json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": json.load(open(sys.argv[1])).get("headRefOid")}}))' "$(served '')"
     fi ;;
   "api "*"repos/o/r/commits/"*/check-runs*)
@@ -100,8 +101,8 @@ rows = doc["statusCheckRollup"]
 runs = [{"name": r["name"], "head_sha": doc["headRefOid"], "status": r["status"].lower(),
          "conclusion": r["conclusion"].lower() or None}
         for r in rows if r["__typename"] == "CheckRun"]
-statuses = [{"context": r["context"], "state": {"EXPECTED": "pending"}.get(r["state"], r["state"].lower())}
-            for r in rows if r["__typename"] == "StatusContext" and "state" in r]
+statuses = [{"context": r["context"], **({"state": {"EXPECTED": "pending"}.get(r["state"], r["state"].lower())} if "state" in r else {})}
+            for r in rows if r["__typename"] == "StatusContext"]
 json.dump({"total_count": len(runs), "check_runs": runs}, open(sys.argv[1] + ".check-runs", "w"))
 json.dump({"state": "pending", "sha": doc["headRefOid"], "total_count": len(statuses), "statuses": statuses},
           open(sys.argv[1] + ".status", "w"))
@@ -421,6 +422,16 @@ for route in working refused; do
     [[ "$got" == "${want##*:}" ]] || problems+=("$route GraphQL, ${want%%:*} checks on the PR's head $sha: want exit ${want##*:}, got $got (stderr: $(cat "$work/$f.err"))")
   done
 done
+report "$name"
+
+name="wait-ci.sh reads the PR's head through the REST pull only: against a working gh whose pr view reports another head, it still takes the REST head and exits 0 on that sha's green checks (#568)"
+problems=()
+sha=89abcdef0123456789abcdef0123456789abcdef
+sha_head rest-only.json
+sha_runs rest-only.json "$(sha_run gates completed '"success"')"
+sha_statuses rest-only.json success
+got="$(GH_PR_VIEW_HEAD=fedcba9876543210fedcba9876543210fedcba98 waited rest-only 60 60 "$sha")"
+[[ "$got" == 0 ]] || problems+=("working gh whose pr view reports another head: want exit 0, got $got (stderr: $(cat "$work/rest-only.err"))")
 report "$name"
 
 echo "$pass passed, $fail failed"

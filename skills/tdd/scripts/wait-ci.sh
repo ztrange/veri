@@ -30,20 +30,10 @@ slice_end=""
 passing="success neutral skipped"
 
 pr_head() {
-  local doc
-  doc="$(gh pr view "$pr" --json headRefOid,statusCheckRollup 2> /dev/null)" ||
-    doc="$(gh api "repos/$repo/pulls/${pr##*/pull/}" | python3 -c '
+  gh api "repos/$repo/pulls/${pr##*/pull/}" | python3 -c '
 import json, sys
-print(json.dumps({"headRefOid": json.load(sys.stdin)["head"]["sha"]}))
-')" || return 2
-  python3 -c '
-import json, sys
-doc = json.loads(sys.argv[1])
-if any(r.get("__typename") == "StatusContext" and "state" not in r
-       for r in doc.get("statusCheckRollup") or []):
-    sys.exit(2)
-print(doc.get("headRefOid") or "")
-' "$doc"
+print(json.load(sys.stdin)["head"]["sha"] or "")
+'
 }
 
 sha_state() {
@@ -54,7 +44,7 @@ sha_state() {
   python3 -c '
 import json, sys
 pages = json.loads(sys.argv[1])
-states = [s.get("state") for s in json.loads(sys.argv[2]).get("statuses") or []]
+states = [s["state"] for s in json.loads(sys.argv[2]).get("statuses") or []]
 runs = [r for p in pages for r in p.get("check_runs") or []]
 outcomes = [r.get("conclusion") if r.get("status") == "completed" else None for r in runs]
 if any(o is not None and o not in sys.argv[3].split() for o in outcomes) \
