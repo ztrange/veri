@@ -73,6 +73,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/leaf-model.sh"
 source "$HERE/lib/preserve.sh"
 source "$HERE/lib/number-in.sh"
+source "$HERE/lib/awake-seconds.sh"
 
 heartbeat="${VERI_HEARTBEAT:-180}"
 timeout="${VERI_TIMEOUT:-900}"
@@ -97,10 +98,6 @@ pidfile=".tdd/$name.pid"
 now() { date +%s; }
 
 awake_clock="${VERI_AWAKE_CLOCK:-awake_seconds}"
-
-awake_seconds() {
-  python3 -c 'import time; print(int(time.clock_gettime(getattr(time, "CLOCK_UPTIME_RAW", time.CLOCK_MONOTONIC))))'
-}
 
 # hazard: GNU stat reads -f as --file-system and prints to stdout, so try each spelling into its own assignment.
 mtime_of() {

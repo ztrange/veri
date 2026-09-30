@@ -55,6 +55,7 @@ mkdir -p .tdd
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/json-escape.sh"
+source "$HERE/lib/awake-seconds.sh"
 
 # hazard: printf's %(…)T needs bash 4.2 or newer.
 ts=""
@@ -63,7 +64,7 @@ printf -v ts '%(%s)T' -1
 if [[ -n "${VERI_AWAKE_CLOCK:-}" ]]; then
   awake="$("$VERI_AWAKE_CLOCK")"
 else
-  awake="$(python3 -c 'import time; print(int(time.clock_gettime(getattr(time, "CLOCK_UPTIME_RAW", time.CLOCK_MONOTONIC))))')"
+  awake="$(awake_seconds)"
 fi
 
 declare esc_issue esc_actor esc_phase esc_step esc_event esc_attempt esc_skill_commit
