@@ -34,4 +34,4 @@ new="$(printf '%s' "$body" | "$HERE/tick-criterion.sh" "$matcher")" || {
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 printf '%s' "$new" > "$tmp"
-gh api -X PATCH "repos/{owner}/{repo}/issues/$n" -F "body=@$tmp" >/dev/null || exit 2
+gh_issue_edit "$n" "$tmp" || exit 2

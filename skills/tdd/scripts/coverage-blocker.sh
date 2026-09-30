@@ -41,5 +41,5 @@ printf '%s\n' "$body" | awk -v blocker="- #$new" '
     }
   }
 ' > "$tmp"
-gh api -X PATCH "repos/{owner}/{repo}/issues/$n" -F "body=@$tmp" > /dev/null || exit 2
+gh_issue_edit "$n" "$tmp" || exit 2
 echo "$url"

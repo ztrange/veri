@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# lib/github.sh — sourced, not run: defines `gh_pr_ready`, `gh_issue_view`, `gh_list` and `gh_rest_list`.
+# lib/github.sh — sourced, not run: defines `gh_pr_ready`, `gh_issue_view`, `gh_issue_edit`, `gh_list` and `gh_rest_list`.
 #
 # gh_pr_ready <n> — mark draft PR <n> ready for review.
 #   0  marked ready
@@ -7,6 +7,9 @@
 #
 # gh_issue_view <n> body|labels — print issue <n>'s body, or its label names one per line;
 #   2 when GitHub gave no answer on either route.
+#
+# gh_issue_edit <n> <body-file> — replace issue <n>'s body with the contents of <body-file>;
+#   2 when GitHub gave no answer.
 #
 # gh_list <rest-path> <gh args…> — print `gh <gh args…>`'s JSON, or else every page of
 #   `gh api --paginate <rest-path>`, one JSON array per page, back to back; 2 when GitHub gave
@@ -34,6 +37,10 @@ if sys.argv[1] == "labels":
 else:
     print(issue["body"] or "")
 ' "$2" || return 2
+}
+
+gh_issue_edit() {
+  gh api -X PATCH "repos/{owner}/{repo}/issues/$1" -F "body=@$2" > /dev/null || return 2
 }
 
 gh_list() {
