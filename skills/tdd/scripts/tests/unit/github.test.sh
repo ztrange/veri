@@ -216,4 +216,38 @@ if grep -F "repositories/" "$calls" > /dev/null; then
 fi
 record
 
+# 7. a later page that fails for a reason other than the proxy's refusal gives no answer, so
+#    gh_rest_list and gh_list return 2 — a 502 on page 2, a network error on page 2
+name="gh_rest_list and gh_list repos/{owner}/{repo}/issues?per_page=2 return 2 when page 1 answers and page 2 fails with a 502, and with a network error"
+err="$scratch/err7"
+(
+  gh() {
+    case "$*" in
+      'api repos/{owner}/{repo}/issues?per_page=2&page=1') printf '%s\n' '[{"number":1},{"number":2}]' ;;
+      'api repos/{owner}/{repo}/issues?per_page=2&page=2') echo 'gh: Bad Gateway (HTTP 502)' >&2; return 1 ;;
+      *) echo 'stub gh: unexpected call' >&2; return 1 ;;
+    esac
+  }
+  source "$LIB"
+  gh_rest_list 'repos/{owner}/{repo}/issues?per_page=2'
+) > /dev/null 2> "$err"
+rc_rest=$?
+(
+  gh() {
+    case "$*" in
+      'api repos/{owner}/{repo}/issues?per_page=2&page=1') printf '%s\n' '[{"number":1},{"number":2}]' ;;
+      'api repos/{owner}/{repo}/issues?per_page=2&page=2')
+        echo 'error connecting to api.github.com' >&2; return 1 ;;
+      *) echo "HTTP 403: $refusal" >&2; return 1 ;;
+    esac
+  }
+  source "$LIB"
+  gh_list 'repos/{owner}/{repo}/issues?per_page=2' issue list --state all --json number
+) > /dev/null 2>> "$err"
+rc_list=$?
+problems=""
+[[ "$rc_rest" -eq 2 ]] || problems+="    want gh_rest_list to return 2 on page 2's 502, got $rc_rest"$'\n'
+[[ "$rc_list" -eq 2 ]] || problems+="    want gh_list to return 2 on page 2's network error, got $rc_list"$'\n'
+record
+
 finish
