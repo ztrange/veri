@@ -522,7 +522,7 @@ unauthenticated baseline never gets a cycle.
    a suite that gets slower mid-run does not move the timeout under a leaf.
 
    **Then time the full tier too.** Get its command from
-   `$S/detect-test-command.sh --tier all --issue "$body"`, run it once through `$S/detach-command.sh start <name> <cmd>`, then `$S/detach-command.sh wait <name> 500` in the foreground, calling `wait` again each time it returns 3 (never background it and end the turn), 
+   `$S/detect-test-command.sh --tier all --issue "$body"`, run it once through `detach-command.sh` in the same start-then-wait shape as the preflight baseline,
    and keep its elapsed
    wall time in whole seconds (round up) as `full`; step 7 sizes the run's hard timeout from
    that number, not from `baseline`. The full-tier run is the work a leaf actually does — a
@@ -1348,7 +1348,7 @@ Reached when `next-unchecked.sh` exits 3 — every ledger step is checked off bu
 `⟦full-suite⟧` and `⟦human-owed⟧` lines, which that script skips and no cycle closes: an
 unchecked line carrying either does not hold the run back from this step. The full suite
 must be green before this step: run `$S/detect-test-command.sh --tier all`'s command via `detach-command.sh` here
-through `$S/detach-command.sh start <name> <cmd>`, then `$S/detach-command.sh wait <name> 500` in the foreground, calling `wait` again each time it returns 3 (never background it and end the turn), exactly once — the only full-suite gate left in the cycle, since every leaf runs the fast
+through `detach-command.sh` in the same start-then-wait shape as the preflight baseline, exactly once — the only full-suite gate left in the cycle, since every leaf runs the fast
 command, the affected suites, or both. That nothing is left uncommitted and no step is still only
 green is not taken on trust here — sub-step 1 asks. Like every step since 1.2, this one runs
 **from inside the worktree** — every command below is issued there, so each sees the issue
@@ -1410,7 +1410,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    printed is `<pre-rebase-sha>`, the sha the branch held before the rebase. The rebased tip
    is a tree no suite has run on, and two green branches can combine into a red one, so run
    the full test command (`$S/detect-test-command.sh --tier all`'s, via `detach-command.sh`) once on the rebased tip,
-   through `$S/detach-command.sh start <name> <cmd>`, then `$S/detach-command.sh wait <name> 500` in the foreground, calling `wait` again each time it returns 3 (never background it and end the turn), and read its exit code from `wait`.
+   through `detach-command.sh` in the same start-then-wait shape as the preflight baseline, and read its exit code from `wait`.
    A red result on the rebased tip does **bail**, as a **process** failure, with the PR left
    a draft: it is never readied. On green, publish the rewritten history:
 
