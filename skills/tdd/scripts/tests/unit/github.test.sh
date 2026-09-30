@@ -24,6 +24,10 @@ record() {
   fi
 }
 
+numbers_in() {
+  grep -oE '"number": *[0-9]+' "$1" | grep -oE '[0-9]+$' | tr '\n' ' '
+}
+
 # 1. against a gh whose GraphQL works, gh_pr_ready marks the draft ready through the ordinary
 #    `gh pr ready` route, returns 0, and never calls the cloud session's ccr route
 name="gh_pr_ready 42 against a gh that answers GraphQL runs gh pr ready 42, returns 0, and never calls pulls/42/ccr/ready_for_review"
@@ -148,7 +152,7 @@ proxy='gh: Numeric-ID repository paths (repositories/{id}/...) are not supported
   gh_rest_list 'repos/{owner}/{repo}/issues?per_page=2'
 ) > "$out" 2> "$err"
 rc=$?
-got="$(grep -oE '"number": *[0-9]+' "$out" | grep -oE '[0-9]+$' | tr '\n' ' ')"
+got="$(numbers_in "$out")"
 problems=""
 [[ "$rc" -eq 0 ]] || problems+="    want return 0, got $rc"$'\n'
 [[ "$got" == "1 2 3 4 5 6 " ]] ||
@@ -176,7 +180,7 @@ calls="$scratch/calls5" err="$scratch/err5" out="$scratch/out5"
   gh_rest_list 'repos/{owner}/{repo}/pulls'
 ) > "$out" 2> "$err"
 rc=$?
-got="$(grep -oE '"number": *[0-9]+' "$out" | grep -oE '[0-9]+$' | tr '\n' ' ')"
+got="$(numbers_in "$out")"
 problems=""
 [[ "$rc" -eq 0 ]] || problems+="    want return 0, got $rc; gh saw: $(printf '%q' "$(cat "$calls")")"$'\n'
 [[ "$got" == "1 2 3 " ]] || problems+="    want items 1 2 3, got: $(printf '%q' "$got")"$'\n'
