@@ -58,4 +58,22 @@ while IFS= read -r line; do
 done < <(no_background_rule "$md")
 report "$name"
 
+wait_reading() {
+  awk '/detach-command\.sh wait/ && /pass/ && /red/ && /died/ && /still running/ { found = 1 }
+       END { if (!found) print "SKILL.md: no line reads detach-command.sh wait'"'"'s exit codes (0 passed, 1 red, 2 died, 3 still running)" }' "$1"
+}
+
+name="#601 $skill_md says what detach-command.sh wait answers: 0 passed, 1 red, 2 died, 3 still running"
+problems=()
+
+planted="$(scratch_dir)/SKILL.md"
+printf '%s\n' 'Run `detach-command.sh wait <name> 500`, calling it again each time it returns 3.' > "$planted"
+expect_eq "$name (scanner flags a line that reads only the 3)" \
+  'SKILL.md: no line reads detach-command.sh wait'"'"'s exit codes (0 passed, 1 red, 2 died, 3 still running)' "$(wait_reading "$planted")"
+
+while IFS= read -r line; do
+  problems+=("$line")
+done < <(wait_reading "$md")
+report "$name"
+
 finish
