@@ -509,7 +509,12 @@ if passes:
     for (step, index), (mark, spent_by) in passes.items():
         row([step, index, refactor_spent(mark), mark["stopped"],
              spent_by["verdict"], str(spent_by["revise"]), figure(WALL, spent_by[WALL]), figure(DOLLARS, spent_by[DOLLARS])])
-if structural is not None:
+if structural is not None and "transforms" not in structural:
+    print()
+    print("#### Structural pass")
+    print()
+    print("Stopped: %s" % structural["stopped"])
+elif structural is not None:
     table_head("#### Structural pass", "pass", ["refactor", "stopped"], ["---:", "---"])
     row(["issue", refactor_spent(structural), structural["stopped"]])
 tier_section("#### Test-command seconds, by tier", "tier")
