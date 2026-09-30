@@ -575,19 +575,7 @@ else
 fi
 
 argcapdir="$work/argcap-bin"
-mkdir -p "$argcapdir"
-real_python3="$(command -v python3)"
-cat > "$argcapdir/python3" <<STUB
-#!/bin/sh
-for arg in "\$@"; do
-  if [ "\${#arg}" -gt 131072 ]; then
-    echo "python3: Argument list too long" >&2
-    exit 126
-  fi
-done
-exec "$real_python3" "\$@"
-STUB
-chmod +x "$argcapdir/python3"
+argcap_python3_stub "$argcapdir"
 
 repo="$work/next-large-doc"
 make_repo "$repo"
