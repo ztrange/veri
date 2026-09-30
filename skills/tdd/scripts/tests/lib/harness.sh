@@ -3,8 +3,8 @@
 # Usage: source "$HERE/lib/harness.sh"; ...; finish
 # finish exits non-zero (returns 1) when any assertion failed.
 
-pass=0
-fail=0
+pass="${pass:-0}"
+fail="${fail:-0}"
 problems=()
 
 ok() { pass=$((pass + 1)); }
@@ -34,7 +34,7 @@ finish() {
   [[ "$fail" -eq 0 ]]
 }
 
-_harness_scratch="$(mktemp)"
+_harness_scratch="$(mktemp 2>/dev/null)"
 _harness_exits=()
 
 _harness_exit() {
@@ -42,6 +42,7 @@ _harness_exit() {
   for cmd in ${_harness_exits+"${_harness_exits[@]}"}; do
     eval "$cmd" || true
   done
+  [[ -n "$_harness_scratch" ]] || return 0
   while read -r dir; do
     rm -rf "$dir"
   done < "$_harness_scratch"

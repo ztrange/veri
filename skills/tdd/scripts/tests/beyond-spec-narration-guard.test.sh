@@ -52,6 +52,7 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/harness.sh"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 GUARD='skills/tdd/scripts/tests/skill-refactor-leaf.test.sh'
@@ -70,17 +71,6 @@ GRANT='is planned and built in this run'
 pass=0 fail=0
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
-
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
 
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
@@ -101,6 +91,7 @@ plant() {
   }
   guard_copy="$tree/$GUARD"
   cp "$GUARD_PATH" "$guard_copy" || return 1
+  mkdir -p "${guard_copy%/*}/lib" && cp "$HERE/lib/harness.sh" "${guard_copy%/*}/lib/" || return 1
   for companion in "${COMPANIONS[@]}"; do
     cp "$ROOT/$companion" "$tree/$companion" || {
       problems+=("$companion could not be copied into the scratch tree, so the guard would be red for a reason that is not the plant")

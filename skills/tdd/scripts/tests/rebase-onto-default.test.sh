@@ -25,21 +25,19 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/harness.sh"
 REBASE="$HERE/../rebase-onto-default.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 pass=0 fail=0
 
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-    [[ -s "${stderr_file:-/dev/null}" ]] && sed 's/^/    stderr: /' "$stderr_file"
+report_stderr() {
+  local before="$fail"
+  report "$1"
+  if [[ "$fail" -gt "$before" && -s "${stderr_file:-/dev/null}" ]]; then
+    sed 's/^/    stderr: /' "$stderr_file"
   fi
+  return 0
 }
 
 stderr_file=/dev/null
@@ -140,7 +138,7 @@ head_after="$(git -C "$repo" rev-parse HEAD)"
 status_after="$(git -C "$repo" status --porcelain=v1 --untracked-files=all)"
 [[ "$status_after" == "$status_before" ]] ||
   problems+=("working tree: want it unchanged at $(printf '%q' "$status_before"), got $(printf '%q' "$status_after")")
-report "$name"
+report_stderr "$name"
 
 name="rebase-onto-default.test.sh: a branch behind origin/<default> with no conflict rebases onto it, exits 0, prints the pre-rebase and onto shas, and keeps its own commit on top"
 problems=()
@@ -163,7 +161,7 @@ parent="$(git -C "$repo" rev-parse HEAD~1 2>/dev/null)"
 subject="$(git -C "$repo" log -1 --format=%s HEAD)"
 [[ "$subject" == "feat: a step's green commit (#1)" ]] ||
   problems+=("HEAD subject: want the branch's own commit, got $(printf '%q' "$subject")")
-report "$name"
+report_stderr "$name"
 
 name="rebase-onto-default.test.sh: a rebase that conflicts is aborted, exits 1, leaves HEAD at the pre-rebase sha with a clean tree and no rebase in progress, and prints the conflicting files one per line"
 problems=()
@@ -178,7 +176,7 @@ rc=$?
 expect_conflict_aborted "$repo" "$pre" "$rc" "$out"
 status_after="$(git -C "$repo" status --porcelain=v1 --untracked-files=all)"
 [[ -z "$status_after" ]] || problems+=("working tree: want clean, got $(printf '%q' "$status_after")")
-report "$name"
+report_stderr "$name"
 
 name="rebase-onto-default.test.sh: a rebase git refuses for a reason other than a conflict, such as a dirty working tree, exits 2 with nothing on stdout and HEAD unchanged"
 problems=()
@@ -189,7 +187,7 @@ repo="$dir/clone"
 git -C "$repo" config rebase.autoStash false
 echo "an uncommitted edit" > "$repo/file.txt"
 expect_refused "$repo" "$dir/stdout" ""
-report "$name"
+report_stderr "$name"
 
 name="rebase-onto-default.test.sh: in a repo configured with rebase.backend=apply, a rebase that conflicts is still aborted, exits 1, prints the conflicting files, and leaves no rebase in progress"
 problems=()
@@ -203,7 +201,7 @@ pre="$(git -C "$repo" rev-parse HEAD)"
 out="$(cd "$repo" && bash "$REBASE" 2>"$stderr_file")"
 rc=$?
 expect_conflict_aborted "$repo" "$pre" "$rc" "$out"
-report "$name"
+report_stderr "$name"
 
 name="rebase-onto-default.test.sh: when origin/<default> cannot be fetched, exits 2 with nothing on stdout and never rebases onto the stale local copy"
 problems=()
@@ -213,7 +211,7 @@ behind_branch "$dir"
 repo="$dir/clone"
 mv "$dir/origin.git" "$dir/origin-gone.git"
 expect_refused "$repo" "$dir/stdout" ", not rebased onto the stale origin/main"
-report "$name"
+report_stderr "$name"
 
 name="rebase-onto-default.test.sh: when a fetch succeeds without refreshing origin/<default>, exits 2 with nothing on stdout and never rebases onto the stale local copy"
 problems=()
@@ -225,7 +223,7 @@ git -C "$repo" config remote.origin.fetch '+refs/heads/tdd/*:refs/remotes/origin
 echo "a third run's work" > "$dir/seed/third.txt"
 advance_origin "$dir"
 expect_refused "$repo" "$dir/stdout" ", not rebased onto the stale origin/main"
-report "$name"
+report_stderr "$name"
 
 name="rebase-onto-default.test.sh: when origin/HEAD still names no branch after a successful fetch, exits 2 with nothing on stdout and HEAD unchanged"
 problems=()
@@ -236,7 +234,7 @@ repo="$dir/clone"
 git -C "$repo" config remote.origin.followRemoteHEAD never
 git -C "$repo" remote set-head origin -d >/dev/null 2>&1
 expect_refused "$repo" "$dir/stdout" ", with no default branch to rebase onto"
-report "$name"
+report_stderr "$name"
 
 echo "----"
 echo "$pass passed, $fail failed"

@@ -48,9 +48,9 @@ predicted='slugify: command not found'
 fail_output='FAIL - slugify lowercases the title (want exit 0, got 127)'
 note='the suite died on a missing helper before it reached the assertion'
 
-# report <fail-output> <predicted-failure> <trailing-line>... — a red leaf's report, printed
+# leaf_report <fail-output> <predicted-failure> <trailing-line>... — a red leaf's report, printed
 # with no trailing newline, the way the leaf's own report reaches the script on stdin.
-report() {
+leaf_report() {
   local text line
   text="TEST_PATH: skills/tdd/scripts/tests/unit/slugify.test.sh
 TARGET_TEST: slugify lowercases the title
@@ -66,14 +66,14 @@ $line"; done
 # so nothing in it is a value the reason has to carry. Named for the run, not for a verdict:
 # a case feeds it PREDICTION: probably, and none at all, as readily as PREDICTION: MATCHED.
 as_predicted_report() {
-  report "FAIL - slugify lowercases the title (want 'a-b', got 'A B')" \
+  leaf_report "FAIL - slugify lowercases the title (want 'a-b', got 'A B')" \
          "the assertion on the slug, want 'a-b', got 'A B'" "$@"
 }
 
 # surprise_report <trailing-line>... — the run died on a missing helper instead of failing the
 # way the leaf predicted, so its three values are the ones a DIVERGED reason must carry.
 surprise_report() {
-  report "$fail_output" "$predicted" "$@"
+  leaf_report "$fail_output" "$predicted" "$@"
 }
 
 # The three answers the parser can give about a PREDICTION: line, one helper each, so a case

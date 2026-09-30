@@ -35,16 +35,7 @@ skill_md="skills/tdd/SKILL.md"
 skill_path="$(cd "$HERE/../../../.." && pwd)/$skill_md"
 pass=0 fail=0
 
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
+source "$HERE/lib/harness.sh"
 
 probe() {
   local var="$1" value="$2" tier="$3" seconds="$4" usual="$5" want="$6" code verdict against

@@ -37,6 +37,7 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/harness.sh"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 FIXTURE='skills/tdd/scripts/tests/fixtures/make-test-env/reports-env.test.sh'
@@ -46,17 +47,6 @@ trap 'exec 3>&- 2>/dev/null; rm -rf "$work"' EXIT
 probe="$work/probe"
 
 pass=0 fail=0
-
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
 
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 

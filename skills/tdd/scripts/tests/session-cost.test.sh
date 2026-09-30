@@ -57,16 +57,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 SESSION_COST="$HERE/../session-cost.sh"
 pass=0 fail=0
 
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
+source "$HERE/lib/harness.sh"
 
 anchored() {
   printf '(^|[^0-9])%s([^0-9]|$)' "${1//./\\.}"

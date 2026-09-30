@@ -18,6 +18,7 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/harness.sh"
 SCRIPT="$HERE/../capture-spec.sh"
 pass=0 fail=0
 
@@ -70,16 +71,6 @@ run_spec() {
     > "$out" 2> "$err" || code=$?
   problems=()
   [[ "$code" == 0 ]] || problems+=("exit want 0 got $code; stderr: $(head -2 "$err")")
-}
-
-report() {
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $1"
-    printf '    %s\n' "${problems[@]}"
-  fi
 }
 
 name='bug-labelled issue: the spec carries a ## Bug section with what happened, expected, steps and environment (#112)'

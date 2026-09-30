@@ -37,16 +37,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 EVENT="$HERE/../event.sh"
 pass=0 fail=0
 
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
+source "$HERE/lib/harness.sh"
 
 want_parses() {
   python3 -c '

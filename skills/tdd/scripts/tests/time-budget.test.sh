@@ -27,16 +27,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 BUDGET="$HERE/../time-budget.sh"
 pass=0 fail=0
 
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
+source "$HERE/lib/harness.sh"
 
 name="time-budget.sh: unset tunables resolve to 10 and 1.5; a non-numeric one exits 2 naming the variable"
 problems=()

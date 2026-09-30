@@ -46,6 +46,7 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/harness.sh"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 pass=0 fail=0
@@ -61,17 +62,6 @@ SKILL_MARKER='SKILL.md'
 HEADER_MARKER='header'
 
 FAILED_LINE='SUITES FAILED'
-
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
 
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 

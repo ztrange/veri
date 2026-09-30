@@ -53,6 +53,7 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/harness.sh"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 GUARD='skills/tdd/scripts/tests/skill-leaf-launch.test.sh'
@@ -70,17 +71,6 @@ VERIFIER='run-verdict.sh'
 pass=0 fail=0
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
-
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
 
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
@@ -100,6 +90,7 @@ make_plant_tree() {
   }
   guard_copy="$tree/$GUARD"
   cp "$GUARD_PATH" "$guard_copy"
+  mkdir -p "${guard_copy%/*}/lib" && cp "$HERE/lib/harness.sh" "${guard_copy%/*}/lib/"
 }
 
 plant() {

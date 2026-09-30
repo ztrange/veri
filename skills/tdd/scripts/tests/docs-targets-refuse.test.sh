@@ -66,6 +66,7 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/harness.sh"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 pass=0 fail=0
@@ -85,17 +86,6 @@ DOCS_CMD='make docs-test'
 
 TRIPWIRE_VAR='VERI_TRIPWIRE_LOG'
 GUARD_VAR='VERI_TEST_CMD'
-
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
 
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 

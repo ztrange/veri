@@ -38,16 +38,7 @@ claude_path="$ROOT/$claude_md"
 
 pass=0 fail=0
 
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
+source "$HERE/lib/harness.sh"
 
 plain() {
   tr -d '*`' | tr '[:upper:]' '[:lower:]'

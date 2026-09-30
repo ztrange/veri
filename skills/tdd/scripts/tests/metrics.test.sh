@@ -36,17 +36,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 METRICS="$HERE/../metrics.sh"
 pass=0 fail=0
 
-report() {
-  local name="$1"
-  probes_run
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
+source "$HERE/lib/harness.sh"
 
 report_on() {
   local name="$1" out_file="$2"
