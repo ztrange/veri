@@ -405,6 +405,8 @@ unattended modes below), and in print mode that notification never arrives: the 
 is how #70 was lost). The detach-then-wait shape behaves identically interactively and
 unattended, so it is the only one this procedure uses.
 
+The same holds for the conductor's own long commands: no step backgrounds a command (the baseline or full-suite `make test` included) and ends its turn. They go through `detach-command.sh start`, then `detach-command.sh wait` in the foreground.
+
 ## Launching the conductor
 
 `/tdd <n>` is a skill, so it can be typed inside an interactive Claude Code session. Every
