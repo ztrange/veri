@@ -69,3 +69,20 @@ claude_stub() {
   printf '#!/bin/sh\n%s\n' "$2" > "$1/claude"
   chmod +x "$1/claude"
 }
+
+argcap_python3_stub() {
+  local real
+  real="$(command -v python3)"
+  mkdir -p "$1"
+  cat > "$1/python3" <<STUB
+#!/bin/sh
+for arg in "\$@"; do
+  if [ "\${#arg}" -gt 131072 ]; then
+    echo "python3: Argument list too long" >&2
+    exit 126
+  fi
+done
+exec "$real" "\$@"
+STUB
+  chmod +x "$1/python3"
+}
