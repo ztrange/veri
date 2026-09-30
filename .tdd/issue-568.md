@@ -15,19 +15,10 @@
 - [x] invisible-work.sh produces the same stdout and exit code under the GraphQL-refusing stub as it does today against a working `gh` ⟦criterion 1⟧
 - [x] Each converted script still exits 2, never 1, when its REST call to GitHub fails for a reason other than the GraphQL refusal (network error, 404, 5xx) ⟦criterion 5⟧
 - [x] SKILL.md's steps that read the default branch, read or comment on the issue, and create, view, edit, ready or comment on the PR do it through the helper or `gh api`, and the `skill-*` suites pinning those steps still pass ⟦criterion 4⟧
+- [ ] solvable-issues.sh under the GraphQL-refusing stub does not count a pull request (a /issues REST item carrying pull_request) as a solvable issue, even when it carries the opt-in label ⟦added⟧ ⟦criterion 2⟧
+- [ ] `coverage-blocker.sh` files the coverage issue and edits the refactor issue's body through `gh api` only, with `coverage-blocker.test.sh`'s working-`gh` stub answering REST instead of `issue create` and `issue edit`, and the suite's assertions unchanged. ⟦added⟧ ⟦criterion 2⟧
+- [ ] `tick-issue-criterion.sh` writes the ticked body back through `gh api` only, with `tick-issue-criterion.test.sh`'s stub answering the REST PATCH instead of `issue edit`, and the no-`GH_REPO` and with-`GH_REPO` cases unchanged. ⟦added⟧ ⟦criterion 2⟧
+- [ ] `wait-ci.sh` reads the PR head through `gh api` only, with `wait-ci.test.sh`'s stubs serving the REST pull, and the #544 (missing head exits 2 naming the PR) and #550 (a state-less status row exits 2) cases keeping their behaviour. ⟦added⟧ ⟦criterion 2⟧
+- [ ] coverage-blocker.sh writes nothing to stderr under the GraphQL-refusing stub, the same as against a working gh ⟦added⟧ ⟦criterion 2⟧
 - [ ] A suite fails naming `<file>:<line>` for any `gh issue`, `gh pr` or `gh repo` call left in skills/tdd/SKILL.md or skills/tdd/scripts/*.sh, exempting only the helper's ready-for-review route ⟦criterion 2⟧
 - [ ] `make test` stays green on CI (Linux) ⟦full-suite⟧ ⟦criterion 6⟧
-
-## Owed steps
-
-- solvable-issues.sh under the GraphQL-refusing stub does not count a pull request (a /issues REST item carrying pull_request) as a solvable issue, even when it carries the opt-in label
-
-## Owed steps
-
-- coverage-blocker.sh writes nothing to stderr under the GraphQL-refusing stub, the same as against a working gh
-
-## Owed steps
-
-- `coverage-blocker.sh` files the coverage issue and edits the refactor issue's body through `gh api` only, with `coverage-blocker.test.sh`'s working-`gh` stub answering REST instead of `issue create` and `issue edit`, and the suite's assertions unchanged.
-- `tick-issue-criterion.sh` writes the ticked body back through `gh api` only, with `tick-issue-criterion.test.sh`'s stub answering the REST PATCH instead of `issue edit`, and the no-`GH_REPO` and with-`GH_REPO` cases unchanged.
-- `wait-ci.sh` reads the PR head through `gh api` only, with `wait-ci.test.sh`'s stubs serving the REST pull, and the #544 (missing head exits 2 naming the PR) and #550 (a state-less status row exits 2) cases keeping their behaviour.
