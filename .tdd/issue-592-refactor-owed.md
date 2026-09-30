@@ -1,0 +1,2 @@
+### With a gh stub that serves a list over three pages on repos/{owner}/{repo}/…?page=N (each page carrying a Link rel="next" pointing at repositories/{id}/…) and refuses any repositories/ path with the proxy's HTTP 403, gh_rest_list prints every item from all three pages and exits 0 ⟦criterion 1⟧
+- case 4's gh stub in github.test.sh handles `-i/--include`, `-f/-F` and `-X` flags that no current caller of gh_rest_list sends, so that code is never reached. Deleting it would remove dead code, but it is not duplication removal, so it is out of scope for this phase.
