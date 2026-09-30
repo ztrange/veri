@@ -108,7 +108,7 @@ def documents(text):
         items.extend(page)
     return items
 
-issues = documents(sys.argv[1])
+issues = [i for i in documents(sys.argv[1]) if "pull_request" not in i]
 prs = documents(sys.argv[2])
 label = sys.argv[3]
 priority_label = sys.argv[4]
