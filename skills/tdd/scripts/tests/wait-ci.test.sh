@@ -455,4 +455,58 @@ code="$(PATH="$work/argcap-bin:$PATH" waited large-long 60 60 "$sha")"
   problems+=("long: want exit $short_code and the short run's stderr, got exit $code (stderr: $(cat "$work/large-long.err"))")
 report "$name"
 
+name="wait-ci.sh reads check-runs spread over three pages through a gh that serves repos/{owner}/{repo}/…?page=N and refuses repositories/{id} with the proxy's 403, and reaches the same verdict as with the same check-runs on one page (#592)"
+problems=()
+sha=89abcdef0123456789abcdef0123456789abcdef
+mkdir -p "$work/proxy-bin"
+cat > "$work/proxy-bin/gh" <<'G'
+#!/bin/sh
+proxy='gh: Numeric-ID repository paths (repositories/{id}/...) are not supported through this proxy. Use repos/{owner}/{repo}/... endpoints instead. (HTTP 403)'
+[ "$1" = api ] || { echo "gh stub: unexpected call: gh $*" >&2; exit 1; }
+shift
+paginate="" slurp="" path=""
+for arg in "$@"; do
+  case "$arg" in
+    --paginate) paginate=1 ;;
+    --slurp) slurp=1 ;;
+    -*) echo "gh stub: unsupported flag $arg" >&2; exit 1 ;;
+    *) path="$arg" ;;
+  esac
+done
+case "$path" in
+  *repositories/*) echo "$proxy" >&2; exit 1 ;;
+  repos/o/r/pulls/1) printf '{"number": 1, "head": {"sha": "%s"}}\n' "$GH_SHA"; exit 0 ;;
+  "repos/o/r/commits/$GH_SHA/status") printf '{"state": "success", "sha": "%s", "total_count": 0, "statuses": []}\n' "$GH_SHA"; exit 0 ;;
+  "repos/o/r/commits/$GH_SHA/check-runs"*) ;;
+  *) echo "gh stub: unexpected path $path" >&2; exit 1 ;;
+esac
+page="$(printf '%s\n' "$path" | sed -n 's/.*[?&]page=\([0-9][0-9]*\).*/\1/p')"
+[ -n "$page" ] || page=1
+if [ -n "$paginate" ] && [ -f "$GH_FX/check-runs-$((page + 1)).json" ]; then echo "$proxy" >&2; exit 1; fi
+doc="$GH_FX/check-runs-$page.json"
+[ -f "$doc" ] || { doc="$GH_FX/empty.json"; echo '{"total_count": 0, "check_runs": []}' > "$doc"; }
+if [ -n "$slurp" ]; then printf '[%s]\n' "$(cat "$doc")"; else cat "$doc"; fi
+G
+chmod +x "$work/proxy-bin/gh"
+paged=(
+  "$(sha_run gates-1 completed '"success"'),$(sha_run gates-2 completed '"neutral"')"
+  "$(sha_run gates-3 completed '"success"'),$(sha_run gates-4 completed '"skipped"')"
+  "$(sha_run gates-5 completed '"failure"')"
+)
+mkdir -p "$work/proxy-one" "$work/proxy-three"
+printf '{"total_count": 5, "check_runs": [%s]}\n' "$(IFS=,; printf '%s' "${paged[*]}")" > "$work/proxy-one/check-runs-1.json"
+for i in 0 1 2; do
+  printf '{"total_count": 5, "check_runs": [%s]}\n' "${paged[i]}" > "$work/proxy-three/check-runs-$((i + 1)).json"
+done
+for layout in one three; do
+  dir="$(scratch_dir)"; mkdir "$dir/.tdd"; : > "$work/proxy-$layout.clock"
+  code="$( ( cd "$dir" && env VERI_POLL=0 VERI_CLOCK_STEP=60 VERI_CLOCK_LOG="$work/proxy-$layout.clock" \
+      GH_SHA="$sha" GH_FX="$work/proxy-$layout" PATH="$work/proxy-bin:$work/bin:$PATH" \
+      "$WAIT" "$PR" 60 60 "$sha" >/dev/null 2>"$work/proxy-$layout.err" ); echo $? )"
+  printf -v "proxy_$layout" '%s' "$code"
+done
+[[ "$proxy_one" == 1 ]] || problems+=("one page, a failed run among five: want exit 1, got $proxy_one (stderr: $(cat "$work/proxy-one.err"))")
+[[ "$proxy_three" == "$proxy_one" ]] || problems+=("three pages, the failed run on the third: want exit $proxy_one as on one page, got $proxy_three (stderr: $(cat "$work/proxy-three.err"))")
+report "$name"
+
 finish
