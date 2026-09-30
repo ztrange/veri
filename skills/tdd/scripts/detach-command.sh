@@ -8,7 +8,9 @@
 #        to .tdd/<name>.exit when it ends.
 # wait   polls every VERI_POLL seconds (default 1) for at most max-seconds (default 60).
 #
-# Exit codes (wait): the recorded code of the command once it has finished;
+# Exit codes (wait):
+#   0  the command finished and recorded 0
+#   1  the command finished and recorded a non-zero code; that code is printed on stdout
 #   2  the command died without recording a code, or bad arguments
 #   3  no completion file yet — call again
 set -uo pipefail
@@ -20,7 +22,13 @@ mode="$1"; name="$2"; shift 2
 exit_file=".tdd/$name.exit"
 pid_file=".tdd/$name.pid"
 
-exit_if_recorded() { [[ -f "$exit_file" ]] && exit "$(cat "$exit_file")"; return 0; }
+exit_if_recorded() {
+  [[ -f "$exit_file" ]] || return 0
+  local code; code="$(cat "$exit_file")"
+  [[ "$code" == 0 ]] && exit 0
+  echo "$code"
+  exit 1
+}
 
 case "$mode" in
   start)

@@ -58,7 +58,7 @@ rc=$?
 : > "$GO"
 helper wait ran 30
 rc=$?
-[[ "$rc" == 7 ]] || problems+=("wait on a command that exited 7 returned $rc; want 7")
+[[ "$rc" == 1 ]] || problems+=("wait on a command that exited 7 returned $rc; want 1")
 
 helper start died "$KILLER"
 helper wait died 30
@@ -66,5 +66,15 @@ rc=$?
 [[ "$rc" == 2 ]] || problems+=("wait on a command killed before recording a code returned $rc; want 2")
 
 report "detach-command: #601 start returns at once, wait gives the recorded code, 3 while running, 2 for a death"
+
+problems=()
+
+helper start red "$BLOCKER" "$GO" 2
+out="$(cd "$work" && VERI_POLL=0.05 "$HELPER" wait red 30 2>/dev/null)"
+rc=$?
+[[ "$rc" == 1 ]] || problems+=("wait on a command that recorded 2 (make's code for a failed recipe) returned $rc; want 1")
+[[ "$out" == 2 ]] || problems+=("wait on a command that recorded 2 printed '$out' on stdout; want the recorded code 2")
+
+report "detach-command: #601 wait exits 1, printing the recorded code, for a command that finished non-zero"
 
 finish
