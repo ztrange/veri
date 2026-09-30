@@ -2709,6 +2709,24 @@ structural_section_says "$unstructured_out" "$unstructured" "1/5" "absent"
 
 report_on "$name" "$structural_out"
 
+name="#585 a structural-pass mark carrying only stopped=nothing-structural renders the whole report, its row naming the stop without a spent/budget figure"
+problems=()
+
+fixture_work bare_structural_work
+bare_structural="a step followed by a structural pass that found nothing to do"
+structural_log "$bare_structural"
+sv "" 80030 conductor "" structural-pass "" '"stopped": "nothing-structural"'
+sv "" 80040 conductor "" done "" '"pr": "https://github.com/ztrange/veri/pull/999"'
+bare_structural_out="$bare_structural_work/report.md"
+render "$bare_structural_work" "$bare_structural_out"
+grep -F '#### Total' "$bare_structural_out" > /dev/null ||
+  problems+=("want the report to reach its #### Total section after the structural row, it stops short")
+grep -F -A3 '#### Structural pass' "$bare_structural_out" > "$bare_structural_work/section.txt"
+grep -F 'nothing-structural' "$bare_structural_work/section.txt" > /dev/null ||
+  problems+=("want the structural section to carry stopped=nothing-structural, the report has none")
+
+report_on "$name" "$bare_structural_out"
+
 name="#495 the planned-step count is the number of lib/ledger.sh ledger_steps records, counting no box of its own"
 problems=()
 
