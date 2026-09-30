@@ -37,7 +37,7 @@
 # proves it against a live python3, not by inspection), and `ts` comes from bash's own
 # `printf '%(%s)T'` clock (bash 4.2+) instead of forking
 # `date`. The processes this script starts itself are `mkdir -p .tdd` below and
-# the awake-clock read: one python3 per event for `time.monotonic()` unless VERI_AWAKE_CLOCK
+# the awake-clock read: one python3 per event for the awake clock unless VERI_AWAKE_CLOCK
 # names another executable — composing the line still starts none.
 #
 # No caller in this repo passes a `key=value` argument whose key collides with one of the
@@ -63,7 +63,7 @@ printf -v ts '%(%s)T' -1
 if [[ -n "${VERI_AWAKE_CLOCK:-}" ]]; then
   awake="$("$VERI_AWAKE_CLOCK")"
 else
-  awake="$(python3 -c 'import time; print(int(time.monotonic()))')"
+  awake="$(python3 -c 'import time; print(int(time.clock_gettime(getattr(time, "CLOCK_UPTIME_RAW", time.CLOCK_MONOTONIC))))')"
 fi
 
 declare esc_issue esc_actor esc_phase esc_step esc_event esc_attempt esc_skill_commit
