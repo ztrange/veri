@@ -21,8 +21,8 @@ source "$HERE/lib/harness.sh"
 check() {  # check <name> <fixture> <expected-stdout>
   local name="$1" fixture="$2" exp="$3" out
   out="$("$RENDER" < "$fixture" 2>&1)"
-  if [[ "$out" == "$exp" ]]; then pass=$((pass + 1)); else
-    fail=$((fail + 1)); echo "FAIL - $name"
+  if [[ "$out" == "$exp" ]]; then ok; else
+    no "$name"
     diff <(printf '%s\n' "$exp") <(printf '%s\n' "$out") | sed 's/^/    /'
   fi
 }
@@ -46,8 +46,8 @@ render_after_bad_line() {  # render_after_bad_line — the renderer's own stdout
 name="exits 2 on a line that is not JSON"
 render_after_bad_line >/dev/null 2>&1
 rc=$?
-if [[ "$rc" -eq 2 ]]; then pass=$((pass + 1)); else
-  fail=$((fail + 1)); echo "FAIL - $name"
+if [[ "$rc" -eq 2 ]]; then ok; else
+  no "$name"
   echo "    expected exit 2, got $rc"
 fi
 
@@ -55,12 +55,12 @@ name="the header says a non-JSON line discards the records already rendered"
 header="$(sed -n '2,/^set -euo pipefail$/p' "$RENDER" | sed -n 's/^#[[:space:]]\{0,1\}//p')"
 rendered_before="$(render_after_bad_line 2>/dev/null)"
 if [[ -n "$rendered_before" ]]; then
-  fail=$((fail + 1)); echo "FAIL - $name"
+  no "$name"
   echo "    expected the script to print nothing, got: $rendered_before"
 elif grep -qE 'discard|throw[sn]? away|already rendered|records before it' <<< "$header"; then
-  pass=$((pass + 1))
+  ok
 else
-  fail=$((fail + 1)); echo "FAIL - $name"
+  no "$name"
   echo "    the header never says the records already rendered are discarded:"
   grep -n 'not JSON' <<< "$header" | sed 's/^/    /'
 fi

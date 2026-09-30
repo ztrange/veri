@@ -14,10 +14,9 @@ check() {
   local out code
   out="$(printf '%s' "$input" | "$TICK" "$matcher")" && code=0 || code=$?
   if [[ "$code" == "$exp_code" && "$out" == "$exp_out" ]]; then
-    pass=$((pass + 1))
+    ok
   else
-    fail=$((fail + 1))
-    echo "FAIL - $name (matcher=[$matcher] want exit $exp_code, got $code)"
+    no "$name (matcher=[$matcher] want exit $exp_code, got $code)"
     diff <(printf '%s\n' "$exp_out") <(printf '%s\n' "$out") | sed 's/^/    /'
   fi
 }

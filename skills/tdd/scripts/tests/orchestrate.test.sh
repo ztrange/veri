@@ -99,10 +99,9 @@ seed() {
 
 expect_exit0_output() {
   if [[ "$rc" -eq 0 && "$actual" == "$expected" ]]; then
-    pass=$((pass + 1))
+    ok
   else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
+    no "$name"
     echo "    exit: $rc (expected 0)"
     diff <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") | sed 's/^/    /'
     sed 's/^/    stderr: /' "$work/err"
@@ -112,10 +111,9 @@ expect_exit0_output() {
 expect_exit2_no_launch() {
   launched="$(wc -l < "$LAUNCHES" | tr -d ' ')"
   if [[ "$rc" -eq 2 && "$launched" -eq 0 ]] && { [[ $# -eq 0 ]] || grep -F -- "$1" "$work/err" > /dev/null; }; then
-    pass=$((pass + 1))
+    ok
   else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
+    no "$name"
     echo "    exit: $rc (expected 2)"
     echo "    launches: $launched (expected 0)"
     [[ $# -eq 0 ]] || echo "    stderr naming $1: expected"

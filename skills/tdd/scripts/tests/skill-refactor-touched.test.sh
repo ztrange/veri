@@ -65,9 +65,8 @@ for l in "${lines[@]}"; do
     problems+=("$l → '$(printf '%s' "$got" | paste -sd, -)', expected '$(printf '%s' "$expected" | paste -sd, -)'")
 done
 
-if [[ "${#problems[@]}" -eq 0 ]]; then pass=$((pass + 1)); else
-  fail=$((fail + 1))
-  echo "FAIL - $name"
+if [[ "${#problems[@]}" -eq 0 ]]; then ok; else
+  no "$name"
   printf '    %s\n' "${problems[@]}"
 fi
 

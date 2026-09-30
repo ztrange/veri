@@ -57,10 +57,9 @@ run_case() {
   problems=()
   "$probe"
   if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
+    ok
   else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
+    no "$name"
     printf '    %s\n' "${problems[@]}"
   fi
 }

@@ -45,10 +45,9 @@ run() {  # run <name> <expected-exit> <expect-edit:yes|no> <env-assignment> <mat
   fi
 
   if [[ "$ok" == 1 ]]; then
-    pass=$((pass + 1))
+    ok
   else
-    fail=$((fail + 1))
-    echo "FAIL - $name (exit want $exp_code got $code; edit-written=$([[ -f "$out" ]] && echo yes || echo no))"
+    no "$name (exit want $exp_code got $code; edit-written=$([[ -f "$out" ]] && echo yes || echo no))"
   fi
 }
 

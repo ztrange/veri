@@ -49,10 +49,9 @@ expect_next() {
   out="$(cd "$work/$name" && env "$@" VERI_GH_JSON="$work/$name.gh" "$SCRIPT" next alpha \
     2>"$work/$name.err")" && code=0 || code=$?
   if [[ "$code" -eq "$want_code" && "$out" == "$want" ]]; then
-    pass=$((pass + 1))
+    ok
   else
-    fail=$((fail + 1))
-    echo "FAIL - $what"
+    no "$what"
     echo "    exit: $code (want $want_code), stdout: '$out' (want '$want')"
     echo "    stderr: $(cat "$work/$name.err")"
   fi
@@ -64,10 +63,9 @@ expect_show() {
   shift 3
   out="$(cd "$work/$name" && "$SCRIPT" show "$@" 2>"$work/$name.err")" && code=0 || code=$?
   if [[ "$code" -eq 0 && "$out" == "$want" ]]; then
-    pass=$((pass + 1))
+    ok
   else
-    fail=$((fail + 1))
-    echo "FAIL - $what"
+    no "$what"
     echo "    exit: $code (want 0), stderr: $(cat "$work/$name.err")"
     diff <(printf '%s\n' "$want") <(printf '%s\n' "$out") | sed 's/^/    /'
   fi
@@ -80,10 +78,9 @@ expect_queue() {
   out="$(cd "$work/$name" && "$SCRIPT" "$@" 2>&1)" && code=0 || code=$?
   got="$(cat "$work/$name/.tdd/workqueue" 2>/dev/null || printf '<no .tdd/workqueue>')"
   if [[ "$code" -eq 0 && "$got" == "$want" ]]; then
-    pass=$((pass + 1))
+    ok
   else
-    fail=$((fail + 1))
-    echo "FAIL - $what"
+    no "$what"
     echo "    exit: $code (want 0), output: $out"
     diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
   fi
@@ -95,10 +92,9 @@ expect_unchanged() {
   cp "$work/$name/.tdd/workqueue" "$work/$name.before"
   out="$(cd "$work/$name" && "$SCRIPT" "$@" 2>&1)" && code=0 || code=$?
   if [[ "$code" -eq "$want_code" ]] && cmp -s "$work/$name.before" "$work/$name/.tdd/workqueue"; then
-    pass=$((pass + 1))
+    ok
   else
-    fail=$((fail + 1))
-    echo "FAIL - $what"
+    no "$what"
     echo "    exit: $code (want $want_code), output: $out"
     diff "$work/$name.before" "$work/$name/.tdd/workqueue" 2>&1 | sed 's/^/    /'
   fi
@@ -119,10 +115,9 @@ repo="$work/unknown-subcommand-no-queue"
 new_repo "$repo"
 out="$(cd "$repo" && "$SCRIPT" frobnicate alpha 12 2>&1)" && code=0 || code=$?
 if [[ "$code" -eq 2 && ! -e "$repo/.tdd/workqueue" ]]; then
-  pass=$((pass + 1))
+  ok
 else
-  fail=$((fail + 1))
-  echo "FAIL - an unknown subcommand in a repo with no queue exits 2 and creates no queue file"
+  no "an unknown subcommand in a repo with no queue exits 2 and creates no queue file"
   echo "    exit: $code (want 2), output: $out"
   echo "    .tdd/workqueue: $([[ -e "$repo/.tdd/workqueue" ]] && echo present || echo absent) (want absent)"
 fi
@@ -355,10 +350,9 @@ for issue in 12 7 30; do
   [[ " $held" == *" $issue "* ]] || missing="$missing $issue"
 done
 if [[ -z "$missing" ]]; then
-  pass=$((pass + 1))
+  ok
 else
-  fail=$((fail + 1))
-  echo "FAIL - after assign, start, done, park and refused calls, every issue ever assigned is still a line"
+  no "after assign, start, done, park and refused calls, every issue ever assigned is still a line"
   echo "    missing:$missing (want none), queue issues: $held"
 fi
 
@@ -391,10 +385,9 @@ for i in $(seq 1 20); do
     || missing="$missing alpha/$((100 + i)):running"
 done
 if [[ -z "$torn" && -z "$missing" ]]; then
-  pass=$((pass + 1))
+  ok
 else
-  fail=$((fail + 1))
-  echo "FAIL - N assign and start calls run in parallel leave a well-formed file containing every write"
+  no "N assign and start calls run in parallel leave a well-formed file containing every write"
   echo "    torn lines:${torn:- none} (want none)"
   echo "    writes missing:${missing:- none} (want none)"
 fi
@@ -421,10 +414,9 @@ else
 fi
 after="$(cat "$repo/.tdd/workqueue")"
 if [[ "$code" == 2 && "$after" == "$before" ]]; then
-  pass=$((pass + 1))
+  ok
 else
-  fail=$((fail + 1))
-  echo "FAIL - a write that cannot take the lock exits 2 without touching the file"
+  no "a write that cannot take the lock exits 2 without touching the file"
   echo "    exit: $code (want 2), stderr: $(cat "$work/lock-held.err")"
   diff <(printf '%s\n' "$before") <(printf '%s\n' "$after") | sed 's/^/    /'
 fi
@@ -450,10 +442,9 @@ out="$(cd "$work/linked-worktree.wt" && "$SCRIPT" assign alpha 7 2>&1 \
 got="$(cat "$repo/.tdd/workqueue")"
 if [[ "$code" -eq 0 && "$got" == "$want_queue" && "$out" == "$want_show" \
   && ! -e "$work/linked-worktree.wt/.tdd/workqueue" ]]; then
-  pass=$((pass + 1))
+  ok
 else
-  fail=$((fail + 1))
-  echo "FAIL - called from a linked worktree, workqueue.sh reads and writes the main working tree's queue"
+  no "called from a linked worktree, workqueue.sh reads and writes the main working tree's queue"
   echo "    exit: $code (want 0)"
   echo "    worktree's own .tdd/workqueue: $([[ -e "$work/linked-worktree.wt/.tdd/workqueue" ]] \
     && echo present || echo absent) (want absent)"
@@ -470,20 +461,18 @@ for call in next start done park; do
     || calls_missing="$calls_missing $call"
 done
 if [[ -f "$worker_doc" && -z "$calls_missing" ]]; then
-  pass=$((pass + 1))
+  ok
 else
-  fail=$((fail + 1))
-  echo "FAIL - WORKER.md beside SKILL.md documents the worker loop, naming each workqueue.sh call"
+  no "WORKER.md beside SKILL.md documents the worker loop, naming each workqueue.sh call"
   echo "    WORKER.md: $([[ -f "$worker_doc" ]] && echo present || echo absent) (want present)"
   echo "    calls not named:${calls_missing:- none} (want none)"
 fi
 
 skill_doc="$SKILL_DIR/SKILL.md"
 if grep -E '`Read`.*`WORKER\.md`' "$skill_doc" > /dev/null 2>&1; then
-  pass=$((pass + 1))
+  ok
 else
-  fail=$((fail + 1))
-  echo "FAIL - SKILL.md tells a session born as a worker to Read WORKER.md, the way it points a scope at SCOPE-LOOP.md"
+  no "SKILL.md tells a session born as a worker to Read WORKER.md, the way it points a scope at SCOPE-LOOP.md"
   echo "    lines of SKILL.md naming WORKER.md (want one holding \`Read\` then \`WORKER.md\`):"
   grep -n 'WORKER\.md' "$skill_doc" | sed 's/^/      /'
 fi
@@ -495,10 +484,9 @@ for term in Worker 'Work queue'; do
     || terms_missing="$terms_missing **$term**"
 done
 if [[ -z "$terms_missing" ]]; then
-  pass=$((pass + 1))
+  ok
 else
-  fail=$((fail + 1))
-  echo "FAIL - CONTEXT.md defines worker and work queue"
+  no "CONTEXT.md defines worker and work queue"
   echo "    terms not defined:$terms_missing (want none)"
 fi
 
@@ -564,10 +552,9 @@ tab_outcome="$(park_outcome park-reason-tab "$(printf 'first\tsecond')")"
 newline_outcome="$(park_outcome park-reason-newline "$(printf 'first\nsecond')")"
 if [[ "$tab_outcome" == "$newline_outcome" &&
   ( "$tab_outcome" == refused || "$tab_outcome" == well-formed ) ]]; then
-  pass=$((pass + 1))
+  ok
 else
-  fail=$((fail + 1))
-  echo "FAIL - park given a reason holding a tab or a newline treats both the same way, leaving the queue well-formed or refusing with the file untouched"
+  no "park given a reason holding a tab or a newline treats both the same way, leaving the queue well-formed or refusing with the file untouched"
   echo "    tab: $tab_outcome"
   echo "    newline: $newline_outcome"
 fi
@@ -580,10 +567,9 @@ seed_queue "$work/show-no-items" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\nalpha
   2>>"$work/show-no-items.err") && gamma_code=0 || gamma_code=$?
 if [[ "$beta_code" -eq 0 && "$(cat "$work/show-no-items.beta")" == "$(printf 'beta\n\t4\tqueued')" &&
   "$gamma_code" -eq 0 && ! -s "$work/show-no-items.gamma" ]]; then
-  pass=$((pass + 1))
+  ok
 else
-  fail=$((fail + 1))
-  echo "FAIL - show <worker> prints only that worker's group, and nothing with exit 0 for a worker with no items"
+  no "show <worker> prints only that worker's group, and nothing with exit 0 for a worker with no items"
   echo "    show beta: exit $beta_code (want 0), stdout: '$(cat "$work/show-no-items.beta")'"
   echo "    show gamma: exit $gamma_code (want 0), stdout bytes: $(wc -c < "$work/show-no-items.gamma" | tr -d ' ') (want 0)"
   echo "    stderr: $(cat "$work/show-no-items.err")"
