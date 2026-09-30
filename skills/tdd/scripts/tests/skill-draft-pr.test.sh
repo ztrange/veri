@@ -355,6 +355,7 @@ rollup_read='gh api [^#]*/check-runs'
 wait_ci_run='[^#]*[$]s/wait-ci[.]sh '
 push_run='[^#]*([$]s/push-branch[.]sh|git push)'
 log_failed_read='[^#]*gh run view [^#]*--log-failed'
+ready_run='[^#]*gh_pr_ready'
 
 unmarked_records() { tr -d '*`' <<< "$records"; }
 
@@ -367,7 +368,7 @@ if step_or_problem '### 4. Draft PR' "whether the step creates a second PR"; the
     problems+=("$skill_md's Draft PR step never runs gh pr edit with --title, so the PR keeps the work-in-progress title it was opened with at the plan commit and a reader of origin cannot tell the finished branch from a run mid-flight")
   grep -qE '^gh api -x patch .*-f body=' <<< "$commands" ||
     problems+=("$skill_md's Draft PR step never runs gh pr edit with --body, so the body a human reads at the merge is still the one-line claim the plan commit opened")
-  grep -qE '^[^#]*gh_pr_ready' <<< "$commands" ||
+  grep -qE "^$ready_run" <<< "$commands" ||
     problems+=("$skill_md's Draft PR step never runs gh pr ready, so a finished run leaves a draft nobody is asked to review")
   creates="$(first_record "$commands" -E '^gh api repos/[{]owner[}]/[{]repo[}]/pulls -f')"
   [[ -z "$creates" ]] ||
@@ -437,7 +438,7 @@ if step_or_problem '### 4. Draft PR' "where the step rebases onto the default br
     for before in 'git status --porcelain' '[$]s/next-pending-refactor[.]sh'; do
       rebase_runs after "$before"
     done
-    for after in "$done_mark" '[$]s/metrics[.]sh' "$metrics_commit" '[^#]*gh_pr_ready'; do
+    for after in "$done_mark" '[$]s/metrics[.]sh' "$metrics_commit" "$ready_run"; do
       rebase_runs before "$after"
     done
     plain="$(unmarked_records)"
@@ -484,7 +485,7 @@ if step_or_problem '### 4. Draft PR' "what the step does with a conflicted rebas
   rebase="$(line_of '[$]s/rebase-onto-default[.]sh')"
   develop="$(line_of '.*[$]s/supervise[.]sh develop-rebase ')"
   verdict="$(line_of '.*[$]s/supervise[.]sh verdict-rebase [$]s/run-verdict[.]sh .* rebase ')"
-  ready="$(line_of '[^#]*gh_pr_ready')"
+  ready="$(line_of "$ready_run")"
   if [[ -z "$develop" ]]; then
     problems+=("$skill_md's Draft PR step launches no develop-rebase leaf through \$S/supervise.sh, so a conflicted rebase has nothing to resolve it")
   fi
@@ -531,7 +532,7 @@ problems=()
 
 if step_or_problem '### 4. Draft PR' "whether the step reads the readied PR's CI"; then
   commands="$(section_commands)"
-  ready="$(line_of '[^#]*gh_pr_ready')"
+  ready="$(line_of "$ready_run")"
   watch="$(line_of "$wait_ci_run")"
   rollup="$(line_of "$rollup_read")"
   [[ -n "$ready" && -n "$watch" && "$watch" -gt "$ready" ]] ||
@@ -576,7 +577,7 @@ problems=()
 
 if step_or_problem '### 4. Draft PR' "whether the step's CI wait is bounded by its own command"; then
   commands="$(section_commands)"
-  ready="$(line_of '[^#]*gh_pr_ready')"
+  ready="$(line_of "$ready_run")"
   waits="$(line_of "$wait_ci_run")"
   if [[ -z "$ready" || -z "$waits" || "$waits" -le "$ready" ]]; then
     problems+=("$skill_md's Draft PR step runs no \$S/wait-ci.sh after gh pr ready, so there is no CI wait to bound")
@@ -703,7 +704,7 @@ problems=()
 
 if step_or_problem '### 4. Draft PR' "how the step waits on the readied PR's CI"; then
   commands="$(section_commands)"
-  ready="$(line_of '[^#]*gh_pr_ready')"
+  ready="$(line_of "$ready_run")"
   wait_ci="$(line_of "$wait_ci_run")"
   done_at="$(line_of "$done_mark")"
   [[ -n "$ready" && -n "$wait_ci" && -n "$done_at" && "$wait_ci" -gt "$ready" && "$wait_ci" -lt "$done_at" ]] ||
