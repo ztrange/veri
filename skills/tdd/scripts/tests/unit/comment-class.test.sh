@@ -275,6 +275,7 @@ dashboard:# Plan for #63 — lamps dim
 dashboard:# Plan for #65 — lamps hum
 dashboard:# Plan for #55 — lamps dim
 dashboard:# Plan for #77 — a kettle boils
+invisible-work:#!/bin/sh
 orchestrate:# A stopped conductor must be stopped by a signal, not by its writes failing, so this stub
 orchestrate:# IGNORES SIGPIPE — the state CI's Linux was observed in, where a write to the closed stream
 orchestrate:# came back as plain \`echo: I/O error\` and the conductor ran on. On this Mac SIGPIPE is fatal
@@ -309,7 +310,7 @@ unit/emitted-text:# Plan for #1 — fixed
 EOF
 expected="${expected%$'\n'}"
 if [[ "$got" != "$expected" ]]; then
-  problems+="    want the 74 class 3 lines unchanged (< want, > got):"$'\n'
+  problems+="    want the 75 class 3 lines unchanged (< want, > got):"$'\n'
   problems+="$(diff <(printf '%s\n' "$expected") <(printf '%s\n' "$got"))"$'\n'
 fi
 verdict "the text of every class 3 line in the suites is unchanged, in its file and in its order"
