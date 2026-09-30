@@ -38,4 +38,31 @@ grep -F "still running at exit" "$work/err" > /dev/null || problems+=("bg_start 
 while read -r pid _; do kill "$pid" 2>/dev/null || true; done < "$work/rec" 2>/dev/null
 report "$name"
 
+name="count line: a suite dying before finish is refused by run-suite.sh, and one finishing after a failing case exits non-zero with its own count line"
+cat > "$work/dies.test.sh" <<DIES
+#!/usr/bin/env bash
+set -uo pipefail
+source "$HERE/lib/harness.sh"
+ok
+[[ 1 -le \$unset_bound ]] && ok
+finish
+DIES
+cat > "$work/fails.test.sh" <<FAILS
+#!/usr/bin/env bash
+set -uo pipefail
+source "$HERE/lib/harness.sh"
+ok
+no "planted"
+finish
+FAILS
+chmod +x "$work/dies.test.sh" "$work/fails.test.sh"
+"$HERE/../run-suite.sh" "$work/dies.test.sh" > "$work/dies-out" 2>&1; dies_code=$?
+"$work/fails.test.sh" > "$work/fails-out" 2>&1; fails_code=$?
+problems=()
+[[ "$dies_code" -eq 1 ]] || problems+=("dying suite: run-suite.sh exit $dies_code, expected 1")
+[[ "$(tail -n 1 "$work/dies-out")" == "dies.test.sh: never reached its count line" ]] || problems+=("dying suite: last line '$(tail -n 1 "$work/dies-out")'")
+[[ "$fails_code" -ne 0 ]] || problems+=("failing suite: exit 0")
+[[ "$(tail -n 1 "$work/fails-out")" == "1 passed, 1 failed" ]] || problems+=("failing suite: last line '$(tail -n 1 "$work/fails-out")'")
+report "$name"
+
 finish
