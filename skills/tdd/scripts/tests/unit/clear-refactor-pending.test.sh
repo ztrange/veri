@@ -31,9 +31,9 @@ check() {  # check <name> <expected-exit> <matcher> <expected-ledger-text>
   printf '%s\n' "$exp" > "$want"
   "$CLEAR" "$led" "$matcher" 2>/dev/null && code=0 || code=$?
   if [[ "$code" == "$exp_code" ]] && cmp -s "$want" "$led"; then
-    pass=$((pass + 1))
+    ok
   else
-    fail=$((fail + 1)); echo "FAIL - $name (want exit $exp_code, got $code)"
+    no "$name (want exit $exp_code, got $code)"
     diff "$want" "$led" | sed 's/^/    /'
   fi
 }
@@ -66,9 +66,9 @@ printf '%s\n' "$ledger" > "$led"
 want="$work/want.md"
 { echo 'ledger_clear_pending [collapse to single hyphen]'; printf '%s\n' "$ledger"; } > "$want"
 if [[ "$code" == 0 ]] && cmp -s "$want" "$led"; then
-  pass=$((pass + 1))
+  ok
 else
-  fail=$((fail + 1)); echo "FAIL - clears through lib/ledger.sh's ledger_clear_pending (want exit 0, got $code)"
+  no "clears through lib/ledger.sh's ledger_clear_pending (want exit 0, got $code)"
   diff "$want" "$led" | sed 's/^/    /'
 fi
 

@@ -15,8 +15,8 @@ source "$HERE/../lib/harness.sh"
 check() {  # check <name> <expected-exit> <input> <expected-stdout>
   local name="$1" exp_code="$2" input="$3" exp="$4" out code
   out="$(printf '%s' "$input" | "$NEXT")" && code=0 || code=$?
-  if [[ "$code" == "$exp_code" && "$out" == "$exp" ]]; then pass=$((pass + 1)); else
-    fail=$((fail + 1)); echo "FAIL - $name (want exit $exp_code, got $code)"
+  if [[ "$code" == "$exp_code" && "$out" == "$exp" ]]; then ok; else
+    no "$name (want exit $exp_code, got $code)"
     diff <(printf '%s\n' "$exp") <(printf '%s\n' "$out") | sed 's/^/    /'
   fi
 }

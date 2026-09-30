@@ -29,10 +29,9 @@ check() {
   out="$("$CLASSIFY" "$cause")" && code=0 || code=$?
   first="$(head -n1 <<< "$out")"
   if [[ "$code" == "$exp_code" && "$first" == "$exp_out" ]]; then
-    pass=$((pass + 1))
+    ok
   else
-    fail=$((fail + 1))
-    echo "FAIL - $name (want exit $exp_code, got $code)"
+    no "$name (want exit $exp_code, got $code)"
     diff <(printf '%s\n' "$exp_out") <(printf '%s\n' "$first") | sed 's/^/    /'
   fi
 }
@@ -43,10 +42,9 @@ check_nonzero() {
   local name="$1" cause="$2" code
   "$CLASSIFY" "$cause" >/dev/null 2>&1 && code=0 || code=$?
   if [[ "$code" != 0 ]]; then
-    pass=$((pass + 1))
+    ok
   else
-    fail=$((fail + 1))
-    echo "FAIL - $name (want non-zero exit, got $code)"
+    no "$name (want non-zero exit, got $code)"
   fi
 }
 
@@ -93,10 +91,9 @@ for cause in stopped stop at-ledger at-leaf now; do
   [[ "$code" == 2 && -z "$out" ]] || stop_bad+="    $cause: want exit 2 and no stdout, got exit $code, stdout '$out'"$'\n'
 done
 if [[ -z "$stop_bad" ]]; then
-  pass=$((pass + 1))
+  ok
 else
-  fail=$((fail + 1))
-  echo "FAIL - $stop_name"
+  no "$stop_name"
   printf '%s' "$stop_bad"
 fi
 
@@ -111,10 +108,9 @@ for cause in step-over-budget over-budget; do
   [[ "$code" == 2 && -z "$out" ]] || budget_bad+="    $cause: want exit 2 and no stdout, got exit $code, stdout '$out'"$'\n'
 done
 if [[ -z "$budget_bad" ]]; then
-  pass=$((pass + 1))
+  ok
 else
-  fail=$((fail + 1))
-  echo "FAIL - $budget_name"
+  no "$budget_name"
   printf '%s' "$budget_bad"
 fi
 

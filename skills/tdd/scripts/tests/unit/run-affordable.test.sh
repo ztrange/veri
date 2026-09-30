@@ -67,9 +67,9 @@ expect_figures() {
 # empty it for the next case. Same accounting idiom as step-cost.test.sh's verdict().
 verdict() {
   if [[ -z "$problems" ]]; then
-    pass=$((pass + 1))
+    ok
   else
-    fail=$((fail + 1)); echo "FAIL - $1"
+    no "$1"
     printf '%s' "$problems"
   fi
   problems=""
