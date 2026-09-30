@@ -122,7 +122,7 @@ skill_clone() {
 }
 
 commit_once() {
-  git -C "$1" init -q
+  new_repo "$1"
   git -C "$1" add -A
   git -C "$1" -c user.name=t -c user.email=t@t commit -qm skill
 }
@@ -146,7 +146,7 @@ launch_from() {
 
 caller_repo() {
   mkdir -p "$1"
-  git -C "$1" init -q
+  new_repo "$1"
 }
 
 skill_archive() {
