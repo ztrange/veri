@@ -1,0 +1,2 @@
+### CLAUDE.md's unit-suite count matches the unit suites that exist, so claude-md-counts.test.sh passes with the new unit/gh-fixture.test.sh (it reports 21 where 22 exist) ⟦added⟧ ⟦criterion 2⟧
+- fold the new block at `claude-md-counts.test.sh:302` into the block at `:222`. Its `check` line repeats `:233` (same claim, same `how_many "$unit_path"`), so only its `present "…/unit/gh-fixture.test.sh"` is new. Not applied: that block is the test this step's criterion was proven red by, and removing it would drop the assertion.
