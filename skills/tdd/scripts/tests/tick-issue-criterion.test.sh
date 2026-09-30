@@ -18,11 +18,9 @@ cat > "$stubdir/gh" <<'STUB'
 #!/bin/sh
 if [ "$1" = "issue" ] && [ "$2" = "view" ]; then
   printf '%s' "$FAKE_BODY"
-elif [ "$1" = "issue" ] && [ "$2" = "edit" ]; then
-  prev=""
+elif [ "$1" = "api" ]; then
   for a in "$@"; do
-    [ "$prev" = "--body-file" ] && cp "$a" "$FAKE_OUT"
-    prev="$a"
+    case "$a" in body=@*) cp "${a#body=@}" "$FAKE_OUT" ;; esac
   done
 fi
 STUB
@@ -125,6 +123,25 @@ if [[ ! -s "$working_err" && ! -s "$refused_err" ]]; then
 else
   fail=$((fail + 1))
   echo "FAIL - $name (working gh stderr='$(tr '\n' '|' < "$working_err")' want ''; GraphQL refused stderr='$(tr '\n' '|' < "$refused_err")' want '')"
+fi
+
+silentdir="$stubdir/silent"
+mkdir -p "$silentdir"
+cp "$refuseddir/issue.json" "$silentdir/issue.json"
+sed 's/^case "\$1" in$/[ "\$1 \$2" = "issue edit" ] \&\& exit 0\
+case "$1" in/' "$refuseddir/gh" > "$silentdir/gh"
+chmod +x "$silentdir/gh"
+
+silent_edit="$stubdir/silent-edit"; rm -f "$silent_edit"
+env PATH="$silentdir:$PATH" REFUSED_DIR="$silentdir" FAKE_OUT="$silent_edit" \
+  "$WRAP" 7 alpha > /dev/null 2>&1 && code=0 || code=$?
+
+name="under a gh whose issue subcommands succeed without doing anything, writes the ticked body through gh api only (#568)"
+if [[ "$code" == 0 && -f "$silent_edit" ]] && grep -F -- "- [x] alpha" "$silent_edit" > /dev/null; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - $name (exit want 0 got $code; edit-written=$([[ -f "$silent_edit" ]] && echo yes || echo no))"
 fi
 
 echo "----"

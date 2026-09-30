@@ -19,11 +19,6 @@ matcher="${2:-}"
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
-repo_args=()
-if [[ -n "${GH_REPO:-}" ]]; then
-  repo_args=(--repo "$GH_REPO")
-fi
-
 source "$HERE/lib/github.sh"
 
 body="$(gh_issue_view "$n" body)"
@@ -39,5 +34,4 @@ new="$(printf '%s' "$body" | "$HERE/tick-criterion.sh" "$matcher")" || {
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 printf '%s' "$new" > "$tmp"
-gh issue edit "$n" "${repo_args[@]+"${repo_args[@]}"}" --body-file "$tmp" >/dev/null 2>&1 ||
-  gh api -X PATCH "repos/{owner}/{repo}/issues/$n" -F "body=@$tmp" >/dev/null || exit 2
+gh api -X PATCH "repos/{owner}/{repo}/issues/$n" -F "body=@$tmp" >/dev/null || exit 2
