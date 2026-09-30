@@ -3,3 +3,5 @@
 ### workqueue.sh reads an issues document larger than 256 KiB and gives the same output and exit code as for a small one, and no argument it hands python3 carries the JSON document ⟦criterion 2⟧
 - workqueue.sh next: read `$VERI_GH_JSON/issues.json` straight into python3's stdin instead of `cat` into `$issues_json` then `printf` it back out (changes the data path, not duplication removal, so out of scope here)
 - the multi-page `json.JSONDecoder().raw_decode` loop in workqueue.sh's embedded python is duplicated in solvable-issues.sh (and likely invisible-work.sh); it could be extracted into skills/tdd/scripts/lib/ (extract-module, not allowed in this phase)
+### invisible-work.sh reads issues and PR documents larger than 256 KiB and gives the same output and exit code as for small ones, and no argument it hands python3 carries a JSON document ⟦criterion 2⟧
+- extract one shared "run on the short and the long fixture, compare output and exit code" helper for the three large-document cases (invisible-work.test.sh, workqueue.test.sh:577-610, solvable-issues.test.sh:1188-1212) — a new module across files, not applied here
