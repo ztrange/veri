@@ -8,7 +8,7 @@
 #     working" from "hung". A leaf silent past the window is killed.
 #   * hard timeout — a leaf that exceeds the time cap is killed even if still noisy.
 # Both windows count only time the machine spent awake. The clock is Python's
-# time.monotonic(): on macOS that is mach_absolute_time(), which does not advance while the
+# clock_gettime(CLOCK_UPTIME_RAW), else the monotonic clock (CLOCK_MONOTONIC): on macOS that is mach_absolute_time(), which does not advance while the
 # Mac is asleep, and on Linux it is CLOCK_MONOTONIC, which does not advance while the machine
 # is suspended. The wall clock (`date +%s`) keeps running through a suspend, so an hour with
 # the lid closed would read as an hour of silence and kill a leaf that never hung — the
@@ -98,7 +98,9 @@ now() { date +%s; }
 
 awake_clock="${VERI_AWAKE_CLOCK:-awake_seconds}"
 
-awake_seconds() { python3 -c 'import time; print(int(time.monotonic()))'; }
+awake_seconds() {
+  python3 -c 'import time; print(int(time.clock_gettime(getattr(time, "CLOCK_UPTIME_RAW", time.CLOCK_MONOTONIC))))'
+}
 
 # hazard: GNU stat reads -f as --file-system and prints to stdout, so try each spelling into its own assignment.
 mtime_of() {

@@ -1079,6 +1079,40 @@ rm -rf "$atomic_probe"
 { [[ "$atomic_code" == 0 ]] && [[ -z "$atomic_torn" ]] && [[ "$atomic_last" == both ]]; } && ok \
   || no "#512: clock-suspend 100 moves the wall clock and the awake clock together, so no reading during its run sees one moved without the other (code=$atomic_code want 0, torn readings: '${atomic_torn//$'\n'/; }' want none, last reading: $atomic_last want both, all readings (awake wall real): '${atomic_reads//$'\n'/; }')"
 
+restart_py="$(mktemp -d)"
+realpy="$(command -v python3)"
+cat > "$restart_py/python3" <<P
+if [ "\$1" = -c ]; then
+  shift
+  exec "$realpy" -c 'import sys, time
+_read, _born = time.monotonic, time.monotonic()
+time.monotonic = lambda: _read() - _born
+_code = sys.argv[1]
+sys.argv = sys.argv[:1] + sys.argv[2:]
+exec(_code)' "\$@"
+fi
+exec "$realpy" "\$@"
+P
+{ printf '%s\n' '#!/bin/sh'; cat "$restart_py/python3"; } > "$restart_py/python3.new" && mv "$restart_py/python3.new" "$restart_py/python3"
+printf '%s\n' '#!/bin/sh' 'echo "leaf: starting"; sleep 4; echo "leaf: finished on its own"' > "$restart_py/leaf-quiet"
+chmod +x "$restart_py/python3" "$restart_py/leaf-quiet"
+restart_work="$work/restart-clock"
+mkdir -p "$restart_work"
+restart_run() {
+  ( cd "$restart_work" && env -u VERI_AWAKE_CLOCK PATH="$restart_py:$PATH" VERI_STUCK_RETRIES=0 \
+      VERI_POLL=0.02 VERI_KILL_POLL=0.01 "$@" "$SUP" develop-red "$restart_py/leaf-quiet" ) >/dev/null 2>"$restart_work/err"
+}
+restart_run VERI_HEARTBEAT=999 VERI_TIMEOUT=1
+restart_timeout_code=$?
+restart_timeout_err="$(cat "$restart_work/err")"
+restart_run VERI_HEARTBEAT=1 VERI_TIMEOUT=999
+restart_heartbeat_code=$?
+restart_heartbeat_err="$(cat "$restart_work/err")"
+rm -rf "$restart_py"
+{ [[ "$restart_timeout_code" == 2 ]] && [[ "$restart_timeout_err" == *'hard timeout'* ]] \
+  && [[ "$restart_heartbeat_code" == 2 ]] && [[ "$restart_heartbeat_err" == *'no heartbeat'* ]]; } && ok \
+  || no "#563: under a python3 whose time.monotonic() restarts per process, a 4s-quiet leaf is still killed by a 1s hard timeout and by a 1s heartbeat (timeout code=$restart_timeout_code want 2, err=$restart_timeout_err; heartbeat code=$restart_heartbeat_code want 2, err=$restart_heartbeat_err)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
