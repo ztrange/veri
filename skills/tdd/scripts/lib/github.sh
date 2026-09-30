@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# lib/github.sh — sourced, not run: defines `gh_pr_ready`, `gh_issue_view` and `gh_list`.
+# lib/github.sh — sourced, not run: defines `gh_pr_ready`, `gh_issue_view`, `gh_list` and `gh_rest_list`.
 #
 # gh_pr_ready <n> — mark draft PR <n> ready for review.
 #   0  marked ready
@@ -11,6 +11,9 @@
 # gh_list <rest-path> <gh args…> — print `gh <gh args…>`'s JSON, or else every page of
 #   `gh api --paginate <rest-path>`, one JSON array per page, back to back; 2 when GitHub gave
 #   no answer on either route.
+#
+# gh_rest_list <rest-path> — print every page of `gh api --paginate <rest-path>`, one JSON array
+#   per page, back to back; 2 when GitHub gave no answer.
 
 gh_pr_ready() {
   gh pr ready "$1" ||
@@ -36,4 +39,8 @@ else:
 gh_list() {
   local rest="$1"; shift
   gh "$@" 2> /dev/null || gh api --paginate "$rest" || return 2
+}
+
+gh_rest_list() {
+  gh api --paginate "$1" || return 2
 }
