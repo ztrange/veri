@@ -298,6 +298,44 @@ fi
 rm -rf "$aw_work"
 report "$name"
 
+name="#563: event.sh's awake reading is the system-wide awake clock, so it advances across processes under a python3 whose time.monotonic() restarts per process"
+problems=()
+rs_work="$(mktemp -d)"
+rs_real="$(command -v python3)"
+cat > "$rs_work/python3" <<P
+if [ "\$1" = -c ]; then
+  shift
+  exec "$rs_real" -c 'import sys, time
+_read, _born = time.monotonic, time.monotonic()
+time.monotonic = lambda: _read() - _born
+_code = sys.argv[1]
+sys.argv = sys.argv[:1] + sys.argv[2:]
+exec(_code)' "\$@"
+fi
+exec "$rs_real" "\$@"
+P
+{ printf '%s\n' '#!/bin/sh'; cat "$rs_work/python3"; } > "$rs_work/python3.new" && mv "$rs_work/python3.new" "$rs_work/python3"
+chmod +x "$rs_work/python3"
+rs_clock='import time; print(int(time.clock_gettime(getattr(time, "CLOCK_UPTIME_RAW", time.CLOCK_MONOTONIC))))'
+mkdir "$rs_work/run"
+rs_before="$("$rs_real" -c "$rs_clock")"
+( cd "$rs_work/run" && env -u VERI_AWAKE_CLOCK PATH="$rs_work:$PATH" "$EVENT" step-start ) >/dev/null 2>&1
+rs_code=$?
+rs_after="$("$rs_real" -c "$rs_clock")"
+[[ "$rs_code" == 0 ]] || problems+=("want exit 0, got $rs_code")
+if [[ -f "$rs_work/run/.tdd/events.jsonl" ]] && want_parses "$rs_work/run/.tdd/events.jsonl"; then
+  rs_got="$(jget "$rs_work/run/.tdd/events.jsonl" awake)"
+  if [[ "$rs_got" =~ ^[0-9]+$ ]] && (( rs_before <= rs_got && rs_got <= rs_after )); then
+    :
+  else
+    problems+=("awake: want the system-wide awake clock's whole seconds, between $rs_before and $rs_after, got $(printf '%q' "$rs_got")")
+  fi
+else
+  problems+=("want a line in .tdd/events.jsonl, found none")
+fi
+rm -rf "$rs_work"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
