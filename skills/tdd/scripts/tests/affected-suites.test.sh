@@ -455,6 +455,19 @@ expect_suites "#487: in the real repo, a change to lib/bug-section.sh selects bo
   skills/tdd/scripts/tests/build-develop-prompt.test.sh \
   skills/tdd/scripts/tests/build-verify-prompt.test.sh
 
+new_repo harness-adopters
+mkdir -p "$s/tests/lib" "$s/tests/unit"
+printf 'ok() { :; }\n' > "$s/tests/lib/harness.sh"
+printf '#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\nsource "$HERE/lib/harness.sh"\n' > "$s/tests/alpha.test.sh"
+printf '#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\nsource "$HERE/../lib/harness.sh"\n' > "$s/tests/unit/beta.test.sh"
+printf '#!/usr/bin/env bash\necho gamma\n' > "$s/tests/gamma.test.sh"
+commit_base
+printf 'ok() { echo 2; }\n' > "$s/tests/lib/harness.sh"
+commit_head
+expect_suites "#496: a change to tests/lib/harness.sh prints every suite that sources it, and no others" \
+  skills/tdd/scripts/tests/alpha.test.sh \
+  skills/tdd/scripts/tests/unit/beta.test.sh
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

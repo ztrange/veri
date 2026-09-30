@@ -31,6 +31,9 @@ suite_of() {
     CLAUDE.md|Makefile|skills/*/SKILL.md)
       suites_naming "\"$f\"" "/$f\"" ;;
     "$scripts"/tests/*.test.sh) echo "$f" ;;
+    "$scripts"/tests/lib/harness.sh)
+      grep -lE '^[[:space:]]*(source|\.)[[:space:]].*lib/harness\.sh"?[[:space:]]*$' \
+        "$scripts"/tests/*.test.sh "$scripts"/tests/unit/*.test.sh || true ;;
     "$scripts"/tests/fixtures/*)
       suites_naming "${f#"$scripts"/tests/}" ;;
     "$scripts"/prompts/*.md)
