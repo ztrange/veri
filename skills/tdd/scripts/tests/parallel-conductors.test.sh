@@ -114,8 +114,8 @@ solvable_fixture "$gh2" 7 8
 
 open_pr() {
   cat <<SH
-printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": $2, "url": "https://example.test/pull/%s"}\n' "\$n" "\$n" >> "$1/prs.lines"
-printf '[%s]\n' "\$(paste -sd, "$1/prs.lines")" > "$1/prs.json"
+command -v register_pr > /dev/null 2>&1 || register_pr() { bash -c '. "\$1"; shift; register_pr "\$@"' _ "$HERE/lib/gh-fixture.sh" "\$@"; }
+register_pr "$1" "\$n" $2
 SH
 }
 
@@ -343,6 +343,29 @@ run_launcher "$gh9" "$hang_stub" "$work/killed.out" VERI_RUN_TIMEOUT=60 VERI_AWA
 want_killed="#7 — killed after 60s"
 got_killed="$(grep -E '^#[0-9]+ — ' "$work/killed.out")"
 expect_lines "a conductor its supervisor killed (supervise exit 2) is reported '#<n> — killed after <VERI_RUN_TIMEOUT>s'" "$want_killed" "$got_killed" "$work/killed.out"
+
+gh_race="$work/gh-race"
+mkdir -p "$gh_race"
+: > "$gh_race/prs.lines"
+printf '[]\n' > "$gh_race/prs.json"
+race_snippet="$(ready_pr "$gh_race")"
+(
+  source "$HERE/lib/gh-fixture.sh"
+  register_pr_between_read_and_write() {
+    [[ -e "$gh_race/interleaved" ]] && return 0
+    : > "$gh_race/interleaved"
+    ( n=13; eval "$race_snippet" )
+  }
+  n=12
+  eval "$race_snippet"
+) > /dev/null 2>&1
+race_json="$(cat "$gh_race/prs.json")"
+race_bad=""
+[[ -e "$gh_race/interleaved" ]] || race_bad+="interleaving never happened: the ready-PR registration never went through register_pr; "
+[[ "$race_json" == *'pull/12"'* ]] || race_bad+="PR 12 missing from prs.json: $race_json; "
+[[ "$race_json" == *'pull/13"'* ]] || race_bad+="PR 13 missing from prs.json: $race_json; "
+[[ -z "$race_bad" ]] \
+  && ok || no "#588 a ready PR registered by the suite's stubs is not lost when another registers between its read of the PR lines and its write of prs.json ( $race_bad)"
 
 bad=""
 for mode in stop continue; do
