@@ -78,7 +78,7 @@ problems=()
 planted="$(tree_whose_default_moved)"
 probe_plant_is_real "$planted"
 
-out="$(make -C "$planted" test TESTS="$SUITE" 2>&1)" && code=0 || code=$?
+out="$(make -C "$planted" test TESTS="$SUITE" UNIT_TESTS= 2>&1)" && code=0 || code=$?
 
 [[ "$code" != 0 ]] ||
   problems+=("want a non-zero exit from the runner over a tree whose $TUNABLE default has drifted from the prose stating it; got 0: $(flat "$out")")

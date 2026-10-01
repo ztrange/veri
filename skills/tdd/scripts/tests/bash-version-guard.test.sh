@@ -37,11 +37,11 @@ C
 
 name="make test refuses before any suite runs when the bash on PATH is older than 5, and runs them when it is not"
 problems=()
-old_out="$(env VERI_BASH_MAJOR=3 make -C "$ROOT" test TESTS="$GREEN_FIXTURE" 2>&1)" && old_code=0 || old_code=$?
+old_out="$(env VERI_BASH_MAJOR=3 make -C "$ROOT" test TESTS="$GREEN_FIXTURE" UNIT_TESTS= 2>&1)" && old_code=0 || old_code=$?
 [[ "$old_code" != 0 ]] || problems+=("want a non-zero exit with VERI_BASH_MAJOR=3, got 0: $(flat "$old_out")")
 [[ "$old_out" == *"$REQUIREMENT"* ]] || problems+=("want the output to say it $REQUIREMENT: $(flat "$old_out")")
 [[ "$old_out" != *"== $(basename "$GREEN_FIXTURE")"* ]] || problems+=("a suite ran before the refusal: $(flat "$old_out")")
-new_out="$(env VERI_BASH_MAJOR=5 make -C "$ROOT" test TESTS="$GREEN_FIXTURE" 2>&1)" && new_code=0 || new_code=$?
+new_out="$(env VERI_BASH_MAJOR=5 make -C "$ROOT" test TESTS="$GREEN_FIXTURE" UNIT_TESTS= 2>&1)" && new_code=0 || new_code=$?
 [[ "$new_code" == 0 && "$new_out" == *"all suites green"* ]] ||
   problems+=("want the suite run and green with VERI_BASH_MAJOR=5, got exit $new_code: $(flat "$new_out")")
 report "$name"

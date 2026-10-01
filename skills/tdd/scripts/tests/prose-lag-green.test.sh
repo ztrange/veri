@@ -75,7 +75,7 @@ problems=()
 planted="$(tree_grown_past_its_prose)"
 probe_plant_is_real "$planted"
 
-out="$(make -C "$planted" test TESTS="$SUITE" 2>&1)" && code=0 || code=$?
+out="$(make -C "$planted" test TESTS="$SUITE" UNIT_TESTS= 2>&1)" && code=0 || code=$?
 
 [[ "$code" == 0 ]] ||
   problems+=("want exit 0 from the runner over a tree whose $SCRIPT has grown without a rebuild — a development commit must not owe one to keep the baseline green; got $code: $(why "$out")")
