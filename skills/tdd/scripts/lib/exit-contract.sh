@@ -46,8 +46,9 @@ declared_pass_through() {
   while IFS= read -r line; do
     (( ++n ))
     if (( n == exit_line )); then
-      [[ "$previous" == "# pass-through:"* ]]
-      return
+      # hazard: on bash < 5.3 a bare return in a function the EXIT trap calls hands back the trap's entry status.
+      [[ "$previous" == "# pass-through:"* ]] && return 0
+      return 1
     fi
     previous="${line#"${line%%[![:space:]]*}"}"
   done < "$_ec_exit_file"
