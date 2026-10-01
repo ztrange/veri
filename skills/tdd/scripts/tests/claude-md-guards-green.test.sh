@@ -66,6 +66,11 @@ plant_roster_without() {
   } > "$tree/Makefile"
 }
 
+joined_problems() {
+  local IFS='|'
+  echo "${problems[*]-}"
+}
+
 probe_against() {
   local real_root="$ROOT" real_here="$HERE"
   problems=()
@@ -92,7 +97,7 @@ probe_names_each_guard_missing_from_a_planted_roster() {
       [[ "$raised" == *"$suites_dir/$missing is not in the roster"* ]] && found=1
     done
     if [[ "$found" -eq 0 ]]; then
-      raised="$(IFS='|'; echo "${problems[*]-}")"
+      raised="$(joined_problems)"
       unnamed+=("with $missing left out of a planted \`make -n test\` roster, the probe raised no problem naming it; it raised: ${raised:-nothing}")
     fi
   done
@@ -121,7 +126,7 @@ probe_fails_when_a_planted_roster_names_no_suite() {
   for raised in ${problems+"${problems[@]}"}; do
     [[ "$raised" == *"\`make -n test\` named no suite in $suites_dir"* ]] && found=1
   done
-  raised="$(IFS='|'; echo "${problems[*]-}")"
+  raised="$(joined_problems)"
   problems=()
   if [[ "$found" -eq 0 ]]; then
     problems+=("with a planted \`make -n test\` naming no suite, the probe raised no problem saying so; it raised: ${raised:-nothing}")
@@ -148,7 +153,7 @@ probe_starts_no_guard_on_a_full_roster_of_failing_guards() {
   tree="$(scratch_dir)"
   plant_roster_without "$tree" ""
   probe_against "$tree" "$stubs"
-  raised="$(IFS='|'; echo "${problems[*]-}")"
+  raised="$(joined_problems)"
   for guard in "${GUARDS[@]}"; do
     [[ -e "$stubs/$guard.started" ]] && started+=("$guard")
   done
