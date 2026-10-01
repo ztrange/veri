@@ -121,10 +121,6 @@ exit")")"
 OWED="its sites are owed a mapping or a marker by a later step of #497"
 
 declare -A OWED_PASS_THROUGHS=(  # [<script>]=why its pass-through sites are still allowed unmarked
-  [run-leaf.sh]="$OWED"
-  [run-suite.sh]="$OWED"
-  [supervise.sh]="$OWED"
-  [tick-issue-criterion.sh]="$OWED"
   [tick-ledger.sh]="$OWED"
   [timed-test-run.sh]="$OWED"
   [verify.sh]="$OWED"
@@ -153,5 +149,11 @@ for script in "$HERE"/../../*.sh; do
   done < <(pass_through_offenders "$script")
 done
 report "every exit \"\$var\" or exit \$? in a script under scripts/ maps through to_contract or carries a # pass-through: <why> marker, outside the table of sites still owed"
+
+expect_eq "run-leaf.sh, run-suite.sh, supervise.sh and tick-issue-criterion.sh pass the pass-through audit with no exemption" \
+  "" \
+  "$(for script in run-leaf.sh run-suite.sh supervise.sh tick-issue-criterion.sh; do
+    pass_through_offenders "$HERE/../../$script"
+  done)"
 
 finish

@@ -31,7 +31,7 @@ new="$(printf '%s' "$body" | "$HERE/tick-criterion.sh" "$matcher")" || {
   if [[ "$status" -eq 3 ]]; then
     echo "tick-issue-criterion: no unchecked criterion matched '$matcher' on #$n" >&2
   fi
-  exit "$status"
+  exit "$(to_contract "$status")"
 }
 
 tmp="$(mktemp)"

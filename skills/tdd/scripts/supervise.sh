@@ -274,4 +274,4 @@ payload+=(secs="$secs")
 mark exit "${payload[@]}"
 cat "$log"
 number_in "$exitfile" >/dev/null || printf '%s\n' "$ec" > "$exitfile"
-exit "$ec"
+exit "$(to_contract "$ec")"
