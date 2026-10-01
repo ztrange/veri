@@ -204,4 +204,42 @@ answers_none list "; want nothing"
 report "$name"
 
 
+name="list prints each candidate once, those recorded under more steps first, ties in recorded order"
+problems=()
+
+owed_file="$(mktemp)"
+"$OWED" append "$owed_file" 'first step' <<'REPORT'
+CANDIDATES: structural | fold verify.sh's two mktemp calls into one helper
+CANDIDATES: structural | hoist the ledger path into one variable
+REPORT
+"$OWED" append "$owed_file" 'second step' <<'REPORT'
+CANDIDATES: structural | hoist the ledger path into one variable
+CANDIDATES: structural | rename $tmp to $prompt_file, which is what it holds
+REPORT
+"$OWED" append "$owed_file" 'third step' <<'REPORT'
+CANDIDATES: structural | rename $tmp to $prompt_file, which is what it holds
+CANDIDATES: structural | hoist the ledger path into one variable
+CANDIDATES: structural | split the verdict parser out of run-leaf.sh
+REPORT
+
+listed="$(mktemp)"
+"$OWED" list "$owed_file" >"$listed" 2>/dev/null && code=0 || code=$?
+
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from list, got $code")
+
+want="$(mktemp)"
+cat >"$want" <<'WANT'
+hoist the ledger path into one variable
+rename $tmp to $prompt_file, which is what it holds
+fold verify.sh's two mktemp calls into one helper
+split the verdict parser out of run-leaf.sh
+WANT
+diff "$want" "$listed" >/dev/null ||
+  problems+=("list printed:" "$(cat "$listed")" "want each candidate once, three steps before two before one, the two recorded once in recorded order:" "$(cat "$want")")
+
+rm -f "$owed_file" "$listed" "$want"
+report "$name"
+
+
 finish

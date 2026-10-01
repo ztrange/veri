@@ -52,7 +52,14 @@ case "$verb" in
     ;;
   list)
     [[ -s "$file" ]] || exit 3
-    sed -n 's/^- //p' "$file"
+    awk '/^- / {
+           t = substr($0, 3)
+           if (!(t in n)) order[++k] = t
+           n[t]++
+         }
+         END { for (i = 1; i <= k; i++) printf "%d\t%d\t%s\n", n[order[i]], i, order[i] }' "$file" |
+      sort -t "$(printf '\t')" -k1,1nr -k2,2n |
+      cut -f3-
     ;;
   *)
     echo "refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' < leaf-report.txt" >&2
