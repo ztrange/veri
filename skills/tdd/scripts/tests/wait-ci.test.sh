@@ -557,6 +557,17 @@ grep -F "could not read the checks of $sha" "$work/flaky-1.err" > /dev/null \
   || problems+=("second page 502: want the failed first page's stderr, got: $(cat "$work/flaky-2.err")")
 report "$name"
 
+ci_runs() {
+  python3 - "$work/$1" "$2" <<'P'
+import json, sys
+def run(wf, status, conclusion, seconds, n):
+    path = {"CI": ".github/workflows/ci.yml", "Pages": ".github/workflows/pages.yml"}[wf]
+    return {"databaseId": 1000 - n, "workflowName": wf, "path": path, "status": status, "conclusion": conclusion,
+            "startedAt": "2026-09-28T10:00:00Z", "updatedAt": "2026-09-28T10:%02d:%02dZ" % divmod(seconds, 60)}
+json.dump([run(*r, n) for n, r in enumerate(eval(sys.argv[2]))], open(sys.argv[1], "w"))
+P
+}
+
 first_deadline() {
   local f="$1" runs="$2"; shift 2
   sha_head "$f.json"
@@ -570,18 +581,10 @@ first_deadline() {
 name="wait-ci.sh given no total-seconds, omitted or empty, records a deadline twice the mean wall time of the CI workflow's 5 most recent success or failure runs after the first call, read through gh run list, skipped, cancelled, in-progress and other workflows' runs not counted (#549)"
 problems=()
 sha=0123456789abcdef0123456789abcdef01234567
-python3 - "$work/gh-runs.json" <<'P'
-import json, sys
-def run(wf, status, conclusion, seconds, n):
-    path = {"CI": ".github/workflows/ci.yml", "Pages": ".github/workflows/pages.yml"}[wf]
-    return {"databaseId": 1000 - n, "workflowName": wf, "path": path, "status": status, "conclusion": conclusion,
-            "startedAt": "2026-09-28T10:00:00Z", "updatedAt": "2026-09-28T10:%02d:%02dZ" % divmod(seconds, 60)}
-rows = [("CI", "in_progress", "", 3000), ("Pages", "completed", "success", 3000), ("CI", "completed", "success", 200),
+ci_runs gh-runs.json '[("CI", "in_progress", "", 3000), ("Pages", "completed", "success", 3000), ("CI", "completed", "success", 200),
         ("CI", "completed", "cancelled", 3000), ("CI", "completed", "failure", 220), ("CI", "completed", "skipped", 3000),
         ("CI", "completed", "success", 160), ("CI", "completed", "success", 230), ("CI", "completed", "failure", 190),
-        ("CI", "completed", "success", 3000)]
-json.dump([run(*r, n) for n, r in enumerate(rows)], open(sys.argv[1], "w"))
-P
+        ("CI", "completed", "success", 3000)]'
 for form in omitted empty; do
   f="computed-$form"
   if [[ "$form" == omitted ]]; then args=(60); else args=(60 "" "$sha"); fi
@@ -595,14 +598,8 @@ report "$name"
 name="wait-ci.sh given no total-seconds averages the CI workflow's 5 most recent success or failure runs even when more than 20 skipped runs come before them, gh run list's default page (#549)"
 problems=()
 sha=0123456789abcdef0123456789abcdef01234567
-python3 - "$work/gh-runs-deep.json" <<'P'
-import json, sys
-def run(conclusion, seconds, n):
-    return {"databaseId": 1000 - n, "workflowName": "CI", "path": ".github/workflows/ci.yml", "status": "completed",
-            "conclusion": conclusion, "startedAt": "2026-09-28T10:00:00Z", "updatedAt": "2026-09-28T10:%02d:%02dZ" % divmod(seconds, 60)}
-rows = [("skipped", 3000)] * 25 + [("success", 100), ("failure", 120), ("success", 80), ("success", 110), ("failure", 90)]
-json.dump([run(*r, n) for n, r in enumerate(rows)], open(sys.argv[1], "w"))
-P
+ci_runs gh-runs-deep.json '[("CI", "completed", "skipped", 3000)] * 25 + [("CI", "completed", c, s) for c, s in
+        [("success", 100), ("failure", 120), ("success", 80), ("success", 110), ("failure", 90)]]'
 f=computed-deep
 first_deadline "$f" "$work/gh-runs-deep.json" 60
 [[ "$got" == 3 ]] || problems+=("want exit 3, got $got (stderr: $(cat "$work/$f.first.err"))")
