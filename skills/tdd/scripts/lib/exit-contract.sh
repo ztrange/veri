@@ -5,6 +5,8 @@
 # require_args <n> "$@" — refuse unless the first <n> arguments are present and non-empty;
 #   return 0 otherwise.
 # to_contract <code> — print <code> if it is 0, 1, 2 or 3, else 2.
+#
+# Sourcing it arms an EXIT trap: the sourcing script exits 2 for any code outside 0-3.
 refuse() {
   if (( $# > 0 )); then
     printf '%s\n' "$1" >&2
@@ -28,3 +30,5 @@ to_contract() {
     *) printf '2\n' ;;
   esac
 }
+
+trap 'exit "$(to_contract "$?")"' EXIT

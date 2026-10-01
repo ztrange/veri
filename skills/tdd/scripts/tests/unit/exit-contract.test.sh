@@ -60,4 +60,26 @@ expect_eq "to_contract prints 0, 1, 2 or 3 unchanged and prints 2 for any other 
     printf '%s\n' "$(outcome_of to_contract "$code")"
   done)"
 
+exit_of_script() {
+  local dir="$1" name="$2" body="$3"
+  printf '#!/usr/bin/env bash\n%s\n' "$body" > "$dir/$name"
+  bash "$dir/$name" > /dev/null 2>&1 && echo 0 || echo $?
+}
+
+ends_dir="$(scratch_dir)"
+expect_eq "a script that sources the module and ends outside 0-3, by a set -e abort or by its last command's status, exits 2" \
+  "aborts=2 last=2 in-contract=3" \
+  "aborts=$(exit_of_script "$ends_dir" aborts.sh "set -e
+USAGE='usage: aborts.sh'
+source '$LIB'
+fail_with() { return 5; }
+fail_with
+echo unreachable") last=$(exit_of_script "$ends_dir" last.sh "USAGE='usage: last.sh'
+source '$LIB'
+fail_with() { return 7; }
+fail_with") in-contract=$(exit_of_script "$ends_dir" in-contract.sh "USAGE='usage: in-contract.sh'
+source '$LIB'
+fail_with() { return 3; }
+fail_with")"
+
 finish
