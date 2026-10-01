@@ -35,6 +35,7 @@
 #          VERI_GH_JSON=<dir> invisible-work.sh
 set -euo pipefail
 
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
 source "$(dirname "$0")/lib/github.sh"
 
 gh_json() {  # gh_json <fixture-file> <rest-path> <gh args…> -> that document on stdout

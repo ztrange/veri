@@ -20,6 +20,8 @@
 #          answer gave an answer, not a plumbing failure, so this is veri's "nothing to do".
 set -euo pipefail
 
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+
 # hazard: `|| [[ -n ... ]]` keeps a last line that has no trailing newline.
 lines=()
 while IFS= read -r line || [[ -n "$line" ]]; do
