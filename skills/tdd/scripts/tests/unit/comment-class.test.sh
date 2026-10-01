@@ -413,37 +413,37 @@ header_walk='FNR == 1 { header = /^#!/; para = 0; fresh = 1; next }
   header && /^#$/ { fresh = 1; next }
   !(header && /^#/) { header = 0; next }'
 
+want_no_header_citation() {
+  local cited
+  cited="$(awk "$header_walk"'
+  /#[0-9]/ { print FILENAME ":" FNR ": " $0 }' "$@")"
+  if [[ -n "$cited" ]]; then
+    problems+="    want no header line citing an issue number, got:"$'\n'"$cited"$'\n'
+  fi
+}
+
+want_contract_only_header() {
+  local shapeless
+  shapeless="$(awk "$header_walk"'
+  {
+    if (fresh) { para++; if (para > 1 && !/^# Contract under test/ && !/^# Run:/ && !/^#   /) print FILENAME ":" FNR ": " $0 }
+    fresh = 0 }' "$@")"
+  if [[ -n "$shapeless" ]]; then
+    problems+="    want every header paragraph after the description to be a Contract under test block or the Run: line, got:"$'\n'"$shapeless"$'\n'
+  fi
+}
+
 problems=""
-cited="$(awk "$header_walk"'
-  /#[0-9]/ { print FILENAME ":" FNR ": " $0 }' "$SCRIPTS"/tests/[a-e]*.sh)"
-if [[ -n "$cited" ]]; then
-  problems+="    want no header line citing an issue number, got:"$'\n'"$cited"$'\n'
-fi
+want_no_header_citation "$SCRIPTS"/tests/[a-e]*.sh
 verdict "no line of the leading header block of a top-level tests/*.sh whose name starts with a through e cites an issue number"
 
 problems=""
-shapeless="$(awk "$header_walk"'
-  {
-    if (fresh) { para++; if (para > 1 && !/^# Contract under test/ && !/^# Run:/ && !/^#   /) print FILENAME ":" FNR ": " $0 }
-    fresh = 0 }' "$SCRIPTS"/tests/[a-e]*.sh)"
-if [[ -n "$shapeless" ]]; then
-  problems+="    want every header paragraph after the description to be a Contract under test block or the Run: line, got:"$'\n'"$shapeless"$'\n'
-fi
+want_contract_only_header "$SCRIPTS"/tests/[a-e]*.sh
 verdict "the leading header block of a top-level tests/*.sh whose name starts with a through e holds only a description, its Contract under test block and its Run: line"
 
 problems=""
-cited="$(awk "$header_walk"'
-  /#[0-9]/ { print FILENAME ":" FNR ": " $0 }' "$SCRIPTS"/tests/[f-p]*.sh)"
-if [[ -n "$cited" ]]; then
-  problems+="    want no header line citing an issue number, got:"$'\n'"$cited"$'\n'
-fi
-shapeless="$(awk "$header_walk"'
-  {
-    if (fresh) { para++; if (para > 1 && !/^# Contract under test/ && !/^# Run:/ && !/^#   /) print FILENAME ":" FNR ": " $0 }
-    fresh = 0 }' "$SCRIPTS"/tests/[f-p]*.sh)"
-if [[ -n "$shapeless" ]]; then
-  problems+="    want every header paragraph after the description to be a Contract under test block or the Run: line, got:"$'\n'"$shapeless"$'\n'
-fi
+want_no_header_citation "$SCRIPTS"/tests/[f-p]*.sh
+want_contract_only_header "$SCRIPTS"/tests/[f-p]*.sh
 verdict "the leading header block of a top-level tests/*.sh whose name starts with f through p carries only its contract, and no line of it cites an issue number"
 
 finish
