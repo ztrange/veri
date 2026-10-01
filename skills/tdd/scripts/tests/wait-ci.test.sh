@@ -619,4 +619,14 @@ ci_runs gh-runs-slow.json '[("CI", "completed", c, s) for c, s in
 expect_deadline computed-slow "$work/gh-runs-slow.json" 600 "2 × mean of 400, 420, 380, 450, 350 is 800, capped at 600" 60
 report "$name"
 
+name="wait-ci.sh given no total-seconds records a deadline 540 s after the first call when fewer than 5 success or failure CI runs exist, and says on stderr that fewer than 5 runs were found (#549)"
+problems=()
+sha=0123456789abcdef0123456789abcdef01234567
+ci_runs gh-runs-few.json '[("CI", "completed", "success", 100), ("CI", "completed", "cancelled", 3000), ("CI", "completed", "failure", 120),
+        ("CI", "completed", "skipped", 3000), ("CI", "completed", "success", 80)]'
+expect_deadline computed-few "$work/gh-runs-few.json" 540 "fewer than 5 runs: 100, 120, 80" 60
+grep -F "fewer than 5" "$work/computed-few.first.err" > /dev/null \
+  || problems+=("computed-few: want stderr saying fewer than 5 runs were found, got: $(cat "$work/computed-few.first.err")")
+report "$name"
+
 finish
