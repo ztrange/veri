@@ -20,7 +20,8 @@ source "$(dirname "$0")/lib/github.sh"
 [[ -n "${1:-}" ]] || { echo "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]" >&2; exit 2; }
 pr="$1"
 repo="${pr#https://github.com/}"; repo="${repo%/pull/*}"
-max="${2:-540}"; (( max > 540 )) && max=540
+slice_cap=540
+max="${2:-$slice_cap}"; (( max > slice_cap )) && max=$slice_cap
 ceiling=600
 total="${3:-}"; [[ -n "$total" ]] && (( total > ceiling )) && total=$ceiling
 want="${4:-}"
@@ -41,8 +42,8 @@ def docs(text):
 '
 
 fall_back() {
-  echo "wait-ci.sh: $1; bounding the wait at 540 s" >&2
-  echo 540
+  echo "wait-ci.sh: $1; bounding the wait at $slice_cap s" >&2
+  echo "$slice_cap"
 }
 
 ci_bound() {
