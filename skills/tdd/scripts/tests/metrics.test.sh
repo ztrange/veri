@@ -1683,6 +1683,27 @@ probe "$NOT_RUNNING_ZERO" "$ahead_clocks_out"
 report_on "$name" "$ahead_clocks_out"
 
 
+name="#643 given a log whose awake clock advanced one second further than its wall clock over the issue span, the issue wall is no larger than the wall-clock span"
+problems=()
+
+probe '
+import re, sys
+
+lines = [l.strip() for l in open(sys.argv[1]).read().splitlines()]
+walls = [l for l in lines if l.startswith("Wall time for the issue:")]
+
+if not walls:
+    print("want a line starting \"Wall time for the issue:\", the report has none")
+    raise SystemExit(0)
+
+seconds = re.match(r"Wall time for the issue: ([0-9]+) s", walls[0])
+if seconds is None or int(seconds.group(1)) > 217:
+    print("want the issue wall no larger than the 217-second wall span, it says: %r" % walls[0])
+' "$ahead_clocks_out"
+
+report_on "$name" "$ahead_clocks_out"
+
+
 fixture_work step_slept_work
 
 step_slept="a step the machine slept through"
