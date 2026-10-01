@@ -1,6 +1,6 @@
 # Plan for #636 — a revise leaf runs the tiers of the phase it redoes, not the full suite
 
-- [ ] the prompt `build-develop-prompt.sh revise red …` prints tells the leaf to run the affected suites through timed-test-run.sh under tier `affected`, and names no `all` run ⟦criterion 1⟧
+- [x] the prompt `build-develop-prompt.sh revise red …` prints tells the leaf to run the affected suites through timed-test-run.sh under tier `affected`, and names no `all` run ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] the prompt `build-develop-prompt.sh revise refactor …` prints tells the leaf to run the affected suites through timed-test-run.sh under tier `affected`, and names no `all` run ⟦criterion 1⟧
 - [ ] the prompt `build-develop-prompt.sh revise green …` prints tells the leaf to run the fast command and then the affected suites through timed-test-run.sh, under tiers `fast` then `affected`, and names no `all` run ⟦criterion 1⟧
 - [ ] SKILL.md's revise launch hands `build-develop-prompt.sh revise` the run's fast command, so a revise of green can name the fast command it must run

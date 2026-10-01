@@ -48,11 +48,11 @@ and comes back to this step later, so leave the working tree exactly as you foun
    message the suite will print — then run, and compare what it printed against that
    prediction; never adjust the prediction to fit what you saw. The leaf whose attempt was
    rejected predicted a different test, so there is nothing here for you to inherit.
-3. Run the test command and confirm the result the phase you are redoing calls for.
-   Make that run through the wrapper `{{TIMED_TEST_RUN}}`, which records what the run cost
-   and names the tier it belongs to — `all`, since the whole test command is what runs:
+3. Run the suites `affected-suites.sh` prints for your change and confirm the result the
+   phase you are redoing calls for. Make that run through the wrapper `{{TIMED_TEST_RUN}}`,
+   which records what the run cost and names the tier it belongs to:
 
-       {{TIMED_TEST_RUN}} all '' {{TEST_CMD}}
+       {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>
 
    The wrapper hands the command's own exit status straight back, so a red run stays red.
 4. If the objection **cannot** be met — the criterion is already satisfied by existing

@@ -626,9 +626,9 @@ renders_as() {  # <label> <want-cksum> <args...> — records a prompt whose sum 
 renders_as red            '2493217892 9982'       red "$work/spec.md" "$step_text" "$test_cmd"
 renders_as green          '1771614540 6887'     green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit"
 renders_as refactor       '2694733224 8933'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
-renders_as 'revise red'   '2544846531 7090'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as 'revise green' '3729173025 7092'  revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as 'revise refactor' '3524891017 7095' revise refactor "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+renders_as 'revise red'   '1295566063 7099'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+renders_as 'revise green' '2934549822 7101'  revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+renders_as 'revise refactor' '1582308635 7104' revise refactor "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as exhausted      '3417210291 3714'       exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as reconcile      '3527139660 5317'       reconcile "$work/spec.md" "$step_text" "$test_cmd" "$rc_branch" "$rc_sha"
 [[ -z "$problems" ]] \
