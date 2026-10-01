@@ -392,17 +392,11 @@ for f in "$SCRIPTS"/tests/unit/[c-e]*.sh; do
 done
 sweep_verdict "the sweepable report is empty for every tests/unit/*.sh whose name starts with c through e, other than comment-class.test.sh" "${files[@]}"
 
-sweep_verdict "the sweepable report is empty for tests/unit/ledger.test.sh" "$SCRIPTS"/tests/unit/ledger.test.sh
+for name in ledger red-divergence run-affordable step-budget step-cost stop-requested; do
+  sweep_verdict "the sweepable report is empty for tests/unit/$name.test.sh" "$SCRIPTS/tests/unit/$name.test.sh"
+done
 
 sweep_verdict "the sweepable report is empty for every tests/unit/*.sh whose name starts with m through p" "$SCRIPTS"/tests/unit/[m-p]*.sh
-
-sweep_verdict "the sweepable report is empty for tests/unit/red-divergence.test.sh" "$SCRIPTS"/tests/unit/red-divergence.test.sh
-
-sweep_verdict "the sweepable report is empty for tests/unit/run-affordable.test.sh" "$SCRIPTS"/tests/unit/run-affordable.test.sh
-
-sweep_verdict "the sweepable report is empty for tests/unit/step-budget.test.sh and tests/unit/step-cost.test.sh" "$SCRIPTS"/tests/unit/step-budget.test.sh "$SCRIPTS"/tests/unit/step-cost.test.sh
-
-sweep_verdict "the sweepable report is empty for tests/unit/stop-requested.test.sh" "$SCRIPTS"/tests/unit/stop-requested.test.sh
 
 sweep_verdict "the sweepable report is empty for every shell file under tests/fixtures/, and for tests/unit-guard/git and tests/offline/gh" "$SCRIPTS"/tests/fixtures/*/*.sh "$SCRIPTS"/tests/unit-guard/git "$SCRIPTS"/tests/offline/gh
 
