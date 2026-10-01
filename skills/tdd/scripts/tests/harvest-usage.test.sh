@@ -221,10 +221,9 @@ multi=develop-green
 multi_work="$work/multi-model"
 first_model=claude-opus-5-5
 second_model=claude-haiku-4-5-20251001
+two_model_record="{\"type\":\"result\",\"duration_ms\":1,\"duration_api_ms\":1,\"num_turns\":1,\"total_cost_usd\":0.5,\"usage\":{\"input_tokens\":20,\"output_tokens\":4000,\"cache_read_input_tokens\":0,\"cache_creation_input_tokens\":0},\"modelUsage\":{\"$first_model\":{\"inputTokens\":14,\"outputTokens\":3903,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":0,\"costUSD\":0.495,\"canonicalModel\":\"$first_model\"},\"$second_model\":{\"inputTokens\":6,\"outputTokens\":97,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":0,\"costUSD\":0.005,\"canonicalModel\":\"$second_model\"}}}"
 mkdir -p "$multi_work/.tdd"
-cat > "$multi_work/.tdd/$multi.log" <<LOG
-{"type":"result","duration_ms":1,"duration_api_ms":1,"num_turns":1,"total_cost_usd":0.5,"usage":{"input_tokens":20,"output_tokens":4000,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"modelUsage":{"$first_model":{"inputTokens":14,"outputTokens":3903,"cacheReadInputTokens":0,"cacheCreationInputTokens":0,"costUSD":0.495,"canonicalModel":"$first_model"},"$second_model":{"inputTokens":6,"outputTokens":97,"cacheReadInputTokens":0,"cacheCreationInputTokens":0,"costUSD":0.005,"canonicalModel":"$second_model"}}}
-LOG
+printf '%s\n' "$two_model_record" > "$multi_work/.tdd/$multi.log"
 
 ( cd "$multi_work" && "$HARVEST" "$multi" ) >/dev/null 2>&1
 multi_code=$?
@@ -245,9 +244,7 @@ problems=()
 split=develop-red
 split_work="$work/split-model"
 mkdir -p "$split_work/.tdd"
-cat > "$split_work/.tdd/$split.log" <<LOG
-{"type":"result","duration_ms":1,"duration_api_ms":1,"num_turns":1,"total_cost_usd":0.5,"usage":{"input_tokens":20,"output_tokens":4000,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"modelUsage":{"$first_model":{"inputTokens":14,"outputTokens":3903,"cacheReadInputTokens":0,"cacheCreationInputTokens":0,"costUSD":0.495,"canonicalModel":"$first_model"},"$second_model":{"inputTokens":6,"outputTokens":97,"cacheReadInputTokens":0,"cacheCreationInputTokens":0,"costUSD":0.005,"canonicalModel":"$second_model"}}}
-LOG
+printf '%s\n' "$two_model_record" > "$split_work/.tdd/$split.log"
 
 ( cd "$split_work" && "$HARVEST" "$split" ) >/dev/null 2>&1
 split_code=$?
