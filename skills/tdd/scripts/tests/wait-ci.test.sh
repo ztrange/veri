@@ -71,6 +71,20 @@ else:
     print(json.dumps(doc(page)))
 P
     ;;
+  "run list"*)
+    python3 - "$GH_RUNS" "$@" <<'P'
+import json, sys
+runs, args = json.load(open(sys.argv[1])), sys.argv[4:]
+opt = lambda *names: next((args[i + 1] for i, a in enumerate(args[:-1]) if a in names), None)
+workflow = opt("--workflow", "-w")
+if workflow is not None:
+    runs = [r for r in runs if workflow in (r["workflowName"], r["path"])]
+status = opt("--status", "-s")
+if status is not None:
+    runs = [r for r in runs if status in (r["status"], r["conclusion"])]
+print(json.dumps(runs[:int(opt("--limit", "-L") or 20)]))
+P
+    ;;
   "api repos/o/r/commits/"*/status)
     if [ -n "${GH_STATUS_FAIL:-}" ]; then echo '{"message":"Not Found"}'; echo "gh: Not Found (HTTP 404)" >&2; exit 1; fi
     cat "$(served .status)" ;;
@@ -541,6 +555,59 @@ grep -F "could not read the checks of $sha" "$work/flaky-1.err" > /dev/null \
 [[ "$flaky_2" == "$flaky_1" ]] || problems+=("second page 502: want exit $flaky_1 as on a failed first page, got $flaky_2 (stderr: $(cat "$work/flaky-2.err"))")
 [[ "$(cat "$work/flaky-2.err")" == "$(cat "$work/flaky-1.err")" ]] \
   || problems+=("second page 502: want the failed first page's stderr, got: $(cat "$work/flaky-2.err")")
+report "$name"
+
+name="wait-ci.sh given no total-seconds, omitted or empty, records a deadline twice the mean wall time of the CI workflow's 5 most recent success or failure runs after the first call, read through gh run list, skipped, cancelled, in-progress and other workflows' runs not counted (#549)"
+problems=()
+sha=0123456789abcdef0123456789abcdef01234567
+python3 - "$work/gh-runs.json" <<'P'
+import json, sys
+def run(wf, status, conclusion, seconds, n):
+    path = {"CI": ".github/workflows/ci.yml", "Pages": ".github/workflows/pages.yml"}[wf]
+    return {"databaseId": 1000 - n, "workflowName": wf, "path": path, "status": status, "conclusion": conclusion,
+            "startedAt": "2026-09-28T10:00:00Z", "updatedAt": "2026-09-28T10:%02d:%02dZ" % divmod(seconds, 60)}
+rows = [("CI", "in_progress", "", 3000), ("Pages", "completed", "success", 3000), ("CI", "completed", "success", 200),
+        ("CI", "completed", "cancelled", 3000), ("CI", "completed", "failure", 220), ("CI", "completed", "skipped", 3000),
+        ("CI", "completed", "success", 160), ("CI", "completed", "success", 230), ("CI", "completed", "failure", 190),
+        ("CI", "completed", "success", 3000)]
+json.dump([run(*r, n) for n, r in enumerate(rows)], open(sys.argv[1], "w"))
+P
+for form in omitted empty; do
+  f="computed-$form"
+  sha_head "$f.json"
+  sha_runs "$f.json" "$(sha_run gates in_progress null)"
+  shared "$f"
+  if [[ "$form" == omitted ]]; then args=(60); else args=(60 "" "$sha"); fi
+  got="$(GH_RUNS="$work/gh-runs.json" again "$f" first "${args[@]}")"
+  first="$(head -n 1 "$work/$f.clock")"
+  deadline="$(cat "$work/$f/.tdd/ci-deadline-$sha" 2>/dev/null)"
+  [[ "$got" == 3 ]] || problems+=("$form total: want exit 3, got $got (stderr: $(cat "$work/$f.first.err"))")
+  [[ "$deadline" =~ ^[0-9]+$ && "$first" =~ ^[0-9]+$ && $(( deadline - first )) == 400 ]] \
+    || problems+=("$form total: want .tdd/ci-deadline-$sha 400 s after the first call (2 × mean of 200, 220, 160, 230, 190), got '$deadline' with the first call at '$first' (stderr: $(cat "$work/$f.first.err"))")
+done
+report "$name"
+
+name="wait-ci.sh given no total-seconds averages the CI workflow's 5 most recent success or failure runs even when more than 20 skipped runs come before them, gh run list's default page (#549)"
+problems=()
+sha=0123456789abcdef0123456789abcdef01234567
+python3 - "$work/gh-runs-deep.json" <<'P'
+import json, sys
+def run(conclusion, seconds, n):
+    return {"databaseId": 1000 - n, "workflowName": "CI", "path": ".github/workflows/ci.yml", "status": "completed",
+            "conclusion": conclusion, "startedAt": "2026-09-28T10:00:00Z", "updatedAt": "2026-09-28T10:%02d:%02dZ" % divmod(seconds, 60)}
+rows = [("skipped", 3000)] * 25 + [("success", 100), ("failure", 120), ("success", 80), ("success", 110), ("failure", 90)]
+json.dump([run(*r, n) for n, r in enumerate(rows)], open(sys.argv[1], "w"))
+P
+f=computed-deep
+sha_head "$f.json"
+sha_runs "$f.json" "$(sha_run gates in_progress null)"
+shared "$f"
+got="$(GH_RUNS="$work/gh-runs-deep.json" again "$f" first 60)"
+first="$(head -n 1 "$work/$f.clock")"
+deadline="$(cat "$work/$f/.tdd/ci-deadline-$sha" 2>/dev/null)"
+[[ "$got" == 3 ]] || problems+=("want exit 3, got $got (stderr: $(cat "$work/$f.first.err"))")
+[[ "$deadline" =~ ^[0-9]+$ && "$first" =~ ^[0-9]+$ && $(( deadline - first )) == 200 ]] \
+  || problems+=("want .tdd/ci-deadline-$sha 200 s after the first call (2 × mean of 100, 120, 80, 110, 90 behind 25 skipped runs), got '$deadline' with the first call at '$first' (stderr: $(cat "$work/$f.first.err"))")
 report "$name"
 
 finish

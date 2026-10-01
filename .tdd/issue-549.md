@@ -2,7 +2,7 @@
 
 The issue predates #544's landing: `wait-ci.sh` now takes `<pr-url> [slice-seconds] [total-seconds] [head-sha]`. The issue's "bound" is the total deadline across calls (`total-seconds`); its "one call never sleeps longer than 540 s" is the slice. An omitted or empty `total-seconds` is "no max-seconds argument".
 
-- [ ] with no `total-seconds` argument (omitted or empty), `wait-ci.sh`'s total bound is 2 × the mean wall time (`updatedAt − startedAt`) of the 5 most recent runs of the CI workflow whose conclusion is `success` or `failure`, read through `gh run list`, skipped and cancelled runs not counted — the deadline recorded in `.tdd/ci-deadline-<sha>` is that many seconds after the first call ⟦criterion 1⟧
+- [x] with no `total-seconds` argument (omitted or empty), `wait-ci.sh`'s total bound is 2 × the mean wall time (`updatedAt − startedAt`) of the 5 most recent runs of the CI workflow whose conclusion is `success` or `failure`, read through `gh run list`, skipped and cancelled runs not counted — the deadline recorded in `.tdd/ci-deadline-<sha>` is that many seconds after the first call ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] the computed total bound is never more than 600 s, however slow the last 5 runs were ⟦criterion 1⟧
 - [ ] when fewer than 5 success/failure CI runs exist, the total bound falls back to 540 s and `wait-ci.sh` says so on stderr, naming that fewer than 5 runs were found ⟦criterion 2⟧
 - [ ] when `gh run list` fails, the total bound falls back to 540 s and `wait-ci.sh` says so on stderr, naming that `gh` could not answer ⟦criterion 2⟧
