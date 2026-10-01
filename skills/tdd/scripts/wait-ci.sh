@@ -34,15 +34,6 @@ deadline=""
 inherited=""
 slice_end=""
 passing="success neutral skipped"
-json_docs='
-import json, sys
-def docs(text):
-    at, out = 0, []
-    while text[at:].strip():
-        doc, at = json.JSONDecoder().raw_decode(text, len(text) - len(text[at:].lstrip()))
-        out.append(doc)
-    return out
-'
 
 fall_back() {
   echo "wait-ci.sh: $1; bounding the wait at $slice_cap s" >&2
@@ -56,11 +47,13 @@ ci_bound() {
         --json databaseId,conclusion,startedAt,updatedAt)" \
       || { fall_back "gh run list could not answer"; return; }
   done
-  python3 -c "$json_docs"'
+  PYTHONPATH="$(dirname "$0")/lib" python3 -c '
+import sys
 from datetime import datetime
+from json_documents import documents
 at = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").timestamp()
 n = int(sys.argv[2])
-runs = [r for page in docs(sys.stdin.read()) for r in page]
+runs = [r for page in documents(sys.stdin.read()) for r in page]
 runs = sorted(runs, key=lambda r: r["databaseId"], reverse=True)[:n]
 if len(runs) < n:
     sys.exit(3)
@@ -84,8 +77,10 @@ sha_state() {
   local runs statuses
   runs="$(gh_rest_list "repos/$repo/commits/$1/check-runs" '"check_runs": *\[ *\]')" || return 2
   statuses="$(gh api "repos/$repo/commits/$1/status")" || return 2
-  python3 -c "$json_docs"'
-docs = docs(sys.stdin.read())
+  PYTHONPATH="$(dirname "$0")/lib" python3 -c '
+import sys
+from json_documents import documents
+docs = documents(sys.stdin.read())
 pages = docs[:-1]
 states = [s["state"] for s in docs[-1].get("statuses") or []]
 runs = [r for p in pages for r in p.get("check_runs") or []]
