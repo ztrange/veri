@@ -64,6 +64,8 @@ def usage_pairs(record):
     for key in ("input_tokens", "output_tokens",
                 "cache_read_input_tokens", "cache_creation_input_tokens"):
         pairs.append("%s=%s" % (key, usage[key]))
+    if "modelUsage" in record:
+        pairs.append("model=%s" % ",".join(record["modelUsage"]))
     return pairs
 
 record = closing_result(sys.argv[1])

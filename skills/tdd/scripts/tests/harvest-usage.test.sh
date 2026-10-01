@@ -192,4 +192,26 @@ refused_usage_lines="$(event_count "$refused_work" usage)"
 
 report "$name"
 
+name="a closing result record whose modelUsage lists one model: the usage event carries a model key naming that model"
+problems=()
+
+modeled=verify-green
+modeled_work="$work/modeled"
+want_model=claude-opus-5-5
+mkdir -p "$modeled_work/.tdd"
+cat > "$modeled_work/.tdd/$modeled.log" <<LOG
+{"type":"result","duration_ms":1,"duration_api_ms":1,"num_turns":1,"total_cost_usd":0.495,"usage":{"input_tokens":14,"output_tokens":3903,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"modelUsage":{"$want_model":{"inputTokens":14,"outputTokens":3903,"cacheReadInputTokens":0,"cacheCreationInputTokens":0,"costUSD":0.495,"canonicalModel":"$want_model"}}}
+LOG
+
+( cd "$modeled_work" && "$HARVEST" "$modeled" ) >/dev/null 2>&1
+modeled_code=$?
+[[ "$modeled_code" == 0 ]] ||
+  problems+=("want exit 0 from the harvester, got $modeled_code")
+
+modeled_model="$(event_fields "$modeled_work" usage model)"
+[[ "$modeled_model" == "$want_model" ]] ||
+  problems+=("model: want $(printf '%q' "$want_model"), got $(printf '%q' "$modeled_model")")
+
+report "$name"
+
 finish
