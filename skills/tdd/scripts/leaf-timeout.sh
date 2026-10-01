@@ -43,6 +43,7 @@
 #          VERI_TIMEOUT=<n> leaf-timeout.sh …   # <n> a whole number >= 1, used as given
 set -euo pipefail
 
+USAGE="usage: leaf-timeout.sh <baseline-seconds> [refactor | --full <full-seconds>]"
 baseline="${1:-}"
 role="${2:-}"
 full_given=0
@@ -67,6 +68,7 @@ require_seconds() {
   local name="$1" value="$2"
   if [[ ! "$value" =~ ^[0-9]+$ ]]; then
     echo "leaf-timeout: <$name> must be a whole number >= 0: $value" >&2
+    echo "$USAGE" >&2
     exit 2
   fi
 }

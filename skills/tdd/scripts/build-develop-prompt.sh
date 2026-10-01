@@ -46,7 +46,7 @@ case "$phase" in
   exhausted) want=5 ;;
   over-budget) want=6 ;;
   rebase) want=7 ;;
-  *) echo "build-develop-prompt: unknown phase '$phase' (want $phases)" >&2; exit 2 ;;
+  *) echo "build-develop-prompt.sh: unknown phase '$phase' (want $phases)" >&2; echo "$USAGE" >&2; exit 2 ;;
 esac
 refuse() {
   echo "build-develop-prompt: $1" >&2

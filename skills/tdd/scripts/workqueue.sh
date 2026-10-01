@@ -127,6 +127,7 @@ fi
 
 if [[ "${1:-}" != assign ]]; then
   echo "workqueue.sh: unknown subcommand: ${1:-}" >&2
+  echo "usage: workqueue.sh assign|next|start|done|park|show <worker> …" >&2
   exit 2
 fi
 

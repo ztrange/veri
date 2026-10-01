@@ -7,6 +7,7 @@
 # Usage:   classify-bail.sh <cause>
 set -euo pipefail
 
+USAGE="usage: classify-bail.sh <cause>"
 cause="${1:-}"
 
 case "$cause" in
@@ -18,6 +19,7 @@ case "$cause" in
     ;;
   *)
     echo "classify-bail: unknown cause: $cause" >&2
+    echo "$USAGE" >&2
     exit 2
     ;;
 esac
