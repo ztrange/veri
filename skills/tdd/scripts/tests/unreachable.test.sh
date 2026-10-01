@@ -33,18 +33,23 @@ fixture_root() {
   echo "$root"
 }
 
+expect_listing() {
+  local root="$1" expected="$2" name="$3" out code got
+  out="$("$UNREACHABLE" "$root" 2>&1)"; code=$?
+  got="$(printf '%s\n' "$out" | sed '/^$/d; s#.*/##' | sort)"
+  if [[ "$code" == 0 && "$got" == "$expected" ]]; then ok; else
+    no "$name (code=$code)"
+    diff <(printf '%s\n' "$expected") <(printf '%s\n' "$got") | sed 's/^/    /'
+  fi
+}
+
 root="$(fixture_root orphans)"
 S="$root/skills/tdd/scripts"
 script "$S/helper.sh" 'echo helped'
 script "$S/orphan-top.sh" '"$(dirname "$0")/orphan-leaf.sh" "$@"'
 script "$S/orphan-leaf.sh" '"$(dirname "$0")/orphan-top.sh" --again'
-expected="$(printf 'orphan-leaf.sh\norphan-top.sh')"
-out="$("$UNREACHABLE" "$root" 2>&1)"; code=$?
-got="$(printf '%s\n' "$out" | sed '/^$/d; s#.*/##' | sort)"
-if [[ "$code" == 0 && "$got" == "$expected" ]]; then ok; else
-  no "scripts reached by no entry point are listed, including an orphan whose only caller is another orphan (code=$code)"
-  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$got") | sed 's/^/    /'
-fi
+expect_listing "$root" "$(printf 'orphan-leaf.sh\norphan-top.sh')" \
+  "scripts reached by no entry point are listed, including an orphan whose only caller is another orphan"
 
 root="$(fixture_root cycle)"
 S="$root/skills/tdd/scripts"
@@ -74,23 +79,15 @@ S="$root/skills/tdd/scripts"
 script "$S/helper.sh" '"$(dirname "$0")/run-leaf.sh" "$@"'
 script "$S/run-leaf.sh" 'echo ran'
 script "$S/leaf.sh" 'echo alone'
-out="$("$UNREACHABLE" "$root" 2>&1)"; code=$?
-got="$(printf '%s\n' "$out" | sed '/^$/d; s#.*/##' | sort)"
-if [[ "$code" == 0 && "$got" == "leaf.sh" ]]; then ok; else
-  no "an orphan whose name is the tail of a reached script's name is still listed (code=$code)"
-  diff <(printf 'leaf.sh\n') <(printf '%s\n' "$got") | sed 's/^/    /'
-fi
+expect_listing "$root" leaf.sh \
+  "an orphan whose name is the tail of a reached script's name is still listed"
 
 root="$(fixture_root bounds)"
 S="$root/skills/tdd/scripts"
 script "$S/helper.sh" "$(printf 'kept.sh\n# xleaf.sh 2leaf.sh my_leaf.sh v2.leaf.sh leaf.shx leaf.sh2 leaf.sh_old leaf.sh-old')"
 script "$S/kept.sh" 'echo kept'
 script "$S/leaf.sh" 'echo alone'
-out="$("$UNREACHABLE" "$root" 2>&1)"; code=$?
-got="$(printf '%s\n' "$out" | sed '/^$/d; s#.*/##' | sort)"
-if [[ "$code" == 0 && "$got" == "leaf.sh" ]]; then ok; else
-  no "a name alone on its line is a mention; one glued to a letter, digit, _ or - on either side, or to a . before it, is not (code=$code)"
-  diff <(printf 'leaf.sh\n') <(printf '%s\n' "$got") | sed 's/^/    /'
-fi
+expect_listing "$root" leaf.sh \
+  "a name alone on its line is a mention; one glued to a letter, digit, _ or - on either side, or to a . before it, is not"
 
 finish
