@@ -607,4 +607,16 @@ first_deadline "$f" "$work/gh-runs-deep.json" 60
   || problems+=("want .tdd/ci-deadline-$sha 200 s after the first call (2 × mean of 100, 120, 80, 110, 90 behind 25 skipped runs), got '$deadline' with the first call at '$first' (stderr: $(cat "$work/$f.first.err"))")
 report "$name"
 
+name="wait-ci.sh given no total-seconds averages the CI workflow's 5 most recent success or failure runs even when 50 or more skipped runs come before them (#549)"
+problems=()
+sha=0123456789abcdef0123456789abcdef01234567
+ci_runs gh-runs-deeper.json '[("CI", "completed", "skipped", 3000)] * 60 + [("CI", "completed", c, s) for c, s in
+        [("success", 150), ("failure", 130), ("success", 170), ("success", 140), ("failure", 160)]]'
+f=computed-deeper
+first_deadline "$f" "$work/gh-runs-deeper.json" 60
+[[ "$got" == 3 ]] || problems+=("want exit 3, got $got (stderr: $(cat "$work/$f.first.err"))")
+[[ "$deadline" =~ ^[0-9]+$ && "$first" =~ ^[0-9]+$ && $(( deadline - first )) == 300 ]] \
+  || problems+=("want .tdd/ci-deadline-$sha 300 s after the first call (2 × mean of 150, 130, 170, 140, 160 behind 60 skipped runs), got '$deadline' with the first call at '$first' (stderr: $(cat "$work/$f.first.err"))")
+report "$name"
+
 finish

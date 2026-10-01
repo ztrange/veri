@@ -31,12 +31,19 @@ slice_end=""
 passing="success neutral skipped"
 
 ci_bound() {
-  gh run list --repo "$repo" --workflow CI --limit 50 \
-      --json conclusion,startedAt,updatedAt | python3 -c '
+  local c
+  for c in success failure; do
+    gh run list --repo "$repo" --workflow CI --status "$c" --limit 5 \
+        --json databaseId,conclusion,startedAt,updatedAt
+  done | python3 -c '
 import json, sys
 from datetime import datetime
 at = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").timestamp()
-runs = [r for r in json.load(sys.stdin) if r["conclusion"] in ("success", "failure")][:5]
+text, i, runs = sys.stdin.read(), 0, []
+while text[i:].strip():
+    page, i = json.JSONDecoder().raw_decode(text, len(text) - len(text[i:].lstrip()))
+    runs += page
+runs = sorted(runs, key=lambda r: r["databaseId"], reverse=True)[:5]
 print(round(2 * sum(at(r["updatedAt"]) - at(r["startedAt"]) for r in runs) / len(runs)))
 '
 }
