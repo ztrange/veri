@@ -568,14 +568,17 @@ json.dump([run(*r, n) for n, r in enumerate(eval(sys.argv[2]))], open(sys.argv[1
 P
 }
 
-first_deadline() {
-  local f="$1" runs="$2"; shift 2
+expect_deadline() {
+  local f="$1" runs="$2" want="$3" why="$4" got first deadline; shift 4
   sha_head "$f.json"
   sha_runs "$f.json" "$(sha_run gates in_progress null)"
   shared "$f"
   got="$(GH_RUNS="$runs" again "$f" first "$@")"
   first="$(head -n 1 "$work/$f.clock")"
   deadline="$(cat "$work/$f/.tdd/ci-deadline-$sha" 2>/dev/null)"
+  [[ "$got" == 3 ]] || problems+=("$f: want exit 3, got $got (stderr: $(cat "$work/$f.first.err"))")
+  [[ "$deadline" =~ ^[0-9]+$ && "$first" =~ ^[0-9]+$ && $(( deadline - first )) == "$want" ]] \
+    || problems+=("$f: want .tdd/ci-deadline-$sha $want s after the first call ($why), got '$deadline' with the first call at '$first' (stderr: $(cat "$work/$f.first.err"))")
 }
 
 name="wait-ci.sh given no total-seconds, omitted or empty, records a deadline twice the mean wall time of the CI workflow's 5 most recent success or failure runs after the first call, read through gh run list, skipped, cancelled, in-progress and other workflows' runs not counted (#549)"
@@ -588,10 +591,7 @@ ci_runs gh-runs.json '[("CI", "in_progress", "", 3000), ("Pages", "completed", "
 for form in omitted empty; do
   f="computed-$form"
   if [[ "$form" == omitted ]]; then args=(60); else args=(60 "" "$sha"); fi
-  first_deadline "$f" "$work/gh-runs.json" "${args[@]}"
-  [[ "$got" == 3 ]] || problems+=("$form total: want exit 3, got $got (stderr: $(cat "$work/$f.first.err"))")
-  [[ "$deadline" =~ ^[0-9]+$ && "$first" =~ ^[0-9]+$ && $(( deadline - first )) == 400 ]] \
-    || problems+=("$form total: want .tdd/ci-deadline-$sha 400 s after the first call (2 × mean of 200, 220, 160, 230, 190), got '$deadline' with the first call at '$first' (stderr: $(cat "$work/$f.first.err"))")
+  expect_deadline "$f" "$work/gh-runs.json" 400 "2 × mean of 200, 220, 160, 230, 190" "${args[@]}"
 done
 report "$name"
 
@@ -600,11 +600,7 @@ problems=()
 sha=0123456789abcdef0123456789abcdef01234567
 ci_runs gh-runs-deep.json '[("CI", "completed", "skipped", 3000)] * 25 + [("CI", "completed", c, s) for c, s in
         [("success", 100), ("failure", 120), ("success", 80), ("success", 110), ("failure", 90)]]'
-f=computed-deep
-first_deadline "$f" "$work/gh-runs-deep.json" 60
-[[ "$got" == 3 ]] || problems+=("want exit 3, got $got (stderr: $(cat "$work/$f.first.err"))")
-[[ "$deadline" =~ ^[0-9]+$ && "$first" =~ ^[0-9]+$ && $(( deadline - first )) == 200 ]] \
-  || problems+=("want .tdd/ci-deadline-$sha 200 s after the first call (2 × mean of 100, 120, 80, 110, 90 behind 25 skipped runs), got '$deadline' with the first call at '$first' (stderr: $(cat "$work/$f.first.err"))")
+expect_deadline computed-deep "$work/gh-runs-deep.json" 200 "2 × mean of 100, 120, 80, 110, 90 behind 25 skipped runs" 60
 report "$name"
 
 name="wait-ci.sh given no total-seconds averages the CI workflow's 5 most recent success or failure runs even when 50 or more skipped runs come before them (#549)"
@@ -612,11 +608,7 @@ problems=()
 sha=0123456789abcdef0123456789abcdef01234567
 ci_runs gh-runs-deeper.json '[("CI", "completed", "skipped", 3000)] * 60 + [("CI", "completed", c, s) for c, s in
         [("success", 150), ("failure", 130), ("success", 170), ("success", 140), ("failure", 160)]]'
-f=computed-deeper
-first_deadline "$f" "$work/gh-runs-deeper.json" 60
-[[ "$got" == 3 ]] || problems+=("want exit 3, got $got (stderr: $(cat "$work/$f.first.err"))")
-[[ "$deadline" =~ ^[0-9]+$ && "$first" =~ ^[0-9]+$ && $(( deadline - first )) == 300 ]] \
-  || problems+=("want .tdd/ci-deadline-$sha 300 s after the first call (2 × mean of 150, 130, 170, 140, 160 behind 60 skipped runs), got '$deadline' with the first call at '$first' (stderr: $(cat "$work/$f.first.err"))")
+expect_deadline computed-deeper "$work/gh-runs-deeper.json" 300 "2 × mean of 150, 130, 170, 140, 160 behind 60 skipped runs" 60
 report "$name"
 
 finish
