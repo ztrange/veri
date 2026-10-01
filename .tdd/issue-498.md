@@ -2,7 +2,8 @@
 
 Declared entry points: the script invocations in `skills/tdd/SKILL.md` and the procedure files it reads (`SCOPE-LOOP.md`, `WORKER.md`), the Makefile's targets, and the git hooks under `docs/hooks/`.
 
-- [ ] `skills/tdd/scripts/unreachable.sh <repo-root>` lists, one per line, each script under `skills/tdd/scripts/` reachable from none of the declared entry points, including one whose only callers are other scripts inside the same orphaned subtree ⟦criterion 1⟧
+- [ ] `skills/tdd/scripts/unreachable.sh <repo-root>` lists, one per line, each script under `skills/tdd/scripts/` reachable from none of the declared entry points, including one whose only callers are other scripts inside the same orphaned subtree ⟦added⟧ ⟦criterion 1⟧
+- [ ] `skills/tdd/scripts/unreachable.sh` run with no `<repo-root>` argument exits 2 with a usage line on stderr and prints nothing on stdout, and it is on the list of scripts `skills/tdd/scripts/tests/unit/missing-argument-exit.test.sh` checks ⟦added⟧ ⟦criterion 1⟧
 - [ ] a script reached from exactly one kind of entry point — only SKILL.md (or a procedure file it reads), only a Makefile recipe, or only a git hook — directly or through a chain of other scripts or sourced `lib/` files, is not listed by unreachable.sh ⟦criterion 1⟧
 - [ ] unreachable.sh counts a dynamically constructed invocation as reaching its target — a script or prompt template named only through a built path such as `"$S/build-$kind-prompt.sh"` or `prompts/develop-$phase.md` is not listed, on a fixture where a literal `grep -F` for the target's name finds no caller ⟦criterion 2⟧
 - [ ] a script whose only caller is its own test suite is listed by unreachable.sh as test-only, apart from the unreachable ones, and running the check deletes and modifies no file ⟦criterion 4⟧
