@@ -75,4 +75,49 @@ probe_every_guard_is_rostered_and_green
 
 report "$name"
 
+plant_roster_without() {
+  local tree="$1" missing="$2" guard
+  {
+    echo 'test:'
+    for guard in "${GUARDS[@]}"; do
+      [[ "$guard" == "$missing" ]] || printf '\t./%s/%s\n' "$suites_dir" "$guard"
+    done
+  } > "$tree/Makefile"
+}
+
+probe_names_each_guard_missing_from_a_planted_roster() {
+  local real_root="$ROOT" real_here="$HERE" stubs tree missing guard raised found
+  local unnamed=()
+  stubs="$(scratch_dir)"
+  for guard in "${GUARDS[@]}"; do
+    printf '#!/bin/sh\necho "----"\necho "1 passed, 0 failed"\n' > "$stubs/$guard"
+    chmod 755 "$stubs/$guard"
+  done
+
+  for missing in "${GUARDS[@]}"; do
+    tree="$(scratch_dir)"
+    plant_roster_without "$tree" "$missing"
+    problems=()
+    ROOT="$tree" HERE="$stubs"
+    probe_every_guard_is_rostered_and_green
+    ROOT="$real_root" HERE="$real_here"
+    found=0
+    for raised in ${problems+"${problems[@]}"}; do
+      [[ "$raised" == *"$suites_dir/$missing is not in the roster"* ]] && found=1
+    done
+    if [[ "$found" -eq 0 ]]; then
+      raised="$(IFS='|'; echo "${problems[*]-}")"
+      unnamed+=("with $missing left out of a planted \`make -n test\` roster, the probe raised no problem naming it; it raised: ${raised:-nothing}")
+    fi
+  done
+  problems=(${unnamed+"${unnamed[@]}"})
+}
+
+name="with a planted \`make -n test\` roster lacking any one of the four guards, the probe fails naming that guard"
+problems=()
+
+probe_names_each_guard_missing_from_a_planted_roster
+
+report "$name"
+
 finish
