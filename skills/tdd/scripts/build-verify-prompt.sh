@@ -27,7 +27,8 @@ set -euo pipefail
 # hazard: bash 5.2's patsub_replacement makes an unescaped & in a ${var//…/…} replacement the matched text; off, every value is literal.
 shopt -u patsub_replacement 2>/dev/null || true
 
-source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
 USAGE="usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]"
 
 step="" fast_cmd=""
@@ -78,7 +79,6 @@ if [[ "$phase" == rebase ]]; then
   done
 fi
 
-HERE="$(cd "$(dirname "$0")" && pwd)"
 tpl_file="$HERE/prompts/verify-$phase.md"
 shared_file="$HERE/prompts/_shared.md"
 # hazard: `||` on `source`, or a missing lib file dies under set -e with 1 instead of 2.
