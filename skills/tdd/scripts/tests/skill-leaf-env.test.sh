@@ -41,6 +41,7 @@ cleared_run_context=(env -u VERI_TEST_CMD -u VERI_ISSUE -u VERI_STEP)
 
 claude_stub "$stub" "$(cat <<'STUB'
 printf '%s\n' "${VERI_TEST_CMD-<unset>}" > "$SEEN"
+printf '%s\n' "${VERI_STEP-<unset>}" > "$SEEN.step"
 printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
 STUB
 )"
@@ -277,6 +278,28 @@ scan_launch_trees() {
 
 run_case "every leaf $skill_md launches leaves events carrying the run's issue and step" \
   scan_launch_trees
+
+scan_launch_step_env() {
+  local trees tree lineno line want_step got
+  trees=( "$run"/* )
+  if [[ ! -d "${trees[0]}" ]]; then
+    problems+=("no launch line was run, so no leaf's VERI_STEP could be read")
+    return
+  fi
+  for tree in "${trees[@]}"; do
+    [[ -f "$tree/origin" ]] || continue
+    IFS=$'\t' read -r lineno line < "$tree/origin"
+    [[ "$line" != *' verdict-plan '* ]] || continue
+    want_step="$SENTINEL_STEP"
+    [[ "$line" != *"VERI_STEP='<STEP>'"* ]] || want_step="$LITERAL_STEP"
+    got="$(cat "$tree/seen.step" 2>/dev/null)" || got='<no leaf ran>'
+    [[ "$got" == "$want_step" ]] ||
+      problem "launches ${tree#$run/}, whose leaf saw VERI_STEP=<$got>, want <$want_step>"
+  done
+}
+
+run_case "every leaf $skill_md launches with VERI_STEP set sees the run's step as VERI_STEP" \
+  scan_launch_step_env
 
 scan_fixture_naming() {
   local fixture i=0 lineno line launch
