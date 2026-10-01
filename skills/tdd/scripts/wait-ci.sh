@@ -39,12 +39,17 @@ def docs(text):
     return out
 '
 
+fall_back() {
+  echo "wait-ci.sh: $1; bounding the wait at 540 s" >&2
+  echo 540
+}
+
 ci_bound() {
-  local c pages=""
+  local c pages="" status
   for c in success failure; do
     pages+="$(gh run list --repo "$repo" --workflow CI --status "$c" --limit 5 \
         --json databaseId,conclusion,startedAt,updatedAt)" \
-      || { echo "wait-ci.sh: gh run list could not answer; bounding the wait at 540 s" >&2; echo 540; return; }
+      || { fall_back "gh run list could not answer"; return; }
   done
   python3 -c "$json_docs"'
 from datetime import datetime
@@ -52,12 +57,12 @@ at = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").timestamp()
 runs = [r for page in docs(sys.stdin.read()) for r in page]
 runs = sorted(runs, key=lambda r: r["databaseId"], reverse=True)[:5]
 if len(runs) < 5:
-    fallback = 540
-    print(f"wait-ci.sh: fewer than 5 success or failure CI runs found; bounding the wait at {fallback} s", file=sys.stderr)
-    print(fallback)
-else:
-    print(min(600, round(2 * sum(at(r["updatedAt"]) - at(r["startedAt"]) for r in runs) / len(runs))))
+    sys.exit(3)
+print(min(600, round(2 * sum(at(r["updatedAt"]) - at(r["startedAt"]) for r in runs) / len(runs))))
 ' <<< "$pages"
+  status=$?
+  (( status == 3 )) && { fall_back "fewer than 5 success or failure CI runs found"; return; }
+  return "$status"
 }
 
 [[ -n "$total" ]] || total="$(ci_bound)" || total="$max"
