@@ -21,7 +21,7 @@ source "$(dirname "$0")/lib/github.sh"
 pr="$1"
 repo="${pr#https://github.com/}"; repo="${repo%/pull/*}"
 max="${2:-540}"
-total="${3:-$max}"
+total="${3:-}"
 want="${4:-}"
 poll="${VERI_POLL:-10}"
 
@@ -29,6 +29,19 @@ deadline=""
 inherited=""
 slice_end=""
 passing="success neutral skipped"
+
+ci_bound() {
+  gh run list --repo "$repo" --workflow CI --limit 50 \
+      --json conclusion,startedAt,updatedAt | python3 -c '
+import json, sys
+from datetime import datetime
+at = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").timestamp()
+runs = [r for r in json.load(sys.stdin) if r["conclusion"] in ("success", "failure")][:5]
+print(round(2 * sum(at(r["updatedAt"]) - at(r["startedAt"]) for r in runs) / len(runs)))
+'
+}
+
+[[ -n "$total" ]] || total="$(ci_bound)" || total="$max"
 
 pr_head() {
   gh api "repos/$repo/pulls/${pr##*/pull/}" | python3 -c '
