@@ -127,9 +127,9 @@ pin '3673328186 8839' prompt build-develop-prompt.sh refactor "$spec" "$step" "$
 pin '2836921973 4545' prompt build-develop-prompt.sh cover "$spec" "$step" "$cmd"
 pin '3121106979 4287' prompt build-develop-prompt.sh transform "$spec" "$step" "$cmd"
 pin '505412475 4319' prompt build-develop-prompt.sh structural "$spec" "a candidate" "$cmd" "a.sh b.sh"
-pin '180036676 6978' prompt build-develop-prompt.sh revise red "$spec" "$step" "$cmd" "$work/reason.md"
-pin '2650592781 6980' prompt build-develop-prompt.sh revise green "$spec" "$step" "$cmd" "$work/reason.md"
-pin '1806437759 6983' prompt build-develop-prompt.sh revise refactor "$spec" "$step" "$cmd" "$work/reason.md"
+pin '2024196747 7249' prompt build-develop-prompt.sh revise red "$spec" "$step" "$cmd" "$work/reason.md"
+pin '749914023 7251' prompt build-develop-prompt.sh revise green "$spec" "$step" "$cmd" "$work/reason.md"
+pin '3455003597 7254' prompt build-develop-prompt.sh revise refactor "$spec" "$step" "$cmd" "$work/reason.md"
 pin '2802947363 3593' prompt build-develop-prompt.sh exhausted "$spec" "$step" "$cmd" "$work/reason.md"
 pin '2179429738 5056' prompt build-develop-prompt.sh reconcile "$spec" "$step" "$cmd" tdd/1-x 0123456789abcdef
 pin '3590900387 4365' prompt build-develop-prompt.sh over-budget "$spec" "$step" "$cmd" 12.5 10
