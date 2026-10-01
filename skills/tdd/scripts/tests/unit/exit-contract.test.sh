@@ -66,8 +66,13 @@ exit_of_script() {
   bash "$dir/$name" > /dev/null 2>&1 && echo 0 || echo $?
 }
 
+sourcing() {
+  printf "USAGE='usage: sources.sh'\nsource '%s'\n%s" "$LIB" "$1"
+}
+
 ending_with() {
-  printf "USAGE='usage: ends.sh'\nsource '%s'\nfail_with() { return %s; }\nfail_with" "$LIB" "$1"
+  sourcing "fail_with() { return $1; }
+fail_with"
 }
 
 ends_dir="$(scratch_dir)"
@@ -78,7 +83,8 @@ $(ending_with 5)
 echo unreachable") last=$(exit_of_script "$ends_dir" last.sh "$(ending_with 7)") in-contract=$(exit_of_script "$ends_dir" in-contract.sh "$(ending_with 3)")"
 
 with_rc_5() {
-  printf "USAGE='usage: passes.sh'\nsource '%s'\nrc=5\n%s" "$LIB" "$1"
+  sourcing "rc=5
+$1"
 }
 
 DECLARED="# pass-through: the caller asks for the foreign command's own status"
