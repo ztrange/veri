@@ -2,8 +2,7 @@
 # Tests for scripts/comment-class.sh — prints every `#` line of the shell files it is given
 # as `<file>:<line>:<class>`, class 1 a comment in code, 2 a `#` line in a heredoc written
 # to a file, 3 one in any other heredoc.
-#
-# Admitted to the fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
+# Fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Run: scripts/tests/unit/comment-class.test.sh
 set -uo pipefail
@@ -460,5 +459,7 @@ header_verdict "the leading header block of a top-level tests/*.sh whose name st
 header_verdict "the leading header block of every tests/skill-*.test.sh whose name after skill- starts with a through l carries only its contract, and no line of it cites an issue number" "$SCRIPTS"/tests/skill-[a-l]*.sh
 
 header_verdict "the leading header block of every tests/skill-*.test.sh whose name after skill- starts with m through z carries only its contract, and no line of it cites an issue number" "$SCRIPTS"/tests/skill-[m-z]*.sh
+
+header_verdict "the leading header block of every shell file under tests/unit/, tests/fixtures/, tests/unit-guard/ and tests/offline/ carries only its contract, and no line of it cites an issue number" "$SCRIPTS"/tests/unit/*.sh "$SCRIPTS"/tests/fixtures/*/*.sh "$SCRIPTS"/tests/unit-guard/* "$SCRIPTS"/tests/offline/*
 
 finish

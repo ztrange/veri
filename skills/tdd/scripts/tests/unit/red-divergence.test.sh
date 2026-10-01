@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/red-divergence.sh — the pure transform that reads a develop-red
 # or revise-red leaf's report on stdin and says whether its prediction diverged, so the
-# conductor can stop on the surprise instead of sending the step to a blind verify-red
-# (issue #356).
+# conductor can stop on the surprise instead of sending the step to a blind verify-red.
+# Fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Contract under test:
 #   stdin  = the leaf's report (the PREDICTED_FAILURE:/PREDICTION:/… lines at its end)
@@ -10,8 +10,6 @@
 #            and PREDICTION_NOTE: values, which is what the conductor writes to
 #            .tdd/verify-red.reason for the revise leaf to read
 #   exit   = 0 DIVERGED · 3 MATCHED (nothing to do) · 2 no readable PREDICTION:
-#
-# Admitted to the fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Run: scripts/tests/unit/red-divergence.test.sh
 set -uo pipefail

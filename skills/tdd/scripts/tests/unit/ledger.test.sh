@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/lib/ledger.sh — the ledger's grammar, sourced, not run. The suite
 # sources the module and calls its functions in-process, the seam its callers share.
+# Fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Contract under test:
 #   ledger_steps — stdin → one tab-separated record per step line, in document order:
 #   index  state  kind  pending  added  criterion  text. `index` is 1-based over step lines
 #   only; `state` is `open` for `[ ]` and `done` for `[x]` or `[X]`; `text` is last.
-#
-# Admitted to the fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Run: scripts/tests/unit/ledger.test.sh
 set -uo pipefail

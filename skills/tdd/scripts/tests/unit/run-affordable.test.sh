@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
-# Tests for scripts/run-affordable.sh — can this run still afford to finish (#453, part of
-# #447)? Run from the run's worktree with the number of steps still to go, it projects the
-# run's spend so far plus that many steps at the median completed full step's cost against
-# VERI_RUN_BUDGET. Every fixture here is a hand-written .tdd/events.jsonl, the log
-# step-cost.sh reads, so nothing a leaf does is needed.
-#
-# Fast tier (#336): no git, no network, no servers, no real sleep, no nested suites —
+# Tests for scripts/run-affordable.sh — can this run still afford to finish? Run from the
+# run's worktree with the number of steps still to go, it projects the run's spend so far
+# plus that many steps at the median completed full step's cost against VERI_RUN_BUDGET.
+# Every fixture here is a hand-written .tdd/events.jsonl, the log step-cost.sh reads.
+# Fast tier: no git, no network, no servers, no real sleep, no nested suites —
 # by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Run: scripts/tests/unit/run-affordable.test.sh

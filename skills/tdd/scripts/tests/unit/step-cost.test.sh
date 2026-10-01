@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
-# Tests for scripts/step-cost.sh — the reader over the run's `usage` events (#448): what one
+# Tests for scripts/step-cost.sh — the reader over the run's `usage` events: what one
 # step, or the whole run, has spent on leaves so far. Run from the run's worktree, it reads
-# .tdd/events.jsonl relative to it, the way event.sh and supervise.sh spell their own paths.
-# Every fixture here is a hand-written events.jsonl, so nothing a leaf does is needed.
-#
-# Fast tier (#336): no git, no network, no servers, no real sleep, no nested suites —
+# .tdd/events.jsonl relative to it. Every fixture here is a hand-written events.jsonl.
+# Fast tier: no git, no network, no servers, no real sleep, no nested suites —
 # by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Run: scripts/tests/unit/step-cost.test.sh

@@ -3,8 +3,7 @@
 # Given a ledger (checkbox markdown) on stdin and a criterion number k, exit 0 when every
 # step ending in ` ⟦criterion k⟧` is ticked with no ` ⟂ refactor pending` mark, and exit 3
 # when some step serving k is still open or pending.
-#
-# Admitted to the fast tier (#336) by its own usage count: git 0, python3 0, server 0, sleep 0.
+# Fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Run: scripts/tests/unit/criterion-finished.test.sh
 set -uo pipefail

@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
-# Tests for scripts/step-budget.sh — the resolver for the two money budgets (#449, part of
-# #447): VERI_STEP_BUDGET, what one step may spend, and VERI_RUN_BUDGET, what the whole run
-# may. Called with no arguments it prints the step budget then the run budget, one per line,
-# the shape time-budget.sh has, so preflight can refuse a bad value before a leaf launches.
-#
-# Fast tier (#336): no git, no network, no servers, no real sleep, no nested suites —
+# Tests for scripts/step-budget.sh — the resolver for the two money budgets:
+# VERI_STEP_BUDGET, what one step may spend, and VERI_RUN_BUDGET, what the whole run may.
+# Called with no arguments it prints the step budget then the run budget, one per line.
+# Fast tier: no git, no network, no servers, no real sleep, no nested suites —
 # by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Run: scripts/tests/unit/step-budget.test.sh
