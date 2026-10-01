@@ -207,4 +207,4 @@ if [[ "$word" != PASS ]]; then
 fi
 
 printf '%s\n' "$reason"
-exit "$vcode"
+exit "$(to_contract "$vcode")"

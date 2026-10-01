@@ -30,6 +30,6 @@ file="$1"
 matcher="${2:-}"
 source "$HERE/lib/ledger.sh"
 
-new="$(ledger_tick "$matcher" $pending < "$file")" || exit $?
+new="$(ledger_tick "$matcher" $pending < "$file")" || exit "$(to_contract $?)"
 
 printf '%s\n' "$new" > "$file"
