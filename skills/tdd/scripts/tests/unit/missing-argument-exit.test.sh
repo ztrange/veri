@@ -93,12 +93,8 @@ refuses verify.sh --step                                  # no step text
 verdict "$name"
 
 rejects() {  # rejects <script> [args …] — want exit 2 and a usage line naming <script> on stderr
-  local script="$1" line err
-  if ! line="$(missing_argument_offender "$SCRIPTS" "$@")"; then
-    offenders+=( "$line" ); return
-  fi
-  err="$(stderr_of "$SCRIPTS/$script" "${@:2}")"
-  [[ "$err" == *"$script"* ]] || offenders+=( "$script ${*:2}: usage line on stderr does not name it: $err" )
+  local line
+  line="$(named_usage_offender "$SCRIPTS" "$@")" || offenders+=( "$line" )
 }
 
 name="a script given a bad argument value exits 2 with its own usage text on stderr"
