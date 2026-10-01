@@ -437,7 +437,7 @@ header_verdict() {
   problems=""
   want_no_header_citation "$@"
   want_contract_only_header "$@"
-  verdict "$name"
+  verdict "$name carries only its contract, and no line of it cites an issue number"
 }
 
 problems=""
@@ -448,18 +448,18 @@ problems=""
 want_contract_only_header "$SCRIPTS"/tests/[a-e]*.sh
 verdict "the leading header block of a top-level tests/*.sh whose name starts with a through e holds only a description, its Contract under test block and its Run: line"
 
-header_verdict "the leading header block of a top-level tests/*.sh whose name starts with f through p carries only its contract, and no line of it cites an issue number" "$SCRIPTS"/tests/[f-p]*.sh
+header_verdict "the leading header block of a top-level tests/*.sh whose name starts with f through p" "$SCRIPTS"/tests/[f-p]*.sh
 
 files=()
 for f in "$SCRIPTS"/tests/[q-z]*.sh; do
   case "${f##*/}" in skill-*) ;; *) files+=("$f") ;; esac
 done
-header_verdict "the leading header block of a top-level tests/*.sh whose name starts with q through z, other than the skill-* files, carries only its contract, and no line of it cites an issue number" "${files[@]}"
+header_verdict "the leading header block of a top-level tests/*.sh whose name starts with q through z, other than the skill-* files," "${files[@]}"
 
-header_verdict "the leading header block of every tests/skill-*.test.sh whose name after skill- starts with a through l carries only its contract, and no line of it cites an issue number" "$SCRIPTS"/tests/skill-[a-l]*.sh
+header_verdict "the leading header block of every tests/skill-*.test.sh whose name after skill- starts with a through l" "$SCRIPTS"/tests/skill-[a-l]*.sh
 
-header_verdict "the leading header block of every tests/skill-*.test.sh whose name after skill- starts with m through z carries only its contract, and no line of it cites an issue number" "$SCRIPTS"/tests/skill-[m-z]*.sh
+header_verdict "the leading header block of every tests/skill-*.test.sh whose name after skill- starts with m through z" "$SCRIPTS"/tests/skill-[m-z]*.sh
 
-header_verdict "the leading header block of every shell file under tests/unit/, tests/fixtures/, tests/unit-guard/ and tests/offline/ carries only its contract, and no line of it cites an issue number" "$SCRIPTS"/tests/unit/*.sh "$SCRIPTS"/tests/fixtures/*/*.sh "$SCRIPTS"/tests/unit-guard/* "$SCRIPTS"/tests/offline/*
+header_verdict "the leading header block of every shell file under tests/unit/, tests/fixtures/, tests/unit-guard/ and tests/offline/" "$SCRIPTS"/tests/unit/*.sh "$SCRIPTS"/tests/fixtures/*/*.sh "$SCRIPTS"/tests/unit-guard/* "$SCRIPTS"/tests/offline/*
 
 finish
