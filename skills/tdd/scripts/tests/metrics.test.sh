@@ -2829,4 +2829,59 @@ by_model_says "$modeled_out" \
 
 report_on "$name" "$modeled_out"
 
+header_says() {
+  local out_file="$1"; shift
+  probe '
+import re, sys
+
+path, wants = sys.argv[1], sys.argv[2:]
+header = []
+for l in open(path).read().splitlines():
+    if l.startswith("####"):
+        break
+    if l.strip() and not l.strip().startswith("|"):
+        header.append(l.strip())
+text = "\n".join(header)
+for want in wants:
+    if "=" in want:
+        knob, value = want.split("=", 1)
+        said = re.search(r"\b%s\b`?[\s:=]*`?%s(?![\w.-])" % (re.escape(knob), re.escape(value)), text)
+        if said is None:
+            print("want the header to state %s as %s, the header says: %s"
+                  % (knob, value, " / ".join(repr(l) for l in header)))
+    elif re.search(r"(?<![\w.-])%s(?![\w.-])" % re.escape(want), text) is None:
+        print("want the header to name the model %s that answered, the header says: %s"
+              % (want, " / ".join(repr(l) for l in header)))
+' "$out_file" "$@"
+}
+
+name="#604 the metrics header states the requested VERI_MODEL, VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER, or unset, next to the models that answered"
+problems=()
+
+fixture_work knobs_work
+knobbed="a step whose verifier was asked for one model and answered on another"
+sv "$knobbed" 9000 conductor ""  step-start ""
+sv "$knobbed" 9010 developer red launch  1 '"name": "develop-red", "model": "claude-opus-5-5"'
+sv "$knobbed" 9100 developer red exit    1 '"status": "0", "secs": "90"'
+sv "$knobbed" 9100 developer red usage   1 "$(usage_json 70000), \"model\": \"claude-opus-5-5\""
+sv "$knobbed" 9110 verifier  red launch  1 '"name": "verify-red", "model": "claude-sonnet-5-5"'
+sv "$knobbed" 9130 verifier  red exit    1 '"status": "0", "secs": "20"'
+sv "$knobbed" 9130 verifier  red usage   1 "$(usage_json 15000), \"model\": \"claude-haiku-4-5-20251001\""
+sv "$knobbed" 9130 verifier  red verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
+sv "$knobbed" 9400 conductor ""  step-done ""
+knobs_out="$knobs_work/report.md"
+( cd "$knobs_work" &&
+  env -u VERI_MODEL VERI_MODEL_DEVELOPER=claude-opus-5-5 VERI_MODEL_VERIFIER=claude-sonnet-5-5 "$METRICS" 108 ) \
+  > "$knobs_out" 2>/dev/null
+knobs_status=$?
+[[ "$knobs_status" -eq 0 ]] ||
+  problems+=("want metrics.sh to exit 0, it exited $knobs_status")
+header_says "$knobs_out" \
+  VERI_MODEL=unset \
+  VERI_MODEL_DEVELOPER=claude-opus-5-5 \
+  VERI_MODEL_VERIFIER=claude-sonnet-5-5 \
+  claude-haiku-4-5-20251001
+
+report_on "$name" "$knobs_out"
+
 finish
