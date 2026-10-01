@@ -51,15 +51,12 @@ if [[ "${1:-}" == next ]]; then
     repo="${BASH_REMATCH[1]}"
   fi
   PYTHONPATH="$(cd "$(dirname "$0")" && pwd)/lib" exec python3 -c '
-import json, sys
+import sys
 
 import blocked_by
+from json_documents import items
 
-text = sys.stdin.read().rstrip("\n")
-issues, at, decoder = [], 0, json.JSONDecoder()
-while at < len(text):
-    page, at = decoder.raw_decode(text, at)
-    issues.extend(page)
+issues = items(sys.stdin.read())
 worker = sys.argv[1]
 open_issues = {i["number"] for i in issues if i.get("state", "").upper() == "OPEN"}
 bodies = {i["number"]: i.get("body") or "" for i in issues}
