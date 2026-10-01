@@ -8,3 +8,5 @@
 - the 540 fallback in `ci_bound`'s Python duplicates the shell default `max="${2:-540}"`: sharing it would mean passing it in as an argument, a structural change outside duplication removal within this cycle's code
 ### one `wait-ci.sh` call's slice is never longer than 540 s: a `slice-seconds` argument above 540 is capped to 540, so a call still returns exit 3 within 540 s while a longer total bound spans calls ⟦criterion 3⟧
 - `wait-ci.sh` line 23 spells the slice cap 540 twice (`max="${2:-540}"; (( max > 540 )) && max=540`); a named slice-cap value would remove the repeat. Not applied: the 540 in `fall_back` is the fallback total bound, a different idea that happens to share the number, so one shared constant across all three would tie two settings together.
+### an explicit `total-seconds` argument overrides the computed bound (no `gh run list` reading needed), but a value above 600 is capped at 600 ⟦criterion 4⟧
+- wait-ci.sh repeats the literal 540 in four places (max default, slice cap, fall_back's message, fall_back's echo); earlier cycles wrote all four, so it is outside this cycle's dedup scope
