@@ -214,4 +214,29 @@ modeled_model="$(event_fields "$modeled_work" usage model)"
 
 report "$name"
 
+name="a closing result record whose modelUsage names two models: the usage event's model key lists every one of them"
+problems=()
+
+multi=develop-green
+multi_work="$work/multi-model"
+first_model=claude-opus-5-5
+second_model=claude-haiku-4-5-20251001
+mkdir -p "$multi_work/.tdd"
+cat > "$multi_work/.tdd/$multi.log" <<LOG
+{"type":"result","duration_ms":1,"duration_api_ms":1,"num_turns":1,"total_cost_usd":0.5,"usage":{"input_tokens":20,"output_tokens":4000,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"modelUsage":{"$first_model":{"inputTokens":14,"outputTokens":3903,"cacheReadInputTokens":0,"cacheCreationInputTokens":0,"costUSD":0.495,"canonicalModel":"$first_model"},"$second_model":{"inputTokens":6,"outputTokens":97,"cacheReadInputTokens":0,"cacheCreationInputTokens":0,"costUSD":0.005,"canonicalModel":"$second_model"}}}
+LOG
+
+( cd "$multi_work" && "$HARVEST" "$multi" ) >/dev/null 2>&1
+multi_code=$?
+[[ "$multi_code" == 0 ]] ||
+  problems+=("want exit 0 from the harvester, got $multi_code")
+
+multi_model="$(event_fields "$multi_work" usage model)"
+multi_listed="$(printf '%s\n' "${multi_model//,/$'\n'}" | LC_ALL=C sort)"
+want_listed="$(printf '%s\n' "$first_model" "$second_model" | LC_ALL=C sort)"
+[[ "$multi_listed" == "$want_listed" ]] ||
+  problems+=("model: want a comma-separated list of $first_model and $second_model, got $(printf '%q' "$multi_model")")
+
+report "$name"
+
 finish
