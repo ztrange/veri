@@ -55,7 +55,7 @@ blames() {
 }
 
 recipe() {
-  recipe_out="$(make -C "$ROOT" test TESTS="$1" 2>&1)" && recipe_code=0 || recipe_code=$?
+  recipe_out="$(make -C "$ROOT" test TESTS="$1" UNIT_TESTS= 2>&1)" && recipe_code=0 || recipe_code=$?
 }
 
 direct() {
@@ -165,7 +165,7 @@ probe_run_showed_the_line_while_the_suite_ran() {
   }
 
   local started="$EPOCHREALTIME"
-  make -C "$ROOT" test TESTS="$PAUSE_FIXTURE" > "$stream_log" 2>&1 &
+  make -C "$ROOT" test TESTS="$PAUSE_FIXTURE" UNIT_TESTS= > "$stream_log" 2>&1 &
   mk=$!
   while :; do
     if grep -qF "$PAUSE_LINE" "$stream_log"; then
@@ -706,6 +706,17 @@ echo '4 passed, 0 failed'"; then
     problems+=("want no line reporting on $counted_name, which reached its count line; it said: $(flat "$said")")
   fi
 fi
+
+report "$name"
+
+name="the recipe calls this suite makes run only the fixture they name, and no suite from tests/unit/"
+problems=()
+
+recipe "$GREEN_FIXTURE"
+for u in "$HERE"/unit/*.test.sh; do
+  grep -qxF "== $(basename "$u")" <<< "$recipe_out" &&
+    problems+=("want the run over $GREEN_FIXTURE to name only it; it also ran $(basename "$u")")
+done
 
 report "$name"
 
