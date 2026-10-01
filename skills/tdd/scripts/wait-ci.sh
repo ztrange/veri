@@ -20,7 +20,7 @@ source "$(dirname "$0")/lib/github.sh"
 [[ -n "${1:-}" ]] || { echo "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]" >&2; exit 2; }
 pr="$1"
 repo="${pr#https://github.com/}"; repo="${repo%/pull/*}"
-max="${2:-540}"
+max="${2:-540}"; (( max > 540 )) && max=540
 total="${3:-}"
 want="${4:-}"
 poll="${VERI_POLL:-10}"
