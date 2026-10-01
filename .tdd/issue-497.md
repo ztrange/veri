@@ -23,3 +23,10 @@
 - [ ] run-leaf.sh exits 2, never the foreign code, when the claude binary it runs exits with a code outside 0–3 ⟦criterion 4⟧
 - [ ] tick-ledger.sh and clear-refactor-pending.sh exit 2, never the foreign code, when their ledger transform fails with a code outside 0–3 ⟦criterion 4⟧
 - [ ] Every script's behaviour is otherwise unchanged ⟦full-suite⟧ ⟦criterion 5⟧
+
+## Owed steps
+
+- The missing-argument audit calls only scripts whose usage line names a required argument (a `<…>` outside `[…]`); a script whose usage line names only optional arguments, or none, is not called and is never an offender
+- build-develop-prompt.sh, called with no arguments, exits 2 with a usage line on stderr that names build-develop-prompt.sh
+- workqueue.sh, called with no subcommand, exits 2 with its own usage text on stderr naming workqueue.sh
+- tests/unit/missing-argument-exit.test.sh runs missing_argument_audit over the real skills/tdd/scripts/ directory in place of its hand-kept roster, and every script there whose usage line names a required argument exits 2 with its own usage text when called with none
