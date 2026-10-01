@@ -178,6 +178,22 @@ if grep -qE 'timed-test-run\.sh all\b' <<< "$(plain <<< "$revise_refactor")"; th
 fi
 report "$name"
 
+name="develop-revise redoing green runs the fast command and the affected suites through timed-test-run.sh under tiers fast then affected, and names no all run"
+problems=()
+revise_green="$("$DEVELOP" revise green "$work/spec.md" 'QWIXTLE step' 'make test' "$work/reason.md" 2>/dev/null)" ||
+  problems+=("build-develop-prompt.sh revise green exited $?")
+timed_through "develop-revise green" "$revise_green" fast affected
+folded_revise_green="$(plain <<< "$revise_green")"
+fast_at="$(awk '/timed-test-run\.sh fast( |$)/ && !n {n=NR} END{print n}' <<< "$folded_revise_green")"
+affected_at="$(awk '/timed-test-run\.sh affected( |$)/ && !n {n=NR} END{print n}' <<< "$folded_revise_green")"
+if [[ "$fast_at" =~ ^[1-9][0-9]*$ && "$affected_at" =~ ^[1-9][0-9]*$ ]] && ((fast_at > affected_at)); then
+  problems+=("develop-revise green's prompt names the affected run before the fast one")
+fi
+if grep -qE 'timed-test-run\.sh all\b' <<< "$folded_revise_green"; then
+  problems+=("develop-revise green's prompt still tells its leaf to run through timed-test-run.sh under tier all")
+fi
+report "$name"
+
 name="verify-red, verify-green, verify-refactor and verify-pin run their test commands through timed-test-run.sh, each naming its tier"
 problems=()
 verify_pin="$("$VERIFY" pin "$work/spec.md" 'tests/zorblat.test.sh' 'zorblat case' 2>/dev/null)" ||
