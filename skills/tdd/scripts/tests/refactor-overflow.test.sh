@@ -19,6 +19,7 @@ stubdir="$work/bin"
 mkdir -p "$stubdir"
 cat > "$stubdir/gh" <<'STUB'
 #!/bin/sh
+printf '%s\n' "$*" >> "${FAKE_CALLS:-/dev/null}"
 case "$*" in
   "issue create"*|"api "*"repos/"*"/issues"*) ;;
   *) exit 1 ;;
@@ -91,14 +92,6 @@ name="refactor-overflow files nothing and exits 3 when no candidate is left unre
 problems=()
 
 calls="$work/calls"
-logdir="$work/logbin"
-mkdir -p "$logdir"
-cat > "$logdir/gh" <<'STUB'
-#!/bin/sh
-printf '%s\n' "$*" >> "$FAKE_CALLS"
-echo "https://github.com/owner/name/issues/912"
-STUB
-chmod +x "$logdir/gh"
 
 headed_only="$work/headed-only.md"
 printf '### first step\n' > "$headed_only"
@@ -107,7 +100,7 @@ overflow_case() {
   local label="$1" want="$2" code
   shift 2
   : > "$calls"
-  (cd "$work" && env PATH="$logdir:$PATH" FAKE_CALLS="$calls" \
+  (cd "$work" && env PATH="$stubdir:$PATH" FAKE_CALLS="$calls" \
     "$OVERFLOW" "$@" >"$out" 2>"$work/err") && code=0 || code=$?
   [[ "$code" == "$want" ]] ||
     problems+=("want exit $want $label, got $code: $(cat "$work/err")")
