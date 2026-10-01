@@ -409,22 +409,23 @@ sweep_verdict "the sweepable report is empty for every shell file under tests/fi
 
 sweep_verdict "the sweepable report is empty for tests/unit/comment-class.test.sh, the case labels of its own sweepable-report cases included" "$SCRIPTS"/tests/unit/comment-class.test.sh
 
+header_walk='FNR == 1 { header = /^#!/; para = 0; fresh = 1; next }
+  header && /^#$/ { fresh = 1; next }
+  !(header && /^#/) { header = 0; next }'
+
 problems=""
-cited="$(awk 'FNR == 1 { header = /^#!/; next }
-  header && /^#/ { if (/#[0-9]/) print FILENAME ":" FNR ": " $0; next }
-  { header = 0 }' "$SCRIPTS"/tests/[a-e]*.sh)"
+cited="$(awk "$header_walk"'
+  /#[0-9]/ { print FILENAME ":" FNR ": " $0 }' "$SCRIPTS"/tests/[a-e]*.sh)"
 if [[ -n "$cited" ]]; then
   problems+="    want no header line citing an issue number, got:"$'\n'"$cited"$'\n'
 fi
 verdict "no line of the leading header block of a top-level tests/*.sh whose name starts with a through e cites an issue number"
 
 problems=""
-shapeless="$(awk 'FNR == 1 { header = /^#!/; para = 0; fresh = 1; next }
-  header && /^#$/ { fresh = 1; next }
-  header && /^#/ {
+shapeless="$(awk "$header_walk"'
+  {
     if (fresh) { para++; if (para > 1 && !/^# Contract under test/ && !/^# Run:/ && !/^#   /) print FILENAME ":" FNR ": " $0 }
-    fresh = 0; next }
-  { header = 0 }' "$SCRIPTS"/tests/[a-e]*.sh)"
+    fresh = 0 }' "$SCRIPTS"/tests/[a-e]*.sh)"
 if [[ -n "$shapeless" ]]; then
   problems+="    want every header paragraph after the description to be a Contract under test block or the Run: line, got:"$'\n'"$shapeless"$'\n'
 fi
