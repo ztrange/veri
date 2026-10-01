@@ -94,4 +94,20 @@ expect_eq "a declared pass-through exit indented inside a block hands on its cod
   exit \"\$rc\"
 fi")")"
 
+expect_eq "an undeclared exit outside 0-3 ends as 2 even when an identical exit line elsewhere in the script is a declared pass-through" \
+  "twin=2" \
+  "twin=$(exit_of_script "$pass_dir" twin.sh "$(with_rc_5 "if (( rc == 0 )); then
+  # pass-through: the caller asks for the foreign command's own status
+  exit \"\$rc\"
+fi
+exit \"\$rc\"")")"
+
+expect_eq "a bare exit in a script that sources the module ends with the status of the command before it, mapped unless declared a pass-through" \
+  "after-true=0 after-3=3 declared-after-5=5" \
+  "after-true=$(exit_of_script "$pass_dir" bare-true.sh "$(with_rc_5 "true
+exit")") after-3=$(exit_of_script "$pass_dir" bare-3.sh "$(with_rc_5 "(exit 3)
+exit")") declared-after-5=$(exit_of_script "$pass_dir" bare-declared.sh "$(with_rc_5 "(exit 5)
+# pass-through: the caller asks for the foreign command's own status
+exit")")"
+
 finish
