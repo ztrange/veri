@@ -1,0 +1,2 @@
+### SKILL.md's structural pass takes the candidates in the order `refactor-owed.sh list` prints them and names that order as most valuable first ⟦criterion 1⟧
+- skill-structural-pass.test.sh repeats a `name=…; problems=(); if ! missing_pass '<what>'; then require …; fi; report "$name"` scaffold in five cases. Four of them predate this cycle, and the new case only follows the pattern. Folding them into one helper is a structural change to code this cycle did not write, so it is out of scope here.
