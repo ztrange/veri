@@ -8,3 +8,5 @@
 - ends-green.test.sh and ends-red.test.sh share the same skeleton (header, `set -uo pipefail`, counters, count line) — this predates the cycle, so it's out of bounds here
 ### The sweepable report is empty for `tests/unit/comment-class.test.sh`, the case labels of its own sweepable-report cases included ⟦criterion 8⟧
 - comment-class.test.sh cases for supervise.sh…run-verdict.sh, issue-worktree.sh…extract-result.sh, detect-test-command.sh…session-cost.sh, build-develop-prompt.sh…preserve-attempt.sh and leaf-timeout.sh…leaf-launchable.sh each spell out `problems=""; want_empty_sweepable …; verdict …` by hand. That is the body of the existing `sweep_verdict` helper, so each could become one `sweep_verdict` call. This cycle did not write those cases or that helper, so the change is out of bounds here.
+### The leading header block of every top-level `tests/*.sh` whose name starts with a through e carries only its contract, and no line of it cites an issue number (`#<digits>`) ⟦criterion 9⟧
+- bind the `"$SCRIPTS"/tests/[a-e]*.sh` glob, repeated in the two header cases of tests/unit/comment-class.test.sh, to one array
