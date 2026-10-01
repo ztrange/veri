@@ -12,7 +12,7 @@ Scope: every shell file under `skills/tdd/scripts/tests/`. "The sweepable report
 - [x] The sweepable report is empty for `tests/unit/step-budget.test.sh` and `tests/unit/step-cost.test.sh` ⟦criterion 6⟧
 - [x] The sweepable report is empty for `tests/unit/stop-requested.test.sh` ⟦criterion 6⟧
 - [x] The sweepable report is empty for every shell file under `tests/fixtures/`, and for `tests/unit-guard/git` and `tests/offline/gh` ⟦criterion 7⟧
-- [x] The sweepable report is empty for `tests/unit/comment-class.test.sh`, the case labels of its own sweepable-report cases included ⟦criterion 8⟧ ⟂ refactor pending
+- [x] The sweepable report is empty for `tests/unit/comment-class.test.sh`, the case labels of its own sweepable-report cases included ⟦criterion 8⟧
 - [ ] The leading header block of every top-level `tests/*.sh` whose name starts with a through e carries only its contract, and no line of it cites an issue number (`#<digits>`) ⟦criterion 9⟧
 - [ ] The leading header block of every top-level `tests/*.sh` whose name starts with f through p carries only its contract, and no line of it cites an issue number (`#<digits>`) ⟦criterion 9⟧
 - [ ] The leading header block of every top-level `tests/*.sh` whose name starts with q through z, other than the `skill-*` files, carries only its contract, and no line of it cites an issue number (`#<digits>`) ⟦criterion 9⟧
