@@ -34,7 +34,8 @@ mkdir -p "$stub" "$run"
 SENTINEL='make sentinel-test-cmd'
 
 SENTINEL_ISSUE=143
-SENTINEL_STEP='pin the sentinel step'
+LITERAL_STEP='A title naming `kill %1`, the "blind" verifier, $HOME and the shell s own job spec'
+SENTINEL_STEP='A title naming `kill %1`, the "blind" verifier, $HOME and the shell'"'"'s own job spec'
 
 cleared_run_context=(env -u VERI_TEST_CMD -u VERI_ISSUE -u VERI_STEP)
 
@@ -73,6 +74,25 @@ plant_ticked_ledger() {
     "$SENTINEL_ISSUE" "$2" > "$1/.tdd/issue-$SENTINEL_ISSUE.md"
 }
 
+LAUNCH_RECORD="$WORK/launch-record"
+
+note_launch() {
+  local shape=plain ledger="$1/.tdd/issue-$SENTINEL_ISSUE.md"
+  [[ "$line" == *detach-leaf.sh* ]] || return 0
+  if grep -F 'refactor pending' "$ledger" > /dev/null 2>&1; then
+    shape=ticked
+  elif grep -F '[x]' "$ledger" > /dev/null 2>&1; then
+    shape=done
+  fi
+  printf '%s\t%s\t%s\n' "$lineno" "$shape" "$line" >> "$LAUNCH_RECORD"
+}
+
+launched_beside() {
+  local shape=plain
+  [[ "$2" != plant_ticked_ledger ]] || shape=ticked
+  grep -Fx -- "$1"$'\t'"$shape"$'\t'"$3" "$LAUNCH_RECORD" > /dev/null 2>&1
+}
+
 launched_test_cmd() {
   local leaf="$1" launch="$2"
   shift 2
@@ -85,6 +105,7 @@ launched_test_cmd() {
   else
     plant_ledger "$dir" "$SENTINEL_STEP"
   fi
+  note_launch "$dir"
   local file
   for file in "$@"; do
     printf 'the %s this launch names, which the stub never reads\n' "$file" > "$dir/$file"
@@ -113,7 +134,7 @@ expect_sentinel() {
 }
 
 runnable() {
-  local launch="$1" step="${2:-$SENTINEL_STEP}"
+  local launch="$1" step="${2:-$LITERAL_STEP}"
   launch="${launch//<test-cmd>/$SENTINEL}"
   launch="${launch//<phase>/red}"
   launch="${launch//<k>/1}"
@@ -246,6 +267,7 @@ scan_launch_trees() {
       IFS=$'\t' read -r lineno line < "$tree/origin"
       want_step=""
       [[ "$line" != *VERI_STEP* ]] || want_step="$SENTINEL_STEP"
+      [[ "$line" != *"VERI_STEP='<STEP>'"* ]] || want_step="$LITERAL_STEP"
       complaint="$(bad_context "$tree/.tdd/events.jsonl" "$want_step")"
       [[ -z "$complaint" ]] ||
         problem "leaves events that do not carry issue=$SENTINEL_ISSUE step='$want_step' ($complaint)"
@@ -362,6 +384,7 @@ STUB
 }
 
 run_recorded() {
+  note_launch "$tree"
   err="$( cd "$tree" && "${cleared_run_context[@]}" \
             S="$stage" SEEN="$seen" bash -c "$launch" 2>&1 >/dev/null )"
   got="$(cat "$seen" 2>/dev/null)" || got="$1"
@@ -380,6 +403,7 @@ scan_step_title() {
     return
   fi
   take_line "$numbered" "$title" || return
+  launched_beside "$lineno" "$planter" "$line" && return
   stage_recorder "$tag"
   printf 'the prompt this launch names, which the recorder never reads\n' \
     > "$tree/.tdd/$leaf.prompt"
@@ -410,6 +434,7 @@ scan_verdict_step_title() {
     return
   fi
   take_line "$numbered" "$title" || return
+  launched_beside "$lineno" plant_ledger "$line" && return
   stage_recorder "$tag"
   plant_ledger "$tree" "$title"
   run_recorded '<no verifier was launched>'
@@ -446,6 +471,7 @@ scan_every_step_title() {
     line="${numbered#*:}"   # what every message quotes stays the document's own spelling
     leaf="$(arg_after supervise.sh "$launch")"
     for planter in $(ledgers_for "$(arg_after supervise.sh "$line")"); do
+      launched_beside "$lineno" "$planter" "$line" && continue
       stage_recorder "every-step-title-$lineno-$planter"
       "$planter" "$tree" "$title"
       run_recorded '<no leaf was launched>'
@@ -710,5 +736,19 @@ STUB
 
 run_case "a launch line that reaches no supervisor at all is reported as <no leaf ran> (#457)" \
   scan_no_leaf_ran
+
+scan_launch_record() {
+  local counted count rest lineno shape line
+  [[ -f "$LAUNCH_RECORD" ]] || { problems+=("no launch was recorded"); return; }
+  while IFS= read -r counted; do
+    read -r count rest <<< "$counted"
+    (( count > 1 )) || continue
+    IFS=$'\t' read -r lineno shape line <<< "$rest"
+    problem "launched $count times beside a ledger of shape $shape, want at most once"
+  done < <(sort "$LAUNCH_RECORD" | uniq -c)
+}
+
+run_case "no launch line in $skill_md is launched more than once per ledger shape the suite plants" \
+  scan_launch_record
 
 finish
