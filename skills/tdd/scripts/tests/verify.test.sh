@@ -632,6 +632,20 @@ noisy_reason="$(cat "$noisy_dir/.tdd/verify-red.reason" 2>/dev/null)"
 [[ "$noisy_reason" == "$noisy_want" ]] && ok \
   || no "#625: a REJECT's reason file carries only the verifier's reason, not stderr from preserve_attempt or anything else verify.sh runs (reason file='${noisy_reason//$'\n'/ / }')"
 
+unpreserved_dir="$work/unpreserved-attempt"
+fixture_repo "$unpreserved_dir" argv
+mkdir -p "$unpreserved_dir/.tdd"
+git -C "$unpreserved_dir" update-ref refs/veri/attempts/625/6 HEAD
+( cd "$unpreserved_dir"
+  env VERI_ISSUE=625 VERI_STEP=6 CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$unpreserved_dir/argv" \
+    FAKE_OUT_TEXT='VERDICT: REJECT
+REASON: The test asserts on a private helper, not observable behavior.' \
+    "$HERE/../supervise.sh" verdict-red "$HERE/../run-verdict.sh" --step '<STEP>' red "$work/spec.md" \
+      tests/test_slugify.py test_lowercases > .tdd/verify-red.reason 2> .tdd/verify-red.err )
+unpreserved_seen="$(cat "$unpreserved_dir/.tdd/verify-red.stderr" "$unpreserved_dir/.tdd/events.jsonl" 2>/dev/null)"
+[[ "$unpreserved_seen" == *'could not preserve the reject attempt'* ]] && ok \
+  || no "#625: a REJECT whose attempt cannot be preserved says so in the verifier's stderr or the event log (verify-red.stderr + events.jsonl='${unpreserved_seen//$'\n'/ / }')"
+
 
 
 events_of_in() {
