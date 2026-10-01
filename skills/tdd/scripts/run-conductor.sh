@@ -52,8 +52,10 @@ if ! [[ "$bash_major" =~ ^[0-9]+$ ]] || [[ "$bash_major" -lt 5 ]]; then
 fi
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
+USAGE="usage: run-conductor.sh <issue>"
 
-[[ -n "${1:-}" ]] || { echo "usage: run-conductor.sh <issue>" >&2; exit 2; }
+require_args 1 "$@"
 issue="$1"
 
 base="$(cd "$HERE/.." && pwd)"

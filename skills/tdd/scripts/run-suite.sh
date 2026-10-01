@@ -19,8 +19,9 @@
 # not green. What a caller must never be handed is 0.
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/exit-contract.sh"
 USAGE="usage: run-suite.sh <suite>"
-[[ $# -ge 1 && -n "$1" ]] || { echo "$USAGE" >&2; exit 2; }
+require_args 1 "$@"
 suite="$1"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
