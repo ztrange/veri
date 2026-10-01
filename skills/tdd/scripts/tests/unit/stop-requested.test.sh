@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
-# Tests for scripts/stop-requested.sh — the read half of the stop mechanism (#386): an
-# operator writes a mode into .tdd/stop and a running conductor asks this script, at its
-# checkpoints, whether one is waiting. Run from the run's worktree, it reads .tdd/stop
-# relative to it, the way event.sh and supervise.sh spell their own paths.
-#
-# Fast tier (#336): no git, no network, no servers, no real sleep, no nested suites —
+# Tests for scripts/stop-requested.sh — the read half of the stop mechanism: an operator
+# writes a mode into .tdd/stop and a running conductor asks this script, at its checkpoints,
+# whether one is waiting. Run from the run's worktree, it reads .tdd/stop relative to it.
+# Fast tier: no git, no network, no servers, no real sleep, no nested suites —
 # by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Run: scripts/tests/unit/stop-requested.test.sh

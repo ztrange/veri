@@ -1,30 +1,14 @@
 #!/usr/bin/env bash
 # Tests for the exit code every script under scripts/ owes a caller who left out a required
-# argument: 2, with a usage line on stderr. This suite has no single script as its subject —
-# its subject is the argument contract all of them share, the one CLAUDE.md's "Exit codes are
-# the API" fixes: 1 is a clean negative, an answer the call came back with, and 2 is "no
-# answer could be obtained", which is what a call missing an argument is. The conductor
-# branches on the difference, so a leaf launched with a dropped argument must read as a
-# plumbing failure, never as a methodology one (issue #270).
+# argument: 2, with a usage line on stderr. Its subject is the argument contract all scripts
+# share, not one script.
+# Fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
-# Three cases. Two of them call, because a script has as many ways to be called wrong as it
-# has required arguments: the first drops all of them at once, the second drops one at a time
-# from the later positions — the ones a `${2:?…}`/`${3:?…}` expansion used to guard, which is
-# where the exit 1 the issue reports actually came from. `verify.sh green <spec>` with no
-# <test-path> is the reported shape, and it is in the second roster. The third reads the
-# source instead, for the offender no call can reach.
-#
-# Both rosters are named here rather than discovered, because "requires this argument" is not
-# a question a script can be asked without calling it, and calling the ones that require none
-# (dashboard.sh serves a page, profile.sh runs the suite) is not something a test may do.
-# Scripts whose first positional is optional (solvable-issues.sh, detect-test-command.sh,
-# classify-bail.sh) are absent from the first roster; solvable-issues.sh is in the second one
-# all the same, for the repository name its --repo requires.
-#
-# Admitted to the fast tier (#336) by its own usage count: git 0, python3 0, server 0, sleep 0.
-# Every call below is answered before the script does any work, so none of them starts a
-# process either — a script that reached for git before reading its arguments would fail here,
-# named, which is the contract this suite is for.
+# Contract under test:
+#   every script in the first roster, called with no arguments    → exit 2, usage on stderr
+#   every script in the second roster, called without one later
+#   positional argument                                           → exit 2, usage on stderr
+#   no script's source guards a positional with `${N:?…}`, which exits 1
 #
 # Run: scripts/tests/unit/missing-argument-exit.test.sh
 set -uo pipefail

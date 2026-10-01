@@ -6,8 +6,7 @@
 # its readers and writers share. Names each line that does when more than one does. And audits
 # that no other script or module (non-comment lines) and no line of SKILL.md spells a box —
 # an escaped `\[` box or a `'[x]'` / `"- [x] "` / `"- [ ] "` literal. Names each file and line.
-#
-# Admitted to the fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
+# Fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Run: scripts/tests/unit/pending-mark-literal.test.sh
 set -uo pipefail

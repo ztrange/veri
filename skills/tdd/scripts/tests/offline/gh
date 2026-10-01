@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# gh and curl on make test's PATH (#301): any call at all is written to $OFFLINE_REACH_LOG and
-# refused with exit 128. A suite that stubs one of them puts its stub in front of this one.
+# gh and curl on make test's PATH: any call is written to $OFFLINE_REACH_LOG and refused
+# with exit 128.
 printf '%s\n' "$(basename "$0") $* (cwd $PWD)" >> "${OFFLINE_REACH_LOG:?}"
 echo "$(basename "$0") shim: network unreachable" >&2
 exit 128

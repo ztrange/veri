@@ -4,8 +4,7 @@
 # Given a ledger file and a matcher, strip the mark from the FIRST checked step that both
 # contains the matcher and carries the mark, in place, and exit 0; exit 3 with the file
 # byte-identical when no such step matched. Operates on a real temp file.
-#
-# Admitted to the fast tier (#336) by its own usage count: git 0, python3 0, server 0, sleep 0.
+# Fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Run: scripts/tests/unit/clear-refactor-pending.test.sh
 set -uo pipefail

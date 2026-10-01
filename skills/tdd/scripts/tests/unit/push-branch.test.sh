@@ -1,14 +1,7 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/push-branch.sh — the script sourced, never executed, with every
 # command it shells out to mocked as a same-named shell function.
-#
-# push-branch.sh is the script chosen as the first migration's worked example (#339), picked
-# by a process-count proxy, not measured seconds: its integration suite
-# (tests/push-branch.test.sh) builds a real git repository and pushes to a real bare remote,
-# so every one of its 11 cases starts git processes, while the script itself is 85 lines of
-# logic small enough to move behind functions in one issue.
-#
-# Admitted to the fast tier (#336) by its own usage count: git 0, python3 0, server 0, sleep 0.
+# Fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Run: scripts/tests/unit/push-branch.test.sh
 set -uo pipefail
@@ -79,23 +72,6 @@ if [[ "$rc" -ne 0 || -s "$scratch/out3" || "$(cat "$err")" != "$want_err" || "$(
   no "$name (want exit 0, empty stdout, stderr '$want_err'):"
   show_run "$rc" "$scratch/out3" "$err"
   diff <(echo "$want_calls") "$calls"
-else
-  ok
-fi
-
-name="the unit suite's header comment records push-branch.sh as the chosen script, by a process-count proxy and not measured seconds"
-header=""
-{
-  read -r _shebang
-  while IFS= read -r line && [[ "$line" == \#* ]]; do header+="$line"$'\n'; done
-} < "$HERE/push-branch.test.sh"
-header="${header//$'\n'# / }"
-missing=()
-[[ "$header" =~ push-branch\.sh[^.]*chosen|chosen[^.]*push-branch\.sh ]] || missing+=("push-branch.sh named as the chosen script")
-[[ "$header" == *"process-count proxy"* ]] || missing+=("'process-count proxy'")
-[[ "$header" =~ not[[:space:]]+(by[[:space:]]+)?(a[[:space:]]+)?measured([[:space:]]+wall-clock)?[[:space:]]+second ]] || missing+=("'not measured seconds'")
-if [[ "${#missing[@]}" -gt 0 ]]; then
-  no "$name (header lacks: ${missing[*]}):"; printf '%s' "$header"
 else
   ok
 fi

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/classify-bail.sh — classifies a bail's <cause> into a category.
 # Given a cause as $1, print the category on the first stdout line and exit 0.
-# Zero-dependency plain-shell asserts, same idiom as parse-verdict.test.sh.
+# Fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
-# Contract under test (issue #18, extended by #331):
+# Contract under test:
 #   classify-bail.sh killed-stuck         → first stdout line `system`,  exit 0
 #   classify-bail.sh no-verdict           → first stdout line `system`,  exit 0
 #   classify-bail.sh revise-exhausted     → first stdout line `process`, exit 0
@@ -13,8 +13,6 @@
 #   classify-bail.sh rebase-unresolved    → first stdout line `process`, exit 0
 #   classify-bail.sh uncovered            → first stdout line `process`, exit 0
 #   classify-bail.sh <unrecognised>       → error on stderr, exit non-zero
-#
-# Admitted to the fast tier (#336) by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Run: scripts/tests/unit/classify-bail.test.sh
 set -uo pipefail

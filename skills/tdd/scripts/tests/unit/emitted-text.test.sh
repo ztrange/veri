@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Pins the text veri emits: every script's usage output on a missing argument, and each prompt
 # builder's output for fixed inputs, byte-identical by `cksum`.
-#
-# Admitted to the fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
+# Fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Run: scripts/tests/unit/emitted-text.test.sh
 set -uo pipefail

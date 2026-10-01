@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/cover-outcome.sh — the pure transform that reads a cover leaf's
 # report on stdin and says whether the code a refactor step will move is covered, so the
-# conductor can go on to Transform or refuse the step (issue #499).
+# conductor can go on to Transform or refuse the step.
+# Fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Contract under test:
 #   stdin  = the cover leaf's report (the COVERED:/CAUGHT_BY:/MUTATION: lines at its end)
 #   stdout = on COVERED: yes, the test the report's CAUGHT_BY: line names
 #   exit   = 0 COVERED: yes · 1 COVERED: no · 2 no readable COVERED: line
-#
-# Admitted to the fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Run: scripts/tests/unit/cover-outcome.test.sh
 set -uo pipefail
