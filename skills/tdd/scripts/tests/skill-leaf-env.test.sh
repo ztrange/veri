@@ -35,7 +35,7 @@ SENTINEL='make sentinel-test-cmd'
 
 SENTINEL_ISSUE=143
 LITERAL_STEP='A title naming `kill %1`, the "blind" verifier, $HOME and the shell s own job spec'
-SENTINEL_STEP='A title naming `kill %1`, the "blind" verifier, $HOME and the shell'"'"'s own job spec'
+SENTINEL_STEP="${LITERAL_STEP/shell s own/shell\'s own}"
 
 cleared_run_context=(env -u VERI_TEST_CMD -u VERI_ISSUE -u VERI_STEP)
 
