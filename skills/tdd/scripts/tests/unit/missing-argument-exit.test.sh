@@ -129,23 +129,21 @@ migrated() {  # migrated <script> … — want each to source lib/exit-contract.
   done
 }
 
-name="migration slice 1 sources lib/exit-contract.sh and refuses through it, with no hand-built usage-and-exit idiom left"
-offenders=()
-migrated add-ledger-step.sh affected-suites.sh build-develop-prompt.sh build-verify-prompt.sh \
+migration_slice() {  # migration_slice <n> <script> … — the slice's case, over migrated
+  local n="$1"
+  shift
+  name="migration slice $n sources lib/exit-contract.sh and refuses through it, with no hand-built usage-and-exit idiom left"
+  offenders=()
+  migrated "$@"
+  verdict "$name"
+}
+
+migration_slice 1 add-ledger-step.sh affected-suites.sh build-develop-prompt.sh build-verify-prompt.sh \
   capture-spec.sh classify-bail.sh clear-refactor-pending.sh
-verdict "$name"
-
-name="migration slice 2 sources lib/exit-contract.sh and refuses through it, with no hand-built usage-and-exit idiom left"
-offenders=()
-migrated comment-class.sh cover-outcome.sh coverage-blocker.sh criterion-finished.sh \
+migration_slice 2 comment-class.sh cover-outcome.sh coverage-blocker.sh criterion-finished.sh \
   dashboard.sh detach-command.sh detach-leaf.sh
-verdict "$name"
-
-name="migration slice 3 sources lib/exit-contract.sh and refuses through it, with no hand-built usage-and-exit idiom left"
-offenders=()
-migrated detect-test-command.sh ensure-run-state-ignored.sh event.sh exhausted-outcome.sh \
+migration_slice 3 detect-test-command.sh ensure-run-state-ignored.sh event.sh exhausted-outcome.sh \
   extract-result.sh harvest-usage.sh invisible-work.sh
-verdict "$name"
 
 name="no script guards a required positional argument with a bare \${N:?…} expansion"
 mapfile -t offenders < <(bare_expansion_offenders "$SCRIPTS")
