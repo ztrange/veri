@@ -41,8 +41,10 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
+USAGE="usage: run-leaf.sh <prompt-file|-> [claude args...]"
 
-[[ -n "${1:-}" ]] || { echo "usage: run-leaf.sh <prompt-file|-> [claude args...]" >&2; exit 2; }
+require_args 1 "$@"
 prompt_src="$1"
 shift
 

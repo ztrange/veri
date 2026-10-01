@@ -17,6 +17,8 @@
 # Passed via `python3 -c` (not a heredoc) so the leaf log stays on stdin.
 set -euo pipefail
 
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+
 exec python3 -c '
 import sys, json
 

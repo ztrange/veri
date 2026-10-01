@@ -13,13 +13,14 @@
 # live in one place.
 set -euo pipefail
 
+HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
+USAGE="usage: run-affordable.sh <steps-remaining> (a whole number)"
+
 remaining="${1-}"
 if [[ ! "$remaining" =~ ^[0-9]+$ ]]; then
-  echo "usage: run-affordable.sh <steps-remaining> (a whole number): '$remaining'" >&2
-  exit 2
+  refuse "run-affordable.sh: <steps-remaining> is not a whole number: '$remaining'"
 fi
-
-HERE="$(cd "$(dirname "$0")" && pwd)"
 
 budgets="$("$HERE/step-budget.sh")"
 ceiling="${budgets##*$'\n'}"

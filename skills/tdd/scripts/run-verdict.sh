@@ -25,6 +25,7 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
 
 if [[ ! -x "$HERE/verify.sh" ]]; then
   echo "run-verdict.sh: cannot start the verifier: $HERE/verify.sh is missing or not executable" >&2
