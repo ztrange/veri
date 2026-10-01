@@ -34,7 +34,7 @@ mkdir -p "$stub" "$run"
 SENTINEL='make sentinel-test-cmd'
 
 SENTINEL_ISSUE=143
-LITERAL_STEP='A title naming `kill %1`, the "blind" verifier, $HOME and the shell s own job spec'
+LITERAL_STEP='A title naming `kill'' %1`, the "blind" verifier, $HOME and the shell s own job spec'
 SENTINEL_STEP="${LITERAL_STEP/shell s own/shell\'s own}"
 
 cleared_run_context=(env -u VERI_TEST_CMD -u VERI_ISSUE -u VERI_STEP)
@@ -383,6 +383,17 @@ scan_answer_latency() {
     problems+=("a launch whose derived leaf name no completion file is written under was answered after ${elapsed}s, want under ${ANSWER_CEILING}s: the wait ran on past the supervisor that had already exited")
 }
 
+
+
+
+
+
+
+
+
+
+EXPANDING_STEP='A title naming `kill %1`, the "blind" verifier and $HOME reaches the leaf as written'
+
 run_case "a derived leaf name no launch writes is answered once its supervisor is gone, not at the end of the wait budget" \
   scan_answer_latency
 
@@ -438,8 +449,6 @@ scan_step_title() {
 
 run_case "a step title carrying an apostrophe reaches the leaf $skill_md launches with it intact" \
   scan_step_title
-
-EXPANDING_STEP='A title naming `kill %1`, the "blind" verifier and $HOME reaches the leaf as written'
 
 run_case "a step title carrying a dollar sign, a backtick and a double quote reaches the leaf $skill_md launches with it byte-identical (#437)" \
   scan_step_title "$EXPANDING_STEP" expanding-step-title
