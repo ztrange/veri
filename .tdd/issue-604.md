@@ -6,4 +6,4 @@
 - [x] a result record with no `modelUsage` still yields a `usage` event with `model` empty, and harvest-usage.sh's exit code and stderr for it are unchanged ⟦criterion 2⟧
 - [x] metrics.sh prints a "By model" table with one row per (role, model) — role developer or verifier — carrying the same columns as "By phase" ⟦criterion 3⟧
 - [x] the metrics report's header states the run's requested model knobs (`VERI_MODEL`, `VERI_MODEL_DEVELOPER`, `VERI_MODEL_VERIFIER`, each or "unset") next to the models that actually answered ⟦criterion 4⟧
-- [ ] an event log whose `usage` events carry no `model` key still produces a metrics report, its "By model" table saying the model was not recorded ⟦criterion 5⟧
+- [x] an event log whose `usage` events carry no `model` key still produces a metrics report, its "By model" table saying the model was not recorded ⟦criterion 5⟧ ⟂ refactor pending
