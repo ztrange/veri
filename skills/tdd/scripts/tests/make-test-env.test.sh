@@ -28,7 +28,7 @@ flat() { printf '%s' "$1" | tr '\n' '/'; }
 recipe() {
   local in="$1"; shift
   rm -f "$probe"
-  recipe_out="$(env "$@" PROBE_OUT="$probe" make -C "$ROOT" test TESTS="$FIXTURE" 2>&1 < "$in")" &&
+  recipe_out="$(env "$@" PROBE_OUT="$probe" make -C "$ROOT" test TESTS="$FIXTURE" UNIT_TESTS= 2>&1 < "$in")" &&
     recipe_code=0 || recipe_code=$?
   [[ "$recipe_code" -eq 0 ]] ||
     problems+=("make test over the fixture exited $recipe_code: $(flat "$recipe_out")")
@@ -118,5 +118,16 @@ rm -rf "$work/tmpl-git/share"
 recipe /dev/null -u OFFLINE_REAL_GIT GIT_TEMPLATE_DIR="$work/ambient-templates" PATH="$stub:$PATH" XCRUN_GIT="$tmpl_git"
 expect GIT_TEMPLATE_DIR "<unset>" "with no templates directory beside the real git, the recipe must leave GIT_TEMPLATE_DIR unset"
 report "make test gives every suite a GIT_TEMPLATE_DIR beside the real git when that directory exists, and none when it does not (#582)"
+
+problems=()
+recipe /dev/null
+unit_listed=""
+for unit_suite in "$HERE"/unit/*.test.sh; do
+  printf '%s\n' "$recipe_out" | grep -Fx "== $(basename "$unit_suite")" > /dev/null &&
+    unit_listed+="$(basename "$unit_suite") "
+done
+[[ -z "$unit_listed" ]] ||
+  problems+=("the nested make test over the fixture also ran suites from tests/unit/: $(flat "$unit_listed")")
+report "the nested make test over the fixture runs only the fixture, no suite from tests/unit/"
 
 finish
