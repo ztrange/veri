@@ -1,6 +1,6 @@
 # Plan for #497 — the usage and exit-code contract lives in one module
 
-- [ ] lib/exit-contract.sh, sourced not run, provides refuse: it prints its message (if given) then the caller's $USAGE on stderr and exits 2 ⟦criterion 1⟧
+- [x] lib/exit-contract.sh, sourced not run, provides refuse: it prints its message (if given) then the caller's $USAGE on stderr and exits 2 ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] lib/exit-contract.sh provides require_args <n> "$@": it refuses with the caller's $USAGE unless the first n arguments are present and non-empty, and returns 0 otherwise ⟦criterion 1⟧
 - [ ] lib/exit-contract.sh provides to_contract <code>: it prints the code unchanged when it is 0, 1, 2 or 3 and prints 2 for any other code ⟦criterion 3⟧
 - [ ] A script that sources lib/exit-contract.sh and then ends with a code outside 0–3 — a `set -e` abort on a failing command, or a last command's status — exits 2 instead, unless that exit is a declared pass-through ⟦criterion 4⟧
