@@ -557,6 +557,16 @@ grep -F "could not read the checks of $sha" "$work/flaky-1.err" > /dev/null \
   || problems+=("second page 502: want the failed first page's stderr, got: $(cat "$work/flaky-2.err")")
 report "$name"
 
+first_deadline() {
+  local f="$1" runs="$2"; shift 2
+  sha_head "$f.json"
+  sha_runs "$f.json" "$(sha_run gates in_progress null)"
+  shared "$f"
+  got="$(GH_RUNS="$runs" again "$f" first "$@")"
+  first="$(head -n 1 "$work/$f.clock")"
+  deadline="$(cat "$work/$f/.tdd/ci-deadline-$sha" 2>/dev/null)"
+}
+
 name="wait-ci.sh given no total-seconds, omitted or empty, records a deadline twice the mean wall time of the CI workflow's 5 most recent success or failure runs after the first call, read through gh run list, skipped, cancelled, in-progress and other workflows' runs not counted (#549)"
 problems=()
 sha=0123456789abcdef0123456789abcdef01234567
@@ -574,13 +584,8 @@ json.dump([run(*r, n) for n, r in enumerate(rows)], open(sys.argv[1], "w"))
 P
 for form in omitted empty; do
   f="computed-$form"
-  sha_head "$f.json"
-  sha_runs "$f.json" "$(sha_run gates in_progress null)"
-  shared "$f"
   if [[ "$form" == omitted ]]; then args=(60); else args=(60 "" "$sha"); fi
-  got="$(GH_RUNS="$work/gh-runs.json" again "$f" first "${args[@]}")"
-  first="$(head -n 1 "$work/$f.clock")"
-  deadline="$(cat "$work/$f/.tdd/ci-deadline-$sha" 2>/dev/null)"
+  first_deadline "$f" "$work/gh-runs.json" "${args[@]}"
   [[ "$got" == 3 ]] || problems+=("$form total: want exit 3, got $got (stderr: $(cat "$work/$f.first.err"))")
   [[ "$deadline" =~ ^[0-9]+$ && "$first" =~ ^[0-9]+$ && $(( deadline - first )) == 400 ]] \
     || problems+=("$form total: want .tdd/ci-deadline-$sha 400 s after the first call (2 × mean of 200, 220, 160, 230, 190), got '$deadline' with the first call at '$first' (stderr: $(cat "$work/$f.first.err"))")
@@ -599,12 +604,7 @@ rows = [("skipped", 3000)] * 25 + [("success", 100), ("failure", 120), ("success
 json.dump([run(*r, n) for n, r in enumerate(rows)], open(sys.argv[1], "w"))
 P
 f=computed-deep
-sha_head "$f.json"
-sha_runs "$f.json" "$(sha_run gates in_progress null)"
-shared "$f"
-got="$(GH_RUNS="$work/gh-runs-deep.json" again "$f" first 60)"
-first="$(head -n 1 "$work/$f.clock")"
-deadline="$(cat "$work/$f/.tdd/ci-deadline-$sha" 2>/dev/null)"
+first_deadline "$f" "$work/gh-runs-deep.json" 60
 [[ "$got" == 3 ]] || problems+=("want exit 3, got $got (stderr: $(cat "$work/$f.first.err"))")
 [[ "$deadline" =~ ^[0-9]+$ && "$first" =~ ^[0-9]+$ && $(( deadline - first )) == 200 ]] \
   || problems+=("want .tdd/ci-deadline-$sha 200 s after the first call (2 × mean of 100, 120, 80, 110, 90 behind 25 skipped runs), got '$deadline' with the first call at '$first' (stderr: $(cat "$work/$f.first.err"))")
