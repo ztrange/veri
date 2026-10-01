@@ -16,7 +16,7 @@ Scope: every shell file under `skills/tdd/scripts/tests/`. "The sweepable report
 - [x] The leading header block of every top-level `tests/*.sh` whose name starts with a through e carries only its contract, and no line of it cites an issue number (`#<digits>`) ⟦criterion 9⟧
 - [x] The leading header block of every top-level `tests/*.sh` whose name starts with f through p carries only its contract, and no line of it cites an issue number (`#<digits>`) ⟦criterion 9⟧
 - [x] The leading header block of every top-level `tests/*.sh` whose name starts with q through z, other than the `skill-*` files, carries only its contract, and no line of it cites an issue number (`#<digits>`) ⟦criterion 9⟧
-- [ ] The leading header block of every `tests/skill-*.test.sh` whose name after `skill-` starts with a through l carries only its contract, and no line of it cites an issue number (`#<digits>`) ⟦criterion 9⟧
+- [x] The leading header block of every `tests/skill-*.test.sh` whose name after `skill-` starts with a through l carries only its contract, and no line of it cites an issue number (`#<digits>`) ⟦criterion 9⟧ ⟂ refactor pending
 - [ ] The leading header block of every `tests/skill-*.test.sh` whose name after `skill-` starts with m through z carries only its contract, and no line of it cites an issue number (`#<digits>`) ⟦criterion 9⟧
 - [ ] The leading header block of every shell file under `tests/unit/`, `tests/fixtures/`, `tests/unit-guard/` and `tests/offline/` carries only its contract, and no line of it cites an issue number (`#<digits>`) ⟦criterion 9⟧
 - [ ] Every suite still ends with its count line, and `make test` is green on the swept tree ⟦full-suite⟧ ⟦criterion 10⟧

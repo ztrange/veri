@@ -1,44 +1,11 @@
 #!/usr/bin/env bash
-# Unit test for what skills/tdd/SKILL.md tells an operator about launching the CONDUCTOR —
-# not a leaf. Like skill-leaf-launch.test.sh and skill-timeout.test.sh this suite belongs to
-# no single script: its subject is the procedure read as text, the way the person about to
-# type the command reads it. Zero-dependency plain-shell asserts, same idiom as
-# model-knobs-recorded.test.sh.
+# Unit test for what skills/tdd/SKILL.md tells an operator about launching the conductor,
+# read as text, one paragraph or bullet at a time.
 #
-# Why this exists (issue #187): `/tdd <n>` is a skill, so it can be typed inside an
-# interactive Claude Code session — and on 2026-09-14, resuming #163, that is what happened.
-# What the binary then refused, and what the run had already paid for by then, are said in
-# `leaf-launchable.sh`'s header (leaf-launchable.sh:4-22), once; that script now catches the
-# class of fault before any of it — but a check that refuses is only half an answer. The
-# operator it refuses needs to be told what to do instead, and that sentence has never been
-# written down: every run to date was launched from a plain shell by habit, not because the
-# document said so.
-#
-# The second half is a decision, not a convenience. The binary's own message offers a way
-# out — unset the variable — and veri declining to take it is a choice that has to be on the
-# page, because the risk it declines is the operator's: "will crash all active sessions" is
-# their sessions, and a tool that quietly unset the guard would be spending that risk on
-# their behalf without telling them. A document that recorded the refusal without the reason
-# would leave the next reader free to "fix" it by unsetting the variable in the launcher.
-#
-# Contract under test (this step only — the check itself is leaf-launchable.test.sh's):
+# Contract under test:
 #   SKILL.md says, in one passage, how to run the conductor when the operator is already
 #   inside a session — a plain shell, outside it, `claude -p "/tdd <n>"` — and says, in one
 #   passage, that veri never unsets CLAUDECODE itself and why.
-#
-# Facts are asked as the regexes any wording carrying them would match, never as fixed
-# strings: what the document has to record is the claim, and how it is phrased belongs to
-# whoever writes it — the protocol lane-rule-recorded.test.sh and model-knobs-recorded.test.sh
-# both use on these documents.
-#
-# Asked of a RECORD — one paragraph or bullet — rather than of the file, because two
-# sentences sections apart that happen to share a word are not a statement. SKILL.md already
-# spells `claude -p "/tdd <n>"` once, in the paragraph about print-mode leaf orphaning; that
-# paragraph is not this instruction, and a file-wide read would accept it as one.
-#
-# Not asked here: that CLAUDE.md's script and suite counts moved when this suite landed.
-# claude-md-counts.test.sh is the case that holds every count in that document to the files
-# on disk, and this file arriving in the tree is what makes it answer.
 #
 # Run: scripts/tests/skill-conductor-launch.test.sh
 set -uo pipefail

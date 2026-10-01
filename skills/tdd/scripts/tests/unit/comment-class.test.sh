@@ -455,4 +455,9 @@ want_no_header_citation "${files[@]}"
 want_contract_only_header "${files[@]}"
 verdict "the leading header block of a top-level tests/*.sh whose name starts with q through z, other than the skill-* files, carries only its contract, and no line of it cites an issue number"
 
+problems=""
+want_no_header_citation "$SCRIPTS"/tests/skill-[a-l]*.sh
+want_contract_only_header "$SCRIPTS"/tests/skill-[a-l]*.sh
+verdict "the leading header block of every tests/skill-*.test.sh whose name after skill- starts with a through l carries only its contract, and no line of it cites an issue number"
+
 finish

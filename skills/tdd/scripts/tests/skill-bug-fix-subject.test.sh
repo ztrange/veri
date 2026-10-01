@@ -1,19 +1,8 @@
 #!/usr/bin/env bash
 # Unit tests for what skills/tdd/SKILL.md tells the conductor to write on the subject line
-# of a bug run's commits and PR. Like skill-green-split.test.sh and skill-commit.test.sh
-# this suite belongs to no single script: its subject is the procedure document, read as
-# text, the way the session that follows it reads it. Picked up by `make test`'s glob by
-# existing. Zero-dependency plain-shell asserts, same idiom as skill-green-split.test.sh.
+# of a bug run's commits and PR, read as text.
 #
-# Why this exists (issue #112): a bug's Red is a reproduction, and the fix that turns it
-# green is not a new capability. The walkthrough's capability index is computed from the
-# `feat:`/`fix:` commits in each tag's range, so a bug step whose green commit lands as
-# `feat:` tells the index a capability arrived where a regression was repaired, and a PR
-# titled `feat:` says the same thing to the human deciding the merge. Both subject lines
-# exist only because SKILL.md dictates them — the scripts never compose a commit message —
-# so a document that goes on saying `feat:` unconditionally is the whole of the regression.
-#
-# Contract under test (this step only):
+# Contract under test:
 #   SKILL.md's Green section says a bug step's green commit takes a `fix:` subject, and its
 #   Draft PR step says a bug run's PR title starts with the `fix:` prefix.
 #

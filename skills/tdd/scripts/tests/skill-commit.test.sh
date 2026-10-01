@@ -1,18 +1,8 @@
 #!/usr/bin/env bash
 # Unit tests for what skills/tdd/SKILL.md tells the conductor about the commit of the
-# skill a run is executing. Like skill-timeout.test.sh and skill-test-command.test.sh this
-# suite belongs to no single script: its subject is the procedure document, read as text,
-# the way the session that follows it reads it. Picked up by `make test`'s glob by existing.
-# Zero-dependency plain-shell asserts, same idiom as skill-test-command.test.sh.
+# skill a run is executing, read as text.
 #
-# Why this exists (issue #165): why a run needs the skill's commit recorded at all is
-# event.sh's header, the one place this cycle states it, and why the plan comment is where
-# a human needs it is the step under test itself. What is this suite's to say is that the
-# instruction is prose and so can only be pinned as prose: `supervise.sh` records the sha
-# per launch, but nothing launches the conductor — the comment it posts exists only because
-# SKILL.md tells it to, so a document that stops saying so is the whole of the regression.
-#
-# Contract under test (this step only):
+# Contract under test:
 #   SKILL.md's plan-comment step says that comment names the skill commit the run started
 #   on, beside the test command and the timeout it already states.
 #   SKILL.md's own account of `$S` says the directory tracks the installed skill and so can

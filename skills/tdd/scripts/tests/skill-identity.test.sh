@@ -1,19 +1,12 @@
 #!/usr/bin/env bash
-# Unit tests for where the skill ships and what it calls itself — like
-# hermetic-suites.test.sh this suite belongs to no single script: its subject is the
-# skill directory that contains all of them.
-# Zero-dependency plain-shell asserts, same idiom as hermetic-suites.test.sh.
+# Unit tests for where the skill ships and what it calls itself.
 #
-# Why this exists (issue #105): the invocation name is the one thing every user touches,
-# and it is spelled in two places that must agree — the directory Claude Code loads the
-# skill from, and the `name:` field of its SKILL.md frontmatter, which is the command.
-#
-# Contracts under test:
+# Contract under test:
 #   skills/tdd/ is a directory, and skills/tdd/SKILL.md's frontmatter reads `name: tdd`.
 #   No tracked file outside the two forwarding stubs still names the scripts directory
-#   under the skill's old home — the build and test plumbing follows the skill when it moves.
+#   under the skill's old home.
 #   Each old name still has a SKILL.md, declaring that old name and forwarding $ARGUMENTS
-#   to /tdd, so a session already invoked on the old command keeps working.
+#   to /tdd.
 #   The skill's Inputs section resolves that forwarded argument three ways — an integer is
 #   the single-issue procedure, any other word is a scope, nothing at all is the scope
 #   `plain` — with the loop it dispatches to reachable from that section rather than
@@ -22,8 +15,8 @@
 #   `ready-for-agent:<scope>` for any other, with `VERI_LABEL` still overriding it, read
 #   from the file the loop now lives in.
 #   Only the scope branch is sent to that file — `## Inputs` is the one section of SKILL.md
-#   naming it, so a single-issue run keeps the tokens the move saved — while SKILL.md still
-#   holds Procedure and the loop delegates each issue back to it.
+#   naming it — while SKILL.md still holds Procedure and the loop delegates each issue
+#   back to it.
 #
 # Run: scripts/tests/skill-identity.test.sh
 set -uo pipefail

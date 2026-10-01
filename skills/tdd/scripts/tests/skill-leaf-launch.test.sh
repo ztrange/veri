@@ -1,60 +1,31 @@
 #!/usr/bin/env bash
-# Unit test for how skills/tdd/SKILL.md launches a leaf. Like skill-identity.test.sh and
-# skill-suite-runs.test.sh this suite belongs to no single script: its subject is the
-# procedure, read as text, the way the session that follows it reads it. Zero-dependency
-# plain-shell asserts, same idiom, picked up by `make test`'s glob by existing.
+# Unit test for how skills/tdd/SKILL.md launches a leaf, read as text.
 #
-# Why this exists (issue #161): `nohup … &` is not a detach. It makes the child ignore
-# SIGHUP and leaves it in the PROCESS GROUP of the Bash call that launched it, so a harness
-# that signals that group when the call ends takes the leaf with it. Observed 2026-09-12
-# 23:43 UTC on a conductor for #123: the call came back `Exit code 144`, the verifier's
-# `.tdd/verdict-red.exit` was never written, and `verify.sh red` was gone. A leaf killed
-# that way writes no completion file, so `wait-leaf.sh` returns exit 3 forever and
-# SKILL.md:88-89 tells the conductor that means "still running" — the run stalls with
-# nothing to say why. `detach-leaf.sh` is the fix, and it fixes nothing while the document
-# ten call sites are spelled in still says `nohup`.
-#
-# Contract under test — the launches, then the reason a conductor is given for them:
+# Contract under test:
 #   1. Every developer and verifier leaf launch line in SKILL.md goes through
 #      `detach-leaf.sh`, and none of them uses `nohup`.
 #   2. *Launching a leaf* — the section those launches live in — says why `nohup` alone is
 #      not enough: it survives a hang-up, but not a signal to the launching call's process
 #      group.
 #   3. Every launch that clears a leaf's completion file `.tdd/<name>.exit` clears its pid
-#      file `.tdd/<name>.pid` on the same line (issue #173), so a pid file left by an
-#      earlier leaf of the same name cannot end a later wait early.
+#      file `.tdd/<name>.pid` on the same line.
 #   4. The script inventory's `wait-leaf.sh` entry says a 2 also means the supervisor died
-#      without recording a status, and that it takes the killed-stuck branch (issue #173).
+#      without recording a status, and that it takes the killed-stuck branch.
 #   5. Every launch line that reaches the verifier — by naming `verify.sh` or the verdict
-#      launcher `run-verdict.sh` that execs it — names `supervise.sh` too, so a verifier is
-#      launched through the supervisor the way a developer leaf is (issue #415) — the
-#      invariant SKILL.md:17 states and line 322 broke.
+#      launcher `run-verdict.sh` that execs it — names `supervise.sh` too.
 #   6. Every supervised verifier launch passes the blind parameter list and nothing else —
 #      the phase, the spec file, the test path and the test id, or the base sha for
-#      `refactor`, behind verify.sh's own `--step` and `--fast-cmd` flags — so nothing the
-#      supervisor put in front of that call can carry the developer's rationale to a
-#      verifier that is blind by construction (issue #415). Read at the verdict launcher,
-#      which since #426 is where that list is typed: it passes its argv to `verify.sh`
-#      untouched, so an argument added to the launch is an argument the verifier gets.
+#      `refactor`, behind verify.sh's own `--step` and `--fast-cmd` flags — read at the
+#      verdict launcher, which passes its argv to `verify.sh` untouched.
 #   7. Every verifier launch invokes the verdict launcher `run-verdict.sh` and inlines no
-#      `bash -c` command string, so the step's own title reaches the verifier as one argv
-#      element rather than as shell text a second shell has to parse (issue #426).
-#   8. The document states in ONE place how the step's title reaches a command line — in
-#      double quotes, because the title is the planning leaf's own English and an
-#      apostrophe in it closes a single-quoted one early — and every fenced command
-#      carrying `<STEP>` follows that rule (issue #431).
-#   9. Every documented command line that passes a FRAGMENT of the step's title follows that
-#      same rule — the `tick-ledger.sh`, `clear-refactor-pending.sh` and
-#      `tick-issue-criterion.sh` calls handed a distinctive substring of STEP to find the
-#      checkbox they tick — read over the whole document, prose included, since three of
-#      those calls are written inline in a sentence rather than in a fenced block (#431).
+#      `bash -c` command string.
+#   8. The document states in ONE place how the step's title reaches a command line, and
+#      every fenced command carrying `<STEP>` follows that rule.
+#   9. Every documented command line that passes a FRAGMENT of the step's title — the
+#      `tick-ledger.sh`, `clear-refactor-pending.sh` and `tick-issue-criterion.sh` calls —
+#      follows that same rule, read over the whole document, prose included.
 #  10. That one rule says the title reaches a command line as data rather than hand-typed in
-#      double quotes, which expand a `$`, a backtick or a `"` in it, and names every script
-#      the launch lines read it through, so it does not contradict them (#437).
-#
-# Case 1 is scoped to the launch LINES, not to the file, precisely so case 2 can exist:
-# *Launching a leaf* has to be free to explain why `nohup` is not enough, and a suite that
-# banned the word from the document would ban the explanation with it.
+#      double quotes, and names every script the launch lines read it through.
 #
 # Run: scripts/tests/skill-leaf-launch.test.sh
 set -uo pipefail

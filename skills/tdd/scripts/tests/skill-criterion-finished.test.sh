@@ -1,27 +1,13 @@
 #!/usr/bin/env bash
-# Unit tests for when the conductor ticks an acceptance criterion in the issue body — like
-# skill-refactor-pending.test.sh this suite belongs to no single script: its subject is
-# prose, skills/tdd/SKILL.md, read as text the way the session that follows it reads it.
-# Zero-dependency plain-shell asserts, same idiom as skill-refactor-pending.test.sh.
-#
-# Why this exists (issue #168): a plan is made of steps, not criteria, and one criterion is
-# routinely built across several steps. Ticking the issue's criterion at every step's end
-# told a reader a behaviour existed two steps before its code did (#116), and a bail in
-# between left the tick standing. `criterion-finished.sh` answers whether every step serving
-# a criterion is done; the tick is only honest if the two places that tick — the *Step done*
-# mirror after verify-refactor's PASS and the pin's mirror — ask it first.
+# Unit tests for when the conductor ticks an acceptance criterion in the issue body, as
+# skills/tdd/SKILL.md prescribes it, read as text.
 #
 # Contract under test:
 #   1. In both SKILL.md's cycle loop and its pin path, the instruction that runs
 #      `tick-issue-criterion.sh` also runs `criterion-finished.sh`, ticks on its exit 0 and
 #      ticks nothing on its exit 3; the cycle loop's instruction still posts `### ✅ Step done`.
 #   2. SKILL.md step 2's plan-writing guidance tells the conductor to end each ledger step with
-#      ` ⟦criterion k⟧` for the criterion it serves, and to leave a gap step without one — the
-#      gate in 1 can only answer for a criterion the ledger records.
-#
-# The gate is asked of the SAME instruction as the tick it guards, for the reason
-# skill-refactor-pending.test.sh gives for its clear: a condition prescribed in some other
-# section drifts away from the branch it belongs to the first time either is reworded.
+#      ` ⟦criterion k⟧` for the criterion it serves, and to leave a gap step without one.
 #
 # Run: scripts/tests/skill-criterion-finished.test.sh
 set -uo pipefail

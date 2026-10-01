@@ -1,17 +1,6 @@
 #!/usr/bin/env bash
 # Unit tests for where the /tdd-fix skill ships, what it calls itself, and what it asks the
-# user for — like skill-identity.test.sh this suite belongs to no single script: its subject
-# is a skill directory and the SKILL.md inside it, read as text, the way the session that
-# follows it reads it.
-# Zero-dependency plain-shell asserts, same idiom as skill-identity.test.sh.
-#
-# Why this exists (issue #111): filing a bug the way veri reads it is a second command, and
-# the invocation name is the one thing every user touches — spelled in two places that must
-# agree, the directory Claude Code loads the skill from and the `name:` field of its
-# frontmatter. The other half of the same criterion is the intake: the one-line description
-# is OPTIONAL, and what the skill does with it is ask only for what that line left out, in
-# one short round. A skill that re-asks what the line already answered turns a one-line bug
-# report into an interview, which is the cost ADR-0015 is about.
+# user for, read from its skill directory and SKILL.md as text.
 #
 # Contract under test:
 #   skills/tdd-fix/ is a directory, skills/tdd-fix/SKILL.md's frontmatter reads
