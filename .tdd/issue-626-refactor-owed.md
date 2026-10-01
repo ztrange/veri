@@ -1,0 +1,2 @@
+### a suite fails when SKILL.md's *Bailing* procedure has its metrics render step (`metrics.sh <n> > .tdd/issue-<n>-metrics.md`) before its `event.sh bail` step ⟦criterion 2⟧
+- merge the "render line must not come before mark line" ordering check, now written twice in skill-metrics.test.sh (done case :88-100, bail case :265-276), into one helper taking the records, the render and mark search strings, and the failure messages
