@@ -36,6 +36,11 @@ source "$HERE/lib/number-in.sh"
 
 recorded_code() { number_in "$exitfile"; }
 
+exit_if_recorded() {
+  local ec
+  ec="$(recorded_code)" && exit "$(to_contract "$ec")"
+}
+
 supervising() {
   local args
   args="$(ps -p "$1" -o args= 2>/dev/null)" || return 1
@@ -43,9 +48,9 @@ supervising() {
 }
 
 while :; do
-  ec="$(recorded_code)" && exit "$(to_contract "$ec")"
+  exit_if_recorded
   if pid="$(number_in "$pidfile")" && ! supervising "$pid"; then
-    ec="$(recorded_code)" && exit "$(to_contract "$ec")"
+    exit_if_recorded
     echo "wait-leaf.sh: supervisor for leaf '$name' (pid $pid) exited without recording a status" >&2
     exit 2
   fi
