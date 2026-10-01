@@ -1,2 +1,5 @@
 ### `skills/tdd/scripts/unreachable.sh <repo-root>` lists, one per line, each script under `skills/tdd/scripts/` reachable from none of the declared entry points, including one whose only callers are other scripts inside the same orphaned subtree ⟦added⟧ ⟦criterion 1⟧
 - unreachable.test.sh's two cases each repeat the strip-sort-compare-then-diff failure block (`sed '/^$/d; s#.*/##' | sort` + `diff … | sed 's/^/    /'`); a shared `check_listing <expected> <output-file> <name>` helper would remove that copy
+### unreachable.sh matches a script name as a whole name, not a substring: an orphan whose name is the tail of a reached script's name (e.g. `leaf.sh` beside a reached `run-leaf.sh`) is still listed ⟦added⟧ ⟦criterion 1⟧
+- the cycle case in unreachable.test.sh repeats expect_listing's `sed '/^$/d; s#.*/##' | sort` clean-up and diff report on a captured output file (that case was not written this cycle)
+- fixture_root builds `hooks` in two statements (`"$root/docs"` then `+=/hooks`) instead of one path (not written this cycle)
