@@ -7,8 +7,12 @@
 #   docs-targets-refuse.test.sh  the development-run refusal
 #
 # Contract under test:
-#   Each of those four is a suite `make test` runs, and each exits 0 with a count line
-#   reporting no failures when run against the CLAUDE.md committed in this tree.
+#   Each of those four is in the roster `make test` runs, read off `make -n test`. The
+#   roster is a glob, so a guard drops out of it by being renamed or moved, and nothing
+#   else would notice.
+#
+#   It does not re-run the four guards: `make test` already runs them, and a guard a
+#   CLAUDE.md trim breaks turns that run red with its own `FAIL - …` line, naming itself.
 #
 # Run: skills/tdd/scripts/tests/claude-md-guards-green.test.sh
 set -uo pipefail
@@ -170,6 +174,29 @@ name="with a planted \`make -n test\` roster holding all four guards, each stubb
 problems=()
 
 probe_starts_no_guard_on_a_full_roster_of_failing_guards
+
+report "$name"
+
+
+probe_header_states_the_roster_pin_and_the_dropped_rerun() {
+  local header cost
+  header="$(sed -n '2,/^[^#]/{/^#/p;}' "$HERE/claude-md-guards-green.test.sh")"
+  if ! grep -iE 'roster' <<< "$header" > /dev/null || ! grep -F 'make test' <<< "$header" > /dev/null; then
+    problems+=("the header does not say it pins the four guards' presence in \`make test\`'s roster")
+  fi
+  if ! grep -iE 're-?run' <<< "$header" > /dev/null; then
+    problems+=("the header does not say why the re-run of the four guards was dropped")
+  fi
+  cost="$(grep -oiE '[0-9]+(\.[0-9]+)? ?(ms|s|sec|secs|seconds?)([^A-Za-z]|$)' <<< "$header" || true)"
+  if [[ -n "$cost" ]]; then
+    problems+=("the header claims a cost in seconds: $cost")
+  fi
+}
+
+name="the header states it pins the four guards' presence in \`make test\`'s roster and why the re-run was dropped, and claims no cost in seconds"
+problems=()
+
+probe_header_states_the_roster_pin_and_the_dropped_rerun
 
 report "$name"
 
