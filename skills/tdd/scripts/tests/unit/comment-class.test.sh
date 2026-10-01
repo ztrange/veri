@@ -418,4 +418,16 @@ if [[ -n "$cited" ]]; then
 fi
 verdict "no line of the leading header block of a top-level tests/*.sh whose name starts with a through e cites an issue number"
 
+problems=""
+shapeless="$(awk 'FNR == 1 { header = /^#!/; para = 0; fresh = 1; next }
+  header && /^#$/ { fresh = 1; next }
+  header && /^#/ {
+    if (fresh) { para++; if (para > 1 && !/^# Contract under test/ && !/^# Run:/ && !/^#   /) print FILENAME ":" FNR ": " $0 }
+    fresh = 0; next }
+  { header = 0 }' "$SCRIPTS"/tests/[a-e]*.sh)"
+if [[ -n "$shapeless" ]]; then
+  problems+="    want every header paragraph after the description to be a Contract under test block or the Run: line, got:"$'\n'"$shapeless"$'\n'
+fi
+verdict "the leading header block of a top-level tests/*.sh whose name starts with a through e holds only a description, its Contract under test block and its Run: line"
+
 finish
