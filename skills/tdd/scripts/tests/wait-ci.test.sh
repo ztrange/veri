@@ -248,13 +248,13 @@ expect_never_completes legacy-success-pending
 expect_exit legacy-success-green 0
 report "$name"
 
-name="wait-ci.sh keeps its total bound separate from one call's slice: with a total of 1800 s and a slice of 540 s, a call made 600 s after the first that still finds a check pending exits 3, not 2, and SKILL.md's Draft PR step passes that total bound (#544)"
+name="wait-ci.sh keeps its total bound separate from one call's slice: with a total of 600 s and a slice of 240 s, a call made 240 s after the first that still finds a check pending exits 3, not 2, and SKILL.md's Draft PR step passes that total bound (#544)"
 problems=()
 rollup total.json "$(check IN_PROGRESS '')" 00112233445566778899aabbccddeeff00112233
 shared total
 for call in first second; do
-  got="$(again total "$call" 540 1800)"
-  [[ "$got" == 3 ]] || problems+=("$call call, slice 540, total 1800: want exit 3, got $got (stderr: $(cat "$work/total.$call.err"))")
+  got="$(again total "$call" 240 600)"
+  [[ "$got" == 3 ]] || problems+=("$call call, slice 240, total 600: want exit 3, got $got (stderr: $(cat "$work/total.$call.err"))")
 done
 calls="$(grep -F 'wait-ci.sh <pr-url>' "$HERE/../../SKILL.md")"
 [[ -n "$calls" ]] || problems+=("SKILL.md: no wait-ci.sh <pr-url> call found")
@@ -647,6 +647,16 @@ first="$(head -n 1 "$work/slice-cap.clock")"
 last="$(tail -n 1 "$work/slice-cap.clock")"
 [[ "$first" =~ ^[0-9]+$ && "$last" =~ ^[0-9]+$ ]] && (( last - first <= 540 )) \
   || problems+=("slice 900: want the call to return within 540 s of its first clock reading, got its last reading at '$last' with the first at '$first'")
+report "$name"
+
+name="wait-ci.sh given an explicit total-seconds records that deadline without reading gh run list, but caps a total-seconds above 600 at 600 (#549)"
+problems=()
+sha=0123456789abcdef0123456789abcdef01234567
+GH_RUN_LIST_FAIL=1 expect_deadline explicit-low "$work/gh-runs.json" 300 "an explicit total-seconds of 300" 60 300 "$sha"
+GH_RUN_LIST_FAIL=1 expect_deadline explicit-high "$work/gh-runs.json" 600 "an explicit total-seconds of 1200, capped at 600" 60 1200 "$sha"
+for f in explicit-low explicit-high; do
+  [[ ! -s "$work/$f.first.err" ]] || problems+=("$f: want nothing on stderr, since gh run list is not read, got: $(cat "$work/$f.first.err")")
+done
 report "$name"
 
 finish

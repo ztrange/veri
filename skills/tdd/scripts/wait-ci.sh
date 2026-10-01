@@ -21,7 +21,7 @@ source "$(dirname "$0")/lib/github.sh"
 pr="$1"
 repo="${pr#https://github.com/}"; repo="${repo%/pull/*}"
 max="${2:-540}"; (( max > 540 )) && max=540
-total="${3:-}"
+total="${3:-}"; [[ -n "$total" ]] && (( total > 600 )) && total=600
 want="${4:-}"
 poll="${VERI_POLL:-10}"
 
