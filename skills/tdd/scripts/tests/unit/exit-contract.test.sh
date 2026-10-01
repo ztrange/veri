@@ -52,4 +52,12 @@ expect_eq "require_args refuses with the caller's \$USAGE unless the first n arg
     "$(outcome_of require_args 2 a b)" \
     "$(outcome_of require_args 1 a '')")"
 
+expect_eq "to_contract prints 0, 1, 2 or 3 unchanged and prints 2 for any other code" \
+  "$(for printed in 0 1 2 3 2 2 2 2; do
+    printf 'exit=0 stdout=%s\nreturned 0 stderr=\n' "$printed"
+  done)" \
+  "$(for code in 0 1 2 3 4 127 141 255; do
+    printf '%s\n' "$(outcome_of to_contract "$code")"
+  done)"
+
 finish

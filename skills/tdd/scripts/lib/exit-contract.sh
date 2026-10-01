@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# lib/exit-contract.sh — sourced, not run: defines `refuse` and `require_args`.
+# lib/exit-contract.sh — sourced, not run: defines `refuse`, `require_args` and `to_contract`.
 #
 # refuse [message] — print <message> (if given), then the caller's $USAGE, on stderr; exit 2.
 # require_args <n> "$@" — refuse unless the first <n> arguments are present and non-empty;
 #   return 0 otherwise.
+# to_contract <code> — print <code> if it is 0, 1, 2 or 3, else 2.
 refuse() {
   if (( $# > 0 )); then
     printf '%s\n' "$1" >&2
@@ -19,4 +20,11 @@ require_args() {
     [[ -n "${!i:-}" ]] || refuse
   done
   return 0
+}
+
+to_contract() {
+  case "$1" in
+    0|1|2|3) printf '%s\n' "$1" ;;
+    *) printf '2\n' ;;
+  esac
 }
