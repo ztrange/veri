@@ -153,4 +153,23 @@ script "$S/orphan.sh" 'echo alone'
 expect_listing "$root" orphan.sh \
   "a procedure file named only through a built path such as prompts/develop-\$phase.md is read, so the script it names is not listed"
 
+root="$(fixture_root test-only)"
+S="$root/skills/tdd/scripts"
+mkdir -p "$S/tests"
+script "$S/helper.sh" 'echo helped'
+script "$S/tested.sh" 'echo tested'
+script "$S/tests/tested.test.sh" '"$(dirname "$0")/../tested.sh"'
+script "$S/orphan.sh" 'echo alone'
+before="$(cd "$root" && find . -type f -exec cksum {} + | sort)"
+out="$("$UNREACHABLE" "$root" 2>&1)"; code=$?
+after="$(cd "$root" && find . -type f -exec cksum {} + | sort)"
+got="$(printf '%s\n' "$out" | sed '/^$/d' | sort)"
+expected="$(printf 'orphan.sh\ntest-only: tested.sh')"
+name="a script whose only caller is its own test suite is listed as test-only, apart from the unreachable ones, and no file is deleted or modified"
+if [[ "$code" == 0 && "$got" == "$expected" && "$before" == "$after" ]]; then ok; else
+  no "$name (code=$code)"
+  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$got") | sed 's/^/    /'
+  diff <(printf '%s\n' "$before") <(printf '%s\n' "$after") | sed 's/^/    tree: /'
+fi
+
 finish
