@@ -274,4 +274,16 @@ if [[ -n "${bail_render_line:-}" && -n "${bail_mark_line:-}" && "$bail_render_li
 fi
 report "$name"
 
+name="#626: $skill_md's Bailing section marks the bail with its cause= and classification= before rendering the metrics report it commits"
+problems=()
+
+bail_render_line="$(first_record_line "$bail_records" 'metrics.sh <n> > .tdd/issue-<n>-metrics.md')" ||
+  problems+=("$skill_md's Bailing section never renders metrics.sh <n> > .tdd/issue-<n>-metrics.md, so there is no committed report for the bail mark to end")
+bail_mark_line="$(first_record_line "$bail_records" 'event.sh bail' 'cause=<cause>' 'classification="$classification"')" ||
+  problems+=("$skill_md's Bailing section never writes event.sh bail carrying cause=<cause> and classification=\"\$classification\", so the report cannot name what the run bailed on")
+if [[ -n "${bail_render_line:-}" && -n "${bail_mark_line:-}" && "$bail_mark_line" -gt "$bail_render_line" ]]; then
+  problems+=("$skill_md writes event.sh bail with its cause= and classification= only in record $bail_mark_line, AFTER rendering the committed metrics report in record $bail_render_line, so the report names no cause for the bail")
+fi
+report "$name"
+
 finish
