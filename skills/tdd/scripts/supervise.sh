@@ -116,23 +116,14 @@ kill_tree() {
 }
 
 terminal_outcome() {
-  python3 -c '
-import json, sys
+  PYTHONPATH="$HERE/lib" python3 -c '
+import sys
+from leaf_log import result_records
 
-record = None
-for line in open(sys.argv[1]):
-    s = line.strip()
-    if not s.startswith("{"):
-        continue
-    try:
-        obj = json.loads(s)
-    except ValueError:
-        continue
-    if isinstance(obj, dict) and obj.get("type") == "result":
-        record = obj            # last result record wins
-if record is None:
+records = result_records(open(sys.argv[1]))
+if not records:
     sys.exit(1)
-print("failure" if record.get("is_error") else "success")
+print("failure" if records[-1].get("is_error") else "success")
 ' "$1"
 }
 
