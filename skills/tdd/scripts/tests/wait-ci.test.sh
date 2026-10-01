@@ -72,6 +72,7 @@ else:
 P
     ;;
   "run list"*)
+    if [ -n "${GH_RUN_LIST_FAIL:-}" ]; then echo "HTTP 502: Bad Gateway" >&2; exit 1; fi
     python3 - "$GH_RUNS" "$@" <<'P'
 import json, sys
 runs, args = json.load(open(sys.argv[1])), sys.argv[4:]
@@ -211,8 +212,8 @@ name="wait-ci.sh enforces its bound across calls: a second call for the same hea
 problems=()
 rollup across.json "$(check IN_PROGRESS '')" fedcba9876543210fedcba9876543210fedcba98
 shared across
-got_first="$(again across first 120)"
-got_second="$(again across second 120)"
+got_first="$(again across first 120 120)"
+got_second="$(again across second 120 120)"
 [[ "$got_first" == 3 ]] || problems+=("first call: want exit 3, got $got_first (stderr: $(cat "$work/across.first.err"))")
 [[ "$got_second" == 2 ]] || problems+=("second call past the recorded deadline: want exit 2, got $got_second (stderr: $(cat "$work/across.second.err"))")
 report "$name"
@@ -627,6 +628,15 @@ ci_runs gh-runs-few.json '[("CI", "completed", "success", 100), ("CI", "complete
 expect_deadline computed-few "$work/gh-runs-few.json" 540 "fewer than 5 runs: 100, 120, 80" 60
 grep -F "fewer than 5" "$work/computed-few.first.err" > /dev/null \
   || problems+=("computed-few: want stderr saying fewer than 5 runs were found, got: $(cat "$work/computed-few.first.err")")
+report "$name"
+
+name="wait-ci.sh given no total-seconds records a deadline 540 s after the first call when gh run list fails, and says on stderr that gh could not answer (#549)"
+problems=()
+sha=0123456789abcdef0123456789abcdef01234567
+GH_RUN_LIST_FAIL=1 expect_deadline computed-gh-fail "$work/gh-runs.json" 540 "gh run list failed" 60
+grep -E '^wait-ci\.sh: .*gh( |$)' "$work/computed-gh-fail.first.err" > /dev/null \
+    && ! grep -F "fewer than 5" "$work/computed-gh-fail.first.err" > /dev/null \
+  || problems+=("computed-gh-fail: want a wait-ci.sh line on stderr saying gh could not answer, not that fewer than 5 runs were found, got: $(cat "$work/computed-gh-fail.first.err")")
 report "$name"
 
 finish

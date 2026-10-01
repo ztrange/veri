@@ -40,11 +40,13 @@ def docs(text):
 '
 
 ci_bound() {
-  local c
+  local c pages=""
   for c in success failure; do
-    gh run list --repo "$repo" --workflow CI --status "$c" --limit 5 \
-        --json databaseId,conclusion,startedAt,updatedAt
-  done | python3 -c "$json_docs"'
+    pages+="$(gh run list --repo "$repo" --workflow CI --status "$c" --limit 5 \
+        --json databaseId,conclusion,startedAt,updatedAt)" \
+      || { echo "wait-ci.sh: gh run list could not answer; bounding the wait at 540 s" >&2; echo 540; return; }
+  done
+  python3 -c "$json_docs"'
 from datetime import datetime
 at = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").timestamp()
 runs = [r for page in docs(sys.stdin.read()) for r in page]
@@ -55,7 +57,7 @@ if len(runs) < 5:
     print(fallback)
 else:
     print(min(600, round(2 * sum(at(r["updatedAt"]) - at(r["startedAt"]) for r in runs) / len(runs))))
-'
+' <<< "$pages"
 }
 
 [[ -n "$total" ]] || total="$(ci_bound)" || total="$max"
