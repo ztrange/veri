@@ -11,6 +11,8 @@
 # Usage:   red-divergence.sh < <the leaf's report>
 set -uo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/exit-contract.sh"
+
 prediction="" predicted="" fail_output="" note=""
 while IFS= read -r line || [[ -n "$line" ]]; do
   case "$line" in

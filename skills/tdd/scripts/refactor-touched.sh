@@ -13,12 +13,13 @@
 # touched, or with `--issue` every file changed between <base> and HEAD.
 set -euo pipefail
 
-usage="usage: refactor-touched.sh <commit> | --issue <base>"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/exit-contract.sh"
+USAGE="usage: refactor-touched.sh <commit> | --issue <base>"
 rev="${1:-}"; from="$rev^"; to="$rev"
 if [[ "$rev" == --issue ]]; then
   rev="${2:-}"; from="$rev"; to=HEAD
 fi
-[[ -n "$rev" ]] || { echo "$usage" >&2; exit 2; }
+[[ -n "$rev" ]] || refuse
 
 # hazard: under pipefail, `grep -v` on a failed `git diff` exits 1, read as nothing touched.
 git rev-parse --verify --quiet "$rev^{commit}" >/dev/null ||

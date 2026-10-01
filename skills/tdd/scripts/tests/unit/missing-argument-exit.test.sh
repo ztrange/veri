@@ -109,6 +109,7 @@ rejects build-verify-prompt.sh rebase spec nothex nothex  # malformed <onto-sha>
 rejects affected-suites.sh no-range                     # not a <base>..<head> range
 rejects classify-bail.sh bogus                          # unknown cause
 rejects leaf-timeout.sh ten                             # malformed number
+rejects push-branch.sh --bogus                          # not --force-with-lease=<branch>:<sha>
 rejects refactor-budget.sh ten                          # malformed number
 rejects step-cost.sh --bogus                            # unknown flag
 rejects stop-requested.sh --bogus                       # unknown flag
@@ -148,6 +149,8 @@ migration_slice 4 issue-worktree.sh leaf-launchable.sh leaf-model.sh leaf-role.s
   ledger-steps.sh metrics.sh
 migration_slice 5 next-pending-refactor.sh next-unchecked.sh orchestrate.sh over-budget.sh \
   parallel-conductors.sh parse-verdict.sh preserve-attempt.sh
+migration_slice 6 profile.sh push-branch.sh rebase-onto-default.sh red-divergence.sh \
+  refactor-budget.sh refactor-owed.sh refactor-touched.sh
 
 name="no script guards a required positional argument with a bare \${N:?…} expansion"
 mapfile -t offenders < <(bare_expansion_offenders "$SCRIPTS")

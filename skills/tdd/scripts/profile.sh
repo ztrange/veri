@@ -16,6 +16,8 @@
 # Usage:   profile.sh <suite>...
 set -euo pipefail
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/exit-contract.sh"
+
 threshold="${VERI_PROFILE_THRESHOLD:-1}"
 if [[ ! "$threshold" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
   echo "profile.sh: VERI_PROFILE_THRESHOLD must be a number of seconds, got '$threshold'" >&2
@@ -23,7 +25,7 @@ if [[ ! "$threshold" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
 fi
 
 trace="$(mktemp)"
-trap 'rm -f "$trace"' EXIT
+trap 'rc=$?; rm -f "$trace"; end_in_contract "$rc"' EXIT
 
 for suite in "$@"; do
   BASH_XTRACEFD=9 bash -c 'PS4='\''+${EPOCHREALTIME} ${LINENO} '\''; set -x; . "$0"' \
