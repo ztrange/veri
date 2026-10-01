@@ -32,7 +32,7 @@ new="${url##*/}"
 body="$(gh_issue_view "$n" body)"
 
 tmp="$(mktemp)"
-trap 'rm -f "$tmp"' EXIT
+trap 'rc=$?; rm -f "$tmp"; end_in_contract "$rc"' EXIT
 printf '%s\n' "$body" | awk -v blocker="- #$new" '
   /^## / { in_blocked = ($0 ~ /^## Blocked by/) }
   in_blocked && /^None/ { line[++n] = blocker; next }
