@@ -33,7 +33,7 @@ source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
 
 leaf_bin="${CLAUDE_BIN:-claude}"
 probe_err="$(mktemp)"
-trap 'rc=$?; rm -f "$probe_err"; end_in_contract "$rc"' EXIT
+at_exit 'rm -f "$probe_err"'
 "$leaf_bin" --version >/dev/null 2>"$probe_err" && exit 0
 
 {
