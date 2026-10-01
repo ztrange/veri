@@ -59,6 +59,13 @@ timed_through() {
   done
 }
 
+never_timed_under() {
+  local label="$1" prompt="$2" tier="$3"
+  if grep -qE "timed-test-run\.sh $tier\b" <<< "$(plain <<< "$prompt")"; then
+    problems+=("$label's prompt still tells its leaf to run through timed-test-run.sh under tier $tier")
+  fi
+}
+
 names_suite_runner() {
   local label="$1" prompt="$2"
   if ! plain <<< "$prompt" | grep -F 'run-suite.sh' > /dev/null; then
@@ -162,9 +169,7 @@ name="develop-revise redoing red runs the affected suites through timed-test-run
 problems=()
 runs_affected "develop-revise red" "$revise"
 timed_through "develop-revise red" "$revise" affected
-if grep -qE 'timed-test-run\.sh all\b' <<< "$(plain <<< "$revise")"; then
-  problems+=("develop-revise red's prompt still tells its leaf to run through timed-test-run.sh under tier all")
-fi
+never_timed_under "develop-revise red" "$revise" all
 report "$name"
 
 name="develop-revise redoing refactor runs the affected suites through timed-test-run.sh under tier affected, and names no all run"
@@ -173,9 +178,7 @@ revise_refactor="$("$DEVELOP" revise refactor "$work/spec.md" 'QWIXTLE step' 'ma
   problems+=("build-develop-prompt.sh revise refactor exited $?")
 runs_affected "develop-revise refactor" "$revise_refactor"
 timed_through "develop-revise refactor" "$revise_refactor" affected
-if grep -qE 'timed-test-run\.sh all\b' <<< "$(plain <<< "$revise_refactor")"; then
-  problems+=("develop-revise refactor's prompt still tells its leaf to run through timed-test-run.sh under tier all")
-fi
+never_timed_under "develop-revise refactor" "$revise_refactor" all
 report "$name"
 
 name="develop-revise redoing green runs the fast command and the affected suites through timed-test-run.sh under tiers fast then affected, and names no all run"
@@ -189,9 +192,7 @@ affected_at="$(awk '/timed-test-run\.sh affected( |$)/ && !n {n=NR} END{print n}
 if [[ "$fast_at" =~ ^[1-9][0-9]*$ && "$affected_at" =~ ^[1-9][0-9]*$ ]] && ((fast_at > affected_at)); then
   problems+=("develop-revise green's prompt names the affected run before the fast one")
 fi
-if grep -qE 'timed-test-run\.sh all\b' <<< "$folded_revise_green"; then
-  problems+=("develop-revise green's prompt still tells its leaf to run through timed-test-run.sh under tier all")
-fi
+never_timed_under "develop-revise green" "$revise_green" all
 report "$name"
 
 name="verify-red, verify-green, verify-refactor and verify-pin run their test commands through timed-test-run.sh, each naming its tier"
