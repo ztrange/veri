@@ -8,6 +8,7 @@
 #   every script in the first roster, called with no arguments    → exit 2, usage on stderr
 #   every script in the second roster, called without one later
 #   positional argument                                           → exit 2, usage on stderr
+#   every script in the third roster, given a bad argument value  → exit 2, its own usage on stderr
 #   no script's source guards a positional with `${N:?…}`, which exits 1
 #
 # Run: scripts/tests/unit/missing-argument-exit.test.sh
@@ -89,6 +90,30 @@ refuses timed-test-run.sh all ''                          # a suite list may be 
 refuses verify.sh green                                   # no <issue-spec-file>
 refuses verify.sh green spec                              # no <test-path> — the shape #270 reports
 refuses verify.sh --step                                  # no step text
+verdict "$name"
+
+rejects() {  # rejects <script> [args …] — want exit 2 and a usage line naming <script> on stderr
+  local script="$1" line err
+  if ! line="$(missing_argument_offender "$SCRIPTS" "$@")"; then
+    offenders+=( "$line" ); return
+  fi
+  err="$(stderr_of "$SCRIPTS/$script" "${@:2}")"
+  [[ "$err" == *"$script"* ]] || offenders+=( "$script ${*:2}: usage line on stderr does not name it: $err" )
+}
+
+name="a script given a bad argument value exits 2 with its own usage text on stderr"
+offenders=()
+unset VERI_TIMEOUT VERI_REFACTOR_BUDGET
+rejects build-verify-prompt.sh bogus spec test-path     # unknown phase
+rejects build-develop-prompt.sh bogus spec step cmd     # unknown phase
+rejects classify-bail.sh bogus                          # unknown cause
+rejects leaf-timeout.sh ten                             # malformed number
+rejects refactor-budget.sh ten                          # malformed number
+rejects step-cost.sh --bogus                            # unknown flag
+rejects stop-requested.sh --bogus                       # unknown flag
+rejects stop-run.sh --mode bogus 1                      # unknown mode
+rejects stop-run.sh ten                                 # malformed number
+rejects workqueue.sh bogus                              # unknown subcommand
 verdict "$name"
 
 name="no script guards a required positional argument with a bare \${N:?…} expansion"

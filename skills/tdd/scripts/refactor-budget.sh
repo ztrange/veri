@@ -19,6 +19,7 @@
 # Usage:   refactor-budget.sh [--issue] <count>   # <count> a whole number >= 0
 set -euo pipefail
 
+USAGE="usage: refactor-budget.sh [--issue] <count>"
 budget_var=VERI_REFACTOR_BUDGET
 budget="${VERI_REFACTOR_BUDGET:-5}"
 if [[ "${1:-}" == --issue ]]; then
@@ -35,6 +36,7 @@ fi
 
 if [[ ! "$count" =~ ^[0-9]+$ ]]; then
   echo "refactor-budget: <count> must be a whole number >= 0: $count" >&2
+  echo "$USAGE" >&2
   exit 2
 fi
 

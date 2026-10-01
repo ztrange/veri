@@ -25,8 +25,11 @@ complain() {
   echo "stop-run: $1" >&2
 }
 
+USAGE="usage: stop-run.sh [--mode at-ledger|at-leaf|now] <issue> | --all"
+
 refuse() {
   complain "$1"
+  echo "$USAGE" >&2
   exit 2
 }
 

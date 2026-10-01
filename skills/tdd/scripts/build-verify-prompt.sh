@@ -52,7 +52,7 @@ target="${4:-the target test}"
 
 case "$phase" in
   red|green|refactor|pin|plan|rebase|transform) ;;
-  *) echo "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin|plan|rebase|transform)" >&2; exit 2 ;;
+  *) echo "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin|plan|rebase|transform)" >&2; echo "$USAGE" >&2; exit 2 ;;
 esac
 
 if [[ ( "$phase" == green || "$phase" == refactor ) && -z "$fast_cmd" ]]; then
