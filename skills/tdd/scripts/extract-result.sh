@@ -18,23 +18,18 @@
 # Passed via `python3 -c` (not a heredoc) so the leaf stream stays on stdin.
 set -euo pipefail
 
-source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
 
-exec python3 -c '
-import sys, json, re
+PYTHONPATH="$HERE/lib" exec python3 -c '
+import sys, re
+from leaf_log import result_records
 data = sys.stdin.read()
 result = None
 verdict = None
 verdict_re = re.compile(r"^[ \t]*verdict:", re.I | re.M)
-for line in data.splitlines():
-    s = line.strip()
-    if not s.startswith("{"):
-        continue
-    try:
-        obj = json.loads(s)
-    except ValueError:
-        continue
-    if isinstance(obj, dict) and obj.get("type") == "result" and "result" in obj:
+for obj in result_records(data.splitlines()):
+    if "result" in obj:
         result = obj["result"]          # last result event wins
         if isinstance(result, str) and verdict_re.search(result):
             verdict = result            # ...unless a later one carries no verdict
