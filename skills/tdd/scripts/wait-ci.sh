@@ -21,7 +21,8 @@ source "$(dirname "$0")/lib/github.sh"
 pr="$1"
 repo="${pr#https://github.com/}"; repo="${repo%/pull/*}"
 max="${2:-540}"; (( max > 540 )) && max=540
-total="${3:-}"; [[ -n "$total" ]] && (( total > 600 )) && total=600
+ceiling=600
+total="${3:-}"; [[ -n "$total" ]] && (( total > ceiling )) && total=$ceiling
 want="${4:-}"
 poll="${VERI_POLL:-10}"
 
@@ -58,8 +59,8 @@ runs = [r for page in docs(sys.stdin.read()) for r in page]
 runs = sorted(runs, key=lambda r: r["databaseId"], reverse=True)[:5]
 if len(runs) < 5:
     sys.exit(3)
-print(min(600, round(2 * sum(at(r["updatedAt"]) - at(r["startedAt"]) for r in runs) / len(runs))))
-' <<< "$pages"
+print(min(int(sys.argv[1]), round(2 * sum(at(r["updatedAt"]) - at(r["startedAt"]) for r in runs) / len(runs))))
+' "$ceiling" <<< "$pages"
   status=$?
   (( status == 3 )) && { fall_back "fewer than 5 success or failure CI runs found"; return; }
   return "$status"
