@@ -45,6 +45,9 @@ grep -q -- '-p' "$work/argv" && grep -q 'Verify the test for issue 3.' "$work/ar
 run "$work/prompt.txt" 'VERDICT: REJECT' 1 >/dev/null; code=$?
 [[ "$code" == 1 ]] && ok || no "propagates leaf exit status (got $code)"
 
+run "$work/prompt.txt" ok 7 >/dev/null; code=$?
+[[ "$code" == 2 ]] && ok || no "maps a foreign leaf exit status to 2 (got $code)"
+
 run "$work/prompt.txt" ok 0 --allowed-tools 'Read,Bash' >/dev/null
 grep -q -- '--allowed-tools' "$work/argv" && grep -q 'Read,Bash' "$work/argv" \
   && ok || no "passes extra args through"
