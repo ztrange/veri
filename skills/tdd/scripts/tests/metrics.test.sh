@@ -1627,6 +1627,18 @@ if not any(names(l, "10000") for l in lines):
 report_on "$name" "$slept_out"
 
 
+NOT_RUNNING_ZERO='
+import sys
+
+lines = [l.strip() for l in open(sys.argv[1]).read().splitlines()]
+stopped = [l for l in lines if l.startswith("Seconds the machine was not running inside that span:")]
+
+if not stopped:
+    print("want a line starting \"Seconds the machine was not running inside that span:\", the report has none")
+elif not stopped[0].startswith("Seconds the machine was not running inside that span: 0 s,"):
+    print("want the not-running line to say 0 s, it says: %r" % stopped[0])
+'
+
 fixture_work level_clocks_work
 
 level_clocks="a step of a run whose awake clock kept pace with its wall clock"
@@ -1644,17 +1656,7 @@ problems=()
 level_clocks_out="$level_clocks_work/report.md"
 render "$level_clocks_work" "$level_clocks_out"
 
-probe '
-import sys
-
-lines = [l.strip() for l in open(sys.argv[1]).read().splitlines()]
-stopped = [l for l in lines if l.startswith("Seconds the machine was not running inside that span:")]
-
-if not stopped:
-    print("want a line starting \"Seconds the machine was not running inside that span:\", the report has none")
-elif not stopped[0].startswith("Seconds the machine was not running inside that span: 0 s,"):
-    print("want the not-running line to say 0 s, it says: %r" % stopped[0])
-' "$level_clocks_out"
+probe "$NOT_RUNNING_ZERO" "$level_clocks_out"
 
 report_on "$name" "$level_clocks_out"
 
@@ -1676,17 +1678,7 @@ problems=()
 ahead_clocks_out="$ahead_clocks_work/report.md"
 render "$ahead_clocks_work" "$ahead_clocks_out"
 
-probe '
-import sys
-
-lines = [l.strip() for l in open(sys.argv[1]).read().splitlines()]
-stopped = [l for l in lines if l.startswith("Seconds the machine was not running inside that span:")]
-
-if not stopped:
-    print("want a line starting \"Seconds the machine was not running inside that span:\", the report has none")
-elif not stopped[0].startswith("Seconds the machine was not running inside that span: 0 s,"):
-    print("want the not-running line to say 0 s, it says: %r" % stopped[0])
-' "$ahead_clocks_out"
+probe "$NOT_RUNNING_ZERO" "$ahead_clocks_out"
 
 report_on "$name" "$ahead_clocks_out"
 
