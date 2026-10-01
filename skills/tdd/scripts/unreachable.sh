@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # unreachable.sh — the scripts under skills/tdd/scripts/ that no declared entry point reaches.
-# Entry point: SKILL.md.
+# Entry points: SKILL.md, the Makefile, the git hooks under docs/hooks/.
 #
 # Usage:   unreachable.sh <repo-root>     # one unreachable script per line on stdout
 #
@@ -16,10 +16,24 @@ names=()
 for f in "$scripts"/*.sh; do
   names+=( "${f##*/}" )
 done
+nodes=( "${names[@]}" )
+for f in "$scripts"/lib/*.sh; do
+  if [[ -e "$f" ]]; then nodes+=( "lib/${f##*/}" ); fi
+done
+for f in "$root"/skills/tdd/*.md; do
+  nodes+=( "${f##*/}" )
+done
+
+path_of() {
+  case "$1" in
+    *.md)  printf '%s\n' "$root/skills/tdd/$1" ;;
+    *)     printf '%s\n' "$scripts/$1" ;;
+  esac
+}
 
 mentions() {
   local file="$1" name
-  for name in "${names[@]}"; do
+  for name in "${nodes[@]}"; do
     if grep -qE "(^|[^[:alnum:]_.-])${name//./\\.}(\$|[^[:alnum:]_-])" "$file"; then
       printf '%s\n' "$name"
     fi
@@ -37,11 +51,13 @@ reach_from() {
   done < <(mentions "$1")
 }
 
-reach_from "$root/skills/tdd/SKILL.md"
+for entry in "$root/skills/tdd/SKILL.md" "$root/Makefile" "$root"/docs/hooks/*; do
+  if [[ -f "$entry" ]]; then reach_from "$entry"; fi
+done
 while (( ${#queue[@]} > 0 )); do
   current="${queue[0]}"
   queue=( "${queue[@]:1}" )
-  reach_from "$scripts/$current"
+  reach_from "$(path_of "$current")"
 done
 
 for name in "${names[@]}"; do

@@ -90,4 +90,40 @@ script "$S/leaf.sh" 'echo alone'
 expect_listing "$root" leaf.sh \
   "a name alone on its line is a mention; one glued to a letter, digit, _ or - on either side, or to a . before it, is not"
 
+root="$(fixture_root kinds)"
+S="$root/skills/tdd/scripts"
+mkdir -p "$S/lib"
+script "$S/helper.sh" 'echo helped'
+printf '\nEach leaf follows `WORKER.md`.\n' >> "$root/skills/tdd/SKILL.md"
+printf '# worker\n\nRun `$S/by-procedure.sh`.\n' > "$root/skills/tdd/WORKER.md"
+printf 'test:\n\t@echo ok\n\ncheck:\n\tskills/tdd/scripts/by-make.sh\n' > "$root/Makefile"
+script "$S/by-make.sh" '"$(dirname "$0")/chained-make.sh" "$@"'
+script "$S/chained-make.sh" 'echo chained'
+printf '#!/bin/sh\nskills/tdd/scripts/by-hook.sh\n' > "$root/docs/hooks/reference-transaction"
+script "$S/by-hook.sh" 'source "$(dirname "$0")/lib/via-lib.sh"'
+printf 'via_lib() { "$S/by-lib.sh"; }\n' > "$S/lib/via-lib.sh"
+script "$S/by-procedure.sh" 'echo procedure'
+script "$S/by-lib.sh" 'echo lib'
+script "$S/orphan.sh" 'echo alone'
+expect_listing "$root" orphan.sh \
+  "a script reached only from a procedure file, only from a Makefile recipe, or only from a git hook, directly or through a chain of scripts or a sourced lib/ file, is not listed"
+
+root="$(fixture_root no-hooks)"
+S="$root/skills/tdd/scripts"
+hooks="$root/docs"
+hooks+=/hooks
+rm -r "$hooks"
+script "$S/helper.sh" 'echo helped'
+script "$S/orphan.sh" 'echo alone'
+expect_listing "$root" orphan.sh \
+  "a repo with no git hooks directory is listed with nothing on stderr"
+
+root="$(fixture_root no-lib)"
+S="$root/skills/tdd/scripts"
+script "$S/helper.sh" '"$(dirname "$0")/lib.sh" "$@"'
+script "$S/lib.sh" 'echo lib'
+script "$S/orphan.sh" 'echo alone'
+expect_listing "$root" orphan.sh \
+  "a repo with no lib/ directory is listed with nothing on stderr, even when a script is named lib.sh"
+
 finish
