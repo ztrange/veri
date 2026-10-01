@@ -43,6 +43,23 @@ answers_none() {
   rm -f "$empty_file"
 }
 
+lists_as() {
+  local owed_file="$1" why="$2" listed want code
+  want="$(mktemp)"
+  cat >"$want"
+
+  listed="$(mktemp)"
+  "$OWED" list "$owed_file" >"$listed" 2>/dev/null && code=0 || code=$?
+
+  [[ "$code" == 0 ]] ||
+    problems+=("want exit 0 from list, got $code")
+
+  diff "$want" "$listed" >/dev/null ||
+    problems+=("list printed:" "$(cat "$listed")" "$why" "$(cat "$want")")
+
+  rm -f "$listed" "$want"
+}
+
 under_step() {
   local file="$1" step="$2" transform="$3" step_at candidate_at
   step_at="$(line_of "$file" "$step")"
@@ -183,22 +200,13 @@ CANDIDATES: structural | hoist the ledger path into one variable
 CANDIDATES: structural | rename $tmp to $prompt_file, which is what it holds
 REPORT
 
-listed="$(mktemp)"
-"$OWED" list "$owed_file" >"$listed" 2>/dev/null && code=0 || code=$?
-
-[[ "$code" == 0 ]] ||
-  problems+=("want exit 0 from list, got $code")
-
-want="$(mktemp)"
-cat >"$want" <<'WANT'
+lists_as "$owed_file" "want exactly the three candidates, one per line, no step heading:" <<'WANT'
 fold verify.sh's two mktemp calls into one helper
 hoist the ledger path into one variable
 rename $tmp to $prompt_file, which is what it holds
 WANT
-diff "$want" "$listed" >/dev/null ||
-  problems+=("list printed:" "$(cat "$listed")" "want exactly the three candidates, one per line, no step heading:" "$(cat "$want")")
 
-rm -f "$owed_file" "$listed" "$want"
+rm -f "$owed_file"
 
 answers_none list "; want nothing"
 report "$name"
@@ -222,23 +230,14 @@ CANDIDATES: structural | hoist the ledger path into one variable
 CANDIDATES: structural | split the verdict parser out of run-leaf.sh
 REPORT
 
-listed="$(mktemp)"
-"$OWED" list "$owed_file" >"$listed" 2>/dev/null && code=0 || code=$?
-
-[[ "$code" == 0 ]] ||
-  problems+=("want exit 0 from list, got $code")
-
-want="$(mktemp)"
-cat >"$want" <<'WANT'
+lists_as "$owed_file" "want each candidate once, three steps before two before one, the two recorded once in recorded order:" <<'WANT'
 hoist the ledger path into one variable
 rename $tmp to $prompt_file, which is what it holds
 fold verify.sh's two mktemp calls into one helper
 split the verdict parser out of run-leaf.sh
 WANT
-diff "$want" "$listed" >/dev/null ||
-  problems+=("list printed:" "$(cat "$listed")" "want each candidate once, three steps before two before one, the two recorded once in recorded order:" "$(cat "$want")")
 
-rm -f "$owed_file" "$listed" "$want"
+rm -f "$owed_file"
 report "$name"
 
 
