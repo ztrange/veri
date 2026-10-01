@@ -1,0 +1,2 @@
+### with no `total-seconds` argument (omitted or empty), `wait-ci.sh`'s total bound is 2 × the mean wall time (`updatedAt − startedAt`) of the 5 most recent runs of the CI workflow whose conclusion is `success` or `failure`, read through `gh run list`, skipped and cancelled runs not counted — the deadline recorded in `.tdd/ci-deadline-<sha>` is that many seconds after the first call ⟦criterion 1⟧
+- merge the two near-identical "skipped runs come first" cases (computed-deep, computed-deeper) in wait-ci.test.sh into one loop over (depth, runs, want)
