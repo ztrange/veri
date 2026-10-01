@@ -34,8 +34,10 @@
 # expression that applies it.
 set -euo pipefail
 
-# hazard: `${N:?}` aborts with status 1, this script's clean negative, so the arguments are checked by hand.
-[[ $# -ge 3 && -n "$1" && -n "$2" && -n "$3" ]] || { echo "usage: over-budget.sh <tier> <seconds> <usual>" >&2; exit 2; }
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+USAGE="usage: over-budget.sh <tier> <seconds> <usual>"
+
+require_args 3 "$@"
 tier="$1"
 seconds="$2"
 usual="$3"
