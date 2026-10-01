@@ -143,4 +143,27 @@ fi
 
 report "$name"
 
+pr_body="$(awk -v h='### 4. Draft PR' \
+  'index($0, h) == 1 { inside = 1; next }
+   inside && /^### / { exit }
+   inside && /-X PATCH .*-f body=/' "$skill_path")"
+
+name="$skill_md's structural pass, stopped=budget-spent, runs refactor-overflow.sh with the candidates it took up and puts the filed issue's URL in the PR body; candidates-done or nothing-structural files nothing"
+problems=()
+
+if ! missing_pass 'how its overflow is filed'; then
+  require 'refactor-overflow.sh <n> .tdd/issue-<n>-refactor-owed.md <taken>' "$pass_text" \
+    "$skill_md's structural pass never runs refactor-overflow.sh <n> .tdd/issue-<n>-refactor-owed.md <taken>, so the candidates the budget could not reach are never filed"
+  require '<taken> being the candidates the pass took up' "$pass_text" \
+    "$skill_md's structural pass never says <taken> is the candidates the pass took up"
+  require 'stopped=budget-spent' "$pass_text" \
+    "$skill_md's structural pass never ties the overflow filing to stopped=budget-spent"
+  require 'candidates-done or nothing-structural files nothing' "$pass_text" \
+    "$skill_md's structural pass never says a pass that ends candidates-done or nothing-structural files nothing"
+fi
+require 'refactor-overflow.sh' "$pr_body" \
+  "$skill_md's Draft PR body never carries the issue refactor-overflow.sh filed, so the overflow's URL is not in front of the human deciding the merge"
+
+report "$name"
+
 finish
