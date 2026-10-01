@@ -23,7 +23,7 @@ fi
 
 # hazard: under pipefail, `grep -v` on a failed `git diff` exits 1, read as nothing touched.
 git rev-parse --verify --quiet "$rev^{commit}" >/dev/null ||
-  { echo "refactor-touched: cannot resolve commit '$rev'" >&2; exit 2; }
+  refuse "refactor-touched: cannot resolve commit '$rev'"
 
 # hazard: `grep` finding no line exits 1, which pipefail makes the script's.
 touched="$(git diff --name-only "$from" "$to" | grep -v '^\.tdd/' || true)"
