@@ -1,0 +1,2 @@
+### a non-PASS verdict's reason output carries only the verifier's reason: stderr written by anything `verify.sh` runs — `preserve_attempt` included — never reaches the reason file the conductor reads ⟦criterion 2⟧
+- the REJECT reason literal 'The test asserts on a private helper, not observable behavior.' appears at 6 more sites in verify.test.sh (lines 114, 188, 206, 612, 617, 661), all in cases this cycle did not write; one file-level variable would replace them
