@@ -167,6 +167,17 @@ if grep -qE 'timed-test-run\.sh all\b' <<< "$(plain <<< "$revise")"; then
 fi
 report "$name"
 
+name="develop-revise redoing refactor runs the affected suites through timed-test-run.sh under tier affected, and names no all run"
+problems=()
+revise_refactor="$("$DEVELOP" revise refactor "$work/spec.md" 'QWIXTLE step' 'make test' "$work/reason.md" 2>/dev/null)" ||
+  problems+=("build-develop-prompt.sh revise refactor exited $?")
+runs_affected "develop-revise refactor" "$revise_refactor"
+timed_through "develop-revise refactor" "$revise_refactor" affected
+if grep -qE 'timed-test-run\.sh all\b' <<< "$(plain <<< "$revise_refactor")"; then
+  problems+=("develop-revise refactor's prompt still tells its leaf to run through timed-test-run.sh under tier all")
+fi
+report "$name"
+
 name="verify-red, verify-green, verify-refactor and verify-pin run their test commands through timed-test-run.sh, each naming its tier"
 problems=()
 verify_pin="$("$VERIFY" pin "$work/spec.md" 'tests/zorblat.test.sh' 'zorblat case' 2>/dev/null)" ||
