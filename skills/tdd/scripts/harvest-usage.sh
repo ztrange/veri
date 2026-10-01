@@ -64,9 +64,9 @@ def usage_pairs(record):
     for key in ("input_tokens", "output_tokens",
                 "cache_read_input_tokens", "cache_creation_input_tokens"):
         pairs.append("%s=%s" % (key, usage[key]))
+    models = record.get("modelUsage", {})
+    pairs.append("model=%s" % ",".join(models))
     if "modelUsage" in record:
-        models = record["modelUsage"]
-        pairs.append("model=%s" % ",".join(models))
         pairs.append("model_usage=%s" % json.dumps(models, sort_keys=True))
     return pairs
 
