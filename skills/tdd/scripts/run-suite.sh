@@ -19,12 +19,13 @@
 # not green. What a caller must never be handed is 0.
 set -uo pipefail
 
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/exit-contract.sh"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
 USAGE="usage: run-suite.sh <suite>"
 require_args 1 "$@"
 suite="$1"
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+ROOT="$(cd "$HERE/../../.." && pwd)"
 eval "$(make -s --no-print-directory -C "$ROOT" count-line-guard 2>/dev/null)"
 [[ -n "${COUNT_LINE:-}" && -n "${COUNTLESS:-}" ]] || {
   echo "run-suite.sh: could not read the count-line guard from $ROOT/Makefile" >&2
