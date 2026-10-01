@@ -28,13 +28,9 @@ while [ "$#" -gt 0 ]; do
     --title|-t) shift; printf '%s\n' "$1" >> "$FAKE_TITLE" ;;
     --body|-b) shift; printf '%s\n' "$1" >> "$FAKE_BODY" ;;
     --body-file|-F)
-      shift
-      case "$1" in
-        body=@*) cat "${1#body=@}" >> "$FAKE_BODY" ;;
-        title=*) printf '%s\n' "${1#title=}" >> "$FAKE_TITLE" ;;
-        body=*) printf '%s\n' "${1#body=}" >> "$FAKE_BODY" ;;
+      case "$2" in
         *=*) ;;
-        *) cat "$1" >> "$FAKE_BODY" ;;
+        *) shift; cat "$1" >> "$FAKE_BODY" ;;
       esac ;;
     title=*) printf '%s\n' "${1#title=}" >> "$FAKE_TITLE" ;;
     body=@*) cat "${1#body=@}" >> "$FAKE_BODY" ;;
