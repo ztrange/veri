@@ -62,6 +62,7 @@ check "nested checkbox" 0 "nested" "$nested" '  - [x] nested criterion'
 work="$(scratch_dir)"
 mkdir "$work/lib"
 cp "$TICK" "$work/tick-criterion.sh"
+cp "$(dirname "$TICK")/lib/exit-contract.sh" "$work/lib/exit-contract.sh"
 cat > "$work/lib/ledger.sh" <<'EOF'
 ledger_tick() {
   cat > /dev/null

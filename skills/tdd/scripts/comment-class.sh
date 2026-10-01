@@ -5,7 +5,7 @@
 #
 # Class 1 is a comment in code, 2 a `#` line inside a heredoc redirected to a file or piped to tee, dd or sponge,
 # 3 a `#` line inside any other heredoc, including one written to a `.md` file. --sweepable prints classes 1 and 2 only, less the comment block
-# after a leading `#!` line, a `#!` line opening a heredoc's body and any comment starting `# hazard:`.
+# after a leading `#!` line, a `#!` line opening a heredoc's body and any comment starting `# hazard:` or `# pass-through:`.
 #
 # Exit: 0 printed, 2 bad arguments.
 set -uo pipefail
@@ -53,7 +53,7 @@ awk -v sweepable="$sweepable" '
   }
   q != "" { scan($0); next }
   comment {
-    if (!(sweepable && (header || /^[[:space:]]*# hazard:/))) print FILENAME ":" FNR ":1"
+    if (!(sweepable && (header || /^[[:space:]]*# (hazard|pass-through):/))) print FILENAME ":" FNR ":1"
     next
   }
   { scan($0); line = $0; gsub(/<<</, "", line) }

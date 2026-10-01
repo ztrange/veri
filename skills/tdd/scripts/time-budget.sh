@@ -19,6 +19,8 @@
 # that last reason.
 set -euo pipefail
 
+source "$(dirname "$0")/lib/exit-contract.sh"
+
 budget="${VERI_UNIT_BUDGET:-10}"
 ratio="${VERI_TIME_WARN_RATIO:-1.5}"
 

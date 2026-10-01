@@ -14,16 +14,20 @@
 # Usage:   tick-ledger.sh [--refactor-pending] .tdd/issue-<n>.md '<substring of the step>'
 set -euo pipefail
 
+USAGE="usage: tick-ledger.sh [--refactor-pending] <ledger-file> <matcher>"
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
+
 pending=""
 if [[ "${1:-}" == "--refactor-pending" ]]; then
   pending=pending
   shift
 fi
 
-[[ -n "${1:-}" ]] || { echo "usage: tick-ledger.sh [--refactor-pending] <ledger-file> <matcher>" >&2; exit 2; }
+require_args 1 "$@"
 file="$1"
 matcher="${2:-}"
-HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/ledger.sh"
 
 new="$(ledger_tick "$matcher" $pending < "$file")" || exit $?

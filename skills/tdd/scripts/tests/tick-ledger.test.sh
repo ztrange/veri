@@ -59,6 +59,7 @@ stub="$work/stub"
 mkdir -p "$stub/lib"
 cp "$TICK" "$stub/tick-ledger.sh"
 cp "$HERE/../tick-criterion.sh" "$stub/tick-criterion.sh"
+cp "$HERE/../lib/exit-contract.sh" "$stub/lib/exit-contract.sh"
 cat > "$stub/lib/ledger.sh" <<'EOF'
 ledger_tick() {
   cat > /dev/null

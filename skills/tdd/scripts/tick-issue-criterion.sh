@@ -13,11 +13,14 @@
 # (the issue is left untouched). Requires an authenticated `gh`.
 set -euo pipefail
 
-[[ -n "${1:-}" ]] || { echo "usage: tick-issue-criterion.sh <issue-number> <matcher>" >&2; exit 2; }
-n="$1"
-matcher="${2:-}"
+USAGE="usage: tick-issue-criterion.sh <issue-number> <matcher>"
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
+
+require_args 1 "$@"
+n="$1"
+matcher="${2:-}"
 
 source "$HERE/lib/github.sh"
 
