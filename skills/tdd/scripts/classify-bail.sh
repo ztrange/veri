@@ -7,6 +7,8 @@
 # Usage:   classify-bail.sh <cause>
 set -euo pipefail
 
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+
 USAGE="usage: classify-bail.sh <cause>"
 cause="${1:-}"
 
@@ -18,8 +20,6 @@ case "$cause" in
     echo process
     ;;
   *)
-    echo "classify-bail: unknown cause: $cause" >&2
-    echo "$USAGE" >&2
-    exit 2
+    refuse "classify-bail: unknown cause: $cause"
     ;;
 esac

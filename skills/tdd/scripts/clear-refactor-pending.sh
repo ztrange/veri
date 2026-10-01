@@ -11,10 +11,12 @@
 # Usage:   clear-refactor-pending.sh .tdd/issue-<n>.md '<substring of the step>'
 set -euo pipefail
 
-[[ -n "${1:-}" ]] || { echo "usage: clear-refactor-pending.sh <ledger-file> <matcher>" >&2; exit 2; }
+HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
+USAGE="usage: clear-refactor-pending.sh <ledger-file> <matcher>"
+require_args 1 "$@"
 file="$1"
 matcher="${2:-}"
-HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/ledger.sh"
 
 new="$(ledger_clear_pending "$matcher" < "$file")" || exit $?

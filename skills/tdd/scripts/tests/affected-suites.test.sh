@@ -106,13 +106,13 @@ commit_head
 bad=""
 for arg in "$head" "$head..no-such-rev" "no-such-rev..$head"; do
   err="$(run_affected "$arg" 2>&1 >/dev/null)"; code=$?
-  if [[ "$code" != 2 || -z "$err" ]]; then
+  if [[ "$code" != 2 || "$err" != *"usage: affected-suites.sh"* ]]; then
     bad="${arg/$head/<head>}: code=$code, stderr=${err:-<empty>}"
     break
   fi
 done
 if [[ -z "$bad" ]]; then ok; else
-  no "malformed argument → exit 2 with a diagnostic ($bad)"
+  no "malformed argument → exit 2 with the usage line ($bad)"
 fi
 
 make_repo empty

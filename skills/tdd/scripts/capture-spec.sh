@@ -12,11 +12,11 @@
 # names the run kind through the same channel.
 set -euo pipefail
 
-n="${1:-}"
-if [[ -z "$n" ]]; then
-  echo "capture-spec: usage: capture-spec.sh <issue-number>" >&2
-  exit 2
-fi
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+
+USAGE="capture-spec: usage: capture-spec.sh <issue-number>"
+require_args 1 "$@"
+n="$1"
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/github.sh"
 
