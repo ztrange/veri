@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# unreachable.sh — the scripts under skills/tdd/scripts/ that no declared entry point reaches.
+# Entry point: SKILL.md.
+#
+# Usage:   unreachable.sh <repo-root>     # one unreachable script per line on stdout
+#
+# Exit:    0  the list was printed, possibly empty
+set -euo pipefail
+
+root="$1"
+scripts="$root/skills/tdd/scripts"
+
+names=()
+for f in "$scripts"/*.sh; do
+  names+=( "${f##*/}" )
+done
+
+mentions() {
+  local file="$1" name
+  for name in "${names[@]}"; do
+    if grep -qF "$name" "$file"; then
+      printf '%s\n' "$name"
+    fi
+  done
+}
+
+declare -A reached=()
+queue=()
+while IFS= read -r name; do
+  reached[$name]=1
+  queue+=( "$name" )
+done < <(mentions "$root/skills/tdd/SKILL.md")
+
+while (( ${#queue[@]} > 0 )); do
+  current="${queue[0]}"
+  queue=( "${queue[@]:1}" )
+  while IFS= read -r name; do
+    [[ -n "${reached[$name]:-}" ]] && continue
+    reached[$name]=1
+    queue+=( "$name" )
+  done < <(mentions "$scripts/$current")
+done
+
+for name in "${names[@]}"; do
+  [[ -n "${reached[$name]:-}" ]] || printf '%s\n' "$name"
+done
