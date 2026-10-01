@@ -1659,6 +1659,38 @@ elif not stopped[0].startswith("Seconds the machine was not running inside that 
 report_on "$name" "$level_clocks_out"
 
 
+fixture_work ahead_clocks_work
+
+ahead_clocks="a step of a run whose awake clock ran one second ahead of its wall clock"
+
+sv "$ahead_clocks" 70000 conductor ""  step-start "" '"awake": 4000'
+sv "$ahead_clocks" 70100 conductor ""  step-done  "" '"awake": 4100'
+sv "$ahead_clocks" 70217 conductor ""  done       "" '"awake": 4218, "pr": "https://github.com/ztrange/veri/pull/994"'
+
+plan_of "$ahead_clocks"
+
+
+name="#643 given a log whose awake clock advanced one second further than its wall clock over the issue span, the not-running line says 0 s, never a negative number"
+problems=()
+
+ahead_clocks_out="$ahead_clocks_work/report.md"
+render "$ahead_clocks_work" "$ahead_clocks_out"
+
+probe '
+import sys
+
+lines = [l.strip() for l in open(sys.argv[1]).read().splitlines()]
+stopped = [l for l in lines if l.startswith("Seconds the machine was not running inside that span:")]
+
+if not stopped:
+    print("want a line starting \"Seconds the machine was not running inside that span:\", the report has none")
+elif not stopped[0].startswith("Seconds the machine was not running inside that span: 0 s,"):
+    print("want the not-running line to say 0 s, it says: %r" % stopped[0])
+' "$ahead_clocks_out"
+
+report_on "$name" "$ahead_clocks_out"
+
+
 fixture_work step_slept_work
 
 step_slept="a step the machine slept through"
