@@ -23,7 +23,12 @@
 #          is left byte-identical
 set -euo pipefail
 
-USAGE="usage: workqueue.sh assign|next|start|done|park|show <worker> …"
+USAGE="workqueue.sh: usage: workqueue.sh assign <worker> <issue>...
+                     workqueue.sh next <worker>
+                     workqueue.sh start <worker> <issue>
+                     workqueue.sh done <worker> <issue> <merge-sha>
+                     workqueue.sh park <worker> <issue> <reason>
+                     workqueue.sh show [<worker>]"
 
 source "$(dirname "$0")/lib/exit-contract.sh"
 source "$(dirname "$0")/lib/main-working-tree.sh"
@@ -89,7 +94,6 @@ if [[ "${1:-}" == start || "${1:-}" == done || "${1:-}" == park ]]; then
     start) from=queued to=running new_detail="" ;;
     done)
       if [[ -z "${4:-}" ]]; then
-        USAGE="workqueue.sh: usage: workqueue.sh done <worker> <issue> <merge-sha>"
         refuse
       fi
       from=running to=merged new_detail="$4" ;;
@@ -133,7 +137,6 @@ if [[ "${1:-}" != assign ]]; then
 fi
 
 if [[ $# -lt 3 ]]; then
-  USAGE="workqueue.sh: usage: workqueue.sh assign <worker> <issue>..."
   refuse
 fi
 
