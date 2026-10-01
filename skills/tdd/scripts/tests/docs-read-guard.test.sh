@@ -1,49 +1,12 @@
 #!/usr/bin/env bash
-# Unit tests for the guard suite that keeps the development lane out of the docs tree —
-# skills/tdd/scripts/tests/no-docs-reads.test.sh. Like hermetic-suites.test.sh and
-# count-line-guard.test.sh this suite has no script as its subject: its subject is what
-# another suite reports about the tree it is run in. Zero-dependency plain-shell asserts,
-# same idiom as count-line-guard.test.sh.
-#
-# Why this exists (issue #143): a suite under skills/tdd/scripts/tests/ that opens a file
-# under docs/ lets the docs pipeline turn `make test` red — the target preflight reads its
-# baseline off, that every Green leaf runs and that both blind verifiers run — over prose
-# no development change touched. Deleting today's four sites fixes today; the guard is what
-# stops the fifth from being written. But a guard that answers "this suite mentions docs/"
-# rather than "this suite reaches into docs/" is worse than none: detect-test-command.test.sh
-# seeds `docs/wt/app.js` and `docs/walkthrough.html` into issue bodies as the very text
-# #75 mis-parsed (:171, :201), and a guard that refused those would be deleted by the first
-# author it blocked, taking the real check with it.
+# Unit tests for skills/tdd/scripts/tests/no-docs-reads.test.sh, the guard that keeps the
+# development lane out of the docs tree.
 #
 # Contract under test:
 #   Over a tests directory holding one suite that binds a path under docs/ to a variable and
 #   opens it on a later line, and one whose only docs/ path is fixture text it writes into a
 #   file of its own, no-docs-reads.test.sh fails, names the reading suite with the line
 #   number of the binding, and says nothing about the other.
-#
-# The reader is planted with the path held in a variable rather than written into the read
-# itself, and that is the point of the case rather than a detail of the fixture. It is the
-# shape of every site #143 deletes — supervise.test.sh:203 and refactor-budget.test.sh:255
-# through a heredoc row, solvable-issues.test.sh:601 and skill-identity.test.sh:189 through
-# an assignment, skill-identity.test.sh:175 through a `for` — so a guard that asked each
-# line whether it carried both a path and a read verb would pass this repository unchanged
-# while catching nothing it was written for. `probe_plant_is_what_it_claims` asserts the
-# indirection is real: the planted reader names the tree on exactly one line, and opens the
-# file from another.
-#
-# Both suites are planted rather than asserted about where they stand: after this issue's
-# other steps this repository has no suite that reads docs/, so a probe over the real tree
-# would pass on both sides of the fix and pin nothing — and one that did read docs/ would
-# be the bug rather than the fixture. The plant goes in a scratch tree and the guard is
-# copied into it, which is how count-line-guard.test.sh puts a suite in front of the real
-# `test` recipe; the guard therefore answers about the planted tree the same way it answers
-# about this one, by being run inside it.
-#
-# No line of code in this file spells that tree's name with its slash — the two paths below
-# are built onto `DOCS_DIR`, and the reading line is printf'd into the fixture. That is not
-# decoration: a line of THIS suite naming a path in that tree is exactly what the guard
-# exists to catch, and a test that trips its own subject on the real tree would make the
-# next step unachievable.
 #
 # Run: skills/tdd/scripts/tests/docs-read-guard.test.sh
 set -uo pipefail

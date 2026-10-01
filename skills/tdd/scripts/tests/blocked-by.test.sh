@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/lib/blocked_by.py — the one reading of an issue body's `## Blocked by`
-# section, importable by any caller rather than locked inside solvable-issues.sh's heredoc.
-#
-# Why this exists (issue #460): the parsing lived only in solvable-issues.sh's embedded Python,
-# so a second reader (#271's `workqueue.sh next`) had to copy it, and a copy that reads a
-# reference differently disagrees with solvable-issues.sh about which issues are takeable.
+# section.
 #
 # Contract under test:
 #   lib/blocked_by.py   blockers(<body>, <repo slug>) → the issue numbers named under

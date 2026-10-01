@@ -409,4 +409,13 @@ sweep_verdict "the sweepable report is empty for every shell file under tests/fi
 
 sweep_verdict "the sweepable report is empty for tests/unit/comment-class.test.sh, the case labels of its own sweepable-report cases included" "$SCRIPTS"/tests/unit/comment-class.test.sh
 
+problems=""
+cited="$(awk 'FNR == 1 { header = /^#!/; next }
+  header && /^#/ { if (/#[0-9]/) print FILENAME ":" FNR ": " $0; next }
+  { header = 0 }' "$SCRIPTS"/tests/[a-e]*.sh)"
+if [[ -n "$cited" ]]; then
+  problems+="    want no header line citing an issue number, got:"$'\n'"$cited"$'\n'
+fi
+verdict "no line of the leading header block of a top-level tests/*.sh whose name starts with a through e cites an issue number"
+
 finish

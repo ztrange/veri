@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
-# Unit tests for scripts/exhausted-outcome.sh — the pure transform that reads the report of
-# the leaf sent when a step's revise budget ran out (issue #408), and says which of the three
-# outcomes that report holds. Zero-dependency plain-shell asserts, same idiom as
-# parse-verdict.test.sh, whose contract this one mirrors: stdin is a leaf's raw output, and
-# the exit code is the answer the conductor branches on.
+# Unit tests for scripts/exhausted-outcome.sh — reads the report of the leaf sent when a
+# step's revise budget ran out, and says which of the three outcomes that report holds.
 #
 # Contract under test:
 #   stdin  = the exhausted leaf's full raw output (free-form reasoning + its report lines)
 #   stdout = the SPLIT: criteria, one per line · or the needs-user answer · or nothing
 #   exit   = 0 split · 1 needs the user · 3 neither (nothing to do, not an error)
 #
-# Run: scripts/tests/exhausted-outcome.test.sh   (exits non-zero if any case fails)
+# Run: scripts/tests/exhausted-outcome.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"

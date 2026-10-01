@@ -1,42 +1,14 @@
 #!/usr/bin/env bash
-# Unit test for the four suites that hold CLAUDE.md to what it says — each one is in the
-# roster `make test` runs, and each one is green against the document as committed. Like
-# hermetic-suites.test.sh and no-docs-reads.test.sh this suite has no script as its
-# subject: its subject is the other suites, run as child processes.
-# Zero-dependency plain-shell asserts, same idiom as hermetic-suites.test.sh.
-#
-# Why this exists (issue #202): CLAUDE.md is re-sent and re-billed on every request of every
-# session in this repository, and the saving is in moving prose out of it — a case history a
-# leaf cannot act on to its issue, a decision a human needs to an ADR. What makes that edit
-# safe is not that anything checks its size; #202 forbids a size assertion outright, because
-# a byte that stops one bad leaf pays for itself many times over. What makes it safe is that
-# four suites already hold the document to the rules it exists for, and a trim is accepted
-# only when all four are still green afterwards:
+# Unit test for the four suites that hold CLAUDE.md to what it says:
 #
 #   claude-md-counts.test.sh     the script and suite counts the document states
 #   lane-rule-recorded.test.sh   the two-lane rule in "The one trap"
-#   count-line-guard.test.sh     the "Testing idiom" count-line rule, and why
+#   count-line-guard.test.sh     the "Testing idiom" count-line rule
 #   docs-targets-refuse.test.sh  the development-run refusal
 #
 # Contract under test:
 #   Each of those four is a suite `make test` runs, and each exits 0 with a count line
 #   reporting no failures when run against the CLAUDE.md committed in this tree.
-#
-# Both halves, because the criterion is one sentence about `make test` and one about the
-# four: a guard that left the roster is a guard a green `make test` no longer says anything
-# about, and it would leave silently — the roster is a glob, so a suite drops out of it by
-# being renamed or moved, not by anyone editing a list. Roster membership without a run
-# would pin only that the files are there; a run without membership would pin a fact about
-# this suite rather than about the baseline the conductor reads.
-#
-# It costs what it costs: ~5 s, paid by the three leaves a step that run the full suite.
-# The four are re-run rather than their result inferred from `make test` failing around
-# them, because "the baseline is red somewhere" is not the answer this criterion asks for —
-# an accepted trim has to name the guards it did not break.
-#
-# No line of code below names a path in the generated tree: the suite whose name begins
-# with the documentation lane's word is named as a file in this directory, which is where
-# it lives, and that is the rule no-docs-reads.test.sh enforces here.
 #
 # Run: skills/tdd/scripts/tests/claude-md-guards-green.test.sh
 set -uo pipefail

@@ -1,16 +1,11 @@
 #!/usr/bin/env bash
-# Tests for scripts/coverage-blocker.sh — what a refactor-kind run does when Cover answers
-# `COVERED: no` (#499): file an unlabelled coverage issue for the refactor issue, and name that
-# new issue under the refactor issue's `## Blocked by` heading so the queue cannot retake it and
-# refuse again.
+# Tests for scripts/coverage-blocker.sh — files an unlabelled coverage issue for a refactor
+# issue Cover answered `COVERED: no`, and names it under the refactor issue's `## Blocked by`.
+# Driven against a stub `gh` on PATH.
 #
 # Contract under test:
 #   coverage-blocker.sh <refactor-issue-number>
 #   GH_REPO=owner/name coverage-blocker.sh <refactor-issue-number>
-#
-# Driven against a stub `gh` on PATH (no network, no real issue), the way
-# tick-issue-criterion.test.sh drives its wrapper. "No longer listed" is asked of
-# solvable-issues.sh itself, fed the edited body through its VERI_GH_JSON fixture override.
 #
 # Run: scripts/tests/coverage-blocker.test.sh
 set -uo pipefail

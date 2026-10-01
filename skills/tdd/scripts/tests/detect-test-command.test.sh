@@ -1,17 +1,13 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/detect-test-command.sh — prints the one command that runs the
 # full suite of the repo at [repo-root] on stdout and exits 0; prints nothing and exits 3
-# when it cannot decide (the conductor then asks the human).
+# when it cannot decide.
 #
-# Contract under test (issues #39, #120):
+# Contract under test:
 #   detect-test-command.sh [--issue <body-file>] [repo-root]   (root default: .)
 #   precedence, first match wins: the issue body's own `Test command:` line,
 #   .veri/test-command override, npm/pnpm/yarn, make, pytest, go, cargo, unittest —
 #   otherwise exit 3.
-#
-# Each case seeds a throwaway scratch repo with only the marker files it is about:
-# the script inspects files, it never runs the command, so no toolchain is needed.
-# Sibling style: classify-bail.test.sh, ensure-run-state-ignored.test.sh.
 #
 # Run: scripts/tests/detect-test-command.test.sh
 set -uo pipefail

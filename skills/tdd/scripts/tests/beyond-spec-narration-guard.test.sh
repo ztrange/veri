@@ -1,52 +1,12 @@
 #!/usr/bin/env bash
 # Unit test for the guard that keeps a `beyond-spec` flag out of the plan — case 8 of
-# skills/tdd/scripts/tests/skill-refactor-leaf.test.sh, which reads SKILL.md's Refactor section
-# and refuses a document that narrates that class without also saying it is neither planned nor
-# built in this run. Like flag-class-amendment-guard.test.sh, verifier-launch-guard.test.sh and
-# docs-read-guard.test.sh this suite has no script as its subject: its subject is what another
-# suite reports about the document it is run against. Zero-dependency plain-shell asserts, same
-# idiom as flag-class-amendment-guard.test.sh.
-#
-# Why this exists (issue #175): `beyond-spec` is the one flag class that is not this run's work
-# at all — it names an input class or an edge the issue's spec never asked for, so a step made
-# from it would build behaviour no criterion states and the blind verifier, which is given the
-# spec, could not judge it. Narration is the whole of what it earns. The document says so today
-# in one clause, and a clause is exactly what the next author rewrites: "and is not planned and
-# not built in this run" reads like emphasis rather than the rule, and dropping it puts back the
-# six `plan: amend` commits #175 counted.
-#
-# The guard is what is supposed to stop that, and a guard that has never been watched to fail is
-# not tested. Asking case 8 about a planted document is the only thing that answers whether it
-# guards the clause at all, and over this tree the answer is that it does not: probe c reads
-# `denial(plan|built|build)` within one clause of a `beyond-spec` window, and the bullet's own
-# rationale — "without costing it a step: one made from a `beyond-spec` flag would build
-# behaviour no criterion of the issue states" — matches that with no sentence boundary in
-# between. So the probe is answered by the sentence explaining WHY the class is not planned,
-# never by the clause saying that it is not, and a document that turns the denial into a grant
-# still passes case 8. This suite is therefore red until probe c is narrowed to the denial
-# itself, which is the behaviour the step that follows builds.
+# skills/tdd/scripts/tests/skill-refactor-leaf.test.sh, run against a planted document.
 #
 # Contract under test:
 #   Over a copy of this tree whose Refactor section plans and builds a `beyond-spec` flag
-#   instead of only narrating it — the clause denying both turned into the grant it denies, so
-#   the section still names the class and still narrates it in both places, and only what the
-#   narration costs the run has changed — skill-refactor-leaf.test.sh fails, its own count line
-#   says so, and the case it names is the one about where a beyond-spec flag goes and no other
+#   instead of only narrating it, skill-refactor-leaf.test.sh fails, its own count line says
+#   so, and the case it names is the one about where a beyond-spec flag goes and no other
 #   case. Over the same tree with the document unplanted it passes.
-#
-# Both halves are the case, and the green half is not decoration: red over a tree is worth
-# nothing unless the same guard is green over the same tree before the plant. A guard broken so
-# that it fails on everything would satisfy the red half alone.
-#
-# Naming the case, rather than merely failing, is the criterion too — and naming ONLY that case.
-# The guard reads eight criteria out of that one section, and the other seven are still correct
-# over the plant; a red that listed them too would send the next author to eight places, seven of
-# which are right.
-#
-# The plant carries the three documents the guard resolves against its own repo root — SKILL.md,
-# CONTEXT.md and CLAUDE.md — and the guard itself, and nothing else. In particular the generated
-# tree is not copied, and no line below names a path in it, which is what no-docs-reads.test.sh
-# asks of every suite in this directory.
 #
 # Run: skills/tdd/scripts/tests/beyond-spec-narration-guard.test.sh
 set -uo pipefail

@@ -1,34 +1,15 @@
 #!/usr/bin/env bash
-# Unit tests for scripts/event.sh — the one-line writer every conductor mark goes through,
-# and the first clock in the system (issue #107, ADR-0014: observability is a per-run event
-# log written by the scripts, not a service).
-# Zero-dependency plain-shell asserts, same idiom as leaf-timeout.test.sh.
+# Unit tests for scripts/event.sh — the one-line writer every conductor mark goes through.
 #
-# Contract under test (this step only — one `event.sh` call, one line):
+# Contract under test:
 #   event.sh <event> [key=value …]  → appends one line to `.tdd/events.jsonl`, relative to
-#                                     the directory it is run in (the issue's worktree, the
-#                                     way supervise.sh already spells `.tdd/<name>.log`),
-#                                     and exits 0.
+#                                     the directory it is run in, and exits 0.
 #   that line                       → parses as JSON, and carries `ts`, `issue`, `actor`,
 #                                     `phase`, `step`, `event` and `attempt`, plus one key
 #                                     per `key=value` argument given.
-#   `ts`                            → seconds since the epoch. The issue leaves the choice
-#                                     open ("seconds since the epoch, or ISO-8601 — pick
-#                                     one and pin it"); this suite picks the epoch count,
-#                                     which is what supervise.sh's own `now()` already
-#                                     reads out of `date +%s`, so the log and the watchdog
-#                                     measure in the same unit and a reader subtracts two
-#                                     marks without parsing a calendar.
-#
-# The run context — which issue, which actor, which phase, which step, which attempt — is
-# NOT on the command line: it arrives in the environment as `VERI_ISSUE`, `VERI_ACTOR`,
-# `VERI_PHASE`, `VERI_STEP` and `VERI_ATTEMPT`. Two reasons, both already precedents here.
-# It is what the criterion's own shape says — those seven fields, "plus every key=value
-# payload given" — so the payload stays the caller's to choose and the context stays the
-# run's. And it is how the conductor already hands a run-wide fact to every child: SKILL.md
-# preflight exports VERI_TIMEOUT once "in the conductor's own shell … for every supervise.sh
-# in every phase of every cycle below; nothing else has to pass it". A mark the procedure
-# prescribes beside an issue comment has to be short enough to be followed.
+#   `ts`                            → seconds since the epoch.
+#   the run context arrives in the environment as `VERI_ISSUE`, `VERI_ACTOR`, `VERI_PHASE`,
+#   `VERI_STEP` and `VERI_ATTEMPT`.
 #
 # Run: scripts/tests/event.test.sh
 set -uo pipefail

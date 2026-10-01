@@ -1,32 +1,11 @@
 #!/usr/bin/env bash
-# Unit test for the sizes CLAUDE.md states for this skill — like hermetic-suites.test.sh
-# and skill-identity.test.sh this suite belongs to no single script: its subject is the
-# inventory of `skills/tdd/scripts/` and the two sentences that count it. Zero-dependency
-# plain-shell asserts, same idiom, picked up by `make test`'s glob by existing.
-#
-# Why this exists (issue #161): CLAUDE.md is the first thing an agent reads, and it counts
-# the tree twice — once in the opening paragraph ("plus <n> bash scripts it calls") and
-# once in *Testing idiom* ("<n> files for <m> scripts"). Both numbers were written by hand
-# and neither has anything to hold it to the directory it describes, so every issue that
-# adds a script — this one adds `detach-leaf.sh` — leaves them one further behind. A count
-# that is wrong is worse than no count: an agent told there are eighteen scripts has been
-# given a number it can act on, and the twenty-five on disk mean it was told the tree is
-# smaller than it is before it has opened a single file.
+# Unit test for the sizes CLAUDE.md states for this skill.
 #
 # Contract under test — every count CLAUDE.md states is the number of files on disk:
 #   1. The opening paragraph's script count is `skills/tdd/scripts/*.sh`.
 #   2. *Testing idiom*'s suite count is `skills/tdd/scripts/tests/*.test.sh`, and the
 #      script count in the same sentence is `skills/tdd/scripts/*.sh` again.
-#
-# One criterion — the stated counts match the files — and so one case: three numbers, but
-# a document whose intro and testing section disagreed about how many scripts there are
-# would be exactly as wrong as one whose single number was stale, and a reader repairing
-# either repairs them the same way. The case reports one problem per number so the output
-# says which of the three is off and by what.
-#
-# A count is accepted in either spelling a sentence like these uses: the digits, or the
-# English words CLAUDE.md currently writes them in. Which one the author reaches for is
-# not this suite's business — that the number is right is.
+#   A count is accepted as digits or as English words.
 #
 # Run: scripts/tests/claude-md-counts.test.sh
 set -uo pipefail

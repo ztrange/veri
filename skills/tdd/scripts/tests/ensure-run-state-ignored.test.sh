@@ -1,17 +1,12 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/ensure-run-state-ignored.sh — installs veri's run-state rule into
-# a target repo's .gitignore, so the first `git add -A` cannot sweep run scratch (leaf logs,
-# .rc markers, .prompt files, the blind spec) into history while still committing the ledger.
+# a target repo's .gitignore.
 #
-# Contract under test (issue #27):
+# Contract under test:
 #   ensure-run-state-ignored.sh [repo-root]   (default: the current directory)
 #   afterwards, in that repo, `git check-ignore` says
 #     .tdd/develop-red.log  IS ignored      (exit 0)
 #     .tdd/issue-7.md       is NOT ignored  (exit 1)
-#
-# The assertion is on git's own ignore decision, not on the text of .gitignore: the rule is
-# order-sensitive (`.tdd/*`, then a negation, then a re-ignore) and grepping for lines would
-# pass on an ordering git rejects.
 #
 # Run: scripts/tests/ensure-run-state-ignored.test.sh
 set -uo pipefail

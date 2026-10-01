@@ -1,45 +1,10 @@
 #!/usr/bin/env bash
-# Unit test for CLAUDE.md as a record of its own rules — every rule the document carried is
-# still findable in it after prose is moved out. Like claude-md-counts.test.sh,
-# lane-rule-recorded.test.sh and model-knobs-recorded.test.sh this suite belongs to no
-# single script: its subject is the document an agent reads before it opens a file.
-# Zero-dependency plain-shell asserts, same idiom as model-knobs-recorded.test.sh.
-#
-# Why this exists (issue #202): CLAUDE.md is re-sent and re-billed on every request of every
-# session in this repository, leaves included — 3,607 tokens × 1,285 requests on the night of
-# 2026-09-14, priced in ADR-0018. The saving is in moving the reasoning out: a case history a
-# leaf cannot act on belongs in its issue, a decision a human needs belongs in an ADR, and
-# what stays behind is the rule and a pointer. The hazard of that edit is not that it removes
-# too little — it is that a rule leaves with the paragraph that explained it, and nothing
-# fires, because the only thing that was holding that rule to this repository was the
-# sentence being here. A trim that drops a rule reads exactly like a trim that tightened it.
+# Unit test for CLAUDE.md as a record of its own rules.
 #
 # Contract under test:
 #   Every rule in the roster below is carried by SOME ONE record of CLAUDE.md — one
-#   paragraph, one bullet or one table row. A rule stated in full and a rule stated in one
-#   sentence with a pointer to the ADR or the issue now holding its reasoning both satisfy
-#   that; a rule that left with its paragraph does not.
-#
-# Asked of a record and never of the whole document, because a document-wide match would
-# answer "yes, those words are in here" for two surviving fragments sections apart that
-# never state the rule together — which is the exact wreckage a trim leaves and the only
-# thing this suite is here to see.
-#
-# The roster is the rules this document is the only record of. Four rules are deliberately
-# not in it, each because another suite already holds the document to it and a second copy
-# here would drift: the counts (claude-md-counts.test.sh), the two-lane rule
-# (lane-rule-recorded.test.sh), the count-line rule (count-line-guard.test.sh) and the
-# per-role model knobs (model-knobs-recorded.test.sh).
-#
-# Each rule is asked as the regexes any wording carrying it would match — the identifiers a
-# reader would have to act on, never a fixed sentence — because the trim's whole purpose is
-# to reword, and a suite that pinned today's phrasing would fail the edit it exists to
-# protect. The protocol lane-rule-recorded.test.sh and model-knobs-recorded.test.sh both use
-# on this same document.
-#
-# No line of code below names a path in the generated tree: the rules that are about the
-# page are asked by the names that are not paths — walkthrough.html, docs-fresh, docs-check
-# — which is the rule no-docs-reads.test.sh enforces on this directory.
+#   paragraph, one bullet or one table row — stated in full or in one sentence with a
+#   pointer to where its reasoning now lives.
 #
 # Run: skills/tdd/scripts/tests/claude-md-rules-recorded.test.sh
 set -uo pipefail
