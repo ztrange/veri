@@ -43,9 +43,9 @@ supervising() {
 }
 
 while :; do
-  ec="$(recorded_code)" && exit "$ec"
+  ec="$(recorded_code)" && exit "$(to_contract "$ec")"
   if pid="$(number_in "$pidfile")" && ! supervising "$pid"; then
-    ec="$(recorded_code)" && exit "$ec"
+    ec="$(recorded_code)" && exit "$(to_contract "$ec")"
     echo "wait-leaf.sh: supervisor for leaf '$name' (pid $pid) exited without recording a status" >&2
     exit 2
   fi

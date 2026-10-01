@@ -118,13 +118,7 @@ exit")") declared-after-5=$(exit_of_script "$pass_dir" bare-declared.sh "$(with_
 $DECLARED
 exit")")"
 
-OWED="its sites are owed a mapping or a marker by a later step of #497"
-
 declare -A OWED_PASS_THROUGHS=(  # [<script>]=why its pass-through sites are still allowed unmarked
-  [tick-ledger.sh]="$OWED"
-  [timed-test-run.sh]="$OWED"
-  [verify.sh]="$OWED"
-  [wait-leaf.sh]="$OWED"
 )
 
 pass_through_offenders() {  # pass_through_offenders <script> — print <script>:<line>: <text> per unmapped, unmarked site
@@ -155,5 +149,11 @@ expect_eq "run-leaf.sh, run-suite.sh, supervise.sh and tick-issue-criterion.sh p
   "$(for script in run-leaf.sh run-suite.sh supervise.sh tick-issue-criterion.sh; do
     pass_through_offenders "$HERE/../../$script"
   done)"
+
+expect_eq "tick-ledger.sh, timed-test-run.sh, verify.sh and wait-leaf.sh pass the pass-through audit, and the audit's exemption table is empty" \
+  "exempt=0" \
+  "$(for script in tick-ledger.sh timed-test-run.sh verify.sh wait-leaf.sh; do
+    pass_through_offenders "$HERE/../../$script"
+  done)exempt=${#OWED_PASS_THROUGHS[@]}"
 
 finish
