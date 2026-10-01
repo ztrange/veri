@@ -2880,28 +2880,6 @@ header_says "$knobs_out" \
 
 report_on "$name" "$knobs_out"
 
-by_model_unrecorded() {
-  local out_file="$1"
-  probe '
-import sys
-
-lines = open(sys.argv[1]).read().splitlines()
-at = next((i for i, l in enumerate(lines) if l.strip() == "#### By model"), None)
-if at is None:
-    print("want a \"#### By model\" section, the report has headings: %s"
-          % ", ".join(repr(l) for l in lines if l.startswith("#")))
-else:
-    body = []
-    for l in lines[at + 1:]:
-        if l.startswith("#"):
-            break
-        body.append(l)
-    if "not recorded" not in " ".join(body):
-        print("want \"#### By model\" to say the model was not recorded, it says: %s"
-              % " / ".join(repr(l) for l in body if l.strip()))
-' "$out_file"
-}
-
 name="#604 a log whose usage events carry no model still yields a report, its By model table saying the model was not recorded"
 problems=()
 
@@ -2918,7 +2896,7 @@ sv "$unmodeled" 9130 verifier  red   verdict 1 '"verdict": "PASS", "reason": "th
 sv "$unmodeled" 9400 conductor ""    step-done ""
 unmodeled_out="$unmodeled_work/report.md"
 render "$unmodeled_work" "$unmodeled_out"
-by_model_unrecorded "$unmodeled_out"
+by_model_says "$unmodeled_out" "developer@not recorded=1" "verifier@not recorded=1"
 
 report_on "$name" "$unmodeled_out"
 
