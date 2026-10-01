@@ -5,4 +5,4 @@
 - [ ] profile.test.sh passes when run as root ⟦human-owed⟧ ⟦criterion 1⟧
 - [ ] push-branch.test.sh passes when run as root, and its failing-event-write case goes red when push-branch.sh stops turning a failed event write into exit 2 — watched failing on purpose, then restored ⟦human-owed⟧ ⟦criterion 2⟧
 - [ ] No other suite fails under uid 0 — a full make test run as root ⟦human-owed⟧ ⟦criterion 3⟧
-- [ ] CI (Linux, non-root) stays green ⟦full-suite⟧ ⟦criterion 4⟧
+- [x] CI (Linux, non-root) stays green ⟦full-suite⟧ ⟦criterion 4⟧
