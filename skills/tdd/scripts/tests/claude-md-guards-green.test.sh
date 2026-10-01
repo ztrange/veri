@@ -66,8 +66,16 @@ plant_roster_without() {
   } > "$tree/Makefile"
 }
 
+probe_against() {
+  local real_root="$ROOT" real_here="$HERE"
+  problems=()
+  ROOT="$1" HERE="$2"
+  probe_every_guard_is_rostered_and_green
+  ROOT="$real_root" HERE="$real_here"
+}
+
 probe_names_each_guard_missing_from_a_planted_roster() {
-  local real_root="$ROOT" real_here="$HERE" stubs tree missing guard raised found
+  local stubs tree missing guard raised found
   local unnamed=()
   stubs="$(scratch_dir)"
   for guard in "${GUARDS[@]}"; do
@@ -78,10 +86,7 @@ probe_names_each_guard_missing_from_a_planted_roster() {
   for missing in "${GUARDS[@]}"; do
     tree="$(scratch_dir)"
     plant_roster_without "$tree" "$missing"
-    problems=()
-    ROOT="$tree" HERE="$stubs"
-    probe_every_guard_is_rostered_and_green
-    ROOT="$real_root" HERE="$real_here"
+    probe_against "$tree" "$stubs"
     found=0
     for raised in ${problems+"${problems[@]}"}; do
       [[ "$raised" == *"$suites_dir/$missing is not in the roster"* ]] && found=1
@@ -103,7 +108,7 @@ report "$name"
 
 
 probe_fails_when_a_planted_roster_names_no_suite() {
-  local real_root="$ROOT" real_here="$HERE" stubs tree guard raised found=0
+  local stubs tree guard raised found=0
   stubs="$(scratch_dir)"
   for guard in "${GUARDS[@]}"; do
     printf '#!/bin/sh\necho "----"\necho "1 passed, 0 failed"\n' > "$stubs/$guard"
@@ -112,10 +117,7 @@ probe_fails_when_a_planted_roster_names_no_suite() {
 
   tree="$(scratch_dir)"
   printf 'test:\n\t@echo no suites here\n' > "$tree/Makefile"
-  problems=()
-  ROOT="$tree" HERE="$stubs"
-  probe_every_guard_is_rostered_and_green
-  ROOT="$real_root" HERE="$real_here"
+  probe_against "$tree" "$stubs"
   for raised in ${problems+"${problems[@]}"}; do
     [[ "$raised" == *"\`make -n test\` named no suite in $suites_dir"* ]] && found=1
   done
@@ -135,7 +137,7 @@ report "$name"
 
 
 probe_starts_no_guard_on_a_full_roster_of_failing_guards() {
-  local real_root="$ROOT" real_here="$HERE" stubs tree guard raised started=()
+  local stubs tree guard raised started=()
   stubs="$(scratch_dir)"
   for guard in "${GUARDS[@]}"; do
     printf '#!/bin/sh\ntouch "%s/%s.started"\necho "FAIL - planted"\necho "----"\necho "0 passed, 1 failed"\nexit 1\n' \
@@ -145,10 +147,7 @@ probe_starts_no_guard_on_a_full_roster_of_failing_guards() {
 
   tree="$(scratch_dir)"
   plant_roster_without "$tree" ""
-  problems=()
-  ROOT="$tree" HERE="$stubs"
-  probe_every_guard_is_rostered_and_green
-  ROOT="$real_root" HERE="$real_here"
+  probe_against "$tree" "$stubs"
   raised="$(IFS='|'; echo "${problems[*]-}")"
   for guard in "${GUARDS[@]}"; do
     [[ -e "$stubs/$guard.started" ]] && started+=("$guard")
