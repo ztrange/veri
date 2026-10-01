@@ -519,10 +519,10 @@ if models:
                        for knob in ["VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER"]),
              ", ".join(sorted({m for answered in models.values() for m in answered.split(",") if m}))))
 section("#### By phase", "phase", PHASE_COLUMNS, counts)
-if models:
+if models or any(mark.get("event") == "launch" and "model" in mark for mark in marks):
     table_head("#### By model", "role", ["model"] + PHASE_COLUMNS, ["---"] + ["---:"] * len(PHASE_COLUMNS))
     for (role, model), row_counts in by_model.items():
-        row([role, model] + [figure(c, row_counts[c]) for c in PHASE_COLUMNS])
+        row([role, model or "not recorded"] + [figure(c, row_counts[c]) for c in PHASE_COLUMNS])
 section("#### Rework and waste, by phase", "phase", LOST_COLUMNS, lost)
 section("#### By step", "step", STEP_COUNTS + [API] + COST_COLUMNS, steps,
         ([WALL] + BUDGETS + MARK_COLUMNS + [KIND], step_cells))

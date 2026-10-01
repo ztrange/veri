@@ -2880,4 +2880,46 @@ header_says "$knobs_out" \
 
 report_on "$name" "$knobs_out"
 
+by_model_unrecorded() {
+  local out_file="$1"
+  probe '
+import sys
+
+lines = open(sys.argv[1]).read().splitlines()
+at = next((i for i, l in enumerate(lines) if l.strip() == "#### By model"), None)
+if at is None:
+    print("want a \"#### By model\" section, the report has headings: %s"
+          % ", ".join(repr(l) for l in lines if l.startswith("#")))
+else:
+    body = []
+    for l in lines[at + 1:]:
+        if l.startswith("#"):
+            break
+        body.append(l)
+    if "not recorded" not in " ".join(body):
+        print("want \"#### By model\" to say the model was not recorded, it says: %s"
+              % " / ".join(repr(l) for l in body if l.strip()))
+' "$out_file"
+}
+
+name="#604 a log whose usage events carry no model still yields a report, its By model table saying the model was not recorded"
+problems=()
+
+fixture_work unmodeled_work
+unmodeled="a step logged before usage events carried a model"
+sv "$unmodeled" 9000 conductor ""    step-start ""
+sv "$unmodeled" 9010 developer red   launch  1 '"name": "develop-red", "model": ""'
+sv "$unmodeled" 9100 developer red   exit    1 '"status": "0", "secs": "90"'
+sv "$unmodeled" 9100 developer red   usage   1 "$(usage_json 70000)"
+sv "$unmodeled" 9110 verifier  red   launch  1 '"name": "verify-red", "model": ""'
+sv "$unmodeled" 9130 verifier  red   exit    1 '"status": "0", "secs": "20"'
+sv "$unmodeled" 9130 verifier  red   usage   1 "$(usage_json 15000)"
+sv "$unmodeled" 9130 verifier  red   verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
+sv "$unmodeled" 9400 conductor ""    step-done ""
+unmodeled_out="$unmodeled_work/report.md"
+render "$unmodeled_work" "$unmodeled_out"
+by_model_unrecorded "$unmodeled_out"
+
+report_on "$name" "$unmodeled_out"
+
 finish
