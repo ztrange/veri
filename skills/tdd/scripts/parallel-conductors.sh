@@ -75,15 +75,10 @@ outcome() {
     echo "killed after ${run_timeout}s"
     return 0
   fi
-  pr="$(python3 -c '
-import json, re, sys
-text, at, prs, decoder = sys.stdin.read(), 0, [], json.JSONDecoder()
-while at < len(text):
-    page, at = decoder.raw_decode(text, at)
-    prs.extend(page)
-    while at < len(text) and text[at].isspace():
-        at += 1
-for pr in prs:
+  pr="$(PYTHONPATH="$HERE/lib" python3 -c '
+import re, sys
+from json_documents import items
+for pr in items(sys.stdin.read()):
     if sys.argv[1] in re.findall(r"\bCloses #(\d+)", pr.get("body") or ""):
         print("draft" if pr.get("isDraft", pr.get("draft")) else "ready", pr.get("html_url", pr.get("url", "")))
         break
