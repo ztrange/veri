@@ -186,4 +186,16 @@ require "that render's output" "$pr_body" \
 
 report "$name"
 
+name="$skill_md's structural pass says its overflow filing applies no label to this issue and commits no debt file"
+problems=()
+
+if ! missing_pass 'what its overflow filing leaves behind'; then
+  require 'applies no label to this issue' "$pass_text" \
+    "$skill_md's structural pass never says its overflow filing applies no label to this issue, so nothing stops a run labelling the parent with its leftover debt"
+  require 'commits no debt file' "$pass_text" \
+    "$skill_md's structural pass never says its overflow filing commits no debt file, so nothing stops a run leaving standing debt in the repository"
+fi
+
+report "$name"
+
 finish
