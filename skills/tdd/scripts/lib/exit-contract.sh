@@ -32,23 +32,31 @@ to_contract() {
   esac
 }
 
+exit() {
+  local rc=$?
+  exit_file="${BASH_SOURCE[1]}" exit_line="${BASH_LINENO[0]}"
+  builtin exit "${1:-$rc}"
+}
+
 declared_pass_through() {
-  local cmd="$1" previous="" line
+  local n=0 previous="" line
+  [[ -n "${exit_line:-}" ]] || return 1
   while IFS= read -r line; do
-    line="${line#"${line%%[![:space:]]*}"}"
-    if [[ "$line" == "$cmd" && "$previous" == "# pass-through:"* ]]; then
-      return 0
+    (( ++n ))
+    if (( n == exit_line )); then
+      [[ "$previous" == "# pass-through:"* ]]
+      return
     fi
-    previous="$line"
-  done < "$0"
+    previous="${line#"${line%%[![:space:]]*}"}"
+  done < "$exit_file"
   return 1
 }
 
 end_in_contract() {
-  if declared_pass_through "$2"; then
-    exit "$1"
+  if declared_pass_through; then
+    builtin exit "$1"
   fi
-  exit "$(to_contract "$1")"
+  builtin exit "$(to_contract "$1")"
 }
 
-trap 'end_in_contract "$?" "$BASH_COMMAND"' EXIT
+trap 'end_in_contract "$?"' EXIT
