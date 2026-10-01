@@ -1,22 +1,12 @@
 #!/usr/bin/env bash
-# Tests for scripts/wait-leaf.sh — the foreground half of a detached leaf launch (#86).
+# Tests for scripts/wait-leaf.sh — the foreground half of a detached leaf launch: it blocks
+# until the completion file a detached `supervise.sh` writes appears, then exits with the
+# code it holds. Driven against stub writers on a stub `date` that advances a fixed step
+# per reading.
 #
-# A print-mode conductor (`claude -p "/tdd <n>"`) never receives background-task
-# notifications, so a turn that ends with a supervised leaf still running orphans it. The
-# fix splits launch from wait: `supervise.sh` is launched detached and records its own
-# final code in a completion file, and this script blocks in the foreground until that
-# file appears, then exits with the code it holds.
-#
-# Driven against STUB WRITERS (no claude, no supervisor) on a VIRTUAL CLOCK: the script reads
-# time only through `date +%s`, so a stub `date` first on PATH serves it a clock that advances
-# a fixed step per reading and logs every value it served. Nothing here waits for real time:
-# a budget runs out after that many readings, the elapsed time a case asserts on is read off
-# the log, and the completion file a wait is waiting for is written by the clock itself at a
-# chosen virtual second — after the wait has started, which is the case that matters: the file
-# is absent when the wait begins, so the script must poll rather than look once.
-#
-# Status contract: exit 0 success · 1 leaf-failure · 2 killed-stuck (whatever the
-# supervisor recorded) · 3 nothing to report yet.
+# Contract under test:
+#   exit 0 success · 1 leaf-failure · 2 killed-stuck (whatever the supervisor recorded)
+#   · 3 nothing to report yet. A completion file absent when the wait begins is polled for.
 #
 # Run: scripts/tests/wait-leaf.test.sh
 set -uo pipefail

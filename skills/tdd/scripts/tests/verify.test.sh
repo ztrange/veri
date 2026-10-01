@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Tests for scripts/verify.sh — the single "verify" verb the conductor calls. It chains
-# the three tested units: build-verify-prompt.sh (blind prompt) → run-leaf.sh (launch a
-# claude -p verifier leaf) → parse-verdict.sh (extract the verdict). Driven against a
-# stub claude (via CLAUDE_BIN) that prints a canned verdict and records its argv.
+# Tests for scripts/verify.sh — the single "verify" verb the conductor calls, chaining
+# build-verify-prompt.sh → run-leaf.sh → parse-verdict.sh. Driven against a stub claude
+# (via CLAUDE_BIN) that prints a canned verdict and records its argv.
 #
-# `claude -p` always exits 0 regardless of the verdict, so verify.sh's exit status must
-# come from PARSING the leaf's output, not from the leaf's process status.
+# Contract under test:
+#   verify.sh's exit status comes from parsing the leaf's output, not from the leaf's
+#   process status, which `claude -p` leaves at 0 whatever the verdict.
 #
 # Run: scripts/tests/verify.test.sh
 set -uo pipefail

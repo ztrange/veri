@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/render-leaf-log.sh — turn a leaf's `claude -p --output-format
 # stream-json` log (`.tdd/<leaf>.out`) into the readable lines the dashboard's Chatter pane
-# shows (issue #255). One line per thing said or done:
+# shows.
 #
+# Contract under test:
 #   <assistant text>                  what the leaf said
 #   > <tool>: <first input line>      a tool call, with the first line of its input
 #   < <tool result>                   the result, cut to its first line and 80 characters,
 #                                     with `…` marking that something was cut
-#
-# Events that are neither — the system init, thinking blocks, the terminal result record —
-# print nothing.
+#   anything else                     the system init, thinking blocks, the terminal result
+#                                     record — prints nothing
 #
 # Run: scripts/tests/render-leaf-log.test.sh
 set -uo pipefail

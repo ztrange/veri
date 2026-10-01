@@ -1,25 +1,14 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/timed-test-run.sh — the wrapper every test-command run a leaf or
-# the conductor makes goes through, so that a run's tier, the suites it covered and the wall
-# seconds it took are recorded in `.tdd/events.jsonl` instead of living only in a log a human
-# reads by eye (issue #342, part of PRD #335).
-# Zero-dependency plain-shell asserts, same idiom as event.test.sh.
+# the conductor makes goes through, recording the run in `.tdd/events.jsonl`.
 #
-# Contract under test (this step only — one wrapped run, one line):
+# Contract under test:
 #   timed-test-run.sh <tier> <suites> <cmd> [args …]
 #                        → runs `<cmd> [args …]`, appends exactly one `test-run` line to
 #                          `.tdd/events.jsonl` through event.sh (so the eight fixed keys come
-#                          with it), and exits with the command's OWN status.
+#                          with it), and exits with the command's own status.
 #   that line            → carries `tier` and `suites` verbatim as given, plus `seconds`, the
-#                          wall time the command took.
-#
-# `seconds` is asserted as present and as a whole number, never as a value: the seconds are
-# recorded for a reader to compare against a tier's usual, and a suite that pinned a duration
-# would be asserting cost rather than behaviour (CLAUDE.md, "Testing idiom").
-#
-# The command's own status is the load-bearing half of the wrapper's promise: a test command
-# exits 1 when the suite it ran failed, and every caller here branches on that. A wrapper that
-# swallowed it — or that returned event.sh's status instead — would turn a red suite green.
+#                          wall time the command took, as a whole number.
 #
 # Run: scripts/tests/timed-test-run.test.sh
 set -uo pipefail

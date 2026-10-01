@@ -1,29 +1,11 @@
 #!/usr/bin/env bash
-# RED (#12): supervise.sh should RETRY a killed-stuck leaf before giving up.
+# Tests for scripts/supervise.sh's retry axis: VERI_STUCK_RETRIES (default 1) caps the
+# extra attempts after a killed-stuck first one.
 #
-# New tunable VERI_STUCK_RETRIES (default 1) caps the extra attempts after the first.
-# A leaf that hangs once but succeeds on a fresh attempt must be recovered.
-#
-# THE acceptance criterion pinned here (exactly one test):
-#   A leaf killed-stuck on its FIRST attempt but that SUCCEEDS on the NEXT attempt
-#   returns success (exit 0), under the DEFAULT budget of 1 retry.
-#
-# Status contract (unchanged): exit 0 success · 1 leaf-failure · 2 killed-stuck.
-#
-# This FAILS today: supervise.sh runs the leaf once and reports killed-stuck (exit 2)
-# instead of retrying onto the successful second attempt (exit 0).
-#
-# Driven on the INJECTED CLOCK supervise.test.sh introduced (commit 500b644, "The injected
-# clock" in that file): the leaf jumps the clock past its heartbeat window instead of
-# sleeping through it in real time, so this case's wall time is the fork/poll overhead
-# rather than the window itself. Before that port this case ran a real `sleep 60` under a
-# real one-second heartbeat and a 0.2s real poll — the leaf was always killed within about a
-# second, so the case cost ~1s of real time rather than the full 60s, but that second was
-# still wall clock spent watching nothing happen.
-#
-# The rig is duplicated here rather than shared with supervise.test.sh (CLAUDE.md: "supervise.sh
-# has a second suite for its retry axis" — kept separate on purpose) — a shared helper would
-# couple two suites that assert different axes of the same script.
+# Contract under test:
+#   A leaf killed-stuck on its first attempt but that succeeds on the next attempt
+#   returns success (exit 0), under the default budget of 1 retry.
+#   exit 0 success · 1 leaf-failure · 2 killed-stuck.
 #
 # Run: scripts/tests/supervise-retry.test.sh
 set -uo pipefail

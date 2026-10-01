@@ -1,20 +1,11 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/refactor-touched.sh — prints the files a step's green commit
-# touched, as the bounds of that step's refactor (issue #167).
-#
-# The green commit is the atomic tick-and-commit, so it always carries the ledger
-# `.tdd/issue-<n>.md`. The ledger is run state, not code the refactor may tidy: a leaf that
-# rewords a step line breaks the substring clear-refactor-pending.sh matches on. So the
-# bounds name the commit's production and test files and never the ledger.
+# touched, as the bounds of that step's refactor.
 #
 # Contract under test:
 #   refactor-touched.sh <commit>, run inside the repository
 #                       → exit 0, and the commit's touched files in `git diff --name-only`
-#                         order, with `.tdd/issue-<n>.md` left out.
-#
-# The separator is read as either a comma or a newline: the conductor hands the list to
-# build-develop-prompt.sh comma-joined, but which of the two the script prints is the green
-# phase's choice, and this case pins the list, not its punctuation.
+#                         order, comma- or newline-separated, with `.tdd/issue-<n>.md` left out.
 #
 # Run: scripts/tests/refactor-touched.test.sh
 set -uo pipefail

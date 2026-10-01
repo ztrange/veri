@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Tests for scripts/rebase-onto-default.sh — the rebase a run owes before its PR is marked
-# ready, when the default branch moved while the run worked (issue #238).
-# Zero-dependency plain-shell asserts, same idiom as push-branch.test.sh.
+# ready, when the default branch moved while the run worked.
 #
 # Contract under test:
 #   rebase-onto-default.sh, run in a worktree whose branch already contains origin/<default>
@@ -16,10 +15,6 @@
 #                       → aborts the rebase, exit 1.
 #                       → stdout is the conflicting files, one per line.
 #                       → HEAD at the pre-rebase sha, a clean tree, and no rebase in progress.
-#
-# The origin is a bare repository on the local disk, cloned so the clone carries
-# origin/HEAD the way a real one does: the default branch is whatever the remote says, and
-# the suite needs no network to say it.
 #
 # Run: scripts/tests/rebase-onto-default.test.sh
 set -uo pipefail

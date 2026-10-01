@@ -1,19 +1,16 @@
 #!/usr/bin/env bash
-# Unit tests for scripts/solvable-issues.sh — rung 2's selection layer. Given a repo's
-# issues and open PRs, print the numbers of the issues veri may take RIGHT NOW, one per
-# line, lowest first, and exit 0; print nothing and exit 3 when there are none.
+# Unit tests for scripts/solvable-issues.sh — the selection layer. Given a repo's issues
+# and open PRs, print the numbers of the issues veri may take right now, one per line, and
+# exit 0; print nothing and exit 3 when there are none.
 #
-# Contract under test (issues #41, #91):
+# Contract under test:
 #   solvable-issues.sh [--repo owner/name]
 #   VERI_GH_JSON=<dir>   read <dir>/issues.json and <dir>/prs.json instead of shelling out
-#                        to gh. That override is the whole reason this suite needs no
-#                        network: the fixtures carry the exact shape of
+#                        to gh, in the shape of
 #                          gh issue list --json number,title,labels,body,state
 #                          gh pr list    --json body,state
-#   VERI_LABEL=<name>    the opt-in label to select on, default `ready-for-agent`, so two
-#                        loops against one repo can be pointed at two labels and drain
-#                        disjoint pools. Set but EMPTY is refused with exit 2 rather than
-#                        read as "any label", which would take every open issue.
+#   VERI_LABEL=<name>    the opt-in label to select on, default `ready-for-agent`. Set but
+#                        empty is exit 2.
 #
 # Run: scripts/tests/solvable-issues.test.sh
 set -uo pipefail

@@ -1,37 +1,12 @@
 #!/usr/bin/env bash
 # Tests for scripts/run-verdict.sh — the verdict launcher, the one command a conductor runs
-# under `supervise.sh verdict-<phase>` in place of the `bash -c "…"` string SKILL.md spelled
-# out for months (#426).
+# under `supervise.sh verdict-<phase>`, driven against a stub sibling verify.sh that records
+# the argv it was handed.
 #
-# Why it exists: every documented verifier launch inlined the step's own title into a
-# SINGLE-QUOTED argument inside a DOUBLE-QUOTED `bash -c` command string —
-# `… bash -c "$S/verify.sh --step '<STEP>' red …"` — so a title carrying an apostrophe closed
-# that `'…'` early and the shell never recovered:
-#
-#     bash: -c: unexpected EOF while looking for matching `''
-#
-# That is not a syntax curiosity. On the #424 run the failed launch still wrote `1` into
-# `.tdd/verdict-red.exit`, and `1` is the code CLAUDE.md reserves for a real answer — the
-# verifier said REJECT — so the conductor spent a revise attempt arguing with a working test.
-# A launcher script is what takes the title out of shell text and into argv, where an
-# apostrophe is a character like any other: the caller passes it as one argument, and it
-# arrives at `verify.sh` as one argument, never re-parsed by a second shell on the way.
-#
-# Contract under test, this suite's one criterion:
+# Contract under test:
 #   Run as `run-verdict.sh --step <title> <phase> <spec> <test-path> <target>` with a <title>
 #   containing an apostrophe, it runs its sibling `verify.sh` and that title reaches it whole,
 #   as a single argument, byte-identical to the one it was given.
-#
-# The call shape is verify.sh's own, deliberately: the launcher stands where `verify.sh` used
-# to stand on the command line, so a reader comparing the launch line against the verifier's
-# usage sees the same arguments in the same order rather than a second convention to learn.
-#
-# Driven against a STUB verify.sh (no claude, no leaf, no supervisor): the launcher resolves
-# its verifier as a sibling, so the case runs a copy of the scripts directory whose verify.sh
-# records the argv it was handed, one argument per line, and returns a reason. What the
-# assertion reads is that record — the arguments the verifier was actually called with —
-# which is the observable the criterion names. Nothing here waits on time, a network or a
-# model.
 #
 # Run: scripts/tests/run-verdict.test.sh
 set -uo pipefail

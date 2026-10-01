@@ -1,30 +1,15 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/refactor-triage.sh — reads a finished refactor leaf's report on
-# stdin and says whether another refactor leaf is worth launching. Zero-dependency
-# plain-shell asserts, same idiom as refactor-budget.test.sh, the suite for the script on
-# the refactor loop's other axis — refactor-triage.sh's own header is where the two axes
-# are told apart.
+# stdin and says whether another refactor leaf is worth launching.
 #
-# Why this exists (issue #149): the loop's two stop conditions are a leaf reporting
-# `nothing left to tidy` and `refactor-budget.sh` exiting 3, and in practice only the
-# second fires — a leaf asked for one transform always finds one, so the loop spends its
-# whole budget on transforms that reword and re-cite. Since #149 every `CANDIDATES:` line
-# the leaf reports carries the class of the transform it names, `structural` or `cosmetic`
-# as prompts/develop-refactor.md's *The two classes of candidate* defines them. This script
-# is what turns those classed lines into the loop's third stop condition.
-#
-# Contract under test, in the four-code convention (CLAUDE.md, *Exit codes are the API*):
+# Contract under test:
 #   report on stdin → exit 0, printing the structural candidates, when at least one is
-#                     listed: there is work left that is worth a leaf.
+#                     listed.
 #                   → exit 3 when only cosmetic candidates or `none` remain.
 #                   → exit 2, diagnostic on stderr and nothing on stdout, when a candidate
 #                     line carries no class or an unknown one, or the report lists no
 #                     `CANDIDATES:` line at all.
-#
-# And then the caller's half of that same contract: SKILL.md's *Refactor loop* is where a
-# conductor learns to run this script and what to do with each answer, and a script nothing
-# calls decides nothing. That case reads the document as text, the way refactor-budget.test.sh
-# case 8 reads it for the sibling script's default.
+#   SKILL.md's *Refactor loop* runs the script and branches on each answer.
 #
 # Run: scripts/tests/refactor-triage.test.sh
 set -uo pipefail

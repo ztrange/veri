@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 # Tests for scripts/run-leaf.sh — the leaf invocation, driven against a stub `claude` on
-# PATH (no real subprocess, no model call). run-leaf runs claude in --output-format
-# stream-json so the leaf streams events (the supervisor's heartbeat), then appends the
-# clean final result via extract-result.sh. It does NOT own a progress log — since #4 the
-# supervisor (supervise.sh) is the single launch choke point and owns `.tdd/<name>.log`.
+# PATH that records its argv to $ARGV_OUT, emits a minimal stream-json stream whose result
+# event carries $FAKE_RESULT, and exits $FAKE_CODE.
 #
-# The stub `claude` records its argv to $ARGV_OUT, emits a minimal stream-json stream whose
-# result event carries $FAKE_RESULT, and exits $FAKE_CODE.
+# Contract under test:
+#   run-leaf.sh runs claude with `--output-format stream-json`, then appends the clean
+#   final result via extract-result.sh; it owns no progress log.
 #
 # Run: scripts/tests/run-leaf.test.sh
 set -uo pipefail
