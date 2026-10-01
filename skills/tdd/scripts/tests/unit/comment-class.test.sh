@@ -57,7 +57,6 @@ want_no_line() {
   fi
 }
 
-# 1. a comment in code, outside any heredoc, is reported with its file and line as class 1.
 problems=""
 f="$work/plain.sh"
 printf '%s\n' 'echo one' '# a comment in code' 'echo two' > "$f"
@@ -65,7 +64,6 @@ classify "$f"
 want_line "$f:2:1"
 verdict "a comment in code outside any heredoc is reported as class 1 with its file and line"
 
-# 2. a `#` line inside a heredoc is reported apart from a comment in the same file, never as class 1.
 problems=""
 f="$work/mixed.sh"
 printf '%s\n' 'echo one' '# a comment in code' 'cat << EOF' '# a line in a heredoc' 'EOF' '# a comment after the heredoc' > "$f"
@@ -75,7 +73,6 @@ want_line "$f:4:[23]"
 want_line "$f:6:1"
 verdict "a # line inside a heredoc is counted apart from a comment in the same file, never as class 1"
 
-# 3. a heredoc left open at the end of one file does not carry into the next.
 problems=""
 f="$work/open.sh"
 g="$work/after.sh"
@@ -85,7 +82,6 @@ classify "$f" "$g"
 want_line "$g:1:1"
 verdict "a heredoc left open at the end of one file does not carry into the next"
 
-# 4. a quoted or <<- heredoc delimiter opens a heredoc; a here-string <<< opens none.
 problems=""
 f="$work/delims.sh"
 printf '%s\n' "cat <<'EOF'" '# in a single-quoted heredoc' 'EOF' 'cat <<"EOF"' '# in a double-quoted heredoc' 'EOF' \
@@ -97,7 +93,6 @@ want_line "$f:8:[23]"
 want_line "$f:11:1"
 verdict "a # line in a quoted or <<- heredoc is never class 1, and a here-string opens no heredoc"
 
-# 5. a `#` line in a heredoc redirected to a file is class 2; one sent to a model, a variable, stdout or stderr is class 3.
 problems=""
 f="$work/targets.sh"
 printf '%s\n' 'cat > "$dir/fixture.txt" <<EOF' '# written to a file' 'EOF' 'claude -p <<EOF' '# sent to a model' 'EOF' \
@@ -111,7 +106,6 @@ want_line "$f:12:3"
 want_line "$f:15:3"
 verdict "a # line in a heredoc redirected to a file is class 2, and one sent to a model, a variable, stdout or stderr is class 3"
 
-# 6. a heredoc whose opener redirects only a file descriptor such as stderr to a file is class 3, not class 2.
 problems=""
 f="$work/fd-redirect.sh"
 printf '%s\n' 'claude -p 2>/dev/null <<EOF' '# sent to a model with stderr discarded' 'EOF' > "$f"
@@ -119,7 +113,6 @@ classify "$f"
 want_line "$f:2:3"
 verdict "a heredoc sent to a command whose opener redirects only stderr to a file is class 3, not class 2"
 
-# 7. a `#` line in a heredoc piped to a file writer such as tee is class 2.
 problems=""
 f="$work/piped-tee.sh"
 printf '%s\n' 'cat <<EOF | tee "$dir/fixture.txt"' '# written to a file through tee' 'EOF' > "$f"
@@ -127,7 +120,6 @@ classify "$f"
 want_line "$f:2:2"
 verdict "a # line in a heredoc piped to tee writing a file is class 2"
 
-# 8. a `#` line in a heredoc piped to a file writer other than tee, such as dd or sponge, is class 2.
 problems=""
 f="$work/piped-writers.sh"
 printf '%s\n' 'cat <<EOF | dd of="$dir/fixture.txt"' '# written to a file through dd' 'EOF' \
@@ -137,7 +129,6 @@ want_line "$f:2:2"
 want_line "$f:5:2"
 verdict "a # line in a heredoc piped to dd or sponge writing a file is class 2"
 
-# 9. the sweepable report lists class 1 and class 2 lines, and never a class 3 line.
 problems=""
 f="$work/sweepable.sh"
 printf '%s\n' '# a comment in code' 'cat > "$dir/fixture.txt" <<EOF' '# written to a file' 'EOF' \
@@ -148,8 +139,6 @@ want_line "$f:3:2"
 want_no_line "$f:6"
 verdict "the sweepable report lists class 1 and class 2 lines and never a class 3 line"
 
-# 10. the sweepable report omits the leading contract header and a comment marked `# hazard:`,
-#     and still lists a code comment after the header.
 problems=""
 f="$work/header-hazard.sh"
 printf '%s\n' '#!/usr/bin/env bash' '# tool.sh — print its one argument.' '#' '# Usage: tool.sh <arg>' \
@@ -163,38 +152,28 @@ if [[ "$out" != "$f:10:1" ]]; then
 fi
 verdict "the sweepable report omits a leading contract header and a comment marked as a shell-hazard warning"
 
-# 11. the sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh.
 sweep_verdict "the sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh" "$SCRIPTS/metrics.sh" "$SCRIPTS/event.sh" "$SCRIPTS/harvest-usage.sh"
 
-# 12. the sweepable report is empty for supervise.sh, run-leaf.sh, detach-leaf.sh, wait-leaf.sh
-#     and run-verdict.sh.
 problems=""
 want_empty_sweepable "$SCRIPTS/supervise.sh" "$SCRIPTS/run-leaf.sh" "$SCRIPTS/detach-leaf.sh" \
   "$SCRIPTS/wait-leaf.sh" "$SCRIPTS/run-verdict.sh"
 verdict "the sweepable report is empty for supervise.sh, run-leaf.sh, detach-leaf.sh, wait-leaf.sh and run-verdict.sh"
 
-# 13. the sweepable report is empty for issue-worktree.sh, verify.sh, parse-verdict.sh and extract-result.sh.
 problems=""
 want_empty_sweepable "$SCRIPTS/issue-worktree.sh" "$SCRIPTS/verify.sh" "$SCRIPTS/parse-verdict.sh" \
   "$SCRIPTS/extract-result.sh"
 verdict "the sweepable report is empty for issue-worktree.sh, verify.sh, parse-verdict.sh and extract-result.sh"
 
-# 14. the sweepable report is empty for detect-test-command.sh, solvable-issues.sh and session-cost.sh.
 problems=""
 want_empty_sweepable "$SCRIPTS/detect-test-command.sh" "$SCRIPTS/solvable-issues.sh" \
   "$SCRIPTS/session-cost.sh"
 verdict "the sweepable report is empty for detect-test-command.sh, solvable-issues.sh and session-cost.sh"
 
-# 15. the sweepable report is empty for build-develop-prompt.sh, build-verify-prompt.sh,
-#     run-conductor.sh, stop-run.sh and preserve-attempt.sh.
 problems=""
 want_empty_sweepable "$SCRIPTS/build-develop-prompt.sh" "$SCRIPTS/build-verify-prompt.sh" \
   "$SCRIPTS/run-conductor.sh" "$SCRIPTS/stop-run.sh" "$SCRIPTS/preserve-attempt.sh"
 verdict "the sweepable report is empty for build-develop-prompt.sh, build-verify-prompt.sh, run-conductor.sh, stop-run.sh and preserve-attempt.sh"
 
-# 16. the sweepable report is empty for leaf-timeout.sh, ensure-run-state-ignored.sh,
-#     orchestrate.sh, parallel-conductors.sh, workqueue.sh, push-branch.sh, refactor-triage.sh,
-#     invisible-work.sh, over-budget.sh, run-suite.sh, leaf-model.sh and leaf-launchable.sh.
 problems=""
 want_empty_sweepable "$SCRIPTS/leaf-timeout.sh" "$SCRIPTS/ensure-run-state-ignored.sh" \
   "$SCRIPTS/orchestrate.sh" "$SCRIPTS/parallel-conductors.sh" "$SCRIPTS/workqueue.sh" \
@@ -203,14 +182,10 @@ want_empty_sweepable "$SCRIPTS/leaf-timeout.sh" "$SCRIPTS/ensure-run-state-ignor
   "$SCRIPTS/leaf-launchable.sh"
 verdict "the sweepable report is empty for leaf-timeout.sh, ensure-run-state-ignored.sh, orchestrate.sh, parallel-conductors.sh, workqueue.sh, push-branch.sh, refactor-triage.sh, invisible-work.sh, over-budget.sh, run-suite.sh, leaf-model.sh and leaf-launchable.sh"
 
-# 17. the sweepable report is empty for every skills/tdd/scripts/*.sh, comment-class.sh included.
 sweep_verdict "the sweepable report is empty for every scripts/*.sh, the classifier itself included" "$SCRIPTS"/*.sh
 
-# 18. the sweepable report is empty for every shell file under skills/tdd/scripts/lib/.
 sweep_verdict "the sweepable report is empty for every shell file under scripts/lib/" "$SCRIPTS"/lib/*.sh
 
-# 19. no class 1 line in scripts/*.sh or scripts/lib/*.sh, the leading contract header included,
-#     cites an issue number.
 problems=""
 files=("$SCRIPTS"/*.sh "$SCRIPTS"/lib/*.sh)
 classify "${files[@]}"
@@ -222,7 +197,6 @@ if [[ -n "$cited" ]]; then
 fi
 verdict "no comment line in scripts/*.sh or scripts/lib/*.sh, the contract header included, cites an issue number"
 
-# 20. the text of every class 3 line in the suites is unchanged, in its file and in its order.
 problems=""
 TESTS="$SCRIPTS/tests"
 files=("$TESTS"/*.sh "$TESTS"/unit/*.sh "$TESTS"/fixtures/*/*.sh "$TESTS/unit-guard/git" "$TESTS/offline/gh")
@@ -314,7 +288,6 @@ if [[ "$got" != "$expected" ]]; then
 fi
 verdict "the text of every class 3 line in the suites is unchanged, in its file and in its order"
 
-# 21. a `#` line inside a multi-line single- or double-quoted string is not reported as a comment.
 problems=""
 f="$work/quoted.sh"
 printf '%s\n' "x='first" '# inside a single-quoted string' "last'" 'y="first' '# inside a double-quoted string' \
@@ -324,7 +297,6 @@ want_no_line "$f:(2|5)"
 want_line "$f:7:1"
 verdict "a # line inside a multi-line single- or double-quoted string is not reported as a comment"
 
-# 22. an escaped quote, a trailing comment and a `#` inside a word neither open nor close a quoted string.
 problems=""
 f="$work/quote-edges.sh"
 printf '%s\n' 'a="say \"hi' '# inside, after an escaped quote' 'bye"' "b=1 # it's a trailing comment" \
@@ -334,7 +306,6 @@ want_no_line "$f:(2|7)"
 want_line "$f:5:1"
 verdict "an escaped quote, a trailing comment and a # inside a word neither open nor close a quoted string"
 
-# 23. the sweepable report omits the `#!` line that opens a heredoc's body, and only that one.
 problems=""
 f="$work/stub-writer.sh"
 printf '%s\n' "cat > stub <<'EOF'" '#!/bin/sh' 'echo hi' '# a comment later in the body' '#!/bin/sh later in the body' 'EOF' > "$f"
@@ -344,7 +315,6 @@ want_line "$f:4:2"
 want_line "$f:5:2"
 verdict "the sweepable report omits the #! line that opens a heredoc's body, and no later #! line"
 
-# 24. a `#` line inside a heredoc written to a `.md` file is class 3.
 problems=""
 f="$work/md-writer.sh"
 printf '%s\n' 'cat > "$dir/CLAUDE.md" <<EOF' '# a markdown heading' 'EOF' > "$f"
@@ -355,7 +325,6 @@ want_line "$f:2:3"
 want_line "$g:2:3"
 verdict "a # line inside a heredoc written to a .md file is class 3"
 
-# 25. a `#` line inside a heredoc piped to dd or sponge writing a `.md` file is class 3.
 problems=""
 f="$work/md-dd.sh"
 printf '%s\n' 'cat <<EOF | dd of="$dir/CLAUDE.md"' '# a markdown heading' 'EOF' > "$f"
@@ -366,19 +335,14 @@ want_line "$f:2:3"
 want_line "$g:2:3"
 verdict "a # line inside a heredoc piped to dd of= or sponge writing a .md file is class 3"
 
-# 26. the sweepable report is empty for every top-level tests/*.sh whose name starts with a or b.
 sweep_verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with a or b" "$SCRIPTS"/tests/[ab]*.sh
 
-# 27. the sweepable report is empty for every top-level tests/*.sh whose name starts with c or d.
 sweep_verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with c or d" "$SCRIPTS"/tests/[cd]*.sh
 
-# 28. the sweepable report is empty for every top-level tests/*.sh whose name starts with e through j.
 sweep_verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with e through j" "$SCRIPTS"/tests/[e-j]*.sh
 
-# 29. the sweepable report is empty for every top-level tests/*.sh whose name starts with k through m.
 sweep_verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with k through m" "$SCRIPTS"/tests/[k-m]*.sh
 
-# 30. a `#` line inside a heredoc written to a variable assigned a `.md` path is class 3.
 problems=""
 f="$work/md-var.sh"
 printf '%s\n' 'f="$dir/x.md"; cat > "$f" <<'"'EOF'" '# a markdown heading' 'EOF' > "$f"
@@ -386,29 +350,22 @@ classify "$f"
 want_line "$f:2:3"
 verdict "a # line inside a heredoc written to a variable assigned a .md path is class 3"
 
-# 31. the sweepable report is empty for every top-level tests/*.sh whose name starts with n through r.
 sweep_verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with n through r" "$SCRIPTS"/tests/[n-r]*.sh
 
-# 32. the sweepable report is empty for the supervisor's two suites, tests/supervise*.test.sh.
 sweep_verdict "the sweepable report is empty for the supervisor's two suites, tests/supervise*.test.sh" "$SCRIPTS"/tests/supervise*.test.sh
 
-# 33. the sweepable report is empty for every top-level tests/s*.sh but the skill-* and supervise* files.
 files=()
 for f in "$SCRIPTS"/tests/s*.sh; do
   case "${f##*/}" in skill-*|supervise*) ;; *) files+=("$f") ;; esac
 done
 sweep_verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with s, other than the skill-* and supervise* files" "${files[@]}"
 
-# 34. the sweepable report is empty for every top-level tests/*.sh whose name starts with t through z.
 sweep_verdict "the sweepable report is empty for every top-level tests/*.sh whose name starts with t through z" "$SCRIPTS"/tests/[t-z]*.sh
 
-# 35. the sweepable report is empty for every tests/skill-*.test.sh whose name after skill- starts with a through l.
 sweep_verdict "the sweepable report is empty for every tests/skill-*.test.sh whose name after skill- starts with a through l" "$SCRIPTS"/tests/skill-[a-l]*.test.sh
 
-# 36. the sweepable report is empty for every tests/skill-*.test.sh whose name after skill- starts with m through z.
 sweep_verdict "the sweepable report is empty for every tests/skill-*.test.sh whose name after skill- starts with m through z" "$SCRIPTS"/tests/skill-[m-z]*.test.sh
 
-# 37. the sweepable report omits a tab-indented `#!` line that opens a `<<-` heredoc's body.
 problems=""
 f="$work/stub-writer-dash.sh"
 printf '%s\n' "cat > stub <<-'EOF'" $'\t#!/bin/sh' $'\techo hi' $'\tEOF' > "$f"
@@ -416,7 +373,6 @@ classify --sweepable "$f"
 want_no_line "$f:2"
 verdict "the sweepable report omits a tab-indented #! line that opens a <<- heredoc's body"
 
-# 38. a `#` line after a `"$(cmd 'a "b')"` shape is still classified, not dropped.
 problems=""
 f="$work/quote-in-subst.sh"
 printf '%s\n' "x=\"\$(echo 'a \"b')\"" '# a comment in code' > "$f"
@@ -424,7 +380,6 @@ classify "$f"
 want_line "$f:2:1"
 verdict "comment-class.sh classifies a # line after a \"\$(cmd 'a \"b')\" shape as class 1"
 
-# 39. a subshell's `(…)` inside `"$(…)"` does not close the substitution early.
 problems=""
 f="$work/subshell-in-subst.sh"
 printf '%s\n' "x=\"\$( (cd /) && echo 'a \"b')\"" '# a comment in code' > "$f"
@@ -432,32 +387,26 @@ classify "$f"
 want_line "$f:2:1"
 verdict "comment-class.sh classifies a # line after a \"\$( (cmd) && cmd 'a \"b')\" shape as class 1"
 
-# 40. the sweepable report is empty for every tests/unit/*.sh from c through e but comment-class.test.sh.
 files=()
 for f in "$SCRIPTS"/tests/unit/[c-e]*.sh; do
   [[ "${f##*/}" == comment-class.test.sh ]] || files+=("$f")
 done
 sweep_verdict "the sweepable report is empty for every tests/unit/*.sh whose name starts with c through e, other than comment-class.test.sh" "${files[@]}"
 
-# 41. the sweepable report is empty for tests/unit/ledger.test.sh.
 sweep_verdict "the sweepable report is empty for tests/unit/ledger.test.sh" "$SCRIPTS"/tests/unit/ledger.test.sh
 
-# 42. the sweepable report is empty for every tests/unit/*.sh whose name starts with m through p.
 sweep_verdict "the sweepable report is empty for every tests/unit/*.sh whose name starts with m through p" "$SCRIPTS"/tests/unit/[m-p]*.sh
 
-# 43. the sweepable report is empty for tests/unit/red-divergence.test.sh.
 sweep_verdict "the sweepable report is empty for tests/unit/red-divergence.test.sh" "$SCRIPTS"/tests/unit/red-divergence.test.sh
 
-# 44. the sweepable report is empty for tests/unit/run-affordable.test.sh.
 sweep_verdict "the sweepable report is empty for tests/unit/run-affordable.test.sh" "$SCRIPTS"/tests/unit/run-affordable.test.sh
 
-# 45. the sweepable report is empty for tests/unit/step-budget.test.sh and tests/unit/step-cost.test.sh.
 sweep_verdict "the sweepable report is empty for tests/unit/step-budget.test.sh and tests/unit/step-cost.test.sh" "$SCRIPTS"/tests/unit/step-budget.test.sh "$SCRIPTS"/tests/unit/step-cost.test.sh
 
-# 46. the sweepable report is empty for tests/unit/stop-requested.test.sh.
 sweep_verdict "the sweepable report is empty for tests/unit/stop-requested.test.sh" "$SCRIPTS"/tests/unit/stop-requested.test.sh
 
-# 47. the sweepable report is empty for every shell file under tests/fixtures/, and for the two shims.
 sweep_verdict "the sweepable report is empty for every shell file under tests/fixtures/, and for tests/unit-guard/git and tests/offline/gh" "$SCRIPTS"/tests/fixtures/*/*.sh "$SCRIPTS"/tests/unit-guard/git "$SCRIPTS"/tests/offline/gh
+
+sweep_verdict "the sweepable report is empty for tests/unit/comment-class.test.sh, the case labels of its own sweepable-report cases included" "$SCRIPTS"/tests/unit/comment-class.test.sh
 
 finish
