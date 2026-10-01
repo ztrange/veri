@@ -1,0 +1,2 @@
+### `skills/tdd/scripts/unreachable.sh <repo-root>` lists, one per line, each script under `skills/tdd/scripts/` reachable from none of the declared entry points, including one whose only callers are other scripts inside the same orphaned subtree ⟦added⟧ ⟦criterion 1⟧
+- unreachable.test.sh's two cases each repeat the strip-sort-compare-then-diff failure block (`sed '/^$/d; s#.*/##' | sort` + `diff … | sed 's/^/    /'`); a shared `check_listing <expected> <output-file> <name>` helper would remove that copy
