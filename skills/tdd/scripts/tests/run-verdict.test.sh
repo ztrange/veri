@@ -211,4 +211,39 @@ if probe_launcher_is_there && stage_watching_reason; then
 fi
 report "$name"
 
+NOISE='the verifier wrote this to stderr'
+VERDICT_LINE='the test pins the criterion and fails for the reason it names'
+
+stage_noisy() {
+  noisy="$work/noisy"
+  rm -rf "$noisy"
+  copy_scripts_to "$noisy" || return 1
+  printf '#!/bin/sh\nprintf "%%s\\n" "%s" >&2\nprintf "%%s\\n" "%s"\n' "$NOISE" "$VERDICT_LINE" | install_stub "$noisy"
+  noisy_run="$work/noisy-run"
+  make_run_dir "$noisy_run"
+}
+
+probe_stderr_stays_visible() {
+  local how="$1" out code
+  shift
+  out="$( cd "$noisy_run" && "$noisy/$LAUNCHER_NAME" "$@" 2>&1 )" && code=0 || code=$?
+
+  [[ "$code" == 0 ]] ||
+    problems+=("with $how, $LAUNCHER exited $code, want 0 — the stub verifier passed; it said: $(flat "$out")")
+  [[ "$out" == "$NOISE"$'\n'"$VERDICT_LINE" ]] ||
+    problems+=("with $how, $LAUNCHER said: $(flat "$out") — want $VERIFIER's stderr line and its verdict line, nothing more and nothing less")
+}
+
+name="$LAUNCHER_NAME leaves $VERIFIER's stderr on its own when there is no phase or no .tdd/ to file it under"
+problems=()
+noisy=""
+noisy_run=""
+
+if probe_launcher_is_there && stage_noisy; then
+  probe_stderr_stays_visible "no .tdd/ directory" "${CALL[@]}"
+  mkdir -p "$noisy_run/.tdd"
+  probe_stderr_stays_visible "a .tdd/ directory and no phase"
+fi
+report "$name"
+
 finish

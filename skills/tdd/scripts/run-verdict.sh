@@ -4,6 +4,8 @@
 #
 # Usage:  run-verdict.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
 #
+# With a <phase> and a .tdd/ directory, verify.sh's stderr is appended to .tdd/verify-<phase>.stderr.
+#
 # The call is verify.sh's own, argument for argument, because this script stands exactly where
 # verify.sh used to stand on a conductor's command line: under `supervise.sh verdict-<phase>`,
 # in place of the `bash -c "…"` string SKILL.md spelled out. That string inlined the step's own
@@ -40,4 +42,7 @@ if [[ -n "$phase" && -f ".tdd/verify-$phase.reason" ]]; then
   : > ".tdd/verify-$phase.reason"
 fi
 
+if [[ -n "$phase" && -d .tdd ]]; then
+  exec "$HERE/verify.sh" "$@" 2>> ".tdd/verify-$phase.stderr"
+fi
 exec "$HERE/verify.sh" "$@"

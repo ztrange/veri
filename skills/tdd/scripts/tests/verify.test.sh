@@ -617,6 +617,20 @@ sup_malformed_code=$sv_code
   && [[ "$sup_reject_reason" == 'The test asserts on a private helper, not observable behavior.' ]]; } && ok \
   || no "a supervised verification hands the conductor the verdict text and verify.sh's own code (REJECT arm: wait=$sup_reject_code want 1, reason='$sup_reject_reason' want the verifier's own line; malformed arm: wait=$sup_malformed_code want 2)"
 
+noisy_dir="$work/reason-only-verifier"
+fixture_repo "$noisy_dir" argv
+mkdir -p "$noisy_dir/.tdd"
+git -C "$noisy_dir" update-ref refs/veri/attempts/625/6 HEAD
+( cd "$noisy_dir"
+  env VERI_ISSUE=625 VERI_STEP=6 CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$noisy_dir/argv" \
+    FAKE_OUT_TEXT='VERDICT: REJECT
+REASON: The test asserts on a private helper, not observable behavior.' \
+    "$HERE/../supervise.sh" verdict-red "$HERE/../run-verdict.sh" --step '<STEP>' red "$work/spec.md" \
+      tests/test_slugify.py test_lowercases > .tdd/verify-red.reason 2> .tdd/verify-red.err )
+noisy_reason="$(cat "$noisy_dir/.tdd/verify-red.reason" 2>/dev/null)"
+[[ "$noisy_reason" == 'The test asserts on a private helper, not observable behavior.' ]] && ok \
+  || no "#625: a REJECT's reason file carries only the verifier's reason, not stderr from preserve_attempt or anything else verify.sh runs (reason file='${noisy_reason//$'\n'/ / }')"
+
 
 
 events_of_in() {
