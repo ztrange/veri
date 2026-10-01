@@ -148,4 +148,29 @@ probe_the_term_was_fatal_in_that_group
 
 report "$name"
 
+PIPE_STATUS="$work/pipe-writer.status"
+PIPE_ERR="$work/pipe-writer.err"
+PIPE_LEAF="$work/pipe-leaf.sh"
+cat > "$PIPE_LEAF" <<'L'
+exec 2> "$2"
+s="$(printf '%070000d' 0)"
+printf '%s\n' x "$s" "$s" "$s" "$s" "$s" | { IFS= read -r _; }
+printf '%s\n' "${PIPESTATUS[0]}" > "$1"
+L
+
+name="#625: a writer launched through detach-leaf.sh whose reader closes early dies of SIGPIPE silently, as it does outside a leaf"
+problems=()
+
+"$DETACH" bash "$PIPE_LEAF" "$PIPE_STATUS" "$PIPE_ERR" > /dev/null 2>&1
+if appeared "$PIPE_STATUS" "$PATIENCE"; then
+  [[ "$(cat "$PIPE_STATUS")" == 141 ]] ||
+    problems+=("want the writer killed by SIGPIPE (status 141), got status: $(cat "$PIPE_STATUS")")
+  [[ ! -s "$PIPE_ERR" ]] ||
+    problems+=("want nothing on the writer's stderr, got: $(cat "$PIPE_ERR")")
+else
+  problems+=("the leaf launched through detach-leaf.sh never wrote $PIPE_STATUS")
+fi
+
+report "$name"
+
 finish
