@@ -46,6 +46,15 @@ new_out="$(env VERI_BASH_MAJOR=5 make -C "$ROOT" test TESTS="$GREEN_FIXTURE" 2>&
   problems+=("want the suite run and green with VERI_BASH_MAJOR=5, got exit $new_code: $(flat "$new_out")")
 report "$name"
 
+name="the nested make test calls run only their fixture: the recipe output lists no suite from tests/unit/"
+problems=()
+for unit_suite in "$HERE"/unit/*.test.sh; do
+  unit_name="$(basename "$unit_suite")"
+  [[ "$old_out" != *"== $unit_name"* ]] || problems+=("bash 3 call ran unit suite $unit_name")
+  [[ "$new_out" != *"== $unit_name"* ]] || problems+=("bash 5 call ran unit suite $unit_name")
+done
+report "$name"
+
 name="run-conductor.sh refuses with exit 2 before launching anything when bash is older than 5"
 problems=()
 mkdir -p "$work/conductor"

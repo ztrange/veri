@@ -12,7 +12,7 @@ TESTS := $(sort $(wildcard skills/tdd/scripts/tests/*.test.sh))
 # recipe as `test`, which runs them too. SUITES is set per target, so the two share one runner;
 # `profile` below takes `test`'s list from the same line rather than restating it.
 UNIT_TESTS := $(sort $(wildcard skills/tdd/scripts/tests/unit/*.test.sh))
-test profile: SUITES = $(TESTS) $(UNIT_TESTS)
+test profile: SUITES = $(TESTS) $(if $(filter command line,$(origin TESTS)),,$(UNIT_TESTS))
 unit: SUITES = $(UNIT_TESTS)
 
 # The fast tier's admission-bar guard: `unit` alone puts UNIT_GUARD_BIN first on a suite's PATH,
