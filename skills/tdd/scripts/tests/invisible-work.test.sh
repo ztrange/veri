@@ -1,31 +1,12 @@
 #!/usr/bin/env bash
-# Unit tests for scripts/invisible-work.sh — the maintenance sweep that reports work which
-# is not visible, and says which invariant each finding breaks (issue #197).
+# Unit tests for scripts/invisible-work.sh — the read-only maintenance sweep that reports work
+# which is not visible, and says which invariant each finding breaks.
 #
-# Two invariants keep a run's work findable, and both have already been violated silently:
-# a branch on `origin` that never got a PR (#195), and a local branch that never reached
-# `origin` at all (#191). Nothing checked either; this script is that check, and it reads
-# and never writes.
-#
-# Contract under test, case 1:
+# Contract under test:
 #   invisible-work.sh, run in a clone where `origin` carries a branch no PR was ever
 #   opened for → that branch is reported, and the report names its tip, how many commits
 #   it is ahead of the default branch, and the number and state of the issue its
 #   `tdd/<n>-<slug>` name refers to.
-#
-# What the report LOOKS like is deliberately not pinned. The criterion asks for four facts
-# about the branch, not for a layout, so each probe below asks whether the finding line
-# carries its fact: the branch name, the tip sha, the count, the issue's number and state.
-# The sha and the branch name are cut out of the line before the numbers are read, so a
-# count of 3 is the script's answer rather than a digit that happened to fall inside a
-# sha (#197's plan, criterion 1).
-#
-# The exit code is asserted in one case only, case 9: which code goes with a finding and
-# which with nothing to report is criterion 4's own step, pinned there and nowhere else.
-#
-# `origin` is a bare repository on disk. The behaviour under test IS a branch's presence on
-# a remote, so there is a real remote — a local path, which costs no network and is what the
-# `test` recipe's `protocol.file.allow=always` exists for.
 #
 # Run: scripts/tests/invisible-work.test.sh
 set -uo pipefail

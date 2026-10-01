@@ -1,22 +1,13 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/run-leaf.sh's reach outside the repository — a leaf's
 # `git config --global` must land in a per-leaf copy and never in the operator's own
-# global config (issue #276).
-# Zero-dependency plain-shell asserts, same idiom as run-leaf.test.sh.
+# global config.
 #
-# Why this exists: verify.sh snapshots the *repository* and refuses a verdict when the
-# verifier changed it (#172), but a leaf reaches further than that. On 2026-09-17 a
-# verifier leaf ran `git config --global http.proxy http://127.0.0.1:1` behind a `trap`
-# that never fired, and every network git operation on the machine — every push, every
-# `run-conductor.sh` launch, the operator's own clones — failed until it was found by
-# chance and removed by hand.
-#
-# Contract under test (this step only):
+# Contract under test:
 #   a leaf launched through run-leaf.sh that runs `git config --global <key> <value>`
 #                              → the operator's global config (HOME's .gitconfig here) is
 #                                byte-identical afterwards, and the leaf still reads its
-#                                own write back, so the write went somewhere private
-#                                rather than being refused.
+#                                own write back.
 #
 # Run: scripts/tests/leaf-global-git-config.test.sh
 set -uo pipefail

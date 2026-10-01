@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/lib/main-working-tree.sh — the one definition of `main_working_tree`
-# that status.sh and solvable-issues.sh both source, rather than each carrying a copy.
-#
-# Why this exists (issue #281): the function was byte-identical in both scripts, so the #166
-# resolution rule — the main working tree is the first `worktree <path>` line of git's
-# registry, never the checkout the script was called from — lived in two places, and a fix to
-# one copy would leave the other resolving runs and locks somewhere else.
+# that status.sh and solvable-issues.sh both source.
 #
 # Contract under test:
 #   source lib/main-working-tree.sh; main_working_tree   → the main working tree's path, as

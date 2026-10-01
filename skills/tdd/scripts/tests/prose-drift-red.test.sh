@@ -1,46 +1,13 @@
 #!/usr/bin/env bash
 # Unit tests for what the `test` recipe says over a tree whose code has moved past the
-# SYSTEM prose that states it. The mirror of prose-lag-green.test.sh, which asks the same
-# runner about the prose the development lane is being taken off; like that suite,
-# hermetic-suites.test.sh and no-docs-reads.test.sh this one has no script as its subject —
-# its subject is the verdict the development lane's own runner reaches over a tree.
-# Zero-dependency plain-shell asserts, same idiom as prose-lag-green.test.sh.
-#
-# Why this exists (issue #143): the way to take the development lane off generated prose
-# wrongly is to take it off prose altogether. VERI_REFACTOR_BUDGET's default is stated three
-# times in this lane — the assignment in refactor-budget.sh that encodes it, that script's
-# own header, and SKILL.md's Refactor entry — and the two sentences live under skills/, the
-# lane's own tree, which is exactly where a leaf that moves the constant is already editing.
-# Nothing outside this lane reads them, so if `make test` stops catching that drift nothing
-# does: a conductor reads `(default 5)` in SKILL.md, narrates and budgets a five-transform
-# loop, and the script cuts it somewhere else.
-#
-# refactor-budget.test.sh case 8 is the guard. This suite is the same rule observed rather
-# than read: the constant is moved, both sentences are left exactly as they were, and the
-# runner is asked for its verdict.
+# SYSTEM prose that states it. Its subject is the verdict the development lane's own runner
+# reaches over a tree, not a script.
 #
 # Contract under test:
 #   Over a copy of this tree with refactor-budget.sh's VERI_REFACTOR_BUDGET default bumped by
 #   one and both prose statements of it untouched, `make test` runs the suite that owns that
 #   script, comes back non-zero with its own `SUITES FAILED` verdict, and the output names
 #   both sentences the change left behind.
-#
-# Naming them is not decoration, it is what keeps the case about the guard. Bumping the
-# constant also falsifies the cases that pin the figure itself, so `SUITES FAILED` alone
-# would still be printed over a tree whose drift guard had been deleted — the criterion is
-# that the sentences are checked, so the red has to mention them.
-#
-# The roster is narrowed to one suite through the recipe's own TESTS variable, for the two
-# reasons prose-lag-green.test.sh sets out at length and does not need restating here: the
-# copy is a partial tree, so suites reading what it does not carry would fail for reasons
-# that are not the criterion; and this case runs inside `make test`, which runs three times
-# per step, so the whole roster over a copy would add minutes to every step of every issue.
-#
-# What the copy carries is what refactor-budget.test.sh resolves against its own repo root —
-# the skill tree, which holds both the script and SKILL.md — plus the Makefile, which is the
-# runner itself. Nothing else is copied, and in particular the generated tree is not: no
-# assertion here is decided by a byte of it, and no line below names a path in it, which is
-# what no-docs-reads.test.sh asks of every suite in this directory.
 #
 # Run: skills/tdd/scripts/tests/prose-drift-red.test.sh
 set -uo pipefail

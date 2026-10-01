@@ -1,23 +1,14 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/profile.sh — what `make profile` runs: every suite it is given,
 # under `bash -x` with PS4='+${EPOCHREALTIME} ${LINENO} ', cut into cases at each
-# top-level increment of `pass` or `fail`, and a report of the cases whose trace time is
-# at or above VERI_PROFILE_THRESHOLD (seconds, default 1), slowest first.
-# Zero-dependency plain-shell asserts, same idiom as refactor-budget.test.sh.
+# top-level increment of `pass` or `fail`, and a report of the slowest cases.
 #
-# Contract under test (issue #329):
+# Contract under test:
 #   profile.sh <suite>...  → one line `<secs> <suite> case <n> L<a>-<b>` per case at or
-#                            above the threshold; exit 0 whether or not any case crossed.
+#                            above VERI_PROFILE_THRESHOLD (seconds, default 1), slowest
+#                            first; exit 0 whether or not any case crossed.
 #   make -n profile          → names every suite `make -n test` names, under the offline
-#                              environment test's recipe gives them. Read off `make -n`,
-#                              which prints a recipe without running it, so no real suite runs.
-#
-# No case here waits on a clock. A fixture suite fabricates its own timestamps: bash stops
-# treating EPOCHREALTIME as special once it is unset, so after `unset EPOCHREALTIME` an
-# ordinary assignment to it is what the next trace line's PS4 expands to. The one trace
-# line a fixture cannot fabricate is its first — the `unset` itself, stamped with the real
-# clock — so a fixture's case 1 runs from that real stamp to a fabricated one and comes
-# out hugely negative; the cases a probe measures are the ones after it.
+#                              environment test's recipe gives them.
 #
 # Run: scripts/tests/profile.test.sh
 set -uo pipefail

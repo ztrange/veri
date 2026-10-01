@@ -1,66 +1,11 @@
 #!/usr/bin/env bash
 # Unit tests for what the `test` recipe says over a tree whose scripts have grown past the
-# prose that lists them — like hermetic-suites.test.sh, count-line-guard.test.sh and
-# no-docs-reads.test.sh this suite has no script as its subject: its subject is the verdict
-# the development lane's own runner reaches over a tree. Zero-dependency plain-shell
-# asserts, same idiom as no-docs-reads.test.sh.
-#
-# Why this exists (issue #143): every commit to a script under skills/tdd/scripts/ leaves
-# the generated page behind the code, because that page quotes each script verbatim and
-# states its length in the listing's own header. While solvable-issues.test.sh case 13 read
-# that number and compared it to the script's own length, a one-line edit to
-# solvable-issues.sh turned `make test` red until somebody ran `make docs` and committed the
-# result — and `make test` is the target preflight reads its baseline off, that every Green
-# leaf runs and that both blind verifiers run, three times per step. So a development commit
-# owed a page rebuild to keep a development run alive, which is the coupling ADR 0016 rules
-# out: a page behind the code is what docs-owed.sh reports and what `make docs-fresh` catches
-# at a docs merge, not something the development lane gets to fail on.
-#
-# no-docs-reads.test.sh says that statically — no suite `make test` runs so much as names a
-# path in the generated tree — and this is the same rule observed rather than read: a script
-# is grown, nothing is rebuilt, and the runner is asked for its verdict.
+# prose that lists them. Its subject is the verdict the development lane's own runner reaches
+# over a tree, not a script.
 #
 # Contract under test:
 #   Over a tree with one script one line longer than the suite that owns it expects, `make
 #   test` runs that suite, that suite passes, and the runner says `all suites green`.
-#
-# The roster is narrowed to that one suite through the recipe's own TESTS variable, for two
-# reasons that both have to hold.
-#
-#   Scope. The tree is partial, and deliberately so: the whole roster run over a copy of this
-#   repository was measured at 98 s and came back SUITES FAILED, seven cases across five
-#   suites — count-line-guard, skill-identity, skill-refactor-pending, skill-suite-runs and
-#   workflow-timeouts — every one of them reading something a partial copy does not carry:
-#   CLAUDE.md, .github/workflows/, or the git index its tracked-file sweeps ask. None of that
-#   is the criterion, and a case that had to copy a whole repository including its worktrees
-#   to avoid it would be pinning the copy rather than the rule.
-#
-#   Cost. This case runs inside `make test` itself, and `make test` runs three times per
-#   step — once for develop-green and once for each blind verifier. What used to pay for that
-#   scope was a real 30-case suite (solvable-issues.test.sh) chosen because it is the actual
-#   historical regression #143 names — but the property under test does not care WHICH script
-#   grew or WHICH suite owns it, only that the runner does not fail a development commit for
-#   a page it never reads: that is a fact about `make test`'s own recipe and no-docs-reads.sh's
-#   discipline, not about solvable-issues.sh. So the witness is a fixture script and a
-#   two-line suite invented for this case alone (fixture-prose-lag.sh /
-#   fixture-prose-lag.test.sh), not a copy of the repository's own 145-file skills/ tree: no
-#   `cp -R`, and the nested `make test` run pays for one trivial assertion instead of
-#   solvable-issues.test.sh's thirty.
-#
-# What no static check can establish is that the runner comes back green over a tree in that
-# state, and one suite is enough to observe it — its own subject no longer needs to be real
-# production code, since the criterion is about the runner's recipe, not about any script's
-# behaviour.
-#
-# The plant is an appended comment, at the END of the fixture script: the scenario is a
-# script one line longer than whatever last described it, and a line added at the end cannot
-# disturb the code any assertion reads. probe_plant_is_real asserts the fixture script really
-# did grow against the pristine copy this case wrote first, so a plant that landed nowhere
-# would not leave this case passing over an ordinary tree.
-#
-# No line of code below spells the generated tree's name: this case no longer copies or
-# touches it at all, which is the strongest form of what no-docs-reads.test.sh asks of a
-# suite in this directory.
 #
 # Run: skills/tdd/scripts/tests/prose-lag-green.test.sh
 set -uo pipefail

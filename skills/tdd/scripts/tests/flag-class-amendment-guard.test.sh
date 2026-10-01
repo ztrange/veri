@@ -1,48 +1,14 @@
 #!/usr/bin/env bash
 # Unit test for the guard that keeps a plan amendment tied to the one flag class that earns
-# one — case 7 of skills/tdd/scripts/tests/skill-refactor-leaf.test.sh, which reads SKILL.md's
-# Refactor section and refuses a document that grows the plan from a flag without saying it is
-# the `uncovered-spec` class doing it. Like verifier-launch-guard.test.sh, docs-read-guard.test.sh
-# and hermetic-suites.test.sh this suite has no script as its subject: its subject is what
-# another suite reports about the document it is run against. Zero-dependency plain-shell
-# asserts, same idiom as verifier-launch-guard.test.sh.
-#
-# Why this exists (issue #175): a refactor leaf's `FLAGS:` line used to carry no class, and the
-# conductors that read it turned flags into ledger steps — six `plan: amend` commits on
-# `origin/main`, #107's three of them running from 01:31 to past 03:06 for three one-line `fix:`
-# commits and seventeen `refactor:` ones, because a step made from a flag has a refactor loop of
-# its own and that loop flagged the next sibling. The routing rule now says which class buys an
-# amendment and that no other does, and a rule written into prose is exactly the kind that comes
-# back: the next author spelling the classes out from the shape above them, or reaching for the
-# nearest name when a new class arrives, puts the six commits back as one plausible sentence.
-#
-# The guard is what stops that, and a guard that has never been watched to fail is not tested:
-# the document routes the amendment correctly today, so case 7 passes over this tree whether it
-# still checks anything or not. Deleting its `problems+=` lines, or widening the text it reads,
-# would leave `make test` green and the routing unguarded. So the contradiction is planted
-# instead, and the guard is asked about the planted document.
+# one — case 7 of skills/tdd/scripts/tests/skill-refactor-leaf.test.sh, run against a planted
+# copy of SKILL.md's Refactor section.
 #
 # Contract under test:
 #   Over a copy of this tree whose Refactor section grants the plan amendment to a flag class
-#   other than `uncovered-spec` — every mention of that class renamed to `off-spec`, so the
-#   section still amends the plan and still names a class, just the wrong one —
+#   other than `uncovered-spec` — every mention of that class renamed to `off-spec` —
 #   skill-refactor-leaf.test.sh fails, its own count line says so, and the case it names is the
 #   one about which class grows the plan and no other case. Over the same tree with the document
 #   unplanted it passes.
-#
-# Both halves are the case, and the green half is not decoration: red over a tree is worth
-# nothing unless the same guard is green over the same tree before the plant. A guard broken so
-# that it fails on everything would satisfy the red half alone.
-#
-# Naming the case, rather than merely failing, is the criterion too — and naming ONLY that case.
-# The guard reads seven criteria out of that one section, and the other six are still correct
-# over the plant; a red that listed them too would send the next author to seven places, six of
-# which are right.
-#
-# The plant carries the three documents the guard resolves against its own repo root — SKILL.md,
-# CONTEXT.md and CLAUDE.md — and the guard itself, and nothing else. In particular the generated
-# tree is not copied, and no line below names a path in it, which is what no-docs-reads.test.sh
-# asks of every suite in this directory.
 #
 # Run: skills/tdd/scripts/tests/flag-class-amendment-guard.test.sh
 set -uo pipefail

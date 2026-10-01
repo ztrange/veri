@@ -1,60 +1,15 @@
 #!/usr/bin/env bash
-# Unit test: no suite under skills/tdd/scripts/tests/ (or its unit/ tier) executes another
-# real suite from this directory to establish something a check scoped to one call, inside
-# the suite that already runs it, could establish instead. Zero-dependency plain-shell
-# asserts, same idiom as no-docs-reads.test.sh — this is that suite's rule ("does it name a
-# path outside a comment") asked of a *.test.sh path instead of a docs/ one.
+# Unit test: no suite under skills/tdd/scripts/tests/ (or its unit/ tier) launches another
+# real suite from this directory.
 #
-# Why this exists (the pattern #331 and #332 both used): metrics-python3-
-# starts.test.sh, harvest-usage-launch.test.sh and probe-suites-unchanged.test.sh each
-# copied a real suite (metrics.test.sh, harvest-usage.test.sh) into a scratch tree and ran
-# the WHOLE thing — sometimes several times over, against several broken variants — to pin a
-# python3-start count or a case roster. Measured 2026-09-19: ~41.5s of `make test` to pin a
-# ~1.5s saving. The cheaper shape already existed (supervise.test.sh case 33 counts python3
-# starts for ONE supervision inside a case that already runs it) and is where all three
-# rules worth keeping moved to (metrics.test.sh, harvest-usage.test.sh); the rest were
-# regression pins for a one-time migration, not an ongoing product rule, and are gone with
-# the suites that made them (commit body has the map).
-#
-# Contract under test: no suite named by the roster below both (a) names another real suite
-# from this directory or its unit/ tier and (b) does so in a shape this file treats as
-# launching it — outside a comment, and outside the exemptions recorded here, each with the
-# reason its subject cannot be established any cheaper way.
-#
-# Two shapes count as "launching it", because they are the two ways a suite in this
-# directory starts another one instead of $HERE/name.test.sh being that other suite's own
-# business:
-#
-#   - the other suite's basename sits right after a `$`-prefixed path on the same line
-#     ("$HERE/name.test.sh", "$copy/tests/name.test.sh", …) — this is always a launch: a
-#     suite reads its OWN path through $HERE, so a *different* suite's name reached through a
-#     variable is one being started, copied, or both.
-#   - the other suite's basename sits bare — quoted or not, with no leading path — which is
-#     how a name is put in a variable or an array element before being launched through it
-#     (SUBJECT_NAME='run-conductor.test.sh', an array of `GUARDS`). A bare name is never used
-#     for anything else in this tree: nothing here compares two suites' names as plain text.
-#
-# A bare name is read as one of those two only when it stands for the suite itself. A table
-# key addressing a LINE of another suite — `[other.test.sh:66]="<reason>"`, the shape
-# no-sigpipe-pipelines.test.sh's exemption table uses — is not: `other.test.sh:66` is an
-# address, and no shell can launch one. So a bare name bracketed as a key and followed by
-# `:<line>]` is passed over, which is why that table's own keys do not need an exemption
-# here.
-#
-# A third shape — the other suite's FULL repo-relative path, quoted, with no `$` in front
-# ("skills/tdd/scripts/tests/name.test.sh") — is common and mostly harmless on its own:
-# claude-md-counts.test.sh's `present()` and `moved()` read dozens of them just to confirm a
-# file is on disk or to diff a stated count, never to run anything. So that shape only counts
-# when the SAME FILE also shows one of the two ways this tree launches a suite by a path
-# rather than by $HERE — a `cp` (a copy, always headed somewhere to be run) or a `make …
-# TESTS=`/`UNIT_TESTS=` (asking the recipe to run a named suite). Both are cheap, file-wide
-# tests: neither this repo's suites nor its scripts have a reason to call `cp` or spell
-# `TESTS=` for anything else that also happens to sit beside another suite's full path.
-#
-# What this cannot do, and does not try to: prove a suite is CHEAP, only that it does not
-# launch another one. A suite that inlines a whole second suite's body, or shells out to
-# `bash -c "$(cat other.test.sh)"`, would not be named here — nobody in this tree does either,
-# and a check for it would be guessing at a shape nothing has used yet.
+# Contract under test:
+#   No suite in the roster below names another real suite, outside a comment and outside
+#   the exemption table, in a shape that launches it:
+#   - its basename right after a `$`-prefixed path on the same line;
+#   - its basename bare, quoted or not (a bracketed `[name:<line>]` table key excepted);
+#   - its full repo-relative path, when the same file also calls `cp` or `make … TESTS=`.
+#   An offender is reported as `<suite>:<line>` with the suite it names. An exemption
+#   carries a reason.
 #
 # Run: skills/tdd/scripts/tests/no-nested-suites.test.sh
 set -uo pipefail

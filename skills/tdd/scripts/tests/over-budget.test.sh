@@ -1,30 +1,17 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/over-budget.sh — the check that turns a recorded test-command run
-# into a yes or no (issue #342, part of PRD #335). timed-test-run.sh records a tier and its
-# seconds, tier-usual.sh says what that tier usually costs and time-budget.sh resolves the
-# two tunables; this is the one that compares them, so that the conductor's narration has
-# something to say a word about.
+# into a yes or no.
 #
 # Contract under test:
 #   over-budget.sh <tier> <seconds> <usual>
-#       → exit 0 when the run is over budget, exit 1 when it is not. Exit 1 is the clean
-#         negative CLAUDE.md's "Exit codes are the API" table reserves for a real answer:
-#         the check ran and said no.
+#       → exit 0 when the run is over budget, exit 1 when it is not.
 #   A unit-tier run is over budget when its seconds exceed VERI_UNIT_BUDGET (default 10);
 #   at or under that figure it is not. A run of any tier is over budget when its seconds
 #   exceed VERI_TIME_WARN_RATIO (default 1.5) times that tier's usual; at or under that
 #   product it is not.
 #   An over-budget run also prints exactly one line, carrying the ⏱ the conductor pastes
-#   into that phase's narration; a run that is not over budget prints nothing. SKILL.md is
-#   where the conductor is told to paste that line and to branch on nothing, so this suite
-#   reads it too — the line and the instruction to use it are one fact in two files.
-#
-# Every number here is fabricated and passed in as an argument, so nothing waits on a clock
-# and the case costs one process per invocation (CLAUDE.md, "Testing idiom" — the seconds a
-# run really took are recorded, never asserted on). Each case picks its `usual` so that only
-# the rule it is about can answer: case 1's is 100, far enough above its seconds that the
-# ratio cannot be what said yes, and case 2's keeps its seconds under the unit tier's own
-# ceiling — so neither passes because some other comparison happened to agree.
+#   into that phase's narration; a run that is not over budget prints nothing. SKILL.md
+#   tells the conductor to paste that line and to branch on nothing.
 #
 # Run: skills/tdd/scripts/tests/over-budget.test.sh
 set -uo pipefail

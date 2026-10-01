@@ -1,15 +1,10 @@
 #!/usr/bin/env bash
 # Tests for scripts/preserve-attempt.sh — the side-ref snapshot a troubled step leaves behind,
-# so the tree a rejected or stuck leaf produced is still readable after the run (issue #409).
+# so the tree a rejected or stuck leaf produced is still readable after the run.
 #
 # Contract under test:
 #   preserve-attempt.sh <issue> <step> <phase> <attempt>   # run from the issue's worktree
 #       commits the worktree as it stands to refs/veri/attempts/<issue>/<step>/<phase>-<attempt>
-#
-# The subject is git's own storage, so this suite is not in the fast tier: the behaviour under
-# test IS a real repository's refs, and a fake git could not answer `git show`. Every case runs
-# against a throwaway make_repo repo with one commit, and asks git rather than the filesystem —
-# a file written under .git by hand would pass a filesystem check and be no commit at all.
 #
 # Run: scripts/tests/preserve-attempt.test.sh
 set -uo pipefail

@@ -1,18 +1,8 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/leaf-launchable.sh — the preflight check that a leaf can actually
-# be LAUNCHED (issue #187).
-# Zero-dependency plain-shell asserts, same idiom as leaf-role.test.sh.
+# be LAUNCHED.
 #
-# Why the check exists, why it probes the capability instead of testing one variable's name,
-# and why its refusal is exit 2 with an empty stdout are all said in its header
-# (leaf-launchable.sh:4-22), once.
-#
-# What follows from that here: every probe below runs with `env -u CLAUDECODE`. The cause
-# under test is the probe launch failing, so the variable that once caused it is cleared —
-# a check written as a test of that name answers "launchable" under these cases and fails
-# them.
-#
-# Contract under test (the script's own answer, not what the conductor does with it):
+# Contract under test:
 #   leaf-launchable.sh, with the leaf binary failing
 #                             → exit 2, nothing on stdout, and a diagnostic on stderr that
 #                               names the cause (what the binary said) and the supported
@@ -20,11 +10,7 @@
 #                             → and nothing else happens: no worktree created, no spec
 #                               written, no test command run, no issue comment posted.
 #   leaf-launchable.sh, with the leaf binary launching
-#                             → exit 0 and both streams empty: the healthy run, which is
-#                               every run, observes nothing of the check at all.
-#
-# `CLAUDE_BIN` is the seam the stub below is injected through, the same swap every other
-# suite makes to keep a real model off the wire.
+#                             → exit 0 and both streams empty.
 #
 # Run: scripts/tests/leaf-launchable.test.sh
 set -uo pipefail

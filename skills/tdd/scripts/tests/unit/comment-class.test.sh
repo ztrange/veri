@@ -431,4 +431,19 @@ if [[ -n "$shapeless" ]]; then
 fi
 verdict "the leading header block of a top-level tests/*.sh whose name starts with a through e holds only a description, its Contract under test block and its Run: line"
 
+problems=""
+cited="$(awk "$header_walk"'
+  /#[0-9]/ { print FILENAME ":" FNR ": " $0 }' "$SCRIPTS"/tests/[f-p]*.sh)"
+if [[ -n "$cited" ]]; then
+  problems+="    want no header line citing an issue number, got:"$'\n'"$cited"$'\n'
+fi
+shapeless="$(awk "$header_walk"'
+  {
+    if (fresh) { para++; if (para > 1 && !/^# Contract under test/ && !/^# Run:/ && !/^#   /) print FILENAME ":" FNR ": " $0 }
+    fresh = 0 }' "$SCRIPTS"/tests/[f-p]*.sh)"
+if [[ -n "$shapeless" ]]; then
+  problems+="    want every header paragraph after the description to be a Contract under test block or the Run: line, got:"$'\n'"$shapeless"$'\n'
+fi
+verdict "the leading header block of a top-level tests/*.sh whose name starts with f through p carries only its contract, and no line of it cites an issue number"
+
 finish

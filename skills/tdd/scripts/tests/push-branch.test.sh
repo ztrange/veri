@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/push-branch.sh — the push the conductor makes after each step's
-# green commit and after each verify-refactor PASS clears the mark, so a run's commits stop
-# living on one disk until the draft PR is opened (issue #191).
-# Zero-dependency plain-shell asserts, same idiom as event.test.sh.
-#
-# Why a failed push is not a bail — and therefore why all three halves of the failing-push
-# contract below are about the run being untouched — is said in the script's header
-# (push-branch.sh:12-19), once.
+# green commit and after each verify-refactor PASS clears the mark.
 #
 # Contract under test:
 #   push-branch.sh, run from the worktree with an origin that cannot be reached
@@ -17,15 +11,6 @@
 #                         push failed.
 #   push-branch.sh, run from the worktree with an origin it can reach
 #                       → the run's branch is on that remote, at the commit HEAD is on.
-#
-# The origin is a path that does not exist rather than an unreachable host: the failure has
-# to be the same failure on every machine and inside a sandbox with no network, and a real
-# hostname would make this suite's answer depend on the DNS of whoever ran it.
-#
-# The event's NAME is matched as a pattern rather than pinned to one string. What the step
-# asks for is "an event saying the push failed"; which word this repository ends up using
-# for it is the green phase's to choose, and a suite that spelled it here would be pinning
-# its own guess rather than the criterion.
 #
 # Run: scripts/tests/push-branch.test.sh
 set -uo pipefail
