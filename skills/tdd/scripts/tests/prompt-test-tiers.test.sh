@@ -146,7 +146,7 @@ problems=()
 timed_through develop-green "$green" fast affected
 report "$name"
 
-name="develop-red, develop-refactor, develop-revise and develop-reconcile run their test commands through timed-test-run.sh, each naming its tier"
+name="develop-red, develop-refactor and develop-reconcile run their test commands through timed-test-run.sh, each naming its tier"
 problems=()
 printf 'the verifier objected to the fixture path\n' > "$work/reason.md"
 revise="$("$DEVELOP" revise red "$work/spec.md" 'QWIXTLE step' 'make test' "$work/reason.md" 2>/dev/null)" ||
@@ -155,8 +155,16 @@ reconcile="$("$DEVELOP" reconcile "$work/spec.md" 'QWIXTLE step' 'make test' 'td
   problems+=("build-develop-prompt.sh reconcile exited $?")
 timed_through develop-red "$red" affected
 timed_through develop-refactor "$refactor" affected
-timed_through develop-revise "$revise" all
 timed_through develop-reconcile "$reconcile" all
+report "$name"
+
+name="develop-revise redoing red runs the affected suites through timed-test-run.sh under tier affected, and names no all run"
+problems=()
+runs_affected "develop-revise red" "$revise"
+timed_through "develop-revise red" "$revise" affected
+if grep -qE 'timed-test-run\.sh all\b' <<< "$(plain <<< "$revise")"; then
+  problems+=("develop-revise red's prompt still tells its leaf to run through timed-test-run.sh under tier all")
+fi
 report "$name"
 
 name="verify-red, verify-green, verify-refactor and verify-pin run their test commands through timed-test-run.sh, each naming its tier"
