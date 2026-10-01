@@ -29,7 +29,7 @@ same_answer() {
 
 solvable_in() {
   local dir="$1"; shift
-  (cd "$dir" && env "$@" "$HERE/solvable-issues.test.sh" 2>/dev/null)
+  (cd "$dir" && env "$@" "$label_cut" 2>/dev/null)
 }
 
 slice_run_conductor() {
@@ -58,8 +58,6 @@ ambient_out="$(env -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER VERI_MODEL=son
 same_answer cleared "$cleared_code" "$cleared_out" "$ambient_code" "$ambient_out"
 report "$name"
 
-name="solvable-issues.test.sh: an ambient VERI_PRIORITY_LABEL gives the same exit and the same stdout as a cleared run"
-problems=()
 label_cut="$(mktemp "$HERE/.hermetic-label-slice.XXXXXX")"
 awk '
   /^fx="\$\(fixture unblocked\)"$/ {skip=1}
@@ -69,6 +67,8 @@ awk '
 ' "$HERE/solvable-issues.test.sh" > "$label_cut"
 printf '%s\n' 'echo "----"' 'echo "${pass:-0} passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$label_cut"
 chmod +x "$label_cut"
+name="solvable-issues.test.sh: an ambient VERI_PRIORITY_LABEL gives the same exit and the same stdout as a cleared run"
+problems=()
 label_assertions="$(grep -c 'ok || no ' "$label_cut")"
 if [[ "$label_assertions" -ne 6 ]]; then
   problems+=("the slice of solvable-issues.test.sh from the bug-band fixture to the narration case held $label_assertions assertions, want 6 — the markers may have moved")
@@ -77,7 +77,6 @@ else
   ambient_label_out="$(env VERI_PRIORITY_LABEL=ready-for-agent "$label_cut" 2>/dev/null)" && ambient_label_code=0 || ambient_label_code=$?
   same_answer cleared "$cleared_label_code" "$cleared_label_out" "$ambient_label_code" "$ambient_label_out"
 fi
-rm -f "$label_cut"
 report "$name"
 
 lock_work="$(scratch_dir)"
@@ -110,6 +109,8 @@ same_answer no-lock "$unlocked_code" "$unlocked_out" "$every_locked_code" "$ever
 [[ "${#fixture_numbers[@]}" -gt 0 ]] ||
   problems+=("no \"number\": <n> fixture was found in solvable-issues.test.sh, so no lock was written and the two arms cannot differ")
 report "$name"
+
+rm -f "$label_cut"
 
 name="every suite that invokes push-branch.sh sets VERI_PUSH_BACKOFF in its environment"
 problems=()
@@ -267,6 +268,31 @@ if [[ -z "${HERMETIC_SHARE_PROBE:-}" && -z "${HERMETIC_LEAK_PROBE:-}" && -z "${H
   reference_runs="$(wc -l < "$share_log" | tr -d ' ')"
   [[ "$reference_runs" == 1 ]] ||
     problems+=("$(basename "$0") ran solvable-issues.test.sh's reference arm $reference_runs time(s), want 1: cases 3, 4 and 5 each paid for their own")
+  report "$name"
+fi
+
+name="hermetic-suites.test.sh runs no whole copy of solvable-issues.test.sh for its lock cases"
+if [[ -z "${HERMETIC_WHOLE_PROBE:-}" && -z "${HERMETIC_SHARE_PROBE:-}" && -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" && -z "${HERMETIC_SKILLCOMMIT_PROBE:-}" ]]; then
+  problems=()
+  whole_work="$(scratch_dir)"
+  whole_log="$whole_work/runs"
+  mkdir -p "$whole_work/scripts/tests" "$whole_work/cwd"
+  : > "$whole_log"
+  {
+    printf '#!/bin/sh\n'
+    printf '# Fixture numbers, read as text by case 5: {"number": 108} {"number": 117}\n'
+    printf 'printf "%%s\\n" "$(basename "$0")" >> %q\n' "$whole_log"
+    printf 'echo "1 passed, 0 failed"\n'
+  } > "$whole_work/scripts/tests/solvable-issues.test.sh"
+  cp "$HERE/$(basename "$0")" "$whole_work/scripts/tests/"
+  mkdir -p "$whole_work/scripts/tests/lib" && cp "$HERE/lib/harness.sh" "$whole_work/scripts/tests/lib/"
+  chmod +x "$whole_work/scripts/tests/"*.test.sh
+  (cd "$whole_work/cwd" &&
+    HERMETIC_WHOLE_PROBE=1 HERMETIC_SHARE_PROBE=1 HERMETIC_LEAK_PROBE=1 HERMETIC_RERUN_PROBE=1 HERMETIC_SKILLCOMMIT_PROBE=1 \
+      "$whole_work/scripts/tests/$(basename "$0")" >/dev/null 2>&1)
+  whole_runs="$(grep -cx 'solvable-issues.test.sh' "$whole_log")"
+  [[ "$whole_runs" == 0 ]] ||
+    problems+=("$(basename "$0") ran a whole copy of solvable-issues.test.sh $whole_runs time(s), want 0: each lock case runs a slice")
   report "$name"
 fi
 
