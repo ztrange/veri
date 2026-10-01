@@ -135,6 +135,13 @@ pass_through_offenders() {  # pass_through_offenders <script> — print <script>
   done < "$script"
 }
 
+offenders_among() {  # offenders_among <script>... — pass_through_offenders over each named script under scripts/
+  local script
+  for script in "$@"; do
+    pass_through_offenders "$HERE/../../$script"
+  done
+}
+
 problems=()
 for script in "$HERE"/../../*.sh; do
   [[ -n "${OWED_PASS_THROUGHS[${script##*/}]+x}" ]] && continue
@@ -146,14 +153,10 @@ report "every exit \"\$var\" or exit \$? in a script under scripts/ maps through
 
 expect_eq "run-leaf.sh, run-suite.sh, supervise.sh and tick-issue-criterion.sh pass the pass-through audit with no exemption" \
   "" \
-  "$(for script in run-leaf.sh run-suite.sh supervise.sh tick-issue-criterion.sh; do
-    pass_through_offenders "$HERE/../../$script"
-  done)"
+  "$(offenders_among run-leaf.sh run-suite.sh supervise.sh tick-issue-criterion.sh)"
 
 expect_eq "tick-ledger.sh, timed-test-run.sh, verify.sh and wait-leaf.sh pass the pass-through audit, and the audit's exemption table is empty" \
   "exempt=0" \
-  "$(for script in tick-ledger.sh timed-test-run.sh verify.sh wait-leaf.sh; do
-    pass_through_offenders "$HERE/../../$script"
-  done)exempt=${#OWED_PASS_THROUGHS[@]}"
+  "$(offenders_among tick-ledger.sh timed-test-run.sh verify.sh wait-leaf.sh)exempt=${#OWED_PASS_THROUGHS[@]}"
 
 finish
