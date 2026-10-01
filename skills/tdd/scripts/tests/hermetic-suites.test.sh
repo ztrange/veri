@@ -32,6 +32,15 @@ solvable_in() {
   (cd "$dir" && env "$@" "$label_cut" 2>/dev/null)
 }
 
+locked_repo() {
+  local dir="$1" n; shift
+  new_repo -b main "$dir" >/dev/null 2>&1
+  for n in "$@"; do
+    mkdir -p "$dir/.tdd/wt/$n/.tdd"
+    printf '%s\n' "$$" > "$dir/.tdd/wt/$n/.tdd/conductor.pid"
+  done
+}
+
 slice_run_conductor() {
   local keep="$1" cut="$2"
   awk -v keep=" $keep " '
@@ -84,11 +93,7 @@ new_repo -b main "$lock_work/no-lock" >/dev/null 2>&1
 unlocked_out="$(solvable_in "$lock_work/no-lock" -u VERI_PRIORITY_LABEL)" && unlocked_code=0 || unlocked_code=$?
 
 name="solvable-issues.test.sh: a live conductor lock in the surrounding repository gives the same exit and the same stdout as a run with none"
-new_repo -b main "$lock_work/locked" >/dev/null 2>&1
-for n in 108 117 120 124; do
-  mkdir -p "$lock_work/locked/.tdd/wt/$n/.tdd"
-  printf '%s\n' "$$" > "$lock_work/locked/.tdd/wt/$n/.tdd/conductor.pid"
-done
+locked_repo "$lock_work/locked" 108 117 120 124
 
 locked_out="$(solvable_in "$lock_work/locked" -u VERI_PRIORITY_LABEL)" && locked_code=0 || locked_code=$?
 
@@ -96,12 +101,8 @@ same_answer no-lock "$unlocked_code" "$unlocked_out" "$locked_code" "$locked_out
 report "$name"
 
 name="solvable-issues.test.sh: a live conductor lock for every number its own fixtures name gives the same exit and the same stdout as a run with none"
-new_repo -b main "$lock_work/every-locked" >/dev/null 2>&1
 fixture_numbers=($(sed -n 's/.*"number"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$HERE/solvable-issues.test.sh" | sort -u))
-for n in "${fixture_numbers[@]+"${fixture_numbers[@]}"}"; do
-  mkdir -p "$lock_work/every-locked/.tdd/wt/$n/.tdd"
-  printf '%s\n' "$$" > "$lock_work/every-locked/.tdd/wt/$n/.tdd/conductor.pid"
-done
+locked_repo "$lock_work/every-locked" "${fixture_numbers[@]+"${fixture_numbers[@]}"}"
 
 every_locked_out="$(solvable_in "$lock_work/every-locked" -u VERI_PRIORITY_LABEL)" && every_locked_code=0 || every_locked_code=$?
 
