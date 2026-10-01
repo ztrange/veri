@@ -1871,7 +1871,12 @@ To bail:
    step's commit (and the ledger's checked steps) intact.
 3. **Classify deterministically.** `classification="$($S/classify-bail.sh <cause>)"`
    (`<cause>` is one of the tokens above). This keeps the label consistent rather than
-   ad-hoc; an unknown token makes it exit non-zero — pick the right token.
+   ad-hoc; an unknown token makes it exit non-zero — pick the right token. Then mark the stop
+   in the log — the mark sub-step 6's `### ⛔ Bailed` comment mirrors — with the cause token
+   and that classification, before anything renders it:
+   ```
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md || $S/next-unchecked.sh < .tdd/issue-<n>.md)" VERI_PHASE=<phase> $S/event.sh bail cause=<cause> classification="$classification"
+   ```
 4. **Render and commit the metrics**, from inside the worktree and before the push, so the
    branch carrying the progress carries the account of it too: `$S/metrics.sh <n> >
    .tdd/issue-<n>-metrics.md`, then `git add .tdd/issue-<n>-metrics.md && git commit -m
@@ -1885,11 +1890,7 @@ To bail:
    (`.tdd/verify-<phase>.reason` on a `revise-exhausted` bail, the develop-red leaf's `WHY:`
    line on an `untestable-criterion` bail, the kill cause otherwise),
    and points at the progress log (`.tdd/<phase>.log` or
-   `.tdd/revise-<phase>-*.log`) for forensics. Mark the stop in the log too, with the cause
-   token and the classification step 3 derived from it:
-   ```
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md || $S/next-unchecked.sh < .tdd/issue-<n>.md)" VERI_PHASE=<phase> $S/event.sh bail cause=<cause> classification="$classification"
-   ```
+   `.tdd/revise-<phase>-*.log`) for forensics.
 7. **Leave the draft PR open, and put the bail diagnostic on it.** Step 2.3 opened it at the
    plan commit, and it is the run's claim on this issue: `solvable-issues.sh` leaves out an
    issue an open PR says `Closes #<n>` for, so taking it down would hand the issue back to
