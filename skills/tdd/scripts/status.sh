@@ -12,6 +12,7 @@
 set -euo pipefail
 
 lib="$(dirname "$0")/lib"
+source "$lib/exit-contract.sh"
 source "$lib/main-working-tree.sh"
 [[ ! -f "$lib/ledger.sh" ]] || source "$lib/ledger.sh"
 

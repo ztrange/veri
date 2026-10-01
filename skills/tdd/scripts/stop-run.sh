@@ -19,6 +19,7 @@
 set -euo pipefail
 
 lib="$(dirname "$0")/lib"
+source "$lib/exit-contract.sh"
 source "$lib/main-working-tree.sh"
 
 complain() {
@@ -26,12 +27,6 @@ complain() {
 }
 
 USAGE="usage: stop-run.sh [--mode at-ledger|at-leaf|now] <issue> | --all"
-
-refuse() {
-  complain "$1"
-  echo "$USAGE" >&2
-  exit 2
-}
 
 nothing_to_do() {
   complain "$1"
@@ -46,7 +41,7 @@ while (( $# > 0 )); do
   case "$1" in
     # hazard: under set -u an absent `$2` kills the script before the refusal can speak.
     --mode)
-      (( $# >= 2 )) || refuse "--mode needs a value — at-ledger, at-leaf or now"
+      (( $# >= 2 )) || refuse "stop-run: --mode needs a value — at-ledger, at-leaf or now"
       mode="$2"; shift 2 ;;
     --all) all=1; shift ;;
     *) issue="$1"; shift ;;
@@ -55,22 +50,22 @@ done
 
 case "$mode" in
   at-ledger | at-leaf | now) ;;
-  *) refuse "unknown mode — want at-ledger, at-leaf or now: '$mode'" ;;
+  *) refuse "stop-run: unknown mode — want at-ledger, at-leaf or now: '$mode'" ;;
 esac
 
 if [[ -n "$issue" ]] && (( all == 1 )); then
-  refuse "name an issue or --all, not both"
+  refuse "stop-run: name an issue or --all, not both"
 fi
 if [[ -z "$issue" ]] && (( all == 0 )); then
-  refuse "name an issue, or --all"
+  refuse "stop-run: name an issue, or --all"
 fi
 
 if [[ -n "$issue" && ! "$issue" =~ ^[1-9][0-9]*$ ]]; then
-  refuse "<issue> must be a positive integer: '$issue'"
+  refuse "stop-run: <issue> must be a positive integer: '$issue'"
 fi
 
 main_tree="$(main_working_tree)"
-[[ -n "$main_tree" ]] || refuse "no main working tree here — type this inside the repository"
+[[ -n "$main_tree" ]] || refuse "stop-run: no main working tree here — type this inside the repository"
 
 pid_in() {
   local pid

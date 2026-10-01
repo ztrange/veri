@@ -54,10 +54,13 @@
 #          VERI_PRIORITY_LABEL is set but empty; 3 nothing to do — no issue is takeable
 set -euo pipefail
 
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+USAGE="usage: solvable-issues.sh [--repo owner/name]"
+
 repo_args=()
 repo=""
 if [[ "${1:-}" == "--repo" ]]; then
-  [[ -n "${2:-}" ]] || { echo "usage: solvable-issues.sh [--repo owner/name]" >&2; exit 2; }
+  [[ -n "${2:-}" ]] || refuse
   repo="$2"
   repo_args=(--repo "$repo")
 fi
