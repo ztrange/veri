@@ -27,8 +27,6 @@ GUARDS=(
   docs-targets-refuse.test.sh
 )
 
-COUNT_LINE='^[0-9]+ passed, 0 failed$'
-
 
 source "$HERE/lib/harness.sh"
 
@@ -37,35 +35,18 @@ roster() {
 }
 
 probe_every_guard_is_rostered_and_green() {
-  local rost guard out code last cases guard_work
+  local rost guard
   rost="$(roster)"
 
   if [[ -z "$rost" ]]; then
     problems+=("\`make -n test\` named no suite in $suites_dir, so the roster a green run covers could not be read")
   fi
 
-  guard_work="$(scratch_dir)"
-
   for guard in "${GUARDS[@]}"; do
     if [[ -n "$rost" ]] && ! grep -qxF "$suites_dir/$guard" <<< "$rost"; then
       problems+=("$suites_dir/$guard is not in the roster \`make test\` runs, so a green baseline says nothing about it")
     fi
-
-    ( "$HERE/$guard" > "$guard_work/$guard.out" 2>&1; echo $? > "$guard_work/$guard.status" ) &
   done
-  wait
-
-  for guard in "${GUARDS[@]}"; do
-    out="$(cat "$guard_work/$guard.out")"
-    code="$(cat "$guard_work/$guard.status")"
-    last="$(tail -n 1 <<< "$out")"
-    cases="$(grep '^FAIL - ' <<< "$out" | tr '\n' '|')"
-    if [[ "$code" -ne 0 ]] || ! [[ "$last" =~ $COUNT_LINE ]]; then
-      problems+=("$guard is not green against $claude_md: exit $code, last line '$last'${cases:+ — ${cases%|}}")
-    fi
-  done
-
-  rm -rf "$guard_work"
 }
 
 name="the four suites that hold $claude_md are in \`make test\`'s roster and green against the committed document"
@@ -149,6 +130,42 @@ name="with a planted \`make -n test\` that names no suite at all, the probe fail
 problems=()
 
 probe_fails_when_a_planted_roster_names_no_suite
+
+report "$name"
+
+
+probe_starts_no_guard_on_a_full_roster_of_failing_guards() {
+  local real_root="$ROOT" real_here="$HERE" stubs tree guard raised started=()
+  stubs="$(scratch_dir)"
+  for guard in "${GUARDS[@]}"; do
+    printf '#!/bin/sh\ntouch "%s/%s.started"\necho "FAIL - planted"\necho "----"\necho "0 passed, 1 failed"\nexit 1\n' \
+      "$stubs" "$guard" > "$stubs/$guard"
+    chmod 755 "$stubs/$guard"
+  done
+
+  tree="$(scratch_dir)"
+  plant_roster_without "$tree" ""
+  problems=()
+  ROOT="$tree" HERE="$stubs"
+  probe_every_guard_is_rostered_and_green
+  ROOT="$real_root" HERE="$real_here"
+  raised="$(IFS='|'; echo "${problems[*]-}")"
+  for guard in "${GUARDS[@]}"; do
+    [[ -e "$stubs/$guard.started" ]] && started+=("$guard")
+  done
+  problems=()
+  if [[ "${#started[@]}" -gt 0 ]]; then
+    problems+=("on a planted roster holding all four guards, the probe started as a child process: ${started[*]}")
+  fi
+  if [[ -n "$raised" ]]; then
+    problems+=("on a planted roster holding all four guards, each stubbed to fail, the probe raised: $raised")
+  fi
+}
+
+name="with a planted \`make -n test\` roster holding all four guards, each stubbed to fail, the probe starts none of them and raises nothing"
+problems=()
+
+probe_starts_no_guard_on_a_full_roster_of_failing_guards
 
 report "$name"
 
