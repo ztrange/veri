@@ -138,4 +138,35 @@ done
 
 report "$name"
 
+timeouts_over() {
+  local wf="$1" cap="$2" job minutes
+  while IFS= read -r job; do
+    [[ -n "$job" ]] || continue
+    minutes="$(job_block "$wf" "$job" | sed -nE 's/^    timeout-minutes:[ ]*([0-9]+).*/\1/p')"
+    [[ -n "$minutes" && "$minutes" -gt "$cap" ]] \
+      && problems+=("${wf##*/}: job '$job' declares timeout-minutes $minutes, above $cap")
+  done < <(job_names "$wf")
+  return 0
+}
+
+name="a ci.yml job declaring timeout-minutes above 10 fails, named, and every job in ci.yml declares at most 10"
+problems=()
+
+fixture="$(scratch_dir)/ci.yml"
+cat > "$fixture" <<'YML'
+jobs:
+  slow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 11
+  capped:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+YML
+timeouts_over "$fixture" 10
+expect_eq "$name (a fixture job at 11 is named, one at 10 is not)" \
+  "ci.yml: job 'slow' declares timeout-minutes 11, above 10" "${problems[*]-}"
+problems=()
+timeouts_over "$CI_YML" 10
+report "$name"
+
 finish
