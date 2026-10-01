@@ -1,23 +1,6 @@
 #!/usr/bin/env bash
-# Unit tests for what skills/tdd/SKILL.md tells the conductor to do at the draft PR step.
-# Like skill-refactor-pending.test.sh and skill-commit.test.sh this suite belongs to no
-# single script: its subject is the procedure document, read as text, the way the session
-# that follows it reads it. Picked up by `make test`'s glob by existing.
-# Zero-dependency plain-shell asserts, same idiom as skill-refactor-pending.test.sh.
-#
-# Why this exists (issue #191): the conductor now pushes the branch after every green
-# commit and after every verify-refactor PASS, so by the time a run reaches step 4 the
-# branch is already on the remote. The push that used to live in that step was the run's
-# FIRST push, and binding durability to it is what kept hours of commits on one disk. The
-# step's remaining job is the one it was always named for — ask a human to look — and that
-# job is prose, so a document that still opens with `git push` is the whole of the
-# regression: the conductor would be following an instruction whose premise no longer
-# holds, and a reader would still be told the branch reaches the remote only here.
-#
-# The suite's subject is the whole of where this document pushes, not step 4 alone: the
-# premise the Draft PR case rests on — that the branch is already on the remote — is a
-# claim about the cycle loop, and a suite that pinned only the half that stopped pushing
-# would go green on a document that had stopped pushing everywhere.
+# Unit tests for what skills/tdd/SKILL.md tells the conductor to do at the draft PR step,
+# and wherever else it pushes the branch, read as text.
 #
 # Contract under test:
 #   1. No instruction of SKILL.md's `### 4. Draft PR` step pushes the branch: it readies a PR
@@ -26,87 +9,83 @@
 #      so the branch reaches the remote at both of the points that write the ledger.
 #   3. SKILL.md's Draft PR step and its Guardrails invariant about opening the PR both name
 #      `detect-test-command.sh --tier all`'s command, run exactly once, as the only
-#      full-suite gate left in the cycle (issue #341).
+#      full-suite gate left in the cycle.
 #   4. SKILL.md's Draft PR step answers a red result on that full run by adding a repair step
 #      to the ledger rather than bailing; the same step says a unit-tier test is added when
 #      the failure exposes a gap, and that the verifier judges the fix against the full
-#      command (issue #341).
+#      command.
 #   5. SKILL.md's Draft PR step bails on a second red result on the full run after a repair
-#      step, naming every suite still red rather than only the first (issue #341).
+#      step, naming every suite still red rather than only the first.
 #   6. SKILL.md's Draft PR step puts `refactor-owed.sh render`'s output in the PR body, from
-#      the run's own owed file, and omits the section when that render exits 3 (issue #359).
+#      the run's own owed file, and omits the section when that render exits 3.
 #   7. SKILL.md's Draft PR step copies the ledger's `## Owed steps` bullets into the PR
-#      body under a `## Owed steps` heading of its own (issue #360).
+#      body under a `## Owed steps` heading of its own.
 #   8. SKILL.md's `### 2. Scope & plan` step pushes the branch and opens the draft PR —
 #      `Closes #<n>` in the body, a title marking the work in progress — after the plan
-#      commit and before the Plan comment (issue #195).
+#      commit and before the Plan comment.
 #   9. SKILL.md's Green PASS branch, the one place a step is ticked, edits the PR body with
-#      the done-of-total step count read from the run's ledger (issue #195).
+#      the done-of-total step count read from the run's ledger.
 #  10. SKILL.md's Draft PR step creates no PR: it retitles the open one, rewrites its body
-#      and marks it ready for review (issue #195).
+#      and marks it ready for review.
 #  11. SKILL.md's `## Resume` section reuses the open PR its branch already carries and never
-#      opens a second one (issue #195).
+#      opens a second one.
 #  12. SKILL.md's `## Bailing` section leaves that PR open carrying the bail diagnostic —
-#      it neither closes it nor still says to open none (issue #195).
+#      it neither closes it nor still says to open none.
 #  13. SKILL.md's step 1.2 no longer explains the pid lock by saying the draft PR is opened
-#      once every step is green (issue #195).
+#      once every step is green.
 #  14. SKILL.md's Draft PR step runs `rebase-onto-default.sh` after its dirty-tree and
 #      pending-refactor check and before the `done` mark, the metrics commit and
-#      `gh pr ready`; its exit 3 continues unchanged and its exit 2 bails with `no-verdict`
-#      (issue #238).
+#      `gh pr ready`; its exit 3 continues unchanged and its exit 2 bails with `no-verdict`.
 #  15. SKILL.md's Draft PR step, after a rebase that changed the tree, runs the full test
 #      command once on the rebased tip, bails on red with the PR left a draft, and on green
 #      pushes with `push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>`, never a bare
-#      force (issue #238).
+#      force.
 #  16. SKILL.md's Draft PR step, on `rebase-onto-default.sh` exit 1, launches a develop-rebase
 #      leaf through `supervise.sh`, then a blind verify-rebase through `run-verdict.sh`, revises
-#      on REJECT within REVISE_BUDGET, and readies the PR only after a verify-rebase PASS
-#      (issue #238).
+#      on REJECT within REVISE_BUDGET, and readies the PR only after a verify-rebase PASS.
 #  17. SKILL.md's Draft PR step, on a conflicted rebase not resolved within budget — a
 #      `REBASE: FAILED`, `REVISE_BUDGET` exhausted, or a killed leaf — resets the branch to
 #      `<pre-rebase-sha>`, leaves the PR a draft and bails with a comment naming every
-#      conflicting file (issue #238).
+#      conflicting file.
 #  18. SKILL.md's Draft PR step, after `gh pr ready`, waits on `wait-ci.sh` and then
 #      reads the readied PR's statusCheckRollup fail-closed: an empty rollup is never a pass, and a conclusion other than SUCCESS,
-#      NEUTRAL or SKIPPED counts as failed (issue #542).
+#      NEUTRAL or SKIPPED counts as failed.
 #  19. SKILL.md's Draft PR step never counts a pending check as green, and bounds its CI
 #      wait: a check still pending when the bound runs out bails with a cause
-#      `classify-bail.sh` classifies (issue #542).
+#      `classify-bail.sh` classifies.
 #  20. SKILL.md's Draft PR step bounds the command that waits on the readied PR's checks
 #      itself: `wait-ci.sh` with no max-seconds, or one under a tool call's 600, and no
-#      `gh pr checks` after `gh pr ready` (issues #542, #544).
+#      `gh pr checks` after `gh pr ready`.
 #  21. SKILL.md's Draft PR step waits on the readied PR's checks and reads their rollup before
 #      the `done` mark and the `metrics:` commit, so a red CI result or a `ci-timeout` bail is
-#      never reached by a run that already recorded itself done (issue #542).
+#      never reached by a run that already recorded itself done.
 #  22. SKILL.md's Draft PR command block itself bails with cause `ci-timeout` on `wait-ci.sh`'s
-#      exit 2, between the wait and the `done` mark, and its prose says so (issues #542, #544).
+#      exit 2, between the wait and the `done` mark, and its prose says so.
 #  23. SKILL.md's Draft PR step answers a failed CI check by reading `gh run view --log-failed`,
 #      appending a repair step that quotes the failing suite and its `FAIL -` line, committing
-#      it and returning to the cycle loop, all before the `done` mark (issue #542).
+#      it and returning to the cycle loop, all before the `done` mark.
 #  24. SKILL.md's Draft PR step bails on a second red CI result after a CI repair step: its
 #      command block runs a bail between the `--log-failed` read and the `done` mark, with a
-#      cause `classify-bail.sh` maps to `system` or `process`, and its prose says so (#542).
+#      cause `classify-bail.sh` maps to `system` or `process`, and its prose says so.
 #  25. SKILL.md's Draft PR step waits on CI by calling `wait-ci.sh` after `gh pr ready` and
 #      again on its exit 3, with no wait loop inside one command block and no pending test
-#      that reads `.status` alone (#544).
+#      that reads `.status` alone.
 #  26. SKILL.md's Draft PR step stops at a `ci-timeout` or `ci-red` bail: neither the `done`
 #      mark nor the `metrics:` commit follows the bail in its command block, and its prose
-#      sends the run to *Bailing* (#544).
+#      sends the run to *Bailing*.
 #  27. SKILL.md's Draft PR step appends its CI repair step with a `⟦ci-repair⟧` text and
-#      recognises a second red by that mark on a ledger line, not by the repair step's prose
-#      (#544).
+#      recognises a second red by that mark on a ledger line, not by the repair step's prose.
 #  28. SKILL.md's Draft PR step leaves no CI run on the readied PR that nothing reads: every push
 #      its command lines make after the first `wait-ci.sh` call has a `wait-ci.sh` call after
-#      it (#544).
+#      it.
 #  29. SKILL.md's Draft PR step passes every `wait-ci.sh` call the sha it just pushed, read
-#      with `git rev-parse HEAD` after its last push, as the head it waits for (#550).
+#      with `git rev-parse HEAD` after its last push, as the head it waits for.
 #  30. SKILL.md's Draft PR step bails on the `metrics:` push's CI wait with a command in its
-#      block — `ci-red` on exit 1, `ci-timeout` on exit 2 — not only in prose (#550).
+#      block — `ci-red` on exit 1, `ci-timeout` on exit 2 — not only in prose.
 #  31. SKILL.md reads the default branch, reads and comments on the issue, and creates, views,
 #      edits, readies and comments on the PR without `gh repo view`, `gh issue view|comment`
 #      or `gh pr create|view|edit|ready|comment`: it readies the PR through lib/github.sh's
-#      `gh_pr_ready` and reaches the rest through `gh api`, reading REST's `default_branch`
-#      (#568).
+#      `gh_pr_ready` and reaches the rest through `gh api`, reading REST's `default_branch`.
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail

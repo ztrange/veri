@@ -1,37 +1,7 @@
 #!/usr/bin/env bash
 # Unit tests for the environment a leaf inherits from the launch lines skills/tdd/SKILL.md
-# prescribes. Like skill-timeout.test.sh and skill-test-command.test.sh this suite has no
-# script as its subject — it is the procedure document those scripts are called from. Unlike
-# them it does not read that document as text: it RUNS the launch lines it finds in it,
-# against a stub `claude`, and asks the leaf at the far end what it can see.
-# Zero-dependency plain-shell asserts, same idiom as skill-test-command.test.sh.
-#
-# Why this exists (issue #143): the four documentation targets now refuse when VERI_TEST_CMD
-# names a command that is not itself a documentation target (docs-targets-refuse.test.sh),
-# and that guard is worth exactly as far as the variable reaches. A leaf that cannot see
-# VERI_TEST_CMD is a leaf the guard never fires for — and a leaf is where `make docs` gets
-# typed, since CLAUDE.md's "one trap" tells any agent that touched the page to run it. The
-# ~5.5 min the #106 conductor spent on a page build inside a run whose test command was
-# `make test` is what that costs.
-#
-# Every Bash call a conductor makes is a fresh shell, so a one-off `export` in preflight
-# cannot carry the variable to a launch three steps later: only a prefix on the launch line
-# itself can. Whether the prefix is there is not a question about the text, because a prefix
-# can be spelled and still not arrive — it travels through `detach-leaf.sh` and the
-# python3 `setsid` + `execvp` that detaches the leaf into a session of its own (#161),
-# `supervise.sh`'s own process group and `run-leaf.sh` before anything reads it — so this
-# suite runs the line rather than grepping it.
-#
-# The variable travels in the ENVIRONMENT and not in a prompt, which is what keeps the
-# verifier blind: `build-verify-prompt.sh` takes no new argument, so there is still no
-# parameter through which the developer's rationale could leak.
-#
-# The same argument reaches a second variable, and issue #163 measured what its absence costs:
-# every `launch`, `exit` and `verdict` line a leaf leaves in the run's event log carried an
-# empty `issue` and an empty `step`, because event.sh reads those from VERI_ISSUE and VERI_STEP
-# and no launch line set them. That context cannot be derived downstream — `leaf-role.sh` reads
-# the actor, phase and attempt out of the leaf's NAME, and no name says which issue or which
-# step — so it travels the same way and for the same reason: on the launch, in the environment.
+# prescribes: it runs the launch lines it finds there against a stub `claude`, and asks the
+# leaf at the far end what it can see.
 #
 # Contract under test:
 #   Every launch line in SKILL.md that sends a leaf through supervise.sh into run-leaf.sh,
@@ -40,21 +10,6 @@
 #   line carries the run's issue and step.
 #
 # Run: skills/tdd/scripts/tests/skill-leaf-env.test.sh
-#
-# History: issue #333 made the ten launches below run concurrently instead of one after
-# another, and added cases proving the overlap didn't blur which launch a failure belonged
-# to — at the cost of doubling this suite's own time (9.9-11.3s serial -> 20.3-21.3s
-# concurrent, interleaved on the same machine, 2026-09-19) and dropping wait-leaf.sh's
-# ps-based fast-fail on a dead supervisor (issue #297) from the launches' own wait. Reverted
-# here under a standing rule that this suite's cases assert BEHAVIOUR, not scheduling shape:
-# launches are one round again, one after another, each waited on to completion before the
-# next starts (#297's protection is back); "all ten start before any finishes" and "case 3 reads
-# only after every launch has completed" were pure scheduling-shape assertions with nothing
-# to prove once launches are serial, and are gone with the concurrency they were about. What
-# #333 was actually protecting — a broken launch line named alone while its neighbours still
-# pass, and the count-line/FAIL-line format holding still — stays, checked below against a
-# small fixture fed straight into the same scan the document's own ten lines use, not by
-# replaying all ten of them (or this whole suite) a second time.
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"

@@ -1,30 +1,15 @@
 #!/usr/bin/env bash
-# Unit tests for what the conductor's Green section does with a developer leaf that answered
-# `SPLIT:` instead of an implementation — like skill-red-untestable.test.sh and
-# skill-refactor-leaf.test.sh this suite belongs to no single script: its subject is
-# skills/tdd/SKILL.md, read as text, the way the session that follows it reads it.
-# Zero-dependency plain-shell asserts, same idiom as skill-red-untestable.test.sh, picked up
-# by `make test`'s glob by existing.
-#
-# Why this exists (issue #363, part of #354): a step too big for one green had no way out but
-# a bail — SKILL.md notes sizing when the plan is scoped and never gates on it again, and a
-# revise leaf may only answer the verifier's objection. develop-green.md and develop-revise.md
-# now offer Beck's Child Test as a third answer: one to three `SPLIT: <behaviour-level
-# criterion>` lines instead of an implementation, with no production code changed. That report
-# reaches a conductor that has not been told what to do with it, and this suite pins what it
-# now does.
+# Unit tests for what the conductor's Green section in skills/tdd/SKILL.md does with a
+# developer leaf that answered `SPLIT:` instead of an implementation, read as text.
 #
 # Contract under test:
-#   1. SKILL.md's Green section, on `SPLIT:`, restores the tree to `HEAD` — the red test is
-#      uncommitted, so leaving it on disk would poison the first split step — passes the
+#   1. SKILL.md's Green section, on `SPLIT:`, restores the tree to `HEAD`, passes the
 #      split criteria to ONE `add-ledger-step.sh … before '<STEP>'` call, commits the grown
 #      ledger, emits `step-split`, and loops back to `next-unchecked.sh`, which hands over
 #      the first split step.
-#   2. On the over-budget end of that branch — `add-ledger-step.sh` exits 1, so the criteria
-#      are already filed under `## Owed steps` and the step has no plan to go on with — the
-#      run bails with cause `step-too-big`, which SKILL.md's Bailing causes list classifies
-#      as a **process** failure, the way skill-red-untestable.test.sh pins the same thing for
-#      `untestable-criterion`.
+#   2. When `add-ledger-step.sh` exits 1 on that branch, the run bails with cause
+#      `step-too-big`, which SKILL.md's Bailing causes list classifies as a **process**
+#      failure.
 #
 # Run: scripts/tests/skill-green-split.test.sh
 set -uo pipefail

@@ -1,17 +1,6 @@
 #!/usr/bin/env bash
 # Unit tests for where the /tdd-candidates skill ships, what it calls itself, and what it says
-# its job is — like skill-fix-identity.test.sh this suite belongs to no single script: its
-# subject is a skill directory and the SKILL.md inside it, read as text, the way the session
-# that follows it reads it.
-# Zero-dependency plain-shell asserts, same idiom as skill-fix-identity.test.sh.
-#
-# Why this exists (issue #501): an architecture analysis ends in a list of candidates and
-# stops; turning them into issues veri can take is a separate command. The invocation name is
-# the one thing every user touches — spelled in two places that must agree, the directory
-# Claude Code loads the skill from and the `name:` field of its frontmatter. The other half of
-# the same criterion is the skill's scope: it shapes and files the candidates it is handed, and
-# it does not survey, rank or judge them — that is the analysis's job, done elsewhere, and a
-# filer that re-judges its input is a second analysis nobody asked for.
+# its job is, read from its skill directory and SKILL.md as text.
 #
 # Contract under test:
 #   skills/tdd-candidates/ is a directory, skills/tdd-candidates/SKILL.md's frontmatter reads

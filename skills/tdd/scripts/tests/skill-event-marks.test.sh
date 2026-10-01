@@ -1,20 +1,8 @@
 #!/usr/bin/env bash
-# Unit tests for the conductor's own marks in the run's event log — like
-# skill-timeout.test.sh and skill-test-command.test.sh this suite belongs to no single
-# script: its subject is skills/tdd/SKILL.md, read as text, the way the session that
-# follows it reads it.
-# Zero-dependency plain-shell asserts, same idiom as skill-timeout.test.sh.
+# Unit tests for the conductor's own marks in the run's event log, as skills/tdd/SKILL.md
+# prescribes them, read as text.
 #
-# Why this exists (issue #107): `event.sh` writes a line, but a writer nobody calls logs
-# nothing. supervise.sh and verify.sh call it from inside a script, so their events are
-# complete by construction; the conductor is prose, so its marks exist only where this
-# document tells the session to write them. And they have to be told at the point the
-# document already tells it to post the matching issue comment — one instruction, two
-# mirrors of the same moment — because a mark prescribed anywhere else drifts away from
-# the comment the first time either is reworded, and the log then disagrees with the
-# thread about what the run did.
-#
-# Contract under test (this step only):
+# Contract under test:
 #   For each of the conductor's seven marks — step-start, step-done, pin, revise, bail,
 #   done, resume — SKILL.md prescribes an `event.sh <mark>` call in the same instruction
 #   as the issue comment that mark mirrors. `step-start` has no comment of its own (a step
