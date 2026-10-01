@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# lib/missing-argument-exit.sh — sourced, not run: defines `missing_argument_offender`,
+# lib/missing-argument-exit.sh — sourced, not run: defines `stderr_of`, `missing_argument_offender`,
 # `missing_argument_audit` and `bare_expansion_offenders`.
 #
 # missing_argument_offender <scripts-dir> <script> [args …] — run <script> with <args>, stdin
@@ -12,10 +12,14 @@
 # of <dir>/*.sh, and return 1 when there is any.
 #
 # hazard: `${N:?…}` aborts the shell with status 1, not the 2 a missing argument owes.
+stderr_of() {  # stderr_of <cmd> [args …] — run <cmd> with stdin from /dev/null; print only its stderr
+  "$@" 2>&1 >/dev/null </dev/null
+}
+
 missing_argument_offender() {
   local dir="$1" script="$2"; shift 2
   local code=0 err shown="$script${*:+ $*}"
-  err="$("$dir/$script" "$@" 2>&1 >/dev/null </dev/null)" || code=$?
+  err="$(stderr_of "$dir/$script" "$@")" || code=$?
   if [[ "$code" != 2 ]]; then
     echo "$shown: want exit 2, got $code"
     return 1
@@ -35,7 +39,7 @@ missing_argument_audit() {
     if ! line="$(missing_argument_offender "$dir" "$script")"; then
       echo "$line"; found=1; continue
     fi
-    err="$("$file" 2>&1 >/dev/null </dev/null)"
+    err="$(stderr_of "$file")"
     if [[ "$err" != *"$script"* ]]; then
       echo "$script: usage line on stderr does not name it: $err"
       found=1
