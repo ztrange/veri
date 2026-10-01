@@ -38,6 +38,13 @@ mentions() {
       printf '%s\n' "$name"
     fi
   done
+  local built pattern
+  while IFS= read -r built; do
+    pattern="$(printf '%s' "$built" | sed -E 's/\./\\./g; s/\$\{?[[:alnum:]_]+\}?/[[:alnum:]_-]+/g')"
+    for name in "${nodes[@]}"; do
+      if [[ "$name" =~ ^${pattern}$ ]]; then printf '%s\n' "$name"; fi
+    done
+  done < <(grep -oE '[[:alnum:]_.-]*(\$\{?[[:alnum:]_]+\}?[[:alnum:]_.-]*)+\.(sh|md)' "$file")
 }
 
 declare -A reached=()

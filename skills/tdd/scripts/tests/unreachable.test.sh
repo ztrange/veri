@@ -126,4 +126,31 @@ script "$S/orphan.sh" 'echo alone'
 expect_listing "$root" orphan.sh \
   "a repo with no lib/ directory is listed with nothing on stderr, even when a script is named lib.sh"
 
+root="$(fixture_root dynamic)"
+S="$root/skills/tdd/scripts"
+script "$S/helper.sh" "$(printf 'for kind in red green; do\n  "$(dirname "$0")/build-$kind-prompt.sh" "$@"\ndone')"
+script "$S/build-red-prompt.sh" 'echo red'
+script "$S/build-green-prompt.sh" 'echo green'
+script "$S/orphan.sh" 'echo alone'
+expect_listing "$root" orphan.sh \
+  "a script named only through a built path such as \"\$S/build-\$kind-prompt.sh\" is not listed"
+
+root="$(fixture_root dynamic-braced)"
+S="$root/skills/tdd/scripts"
+script "$S/helper.sh" "$(printf 'for kind in red green; do\n  "$(dirname "$0")/build-${kind}-prompt.sh" "$@"\ndone')"
+script "$S/build-red-prompt.sh" 'echo red'
+script "$S/orphan.sh" 'echo alone'
+expect_listing "$root" orphan.sh \
+  "a script named only through a braced built path such as \"\$S/build-\${kind}-prompt.sh\" is not listed"
+
+root="$(fixture_root dynamic-md)"
+S="$root/skills/tdd/scripts"
+printf '# skill\n\nRun `$S/entry.sh <n>`, then read `prompts/develop-$phase.md`.\n' > "$root/skills/tdd/SKILL.md"
+printf 'Run `$S/target.sh`.\n' > "$root/skills/tdd/develop-red.md"
+script "$S/helper.sh" 'echo helped'
+script "$S/target.sh" 'echo target'
+script "$S/orphan.sh" 'echo alone'
+expect_listing "$root" orphan.sh \
+  "a procedure file named only through a built path such as prompts/develop-\$phase.md is read, so the script it names is not listed"
+
 finish
