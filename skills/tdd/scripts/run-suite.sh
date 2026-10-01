@@ -44,4 +44,5 @@ tail -n 1 "$out" | grep -Eq "$COUNT_LINE" || {
   exit 1
 }
 
+# pass-through: the caller reads the suite's own status once its count line is there.
 exit "$code"

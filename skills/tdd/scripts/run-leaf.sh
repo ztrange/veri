@@ -74,4 +74,5 @@ set -e
 printf '\n'
 "$HERE/extract-result.sh" < "$stream_tmp"
 
+# pass-through: supervise.sh classifies the leaf by its own status.
 exit "$rc"
