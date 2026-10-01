@@ -28,12 +28,17 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 USAGE="usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]"
+refuse() {
+  echo "build-verify-prompt: $1" >&2
+  echo "$USAGE" >&2
+  exit 2
+}
 
 step="" fast_cmd=""
 while :; do
   case "${1:-}" in
     --step|--fast-cmd)
-      [[ -n "${2:-}" ]] || { echo "build-verify-prompt: $1 needs a value" >&2; echo "$USAGE" >&2; exit 2; }
+      [[ -n "${2:-}" ]] || refuse "$1 needs a value"
       case "$1" in
         --step) step="$2" ;;
         *) fast_cmd="$2" ;;
@@ -52,7 +57,7 @@ target="${4:-the target test}"
 
 case "$phase" in
   red|green|refactor|pin|plan|rebase|transform) ;;
-  *) echo "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin|plan|rebase|transform)" >&2; echo "$USAGE" >&2; exit 2 ;;
+  *) refuse "unknown phase '$phase' (want red|green|refactor|pin|plan|rebase|transform)" ;;
 esac
 
 if [[ ( "$phase" == green || "$phase" == refactor ) && -z "$fast_cmd" ]]; then
