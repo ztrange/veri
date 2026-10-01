@@ -17,8 +17,6 @@ set -uo pipefail
 
 pass=0 fail=0
 
-# 1. A case that fails, on purpose and in the open: the fixture's whole job is to be a
-#    suite that ran to the end and has bad news.
 if [[ "veri" == "something else" ]]; then
   pass=$((pass + 1))
 else

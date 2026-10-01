@@ -16,9 +16,7 @@ set -uo pipefail
 
 out="${PROBE_OUT:?PROBE_OUT names the file this fixture reports to}"
 if [[ /dev/stdin -ef /dev/null ]]; then stdin=devnull; else stdin=inherited; fi
-# git on PATH is a symlink straight to the resolved real binary now, not a bash wrapper —
-# `readlink` (not `-f`, which BSD's build resolves differently) names its immediate target,
-# which is what OFFLINE_REAL_GIT used to be handed to a shim for.
+# hazard: BSD and GNU `readlink -f` differ; plain `readlink` names the immediate target.
 git_path="$(command -v git 2>/dev/null || echo '<none>')"
 git_link_target="$(readlink "$git_path" 2>/dev/null || echo '<not-a-symlink>')"
 {

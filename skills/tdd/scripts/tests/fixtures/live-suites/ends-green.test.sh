@@ -17,7 +17,6 @@ set -uo pipefail
 
 pass=0 fail=0
 
-# 1. A case that passes, so the fixture ends green rather than merely ending.
 if [[ "veri" == "veri" ]]; then
   pass=$((pass + 1))
 else

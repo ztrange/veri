@@ -23,8 +23,6 @@ trap 'exit 0' EXIT
 
 pass=0 fail=0
 
-# 1. A case that passes, so the fixture is observably alive — and observably asserting —
-#    before the line that kills it.
 if [[ "veri" == "veri" ]]; then
   pass=$((pass + 1))
 else
@@ -32,9 +30,6 @@ else
   echo "FAIL - a word equals itself"
 fi
 
-# 2. The case that kills it: two fields read out of a line of command output, one of them
-#    compared as a number. This is the real shape — a build's stderr that now carries
-#    `COMMENTARY OWED:` where a count used to be.
 read -r made budget <<< "COMMENTARY OWED:"
 if [[ "$made" -le 3 ]]; then
   pass=$((pass + 1))
@@ -43,9 +38,6 @@ else
   echo "FAIL - commentary owed is within budget"
 fi
 
-# Never reached. The count line and the exit status below are what a live suite ends with,
-# and their absence from the output is the only trace of the death that a runner reading
-# the exit code alone can see.
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
