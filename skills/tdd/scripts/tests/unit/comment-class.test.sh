@@ -433,6 +433,14 @@ want_contract_only_header() {
   fi
 }
 
+header_verdict() {
+  local name="$1"; shift
+  problems=""
+  want_no_header_citation "$@"
+  want_contract_only_header "$@"
+  verdict "$name"
+}
+
 problems=""
 want_no_header_citation "$SCRIPTS"/tests/[a-e]*.sh
 verdict "no line of the leading header block of a top-level tests/*.sh whose name starts with a through e cites an issue number"
@@ -441,23 +449,14 @@ problems=""
 want_contract_only_header "$SCRIPTS"/tests/[a-e]*.sh
 verdict "the leading header block of a top-level tests/*.sh whose name starts with a through e holds only a description, its Contract under test block and its Run: line"
 
-problems=""
-want_no_header_citation "$SCRIPTS"/tests/[f-p]*.sh
-want_contract_only_header "$SCRIPTS"/tests/[f-p]*.sh
-verdict "the leading header block of a top-level tests/*.sh whose name starts with f through p carries only its contract, and no line of it cites an issue number"
+header_verdict "the leading header block of a top-level tests/*.sh whose name starts with f through p carries only its contract, and no line of it cites an issue number" "$SCRIPTS"/tests/[f-p]*.sh
 
-problems=""
 files=()
 for f in "$SCRIPTS"/tests/[q-z]*.sh; do
   case "${f##*/}" in skill-*) ;; *) files+=("$f") ;; esac
 done
-want_no_header_citation "${files[@]}"
-want_contract_only_header "${files[@]}"
-verdict "the leading header block of a top-level tests/*.sh whose name starts with q through z, other than the skill-* files, carries only its contract, and no line of it cites an issue number"
+header_verdict "the leading header block of a top-level tests/*.sh whose name starts with q through z, other than the skill-* files, carries only its contract, and no line of it cites an issue number" "${files[@]}"
 
-problems=""
-want_no_header_citation "$SCRIPTS"/tests/skill-[a-l]*.sh
-want_contract_only_header "$SCRIPTS"/tests/skill-[a-l]*.sh
-verdict "the leading header block of every tests/skill-*.test.sh whose name after skill- starts with a through l carries only its contract, and no line of it cites an issue number"
+header_verdict "the leading header block of every tests/skill-*.test.sh whose name after skill- starts with a through l carries only its contract, and no line of it cites an issue number" "$SCRIPTS"/tests/skill-[a-l]*.sh
 
 finish
