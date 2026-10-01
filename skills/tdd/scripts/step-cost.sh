@@ -18,18 +18,15 @@
 # it is in no figure this script prints — never quote one as "what this step cost" in full.
 set -uo pipefail
 
-usage='usage: step-cost.sh <step-text> | --run | --steps'
-if [[ $# -ne 1 ]]; then
-  echo "step-cost.sh: expected exactly one argument, got $#; $usage" >&2
-  exit 2
-fi
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+USAGE='usage: step-cost.sh <step-text> | --run | --steps'
+(( $# == 1 )) || refuse "step-cost.sh: expected exactly one argument, got $#"
 step="$1" all=0 per_step=0
 case "$step" in
   --run)   all=1 ;;
   --steps) per_step=1 ;;
   -*)
-    echo "step-cost.sh: unknown option '$step'; $usage" >&2
-    exit 2 ;;
+    refuse "step-cost.sh: unknown option '$step'" ;;
 esac
 if [[ ! -r .tdd/events.jsonl ]]; then
   echo "step-cost.sh: cannot read .tdd/events.jsonl in $PWD — run from the run's worktree" >&2

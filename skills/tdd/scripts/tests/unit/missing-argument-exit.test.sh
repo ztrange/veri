@@ -164,6 +164,8 @@ migration_slice 6 profile.sh push-branch.sh rebase-onto-default.sh red-divergenc
   refactor-budget.sh refactor-owed.sh refactor-touched.sh
 migration_slice 7 refactor-triage.sh render-leaf-log.sh run-affordable.sh run-conductor.sh \
   run-leaf.sh run-suite.sh run-verdict.sh
+migration_slice 8 session-cost.sh solvable-issues.sh status.sh step-budget.sh step-cost.sh \
+  stop-requested.sh stop-run.sh
 
 name="no script guards a required positional argument with a bare \${N:?…} expansion"
 mapfile -t offenders < <(bare_expansion_offenders "$SCRIPTS")

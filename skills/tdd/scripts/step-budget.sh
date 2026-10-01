@@ -8,7 +8,10 @@
 # one, at the point `refactor-budget.sh 0` already occupies in SKILL.md step 5.
 set -euo pipefail
 
-[[ $# -eq 0 ]] || { echo "usage: step-budget.sh (takes no arguments)" >&2; exit 2; }
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+USAGE="usage: step-budget.sh (takes no arguments)"
+
+[[ $# -eq 0 ]] || refuse
 
 step="${VERI_STEP_BUDGET-12}"
 run="${VERI_RUN_BUDGET-120}"

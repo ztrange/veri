@@ -32,12 +32,10 @@ set -euo pipefail
 
 file=".tdd/stop"
 
-usage() {
-  echo "usage: stop-requested.sh [--clear]" >&2
-  exit 2
-}
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+USAGE="usage: stop-requested.sh [--clear]"
 
-(( $# <= 1 )) || usage
+(( $# <= 1 )) || refuse
 
 case "${1:-}" in
   --clear)
@@ -45,7 +43,7 @@ case "${1:-}" in
     exit 0
     ;;
   "") ;;
-  *) usage ;;
+  *) refuse ;;
 esac
 
 [[ -f "$file" ]] || exit 3

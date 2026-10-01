@@ -27,13 +27,15 @@ since=""
 as_json=""
 transcripts=()
 
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+
 USAGE="usage: session-cost.sh --since <ISO date> [--json] [<transcript.jsonl> ...]"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --since)
       # hazard: `${2:?}` would abort with status 1, the code reserved for an answer.
-      [[ -n "${2:-}" ]] || { echo "$USAGE" >&2; exit 2; }
+      [[ -n "${2:-}" ]] || refuse
       since="$2"
       shift 2
       ;;
@@ -48,7 +50,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ -n "$since" ]] || { echo "$USAGE" >&2; exit 2; }
+[[ -n "$since" ]] || refuse
 
 discover() {
   local root slug projects dir file
