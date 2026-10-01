@@ -15,18 +15,17 @@ set -euo pipefail
 root="$1"
 scripts="$root/skills/tdd/scripts"
 
-names=()
-for f in "$scripts"/*.sh; do
-  names+=( "${f##*/}" )
+names=() libs=() docs=()
+shopt -s nullglob
+for f in "$scripts"/*.sh "$scripts"/lib/*.sh "$root"/skills/tdd/*.md; do
+  case "$f" in
+    "$scripts"/lib/*) libs+=( "lib/${f##*/}" ) ;;
+    *.md)             docs+=( "${f##*/}" ) ;;
+    *)                names+=( "${f##*/}" ) ;;
+  esac
 done
-libs=()
-for f in "$scripts"/lib/*.sh; do
-  if [[ -e "$f" ]]; then libs+=( "lib/${f##*/}" ); fi
-done
-nodes=( "${names[@]}" "${libs[@]}" )
-for f in "$root"/skills/tdd/*.md; do
-  nodes+=( "${f##*/}" )
-done
+shopt -u nullglob
+nodes=( "${names[@]}" "${libs[@]}" "${docs[@]}" )
 
 path_of() {
   case "$1" in
