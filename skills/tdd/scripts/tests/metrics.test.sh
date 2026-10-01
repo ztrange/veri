@@ -2870,12 +2870,8 @@ sv "$knobbed" 9130 verifier  red usage   1 "$(usage_json 15000), \"model\": \"cl
 sv "$knobbed" 9130 verifier  red verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
 sv "$knobbed" 9400 conductor ""  step-done ""
 knobs_out="$knobs_work/report.md"
-( cd "$knobs_work" &&
-  env -u VERI_MODEL VERI_MODEL_DEVELOPER=claude-opus-5-5 VERI_MODEL_VERIFIER=claude-sonnet-5-5 "$METRICS" 108 ) \
-  > "$knobs_out" 2>/dev/null
-knobs_status=$?
-[[ "$knobs_status" -eq 0 ]] ||
-  problems+=("want metrics.sh to exit 0, it exited $knobs_status")
+VERI_MODEL= VERI_MODEL_DEVELOPER=claude-opus-5-5 VERI_MODEL_VERIFIER=claude-sonnet-5-5 \
+  render "$knobs_work" "$knobs_out"
 header_says "$knobs_out" \
   VERI_MODEL=unset \
   VERI_MODEL_DEVELOPER=claude-opus-5-5 \
