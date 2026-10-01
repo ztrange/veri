@@ -25,7 +25,7 @@ if [[ ! "$threshold" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
 fi
 
 trace="$(mktemp)"
-trap 'rc=$?; rm -f "$trace"; end_in_contract "$rc"' EXIT
+at_exit 'rm -f "$trace"'
 
 for suite in "$@"; do
   BASH_XTRACEFD=9 bash -c 'PS4='\''+${EPOCHREALTIME} ${LINENO} '\''; set -x; . "$0"' \

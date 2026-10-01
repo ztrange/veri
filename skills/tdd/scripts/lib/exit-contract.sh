@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# lib/exit-contract.sh — sourced, not run: defines `refuse`, `require_args` and `to_contract`.
+# lib/exit-contract.sh — sourced, not run: defines `refuse`, `require_args`, `to_contract` and
+# `at_exit`.
 #
 # refuse [message] — print <message> (if given), then the caller's $USAGE, on stderr; exit 2.
 # require_args <n> "$@" — refuse unless the first <n> arguments are present and non-empty;
 #   return 0 otherwise.
 # to_contract <code> — print <code> if it is 0, 1, 2 or 3, else 2.
+# at_exit <command> — run <command> at exit, before the code is mapped; never re-arm the trap.
 #
 # Sourcing it arms an EXIT trap: the sourcing script exits 2 for any code outside 0-3, unless
 # the exit is a declared pass-through — its line directly preceded by `# pass-through: <why>`.
@@ -59,4 +61,16 @@ end_in_contract() {
   builtin exit "$(to_contract "$1")"
 }
 
-trap 'end_in_contract "$?"' EXIT
+at_exit() { _ec_at_exit+=("$*"); }
+
+_ec_exit_trap() {
+  local rc=$? command
+  for command in "${_ec_at_exit[@]}"; do
+    # hazard: under the caller's set -e a failed eval would end the trap before the mapping.
+    eval "$command" || true
+  done
+  end_in_contract "$rc"
+}
+
+_ec_at_exit=()
+trap _ec_exit_trap EXIT
