@@ -158,7 +158,7 @@ ledger_steps="$(cd "$(dirname "$0")" && pwd)/ledger-steps.sh"
 
 # hazard: the python block is one single-quoted string, so an apostrophe inside it ends it.
 exec python3 -c '
-import json, subprocess, sys
+import json, os, subprocess, sys
 
 issue, path, ledger, ledger_steps = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 
@@ -513,6 +513,11 @@ print("Cost is every leaf of the run, and the conductor own %s."
       % ("closing accounting with them, which this log carries"
          if conductor_counted else
          "spending is not in it: this log carries no usage record of the conductor own"))
+if models:
+    print("Models requested: %s; models that answered: %s."
+          % (", ".join("%s %s" % (knob, os.environ.get(knob) or "unset")
+                       for knob in ["VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER"]),
+             ", ".join(sorted({m for answered in models.values() for m in answered.split(",") if m}))))
 section("#### By phase", "phase", PHASE_COLUMNS, counts)
 if models:
     table_head("#### By model", "role", ["model"] + PHASE_COLUMNS, ["---"] + ["---:"] * len(PHASE_COLUMNS))
