@@ -1,19 +1,14 @@
 #!/usr/bin/env bash
 # Tests for scripts/detach-command.sh — the conductor's detach-then-wait helper for a long
-# command such as the baseline or full-suite `make test` (issue #601).
+# command such as the baseline or full-suite `make test`.
 #
-# A print-mode conductor that backgrounds a long command and ends its turn exits `claude -p`,
-# which kills the command. The helper splits the run in two, as detach-leaf.sh and
-# wait-leaf.sh do for a leaf:
+# Contract under test:
 #   detach-command.sh start <name> <cmd> [args…]  → returns at once; the command runs in a
 #                                                   session of its own and its exit code is
 #                                                   written to .tdd/<name>.exit when it ends
 #   detach-command.sh wait <name> [max-seconds]   → the recorded code, or 3 after max-seconds
 #                                                   with no completion file (call again), or
 #                                                   2 when the command died recording nothing
-#
-# The commands started are stubs that block on a GO file this suite creates, so both the
-# "still running" and the "finished" halves are observed without a timer deciding either.
 #
 # Run: scripts/tests/detach-command.test.sh
 set -uo pipefail

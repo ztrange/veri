@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/lib/github.sh — sourced, never executed, with `gh` mocked as a
 # same-named shell function.
-#
-# Fast tier (#336): no git, no network, no servers, no real sleep, no nested suites —
+# Fast tier: no git, no network, no servers, no real sleep, no nested suites —
 # by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Run: scripts/tests/unit/github.test.sh

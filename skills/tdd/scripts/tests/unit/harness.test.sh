@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Tests for scripts/tests/lib/harness.sh — the scaffolding every suite sources: counters,
 # the `ok`/`no`/`report`/`expect_eq` helpers and the count line.
-#
 # Admitted to the fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Run: scripts/tests/unit/harness.test.sh

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/tests/lib/gh-fixture.sh — sourced, never executed: the helper that
 # registers a PR in a VERI_GH_JSON fixture's prs.json.
-#
 # Fast tier: no git, no network, no servers, no real sleep, no nested suites —
 # by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
