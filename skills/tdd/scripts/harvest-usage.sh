@@ -66,6 +66,7 @@ def usage_pairs(record):
         pairs.append("%s=%s" % (key, usage[key]))
     if "modelUsage" in record:
         pairs.append("model=%s" % ",".join(record["modelUsage"]))
+        pairs.append("model_usage=%s" % json.dumps(record["modelUsage"], sort_keys=True))
     return pairs
 
 record = closing_result(sys.argv[1])
