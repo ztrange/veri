@@ -1,6 +1,6 @@
 # Plan for #604 — a leaf's usage event and the run's metrics record which model answered
 
-- [x] the `usage` event harvest-usage.sh appends carries a `model` key naming the one model a result record's `modelUsage` lists ⟦criterion 1⟧ ⟂ refactor pending
+- [x] the `usage` event harvest-usage.sh appends carries a `model` key naming the one model a result record's `modelUsage` lists ⟦criterion 1⟧
 - [ ] when `modelUsage` names more than one model, the usage event's `model` key lists every one of them ⟦criterion 1⟧
 - [ ] when `modelUsage` names more than one model, the usage event keeps each model's own token and cost figures alongside, rather than only their sums ⟦criterion 1⟧
 - [ ] a result record with no `modelUsage` still yields a `usage` event with `model` empty, and harvest-usage.sh's exit code and stderr for it are unchanged ⟦criterion 2⟧
