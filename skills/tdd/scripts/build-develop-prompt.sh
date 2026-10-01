@@ -31,7 +31,8 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 phases="red|green|refactor|cover|transform|structural|revise|reconcile|exhausted|over-budget|rebase"
-source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
 USAGE="build-develop-prompt: usage: $phases <issue-spec-file> <step-text> <test-cmd> ..."
 (( $# >= 1 )) || refuse
 phase="$1"
@@ -109,7 +110,6 @@ case "$phase" in
     ;;
 esac
 
-HERE="$(cd "$(dirname "$0")" && pwd)"
 tpl_file="$HERE/prompts/develop-$phase.md"
 shared_file="$HERE/prompts/_develop-shared.md"
 
