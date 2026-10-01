@@ -77,4 +77,26 @@ expect_eq "a script that sources the module and ends outside 0-3, by a set -e ab
 $(ending_with 5)
 echo unreachable") last=$(exit_of_script "$ends_dir" last.sh "$(ending_with 7)") in-contract=$(exit_of_script "$ends_dir" in-contract.sh "$(ending_with 3)")"
 
+pass_dir="$(scratch_dir)"
+expect_eq "a script that sources the module hands on a declared pass-through exit's code unmapped outside 0-3, while an undeclared exit outside 0-3 still ends as 2" \
+  "declared=5 undeclared=2" \
+  "declared=$(exit_of_script "$pass_dir" declared.sh "USAGE='usage: passes.sh'
+source '$LIB'
+rc=5
+# pass-through: the caller asks for the foreign command's own status
+exit \"\$rc\"") undeclared=$(exit_of_script "$pass_dir" undeclared.sh "USAGE='usage: passes.sh'
+source '$LIB'
+rc=5
+exit \"\$rc\"")"
+
+expect_eq "a declared pass-through exit indented inside a block hands on its code unmapped outside 0-3" \
+  "indented=5" \
+  "indented=$(exit_of_script "$pass_dir" indented.sh "USAGE='usage: passes.sh'
+source '$LIB'
+rc=5
+if (( rc != 0 )); then
+  # pass-through: the caller asks for the foreign command's own status
+  exit \"\$rc\"
+fi")"
+
 finish
