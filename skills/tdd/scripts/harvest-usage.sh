@@ -37,23 +37,14 @@ source "$HERE/lib/leaf-role.sh"
 # hazard: the python block is one single-quoted string, so an apostrophe inside it ends it.
 # hazard: captured, not piped — a pipeline's status is its last command's, losing python's exit 3.
 status=0
-pairs="$(python3 -c '
+pairs="$(PYTHONPATH="$HERE/lib" python3 -c '
 import json, sys
+from leaf_log import result_records
 
 def closing_result(path):
     """The last {"type":"result", ...} record in the log at path, or None if it holds none."""
-    record = None
-    for line in open(path):
-        s = line.strip()
-        if not s.startswith("{"):
-            continue
-        try:
-            obj = json.loads(s)
-        except ValueError:
-            continue
-        if isinstance(obj, dict) and obj.get("type") == "result":
-            record = obj           # last result record wins
-    return record
+    records = result_records(open(path))
+    return records[-1] if records else None
 
 def usage_pairs(record):
     """The eight numbers in one closing result record, as event.sh key=value arguments."""
