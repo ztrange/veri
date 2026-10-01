@@ -212,9 +212,12 @@ def reading(mark, clock):
         return None
     return mark.get(clock)
 
+def wall_and_awake_spans(start, end):
+    return (span(reading(start, "ts"), reading(end, "ts")),
+            span(reading(start, "awake"), reading(end, "awake")))
+
 def awake_span_or_wall(start, end):
-    awake = span(reading(start, "awake"), reading(end, "awake"))
-    wall = span(reading(start, "ts"), reading(end, "ts"))
+    wall, awake = wall_and_awake_spans(start, end)
     return wall if awake is None or wall < awake else awake
 
 def planned_steps(path):
@@ -485,8 +488,7 @@ def tier_section(heading, key_column):
 
 print("### 📊 Metrics — issue %s" % issue)
 print()
-wall_span = span(reading(opening, "ts"), reading(ending, "ts"))
-awake_span = span(reading(opening, "awake"), reading(ending, "awake"))
+wall_span, awake_span = wall_and_awake_spans(opening, ending)
 print("Wall time for the issue: %s s, from the last `resume`, or the first event of the log when "
       "there is none, to the mark that ended the run."
       % known(awake_span_or_wall(opening, ending)))
