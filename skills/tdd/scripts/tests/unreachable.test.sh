@@ -196,4 +196,18 @@ printf '# notes\n\n`VERI_GHOST` is a knob.\n' > "$root/CLAUDE.md"
 expect_listing "$root" "promised-unread: VERI_GHOST" \
   "a scripts tree with no lib/ is searched for knobs without an error for the missing directory"
 
+root="$(fixture_root make-target)"
+S="$root/skills/tdd/scripts"
+cp "$HERE/../../../../Makefile" "$root/Makefile"
+cp "$UNREACHABLE" "$S/unreachable.sh"
+script "$S/helper.sh" 'echo helped'
+script "$S/orphan.sh" 'echo alone'
+out="$(make --no-print-directory -s -C "$root" unreachable 2>&1)"; code=$?
+got="$(printf '%s\n' "$out" | sed '/^$/d' | sort)"
+name="make unreachable runs unreachable.sh over the repository it is run in and exits 0, so the check is itself reached from a declared entry point"
+if [[ "$code" == 0 && "$got" == "orphan.sh" ]]; then ok; else
+  no "$name (code=$code)"
+  diff <(printf 'orphan.sh\n') <(printf '%s\n' "$got") | sed 's/^/    /'
+fi
+
 finish

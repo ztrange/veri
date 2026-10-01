@@ -173,6 +173,11 @@ profile:
 	$(OFFLINE_GIT); \
 	$(OFFLINE_ENV) skills/tdd/scripts/profile.sh $(SUITES) < /dev/null
 
+# `make unreachable` lists the scripts no declared entry point reaches, through unreachable.sh.
+.PHONY: unreachable
+unreachable:
+	@skills/tdd/scripts/unreachable.sh "$(CURDIR)"
+
 # `make watch` reruns `make unit` when a tracked file changes (#340). A developer
 # convenience — not part of `test`, `unit` or `merge-gates`, and nothing gates on it.
 #
