@@ -214,7 +214,8 @@ def reading(mark, clock):
 
 def awake_span_or_wall(start, end):
     awake = span(reading(start, "awake"), reading(end, "awake"))
-    return awake if awake is not None else span(reading(start, "ts"), reading(end, "ts"))
+    wall = span(reading(start, "ts"), reading(end, "ts"))
+    return wall if awake is None or wall < awake else awake
 
 def planned_steps(path):
     try:
