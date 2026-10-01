@@ -11,10 +11,10 @@
 # is why the comment is part of the contract and not decoration.
 #
 # Contract under test:
-#   .github/workflows/ci.yml, the `gates` job: `timeout-minutes: 5` at job level, and the
+#   .github/workflows/ci.yml, the `gates` job: `timeout-minutes: 8` at job level, and the
 #   comment beside it names the 6-hour ceiling it protects against, cites the ~160-175 s the
-#   job observably takes and the ~230 s it took while the docs gates ran in CI, says the 5 is
-#   temporary until #282 and #290 land, and says
+#   job observably takes and the ~230 s it took while the docs gates ran in CI, says the 8 is
+#   temporary, naming #282 and #290, whose landing did not bring the job back under it, and says
 #   the budget assumes those gates stay out of CI.
 #
 #   .github/workflows/pages.yml, the `deploy` job: `timeout-minutes: 10` at job level, and
@@ -101,14 +101,14 @@ timeout_comment() {
   lc="$(printf '%s' "$ctx" | tr 'A-Z' 'a-z')"
 }
 
-name="ci.yml gates: timeout-minutes 5, with a comment citing the 6-hour ceiling, the measured 160-175 s, ~230 s, the temporary raise, and docs gates staying out of CI"
+name="ci.yml gates: timeout-minutes 8, with a comment citing the 6-hour ceiling, the measured 160-175 s, ~230 s, the temporary raise, and docs gates staying out of CI"
 problems=()
 
-if timeout_comment "$CI_YML" gates 5; then
+if timeout_comment "$CI_YML" gates 8; then
   probe_ceiling
   probe "comment does not cite the measured 160-175 s the job takes" \
     '(^|[^0-9])(1[5-9][0-9])[ -]?s'
-  probe "comment does not say the 5 is temporary, naming what has to land first" \
+  probe "comment does not say the 8 is temporary, naming what has to land first" \
     'temporar' '(#282|#290)'
   probe "comment does not cite the ~230 s the job took when the docs gates ran in CI" \
     '(2[0-9][0-9][ -]?s|3\.8[ -]?min)'

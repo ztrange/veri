@@ -46,17 +46,21 @@ jobs:
     # suites take (#282). At 3 minutes `main` had 5 s of headroom and two finished PRs
     # (#272, #286) were cancelled mid-run rather than failed.
     #
-    # So this is **5 minutes, deliberately and temporarily**, to keep a green branch from
-    # being cancelled while the suites are made fast. It costs nothing on a green run and
-    # raises the ceiling on a STUCK job from 3 to 5 minutes — about 1.2 cents on
-    # ubuntu-latest at $0.006/min. **Put it back to 3 once #282 (sub-second clock) and
-    # #290 (the per-supervision python3 starts) have landed**, which should take the job
-    # to well under 2 minutes.
+    # So this was 5 minutes, deliberately and temporarily, to keep a green branch from
+    # being cancelled while the suites were made fast; it was meant to go back to 3 once
+    # #282 (sub-second clock) and #290 (the per-supervision python3 starts) landed. Both
+    # landed and the suites grew faster than they shrank: on 2026-09-30 `main` itself took
+    # 228-302 s, and three finished PRs (#594, #603, #605) were cancelled at 5:00 with no
+    # suite failed — #603's `make test` printed `all suites green` at 4:52 and the job was
+    # cancelled in its post-steps. So it is now **8 minutes**, again temporarily, until
+    # `make test` on Linux is back well under 3 minutes. It costs nothing on a green run
+    # and raises the ceiling on a STUCK job from 5 to 8 minutes — about 1.8 cents more on
+    # ubuntu-latest at $0.006/min.
     #
     # The number still assumes the docs gates stay out of CI (#90): while they ran here
     # the job took ~230 s, which even this budget would cut off. Putting them back means
     # raising this, deliberately, rather than discovering it as a failure.
-    timeout-minutes: 5
+    timeout-minutes: 8
 
     steps:
       - uses: actions/checkout@v4
