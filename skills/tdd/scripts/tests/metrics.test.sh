@@ -1627,6 +1627,29 @@ if not any(names(l, "10000") for l in lines):
 report_on "$name" "$slept_out"
 
 
+name="#643 given a log with a real suspend, the not-running line still names the suspend's seconds and the issue wall is the awake span"
+problems=()
+
+probe '
+import re, sys
+
+lines = [l.strip() for l in open(sys.argv[1]).read().splitlines()]
+stopped = [l for l in lines if l.startswith("Seconds the machine was not running inside that span:")]
+walls = [l for l in lines if l.startswith("Wall time for the issue:")]
+
+if not stopped:
+    print("want a line starting \"Seconds the machine was not running inside that span:\", the report has none")
+elif not stopped[0].startswith("Seconds the machine was not running inside that span: 10000 s,"):
+    print("want the not-running line to say 10000 s, it says: %r" % stopped[0])
+if not walls:
+    print("want a line starting \"Wall time for the issue:\", the report has none")
+elif re.match(r"Wall time for the issue: 217 s\b", walls[0]) is None:
+    print("want the issue wall to be the 217-second awake span, it says: %r" % walls[0])
+' "$slept_out"
+
+report_on "$name" "$slept_out"
+
+
 NOT_RUNNING_ZERO='
 import sys
 
