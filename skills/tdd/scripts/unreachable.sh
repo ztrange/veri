@@ -26,19 +26,20 @@ mentions() {
 
 declare -A reached=()
 queue=()
-while IFS= read -r name; do
-  reached[$name]=1
-  queue+=( "$name" )
-done < <(mentions "$root/skills/tdd/SKILL.md")
-
-while (( ${#queue[@]} > 0 )); do
-  current="${queue[0]}"
-  queue=( "${queue[@]:1}" )
+reach_from() {
+  local name
   while IFS= read -r name; do
     [[ -n "${reached[$name]:-}" ]] && continue
     reached[$name]=1
     queue+=( "$name" )
-  done < <(mentions "$scripts/$current")
+  done < <(mentions "$1")
+}
+
+reach_from "$root/skills/tdd/SKILL.md"
+while (( ${#queue[@]} > 0 )); do
+  current="${queue[0]}"
+  queue=( "${queue[@]:1}" )
+  reach_from "$scripts/$current"
 done
 
 for name in "${names[@]}"; do
