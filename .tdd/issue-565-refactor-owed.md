@@ -10,3 +10,5 @@
 - comment-class.test.sh cases for supervise.sh…run-verdict.sh, issue-worktree.sh…extract-result.sh, detect-test-command.sh…session-cost.sh, build-develop-prompt.sh…preserve-attempt.sh and leaf-timeout.sh…leaf-launchable.sh each spell out `problems=""; want_empty_sweepable …; verdict …` by hand. That is the body of the existing `sweep_verdict` helper, so each could become one `sweep_verdict` call. This cycle did not write those cases or that helper, so the change is out of bounds here.
 ### The leading header block of every top-level `tests/*.sh` whose name starts with a through e carries only its contract, and no line of it cites an issue number (`#<digits>`) ⟦criterion 9⟧
 - bind the `"$SCRIPTS"/tests/[a-e]*.sh` glob, repeated in the two header cases of tests/unit/comment-class.test.sh, to one array
+### The leading header block of every `tests/skill-*.test.sh` whose name after `skill-` starts with a through l carries only its contract, and no line of it cites an issue number (`#<digits>`) ⟦criterion 9⟧
+- fold the two separate a–e header cases in tests/unit/comment-class.test.sh into one header_verdict call (changes the case count and labels, so not applied)
