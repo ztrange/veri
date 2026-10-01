@@ -1,0 +1,3 @@
+### The missing-argument audit finds its own subjects: every script whose source prints a usage line is called without its required arguments and must exit 2 with its own usage text on stderr, with no hand-kept roster ⟦criterion 2⟧
+- missing_argument_audit runs every subject script twice (once inside missing_argument_offender, again to check its name is on stderr); running it once needs missing_argument_offender's interface to change, which is beyond duplication removal
+- missing-argument-guard.test.sh repeats the "no <name> (want …); show_run; else ok" verdict shape in judge and in both audit cases; extracting it means passing a compound condition in, which is new abstraction no test requires
