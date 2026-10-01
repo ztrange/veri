@@ -26,6 +26,8 @@
 #      follows that same rule, read over the whole document, prose included.
 #  10. That one rule says the title reaches a command line as data rather than hand-typed in
 #      double quotes, and names every script the launch lines read it through.
+#  11. Every line that builds the revise prompt with `build-develop-prompt.sh revise` hands
+#      it the run's fast command, `'<fast-cmd>'`.
 #
 # Run: scripts/tests/skill-leaf-launch.test.sh
 set -uo pipefail
@@ -395,6 +397,23 @@ for key in "${!EXEMPT[@]}"; do
   grep -qxF -- "${key##*:}" <<< "$title_linenos" ||
     problems+=("EXEMPT[$key] names a line that no fenced command carrying $step_ph is on in the rewritten document")
 done
+
+report "$name"
+
+name="$skill_md's revise launch hands build-develop-prompt.sh revise the run's fast command '<fast-cmd>' (#636)"
+problems=()
+
+revise_builds="$(grep -nF 'build-develop-prompt.sh revise <phase>' "$skill_path")"
+if [[ -z "$revise_builds" ]]; then
+  unreadable "line building the revise prompt with build-develop-prompt.sh revise" "what the revise launch hands the prompt builder"
+else
+  while IFS= read -r numbered; do
+    lineno="${numbered%%:*}"
+    line="${numbered#*:}"
+    [[ "$line" == *"'<fast-cmd>'"* ]] ||
+      problems+=("$skill_md:$lineno builds the revise prompt without the run's fast command '<fast-cmd>': $line")
+  done <<< "$revise_builds"
+fi
 
 report "$name"
 
