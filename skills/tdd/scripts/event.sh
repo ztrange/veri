@@ -47,7 +47,10 @@
 # line to a reader, and this does not manufacture the ambiguity, only fails to hide it.
 set -euo pipefail
 
-[[ -n "${1:-}" ]] || { echo "usage: event.sh <event> [key=value …]" >&2; exit 2; }
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+USAGE="usage: event.sh <event> [key=value …]"
+
+require_args 1 "$@"
 event="$1"
 shift
 

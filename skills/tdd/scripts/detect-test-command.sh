@@ -11,6 +11,8 @@
 #          (repo-root defaults to the current directory)
 set -euo pipefail
 
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+
 tier=""
 if [ "${1:-}" = "--tier" ]; then
   tier="${2:-}"

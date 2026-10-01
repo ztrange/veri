@@ -14,6 +14,7 @@
 # Usage:   ensure-run-state-ignored.sh [repo-root]      (default: the current directory)
 set -euo pipefail
 
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
 source "$(cd "$(dirname "$0")" && pwd)/lib/appendable.sh"
 
 root="${1:-.}"

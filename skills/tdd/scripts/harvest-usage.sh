@@ -23,7 +23,10 @@
 # them as they arrived means a reader who has seen one has seen the other.
 set -euo pipefail
 
-[[ -n "${1:-}" ]] || { echo "usage: harvest-usage.sh <leaf-name>" >&2; exit 2; }
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+USAGE="usage: harvest-usage.sh <leaf-name>"
+
+require_args 1 "$@"
 name="$1"
 
 log=".tdd/$name.log"

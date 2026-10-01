@@ -125,7 +125,7 @@ migrated() {  # migrated <script> … — want each to source lib/exit-contract.
     while IFS=: read -r lineno text; do
       [[ "${text#"${text%%[![:space:]]*}"}" == '#'* ]] && continue
       offenders+=( "$script:$lineno: hand-built usage-and-exit: ${text#"${text%%[![:space:]]*}"}" )
-    done < <(grep -niE '(usage.*>&2|^[[:space:]]*refuse[[:space:]]*\(\))' "$SCRIPTS/$script")
+    done < <(grep -niE '((usage:|\$\{?usage([^[:alnum:]_]|$)|^[[:space:]]*usage[[:space:]]).*>&2|^[[:space:]]*refuse[[:space:]]*\(\))' "$SCRIPTS/$script")
   done
 }
 
@@ -139,6 +139,12 @@ name="migration slice 2 sources lib/exit-contract.sh and refuses through it, wit
 offenders=()
 migrated comment-class.sh cover-outcome.sh coverage-blocker.sh criterion-finished.sh \
   dashboard.sh detach-command.sh detach-leaf.sh
+verdict "$name"
+
+name="migration slice 3 sources lib/exit-contract.sh and refuses through it, with no hand-built usage-and-exit idiom left"
+offenders=()
+migrated detect-test-command.sh ensure-run-state-ignored.sh event.sh exhausted-outcome.sh \
+  extract-result.sh harvest-usage.sh invisible-work.sh
 verdict "$name"
 
 name="no script guards a required positional argument with a bare \${N:?…} expansion"
