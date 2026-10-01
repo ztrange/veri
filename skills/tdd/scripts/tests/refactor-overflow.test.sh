@@ -87,4 +87,44 @@ done
 
 report "$name"
 
+name="refactor-overflow files nothing and exits 3 when no candidate is left unreached, and exits 2 on a missing or non-numeric argument"
+problems=()
+
+calls="$work/calls"
+logdir="$work/logbin"
+mkdir -p "$logdir"
+cat > "$logdir/gh" <<'STUB'
+#!/bin/sh
+printf '%s\n' "$*" >> "$FAKE_CALLS"
+echo "https://github.com/owner/name/issues/912"
+STUB
+chmod +x "$logdir/gh"
+
+headed_only="$work/headed-only.md"
+printf '### first step\n' > "$headed_only"
+
+overflow_case() {
+  local label="$1" want="$2" code
+  shift 2
+  : > "$calls"
+  (cd "$work" && env PATH="$logdir:$PATH" FAKE_CALLS="$calls" \
+    "$OVERFLOW" "$@" >"$out" 2>"$work/err") && code=0 || code=$?
+  [[ "$code" == "$want" ]] ||
+    problems+=("want exit $want $label, got $code: $(cat "$work/err")")
+  [[ ! -s "$out" ]] ||
+    problems+=("want empty stdout $label, got '$(cat "$out")'")
+  [[ ! -s "$calls" ]] ||
+    problems+=("want no gh call $label, got '$(cat "$calls")'")
+}
+
+overflow_case "with the owed file missing" 3 504 "$work/no-such-file.md" 0
+overflow_case "with no candidate in the owed file" 3 504 "$headed_only" 0
+overflow_case "when <reached> covers every candidate" 3 504 "$owed_file" 3
+overflow_case "on a missing argument" 2 504 "$owed_file"
+overflow_case "on a non-numeric <reached>" 2 504 "$owed_file" two
+overflow_case "on a non-numeric <n>" 2 five-oh-four "$owed_file" 1
+overflow_case "on an empty <owed-file>" 2 504 "" 1
+
+report "$name"
+
 finish
