@@ -2,7 +2,8 @@
 # unreachable.sh — the scripts under skills/tdd/scripts/ that no declared entry point reaches.
 # Entry points: SKILL.md, the Makefile, the git hooks under docs/hooks/.
 #
-# Usage:   unreachable.sh <repo-root>     # one unreachable script per line on stdout
+# Usage:   unreachable.sh <repo-root>     # one unreachable script per line on stdout;
+#                                         # one reached only from tests/ as `test-only: <name>`
 #
 # Exit:    0  the list was printed, possibly empty
 #          2  no <repo-root>
@@ -68,5 +69,11 @@ while (( ${#queue[@]} > 0 )); do
 done
 
 for name in "${names[@]}"; do
-  [[ -n "${reached[$name]:-}" ]] || printf '%s\n' "$name"
+  [[ -n "${reached[$name]:-}" ]] && continue
+  if [[ -d "$scripts/tests" ]] \
+     && grep -rqE "(^|[^[:alnum:]_.-])${name//./\\.}(\$|[^[:alnum:]_-])" "$scripts/tests"; then
+    printf 'test-only: %s\n' "$name"
+  else
+    printf '%s\n' "$name"
+  fi
 done
