@@ -14,6 +14,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
+draft_pr='### 4. Draft PR'
 
 
 source "$HERE/lib/harness.sh"
@@ -23,7 +24,7 @@ require() {
 }
 
 before_ready() {
-  awk -v h='### 4. Draft PR' \
+  awk -v h="$draft_pr" \
     'index($0, h) == 1 { inside = 1; next }
      inside && (/^#/ || /gh_pr_ready/) { exit }
      inside' "$skill_path" | tr -d '*`' | tr '\n' ' '
@@ -143,7 +144,7 @@ fi
 
 report "$name"
 
-pr_body="$(awk -v h='### 4. Draft PR' \
+pr_body="$(awk -v h="$draft_pr" \
   'index($0, h) == 1 { inside = 1; next }
    inside && /^### / { exit }
    inside && /-X PATCH .*-f body=/' "$skill_path")"
