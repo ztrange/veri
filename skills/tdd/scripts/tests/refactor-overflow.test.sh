@@ -120,4 +120,33 @@ overflow_case "on an empty <owed-file>" 2 504 "" 1
 
 report "$name"
 
+name="refactor-overflow sends no label with the issue it files, makes no call that labels or edits the parent issue, and writes no file into the repository"
+problems=()
+
+repo="$work/repo"
+mkdir -p "$repo/.tdd"
+cp "$owed_file" "$repo/.tdd/issue-504-refactor-owed.md"
+snapshot() { (cd "$repo" && find . -type f -exec cksum {} + | sort); }
+before="$(snapshot)"
+: > "$calls"
+(cd "$repo" && env PATH="$stubdir:$PATH" FAKE_CALLS="$calls" \
+  FAKE_TITLE="$work/title-5" FAKE_BODY="$work/body-5" \
+  "$OVERFLOW" 504 .tdd/issue-504-refactor-owed.md 1 >"$out" 2>"$work/err") && code=0 || code=$?
+
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0, got $code: $(cat "$work/err")")
+[[ -s "$calls" ]] ||
+  problems+=("want the one gh call that files the issue, got none")
+while IFS= read -r call; do
+  [[ "$call" != *label* ]] ||
+    problems+=("want no label sent or applied, got the gh call '$call'")
+  [[ "$call" != *"issue edit"* && "$call" != *"issues/504"* ]] ||
+    problems+=("want no call that edits the parent #504, got the gh call '$call'")
+done < "$calls"
+after="$(snapshot)"
+[[ "$after" == "$before" ]] ||
+  problems+=("want no file written into the repository, got $(diff <(printf '%s\n' "$before") <(printf '%s\n' "$after"))")
+
+report "$name"
+
 finish
