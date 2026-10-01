@@ -13,8 +13,9 @@
 # Output:  the worktree's absolute path on stdout, exit 0.
 set -euo pipefail
 
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
 USAGE="usage: issue-worktree.sh <n> <slug> | --remove <n>"
-[[ -n "${1:-}" && -n "${2:-}" ]] || { echo "$USAGE" >&2; exit 2; }
+require_args 2 "$@"
 
 # hazard: captured, not piped — under pipefail git's SIGPIPE status would decide the answer.
 registry="$(git worktree list --porcelain)"

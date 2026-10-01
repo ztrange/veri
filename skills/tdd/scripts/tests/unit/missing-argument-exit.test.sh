@@ -144,6 +144,8 @@ migration_slice 2 comment-class.sh cover-outcome.sh coverage-blocker.sh criterio
   dashboard.sh detach-command.sh detach-leaf.sh
 migration_slice 3 detect-test-command.sh ensure-run-state-ignored.sh event.sh exhausted-outcome.sh \
   extract-result.sh harvest-usage.sh invisible-work.sh
+migration_slice 4 issue-worktree.sh leaf-launchable.sh leaf-model.sh leaf-role.sh leaf-timeout.sh \
+  ledger-steps.sh metrics.sh
 
 name="no script guards a required positional argument with a bare \${N:?…} expansion"
 mapfile -t offenders < <(bare_expansion_offenders "$SCRIPTS")

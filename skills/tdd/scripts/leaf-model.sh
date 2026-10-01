@@ -37,10 +37,11 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
 source "$HERE/lib/leaf-model.sh"
+USAGE="usage: leaf-model.sh <leaf-name>"
 
-# hazard: `${1:?}` aborts with status 1, not the 2 bad arguments owe.
-[[ -n "${1:-}" ]] || { echo "usage: leaf-model.sh <leaf-name>" >&2; exit 2; }
+require_args 1 "$@"
 name="$1"
 
 leaf_model "$name"
