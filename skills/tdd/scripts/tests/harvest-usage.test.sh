@@ -239,4 +239,39 @@ want_listed="$(printf '%s\n' "$first_model" "$second_model" | LC_ALL=C sort)"
 
 report "$name"
 
+name="a closing result record whose modelUsage names two models: the usage event keeps each model's own token and cost figures alongside the sums"
+problems=()
+
+split=develop-red
+split_work="$work/split-model"
+mkdir -p "$split_work/.tdd"
+cat > "$split_work/.tdd/$split.log" <<LOG
+{"type":"result","duration_ms":1,"duration_api_ms":1,"num_turns":1,"total_cost_usd":0.5,"usage":{"input_tokens":20,"output_tokens":4000,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"modelUsage":{"$first_model":{"inputTokens":14,"outputTokens":3903,"cacheReadInputTokens":0,"cacheCreationInputTokens":0,"costUSD":0.495,"canonicalModel":"$first_model"},"$second_model":{"inputTokens":6,"outputTokens":97,"cacheReadInputTokens":0,"cacheCreationInputTokens":0,"costUSD":0.005,"canonicalModel":"$second_model"}}}
+LOG
+
+( cd "$split_work" && "$HARVEST" "$split" ) >/dev/null 2>&1
+split_code=$?
+[[ "$split_code" == 0 ]] ||
+  problems+=("want exit 0 from the harvester, got $split_code")
+
+split_missing="$(python3 -c '
+import json, re, sys
+known = {"ts", "awake", "issue", "actor", "phase", "step", "event", "attempt", "skill_commit",
+         "duration_ms", "duration_api_ms", "num_turns", "total_cost_usd", "input_tokens",
+         "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens", "model"}
+hits = [o for o in map(json.loads, open(sys.argv[1]).read().splitlines())
+        if o.get("event") == "usage"]
+if len(hits) != 1:
+    print("<<%d usage lines>>" % len(hits))
+    sys.exit()
+rest = json.dumps({k: v for k, v in hits[0].items() if k not in known})
+for want in sys.argv[2:]:
+    if not re.search(r"(?<![\w.])%s(?![\w.])" % re.escape(want), rest):
+        print(want)
+' "$split_work/.tdd/events.jsonl" "$first_model" 14 3903 0.495 "$second_model" 6 97 0.005 2>&1)"
+[[ -z "$split_missing" ]] ||
+  problems+=("per-model figures: want each model's own tokens and cost in the usage event beside the sums, missing: $(printf '%q' "${split_missing//$'\n'/ }")")
+
+report "$name"
+
 finish
