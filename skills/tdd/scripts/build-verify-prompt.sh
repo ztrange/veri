@@ -27,18 +27,14 @@ set -euo pipefail
 # hazard: bash 5.2's patsub_replacement makes an unescaped & in a ${var//…/…} replacement the matched text; off, every value is literal.
 shopt -u patsub_replacement 2>/dev/null || true
 
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
 USAGE="usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]"
-refuse() {
-  echo "build-verify-prompt: $1" >&2
-  echo "$USAGE" >&2
-  exit 2
-}
 
 step="" fast_cmd=""
 while :; do
   case "${1:-}" in
     --step|--fast-cmd)
-      [[ -n "${2:-}" ]] || refuse "$1 needs a value"
+      [[ -n "${2:-}" ]] || refuse "build-verify-prompt: $1 needs a value"
       case "$1" in
         --step) step="$2" ;;
         *) fast_cmd="$2" ;;
@@ -49,7 +45,7 @@ while :; do
 done
 
 # hazard: `${N:?}` would abort with status 1, the code reserved for an answer.
-[[ $# -ge 3 && -n "$1" && -n "$2" && -n "$3" ]] || { echo "$USAGE" >&2; exit 2; }
+require_args 3 "$@"
 phase="$1"
 spec_file="$2"
 test_path="$3"
@@ -57,18 +53,16 @@ target="${4:-the target test}"
 
 case "$phase" in
   red|green|refactor|pin|plan|rebase|transform) ;;
-  *) refuse "unknown phase '$phase' (want red|green|refactor|pin|plan|rebase|transform)" ;;
+  *) refuse "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin|plan|rebase|transform)" ;;
 esac
 
 if [[ ( "$phase" == green || "$phase" == refactor ) && -z "$fast_cmd" ]]; then
-  echo "build-verify-prompt: $phase needs --fast-cmd '<fast-tier test command>'" >&2
-  exit 2
+  refuse "build-verify-prompt: $phase needs --fast-cmd '<fast-tier test command>'"
 fi
 
 need_sha() {
   [[ "$2" =~ ^[0-9a-f]{7,40}$ ]] && return 0
-  echo "build-verify-prompt: $phase needs $1 as 7-40 lowercase hex characters, got '$2'" >&2
-  exit 2
+  refuse "build-verify-prompt: $phase needs $1 as 7-40 lowercase hex characters, got '$2'"
 }
 
 base_sha="${4:-}"

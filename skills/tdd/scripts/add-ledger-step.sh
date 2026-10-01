@@ -19,9 +19,11 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$HERE/lib/ledger.sh"
+source "$HERE/lib/exit-contract.sh"
 
-usage='usage: add-ledger-step.sh <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]'
-[[ $# -ge 4 && -n "$1" && -n "$2" && -n "$3" ]] || { printf '%s\n' "$usage" >&2; exit 2; }
+USAGE='usage: add-ledger-step.sh <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]'
+(( $# >= 4 )) || refuse
+require_args 3 "$@"
 file="$1"
 where="$2"
 anchor="$3"

@@ -102,6 +102,11 @@ offenders=()
 unset VERI_TIMEOUT VERI_REFACTOR_BUDGET
 rejects build-verify-prompt.sh bogus spec test-path     # unknown phase
 rejects build-develop-prompt.sh bogus spec step cmd     # unknown phase
+rejects build-develop-prompt.sh revise bogus spec step cmd reason  # unknown phase to revise
+rejects build-verify-prompt.sh green spec test-path     # green without --fast-cmd
+rejects build-verify-prompt.sh --fast-cmd x refactor spec test-path nothex  # malformed <base-sha>
+rejects build-verify-prompt.sh rebase spec nothex nothex  # malformed <onto-sha>
+rejects affected-suites.sh no-range                     # not a <base>..<head> range
 rejects classify-bail.sh bogus                          # unknown cause
 rejects leaf-timeout.sh ten                             # malformed number
 rejects refactor-budget.sh ten                          # malformed number
@@ -110,6 +115,19 @@ rejects stop-requested.sh --bogus                       # unknown flag
 rejects stop-run.sh --mode bogus 1                      # unknown mode
 rejects stop-run.sh ten                                 # malformed number
 rejects workqueue.sh bogus                              # unknown subcommand
+verdict "$name"
+
+name="migration slice 1 sources lib/exit-contract.sh and refuses through it, with no hand-built usage-and-exit idiom left"
+offenders=()
+for script in add-ledger-step.sh affected-suites.sh build-develop-prompt.sh build-verify-prompt.sh \
+  capture-spec.sh classify-bail.sh clear-refactor-pending.sh; do
+  grep -E '^[[:space:]]*(source|\.)[[:space:]].*lib/exit-contract\.sh' "$SCRIPTS/$script" > /dev/null \
+    || offenders+=( "$script: does not source lib/exit-contract.sh" )
+  while IFS=: read -r lineno text; do
+    [[ "${text#"${text%%[![:space:]]*}"}" == '#'* ]] && continue
+    offenders+=( "$script:$lineno: hand-built usage-and-exit: ${text#"${text%%[![:space:]]*}"}" )
+  done < <(grep -niE '(usage.*>&2|^[[:space:]]*refuse[[:space:]]*\(\))' "$SCRIPTS/$script")
+done
 verdict "$name"
 
 name="no script guards a required positional argument with a bare \${N:?…} expansion"

@@ -7,16 +7,18 @@
 # Prints one suite path per line, sorted, with no duplicate.
 set -euo pipefail
 
-[[ -n "${1:-}" ]] || { echo "usage: affected-suites.sh <base>..<head>" >&2; exit 2; }
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+
+USAGE="usage: affected-suites.sh <base>..<head>"
+require_args 1 "$@"
 range="$1"
 scripts=skills/tdd/scripts
 
 # hazard: git diff reads a range with no `..` as a revision against the working tree.
-[[ "$range" == *..* ]] ||
-  { echo "affected-suites: '$range' is not a <base>..<head> range" >&2; exit 2; }
+[[ "$range" == *..* ]] || refuse "affected-suites: '$range' is not a <base>..<head> range"
 for rev in "${range%%..*}" "${range#*..}"; do
   git rev-parse --verify --quiet "$rev^{commit}" >/dev/null ||
-    { echo "affected-suites: cannot resolve revision '$rev'" >&2; exit 2; }
+    refuse "affected-suites: cannot resolve revision '$rev'"
 done
 
 suites_naming() {

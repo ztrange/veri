@@ -36,7 +36,11 @@ seeded='# Plan for #42
 
 seed() { printf '%s\n' "$seeded" > "$led"; }
 
-stub_script() { mkdir -p "$stub/lib"; cp "$ADD" "$stub/add-ledger-step.sh"; }
+stub_script() {
+  mkdir -p "$stub/lib"
+  cp "$ADD" "$stub/add-ledger-step.sh"
+  cp "$(dirname "$ADD")/lib/exit-contract.sh" "$stub/lib/exit-contract.sh"
+}
 
 seed
 "$ADD" "$led" after 'collapse to single hyphen' 'collapse a unicode dash too'; code=$?

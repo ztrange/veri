@@ -31,8 +31,9 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 phases="red|green|refactor|cover|transform|structural|revise|reconcile|exhausted|over-budget|rebase"
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
 USAGE="build-develop-prompt: usage: $phases <issue-spec-file> <step-text> <test-cmd> ..."
-(( $# >= 1 )) || { echo "$USAGE" >&2; exit 2; }
+(( $# >= 1 )) || refuse
 phase="$1"
 
 case "$phase" in
@@ -46,19 +47,14 @@ case "$phase" in
   exhausted) want=5 ;;
   over-budget) want=6 ;;
   rebase) want=7 ;;
-  *) echo "build-develop-prompt.sh: unknown phase '$phase' (want $phases)" >&2; echo "$USAGE" >&2; exit 2 ;;
+  *) refuse "build-develop-prompt.sh: unknown phase '$phase' (want $phases)" ;;
 esac
-refuse() {
-  echo "build-develop-prompt: $1" >&2
-  echo "$USAGE" >&2
-  exit 2
-}
 
-(( $# >= want )) || refuse "$phase needs $want arguments, got $#"
+(( $# >= want )) || refuse "build-develop-prompt: $phase needs $want arguments, got $#"
 
 # hazard: `${N:?}` would abort with status 1, the code reserved for an answer.
 need() {
-  [[ -n "$2" ]] || refuse "missing $3"
+  [[ -n "$2" ]] || refuse "build-develop-prompt: missing $3"
   printf -v "$1" '%s' "$2"
 }
 
@@ -67,7 +63,7 @@ if [[ "$phase" == "revise" ]]; then
   need revised_phase "${2:-}" '<phase> being revised'
   case "$revised_phase" in
     red|green|refactor) ;;
-    *) echo "build-develop-prompt: unknown phase to revise '$revised_phase' (want red|green|refactor)" >&2; exit 2 ;;
+    *) refuse "build-develop-prompt.sh: unknown phase to revise '$revised_phase' (want red|green|refactor)" ;;
   esac
   shift
 fi
@@ -108,7 +104,7 @@ case "$phase" in
     need budget "${6:-}" '<budget>'
     for figure in "<spent>=$spent" "<budget>=$budget"; do
       [[ "${figure#*=}" =~ ^[0-9]+(\.[0-9]+)?$ ]] \
-        || refuse "${figure%%=*} '${figure#*=}' is not a non-negative decimal number"
+        || refuse "build-develop-prompt: ${figure%%=*} '${figure#*=}' is not a non-negative decimal number"
     done
     ;;
 esac
