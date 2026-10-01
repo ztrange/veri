@@ -20,7 +20,12 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
 source "$HERE/lib/candidate-line.sh"
+
+USAGE="refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' < leaf-report.txt
+                      refactor-owed.sh render <file>
+                      refactor-owed.sh list <file>"
 
 verb="${1:-}"
 file="${2:-}"
@@ -62,9 +67,6 @@ case "$verb" in
       cut -f3-
     ;;
   *)
-    echo "refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' < leaf-report.txt" >&2
-    echo "                      refactor-owed.sh render <file>" >&2
-    echo "                      refactor-owed.sh list <file>" >&2
-    exit 2
+    refuse
     ;;
 esac

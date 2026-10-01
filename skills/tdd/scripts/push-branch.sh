@@ -21,6 +21,9 @@
 # to `.tdd/events.jsonl` through event.sh, and that line is the only way a human reading the
 # run afterwards learns the branch is not on the remote.
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/exit-contract.sh"
+USAGE="usage: push-branch.sh [--force-with-lease=<branch>:<sha>]"
+
 record() {
   local here
   here="$(cd "$(dirname "$0")" && pwd)"
@@ -35,8 +38,7 @@ main() {
 
   if (( $# > 0 )); then
     if [[ $# -ne 1 || ! "$1" =~ ^--force-with-lease=[^:]+:[0-9a-f]{7,40}$ ]]; then
-      echo "push-branch.sh: the only argument is --force-with-lease=<branch>:<sha>, got '$*'" >&2
-      exit 2
+      refuse "push-branch.sh: the only argument is --force-with-lease=<branch>:<sha>, got '$*'"
     fi
     lease=("$1")
   fi

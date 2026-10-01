@@ -18,6 +18,8 @@
 # be fetched, or a fetch leaves origin/<default> behind the remote's own branch: the local
 # copy is stale, so no rebase is attempted onto it.
 
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/exit-contract.sh"
+
 rebase_in_progress() {
   local d
   for d in rebase-merge rebase-apply; do

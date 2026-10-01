@@ -181,6 +181,20 @@ out="$(env -u VERI_PROFILE_THRESHOLD "$PROFILE" "$fixture" 2>/dev/null)" && code
 [[ -z "$out" ]] || problems+=("no case reaching 1 s: want no output, got: $(printf '%q' "$out")")
 report "$name"
 
+name="a command dying with 5 ends in exit 2, and the trace file is still removed"
+problems=()
+fixture="$scratch/format.test.sh"
+shim="$scratch/sort-dies-with-5"
+trace="$scratch/own-trap-trace"
+mkdir -p "$shim"
+printf '#!/bin/sh\ncat > /dev/null\nexit 5\n' > "$shim/sort"
+printf '#!/bin/sh\n: > "%s"\necho "%s"\n' "$trace" "$trace" > "$shim/mktemp"
+chmod +x "$shim/sort" "$shim/mktemp"
+out="$(PATH="$shim:$PATH" VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
+[[ "$code" == 2 ]] || problems+=("sort dies with 5: want exit 2, got $code")
+[[ ! -e "$trace" ]] || problems+=("sort dies with 5: want the trace file $trace removed, it is still there")
+report "$name"
+
 name="a traced bash that takes no PS4 from its environment still gets stamped lines"
 problems=()
 fixture="$scratch/format.test.sh"
