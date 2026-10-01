@@ -23,7 +23,7 @@
 - [x] The pass-through sites in run-leaf.sh, run-suite.sh, supervise.sh and tick-issue-criterion.sh map through to_contract or carry a `# pass-through: <why>` marker, and leave the audit's exemption table ⟦criterion 3⟧
 - [x] The pass-through sites in tick-ledger.sh, timed-test-run.sh, verify.sh and wait-leaf.sh map through to_contract or carry a `# pass-through: <why>` marker, and the audit's exemption table is empty ⟦criterion 3⟧
 - [x] run-leaf.sh exits 2, never the foreign code, when the claude binary it runs exits with a code outside 0–3 ⟦criterion 4⟧
-- [ ] tick-ledger.sh and clear-refactor-pending.sh exit 2, never the foreign code, when their ledger transform fails with a code outside 0–3 ⟦criterion 4⟧
+- [x] tick-ledger.sh and clear-refactor-pending.sh exit 2, never the foreign code, when their ledger transform fails with a code outside 0–3 ⟦criterion 4⟧
 - [ ] Every script's behaviour is otherwise unchanged ⟦full-suite⟧ ⟦criterion 5⟧
 
 ## Owed steps

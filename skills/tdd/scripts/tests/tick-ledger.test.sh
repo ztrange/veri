@@ -74,4 +74,19 @@ want='ledger_tick [collapse to single hyphen] [pending]'
   && ok || no "--refactor-pending ticks through lib/ledger.sh's ledger_tick … pending (code=$code)
 $(diff <(printf '%s\n' "$want") <(printf '%s\n' "$got"))"
 
+foreign="$work/foreign"
+mkdir -p "$foreign/lib"
+cp "$TICK" "$foreign/tick-ledger.sh"
+cp "$HERE/../clear-refactor-pending.sh" "$foreign/clear-refactor-pending.sh"
+cp "$HERE/../lib/exit-contract.sh" "$foreign/lib/exit-contract.sh"
+cat > "$foreign/lib/ledger.sh" <<'EOF'
+ledger_tick() { cat > /dev/null; return 7; }
+ledger_clear_pending() { cat > /dev/null; return 7; }
+EOF
+seed
+"$foreign/tick-ledger.sh" "$led" "collapse to single hyphen" 2>/dev/null; tick=$?
+"$foreign/clear-refactor-pending.sh" "$led" "collapse to single hyphen" 2>/dev/null; clear=$?
+{ [[ "$tick" == 2 ]] && [[ "$clear" == 2 ]]; } \
+  && ok || no "a foreign ledger-transform code exits 2 from tick-ledger.sh and clear-refactor-pending.sh (tick=$tick clear=$clear)"
+
 finish
