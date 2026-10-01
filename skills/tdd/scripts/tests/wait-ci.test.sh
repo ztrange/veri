@@ -126,7 +126,7 @@ sha_head() {
 }
 
 wait_in() {
-  ( cd "$1" && env VERI_POLL=0 VERI_CLOCK_STEP=60 VERI_CLOCK_LOG="$work/$2.clock" \
+  ( cd "$1" && env VERI_POLL=0 VERI_CLOCK_STEP="${CLOCK_STEP:-60}" VERI_CLOCK_LOG="$work/$2.clock" \
       PR_URL="$PR" ROLLUP="$work/$2.json" PATH="$work/bin:$PATH" \
       "$WAIT" "$PR" "${@:4}" >/dev/null 2>"$3" )
   echo $?
@@ -153,6 +153,11 @@ expect_exit() {
   local got
   got="$(waited "$1" "${3:-1800}")"
   [[ "$got" == "$2" ]] || problems+=("$1, bound ${3:-1800}: want exit $2, got $got (stderr: $(cat "$work/$1.err"))")
+  if [[ -n "${CLOCK_STEP:-}" ]]; then
+    local readings
+    readings="$(wc -l < "$work/$1.clock" | tr -d ' ')"
+    [[ "$readings" -le 3 ]] || problems+=("$1, bound ${3:-1800}: reached it in $readings clock readings, want at most 3")
+  fi
 }
 
 rollup pending.json "$(check COMPLETED SUCCESS),$(check IN_PROGRESS '')"
@@ -163,7 +168,7 @@ rollup empty.json   ""
 name="wait-ci.sh exits 3 while a check is pending, 0 when every check completed SUCCESS, NEUTRAL or SKIPPED, 1 on any other conclusion, and never 0 on an empty rollup (#544)"
 problems=()
 for want in pending:3 green:0 red:1; do
-  expect_exit "${want%%:*}" "${want##*:}"
+  if [[ "${want##*:}" == 3 ]]; then CLOCK_STEP=900 expect_exit "${want%%:*}" 3; else expect_exit "${want%%:*}" "${want##*:}"; fi
 done
 got="$(waited empty)"
 [[ "$got" != 0 ]] || problems+=("empty rollup: exited 0")
@@ -215,7 +220,7 @@ problems=()
 for want in PENDING:3 EXPECTED:3 FAILURE:1 ERROR:1; do
   st="${want%%:*}"
   rollup "legacy-$st.json" "$(check COMPLETED SUCCESS),$(context "$st")"
-  expect_exit "legacy-$st" "${want##*:}"
+  if [[ "${want##*:}" == 3 ]]; then CLOCK_STEP=900 expect_exit "legacy-$st" 3; else expect_exit "legacy-$st" "${want##*:}"; fi
 done
 report "$name"
 
@@ -223,7 +228,7 @@ name="wait-ci.sh reads a legacy StatusContext whose state is SUCCESS as a comple
 problems=()
 rollup legacy-success-pending.json "$(check IN_PROGRESS ''),$(context SUCCESS)"
 rollup legacy-success-green.json "$(check COMPLETED SUCCESS),$(context SUCCESS)"
-expect_exit legacy-success-pending 3
+CLOCK_STEP=900 expect_exit legacy-success-pending 3
 expect_exit legacy-success-green 0
 report "$name"
 
@@ -246,7 +251,7 @@ report "$name"
 name="wait-ci.sh never reads a rollup whose every check concluded SKIPPED as green: it exits 3 while its bound lasts, since a check skipped on a draft push has not tested the head (#544)"
 problems=()
 rollup all-skipped.json "$(check COMPLETED SKIPPED),$(check COMPLETED SKIPPED)"
-expect_exit all-skipped 3
+CLOCK_STEP=900 expect_exit all-skipped 3
 report "$name"
 
 name="wait-ci.sh takes the head sha it waits for, and exits 3 at the end of its slice while the PR still reports a different head, even one whose checks all completed SUCCESS (#550)"
