@@ -25,10 +25,14 @@ show_run() {  # show_run <exit> <stdout-file> <stderr-file> — print what a fai
   echo "    stderr: $(printf '%q' "$(cat "$3")")"
 }
 
+run_lib() {  # run_lib <function> [args …] — call a lib function in a subshell; set rc, fill $out and $err
+  rc=0
+  ( source "$LIB"; "$@" ) > "$out" 2> "$err" || rc=$?
+}
+
 judge() {
   local name="$1" want="$2"; shift 2
-  local rc=0
-  ( source "$LIB"; "$@" ) > "$out" 2> "$err" || rc=$?
+  run_lib "$@"
   if [[ "$rc" -ne 1 || "$(cat "$out")" != "$want" ]]; then
     no "$name (want exit 1 and stdout '$want'):"
     show_run "$rc" "$out" "$err"
@@ -91,8 +95,7 @@ cat > "$found/no-usage.sh" <<'STUB'
 exit 0
 STUB
 chmod +x "$found"/*.sh
-rc=0
-( source "$LIB"; missing_argument_audit "$found" ) > "$out" 2> "$err" || rc=$?
+run_lib missing_argument_audit "$found"
 named="$(cut -d: -f1 < "$out" | sort | tr '\n' ' ')"
 if [[ "$rc" -ne 1 || "$named" != "borrowed.sh needs-one.sh " ]]; then
   no "$name (want exit 1 naming exactly borrowed.sh and needs-one.sh):"
@@ -104,8 +107,7 @@ fi
 name="the audit over a directory with no scripts prints nothing, on either stream, and returns 0"
 bare="$scratch/bare"
 mkdir -p "$bare"
-rc=0
-( source "$LIB"; missing_argument_audit "$bare" ) > "$out" 2> "$err" || rc=$?
+run_lib missing_argument_audit "$bare"
 if [[ "$rc" -ne 0 || -s "$out" || -s "$err" ]]; then
   no "$name (want exit 0 and no output):"
   show_run "$rc" "$out" "$err"
