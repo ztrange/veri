@@ -133,7 +133,7 @@ if [[ -f "$path/.tdd/events.jsonl" ]] &&
   seeded_log="$(mktemp)"
   mv "$path/.tdd/events.jsonl" "$seeded_log"
   rmdir "$path/.tdd" "$path"
-  trap 'mkdir -p "$path/.tdd" && cat "$seeded_log" >> "$path/.tdd/events.jsonl" && rm -f "$seeded_log"' EXIT
+  trap 'rc=$?; mkdir -p "$path/.tdd" && cat "$seeded_log" >> "$path/.tdd/events.jsonl" && rm -f "$seeded_log"; end_in_contract "$rc"' EXIT
 fi
 
 if branch_exists "$branch"; then

@@ -543,4 +543,19 @@ log="$(cat "$seeded/.tdd/events.jsonl" 2>/dev/null || true)"
 { [[ "$code" == 0 ]] && [[ "$out" == "$seeded" ]] && [[ "$top" == "$seeded" ]] && [[ "$log" == *"$line"* ]]; } \
   && ok || no "a path holding only a seeded .tdd/events.jsonl: the worktree is made there and the log survives (exit=$code want 0, stdout='$out' want '$seeded', git toplevel there='$top' want '$seeded', log='$log' want it to hold '$line', stderr='$(cat "$errfile")')"
 
+repo="$work/own-trap"
+make_repo "$repo"
+mkdir -p "$(wt_path "$repo" 63)/.tdd"
+printf '%s\n' '{"event": "skill-repin"}' > "$(wt_path "$repo" 63)/.tdd/events.jsonl"
+printf '%s\n' 'git() { [[ "$1 ${2:-}" == "worktree add" ]] && builtin exit 5; command git "$@"; }' > "$work/git-dies-with-5"
+(cd "$repo" && BASH_ENV="$work/git-dies-with-5" "$WT" 63 own-trap >/dev/null 2>&1) && wt_code=0 || wt_code=$?
+mkdir -p "$work/own-trap-bin"
+printf '#!/bin/sh\necho https://github.com/owner/name/issues/77\n' > "$work/own-trap-bin/gh"
+chmod +x "$work/own-trap-bin/gh"
+printf '%s\n' 'awk() { builtin exit 5; }' > "$work/awk-dies-with-5"
+(cd "$repo" && PATH="$work/own-trap-bin:$PATH" BASH_ENV="$work/awk-dies-with-5" "$HERE/../coverage-blocker.sh" 60 >/dev/null 2>&1) \
+  && cb_code=0 || cb_code=$?
+{ [[ "$wt_code" == 2 ]] && [[ "$cb_code" == 2 ]]; } \
+  && ok || no "issue-worktree.sh and coverage-blocker.sh, whose own EXIT traps clean up, still end with 2 and never a code outside 0–3 when a command dies with one — their traps do not replace the contract's mapping (issue-worktree exit=$wt_code want 2, coverage-blocker exit=$cb_code want 2)"
+
 finish
