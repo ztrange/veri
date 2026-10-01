@@ -25,16 +25,11 @@ PAUSE=0.2
 
 pass=0 fail=0
 
-# 1. A case that fails, because a FAIL line is what a suite in this repository actually
-#    prints while it is still running — and seeing it then, rather than a minute later when
-#    the suite is done, is what streaming the output is for.
 fail=$((fail + 1))
 echo "FAIL - a suite says something before it is finished"
 
 sleep "$PAUSE"
 
-# 2. A case that passes, after the wait, so the fixture is a suite that carried on rather
-#    than one that stopped talking — the shape of the 70 s suite this is standing in for.
 if [[ "veri" == "veri" ]]; then
   pass=$((pass + 1))
 else

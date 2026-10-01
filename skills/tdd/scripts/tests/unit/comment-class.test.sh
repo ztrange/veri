@@ -457,4 +457,7 @@ sweep_verdict "the sweepable report is empty for tests/unit/step-budget.test.sh 
 # 46. the sweepable report is empty for tests/unit/stop-requested.test.sh.
 sweep_verdict "the sweepable report is empty for tests/unit/stop-requested.test.sh" "$SCRIPTS"/tests/unit/stop-requested.test.sh
 
+# 47. the sweepable report is empty for every shell file under tests/fixtures/, and for the two shims.
+sweep_verdict "the sweepable report is empty for every shell file under tests/fixtures/, and for tests/unit-guard/git and tests/offline/gh" "$SCRIPTS"/tests/fixtures/*/*.sh "$SCRIPTS"/tests/unit-guard/git "$SCRIPTS"/tests/offline/gh
+
 finish
