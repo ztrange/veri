@@ -5,5 +5,6 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
 source "$HERE/lib/ledger.sh"
 ledger_steps

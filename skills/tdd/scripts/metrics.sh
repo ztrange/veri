@@ -144,7 +144,10 @@
 # worktree, in other words, which is where the conductor calls this from.
 set -euo pipefail
 
-[[ -n "${1:-}" ]] || { echo "usage: metrics.sh <issue-number>" >&2; exit 2; }
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+USAGE="usage: metrics.sh <issue-number>"
+
+require_args 1 "$@"
 issue="$1"
 
 log=".tdd/events.jsonl"

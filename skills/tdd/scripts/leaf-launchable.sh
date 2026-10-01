@@ -29,6 +29,8 @@ if ! [[ "$bash_major" =~ ^[0-9]+$ ]] || [[ "$bash_major" -lt 5 ]]; then
   exit 2
 fi
 
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+
 leaf_bin="${CLAUDE_BIN:-claude}"
 probe_err="$(mktemp)"
 trap 'rm -f "$probe_err"' EXIT
