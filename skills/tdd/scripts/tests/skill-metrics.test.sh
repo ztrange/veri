@@ -262,4 +262,16 @@ block_arg="'📊 metrics'"
   problems+=("$suite_md still asks whether the record holding gh pr create also holds the 📊 metrics block, but section_records folds the whole Draft PR sub-step into one record, so a block carried by a later gh pr edit answers for the create and the probe cannot fail")
 report "$name"
 
+name="#626: $skill_md's Bailing section writes the run's bail mark before rendering the metrics report it commits"
+problems=()
+
+bail_render_line="$(first_record_line "$bail_records" 'metrics.sh <n> > .tdd/issue-<n>-metrics.md')" ||
+  problems+=("$skill_md's Bailing section never renders metrics.sh <n> > .tdd/issue-<n>-metrics.md, so there is no committed report to order against the bail mark")
+bail_mark_line="$(first_record_line "$bail_records" 'event.sh bail')" ||
+  problems+=("$skill_md's Bailing section never writes event.sh bail, so the report can never name the bail as the run's ending")
+if [[ -n "${bail_render_line:-}" && -n "${bail_mark_line:-}" && "$bail_render_line" -lt "$bail_mark_line" ]]; then
+  problems+=("$skill_md renders the committed metrics report in record $bail_render_line, BEFORE event.sh bail in record $bail_mark_line, so its Outcome reads unknown instead of naming the bail: $(printf '%.120s' "$(record_at "$bail_records" "$bail_render_line")")")
+fi
+report "$name"
+
 finish
