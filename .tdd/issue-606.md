@@ -1,0 +1,10 @@
+# Plan for #606 — a suite's nested make test TESTS=<fixture> runs only that fixture, not the 21 fast-tier suites as well
+
+- [ ] count-line-guard.test.sh's nested `make -C "$ROOT" test TESTS=<fixture>` calls (the `recipe()` helper and the paused-stream call) run only the fixture they name: the recipe output they capture lists no suite from `tests/unit/` ⟦criterion 1⟧
+- [ ] make-test-env.test.sh's nested `make -C "$ROOT" test TESTS="$FIXTURE"` call runs only its fixture: the recipe output it captures lists no suite from `tests/unit/` ⟦criterion 1⟧
+- [ ] bash-version-guard.test.sh's two nested `make -C "$ROOT" test TESTS="$GREEN_FIXTURE"` calls (bash 3 and bash 5) run only their fixture: the recipe output they capture lists no suite from `tests/unit/` ⟦criterion 1⟧
+- [ ] prose-drift-red.test.sh's and prose-lag-green.test.sh's nested `make -C "$planted" test TESTS="$SUITE"` calls over a planted tree run only the suite they name: the recipe output they capture lists no suite from `tests/unit/` ⟦criterion 1⟧
+- [ ] a guard suite fails when a suite under `skills/tdd/scripts/tests/` calls `make … test TESTS=…` without emptying `UNIT_TESTS`, naming the offender as `<suite>:<line>`, and passes over the repository's own suites as they stand ⟦criterion 2⟧
+- [ ] the guard goes red on a planted offender: a suite carrying a nested `make … test TESTS=<fixture>` call with no `UNIT_TESTS=` makes the guard fail naming that planted `<suite>:<line>`, and removing the plant turns it green again ⟦criterion 2⟧
+- [ ] `make test` run with no `TESTS` override still runs every suite in `skills/tdd/scripts/tests/` and `skills/tdd/scripts/tests/unit/`: its roster is the union of both globs, unchanged ⟦criterion 4⟧
+- [ ] every assertion the five suites (count-line-guard, make-test-env, claude-md-guards-green, bash-version-guard, prose-drift-red) make today is kept, and each was broken on purpose, watched going red (the count-line check, the env report, the bash-version refusal, the prose-drift red) and restored ⟦human-owed⟧ ⟦criterion 3⟧
