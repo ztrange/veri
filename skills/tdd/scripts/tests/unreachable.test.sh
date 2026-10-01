@@ -69,4 +69,28 @@ else
   fi
 fi
 
+root="$(fixture_root tail)"
+S="$root/skills/tdd/scripts"
+script "$S/helper.sh" '"$(dirname "$0")/run-leaf.sh" "$@"'
+script "$S/run-leaf.sh" 'echo ran'
+script "$S/leaf.sh" 'echo alone'
+out="$("$UNREACHABLE" "$root" 2>&1)"; code=$?
+got="$(printf '%s\n' "$out" | sed '/^$/d; s#.*/##' | sort)"
+if [[ "$code" == 0 && "$got" == "leaf.sh" ]]; then ok; else
+  no "an orphan whose name is the tail of a reached script's name is still listed (code=$code)"
+  diff <(printf 'leaf.sh\n') <(printf '%s\n' "$got") | sed 's/^/    /'
+fi
+
+root="$(fixture_root bounds)"
+S="$root/skills/tdd/scripts"
+script "$S/helper.sh" "$(printf 'kept.sh\n# xleaf.sh 2leaf.sh my_leaf.sh v2.leaf.sh leaf.shx leaf.sh2 leaf.sh_old leaf.sh-old')"
+script "$S/kept.sh" 'echo kept'
+script "$S/leaf.sh" 'echo alone'
+out="$("$UNREACHABLE" "$root" 2>&1)"; code=$?
+got="$(printf '%s\n' "$out" | sed '/^$/d; s#.*/##' | sort)"
+if [[ "$code" == 0 && "$got" == "leaf.sh" ]]; then ok; else
+  no "a name alone on its line is a mention; one glued to a letter, digit, _ or - on either side, or to a . before it, is not (code=$code)"
+  diff <(printf 'leaf.sh\n') <(printf '%s\n' "$got") | sed 's/^/    /'
+fi
+
 finish
