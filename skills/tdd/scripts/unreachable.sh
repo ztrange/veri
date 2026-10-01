@@ -19,10 +19,11 @@ names=()
 for f in "$scripts"/*.sh; do
   names+=( "${f##*/}" )
 done
-nodes=( "${names[@]}" )
+libs=()
 for f in "$scripts"/lib/*.sh; do
-  if [[ -e "$f" ]]; then nodes+=( "lib/${f##*/}" ); fi
+  if [[ -e "$f" ]]; then libs+=( "lib/${f##*/}" ); fi
 done
+nodes=( "${names[@]}" "${libs[@]}" )
 for f in "$root"/skills/tdd/*.md; do
   nodes+=( "${f##*/}" )
 done
@@ -90,10 +91,7 @@ for doc in "$root/skills/tdd/SKILL.md" "$root/CLAUDE.md"; do
   if [[ -f "$doc" ]]; then promises+=( "$doc" ); fi
 done
 if (( ${#promises[@]} > 0 )); then
-  readers=( "$scripts"/*.sh )
-  for f in "$scripts"/lib/*.sh; do
-    if [[ -e "$f" ]]; then readers+=( "$f" ); fi
-  done
+  readers=( "${names[@]/#/$scripts/}" "${libs[@]/#/$scripts/}" )
   while IFS= read -r knob; do
     if ! grep -qwF "$knob" "${readers[@]}"; then printf 'promised-unread: %s\n' "$knob"; fi
   done < <(grep -ohE 'VERI_[A-Z0-9_]+' "${promises[@]}" | sort -u)
