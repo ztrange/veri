@@ -1,22 +1,8 @@
 #!/usr/bin/env bash
-# Unit tests for the conductor's own preservation of a troubled step's attempt — like
-# skill-event-marks.test.sh this suite belongs to no single script: its subject is
-# skills/tdd/SKILL.md, read as text, the way the session that follows it reads it.
-# Zero-dependency plain-shell asserts, same idiom as skill-event-marks.test.sh.
+# Unit tests for the conductor's own preservation of a troubled step's attempt, as
+# skills/tdd/SKILL.md prescribes it, read as text.
 #
-# Why this exists (issue #409): five marks make a step one whose evidence a reader will
-# want — reject, no-verdict, stuck, bail, prediction-diverged — and three of them are
-# written from inside a script, so `preserve_attempt` is called there by construction
-# (verify.sh on a REJECT or a malformed verdict, supervise.sh on a killed-stuck leaf).
-# The other two are the conductor's, and the conductor is prose: a bail and a
-# prediction-diverged mark preserve nothing unless this document tells the session to.
-#
-# The bail half is not just "somewhere in the section" either. A bail's first step is
-# `git reset --hard HEAD`, which throws the half-done step's tree away — so a preservation
-# prescribed after it snapshots a tree the reset already emptied, which is a preservation
-# that reads right and keeps nothing. The order is the behaviour here, so the case asks it.
-#
-# Contract under test (this step only):
+# Contract under test:
 #   SKILL.md prescribes a `$S/preserve-attempt.sh` call in the Bailing procedure, ahead of
 #   that procedure's `git reset --hard HEAD`; and beside every `event.sh prediction-diverged`
 #   mark it prescribes.

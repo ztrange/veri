@@ -1,17 +1,5 @@
 #!/usr/bin/env bash
-# Unit test for where the conductor verifies the plan — like skill-verify-step.test.sh and
-# skill-refactor-pending.test.sh this suite belongs to no single script: its subject is the
-# procedure, read as text, the way the session that follows it reads it. Zero-dependency
-# plain-shell asserts, same idiom, picked up by `make test`'s glob by existing.
-#
-# Why this exists (issue #439): the plan is the one artifact of a run nothing verifies, and
-# `criterion-finished.sh` ticks the issue's criterion from the ledger's own paraphrase of
-# it. #426 shipped with two mechanism steps standing in for criterion 1, every phase PASSed,
-# and the criterion was ticked by bookkeeping. The `plan` phase now exists in
-# `build-verify-prompt.sh` and in `prompts/verify-plan.md`, but a verifier the conductor
-# never launches verifies nothing — and *where* it is launched is the whole of the
-# criterion: after the ledger is committed (there is no plan to read before that) and before
-# the first step (a plan caught wrong after step 3 has already been paid for).
+# Unit test for where skills/tdd/SKILL.md verifies the plan, read as text.
 #
 # Contract under test — three cases, one per criterion:
 #   1. SKILL.md launches the `plan` verdict between the instruction that commits the ledger
@@ -19,11 +7,8 @@
 #      REJECT rewrites the plan and re-verifies it, rather than ending the run.
 #   2. The same span sends the third outcome — exit 2, no verdict rendered at all — down the
 #      **system** failure bail, rather than letting it read as a PASS.
-#   3. The script inventory's own entries for the three scripts a plan verdict travels
-#      through — `build-verify-prompt.sh`, `verify.sh` and `run-verdict.sh` — name `plan`
-#      among the phases they accept. The inventory is where a conductor reads what a script
-#      takes; an entry that still spells only the four cycle phases says the plan phase does
-#      not exist, whatever the scripts themselves now accept.
+#   3. The script inventory's own entries for `build-verify-prompt.sh`, `verify.sh` and
+#      `run-verdict.sh` name `plan` among the phases they accept.
 #
 # Run: skills/tdd/scripts/tests/skill-plan-verify.test.sh
 set -uo pipefail

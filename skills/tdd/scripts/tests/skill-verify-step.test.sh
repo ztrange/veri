@@ -1,33 +1,13 @@
 #!/usr/bin/env bash
-# Unit test for the step a verifier launch in skills/tdd/SKILL.md carries. Like
-# skill-leaf-launch.test.sh and skill-suite-runs.test.sh this suite belongs to no single
-# script: its subject is the procedure, read as text, the way the session that follows it
-# reads it. Zero-dependency plain-shell asserts, same idiom, picked up by `make test`'s
-# glob by existing.
-#
-# Why this exists (issue #223): `verify.sh` and `build-verify-prompt.sh` now take an
-# optional `--step "<STEP>"` flag, and every `verify-*.md` prompt shows that step and scopes
-# the verdict to it. The flag is worth exactly as much as the call sites that pass it — and
-# it is a FLAG and only a flag, never read from an ambient `VERI_STEP` (verify.sh:34-40), so
-# the `VERI_STEP='<STEP>'` prefix those launch lines already carry for the event log does
-# not scope one verdict. A document that describes the flag and does not type it leaves
-# every verifier judging the whole spec, which is the defect: on #113 step 2 of 9 a blind
-# verify-refactor rejected for a criterion belonging to step 5, and the run spent its whole
-# REVISE_BUDGET discovering that no revise could satisfy both.
+# Unit test for the step a verifier launch in skills/tdd/SKILL.md carries, read as text.
 #
 # Contract under test:
 #   Every `verify.sh` call SKILL.md tells the conductor to run — the red, pin, green,
 #   refactor, revise re-verify and resume launches — passes `--step "<STEP>"` before
 #   verify.sh's positionals; and every one that can judge green — the green launch and the
 #   revise re-verify, whose phase is `<phase>` — passes `--fast-cmd '<fast-cmd>'` after it.
-#
-# A call is a line naming `verify.sh` with the **spec file** among its arguments: that is
-# what tells a line a conductor copies as it stands from prose about one. The script
-# inventory's synopsis (SKILL.md:129) names the spec too and is deliberately not among them
-# — it spells the phase as the alternation `<red|green|refactor|pin|plan>`, so it documents the
-# script's own usage rather than making a call. `verify.sh exited 2` in *Bailing* and the
-# `$S/verify.sh pin …` back-reference in *Already satisfied* name no spec, so neither is
-# matched either.
+#   A call is a line naming `verify.sh` with the spec file among its arguments; the script
+#   inventory's `<red|green|refactor|pin|plan>` synopsis is not one.
 #
 # Run: skills/tdd/scripts/tests/skill-verify-step.test.sh
 set -uo pipefail

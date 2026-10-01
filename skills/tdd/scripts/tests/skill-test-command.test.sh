@@ -1,25 +1,12 @@
 #!/usr/bin/env bash
-# Unit tests for what skills/tdd/SKILL.md tells the conductor about the run's test
-# command. Like skill-identity.test.sh and hermetic-suites.test.sh this suite belongs to
-# no single script: its subject is the procedure document those scripts are called from,
-# read as text, exactly the way skill-identity.test.sh reads the same file for the skill's
-# name.
-# Zero-dependency plain-shell asserts, same idiom as skill-identity.test.sh.
-#
-# Why this exists (issue #120): detect-test-command.sh now takes `--issue <body-file>` and
-# answers the issue's own `Test command:` line ahead of `.veri/test-command` and every
-# inference — but a flag no instruction ever passes changes nothing about a run. There is
-# no script that calls the conductor; the conductor is prose, so the wiring can only be
-# pinned as prose. On #71 the gap cost a docs issue two suites on every check: the prompt
-# said `make test` while the issue's notes said `make docs-test`, and every leaf ran both.
+# Unit tests for what skills/tdd/SKILL.md tells the conductor about the run's test command,
+# read as text.
 #
 # Contract under test:
 #   Preflight reads the issue body and hands it to detect-test-command.sh as `--issue`,
 #   in that order, so the issue's own command is in hand before the baseline run.
-#   The section that defines <test-cmd> for every leaf detects it the same way, so the
-#   command the leaves get is the command the issue named.
-#   The plan comment states the test command the run will use, so a wrong one is visible
-#   before the first leaf.
+#   The section that defines <test-cmd> for every leaf detects it the same way.
+#   The plan comment states the test command the run will use.
 #
 # Run: scripts/tests/skill-test-command.test.sh
 set -uo pipefail

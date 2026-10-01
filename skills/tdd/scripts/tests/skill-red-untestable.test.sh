@@ -1,21 +1,6 @@
 #!/usr/bin/env bash
-# Unit tests for how the conductor's Red section handles a criterion no lightweight,
-# behavior-level test can pin — like skill-red-prediction.test.sh and skill-suite-runs.test.sh
-# this suite belongs to no single script: its subject is skills/tdd/SKILL.md, read as text,
-# the way the session that follows it reads it.
-# Zero-dependency plain-shell asserts, same idiom as skill-red-prediction.test.sh.
-#
-# Why this exists (issue #331): #331's acceptance criterion "the suite starts at most N
-# python3" was satisfied by a leaf adding suites that re-run whole suites under a counting
-# shim (+41s of `make test`); #333's "launches overlap" made a suite twice as slow. Both are
-# criteria a Red developer leaf CAN satisfy — just not with a test that is lightweight and
-# behavior-oriented — and until now the pipeline gave it no way to say so: the only report
-# line was `AGAINST_UNMODIFIED: FAILS | PASSES`, so a leaf facing an unpinnable criterion had
-# to either force a costly or implementation-pinning test through, or fabricate a FAILS/PASSES
-# it did not observe. develop-red.md now offers a third outcome, `UNTESTABLE`, and this suite
-# pins what the conductor does when it sees one: skip the blind verifier (there is nothing on
-# disk for it to judge) and bail immediately, classified as a process failure since the
-# criterion as phrased — not the plumbing — is what could not be satisfied.
+# Unit tests for how skills/tdd/SKILL.md's Red section handles a criterion no lightweight,
+# behavior-level test can pin, read as text.
 #
 # Contract under test:
 #   1. SKILL.md's Red section states what a valid test is: behaviour over mechanism (no

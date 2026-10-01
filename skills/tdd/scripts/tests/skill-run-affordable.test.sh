@@ -1,27 +1,19 @@
 #!/usr/bin/env bash
-# Unit tests for where skills/tdd/SKILL.md asks whether a run can still afford to finish
-# (issue #453). Like skill-stopping.test.sh this suite belongs to no single script: its
-# subject is the procedure, read as text, the way the session that follows it reads it.
-# Zero-dependency plain-shell asserts, same idiom as skill-refactor-touched.test.sh.
-#
-# Why this exists: the per-issue ceiling as practised parked at whatever step it was crossed
-# at — #409 parked at 8 of 9 steps, one step from a draft PR. A parked run's spend is not lost,
-# so the cost of parking rises with every step taken, and the moment to park is the step
-# boundary at which the run first knows it cannot finish. run-affordable.sh answers that
-# question; this suite pins that the procedure asks it there, and what a park then says.
+# Unit tests for where skills/tdd/SKILL.md asks whether a run can still afford to finish,
+# read as text.
 #
 # Contract under test:
 #   1. The cycle loop (`### 3. The cycle loop`, up to `### 4.`) calls `$S/run-affordable.sh`
 #      after the step's ledger commit (`chore: refactor verified …`), with the count
 #      `next-unchecked.sh` implies — which leaves out the `⟦full-suite⟧` and `⟦human-owed⟧`
-#      lines that script skips, or the count overstates what is left; on exit 1 the run parks, and the park's comment carries
+#      lines that script skips; on exit 1 the run parks, and the park's comment carries
 #      spent, steps remaining, the median, the projection, the ceiling, and the two answers —
 #      raise `VERI_RUN_BUDGET` and resume, or split the issue.
 #   2. The same step boundary — from the call to the next verdict bullet (`- **REJECT`) — also
 #      says what its exit 3 does (no full step done yet, so no median: carry on) and what its
-#      exit 2 does (no answer could be obtained), so neither is left for the session to guess.
+#      exit 2 does (no answer could be obtained).
 #   3. The park on exit 1 — up to the exit 2 answer — says it is not a bail and that
-#      `classify-bail.sh` is not called on it: nothing failed, and a resume handles the ledger.
+#      `classify-bail.sh` is not called on it.
 #
 # Run: scripts/tests/skill-run-affordable.test.sh
 set -uo pipefail

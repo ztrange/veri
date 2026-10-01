@@ -1,19 +1,8 @@
 #!/usr/bin/env bash
-# Unit tests for the sequence a stopped run runs — like skill-push-reconcile.test.sh this
-# suite belongs to no single script: its subject is skills/tdd/SKILL.md, read as text, the
-# way the session that follows it reads it.
-# Zero-dependency plain-shell asserts, same idiom as skill-push-reconcile.test.sh.
+# Unit tests for the sequence skills/tdd/SKILL.md runs when a stop is requested, read as
+# text.
 #
-# Why this exists (issue #388): #386 gives the conductor a way to learn that a stop was
-# requested; this section is what it runs once it has. The first thing it owes is the edge
-# #170 settled — a live leaf owns the working tree, so nothing may be reset under one. A
-# stop that resets first races the leaf it is stopping: the leaf writes a file the reset has
-# already walked past, and the tree the run resumes from is neither the leaf's nor the
-# conductor's. So the leaves are settled before the tree is touched at all, and the only
-# reach for the tree is `git reset --hard HEAD` — `git checkout` restores a path from an
-# arbitrary tree, which is not what dropping a half-done step means.
-#
-# Contract under test (this step only):
+# Contract under test:
 #   1. SKILL.md has a `## Stopping` section; it waits with `wait-leaf.sh <name>` on every
 #      `.tdd/<name>.pid` still running `supervise.sh <name> ` and does so BEFORE it reaches
 #      for the tree, and the only reach it names is `git reset --hard HEAD`, never
@@ -21,16 +10,11 @@
 #   2. That section refuses the tree when an interrupted rebase or merge is present —
 #      `rebase-merge`, `rebase-apply` or `MERGE_HEAD` — recording `at=unsettled` instead of
 #      resetting, and it checks for that before it reaches the reset.
-#   3. That section runs `push-branch.sh` and answers its exit 1 — the remote rejected a
-#      non-fast-forward — by recording `push=rejected` with the sha its stderr names. It
-#      launches no reconcile leaf (a stop launches no leaves at all) and does not bail: a
-#      rejected push leaves the run paused and resumable, not ended.
-#
-# And where the run looks for a request (issue #389): the only irreversible spend a run makes
-# is a leaf launch, so the first checkpoint sits in front of every one, spelled once in
-# *Launching a leaf* — `stop-requested.sh` runs before the launch; exit 3 launches as normal,
-# `at-ledger` launches the leaf anyway (every leaf between two ledger commits is on the way to
-# the next one), and `at-leaf` and `now` launch nothing and go to *Stopping*.
+#   3. That section runs `push-branch.sh` and answers its exit 1 by recording
+#      `push=rejected` with the sha its stderr names. It launches no reconcile leaf and does
+#      not bail.
+#   4. *Launching a leaf* runs `stop-requested.sh` before the launch; exit 3 and `at-ledger`
+#      launch the leaf, and `at-leaf` and `now` launch nothing and go to *Stopping*.
 #
 # Run: scripts/tests/skill-stopping.test.sh
 set -uo pipefail

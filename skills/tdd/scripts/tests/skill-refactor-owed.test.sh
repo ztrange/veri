@@ -1,28 +1,11 @@
 #!/usr/bin/env bash
 # Unit test for how skills/tdd/SKILL.md carries a step's structural leftovers out of its
-# refactor loop. Like skill-refactor-leaf.test.sh and skill-suite-runs.test.sh this suite
-# belongs to no single script: its subject is the procedure, read as text, the way the
-# session that follows it reads it. Zero-dependency plain-shell asserts, same idiom, picked
-# up by `make test`'s glob by existing.
+# refactor loop, read as text.
 #
-# Why this exists (issue #359, part of #354): `refactor-owed.sh` now exists and its own
-# suite pins both verbs, but a script the conductor is never told to run records nothing.
-# When a step's refactor stops with structural candidates left, the only place they are
-# written is `.tdd/develop-refactor.out`, which the next step overwrites — so by the draft
-# PR every step's leftovers but the last are gone. The conductor is prose, so whether they
-# survive is decided here and nowhere else.
-#
-# Contract under test — one criterion, one case: SKILL.md's Refactor section runs
-# `refactor-owed.sh append` on the refactor leaf's own report, into the run's owed file and
-# under the step, and the file rides the commit that clears that step's refactor-pending
-# mark. The two halves are one criterion because either alone records nothing that lasts:
-# an append whose file is never committed is lost with the worktree, and a commit of a file
-# nothing ever appends to is a commit of nothing.
-#
-# Each probe accepts any wording that carries its fact — how the document phrases it is the
-# writer's — but the file and the report are asked of the text AROUND the append call rather
-# than of the section at large, which already names `.tdd/develop-refactor.out` for the
-# leaf's own launch and would answer for a document that appends from anywhere.
+# Contract under test — one criterion, one case:
+#   SKILL.md's Refactor section runs `refactor-owed.sh append` on the refactor leaf's own
+#   report, into the run's owed file and under the step, and the file rides the commit that
+#   clears that step's refactor-pending mark.
 #
 # Run: scripts/tests/skill-refactor-owed.test.sh
 set -uo pipefail

@@ -1,21 +1,6 @@
 #!/usr/bin/env bash
-# Unit tests for how the conductor drives the refactor-pending mark — like
-# skill-event-marks.test.sh and skill-suite-runs.test.sh this suite belongs to no single
-# script: its subject is prose, read as text, the way the session that follows it reads it.
-# skills/tdd/SKILL.md for the procedure itself, and — the way skill-suite-runs.test.sh reads
-# SKILL.md and CLAUDE.md together — this repository's own CLAUDE.md and CONTEXT.md for the
-# account of that procedure the next agent is handed before touching any of it.
-# Zero-dependency plain-shell asserts, same idiom as skill-event-marks.test.sh.
-#
-# Why this exists (issue #116): `tick-ledger.sh --refactor-pending`,
-# `next-pending-refactor.sh` and `clear-refactor-pending.sh` now exist, but a mark nobody
-# writes and nobody clears records nothing. The conductor is prose, so the mark's whole
-# lifetime lives in this document: Green's PASS is the only place it is ever written, the
-# pin path is the one tick that must NOT write it (a pinned step has no refactor loop to
-# wait for, so a mark there would leave the step pending for ever), and verify-refactor's
-# PASS is the only place it is ever cleared. Get any one of the three wrong and the ledger
-# stops answering the question the mark exists for — "is this ticked step tidied, or only
-# green?" — which is the question a resumed conductor asks.
+# Unit tests for how skills/tdd/SKILL.md drives the refactor-pending mark, and for the
+# account of it in this repository's CLAUDE.md and CONTEXT.md, read as text.
 #
 # Contract under test — the mark's writer, then its reader, one case each:
 #   1. SKILL.md's Green PASS ticks with `tick-ledger.sh --refactor-pending`; the pin path's
@@ -30,37 +15,23 @@
 #   3. SKILL.md's Draft PR step itself refuses to open the PR while
 #      `git status --porcelain` is non-empty or `next-pending-refactor.sh` still finds a
 #      pending step.
-#   4. SKILL.md's script reference list — the section a session reads a script's contract
-#      out of before it calls it — has an entry for each of the three, saying what it
+#   4. SKILL.md's script reference list has an entry for each of the three, saying what it
 #      prints (or, for the two that edit the ledger, the mark they write and strip) and
 #      which exit codes it can answer with.
 #   5. CLAUDE.md's ledger invariant and CONTEXT.md's **Ledger** entry each say that a ticked
-#      step also carries the mark until its verify-refactor passes, rather than that the tick
-#      alone means the step is done.
+#      step also carries the mark until its verify-refactor passes.
 #   6. SKILL.md's Resume branch for a pending step resets what the killed leaf left
 #      uncommitted and relaunches the refactor leaf with `VERI_REFACTOR_BUDGET` reduced by
 #      the `refactor:` commits that step already has.
 #   7. SKILL.md passes the step's green commit sha to `verify.sh refactor` at both call
 #      sites: the cycle loop's `<green-sha>` and Resume's `$green`.
-#   8. SKILL.md's Resume resets the worktree BEFORE it asks `next-pending-refactor.sh`, so a
-#      resume that finds no step carrying the mark still discards what a killed leaf left
-#      uncommitted (issue #194).
+#   8. SKILL.md's Resume resets the worktree BEFORE it asks `next-pending-refactor.sh`.
 #   9. SKILL.md's Resume captures `git status --porcelain` BEFORE that reset and says the
-#      `### ▶️ Resuming` comment names the paths it discarded, so the work a killed leaf left
-#      is thrown away loudly rather than silently (issue #194).
+#      `### ▶️ Resuming` comment names the paths it discarded.
 #  10. SKILL.md's Draft PR step's refusal names a remedy that applies with a dirty tree, no
-#      step pending and none unchecked, and says the run reaches the PR after it, so the
-#      combination case 3's gate refuses has a way out rather than a loop (issue #194).
+#      step pending and none unchecked, and says the run reaches the PR after it.
 #  11. SKILL.md's Resume says a leaf killed in Red or Green leaves the same stray work a
-#      killed refactor leaf does, so the reset cases 8 and 9 pin reads as prescribed rather
-#      than as an unexplained extra command (issue #194).
-#
-# Each half is asked of ONE instruction, the way skill-event-marks.test.sh asks for a mark
-# beside the comment it mirrors: the clear and the commit that carries it belong in the
-# same instruction as the mirror they precede, because a clear prescribed in some other
-# section drifts away from the branch it belongs to the first time either is reworded — and
-# a ledger whose mark is cleared on a different path than the one that ends the step is
-# exactly the divergence this issue is about.
+#      killed refactor leaf does.
 #
 # Run: scripts/tests/skill-refactor-pending.test.sh
 set -uo pipefail

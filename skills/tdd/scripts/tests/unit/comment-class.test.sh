@@ -459,4 +459,6 @@ header_verdict "the leading header block of a top-level tests/*.sh whose name st
 
 header_verdict "the leading header block of every tests/skill-*.test.sh whose name after skill- starts with a through l carries only its contract, and no line of it cites an issue number" "$SCRIPTS"/tests/skill-[a-l]*.sh
 
+header_verdict "the leading header block of every tests/skill-*.test.sh whose name after skill- starts with m through z carries only its contract, and no line of it cites an issue number" "$SCRIPTS"/tests/skill-[m-z]*.sh
+
 finish
