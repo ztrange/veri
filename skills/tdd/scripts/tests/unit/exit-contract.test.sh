@@ -95,6 +95,12 @@ expect_eq "a script that sources the module hands on a declared pass-through exi
   "declared=$(exit_of_script "$pass_dir" declared.sh "$(with_rc_5 "$DECLARED
 exit \"\$rc\"")") undeclared=$(exit_of_script "$pass_dir" undeclared.sh "$(with_rc_5 "exit \"\$rc\"")")"
 
+expect_eq "a declared pass-through exit hands on its code unmapped even though the EXIT trap that maps it is entered with that same code as its status" \
+  "declared-127=127" \
+  "declared-127=$(exit_of_script "$pass_dir" declared-127.sh "$(sourcing "rc=127
+$DECLARED
+exit \"\$rc\"")")"
+
 expect_eq "a declared pass-through exit indented inside a block hands on its code unmapped outside 0-3" \
   "indented=5" \
   "indented=$(exit_of_script "$pass_dir" indented.sh "$(with_rc_5 "if (( rc != 0 )); then
