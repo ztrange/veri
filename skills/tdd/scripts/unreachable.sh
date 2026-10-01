@@ -5,8 +5,10 @@
 # Usage:   unreachable.sh <repo-root>     # one unreachable script per line on stdout
 #
 # Exit:    0  the list was printed, possibly empty
+#          2  no <repo-root>
 set -euo pipefail
 
+[[ -n "${1:-}" ]] || { echo "usage: unreachable.sh <repo-root>" >&2; exit 2; }
 root="$1"
 scripts="$root/skills/tdd/scripts"
 

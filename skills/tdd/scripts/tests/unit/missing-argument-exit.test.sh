@@ -60,6 +60,7 @@ roster=(
   tier-usual.sh
   timed-test-run.sh
   transform-touches-tests.sh
+  unreachable.sh
   verify.sh
   wait-leaf.sh
 )
