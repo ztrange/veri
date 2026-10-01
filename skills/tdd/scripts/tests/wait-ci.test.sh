@@ -611,4 +611,12 @@ ci_runs gh-runs-deeper.json '[("CI", "completed", "skipped", 3000)] * 60 + [("CI
 expect_deadline computed-deeper "$work/gh-runs-deeper.json" 300 "2 × mean of 150, 130, 170, 140, 160 behind 60 skipped runs" 60
 report "$name"
 
+name="wait-ci.sh given no total-seconds records a deadline no more than 600 s after the first call, however slow the CI workflow's 5 most recent success or failure runs were (#549)"
+problems=()
+sha=0123456789abcdef0123456789abcdef01234567
+ci_runs gh-runs-slow.json '[("CI", "completed", c, s) for c, s in
+        [("success", 400), ("failure", 420), ("success", 380), ("success", 450), ("failure", 350)]]'
+expect_deadline computed-slow "$work/gh-runs-slow.json" 600 "2 × mean of 400, 420, 380, 450, 350 is 800, capped at 600" 60
+report "$name"
+
 finish
