@@ -81,23 +81,25 @@ with_rc_5() {
   printf "USAGE='usage: passes.sh'\nsource '%s'\nrc=5\n%s" "$LIB" "$1"
 }
 
+DECLARED="# pass-through: the caller asks for the foreign command's own status"
+
 pass_dir="$(scratch_dir)"
 expect_eq "a script that sources the module hands on a declared pass-through exit's code unmapped outside 0-3, while an undeclared exit outside 0-3 still ends as 2" \
   "declared=5 undeclared=2" \
-  "declared=$(exit_of_script "$pass_dir" declared.sh "$(with_rc_5 "# pass-through: the caller asks for the foreign command's own status
+  "declared=$(exit_of_script "$pass_dir" declared.sh "$(with_rc_5 "$DECLARED
 exit \"\$rc\"")") undeclared=$(exit_of_script "$pass_dir" undeclared.sh "$(with_rc_5 "exit \"\$rc\"")")"
 
 expect_eq "a declared pass-through exit indented inside a block hands on its code unmapped outside 0-3" \
   "indented=5" \
   "indented=$(exit_of_script "$pass_dir" indented.sh "$(with_rc_5 "if (( rc != 0 )); then
-  # pass-through: the caller asks for the foreign command's own status
+  $DECLARED
   exit \"\$rc\"
 fi")")"
 
 expect_eq "an undeclared exit outside 0-3 ends as 2 even when an identical exit line elsewhere in the script is a declared pass-through" \
   "twin=2" \
   "twin=$(exit_of_script "$pass_dir" twin.sh "$(with_rc_5 "if (( rc == 0 )); then
-  # pass-through: the caller asks for the foreign command's own status
+  $DECLARED
   exit \"\$rc\"
 fi
 exit \"\$rc\"")")"
@@ -107,7 +109,7 @@ expect_eq "a bare exit in a script that sources the module ends with the status 
   "after-true=$(exit_of_script "$pass_dir" bare-true.sh "$(with_rc_5 "true
 exit")") after-3=$(exit_of_script "$pass_dir" bare-3.sh "$(with_rc_5 "(exit 3)
 exit")") declared-after-5=$(exit_of_script "$pass_dir" bare-declared.sh "$(with_rc_5 "(exit 5)
-# pass-through: the caller asks for the foreign command's own status
+$DECLARED
 exit")")"
 
 finish
