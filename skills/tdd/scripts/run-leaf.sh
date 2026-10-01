@@ -18,7 +18,7 @@
 #   run-leaf.sh <prompt-file> [claude args...]
 #   run-leaf.sh -             [claude args...]   # prompt read from stdin
 #
-# Exit status is the leaf's own — forwarded by supervise.sh.
+# Exit status is the leaf's own when it is 0-3, else 2 — forwarded by supervise.sh.
 #
 # CLAUDE_BIN overrides the `claude` binary (used by the tests to inject a stub).
 #
@@ -74,5 +74,4 @@ set -e
 printf '\n'
 "$HERE/extract-result.sh" < "$stream_tmp"
 
-# pass-through: supervise.sh classifies the leaf by its own status.
-exit "$rc"
+exit "$(to_contract "$rc")"
