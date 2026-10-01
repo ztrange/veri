@@ -167,4 +167,23 @@ require 'refactor-overflow.sh' "$pr_body" \
 
 report "$name"
 
+name="$skill_md's Draft PR body still carries refactor-owed.sh render's ## Refactor owed section after the structural pass has run"
+problems=()
+
+draft_step="$(awk -v h="$draft_pr" \
+  'index($0, h) == 1 { inside = 1; next }
+   inside && /^### / { exit }
+   inside' "$skill_path" | tr -d '*`' | tr '\n' ' ')"
+after_pass="${draft_step#*one structural pass}"
+
+if [[ "$after_pass" == "$draft_step" ]]; then
+  problems+=("$skill_md's Draft PR step has no 'one structural pass' — whether the owed list is still rendered after it could not be established")
+elif [[ "$after_pass" != *'refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md'* ]]; then
+  problems+=("$skill_md's Draft PR step never runs refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md after its structural pass, so the owed list the pass worked is not rendered for the PR body")
+fi
+require "that render's output" "$pr_body" \
+  "$skill_md's Draft PR body never carries that render's output, so the ## Refactor owed section is gone from the PR once the structural pass has run"
+
+report "$name"
+
 finish
