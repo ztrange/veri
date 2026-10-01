@@ -403,15 +403,13 @@ report "$name"
 name="$skill_md's revise launch hands build-develop-prompt.sh revise the run's fast command '<fast-cmd>' (#636)"
 problems=()
 
-revise_builds="$(grep -nF 'build-develop-prompt.sh revise <phase>' "$skill_path")"
+revise_builds="$(fenced_lines 'build-develop-prompt\.sh revise <phase>')"
 if [[ -z "$revise_builds" ]]; then
-  unreadable "line building the revise prompt with build-develop-prompt.sh revise" "what the revise launch hands the prompt builder"
+  unreadable "line building the revise prompt with build-develop-prompt.sh revise inside a fenced block" "what the revise launch hands the prompt builder"
 else
-  while IFS= read -r numbered; do
-    lineno="${numbered%%:*}"
-    line="${numbered#*:}"
-    [[ "$line" == *"'<fast-cmd>'"* ]] ||
-      problems+=("$skill_md:$lineno builds the revise prompt without the run's fast command '<fast-cmd>': $line")
+  while IFS=$'\t' read -r lineno text; do
+    [[ "$text" == *"'<fast-cmd>'"* ]] ||
+      problems+=("$skill_md:$lineno builds the revise prompt without the run's fast command '<fast-cmd>': $text")
   done <<< "$revise_builds"
 fi
 
