@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Tests for scripts/add-ledger-step.sh — growing the ledger while a run is under way: it
-# inserts a step, marked ⟦added⟧, next to an anchor step already in the plan (issue #360).
-# Operates on a real temp file, as tick-ledger.test.sh does.
+# Tests for scripts/add-ledger-step.sh — inserts a step, marked ⟦added⟧, next to an anchor
+# step already in the plan. Operates on a real temp file.
 #
 # Run: scripts/tests/add-ledger-step.test.sh
 set -uo pipefail

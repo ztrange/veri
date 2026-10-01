@@ -1,14 +1,9 @@
 #!/usr/bin/env bash
-# Unit tests for scripts/affected-suites.sh — prints the suites one change affects, so a red or
-# refactor leaf can run a narrow slice of `make test` instead of all of it (issue #337).
+# Unit tests for scripts/affected-suites.sh — prints the suites one change affects.
 #
 # Contract under test:
 #   affected-suites.sh <base>..<head>, run inside the repository
 #                       → exit 0, and one suite path per line, sorted, with no duplicate.
-#
-# Every case builds a fixture tree of its own shaped like this repository's
-# `skills/tdd/scripts/`, so the answer never depends on the suites the repository `make test`
-# was typed in happens to have.
 #
 # Run: scripts/tests/affected-suites.test.sh
 set -uo pipefail

@@ -1,38 +1,11 @@
 #!/usr/bin/env bash
-# Unit tests for docs-read-guard.test.sh — the suite that pins the guard keeping the
-# development lane out of the generated-documentation tree. Like count-line-guard.test.sh
-# and hermetic-suites.test.sh this suite has no script as its subject: its subject is what
-# another suite reports when the fixture its whole case rests on was not built.
-# Zero-dependency plain-shell asserts, same idiom as count-line-guard.test.sh.
-#
-# Why this exists (issue #183): docs-read-guard.test.sh runs under `set -uo pipefail`
-# without `-e`, and its `plant` ends in an assignment — the line number of the fixture's
-# marked line, taken with `grep -n`. A fixture edit that renames the mark, or a plant_reader
-# that stops writing its file, makes that grep come back non-zero, `plant` return non-zero,
-# and the case's `if probe_guard_is_there && plant; then` skip all four probes. `report`
-# then sees an empty `problems` array and counts a pass. The guard it exists to pin could be
-# gone and the suite would still print `1 passed, 0 failed`, which is the one answer a guard
-# suite must never be able to give.
+# Unit tests for docs-read-guard.test.sh — what it reports when its plant fails.
 #
 # Contract under test:
 #   When its plant fails after the scratch tree is made — the reader carries no line
 #   matching the mark, or the reader fixture was never written — docs-read-guard.test.sh
-#   fails, and says which premise broke. And with that plant intact it still discriminates:
-#   it passes against the real no-docs-reads.test.sh and fails against a guard that always
-#   passes, so the fix for the first half did not buy a loud failure with a blind pass.
-#
-# The subject is run rather than read: whether a skipped probe reaches `report` with nothing
-# to say is a fact about what the suite does when it is run, and a check that read the file
-# for an `if` of a particular shape would pass either of the two fixes the issue names and
-# fail the other. So the subject is copied into a scratch tree through `sed`, with the one
-# line that breaks the plant rewritten, and run there. `probe_sabotage_is_real` asserts the
-# rewrite actually changed the file, because a `sed` whose pattern no longer matches would
-# leave every probe below reporting on an unsabotaged suite.
-#
-# The scratch tree carries a stub guard at the path the subject looks for, so that the
-# subject's own first probe — there is a guard suite, and it can be run — passes and the
-# plant is reached. The stub always passes, which is the shape #183 was watched on: with the
-# plant broken, the subject never runs it at all.
+#   fails, and says which premise broke. With that plant intact it passes against the real
+#   no-docs-reads.test.sh and fails against a guard that always passes.
 #
 # Run: skills/tdd/scripts/tests/docs-read-guard-plant.test.sh
 set -uo pipefail

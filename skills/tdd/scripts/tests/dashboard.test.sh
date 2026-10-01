@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
-# Unit tests for scripts/dashboard.sh — the local web dashboard over the same run data
-# status.sh and metrics.sh read. Run from a target repo, it starts a stdlib-only Python
-# server on 127.0.0.1 that serves one static HTML page and a JSON endpoint per pane.
-# Zero-dependency plain-shell asserts, same idiom as status.test.sh.
+# Unit tests for scripts/dashboard.sh — the local web dashboard over the run data status.sh
+# and metrics.sh read.
 #
-# Contract under test (issue #110), this suite's first case:
+# Contract under test:
 #   dashboard.sh            with no argument, bind port 8765 and serve the one HTML page
 #                           at /; exit 0 when sent SIGINT.
 #   dashboard.sh <port>     bind the port named on the command line, and bind it on
@@ -16,11 +14,6 @@
 #                           verbatim for one that ended.
 #   GET /api/events?issue=<n>
 #                           return that run's `.tdd/events.jsonl` tail, parsed, newest last.
-#
-# The server is the one script here that cannot be asked a question and answered in the
-# same process: it runs until it is told to stop. So the case launches it in the
-# background, polls the port until the page answers, and only then interrupts it — the
-# same shape status.test.sh's `--watch` case uses for the other long-running script.
 #
 # Run: scripts/tests/dashboard.test.sh
 set -uo pipefail

@@ -1,66 +1,14 @@
 #!/usr/bin/env bash
 # Unit tests for the four documentation targets in this repository's Makefile — what they do
-# when the shell that invoked them is one of veri's own. Like hermetic-suites.test.sh,
-# count-line-guard.test.sh and prose-lag-green.test.sh this suite has no script as its
-# subject: its subject is a recipe. Zero-dependency plain-shell asserts, same idiom as
-# prose-lag-green.test.sh.
-#
-# Why this exists (issue #143): the third door a documentation build walks through into a
-# development run is an agent typing `make docs`. Nothing refuses it today, and CLAUDE.md's
-# "one trap" section tells any agent that touched the page to run exactly that — so on
-# 2026-09-13 the conductor solving #106 spent ~5.5 min on `make docs` and `make docs-check`
-# inside a run whose test command was `make test`, and then paid for the rebuild again at
-# merge. The development lane's cost is three `make test` runs a step; a page build is not
-# part of that bargain, and neither is the red a stale page can hand back.
-#
-# The conductor gives every leaf it launches, and every command it runs itself, the run's
-# test command as VERI_TEST_CMD. That variable is therefore the one fact a recipe can read
-# that says "you are inside a development run" — and a value that is not itself a
-# documentation target is what makes the run a development one.
+# when the shell that invoked them is one of veri's own.
 #
 # Contract under test:
 #   With VERI_TEST_CMD set to a development command (`make test`), each of `make docs`,
 #   `make docs-test`, `make docs-check` and `make docs-fresh` exits 2, runs none of the
 #   things it would otherwise run, and says on stderr why it refused.
 #
-#   And the far side of the same door: with VERI_TEST_CMD unset — a human, `make
-#   merge-gates`, CI — or set to a documentation target, the run is not a development one
-#   and those same four targets run exactly as they did before the guard existed.
-#
-# All three halves are asked of every one of the four targets, because a guard written into
-# three recipes and forgotten in the fourth leaves the door it was built to shut open, and
-# `docs-check` is not covered by its two prerequisites: it is the target a human types, so
-# what it does is a fact of its own.
-#
-# Exit 2 is the weakest of the three probes and is asked anyway, because it is what the
-# criterion names and what a caller branches on. `make` maps every failed recipe onto its
-# own exit 2 whatever the recipe returned, so that code alone would also be given by a
-# recipe that broke for an unrelated reason — which is precisely why the other two probes
-# are there: a recipe that died on its own would have run something, or would have said
-# nothing about VERI_TEST_CMD on its way out.
-#
-# Nothing here runs the real build. "Runs nothing" is observed in a scratch tree holding
-# this repository's Makefile, copied byte for byte and cmp-checked so the recipe under test
-# is the committed one, and a tripwire standing in for each thing the four targets invoke:
-# the page builder, the freshness check and one suite under the directory `docs-test` globs.
-# Each tripwire appends a word to a log, so an empty log after a run is the observation that
-# the recipe stopped before reaching any of them. Standing the recipes up over stand-ins is
-# also the only way to ask the question at all: a run of the real build against this
-# repository would rewrite the committed page, which is a change this phase must not leave
-# behind, and would cost minutes inside a target that runs three times per step.
-#
-# probe_tripwires_fire_when_the_variable_is_unset is what keeps that observation from being
-# vacuous: with VERI_TEST_CMD out of the environment the same four targets over the same
-# tree have to reach their tripwires and come back 0. Without it, a scratch tree whose
-# Makefile could not find anything would pass every probe above by failing at everything.
-# It is asked with `env -u` rather than by not setting the variable, because once this
-# issue lands every leaf running `make test` has VERI_TEST_CMD in its environment already —
-# a suite's answer must be a fact about the recipe, not about its caller (#87).
-#
-# No line of code below spells the generated tree's name with its slash — it is built onto
-# GENERATED_DIR — so this suite does not break the rule no-docs-reads.test.sh keeps. Writing
-# a tripwire into a scratch tree is not reading that tree: no assertion here is decided by a
-# byte of this repository's own copy of it.
+#   With VERI_TEST_CMD unset, or set to a documentation target, those same four targets run
+#   as they would without the guard.
 #
 # Run: skills/tdd/scripts/tests/docs-targets-refuse.test.sh
 set -uo pipefail

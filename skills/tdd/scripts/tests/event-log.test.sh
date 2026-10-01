@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/lib/event_log.py — the one per-line parse of a run's events.jsonl and
-# the one dollar/token sum over its `usage` events, which status.sh's run_activity and
-# scope_totals both read through rather than each carrying a copy.
-#
-# Why this exists (issue #281): the two embedded Python blocks each opened the log, looped
-# `json.loads` over its non-blank lines and summed `total_cost_usd` off `usage` events, so a
-# change to the event schema was two edits, and one left undone would make a run's line and
-# its scope's totals disagree about the same log.
+# the one dollar/token sum over its `usage` events.
 #
 # Contract under test:
 #   lib/event_log.py   read_events(<path>)  → the log's events, one dict per non-blank line

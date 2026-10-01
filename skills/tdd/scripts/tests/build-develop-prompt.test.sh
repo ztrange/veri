@@ -1,55 +1,34 @@
 #!/usr/bin/env bash
-# Tests for scripts/build-develop-prompt.sh — see that script's header for why the
-# developer's prompt is a versioned template rather than prose improvised each cycle.
-# These tests hold it to the half of that bargain a test can observe: what the assembled
-# prompt must carry.
+# Tests for scripts/build-develop-prompt.sh — what the assembled developer prompt carries.
 #
 # Contract under test, red phase:
 #   build-develop-prompt.sh red <spec-file> <step-text> <test-cmd>
 #   exits 0 and prints a prompt carrying the spec, the step criterion and the test command
-#   verbatim, plus the `AGAINST_UNMODIFIED` report line — the protocol token the conductor
-#   greps for to route a passing red test to verify-pin (SKILL.md, Red step). It also
-#   carries the `UNTESTABLE` outcome (issue #331) and the rules a valid test holds to —
-#   behaviour over mechanism (a process/fork count or a timing belongs to `make profile`,
-#   never an assertion, except a call count the criterion itself names, pinned with an
-#   in-process spy rather than a `PATH` shim counting real processes), lightweight
-#   (~100ms, costly dependencies replaced), and self-contained (never another suite, never
-#   its own again) — so a criterion only pinnable by breaking one of those is reported
-#   untestable rather than forced into a costly or implementation-pinning test.
+#   verbatim, the `AGAINST_UNMODIFIED` report line, the `UNTESTABLE` outcome and the rules a
+#   valid test holds to — behaviour over mechanism, lightweight, self-contained.
 #
 # Contract under test, green phase:
 #   build-develop-prompt.sh green <spec-file> <step-text> <test-cmd> <test-path> <target> <fast-cmd>
-#   exits 0 and prints a prompt naming the test the implementation must satisfy — its path
-#   and its case name — and forbidding any edit to it, the rule that keeps "make it green"
-#   from degenerating into "weaken the test".
+#   exits 0 and prints a prompt naming the test's path and case name, and forbidding any edit
+#   to it.
 #
 # Contract under test, refactor phase:
 #   build-develop-prompt.sh refactor <spec-file> <step-text> <test-cmd> <touched-files>
-#   exits 0 and prints a prompt naming the files this cycle touched — the bounds of the
-#   tidy-up — carrying the rule that bounds it further (no generality no test demands), and
-#   requiring the `RESULT:` / `CANDIDATES:` / `NEW_STEP:` footer: the first the conductor
-#   branches on, the second the backlog it lists when the loop was stopped by the budget
-#   rather than by a leaf finding nothing left, the third the steps the plan gains for
-#   overfit code the leaf must not generalize itself.
+#   exits 0 and prints a prompt naming the files this cycle touched, the rule against
+#   generality no test demands, and the `RESULT:` / `CANDIDATES:` / `NEW_STEP:` footer.
 #
 # Contract under test, the reader of that footer:
-#   SKILL.md's `#### Refactor loop` section — no script assembles the `### 🛠️ Refactor`
-#   comment, so the procedure's prose is the contract — tells the two stop conditions apart
-#   and, when the budget ended the loop, says how many candidates were left and lists them
-#   from the leaf's `CANDIDATES:` lines. Pinned here beside the prompt that asks for them.
+#   SKILL.md's `#### Refactor loop` section tells the two stop conditions apart and, when the
+#   budget ended the loop, says how many candidates were left and lists them.
 #
 # Contract under test, revise phase:
 #   build-develop-prompt.sh revise <phase> <spec-file> <step-text> <test-cmd> <reason-file>
-#   exits 0 and prints a prompt carrying the verifier's rejection reason verbatim — the
-#   fresh leaf never saw the rejected attempt, so the reason text is the whole of what it
-#   has to address — and offering `IMPOSSIBLE`, the outcome that lets it say the step
-#   cannot be met rather than fake a pass.
+#   exits 0 and prints a prompt carrying the verifier's rejection reason verbatim, and
+#   offering `IMPOSSIBLE`.
 #
 # Contract under test, refusals:
 #   an unknown phase, a missing positional, or a missing template, spec or reason file, exits
-#   2 with a diagnostic and prints no prompt — the verifier builder's contract. Exit 2 is
-#   veri's "no answer could be obtained", and a half-assembled prompt on stdout would read
-#   to the conductor as a whole one.
+#   2 with a diagnostic and prints no prompt.
 #
 # Run: scripts/tests/build-develop-prompt.test.sh
 set -uo pipefail

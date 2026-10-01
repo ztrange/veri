@@ -1,18 +1,11 @@
 #!/usr/bin/env bash
-# Tests for scripts/capture-spec.sh — the script that writes the blind spec the verifier
-# leaves read — driven against a stub `gh` on PATH (no network, no real issue).
-# Zero-dependency plain-shell asserts, the idiom tick-issue-criterion.test.sh uses.
+# Tests for scripts/capture-spec.sh — writes the blind spec the verifier leaves read — driven
+# against a stub `gh` on PATH.
 #
-# Contract under test (issue #112): a bug's Red is a reproduction, and the bug reaches the
-# developer and the blind verifier through the one channel that already exists, the spec.
-# So when the issue carries the `bug` label the spec gains a `## Bug` section carrying the
-# issue's what-happened, expected, steps to reproduce and environment.
-#
-# Case 3 is the other half of the same criterion: a script nobody calls changes nothing, and
-# the one caller is prose — `SKILL.md` step 1, where the conductor writes the spec. It lives
-# here rather than in one of the `skill-*` suites for refactor-triage.test.sh case 4's reason:
-# the sentence under test is a statement *about this script*, and a reader repairing it comes
-# here to find out what it actually writes.
+# Contract under test:
+#   when the issue carries the `bug` label the spec gains a `## Bug` section carrying the
+#   issue's what-happened, expected, steps to reproduce and environment, and SKILL.md step 1
+#   says so.
 #
 # Run: scripts/tests/capture-spec.test.sh
 set -uo pipefail

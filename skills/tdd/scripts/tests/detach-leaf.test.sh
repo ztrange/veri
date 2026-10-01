@@ -1,33 +1,11 @@
 #!/usr/bin/env bash
-# Unit tests for scripts/detach-leaf.sh — the launcher every leaf launch goes through, which
-# runs its argv as a new session leader and returns at once (issue #161).
-# Zero-dependency plain-shell asserts, same idiom as refactor-budget.test.sh.
+# Unit tests for scripts/detach-leaf.sh — runs its argv as a new session leader and returns
+# at once.
 #
-# Why this exists: `nohup … &` was the detach in SKILL.md's *Launching a leaf* since #86, and
-# `nohup` only makes the child ignore SIGHUP. It leaves the child in the PROCESS GROUP of the
-# Bash call that launched it, so a harness that signals that group when the call ends takes
-# the leaf with it. Observed 2026-09-12 23:43 UTC on a conductor for #123: the Bash call came
-# back `Exit code 144`, `.tdd/verdict-red.exit` was never written, and `verify.sh red` was
-# gone. A leaf killed that way writes no completion file, `wait-leaf.sh` then returns exit 3
-# forever, and SKILL.md:88-89 tells the conductor that means "still running" — so the run
-# stalls with nothing to say why.
-#
-# Contract under test (this step only):
+# Contract under test:
 #   detach-leaf.sh <cmd> [args...]  → the launched process keeps running, and writes its
 #                                     completion file, after a TERM is sent to the process
 #                                     group of the shell that launched it.
-#
-# Asked by watching it rather than by reading the script: a harness shell is put in a process
-# group of its OWN (`set -m` gives a background job its own pgid), it launches two children
-# there — one through the launcher, one with the plain `nohup … &` this replaces — and one
-# TERM to that group decides both. The `nohup` child is the premise, not a second criterion:
-# without it a TERM that reached nothing at all would leave the launcher's child alive and
-# this case green over a signal that was never delivered. Neither child writes until the
-# suite says so, with a GO file it creates only after the TERM, so both are alive when the
-# signal lands however loaded the machine is, and nothing here waits on a timer. A launcher
-# that runs the leaf in the FOREGROUND blocks the harness on that same GO, which never comes,
-# so the harness never reports its launches returned — the failure the timed launch used to
-# catch, now caught without a timer.
 #
 # Run: scripts/tests/detach-leaf.test.sh
 set -uo pipefail

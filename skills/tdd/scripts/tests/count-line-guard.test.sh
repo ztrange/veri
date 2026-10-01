@@ -1,29 +1,11 @@
 #!/usr/bin/env bash
-# Unit tests for the `test` recipe in this repository's Makefile — the runner whose green
-# is what preflight's baseline, every Green leaf, both blind verifiers and CI's gates job
-# all read. Like hermetic-suites.test.sh and workflow-timeouts.test.sh this suite has no
-# script as its subject: its subject is what the runner does with a suite that stops
-# asserting. Zero-dependency plain-shell asserts, same idiom as refactor-budget.test.sh.
-#
-# Why this exists (issue #157): under `set -uo pipefail`, which every suite here declares,
-# an operand of `[[ … -le … ]]` that is a word rather than a number is read as a variable
-# name; an unset name kills the script, and a script killed that way exits with the status
-# of the command before it — routinely 0. The recipe runs each suite as `"$t" || fail=1`
-# and trusts that code alone, so it prints `all suites green` over a suite that asserted
-# nothing after the point it died. build-guards.test.sh ran 37 of its 54 cases that way
-# until commit c4a6bdb, and no output said so.
+# Unit tests for the `test` recipe in this repository's Makefile — what it does with a suite
+# that stops asserting.
 #
 # Contract under test:
 #   `make test` over a suite that dies from an unbound variable inside a numeric
 #   comparison after its first case and exits 0 comes back non-zero, and says which suite
 #   never reached its count line.
-#
-# The suite it is handed is fixtures/silent-death/dies-silently.test.sh, which is under
-# the fixtures directory rather than beside the real suites so that `make test`'s own glob
-# never picks it up: only this file runs it, and only through the runner. Nothing on that
-# path says "count line" on purpose — the last probe below asks whether a line of output
-# names the suite AND says it never reached its count line, and a fixture path carrying
-# those words would answer that probe with its own name.
 #
 # Run: skills/tdd/scripts/tests/count-line-guard.test.sh
 set -uo pipefail

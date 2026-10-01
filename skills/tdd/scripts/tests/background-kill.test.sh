@@ -1,33 +1,17 @@
 #!/usr/bin/env bash
-# Unit tests for scripts/lib/background.sh — the one place a background process is started
-# and later killed, so that the kill names the pid that was recorded when it started and
-# never a job spec (issue #424).
-# Zero-dependency plain-shell asserts, same idiom as detach-leaf.test.sh.
+# Unit tests for scripts/lib/background.sh — starts a background process and later kills it
+# by the pid recorded when it started, never by a job spec.
 #
-# Why this exists: a job spec dies with the shell that owns the job table it names, where a
-# pid is a system-wide name a kill can use from any shell — `lib/background.sh`'s own header
-# carries that mechanism and the ten orphaned busy-loops it cost this machine on 2026-09-22,
-# and is the one copy of it. What follows is what only a test can say: how the two halves of
-# that claim are watched.
-#
-# Contract under test (this step only):
+# Contract under test:
 #   source lib/background.sh
 #   bg_start <record> <cmd> [args...]  → runs the command in the background and records its
 #                                        pid in <record>
 #   bg_kill  <record>                  → every process recorded in <record> is dead, whether
 #                                        or not the shell that started it is still alive
 #   a shell that exits with a recorded process still running says so on its own stderr,
-#   naming that pid and what started it, rather than leaving it silently — once per survivor
-#   however many times that record was started into, and not at all when the record itself is
-#   gone by the time the shell exits
-#
-# Asked by watching a real process rather than by reading the source: the victim is started
-# inside a subshell which then EXITS, and the kill is issued from a different subshell
-# afterwards. That is the whole discrimination — a `kill %1` in the second shell reaches
-# nothing, because its job table never held the victim — and no cheaper probe establishes it.
-# What the victim itself is, and why, is `make_victim` below. Nothing here waits on a timer:
-# the two waits end on a file appearing and on a pid going away, on the budget `poll_until`
-# below explains.
+#   naming that pid and what started it — once per survivor however many times that record
+#   was started into, and not at all when the record itself is gone by the time the shell
+#   exits
 #
 # Run: scripts/tests/background-kill.test.sh
 set -uo pipefail
