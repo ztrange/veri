@@ -1,0 +1,6 @@
+# Plan for #607 — wait-ci.test.sh's never-completing checks reach their bound in a few clock readings, not ~30
+
+- [ ] wait-ci.test.sh's cases whose subject is the exit code for a check that never completes — the first case's pending rollup (exit 3), the legacy StatusContext PENDING and EXPECTED rows (exit 3), the legacy SUCCESS StatusContext beside a pending CheckRun (exit 3) and the all-SKIPPED rollup (exit 3) — each reach their 1800 s bound in at most 3 clock readings, by a larger clock step the case injects, never by a shorter bound ⟦criterion 2⟧
+- [ ] every case wait-ci.test.sh has on main keeps its assertion — the same exit code, the same stdout and stderr expectations and the same literal bounds (1800 s, 540 s, 60 s) where it names one — checked against `git diff origin/main...HEAD -- skills/tdd/scripts/tests/wait-ci.test.sh`, and the suite passes ⟦full-suite⟧ ⟦criterion 1⟧
+- [ ] the `late` case still shows a check completing on the third read exits 0 within 1800 s and 3 within 60 s at a 60 s step, and the slice/total case still pins how one call's sleep is capped (slice 540 s, total 1800 s), both passing ⟦full-suite⟧ ⟦criterion 3⟧
+- [ ] `git diff origin/main...HEAD -- skills/tdd/scripts/wait-ci.sh` is empty ⟦full-suite⟧ ⟦criterion 4⟧
