@@ -1485,6 +1485,12 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh structural-pass transforms=<count> budget=<VERI_ISSUE_REFACTOR_BUDGET> stopped=<reason>
    ```
+   A pass marked `stopped=budget-spent` left candidates no leaf reached; file them as one
+   unlabelled issue naming this one, `<taken>` being the candidates the pass took up:
+   ```
+   $S/refactor-overflow.sh <n> .tdd/issue-<n>-refactor-owed.md <taken>   # → <overflow-url>
+   ```
+   A pass that ends `candidates-done` or `nothing-structural` files nothing.
    No candidate — `list`
    exits 3 — skips the pass with no bail, marking the log and going straight on to readying
    the PR:
@@ -1524,7 +1530,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    [ "$ci" != 1 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)"
    [ "$ci" != 2 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
-   gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)" -f body="<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md, followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by its ⟦human-owed⟧ lines under ## Owed by a human>"
+   gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)" -f body="<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md, followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by its ⟦human-owed⟧ lines under ## Owed by a human, followed by <overflow-url>, the issue refactor-overflow.sh filed, when the pass filed one>"
    ```
    The readied PR's CI is read fail-closed, the way the `merge` skill reads it: an empty
    rollup is never a pass, and a completed check whose conclusion is anything other than
