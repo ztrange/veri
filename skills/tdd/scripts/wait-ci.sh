@@ -49,7 +49,7 @@ from datetime import datetime
 at = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").timestamp()
 runs = [r for page in docs(sys.stdin.read()) for r in page]
 runs = sorted(runs, key=lambda r: r["databaseId"], reverse=True)[:5]
-print(round(2 * sum(at(r["updatedAt"]) - at(r["startedAt"]) for r in runs) / len(runs)))
+print(min(600, round(2 * sum(at(r["updatedAt"]) - at(r["startedAt"]) for r in runs) / len(runs))))
 '
 }
 
