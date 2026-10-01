@@ -18,7 +18,7 @@
 - [x] Migration slice 7 — refactor-triage render-leaf-log run-affordable run-conductor run-leaf run-suite run-verdict.sh: each sources lib/exit-contract.sh, and each that refuses a missing or bad argument does so through refuse or require_args, exiting 2 with its own usage text, with no hand-built usage-and-exit idiom left ⟦criterion 1⟧
 - [x] Migration slice 8 — session-cost solvable-issues status step-budget step-cost stop-requested stop-run.sh: each sources lib/exit-contract.sh, and each that refuses a missing or bad argument does so through refuse or require_args, exiting 2 with its own usage text, with no hand-built usage-and-exit idiom left ⟦criterion 1⟧
 - [x] Migration slice 9 — supervise tick-criterion tick-issue-criterion tick-ledger tier-usual time-budget timed-test-run.sh: each sources lib/exit-contract.sh, and each that refuses a missing or bad argument does so through refuse or require_args, exiting 2 with its own usage text, with no hand-built usage-and-exit idiom left ⟦criterion 1⟧
-- [x] Migration slice 10 — transform-touches-tests verify wait-ci wait-leaf workqueue.sh: each sources lib/exit-contract.sh, and each that refuses a missing or bad argument does so through refuse or require_args, exiting 2 with its own usage text, with no hand-built usage-and-exit idiom left ⟦criterion 1⟧ ⟂ refactor pending
+- [x] Migration slice 10 — transform-touches-tests verify wait-ci wait-leaf workqueue.sh: each sources lib/exit-contract.sh, and each that refuses a missing or bad argument does so through refuse or require_args, exiting 2 with its own usage text, with no hand-built usage-and-exit idiom left ⟦criterion 1⟧
 - [ ] A pass-through audit fails any `exit "$var"` or `exit $?` in a script under scripts/ that neither maps through to_contract nor carries a `# pass-through: <why>` marker, against an exemption table of the sites still owed; clear-refactor-pending.sh, harvest-usage.sh, parallel-conductors.sh and parse-verdict.sh pass it with no exemption ⟦criterion 3⟧
 - [ ] The pass-through sites in run-leaf.sh, run-suite.sh, supervise.sh and tick-issue-criterion.sh map through to_contract or carry a `# pass-through: <why>` marker, and leave the audit's exemption table ⟦criterion 3⟧
 - [ ] The pass-through sites in tick-ledger.sh, timed-test-run.sh, verify.sh and wait-leaf.sh map through to_contract or carry a `# pass-through: <why>` marker, and the audit's exemption table is empty ⟦criterion 3⟧
@@ -44,3 +44,8 @@
 ## Owed steps
 
 - session-cost.sh given a nonexistent transcript or an unknown option exits 2 with its own usage text on stderr, through refuse
+
+## Owed steps
+
+- workqueue.sh, once take_lock arms its own EXIT trap, still ends with 2, never a code outside 0–3, because its trap does not replace the contract's mapping
+- workqueue.sh given an empty issue, an issue named twice, or a park reason holding a tab or newline exits 2 with its own usage text on stderr, through refuse
