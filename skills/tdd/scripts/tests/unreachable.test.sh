@@ -210,4 +210,13 @@ if [[ "$code" == 0 && "$got" == "orphan.sh" ]]; then ok; else
   diff <(printf 'orphan.sh\n') <(printf '%s\n' "$got") | sed 's/^/    /'
 fi
 
+repo="$(cd "$HERE/../../../.." && pwd)"
+out="$("$UNREACHABLE" "$repo" 2>&1)"; code=$?
+got="$(printf '%s\n' "$out" | grep -vE '^(test-only|promised-unread): ' | sed '/^$/d' || true)"
+name="this repository's scripts are each reached from a declared entry point, so the check lists no unreachable script in it"
+if [[ "$code" == 0 && -z "$got" ]]; then ok; else
+  no "$name (code=$code)"
+  printf '%s\n' "$got" | sed 's/^/    unreachable: /'
+fi
+
 finish
