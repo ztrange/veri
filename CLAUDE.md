@@ -2,7 +2,7 @@
 
 A Claude Code skill suite that solves one GitHub issue under strict TDD. The whole
 product is `skills/tdd/`: a procedure in English (`SKILL.md`) that Claude
-follows, plus sixty-eight bash scripts it calls — sixty-seven, strictly: `invisible-work.sh`
+follows, plus sixty-nine bash scripts it calls — sixty-eight, strictly: `invisible-work.sh`
 is counted with them but the procedure never calls it; it is a maintenance utility a human or
 a loop runs to report a branch no PR was opened for, or one not on `origin` (#197). Read
 `CONTEXT.md` for the glossary — the terms there (conductor, leaf, supervisor, verdict, ledger, bail) are used precisely everywhere.
@@ -174,7 +174,7 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/tdd/scripts/tests/` — 130 files for sixty-eight scripts, plus twenty-two suites under `unit/` (five moved there, three written for them, seven written with the script or helper they test — `step-cost.test.sh`, `step-budget.test.sh`, `run-affordable.test.sh`, `cover-outcome.test.sh`, `comment-class.test.sh`, `ledger.test.sh` and `github.test.sh` — and two written for the argument contract they all share — `missing-argument-exit.test.sh`, which audits it over every script, and `missing-argument-guard.test.sh`, which plants an offender so that audit is known to go red — one written to pin the text veri emits, `emitted-text.test.sh`, one written to pin where the pending mark is spelled, `pending-mark-literal.test.sh`, one written with the sourced test harness, `harness.test.sh`, and one written to pin that no suite carries its own `report`, `no-report-copies.test.sh`), all run by `make test`.
+`skills/tdd/scripts/tests/` — 131 files for sixty-nine scripts, plus twenty-two suites under `unit/` (five moved there, three written for them, seven written with the script or helper they test — `step-cost.test.sh`, `step-budget.test.sh`, `run-affordable.test.sh`, `cover-outcome.test.sh`, `comment-class.test.sh`, `ledger.test.sh` and `github.test.sh` — and two written for the argument contract they all share — `missing-argument-exit.test.sh`, which audits it over every script, and `missing-argument-guard.test.sh`, which plants an offender so that audit is known to go red — one written to pin the text veri emits, `emitted-text.test.sh`, one written to pin where the pending mark is spelled, `pending-mark-literal.test.sh`, one written with the sourced test harness, `harness.test.sh`, and one written to pin that no suite carries its own `report`, `no-report-copies.test.sh`), all run by `make test`.
 `supervise.sh` has a second suite for its retry axis, and two suites belong to no single
 script: `hermetic-suites.test.sh` is a cross-suite test that pins the suites' independence
 from ambient `VERI_*` tunables, and `workflow-timeouts.test.sh` is the first to assert on
