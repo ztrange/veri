@@ -72,6 +72,7 @@ name="criterion 1 is finished when lib/ledger.sh's ledger_steps says so: exits 0
 work="$(scratch_dir)"
 mkdir "$work/lib"
 cp "$FINISHED" "$work/criterion-finished.sh"
+cp "$(dirname "$FINISHED")/lib/exit-contract.sh" "$work/lib/exit-contract.sh"
 cat > "$work/lib/ledger.sh" <<'EOF'
 ledger_steps() {
   cat > /dev/null

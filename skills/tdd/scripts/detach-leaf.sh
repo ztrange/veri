@@ -22,6 +22,9 @@
 # perfectly well and still hang the Bash call that was supposed to come straight back.
 set -uo pipefail
 
-[[ $# -gt 0 ]] || { echo "usage: detach-leaf.sh <cmd> [args…]" >&2; exit 2; }
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+USAGE="usage: detach-leaf.sh <cmd> [args…]"
+
+[[ $# -gt 0 ]] || refuse
 
 python3 -c 'import os, signal, sys; signal.signal(signal.SIGPIPE, signal.SIG_DFL); os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])' "$@" &

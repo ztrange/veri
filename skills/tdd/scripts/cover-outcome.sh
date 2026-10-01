@@ -12,6 +12,8 @@
 # exit:    0 COVERED: yes · 1 COVERED: no · 2 no readable COVERED: line
 set -uo pipefail
 
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+
 covered="" caught_by=""
 while IFS= read -r line || [[ -n "$line" ]]; do
   case "$line" in

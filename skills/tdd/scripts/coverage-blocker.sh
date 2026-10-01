@@ -15,10 +15,14 @@
 # authenticated `gh`, which reads GH_REPO from the environment itself.
 set -euo pipefail
 
-[[ -n "${1:-}" ]] || { echo "usage: coverage-blocker.sh <refactor-issue-number>" >&2; exit 2; }
+HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
+
+USAGE="usage: coverage-blocker.sh <refactor-issue-number>"
+require_args 1 "$@"
 n="$1"
 
-source "$(cd "$(dirname "$0")" && pwd)/lib/github.sh"
+source "$HERE/lib/github.sh"
 
 title="Cover the behaviour #$n refactors"
 text="Refactor #$n refused: its Cover probe found the code it would move uncovered (\`COVERED: no\`). Find a seam and surround the behaviour with tests, then #$n can be retaken."

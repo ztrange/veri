@@ -1628,6 +1628,8 @@ else
   ln -s "$scripts/$module.py" "$slow_dir/$module.py"
   ln -s "$scripts/dashboard.html" "$slow_dir/dashboard.html"
   ln -s "$METRICS" "$slow_dir/metrics.sh"
+  mkdir "$slow_dir/lib"
+  ln -s "$scripts/lib/exit-contract.sh" "$slow_dir/lib/exit-contract.sh"
 
   launch "$slow_dir/dashboard.sh" "$slow_repo" "$slow_log" "$slow_port"
   slow_pid=$!
