@@ -273,7 +273,7 @@ def model_row(line):
     return row_in(by_model, (actor, models.get(attempt, "")), PHASE_COLUMNS)
 
 def rows_for(phase, step, line):
-    rows = [model_row(line)] if model_row(line) is not None else []
+    rows = [r for r in [model_row(line)] if r is not None]
     if phase:
         rows.append(row_in(counts, phase, PHASE_COLUMNS))
     if step:
@@ -403,8 +403,9 @@ for line in marks:
         continue
     if phase and count in COUNTS:
         tally(counts, phase, PHASE_COLUMNS, count)
-    if count in COUNTS and model_row(line) is not None:
-        model_row(line)[count] += 1
+    model = model_row(line) if count in COUNTS else None
+    if model is not None:
+        model[count] += 1
     if step:
         tally(steps, step, STEP_COLUMNS, count)
 
