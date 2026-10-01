@@ -1,20 +1,6 @@
 #!/usr/bin/env bash
-# Unit test for what the two prose documents say about which leaves run the full test
-# suite: skills/tdd/SKILL.md where it describes each phase's leaf, and the repository's own
-# CLAUDE.md where it describes suite runs. Like skill-test-command.test.sh and
-# docs-gap-adr.test.sh this suite has no script as its subject — it reads documents as text,
-# in the same zero-dependency plain-shell idiom, and is picked up by `make test`'s glob by
-# existing.
-#
-# Why this exists (issue #144): the developer prompts changed under the leaf-cost thread.
-# The red leaf now runs the suite that holds its new case, the refactor leaf the suites
-# covering the files it touched, and the full suite runs where the guarantee lives — once in
-# develop-green before it reports, and in the two blind verifiers. SKILL.md still tells the
-# conductor that the refactor leaf "runs the full suite", and CLAUDE.md still says `make
-# test` "is what every veri leaf runs after every edit". A conductor reading the stale
-# sentence budgets the wrong run time, and the next agent reading CLAUDE.md re-derives the
-# old rule and puts it back; prose that contradicts the prompts is worse than prose that
-# says nothing, because it is the account a human trusts.
+# Unit test for what skills/tdd/SKILL.md and this repository's CLAUDE.md say about which
+# leaves run the full test suite, read as text.
 #
 # Contract under test:
 #   SKILL.md's Red phase says its leaf runs the suite holding the new case; its Green phase
@@ -22,8 +8,6 @@
 #   suites covering the touched files and that the full suite runs at verify-refactor.
 #   CLAUDE.md names which leaves run the full suite, and no longer claims every leaf runs it
 #   after every edit.
-# Each probe accepts any wording that carries its fact — what these documents say is pinned,
-# how they phrase it is the writer's.
 #
 # Run: scripts/tests/skill-suite-runs.test.sh
 set -uo pipefail

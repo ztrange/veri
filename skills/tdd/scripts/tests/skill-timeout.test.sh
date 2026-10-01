@@ -1,24 +1,13 @@
 #!/usr/bin/env bash
 # Unit tests for what skills/tdd/SKILL.md tells a conductor to do with the run's hard
-# timeout. Like skill-identity.test.sh and workflow-timeouts.test.sh this suite belongs to
-# no single script: its subject is the procedure, read as text, the way the session that
-# follows it reads it.
-# Zero-dependency plain-shell asserts, same idiom as skill-identity.test.sh.
+# timeout, read as text.
 #
-# Why this exists (issue #121): `leaf-timeout.sh` derives the timeout, but a script nobody
-# calls changes nothing. The derivation lives in the conductor's own procedure — there is
-# no leaf and no script that could carry it, because the measurement it needs is taken by
-# preflight and the value it produces has to be in the environment before the first leaf
-# launches. On #71 that value was the fixed 900 s against a 140-250 s suite, and two leaves
-# were killed as stuck while working; what fixes it is this document saying so.
-#
-# Contract under test (this step only):
+# Contract under test:
 #   SKILL.md's preflight section times the green-baseline run it already does, hands that
 #   measurement to `leaf-timeout.sh`, and exports the result as `VERI_TIMEOUT` so every
 #   leaf of the run is launched under it.
 #   SKILL.md's plan-comment step says that comment states the timeout and the baseline it
-#   was derived from, so a human reading the issue thread can see which number the run is
-#   using and why — the fact that had to be reconstructed from bail timestamps on #71.
+#   was derived from.
 #
 # Run: scripts/tests/skill-timeout.test.sh
 set -uo pipefail

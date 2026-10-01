@@ -1,14 +1,6 @@
 #!/usr/bin/env bash
 # Unit test for skills/tdd/SKILL.md's account of the refactor leaf's report footer, held
-# against the report lines the built refactor prompt asks for (issue #175). Like
-# skill-refactor-leaf.test.sh this suite belongs to no single script: its subject is the
-# procedure, read as text, the way the session that follows it reads it.
-#
-# It is a suite of its own, not a case of skill-refactor-leaf.test.sh, because it is the one
-# check over that section that runs a script: flag-class-amendment-guard.test.sh and
-# beyond-spec-narration-guard.test.sh copy skill-refactor-leaf.test.sh into a scratch tree
-# holding only the documents it reads, and a case there that ran build-develop-prompt.sh would
-# be red in that tree for a reason no plant put there.
+# against the report lines the built refactor prompt asks for.
 #
 # Contract under test — one criterion:
 #   1. The Refactor section's account of the leaf's report footer names exactly the report

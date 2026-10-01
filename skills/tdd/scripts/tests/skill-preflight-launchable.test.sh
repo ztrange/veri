@@ -1,54 +1,14 @@
 #!/usr/bin/env bash
-# Unit test for where skills/tdd/SKILL.md's preflight runs `leaf-launchable.sh`. Like
-# skill-timeout.test.sh and skill-test-command.test.sh this suite belongs to no single
-# script: its subject is the procedure read as text, the way the conductor session that
-# follows it reads it. Zero-dependency plain-shell asserts, same idiom, picked up by
-# `make test`'s glob by existing.
+# Unit tests for what skills/tdd/SKILL.md's preflight checks before its baseline run, read
+# as text.
 #
-# Why this exists (issue #187): `leaf-launchable.sh` is the check the earlier steps of this
-# issue built. What fault it catches, and what a run that misses it has already paid for by
-# the time its first leaf dies, are said in its header (leaf-launchable.sh:4-22), once — and
-# a script nobody calls changes none of it. There is no script that calls the conductor — the
-# conductor is prose — so the wiring can only be pinned as prose, the way
-# skill-test-command.test.sh pins preflight's call to `detect-test-command.sh`.
-#
-# Contract under test (this step only — the check's own behaviour is
-# leaf-launchable.test.sh's, and what the document tells an OPERATOR to type instead is
-# skill-conductor-launch.test.sh's):
-#   Some preflight check names `leaf-launchable.sh`, and it comes before the check that runs
-#   the baseline suite.
-#
-# A second case (issue #360) holds the same section to refusing a bad `VERI_STEP_GROWTH`, the
-# fifth budget axis: the check belongs where item 5 already refuses a bad
-# `VERI_REFACTOR_BUDGET`, since a budget that cannot be read is a misconfigured run either way
-# and preflight is the one place a run is still free to stop. Its behaviour as a script is
-# add-ledger-step.test.sh's; that the document orders a run to make the check is prose, and so
-# is pinned here.
-#
-# A third case (issue #451) holds the same item to calling `step-budget.sh`, the resolver for
-# the two money budgets (#449), beside `refactor-budget.sh 0`: a step or run budget that cannot
-# be read is the same misconfigured run, refused at the same point, and its exit 2 is spelled in
-# the paragraph that makes the call rather than borrowed from the refactor budget's.
-#
-# Before the baseline is the whole point of the position, not a tidiness: the baseline is the
-# expensive half of preflight — minutes on a slow repo — and it is wasted either way when no
-# leaf can launch. A launchability check placed after it would still refuse the run, but only
-# once the run had paid for the answer it could have had for free.
-#
-# The two checks are located by the SCRIPT each one calls rather than by its number or its
-# wording: preflight's items are renumbered whenever one is inserted, and which sentence
-# announces a check is the author's. Where the call is written is what "before" is read off,
-# so moving a check within an item counts as moving it. `detect-test-command.sh` is what identifies the baseline
-# item because that is the call the baseline run is made from (SKILL.md preflight step 3), and
-# skill-test-command.test.sh already holds it to living in this section.
-#
-# Fail closed twice over: a preflight section that cannot be found, and a baseline item that
-# names no detection, are each reported as themselves rather than left to read as "nothing is
-# out of order".
-#
-# Not asked here: that CLAUDE.md's suite count moved when this file landed.
-# claude-md-counts.test.sh is the case that holds every count in that document to the files on
-# disk, and this suite arriving in the tree is what makes it answer.
+# Contract under test:
+#   1. Some preflight check names `leaf-launchable.sh`, and it comes before the check that
+#      runs the baseline suite (the one calling `detect-test-command.sh`).
+#   2. The same section refuses a bad `VERI_STEP_GROWTH` where it refuses a bad
+#      `VERI_REFACTOR_BUDGET`.
+#   3. The same item calls `step-budget.sh` beside `refactor-budget.sh 0`, and spells its
+#      exit 2 in the paragraph that makes the call.
 #
 # Run: scripts/tests/skill-preflight-launchable.test.sh
 set -uo pipefail

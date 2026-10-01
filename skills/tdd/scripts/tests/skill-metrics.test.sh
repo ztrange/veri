@@ -1,29 +1,14 @@
 #!/usr/bin/env bash
 # Unit tests for what skills/tdd/SKILL.md tells the conductor to do with the run's metrics
-# report. Like skill-draft-pr.test.sh and skill-commit.test.sh this suite belongs to no
-# single script: its subject is the procedure document, read as text, the way the session
-# that follows it reads it. Picked up by `make test`'s glob by existing.
-# Zero-dependency plain-shell asserts, same idiom as skill-draft-pr.test.sh.
+# report, at both of the run's endings, read as text.
 #
-# Why this exists (issue #108): `metrics.sh` renders the report, and metrics.test.sh pins
-# what it renders — but nothing launches the conductor, so the report reaches a human only
-# because this document says to go and get it. A run that never calls the script leaves the
-# figures computable and uncomputed, which is indistinguishable, from the issue thread, from
-# not having them at all.
-#
-# The subject is both of the run's two endings, because the report's whole value is at the
-# ending that went badly: a document that delivered metrics only on the PR path would drop
-# them exactly where waste is the figure someone wants. So the criterion is read at the
-# Draft PR step AND in the Bailing section, and each contributes its own problem line.
-#
-# Contract under test (one criterion, one case):
-#   SKILL.md's `### 4. Draft PR` step runs, in this order (since #236, and since #195 opening
-#   no PR of its own), `gh api …/pulls?head=` for the URL of the PR the plan commit already opened,
-#   `event.sh done pr=<pr-url>`, `metrics.sh`, a `metrics:` commit of
-#   `.tdd/issue-<n>-metrics.md`, `push-branch.sh`, and `gh api -X PATCH`, which carries the
-#   `### 📊 Metrics` block into the PR body; the same block goes into the final `✅ Done`
-#   comment; SKILL.md's `## Bailing` section commits
-#   the same file on the pushed branch and puts the block on the `⛔ Bailed` comment.
+# Contract under test:
+#   SKILL.md's `### 4. Draft PR` step runs, in this order, `gh api …/pulls?head=` for the URL
+#   of the PR the plan commit already opened, `event.sh done pr=<pr-url>`, `metrics.sh`, a
+#   `metrics:` commit of `.tdd/issue-<n>-metrics.md`, `push-branch.sh`, and `gh api -X PATCH`,
+#   which carries the `### 📊 Metrics` block into the PR body; the same block goes into the
+#   final `✅ Done` comment; SKILL.md's `## Bailing` section commits the same file on the
+#   pushed branch and puts the block on the `⛔ Bailed` comment.
 #
 # Run: scripts/tests/skill-metrics.test.sh
 set -uo pipefail

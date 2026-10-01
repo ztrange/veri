@@ -1,14 +1,5 @@
 #!/usr/bin/env bash
-# Unit tests for how the conductor answers a rejected push — like skill-event-marks.test.sh
-# this suite belongs to no single script: its subject is skills/tdd/SKILL.md, read as text,
-# the way the session that follows it reads it.
-# Zero-dependency plain-shell asserts, same idiom as skill-event-marks.test.sh.
-#
-# Why this exists (issue #232): #108's run pushed nothing for ten steps because
-# `push-branch.sh` exited 0 on a non-fast-forward rejection and SKILL.md told the session
-# that a failed push "exits 0 either way". The script now exits 1 on a rejection and 2 when
-# its event cannot be written, but a script's exit code is only an answer if the prose that
-# calls it branches on it — and the conductor is prose.
+# Unit tests for how skills/tdd/SKILL.md answers a rejected push, read as text.
 #
 # Contract under test:
 #   1. At both `push-branch.sh` call sites — Green's tick commit and verify-refactor's clear

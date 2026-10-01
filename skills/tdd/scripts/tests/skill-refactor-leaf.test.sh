@@ -1,83 +1,38 @@
 #!/usr/bin/env bash
-# Unit test for the shape of the refactor phase skills/tdd/SKILL.md prescribes. Like
-# skill-suite-runs.test.sh and skill-leaf-launch.test.sh this suite belongs to no single
-# script: its subject is the procedure, read as text, the way the session that follows it
-# reads it. Zero-dependency plain-shell asserts, same idiom, picked up by `make test`'s
-# glob by existing.
+# Unit tests for the shape of the refactor phase skills/tdd/SKILL.md prescribes, read as
+# text.
 #
-# Why this exists (issue #150): ADR-0010 ran one transform per leaf so a break could be
-# traced to one change, and the conductor paid a cold `claude -p` start and a re-read of
-# the spec and the touched files for every transform. Measured: #144's refactor loops plus
-# verify-refactor took 2,147 of that run's 3,735 leaf-seconds, and one #137 step's five
-# transforms took 49 minutes between them. Tracing a break to one change needs a commit per
-# transform and a suite run between transforms; it does not need a leaf each.
-#
-# So the leaf now applies the whole budget and commits each transform itself, and the
-# conductor's job changes from producing that result to CHECKING it. That check is the only
-# thing standing between a killed or a disobedient leaf and a verify-refactor run on a state
-# nobody looked at: the transform a dying leaf left on disk is uncommitted work no verifier
-# has seen, and a commit since the green one whose subject is not `refactor:` is production
-# code smuggled past the blind verifier of the phase that was supposed to be
-# behavior-preserving. Neither is visible to verify-refactor, which judges the settled tree.
-#
-# Contract under test — ten criteria, the procedure, the account of it, what the leaf's
-# report grows, what a growth budget too full to hold it means, whose proposals that
-# growth carries, where an overfit flag is answered, which flag class grows the plan, where
-# a beyond-spec flag goes instead, how often one step may triangulate, and which report
-# lines the plan grows from, one case each:
+# Contract under test — one case each:
 #   1. SKILL.md's Refactor section launches ONE leaf for the step rather than one per
 #      transform; before verify-refactor it asks `git status --porcelain` and refuses to go
 #      on while the tree is dirty; it asks the subjects of the commits since the green
 #      commit and refuses to go on when one of them is not a `refactor:`; and it counts
 #      those commits with `git rev-list --count` and narrates the count against the budget,
 #      saying so when the count is over it rather than leaving the overrun out.
-#   2. CONTEXT.md's **Cycle** entry and CLAUDE.md's three-budgets invariant describe that
-#      same shape — one refactor leaf for the step, not a transformation per leaf — and
-#      point a reader at the ADR that now records it.
+#   2. CONTEXT.md's **Cycle** entry and CLAUDE.md's budgets invariant describe that same
+#      shape — one refactor leaf for the step, not a transformation per leaf — and point a
+#      reader at the ADR that now records it.
 #   3. SKILL.md's Refactor section passes the leaf's `NEW_STEP:` values to one
 #      `add-ledger-step.sh … after '<STEP>'` call once verify-refactor has PASSed, and the
-#      ledger those steps landed in rides the commit that clears the refactor-pending mark
-#      (issue #361).
+#      ledger those steps landed in rides the commit that clears the refactor-pending mark.
 #   4. That section narrates `add-ledger-step.sh` exit 1 — the plan-growth budget is full, so
 #      nothing was inserted and every value was filed under the ledger's `## Owed steps`
-#      heading — as the owed steps it is, and does not bail on it (issue #361).
-##   5. That same one call carries the passing verify-refactor verdict's own `NEW_STEP:`
-#      values as well as the leaf's, so the unhandled edge case the refactor verifier now
-#      proposes instead of REJECTing for reaches the plan (issue #362).
+#      heading — as the owed steps it is, and does not bail on it.
+#   5. That same one call carries the passing verify-refactor verdict's own `NEW_STEP:`
+#      values as well as the leaf's.
 #   6. That section answers an `overfit` flag with one triangulating red/green pair inside
 #      the step that raised it — no ledger step, no second `### ✅ Step done` — and then
-#      resumes that step's own refactor loop with the budget it had left (issue #175).
+#      resumes that step's own refactor loop with the budget it had left.
 #   7. That section amends the plan from an `uncovered-spec` flag and from **no other**
-#      flag class, and the one add-ledger-step.sh call is fed that class's behaviours
-#      (issue #175).
+#      flag class, and the one add-ledger-step.sh call is fed that class's behaviours.
 #   8. That section narrates a `beyond-spec` flag as a follow-up — in the `### 🛠️ Refactor`
-#      comment and in the PR body — and neither plans nor builds it in this run (issue #175).
-##   9. That section runs a step's triangulation at most once, narrating a flag raised inside
+#      comment and in the PR body — and neither plans nor builds it in this run.
+#   9. That section runs a step's triangulation at most once, narrating a flag raised inside
 #      that triangulation's own refactor loop about the same code rather than triangulating
-#      it a second time (issue #175).
+#      it a second time.
 #  10. SKILL.md grows the plan from the refactor leaf's FLAGS: classes alone: the one
 #      add-ledger-step.sh call is fed from flags' behaviours, and nowhere does the document
-#      read a NEW_STEP: or CANDIDATES: line of the leaf's into the plan (issue #175). Which
-#      class those flags are is case 7's question alone, so a document that grants the
-#      amendment to the wrong class fails case 7 and no other.
-#
-# That the section's account of the leaf's report footer names exactly the lines the built
-# refactor prompt asks for is skill-refactor-footer.test.sh's case, not one here: it runs
-# build-develop-prompt.sh, and the two guards that replant this suite into a tree holding
-# only the documents it reads would see it red there for a reason no plant put there.
-#
-# Case 1 is one criterion — the conductor launches one leaf and checks its result instead of
-# producing it — and its probes are its parts: a document that launched one leaf and then
-# walked into verify-refactor over a dirty tree would be exactly as wrong as one that still
-# looped leaves, and a reader repairing either repairs the same section. `problems` says
-# which part is missing.
-#
-# Each probe accepts any wording that carries its fact — how the document phrases it is the
-# writer's — but the refusals are asked of the text AROUND their own check rather than of
-# the section at large: this section already tells the conductor to stop, to bail and to
-# narrate, for the leaf's own exit 2 and for the triage's answers, and a probe that read the
-# whole section would be answered by those sentences and pass a document that never says
-# what a dirty tree means.
+#      read a NEW_STEP: or CANDIDATES: line of the leaf's into the plan.
 #
 # Run: scripts/tests/skill-refactor-leaf.test.sh
 set -uo pipefail

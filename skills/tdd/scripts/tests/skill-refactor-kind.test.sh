@@ -1,17 +1,7 @@
 #!/usr/bin/env bash
 # Unit tests for what skills/tdd/SKILL.md tells a refactor-kind run — an issue whose spec
-# carries the `## Refactor` section capture-spec.sh writes for the `refactor` label. Like
-# skill-bug-fix-subject.test.sh this suite belongs to no single script: its subject is the
-# procedure document, read as text, the way the session that follows it reads it. Picked up
-# by `make test`'s glob by existing. Zero-dependency plain-shell asserts, same idiom.
-#
-# Why this exists (issue #499): a refactor changes no behaviour, so it has no failing test
-# to write, and a Red/Green plan for it is a plan with nothing to be red. Its Red is the
-# smell being present, stated as a shell command in the step's criterion — false before the
-# step, true after — and each step is one named refactoring, so its verifier can judge one
-# transform. The plan verifier already REJECTs a plan that does not do this; a procedure
-# that never tells the planner to write one would have every refactor run pay for a REJECT
-# before its first step.
+# carries the `## Refactor` section capture-spec.sh writes for the `refactor` label — read
+# as text.
 #
 # Contract under test:
 #   1. SKILL.md's Scope & plan section tells a refactor-kind run to plan each step as one named

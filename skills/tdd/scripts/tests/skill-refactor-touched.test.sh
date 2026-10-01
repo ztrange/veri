@@ -1,25 +1,13 @@
 #!/usr/bin/env bash
-# Unit test for how skills/tdd/SKILL.md computes the refactor loop's touched-files list — the
-# bounds `build-develop-prompt.sh refactor` hands the leaf (issue #167). Like
-# skill-refactor-leaf.test.sh this suite belongs to no single script: its subject is the
-# procedure, read as text, the way the session that follows it reads it.
-#
-# The step's green commit is the atomic tick-and-commit, so it always carries the ledger. A
-# list computed straight from `git diff --name-only` names `.tdd/issue-<n>.md`, and a leaf
-# told the ledger is in its bounds may reword a step line and break the substring
-# clear-refactor-pending.sh matches on. refactor-touched.sh leaves `.tdd/` out, once; the
-# procedure has to call it in BOTH places it computes the list — the cycle loop's first
-# computation and Resume's recomputation from `$green` — or the two disagree.
+# Unit test for how skills/tdd/SKILL.md computes the refactor loop's touched-files list —
+# the bounds `build-develop-prompt.sh refactor` hands the leaf.
 #
 # Contract under test:
 #   every `touched="$(…)"` line in SKILL.md, run in a repository whose HEAD is a green commit
 #   that changed the ledger and two source files (with `$green` that commit and `$S` this
-#   scripts directory) → exactly the two source files, in `git diff` order; there are two
-#   such lines, and each computes the list through `$S/refactor-touched.sh`.
-#
-# The lines are executed rather than only matched, so what is pinned is the list each place
-# produces, not its spelling. The separator is read as a comma or a newline, as in
-# refactor-touched.test.sh.
+#   scripts directory) → exactly the two source files, in `git diff` order, read with a
+#   comma or a newline as separator; there are two such lines, and each computes the list
+#   through `$S/refactor-touched.sh`.
 #
 # Run: scripts/tests/skill-refactor-touched.test.sh
 set -uo pipefail

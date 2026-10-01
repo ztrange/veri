@@ -1,17 +1,10 @@
 #!/usr/bin/env bash
-# Unit tests for what the conductor does when a step's revise budget runs out — like
-# skill-green-split.test.sh and skill-red-untestable.test.sh this suite belongs to no single
-# script: its subject is skills/tdd/SKILL.md, read as text, the way the session that follows
-# it reads it. Zero-dependency plain-shell asserts, same idiom, picked up by `make test`'s
-# glob by existing.
+# Unit tests for what skills/tdd/SKILL.md tells the conductor to do when a step's revise
+# budget runs out, read as text.
 #
-# Why this exists (issue #408): exhausting `REVISE_BUDGET` goes straight to a
-# `revise-exhausted` bail today, and the step's work is lost — although a step no blind
-# verifier can be satisfied about in two attempts is usually a step carrying more than one
-# behaviour, the very condition `SPLIT:` exists for. build-develop-prompt.sh now renders an
-# `exhausted` phase and exhausted-outcome.sh resolves that leaf's report to one of three
-# answers (exit 0 split · 1 needs the user · 3 neither). This suite pins the branch in
-# SKILL.md that launches that leaf and acts on those three answers.
+# Contract under test:
+#   SKILL.md launches the `exhausted` leaf and acts on each of exhausted-outcome.sh's three
+#   answers: exit 0 split, 1 needs the user, 3 neither.
 #
 # Run: scripts/tests/skill-revise-exhausted.test.sh
 set -uo pipefail

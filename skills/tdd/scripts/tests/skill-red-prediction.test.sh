@@ -1,24 +1,11 @@
 #!/usr/bin/env bash
-# Unit tests for what the conductor narrates out of the red leaf's prediction — like
-# skill-event-marks.test.sh and skill-suite-runs.test.sh this suite belongs to no single
-# script: its subject is skills/tdd/SKILL.md, read as text, the way the session that
-# follows it reads it.
-# Zero-dependency plain-shell asserts, same idiom as skill-suite-runs.test.sh.
+# Unit tests for what skills/tdd/SKILL.md tells the conductor to narrate out of the red
+# leaf's prediction, read as text.
 #
-# Why this exists (issue #193): the red leaf now states, before it runs anything, which
-# assertion it expects to fire and on what values, and reports that back as
-# `PREDICTED_FAILURE:` with a `PREDICTION: MATCHED | DIVERGED` beside it. The prediction is
-# developer rationale, so it must never reach a verifier — verify-red establishes ground
-# truth by running the test itself, and a verifier told what the developer expected is a
-# verifier primed to agree. The one place it belongs is the issue thread: a human reading
-# the `### 🔴 Red` comment sees what the test was expected to do beside what it did, and on
-# a repository where the two keep diverging that thread is the evidence. A report line
-# nobody narrates is data the run collected and threw away.
-#
-# Contract under test (this step only):
+# Contract under test:
 #   SKILL.md's Red phase tells the conductor to put both halves in the `### 🔴 Red` comment
 #   — the predicted failure, and whether the observed one matched it. Any wording that
-#   carries the two facts passes; how the section phrases them is the writer's.
+#   carries the two facts passes.
 #
 # Run: scripts/tests/skill-red-prediction.test.sh
 set -uo pipefail

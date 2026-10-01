@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Unit test for where skills/tdd/SKILL.md runs the issue's one structural pass (issue #503).
-# Like skill-refactor-owed.test.sh this suite belongs to no single script: its subject is the
-# procedure, read as text, the way the session that follows it reads it.
+# Unit test for where skills/tdd/SKILL.md runs the issue's one structural pass, read as
+# text.
 #
 # Contract under test: the Draft PR step — reached when `next-unchecked.sh` exits 3 — before
 # its `gh pr ready`, lists the recorded candidates with `refactor-owed.sh list`, builds one
