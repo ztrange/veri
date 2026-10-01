@@ -29,10 +29,10 @@ USAGE="refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' < leaf-repo
 
 verb="${1:-}"
 file="${2:-}"
+require_args 2 "$@"
 
 case "$verb" in
   append)
-    require_args 2 "$@"
     step="${3:-}"
 
     structural=()
@@ -51,14 +51,12 @@ case "$verb" in
     fi
     ;;
   render)
-    require_args 2 "$@"
     [[ -s "$file" ]] || exit 3
 
     printf '## Refactor owed\n\n'
     cat "$file"
     ;;
   list)
-    require_args 2 "$@"
     [[ -s "$file" ]] || exit 3
     awk '/^- / {
            t = substr($0, 3)
