@@ -86,6 +86,9 @@
 #      edits, readies and comments on the PR without `gh repo view`, `gh issue view|comment`
 #      or `gh pr create|view|edit|ready|comment`: it readies the PR through lib/github.sh's
 #      `gh_pr_ready` and reaches the rest through `gh api`, reading REST's `default_branch`.
+#  32. SKILL.md's Draft PR step calls `wait-ci.sh` with no fixed total-seconds, and its prose
+#      states the bound's rule — twice the mean of the last 5 completed CI runs, capped at 10
+#      minutes, 540 s fallback — rather than a number standing for it.
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -836,6 +839,29 @@ for route in 'gh_pr_ready' 'lib/github.sh' 'gh api ' 'default_branch'; do
   grep -F -- "$route" "$skill_path" > /dev/null ||
     problems+=("$skill_md never names $route")
 done
+report "$name"
+
+name="$skill_md's Draft PR step calls wait-ci.sh with no fixed total and states the bound's rule: twice the mean of the last 5 CI runs, capped at 10 minutes, 540 s fallback (#549)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "how the step bounds its CI wait"; then
+  commands="$(section_commands)"
+  fixed="$(awk -v wait_re="^$wait_ci_run" '
+      $0 ~ wait_re {
+        call = $0; sub(/#.*/, "", call); sub(/;.*/, "", call)
+        n = split(call, w, " ")
+        if (n >= 4 && w[4] ~ /^[0-9]+$/) print $0 }' <<< "$commands")"
+  [[ -n "$(line_of "$wait_ci_run")" ]] ||
+    problems+=("$skill_md's Draft PR step runs no \$S/wait-ci.sh, so how its CI wait is bounded could not be checked")
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    problems+=("$skill_md's Draft PR step calls wait-ci.sh with a fixed total-seconds, overriding the bound computed from recent CI runs: $(printf '%.120s' "$line")")
+  done <<< "$fixed"
+  plain="$(unmarked_records)"
+  rule="$(first_record "$plain" -F 'wait-ci.sh' -E '(twice|2 ?[x×]) the mean' -E '(last|most recent) (5|five)' -E '(10 minutes|600 s)' -F '540')"
+  [[ -n "$rule" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step states wait-ci.sh's bound as twice the mean of the last 5 completed CI runs, capped at 10 minutes, falling back to 540 s")
+fi
 report "$name"
 
 finish

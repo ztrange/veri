@@ -1501,7 +1501,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    gh api 'repos/{owner}/{repo}/pulls?head={owner}:{branch}' -q '.[0].html_url // empty'   # → <pr-url>, the PR step 2.3 opened; <pr-number> is its last path segment
    . $S/lib/github.sh && gh_pr_ready <pr-number>
-   $S/wait-ci.sh <pr-url> 540 1800 "$(git rev-parse HEAD)"; ci=$?    # exit 3 → run this line again, in a new Bash call
+   $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)"; ci=$?    # exit 3 → run this line again, in a new Bash call
    [ "$ci" != 2 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
    gh api "repos/{owner}/{repo}/commits/$(git rev-parse HEAD)/check-runs" -q '.check_runs[] | {name, status, conclusion}'
    gh run view <run-id> --log-failed          # a failed check only → its suite and FAIL - line
@@ -1519,7 +1519,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    git add .tdd/issue-<n>-metrics.md
    git commit -m "metrics: what solving #<n> cost (#<n>)"
    $S/push-branch.sh
-   $S/wait-ci.sh <pr-url> 540 1800 "$(git rev-parse HEAD)"; ci=$?    # exit 3 → run this line again, in a new Bash call
+   $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)"; ci=$?    # exit 3 → run this line again, in a new Bash call
    [ "$ci" != 1 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)"
    [ "$ci" != 2 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
@@ -1533,6 +1533,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    check is still pending, so call it again in a new Bash call; its exit 2 — a check still
    pending past the deadline its first call recorded, or no answer from `gh` — does
    **bail**, with cause `ci-timeout`, rather than waiting on.
+   That deadline is `wait-ci.sh`'s own bound, since the call gives no total-seconds: twice the
+   mean of the last 5 completed CI runs, capped at 10 minutes, or 540 s when fewer than 5
+   exist or `gh` cannot answer.
    A failed check does not bail: read its run's log with `gh run view <run-id> --log-failed`,
    append a repair step to the ledger whose text quotes the failing suite and its `FAIL -`
    line — or the error line, when the suite died before writing one — commit the ledger, and
