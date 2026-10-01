@@ -642,18 +642,11 @@ report "$name"
 name="wait-ci.sh caps a slice-seconds above 540 at 540: a call given slice 900 and total 600 still exits 3 within 540 s of its first clock reading, and the 600 s deadline it records is left for the next call (#549)"
 problems=()
 sha=0123456789abcdef0123456789abcdef01234567
-sha_head slice-cap.json
-sha_runs slice-cap.json "$(sha_run gates in_progress null)"
-shared slice-cap
-got="$(again slice-cap first 900 600 "$sha")"
+expect_deadline slice-cap "$work/gh-runs.json" 600 "an explicit total-seconds of 600" 900 600 "$sha"
 first="$(head -n 1 "$work/slice-cap.clock")"
 last="$(tail -n 1 "$work/slice-cap.clock")"
-deadline="$(cat "$work/slice-cap/.tdd/ci-deadline-$sha" 2>/dev/null)"
-[[ "$got" == 3 ]] || problems+=("slice 900: want exit 3, got $got (stderr: $(cat "$work/slice-cap.first.err"))")
 [[ "$first" =~ ^[0-9]+$ && "$last" =~ ^[0-9]+$ ]] && (( last - first <= 540 )) \
   || problems+=("slice 900: want the call to return within 540 s of its first clock reading, got its last reading at '$last' with the first at '$first'")
-[[ "$deadline" =~ ^[0-9]+$ && "$first" =~ ^[0-9]+$ && $(( deadline - first )) == 600 ]] \
-  || problems+=("slice 900: want .tdd/ci-deadline-$sha 600 s after the first call, got '$deadline' with the first call at '$first'")
 report "$name"
 
 finish
