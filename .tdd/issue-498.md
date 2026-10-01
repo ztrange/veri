@@ -11,7 +11,7 @@ Declared entry points: the script invocations in `skills/tdd/SKILL.md` and the p
 - [x] a `VERI_*` knob or a script name that SKILL.md or CLAUDE.md promises and that no script reads, or that does not exist, is listed by unreachable.sh as promised-unread ⟦criterion 5⟧
 - [x] `make unreachable` runs unreachable.sh over this repository and exits 0, so the check is itself reached from a declared entry point
 - [x] every script unreachable.sh lists as unreachable in this repository is removed together with any suite whose every assertion is about it, and the check then lists no unreachable script ⟦criterion 3⟧
-- [ ] `make test` is green and no reachable behaviour changes ⟦full-suite⟧ ⟦criterion 6⟧
+- [x] `make test` is green and no reachable behaviour changes ⟦full-suite⟧ ⟦criterion 6⟧
 
 ## Owed steps
 
