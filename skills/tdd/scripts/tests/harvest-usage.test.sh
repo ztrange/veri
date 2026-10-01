@@ -1,23 +1,10 @@
 #!/usr/bin/env bash
-# Unit tests for scripts/harvest-usage.sh — the harvester (issue #107, ADR-0014:
-# observability is a per-run event log written by the scripts, not a service).
-# Zero-dependency plain-shell asserts, same idiom as event.test.sh.
-#
-# The other writers mark what they can see as it happens; this one is the reader of what a
-# leaf already wrote down — ADR-0014's context: "Time and cost were already on disk in every
-# leaf's closing usage record, but nothing harvested them".
-#
-# What that closing record holds, why the harvester takes the leaf's NAME rather than its log
-# path, and why the payload keys are the record's own and unrenamed are stated in the script's
-# own header (harvest-usage.sh:8-23), and deliberately not restated here. They were, until this
-# refactor, in both files word for word: one rationale in two copies is two things to keep
-# true, and the copy that goes stale is always the one in the file nobody opens when the design
-# changes.
+# Unit tests for scripts/harvest-usage.sh — the harvester that turns a leaf's closing usage
+# record into one event-log line.
 #
 # Contract under test:
 #   harvest-usage.sh <leaf-name>  → reads `.tdd/<leaf-name>.log` relative to the directory
-#                                   it is run in (the issue's worktree, the way supervise.sh
-#                                   already spells that same path), and exits 0.
+#                                   it is run in, and exits 0.
 #   the event log                 → gains exactly one `usage` line, carrying the eight
 #                                   numbers of the closing `result` record.
 #   a log with no such record     → nothing is appended and the harvester says so on stderr,

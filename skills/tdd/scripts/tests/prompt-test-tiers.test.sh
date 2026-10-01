@@ -1,17 +1,9 @@
 #!/usr/bin/env bash
-# Tests for which test command each phase's prompt tells its leaf to run (issue #341) — like
-# skill-test-command.test.sh this suite belongs to no single script: its subject is the
-# prompt templates under scripts/prompts/, read the way a leaf reads them, as the prompt
-# build-develop-prompt.sh and build-verify-prompt.sh assemble from them.
-# Zero-dependency plain-shell asserts, same idiom as skill-red-prediction.test.sh.
+# Tests for which test command each phase's prompt tells its leaf to run — the prompt
+# templates under scripts/prompts/, as build-develop-prompt.sh and build-verify-prompt.sh
+# assemble them.
 #
-# Why this exists: every phase of a cycle ran either the full suite or "the suite that holds
-# the new case", a suite the leaf picked by hand. #337 added affected-suites.sh, which
-# computes the suites one change affects, so a red leaf and its verifier run what that
-# script prints rather than one suite someone chose — a hand-picked suite misses the guard
-# suite that reads the same file, and the full command is a cost the red phase never needed.
-#
-# Contract under test (this step only):
+# Contract under test:
 #   the assembled develop-red and verify-red prompts each name affected-suites.sh as what
 #   the leaf runs, and develop-red no longer tells its leaf to run the one suite that holds
 #   the new case.

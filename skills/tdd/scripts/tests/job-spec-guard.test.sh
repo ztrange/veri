@@ -1,44 +1,13 @@
 #!/usr/bin/env bash
 # Unit tests for the guard suite that keeps a file under skills/ from killing a background
-# process by job spec — skills/tdd/scripts/tests/no-job-spec-kills.test.sh. Like
-# sigpipe-guard.test.sh and docs-read-guard.test.sh this suite has no script as its subject:
-# its subject is what another suite reports about the tree it is run in. Zero-dependency
-# plain-shell asserts, same idiom as sigpipe-guard.test.sh.
+# process by job spec — skills/tdd/scripts/tests/no-job-spec-kills.test.sh.
 #
-# Why this exists (issue #424): a job spec names a job in one shell's own job table, and
-# that table dies with the shell. A background process killed that way survives whenever the
-# shell that started it went first — the child is reparented to PID 1 and nothing is left
-# that knows its identity. On 2026-09-22 that left ten orphaned busy-loops on this machine,
-# ~988% of CPU for twelve hours, computing nothing and quietly distorting every timing this
-# repository measures. The two halves already landed — lib/background.sh kills the pid it
-# recorded, and a shell that exits with a survivor says so — repair today's sites; the guard
-# is what stops the next one being written, and this suite is what says the guard works.
-#
-# Contract under test (this step):
+# Contract under test:
 #   Over a tree holding one file under skills/ that kills a background process by job spec
 #   and one that kills the pid it recorded, no-job-spec-kills.test.sh fails, names the first
 #   as `<file>:<line>` at the offending line, and says nothing about the second — and its
 #   exemption table honours an entry that carries a reason while failing, naming the entry,
 #   over one whose reason is missing.
-#
-# The second file is not extra generality: killing a background process is not the offence,
-# killing it by a name that dies with the shell is. A guard that named every `kill` in the
-# tree would be deleted by the first author it blocked, taking the real check with it — and
-# lib/background.sh, the fix this issue already shipped, would be its first victim.
-#
-# Both files are planted rather than asserted about where they stand: after this issue's
-# earlier steps the repository has no live site left, so a probe over the real tree would
-# pass on both sides of the fix and pin nothing. The plant goes in a scratch tree and the
-# guard is copied into it, which is how sigpipe-guard.test.sh puts a guard in front of a
-# tree it was not written against; the guard answers about the planted tree the way it
-# answers about this one, by being run inside it.
-#
-# No line of this file spells `kill` followed by a job spec contiguously — the fixture's
-# offending line is assembled from KILL and JOB_SPEC below and printf'd into the plant, and
-# the prose says "a job spec" where it would otherwise write one out. That is not decoration:
-# this suite is itself a file under skills/, so a line here carrying the shape is exactly
-# what the guard exists to catch, and a test that trips its own subject would make the next
-# step unachievable.
 #
 # Run: skills/tdd/scripts/tests/job-spec-guard.test.sh
 set -uo pipefail

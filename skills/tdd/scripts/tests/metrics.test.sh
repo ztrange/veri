@@ -1,33 +1,13 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/metrics.sh — the per-issue metrics report computed from the run's
-# event log (issue #108, and #107/ADR-0014 before it: observability is a per-run event log
-# written by the scripts, not a service). Zero-dependency plain-shell asserts, same idiom as
-# event.test.sh and harvest-usage.test.sh, its two nearest neighbours: all three are about
-# lines somebody else wrote into `.tdd/events.jsonl`.
+# event log.
 #
-# Contract under test, one case per section of the report:
+# Contract under test:
 #   metrics.sh <n>  → exit 0, and on stdout a row per phase of the run carrying that phase's
 #                     attempts, PASS verdicts, REJECT verdicts and kills, and a row per step
 #                     carrying the same four plus the stuck retries that step used and the
-#                     no-verdict relaunches its verifiers spent (#219) — a count of its own,
-#                     neither a retry nor a revise.
-#
-# The log is read relative to the directory the script runs in — `.tdd/events.jsonl`, the
-# way event.sh writes it (event.sh:60) and the way supervise.sh already spells `.tdd/<name>.log`
-# — so each case below writes a hand-made log into a temp directory and runs the script there.
-#
-# Which line of the log each of the four counts is read off, and why a kill is counted apart
-# from a verdict, is metrics.sh's own header — with the writer and line number for each. It
-# is not restated here: the same paragraph in two files is the same paragraph to keep
-# correct twice, and a `supervise.sh:297` that moves would go stale in whichever copy
-# nobody was editing.
-#
-# What is not pinned here is whatever `.tdd/issue-108.md` still has unchecked — budgets,
-# time, cost, rework and waste, progress, the unknown-rather-than-zero rule. That list is not
-# copied here: the ledger is where it is kept correct, and a copy would go stale on the step
-# after the one that wrote it. And one thing this file moves that is pinned elsewhere:
-# CLAUDE.md's suite count, which claude-md-counts.test.sh case 1 holds to the files on disk
-# and which goes red by itself the moment this file lands uncounted.
+#                     no-verdict relaunches its verifiers spent.
+#   the log         → `.tdd/events.jsonl`, read relative to the directory the script runs in.
 #
 # Run: skills/tdd/scripts/tests/metrics.test.sh
 set -uo pipefail

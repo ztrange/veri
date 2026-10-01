@@ -1,37 +1,12 @@
 #!/usr/bin/env bash
 # Unit tests for the files under skills/ — none of them may end a background process by a
-# job spec. Like no-sigpipe-pipelines.test.sh and no-docs-reads.test.sh this suite has no
-# script as its subject: its subject is the tree it is run in. Zero-dependency plain-shell
-# asserts, same idiom as no-sigpipe-pipelines.test.sh.
-#
-# Why this exists (issue #424): a job spec names a row in the job table of the shell that
-# started the process, and that table dies with the shell. Once it is gone the number means
-# nothing, the child is reparented to PID 1, and nothing is left that knows its identity —
-# so the kill reaches no one, and a redirection of its complaint to /dev/null makes that
-# silent. Observed 2026-09-22 on this machine: ten orphaned busy-loops, all PPID 1, ~988% of
-# CPU between them, twelve and thirteen hours old, quietly distorting every timing this
-# repository measures. Two different shell snapshots were represented among them, so this is
-# not one bad command but a shape that gets written more than once. `lib/background.sh` is
-# the repair — it kills the pid it recorded, a system-wide name that works from any shell —
-# and this suite is what stops the next site being written.
+# job spec.
 #
 # Contract under test:
-#   No file under skills/ ends a background process by a job spec. A file that does is
-#   reported as `<file>:<line>` — the address, not the file, because that is what sends the
-#   next author to the site. A site where the job spec is the point is exempted by name in
-#   the table below, and only with the reason that says why; an entry carrying no reason
-#   fails the run rather than silencing anything.
-#
-# Killing a background process is not the offence: killing it by a name that dies with the
-# shell is. A check that refused every `kill` in the tree would be deleted by the first
-# author it blocked, taking the real one with it — and `lib/background.sh`, the fix this
-# issue shipped, would be its first victim. So a kill by a recorded pid is left alone.
-#
-# A comment is not a site: it runs nothing, and the prose here and in `lib/background.sh`
-# discusses the shape at length. This suite reads itself along with the rest, which is the
-# discipline it asks for: no line below spells the shape it looks for — the pattern is
-# assembled from two halves, and a failure quotes the offending line rather than carrying
-# one of its own.
+#   No file under skills/ ends a background process by a job spec, outside a comment.
+#   An offender is reported as `<file>:<line>`. A site is exempted only by name in the
+#   table below with a reason; an entry carrying no reason fails the run.
+#   A kill by a recorded pid is not reported.
 #
 # Run: skills/tdd/scripts/tests/no-job-spec-kills.test.sh
 set -uo pipefail

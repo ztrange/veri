@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/leaf-role.sh — the one place a leaf's NAME is turned into the role
-# its events are logged under (issue #107, ADR-0014: observability is a per-run event log
-# written by the scripts, not a service).
-# Zero-dependency plain-shell asserts, same idiom as leaf-timeout.test.sh.
+# its events are logged under.
 #
-# Why the mapping is a script of its own is said in its header (leaf-role.sh:5-9), once.
-#
-# Contract under test (this step only — the mapping, not any writer that uses it):
+# Contract under test:
 #   leaf-role.sh <leaf-name>  → prints the leaf's role as env assignments,
 #                               `VERI_ACTOR=<actor> VERI_PHASE=<phase> VERI_ATTEMPT=<n>`,
 #                               and exits 0 with nothing on stderr.
@@ -16,22 +12,7 @@
 #   a leading word it does    → a diagnostic naming this script and the name on stderr,
 #   not recognise               nothing on stdout, exit 2.
 #   a recognised leading word → the same refusal, for both shapes that carry no phase:
-#   with no phase after it      `develop`, which has no `-` at all, and `develop-`, whose
-#                               `-` has nothing after it.
-#
-# Assignments rather than three bare values, in `VERI_*` spelling, because of where the
-# answer goes: the context event.sh reads is the environment (event.sh:17-19), so a caller
-# writes `env $(leaf-role.sh "$name") event.sh launch …` and the variable names stay spelled
-# in this one script instead of at every writer's call site. The probe below looks each
-# assignment up BY KEY, so neither the order of the three nor whether they share a line is
-# pinned — both are the implementation's to choose, and pinning them would make a later
-# writer's convenience a test failure.
-#
-# `verify-refactor`'s attempt is not probed, because the criterion does not state one and the
-# name cannot carry it: the revise loop re-runs `verify.sh <phase>` under the same
-# `verify-<phase>` name on every attempt (SKILL.md:654-659), so a verifier's attempt number
-# is the conductor's to pass, not this mapping's to read. A leaf name that does carry one
-# — `revise-green-2`'s trailing `2` — is exactly what the second probe pins.
+#   with no phase after it      `develop` and `develop-`.
 #
 # Run: scripts/tests/leaf-role.test.sh
 set -uo pipefail

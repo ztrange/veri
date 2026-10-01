@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
 # Unit tests for the suites themselves — a suite that asserts a script's DEFAULT must not
 # inherit an override for that default from the shell that ran it.
-# Zero-dependency plain-shell asserts, same idiom as refactor-budget.test.sh.
-#
-# Why this exists (issue #87): an unattended run exports VERI_STUCK_RETRIES for its outer
-# supervisor, the inner `make test` inherits it, and veri's own preflight then reads a red
-# baseline on veri's own repo and refuses to start. A suite's answer must be a fact about
-# the script, not about the caller's environment.
 #
 # Contract under test:
 #   VERI_STUCK_RETRIES=0 supervise-retry.test.sh → exit 0, "1 passed, 0 failed",

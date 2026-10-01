@@ -1,37 +1,13 @@
 #!/usr/bin/env bash
-# Unit tests for the environment the `test` recipe in this repository's Makefile gives every
-# suite it runs. Like count-line-guard.test.sh this suite has no script as its subject: its
-# subject is the runner, and it asks it through fixtures/make-test-env/reports-env.test.sh,
-# handed to the real recipe as `make test TESTS=<fixture>`. The fixture writes down what it
-# saw; the cases here judge it.
-#
-# Why this exists: on the development Mac a full `make test` took 393-515 s where CI takes
-# 176 s, and two of the causes were the environment the recipe passed straight through
-# rather than anything a suite did (measured 2026-09-18, all 76 suites green in every run):
-#   - Locale. macOS's BSD awk, tr, grep and sed run ~12x slower over text in a UTF-8 locale:
-#     model-knobs-recorded.test.sh took 2.7 s under LC_ALL=C and 33.5 s under en_US.UTF-8,
-#     and the terminal the conductors run in sets UTF-8. 121 s of every run went to it.
-#   - Git. /usr/bin/git on macOS is xcrun's shim, 30.8 ms a call against 9.6 ms for the git
-#     it forwards to, and a run makes ~1,900 git calls. `git` on a suite's PATH is now a
-#     symlink straight to the resolved real binary — no xcrun hop, and (since 2026-09-18) no
-#     bash wrapper in front of it either, which is what cases 3 and 4 below pin.
-# And one hang: a suite inherited whatever stdin `make test` was given. Under a leaf's
-# backgrounded `make test` that is a socket that never closes, and the stub claude's
-# `cat > "$PROMPT_OUT"` in run-conductor.test.sh blocked on it for 28 minutes.
-#
-# None of this asserts a duration. The speed-up is a fact about one machine, measured once
-# and recorded in the PR that made it; what this suite pins is the environment that produced
-# it, which is the same on every machine and so is a thing a test can hold.
+# Unit tests for the environment the Makefile's `test` recipe gives every suite it runs,
+# observed through fixtures/make-test-env/reports-env.test.sh handed to `make test TESTS=…`.
 #
 # Contract under test:
 #   1. A suite runs under LC_ALL=C, whatever locale `make test` was invoked in.
 #   2. A suite's stdin is /dev/null, whatever stdin `make test` was given.
 #   3. `git` on a suite's PATH is a symlink straight to the git `xcrun -f git` names, when
 #      xcrun answers,
-#   4. and straight to the git `command -v git` names when it does not — the Linux path,
-#      which CI runs on. Neither hop goes through a bash wrapper any more (measured
-#      2026-09-18: that wrapper cost ~26 ms/call against ~8 ms for the real binary, over
-#      ~1,900 calls a run — 1,820 of the run's 4,834 bash starts).
+#   4. and straight to the git `command -v git` names when it does not.
 #
 # Run: skills/tdd/scripts/tests/make-test-env.test.sh
 set -uo pipefail

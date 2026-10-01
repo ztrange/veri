@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
-# Tests for scripts/orchestrate.sh — the loop above the conductor (issue #217): it asks
+# Tests for scripts/orchestrate.sh — the loop above the conductor: it asks
 # solvable-issues.sh which issues veri may take, launches one conductor per issue through
 # run-conductor.sh, and stops once nothing is left to take.
 #
-# The two scripts it drives are replaced by stubs in a scratch copy of the scripts
-# directory, beside the real orchestrate.sh, so no case reaches `gh`, git or a model:
-#   - solvable-issues.sh prints the issue numbers left in $SOLVABLE, one per line, and exits
-#     3 printing nothing once that file is empty — the real script's "nothing to do".
-#   - run-conductor.sh appends the issue it was handed to $LAUNCHES, and takes that issue
-#     out of $SOLVABLE, the way a finished run leaves the solvable set.
-# A stubbed solvable-issues.sh answers 3 after 20 calls whatever $SOLVABLE holds, so a loop
-# that never stops fails its case rather than hanging the suite.
+# Contract under test:
+#   orchestrate.sh  → one run-conductor.sh launch per solvable issue; exit 0 once
+#                     solvable-issues.sh exits 3; exit 2, launching nothing, when it exits
+#                     other than 0 or 3.
+#   VERI_CONDUCTOR_CTX_BUDGET (default 120000, a whole number or exit 2)
+#                   → a conductor whose context crosses it is stopped after its next step-done
+#                     result and relaunched for the same issue with the same argv.
+#   A conductor exiting 0 with an unchecked ledger step is relaunched; one that wrote
+#   `.tdd/parked/<n>.md` is recorded as parked and the next solvable issue is taken.
 #
 # Run: scripts/tests/orchestrate.test.sh
 set -uo pipefail

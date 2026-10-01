@@ -1,40 +1,13 @@
 #!/usr/bin/env bash
 # Unit tests for the two root documents' record of the per-role model tunables — which
-# variable a leaf reads, and why the developer's and the verifier's are two knobs and not
-# one. Like lane-rule-recorded.test.sh and skill-timeout.test.sh this suite's subject is a
-# document rather than a script: what an operator is told before any leaf launches.
-# Zero-dependency plain-shell asserts, same idiom as lane-rule-recorded.test.sh.
-#
-# Why this exists (issue #171): `leaf-model.sh` resolves the model and `supervise.sh` puts
-# it on the leaf's command line, so a run can already be moved onto a cheaper model — but a
-# tunable nobody is told about is one nobody sets. The two places an operator looks are
-# SKILL.md's `supervise.sh` bullet, which is where every other leaf tunable is listed
-# (`VERI_HEARTBEAT`, `VERI_TIMEOUT`, `VERI_STUCK_RETRIES`), and CLAUDE.md, which is the
-# first thing an agent reads. The `VERI_MODEL_VERIFIER` experiment that motivates the whole
-# issue cannot be run by someone who cannot find the variable's name.
-#
-# And the *why* is not decoration. The two roles fail differently: a cheaper verifier shows
-# up as a changed verdict distribution, a cheaper developer as more revise cycles and worse
-# code. One knob over both would make "cheaper developer" and "weaker verifier" the same
-# decision — the identical trap CLAUDE.md already records for the three budgets, whose
-# entry says why they are never merged. A document that named the three variables without
-# that sentence would leave the next reader free to collapse them.
+# variable a leaf reads, and why the developer's and the verifier's are two knobs.
 #
 # Contract under test:
 #   SKILL.md's `supervise.sh` bullet lists all three tunables — `VERI_MODEL`,
 #   `VERI_MODEL_DEVELOPER`, `VERI_MODEL_VERIFIER` — beside the tunables it already lists;
 #   and CLAUDE.md names all three and says why the developer's and the verifier's are
-#   separate knobs, in the terms the failure actually takes: the verdict distribution on
-#   one side, revise cycles on the other.
-#
-# Facts are asked as the regexes any wording carrying them would match, never as fixed
-# strings: what a document has to record is the claim, and how it is phrased belongs to
-# whoever writes it — the protocol lane-rule-recorded.test.sh and skill-suite-runs.test.sh
-# both use on these documents.
-#
-# Not asked here: that CLAUDE.md's script and suite counts moved when this suite landed.
-# claude-md-counts.test.sh is the case that holds every count in that document to the files
-# on disk, and this file arriving in the tree is what makes it answer.
+#   separate knobs: the verdict distribution on one side, revise cycles on the other.
+#   Each fact is matched by a regex, not a fixed string.
 #
 # Run: skills/tdd/scripts/tests/model-knobs-recorded.test.sh
 set -uo pipefail

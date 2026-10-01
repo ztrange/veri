@@ -1,20 +1,11 @@
 #!/usr/bin/env bash
-# Unit tests for scripts/leaf-model.sh — says which model one leaf runs on, so a run can
-# price the two leaf roles separately (issue #171). Why that is worth a script, and what
-# no leaf can choose today, is in leaf-model.sh's own header.
-# Zero-dependency plain-shell asserts, same idiom as leaf-timeout.test.sh.
+# Unit tests for scripts/leaf-model.sh — says which model one leaf runs on.
 #
-# Contract under test (this step only):
+# Contract under test:
 #   VERI_MODEL=<x> leaf-model.sh <leaf-name>  → prints <x> and exits 0, for a leaf of
-#                                 EITHER role: the run-wide variable is the one that
-#                                 applies to every leaf, so a developer name and a
-#                                 verifier name must answer the same.
+#                                 EITHER role.
 #   leaf-model.sh <leaf-name>  with no model variable set
-#                              → prints NOTHING and exits 0. Nothing, not a default: the
-#                                caller turns a non-empty answer into `--model <value>`,
-#                                so any word printed here would put a flag on a command
-#                                line the issue requires to stay byte-identical to today's.
-#
+#                              → prints NOTHING and exits 0.
 #   VERI_MODEL=<x> VERI_MODEL_VERIFIER=<y> leaf-model.sh <leaf-name>
 #                              → the role variable wins for that role's leaves and for no
 #                                others: <y> for `verify-*`, <x> still for `develop-*` and

@@ -1,49 +1,14 @@
 #!/usr/bin/env bash
 # Unit tests for the suites in this directory — a suite that declares `pipefail` must not
-# end a pipeline in a reader that exits early. Like no-docs-reads.test.sh,
-# hermetic-suites.test.sh and count-line-guard.test.sh this suite has no script as its
-# subject: its subject is the tree it is run in. Zero-dependency plain-shell asserts, same
-# idiom as no-docs-reads.test.sh.
-#
-# Why this exists (issue #422): `grep -q` exits on its first match. If the writer feeding it
-# still has bytes to push, its next write lands on a closed pipe, it dies of SIGPIPE (141),
-# `pipefail` hands that 141 up as the pipeline's status, and the assertion built on that
-# status is inverted. The bug is green on the development Mac and red on CI — BSD grep
-# buffers ~16 KB, so the writer needs one write and the race cannot happen, while glibc
-# gives the pipe 4096 bytes — which is the worst shape it can take: the leaf and the blind
-# verifier both run on the Mac, so a run reports green and the PR is red. It cost two
-# consecutive runs, count-line-guard.test.sh (#418) and prompt-test-tiers.test.sh (#416).
-# Repairing those sites fixes today; this suite is what stops the next one being written.
+# end a pipeline in a reader that exits early.
 #
 # Contract under test:
 #   No suite under this directory that declares `pipefail` ends a pipeline in a reader that
-#   leaves before EOF — a `grep` whose options carry `q`, or a `head`. A suite that does is
-#   reported as `<suite>:<line>` — the address, not the file, because that is what sends the
-#   next author to the site. A site where leaving before EOF is the point is exempted by
-#   name in the table below, and only with the reason that says why; an entry carrying no
-#   reason fails the run rather than silencing anything.
-#
-#   And the same asked of `make test` itself: no suite that target would run ends a pipeline
-#   that way either. That is the sentence the rule exists for — the baseline preflight reads,
-#   the Green leaf runs and both blind verifiers run is the run that goes red on Linux while
-#   the Mac that launched it stayed green — and the target's roster is not this directory's
-#   glob: it descends into the fast tier under `unit/` too.
-#
-# `pipefail` is half of the condition, and the half that makes the shape a bug rather than a
-# habit. Without it the pipeline's status is the reader's own, the writer's SIGPIPE never
-# reaches the assertion, and there is nothing here to catch — so a suite that does not
-# declare it is left alone. A check that refused every pipeline into a `grep -q` would be
-# deleted by the first author it blocked, taking the real one with it.
-#
-# The repair, where this suite names a site, is per-site and small: let the reader consume
-# to EOF (`grep -F … > /dev/null` in place of `grep -qF …`), or feed it by redirection
-# rather than a pipe (`grep -qF … < <(…)`), which moves the status off the writer. Neither
-# `trap '' PIPE` nor dropping `pipefail` is one: `pipefail` is what makes the rest of these
-# suites honest, and #157 is the record of what an untrusted exit status costs here.
-#
-# This suite reads itself along with the rest, which is the discipline it asks for: no line
-# below spells the shape it looks for — the pattern is assembled from two halves, and the
-# failure message quotes the offending line rather than carrying one of its own.
+#   leaves before EOF — a `grep` whose options carry `q`, or a `head`. An offender is
+#   reported as `<suite>:<line>`. A site is exempted only by name in the table below with
+#   a reason; an entry carrying no reason fails the run. A suite without `pipefail` is not
+#   reported.
+#   The same holds for every suite `make test` would run, `unit/` included.
 #
 # Run: skills/tdd/scripts/tests/no-sigpipe-pipelines.test.sh
 set -uo pipefail

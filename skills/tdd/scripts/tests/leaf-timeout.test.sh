@@ -1,44 +1,26 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/leaf-timeout.sh — sizes the run's hard timeout from the wall time
-# preflight already measured on the green-baseline run, so a repo whose suite takes minutes
-# does not have every leaf killed as stuck while it is working (issue #121).
-# Zero-dependency plain-shell asserts, same idiom as refactor-budget.test.sh.
+# preflight measured on the green-baseline run.
 #
-# Contract under test (this step only):
+# Contract under test:
 #   leaf-timeout.sh <baseline-seconds>  with VERI_TIMEOUT unset
 #                              → prints the larger of 900 and 6 × <baseline-seconds>,
 #                                as a whole number of seconds, and exits 0.
 #   a baseline that is not a whole number ≥ 0 (`abc`, `-1`, `1.5`, or no argument at all)
-#                              → exit 2, a diagnostic on stderr, nothing on stdout: the
-#                                fail-closed answer refactor-budget.sh gives a bad budget,
-#                                so a conductor reading stdout in a command substitution
-#                                cannot capture a malformed call as a real timeout.
-#   VERI_TIMEOUT=<n> set        → prints <n> as given and exits 0, whatever the baseline
-#                                would have derived: an explicit timeout is the answer,
-#                                not an input to the derivation.
+#                              → exit 2, a diagnostic on stderr, nothing on stdout.
+#   VERI_TIMEOUT=<n> set        → prints <n> as given and exits 0, whatever the baseline.
 #   VERI_TIMEOUT set to anything that is not a whole number >= 1 (`0`, `abc`, `-1`, `1.5`)
-#                              → exit 2 with the same fail-closed shape, rather than
-#                                falling back to the derivation.
+#                              → exit 2, a diagnostic on stderr, nothing on stdout.
 #   leaf-timeout.sh <baseline-seconds> refactor  with VERI_TIMEOUT unset
 #                              → the same derivation multiplied by
-#                                max(1, VERI_REFACTOR_BUDGET) (default 5): the refactor
-#                                leaf applies the whole step's transforms in one leaf, so
-#                                its cap is as many leaves' worth as the budget it may
-#                                spend, with a floor of one leaf at a budget of 0.
+#                                max(1, VERI_REFACTOR_BUDGET) (default 5).
 #   VERI_TIMEOUT=<n> set, refactor
-#                              → <n> as given, unmultiplied: the budget is the cost axis
-#                                and must not move a hand-set liveness cap.
+#                              → <n> as given, unmultiplied.
 #   leaf-timeout.sh <fast-seconds> --full <full-seconds>
-#                              → the derivation run over the FULL tier's measurement, not
-#                                the fast one: the timeout bounds a leaf that runs the
-#                                suites covering its change and a verifier that runs the
-#                                whole suite, so a fast-tier baseline sizes the run off
-#                                work no leaf does (issue #377).
+#                              → the derivation run over <full-seconds>, not <fast-seconds>.
 #   a full-tier measurement that is not a whole number >= 0 (`abc`, `-1`, `1.5`, or a
 #   `--full` with nothing behind it)
-#                              → exit 2 with the same fail-closed shape a bad baseline gets:
-#                                it is the measurement the derivation runs over, so an
-#                                unreadable one would size the whole run.
+#                              → exit 2, a diagnostic on stderr, nothing on stdout.
 #
 # Run: scripts/tests/leaf-timeout.test.sh
 set -uo pipefail

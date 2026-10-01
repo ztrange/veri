@@ -1,18 +1,10 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/issue-worktree.sh — the linked git worktree an issue branch lives
-# in, so a conductor never drags the checkout it was invoked from off the default branch
-# (issue #43).
+# in, so a conductor never drags the checkout it was invoked from off the default branch.
 #
 # Contract under test:
 #   issue-worktree.sh <n> <slug>   creates/reuses <repo-root>/.tdd/wt/<n> on branch
 #                                  tdd/<n>-<slug>, prints its absolute path, exit 0
-#
-# Every behavioural case is asserted against a throwaway make_repo repo with one commit —
-# worktrees need a commit to check out — and through git's own answers (`worktree list`,
-# `rev-parse`) rather than by looking at the directory, because a plain `mkdir` would pass the
-# latter. The last case is of the other kind: its subject is SKILL.md's paragraph about this
-# script, read as text, the way refactor-budget.test.sh case 8 reads the sentences stating its
-# own default.
 #
 # Run: scripts/tests/issue-worktree.test.sh
 set -uo pipefail

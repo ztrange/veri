@@ -1,41 +1,12 @@
 #!/usr/bin/env bash
-# Unit test for the suites in this directory — none of them holds either preamble file to a
-# maximum size. Like hermetic-suites.test.sh, no-docs-reads.test.sh and
-# claude-md-guards-green.test.sh this suite has no script as its subject: its subject is the
-# tree it is run in.
-# Zero-dependency plain-shell asserts, same idiom as no-docs-reads.test.sh.
-#
-# Why this exists (issue #202): the two files every request is billed for — the repository's
-# own agent notes, and the conductor's procedure under skills/tdd/ — are being trimmed
-# because a resident token is re-read at cache-read rates on every turn. The obvious guard
-# against them growing back is a byte ceiling, and #202 forbids it outright: a byte that
-# stops one bad leaf pays for itself many times over, so a check that goes red when someone
-# writes the sentence that prevents the next bad leaf is a check that trades a real failure
-# for an accounting one. The document's brake is the four guards
-# claude-md-guards-green.test.sh runs — is every rule still stated? — and never its size.
-#
-# So the ceiling is the thing pinned absent. Left unpinned it is the first thing the next
-# author reaches for, arriving as one plausible line in an existing suite, and nothing in a
-# green run would say so.
+# Unit test for the suites in this directory — none of them holds CLAUDE.md or the conductor's
+# SKILL.md to a maximum size. Its subject is the tree it is run in, not a script.
 #
 # Contract under test:
 #   No suite under this directory measures the size of either file. A mention is not a
-#   measurement — these suites quote both documents at length and must keep being able to —
-#   and a comment is not one either. What is one is a size verb (`wc`, `stat`, `du`) applied
-#   to one of the two, whether the line names the file itself or a variable the same suite
-#   bound to it.
-#
-# The two shapes, because a size assertion is written in either and they are the same claim:
-# `wc -c < "$ROOT/CLAUDE.md"` names its subject on the line that measures it, and
-# `doc="$ROOT/CLAUDE.md"` three lines above a `wc -c < "$doc"` does not. Asking only the
-# measuring line for a file name would find the first and miss the second, which is the
-# distinction no-docs-reads.test.sh makes for the documentation tree: a path bound to a name
-# is that path, one variable away.
-#
-# Asking only about the size verb, per suite rather than per line, would be simpler and
-# wrong: six suites here already count something with `wc` for reasons that have nothing to
-# do with either document, and a rule that fired on those would be deleted by the first
-# author it blocked.
+#   measurement, and a comment is not one either. What is one is a size verb (`wc`, `stat`,
+#   `du`) applied to one of the two, whether the line names the file itself or a variable the
+#   same suite bound to it.
 #
 # Run: skills/tdd/scripts/tests/no-size-assertion.test.sh
 set -uo pipefail

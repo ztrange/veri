@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/parallel-conductors.sh — rung 3's selection layer. Run from a target
 # repo's primary checkout, it launches up to VERI_PARALLEL supervised conductors at once over
-# the issues solvable-issues.sh prints, and reports one line per issue it launched (#102).
+# the issues solvable-issues.sh prints, and reports one line per issue it launched.
 #
-# Contract under test (issue #102):
+# Contract under test:
 #   parallel-conductors.sh [--repo owner/name] [--continue-on-bail]
 #   VERI_PARALLEL=<n>    conductors running at once, default 1. A whole number ≥ 1; anything
-#                        else, set-but-empty included, is exit 2 before anything is launched,
-#                        because N conductors are N concurrent `claude -p` sessions, billed as
-#                        such — a value the script cannot read is never guessed into a spend.
+#                        else, set-but-empty included, is exit 2 before anything is launched.
 #   VERI_GH_JSON=<dir>   passed through to solvable-issues.sh, so the solvable set is a
 #                        fixture and no case reaches GitHub.
 #   CLAUDE_BIN=<path>    passed through to every conductor: here a stub that records that it
