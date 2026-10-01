@@ -3,3 +3,6 @@
 ### the computed total bound is never more than 600 s, however slow the last 5 runs were ⟦criterion 1⟧
 - the four computed-bound cases in skills/tdd/scripts/tests/wait-ci.test.sh (lines 580–614) each set `sha=0123456789abcdef0123456789abcdef01234567` again. One assignment before `ci_runs()` could replace them, but every case in the suite sets its own `sha` so it stands alone (lines 279–528), so I did not apply it.
 - each computed-bound case names its fixture twice: `ci_runs gh-runs-X.json …` and then `expect_deadline … "$work/gh-runs-X.json"`. `expect_deadline` could take the bare fixture name, but that changes a helper an earlier cycle wrote, so it is out of this cycle's bounds.
+### when fewer than 5 success/failure CI runs exist, the total bound falls back to 540 s and `wait-ci.sh` says so on stderr, naming that fewer than 5 runs were found ⟦criterion 2⟧
+- the run count 5 is written four times in `ci_bound` (`--limit 5`, `[:5]`, `< 5`, and the "fewer than 5" message): could be one value; this cycle wrote only two of them, and the `--limit` is shell, so lifting it means a cross-language parameter
+- the 540 fallback in `ci_bound`'s Python duplicates the shell default `max="${2:-540}"`: sharing it would mean passing it in as an argument, a structural change outside duplication removal within this cycle's code
