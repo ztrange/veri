@@ -18,7 +18,7 @@ done
 mentions() {
   local file="$1" name
   for name in "${names[@]}"; do
-    if grep -qF "$name" "$file"; then
+    if grep -qE "(^|[^[:alnum:]_.-])${name//./\\.}(\$|[^[:alnum:]_-])" "$file"; then
       printf '%s\n' "$name"
     fi
   done
