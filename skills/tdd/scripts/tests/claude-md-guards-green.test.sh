@@ -120,4 +120,36 @@ probe_names_each_guard_missing_from_a_planted_roster
 
 report "$name"
 
+
+probe_fails_when_a_planted_roster_names_no_suite() {
+  local real_root="$ROOT" real_here="$HERE" stubs tree guard raised found=0
+  stubs="$(scratch_dir)"
+  for guard in "${GUARDS[@]}"; do
+    printf '#!/bin/sh\necho "----"\necho "1 passed, 0 failed"\n' > "$stubs/$guard"
+    chmod 755 "$stubs/$guard"
+  done
+
+  tree="$(scratch_dir)"
+  printf 'test:\n\t@echo no suites here\n' > "$tree/Makefile"
+  problems=()
+  ROOT="$tree" HERE="$stubs"
+  probe_every_guard_is_rostered_and_green
+  ROOT="$real_root" HERE="$real_here"
+  for raised in ${problems+"${problems[@]}"}; do
+    [[ "$raised" == *"\`make -n test\` named no suite in $suites_dir"* ]] && found=1
+  done
+  raised="$(IFS='|'; echo "${problems[*]-}")"
+  problems=()
+  if [[ "$found" -eq 0 ]]; then
+    problems+=("with a planted \`make -n test\` naming no suite, the probe raised no problem saying so; it raised: ${raised:-nothing}")
+  fi
+}
+
+name="with a planted \`make -n test\` that names no suite at all, the probe fails saying the roster could not be read"
+problems=()
+
+probe_fails_when_a_planted_roster_names_no_suite
+
+report "$name"
+
 finish
