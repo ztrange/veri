@@ -21,13 +21,12 @@
 # to `.tdd/events.jsonl` through event.sh, and that line is the only way a human reading the
 # run afterwards learns the branch is not on the remote.
 
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/exit-contract.sh"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
 USAGE="usage: push-branch.sh [--force-with-lease=<branch>:<sha>]"
 
 record() {
-  local here
-  here="$(cd "$(dirname "$0")" && pwd)"
-  "$here/event.sh" "$@" || exit 2
+  "$HERE/event.sh" "$@" || exit 2
 }
 
 main() {
