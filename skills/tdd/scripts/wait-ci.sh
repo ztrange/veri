@@ -50,8 +50,9 @@ at = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").timestamp()
 runs = [r for page in docs(sys.stdin.read()) for r in page]
 runs = sorted(runs, key=lambda r: r["databaseId"], reverse=True)[:5]
 if len(runs) < 5:
-    print("wait-ci.sh: fewer than 5 success or failure CI runs found; bounding the wait at 540 s", file=sys.stderr)
-    print(540)
+    fallback = 540
+    print(f"wait-ci.sh: fewer than 5 success or failure CI runs found; bounding the wait at {fallback} s", file=sys.stderr)
+    print(fallback)
 else:
     print(min(600, round(2 * sum(at(r["updatedAt"]) - at(r["startedAt"]) for r in runs) / len(runs))))
 '
