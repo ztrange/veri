@@ -3,18 +3,6 @@
 # test run begins: `make test`, run-conductor.sh (what starts a run) and leaf-launchable.sh (the
 # preflight check SKILL.md runs before any leaf is paid for). Zero-dependency plain-shell asserts.
 #
-# Why this exists: veri requires bash 5 since 2026-09-18. Until then it promised bash 3.2, the
-# bash macOS ships, and that promise was kept only by the development machine being a Mac — CI
-# runs Linux. bash 3.2 cost that machine real time (a pattern substitution that took 3.86 s on
-# CLAUDE.md's 17.5 kB of records takes ~0.2 s under bash 5), so the promise was dropped. With it
-# gone, nothing tests veri on bash 3.2 any more, so a run on it must not be left to fail however
-# a bash-4-only construct happens to fail: it is refused, at once, saying what to install.
-#
-# The major version is read from the running bash (BASH_VERSINFO) and can be stood in for with
-# VERI_BASH_MAJOR — the `${VAR:-default}` injection every tunable here uses — because CI's
-# runner has no bash older than 5 to ask. Where this machine does have one (/bin/bash on macOS),
-# the last case asks it for real.
-#
 # Contract under test:
 #   1. `make test` refuses, exit non-zero, naming the requirement, before any suite runs, when
 #      the bash on PATH is older than 5 — and runs its suites when it is not.
