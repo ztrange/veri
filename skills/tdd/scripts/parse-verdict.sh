@@ -83,4 +83,4 @@ if [[ "$last" =~ $fence_re ]]; then
 fi
 
 printf '%s\n' "$reason"
-exit "$code"
+exit "$(to_contract "$code")"

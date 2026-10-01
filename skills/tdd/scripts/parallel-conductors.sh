@@ -40,7 +40,7 @@ fi
 finish() {
   mkdir -p .tdd
   echo "$1" > .tdd/parallel.exit
-  exit "$1"
+  exit "$(to_contract "$1")"
 }
 
 require_whole_number() {
