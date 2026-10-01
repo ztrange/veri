@@ -131,4 +131,16 @@ fi
 
 report "$name"
 
+name="$skill_md's structural pass takes the candidates in the order refactor-owed.sh list prints them and names that order as most valuable first"
+problems=()
+
+if ! missing_pass 'the order it takes candidates in'; then
+  require 'in the order refactor-owed.sh list prints them' "$pass_text" \
+    "$skill_md's structural pass never says it takes the candidates in the order refactor-owed.sh list prints them"
+  require 'most valuable first' "$pass_text" \
+    "$skill_md's structural pass never names the order it takes candidates in as most valuable first"
+fi
+
+report "$name"
+
 finish

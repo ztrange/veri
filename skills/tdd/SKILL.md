@@ -1465,7 +1465,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    $S/refactor-touched.sh --issue <issue-base>          # → <issue-touched-files>
    $S/refactor-owed.sh list .tdd/issue-<n>-refactor-owed.md   # one candidate per line; exit 3 ⇒ no pass
    ```
-   For each candidate, in order, `<count>` being the transforms the pass has already landed:
+   For each candidate, in the order `refactor-owed.sh list` prints them — most valuable first —
+   `<count>` being the transforms the pass has already landed:
    ```
    $S/refactor-budget.sh --issue <count>   # exit 0 ⇒ launch; exit 3 ⇒ the pass is over
    git rev-parse HEAD                      # → <base-sha>
