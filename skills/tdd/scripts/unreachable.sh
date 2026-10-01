@@ -34,25 +34,29 @@ path_of() {
   esac
 }
 
+escape_dots() {
+  printf -v escaped '%s' "${1//./\\.}"
+}
+
 whole_name() {
-  printf -v whole '%s' "(^|[^[:alnum:]_.-])${1//./\\.}(\$|[^[:alnum:]_-])"
+  local escaped
+  escape_dots "$1"
+  printf -v whole '%s' "(^|[^[:alnum:]_.-])${escaped}(\$|[^[:alnum:]_-])"
 }
 
 mentions() {
-  local file="$1" name whole
+  local file="$1" name whole built escaped pattern patterns=()
+  while IFS= read -r built; do
+    escape_dots "$built"
+    patterns+=( "$(printf '%s' "$escaped" | sed -E 's/\$\{?[[:alnum:]_]+\}?/[[:alnum:]_-]+/g')" )
+  done < <(grep -oE '[[:alnum:]_.-]*(\$\{?[[:alnum:]_]+\}?[[:alnum:]_.-]*)+\.(sh|md)' "$file")
   for name in "${nodes[@]}"; do
     whole_name "$name"
-    if grep -qE "$whole" "$file"; then
-      printf '%s\n' "$name"
-    fi
-  done
-  local built pattern
-  while IFS= read -r built; do
-    pattern="$(printf '%s' "$built" | sed -E 's/\./\\./g; s/\$\{?[[:alnum:]_]+\}?/[[:alnum:]_-]+/g')"
-    for name in "${nodes[@]}"; do
-      if [[ "$name" =~ ^${pattern}$ ]]; then printf '%s\n' "$name"; fi
+    if grep -qE "$whole" "$file"; then printf '%s\n' "$name"; continue; fi
+    for pattern in "${patterns[@]}"; do
+      if [[ "$name" =~ ^${pattern}$ ]]; then printf '%s\n' "$name"; break; fi
     done
-  done < <(grep -oE '[[:alnum:]_.-]*(\$\{?[[:alnum:]_]+\}?[[:alnum:]_.-]*)+\.(sh|md)' "$file")
+  done
 }
 
 declare -A reached=()
