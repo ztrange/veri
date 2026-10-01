@@ -100,20 +100,14 @@ main_tree="$(main_working_tree)"
 
 # hazard: the python block is one single-quoted string, so an apostrophe inside it ends it.
 PYTHONPATH="$(cd "$(dirname "$0")" && pwd)/lib" exec python3 -c '
-import json, os, re, sys
+import os, re, sys
 
 import blocked_by
-
-def documents(text):
-    items, at, decoder = [], 0, json.JSONDecoder()
-    while at < len(text):
-        page, at = decoder.raw_decode(text, at)
-        items.extend(page)
-    return items
+from json_documents import items
 
 issues_text, prs_text = sys.stdin.read().split("\0")
-issues = [i for i in documents(issues_text) if "pull_request" not in i]
-prs = documents(prs_text)
+issues = [i for i in items(issues_text) if "pull_request" not in i]
+prs = items(prs_text)
 label = sys.argv[1]
 priority_label = sys.argv[2]
 this_repo = sys.argv[3]
