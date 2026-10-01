@@ -32,13 +32,14 @@ set -uo pipefail
 
 USAGE="usage: timed-test-run.sh <tier> <suites> <cmd> [args …]"
 
+HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
+
 # hazard: `${N?}` aborts with status 1, not the 2 bad arguments owe.
-[[ $# -ge 3 && -n "$1" && -n "$3" ]] || { echo "$USAGE" >&2; exit 2; }
+[[ $# -ge 3 && -n "$1" && -n "$3" ]] || refuse
 tier="$1"
 suites="$2"
 shift 2
-
-HERE="$(cd "$(dirname "$0")" && pwd)"
 
 printf -v started '%(%s)T' -1
 
@@ -50,4 +51,5 @@ printf -v ended '%(%s)T' -1
 "$HERE/event.sh" test-run "tier=$tier" "suites=$suites" "seconds=$((ended - started))" \
   "status=$code"
 
+# pass-through: the caller reads the test command's own status, whatever it is.
 exit "$code"

@@ -64,12 +64,14 @@ set -uo pipefail
 
 USAGE="usage: supervise.sh <name> <cmd> [args...]"
 
-[[ -n "${1:-}" ]] || { echo "$USAGE" >&2; exit 2; }
+HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
+
+require_args 1 "$@"
 name="$1"
 shift
-[[ $# -ge 1 ]] || { echo "supervise: missing <cmd>" >&2; echo "$USAGE" >&2; exit 2; }
+(( $# >= 1 )) || refuse "supervise: missing <cmd>"
 
-HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/leaf-model.sh"
 source "$HERE/lib/preserve.sh"
 source "$HERE/lib/number-in.sh"

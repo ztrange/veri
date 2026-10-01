@@ -17,13 +17,17 @@
 # event.sh writes it (event.sh:60) and the way metrics.sh reads it — the issue's worktree.
 set -euo pipefail
 
-[[ -n "${1:-}" ]] || { echo "usage: tier-usual.sh <tier>" >&2; exit 2; }
+USAGE="usage: tier-usual.sh <tier>"
+
+lib="$(cd "$(dirname "$0")" && pwd)/lib"
+source "$lib/exit-contract.sh"
+
+require_args 1 "$@"
 tier="$1"
 
 log=".tdd/events.jsonl"
 
 # hazard: a quoted heredoc, so an apostrophe in the program is literal where `python3 -c` would end the string.
-lib="$(cd "$(dirname "$0")" && pwd)/lib"
 
 PYTHONPATH="$lib" exec python3 - "$tier" "$log" <<'PY'
 import sys
