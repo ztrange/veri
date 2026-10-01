@@ -82,7 +82,7 @@ case "$status" in
     exit 3
     ;;
 
-  *) exit "$status" ;;
+  *) exit "$(to_contract "$status")" ;;
 esac
 
 payload=()

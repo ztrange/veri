@@ -19,6 +19,6 @@ file="$1"
 matcher="${2:-}"
 source "$HERE/lib/ledger.sh"
 
-new="$(ledger_clear_pending "$matcher" < "$file")" || exit $?
+new="$(ledger_clear_pending "$matcher" < "$file")" || exit "$(to_contract "$?")"
 
 printf '%s\n' "$new" > "$file"

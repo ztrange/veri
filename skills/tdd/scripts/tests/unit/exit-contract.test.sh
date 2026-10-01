@@ -118,4 +118,46 @@ exit")") declared-after-5=$(exit_of_script "$pass_dir" bare-declared.sh "$(with_
 $DECLARED
 exit")")"
 
+OWED_PASS_THROUGHS=(  # <script> — why its pass-through sites are still allowed unmarked
+  "run-leaf.sh — its sites are owed a mapping or a marker by a later step of #497"
+  "run-suite.sh — its sites are owed a mapping or a marker by a later step of #497"
+  "supervise.sh — its sites are owed a mapping or a marker by a later step of #497"
+  "tick-issue-criterion.sh — its sites are owed a mapping or a marker by a later step of #497"
+  "tick-ledger.sh — its sites are owed a mapping or a marker by a later step of #497"
+  "timed-test-run.sh — its sites are owed a mapping or a marker by a later step of #497"
+  "verify.sh — its sites are owed a mapping or a marker by a later step of #497"
+  "wait-leaf.sh — its sites are owed a mapping or a marker by a later step of #497"
+)
+
+owed_pass_through() {
+  local entry
+  for entry in "${OWED_PASS_THROUGHS[@]}"; do
+    [[ "${entry%% — *}" == "$1" ]] && return 0
+  done
+  return 1
+}
+
+pass_through_offenders() {  # pass_through_offenders <script> — print <script>:<line>: <text> per unmapped, unmarked site
+  local script="$1" n=0 previous="" line trimmed
+  while IFS= read -r line; do
+    (( ++n ))
+    trimmed="${line#"${line%%[![:space:]]*}"}"
+    if [[ "$trimmed" != '#'* && "$line" != *to_contract* \
+      && "$line" =~ (^|[\;\&\|\(\)\{\}])[[:space:]]*exit[[:space:]]+(\"?\$[A-Za-z_{0-9]|\"?\$\?) \
+      && "$previous" != "# pass-through:"* ]]; then
+      printf '%s:%s: %s\n' "${script##*/}" "$n" "$trimmed"
+    fi
+    previous="$trimmed"
+  done < "$script"
+}
+
+problems=()
+for script in "$HERE"/../../*.sh; do
+  owed_pass_through "${script##*/}" && continue
+  while IFS= read -r line; do
+    problems+=( "$line" )
+  done < <(pass_through_offenders "$script")
+done
+report "every exit \"\$var\" or exit \$? in a script under scripts/ maps through to_contract or carries a # pass-through: <why> marker, outside the table of sites still owed"
+
 finish
