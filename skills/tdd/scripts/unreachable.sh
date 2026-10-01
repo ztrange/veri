@@ -3,7 +3,9 @@
 # Entry points: SKILL.md, the Makefile, the git hooks under docs/hooks/.
 #
 # Usage:   unreachable.sh <repo-root>     # one unreachable script per line on stdout;
-#                                         # one reached only from tests/ as `test-only: <name>`
+#                                         # one reached only from tests/ as `test-only: <name>`;
+#                                         # a VERI_* knob or script SKILL.md or CLAUDE.md
+#                                         # promises and nothing reads as `promised-unread: <name>`
 #
 # Exit:    0  the list was printed, possibly empty
 #          2  no <repo-root>
@@ -82,3 +84,20 @@ for name in "${names[@]}"; do
     printf '%s\n' "$name"
   fi
 done
+
+promises=()
+for doc in "$root/skills/tdd/SKILL.md" "$root/CLAUDE.md"; do
+  if [[ -f "$doc" ]]; then promises+=( "$doc" ); fi
+done
+if (( ${#promises[@]} > 0 )); then
+  readers=( "$scripts"/*.sh )
+  for f in "$scripts"/lib/*.sh; do
+    if [[ -e "$f" ]]; then readers+=( "$f" ); fi
+  done
+  while IFS= read -r knob; do
+    if ! grep -qwF "$knob" "${readers[@]}"; then printf 'promised-unread: %s\n' "$knob"; fi
+  done < <(grep -ohE 'VERI_[A-Z0-9_]+' "${promises[@]}" | sort -u)
+  while IFS= read -r name; do
+    if [[ ! -e "$scripts/$name" ]]; then printf 'promised-unread: %s\n' "$name"; fi
+  done < <(grep -ohE '(^|[^[:alnum:]_.${}-])[[:alnum:]_-]+\.sh' "${promises[@]}" | sed -E 's/^[^[:alnum:]_-]//' | sort -u)
+fi

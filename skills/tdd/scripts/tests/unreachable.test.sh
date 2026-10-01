@@ -172,4 +172,28 @@ if [[ "$code" == 0 && "$got" == "$expected" && "$before" == "$after" ]]; then ok
   diff <(printf '%s\n' "$before") <(printf '%s\n' "$after") | sed 's/^/    tree: /'
 fi
 
+root="$(fixture_root promised)"
+S="$root/skills/tdd/scripts"
+script "$S/helper.sh" 'echo "${VERI_READ:-1}"'
+printf '\nSet `VERI_READ` to tune it, or `VERI_UNREAD` to skip it.\n' >> "$root/skills/tdd/SKILL.md"
+mkdir -p "$S/lib"
+script "$S/lib/knobs.sh" ': "${VERI_LIBREAD:-1}"'
+printf '# notes\n\nRun `helper.sh` or `ghost.sh`; `VERI_READ`, `VERI_LIBREAD` and `VERI_GHOST` are knobs.\n' > "$root/CLAUDE.md"
+printf 'Its suite is `helper.test.sh`; a leaf runs `"$S/build-$kind-prompt.sh"`.\n' >> "$root/CLAUDE.md"
+expect_listing "$root" "$(printf 'promised-unread: VERI_GHOST\npromised-unread: VERI_UNREAD\npromised-unread: ghost.sh' | sort)" \
+  "a VERI_* knob or a script name SKILL.md or CLAUDE.md promises and no script reads, or that does not exist, is listed as promised-unread"
+
+root="$(fixture_root unpromised)"
+rm "$root/skills/tdd/SKILL.md"
+expect_listing "$root" "entry.sh" \
+  "with neither SKILL.md nor CLAUDE.md there is nothing promised, so stdin is never read as a promise" \
+  <<< 'Set `VERI_FROM_STDIN` or run `ghost.sh`.'
+
+root="$(fixture_root nolib)"
+S="$root/skills/tdd/scripts"
+script "$S/helper.sh" 'echo helped'
+printf '# notes\n\n`VERI_GHOST` is a knob.\n' > "$root/CLAUDE.md"
+expect_listing "$root" "promised-unread: VERI_GHOST" \
+  "a scripts tree with no lib/ is searched for knobs without an error for the missing directory"
+
 finish
