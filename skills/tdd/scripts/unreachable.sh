@@ -32,10 +32,15 @@ path_of() {
   esac
 }
 
+whole_name() {
+  printf -v whole '%s' "(^|[^[:alnum:]_.-])${1//./\\.}(\$|[^[:alnum:]_-])"
+}
+
 mentions() {
-  local file="$1" name
+  local file="$1" name whole
   for name in "${nodes[@]}"; do
-    if grep -qE "(^|[^[:alnum:]_.-])${name//./\\.}(\$|[^[:alnum:]_-])" "$file"; then
+    whole_name "$name"
+    if grep -qE "$whole" "$file"; then
       printf '%s\n' "$name"
     fi
   done
@@ -70,8 +75,8 @@ done
 
 for name in "${names[@]}"; do
   [[ -n "${reached[$name]:-}" ]] && continue
-  if [[ -d "$scripts/tests" ]] \
-     && grep -rqE "(^|[^[:alnum:]_.-])${name//./\\.}(\$|[^[:alnum:]_-])" "$scripts/tests"; then
+  whole_name "$name"
+  if [[ -d "$scripts/tests" ]] && grep -rqE "$whole" "$scripts/tests"; then
     printf 'test-only: %s\n' "$name"
   else
     printf '%s\n' "$name"
