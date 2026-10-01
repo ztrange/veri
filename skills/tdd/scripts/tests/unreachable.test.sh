@@ -16,6 +16,11 @@ source "$HERE/../lib/background.sh"
 
 work="$(scratch_dir)"
 
+script() {
+  printf '#!/usr/bin/env bash\n%s\n' "$2" > "$1"
+  chmod +x "$1"
+}
+
 fixture_root() {
   local root="$work/$1"
   local hooks="$root/docs"
@@ -23,18 +28,13 @@ fixture_root() {
   mkdir -p "$root/skills/tdd/scripts" "$hooks"
   printf 'test:\n\t@echo ok\n' > "$root/Makefile"
   printf '#!/bin/sh\nexit 0\n' > "$hooks/reference-transaction"
+  printf '# skill\n\nRun `$S/entry.sh <n>` to start.\n' > "$root/skills/tdd/SKILL.md"
+  script "$root/skills/tdd/scripts/entry.sh" '"$(dirname "$0")/helper.sh" "$@"'
   echo "$root"
-}
-
-script() {
-  printf '#!/usr/bin/env bash\n%s\n' "$2" > "$1"
-  chmod +x "$1"
 }
 
 root="$(fixture_root orphans)"
 S="$root/skills/tdd/scripts"
-printf '# skill\n\nRun `$S/entry.sh <n>` to start.\n' > "$root/skills/tdd/SKILL.md"
-script "$S/entry.sh" '"$(dirname "$0")/helper.sh" "$@"'
 script "$S/helper.sh" 'echo helped'
 script "$S/orphan-top.sh" '"$(dirname "$0")/orphan-leaf.sh" "$@"'
 script "$S/orphan-leaf.sh" '"$(dirname "$0")/orphan-top.sh" --again'
@@ -48,8 +48,6 @@ fi
 
 root="$(fixture_root cycle)"
 S="$root/skills/tdd/scripts"
-printf '# skill\n\nRun `$S/entry.sh <n>` to start.\n' > "$root/skills/tdd/SKILL.md"
-script "$S/entry.sh" '"$(dirname "$0")/helper.sh" "$@"'
 script "$S/helper.sh" '"$(dirname "$0")/entry.sh" --again'
 script "$S/orphan.sh" 'echo alone'
 record="$work/cycle.pids"
