@@ -73,7 +73,7 @@ want_figures="leaf=develop-green attempts=1 dollars=1.75 tokens=11000 scope_doll
 copy="$work/scripts"
 mkdir -p "$copy/lib"
 cp "$SCRIPTS/status.sh" "$SCRIPTS/solvable-issues.sh" "$copy/"
-cp "$SCRIPTS/lib/main-working-tree.sh" "$copy/lib/"
+cp "$SCRIPTS/lib/main-working-tree.sh" "$SCRIPTS/lib/exit-contract.sh" "$copy/lib/"
 cat > "$copy/lib/event_log.py" <<'PY'
 def read_events(path):
     return [{"ts": 1000, "event": "launch", "step": "decoy step", "phase": "red",

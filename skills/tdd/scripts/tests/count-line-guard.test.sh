@@ -504,8 +504,9 @@ ran_in_root() {
     return 1
   }
   probe="$tree/$GUARDLESS_SUITE_NAME"
-  mkdir -p "$tree/skills/tdd/scripts"
+  mkdir -p "$tree/skills/tdd/scripts/lib"
   cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
+  cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/skills/tdd/scripts/lib/"
   printf '%s\n' "$body" > "$tree/Makefile"
   cat > "$probe" <<'SUITE'
 #!/usr/bin/env bash
