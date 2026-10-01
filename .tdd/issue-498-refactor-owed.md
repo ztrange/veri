@@ -14,3 +14,5 @@
 - extract a shared fixture helper for the `dynamic` and `dynamic-braced` cases in unreachable.test.sh, which differ only in `$kind` versus `${kind}`
 ### a script whose only caller is its own test suite is listed by unreachable.sh as test-only, apart from the unreachable ones, and running the check deletes and modifies no file ⟦criterion 4⟧
 - the test-only case in `skills/tdd/scripts/tests/unreachable.test.sh:156-175` repeats the run/sort/diff body of `expect_listing`. Folding it in means either a tree-snapshot option on `expect_listing` or splitting the case into two cases, which changes the case count, so I left it.
+### `make unreachable` runs unreachable.sh over this repository and exits 0, so the check is itself reached from a declared entry point
+- the "cycle" and "test-only" cases in unreachable.test.sh still repeat the compare-and-diff block that expect_output now holds (code from earlier cycles, so out of scope here)

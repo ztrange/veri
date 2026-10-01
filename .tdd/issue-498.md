@@ -9,7 +9,7 @@ Declared entry points: the script invocations in `skills/tdd/SKILL.md` and the p
 - [x] unreachable.sh counts a dynamically constructed invocation as reaching its target — a script or prompt template named only through a built path such as `"$S/build-$kind-prompt.sh"` or `prompts/develop-$phase.md` is not listed, on a fixture where a literal `grep -F` for the target's name finds no caller ⟦criterion 2⟧
 - [x] a script whose only caller is its own test suite is listed by unreachable.sh as test-only, apart from the unreachable ones, and running the check deletes and modifies no file ⟦criterion 4⟧
 - [x] a `VERI_*` knob or a script name that SKILL.md or CLAUDE.md promises and that no script reads, or that does not exist, is listed by unreachable.sh as promised-unread ⟦criterion 5⟧
-- [x] `make unreachable` runs unreachable.sh over this repository and exits 0, so the check is itself reached from a declared entry point ⟂ refactor pending
+- [x] `make unreachable` runs unreachable.sh over this repository and exits 0, so the check is itself reached from a declared entry point
 - [ ] every script unreachable.sh lists as unreachable in this repository is removed together with any suite whose every assertion is about it, and the check then lists no unreachable script ⟦criterion 3⟧
 - [ ] `make test` is green and no reachable behaviour changes ⟦full-suite⟧ ⟦criterion 6⟧
 
