@@ -172,9 +172,8 @@ problems=()
 refused=frobnicate-red
 refused_work="$work/refused"
 mkdir -p "$refused_work/.tdd"
-cat > "$refused_work/.tdd/$refused.log" <<'LOG'
-{"type":"result","duration_ms":1,"duration_api_ms":1,"num_turns":1,"total_cost_usd":0.01,"usage":{"input_tokens":1,"output_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}
-LOG
+unmodeled_record='{"type":"result","duration_ms":1,"duration_api_ms":1,"num_turns":1,"total_cost_usd":0.01,"usage":{"input_tokens":1,"output_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}'
+printf '%s\n' "$unmodeled_record" > "$refused_work/.tdd/$refused.log"
 
 refused_err_text="$( ( cd "$refused_work" && "$HARVEST" "$refused" ) 2>&1 >/dev/null )" && refused_code=0 || refused_code=$?
 
@@ -277,9 +276,7 @@ problems=()
 unmodeled=verify-red
 unmodeled_work="$work/unmodeled"
 mkdir -p "$unmodeled_work/.tdd"
-cat > "$unmodeled_work/.tdd/$unmodeled.log" <<'LOG'
-{"type":"result","duration_ms":1,"duration_api_ms":1,"num_turns":1,"total_cost_usd":0.01,"usage":{"input_tokens":1,"output_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}
-LOG
+printf '%s\n' "$unmodeled_record" > "$unmodeled_work/.tdd/$unmodeled.log"
 
 unmodeled_err_text="$( ( cd "$unmodeled_work" && "$HARVEST" "$unmodeled" ) 2>&1 >/dev/null )" && unmodeled_code=0 || unmodeled_code=$?
 [[ "$unmodeled_code" == 0 ]] ||
