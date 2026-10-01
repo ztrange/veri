@@ -233,6 +233,9 @@ STEP_COLUMNS = STEP_COUNTS + TIMES + COST_COLUMNS
 
 lost = {}
 
+ROLES = ("developer", "verifier")
+by_model = {}
+
 spent = {}
 
 passes = {}
@@ -262,16 +265,23 @@ def row_in(table, key, columns):
 def tally(table, key, columns, count):
     row_in(table, key, columns)[count] += 1
 
-def rows_for(phase, step):
-    rows = []
+def model_row(line):
+    actor = line.get("actor")
+    if actor not in ROLES:
+        return None
+    attempt = (line.get("step", ""), line.get("phase", ""), line.get("attempt", ""), actor)
+    return row_in(by_model, (actor, models.get(attempt, "")), PHASE_COLUMNS)
+
+def rows_for(phase, step, line):
+    rows = [model_row(line)] if model_row(line) is not None else []
     if phase:
         rows.append(row_in(counts, phase, PHASE_COLUMNS))
     if step:
         rows.append(row_in(steps, step, STEP_COLUMNS))
     return rows
 
-def add_seconds(phase, step, column, seconds):
-    for row_of in rows_for(phase, step):
+def add_seconds(phase, step, line, column, seconds):
+    for row_of in rows_for(phase, step, line):
         row_of[column] += seconds
 
 def attempt_in(phase, step, attempt):
@@ -280,7 +290,7 @@ def attempt_in(phase, step, attempt):
     return attempts_spent.setdefault((step, phase, attempt), {WALL: 0, DOLLARS: 0.0})
 
 def add_cost(phase, step, line):
-    rows = rows_for(phase, step) + [totals["total"]]
+    rows = rows_for(phase, step, line) + [totals["total"]]
     for heading, field in COSTS:
         reported = line.get(field) or 0
         amount = float(reported) if heading in MONEY else int(reported)
@@ -298,6 +308,8 @@ launched = {}
 with open(path) as f:
     marks = [json.loads(raw) for raw in f if raw.strip()]
 clocked = bool(marks) and all("awake" in mark for mark in marks)
+models = {(mark.get("step", ""), mark.get("phase", ""), mark.get("attempt", ""), mark.get("actor")):
+          mark["model"] for mark in marks if mark.get("event") == "usage" and "model" in mark}
 
 for line in marks:
     event = line.get("event", "")
@@ -335,13 +347,13 @@ for line in marks:
         awake = span(reading(launched.get((step, phase, attempt_no)), "awake"),
                      reading(line, "awake"))
         seconds = int(awake if awake is not None else (line.get("secs") or 0))
-        add_seconds(phase, step, "wall s", seconds)
+        add_seconds(phase, step, line, "wall s", seconds)
         if attempt is not None:
             attempt[WALL] += seconds
         if phase == "refactor":
             open_pass(step)[WALL] += seconds
     elif event == "usage":
-        add_seconds(phase, step, "API s",
+        add_seconds(phase, step, line, "API s",
                     int(line.get("duration_api_ms") or 0) // 1000)
         add_cost(phase, step, line)
         dollars = float(line.get("total_cost_usd") or 0)
@@ -391,6 +403,8 @@ for line in marks:
         continue
     if phase and count in COUNTS:
         tally(counts, phase, PHASE_COLUMNS, count)
+    if count in COUNTS and model_row(line) is not None:
+        model_row(line)[count] += 1
     if step:
         tally(steps, step, STEP_COLUMNS, count)
 
@@ -499,6 +513,10 @@ print("Cost is every leaf of the run, and the conductor own %s."
          if conductor_counted else
          "spending is not in it: this log carries no usage record of the conductor own"))
 section("#### By phase", "phase", PHASE_COLUMNS, counts)
+if models:
+    table_head("#### By model", "role", ["model"] + PHASE_COLUMNS, ["---"] + ["---:"] * len(PHASE_COLUMNS))
+    for (role, model), row_counts in by_model.items():
+        row([role, model] + [figure(c, row_counts[c]) for c in PHASE_COLUMNS])
 section("#### Rework and waste, by phase", "phase", LOST_COLUMNS, lost)
 section("#### By step", "step", STEP_COUNTS + [API] + COST_COLUMNS, steps,
         ([WALL] + BUDGETS + MARK_COLUMNS + [KIND], step_cells))

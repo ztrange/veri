@@ -2744,4 +2744,89 @@ progress_says "$ledger_steps_out" 1 3
 
 report_on "$name" "$ledger_steps_out"
 
+by_model_says() {
+  local out_file="$1"; shift
+  probe "$PROBE_PRELUDE"'
+path = sys.argv[1]
+COLUMNS = ["attempts", "PASS", "REJECT", "kills", "wall s", "API s", "turns",
+           "input", "output", "cache read", "cache creation", "$"]
+lines = open(path).read().splitlines()
+at = next((i for i, l in enumerate(lines) if l.strip() == "#### By model"), None)
+if at is None:
+    complain("want a \"#### By model\" section, the report has headings: %s"
+             % ", ".join(repr(l) for l in lines if l.startswith("#")))
+else:
+    body = []
+    for l in lines[at + 1:]:
+        if l.startswith("#"):
+            break
+        if l.strip().startswith("|"):
+            row = cells(l)
+            if not all(SEPARATOR.match(c) for c in row if c):
+                body.append(row)
+    if not body:
+        complain("want a table under \"#### By model\", there is none")
+    else:
+        header, rows = body[0], body[1:]
+        keys = len(header) - len(COLUMNS)
+        if keys < 1 or header[keys:] != COLUMNS:
+            complain("want \"#### By model\" headed by its key and then %s, got %s"
+                     % ("|".join(COLUMNS), "|".join(header)))
+        else:
+            for arg in sys.argv[2:]:
+                if arg.startswith("!"):
+                    absent = [r for r in rows if arg[1:] in r[:keys]]
+                    if absent:
+                        complain("want no By model row for role %r, the rows are: %s"
+                                 % (arg[1:], "; ".join("|".join(r) for r in rows)))
+                    continue
+                key, expected = arg.split("=", 1)
+                role, model = key.split("@")
+                hit = [r for r in rows
+                       if role in r[:keys] and model in r[:keys]]
+                if len(hit) != 1:
+                    complain("want one By model row for role %r and model %r, the rows are: %s"
+                             % (role, model, "; ".join("|".join(r) for r in rows) or "none"))
+                    continue
+                for name, want, got in zip(COLUMNS, expected.split(","), hit[0][keys:]):
+                    said = number(got)
+                    if said is None or abs(said - float(want)) > 0.005:
+                        complain("By model %s on %s %s: want %s, got %r" % (role, model, name, want, got))
+print("\n".join(problems))
+' "$out_file" "$@"
+}
+
+name="#604 metrics.sh prints a By model table, one row per (role, model), carrying the By phase columns"
+problems=()
+
+fixture_work modeled_work
+modeled="a step whose developer ran on one model and whose verifier ran on another"
+developer_model='"model": "claude-opus-5-5"'
+verifier_model='"model": "claude-haiku-4-5-20251001"'
+sv "$modeled" 9000 conductor ""    step-start ""
+sv "$modeled" 9010 developer red   launch  1 '"name": "develop-red"'
+sv "$modeled" 9100 developer red   exit    1 '"status": "0", "secs": "90"'
+sv "$modeled" 9100 developer red   usage   1 "$(usage_json 70000), $developer_model"
+sv "$modeled" 9110 verifier  red   launch  1 '"name": "verify-red"'
+sv "$modeled" 9130 verifier  red   exit    1 '"status": "0", "secs": "20"'
+sv "$modeled" 9130 verifier  red   usage   1 "$(usage_json 15000), $verifier_model"
+sv "$modeled" 9130 verifier  red   verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
+sv "$modeled" 9200 developer green launch  1 '"name": "develop-green"'
+sv "$modeled" 9300 developer green exit    1 '"status": "0", "secs": "100"'
+sv "$modeled" 9300 developer green usage   1 "$(usage_json 80000), $developer_model"
+sv "$modeled" 9310 verifier  green launch  1 '"name": "verify-green"'
+sv "$modeled" 9330 verifier  green exit    1 '"status": "0", "secs": "20"'
+sv "$modeled" 9330 verifier  green usage   1 "$(usage_json 10000), $verifier_model"
+sv "$modeled" 9330 verifier  green verdict 1 '"verdict": "REJECT", "reason": "the production change is wider than the case asks for"'
+sv "$modeled" 9400 conductor ""    usage   "" "$(usage_json 5000), $developer_model"
+sv "$modeled" 9400 conductor ""    step-done ""
+modeled_out="$modeled_work/report.md"
+render "$modeled_work" "$modeled_out"
+by_model_says "$modeled_out" \
+  "developer@claude-opus-5-5=2,0,0,0,190,150,18,2000,4000,6000,8000,1.00" \
+  "verifier@claude-haiku-4-5-20251001=2,1,1,0,40,25,18,2000,4000,6000,8000,1.00" \
+  "!conductor"
+
+report_on "$name" "$modeled_out"
+
 finish
