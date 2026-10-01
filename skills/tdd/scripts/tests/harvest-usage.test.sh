@@ -271,4 +271,30 @@ for want in sys.argv[2:]:
 
 report "$name"
 
+name="a closing result record with no modelUsage: the harvester still appends a usage event, its model key empty, and exits 0 with nothing on stderr"
+problems=()
+
+unmodeled=verify-red
+unmodeled_work="$work/unmodeled"
+mkdir -p "$unmodeled_work/.tdd"
+cat > "$unmodeled_work/.tdd/$unmodeled.log" <<'LOG'
+{"type":"result","duration_ms":1,"duration_api_ms":1,"num_turns":1,"total_cost_usd":0.01,"usage":{"input_tokens":1,"output_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}
+LOG
+
+unmodeled_err_text="$( ( cd "$unmodeled_work" && "$HARVEST" "$unmodeled" ) 2>&1 >/dev/null )" && unmodeled_code=0 || unmodeled_code=$?
+[[ "$unmodeled_code" == 0 ]] ||
+  problems+=("want exit 0 from the harvester, got $unmodeled_code")
+[[ -z "$unmodeled_err_text" ]] ||
+  problems+=("want nothing on stderr, got: $(printf '%q' "$unmodeled_err_text")")
+
+unmodeled_usage_lines="$(event_count "$unmodeled_work" usage)"
+[[ "$unmodeled_usage_lines" == 1 ]] ||
+  problems+=("want 1 usage line in the event log, got $unmodeled_usage_lines")
+
+unmodeled_model="$(event_fields "$unmodeled_work" usage model)"
+[[ "$unmodeled_model" == "" ]] ||
+  problems+=("model: want '', got $(printf '%q' "$unmodeled_model")")
+
+report "$name"
+
 finish
