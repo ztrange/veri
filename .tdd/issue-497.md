@@ -26,7 +26,7 @@
 - [x] tick-ledger.sh and clear-refactor-pending.sh exit 2, never the foreign code, when their ledger transform fails with a code outside 0–3 ⟦criterion 4⟧
 - [x] fix the red full suite (make test): event-log.test.sh — FAIL - run_activity and scope_totals read the event log through lib/event_log.py's one parse and one dollar/token sum, with status.sh's text and --json figures unchanged over a log with blank lines and usage events; main-working-tree.test.sh — FAIL - a shared lib/main-working-tree.sh defines main_working_tree, and status.sh and solvable-issues.sh both resolve the main working tree through it; run-conductor-argv-guard.test.sh — FAIL - run-conductor.test.sh's case 4 fails when the procedure is passed as an argv element beginning with a dash, and passes when it is not ⟦ci-repair⟧ ⟦criterion 4⟧
 - [x] Every script's behaviour is otherwise unchanged ⟦full-suite⟧ ⟦criterion 5⟧
-- [ ] fix the CI failure (Linux, ubuntu-latest): unit/exit-contract.test.sh — FAIL - a script that sources the module hands on a declared pass-through exit's code unmapped outside 0-3, while an undeclared exit outside 0-3 still ends as 2 (expected: declared=5 undeclared=2; actual: declared=2 undeclared=2), plus the indented and bare-exit declared cases; green on macOS ⟦ci-repair⟧ ⟦criterion 5⟧
+- [x] fix the CI failure (Linux, ubuntu-latest): unit/exit-contract.test.sh — FAIL - a script that sources the module hands on a declared pass-through exit's code unmapped outside 0-3, while an undeclared exit outside 0-3 still ends as 2 (expected: declared=5 undeclared=2; actual: declared=2 undeclared=2), plus the indented and bare-exit declared cases; green on macOS ⟦ci-repair⟧ ⟦criterion 5⟧
 
 ## Owed steps
 
