@@ -34,15 +34,14 @@
 # expression that applies it.
 set -euo pipefail
 
-source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
 USAGE="usage: over-budget.sh <tier> <seconds> <usual>"
 
 require_args 3 "$@"
 tier="$1"
 seconds="$2"
 usual="$3"
-
-HERE="$(cd "$(dirname "$0")" && pwd)"
 
 limits="$("$HERE/time-budget.sh")"
 budget="${limits%%$'\n'*}"
