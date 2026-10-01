@@ -248,7 +248,7 @@ expect_never_completes legacy-success-pending
 expect_exit legacy-success-green 0
 report "$name"
 
-name="wait-ci.sh keeps its total bound separate from one call's slice: with a total of 600 s and a slice of 240 s, a call made 240 s after the first that still finds a check pending exits 3, not 2, and SKILL.md's Draft PR step passes that total bound (#544)"
+name="wait-ci.sh keeps its total bound separate from one call's slice: with a total of 600 s and a slice of 240 s, a call made 240 s after the first that still finds a check pending exits 3, not 2, and SKILL.md's Draft PR step passes a slice and an empty total, leaving the total bound to wait-ci.sh (#544, #549)"
 problems=()
 rollup total.json "$(check IN_PROGRESS '')" 00112233445566778899aabbccddeeff00112233
 shared total
@@ -259,8 +259,8 @@ done
 calls="$(grep -F 'wait-ci.sh <pr-url>' "$HERE/../../SKILL.md")"
 [[ -n "$calls" ]] || problems+=("SKILL.md: no wait-ci.sh <pr-url> call found")
 while IFS= read -r line; do
-  [[ "$line" =~ wait-ci\.sh\ \<pr-url\>\ [0-9]+\ [0-9]+ ]] \
-    || problems+=("SKILL.md passes wait-ci.sh no total bound: $line")
+  [[ "$line" =~ wait-ci\.sh\ \<pr-url\>\ [0-9]+\ \"\"\  ]] \
+    || problems+=("SKILL.md does not pass wait-ci.sh a slice and an empty total: $line")
 done <<< "$calls"
 report "$name"
 
