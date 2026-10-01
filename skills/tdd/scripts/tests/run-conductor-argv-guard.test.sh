@@ -43,6 +43,7 @@ run_case4() {
   cp "$SUBJECT_PATH" "$tree/$TESTS_DIR/$SUBJECT_NAME"
   mkdir -p "$tree/$TESTS_DIR/lib" && cp "$HERE/lib/harness.sh" "$tree/$TESTS_DIR/lib/"
   cp "$ROOT/$SKILL_DIR/$SKILL_NAME" "$tree/$SKILL_DIR/$SKILL_NAME"
+  mkdir -p "$tree/$SCRIPTS_DIR/lib" && cp "$ROOT/$SCRIPTS_DIR/lib/exit-contract.sh" "$tree/$SCRIPTS_DIR/lib/"
   script="$tree/$SCRIPTS_DIR/$SCRIPT_NAME"
   if [[ -n "$rewrite" ]]; then sed "$rewrite" "$SCRIPT_PATH" > "$script"; else cp "$SCRIPT_PATH" "$script"; fi
   chmod 755 "$tree/$TESTS_DIR/$SUBJECT_NAME" "$script"
