@@ -9,9 +9,6 @@
 #   leaves UNIT_TESTS unemptied, the guard fails and names that suite as `<suite>:<line>`;
 #   once the plant is removed it passes.
 #
-# The offending line is assembled from parts: this file is itself a suite under tests/, so a
-# line here spelling the call whole is what the guard exists to catch.
-#
 # Run: skills/tdd/scripts/tests/recipe-unit-tier-guard.test.sh
 set -uo pipefail
 
@@ -21,6 +18,7 @@ GUARD_BASE='no-recipe-unit-tier'
 GUARD_PATH="$HERE/$GUARD_BASE.test.sh"
 PLANT_NAME='planted-offender.test.sh'
 
+# hazard: assembled from parts — spelled whole here, this suite's own line would trip the guard.
 MAKE_CMD='make'
 RECIPE_ARGS='-C "$ROOT" test TESTS=fixture.test.sh'
 MARK='recipe-unit-tier-probe'
