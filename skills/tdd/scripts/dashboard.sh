@@ -15,5 +15,6 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
 
 exec python3 "$HERE/dashboard_endpoints.py" "$HERE/dashboard.html" "${1:-8765}" "$HERE/status.sh" "$HERE/metrics.sh"

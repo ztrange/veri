@@ -130,6 +130,19 @@ for script in add-ledger-step.sh affected-suites.sh build-develop-prompt.sh buil
 done
 verdict "$name"
 
+name="migration slice 2 sources lib/exit-contract.sh and refuses through it, with no hand-built usage-and-exit idiom left"
+offenders=()
+for script in comment-class.sh cover-outcome.sh coverage-blocker.sh criterion-finished.sh \
+  dashboard.sh detach-command.sh detach-leaf.sh; do
+  grep -E '^[[:space:]]*(source|\.)[[:space:]].*lib/exit-contract\.sh' "$SCRIPTS/$script" > /dev/null \
+    || offenders+=( "$script: does not source lib/exit-contract.sh" )
+  while IFS=: read -r lineno text; do
+    [[ "${text#"${text%%[![:space:]]*}"}" == '#'* ]] && continue
+    offenders+=( "$script:$lineno: hand-built usage-and-exit: ${text#"${text%%[![:space:]]*}"}" )
+  done < <(grep -niE '(usage.*>&2|^[[:space:]]*refuse[[:space:]]*\(\))' "$SCRIPTS/$script")
+done
+verdict "$name"
+
 name="no script guards a required positional argument with a bare \${N:?…} expansion"
 mapfile -t offenders < <(bare_expansion_offenders "$SCRIPTS")
 verdict "$name"

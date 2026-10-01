@@ -15,9 +15,10 @@
 #   3  no completion file yet — call again
 set -uo pipefail
 
-usage() { echo "usage: detach-command.sh start <name> <cmd> [args…] | wait <name> [max-seconds]" >&2; exit 2; }
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+USAGE="usage: detach-command.sh start <name> <cmd> [args…] | wait <name> [max-seconds]"
 
-[[ $# -ge 2 ]] || usage
+[[ $# -ge 2 ]] || refuse
 mode="$1"; name="$2"; shift 2
 exit_file=".tdd/$name.exit"
 pid_file=".tdd/$name.pid"
@@ -32,7 +33,7 @@ exit_if_recorded() {
 
 case "$mode" in
   start)
-    [[ $# -gt 0 ]] || usage
+    [[ $# -gt 0 ]] || refuse
     rm -f "$exit_file"
     python3 -c 'import os, sys; os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])' \
       sh -c '"$@"; rc=$?; echo "$rc" > "$0.tmp"; mv "$0.tmp" "$0"' "$exit_file" "$@" \
@@ -53,5 +54,5 @@ case "$mode" in
       sleep "$poll"
     done
     ;;
-  *) usage ;;
+  *) refuse ;;
 esac

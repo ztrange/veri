@@ -10,16 +10,16 @@
 # Exit: 0 printed, 2 bad arguments.
 set -uo pipefail
 
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+USAGE="usage: comment-class.sh [--sweepable] <file>…"
+
 sweepable=0
 if [[ "${1:-}" == --sweepable ]]; then
   sweepable=1
   shift
 fi
 
-if (( $# == 0 )); then
-  echo "usage: comment-class.sh [--sweepable] <file>…" >&2
-  exit 2
-fi
+require_args 1 "$@"
 
 awk -v sweepable="$sweepable" '
   BEGIN { writer = "\\|[[:space:]]*(tee|dd|sponge)[[:space:]]"; name = "[A-Za-z_][A-Za-z0-9_]*" }

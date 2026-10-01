@@ -10,10 +10,13 @@
 # Usage:   criterion-finished.sh <k> < .tdd/issue-<n>.md
 set -euo pipefail
 
-[[ -n "${1:-}" ]] || { echo "usage: criterion-finished.sh <k> < .tdd/issue-<n>.md" >&2; exit 2; }
+HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
+
+USAGE="usage: criterion-finished.sh <k> < .tdd/issue-<n>.md"
+require_args 1 "$@"
 k="$1"
 
-HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/ledger.sh"
 
 served=0
