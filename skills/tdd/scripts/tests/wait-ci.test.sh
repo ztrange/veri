@@ -1,17 +1,14 @@
 #!/usr/bin/env bash
 # Tests for scripts/wait-ci.sh — the resumable CI wait the Draft PR step calls after
-# `gh pr ready` (#544), shaped like wait-leaf.sh: wait a bounded slice, exit 3 while a
-# check is still pending, and be called again.
+# `gh pr ready`: wait a bounded slice, exit 3 while a check is still pending, and be
+# called again. Driven against a stub `gh` serving the rollup in $ROLLUP and a stub `date`
+# that advances $VERI_CLOCK_STEP seconds a reading.
 #
-# Driven against a STUB `gh` first on PATH that answers `gh pr view <url> --json
-# statusCheckRollup` with the fixture document named by $ROLLUP, and refuses every other
-# call — `-q`/`--jq`/`--template` included, since jq is not a dependency of any script here —
-# and on the VIRTUAL CLOCK wait-leaf.test.sh uses: a stub `date` that advances
-# $VERI_CLOCK_STEP seconds a reading, so a pending check never waits on real time.
-#
-# Status contract: exit 0 every check completed SUCCESS, NEUTRAL or SKIPPED · 1 a completed
-# check concluded anything else · 2 gh could not read the checks · 3 a check is still pending
-# within the bound. An empty rollup is never 0.
+# Contract under test:
+#   exit 0  every check completed SUCCESS, NEUTRAL or SKIPPED; an empty rollup is never 0
+#   exit 1  a completed check concluded anything else
+#   exit 2  gh could not read the checks
+#   exit 3  a check is still pending within the bound
 #
 # Run: scripts/tests/wait-ci.test.sh
 set -uo pipefail

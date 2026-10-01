@@ -1,16 +1,12 @@
 #!/usr/bin/env bash
-# Tests for scripts/supervise.sh — the programmatic supervisor, the deterministic
-# robustness core (#4). Every leaf is launched through it; it tells a slow-but-alive leaf
-# (heartbeat: progress-log activity within a window) from a hung one (silent past the
-# window), caps the wall clock with a hard timeout, kills a stuck leaf, and reports a
-# clear status (success / failure / killed-stuck) plus the captured output.
+# Tests for scripts/supervise.sh — the programmatic supervisor every leaf is launched
+# through, driven against stub leaf scripts on an injected clock.
 #
-# Driven against STUB LEAF SCRIPTS (no claude): exit-0, exit-nonzero, hang, slow-but-alive,
-# runaway (alive but over the hard timeout), and flaky (hangs once, then succeeds).
-# No case waits for real time to pass: the clock is injected (see "The injected clock" below),
-# so a hang is seen on the next poll and a lifetime longer than a window costs milliseconds.
-#
-# Status contract: exit 0 success · 1 leaf-failure · 2 killed-stuck.
+# Contract under test:
+#   supervise.sh tells a slow-but-alive leaf (progress-log activity within the heartbeat
+#   window) from a hung one (silent past it), caps the wall clock with a hard timeout,
+#   kills a stuck leaf, and reports its status plus the captured output.
+#   exit 0 success · 1 leaf-failure · 2 killed-stuck.
 #
 # Run: scripts/tests/supervise.test.sh
 set -uo pipefail

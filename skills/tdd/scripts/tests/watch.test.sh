@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Unit tests for `make watch` (#340) — a developer convenience that polls the tracked files
+# Unit tests for `make watch` — a developer convenience that polls the tracked files
 # and reruns `make unit` when one changes. Not a suite and not a gate.
-# Zero-dependency plain-shell asserts, same idiom as profile.test.sh.
 #
 # Contract under test:
 #   make -n watch  → exits 0; `watch` is a phony target of its own, neither a prerequisite
@@ -25,9 +24,6 @@
 #                    priority), not part of `test`, that nothing gates on — as `profile`'s does.
 #   the suite's lane → `make -n test` lists this suite and `make -n unit` does not: each
 #                    target's roster read off its own expanded recipe, which runs nothing.
-#
-# Not in tests/unit/: the cases driving the loop start real subprocesses, which the fast
-# tier's admission bar excludes.
 #
 # Run: scripts/tests/watch.test.sh
 set -uo pipefail

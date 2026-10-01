@@ -446,4 +446,13 @@ want_no_header_citation "$SCRIPTS"/tests/[f-p]*.sh
 want_contract_only_header "$SCRIPTS"/tests/[f-p]*.sh
 verdict "the leading header block of a top-level tests/*.sh whose name starts with f through p carries only its contract, and no line of it cites an issue number"
 
+problems=""
+files=()
+for f in "$SCRIPTS"/tests/[q-z]*.sh; do
+  case "${f##*/}" in skill-*) ;; *) files+=("$f") ;; esac
+done
+want_no_header_citation "${files[@]}"
+want_contract_only_header "${files[@]}"
+verdict "the leading header block of a top-level tests/*.sh whose name starts with q through z, other than the skill-* files, carries only its contract, and no line of it cites an issue number"
+
 finish

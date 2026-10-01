@@ -1,19 +1,12 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/tier-usual.sh — what one tier's test-command run usually costs,
-# computed from the `test-run` lines timed-test-run.sh already writes (issue #342, part of
-# PRD #335). A recorded `seconds` is only a number until there is something to compare it
-# against; the usual is that something, and it is the median of the tier's last 10 runs.
-# Zero-dependency plain-shell asserts, same idiom as timed-test-run.test.sh next door.
+# computed from the `test-run` lines timed-test-run.sh writes.
 #
-# Contract under test (this step only — the figure, not yet the comparison it feeds):
+# Contract under test:
 #   tier-usual.sh <tier>  → exit 0, and on stdout the median of the `seconds` on the last 10
 #                           `test-run` lines of `.tdd/events.jsonl` whose `tier` is <tier>.
-#
-# The log is read relative to the directory the script runs in — `.tdd/events.jsonl`, the way
-# event.sh writes it (event.sh:60) and the way metrics.sh reads it — so the case below writes
-# a hand-made log into a temp directory and runs the script there. Every figure in it is
-# fabricated: nothing here times anything, so the answer is arithmetic over injected data
-# rather than a duration this machine happened to take (CLAUDE.md, "Testing idiom").
+#   the log               → `.tdd/events.jsonl`, read relative to the directory the script
+#                           runs in.
 #
 # Run: skills/tdd/scripts/tests/tier-usual.test.sh
 set -uo pipefail

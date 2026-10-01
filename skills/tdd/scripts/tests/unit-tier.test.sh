@@ -1,27 +1,16 @@
 #!/usr/bin/env bash
-# Unit tests for the `unit` target in this repository's Makefile — the fast tier. Like
-# make-test-env.test.sh and count-line-guard.test.sh this suite has no script as its
-# subject: its subject is which suites a make target runs. Zero-dependency plain-shell
-# asserts, same idiom as the rest of this directory.
-#
-# Why this exists (issue #336): every suite here ran in one tier, so a one-line change to a
-# script paid the whole `make test` for a check that only needed the suites asserting pure
-# logic. `make unit` is the faster loop, and it is only faster if it runs the suites under
-# skills/tdd/scripts/tests/unit/ and nothing from the flat directory beside it.
+# Unit tests for the `unit` target in this repository's Makefile — the fast tier. Its
+# subject is which suites a make target runs, read off `make -n`.
 #
 # Contract under test:
 #   1. `make -n unit` names only suites matching skills/tdd/scripts/tests/unit/*.test.sh —
 #      and every one of them on disk, so an empty roster over a populated directory is a
 #      failure rather than a vacuous pass.
 #   2. `make -n test` names the suites of both directories — the flat one and unit/ — and
-#      none of them twice, so the full tier still covers what the fast tier runs.
+#      none of them twice.
 #   3. `make unit` guards a suite the way `make test` does: a suite that never prints its
 #      `<n> passed, <m> failed` count line fails the run, named, and so does one that calls gh,
 #      caught by the OFFLINE_BIN shim's reach log and named with what it tried.
-#
-# The roster is read off `make -n`, which expands the target's list and runs nothing, the
-# same idiom as no-docs-reads.test.sh's roster helper: running `make unit` to find out
-# what it runs would cost the run it is asking about.
 #
 # Run: skills/tdd/scripts/tests/unit-tier.test.sh
 set -uo pipefail

@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Tests for scripts/tick-issue-criterion.sh — the thin gh wrapper — driven against a
-# stub `gh` on PATH (no network, no real issue). Zero-dependency plain-shell asserts.
+# stub `gh` on PATH.
 #
-# Regression target: the wrapper must not crash when GH_REPO is unset (empty repo-args
-# array under `set -u` on bash 3.2).
+# Contract under test:
+#   tick-issue-criterion.sh runs with GH_REPO unset without crashing on an empty
+#   repo-args array under `set -u`.
 #
 # Run: scripts/tests/tick-issue-criterion.test.sh
 set -uo pipefail

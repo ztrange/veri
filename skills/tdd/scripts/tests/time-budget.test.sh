@@ -1,24 +1,13 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/time-budget.sh — the two tunables that decide whether a recorded
-# test-command run counts as over budget (issue #342, part of PRD #335). tier-usual.sh says
-# what a tier usually costs; these say how far past usual, or past a fixed ceiling for the
-# unit tier, is far enough to be worth a word in the narration.
+# test-command run counts as over budget.
 #
-# Contract under test (this step only — the tunables, not yet the comparison they feed):
+# Contract under test:
 #   time-budget.sh          → exit 0, and on stdout the two resolved tunables, one per line:
 #                             VERI_UNIT_BUDGET's seconds first, VERI_TIME_WARN_RATIO's
 #                             ratio second. Unset, they are 10 and 1.5.
 #   a non-numeric value for either → exit 2, nothing on stdout, and a diagnostic on stderr
 #                             naming the variable at fault.
-#
-# The no-argument call is the preflight one: it is the point `refactor-budget.sh 0` already
-# occupies in SKILL.md step 5, where a misconfigured run is refused before any leaf is
-# launched rather than mid-loop (CLAUDE.md, "Four budgets on four axes"). Failing closed
-# with nothing on stdout is refactor-budget.sh's own rule, for its own reason: a conductor
-# capturing stdout must not be able to read a diagnostic as a budget.
-#
-# Nothing here times anything — the tunables are read from the environment, so the case is
-# arithmetic-free and costs one process per invocation (CLAUDE.md, "Testing idiom").
 #
 # Run: skills/tdd/scripts/tests/time-budget.test.sh
 set -uo pipefail

@@ -1,43 +1,14 @@
 #!/usr/bin/env bash
 # Unit tests for the three root documents' record of the selection order — which band an
-# issue is taken in, and the tunable that names the label putting it in the first one. Like
-# model-knobs-recorded.test.sh and lane-rule-recorded.test.sh this suite's subject is a
-# document rather than a script: what an operator and the next agent are told before any
-# issue is selected. Zero-dependency plain-shell asserts, same idiom as
-# model-knobs-recorded.test.sh.
-#
-# Why this exists (issue #113): `solvable-issues.sh` now prints its scope as priority
-# first, then `bug`, then the rest, each band ascending — and the whole steering mechanism
-# the band buys is `gh issue edit <n> --add-label priority` typed from a shell or a phone.
-# An operator who cannot find the label's name, or who reads three documents still saying
-# the order is plain ascending, has a knob that exists and a record that denies it. The two
-# places the order is stated are CONTEXT.md's *Selection layer* and *Solvable* entries —
-# the glossary every other document defers to — and SKILL.md's `solvable-issues.sh` bullet,
-# which is where the script's own contract and its `VERI_GH_JSON` tunable already live.
-# CLAUDE.md is the first thing an agent reads.
-#
-# And the sentence that stops the band being read as a fifth condition is not decoration:
-# priority reorders the solvable set, it never enlarges it. The four conditions run first
-# and the sort runs on what survives, so a priority issue that is blocked, claimed or not
-# opted in is still not printed. A document naming the label without that sentence invites
-# exactly the change the spec calls the case most likely to be got wrong — a label that
-# opts an issue in by accident.
+# issue is taken in, and the tunable that names the label putting it in the first one.
 #
 # Contract under test:
 #   CONTEXT.md's *Selection layer* entry states the three-band order — priority, then bug,
 #   then the rest, ascending within a band; its *Solvable* entry names the bands and says
 #   the order never enlarges the set; SKILL.md's `solvable-issues.sh` bullet states the
 #   order and names `VERI_PRIORITY_LABEL`; and CLAUDE.md names the tunable, the order, and
-#   carries the reorders-not-enlarges sentence.
-#
-# Facts are asked as the regexes any wording carrying them would match, never as fixed
-# strings: what a document has to record is the claim, and how it is phrased belongs to
-# whoever writes it — the protocol model-knobs-recorded.test.sh and lane-rule-recorded.test.sh
-# both use on these documents.
-#
-# Not asked here: that CLAUDE.md's script and suite counts moved when this suite landed.
-# claude-md-counts.test.sh is the case that holds every count in that document to the files
-# on disk, and this file arriving in the tree is what makes it answer.
+#   carries the reorders-not-enlarges sentence. Each fact is asked as a regex, not a fixed
+#   string.
 #
 # Run: skills/tdd/scripts/tests/selection-order-recorded.test.sh
 set -uo pipefail

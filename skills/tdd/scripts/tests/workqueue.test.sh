@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Tests for scripts/workqueue.sh — the only writer of `.tdd/workqueue`, the file that assigns
-# issues to named workers and records what happened to each (issue #271).
+# issues to named workers and records what happened to each.
 #
 # Contract under test:
 #   workqueue.sh assign <worker> <issue>...  → appends one `<worker>\t<issue>\tqueued\t` line

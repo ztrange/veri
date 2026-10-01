@@ -1,14 +1,10 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/refactor-owed.sh — the file that carries a run's structural
-# leftovers from each step's refactor loop into the draft PR. Zero-dependency plain-shell
-# asserts, same idiom as refactor-triage.test.sh, the suite for the script whose answer
-# ends that loop.
+# leftovers from each step's refactor loop into the draft PR.
 #
-# Why this exists (issue #359, part of #354): when a step's refactor stops with structural
-# candidates still listed, nothing records them. `.tdd/develop-refactor.out` is overwritten
-# by the next step, so by the draft PR every step's leftovers but the last are gone. This
-# script appends them to `.tdd/issue-<n>-refactor-owed.md`, which the ledger's .gitignore
-# rule already tracks, and renders them as a PR-body section.
+# Contract under test:
+#   refactor-owed.sh appends a step's structural candidates to
+#   `.tdd/issue-<n>-refactor-owed.md` and renders that file as a PR-body section.
 #
 # Run: scripts/tests/refactor-owed.test.sh
 set -uo pipefail

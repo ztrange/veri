@@ -1,36 +1,13 @@
 #!/usr/bin/env bash
 # The clock audit: names a stub script a supervisor suite writes under `$stub/` whose
-# silence is REAL elapsed time — a `sleep` in its body with no `clock-jump` beside it —
-# unless this file records that dependence as deliberate, with the reason it cannot be
-# injected away. Exit 0 and say nothing when every stub is either clock-injected or
-# exempted, exit 1 and name each one that is not, exit 2 when it was given no file it
-# could read. The four codes are this repository's own (CLAUDE.md, *Exit codes are the
-# API*): 1 is a clean negative, 2 is no answer obtained.
+# silence is real elapsed time — a `sleep` in its body with no `clock-jump` beside it —
+# unless this file exempts it with a reason.
 #
-# A helper rather than a suite, so `make test`'s `*.test.sh` glob does not pick it up: its
-# caller is supervise.test.sh's last case, which asks it twice — once over that suite as
-# committed, where it must be silent, and once over a planted suite holding one stub that
-# jumps the clock and one that merely waits, where it must name the second and only the
-# second. An audit that named everything, or nothing, would pass a rule that says nothing.
-#
-# Why this exists (issue #300): supervise.test.sh case 4 failed about one run in ten. Its
-# leaf emitted every 0.3 s of REAL time against a 2 s heartbeat window, and a scheduling
-# delay landing near a whole-second boundary — the supervisor's clock is `date +%s`, whole
-# seconds — read as a stall, so an alive leaf was killed as stuck. The fix was to give the
-# suite an injected clock: a stub leaf calls `clock-jump <s>` and the silence it wants
-# exists on that clock alone, in milliseconds of wall time. That fix is worth exactly as
-# much as the next stub leaf written without a jump, and a green run says nothing about
-# the discipline — which is what this file is for.
-#
-# Scope: the stub scripts a suite writes with `cat > "$stub/<name>" <<TERM`, from that line
-# to the terminator. That is where a leaf's silence is authored, and it is the one place in
-# these suites where waiting means "look unresponsive to the supervisor". A `sleep` in the
-# suite's OWN body — the kill-grace and pid-file polls, `for _ in $(seq 1 20); do kill -0 …
-# || break; sleep 0.1; done` — is a different animal: it watches an OS fact (a process is
-# gone, a file has content) and exits the moment that fact lands, so it neither produces
-# silence nor depends on where a second boundary falls. Those are not audited, and widening
-# this to every `sleep` in the file would bury the two stubs that matter under a dozen polls
-# that never could.
+# Contract under test:
+#   real-clock-audit.sh <suite>...
+#     exit 0  every stub written with `cat > "$stub/<name>" <<TERM` is clock-injected or exempted
+#     exit 1  names each stub that is not
+#     exit 2  no file given could be read
 set -uo pipefail
 
 declare -A EXEMPT=(

@@ -1,54 +1,15 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/session-cost.sh — the cost report read from the session
-# transcripts (issue #201). Zero-dependency plain-shell asserts, same idiom as
-# harvest-usage.test.sh, which is this suite's nearest neighbour: both are about a
-# `usage` record somebody else wrote down.
+# transcripts.
 #
-# Why this exists (#201): on 2026-09-14 veri development cost ~$840 at API rates and 52%
-# of it was spent by sessions no veri metric can see — the conductors and the operator's
-# own session. `harvest-usage.sh` reads the closing record of a LEAF, so `.tdd/events.jsonl`
-# knows what the leaves cost and nothing else. The transcripts under the Claude projects
-# tree carry every request of every session, leaf and interactive alike, and this script is
-# the reader of those.
-#
-# Contract under test, so far:
+# Contract under test:
 #   session-cost.sh --since <ISO date> [<transcript.jsonl>]
 #     → exit 0, and a report on stdout whose money is split three ways — what the cache
 #       READS cost, what the cache WRITES cost, what the OUTPUT cost — and totalled. With
 #       a transcript named, that one file is the day; with none, the day is every project
-#       directory whose slug is prefixed by the repo root's (case 2).
-#
-# Case 1 names the transcript on the command line, which is what lets it be about the
-# ARITHMETIC alone: given these records, these three figures and their sum. Whichever way
-# the files are found, a suite here may not read a path under the real `~/.claude/projects`
-# — nothing in this tree is allowed to depend on what the operator's machine happens to
-# hold — so case 2 points `HOME` at a projects tree it wrote itself.
-#
-# Why the three figures and not one: the day the issue measured was 51% cache read, 34%
-# cache write and 14% output, and the action each number implies is different — reads are
-# context re-read on every request (clear the session), writes are the 1h TTL being
-# re-paid, output is work actually done. A single total says the day was expensive and
-# nothing about which of the three to go and fix. That is why the split is the criterion
-# and not a presentation detail.
-#
-# The prices the expectations below are computed at are the public Opus rates, per million
-# tokens: $1.50 cache read, $18.75 cache write at the 5m TTL, $30.00 at the 1h one,
-# $75.00 output, $15.00 input. They are the rates the issue's own measurements resolve
-# to — 286.6M reads for $430 is $1.50/M, 1.55M output for $117 is $75.00/M — so the
-# fixture and the numbers it is checked against have the same provenance as the problem
-# statement.
-#
-# What this case deliberately does NOT pin, because each is a step of its own:
-#   - deduplication by requestId: the two records below carry DIFFERENT ids, so they sum
-#     whether or not the script deduplicates. That is case 3's subject, and keeping it out
-#     of here is what leaves case 1 about the arithmetic alone.
-#   - the 1h / 5m cache-write split: the fixture writes carry the 5m tier only, and carry
-#     it both as the `cache_creation` breakdown and as the `cache_creation_input_tokens`
-#     sum that a real record states alongside it. Both readings price to the same $6.15,
-#     so this case cannot be passed or failed by how the tiers are told apart.
-#   - CLAUDE.md's script and suite counts, which this step also moves:
-#     claude-md-counts.test.sh case 1 already holds them to the files on disk, and goes
-#     red by itself the moment session-cost.sh and this file land uncounted.
+#       directory under `$HOME/.claude/projects` whose slug is prefixed by the repo root's.
+#   Prices are per million tokens: $1.50 cache read, $18.75 cache write at the 5m TTL,
+#   $30.00 at the 1h one, $75.00 output, $15.00 input.
 #
 # Run: skills/tdd/scripts/tests/session-cost.test.sh
 set -uo pipefail

@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/transform-touches-tests.sh — rejects a refactor-kind transform whose
-# commits change a test file (issue #499).
-#
-# A transform is one named refactoring: it moves structure and must not move the tests that
-# pin the behaviour, or "the suite is still green" stops meaning "the behaviour is unchanged".
-# A long refactor has no green commit, so the transform's range is the step's base sha to HEAD.
+# commits change a test file.
 #
 # Contract under test:
 #   transform-touches-tests.sh <base-sha>, run inside the repository

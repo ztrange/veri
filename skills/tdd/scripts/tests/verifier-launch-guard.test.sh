@@ -1,53 +1,16 @@
 #!/usr/bin/env bash
-# Unit test for the guard that keeps a verifier launch out of the shape that stalled #297 —
+# Unit test for the guard that keeps a verifier launch going through the supervisor —
 # case 5 of skills/tdd/scripts/tests/skill-leaf-launch.test.sh, which reads SKILL.md's
 # fenced launch lines and refuses one that reaches `verify.sh` without naming
-# `supervise.sh`. Like docs-read-guard.test.sh, prose-drift-red.test.sh and
-# hermetic-suites.test.sh this suite has no script as its subject: its subject is what
-# another suite reports about the document it is run against. Zero-dependency plain-shell
-# asserts, same idiom as docs-read-guard.test.sh.
-#
-# Why this exists (issue #415): SKILL.md:17 states that every leaf — developer or verifier —
-# is launched through the supervisor, and SKILL.md:322 launched the verifier through
-# `detach-leaf.sh` alone for months. Nothing gave that verifier a heartbeat or a timeout, so
-# when it died before writing `.tdd/verdict-<phase>.exit` the conductor waited on a file
-# nothing would ever write — twice on #297, deterministically, with the thread sitting dead
-# until a human looked. The launch lines are fixed now, and a fix to prose is exactly the
-# kind that comes back: the next incident-driven edit to a launch, or the next author
-# spelling one out from the shape above it, puts the bypass back as one plausible line.
-#
-# The guard is what stops that, and a guard that has never been watched to fail is not
-# tested: every verifier launch in the document carries the supervisor today, so case 5
-# passes over this tree whether it still checks anything or not. Deleting its `problems+=`
-# line, or narrowing the lines it reads, would leave `make test` green and the invariant
-# unguarded. So the contradiction is planted instead, and the guard is asked about the
-# planted document.
+# `supervise.sh`. Its subject is what that suite reports about a planted document.
 #
 # Contract under test:
 #   Over a copy of this tree whose one `verdict-red` launch line has had the supervisor and
-#   its leaf name cut out of it — the #297 shape, `detach-leaf.sh` straight to the verdict
-#   launcher that execs `verify.sh` — skill-leaf-launch.test.sh fails, and the line it names is
+#   its leaf name cut out of it — `detach-leaf.sh` straight to the verdict launcher that
+#   execs `verify.sh` — skill-leaf-launch.test.sh fails, and the only line it names is
 #   that launch: SKILL.md with the planted line's number, saying `supervise.sh` is what is
 #   missing. Over the same tree with the document unplanted it passes.
-#
-# Both halves are the case, and the green half is not decoration: red over a tree is worth
-# nothing unless the same guard is green over the same tree before the plant. A guard broken
-# so that it fails on everything would satisfy the red half alone.
-#
-# Naming the line, rather than merely failing, is the criterion too — and naming ONLY that
-# line. A guard that listed every launch line in the document would fail over the plant and
-# send the next author to nine addresses, eight of which are correct.
-#
-# The plant carries the document and the guard and nothing else, because those are the only
-# two files the guard resolves against its own repo root. In particular the generated tree
-# is not copied, and no line below names a path in it, which is what no-docs-reads.test.sh
-# asks of every suite in this directory.
-#
-# Case 2 below is the same seam one incident later, and lives here rather than in a suite of
-# its own because its subject is the same one: what skill-leaf-launch.test.sh reports about a
-# documented launch line planted wrong. There the plant is the #297 bypass; there it is the
-# #431 one — the step's title back in single quotes, which an apostrophe in the planning
-# leaf's own English closes early. Its own header, beside it, says the rest.
+#   Case 2: the same, over a launch line whose step title is back in single quotes.
 #
 # Run: skills/tdd/scripts/tests/verifier-launch-guard.test.sh
 set -uo pipefail

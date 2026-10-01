@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
-# Tests for scripts/stop-run.sh — the operator's stop command (#387), the write half of the
-# stop mechanism whose read half stop-requested.sh is (#386). Typed from anywhere in the
-# repository, it finds the runs under the MAIN working tree's .tdd/wt/* (the #166 rule
-# status.sh:158-164 already follows), writes the mode into each live run's .tdd/stop, and —
-# for `--mode now` only — sends TERM to that run's live leaf supervisors.
+# Tests for scripts/stop-run.sh — the operator's stop command, the write half of the stop
+# mechanism whose read half is stop-requested.sh.
 #
-# Not the fast tier: the runs are discovered through `git worktree list`, so every case here
-# builds a real repository, and liveness is a real process answering `kill -0`.
+# Contract under test:
+#   stop-run.sh, typed from anywhere in the repository, finds the runs under the main
+#   working tree's .tdd/wt/*, writes the mode into each live run's .tdd/stop, and — for
+#   `--mode now` only — sends TERM to that run's live leaf supervisors.
 #
 # Run: scripts/tests/stop-run.test.sh
 set -uo pipefail

@@ -1,47 +1,13 @@
 #!/usr/bin/env bash
 # Unit tests for the guard suite that keeps a `pipefail` suite from reading its own writer's
-# SIGPIPE as an answer — skills/tdd/scripts/tests/no-sigpipe-pipelines.test.sh. Like
-# docs-read-guard.test.sh, hermetic-suites.test.sh and count-line-guard.test.sh this suite
-# has no script as its subject: its subject is what another suite reports about the tree it
-# is run in. Zero-dependency plain-shell asserts, same idiom as docs-read-guard.test.sh.
+# SIGPIPE as an answer — skills/tdd/scripts/tests/no-sigpipe-pipelines.test.sh. Its subject
+# is what that suite reports about a planted tree it is run in.
 #
-# Why this exists (issue #422): a suite that declares `set -uo pipefail` and ends a pipeline
-# in `grep -q` asks its question of the wrong process. `grep -q` exits on its first match; if
-# the writer still has bytes to push, its next write lands on a closed pipe, it dies of
-# SIGPIPE (141), `pipefail` makes the whole pipeline 141, and the assertion built on that
-# status is inverted. It is green on the development Mac (BSD grep buffers ~16 KB, so the
-# writer needs one write and the race cannot happen) and red on CI (glibc gives the pipe a
-# 4096-byte buffer), which is the worst shape this can take: the leaf and the blind verifier
-# both run on the Mac, so a run reports green and the PR is red. It cost two consecutive
-# runs — count-line-guard.test.sh (#418) and prompt-test-tiers.test.sh (#416). Repairing
-# today's sites fixes today; the guard is what stops the next suite from being written that
-# way.
-#
-# Contract under test (this case):
+# Contract under test:
 #   Over a tests directory holding one suite that declares `pipefail` and ends a pipeline in
 #   `grep -q`, and one that ends the same pipeline in the same `grep -q` without declaring
 #   `pipefail`, no-sigpipe-pipelines.test.sh fails, names the first as `<suite>:<line>` at
 #   the offending line, and says nothing about the second.
-#
-# The second fixture is not extra generality: `pipefail` is half of the condition the
-# criterion states. Without it the case is satisfied by a guard that names every pipeline
-# into a grep in the tree — a guard the first author it blocked would delete, taking the
-# real check with it. A suite whose pipeline's status is grep's own is doing nothing this
-# issue forbids: the writer's SIGPIPE never reaches the exit status.
-#
-# Both suites are planted rather than asserted about where they stand: after this issue's
-# other steps this repository has no live site left, so a probe over the real tree would
-# pass on both sides of the fix and pin nothing. The plant goes in a scratch tree and the
-# guard is copied into it, which is how docs-read-guard.test.sh puts a guard in front of a
-# tree it was not written against; the guard therefore answers about the planted tree the
-# same way it answers about this one, by being run inside it.
-#
-# No line of this file spells a pipeline ending in `grep -q` contiguously — the fixture's
-# offending line is assembled from `GREP_Q` below and printf'd into the plant. That is not
-# decoration: a line of THIS suite carrying the shape is exactly what the guard exists to
-# catch, and a test that trips its own subject over the real tree would make the next step
-# unachievable. It is also why this suite's own probes feed grep by herestring rather than
-# through a pipe.
 #
 # Run: skills/tdd/scripts/tests/sigpipe-guard.test.sh
 set -uo pipefail

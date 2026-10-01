@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/status.sh — the aggregation layer over every run in a repository.
-# Run from a target repo, it discovers runs from `.tdd/wt/*` under the repository's MAIN
-# working tree (resolved as solvable-issues.sh does, #166) and renders each one.
+# Run from a target repo, it discovers runs from `.tdd/wt/*` under the repository's main
+# working tree and renders each one.
 #
-# Contract under test (issue #109):
+# Contract under test:
 #   status.sh            print every run under .tdd/wt/*, exit 0;
 #                        print "no runs" and exit 3 when there are none.
 #

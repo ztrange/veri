@@ -1,30 +1,17 @@
 #!/usr/bin/env bash
-# Unit tests for the workflow files under .github/workflows/ — they belong to no script,
-# so like hermetic-suites.test.sh this suite has no single subject: it reads the YAML the
-# way GitHub Actions does, as text, and asserts on what a job declares.
-# Zero-dependency plain-shell asserts, same idiom as refactor-budget.test.sh.
-#
-# Why this exists (issue #99): a job with no `timeout-minutes` inherits GitHub's default
-# ceiling of 6 hours, so a hang bills every minute of it (~$2.16 on Linux) while looking
-# exactly like a slow run. The cap turns that into a bounded bill and a red tick — and
-# the number only stays right while the reason for it is written down next to it, which
-# is why the comment is part of the contract and not decoration.
+# Unit tests for the workflow files under .github/workflows/, read as text the way GitHub
+# Actions reads them.
 #
 # Contract under test:
 #   .github/workflows/ci.yml, the `gates` job: `timeout-minutes: 8` at job level, and the
 #   comment beside it names the 6-hour ceiling it protects against, cites the ~160-175 s the
 #   job observably takes and the ~230 s it took while the docs gates ran in CI, says the 8 is
-#   temporary, naming #282 and #290, whose landing did not bring the job back under it, and says
+#   temporary, naming two issues whose landing did not bring the job back under it, and says
 #   the budget assumes those gates stay out of CI.
-#
 #   .github/workflows/pages.yml, the `deploy` job: `timeout-minutes: 10` at job level, and
 #   the comment beside it names the same 6-hour ceiling, cites the 11–23 s the job
-#   observably takes, and says why its number is larger than the gates job's — it waits on
-#   GitHub's Pages service rather than on local deterministic work.
-#
-#   And, across every workflow file rather than those two jobs by name: every job declares
-#   a job-level `timeout-minutes` at all. That is the half of the contract a job added
-#   later can break.
+#   observably takes, and says why its number is larger than the gates job's.
+#   Every job in every workflow file declares a job-level `timeout-minutes`.
 #
 # Run: scripts/tests/workflow-timeouts.test.sh
 set -uo pipefail

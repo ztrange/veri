@@ -1,28 +1,13 @@
 #!/usr/bin/env bash
-# Tests for scripts/run-conductor.sh — the CONDUCTOR invocation, driven against a stub
-# `claude` on PATH (no real subprocess, no model call), the way run-leaf.test.sh drives the
-# leaf one. Same stub, same seam: `CLAUDE_BIN` swaps the binary and the stub records its
-# argv to $ARGV_OUT and its stdin to $PROMPT_OUT — and refuses an argv the binary would.
+# Tests for scripts/run-conductor.sh — the conductor invocation, driven against a stub
+# `claude` that records its argv to $ARGV_OUT and its stdin to $PROMPT_OUT.
 #
-# Why a conductor is launched this way at all — the ~25,000 tokens of interactive harness
-# surface it never touches, and why the stream flags are part of the criterion rather than a
-# detail of how it is spelled — is run-conductor.sh's own header, which this suite does not
-# restate.
-#
-# Contract under test (this step only):
+# Contract under test:
 #   `run-conductor.sh <issue>` launches the conductor binary in print mode — `-p` — with
 #   `--output-format stream-json --verbose` and `--permission-mode bypassPermissions`, and
 #   the issue it was asked for reaches the prompt that launch carries; the child it launches
 #   inherits none of the parent session's eight handles while still inheriting every `VERI_*`
 #   tunable; and whatever status that child exits with is the status the script exits with.
-#
-# The two halves of that second sentence are one criterion and not two: the severing is done
-# by editing the environment the child is given, so a script that drops the handles by
-# handing the child a scrubbed environment and one that drops them by handing it an empty one
-# are indistinguishable until something asks what survived. `VERI_MODEL_VERIFIER` is what
-# asks.
-#
-# Not asked here: what SKILL.md says about the two launch modes. That is a later step.
 #
 # Run: scripts/tests/run-conductor.test.sh
 set -uo pipefail

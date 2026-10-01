@@ -1,40 +1,12 @@
 #!/usr/bin/env bash
 # Unit test for run-conductor.test.sh — the suite that pins how a conductor is launched.
-# Like docs-read-guard-plant.test.sh and count-line-guard.test.sh this suite has no script
-# as its subject: its subject is what another suite reports when the code under it regresses.
-# Zero-dependency plain-shell asserts, same idiom as docs-read-guard-plant.test.sh.
-#
-# Why this exists (issue #221): run-conductor.sh passed the procedure as the argument to
-# `-p`, and SKILL.md's first line is the YAML frontmatter fence `---`. A real `claude` parses
-# a leading-dash argument as an option and dies on `unknown option '---` before a conductor
-# exists — yet run-conductor.test.sh was green on that script for as long as it existed,
-# because the stub it drives recorded its argv and never parsed it. The seam that makes the
-# launch testable with no model is the same seam that hid the one thing the real binary does
-# differently, and a stub that accepts an argv the binary would reject makes every
-# argv-shape bug invisible.
+# Its subject is what that suite reports when the code under it regresses.
 #
 # Contract under test:
-#   Put back the launch that #221 fixed — the procedure handed to `claude -p` as an argv
-#   element whose first character is a dash — and run-conductor.test.sh's case 4, the case
-#   that pins the procedure reaching the binary whole, fails by name. Leave the launch as it
-#   is and the same case, in the same kind of tree, passes.
-#
-# The subject is run rather than read: the issue names two fixes that both satisfy the
-# criterion — a stub strict enough to refuse the argv, or an assertion on what reaches the
-# binary's stdin — so a check that read the suite for one of them would pass that one and
-# fail the other. What is asked instead is what both have in common: case 4 goes red.
-#
-# So each arm stands up a scratch tree holding the suite, the procedure and run-conductor.sh —
-# rewritten back to the argv form in one arm, untouched in the other — commits it as a git
-# repository, cuts case 4 out of the suite the way run-conductor.test.sh's own case 21 does,
-# and runs that. The tree is a repository, and the planted script is committed there, because
-# the suite builds every launch from the tree's committed skill (`tree_clone`, #258): in a
-# plain directory half its cases die on `not a git repository`, which is how this guard went
-# vacuous — it asked only that SOME case failed, and a tree the suite could not use answered
-# that on its own, bug or no bug. That is also why the untouched arm exists: it is what says
-# a red in the planted arm was caused by the plant. `probe_sabotage_is_real` asserts the
-# rewrite actually changed the file, because a `sed` whose pattern had drifted off the script
-# would leave the planted arm reporting on an unsabotaged launch.
+#   Put back the launch that hands the procedure to `claude -p` as an argv element whose
+#   first character is a dash, and run-conductor.test.sh's case 4, the case that pins the
+#   procedure reaching the binary whole, fails by name. Leave the launch as it is and the
+#   same case, in the same kind of tree, passes.
 #
 # Run: skills/tdd/scripts/tests/run-conductor-argv-guard.test.sh
 set -uo pipefail
