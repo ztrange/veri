@@ -46,23 +46,24 @@ fall_back() {
 }
 
 ci_bound() {
-  local c pages="" status
+  local c pages="" status n=5
   for c in success failure; do
-    pages+="$(gh run list --repo "$repo" --workflow CI --status "$c" --limit 5 \
+    pages+="$(gh run list --repo "$repo" --workflow CI --status "$c" --limit "$n" \
         --json databaseId,conclusion,startedAt,updatedAt)" \
       || { fall_back "gh run list could not answer"; return; }
   done
   python3 -c "$json_docs"'
 from datetime import datetime
 at = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").timestamp()
+n = int(sys.argv[2])
 runs = [r for page in docs(sys.stdin.read()) for r in page]
-runs = sorted(runs, key=lambda r: r["databaseId"], reverse=True)[:5]
-if len(runs) < 5:
+runs = sorted(runs, key=lambda r: r["databaseId"], reverse=True)[:n]
+if len(runs) < n:
     sys.exit(3)
 print(min(int(sys.argv[1]), round(2 * sum(at(r["updatedAt"]) - at(r["startedAt"]) for r in runs) / len(runs))))
-' "$ceiling" <<< "$pages"
+' "$ceiling" "$n" <<< "$pages"
   status=$?
-  (( status == 3 )) && { fall_back "fewer than 5 success or failure CI runs found"; return; }
+  (( status == 3 )) && { fall_back "fewer than $n success or failure CI runs found"; return; }
   return "$status"
 }
 
