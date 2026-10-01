@@ -11,6 +11,7 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
 source "$HERE/lib/appendable.sh"
 source "$HERE/lib/github.sh"
 

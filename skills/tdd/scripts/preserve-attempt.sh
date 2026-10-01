@@ -19,10 +19,11 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
 source "$HERE/lib/ledger.sh"
+USAGE="usage: preserve-attempt.sh <issue> <step> <phase> <attempt> [<mark>]"
 
-[[ -n "${1:-}" && -n "${2:-}" && -n "${3:-}" && -n "${4:-}" ]] \
-  || { echo "usage: preserve-attempt.sh <issue> <step> <phase> <attempt> [<mark>]" >&2; exit 2; }
+require_args 4 "$@"
 issue="$1" step="$2" phase="$3" attempt="$4"
 coords="issue $issue step $step $phase attempt $attempt"
 

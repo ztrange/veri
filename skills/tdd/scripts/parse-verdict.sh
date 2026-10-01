@@ -20,6 +20,8 @@
 #          status: the verifier's judgement is ground truth the conductor branches on.
 set -euo pipefail
 
+source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+
 # hazard: `|| [[ -n $line ]]` keeps a last line that has no trailing newline.
 lines=()
 while IFS= read -r line || [[ -n "$line" ]]; do

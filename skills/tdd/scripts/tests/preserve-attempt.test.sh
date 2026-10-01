@@ -198,6 +198,7 @@ write_ledger "$repo" "$prose"
 stub="$work/stub"
 mkdir -p "$stub/lib"
 cp "$PRESERVE" "$stub/preserve-attempt.sh"
+cp "$(dirname "$PRESERVE")/lib/exit-contract.sh" "$stub/lib/exit-contract.sh"
 cat > "$stub/lib/ledger.sh" <<'EOF'
 ledger_steps() {
   cat >/dev/null

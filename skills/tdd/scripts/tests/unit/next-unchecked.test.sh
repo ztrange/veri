@@ -94,6 +94,7 @@ check "a fully ticked ledger quoting markers still exits 3 (#484)" 3 "$ticked_le
 work="$(scratch_dir)"
 mkdir "$work/lib"
 cp "$NEXT" "$work/next-unchecked.sh"
+cp "$(dirname "$NEXT")/lib/exit-contract.sh" "$work/lib/exit-contract.sh"
 cat > "$work/lib/ledger.sh" <<'EOF'
 ledger_steps() {
   cat > /dev/null

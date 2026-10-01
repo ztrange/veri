@@ -41,6 +41,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
+. "$HERE/lib/exit-contract.sh"
 . "$HERE/lib/background.sh"
 
 budget="${VERI_CONDUCTOR_CTX_BUDGET:-120000}"
