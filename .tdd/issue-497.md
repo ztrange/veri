@@ -24,6 +24,7 @@
 - [x] The pass-through sites in tick-ledger.sh, timed-test-run.sh, verify.sh and wait-leaf.sh map through to_contract or carry a `# pass-through: <why>` marker, and the audit's exemption table is empty ⟦criterion 3⟧
 - [x] run-leaf.sh exits 2, never the foreign code, when the claude binary it runs exits with a code outside 0–3 ⟦criterion 4⟧
 - [x] tick-ledger.sh and clear-refactor-pending.sh exit 2, never the foreign code, when their ledger transform fails with a code outside 0–3 ⟦criterion 4⟧
+- [ ] fix the red full suite (make test): event-log.test.sh — FAIL - run_activity and scope_totals read the event log through lib/event_log.py's one parse and one dollar/token sum, with status.sh's text and --json figures unchanged over a log with blank lines and usage events; main-working-tree.test.sh — FAIL - a shared lib/main-working-tree.sh defines main_working_tree, and status.sh and solvable-issues.sh both resolve the main working tree through it; run-conductor-argv-guard.test.sh — FAIL - run-conductor.test.sh's case 4 fails when the procedure is passed as an argv element beginning with a dash, and passes when it is not ⟦ci-repair⟧ ⟦criterion 4⟧
 - [ ] Every script's behaviour is otherwise unchanged ⟦full-suite⟧ ⟦criterion 5⟧
 
 ## Owed steps
