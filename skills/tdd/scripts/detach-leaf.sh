@@ -24,4 +24,4 @@ set -uo pipefail
 
 [[ $# -gt 0 ]] || { echo "usage: detach-leaf.sh <cmd> [args…]" >&2; exit 2; }
 
-python3 -c 'import os, sys; os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])' "$@" &
+python3 -c 'import os, signal, sys; signal.signal(signal.SIGPIPE, signal.SIG_DFL); os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])' "$@" &
