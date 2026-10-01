@@ -57,3 +57,55 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | total | 142 | 274 | 52434 | 5247143 | 897631 | 5.16 |
+
+---
+
+The resume below ran on a worktree with no event log from the first run, so its figures cover only the rebase and structural pass it did.
+
+### 📊 Metrics — issue 588
+
+Wall time for the issue: 3863 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 0 s, excluded from it.
+Steps done: unknown of 5 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/594.
+Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
+
+#### By phase
+
+| phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| rebase | 2 | 1 | 0 | 0 | 1842 | 97 | 25 | 50 | 7190 | 1233453 | 95936 | 1.16 |
+| structural | 1 | 0 | 0 | 0 | 15 | 10 | 3 | 6 | 933 | 104236 | 35159 | 0.32 |
+
+#### Rework and waste, by phase
+
+| phase | rework wall s | rework $ | waste wall s | waste $ |
+| --- | ---: | ---: | ---: | ---: |
+| rebase | 0 | 0.00 | 1842 | 1.16 |
+| structural | 0 | 0.00 | 15 | 0.32 |
+
+#### By step
+
+| step | attempts | PASS | REJECT | kills | retries | no-verdict | API s | turns | input | output | cache read | cache creation | $ | wall s | revise | refactor | stopped | crossed at | split | kind |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |
+| no-nested-suites.test.sh passes: claude-md-counts.test.sh:302 names gh-fixture.test.sh outside a comment in a shape that file treats as launching it, with no exemption recorded ⟦added⟧ ⟦criterion 2⟧ | 3 | 1 | 0 | 0 | 0 | 0 | 107 | 28 | 56 | 8123 | 1337689 | 131095 | 1.48 | unknown | unknown | unknown | unknown |  |  | full |
+
+The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER.
+
+#### Structural pass
+
+| pass | refactor | stopped |
+| --- | ---: | --- |
+| issue | 0/10 | candidates-done |
+
+#### Test-command seconds, by tier
+
+| tier | run 1 s | run 2 s |
+| --- | ---: | ---: |
+| all | 884 | 855 |
+
+#### Total
+
+| run | turns | input | output | cache read | cache creation | $ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| total | 28 | 56 | 8123 | 1337689 | 131095 | 1.48 |
