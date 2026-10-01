@@ -34,7 +34,7 @@ to_contract() {
 
 exit() {
   local rc=$?
-  exit_file="${BASH_SOURCE[1]}" exit_line="${BASH_LINENO[0]}"
+  _ec_exit_file="${BASH_SOURCE[1]}" exit_line="${BASH_LINENO[0]}"
   builtin exit "${1:-$rc}"
 }
 
@@ -48,7 +48,7 @@ declared_pass_through() {
       return
     fi
     previous="${line#"${line%%[![:space:]]*}"}"
-  done < "$exit_file"
+  done < "$_ec_exit_file"
   return 1
 }
 
