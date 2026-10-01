@@ -491,7 +491,7 @@ print("Wall time for the issue: %s s, from the last `resume`, or the first event
       % known(awake_span_or_wall(opening, ending)))
 if awake_span is not None and wall_span is not None:
     print("Seconds the machine was not running inside that span: %s s, excluded from it."
-          % (wall_span - awake_span))
+          % max(0, wall_span - awake_span))
 if not clocked:
     print("Every figure in this report is wall-clock: the log carries no awake-clock reading, "
           "so time the machine spent asleep is counted in them.")
