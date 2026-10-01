@@ -7,4 +7,4 @@
 - [x] refactor-overflow.sh sends no label with the issue it files, makes no call that labels or edits the parent issue, and writes no file into the repository ⟦criterion 5⟧
 - [x] SKILL.md's structural pass, when it ends with `stopped=budget-spent`, runs refactor-overflow.sh with the number of candidates it took up and puts the filed issue's URL in the PR body; when it ends with `candidates-done` or `nothing-structural` it files nothing ⟦criterion 2⟧
 - [x] SKILL.md's Draft PR body still carries `refactor-owed.sh render`'s `## Refactor owed` section after the structural pass has run ⟦criterion 4⟧
-- [ ] SKILL.md states that the overflow filing applies no label to the parent issue and commits no standing debt file to the repository ⟦criterion 5⟧
+- [x] SKILL.md states that the overflow filing applies no label to the parent issue and commits no standing debt file to the repository ⟦criterion 5⟧ ⟂ refactor pending

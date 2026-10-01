@@ -1491,6 +1491,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    $S/refactor-overflow.sh <n> .tdd/issue-<n>-refactor-owed.md <taken>   # → <overflow-url>
    ```
    A pass that ends `candidates-done` or `nothing-structural` files nothing.
+   The filing applies no label to this issue and commits no debt file: the PR body's owed
+   list is the record.
    No candidate — `list`
    exits 3 — skips the pass with no bail, marking the log and going straight on to readying
    the PR:
