@@ -29,20 +29,25 @@ deadline=""
 inherited=""
 slice_end=""
 passing="success neutral skipped"
+json_docs='
+import json, sys
+def docs(text):
+    at, out = 0, []
+    while text[at:].strip():
+        doc, at = json.JSONDecoder().raw_decode(text, len(text) - len(text[at:].lstrip()))
+        out.append(doc)
+    return out
+'
 
 ci_bound() {
   local c
   for c in success failure; do
     gh run list --repo "$repo" --workflow CI --status "$c" --limit 5 \
         --json databaseId,conclusion,startedAt,updatedAt
-  done | python3 -c '
-import json, sys
+  done | python3 -c "$json_docs"'
 from datetime import datetime
 at = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").timestamp()
-text, i, runs = sys.stdin.read(), 0, []
-while text[i:].strip():
-    page, i = json.JSONDecoder().raw_decode(text, len(text) - len(text[i:].lstrip()))
-    runs += page
+runs = [r for page in docs(sys.stdin.read()) for r in page]
 runs = sorted(runs, key=lambda r: r["databaseId"], reverse=True)[:5]
 print(round(2 * sum(at(r["updatedAt"]) - at(r["startedAt"]) for r in runs) / len(runs)))
 '
@@ -61,12 +66,8 @@ sha_state() {
   local runs statuses
   runs="$(gh_rest_list "repos/$repo/commits/$1/check-runs" '"check_runs": *\[ *\]')" || return 2
   statuses="$(gh api "repos/$repo/commits/$1/status")" || return 2
-  python3 -c '
-import json, sys
-text, at, docs = sys.stdin.read(), 0, []
-while text[at:].strip():
-    doc, at = json.JSONDecoder().raw_decode(text, len(text) - len(text[at:].lstrip()))
-    docs.append(doc)
+  python3 -c "$json_docs"'
+docs = docs(sys.stdin.read())
 pages = docs[:-1]
 states = [s["state"] for s in docs[-1].get("statuses") or []]
 runs = [r for p in pages for r in p.get("check_runs") or []]
