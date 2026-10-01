@@ -85,22 +85,17 @@ while read -r ref tip; do
   locals+="$name $tip $lacks ${worktree_of[$ref]:-}"$'\n'
 done < <(git for-each-ref --format='%(refname) %(objectname)' refs/heads/)
 
-exec python3 -c '
-import json, re, sys
+PYTHONPATH="$(cd "$(dirname "$0")" && pwd)/lib" exec python3 -c '
+import re, sys
 
-def documents(text):
-    items, at, decoder = [], 0, json.JSONDecoder()
-    while at < len(text):
-        page, at = decoder.raw_decode(text, at)
-        items.extend(page)
-    return items
+from json_documents import items
 
 def head(pr):
     return pr["headRefName"] if "headRefName" in pr else pr["head"]["ref"]
 
 issues_text, prs_text = sys.stdin.read().split("\0")
-issues = {i["number"]: i["state"].upper() for i in documents(issues_text)}
-prs = documents(prs_text)
+issues = {i["number"]: i["state"].upper() for i in items(issues_text)}
+prs = items(prs_text)
 with_pr = {head(p) for p in prs}
 decided = {head(p) for p in prs if p["state"].upper() in ("MERGED", "CLOSED")}
 findings = []
