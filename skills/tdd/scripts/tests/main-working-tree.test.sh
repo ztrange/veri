@@ -39,9 +39,9 @@ printf '# Plan for #5 — decoy run\n\n- [ ] a step\n' > "$decoy/.tdd/wt/5/.tdd/
 printf '%s\n' "$$" > "$decoy/.tdd/wt/5/.tdd/conductor.pid"
 
 copy="$work/scripts"
-mkdir -p "$copy/lib"
+mkdir -p "$copy"
 cp "$SCRIPTS/status.sh" "$SCRIPTS/solvable-issues.sh" "$copy/"
-cp "$SCRIPTS/lib/blocked_by.py" "$SCRIPTS/lib/github.sh" "$SCRIPTS/lib/exit-contract.sh" "$copy/lib/"
+cp -R "$SCRIPTS/lib" "$copy/lib"
 printf 'main_working_tree() { printf "%%s\\n" %q; }\n' "$decoy" > "$copy/lib/main-working-tree.sh"
 
 status_out="$(cd "$linked" && env -u VERI_LABEL "$copy/status.sh" 2>/dev/null)" && status_code=0 || status_code=$?
