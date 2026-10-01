@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# lib/missing-argument-exit.sh — sourced, not run: defines `stderr_of`, `missing_argument_offender`,
+# lib/missing-argument-exit.sh — sourced, not run: defines `stderr_of`, `usage_offender`, `missing_argument_offender`,
 # `named_usage_offender`, `missing_argument_audit` and `bare_expansion_offenders`.
 #
 # missing_argument_offender <scripts-dir> <script> [args …] — run <script> with <args>, stdin
@@ -18,8 +18,8 @@ stderr_of() {  # stderr_of <cmd> [args …] — run <cmd> with stdin from /dev/n
   "$@" 2>&1 >/dev/null </dev/null
 }
 
-missing_argument_offender() {
-  local dir="$1" script="$2"; shift 2
+usage_offender() {  # usage_offender <named 0|1> <scripts-dir> <script> [args …]
+  local named="$1" dir="$2" script="$3"; shift 3
   local code=0 err shown="$script${*:+ $*}"
   err="$(stderr_of "$dir/$script" "$@")" || code=$?
   if [[ "$code" != 2 ]]; then
@@ -30,17 +30,18 @@ missing_argument_offender() {
     echo "$shown: exit 2 but no usage line on stderr: ${err:-<nothing on stderr>}"
     return 1
   fi
+  if (( named )) && [[ "$err" != *"$script"* ]]; then
+    echo "$shown: usage line on stderr does not name it: $err"
+    return 1
+  fi
+}
+
+missing_argument_offender() {
+  usage_offender 0 "$@"
 }
 
 named_usage_offender() {
-  local dir="$1" script="$2"; shift 2
-  local err
-  missing_argument_offender "$dir" "$script" "$@" || return 1
-  err="$(stderr_of "$dir/$script" "$@")"
-  if [[ "$err" != *"$script"* ]]; then
-    echo "$script${*:+ $*}: usage line on stderr does not name it: $err"
-    return 1
-  fi
+  usage_offender 1 "$@"
 }
 
 missing_argument_audit() {
