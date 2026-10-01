@@ -118,24 +118,18 @@ exit")") declared-after-5=$(exit_of_script "$pass_dir" bare-declared.sh "$(with_
 $DECLARED
 exit")")"
 
-OWED_PASS_THROUGHS=(  # <script> — why its pass-through sites are still allowed unmarked
-  "run-leaf.sh — its sites are owed a mapping or a marker by a later step of #497"
-  "run-suite.sh — its sites are owed a mapping or a marker by a later step of #497"
-  "supervise.sh — its sites are owed a mapping or a marker by a later step of #497"
-  "tick-issue-criterion.sh — its sites are owed a mapping or a marker by a later step of #497"
-  "tick-ledger.sh — its sites are owed a mapping or a marker by a later step of #497"
-  "timed-test-run.sh — its sites are owed a mapping or a marker by a later step of #497"
-  "verify.sh — its sites are owed a mapping or a marker by a later step of #497"
-  "wait-leaf.sh — its sites are owed a mapping or a marker by a later step of #497"
-)
+OWED="its sites are owed a mapping or a marker by a later step of #497"
 
-owed_pass_through() {
-  local entry
-  for entry in "${OWED_PASS_THROUGHS[@]}"; do
-    [[ "${entry%% — *}" == "$1" ]] && return 0
-  done
-  return 1
-}
+declare -A OWED_PASS_THROUGHS=(  # [<script>]=why its pass-through sites are still allowed unmarked
+  [run-leaf.sh]="$OWED"
+  [run-suite.sh]="$OWED"
+  [supervise.sh]="$OWED"
+  [tick-issue-criterion.sh]="$OWED"
+  [tick-ledger.sh]="$OWED"
+  [timed-test-run.sh]="$OWED"
+  [verify.sh]="$OWED"
+  [wait-leaf.sh]="$OWED"
+)
 
 pass_through_offenders() {  # pass_through_offenders <script> — print <script>:<line>: <text> per unmapped, unmarked site
   local script="$1" n=0 previous="" line trimmed
@@ -153,7 +147,7 @@ pass_through_offenders() {  # pass_through_offenders <script> — print <script>
 
 problems=()
 for script in "$HERE"/../../*.sh; do
-  owed_pass_through "${script##*/}" && continue
+  [[ -n "${OWED_PASS_THROUGHS[${script##*/}]+x}" ]] && continue
   while IFS= read -r line; do
     problems+=( "$line" )
   done < <(pass_through_offenders "$script")
