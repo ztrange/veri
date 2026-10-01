@@ -15,9 +15,12 @@
 #
 # Tunables (env): VERI_POLL poll interval secs (default 10).
 set -uo pipefail
+USAGE="usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]"
+
+source "$(dirname "$0")/lib/exit-contract.sh"
 source "$(dirname "$0")/lib/github.sh"
 
-[[ -n "${1:-}" ]] || { echo "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]" >&2; exit 2; }
+require_args 1 "$@"
 pr="$1"
 repo="${pr#https://github.com/}"; repo="${repo%/pull/*}"
 slice_cap=540

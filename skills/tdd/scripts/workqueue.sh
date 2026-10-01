@@ -23,6 +23,9 @@
 #          is left byte-identical
 set -euo pipefail
 
+USAGE="usage: workqueue.sh assign|next|start|done|park|show <worker> …"
+
+source "$(dirname "$0")/lib/exit-contract.sh"
 source "$(dirname "$0")/lib/main-working-tree.sh"
 source "$(dirname "$0")/lib/github.sh"
 
@@ -86,8 +89,8 @@ if [[ "${1:-}" == start || "${1:-}" == done || "${1:-}" == park ]]; then
     start) from=queued to=running new_detail="" ;;
     done)
       if [[ -z "${4:-}" ]]; then
-        echo "workqueue.sh: usage: workqueue.sh done <worker> <issue> <merge-sha>" >&2
-        exit 2
+        USAGE="workqueue.sh: usage: workqueue.sh done <worker> <issue> <merge-sha>"
+        refuse
       fi
       from=running to=merged new_detail="$4" ;;
     park)
@@ -126,14 +129,12 @@ if [[ "${1:-}" == show ]]; then
 fi
 
 if [[ "${1:-}" != assign ]]; then
-  echo "workqueue.sh: unknown subcommand: ${1:-}" >&2
-  echo "usage: workqueue.sh assign|next|start|done|park|show <worker> …" >&2
-  exit 2
+  refuse "workqueue.sh: unknown subcommand: ${1:-}"
 fi
 
 if [[ $# -lt 3 ]]; then
-  echo "workqueue.sh: usage: workqueue.sh assign <worker> <issue>..." >&2
-  exit 2
+  USAGE="workqueue.sh: usage: workqueue.sh assign <worker> <issue>..."
+  refuse
 fi
 
 worker="$2"

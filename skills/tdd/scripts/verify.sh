@@ -36,17 +36,18 @@ set -euo pipefail
 USAGE="usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]"
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+source "$HERE/lib/exit-contract.sh"
 source "$HERE/lib/verify-options.sh"
 
 flag_args=()
 while verify_takes_a_value "${1:-}"; do
-  [[ -n "${2:-}" ]] || { echo "verify: $1 needs a value" >&2; echo "$USAGE" >&2; exit 2; }
+  [[ -n "${2:-}" ]] || refuse "verify: $1 needs a value"
   flag_args+=( "$1" "$2" )
   shift 2
 done
 
 # hazard: `$#` is tested first, so set -u never reads an absent $2 or $3.
-[[ $# -ge 3 && -n "$1" && -n "$2" && -n "$3" ]] || { echo "$USAGE" >&2; exit 2; }
+require_args 3 "$@"
 phase="$1"
 spec_file="$2"
 test_path="$3"

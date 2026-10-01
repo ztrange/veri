@@ -13,10 +13,14 @@
 # <base-sha> is missing or resolves to no commit — an unreadable range is no answer.
 set -euo pipefail
 
-[[ -n "${1:-}" ]] || { echo "usage: transform-touches-tests.sh <base-sha>" >&2; exit 2; }
+USAGE="usage: transform-touches-tests.sh <base-sha>"
+
+source "$(dirname "$0")/lib/exit-contract.sh"
+
+require_args 1 "$@"
 base="$1"
 git rev-parse --verify --quiet "$base^{commit}" > /dev/null \
-  || { echo "transform-touches-tests.sh: base-sha does not resolve to a commit: $base" >&2; exit 2; }
+  || refuse "transform-touches-tests.sh: base-sha does not resolve to a commit: $base"
 
 touched="$(git log --format= --name-only "$base..HEAD" | grep -E '(^|/)tests/|\.test\.' | sort -u || true)"
 [[ -z "$touched" ]] && exit 0
