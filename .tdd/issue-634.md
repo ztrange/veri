@@ -23,3 +23,7 @@
 - [x] run-conductor.sh exits 2, naming the Python 3.12 floor and the version found, when the python3 on PATH is older than 3.12 ⟦criterion 9⟧
 - [x] leaf-launchable.sh exits 2, naming the Python 3.12 floor and the version found, when the python3 on PATH is older than 3.12 ⟦criterion 9⟧
 - [x] CLAUDE.md records the shim convention (a ported script's .sh entry point is a /bin/sh shim over its veri/ module, Bash holding no Python source) and that a ported script's tests live in tests/py/test_<module>.py ⟦criterion 10⟧
+
+## Owed steps
+
+- make test is green again after the status.sh port: dashboard.test.sh (FAIL - the dashboard suite starts at most 2 dashboard.sh servers, counted at python3's exec — status.py --json starts are counted as servers), event-log.test.sh (FAIL - status.sh beside a stand-in event_log.py / veri/event_log.py: run line lacks 'decoy-leaf', exit 2), main-working-tree.test.sh (FAIL - status.sh beside a helper answering the decoy: printed 'no runs' (exit 3)) and no-nested-suites.test.sh (FAIL - affected-suites.test.sh:480-498 names event-log.test.sh and blocked-by.test.sh with no exemption recorded) each pass, a stand-in case under ADR 0027 replaced by a tests/py/test_status.py case rather than weakened
