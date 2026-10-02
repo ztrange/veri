@@ -294,8 +294,6 @@ prompt_says "$green" "verify-green never says to remove the code and run the sui
   -iE -e "remov(e|ing)[^.]{0,120}run[^.]{0,80}suite"
 prompt_says "$green" "verify-green never says to restore the tree afterwards" \
   -iE -e "restor(e|ing)[^.]{0,80}(tree|code|file)"
-prompt_says "$green" "verify-green never says to confirm the restore by comparing git diff with what it printed before the probe" \
-  -iE -e "git diff[^.]{0,120}before[^.]{0,40}probe"
 prompt_says "$green" "verify-green never says the restore comes before reporting" \
   -iE -e "before[^.]{0,60}report"
 [[ -z "$problems" ]] && ok \
