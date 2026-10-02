@@ -186,13 +186,26 @@ echo "FAIL - the mocked probe"
 echo "0 passed, 1 failed"
 exit 1
 SUITE
-chmod +x "$scratch/calls-real-vcs.test.sh" "$scratch/mocks-vcs.test.sh"
+cat > "$scratch/calls-real-interpreter.test.sh" <<'SUITE'
+#!/usr/bin/env bash
+if python3 -c 'pass' > /dev/null; then echo "1 passed, 0 failed"; exit 0; fi
+echo "FAIL - the interpreter probe"
+echo "0 passed, 1 failed"
+exit 1
+SUITE
+chmod +x "$scratch/calls-real-vcs.test.sh" "$scratch/mocks-vcs.test.sh" "$scratch/calls-real-interpreter.test.sh"
 
 run_make unit UNIT_TESTS="$scratch/calls-real-vcs.test.sh"
 [[ "$code" != 0 ]] ||
   problems+=("want 'make unit' to fail a suite that ran real git; it exited 0 and said: $(flat "$out")")
 grep -qw git < <(grep -v '^== ' <<< "$out") ||
   problems+=("no line of 'make unit' over a suite that ran real git names git: $(flat "$out")")
+
+run_make unit UNIT_TESTS="$scratch/calls-real-interpreter.test.sh"
+[[ "$code" != 0 ]] ||
+  problems+=("want 'make unit' to fail a suite that ran real python3; it exited 0 and said: $(flat "$out")")
+grep -qw python3 < <(grep -v '^== ' <<< "$out") ||
+  problems+=("no line of 'make unit' over a suite that ran real python3 names python3: $(flat "$out")")
 
 run_make test TESTS="$scratch/calls-real-vcs.test.sh" UNIT_TESTS=
 [[ "$code" == 0 ]] ||
