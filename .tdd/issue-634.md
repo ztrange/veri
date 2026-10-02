@@ -21,5 +21,5 @@
 - [ ] the PR body lists each cut tests/status.test.sh case beside the tests/py/test_status.py case that replaced it ⟦human-owed⟧ ⟦criterion 4⟧
 - [x] a guard suite fails, naming <script>:<line>, when a script whose module exists under veri/ holds Python source (a python3 -c string or a heredoc fed to python3), proven red against a planted offender ⟦criterion 5⟧
 - [x] run-conductor.sh exits 2, naming the Python 3.12 floor and the version found, when the python3 on PATH is older than 3.12 ⟦criterion 9⟧
-- [ ] leaf-launchable.sh exits 2, naming the Python 3.12 floor and the version found, when the python3 on PATH is older than 3.12 ⟦criterion 9⟧
+- [x] leaf-launchable.sh exits 2, naming the Python 3.12 floor and the version found, when the python3 on PATH is older than 3.12 ⟦criterion 9⟧ ⟂ refactor pending
 - [ ] CLAUDE.md records the shim convention (a ported script's .sh entry point is a /bin/sh shim over its veri/ module, Bash holding no Python source) and that a ported script's tests live in tests/py/test_<module>.py ⟦criterion 10⟧

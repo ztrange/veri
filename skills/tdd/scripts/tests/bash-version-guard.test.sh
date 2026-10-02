@@ -12,6 +12,9 @@
 #   4. On a real bash older than 5, the refusal comes from the bash itself, not the stand-in.
 #   5. run-conductor.sh refuses with exit 2, naming the Python 3.12 floor and the version found,
 #      before it launches anything, when python3 is older than 3.12.
+#   6. leaf-launchable.sh refuses with exit 2, naming the Python 3.12 floor and the version
+#      found, when python3 is older than 3.12.
+#   7. leaf-launchable.sh does not refuse on the Python floor when the python3 version cannot be read.
 #
 # Run: skills/tdd/scripts/tests/bash-version-guard.test.sh
 set -uo pipefail
@@ -87,6 +90,23 @@ ll_err="$(env VERI_BASH_MAJOR=3 CLAUDE_BIN="$work/claude" LAUNCHED="$work/ll-lau
 env VERI_BASH_MAJOR=5 CLAUDE_BIN="$work/claude" LAUNCHED="$work/ll-launched" \
   "$SCRIPTS/leaf-launchable.sh" >/dev/null 2>&1 && ll5=0 || ll5=$?
 [[ "$ll5" == 0 ]] || problems+=("want exit 0 for a launchable binary with VERI_BASH_MAJOR=5, got $ll5")
+report "$name"
+
+name="leaf-launchable.sh refuses with exit 2, naming the Python 3.12 floor and the version found, when python3 is older than 3.12"
+problems=()
+llpy_err="$(env VERI_BASH_MAJOR=5 VERI_PYTHON_VERSION=3.11.9 CLAUDE_BIN="$work/claude" LAUNCHED="$work/llpy-launched" \
+    "$SCRIPTS/leaf-launchable.sh" 2>&1 >/dev/null)" && llpy_code=0 || llpy_code=$?
+[[ "$llpy_code" == 2 ]] || problems+=("want exit 2, got $llpy_code: $(flat "$llpy_err")")
+[[ "$llpy_err" == *"Python 3.12"* ]] || problems+=("want stderr to name the Python 3.12 floor: $(flat "$llpy_err")")
+[[ "$llpy_err" == *"3.11.9"* ]] || problems+=("want stderr to name the version found, 3.11.9: $(flat "$llpy_err")")
+report "$name"
+
+name="leaf-launchable.sh does not refuse on the Python floor when the python3 version cannot be read, and answers 0 for a launchable binary"
+problems=()
+llnv_err="$(env VERI_BASH_MAJOR=5 VERI_PYTHON_VERSION=unknown CLAUDE_BIN="$work/claude" LAUNCHED="$work/llnv-launched" \
+    "$SCRIPTS/leaf-launchable.sh" 2>&1 >/dev/null)" && llnv_code=0 || llnv_code=$?
+[[ "$llnv_code" == 0 ]] || problems+=("want exit 0 for an unreadable python3 version, got $llnv_code: $(flat "$llnv_err")")
+[[ "$llnv_err" != *"Python 3.12"* ]] || problems+=("want no Python-floor refusal for an unreadable version: $(flat "$llnv_err")")
 report "$name"
 
 if [[ -x /bin/bash ]] && [[ "$(/bin/bash -c 'echo "${BASH_VERSINFO[0]}"')" -lt 5 ]]; then
