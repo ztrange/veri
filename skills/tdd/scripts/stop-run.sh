@@ -21,6 +21,7 @@ set -euo pipefail
 lib="$(dirname "$0")/lib"
 source "$lib/exit-contract.sh"
 source "$lib/main-working-tree.sh"
+source "$lib/stop-modes.sh"
 
 complain() {
   echo "stop-run: $1" >&2
@@ -48,10 +49,11 @@ while (( $# > 0 )); do
   esac
 done
 
-case "$mode" in
-  at-ledger | at-leaf | now) ;;
-  *) refuse "stop-run: unknown mode — want at-ledger, at-leaf or now: '$mode'" ;;
-esac
+known=0
+for listed in "${STOP_MODES[@]}"; do
+  [[ "$mode" == "$listed" ]] && known=1
+done
+(( known == 1 )) || refuse "stop-run: unknown mode — want at-ledger, at-leaf or now: '$mode'"
 
 if [[ -n "$issue" ]] && (( all == 1 )); then
   refuse "stop-run: name an issue or --all, not both"
