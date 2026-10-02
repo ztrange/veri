@@ -145,6 +145,10 @@ test unit:
 	trap 'rm -f "$$suite_out" "$$suite_status" "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
 	py_bin="$${VERI_VENV:-$$HOME/.veri-tools/venv}/bin/python3"; \
 	[ -x "$$py_bin" ] || py_bin="$$(command -v python3)"; \
+	if [ -n "$(PY_TESTS)" ] && [ "$${VERI_PYTEST_IMPORTABLE:-$$("$$py_bin" -c 'import pytest' > /dev/null 2>&1 && echo 1 || echo 0)}" != 1 ]; then \
+	  printf 'veri needs pytest for the suites under skills/tdd/scripts/tests/py/; %s cannot import it. Install it with `make install-dev`.\n' "$$py_bin" >&2; \
+	  exit 2; \
+	fi; \
 	$(OFFLINE_GIT); \
 	for t in $(SUITES); do \
 	  suite_name="$$(basename "$$t")"; \
