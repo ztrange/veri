@@ -202,6 +202,22 @@ grep -qw git < <(grep -v '^== ' <<< "$out") ||
 
 report "$name"
 
+name="make test passes a suite outside $UNIT_DIR/ that runs real git, after one under $UNIT_DIR/"
+problems=()
+
+mixed="$(scratch_dir)"
+mkdir -p "$mixed/$UNIT_DIR"
+cp "$ROOT/Makefile" "$mixed/Makefile"
+cp -R "$ROOT/skills/tdd/scripts/tests/offline" "$ROOT/skills/tdd/scripts/tests/unit-guard" "$mixed/skills/tdd/scripts/tests/"
+cp "$scratch/mocks-vcs.test.sh" "$mixed/$UNIT_DIR/mocks-vcs.test.sh"
+cp "$scratch/calls-real-vcs.test.sh" "$mixed/skills/tdd/scripts/tests/calls-real-vcs.test.sh"
+
+run_make_in "$mixed" test TESTS="$UNIT_DIR/mocks-vcs.test.sh skills/tdd/scripts/tests/calls-real-vcs.test.sh"
+[[ "$code" == 0 ]] ||
+  problems+=("want 'make test' to pass a suite outside $UNIT_DIR/ that ran real git after one under it; it exited $code and said: $(flat "$out")")
+
+report "$name"
+
 name="at least five existing suites move into $UNIT_DIR/, each passing and recording its git/python3/server/sleep count in its header"
 problems=()
 
