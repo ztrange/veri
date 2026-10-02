@@ -874,6 +874,46 @@ probe_runner_red_from_symlink_and_snapshot
 
 report "$name"
 
+name="run-suite.sh over a suite that exits 0 without its count line exits 1 and names it, through a symlinked skills/tdd and from a git-archive extraction of it (#617)"
+problems=()
+
+runner_refuses_countless() {
+  local runner="$1" where="$2"
+  direct "$runner" "$FIXTURE_PATH"
+  [[ "$direct_code" == 1 ]] ||
+    problems+=("want exit 1 from the runner $where over a suite that exited 0 without its count line; it exited $direct_code and said: $(flat "$direct_out")")
+  grep -Fx "$FIXTURE_NAME$GUARD_MESSAGE" <<< "$direct_out" > /dev/null ||
+    problems+=("want the line '$FIXTURE_NAME$GUARD_MESSAGE' from the runner $where; it said: $(flat "$direct_out")")
+}
+
+probe_runner_countless_from_symlink_and_snapshot() {
+  local tree skill_tree
+  tree="$(scratch_dir)" || {
+    problems+=("could not make a scratch directory for the symlink and the snapshot, so the question went unasked")
+    return 1
+  }
+  mkdir -p "$tree/.claude/skills"
+  ln -s "$ROOT/skills/tdd" "$tree/.claude/skills/tdd"
+  runner_refuses_countless "$tree/.claude/skills/tdd/scripts/run-suite.sh" "invoked through a symlinked skill dir"
+
+  skill_tree="$(GIT_INDEX_FILE="$tree/index" git -C "$ROOT" add -A -- skills/tdd &&
+    GIT_INDEX_FILE="$tree/index" git -C "$ROOT" write-tree)" || {
+    problems+=("could not record the working tree's skills/tdd as a git tree to archive, so the snapshot half went unasked")
+    return 1
+  }
+  mkdir -p "$tree/snapshot"
+  git -C "$ROOT" archive "$skill_tree" skills/tdd | tar -x -C "$tree/snapshot" || {
+    problems+=("could not extract a git archive of skills/tdd, so the snapshot half went unasked")
+    return 1
+  }
+  runner_refuses_countless "$tree/snapshot/skills/tdd/scripts/run-suite.sh" "in a git-archive extraction of skills/tdd"
+}
+
+probe_fixture_dies_quietly
+probe_runner_countless_from_symlink_and_snapshot
+
+report "$name"
+
 name="make test takes its count-line guard from skills/tdd/scripts/lib/count-line-guard.sh: a refusal reworded there is what it prints, and a tree without that file fails naming it (#617)"
 problems=()
 
