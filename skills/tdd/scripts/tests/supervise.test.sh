@@ -752,6 +752,12 @@ quiet_wrapper_reason="$(cat "$quiet_wrapper_work/.tdd/verify-red.reason" 2>/dev/
   && [[ "$quiet_wrapper_reason" == 'The test pins the criterion as observable behavior.' ]]; } && ok \
   || no "a working verification is not killed for its wrapper's silence: 6s of inner progress against a 2s window → the verdict the verifier recorded (code=$quiet_wrapper_code want 0, recorded=$quiet_wrapper_recorded want 0, reason='$quiet_wrapper_reason' want the verifier's own line, err=$(cat "$quiet_wrapper_work/err"))"
 
+sup_in() {
+  local dir="$1"; shift
+  ( cd "$dir" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+      VERI_KILL_POLL=0.01 "$SUP" "$@" )
+}
+
 owner_work="$work/live-owner"
 mkdir -p "$owner_work"
 cat > "$stub/leaf-second" <<'L'
@@ -764,8 +770,7 @@ chmod +x "$stub/leaf-second"
 owner_sup=$!
 for _ in $(seq 1 50); do [[ -s "$owner_work/leaf-pid" ]] && break; sleep 0.1; done
 owner_leaf="$(tr -d '[:space:]' < "$owner_work/leaf-pid" 2>/dev/null)"
-( cd "$owner_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SUP" verify-green "$stub/leaf-second" ) >/dev/null 2>"$owner_work/err"
+sup_in "$owner_work" verify-green "$stub/leaf-second" >/dev/null 2>"$owner_work/err"
 owner_code=$?
 owner_second="no"; [[ -e "$owner_work/second-ran" ]] && owner_second="yes"
 owner_err="$(cat "$owner_work/err")"
@@ -786,8 +791,7 @@ mkdir -p "$same_work"
 same_sup=$!
 for _ in $(seq 1 50); do [[ -s "$same_work/leaf-pid" ]] && break; sleep 0.1; done
 same_leaf="$(tr -d '[:space:]' < "$same_work/leaf-pid" 2>/dev/null)"
-( cd "$same_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-second" ) >/dev/null 2>"$same_work/err"
+sup_in "$same_work" revise-green-1 "$stub/leaf-second" >/dev/null 2>"$same_work/err"
 same_code=$?
 same_second="no"; [[ -e "$same_work/second-ran" ]] && same_second="yes"
 same_err="$(cat "$same_work/err")"
@@ -809,8 +813,7 @@ rm_sup=$!
 for _ in $(seq 1 50); do [[ -s "$rm_work/leaf-pid" ]] && break; sleep 0.1; done
 rm_leaf="$(tr -d '[:space:]' < "$rm_work/leaf-pid" 2>/dev/null)"
 ( cd "$rm_work" && rm -f .tdd/revise-green-1.exit .tdd/revise-green-1.pid )
-( cd "$rm_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-second" ) >/dev/null 2>"$rm_work/err"
+sup_in "$rm_work" revise-green-1 "$stub/leaf-second" >/dev/null 2>"$rm_work/err"
 rm_code=$?
 rm_second="no"; [[ -e "$rm_work/second-ran" ]] && rm_second="yes"
 rm_err="$(cat "$rm_work/err")"
@@ -839,8 +842,7 @@ if [[ -n "$dead_leaf" ]]; then
 fi
 dead_record="$(cat "$dead_work/.tdd/leaf.owner" 2>/dev/null || echo '<missing>')"
 ( cd "$dead_work" && rm -f .tdd/revise-green-1.exit .tdd/revise-green-1.pid )
-( cd "$dead_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-second" ) >/dev/null 2>"$dead_work/err"
+sup_in "$dead_work" revise-green-1 "$stub/leaf-second" >/dev/null 2>"$dead_work/err"
 dead_code=$?
 dead_second="no"; [[ -e "$dead_work/second-ran" ]] && dead_second="yes"
 { [[ -n "$dead_leaf" ]] && [[ "$dead_record" == "$dead_sup revise-green-1" ]] \
@@ -854,17 +856,14 @@ echo "$1" >> ran
 exit 0
 L
 chmod +x "$stub/leaf-mark"
-( cd "$done_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-mark" first ) >/dev/null 2>"$done_work/err1"
+sup_in "$done_work" revise-green-1 "$stub/leaf-mark" first >/dev/null 2>"$done_work/err1"
 done_code1=$?
 done_record="$(cat "$done_work/.tdd/leaf.owner" 2>/dev/null || echo '<missing>')"
 ( cd "$done_work" && rm -f .tdd/revise-green-1.exit .tdd/revise-green-1.pid )
-( cd "$done_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-mark" second ) >/dev/null 2>"$done_work/err2"
+sup_in "$done_work" revise-green-1 "$stub/leaf-mark" second >/dev/null 2>"$done_work/err2"
 done_code2=$?
 ( cd "$done_work" && rm -f .tdd/verify-green.exit .tdd/verify-green.pid )
-( cd "$done_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SUP" verify-green "$stub/leaf-mark" third ) >/dev/null 2>"$done_work/err3"
+sup_in "$done_work" verify-green "$stub/leaf-mark" third >/dev/null 2>"$done_work/err3"
 done_code3=$?
 done_ran="$(tr '\n' ' ' < "$done_work/ran" 2>/dev/null)"
 { [[ "$done_record" == *' revise-green-1' ]] && [[ "$done_code1" == 0 ]] && [[ "$done_code2" == 0 ]] \
@@ -904,8 +903,7 @@ chmod +x "$stub/leaf-held-fail"
 samex_sup=$!
 for _ in $(seq 1 50); do [[ -s "$samex_work/leaf-pid" ]] && break; sleep 0.1; done
 samex_leaf="$(tr -d '[:space:]' < "$samex_work/leaf-pid" 2>/dev/null)"
-( cd "$samex_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-second" ) >/dev/null 2>"$samex_work/err"
+sup_in "$samex_work" revise-green-1 "$stub/leaf-second" >/dev/null 2>"$samex_work/err"
 samex_code=$?
 samex_after_refusal="$(cat "$samex_work/.tdd/revise-green-1.exit" 2>/dev/null || echo '<missing>')"
 ( cd "$samex_work" && env VERI_POLL=0.02 "$SCRIPTS/wait-leaf.sh" revise-green-1 0 ) >/dev/null 2>&1
@@ -920,8 +918,7 @@ samex_final="$(cat "$samex_work/.tdd/revise-green-1.exit" 2>/dev/null || echo '<
 refx_work="$work/live-owner-refused-exit"
 mkdir -p "$refx_work/.tdd"
 printf '%s develop-green\n' "$$" > "$refx_work/.tdd/leaf.owner"
-( cd "$refx_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SUP" verdict-green "$stub/leaf-second" ) >/dev/null 2>"$refx_work/err"
+sup_in "$refx_work" verdict-green "$stub/leaf-second" >/dev/null 2>"$refx_work/err"
 refx_code=$?
 refx_exit="$(cat "$refx_work/.tdd/verdict-green.exit" 2>/dev/null || echo '<missing>')"
 { [[ "$refx_code" == 2 ]] && [[ "$refx_exit" == 2 ]]; } && ok \
