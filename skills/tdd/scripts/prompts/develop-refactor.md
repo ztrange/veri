@@ -78,9 +78,9 @@ your words rather than its own judgement:
    the exception above allows, its suites run too: the suites follow every file the
    transform touched, so the one suite that could catch the break it did cause is never the
    one it skipped.
-4. The full suite runs at verify-refactor, on the settled result. The trade is that a break
-   in an untouched suite surfaces there, as a REJECT the revise loop answers, rather than
-   at the transform that caused it.
+4. The full suite runs once per PR, before it is readied. The trade is that a break outside
+   the affected set surfaces at that one full run, as the repair step a red result appends,
+   rather than at the transform that caused it.
 5. **No untested generality.** Generality is earned by triangulation — another test
    demanding it — never hand-written here. Do not add options, flags, parameters or
    abstraction no existing test requires.
