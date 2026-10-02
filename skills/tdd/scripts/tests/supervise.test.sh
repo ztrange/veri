@@ -422,6 +422,31 @@ argv_unset_got="$(cat "$argv_work/unset.argv" 2>/dev/null || echo '<<no argv>>')
   && [[ "$argv_set_got"   == *"--model"$'\n'"$argv_model"* ]] \
   && [[ "$argv_unset_got" == "$argv_today" ]]; } && ok \
   || no "a supervised leaf's claude argv carries --model only when the run chose a model (VERI_MODEL=$argv_model: code=$argv_set_code argv=$(printf '%q' "$argv_set_got") want a --model/$argv_model pair; none set: code=$argv_unset_code argv=$(printf '%q' "$argv_unset_got") want $(printf '%q' "$argv_today"))"
+
+session_work="$work/session"
+session_vars=(CLAUDECODE CLAUDE_CODE_SESSION_ID CLAUDE_CODE_HOST_SESSION_ID
+  CLAUDE_CODE_MESSAGING_SOCKET CLAUDE_CODE_MESSAGING_TOKEN CLAUDE_PID
+  CLAUDE_CODE_CHILD_SESSION CLAUDE_CODE_ENTRYPOINT CLAUDE_AUTO_BACKGROUND_TASKS)
+session_env=()
+for v in "${session_vars[@]}"; do session_env+=("$v=from-the-conductor"); done
+cat > "$stub/claude-env" <<'L'
+#!/bin/sh
+env > "$ENV_OUT"
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+L
+chmod +x "$stub/claude-env"
+sup_run_no_model "$session_work" "${session_env[@]}" CLAUDE_BIN="$stub/claude-env" \
+  ENV_OUT="$session_work/claude.env" "$SUP" develop-red "$HERE/../run-leaf.sh" "$argv_work/prompt.txt"
+session_leaked=()
+if [[ -f "$session_work/claude.env" ]]; then
+  for v in "${session_vars[@]}"; do
+    grep -E "^$v=" "$session_work/claude.env" > /dev/null && session_leaked+=("$v")
+  done
+else
+  session_leaked=("<the leaf's claude was never started>")
+fi
+[[ ${#session_leaked[@]} == 0 ]] && ok \
+  || no "a leaf launched as supervise.sh <name> run-leaf.sh starts claude without the caller's session variables (#621) (reached it: ${session_leaked[*]})"
 skill_work="$work/skill"
 skill_want="$(git -C "$SCRIPTS" rev-parse HEAD 2>/dev/null || echo '<no-sha>')"
 sup_run "$skill_work" env -u VERI_SKILL_COMMIT "$SUP" develop-red "$stub/leaf-ok"
