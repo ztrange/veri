@@ -102,6 +102,7 @@ expect_unchanged() {
 expect_usage() {
   local name="$1" what="$2" code
   shift 2
+  make_repo "$work/$name"
   (cd "$work/$name" && "$SCRIPT" "$@" > /dev/null 2>"$work/$name.err") && code=0 || code=$?
   if [[ "$code" -eq 2 ]] &&
     grep -F 'workqueue.sh: usage: workqueue.sh assign <worker> <issue>...' "$work/$name.err" > /dev/null &&
@@ -135,14 +136,11 @@ else
   echo "    .tdd/workqueue: $([[ -e "$repo/.tdd/workqueue" ]] && echo present || echo absent) (want absent)"
 fi
 
-make_repo "$work/no-subcommand"
 expect_usage no-subcommand "workqueue.sh with no subcommand exits 2 with its own usage text on stderr"
 
-make_repo "$work/empty-issue-usage"
 expect_usage empty-issue-usage "workqueue.sh given an empty issue exits 2 with its own usage text on stderr" \
   assign alpha ''
 
-make_repo "$work/twice-issue-usage"
 expect_usage twice-issue-usage "workqueue.sh given an issue named twice exits 2 with its own usage text on stderr" \
   assign alpha 12 12
 
