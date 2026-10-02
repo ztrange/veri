@@ -8,6 +8,7 @@
 - [x] the develop-cover prompt allows `COVERED: type-only` only for a step that changes only types, with a `PROOF:` that is the type-check command the leaf ran green ⟦criterion 5⟧
 - [x] the develop-cover prompt says a step moving or reshaping runtime code is never `unreachable` or `type-only`, that reachable code no test watches is `COVERED: no`, and its report block carries a `PROOF:` line ⟦criterion 6⟧
 - [x] SKILL.md's Cover step reads the cover report through cover-outcome.sh: exit 3 goes on to Transform posting the proof in the Cover comment without bailing or running coverage-blocker.sh, exit 2 bails as `no-verdict` ⟦criterion 7⟧
-- [x] SKILL.md reruns a type-only step's proof command after its transform commits, a non-zero exit rejecting the transform as transform-touches-tests.sh exit 1 does ⟦criterion 8⟧ ⟂ refactor pending
+- [x] SKILL.md reruns a type-only step's proof command after its transform commits, a non-zero exit rejecting the transform as transform-touches-tests.sh exit 1 does ⟦criterion 8⟧
+- [ ] SKILL.md says where a type-only step's proof command is kept between Cover and Transform (the text cover-outcome.sh printed after `type-only: `, saved to a run file) and that the conductor itself reruns that saved command after the transform commits ⟦added⟧ ⟦criterion 8⟧
 - [ ] SKILL.md's Scope & plan tells a refactor-kind planner to fold a deletion into the step that makes the code dead, never leaving a no-op for a later step to delete ⟦criterion 9⟧
 - [ ] the refactor plan verifier `_verify-plan-refactor.md` REJECTs a step that leaves a no-op in place for a later step to delete ⟦criterion 10⟧

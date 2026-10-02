@@ -8,3 +8,5 @@
 - test-only | `build-develop-prompt.test.sh`: the three #679 cover blocks each repeat the `grep -E '^<FIELD>:.*<value>' <<<"${rk_out[cover]}" > /dev/null || problems=…` report-line check. A shared `report_line_offers` helper could replace them.
 ### SKILL.md's Cover step reads the cover report through cover-outcome.sh: exit 3 goes on to Transform posting the proof in the Cover comment without bailing or running coverage-blocker.sh, exit 2 bails as `no-verdict` ⟦criterion 7⟧
 - test-only | in skill-refactor-kind.test.sh case 6, `grep -E 'cover comment|comment'` has a redundant alternative, since `comment` already matches everything `cover comment` does; reduce it to `comment`
+### SKILL.md reruns a type-only step's proof command after its transform commits, a non-zero exit rejecting the transform as transform-touches-tests.sh exit 1 does ⟦criterion 8⟧
+- test-only | skills/tdd/scripts/tests/skill-refactor-kind.test.sh — cases 6 and 7 repeat the same shape (`window` over `$skill_text`, then a run of `grep -E … || problems+=(…)` checks). A shared helper could replace that, but it would change only files under `tests/`
