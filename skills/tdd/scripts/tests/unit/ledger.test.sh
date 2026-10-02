@@ -120,6 +120,15 @@ expect_records "ledger_steps added differs for a step quoting the added mark" $'
 verdict "ledger_steps added is 0 for a step that quotes the added mark mid-text and does not end in it (#675)"
 
 problems=""
+doc='- [x] grown and green ⟦added⟧ ⟦criterion 1⟧ ⟂ refactor pending
+- [x] grown and tidied ⟦added⟧ ⟦criterion 2⟧
+- [ ] grown and open ⟦added⟧ ⟦criterion 3⟧
+'
+expect_records "ledger_steps added differs for a step ending in the added mark" $'1\t1\n2\t1\n3\t1' \
+  "$(records_of '$1 "\t" $5' "$doc")"
+verdict "ledger_steps added is 1 for a done or open step ending in the added mark once its criterion tag and pending mark are stripped (#675)"
+
+problems=""
 doc='# Plan for the slug
 
 Prose about the slug.
