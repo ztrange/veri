@@ -21,6 +21,16 @@ source "$HERE/lib/harness.sh"
 
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
+check_green() {
+  local out
+  out="$(cat "$work/out")"
+  [[ "$code" == 0 ]] || problems+=("$1: want exit 0, got $code: $(flat "$out") $(flat "$(cat "$work/err")")")
+  [[ "$out" == *"1 passed"* ]] ||
+    problems+=("$1: want the pytest leg to report 1 passed, got: $(flat "$out")")
+  [[ "$(tail -n 1 <<< "$out")" == 'all suites green' ]] ||
+    problems+=("$1: want stdout's last line all suites green, got: $(tail -n 1 <<< "$out")")
+}
+
 work="$(scratch_dir)"
 
 fake_pytest="$work/fake-pytest"
@@ -101,12 +111,7 @@ for target in unit test; do
   env VERI_VENV="$work/no-venv" PYTHONPATH="$fake_pytest" \
     make --no-print-directory -C "$green" "$target" > "$work/out" 2> "$work/err" < /dev/null &&
     code=0 || code=$?
-  out="$(cat "$work/out")"
-  [[ "$code" == 0 ]] || problems+=("make $target: want exit 0, got $code: $(flat "$out") $(flat "$(cat "$work/err")")")
-  [[ "$out" == *"1 passed"* ]] ||
-    problems+=("make $target: want the pytest leg to report 1 passed, got: $(flat "$out")")
-  [[ "$(tail -n 1 <<< "$out")" == 'all suites green' ]] ||
-    problems+=("make $target: want stdout's last line all suites green, got: $(tail -n 1 <<< "$out")")
+  check_green "make $target"
 done
 report "$name"
 
@@ -165,13 +170,7 @@ for venv in set unset; do
     env -u PYTHONPATH -u VERI_VENV "${venv_env[@]}" PATH="$work/no-pytest-bin:$PATH" \
       make --no-print-directory -C "$green" "$target" > "$work/out" 2> "$work/err" < /dev/null &&
       code=0 || code=$?
-    out="$(cat "$work/out")"
-    [[ "$code" == 0 ]] ||
-      problems+=("VERI_VENV $venv, make $target: want exit 0, got $code: $(flat "$out") $(flat "$(cat "$work/err")")")
-    [[ "$out" == *"1 passed"* ]] ||
-      problems+=("VERI_VENV $venv, make $target: want the pytest leg to report 1 passed, got: $(flat "$out")")
-    [[ "$(tail -n 1 <<< "$out")" == 'all suites green' ]] ||
-      problems+=("VERI_VENV $venv, make $target: want stdout's last line all suites green, got: $(tail -n 1 <<< "$out")")
+    check_green "VERI_VENV $venv, make $target"
   done
 done
 report "$name"
