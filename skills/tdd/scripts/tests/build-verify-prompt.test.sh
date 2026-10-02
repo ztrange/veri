@@ -348,6 +348,24 @@ done
   || no "#619 _shared.md and _develop-shared.md keep the git stash rule unchanged, recommending git show HEAD:<path> and git worktree add --detach <scratch> HEAD (${problems#; })"
 
 problems=""
+forbidding='Never undo a probe with[[:space:]]`git checkout -- <file>` or `git restore`'
+for file in "$prompts"/*; do
+  name="${file##*/}"
+  text="$(cat "$file")"
+  [[ "$text" == *'git stash push'* ]] && problems="$problems; $name contains git stash push"
+  case "$name" in
+    _shared.md|_develop-shared.md)
+      [[ "$text" == *$forbidding* ]] \
+        || problems="$problems; $name lacks the sentence forbidding git checkout -- <file>"
+      text="${text//$forbidding/}" ;;
+  esac
+  [[ "$text" == *'git checkout --'* ]] \
+    && problems="$problems; $name names git checkout -- outside the sentence that forbids it"
+done
+[[ -z "$problems" ]] && ok \
+  || no "#619 no prompt contains git stash push, and git checkout -- <file> appears only in _shared.md and _develop-shared.md inside the sentence that forbids it (${problems#; })"
+
+problems=""
 prompt_says "$with_base" "never names git diff --name-only $base_sha^ $base_sha" \
   -F -e "git diff --name-only $base_sha^ $base_sha"
 prompt_says "$with_base" "never makes a changed file outside that list a REJECT" \
