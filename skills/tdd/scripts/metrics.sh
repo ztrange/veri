@@ -554,16 +554,15 @@ if structural is not None:
     inconsistent = None
     if "stopped" not in structural:
         inconsistent = "the mark carries no stopped"
-    elif "transforms" not in structural:
-        pass
-    elif "budget" not in structural:
-        inconsistent = "transforms=%s without a budget" % structural["transforms"]
-    elif structural["stopped"] == "budget-spent" and int(structural["transforms"]) < int(structural["budget"]):
-        inconsistent = ("stopped=budget-spent, but transforms=%s is below budget=%s"
-                        % (structural["transforms"], structural["budget"]))
-    elif structural["stopped"] not in ("candidates-done", "budget-spent", "nothing-structural"):
-        inconsistent = ("stopped=%s is not one of candidates-done, budget-spent, nothing-structural"
-                        % structural["stopped"])
+    elif "transforms" in structural:
+        if "budget" not in structural:
+            inconsistent = "transforms=%s without a budget" % structural["transforms"]
+        elif structural["stopped"] == "budget-spent" and int(structural["transforms"]) < int(structural["budget"]):
+            inconsistent = ("stopped=budget-spent, but transforms=%s is below budget=%s"
+                            % (structural["transforms"], structural["budget"]))
+        elif structural["stopped"] not in ("candidates-done", "budget-spent", "nothing-structural"):
+            inconsistent = ("stopped=%s is not one of candidates-done, budget-spent, nothing-structural"
+                            % structural["stopped"])
     if inconsistent is not None:
         print()
         print("Inconsistent mark: %s" % inconsistent)
