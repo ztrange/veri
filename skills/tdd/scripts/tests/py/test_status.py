@@ -512,6 +512,33 @@ def test_main_reads_the_event_log_through_veri_event_log_py_not_a_lib_event_log_
            "scope cogs-label  attempted 1  done 0  bailed 0  wall 77s  $3.00  solvable 0\n")
 
 
+def test_main_resolves_the_main_working_tree_as_the_first_worktree_git_lists_as_lib_main_working_tree_sh_does(tmp_path, monkeypatch, capsys, status):
+    main_tree, linked = tmp_path / "main", tmp_path / "linked"
+    for tree, issue, title in ((main_tree, "5", "lamps glow"), (linked, "7", "bells ring")):
+        (tree / ".tdd" / "wt" / issue / ".tdd").mkdir(parents=True)
+        (tree / ".tdd" / "wt" / issue / ".tdd" / ("issue-%s.md" % issue)).write_text(
+            "# Plan for #%s — %s\n\n- [ ] a step\n" % (issue, title))
+    branches = {str(main_tree / ".tdd" / "wt" / "5"): "tdd/5-main", str(linked / ".tdd" / "wt" / "7"): "tdd/7-linked"}
+
+    def fake_run(args, **kwargs):
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            stdout = ("worktree %s\nHEAD abc\nbranch refs/heads/main\n\n"
+                      "worktree %s\nHEAD def\nbranch refs/heads/side\n\n" % (main_tree, linked))
+        elif "symbolic-ref" in args:
+            stdout = branches[str(args[args.index("-C") + 1]).rstrip("/")] + "\n"
+        else:
+            raise AssertionError("unexpected command: %r" % (args,))
+        return subprocess.CompletedProcess(args, 0, stdout, "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.delenv("VERI_LABEL", raising=False)
+    monkeypatch.chdir(linked)
+
+    code = status.main([])
+
+    assert (code, capsys.readouterr().out) == (0, "#5  lamps glow  tdd/5-main  step 1 of 1\n")
+
+
 STATUS_SUITE_FLOOR = [
     "no runs under the main working tree prints 'no runs' and exits 3",
     "a run under .tdd/wt/* is listed with its issue number, title, branch and step n of m",

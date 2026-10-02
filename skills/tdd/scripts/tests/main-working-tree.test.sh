@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/lib/main-working-tree.sh — the one definition of `main_working_tree`
-# that status.sh and solvable-issues.sh both source.
+# that solvable-issues.sh sources.
 #
 # Contract under test:
 #   source lib/main-working-tree.sh; main_working_tree   → the main working tree's path, as
 #                                                          git prints it, from a linked worktree
-#   status.sh and solvable-issues.sh                      → look for runs and locks under
-#                                                          whatever that helper answers
+#   solvable-issues.sh                                    → looks for locks under whatever
+#                                                          that helper answers
 #
 # Run: scripts/tests/main-working-tree.test.sh
 set -uo pipefail
@@ -40,14 +40,10 @@ printf '%s\n' "$$" > "$decoy/.tdd/wt/5/.tdd/conductor.pid"
 
 copy="$work/scripts"
 mkdir -p "$copy"
-cp "$SCRIPTS/status.sh" "$SCRIPTS/solvable-issues.sh" "$copy/"
+cp "$SCRIPTS/solvable-issues.sh" "$copy/"
 cp -R "$SCRIPTS/lib" "$copy/lib"
 cp -R "$SCRIPTS/veri" "$copy/veri"
 printf 'main_working_tree() { printf "%%s\\n" %q; }\n' "$decoy" > "$copy/lib/main-working-tree.sh"
-
-status_out="$(cd "$linked" && env -u VERI_LABEL "$copy/status.sh" 2>/dev/null)" && status_code=0 || status_code=$?
-[[ "$status_code" -eq 0 && "$status_out" == *"#5"* ]] \
-  || problems+=("status.sh beside a helper answering the decoy: printed '$status_out' (exit $status_code), want the decoy's run #5 (exit 0)")
 
 fx="$work/gh"
 mkdir -p "$fx"
@@ -65,6 +61,6 @@ solvable_out="$(cd "$linked" && env -u VERI_LABEL -u VERI_PRIORITY_LABEL VERI_GH
 [[ "$solvable_code" -eq 0 && "$solvable_out" == "6" ]] \
   || problems+=("solvable-issues.sh beside a helper answering the decoy: printed '$(tr '\n' ' ' <<<"$solvable_out")' (exit $solvable_code), want '6' — #5 is claimed by the decoy's live lock")
 
-report "a shared lib/main-working-tree.sh defines main_working_tree, and status.sh and solvable-issues.sh both resolve the main working tree through it"
+report "a shared lib/main-working-tree.sh defines main_working_tree, and solvable-issues.sh resolves the main working tree through it"
 
 finish
