@@ -28,16 +28,20 @@ def write_events(path, events):
     path.write_text("".join(json.dumps(event) + "\n" for event in events))
 
 
-def fake_git(monkeypatch, main_tree, branches=None):
-    """subprocess.run answering `git worktree list` with <main_tree> and `symbolic-ref` from <branches>."""
+def fake_git(monkeypatch, main_tree, branches=None, solvable=None):
+    """subprocess.run answering `git worktree list` with <main_tree>, `symbolic-ref` from <branches>,
+    and solvable-issues.sh with <solvable>(scope) -> (exit code, stdout)."""
     def fake_run(args, **kwargs):
+        code = 0
         if list(args[:3]) == ["git", "worktree", "list"]:
             stdout = "worktree %s\nHEAD abc\nbranch refs/heads/main\n\n" % main_tree
         elif "symbolic-ref" in args:
             stdout = branches[str(args[args.index("-C") + 1]).rstrip("/")] + "\n"
+        elif solvable is not None and str(args[0]).endswith("/solvable-issues.sh"):
+            code, stdout = solvable(kwargs["env"]["VERI_LABEL"])
         else:
             raise AssertionError("unexpected command: %r" % (args,))
-        return subprocess.CompletedProcess(args, 0, stdout, "")
+        return subprocess.CompletedProcess(args, code, stdout, "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.delenv("VERI_LABEL", raising=False)
@@ -164,3 +168,286 @@ def test_main_shows_a_runs_phase_actor_leaf_elapsed_seconds_and_attempts_in_the_
 
     assert (code, capsys.readouterr().out) == (0, "#8  gears turn  tdd/8-gears-turn  step 2 of 2  green  developer  "
                                                   "develop-green 100s  attempt 2  $0.00  0 tokens  running\n")
+
+
+
+def lamp_run(tmp_path, issue, ledgers=None):
+    """.tdd/wt/<issue> holding a ledger per number in <ledgers> (default: its own), each '# Plan for #<n> — lamps glow'."""
+    run = tmp_path / ".tdd" / "wt" / issue
+    (run / ".tdd").mkdir(parents=True)
+    for number in ledgers if ledgers is not None else [issue]:
+        (run / ".tdd" / ("issue-%s.md" % number)).write_text(
+            "# Plan for #%s — lamps glow\n\n- [ ] a lamp glows\n" % number)
+    return run
+
+
+def lamp_ev(ts, issue, event, **rest):
+    line = {"ts": ts, "issue": issue, "actor": "developer", "phase": "red", "step": "a lamp glows",
+            "event": event, "attempt": "1", "skill_commit": "abc"}
+    line.update(rest)
+    return line
+
+
+def lamp_usage(ts, issue, dollars):
+    return lamp_ev(ts, issue, "usage", total_cost_usd=dollars, input_tokens="10", output_tokens="0",
+                   cache_read_input_tokens="0", cache_creation_input_tokens="0")
+
+
+def at_ten_thousand(monkeypatch):
+    monkeypatch.delenv("VERI_TIMEOUT", raising=False)
+    monkeypatch.setattr(time, "time", lambda: 10000)
+
+
+def test_main_shows_a_runs_cost_in_dollars_and_tokens_summed_from_its_event_log(tmp_path, monkeypatch, capsys, status):
+    run = lamp_run(tmp_path, "9")
+    write_events(run / ".tdd" / "events.jsonl", [
+        lamp_ev(9700, "9", "launch", name="develop-red"),
+        lamp_ev(9750, "9", "usage", total_cost_usd="0.50", input_tokens="1000", output_tokens="200",
+                cache_read_input_tokens="3000", cache_creation_input_tokens="500"),
+        lamp_ev(9800, "9", "launch", phase="green", step="a lamp dims", name="develop-green"),
+        lamp_ev(9900, "9", "usage", phase="green", step="a lamp dims", total_cost_usd="1.25", input_tokens="2000", output_tokens="300",
+                cache_read_input_tokens="4000", cache_creation_input_tokens="0"),
+    ])
+    fake_git(monkeypatch, tmp_path, {str(run): "tdd/9-lamps"})
+    at_ten_thousand(monkeypatch)
+
+    code = status.main([])
+
+    assert (code, capsys.readouterr().out) == (0, "#9  lamps glow  tdd/9-lamps  step 1 of 1  green  developer  "
+                                                  "develop-green 200s  attempt 1  $1.75  11000 tokens  running\n")
+
+
+def test_main_reports_a_finished_runs_last_attempt_count_when_its_done_event_has_an_empty_step(tmp_path, monkeypatch, capsys, status):
+    run = lamp_run(tmp_path, "15")
+    write_events(run / ".tdd" / "events.jsonl", [
+        lamp_ev(9960, "15", "launch", name="develop-red"),
+        lamp_ev(9970, "15", "launch", attempt="2", name="develop-red"),
+        lamp_ev(9980, "15", "done", actor="conductor", phase="", step="", attempt="",
+                pr="https://github.com/o/r/pull/15"),
+    ])
+    fake_git(monkeypatch, tmp_path, {str(run): "tdd/15-lamps"})
+    at_ten_thousand(monkeypatch)
+
+    code = status.main([])
+
+    assert (code, capsys.readouterr().out) == (0, "#15  lamps glow  tdd/15-lamps  step 1 of 1  red  developer  "
+                                                  "develop-red 30s  attempt 2  $0.00  0 tokens  "
+                                                  "done https://github.com/o/r/pull/15\n")
+
+
+def stop_mark(ts, issue):
+    return lamp_ev(ts, issue, "stop", actor="conductor", phase="", attempt="", mode="at-leaf", at="planned")
+
+
+def test_main_reads_a_run_ending_in_a_stop_mark_as_stopped_with_its_mode_in_text_and_json(tmp_path, monkeypatch, capsys, status):
+    run = lamp_run(tmp_path, "16")
+    write_events(run / ".tdd" / "events.jsonl", [
+        lamp_ev(9980, "16", "launch", name="develop-red"),
+        stop_mark(9990, "16"),
+    ])
+    fake_git(monkeypatch, tmp_path, {str(run): "tdd/16-lamps"})
+    at_ten_thousand(monkeypatch)
+
+    status.main([])
+    text = capsys.readouterr().out
+    status.main(["--json"])
+    obj = json.loads(capsys.readouterr().out)["runs"][0]
+
+    assert (text.rstrip("\n").endswith("  stopped at-leaf"), obj["state"], obj["stop_mode"]) == (True, "stopped", "at-leaf")
+
+
+def test_main_reads_a_run_as_running_again_after_a_resume_mark_follows_its_stop_mark(tmp_path, monkeypatch, capsys, status):
+    run = lamp_run(tmp_path, "17")
+    write_events(run / ".tdd" / "events.jsonl", [
+        lamp_ev(9970, "17", "launch", name="develop-red"),
+        stop_mark(9980, "17"),
+        lamp_ev(9990, "17", "resume", actor="conductor", phase="", attempt=""),
+    ])
+    fake_git(monkeypatch, tmp_path, {str(run): "tdd/17-lamps"})
+    at_ten_thousand(monkeypatch)
+
+    code = status.main([])
+
+    assert (code, capsys.readouterr().out) == (0, "#17  lamps glow  tdd/17-lamps  step 1 of 1  red  developer  "
+                                                  "develop-red 30s  attempt 1  $0.00  0 tokens  running\n")
+
+
+def lamps_scope(tmp_path, monkeypatch, solvable):
+    """Runs 21 (running), 22 (done) and 23 (bailed): attempted 3, done 1, bailed 1, wall 360s, $2.25."""
+    runs = {}
+    for issue, launch, usage, dollars in (("21", 9900, 9960, "0.25"), ("22", 9500, 9650, "1.50"),
+                                          ("23", 9000, 9050, "0.50")):
+        runs[issue] = lamp_run(tmp_path, issue)
+        write_events(runs[issue] / ".tdd" / "events.jsonl",
+                     [lamp_ev(launch, issue, "launch", name="develop-red"), lamp_usage(usage, issue, dollars)])
+    with open(runs["22"] / ".tdd" / "events.jsonl", "a") as f:
+        f.write(json.dumps(lamp_ev(9700, "22", "done", actor="conductor", phase="", step="", attempt="",
+                                   pr="https://github.com/o/r/pull/22")) + "\n")
+    with open(runs["23"] / ".tdd" / "events.jsonl", "a") as f:
+        f.write(json.dumps(lamp_ev(9100, "23", "bail", actor="conductor", attempt="", cause="stuck",
+                                   classification="system")) + "\n")
+    fake_git(monkeypatch, tmp_path, {str(run): "tdd/%s-lamps" % issue for issue, run in runs.items()}, solvable)
+    at_ten_thousand(monkeypatch)
+
+
+def two_lamps_solvable(scope):
+    return (0, "31\ta lamp dims\n32\ta lamp flickers\n") if scope == "lamps-label" else (3, "")
+
+
+def last_line(out):
+    return out.rstrip("\n").split("\n")[-1]
+
+
+def test_main_scope_adds_the_scopes_attempted_done_bailed_wall_and_dollars_totals(tmp_path, monkeypatch, capsys, status):
+    lamps_scope(tmp_path, monkeypatch, lambda scope: (3, ""))
+
+    code = status.main(["--scope", "lamps-label"])
+
+    assert (code, last_line(capsys.readouterr().out)) == (
+        0, "scope lamps-label  attempted 3  done 1  bailed 1  wall 360s  $2.25  solvable 0")
+
+
+def test_main_with_no_scope_takes_the_scope_from_veri_label_and_adds_the_same_totals(tmp_path, monkeypatch, capsys, status):
+    lamps_scope(tmp_path, monkeypatch, lambda scope: (3, ""))
+    monkeypatch.setenv("VERI_LABEL", "lamps-label")
+
+    code = status.main([])
+
+    assert (code, last_line(capsys.readouterr().out)) == (
+        0, "scope lamps-label  attempted 3  done 1  bailed 1  wall 360s  $2.25  solvable 0")
+
+
+def test_main_scope_counts_what_solvable_issues_sh_lists_for_that_scope(tmp_path, monkeypatch, capsys, status):
+    lamps_scope(tmp_path, monkeypatch, two_lamps_solvable)
+
+    status.main(["--scope", "lamps-label"])
+
+    assert last_line(capsys.readouterr().out).endswith("  solvable 2")
+
+
+def test_main_json_emits_the_runs_and_scope_totals_as_one_document(tmp_path, monkeypatch, capsys, status):
+    lamps_scope(tmp_path, monkeypatch, two_lamps_solvable)
+
+    code = status.main(["--json", "--scope", "lamps-label"])
+    doc = json.loads(capsys.readouterr().out)
+
+    assert code == 0
+    assert [(r["issue"], r["title"], r["branch"], r["state"], r["pr"], r["classification"]) for r in doc["runs"]] == [
+        ("21", "lamps glow", "tdd/21-lamps", "running", "", ""),
+        ("22", "lamps glow", "tdd/22-lamps", "done", "https://github.com/o/r/pull/22", ""),
+        ("23", "lamps glow", "tdd/23-lamps", "bailed", "", "system"),
+    ]
+    assert doc["scope"] == {"name": "lamps-label", "attempted": 3, "done": 1, "bailed": 1,
+                            "wall_seconds": 360, "dollars": 2.25, "solvable": 2}
+
+
+def test_main_json_emits_scope_solvable_as_a_number(tmp_path, monkeypatch, capsys, status):
+    lamps_scope(tmp_path, monkeypatch, two_lamps_solvable)
+
+    status.main(["--json", "--scope", "lamps-label"])
+    solvable = json.loads(capsys.readouterr().out)["scope"]["solvable"]
+
+    assert (type(solvable), solvable) == (int, 2)
+
+
+def test_main_renders_solvable_as_a_question_mark_when_solvable_issues_sh_gives_no_answer(tmp_path, monkeypatch, capsys, status):
+    lamps_scope(tmp_path, monkeypatch, lambda scope: (2, ""))
+
+    text_code = status.main(["--scope", "lamps-label"])
+    text = last_line(capsys.readouterr().out)
+    json_code = status.main(["--json", "--scope", "lamps-label"])
+    solvable = json.loads(capsys.readouterr().out)["scope"]["solvable"]
+
+    assert (text_code, text.endswith("  solvable ?"), json_code, solvable) == (0, True, 0, "?")
+
+
+def test_main_json_reports_bail_phase_from_the_bail_event_not_the_last_launch(tmp_path, monkeypatch, capsys, status):
+    run = lamp_run(tmp_path, "13")
+    write_events(run / ".tdd" / "events.jsonl", [
+        lamp_ev(9900, "13", "launch", name="develop-red"),
+        lamp_ev(9950, "13", "bail", actor="conductor", phase="green", attempt="", classification="process"),
+    ])
+    fake_git(monkeypatch, tmp_path, {str(run): "tdd/13-lamps"})
+    at_ten_thousand(monkeypatch)
+
+    code = status.main(["--json"])
+    obj = json.loads(capsys.readouterr().out)["runs"][0]
+
+    assert (code, obj["phase"], obj["bail_phase"]) == (0, "red", "green")
+
+
+def test_main_takes_a_run_directory_as_one_run_its_own_issues_ledger_only(tmp_path, monkeypatch, capsys, status):
+    run = lamp_run(tmp_path, "7", ["7", "3", "5"])
+    fake_git(monkeypatch, tmp_path, {str(run): "tdd/7-lamps"})
+
+    text_code = status.main([])
+    text = capsys.readouterr().out
+    status.main(["--json"])
+    issues = [r["issue"] for r in json.loads(capsys.readouterr().out)["runs"]]
+
+    assert (text_code, text, issues) == (0, "#7  lamps glow  tdd/7-lamps  step 1 of 1\n", ["7"])
+
+
+def test_main_prints_two_runs_with_their_own_totals_when_each_directory_holds_the_others_ledger(tmp_path, monkeypatch, capsys, status):
+    runs = {}
+    for issue, other, dollars in (("7", "9", "0.25"), ("9", "7", "1.50")):
+        runs[issue] = lamp_run(tmp_path, issue, [issue, "4", other])
+        write_events(runs[issue] / ".tdd" / "events.jsonl",
+                     [lamp_ev(9990, issue, "launch", name="develop-red"), lamp_usage(9995, issue, dollars)])
+    fake_git(monkeypatch, tmp_path, {str(run): "tdd/%s-lamps" % issue for issue, run in runs.items()})
+    at_ten_thousand(monkeypatch)
+
+    code = status.main(["--json"])
+    pairs = [(r["issue"], r["dollars"]) for r in json.loads(capsys.readouterr().out)["runs"]]
+
+    assert (code, pairs) == (0, [("7", 0.25), ("9", 1.5)])
+
+
+def test_main_counts_no_run_for_a_directory_without_its_own_ledger_and_is_not_an_error(tmp_path, monkeypatch, capsys, status):
+    run = lamp_run(tmp_path, "8", ["3", "5"])
+    fake_git(monkeypatch, tmp_path, {str(run): "tdd/8-lamps"})
+
+    text_code = status.main([])
+    text = capsys.readouterr().out
+    json_code = status.main(["--json"])
+    doc = json.loads(capsys.readouterr().out)
+
+    assert (text_code, text, json_code, doc) == (0, "", 0, {"runs": [], "scope": None})
+
+
+STATUS_SUITE_FLOOR = [
+    "no runs under the main working tree prints 'no runs' and exits 3",
+    "a run under .tdd/wt/* is listed with its issue number, title, branch and step n of m",
+    "status.sh run through a symlink to the skill directory and from another working directory "
+    "answers as it does when run in place",
+]
+STATUS_SUITE_CUT = [
+    "a run shows its current phase, actor, leaf name, leaf elapsed seconds and attempts in the step, "
+    "from its event log",
+    "a run shows its cost so far in dollars and tokens, summed from its event log",
+    "a finished run's line reports its last step's attempt count, not attempt 0, when the done event "
+    "carries an empty step",
+    "a run whose log ends with a stop mark reads stopped <mode>, and --json reports state stopped with "
+    "the mode in stop_mode",
+    "a resume mark after a stop mark makes the run read running again",
+    "--scope <name> adds the scope's totals: issues attempted, done, bailed, total wall time and dollars",
+    "with no --scope, VERI_LABEL names the scope and adds the same totals line",
+    "--scope <name> totals include the count still solvable, from solvable-issues.sh for that scope",
+    "--json emits the same per-run and scope data as one JSON document",
+    "--json emits scope.solvable as a JSON number, like every other numeric field",
+    "solvable-issues.sh exiting other than 0 or 3 renders the solvable count as ?, in text and JSON",
+    "--json reports bail_phase from the bail event's own phase, not the last launch's",
+    "a run directory is one run, its own issue's ledger, not every committed ledger beside it",
+    "two run directories each holding the other's committed ledger print exactly two runs, each with "
+    "only its own directory's totals",
+    "a run directory with no ledger of its own contributes no run and is not an error",
+]
+
+
+def test_status_test_sh_keeps_only_the_adr_0027_survivors_and_the_floor():
+    suite = (SCRIPTS / "tests" / "status.test.sh").read_text()
+
+    missing = [name for name in STATUS_SUITE_FLOOR if name not in suite]
+    kept = [name for name in STATUS_SUITE_CUT if name in suite]
+
+    assert (missing, kept) == ([], [])
