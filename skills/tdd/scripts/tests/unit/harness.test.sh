@@ -62,6 +62,26 @@ else
 fi
 rm -rf "$outer" "$dir" "$list"
 
+name="#595: sourcing the harness a second time keeps the pass/fail counts already reached"
+actual="$(
+  unset pass fail
+  # shellcheck disable=SC1090
+  source "$HARNESS"
+  ok
+  ok
+  no "planted" > /dev/null
+  # shellcheck disable=SC1090
+  source "$HARNESS"
+  echo "pass=$pass fail=$fail"
+)"
+expected="pass=2 fail=1"
+if [[ "$actual" == "$expected" ]]; then
+  ok
+else
+  no "$name"
+  printf '    expected: %s\n    actual:   %s\n' "$expected" "$actual"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
