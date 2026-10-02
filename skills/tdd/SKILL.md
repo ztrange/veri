@@ -714,13 +714,24 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    false before the step and true after it: the smell being present is the step's Red. The
    plan verifier REJECTs a refactor plan whose steps are not written that way. Each step
    opens with a cover leaf, which mutates the code the step will move, runs the suite,
-   expects red, restores and reports `COVERED:` and `CAUGHT_BY:`. If
+   expects red, restores and reports `COVERED:` and `CAUGHT_BY:`, read by
+   `$S/cover-outcome.sh < <the leaf's report>`. If
    `git status --porcelain` prints anything once it exits, refuse to continue — stop the
    run: the transform would otherwise commit the leftover mutation as a refactoring.
    On `COVERED: no`, refuse the step: **bail with cause `uncovered`**, narrating the remedy —
    find a seam and surround the behaviour with tests first — and run
    `$S/coverage-blocker.sh <n>`, which files the coverage issue and blocks this one on it,
    so the queue cannot retake it only to refuse again.
+   On `COVERED: unreachable` or `COVERED: type-only`, `cover-outcome.sh` exits 3 and
+   prints `<kind>: <proof>`: go on to Transform, posting that proof in the step's Cover
+   comment, and do not bail or run `coverage-blocker.sh`. The leaf answers them only for a
+   step no test can observe — `unreachable` for one that only deletes code no caller reaches,
+   `type-only` for one that changes only types — where a blocker would ask for tests that
+   cannot exist. What guards the step instead: for `unreachable`, the full suite after the
+   transform; for `type-only`, the proof is the type-check command, so run it once the
+   transform commits, and a non-zero exit rejects the transform as `transform-touches-tests.sh`
+   exit 1 does. Exit 2 — no proof, or no `COVERED:` line — is no answer: bail as a **system**
+   failure (`no-verdict`), never treat it as a pass.
    A refactor-kind step therefore runs **Cover → Transform → Verify**, not Red → Green →
    Refactor. After Cover, a transform leaf applies the step's one named refactoring and
    commits it; then `$S/transform-touches-tests.sh <base-sha>` reads every commit since the

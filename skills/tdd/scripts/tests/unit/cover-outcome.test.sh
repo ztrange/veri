@@ -6,8 +6,10 @@
 #
 # Contract under test:
 #   stdin  = the cover leaf's report (the COVERED:/CAUGHT_BY:/MUTATION: lines at its end)
-#   stdout = on COVERED: yes, the test the report's CAUGHT_BY: line names
-#   exit   = 0 COVERED: yes · 1 COVERED: no · 2 no readable COVERED: line
+#   stdout = on COVERED: yes, the test the report's CAUGHT_BY: line names; on
+#            COVERED: unreachable or type-only, `<kind>: <the PROOF: line>`
+#   exit   = 0 COVERED: yes · 1 COVERED: no · 2 no readable COVERED: line, or unreachable
+#            or type-only with no proof · 3 COVERED: unreachable or type-only
 #
 # Run: scripts/tests/unit/cover-outcome.test.sh
 set -uo pipefail
@@ -48,6 +50,40 @@ MUTATION: $mutation"
 [[ "$code" == 1 ]] || problems+=("COVERED: no: want exit 1, got $code")
 run_on "some narration with no report lines at all"
 [[ "$code" == 2 ]] || problems+=("no COVERED: line: want exit 2, got $code")
+verdict "$name"
+
+proof='Widget#onPaint: its one caller, page.js, passes () => {}'
+typecheck='npx tsc --noEmit'
+
+name="COVERED: unreachable and type-only exit 3 printing <kind>: <PROOF>, exit 2 without a proof, and a proof never turns COVERED: no into a pass"
+problems=()
+run_on "some narration
+COVERED: unreachable
+PROOF: $proof
+CAUGHT_BY: NONE
+MUTATION: $mutation"
+[[ "$code" == 3 ]] || problems+=("COVERED: unreachable: want exit 3, got $code")
+[[ "$out" == "unreachable: $proof" ]] || problems+=("COVERED: unreachable: want stdout 'unreachable: $proof', got '$(printf '%s' "$out" | tr '\n' '|')'")
+run_on "COVERED: type-only
+PROOF: $typecheck
+CAUGHT_BY: NONE
+MUTATION: $mutation"
+[[ "$code" == 3 ]] || problems+=("COVERED: type-only: want exit 3, got $code")
+[[ "$out" == "type-only: $typecheck" ]] || problems+=("COVERED: type-only: want stdout 'type-only: $typecheck', got '$(printf '%s' "$out" | tr '\n' '|')'")
+for kind in unreachable type-only; do
+  run_on "COVERED: $kind
+CAUGHT_BY: NONE
+MUTATION: $mutation"
+  [[ "$code" == 2 ]] || problems+=("COVERED: $kind with no PROOF: line: want exit 2, got $code")
+  run_on "COVERED: $kind
+PROOF: NONE
+CAUGHT_BY: NONE"
+  [[ "$code" == 2 ]] || problems+=("COVERED: $kind with PROOF: NONE: want exit 2, got $code")
+done
+run_on "COVERED: no
+PROOF: $proof
+CAUGHT_BY: NONE"
+[[ "$code" == 1 ]] || problems+=("COVERED: no with a proof line: want exit 1, got $code")
 verdict "$name"
 
 finish

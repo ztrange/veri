@@ -10,6 +10,12 @@
 #   3. SKILL.md's Cover step on `COVERED: no` — see case 3's comment.
 #   4. SKILL.md's refactor-kind cycle, transform rejection and abandonment — see case 4's comment.
 #   5. SKILL.md's Draft PR step titles a refactor-labelled run's PR refactor: — see case 5's comment.
+#   6. A step no test can observe never bails `uncovered`: the cover prompt allows COVERED:
+#      unreachable (only deletes code no caller reaches) and COVERED: type-only (changes only
+#      types) with a PROOF: line, and never for a step that moves or reshapes runtime code;
+#      SKILL.md reads it through cover-outcome.sh, goes on to Transform on exit 3 without a
+#      bail or coverage-blocker.sh, and reruns a type-only step's type-check command after the
+#      transform.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -81,7 +87,7 @@ else
   grep -E 'expect red' <<<"$cover" > /dev/null || problems+=("the cover prompt never tells the leaf to expect red")
   grep -E 'restore' <<<"$cover" > /dev/null || problems+=("the cover prompt never tells the leaf to restore the edit")
   grep -E 'git diff[^.]{0,120}before[^.]{0,40}mutat|git status --porcelain' <<<"$cover" > /dev/null || problems+=("the cover prompt never tells the leaf to prove the tree unchanged")
-  cover_tail="$(sed '/^[[:space:]]*$/d' <<<"$cover_raw" | tail -n 3)"
+  cover_tail="$(sed '/^[[:space:]]*$/d' <<<"$cover_raw" | tail -n 4)"
   grep -E '^COVERED:' <<<"$cover_tail" > /dev/null || problems+=("the cover prompt's closing lines carry no COVERED: line")
   grep -E '^CAUGHT_BY:' <<<"$cover_tail" > /dev/null || problems+=("the cover prompt's closing lines carry no CAUGHT_BY: line")
 fi
@@ -142,6 +148,53 @@ else
   grep -E 'fix' <<<"$near" > /dev/null && grep -E 'feat' <<<"$near" > /dev/null ||
     problems+=("$skill_md's '$pr_heading' section names the refactor: prefix away from the fix: and feat: branches it sits beside")
 fi
+report "$name"
+
+name="the develop-cover prompt allows COVERED: unreachable and type-only, each with a PROOF:, only for a step no test can observe; $skill_md's Cover step goes on to Transform on cover-outcome.sh exit 3 and reruns a type-only proof after the transform"
+problems=()
+
+if [[ -z "$cover_raw" ]]; then
+  problems+=("build-develop-prompt.sh cover printed no prompt to read")
+else
+  near="$(window "$cover" 'covered: unreachable')"
+  if [[ -z "$near" ]]; then
+    problems+=("the cover prompt never offers COVERED: unreachable, so a step deleting dead code can only answer COVERED: no and bail")
+  else
+    grep -E 'only delet|deletes? only|deletion[- ]only' <<<"$near" > /dev/null ||
+      problems+=("the cover prompt offers COVERED: unreachable without restricting it to a step that only deletes code")
+    grep -E 'every caller|no caller' <<<"$near" > /dev/null ||
+      problems+=("the cover prompt's COVERED: unreachable asks for no proof naming every caller")
+  fi
+  near="$(window "$cover" 'covered: type-only')"
+  if [[ -z "$near" ]]; then
+    problems+=("the cover prompt never offers COVERED: type-only, so a step changing only a type can only answer COVERED: no and bail")
+  else
+    grep -E 'only types' <<<"$near" > /dev/null ||
+      problems+=("the cover prompt offers COVERED: type-only without restricting it to a step that changes only types")
+    grep -E 'type checker|type-check' <<<"$near" > /dev/null ||
+      problems+=("the cover prompt's COVERED: type-only never asks for the type-check command as its proof")
+  fi
+  grep -E '(mov|reshap)[^.]{0,160}never[^.]{0,40}unreachable[^.]{0,20}type-only' <<<"$cover" > /dev/null ||
+    problems+=("the cover prompt never says a step that moves or reshapes runtime code is neither unreachable nor type-only, so the gate loosens for every step")
+  cover_tail="$(sed '/^[[:space:]]*$/d' <<<"$cover_raw" | tail -n 4)"
+  grep -E '^PROOF:' <<<"$cover_tail" > /dev/null ||
+    problems+=("the cover prompt's closing lines carry no PROOF: line")
+fi
+
+near="$(window "$skill_text" 'covered: unreachable')"
+if [[ -z "$near" ]]; then
+  problems+=("$skill_md never says what a run does when Cover answers COVERED: unreachable or type-only")
+else
+  grep -F 'type-only' <<<"$near" > /dev/null ||
+    problems+=("$skill_md's handling of a step no test can observe never names COVERED: type-only")
+  grep -E 'exits? 3[^.]{0,200}transform|transform[^.]{0,200}exits? 3' <<<"$near" > /dev/null ||
+    problems+=("$skill_md's COVERED: unreachable handling never goes on to Transform on exit 3")
+  grep -E '(not|never|no)[^.]{0,80}(bail|coverage-blocker)' <<<"$near" > /dev/null ||
+    problems+=("$skill_md's COVERED: unreachable handling never says it neither bails nor files a coverage blocker")
+fi
+near="$(window "$skill_text" 'for type-only')"
+grep -E 'type-check command[^.]{0,120}(run|rerun)[^.]{0,80}transform[^.]{0,160}reject' <<<"$near" > /dev/null ||
+  problems+=("$skill_md never reruns a type-only step's type-check command after the transform and rejects it on failure, so the proof is only ever checked before the change")
 report "$name"
 
 finish
