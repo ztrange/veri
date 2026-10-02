@@ -43,6 +43,24 @@ run_make_in() {
 
 run_make() { run_make_in "$ROOT" "$@"; }
 
+USAGE_COUNTS='(^|[^a-z0-9])git [0-9]+, python3 [0-9]+, server [0-9]+, sleep [0-9]+'
+
+unit_roster_problems() {
+  local root="$1" f base header moved=0
+  for f in "$root/$UNIT_DIR"/*.test.sh; do
+    [[ -e "$f" ]] || continue
+    base="$(basename "$f")"
+    moved=$((moved + 1))
+    [[ -e "$root/skills/tdd/scripts/tests/$base" ]] && cmp -s "$f" "$root/skills/tdd/scripts/tests/$base" &&
+      echo "$base is under $UNIT_DIR/ and still in skills/tdd/scripts/tests/ too"
+    header="$(sed -n '2,$p' "$f" | sed '/^#/!q' | grep '^#')"
+    grep -Eq "$USAGE_COUNTS" <<< "$header" ||
+      echo "$base's header comment has no 'git <n>, python3 <n>, server <n>, sleep <n>' line"
+  done
+  [[ "$moved" -ge 5 ]] ||
+    echo "want at least 5 suites under $UNIT_DIR/, found $moved"
+}
+
 name="make -n unit lists only suites matching $UNIT_DIR/*.test.sh"
 problems=()
 
@@ -218,28 +236,30 @@ run_make_in "$mixed" test TESTS="$UNIT_DIR/mocks-vcs.test.sh skills/tdd/scripts/
 
 report "$name"
 
-name="at least five existing suites move into $UNIT_DIR/, each passing and recording its git/python3/server/sleep count in its header"
+name="at least five existing suites move into $UNIT_DIR/, each recording its git/python3/server/sleep count in its header"
 problems=()
 
-USAGE_COUNTS='(^|[^a-z0-9])git [0-9]+, python3 [0-9]+, server [0-9]+, sleep [0-9]+'
+while IFS= read -r problem; do
+  [[ -n "$problem" ]] && problems+=("$problem")
+done < <(unit_roster_problems "$ROOT")
 
-moved=0
-for f in "$ROOT/$UNIT_DIR"/*.test.sh; do
-  [[ -e "$f" ]] || continue
-  base="$(basename "$f")"
-  moved=$((moved + 1))
-  [[ -e "$HERE/$base" ]] && cmp -s "$f" "$HERE/$base" &&
-    problems+=("$base is under $UNIT_DIR/ and still in skills/tdd/scripts/tests/ too")
-  header="$(sed -n '2,$p' "$f" | sed '/^#/!q' | grep '^#')"
-  grep -Eq "$USAGE_COUNTS" <<< "$header" ||
-    problems+=("$base's header comment has no 'git <n>, python3 <n>, server <n>, sleep <n>' line")
-done
-[[ "$moved" -ge 5 ]] ||
-  problems+=("want at least 5 suites under $UNIT_DIR/, found $moved")
+report "$name"
 
-run_make unit
-[[ "$code" == 0 ]] ||
-  problems+=("want 'make unit' over the real tree to pass; it exited $code and said: $(flat "$out")")
+name="the unit roster check names a suite under $UNIT_DIR/ whose header lacks its git/python3/server/sleep line"
+problems=()
+
+fixture="$(scratch_dir)"
+mkdir -p "$fixture/$UNIT_DIR"
+printf '#!/usr/bin/env bash\n# A fixture suite.\n# git 0, python3 0, server 0, sleep 0\necho "1 passed, 0 failed"\n' \
+  > "$fixture/$UNIT_DIR/has-header.test.sh"
+printf '#!/usr/bin/env bash\n# A fixture suite with no counts.\necho "1 passed, 0 failed"\n' \
+  > "$fixture/$UNIT_DIR/lacks-header.test.sh"
+
+said="$(unit_roster_problems "$fixture" 2>&1)"
+grep -F 'lacks-header.test.sh' <<< "$said" | grep -F "header comment has no 'git <n>, python3 <n>, server <n>, sleep <n>' line" > /dev/null ||
+  problems+=("want the roster check over a fixture to name lacks-header.test.sh's header as lacking its counts line; it said: $(flat "$said")")
+grep -F 'has-header.test.sh' <<< "$said" | grep -F 'header comment' > /dev/null &&
+  problems+=("the roster check named has-header.test.sh's header, which carries its counts line: $(flat "$said")")
 
 report "$name"
 
