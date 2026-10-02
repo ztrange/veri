@@ -3,3 +3,5 @@
 - the "no suite builds its own scratch directory" case and the report() case repeat the same tree grep and harness.test.sh exclusion, and could call tree_grep (code this cycle did not write)
 ### `unit/no-report-copies.test.sh` goes red, naming the file and line, on a planted suite line `pass=0; fail=0` and on one `pass="${pass:-0}"`, still goes red on `pass=0 fail=0`, and stays green on the tree ⟦criterion 7⟧
 - the hit-parsing loops in the `report` case (`:65-70`) and the scratch case (`:145-150`) repeat the file/line split that `scaffolding_hits` and `counter_hits` already do. Earlier steps wrote that code, not this one, so this step leaves it alone.
+### the `model-knobs-recorded.test.sh` check that each suite sources `lib/harness.sh` is a case named for that, and no case name claims the four suites keep their own counters ⟦criterion 3⟧
+- the suite path literal "skills/tdd/scripts/tests/model-knobs-recorded.test.sh" is now written three times (case_name_running, probe_finish_case_name, probe_harness_case_name) and could be one variable
