@@ -514,6 +514,19 @@ says_both_ways "$replaces_green" "no longer forbids modifying or deleting any ot
 [[ -z "$problems" ]] \
   && ok || no "develop-green for a ⟦replaces-case⟧ step permits deleting the one bash case the step names and still forbids modifying or deleting any other case (${problems#; })"
 
+repair_step='fix the full-suite failure: skills/tdd/scripts/tests/zorblat.test.sh — FAIL - zorblat frobs a nitz; skills/tdd/scripts/tests/quux.test.sh — FAIL - quux & {nitz} round-trips ⟦suite-repair⟧'
+repair_green="$("$BUILD" green "$work/spec.md" "$repair_step" "make test" 'skills/tdd/scripts/tests/zorblat.test.sh' 'zorblat frobs a nitz' "make unit" 2>/dev/null)"; code=$?
+problems=""
+[[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
+for named in 'skills/tdd/scripts/tests/zorblat.test.sh' 'zorblat frobs a nitz' \
+             'skills/tdd/scripts/tests/quux.test.sh' 'quux & {nitz} round-trips'; do
+  [[ "$repair_green" == *"$named"* ]] || problems="$problems; does not name '$named'"
+done
+says_both_ways "$repair_green" "never tells the leaf to make every listed suite green" \
+  60 '(every|each|all)( of the)? (listed|red|named) suites?' 'green'
+[[ -z "$problems" ]] \
+  && ok || no "#690 develop-green for a ⟦suite-repair⟧ step listing two red suites names both suites and both failing cases and tells the leaf to make every listed suite green (${problems#; })"
+
 exhausted="$("$BUILD" exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md" 2>/dev/null)"; code=$?
 problems=""
 [[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
