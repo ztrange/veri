@@ -17,8 +17,9 @@
 set -uo pipefail
 USAGE="usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]"
 
-source "$(dirname "$0")/lib/exit-contract.sh"
-source "$(dirname "$0")/lib/github.sh"
+here="$(dirname "$0")"
+source "$here/lib/exit-contract.sh"
+source "$here/lib/github.sh"
 
 require_args 1 "$@"
 pr="$1"
@@ -47,7 +48,7 @@ ci_bound() {
         --json databaseId,conclusion,startedAt,updatedAt)" \
       || { fall_back "gh run list could not answer"; return; }
   done
-  PYTHONPATH="$(dirname "$0")/veri" python3 -c '
+  PYTHONPATH="$here/veri" python3 -c '
 import sys
 from datetime import datetime
 from json_documents import documents
@@ -77,7 +78,7 @@ sha_state() {
   local runs statuses
   runs="$(gh_rest_list "repos/$repo/commits/$1/check-runs" '"check_runs": *\[ *\]')" || return 2
   statuses="$(gh api "repos/$repo/commits/$1/status")" || return 2
-  PYTHONPATH="$(dirname "$0")/veri" python3 -c '
+  PYTHONPATH="$here/veri" python3 -c '
 import sys
 from json_documents import documents
 docs = documents(sys.stdin.read())
