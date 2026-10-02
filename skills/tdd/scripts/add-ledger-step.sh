@@ -31,7 +31,7 @@ shift 3
 texts=("$@")
 
 added='⟦added⟧'
-repair='⟦ci-repair⟧'
+ci_repair='⟦ci-repair⟧'
 suite_repair='⟦suite-repair⟧'
 
 # hazard: the marks are multibyte, and under LC_ALL=C a regex reads them byte by byte.
@@ -54,7 +54,7 @@ added_steps() {
 
 is_anchor_step() { [[ "$1" == *"$anchor"* && -n "$(ledger_steps <<< "$1")" ]]; }
 is_added_step() { [[ "$1" == *"$added"* ]]; }
-is_repair() { [[ "$1" == *"$repair"* || "$1" == *"$suite_repair"* ]]; }
+is_repair() { [[ "$1" == *"$ci_repair"* || "$1" == *"$suite_repair"* ]]; }
 added_mark() { is_repair "$1" || printf ' %s' "$added"; }
 
 count_lines() {
