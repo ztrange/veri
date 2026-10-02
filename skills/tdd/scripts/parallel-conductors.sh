@@ -92,6 +92,16 @@ for pr in items(sys.stdin.read()):
   return 0
 }
 
+print_context() {
+  local line read_re='"cache_read_input_tokens":([0-9]+)' create_re='"cache_creation_input_tokens":([0-9]+)'
+  while IFS= read -r line; do
+    [[ $line == *'"type":"assistant"'* && $line =~ $read_re ]] || continue
+    local cache_read=${BASH_REMATCH[1]}
+    [[ $line =~ $create_re ]] || continue
+    echo "context $1 $((cache_read + BASH_REMATCH[1]))"
+  done
+}
+
 is_failure() {
   case "$1" in killed\ *|bailed\ *) return 0 ;; esac
   return 1
@@ -126,8 +136,8 @@ while :; do
     [[ -n "$n" ]] || break
     (
       VERI_HEARTBEAT="$run_timeout" VERI_TIMEOUT="$run_timeout" VERI_STUCK_RETRIES=0 \
-        "$HERE/supervise.sh" "conductor-$n" env "${caller_env[@]}" "$HERE/run-conductor.sh" "$n" > /dev/null \
-        || echo "$?" > "$rc_dir/$n"
+        "$HERE/supervise.sh" "conductor-$n" env "${caller_env[@]}" "$HERE/run-conductor.sh" "$n" \
+        | print_context "$n" || echo "$?" > "$rc_dir/$n"
     ) &
     in_flight[$n]=$!
     launched[$n]=1
