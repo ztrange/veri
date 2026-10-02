@@ -415,14 +415,18 @@ probe_runner_refuses_the_countless_suite
 
 report "$name"
 
+probe_suite_path() {
+  tree="$(scratch_dir)" || {
+    problems+=("could not make a scratch directory to write a suite into, so the criterion went unasked")
+    return 1
+  }
+  probe="$tree/$1"
+}
+
 probe_runner_runs_the_named_suite_with_no_TESTS() {
   local tree probe seen
   have_runner "so there is no invocation to ask this of" || return
-  tree="$(scratch_dir)" || {
-    problems+=("could not make a scratch directory to write a suite into, so the criterion went unasked")
-    return
-  }
-  probe="$tree/$ENV_SUITE_NAME"
+  probe_suite_path "$ENV_SUITE_NAME" || return
   cat > "$probe" <<'SUITE'
 #!/usr/bin/env bash
 set -uo pipefail
@@ -727,11 +731,7 @@ problems=()
 probe_runner_terminated_mid_suite() {
   local tree probe
   have_runner "so there is no invocation to ask this of" || return
-  tree="$(scratch_dir)" || {
-    problems+=("could not make a scratch directory to write a suite into, so the criterion went unasked")
-    return
-  }
-  probe="$tree/terminates-its-runner.test.sh"
+  probe_suite_path terminates-its-runner.test.sh || return
   cat > "$probe" <<'SUITE'
 #!/bin/sh
 kill -TERM "$PPID"
