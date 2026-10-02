@@ -399,6 +399,48 @@ done
 [[ -z "$bad" ]] \
   && ok || no "a parked conductor does not stop new launches, with or without --continue-on-bail, and is never reported as a bail even when its draft PR's log ends in one ($bad )"
 
+gh_one="$work/gh-one"
+solvable_fixture "$gh_one" 7 8
+one_marks="$work/one.marks"
+: > "$one_marks"
+one_launches="$work/one.launches"
+: > "$one_launches"
+one_stub="$work/claude-one"
+conductor_stub "$one_stub" <<STUB
+$(stub_waits "$work/one.out")
+echo "\$n" >> "$one_launches"
+if [ "\$n" = 7 ] && [ "\$(grep -c '^7$' "$one_launches")" -eq 1 ]; then
+  echo \$\$ > "$one_marks.pid"
+  echo '{"type":"assistant","message":{"role":"assistant","usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":150000,"output_tokens":40}}}'
+  await_context 'context 7 150000'
+  echo mid-step-7 >> "$one_marks"
+  over_budget_step_done
+  heartbeats 50
+  echo before-result-7 >> "$one_marks"
+  echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
+  heartbeats 200
+  echo after-step-done-7 >> "$one_marks"
+  exit 0
+elif [ "\$n" = 8 ]; then
+  echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=8 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":50000,"output_tokens":30}}}'
+  await_context 'context 8 50000'
+  echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
+  heartbeats 50
+  echo end-8 >> "$one_marks"
+fi
+$(ready_pr "$gh_one")
+STUB
+
+run_launcher "$gh_one" "$one_stub" "$work/one.out" VERI_PARALLEL=1 VERI_CONDUCTOR_CTX_BUDGET=100000
+i=0
+while (( i < 200 )) && [[ -r "$one_marks.pid" ]] && kill -0 "$(cat "$one_marks.pid")" 2>/dev/null; do
+  sleep 0.01
+  i=$((i + 1))
+done
+expect_lines "with VERI_PARALLEL=1 a conductor over VERI_CONDUCTOR_CTX_BUDGET mid-step is stopped only after its step-done result and relaunched for the same issue, and one that never crosses the budget is never stopped or relaunched" \
+  "$(printf 'mid-step-7\nbefore-result-7\nend-8\n--\n7\n7\n8\n--\nrestarted 7')" \
+  "$(cat "$one_marks"; echo --; cat "$one_launches"; echo --; grep '^restarted ' "$work/one.out" || true)" "$work/one.out"
+
 gh4="$work/gh4"
 gh_fixture "$gh4" <<'JSON'
 [
