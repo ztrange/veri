@@ -108,6 +108,12 @@ run_guard() {
 
 naming() { grep -F "$1" <<< "$guard_out"; }
 
+names_none() {
+  local named
+  named="$(naming "$1")"
+  [[ -z "$named" ]] || problems+=("$2: $(flat "$named")")
+}
+
 probe_guard_names_each_form() {
   local form line
   [[ "$guard_code" != 0 ]] ||
@@ -120,17 +126,11 @@ probe_guard_names_each_form() {
 }
 
 probe_guard_leaves_the_comment_alone() {
-  local named
-  named="$(naming "$OFFENDER_REL:$comment_line ")"
-  [[ -z "$named" ]] ||
-    problems+=("the guard named $OFFENDER_REL:$comment_line, where python3 -c appears only inside a comment: $(flat "$named")")
+  names_none "$OFFENDER_REL:$comment_line " "the guard named $OFFENDER_REL:$comment_line, where python3 -c appears only inside a comment"
 }
 
 probe_guard_leaves_the_unported_alone() {
-  local named
-  named="$(naming "$UNPORTED_NAME")"
-  [[ -z "$named" ]] ||
-    problems+=("the guard named $UNPORTED_REL, which has no module under veri/ and so is not ported yet: $(flat "$named")")
+  names_none "$UNPORTED_NAME" "the guard named $UNPORTED_REL, which has no module under veri/ and so is not ported yet"
 }
 
 remove_plant() {
@@ -139,12 +139,9 @@ remove_plant() {
 }
 
 probe_guard_is_green_once_the_plant_is_removed() {
-  local named
   [[ "$guard_code" == 0 ]] ||
     problems+=("want the guard to pass over the same tree once $OFFENDER_REL is removed; it exited $guard_code and said: $(flat "$guard_out")")
-  named="$(naming "$OFFENDER_NAME")"
-  [[ -z "$named" ]] ||
-    problems+=("the guard still named $OFFENDER_NAME, whose file is no longer in the tree: $(flat "$named")")
+  names_none "$OFFENDER_NAME" "the guard still named $OFFENDER_NAME, whose file is no longer in the tree"
 }
 
 name="no-python-in-ported-scripts.test.sh names a script whose module exists under veri/ as <script>:<line> at its python3 heredoc and its python3 -c string, leaves a commented python3 -c and a script with no module alone, and goes green once the planted offender is removed"
