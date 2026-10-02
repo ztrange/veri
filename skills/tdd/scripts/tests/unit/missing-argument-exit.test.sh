@@ -35,34 +35,31 @@ verdict() {
   fi
 }
 
-requires_argument() {  # requires_argument <file> — its usage line names a <…> outside […]
-  local usage
-  usage="$(grep -m1 -oE 'usage: .*' "$1")" || return 1
-  [[ "$(sed -E 's/\[[^]]*\]//g' <<< "$usage")" == *'<'*'>'* ]]
-}
-
-argument_scripts() {  # argument_scripts — the scripts/*.sh names requires_argument admits, one per line
-  local file
-  for file in "$SCRIPTS"/*.sh; do
-    requires_argument "$file" && printf '%s\n' "${file##*/}"
-  done
-}
-
 name="a script requiring a positional argument exits 2 with a usage line when called with none"
 unset VERI_TIMEOUT VERI_REFACTOR_BUDGET
-mapfile -t roster < <(argument_scripts)
-offenders=()
-for script in "${roster[@]}"; do
-  refuses "$script"
-done
+mapfile -t offenders < <(argument_audit "$SCRIPTS" 2>&1)
 verdict "$name"
 
-name="the missing-argument audit covers every script in the real scripts/ directory whose usage line names a required argument"
-offenders=()
-while read -r script; do
-  [[ " ${roster[*]} " == *" $script "* ]] || offenders+=( "$script: not audited" )
-done < <(argument_scripts)
-verdict "$name"
+name="the missing-argument audit covers a script added to the scripts/ directory whose usage line names a required argument"
+plant="$(scratch_dir)"
+cat > "$plant/planted.sh" <<'STUB'
+#!/bin/sh
+echo "usage: planted.sh <n>" >&2
+exit 0
+STUB
+chmod +x "$plant/planted.sh"
+expect_eq "$name" 'planted.sh: want exit 2, got 0' "$(argument_audit "$plant" 2>&1)"
+
+name="the missing-argument audit returns 1 when a script it audits is an offender"
+code=0
+argument_audit "$plant" > /dev/null 2>&1 || code=$?
+expect_eq "$name" 1 "$code"
+
+name="the missing-argument audit over a directory holding no script prints nothing and returns 0"
+empty="$(scratch_dir)"
+code=0
+out="$(argument_audit "$empty" 2>&1)" || code=$?
+expect_eq "$name" '0:' "$code:$out"
 
 name="a script exits 2 with a usage line when a later required argument is missing"
 offenders=()
