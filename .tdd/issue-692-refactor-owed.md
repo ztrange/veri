@@ -1,0 +1,2 @@
+### no case in test_status.py calls a function of veri.status other than main: the run_activity, scope_totals and run_object cases assert their behaviour through veri.status.main(argv), or are removed where an existing main case already asserts it ⟦criterion 3⟧
+- test-only | rename `test_main_takes_the_run_activity_and_scope_totals_lines_from_event_logs_one_parse_and_sum_with_figures_unchanged` (test_status.py:380), whose name still points at the internals this step stopped calling; that case was written before this cycle
