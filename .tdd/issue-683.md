@@ -7,7 +7,7 @@
 - [x] `run-suite.sh` over a suite that exits 0 without its count line prints `<suite>: never reached its count line` and then `<suite>: its last line was: <line>`, or `<suite>: its output was empty` when it printed nothing, and exits 1 ⟦criterion 5⟧
 - [x] `run-suite.sh` with no `lib/count-line-guard.sh` beside it exits 2 with a stderr line naming that file, and runs no `make` ⟦criterion 6⟧
 - [x] `make test` holds every suite to its count line by running it through `run-suite.sh` (no `tail -n 1` left in the Makefile): a suite that exits 0 without its count line still fails the run, printing `<suite>: never reached its count line` and then its last line or that its output was empty ⟦criterion 3⟧
-- [ ] The Makefile has no `count-line-guard` target (`! grep -n '^count-line-guard:' Makefile`), and no suite reads one ⟦criterion 7⟧
+- [x] The Makefile has no `count-line-guard` target (`! grep -n '^count-line-guard:' Makefile`), and no suite reads one ⟦criterion 7⟧ ⟂ refactor pending
 - [ ] `stop-run.sh` takes its accepted stop modes from one sourced list in `lib/`, and still refuses a mode outside it with `stop-run: unknown mode — want at-ledger, at-leaf or now: '<mode>'` ⟦criterion 8⟧
 - [ ] `stop-requested.sh` takes its accepted stop modes from the same sourced list, and still refuses a `.tdd/stop` naming a mode outside it with today's exit-2 message; no script under `skills/tdd/scripts/` spells `at-ledger | at-leaf | now)` ⟦criterion 8⟧
 - [ ] `make test` is green ⟦full-suite⟧ ⟦criterion 9⟧
