@@ -6,6 +6,7 @@
 #   `make test` over a suite that dies from an unbound variable inside a numeric
 #   comparison after its first case and exits 0 comes back non-zero, and says which suite
 #   never reached its count line.
+#   run-suite.sh over a tests/py/test_*.py file runs it under pytest: 0 green, 1 a failing case.
 #
 # Run: skills/tdd/scripts/tests/count-line-guard.test.sh
 set -uo pipefail
@@ -1030,6 +1031,46 @@ probe_all_green_suites_pass() {
 }
 
 probe_all_green_suites_pass
+
+report "$name"
+
+name="run-suite.sh runs a tests/py/test_*.py file under pytest: exit 0 when green, 1 when a case fails"
+problems=()
+
+py_tree="$(scratch_dir)"
+mkdir -p "$py_tree/tests/py"
+printf 'def test_holds():\n    assert 1 + 1 == 2\n' > "$py_tree/tests/py/test_green.py"
+printf 'def test_breaks():\n    assert 1 + 1 == 3\n' > "$py_tree/tests/py/test_red.py"
+
+direct "$RUNNER" "$py_tree/tests/py/test_green.py"
+[[ "$direct_code" == 0 ]] ||
+  problems+=("want exit 0 over a pytest file whose one case is green; got $direct_code, and it said: $(flat "$direct_out")")
+
+direct "$RUNNER" "$py_tree/tests/py/test_red.py"
+[[ "$direct_code" == 1 ]] ||
+  problems+=("want exit 1 over a pytest file whose one case fails; got $direct_code, and it said: $(flat "$direct_out")")
+grep -F 'test_breaks' <<< "$direct_out" > /dev/null ||
+  problems+=("want pytest's report naming the failing case test_breaks; it said: $(flat "$direct_out")")
+
+report "$name"
+
+name="run-suite.sh runs a pytest file with \$VERI_VENV's python3, and with the python3 on PATH when that venv has none"
+problems=()
+
+venv="$(scratch_dir)"
+mkdir -p "$venv/bin"
+printf '#!/bin/sh\necho "venv python3 $*"\nexit 0\n' > "$venv/bin/python3"
+chmod +x "$venv/bin/python3"
+direct env VERI_VENV="$venv" "$RUNNER" "$py_tree/tests/py/test_red.py"
+[[ "$direct_code" == 0 && "$direct_out" == "venv python3 -m pytest $py_tree/tests/py/test_red.py" ]] ||
+  problems+=("want \$VERI_VENV/bin/python3 to run the file (exit 0, 'venv python3 -m pytest …'); got $direct_code, and it said: $(flat "$direct_out")")
+
+path_bin="$(scratch_dir)"
+printf '#!/bin/sh\necho "path python3 $*"\nexit 0\n' > "$path_bin/python3"
+chmod +x "$path_bin/python3"
+direct env VERI_VENV="$(scratch_dir)" PATH="$path_bin:$PATH" "$RUNNER" "$py_tree/tests/py/test_red.py"
+[[ "$direct_code" == 0 && "$direct_out" == "path python3 -m pytest $py_tree/tests/py/test_red.py" ]] ||
+  problems+=("want the python3 on PATH when \$VERI_VENV has no bin/python3 (exit 0, 'path python3 -m pytest …'); got $direct_code, and it said: $(flat "$direct_out")")
 
 report "$name"
 
