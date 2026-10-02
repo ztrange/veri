@@ -874,6 +874,25 @@ grep -F "VERI_MAX_ISSUES must be a whole number >= 1: ''" "$work/cap23.out" > /d
 [[ "$code" == 2 && ! -e "$capped23" && "$named" == yes ]] \
   && ok || no "#505 VERI_MAX_ISSUES set but empty is exit 2 naming it and the empty value '', with no conductor launched ( [exit=$code want 2, launched: $([[ -e "$capped23" ]] && echo yes || echo no), named: $named] $(cat "$work/cap23.out") )"
 
+bad=""
+for value in abc 1.5 -1; do
+  tag="${value//[^a-z0-9]/_}"
+  gh_budget="$work/gh-budget-$tag"
+  solvable_fixture "$gh_budget" 7
+  budget_launched="$work/budget-launched-$tag"
+  budget_stub="$work/claude-budget-$tag"
+  record_stub "$budget_stub" "$budget_launched" "$gh_budget"
+  run_launcher "$gh_budget" "$budget_stub" "$work/budget-$tag.out" VERI_CONDUCTOR_CTX_BUDGET="$value"
+  named=no
+  grep -F 'VERI_CONDUCTOR_CTX_BUDGET' "$work/budget-$tag.out" > /dev/null && named=yes
+  if [[ "$code" != 2 || -e "$budget_launched" || "$named" != yes ]]; then
+    bad+=" [VERI_CONDUCTOR_CTX_BUDGET='$value': exit=$code want 2, launched: $([[ -e "$budget_launched" ]] && echo yes || echo no), named: $named]"
+  fi
+done
+
+[[ -z "$bad" ]] \
+  && ok || no "VERI_CONDUCTOR_CTX_BUDGET not a whole number (a word, a fraction, a negative) is exit 2 naming it, with no conductor launched ($bad )"
+
 gh24="$work/gh24"
 solvable_fixture "$gh24" 7 8 9
 capped24="$work/capped24"
