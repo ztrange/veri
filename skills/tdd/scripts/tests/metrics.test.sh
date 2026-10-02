@@ -2756,6 +2756,10 @@ structural_log() {
   sv "$1" 80020 conductor ""       step-done ""
 }
 
+structural_section() {
+  awk '/^#### Structural pass/ {on=1; next} /^####/ {on=0} on' "$1" > "$2"
+}
+
 name="#503 the structural-pass mark renders as its own Metrics section, apart from the per-step refactor cells, and a log without one renders none"
 problems=()
 
@@ -2806,7 +2810,7 @@ sv "" 80030 conductor "" structural-pass "" '"stopped": "nothing-structural"'
 sv "" 80040 conductor "" done "" '"pr": "https://github.com/ztrange/veri/pull/999"'
 bare_figure_out="$bare_figure_work/report.md"
 render "$bare_figure_work" "$bare_figure_out"
-awk '/^#### Structural pass/ {on=1; next} /^####/ {on=0} on' "$bare_figure_out" > "$bare_figure_work/section.txt"
+structural_section "$bare_figure_out" "$bare_figure_work/section.txt"
 grep -F 'nothing-structural' "$bare_figure_work/section.txt" > /dev/null ||
   problems+=("want the structural section to name nothing-structural, got: $(cat "$bare_figure_work/section.txt")")
 if grep -E '[0-9]+/[0-9]+' "$bare_figure_work/section.txt" > /dev/null; then
@@ -2825,7 +2829,7 @@ sv "" 80030 conductor "" structural-pass "" '"transforms": "0", "budget": "10", 
 sv "" 80040 conductor "" done "" '"pr": "https://github.com/ztrange/veri/pull/999"'
 unspent_out="$unspent_work/report.md"
 render "$unspent_work" "$unspent_out"
-awk '/^#### Structural pass/ {on=1; next} /^####/ {on=0} on' "$unspent_out" > "$unspent_work/section.txt"
+structural_section "$unspent_out" "$unspent_work/section.txt"
 grep -i 'inconsistent' "$unspent_work/section.txt" > "$unspent_work/inconsistent.txt"
 if ! grep -w '0' "$unspent_work/inconsistent.txt" > /dev/null ||
    ! grep -w '10' "$unspent_work/inconsistent.txt" > /dev/null; then
@@ -2839,7 +2843,7 @@ sv "" 80030 conductor "" structural-pass "" '"transforms": "10", "budget": "10",
 sv "" 80040 conductor "" done "" '"pr": "https://github.com/ztrange/veri/pull/999"'
 spent_out="$spent_work/report.md"
 render "$spent_work" "$spent_out"
-awk '/^#### Structural pass/ {on=1; next} /^####/ {on=0} on' "$spent_out" > "$spent_work/section.txt"
+structural_section "$spent_out" "$spent_work/section.txt"
 if grep -i 'inconsistent' "$spent_work/section.txt" > /dev/null; then
   problems+=("want no inconsistent-mark line for stopped=budget-spent with transforms equal to budget 10, got: $(cat "$spent_work/section.txt")")
 fi
