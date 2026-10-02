@@ -1,0 +1,2 @@
+### cover-outcome.sh reads a report ending `COVERED: unreachable` or `COVERED: type-only` with a `PROOF: <proof>` line as exit 3, printing `<kind>: <proof>` on stdout ⟦criterion 1⟧
+- test-only | fold the two near-identical `run_on` blocks in the `#679` case of `skills/tdd/scripts/tests/unit/cover-outcome.test.sh` (unreachable and type-only, differing only in kind and proof) into a loop over `kind=proof` pairs
