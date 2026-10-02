@@ -169,4 +169,29 @@ problems=()
 timeouts_over "$CI_YML" 10
 report "$name"
 
+name="ci.yml gates: python from actions/setup-python at 3.12 with pip's cache keyed on requirements-dev.txt, make install-dev before make test, on ubuntu-latest with its timeout-minutes"
+problems=()
+
+gates="$(job_block "$CI_YML" gates)"
+grep -E '^    runs-on:[ ]*ubuntu-latest[ ]*$' > /dev/null <<< "$gates" \
+  || problems+=("gates job does not run on ubuntu-latest")
+grep -E '^    timeout-minutes:[ ]*[0-9]+' > /dev/null <<< "$gates" \
+  || problems+=("gates job declares no job-level timeout-minutes")
+grep -E '^[ ]+(- )?uses:[ ]*actions/setup-python@' > /dev/null <<< "$gates" \
+  || problems+=("gates job has no actions/setup-python step")
+grep -E "^[ ]+python-version:[ ]*[\"']?3\.12[\"']?[ ]*$" > /dev/null <<< "$gates" \
+  || problems+=("setup-python is not pinned to python-version 3.12")
+grep -E "^[ ]+cache:[ ]*[\"']?pip[\"']?[ ]*$" > /dev/null <<< "$gates" \
+  || problems+=("setup-python does not declare cache: pip")
+grep -E "^[ ]+cache-dependency-path:[ ]*[\"']?requirements-dev\.txt[\"']?[ ]*$" > /dev/null <<< "$gates" \
+  || problems+=("pip's cache is not keyed on requirements-dev.txt")
+install_at="$(grep -m 1 -nE '^[ ]+run:[ ]*make install-dev[ ]*$' <<< "$gates" | cut -d: -f1)"
+test_at="$(grep -m 1 -nE '^[ ]+run:[ ]*make test[ ]*$' <<< "$gates" | cut -d: -f1)"
+if [[ -z "$install_at" ]]; then
+  problems+=("gates job has no step running make install-dev")
+elif [[ -z "$test_at" ]] || [[ "$install_at" -ge "$test_at" ]]; then
+  problems+=("make install-dev does not run before make test (install at line ${install_at}, test at line ${test_at:-none})")
+fi
+report "$name"
+
 finish

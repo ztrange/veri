@@ -72,8 +72,17 @@ jobs:
       # runs before a commit runs under bash 3.2 there. A macos-latest runner used to
       # sit beside this one; it re-checked the environment the code was just tested
       # on, at ten times the per-minute price of Linux, and was ~94% of the billed
-      # minutes on 2026-09-11. Nothing here needs installing: python3 and bash are
-      # preinstalled, and nothing shells out to jq or gh — the scripts avoid jq (see
-      # docs/wt/commentary.py) and the test suites stub the model via CLAUDE_BIN.
+      # minutes on 2026-09-11. bash is preinstalled, and nothing shells out to jq or
+      # gh — the scripts avoid jq (see docs/wt/commentary.py) and the test suites stub
+      # the model via CLAUDE_BIN.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: make install-dev
+        run: make install-dev
+
       - name: make test
         run: make test
