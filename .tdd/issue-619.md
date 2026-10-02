@@ -1,6 +1,6 @@
 # Plan for #619 — Leaves restore a mutation with git checkout, wiping the step's uncommitted work
 
-- [x] verify-green.md tells the verifier to run `cp <file> <file>.orig` before it mutates the code and `mv <file>.orig <file>` after the run under mutation ⟦criterion 1⟧ ⟂ refactor pending
+- [x] verify-green.md tells the verifier to run `cp <file> <file>.orig` before it mutates the code and `mv <file>.orig <file>` after the run under mutation ⟦criterion 1⟧
 - [ ] verify-pin.md tells the verifier to run `cp <file> <file>.orig` before it mutates the code and `mv <file>.orig <file>` after the run under mutation ⟦criterion 1⟧
 - [ ] develop-cover.md tells the cover leaf to run `cp <file> <file>.orig` before it mutates the code and `mv <file>.orig <file>` after the run under mutation ⟦criterion 1⟧
 - [ ] verify-green.md, verify-pin.md and develop-cover.md each confirm the restore by comparing `git diff` with what it printed before the probe, and none of them contains `git checkout --` or `git diff --exit-code` ⟦criterion 2⟧

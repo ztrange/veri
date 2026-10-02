@@ -1,0 +1,2 @@
+### verify-green.md tells the verifier to run `cp <file> <file>.orig` before it mutates the code and `mv <file>.orig <file>` after the run under mutation ⟦criterion 1⟧
+- build-verify-prompt.test.sh:303-320 — the #619 case's offset-ordering check (`offset_of`, then cp before the mutation and mv after the run) will repeat once the verify-pin and develop-cover steps add their own cases. Pull it into a shared helper beside `prompt_says` (line 72) at that point. Doing it now, with one caller, would be generality that no test asks for yet.
