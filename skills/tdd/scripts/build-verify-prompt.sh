@@ -47,6 +47,7 @@ done
 
 # hazard: `${N:?}` would abort with status 1, the code reserved for an answer.
 require_args 3 "$@"
+(( $# <= 4 )) || refuse "build-verify-prompt: too many arguments"
 phase="$1"
 spec_file="$2"
 test_path="$3"

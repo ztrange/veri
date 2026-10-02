@@ -61,8 +61,9 @@ grep -qiE "$full_suite" <<<"$green" \
   && ok || no "verify-green still requires the full test suite"
 
 smuggled='ran only tests/test_slugify.py, the suite I touched, because the rest is slow'
-five="$("$BUILD" --fast-cmd 'make unit' green "$work/spec.md" "$testpath" test_slugify_lowercases "$smuggled")"
-[[ "$five" == "$green" ]] && ok || no "a fifth argument reaches nothing (argument list unchanged)"
+extra="$("$BUILD" --fast-cmd 'make unit' green "$work/spec.md" "$testpath" test_slugify_lowercases "$smuggled" 2>/dev/null)"; code=$?
+[[ "$code" -eq 2 && -z "$extra" ]] \
+  && ok || no "a green call with an extra positional argument beyond the target test id exits 2 with nothing on stdout (exit $code, ${#extra} bytes on stdout)"
 
 prompt_has() {  # prompt_has <prompt> <grep argument…> — the match itself, folded to one line
   local prompt="$1"; shift
