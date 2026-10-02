@@ -103,10 +103,9 @@ else:
 while :; do
   read -r mergeable head < <(pr_head) && [[ -n "$head" ]] \
     || { echo "wait-ci.sh: could not read the checks of $pr" >&2; exit 2; }
-  if [[ -n "$want" && "$head" != "$want" ]]; then
+  state="$(sha_state "$head")" || { echo "wait-ci.sh: could not read the checks of $head" >&2; exit 2; }
+  if [[ -n "$want" && "$head" != "$want" && ! ( "$state" == none && "$mergeable" == False ) ]]; then
     state=pending
-  else
-    state="$(sha_state "$head")" || { echo "wait-ci.sh: could not read the checks of $head" >&2; exit 2; }
   fi
   case "$state" in
     green) exit 0 ;;
