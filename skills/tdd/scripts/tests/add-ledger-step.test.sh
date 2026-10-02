@@ -245,6 +245,21 @@ want='# Plan for #42
 check_code "#660: a step ending in ⟦added⟧ before its ⟦criterion k⟧ is counted toward VERI_STEP_GROWTH" \
   "$code" 1 "$want"
 
+seed_lines '- [ ] fix the CI failure: x.test.sh ⟦ci-repair⟧ ⟦criterion 2⟧' \
+  '- [x] fix the full-suite failure: y.test.sh ⟦suite-repair⟧ ⟦criterion 2⟧ ⟂ refactor pending' \
+  '- [ ] collapse to single hyphen ⟦criterion 2⟧'
+VERI_STEP_GROWTH=1 "$ADD" "$led" after 'collapse to single hyphen' \
+  'one more edge case' 'fix the full-suite failure: z.test.sh ⟦suite-repair⟧'; code=$?
+want='# Plan for #42
+
+- [ ] fix the CI failure: x.test.sh ⟦ci-repair⟧ ⟦criterion 2⟧
+- [x] fix the full-suite failure: y.test.sh ⟦suite-repair⟧ ⟦criterion 2⟧ ⟂ refactor pending
+- [ ] collapse to single hyphen ⟦criterion 2⟧
+- [ ] one more edge case ⟦added⟧ ⟦criterion 2⟧
+- [ ] fix the full-suite failure: z.test.sh ⟦suite-repair⟧ ⟦criterion 2⟧'
+check_code "#660: ⟦ci-repair⟧ and ⟦suite-repair⟧ steps, in the ledger or inserted, are not counted toward VERI_STEP_GROWTH" \
+  "$code" 0 "$want"
+
 stub="$work/stub"
 stub_script
 cat > "$stub/lib/ledger.sh" <<'EOF'
