@@ -4,11 +4,18 @@
 - [ ] run-suite.sh, given a tests/py/test_*.py path, exits 2 with no answer when pytest cannot be imported or the named file does not exist ⟦criterion 7⟧
 - [ ] affected-suites.sh, given a touched veri/<module>.py, prints tests/py/test_<module>.py when it exists and the bash suite of the entry point over that module (underscore in the module name read as a hyphen in the script's), without the widening notice ⟦criterion 6⟧
 - [ ] affected-suites.sh, given a touched tests/py/test_<module>.py, prints that file without the widening notice ⟦criterion 6⟧
-- [ ] no Python module is left under scripts/lib/: event_log, blocked_by, json_documents and leaf_log are modules of the scripts/veri/ package, and every script that imported one from lib/ finds it there with its suite passing unmodified ⟦criterion 5⟧
-- [ ] status.sh is a /bin/sh shim over veri/status.py holding no Python source, calling python3 once per invocation, and tests/status.test.sh passes unmodified against it, committed before any change to that suite ⟦criterion 1⟧
+- [ ] event_log is a module of the scripts/veri/ package and no longer under scripts/lib/; every script that imported it (status.sh, tier-usual.sh, metrics.sh and the rest) finds it there, their suites passing unmodified ⟦criterion 5⟧
+- [ ] blocked_by is a module of scripts/veri/ and no longer under scripts/lib/; solvable-issues.sh and workqueue.sh find it there, their suites passing unmodified ⟦criterion 5⟧
+- [ ] json_documents is a module of scripts/veri/ and no longer under scripts/lib/; every script that imported it finds it there, their suites passing unmodified ⟦criterion 5⟧
+- [ ] leaf_log is a module of scripts/veri/, leaving no .py file under scripts/lib/; every script that imported it finds it there, their suites passing unmodified ⟦criterion 5⟧
+- [ ] veri.status, imported in-process, computes the per-run activity line (phase, actor, leaf, seconds, attempt, dollars, tokens, state) that status.sh's run_activity heredoc computes today, status.sh calling it, and tests/status.test.sh passes unmodified ⟦criterion 1⟧
+- [ ] veri.status, imported in-process, computes the scope totals line (attempted, done, bailed, wall, dollars, solvable) that status.sh's scope_totals heredoc computes today, status.sh calling it, and tests/status.test.sh passes unmodified ⟦criterion 1⟧
+- [ ] veri.status, imported in-process, builds the --json run object that status.sh's python3 -c string builds today, status.sh calling it, and tests/status.test.sh passes unmodified ⟦criterion 1⟧
+- [ ] veri.status.main, called in-process with status.sh's arguments, renders every run and returns status.sh's exit code, and status.sh is a /bin/sh shim holding no Python source that calls python3 once per invocation; tests/status.test.sh passes unmodified against it, committed before any change to that suite ⟦criterion 1⟧
 - [ ] status.sh, run through a symlink to the skill directory and from another working directory, answers as it does when run in place ⟦criterion 2⟧
-- [ ] tests/py/test_status.py asserts in-process, importing veri.status and mocking subprocess, the clock and the recorder, what each tests/status.test.sh case outside the ADR 0027 survival rule and floor asserts ⟦criterion 3⟧
+- [ ] tests/py/test_status.py asserts in-process, mocking subprocess, the clock and the recorder, what each tests/status.test.sh case outside the ADR 0027 survival rule and floor asserts and the earlier steps' pytest cases do not yet cover ⟦criterion 3⟧
 - [ ] tests/status.test.sh keeps only the ADR 0027 survivors and the floor — one case per exit code status.sh uses, its bad-argument stderr text, the symlink case — the rest replaced by tests/py/test_status.py ⟦criterion 3⟧
+- [ ] the PR body lists each cut tests/status.test.sh case beside the tests/py/test_status.py case that replaced it ⟦human-owed⟧ ⟦criterion 3⟧
 - [ ] a guard suite fails, naming <script>:<line>, when a script whose module exists under veri/ holds Python source (a python3 -c string or a heredoc fed to python3), proven red against a planted offender ⟦criterion 4⟧
 - [ ] run-conductor.sh exits 2, naming the Python 3.12 floor and the version found, when the python3 on PATH is older than 3.12 ⟦criterion 8⟧
 - [ ] leaf-launchable.sh exits 2, naming the Python 3.12 floor and the version found, when the python3 on PATH is older than 3.12 ⟦criterion 8⟧
