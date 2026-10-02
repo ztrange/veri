@@ -502,6 +502,18 @@ says_both_ways "$revise_green" "never says a leaf that splits changes no product
 [[ -z "$problems" ]] \
   && ok || no "develop-revise redoing green offers the same one to three SPLIT: lines, changing no production code (${problems#; })"
 
+replaces_step='⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz" moves to tests/py/test_zorblat.py ⟦criterion 1⟧'
+licence='(may|permitted|allowed|licen[cs]ed?)[^.]{0,60}delet|delet[^.]{0,60}(permitted|allowed|licen[cs]ed)'
+replaces_green="$("$BUILD" green "$work/spec.md" "$replaces_step" "$test_cmd" 'tests/py/test_zorblat.py' 'test_zorblat_frobs_a_nitz' "make unit" 2>/dev/null)"; code=$?
+problems=""
+[[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
+prompt_says "$replaces_green" "never permits deleting the case the step names" -iE -e "$licence"
+prompt_lacks "$green" "an unmarked step's prompt permits deleting a case too" -iE -e "$licence"
+says_both_ways "$replaces_green" "no longer forbids modifying or deleting any other case" \
+  60 '(never|not|forbid|forbidden|must not|rejected)' '(any|every) other (bash )?case'
+[[ -z "$problems" ]] \
+  && ok || no "develop-green for a ⟦replaces-case⟧ step permits deleting the one bash case the step names and still forbids modifying or deleting any other case (${problems#; })"
+
 exhausted="$("$BUILD" exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md" 2>/dev/null)"; code=$?
 problems=""
 [[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
