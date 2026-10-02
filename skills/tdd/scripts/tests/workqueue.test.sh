@@ -697,4 +697,19 @@ else
   echo "    three pages stderr: $(cat "$work/next-three-pages.three.err")"
 fi
 
+repo="$work/trap-lifetime"
+make_repo "$repo"
+seed_queue "$repo" 'alpha\t12\tqueued\t\n'
+mkdir -p "$work/trap-lifetime.bin"
+printf '#!/bin/sh\nexit 5\n' > "$work/trap-lifetime.bin/mv"
+chmod +x "$work/trap-lifetime.bin/mv"
+(cd "$repo" && PATH="$work/trap-lifetime.bin:$PATH" "$SCRIPT" start alpha 12 \
+  2>"$work/trap-lifetime.err") && code=0 || code=$?
+if [[ "$code" -eq 2 ]]; then
+  ok
+else
+  no "workqueue.sh, failing after take_lock has armed its EXIT trap, ends with exit 2"
+  echo "    exit: $code (want 2), stderr: $(cat "$work/trap-lifetime.err")"
+fi
+
 finish

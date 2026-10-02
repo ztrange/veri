@@ -83,7 +83,7 @@ take_lock() {
     fi
     sleep 0.05
   done
-  trap 'rmdir "$queue.lock" 2>/dev/null || true' EXIT
+  at_exit 'rmdir "$queue.lock" 2>/dev/null || true'
 }
 
 if [[ "${1:-}" == start || "${1:-}" == done || "${1:-}" == park ]]; then
