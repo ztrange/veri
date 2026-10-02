@@ -1469,7 +1469,10 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    Then run the issue's **one structural pass**, once, before the PR is readied: the
    structural candidates the steps recorded rather than applied, each taken up by one
    `structural` transform leaf, bounded to every file the issue touched and counted against
-   the issue's budget, not a step's:
+   the issue's budget, not a step's. The conductor runs the pass whenever
+   `refactor-owed.sh list` prints a candidate, and never skips or shortens it for cost: the
+   way to spend less is to set a lower `VERI_ISSUE_REFACTOR_BUDGET` before launch, and the
+   candidates past the budget are filed by `refactor-overflow.sh`:
    ```
    git merge-base HEAD origin/<default>                 # → <issue-base>
    $S/refactor-touched.sh --issue <issue-base>          # → <issue-touched-files>

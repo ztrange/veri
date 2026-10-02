@@ -198,4 +198,21 @@ fi
 
 report "$name"
 
+name="#596: $skill_md's structural pass runs whenever refactor-owed.sh list prints a candidate, never skips or shortens it for cost, spends less only by a lower VERI_ISSUE_REFACTOR_BUDGET set before launch, and files candidates past the budget by refactor-overflow.sh"
+problems=()
+
+if ! missing_pass 'whether it may be skipped for cost'; then
+  squeezed="$(tr -s ' ' <<<"$pass_text")"
+  require 'whenever refactor-owed.sh list prints a candidate' "$squeezed" \
+    "$skill_md's structural pass never says it runs whenever refactor-owed.sh list prints a candidate"
+  require 'never skips or shortens it for cost' "$squeezed" \
+    "$skill_md's structural pass never says the conductor never skips or shortens it for cost"
+  require 'set a lower VERI_ISSUE_REFACTOR_BUDGET before launch' "$squeezed" \
+    "$skill_md's structural pass never says the way to spend less is to set a lower VERI_ISSUE_REFACTOR_BUDGET before launch"
+  require 'past the budget are filed by refactor-overflow.sh' "$squeezed" \
+    "$skill_md's structural pass never says candidates past the budget are filed by refactor-overflow.sh"
+fi
+
+report "$name"
+
 finish
