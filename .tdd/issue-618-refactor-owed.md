@@ -1,0 +1,3 @@
+### when `supervise.sh` refuses a launch under a name different from the live leaf's, because the leaf recorded in `.tdd/leaf.owner` is alive, it exits 2 and `.tdd/<refused-name>.exit` holds `2` ⟦criterion 1⟧
+- the five background `( cd … && exec env VERI_STUCK_RETRIES=0 … "$SUP" … ) &` launches in the #471/#618 owner cases still repeat the env prefix; a shared helper would have to keep `$!` as the supervisor's own pid, which the stderr pid assertions depend on
+- the "wait for leaf-pid, read it, release/kill the leaf" block is repeated across the owner/same/samex cases (most of it is #471 code)
