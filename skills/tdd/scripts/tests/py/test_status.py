@@ -120,6 +120,19 @@ def test_main_renders_a_three_step_ledger_with_one_ticked_as_step_2_of_3(tmp_pat
     assert "step 2 of 3" in capsys.readouterr().out
 
 
+def test_main_counts_the_ledgers_steps_alone_and_no_stray_checkbox_line_outside_them(tmp_path, monkeypatch, capsys, status):
+    run = tmp_path / ".tdd" / "wt" / "31"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "issue-31.md").write_text(
+        "# Plan for #31 — lamps glow\n\n- [x] a lamp exists\n- [ ] a lamp glows\n\n"
+        "Notes:\n* [ ] a stray box, not a step\n")
+    lamp_git(monkeypatch, tmp_path, [run])
+
+    code = status.main([])
+
+    assert (code, capsys.readouterr().out) == (0, "#31  lamps glow  tdd/31-lamps  step 2 of 2\n")
+
+
 def test_main_renders_every_run_as_status_sh_does_and_returns_0(tmp_path, monkeypatch, capsys, status):
     ledgers = {"31": "# Plan for #31 — lamps glow\n\n- [x] a lamp exists\n- [ ] a lamp glows\n",
                "32": "# Plan for #32 — bells ring\n\n- [ ] a bell rings\n"}
