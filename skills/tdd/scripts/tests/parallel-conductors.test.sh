@@ -361,50 +361,35 @@ expect_lines "a conductor stopped over VERI_CONDUCTOR_CTX_BUDGET is launched aga
 
 expect_lines "a conductor relaunched after an over-budget stop prints 'restarted <n>' naming its issue" "restarted 7" "$(grep '^restarted ' "$work/again.out" || true)" "$work/again.out"
 
-park_repo="$work/park"
-fresh_repo "$park_repo"
-gh_park="$work/gh-park"
-solvable_fixture "$gh_park" 7 8
-park_launches="$work/park.launches"
-: > "$park_launches"
-park_stub="$work/claude-park"
-conductor_stub "$park_stub" <<STUB
-echo "\$n" >> "$park_launches"
+park_run() {
+  local name="$1" gh="$work/gh-$1"
+  shift
+  fresh_repo "$work/$name"
+  solvable_fixture "$gh" 7 8
+  : > "$work/$name.launches"
+  conductor_stub "$work/claude-$name" <<STUB
+echo "\$n" >> "$work/$name.launches"
 if [ "\$n" = 7 ]; then
   mkdir -p .tdd/parked
   echo 'Which test command should this run use?' > .tdd/parked/7.md
-$(bailed_pr "$gh_park")
+$(bailed_pr "$gh")
   exit 0
 fi
-$(ready_pr "$gh_park")
+$(ready_pr "$gh")
 STUB
+  run_launcher_in "$work/$name" "$gh" "$work/claude-$name" "$work/$name.out" "$@"
+}
 
-run_launcher_in "$park_repo" "$gh_park" "$park_stub" "$work/park.out"
+park_run park
 expect_lines "a conductor that halts writing .tdd/parked/<n>.md prints 'parked <n>', its slot takes the next solvable issue even without --continue-on-bail and with its draft PR's log ending in a bail, and <n> is not launched again while still solvable" \
-  "$(printf 'parked 7\n7\n8')" "$(grep '^parked ' "$work/park.out"; cat "$park_launches")" "$work/park.out"
+  "$(printf 'parked 7\n7\n8')" "$(grep '^parked ' "$work/park.out"; cat "$work/park.launches")" "$work/park.out"
 
 bad=""
 for mode in stop continue; do
-  repo="$work/park-$mode"
-  fresh_repo "$repo"
-  gh_pm="$work/gh-park-$mode"
-  solvable_fixture "$gh_pm" 7 8
-  pm_launches="$work/park-$mode.launches"
-  : > "$pm_launches"
-  conductor_stub "$work/claude-park-$mode" <<STUB
-echo "\$n" >> "$pm_launches"
-if [ "\$n" = 7 ]; then
-  mkdir -p .tdd/parked
-  echo 'Which test command should this run use?' > .tdd/parked/7.md
-$(bailed_pr "$gh_pm")
-  exit 0
-fi
-$(ready_pr "$gh_pm")
-STUB
   flag=()
   [[ "$mode" == continue ]] && flag=(-- --continue-on-bail)
-  run_launcher_in "$repo" "$gh_pm" "$work/claude-park-$mode" "$work/park-$mode.out" "${flag[@]+"${flag[@]}"}"
-  got_launches="$(tr '\n' ',' < "$pm_launches")"
+  park_run "park-$mode" "${flag[@]+"${flag[@]}"}"
+  got_launches="$(tr '\n' ',' < "$work/park-$mode.launches")"
   as_bail="$(grep -E '^#7 — bailed|^stopped: #7' "$work/park-$mode.out" | tr '\n' '|')"
   if [[ "$got_launches" != "7,8," || -n "$as_bail" ]]; then
     bad+=" [$mode: exit=$code, launches '$got_launches' want '7,8,', #7 reported as a bail: '$as_bail' want none; output: $(tr '\n' '|' < "$work/park-$mode.out")]"
