@@ -9,4 +9,4 @@
 - [x] make test over a suite that exits 0 without its count line fails and prints `<suite>: never reached its count line`, byte-identical to what run-suite.sh prints for that suite ⟦criterion 6⟧
 - [x] make test's count-line guard comes from the same file under skills/tdd/scripts/lib that run-suite.sh reads, so changing that file's refusal text changes what make test prints for a countless suite
 - [x] make test over suites that all end in a count line with 0 failed exits 0 ⟦criterion 7⟧
-- [x] fix the full-suite failure: no-report-copies.test.sh — FAIL - no suite builds its own scratch directory, exit trap or tmp git repository (count-line-guard.test.sh:821 builds its own scratch instead of the harness's) ⟦suite-repair⟧ ⟦criterion 7⟧ ⟂ refactor pending
+- [x] fix the full-suite failure: no-report-copies.test.sh — FAIL - no suite builds its own scratch directory, exit trap or tmp git repository (count-line-guard.test.sh:821 builds its own scratch instead of the harness's) ⟦suite-repair⟧ ⟦criterion 7⟧
