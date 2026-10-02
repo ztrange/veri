@@ -134,14 +134,14 @@ done
 tpl="$(cat "$tpl_file")"
 shared="$(cat "$shared_file")"
 spec="$(cat "$spec_file")"
-reason=""
-if [[ -n "$reason_file" ]]; then reason="$(cat "$reason_file")"; fi
-
-replaces_case=""
-if [[ -n "$replaces_file" ]]; then replaces_case=$'\n\n'"$(cat "$replaces_file")"; fi
-
-bug_reproduction=""
-if [[ -n "$bug_file" ]]; then bug_reproduction="$(cat "$bug_file")"; fi
+optional() {
+  local content=""
+  if [[ -n "$2" ]]; then content="${3:-}$(cat "$2")"; fi
+  printf -v "$1" '%s' "$content"
+}
+optional reason "$reason_file"
+optional replaces_case "$replaces_file" $'\n\n'
+optional bug_reproduction "$bug_file"
 
 out="${tpl//\{\{SHARED\}\}/$shared}"
 out="${out//\{\{ISSUE_SPEC\}\}/$spec}"
