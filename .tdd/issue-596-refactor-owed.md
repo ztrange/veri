@@ -1,0 +1,2 @@
+### metrics.sh on a structural-pass mark with stopped=budget-spent and transforms below budget (transforms=0 budget=10) prints a named inconsistent-mark line in its Structural pass section naming the transforms and the budget, and exits 0 ⟦criterion 6⟧
+- fold the repeated fixture recipe in metrics.test.sh (`fixture_work` + `structural_log` + `sv … structural-pass <mark>` + `sv … done` + `render`, now repeated in six cases) into one helper that takes the mark payload
