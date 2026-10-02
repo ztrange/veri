@@ -126,7 +126,12 @@ if [[ ( "$phase" == "green" || "$revised_phase" == "green" ) && "$step" == *"⟦
   replaces_file="$HERE/prompts/_develop-green-replaces-case.md"
 fi
 
-for f in "$tpl_file" "$shared_file" "$spec_file" "$reason_file" "$bug_file" "$replaces_file"; do
+suite_repair_file=""
+if [[ "$phase" == "green" && "$step" == *"⟦suite-repair⟧"* ]]; then
+  suite_repair_file="$HERE/prompts/_develop-green-suite-repair.md"
+fi
+
+for f in "$tpl_file" "$shared_file" "$spec_file" "$reason_file" "$bug_file" "$replaces_file" "$suite_repair_file"; do
   [[ -n "$f" ]] || continue
   [[ -r "$f" ]] || { echo "build-develop-prompt: cannot read '$f'" >&2; exit 2; }
 done
@@ -141,12 +146,14 @@ optional() {
 }
 optional reason "$reason_file"
 optional replaces_case "$replaces_file" $'\n\n'
+optional suite_repair "$suite_repair_file" $'\n\n'
 optional bug_reproduction "$bug_file"
 
 out="${tpl//\{\{SHARED\}\}/$shared}"
 out="${out//\{\{ISSUE_SPEC\}\}/$spec}"
 out="${out//\{\{BUG_REPRODUCTION\}\}/$bug_reproduction}"
 out="${out//\{\{REPLACES_CASE\}\}/$replaces_case}"
+out="${out//\{\{SUITE_REPAIR\}\}/$suite_repair}"
 out="${out//\{\{STEP\}\}/$step}"
 out="${out//\{\{TEST_CMD\}\}/$test_cmd}"
 out="${out//\{\{TEST_PATH\}\}/$test_path}"
