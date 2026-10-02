@@ -34,8 +34,11 @@ finish() {
   [[ "$fail" -eq 0 ]]
 }
 
-_harness_scratch="$(mktemp 2>/dev/null)"
-_harness_exits=()
+if [[ "${_harness_pid:-}" != "$BASHPID" ]]; then
+  _harness_pid="$BASHPID"
+  _harness_scratch="$(mktemp 2>/dev/null)"
+  _harness_exits=()
+fi
 
 _harness_exit() {
   local cmd dir
