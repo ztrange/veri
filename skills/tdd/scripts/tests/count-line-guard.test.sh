@@ -831,6 +831,49 @@ probe_runner_from_foreign_repo
 
 report "$name"
 
+name="run-suite.sh over a red suite exits with the suite's own code, through a symlinked skills/tdd and from a git-archive extraction of it (#617)"
+problems=()
+
+runner_passes_red_code_through() {
+  local runner="$1" where="$2" own_code
+  direct "$RED_FIXTURE_PATH"
+  own_code="$direct_code"
+  direct "$runner" "$RED_FIXTURE_PATH"
+  [[ "$direct_code" == "$own_code" ]] ||
+    problems+=("want exit $own_code, the red suite's own, from the runner $where; it exited $direct_code and said: $(flat "$direct_out")")
+  grep -Fx '0 passed, 1 failed' <<< "$direct_out" > /dev/null ||
+    problems+=("want the red suite's own output from the runner $where, ending '0 passed, 1 failed'; it said: $(flat "$direct_out")")
+  ! grep -F "$GUARD_MESSAGE" <<< "$direct_out" > /dev/null ||
+    problems+=("want no count-line refusal from the runner $where over a red suite that reached its count line; it said: $(flat "$direct_out")")
+}
+
+probe_runner_red_from_symlink_and_snapshot() {
+  local tree skill_tree
+  tree="$(scratch_dir)" || {
+    problems+=("could not make a scratch directory for the symlink and the snapshot, so the question went unasked")
+    return 1
+  }
+  mkdir -p "$tree/.claude/skills"
+  ln -s "$ROOT/skills/tdd" "$tree/.claude/skills/tdd"
+  runner_passes_red_code_through "$tree/.claude/skills/tdd/scripts/run-suite.sh" "invoked through a symlinked skill dir"
+
+  skill_tree="$(GIT_INDEX_FILE="$tree/index" git -C "$ROOT" add -A -- skills/tdd &&
+    GIT_INDEX_FILE="$tree/index" git -C "$ROOT" write-tree)" || {
+    problems+=("could not record the working tree's skills/tdd as a git tree to archive, so the snapshot half went unasked")
+    return 1
+  }
+  mkdir -p "$tree/snapshot"
+  git -C "$ROOT" archive "$skill_tree" skills/tdd | tar -x -C "$tree/snapshot" || {
+    problems+=("could not extract a git archive of skills/tdd, so the snapshot half went unasked")
+    return 1
+  }
+  runner_passes_red_code_through "$tree/snapshot/skills/tdd/scripts/run-suite.sh" "in a git-archive extraction of skills/tdd"
+}
+
+probe_runner_red_from_symlink_and_snapshot
+
+report "$name"
+
 name="make test takes its count-line guard from skills/tdd/scripts/lib/count-line-guard.sh: a refusal reworded there is what it prints, and a tree without that file fails naming it (#617)"
 problems=()
 
