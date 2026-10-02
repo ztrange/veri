@@ -120,20 +120,20 @@ pin '3019634167 120' usage verify.sh green spec
 pin '3584306278 149' usage verify.sh --step
 
 spec="$work/spec.md" step="the step" cmd="make test"
-pin '1430760052 9932' prompt build-develop-prompt.sh red "$spec" "$step" "$cmd"
-pin '4073833405 10907' prompt build-develop-prompt.sh red "$work/bug.md" "$step" "$cmd"
-pin '1203928892 6783' prompt build-develop-prompt.sh green "$spec" "$step" "$cmd" t/x.test.sh "case one" "make unit"
-pin '1909829794 8853' prompt build-develop-prompt.sh refactor "$spec" "$step" "$cmd" "a.sh b.sh"
-pin '1926524209 4635' prompt build-develop-prompt.sh cover "$spec" "$step" "$cmd"
-pin '3121106979 4287' prompt build-develop-prompt.sh transform "$spec" "$step" "$cmd"
-pin '505412475 4319' prompt build-develop-prompt.sh structural "$spec" "a candidate" "$cmd" "a.sh b.sh"
-pin '2024196747 7249' prompt build-develop-prompt.sh revise red "$spec" "$step" "$cmd" "$work/reason.md"
-pin '749914023 7251' prompt build-develop-prompt.sh revise green "$spec" "$step" "$cmd" "$work/reason.md"
-pin '3455003597 7254' prompt build-develop-prompt.sh revise refactor "$spec" "$step" "$cmd" "$work/reason.md"
-pin '2802947363 3593' prompt build-develop-prompt.sh exhausted "$spec" "$step" "$cmd" "$work/reason.md"
-pin '2179429738 5056' prompt build-develop-prompt.sh reconcile "$spec" "$step" "$cmd" tdd/1-x 0123456789abcdef
-pin '3590900387 4365' prompt build-develop-prompt.sh over-budget "$spec" "$step" "$cmd" 12.5 10
-pin '1166736421 4759' prompt build-develop-prompt.sh rebase "$spec" "$step" "$cmd" 0123456 89abcde "a.sh b.sh"
+pin '3219883001 10213' prompt build-develop-prompt.sh red "$spec" "$step" "$cmd"
+pin '1555367080 11188' prompt build-develop-prompt.sh red "$work/bug.md" "$step" "$cmd"
+pin '2685828962 7064' prompt build-develop-prompt.sh green "$spec" "$step" "$cmd" t/x.test.sh "case one" "make unit"
+pin '228239640 9134' prompt build-develop-prompt.sh refactor "$spec" "$step" "$cmd" "a.sh b.sh"
+pin '1646140783 4916' prompt build-develop-prompt.sh cover "$spec" "$step" "$cmd"
+pin '3438023812 4568' prompt build-develop-prompt.sh transform "$spec" "$step" "$cmd"
+pin '1534404821 4600' prompt build-develop-prompt.sh structural "$spec" "a candidate" "$cmd" "a.sh b.sh"
+pin '3418142173 7530' prompt build-develop-prompt.sh revise red "$spec" "$step" "$cmd" "$work/reason.md"
+pin '4242964580 7532' prompt build-develop-prompt.sh revise green "$spec" "$step" "$cmd" "$work/reason.md"
+pin '1029241971 7535' prompt build-develop-prompt.sh revise refactor "$spec" "$step" "$cmd" "$work/reason.md"
+pin '204919903 3874' prompt build-develop-prompt.sh exhausted "$spec" "$step" "$cmd" "$work/reason.md"
+pin '2023137214 5337' prompt build-develop-prompt.sh reconcile "$spec" "$step" "$cmd" tdd/1-x 0123456789abcdef
+pin '2175378667 4646' prompt build-develop-prompt.sh over-budget "$spec" "$step" "$cmd" 12.5 10
+pin '3297599402 5040' prompt build-develop-prompt.sh rebase "$spec" "$step" "$cmd" 0123456 89abcde "a.sh b.sh"
 pin '411659908 6456' prompt build-verify-prompt.sh red "$spec" t/x.test.sh "case one"
 pin '2875961081 7315' prompt build-verify-prompt.sh red "$work/bug.md" t/x.test.sh "case one"
 pin '669190476 6633' prompt build-verify-prompt.sh --step "$step" red "$spec" t/x.test.sh "case one"
