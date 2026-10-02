@@ -161,8 +161,7 @@ def test_main_shows_a_runs_phase_actor_leaf_elapsed_seconds_and_attempts_in_the_
         ev(9900, "developer", "green", "a gear turns", "launch", "2", "develop-green"),
     ])
     fake_git(monkeypatch, tmp_path, {str(run): "tdd/8-gears-turn"})
-    monkeypatch.delenv("VERI_TIMEOUT", raising=False)
-    monkeypatch.setattr(time, "time", lambda: 10000)
+    at_ten_thousand(monkeypatch)
 
     code = status.main([])
 
