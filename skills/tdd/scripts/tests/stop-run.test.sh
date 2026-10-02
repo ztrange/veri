@@ -331,4 +331,20 @@ check_no_stop "$run"
 
 report "#683: stop-run.sh's unknown-mode refusal names the modes lib/stop-modes.sh lists"
 
+problems=()
+label=""
+
+run_stop
+check_code 2
+[[ "${err##*$'\n'}" == "usage: stop-run.sh [--mode at-ledger|at-leaf|now] <issue> | --all" ]] ||
+  note "want today's usage line last on stderr, got '${err##*$'\n'}'"
+
+out="$(cd "$repo" && "$listed/stop-run.sh" 2>"$work/stderr")" && code=0 || code=$?
+err="$(cat "$work/stderr")"
+check_code 2
+[[ "${err##*$'\n'}" == "usage: stop-run.sh [--mode at-ledger|at-leaf|now|at-step] <issue> | --all" ]] ||
+  note "want the usage line to name at-step, added to lib/stop-modes.sh, got '${err##*$'\n'}'"
+
+report "#683: stop-run.sh's usage line names the modes lib/stop-modes.sh lists"
+
 finish
