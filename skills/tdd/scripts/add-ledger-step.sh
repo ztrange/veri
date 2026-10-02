@@ -54,11 +54,7 @@ added_steps() {
 
 is_step() { [[ -n "$(ledger_steps <<< "$1")" ]]; }
 is_anchor_step() { [[ "$1" == *"$anchor"* ]] && is_step "$1"; }
-is_added_step() {
-  local untagged
-  _ledger_untagged "$1"
-  [[ "$untagged" == *" $added" ]] && is_step "$1"
-}
+is_added_step() { _ledger_is_added "$1" && is_step "$1"; }
 is_repair() { [[ "$1" == *"$ci_repair"* || "$1" == *"$suite_repair"* ]]; }
 added_mark() { is_repair "$1" || printf ' %s' "$added"; }
 
