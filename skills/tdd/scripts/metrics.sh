@@ -156,9 +156,12 @@ ledger=".tdd/issue-$issue.md"
 
 ledger_steps="$(cd "$(dirname "$0")" && pwd)/ledger-steps.sh"
 
+lib="$(cd "$(dirname "$0")" && pwd)/lib"
+
 # hazard: the python block is one single-quoted string, so an apostrophe inside it ends it.
-exec python3 -c '
-import json, os, subprocess, sys
+PYTHONPATH="$lib" exec python3 -c '
+import os, subprocess, sys
+from event_log import read_events
 
 issue, path, ledger, ledger_steps = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 
@@ -309,8 +312,7 @@ structural = None
 
 launched = {}
 
-with open(path) as f:
-    marks = [json.loads(raw) for raw in f if raw.strip()]
+marks = read_events(path)
 clocked = bool(marks) and all("awake" in mark for mark in marks)
 models = {(mark.get("step", ""), mark.get("phase", ""), mark.get("attempt", ""), mark.get("actor")):
           mark["model"] for mark in marks if mark.get("event") == "usage" and "model" in mark}
