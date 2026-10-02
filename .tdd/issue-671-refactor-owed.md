@@ -1,0 +1,2 @@
+### for a step whose step text carries `⟦replaces-case⟧`, the develop-green prompt `build-develop-prompt.sh green` builds permits deleting the one bash case the step names, and still forbids modifying or deleting any other case ⟦criterion 1⟧
+- fold the three optional-file reads in build-develop-prompt.sh (reason, replaces_case, bug_reproduction) into one helper — not applied: the replaces_case copy adds a leading blank line the other two don't, so the helper would need a prefix parameter no test requires
