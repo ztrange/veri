@@ -144,6 +144,25 @@ expect_usage empty-issue-usage "workqueue.sh given an empty issue exits 2 with i
 expect_usage twice-issue-usage "workqueue.sh given an issue named twice exits 2 with its own usage text on stderr" \
   assign alpha 12 12
 
+bad_reasons=()
+for reason in "$(printf 'first\tsecond')" "$(printf 'first\nsecond')"; do
+  make_repo "$work/park-reason-usage"
+  (cd "$work/park-reason-usage" && "$SCRIPT" park alpha 12 "$reason" > /dev/null 2>"$work/park-reason-usage.err") &&
+    code=0 || code=$?
+  if ! { [[ "$code" -eq 2 ]] &&
+    grep -F 'workqueue.sh: usage: workqueue.sh assign <worker> <issue>...' "$work/park-reason-usage.err" > /dev/null &&
+    grep -F 'workqueue.sh show [<worker>]' "$work/park-reason-usage.err" > /dev/null; }; then
+    bad_reasons+=("$(printf '%q' "$reason") exit: $code (want 2), stderr: $(printf '%q' "$(cat "$work/park-reason-usage.err")")")
+  fi
+  rm -rf "$work/park-reason-usage"
+done
+if [[ "${#bad_reasons[@]}" -eq 0 ]]; then
+  ok
+else
+  no "workqueue.sh given a park reason holding a tab or a newline exits 2 with its own usage text on stderr"
+  printf '    %s\n' "${bad_reasons[@]}"
+fi
+
 repo="$work/assign-held"
 make_repo "$repo"
 seed_queue "$repo" 'beta\t4\tqueued\t\ngamma\t9\trunning\t\n'
