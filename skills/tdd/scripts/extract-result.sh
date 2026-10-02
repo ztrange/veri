@@ -11,7 +11,7 @@
 #
 # A leaf re-invoked after it answered (a background task completing) writes a
 # later result record with no verdict in it, so the newest record whose text carries a
-# `VERDICT:` line wins over a merely newer one; with none, the last record wins.
+# `VERDICT:` or `IMPL_PATH:` line wins over a merely newer one; with none, the last record wins.
 #
 # Usage:   extract-result.sh < leaf-stream.jsonl
 #
@@ -27,7 +27,7 @@ from leaf_log import result_records
 data = sys.stdin.read()
 result = None
 verdict = None
-verdict_re = re.compile(r"^[ \t]*verdict:", re.I | re.M)
+verdict_re = re.compile(r"^[ \t]*(verdict|impl_path):", re.I | re.M)
 for obj in result_records(data.splitlines()):
     if "result" in obj:
         result = obj["result"]          # last result event wins
