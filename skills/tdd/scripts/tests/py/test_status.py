@@ -424,6 +424,8 @@ STATUS_SUITE_FLOOR = [
     "a run under .tdd/wt/* is listed with its issue number, title, branch and step n of m",
     "status.sh run through a symlink to the skill directory and from another working directory "
     "answers as it does when run in place",
+    "status.sh run through its entry point exits 2 on a failure veri/status.py turns into exit 2",
+    "status.sh given a bad argument names it on stderr",
 ]
 STATUS_SUITE_CUT = [
     "a run shows its current phase, actor, leaf name, leaf elapsed seconds and attempts in the step, "
@@ -455,3 +457,16 @@ def test_status_test_sh_keeps_only_the_adr_0027_survivors_and_the_floor():
     kept = [name for name in STATUS_SUITE_CUT if name in suite]
 
     assert (missing, kept) == ([], [])
+
+
+def test_status_test_sh_floor_holds_an_exit_2_case_and_a_bad_argument_stderr_case():
+    suite = (SCRIPTS / "tests" / "status.test.sh").read_text()
+    floor = [
+        "status.sh run through its entry point exits 2 on a failure veri/status.py turns into exit 2",
+        "status.sh given a bad argument names it on stderr",
+    ]
+
+    unnamed = [name for name in floor if name not in STATUS_SUITE_FLOOR]
+    absent = [name for name in floor if name not in suite]
+
+    assert (unnamed, absent) == ([], [])

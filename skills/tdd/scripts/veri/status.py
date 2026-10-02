@@ -129,7 +129,7 @@ def solvable_count(name):
 
 
 def parse_args(argv):
-    """(json, scope, watch seconds or None)."""
+    """(json, scope, watch seconds or None), or None for an unknown option."""
     scope, as_json, watch = os.environ.get("VERI_LABEL", ""), False, None
     args = list(argv)
     while args:
@@ -142,6 +142,9 @@ def parse_args(argv):
             as_json = True
         elif arg == "--scope":
             scope = args.pop(0) if args else ""
+        else:
+            sys.stderr.write("status.sh: unknown option '%s'\n" % arg)
+            return None
     return as_json, scope, watch
 
 
@@ -200,7 +203,10 @@ def watch_loop(seconds, as_json, scope):
 
 
 def main(argv):
-    as_json, scope, watch = parse_args(argv)
+    parsed = parse_args(argv)
+    if parsed is None:
+        return 2
+    as_json, scope, watch = parsed
     if watch is not None:
         watch_loop(watch, as_json, scope)
     return render(as_json, scope)

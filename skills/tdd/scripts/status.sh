@@ -7,5 +7,5 @@
 # Usage:   status.sh [--json] [--scope <name>] [--watch [seconds]]   (no --scope: VERI_LABEL, when set, names the scope)
 #          --json prints the same runs and scope totals as one JSON document.
 #          --watch redraws in place every <seconds> (default 2), each render recomputed from disk.
-# Exit:    0 one or more runs printed; 3 nothing to do — "no runs"
+# Exit:    0 one or more runs printed; 2 an unknown option, or no answer; 3 nothing to do — "no runs"
 exec python3 "$(dirname "$0")/veri/status.py" "$@"
