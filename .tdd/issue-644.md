@@ -6,7 +6,7 @@
 - [x] `session-cost.sh` given a nonexistent transcript exits 2 with its own usage text on stderr ⟦criterion 3⟧
 - [x] `session-cost.sh` given an unknown option exits 2 with its own usage text on stderr ⟦criterion 3⟧
 - [x] `workqueue.sh` with no subcommand exits 2 with its own usage text on stderr ⟦criterion 4⟧
-- [ ] `workqueue.sh` given an empty issue exits 2 with its own usage text on stderr ⟦criterion 4⟧
+- [x] `workqueue.sh` given an empty issue exits 2 with its own usage text on stderr ⟦criterion 4⟧ ⟂ refactor pending
 - [ ] `workqueue.sh` given an issue named twice exits 2 with its own usage text on stderr ⟦criterion 4⟧
 - [ ] `workqueue.sh` given a park reason holding a tab or a newline exits 2 with its own usage text on stderr ⟦criterion 4⟧
 - [ ] `preserve-attempt.sh`, made to fail inside its own EXIT trap's lifetime, ends with exit 2 and never with a code outside 0–3 ⟦criterion 5⟧

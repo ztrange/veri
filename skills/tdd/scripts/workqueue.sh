@@ -142,8 +142,7 @@ shift 2
 declare -A named=()
 for issue in "$@"; do
   if [[ -z "$issue" ]]; then
-    echo "workqueue.sh: an issue argument is empty" >&2
-    exit 2
+    refuse "workqueue.sh: an issue argument is empty"
   fi
   if [[ -n "${named[$issue]:-}" ]]; then
     echo "workqueue.sh: issue $issue is named twice" >&2
