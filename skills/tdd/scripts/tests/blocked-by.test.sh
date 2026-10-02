@@ -89,8 +89,9 @@ scratch="$(scratch_dir)"
 mkdir -p "$scratch/scripts" "$scratch/gh" "$scratch/cwd"
 cp "$HERE/../solvable-issues.sh" "$scratch/scripts/"
 cp -R "$LIB" "$scratch/scripts/lib"
-rm -rf "$scratch/scripts/lib/__pycache__"
-printf 'def blockers(*args, **kwargs):\n    return [99]\n' > "$scratch/scripts/lib/blocked_by.py"
+cp -R "$HERE/../veri" "$scratch/scripts/veri"
+rm -rf "$scratch/scripts/lib/__pycache__" "$scratch/scripts/veri/__pycache__"
+printf 'def blockers(*args, **kwargs):\n    return [99]\n' > "$scratch/scripts/veri/blocked_by.py"
 printf '[]\n' > "$scratch/gh/prs.json"
 cat > "$scratch/gh/issues.json" <<'JSON'
 [
