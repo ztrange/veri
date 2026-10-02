@@ -208,8 +208,9 @@ name="make test refuses real git in a suite under $UNIT_DIR/, naming git"
 problems=()
 
 tree="$(scratch_dir)"
-mkdir -p "$tree/$UNIT_DIR"
+mkdir -p "$tree/$UNIT_DIR" "$tree/skills/tdd/scripts/lib"
 cp "$ROOT/Makefile" "$tree/Makefile"
+cp "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh" "$tree/skills/tdd/scripts/lib/"
 cp -R "$ROOT/skills/tdd/scripts/tests/offline" "$ROOT/skills/tdd/scripts/tests/unit-guard" "$tree/skills/tdd/scripts/tests/"
 cp "$scratch/calls-real-vcs.test.sh" "$tree/$UNIT_DIR/calls-real-vcs.test.sh"
 
@@ -225,8 +226,9 @@ name="make test passes a suite outside $UNIT_DIR/ that runs real git, after one 
 problems=()
 
 mixed="$(scratch_dir)"
-mkdir -p "$mixed/$UNIT_DIR"
+mkdir -p "$mixed/$UNIT_DIR" "$mixed/skills/tdd/scripts/lib"
 cp "$ROOT/Makefile" "$mixed/Makefile"
+cp "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh" "$mixed/skills/tdd/scripts/lib/"
 cp -R "$ROOT/skills/tdd/scripts/tests/offline" "$ROOT/skills/tdd/scripts/tests/unit-guard" "$mixed/skills/tdd/scripts/tests/"
 cp "$scratch/mocks-vcs.test.sh" "$mixed/$UNIT_DIR/mocks-vcs.test.sh"
 cp "$scratch/calls-real-vcs.test.sh" "$mixed/skills/tdd/scripts/tests/calls-real-vcs.test.sh"
