@@ -12,8 +12,9 @@
 # them, and an issue argument that is not a positive integer each print nothing on stdout,
 # say why on stderr and exit 2.
 #
-# Usage:   stop-run.sh [--mode at-ledger|at-leaf|now] <issue>
-#          stop-run.sh [--mode at-ledger|at-leaf|now] --all
+# Usage:   stop-run.sh [--mode <mode>] <issue>
+#          stop-run.sh [--mode <mode>] --all
+#          <mode> is one of lib/stop-modes.sh STOP_MODES
 # Exits:   2 arguments that name no run, or no mode this script knows
 #          3 nothing to do — no live run answered to what was named
 set -euo pipefail
