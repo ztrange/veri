@@ -6,3 +6,5 @@
 ### a conductor stopped over VERI_CONDUCTOR_CTX_BUDGET is launched again by parallel-conductors.sh for the same issue, before any not-yet-launched solvable issue is launched into that slot ⟦criterion 3⟧
 - the "is this #7's first launch" check `[ "$n" = 7 ] && [ "$(grep -c '^7$' "<launches>")" -eq 1 ]` is duplicated between the beside and again stubs in parallel-conductors.test.sh (the stop stub's `wc -l` variant is near-identical) and could be one stub function taking the launches file
 - the `.restart` marker file and the `restart` associative array in parallel-conductors.sh both carry "relaunch this issue"; the reap loop could hand the issue straight to the launch loop without going through both
+### each over-budget restart is recorded where a human can see it: parallel-conductors.sh prints a `restarted <n>` line naming the issue whose conductor it relaunched ⟦criterion 3⟧
+- extract a `step_done_result` stub helper for the `tool_result` t1 echo that follows each `over_budget_step_done` in `parallel-conductors.test.sh` (lines ~266, 318, 346); prior cycles wrote those lines, so the step's bounds keep it out
