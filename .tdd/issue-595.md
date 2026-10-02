@@ -1,6 +1,6 @@
 # Plan for #595 — #496 follow-ups: two model-knobs-recorded cases changed meaning, harness sourced twice, suite event logs committed to skills/
 
-- [x] after `lib/harness.sh` is sourced, a `scratch_dir` and an `on_exit` are registered, and `lib/harness.sh` is sourced again, exiting the shell removes that scratch directory, runs that `on_exit` command exactly once and leaves no scratch list file behind — a case in `unit/harness.test.sh` plants this double source ⟦criterion 5⟧ ⟂ refactor pending
+- [x] after `lib/harness.sh` is sourced, a `scratch_dir` and an `on_exit` are registered, and `lib/harness.sh` is sourced again, exiting the shell removes that scratch directory, runs that `on_exit` command exactly once and leaves no scratch list file behind — a case in `unit/harness.test.sh` plants this double source ⟦criterion 5⟧
 - [ ] sourcing `lib/harness.sh` a second time keeps the `pass`/`fail` counts already reached ⟦criterion 6⟧
 - [ ] `unit/no-report-copies.test.sh` admits a counter-initialisation hit only through an exemption entry that names the file, matches the line by its text rather than its number, and carries a reason; a hit no entry matches is still flagged, naming the file and line ⟦criterion 8⟧
 - [ ] `unit/no-report-copies.test.sh` goes red, naming the file and line, on a planted suite line `pass=0; fail=0` and on one `pass="${pass:-0}"`, still goes red on `pass=0 fail=0`, and stays green on the tree ⟦criterion 7⟧
