@@ -301,6 +301,25 @@ prompt_says "$green" "verify-green never says the restore comes before reporting
   || no "verify-green tells the verifier to remove the code, run the suite, and restore the tree before reporting (${problems#; })"
 
 problems=""
+green_line="$(tr '\n' ' ' <<<"$green")"
+offset_of() { local at; at="$(grep -obiE -e "$2" <<<"$1" | cut -d: -f1)"; printf '%s' "${at%%$'\n'*}"; }
+cp_at="$(offset_of "$green_line" 'cp <file> <file>\.orig')"
+mutate_at="$(offset_of "$green_line" 'remove the code yourself')"
+run_at="$(offset_of "$green_line" 'remove the code yourself[^.]{0,40}run[^.]{0,40}suites')"
+mv_at="$(offset_of "$green_line" 'mv <file>\.orig <file>')"
+[[ -n "$cp_at" ]] || problems="$problems; verify-green never names cp <file> <file>.orig"
+[[ -n "$mv_at" ]] || problems="$problems; verify-green never names mv <file>.orig <file>"
+[[ -n "$mutate_at" ]] || problems="$problems; verify-green no longer says to remove the code yourself"
+if [[ -n "$cp_at" && -n "$mutate_at" ]] && (( cp_at > mutate_at )); then
+  problems="$problems; cp <file> <file>.orig comes after the mutation instruction"
+fi
+if [[ -n "$mv_at" && -n "$run_at" ]] && (( mv_at < run_at )); then
+  problems="$problems; mv <file>.orig <file> comes before the run under mutation"
+fi
+[[ -z "$problems" ]] && ok \
+  || no "#619 verify-green restores a probe with cp <file> <file>.orig before the mutation and mv <file>.orig <file> after the run under mutation (${problems#; })"
+
+problems=""
 prompt_says "$with_base" "never names git diff --name-only $base_sha^ $base_sha" \
   -F -e "git diff --name-only $base_sha^ $base_sha"
 prompt_says "$with_base" "never makes a changed file outside that list a REJECT" \
