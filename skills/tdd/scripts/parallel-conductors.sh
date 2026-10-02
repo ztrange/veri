@@ -214,6 +214,10 @@ while :; do
       restart[$n]=1
       continue
     fi
+    if [[ -e ".tdd/parked/$n.md" ]]; then
+      echo "parked $n"
+      continue
+    fi
     got="$(outcome "$n" "$(prs_json)")"
     if [[ -z "$continue_on_bail" && -z "$stopped" ]] && is_failure "$got"; then
       stopped="#$n ${got%% *}"

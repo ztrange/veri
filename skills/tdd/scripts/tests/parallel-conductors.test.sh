@@ -355,6 +355,29 @@ expect_lines "a conductor stopped over VERI_CONDUCTOR_CTX_BUDGET is launched aga
 
 expect_lines "a conductor relaunched after an over-budget stop prints 'restarted <n>' naming its issue" "restarted 7" "$(grep '^restarted ' "$work/again.out" || true)" "$work/again.out"
 
+park_repo="$work/park"
+fresh_repo "$park_repo"
+gh_park="$work/gh-park"
+solvable_fixture "$gh_park" 7 8
+park_launches="$work/park.launches"
+: > "$park_launches"
+park_stub="$work/claude-park"
+conductor_stub "$park_stub" <<STUB
+echo "\$n" >> "$park_launches"
+if [ "\$n" = 7 ]; then
+  mkdir -p .tdd/parked
+  echo 'Which test command should this run use?' > .tdd/parked/7.md
+$(bailed_pr "$gh_park")
+  exit 0
+fi
+$(ready_pr "$gh_park")
+STUB
+
+(cd "$park_repo" && run_launcher "$gh_park" "$park_stub" "$work/park.out"; echo "$code" > "$work/park.code")
+code="$(cat "$work/park.code")"
+expect_lines "a conductor that halts writing .tdd/parked/<n>.md prints 'parked <n>', its slot takes the next solvable issue even without --continue-on-bail and with its draft PR's log ending in a bail, and <n> is not launched again while still solvable" \
+  "$(printf 'parked 7\n7\n8')" "$(grep '^parked ' "$work/park.out"; cat "$park_launches")" "$work/park.out"
+
 gh4="$work/gh4"
 gh_fixture "$gh4" <<'JSON'
 [
