@@ -300,41 +300,36 @@ prompt_says "$green" "verify-green never says the restore comes before reporting
 [[ -z "$problems" ]] && ok \
   || no "verify-green tells the verifier to remove the code, run the suite, and restore the tree before reporting (${problems#; })"
 
-problems=""
-green_line="$(tr '\n' ' ' <<<"$green")"
 offset_of() { local at; at="$(grep -obiE -e "$2" <<<"$1" | cut -d: -f1)"; printf '%s' "${at%%$'\n'*}"; }
-cp_at="$(offset_of "$green_line" 'cp <file> <file>\.orig')"
-mutate_at="$(offset_of "$green_line" 'remove the code yourself')"
-run_at="$(offset_of "$green_line" 'remove the code yourself[^.]{0,40}run[^.]{0,40}suites')"
-mv_at="$(offset_of "$green_line" 'mv <file>\.orig <file>')"
-[[ -n "$cp_at" ]] || problems="$problems; verify-green never names cp <file> <file>.orig"
-[[ -n "$mv_at" ]] || problems="$problems; verify-green never names mv <file>.orig <file>"
-[[ -n "$mutate_at" ]] || problems="$problems; verify-green no longer says to remove the code yourself"
-if [[ -n "$cp_at" && -n "$mutate_at" ]] && (( cp_at > mutate_at )); then
-  problems="$problems; cp <file> <file>.orig comes after the mutation instruction"
-fi
-if [[ -n "$mv_at" && -n "$run_at" ]] && (( mv_at < run_at )); then
-  problems="$problems; mv <file>.orig <file> comes before the run under mutation"
-fi
+
+probe_order() {  # probe_order <label> <prompt> <mutation regex> <run-under-mutation regex>
+  local label="$1" line cp_at mutate_at run_at mv_at
+  line="$(tr '\n' ' ' <<<"$2")"
+  cp_at="$(offset_of "$line" 'cp <file> <file>\.orig')"
+  mutate_at="$(offset_of "$line" "$3")"
+  run_at="$(offset_of "$line" "$4")"
+  mv_at="$(offset_of "$line" 'mv <file>\.orig <file>')"
+  [[ -n "$cp_at" ]] || problems="$problems; $label never names cp <file> <file>.orig"
+  [[ -n "$mv_at" ]] || problems="$problems; $label never names mv <file>.orig <file>"
+  [[ -n "$mutate_at" ]] || problems="$problems; $label no longer gives the mutation instruction"
+  [[ -n "$run_at" ]] || problems="$problems; $label no longer gives the run under mutation"
+  if [[ -n "$cp_at" && -n "$mutate_at" ]] && (( cp_at > mutate_at )); then
+    problems="$problems; cp <file> <file>.orig comes after the mutation instruction"
+  fi
+  if [[ -n "$mv_at" && -n "$run_at" ]] && (( mv_at < run_at )); then
+    problems="$problems; mv <file>.orig <file> comes before the run under mutation"
+  fi
+  return 0
+}
+
+problems=""
+probe_order verify-green "$green" 'remove the code yourself' \
+  'remove the code yourself[^.]{0,40}run[^.]{0,40}suites'
 [[ -z "$problems" ]] && ok \
   || no "#619 verify-green restores a probe with cp <file> <file>.orig before the mutation and mv <file>.orig <file> after the run under mutation (${problems#; })"
 
 problems=""
-pin_line="$(tr '\n' ' ' <<<"$pin")"
-cp_at="$(offset_of "$pin_line" 'cp <file> <file>\.orig')"
-mutate_at="$(offset_of "$pin_line" 'break it yourself')"
-run_at="$(offset_of "$pin_line" 'run the target test again')"
-mv_at="$(offset_of "$pin_line" 'mv <file>\.orig <file>')"
-[[ -n "$cp_at" ]] || problems="$problems; verify-pin never names cp <file> <file>.orig"
-[[ -n "$mv_at" ]] || problems="$problems; verify-pin never names mv <file>.orig <file>"
-[[ -n "$mutate_at" ]] || problems="$problems; verify-pin no longer says to break it yourself"
-[[ -n "$run_at" ]] || problems="$problems; verify-pin no longer says to run the target test again"
-if [[ -n "$cp_at" && -n "$mutate_at" ]] && (( cp_at > mutate_at )); then
-  problems="$problems; cp <file> <file>.orig comes after the mutation instruction"
-fi
-if [[ -n "$mv_at" && -n "$run_at" ]] && (( mv_at < run_at )); then
-  problems="$problems; mv <file>.orig <file> comes before the run under mutation"
-fi
+probe_order verify-pin "$pin" 'break it yourself' 'run the target test again'
 [[ -z "$problems" ]] && ok \
   || no "#619 verify-pin restores a probe with cp <file> <file>.orig before the mutation and mv <file>.orig <file> after the run under mutation (${problems#; })"
 
