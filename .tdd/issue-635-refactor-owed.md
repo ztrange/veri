@@ -1,2 +1,4 @@
 ### under `make test`, a suite under tests/unit/ that calls real git, python3, gh or curl fails, and the output names the command it called ⟦criterion 1⟧
 - the "no line of 'make …' names git" check (`grep -qw git < <(grep -v '^== ' <<< "$out")`) appears in both case 5 and the new case and could become one helper, but the two messages differ and the saving is small
+### unit-tier.test.sh still checks, over the real tests/unit/ roster without running any suite, that every unit suite's header carries its `git <n>, python3 <n>, server <n>, sleep <n>` line, that no unit suite is still duplicated in tests/, and that at least 5 suites are under tests/unit/ — and a fixture tree with one header lacking that line proves the header check fails, naming the suite ⟦criterion 4⟧
+- hoist the repeated `skills/tdd/scripts/tests` literal into one variable that UNIT_DIR derives from (lines 54, 92, 212, 229, 231, 233; mostly code this cycle did not write)
