@@ -3,7 +3,7 @@
 - [x] given a log whose result record carries `IMPL_PATH:` and `SUITE:` lines, followed by a later result record carrying neither, `extract-result.sh` prints the earlier record's text and exits 0 ⟦criterion 1⟧
 - [x] given a log whose result record carries `SPLIT:` lines, followed by a later result record carrying no report line, `extract-result.sh` prints the earlier record's text ⟦criterion 2⟧
 - [x] given a log whose result record carries a `TEST_PATH:` line, followed by a later result record carrying no report line, `extract-result.sh` prints the earlier record's text ⟦criterion 3⟧
-- [ ] given a log whose result record carries only a `SUITE:` line, followed by a later result record carrying no report line, `extract-result.sh` prints the earlier record's text ⟦criterion 4⟧
+- [x] given a log whose result record carries only a `SUITE:` line, followed by a later result record carrying no report line, `extract-result.sh` prints the earlier record's text ⟦criterion 4⟧ ⟂ refactor pending
 - [ ] given two result records that both carry a report line, `extract-result.sh` prints the later one ⟦criterion 5⟧
 - [ ] given result records none of which carries a report line or a `VERDICT:` line, `extract-result.sh` prints the last record's text ⟦criterion 6⟧
 - [ ] a result record carrying a `VERDICT:` line, followed by a later record without one, still yields the `VERDICT:` record ⟦criterion 7⟧
