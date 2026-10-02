@@ -76,7 +76,7 @@ name="usage output on a missing argument and prompt output for fixed inputs are 
 problems=""
 pin '1022369698 110' usage add-ledger-step.sh
 pin '3115481657 48' usage affected-suites.sh
-pin '1272164864 173' usage build-develop-prompt.sh
+pin '1499177941 176' usage build-develop-prompt.sh
 pin '217537457 94' usage build-verify-prompt.sh
 pin '3916945256 64' usage clear-refactor-pending.sh
 pin '3860559291 55' usage comment-class.sh
@@ -102,7 +102,7 @@ pin '2203537502 52' usage transform-touches-tests.sh
 pin '3019634167 120' usage verify.sh
 pin '3132011146 48' usage wait-leaf.sh
 pin '1022369698 110' usage add-ledger-step.sh .tdd/issue-1.md after anchor
-pin '3421904611 226' usage build-develop-prompt.sh green spec step
+pin '2124008756 229' usage build-develop-prompt.sh green spec step
 pin '217537457 94' usage build-verify-prompt.sh green
 pin '217537457 94' usage build-verify-prompt.sh green spec
 pin '2618584748 136' usage build-verify-prompt.sh --step
