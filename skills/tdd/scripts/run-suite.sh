@@ -59,8 +59,12 @@ trap 'exit 143' TERM
 "$suite" < /dev/null | tee "$out"
 code=${PIPESTATUS[0]}
 
-tail -n 1 "$out" | grep -Eq "$COUNT_LINE" || {
-  printf "$COUNTLESS" "$(basename "$suite")"
+last_line="$(tail -n 1 "$out")"
+grep -Eq "$COUNT_LINE" <<< "$last_line" || {
+  name="$(basename "$suite")"
+  printf "$COUNTLESS" "$name"
+  if grep '[^[:space:]]' "$out" > /dev/null; then printf '%s: its last line was: %s\n' "$name" "$last_line"
+  else printf '%s: its output was empty\n' "$name"; fi
   exit 1
 }
 

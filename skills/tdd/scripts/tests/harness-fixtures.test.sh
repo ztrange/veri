@@ -60,7 +60,7 @@ chmod +x "$work/dies.test.sh" "$work/fails.test.sh"
 "$work/fails.test.sh" > "$work/fails-out" 2>&1; fails_code=$?
 problems=()
 [[ "$dies_code" -eq 1 ]] || problems+=("dying suite: run-suite.sh exit $dies_code, expected 1")
-[[ "$(tail -n 1 "$work/dies-out")" == "dies.test.sh: never reached its count line" ]] || problems+=("dying suite: last line '$(tail -n 1 "$work/dies-out")'")
+grep -Fx "dies.test.sh: never reached its count line" "$work/dies-out" > /dev/null || problems+=("dying suite: no refusal line in '$(tr '\n' '/' < "$work/dies-out")'")
 [[ "$fails_code" -ne 0 ]] || problems+=("failing suite: exit 0")
 [[ "$(tail -n 1 "$work/fails-out")" == "1 passed, 1 failed" ]] || problems+=("failing suite: last line '$(tail -n 1 "$work/fails-out")'")
 report "$name"

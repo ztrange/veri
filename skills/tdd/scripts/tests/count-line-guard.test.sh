@@ -954,9 +954,9 @@ probe_make_and_runner_refuse_alike() {
   local refused
   have_runner "so there is no runner's refusal to hold make test's against" || return
   direct "$RUNNER" "$FIXTURE_PATH"
-  refused="$(tail -n 1 <<< "$direct_out")"
-  [[ "$refused" == "$FIXTURE_NAME$GUARD_MESSAGE" ]] || {
-    problems+=("want the runner's last line to be '$FIXTURE_NAME$GUARD_MESSAGE'; it said: $(flat "$direct_out")")
+  refused="$FIXTURE_NAME$GUARD_MESSAGE"
+  grep -Fx -- "$refused" <<< "$direct_out" > /dev/null || {
+    problems+=("want the runner to print '$refused' as a whole line; it said: $(flat "$direct_out")")
     return
   }
   recipe "$FIXTURE"
@@ -1114,6 +1114,36 @@ probe_runner_passes_stderr_after_count() {
 }
 
 probe_runner_passes_stderr_after_count
+
+report "$name"
+
+name="run-suite.sh over a countless suite prints the same two refusal lines make test prints and exits 1 (#683)"
+problems=()
+
+probe_runner_names_what_the_countless_suite_left() {
+  local tree probe suite want body last_line
+  have_runner "so there is no invocation to ask this of" || return
+  for body in 'echo "partial"' ':'; do
+    suite="countless-$([[ "$body" == ':' ]] && echo empty || echo partial).test.sh"
+    probe_suite_path "$suite" || return
+    printf '#!/bin/sh\n%s\nexit 0\n' "$body" > "$probe"
+    chmod +x "$probe"
+    if [[ "$body" == ':' ]]; then
+      want="$suite: never reached its count line/$suite: its output was empty"
+    else
+      want="partial/$suite: never reached its count line/$suite: its last line was: partial"
+    fi
+
+    direct "$RUNNER" "$probe"
+    [[ "$direct_code" == 1 ]] ||
+      problems+=("want exit 1 from the runner over $suite, which exits 0 without its count line; it exited $direct_code and said: $(flat "$direct_out")")
+    [[ "$(flat "$direct_out")" == "$want" ]] ||
+      problems+=("want the runner over $suite to say exactly '$want'; it said: '$(flat "$direct_out")'")
+    rm -rf "$tree"
+  done
+}
+
+probe_runner_names_what_the_countless_suite_left
 
 report "$name"
 
