@@ -229,6 +229,19 @@ STUB
 run_launcher "$gh_split" "$split_stub" "$work/split.out"
 expect_lines "an assistant event the conductor writes in two pieces still prints one 'context' line for the whole event" "context 7 53438" "$(grep '^context ' "$work/split.out")" "$work/split.out"
 
+stub_waits() {
+  cat <<SH
+await_context() {
+  i=0
+  while [ \$i -lt 100 ] && ! grep -Fx "\$1" "$1" > /dev/null; do i=\$((i + 1)); sleep 0.02; done
+}
+heartbeats() {
+  i=0
+  while [ \$i -lt \$1 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
+}
+SH
+}
+
 gh_stop="$work/gh-stop"
 solvable_fixture "$gh_stop" 7
 stop_marks="$work/stop.marks"
@@ -239,14 +252,7 @@ conductor_stub "$stop_stub" <<STUB
 echo "\$n" >> "$stop_launches"
 if [ "\$(wc -l < "$stop_launches")" -eq 1 ]; then
   echo \$\$ > "$stop_marks.pid"
-  await_context() {
-    i=0
-    while [ \$i -lt 100 ] && ! grep -Fx "\$1" "$work/stop.out" > /dev/null; do i=\$((i + 1)); sleep 0.02; done
-  }
-  heartbeats() {
-    i=0
-    while [ \$i -lt \$1 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
-  }
+$(stub_waits "$work/stop.out")
   echo '{"type":"assistant","message":{"role":"assistant","usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":150000,"output_tokens":40}}}'
   await_context 'context 7 150000'
   echo mid-step >> "$stop_marks"
@@ -275,14 +281,7 @@ under_marks="$work/under.marks"
 : > "$under_marks"
 under_stub="$work/claude-under"
 conductor_stub "$under_stub" <<STUB
-await_context() {
-  i=0
-  while [ \$i -lt 100 ] && ! grep -Fx "\$1" "$work/under.out" > /dev/null; do i=\$((i + 1)); sleep 0.02; done
-}
-heartbeats() {
-  i=0
-  while [ \$i -lt \$1 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
-}
+$(stub_waits "$work/under.out")
 echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=7 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":110000,"output_tokens":30}}}'
 await_context 'context 7 110000'
 echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
