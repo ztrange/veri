@@ -1,0 +1,2 @@
+### given a log whose result record carries `IMPL_PATH:` and `SUITE:` lines, followed by a later result record carrying neither, `extract-result.sh` prints the earlier record's text and exits 0 ⟦criterion 1⟧
+- rename `verdict` / `verdict_re` in extract-result.sh's embedded Python (e.g. `report` / `report_re`): since this cycle, the regex also matches `IMPL_PATH:`, so "verdict" no longer describes what it selects. This is a rename, not duplication removal, so the rules for this phase say to report it rather than apply it.
