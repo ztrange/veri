@@ -260,7 +260,7 @@ probe_suite_resolves_helpers_from_itself() {
     problems+=("$suite_rel does not end in the harness's finish, which prints its count line")
 }
 
-name="the selection-order-recorded, lane-rule-recorded, unit-tier-recorded and model-knobs-recorded suites each resolve $helpers_rel from their own location and each print their own count line"
+name="the selection-order-recorded, lane-rule-recorded, unit-tier-recorded and model-knobs-recorded suites each resolve $helpers_rel from their own location and each end in the harness's finish"
 problems=()
 
 for stem in selection-order-recorded lane-rule-recorded unit-tier-recorded model-knobs-recorded; do
@@ -314,6 +314,29 @@ name="$helpers_rel keeps the plain-shell idiom — sourcing it with no PATH prin
 problems=()
 
 probe_shared_helpers_plain_shell
+
+report "$name"
+
+probe_finish_case_name() {
+  local suite_rel="skills/tdd/scripts/tests/model-knobs-recorded.test.sh" line case_name="" last=""
+  while IFS= read -r line; do
+    [[ "$line" =~ ^name=\"(.*)\"$ ]] && last="${BASH_REMATCH[1]}"
+    [[ "$line" =~ ^[[:space:]]+probe_suite_resolves_helpers_from_itself[[:space:]] ]] && case_name="$last"
+  done < "$ROOT/$suite_rel"
+  if [[ -z "$case_name" ]]; then
+    problems+=("$suite_rel has no case that runs probe_suite_resolves_helpers_from_itself")
+    return
+  fi
+  [[ "$case_name" =~ end[s]?\ in\ the\ harness\'s\ finish ]] ||
+    problems+=("the case checking for a bare finish line is not named for each suite ending in the harness's finish: $case_name")
+  [[ "$case_name" =~ own\ count\ line ]] &&
+    problems+=("the case checking for a bare finish line still claims each suite prints its own count line: $case_name")
+}
+
+name="#595: the case that checks each suite ends in a bare finish line is named for ending in the harness's finish, not for printing its own count line"
+problems=()
+
+probe_finish_case_name
 
 report "$name"
 
