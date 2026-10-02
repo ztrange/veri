@@ -489,14 +489,14 @@ expect_suites_unwidened "a touched veri/event_log.py prints tests/py/test_event_
 
 make_repo veri-module-no-py
 mkdir -p "$s/tests" "$s/veri"
-printf 'def main(): pass\n' > "$s/veri/blocked_by.py"
-printf '#!/bin/sh\nexec python3 -m veri.blocked_by "$@"\n' > "$s/blocked-by.sh"
-printf '# blocked-by suite\n' > "$s/tests/blocked-by.test.sh"
+printf 'def main(): pass\n' > "$s/veri/probe_queue.py"
+printf '#!/bin/sh\nexec python3 -m veri.probe_queue "$@"\n' > "$s/probe-queue.sh"
+printf '# probe-queue suite\n' > "$s/tests/probe-queue.test.sh"
 commit_base
-printf 'def main(): return 2\n' > "$s/veri/blocked_by.py"
+printf 'def main(): return 2\n' > "$s/veri/probe_queue.py"
 commit_head
-expect_suites_unwidened "a touched veri/blocked_by.py with no tests/py/test_blocked_by.py prints only tests/blocked-by.test.sh, without widening" \
-  skills/tdd/scripts/tests/blocked-by.test.sh
+expect_suites_unwidened "a touched veri/probe_queue.py with no tests/py/test_probe_queue.py prints only tests/probe-queue.test.sh, without widening" \
+  skills/tdd/scripts/tests/probe-queue.test.sh
 
 make_repo veri-pytest
 foo_bar_tree
