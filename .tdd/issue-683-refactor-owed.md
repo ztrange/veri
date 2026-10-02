@@ -14,3 +14,5 @@
 ### `stop-run.sh`'s unknown-mode refusal names the modes from the sourced list rather than spelling them by hand: with today's list it prints exactly `stop-run: unknown mode — want at-ledger, at-leaf or now: '<mode>'`, and a mode added to the list is named in it ⟦added⟧ ⟦criterion 8⟧
 - stop-run.sh's `USAGE` line and its header usage comment still spell `at-ledger|at-leaf|now` by hand, in a different format from `modes_named`
 - test-only | stop-run.test.sh runs `out="$(cd "$repo" && "$listed/stop-run.sh" … 2>"$work/stderr")"; err=…` twice (the at-step case and the new bogus case); extract a `run_listed_stop` helper beside `run_stop_in`
+### `stop-run.sh`'s usage line names the modes from the sourced list rather than spelling them by hand: with today's list it reads `usage: stop-run.sh [--mode at-ledger|at-leaf|now] <issue> | --all`, and a mode added to the list is named in it ⟦added⟧ ⟦criterion 8⟧
+- test-only | skills/tdd/scripts/tests/stop-run.test.sh runs `"$listed/stop-run.sh"` by hand three times, each followed by `err="$(cat "$work/stderr")"`. A `run_listed` helper shaped like `run_stop` would hold that invocation once.
