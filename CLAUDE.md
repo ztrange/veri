@@ -185,6 +185,11 @@ GitHub Actions does, and pins what the `gates` job declares and why (issue #99).
 keep `pass`/`fail` counters, print `FAIL - <name>` with a diff, and end with a count.
 Match that style rather than introducing a framework.
 
+**The four `-recorded` suites no longer keep their own counters** — the rule that they did
+came from #225, whose only reason was no framework and no outside dependency, and #496
+retired it: `lib/harness.sh` is in-repo plain shell, `record-helpers.sh` sources it, and
+those suites count through it like every other.
+
 That last line is not a formatting convention — **the `test` recipe enforces it**. A suite
 whose output does not end in `<n> passed, <m> failed` fails the run, named:
 `<suite>: never reached its count line`. A suite's **exit code alone is not trusted**

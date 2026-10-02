@@ -180,6 +180,27 @@ probe_idiom_records_the_sigpipe_rule() {
 run_case "$claude_md's testing idiom section states the pipefail/SIGPIPE rule" \
   probe_idiom_records_the_sigpipe_rule
 
+probe_idiom_records_the_retired_own_counters_rule() {
+  local idiom_records
+  idiom_records="$(section_records "$IDIOM_HEADING")"
+
+  no_records "$idiom_records" \
+    "$claude_md has no '$IDIOM_HEADING' section to read, so nothing says the -recorded suites' own-counters rule was retired" && return
+
+  records_carry "$idiom_records" \
+    "$claude_md has no single record in its '$IDIOM_HEADING' section stating that the rule the four -recorded suites keep their own counters (#225) was retired by #496, naming record-helpers.sh and lib/harness.sh" \
+    '-recorded' \
+    'own counters' \
+    '#225' \
+    '#496' \
+    'retire' \
+    'record-helpers\.sh' \
+    'lib/harness\.sh'
+}
+
+run_case "$claude_md's testing idiom section says #496 retired #225's rule that the four -recorded suites keep their own counters (#595)" \
+  probe_idiom_records_the_retired_own_counters_rule
+
 count_matching_records() {
   local text="$1" line n=0
   shift
