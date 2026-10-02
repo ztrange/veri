@@ -47,6 +47,12 @@ suite_of() {
           suite_of "$script"
         fi
       done ;;
+    "$scripts"/veri/*.py)
+      name="$(basename "$f" .py)"
+      if [[ -f "$scripts/tests/py/test_$name.py" ]]; then
+        echo "$scripts/tests/py/test_$name.py"
+      fi
+      suite_of "$scripts/${name//_/-}.sh" ;;
     "$scripts"/*.sh)
       name="$(basename "$f" .sh)"
       if [[ -f "$scripts/tests/unit/$name.test.sh" ]]; then

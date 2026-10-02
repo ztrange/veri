@@ -460,4 +460,41 @@ expect_suites "#496: a change to tests/lib/harness.sh prints every suite that so
   skills/tdd/scripts/tests/alpha.test.sh \
   skills/tdd/scripts/tests/unit/beta.test.sh
 
+make_repo veri-module
+mkdir -p "$s/tests/py" "$s/veri"
+printf 'def main(): pass\n' > "$s/veri/event_log.py"
+printf 'def test_main(): pass\n' > "$s/tests/py/test_event_log.py"
+printf '#!/bin/sh\nexec python3 -m veri.event_log "$@"\n' > "$s/event-log.sh"
+printf '# event-log suite\n' > "$s/tests/event-log.test.sh"
+printf 'bar\n' > "$s/bar.sh"
+printf '# bar suite\n' > "$s/tests/bar.test.sh"
+commit_base
+printf 'def main(): return 2\n' > "$s/veri/event_log.py"
+commit_head
+expected="$(printf '%s\n' skills/tdd/scripts/tests/event-log.test.sh skills/tdd/scripts/tests/py/test_event_log.py)"
+errf="$work/veri-module.err"
+out="$(run_affected 2>"$errf")"; code=$?
+err="$(cat "$errf")"
+if [[ "$code" == 0 && "$out" == "$expected" && "$err" != *widening* ]]; then ok; else
+  no "a touched veri/event_log.py prints tests/py/test_event_log.py and tests/event-log.test.sh, without widening (code=$code, stderr=${err:-<empty>})"
+  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
+fi
+
+make_repo veri-module-no-py
+mkdir -p "$s/tests" "$s/veri"
+printf 'def main(): pass\n' > "$s/veri/blocked_by.py"
+printf '#!/bin/sh\nexec python3 -m veri.blocked_by "$@"\n' > "$s/blocked-by.sh"
+printf '# blocked-by suite\n' > "$s/tests/blocked-by.test.sh"
+commit_base
+printf 'def main(): return 2\n' > "$s/veri/blocked_by.py"
+commit_head
+expected="skills/tdd/scripts/tests/blocked-by.test.sh"
+errf="$work/veri-module-no-py.err"
+out="$(run_affected 2>"$errf")"; code=$?
+err="$(cat "$errf")"
+if [[ "$code" == 0 && "$out" == "$expected" && "$err" != *widening* ]]; then ok; else
+  no "a touched veri/blocked_by.py with no tests/py/test_blocked_by.py prints only tests/blocked-by.test.sh, without widening (code=$code, stderr=${err:-<empty>})"
+  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
+fi
+
 finish
