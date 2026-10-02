@@ -43,8 +43,8 @@ case "$verb" in
     while IFS= read -r line || [[ -n "$line" ]]; do
       if structural_candidate "$line"; then
         structural+=("$STRUCTURAL_TRANSFORM")
-      elif [[ "$line" =~ ^CANDIDATES:[[:space:]]*test-only[[:space:]]*[|][[:space:]]*(.*)$ ]]; then
-        test_only_transforms+=("${test_only#- }${BASH_REMATCH[1]}")
+      elif test_only_candidate "$line"; then
+        test_only_transforms+=("${test_only#- }$TEST_ONLY_TRANSFORM")
       fi
     done
 
