@@ -50,6 +50,13 @@ expect_eq "$name" 'Done.
 IMPL_PATH: a.sh
 SUITE: GREEN — 19 passed, 0 failed' "$out"
 
+check "#624 a SPLIT: report beats a later turn with no report line" \
+'{"type":"result","result":"Too big.\nSPLIT: the first behaviour\nSPLIT: the second behaviour"}
+{"type":"result","result":"That is the second monitor expiring."}' \
+'Too big.
+SPLIT: the first behaviour
+SPLIT: the second behaviour'
+
 check "passthrough non-stream" \
 'VERDICT: PASS
 REASON: plain text, no stream-json here.' \
