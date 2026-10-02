@@ -256,6 +256,26 @@ or a git hook. Its command-line contract is fixed, so a refactor keeps it byte-i
 moves what is behind it. Functionality reachable from no entry point is dead. ADR-0026.
 _Avoid_: main, public API
 
+**Contract case**:
+A test case that drives a script only through its command-line contract — arguments,
+stdin, environment, stdout, stderr, exit code, files written. It survives a port to
+another language unchanged, and proves the port. ADR-0027.
+_Avoid_: integration test (unqualified)
+
+**Implementation case**:
+A bash test case that sources a script or a `lib/` file, or stubs a function inside one,
+so it is bound to the bash implementation and cannot survive a port. ADR-0027 replaces each
+with a pytest case asserting the same behaviour, in its own commit before the port.
+_Avoid_: unit test (unqualified)
+
+**Replaces-case step**:
+A ledger step marked `⟦replaces-case⟧`, whose text names a bash suite's path and one
+**implementation case** by its exact name. It licenses deleting exactly that case, and only
+together with a pytest case asserting the same behaviour; its Red is that pytest case
+failing against the code before the change. The mark counts against `VERI_STEP_GROWTH`
+only when the step is also `⟦added⟧`. ADR-0027.
+_Avoid_: deletion step
+
 ## Scope ladder
 
 The framework grows in three rungs, each wrapping the previous — never a rewrite. Issue

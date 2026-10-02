@@ -9,4 +9,4 @@
 - [x] `ledger-steps.sh` prints an open `⟦replaces-case⟧ ⟦criterion k⟧` step with kind `step`, added `0` and criterion `k`, and `next-unchecked.sh` prints it as the next step like any other ⟦criterion 6⟧
 - [x] `add-ledger-step.sh` does not count a `⟦replaces-case⟧` step against `VERI_STEP_GROWTH` unless that step is also marked `⟦added⟧` ⟦criterion 6⟧
 - [x] SKILL.md's *Scope & plan* section says a criterion replacing an implementation case under ADR 0027 is planned as one step marked `⟦replaces-case⟧` naming the suite path and the case's exact name, and that such a step's Red is the pytest case failing against the code before the change ⟦criterion 7⟧
-- [ ] CONTEXT.md defines *contract case*, *implementation case* and the `⟦replaces-case⟧` mark ⟦criterion 8⟧
+- [x] CONTEXT.md defines *contract case*, *implementation case* and the `⟦replaces-case⟧` mark ⟦criterion 8⟧ ⟂ refactor pending
