@@ -19,11 +19,16 @@ def text_mode(monkeypatch):
     monkeypatch.delenv("STATUS_JSON", raising=False)
 
 
+@pytest.fixture
+def status():
+    return importlib.import_module("veri.status")
+
+
 def write_events(path, events):
     path.write_text("".join(json.dumps(event) + "\n" for event in events))
 
 
-def test_run_activity_reports_the_last_launch_its_attempts_usage_and_state(tmp_path, monkeypatch):
+def test_run_activity_reports_the_last_launch_its_attempts_usage_and_state(tmp_path, monkeypatch, status):
     def ev(ts, phase, step, event, attempt, **rest):
         return {"ts": ts, "issue": "9", "actor": "developer", "phase": phase, "step": step,
                 "event": event, "attempt": attempt, "skill_commit": "abc", **rest}
@@ -43,13 +48,12 @@ def test_run_activity_reports_the_last_launch_its_attempts_usage_and_state(tmp_p
     ])
     monkeypatch.setattr(time, "time", lambda: 10000)
 
-    status = importlib.import_module("veri.status")
     line = status.run_activity(str(events), str(tmp_path / "conductor.pid"), 900)
 
     assert line == "green  developer  develop-green 100s  attempt 2  $1.75  11000 tokens  done 77"
 
 
-def test_scope_totals_sums_attempts_outcomes_wall_and_dollars_over_the_runs(tmp_path):
+def test_scope_totals_sums_attempts_outcomes_wall_and_dollars_over_the_runs(tmp_path, status):
     def ev(ts, event, **rest):
         return {"ts": ts, "issue": "9", "actor": "developer", "phase": "red", "step": "a cog exists",
                 "event": event, "attempt": "1", "skill_commit": "abc", **rest}
@@ -68,23 +72,21 @@ def test_scope_totals_sums_attempts_outcomes_wall_and_dollars_over_the_runs(tmp_
         ev(1600, "bail", classification="process"),
     ])
 
-    status = importlib.import_module("veri.status")
     line = status.scope_totals("veri", "4", [str(finished), str(bailed)])
 
     assert line == "scope veri  attempted 2  done 1  bailed 1  wall 900s  $1.75  solvable 4"
 
 
-def test_run_object_merges_the_ledger_fields_with_the_activity_object():
+def test_run_object_merges_the_ledger_fields_with_the_activity_object(status):
     activity = json.dumps({"phase": "green", "actor": "developer", "state": "running"})
 
-    status = importlib.import_module("veri.status")
     obj = status.run_object("9", "a cog — meshes", "tdd/9-cog", "2 of 3", activity)
 
     assert obj == ('{"issue": "9", "title": "a cog \\u2014 meshes", "branch": "tdd/9-cog", '
                    '"step": "2 of 3", "phase": "green", "actor": "developer", "state": "running"}')
 
 
-def test_main_renders_a_three_step_ledger_with_one_ticked_as_step_2_of_3(tmp_path, monkeypatch, capsys):
+def test_main_renders_a_three_step_ledger_with_one_ticked_as_step_2_of_3(tmp_path, monkeypatch, capsys, status):
     run = tmp_path / ".tdd" / "wt" / "31"
     (run / ".tdd").mkdir(parents=True)
     (run / ".tdd" / "issue-31.md").write_text(
@@ -103,7 +105,6 @@ def test_main_renders_a_three_step_ledger_with_one_ticked_as_step_2_of_3(tmp_pat
     monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.delenv("VERI_LABEL", raising=False)
 
-    status = importlib.import_module("veri.status")
     status.main([])
 
     assert "step 2 of 3" in capsys.readouterr().out
