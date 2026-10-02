@@ -11,7 +11,7 @@
 - [x] `workqueue.sh` given a park reason holding a tab or a newline exits 2 with its own usage text on stderr ⟦criterion 4⟧
 - [x] `preserve-attempt.sh`, made to fail inside its own EXIT trap's lifetime, ends with exit 2 and never with a code outside 0–3 ⟦criterion 5⟧
 - [x] `parallel-conductors.sh`, made to fail inside its own EXIT trap's lifetime, ends with exit 2 and never with a code outside 0–3 ⟦criterion 5⟧
-- [x] `parallel-conductors.sh`, whose EXIT trap's own cleanup command (`rm -rf "$rc_dir"`) fails, ends with exit 2 and never with a code outside 0–3 ⟦added⟧ ⟦criterion 5⟧ ⟂ refactor pending
+- [x] `parallel-conductors.sh`, whose EXIT trap's own cleanup command (`rm -rf "$rc_dir"`) fails, ends with exit 2 and never with a code outside 0–3 ⟦added⟧ ⟦criterion 5⟧
 - [ ] `run-suite.sh`, made to fail inside its own EXIT trap's lifetime, ends with exit 2 and never with a code outside 0–3 ⟦criterion 5⟧
 - [ ] `run-leaf.sh`, made to fail inside its own EXIT trap's lifetime, ends with exit 2 and never with a code outside 0–3 ⟦criterion 5⟧
 - [ ] `run-conductor.sh`, made to fail inside its own EXIT trap's lifetime, ends with exit 2 and never with a code outside 0–3 ⟦criterion 5⟧
