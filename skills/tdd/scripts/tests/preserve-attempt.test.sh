@@ -211,5 +211,13 @@ refs="$(git_q "$repo" for-each-ref --format='%(refname)' refs/veri/attempts 2>&1
 { [[ "$code" == 0 ]] && [[ "$resolved" == 0 ]]; } \
   && ok || no "finds the step through lib/ledger.sh's ledger_steps (code=$code resolved=$([[ "$resolved" == 0 ]] && echo yes || echo no) refs='$refs')"
 
+repo="$work/unborn"
+mkdir -p "$repo"
+new_repo -b main "$repo" >/dev/null 2>&1
+printf '%s\n' "$REJECTED" > "$repo/stop-run.sh"
+preserve "$repo" 409 3 develop-green 1 >/dev/null 2>&1; code=$?
+[[ "$code" == 2 ]] \
+  && ok || no "ends with exit 2 when it fails inside its own EXIT trap's lifetime (code=$code)"
+
 
 finish
