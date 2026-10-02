@@ -42,6 +42,7 @@ copy="$work/scripts"
 mkdir -p "$copy"
 cp "$SCRIPTS/status.sh" "$SCRIPTS/solvable-issues.sh" "$copy/"
 cp -R "$SCRIPTS/lib" "$copy/lib"
+cp -R "$SCRIPTS/veri" "$copy/veri"
 printf 'main_working_tree() { printf "%%s\\n" %q; }\n' "$decoy" > "$copy/lib/main-working-tree.sh"
 
 status_out="$(cd "$linked" && env -u VERI_LABEL "$copy/status.sh" 2>/dev/null)" && status_code=0 || status_code=$?

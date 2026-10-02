@@ -98,8 +98,9 @@ prs_json="$(gh_json prs.json pulls pr list --limit 10000 --json body,state)"
 source "$(dirname "$0")/lib/main-working-tree.sh"
 main_tree="$(main_working_tree)"
 
+here="$(cd "$(dirname "$0")" && pwd)"
 # hazard: the python block is one single-quoted string, so an apostrophe inside it ends it.
-PYTHONPATH="$(cd "$(dirname "$0")" && pwd)/lib" exec python3 -c '
+PYTHONPATH="$here/veri:$here/lib" exec python3 -c '
 import os, re, sys
 
 import blocked_by
