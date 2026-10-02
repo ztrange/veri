@@ -38,19 +38,21 @@ case "$verb" in
     step="${3:-}"
 
     structural=()
+    test_only_transforms=()
     # hazard: `|| [[ -n "$line" ]]` keeps a last line that has no trailing newline.
     while IFS= read -r line || [[ -n "$line" ]]; do
       if structural_candidate "$line"; then
         structural+=("$STRUCTURAL_TRANSFORM")
       elif [[ "$line" =~ ^CANDIDATES:[[:space:]]*test-only[[:space:]]*[|][[:space:]]*(.*)$ ]]; then
-        structural+=("${test_only#- }${BASH_REMATCH[1]}")
+        test_only_transforms+=("${test_only#- }${BASH_REMATCH[1]}")
       fi
     done
 
-    if [[ "${#structural[@]}" -gt 0 ]]; then
+    owed=("${structural[@]}" "${test_only_transforms[@]}")
+    if [[ "${#owed[@]}" -gt 0 ]]; then
       {
         printf '### %s\n' "$step"
-        printf -- '- %s\n' "${structural[@]}"
+        printf -- '- %s\n' "${owed[@]}"
       } >>"$file"
     fi
     ;;
