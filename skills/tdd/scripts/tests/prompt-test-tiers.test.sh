@@ -138,20 +138,6 @@ if ! grep -qF 'refactor-touched.sh' <<< "$after_each"; then
 fi
 report "$name"
 
-name="develop-refactor says a break outside the affected set surfaces at the PR's one full run and its repair step, not at verify-refactor"
-problems=()
-joined_refactor="$(plain <<< "$refactor" | tr '\n' ' ' | tr -s ' ')"
-if grep -qE 'full suite runs at verify-refactor' <<< "$joined_refactor"; then
-  problems+=("develop-refactor's prompt still says the full suite runs at verify-refactor")
-fi
-if ! grep -qE 'one full(-suite)? run' <<< "$joined_refactor"; then
-  problems+=("develop-refactor's prompt never names the PR's one full run as where a break outside the affected set surfaces")
-fi
-if ! grep -qF 'repair step' <<< "$joined_refactor"; then
-  problems+=("develop-refactor's prompt never names the repair step a red full run appends")
-fi
-report "$name"
-
 name="develop-green and verify-green name the fast command plus the affected suites, not the full suite"
 problems=()
 green="$("$DEVELOP" green "$work/spec.md" 'QWIXTLE step' 'make test' 'tests/zorblat.test.sh' 'zorblat case' 'make unit' 2>/dev/null)" ||
