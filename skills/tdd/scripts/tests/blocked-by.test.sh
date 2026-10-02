@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Unit tests for scripts/lib/blocked_by.py — the one reading of an issue body's `## Blocked by`
+# Unit tests for scripts/veri/blocked_by.py — the one reading of an issue body's `## Blocked by`
 # section.
 #
 # Contract under test:
-#   lib/blocked_by.py   blockers(<body>, <repo slug>) → the issue numbers named under
+#   veri/blocked_by.py  blockers(<body>, <repo slug>) → the issue numbers named under
 #                       `## Blocked by`, as `#<n>` or as https://github.com/<slug>/issues/<n>
 #
 # Run: scripts/tests/blocked-by.test.sh
@@ -11,6 +11,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LIB="$HERE/../lib"
+VERI="$HERE/../veri"
 source "$HERE/lib/harness.sh"
 
 check() {
@@ -28,7 +29,7 @@ import sys
 sys.path.insert(0, sys.argv[1])
 from blocked_by import blockers
 print(blockers(sys.stdin.read(), sys.argv[2]))
-' "$LIB" "$1" 2>&1
+' "$VERI" "$1" 2>&1
 }
 
 body='## Problem
@@ -130,7 +131,7 @@ for body, slug in zip(sys.argv[2::2], sys.argv[3::2]):
     except Exception as e:
         print("raised:", e)
 print("spawned=%s" % spawned)
-' "$LIB" "$body" acme/widgets "$none_body" acme/widgets "$absent_body" acme/widgets \
+' "$VERI" "$body" acme/widgets "$none_body" acme/widgets "$absent_body" acme/widgets \
   "$mixed_body" acme/widgets "$mixed_body" '' "$later_body" acme/widgets 2>&1)"
 rm -rf "$scratch"
 check "a caller that is not solvable-issues.sh imports the blocked-by module and gets its answers with no gh, no repository and no child process started" \
@@ -141,5 +142,46 @@ check "a caller that is not solvable-issues.sh imports the blocked-by module and
 [1, 56, 34]
 [3]
 spawned=[]" "$inproc_out"
+
+problems=()
+[[ ! -e "$LIB/blocked_by.py" ]] || problems+=("scripts/lib/blocked_by.py still exists")
+scratch="$(scratch_dir)"
+mkdir -p "$scratch/scripts/lib" "$scratch/scripts/veri" "$scratch/gh" "$scratch/bin" "$scratch/main/.tdd"
+cp "$HERE/../solvable-issues.sh" "$HERE/../workqueue.sh" "$scratch/scripts/"
+cp "$LIB"/*.sh "$scratch/scripts/lib/"
+for dir in lib veri; do
+  for py in "$HERE/../$dir"/*.py; do
+    [[ -e "$py" && "${py##*/}" != blocked_by.py ]] && cp "$py" "$scratch/scripts/$dir/"
+  done
+done
+printf 'def blockers(*args, **kwargs):\n    return []\n' > "$scratch/scripts/veri/blocked_by.py"
+printf '[]\n' > "$scratch/gh/prs.json"
+cat > "$scratch/gh/issues.json" <<'JSON'
+[
+  {"number": 5, "title": "blocked only by the real module", "state": "OPEN",
+   "labels": [{"name": "ready-for-agent"}], "body": "## Blocked by\n\n- #99\n"},
+  {"number": 99, "title": "the open blocker", "state": "OPEN",
+   "labels": [], "body": "## Blocked by\n\nNone.\n"}
+]
+JSON
+printf 'alpha\t5\tqueued\t\n' > "$scratch/main/.tdd/workqueue"
+cat > "$scratch/bin/git" <<STUB
+#!/bin/sh
+[ "\$1" = worktree ] && printf 'worktree %s\n' "$scratch/main"
+exit 0
+STUB
+chmod +x "$scratch/bin/git"
+solvable="$(cd "$scratch/main" && env -u VERI_LABEL -u VERI_PRIORITY_LABEL \
+  PATH="$scratch/bin:$PATH" VERI_GH_JSON="$scratch/gh" PYTHONDONTWRITEBYTECODE=1 \
+  "$scratch/scripts/solvable-issues.sh" 2>&1)" && code=0 || code=$?
+[[ "$code" -eq 0 && "$solvable" == 5* ]] \
+  || problems+=("solvable-issues.sh beside a stand-in veri/blocked_by.py: exit $code, output '$solvable', want issue 5 unblocked")
+next="$(cd "$scratch/main" && env PATH="$scratch/bin:$PATH" VERI_GH_JSON="$scratch/gh" \
+  PYTHONDONTWRITEBYTECODE=1 "$scratch/scripts/workqueue.sh" next alpha 2>&1)" && code=0 || code=$?
+[[ "$code" -eq 0 && "$next" == 5 ]] \
+  || problems+=("workqueue.sh next beside a stand-in veri/blocked_by.py: exit $code, output '$next', want '5'")
+rm -rf "$scratch"
+
+report "blocked_by is a module of scripts/veri/, not scripts/lib/: solvable-issues.sh and workqueue.sh read an issue's blockers through veri/blocked_by.py"
 
 finish

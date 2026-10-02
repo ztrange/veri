@@ -50,7 +50,8 @@ if [[ "${1:-}" == next ]]; then
   if [[ "$origin_url" =~ [:/]([^/:]+/[^/]+)$ ]]; then
     repo="${BASH_REMATCH[1]}"
   fi
-  PYTHONPATH="$(cd "$(dirname "$0")" && pwd)/lib" exec python3 -c '
+  here="$(cd "$(dirname "$0")" && pwd)"
+  PYTHONPATH="$here/veri:$here/lib" exec python3 -c '
 import sys
 
 import blocked_by
