@@ -246,4 +246,13 @@ run_cost "cost a step — its title ⟦criterion 7⟧"
 expect 0 "0.42"
 verdict "#620: beside a quoted title, a title carrying an em dash and ⟦criterion k⟧ stored as unicode escapes is still summed to the figure --steps prints for it (#521)"
 
+cat > "$work/.tdd/events.jsonl" <<'EOF'
+{"ts": 1, "issue": "620", "actor": "developer", "phase": "red", "step": "prints \"ok\" on success", "event": "usage", "total_cost_usd": "1.00"}
+{"ts": 2, "issue": "620", "actor": "verifier", "phase": "red", "step": "prints \"ok\" on success", "event": "usage", "total_cost_usd": "0.50"}
+{"ts": 3, "issue": "620", "actor": "developer", "phase": "red", "step": "a \\\"quoted\\\" path", "event": "usage", "total_cost_usd": "0.25"}
+EOF
+run_cost 'prints "ok"'
+expect 3 ""
+verdict "#620: in a log holding quoted titles, a step no event carries still prints nothing, exit 3"
+
 finish
