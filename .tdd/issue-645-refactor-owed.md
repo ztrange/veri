@@ -1,0 +1,2 @@
+### with VERI_PARALLEL=2 and two solvable issues, each conductor's assistant events print `context <issue> <tokens>` lines on parallel-conductors.sh's stdout, the figure being cache_read_input_tokens + cache_creation_input_tokens of that event, attributed to the issue whose conductor emitted it ⟦criterion 1⟧
+- extract the shared assistant-event context parse (the cache_read/cache_creation regexes and their sum) duplicated between parallel-conductors.sh print_context and orchestrate.sh watch_context into one sourced function under skills/tdd/scripts/lib/
