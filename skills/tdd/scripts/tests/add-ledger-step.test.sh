@@ -260,6 +260,22 @@ want='# Plan for #42
 check_code "#660: ⟦ci-repair⟧ and ⟦suite-repair⟧ steps, in the ledger or inserted, are not counted toward VERI_STEP_GROWTH" \
   "$code" 0 "$want"
 
+seed_lines 'Steps the run grew carry ⟦added⟧' \
+  '- [ ] collapse to single hyphen ⟦criterion 2⟧' \
+  '' '## Owed steps' '' '- an earlier edge case ⟦added⟧'
+VERI_STEP_GROWTH=1 "$ADD" "$led" after 'collapse to single hyphen' 'one more edge case'; code=$?
+want='# Plan for #42
+
+Steps the run grew carry ⟦added⟧
+- [ ] collapse to single hyphen ⟦criterion 2⟧
+- [ ] one more edge case ⟦added⟧ ⟦criterion 2⟧
+
+## Owed steps
+
+- an earlier edge case ⟦added⟧'
+check "#660: a prose line and an Owed steps bullet quoting ⟦added⟧ are not counted toward VERI_STEP_GROWTH" \
+  "$code" "$want"
+
 stub="$work/stub"
 stub_script
 cat > "$stub/lib/ledger.sh" <<'EOF'
