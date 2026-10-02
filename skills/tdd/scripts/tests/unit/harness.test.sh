@@ -53,11 +53,12 @@ runs="$(grep -c ran "$outer/marker" 2>/dev/null)"
 if [[ -n "$dir" && ! -e "$dir" ]]; then state=gone; else state=kept; fi
 if [[ -n "$list" && ! -e "$list" ]]; then lists=0; else lists=1; fi
 actual="runs=${runs:-0} dir=$state lists=$lists"
-if [[ "$actual" == "runs=1 dir=gone lists=0" ]]; then
+expected="runs=1 dir=gone lists=0"
+if [[ "$actual" == "$expected" ]]; then
   ok
 else
   no "$name"
-  printf '    expected: %s\n    actual:   %s\n' "runs=1 dir=gone lists=0" "$actual"
+  printf '    expected: %s\n    actual:   %s\n' "$expected" "$actual"
 fi
 rm -rf "$outer" "$dir" "$list"
 
