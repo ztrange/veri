@@ -45,3 +45,6 @@
 - test_status.py's floor-holds test restates two STATUS_SUITE_FLOOR names as literals and repeats the suite-presence check the survivors test already makes
 ### a guard suite fails, naming <script>:<line>, when a script whose module exists under veri/ holds Python source (a python3 -c string or a heredoc fed to python3), proven red against a planted offender ⟦criterion 5⟧
 - move the flat() helper, copied in 28 suites including no-python-in-ported-scripts.test.sh and ported-python-guard.test.sh, into tests/lib/harness.sh
+### run-conductor.sh exits 2, naming the Python 3.12 floor and the version found, when the python3 on PATH is older than 3.12 ⟦criterion 9⟧
+- extract the Python 3.12 floor check (version probe via VERI_PYTHON_VERSION, major/minor parse, comparison) duplicated between run-conductor.sh:54-59 and Makefile:153-157 into one shared lib/ helper, before leaf-launchable.sh's step adds a third copy
+- the Python-floor case in bash-version-guard.test.sh repeats the bash-floor run-conductor case's run-and-assert shape (cd, env, run-conductor.sh 4242, exit 2 check, launched-file check); a shared helper taking env and expected stderr would remove it
