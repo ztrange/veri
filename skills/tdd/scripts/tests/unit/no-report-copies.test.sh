@@ -14,9 +14,11 @@ TESTS="$(cd "$HERE/.." && pwd)"
 export LC_ALL=C
 source "$TESTS/lib/harness.sh"
 
+counter_re='^[[:space:]]*pass=0[[:space:]]+fail=0'
+
 counter_hits() {
   local hits hit file rest lineno text
-  hits="$(cd "$1" && shopt -s nullglob && grep -nE '^[[:space:]]*pass=0[[:space:]]+fail=0' \
+  hits="$(cd "$1" && shopt -s nullglob && grep -nE "$counter_re" \
     ./*.sh ./unit/*.sh | grep -v '^\./unit/harness\.test\.sh:')"
   while IFS= read -r hit; do
     [[ -n "$hit" ]] || continue
@@ -54,7 +56,7 @@ name="no suite defines its own ok/no, initialises its own counters or prints its
 problems=""
 copies="$(cd "$TESTS" && grep -nE \
   -e '^[[:space:]]*(function[[:space:]]+)?(ok|no)[[:space:]]*\(\)' \
-  -e '^[[:space:]]*pass=0[[:space:]]+fail=0' \
+  -e "$counter_re" \
   -e '^[[:space:]]*(echo|printf)[[:space:]].*\$(\{pass\}|pass)[^"]* passed, .*failed' \
   ./*.sh ./unit/*.sh | grep -v '^\./unit/harness\.test\.sh:')"
 while IFS= read -r hit; do
