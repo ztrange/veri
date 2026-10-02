@@ -267,6 +267,21 @@ forbids_stash() {  # forbids_stash <phase label> <prompt>
 every_phase forbids_stash \
   "every built developer prompt forbids git stash and names a safe alternative"
 
+forbids_index_restore() {  # forbids_index_restore <phase label> <prompt>
+  local label="$1" prompt="$2"
+  prompt_says "$prompt" "develop-$label never forbids git checkout -- <file>" \
+    -iE -e "(never|do not|don't|not)[^.]{0,120}git checkout -- <file>"
+  prompt_says "$prompt" "develop-$label never forbids git restore" \
+    -iE -e "(never|do not|don't|not)[^.]{0,160}git restore"
+  prompt_says "$prompt" "develop-$label never ties the rule to undoing a probe" \
+    -iE -e "(undo|restor)[^.]{0,60}(probe|mutat)"
+  prompt_says "$prompt" "develop-$label never names cp <file> <file>.orig" -F -e 'cp <file> <file>.orig'
+  prompt_says "$prompt" "develop-$label never names mv <file>.orig <file>" -F -e 'mv <file>.orig <file>'
+}
+
+every_phase forbids_index_restore \
+  "#619 _develop-shared.md forbids git checkout -- <file> and git restore for undoing a probe and names cp <file> <file>.orig / mv <file>.orig <file> instead"
+
 defines_class() {  # defines_class <class word> <alternation of that class's effects>
   local class="$1" effects="$2"
   says_both_ways "$refactor" "does not define $class by what the transform changes" \
@@ -632,14 +647,14 @@ renders_as() {  # <label> <want-cksum> <args...> — records a prompt whose sum 
   got="$(printf '%s\n' "${out//"$scripts_dir"/@SCRIPTS@}" | cksum)"
   [[ "$got" == "$want" ]] || problems="$problems; $label renders as '$got', want '$want'"
 }
-renders_as red            '2493217892 9982'       red "$work/spec.md" "$step_text" "$test_cmd"
-renders_as green          '1771614540 6887'     green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit"
-renders_as refactor       '1261163051 8947'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
-renders_as 'revise red'   '3051826211 7370'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as 'revise green' '3585850391 7372'  revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as 'revise refactor' '3275415555 7375' revise refactor "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as exhausted      '3417210291 3714'       exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as reconcile      '3527139660 5317'       reconcile "$work/spec.md" "$step_text" "$test_cmd" "$rc_branch" "$rc_sha"
+renders_as red            '1253458810 10263'       red "$work/spec.md" "$step_text" "$test_cmd"
+renders_as green          '2615734855 7168'     green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit"
+renders_as refactor       '842882459 9228'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
+renders_as 'revise red'   '788521639 7651'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+renders_as 'revise green' '2849870849 7653'  revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+renders_as 'revise refactor' '1919967131 7656' revise refactor "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+renders_as exhausted      '124126523 3995'       exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+renders_as reconcile      '3578743599 5598'       reconcile "$work/spec.md" "$step_text" "$test_cmd" "$rc_branch" "$rc_sha"
 [[ -z "$problems" ]] \
   && ok || no "every phase other than over-budget renders byte-identically to before #450 (${problems#; })"
 
@@ -687,7 +702,7 @@ refuses "unknown phase beside cover/transform" "$BUILD" covers "$work/spec.md" "
   && ok || no "cover and transform each print their own prompt carrying the step, and an unknown phase is still refused with exit 2 and no stdout (${problems#; })"
 
 problems=""
-probe_order develop-cover "${rk_out[cover]}" 'break its behaviour' 'run the suites'
+probe_order develop-cover "$(cat "$HERE/../prompts/develop-cover.md")" 'break its behaviour' 'run the suites'
 [[ -z "$problems" ]] && ok \
   || no "#619 develop-cover restores a probe with cp <file> <file>.orig before the mutation and mv <file>.orig <file> after the run under mutation (${problems#; })"
 
