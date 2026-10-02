@@ -241,4 +241,24 @@ rm -f "$owed_file"
 report "$name"
 
 
+name="append keeps a test-only candidate in the file, under the named step"
+problems=()
+
+owed_file="$(mktemp)"
+step='refactor-owed.sh append keeps a test-only candidate under its step'
+"$OWED" append "$owed_file" "$step" <<'REPORT' && code=0 || code=$?
+RESULT: applied "fold verify.sh's two prompt paths into one", suite green
+FLAGS: none
+CANDIDATES: test-only | fold the three answers_none fixtures into one helper
+REPORT
+
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from append, got $code")
+
+under_step "$owed_file" "$step" 'fold the three answers_none fixtures into one helper'
+
+rm -f "$owed_file"
+report "$name"
+
+
 finish
