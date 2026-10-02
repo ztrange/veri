@@ -58,6 +58,13 @@ paragraphs() {
   awk 'BEGIN { RS = "" } { gsub(/\n/, " "); print }' "$1" | plain
 }
 
+need_idiom() {
+  text="$(paragraphs "$claude_path" | grep -E '^a suite whose subject is the docs pipeline')"
+  [[ -n "$text" ]] && return 0
+  problems+=("$claude_md has no paragraph opening 'a suite whose subject is the docs pipeline' to read")
+  return 1
+}
+
 name="$skill_md's phase sections and $claude_md say which leaves run the full suite"
 problems=()
 
@@ -136,8 +143,7 @@ report "$name"
 
 name="$claude_md's Testing idiom paragraph states what runs per step and per PR"
 problems=()
-text="$(paragraphs "$claude_path" | grep -E '^a suite whose subject is the docs pipeline')"
-if [[ -n "$text" ]]; then
+if need_idiom; then
   says_fast_plus_affected "$claude_md's Testing idiom paragraph" \
     'develop-green, verify-green and verify-refactor run per step'
   says 'develop-green' "$claude_md's Testing idiom paragraph never names develop-green"
@@ -149,21 +155,16 @@ if [[ -n "$text" ]]; then
     "$claude_md's Testing idiom paragraph never says a repair step runs the full suite again"
   [[ "$text" =~ three\ leaves\ per\ step ]] &&
     problems+=("$claude_md's Testing idiom paragraph still says three leaves per step run the full suite")
-else
-  problems+=("$claude_md has no paragraph opening 'a suite whose subject is the docs pipeline' to read")
 fi
 report "$name"
 
 name="$claude_md's Testing idiom paragraph says a revise leaf runs the tiers of the phase it redoes"
 problems=()
-text="$(paragraphs "$claude_path" | grep -E '^a suite whose subject is the docs pipeline')"
-if [[ -n "$text" ]]; then
+if need_idiom; then
   says 'revise[- ](leaf|leaves)|revise-(red|green|refactor)' \
     "$claude_md's Testing idiom paragraph never names the revise leaves"
   says '(tier|suites)[^.]*phase (it|they|the leaf) (redoes|redo|is redoing|are redoing)' \
     "$claude_md's Testing idiom paragraph never says a revise leaf runs the tiers of the phase it redoes"
-else
-  problems+=("$claude_md has no paragraph opening 'a suite whose subject is the docs pipeline' to read")
 fi
 report "$name"
 
