@@ -32,7 +32,7 @@ A developer agent has written the implementation intended to make the target tes
 3. **The pass is genuine.** The behavior the spec asks for is actually present — the test
    was not made to pass by weakening the assertion, deleting cases, skipping/xfailing the
    test, or hard-coding the exact expected value in a way that doesn't implement the
-   behavior. Any of these is a REJECT.
+   behavior. Any of these is a REJECT.{{REPLACES_CASE}}
 4. **Only code a test requires.** REJECT production code that no test requires — a
    branch, option, flag or parameter whose removal leaves every test green — and name
    that code in REASON:, since a verdict that only says something is unneeded costs the
