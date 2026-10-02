@@ -14,5 +14,5 @@
 - [x] `parallel-conductors.sh`, whose EXIT trap's own cleanup command (`rm -rf "$rc_dir"`) fails, ends with exit 2 and never with a code outside 0–3 ⟦added⟧ ⟦criterion 5⟧
 - [x] `run-suite.sh`, made to fail inside its own EXIT trap's lifetime, ends with exit 2 and never with a code outside 0–3 ⟦criterion 5⟧
 - [x] `run-leaf.sh`, made to fail inside its own EXIT trap's lifetime, ends with exit 2 and never with a code outside 0–3 ⟦criterion 5⟧
-- [ ] `run-conductor.sh`, made to fail inside its own EXIT trap's lifetime, ends with exit 2 and never with a code outside 0–3 ⟦criterion 5⟧
+- [x] `run-conductor.sh`, made to fail inside its own EXIT trap's lifetime, ends with exit 2 and never with a code outside 0–3 ⟦criterion 5⟧ ⟂ refactor pending
 - [ ] `workqueue.sh`, made to fail after `take_lock` has armed its EXIT trap, ends with exit 2 and never with a code outside 0–3 ⟦criterion 5⟧
