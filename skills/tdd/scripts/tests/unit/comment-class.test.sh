@@ -279,13 +279,6 @@ skill-refactor-pending:## The scripts (this skill's `scripts/` directory)
 skill-refactor-pending:## The scripts (this skill's `scripts/` directory)
 solvable-issues:#!/bin/sh
 status:# Plan for #7 — widgets spin when clicked
-status:# Plan for #8 — gears turn
-status:# Plan for #9 — cogs mesh
-status:# Plan for #7 — widgets spin when clicked
-status:# Plan for #3 — gears turn
-status:# Plan for #5 — lamps glow
-status:# Plan for #3 — gears turn
-status:# Plan for #5 — lamps glow
 unit/emitted-text:## What to build
 unit/emitted-text:## Acceptance criteria
 unit/emitted-text:## Bug
@@ -295,7 +288,7 @@ unit/emitted-text:# Plan for #1 — fixed
 EOF
 expected="${expected%$'\n'}"
 if [[ "$got" != "$expected" ]]; then
-  problems+="    want the 75 class 3 lines unchanged (< want, > got):"$'\n'
+  problems+="    want the 68 class 3 lines unchanged (< want, > got):"$'\n'
   problems+="$(diff <(printf '%s\n' "$expected") <(printf '%s\n' "$got"))"$'\n'
 fi
 verdict "the text of every class 3 line in the suites is unchanged, in its file and in its order"
