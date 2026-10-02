@@ -39,8 +39,14 @@ _ledger_pending_mark=' ⟂ refactor pending'
 _ledger_added_mark='⟦added⟧'
 _ledger_criterion_tag='⟦criterion '
 
+# Assigns the caller's local `untagged`: <text> less a trailing pending mark, then a trailing criterion tag.
+_ledger_untagged() {
+  untagged="${1%"$_ledger_pending_mark"}"
+  untagged="${untagged% "$_ledger_criterion_tag"*⟧}"
+}
+
 ledger_steps() {
-  local line nl state kind pending added criterion text index=0 re open_step done_box
+  local line nl state kind pending added criterion text untagged index=0 re open_step done_box
   _ledger_step_grammar
   local criterion_re="${_ledger_criterion_tag}([0-9]+)⟧"
   local kind_re="⟦(full-suite|human-owed)⟧ $criterion_re"
@@ -52,9 +58,9 @@ ledger_steps() {
     text="${BASH_REMATCH[4]}"
     kind=step
     [[ "$text" =~ $kind_re ]] && kind="${BASH_REMATCH[1]}"
-    added="${text%"$_ledger_pending_mark"}"
-    added="${added% "$_ledger_criterion_tag"*⟧}"
-    [[ "$added" == *"$_ledger_added_mark" ]] && added=1 || added=0
+    _ledger_untagged "$text"
+    added=0
+    [[ "$untagged" == *"$_ledger_added_mark" ]] && added=1
     criterion=
     [[ "$text" =~ $criterion_re ]] && criterion="${BASH_REMATCH[1]}"
     pending=0
