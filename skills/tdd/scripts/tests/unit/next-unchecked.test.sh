@@ -91,6 +91,13 @@ ticked_ledger='# Plan for #42
 - [x] pin the third step ⟦criterion 3⟧'
 check "a fully ticked ledger quoting markers still exits 3 (#484)" 3 "$ticked_ledger" ""
 
+suite_repair_ledger='# Plan for #42
+
+- [ ] the suites are green ⟦full-suite⟧ ⟦criterion 3⟧
+- [ ] repair claude-md-counts.test.sh: FAIL - counts ⟦suite-repair⟧ ⟦criterion 4⟧
+- [ ] pin the third step ⟦criterion 5⟧'
+check "an unchecked ⟦suite-repair⟧ step is handed to a leaf, not skipped like ⟦full-suite⟧ (#590)" 0 "$suite_repair_ledger" "repair claude-md-counts.test.sh: FAIL - counts ⟦suite-repair⟧ ⟦criterion 4⟧"
+
 work="$(scratch_dir)"
 mkdir "$work/lib"
 cp "$NEXT" "$work/next-unchecked.sh"
