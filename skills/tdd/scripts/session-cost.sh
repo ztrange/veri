@@ -75,7 +75,7 @@ discover() {
   { echo "session-cost.sh: no transcripts found for this repository" >&2; exit 2; }
 
 for t in "${transcripts[@]}"; do
-  [[ -f "$t" ]] || { echo "session-cost.sh: no such transcript: $t" >&2; exit 2; }
+  [[ -f "$t" ]] || refuse "session-cost.sh: no such transcript: $t"
 done
 
 # hazard: the python block is one single-quoted string, so an apostrophe inside it ends it.

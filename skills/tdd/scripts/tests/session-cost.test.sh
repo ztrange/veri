@@ -540,5 +540,19 @@ band cli "${want_cli_preambles[@]}"
 
 report "$name"
 
+name="given a nonexistent transcript, session-cost.sh exits 2 with its own usage text on stderr"
+problems=()
+
+missing_err="$work/missing-transcript.err"
+"$SESSION_COST" --since 2026-09-14 "$work/no-such-transcript.jsonl" > /dev/null 2>"$missing_err"
+code=$?
+
+[[ "$code" == 2 ]] ||
+  problems+=("want exit 2 from session-cost.sh, got $code")
+grep -F 'usage: session-cost.sh --since <ISO date> [--json] [<transcript.jsonl> ...]' "$missing_err" > /dev/null ||
+  problems+=("want its usage text on stderr, stderr was: $(printf '%q' "$(cat "$missing_err")")")
+
+report "$name"
+
 
 finish
