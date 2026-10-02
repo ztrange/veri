@@ -127,6 +127,23 @@ expect_nothing_missing "--watch [seconds] redraws in place, recomputing every ru
 
 counted="$(repo counted)"
 
+unreadable="$(repo unreadable)"
+run="$(fabricate_run "$unreadable" 9 tdd/9-locked)"
+printf '# Plan for #9 — locked\n\n- [ ] a lock\n' > "$run/.tdd/issue-9.md"
+chmod 000 "$run/.tdd/issue-9.md"
+err="$(cd "$unreadable" && "$STATUS" 2>&1 >/dev/null)" && code=0 || code=$?
+chmod 644 "$run/.tdd/issue-9.md"
+if [[ "$code" -eq 2 && "$err" == *"PermissionError"* ]]; then ok; else
+  no "status.sh run through its entry point exits 2 on a failure veri/status.py turns into exit 2"
+  printf 'stderr:\n%s\nexit %s\n' "$err" "$code"
+fi
+
+err="$(cd "$one" && "$STATUS" --bogus 2>&1 >/dev/null)" && code=0 || code=$?
+if [[ "$err" == "status.sh: unknown option '--bogus'" && "$code" -eq 2 ]]; then ok; else
+  no "status.sh given a bad argument names it on stderr"
+  diff <(printf "status.sh: unknown option '--bogus'\nexit 2\n") <(printf '%s\nexit %s\n' "$err" "$code")
+fi
+
 ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
 mkdir -p "$one/elsewhere"
 in_place="$(cd "$one" && "$STATUS" 2>&1)"; in_place_code=$?
