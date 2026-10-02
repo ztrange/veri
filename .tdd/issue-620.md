@@ -7,4 +7,4 @@
 - [x] for every step in a log holding a quoted title, the figure step-cost.sh prints for that title equals the dollars on that step's --steps row ⟦criterion 5⟧
 - [x] step-cost.sh --run sums events whose step titles contain double quotes, counting each event once ⟦criterion 6⟧
 - [x] a title carrying an em dash and a double-bracketed criterion mark (stored as JSON unicode escapes, the #521 case) is still summed by step-cost.sh to the figure --steps prints for it ⟦criterion 7⟧
-- [ ] step-cost.sh given a step no event carries still prints nothing and exits 3 ⟦criterion 8⟧
+- [x] step-cost.sh given a step no event carries still prints nothing and exits 3 ⟦criterion 8⟧
