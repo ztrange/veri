@@ -1,6 +1,6 @@
 # Plan for #683 — the test-only candidate match, the count-line check and the stop-mode list each live in one place
 
-- [x] `test_only_candidate <line>` in `lib/candidate-line.sh` returns 0 for a `CANDIDATES: test-only | <transform>` line, setting `TEST_ONLY_TRANSFORM` to `<transform>`, and returns 1 (leaving it unset) for a structural, cosmetic or `none` line ⟦criterion 1⟧ ⟂ refactor pending
+- [x] `test_only_candidate <line>` in `lib/candidate-line.sh` returns 0 for a `CANDIDATES: test-only | <transform>` line, setting `TEST_ONLY_TRANSFORM` to `<transform>`, and returns 1 (leaving it unset) for a structural, cosmetic or `none` line ⟦criterion 1⟧
 - [ ] `refactor-owed.sh append` records a test-only candidate through `test_only_candidate`, with no test-only regex of its own (`! grep -nE 'test-only\)?\[\[:space:\]\]' skills/tdd/scripts/refactor-owed.sh`) ⟦criterion 2⟧
 - [ ] `refactor-triage.sh` accepts a test-only candidate line through `test_only_candidate`, with no test-only regex of its own (`! grep -nE 'test-only\)?\[\[:space:\]\]' skills/tdd/scripts/refactor-triage.sh`), and still exits 3 on a report whose only leftovers are test-only ⟦criterion 2⟧
 - [ ] `run-suite.sh` over a suite that prints its count line on stdout and then one line on stderr exits with the suite's own code (0 for a green suite), as `make test` does ⟦criterion 4⟧
