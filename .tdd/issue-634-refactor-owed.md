@@ -1,2 +1,4 @@
 ### run-suite.sh, given a tests/py/test_*.py path, runs that file under pytest and exits 0 when every case is green and 1 when a case fails ⟦criterion 7⟧
 - the venv python3 resolution (`${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3`, falling back to PATH's python3) in run-suite.sh duplicates the Makefile's `VENV_DIR` / `py_bin` logic (Makefile:130,150); one shared resolver would mean moving the logic across files, which this phase does not allow
+### run-suite.sh, given a tests/py/test_*.py path, exits 2 with no answer when pytest cannot be imported or the named file does not exist ⟦criterion 7⟧
+- the exit-2 case in count-line-guard.test.sh (`real_python3=…` at ~:774–775) repeats run-suite.sh's interpreter lookup: `$VERI_VENV/bin/python3`, falling back to the `python3` on PATH. Sharing it would mean a helper in `scripts/lib/`, which is an extraction across files, so it is out of scope for this phase.
