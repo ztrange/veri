@@ -1,6 +1,6 @@
 # Plan for #671 — a step marked ⟦replaces-case⟧ may delete exactly the bash case it names, so a port can replace an implementation case under ADR 0027
 
-- [ ] for a step whose step text carries `⟦replaces-case⟧`, the develop-green prompt `build-develop-prompt.sh green` builds permits deleting the one bash case the step names, and still forbids modifying or deleting any other case ⟦criterion 1⟧
+- [x] for a step whose step text carries `⟦replaces-case⟧`, the develop-green prompt `build-develop-prompt.sh green` builds permits deleting the one bash case the step names, and still forbids modifying or deleting any other case ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] for a step whose step text does not carry `⟦replaces-case⟧`, the develop-green prompt `build-develop-prompt.sh green` builds is byte-identical to the one it builds today ⟦criterion 2⟧
 - [ ] for a step whose step text carries `⟦replaces-case⟧`, the revise prompt `build-develop-prompt.sh revise green` builds permits deleting the one bash case the step names, and still forbids modifying or deleting any other case, while without the mark it is byte-identical to today's
 - [ ] for a `--step` carrying `⟦replaces-case⟧`, the verify-green prompt `build-verify-prompt.sh green` builds tells the verifier to PASS only when the named bash case is gone and a pytest case asserting the same behaviour was added, and to REJECT a deletion or modification of any other case ⟦criterion 3⟧

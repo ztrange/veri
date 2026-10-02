@@ -121,7 +121,12 @@ if spec_has_bug_section "$spec_file"; then
   bug_file="$HERE/prompts/_develop-red-bug.md"
 fi
 
-for f in "$tpl_file" "$shared_file" "$spec_file" "$reason_file" "$bug_file"; do
+replaces_file=""
+if [[ "$phase" == "green" && "$step" == *"⟦replaces-case⟧"* ]]; then
+  replaces_file="$HERE/prompts/_develop-green-replaces-case.md"
+fi
+
+for f in "$tpl_file" "$shared_file" "$spec_file" "$reason_file" "$bug_file" "$replaces_file"; do
   [[ -n "$f" ]] || continue
   [[ -r "$f" ]] || { echo "build-develop-prompt: cannot read '$f'" >&2; exit 2; }
 done
@@ -132,12 +137,16 @@ spec="$(cat "$spec_file")"
 reason=""
 if [[ -n "$reason_file" ]]; then reason="$(cat "$reason_file")"; fi
 
+replaces_case=""
+if [[ -n "$replaces_file" ]]; then replaces_case=$'\n\n'"$(cat "$replaces_file")"; fi
+
 bug_reproduction=""
 if [[ -n "$bug_file" ]]; then bug_reproduction="$(cat "$bug_file")"; fi
 
 out="${tpl//\{\{SHARED\}\}/$shared}"
 out="${out//\{\{ISSUE_SPEC\}\}/$spec}"
 out="${out//\{\{BUG_REPRODUCTION\}\}/$bug_reproduction}"
+out="${out//\{\{REPLACES_CASE\}\}/$replaces_case}"
 out="${out//\{\{STEP\}\}/$step}"
 out="${out//\{\{TEST_CMD\}\}/$test_cmd}"
 out="${out//\{\{TEST_PATH\}\}/$test_path}"
