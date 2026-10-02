@@ -6,3 +6,6 @@
 ### SKILL.md's CI step says that on wait-ci.sh exit 2 whose stderr names a conflict the conductor rebases onto origin/<default> through the existing rebase path (rebase verifier, full suite, push under a pinned lease) and waits for CI again, once, and that a second conflict bails with cause ci-conflict ⟦criterion 5⟧
 - the phrase 'conflicts with its base branch' is spelled in both wait-ci.sh's stderr and SKILL.md's grep; it is a cross-file contract string that could live in one place (moving it across files is out of scope here)
 - test-only | skill-ci-conflict.test.sh's `ci_step`/`conflict_paragraphs` awk extractors may duplicate section/paragraph readers in other skill-*.test.sh suites; they could move into a shared tests/lib helper
+### classify-bail.sh classifies ci-conflict as a system failure, and SKILL.md's Bailing list names ci-conflict among the cause tokens a human reads ⟦criterion 6⟧
+- test-only | classify-bail.test.sh: the ci-conflict case re-implements `check`'s classification assertion inline; it could call `check "ci-conflict is system" ci-conflict 0 system` and keep only the SKILL.md Bailing-entry assertion as its own case
+- test-only | classify-bail.test.sh: the "Contract under test" header lists neither ci-conflict nor ci-timeout and ci-red, which the script already classifies
