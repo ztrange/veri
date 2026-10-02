@@ -346,4 +346,37 @@ found="$(sed -n 's/^python3 is //p' <<< "$out")"
   problems+=("want the bash suite to find .../unit-guard/python3 first, got: $found ($(flat "$out"))")
 report "$name"
 
+
+seen="$work/seen"
+make_tree "$seen"
+cat > "$seen/$PY_DIR/test_leg_probe.py" <<PY
+import os
+
+def test_veri_probe_sees():
+    git = {os.environ.get("GIT_CONFIG_KEY_%d" % i): os.environ.get("GIT_CONFIG_VALUE_%d" % i)
+           for i in range(int(os.environ.get("GIT_CONFIG_COUNT", "0")))}
+    null, fd0 = os.stat("/dev/null"), os.fstat(0)
+    with open("$work/seen.txt", "w") as f:
+        f.write("LC_ALL=%s\n" % os.environ.get("LC_ALL"))
+        f.write("stdin=%s\n" % ("/dev/null" if (fd0.st_dev, fd0.st_ino) == (null.st_dev, null.st_ino) else "other"))
+        f.write("HTTP_PROXY=%s\n" % os.environ.get("HTTP_PROXY"))
+        f.write("HTTPS_PROXY=%s\n" % os.environ.get("HTTPS_PROXY"))
+        f.write("protocol.allow=%s\n" % git.get("protocol.allow"))
+PY
+printf 'not /dev/null\n' > "$work/stdin.txt"
+want_seen='LC_ALL=C/stdin=/dev/null/HTTP_PROXY=http://127.0.0.1:1/HTTPS_PROXY=http://127.0.0.1:1/protocol.allow=never'
+
+name="a pytest case run by make unit or make test sees the recipe's environment a bash suite sees: LC_ALL=C, stdin from /dev/null, HTTP_PROXY and HTTPS_PROXY at the offline proxy and git's protocol.allow=never"
+problems=()
+for target in unit test; do
+  rm -f "$work/seen.txt"
+  env -u VERI_VENV -u HTTP_PROXY -u HTTPS_PROXY -u GIT_CONFIG_COUNT HOME="$work/home-empty" \
+    PYTHONPATH="$fake_pytest" LC_ALL=en_US.UTF-8 \
+    make --no-print-directory -C "$seen" "$target" > "$work/out" 2> "$work/err" < "$work/stdin.txt"
+  got="$(flat "$(cat "$work/seen.txt" 2> /dev/null)")"
+  [[ "$got" == "$want_seen" ]] ||
+    problems+=("make $target: want the pytest case to see $want_seen, got: $got ($(flat "$(cat "$work/out")"))")
+done
+report "$name"
+
 finish
