@@ -10,7 +10,8 @@
 #
 # stdout:  on COVERED: yes, the test the CAUGHT_BY: line names; on COVERED: unreachable
 #          or type-only, `<kind>: <proof>` from the PROOF: line.
-# exit:    0 COVERED: yes · 1 COVERED: no · 2 no readable COVERED: line
+# exit:    0 COVERED: yes · 1 COVERED: no · 2 no readable COVERED: line, or
+#          unreachable|type-only with no PROOF: line or PROOF: NONE
 #          3 COVERED: unreachable|type-only, proved without a test
 set -uo pipefail
 
@@ -28,6 +29,10 @@ done
 case "$covered" in
   yes) printf '%s\n' "$caught_by" ;;
   no)  exit 1 ;;
-  unreachable|type-only) printf '%s: %s\n' "$covered" "$proof"; exit 3 ;;
+  unreachable|type-only)
+    if [[ -z "$proof" || "$proof" == NONE ]]; then
+      echo "cover-outcome: COVERED: $covered without a PROOF: line" >&2; exit 2
+    fi
+    printf '%s: %s\n' "$covered" "$proof"; exit 3 ;;
   *)   echo "cover-outcome: no COVERED: line found" >&2; exit 2 ;;
 esac
