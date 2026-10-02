@@ -231,6 +231,20 @@ want='# Plan for #42
 check_code "#660: a ticked ⟦added⟧ step still marked refactor pending is counted toward VERI_STEP_GROWTH" \
   "$code" 1 "$want"
 
+seed_lines '- [ ] an extra edge case ⟦added⟧ ⟦criterion 2⟧' \
+  '- [ ] collapse to single hyphen ⟦criterion 2⟧'
+VERI_STEP_GROWTH=1 "$ADD" "$led" after 'collapse to single hyphen' 'one more edge case'; code=$?
+want='# Plan for #42
+
+- [ ] an extra edge case ⟦added⟧ ⟦criterion 2⟧
+- [ ] collapse to single hyphen ⟦criterion 2⟧
+
+## Owed steps
+
+- one more edge case'
+check_code "#660: a step ending in ⟦added⟧ before its ⟦criterion k⟧ is counted toward VERI_STEP_GROWTH" \
+  "$code" 1 "$want"
+
 stub="$work/stub"
 stub_script
 cat > "$stub/lib/ledger.sh" <<'EOF'
