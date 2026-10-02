@@ -6,6 +6,9 @@ run in-process. This record fixes which bash cases survive a port, the floor eve
 script keeps whatever the rule says, and what proves a port held the script's contract. It is
 a **port's** rule. ADR 0026's rule for a **refactor** is unchanged.
 
+**Amended 2026-10-02**, before any port landed under it: the proof runs over **contract
+cases** only, and **implementation cases** are replaced by pytest cases first (#634).
+
 ## Context
 
 ADR 0026 lets a refactor delete a test only with its subject: never a case "that looks
@@ -19,6 +22,20 @@ The two spikes that priced the move (#473 Python, #474 Go) each ported `parse-ve
 `push-branch.sh`. Both held the CLI contract on 23 of 23 integration cases, unmodified, on the
 first run, and both ran ~30 unit cases in-process at 0.18–0.19 s wall. The old suite run
 unmodified against the new code was what showed the contract held.
+
+The first port to try it hit a case no port can pass. #634 (PRD 008 R0b, porting `status.sh`)
+parked on `tests/status.test.sh:452-470`, "finds the step through lib/ledger.sh's
+ledger_steps, counting no checkbox of its own". It copies only `status.sh` and `lib/` into a
+scratch directory and replaces the bash function `ledger_steps`. Once `status.sh` is a shim
+over `veri/status.py`, nothing calls that function, so "the old suite, green and unmodified"
+could not be met. The same wall stands across waves 2–3: the fast tier's documented pattern
+sources a script or a `lib/` file and mocks its functions (`push-branch.test.sh` is the worked
+example; `ledger`, `github` and `exit-contract` follow it), and six integration suites —
+among them `metrics`, `orchestrate` and `status` — copy `lib/` into a scratch tree by hand.
+
+The shim is the proxy of a refactoring by example. **Contract tests** pass through the proxy
+unchanged; tests coupled to the implementation are the ones rewritten; new tests are written
+against the ideal interface.
 
 ## Decision
 
@@ -46,12 +63,38 @@ Whatever the survival rule says, every ported script keeps these bash cases:
 These are the script's command-line contract, which SKILL.md, the Makefile and the hooks call.
 A pytest case importing the module cannot observe any of them.
 
+### Two kinds of case
+
+A **contract case** runs the script through its `.sh` entry point and observes only its
+arguments, stdin, environment, files, stdout, stderr, exit code and PATH stubs.
+
+An **implementation case** sources the script or a `lib/` file, or stubs or overrides a
+function inside it.
+
 ### The proof
 
-The proof that a port held the contract is **the old bash suite, green and unmodified, against
-the new code, before any case is cut.** The cut is a later commit than that green run, so the
-history shows the old suite passing against the ported script. A port whose old suite needed
-editing to go green changed the contract, and is not a port.
+The proof that a port held the contract is **the old bash suite's contract cases, green with
+their assertions unmodified, against the new code, before any case is cut.** The cut is a
+later commit than that green run, so the history shows the contract cases passing against the
+ported script. A port whose contract cases needed their assertions edited to go green changed
+the contract, and is not a port.
+
+**Implementation cases are replaced first.** Each is replaced by a pytest case asserting the
+same behaviour, in its own commit before the port, and listed in the PR's pairs table. They
+cannot be part of the proof: a function the shim no longer calls cannot be stubbed.
+
+**The setup allowance.** A contract case that copies a hand-picked set of scripts into a
+scratch directory may add the `veri/` package to what it copies. Its assertions stay
+byte-identical, so that commit's diff touches only copy lines.
+
+### What a replacing pytest case may fake
+
+A replacing pytest case calls the module's **entry point** — `main(argv)`, or the function the
+shim calls — and fakes only **process boundaries**: subprocess, the clock, the environment,
+files under `tmp_path`. It never patches a function of the module under test. That would
+rebuild the coupling the implementation case had, one language over.
+
+No guard suite enforces this yet. One is written when a port first breaks it, not before.
 
 ### ADR 0026 stands
 
@@ -68,11 +111,17 @@ bash to Python. It never lets a refactor drop a case because another suite dupli
   not what the tool does.
 - **Extend ADR 0026's rule to ports.** It would forbid the deletion a port exists for, and
   mixing the two would let a refactor claim a port's licence.
+- **Keep bash-internal cases by keeping the stubbed function in bash.** The implementation
+  case would pass unmodified, but the shim would call back into bash for it. That breaks bash
+  calling Python once per invocation, and the convention that a shim holds no logic.
+- **Patch the module's own functions in pytest.** The replacing case would mirror the old one
+  line for line, and recreate the coupling to the implementation the port is removing.
 
 ## Consequences
 
 - Each port issue under PRD 008 cites this record. Its PR body carries the pairs table, and
-  its history carries the old suite green before the cut.
+  its history carries the implementation cases replaced, then the contract cases green before
+  the cut.
 - Before #633 there was no `tests/py/`. Its pytest leg in `make unit` and `make test` is what
   the replacing cases run under, and its admission rule for a pytest suite is "no process but
   the interpreter".
