@@ -19,7 +19,7 @@
 # not green. What a caller must never be handed is 0.
 set -uo pipefail
 
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HERE="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$HERE/lib/exit-contract.sh"
 USAGE="usage: run-suite.sh <suite>"
 require_args 1 "$@"
