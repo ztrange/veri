@@ -77,6 +77,13 @@ check "#624 of two records that both carry a report line, the later one wins" \
 IMPL_PATH: b.sh
 SUITE: GREEN — 20 passed, 0 failed'
 
+check "#624 with no report or VERDICT: line in any record, the last record wins" \
+'{"type":"result","result":"First turn."}
+{"type":"result","result":"Second turn.\nNothing to report."}
+{"type":"result","result":"Third turn.\nStill no report."}' \
+'Third turn.
+Still no report.'
+
 check "passthrough non-stream" \
 'VERDICT: PASS
 REASON: plain text, no stream-json here.' \
