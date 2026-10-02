@@ -26,7 +26,11 @@ require_args 1 "$@"
 suite="$1"
 
 ROOT="$(cd "$HERE/../../.." && pwd)"
-eval "$(make -s --no-print-directory -C "$ROOT" count-line-guard 2>/dev/null)"
+if [[ -f "$HERE/lib/count-line-guard.sh" ]]; then
+  source "$HERE/lib/count-line-guard.sh"
+else
+  eval "$(make -s --no-print-directory -C "$ROOT" count-line-guard 2>/dev/null)"
+fi
 [[ -n "${COUNT_LINE:-}" && -n "${COUNTLESS:-}" ]] || {
   echo "run-suite.sh: could not read the count-line guard from $ROOT/Makefile" >&2
   exit 2
