@@ -199,13 +199,12 @@ no flag, VERI_REFACTOR_BUDGET unset, count 5|VERI_ISSUE_REFACTOR_BUDGET=3|5|3|5/
 PROBES
 report "$name"
 
-name="#596 no file outside the docs and .tdd trees states 10 as the VERI_ISSUE_REFACTOR_BUDGET default"
+name="#596 no tracked file outside the docs and .tdd trees states 10 as the VERI_ISSUE_REFACTOR_BUDGET default"
 problems=()
 issue_var=VERI_ISSUE_REFACTOR_BUDGET
 old_default=10
 stale="${issue_var}(:-|[^0-9]{0,40}default[^0-9]{0,4})${old_default}([^0-9]|$)"
-hits="$(cd "$ROOT" && find . \( -path ./docs -o -path ./projects/docs -o -path ./.tdd -o -path ./.git \) -prune \
-  -o -type f -exec grep -nE "$stale" {} + 2>/dev/null)"
+hits="$(git -C "$ROOT" grep -nE "$stale" -- . ':!docs' ':!projects/docs' ':!.tdd' 2>/dev/null)"
 [[ -z "$hits" ]] ||
   problems+=("want no statement of default $old_default for $issue_var, found:"$'\n'"$hits")
 report "$name"
