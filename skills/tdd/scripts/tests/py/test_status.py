@@ -6,10 +6,17 @@ import subprocess
 import sys
 import time
 
+import pytest
+
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 for path in (SCRIPTS, SCRIPTS / "veri"):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
+
+
+@pytest.fixture(autouse=True)
+def text_mode(monkeypatch):
+    monkeypatch.delenv("STATUS_JSON", raising=False)
 
 
 def write_events(path, events):
@@ -35,7 +42,6 @@ def test_run_activity_reports_the_last_launch_its_attempts_usage_and_state(tmp_p
         ev(9950, "green", "two cogs mesh", "done", "2", pr="77"),
     ])
     monkeypatch.setattr(time, "time", lambda: 10000)
-    monkeypatch.delenv("STATUS_JSON", raising=False)
 
     status = importlib.import_module("veri.status")
     line = status.run_activity(str(events), str(tmp_path / "conductor.pid"), 900)
@@ -43,7 +49,7 @@ def test_run_activity_reports_the_last_launch_its_attempts_usage_and_state(tmp_p
     assert line == "green  developer  develop-green 100s  attempt 2  $1.75  11000 tokens  done 77"
 
 
-def test_scope_totals_sums_attempts_outcomes_wall_and_dollars_over_the_runs(tmp_path, monkeypatch):
+def test_scope_totals_sums_attempts_outcomes_wall_and_dollars_over_the_runs(tmp_path):
     def ev(ts, event, **rest):
         return {"ts": ts, "issue": "9", "actor": "developer", "phase": "red", "step": "a cog exists",
                 "event": event, "attempt": "1", "skill_commit": "abc", **rest}
@@ -61,7 +67,6 @@ def test_scope_totals_sums_attempts_outcomes_wall_and_dollars_over_the_runs(tmp_
            cache_read_input_tokens="0", cache_creation_input_tokens="0"),
         ev(1600, "bail", classification="process"),
     ])
-    monkeypatch.delenv("STATUS_JSON", raising=False)
 
     status = importlib.import_module("veri.status")
     line = status.scope_totals("veri", "4", [str(finished), str(bailed)])
@@ -97,7 +102,6 @@ def test_main_renders_a_three_step_ledger_with_one_ticked_as_step_2_of_3(tmp_pat
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.delenv("VERI_LABEL", raising=False)
-    monkeypatch.delenv("STATUS_JSON", raising=False)
 
     status = importlib.import_module("veri.status")
     status.main([])
