@@ -1,6 +1,6 @@
 # Plan for #663 — the refactor leaf records test-file-only candidates as owed structural debt, which the structural pass can never work
 
-- [x] the develop-refactor prompt template defines a third candidate class: a candidate whose transform would change only files under a tests/ directory is reported on a `CANDIDATES: test-only | <transform>` line, never on a `CANDIDATES: structural` line ⟦criterion 1⟧ ⟂ refactor pending
+- [x] the develop-refactor prompt template defines a third candidate class: a candidate whose transform would change only files under a tests/ directory is reported on a `CANDIDATES: test-only | <transform>` line, never on a `CANDIDATES: structural` line ⟦criterion 1⟧
 - [ ] `refactor-owed.sh append` keeps a `CANDIDATES: test-only` candidate in the owed file under its step's heading ⟦criterion 2⟧
 - [ ] `refactor-owed.sh list` never prints a test-only candidate, and an owed file holding only test-only candidates makes `list` exit 3 with nothing on stdout ⟦criterion 2⟧
 - [ ] `refactor-owed.sh list` on an owed file holding both structural and test-only candidates prints the structural candidates exactly as it does for a file holding them alone ⟦criterion 3⟧
