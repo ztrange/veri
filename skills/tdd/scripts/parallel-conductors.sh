@@ -171,20 +171,11 @@ launch() {
   in_flight[$n]=$!
 }
 
-declare -A restart=()     # issue numbers stopped over budget, to be launched again first
 stopped=""   # set once a bail or kill has stopped new launches: `#<n> bailed` or `#<n> killed`
 plumbing=""  # set once solvable-issues.sh has exited 2
 why=""       # what last kept the loop from launching, for the report's closing line
 while :; do
   while (( ${#in_flight[@]} < 10#$parallel )); do
-    n=""
-    for candidate in "${!restart[@]}"; do n="$candidate"; break; done
-    if [[ -n "$n" ]]; then
-      unset "restart[$n]"
-      echo "restarted $n"
-      launch "$n"
-      continue
-    fi
     [[ -z "$stopped" ]] || break
     (( max_issues == 0 || ${#launched[@]} < max_issues )) || { why="VERI_MAX_ISSUES reached"; break; }
     solvable="$("$HERE/solvable-issues.sh")" && rc=0 || rc=$?
@@ -214,7 +205,8 @@ while :; do
     unset "in_flight[$n]"
     if [[ -e "$rc_dir/$n.restart" ]]; then
       rm -f "$rc_dir/$n.restart"
-      restart[$n]=1
+      echo "restarted $n"
+      launch "$n"
       continue
     fi
     if [[ -e ".tdd/parked/$n.md" ]]; then
