@@ -1,0 +1,2 @@
+### ledger_steps reports added=0 for a step whose text quotes ⟦added⟧ mid-text and does not end in it ⟦criterion 2⟧
+- extract the "ends in ⟦added⟧ once a trailing ⟦criterion k⟧ and ⟂ refactor pending are cut" check into one predicate in lib/ledger.sh, used by both ledger_steps and add-ledger-step.sh's is_added_step — needs steps 2 and 3 first, which make the two rules agree (pending-mark stripping, leading space)
