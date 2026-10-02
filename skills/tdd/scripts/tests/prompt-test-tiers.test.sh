@@ -208,6 +208,23 @@ for ((i = 0; i < ${#revise_tiers[@]}; i += 2)); do
 done
 report "$name"
 
+name="the rebase leaves — develop-rebase, develop-reconcile and verify-rebase — still run the full test command under tier all"
+problems=()
+rebase="$("$DEVELOP" rebase "$work/spec.md" 'QWIXTLE step' 'make test' 'abc1234' 'def5678' 'src/zorblat.sh' 2>/dev/null)" ||
+  problems+=("build-develop-prompt.sh rebase exited $?")
+verify_rebase="$("$VERIFY" rebase "$work/spec.md" 'abc1234' 'def5678' 2>/dev/null)" ||
+  problems+=("build-verify-prompt.sh rebase exited $?")
+timed_through develop-rebase "$rebase" all
+timed_through develop-reconcile "$reconcile" all
+timed_through verify-rebase "$verify_rebase" all
+for leaf in develop-rebase develop-reconcile; do
+  [[ "$leaf" == develop-rebase ]] && redo="$rebase" || redo="$reconcile"
+  if ! grep -qF "timed-test-run.sh all '' make test" <<< "$(plain <<< "$redo")"; then
+    problems+=("$leaf's prompt never runs the full test command, make test, under tier all")
+  fi
+done
+report "$name"
+
 name="verify-red, verify-green, verify-refactor and verify-pin run their test commands through timed-test-run.sh, each naming its tier"
 problems=()
 verify_pin="$("$VERIFY" pin "$work/spec.md" 'tests/zorblat.test.sh' 'zorblat case' 2>/dev/null)" ||
