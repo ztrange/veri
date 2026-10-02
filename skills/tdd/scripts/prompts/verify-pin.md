@@ -14,11 +14,11 @@ make fail. Confirm the test is a genuine **regression pin** worth committing.
 
 1. **It passes now.** Run the target test yourself against the current, unmodified code.
    It must **pass** — not error, not skip.
-2. **It fails under mutation.** Identify the behavior the spec criterion describes, then
-   **break it yourself** with a minimal edit to the production code (remove the guard,
-   invert the condition, drop the branch) and run the target test again: it must **FAIL**.
-   Then restore the code exactly — `git checkout -- <file>`, and confirm with `git diff
-   --exit-code` — before you report. A test that still passes with the behavior removed
+2. **It fails under mutation.** Identify the behavior the spec criterion describes, copy
+   the file first — `cp <file> <file>.orig` — then **break it yourself** with a minimal
+   edit to the production code (remove the guard, invert the condition, drop the branch)
+   and run the target test again: it must **FAIL**. Then restore the code exactly —
+   `mv <file>.orig <file>`, and confirm with `git diff --exit-code` — before you report. A test that still passes with the behavior removed
    pins nothing: that is a REJECT.
    Make both of those runs — the one in check 1 and the one after the mutation — through
    the wrapper `{{TIMED_TEST_RUN}}`, which records what each run cost and names the tier it
