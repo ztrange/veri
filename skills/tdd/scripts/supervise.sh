@@ -210,9 +210,7 @@ owns_tree="$heartbeat_watched"
 case "$name" in conductor-*) owns_tree=0 ;; esac
 if [[ -s "$ownerfile" ]]; then
   read -r owner_pid owner_name < "$ownerfile"
-  owner_done=0
-  [[ ! -e ".tdd/$owner_name.exit" ]] || owner_done=1
-  if [[ "$owner_done" == 0 ]] && kill -0 "$owner_pid" 2>/dev/null; then
+  if [[ ! -e ".tdd/$owner_name.exit" ]] && kill -0 "$owner_pid" 2>/dev/null; then
     echo "supervise: refusing to launch $name: leaf ${owner_name:-?} (pid $owner_pid) is still alive in this worktree" >&2
     [[ "$owner_name" == "$name" ]] || printf '2\n' > "$exitfile"
     exit 2
