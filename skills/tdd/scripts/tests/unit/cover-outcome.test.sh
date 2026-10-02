@@ -50,4 +50,24 @@ run_on "some narration with no report lines at all"
 [[ "$code" == 2 ]] || problems+=("no COVERED: line: want exit 2, got $code")
 verdict "$name"
 
+name="#679: COVERED: unreachable or type-only with a PROOF: line exits 3 printing '<kind>: <proof>'"
+problems=()
+proof='useWidgetSync: its one caller, WidgetPanel, passes onChange={() => {}}'
+run_on "some narration
+COVERED: unreachable
+CAUGHT_BY: NONE
+PROOF: $proof
+MUTATION: NONE"
+[[ "$code" == 3 ]] || problems+=("COVERED: unreachable: want exit 3, got $code")
+[[ "$out" == "unreachable: $proof" ]] || problems+=("COVERED: unreachable: want stdout 'unreachable: $proof', got '$(printf '%s' "$out" | tr '\n' '|')'")
+proof='npx tsc --noEmit'
+run_on "some narration
+COVERED: type-only
+CAUGHT_BY: NONE
+PROOF: $proof
+MUTATION: NONE"
+[[ "$code" == 3 ]] || problems+=("COVERED: type-only: want exit 3, got $code")
+[[ "$out" == "type-only: $proof" ]] || problems+=("COVERED: type-only: want stdout 'type-only: $proof', got '$(printf '%s' "$out" | tr '\n' '|')'")
+verdict "$name"
+
 finish
