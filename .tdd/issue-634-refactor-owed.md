@@ -25,3 +25,6 @@
 ### veri.status, imported in-process, computes the scope totals line (attempted, done, bailed, wall, dollars, solvable) that status.sh's scope_totals heredoc computes today, status.sh calling it, and tests/status.test.sh passes unmodified ⟦criterion 1⟧
 - status.sh's run_activity and scope_totals are now one-line pass-throughs to `python3 "$veri/status.py" <subcommand>`; inline them or route both through one helper once the shim conversion replaces them
 - scope_totals counts done and bail events in two separate sum() passes over events; a single pass (or Counter) would replace both
+### veri.status, imported in-process, builds the --json run object that status.sh's python3 -c string builds today, status.sh calling it, and tests/status.test.sh passes unmodified ⟦criterion 1⟧
+- status.sh:105 calls `python3 "$veri/status.py" run-object` directly, unlike its siblings that go through the run_activity/scope_totals bash wrappers — give it a matching run_object wrapper
+- veri/status.py main() picks the command with an if/elif chain over three names; a table mapping each name to its function would replace it
