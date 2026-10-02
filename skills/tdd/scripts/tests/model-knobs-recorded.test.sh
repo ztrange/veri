@@ -320,21 +320,20 @@ probe_shared_helpers_plain_shell
 report "$name"
 
 case_name_running() {
-  local line last="" case_name=""
+  local suite_rel="skills/tdd/scripts/tests/model-knobs-recorded.test.sh" line last=""
+  case_name=""
   while IFS= read -r line; do
     [[ "$line" =~ ^name=\"(.*)\"$ ]] && last="${BASH_REMATCH[1]}"
     [[ "$line" =~ ^[[:space:]]*${1}([[:space:]]|$) ]] && case_name="$last"
-  done < "$ROOT/skills/tdd/scripts/tests/model-knobs-recorded.test.sh"
-  printf '%s' "$case_name"
+  done < "$ROOT/$suite_rel"
+  [[ -n "$case_name" ]] && return
+  problems+=("$suite_rel has no case that runs $1")
+  return 1
 }
 
 probe_finish_case_name() {
-  local suite_rel="skills/tdd/scripts/tests/model-knobs-recorded.test.sh" case_name
-  case_name="$(case_name_running probe_suite_resolves_helpers_from_itself)"
-  if [[ -z "$case_name" ]]; then
-    problems+=("$suite_rel has no case that runs probe_suite_resolves_helpers_from_itself")
-    return
-  fi
+  local case_name
+  case_name_running probe_suite_resolves_helpers_from_itself || return
   [[ "$case_name" =~ end[s]?\ in\ the\ harness\'s\ finish ]] ||
     problems+=("the case checking for a bare finish line is not named for each suite ending in the harness's finish: $case_name")
   [[ "$case_name" =~ own\ count\ line ]] &&
@@ -364,11 +363,7 @@ probe_harness_case_name() {
   while IFS= read -r line; do
     [[ "$line" =~ ^name=\"(.*)\"$ ]] && names+=("${BASH_REMATCH[1]}")
   done < "$ROOT/$suite_rel"
-  case_name="$(case_name_running "$harness_fn")"
-  if [[ -z "$case_name" ]]; then
-    problems+=("$suite_rel has no case that runs $harness_fn")
-    return
-  fi
+  case_name_running "$harness_fn" || return
   [[ "$case_name" =~ source[s]?\ (\$HERE/)?lib/harness\.sh ]] ||
     problems+=("the case checking each suite sources lib/harness.sh is not named for that: $case_name")
   local n
@@ -386,7 +381,7 @@ probe_harness_case_name
 report "$name"
 
 probe_plain_shell_probe_unsourced() {
-  local suite_rel="skills/tdd/scripts/tests/model-knobs-recorded.test.sh" defined case_name
+  local defined case_name
   defined="$(env -i bash --noprofile --norc -c '
     before="$(declare -F)"
     source "$1" > /dev/null 2>&1
@@ -405,11 +400,7 @@ probe_plain_shell_probe_unsourced() {
   )
   [[ "${#left[@]}" -eq 0 ]] ||
     problems+=("the plain-shell probe fails in a shell that has not sourced lib/harness.sh:" "${left[@]}")
-  case_name="$(case_name_running probe_shared_helpers_plain_shell)"
-  if [[ -z "$case_name" ]]; then
-    problems+=("$suite_rel has no case that runs probe_shared_helpers_plain_shell")
-    return
-  fi
+  case_name_running probe_shared_helpers_plain_shell || return
   [[ "$case_name" == *"defines only the five helpers"* ]] &&
     problems+=("the plain-shell probe's case still claims $helpers_rel defines only the five helpers: $case_name")
 }
