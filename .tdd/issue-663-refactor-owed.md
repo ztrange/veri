@@ -7,3 +7,5 @@
 ### `refactor-owed.sh render` prints the test-only candidates under a heading of their own inside `## Refactor owed`, saying the structural pass does not work them ⟦criterion 4⟧
 - fold the two render cases' shared capture (`rendered="$(mktemp)"`, `render … && code=0 || code=$?`, the exit-0 check) in `tests/refactor-owed.test.sh` into one helper
 - append's `test-only` match is a second hand-written regex beside `structural_candidate` in `lib/candidate-line.sh`; give it a `test_only_candidate` there (cross-file, so out of scope here)
+### `refactor-triage.sh` treats a `CANDIDATES: test-only | …` line as no reason to launch another refactor leaf: a report whose only candidates are test-only exits 3, and one mixing structural and test-only prints only the structural transforms ⟦criterion 5⟧
+- add a `test_only_candidate` matcher to `lib/candidate-line.sh` next to `structural_candidate`, and use it for both `refactor-owed.sh:45` and the `test-only` branch of `refactor-triage.sh:50`. This extracts into a shared lib across files, so this phase must not apply it.
