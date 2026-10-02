@@ -15,4 +15,4 @@
 - [x] `run-suite.sh`, made to fail inside its own EXIT trap's lifetime, ends with exit 2 and never with a code outside 0–3 ⟦criterion 5⟧
 - [x] `run-leaf.sh`, made to fail inside its own EXIT trap's lifetime, ends with exit 2 and never with a code outside 0–3 ⟦criterion 5⟧
 - [x] `run-conductor.sh`, made to fail inside its own EXIT trap's lifetime, ends with exit 2 and never with a code outside 0–3 ⟦criterion 5⟧
-- [x] `workqueue.sh`, made to fail after `take_lock` has armed its EXIT trap, ends with exit 2 and never with a code outside 0–3 ⟦criterion 5⟧ ⟂ refactor pending
+- [x] `workqueue.sh`, made to fail after `take_lock` has armed its EXIT trap, ends with exit 2 and never with a code outside 0–3 ⟦criterion 5⟧
