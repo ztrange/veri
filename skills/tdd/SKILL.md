@@ -723,6 +723,10 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    expects red, restores and reports `COVERED:` and `CAUGHT_BY:`. If
    `git status --porcelain` prints anything once it exits, refuse to continue — stop the
    run: the transform would otherwise commit the leftover mutation as a refactoring.
+   Read its report through `$S/cover-outcome.sh`: exit 3 — `COVERED: unreachable` or
+   `type-only` with its `PROOF:` — goes on to Transform without bailing or running
+   `coverage-blocker.sh`, posting the proof it prints in the step's Cover comment; exit 2
+   bails as a **system** failure (`no-verdict`); exit 1 is `COVERED: no`.
    On `COVERED: no`, refuse the step: **bail with cause `uncovered`**, narrating the remedy —
    find a seam and surround the behaviour with tests first — and run
    `$S/coverage-blocker.sh <n>`, which files the coverage issue and blocks this one on it,

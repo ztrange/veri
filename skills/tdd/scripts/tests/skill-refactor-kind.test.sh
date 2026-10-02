@@ -10,6 +10,7 @@
 #   3. SKILL.md's Cover step on `COVERED: no` — see case 3's comment.
 #   4. SKILL.md's refactor-kind cycle, transform rejection and abandonment — see case 4's comment.
 #   5. SKILL.md's Draft PR step titles a refactor-labelled run's PR refactor: — see case 5's comment.
+#   6. SKILL.md's Cover step reads the report through cover-outcome.sh — see case 6's name.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -141,6 +142,29 @@ else
     problems+=("$skill_md's '$pr_heading' section names the refactor: prefix without tying it to the refactor label")
   grep -E 'fix' <<<"$near" > /dev/null && grep -E 'feat' <<<"$near" > /dev/null ||
     problems+=("$skill_md's '$pr_heading' section names the refactor: prefix away from the fix: and feat: branches it sits beside")
+fi
+report "$name"
+
+name="#679 $skill_md's Cover step reads the cover report through cover-outcome.sh: exit 3 goes on to Transform posting the proof in the Cover comment without bailing or running coverage-blocker.sh, exit 2 bails as no-verdict"
+problems=()
+
+outcome_near="$(window "$skill_text" 'cover-outcome\.sh')"
+if [[ -z "$outcome_near" ]]; then
+  problems+=("$skill_md never reads the cover leaf's report through cover-outcome.sh, so a COVERED: unreachable or type-only answer with its PROOF: is read as COVERED: no and bails uncovered")
+else
+  exit3_near="$(window "$outcome_near" 'exit 3')"
+  if [[ -z "$exit3_near" ]]; then
+    problems+=("$skill_md runs cover-outcome.sh without saying what its exit 3 does")
+  else
+    grep -E 'transform' <<<"$exit3_near" > /dev/null ||
+      problems+=("$skill_md's cover-outcome.sh exit 3 never goes on to Transform")
+    grep -E 'proof' <<<"$exit3_near" > /dev/null && grep -E 'cover comment|comment' <<<"$exit3_near" > /dev/null ||
+      problems+=("$skill_md's cover-outcome.sh exit 3 never posts the proof in the step's Cover comment")
+    grep -E '(without|not|never|no) [^.]{0,60}(bail|coverage-blocker\.sh)' <<<"$exit3_near" > /dev/null ||
+      problems+=("$skill_md's cover-outcome.sh exit 3 never says it neither bails nor runs coverage-blocker.sh")
+  fi
+  grep -E 'exit 2[^.]{0,120}no-verdict' <<<"$outcome_near" > /dev/null ||
+    problems+=("$skill_md's cover-outcome.sh exit 2 never bails as no-verdict")
 fi
 report "$name"
 
