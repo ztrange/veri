@@ -1,0 +1,2 @@
+### the missing-argument audit enumerates the scripts in the real `skills/tdd/scripts/` directory instead of a hand-kept roster, so a script added there is audited by existing ⟦criterion 1⟧
+- `refuses` and `rejects` in missing-argument-exit.test.sh differ only in which offender function they call (missing_argument_offender vs named_usage_offender); they could be one helper taking the offender. This cycle did not write that code, so I left it alone.
