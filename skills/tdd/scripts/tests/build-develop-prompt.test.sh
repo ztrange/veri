@@ -116,6 +116,12 @@ none_out="$("$BUILD" 2>"$none_err")"; code=$?
   && [[ -s "$none_err" ]] \
   && ok || no "no arguments at all exits 2 with a usage diagnostic on stderr and prints no prompt (exit $code, stderr: $(tr '\n' ' ' < "$none_err"))"
 
+name="called with no arguments, build-develop-prompt.sh exits 2 with a usage line on stderr naming it"
+usage_err="$work/no-args-usage.err"
+"$BUILD" > /dev/null 2>"$usage_err"; code=$?
+usage_line="$(grep -iE 'usage' "$usage_err" | grep -F 'build-develop-prompt.sh')" || true
+expect_eq "$name" '2:named' "$code:${usage_line:+named}"
+
 problems=""
 grep -qE '^CANDIDATES:' <<<"$refactor" || problems="$problems; no CANDIDATES: report line"
 grep -qiE 'one[^.]{0,20}per line' <<<"$refactor" || problems="$problems; does not ask for one candidate per line"
