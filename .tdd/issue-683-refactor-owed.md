@@ -1,0 +1,2 @@
+### `refactor-triage.sh` accepts a test-only candidate line through `test_only_candidate`, with no test-only regex of its own (`! grep -nE 'test-only\)?\[\[:space:\]\]' skills/tdd/scripts/refactor-triage.sh`), and still exits 3 on a report whose only leftovers are test-only ⟦criterion 2⟧
+- refactor-triage.sh's `^cosmetic[[:space:]]*[|]` match repeats the class-matching pattern `candidate_of_class` in lib/candidate-line.sh already holds; a `cosmetic_candidate` there would remove it, but that is a new lib function and belongs to its own step, not to this one
