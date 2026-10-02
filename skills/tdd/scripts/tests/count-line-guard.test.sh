@@ -6,7 +6,8 @@
 #   `make test` over a suite that dies from an unbound variable inside a numeric
 #   comparison after its first case and exits 0 comes back non-zero, and says which suite
 #   never reached its count line.
-#   run-suite.sh over a tests/py/test_*.py file runs it under pytest: 0 green, 1 a failing case.
+#   run-suite.sh over a tests/py/test_*.py file runs it under pytest: 0 green, 1 a failing case,
+#   2 when pytest cannot be imported or the file does not exist.
 #
 # Run: skills/tdd/scripts/tests/count-line-guard.test.sh
 set -uo pipefail
@@ -1074,6 +1075,25 @@ python3_stub "$path_bin" path
 direct env VERI_VENV="$(scratch_dir)" PATH="$path_bin:$PATH" "$RUNNER" "$py_tree/tests/py/test_red.py"
 [[ "$direct_code" == 0 && "$direct_out" == "path python3 -m pytest $py_tree/tests/py/test_red.py" ]] ||
   problems+=("want the python3 on PATH when \$VERI_VENV has no bin/python3 (exit 0, 'path python3 -m pytest …'); got $direct_code, and it said: $(flat "$direct_out")")
+
+report "$name"
+
+name="run-suite.sh exits 2 over a pytest file when pytest cannot be imported, and when the file does not exist"
+problems=()
+
+real_python3="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+[[ -x "$real_python3" ]] || real_python3="$(command -v python3)"
+siteless="$(scratch_dir)"
+mkdir -p "$siteless/bin"
+printf '#!/bin/sh\nexec "%s" -S "$@"\n' "$real_python3" > "$siteless/bin/python3"
+chmod +x "$siteless/bin/python3"
+direct env VERI_VENV="$siteless" "$RUNNER" "$py_tree/tests/py/test_green.py"
+[[ "$direct_code" == 2 ]] ||
+  problems+=("want exit 2 when the interpreter cannot import pytest; got $direct_code, and it said: $(flat "$direct_out")")
+
+direct "$RUNNER" "$py_tree/tests/py/test_absent.py"
+[[ "$direct_code" == 2 ]] ||
+  problems+=("want exit 2 over a tests/py/test_*.py path that does not exist; got $direct_code, and it said: $(flat "$direct_out")")
 
 report "$name"
 
