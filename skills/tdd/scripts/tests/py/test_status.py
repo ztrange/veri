@@ -66,3 +66,13 @@ def test_scope_totals_sums_attempts_outcomes_wall_and_dollars_over_the_runs(tmp_
     line = status.scope_totals("veri", "4", [str(finished), str(bailed)])
 
     assert line == "scope veri  attempted 2  done 1  bailed 1  wall 900s  $1.75  solvable 4"
+
+
+def test_run_object_merges_the_ledger_fields_with_the_activity_object():
+    activity = json.dumps({"phase": "green", "actor": "developer", "state": "running"})
+
+    status = importlib.import_module("veri.status")
+    obj = status.run_object("9", "a cog — meshes", "tdd/9-cog", "2 of 3", activity)
+
+    assert obj == ('{"issue": "9", "title": "a cog \\u2014 meshes", "branch": "tdd/9-cog", '
+                   '"step": "2 of 3", "phase": "green", "actor": "developer", "state": "running"}')

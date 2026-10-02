@@ -85,6 +85,13 @@ def scope_totals(name, solvable, event_paths):
         name, attempted, done, bailed, wall, dollars, solvable)
 
 
+def run_object(issue, title, branch, step, activity):
+    """One run's --json object: the ledger fields, then the activity object's."""
+    run = {"issue": issue, "title": title, "branch": branch, "step": step}
+    run.update(json.loads(activity) if activity else {})
+    return json.dumps(run)
+
+
 def main(argv):
     if argv[0] == "run-activity":
         line = run_activity(*argv[1:4])
@@ -92,6 +99,8 @@ def main(argv):
             print(line)
     elif argv[0] == "scope-totals":
         print(scope_totals(argv[1], argv[2], argv[3:]))
+    elif argv[0] == "run-object":
+        print(run_object(*argv[1:6]))
 
 
 if __name__ == "__main__":
