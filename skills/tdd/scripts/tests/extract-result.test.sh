@@ -64,6 +64,12 @@ check "#624 a TEST_PATH: report beats a later turn with no report line" \
 TEST_PATH: tests/a.test.sh
 AGAINST_UNMODIFIED: FAILS'
 
+check "#624 a SUITE:-only report beats a later turn with no report line" \
+'{"type":"result","result":"Tidied.\nSUITE: GREEN — 19 passed, 0 failed"}
+{"type":"result","result":"That is the second monitor expiring."}' \
+'Tidied.
+SUITE: GREEN — 19 passed, 0 failed'
+
 check "passthrough non-stream" \
 'VERDICT: PASS
 REASON: plain text, no stream-json here.' \
