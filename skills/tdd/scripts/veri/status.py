@@ -7,6 +7,10 @@ import time
 from event_log import read_events, usage_totals
 
 
+def json_mode():
+    return os.environ.get("STATUS_JSON") == "1"
+
+
 def conductor_answers(pid_file):
     try:
         with open(pid_file) as f:
@@ -50,7 +54,7 @@ def run_activity(events_path, pid_file, timeout):
         return None
     phase, actor, leaf = last.get("phase", ""), last.get("actor", ""), last.get("name", "")
     elapsed = now - int(last["ts"])
-    if os.environ.get("STATUS_JSON") == "1":
+    if json_mode():
         return json.dumps({"phase": phase, "actor": actor, "leaf": leaf, "elapsed_seconds": elapsed,
                            "attempts": attempts, "dollars": round(dollars, 2), "tokens": tokens,
                            "state": state.split(" ")[0], "pr": end.get("pr", ""),
@@ -73,7 +77,7 @@ def scope_totals(name, solvable, event_paths):
         bailed += sum(1 for line in events if line.get("event") == "bail")
         if events:
             wall += int(events[-1]["ts"]) - int(events[0]["ts"])
-    if os.environ.get("STATUS_JSON") == "1":
+    if json_mode():
         return json.dumps({"name": name, "attempted": attempted, "done": done,
                            "bailed": bailed, "wall_seconds": wall, "dollars": round(dollars, 2),
                            "solvable": int(solvable) if solvable.isdigit() else solvable})
