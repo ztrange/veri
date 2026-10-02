@@ -395,7 +395,13 @@ stage_recorder() {
   for script in "$SCRIPTS"/*.sh "$SCRIPTS/lib" "$SCRIPTS/prompts"; do
     [[ "${script##*/}" == detach-leaf.sh ]] || ln -s "$script" "$stage/"
   done
-  cat > "$stage/detach-leaf.sh" <<'STUB'
+  ln -s "$RECORDERS/detach-leaf.sh" "$stage/detach-leaf.sh"
+}
+
+write_recorders() {
+  RECORDERS="$WORK/recorders"
+  mkdir -p "$RECORDERS"
+  cat > "$RECORDERS/detach-leaf.sh" <<'STUB'
 #!/bin/sh
 printf '%s\n' "${VERI_STEP-<unset>}" > "$SEEN"
 step='<no --step argument>'
@@ -405,8 +411,16 @@ while [ "$#" -gt 0 ]; do
 done
 printf '%s\n' "$step" > "$SEEN.argv"
 STUB
-  chmod +x "$stage/detach-leaf.sh"
+  cat > "$RECORDERS/title.sh" <<'STUB'
+#!/bin/sh
+out="$SEEN.$(basename "$0" .sh)"
+printf '%s\n' "${VERI_STEP-<unset>}" > "$out"
+for a in "$@"; do printf '%s\n' "$a" >> "$out"; done
+STUB
+  chmod +x "$RECORDERS/detach-leaf.sh" "$RECORDERS/title.sh"
 }
+
+write_recorders
 
 scan_stage_links() {
   local stage seen tree script name
@@ -554,15 +568,30 @@ stage_title_recorders() {
   local script
   for script in "$@"; do
     rm -f "$stage/$script.sh"
-    cat > "$stage/$script.sh" <<'STUB'
-#!/bin/sh
-out="$SEEN.$(basename "$0" .sh)"
-printf '%s\n' "${VERI_STEP-<unset>}" > "$out"
-for a in "$@"; do printf '%s\n' "$a" >> "$out"; done
-STUB
-    chmod +x "$stage/$script.sh"
+    ln -s "$RECORDERS/title.sh" "$stage/$script.sh"
   done
 }
+
+scan_shared_recorders() {
+  local stage seen tree first name
+  local recorders=(detach-leaf event build-develop-prompt)
+  stage_recorder shared-recorders-a
+  stage_title_recorders event build-develop-prompt
+  first="$stage"
+  stage_recorder shared-recorders-b
+  stage_title_recorders event build-develop-prompt
+  for name in "${recorders[@]}"; do
+    [[ -L "$first/$name.sh" && -L "$stage/$name.sh" ]] ||
+      problems+=("$name.sh: a stage holds its own recorder, want a link to the one written once per suite run")
+    [[ "$first/$name.sh" -ef "$stage/$name.sh" ]] ||
+      problems+=("$name.sh: two stages reach different recorders, want both linked to one")
+    [[ "$stage/$name.sh" -ef "$SCRIPTS/$name.sh" ]] &&
+      problems+=("$name.sh: the stage reaches the script under test, want the recorder")
+  done
+}
+
+run_case "each distinct recorder is written once per suite run and every stage reaches it by a link, its per-stage difference only \$SEEN" \
+  scan_shared_recorders
 
 fill_title() {
   launch="${cmd//<n>/$SENTINEL_ISSUE}"
