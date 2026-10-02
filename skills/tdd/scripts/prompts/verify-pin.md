@@ -18,7 +18,7 @@ make fail. Confirm the test is a genuine **regression pin** worth committing.
    the file first — `cp <file> <file>.orig` — then **break it yourself** with a minimal
    edit to the production code (remove the guard, invert the condition, drop the branch)
    and run the target test again: it must **FAIL**. Then restore the code exactly —
-   `mv <file>.orig <file>`, and confirm with `git diff --exit-code` — before you report. A test that still passes with the behavior removed
+   `mv <file>.orig <file>`, and confirm that `git diff` prints what it printed before the probe — before you report. A test that still passes with the behavior removed
    pins nothing: that is a REJECT.
    Make both of those runs — the one in check 1 and the one after the mutation — through
    the wrapper `{{TIMED_TEST_RUN}}`, which records what each run cost and names the tier it

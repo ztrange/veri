@@ -294,8 +294,8 @@ prompt_says "$green" "verify-green never says to remove the code and run the sui
   -iE -e "remov(e|ing)[^.]{0,120}run[^.]{0,80}suite"
 prompt_says "$green" "verify-green never says to restore the tree afterwards" \
   -iE -e "restor(e|ing)[^.]{0,80}(tree|code|file)"
-prompt_says "$green" "verify-green never says to confirm the restore with git diff --exit-code" \
-  -iE -e "git diff[[:space:]]+--exit-code"
+prompt_says "$green" "verify-green never says to confirm the restore by comparing git diff with what it printed before the probe" \
+  -iE -e "git diff[^.]{0,120}before[^.]{0,40}probe"
 prompt_says "$green" "verify-green never says the restore comes before reporting" \
   -iE -e "before[^.]{0,60}report"
 [[ -z "$problems" ]] && ok \
@@ -311,6 +311,18 @@ problems=""
 probe_order verify-pin "$pin" 'break it yourself' 'run the target test again'
 [[ -z "$problems" ]] && ok \
   || no "#619 verify-pin restores a probe with cp <file> <file>.orig before the mutation and mv <file>.orig <file> after the run under mutation (${problems#; })"
+
+problems=""
+cover="$("$HERE/../build-develop-prompt.sh" cover "$work/spec.md" "slugify lowercases" "make test" 2>/dev/null)"
+for probe in "verify-green:$green" "verify-pin:$pin" "develop-cover:$cover"; do
+  label="${probe%%:*}" prompt="${probe#*:}"
+  prompt_says "$prompt" "$label never compares git diff with what it printed before the probe" \
+    -iE -e "git diff[^.]{0,120}(before|earlier)[^.]{0,40}(probe|mutat)|(probe|mutat)[^.]{0,120}git diff[^.]{0,120}(before|earlier)"
+  prompt_lacks "$prompt" "$label still names git checkout --" -F -e 'git checkout --'
+  prompt_lacks "$prompt" "$label still names git diff --exit-code" -E -e 'git diff[[:space:]]+--exit-code'
+done
+[[ -z "$problems" ]] && ok \
+  || no "#619 verify-green, verify-pin and develop-cover confirm the restore by comparing git diff with what it printed before the probe, and name neither git checkout -- nor git diff --exit-code (${problems#; })"
 
 problems=""
 prompt_says "$with_base" "never names git diff --name-only $base_sha^ $base_sha" \
