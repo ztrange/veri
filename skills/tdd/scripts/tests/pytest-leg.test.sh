@@ -34,6 +34,15 @@ check_green() {
     problems+=("$1: want stdout's last line all suites green, got: $(tail -n 1 <<< "$out")")
 }
 
+check_failed() {
+  local label="$1" target="$2"
+  [[ "$code" != 0 ]] || problems+=("$label: want a non-zero exit, got 0: $(flat "$out")")
+  [[ "$err" =~ \[(Makefile:[0-9]+:\ )?$target\]\ Error\ 1 ]] ||
+    problems+=("$label: want make's [$target] Error 1 on stderr, got: $(flat "$err")")
+  [[ "$(tail -n 1 <<< "$out")" == 'SUITES FAILED' ]] ||
+    problems+=("$label: want stdout's last line SUITES FAILED, got: $(tail -n 1 <<< "$out")")
+}
+
 check_refused() {
   local target="$1"; shift
   env -u PYTHONPATH "$@" PATH="$work/no-pytest-bin:$PATH" \
@@ -112,13 +121,9 @@ for target in unit test; do
     code=0 || code=$?
   out="$(cat "$work/out")"
   err="$(cat "$work/err")"
-  [[ "$code" != 0 ]] || problems+=("make $target: want a non-zero exit, got 0: $(flat "$out")")
-  [[ "$err" =~ \[(Makefile:[0-9]+:\ )?$target\]\ Error\ 1 ]] ||
-    problems+=("make $target: want make's [$target] Error 1 on stderr, got: $(flat "$err")")
+  check_failed "make $target" "$target"
   [[ "$out$err" == *test_veri_probe_fails* ]] ||
     problems+=("make $target: want the output to name test_veri_probe_fails: $(flat "$out")")
-  [[ "$(tail -n 1 <<< "$out")" == 'SUITES FAILED' ]] ||
-    problems+=("make $target: want stdout's last line SUITES FAILED, got: $(tail -n 1 <<< "$out")")
 done
 report "$name"
 
@@ -298,11 +303,7 @@ PY
     code=0 || code=$?
   out="$(cat "$work/out")"
   err="$(cat "$work/err")"
-  [[ "$code" != 0 ]] || problems+=("make unit, $cmd: want a non-zero exit, got 0: $(flat "$out")")
-  [[ "$err" =~ \[(Makefile:[0-9]+:\ )?unit\]\ Error\ 1 ]] ||
-    problems+=("make unit, $cmd: want make's [unit] Error 1 on stderr, got: $(flat "$err")")
-  [[ "$(tail -n 1 <<< "$out")" == 'SUITES FAILED' ]] ||
-    problems+=("make unit, $cmd: want stdout's last line SUITES FAILED, got: $(tail -n 1 <<< "$out")")
+  check_failed "make unit, $cmd" unit
   [[ "$out$err" =~ (^|[^[:alnum:]_.-])$cmd([^[:alnum:]_.-]|$) ]] ||
     problems+=("make unit, $cmd: want the output to name $cmd, got: $(flat "$out") $(flat "$err")")
 done
