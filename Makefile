@@ -11,7 +11,8 @@ TESTS := $(sort $(wildcard skills/tdd/scripts/tests/*.test.sh))
 # `make unit` is the fast tier (#336): only the suites under tests/unit/, through the same
 # recipe as `test`, which runs them too. SUITES is set per target, so the two share one runner;
 # `profile` below takes `test`'s list from the same line rather than restating it.
-UNIT_TESTS := $(sort $(wildcard skills/tdd/scripts/tests/unit/*.test.sh))
+UNIT_DIR := skills/tdd/scripts/tests/unit
+UNIT_TESTS := $(sort $(wildcard $(UNIT_DIR)/*.test.sh))
 test profile: SUITES = $(TESTS) $(if $(filter command line,$(origin TESTS)),,$(UNIT_TESTS))
 unit: SUITES = $(UNIT_TESTS)
 PY_TESTS := $(sort $(wildcard skills/tdd/scripts/tests/py/test_*.py))
@@ -24,6 +25,7 @@ PY_TESTS := $(sort $(wildcard skills/tdd/scripts/tests/py/test_*.py))
 # rather than `:=` for this reason: it must read GUARD_PATH per target, when the recipe expands it.
 UNIT_GUARD_BIN := $(CURDIR)/skills/tdd/scripts/tests/unit-guard
 unit: GUARD_PATH = $(UNIT_GUARD_BIN):
+test: GUARD_PATH = $$suite_guard
 
 # The line every suite under that glob prints last, as an ERE — the "count line" the
 # recipe's failure message names and CLAUDE.md's testing idiom requires, defined here
@@ -166,7 +168,8 @@ test unit:
 	  suite_name="$$(basename "$$t")"; \
 	  printf '== %s\n' "$$suite_name"; \
 	  : > "$$reach_log"; \
-	  { $(OFFLINE_ENV) "$$t" < /dev/null 2>&3; echo $$? > "$$suite_status"; } 3>&2 | tee "$$suite_out"; \
+	  { case "$$t" in $(UNIT_DIR)/*) suite_guard="$(UNIT_GUARD_BIN):" ;; esac; \
+	    $(OFFLINE_ENV) "$$t" < /dev/null 2>&3; echo $$? > "$$suite_status"; } 3>&2 | tee "$$suite_out"; \
 	  [ "$$(cat "$$suite_status")" -eq 0 ] || fail=1; \
 	  last_line="$$(tail -n 1 "$$suite_out")"; \
 	  printf '%s\n' "$$last_line" | grep -E '$(COUNT_LINE)' > /dev/null || { \

@@ -181,6 +181,23 @@ run_make unit UNIT_TESTS="$scratch/mocks-vcs.test.sh"
 
 report "$name"
 
+name="make test refuses real git in a suite under $UNIT_DIR/, naming git"
+problems=()
+
+tree="$(scratch_dir)"
+mkdir -p "$tree/$UNIT_DIR"
+cp "$ROOT/Makefile" "$tree/Makefile"
+cp -R "$ROOT/skills/tdd/scripts/tests/offline" "$ROOT/skills/tdd/scripts/tests/unit-guard" "$tree/skills/tdd/scripts/tests/"
+cp "$scratch/calls-real-vcs.test.sh" "$tree/$UNIT_DIR/calls-real-vcs.test.sh"
+
+out="$(make --no-print-directory -C "$tree" test 2>&1 < /dev/null)" && code=0 || code=$?
+[[ "$code" != 0 ]] ||
+  problems+=("want 'make test' to fail a suite under $UNIT_DIR/ that ran real git; it exited 0 and said: $(flat "$out")")
+grep -qw git < <(grep -v '^== ' <<< "$out") ||
+  problems+=("no line of 'make test' over a suite under $UNIT_DIR/ that ran real git names git: $(flat "$out")")
+
+report "$name"
+
 name="at least five existing suites move into $UNIT_DIR/, each passing and recording its git/python3/server/sleep count in its header"
 problems=()
 
