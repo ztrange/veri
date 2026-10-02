@@ -254,12 +254,12 @@ def test_main_reads_a_run_ending_in_a_stop_mark_as_stopped_with_its_mode_in_text
     lamp_git(monkeypatch, tmp_path, [run])
     at_ten_thousand(monkeypatch)
 
-    status.main([])
+    text_code = status.main([])
     text = capsys.readouterr().out
-    status.main(["--json"])
+    json_code = status.main(["--json"])
     obj = json.loads(capsys.readouterr().out)["runs"][0]
 
-    assert (text.rstrip("\n").endswith("  stopped at-leaf"), obj["state"], obj["stop_mode"]) == (True, "stopped", "at-leaf")
+    assert (text_code, json_code, text.rstrip("\n").endswith("  stopped at-leaf"), obj["state"], obj["stop_mode"]) == (0, 0, True, "stopped", "at-leaf")
 
 
 def test_main_reads_a_run_as_running_again_after_a_resume_mark_follows_its_stop_mark(tmp_path, monkeypatch, capsys, status):
@@ -388,10 +388,10 @@ def test_main_takes_a_run_directory_as_one_run_its_own_issues_ledger_only(tmp_pa
 
     text_code = status.main([])
     text = capsys.readouterr().out
-    status.main(["--json"])
+    json_code = status.main(["--json"])
     issues = [r["issue"] for r in json.loads(capsys.readouterr().out)["runs"]]
 
-    assert (text_code, text, issues) == (0, "#7  lamps glow  tdd/7-lamps  step 1 of 1\n", ["7"])
+    assert (text_code, text, json_code, issues) == (0, "#7  lamps glow  tdd/7-lamps  step 1 of 1\n", 0, ["7"])
 
 
 def test_main_prints_two_runs_with_their_own_totals_when_each_directory_holds_the_others_ledger(tmp_path, monkeypatch, capsys, status):
