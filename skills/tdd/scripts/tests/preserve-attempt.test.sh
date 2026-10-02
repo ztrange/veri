@@ -31,9 +31,13 @@ copy_path() { printf '%s/%s-develop-green-1-%s.%s' "$(attempts_dir "$1")" "$2" "
 
 copy_text() { if [[ -f "$1" ]]; then cat "$1"; else echo "<missing>"; fi; }
 
-make_repo() {
+unborn_repo() {
   mkdir -p "$1"
   new_repo -b main "$1" >/dev/null 2>&1
+}
+
+make_repo() {
+  unborn_repo "$1"
   printf 'committed\n' > "$1/stop-run.sh"
   git_q "$1" add stop-run.sh >/dev/null 2>&1
   git_q "$1" commit -q -m "initial" >/dev/null 2>&1
@@ -212,8 +216,7 @@ refs="$(git_q "$repo" for-each-ref --format='%(refname)' refs/veri/attempts 2>&1
   && ok || no "finds the step through lib/ledger.sh's ledger_steps (code=$code resolved=$([[ "$resolved" == 0 ]] && echo yes || echo no) refs='$refs')"
 
 repo="$work/unborn"
-mkdir -p "$repo"
-new_repo -b main "$repo" >/dev/null 2>&1
+unborn_repo "$repo"
 printf '%s\n' "$REJECTED" > "$repo/stop-run.sh"
 preserve "$repo" 409 3 develop-green 1 >/dev/null 2>&1; code=$?
 [[ "$code" == 2 ]] \
