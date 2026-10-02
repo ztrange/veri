@@ -759,6 +759,20 @@ prompt_says "${rk_out[cover]}" "never names a value never read as a reason" -iE 
 [[ -z "$problems" ]] && ok \
   || no "#679 develop-cover allows COVERED: unreachable only for a step that only deletes code no caller reaches, with a PROOF: naming every caller and why none reaches it — none exists, every caller passes a no-op, the value is never read (${problems#; })"
 
+problems=""
+grep -E '^COVERED:.*type-only' <<<"${rk_out[cover]}" > /dev/null \
+  || problems="$problems; the COVERED: report line does not offer type-only"
+says_both_ways "${rk_out[cover]}" "never limits type-only to a step that changes only types" \
+  120 'type-only' 'changes only types'
+says_both_ways "${rk_out[cover]}" "never says the type-only PROOF: is the type-check command" \
+  120 'PROOF:' 'type-check command'
+prompt_says "${rk_out[cover]}" "never says the type check must have run green" \
+  -iE -e 'type-check command[^.]{0,60}(ran|run) green'
+prompt_says "${rk_out[cover]}" "never names npx tsc --noEmit as an example" -F -e 'npx tsc --noEmit'
+prompt_says "${rk_out[cover]}" "never names mypy as an example" -F -e 'mypy'
+[[ -z "$problems" ]] && ok \
+  || no "#679 develop-cover allows COVERED: type-only only for a step that changes only types, with a PROOF: that is the type-check command the leaf ran green — npx tsc --noEmit, mypy (${problems#; })"
+
 states_comment_rule() {  # states_comment_rule <phase label> <prompt>
   local label="$1" prompt="$2"
   prompt_says "$prompt" "develop-$label never names the contract header as an allowed comment" \
