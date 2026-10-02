@@ -6,7 +6,7 @@
 - [x] affected-suites.sh, given a touched tests/py/test_<module>.py, prints that file without the widening notice ⟦criterion 6⟧
 - [x] event_log is a module of the scripts/veri/ package and no longer under scripts/lib/; every script that imported it (status.sh, tier-usual.sh, metrics.sh and the rest) finds it there, their suites passing unmodified ⟦criterion 5⟧
 - [x] blocked_by is a module of scripts/veri/ and no longer under scripts/lib/; solvable-issues.sh and workqueue.sh find it there, their suites passing unmodified ⟦criterion 5⟧
-- [ ] json_documents is a module of scripts/veri/ and no longer under scripts/lib/; every script that imported it finds it there, their suites passing unmodified ⟦criterion 5⟧
+- [x] json_documents is a module of scripts/veri/ and no longer under scripts/lib/; every script that imported it finds it there, their suites passing unmodified ⟦criterion 5⟧ ⟂ refactor pending
 - [ ] leaf_log is a module of scripts/veri/, leaving no .py file under scripts/lib/; every script that imported it finds it there, their suites passing unmodified ⟦criterion 5⟧
 - [ ] veri.status, imported in-process, computes the per-run activity line (phase, actor, leaf, seconds, attempt, dollars, tokens, state) that status.sh's run_activity heredoc computes today, status.sh calling it, and tests/status.test.sh passes unmodified ⟦criterion 1⟧
 - [ ] veri.status, imported in-process, computes the scope totals line (attempted, done, bailed, wall, dollars, solvable) that status.sh's scope_totals heredoc computes today, status.sh calling it, and tests/status.test.sh passes unmodified ⟦criterion 1⟧

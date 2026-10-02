@@ -81,7 +81,7 @@ outcome() {
     return 0
   fi
   [[ ! -e ".tdd/parked/$n.md" ]] || return 0
-  pr="$(PYTHONPATH="$HERE/lib" python3 -c '
+  pr="$(PYTHONPATH="$HERE/veri" python3 -c '
 import re, sys
 from json_documents import items
 for pr in items(sys.stdin.read()):

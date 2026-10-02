@@ -85,7 +85,7 @@ while read -r ref tip; do
   locals+="$name $tip $lacks ${worktree_of[$ref]:-}"$'\n'
 done < <(git for-each-ref --format='%(refname) %(objectname)' refs/heads/)
 
-PYTHONPATH="$(cd "$(dirname "$0")" && pwd)/lib" exec python3 -c '
+PYTHONPATH="$(cd "$(dirname "$0")" && pwd)/veri" exec python3 -c '
 import re, sys
 
 from json_documents import items
