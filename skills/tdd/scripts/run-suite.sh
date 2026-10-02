@@ -29,6 +29,10 @@ case "$suite" in
   */tests/py/test_*.py)
     py_bin="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
     [[ -x "$py_bin" ]] || py_bin="$(command -v python3)"
+    "$py_bin" -m pytest --version > /dev/null 2>&1 || {
+      echo "run-suite.sh: pytest cannot be imported by $py_bin; run make install-dev" >&2
+      exit 2
+    }
     "$py_bin" -m pytest "$suite" < /dev/null
     exit "$(to_contract $?)"
     ;;
