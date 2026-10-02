@@ -298,6 +298,36 @@ STUB
 run_launcher "$gh_under" "$under_stub" "$work/under.out"
 expect_lines "a conductor under the default VERI_CONDUCTOR_CTX_BUDGET of 120000 is not stopped at a step-done result, nor at a later tool result once over budget with no new step-done" "$(printf 'under-budget-step-done\nover-budget-mid-step')" "$(cat "$under_marks")" "$work/under.out"
 
+gh_beside="$work/gh-beside"
+solvable_fixture "$gh_beside" 7 8
+beside_marks="$work/beside.marks"
+: > "$beside_marks"
+beside_stub="$work/claude-beside"
+conductor_stub "$beside_stub" <<STUB
+$(stub_waits "$work/beside.out")
+if [ "\$n" = 7 ]; then
+  echo \$\$ > "$beside_marks.7.pid"
+  echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=7 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
+  await_context 'context 7 150100'
+  echo before-result-7 >> "$beside_marks"
+  echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
+  heartbeats 200
+  echo after-step-done-7 >> "$beside_marks"
+else
+  i=0
+  while [ \$i -lt 200 ] && ! { [ -r "$beside_marks.7.pid" ] && ! kill -0 "\$(cat "$beside_marks.7.pid")" 2>/dev/null; }; do
+    i=\$((i + 1)); sleep 0.02
+  done
+  if [ \$i -lt 200 ]; then echo 8-outlived-7 >> "$beside_marks"; else echo 8-waited-out >> "$beside_marks"; fi
+  heartbeats 20
+  echo end-8 >> "$beside_marks"
+fi
+$(ready_pr "$gh_beside")
+STUB
+
+run_launcher "$gh_beside" "$beside_stub" "$work/beside.out" VERI_PARALLEL=2 VERI_CONDUCTOR_CTX_BUDGET=100000
+expect_lines "while one conductor is stopped over VERI_CONDUCTOR_CTX_BUDGET at step-done, the conductor running beside it is not stopped and runs to its own end" "$(printf 'before-result-7\n8-outlived-7\nend-8')" "$(cat "$beside_marks")" "$work/beside.out"
+
 gh4="$work/gh4"
 gh_fixture "$gh4" <<'JSON'
 [
