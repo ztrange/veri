@@ -10,6 +10,8 @@
 #   3. leaf-launchable.sh refuses with exit 2, naming the requirement — and still answers 0 for
 #      a launchable binary on bash 5.
 #   4. On a real bash older than 5, the refusal comes from the bash itself, not the stand-in.
+#   5. run-conductor.sh refuses with exit 2, naming the Python 3.12 floor and the version found,
+#      before it launches anything, when python3 is older than 3.12.
 #
 # Run: skills/tdd/scripts/tests/bash-version-guard.test.sh
 set -uo pipefail
@@ -63,6 +65,22 @@ rc_err="$( cd "$work/conductor" && env VERI_BASH_MAJOR=3 CLAUDE_BIN="$work/claud
 [[ "$rc_code" == 2 ]] || problems+=("want exit 2, got $rc_code: $(flat "$rc_err")")
 [[ "$rc_err" == *"$REQUIREMENT"* ]] || problems+=("want stderr to say it $REQUIREMENT: $(flat "$rc_err")")
 [[ ! -e "$work/conductor/launched" ]] || problems+=("the conductor's binary was launched before the refusal")
+report "$name"
+
+name="run-conductor.sh refuses with exit 2 before launching anything, naming the Python 3.12 floor and the version found, when python3 is older than 3.12"
+problems=()
+mkdir -p "$work/py-conductor"
+claude_stub "$work/py-conductor" "$(cat <<'C'
+cat > /dev/null
+: > "$LAUNCHED"
+C
+)"
+py_err="$( cd "$work/py-conductor" && env VERI_BASH_MAJOR=5 VERI_PYTHON_VERSION=3.11.9 CLAUDE_BIN="$work/py-conductor/claude" \
+    LAUNCHED="$work/py-conductor/launched" "$SCRIPTS/run-conductor.sh" 4242 2>&1 >/dev/null )" && py_code=0 || py_code=$?
+[[ "$py_code" == 2 ]] || problems+=("want exit 2, got $py_code: $(flat "$py_err")")
+[[ "$py_err" == *"Python 3.12"* ]] || problems+=("want stderr to name the Python 3.12 floor: $(flat "$py_err")")
+[[ "$py_err" == *"3.11.9"* ]] || problems+=("want stderr to name the version found, 3.11.9: $(flat "$py_err")")
+[[ ! -e "$work/py-conductor/launched" ]] || problems+=("the conductor's binary was launched before the refusal")
 report "$name"
 
 name="leaf-launchable.sh refuses with exit 2 when bash is older than 5, and still answers 0 for a launchable binary on bash 5"
