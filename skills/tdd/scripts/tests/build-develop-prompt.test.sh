@@ -685,6 +685,26 @@ refuses "unknown phase beside cover/transform" "$BUILD" covers "$work/spec.md" "
 [[ -z "$problems" ]] \
   && ok || no "cover and transform each print their own prompt carrying the step, and an unknown phase is still refused with exit 2 and no stdout (${problems#; })"
 
+offset_of() { local at; at="$(grep -obiE -e "$2" <<<"$1" | cut -d: -f1)"; printf '%s' "${at%%$'\n'*}"; }
+problems=""
+cover_line="$(tr '\n' ' ' <<<"${rk_out[cover]}")"
+cp_at="$(offset_of "$cover_line" 'cp <file> <file>\.orig')"
+mutate_at="$(offset_of "$cover_line" 'break its behaviour')"
+run_at="$(offset_of "$cover_line" 'run the suites')"
+mv_at="$(offset_of "$cover_line" 'mv <file>\.orig <file>')"
+[[ -n "$cp_at" ]] || problems="$problems; develop-cover never names cp <file> <file>.orig"
+[[ -n "$mv_at" ]] || problems="$problems; develop-cover never names mv <file>.orig <file>"
+[[ -n "$mutate_at" ]] || problems="$problems; develop-cover no longer gives the mutation instruction"
+[[ -n "$run_at" ]] || problems="$problems; develop-cover no longer gives the run under mutation"
+if [[ -n "$cp_at" && -n "$mutate_at" ]] && (( cp_at > mutate_at )); then
+  problems="$problems; cp <file> <file>.orig comes after the mutation instruction"
+fi
+if [[ -n "$mv_at" && -n "$run_at" ]] && (( mv_at < run_at )); then
+  problems="$problems; mv <file>.orig <file> comes before the run under mutation"
+fi
+[[ -z "$problems" ]] && ok \
+  || no "#619 develop-cover restores a probe with cp <file> <file>.orig before the mutation and mv <file>.orig <file> after the run under mutation (${problems#; })"
+
 states_comment_rule() {  # states_comment_rule <phase label> <prompt>
   local label="$1" prompt="$2"
   prompt_says "$prompt" "develop-$label never names the contract header as an allowed comment" \

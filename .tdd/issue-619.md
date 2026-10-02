@@ -2,7 +2,7 @@
 
 - [x] verify-green.md tells the verifier to run `cp <file> <file>.orig` before it mutates the code and `mv <file>.orig <file>` after the run under mutation ⟦criterion 1⟧
 - [x] verify-pin.md tells the verifier to run `cp <file> <file>.orig` before it mutates the code and `mv <file>.orig <file>` after the run under mutation ⟦criterion 1⟧
-- [ ] develop-cover.md tells the cover leaf to run `cp <file> <file>.orig` before it mutates the code and `mv <file>.orig <file>` after the run under mutation ⟦criterion 1⟧
+- [x] develop-cover.md tells the cover leaf to run `cp <file> <file>.orig` before it mutates the code and `mv <file>.orig <file>` after the run under mutation ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] verify-green.md, verify-pin.md and develop-cover.md each confirm the restore by comparing `git diff` with what it printed before the probe, and none of them contains `git checkout --` or `git diff --exit-code` ⟦criterion 2⟧
 - [ ] _shared.md forbids `git checkout -- <file>` and `git restore` for undoing a probe and names `cp <file> <file>.orig` / `mv <file>.orig <file>` as the restore to use instead ⟦criterion 3⟧
 - [ ] _develop-shared.md forbids `git checkout -- <file>` and `git restore` for undoing a probe and names `cp <file> <file>.orig` / `mv <file>.orig <file>` as the restore to use instead ⟦criterion 3⟧
