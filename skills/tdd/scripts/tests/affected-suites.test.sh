@@ -499,10 +499,9 @@ expect_suites_unwidened "a touched veri/blocked_by.py with no tests/py/test_bloc
   skills/tdd/scripts/tests/blocked-by.test.sh
 
 make_repo veri-pytest
+foo_bar_tree
 mkdir -p "$s/tests/py"
 printf 'def test_main(): pass\n' > "$s/tests/py/test_status.py"
-printf 'bar\n' > "$s/bar.sh"
-printf '# bar suite\n' > "$s/tests/bar.test.sh"
 commit_base
 printf 'def test_main(): assert False\n' > "$s/tests/py/test_status.py"
 commit_head
