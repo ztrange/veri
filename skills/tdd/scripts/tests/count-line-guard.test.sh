@@ -1098,4 +1098,23 @@ direct "$RUNNER" "$py_tree/tests/py/test_absent.py"
 
 report "$name"
 
+name="run-suite.sh over a suite that prints its count line on stdout and then a line on stderr exits with the suite's own code, as make test does (#683)"
+problems=()
+
+probe_runner_passes_stderr_after_count() {
+  local tree probe
+  have_runner "so there is no invocation to ask this of" || return
+  probe_suite_path stderr-after-count.test.sh || return
+  printf '#!/bin/sh\necho "1 passed, 0 failed"\necho "late noise" >&2\nexit 0\n' > "$probe"
+  chmod +x "$probe"
+
+  direct "$RUNNER" "$probe"
+  [[ "$direct_code" == 0 ]] ||
+    problems+=("want exit 0, the suite's own, from the runner over a suite whose stdout ended in its count line before one stderr line; it exited $direct_code and said: $(flat "$direct_out")")
+}
+
+probe_runner_passes_stderr_after_count
+
+report "$name"
+
 finish

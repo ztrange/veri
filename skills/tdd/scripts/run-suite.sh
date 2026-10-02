@@ -56,7 +56,7 @@ at_exit 'rm -f "$out"'
 trap 'exit 143' TERM
 
 # hazard: the pipeline's status is tee's; the suite's comes off PIPESTATUS.
-"$suite" < /dev/null 2>&1 | tee "$out"
+"$suite" < /dev/null | tee "$out"
 code=${PIPESTATUS[0]}
 
 tail -n 1 "$out" | grep -Eq "$COUNT_LINE" || {
