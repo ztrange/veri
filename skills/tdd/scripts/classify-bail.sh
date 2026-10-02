@@ -13,7 +13,7 @@ USAGE="usage: classify-bail.sh <cause>"
 cause="${1:-}"
 
 case "$cause" in
-  killed-stuck | no-verdict | reconcile-failed | ci-timeout)
+  killed-stuck | no-verdict | reconcile-failed | ci-timeout | ci-conflict)
     echo system
     ;;
   revise-exhausted | untestable-criterion | step-too-big | rebase-unresolved | uncovered | ci-red | suite-red)

@@ -90,4 +90,20 @@ check "uncovered is process" uncovered 0 process
 
 check "suite-red is process" suite-red 0 process
 
+conflict_name="ci-conflict is system, and SKILL.md's Bailing list names it as a system failure (#688)"
+conflict_bad=""
+out="$("$CLASSIFY" ci-conflict 2>/dev/null)" && code=0 || code=$?
+[[ "$code" == 0 && "$(head -n1 <<< "$out")" == system ]] \
+  || conflict_bad+="    classify-bail.sh ci-conflict: want exit 0 and 'system', got exit $code, stdout '$out'"$'\n'
+bailing="$(awk '/^## Bailing/ { s = 1; next } s && /^## / { exit } s' "$HERE/../../../SKILL.md")"
+entry="$(awk '/^- `ci-conflict` —/ { e = 1; print; next } e && /^- / { exit } e && NF { print } e && !NF { exit }' <<< "$bailing")"
+[[ "$entry" == *'**system**'* ]] \
+  || conflict_bad+="    SKILL.md's Bailing list has no \`ci-conflict\` entry calling it a **system** failure; entry: '$entry'"$'\n'
+if [[ -z "$conflict_bad" ]]; then
+  ok
+else
+  no "$conflict_name"
+  printf '%s' "$conflict_bad"
+fi
+
 finish
