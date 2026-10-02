@@ -14,8 +14,13 @@ TESTS="$(cd "$HERE/.." && pwd)"
 export LC_ALL=C
 source "$TESTS/lib/harness.sh"
 
-counter_re='^[[:space:]]*pass=0[[:space:]]+fail=0'
-declare -A COUNTER_EXEMPT=()
+counter_re='^[[:space:]]*(pass=0;?[[:space:]]+fail=0|pass="\$\{pass:-0\}")'
+declare -A COUNTER_EXEMPT=(
+  ["docs-read-guard.test.sh:pass=0; fail=0"]="a planted suite's own counters, inside a heredoc"
+  ["profile.test.sh:pass=0; fail=0"]="a planted suite's own counters, inside a heredoc"
+  ["model-knobs-recorded.test.sh:    pass=0; fail=0"]="a subshell reset around a probe"
+  ["skill-leaf-env.test.sh:    pass=0; fail=0"]="a subshell reset around a probe"
+)
 
 tree_grep() {
   local dir="$1"
@@ -107,6 +112,16 @@ plant="$(scratch_dir)"
 printf '%s\n' '#!/usr/bin/env bash' 'x=1' > "$plant/a.test.sh"
 got="$(declare -A COUNTER_EXEMPT=(); counter_hits "$plant" 2>&1)"
 expect_eq "$name" "" "$got"
+
+name="#595: the counter audit names the file and line of pass=0; fail=0, pass=\"\${pass:-0}\" and pass=0 fail=0"
+plant="$(scratch_dir)"
+printf '%s\n' '#!/usr/bin/env bash' 'pass=0; fail=0' > "$plant/a.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'x=1' 'pass="${pass:-0}"' > "$plant/b.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'pass=0 fail=0' > "$plant/c.test.sh"
+got="$(declare -A COUNTER_EXEMPT=(); counter_hits "$plant" 2>&1)"
+expect_eq "$name" \
+  "$(printf '    %s carries its own harness scaffolding\n' a.test.sh:2 b.test.sh:3 c.test.sh:2)" \
+  "$got"
 
 name="#595: the tree audit admits a counter-initialisation hit only through the COUNTER_EXEMPT table"
 plant="$(scratch_dir)"
