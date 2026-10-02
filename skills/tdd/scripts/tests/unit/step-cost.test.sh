@@ -185,4 +185,13 @@ run_cost 'a \"quoted\" path'
 expect 0 "0.35"
 verdict "#620: a step title carrying a backslash then a double quote is summed to its usage events, exit 0"
 
+cat > "$work/.tdd/events.jsonl" <<'EOF'
+{"ts": 1, "issue": "620", "actor": "developer", "phase": "red", "step": "ends in a backslash \\", "event": "usage", "total_cost_usd": "0.40"}
+{"ts": 2, "issue": "620", "actor": "verifier", "phase": "red", "step": "ends in a backslash \\", "event": "usage", "total_cost_usd": "0.15"}
+{"ts": 3, "issue": "620", "actor": "developer", "phase": "red", "step": "step two", "event": "usage", "total_cost_usd": "1.0"}
+EOF
+run_cost 'ends in a backslash \'
+expect 0 "0.55"
+verdict "#620: a step title ending in a backslash is summed to its usage events, exit 0"
+
 finish
