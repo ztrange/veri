@@ -7,7 +7,7 @@
 - [x] event_log is a module of the scripts/veri/ package and no longer under scripts/lib/; every script that imported it (status.sh, tier-usual.sh, metrics.sh and the rest) finds it there, their suites passing unmodified ⟦criterion 5⟧
 - [x] blocked_by is a module of scripts/veri/ and no longer under scripts/lib/; solvable-issues.sh and workqueue.sh find it there, their suites passing unmodified ⟦criterion 5⟧
 - [x] json_documents is a module of scripts/veri/ and no longer under scripts/lib/; every script that imported it finds it there, their suites passing unmodified ⟦criterion 5⟧
-- [x] leaf_log is a module of scripts/veri/, leaving no .py file under scripts/lib/; every script that imported it finds it there, their suites passing unmodified ⟦criterion 5⟧ ⟂ refactor pending
+- [x] leaf_log is a module of scripts/veri/, leaving no .py file under scripts/lib/; every script that imported it finds it there, their suites passing unmodified ⟦criterion 5⟧
 - [ ] veri.status, imported in-process, computes the per-run activity line (phase, actor, leaf, seconds, attempt, dollars, tokens, state) that status.sh's run_activity heredoc computes today, status.sh calling it, and tests/status.test.sh passes unmodified ⟦criterion 1⟧
 - [ ] veri.status, imported in-process, computes the scope totals line (attempted, done, bailed, wall, dollars, solvable) that status.sh's scope_totals heredoc computes today, status.sh calling it, and tests/status.test.sh passes unmodified ⟦criterion 1⟧
 - [ ] veri.status, imported in-process, builds the --json run object that status.sh's python3 -c string builds today, status.sh calling it, and tests/status.test.sh passes unmodified ⟦criterion 1⟧
