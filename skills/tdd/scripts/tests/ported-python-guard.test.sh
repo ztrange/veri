@@ -51,6 +51,8 @@ write_script() {
   chmod 755 "$path"
 }
 
+line_of() { grep -n "$1" "$offender_path" | cut -d: -f1; }
+
 plant() {
   tree="$(scratch_dir)" || {
     problems+=("could not make a scratch tree to plant this case's files in, so the criterion went unasked")
@@ -72,9 +74,9 @@ plant() {
   new_repo "$tree" >/dev/null 2>&1
   git -C "$tree" add -A >/dev/null 2>&1
 
-  heredoc_line="$(grep -n "$HEREDOC_MARK" "$offender_path" | cut -d: -f1)"
-  dash_c_line="$(grep -n "$DASH_C_MARK" "$offender_path" | cut -d: -f1)"
-  comment_line="$(grep -n "$COMMENT_MARK" "$offender_path" | cut -d: -f1)"
+  heredoc_line="$(line_of "$HEREDOC_MARK")"
+  dash_c_line="$(line_of "$DASH_C_MARK")"
+  comment_line="$(line_of "$COMMENT_MARK")"
   return 0
 }
 
