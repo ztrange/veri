@@ -317,6 +317,15 @@ offers_class CANDIDATES cosmetic
   && ok || no "develop-refactor requires every CANDIDATES: line to carry its class, separated from the transform (${problems#; })"
 
 problems=""
+offers_class CANDIDATES test-only
+says_both_ways "$refactor" "does not define test-only as a transform changing only files under a tests/ directory" \
+  160 'test-only' 'only (files|paths) under an? `?tests/'
+says_both_ways "$refactor" "does not say a test-only candidate is never reported on a CANDIDATES: structural line" \
+  160 'test-only' '(never|not)( on| as)? an? `?CANDIDATES: structural'
+[[ -z "$problems" ]] \
+  && ok || no "develop-refactor reports a candidate whose transform changes only files under a tests/ directory on a CANDIDATES: test-only line, never a CANDIDATES: structural one (${problems#; })"
+
+problems=""
 says_both_ways "$refactor" "does not say the structural candidates are applied up to the budget it is given" \
   80 'budget' 'structural'
 says_both_ways "$refactor" "does not tell the leaf to commit its transforms itself as refactor:" \
@@ -649,7 +658,7 @@ renders_as() {  # <label> <want-cksum> <args...> — records a prompt whose sum 
 }
 renders_as red            '1253458810 10263'       red "$work/spec.md" "$step_text" "$test_cmd"
 renders_as green          '2615734855 7168'     green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit"
-renders_as refactor       '842882459 9228'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
+renders_as refactor       '1398370756 9452'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
 renders_as 'revise red'   '788521639 7651'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as 'revise green' '2849870849 7653'  revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as 'revise refactor' '1919967131 7656' revise refactor "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"

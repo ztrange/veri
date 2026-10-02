@@ -25,7 +25,7 @@ wrote. Tidying code this cycle did not write is otherwise out of scope, however 
 
 {{TEST_CMD}}
 
-### The two classes of candidate
+### The three classes of candidate
 
 What class a candidate falls into is decided by what the transform **changes**, never by
 which file it sits in:
@@ -35,6 +35,8 @@ which file it sits in:
   logic to where it belongs.
 - **cosmetic** — rewords, re-cites, reflows or re-comments, without removing duplication
   and without changing an identifier or a structure.
+- **test-only** — any transform that would change only files under a `tests/` directory.
+  Report it on a `CANDIDATES: test-only | <transform>` line, never on a `CANDIDATES: structural` one.
 
 ### The three classes of flag
 
@@ -49,7 +51,7 @@ your words rather than its own judgement:
 
 ### What to do
 
-1. Triage the candidates you see in those files into the two classes above, then apply the
+1. Triage the candidates you see in those files into the three classes above, then apply the
    structural ones, most valuable first, up to the budget of {{REFACTOR_BUDGET}} transforms
    you are given. Only a structural candidate qualifies for a transform, never a cosmetic
    one. Of those, apply only duplication removal against code this cycle wrote; apply no
@@ -95,5 +97,5 @@ your words rather than its own judgement:
 ### Report (last lines of your output)
 
 RESULT: <"applied <the transform>, suites green" — one line per transform you applied, each on its own RESULT: line, in the order you applied them — or "nothing left to tidy" if you applied none>
-CANDIDATES: <"structural | <transform>" or "cosmetic | <transform>" — a transform you still see left in those files, carrying the class it falls into — one per line, each on its own CANDIDATES: line — or "none">
+CANDIDATES: <"structural | <transform>", "cosmetic | <transform>" or "test-only | <transform>" — a transform you still see left in those files, carrying the class it falls into — one per line, each on its own CANDIDATES: line — or "none">
 FLAGS: <"overfit | <the code> | <the case that would force the general implementation>", "uncovered-spec | <the behaviour> | <the criterion or spec line requiring it>" or "beyond-spec | <what it names>" — one finding per line, each on its own FLAGS: line, carrying the class it falls into — or "none">
