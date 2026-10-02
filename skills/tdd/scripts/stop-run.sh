@@ -27,7 +27,8 @@ complain() {
   echo "stop-run: $1" >&2
 }
 
-USAGE="usage: stop-run.sh [--mode at-ledger|at-leaf|now] <issue> | --all"
+modes_listed="${STOP_MODES[*]}"
+USAGE="usage: stop-run.sh [--mode ${modes_listed// /|}] <issue> | --all"
 
 modes_named() {
   local wanted="${STOP_MODES[*]:0:${#STOP_MODES[@]}-1}"
