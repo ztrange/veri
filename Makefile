@@ -27,22 +27,12 @@ UNIT_GUARD_BIN := $(CURDIR)/skills/tdd/scripts/tests/unit-guard
 unit: GUARD_PATH = $(UNIT_GUARD_BIN):
 test: GUARD_PATH = $$suite_guard
 
-# The line every suite under that glob prints last, as an ERE — the "count line" the
-# recipe's failure message names and CLAUDE.md's testing idiom requires, defined here
-# rather than inline so the term has one place to point at. `$$` is make's escape for a
-# literal `$`, so grep is handed an end-of-line anchor.
-COUNT_LINE := ^[0-9]+ passed, [0-9]+ failed$$
-
-# What a suite that never printed that line is told, as a printf format taking the suite's
-# name. It is a variable for the same reason COUNT_LINE is one, and now for a second: these
-# two texts are the whole of the guard's judgement — what a count line looks like, and what
-# a suite lacking one is called — and they are read by two invocations, `make test` below and
-# skills/tdd/scripts/run-suite.sh over a single suite. Written out in both, they would be two
-# guards that agree only until someone tightens the pattern or rewords the refusal in one of
-# them, and a leaf's verdict on a partially-dead suite would then depend on how it happened to
-# invoke it (#418). So they are declared here, once, and the runner asks make for them through
-# the `count-line-guard` target below rather than restating them.
-COUNTLESS := %s: never reached its count line\n
+# The count-line guard — COUNT_LINE, the ERE every suite's last line must match, and COUNTLESS,
+# the printf format a suite lacking one is told — is defined once, in COUNT_LINE_GUARD, and read
+# from there by `make test` below and by skills/tdd/scripts/run-suite.sh over a single suite (#418).
+COUNT_LINE_GUARD := skills/tdd/scripts/lib/count-line-guard.sh
+COUNT_LINE := $(shell . "$(CURDIR)/$(COUNT_LINE_GUARD)" 2>/dev/null && printf '%s' "$$COUNT_LINE")
+COUNTLESS := $(shell . "$(CURDIR)/$(COUNT_LINE_GUARD)" 2>/dev/null && printf '%s' "$$COUNTLESS")
 
 # count-line-guard — print those two definitions as shell assignments, for run-suite.sh to
 # eval. make is asked rather than the Makefile read, because the value of a make variable is
@@ -147,6 +137,7 @@ BASH_GUARD := bash_major="$${VERI_BASH_MAJOR:-$$(bash -c 'echo "$${BASH_VERSINFO
 
 test unit:
 	@$(BASH_GUARD)
+	@[ -f "$(COUNT_LINE_GUARD)" ] || { printf 'make: %s is missing, so no suite can be held to its count line\n' "$(COUNT_LINE_GUARD)" >&2; exit 2; }
 	@fail=0; suite_out="$$(mktemp)"; suite_status="$$(mktemp)"; reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
 	trap 'rm -f "$$suite_out" "$$suite_status" "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
 	py_bin="$(VENV_DIR)/bin/python3"; \

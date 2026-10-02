@@ -136,8 +136,9 @@ probe_added_suite_gets_the_check() {
     problems+=("could not make a scratch tree to add a suite to, so the criterion went unasked")
     return
   }
-  mkdir -p "$tree/$TESTS_DIR"
+  mkdir -p "$tree/$TESTS_DIR" "$tree/skills/tdd/scripts/lib"
   cp "$MAKEFILE" "$tree/Makefile"
+  cp "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh" "$tree/skills/tdd/scripts/lib/"
   cp "$FIXTURE_PATH" "$tree/$TESTS_DIR/$ADDED_NAME"
   cmp -s "$MAKEFILE" "$tree/Makefile" ||
     problems+=("the runner under test is not this repository's Makefile, so nothing here says the check costs no edit to it")
@@ -616,8 +617,9 @@ scratch_suite_run() {
     problems+=("could not make a scratch tree to hold the suite, so the criterion went unasked")
     return 1
   }
-  mkdir -p "$tree/$TESTS_DIR"
+  mkdir -p "$tree/$TESTS_DIR" "$tree/skills/tdd/scripts/lib"
   cp "$MAKEFILE" "$tree/Makefile"
+  cp "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh" "$tree/skills/tdd/scripts/lib/"
   printf '#!/bin/sh\n%s\nexit 0\n' "$2" > "$tree/$TESTS_DIR/$1"
   chmod +x "$tree/$TESTS_DIR/$1"
   scratch_out="$(make -C "$tree" test 2>&1)" && scratch_code=0 || scratch_code=$?
@@ -768,6 +770,52 @@ probe_runner_through_symlinked_skill() {
 }
 
 probe_runner_through_symlinked_skill
+
+report "$name"
+
+name="make test takes its count-line guard from skills/tdd/scripts/lib/count-line-guard.sh: a refusal reworded there is what it prints, and a tree without that file fails naming it (#617)"
+problems=()
+
+GUARD_LIB='skills/tdd/scripts/lib/count-line-guard.sh'
+REWORDED=': stopped before its count line'
+
+guard_lib_run() {
+  local tree
+  tree="$(scratch_dir)" || {
+    problems+=("could not make a scratch tree to hold the suite, so the criterion went unasked")
+    return 1
+  }
+  mkdir -p "$tree/$TESTS_DIR" "$tree/$(dirname "$GUARD_LIB")"
+  cp "$MAKEFILE" "$tree/Makefile"
+  [[ -z "$3" ]] || printf '%s\n' "$3" > "$tree/$GUARD_LIB"
+  printf '#!/bin/sh\n%s\nexit 0\n' "$2" > "$tree/$TESTS_DIR/$1"
+  chmod +x "$tree/$TESTS_DIR/$1"
+  scratch_out="$(make -C "$tree" test 2>&1)" && scratch_code=0 || scratch_code=$?
+  rm -rf "$tree"
+}
+
+reworded_lib=""
+if [[ -f "$ROOT/$GUARD_LIB" ]]; then
+  reworded_lib="$(sed "s/${GUARD_MESSAGE#: }/${REWORDED#: }/" "$ROOT/$GUARD_LIB")"
+  [[ "$reworded_lib" != "$(cat "$ROOT/$GUARD_LIB")" ]] ||
+    problems+=("$GUARD_LIB does not carry the refusal text '${GUARD_MESSAGE#: }', so there was nothing to reword")
+else
+  problems+=("there is no $GUARD_LIB for make test to take its guard from")
+fi
+
+countless_name='countless-under-lib-guard.test.sh'
+if guard_lib_run "$countless_name" "echo 'a case ran'" "$reworded_lib"; then
+  grep -Fx "$countless_name$REWORDED" <<< "$scratch_out" > /dev/null ||
+    problems+=("want the line '$countless_name$REWORDED' once $GUARD_LIB's refusal is reworded; it said: $(flat "$scratch_out")")
+fi
+
+libless_name='green-without-lib-guard.test.sh'
+if guard_lib_run "$libless_name" "echo '1 passed, 0 failed'" ""; then
+  [[ "$scratch_code" != 0 ]] ||
+    problems+=("want 'make test' to fail in a tree without $GUARD_LIB; it exited 0 and said: $(flat "$scratch_out")")
+  grep -F "$(basename "$GUARD_LIB")" <<< "$scratch_out" > /dev/null ||
+    problems+=("want the run to name $(basename "$GUARD_LIB") when it is missing; it said: $(flat "$scratch_out")")
+fi
 
 report "$name"
 

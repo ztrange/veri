@@ -33,6 +33,8 @@ tree_grown_past_its_prose() {
   local planted="$WORK/tree"
   mkdir -p "$planted/$(dirname "$SCRIPT")" "$planted/$(dirname "$SUITE")"
   cp "$ROOT/Makefile" "$planted/"
+  mkdir -p "$planted/skills/tdd/scripts/lib"
+  cp "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh" "$planted/skills/tdd/scripts/lib/"
 
   {
     printf '#!/usr/bin/env bash\n'

@@ -55,8 +55,9 @@ check_refused() {
 }
 
 make_tree() {
-  mkdir -p "$1/$PY_DIR"
+  mkdir -p "$1/$PY_DIR" "$1/skills/tdd/scripts/lib"
   cp "$ROOT/Makefile" "$1/Makefile"
+  cp "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh" "$1/skills/tdd/scripts/lib/"
   ln -s "$HERE/offline" "$1/skills/tdd/scripts/tests/offline"
   ln -s "$HERE/unit-guard" "$1/skills/tdd/scripts/tests/unit-guard"
 }
