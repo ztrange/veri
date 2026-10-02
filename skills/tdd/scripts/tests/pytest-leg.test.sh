@@ -7,6 +7,7 @@
 #      output, their recipe exits 1 (make's own `[<target>] Error 1` line on stderr, make's exit
 #      non-zero) and the recipe's stdout ends `SUITES FAILED`.
 #   2. With every case there passing, both targets run them, exit 0 and end `all suites green`.
+#   3. When no python3 they would use can import pytest, both refuse before any suite runs.
 #
 # Run: skills/tdd/scripts/tests/pytest-leg.test.sh
 set -uo pipefail
@@ -172,6 +173,34 @@ for venv in set unset; do
       code=0 || code=$?
     check_green "VERI_VENV $venv, make $target"
   done
+done
+report "$name"
+
+refuse="$work/refuse"
+mkdir -p "$refuse/$PY_DIR" "$refuse/skills/tdd/scripts/tests/unit"
+cp "$ROOT/Makefile" "$refuse/Makefile"
+ln -s "$HERE/offline" "$refuse/skills/tdd/scripts/tests/offline"
+ln -s "$HERE/unit-guard" "$refuse/skills/tdd/scripts/tests/unit-guard"
+cp "$green/$PY_DIR/test_leg_probe.py" "$refuse/$PY_DIR/test_leg_probe.py"
+for suite in skills/tdd/scripts/tests/unit/fast.test.sh skills/tdd/scripts/tests/slow.test.sh; do
+  printf '#!/usr/bin/env bash\necho "1 passed, 0 failed"\n' > "$refuse/$suite"
+  chmod +x "$refuse/$suite"
+done
+
+name="when neither the environment's python3 nor the PATH one can import pytest (VERI_PYTEST_IMPORTABLE=0 standing in for the import), make unit and make test exit 2 before any suite runs, stderr naming pytest and make install-dev"
+problems=()
+for target in unit test; do
+  env -u PYTHONPATH VERI_PYTEST_IMPORTABLE=0 PATH="$work/no-pytest-bin:$PATH" VERI_VENV="$work/no-venv" \
+    make --no-print-directory -C "$refuse" "$target" > "$work/out" 2> "$work/err" < /dev/null &&
+    code=0 || code=$?
+  out="$(cat "$work/out")"
+  err="$(cat "$work/err")"
+  [[ "$err" =~ \[(Makefile:[0-9]+:\ )?$target\]\ Error\ 2 ]] ||
+    problems+=("make $target: want make's [$target] Error 2 on stderr, got: $(flat "$err")")
+  [[ "$err" == *pytest* ]] || problems+=("make $target: want stderr to name pytest, got: $(flat "$err")")
+  [[ "$err" == *'make install-dev'* ]] ||
+    problems+=("make $target: want stderr to name make install-dev, got: $(flat "$err")")
+  [[ "$out" != *'== '* ]] || problems+=("make $target: a suite ran before the refusal: $(flat "$out")")
 done
 report "$name"
 
