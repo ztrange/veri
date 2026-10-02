@@ -172,4 +172,31 @@ header_default="$(stated "$BUDGET" 'VERI_ISSUE_REFACTOR_BUDGET \(default [0-9]+'
   problems+=("refactor-budget.sh header: want VERI_ISSUE_REFACTOR_BUDGET (default 3), says $header_default")
 report "$name"
 
+name="#596 --issue still refuses a bad VERI_ISSUE_REFACTOR_BUDGET and honours an explicit 10; without --issue the default stays 5"
+problems=()
+while IFS='|' read -r label envs args exp_code exp_status; do
+  [[ -n "$label" ]] || continue
+  read -ra env_words <<<"$envs"
+  read -ra arg_words <<<"$args"
+  out="$(env -u VERI_ISSUE_REFACTOR_BUDGET -u VERI_REFACTOR_BUDGET "${env_words[@]}" \
+    "$BUDGET" "${arg_words[@]}" 2>/dev/null)" && code=0 || code=$?
+  [[ "$code" == "$exp_code" ]] ||
+    problems+=("$label: want exit $exp_code, got $code")
+  if [[ -z "$exp_status" ]]; then
+    [[ -z "$out" ]] || problems+=("$label: want no status on stdout, got: $(printf '%q' "$out")")
+  else
+    [[ "$out" == "refactor $exp_status "* ]] ||
+      problems+=("$label: want a status starting 'refactor $exp_status ', got: $(printf '%q' "$out")")
+  fi
+done <<'PROBES'
+--issue VERI_ISSUE_REFACTOR_BUDGET=two|VERI_ISSUE_REFACTOR_BUDGET=two|--issue 0|2|
+--issue VERI_ISSUE_REFACTOR_BUDGET=-1|VERI_ISSUE_REFACTOR_BUDGET=-1|--issue 0|2|
+--issue VERI_ISSUE_REFACTOR_BUDGET=1.5|VERI_ISSUE_REFACTOR_BUDGET=1.5|--issue 0|2|
+--issue VERI_ISSUE_REFACTOR_BUDGET=10 count 9|VERI_ISSUE_REFACTOR_BUDGET=10|--issue 9|0|9/10
+--issue VERI_ISSUE_REFACTOR_BUDGET=10 count 10|VERI_ISSUE_REFACTOR_BUDGET=10|--issue 10|3|10/10
+no flag, VERI_REFACTOR_BUDGET unset, count 4|VERI_ISSUE_REFACTOR_BUDGET=3|4|0|4/5
+no flag, VERI_REFACTOR_BUDGET unset, count 5|VERI_ISSUE_REFACTOR_BUDGET=3|5|3|5/5
+PROBES
+report "$name"
+
 finish
