@@ -1,9 +1,9 @@
 ### 📊 Metrics — issue 634
 
-Wall time for the issue: 7674 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 0 s, excluded from it.
+Wall time for the issue: 2489 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 1 s, excluded from it.
 Steps done: 27 of 28 planned.
-Outcome: the run bailed — ci-timeout, a system failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/653.
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER unset; models that answered: claude-opus-5-5.
 
@@ -17,7 +17,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | refactor | 48 | 24 | 0 | 0 | 3229 | 1315 | 320 | 630 | 120573 | 15120274 | 2184898 | 22.92 |
 | exhausted | 1 | 0 | 0 | 0 | 53 | 47 | 7 | 14 | 3727 | 331511 | 48329 | 0.53 |
 | pin | 6 | 6 | 0 | 0 | 227 | 169 | 38 | 72 | 14599 | 1628438 | 259585 | 2.69 |
-| rebase | 2 | 1 | 0 | 0 | 1429 | 67 | 21 | 40 | 6460 | 1151762 | 116121 | 1.29 |
+| rebase | 4 | 2 | 0 | 0 | 2908 | 130 | 41 | 80 | 12245 | 2130354 | 210512 | 2.36 |
 | structural | 11 | 0 | 0 | 0 | 466 | 178 | 50 | 100 | 15428 | 2146212 | 448151 | 4.32 |
 | transform | 4 | 3 | 1 | 0 | 247 | 79 | 19 | 38 | 6394 | 788590 | 157078 | 1.54 |
 
@@ -25,8 +25,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-opus-5-5 | 96 | 80 | 16 | 0 | 9660 | 2997 | 687 | 1358 | 283503 | 32529186 | 4084403 | 44.86 |
-| developer | claude-opus-5-5 | 106 | 0 | 0 | 0 | 10473 | 5170 | 1072 | 2078 | 482532 | 58333592 | 5509576 | 65.40 |
+| verifier | claude-opus-5-5 | 97 | 81 | 16 | 0 | 10387 | 3035 | 698 | 1380 | 286954 | 33060106 | 4131259 | 45.41 |
+| developer | claude-opus-5-5 | 107 | 0 | 0 | 0 | 11225 | 5195 | 1081 | 2096 | 484866 | 58781264 | 5557111 | 65.92 |
 
 #### Rework and waste, by phase
 
@@ -73,7 +73,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | tests/py/test_status.py asserts through veri.status that status reads the event log through veri/event_log.py: replaces 'event_log is a module of scripts/veri/, not scripts/lib/: status.sh, tier-usual.sh and metrics.sh read the event log through veri/event_log.py' in skills/tdd/scripts/tests/event-log.test.sh ⟦replaces-case⟧ ⟦added⟧ ⟦criterion 4⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 302 | 61 | 122 | 25836 | 3256997 | 299576 | 3.57 | 609 | unknown | 0/5 | nothing-left |  |  | already-satisfied |
 | tier-usual.sh and metrics.sh read the event log through veri/event_log.py: each, run through its entry point against a stand-in veri/event_log.py, reports the stand-in figures ⟦added⟧ ⟦criterion 4⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 94 | 20 | 36 | 8809 | 1058310 | 110342 | 1.27 | unknown | unknown | unknown | unknown |  |  | pin |
 | tests/py/test_status.py asserts through veri.status.main that status resolves the main working tree the way lib/main-working-tree.sh does: replaces 'a shared lib/main-working-tree.sh defines main_working_tree, and status.sh and solvable-issues.sh both resolve the main working tree through it' in skills/tdd/scripts/tests/main-working-tree.test.sh ⟦replaces-case⟧ ⟦added⟧ ⟦criterion 4⟧ | 8 | 3 | 1 | 0 | 0 | 0 | 312 | 72 | 144 | 28829 | 3735584 | 379782 | 4.36 | 683 | 1/2 | 0/5 | nothing-left |  |  | already-satisfied |
-| fix the full-suite failures the status.sh port left: dashboard.test.sh — FAIL - the dashboard suite starts at most 2 dashboard.sh servers, counted at python3's exec (the shim's status.py --json starts are counted as dashboard servers); no-nested-suites.test.sh — FAIL - no suite … launches another real suite outside the exemptions recorded here (affected-suites.test.sh:480-498 names event-log.test.sh and blocked-by.test.sh) ⟦suite-repair⟧ ⟦criterion 10⟧ | 20 | 3 | 1 | 0 | 0 | 0 | 518 | 138 | 272 | 47217 | 6777703 | 901861 | 9.52 | 1340 | 1/2 | 0/5 | nothing-left |  |  | full |
+| fix the full-suite failures the status.sh port left: dashboard.test.sh — FAIL - the dashboard suite starts at most 2 dashboard.sh servers, counted at python3's exec (the shim's status.py --json starts are counted as dashboard servers); no-nested-suites.test.sh — FAIL - no suite … launches another real suite outside the exemptions recorded here (affected-suites.test.sh:480-498 names event-log.test.sh and blocked-by.test.sh) ⟦suite-repair⟧ ⟦criterion 10⟧ | 22 | 4 | 1 | 0 | 0 | 0 | 581 | 158 | 312 | 53002 | 7756295 | 996252 | 10.58 | 1340 | 1/2 | 0/5 | nothing-left |  |  | full |
 | metrics.sh:159-162 — `lib=` is now only used to rebuild the scripts directory through `$(dirname "$lib")/veri`. It could become `veri="$(cd "$(dirname "$0")" && pwd)/veri"` used directly. This removes a needless variable (dead code), not duplication, so it is outside this phase's allowance. | 1 | 1 | 0 | 0 | 0 | 0 | 17 | 4 | 8 | 1452 | 158992 | 38742 | 0.37 | unknown | unknown | unknown | unknown |  |  | full |
 | tier-usual.sh:32 — `$(dirname "$lib")/veri` rebuilds the scripts directory that line 22 already worked out. A `veri=` variable beside `lib=` would remove the round trip. This is also not duplication removal, so it is not applied. | 1 | 0 | 1 | 0 | 0 | 0 | 21 | 5 | 10 | 1786 | 209366 | 39277 | 0.39 | unknown | unknown | unknown | unknown |  |  | full |
 | wait-ci.sh computes `$(dirname "$0")` four times (lines 20, 21, 50, 80); one `here` variable would replace them, but the repetition predates this cycle | 1 | 1 | 0 | 0 | 0 | 0 | 24 | 5 | 10 | 1739 | 210279 | 39652 | 0.39 | unknown | unknown | unknown | unknown |  |  | full |
@@ -123,10 +123,10 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | affected | 2 | 7 | 7 | 7 | 7 | 7 | 8 | 8 | 7 | 8 | 8 | 8 | 8 | 8 | 9 | 9 | 9 | 8 | 8 | 9 | 9 | 8 | 0 | 9 | 9 | 16 | 16 | 15 | 15 | 15 | 15 | 15 | 15 | 15 | 15 | 15 | 16 | 16 | 16 | 16 | 1 | 2 | 0 | 25 | 152 | 40 | 602 | 0 | 43 | 0 | 1 | 1 | 0 | 18 | 22 | 0 | 22 | 1 | 1 | 1 | 1 | 0 | 143 | 147 | 146 | 0 | 225 | 21 | 198 | 2 | 0 | 1 | 47 | 0 | 123 | 47 | 2 | 1 | 12 | 15 | 14 | 12 | 0 | 1 | 12 | 11 | 12 | 12 | 1 | 1 | 11 | 12 | 12 | 0 | 0 | 1 | 14 | 3 | 3 | 0 | 0 | 3 | 3 | 3 | 1 | 0 | 13 | 13 | 0 | 13 | 13 | 13 | 1 | 13 | 1 | 13 | 13 | 13 | 1 | 1 | 1 | 14 | 12 | 10 | 0 | 13 | 1 | 10 | 2 | 1 | 0 | 10 | 3 | 10 | 10 | 1 | 2 | 1 | 1 | 1 | 3 | 8 | 9 | 9 | 8 | 9 | 8 | 8 | 8 | 1 | 1 | 3 | 3 | 4 | 0 | 1 | 3 | 3 | 2 | 2 | 2 | 0 | 88 | 0 | 92 | 0 | 89 | 0 | 90 | 86 | 87 | 0 | 1 | 3 | 3 | 3 | 53 | 55 | 0 | 1 | 53 | 1 | 2 | 1 | 0 | 0 | 0 | 0 | 3 | 2 | 2 | 2 | 2 | 1 | 1 | 0 | 92 | 0 | 96 | 0 | 107 | 1 | 0 | 1 | 0 | 0 | 4 | 5 | 1 | 0 | 3 | 0 | 92 | 21 | 1 | 1 | 0 | 94 | 2 | 4 | 0 | 0 | 1 | 1 | 34 | 34 | 33 | 30 | 30 | 0 | 21 | 21 | 17 | 17 | 42 | 13 | 1 | 26 | 0 | 1 | 3 | 2 | 43 | 38 | 0 | 3 | 31 | 58 |
 | fast | 21 | 22 | 22 | 22 | 22 | 22 | 23 | 23 | 21 | 22 | 22 | 22 | 21 | 21 | 22 | 19 | 20 | 20 | 20 | 23 | 22 | 19 | 20 | 22 | 21 | 20 | 20 | 19 | 21 | 22 | 21 | 20 | 19 | 19 | 20 | 21 | 23 | 21 | 21 | 20 | 23 | 22 | 22 | 21 | 24 | 24 | 23 | 23 | 23 | 22 | 22 | 23 | 23 | 22 | 23 | 21 | 24 | 23 | 23 | 23 | 23 | 23 | 23 | 23 | 23 | 22 | 22 | 22 | 23 | 22 | 23 | 21 | 22 | 22 | 22 | 22 | 23 | 22 | 22 | 22 | 23 | 23 | 28 | 30 | 27 | 26 | 25 | 24 | 24 | 24 | 24 | 21 | 21 | 21 | 21 | 21 | 21 | 24 | 23 | 23 | 23 | 24 | 23 | 21 | 21 | 608 | 21 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | target | 8 | 8 | 8 | 8 | 9 | 14 | 15 | 16 | 2 | 2 | 1 | 1 | 1 | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 10 | 9 | 0 | 1 | 1 | 1 | 0 | 1 | 0 | 1 | 1 | 2 | 1 | 1 | 1 | 1 | 0 | 1 | 0 | 1 | 0 | 0 | 1 | 0 | 1 | 0 | 13 | 14 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| all | 669 | 685 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 669 | 685 | 703 | 706 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 1759 | 3436 | 766035 | 90862778 | 9593979 | 110.26 |
+| total | 1779 | 3476 | 771820 | 91841370 | 9688370 | 111.33 |
