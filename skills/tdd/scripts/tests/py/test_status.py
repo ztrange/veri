@@ -279,18 +279,18 @@ def test_main_reads_a_run_as_running_again_after_a_resume_mark_follows_its_stop_
 
 def lamps_scope(tmp_path, monkeypatch, solvable):
     """Runs 21 (running), 22 (done) and 23 (bailed): attempted 3, done 1, bailed 1, wall 360s, $2.25."""
+    endings = {"21": [],
+               "22": [lamp_ev(9700, "22", "done", actor="conductor", phase="", step="", attempt="",
+                              pr="https://github.com/o/r/pull/22")],
+               "23": [lamp_ev(9100, "23", "bail", actor="conductor", attempt="", cause="stuck",
+                              classification="system")]}
     runs = {}
     for issue, launch, usage, dollars in (("21", 9900, 9960, "0.25"), ("22", 9500, 9650, "1.50"),
                                           ("23", 9000, 9050, "0.50")):
         runs[issue] = lamp_run(tmp_path, issue)
         write_events(runs[issue] / ".tdd" / "events.jsonl",
-                     [lamp_ev(launch, issue, "launch", name="develop-red"), lamp_usage(usage, issue, dollars)])
-    with open(runs["22"] / ".tdd" / "events.jsonl", "a") as f:
-        f.write(json.dumps(lamp_ev(9700, "22", "done", actor="conductor", phase="", step="", attempt="",
-                                   pr="https://github.com/o/r/pull/22")) + "\n")
-    with open(runs["23"] / ".tdd" / "events.jsonl", "a") as f:
-        f.write(json.dumps(lamp_ev(9100, "23", "bail", actor="conductor", attempt="", cause="stuck",
-                                   classification="system")) + "\n")
+                     [lamp_ev(launch, issue, "launch", name="develop-red"), lamp_usage(usage, issue, dollars)]
+                     + endings[issue])
     lamp_git(monkeypatch, tmp_path, runs.values(), solvable)
     at_ten_thousand(monkeypatch)
 
