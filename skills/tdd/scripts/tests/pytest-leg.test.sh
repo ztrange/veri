@@ -110,4 +110,39 @@ for target in unit test; do
 done
 report "$name"
 
+bare="$work/bare"
+mkdir -p "$bare/$PY_DIR" "$bare/skills/tdd/scripts/tests/unit" "$work/no-pytest-bin"
+cp "$ROOT/Makefile" "$bare/Makefile"
+ln -s "$HERE/offline" "$bare/skills/tdd/scripts/tests/offline"
+ln -s "$HERE/unit-guard" "$bare/skills/tdd/scripts/tests/unit-guard"
+: > "$bare/$PY_DIR/helper.py"
+for suite in skills/tdd/scripts/tests/unit/fast.test.sh skills/tdd/scripts/tests/slow.test.sh; do
+  printf '#!/usr/bin/env bash\necho "1 passed, 0 failed"\n' > "$bare/$suite"
+  chmod +x "$bare/$suite"
+done
+printf '#!/bin/sh\necho "No module named pytest" >&2\nexit 1\n' > "$work/no-pytest-bin/python3"
+chmod +x "$work/no-pytest-bin/python3"
+
+name="with no test_*.py under $PY_DIR and no python3 that can import pytest, make unit and make test run only their bash suites, exit 0, print nothing on stderr and end all suites green"
+problems=()
+for target in unit test; do
+  case "$target" in
+    unit) want_heads='== fast.test.sh' ;;
+    test) want_heads='== slow.test.sh/== fast.test.sh' ;;
+  esac
+  env PATH="$work/no-pytest-bin:$PATH" VERI_VENV="$work/no-venv" \
+    make --no-print-directory -C "$bare" "$target" > "$work/out" 2> "$work/err" < /dev/null &&
+    code=0 || code=$?
+  out="$(cat "$work/out")"
+  err="$(cat "$work/err")"
+  [[ "$code" == 0 ]] || problems+=("make $target: want exit 0, got $code: $(flat "$out") $(flat "$err")")
+  [[ -z "$err" ]] || problems+=("make $target: want nothing on stderr, got: $(flat "$err")")
+  heads="$(grep '^== ' <<< "$out" | tr '\n' '/')"
+  [[ "$heads" == "$want_heads/" ]] ||
+    problems+=("make $target: want suites $want_heads/, got: $heads")
+  [[ "$(tail -n 1 <<< "$out")" == 'all suites green' ]] ||
+    problems+=("make $target: want stdout's last line all suites green, got: $(tail -n 1 <<< "$out")")
+done
+report "$name"
+
 finish
