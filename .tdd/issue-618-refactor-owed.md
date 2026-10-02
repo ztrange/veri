@@ -1,3 +1,6 @@
 ### when `supervise.sh` refuses a launch under a name different from the live leaf's, because the leaf recorded in `.tdd/leaf.owner` is alive, it exits 2 and `.tdd/<refused-name>.exit` holds `2` ⟦criterion 1⟧
 - the five background `( cd … && exec env VERI_STUCK_RETRIES=0 … "$SUP" … ) &` launches in the #471/#618 owner cases still repeat the env prefix; a shared helper would have to keep `$!` as the supervisor's own pid, which the stderr pid assertions depend on
 - the "wait for leaf-pid, read it, release/kill the leaf" block is repeated across the owner/same/samex cases (most of it is #471 code)
+### a launch under a different name is not refused when the leaf recorded in `.tdd/leaf.owner` is alive but `.tdd/<owner-name>.exit` already exists: it runs its command and exits with that command's code ⟦criterion 4⟧
+- supervise.sh:213-215 — replace the two-line `owner_done` flag with a direct `[[ ! -e ".tdd/$owner_name.exit" ]] &&` condition in the refusal `if` (it simplifies the code but does not remove duplication, so I did not apply it here)
+- supervise.test.sh — the `<x>_ran="no"; [[ -e "<x>/second-ran" ]] && <x>_ran="yes"` probe is repeated across the refo, fin, owner and same cases; a shared helper would also touch the #471 cases this cycle did not write
