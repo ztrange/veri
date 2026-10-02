@@ -1019,4 +1019,23 @@ status=$?
 
 report "$name"
 
+name="run-conductor.sh severs CLAUDE_AUTO_BACKGROUND_TASKS and the eight session handles (#621)"
+problems=()
+env29="$work/env29"
+
+( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" ENV_OUT="$env29" \
+    "${handles[@]}" CLAUDE_AUTO_BACKGROUND_TASKS=true \
+    "$CONDUCTOR" "$issue" ) >/dev/null 2>&1
+
+if [[ ! -f "$env29" ]]; then
+  problems+=("the conductor binary was never launched — $CONDUCTOR recorded no environment")
+else
+  for handle in "${handles[@]}" CLAUDE_AUTO_BACKGROUND_TASKS=true; do
+    ! grep "^${handle%%=*}=" "$env29" > /dev/null ||
+      problems+=("${handle%%=*} is still in the child's environment")
+  done
+fi
+
+report "$name"
+
 finish
