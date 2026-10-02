@@ -1,0 +1,2 @@
+### with `$VERI_VENV/bin/python3` able to import pytest and the caller's PATH `python3` unable to, both targets run the pytest leg with the environment's interpreter, the caller activating nothing and changing no PATH; with `VERI_VENV` unset the environment looked in is `$HOME/.veri-tools/venv` ⟦criterion 3⟧
+- pytest-leg.test.sh builds its three scratch trees (`tree`, `green`, `bare`) with the same mkdir / cp Makefile / two `ln -s` lines; one setup helper would remove that, but earlier cycles wrote that code, so it is outside this refactor's bounds
