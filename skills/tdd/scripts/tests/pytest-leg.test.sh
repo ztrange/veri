@@ -8,6 +8,7 @@
 #      non-zero) and the recipe's stdout ends `SUITES FAILED`.
 #   2. With every case there passing, both targets run them, exit 0 and end `all suites green`.
 #   3. When no python3 they would use can import pytest, both refuse before any suite runs.
+#   4. When the python3 they would use is older than 3.12, both refuse before any suite runs.
 #
 # Run: skills/tdd/scripts/tests/pytest-leg.test.sh
 set -uo pipefail
@@ -199,6 +200,22 @@ for target in unit test; do
   [[ "$err" == *pytest* ]] || problems+=("make $target: want stderr to name pytest, got: $(flat "$err")")
   [[ "$err" == *'make install-dev'* ]] ||
     problems+=("make $target: want stderr to name make install-dev, got: $(flat "$err")")
+  [[ "$out" != *'== '* ]] || problems+=("make $target: a suite ran before the refusal: $(flat "$out")")
+done
+report "$name"
+
+name="when the python3 the pytest leg would use is older than 3.12 (VERI_PYTHON_VERSION=3.11.9 standing in for its answer), make unit and make test exit 2 before any suite runs, stderr naming the 3.12 floor and the version found"
+problems=()
+for target in unit test; do
+  env -u PYTHONPATH VERI_PYTHON_VERSION=3.11.9 PATH="$work/no-pytest-bin:$PATH" VERI_VENV="$work/venv" \
+    make --no-print-directory -C "$refuse" "$target" > "$work/out" 2> "$work/err" < /dev/null &&
+    code=0 || code=$?
+  out="$(cat "$work/out")"
+  err="$(cat "$work/err")"
+  [[ "$err" =~ \[(Makefile:[0-9]+:\ )?$target\]\ Error\ 2 ]] ||
+    problems+=("make $target: want make's [$target] Error 2 on stderr, got: $(flat "$err")")
+  [[ "$err" == *3.12* ]] || problems+=("make $target: want stderr to name the 3.12 floor, got: $(flat "$err")")
+  [[ "$err" == *3.11.9* ]] || problems+=("make $target: want stderr to name the version found 3.11.9, got: $(flat "$err")")
   [[ "$out" != *'== '* ]] || problems+=("make $target: a suite ran before the refusal: $(flat "$out")")
 done
 report "$name"

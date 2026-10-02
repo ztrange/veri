@@ -145,6 +145,14 @@ test unit:
 	trap 'rm -f "$$suite_out" "$$suite_status" "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
 	py_bin="$${VERI_VENV:-$$HOME/.veri-tools/venv}/bin/python3"; \
 	[ -x "$$py_bin" ] || py_bin="$$(command -v python3)"; \
+	if [ -n "$(PY_TESTS)" ]; then \
+	  py_version="$${VERI_PYTHON_VERSION:-$$("$$py_bin" -c 'import platform; print(platform.python_version())' 2>/dev/null)}"; \
+	  py_major="$${py_version%%.*}"; py_minor="$${py_version#*.}"; py_minor="$${py_minor%%.*}"; \
+	  if [ "$$py_major" -lt 3 ] || { [ "$$py_major" -eq 3 ] && [ "$$py_minor" -lt 12 ]; }; then \
+	    printf 'veri needs Python 3.12 or newer for the suites under skills/tdd/scripts/tests/py/; %s is version %s.\n' "$$py_bin" "$$py_version" >&2; \
+	    exit 2; \
+	  fi; \
+	fi; \
 	if [ -n "$(PY_TESTS)" ] && [ "$${VERI_PYTEST_IMPORTABLE:-$$("$$py_bin" -c 'import pytest' > /dev/null 2>&1 && echo 1 || echo 0)}" != 1 ]; then \
 	  printf 'veri needs pytest for the suites under skills/tdd/scripts/tests/py/; %s cannot import it. Install it with `make install-dev`.\n' "$$py_bin" >&2; \
 	  exit 2; \
