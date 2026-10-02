@@ -15,6 +15,7 @@ export LC_ALL=C
 source "$TESTS/lib/harness.sh"
 
 counter_re='^[[:space:]]*pass=0[[:space:]]+fail=0'
+declare -A COUNTER_EXEMPT=()
 
 counter_hits() {
   local hits hit file rest lineno text
@@ -30,6 +31,21 @@ counter_hits() {
     [[ -n "${COUNTER_EXEMPT["$file:$text"]-}" ]] && continue
     printf '    %s:%s carries its own harness scaffolding\n' "$file" "$lineno"
   done <<< "$hits"
+}
+
+scaffolding_hits() {
+  local hits hit file rest
+  hits="$(cd "$1" && grep -nE \
+    -e '^[[:space:]]*(function[[:space:]]+)?(ok|no)[[:space:]]*\(\)' \
+    -e '^[[:space:]]*(echo|printf)[[:space:]].*\$(\{pass\}|pass)[^"]* passed, .*failed' \
+    ./*.sh ./unit/*.sh | grep -v '^\./unit/harness\.test\.sh:')"
+  while IFS= read -r hit; do
+    [[ -n "$hit" ]] || continue
+    file="${hit%%:*}"
+    rest="${hit#*:}"
+    printf '    %s:%s carries its own harness scaffolding\n' "${file#./}" "${rest%%:*}"
+  done <<< "$hits"
+  counter_hits "$1"
 }
 
 name="no suite defines its own report, and lib/harness.sh defines it"
@@ -53,23 +69,12 @@ else
 fi
 
 name="no suite defines its own ok/no, initialises its own counters or prints its own count line"
-problems=""
-copies="$(cd "$TESTS" && grep -nE \
-  -e '^[[:space:]]*(function[[:space:]]+)?(ok|no)[[:space:]]*\(\)' \
-  -e "$counter_re" \
-  -e '^[[:space:]]*(echo|printf)[[:space:]].*\$(\{pass\}|pass)[^"]* passed, .*failed' \
-  ./*.sh ./unit/*.sh | grep -v '^\./unit/harness\.test\.sh:')"
-while IFS= read -r hit; do
-  [[ -n "$hit" ]] || continue
-  file="${hit%%:*}"
-  rest="${hit#*:}"
-  problems+="    ${file#./}:${rest%%:*} carries its own harness scaffolding"$'\n'
-done <<< "$copies"
+problems="$(scaffolding_hits "$TESTS")"
 if [[ -z "$problems" ]]; then
   ok
 else
   no "$name"
-  printf '%s' "$problems"
+  printf '%s\n' "$problems"
 fi
 
 name="#595: a counter-initialisation hit is admitted only by an entry naming its file, matching its text and carrying a reason"
@@ -97,6 +102,18 @@ plant="$(scratch_dir)"
 printf '%s\n' '#!/usr/bin/env bash' 'x=1' > "$plant/a.test.sh"
 got="$(declare -A COUNTER_EXEMPT=(); counter_hits "$plant" 2>&1)"
 expect_eq "$name" "" "$got"
+
+name="#595: the tree audit admits a counter-initialisation hit only through the COUNTER_EXEMPT table"
+plant="$(scratch_dir)"
+mkdir -p "$plant/unit"
+printf '%s\n' '#!/usr/bin/env bash' 'pass=0 fail=0' > "$plant/a.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'pass=0 fail=0' > "$plant/b.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'x=1' > "$plant/unit/c.test.sh"
+got="$(
+  declare -A COUNTER_EXEMPT=(["a.test.sh:pass=0 fail=0"]="a planted suite's own counters")
+  scaffolding_hits "$plant" 2>&1
+)"
+expect_eq "$name" "    b.test.sh:2 carries its own harness scaffolding" "$got"
 
 name="no suite builds its own scratch directory, exit trap or tmp git repository"
 problems=""
