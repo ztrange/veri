@@ -1,0 +1,7 @@
+# Plan for #631 — metrics.sh and the dashboard read the event log through lib/event_log.py
+
+- [ ] Replace Inline Code with Function Call in `metrics.sh`: its inline per-line parse of the event log (`[json.loads(raw) for raw in f if raw.strip()]`) goes, it imports `event_log`'s `read_events(path)` with its `python3 -c` call gaining `PYTHONPATH` to `lib` as `status.sh` has, and its report is unchanged. Predicate: `grep -q read_events skills/tdd/scripts/metrics.sh && ! grep -q 'json.loads(raw) for raw in f' skills/tdd/scripts/metrics.sh` ⟦criterion 2⟧
+- [ ] Replace Inline Code with Function Call in `dashboard_endpoints.py`'s `events_of`: its inline per-line parse goes, it returns `event_log`'s `read_events(path)` and keeps its own behaviour for a missing log. Predicate: `grep -q read_events skills/tdd/scripts/dashboard_endpoints.py && ! grep -q 'json.loads(raw) for raw in f' skills/tdd/scripts/dashboard_endpoints.py` ⟦criterion 2⟧
+- [ ] `lib/event_log.py` is the only file that spells the per-line parse (`grep -l 'json.loads(raw) for raw in f' skills/tdd/scripts/*.sh skills/tdd/scripts/*.py skills/tdd/scripts/lib/*.py` prints only it), recorded once the full suite is green after step 2 ⟦full-suite⟧ ⟦criterion 1⟧
+- [ ] no commit on the branch changes a test file (each transform is gated by `transform-touches-tests.sh`), recorded once the full suite is green ⟦full-suite⟧ ⟦criterion 3⟧
+- [ ] `make test` is green ⟦full-suite⟧ ⟦criterion 4⟧
