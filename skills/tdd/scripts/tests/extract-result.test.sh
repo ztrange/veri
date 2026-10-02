@@ -90,6 +90,18 @@ check "#624 a VERDICT: record still beats a later record without one" \
 'VERDICT: PASS
 REASON: the case pins the behaviour.'
 
+check "#624 a developer report with no result record passes through unchanged" \
+'{"type":"system","subtype":"init"}
+{"type":"assistant","message":{"content":[{"type":"text","text":"IMPL_PATH: a.sh"}]}}
+Done.
+IMPL_PATH: a.sh
+SUITE: GREEN — 19 passed, 0 failed' \
+'{"type":"system","subtype":"init"}
+{"type":"assistant","message":{"content":[{"type":"text","text":"IMPL_PATH: a.sh"}]}}
+Done.
+IMPL_PATH: a.sh
+SUITE: GREEN — 19 passed, 0 failed'
+
 check "passthrough non-stream" \
 'VERDICT: PASS
 REASON: plain text, no stream-json here.' \
