@@ -46,12 +46,13 @@ run_make() { run_make_in "$ROOT" "$@"; }
 USAGE_COUNTS='(^|[^a-z0-9])git [0-9]+, python3 [0-9]+, server [0-9]+, sleep [0-9]+'
 
 unit_roster_problems() {
-  local root="$1" f base header moved=0
+  local root="$1" f base flat_copy header moved=0
   for f in "$root/$UNIT_DIR"/*.test.sh; do
     [[ -e "$f" ]] || continue
     base="$(basename "$f")"
+    flat_copy="$root/skills/tdd/scripts/tests/$base"
     moved=$((moved + 1))
-    [[ -e "$root/skills/tdd/scripts/tests/$base" ]] && cmp -s "$f" "$root/skills/tdd/scripts/tests/$base" &&
+    [[ -e "$flat_copy" ]] && cmp -s "$f" "$flat_copy" &&
       echo "$base is under $UNIT_DIR/ and still in skills/tdd/scripts/tests/ too"
     header="$(sed -n '2,$p' "$f" | sed '/^#/!q' | grep '^#')"
     grep -Eq "$USAGE_COUNTS" <<< "$header" ||
