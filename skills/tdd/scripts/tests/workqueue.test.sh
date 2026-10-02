@@ -99,6 +99,20 @@ expect_unchanged() {
   fi
 }
 
+expect_usage() {
+  local name="$1" what="$2" code
+  shift 2
+  (cd "$work/$name" && "$SCRIPT" "$@" > /dev/null 2>"$work/$name.err") && code=0 || code=$?
+  if [[ "$code" -eq 2 ]] &&
+    grep -F 'workqueue.sh: usage: workqueue.sh assign <worker> <issue>...' "$work/$name.err" > /dev/null &&
+    grep -F 'workqueue.sh show [<worker>]' "$work/$name.err" > /dev/null; then
+    ok
+  else
+    no "$what"
+    echo "    exit: $code (want 2), stderr: $(printf '%q' "$(cat "$work/$name.err")")"
+  fi
+}
+
 repo="$work/assign-order"
 make_repo "$repo"
 expect_queue assign-order 'alpha\t12\tqueued\t\nalpha\t7\tqueued\t\nalpha\t30\tqueued\t' \
@@ -121,29 +135,12 @@ else
   echo "    .tdd/workqueue: $([[ -e "$repo/.tdd/workqueue" ]] && echo present || echo absent) (want absent)"
 fi
 
-repo="$work/no-subcommand"
-make_repo "$repo"
-(cd "$repo" && "$SCRIPT" > /dev/null 2>"$work/no-subcommand.err") && code=0 || code=$?
-if [[ "$code" -eq 2 ]] &&
-  grep -F 'workqueue.sh: usage: workqueue.sh assign <worker> <issue>...' "$work/no-subcommand.err" > /dev/null &&
-  grep -F 'workqueue.sh show [<worker>]' "$work/no-subcommand.err" > /dev/null; then
-  ok
-else
-  no "workqueue.sh with no subcommand exits 2 with its own usage text on stderr"
-  echo "    exit: $code (want 2), stderr: $(printf '%q' "$(cat "$work/no-subcommand.err")")"
-fi
+make_repo "$work/no-subcommand"
+expect_usage no-subcommand "workqueue.sh with no subcommand exits 2 with its own usage text on stderr"
 
-repo="$work/empty-issue-usage"
-make_repo "$repo"
-(cd "$repo" && "$SCRIPT" assign alpha '' > /dev/null 2>"$work/empty-issue-usage.err") && code=0 || code=$?
-if [[ "$code" -eq 2 ]] &&
-  grep -F 'workqueue.sh: usage: workqueue.sh assign <worker> <issue>...' "$work/empty-issue-usage.err" > /dev/null &&
-  grep -F 'workqueue.sh show [<worker>]' "$work/empty-issue-usage.err" > /dev/null; then
-  ok
-else
-  no "workqueue.sh given an empty issue exits 2 with its own usage text on stderr"
-  echo "    exit: $code (want 2), stderr: $(printf '%q' "$(cat "$work/empty-issue-usage.err")")"
-fi
+make_repo "$work/empty-issue-usage"
+expect_usage empty-issue-usage "workqueue.sh given an empty issue exits 2 with its own usage text on stderr" \
+  assign alpha ''
 
 repo="$work/assign-held"
 make_repo "$repo"
