@@ -127,7 +127,7 @@ if [[ ( "$phase" == "green" || "$revised_phase" == "green" ) && "$step" == *"⟦
 fi
 
 suite_repair_file=""
-if [[ "$phase" == "green" && "$step" == *"⟦suite-repair⟧"* ]]; then
+if [[ ( "$phase" == "green" || "$revised_phase" == "green" ) && "$step" == *"⟦suite-repair⟧"* ]]; then
   suite_repair_file="$HERE/prompts/_develop-green-suite-repair.md"
 fi
 
