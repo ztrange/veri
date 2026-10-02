@@ -317,12 +317,18 @@ probe_shared_helpers_plain_shell
 
 report "$name"
 
-probe_finish_case_name() {
-  local suite_rel="skills/tdd/scripts/tests/model-knobs-recorded.test.sh" line case_name="" last=""
+case_name_running() {
+  local line last="" case_name=""
   while IFS= read -r line; do
     [[ "$line" =~ ^name=\"(.*)\"$ ]] && last="${BASH_REMATCH[1]}"
-    [[ "$line" =~ ^[[:space:]]+probe_suite_resolves_helpers_from_itself[[:space:]] ]] && case_name="$last"
-  done < "$ROOT/$suite_rel"
+    [[ "$line" =~ ^[[:space:]]*${1}([[:space:]]|$) ]] && case_name="$last"
+  done < "$ROOT/skills/tdd/scripts/tests/model-knobs-recorded.test.sh"
+  printf '%s' "$case_name"
+}
+
+probe_finish_case_name() {
+  local suite_rel="skills/tdd/scripts/tests/model-knobs-recorded.test.sh" case_name
+  case_name="$(case_name_running probe_suite_resolves_helpers_from_itself)"
   if [[ -z "$case_name" ]]; then
     problems+=("$suite_rel has no case that runs probe_suite_resolves_helpers_from_itself")
     return
@@ -341,7 +347,7 @@ probe_finish_case_name
 report "$name"
 
 probe_harness_case_name() {
-  local suite_rel="skills/tdd/scripts/tests/model-knobs-recorded.test.sh" line fn="" harness_fn="" case_name="" last=""
+  local suite_rel="skills/tdd/scripts/tests/model-knobs-recorded.test.sh" line fn="" harness_fn="" case_name=""
   local -a names=()
   local needle="does not source"
   needle+=" the harness"
@@ -354,12 +360,9 @@ probe_harness_case_name() {
     return
   fi
   while IFS= read -r line; do
-    if [[ "$line" =~ ^name=\"(.*)\"$ ]]; then
-      last="${BASH_REMATCH[1]}"
-      names+=("$last")
-    fi
-    [[ "$line" =~ ^[[:space:]]*${harness_fn}([[:space:]]|$) ]] && case_name="$last"
+    [[ "$line" =~ ^name=\"(.*)\"$ ]] && names+=("${BASH_REMATCH[1]}")
   done < "$ROOT/$suite_rel"
+  case_name="$(case_name_running "$harness_fn")"
   if [[ -z "$case_name" ]]; then
     problems+=("$suite_rel has no case that runs $harness_fn")
     return
