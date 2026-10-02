@@ -120,6 +120,19 @@ overflow_case "on an empty <owed-file>" 2 504 "" 1
 
 report "$name"
 
+name="refactor-overflow files nothing and exits 3 when every unreached candidate in the owed file is test-only"
+problems=()
+
+test_only_owed="$work/issue-663-refactor-owed.md"
+"$OWED" append "$test_only_owed" 'first step' <<'REPORT'
+CANDIDATES: test-only | fold the suite's two fixture writers into one helper
+CANDIDATES: test-only | hoist the stub directory into the harness
+REPORT
+
+overflow_case "with only test-only candidates in the owed file" 3 663 "$test_only_owed" 0
+
+report "$name"
+
 name="refactor-overflow sends no label with the issue it files, makes no call that labels or edits the parent issue, and writes no file into the repository"
 problems=()
 
