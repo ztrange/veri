@@ -72,25 +72,29 @@ session_vars=(CLAUDECODE CLAUDE_CODE_SESSION_ID CLAUDE_CODE_HOST_SESSION_ID
   CLAUDE_CODE_CHILD_SESSION CLAUDE_CODE_ENTRYPOINT)
 envstub="$(scratch_dir)"
 claude_stub "$envstub" 'env > "$ENV_OUT"'
+leaf_env_lacks() {  # leaf_env_lacks <var>... -- <NAME=value>...
+  local names=()
+  while [[ "$1" != -- ]]; do names+=("$1"); shift; done
+  shift
+  rm -f "$work/env"
+  ( cd "$work" && env "$@" CLAUDE_BIN="$envstub/claude" \
+      ENV_OUT="$work/env" "$LEAF" "$work/prompt.txt" ) >/dev/null 2>&1
+  problems=()
+  if [[ ! -f "$work/env" ]]; then
+    problems+=("the leaf's claude was never started")
+    return
+  fi
+  for v in "${names[@]}"; do
+    grep -E "^$v=" "$work/env" > /dev/null && problems+=("$v reached the leaf's claude")
+  done
+  return 0
+}
 session_env=()
 for v in "${session_vars[@]}"; do session_env+=("$v=from-the-conductor"); done
-( cd "$work" && env "${session_env[@]}" CLAUDE_BIN="$envstub/claude" \
-    ENV_OUT="$work/env" "$LEAF" "$work/prompt.txt" ) >/dev/null 2>&1
-problems=()
-for v in "${session_vars[@]}"; do
-  grep -E "^$v=" "$work/env" > /dev/null && problems+=("$v reached the leaf's claude")
-done
+leaf_env_lacks "${session_vars[@]}" -- "${session_env[@]}"
 report "starts claude without the conductor session's variables (#621)"
 
-rm -f "$work/env"
-( cd "$work" && env CLAUDE_AUTO_BACKGROUND_TASKS=true CLAUDE_BIN="$envstub/claude" \
-    ENV_OUT="$work/env" "$LEAF" "$work/prompt.txt" ) >/dev/null 2>&1
-problems=()
-if [[ ! -f "$work/env" ]]; then
-  problems+=("the leaf's claude was never started")
-elif grep -E '^CLAUDE_AUTO_BACKGROUND_TASKS=' "$work/env" > /dev/null; then
-  problems+=("CLAUDE_AUTO_BACKGROUND_TASKS reached the leaf's claude")
-fi
+leaf_env_lacks CLAUDE_AUTO_BACKGROUND_TASKS -- CLAUDE_AUTO_BACKGROUND_TASKS=true
 report "starts claude without CLAUDE_AUTO_BACKGROUND_TASKS (#621)"
 
 planted="$(scratch_dir)"
