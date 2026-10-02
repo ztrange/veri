@@ -6,5 +6,5 @@
 - [x] given a log whose result record carries only a `SUITE:` line, followed by a later result record carrying no report line, `extract-result.sh` prints the earlier record's text ⟦criterion 4⟧
 - [x] given two result records that both carry a report line, `extract-result.sh` prints the later one ⟦criterion 5⟧
 - [x] given result records none of which carries a report line or a `VERDICT:` line, `extract-result.sh` prints the last record's text ⟦criterion 6⟧
-- [ ] a result record carrying a `VERDICT:` line, followed by a later record without one, still yields the `VERDICT:` record ⟦criterion 7⟧
+- [x] a result record carrying a `VERDICT:` line, followed by a later record without one, still yields the `VERDICT:` record ⟦criterion 7⟧
 - [ ] input containing no result record is passed through to stdout unchanged ⟦criterion 8⟧

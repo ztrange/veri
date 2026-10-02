@@ -84,6 +84,12 @@ check "#624 with no report or VERDICT: line in any record, the last record wins"
 'Third turn.
 Still no report.'
 
+check "#624 a VERDICT: record still beats a later record without one" \
+'{"type":"result","result":"VERDICT: PASS\nREASON: the case pins the behaviour."}
+{"type":"result","result":"That is the second monitor expiring."}' \
+'VERDICT: PASS
+REASON: the case pins the behaviour.'
+
 check "passthrough non-stream" \
 'VERDICT: PASS
 REASON: plain text, no stream-json here.' \
