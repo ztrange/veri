@@ -94,7 +94,7 @@ run_launcher() {
   shift 3
   while (( $# )) && [[ "$1" != -- ]]; do vars+=("$1"); shift; done
   (( $# )) && shift
-  env -u VERI_PARALLEL -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES \
+  env -u VERI_PARALLEL -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES -u VERI_CONDUCTOR_CTX_BUDGET \
     VERI_GH_JSON="$gh" CLAUDE_BIN="$stub" VERI_POLL=0.05 "${vars[@]+"${vars[@]}"}" \
     "$skill/scripts/parallel-conductors.sh" "$@" > "$out" 2>&1 && code=0 || code=$?
 }
@@ -215,6 +215,89 @@ run_launcher "$gh_ctx" "$ctx_stub" "$work/ctx.out" VERI_PARALLEL=2
 got_ctx="$(grep '^context ' "$work/ctx.out" | sort)"
 expect_lines "VERI_PARALLEL=2 prints each conductor's assistant events as 'context <issue> <cache_read + cache_creation>' attributed to its own issue" "$(printf 'context 7 53438\ncontext 8 62000')" "$got_ctx" "$work/ctx.out"
 expect_lines "a non-assistant event carrying cache usage prints no 'context' line" "" "$(grep '^context [0-9]* 909$' "$work/ctx.out" || true)" "$work/ctx.out"
+
+gh_split="$work/gh-split"
+solvable_fixture "$gh_split" 7
+split_stub="$work/claude-split"
+conductor_stub "$split_stub" <<STUB
+printf '{"type":"assistant","message":{"role":"assistant",'
+sleep 0.3
+printf '"usage":{"input_tokens":7,"cache_creation_input_tokens":3438,"cache_read_input_tokens":50000,"output_tokens":120}}}\n'
+$(ready_pr "$gh_split")
+STUB
+
+run_launcher "$gh_split" "$split_stub" "$work/split.out"
+expect_lines "an assistant event the conductor writes in two pieces still prints one 'context' line for the whole event" "context 7 53438" "$(grep '^context ' "$work/split.out")" "$work/split.out"
+
+gh_stop="$work/gh-stop"
+solvable_fixture "$gh_stop" 7
+stop_marks="$work/stop.marks"
+stop_launches="$work/stop.launches"
+: > "$stop_marks"
+stop_stub="$work/claude-stop"
+conductor_stub "$stop_stub" <<STUB
+echo "\$n" >> "$stop_launches"
+if [ "\$(wc -l < "$stop_launches")" -eq 1 ]; then
+  echo \$\$ > "$stop_marks.pid"
+  await_context() {
+    i=0
+    while [ \$i -lt 100 ] && ! grep -Fx "\$1" "$work/stop.out" > /dev/null; do i=\$((i + 1)); sleep 0.02; done
+  }
+  heartbeats() {
+    i=0
+    while [ \$i -lt \$1 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
+  }
+  echo '{"type":"assistant","message":{"role":"assistant","usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":150000,"output_tokens":40}}}'
+  await_context 'context 7 150000'
+  echo mid-step >> "$stop_marks"
+  echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=7 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
+  await_context 'context 7 150100'
+  heartbeats 50
+  echo before-result >> "$stop_marks"
+  echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
+  heartbeats 200
+  echo after-step-done >> "$stop_marks"
+fi
+$(ready_pr "$gh_stop")
+STUB
+
+run_launcher "$gh_stop" "$stop_stub" "$work/stop.out" VERI_CONDUCTOR_CTX_BUDGET=100000
+i=0
+while (( i < 200 )) && [[ -r "$stop_marks.pid" ]] && kill -0 "$(cat "$stop_marks.pid")" 2>/dev/null; do
+  sleep 0.01
+  i=$((i + 1))
+done
+expect_lines "a conductor over VERI_CONDUCTOR_CTX_BUDGET is not stopped mid-step nor at the step-done call, and is stopped once that call's result appears" "$(printf 'mid-step\nbefore-result')" "$(cat "$stop_marks")" "$work/stop.out"
+
+gh_under="$work/gh-under"
+solvable_fixture "$gh_under" 7
+under_marks="$work/under.marks"
+: > "$under_marks"
+under_stub="$work/claude-under"
+conductor_stub "$under_stub" <<STUB
+await_context() {
+  i=0
+  while [ \$i -lt 100 ] && ! grep -Fx "\$1" "$work/under.out" > /dev/null; do i=\$((i + 1)); sleep 0.02; done
+}
+heartbeats() {
+  i=0
+  while [ \$i -lt \$1 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
+}
+echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=7 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":110000,"output_tokens":30}}}'
+await_context 'context 7 110000'
+echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
+heartbeats 50
+echo under-budget-step-done >> "$under_marks"
+echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t2","name":"Bash","input":{"command":"make test"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":150000,"output_tokens":30}}}'
+await_context 'context 7 150000'
+echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t2","content":""}]}}'
+heartbeats 50
+echo over-budget-mid-step >> "$under_marks"
+$(ready_pr "$gh_under")
+STUB
+
+run_launcher "$gh_under" "$under_stub" "$work/under.out"
+expect_lines "a conductor under the default VERI_CONDUCTOR_CTX_BUDGET of 120000 is not stopped at a step-done result, nor at a later tool result once over budget with no new step-done" "$(printf 'under-budget-step-done\nover-budget-mid-step')" "$(cat "$under_marks")" "$work/under.out"
 
 gh4="$work/gh4"
 gh_fixture "$gh4" <<'JSON'
