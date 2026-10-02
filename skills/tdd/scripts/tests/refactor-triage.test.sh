@@ -131,6 +131,39 @@ malformed_probe "a report with no CANDIDATES: line" "$no_candidates"
 rm -f "$no_class" "$unknown_class" "$no_candidates"
 report "$name"
 
+name="a test-only candidate is no reason for another leaf: alone it exits 3, beside a structural one only the structural is printed"
+problems=()
+
+test_only="$(mktemp)"
+cat > "$test_only" <<'REPORT'
+RESULT: applied "inline the single-use $phase_label variable", suite green
+FLAGS: none
+CANDIDATES: test-only | fold the suite's three mktemp fixtures into one helper
+CANDIDATES: test-only | rename the suite's $out to $stdout_file
+REPORT
+
+"$TRIAGE" <"$test_only" >/dev/null 2>&1 && code=0 || code=$?
+[[ "$code" == 3 ]] ||
+  problems+=("only test-only candidates: want exit 3 — nothing worth another leaf — got $code")
+
+mixed="$(mktemp)"
+cat > "$mixed" <<'REPORT'
+RESULT: applied "inline the single-use $phase_label variable", suite green
+FLAGS: none
+CANDIDATES: test-only | fold the suite's three mktemp fixtures into one helper
+CANDIDATES: structural | fold verify.sh's two mktemp calls into one helper
+REPORT
+
+out="$(mktemp)"
+"$TRIAGE" <"$mixed" >"$out" 2>/dev/null && code=0 || code=$?
+[[ "$code" == 0 ]] ||
+  problems+=("structural beside test-only: want exit 0 while a structural candidate remains, got $code")
+[[ "$(cat "$out")" == "fold verify.sh's two mktemp calls into one helper" ]] ||
+  problems+=("structural beside test-only: want the 1 structural candidate alone on stdout, got $(grep -c '' "$out") line(s): $(printf '%q' "$(cat "$out")")")
+
+rm -f "$test_only" "$mixed" "$out"
+report "$name"
+
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
