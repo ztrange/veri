@@ -28,6 +28,21 @@ def write_events(path, events):
     path.write_text("".join(json.dumps(event) + "\n" for event in events))
 
 
+def fake_git(monkeypatch, main_tree, branches=None):
+    """subprocess.run answering `git worktree list` with <main_tree> and `symbolic-ref` from <branches>."""
+    def fake_run(args, **kwargs):
+        if list(args[:3]) == ["git", "worktree", "list"]:
+            stdout = "worktree %s\nHEAD abc\nbranch refs/heads/main\n\n" % main_tree
+        elif "symbolic-ref" in args:
+            stdout = branches[str(args[args.index("-C") + 1]).rstrip("/")] + "\n"
+        else:
+            raise AssertionError("unexpected command: %r" % (args,))
+        return subprocess.CompletedProcess(args, 0, stdout, "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.delenv("VERI_LABEL", raising=False)
+
+
 def test_run_activity_reports_the_last_launch_its_attempts_usage_and_state(tmp_path, monkeypatch, status):
     def ev(ts, phase, step, event, attempt, **rest):
         return {"ts": ts, "issue": "9", "actor": "developer", "phase": phase, "step": step,
@@ -92,18 +107,7 @@ def test_main_renders_a_three_step_ledger_with_one_ticked_as_step_2_of_3(tmp_pat
     (run / ".tdd" / "issue-31.md").write_text(
         "# Plan for #31 — lamps glow\n\n- [x] a lamp exists\n- [ ] a lamp glows\n- [ ] a lamp dims\n")
 
-    def fake_run(args, **kwargs):
-        if list(args[:3]) == ["git", "worktree", "list"]:
-            stdout = "worktree %s\nHEAD abc\nbranch refs/heads/main\n\n" % tmp_path
-        elif "symbolic-ref" in args:
-            stdout = "tdd/31-lamps\n"
-        else:
-            raise AssertionError("unexpected command: %r" % (args,))
-        text = kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")
-        return subprocess.CompletedProcess(args, 0, stdout if text else stdout.encode(), "" if text else b"")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.delenv("VERI_LABEL", raising=False)
+    fake_git(monkeypatch, tmp_path, {str(run): "tdd/31-lamps"})
 
     status.main([])
 
@@ -116,20 +120,8 @@ def test_main_renders_every_run_as_status_sh_does_and_returns_0(tmp_path, monkey
     for issue, text in ledgers.items():
         (tmp_path / ".tdd" / "wt" / issue / ".tdd").mkdir(parents=True)
         (tmp_path / ".tdd" / "wt" / issue / ".tdd" / ("issue-%s.md" % issue)).write_text(text)
-    branches = {str(tmp_path / ".tdd" / "wt" / "31"): "tdd/31-lamps",
-                str(tmp_path / ".tdd" / "wt" / "32"): "tdd/32-bells"}
-
-    def fake_run(args, **kwargs):
-        if list(args[:3]) == ["git", "worktree", "list"]:
-            stdout = "worktree %s\nHEAD abc\nbranch refs/heads/main\n\n" % tmp_path
-        elif "symbolic-ref" in args:
-            stdout = branches[str(args[args.index("-C") + 1]).rstrip("/")] + "\n"
-        else:
-            raise AssertionError("unexpected command: %r" % (args,))
-        return subprocess.CompletedProcess(args, 0, stdout, "")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.delenv("VERI_LABEL", raising=False)
+    fake_git(monkeypatch, tmp_path, {str(tmp_path / ".tdd" / "wt" / "31"): "tdd/31-lamps",
+                                     str(tmp_path / ".tdd" / "wt" / "32"): "tdd/32-bells"})
 
     code = status.main([])
 
@@ -138,13 +130,7 @@ def test_main_renders_every_run_as_status_sh_does_and_returns_0(tmp_path, monkey
 
 
 def test_main_prints_no_runs_and_returns_3_when_the_main_working_tree_holds_none(tmp_path, monkeypatch, capsys, status):
-    def fake_run(args, **kwargs):
-        if list(args[:3]) == ["git", "worktree", "list"]:
-            return subprocess.CompletedProcess(args, 0, "worktree %s\nHEAD abc\n\n" % tmp_path, "")
-        raise AssertionError("unexpected command: %r" % (args,))
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.delenv("VERI_LABEL", raising=False)
+    fake_git(monkeypatch, tmp_path)
 
     code = status.main([])
 
