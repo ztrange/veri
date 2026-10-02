@@ -353,25 +353,7 @@ STUB
 run_launcher "$gh_again" "$again_stub" "$work/again.out" VERI_CONDUCTOR_CTX_BUDGET=100000
 expect_lines "a conductor stopped over VERI_CONDUCTOR_CTX_BUDGET is launched again for the same issue before a not-yet-launched solvable issue takes its slot" "$(printf '7\n7\n8')" "$(cat "$again_launches")" "$work/again.out"
 
-gh_restarted="$work/gh-restarted"
-solvable_fixture "$gh_restarted" 7
-restarted_launches="$work/restarted.launches"
-: > "$restarted_launches"
-restarted_stub="$work/claude-restarted"
-conductor_stub "$restarted_stub" <<STUB
-echo "\$n" >> "$restarted_launches"
-if [ "\$(wc -l < "$restarted_launches")" -eq 1 ]; then
-$(stub_waits "$work/restarted.out")
-  over_budget_step_done
-  echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
-  heartbeats 200
-  exit 0
-fi
-$(ready_pr "$gh_restarted")
-STUB
-
-run_launcher "$gh_restarted" "$restarted_stub" "$work/restarted.out" VERI_CONDUCTOR_CTX_BUDGET=100000
-expect_lines "a conductor relaunched after an over-budget stop prints 'restarted <n>' naming its issue" "restarted 7" "$(grep '^restarted ' "$work/restarted.out" || true)" "$work/restarted.out"
+expect_lines "a conductor relaunched after an over-budget stop prints 'restarted <n>' naming its issue" "restarted 7" "$(grep '^restarted ' "$work/again.out" || true)" "$work/again.out"
 
 gh4="$work/gh4"
 gh_fixture "$gh4" <<'JSON'
