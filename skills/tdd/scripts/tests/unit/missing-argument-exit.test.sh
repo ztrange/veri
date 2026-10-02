@@ -40,14 +40,14 @@ unset VERI_TIMEOUT VERI_REFACTOR_BUDGET
 mapfile -t offenders < <(argument_audit "$SCRIPTS" 2>&1)
 verdict "$name"
 
+usage_stub() {  # usage_stub <path> <usage-line> <exit> — an executable that prints <usage-line> on stderr and exits <exit>
+  printf '#!/bin/sh\necho "%s" >&2\nexit %s\n' "$2" "$3" > "$1"
+  chmod +x "$1"
+}
+
 name="the missing-argument audit covers a script added to the scripts/ directory whose usage line names a required argument"
 plant="$(scratch_dir)"
-cat > "$plant/planted.sh" <<'STUB'
-#!/bin/sh
-echo "usage: planted.sh <n>" >&2
-exit 0
-STUB
-chmod +x "$plant/planted.sh"
+usage_stub "$plant/planted.sh" 'usage: planted.sh <n>' 0
 expect_eq "$name" 'planted.sh: want exit 2, got 0' "$(argument_audit "$plant" 2>&1)"
 
 name="the missing-argument audit returns 1 when a script it audits is an offender"
@@ -63,17 +63,8 @@ expect_eq "$name" '0:' "$code:$out"
 
 name="the missing-argument audit calls only scripts whose usage line names a required argument, and wants each one's usage line to name it"
 mixed="$(scratch_dir)"
-cat > "$mixed/optional.sh" <<'STUB'
-#!/bin/sh
-echo "usage: optional.sh [<n>]" >&2
-exit 0
-STUB
-cat > "$mixed/required.sh" <<'STUB'
-#!/bin/sh
-echo "usage: <n>" >&2
-exit 2
-STUB
-chmod +x "$mixed/optional.sh" "$mixed/required.sh"
+usage_stub "$mixed/optional.sh" 'usage: optional.sh [<n>]' 0
+usage_stub "$mixed/required.sh" 'usage: <n>' 2
 expect_eq "$name" 'required.sh: usage line on stderr does not name it: usage: <n>' "$(argument_audit "$mixed" 2>&1)"
 
 name="a script exits 2 with a usage line when a later required argument is missing"
