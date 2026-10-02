@@ -328,4 +328,22 @@ out="$(cat "$work/out")"
   problems+=("want no command named against the pytest leg, got: $(flat "$out")")
 report "$name"
 
+shadow="$work/shadow"
+make_tree "$shadow"
+cp "$green/$PY_DIR/test_leg_probe.py" "$shadow/$PY_DIR/test_leg_probe.py"
+mkdir -p "$shadow/skills/tdd/scripts/tests/unit"
+printf '#!/usr/bin/env bash\necho "python3 is $(command -v python3)"\necho "1 passed, 0 failed"\n' \
+  > "$shadow/skills/tdd/scripts/tests/unit/which-python.test.sh"
+chmod +x "$shadow/skills/tdd/scripts/tests/unit/which-python.test.sh"
+
+name="under make unit, with \$VERI_VENV/bin holding a python3, a bash suite under tests/unit/ still finds the refusing unit-guard/python3 shim first, not the environment's interpreter"
+problems=()
+env -u PYTHONPATH VERI_VENV="$work/venv" \
+  make --no-print-directory -C "$shadow" unit > "$work/out" 2> "$work/err" < /dev/null
+out="$(cat "$work/out")"
+found="$(sed -n 's/^python3 is //p' <<< "$out")"
+[[ "$found" == */skills/tdd/scripts/tests/unit-guard/python3 ]] ||
+  problems+=("want the bash suite to find .../unit-guard/python3 first, got: $found ($(flat "$out"))")
+report "$name"
+
 finish
