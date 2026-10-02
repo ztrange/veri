@@ -61,11 +61,33 @@ def run_activity(events_path, pid_file, timeout):
            attempts, dollars, tokens, state)
 
 
+def scope_totals(name, solvable, event_paths):
+    """The scope totals line over every run's events."""
+    attempted = done = bailed = wall = 0
+    dollars = 0.0
+    for path in event_paths:
+        attempted += 1
+        events = read_events(path)
+        dollars += usage_totals(events)[0]
+        done += sum(1 for line in events if line.get("event") == "done")
+        bailed += sum(1 for line in events if line.get("event") == "bail")
+        if events:
+            wall += int(events[-1]["ts"]) - int(events[0]["ts"])
+    if os.environ.get("STATUS_JSON") == "1":
+        return json.dumps({"name": name, "attempted": attempted, "done": done,
+                           "bailed": bailed, "wall_seconds": wall, "dollars": round(dollars, 2),
+                           "solvable": int(solvable) if solvable.isdigit() else solvable})
+    return "scope %s  attempted %d  done %d  bailed %d  wall %ds  $%.2f  solvable %s" % (
+        name, attempted, done, bailed, wall, dollars, solvable)
+
+
 def main(argv):
     if argv[0] == "run-activity":
         line = run_activity(*argv[1:4])
         if line is not None:
             print(line)
+    elif argv[0] == "scope-totals":
+        print(scope_totals(argv[1], argv[2], argv[3:]))
 
 
 if __name__ == "__main__":

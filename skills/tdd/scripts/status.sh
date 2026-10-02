@@ -32,28 +32,7 @@ run_activity() {  # run_activity <events.jsonl> <conductor.pid> <timeout> -> "<p
 }
 
 scope_totals() {  # scope_totals <name> <solvable> <events.jsonl>... -> "scope <name>  attempted <a>  done <d>  bailed <b>  wall <w>s  $<x>  solvable <s>"
-  PYTHONPATH="$veri:$lib" python3 - "$@" <<'PY'
-import json, os, sys
-from event_log import read_events, usage_totals
-solvable = sys.argv[2]
-attempted = done = bailed = wall = 0
-dollars = 0.0
-for path in sys.argv[3:]:
-    attempted += 1
-    events = read_events(path)
-    dollars += usage_totals(events)[0]
-    done += sum(1 for line in events if line.get("event") == "done")
-    bailed += sum(1 for line in events if line.get("event") == "bail")
-    if events:
-        wall += int(events[-1]["ts"]) - int(events[0]["ts"])
-if os.environ.get("STATUS_JSON") == "1":
-    print(json.dumps({"name": sys.argv[1], "attempted": attempted, "done": done,
-                      "bailed": bailed, "wall_seconds": wall, "dollars": round(dollars, 2),
-                      "solvable": int(solvable) if solvable.isdigit() else solvable}))
-    sys.exit()
-print("scope %s  attempted %d  done %d  bailed %d  wall %ds  $%.2f  solvable %s"
-      % (sys.argv[1], attempted, done, bailed, wall, dollars, solvable))
-PY
+  python3 "$veri/status.py" scope-totals "$@"
 }
 
 solvable_count() {  # solvable_count <name> -> "<count>", or "?" when solvable-issues.sh gave no answer

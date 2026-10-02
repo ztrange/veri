@@ -40,3 +40,29 @@ def test_run_activity_reports_the_last_launch_its_attempts_usage_and_state(tmp_p
     line = status.run_activity(str(events), str(tmp_path / "conductor.pid"), 900)
 
     assert line == "green  developer  develop-green 100s  attempt 2  $1.75  11000 tokens  done 77"
+
+
+def test_scope_totals_sums_attempts_outcomes_wall_and_dollars_over_the_runs(tmp_path, monkeypatch):
+    def ev(ts, event, **rest):
+        return {"ts": ts, "issue": "9", "actor": "developer", "phase": "red", "step": "a cog exists",
+                "event": event, "attempt": "1", "skill_commit": "abc", **rest}
+
+    finished, bailed = tmp_path / "finished.jsonl", tmp_path / "bailed.jsonl"
+    write_events(finished, [
+        ev(100, "launch", name="develop-red"),
+        ev(200, "usage", total_cost_usd="0.50", input_tokens="10", output_tokens="2",
+           cache_read_input_tokens="0", cache_creation_input_tokens="0"),
+        ev(400, "done", pr="77"),
+    ])
+    write_events(bailed, [
+        ev(1000, "launch", name="develop-red"),
+        ev(1100, "usage", total_cost_usd="1.25", input_tokens="20", output_tokens="3",
+           cache_read_input_tokens="0", cache_creation_input_tokens="0"),
+        ev(1600, "bail", classification="process"),
+    ])
+    monkeypatch.delenv("STATUS_JSON", raising=False)
+
+    status = importlib.import_module("veri.status")
+    line = status.scope_totals("veri", "4", [str(finished), str(bailed)])
+
+    assert line == "scope veri  attempted 2  done 1  bailed 1  wall 900s  $1.75  solvable 4"
