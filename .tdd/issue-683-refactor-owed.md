@@ -8,3 +8,6 @@
 ### The Makefile has no `count-line-guard` target (`! grep -n '^count-line-guard:' Makefile`), and no suite reads one ⟦criterion 7⟧
 - delete the now-unread `count_line_guard` function and `COUNT_LINE` / `COUNTLESS` assignments at Makefile:34-36 (and the comment at Makefile:30-32 that says `make test` reads them), keeping `COUNT_LINE_GUARD` at Makefile:33, which line 123 still uses
 - projects/docs/Makefile:2-3,29-31 keeps its own copy of the count-line regex, the countless message and the `tail -n 1` check; `make docs-test` could run each suite through `run-suite.sh` instead (out of this step's bounds; docs lane)
+### `stop-run.sh` takes its accepted stop modes from one sourced list in `lib/`, and still refuses a mode outside it with `stop-run: unknown mode — want at-ledger, at-leaf or now: '<mode>'` ⟦criterion 8⟧
+- move the `STOP_MODES` membership loop at `stop-run.sh:52-56` into a `lib/stop-modes.sh` function (e.g. `stop_mode_known <mode>`) once `stop-requested.sh` (the next step) needs the same check — there is only one caller today, so this would be an extract, not duplication removal
+- test-only | `stop-run.test.sh:308-310` and `:314-316` copy the body of `run_stop_in` (`stop-run.test.sh:75-79`) with `$listed/stop-run.sh` in place of `$STOP`; making the script path a parameter of `run_stop_in` would remove both copies
