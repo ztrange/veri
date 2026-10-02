@@ -145,4 +145,35 @@ for target in unit test; do
 done
 report "$name"
 
+real_py="$(command -v python3)"
+fake_venv_python() {
+  mkdir -p "$1/bin"
+  printf '#!/bin/sh\nPYTHONPATH="%s" exec "%s" "$@"\n' "$fake_pytest" "$real_py" > "$1/bin/python3"
+  chmod +x "$1/bin/python3"
+}
+fake_venv_python "$work/venv"
+fake_venv_python "$work/home/.veri-tools/venv"
+
+name="with \$VERI_VENV/bin/python3 able to import pytest and the PATH python3 unable to, make unit and make test run the pytest leg with the environment's interpreter; with VERI_VENV unset it is \$HOME/.veri-tools/venv"
+problems=()
+for venv in set unset; do
+  for target in unit test; do
+    case "$venv" in
+      set) venv_env=(HOME="$work/home-empty" VERI_VENV="$work/venv") ;;
+      unset) venv_env=(HOME="$work/home") ;;
+    esac
+    env -u PYTHONPATH -u VERI_VENV "${venv_env[@]}" PATH="$work/no-pytest-bin:$PATH" \
+      make --no-print-directory -C "$green" "$target" > "$work/out" 2> "$work/err" < /dev/null &&
+      code=0 || code=$?
+    out="$(cat "$work/out")"
+    [[ "$code" == 0 ]] ||
+      problems+=("VERI_VENV $venv, make $target: want exit 0, got $code: $(flat "$out") $(flat "$(cat "$work/err")")")
+    [[ "$out" == *"1 passed"* ]] ||
+      problems+=("VERI_VENV $venv, make $target: want the pytest leg to report 1 passed, got: $(flat "$out")")
+    [[ "$(tail -n 1 <<< "$out")" == 'all suites green' ]] ||
+      problems+=("VERI_VENV $venv, make $target: want stdout's last line all suites green, got: $(tail -n 1 <<< "$out")")
+  done
+done
+report "$name"
+
 finish

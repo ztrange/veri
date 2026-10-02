@@ -143,7 +143,8 @@ test unit:
 	@$(BASH_GUARD)
 	@fail=0; suite_out="$$(mktemp)"; suite_status="$$(mktemp)"; reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
 	trap 'rm -f "$$suite_out" "$$suite_status" "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
-	py_bin="$$(command -v python3)"; \
+	py_venv="$${VERI_VENV:-$$HOME/.veri-tools/venv}"; \
+	if [ -x "$$py_venv/bin/python3" ]; then py_bin="$$py_venv/bin/python3"; else py_bin="$$(command -v python3)"; fi; \
 	$(OFFLINE_GIT); \
 	for t in $(SUITES); do \
 	  suite_name="$$(basename "$$t")"; \
