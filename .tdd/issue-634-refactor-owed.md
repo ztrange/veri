@@ -31,3 +31,7 @@
 ### veri/ledger.py's ledger_steps(text) returns, for a ledger, the same index/state/kind/pending/added/criterion/text records lib/ledger.sh's ledger_steps prints, and pending-mark-literal.test.sh admits veri/ledger.py beside lib/ledger.sh as a module that may spell a box ⟦added⟧ ⟦criterion 1⟧
 - `tests/py/test_ledger.py:6-8` and `tests/py/test_status.py:8-11` both build the same `SCRIPTS` path and add it to `sys.path`. A shared `tests/py/conftest.py` would remove the copy, but it means extracting a new module, which this phase does not allow.
 - `tests/unit/pending-mark-literal.test.sh:32,57` lists the two exempt files `lib/ledger.sh` and `veri/ledger.py` in two `awk` filters, once as exact names and once as path prefixes. One shared list would put them in one place.
+### the implementation case at tests/status.test.sh:452-470 (finds the step through lib/ledger.sh's ledger_steps) is replaced, in its own commit before the port, by a tests/py/test_status.py case that gives veri.status.main a ledger of three steps with one ticked and asserts it renders `step 2 of 3` ⟦added⟧ ⟦criterion 1⟧
+- delete the dead `counted="$(repo counted)"` line left at tests/status.test.sh:451 by the case deletion (it creates a repo nothing reads)
+- drop the `symbolic-ref` branch of `fake_run` and the `VERI_LABEL` delenv in test_main_renders_a_three_step_ledger_with_one_ticked_as_step_2_of_3 — `render()` never calls either (dead test code)
+- drop `fake_run`'s bytes/text switch — the only caller, `main_working_tree()`, always passes `text=True`
