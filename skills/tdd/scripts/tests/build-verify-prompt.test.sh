@@ -678,4 +678,36 @@ done
 [[ -z "$problems" ]] && ok \
   || no "a contract header or a shell-hazard warning is not grounds for REJECT (${problems#; })"
 
+replaces_step='⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz" moves to tests/py/test_zorblat.py ⟦criterion 1⟧'
+replaces_green="$("$BUILD" --step "$replaces_step" --fast-cmd 'make unit' green "$work/spec.md" 'tests/py/test_zorblat.py' test_zorblat_frobs_a_nitz 2>/dev/null)"; code=$?
+gone='(gone|deleted|removed|no longer)'
+problems=""
+[[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
+prompt_says "$replaces_green" "never makes PASS depend on a pytest case asserting the same behaviour" \
+  -iE -e "PASS[^.]{0,250}pytest[^.]{0,120}same behaviou?r"
+prompt_says "$replaces_green" "never makes PASS depend on the named case being gone" \
+  -iE -e "PASS[^.]{0,250}named (bash )?case[^.]{0,60}$gone"
+prompt_says "$replaces_green" "never REJECTs a deletion or modification of any other case" \
+  -iE -e "REJECT[^.]{0,200}(delet|modif)[^.]{0,80}(any|every) other (bash )?case|(delet|modif)[^.]{0,80}(any|every) other (bash )?case[^.]{0,200}REJECT"
+prompt_lacks "$green" "an unmarked step's prompt makes PASS depend on a pytest case too" \
+  -iE -e "PASS[^.]{0,250}pytest"
+[[ -z "$problems" ]] && ok \
+  || no "verify-green for a ⟦replaces-case⟧ step PASSes only when the named case is gone and a pytest case asserting the same behaviour was added, and REJECTs a deletion or modification of any other case (${problems#; })"
+
+mkdir -p "$work/no-replaces-case"
+cp "$BUILD" "$work/no-replaces-case/"
+cp -R "$HERE/../prompts" "$HERE/../lib" "$work/no-replaces-case/"
+rm "$work/no-replaces-case/prompts/_verify-green-replaces-case.md"
+problems=""
+out="$("$work/no-replaces-case/build-verify-prompt.sh" --step "$replaces_step" --fast-cmd 'make unit' green "$work/spec.md" 'tests/py/test_zorblat.py' test_zorblat_frobs_a_nitz 2>"$work/no-replaces-case.err")"; code=$?
+[[ "$code" -eq 2 ]] || problems="$problems; green for a ⟦replaces-case⟧ step without the paragraph's file exited $code, want 2"
+[[ -z "$out" ]] || problems="$problems; green without the paragraph's file printed ${#out} bytes, want none"
+grep -F '_verify-green-replaces-case.md' "$work/no-replaces-case.err" > /dev/null \
+  || problems="$problems; stderr does not name _verify-green-replaces-case.md"
+"$work/no-replaces-case/build-verify-prompt.sh" --fast-cmd 'make unit' green "$work/spec.md" "$testpath" test_slugify_lowercases \
+  >/dev/null 2>&1; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; green for an unmarked step without the paragraph's file exited $code, want 0"
+[[ -z "$problems" ]] \
+  && ok || no "the replaces-case paragraph is read for a ⟦replaces-case⟧ green step alone, and an unreadable one is exit 2 with no stdout (${problems#; })"
+
 finish

@@ -93,8 +93,16 @@ if [[ "$phase" == plan ]] && grep -qE '^## Refactor[[:space:]]*$' "$spec_file" 2
   refactor_plan_file="$HERE/prompts/_verify-plan-refactor.md"
 fi
 
+replaces_file=""
+if [[ "$phase" == green && "$step" == *"⟦replaces-case⟧"* ]]; then
+  replaces_file="$HERE/prompts/_verify-green-replaces-case.md"
+fi
+
 # hazard: `cat` on an unreadable file under set -e would exit 1, the code reserved for an answer.
 readable=("$tpl_file" "$shared_file" "$spec_file")
+if [[ -n "$replaces_file" ]]; then
+  readable+=("$replaces_file")
+fi
 if [[ -n "$bug_file" ]]; then
   readable+=("$bug_file")
 fi
@@ -115,6 +123,8 @@ bug_reproduction=""
 if [[ -n "$bug_file" ]]; then bug_reproduction="$(cat "$bug_file")"; fi
 refactor_plan=""
 if [[ -n "$refactor_plan_file" ]]; then refactor_plan="$(cat "$refactor_plan_file")"; fi
+replaces_case=""
+if [[ -n "$replaces_file" ]]; then replaces_case=$'\n\n'"$(cat "$replaces_file")"; fi
 ledger=""
 if [[ "$phase" == plan ]]; then
   ledger="$(cat "$test_path")"
@@ -136,6 +146,7 @@ out="${out//\{\{STEP\}\}/$step_block}"
 out="${out//\{\{ISSUE_SPEC\}\}/$spec}"
 out="${out//\{\{BUG_REPRODUCTION\}\}/$bug_reproduction}"
 out="${out//\{\{REFACTOR_PLAN\}\}/$refactor_plan}"
+out="${out//\{\{REPLACES_CASE\}\}/$replaces_case}"
 out="${out//\{\{LEDGER\}\}/$ledger}"
 out="${out//\{\{TEST_PATH\}\}/$test_path}"
 out="${out//\{\{TARGET_TEST\}\}/$target}"
