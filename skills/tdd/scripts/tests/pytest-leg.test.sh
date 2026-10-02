@@ -6,6 +6,7 @@
 #   1. With a failing `test_*.py` there, both targets run it, name the failing test in their
 #      output, their recipe exits 1 (make's own `[<target>] Error 1` line on stderr, make's exit
 #      non-zero) and the recipe's stdout ends `SUITES FAILED`.
+#   2. With every case there passing, both targets run them, exit 0 and end `all suites green`.
 #
 # Run: skills/tdd/scripts/tests/pytest-leg.test.sh
 set -uo pipefail
@@ -81,6 +82,31 @@ for target in unit test; do
     problems+=("make $target: want the output to name test_veri_probe_fails: $(flat "$out")")
   [[ "$(tail -n 1 <<< "$out")" == 'SUITES FAILED' ]] ||
     problems+=("make $target: want stdout's last line SUITES FAILED, got: $(tail -n 1 <<< "$out")")
+done
+report "$name"
+
+green="$work/green"
+mkdir -p "$green/$PY_DIR"
+cp "$ROOT/Makefile" "$green/Makefile"
+ln -s "$HERE/offline" "$green/skills/tdd/scripts/tests/offline"
+ln -s "$HERE/unit-guard" "$green/skills/tdd/scripts/tests/unit-guard"
+cat > "$green/$PY_DIR/test_leg_probe.py" <<'PY'
+def test_veri_probe_passes():
+    assert 1 == 1
+PY
+
+name="with every pytest case under $PY_DIR passing, make unit and make test each run them, exit 0 and end all suites green"
+problems=()
+for target in unit test; do
+  env VERI_VENV="$work/no-venv" PYTHONPATH="$fake_pytest" \
+    make --no-print-directory -C "$green" "$target" > "$work/out" 2> "$work/err" < /dev/null &&
+    code=0 || code=$?
+  out="$(cat "$work/out")"
+  [[ "$code" == 0 ]] || problems+=("make $target: want exit 0, got $code: $(flat "$out") $(flat "$(cat "$work/err")")")
+  [[ "$out" == *"1 passed"* ]] ||
+    problems+=("make $target: want the pytest leg to report 1 passed, got: $(flat "$out")")
+  [[ "$(tail -n 1 <<< "$out")" == 'all suites green' ]] ||
+    problems+=("make $target: want stdout's last line all suites green, got: $(tail -n 1 <<< "$out")")
 done
 report "$name"
 
