@@ -777,6 +777,37 @@ probe_runner_through_symlinked_skill
 
 report "$name"
 
+name="run-suite.sh from a git-archive extraction of skills/tdd alone, with no Makefile in or above it, runs a green suite and exits 0 (#617)"
+problems=()
+
+probe_runner_from_archived_skill() {
+  local tree skill_tree
+  tree="$(scratch_dir)" || {
+    problems+=("could not make a scratch directory to extract the skill into, so the question went unasked")
+    return 1
+  }
+  skill_tree="$(GIT_INDEX_FILE="$tree/index" git -C "$ROOT" add -A -- skills/tdd &&
+    GIT_INDEX_FILE="$tree/index" git -C "$ROOT" write-tree)" || {
+    problems+=("could not record the working tree's skills/tdd as a git tree to archive, so the question went unasked")
+    return 1
+  }
+  mkdir -p "$tree/snapshot"
+  git -C "$ROOT" archive "$skill_tree" skills/tdd | tar -x -C "$tree/snapshot" || {
+    problems+=("could not extract a git archive of skills/tdd, so the question went unasked")
+    return 1
+  }
+
+  direct "$tree/snapshot/skills/tdd/scripts/run-suite.sh" "$GREEN_FIXTURE_PATH"
+  [[ "$direct_code" == 0 ]] ||
+    problems+=("want exit 0 from the runner in a git-archive extraction of skills/tdd over a green suite; it exited $direct_code and said: $(flat "$direct_out")")
+  grep -Fx '1 passed, 0 failed' <<< "$direct_out" > /dev/null ||
+    problems+=("want the green suite's own output, ending '1 passed, 0 failed'; it said: $(flat "$direct_out")")
+}
+
+probe_runner_from_archived_skill
+
+report "$name"
+
 name="make test takes its count-line guard from skills/tdd/scripts/lib/count-line-guard.sh: a refusal reworded there is what it prints, and a tree without that file fails naming it (#617)"
 problems=()
 
