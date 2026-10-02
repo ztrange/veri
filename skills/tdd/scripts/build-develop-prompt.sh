@@ -122,13 +122,14 @@ if spec_has_bug_section "$spec_file"; then
 fi
 
 replaces_file=""
-if [[ ( "$phase" == "green" || "$revised_phase" == "green" ) && "$step" == *"⟦replaces-case⟧"* ]]; then
-  replaces_file="$HERE/prompts/_develop-green-replaces-case.md"
-fi
-
 suite_repair_file=""
-if [[ ( "$phase" == "green" || "$revised_phase" == "green" ) && "$step" == *"⟦suite-repair⟧"* ]]; then
-  suite_repair_file="$HERE/prompts/_develop-green-suite-repair.md"
+if [[ "$phase" == "green" || "$revised_phase" == "green" ]]; then
+  if [[ "$step" == *"⟦replaces-case⟧"* ]]; then
+    replaces_file="$HERE/prompts/_develop-green-replaces-case.md"
+  fi
+  if [[ "$step" == *"⟦suite-repair⟧"* ]]; then
+    suite_repair_file="$HERE/prompts/_develop-green-suite-repair.md"
+  fi
 fi
 
 for f in "$tpl_file" "$shared_file" "$spec_file" "$reason_file" "$bug_file" "$replaces_file" "$suite_repair_file"; do
