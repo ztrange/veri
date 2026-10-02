@@ -718,8 +718,10 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    writes for the `refactor` label — changes no behaviour, so it has no failing test to plan
    around. Plan each step as one named refactoring whose criterion is a shell predicate,
    false before the step and true after it: the smell being present is the step's Red. The
-   plan verifier REJECTs a refactor plan whose steps are not written that way. Each step
-   opens with a cover leaf, which mutates the code the step will move, runs the suite,
+   plan verifier REJECTs a refactor plan whose steps are not written that way. In a
+   refactor-kind plan, fold a deletion into the step that makes the code dead: never leave a
+   no-op in place for a later step to delete, whose Cover would run on code nothing reaches.
+   Each step opens with a cover leaf, which mutates the code the step will move, runs the suite,
    expects red, restores and reports `COVERED:` and `CAUGHT_BY:`. If
    `git status --porcelain` prints anything once it exits, refuse to continue — stop the
    run: the transform would otherwise commit the leftover mutation as a refactoring.
