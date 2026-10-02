@@ -366,6 +366,26 @@ done
   || no "#619 no prompt contains git stash push, and git checkout -- <file> appears only in _shared.md and _develop-shared.md inside the sentence that forbids it (${problems#; })"
 
 problems=""
+numbered_item() {  # numbered_item <prompt file> <n> — the text of list item <n>., up to item <n+1>.
+  awk -v n="$2" '$0 ~ "^" n "\\. " { on = 1 } $0 ~ "^" (n + 1) "\\. " { on = 0 } on' "$1"
+}
+for item in verify-green:4 verify-pin:2 develop-cover:4; do
+  label="${item%%:*}" n="${item#*:}"
+  text="$(numbered_item "$prompts/$label.md" "$n")"
+  prompt_says "$text" "$label item $n never restores with mv <file>.orig <file>" -F -e 'mv <file>.orig <file>'
+  case "$label" in
+    develop-cover)
+      prompt_says "$text" "$label item $n never requires the tree exactly as the leaf found it" \
+        -iE -e 'working tree must be exactly as you found it' ;;
+    *)
+      prompt_says "$text" "$label item $n never requires the restore before reporting" \
+        -F -e 'before you report' ;;
+  esac
+done
+[[ -z "$problems" ]] && ok \
+  || no "#619 verify-green check 4 and verify-pin check 2 restore before the verifier reports, and develop-cover step 4 leaves the working tree exactly as the leaf found it (${problems#; })"
+
+problems=""
 prompt_says "$with_base" "never names git diff --name-only $base_sha^ $base_sha" \
   -F -e "git diff --name-only $base_sha^ $base_sha"
 prompt_says "$with_base" "never makes a changed file outside that list a REJECT" \
