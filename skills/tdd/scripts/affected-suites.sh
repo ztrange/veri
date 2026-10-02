@@ -32,7 +32,7 @@ suite_of() {
   case "$f" in
     CLAUDE.md|Makefile|skills/*/SKILL.md)
       suites_naming "\"$f\"" "/$f\"" ;;
-    "$scripts"/tests/*.test.sh) echo "$f" ;;
+    "$scripts"/tests/*.test.sh|"$scripts"/tests/py/test_*.py) echo "$f" ;;
     "$scripts"/tests/lib/harness.sh)
       grep -lE '^[[:space:]]*(source|\.)[[:space:]].*lib/harness\.sh"?[[:space:]]*$' \
         "$scripts"/tests/*.test.sh "$scripts"/tests/unit/*.test.sh || true ;;
