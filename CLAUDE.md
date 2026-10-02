@@ -190,7 +190,7 @@ came from #225, whose only reason was no framework and no outside dependency, an
 retired it: `lib/harness.sh` is in-repo plain shell, `record-helpers.sh` sources it, and
 those suites count through it like every other.
 
-That last line is not a formatting convention — **the `test` recipe enforces it**. A suite
+Ending on the count line is not a formatting convention — **the `test` recipe enforces it**. A suite
 whose output does not end in `<n> passed, <m> failed` fails the run, named:
 `<suite>: never reached its count line`. A suite's **exit code alone is not trusted**
 because a suite that dies partway routinely comes back 0 — under `set -u`, which every
