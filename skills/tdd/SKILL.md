@@ -1369,6 +1369,10 @@ git commit -m "plan: repair the red full suite (#<n>)"
 
 A second red result on the full run after a repair step does **bail** — the repair step is
 one more cycle, not a loop — and the bail names every suite still red, not only the first.
+A `⟦suite-repair⟧` line already in the ledger is what says the red run is the second:
+```
+grep -F '⟦suite-repair⟧' .tdd/issue-<n>.md > /dev/null && VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=suite-red classification="$($S/classify-bail.sh suite-red)" suites='<every suite still red>'
+```
 
 A `⟦full-suite⟧` ledger line is the one step no cycle ticks — `next-unchecked.sh` skips it,
 so it is still unchecked here — and this step ticks it, only once the run's last full-suite
@@ -1851,6 +1855,8 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   wait ran out → **system** failure (CI never answered, not the methodology).
 - `ci-red` — a readied PR's CI check failed again after a CI repair step → **process**
   failure (CI answered, and the repair did not fix what it said).
+- `suite-red` — the Draft PR step's full run was red again after a `⟦suite-repair⟧` step →
+  **process** failure (the suite answered, and the repair did not fix what it said).
 
 **A bail reached first stays a bail**, whatever stop is waiting behind it: the methodology or
 the plumbing has already answered, and a pause would hide that answer from the resume. Ask
