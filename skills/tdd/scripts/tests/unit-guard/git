@@ -1,4 +1,6 @@
 #!/bin/sh
-# git and python3 on make unit's PATH only: any call is refused, naming the command.
+# git and python3 on make unit's PATH only: any call is refused, naming the command, and written
+# to $UNIT_GUARD_LOG when it is set.
+printf '%s\n' "$(basename "$0") $* (cwd $PWD)" >> "${UNIT_GUARD_LOG:-/dev/null}"
 echo "make unit: $(basename "$0") called for real; a unit suite mocks it as a shell function" >&2
 exit 1
