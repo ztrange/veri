@@ -57,6 +57,13 @@ check "#624 a SPLIT: report beats a later turn with no report line" \
 SPLIT: the first behaviour
 SPLIT: the second behaviour'
 
+check "#624 a TEST_PATH: report beats a later turn with no report line" \
+'{"type":"result","result":"Red.\nTEST_PATH: tests/a.test.sh\nAGAINST_UNMODIFIED: FAILS"}
+{"type":"result","result":"That is the second monitor expiring."}' \
+'Red.
+TEST_PATH: tests/a.test.sh
+AGAINST_UNMODIFIED: FAILS'
+
 check "passthrough non-stream" \
 'VERDICT: PASS
 REASON: plain text, no stream-json here.' \
