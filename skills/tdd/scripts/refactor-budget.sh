@@ -14,7 +14,7 @@
 # decision either.
 #
 # With --issue, the per-issue structural pass is bounded instead, by
-# VERI_ISSUE_REFACTOR_BUDGET (default 10).
+# VERI_ISSUE_REFACTOR_BUDGET (default 3).
 #
 # Usage:   refactor-budget.sh [--issue] <count>   # <count> a whole number >= 0
 set -euo pipefail
@@ -26,7 +26,7 @@ budget="${VERI_REFACTOR_BUDGET:-5}"
 if [[ "${1:-}" == --issue ]]; then
   shift
   budget_var=VERI_ISSUE_REFACTOR_BUDGET
-  budget="${VERI_ISSUE_REFACTOR_BUDGET:-10}"
+  budget="${VERI_ISSUE_REFACTOR_BUDGET:-3}"
 fi
 count="${1:-}"
 

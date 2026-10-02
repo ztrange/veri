@@ -140,7 +140,7 @@ SKILL.md-refactor|skills/tdd/SKILL.md|VERI_REFACTOR_BUDGET.{0,3} \(default [0-9]
 SITES
 report "$name"
 
-name="--issue reads VERI_ISSUE_REFACTOR_BUDGET (default 10): exit 0 under it, 3 once spent, 2 on a bad value; without the flag VERI_REFACTOR_BUDGET still applies"
+name="--issue reads VERI_ISSUE_REFACTOR_BUDGET: exit 0 under it, 3 once spent, 2 on a bad value; without the flag VERI_REFACTOR_BUDGET still applies"
 problems=()
 while IFS='|' read -r label envs args exp_code exp_err; do
   [[ -n "$label" ]] || continue
@@ -153,12 +153,26 @@ while IFS='|' read -r label envs args exp_code exp_err; do
   [[ -z "$exp_err" || "$err" == *"$exp_err "* ]] ||
     problems+=("$label: want stderr naming '$exp_err', got: $(printf '%q' "$err")")
 done <<'PROBES'
---issue default count 9|VERI_REFACTOR_BUDGET=0|--issue 9|0|
---issue default count 10|VERI_REFACTOR_BUDGET=0|--issue 10|3|
+--issue VERI_ISSUE_REFACTOR_BUDGET=10 count 9|VERI_REFACTOR_BUDGET=0 VERI_ISSUE_REFACTOR_BUDGET=10|--issue 9|0|
+--issue VERI_ISSUE_REFACTOR_BUDGET=10 count 10|VERI_REFACTOR_BUDGET=0 VERI_ISSUE_REFACTOR_BUDGET=10|--issue 10|3|
 --issue VERI_ISSUE_REFACTOR_BUDGET=two|VERI_ISSUE_REFACTOR_BUDGET=two|--issue 0|2|VERI_ISSUE_REFACTOR_BUDGET
 --issue VERI_ISSUE_REFACTOR_BUDGET=-1|VERI_ISSUE_REFACTOR_BUDGET=-1|--issue 0|2|VERI_ISSUE_REFACTOR_BUDGET
 no flag VERI_REFACTOR_BUDGET=2 count 2|VERI_REFACTOR_BUDGET=2 VERI_ISSUE_REFACTOR_BUDGET=20|2|3|
 PROBES
+report "$name"
+
+name="#596 --issue with VERI_ISSUE_REFACTOR_BUDGET unset: counts 0-2 exit 0, count 3 exits 3, and the header states default 3"
+problems=()
+for probe in "0 0" "1 0" "2 0" "3 3"; do
+  count="${probe% *}" exp_code="${probe#* }"
+  env -u VERI_ISSUE_REFACTOR_BUDGET -u VERI_REFACTOR_BUDGET \
+    "$BUDGET" --issue "$count" >/dev/null 2>&1 && code=0 || code=$?
+  [[ "$code" == "$exp_code" ]] ||
+    problems+=("--issue count $count: want exit $exp_code, got $code")
+done
+header_default="$(stated "$BUDGET" 'VERI_ISSUE_REFACTOR_BUDGET \(default [0-9]+')"
+[[ "$header_default" == 3 ]] ||
+  problems+=("refactor-budget.sh header: want VERI_ISSUE_REFACTOR_BUDGET (default 3), says $header_default")
 report "$name"
 
 finish
