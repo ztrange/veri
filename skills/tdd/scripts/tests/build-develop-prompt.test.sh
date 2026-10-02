@@ -220,12 +220,14 @@ prompt_says "$refactor" "never says to run the suites covering the touched files
   -iE -e 'suites?[^.]{0,40}cover|cover[^.]{0,40}suites?'
 prompt_says "$refactor" "never says NOT to run the full suite" \
   -iE -e "(not|rather than|instead of|no need to|never|don't|do not)[^.]{0,40}(full|whole|entire) suite"
-prompt_says "$refactor" "does not name verify-refactor as where the full suite runs" \
+prompt_lacks "$refactor" "still names verify-refactor as where the full suite runs" \
   -iE -e 'verify-refactor[^.]{0,60}(full|whole|entire) suite|(full|whole|entire) suite[^.]{0,60}verify-refactor'
-prompt_says "$refactor" "does not state that a break in an untouched suite surfaces there instead" \
-  -iE -e '(untouched|nobody touched|no one touched|nothing touched)[^.]{0,80}(surface|shows up|appears|caught)|(surface|shows up|appears|caught)[^.]{0,80}(untouched|nobody touched|no one touched)'
+prompt_says "$refactor" "does not name the PR's one full run as where the full suite runs" \
+  -iE -e '(full|whole|entire) +suite +runs +once +per +PR'
+prompt_says "$refactor" "does not state that a break outside the affected set surfaces at that run's repair step instead" \
+  -iE -e 'outside +the affected set +surfaces[^.]{0,80}repair step'
 [[ -z "$problems" ]] \
-  && ok || no "develop-refactor says to run the suites covering the touched files rather than the full suite, names verify-refactor as where the full suite runs and states the untouched-suite trade-off (${problems#; })"
+  && ok || no "develop-refactor says to run the suites covering the touched files rather than the full suite, names the PR's one full run as where the full suite runs and states the affected-set trade-off (${problems#; })"
 
 demands_foreground() {  # demands_foreground <phase label> <prompt>
   local label="$1" prompt="$2"
@@ -625,7 +627,7 @@ renders_as() {  # <label> <want-cksum> <args...> — records a prompt whose sum 
 }
 renders_as red            '2493217892 9982'       red "$work/spec.md" "$step_text" "$test_cmd"
 renders_as green          '1771614540 6887'     green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit"
-renders_as refactor       '2694733224 8933'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
+renders_as refactor       '1261163051 8947'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
 renders_as 'revise red'   '3051826211 7370'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as 'revise green' '3585850391 7372'  revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as 'revise refactor' '3275415555 7375' revise refactor "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
