@@ -94,6 +94,25 @@ check_refused "--clear --bogus" --clear --bogus
 verdict "--clear with a trailing argument exits 2 and leaves .tdd/stop as it was"
 
 problems=""
+listed="$work/listed"; mkdir -p "$listed/lib"
+cp "$STOP" "$listed/stop-requested.sh"
+cp "$HERE/../../lib/exit-contract.sh" "$listed/lib/"
+printf '%s\n' 'STOP_MODES=(at-ledger at-leaf now at-step)' > "$listed/lib/stop-modes.sh"
+printf '%s\n' "at-step" > "$work/.tdd/stop"
+out="$(cd "$work" && "$listed/stop-requested.sh" 2>"$work/stderr")" && code=0 || code=$?
+if [[ "$code" != 0 || "$out" != "at-step" ]]; then
+  problems+="    at-step, added to lib/stop-modes.sh: want exit 0 and stdout 'at-step', got exit $code and stdout '$out'"$'\n'
+fi
+printf '%s\n' "bogus" > "$work/.tdd/stop"
+run_stop
+want="stop-requested: .tdd/stop must name a mode — at-ledger, at-leaf or now: 'bogus'"
+if [[ "$code" != 2 || -n "$out" || "$err" != "$want" ]]; then
+  problems+="    bogus: want exit 2, empty stdout and stderr '$want', got exit $code, stdout '$out' and stderr '$err'"$'\n'
+fi
+rm -f "$work/.tdd/stop"
+verdict "#683: stop-requested.sh accepts the modes lib/stop-modes.sh lists, and still refuses one outside it with today's message"
+
+problems=""
 tier_dir="skills/tdd/scripts/tests/unit"
 self="$HERE/$(basename "$0")"
 case "$HERE" in

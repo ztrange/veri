@@ -32,7 +32,9 @@ set -euo pipefail
 
 file=".tdd/stop"
 
-source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+lib="$(cd "$(dirname "$0")" && pwd)/lib"
+source "$lib/exit-contract.sh"
+source "$lib/stop-modes.sh"
 USAGE="usage: stop-requested.sh [--clear]"
 
 (( $# <= 1 )) || refuse
@@ -50,12 +52,13 @@ esac
 
 IFS= read -r mode < "$file" || mode=""
 
-case "$mode" in
-  at-ledger | at-leaf | now) ;;
-  *)
-    echo "stop-requested: $file must name a mode — at-ledger, at-leaf or now: '$mode'" >&2
-    exit 2
-    ;;
-esac
+known=0
+for listed in "${STOP_MODES[@]}"; do
+  [[ "$mode" == "$listed" ]] && known=1
+done
+if (( known == 0 )); then
+  echo "stop-requested: $file must name a mode — at-ledger, at-leaf or now: '$mode'" >&2
+  exit 2
+fi
 
 printf '%s\n' "$mode"
