@@ -159,14 +159,20 @@ run_case "$claude_md's budgets invariant names VERI_STEP_GROWTH as a fifth axis,
 
 IDIOM_HEADING="## Testing idiom"
 
-probe_idiom_records_the_sigpipe_rule() {
-  local idiom_records
+idiom_records_carry() {
+  local unread="$1" problem="$2" idiom_records
+  shift 2
   idiom_records="$(section_records "$IDIOM_HEADING")"
 
   no_records "$idiom_records" \
-    "$claude_md has no '$IDIOM_HEADING' section to read, so nothing states the pipefail/SIGPIPE rule where the agent writing a suite would find it" && return
+    "$claude_md has no '$IDIOM_HEADING' section to read, so $unread" && return
 
-  records_carry "$idiom_records" \
+  records_carry "$idiom_records" "$problem" "$@"
+}
+
+probe_idiom_records_the_sigpipe_rule() {
+  idiom_records_carry \
+    "nothing states the pipefail/SIGPIPE rule where the agent writing a suite would find it" \
     "$claude_md has no single record in its '$IDIOM_HEADING' section stating that a suite declaring pipefail never ends a pipeline in grep -q or head, that the status asserted on is then the writer's SIGPIPE, which case says so (no-sigpipe-pipelines), and what the repair is" \
     'pipefail' \
     'grep -[a-z]*q' \
@@ -181,13 +187,8 @@ run_case "$claude_md's testing idiom section states the pipefail/SIGPIPE rule" \
   probe_idiom_records_the_sigpipe_rule
 
 probe_idiom_records_the_retired_own_counters_rule() {
-  local idiom_records
-  idiom_records="$(section_records "$IDIOM_HEADING")"
-
-  no_records "$idiom_records" \
-    "$claude_md has no '$IDIOM_HEADING' section to read, so nothing says the -recorded suites' own-counters rule was retired" && return
-
-  records_carry "$idiom_records" \
+  idiom_records_carry \
+    "nothing says the -recorded suites' own-counters rule was retired" \
     "$claude_md has no single record in its '$IDIOM_HEADING' section stating that the rule the four -recorded suites keep their own counters (#225) was retired by #496, naming record-helpers.sh and lib/harness.sh" \
     '-recorded' \
     'own counters' \
