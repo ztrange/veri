@@ -89,6 +89,9 @@
 #  32. SKILL.md's Draft PR step calls `wait-ci.sh` with no fixed total-seconds, and its prose
 #      states the bound's rule — twice the mean of the last 5 completed CI runs, capped at 10
 #      minutes, 540 s fallback — rather than a number standing for it.
+#  33. SKILL.md's Draft PR step answers a red full run with an `add-ledger-step.sh` command
+#      appending a repair step marked `⟦suite-repair⟧` that names the failing suite and its
+#      `FAIL -` line, then a `git add` and `git commit` of the ledger.
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -861,6 +864,26 @@ if step_or_problem '### 4. Draft PR' "how the step bounds its CI wait"; then
   rule="$(first_record "$plain" -F 'wait-ci.sh' -E '(twice|2 ?[x×]) the mean' -E '(last|most recent) (5|five)' -E '(10 minutes|600 s)' -F '540')"
   [[ -n "$rule" ]] ||
     problems+=("no instruction of $skill_md's Draft PR step states wait-ci.sh's bound as twice the mean of the last 5 completed CI runs, capped at 10 minutes, falling back to 540 s")
+fi
+report "$name"
+
+name="$skill_md's Draft PR step appends a ⟦suite-repair⟧ repair step naming the failing suite and its FAIL - line on a red full run, and commits the ledger (#590)"
+problems=()
+suite_repair_mark='⟦suite-repair⟧'
+
+if step_or_problem '### 4. Draft PR' "how the step appends a full-suite repair step"; then
+  commands="$(section_commands)"
+  appended="$(awk -v mark="$suite_repair_mark" '/^[^#]*[$]s\/add-ledger-step[.]sh [.]tdd\/issue-<n>[.]md / && index($0, mark) { print NR "\t" $0; exit }' <<< "$commands")"
+  if [[ -z "$appended" ]]; then
+    problems+=("no command line of $skill_md's Draft PR step appends a full-suite repair step carrying $suite_repair_mark through add-ledger-step.sh")
+  else
+    at="${appended%%$'\t'*}"
+    appended="${appended#*$'\t'}"
+    grep -F '<suite>' > /dev/null <<< "$appended" && grep -F 'fail -' > /dev/null <<< "$appended" ||
+      problems+=("$skill_md's Draft PR step appends its $suite_repair_mark step without naming the failing suite and its FAIL - line: $(printf '%.160s' "$appended")")
+    awk -v from="$at" 'NR > from && /^git add [.]tdd\/issue-<n>[.]md/ { added = 1 } NR > from && /^git commit / { found = added; exit } END { exit !found }' <<< "$commands" ||
+      problems+=("no command line of $skill_md's Draft PR step adds and commits the ledger after appending the $suite_repair_mark step")
+  fi
 fi
 report "$name"
 
