@@ -53,6 +53,7 @@ fi
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/exit-contract.sh"
+source "$HERE/lib/session-env.sh"
 USAGE="usage: run-conductor.sh <issue>"
 
 require_args 1 "$@"
@@ -106,15 +107,7 @@ Pinned skill commit (name it in the plan comment): $pinned
 }
 Solve issue #$issue by the procedure above."
 
-unset CLAUDECODE \
-      CLAUDE_CODE_SESSION_ID \
-      CLAUDE_CODE_HOST_SESSION_ID \
-      CLAUDE_CODE_MESSAGING_SOCKET \
-      CLAUDE_CODE_MESSAGING_TOKEN \
-      CLAUDE_PID \
-      CLAUDE_CODE_CHILD_SESSION \
-      CLAUDE_CODE_ENTRYPOINT \
-      VERI_NEW_SKILL
+unset "${SESSION_VARS[@]}" VERI_NEW_SKILL
 
 code=0
 printf '%s\n' "$prompt" | "${CLAUDE_BIN:-claude}" -p \
