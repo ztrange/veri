@@ -31,7 +31,7 @@ cd "$(git rev-parse --show-toplevel)"
 # hazard: git refuses an existing empty file as "index file smaller than expected", so the index is a path git creates.
 scratch="$(mktemp -d)"
 index="$scratch/index"
-trap 'rm -rf "$scratch"' EXIT
+at_exit 'rm -rf "$scratch"'
 
 GIT_INDEX_FILE="$index" git add -A
 tree="$(GIT_INDEX_FILE="$index" git write-tree)"
