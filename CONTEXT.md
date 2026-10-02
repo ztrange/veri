@@ -263,9 +263,12 @@ another language unchanged, and proves the port. ADR-0027.
 _Avoid_: integration test (unqualified)
 
 **Implementation case**:
-A bash test case that sources a script or a `lib/` file, or stubs a function inside one,
-so it is bound to the bash implementation and cannot survive a port. ADR-0027 replaces each
-with a pytest case asserting the same behaviour, in its own commit before the port.
+A bash test case, in any suite, that sources a script or a `lib/` file it uses, stubs a
+function inside one, or asserts on the script's source text or on which bash library it
+sources — so it is bound to that script's bash implementation and cannot survive its port.
+It is defined by what it asserts about, not by the suite it lives in. ADR-0027 replaces each
+with a pytest case asserting the same behaviour, in its own commit before the port, planned
+as a **replaces-case step**.
 _Avoid_: unit test (unqualified)
 
 **Replaces-case step**:
