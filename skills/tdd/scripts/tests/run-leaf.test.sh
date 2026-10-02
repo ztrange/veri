@@ -67,4 +67,19 @@ PATH="$failing_cp:$PATH" HOME="$home" run "$work/prompt.txt" ok 0 >/dev/null 2>&
 [[ "$code" == 2 ]] \
   && ok || no "ends with exit 2 when it fails inside its own EXIT trap's lifetime (code=$code)"
 
+session_vars=(CLAUDECODE CLAUDE_CODE_SESSION_ID CLAUDE_CODE_HOST_SESSION_ID
+  CLAUDE_CODE_MESSAGING_SOCKET CLAUDE_CODE_MESSAGING_TOKEN CLAUDE_PID
+  CLAUDE_CODE_CHILD_SESSION CLAUDE_CODE_ENTRYPOINT)
+envstub="$(scratch_dir)"
+claude_stub "$envstub" 'env > "$ENV_OUT"'
+session_env=()
+for v in "${session_vars[@]}"; do session_env+=("$v=from-the-conductor"); done
+( cd "$work" && env "${session_env[@]}" CLAUDE_BIN="$envstub/claude" \
+    ENV_OUT="$work/env" "$LEAF" "$work/prompt.txt" ) >/dev/null 2>&1
+problems=()
+for v in "${session_vars[@]}"; do
+  grep -E "^$v=" "$work/env" > /dev/null && problems+=("$v reached the leaf's claude")
+done
+report "starts claude without the conductor session's variables (#621)"
+
 finish
