@@ -2,7 +2,7 @@
 
 - [x] after `lib/harness.sh` is sourced, a `scratch_dir` and an `on_exit` are registered, and `lib/harness.sh` is sourced again, exiting the shell removes that scratch directory, runs that `on_exit` command exactly once and leaves no scratch list file behind — a case in `unit/harness.test.sh` plants this double source ⟦criterion 5⟧
 - [x] sourcing `lib/harness.sh` a second time keeps the `pass`/`fail` counts already reached ⟦criterion 6⟧
-- [ ] `unit/no-report-copies.test.sh` admits a counter-initialisation hit only through an exemption entry that names the file, matches the line by its text rather than its number, and carries a reason; a hit no entry matches is still flagged, naming the file and line ⟦criterion 8⟧
+- [x] `unit/no-report-copies.test.sh` admits a counter-initialisation hit only through an exemption entry that names the file, matches the line by its text rather than its number, and carries a reason; a hit no entry matches is still flagged, naming the file and line ⟦criterion 8⟧ ⟂ refactor pending
 - [ ] `unit/no-report-copies.test.sh` goes red, naming the file and line, on a planted suite line `pass=0; fail=0` and on one `pass="${pass:-0}"`, still goes red on `pass=0 fail=0`, and stays green on the tree ⟦criterion 7⟧
 - [ ] `model-knobs-recorded.test.sh` carries no line the counter-initialisation audit flags (the `:106` and `:140` resets are gone) and no exemption entry names it, with its probes still passing ⟦criterion 8⟧
 - [ ] the widened audit still flags neither `lib/harness.sh` nor `unit/harness.test.sh` ⟦criterion 9⟧

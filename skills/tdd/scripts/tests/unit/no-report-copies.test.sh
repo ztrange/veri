@@ -14,6 +14,22 @@ TESTS="$(cd "$HERE/.." && pwd)"
 export LC_ALL=C
 source "$TESTS/lib/harness.sh"
 
+counter_hits() {
+  local hits hit file rest lineno text
+  hits="$(cd "$1" && shopt -s nullglob && grep -nE '^[[:space:]]*pass=0[[:space:]]+fail=0' \
+    ./*.sh ./unit/*.sh | grep -v '^\./unit/harness\.test\.sh:')"
+  while IFS= read -r hit; do
+    [[ -n "$hit" ]] || continue
+    file="${hit%%:*}"
+    file="${file#./}"
+    rest="${hit#*:}"
+    lineno="${rest%%:*}"
+    text="${rest#*:}"
+    [[ -n "${COUNTER_EXEMPT["$file:$text"]-}" ]] && continue
+    printf '    %s:%s carries its own harness scaffolding\n' "$file" "$lineno"
+  done <<< "$hits"
+}
+
 name="no suite defines its own report, and lib/harness.sh defines it"
 problems=""
 copies="$(cd "$TESTS" && grep -nE '^[[:space:]]*(function[[:space:]]+)?report[[:space:]]*\(\)' \
@@ -53,6 +69,32 @@ else
   no "$name"
   printf '%s' "$problems"
 fi
+
+name="#595: a counter-initialisation hit is admitted only by an entry naming its file, matching its text and carrying a reason"
+plant="$(scratch_dir)"
+printf '%s\n' '#!/usr/bin/env bash' 'x=1' 'pass=0 fail=0' 'x=2' 'pass=0 fail=0  # probe' > "$plant/a.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'pass=0 fail=0' > "$plant/b.test.sh"
+printf '%s\n' 'pass=0 fail=0' > "$plant/c.test.sh"
+printf '%s\n' 'pass=0 fail=0' > "$plant/d.test.sh"
+mkdir -p "$plant/unit"
+printf '%s\n' 'pass=0 fail=0' > "$plant/unit/harness.test.sh"
+got="$(
+  declare -A COUNTER_EXEMPT=(
+    ["a.test.sh:pass=0 fail=0"]="a planted suite's own counters"
+    ["c.test.sh:pass=0 fail=0"]=""
+    ["d.test.sh:1"]="keyed by number, not text"
+  )
+  counter_hits "$plant" 2>&1
+)"
+expect_eq "$name" \
+  "$(printf '    %s carries its own harness scaffolding\n' a.test.sh:5 b.test.sh:2 c.test.sh:1 d.test.sh:1)" \
+  "$got"
+
+name="#595: a tree with no counter-initialisation hit is reported clean"
+plant="$(scratch_dir)"
+printf '%s\n' '#!/usr/bin/env bash' 'x=1' > "$plant/a.test.sh"
+got="$(declare -A COUNTER_EXEMPT=(); counter_hits "$plant" 2>&1)"
+expect_eq "$name" "" "$got"
 
 name="no suite builds its own scratch directory, exit trap or tmp git repository"
 problems=""
