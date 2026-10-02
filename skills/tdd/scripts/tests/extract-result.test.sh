@@ -41,6 +41,15 @@ check "last result wins" \
 {"type":"result","result":"second"}' \
 'second'
 
+name="#624 a developer report beats a later turn with no report line"
+out="$(printf '%s' '{"type":"result","result":"Done.\nIMPL_PATH: a.sh\nSUITE: GREEN — 19 passed, 0 failed"}
+{"type":"result","result":"That is the second monitor expiring."}' | "$EXTRACT")"
+rc=$?
+expect_eq "$name (exit)" 0 "$rc"
+expect_eq "$name" 'Done.
+IMPL_PATH: a.sh
+SUITE: GREEN — 19 passed, 0 failed' "$out"
+
 check "passthrough non-stream" \
 'VERDICT: PASS
 REASON: plain text, no stream-json here.' \
