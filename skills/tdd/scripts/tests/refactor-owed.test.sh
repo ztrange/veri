@@ -18,27 +18,29 @@ line_of() {
   head -1 < <(grep -nF "$2" "$1") | cut -d: -f1
 }
 
+answers_none_on() {
+  local verb="$1" owed_file="$2" what="$3" why="$4" out code printed
+  out="$(mktemp)"
+  "$OWED" "$verb" "$owed_file" >"$out" 2>/dev/null && code=0 || code=$?
+
+  [[ "$code" == 3 ]] ||
+    problems+=("want exit 3 from $verb on $what, got $code")
+
+  printed="$(cat "$out")"
+  [[ -z "$printed" ]] ||
+    problems+=("$verb printed '$printed' on stdout for $what$why")
+
+  rm -f "$out"
+}
+
 answers_none() {
-  local verb="$1" why="$2" missing_file empty_file owed_file what out code printed
+  local verb="$1" why="$2" missing_file empty_file
   missing_file="$(mktemp)"
   rm -f "$missing_file"
   empty_file="$(mktemp)"
 
-  for owed_file in "$missing_file" "$empty_file"; do
-    [[ "$owed_file" == "$missing_file" ]] && what="an absent file" || what="a file holding no candidate"
-
-    out="$(mktemp)"
-    "$OWED" "$verb" "$owed_file" >"$out" 2>/dev/null && code=0 || code=$?
-
-    [[ "$code" == 3 ]] ||
-      problems+=("want exit 3 from $verb on $what, got $code")
-
-    printed="$(cat "$out")"
-    [[ -z "$printed" ]] ||
-      problems+=("$verb printed '$printed' on stdout for $what$why")
-
-    rm -f "$out"
-  done
+  answers_none_on "$verb" "$missing_file" "an absent file" "$why"
+  answers_none_on "$verb" "$empty_file" "a file holding no candidate" "$why"
 
   rm -f "$empty_file"
 }
@@ -271,17 +273,9 @@ FLAGS: none
 CANDIDATES: test-only | fold the three answers_none fixtures into one helper
 REPORT
 
-listed="$(mktemp)"
-"$OWED" list "$owed_file" >"$listed" 2>/dev/null && code=0 || code=$?
+answers_none_on list "$owed_file" "a file holding only test-only candidates" "; want nothing"
 
-[[ "$code" == 3 ]] ||
-  problems+=("want exit 3 from list on a file holding only test-only candidates, got $code")
-
-printed="$(cat "$listed")"
-[[ -z "$printed" ]] ||
-  problems+=("list printed '$printed' on stdout for a file holding only test-only candidates; want nothing")
-
-rm -f "$owed_file" "$listed"
+rm -f "$owed_file"
 report "$name"
 
 
