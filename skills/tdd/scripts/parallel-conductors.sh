@@ -118,7 +118,7 @@ follow_log() {
   done
 }
 
-print_context() {
+watch_context() {
   local line read_re='"cache_read_input_tokens":([0-9]+)' create_re='"cache_creation_input_tokens":([0-9]+)'
   local cache_read context=0 step_done=0
   while IFS= read -r line; do
@@ -165,7 +165,7 @@ launch() {
       "$HERE/supervise.sh" "conductor-$n" env "${caller_env[@]}" "$HERE/run-conductor.sh" "$n" \
       > /dev/null &
     sup=$!
-    follow_log "$sup" ".tdd/conductor-$n.log" | print_context "$n" "$sup"
+    follow_log "$sup" ".tdd/conductor-$n.log" | watch_context "$n" "$sup"
     wait "$sup" || echo "$?" > "$rc_dir/$n"
   ) &
   in_flight[$n]=$!
