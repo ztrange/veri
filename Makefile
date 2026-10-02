@@ -14,6 +14,7 @@ TESTS := $(sort $(wildcard skills/tdd/scripts/tests/*.test.sh))
 UNIT_TESTS := $(sort $(wildcard skills/tdd/scripts/tests/unit/*.test.sh))
 test profile: SUITES = $(TESTS) $(if $(filter command line,$(origin TESTS)),,$(UNIT_TESTS))
 unit: SUITES = $(UNIT_TESTS)
+PY_TESTS := $(sort $(wildcard skills/tdd/scripts/tests/py/test_*.py))
 
 # The fast tier's admission-bar guard: `unit` alone puts UNIT_GUARD_BIN first on a suite's PATH,
 # where git and python3 refuse, naming themselves; gh and curl fall through to OFFLINE_BIN's shims,
@@ -142,6 +143,7 @@ test unit:
 	@$(BASH_GUARD)
 	@fail=0; suite_out="$$(mktemp)"; suite_status="$$(mktemp)"; reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
 	trap 'rm -f "$$suite_out" "$$suite_status" "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
+	py_bin="$$(command -v python3)"; \
 	$(OFFLINE_GIT); \
 	for t in $(SUITES); do \
 	  suite_name="$$(basename "$$t")"; \
@@ -159,6 +161,10 @@ test unit:
 	    printf '%s: tried the network: %s\n' "$$suite_name" "$$reached"; fail=1; \
 	  done < "$$reach_log"; \
 	done; \
+	if [ -n "$(PY_TESTS)" ]; then \
+	  printf '== pytest\n'; \
+	  $(OFFLINE_ENV) "$$py_bin" -m pytest $(PY_TESTS) < /dev/null || fail=1; \
+	fi; \
 	echo "----"; \
 	if [ $$fail -eq 0 ]; then echo "all suites green"; else echo "SUITES FAILED"; exit 1; fi
 
