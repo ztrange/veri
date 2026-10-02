@@ -78,6 +78,7 @@ outcome() {
     echo "killed after ${run_timeout}s"
     return 0
   fi
+  [[ ! -e ".tdd/parked/$n.md" ]] || return 0
   pr="$(PYTHONPATH="$HERE/lib" python3 -c '
 import re, sys
 from json_documents import items

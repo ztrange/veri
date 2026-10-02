@@ -383,6 +383,37 @@ run_launcher_in "$park_repo" "$gh_park" "$park_stub" "$work/park.out"
 expect_lines "a conductor that halts writing .tdd/parked/<n>.md prints 'parked <n>', its slot takes the next solvable issue even without --continue-on-bail and with its draft PR's log ending in a bail, and <n> is not launched again while still solvable" \
   "$(printf 'parked 7\n7\n8')" "$(grep '^parked ' "$work/park.out"; cat "$park_launches")" "$work/park.out"
 
+bad=""
+for mode in stop continue; do
+  repo="$work/park-$mode"
+  fresh_repo "$repo"
+  gh_pm="$work/gh-park-$mode"
+  solvable_fixture "$gh_pm" 7 8
+  pm_launches="$work/park-$mode.launches"
+  : > "$pm_launches"
+  conductor_stub "$work/claude-park-$mode" <<STUB
+echo "\$n" >> "$pm_launches"
+if [ "\$n" = 7 ]; then
+  mkdir -p .tdd/parked
+  echo 'Which test command should this run use?' > .tdd/parked/7.md
+$(bailed_pr "$gh_pm")
+  exit 0
+fi
+$(ready_pr "$gh_pm")
+STUB
+  flag=()
+  [[ "$mode" == continue ]] && flag=(-- --continue-on-bail)
+  run_launcher_in "$repo" "$gh_pm" "$work/claude-park-$mode" "$work/park-$mode.out" "${flag[@]+"${flag[@]}"}"
+  got_launches="$(tr '\n' ',' < "$pm_launches")"
+  as_bail="$(grep -E '^#7 — bailed|^stopped: #7' "$work/park-$mode.out" | tr '\n' '|')"
+  if [[ "$got_launches" != "7,8," || -n "$as_bail" ]]; then
+    bad+=" [$mode: exit=$code, launches '$got_launches' want '7,8,', #7 reported as a bail: '$as_bail' want none; output: $(tr '\n' '|' < "$work/park-$mode.out")]"
+  fi
+done
+
+[[ -z "$bad" ]] \
+  && ok || no "a parked conductor does not stop new launches, with or without --continue-on-bail, and is never reported as a bail even when its draft PR's log ends in one ($bad )"
+
 gh4="$work/gh4"
 gh_fixture "$gh4" <<'JSON'
 [
