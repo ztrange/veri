@@ -135,3 +135,32 @@ def test_main_prints_no_runs_and_returns_3_when_the_main_working_tree_holds_none
     code = status.main([])
 
     assert (code, capsys.readouterr().out) == (3, "no runs\n")
+
+
+def test_main_shows_a_runs_phase_actor_leaf_elapsed_seconds_and_attempts_in_the_step(tmp_path, monkeypatch, capsys, status):
+    run = tmp_path / ".tdd" / "wt" / "8"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "issue-8.md").write_text("# Plan for #8 — gears turn\n\n- [x] a gear exists\n- [ ] a gear turns\n")
+
+    def ev(ts, actor, phase, step, event, attempt, name=None):
+        return {"ts": ts, "issue": "8", "actor": actor, "phase": phase, "step": step, "event": event,
+                "attempt": attempt, "skill_commit": "abc", **({"name": name} if name else {})}
+
+    write_events(run / ".tdd" / "events.jsonl", [
+        ev(9100, "conductor", "", "a gear exists", "step-start", ""),
+        ev(9110, "developer", "red", "a gear exists", "launch", "1", "develop-red"),
+        ev(9200, "developer", "green", "a gear exists", "launch", "1", "develop-green"),
+        ev(9300, "verifier", "green", "a gear exists", "launch", "1", "verify-green"),
+        ev(9400, "conductor", "", "a gear exists", "step-done", ""),
+        ev(9500, "conductor", "", "a gear turns", "step-start", ""),
+        ev(9600, "developer", "green", "a gear turns", "launch", "1", "develop-green"),
+        ev(9900, "developer", "green", "a gear turns", "launch", "2", "develop-green"),
+    ])
+    fake_git(monkeypatch, tmp_path, {str(run): "tdd/8-gears-turn"})
+    monkeypatch.delenv("VERI_TIMEOUT", raising=False)
+    monkeypatch.setattr(time, "time", lambda: 10000)
+
+    code = status.main([])
+
+    assert (code, capsys.readouterr().out) == (0, "#8  gears turn  tdd/8-gears-turn  step 2 of 2  green  developer  "
+                                                  "develop-green 100s  attempt 2  $0.00  0 tokens  running\n")
