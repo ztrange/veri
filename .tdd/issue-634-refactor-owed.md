@@ -4,3 +4,5 @@
 - the exit-2 case in count-line-guard.test.sh (`real_python3=…` at ~:774–775) repeats run-suite.sh's interpreter lookup: `$VERI_VENV/bin/python3`, falling back to the `python3` on PATH. Sharing it would mean a helper in `scripts/lib/`, which is an extraction across files, so it is out of scope for this phase.
 ### affected-suites.sh, given a touched veri/<module>.py, prints tests/py/test_<module>.py when it exists and the bash suite of the entry point over that module (underscore in the module name read as a hyphen in the script's), without the widening notice ⟦criterion 6⟧
 - expect_suites and expect_suites_unwidened in tests/affected-suites.test.sh are near-identical; expect_suites could capture stderr and take an optional no-widening check, but that would make existing cases stricter, so it was left alone
+### affected-suites.sh, given a touched tests/py/test_<module>.py, prints that file without the widening notice ⟦criterion 6⟧
+- the veri-module case (affected-suites.test.sh, around line 481, written in an earlier cycle of #634) still hand-writes the bar.sh/bar.test.sh decoy that foo_bar_tree already builds
