@@ -40,3 +40,6 @@
 ### tests/status.test.sh keeps only the ADR 0027 survivors and the floor — one case per exit code status.sh uses, its bad-argument stderr text, the symlink case — the rest replaced by tests/py/test_status.py ⟦criterion 4⟧
 - delete the dead `counted="$(repo counted)"` left over from the cut cases at skills/tdd/scripts/tests/status.test.sh:128
 - the earlier veri.status.main cases (test_status.py:108-170) make their run directories by hand where lamp_run could
+### tests/status.test.sh holds a floor case for exit 2 — status.sh run through its entry point on a failure veri/status.py turns into exit 2 — and one pinning its bad-argument stderr text, and STATUS_SUITE_FLOOR names both ⟦added⟧ ⟦criterion 4⟧
+- delete the dead `counted="$(repo counted)"` line in tests/status.test.sh (left from an earlier step's cuts, not this cycle's code)
+- test_status.py's floor-holds test restates two STATUS_SUITE_FLOOR names as literals and repeats the suite-presence check the survivors test already makes
