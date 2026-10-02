@@ -43,3 +43,5 @@
 ### tests/status.test.sh holds a floor case for exit 2 — status.sh run through its entry point on a failure veri/status.py turns into exit 2 — and one pinning its bad-argument stderr text, and STATUS_SUITE_FLOOR names both ⟦added⟧ ⟦criterion 4⟧
 - delete the dead `counted="$(repo counted)"` line in tests/status.test.sh (left from an earlier step's cuts, not this cycle's code)
 - test_status.py's floor-holds test restates two STATUS_SUITE_FLOOR names as literals and repeats the suite-presence check the survivors test already makes
+### a guard suite fails, naming <script>:<line>, when a script whose module exists under veri/ holds Python source (a python3 -c string or a heredoc fed to python3), proven red against a planted offender ⟦criterion 5⟧
+- move the flat() helper, copied in 28 suites including no-python-in-ported-scripts.test.sh and ported-python-guard.test.sh, into tests/lib/harness.sh
