@@ -10,7 +10,7 @@ import subprocess
 import sys
 import urllib.parse
 
-from lib.event_log import read_events
+from veri.event_log import read_events
 
 status_sh = sys.argv[3]
 metrics_sh = sys.argv[4]

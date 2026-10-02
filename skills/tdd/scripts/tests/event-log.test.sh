@@ -96,4 +96,38 @@ done
 
 report "run_activity and scope_totals read the event log through lib/event_log.py's one parse and one dollar/token sum, with status.sh's text and --json figures unchanged over a log with blank lines and usage events"
 
+problems=()
+[[ ! -e "$SCRIPTS/lib/event_log.py" ]] || problems+=("scripts/lib/event_log.py still exists")
+pkg="$work/pkg"
+mkdir -p "$pkg/lib" "$pkg/veri"
+cp "$SCRIPTS/status.sh" "$SCRIPTS/solvable-issues.sh" "$SCRIPTS/tier-usual.sh" "$SCRIPTS/metrics.sh" \
+  "$SCRIPTS/ledger-steps.sh" "$pkg/"
+cp "$SCRIPTS"/lib/*.sh "$pkg/lib/"
+cat > "$pkg/veri/event_log.py" <<'PY'
+def read_events(path):
+    return [{"ts": 1000, "event": "launch", "step": "decoy step", "phase": "red",
+             "actor": "developer", "name": "decoy-leaf"},
+            {"ts": 1077, "event": "usage"},
+            {"ts": 1078, "event": "test-run", "tier": "decoy-tier", "seconds": "42"}]
+
+
+def usage_totals(events):
+    return 3.0, 1234
+PY
+status "$pkg/status.sh"
+for want in "decoy-leaf" '$3.00' "1234 tokens"; do
+  [[ "$run_line" == *"$want"* ]] \
+    || problems+=("status.sh beside a stand-in veri/event_log.py: run line lacks '$want': '$run_line' (exit $code)")
+done
+usual="$(cd "$run" && "$pkg/tier-usual.sh" decoy-tier 2>&1)" && code=0 || code=$?
+[[ "$usual" == "42.0" ]] \
+  || problems+=("tier-usual.sh beside a stand-in veri/event_log.py: printed '$usual' (exit $code), want '42.0'")
+metrics="$(cd "$run" && "$pkg/metrics.sh" 9 2>&1)" && code=0 || code=$?
+for want in "| decoy step |" "| decoy-tier | 42 |"; do
+  [[ "$metrics" == *"$want"* ]] \
+    || problems+=("metrics.sh beside a stand-in veri/event_log.py: report lacks '$want' (exit $code): $(printf '%s' "$metrics" | tail -n 1)")
+done
+
+report "event_log is a module of scripts/veri/, not scripts/lib/: status.sh, tier-usual.sh and metrics.sh read the event log through veri/event_log.py"
+
 finish

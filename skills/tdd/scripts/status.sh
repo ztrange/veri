@@ -12,6 +12,7 @@
 set -euo pipefail
 
 lib="$(dirname "$0")/lib"
+veri="$(dirname "$0")/veri"
 source "$lib/exit-contract.sh"
 source "$lib/main-working-tree.sh"
 [[ ! -f "$lib/ledger.sh" ]] || source "$lib/ledger.sh"
@@ -27,7 +28,7 @@ step_of_total() {  # step_of_total <ledger> -> "<n> of <m>"
 }
 
 run_activity() {  # run_activity <events.jsonl> <conductor.pid> <timeout> -> "<phase>  <actor>  <leaf> <n>s  attempt <k>  $<d>  <t> tokens  <state>"
-  PYTHONPATH="$lib" python3 - "$1" "$2" "$3" <<'PY'
+  PYTHONPATH="$veri:$lib" python3 - "$1" "$2" "$3" <<'PY'
 import json, os, sys, time
 from event_log import read_events, usage_totals
 last, attempts = None, 0
@@ -86,7 +87,7 @@ PY
 }
 
 scope_totals() {  # scope_totals <name> <solvable> <events.jsonl>... -> "scope <name>  attempted <a>  done <d>  bailed <b>  wall <w>s  $<x>  solvable <s>"
-  PYTHONPATH="$lib" python3 - "$@" <<'PY'
+  PYTHONPATH="$veri:$lib" python3 - "$@" <<'PY'
 import json, os, sys
 from event_log import read_events, usage_totals
 solvable = sys.argv[2]
