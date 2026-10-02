@@ -56,7 +56,13 @@ case "$verb" in
     [[ -s "$file" ]] || exit 3
 
     printf '## Refactor owed\n\n'
-    cat "$file"
+    awk '/^- test-only [|] / { test_only[++k] = substr($0, 15); next }
+         { print }
+         END {
+           if (!k) exit
+           printf "\n### Test-only\n\nThese change only files under tests/; the structural pass does not work them.\n\n"
+           for (i = 1; i <= k; i++) printf "- %s\n", test_only[i]
+         }' "$file"
     ;;
   list)
     [[ -s "$file" ]] || exit 3

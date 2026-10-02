@@ -309,4 +309,92 @@ rm -f "$alone_file" "$both_file"
 report "$name"
 
 
+name="render prints the test-only candidates under a heading of their own inside ## Refactor owed, saying the structural pass does not work them"
+problems=()
+
+owed_file="$(mktemp)"
+"$OWED" append "$owed_file" 'first step' <<'REPORT'
+CANDIDATES: structural | fold verify.sh's two mktemp calls into one helper
+CANDIDATES: test-only | fold the three answers_none fixtures into one helper
+REPORT
+"$OWED" append "$owed_file" 'second step' <<'REPORT'
+CANDIDATES: test-only | rename $owed_file to $ledger in the list cases
+CANDIDATES: structural | hoist the ledger path into one variable
+REPORT
+
+rendered="$(mktemp)"
+"$OWED" render "$owed_file" >"$rendered" 2>/dev/null && code=0 || code=$?
+
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from render, got $code")
+
+section_at="$(line_of "$rendered" '## Refactor owed')"
+heading="$(head -1 < <(grep -nE '^###+ .*[Tt]est-only' "$rendered"))"
+if [[ -z "$section_at" ]]; then
+  problems+=("render printed no '## Refactor owed' heading")
+elif [[ -z "$heading" ]]; then
+  problems+=("render printed no heading of their own for the test-only candidates:" "$(cat "$rendered")")
+else
+  heading_at="${heading%%:*}"
+  heading_text="${heading#*:}"
+  level="${heading_text%%[^#]*}"
+  own_section="$(awk -v from="$heading_at" -v level="${#level}" '
+    NR > from && match($0, /^#+ /) && RLENGTH - 1 <= level { exit }
+    NR >= from' "$rendered")"
+
+  [[ "$heading_at" -gt "$section_at" ]] ||
+    problems+=("the test-only heading on line $heading_at is not inside '## Refactor owed' on line $section_at")
+
+  for transform in \
+    'fold the three answers_none fixtures into one helper' \
+    'rename $owed_file to $ledger in the list cases'
+  do
+    [[ "$own_section" == *"$transform"* ]] ||
+      problems+=("the test-only candidate '$transform' is not under the heading '$heading_text':" "$own_section")
+    times="$(grep -cF -- "$transform" "$rendered" || true)"
+    [[ "$times" == 1 ]] ||
+      problems+=("the test-only candidate '$transform' is printed $times times, want once, under '$heading_text' only:" "$(cat "$rendered")")
+  done
+
+  for transform in \
+    "fold verify.sh's two mktemp calls into one helper" \
+    'hoist the ledger path into one variable'
+  do
+    [[ "$own_section" != *"$transform"* ]] ||
+      problems+=("the structural candidate '$transform' is under the test-only heading '$heading_text'")
+  done
+
+  [[ "$own_section" == *"structural pass"* ]] ||
+    problems+=("nothing under the heading '$heading_text' says the structural pass does not work them:" "$own_section")
+fi
+
+rm -f "$owed_file" "$rendered"
+report "$name"
+
+
+name="render prints a file holding only structural candidates exactly as before, with no test-only heading"
+problems=()
+
+owed_file="$(mktemp)"
+"$OWED" append "$owed_file" 'first step' <<'REPORT'
+CANDIDATES: structural | fold verify.sh's two mktemp calls into one helper
+CANDIDATES: cosmetic | rename $tmp to $prompt_file
+REPORT
+
+want="$(mktemp)"
+{ printf '## Refactor owed\n\n'; cat "$owed_file"; } >"$want"
+
+rendered="$(mktemp)"
+"$OWED" render "$owed_file" >"$rendered" 2>/dev/null && code=0 || code=$?
+
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from render, got $code")
+
+diff "$want" "$rendered" >/dev/null ||
+  problems+=("render printed:" "$(cat "$rendered")" "want:" "$(cat "$want")")
+
+rm -f "$owed_file" "$want" "$rendered"
+report "$name"
+
+
 finish
