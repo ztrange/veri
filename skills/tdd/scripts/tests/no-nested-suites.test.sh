@@ -127,4 +127,7 @@ report "#487: affected-suites.test.sh's mentions of build-develop-prompt.test.sh
 mentions_reported claude-md-counts.test.sh "names gh-fixture.test.sh"
 report "#588: claude-md-counts.test.sh's case name mentioning gh-fixture.test.sh is not read as launching it"
 
+mentions_reported next-unchecked.test.sh claude-md-counts.test.sh
+report "#590: next-unchecked.test.sh's ⟦suite-repair⟧ fixture and expected-step mentions of claude-md-counts.test.sh are not read as launching it"
+
 finish
