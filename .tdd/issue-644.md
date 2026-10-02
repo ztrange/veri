@@ -5,7 +5,7 @@
 - [x] `build-develop-prompt.sh` called with no arguments exits 2 with a usage line on stderr naming it ⟦criterion 2⟧
 - [x] `session-cost.sh` given a nonexistent transcript exits 2 with its own usage text on stderr ⟦criterion 3⟧
 - [x] `session-cost.sh` given an unknown option exits 2 with its own usage text on stderr ⟦criterion 3⟧
-- [ ] `workqueue.sh` with no subcommand exits 2 with its own usage text on stderr ⟦criterion 4⟧
+- [x] `workqueue.sh` with no subcommand exits 2 with its own usage text on stderr ⟦criterion 4⟧
 - [ ] `workqueue.sh` given an empty issue exits 2 with its own usage text on stderr ⟦criterion 4⟧
 - [ ] `workqueue.sh` given an issue named twice exits 2 with its own usage text on stderr ⟦criterion 4⟧
 - [ ] `workqueue.sh` given a park reason holding a tab or a newline exits 2 with its own usage text on stderr ⟦criterion 4⟧

@@ -121,6 +121,18 @@ else
   echo "    .tdd/workqueue: $([[ -e "$repo/.tdd/workqueue" ]] && echo present || echo absent) (want absent)"
 fi
 
+repo="$work/no-subcommand"
+make_repo "$repo"
+(cd "$repo" && "$SCRIPT" > /dev/null 2>"$work/no-subcommand.err") && code=0 || code=$?
+if [[ "$code" -eq 2 ]] &&
+  grep -F 'workqueue.sh: usage: workqueue.sh assign <worker> <issue>...' "$work/no-subcommand.err" > /dev/null &&
+  grep -F 'workqueue.sh show [<worker>]' "$work/no-subcommand.err" > /dev/null; then
+  ok
+else
+  no "workqueue.sh with no subcommand exits 2 with its own usage text on stderr"
+  echo "    exit: $code (want 2), stderr: $(printf '%q' "$(cat "$work/no-subcommand.err")")"
+fi
+
 repo="$work/assign-held"
 make_repo "$repo"
 seed_queue "$repo" 'beta\t4\tqueued\t\ngamma\t9\trunning\t\n'
