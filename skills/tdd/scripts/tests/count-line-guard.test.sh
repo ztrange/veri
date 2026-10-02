@@ -945,4 +945,28 @@ fi
 
 report "$name"
 
+name="make test over a suite that exits 0 without its count line fails, printing the refusal byte-identical to run-suite.sh's for that suite (#617)"
+problems=()
+
+probe_make_and_runner_refuse_alike() {
+  local refused
+  have_runner "so there is no runner's refusal to hold make test's against" || return
+  direct "$RUNNER" "$FIXTURE_PATH"
+  refused="$(tail -n 1 <<< "$direct_out")"
+  [[ "$refused" == "$FIXTURE_NAME$GUARD_MESSAGE" ]] || {
+    problems+=("want the runner's last line to be '$FIXTURE_NAME$GUARD_MESSAGE'; it said: $(flat "$direct_out")")
+    return
+  }
+  recipe "$FIXTURE"
+  [[ "$recipe_code" != 0 ]] ||
+    problems+=("want 'make test' to fail over a suite that exited 0 without its count line; it exited 0 and said: $(flat "$recipe_out")")
+  grep -Fx -- "$refused" <<< "$recipe_out" > /dev/null ||
+    problems+=("want the runner's refusal '$refused' as a whole line of the make test run; it said: $(flat "$recipe_out")")
+}
+
+probe_fixture_dies_quietly
+probe_make_and_runner_refuse_alike
+
+report "$name"
+
 finish
