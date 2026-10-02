@@ -708,6 +708,13 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    it. Write it as one line, `- [ ] <criterion> ⟦human-owed⟧ ⟦criterion k⟧`, marked owed by a
    human.
 
+   A criterion replacing an implementation case under ADR 0027 — a bash case that sources a
+   script or `lib/` file, or stubs a function inside it, rewritten as a pytest case asserting
+   the same behaviour — is planned as one step marked `⟦replaces-case⟧`, naming the suite path
+   and the case's exact name: `- [ ] <criterion>: replaces '<case name>' in <suite path>
+   ⟦replaces-case⟧ ⟦criterion k⟧`. That step's Red is the pytest case failing against the
+   code before the change; its Green deletes the named bash case and nothing else.
+
    A **refactor-kind** run — the spec carries the `## Refactor` section `capture-spec.sh`
    writes for the `refactor` label — changes no behaviour, so it has no failing test to plan
    around. Plan each step as one named refactoring whose criterion is a shell predicate,
