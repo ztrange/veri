@@ -51,6 +51,10 @@ require_whole_number() {
 }
 
 budget="${VERI_CONDUCTOR_CTX_BUDGET:-120000}"
+if [[ ! "$budget" =~ ^[0-9]+$ ]]; then
+  echo "parallel-conductors: VERI_CONDUCTOR_CTX_BUDGET must be a whole number of tokens: '$budget'" >&2
+  finish 2
+fi
 poll="${VERI_POLL:-1}"
 
 parallel="${VERI_PARALLEL-1}"
