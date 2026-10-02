@@ -239,6 +239,10 @@ heartbeats() {
   i=0
   while [ \$i -lt \$1 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
 }
+over_budget_step_done() {
+  echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=7 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
+  await_context 'context 7 150100'
+}
 SH
 }
 
@@ -256,8 +260,7 @@ $(stub_waits "$work/stop.out")
   echo '{"type":"assistant","message":{"role":"assistant","usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":150000,"output_tokens":40}}}'
   await_context 'context 7 150000'
   echo mid-step >> "$stop_marks"
-  echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=7 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
-  await_context 'context 7 150100'
+  over_budget_step_done
   heartbeats 50
   echo before-result >> "$stop_marks"
   echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
@@ -310,8 +313,7 @@ $(stub_waits "$work/beside.out")
 echo "\$n" >> "$beside_launches"
 if [ "\$n" = 7 ] && [ "\$(grep -c '^7$' "$beside_launches")" -eq 1 ]; then
   echo \$\$ > "$beside_marks.7.pid"
-  echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=7 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
-  await_context 'context 7 150100'
+  over_budget_step_done
   echo before-result-7 >> "$beside_marks"
   echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
   heartbeats 200
@@ -340,8 +342,7 @@ conductor_stub "$again_stub" <<STUB
 echo "\$n" >> "$again_launches"
 if [ "\$n" = 7 ] && [ "\$(grep -c '^7$' "$again_launches")" -eq 1 ]; then
 $(stub_waits "$work/again.out")
-  echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=7 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
-  await_context 'context 7 150100'
+  over_budget_step_done
   echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
   sleep 2
   exit 0
