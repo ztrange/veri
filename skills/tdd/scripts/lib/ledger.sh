@@ -39,7 +39,6 @@ _ledger_pending_mark=' ⟂ refactor pending'
 _ledger_added_mark='⟦added⟧'
 _ledger_criterion_tag='⟦criterion '
 
-# Assigns the caller's local `untagged`: <text> less a trailing pending mark, then a trailing criterion tag.
 _ledger_untagged() {
   untagged="${1%"$_ledger_pending_mark"}"
   untagged="${untagged% "$_ledger_criterion_tag"*⟧}"
