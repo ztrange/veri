@@ -104,17 +104,15 @@ while :; do
   read -r mergeable head < <(pr_head) && [[ -n "$head" ]] \
     || { echo "wait-ci.sh: could not read the checks of $pr" >&2; exit 2; }
   state="$(sha_state "$head")" || { echo "wait-ci.sh: could not read the checks of $head" >&2; exit 2; }
-  if [[ -n "$want" && "$head" != "$want" && ! ( "$state" == none && "$mergeable" == False ) ]]; then
-    state=pending
-  fi
-  case "$state" in
-    green) exit 0 ;;
-    red) exit 1 ;;
-  esac
   if [[ "$state" == none && "$mergeable" == False ]]; then
     echo "wait-ci.sh: $pr conflicts with its base branch; no workflow will start until it is rebased" >&2
     exit 2
   fi
+  [[ -n "$want" && "$head" != "$want" ]] && state=pending
+  case "$state" in
+    green) exit 0 ;;
+    red) exit 1 ;;
+  esac
   now="$(date +%s)"
   if [[ -z "$deadline" ]]; then
     slice_end=$(( now + max ))
