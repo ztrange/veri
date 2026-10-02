@@ -71,7 +71,7 @@ pr_head() {
   gh api "repos/$repo/pulls/${pr##*/pull/}" | python3 -c '
 import json, sys
 pull = json.load(sys.stdin)
-print(pull.get("mergeable"), pull["head"]["sha"] or "")
+print({True: "mergeable", False: "conflicting"}.get(pull.get("mergeable"), "unknown"), pull["head"]["sha"] or "")
 '
 }
 
@@ -104,7 +104,7 @@ while :; do
   read -r mergeable head < <(pr_head) && [[ -n "$head" ]] \
     || { echo "wait-ci.sh: could not read the checks of $pr" >&2; exit 2; }
   state="$(sha_state "$head")" || { echo "wait-ci.sh: could not read the checks of $head" >&2; exit 2; }
-  if [[ "$state" == none && "$mergeable" == False ]]; then
+  if [[ "$state" == none && "$mergeable" == conflicting ]]; then
     echo "wait-ci.sh: $pr conflicts with its base branch; no workflow will start until it is rebased" >&2
     exit 2
   fi
