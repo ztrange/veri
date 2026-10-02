@@ -97,6 +97,13 @@ report "starts claude without the conductor session's variables (#621)"
 leaf_env_lacks CLAUDE_AUTO_BACKGROUND_TASKS -- CLAUDE_AUTO_BACKGROUND_TASKS=true
 report "starts claude without CLAUDE_AUTO_BACKGROUND_TASKS (#621)"
 
+leaf_env_lacks -- 'VERI_TEST_CMD=make unit'
+grep -Fx 'VERI_TEST_CMD=make unit' "$work/env" > /dev/null 2>&1 \
+  || problems+=("VERI_TEST_CMD did not reach the leaf's claude with the caller's value")
+grep -E '^GIT_CONFIG_GLOBAL=.' "$work/env" > /dev/null 2>&1 \
+  || problems+=("GIT_CONFIG_GLOBAL was not set in the leaf's claude")
+report "still passes VERI_TEST_CMD and GIT_CONFIG_GLOBAL through to claude (#621)"
+
 planted="$(scratch_dir)"
 cp -R "$HERE/../.." "$planted/tdd"
 printf '%s\n' 'SESSION_VARS+=(VERI_PLANTED_621)' >> "$planted/tdd/scripts/lib/session-env.sh"
