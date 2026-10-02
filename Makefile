@@ -178,7 +178,11 @@ test unit:
 	done; \
 	if [ -n "$(PY_TESTS)" ]; then \
 	  printf '== pytest\n'; \
-	  $(OFFLINE_ENV) "$$py_bin" -m pytest $(PY_TESTS) < /dev/null || fail=1; \
+	  : > "$$reach_log"; \
+	  UNIT_GUARD_LOG="$$reach_log" $(OFFLINE_ENV) "$$py_bin" -m pytest $(PY_TESTS) < /dev/null || fail=1; \
+	  while IFS= read -r reached; do \
+	    printf 'pytest: tried to start: %s\n' "$$reached"; fail=1; \
+	  done < "$$reach_log"; \
 	fi; \
 	echo "----"; \
 	if [ $$fail -eq 0 ]; then echo "all suites green"; else echo "SUITES FAILED"; exit 1; fi

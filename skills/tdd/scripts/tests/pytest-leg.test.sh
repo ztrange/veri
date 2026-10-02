@@ -281,4 +281,50 @@ for run in first second; do
 done
 report "$name"
 
+reach="$work/reach"
+make_tree "$reach"
+
+name="under make unit, a pytest case that starts git, gh or curl fails: the recipe exits 1, stdout ends SUITES FAILED and the output names the command it tried"
+problems=()
+for cmd in git gh curl; do
+  cat > "$reach/$PY_DIR/test_leg_probe.py" <<PY
+import subprocess
+
+def test_veri_probe_reaches():
+    subprocess.run(["$cmd", "--version"], capture_output=True)
+PY
+  env -u VERI_VENV HOME="$work/home-empty" PYTHONPATH="$fake_pytest" \
+    make --no-print-directory -C "$reach" unit > "$work/out" 2> "$work/err" < /dev/null &&
+    code=0 || code=$?
+  out="$(cat "$work/out")"
+  err="$(cat "$work/err")"
+  [[ "$code" != 0 ]] || problems+=("make unit, $cmd: want a non-zero exit, got 0: $(flat "$out")")
+  [[ "$err" =~ \[(Makefile:[0-9]+:\ )?unit\]\ Error\ 1 ]] ||
+    problems+=("make unit, $cmd: want make's [unit] Error 1 on stderr, got: $(flat "$err")")
+  [[ "$(tail -n 1 <<< "$out")" == 'SUITES FAILED' ]] ||
+    problems+=("make unit, $cmd: want stdout's last line SUITES FAILED, got: $(tail -n 1 <<< "$out")")
+  [[ "$out$err" =~ (^|[^[:alnum:]_.-])$cmd([^[:alnum:]_.-]|$) ]] ||
+    problems+=("make unit, $cmd: want the output to name $cmd, got: $(flat "$out") $(flat "$err")")
+done
+report "$name"
+
+leak="$work/leak"
+make_tree "$leak"
+cp "$green/$PY_DIR/test_leg_probe.py" "$leak/$PY_DIR/test_leg_probe.py"
+mkdir -p "$leak/skills/tdd/scripts/tests/unit"
+printf '#!/usr/bin/env bash\ncurl --version > /dev/null 2>&1\necho "1 passed, 0 failed"\n' \
+  > "$leak/skills/tdd/scripts/tests/unit/reach.test.sh"
+chmod +x "$leak/skills/tdd/scripts/tests/unit/reach.test.sh"
+
+name="under make unit, a command a bash suite tried is named against that suite only, never against a pytest leg that started nothing"
+problems=()
+env -u VERI_VENV HOME="$work/home-empty" PYTHONPATH="$fake_pytest" \
+  make --no-print-directory -C "$leak" unit > "$work/out" 2> "$work/err" < /dev/null
+out="$(cat "$work/out")"
+[[ "$out" == *'reach.test.sh: tried the network: curl'* ]] ||
+  problems+=("want the bash suite's curl named against reach.test.sh, got: $(flat "$out")")
+[[ "$out" != *'pytest: tried to start'* ]] ||
+  problems+=("want no command named against the pytest leg, got: $(flat "$out")")
+report "$name"
+
 finish
