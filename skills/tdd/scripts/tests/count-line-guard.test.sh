@@ -619,7 +619,11 @@ scratch_suite_run() {
   }
   mkdir -p "$tree/$TESTS_DIR" "$tree/skills/tdd/scripts/lib"
   cp "$MAKEFILE" "$tree/Makefile"
-  cp "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh" "$tree/skills/tdd/scripts/lib/"
+  if [[ $# -lt 3 ]]; then
+    cp "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh" "$tree/skills/tdd/scripts/lib/"
+  elif [[ -n "$3" ]]; then
+    printf '%s\n' "$3" > "$tree/skills/tdd/scripts/lib/count-line-guard.sh"
+  fi
   printf '#!/bin/sh\n%s\nexit 0\n' "$2" > "$tree/$TESTS_DIR/$1"
   chmod +x "$tree/$TESTS_DIR/$1"
   scratch_out="$(make -C "$tree" test 2>&1)" && scratch_code=0 || scratch_code=$?
@@ -779,21 +783,6 @@ problems=()
 GUARD_LIB='skills/tdd/scripts/lib/count-line-guard.sh'
 REWORDED=': stopped before its count line'
 
-guard_lib_run() {
-  local tree
-  tree="$(scratch_dir)" || {
-    problems+=("could not make a scratch tree to hold the suite, so the criterion went unasked")
-    return 1
-  }
-  mkdir -p "$tree/$TESTS_DIR" "$tree/$(dirname "$GUARD_LIB")"
-  cp "$MAKEFILE" "$tree/Makefile"
-  [[ -z "$3" ]] || printf '%s\n' "$3" > "$tree/$GUARD_LIB"
-  printf '#!/bin/sh\n%s\nexit 0\n' "$2" > "$tree/$TESTS_DIR/$1"
-  chmod +x "$tree/$TESTS_DIR/$1"
-  scratch_out="$(make -C "$tree" test 2>&1)" && scratch_code=0 || scratch_code=$?
-  rm -rf "$tree"
-}
-
 reworded_lib=""
 if [[ -f "$ROOT/$GUARD_LIB" ]]; then
   reworded_lib="$(sed "s/${GUARD_MESSAGE#: }/${REWORDED#: }/" "$ROOT/$GUARD_LIB")"
@@ -804,13 +793,13 @@ else
 fi
 
 countless_name='countless-under-lib-guard.test.sh'
-if guard_lib_run "$countless_name" "echo 'a case ran'" "$reworded_lib"; then
+if scratch_suite_run "$countless_name" "echo 'a case ran'" "$reworded_lib"; then
   grep -Fx "$countless_name$REWORDED" <<< "$scratch_out" > /dev/null ||
     problems+=("want the line '$countless_name$REWORDED' once $GUARD_LIB's refusal is reworded; it said: $(flat "$scratch_out")")
 fi
 
 libless_name='green-without-lib-guard.test.sh'
-if guard_lib_run "$libless_name" "echo '1 passed, 0 failed'" ""; then
+if scratch_suite_run "$libless_name" "echo '1 passed, 0 failed'" ""; then
   [[ "$scratch_code" != 0 ]] ||
     problems+=("want 'make test' to fail in a tree without $GUARD_LIB; it exited 0 and said: $(flat "$scratch_out")")
   grep -F "$(basename "$GUARD_LIB")" <<< "$scratch_out" > /dev/null ||
