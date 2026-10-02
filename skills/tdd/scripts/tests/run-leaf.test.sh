@@ -82,6 +82,17 @@ for v in "${session_vars[@]}"; do
 done
 report "starts claude without the conductor session's variables (#621)"
 
+rm -f "$work/env"
+( cd "$work" && env CLAUDE_AUTO_BACKGROUND_TASKS=true CLAUDE_BIN="$envstub/claude" \
+    ENV_OUT="$work/env" "$LEAF" "$work/prompt.txt" ) >/dev/null 2>&1
+problems=()
+if [[ ! -f "$work/env" ]]; then
+  problems+=("the leaf's claude was never started")
+elif grep -E '^CLAUDE_AUTO_BACKGROUND_TASKS=' "$work/env" > /dev/null; then
+  problems+=("CLAUDE_AUTO_BACKGROUND_TASKS reached the leaf's claude")
+fi
+report "starts claude without CLAUDE_AUTO_BACKGROUND_TASKS (#621)"
+
 planted="$(scratch_dir)"
 cp -R "$HERE/../.." "$planted/tdd"
 printf '%s\n' 'SESSION_VARS+=(VERI_PLANTED_621)' >> "$planted/tdd/scripts/lib/session-env.sh"
