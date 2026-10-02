@@ -710,4 +710,20 @@ grep -F '_verify-green-replaces-case.md' "$work/no-replaces-case.err" > /dev/nul
 [[ -z "$problems" ]] \
   && ok || no "the replaces-case paragraph is read for a ⟦replaces-case⟧ green step alone, and an unreadable one is exit 2 with no stdout (${problems#; })"
 
+scripts_dir="$(cd "$HERE/.." && pwd)"
+unmarked_step='tests/zorblat.test.sh: "zorblat frobs a nitz" replaces-case moves to tests/py ⟦added⟧ ⟦criterion 4⟧'
+problems=""
+green_sums_as() {  # <label> <want-cksum> <args...> — records a green prompt whose sum is not <want>
+  local label="$1" want="$2"; shift 2
+  local out code got
+  out="$("$BUILD" "$@" --fast-cmd 'make unit' green "$work/spec.md" "$testpath" test_slugify_lowercases 2>/dev/null)"; code=$?
+  [[ "$code" -eq 0 ]] || { problems="$problems; $label exited $code, want 0"; return; }
+  got="$(printf '%s\n' "${out//"$scripts_dir"/@SCRIPTS@}" | cksum)"
+  [[ "$got" == "$want" ]] || problems="$problems; $label renders as '$got', want '$want'"
+}
+green_sums_as 'green, unmarked --step' '1447155214 6914' --step "$unmarked_step"
+green_sums_as 'green, no --step'       '4188760161 6638'
+[[ -z "$problems" ]] \
+  && ok || no "verify-green for a --step not carrying ⟦replaces-case⟧, or no --step, renders byte-identically to before #671 (${problems#; })"
+
 finish

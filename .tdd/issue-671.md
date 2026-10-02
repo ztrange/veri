@@ -4,7 +4,7 @@
 - [x] for a step whose step text does not carry `⟦replaces-case⟧`, the develop-green prompt `build-develop-prompt.sh green` builds is byte-identical to the one it builds today ⟦criterion 2⟧
 - [x] for a step whose step text carries `⟦replaces-case⟧`, the revise prompt `build-develop-prompt.sh revise green` builds permits deleting the one bash case the step names, and still forbids modifying or deleting any other case, while without the mark it is byte-identical to today's
 - [x] for a `--step` carrying `⟦replaces-case⟧`, the verify-green prompt `build-verify-prompt.sh green` builds tells the verifier to PASS only when the named bash case is gone and a pytest case asserting the same behaviour was added, and to REJECT a deletion or modification of any other case ⟦criterion 3⟧
-- [ ] for a `--step` without `⟦replaces-case⟧`, or no `--step` at all, the verify-green prompt `build-verify-prompt.sh green` builds is byte-identical to the one it builds today ⟦criterion 4⟧
+- [x] for a `--step` without `⟦replaces-case⟧`, or no `--step` at all, the verify-green prompt `build-verify-prompt.sh green` builds is byte-identical to the one it builds today ⟦criterion 4⟧
 - [ ] `build-verify-prompt.sh` takes the same arguments as today, and a green call with an extra positional argument beyond the target test id still exits 2 with nothing on stdout ⟦criterion 5⟧
 - [ ] `ledger-steps.sh` prints an open `⟦replaces-case⟧ ⟦criterion k⟧` step with kind `step`, added `0` and criterion `k`, and `next-unchecked.sh` prints it as the next step like any other ⟦criterion 6⟧
 - [ ] `add-ledger-step.sh` does not count a `⟦replaces-case⟧` step against `VERI_STEP_GROWTH` unless that step is also marked `⟦added⟧` ⟦criterion 6⟧
