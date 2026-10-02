@@ -6,4 +6,4 @@
 - [x] next-unchecked.sh hands over an unchecked ⟦suite-repair⟧ step like any other step, never skipping it the way it skips a ⟦full-suite⟧ line ⟦criterion 4⟧
 - [x] SKILL.md's red-full-run paragraph gives the add-ledger-step.sh command appending a repair step carrying ⟦suite-repair⟧ that names the failing suite and its FAIL - line, and the git commit of the ledger ⟦criterion 5⟧
 - [x] SKILL.md's second-red-full-run bail is keyed on a ⟦suite-repair⟧ line already in the ledger, and still names every suite still red ⟦criterion 6⟧
-- [x] SKILL.md's ci-red bail still greps for ⟦ci-repair⟧ only, and states that a ledger holding a ⟦suite-repair⟧ step and no ⟦ci-repair⟧ step still gets its one CI repair attempt ⟦criterion 7⟧ ⟂ refactor pending
+- [x] SKILL.md's ci-red bail still greps for ⟦ci-repair⟧ only, and states that a ledger holding a ⟦suite-repair⟧ step and no ⟦ci-repair⟧ step still gets its one CI repair attempt ⟦criterion 7⟧
