@@ -137,6 +137,31 @@ else
   sed 's/^/    /' "$led"
 fi
 
+seed_lines '- [x] lowercase the slug ⟦criterion 1⟧' '- [x] an extra edge case ⟦added⟧ ⟦criterion 1⟧'
+VERI_STEP_GROWTH=1 "$ADD" "$led" after 'an extra edge case' \
+  'fix the full-suite failure: x.test.sh ⟦suite-repair⟧'; code1=$?
+want1='# Plan for #42
+
+- [x] lowercase the slug ⟦criterion 1⟧
+- [x] an extra edge case ⟦added⟧ ⟦criterion 1⟧
+- [ ] fix the full-suite failure: x.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧'
+got1="$(cat "$led")"
+seed_lines '- [x] lowercase the slug ⟦criterion 1⟧'
+VERI_STEP_GROWTH=0 "$ADD" "$led" after 'lowercase the slug' \
+  'fix the full-suite failure: y.test.sh ⟦suite-repair⟧'; code0=$?
+want0='# Plan for #42
+
+- [x] lowercase the slug ⟦criterion 1⟧
+- [ ] fix the full-suite failure: y.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧'
+got0="$(cat "$led")"
+if [[ "$code1/$code0" == "0/0" && "$got1" == "$want1" && "$got0" == "$want0" ]]; then
+  ok
+else
+  no "#590: a ⟦suite-repair⟧ step, unmarked ⟦added⟧ and owing nothing, skips a spent VERI_STEP_GROWTH, 0 included (code=$code1/$code0)"
+  diff <(printf '%s\n' "$want1") <(printf '%s\n' "$got1") | sed 's/^/    /'
+  diff <(printf '%s\n' "$want0") <(printf '%s\n' "$got0") | sed 's/^/    /'
+fi
+
 stub="$work/stub"
 stub_script
 cat > "$stub/lib/ledger.sh" <<'EOF'
