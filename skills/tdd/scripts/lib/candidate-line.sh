@@ -9,12 +9,16 @@
 # TEST_ONLY_TRANSFORM.
 #
 # hazard: inside [[ … =~ … ]] a backslashed `|` is undefined in an ERE, so `[|]` matches it.
+candidate_of_class() {
+  [[ "$2" =~ ^CANDIDATES:[[:space:]]*$1[[:space:]]*[|][[:space:]]*(.*)$ ]]
+}
+
 structural_candidate() {
-  [[ "$1" =~ ^CANDIDATES:[[:space:]]*structural[[:space:]]*[|][[:space:]]*(.*)$ ]] || return 1
+  candidate_of_class structural "$1" || return 1
   STRUCTURAL_TRANSFORM="${BASH_REMATCH[1]}"
 }
 
 test_only_candidate() {
-  [[ "$1" =~ ^CANDIDATES:[[:space:]]*test-only[[:space:]]*[|][[:space:]]*(.*)$ ]] || return 1
+  candidate_of_class test-only "$1" || return 1
   TEST_ONLY_TRANSFORM="${BASH_REMATCH[1]}"
 }
