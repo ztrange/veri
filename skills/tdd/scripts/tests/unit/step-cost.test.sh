@@ -167,4 +167,13 @@ run_cost "cost a step — its title ⟦criterion 1⟧"
 expect 0 "0.42"
 verdict "#521: a step title carrying an em dash and ⟦criterion k⟧ is summed to the figure --steps prints for it"
 
+cat > "$work/.tdd/events.jsonl" <<'EOF'
+{"ts": 1, "issue": "620", "actor": "developer", "phase": "red", "step": "prints \"ok\" on success", "event": "usage", "total_cost_usd": "0.30"}
+{"ts": 2, "issue": "620", "actor": "verifier", "phase": "red", "step": "prints \"ok\" on success", "event": "usage", "total_cost_usd": "0.20"}
+{"ts": 3, "issue": "620", "actor": "developer", "phase": "red", "step": "step two", "event": "usage", "total_cost_usd": "1.0"}
+EOF
+run_cost 'prints "ok" on success'
+expect 0 "0.50"
+verdict "#620: a step title carrying a double quote is summed to its usage events, exit 0"
+
 finish

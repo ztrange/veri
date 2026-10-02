@@ -39,7 +39,7 @@ json_escape_string escaped_step "$step"
 # hazard: `awk -v` expands backslash escapes, so the escaped step goes through ENVIRON.
 STEP_COST_STEP="$escaped_step" awk -v all="$all" -v per_step="$per_step" '
   function value(line, key,    rest) {
-    if (!match(line, "\"" key "\": \"[^\"]*\"")) return ""
+    if (!match(line, "\"" key "\": \"([^\"\\\\]|\\\\.)*\"")) return ""
     rest = substr(line, RSTART, RLENGTH)
     sub("^\"" key "\": \"", "", rest)
     sub("\"$", "", rest)
