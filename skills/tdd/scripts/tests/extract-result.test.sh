@@ -70,6 +70,13 @@ check "#624 a SUITE:-only report beats a later turn with no report line" \
 'Tidied.
 SUITE: GREEN — 19 passed, 0 failed'
 
+check "#624 of two records that both carry a report line, the later one wins" \
+'{"type":"result","result":"First.\nIMPL_PATH: a.sh\nSUITE: GREEN — 19 passed, 0 failed"}
+{"type":"result","result":"Second.\nIMPL_PATH: b.sh\nSUITE: GREEN — 20 passed, 0 failed"}' \
+'Second.
+IMPL_PATH: b.sh
+SUITE: GREEN — 20 passed, 0 failed'
+
 check "passthrough non-stream" \
 'VERDICT: PASS
 REASON: plain text, no stream-json here.' \
