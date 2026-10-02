@@ -279,4 +279,34 @@ rm -f "$owed_file"
 report "$name"
 
 
+name="list prints a file's structural candidates exactly as it does with its test-only ones absent"
+problems=()
+
+alone_file="$(mktemp)"
+both_file="$(mktemp)"
+"$OWED" append "$alone_file" 'first step' <<'REPORT'
+CANDIDATES: structural | fold verify.sh's two mktemp calls into one helper
+CANDIDATES: structural | hoist the ledger path into one variable
+REPORT
+"$OWED" append "$alone_file" 'second step' <<'REPORT'
+CANDIDATES: structural | hoist the ledger path into one variable
+REPORT
+"$OWED" append "$both_file" 'first step' <<'REPORT'
+CANDIDATES: test-only | fold the three answers_none fixtures into one helper
+CANDIDATES: structural | fold verify.sh's two mktemp calls into one helper
+CANDIDATES: test-only | rename $owed_file to $ledger in the list cases
+CANDIDATES: structural | hoist the ledger path into one variable
+REPORT
+"$OWED" append "$both_file" 'second step' <<'REPORT'
+CANDIDATES: test-only | fold the three answers_none fixtures into one helper
+CANDIDATES: structural | hoist the ledger path into one variable
+CANDIDATES: test-only | rename $owed_file to $ledger in the list cases
+REPORT
+
+lists_as "$both_file" "want what list prints for the structural candidates alone:" < <("$OWED" list "$alone_file")
+
+rm -f "$alone_file" "$both_file"
+report "$name"
+
+
 finish
