@@ -99,6 +99,12 @@ run_launcher() {
     "$skill/scripts/parallel-conductors.sh" "$@" > "$out" 2>&1 && code=0 || code=$?
 }
 
+run_launcher_in() {
+  local repo="$1"
+  shift
+  (cd "$repo" && run_launcher "$@"; exit "$code") && code=0 || code=$?
+}
+
 expect_lines() {
   [[ "$3" == "$2" ]] \
     && ok || no "$1 (exit=$code)
@@ -373,8 +379,7 @@ fi
 $(ready_pr "$gh_park")
 STUB
 
-(cd "$park_repo" && run_launcher "$gh_park" "$park_stub" "$work/park.out"; echo "$code" > "$work/park.code")
-code="$(cat "$work/park.code")"
+run_launcher_in "$park_repo" "$gh_park" "$park_stub" "$work/park.out"
 expect_lines "a conductor that halts writing .tdd/parked/<n>.md prints 'parked <n>', its slot takes the next solvable issue even without --continue-on-bail and with its draft PR's log ending in a bail, and <n> is not launched again while still solvable" \
   "$(printf 'parked 7\n7\n8')" "$(grep '^parked ' "$work/park.out"; cat "$park_launches")" "$work/park.out"
 
@@ -655,8 +660,7 @@ status_after_launch() {
   local repo="$1" name="$2"
   solvable_fixture "$work/gh-$name" 7
   record_stub "$work/claude-$name" "$work/$name-record" "$work/gh-$name"
-  (cd "$repo" && run_launcher "$work/gh-$name" "$work/claude-$name" "$work/$name.out"; echo "$code" > "$work/$name.code")
-  code="$(cat "$work/$name.code")"
+  run_launcher_in "$repo" "$work/gh-$name" "$work/claude-$name" "$work/$name.out"
   got_status="$(git -C "$repo" status --porcelain 2>&1)"
   [[ -s "$work/$name-record" ]] || got_status+="<conductor never ran>"
 }
@@ -677,9 +681,8 @@ printf '*.scratch' > "$own_exclude/.git/info/exclude"
 for run in 1 2; do
   solvable_fixture "$work/gh16-$run" 7
   record_stub "$work/claude-own-exclude-$run" "$work/own-exclude-record" "$work/gh16-$run"
-  (cd "$own_exclude" && run_launcher "$work/gh16-$run" "$work/claude-own-exclude-$run" "$work/own-exclude-$run.out"; echo "$code" > "$work/own-exclude.code")
+  run_launcher_in "$own_exclude" "$work/gh16-$run" "$work/claude-own-exclude-$run" "$work/own-exclude-$run.out"
 done
-code="$(cat "$work/own-exclude.code")"
 got_exclude="$(cat "$own_exclude/.git/info/exclude")"
 expect_lines "the caller's exclude keeps its last line intact and gains .tdd/* exactly once over two launches" \
   "$(printf '*.scratch\n.tdd/*')" "$got_exclude" "$work/own-exclude-2.out"
@@ -714,8 +717,7 @@ STUB
   esac
   solvable_fixture "$gh18" "${issues[@]+"${issues[@]}"}"
   [[ -e "$stub18" ]] || record_stub "$stub18" "$work/exit-$shape-record" "$gh18"
-  (cd "$repo" && run_launcher "$gh18" "$stub18" "$work/exit-$shape.out" "${vars[@]+"${vars[@]}"}"; echo "$code" > "$work/exit-$shape.code")
-  code="$(cat "$work/exit-$shape.code")"
+  run_launcher_in "$repo" "$gh18" "$stub18" "$work/exit-$shape.out" "${vars[@]+"${vars[@]}"}"
   got_file="$(cat "$repo/.tdd/parallel.exit" 2>/dev/null || echo '<missing>')"
   if [[ "$code" != "$want_exit" || "$got_file" != "$want_exit" ]]; then
     bad+=" [$shape: exit=$code want $want_exit, .tdd/parallel.exit '$got_file' want '$want_exit'; output: $(tr '\n' '|' < "$work/exit-$shape.out")]"
@@ -759,8 +761,7 @@ STUB
                 vars=(VERI_PARALLEL=2)
                 want_report="$(printf '#7 — bailed https://example.test/pull/7\n#8 — bailed https://example.test/pull/8\nstopped: #7 bailed')" ;;
   esac
-  (cd "$repo" && run_launcher "$gh19" "$stub19" "$work/stop-$shape.out" "${vars[@]+"${vars[@]}"}"; echo "$code" > "$work/stop-$shape.code")
-  code="$(cat "$work/stop-$shape.code")"
+  run_launcher_in "$repo" "$gh19" "$stub19" "$work/stop-$shape.out" "${vars[@]+"${vars[@]}"}"
   got_report="$(grep -E '^(#[0-9]+ — |stopped: )' "$work/stop-$shape.out")"
   if [[ "$got_report" != "$want_report" ]]; then
     bad+=" [$shape: exit=$code, report '$(printf '%s' "$got_report" | tr '\n' '|')' want '$(printf '%s' "$want_report" | tr '\n' '|')'; output: $(tr '\n' '|' < "$work/stop-$shape.out")]"
