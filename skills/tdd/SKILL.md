@@ -1494,7 +1494,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    both before the next candidate's leaf is launched. A `REJECT` resets to `<base-sha>` and moves on to the next candidate.
    Once the pass ends — the candidates run out, or the budget is spent — mark it once, with
    the transforms it landed, its budget and why it stopped (`candidates-done` or
-   `budget-spent`):
+   `budget-spent`). `stopped=` takes only `candidates-done`, `budget-spent` or
+   `nothing-structural`, and `budget-spent` is marked only when `refactor-budget.sh --issue`
+   exited 3, i.e. `transforms` equals the budget:
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh structural-pass transforms=<count> budget=<VERI_ISSUE_REFACTOR_BUDGET> stopped=<reason>
    ```

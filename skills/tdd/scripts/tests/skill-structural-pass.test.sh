@@ -215,4 +215,19 @@ fi
 
 report "$name"
 
+name="#596: $skill_md's structural pass says stopped= takes only candidates-done, budget-spent or nothing-structural, and budget-spent is marked only when refactor-budget.sh --issue exited 3, i.e. transforms equals the budget"
+problems=()
+
+if ! missing_pass 'which reasons its mark may carry'; then
+  squeezed="$(tr -s ' ' <<<"$pass_text")"
+  require 'stopped= takes only candidates-done, budget-spent or nothing-structural' "$squeezed" \
+    "$skill_md's structural pass never says stopped= takes only candidates-done, budget-spent or nothing-structural"
+  require 'budget-spent is marked only when refactor-budget.sh --issue exited 3' "$squeezed" \
+    "$skill_md's structural pass never says budget-spent is marked only when refactor-budget.sh --issue exited 3"
+  require 'transforms equals the budget' "$squeezed" \
+    "$skill_md's structural pass never says budget-spent means transforms equals the budget"
+fi
+
+report "$name"
+
 finish
