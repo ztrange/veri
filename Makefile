@@ -181,6 +181,12 @@ test unit:
 	echo "----"; \
 	if [ $$fail -eq 0 ]; then echo "all suites green"; else echo "SUITES FAILED"; exit 1; fi
 
+.PHONY: install-dev
+install-dev:
+	@venv="$${VERI_VENV:-$$HOME/.veri-tools/venv}"; \
+	[ -x "$$venv/bin/python3" ] || python3 -m venv "$$venv"; \
+	"$$venv/bin/python3" -m pip install -r requirements-dev.txt
+
 # `make profile` runs the suites `test` runs, under the same offline environment, through
 # profile.sh: one line per case at or above VERI_PROFILE_THRESHOLD seconds, slowest first
 # (#329). A tool a human runs on demand — not part of `test`, and nothing gates on it.
