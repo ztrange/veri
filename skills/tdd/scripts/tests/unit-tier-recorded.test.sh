@@ -122,4 +122,23 @@ section_name="Testing idiom"
 
 report "$name"
 
+name="$claude_md's '$section_name' section records the shim convention for a ported script and that its tests live in tests/py/test_<module>.py"
+problems=()
+
+if read_section; then
+  says "the shim convention — a ported script's .sh entry point is a /bin/sh shim over its veri/ module, its Bash holding no Python source" \
+    'port' \
+    '\.sh' \
+    '/bin/sh' \
+    'shim' \
+    'veri/' \
+    'module' \
+    'no python source|never (contains|holds) python source|holds no python'
+  says "that a ported script's tests live in tests/py/test_<module>.py" \
+    'port' \
+    'tests/py/test_<module>\.py'
+fi
+
+report "$name"
+
 finish
