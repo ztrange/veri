@@ -553,6 +553,10 @@ elif structural is not None:
         print()
         print("Inconsistent mark: stopped=budget-spent, but transforms=%s is below budget=%s"
               % (structural["transforms"], structural["budget"]))
+    elif structural["stopped"] not in ("candidates-done", "budget-spent", "nothing-structural"):
+        print()
+        print("Inconsistent mark: stopped=%s is not one of candidates-done, budget-spent, nothing-structural"
+              % structural["stopped"])
 tier_section("#### Test-command seconds, by tier", "tier")
 section("#### Total", "run", COST_COLUMNS, totals)
 ' "$issue" "$log" "$ledger" "$ledger_steps"
