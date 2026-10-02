@@ -125,6 +125,8 @@ OFFLINE_ENV = PATH="$(GUARD_PATH)$$git_bin:$(OFFLINE_BIN):$$PATH" OFFLINE_REAL_G
 	HTTP_PROXY=$(OFFLINE_PROXY) HTTPS_PROXY=$(OFFLINE_PROXY) NO_PROXY=127.0.0.1,localhost \
 	LC_ALL=C
 
+VENV_DIR := $${VERI_VENV:-$$HOME/.veri-tools/venv}
+
 # veri needs bash 5 (since 2026-09-18), and the suites run under whatever `bash` is first on
 # PATH — every one starts with `#!/usr/bin/env bash`. Nothing tests veri on bash 3.2 any more,
 # the bash macOS ships in /bin, so a stale PATH must not be left to fail however a bash-4-only
@@ -143,7 +145,7 @@ test unit:
 	@$(BASH_GUARD)
 	@fail=0; suite_out="$$(mktemp)"; suite_status="$$(mktemp)"; reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
 	trap 'rm -f "$$suite_out" "$$suite_status" "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
-	py_bin="$${VERI_VENV:-$$HOME/.veri-tools/venv}/bin/python3"; \
+	py_bin="$(VENV_DIR)/bin/python3"; \
 	[ -x "$$py_bin" ] || py_bin="$$(command -v python3)"; \
 	if [ -n "$(PY_TESTS)" ]; then \
 	  py_version="$${VERI_PYTHON_VERSION:-$$("$$py_bin" -c 'import platform; print(platform.python_version())' 2>/dev/null)}"; \
@@ -183,7 +185,7 @@ test unit:
 
 .PHONY: install-dev
 install-dev:
-	@venv="$${VERI_VENV:-$$HOME/.veri-tools/venv}"; \
+	@venv="$(VENV_DIR)"; \
 	[ -x "$$venv/bin/python3" ] || python3 -m venv "$$venv"; \
 	"$$venv/bin/python3" -m pip install -r requirements-dev.txt
 
