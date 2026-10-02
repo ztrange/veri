@@ -954,6 +954,14 @@ fin_ran="no"; [[ -e "$fin_work/second-ran" ]] && fin_ran="yes"
 { [[ "$fin_code" == 0 ]] && [[ "$fin_ran" == yes ]]; } && ok \
   || no "#618: a launch under another name is not refused when the recorded leaf is alive but .tdd/<owner-name>.exit already exists (code=$fin_code want 0; command ran=$fin_ran want yes; stderr='$(cat "$fin_work/err")')"
 
+live_work="$work/live-owner-unfinished"
+live_owner_tree "$live_work"
+sup_in "$live_work" verdict-green "$stub/leaf-second" >/dev/null 2>"$live_work/err"
+live_code=$?
+live_err="$(cat "$live_work/err")"
+{ [[ "$live_code" == 2 ]] && [[ "$live_err" == *"develop-green (pid $$)"* ]]; } && ok \
+  || no "#618: a launch is still refused, naming the live leaf and its pid, when the recorded leaf is alive and .tdd/<owner-name>.exit does not exist (code=$live_code want 2; stderr='$live_err' want it to name develop-green and pid $$)"
+
 woke_with_own_exit() {
   local susp_rc
   susp_rc="$(cat "$work/.tdd/$1.rc" 2>/dev/null || echo '<missing>')"
