@@ -809,6 +809,28 @@ probe_runner_from_archived_skill
 
 report "$name"
 
+name="run-suite.sh over a green suite, run with the working directory inside a git repository that is not veri and has no Makefile, exits 0 (#617)"
+problems=()
+
+probe_runner_from_foreign_repo() {
+  local tree
+  tree="$(scratch_dir)" || {
+    problems+=("could not make a scratch directory for the foreign repository, so the question went unasked")
+    return 1
+  }
+  git init -q "$tree/repo" || {
+    problems+=("could not make a git repository to run from, so the question went unasked")
+    return 1
+  }
+  cd "$tree/repo" || return 1
+  runner_passes_green "$RUNNER" "run from inside a git repository that is not veri and has no Makefile"
+  cd "$HERE" || return 1
+}
+
+probe_runner_from_foreign_repo
+
+report "$name"
+
 name="make test takes its count-line guard from skills/tdd/scripts/lib/count-line-guard.sh: a refusal reworded there is what it prints, and a tree without that file fails naming it (#617)"
 problems=()
 
