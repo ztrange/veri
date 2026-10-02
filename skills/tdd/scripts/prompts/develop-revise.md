@@ -9,7 +9,7 @@ exactly what the reason objects to.
 
 ### The step (this cycle's criterion)
 
-{{STEP}}{{REPLACES_CASE}}
+{{STEP}}{{REPLACES_CASE}}{{SUITE_REPAIR}}
 
 ### The verifier's rejection reason (address exactly this)
 
