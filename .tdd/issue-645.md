@@ -9,5 +9,5 @@
 - [x] a parked conductor does not stop new launches, with or without `--continue-on-bail`: parking is not a bail ⟦criterion 4⟧
 - [x] parallel-conductors.sh exits 2 with a diagnostic naming VERI_CONDUCTOR_CTX_BUDGET, launching no conductor, when it is set to anything that is not a whole number ⟦criterion 5⟧
 - [x] with VERI_PARALLEL=1, a conductor over VERI_CONDUCTOR_CTX_BUDGET mid-step is stopped only after its step-done result and is relaunched for the same issue, and one that never crosses the budget is never stopped or relaunched ⟦criterion 6⟧
-- [ ] with VERI_PARALLEL=1, parallel-conductors.sh exits 0 once nothing is left to take after it launched conductors, and exits 0 when every issue still solvable is parked ⟦criterion 6⟧
+- [x] with VERI_PARALLEL=1, parallel-conductors.sh exits 0 once nothing is left to take after it launched conductors, and exits 0 when every issue still solvable is parked ⟦criterion 6⟧
 - [ ] the new parallel-conductors.sh cases run conductors through a stub `claude` reached by CLAUDE_BIN and an injected clock, with no real model and no real wait ⟦human-owed⟧ ⟦criterion 7⟧
