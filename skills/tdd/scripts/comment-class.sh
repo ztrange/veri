@@ -24,7 +24,7 @@ require_args 1 "$@"
 awk -v sweepable="$sweepable" '
   BEGIN { writer = "\\|[[:space:]]*(tee|dd|sponge)[[:space:]]"; name = "[A-Za-z_][A-Za-z0-9_]*" }
   function pop() { q = substr(q, 1, length(q) - 1) }
-  function scan(s,   i, c, t) {
+  function scan(s,   i, c, t, u) {
     u = ""
     for (i = 1; i <= length(s); i++) {
       c = substr(s, i, 1); t = substr(q, length(q))
@@ -38,9 +38,10 @@ awk -v sweepable="$sweepable" '
       }
       if (t == "(" && c == ")") { pop(); continue }
       if (t == "(" && c == "(") { q = q "("; continue }
-      if (c == "#" && substr(s, i - 1, 1) ~ /[[:space:]]/) return
+      if (c == "#" && substr(s, i - 1, 1) ~ /[[:space:]]/) return u
       if (c == "\047" || c == "\"") q = q c
     }
+    return u
   }
   FNR == 1 { delim = ""; q = ""; header = /^#!/ }
   { comment = /^[[:space:]]*#/ }
@@ -58,7 +59,7 @@ awk -v sweepable="$sweepable" '
     if (!(sweepable && (header || /^[[:space:]]*# (hazard|pass-through):/))) print FILENAME ":" FNR ":1"
     next
   }
-  { scan($0); line = u; gsub(/<<</, "", line) }
+  { line = scan($0); gsub(/<<</, "", line) }
   match(line, name "=[^[:space:];]*\\.md[\"\047]?([[:space:];]|$)") {
     v = substr(line, RSTART, RLENGTH); sub(/=.*/, "", v); mdvar[v] = 1
   }
