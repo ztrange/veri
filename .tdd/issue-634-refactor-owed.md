@@ -28,3 +28,6 @@
 ### veri.status, imported in-process, builds the --json run object that status.sh's python3 -c string builds today, status.sh calling it, and tests/status.test.sh passes unmodified ⟦criterion 1⟧
 - status.sh:105 calls `python3 "$veri/status.py" run-object` directly, unlike its siblings that go through the run_activity/scope_totals bash wrappers — give it a matching run_object wrapper
 - veri/status.py main() picks the command with an if/elif chain over three names; a table mapping each name to its function would replace it
+### veri/ledger.py's ledger_steps(text) returns, for a ledger, the same index/state/kind/pending/added/criterion/text records lib/ledger.sh's ledger_steps prints, and pending-mark-literal.test.sh admits veri/ledger.py beside lib/ledger.sh as a module that may spell a box ⟦added⟧ ⟦criterion 1⟧
+- `tests/py/test_ledger.py:6-8` and `tests/py/test_status.py:8-11` both build the same `SCRIPTS` path and add it to `sys.path`. A shared `tests/py/conftest.py` would remove the copy, but it means extracting a new module, which this phase does not allow.
+- `tests/unit/pending-mark-literal.test.sh:32,57` lists the two exempt files `lib/ledger.sh` and `veri/ledger.py` in two `awk` filters, once as exact names and once as path prefixes. One shared list would put them in one place.
