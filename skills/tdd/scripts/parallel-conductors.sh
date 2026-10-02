@@ -55,7 +55,7 @@ require_whole_number VERI_PARALLEL "$parallel"
 [[ -n "${VERI_MAX_ISSUES+set}" ]] && require_whole_number VERI_MAX_ISSUES "$max_issues"
 
 rc_dir="$(mktemp -d)"
-trap 'rm -rf "$rc_dir"' EXIT
+at_exit 'rm -rf "$rc_dir"'
 
 declare -A in_flight=()   # issue number -> pid of its supervise.sh
 declare -A launched=()    # every issue number this invocation has launched
