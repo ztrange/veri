@@ -42,6 +42,7 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/exit-contract.sh"
+source "$HERE/lib/session-env.sh"
 USAGE="usage: run-leaf.sh <prompt-file|-> [claude args...]"
 
 require_args 1 "$@"
@@ -62,14 +63,7 @@ if [[ -f "$HOME/.gitconfig" ]]; then
 fi
 export GIT_CONFIG_GLOBAL="$leaf_gitconfig"
 
-unset CLAUDECODE \
-      CLAUDE_CODE_SESSION_ID \
-      CLAUDE_CODE_HOST_SESSION_ID \
-      CLAUDE_CODE_MESSAGING_SOCKET \
-      CLAUDE_CODE_MESSAGING_TOKEN \
-      CLAUDE_PID \
-      CLAUDE_CODE_CHILD_SESSION \
-      CLAUDE_CODE_ENTRYPOINT
+unset "${SESSION_VARS[@]}"
 
 # hazard: set -e with pipefail would abort before PIPESTATUS is read.
 set +e
