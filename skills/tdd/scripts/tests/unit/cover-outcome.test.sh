@@ -97,4 +97,25 @@ MUTATION: $mutation"
 [[ "$code" == 1 ]] || problems+=("COVERED: no with a PROOF: line: want exit 1, got $code")
 verdict "$name"
 
+name="#679: a PROOF: line leaves COVERED: yes exiting 0 printing CAUGHT_BY, COVERED: no exiting 1 and no COVERED: line exiting 2"
+problems=()
+proof='npx tsc --noEmit'
+run_on "some narration
+COVERED: yes
+CAUGHT_BY: $caught_by
+PROOF: $proof
+MUTATION: $mutation"
+[[ "$code" == 0 ]] || problems+=("COVERED: yes with a PROOF: line: want exit 0, got $code")
+[[ "$out" == "$caught_by" ]] || problems+=("COVERED: yes with a PROOF: line: want stdout '$caught_by', got '$(printf '%s' "$out" | tr '\n' '|')'")
+run_on "some narration
+COVERED: no
+CAUGHT_BY: NONE
+PROOF: $proof
+MUTATION: $mutation"
+[[ "$code" == 1 ]] || problems+=("COVERED: no with a PROOF: line: want exit 1, got $code")
+run_on "some narration with no COVERED: line
+PROOF: $proof"
+[[ "$code" == 2 ]] || problems+=("no COVERED: line with a PROOF: line: want exit 2, got $code")
+verdict "$name"
+
 finish
