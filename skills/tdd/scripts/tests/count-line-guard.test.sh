@@ -504,59 +504,6 @@ probe_both_invocations_word_it_the_same
 
 report "$name"
 
-ran_in_root() {
-  local tree body="$1" probe
-  tree="$(scratch_dir)" || {
-    problems+=("could not make a scratch directory to stand a runner up in, so the question went unasked")
-    return 1
-  }
-  probe="$tree/$GUARDLESS_SUITE_NAME"
-  mkdir -p "$tree/skills/tdd/scripts/lib"
-  cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
-  cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/skills/tdd/scripts/lib/"
-  printf '%s\n' "$body" > "$tree/Makefile"
-  cat > "$probe" <<'SUITE'
-#!/usr/bin/env bash
-set -uo pipefail
-echo "1 passed, 0 failed"
-SUITE
-  chmod +x "$probe"
-
-  direct "$tree/skills/tdd/scripts/run-suite.sh" "$probe"
-  rm -rf "$tree"
-}
-
-probe_root_that_answers_the_guard_runs_the_suite() {
-  local body
-  body="$(cat <<'MK'
-count-line-guard:
-	@printf "COUNT_LINE='%s'\nCOUNTLESS='%s'\n" '^[0-9]+ passed, [0-9]+ failed$$' '%s: never reached its count line\n'
-MK
-)"
-  ran_in_root "$body" || return
-  [[ "$direct_code" == 0 ]] ||
-    problems+=("the runner does not pass a green suite even in a scratch root whose make answers for the guard; it exited $direct_code and said: $(flat "$direct_out") — so nothing below distinguishes a refused guard from a copy that cannot run at all")
-}
-
-probe_root_that_cannot_answer_the_guard_is_refused() {
-  ran_in_root "count-line-guard:
-	@:" || return
-  [[ "$direct_code" == 2 ]] ||
-    problems+=("want exit 2 from a runner whose root cannot answer for the guard — no answer could be obtained — got $direct_code, and it said: $(flat "$direct_out")")
-  ! grep -Fq "$GUARD_MESSAGE" <<< "$direct_out" ||
-    problems+=("the runner reported a verdict on the suite while holding no guard to judge it by: $(flat "$direct_out")")
-  grep -Eqi 'could not read.*guard' <<< "$direct_out" ||
-    problems+=("the runner did not say that it could not read the guard, so a caller cannot tell this 2 from any other; it said: $(flat "$direct_out")")
-}
-
-name="the suite runner whose root cannot answer for the guard reports no suite and exits 2"
-problems=()
-
-probe_root_that_answers_the_guard_runs_the_suite
-probe_root_that_cannot_answer_the_guard_is_refused
-
-report "$name"
-
 probe_runner_refuses_the_countless_suite_as_a_clean_negative() {
   have_runner "so the one invocation a leaf is told to use for a single suite cannot be asked what a countless suite earns" || return
   direct "$RUNNER" "$FIXTURE_PATH"
@@ -1144,6 +1091,44 @@ probe_runner_names_what_the_countless_suite_left() {
 }
 
 probe_runner_names_what_the_countless_suite_left
+
+report "$name"
+
+name="run-suite.sh with no lib/count-line-guard.sh beside it exits 2 with a stderr line naming that file, and runs no make (#683)"
+problems=()
+
+probe_runner_without_guard_lib_refuses_without_make() {
+  local tree probe err
+  tree="$(scratch_dir)" || {
+    problems+=("could not make a scratch directory to stand a runner up in, so the criterion went unasked")
+    return 1
+  }
+  probe="$tree/$GUARDLESS_SUITE_NAME"
+  mkdir -p "$tree/skills/tdd/scripts/lib" "$tree/bin"
+  cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
+  cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/skills/tdd/scripts/lib/"
+  printf '#!/bin/sh\necho "1 passed, 0 failed"\n' > "$probe"
+  cat > "$tree/bin/make" <<MAKE
+#!/bin/sh
+echo "\$*" >> "$tree/make-ran"
+echo "COUNT_LINE='^[0-9]+ passed, [0-9]+ failed\\\$'"
+echo "COUNTLESS='%s: never reached its count line\\\\n'"
+MAKE
+  chmod +x "$probe" "$tree/bin/make"
+
+  err="$tree/stderr"
+  PATH="$tree/bin:$PATH" "$tree/skills/tdd/scripts/run-suite.sh" "$probe" > /dev/null 2> "$err" && direct_code=0 || direct_code=$?
+  [[ "$direct_code" == 2 ]] ||
+    problems+=("want exit 2 from a runner with no lib/count-line-guard.sh beside it; it exited $direct_code and its stderr said: $(flat "$(cat "$err")")")
+  grep -F 'lib/count-line-guard.sh' "$err" > /dev/null ||
+    problems+=("want a stderr line naming lib/count-line-guard.sh from a runner without it; its stderr said: $(flat "$(cat "$err")")")
+  [[ "$(wc -l < "$err" | tr -d ' ')" == 1 ]] ||
+    problems+=("want the refusal as the runner's only stderr line, with no shell noise about the missing file; its stderr said: $(flat "$(cat "$err")")")
+  [[ ! -e "$tree/make-ran" ]] ||
+    problems+=("want no make from a runner with no lib/count-line-guard.sh beside it; it ran: make $(flat "$(cat "$tree/make-ran")")")
+}
+
+probe_runner_without_guard_lib_refuses_without_make
 
 report "$name"
 

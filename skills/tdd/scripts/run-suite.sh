@@ -38,14 +38,8 @@ case "$suite" in
     ;;
 esac
 
-ROOT="$(cd "$HERE/../../.." && pwd)"
 guard="$HERE/lib/count-line-guard.sh"
-if [[ -f "$guard" ]]; then
-  source "$guard"
-else
-  guard="$ROOT/Makefile"
-  eval "$(make -s --no-print-directory -C "$ROOT" count-line-guard 2>/dev/null)"
-fi
+[[ -f "$guard" ]] && source "$guard"
 [[ -n "${COUNT_LINE:-}" && -n "${COUNTLESS:-}" ]] || {
   echo "run-suite.sh: could not read the count-line guard from $guard" >&2
   exit 2
