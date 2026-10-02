@@ -651,6 +651,12 @@ grep -F '_verify-plan-refactor.md' "$work/no-refactor-plan.err" > /dev/null \
 [[ -z "$problems" ]] \
   && ok || no "the refactor-plan paragraph is read by the plan phase alone, and an unreadable one is exit 2 with no stdout (${problems#; })"
 
+problems=""
+prompt_says "$rf_plan" "never directs a REJECT for a step that leaves a no-op in place for a later step to delete" \
+  -iE -e 'REJECT[^.]{0,200}no-op[^.]{0,200}later step|no-op[^.]{0,200}later step[^.]{0,200}REJECT'
+[[ -z "$problems" ]] \
+  && ok || no "#679 verify-plan, for a spec with a Refactor section, REJECTs a step that leaves a no-op in place for a later step to delete (${problems#; })"
+
 rejects_rationale_comment() {
   local prompt="$1" phase="$2"
   problems=""
