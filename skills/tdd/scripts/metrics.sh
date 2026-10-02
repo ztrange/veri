@@ -438,7 +438,7 @@ def figure(column, value):
     return "%.2f" % value if column in MONEY else "%d" % value
 
 def refactor_spent(mark):
-    return "%s/%s" % (mark["transforms"], mark["budget"])
+    return "%s/%s" % (mark["transforms"], mark.get("budget", "?"))
 
 def step_wall(step):
     mark = spent.get(step, {})
@@ -541,16 +541,23 @@ if passes:
     for (step, index), (mark, spent_by) in passes.items():
         row([step, index, refactor_spent(mark), mark["stopped"],
              spent_by["verdict"], str(spent_by["revise"]), figure(WALL, spent_by[WALL]), figure(DOLLARS, spent_by[DOLLARS])])
-if structural is not None and "transforms" not in structural:
-    print()
-    print("#### Structural pass")
-    print()
-    print("Stopped: %s" % structural["stopped"])
-elif structural is not None:
-    table_head("#### Structural pass", "pass", ["refactor", "stopped"], ["---:", "---"])
-    row(["issue", refactor_spent(structural), structural["stopped"]])
+if structural is not None:
+    if "transforms" not in structural:
+        print()
+        print("#### Structural pass")
+        print()
+        print("Stopped: %s" % structural.get("stopped", "?"))
+    else:
+        table_head("#### Structural pass", "pass", ["refactor", "stopped"], ["---:", "---"])
+        row(["issue", refactor_spent(structural), structural.get("stopped", "?")])
     inconsistent = None
-    if structural["stopped"] == "budget-spent" and int(structural["transforms"]) < int(structural["budget"]):
+    if "stopped" not in structural:
+        inconsistent = "the mark carries no stopped"
+    elif "transforms" not in structural:
+        pass
+    elif "budget" not in structural:
+        inconsistent = "transforms=%s without a budget" % structural["transforms"]
+    elif structural["stopped"] == "budget-spent" and int(structural["transforms"]) < int(structural["budget"]):
         inconsistent = ("stopped=budget-spent, but transforms=%s is below budget=%s"
                         % (structural["transforms"], structural["budget"]))
     elif structural["stopped"] not in ("candidates-done", "budget-spent", "nothing-structural"):
