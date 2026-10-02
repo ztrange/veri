@@ -113,6 +113,13 @@ expect_records "ledger_steps added/criterion differ" "$want" \
 verdict "ledger_steps added is 1 for a step carrying the added mark and criterion is its k, empty with no tag"
 
 problems=""
+doc='- [ ] a step that quotes ⟦added⟧ mid-text ⟦criterion 2⟧
+'
+expect_records "ledger_steps added differs for a step quoting the added mark" $'1\t0' \
+  "$(records_of '$1 "\t" $5' "$doc")"
+verdict "ledger_steps added is 0 for a step that quotes the added mark mid-text and does not end in it (#675)"
+
+problems=""
 doc='# Plan for the slug
 
 Prose about the slug.

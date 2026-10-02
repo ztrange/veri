@@ -53,7 +53,7 @@ ledger_steps() {
     kind=step
     [[ "$text" =~ $kind_re ]] && kind="${BASH_REMATCH[1]}"
     added=0
-    [[ "$text" == *"$_ledger_added_mark"* ]] && added=1
+    [[ "${text% "$_ledger_criterion_tag"*⟧}" == *"$_ledger_added_mark" ]] && added=1
     criterion=
     [[ "$text" =~ $criterion_re ]] && criterion="${BASH_REMATCH[1]}"
     pending=0
