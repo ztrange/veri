@@ -35,8 +35,9 @@
 #          VERI_GH_JSON=<dir> invisible-work.sh
 set -euo pipefail
 
-source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
-source "$(dirname "$0")/lib/github.sh"
+here="$(cd "$(dirname "$0")" && pwd)"
+source "$here/lib/exit-contract.sh"
+source "$here/lib/github.sh"
 
 gh_json() {  # gh_json <fixture-file> <rest-path> <gh args…> -> that document on stdout
   local fixture="$1" rest="$2"; shift 2
@@ -85,7 +86,7 @@ while read -r ref tip; do
   locals+="$name $tip $lacks ${worktree_of[$ref]:-}"$'\n'
 done < <(git for-each-ref --format='%(refname) %(objectname)' refs/heads/)
 
-PYTHONPATH="$(cd "$(dirname "$0")" && pwd)/veri" exec python3 -c '
+PYTHONPATH="$here/veri" exec python3 -c '
 import re, sys
 
 from json_documents import items
