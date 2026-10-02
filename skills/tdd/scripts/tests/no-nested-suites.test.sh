@@ -133,4 +133,7 @@ report "#590: next-unchecked.test.sh's ⟦suite-repair⟧ fixture and expected-s
 mentions_reported no-report-copies.test.sh docs-read-guard.test.sh profile.test.sh skill-leaf-env.test.sh harness.test.sh model-knobs-recorded.test.sh
 report "#595: no-report-copies.test.sh's exemption keys, planted-suite paths and case text naming other suites are not read as launching them"
 
+mentions_reported ledger-steps.test.sh status.test.sh
+report "#671: ledger-steps.test.sh's ⟦replaces-case⟧ fixture mention of status.test.sh is not read as launching it"
+
 finish
