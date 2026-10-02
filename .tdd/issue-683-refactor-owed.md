@@ -11,3 +11,6 @@
 ### `stop-run.sh` takes its accepted stop modes from one sourced list in `lib/`, and still refuses a mode outside it with `stop-run: unknown mode — want at-ledger, at-leaf or now: '<mode>'` ⟦criterion 8⟧
 - move the `STOP_MODES` membership loop at `stop-run.sh:52-56` into a `lib/stop-modes.sh` function (e.g. `stop_mode_known <mode>`) once `stop-requested.sh` (the next step) needs the same check — there is only one caller today, so this would be an extract, not duplication removal
 - test-only | `stop-run.test.sh:308-310` and `:314-316` copy the body of `run_stop_in` (`stop-run.test.sh:75-79`) with `$listed/stop-run.sh` in place of `$STOP`; making the script path a parameter of `run_stop_in` would remove both copies
+### `stop-run.sh`'s unknown-mode refusal names the modes from the sourced list rather than spelling them by hand: with today's list it prints exactly `stop-run: unknown mode — want at-ledger, at-leaf or now: '<mode>'`, and a mode added to the list is named in it ⟦added⟧ ⟦criterion 8⟧
+- stop-run.sh's `USAGE` line and its header usage comment still spell `at-ledger|at-leaf|now` by hand, in a different format from `modes_named`
+- test-only | stop-run.test.sh runs `out="$(cd "$repo" && "$listed/stop-run.sh" … 2>"$work/stderr")"; err=…` twice (the at-step case and the new bogus case); extract a `run_listed_stop` helper beside `run_stop_in`
