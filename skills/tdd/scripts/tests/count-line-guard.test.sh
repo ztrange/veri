@@ -1059,19 +1059,21 @@ name="run-suite.sh runs a pytest file with \$VERI_VENV's python3, and with the p
 problems=()
 
 python3_stub() {
-  printf '#!/bin/sh\necho "%s python3 $*"\nexit 0\n' "$2" > "$1/python3"
+  printf '#!/bin/sh\n%s\n' "$2" > "$1/python3"
   chmod +x "$1/python3"
 }
 
 venv="$(scratch_dir)"
 mkdir -p "$venv/bin"
-python3_stub "$venv/bin" venv
+python3_stub "$venv/bin" 'echo "venv python3 $*"
+exit 0'
 direct env VERI_VENV="$venv" "$RUNNER" "$py_tree/tests/py/test_red.py"
 [[ "$direct_code" == 0 && "$direct_out" == "venv python3 -m pytest $py_tree/tests/py/test_red.py" ]] ||
   problems+=("want \$VERI_VENV/bin/python3 to run the file (exit 0, 'venv python3 -m pytest …'); got $direct_code, and it said: $(flat "$direct_out")")
 
 path_bin="$(scratch_dir)"
-python3_stub "$path_bin" path
+python3_stub "$path_bin" 'echo "path python3 $*"
+exit 0'
 direct env VERI_VENV="$(scratch_dir)" PATH="$path_bin:$PATH" "$RUNNER" "$py_tree/tests/py/test_red.py"
 [[ "$direct_code" == 0 && "$direct_out" == "path python3 -m pytest $py_tree/tests/py/test_red.py" ]] ||
   problems+=("want the python3 on PATH when \$VERI_VENV has no bin/python3 (exit 0, 'path python3 -m pytest …'); got $direct_code, and it said: $(flat "$direct_out")")
@@ -1085,8 +1087,7 @@ real_python3="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
 [[ -x "$real_python3" ]] || real_python3="$(command -v python3)"
 siteless="$(scratch_dir)"
 mkdir -p "$siteless/bin"
-printf '#!/bin/sh\nexec "%s" -S "$@"\n' "$real_python3" > "$siteless/bin/python3"
-chmod +x "$siteless/bin/python3"
+python3_stub "$siteless/bin" "exec \"$real_python3\" -S \"\$@\""
 direct env VERI_VENV="$siteless" "$RUNNER" "$py_tree/tests/py/test_green.py"
 [[ "$direct_code" == 2 ]] ||
   problems+=("want exit 2 when the interpreter cannot import pytest; got $direct_code, and it said: $(flat "$direct_out")")
