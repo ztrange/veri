@@ -273,9 +273,10 @@ probe_shared_helpers_plain_shell() {
   need_helpers_file "report, plain, records, bullet or says" || return
 
   local got expected
+  local -a defines=(_harness_exit argcap_python3_stub bullet claude_stub expect_eq finish new_repo no ok
+    on_exit plain records report says scratch_dir)
   got="$(
-    unset -f _harness_exit argcap_python3_stub bullet claude_stub expect_eq finish new_repo no ok \
-      on_exit plain records report says scratch_dir
+    unset -f "${defines[@]}"
     before="$(declare -F | sed 's/^declare -f //')"
     pass=3 fail=5
     out="$(
@@ -291,7 +292,7 @@ probe_shared_helpers_plain_shell() {
   )"
   expected="sourcing printed: [status 0]
 counters: 3 passed, 5 failed
-new functions: [_harness_exit argcap_python3_stub bullet claude_stub expect_eq finish new_repo no ok on_exit plain records report says scratch_dir ]"
+new functions: [${defines[*]} ]"
   same_as_copies "nothing but its definitions" "a plain-shell helper file with no dependency" "$got" "$expected"
 
   local stem suite_rel text line
