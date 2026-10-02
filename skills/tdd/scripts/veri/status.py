@@ -172,7 +172,8 @@ def render(as_json, scope):
         heading = text.split("\n", 1)[0]
         if heading.startswith("# Plan for #"):
             heading = heading[len("# Plan for #"):]
-        issue, title = heading.split(" — ", 1)[0], heading.split(" — ", 1)[-1]
+        parts = heading.split(" — ", 1)
+        issue, title = parts[0], parts[-1]
         step = step_of_total(text)
         if as_json:
             run_objects.append(run_object(issue, title, branch, step, activity))
