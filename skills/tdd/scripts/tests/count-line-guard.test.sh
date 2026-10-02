@@ -1004,4 +1004,33 @@ probe_one_lib_rewords_both
 
 report "$name"
 
+name="make test over suites that all end in a count line with 0 failed, held to the guard in skills/tdd/scripts/lib/count-line-guard.sh, exits 0 (#617)"
+problems=()
+
+probe_all_green_suites_pass() {
+  local tree suite
+  tree="$(scratch_dir)" || {
+    problems+=("could not make a scratch tree to hold the green suites, so the criterion went unasked")
+    return 1
+  }
+  mkdir -p "$tree/$TESTS_DIR" "$tree/skills/tdd/scripts/lib"
+  cp "$MAKEFILE" "$tree/Makefile"
+  cp "$ROOT/$GUARD_LIB" "$tree/$GUARD_LIB"
+  for suite in first-green.test.sh second-green.test.sh; do
+    printf '#!/bin/sh\necho "a case ran"\necho "2 passed, 0 failed"\nexit 0\n' > "$tree/$TESTS_DIR/$suite"
+    chmod +x "$tree/$TESTS_DIR/$suite"
+  done
+  scratch_out="$(make -C "$tree" test 2>&1)" && scratch_code=0 || scratch_code=$?
+  rm -rf "$tree"
+
+  [[ "$scratch_code" == 0 ]] ||
+    problems+=("want 'make test' to exit 0 over suites that all end in a count line with 0 failed; it exited $scratch_code and said: $(flat "$scratch_out")")
+  ! grep -F "$GUARD_MESSAGE" <<< "$scratch_out" > /dev/null ||
+    problems+=("want no suite refused for its count line when every one printed it; it said: $(flat "$scratch_out")")
+}
+
+probe_all_green_suites_pass
+
+report "$name"
+
 finish
