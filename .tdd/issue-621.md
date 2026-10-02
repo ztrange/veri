@@ -1,6 +1,6 @@
 # Plan for #621 — Leaves of an interactive /tdd inherit the conductor's Claude Code session, including auto-backgrounding
 
-- [ ] run-leaf.sh, run with CLAUDECODE, CLAUDE_CODE_SESSION_ID, CLAUDE_CODE_HOST_SESSION_ID, CLAUDE_CODE_MESSAGING_SOCKET, CLAUDE_CODE_MESSAGING_TOKEN, CLAUDE_PID, CLAUDE_CODE_CHILD_SESSION and CLAUDE_CODE_ENTRYPOINT all set, starts a stub claude (via CLAUDE_BIN) whose recorded environment contains none of them ⟦criterion 1⟧
+- [x] run-leaf.sh, run with CLAUDECODE, CLAUDE_CODE_SESSION_ID, CLAUDE_CODE_HOST_SESSION_ID, CLAUDE_CODE_MESSAGING_SOCKET, CLAUDE_CODE_MESSAGING_TOKEN, CLAUDE_PID, CLAUDE_CODE_CHILD_SESSION and CLAUDE_CODE_ENTRYPOINT all set, starts a stub claude (via CLAUDE_BIN) whose recorded environment contains none of them ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] run-leaf.sh, run with CLAUDE_AUTO_BACKGROUND_TASKS=true set, starts a stub claude whose recorded environment does not contain CLAUDE_AUTO_BACKGROUND_TASKS ⟦criterion 2⟧
 - [ ] a leaf launched as supervise.sh <name> run-leaf.sh <prompt-file>, with all nine session variables set in the caller, starts a stub claude whose recorded environment contains none of them ⟦criterion 3⟧
 - [ ] run-leaf.sh still passes every other variable through: a stub claude records VERI_TEST_CMD with the caller's value, and records GIT_CONFIG_GLOBAL as set ⟦criterion 4⟧
