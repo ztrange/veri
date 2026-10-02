@@ -2,3 +2,6 @@
 - fold the repeated fixture recipe in metrics.test.sh (`fixture_work` + `structural_log` + `sv … structural-pass <mark>` + `sv … done` + `render`, now repeated in six cases) into one helper that takes the mark payload
 ### metrics.sh on a structural-pass mark whose stopped is not candidates-done, budget-spent or nothing-structural (stopped=test-files-only) prints a named inconsistent-mark line naming the reason it found, and exits 0 ⟦criterion 7⟧
 - the #503 `structural_work` case and the #585 `bare_figure_work` case in metrics.test.sh repeat the same fixture/render/section setup and could call `structural_mark_section` too (left alone because earlier cycles wrote that code)
+### metrics.sh on a structural-pass mark missing stopped, or carrying transforms without budget, prints the inconsistent-mark line rather than a Python traceback, and exits 0 ⟦criterion 8⟧
+- metrics.sh:557–567 — the inconsistency check's `elif "transforms" not in structural: pass` branch exists only to skip the checks below it; making the missing-transforms case the one exit (nothing-structural shape) would remove the empty branch
+- metrics.test.sh #503 and #585 cases (`structural_log` + `sv … structural-pass` + `sv … done` + `render` + section extraction) repeat what `structural_mark_section` already does; this cycle did not write them, so they are out of scope here
