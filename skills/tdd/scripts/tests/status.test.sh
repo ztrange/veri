@@ -449,4 +449,13 @@ code=0
 expect_nothing_missing "--watch [seconds] redraws in place, recomputing every run from disk on each render"
 
 counted="$(repo counted)"
+
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+mkdir -p "$one/elsewhere"
+in_place="$(cd "$one" && "$STATUS" 2>&1)"; in_place_code=$?
+linked="$(cd "$one/elsewhere" && "$work/linked-skill/scripts/status.sh" 2>&1)"; linked_code=$?
+if [[ "$linked" == "$in_place" && "$linked_code" -eq "$in_place_code" && "$in_place" == *"#7"* ]]; then ok; else
+  no "status.sh run through a symlink to the skill directory and from another working directory answers as it does when run in place"
+  diff <(printf '%s\nexit %s\n' "$in_place" "$in_place_code") <(printf '%s\nexit %s\n' "$linked" "$linked_code")
+fi
 finish
