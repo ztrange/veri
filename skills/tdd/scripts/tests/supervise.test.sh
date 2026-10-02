@@ -890,6 +890,33 @@ nest_err="$(cat "$nest_work/err" "$nest_work/inner-err" 2>/dev/null)"
   && [[ "$nest_err" != *refusing* ]]; } && ok \
   || no "#471: a verify-green launch made from inside a live verdict-green supervision is not refused (wrapper code=$nest_code want 0; inner code=$nest_inner want 0; ran='$nest_ran' want 'inner '; stderr='$nest_err' want no refusal)"
 
+samex_work="$work/live-owner-same-name-exit"
+mkdir -p "$samex_work"
+mkfifo "$samex_work/release"
+cat > "$stub/leaf-held-fail" <<'L'
+echo $$ > leaf-pid
+read -r _ < release
+exit 3
+L
+chmod +x "$stub/leaf-held-fail"
+( cd "$samex_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-held-fail" ) >/dev/null 2>&1 &
+samex_sup=$!
+for _ in $(seq 1 50); do [[ -s "$samex_work/leaf-pid" ]] && break; sleep 0.1; done
+samex_leaf="$(tr -d '[:space:]' < "$samex_work/leaf-pid" 2>/dev/null)"
+( cd "$samex_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-second" ) >/dev/null 2>"$samex_work/err"
+samex_code=$?
+samex_after_refusal="$(cat "$samex_work/.tdd/revise-green-1.exit" 2>/dev/null || echo '<missing>')"
+( cd "$samex_work" && env VERI_POLL=0.02 "$SCRIPTS/wait-leaf.sh" revise-green-1 0 ) >/dev/null 2>&1
+samex_wait=$?
+[[ -z "$samex_leaf" ]] || echo go > "$samex_work/release"
+wait "$samex_sup"
+samex_final="$(cat "$samex_work/.tdd/revise-green-1.exit" 2>/dev/null || echo '<missing>')"
+{ [[ -n "$samex_leaf" ]] && [[ "$samex_code" == 2 ]] && [[ "$samex_after_refusal" == '<missing>' ]] \
+  && [[ "$samex_wait" == 3 ]] && [[ "$samex_final" == 1 ]]; } && ok \
+  || no "#618: a launch refused because a leaf of the same name is alive writes no .exit for that name, and the live leaf's own code lands there when it finishes (first leaf pid=${samex_leaf:-<never started>}; refusal code=$samex_code want 2; .exit after refusal='$samex_after_refusal' want <missing>; wait-leaf.sh while live=$samex_wait want 3; .exit after the live leaf finished='$samex_final' want 1; stderr='$(cat "$samex_work/err")')"
+
 woke_with_own_exit() {
   local susp_rc
   susp_rc="$(cat "$work/.tdd/$1.rc" 2>/dev/null || echo '<missing>')"
