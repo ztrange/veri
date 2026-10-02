@@ -56,7 +56,7 @@ fi
 
 stream_tmp="$(mktemp)"
 leaf_gitconfig="$(mktemp)"
-trap 'rm -f "$stream_tmp" "$leaf_gitconfig"' EXIT
+at_exit 'rm -f "$stream_tmp" "$leaf_gitconfig"'
 if [[ -f "$HOME/.gitconfig" ]]; then
   cp "$HOME/.gitconfig" "$leaf_gitconfig"
 fi
