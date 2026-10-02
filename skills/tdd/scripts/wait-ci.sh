@@ -70,7 +70,8 @@ print(min(int(sys.argv[1]), round(2 * sum(at(r["updatedAt"]) - at(r["startedAt"]
 pr_head() {
   gh api "repos/$repo/pulls/${pr##*/pull/}" | python3 -c '
 import json, sys
-print(json.load(sys.stdin)["head"]["sha"] or "")
+pull = json.load(sys.stdin)
+print(pull.get("mergeable"), pull["head"]["sha"] or "")
 '
 }
 
@@ -89,6 +90,8 @@ outcomes = [r.get("conclusion") if r.get("status") == "completed" else None for 
 if any(o is not None and o not in sys.argv[1].split() for o in outcomes) \
         or any(s in ("failure", "error") for s in states):
     print("red")
+elif not runs and not states:
+    print("none")
 elif None in outcomes or all(o == "skipped" for o in outcomes) \
         or "pending" in states:
     print("pending")
@@ -98,7 +101,7 @@ else:
 }
 
 while :; do
-  read -r head < <(pr_head) && [[ -n "$head" ]] \
+  read -r mergeable head < <(pr_head) && [[ -n "$head" ]] \
     || { echo "wait-ci.sh: could not read the checks of $pr" >&2; exit 2; }
   if [[ -n "$want" && "$head" != "$want" ]]; then
     state=pending
@@ -109,6 +112,10 @@ while :; do
     green) exit 0 ;;
     red) exit 1 ;;
   esac
+  if [[ "$state" == none && "$mergeable" == False ]]; then
+    echo "wait-ci.sh: $pr conflicts with its base branch; no workflow will start until it is rebased" >&2
+    exit 2
+  fi
   now="$(date +%s)"
   if [[ -z "$deadline" ]]; then
     slice_end=$(( now + max ))

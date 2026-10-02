@@ -49,7 +49,13 @@ case "$*" in
     echo >> "$ROLLUP.calls"
     if [ "$1" = pr ] && [ -n "${GH_PR_VIEW_HEAD:-}" ]; then printf '{"headRefOid":"%s","statusCheckRollup":[]}\n' "$GH_PR_VIEW_HEAD"
     elif [ "$1" = pr ]; then cat "$(served '')"; else
-      python3 -c 'import json, sys; print(json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": json.load(open(sys.argv[1])).get("headRefOid")}}))' "$(served '')"
+      python3 -c '
+import json, sys
+doc = json.load(open(sys.argv[1]))
+pull = {"number": 1, "state": "open", "draft": False, "head": {"sha": doc.get("headRefOid")}}
+if "mergeable" in doc:
+    pull["mergeable"], pull["mergeable_state"] = {"MERGEABLE": (True, "clean"), "CONFLICTING": (False, "dirty"), "UNKNOWN": (None, "unknown")}[doc["mergeable"]]
+print(json.dumps(pull))' "$(served '')"
     fi ;;
   "api "*"repos/o/r/commits/"*/check-runs*)
     if [ -n "${GH_API_FAIL:-}" ]; then echo '{"message":"Not Found"}'; echo "gh: Not Found (HTTP 404)" >&2; exit 1; fi
@@ -657,6 +663,19 @@ GH_RUN_LIST_FAIL=1 expect_deadline explicit-high "$work/gh-runs.json" 600 "an ex
 for f in explicit-low explicit-high; do
   [[ ! -s "$work/$f.first.err" ]] || problems+=("$f: want nothing on stderr, since gh run list is not read, got: $(cat "$work/$f.first.err")")
 done
+report "$name"
+
+name="wait-ci.sh exits 2 at its first poll, naming the PR and its conflict with the base branch, when GitHub reports the PR mergeable CONFLICTING with no check on its head, rather than waiting out its slice or deadline (#688)"
+problems=()
+sha=0123456789abcdef0123456789abcdef01234567
+printf '{"headRefOid":"%s","mergeable":"CONFLICTING","statusCheckRollup":[]}\n' "$sha" > "$work/conflict.json"
+sha_runs conflict.json
+got="$(CLOCK_STEP=60 waited conflict 540 600 "$sha")"
+[[ "$got" == 2 ]] || problems+=("PR conflicting, no check on $sha: want exit 2, got $got (stderr: $(cat "$work/conflict.err"))")
+polls="$(wc -l < "$work/conflict.json.calls" | tr -d ' ')"
+[[ "$polls" == 1 ]] || problems+=("PR conflicting, no check on $sha: want 1 poll of the PR, got $polls")
+grep -F "$PR" "$work/conflict.err" > /dev/null && grep -F "conflicts with its base branch" "$work/conflict.err" > /dev/null \
+  || problems+=("PR conflicting: want a stderr line naming $PR and saying it conflicts with its base branch, got: $(cat "$work/conflict.err")")
 report "$name"
 
 finish
