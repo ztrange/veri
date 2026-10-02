@@ -5,7 +5,8 @@
 # Fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Contract under test:
-#   every script in the first roster, called with no arguments    → exit 2, usage on stderr
+#   every scripts/*.sh whose usage line names a <…> outside […],
+#   called with no arguments                                      → exit 2, usage on stderr
 #   every script in the second roster, called without one later
 #   positional argument                                           → exit 2, usage on stderr
 #   every script in the third roster, given a bad argument value  → exit 2, its own usage on stderr
@@ -34,40 +35,29 @@ verdict() {
   fi
 }
 
+requires_argument() {  # requires_argument <file> — its usage line names a <…> outside […]
+  local usage
+  usage="$(grep -m1 -oE 'usage: .*' "$1")" || return 1
+  [[ "$(sed -E 's/\[[^]]*\]//g' <<< "$usage")" == *'<'*'>'* ]]
+}
+
 name="a script requiring a positional argument exits 2 with a usage line when called with none"
-roster=(
-  add-ledger-step.sh
-  affected-suites.sh
-  build-develop-prompt.sh
-  build-verify-prompt.sh
-  clear-refactor-pending.sh
-  comment-class.sh
-  coverage-blocker.sh
-  criterion-finished.sh
-  detach-leaf.sh
-  event.sh
-  harvest-usage.sh
-  issue-worktree.sh
-  leaf-model.sh
-  leaf-role.sh
-  metrics.sh
-  over-budget.sh
-  refactor-touched.sh
-  run-conductor.sh
-  run-leaf.sh
-  supervise.sh
-  tick-issue-criterion.sh
-  tick-ledger.sh
-  tier-usual.sh
-  timed-test-run.sh
-  transform-touches-tests.sh
-  unreachable.sh
-  verify.sh
-  wait-leaf.sh
-)
+unset VERI_TIMEOUT VERI_REFACTOR_BUDGET
+roster=()
+for file in "$SCRIPTS"/*.sh; do
+  requires_argument "$file" && roster+=( "${file##*/}" )
+done
 offenders=()
 for script in "${roster[@]}"; do
   refuses "$script"
+done
+verdict "$name"
+
+name="the missing-argument audit covers every script in the real scripts/ directory whose usage line names a required argument"
+offenders=()
+for file in "$SCRIPTS"/*.sh; do
+  requires_argument "$file" || continue
+  [[ " ${roster[*]} " == *" ${file##*/} "* ]] || offenders+=( "${file##*/}: not audited" )
 done
 verdict "$name"
 
@@ -99,7 +89,6 @@ rejects() {  # rejects <script> [args …] — want exit 2 and a usage line nami
 
 name="a script given a bad argument value exits 2 with its own usage text on stderr"
 offenders=()
-unset VERI_TIMEOUT VERI_REFACTOR_BUDGET
 rejects build-verify-prompt.sh bogus spec test-path     # unknown phase
 rejects build-develop-prompt.sh bogus spec step cmd     # unknown phase
 rejects build-develop-prompt.sh revise bogus spec step cmd reason  # unknown phase to revise
