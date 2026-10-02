@@ -261,4 +261,28 @@ rm -f "$owed_file"
 report "$name"
 
 
+name="list never prints a test-only candidate, and exits 3 on a file holding only those"
+problems=()
+
+owed_file="$(mktemp)"
+"$OWED" append "$owed_file" 'a step whose candidates are all test-only' <<'REPORT'
+RESULT: applied "fold verify.sh's two prompt paths into one", suite green
+FLAGS: none
+CANDIDATES: test-only | fold the three answers_none fixtures into one helper
+REPORT
+
+listed="$(mktemp)"
+"$OWED" list "$owed_file" >"$listed" 2>/dev/null && code=0 || code=$?
+
+[[ "$code" == 3 ]] ||
+  problems+=("want exit 3 from list on a file holding only test-only candidates, got $code")
+
+printed="$(cat "$listed")"
+[[ -z "$printed" ]] ||
+  problems+=("list printed '$printed' on stdout for a file holding only test-only candidates; want nothing")
+
+rm -f "$owed_file" "$listed"
+report "$name"
+
+
 finish

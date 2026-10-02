@@ -41,7 +41,7 @@ case "$verb" in
       if structural_candidate "$line"; then
         structural+=("$STRUCTURAL_TRANSFORM")
       elif [[ "$line" =~ ^CANDIDATES:[[:space:]]*test-only[[:space:]]*[|][[:space:]]*(.*)$ ]]; then
-        structural+=("${BASH_REMATCH[1]}")
+        structural+=("test-only | ${BASH_REMATCH[1]}")
       fi
     done
 
@@ -60,14 +60,17 @@ case "$verb" in
     ;;
   list)
     [[ -s "$file" ]] || exit 3
-    awk '/^- / {
+    listed="$(awk '/^- test-only [|] / { next }
+         /^- / {
            t = substr($0, 3)
            if (!(t in n)) order[++k] = t
            n[t]++
          }
          END { for (i = 1; i <= k; i++) printf "%d\t%d\t%s\n", n[order[i]], i, order[i] }' "$file" |
       sort -t "$(printf '\t')" -k1,1nr -k2,2n |
-      cut -f3-
+      cut -f3-)"
+    [[ -n "$listed" ]] || exit 3
+    printf '%s\n' "$listed"
     ;;
   *)
     refuse
