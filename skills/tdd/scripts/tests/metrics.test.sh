@@ -2850,6 +2850,23 @@ fi
 
 report_on "$name" "$unspent_out"
 
+name="#596 a structural-pass mark whose stopped is none of the three reasons names the mark inconsistent, with the reason it found"
+problems=()
+
+fixture_work unknown_stop_work
+unknown_stop="a step followed by a structural pass that stopped for a reason the pass does not have"
+structural_log "$unknown_stop"
+sv "" 80030 conductor "" structural-pass "" '"transforms": "1", "budget": "3", "stopped": "test-files-only"'
+sv "" 80040 conductor "" done "" '"pr": "https://github.com/ztrange/veri/pull/999"'
+unknown_stop_out="$unknown_stop_work/report.md"
+render "$unknown_stop_work" "$unknown_stop_out"
+structural_section "$unknown_stop_out" "$unknown_stop_work/section.txt"
+grep -i 'inconsistent' "$unknown_stop_work/section.txt" > "$unknown_stop_work/inconsistent.txt"
+grep -F 'test-files-only' "$unknown_stop_work/inconsistent.txt" > /dev/null ||
+  problems+=("want the structural section to carry an inconsistent-mark line naming stopped=test-files-only, got: $(cat "$unknown_stop_work/section.txt")")
+
+report_on "$name" "$unknown_stop_out"
+
 name="#495 the planned-step count is the number of lib/ledger.sh ledger_steps records, counting no box of its own"
 problems=()
 
