@@ -7,7 +7,10 @@ script keeps whatever the rule says, and what proves a port held the script's co
 a **port's** rule. ADR 0026's rule for a **refactor** is unchanged.
 
 **Amended 2026-10-02**, before any port landed under it: the proof runs over **contract
-cases** only, and **implementation cases** are replaced by pytest cases first (#634).
+cases** only, and **implementation cases** are replaced by pytest cases first (#634). Later
+the same day, after #634 bailed again: an implementation case is one **about the ported
+script, in any suite**, and the port issue lists them all as `⟦replaces-case⟧` criteria
+before the port starts (#634, #671).
 
 ## Context
 
@@ -32,6 +35,17 @@ could not be met. The same wall stands across waves 2–3: the fast tier's docum
 sources a script or a `lib/` file and mocks its functions (`push-branch.test.sh` is the worked
 example; `ledger`, `github` and `exit-contract` follow it), and six integration suites —
 among them `metrics`, `orchestrate` and `status` — copy `lib/` into a scratch tree by hand.
+
+The amended rule then met the same wall one suite over. #634 bailed on 2026-10-02 at its
+final full `make test`: besides the port's own code fallout, failing cases in **other
+scripts' suites** pinned `status.sh`'s bash internals. `tests/event-log.test.sh:97`, "run_activity
+and scope_totals read the event log through lib/event_log.py's one parse and one
+dollar/token sum, with status.sh's text and --json figures unchanged …", and
+`tests/main-working-tree.test.sh:67`, "a shared lib/main-working-tree.sh defines
+main_working_tree, and status.sh and solvable-issues.sh both resolve the main working tree
+through it", assert which bash library `status.sh` sources. No correct port can pass them,
+and a repair leaf may not change them. The rule had defined an implementation case by the
+suite it sat in, so the port's plan never listed them.
 
 The shim is the proxy of a refactoring by example. **Contract tests** pass through the proxy
 unchanged; tests coupled to the implementation are the ones rewritten; new tests are written
@@ -68,8 +82,11 @@ A pytest case importing the module cannot observe any of them.
 A **contract case** runs the script through its `.sh` entry point and observes only its
 arguments, stdin, environment, files, stdout, stderr, exit code and PATH stubs.
 
-An **implementation case** sources the script or a `lib/` file, or stubs or overrides a
-function inside it.
+An **implementation case** of a script is defined by what it asserts about, not by where it
+lives. A case in **any** suite is one when it sources the script or a `lib/` file it uses,
+stubs or overrides a function inside either, or asserts on the script's source text or on
+which bash library it sources. A case in `event-log.test.sh` that checks `status.sh` reads
+the log through `lib/event_log.py` is an implementation case of `status.sh`.
 
 ### The proof
 
@@ -82,6 +99,18 @@ the contract, and is not a port.
 **Implementation cases are replaced first.** Each is replaced by a pytest case asserting the
 same behaviour, in its own commit before the port, and listed in the PR's pairs table. They
 cannot be part of the proof: a function the shim no longer calls cannot be stubbed.
+
+**A port finds them before it starts.** The port issue lists every implementation case of
+the script across all suites, found by grepping the suites for the script's name, each as a
+`⟦replaces-case⟧` criterion (#671): the ledger step that names one suite path and one case
+by its exact name, whose Red is the replacing pytest case failing and whose Green deletes
+that case and nothing else. Each replacing case asserts the same behaviour through the
+module's entry point, in its own commit before the port.
+
+**A miss is a planning miss.** A full-suite failure after a port, on a case that is an
+implementation case of the ported script, means the issue's list was incomplete. It is
+repaired with a `⟦replaces-case⟧` step, never by editing the case under a repair step: a
+repair leaf that rewrote it would be cutting a case without a replacement on record.
 
 **The setup allowance.** A contract case that copies a hand-picked set of scripts into a
 scratch directory may add the `veri/` package to what it copies. Its assertions stay
@@ -119,6 +148,8 @@ bash to Python. It never lets a refactor drop a case because another suite dupli
 
 ## Consequences
 
+- Each port issue under PRD 008 lists its implementation cases across all suites, as
+  `⟦replaces-case⟧` criteria, before its run starts.
 - Each port issue under PRD 008 cites this record. Its PR body carries the pairs table, and
   its history carries the implementation cases replaced, then the contract cases green before
   the cut.
