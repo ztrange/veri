@@ -17,12 +17,12 @@ test profile: SUITES = $(TESTS) $(if $(filter command line,$(origin TESTS)),,$(U
 unit: SUITES = $(UNIT_TESTS)
 PY_TESTS := $(sort $(wildcard skills/tdd/scripts/tests/py/test_*.py))
 
-# The fast tier's admission-bar guard: `unit` alone puts UNIT_GUARD_BIN first on a suite's PATH,
+# The fast tier's admission-bar guard: `unit` puts UNIT_GUARD_BIN first on a suite's PATH,
 # where git and python3 refuse, naming themselves; gh and curl fall through to OFFLINE_BIN's shims,
 # which already refuse any call, named, and log it. A unit suite mocks all four as shell functions,
-# which bash finds before PATH, so only a real process call reaches a guard. `test` leaves the
-# prefix empty and runs the same suites unguarded. OFFLINE_ENV below is a recursive `=`
-# rather than `:=` for this reason: it must read GUARD_PATH per target, when the recipe expands it.
+# which bash finds before PATH, so only a real process call reaches a guard. `test` puts the same
+# guard first only for the suites under tests/unit/, and for no other suite. OFFLINE_ENV below is
+# a recursive `=` rather than `:=` for this reason: it must read GUARD_PATH per target, when the recipe expands it.
 UNIT_GUARD_BIN := $(CURDIR)/skills/tdd/scripts/tests/unit-guard
 unit: GUARD_PATH = $(UNIT_GUARD_BIN):
 test: GUARD_PATH = $$suite_guard

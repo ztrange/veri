@@ -287,4 +287,30 @@ done < "${BASH_SOURCE[0]}"
 
 report "$name"
 
+name="the Makefile's guard comment and CLAUDE.md's fast-tier paragraph say make test guards the suites under $UNIT_DIR/ and no other"
+problems=()
+
+says_scope() {
+  local text="$1" who="$2" place="$3" s
+  text="$(tr '\n' ' ' <<< "$text")"
+  text="${text//. /$'.\n'}"
+  while IFS= read -r s; do
+    [[ "$s" == *"$who"* && "$s" == *"$place"* && "$s" =~ guard|shim|refus &&
+      "$s" =~ no\ other|outside|only ]] && return 0
+  done <<< "$text"
+  return 1
+}
+
+guard_comment="$(awk '/^#/ { b = b substr($0, 2) " "; next } /^UNIT_GUARD_BIN :=/ { print b; exit } { b = "" }' "$ROOT/Makefile")"
+fast_tier="$(awk '/^\*\*`skills\/tdd\/scripts\/tests\/unit\/` is the fast tier\*\*/ { p = 1 } p && /^$/ { exit } p' "$ROOT/CLAUDE.md")"
+
+[[ "$guard_comment" != *"same suites unguarded"* ]] ||
+  problems+=("the Makefile's comment on UNIT_GUARD_BIN still says \`test\` runs the same suites unguarded: $guard_comment")
+says_scope "$guard_comment" '`test`' 'unit' ||
+  problems+=("no sentence of the Makefile's comment on UNIT_GUARD_BIN says \`test\` guards the suites under $UNIT_DIR/ and no other: $guard_comment")
+says_scope "$fast_tier" '`make test`' '' ||
+  problems+=("no sentence of CLAUDE.md's fast-tier paragraph says \`make test\` guards the suites under $UNIT_DIR/ and no other: $(flat "$fast_tier")")
+
+report "$name"
+
 finish
