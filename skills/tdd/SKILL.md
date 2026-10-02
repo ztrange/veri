@@ -1875,6 +1875,9 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   over-budget leaf answers.
 - `ci-timeout` — a readied PR's check was still pending when the Draft PR step's bounded CI
   wait ran out → **system** failure (CI never answered, not the methodology).
+- `ci-conflict` — a readied PR still conflicted with its base branch after the CI step's one
+  rebase, so no workflow could start → **system** failure (CI could not answer, not the
+  methodology).
 - `ci-red` — a readied PR's CI check failed again after a CI repair step → **process**
   failure (CI answered, and the repair did not fix what it said).
 - `suite-red` — the Draft PR step's full run was red again after a `⟦suite-repair⟧` step →

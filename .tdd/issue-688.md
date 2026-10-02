@@ -6,4 +6,4 @@
 - [x] wait-ci.sh, for a CONFLICTING PR whose head already has checks, decides by those checks exactly as today — 0 green, 1 red, 3 pending within the slice, 2 pending past the recorded deadline ⟦criterion 3⟧
 - [ ] a mergeable PR is handled exactly as today in every case wait-ci.test.sh holds ⟦full-suite⟧ ⟦criterion 4⟧
 - [x] SKILL.md's CI step says that on wait-ci.sh exit 2 whose stderr names a conflict the conductor rebases onto origin/<default> through the existing rebase path (rebase verifier, full suite, push under a pinned lease) and waits for CI again, once, and that a second conflict bails with cause ci-conflict ⟦criterion 5⟧
-- [ ] classify-bail.sh classifies ci-conflict as a system failure, and SKILL.md's Bailing list names ci-conflict among the cause tokens a human reads ⟦criterion 6⟧
+- [x] classify-bail.sh classifies ci-conflict as a system failure, and SKILL.md's Bailing list names ci-conflict among the cause tokens a human reads ⟦criterion 6⟧ ⟂ refactor pending
