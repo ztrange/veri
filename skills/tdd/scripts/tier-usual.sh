@@ -29,7 +29,7 @@ log=".tdd/events.jsonl"
 
 # hazard: a quoted heredoc, so an apostrophe in the program is literal where `python3 -c` would end the string.
 
-PYTHONPATH="$lib" exec python3 - "$tier" "$log" <<'PY'
+PYTHONPATH="$(dirname "$lib")/veri" exec python3 - "$tier" "$log" <<'PY'
 import sys
 
 from event_log import read_events

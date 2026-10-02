@@ -2911,6 +2911,7 @@ stub="$ledger_steps_work/stub"
 mkdir -p "$stub"
 cp "$METRICS" "$HERE/../ledger-steps.sh" "$stub/"
 cp -R "$HERE/../lib" "$stub/lib"
+cp -R "$HERE/../veri" "$stub/veri"
 cat > "$stub/lib/ledger.sh" <<'EOF'
 ledger_steps() {
   cat >/dev/null
