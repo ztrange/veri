@@ -96,8 +96,7 @@ if [[ "${1:-}" == start || "${1:-}" == done || "${1:-}" == park ]]; then
       from=running to=merged new_detail="$4" ;;
     park)
       if [[ "${4:-}" == *$'\t'* || "${4:-}" == *$'\n'* ]]; then
-        echo "workqueue.sh: a park reason may not hold a tab or a newline" >&2
-        exit 2
+        refuse "workqueue.sh: a park reason may not hold a tab or a newline"
       fi
       from=running to=parked new_detail="$4" ;;
   esac
