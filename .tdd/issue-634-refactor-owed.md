@@ -1,0 +1,2 @@
+### run-suite.sh, given a tests/py/test_*.py path, runs that file under pytest and exits 0 when every case is green and 1 when a case fails ⟦criterion 7⟧
+- the venv python3 resolution (`${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3`, falling back to PATH's python3) in run-suite.sh duplicates the Makefile's `VENV_DIR` / `py_bin` logic (Makefile:130,150); one shared resolver would mean moving the logic across files, which this phase does not allow
