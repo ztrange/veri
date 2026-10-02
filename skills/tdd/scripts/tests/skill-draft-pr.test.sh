@@ -891,7 +891,6 @@ report "$name"
 
 name="$skill_md's Draft PR step bails on a second red full run keyed on a ⟦suite-repair⟧ line already in the ledger, naming every suite still red (#590)"
 problems=()
-suite_repair_mark='⟦suite-repair⟧'
 
 if step_or_problem '### 4. Draft PR' "how the step recognises a second red full run"; then
   commands="$(section_commands)"
