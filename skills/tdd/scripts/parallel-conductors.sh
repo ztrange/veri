@@ -121,6 +121,7 @@ print_context() {
   while IFS= read -r line; do
     if (( step_done )) && [[ $line == *'"type":"user"'* ]]; then
       if (( context > budget )); then
+        : > "$rc_dir/$1.restart"
         kill -TERM "$2" 2>/dev/null || true
         return 0
       fi
@@ -152,11 +153,34 @@ report() {
   done
   return 0
 }
+launch() {
+  local n="$1"
+  rm -f "$rc_dir/$n"
+  (
+    rm -f ".tdd/conductor-$n.log"
+    VERI_HEARTBEAT="$run_timeout" VERI_TIMEOUT="$run_timeout" VERI_STUCK_RETRIES=0 \
+      "$HERE/supervise.sh" "conductor-$n" env "${caller_env[@]}" "$HERE/run-conductor.sh" "$n" \
+      > /dev/null &
+    sup=$!
+    follow_log "$sup" ".tdd/conductor-$n.log" | print_context "$n" "$sup"
+    wait "$sup" || echo "$?" > "$rc_dir/$n"
+  ) &
+  in_flight[$n]=$!
+}
+
+declare -A restart=()     # issue numbers stopped over budget, to be launched again first
 stopped=""   # set once a bail or kill has stopped new launches: `#<n> bailed` or `#<n> killed`
 plumbing=""  # set once solvable-issues.sh has exited 2
 why=""       # what last kept the loop from launching, for the report's closing line
 while :; do
   while (( ${#in_flight[@]} < 10#$parallel )); do
+    n=""
+    for candidate in "${!restart[@]}"; do n="$candidate"; break; done
+    if [[ -n "$n" ]]; then
+      unset "restart[$n]"
+      launch "$n"
+      continue
+    fi
     [[ -z "$stopped" ]] || break
     (( max_issues == 0 || ${#launched[@]} < max_issues )) || { why="VERI_MAX_ISSUES reached"; break; }
     solvable="$("$HERE/solvable-issues.sh")" && rc=0 || rc=$?
@@ -168,16 +192,7 @@ while :; do
       [[ -n "${launched[$candidate]:-}" ]] || { n="$candidate"; break; }
     done
     [[ -n "$n" ]] || break
-    (
-      rm -f ".tdd/conductor-$n.log"
-      VERI_HEARTBEAT="$run_timeout" VERI_TIMEOUT="$run_timeout" VERI_STUCK_RETRIES=0 \
-        "$HERE/supervise.sh" "conductor-$n" env "${caller_env[@]}" "$HERE/run-conductor.sh" "$n" \
-        > /dev/null &
-      sup=$!
-      follow_log "$sup" ".tdd/conductor-$n.log" | print_context "$n" "$sup"
-      wait "$sup" || echo "$?" > "$rc_dir/$n"
-    ) &
-    in_flight[$n]=$!
+    launch "$n"
     launched[$n]=1
     order+=("$n")
   done
@@ -193,6 +208,11 @@ while :; do
   for n in "${!in_flight[@]}"; do
     kill -0 "${in_flight[$n]}" 2>/dev/null && continue
     unset "in_flight[$n]"
+    if [[ -e "$rc_dir/$n.restart" ]]; then
+      rm -f "$rc_dir/$n.restart"
+      restart[$n]=1
+      continue
+    fi
     got="$(outcome "$n" "$(prs_json)")"
     if [[ -z "$continue_on_bail" && -z "$stopped" ]] && is_failure "$got"; then
       stopped="#$n ${got%% *}"

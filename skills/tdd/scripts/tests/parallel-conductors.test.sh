@@ -302,10 +302,13 @@ gh_beside="$work/gh-beside"
 solvable_fixture "$gh_beside" 7 8
 beside_marks="$work/beside.marks"
 : > "$beside_marks"
+beside_launches="$work/beside.launches"
+: > "$beside_launches"
 beside_stub="$work/claude-beside"
 conductor_stub "$beside_stub" <<STUB
 $(stub_waits "$work/beside.out")
-if [ "\$n" = 7 ]; then
+echo "\$n" >> "$beside_launches"
+if [ "\$n" = 7 ] && [ "\$(grep -c '^7$' "$beside_launches")" -eq 1 ]; then
   echo \$\$ > "$beside_marks.7.pid"
   echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=7 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
   await_context 'context 7 150100'
@@ -313,7 +316,7 @@ if [ "\$n" = 7 ]; then
   echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
   heartbeats 200
   echo after-step-done-7 >> "$beside_marks"
-else
+elif [ "\$n" = 8 ]; then
   i=0
   while [ \$i -lt 200 ] && ! { [ -r "$beside_marks.7.pid" ] && ! kill -0 "\$(cat "$beside_marks.7.pid")" 2>/dev/null; }; do
     i=\$((i + 1)); sleep 0.02
@@ -327,6 +330,27 @@ STUB
 
 run_launcher "$gh_beside" "$beside_stub" "$work/beside.out" VERI_PARALLEL=2 VERI_CONDUCTOR_CTX_BUDGET=100000
 expect_lines "while one conductor is stopped over VERI_CONDUCTOR_CTX_BUDGET at step-done, the conductor running beside it is not stopped and runs to its own end" "$(printf 'before-result-7\n8-outlived-7\nend-8')" "$(cat "$beside_marks")" "$work/beside.out"
+
+gh_again="$work/gh-again"
+solvable_fixture "$gh_again" 7 8
+again_launches="$work/again.launches"
+: > "$again_launches"
+again_stub="$work/claude-again"
+conductor_stub "$again_stub" <<STUB
+echo "\$n" >> "$again_launches"
+if [ "\$n" = 7 ] && [ "\$(grep -c '^7$' "$again_launches")" -eq 1 ]; then
+$(stub_waits "$work/again.out")
+  echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=7 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
+  await_context 'context 7 150100'
+  echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
+  sleep 2
+  exit 0
+fi
+$(ready_pr "$gh_again")
+STUB
+
+run_launcher "$gh_again" "$again_stub" "$work/again.out" VERI_CONDUCTOR_CTX_BUDGET=100000
+expect_lines "a conductor stopped over VERI_CONDUCTOR_CTX_BUDGET is launched again for the same issue before a not-yet-launched solvable issue takes its slot" "$(printf '7\n7\n8')" "$(cat "$again_launches")" "$work/again.out"
 
 gh4="$work/gh4"
 gh_fixture "$gh4" <<'JSON'
