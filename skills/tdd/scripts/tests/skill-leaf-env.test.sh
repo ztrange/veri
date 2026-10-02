@@ -573,13 +573,14 @@ stage_title_recorders() {
 }
 
 scan_shared_recorders() {
-  local stage seen tree first name
-  local recorders=(detach-leaf event build-develop-prompt)
-  stage_recorder shared-recorders-a
-  stage_title_recorders event build-develop-prompt
-  first="$stage"
-  stage_recorder shared-recorders-b
-  stage_title_recorders event build-develop-prompt
+  local stage seen tree first='' tag name
+  local titled=(event build-develop-prompt)
+  local recorders=(detach-leaf "${titled[@]}")
+  for tag in a b; do
+    stage_recorder "shared-recorders-$tag"
+    stage_title_recorders "${titled[@]}"
+    first="${first:-$stage}"
+  done
   for name in "${recorders[@]}"; do
     [[ -L "$first/$name.sh" && -L "$stage/$name.sh" ]] ||
       problems+=("$name.sh: a stage holds its own recorder, want a link to the one written once per suite run")
