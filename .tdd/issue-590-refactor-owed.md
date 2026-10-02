@@ -1,2 +1,4 @@
 ### add-ledger-step.sh inserts a text carrying ⟦suite-repair⟧ without an ⟦added⟧ mark and exits 0 with no ## Owed steps section, even when the ledger's ⟦added⟧ count already equals VERI_STEP_GROWTH, VERI_STEP_GROWTH=0 included ⟦criterion 1⟧
 - rename `repair` to `ci_repair` in skills/tdd/scripts/add-ledger-step.sh:34. Since `suite_repair` was added at :35, the name `repair` only covers the CI mark, so it now reads as if it meant either repair.
+### SKILL.md's red-full-run paragraph gives the add-ledger-step.sh command appending a repair step carrying ⟦suite-repair⟧ that names the failing suite and its FAIL - line, and the git commit of the ledger ⟦criterion 5⟧
+- factor the repeated inline anchor expression (`$S/ledger-steps.sh … | awk -F'\t' '$2 == "done"' | tail -1 | cut -f7-`) in SKILL.md's command blocks into one variable — a convention used across the whole file, beyond this cycle's code
