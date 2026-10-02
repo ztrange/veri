@@ -296,4 +296,28 @@ done
 
 report "stop-run.sh never signals the pid in .tdd/conductor.pid"
 
+problems=()
+label=""
+rm -f "$run/.tdd/stop"
+
+listed="$work/listed"; mkdir -p "$listed/lib"
+cp "$STOP" "$listed/stop-run.sh"
+cp "$HERE/../lib/exit-contract.sh" "$HERE/../lib/main-working-tree.sh" "$listed/lib/"
+printf '%s\n' 'STOP_MODES=(at-ledger at-leaf now at-step)' > "$listed/lib/stop-modes.sh"
+
+out="$(cd "$repo" && "$listed/stop-run.sh" --mode at-step 5 2>"$work/stderr")" && code=0 || code=$?
+err="$(cat "$work/stderr")"
+check_code 0
+check_stop "$run" at-step
+rm -f "$run/.tdd/stop"
+
+out="$(cd "$repo" && "$listed/stop-run.sh" --mode bogus 5 2>"$work/stderr")" && code=0 || code=$?
+err="$(cat "$work/stderr")"
+check_code 2
+[[ "${err%%$'\n'*}" == "stop-run: unknown mode — want at-ledger, at-leaf or now: 'bogus'" ]] ||
+  note "want today's unknown-mode refusal first on stderr, got '$err'"
+check_no_stop "$run"
+
+report "#683: stop-run.sh accepts the modes lib/stop-modes.sh lists, and still refuses one outside it with today's message"
+
 finish
