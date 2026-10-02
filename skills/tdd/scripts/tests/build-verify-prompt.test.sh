@@ -11,6 +11,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 BUILD="$HERE/../build-verify-prompt.sh"
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/probe-order.sh"
 
 work="$(scratch_dir)"
 
@@ -299,28 +300,6 @@ prompt_says "$green" "verify-green never says the restore comes before reporting
   -iE -e "before[^.]{0,60}report"
 [[ -z "$problems" ]] && ok \
   || no "verify-green tells the verifier to remove the code, run the suite, and restore the tree before reporting (${problems#; })"
-
-offset_of() { local at; at="$(grep -obiE -e "$2" <<<"$1" | cut -d: -f1)"; printf '%s' "${at%%$'\n'*}"; }
-
-probe_order() {  # probe_order <label> <prompt> <mutation regex> <run-under-mutation regex>
-  local label="$1" line cp_at mutate_at run_at mv_at
-  line="$(tr '\n' ' ' <<<"$2")"
-  cp_at="$(offset_of "$line" 'cp <file> <file>\.orig')"
-  mutate_at="$(offset_of "$line" "$3")"
-  run_at="$(offset_of "$line" "$4")"
-  mv_at="$(offset_of "$line" 'mv <file>\.orig <file>')"
-  [[ -n "$cp_at" ]] || problems="$problems; $label never names cp <file> <file>.orig"
-  [[ -n "$mv_at" ]] || problems="$problems; $label never names mv <file>.orig <file>"
-  [[ -n "$mutate_at" ]] || problems="$problems; $label no longer gives the mutation instruction"
-  [[ -n "$run_at" ]] || problems="$problems; $label no longer gives the run under mutation"
-  if [[ -n "$cp_at" && -n "$mutate_at" ]] && (( cp_at > mutate_at )); then
-    problems="$problems; cp <file> <file>.orig comes after the mutation instruction"
-  fi
-  if [[ -n "$mv_at" && -n "$run_at" ]] && (( mv_at < run_at )); then
-    problems="$problems; mv <file>.orig <file> comes before the run under mutation"
-  fi
-  return 0
-}
 
 problems=""
 probe_order verify-green "$green" 'remove the code yourself' \
