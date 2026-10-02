@@ -53,7 +53,10 @@ known=0
 for listed in "${STOP_MODES[@]}"; do
   [[ "$mode" == "$listed" ]] && known=1
 done
-(( known == 1 )) || refuse "stop-run: unknown mode — want at-ledger, at-leaf or now: '$mode'"
+if (( known == 0 )); then
+  wanted="${STOP_MODES[*]:0:${#STOP_MODES[@]}-1}"
+  refuse "stop-run: unknown mode — want ${wanted// /, } or ${STOP_MODES[*]: -1}: '$mode'"
+fi
 
 if [[ -n "$issue" ]] && (( all == 1 )); then
   refuse "stop-run: name an issue or --all, not both"
