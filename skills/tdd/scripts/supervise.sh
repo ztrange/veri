@@ -212,6 +212,7 @@ if [[ -s "$ownerfile" ]]; then
   read -r owner_pid owner_name < "$ownerfile"
   if kill -0 "$owner_pid" 2>/dev/null; then
     echo "supervise: refusing to launch $name: leaf ${owner_name:-?} (pid $owner_pid) is still alive in this worktree" >&2
+    [[ "$owner_name" == "$name" ]] || printf '2\n' > "$exitfile"
     exit 2
   fi
 fi

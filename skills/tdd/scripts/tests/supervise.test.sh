@@ -917,6 +917,16 @@ samex_final="$(cat "$samex_work/.tdd/revise-green-1.exit" 2>/dev/null || echo '<
   && [[ "$samex_wait" == 3 ]] && [[ "$samex_final" == 1 ]]; } && ok \
   || no "#618: a launch refused because a leaf of the same name is alive writes no .exit for that name, and the live leaf's own code lands there when it finishes (first leaf pid=${samex_leaf:-<never started>}; refusal code=$samex_code want 2; .exit after refusal='$samex_after_refusal' want <missing>; wait-leaf.sh while live=$samex_wait want 3; .exit after the live leaf finished='$samex_final' want 1; stderr='$(cat "$samex_work/err")')"
 
+refx_work="$work/live-owner-refused-exit"
+mkdir -p "$refx_work/.tdd"
+printf '%s develop-green\n' "$$" > "$refx_work/.tdd/leaf.owner"
+( cd "$refx_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" verdict-green "$stub/leaf-second" ) >/dev/null 2>"$refx_work/err"
+refx_code=$?
+refx_exit="$(cat "$refx_work/.tdd/verdict-green.exit" 2>/dev/null || echo '<missing>')"
+{ [[ "$refx_code" == 2 ]] && [[ "$refx_exit" == 2 ]]; } && ok \
+  || no "#618: a launch refused because a leaf under another name is alive exits 2 and writes 2 to .tdd/<refused-name>.exit (code=$refx_code want 2; verdict-green.exit='$refx_exit' want 2; stderr='$(cat "$refx_work/err")')"
+
 woke_with_own_exit() {
   local susp_rc
   susp_rc="$(cat "$work/.tdd/$1.rc" 2>/dev/null || echo '<missing>')"
