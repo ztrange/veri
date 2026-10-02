@@ -28,62 +28,7 @@ step_of_total() {  # step_of_total <ledger> -> "<n> of <m>"
 }
 
 run_activity() {  # run_activity <events.jsonl> <conductor.pid> <timeout> -> "<phase>  <actor>  <leaf> <n>s  attempt <k>  $<d>  <t> tokens  <state>"
-  PYTHONPATH="$veri:$lib" python3 - "$1" "$2" "$3" <<'PY'
-import json, os, sys, time
-from event_log import read_events, usage_totals
-last, attempts = None, 0
-newest, end = None, {}
-events = read_events(sys.argv[1])
-dollars, tokens = usage_totals(events)
-for line in events:
-    newest = line
-    if line.get("event") == "launch":
-        if line.get("step") != (last or {}).get("step"):
-            attempts = 0
-        last = line
-        attempts += 1
-    elif line.get("event") in ("done", "bail", "stop"):
-        end = line
-    elif line.get("event") == "resume":
-        end = {}
-
-
-def conductor_answers(pid_file):
-    try:
-        with open(pid_file) as f:
-            os.kill(int(f.read().strip()), 0)
-        return True
-    except (OSError, ValueError):
-        return False
-
-
-now = int(time.time())
-if end.get("event") == "done":
-    state = "done %s" % end.get("pr", "")
-elif end.get("event") == "stop":
-    state = "stopped %s" % end.get("mode", "")
-elif end.get("event") == "bail":
-    state = "bailed %s %s" % (end.get("phase", ""), end.get("classification", ""))
-elif newest is not None and now - int(newest["ts"]) > int(sys.argv[3]) \
-        and not conductor_answers(sys.argv[2]):
-    state = "stale"
-else:
-    state = "running"
-if last is None:
-    sys.exit()
-if os.environ.get("STATUS_JSON") == "1":
-    print(json.dumps({"phase": last.get("phase", ""), "actor": last.get("actor", ""),
-                      "leaf": last.get("name", ""), "elapsed_seconds": now - int(last["ts"]),
-                      "attempts": attempts, "dollars": round(dollars, 2), "tokens": tokens,
-                      "state": state.split(" ")[0], "pr": end.get("pr", ""),
-                      "bail_phase": end.get("phase", ""),
-                      "classification": end.get("classification", ""),
-                      "stop_mode": end.get("mode", "")}))
-else:
-    print("%s  %s  %s %ds  attempt %d  $%.2f  %d tokens  %s" % (last.get("phase", ""),
-          last.get("actor", ""), last.get("name", ""), now - int(last["ts"]),
-          attempts, dollars, tokens, state))
-PY
+  python3 "$veri/status.py" run-activity "$1" "$2" "$3"
 }
 
 scope_totals() {  # scope_totals <name> <solvable> <events.jsonl>... -> "scope <name>  attempted <a>  done <d>  bailed <b>  wall <w>s  $<x>  solvable <s>"
