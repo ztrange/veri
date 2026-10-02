@@ -731,12 +731,15 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    find a seam and surround the behaviour with tests first — and run
    `$S/coverage-blocker.sh <n>`, which files the coverage issue and blocks this one on it,
    so the queue cannot retake it only to refuse again.
+   For a `type-only` step, save to `.tdd/issue-<n>-proof` the text `cover-outcome.sh`
+   printed after `type-only: ` — the proof command the transform is checked against.
    A refactor-kind step therefore runs **Cover → Transform → Verify**, not Red → Green →
    Refactor. After Cover, a transform leaf applies the step's one named refactoring and
    commits it; then `$S/transform-touches-tests.sh <base-sha>` reads every commit since the
    step's base sha, and exit 1 rejects the transform — a refactoring that edits a test file
    has moved the goalposts — while exit 2 is no answer. A `type-only` step then reruns its
-   proof command after the transform commits: a non-zero exit rejects the transform as
+   proof command after the transform commits — the conductor itself reruns the saved command
+   in `.tdd/issue-<n>-proof`, not a leaf: a non-zero exit rejects the transform as
    `transform-touches-tests.sh` exit 1 does. The blind `transform` verifier reads
    the diff from the same base sha. An abandoned refactor-kind step has no untracked test to
    clean — its transform commits are the work — so it is abandoned by resetting to its base

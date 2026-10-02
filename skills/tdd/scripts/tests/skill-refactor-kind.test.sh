@@ -12,6 +12,8 @@
 #   5. SKILL.md's Draft PR step titles a refactor-labelled run's PR refactor: — see case 5's comment.
 #   6. SKILL.md's Cover step reads the report through cover-outcome.sh — see case 6's name.
 #   7. SKILL.md reruns a type-only step's proof command after its transform — see case 7's name.
+#   8. SKILL.md keeps a type-only step's proof command in a run file the conductor reruns — see
+#      case 8's name.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -185,6 +187,22 @@ else
   grep -E 'transform-touches-tests\.sh[^.]{0,40}exit 1' <<<"$rerun_near" > /dev/null ||
     problems+=("$skill_md never says the rejection is the one transform-touches-tests.sh exit 1 makes")
 fi
+report "$name"
+
+name="#679 $skill_md keeps a type-only step's proof command — the text cover-outcome.sh printed after 'type-only: ' — in a run file between Cover and Transform, and the conductor itself reruns that saved command"
+problems=()
+
+kept_near="$(window "$skill_text" 'type-only: ')"
+if [[ -z "$kept_near" ]]; then
+  problems+=("$skill_md never names the text cover-outcome.sh prints after 'type-only: ', so where the proof command comes from between Cover and Transform is unsaid")
+else
+  grep -F 'cover-outcome.sh' <<<"$kept_near" > /dev/null ||
+    problems+=("$skill_md names 'type-only: ' without saying cover-outcome.sh printed it")
+  grep -E '(save|write|keep|store)[^.]{0,80}\.tdd/[a-z0-9<>_.-]+' <<<"$kept_near" > /dev/null ||
+    problems+=("$skill_md never says the proof command is saved to a run file under .tdd/")
+fi
+grep -E 'conductor[^.]{0,40}(rerun|re-run|runs? again)[^.]{0,80}(saved|\.tdd/)' <<<"$skill_text" > /dev/null ||
+  problems+=("$skill_md never says the conductor itself reruns the saved proof command")
 report "$name"
 
 finish
