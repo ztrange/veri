@@ -173,18 +173,21 @@ name="ci.yml gates: python from actions/setup-python at 3.12 with pip's cache ke
 problems=()
 
 gates="$(job_block "$CI_YML" gates)"
-grep -E '^    runs-on:[ ]*ubuntu-latest[ ]*$' > /dev/null <<< "$gates" \
-  || problems+=("gates job does not run on ubuntu-latest")
-grep -E '^    timeout-minutes:[ ]*[0-9]+' > /dev/null <<< "$gates" \
-  || problems+=("gates job declares no job-level timeout-minutes")
-grep -E '^[ ]+(- )?uses:[ ]*actions/setup-python@' > /dev/null <<< "$gates" \
-  || problems+=("gates job has no actions/setup-python step")
-grep -E "^[ ]+python-version:[ ]*[\"']?3\.12[\"']?[ ]*$" > /dev/null <<< "$gates" \
-  || problems+=("setup-python is not pinned to python-version 3.12")
-grep -E "^[ ]+cache:[ ]*[\"']?pip[\"']?[ ]*$" > /dev/null <<< "$gates" \
-  || problems+=("setup-python does not declare cache: pip")
-grep -E "^[ ]+cache-dependency-path:[ ]*[\"']?requirements-dev\.txt[\"']?[ ]*$" > /dev/null <<< "$gates" \
-  || problems+=("pip's cache is not keyed on requirements-dev.txt")
+gates_has() {
+  grep -E "$2" > /dev/null <<< "$gates" || problems+=("$1")
+}
+gates_has "gates job does not run on ubuntu-latest" \
+  '^    runs-on:[ ]*ubuntu-latest[ ]*$'
+gates_has "gates job declares no job-level timeout-minutes" \
+  '^    timeout-minutes:[ ]*[0-9]+'
+gates_has "gates job has no actions/setup-python step" \
+  '^[ ]+(- )?uses:[ ]*actions/setup-python@'
+gates_has "setup-python is not pinned to python-version 3.12" \
+  "^[ ]+python-version:[ ]*[\"']?3\.12[\"']?[ ]*$"
+gates_has "setup-python does not declare cache: pip" \
+  "^[ ]+cache:[ ]*[\"']?pip[\"']?[ ]*$"
+gates_has "pip's cache is not keyed on requirements-dev.txt" \
+  "^[ ]+cache-dependency-path:[ ]*[\"']?requirements-dev\.txt[\"']?[ ]*$"
 install_at="$(grep -m 1 -nE '^[ ]+run:[ ]*make install-dev[ ]*$' <<< "$gates" | cut -d: -f1)"
 test_at="$(grep -m 1 -nE '^[ ]+run:[ ]*make test[ ]*$' <<< "$gates" | cut -d: -f1)"
 if [[ -z "$install_at" ]]; then
