@@ -11,4 +11,4 @@
 - [x] SKILL.md reruns a type-only step's proof command after its transform commits, a non-zero exit rejecting the transform as transform-touches-tests.sh exit 1 does ⟦criterion 8⟧
 - [x] SKILL.md says where a type-only step's proof command is kept between Cover and Transform (the text cover-outcome.sh printed after `type-only: `, saved to a run file) and that the conductor itself reruns that saved command after the transform commits ⟦added⟧ ⟦criterion 8⟧
 - [x] SKILL.md's Scope & plan tells a refactor-kind planner to fold a deletion into the step that makes the code dead, never leaving a no-op for a later step to delete ⟦criterion 9⟧
-- [x] the refactor plan verifier `_verify-plan-refactor.md` REJECTs a step that leaves a no-op in place for a later step to delete ⟦criterion 10⟧ ⟂ refactor pending
+- [x] the refactor plan verifier `_verify-plan-refactor.md` REJECTs a step that leaves a no-op in place for a later step to delete ⟦criterion 10⟧
