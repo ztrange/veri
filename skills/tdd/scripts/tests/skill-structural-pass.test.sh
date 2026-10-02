@@ -50,6 +50,7 @@ fi
 report "$name"
 
 pass_text="${section#*one structural pass}"
+squeezed="$(tr -s ' ' <<<"$pass_text")"
 touches_phrase='transform-touches-tests.sh <base-sha>'
 verifier_phrase='transform verifier against <base-sha>'
 
@@ -202,7 +203,6 @@ name="#596: $skill_md's structural pass runs whenever refactor-owed.sh list prin
 problems=()
 
 if ! missing_pass 'whether it may be skipped for cost'; then
-  squeezed="$(tr -s ' ' <<<"$pass_text")"
   require 'whenever refactor-owed.sh list prints a candidate' "$squeezed" \
     "$skill_md's structural pass never says it runs whenever refactor-owed.sh list prints a candidate"
   require 'never skips or shortens it for cost' "$squeezed" \
@@ -219,7 +219,6 @@ name="#596: $skill_md's structural pass says stopped= takes only candidates-done
 problems=()
 
 if ! missing_pass 'which reasons its mark may carry'; then
-  squeezed="$(tr -s ' ' <<<"$pass_text")"
   require 'stopped= takes only candidates-done, budget-spent or nothing-structural' "$squeezed" \
     "$skill_md's structural pass never says stopped= takes only candidates-done, budget-spent or nothing-structural"
   require 'budget-spent is marked only when refactor-budget.sh --issue exited 3' "$squeezed" \
