@@ -199,7 +199,7 @@ no flag, VERI_REFACTOR_BUDGET unset, count 5|VERI_ISSUE_REFACTOR_BUDGET=3|5|3|5/
 PROBES
 report "$name"
 
-name="#596 no file outside docs/ and .tdd/ states 10 as the VERI_ISSUE_REFACTOR_BUDGET default"
+name="#596 no file outside the docs and .tdd trees states 10 as the VERI_ISSUE_REFACTOR_BUDGET default"
 problems=()
 issue_var=VERI_ISSUE_REFACTOR_BUDGET
 old_default=10
