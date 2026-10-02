@@ -27,13 +27,7 @@ UNIT_GUARD_BIN := $(CURDIR)/skills/tdd/scripts/tests/unit-guard
 unit: GUARD_PATH = $(UNIT_GUARD_BIN):
 test: GUARD_PATH = $$suite_guard
 
-# The count-line guard — COUNT_LINE, the ERE every suite's last line must match, and COUNTLESS,
-# the printf format a suite lacking one is told — is defined once, in COUNT_LINE_GUARD, and read
-# from there by `make test` below and by skills/tdd/scripts/run-suite.sh over a single suite (#418).
 COUNT_LINE_GUARD := skills/tdd/scripts/lib/count-line-guard.sh
-count_line_guard = $(shell . "$(CURDIR)/$(COUNT_LINE_GUARD)" 2>/dev/null && printf '%s' "$$$(1)")
-COUNT_LINE := $(call count_line_guard,COUNT_LINE)
-COUNTLESS := $(call count_line_guard,COUNTLESS)
 
 # A suite's exit code alone is not trusted (#157). Every suite here declares `set -u`, and
 # under it a word rather than a number inside `[[ … -le … ]]` is read as a variable name; an
