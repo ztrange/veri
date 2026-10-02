@@ -10,3 +10,5 @@
 - test-only | in skill-refactor-kind.test.sh case 6, `grep -E 'cover comment|comment'` has a redundant alternative, since `comment` already matches everything `cover comment` does; reduce it to `comment`
 ### SKILL.md reruns a type-only step's proof command after its transform commits, a non-zero exit rejecting the transform as transform-touches-tests.sh exit 1 does ⟦criterion 8⟧
 - test-only | skills/tdd/scripts/tests/skill-refactor-kind.test.sh — cases 6 and 7 repeat the same shape (`window` over `$skill_text`, then a run of `grep -E … || problems+=(…)` checks). A shared helper could replace that, but it would change only files under `tests/`
+### SKILL.md says where a type-only step's proof command is kept between Cover and Transform (the text cover-outcome.sh printed after `type-only: `, saved to a run file) and that the conductor itself reruns that saved command after the transform commits ⟦added⟧ ⟦criterion 8⟧
+- move the "For a `type-only` step, save to `.tdd/issue-<n>-proof` …" sentence (SKILL.md:734-735) up into the exit 3 clause it belongs to; it now sits after the exit 1 / coverage-blocker remedy, which reads as if it follows a refusal
