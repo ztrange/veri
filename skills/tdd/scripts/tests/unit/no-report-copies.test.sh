@@ -17,10 +17,16 @@ source "$TESTS/lib/harness.sh"
 counter_re='^[[:space:]]*pass=0[[:space:]]+fail=0'
 declare -A COUNTER_EXEMPT=()
 
+tree_grep() {
+  local dir="$1"
+  shift
+  (cd "$dir" && shopt -s nullglob && grep -nE "$@" ./*.sh ./unit/*.sh) \
+    | grep -v '^\./unit/harness\.test\.sh:'
+}
+
 counter_hits() {
   local hits hit file rest lineno text
-  hits="$(cd "$1" && shopt -s nullglob && grep -nE "$counter_re" \
-    ./*.sh ./unit/*.sh | grep -v '^\./unit/harness\.test\.sh:')"
+  hits="$(tree_grep "$1" -e "$counter_re")"
   while IFS= read -r hit; do
     [[ -n "$hit" ]] || continue
     file="${hit%%:*}"
@@ -35,10 +41,9 @@ counter_hits() {
 
 scaffolding_hits() {
   local hits hit file rest
-  hits="$(cd "$1" && grep -nE \
+  hits="$(tree_grep "$1" \
     -e '^[[:space:]]*(function[[:space:]]+)?(ok|no)[[:space:]]*\(\)' \
-    -e '^[[:space:]]*(echo|printf)[[:space:]].*\$(\{pass\}|pass)[^"]* passed, .*failed' \
-    ./*.sh ./unit/*.sh | grep -v '^\./unit/harness\.test\.sh:')"
+    -e '^[[:space:]]*(echo|printf)[[:space:]].*\$(\{pass\}|pass)[^"]* passed, .*failed')"
   while IFS= read -r hit; do
     [[ -n "$hit" ]] || continue
     file="${hit%%:*}"
