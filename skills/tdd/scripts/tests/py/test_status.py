@@ -1,10 +1,8 @@
 """In-process cases for veri/status.py, the module status.sh is a shim over."""
 import ast
 import importlib
-import importlib.util
 import json
 import pathlib
-import shutil
 import subprocess
 import sys
 import time
@@ -434,40 +432,6 @@ def test_main_takes_the_run_activity_and_scope_totals_lines_from_event_logs_one_
            "scope cogs-label  attempted 1  done 0  bailed 0  wall 77s  $3.00  solvable 0\n")
 
 
-def test_main_reads_the_event_log_through_veri_event_log_py_not_a_lib_event_log_py(tmp_path, monkeypatch, capsys):
-    tree = tmp_path / "scripts"
-    shutil.copytree(SCRIPTS / "veri", tree / "veri", ignore=shutil.ignore_patterns("__pycache__"))
-    (tree / "lib").mkdir()
-    shutil.copy(SCRIPTS / "veri" / "event_log.py", tree / "lib" / "event_log.py")
-    (tree / "veri" / "event_log.py").write_text(
-        "def read_events(path):\n"
-        "    return [{'ts': 1000, 'event': 'launch', 'step': 'decoy step', 'phase': 'red',\n"
-        "             'actor': 'developer', 'name': 'decoy-leaf'},\n"
-        "            {'ts': 1077, 'event': 'usage'}]\n\n\n"
-        "def usage_totals(events):\n"
-        "    return 3.0, 1234\n")
-    run = tmp_path / ".tdd" / "wt" / "9"
-    (run / ".tdd").mkdir(parents=True)
-    (run / ".tdd" / "issue-9.md").write_text("# Plan for #9 — cogs mesh\n\n- [x] a cog exists\n- [ ] two cogs mesh\n")
-    write_events(run / ".tdd" / "events.jsonl", [lamp_ev(9700, "9", "launch", step="a cog exists", name="develop-red")])
-    fake_git(monkeypatch, tmp_path, {str(run): "tdd/9-cogs-mesh"}, lambda scope: (3, ""))
-    at_ten_thousand(monkeypatch)
-    monkeypatch.setattr(sys, "path", [str(tree / "veri")] + [p for p in sys.path if p != str(SCRIPTS / "veri")])
-    for name in ("event_log", "ledger"):
-        monkeypatch.delitem(sys.modules, name, raising=False)
-    spec = importlib.util.spec_from_file_location("copied_status", tree / "veri" / "status.py")
-    copied = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(copied)
-
-    code = copied.main(["--scope", "cogs-label"])
-    out = capsys.readouterr().out
-
-    assert (code, out) == (
-        0, "#9  cogs mesh  tdd/9-cogs-mesh  step 2 of 2  red  developer  decoy-leaf 9000s  attempt 1  "
-           "$3.00  1234 tokens  stale\n"
-           "scope cogs-label  attempted 1  done 0  bailed 0  wall 77s  $3.00  solvable 0\n")
-
-
 def test_main_resolves_the_main_working_tree_as_the_first_worktree_git_lists_as_lib_main_working_tree_sh_does(tmp_path, monkeypatch, capsys, status):
     main_tree, linked = tmp_path / "main", tmp_path / "linked"
     for tree, issue, title in ((main_tree, "5", "lamps glow"), (linked, "7", "bells ring")):
@@ -557,3 +521,43 @@ def test_no_case_in_this_suite_calls_a_function_of_veri_status_other_than_main()
                     and node.func.attr != "main"})
 
     assert calls == []
+
+
+MODULE_CASES = {
+    "tier-usual.test.sh": "tier-usual.sh and metrics.sh read the event log through veri/event_log.py",
+    "blocked-by.test.sh": "blocked_by is a module of scripts/veri/",
+    "json-documents.test.sh": "json_documents is a module of scripts/veri/",
+    "leaf-log.test.sh": "leaf_log is a module of scripts/veri/",
+}
+
+MODULE_SUITE_SURVIVORS = {
+    "tier-usual.test.sh": [
+        "tier-usual.sh <tier>: the usual is the median of that tier's last 10 test-run events' seconds",
+    ],
+    "blocked-by.test.sh": [
+        "blocked_by.blockers reads both the #<n> form and the full https://github.com/<owner>/<name>/issues/<n> URL",
+        "blocked_by.blockers returns no blockers for a section reading None.",
+        "blocked_by.blockers ignores another repository's issue URL when a slug is given",
+        "blocked_by.blockers stops reading the section at the next ## heading",
+        "solvable-issues.sh takes its blocker parsing from the blocked-by module rather than defining its own",
+        "a caller that is not solvable-issues.sh imports the blocked-by module and gets its answers",
+    ],
+}
+
+
+def test_the_is_a_module_of_scripts_veri_cases_are_gone_and_the_suites_output_cases_remain():
+    tests = SCRIPTS / "tests"
+
+    def text(name):
+        path = tests / name
+        return path.read_text() if path.exists() else ""
+
+    kept = [suite for suite, case in MODULE_CASES.items() if case in text(suite)]
+    defined = {node.name for node in ast.walk(ast.parse(pathlib.Path(__file__).read_text()))
+               if isinstance(node, ast.FunctionDef)}
+    if "test_main_reads_the_event_log_through_veri_event_log_py_not_a_lib_event_log_py" in defined:
+        kept.append("test_status.py")
+    lost = [case for suite, cases in MODULE_SUITE_SURVIVORS.items() for case in cases
+            if case not in text(suite)]
+
+    assert (kept, lost) == ([], [])
