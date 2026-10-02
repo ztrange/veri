@@ -38,9 +38,12 @@ some existing test goes red when that behaviour breaks. Write **NO** production 
 6. Answer `COVERED: unreachable` only for a step that only deletes code no caller reaches,
    with a `PROOF:` naming every caller and why none reaches the code: none exists,
    every caller passes a no-op, or the value is never read.
+7. Answer `COVERED: type-only` only for a step that changes only types, with a `PROOF:`
+   that is the type-check command you ran green: `npx tsc --noEmit`, `mypy`, or the
+   repository's own.
 
 ### Report (last lines of your output)
 
-COVERED: yes | no | unreachable
+COVERED: yes | no | unreachable | type-only
 CAUGHT_BY: <the test that went red under the mutation, or NONE on no>
 MUTATION: <the edit you made, in one line>
