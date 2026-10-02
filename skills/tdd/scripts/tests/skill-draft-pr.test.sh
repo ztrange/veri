@@ -92,6 +92,8 @@
 #  33. SKILL.md's Draft PR step answers a red full run with an `add-ledger-step.sh` command
 #      appending a repair step marked `⟦suite-repair⟧` that names the failing suite and its
 #      `FAIL -` line, then a `git add` and `git commit` of the ledger.
+#  34. SKILL.md's Draft PR step bails on a second red full run with a command keyed on a
+#      `⟦suite-repair⟧` line already in the ledger, and still names every suite still red.
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -884,6 +886,21 @@ if step_or_problem '### 4. Draft PR' "how the step appends a full-suite repair s
     awk -v from="$at" 'NR > from && /^git add [.]tdd\/issue-<n>[.]md/ { added = 1 } NR > from && /^git commit / { found = added; exit } END { exit !found }' <<< "$commands" ||
       problems+=("no command line of $skill_md's Draft PR step adds and commits the ledger after appending the $suite_repair_mark step")
   fi
+fi
+report "$name"
+
+name="$skill_md's Draft PR step bails on a second red full run keyed on a ⟦suite-repair⟧ line already in the ledger, naming every suite still red (#590)"
+problems=()
+suite_repair_mark='⟦suite-repair⟧'
+
+if step_or_problem '### 4. Draft PR' "how the step recognises a second red full run"; then
+  commands="$(section_commands)"
+  keyed="$(awk -v mark="$suite_repair_mark" '/^[^#]*[$]s\/event[.]sh bail / && index($0, mark) && index($0, ".tdd/issue-<n>.md") { print; exit }' <<< "$commands")"
+  [[ -n "$keyed" ]] ||
+    problems+=("no command line of $skill_md's Draft PR step bails on a $suite_repair_mark line already in .tdd/issue-<n>.md, so a second red full run is recognised only in prose")
+  second="$(first_record "$records" -wF 'bail' -E 'second red|red again' -F 'repair step')"
+  grep -E 'every (suite still red|red suite|failing suite|still-red suite)' > /dev/null <<< "$second" ||
+    problems+=("$skill_md's Draft PR step's second-red bail no longer names every suite still red: $(printf '%.120s' "$second")")
 fi
 report "$name"
 

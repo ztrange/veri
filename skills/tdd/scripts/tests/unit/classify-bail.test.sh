@@ -12,6 +12,7 @@
 #   classify-bail.sh step-too-big         → first stdout line `process`, exit 0
 #   classify-bail.sh rebase-unresolved    → first stdout line `process`, exit 0
 #   classify-bail.sh uncovered            → first stdout line `process`, exit 0
+#   classify-bail.sh suite-red            → first stdout line `process`, exit 0
 #   classify-bail.sh <unrecognised>       → error on stderr, exit non-zero
 #
 # Run: scripts/tests/unit/classify-bail.test.sh
@@ -86,5 +87,7 @@ else
 fi
 
 check "uncovered is process" uncovered 0 process
+
+check "suite-red is process" suite-red 0 process
 
 finish
