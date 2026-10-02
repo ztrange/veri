@@ -26,13 +26,15 @@ require_args 1 "$@"
 suite="$1"
 
 ROOT="$(cd "$HERE/../../.." && pwd)"
-if [[ -f "$HERE/lib/count-line-guard.sh" ]]; then
-  source "$HERE/lib/count-line-guard.sh"
+guard="$HERE/lib/count-line-guard.sh"
+if [[ -f "$guard" ]]; then
+  source "$guard"
 else
+  guard="$ROOT/Makefile"
   eval "$(make -s --no-print-directory -C "$ROOT" count-line-guard 2>/dev/null)"
 fi
 [[ -n "${COUNT_LINE:-}" && -n "${COUNTLESS:-}" ]] || {
-  echo "run-suite.sh: could not read the count-line guard from $ROOT/Makefile" >&2
+  echo "run-suite.sh: could not read the count-line guard from $guard" >&2
   exit 2
 }
 
