@@ -276,6 +276,24 @@ Steps the run grew carry ⟦added⟧
 check "#660: a prose line and an Owed steps bullet quoting ⟦added⟧ are not counted toward VERI_STEP_GROWTH" \
   "$code" "$want"
 
+seed_lines '- [ ] port status case a ⟦replaces-case⟧ ⟦criterion 1⟧' \
+  '- [ ] port status case b ⟦replaces-case⟧ ⟦criterion 1⟧' \
+  '- [ ] port status case c ⟦replaces-case⟧ ⟦added⟧ ⟦criterion 1⟧'
+VERI_STEP_GROWTH=2 "$ADD" "$led" after 'port status case c' 'one more'; code1=$?
+VERI_STEP_GROWTH=2 "$ADD" "$led" after 'port status case c' 'and another'; code2=$?
+want='# Plan for #42
+
+- [ ] port status case a ⟦replaces-case⟧ ⟦criterion 1⟧
+- [ ] port status case b ⟦replaces-case⟧ ⟦criterion 1⟧
+- [ ] port status case c ⟦replaces-case⟧ ⟦added⟧ ⟦criterion 1⟧
+- [ ] one more ⟦added⟧ ⟦criterion 1⟧
+
+## Owed steps
+
+- and another'
+check_code "a ⟦replaces-case⟧ step counts against VERI_STEP_GROWTH only when it is also ⟦added⟧ (code1=$code1)" \
+  "$code2" 1 "$want"
+
 stub="$work/stub"
 stub_script
 cat > "$stub/lib/ledger.sh" <<'EOF'
