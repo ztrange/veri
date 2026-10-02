@@ -35,16 +35,6 @@ count_line_guard = $(shell . "$(CURDIR)/$(COUNT_LINE_GUARD)" 2>/dev/null && prin
 COUNT_LINE := $(call count_line_guard,COUNT_LINE)
 COUNTLESS := $(call count_line_guard,COUNTLESS)
 
-# count-line-guard — print those two definitions as shell assignments, for run-suite.sh to
-# eval. make is asked rather than the Makefile read, because the value of a make variable is
-# make's to say: `$$` above is an escape, and a reader parsing the line out with sed would have
-# to re-implement that and every other expansion to arrive at the string grep is actually
-# handed. Nothing in the repository's own test or docs lanes depends on this target; it exists
-# so the guard has one home.
-.PHONY: count-line-guard
-count-line-guard:
-	@printf "COUNT_LINE='%s'\nCOUNTLESS='%s'\n" '$(COUNT_LINE)' '$(COUNTLESS)'
-
 # A suite's exit code alone is not trusted (#157). Every suite here declares `set -u`, and
 # under it a word rather than a number inside `[[ … -le … ]]` is read as a variable name; an
 # unset name kills the script, and a script killed that way exits with the status of the

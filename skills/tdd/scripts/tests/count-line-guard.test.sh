@@ -1179,4 +1179,15 @@ probe_make_refuses_through_the_runner
 
 report "$name"
 
+name="make has no count-line-guard target to answer: asked for one, it says there is no rule for it (#683)"
+problems=()
+
+guard_target_out="$(make -n -C "$ROOT" count-line-guard 2>&1)" && guard_target_code=0 || guard_target_code=$?
+[[ "$guard_target_code" != 0 ]] ||
+  problems+=("want make to refuse the count-line-guard target as one it has no rule for; it exited 0 and said: $(flat "$guard_target_out")")
+grep -F "No rule to make target" <<< "$guard_target_out" > /dev/null ||
+  problems+=("want make to say it has no rule for count-line-guard; it exited $guard_target_code and said: $(flat "$guard_target_out")")
+
+report "$name"
+
 finish
