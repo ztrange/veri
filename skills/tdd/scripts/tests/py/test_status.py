@@ -2,6 +2,7 @@
 import importlib
 import json
 import pathlib
+import subprocess
 import sys
 import time
 
@@ -76,3 +77,29 @@ def test_run_object_merges_the_ledger_fields_with_the_activity_object():
 
     assert obj == ('{"issue": "9", "title": "a cog \\u2014 meshes", "branch": "tdd/9-cog", '
                    '"step": "2 of 3", "phase": "green", "actor": "developer", "state": "running"}')
+
+
+def test_main_renders_a_three_step_ledger_with_one_ticked_as_step_2_of_3(tmp_path, monkeypatch, capsys):
+    run = tmp_path / ".tdd" / "wt" / "31"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "issue-31.md").write_text(
+        "# Plan for #31 — lamps glow\n\n- [x] a lamp exists\n- [ ] a lamp glows\n- [ ] a lamp dims\n")
+
+    def fake_run(args, **kwargs):
+        if list(args[:3]) == ["git", "worktree", "list"]:
+            stdout = "worktree %s\nHEAD abc\nbranch refs/heads/main\n\n" % tmp_path
+        elif "symbolic-ref" in args:
+            stdout = "tdd/31-lamps\n"
+        else:
+            raise AssertionError("unexpected command: %r" % (args,))
+        text = kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")
+        return subprocess.CompletedProcess(args, 0, stdout if text else stdout.encode(), "" if text else b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.delenv("VERI_LABEL", raising=False)
+    monkeypatch.delenv("STATUS_JSON", raising=False)
+
+    status = importlib.import_module("veri.status")
+    status.main([])
+
+    assert "step 2 of 3" in capsys.readouterr().out

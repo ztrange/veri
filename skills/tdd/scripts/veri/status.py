@@ -1,10 +1,13 @@
 """status.sh's computations, run in-process."""
+import glob
 import json
 import os
+import subprocess
 import sys
 import time
 
 from event_log import read_events, usage_totals
+from ledger import ledger_steps
 
 
 def json_mode():
@@ -92,8 +95,30 @@ def run_object(issue, title, branch, step, activity):
     return json.dumps(run)
 
 
+def main_working_tree():
+    listed = subprocess.run(["git", "worktree", "list", "--porcelain"],
+                            capture_output=True, text=True).stdout
+    return listed.split("\n", 1)[0][len("worktree "):]
+
+
+def step_of_total(text):
+    """"<n> of <m>": the first open step of the ledger's <m>."""
+    records = ledger_steps(text)
+    step = next(index for index, state, *_ in records if state == "open")
+    return "%s of %s" % (step, records[-1][0])
+
+
+def render():
+    for run in sorted(glob.glob(os.path.join(main_working_tree(), ".tdd", "wt", "*", ""))):
+        run = run.rstrip("/")
+        with open(os.path.join(run, ".tdd", "issue-%s.md" % os.path.basename(run))) as f:
+            print("step %s" % step_of_total(f.read()))
+
+
 def main(argv):
-    if argv[0] == "run-activity":
+    if not argv:
+        render()
+    elif argv[0] == "run-activity":
         line = run_activity(*argv[1:4])
         if line is not None:
             print(line)
