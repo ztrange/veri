@@ -818,7 +818,7 @@ probe_runner_from_foreign_repo() {
     problems+=("could not make a scratch directory for the foreign repository, so the question went unasked")
     return 1
   }
-  git init -q "$tree/repo" || {
+  new_repo "$tree/repo" || {
     problems+=("could not make a git repository to run from, so the question went unasked")
     return 1
   }
