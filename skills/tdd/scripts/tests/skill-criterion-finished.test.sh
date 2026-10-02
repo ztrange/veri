@@ -138,6 +138,23 @@ else
 fi
 report "$name"
 
+name="#671: CONTEXT.md defines contract case, implementation case and the ⟦replaces-case⟧ mark"
+problems=()
+context_path="$ROOT/CONTEXT.md"
+context_entries="$(awk '
+  function flush() { if (rec != "") print rec; rec = "" }
+  /^\*\*[^*]+\*\*:/ { flush(); rec = $0; next }
+  /^#/ || /^[[:space:]]*$/ { flush(); next }
+  rec != "" { rec = rec " " $0 }
+  END { flush() }' "$context_path")"
+for term in 'Contract case' 'Implementation case'; do
+  grep -F "**$term**:" <<<"$context_entries" > /dev/null ||
+    problems+=("CONTEXT.md: no **$term**: entry")
+done
+grep -F '⟦replaces-case⟧' <<<"$context_entries" > /dev/null ||
+  problems+=("CONTEXT.md: no glossary entry defines the ⟦replaces-case⟧ mark")
+report "$name"
+
 name="#481: $skill_md's Draft PR step lists every ⟦human-owed⟧ ledger line in the PR body under ## Owed by a human, each naming its criterion number, and adds no such section when the ledger holds none"
 problems=()
 owed_rec="$(head -1 < <(section_records '### 4. Draft PR' | grep -F '⟦human-owed⟧' | grep -F '## owed by a human'))"
