@@ -679,6 +679,12 @@ renders_as reconcile      '3578743599 5598'       reconcile "$work/spec.md" "$st
 [[ -z "$problems" ]] \
   && ok || no "every phase other than over-budget renders byte-identically to before #450 (${problems#; })"
 
+problems=""
+unmarked_step='tests/zorblat.test.sh: "zorblat frobs a nitz" replaces-case moves to tests/py ⟦added⟧ ⟦criterion 2⟧'
+renders_as 'green, unmarked step' '2880759674 7206' green "$work/spec.md" "$unmarked_step" "$test_cmd" "$test_path" "$target" "make unit"
+[[ -z "$problems" ]] \
+  && ok || no "develop-green for a step not carrying ⟦replaces-case⟧ renders byte-identically to before #671 (${problems#; })"
+
 rb_onto='7c1e9a3f5b2d4e6a8c0f1b3d5e7a9c2e4f6b8d0a'
 rb_pre='e2b4d6f8a0c1e3b5d7f9a1c3e5b7d9f0a2c4e6b8'
 rb_files=$'skills/tdd/SKILL.md\nscripts/zorblat frob & nitz.sh'
