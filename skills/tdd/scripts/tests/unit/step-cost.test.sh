@@ -194,4 +194,13 @@ run_cost 'ends in a backslash \'
 expect 0 "0.55"
 verdict "#620: a step title ending in a backslash is summed to its usage events, exit 0"
 
+cat > "$work/.tdd/events.jsonl" <<'EOF'
+{"ts": 1, "issue": "620", "actor": "developer", "phase": "red", "step": "prints \"ok\" on success", "event": "usage", "total_cost_usd": "1.00"}
+{"ts": 2, "issue": "620", "actor": "verifier", "phase": "red", "step": "prints \"ok\" on success", "event": "usage", "total_cost_usd": "0.50"}
+{"ts": 3, "issue": "620", "actor": "developer", "phase": "red", "step": "prints \"err\" on failure", "event": "usage", "total_cost_usd": "1.00"}
+EOF
+run_cost --steps
+expect 0 $'1.50 2\n1.00 1'
+verdict "#620: --steps prints separate rows for two step titles identical up to their first double quote"
+
 finish
