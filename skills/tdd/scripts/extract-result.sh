@@ -21,7 +21,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/exit-contract.sh"
 
-PYTHONPATH="$HERE/lib" exec python3 -c '
+PYTHONPATH="$HERE/veri" exec python3 -c '
 import sys, re
 from leaf_log import result_records
 data = sys.stdin.read()

@@ -37,7 +37,7 @@ source "$HERE/lib/leaf-role.sh"
 # hazard: the python block is one single-quoted string, so an apostrophe inside it ends it.
 # hazard: captured, not piped — a pipeline's status is its last command's, losing python's exit 3.
 status=0
-pairs="$(PYTHONPATH="$HERE/lib" python3 -c '
+pairs="$(PYTHONPATH="$HERE/veri" python3 -c '
 import json, sys
 from leaf_log import result_records
 
