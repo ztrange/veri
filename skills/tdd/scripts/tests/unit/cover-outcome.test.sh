@@ -87,4 +87,14 @@ MUTATION: NONE"
 done
 verdict "$name"
 
+name="#679: COVERED: no with a PROOF: line still exits 1"
+problems=()
+run_on "some narration
+COVERED: no
+CAUGHT_BY: NONE
+PROOF: useWidgetSync: its one caller, WidgetPanel, passes onChange={() => {}}
+MUTATION: $mutation"
+[[ "$code" == 1 ]] || problems+=("COVERED: no with a PROOF: line: want exit 1, got $code")
+verdict "$name"
+
 finish
