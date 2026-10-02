@@ -53,7 +53,10 @@ added_steps() {
 }
 
 is_anchor_step() { [[ "$1" == *"$anchor"* && -n "$(ledger_steps <<< "$1")" ]]; }
-is_added_step() { [[ "${1% ⟦criterion *⟧}" == *" $added" ]]; }
+is_added_step() {
+  local line="${1%"$_ledger_pending_mark"}"
+  [[ "${line% ⟦criterion *⟧}" == *" $added" ]]
+}
 is_repair() { [[ "$1" == *"$ci_repair"* || "$1" == *"$suite_repair"* ]]; }
 added_mark() { is_repair "$1" || printf ' %s' "$added"; }
 
