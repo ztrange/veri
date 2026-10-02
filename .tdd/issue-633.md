@@ -1,6 +1,6 @@
 # Plan for #633 — make unit and make test run the pytest suites under tests/py/, and refuse by name without pytest or Python 3.12
 
-- [x] with a failing `test_*.py` under `skills/tdd/scripts/tests/py/` and a python3 that can import pytest, `make unit` and `make test` each run it, exit 1, name the failing test in their output and end `SUITES FAILED` ⟦criterion 1⟧ ⟂ refactor pending
+- [x] with a failing `test_*.py` under `skills/tdd/scripts/tests/py/` and a python3 that can import pytest, `make unit` and `make test` each run it, exit 1, name the failing test in their output and end `SUITES FAILED` ⟦criterion 1⟧
 - [ ] with every pytest case under `skills/tdd/scripts/tests/py/` passing, `make unit` and `make test` each run them and end `all suites green` ⟦criterion 1⟧
 - [ ] with no `test_*.py` under `skills/tdd/scripts/tests/py/`, `make unit` and `make test` answer exactly as they do today — same suites run, same exit code, same last line — and need no pytest at all ⟦criterion 2⟧
 - [ ] with `$VERI_VENV/bin/python3` able to import pytest and the caller's PATH `python3` unable to, both targets run the pytest leg with the environment's interpreter, the caller activating nothing and changing no PATH; with `VERI_VENV` unset the environment looked in is `$HOME/.veri-tools/venv` ⟦criterion 3⟧
