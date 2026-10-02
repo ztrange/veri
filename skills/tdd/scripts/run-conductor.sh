@@ -85,7 +85,7 @@ if commit="$(git -C "$base" rev-parse "$head_rev" 2>/dev/null)"; then
     exit 2
   fi
   snapshot="$(mktemp -d)"
-  trap 'rm -rf "$snapshot"' EXIT
+  at_exit 'rm -rf "$snapshot"'
   git -C "$base" archive "$commit" . | tar -x -C "$snapshot"
   base="$snapshot"
   export VERI_SKILL_COMMIT="$commit"
@@ -116,6 +116,10 @@ unset CLAUDECODE \
       CLAUDE_CODE_ENTRYPOINT \
       VERI_NEW_SKILL
 
+code=0
 printf '%s\n' "$prompt" | "${CLAUDE_BIN:-claude}" -p \
   --output-format stream-json --verbose \
-  --permission-mode bypassPermissions
+  --permission-mode bypassPermissions || code=$?
+
+# pass-through: the caller reads the conductor's own status, whatever it is.
+exit "$code"

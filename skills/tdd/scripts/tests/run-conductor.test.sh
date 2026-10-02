@@ -1000,4 +1000,23 @@ fi
 
 report "$name"
 
+name="run-conductor.sh, failing inside its own EXIT trap's lifetime, ends with exit 2"
+problems=()
+
+clone28="$work/clone28"
+skill_clone "$clone28"
+caller28="$work/caller28"
+caller_repo "$caller28"
+failing_tar="$(scratch_dir)"
+printf '#!/bin/sh\nexit 5\n' > "$failing_tar/tar"
+chmod +x "$failing_tar/tar"
+
+launch_from "$caller28" "$clone28" PATH="$failing_tar:$PATH"
+status=$?
+
+[[ "$status" -eq 2 ]] ||
+  problems+=("the launch exited $status, not 2: $(cat "$launch_err")")
+
+report "$name"
+
 finish
