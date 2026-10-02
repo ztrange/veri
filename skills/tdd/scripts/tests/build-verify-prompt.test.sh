@@ -299,21 +299,21 @@ prompt_says "$green" "verify-green never says the restore comes before reporting
 [[ -z "$problems" ]] && ok \
   || no "verify-green tells the verifier to remove the code, run the suite, and restore the tree before reporting (${problems#; })"
 
+prompts="$HERE/../prompts"
 problems=""
-probe_order verify-green "$green" 'remove the code yourself' \
+probe_order verify-green "$(cat "$prompts/verify-green.md")" 'remove the code yourself' \
   'remove the code yourself[^.]{0,40}run[^.]{0,40}suites'
 [[ -z "$problems" ]] && ok \
   || no "#619 verify-green restores a probe with cp <file> <file>.orig before the mutation and mv <file>.orig <file> after the run under mutation (${problems#; })"
 
 problems=""
-probe_order verify-pin "$pin" 'break it yourself' 'run the target test again'
+probe_order verify-pin "$(cat "$prompts/verify-pin.md")" 'break it yourself' 'run the target test again'
 [[ -z "$problems" ]] && ok \
   || no "#619 verify-pin restores a probe with cp <file> <file>.orig before the mutation and mv <file>.orig <file> after the run under mutation (${problems#; })"
 
 problems=""
-cover="$("$HERE/../build-develop-prompt.sh" cover "$work/spec.md" "slugify lowercases" "make test" 2>/dev/null)"
-for probe in "verify-green:$green" "verify-pin:$pin" "develop-cover:$cover"; do
-  label="${probe%%:*}" prompt="${probe#*:}"
+for label in verify-green verify-pin develop-cover; do
+  prompt="$(cat "$prompts/$label.md")"
   prompt_says "$prompt" "$label never compares git diff with what it printed before the probe" \
     -iE -e "git diff[^.]{0,120}(before|earlier)[^.]{0,40}(probe|mutat)|(probe|mutat)[^.]{0,120}git diff[^.]{0,120}(before|earlier)"
   prompt_lacks "$prompt" "$label still names git checkout --" -F -e 'git checkout --'
@@ -321,6 +321,18 @@ for probe in "verify-green:$green" "verify-pin:$pin" "develop-cover:$cover"; do
 done
 [[ -z "$problems" ]] && ok \
   || no "#619 verify-green, verify-pin and develop-cover confirm the restore by comparing git diff with what it printed before the probe, and name neither git checkout -- nor git diff --exit-code (${problems#; })"
+
+problems=""
+prompt_says "$red" "never forbids git checkout -- <file>" \
+  -iE -e "(never|do not|don't|not)[^.]{0,120}git checkout -- <file>"
+prompt_says "$red" "never forbids git restore" \
+  -iE -e "(never|do not|don't|not)[^.]{0,160}git restore"
+prompt_says "$red" "never ties the rule to undoing a probe" \
+  -iE -e "(undo|restor)[^.]{0,60}(probe|mutat)"
+prompt_says "$red" "never names cp <file> <file>.orig" -F -e 'cp <file> <file>.orig'
+prompt_says "$red" "never names mv <file>.orig <file>" -F -e 'mv <file>.orig <file>'
+[[ -z "$problems" ]] && ok \
+  || no "#619 _shared.md forbids git checkout -- <file> and git restore for undoing a probe and names cp <file> <file>.orig / mv <file>.orig <file> instead (${problems#; })"
 
 problems=""
 prompt_says "$with_base" "never names git diff --name-only $base_sha^ $base_sha" \
