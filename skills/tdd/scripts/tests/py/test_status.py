@@ -108,3 +108,44 @@ def test_main_renders_a_three_step_ledger_with_one_ticked_as_step_2_of_3(tmp_pat
     status.main([])
 
     assert "step 2 of 3" in capsys.readouterr().out
+
+
+def test_main_renders_every_run_as_status_sh_does_and_returns_0(tmp_path, monkeypatch, capsys, status):
+    ledgers = {"31": "# Plan for #31 — lamps glow\n\n- [x] a lamp exists\n- [ ] a lamp glows\n",
+               "32": "# Plan for #32 — bells ring\n\n- [ ] a bell rings\n"}
+    for issue, text in ledgers.items():
+        (tmp_path / ".tdd" / "wt" / issue / ".tdd").mkdir(parents=True)
+        (tmp_path / ".tdd" / "wt" / issue / ".tdd" / ("issue-%s.md" % issue)).write_text(text)
+    branches = {str(tmp_path / ".tdd" / "wt" / "31"): "tdd/31-lamps",
+                str(tmp_path / ".tdd" / "wt" / "32"): "tdd/32-bells"}
+
+    def fake_run(args, **kwargs):
+        if list(args[:3]) == ["git", "worktree", "list"]:
+            stdout = "worktree %s\nHEAD abc\nbranch refs/heads/main\n\n" % tmp_path
+        elif "symbolic-ref" in args:
+            stdout = branches[str(args[args.index("-C") + 1]).rstrip("/")] + "\n"
+        else:
+            raise AssertionError("unexpected command: %r" % (args,))
+        return subprocess.CompletedProcess(args, 0, stdout, "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.delenv("VERI_LABEL", raising=False)
+
+    code = status.main([])
+
+    assert (code, capsys.readouterr().out) == (0, "#31  lamps glow  tdd/31-lamps  step 2 of 2\n"
+                                                  "#32  bells ring  tdd/32-bells  step 1 of 1\n")
+
+
+def test_main_prints_no_runs_and_returns_3_when_the_main_working_tree_holds_none(tmp_path, monkeypatch, capsys, status):
+    def fake_run(args, **kwargs):
+        if list(args[:3]) == ["git", "worktree", "list"]:
+            return subprocess.CompletedProcess(args, 0, "worktree %s\nHEAD abc\n\n" % tmp_path, "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.delenv("VERI_LABEL", raising=False)
+
+    code = status.main([])
+
+    assert (code, capsys.readouterr().out) == (3, "no runs\n")
