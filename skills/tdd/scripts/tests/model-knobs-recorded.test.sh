@@ -310,7 +310,7 @@ new functions: [bullet plain records report says ]"
   done
 }
 
-name="$helpers_rel keeps the plain-shell idiom — sourcing it with no PATH prints nothing, leaves the suite's pass/fail counters alone and defines only the five helpers — and the four suites keep their own counters and source nothing outside the repo"
+name="$helpers_rel keeps the plain-shell idiom — sourcing it with no PATH prints nothing, leaves the suite's pass/fail counters alone and defines only the five helpers — and the four suites each source lib/harness.sh and source nothing outside the repo"
 problems=()
 
 probe_shared_helpers_plain_shell
@@ -337,6 +337,46 @@ name="#595: the case that checks each suite ends in a bare finish line is named 
 problems=()
 
 probe_finish_case_name
+
+report "$name"
+
+probe_harness_case_name() {
+  local suite_rel="skills/tdd/scripts/tests/model-knobs-recorded.test.sh" line fn="" harness_fn="" case_name="" last=""
+  local -a names=()
+  local needle="does not source"
+  needle+=" the harness"
+  while IFS= read -r line; do
+    [[ "$line" =~ ^([a-z_]+)\(\)\ \{$ ]] && fn="${BASH_REMATCH[1]}"
+    [[ "$line" == *"$needle"* && -n "$fn" ]] && harness_fn="$fn"
+  done < "$ROOT/$suite_rel"
+  if [[ -z "$harness_fn" ]]; then
+    problems+=("$suite_rel has no probe that checks each suite sources lib/harness.sh")
+    return
+  fi
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^name=\"(.*)\"$ ]]; then
+      last="${BASH_REMATCH[1]}"
+      names+=("$last")
+    fi
+    [[ "$line" =~ ^[[:space:]]*${harness_fn}([[:space:]]|$) ]] && case_name="$last"
+  done < "$ROOT/$suite_rel"
+  if [[ -z "$case_name" ]]; then
+    problems+=("$suite_rel has no case that runs $harness_fn")
+    return
+  fi
+  [[ "$case_name" =~ source[s]?\ (\$HERE/)?lib/harness\.sh ]] ||
+    problems+=("the case checking each suite sources lib/harness.sh is not named for that: $case_name")
+  local n
+  for n in "${names[@]}"; do
+    [[ "$n" == *"keep their own counters"* ]] &&
+      problems+=("a case name still claims the four suites keep their own counters: $n")
+  done
+}
+
+name="#595: the case that checks each suite sources lib/harness.sh is named for that, and no case name says the -recorded suites have counters of their own"
+problems=()
+
+probe_harness_case_name
 
 report "$name"
 
