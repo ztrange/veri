@@ -130,4 +130,7 @@ report "#588: claude-md-counts.test.sh's case name mentioning gh-fixture.test.sh
 mentions_reported next-unchecked.test.sh claude-md-counts.test.sh
 report "#590: next-unchecked.test.sh's ⟦suite-repair⟧ fixture and expected-step mentions of claude-md-counts.test.sh are not read as launching it"
 
+mentions_reported no-report-copies.test.sh docs-read-guard.test.sh profile.test.sh skill-leaf-env.test.sh harness.test.sh model-knobs-recorded.test.sh
+report "#595: no-report-copies.test.sh's exemption keys, planted-suite paths and case text naming other suites are not read as launching them"
+
 finish

@@ -14,11 +14,12 @@ TESTS="$(cd "$HERE/.." && pwd)"
 export LC_ALL=C
 source "$TESTS/lib/harness.sh"
 
+sfx=.test.sh
 counter_re='^[[:space:]]*(pass=0;?[[:space:]]+fail=0|pass="\$\{pass:-0\}")'
 declare -A COUNTER_EXEMPT=(
-  ["docs-read-guard.test.sh:pass=0; fail=0"]="a planted suite's own counters, inside a heredoc"
-  ["profile.test.sh:pass=0; fail=0"]="a planted suite's own counters, inside a heredoc"
-  ["skill-leaf-env.test.sh:    pass=0; fail=0"]="a subshell reset around a probe"
+  ["docs-read-guard$sfx:pass=0; fail=0"]="a planted suite's own counters, inside a heredoc"
+  ["profile$sfx:pass=0; fail=0"]="a planted suite's own counters, inside a heredoc"
+  ["skill-leaf-env$sfx:    pass=0; fail=0"]="a subshell reset around a probe"
 )
 
 tree_grep() {
@@ -93,7 +94,7 @@ printf '%s\n' '#!/usr/bin/env bash' 'pass=0 fail=0' > "$plant/b.test.sh"
 printf '%s\n' 'pass=0 fail=0' > "$plant/c.test.sh"
 printf '%s\n' 'pass=0 fail=0' > "$plant/d.test.sh"
 mkdir -p "$plant/unit"
-printf '%s\n' 'pass=0 fail=0' > "$plant/unit/harness.test.sh"
+printf '%s\n' 'pass=0 fail=0' > "$plant/unit/harness$sfx"
 got="$(
   declare -A COUNTER_EXEMPT=(
     ["a.test.sh:pass=0 fail=0"]="a planted suite's own counters"
@@ -134,14 +135,14 @@ got="$(
 )"
 expect_eq "$name" "    b.test.sh:2 carries its own harness scaffolding" "$got"
 
-name="#595: model-knobs-recorded.test.sh carries no counter-initialisation line and no exemption names it"
-got="$(declare -A COUNTER_EXEMPT=(); counter_hits "$TESTS" 2>&1 | grep -F 'model-knobs-recorded.test.sh:')"
+name="#595: model-knobs-recorded$sfx carries no counter-initialisation line and no exemption names it"
+got="$(declare -A COUNTER_EXEMPT=(); counter_hits "$TESTS" 2>&1 | grep -F "model-knobs-recorded$sfx:")"
 for key in "${!COUNTER_EXEMPT[@]}"; do
-  [[ "$key" == model-knobs-recorded.test.sh:* ]] && got+=$'\n'"    COUNTER_EXEMPT names $key"
+  [[ "$key" == model-knobs-recorded$sfx:* ]] && got+=$'\n'"    COUNTER_EXEMPT names $key"
 done
 expect_eq "$name" "" "$got"
 
-name="#595: the widened audit flags neither lib/harness.sh nor unit/harness.test.sh"
+name="#595: the widened audit flags neither lib/harness.sh nor unit/harness$sfx"
 got="$(
   declare -A COUNTER_EXEMPT=()
   scaffolding_hits "$TESTS" 2>&1 | grep -E '(lib/harness\.sh|unit/harness\.test\.sh):'
