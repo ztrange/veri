@@ -44,17 +44,15 @@ finish() {
 }
 
 require_whole_number() {
-  if [[ ! "$2" =~ ^[0-9]+$ ]] || (( 10#$2 < 1 )); then
-    echo "parallel-conductors: $1 must be a whole number >= 1: '$2'" >&2
+  local floor="${3:-1}"
+  if [[ ! "$2" =~ ^[0-9]+$ ]] || (( 10#$2 < floor )); then
+    echo "parallel-conductors: $1 must be a whole number >= $floor: '$2'" >&2
     finish 2
   fi
 }
 
 budget="${VERI_CONDUCTOR_CTX_BUDGET:-120000}"
-if [[ ! "$budget" =~ ^[0-9]+$ ]]; then
-  echo "parallel-conductors: VERI_CONDUCTOR_CTX_BUDGET must be a whole number of tokens: '$budget'" >&2
-  finish 2
-fi
+require_whole_number VERI_CONDUCTOR_CTX_BUDGET "$budget" 0
 poll="${VERI_POLL:-1}"
 
 parallel="${VERI_PARALLEL-1}"
