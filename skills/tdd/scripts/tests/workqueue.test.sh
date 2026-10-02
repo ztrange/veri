@@ -142,6 +142,10 @@ make_repo "$work/empty-issue-usage"
 expect_usage empty-issue-usage "workqueue.sh given an empty issue exits 2 with its own usage text on stderr" \
   assign alpha ''
 
+make_repo "$work/twice-issue-usage"
+expect_usage twice-issue-usage "workqueue.sh given an issue named twice exits 2 with its own usage text on stderr" \
+  assign alpha 12 12
+
 repo="$work/assign-held"
 make_repo "$repo"
 seed_queue "$repo" 'beta\t4\tqueued\t\ngamma\t9\trunning\t\n'

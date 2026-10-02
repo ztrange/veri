@@ -145,8 +145,7 @@ for issue in "$@"; do
     refuse "workqueue.sh: an issue argument is empty"
   fi
   if [[ -n "${named[$issue]:-}" ]]; then
-    echo "workqueue.sh: issue $issue is named twice" >&2
-    exit 2
+    refuse "workqueue.sh: issue $issue is named twice"
   fi
   named[$issue]=1
 done
