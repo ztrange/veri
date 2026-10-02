@@ -70,12 +70,7 @@ report "$name"
 name="run-conductor.sh refuses with exit 2 before launching anything, naming the Python 3.12 floor and the version found, when python3 is older than 3.12"
 problems=()
 mkdir -p "$work/py-conductor"
-claude_stub "$work/py-conductor" "$(cat <<'C'
-cat > /dev/null
-: > "$LAUNCHED"
-C
-)"
-py_err="$( cd "$work/py-conductor" && env VERI_BASH_MAJOR=5 VERI_PYTHON_VERSION=3.11.9 CLAUDE_BIN="$work/py-conductor/claude" \
+py_err="$( cd "$work/py-conductor" && env VERI_BASH_MAJOR=5 VERI_PYTHON_VERSION=3.11.9 CLAUDE_BIN="$work/claude" \
     LAUNCHED="$work/py-conductor/launched" "$SCRIPTS/run-conductor.sh" 4242 2>&1 >/dev/null )" && py_code=0 || py_code=$?
 [[ "$py_code" == 2 ]] || problems+=("want exit 2, got $py_code: $(flat "$py_err")")
 [[ "$py_err" == *"Python 3.12"* ]] || problems+=("want stderr to name the Python 3.12 floor: $(flat "$py_err")")
