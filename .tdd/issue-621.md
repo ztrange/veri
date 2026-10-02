@@ -5,5 +5,5 @@
 - [x] run-leaf.sh, run with CLAUDE_AUTO_BACKGROUND_TASKS=true set, starts a stub claude whose recorded environment does not contain CLAUDE_AUTO_BACKGROUND_TASKS ⟦criterion 2⟧
 - [x] a leaf launched as supervise.sh <name> run-leaf.sh <prompt-file>, with all nine session variables set in the caller, starts a stub claude whose recorded environment contains none of them ⟦criterion 3⟧
 - [x] run-leaf.sh still passes every other variable through: a stub claude records VERI_TEST_CMD with the caller's value, and records GIT_CONFIG_GLOBAL as set ⟦criterion 4⟧
-- [ ] run-leaf.sh, run with none of the nine session variables set, still exits with the stub's own exit code (0-3, else 2) and prints the same stdout as before ⟦criterion 5⟧
+- [x] run-leaf.sh, run with none of the nine session variables set, still exits with the stub's own exit code (0-3, else 2) and prints the same stdout as before ⟦criterion 5⟧
 - [ ] run-conductor.sh, run with CLAUDE_AUTO_BACKGROUND_TASKS=true set, starts a stub claude whose recorded environment does not contain it, and the eight variables it already strips are still absent ⟦criterion 6⟧
