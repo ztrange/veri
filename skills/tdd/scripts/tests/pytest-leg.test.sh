@@ -234,4 +234,51 @@ else
 fi
 report "$name"
 
+install="$work/install"
+mkdir -p "$install/bin"
+cp "$ROOT/Makefile" "$ROOT/requirements-dev.txt" "$install/"
+cat > "$install/bin/python3" <<SH
+#!/bin/sh
+echo "\$0 \$*" >> "$install/calls"
+if [ "\$1" = -m ] && [ "\$2" = venv ]; then
+  for d in "\$@"; do :; done
+  mkdir -p "\$d/bin"
+  for exe in python3 pip; do
+    printf '#!/bin/sh\necho "\$0 \$*" >> "%s"\n' "$install/calls" > "\$d/bin/\$exe"
+    chmod +x "\$d/bin/\$exe"
+  done
+fi
+SH
+chmod +x "$install/bin/python3"
+install_venv="$install/venv"
+
+name="make install-dev, with VERI_VENV at a scratch path and a stub python3 recording its calls, creates the environment there when missing and installs -r requirements-dev.txt through that environment's own pip, never the PATH interpreter's; run again over the existing environment it exits 0 without recreating it"
+problems=()
+for run in first second; do
+  : > "$install/calls"
+  env -u PYTHONPATH VERI_VENV="$install_venv" PATH="$install/bin:$PATH" \
+    make --no-print-directory -C "$install" install-dev > "$work/out" 2> "$work/err" < /dev/null &&
+    code=0 || code=$?
+  calls="$(cat "$install/calls")"
+  [[ "$code" == 0 ]] ||
+    problems+=("$run run: want exit 0, got $code: $(flat "$(cat "$work/out")") $(flat "$(cat "$work/err")")")
+  path_calls="$(grep -F "$install/bin/python3 " "$install/calls" || true)"
+  [[ "$path_calls" != *pip* ]] ||
+    problems+=("$run run: want the PATH python3 never to run pip, got: $(flat "$path_calls")")
+  case "$run" in
+    first)
+      [[ -x "$install_venv/bin/python3" ]] ||
+        problems+=("first run: want the environment created at $install_venv, got calls: $(flat "$calls")")
+      venv_installs="$(grep -E "^$install_venv/bin/(python3 -m pip|pip) install( .*)? -r [^ ]*requirements-dev\.txt" "$install/calls" || true)"
+      [[ -n "$venv_installs" ]] ||
+        problems+=("first run: want an install -r requirements-dev.txt through $install_venv/bin's pip, got calls: $(flat "$calls")")
+      ;;
+    second)
+      [[ "$path_calls" != *'-m venv'* ]] ||
+        problems+=("second run: want the existing environment not recreated, got: $(flat "$path_calls")")
+      ;;
+  esac
+done
+report "$name"
+
 finish
