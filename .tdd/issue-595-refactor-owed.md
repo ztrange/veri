@@ -1,3 +1,5 @@
 ### `unit/no-report-copies.test.sh` admits a counter-initialisation hit only through an exemption entry that names the file, matches the line by its text rather than its number, and carries a reason; a hit no entry matches is still flagged, naming the file and line ⟦criterion 8⟧
 - merge the hit-parsing loops of counter_hits and scaffolding_hits (file/line split and the "carries its own harness scaffolding" line), which needs the COUNTER_EXEMPT check confined to counter hits
 - the "no suite builds its own scratch directory" case and the report() case repeat the same tree grep and harness.test.sh exclusion, and could call tree_grep (code this cycle did not write)
+### `unit/no-report-copies.test.sh` goes red, naming the file and line, on a planted suite line `pass=0; fail=0` and on one `pass="${pass:-0}"`, still goes red on `pass=0 fail=0`, and stays green on the tree ⟦criterion 7⟧
+- the hit-parsing loops in the `report` case (`:65-70`) and the scratch case (`:145-150`) repeat the file/line split that `scaffolding_hits` and `counter_hits` already do. Earlier steps wrote that code, not this one, so this step leaves it alone.
