@@ -1,7 +1,9 @@
 """In-process cases for veri/status.py, the module status.sh is a shim over."""
 import importlib
+import importlib.util
 import json
 import pathlib
+import shutil
 import subprocess
 import sys
 import time
@@ -471,6 +473,40 @@ def test_main_takes_the_run_activity_and_scope_totals_lines_from_event_logs_one_
            "$1.75  11000 tokens  running\n"
            "scope cogs-label  attempted 1  done 0  bailed 0  wall 200s  $1.75  solvable 0\n",
         0, ("develop-green", 1, 1.75, 11000, 1.75, 200, 1),
+        0, "#9  cogs mesh  tdd/9-cogs-mesh  step 2 of 2  red  developer  decoy-leaf 9000s  attempt 1  "
+           "$3.00  1234 tokens  stale\n"
+           "scope cogs-label  attempted 1  done 0  bailed 0  wall 77s  $3.00  solvable 0\n")
+
+
+def test_main_reads_the_event_log_through_veri_event_log_py_not_a_lib_event_log_py(tmp_path, monkeypatch, capsys):
+    tree = tmp_path / "scripts"
+    shutil.copytree(SCRIPTS / "veri", tree / "veri", ignore=shutil.ignore_patterns("__pycache__"))
+    (tree / "lib").mkdir()
+    shutil.copy(SCRIPTS / "veri" / "event_log.py", tree / "lib" / "event_log.py")
+    (tree / "veri" / "event_log.py").write_text(
+        "def read_events(path):\n"
+        "    return [{'ts': 1000, 'event': 'launch', 'step': 'decoy step', 'phase': 'red',\n"
+        "             'actor': 'developer', 'name': 'decoy-leaf'},\n"
+        "            {'ts': 1077, 'event': 'usage'}]\n\n\n"
+        "def usage_totals(events):\n"
+        "    return 3.0, 1234\n")
+    run = tmp_path / ".tdd" / "wt" / "9"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "issue-9.md").write_text("# Plan for #9 — cogs mesh\n\n- [x] a cog exists\n- [ ] two cogs mesh\n")
+    write_events(run / ".tdd" / "events.jsonl", [lamp_ev(9700, "9", "launch", step="a cog exists", name="develop-red")])
+    fake_git(monkeypatch, tmp_path, {str(run): "tdd/9-cogs-mesh"}, lambda scope: (3, ""))
+    at_ten_thousand(monkeypatch)
+    monkeypatch.setattr(sys, "path", [str(tree / "veri")] + [p for p in sys.path if p != str(SCRIPTS / "veri")])
+    for name in ("event_log", "ledger"):
+        monkeypatch.delitem(sys.modules, name, raising=False)
+    spec = importlib.util.spec_from_file_location("copied_status", tree / "veri" / "status.py")
+    copied = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(copied)
+
+    code = copied.main(["--scope", "cogs-label"])
+    out = capsys.readouterr().out
+
+    assert (code, out) == (
         0, "#9  cogs mesh  tdd/9-cogs-mesh  step 2 of 2  red  developer  decoy-leaf 9000s  attempt 1  "
            "$3.00  1234 tokens  stale\n"
            "scope cogs-label  attempted 1  done 0  bailed 0  wall 77s  $3.00  solvable 0\n")
