@@ -969,4 +969,39 @@ probe_make_and_runner_refuse_alike
 
 report "$name"
 
+name="make test and run-suite.sh both print the refusal reworded in skills/tdd/scripts/lib/count-line-guard.sh, the one file both read (#617)"
+problems=()
+
+probe_one_lib_rewords_both() {
+  local tree probe made ran
+  have_runner "so there is no runner to read the reworded guard" || return
+  tree="$(scratch_dir)" || {
+    problems+=("could not make a scratch tree to reword the guard in, so the question went unasked")
+    return 1
+  }
+  mkdir -p "$tree/$TESTS_DIR" "$tree/skills/tdd/scripts/lib"
+  cp "$MAKEFILE" "$tree/Makefile"
+  cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
+  cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/skills/tdd/scripts/lib/"
+  sed "s/${GUARD_MESSAGE#: }/${REWORDED#: }/" "$ROOT/$GUARD_LIB" > "$tree/$GUARD_LIB"
+  probe="$tree/$TESTS_DIR/countless-under-shared-guard.test.sh"
+  printf '#!/bin/sh\necho "a case ran"\nexit 0\n' > "$probe"
+  chmod +x "$probe"
+
+  scratch_out="$(make -C "$tree" test 2>&1)" && scratch_code=0 || scratch_code=$?
+  direct "$tree/skills/tdd/scripts/run-suite.sh" "$probe"
+  rm -rf "$tree"
+
+  made="$(grep -F "$REWORDED" <<< "$scratch_out" | awk 'NR==1')"
+  ran="$(grep -F "$REWORDED" <<< "$direct_out" | awk 'NR==1')"
+  [[ "$made" == "countless-under-shared-guard.test.sh$REWORDED" ]] ||
+    problems+=("want make test to print 'countless-under-shared-guard.test.sh$REWORDED' once $GUARD_LIB is reworded; it said: $(flat "$scratch_out")")
+  [[ "$ran" == "countless-under-shared-guard.test.sh$REWORDED" ]] ||
+    problems+=("want run-suite.sh to print 'countless-under-shared-guard.test.sh$REWORDED' once $GUARD_LIB is reworded; it said: $(flat "$direct_out")")
+}
+
+probe_one_lib_rewords_both
+
+report "$name"
+
 finish
