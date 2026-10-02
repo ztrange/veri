@@ -35,9 +35,13 @@ roster() {
   printf '%s\n' "$recipe" | grep -o '[^ ]*\.test\.sh' || :
 }
 
-run_make() {
-  out="$(make --no-print-directory -C "$ROOT" "$@" 2>&1 < /dev/null)" && code=0 || code=$?
+run_make_in() {
+  local dir="$1"
+  shift
+  out="$(make --no-print-directory -C "$dir" "$@" 2>&1 < /dev/null)" && code=0 || code=$?
 }
+
+run_make() { run_make_in "$ROOT" "$@"; }
 
 name="make -n unit lists only suites matching $UNIT_DIR/*.test.sh"
 problems=()
@@ -190,7 +194,7 @@ cp "$ROOT/Makefile" "$tree/Makefile"
 cp -R "$ROOT/skills/tdd/scripts/tests/offline" "$ROOT/skills/tdd/scripts/tests/unit-guard" "$tree/skills/tdd/scripts/tests/"
 cp "$scratch/calls-real-vcs.test.sh" "$tree/$UNIT_DIR/calls-real-vcs.test.sh"
 
-out="$(make --no-print-directory -C "$tree" test 2>&1 < /dev/null)" && code=0 || code=$?
+run_make_in "$tree" test
 [[ "$code" != 0 ]] ||
   problems+=("want 'make test' to fail a suite under $UNIT_DIR/ that ran real git; it exited 0 and said: $(flat "$out")")
 grep -qw git < <(grep -v '^== ' <<< "$out") ||
