@@ -809,9 +809,8 @@ run_launcher "$gh_json" "$stub" "$work/trap.out" PATH="$failing_cat:$PATH"
 empty_gh="$work/gh-empty"
 failing_rm="$work/failing-rm-bin"
 rc_scratch="$(scratch_dir)"
-mkdir -p "$empty_gh" "$failing_rm"
-printf '[]\n' > "$empty_gh/prs.json"
-printf '[]\n' > "$empty_gh/issues.json"
+mkdir -p "$failing_rm"
+solvable_fixture "$empty_gh"
 cat > "$failing_rm/mktemp" <<SH
 #!/bin/sh
 [ "\$*" = -d ] && { echo "$rc_scratch"; exit 0; }
