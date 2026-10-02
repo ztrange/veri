@@ -50,6 +50,9 @@ require_whole_number() {
   fi
 }
 
+budget="${VERI_CONDUCTOR_CTX_BUDGET:-120000}"
+poll="${VERI_POLL:-1}"
+
 parallel="${VERI_PARALLEL-1}"
 require_whole_number VERI_PARALLEL "$parallel"
 [[ -n "${VERI_MAX_ISSUES+set}" ]] && require_whole_number VERI_MAX_ISSUES "$max_issues"
@@ -92,13 +95,44 @@ for pr in items(sys.stdin.read()):
   return 0
 }
 
+follow_log() {
+  local line part=""
+  until [[ -e "$2" ]]; do
+    kill -0 "$1" 2>/dev/null || return 0
+    sleep "$poll"
+  done
+  exec 3< "$2"
+  while :; do
+    local alive=0
+    kill -0 "$1" 2>/dev/null && alive=1
+    while IFS= read -r line <&3; do
+      printf '%s\n' "$part$line"
+      part=""
+    done
+    part+="$line"
+    (( alive )) || break
+    sleep "$poll"
+  done
+}
+
 print_context() {
   local line read_re='"cache_read_input_tokens":([0-9]+)' create_re='"cache_creation_input_tokens":([0-9]+)'
+  local cache_read context=0 step_done=0
   while IFS= read -r line; do
-    [[ $line == *'"type":"assistant"'* && $line =~ $read_re ]] || continue
-    local cache_read=${BASH_REMATCH[1]}
+    if (( step_done )) && [[ $line == *'"type":"user"'* ]]; then
+      if (( context > budget )); then
+        kill -TERM "$2" 2>/dev/null || true
+        return 0
+      fi
+      step_done=0
+    fi
+    [[ $line == *'"type":"assistant"'* ]] || continue
+    [[ $line == *'event.sh step-done'* ]] && step_done=1
+    [[ $line =~ $read_re ]] || continue
+    cache_read=${BASH_REMATCH[1]}
     [[ $line =~ $create_re ]] || continue
-    echo "context $1 $((cache_read + BASH_REMATCH[1]))"
+    context=$((cache_read + BASH_REMATCH[1]))
+    echo "context $1 $context"
   done
 }
 
@@ -135,9 +169,13 @@ while :; do
     done
     [[ -n "$n" ]] || break
     (
+      rm -f ".tdd/conductor-$n.log"
       VERI_HEARTBEAT="$run_timeout" VERI_TIMEOUT="$run_timeout" VERI_STUCK_RETRIES=0 \
         "$HERE/supervise.sh" "conductor-$n" env "${caller_env[@]}" "$HERE/run-conductor.sh" "$n" \
-        | print_context "$n" || echo "$?" > "$rc_dir/$n"
+        > /dev/null &
+      sup=$!
+      follow_log "$sup" ".tdd/conductor-$n.log" | print_context "$n" "$sup"
+      wait "$sup" || echo "$?" > "$rc_dir/$n"
     ) &
     in_flight[$n]=$!
     launched[$n]=1
