@@ -104,6 +104,24 @@ grep -E '^GIT_CONFIG_GLOBAL=.' "$work/env" > /dev/null 2>&1 \
   || problems+=("GIT_CONFIG_GLOBAL was not set in the leaf's claude")
 report "still passes VERI_TEST_CMD and GIT_CONFIG_GLOBAL through to claude (#621)"
 
+unset_session=()
+for v in "${session_vars[@]}" CLAUDE_AUTO_BACKGROUND_TASKS; do unset_session+=(-u "$v"); done
+problems=()
+for pair in 0:0 1:1 2:2 3:3 7:2; do
+  fcode="${pair%%:*}" want="${pair##*:}"
+  out="$( cd "$work" && env "${unset_session[@]}" PATH="$stubdir:$PATH" ARGV_OUT="$work/argv" \
+      FAKE_RESULT="VERDICT: PASS" FAKE_CODE="$fcode" "$LEAF" "$work/prompt.txt" 2>/dev/null )"
+  code=$?
+  expected='{"type":"system","subtype":"init","session_id":"x"}
+{"type":"assistant","message":{"content":[{"type":"text","text":"VERDICT: PASS"}]}}
+{"type":"result","subtype":"success","is_error":false,"result":"VERDICT: PASS"}
+
+VERDICT: PASS'
+  [[ "$code" == "$want" ]] || problems+=("stub exit $fcode: run-leaf.sh exited $code, wanted $want")
+  [[ "$out" == "$expected" ]] || problems+=("stub exit $fcode: stdout differed: $out")
+done
+report "with no session variable set, exits with the stub's code (0-3, else 2) and prints the same stdout (#621)"
+
 planted="$(scratch_dir)"
 cp -R "$HERE/../.." "$planted/tdd"
 printf '%s\n' 'SESSION_VARS+=(VERI_PLANTED_621)' >> "$planted/tdd/scripts/lib/session-env.sh"
