@@ -156,10 +156,10 @@ ledger=".tdd/issue-$issue.md"
 
 ledger_steps="$(cd "$(dirname "$0")" && pwd)/ledger-steps.sh"
 
-lib="$(cd "$(dirname "$0")" && pwd)/lib"
+veri="$(cd "$(dirname "$0")" && pwd)/veri"
 
 # hazard: the python block is one single-quoted string, so an apostrophe inside it ends it.
-PYTHONPATH="$(dirname "$lib")/veri" exec python3 -c '
+PYTHONPATH="$veri" exec python3 -c '
 import os, subprocess, sys
 from event_log import read_events
 
