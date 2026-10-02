@@ -391,8 +391,10 @@ stage_recorder() {
   seen="$WORK/$1-seen"
   tree="$WORK/$1-tree"
   mkdir -p "$stage" "$tree/.tdd"
-  cp "$SCRIPTS"/*.sh "$stage/"
-  cp -R "$SCRIPTS/lib" "$SCRIPTS/prompts" "$stage/"
+  local script
+  for script in "$SCRIPTS"/*.sh "$SCRIPTS/lib" "$SCRIPTS/prompts"; do
+    [[ "${script##*/}" == detach-leaf.sh ]] || ln -s "$script" "$stage/"
+  done
   cat > "$stage/detach-leaf.sh" <<'STUB'
 #!/bin/sh
 printf '%s\n' "${VERI_STEP-<unset>}" > "$SEEN"
@@ -405,6 +407,20 @@ printf '%s\n' "$step" > "$SEEN.argv"
 STUB
   chmod +x "$stage/detach-leaf.sh"
 }
+
+scan_stage_links() {
+  local stage seen tree script name
+  stage_recorder stage-links
+  for script in "$SCRIPTS"/*.sh "$SCRIPTS"/lib/*; do
+    name="${script#"$SCRIPTS"/}"
+    [[ "$name" == detach-leaf.sh ]] && continue
+    [[ "$stage/$name" -ef "$script" ]] ||
+      problems+=("the stage reaches $name by a copy, want a link to $script")
+  done
+}
+
+run_case "a stage reaches every script it does not replace by a link to the script under test, never a copy" \
+  scan_stage_links
 
 run_recorded() {
   note_launch "$tree"
@@ -537,6 +553,7 @@ conductor_command() {
 stage_title_recorders() {
   local script
   for script in "$@"; do
+    rm -f "$stage/$script.sh"
     cat > "$stage/$script.sh" <<'STUB'
 #!/bin/sh
 out="$SEEN.$(basename "$0" .sh)"
