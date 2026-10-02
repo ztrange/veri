@@ -53,4 +53,38 @@ out="$( cd "$work" && "$USUAL" fast 2>/dev/null )" && code=0 || code=$?
 rm -rf "$work"
 report "$name"
 
+name="tier-usual.sh and metrics.sh read the event log through veri/event_log.py: each, run through its entry point against a stand-in veri/event_log.py, reports the stand-in figures"
+problems=()
+work="$(scratch_dir)"
+pkg="$work/pkg"
+mkdir -p "$pkg/lib" "$pkg/veri" "$work/run/.tdd"
+cp "$HERE/../tier-usual.sh" "$HERE/../metrics.sh" "$HERE/../ledger-steps.sh" "$pkg/"
+cp "$HERE"/../lib/*.sh "$pkg/lib/"
+cat > "$pkg/veri/event_log.py" <<'PY'
+def read_events(path):
+    return [{"ts": 1000, "event": "launch", "step": "decoy step", "phase": "red",
+             "actor": "developer", "name": "decoy-leaf"},
+            {"ts": 1077, "event": "usage"},
+            {"ts": 1078, "event": "test-run", "tier": "decoy-tier", "seconds": "42"}]
+
+
+def usage_totals(events):
+    return 3.0, 1234
+PY
+printf '# Plan for #9 \xe2\x80\x94 cogs mesh\n\n- [x] a cog exists\n- [ ] two cogs mesh\n' > "$work/run/.tdd/issue-9.md"
+ev test-run fast 100 > "$work/run/.tdd/events.jsonl"
+
+usual="$( cd "$work/run" && "$pkg/tier-usual.sh" decoy-tier 2>&1 )" && code=0 || code=$?
+[[ "$usual" == "42.0" ]] ||
+  problems+=("tier-usual.sh beside a stand-in veri/event_log.py: printed $(printf '%q' "$usual") (exit $code), want 42.0")
+
+metrics="$( cd "$work/run" && "$pkg/metrics.sh" 9 2>&1 )" && code=0 || code=$?
+for want in "| decoy step |" "| decoy-tier | 42 |"; do
+  [[ "$metrics" == *"$want"* ]] ||
+    problems+=("metrics.sh beside a stand-in veri/event_log.py: report lacks '$want' (exit $code): $(printf '%s' "$metrics" | tail -n 1)")
+done
+
+rm -rf "$work"
+report "$name"
+
 finish
