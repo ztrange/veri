@@ -39,6 +39,15 @@ make_tree() {
   ln -s "$HERE/unit-guard" "$1/skills/tdd/scripts/tests/unit-guard"
 }
 
+stub_bash_suites() {
+  local suite
+  mkdir -p "$1/skills/tdd/scripts/tests/unit"
+  for suite in skills/tdd/scripts/tests/unit/fast.test.sh skills/tdd/scripts/tests/slow.test.sh; do
+    printf '#!/usr/bin/env bash\necho "1 passed, 0 failed"\n' > "$1/$suite"
+    chmod +x "$1/$suite"
+  done
+}
+
 work="$(scratch_dir)"
 
 fake_pytest="$work/fake-pytest"
@@ -118,13 +127,10 @@ done
 report "$name"
 
 bare="$work/bare"
-mkdir -p "$bare/skills/tdd/scripts/tests/unit" "$work/no-pytest-bin"
+mkdir -p "$work/no-pytest-bin"
 make_tree "$bare"
 : > "$bare/$PY_DIR/helper.py"
-for suite in skills/tdd/scripts/tests/unit/fast.test.sh skills/tdd/scripts/tests/slow.test.sh; do
-  printf '#!/usr/bin/env bash\necho "1 passed, 0 failed"\n' > "$bare/$suite"
-  chmod +x "$bare/$suite"
-done
+stub_bash_suites "$bare"
 printf '#!/bin/sh\necho "No module named pytest" >&2\nexit 1\n' > "$work/no-pytest-bin/python3"
 chmod +x "$work/no-pytest-bin/python3"
 
@@ -176,13 +182,9 @@ done
 report "$name"
 
 refuse="$work/refuse"
-mkdir -p "$refuse/skills/tdd/scripts/tests/unit"
 make_tree "$refuse"
 cp "$green/$PY_DIR/test_leg_probe.py" "$refuse/$PY_DIR/test_leg_probe.py"
-for suite in skills/tdd/scripts/tests/unit/fast.test.sh skills/tdd/scripts/tests/slow.test.sh; do
-  printf '#!/usr/bin/env bash\necho "1 passed, 0 failed"\n' > "$refuse/$suite"
-  chmod +x "$refuse/$suite"
-done
+stub_bash_suites "$refuse"
 
 name="when neither the environment's python3 nor the PATH one can import pytest (VERI_PYTEST_IMPORTABLE=0 standing in for the import), make unit and make test exit 2 before any suite runs, stderr naming pytest and make install-dev"
 problems=()
