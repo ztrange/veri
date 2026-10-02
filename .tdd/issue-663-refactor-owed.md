@@ -4,3 +4,6 @@
 ### `refactor-owed.sh list` never prints a test-only candidate, and an owed file holding only test-only candidates makes `list` exit 3 with nothing on stdout ⟦criterion 2⟧
 - rename the `structural` array in refactor-owed.sh append, which now also holds `test-only | …` entries
 - move the `CANDIDATES: test-only` regex in refactor-owed.sh append into lib/candidate-line.sh beside structural_candidate
+### `refactor-owed.sh render` prints the test-only candidates under a heading of their own inside `## Refactor owed`, saying the structural pass does not work them ⟦criterion 4⟧
+- fold the two render cases' shared capture (`rendered="$(mktemp)"`, `render … && code=0 || code=$?`, the exit-0 check) in `tests/refactor-owed.test.sh` into one helper
+- append's `test-only` match is a second hand-written regex beside `structural_candidate` in `lib/candidate-line.sh`; give it a `test_only_candidate` there (cross-file, so out of scope here)
