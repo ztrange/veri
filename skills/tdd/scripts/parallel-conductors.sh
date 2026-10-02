@@ -178,6 +178,7 @@ while :; do
     for candidate in "${!restart[@]}"; do n="$candidate"; break; done
     if [[ -n "$n" ]]; then
       unset "restart[$n]"
+      echo "restarted $n"
       launch "$n"
       continue
     fi
