@@ -31,6 +31,11 @@ stub="$WORK/stub"       # the fake `claude` every launch below ends in
 run="$WORK/run"         # one tree per launch line, named for its leaf
 mkdir -p "$stub" "$run"
 
+scripts_fingerprint() {
+  ( cd "$SCRIPTS" && find ./*.sh lib prompts -type f -exec cksum {} + | LC_ALL=C sort -k3 )
+}
+SCRIPTS_BEFORE="$(scripts_fingerprint)"
+
 SENTINEL='make sentinel-test-cmd'
 
 SENTINEL_ISSUE=143
@@ -820,5 +825,18 @@ scan_launch_record() {
 
 run_case "no launch line in $skill_md is launched more than once per ledger shape the suite plants" \
   scan_launch_record
+
+scan_scripts_untouched() {
+  local now name
+  now="$(scripts_fingerprint)"
+  [[ "$now" == "$SCRIPTS_BEFORE" ]] && return
+  while read -r name; do
+    problems+=("$name changed while the suite ran, want every script under test byte-identical")
+  done < <(diff <(printf '%s\n' "$SCRIPTS_BEFORE") <(printf '%s\n' "$now") |
+             sed -n 's/^[<>] [0-9]* [0-9]* //p' | LC_ALL=C sort -u)
+}
+
+run_case "a recorder replaces a stage's link rather than writing through it, so the suite leaves every script under skills/tdd/scripts byte-identical" \
+  scan_scripts_untouched
 
 finish
