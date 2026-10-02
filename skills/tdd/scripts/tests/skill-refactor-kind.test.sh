@@ -11,6 +11,7 @@
 #   4. SKILL.md's refactor-kind cycle, transform rejection and abandonment — see case 4's comment.
 #   5. SKILL.md's Draft PR step titles a refactor-labelled run's PR refactor: — see case 5's comment.
 #   6. SKILL.md's Cover step reads the report through cover-outcome.sh — see case 6's name.
+#   7. SKILL.md reruns a type-only step's proof command after its transform — see case 7's name.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -165,6 +166,24 @@ else
   fi
   grep -E 'exit 2[^.]{0,120}no-verdict' <<<"$outcome_near" > /dev/null ||
     problems+=("$skill_md's cover-outcome.sh exit 2 never bails as no-verdict")
+fi
+report "$name"
+
+name="#679 $skill_md reruns a type-only step's proof command after its transform commits, a non-zero exit rejecting the transform as transform-touches-tests.sh exit 1 does"
+problems=()
+
+rerun_near="$(window "$skill_text" '(rerun|re-run|runs? again)[^.]{0,80}proof')"
+if [[ -z "$rerun_near" ]]; then
+  problems+=("$skill_md never reruns a type-only step's proof command after its transform, so a transform that breaks the type check is accepted as a refactoring")
+else
+  grep -F 'type-only' <<<"$rerun_near" > /dev/null ||
+    problems+=("$skill_md reruns a proof command without tying it to a type-only step")
+  grep -E 'after[^.]{0,60}transform[^.]{0,40}commit|transform[^.]{0,40}commit[^.]{0,60}(then|after)' <<<"$rerun_near" > /dev/null ||
+    problems+=("$skill_md never says the proof command reruns after the transform commits")
+  grep -E '(non-zero|nonzero)[^.]{0,80}reject' <<<"$rerun_near" > /dev/null ||
+    problems+=("$skill_md never says a non-zero exit of the rerun proof command rejects the transform")
+  grep -E 'transform-touches-tests\.sh[^.]{0,40}exit 1' <<<"$rerun_near" > /dev/null ||
+    problems+=("$skill_md never says the rejection is the one transform-touches-tests.sh exit 1 makes")
 fi
 report "$name"
 
