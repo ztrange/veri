@@ -326,9 +326,9 @@ def test_main_with_no_scope_takes_the_scope_from_veri_label_and_adds_the_same_to
 def test_main_scope_counts_what_solvable_issues_sh_lists_for_that_scope(tmp_path, monkeypatch, capsys, status):
     lamps_scope(tmp_path, monkeypatch, two_lamps_solvable)
 
-    status.main(["--scope", "lamps-label"])
+    code = status.main(["--scope", "lamps-label"])
 
-    assert last_line(capsys.readouterr().out).endswith("  solvable 2")
+    assert (code, last_line(capsys.readouterr().out).endswith("  solvable 2")) == (0, True)
 
 
 def test_main_json_emits_the_runs_and_scope_totals_as_one_document(tmp_path, monkeypatch, capsys, status):
@@ -350,10 +350,10 @@ def test_main_json_emits_the_runs_and_scope_totals_as_one_document(tmp_path, mon
 def test_main_json_emits_scope_solvable_as_a_number(tmp_path, monkeypatch, capsys, status):
     lamps_scope(tmp_path, monkeypatch, two_lamps_solvable)
 
-    status.main(["--json", "--scope", "lamps-label"])
+    code = status.main(["--json", "--scope", "lamps-label"])
     solvable = json.loads(capsys.readouterr().out)["scope"]["solvable"]
 
-    assert (type(solvable), solvable) == (int, 2)
+    assert (code, type(solvable), solvable) == (0, int, 2)
 
 
 def test_main_renders_solvable_as_a_question_mark_when_solvable_issues_sh_gives_no_answer(tmp_path, monkeypatch, capsys, status):
