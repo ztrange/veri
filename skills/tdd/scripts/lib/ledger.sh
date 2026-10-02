@@ -7,7 +7,7 @@
 # `[ ]` and `done` for `[x]` or `[X]`; `kind` is `full-suite` or `human-owed` when that marker
 # sits immediately before the step's `⟦criterion k⟧`, `step` otherwise; `pending` is `1` for a
 # `done` step whose line ends in ` ⟂ refactor pending`, which is then cut from `text`, and `0`
-# otherwise; `added` is `1` for a step carrying `⟦added⟧`, `0` otherwise; `criterion` is the `k` of
+# otherwise; `added` is `1` for a step ending in ` ⟦added⟧` before those marks, `0` otherwise; `criterion` is the `k` of
 # its `⟦criterion k⟧`, empty when it carries none. A line with no box is skipped.
 #
 # ledger_tick <matcher> [pending] — stdin → stdout: the first open step whose line contains <matcher>
@@ -44,8 +44,14 @@ _ledger_untagged() {
   untagged="${untagged% "$_ledger_criterion_tag"*⟧}"
 }
 
+_ledger_is_added() {
+  local untagged
+  _ledger_untagged "$1"
+  [[ "$untagged" == *" $_ledger_added_mark" ]]
+}
+
 ledger_steps() {
-  local line nl state kind pending added criterion text untagged index=0 re open_step done_box
+  local line nl state kind pending added criterion text index=0 re open_step done_box
   _ledger_step_grammar
   local criterion_re="${_ledger_criterion_tag}([0-9]+)⟧"
   local kind_re="⟦(full-suite|human-owed)⟧ $criterion_re"
@@ -57,9 +63,8 @@ ledger_steps() {
     text="${BASH_REMATCH[4]}"
     kind=step
     [[ "$text" =~ $kind_re ]] && kind="${BASH_REMATCH[1]}"
-    _ledger_untagged "$text"
     added=0
-    [[ "$untagged" == *"$_ledger_added_mark" ]] && added=1
+    _ledger_is_added "$text" && added=1
     criterion=
     [[ "$text" =~ $criterion_re ]] && criterion="${BASH_REMATCH[1]}"
     pending=0
