@@ -103,7 +103,7 @@ probe_shared_report_and_plain() {
   local got expected
   got="$(
     unset -f report plain
-    pass=0; fail=0
+    unset pass fail
     # shellcheck source=/dev/null
     source "$helpers_path"
     printf 'plain: %s\n' "$(printf '**Never** `VERI_MODEL` Merged\n' | plain)"
@@ -137,7 +137,7 @@ probe_shared_records_bullet_says() {
   local got expected
   got="$(
     unset -f report plain records bullet says
-    pass=0; fail=0
+    unset pass fail
     # shellcheck source=/dev/null
     source "$helpers_path"
     printf 'records: [%s]\n' "$(printf -- '- One\n  cont\n\npara line1\nline2\n* **Two** `x`\n' | records)"

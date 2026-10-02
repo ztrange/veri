@@ -18,7 +18,6 @@ counter_re='^[[:space:]]*(pass=0;?[[:space:]]+fail=0|pass="\$\{pass:-0\}")'
 declare -A COUNTER_EXEMPT=(
   ["docs-read-guard.test.sh:pass=0; fail=0"]="a planted suite's own counters, inside a heredoc"
   ["profile.test.sh:pass=0; fail=0"]="a planted suite's own counters, inside a heredoc"
-  ["model-knobs-recorded.test.sh:    pass=0; fail=0"]="a subshell reset around a probe"
   ["skill-leaf-env.test.sh:    pass=0; fail=0"]="a subshell reset around a probe"
 )
 
@@ -134,6 +133,13 @@ got="$(
   scaffolding_hits "$plant" 2>&1
 )"
 expect_eq "$name" "    b.test.sh:2 carries its own harness scaffolding" "$got"
+
+name="#595: model-knobs-recorded.test.sh carries no counter-initialisation line and no exemption names it"
+got="$(declare -A COUNTER_EXEMPT=(); counter_hits "$TESTS" 2>&1 | grep -F 'model-knobs-recorded.test.sh:')"
+for key in "${!COUNTER_EXEMPT[@]}"; do
+  [[ "$key" == model-knobs-recorded.test.sh:* ]] && got+=$'\n'"    COUNTER_EXEMPT names $key"
+done
+expect_eq "$name" "" "$got"
 
 name="no suite builds its own scratch directory, exit trap or tmp git repository"
 problems=""
