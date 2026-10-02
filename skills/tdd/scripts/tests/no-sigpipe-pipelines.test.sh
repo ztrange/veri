@@ -156,21 +156,18 @@ probe_no_recipe_ends_a_pipeline_in_an_early_exiting_reader
 report "$name"
 
 probe_count_line_check_lets_its_writer_finish() {
-  local check scratch status
-  if [[ ! -e "$ROOT/Makefile" ]]; then
-    echo "note: no Makefile at $ROOT, so no count-line check was run: nothing this case could ask about"
+  local check scratch status runner="$ROOT/skills/tdd/scripts/run-suite.sh"
+  if [[ ! -e "$runner" ]]; then
+    echo "note: no run-suite.sh at $runner, so no count-line check was run: nothing this case could ask about"
     return 0
   fi
-  check="$(awk '/tail -n 1 "\$\$suite_out"/ { print; if ((getline nxt) > 0) print nxt; exit }' "$ROOT/Makefile")"
+  check="$(awk '/tail -n 1 "\$out"/ { print; if ((getline nxt) > 0) print nxt; exit }' "$runner")"
   if [[ -z "$check" ]]; then
-    problems+=("no count-line check reading \"\$\$suite_out\" through tail was found in the Makefile, so the criterion went unasked")
+    problems+=("no count-line check reading \"\$out\" through tail was found in run-suite.sh, so the criterion went unasked")
     return 0
   fi
-  eval "$(make -s -C "$ROOT" count-line-guard)"
-  check="${check//$'\\\n'/ }"
+  source "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh"
   check="${check%%||*}"
-  check="${check//\$\$/\$}"
-  check="${check//\$(COUNT_LINE)/$COUNT_LINE}"
   scratch="$(scratch_dir)"
   cat > "$scratch/tail" <<'STUB'
 #!/bin/sh
@@ -178,7 +175,7 @@ printf '13 passed, 0 failed\n'
 if dd if=/dev/zero bs=65536 count=16 2>/dev/null; then echo finished > "$STUB_MARK"; else echo cut > "$STUB_MARK"; fi
 STUB
   chmod 755 "$scratch/tail"
-  STUB_MARK="$scratch/mark" PATH="$scratch:$PATH" suite_out=/dev/null sh -c "$check"
+  STUB_MARK="$scratch/mark" PATH="$scratch:$PATH" COUNT_LINE="$COUNT_LINE" out=/dev/null bash -c "$check"
   status=$?
   [[ "$status" -eq 0 ]] ||
     problems+=("the count-line check exited $status over a writer whose first line is a count line: $(flat "$check")")

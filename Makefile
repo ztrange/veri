@@ -52,16 +52,8 @@ count-line-guard:
 # ran 37 of its 54 cases that way until commit c4a6bdb, and no output said so. So the runner
 # also asks each suite for the `<n> passed, <m> failed` line it prints last: output that
 # does not end in it means the suite stopped asserting, whatever it exited with. The check
-# lives here, once, so a suite added under the glob above is covered by existing.
-#
-# `tee` rather than a plain capture so a 70 s suite's lines still appear while it runs; the
-# file it leaves behind is read only once the suite is done. The suite's own exit status
-# travels in a second file because a pipeline's status is its last command's — tee's — and
-# PIPESTATUS is bash's, not the /bin/sh make runs recipes with. Only the suite's stdout goes
-# through tee into that file; its stderr goes straight to the recipe's own (fd 3), so a line a
-# dying writer prints there after the count line — GNU tail's `error writing 'standard output':
-# Broken pipe`, on Linux CI under a suite that passed 13 of 13 (#526) — can never become the
-# last line the count-line check reads. A suite prints its count line on stdout.
+# is skills/tdd/scripts/run-suite.sh's, run over each suite, so a suite added under the glob
+# above is covered by existing.
 #
 # Every suite also runs offline (#301), in this same run rather than a second one. gh and curl are
 # not the hot path — a run makes a handful of calls to each, against ~1,900 git calls — so they
@@ -139,8 +131,8 @@ BASH_GUARD := bash_major="$${VERI_BASH_MAJOR:-$$(bash -c 'echo "$${BASH_VERSINFO
 test unit:
 	@$(BASH_GUARD)
 	@[ -f "$(COUNT_LINE_GUARD)" ] || { printf 'make: %s is missing, so no suite can be held to its count line\n' "$(COUNT_LINE_GUARD)" >&2; exit 2; }
-	@fail=0; suite_out="$$(mktemp)"; suite_status="$$(mktemp)"; reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
-	trap 'rm -f "$$suite_out" "$$suite_status" "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
+	@fail=0; reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
+	trap 'rm -f "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
 	py_bin="$(VENV_DIR)/bin/python3"; \
 	[ -x "$$py_bin" ] || py_bin="$$(command -v python3)"; \
 	if [ -n "$(PY_TESTS)" ]; then \
@@ -160,15 +152,8 @@ test unit:
 	  suite_name="$$(basename "$$t")"; \
 	  printf '== %s\n' "$$suite_name"; \
 	  : > "$$reach_log"; \
-	  { case "$$t" in $(UNIT_DIR)/*) suite_guard="$(UNIT_GUARD_BIN):" ;; esac; \
-	    $(OFFLINE_ENV) "$$t" < /dev/null 2>&3; echo $$? > "$$suite_status"; } 3>&2 | tee "$$suite_out"; \
-	  [ "$$(cat "$$suite_status")" -eq 0 ] || fail=1; \
-	  last_line="$$(tail -n 1 "$$suite_out")"; \
-	  printf '%s\n' "$$last_line" | grep -E '$(COUNT_LINE)' > /dev/null || { \
-	    printf '$(COUNTLESS)' "$$suite_name"; \
-	    if grep '[^[:space:]]' "$$suite_out" > /dev/null; then printf '%s: its last line was: %s\n' "$$suite_name" "$$last_line"; \
-	    else printf '%s: its output was empty\n' "$$suite_name"; fi; fail=1; \
-	  }; \
+	  suite_guard=; case "$$t" in $(UNIT_DIR)/*) suite_guard="$(UNIT_GUARD_BIN):" ;; esac; \
+	  $(OFFLINE_ENV) skills/tdd/scripts/run-suite.sh "$$t" < /dev/null || fail=1; \
 	  $(call NAME_REACHED,$$suite_name: tried the network); \
 	done; \
 	if [ -n "$(PY_TESTS)" ]; then \
