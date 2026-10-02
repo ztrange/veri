@@ -5,5 +5,5 @@
 - [x] after such a refusal, `wait-leaf.sh <refused-name>` exits 2, not 3 ⟦criterion 2⟧
 - [x] a refused launch does not run its command and leaves `.tdd/leaf.owner` naming the live leaf, unchanged ⟦criterion 3⟧
 - [x] a launch under a different name is not refused when the leaf recorded in `.tdd/leaf.owner` is alive but `.tdd/<owner-name>.exit` already exists: it runs its command and exits with that command's code ⟦criterion 4⟧
-- [ ] a launch is still refused (exit 2, stderr naming the live leaf and its pid) when the recorded leaf is alive and `.tdd/<owner-name>.exit` does not exist ⟦criterion 5⟧
+- [x] a launch is still refused (exit 2, stderr naming the live leaf and its pid) when the recorded leaf is alive and `.tdd/<owner-name>.exit` does not exist ⟦criterion 5⟧
 - [ ] the suites are green under `make test` ⟦full-suite⟧
