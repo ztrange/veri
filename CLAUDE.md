@@ -243,6 +243,14 @@ every command it shells out to as a same-named shell function, so those calls st
 process. The CLI contract — arguments, stdout, stderr, exit codes — stays byte-identical,
 proven by the script's integration suite passing unmodified in `tests/`, where it stays.
 
+**A script ported to Python follows one convention, and `status.sh` is its worked example**
+(#634). Its logic moves into a module of the `skills/tdd/scripts/veri/` package, and its
+`.sh` entry point stays, as a `/bin/sh` shim that `exec`s `python3` on that module once per
+invocation, so its Bash holds no Python source — no heredoc fed to `python3`, no
+`python3 -c` string. A ported script's tests live in `tests/py/test_<module>.py`, which
+imports the module and fakes only process boundaries; its bash suite under `tests/` keeps
+the contract cases that run it through its entry point.
+
 **A suite whose subject is the docs pipeline lives in `docs/tests/`, not here**, and runs by
 existing — `make docs-test` globs that directory, so a suite added there owes no Makefile
 edit (#137). Per step, the red and refactor leaves run the affected suites — the one holding
