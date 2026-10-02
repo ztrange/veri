@@ -692,4 +692,17 @@ grep -F "$PR" "$work/conflict-stale.err" > /dev/null && grep -F "conflicts with 
   || problems+=("PR conflicting, head $sha, waiting for $want: want a stderr line naming $PR and saying it conflicts with its base branch, got: $(cat "$work/conflict-stale.err")")
 report "$name"
 
+name="wait-ci.sh keeps polling a PR GitHub reports mergeable UNKNOWN with no check yet, and ends its slice in exit 3 without naming a conflict (#688)"
+problems=()
+sha=0123456789abcdef0123456789abcdef01234567
+printf '{"headRefOid":"%s","mergeable":"UNKNOWN","statusCheckRollup":[]}\n' "$sha" > "$work/unknown.json"
+sha_runs unknown.json
+got="$(CLOCK_STEP=60 waited unknown 540 600 "$sha")"
+[[ "$got" == 3 ]] || problems+=("PR mergeable unknown, no check on $sha: want exit 3, got $got (stderr: $(cat "$work/unknown.err"))")
+polls="$(wc -l < "$work/unknown.json.calls" | tr -d ' ')"
+(( polls > 1 )) || problems+=("PR mergeable unknown, no check on $sha: want more than 1 poll of the PR, got $polls")
+! grep -F "conflicts with its base branch" "$work/unknown.err" > /dev/null \
+  || problems+=("PR mergeable unknown: want no conflict named on stderr, got: $(cat "$work/unknown.err")")
+report "$name"
+
 finish
