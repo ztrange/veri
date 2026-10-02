@@ -685,6 +685,16 @@ renders_as 'green, unmarked step' '2880759674 7206' green "$work/spec.md" "$unma
 [[ -z "$problems" ]] \
   && ok || no "develop-green for a step not carrying ⟦replaces-case⟧ renders byte-identically to before #671 (${problems#; })"
 
+problems=""
+replaces_revise="$("$BUILD" revise green "$work/spec.md" "$replaces_step" "$test_cmd" "$work/reason.md" 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
+prompt_says "$replaces_revise" "never permits deleting the case the step names" -iE -e "$licence"
+says_both_ways "$replaces_revise" "no longer forbids modifying or deleting any other case" \
+  60 '(never|not|forbid|forbidden|must not|rejected)' '(any|every) other (bash )?case'
+renders_as 'revise green, unmarked step' '4146217642 7691' revise green "$work/spec.md" "$unmarked_step" "$test_cmd" "$work/reason.md"
+[[ -z "$problems" ]] \
+  && ok || no "develop-revise redoing green for a ⟦replaces-case⟧ step permits deleting the one bash case the step names and still forbids modifying or deleting any other case, and for an unmarked step renders byte-identically to before #671 (${problems#; })"
+
 rb_onto='7c1e9a3f5b2d4e6a8c0f1b3d5e7a9c2e4f6b8d0a'
 rb_pre='e2b4d6f8a0c1e3b5d7f9a1c3e5b7d9f0a2c4e6b8'
 rb_files=$'skills/tdd/SKILL.md\nscripts/zorblat frob & nitz.sh'

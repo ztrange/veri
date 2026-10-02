@@ -122,7 +122,7 @@ if spec_has_bug_section "$spec_file"; then
 fi
 
 replaces_file=""
-if [[ "$phase" == "green" && "$step" == *"⟦replaces-case⟧"* ]]; then
+if [[ ( "$phase" == "green" || "$revised_phase" == "green" ) && "$step" == *"⟦replaces-case⟧"* ]]; then
   replaces_file="$HERE/prompts/_develop-green-replaces-case.md"
 fi
 
