@@ -320,6 +320,25 @@ fi
   || no "#619 verify-green restores a probe with cp <file> <file>.orig before the mutation and mv <file>.orig <file> after the run under mutation (${problems#; })"
 
 problems=""
+pin_line="$(tr '\n' ' ' <<<"$pin")"
+cp_at="$(offset_of "$pin_line" 'cp <file> <file>\.orig')"
+mutate_at="$(offset_of "$pin_line" 'break it yourself')"
+run_at="$(offset_of "$pin_line" 'run the target test again')"
+mv_at="$(offset_of "$pin_line" 'mv <file>\.orig <file>')"
+[[ -n "$cp_at" ]] || problems="$problems; verify-pin never names cp <file> <file>.orig"
+[[ -n "$mv_at" ]] || problems="$problems; verify-pin never names mv <file>.orig <file>"
+[[ -n "$mutate_at" ]] || problems="$problems; verify-pin no longer says to break it yourself"
+[[ -n "$run_at" ]] || problems="$problems; verify-pin no longer says to run the target test again"
+if [[ -n "$cp_at" && -n "$mutate_at" ]] && (( cp_at > mutate_at )); then
+  problems="$problems; cp <file> <file>.orig comes after the mutation instruction"
+fi
+if [[ -n "$mv_at" && -n "$run_at" ]] && (( mv_at < run_at )); then
+  problems="$problems; mv <file>.orig <file> comes before the run under mutation"
+fi
+[[ -z "$problems" ]] && ok \
+  || no "#619 verify-pin restores a probe with cp <file> <file>.orig before the mutation and mv <file>.orig <file> after the run under mutation (${problems#; })"
+
+problems=""
 prompt_says "$with_base" "never names git diff --name-only $base_sha^ $base_sha" \
   -F -e "git diff --name-only $base_sha^ $base_sha"
 prompt_says "$with_base" "never makes a changed file outside that list a REJECT" \
