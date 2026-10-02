@@ -25,8 +25,10 @@ awk -v sweepable="$sweepable" '
   BEGIN { writer = "\\|[[:space:]]*(tee|dd|sponge)[[:space:]]"; name = "[A-Za-z_][A-Za-z0-9_]*" }
   function pop() { q = substr(q, 1, length(q) - 1) }
   function scan(s,   i, c, t) {
+    u = ""
     for (i = 1; i <= length(s); i++) {
       c = substr(s, i, 1); t = substr(q, length(q))
+      u = u ((t == "\047" || t == "\"") && c == "<" ? "_" : c)
       if (t == "\047") { if (c == "\047") pop(); continue }
       if (c == "\\") { i++; continue }
       if (t == "\"") {
@@ -56,7 +58,7 @@ awk -v sweepable="$sweepable" '
     if (!(sweepable && (header || /^[[:space:]]*# (hazard|pass-through):/))) print FILENAME ":" FNR ":1"
     next
   }
-  { scan($0); line = $0; gsub(/<<</, "", line) }
+  { scan($0); line = u; gsub(/<<</, "", line) }
   match(line, name "=[^[:space:];]*\\.md[\"\047]?([[:space:];]|$)") {
     v = substr(line, RSTART, RLENGTH); sub(/=.*/, "", v); mdvar[v] = 1
   }
