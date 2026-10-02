@@ -70,4 +70,21 @@ MUTATION: NONE"
 [[ "$out" == "type-only: $proof" ]] || problems+=("COVERED: type-only: want stdout 'type-only: $proof', got '$(printf '%s' "$out" | tr '\n' '|')'")
 verdict "$name"
 
+name="#679: COVERED: unreachable or type-only with no PROOF: line or PROOF: NONE exits 2"
+problems=()
+for kind in unreachable type-only; do
+  run_on "some narration
+COVERED: $kind
+CAUGHT_BY: NONE
+MUTATION: NONE"
+  [[ "$code" == 2 ]] || problems+=("COVERED: $kind with no PROOF: line: want exit 2, got $code")
+  run_on "some narration
+COVERED: $kind
+CAUGHT_BY: NONE
+PROOF: NONE
+MUTATION: NONE"
+  [[ "$code" == 2 ]] || problems+=("COVERED: $kind with PROOF: NONE: want exit 2, got $code")
+done
+verdict "$name"
+
 finish
