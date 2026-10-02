@@ -38,7 +38,7 @@ mkdir -p "$work/shim"
 cat > "$work/shim/python3" <<EOF
 #!/bin/sh
 case "\$1" in
-  '$scripts'/*.py) printf '%s\n' "\$*" >> '$starts' ;;
+  '$scripts/$module.py') printf '%s\n' "\$*" >> '$starts' ;;
 esac
 exec '$(command -v python3)' "\$@"
 EOF
