@@ -2815,6 +2815,37 @@ fi
 
 report_on "$name" "$bare_figure_out"
 
+name="#596 a structural-pass mark with stopped=budget-spent below its budget names the mark inconsistent, with its transforms and budget"
+problems=()
+
+fixture_work unspent_work
+unspent="a step followed by a structural pass that claims a budget it never spent"
+structural_log "$unspent"
+sv "" 80030 conductor "" structural-pass "" '"transforms": "0", "budget": "10", "stopped": "budget-spent"'
+sv "" 80040 conductor "" done "" '"pr": "https://github.com/ztrange/veri/pull/999"'
+unspent_out="$unspent_work/report.md"
+render "$unspent_work" "$unspent_out"
+awk '/^#### Structural pass/ {on=1; next} /^####/ {on=0} on' "$unspent_out" > "$unspent_work/section.txt"
+grep -i 'inconsistent' "$unspent_work/section.txt" > "$unspent_work/inconsistent.txt"
+if ! grep -w '0' "$unspent_work/inconsistent.txt" > /dev/null ||
+   ! grep -w '10' "$unspent_work/inconsistent.txt" > /dev/null; then
+  problems+=("want the structural section to carry an inconsistent-mark line naming transforms 0 and budget 10, got: $(cat "$unspent_work/section.txt")")
+fi
+
+fixture_work spent_work
+spent="a step followed by a structural pass that spent its whole budget"
+structural_log "$spent"
+sv "" 80030 conductor "" structural-pass "" '"transforms": "10", "budget": "10", "stopped": "budget-spent"'
+sv "" 80040 conductor "" done "" '"pr": "https://github.com/ztrange/veri/pull/999"'
+spent_out="$spent_work/report.md"
+render "$spent_work" "$spent_out"
+awk '/^#### Structural pass/ {on=1; next} /^####/ {on=0} on' "$spent_out" > "$spent_work/section.txt"
+if grep -i 'inconsistent' "$spent_work/section.txt" > /dev/null; then
+  problems+=("want no inconsistent-mark line for stopped=budget-spent with transforms equal to budget 10, got: $(cat "$spent_work/section.txt")")
+fi
+
+report_on "$name" "$unspent_out"
+
 name="#495 the planned-step count is the number of lib/ledger.sh ledger_steps records, counting no box of its own"
 problems=()
 
