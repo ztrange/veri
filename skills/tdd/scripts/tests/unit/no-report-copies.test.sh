@@ -141,6 +141,13 @@ for key in "${!COUNTER_EXEMPT[@]}"; do
 done
 expect_eq "$name" "" "$got"
 
+name="#595: the widened audit flags neither lib/harness.sh nor unit/harness.test.sh"
+got="$(
+  declare -A COUNTER_EXEMPT=()
+  scaffolding_hits "$TESTS" 2>&1 | grep -E '(lib/harness\.sh|unit/harness\.test\.sh):'
+)"
+expect_eq "$name" "" "$got"
+
 name="no suite builds its own scratch directory, exit trap or tmp git repository"
 problems=""
 copies="$(cd "$TESTS" && grep -nE \
