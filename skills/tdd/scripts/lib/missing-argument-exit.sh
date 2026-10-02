@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # lib/missing-argument-exit.sh — sourced, not run: defines `stderr_of`, `usage_offender`, `missing_argument_offender`,
-# `named_usage_offender`, `missing_argument_audit`, `requires_argument`,
-# `argument_audit` and `bare_expansion_offenders`.
+# `named_usage_offender`, `script_audit`, `prints_usage`, `missing_argument_audit`,
+# `requires_argument`, `argument_audit` and `bare_expansion_offenders`.
 #
 # missing_argument_offender <scripts-dir> <script> [args …] — run <script> with <args>, stdin
 # from /dev/null and stdout discarded. Return 0 when it exits 2 with a usage line on stderr;
@@ -49,14 +49,22 @@ named_usage_offender() {
   usage_offender 1 "$@"
 }
 
-missing_argument_audit() {
-  local dir="$1" found=0 file
+script_audit() {  # script_audit <admits> <offender> <dir>
+  local admits="$1" offender="$2" dir="$3" found=0 file
   for file in "$dir"/*.sh; do
     [[ -e "$file" ]] || continue
-    grep -F 'usage:' "$file" > /dev/null || continue
-    named_usage_offender "$dir" "${file##*/}" || found=1
+    "$admits" "$file" || continue
+    "$offender" "$dir" "${file##*/}" || found=1
   done
   (( found == 0 )) || return 1
+}
+
+prints_usage() {
+  grep -F 'usage:' "$1" > /dev/null
+}
+
+missing_argument_audit() {
+  script_audit prints_usage named_usage_offender "$1"
 }
 
 requires_argument() {
@@ -66,13 +74,7 @@ requires_argument() {
 }
 
 argument_audit() {
-  local dir="$1" found=0 file
-  for file in "$dir"/*.sh; do
-    [[ -e "$file" ]] || continue
-    requires_argument "$file" || continue
-    missing_argument_offender "$dir" "${file##*/}" || found=1
-  done
-  (( found == 0 )) || return 1
+  script_audit requires_argument missing_argument_offender "$1"
 }
 
 bare_expansion_offenders() {
