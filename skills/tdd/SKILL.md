@@ -712,7 +712,10 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    writes for the `refactor` label — changes no behaviour, so it has no failing test to plan
    around. Plan each step as one named refactoring whose criterion is a shell predicate,
    false before the step and true after it: the smell being present is the step's Red. The
-   plan verifier REJECTs a refactor plan whose steps are not written that way. Each step
+   plan verifier REJECTs a refactor plan whose steps are not written that way. A step that
+   makes code dead deletes it too: never leave a no-op in place — a caller passing `() => {}`,
+   a prop kept "for now" — for a later step to delete, but fold the deletion into the same
+   step, so its Cover runs while the code is still reached. Each step
    opens with a cover leaf, which mutates the code the step will move, runs the suite,
    expects red, restores and reports `COVERED:` and `CAUGHT_BY:`, read by
    `$S/cover-outcome.sh < <the leaf's report>`. If

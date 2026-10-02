@@ -16,6 +16,8 @@
 #      SKILL.md reads it through cover-outcome.sh, goes on to Transform on exit 3 without a
 #      bail or coverage-blocker.sh, and reruns a type-only step's type-check command after the
 #      transform.
+#   7. SKILL.md's planner and the refactor plan verifier refuse a step that leaves a no-op in
+#      place for a later step to delete, so a later step's Cover never runs on dead code.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -195,6 +197,26 @@ fi
 near="$(window "$skill_text" 'for type-only')"
 grep -E 'type-check command[^.]{0,120}(run|rerun)[^.]{0,80}transform[^.]{0,160}reject' <<<"$near" > /dev/null ||
   problems+=("$skill_md never reruns a type-only step's type-check command after the transform and rejects it on failure, so the proof is only ever checked before the change")
+report "$name"
+
+name="$skill_md's planner and the refactor plan verifier refuse a step that leaves a no-op in place for a later step to delete"
+problems=()
+
+text="$(section "$plan_heading")"
+grep -E 'no-op[^.]{0,240}(fold|same step)|(fold|same step)[^.]{0,240}no-op' <<<"$text" > /dev/null ||
+  problems+=("$skill_md's '$plan_heading' section never says to fold a deletion into the step that makes the code dead rather than leaving a no-op for a later step")
+plan_spec="$(mktemp)"
+plan_ledger="$(mktemp)"
+printf '## Refactor\n\nQWIXTLE\n' > "$plan_spec"
+printf -- '- [ ] Extract Function QWIXTLE\n' > "$plan_ledger"
+plan_raw="$("$HERE/../build-verify-prompt.sh" plan "$plan_spec" "$plan_ledger" 2>/dev/null)"
+rm -f "$plan_spec" "$plan_ledger"
+if [[ -z "$plan_raw" ]]; then
+  problems+=("build-verify-prompt.sh plan printed no prompt to read for a refactor spec")
+else
+  grep -E 'REJECT[^.]{0,240}no-op[^.]{0,240}later step' <<<"$(tr '\n' ' ' <<<"$plan_raw")" > /dev/null ||
+    problems+=("the refactor plan verifier never REJECTs a step that leaves a no-op in place for a later step to delete")
+fi
 report "$name"
 
 finish
