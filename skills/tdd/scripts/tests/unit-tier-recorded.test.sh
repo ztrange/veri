@@ -85,4 +85,41 @@ fi
 
 report "$name"
 
+name="$claude_md's Commands table and '$section_name' section describe the pytest leg, its admission rule, make install-dev, VERI_VENV and the two refusals"
+problems=()
+
+if read_section; then
+  says "that make unit and make test run a pytest leg over skills/tdd/scripts/tests/py/" \
+    'pytest' \
+    'skills/tdd/scripts/tests/py/?' \
+    'make unit' \
+    'make test'
+  says "the pytest suites' admission rule — no process but the interpreter" \
+    'pytest' \
+    'no (other )?process (but|other than|except|besides) the interpreter'
+  says "that make install-dev installs pytest into the one environment at VERI_VENV, default ~/.veri-tools/venv" \
+    'make install-dev' \
+    'veri_venv' \
+    '\.veri-tools/venv'
+  says "the refusal when pytest cannot be imported — exit 2, naming make install-dev" \
+    'pytest' \
+    'exit 2|refuse' \
+    'make install-dev'
+  says "the refusal below the interpreter floor — exit 2, naming Python 3.12" \
+    '3\.12' \
+    'floor|older' \
+    'exit 2|refuse'
+fi
+
+section_name="Commands"
+if read_section; then
+  says "a row for make install-dev naming requirements-dev.txt and VERI_VENV" \
+    'make install-dev' \
+    'requirements-dev\.txt' \
+    'veri_venv'
+fi
+section_name="Testing idiom"
+
+report "$name"
+
 finish
