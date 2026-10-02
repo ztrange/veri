@@ -193,7 +193,14 @@ echo "FAIL - the interpreter probe"
 echo "0 passed, 1 failed"
 exit 1
 SUITE
-chmod +x "$scratch/calls-real-vcs.test.sh" "$scratch/mocks-vcs.test.sh" "$scratch/calls-real-interpreter.test.sh"
+cat > "$scratch/calls-real-transfer.test.sh" <<'SUITE'
+#!/usr/bin/env bash
+curl --silent --max-time 2 http://example.invalid/veri-unit-curl-probe > /dev/null 2>&1
+echo "1 passed, 0 failed"
+exit 0
+SUITE
+chmod +x "$scratch/calls-real-vcs.test.sh" "$scratch/mocks-vcs.test.sh" "$scratch/calls-real-interpreter.test.sh" \
+  "$scratch/calls-real-transfer.test.sh"
 
 run_make unit UNIT_TESTS="$scratch/calls-real-vcs.test.sh"
 [[ "$code" != 0 ]] ||
@@ -206,6 +213,12 @@ run_make unit UNIT_TESTS="$scratch/calls-real-interpreter.test.sh"
   problems+=("want 'make unit' to fail a suite that ran real python3; it exited 0 and said: $(flat "$out")")
 grep -qw python3 < <(grep -v '^== ' <<< "$out") ||
   problems+=("no line of 'make unit' over a suite that ran real python3 names python3: $(flat "$out")")
+
+run_make unit UNIT_TESTS="$scratch/calls-real-transfer.test.sh"
+[[ "$code" != 0 ]] ||
+  problems+=("want 'make unit' to fail a suite that ran real curl; it exited 0 and said: $(flat "$out")")
+grep -qw curl < <(grep -v '^== ' <<< "$out") ||
+  problems+=("no line of 'make unit' over a suite that ran real curl names curl: $(flat "$out")")
 
 run_make test TESTS="$scratch/calls-real-vcs.test.sh" UNIT_TESTS=
 [[ "$code" == 0 ]] ||
