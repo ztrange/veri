@@ -441,6 +441,32 @@ expect_lines "with VERI_PARALLEL=1 a conductor over VERI_CONDUCTOR_CTX_BUDGET mi
   "$(printf 'mid-step-7\nbefore-result-7\nend-8\n--\n7\n7\n8\n--\nrestarted 7')" \
   "$(cat "$one_marks"; echo --; cat "$one_launches"; echo --; grep '^restarted ' "$work/one.out" || true)" "$work/one.out"
 
+bad=""
+for shape in done parked; do
+  gh_end="$work/gh-end-$shape"
+  solvable_fixture "$gh_end" 7 8
+  fresh_repo "$work/end-$shape"
+  : > "$work/end-$shape.launches"
+  if [[ "$shape" == done ]]; then
+    finish_step="$(ready_pr "$gh_end")"
+  else
+    finish_step="mkdir -p .tdd/parked
+echo 'Which test command should this run use?' > .tdd/parked/\$n.md"
+  fi
+  conductor_stub "$work/claude-end-$shape" <<STUB
+echo "\$n" >> "$work/end-$shape.launches"
+$finish_step
+STUB
+  run_launcher_in "$work/end-$shape" "$gh_end" "$work/claude-end-$shape" "$work/end-$shape.out" VERI_PARALLEL=1
+  got_launches="$(tr '\n' ',' < "$work/end-$shape.launches")"
+  if [[ "$code" != 0 || "$got_launches" != "7,8," ]]; then
+    bad+=" [$shape: exit=$code want 0, launches '$got_launches' want '7,8,'; output: $(tr '\n' '|' < "$work/end-$shape.out")]"
+  fi
+done
+
+[[ -z "$bad" ]] \
+  && ok || no "with VERI_PARALLEL=1 the launcher exits 0 once nothing is left to take after launching conductors, and exits 0 when every issue still solvable is parked ($bad )"
+
 gh4="$work/gh4"
 gh_fixture "$gh4" <<'JSON'
 [
