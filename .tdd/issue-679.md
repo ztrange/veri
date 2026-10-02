@@ -3,7 +3,7 @@
 - [x] cover-outcome.sh reads a report ending `COVERED: unreachable` or `COVERED: type-only` with a `PROOF: <proof>` line as exit 3, printing `<kind>: <proof>` on stdout ⟦criterion 1⟧
 - [x] cover-outcome.sh exits 2 on `COVERED: unreachable` or `COVERED: type-only` when the report has no `PROOF:` line or says `PROOF: NONE` ⟦criterion 2⟧
 - [x] cover-outcome.sh still exits 1 on `COVERED: no` when the report also carries a `PROOF:` line ⟦criterion 2⟧
-- [ ] cover-outcome.sh still exits 0 printing CAUGHT_BY on `COVERED: yes`, 1 on `COVERED: no` and 2 on a report with no `COVERED:` line ⟦criterion 3⟧
+- [x] cover-outcome.sh still exits 0 printing CAUGHT_BY on `COVERED: yes`, 1 on `COVERED: no` and 2 on a report with no `COVERED:` line ⟦criterion 3⟧
 - [ ] the develop-cover prompt allows `COVERED: unreachable` only for a step that only deletes code no caller reaches, with a `PROOF:` naming every caller and why none reaches the code (none exists, every caller passes a no-op, the value is never read) ⟦criterion 4⟧
 - [ ] the develop-cover prompt allows `COVERED: type-only` only for a step that changes only types, with a `PROOF:` that is the type-check command the leaf ran green ⟦criterion 5⟧
 - [ ] the develop-cover prompt says a step moving or reshaping runtime code is never `unreachable` or `type-only`, that reachable code no test watches is `COVERED: no`, and its report block carries a `PROOF:` line ⟦criterion 6⟧
