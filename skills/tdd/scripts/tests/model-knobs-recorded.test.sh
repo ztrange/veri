@@ -274,7 +274,8 @@ probe_shared_helpers_plain_shell() {
 
   local got expected
   got="$(
-    unset -f report plain records bullet says
+    unset -f _harness_exit argcap_python3_stub bullet claude_stub expect_eq finish new_repo no ok \
+      on_exit plain records report says scratch_dir
     before="$(declare -F | sed 's/^declare -f //')"
     pass=3 fail=5
     out="$(
@@ -290,7 +291,7 @@ probe_shared_helpers_plain_shell() {
   )"
   expected="sourcing printed: [status 0]
 counters: 3 passed, 5 failed
-new functions: [bullet plain records report says ]"
+new functions: [_harness_exit argcap_python3_stub bullet claude_stub expect_eq finish new_repo no ok on_exit plain records report says scratch_dir ]"
   same_as_copies "nothing but its definitions" "a plain-shell helper file with no dependency" "$got" "$expected"
 
   local stem suite_rel text line
@@ -310,7 +311,7 @@ new functions: [bullet plain records report says ]"
   done
 }
 
-name="$helpers_rel keeps the plain-shell idiom — sourcing it with no PATH prints nothing, leaves the suite's pass/fail counters alone and defines only the five helpers — and the four suites each source lib/harness.sh and source nothing outside the repo"
+name="$helpers_rel keeps the plain-shell idiom — sourcing it with no PATH prints nothing, leaves the suite's pass/fail counters alone and defines the harness's functions and its own four helpers — and the four suites each source lib/harness.sh and source nothing outside the repo"
 problems=()
 
 probe_shared_helpers_plain_shell
@@ -380,6 +381,42 @@ name="#595: the case that checks each suite sources lib/harness.sh is named for 
 problems=()
 
 probe_harness_case_name
+
+report "$name"
+
+probe_plain_shell_probe_unsourced() {
+  local suite_rel="skills/tdd/scripts/tests/model-knobs-recorded.test.sh" defined case_name
+  defined="$(env -i bash --noprofile --norc -c '
+    before="$(declare -F)"
+    source "$1" > /dev/null 2>&1
+    declare -F | grep -vxF "$before" | sed "s/^declare -f //"
+  ' _ "$helpers_path")"
+  if [[ -z "$defined" ]]; then
+    problems+=("sourcing $helpers_rel in a fresh shell defined no functions")
+    return
+  fi
+  local -a left=() names=()
+  mapfile -t names <<< "$defined"
+  mapfile -t left < <(
+    problems=()
+    unset -f "${names[@]}" && probe_shared_helpers_plain_shell
+    [[ "${#problems[@]}" -eq 0 ]] || printf '%s\n' "${problems[@]}"
+  )
+  [[ "${#left[@]}" -eq 0 ]] ||
+    problems+=("the plain-shell probe fails in a shell that has not sourced lib/harness.sh:" "${left[@]}")
+  case_name="$(case_name_running probe_shared_helpers_plain_shell)"
+  if [[ -z "$case_name" ]]; then
+    problems+=("$suite_rel has no case that runs probe_shared_helpers_plain_shell")
+    return
+  fi
+  [[ "$case_name" == *"defines only the five helpers"* ]] &&
+    problems+=("the plain-shell probe's case still claims $helpers_rel defines only the five helpers: $case_name")
+}
+
+name="#595: the plain-shell probe holds in a shell that has not sourced lib/harness.sh, and its case name no longer claims $helpers_rel defines only the five helpers"
+problems=()
+
+probe_plain_shell_probe_unsourced
 
 report "$name"
 
