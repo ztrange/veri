@@ -140,6 +140,8 @@ probe_added_suite_gets_the_check() {
   }
   mkdir -p "$tree/$TESTS_DIR" "$tree/skills/tdd/scripts/lib"
   cp "$MAKEFILE" "$tree/Makefile"
+  cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
+  cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/skills/tdd/scripts/lib/"
   cp "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh" "$tree/skills/tdd/scripts/lib/"
   cp "$FIXTURE_PATH" "$tree/$TESTS_DIR/$ADDED_NAME"
   cmp -s "$MAKEFILE" "$tree/Makefile" ||
@@ -568,6 +570,8 @@ scratch_suite_run() {
   }
   mkdir -p "$tree/$TESTS_DIR" "$tree/skills/tdd/scripts/lib"
   cp "$MAKEFILE" "$tree/Makefile"
+  cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
+  cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/skills/tdd/scripts/lib/"
   if [[ $# -lt 3 ]]; then
     cp "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh" "$tree/skills/tdd/scripts/lib/"
   elif [[ -n "$3" ]]; then
@@ -964,6 +968,8 @@ probe_all_green_suites_pass() {
   }
   mkdir -p "$tree/$TESTS_DIR" "$tree/skills/tdd/scripts/lib"
   cp "$MAKEFILE" "$tree/Makefile"
+  cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
+  cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/skills/tdd/scripts/lib/"
   cp "$ROOT/$GUARD_LIB" "$tree/$GUARD_LIB"
   for suite in first-green.test.sh second-green.test.sh; do
     printf '#!/bin/sh\necho "a case ran"\necho "2 passed, 0 failed"\nexit 0\n' > "$tree/$TESTS_DIR/$suite"
@@ -1129,6 +1135,47 @@ MAKE
 }
 
 probe_runner_without_guard_lib_refuses_without_make
+
+report "$name"
+
+name="make test holds a countless suite to its count line through run-suite.sh: the run fails, printing the refusal and then the last-line or empty-output line run-suite.sh words (#683)"
+problems=()
+
+probe_make_refuses_through_the_runner() {
+  local tree suite want
+  have_runner "so there is no runner for make test to hold its suites through" || return
+  tree="$(scratch_dir)" || {
+    problems+=("could not make a scratch tree to reword the runner in, so the criterion went unasked")
+    return 1
+  }
+  mkdir -p "$tree/$TESTS_DIR" "$tree/skills/tdd/scripts/lib"
+  cp "$MAKEFILE" "$tree/Makefile"
+  cp "$ROOT/$GUARD_LIB" "$tree/$GUARD_LIB"
+  cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/skills/tdd/scripts/lib/"
+  sed -e 's/its last line was:/its final line read:/' -e 's/its output was empty/it printed nothing/' \
+    "$RUNNER" > "$tree/skills/tdd/scripts/run-suite.sh"
+  chmod +x "$tree/skills/tdd/scripts/run-suite.sh"
+  printf '#!/bin/sh\necho "partial"\nexit 0\n' > "$tree/$TESTS_DIR/countless-partial.test.sh"
+  printf '#!/bin/sh\nexit 0\n' > "$tree/$TESTS_DIR/countless-empty.test.sh"
+  chmod +x "$tree/$TESTS_DIR"/*.test.sh
+
+  scratch_out="$(make -C "$tree" test 2>&1)" && scratch_code=0 || scratch_code=$?
+  rm -rf "$tree"
+
+  [[ "$scratch_code" != 0 ]] ||
+    problems+=("want 'make test' to fail over suites that exit 0 without their count line; it exited 0 and said: $(flat "$scratch_out")")
+  for suite in countless-partial.test.sh countless-empty.test.sh; do
+    if [[ "$suite" == countless-empty.test.sh ]]; then
+      want="$suite$GUARD_MESSAGE/$suite: it printed nothing/"
+    else
+      want="$suite$GUARD_MESSAGE/$suite: its final line read: partial/"
+    fi
+    [[ "$(flat "$scratch_out")" == *"$want"* ]] ||
+      problems+=("want make test to print '$want' (run-suite.sh's reworded lines) for $suite; it said: $(flat "$scratch_out")")
+  done
+}
+
+probe_make_refuses_through_the_runner
 
 report "$name"
 
