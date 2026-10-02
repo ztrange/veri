@@ -1562,6 +1562,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    step's red evidence, the same way a red full run's repair step is.
    A second red CI result after a CI repair step does **bail**, with cause `ci-red`, the way
    a second red full run does — the repair step is one more cycle, not a loop.
+   That bail greps for `⟦ci-repair⟧` only: a ledger holding a `⟦suite-repair⟧` step and no
+   `⟦ci-repair⟧` step still gets its one CI repair attempt.
    The `metrics:` push starts a CI run of its own on the readied PR, so it is read the same
    way, by `wait-ci.sh` after the push; the commit carries no code, so its red is not a
    repair step: exit 1 bails with cause `ci-red` and exit 2 with cause `ci-timeout`.

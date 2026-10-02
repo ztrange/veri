@@ -94,6 +94,9 @@
 #      `FAIL -` line, then a `git add` and `git commit` of the ledger.
 #  34. SKILL.md's Draft PR step bails on a second red full run with a command keyed on a
 #      `⟦suite-repair⟧` line already in the ledger, and still names every suite still red.
+#  35. SKILL.md's Draft PR step keys its `ci-red` bail on `⟦ci-repair⟧` only, and states that a
+#      ledger holding a `⟦suite-repair⟧` step and no `⟦ci-repair⟧` step still gets its one CI
+#      repair attempt.
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -900,6 +903,26 @@ if step_or_problem '### 4. Draft PR' "how the step recognises a second red full 
   second="$(first_record "$records" -wF 'bail' -E 'second red|red again' -F 'repair step')"
   grep -E 'every (suite still red|red suite|failing suite|still-red suite)' > /dev/null <<< "$second" ||
     problems+=("$skill_md's Draft PR step's second-red bail no longer names every suite still red: $(printf '%.120s' "$second")")
+fi
+report "$name"
+
+name="$skill_md's Draft PR step keys its ci-red bail on ⟦ci-repair⟧ only, and states a ⟦suite-repair⟧ step leaves the run its one CI repair attempt (#590)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "what the ci-red bail is keyed on"; then
+  commands="$(section_commands)"
+  keyed="$(first_record "$commands" -E '^[^#]*[$]s/event[.]sh bail cause=ci-red' -F '.tdd/issue-<n>.md')"
+  if [[ -z "$keyed" ]]; then
+    problems+=("no command line of $skill_md's Draft PR step bails with cause ci-red keyed on .tdd/issue-<n>.md")
+  else
+    grep -F "$ci_repair_mark" > /dev/null <<< "$keyed" ||
+      problems+=("$skill_md's Draft PR step keys its ci-red bail without the $ci_repair_mark mark: $(printf '%.160s' "$keyed")")
+    grep -F "$suite_repair_mark" > /dev/null <<< "$keyed" &&
+      problems+=("$skill_md's Draft PR step keys its ci-red bail on $suite_repair_mark too, so a local full-suite repair spends the run's one CI repair attempt: $(printf '%.160s' "$keyed")")
+  fi
+  stated="$(first_record "$records" -F "$suite_repair_mark" -F "$ci_repair_mark" -E 'one ci repair attempt')"
+  [[ -n "$stated" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step states that a ledger holding a $suite_repair_mark step and no $ci_repair_mark step still gets its one CI repair attempt")
 fi
 report "$name"
 
