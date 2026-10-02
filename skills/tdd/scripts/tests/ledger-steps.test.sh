@@ -19,7 +19,7 @@ got="$("$STEPS" < "$work/ledger.md" 2> "$work/err")"; code=$?
   && ok || no "prints ledger_steps's records for its stdin, and nothing else (code=$code stderr='$(cat "$work/err")')
 $(diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /')"
 
-step='replace tests/status.test.sh case "status prints the plan" with a pytest case ⟦replaces-case⟧ ⟦criterion 6⟧'
+step='replace skills/tdd/scripts/tests/status.test.sh case "status prints the plan" with a pytest case ⟦replaces-case⟧ ⟦criterion 6⟧'
 printf '# Plan for #42\n\n- [x] add lowercasing ⟦criterion 5⟧\n- [ ] %s\n' "$step" > "$work/replaces.md"
 want="$(printf '1\tdone\tstep\t0\t0\t5\tadd lowercasing ⟦criterion 5⟧\n2\topen\tstep\t0\t0\t6\t%s' "$step")"
 got="$("$STEPS" < "$work/replaces.md" 2> "$work/err")"; code=$?
