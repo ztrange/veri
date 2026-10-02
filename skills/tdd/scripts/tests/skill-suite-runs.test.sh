@@ -154,6 +154,19 @@ else
 fi
 report "$name"
 
+name="$claude_md's Testing idiom paragraph says a revise leaf runs the tiers of the phase it redoes"
+problems=()
+text="$(paragraphs "$claude_path" | grep -E '^a suite whose subject is the docs pipeline')"
+if [[ -n "$text" ]]; then
+  says 'revise[- ](leaf|leaves)|revise-(red|green|refactor)' \
+    "$claude_md's Testing idiom paragraph never names the revise leaves"
+  says '(tier|suites)[^.]*phase (it|they|the leaf) (redoes|redo|is redoing|are redoing)' \
+    "$claude_md's Testing idiom paragraph never says a revise leaf runs the tiers of the phase it redoes"
+else
+  problems+=("$claude_md has no paragraph opening 'a suite whose subject is the docs pipeline' to read")
+fi
+report "$name"
+
 name="$skill_md names no full-suite run inside a step's cycle"
 problems=()
 text="$(awk 'index($0, "#### Red") == 1 { s = 1 } index($0, "### 4. Draft PR") == 1 { exit } s' "$skill_path" | plain | tr -s '\n ' ' ')"

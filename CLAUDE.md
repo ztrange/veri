@@ -239,7 +239,8 @@ existing — `make docs-test` globs that directory, so a suite added there owes 
 edit (#137). Per step, the red and refactor leaves run the affected suites — the one holding
 the new case, the ones covering the files a transform touched (#144) — and `develop-green`
 and the two blind verifiers (verify-green and verify-refactor) run the fast tier plus the
-affected suites. `make test` is the **full suite**, and the conductor runs it once per PR,
+affected suites; a revise leaf runs the tiers of the phase it redoes. `make test` is the
+**full suite**, and the conductor runs it once per PR,
 before the PR is readied, plus once per repair step a red result there appends (#539) — so a
 docs suite under `make test`'s glob still taxes every PR's full run, and every step whose
 affected set names it, with a tool that is not functional (ADR 0016). `docs-guard-filter.test.sh` and `docs-owed.test.sh` were moved out on
