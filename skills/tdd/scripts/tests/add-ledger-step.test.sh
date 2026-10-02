@@ -206,6 +206,17 @@ else
   diff <(printf '%s\n' "$wantc") <(printf '%s\n' "$gotc") | sed 's/^/    /'
 fi
 
+seed_lines '- [x] say a step marked ⟦added⟧ is counted ⟦criterion 1⟧' \
+  '- [ ] collapse to single hyphen ⟦criterion 2⟧'
+VERI_STEP_GROWTH=1 "$ADD" "$led" after 'collapse to single hyphen' 'one more edge case'; code=$?
+want='# Plan for #42
+
+- [x] say a step marked ⟦added⟧ is counted ⟦criterion 1⟧
+- [ ] collapse to single hyphen ⟦criterion 2⟧
+- [ ] one more edge case ⟦added⟧ ⟦criterion 2⟧'
+check "#660: a step quoting ⟦added⟧ mid-text, not ending in it, is not counted toward VERI_STEP_GROWTH" \
+  "$code" "$want"
+
 stub="$work/stub"
 stub_script
 cat > "$stub/lib/ledger.sh" <<'EOF'
