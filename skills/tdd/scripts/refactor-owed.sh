@@ -31,6 +31,8 @@ verb="${1:-}"
 file="${2:-}"
 require_args 2 "$@"
 
+test_only='- test-only | '
+
 case "$verb" in
   append)
     step="${3:-}"
@@ -41,7 +43,7 @@ case "$verb" in
       if structural_candidate "$line"; then
         structural+=("$STRUCTURAL_TRANSFORM")
       elif [[ "$line" =~ ^CANDIDATES:[[:space:]]*test-only[[:space:]]*[|][[:space:]]*(.*)$ ]]; then
-        structural+=("test-only | ${BASH_REMATCH[1]}")
+        structural+=("${test_only#- }${BASH_REMATCH[1]}")
       fi
     done
 
@@ -56,7 +58,7 @@ case "$verb" in
     [[ -s "$file" ]] || exit 3
 
     printf '## Refactor owed\n\n'
-    awk '/^- test-only [|] / { test_only[++k] = substr($0, 15); next }
+    awk -v mark="$test_only" 'index($0, mark) == 1 { test_only[++k] = substr($0, length(mark) + 1); next }
          { print }
          END {
            if (!k) exit
@@ -66,7 +68,7 @@ case "$verb" in
     ;;
   list)
     [[ -s "$file" ]] || exit 3
-    listed="$(awk '/^- test-only [|] / { next }
+    listed="$(awk -v mark="$test_only" 'index($0, mark) == 1 { next }
          /^- / {
            t = substr($0, 3)
            if (!(t in n)) order[++k] = t
