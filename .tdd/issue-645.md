@@ -5,7 +5,7 @@
 - [x] while one conductor is stopped over VERI_CONDUCTOR_CTX_BUDGET at step-done, the other conductor running beside it is not stopped and runs to its own end ⟦criterion 2⟧
 - [x] a conductor stopped over VERI_CONDUCTOR_CTX_BUDGET is launched again by parallel-conductors.sh for the same issue, before any not-yet-launched solvable issue is launched into that slot ⟦criterion 3⟧
 - [x] each over-budget restart is recorded where a human can see it: parallel-conductors.sh prints a `restarted <n>` line naming the issue whose conductor it relaunched ⟦criterion 3⟧
-- [x] a parallel-conductors.sh conductor that halts after writing `.tdd/parked/<n>.md` makes it print `parked <n>`, its slot then takes the next solvable issue, and issue <n> is not launched again in that invocation even while solvable-issues.sh still lists it ⟦criterion 4⟧ ⟂ refactor pending
+- [x] a parallel-conductors.sh conductor that halts after writing `.tdd/parked/<n>.md` makes it print `parked <n>`, its slot then takes the next solvable issue, and issue <n> is not launched again in that invocation even while solvable-issues.sh still lists it ⟦criterion 4⟧
 - [ ] a parked conductor does not stop new launches, with or without `--continue-on-bail`: parking is not a bail ⟦criterion 4⟧
 - [ ] parallel-conductors.sh exits 2 with a diagnostic naming VERI_CONDUCTOR_CTX_BUDGET, launching no conductor, when it is set to anything that is not a whole number ⟦criterion 5⟧
 - [ ] with VERI_PARALLEL=1, a conductor over VERI_CONDUCTOR_CTX_BUDGET mid-step is stopped only after its step-done result and is relaunched for the same issue, and one that never crosses the budget is never stopped or relaunched ⟦criterion 6⟧
