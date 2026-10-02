@@ -549,6 +549,10 @@ if structural is not None and "transforms" not in structural:
 elif structural is not None:
     table_head("#### Structural pass", "pass", ["refactor", "stopped"], ["---:", "---"])
     row(["issue", refactor_spent(structural), structural["stopped"]])
+    if structural["stopped"] == "budget-spent" and int(structural["transforms"]) < int(structural["budget"]):
+        print()
+        print("Inconsistent mark: stopped=budget-spent, but transforms=%s is below budget=%s"
+              % (structural["transforms"], structural["budget"]))
 tier_section("#### Test-command seconds, by tier", "tier")
 section("#### Total", "run", COST_COLUMNS, totals)
 ' "$issue" "$log" "$ledger" "$ledger_steps"
