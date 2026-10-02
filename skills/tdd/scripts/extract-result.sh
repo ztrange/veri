@@ -26,15 +26,15 @@ import sys, re
 from leaf_log import result_records
 data = sys.stdin.read()
 result = None
-verdict = None
-verdict_re = re.compile(r"^[ \t]*(verdict|impl_path|split|test_path|suite):", re.I | re.M)
+report = None
+report_re = re.compile(r"^[ \t]*(verdict|impl_path|split|test_path|suite):", re.I | re.M)
 for obj in result_records(data.splitlines()):
     if "result" in obj:
         result = obj["result"]          # last result event wins
-        if isinstance(result, str) and verdict_re.search(result):
-            verdict = result            # ...unless a later one carries no verdict
-if verdict is not None:
-    result = verdict
+        if isinstance(result, str) and report_re.search(result):
+            report = result             # ...unless a later one carries no report
+if report is not None:
+    result = report
 if result is None:
     sys.stdout.write(data)              # not a stream-json result -> passthrough
 else:
