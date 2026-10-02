@@ -31,8 +31,8 @@ some existing test goes red when that behaviour breaks. Write **NO** production 
        {{TIMED_TEST_RUN}} affected '<the suites you ran>' <the command that runs them>
 
    Expect red. Note the test that caught the mutation.
-4. **Restore** the file exactly — `mv <file>.orig <file>` — and prove the edit is gone with
-   `git diff --exit-code`. The working tree must be exactly as you found it.
+4. **Restore** the file exactly — `mv <file>.orig <file>` — and prove the edit is gone: `git diff`
+   must print what it printed before the mutation. The working tree must be exactly as you found it.
 5. If no mutation you can make turns any test red, the code is not covered: report
    `COVERED: no`. Do not write a test to cover it — that is not this phase's work.
 

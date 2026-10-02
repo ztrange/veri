@@ -39,8 +39,8 @@ A developer agent has written the implementation intended to make the target tes
    revise leaf the search you have already done. Establish it the way verify-pin
    establishes a mutation: copy the file first — `cp <file> <file>.orig` — then
    remove the code yourself and run the suites again, and if they stay green nothing
-   required it. Then restore the tree exactly — `mv <file>.orig <file>`, and confirm with
-   `git diff --exit-code` — before you report, since a verifier
+   required it. Then restore the tree exactly — `mv <file>.orig <file>`, and confirm that
+   `git diff` prints what it printed before the probe — before you report, since a verifier
    that reports first leaves the developer's tree mutated for the next leaf.
 5. **Only the two allowed comments.** A comment the change adds is allowed only as a
    contract header (a usage line or exit-code table) or a succinct warning where the shell
