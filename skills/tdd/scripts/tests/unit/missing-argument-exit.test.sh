@@ -41,12 +41,16 @@ requires_argument() {  # requires_argument <file> — its usage line names a <�
   [[ "$(sed -E 's/\[[^]]*\]//g' <<< "$usage")" == *'<'*'>'* ]]
 }
 
+argument_scripts() {  # argument_scripts — the scripts/*.sh names requires_argument admits, one per line
+  local file
+  for file in "$SCRIPTS"/*.sh; do
+    requires_argument "$file" && printf '%s\n' "${file##*/}"
+  done
+}
+
 name="a script requiring a positional argument exits 2 with a usage line when called with none"
 unset VERI_TIMEOUT VERI_REFACTOR_BUDGET
-roster=()
-for file in "$SCRIPTS"/*.sh; do
-  requires_argument "$file" && roster+=( "${file##*/}" )
-done
+mapfile -t roster < <(argument_scripts)
 offenders=()
 for script in "${roster[@]}"; do
   refuses "$script"
@@ -55,10 +59,9 @@ verdict "$name"
 
 name="the missing-argument audit covers every script in the real scripts/ directory whose usage line names a required argument"
 offenders=()
-for file in "$SCRIPTS"/*.sh; do
-  requires_argument "$file" || continue
-  [[ " ${roster[*]} " == *" ${file##*/} "* ]] || offenders+=( "${file##*/}: not audited" )
-done
+while read -r script; do
+  [[ " ${roster[*]} " == *" $script "* ]] || offenders+=( "$script: not audited" )
+done < <(argument_scripts)
 verdict "$name"
 
 name="a script exits 2 with a usage line when a later required argument is missing"
