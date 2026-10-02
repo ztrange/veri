@@ -924,6 +924,15 @@ refx_exit="$(cat "$refx_work/.tdd/verdict-green.exit" 2>/dev/null || echo '<miss
 { [[ "$refx_code" == 2 ]] && [[ "$refx_exit" == 2 ]]; } && ok \
   || no "#618: a launch refused because a leaf under another name is alive exits 2 and writes 2 to .tdd/<refused-name>.exit (code=$refx_code want 2; verdict-green.exit='$refx_exit' want 2; stderr='$(cat "$refx_work/err")')"
 
+refw_work="$work/live-owner-refused-wait"
+mkdir -p "$refw_work/.tdd"
+printf '%s develop-green\n' "$$" > "$refw_work/.tdd/leaf.owner"
+sup_in "$refw_work" verdict-green "$stub/leaf-second" >/dev/null 2>"$refw_work/err"
+( cd "$refw_work" && env VERI_POLL=0.02 "$SCRIPTS/wait-leaf.sh" verdict-green 0 ) >/dev/null 2>"$refw_work/wait-err"
+refw_wait=$?
+[[ "$refw_wait" == 2 ]] && ok \
+  || no "#618: after a launch refused because a leaf under another name is alive, wait-leaf.sh <refused-name> exits 2, not 3 (wait-leaf.sh verdict-green=$refw_wait want 2; .tdd: $(ls "$refw_work/.tdd" | tr '\n' ' '); stderr='$(cat "$refw_work/err" "$refw_work/wait-err")')"
+
 woke_with_own_exit() {
   local susp_rc
   susp_rc="$(cat "$work/.tdd/$1.rc" 2>/dev/null || echo '<missing>')"
