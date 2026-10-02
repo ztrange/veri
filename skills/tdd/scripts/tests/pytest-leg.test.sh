@@ -9,6 +9,7 @@
 #   2. With every case there passing, both targets run them, exit 0 and end `all suites green`.
 #   3. When no python3 they would use can import pytest, both refuse before any suite runs.
 #   4. When the python3 they would use is older than 3.12, both refuse before any suite runs.
+#   5. requirements-dev.txt pins pytest to one exact version the Makefile never restates.
 #
 # Run: skills/tdd/scripts/tests/pytest-leg.test.sh
 set -uo pipefail
@@ -215,6 +216,22 @@ for target in unit test; do
   [[ "$err" == *3.12* ]] || problems+=("make $target: want stderr to name the 3.12 floor, got: $(flat "$err")")
   [[ "$err" == *3.11.9* ]] || problems+=("make $target: want stderr to name the version found 3.11.9, got: $(flat "$err")")
 done
+report "$name"
+
+name="requirements-dev.txt at the repository root pins pytest to one exact version, and that version appears nowhere in the Makefile"
+problems=()
+if [[ ! -f "$ROOT/requirements-dev.txt" ]]; then
+  problems+=("want $ROOT/requirements-dev.txt to exist")
+else
+  pins="$(grep -E '^[[:space:]]*pytest' "$ROOT/requirements-dev.txt" || true)"
+  if [[ "$pins" =~ ^pytest==([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+    version="${BASH_REMATCH[1]}"
+    ! grep -nF "$version" "$ROOT/Makefile" > "$work/restated" ||
+      problems+=("want the Makefile not to restate $version, got: $(flat "$(cat "$work/restated")")")
+  else
+    problems+=("want one line pytest==X.Y.Z, got: $(flat "$pins")")
+  fi
+fi
 report "$name"
 
 finish
