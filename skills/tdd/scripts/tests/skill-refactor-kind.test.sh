@@ -14,6 +14,8 @@
 #   7. SKILL.md reruns a type-only step's proof command after its transform — see case 7's name.
 #   8. SKILL.md keeps a type-only step's proof command in a run file the conductor reruns — see
 #      case 8's name.
+#   9. SKILL.md's Scope & plan folds a deletion into the step that makes the code dead — see
+#      case 9's name.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -203,6 +205,25 @@ else
 fi
 grep -E 'conductor[^.]{0,40}(rerun|re-run|runs? again)[^.]{0,80}(saved|\.tdd/)' <<<"$skill_text" > /dev/null ||
   problems+=("$skill_md never says the conductor itself reruns the saved proof command")
+report "$name"
+
+name="#679 $skill_md's Scope & plan tells a refactor-kind planner to fold a deletion into the step that makes the code dead, never leaving a no-op in place for a later step to delete"
+problems=()
+
+text="$(section "$plan_heading")"
+noop_near="$(window "$text" 'no-op')"
+if [[ -z "$noop_near" ]]; then
+  problems+=("$skill_md's '$plan_heading' section never names a no-op, so a refactor-kind planner may make code dead in one step and delete it in a later one whose Cover runs on code nothing reaches")
+else
+  grep -E 'refactor[- ]kind|refactor (plan|step)' <<<"$noop_near" > /dev/null ||
+    problems+=("$skill_md names a no-op in '$plan_heading' without tying it to a refactor-kind plan")
+  grep -E '(fold|same step|one step)[^.]{0,120}delet|delet[^.]{0,120}(fold|same step|one step)' <<<"$noop_near" > /dev/null ||
+    problems+=("$skill_md never tells the planner to fold the deletion into the same step")
+  grep -E 'dead' <<<"$noop_near" > /dev/null ||
+    problems+=("$skill_md never names the step that makes the code dead")
+  grep -E '(never|not|no)[^.]{0,80}no-op[^.]{0,80}later step|later step[^.]{0,80}delet' <<<"$noop_near" > /dev/null ||
+    problems+=("$skill_md never forbids leaving a no-op in place for a later step to delete")
+fi
 report "$name"
 
 finish
