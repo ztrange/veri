@@ -11,5 +11,5 @@
 - [x] `stop-run.sh` takes its accepted stop modes from one sourced list in `lib/`, and still refuses a mode outside it with `stop-run: unknown mode — want at-ledger, at-leaf or now: '<mode>'` ⟦criterion 8⟧
 - [x] `stop-run.sh`'s unknown-mode refusal names the modes from the sourced list rather than spelling them by hand: with today's list it prints exactly `stop-run: unknown mode — want at-ledger, at-leaf or now: '<mode>'`, and a mode added to the list is named in it ⟦added⟧ ⟦criterion 8⟧
 - [x] `stop-run.sh`'s usage line names the modes from the sourced list rather than spelling them by hand: with today's list it reads `usage: stop-run.sh [--mode at-ledger|at-leaf|now] <issue> | --all`, and a mode added to the list is named in it ⟦added⟧ ⟦criterion 8⟧
-- [x] `stop-requested.sh` takes its accepted stop modes from the same sourced list, and still refuses a `.tdd/stop` naming a mode outside it with today's exit-2 message; no script under `skills/tdd/scripts/` spells `at-ledger | at-leaf | now)` ⟦criterion 8⟧ ⟂ refactor pending
+- [x] `stop-requested.sh` takes its accepted stop modes from the same sourced list, and still refuses a `.tdd/stop` naming a mode outside it with today's exit-2 message; no script under `skills/tdd/scripts/` spells `at-ledger | at-leaf | now)` ⟦criterion 8⟧
 - [ ] `make test` is green ⟦full-suite⟧ ⟦criterion 9⟧
