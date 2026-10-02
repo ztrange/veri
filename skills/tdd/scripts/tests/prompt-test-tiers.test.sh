@@ -195,6 +195,19 @@ fi
 never_timed_under "develop-revise green" "$revise_green" all
 report "$name"
 
+name="develop-revise runs the tiers of the phase it redoes — affected for red and refactor, fast and affected for green — and no all run, for each of the three"
+problems=()
+revise_tiers=(red 'affected' green 'fast affected' refactor 'affected')
+for ((i = 0; i < ${#revise_tiers[@]}; i += 2)); do
+  phase="${revise_tiers[i]}"
+  redo="$("$DEVELOP" revise "$phase" "$work/spec.md" 'QWIXTLE step' 'make test' "$work/reason.md" 2>/dev/null)" ||
+    problems+=("build-develop-prompt.sh revise $phase exited $?")
+  read -ra tiers <<< "${revise_tiers[i + 1]}"
+  timed_through "develop-revise $phase" "$redo" "${tiers[@]}"
+  never_timed_under "develop-revise $phase" "$redo" all
+done
+report "$name"
+
 name="verify-red, verify-green, verify-refactor and verify-pin run their test commands through timed-test-run.sh, each naming its tier"
 problems=()
 verify_pin="$("$VERIFY" pin "$work/spec.md" 'tests/zorblat.test.sh' 'zorblat case' 2>/dev/null)" ||
