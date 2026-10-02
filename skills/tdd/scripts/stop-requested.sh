@@ -52,11 +52,7 @@ esac
 
 IFS= read -r mode < "$file" || mode=""
 
-known=0
-for listed in "${STOP_MODES[@]}"; do
-  [[ "$mode" == "$listed" ]] && known=1
-done
-if (( known == 0 )); then
+if ! stop_mode_known "$mode"; then
   echo "stop-requested: $file must name a mode — at-ledger, at-leaf or now: '$mode'" >&2
   exit 2
 fi

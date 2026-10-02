@@ -97,7 +97,7 @@ problems=""
 listed="$work/listed"; mkdir -p "$listed/lib"
 cp "$STOP" "$listed/stop-requested.sh"
 cp "$HERE/../../lib/exit-contract.sh" "$listed/lib/"
-printf '%s\n' 'STOP_MODES=(at-ledger at-leaf now at-step)' > "$listed/lib/stop-modes.sh"
+{ cat "$HERE/../../lib/stop-modes.sh"; printf '%s\n' 'STOP_MODES=(at-ledger at-leaf now at-step)'; } > "$listed/lib/stop-modes.sh"
 printf '%s\n' "at-step" > "$work/.tdd/stop"
 out="$(cd "$work" && "$listed/stop-requested.sh" 2>"$work/stderr")" && code=0 || code=$?
 if [[ "$code" != 0 || "$out" != "at-step" ]]; then

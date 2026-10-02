@@ -55,11 +55,7 @@ while (( $# > 0 )); do
   esac
 done
 
-known=0
-for listed in "${STOP_MODES[@]}"; do
-  [[ "$mode" == "$listed" ]] && known=1
-done
-(( known == 1 )) || refuse "stop-run: unknown mode — want $(modes_named): '$mode'"
+stop_mode_known "$mode" || refuse "stop-run: unknown mode — want $(modes_named): '$mode'"
 
 if [[ -n "$issue" ]] && (( all == 1 )); then
   refuse "stop-run: name an issue or --all, not both"
