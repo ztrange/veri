@@ -32,6 +32,13 @@ check_green() {
     problems+=("$1: want stdout's last line all suites green, got: $(tail -n 1 <<< "$out")")
 }
 
+make_tree() {
+  mkdir -p "$1/$PY_DIR"
+  cp "$ROOT/Makefile" "$1/Makefile"
+  ln -s "$HERE/offline" "$1/skills/tdd/scripts/tests/offline"
+  ln -s "$HERE/unit-guard" "$1/skills/tdd/scripts/tests/unit-guard"
+}
+
 work="$(scratch_dir)"
 
 fake_pytest="$work/fake-pytest"
@@ -69,10 +76,7 @@ sys.exit(1 if failed else 0)
 PY
 
 tree="$work/tree"
-mkdir -p "$tree/$PY_DIR"
-cp "$ROOT/Makefile" "$tree/Makefile"
-ln -s "$HERE/offline" "$tree/skills/tdd/scripts/tests/offline"
-ln -s "$HERE/unit-guard" "$tree/skills/tdd/scripts/tests/unit-guard"
+make_tree "$tree"
 cat > "$tree/$PY_DIR/test_leg_probe.py" <<'PY'
 def test_veri_probe_fails():
     assert 1 == 2
@@ -97,10 +101,7 @@ done
 report "$name"
 
 green="$work/green"
-mkdir -p "$green/$PY_DIR"
-cp "$ROOT/Makefile" "$green/Makefile"
-ln -s "$HERE/offline" "$green/skills/tdd/scripts/tests/offline"
-ln -s "$HERE/unit-guard" "$green/skills/tdd/scripts/tests/unit-guard"
+make_tree "$green"
 cat > "$green/$PY_DIR/test_leg_probe.py" <<'PY'
 def test_veri_probe_passes():
     assert 1 == 1
@@ -117,10 +118,8 @@ done
 report "$name"
 
 bare="$work/bare"
-mkdir -p "$bare/$PY_DIR" "$bare/skills/tdd/scripts/tests/unit" "$work/no-pytest-bin"
-cp "$ROOT/Makefile" "$bare/Makefile"
-ln -s "$HERE/offline" "$bare/skills/tdd/scripts/tests/offline"
-ln -s "$HERE/unit-guard" "$bare/skills/tdd/scripts/tests/unit-guard"
+mkdir -p "$bare/skills/tdd/scripts/tests/unit" "$work/no-pytest-bin"
+make_tree "$bare"
 : > "$bare/$PY_DIR/helper.py"
 for suite in skills/tdd/scripts/tests/unit/fast.test.sh skills/tdd/scripts/tests/slow.test.sh; do
   printf '#!/usr/bin/env bash\necho "1 passed, 0 failed"\n' > "$bare/$suite"
@@ -177,10 +176,8 @@ done
 report "$name"
 
 refuse="$work/refuse"
-mkdir -p "$refuse/$PY_DIR" "$refuse/skills/tdd/scripts/tests/unit"
-cp "$ROOT/Makefile" "$refuse/Makefile"
-ln -s "$HERE/offline" "$refuse/skills/tdd/scripts/tests/offline"
-ln -s "$HERE/unit-guard" "$refuse/skills/tdd/scripts/tests/unit-guard"
+mkdir -p "$refuse/skills/tdd/scripts/tests/unit"
+make_tree "$refuse"
 cp "$green/$PY_DIR/test_leg_probe.py" "$refuse/$PY_DIR/test_leg_probe.py"
 for suite in skills/tdd/scripts/tests/unit/fast.test.sh skills/tdd/scripts/tests/slow.test.sh; do
   printf '#!/usr/bin/env bash\necho "1 passed, 0 failed"\n' > "$refuse/$suite"
