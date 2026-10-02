@@ -7,4 +7,4 @@
 - [x] `prompt-test-tiers.test.sh` pins the tiers of the revise prompt for each of red, green and refactor, and goes red against today's `develop-revise.md` ⟦criterion 2⟧
 - [x] the prompt `build-develop-prompt.sh refactor …` prints no longer says the full suite runs at verify-refactor; it says a break outside the affected set surfaces at the PR's one full run and its repair step ⟦criterion 3⟧
 - [x] the rebase leaves are unchanged: the `develop-rebase`, `develop-reconcile` and `verify-rebase` prompts still run the full test command under tier `all` ⟦criterion 4⟧
-- [ ] CLAUDE.md's "Testing idiom" paragraph on what runs per step names the revise leaves' tiers — a revise leaf runs the tiers of the phase it redoes ⟦criterion 5⟧
+- [x] CLAUDE.md's "Testing idiom" paragraph on what runs per step names the revise leaves' tiers — a revise leaf runs the tiers of the phase it redoes ⟦criterion 5⟧ ⟂ refactor pending
