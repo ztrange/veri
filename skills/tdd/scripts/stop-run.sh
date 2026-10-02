@@ -29,6 +29,11 @@ complain() {
 
 USAGE="usage: stop-run.sh [--mode at-ledger|at-leaf|now] <issue> | --all"
 
+modes_named() {
+  local wanted="${STOP_MODES[*]:0:${#STOP_MODES[@]}-1}"
+  printf '%s or %s' "${wanted// /, }" "${STOP_MODES[*]: -1}"
+}
+
 nothing_to_do() {
   complain "$1"
   exit 3
@@ -42,7 +47,7 @@ while (( $# > 0 )); do
   case "$1" in
     # hazard: under set -u an absent `$2` kills the script before the refusal can speak.
     --mode)
-      (( $# >= 2 )) || refuse "stop-run: --mode needs a value — at-ledger, at-leaf or now"
+      (( $# >= 2 )) || refuse "stop-run: --mode needs a value — $(modes_named)"
       mode="$2"; shift 2 ;;
     --all) all=1; shift ;;
     *) issue="$1"; shift ;;
@@ -53,10 +58,7 @@ known=0
 for listed in "${STOP_MODES[@]}"; do
   [[ "$mode" == "$listed" ]] && known=1
 done
-if (( known == 0 )); then
-  wanted="${STOP_MODES[*]:0:${#STOP_MODES[@]}-1}"
-  refuse "stop-run: unknown mode — want ${wanted// /, } or ${STOP_MODES[*]: -1}: '$mode'"
-fi
+(( known == 1 )) || refuse "stop-run: unknown mode — want $(modes_named): '$mode'"
 
 if [[ -n "$issue" ]] && (( all == 1 )); then
   refuse "stop-run: name an issue or --all, not both"
