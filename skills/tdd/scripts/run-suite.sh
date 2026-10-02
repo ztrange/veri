@@ -25,6 +25,15 @@ USAGE="usage: run-suite.sh <suite>"
 require_args 1 "$@"
 suite="$1"
 
+case "$suite" in
+  */tests/py/test_*.py)
+    py_bin="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
+    [[ -x "$py_bin" ]] || py_bin="$(command -v python3)"
+    "$py_bin" -m pytest "$suite" < /dev/null
+    exit "$(to_contract $?)"
+    ;;
+esac
+
 ROOT="$(cd "$HERE/../../.." && pwd)"
 guard="$HERE/lib/count-line-guard.sh"
 if [[ -f "$guard" ]]; then
