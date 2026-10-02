@@ -3,7 +3,7 @@
 - [x] run-suite.sh, given a tests/py/test_*.py path, runs that file under pytest and exits 0 when every case is green and 1 when a case fails ⟦criterion 7⟧
 - [x] run-suite.sh, given a tests/py/test_*.py path, exits 2 with no answer when pytest cannot be imported or the named file does not exist ⟦criterion 7⟧
 - [x] affected-suites.sh, given a touched veri/<module>.py, prints tests/py/test_<module>.py when it exists and the bash suite of the entry point over that module (underscore in the module name read as a hyphen in the script's), without the widening notice ⟦criterion 6⟧
-- [ ] affected-suites.sh, given a touched tests/py/test_<module>.py, prints that file without the widening notice ⟦criterion 6⟧
+- [x] affected-suites.sh, given a touched tests/py/test_<module>.py, prints that file without the widening notice ⟦criterion 6⟧ ⟂ refactor pending
 - [ ] event_log is a module of the scripts/veri/ package and no longer under scripts/lib/; every script that imported it (status.sh, tier-usual.sh, metrics.sh and the rest) finds it there, their suites passing unmodified ⟦criterion 5⟧
 - [ ] blocked_by is a module of scripts/veri/ and no longer under scripts/lib/; solvable-issues.sh and workqueue.sh find it there, their suites passing unmodified ⟦criterion 5⟧
 - [ ] json_documents is a module of scripts/veri/ and no longer under scripts/lib/; every script that imported it finds it there, their suites passing unmodified ⟦criterion 5⟧
