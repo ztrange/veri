@@ -35,9 +35,12 @@ some existing test goes red when that behaviour breaks. Write **NO** production 
    must print what it printed before the mutation. The working tree must be exactly as you found it.
 5. If no mutation you can make turns any test red, the code is not covered: report
    `COVERED: no`. Do not write a test to cover it — that is not this phase's work.
+6. Answer `COVERED: unreachable` only for a step that only deletes code no caller reaches,
+   with a `PROOF:` naming every caller and why none reaches the code: none exists,
+   every caller passes a no-op, or the value is never read.
 
 ### Report (last lines of your output)
 
-COVERED: yes | no
+COVERED: yes | no | unreachable
 CAUGHT_BY: <the test that went red under the mutation, or NONE on no>
 MUTATION: <the edit you made, in one line>

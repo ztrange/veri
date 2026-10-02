@@ -743,6 +743,22 @@ probe_order develop-cover "$(cat "$HERE/../prompts/develop-cover.md")" 'break it
 [[ -z "$problems" ]] && ok \
   || no "#619 develop-cover restores a probe with cp <file> <file>.orig before the mutation and mv <file>.orig <file> after the run under mutation (${problems#; })"
 
+problems=""
+grep -E '^COVERED:.*unreachable' <<<"${rk_out[cover]}" > /dev/null \
+  || problems="$problems; the COVERED: report line does not offer unreachable"
+says_both_ways "${rk_out[cover]}" "never limits unreachable to a step that only deletes code" \
+  120 'unreachable' 'only delet'
+says_both_ways "${rk_out[cover]}" "never says the deleted code is code no caller reaches" \
+  60 'no caller' 'reach'
+says_both_ways "${rk_out[cover]}" "never says the PROOF: names every caller" \
+  120 'PROOF:' 'every caller'
+prompt_says "${rk_out[cover]}" "never names no caller existing as a reason" -iE -e 'none exists'
+prompt_says "${rk_out[cover]}" "never names every caller passing a no-op as a reason" \
+  -iE -e 'every caller passes a no-op'
+prompt_says "${rk_out[cover]}" "never names a value never read as a reason" -iE -e 'never read'
+[[ -z "$problems" ]] && ok \
+  || no "#679 develop-cover allows COVERED: unreachable only for a step that only deletes code no caller reaches, with a PROOF: naming every caller and why none reaches it — none exists, every caller passes a no-op, the value is never read (${problems#; })"
+
 states_comment_rule() {  # states_comment_rule <phase label> <prompt>
   local label="$1" prompt="$2"
   prompt_says "$prompt" "develop-$label never names the contract header as an allowed comment" \
