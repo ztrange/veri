@@ -915,9 +915,13 @@ samex_final="$(cat "$samex_work/.tdd/revise-green-1.exit" 2>/dev/null || echo '<
   && [[ "$samex_wait" == 3 ]] && [[ "$samex_final" == 1 ]]; } && ok \
   || no "#618: a launch refused because a leaf of the same name is alive writes no .exit for that name, and the live leaf's own code lands there when it finishes (first leaf pid=${samex_leaf:-<never started>}; refusal code=$samex_code want 2; .exit after refusal='$samex_after_refusal' want <missing>; wait-leaf.sh while live=$samex_wait want 3; .exit after the live leaf finished='$samex_final' want 1; stderr='$(cat "$samex_work/err")')"
 
+live_owner_tree() {
+  mkdir -p "$1/.tdd"
+  printf '%s develop-green\n' "$$" > "$1/.tdd/leaf.owner"
+}
+
 refx_work="$work/live-owner-refused-exit"
-mkdir -p "$refx_work/.tdd"
-printf '%s develop-green\n' "$$" > "$refx_work/.tdd/leaf.owner"
+live_owner_tree "$refx_work"
 sup_in "$refx_work" verdict-green "$stub/leaf-second" >/dev/null 2>"$refx_work/err"
 refx_code=$?
 refx_exit="$(cat "$refx_work/.tdd/verdict-green.exit" 2>/dev/null || echo '<missing>')"
@@ -925,8 +929,7 @@ refx_exit="$(cat "$refx_work/.tdd/verdict-green.exit" 2>/dev/null || echo '<miss
   || no "#618: a launch refused because a leaf under another name is alive exits 2 and writes 2 to .tdd/<refused-name>.exit (code=$refx_code want 2; verdict-green.exit='$refx_exit' want 2; stderr='$(cat "$refx_work/err")')"
 
 refw_work="$work/live-owner-refused-wait"
-mkdir -p "$refw_work/.tdd"
-printf '%s develop-green\n' "$$" > "$refw_work/.tdd/leaf.owner"
+live_owner_tree "$refw_work"
 sup_in "$refw_work" verdict-green "$stub/leaf-second" >/dev/null 2>"$refw_work/err"
 ( cd "$refw_work" && env VERI_POLL=0.02 "$SCRIPTS/wait-leaf.sh" verdict-green 0 ) >/dev/null 2>"$refw_work/wait-err"
 refw_wait=$?
@@ -934,8 +937,7 @@ refw_wait=$?
   || no "#618: after a launch refused because a leaf under another name is alive, wait-leaf.sh <refused-name> exits 2, not 3 (wait-leaf.sh verdict-green=$refw_wait want 2; .tdd: $(ls "$refw_work/.tdd" | tr '\n' ' '); stderr='$(cat "$refw_work/err" "$refw_work/wait-err")')"
 
 refo_work="$work/live-owner-refused-owner"
-mkdir -p "$refo_work/.tdd"
-printf '%s develop-green\n' "$$" > "$refo_work/.tdd/leaf.owner"
+live_owner_tree "$refo_work"
 refo_before="$(cat "$refo_work/.tdd/leaf.owner")"
 sup_in "$refo_work" verdict-green "$stub/leaf-second" >/dev/null 2>"$refo_work/err"
 refo_ran="no"; [[ -e "$refo_work/second-ran" ]] && refo_ran="yes"
@@ -944,8 +946,7 @@ refo_after="$(cat "$refo_work/.tdd/leaf.owner" 2>/dev/null || echo '<missing>')"
   || no "#618: a refused launch does not run its command and leaves .tdd/leaf.owner naming the live leaf, unchanged (command ran=$refo_ran want no; leaf.owner='$refo_after' want '$refo_before'; stderr='$(cat "$refo_work/err")')"
 
 fin_work="$work/live-owner-finished-exit"
-mkdir -p "$fin_work/.tdd"
-printf '%s develop-green\n' "$$" > "$fin_work/.tdd/leaf.owner"
+live_owner_tree "$fin_work"
 printf '0\n' > "$fin_work/.tdd/develop-green.exit"
 sup_in "$fin_work" verdict-green "$stub/leaf-second" >/dev/null 2>"$fin_work/err"
 fin_code=$?
