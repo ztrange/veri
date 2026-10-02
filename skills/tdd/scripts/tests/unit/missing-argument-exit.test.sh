@@ -61,6 +61,21 @@ code=0
 out="$(argument_audit "$empty" 2>&1)" || code=$?
 expect_eq "$name" '0:' "$code:$out"
 
+name="the missing-argument audit calls only scripts whose usage line names a required argument, and wants each one's usage line to name it"
+mixed="$(scratch_dir)"
+cat > "$mixed/optional.sh" <<'STUB'
+#!/bin/sh
+echo "usage: optional.sh [<n>]" >&2
+exit 0
+STUB
+cat > "$mixed/required.sh" <<'STUB'
+#!/bin/sh
+echo "usage: <n>" >&2
+exit 2
+STUB
+chmod +x "$mixed/optional.sh" "$mixed/required.sh"
+expect_eq "$name" 'required.sh: usage line on stderr does not name it: usage: <n>' "$(argument_audit "$mixed" 2>&1)"
+
 name="a script exits 2 with a usage line when a later required argument is missing"
 offenders=()
 refuses add-ledger-step.sh .tdd/issue-1.md after anchor   # no <text>

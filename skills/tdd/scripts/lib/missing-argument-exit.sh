@@ -13,7 +13,7 @@
 # stderr, and return 1 when there is any.
 # requires_argument <file> — return 0 when <file>'s usage line names a <…> outside […].
 # argument_audit <dir> — run every <dir>/*.sh requires_argument admits with no arguments; print
-# one offender line per script that does not exit 2 with a usage line on stderr, and return 1
+# one offender line per script that does not exit 2 with a usage line naming it on stderr, and return 1
 # when there is any.
 # bare_expansion_offenders <dir> — print one offender line per `${N:?…}` in a non-comment line
 # of <dir>/*.sh, and return 1 when there is any.
@@ -74,7 +74,7 @@ requires_argument() {
 }
 
 argument_audit() {
-  script_audit requires_argument missing_argument_offender "$1"
+  script_audit requires_argument named_usage_offender "$1"
 }
 
 bare_expansion_offenders() {
