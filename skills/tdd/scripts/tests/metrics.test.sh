@@ -2875,6 +2875,29 @@ malformed_mark_inconsistent bare_work "has neither stopped nor transforms" '"bud
 
 report_on "$name" "$no_stop_work/report.md"
 
+name="#596 a consistent structural-pass mark names nothing inconsistent and renders the same Structural pass section as before"
+problems=()
+
+consistent_mark_renders() {
+  structural_mark_section "$1" "a step followed by a structural pass that $2" "$3"
+  grep -v '^$' "${!1}/section.txt" > "${!1}/rendered.txt"
+  printf '%s\n' "${@:4}" > "${!1}/want.txt"
+  if grep -i 'inconsistent' "${!1}/section.txt" > /dev/null; then
+    problems+=("want no inconsistent-mark line for a pass that $2, got: $(cat "${!1}/section.txt")")
+  fi
+  diff "${!1}/want.txt" "${!1}/rendered.txt" > /dev/null ||
+    problems+=("want the Structural pass section for a pass that $2 unchanged, diff: $(diff "${!1}/want.txt" "${!1}/rendered.txt")")
+}
+
+consistent_mark_renders done_work "ran out of candidates" '"transforms": "2", "budget": "3", "stopped": "candidates-done"' \
+  '| pass | refactor | stopped |' '| --- | ---: | --- |' '| issue | 2/3 | candidates-done |'
+consistent_mark_renders spent_three_work "spent its whole budget" '"transforms": "3", "budget": "3", "stopped": "budget-spent"' \
+  '| pass | refactor | stopped |' '| --- | ---: | --- |' '| issue | 3/3 | budget-spent |'
+consistent_mark_renders nothing_work "found nothing structural" '"stopped": "nothing-structural"' \
+  'Stopped: nothing-structural'
+
+report_on "$name" "$done_work/report.md"
+
 name="#495 the planned-step count is the number of lib/ledger.sh ledger_steps records, counting no box of its own"
 problems=()
 
