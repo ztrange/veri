@@ -133,6 +133,18 @@ else
   echo "    exit: $code (want 2), stderr: $(printf '%q' "$(cat "$work/no-subcommand.err")")"
 fi
 
+repo="$work/empty-issue-usage"
+make_repo "$repo"
+(cd "$repo" && "$SCRIPT" assign alpha '' > /dev/null 2>"$work/empty-issue-usage.err") && code=0 || code=$?
+if [[ "$code" -eq 2 ]] &&
+  grep -F 'workqueue.sh: usage: workqueue.sh assign <worker> <issue>...' "$work/empty-issue-usage.err" > /dev/null &&
+  grep -F 'workqueue.sh show [<worker>]' "$work/empty-issue-usage.err" > /dev/null; then
+  ok
+else
+  no "workqueue.sh given an empty issue exits 2 with its own usage text on stderr"
+  echo "    exit: $code (want 2), stderr: $(printf '%q' "$(cat "$work/empty-issue-usage.err")")"
+fi
+
 repo="$work/assign-held"
 make_repo "$repo"
 seed_queue "$repo" 'beta\t4\tqueued\t\ngamma\t9\trunning\t\n'
