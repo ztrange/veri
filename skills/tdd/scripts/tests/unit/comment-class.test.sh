@@ -151,6 +151,19 @@ if [[ "$out" != "$f:10:1" ]]; then
 fi
 verdict "the sweepable report omits a leading contract header and a comment marked as a shell-hazard warning"
 
+problems=""
+f="$work/quoted-heredoc-operator.sh"
+printf '%s\n' 'got="$(cat "$p" 2>/dev/null || echo '"'<<no file>>'"')"' 'cat > "$dir/stub" <<'"'L'" \
+  '#!/bin/sh' 'L' > "$f"
+want_empty_sweepable "$f"
+verdict "a << inside a quoted string opens no heredoc, so a later heredoc's #! line stays out of the sweepable report (#621)"
+
+problems=""
+f="$work/double-quoted-heredoc-operator.sh"
+printf '%s\n' 'echo "<<no file>>"' 'cat > "$dir/stub" <<'"'L'" '#!/bin/sh' 'L' > "$f"
+want_empty_sweepable "$f"
+verdict "a << inside a double-quoted string opens no heredoc, so a later heredoc's #! line stays out of the sweepable report (#621)"
+
 sweep_verdict "the sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh" "$SCRIPTS/metrics.sh" "$SCRIPTS/event.sh" "$SCRIPTS/harvest-usage.sh"
 
 problems=""
