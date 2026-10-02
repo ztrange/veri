@@ -203,4 +203,24 @@ run_cost --steps
 expect 0 $'1.50 2\n1.00 1'
 verdict "#620: --steps prints separate rows for two step titles identical up to their first double quote"
 
+cat > "$work/.tdd/events.jsonl" <<'EOF'
+{"ts": 1, "issue": "620", "actor": "developer", "phase": "red", "step": "prints \"ok\" on success", "event": "usage", "total_cost_usd": "1.00"}
+{"ts": 2, "issue": "620", "actor": "developer", "phase": "red", "step": "a \\\"quoted\\\" path", "event": "usage", "total_cost_usd": "0.25"}
+{"ts": 3, "issue": "620", "actor": "developer", "phase": "red", "step": "ends in a backslash \\", "event": "usage", "total_cost_usd": "0.40"}
+{"ts": 4, "issue": "620", "actor": "verifier", "phase": "red", "step": "prints \"ok\" on success", "event": "usage", "total_cost_usd": "0.50"}
+{"ts": 5, "issue": "620", "actor": "verifier", "phase": "red", "step": "a \\\"quoted\\\" path", "event": "usage", "total_cost_usd": "0.10"}
+{"ts": 6, "issue": "620", "actor": "developer", "phase": "red", "step": "step two", "event": "usage", "total_cost_usd": "2.00"}
+EOF
+run_cost --steps
+rows=()
+[[ "$code" == 0 ]] && mapfile -t rows <<< "$out"
+titles=('prints "ok" on success' 'a \"quoted\" path' 'ends in a backslash \' 'step two')
+(( ${#rows[@]} == ${#titles[@]} )) || problems+="    --steps printed ${#rows[@]} rows for ${#titles[@]} steps: exit $code, stdout '$out'"$'\n'
+for i in "${!titles[@]}"; do
+  run_cost "${titles[$i]}"
+  [[ "$code" == 0 && "$out" == "${rows[$i]%% *}" ]] \
+    || problems+="    '${titles[$i]}': step-cost.sh printed '$out' (exit $code), its --steps row says '${rows[$i]:-}'"$'\n'
+done
+verdict "#620: for every step in a log holding quoted titles, its figure equals the dollars on its --steps row"
+
 finish
