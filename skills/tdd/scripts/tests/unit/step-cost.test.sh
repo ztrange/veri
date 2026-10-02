@@ -234,4 +234,16 @@ run_cost --run
 expect 0 "1.89"
 verdict "#620: --run sums events whose step titles carry double quotes, counting each event once"
 
+cat > "$work/.tdd/events.jsonl" <<'EOF'
+{"ts": 1, "issue": "620", "actor": "developer", "phase": "red", "step": "prints \"ok\" on success", "event": "usage", "total_cost_usd": "1.00"}
+{"ts": 2, "issue": "620", "actor": "developer", "phase": "red", "step": "cost a step \u2014 its title \u27e6criterion 7\u27e7", "event": "usage", "total_cost_usd": "0.30"}
+{"ts": 3, "issue": "620", "actor": "verifier", "phase": "red", "step": "cost a step \u2014 its title \u27e6criterion 7\u27e7", "event": "usage", "total_cost_usd": "0.12"}
+{"ts": 4, "issue": "620", "actor": "developer", "phase": "red", "step": "step two", "event": "usage", "total_cost_usd": "1.0"}
+EOF
+run_cost --steps
+expect 0 $'1.00 1\n0.42 2\n1.00 1'
+run_cost "cost a step — its title ⟦criterion 7⟧"
+expect 0 "0.42"
+verdict "#620: beside a quoted title, a title carrying an em dash and ⟦criterion k⟧ stored as unicode escapes is still summed to the figure --steps prints for it (#521)"
+
 finish
