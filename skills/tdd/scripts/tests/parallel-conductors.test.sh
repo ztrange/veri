@@ -806,4 +806,29 @@ run_launcher "$gh_json" "$stub" "$work/trap.out" PATH="$failing_cat:$PATH"
 [[ "$code" == 2 ]] \
   && ok || no "ends with exit 2 when it fails inside its own EXIT trap's lifetime (code=$code)"
 
+empty_gh="$work/gh-empty"
+failing_rm="$work/failing-rm-bin"
+rc_scratch="$(scratch_dir)"
+mkdir -p "$empty_gh" "$failing_rm"
+printf '[]\n' > "$empty_gh/prs.json"
+printf '[]\n' > "$empty_gh/issues.json"
+cat > "$failing_rm/mktemp" <<SH
+#!/bin/sh
+[ "\$*" = -d ] && { echo "$rc_scratch"; exit 0; }
+exec /usr/bin/mktemp "\$@"
+SH
+cat > "$failing_rm/rm" <<SH
+#!/bin/sh
+for arg in "\$@"; do
+  case "\$arg" in "$rc_scratch"*) : > "$work/rm-attempted"; exit 1 ;; esac
+done
+exec /bin/rm "\$@"
+SH
+chmod +x "$failing_rm/mktemp" "$failing_rm/rm"
+run_launcher "$empty_gh" "$stub" "$work/rm-trap.out" PATH="$failing_rm:$PATH"
+rm_attempted=no
+[[ -e "$work/rm-attempted" ]] && rm_attempted=yes
+[[ "$rm_attempted" == yes && "$code" == 2 ]] \
+  && ok || no "ends with exit 2 when its EXIT trap's own cleanup command (rm -rf \"\$rc_dir\") fails (code=$code want 2, failing rm reached=$rm_attempted want yes) $(tr '\n' '|' < "$work/rm-trap.out")"
+
 finish
