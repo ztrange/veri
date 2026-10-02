@@ -943,6 +943,16 @@ refo_after="$(cat "$refo_work/.tdd/leaf.owner" 2>/dev/null || echo '<missing>')"
 { [[ "$refo_ran" == no ]] && [[ "$refo_after" == "$refo_before" ]]; } && ok \
   || no "#618: a refused launch does not run its command and leaves .tdd/leaf.owner naming the live leaf, unchanged (command ran=$refo_ran want no; leaf.owner='$refo_after' want '$refo_before'; stderr='$(cat "$refo_work/err")')"
 
+fin_work="$work/live-owner-finished-exit"
+mkdir -p "$fin_work/.tdd"
+printf '%s develop-green\n' "$$" > "$fin_work/.tdd/leaf.owner"
+printf '0\n' > "$fin_work/.tdd/develop-green.exit"
+sup_in "$fin_work" verdict-green "$stub/leaf-second" >/dev/null 2>"$fin_work/err"
+fin_code=$?
+fin_ran="no"; [[ -e "$fin_work/second-ran" ]] && fin_ran="yes"
+{ [[ "$fin_code" == 0 ]] && [[ "$fin_ran" == yes ]]; } && ok \
+  || no "#618: a launch under another name is not refused when the recorded leaf is alive but .tdd/<owner-name>.exit already exists (code=$fin_code want 0; command ran=$fin_ran want yes; stderr='$(cat "$fin_work/err")')"
+
 woke_with_own_exit() {
   local susp_rc
   susp_rc="$(cat "$work/.tdd/$1.rc" 2>/dev/null || echo '<missing>')"
