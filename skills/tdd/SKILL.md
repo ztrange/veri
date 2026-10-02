@@ -1360,6 +1360,12 @@ A red result on that full run does not bail: append a repair step to the ledger,
 and return to step 3, *The cycle loop* — the failing suite is that step's red evidence. Its
 developer adds a unit-tier test when the failure exposes a gap the fast tier missed, and its
 verifier judges the fix against the full command, not the fast one.
+```
+VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/ledger-steps.sh < .tdd/issue-<n>.md | awk -F'\t' '$2 == "done"' | tail -1 | cut -f7-)" $S/event.sh step-added anchor="$($S/ledger-steps.sh < .tdd/issue-<n>.md | awk -F'\t' '$2 == "done"' | tail -1 | cut -f7-)" added=1
+$S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh < .tdd/issue-<n>.md | awk -F'\t' '$2 == "done"' | tail -1 | cut -f7-)" '<fix the full-suite failure: <suite> — <its FAIL - line>> ⟦suite-repair⟧'
+git add .tdd/issue-<n>.md
+git commit -m "plan: repair the red full suite (#<n>)"
+```
 
 A second red result on the full run after a repair step does **bail** — the repair step is
 one more cycle, not a loop — and the bail names every suite still red, not only the first.
