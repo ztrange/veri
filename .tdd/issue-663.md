@@ -7,4 +7,4 @@
 - [x] `refactor-owed.sh render` prints the test-only candidates under a heading of their own inside `## Refactor owed`, saying the structural pass does not work them ⟦criterion 4⟧
 - [x] `refactor-triage.sh` treats a `CANDIDATES: test-only | …` line as no reason to launch another refactor leaf: a report whose only candidates are test-only exits 3, and one mixing structural and test-only prints only the structural transforms ⟦criterion 5⟧
 - [x] `refactor-overflow.sh` never files a test-only candidate: an owed file whose unreached candidates are all test-only files nothing and exits 3 ⟦criterion 6⟧
-- [ ] a refactor report with only `structural` and `cosmetic` candidate lines is handled by `refactor-owed.sh append`/`list`/`render`, `refactor-triage.sh` and `refactor-overflow.sh` exactly as before ⟦criterion 7⟧
+- [x] a refactor report with only `structural` and `cosmetic` candidate lines is handled by `refactor-owed.sh append`/`list`/`render`, `refactor-triage.sh` and `refactor-overflow.sh` exactly as before ⟦criterion 7⟧

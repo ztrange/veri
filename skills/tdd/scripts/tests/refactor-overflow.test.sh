@@ -133,6 +133,65 @@ overflow_case "with only test-only candidates in the owed file" 3 663 "$test_onl
 
 report "$name"
 
+name="a report with only structural and cosmetic candidates goes through refactor-owed append, list and render, refactor-triage and refactor-overflow exactly as before test-only existed"
+problems=()
+
+TRIAGE="$HERE/../refactor-triage.sh"
+first_report='RESULT: applied "split the verdict parser out of run-leaf.sh", suite green
+FLAGS: none
+CANDIDATES: structural | fold verify.sh'"'"'s two mktemp calls into one helper
+CANDIDATES: cosmetic | reflow the header comment to ninety columns
+CANDIDATES: structural | hoist the ledger path into one variable'
+second_report='RESULT: applied "name the ledger path once", suite green
+FLAGS: none
+CANDIDATES: cosmetic | rename $tmp to $prompt_file
+CANDIDATES: structural | hoist the ledger path into one variable'
+cosmetic_report='CANDIDATES: cosmetic | reflow the header comment to ninety columns'
+
+two_class_owed="$work/issue-505-refactor-owed.md"
+"$OWED" append "$two_class_owed" 'first step' <<<"$first_report"
+"$OWED" append "$two_class_owed" 'second step' <<<"$second_report"
+
+want_owed="### first step
+- fold verify.sh's two mktemp calls into one helper
+- hoist the ledger path into one variable
+### second step
+- hoist the ledger path into one variable"
+expect_both() {
+  local what="$1" want_code="$2" want_out="$3" got_code="$4" got_out="$5"
+  [[ "$got_code" == "$want_code" && "$got_out" == "$want_out" ]] ||
+    problems+=("$what: want exit $want_code and" "$want_out" "got exit $got_code and" "$got_out")
+}
+
+expect_both "the owed file append wrote" 0 "$want_owed" 0 "$(cat "$two_class_owed")"
+
+got="$("$OWED" list "$two_class_owed" 2>&1)" && code=0 || code=$?
+expect_both "list" 0 "hoist the ledger path into one variable
+fold verify.sh's two mktemp calls into one helper" "$code" "$got"
+
+got="$("$OWED" render "$two_class_owed" 2>&1)" && code=0 || code=$?
+expect_both "render" 0 "## Refactor owed
+
+$want_owed" "$code" "$got"
+
+got="$("$TRIAGE" <<<"$first_report" 2>&1)" && code=0 || code=$?
+expect_both "refactor-triage on structural and cosmetic lines" 0 "fold verify.sh's two mktemp calls into one helper
+hoist the ledger path into one variable" "$code" "$got"
+
+got="$("$TRIAGE" <<<"$cosmetic_report" 2>&1)" && code=0 || code=$?
+expect_both "refactor-triage on cosmetic lines alone" 3 "" "$code" "$got"
+
+title_file="$work/title-golden" body_file="$work/body-golden"
+got="$(cd "$work" && env PATH="$stubdir:$PATH" FAKE_TITLE="$title_file" FAKE_BODY="$body_file" \
+  "$OVERFLOW" 505 "$two_class_owed" 1 2>&1)" && code=0 || code=$?
+expect_both "refactor-overflow" 0 "https://github.com/owner/name/issues/912" "$code" "$got"
+expect_both "refactor-overflow's filed title" 0 "Refactor owed by #505" 0 "$(cat "$title_file" 2>/dev/null)"
+expect_both "refactor-overflow's filed body" 0 "Structural candidates #505's closing pass could not reach:
+
+- fold verify.sh's two mktemp calls into one helper" 0 "$(cat "$body_file" 2>/dev/null)"
+
+report "$name"
+
 name="refactor-overflow sends no label with the issue it files, makes no call that labels or edits the parent issue, and writes no file into the repository"
 problems=()
 
