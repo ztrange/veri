@@ -197,6 +197,25 @@ $got_timeline
 launcher output:
 $(cat "$work/par.out")"
 
+gh_ctx="$work/gh-ctx"
+solvable_fixture "$gh_ctx" 7 8
+
+ctx_stub="$work/claude-ctx"
+conductor_stub "$ctx_stub" <<STUB
+case "\$n" in
+  7) read=50000 create=3438 ;;
+  *) read=60000 create=2000 ;;
+esac
+printf '{"type":"assistant","message":{"role":"assistant","usage":{"input_tokens":7,"cache_creation_input_tokens":%s,"cache_read_input_tokens":%s,"output_tokens":120}}}\n' "\$create" "\$read"
+printf '{"type":"user","message":{"role":"user","usage":{"input_tokens":7,"cache_creation_input_tokens":9,"cache_read_input_tokens":900,"output_tokens":120}}}\n'
+$(ready_pr "$gh_ctx")
+STUB
+
+run_launcher "$gh_ctx" "$ctx_stub" "$work/ctx.out" VERI_PARALLEL=2
+got_ctx="$(grep '^context ' "$work/ctx.out" | sort)"
+expect_lines "VERI_PARALLEL=2 prints each conductor's assistant events as 'context <issue> <cache_read + cache_creation>' attributed to its own issue" "$(printf 'context 7 53438\ncontext 8 62000')" "$got_ctx" "$work/ctx.out"
+expect_lines "a non-assistant event carrying cache usage prints no 'context' line" "" "$(grep '^context [0-9]* 909$' "$work/ctx.out" || true)" "$work/ctx.out"
+
 gh4="$work/gh4"
 gh_fixture "$gh4" <<'JSON'
 [
