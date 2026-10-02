@@ -48,16 +48,16 @@ def run_activity(events_path, pid_file, timeout):
         state = "running"
     if last is None:
         return None
+    phase, actor, leaf = last.get("phase", ""), last.get("actor", ""), last.get("name", "")
+    elapsed = now - int(last["ts"])
     if os.environ.get("STATUS_JSON") == "1":
-        return json.dumps({"phase": last.get("phase", ""), "actor": last.get("actor", ""),
-                           "leaf": last.get("name", ""), "elapsed_seconds": now - int(last["ts"]),
+        return json.dumps({"phase": phase, "actor": actor, "leaf": leaf, "elapsed_seconds": elapsed,
                            "attempts": attempts, "dollars": round(dollars, 2), "tokens": tokens,
                            "state": state.split(" ")[0], "pr": end.get("pr", ""),
                            "bail_phase": end.get("phase", ""),
                            "classification": end.get("classification", ""),
                            "stop_mode": end.get("mode", "")})
-    return "%s  %s  %s %ds  attempt %d  $%.2f  %d tokens  %s" % (last.get("phase", ""),
-           last.get("actor", ""), last.get("name", ""), now - int(last["ts"]),
+    return "%s  %s  %s %ds  attempt %d  $%.2f  %d tokens  %s" % (phase, actor, leaf, elapsed,
            attempts, dollars, tokens, state)
 
 
