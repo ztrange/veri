@@ -102,11 +102,7 @@ for run in "${runs[@]}"; do
   title="${heading#* — }"
   step="$(step_of_total "$ledger")"
   if [[ "$json" -eq 1 ]]; then
-    run_objects+=("$(python3 -c '
-import json, sys
-run = {"issue": sys.argv[1], "title": sys.argv[2], "branch": sys.argv[3], "step": sys.argv[4]}
-run.update(json.loads(sys.argv[5]) if sys.argv[5] else {})
-print(json.dumps(run))' "$issue" "$title" "$branch" "$step" "$activity")")
+    run_objects+=("$(python3 "$veri/status.py" run-object "$issue" "$title" "$branch" "$step" "$activity")")
     continue
   fi
   printf '#%s  %s  %s  step %s%s\n' "$issue" "$title" "$branch" "$step" "$activity"
