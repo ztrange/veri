@@ -311,13 +311,24 @@ check_code 0
 check_stop "$run" at-step
 rm -f "$run/.tdd/stop"
 
-out="$(cd "$repo" && "$listed/stop-run.sh" --mode bogus 5 2>"$work/stderr")" && code=0 || code=$?
-err="$(cat "$work/stderr")"
+run_stop --mode bogus 5
 check_code 2
 [[ "${err%%$'\n'*}" == "stop-run: unknown mode — want at-ledger, at-leaf or now: 'bogus'" ]] ||
   note "want today's unknown-mode refusal first on stderr, got '$err'"
 check_no_stop "$run"
 
 report "#683: stop-run.sh accepts the modes lib/stop-modes.sh lists, and still refuses one outside it with today's message"
+
+problems=()
+label=""
+
+out="$(cd "$repo" && "$listed/stop-run.sh" --mode bogus 5 2>"$work/stderr")" && code=0 || code=$?
+err="$(cat "$work/stderr")"
+check_code 2
+[[ "${err%%$'\n'*}" == "stop-run: unknown mode — want at-ledger, at-leaf, now or at-step: 'bogus'" ]] ||
+  note "want the unknown-mode refusal to name at-step, added to lib/stop-modes.sh, got '${err%%$'\n'*}'"
+check_no_stop "$run"
+
+report "#683: stop-run.sh's unknown-mode refusal names the modes lib/stop-modes.sh lists"
 
 finish
