@@ -33,6 +33,17 @@ check_green() {
     problems+=("$1: want stdout's last line all suites green, got: $(tail -n 1 <<< "$out")")
 }
 
+check_refused() {
+  local target="$1"; shift
+  env -u PYTHONPATH "$@" PATH="$work/no-pytest-bin:$PATH" \
+    make --no-print-directory -C "$refuse" "$target" > "$work/out" 2> "$work/err" < /dev/null
+  out="$(cat "$work/out")"
+  err="$(cat "$work/err")"
+  [[ "$err" =~ \[(Makefile:[0-9]+:\ )?$target\]\ Error\ 2 ]] ||
+    problems+=("make $target: want make's [$target] Error 2 on stderr, got: $(flat "$err")")
+  [[ "$out" != *'== '* ]] || problems+=("make $target: a suite ran before the refusal: $(flat "$out")")
+}
+
 make_tree() {
   mkdir -p "$1/$PY_DIR"
   cp "$ROOT/Makefile" "$1/Makefile"
@@ -190,33 +201,19 @@ stub_bash_suites "$refuse"
 name="when neither the environment's python3 nor the PATH one can import pytest (VERI_PYTEST_IMPORTABLE=0 standing in for the import), make unit and make test exit 2 before any suite runs, stderr naming pytest and make install-dev"
 problems=()
 for target in unit test; do
-  env -u PYTHONPATH VERI_PYTEST_IMPORTABLE=0 PATH="$work/no-pytest-bin:$PATH" VERI_VENV="$work/no-venv" \
-    make --no-print-directory -C "$refuse" "$target" > "$work/out" 2> "$work/err" < /dev/null &&
-    code=0 || code=$?
-  out="$(cat "$work/out")"
-  err="$(cat "$work/err")"
-  [[ "$err" =~ \[(Makefile:[0-9]+:\ )?$target\]\ Error\ 2 ]] ||
-    problems+=("make $target: want make's [$target] Error 2 on stderr, got: $(flat "$err")")
+  check_refused "$target" VERI_PYTEST_IMPORTABLE=0 VERI_VENV="$work/no-venv"
   [[ "$err" == *pytest* ]] || problems+=("make $target: want stderr to name pytest, got: $(flat "$err")")
   [[ "$err" == *'make install-dev'* ]] ||
     problems+=("make $target: want stderr to name make install-dev, got: $(flat "$err")")
-  [[ "$out" != *'== '* ]] || problems+=("make $target: a suite ran before the refusal: $(flat "$out")")
 done
 report "$name"
 
 name="when the python3 the pytest leg would use is older than 3.12 (VERI_PYTHON_VERSION=3.11.9 standing in for its answer), make unit and make test exit 2 before any suite runs, stderr naming the 3.12 floor and the version found"
 problems=()
 for target in unit test; do
-  env -u PYTHONPATH VERI_PYTHON_VERSION=3.11.9 PATH="$work/no-pytest-bin:$PATH" VERI_VENV="$work/venv" \
-    make --no-print-directory -C "$refuse" "$target" > "$work/out" 2> "$work/err" < /dev/null &&
-    code=0 || code=$?
-  out="$(cat "$work/out")"
-  err="$(cat "$work/err")"
-  [[ "$err" =~ \[(Makefile:[0-9]+:\ )?$target\]\ Error\ 2 ]] ||
-    problems+=("make $target: want make's [$target] Error 2 on stderr, got: $(flat "$err")")
+  check_refused "$target" VERI_PYTHON_VERSION=3.11.9 VERI_VENV="$work/venv"
   [[ "$err" == *3.12* ]] || problems+=("make $target: want stderr to name the 3.12 floor, got: $(flat "$err")")
   [[ "$err" == *3.11.9* ]] || problems+=("make $target: want stderr to name the version found 3.11.9, got: $(flat "$err")")
-  [[ "$out" != *'== '* ]] || problems+=("make $target: a suite ran before the refusal: $(flat "$out")")
 done
 report "$name"
 
