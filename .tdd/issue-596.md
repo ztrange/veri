@@ -1,6 +1,6 @@
 # Plan for #596 — Conductor skipped #496's mandatory structural pass and logged it as stopped=budget-spent transforms=0
 
-- [x] refactor-budget.sh --issue <count> with VERI_ISSUE_REFACTOR_BUDGET unset exits 0 for counts 0–2 and exits 3 at count 3, and its header comment states the --issue default is 3 ⟦criterion 1⟧ ⟂ refactor pending
+- [x] refactor-budget.sh --issue <count> with VERI_ISSUE_REFACTOR_BUDGET unset exits 0 for counts 0–2 and exits 3 at count 3, and its header comment states the --issue default is 3 ⟦criterion 1⟧
 - [ ] refactor-budget.sh --issue still exits 2 on a VERI_ISSUE_REFACTOR_BUDGET that is not a whole number ≥ 0, honours an explicit VERI_ISSUE_REFACTOR_BUDGET=10 (count 9 exits 0, count 10 exits 3), and without --issue VERI_REFACTOR_BUDGET keeps its default 5 ⟦criterion 2⟧
 - [ ] No file outside docs/ and .tdd/ states 10 as the VERI_ISSUE_REFACTOR_BUDGET default ⟦criterion 3⟧
 - [ ] SKILL.md's structural pass says the conductor runs the pass whenever refactor-owed.sh list prints a candidate and never skips or shortens it for cost, that spending less means setting a lower VERI_ISSUE_REFACTOR_BUDGET before launch, and that candidates past the budget are filed by refactor-overflow.sh ⟦criterion 4⟧
