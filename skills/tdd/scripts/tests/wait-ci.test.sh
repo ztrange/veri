@@ -678,4 +678,18 @@ grep -F "$PR" "$work/conflict.err" > /dev/null && grep -F "conflicts with its ba
   || problems+=("PR conflicting: want a stderr line naming $PR and saying it conflicts with its base branch, got: $(cat "$work/conflict.err")")
 report "$name"
 
+name="wait-ci.sh exits 2 at its first poll, naming the PR and its conflict with the base branch, when GitHub reports the PR mergeable CONFLICTING with no check and a head other than the head-sha it was given, rather than holding it pending until its slice ends (#688)"
+problems=()
+sha=0123456789abcdef0123456789abcdef01234567
+want=89abcdef0123456789abcdef0123456789abcdef
+printf '{"headRefOid":"%s","mergeable":"CONFLICTING","statusCheckRollup":[]}\n' "$sha" > "$work/conflict-stale.json"
+sha_runs conflict-stale.json
+got="$(CLOCK_STEP=60 waited conflict-stale 540 600 "$want")"
+[[ "$got" == 2 ]] || problems+=("PR conflicting, no check, head $sha, waiting for $want: want exit 2, got $got (stderr: $(cat "$work/conflict-stale.err"))")
+polls="$(wc -l < "$work/conflict-stale.json.calls" | tr -d ' ')"
+[[ "$polls" == 1 ]] || problems+=("PR conflicting, head $sha, waiting for $want: want 1 poll of the PR, got $polls")
+grep -F "$PR" "$work/conflict-stale.err" > /dev/null && grep -F "conflicts with its base branch" "$work/conflict-stale.err" > /dev/null \
+  || problems+=("PR conflicting, head $sha, waiting for $want: want a stderr line naming $PR and saying it conflicts with its base branch, got: $(cat "$work/conflict-stale.err")")
+report "$name"
+
 finish
