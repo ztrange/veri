@@ -33,7 +33,8 @@ eval "$(make -s --no-print-directory -C "$ROOT" count-line-guard 2>/dev/null)"
 }
 
 out="$(mktemp)"
-trap 'rm -f "$out"' EXIT
+at_exit 'rm -f "$out"'
+trap 'exit 143' TERM
 
 # hazard: the pipeline's status is tee's; the suite's comes off PIPESTATUS.
 "$suite" < /dev/null 2>&1 | tee "$out"

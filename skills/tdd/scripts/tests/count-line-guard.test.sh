@@ -721,4 +721,31 @@ done
 
 report "$name"
 
+name="run-suite.sh, terminated while its EXIT trap is armed, ends with exit 2"
+problems=()
+
+probe_runner_terminated_mid_suite() {
+  local tree probe
+  have_runner "so there is no invocation to ask this of" || return
+  tree="$(scratch_dir)" || {
+    problems+=("could not make a scratch directory to write a suite into, so the criterion went unasked")
+    return
+  }
+  probe="$tree/terminates-its-runner.test.sh"
+  cat > "$probe" <<'SUITE'
+#!/bin/sh
+kill -TERM "$PPID"
+echo "1 passed, 0 failed"
+SUITE
+  chmod +x "$probe"
+
+  direct "$RUNNER" "$probe"
+  [[ "$direct_code" == 2 ]] ||
+    problems+=("want exit 2 from a runner terminated while its suite ran; it exited $direct_code and said: $(flat "$direct_out")")
+}
+
+probe_runner_terminated_mid_suite
+
+report "$name"
+
 finish
