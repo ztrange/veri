@@ -10,6 +10,8 @@ import subprocess
 import sys
 import urllib.parse
 
+from lib.event_log import read_events
+
 status_sh = sys.argv[3]
 metrics_sh = sys.argv[4]
 
@@ -63,8 +65,7 @@ def events_of(run):
     log = event_log(run)
     if not log:
         return []
-    with open(log) as f:
-        return [json.loads(raw) for raw in f if raw.strip()]
+    return read_events(log)
 
 
 # The lines of one run's log carrying one of the marks named — which field of a line says
