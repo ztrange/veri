@@ -2863,20 +2863,15 @@ report_on "$name" "$unknown_stop_work/report.md"
 name="#596 a structural-pass mark missing stopped, or carrying transforms without budget, names the mark inconsistent and the report still renders"
 problems=()
 
-no_stop="a step followed by a structural pass whose mark has no stopped"
-structural_mark_section no_stop_work "$no_stop" '"transforms": "1", "budget": "3"'
-grep -i 'inconsistent' "$no_stop_work/section.txt" > /dev/null ||
-  problems+=("want the structural section to carry an inconsistent-mark line for a mark missing stopped, got: $(cat "$no_stop_work/section.txt")")
+malformed_mark_inconsistent() {
+  structural_mark_section "$1" "a step followed by a structural pass whose mark $2" "$3"
+  grep -i 'inconsistent' "${!1}/section.txt" > /dev/null ||
+    problems+=("want the structural section to carry an inconsistent-mark line for a mark that $2, got: $(cat "${!1}/section.txt")")
+}
 
-no_budget="a step followed by a structural pass whose mark has transforms but no budget"
-structural_mark_section no_budget_work "$no_budget" '"transforms": "1", "stopped": "candidates-done"'
-grep -i 'inconsistent' "$no_budget_work/section.txt" > /dev/null ||
-  problems+=("want the structural section to carry an inconsistent-mark line for a mark with transforms but no budget, got: $(cat "$no_budget_work/section.txt")")
-
-bare="a step followed by a structural pass whose mark has neither stopped nor transforms"
-structural_mark_section bare_work "$bare" '"budget": "3"'
-grep -i 'inconsistent' "$bare_work/section.txt" > /dev/null ||
-  problems+=("want the structural section to carry an inconsistent-mark line for a mark with neither stopped nor transforms, got: $(cat "$bare_work/section.txt")")
+malformed_mark_inconsistent no_stop_work "has no stopped" '"transforms": "1", "budget": "3"'
+malformed_mark_inconsistent no_budget_work "has transforms but no budget" '"transforms": "1", "stopped": "candidates-done"'
+malformed_mark_inconsistent bare_work "has neither stopped nor transforms" '"budget": "3"'
 
 report_on "$name" "$no_stop_work/report.md"
 
