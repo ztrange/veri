@@ -43,6 +43,18 @@ expect_suites() {
   fi
 }
 
+expect_suites_unwidened() {
+  local name="$1" expected out code err errf="$work/unwidened.err"
+  shift
+  expected="$(printf '%s\n' "$@")"
+  out="$(run_affected 2>"$errf")"; code=$?
+  err="$(cat "$errf")"
+  if [[ "$code" == 0 && "$out" == "$expected" && "$err" != *widening* ]]; then ok; else
+    no "$name (code=$code, stderr=${err:-<empty>})"
+    diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
+  fi
+}
+
 expect_nothing_to_do() {
   local name="$1" out code
   out="$(run_affected 2>/dev/null)"; code=$?
@@ -471,14 +483,9 @@ printf '# bar suite\n' > "$s/tests/bar.test.sh"
 commit_base
 printf 'def main(): return 2\n' > "$s/veri/event_log.py"
 commit_head
-expected="$(printf '%s\n' skills/tdd/scripts/tests/event-log.test.sh skills/tdd/scripts/tests/py/test_event_log.py)"
-errf="$work/veri-module.err"
-out="$(run_affected 2>"$errf")"; code=$?
-err="$(cat "$errf")"
-if [[ "$code" == 0 && "$out" == "$expected" && "$err" != *widening* ]]; then ok; else
-  no "a touched veri/event_log.py prints tests/py/test_event_log.py and tests/event-log.test.sh, without widening (code=$code, stderr=${err:-<empty>})"
-  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
-fi
+expect_suites_unwidened "a touched veri/event_log.py prints tests/py/test_event_log.py and tests/event-log.test.sh, without widening" \
+  skills/tdd/scripts/tests/event-log.test.sh \
+  skills/tdd/scripts/tests/py/test_event_log.py
 
 make_repo veri-module-no-py
 mkdir -p "$s/tests" "$s/veri"
@@ -488,13 +495,7 @@ printf '# blocked-by suite\n' > "$s/tests/blocked-by.test.sh"
 commit_base
 printf 'def main(): return 2\n' > "$s/veri/blocked_by.py"
 commit_head
-expected="skills/tdd/scripts/tests/blocked-by.test.sh"
-errf="$work/veri-module-no-py.err"
-out="$(run_affected 2>"$errf")"; code=$?
-err="$(cat "$errf")"
-if [[ "$code" == 0 && "$out" == "$expected" && "$err" != *widening* ]]; then ok; else
-  no "a touched veri/blocked_by.py with no tests/py/test_blocked_by.py prints only tests/blocked-by.test.sh, without widening (code=$code, stderr=${err:-<empty>})"
-  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
-fi
+expect_suites_unwidened "a touched veri/blocked_by.py with no tests/py/test_blocked_by.py prints only tests/blocked-by.test.sh, without widening" \
+  skills/tdd/scripts/tests/blocked-by.test.sh
 
 finish
