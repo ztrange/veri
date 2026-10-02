@@ -419,6 +419,63 @@ def test_main_counts_no_run_for_a_directory_without_its_own_ledger_and_is_not_an
     assert (text_code, text, json_code, doc) == (0, "", 0, {"runs": [], "scope": None})
 
 
+def test_main_takes_the_run_activity_and_scope_totals_lines_from_event_logs_one_parse_and_sum_with_figures_unchanged(tmp_path, monkeypatch, capsys, status):
+    run = tmp_path / ".tdd" / "wt" / "9"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "issue-9.md").write_text("# Plan for #9 — cogs mesh\n\n- [x] a cog exists\n- [ ] two cogs mesh\n")
+    cogs = [
+        lamp_ev(9700, "9", "launch", step="a cog exists", name="develop-red"),
+        lamp_ev(9750, "9", "usage", step="a cog exists", total_cost_usd="0.50", input_tokens="1000",
+                output_tokens="200", cache_read_input_tokens="3000", cache_creation_input_tokens="500"),
+        lamp_ev(9800, "9", "launch", phase="green", step="two cogs mesh", name="develop-green"),
+        lamp_ev(9900, "9", "usage", phase="green", step="two cogs mesh", total_cost_usd="1.25",
+                input_tokens="2000", output_tokens="300", cache_read_input_tokens="4000",
+                cache_creation_input_tokens="0"),
+    ]
+    (run / ".tdd" / "events.jsonl").write_text("\n" + json.dumps(cogs[0]) + "\n" + json.dumps(cogs[1]) + "\n\n\n"
+                                              + json.dumps(cogs[2]) + "\n" + json.dumps(cogs[3]) + "\n\n")
+    fake_git(monkeypatch, tmp_path, {str(run): "tdd/9-cogs-mesh"}, lambda scope: (3, ""))
+    at_ten_thousand(monkeypatch)
+
+    text_code = status.main(["--scope", "cogs-label"])
+    text = capsys.readouterr().out
+    json_code = status.main(["--json", "--scope", "cogs-label"])
+    doc = json.loads(capsys.readouterr().out)
+    run_obj, scope = doc["runs"][0], doc["scope"]
+    figures = (run_obj["leaf"], run_obj["attempts"], run_obj["dollars"], run_obj["tokens"],
+               scope["dollars"], scope["wall_seconds"], scope["attempted"])
+
+    standin = tmp_path / "standin"
+    standin.mkdir()
+    (standin / "event_log.py").write_text(
+        "def read_events(path):\n"
+        "    return [{'ts': 1000, 'event': 'launch', 'step': 'decoy step', 'phase': 'red',\n"
+        "             'actor': 'developer', 'name': 'decoy-leaf'},\n"
+        "            {'ts': 1077, 'event': 'usage'}]\n\n\n"
+        "def usage_totals(events):\n"
+        "    return 3.0, 1234\n")
+    real_event_log = sys.modules["event_log"]
+    sys.path.insert(0, str(standin))
+    del sys.modules["event_log"]
+    try:
+        importlib.reload(status)
+        decoy_code = status.main(["--scope", "cogs-label"])
+        decoy = capsys.readouterr().out
+    finally:
+        sys.path.remove(str(standin))
+        sys.modules["event_log"] = real_event_log
+        importlib.reload(status)
+
+    assert (text_code, text, json_code, figures, decoy_code, decoy) == (
+        0, "#9  cogs mesh  tdd/9-cogs-mesh  step 2 of 2  green  developer  develop-green 200s  attempt 1  "
+           "$1.75  11000 tokens  running\n"
+           "scope cogs-label  attempted 1  done 0  bailed 0  wall 200s  $1.75  solvable 0\n",
+        0, ("develop-green", 1, 1.75, 11000, 1.75, 200, 1),
+        0, "#9  cogs mesh  tdd/9-cogs-mesh  step 2 of 2  red  developer  decoy-leaf 9000s  attempt 1  "
+           "$3.00  1234 tokens  stale\n"
+           "scope cogs-label  attempted 1  done 0  bailed 0  wall 77s  $3.00  solvable 0\n")
+
+
 STATUS_SUITE_FLOOR = [
     "no runs under the main working tree prints 'no runs' and exits 3",
     "a run under .tdd/wt/* is listed with its issue number, title, branch and step n of m",

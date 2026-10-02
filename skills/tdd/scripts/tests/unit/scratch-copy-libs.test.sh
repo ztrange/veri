@@ -3,7 +3,7 @@
 # without. A `cp` line under tests/ or tests/unit/ that names a script under scripts/ which
 # sources lib/exit-contract.sh — by a literal path or through the suite's own variable
 # assignments — is named, unless the suite also puts lib/exit-contract.sh in the tree: by
-# naming it, or by copying a directory whole with `cp -R`.
+# naming it, by copying a directory whole with `cp -R`, or by copying `lib/*.sh`.
 # Admitted to the fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Run: scripts/tests/unit/scratch-copy-libs.test.sh
@@ -35,6 +35,7 @@ problems=""
 for suite in "$TESTS"/*.test.sh "$TESTS"/unit/*.test.sh; do
   grep -F 'exit-contract.sh' "$suite" > /dev/null && continue
   grep -E '(^|[[:space:]])cp[[:space:]]+-[A-Za-z]*R' "$suite" > /dev/null && continue
+  grep -E '(^|[[:space:]])cp[[:space:]].*lib/\*\.sh' "$suite" > /dev/null && continue
   declare -A vars=()
   while IFS= read -r line; do
     [[ "$line" =~ ^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=[\'\"]?([^\'\"]*)[\'\"]?[[:space:]]*$ ]] \
