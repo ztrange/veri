@@ -119,6 +119,25 @@ if off_cycle_line '⟦human-owed⟧' 'manual check' 'human' \
 fi
 report "$name"
 
+name="#671: $skill_md's step 2 plans a criterion replacing an implementation case under ADR 0027 as one ⟦replaces-case⟧ step naming the suite path and the case's exact name, whose Red is the pytest case failing against the code before the change"
+problems=()
+rc_rec="$(head -1 < <(grep -F '⟦replaces-case⟧' <<<"$plan_recs" | grep -F 'implementation case'))"
+if [[ -z "$rc_rec" ]]; then
+  problems+=("plan guidance: no instruction in step 2 names ⟦replaces-case⟧ for a criterion replacing an implementation case")
+else
+  [[ "$rc_rec" == *"adr 0027"* ]] ||
+    problems+=("plan guidance: the ⟦replaces-case⟧ instruction never ties the mark to ADR 0027")
+  [[ "$rc_rec" =~ one\ step ]] ||
+    problems+=("plan guidance: the ⟦replaces-case⟧ instruction never says the criterion is planned as one step")
+  [[ "$rc_rec" =~ suite(.s)?\ path|path\ of\ the\ suite ]] ||
+    problems+=("plan guidance: the ⟦replaces-case⟧ instruction never says the step names the suite path")
+  [[ "$rc_rec" == *"exact name"* ]] ||
+    problems+=("plan guidance: the ⟦replaces-case⟧ instruction never says the step names the case's exact name")
+  [[ "$rc_rec" =~ (^|[^a-z])red([^a-z]|$) && "$rc_rec" =~ pytest\ case[^.]*fail[^.]*before\ the\ change ]] ||
+    problems+=("plan guidance: the ⟦replaces-case⟧ instruction never says the step's Red is the pytest case failing against the code before the change")
+fi
+report "$name"
+
 name="#481: $skill_md's Draft PR step lists every ⟦human-owed⟧ ledger line in the PR body under ## Owed by a human, each naming its criterion number, and adds no such section when the ledger holds none"
 problems=()
 owed_rec="$(head -1 < <(section_records '### 4. Draft PR' | grep -F '⟦human-owed⟧' | grep -F '## owed by a human'))"
