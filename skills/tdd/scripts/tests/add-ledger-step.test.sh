@@ -174,6 +174,38 @@ want='# Plan for #42
 check_code "#590: a ⟦suite-repair⟧ line already in the ledger does not count toward VERI_STEP_GROWTH" \
   "$code" "0" "$want"
 
+seed_lines '- [x] lowercase the slug ⟦criterion 1⟧' '- [x] an extra edge case ⟦added⟧ ⟦criterion 1⟧' \
+  '- [x] fix the full-suite failure: x.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧'
+VERI_STEP_GROWTH=1 "$ADD" "$led" after 'an extra edge case' 'a unicode dash too'; codep=$?
+wantp='# Plan for #42
+
+- [x] lowercase the slug ⟦criterion 1⟧
+- [x] an extra edge case ⟦added⟧ ⟦criterion 1⟧
+- [x] fix the full-suite failure: x.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧
+
+## Owed steps
+
+- a unicode dash too'
+gotp="$(cat "$led")"
+seed_lines '- [x] lowercase the slug ⟦criterion 1⟧' '- [x] an extra edge case ⟦added⟧ ⟦criterion 1⟧' \
+  '- [x] fix the full-suite failure: x.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧'
+VERI_STEP_GROWTH=1 "$ADD" "$led" after 'an extra edge case' \
+  'fix the CI failure: y.test.sh ⟦ci-repair⟧'; codec=$?
+wantc='# Plan for #42
+
+- [x] lowercase the slug ⟦criterion 1⟧
+- [x] an extra edge case ⟦added⟧ ⟦criterion 1⟧
+- [ ] fix the CI failure: y.test.sh ⟦ci-repair⟧ ⟦criterion 1⟧
+- [x] fix the full-suite failure: x.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧'
+gotc="$(cat "$led")"
+if [[ "$codep/$codec" == "1/0" && "$gotp" == "$wantp" && "$gotc" == "$wantc" ]]; then
+  ok
+else
+  no "#590: at the budget an unmarked step is still owed with exit 1 and a ⟦ci-repair⟧ step still inserted unmarked (code=$codep/$codec)"
+  diff <(printf '%s\n' "$wantp") <(printf '%s\n' "$gotp") | sed 's/^/    /'
+  diff <(printf '%s\n' "$wantc") <(printf '%s\n' "$gotc") | sed 's/^/    /'
+fi
+
 stub="$work/stub"
 stub_script
 cat > "$stub/lib/ledger.sh" <<'EOF'
