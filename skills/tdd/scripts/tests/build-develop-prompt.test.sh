@@ -773,6 +773,20 @@ prompt_says "${rk_out[cover]}" "never names mypy as an example" -F -e 'mypy'
 [[ -z "$problems" ]] && ok \
   || no "#679 develop-cover allows COVERED: type-only only for a step that changes only types, with a PROOF: that is the type-check command the leaf ran green — npx tsc --noEmit, mypy (${problems#; })"
 
+problems=""
+says_both_ways "${rk_out[cover]}" "never names a step that moves or reshapes runtime code" \
+  40 'reshap' 'runtime code'
+says_both_ways "${rk_out[cover]}" "never says such a step is never unreachable or type-only" \
+  80 'runtime code' 'never `?unreachable`? or `?type-only'
+prompt_says "${rk_out[cover]}" "never names reachable code no test watches" \
+  -iE -e '(^|[^a-z])reachable code[^.]{0,40}no test watches'
+prompt_says "${rk_out[cover]}" "never says reachable code no test watches is COVERED: no" \
+  -iE -e 'no test watches[^.]{0,60}COVERED: no'
+grep -E '^PROOF:' <<<"${rk_out[cover]}" > /dev/null \
+  || problems="$problems; the report block carries no PROOF: line"
+[[ -z "$problems" ]] && ok \
+  || no "#679 develop-cover says a step that moves or reshapes runtime code is never unreachable or type-only, that reachable code no test watches is COVERED: no, and its report block carries a PROOF: line (${problems#; })"
+
 states_comment_rule() {  # states_comment_rule <phase label> <prompt>
   local label="$1" prompt="$2"
   prompt_says "$prompt" "develop-$label never names the contract header as an allowed comment" \
