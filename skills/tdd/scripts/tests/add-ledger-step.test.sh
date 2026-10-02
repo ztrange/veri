@@ -162,6 +162,18 @@ else
   diff <(printf '%s\n' "$want0") <(printf '%s\n' "$got0") | sed 's/^/    /'
 fi
 
+seed_lines '- [x] lowercase the slug ⟦criterion 1⟧' '- [x] an extra edge case ⟦added⟧ ⟦criterion 1⟧' \
+  '- [ ] fix the full-suite failure: x.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧'
+VERI_STEP_GROWTH=2 "$ADD" "$led" after 'an extra edge case' 'a unicode dash too'; code=$?
+want='# Plan for #42
+
+- [x] lowercase the slug ⟦criterion 1⟧
+- [x] an extra edge case ⟦added⟧ ⟦criterion 1⟧
+- [ ] a unicode dash too ⟦added⟧ ⟦criterion 1⟧
+- [ ] fix the full-suite failure: x.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧'
+check_code "#590: a ⟦suite-repair⟧ line already in the ledger does not count toward VERI_STEP_GROWTH" \
+  "$code" "0" "$want"
+
 stub="$work/stub"
 stub_script
 cat > "$stub/lib/ledger.sh" <<'EOF'
