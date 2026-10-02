@@ -125,6 +125,8 @@ OFFLINE_ENV = PATH="$(GUARD_PATH)$$git_bin:$(OFFLINE_BIN):$$PATH" OFFLINE_REAL_G
 	HTTP_PROXY=$(OFFLINE_PROXY) HTTPS_PROXY=$(OFFLINE_PROXY) NO_PROXY=127.0.0.1,localhost \
 	LC_ALL=C
 
+NAME_REACHED = while IFS= read -r reached; do printf '%s: %s\n' "$(1)" "$$reached"; fail=1; done < "$$reach_log"
+
 VENV_DIR := $${VERI_VENV:-$$HOME/.veri-tools/venv}
 
 # veri needs bash 5 (since 2026-09-18), and the suites run under whatever `bash` is first on
@@ -172,17 +174,13 @@ test unit:
 	    if grep '[^[:space:]]' "$$suite_out" > /dev/null; then printf '%s: its last line was: %s\n' "$$suite_name" "$$last_line"; \
 	    else printf '%s: its output was empty\n' "$$suite_name"; fi; fail=1; \
 	  }; \
-	  while IFS= read -r reached; do \
-	    printf '%s: tried the network: %s\n' "$$suite_name" "$$reached"; fail=1; \
-	  done < "$$reach_log"; \
+	  $(call NAME_REACHED,$$suite_name: tried the network); \
 	done; \
 	if [ -n "$(PY_TESTS)" ]; then \
 	  printf '== pytest\n'; \
 	  : > "$$reach_log"; \
 	  UNIT_GUARD_LOG="$$reach_log" $(OFFLINE_ENV) "$$py_bin" -m pytest $(PY_TESTS) < /dev/null || fail=1; \
-	  while IFS= read -r reached; do \
-	    printf 'pytest: tried to start: %s\n' "$$reached"; fail=1; \
-	  done < "$$reach_log"; \
+	  $(call NAME_REACHED,pytest: tried to start); \
 	fi; \
 	echo "----"; \
 	if [ $$fail -eq 0 ]; then echo "all suites green"; else echo "SUITES FAILED"; exit 1; fi
