@@ -705,4 +705,31 @@ polls="$(wc -l < "$work/unknown.json.calls" | tr -d ' ')"
   || problems+=("PR mergeable unknown: want no conflict named on stderr, got: $(cat "$work/unknown.err")")
 report "$name"
 
+name="wait-ci.sh decides a PR GitHub reports mergeable CONFLICTING whose head already has checks by those checks, as for any PR: 0 green, 1 red, 3 pending within the slice, 2 pending past the recorded deadline, never naming a conflict (#688)"
+problems=()
+sha=0123456789abcdef0123456789abcdef01234567
+conflicting() {
+  rollup "$1" "$2" "$sha"
+  printf '{"headRefOid":"%s","mergeable":"CONFLICTING","statusCheckRollup":[]}\n' "$sha" > "$work/$1"
+}
+conflicting conflict-green.json "$(check COMPLETED SUCCESS)"
+conflicting conflict-red.json "$(check COMPLETED SUCCESS),$(check COMPLETED FAILURE)"
+conflicting conflict-pending.json "$(check IN_PROGRESS '')"
+conflicting conflict-across.json "$(check IN_PROGRESS '')"
+for want in conflict-green:0 conflict-red:1 conflict-pending:3; do
+  f="${want%%:*}"
+  got="$(CLOCK_STEP=60 waited "$f" 540 600 "$sha")"
+  [[ "$got" == "${want##*:}" ]] || problems+=("$f: want exit ${want##*:}, got $got (stderr: $(cat "$work/$f.err"))")
+  ! grep -F "conflicts with its base branch" "$work/$f.err" > /dev/null \
+    || problems+=("$f: want no conflict named on stderr, got: $(cat "$work/$f.err")")
+done
+shared conflict-across
+got_first="$(again conflict-across first 120 120 "$sha")"
+got_second="$(again conflict-across second 120 120 "$sha")"
+[[ "$got_first" == 3 ]] || problems+=("conflict-across first call: want exit 3, got $got_first (stderr: $(cat "$work/conflict-across.first.err"))")
+[[ "$got_second" == 2 ]] || problems+=("conflict-across second call past the recorded deadline: want exit 2, got $got_second (stderr: $(cat "$work/conflict-across.second.err"))")
+grep -F "still pending past the deadline" "$work/conflict-across.second.err" > /dev/null \
+  || problems+=("conflict-across second call: want stderr saying the checks are still pending past the deadline, got: $(cat "$work/conflict-across.second.err")")
+report "$name"
+
 finish
