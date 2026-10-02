@@ -264,4 +264,27 @@ grep -F 'has-header.test.sh' <<< "$said" | grep -F 'header comment' > /dev/null 
 
 report "$name"
 
+name="unit-tier.test.sh runs no nested make unit or make test over the real roster; every nested run names a fixture suite"
+problems=()
+
+lineno=0
+while IFS= read -r line; do
+  lineno=$((lineno + 1))
+  [[ "$line" =~ ^[[:space:]]*# ]] && continue
+  [[ "$line" =~ (^|[[:space:]])-n([[:space:]]|$) ]] && continue
+  if [[ "$line" =~ (^|[[:space:]])run_make[[:space:]]+(unit|test)([[:space:]]|$) ]]; then
+    target="${BASH_REMATCH[2]}"
+  elif [[ "$line" =~ (run_make_in|-C)[[:space:]]+\"\$ROOT\"[[:space:]]+(unit|test)([[:space:]]|$) ]]; then
+    target="${BASH_REMATCH[2]}"
+  else
+    continue
+  fi
+  [[ "$line" =~ (^|[[:space:]])UNIT_TESTS= ]] ||
+    problems+=("line $lineno runs make $target over the real $UNIT_DIR/ roster: $line")
+  [[ "$target" == unit || "$line" =~ (^|[[:space:]])TESTS= ]] ||
+    problems+=("line $lineno runs make test over the real flat roster: $line")
+done < "${BASH_SOURCE[0]}"
+
+report "$name"
+
 finish
