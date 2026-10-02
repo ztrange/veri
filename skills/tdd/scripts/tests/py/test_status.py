@@ -111,7 +111,7 @@ def test_main_renders_a_three_step_ledger_with_one_ticked_as_step_2_of_3(tmp_pat
     (run / ".tdd" / "issue-31.md").write_text(
         "# Plan for #31 — lamps glow\n\n- [x] a lamp exists\n- [ ] a lamp glows\n- [ ] a lamp dims\n")
 
-    fake_git(monkeypatch, tmp_path, {str(run): "tdd/31-lamps"})
+    lamp_git(monkeypatch, tmp_path, [run])
 
     status.main([])
 
@@ -193,6 +193,11 @@ def lamp_usage(ts, issue, dollars):
                    cache_read_input_tokens="0", cache_creation_input_tokens="0")
 
 
+def lamp_git(monkeypatch, tmp_path, runs, solvable=None):
+    """fake_git answering each run directory in <runs> with branch tdd/<its name>-lamps."""
+    fake_git(monkeypatch, tmp_path, {str(run): "tdd/%s-lamps" % run.name for run in runs}, solvable)
+
+
 def at_ten_thousand(monkeypatch):
     monkeypatch.delenv("VERI_TIMEOUT", raising=False)
     monkeypatch.setattr(time, "time", lambda: 10000)
@@ -208,7 +213,7 @@ def test_main_shows_a_runs_cost_in_dollars_and_tokens_summed_from_its_event_log(
         lamp_ev(9900, "9", "usage", phase="green", step="a lamp dims", total_cost_usd="1.25", input_tokens="2000", output_tokens="300",
                 cache_read_input_tokens="4000", cache_creation_input_tokens="0"),
     ])
-    fake_git(monkeypatch, tmp_path, {str(run): "tdd/9-lamps"})
+    lamp_git(monkeypatch, tmp_path, [run])
     at_ten_thousand(monkeypatch)
 
     code = status.main([])
@@ -225,7 +230,7 @@ def test_main_reports_a_finished_runs_last_attempt_count_when_its_done_event_has
         lamp_ev(9980, "15", "done", actor="conductor", phase="", step="", attempt="",
                 pr="https://github.com/o/r/pull/15"),
     ])
-    fake_git(monkeypatch, tmp_path, {str(run): "tdd/15-lamps"})
+    lamp_git(monkeypatch, tmp_path, [run])
     at_ten_thousand(monkeypatch)
 
     code = status.main([])
@@ -245,7 +250,7 @@ def test_main_reads_a_run_ending_in_a_stop_mark_as_stopped_with_its_mode_in_text
         lamp_ev(9980, "16", "launch", name="develop-red"),
         stop_mark(9990, "16"),
     ])
-    fake_git(monkeypatch, tmp_path, {str(run): "tdd/16-lamps"})
+    lamp_git(monkeypatch, tmp_path, [run])
     at_ten_thousand(monkeypatch)
 
     status.main([])
@@ -263,7 +268,7 @@ def test_main_reads_a_run_as_running_again_after_a_resume_mark_follows_its_stop_
         stop_mark(9980, "17"),
         lamp_ev(9990, "17", "resume", actor="conductor", phase="", attempt=""),
     ])
-    fake_git(monkeypatch, tmp_path, {str(run): "tdd/17-lamps"})
+    lamp_git(monkeypatch, tmp_path, [run])
     at_ten_thousand(monkeypatch)
 
     code = status.main([])
@@ -286,7 +291,7 @@ def lamps_scope(tmp_path, monkeypatch, solvable):
     with open(runs["23"] / ".tdd" / "events.jsonl", "a") as f:
         f.write(json.dumps(lamp_ev(9100, "23", "bail", actor="conductor", attempt="", cause="stuck",
                                    classification="system")) + "\n")
-    fake_git(monkeypatch, tmp_path, {str(run): "tdd/%s-lamps" % issue for issue, run in runs.items()}, solvable)
+    lamp_git(monkeypatch, tmp_path, runs.values(), solvable)
     at_ten_thousand(monkeypatch)
 
 
@@ -367,7 +372,7 @@ def test_main_json_reports_bail_phase_from_the_bail_event_not_the_last_launch(tm
         lamp_ev(9900, "13", "launch", name="develop-red"),
         lamp_ev(9950, "13", "bail", actor="conductor", phase="green", attempt="", classification="process"),
     ])
-    fake_git(monkeypatch, tmp_path, {str(run): "tdd/13-lamps"})
+    lamp_git(monkeypatch, tmp_path, [run])
     at_ten_thousand(monkeypatch)
 
     code = status.main(["--json"])
@@ -378,7 +383,7 @@ def test_main_json_reports_bail_phase_from_the_bail_event_not_the_last_launch(tm
 
 def test_main_takes_a_run_directory_as_one_run_its_own_issues_ledger_only(tmp_path, monkeypatch, capsys, status):
     run = lamp_run(tmp_path, "7", ["7", "3", "5"])
-    fake_git(monkeypatch, tmp_path, {str(run): "tdd/7-lamps"})
+    lamp_git(monkeypatch, tmp_path, [run])
 
     text_code = status.main([])
     text = capsys.readouterr().out
@@ -394,7 +399,7 @@ def test_main_prints_two_runs_with_their_own_totals_when_each_directory_holds_th
         runs[issue] = lamp_run(tmp_path, issue, [issue, "4", other])
         write_events(runs[issue] / ".tdd" / "events.jsonl",
                      [lamp_ev(9990, issue, "launch", name="develop-red"), lamp_usage(9995, issue, dollars)])
-    fake_git(monkeypatch, tmp_path, {str(run): "tdd/%s-lamps" % issue for issue, run in runs.items()})
+    lamp_git(monkeypatch, tmp_path, runs.values())
     at_ten_thousand(monkeypatch)
 
     code = status.main(["--json"])
@@ -405,7 +410,7 @@ def test_main_prints_two_runs_with_their_own_totals_when_each_directory_holds_th
 
 def test_main_counts_no_run_for_a_directory_without_its_own_ledger_and_is_not_an_error(tmp_path, monkeypatch, capsys, status):
     run = lamp_run(tmp_path, "8", ["3", "5"])
-    fake_git(monkeypatch, tmp_path, {str(run): "tdd/8-lamps"})
+    lamp_git(monkeypatch, tmp_path, [run])
 
     text_code = status.main([])
     text = capsys.readouterr().out
