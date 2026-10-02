@@ -116,7 +116,7 @@ kill_tree() {
 }
 
 terminal_outcome() {
-  PYTHONPATH="$HERE/lib" python3 -c '
+  PYTHONPATH="$HERE/veri" python3 -c '
 import sys
 from leaf_log import result_records
 
