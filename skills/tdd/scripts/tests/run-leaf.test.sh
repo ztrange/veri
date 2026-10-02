@@ -63,8 +63,7 @@ printf '#!/bin/sh\nexit 5\n' > "$failing_cp/cp"
 chmod +x "$failing_cp/cp"
 home="$(scratch_dir)"
 : > "$home/.gitconfig"
-( cd "$work" && env PATH="$failing_cp:$stubdir:$PATH" HOME="$home" ARGV_OUT="$work/argv" \
-    "$LEAF" "$work/prompt.txt" ) >/dev/null 2>&1; code=$?
+PATH="$failing_cp:$PATH" HOME="$home" run "$work/prompt.txt" ok 0 >/dev/null 2>&1; code=$?
 [[ "$code" == 2 ]] \
   && ok || no "ends with exit 2 when it fails inside its own EXIT trap's lifetime (code=$code)"
 
