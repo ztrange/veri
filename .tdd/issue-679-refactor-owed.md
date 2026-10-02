@@ -2,3 +2,5 @@
 - test-only | fold the two near-identical `run_on` blocks in the `#679` case of `skills/tdd/scripts/tests/unit/cover-outcome.test.sh` (unreachable and type-only, differing only in kind and proof) into a loop over `kind=proof` pairs
 ### cover-outcome.sh exits 2 on `COVERED: unreachable` or `COVERED: type-only` when the report has no `PROOF:` line or says `PROOF: NONE` ⟦criterion 2⟧
 - test-only | cover-outcome.test.sh: the exit-3 case writes out its unreachable and type-only runs one after the other instead of looping over the kinds as the exit-2 case does; its header contract block still lists only exits 0/1/2 and only the yes stdout
+### the develop-cover prompt allows `COVERED: type-only` only for a step that changes only types, with a `PROOF:` that is the type-check command the leaf ran green ⟦criterion 5⟧
+- test-only | the `#679` unreachable and type-only cases in `skills/tdd/scripts/tests/build-develop-prompt.test.sh` each repeat the same check, `grep -E '^COVERED:.*<kind>' … || problems=…`; an `offers_covered <kind>` helper next to `says_both_ways` would replace both copies
