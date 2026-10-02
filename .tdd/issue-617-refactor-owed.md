@@ -1,0 +1,2 @@
+### run-suite.sh over a green suite, invoked through a symlink to the skills/tdd directory placed where no Makefile is three levels up, prints the suite's output and exits 0 ⟦criterion 1⟧
+- the "make a scratch dir or record 'the question went unasked' and return" block is repeated in about eight probes in count-line-guard.test.sh (lines 135, 253, 291, 359, 419, 506, 615, 756). Only the one at line 756 is new this cycle, so folding them into a shared helper would mostly tidy code this cycle did not write, which is out of scope here.
