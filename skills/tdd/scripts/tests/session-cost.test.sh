@@ -554,5 +554,19 @@ grep -F 'usage: session-cost.sh --since <ISO date> [--json] [<transcript.jsonl> 
 
 report "$name"
 
+name="given an unknown option, session-cost.sh exits 2 with its own usage text on stderr"
+problems=()
+
+unknown_err="$work/unknown-option.err"
+"$SESSION_COST" --since 2026-09-14 --no-such-option > /dev/null 2>"$unknown_err"
+code=$?
+
+[[ "$code" == 2 ]] ||
+  problems+=("want exit 2 from session-cost.sh, got $code")
+grep -F 'usage: session-cost.sh --since <ISO date> [--json] [<transcript.jsonl> ...]' "$unknown_err" > /dev/null ||
+  problems+=("want its usage text on stderr, stderr was: $(printf '%q' "$(cat "$unknown_err")")")
+
+report "$name"
+
 
 finish
