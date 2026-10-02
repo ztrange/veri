@@ -1,7 +1,7 @@
 # Plan for #624 — extract-result.sh loses a developer leaf's report when the leaf keeps working after it
 
 - [x] given a log whose result record carries `IMPL_PATH:` and `SUITE:` lines, followed by a later result record carrying neither, `extract-result.sh` prints the earlier record's text and exits 0 ⟦criterion 1⟧
-- [ ] given a log whose result record carries `SPLIT:` lines, followed by a later result record carrying no report line, `extract-result.sh` prints the earlier record's text ⟦criterion 2⟧
+- [x] given a log whose result record carries `SPLIT:` lines, followed by a later result record carrying no report line, `extract-result.sh` prints the earlier record's text ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] given a log whose result record carries a `TEST_PATH:` line, followed by a later result record carrying no report line, `extract-result.sh` prints the earlier record's text ⟦criterion 3⟧
 - [ ] given a log whose result record carries only a `SUITE:` line, followed by a later result record carrying no report line, `extract-result.sh` prints the earlier record's text ⟦criterion 4⟧
 - [ ] given two result records that both carry a report line, `extract-result.sh` prints the later one ⟦criterion 5⟧
