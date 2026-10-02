@@ -335,6 +335,19 @@ prompt_says "$red" "never names mv <file>.orig <file>" -F -e 'mv <file>.orig <fi
   || no "#619 _shared.md forbids git checkout -- <file> and git restore for undoing a probe and names cp <file> <file>.orig / mv <file>.orig <file> instead (${problems#; })"
 
 problems=""
+stash_rule='**Never run `git stash`**: the stash stack is one ref, `refs/stash`, in a `.git` shared by
+every worktree of this repository, so what you pop may be another agent'"'"'s work — and theirs
+is then lost. To see the committed version of a file, read it with `git show HEAD:<path>`;
+to compare a whole tree against it, make a throwaway checkout with
+`git worktree add --detach <scratch> HEAD` and remove it afterwards.'
+for shared in _shared _develop-shared; do
+  [[ "$(cat "$prompts/$shared.md")" == *"$stash_rule"* ]] \
+    || problems="$problems; $shared.md no longer carries the git stash rule verbatim"
+done
+[[ -z "$problems" ]] && ok \
+  || no "#619 _shared.md and _develop-shared.md keep the git stash rule unchanged, recommending git show HEAD:<path> and git worktree add --detach <scratch> HEAD (${problems#; })"
+
+problems=""
 prompt_says "$with_base" "never names git diff --name-only $base_sha^ $base_sha" \
   -F -e "git diff --name-only $base_sha^ $base_sha"
 prompt_says "$with_base" "never makes a changed file outside that list a REJECT" \
