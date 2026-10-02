@@ -1531,8 +1531,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    gh api 'repos/{owner}/{repo}/pulls?head={owner}:{branch}' -q '.[0].html_url // empty'   # → <pr-url>, the PR step 2.3 opened; <pr-number> is its last path segment
    . $S/lib/github.sh && gh_pr_ready <pr-number>
    $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)" 2> .tdd/wait-ci.err; ci=$?    # exit 3 → run this line again, in a new Bash call
-   [ "$ci" != 2 ] || grep -F 'conflicts with its base branch' .tdd/wait-ci.err > /dev/null || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
-   [ "$ci" != 2 ] || ! grep -F 'conflicts with its base branch' .tdd/wait-ci.err > /dev/null || [ ! -e .tdd/ci-conflict-rebased ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
+   grep -F 'conflicts with its base branch' .tdd/wait-ci.err > /dev/null; conflict=$?
+   [ "$ci" != 2 ] || [ "$conflict" = 0 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
+   [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
    gh api "repos/{owner}/{repo}/commits/$(git rev-parse HEAD)/check-runs" -q '.check_runs[] | {name, status, conclusion}'
    gh run view <run-id> --log-failed          # a failed check only → its suite and FAIL - line
    grep -F '⟦ci-repair⟧' .tdd/issue-<n>.md > /dev/null && VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)"
