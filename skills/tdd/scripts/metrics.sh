@@ -542,14 +542,15 @@ if passes:
         row([step, index, refactor_spent(mark), mark["stopped"],
              spent_by["verdict"], str(spent_by["revise"]), figure(WALL, spent_by[WALL]), figure(DOLLARS, spent_by[DOLLARS])])
 if structural is not None:
+    stopped = structural.get("stopped", "?")
     if "transforms" not in structural:
         print()
         print("#### Structural pass")
         print()
-        print("Stopped: %s" % structural.get("stopped", "?"))
+        print("Stopped: %s" % stopped)
     else:
         table_head("#### Structural pass", "pass", ["refactor", "stopped"], ["---:", "---"])
-        row(["issue", refactor_spent(structural), structural.get("stopped", "?")])
+        row(["issue", refactor_spent(structural), stopped])
     inconsistent = None
     if "stopped" not in structural:
         inconsistent = "the mark carries no stopped"
