@@ -1541,10 +1541,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    With nothing skipped, a pass that ends `candidates-done` or `nothing-structural` files nothing.
    The filing applies no label to this issue and commits no debt file: the PR body's owed
    list is the record.
-   No candidate — `list`
-   exits 3 — skips the pass with no bail, marking the log and going straight on to readying
-   the PR. No owed file is no exception — a missing `.tdd/issue-<n>-refactor-owed.md` is the
-   `list` exit-3 case, so it is marked `stopped=nothing-structural` before the PR is readied:
+   No candidate — `list` exits 3, and a missing `.tdd/issue-<n>-refactor-owed.md` is the
+   `list` exit-3 case — skips the pass with no bail: it is marked `stopped=nothing-structural`
+   before the PR is readied:
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh structural-pass stopped=nothing-structural
    ```
