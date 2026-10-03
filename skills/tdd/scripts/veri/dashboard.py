@@ -458,3 +458,4 @@ def main(argv):
             # SIGINT is the documented way to stop this, so it is exit 0 — not the 130 a
             # process killed by the signal would otherwise report.
             pass
+    return 0
