@@ -167,3 +167,25 @@ def test_main_since_excludes_a_record_before_the_window_and_counts_one_inside_it
     lines = capsys.readouterr().out.splitlines()
 
     assert (code, [line for line in want if line not in lines]) == (0, [])
+
+
+def test_main_attributes_an_sdk_cli_session_and_an_interactive_session_to_their_own_rows(tmp_path, monkeypatch, capsys, session_cost):
+    monkeypatch.setenv("TZ", "UTC")
+    time.tzset()
+    leaf = tmp_path / "3f6d9a71-0c58-4e29-b7a3-1d4e8f2c50b6.jsonl"
+    human = tmp_path / "7a1c4e82-6b30-4d95-8f16-2e9b0a5d3c74.jsonl"
+    leaf.write_text(
+        '{"type":"assistant","timestamp":"2026-09-14T10:31:07.442Z","requestId":"req_011CSGkX2zAbH8nDfL1ySu5g","sessionId":"3f6d9a71-0c58-4e29-b7a3-1d4e8f2c50b6","entrypoint":"sdk-cli","userType":"external","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":1,"cache_creation_input_tokens":80000,"cache_creation":{"ephemeral_5m_input_tokens":80000,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":400000,"output_tokens":4000}}}\n'
+    )
+    human.write_text(
+        '{"type":"assistant","timestamp":"2026-09-14T10:52:26.019Z","requestId":"req_011CSHlY3aBcI9oEgM2zTv6h","sessionId":"7a1c4e82-6b30-4d95-8f16-2e9b0a5d3c74","entrypoint":"claude-desktop","userType":"external","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":1,"cache_creation_input_tokens":40000,"cache_creation":{"ephemeral_5m_input_tokens":40000,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":200000,"output_tokens":6800}}}\n'
+    )
+    want = [
+        "  sdk-cli (leaf)                       $2.40",
+        "  interactive                          $1.56",
+    ]
+
+    code = session_cost.main(["--since", "2026-09-14", str(leaf), str(human)])
+    lines = capsys.readouterr().out.splitlines()
+
+    assert (code, [line for line in want if line not in lines]) == (0, [])
