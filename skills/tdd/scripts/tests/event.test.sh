@@ -335,4 +335,14 @@ done
   problems+=("want nothing appended to .tdd/events.jsonl, got $(printf '%q' "$(cat "$ns_work/.tdd/events.jsonl")")")
 report "$name"
 
+name="#726: event.sh refuses a structural-pass mark with stopped=budget-spent whose transforms is not equal to its budget with exit 2, and appends nothing"
+problems=()
+bs_work="$(scratch_dir)"
+( cd "$bs_work" && env VERI_ISSUE=496 VERI_ACTOR=conductor VERI_AWAKE_CLOCK=/usr/bin/true \
+    "$EVENT" structural-pass transforms=0 budget=10 stopped=budget-spent >/dev/null 2>&1 ) && bs_code=0 || bs_code=$?
+[[ "$bs_code" == 2 ]] || problems+=("want exit 2, got $bs_code")
+[[ ! -s "$bs_work/.tdd/events.jsonl" ]] ||
+  problems+=("want nothing appended to .tdd/events.jsonl, got $(printf '%q' "$(cat "$bs_work/.tdd/events.jsonl")")")
+report "$name"
+
 finish

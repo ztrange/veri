@@ -57,8 +57,14 @@ shift
 if [[ "$event" == structural-pass ]]; then
   stopped_reasons="candidates-done, budget-spent, nothing-structural"
   stopped_seen=0
+  transforms="" budget="" stopped=""
   for arg in "$@"; do
+    case "$arg" in
+      transforms=*) transforms="${arg#transforms=}" ;;
+      budget=*) budget="${arg#budget=}" ;;
+    esac
     [[ "$arg" == stopped=* ]] || continue
+    stopped="${arg#stopped=}"
     stopped_seen=1
     case "${arg#stopped=}" in
       candidates-done|budget-spent|nothing-structural) ;;
@@ -70,6 +76,10 @@ if [[ "$event" == structural-pass ]]; then
   done
   if [[ "$stopped_seen" == 0 ]]; then
     echo "event.sh: structural-pass needs stopped=, one of $stopped_reasons" >&2
+    exit 2
+  fi
+  if [[ "$stopped" == budget-spent && "$transforms" != "$budget" ]]; then
+    echo "event.sh: structural-pass stopped=budget-spent needs transforms equal to budget, got transforms=$transforms budget=$budget" >&2
     exit 2
   fi
 fi
