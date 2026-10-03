@@ -270,6 +270,9 @@ over_budget_step_done() {
   echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=7 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
   await_context 'context 7 150100'
 }
+await_gone() {
+  until [ -r "\$1" ] && ! kill -0 "\$(cat "\$1")" 2>/dev/null; do :; done
+}
 SH
 }
 
@@ -308,6 +311,14 @@ gone_result="$(
   (( looks > 300 )) && echo returned-once-gone || echo returned-while-alive
 )"
 expect_lines "await_gone returns only once the stopped stub's pid is gone, however many looks that takes, without calling sleep" "returned-once-gone" "$gone_result" "$work/gone.pid"
+
+sh -c "$(stub_waits "$await_out")
+sleep() { echo slept; }
+looks=0
+kill() { looks=\$((looks + 1)); [ \$looks -le 300 ]; }
+await_gone '$work/gone.pid'
+[ \$looks -gt 300 ] && echo returned-once-gone || echo returned-while-alive" > "$work/stub-gone.result" 2>&1 < /dev/null
+expect_lines "stub_waits' await_gone returns only once the other stub's pid is gone, however many looks that takes, without calling sleep" "returned-once-gone" "$(cat "$work/stub-gone.result")" "$work/gone.pid"
 
 gh_stop="$work/gh-stop"
 solvable_fixture "$gh_stop" 7
@@ -378,11 +389,8 @@ if [ "\$n" = 7 ] && [ "\$(grep -c '^7$' "$beside_launches")" -eq 1 ]; then
   await_stop
   echo after-step-done-7 >> "$beside_marks"
 elif [ "\$n" = 8 ]; then
-  i=0
-  while [ \$i -lt 200 ] && ! { [ -r "$beside_marks.7.pid" ] && ! kill -0 "\$(cat "$beside_marks.7.pid")" 2>/dev/null; }; do
-    i=\$((i + 1)); sleep 0.02
-  done
-  if [ \$i -lt 200 ]; then echo 8-outlived-7 >> "$beside_marks"; else echo 8-waited-out >> "$beside_marks"; fi
+  await_gone "$beside_marks.7.pid"
+  echo 8-outlived-7 >> "$beside_marks"
   heartbeats 20
   echo end-8 >> "$beside_marks"
 fi
