@@ -38,6 +38,11 @@ def suites(pattern):
     return sorted(glob.glob(pattern))
 
 
+def every_suite():
+    return [s for s in suites(SCRIPTS + "/tests/*.test.sh") + suites(SCRIPTS + "/tests/unit/*.test.sh")
+            if os.path.isfile(s)]
+
+
 def suites_naming(*needles):
     found = []
     for suite in suites(SCRIPTS + "/tests/*.test.sh"):
@@ -70,8 +75,7 @@ def suite_of(f):
     if f == SCRIPTS + "/tests/lib/harness.sh":
         sourcing = re.compile(
             rb"^" + SPACE + rb"*(source|\.)" + SPACE + rb".*lib/harness\.sh\"?" + SPACE + rb"*$")
-        return [s for s in suites(SCRIPTS + "/tests/*.test.sh") + suites(SCRIPTS + "/tests/unit/*.test.sh")
-                if has_line(s, sourcing)]
+        return [s for s in every_suite() if has_line(s, sourcing)]
     if match(SCRIPTS + "/tests/fixtures/*"):
         return suites_naming(f[len(SCRIPTS + "/tests/"):])
     if match(SCRIPTS + "/prompts/*.md"):
@@ -135,8 +139,7 @@ def main(argv):
 
     if unplaced:
         print("affected-suites: no rule places %s; widening to every suite" % ",".join(unplaced), file=sys.stderr)
-        placed = [s for s in suites(SCRIPTS + "/tests/*.test.sh") + suites(SCRIPTS + "/tests/unit/*.test.sh")
-                  if os.path.isfile(s)]
+        placed = every_suite()
     elif not placed:
         return 3
     sys.stdout.write("".join(s + "\n" for s in sorted(set(placed))))
