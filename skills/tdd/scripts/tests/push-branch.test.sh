@@ -522,4 +522,33 @@ for args in "--force-with-lease" "--force-with-lease=$branch" \
 done
 report "$name"
 
+name="push-branch.sh run through a symlink to the skill directory and from another working directory answers as it does when run in place, finding event.sh and recording push-failed in the working directory's .tdd/events.jsonl"
+problems=()
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+for where in in-place linked; do
+  run_fixture "$work/symlink-$where" tdd/720-symlink 720 <<'LEDGER'
+
+- [ ] push-branch.sh runs through a symlink to the skill directory
+LEDGER
+  git_q "$work/symlink-$where" remote add origin "$work/no-such-remote-symlink.git" >/dev/null 2>&1
+done
+( cd "$work/symlink-in-place" && env VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 VERI_ISSUE=720 VERI_ACTOR=conductor \
+    VERI_STEP='runs through a symlink' "$PUSH" ) >"$work/in-place.out" 2>"$work/in-place.err" && in_place_code=0 || in_place_code=$?
+( cd "$work/symlink-linked" && env VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 VERI_ISSUE=720 VERI_ACTOR=conductor \
+    VERI_STEP='runs through a symlink' "$work/linked-skill/scripts/push-branch.sh" ) >"$work/linked.out" 2>"$work/linked.err" && linked_code=0 || linked_code=$?
+[[ "$linked_code" == "$in_place_code" && "$linked_code" == 0 ]] ||
+  problems+=("want exit 0 both in place and through the symlink, got $in_place_code in place and $linked_code linked")
+[[ "$(cat "$work/linked.out")" == "$(cat "$work/in-place.out")" ]] ||
+  problems+=("want the same stdout as in place, $(printf '%q' "$(cat "$work/in-place.out")"), got $(printf '%q' "$(cat "$work/linked.out")")")
+[[ "$(cat "$work/linked.err")" == "$(cat "$work/in-place.err")" ]] ||
+  problems+=("want the same stderr as in place, $(printf '%q' "$(cat "$work/in-place.err")"), got $(printf '%q' "$(cat "$work/linked.err")")")
+linked_log="$work/symlink-linked/.tdd/events.jsonl"
+if [[ ! -f "$linked_log" ]]; then
+  problems+=("want a push-failed event in $linked_log, but no such file")
+else
+  [[ "$(jevents "$linked_log")" == push-failed ]] ||
+    problems+=("want one push-failed event in $linked_log, got $(printf '%q' "$(jevents "$linked_log" | tr '\n' ' ')")")
+fi
+report "$name"
+
 finish
