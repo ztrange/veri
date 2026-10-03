@@ -78,4 +78,64 @@ want='could not make a scratch tree to plant the document in, so the criterion w
   problems+=("make_plant_tree left problems (${planted[*]:-}), want exactly '$want'")
 report "$name"
 
+# 3. probe_guard_is_there adds a problem and returns 1 over a missing or non-executable
+#    guard; probe_guard_is_red adds one over a green run, or a red one with no count line; probe_guard_is_green_unplanted
+#    adds one over a red run of the committed document — each naming the guard and the document
+name="guard-plant: probe_guard_is_there, probe_guard_is_red and probe_guard_is_green_unplanted each add a problem naming the guard and the document, and none over the case it accepts"
+cat > "$ROOT/g/switch-guard.test.sh" <<'EOF'
+#!/bin/sh
+here="$(cd "$(dirname "$0")" && pwd)"
+case "$(cat "$here/../d/DOC.md")" in
+  red) echo "3 passed, 1 failed"; exit 1 ;;
+  uncounted) echo "died before its count line"; exit 1 ;;
+esac
+echo "3 passed, 0 failed"
+EOF
+chmod +x "$ROOT/g/switch-guard.test.sh"
+printf 'green\n' > "$scratch/green.md"
+printf 'red\n' > "$scratch/red.md"
+printf 'uncounted\n' > "$scratch/uncounted.md"
+outcomes=()
+probe_case() {
+  local label="$1" want_code="$2" want_count="$3" code got one
+  shift 3
+  problems=()
+  "$@" 2>/dev/null && code=0 || code=$?
+  got=(${problems[@]+"${problems[@]}"})
+  [[ -z "$want_code" || "$code" == "$want_code" ]] ||
+    outcomes+=("$label: returned $code, want $want_code")
+  [[ "${#got[@]}" == "$want_count" ]] ||
+    outcomes+=("$label: added ${#got[@]} problems (${got[*]:-}), want $want_count")
+  for one in ${got[@]+"${got[@]}"}; do
+    [[ "$one" == *"$GUARD"* || "$one" == *"${GUARD##*/}"* ]] ||
+      outcomes+=("$label: the problem '$one' does not name the guard $GUARD")
+    [[ "$one" == *"$SKILL"* ]] ||
+      outcomes+=("$label: the problem '$one' does not name the document $SKILL")
+  done
+}
+GUARD='g/absent-guard.test.sh'
+GUARD_PATH="$ROOT/$GUARD"
+probe_case 'probe_guard_is_there over a missing guard' 1 1 probe_guard_is_there
+GUARD='g/plain-guard.test.sh'
+GUARD_PATH="$ROOT/$GUARD"
+printf '#!/bin/sh\n' > "$GUARD_PATH"
+chmod -x "$GUARD_PATH"
+probe_case 'probe_guard_is_there over a non-executable guard' 1 1 probe_guard_is_there
+GUARD='g/switch-guard.test.sh'
+GUARD_PATH="$ROOT/$GUARD"
+probe_case 'probe_guard_is_there over an executable guard' 0 0 probe_guard_is_there
+make_plant_tree tree3
+run_guard_over "$scratch/green.md"
+probe_case 'probe_guard_is_red over a green run' '' 2 probe_guard_is_red 'planted line is gone'
+run_guard_over "$scratch/red.md"
+probe_case 'probe_guard_is_red over a red run' '' 0 probe_guard_is_red 'planted line is gone'
+run_guard_over "$scratch/uncounted.md"
+probe_case 'probe_guard_is_red over a red run with no count line' '' 1 probe_guard_is_red 'planted line is gone'
+SKILL_PATH="$scratch/red.md"
+probe_case 'probe_guard_is_green_unplanted over a red committed document' '' 2 probe_guard_is_green_unplanted
+SKILL_PATH="$scratch/green.md"
+probe_case 'probe_guard_is_green_unplanted over a green committed document' '' 0 probe_guard_is_green_unplanted
+problems=(${outcomes[@]+"${outcomes[@]}"})
+report "$name"
+
 finish
