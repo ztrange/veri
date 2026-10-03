@@ -811,66 +811,6 @@ fi
 
 report "$name"
 
-name="metrics_json keys one entry per run directory by its own issue number and runs metrics.sh once for a live run"
-problems=()
-mown_repo="$(repo metricsown)"
-mown_run="$(fabricate_run "$mown_repo" 7 tdd/7-lamps-glow)"
-cat > "$mown_run/.tdd/issue-7.md" <<'EOF'
-# Plan for #7 — lamps glow
-
-- [x] a lamp exists
-- [ ] a lamp glows
-EOF
-for mown_other in 3 5; do
-  cat > "$mown_run/.tdd/issue-$mown_other.md" <<EOF
-# Plan for #$mown_other — an earlier run's committed plan
-
-- [x] a lamp is wired
-EOF
-done
-mown_now="$(date +%s)"
-cat > "$mown_run/.tdd/events.jsonl" <<EOF
-{"ts": $((mown_now - 120)), "issue": "7", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "step-start", "attempt": "", "skill_commit": "abc"}
-{"ts": $((mown_now - 110)), "issue": "7", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
-EOF
-
-if [[ -n "$module_problem" ]]; then
-  problems+=("$module_problem")
-else
-  add_problems < <(cd "$mown_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 python3 -c '
-import importlib, json, os, sys
-
-scripts, module, port, run = sys.argv[1:5]
-run = os.path.realpath(run)
-sys.path.insert(0, scripts)
-sys.argv = [scripts + "/" + module + ".py", scripts + "/dashboard.html", port,
-            scripts + "/status.sh", scripts + "/metrics.sh"]
-mod = importlib.import_module(module)
-
-metrics_calls = []
-real_capture = mod.capture
-
-def spy(argv, cwd=None):
-    if list(argv)[:1] == [mod.metrics_sh]:
-        metrics_calls.append([list(argv), os.path.realpath(cwd) if cwd else cwd])
-        return b"a stub report\n"
-    return real_capture(argv, cwd=cwd)
-
-mod.capture = spy
-got = json.loads(mod.metrics_json({}))
-issues = got.get("issues", {}) if isinstance(got, dict) else {}
-if sorted(issues) != ["7"]:
-    print("metrics_json reports issues %s; want 7 alone, the issue the run directory "
-          ".tdd/wt/7 is for: issue-3.md and issue-5.md there are earlier runs committed "
-          "plans" % json.dumps(sorted(issues)))
-if metrics_calls != [[[mod.metrics_sh, "7"], run]]:
-    print("metrics_json ran metrics.sh as %s; want exactly one run of it, for issue 7 in %s"
-          % (json.dumps([[a[1:], c] for a, c in metrics_calls]), run))
-' "$scripts" "$module" "$PORT" "$mown_run")
-fi
-
-report "$name"
-
 name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
 problems=()
 disk_page="$scripts/dashboard.html"

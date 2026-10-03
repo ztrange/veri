@@ -247,8 +247,6 @@ dashboard:# What solving #32 cost — the committed report, verbatim
 dashboard:# Plan for #33 — lamps flicker
 dashboard:# What solving #33 cost — the committed report of a bailed run, verbatim
 dashboard:# Plan for #34 — lamps gutter
-dashboard:# Plan for #7 — lamps glow
-dashboard:# Plan for #$mown_other — an earlier run's committed plan
 dashboard:# Plan for #77 — a kettle boils
 invisible-work:#!/bin/sh
 orchestrate:# A stopped conductor must be stopped by a signal, not by its writes failing, so this stub
