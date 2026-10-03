@@ -54,6 +54,19 @@ require_args 1 "$@"
 event="$1"
 shift
 
+if [[ "$event" == structural-pass ]]; then
+  for arg in "$@"; do
+    [[ "$arg" == stopped=* ]] || continue
+    case "${arg#stopped=}" in
+      candidates-done|budget-spent|nothing-structural) ;;
+      *)
+        echo "event.sh: structural-pass stopped=${arg#stopped=} is not one of candidates-done, budget-spent, nothing-structural" >&2
+        exit 2
+        ;;
+    esac
+  done
+fi
+
 mkdir -p .tdd
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
