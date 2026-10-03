@@ -602,6 +602,16 @@ done
 [[ -z "$problems" ]] && ok || no "verify-plan counts a ⟦full-suite⟧ or ⟦human-owed⟧ line tagged ⟦criterion k⟧ as delivering criterion k, so a plan written that way passes check 1 (#481) (${problems#; })"
 
 problems=""
+plan_rejects_shape diff-checked "that is a property of the branch's own diff" 'diff[- ]property'
+prompt_says "$plan" "never counts a ⟦diff-checked⟧ line as delivering its criterion" \
+  -iE -e "⟦diff-checked⟧[^.]{0,200}$deliver_verb|$deliver_verb[^.]{0,200}⟦diff-checked⟧"
+for read in "another suite's source text" "git history"; do
+  prompt_says "$plan" "never directs a REJECT for a planned test that reads $read" \
+    -iE -e "REJECT[^.]{0,200}$read|$read[^.]{0,200}REJECT"
+done
+[[ -z "$problems" ]] && ok || no "verify-plan names the diff-property shape, counts a ⟦diff-checked⟧ ⟦criterion k⟧ line as delivering criterion k, and REJECTs a plan that makes such a criterion a Red/Green step or plans a test reading another suite's source text or the git history (${problems#; })"
+
+problems=""
 printf '%s\n' 'grep -q "extract_helper" lib/foo.sh' > "$work/predicate.md"
 tf_base=0123abcdef
 tf="$("$BUILD" transform "$work/spec.md" "$work/predicate.md" "$tf_base" 2>/dev/null)"; code=$?

@@ -52,6 +52,17 @@ of a manual check — into a Red/Green step instead of its `⟦full-suite⟧` or
 line, even where check 1 alone would pass it: a Red leaf handed that step can only answer
 `UNTESTABLE`, and the run bails.
 
+A third shape has no test to leave behind: a diff-property criterion, one that is a property
+of the branch's own diff — something removed, something left unchanged, a change confined to
+named lines — is one `⟦diff-checked⟧ ⟦criterion k⟧` line, judged against the diff by a blind
+verifier. A `⟦diff-checked⟧ ⟦criterion k⟧` line delivers criterion k by itself. A criterion
+stating a rule every future change must keep is not this shape, and stays a Red/Green step.
+
+REJECT a plan that turns a diff-property criterion into a Red/Green step instead of its
+`⟦diff-checked⟧` line, and REJECT a plan with a step whose test reads another suite's source text
+or the git history: such a test pins text rather than behaviour, and goes red on the next
+legitimate edit of what it reads.
+
 {{REFACTOR_PLAN}}
 
 A REJECT must name the criterion it fails on and state the part of it no step covers, in

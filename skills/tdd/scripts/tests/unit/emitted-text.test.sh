@@ -140,8 +140,8 @@ pin '669190476 6633' prompt build-verify-prompt.sh --step "$step" red "$spec" t/
 pin '764367636 6636' prompt build-verify-prompt.sh --fast-cmd "make unit" green "$spec" t/x.test.sh "case one"
 pin '1448695835 8005' prompt build-verify-prompt.sh --fast-cmd "make unit" refactor "$spec" t/x.test.sh 0123456
 pin '2503097466 6474' prompt build-verify-prompt.sh pin "$spec" t/x.test.sh "case one"
-pin '4288139607 6998' prompt build-verify-prompt.sh plan "$spec" "$work/ledger.md"
-pin '2339912370 7783' prompt build-verify-prompt.sh plan "$work/refactor.md" "$work/ledger.md"
+pin '3230523829 7797' prompt build-verify-prompt.sh plan "$spec" "$work/ledger.md"
+pin '2826488062 8582' prompt build-verify-prompt.sh plan "$work/refactor.md" "$work/ledger.md"
 pin '2726137615 5093' prompt build-verify-prompt.sh rebase "$spec" 0123456 89abcde
 pin '4037782086 4776' prompt build-verify-prompt.sh transform "$spec" "$work/reason.md" 0123456
 verdict "$name"
