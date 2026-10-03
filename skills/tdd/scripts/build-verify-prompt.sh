@@ -120,14 +120,15 @@ done
 tpl="$(cat "$tpl_file")"
 shared="$(cat "$shared_file")"
 spec="$(cat "$spec_file")"
-bug_reproduction=""
-if [[ -n "$bug_file" ]]; then bug_reproduction="$(cat "$bug_file")"; fi
-refactor_plan=""
-if [[ -n "$refactor_plan_file" ]]; then refactor_plan="$(cat "$refactor_plan_file")"; fi
-replaces_case=""
-if [[ -n "$replaces_file" ]]; then replaces_case=$'\n\n'"$(cat "$replaces_file")"; fi
-suite_repair=""
-if [[ -n "$suite_repair_file" ]]; then suite_repair=$'\n\n'"$(cat "$suite_repair_file")"; fi
+optional() {
+  local content=""
+  if [[ -n "$2" ]]; then content="${3:-}$(cat "$2")"; fi
+  printf -v "$1" '%s' "$content"
+}
+optional bug_reproduction "$bug_file"
+optional refactor_plan "$refactor_plan_file"
+optional replaces_case "$replaces_file" $'\n\n'
+optional suite_repair "$suite_repair_file" $'\n\n'
 ledger=""
 if [[ "$phase" == plan ]]; then
   ledger="$(cat "$test_path")"
