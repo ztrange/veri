@@ -268,3 +268,55 @@ def test_main_reports_an_unknown_models_tokens_with_no_cost_and_names_it_in_a_fo
     if any(re.search(r"\$[0-9]", line) for line in footer):
         problems.append("the unknown model: want no money on the line naming it, got %r" % footer)
     assert (code, problems) == (0, []), "\n".join(lines)
+
+
+def test_main_json_states_the_same_four_totals_as_the_text_report(tmp_path, monkeypatch, capsys, session_cost):
+    monkeypatch.setenv("TZ", "UTC")
+    time.tzset()
+    transcript = tmp_path / "6b19d4e7-3c05-42af-9d71-8e260a5fb3c7.jsonl"
+    transcript.write_text(
+        '{"type":"assistant","timestamp":"2026-09-14T10:21:07.412Z","requestId":"req_011CSPrE9gHiO5uKmS8fZb2n","sessionId":"6b19d4e7-3c05-42af-9d71-8e260a5fb3c7","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":3,"cache_creation_input_tokens":160000,"cache_creation":{"ephemeral_5m_input_tokens":160000,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":700000,"output_tokens":12000}}}\n'
+        '{"type":"assistant","timestamp":"2026-09-14T11:58:33.276Z","requestId":"req_011CSQsF0hIjP6vLnT9gAc3o","sessionId":"6b19d4e7-3c05-42af-9d71-8e260a5fb3c7","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":1,"cache_creation_input_tokens":96000,"cache_creation":{"ephemeral_5m_input_tokens":96000,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":340000,"output_tokens":7600}}}\n'
+    )
+    want_text = [
+        "  cache read          1040000 tokens   $1.56",
+        "  cache write          256000 tokens   $4.80",
+        "  output                19600 tokens   $1.47",
+        "  total                                $7.83",
+    ]
+    want_json = {
+        r"cache.*read": "1.56",
+        r"cache.*(write|creat)": "4.80",
+        r"output": "1.47",
+        r"total": "7.83",
+    }
+
+    code = session_cost.main(["--since", "2026-09-14", str(transcript)])
+    lines = capsys.readouterr().out.splitlines()
+    json_code = session_cost.main(["--since", "2026-09-14", "--json", str(transcript)])
+    out_json = capsys.readouterr().out
+
+    flat = []
+
+    def walk(node, path):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                walk(value, (path + "." + str(key)) if path else str(key))
+        elif isinstance(node, list):
+            for index, value in enumerate(node):
+                walk(value, "%s[%d]" % (path, index))
+        elif isinstance(node, bool):
+            pass
+        elif isinstance(node, (int, float)):
+            flat.append("%s %.2f" % (path, node))
+
+    problems = ["text report: want %r, not found" % line for line in want_text if line not in lines]
+    try:
+        walk(json.loads(out_json), "")
+    except ValueError:
+        problems.append("--json: want stdout to parse as one JSON document, it does not")
+    for pattern, figure in want_json.items():
+        named = [entry for entry in flat if re.search(pattern, entry, re.IGNORECASE)]
+        if not any(re.search(r"(^|[^0-9])%s([^0-9]|$)" % re.escape(figure), entry) for entry in named):
+            problems.append("the JSON %s total: want %s, got %r" % (pattern, figure, named))
+    assert (code, json_code, problems) == (0, 0, []), out_json
