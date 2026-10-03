@@ -23,6 +23,7 @@ lib="$(dirname "$0")/lib"
 source "$lib/exit-contract.sh"
 source "$lib/main-working-tree.sh"
 source "$lib/number-in.sh"
+source "$lib/pid-file.sh"
 source "$lib/stop-modes.sh"
 
 complain() {
@@ -82,12 +83,6 @@ live_run() {
 request_stop() {
   printf '%s\n' "$mode" > "$1/.tdd/stop"
   echo "$1"
-}
-
-supervising() {
-  local args
-  args="$(ps -p "$1" -o args= 2>/dev/null)" || return 1
-  [[ "$args" == *"supervise.sh $2 "* ]]
 }
 
 stop_leaves() {
