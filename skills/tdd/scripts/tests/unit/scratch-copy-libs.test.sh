@@ -33,13 +33,13 @@ expand() {
 }
 
 lib_copy_hits() {
-  local dir="$1" suite line n
+  local dir="$1" suite line n copy='(^|[[:space:];&|(])(cp|ln)[[:space:]]'
   for suite in "$dir"/*.test.sh "$dir"/unit/*.test.sh; do
     [[ -f "$suite" ]] || continue
     n=0
     while IFS= read -r line; do
       n=$((n + 1))
-      [[ "$line" =~ (^|[[:space:]])(cp|ln)[[:space:]] ]] || continue
+      [[ "$line" =~ $copy ]] || continue
       [[ "$line" =~ skills/tdd/scripts/lib/[A-Za-z0-9_.-]+\.sh ]] || continue
       printf '    %s:%s copies an individual lib file\n' "${suite#"$dir"/}" "$n"
     done < "$suite"
@@ -103,6 +103,18 @@ printf '%s\n' '#!/usr/bin/env bash' 'cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tr
 got="$(lib_copy_hits "$plant" 2>&1)"
 expect_eq "$name" \
   "$(printf '    %s copies an individual lib file\n' a.test.sh:3 unit/b.test.sh:2)" \
+  "$got"
+
+name="#749: the lib-copy guard names a cp or ln of an individual lib file that follows ;, &&, | or \$( with no space"
+plant="$(scratch_dir)"
+printf '%s\n' '#!/usr/bin/env bash' \
+  'mkdir -p "$tree/lib";cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/"' \
+  'true&&ln -s "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/"' \
+  'echo x|cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/"' \
+  'out=$(cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/")' > "$plant/d.test.sh"
+got="$(lib_copy_hits "$plant" 2>&1)"
+expect_eq "$name" \
+  "$(printf '    %s copies an individual lib file\n' d.test.sh:2 d.test.sh:3 d.test.sh:4 d.test.sh:5)" \
   "$got"
 
 finish
