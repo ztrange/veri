@@ -56,3 +56,40 @@ def test_main_writes_the_result_text_unescaped_with_its_newlines_and_quotes_and_
         code = extract_result.main([])
         seen[name] = (code, capsys.readouterr().out)
     assert seen == {name: (0, expected) for name, (_, expected) in streams.items()}
+
+
+def test_main_prefers_the_newest_record_carrying_a_report_line_and_with_none_the_last_record_wins(
+        monkeypatch, capsys, extract_result):
+    later = {"type": "result", "result": "That is the second monitor expiring."}
+    streams = {
+        "a developer report beats a later turn with no report line": (
+            [{"type": "result", "result": "Done.\nIMPL_PATH: a.sh\nSUITE: GREEN — 19 passed, 0 failed"}, later],
+            "Done.\nIMPL_PATH: a.sh\nSUITE: GREEN — 19 passed, 0 failed\n"),
+        "a SPLIT: report beats a later turn with no report line": (
+            [{"type": "result", "result": "Too big.\nSPLIT: the first behaviour\nSPLIT: the second behaviour"}, later],
+            "Too big.\nSPLIT: the first behaviour\nSPLIT: the second behaviour\n"),
+        "a TEST_PATH: report beats a later turn with no report line": (
+            [{"type": "result", "result": "Red.\nTEST_PATH: tests/a.test.sh\nAGAINST_UNMODIFIED: FAILS"}, later],
+            "Red.\nTEST_PATH: tests/a.test.sh\nAGAINST_UNMODIFIED: FAILS\n"),
+        "a SUITE:-only report beats a later turn with no report line": (
+            [{"type": "result", "result": "Tidied.\nSUITE: GREEN — 19 passed, 0 failed"}, later],
+            "Tidied.\nSUITE: GREEN — 19 passed, 0 failed\n"),
+        "of two records that both carry a report line, the later one wins": (
+            [{"type": "result", "result": "First.\nIMPL_PATH: a.sh\nSUITE: GREEN — 19 passed, 0 failed"},
+             {"type": "result", "result": "Second.\nIMPL_PATH: b.sh\nSUITE: GREEN — 20 passed, 0 failed"}],
+            "Second.\nIMPL_PATH: b.sh\nSUITE: GREEN — 20 passed, 0 failed\n"),
+        "with no report or VERDICT: line in any record, the last record wins": (
+            [{"type": "result", "result": "First turn."},
+             {"type": "result", "result": "Second turn.\nNothing to report."},
+             {"type": "result", "result": "Third turn.\nStill no report."}],
+            "Third turn.\nStill no report.\n"),
+        "a VERDICT: record still beats a later record without one": (
+            [{"type": "result", "result": "VERDICT: PASS\nREASON: the case pins the behaviour."}, later],
+            "VERDICT: PASS\nREASON: the case pins the behaviour.\n"),
+    }
+    seen = {}
+    for name, (records, _) in streams.items():
+        fake_stdin(monkeypatch, "\n".join(json.dumps(r) for r in records))
+        code = extract_result.main([])
+        seen[name] = (code, capsys.readouterr().out)
+    assert seen == {name: (0, expected) for name, (_, expected) in streams.items()}
