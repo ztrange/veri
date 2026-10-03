@@ -587,6 +587,26 @@ STUB
 run_case "every leaf and verifier launch line in $skill_md reads the step through ledger-steps.sh current, and a title carrying a dollar sign, a backtick and a double quote reaches VERI_STEP and --step byte-identical (#682)" \
   scan_current_step_title
 
+scan_rebase_verifier_last_done() {
+  local title="$EXPANDING_STEP"
+  local lineno line numbered launch stage seen tree err got argv
+  numbered="$(head -1 < <(grep -nE '\$S/detach-leaf\.sh .*\$S/supervise\.sh verdict-rebase \$S/run-verdict\.sh' "$md"))"
+  if [[ -z "$numbered" ]]; then
+    no_launch "verdict-rebase through supervise.sh into run-verdict.sh"
+    return
+  fi
+  take_line "$numbered" "$title" || return
+  stage_recorder rebase-verifier-last-done
+  printf '# Plan for #%s\n\n- [x] an earlier step the run finished\n- [x] %s\n' \
+    "$SENTINEL_ISSUE" "$title" > "$tree/.tdd/issue-$SENTINEL_ISSUE.md"
+  run_staged '<no verifier was launched>'
+  [[ "$argv" == "$title" ]] ||
+    problem "launched verdict-rebase beside a ledger with every step ticked, whose verifier was handed --step <$argv>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})"
+}
+
+run_case "#753 the verify-rebase launch line in $skill_md, run with every ledger step ticked, hands its verifier the last done step's text as --step, byte-identical" \
+  scan_rebase_verifier_last_done
+
 scan_inline_ledger_reads() {
   local numbered lineno line
   while IFS= read -r numbered; do
