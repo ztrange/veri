@@ -3,8 +3,8 @@
 # `PREDICATE:` command to <record>.
 #
 # Exit codes: 0 the command was written; 1 the command already succeeds on the current tree,
-# nothing written; 2 bad arguments, or no `PREDICATE:` line; 3 `PREDICATE: NONE [— <why>]`, nothing
-# written.
+# nothing written; 2 bad arguments, or no `PREDICATE:` line; 3 `PREDICATE: NONE [— <why>]`,
+# `NONE—<why>` or `NONE: <why>`, nothing written.
 #
 # Usage:   structural-predicate.sh .tdd/issue-<n>-predicate < <leaf-report>
 set -euo pipefail
@@ -27,7 +27,7 @@ if (( ! seen )); then
   echo "structural-predicate.sh: the report carries no PREDICATE: line" >&2
   exit 2
 fi
-[[ "$predicate" == NONE || "$predicate" == "NONE "* ]] && exit 3
+case "$predicate" in NONE | "NONE "* | "NONE—"* | "NONE:"*) exit 3 ;; esac
 if bash -c "$predicate" </dev/null >/dev/null 2>&1; then
   exit 1
 fi
