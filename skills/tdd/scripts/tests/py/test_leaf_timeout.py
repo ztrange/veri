@@ -45,3 +45,22 @@ def test_main_with_veri_timeout_unset_derives_max_900_six_times_the_baseline_and
         (["1.5"], 2, "", refusal.format("1.5")),
         ([], 2, "", refusal.format("")),
     ]
+
+
+def test_main_prints_an_explicit_veri_timeout_as_given_whatever_the_baseline_and_refuses_one_not_a_whole_number_of_at_least_1(monkeypatch, capsys, leaf_timeout):
+    seen = []
+    for timeout, baseline in (("900", "200"), ("1800", "5"), ("1", "200"), ("0", "200"), ("abc", "200"), ("-1", "200"), ("1.5", "200")):
+        monkeypatch.setenv("VERI_TIMEOUT", timeout)
+        code = leaf_timeout.main([baseline])
+        out, err = capsys.readouterr()
+        seen.append((timeout, baseline, code, out, err))
+    refusal = "leaf-timeout: VERI_TIMEOUT must be a whole number >= 1: {}\n"
+    assert seen == [
+        ("900", "200", 0, "900\n", ""),
+        ("1800", "5", 0, "1800\n", ""),
+        ("1", "200", 0, "1\n", ""),
+        ("0", "200", 2, "", refusal.format("0")),
+        ("abc", "200", 2, "", refusal.format("abc")),
+        ("-1", "200", 2, "", refusal.format("-1")),
+        ("1.5", "200", 2, "", refusal.format("1.5")),
+    ]

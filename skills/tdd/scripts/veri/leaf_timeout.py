@@ -1,4 +1,5 @@
 """leaf-timeout.sh's derivation, run in-process."""
+import os
 import re
 import sys
 
@@ -12,6 +13,13 @@ def refuse(message):
 
 
 def main(argv):
+    override = os.environ.get("VERI_TIMEOUT", "")
+    if override:
+        if not re.fullmatch(r"[0-9]+", override) or int(override) < 1:
+            print(f"leaf-timeout: VERI_TIMEOUT must be a whole number >= 1: {override}", file=sys.stderr)
+            return 2
+        print(override)
+        return 0
     baseline = argv[0] if argv else ""
     if not re.fullmatch(r"[0-9]+", baseline):
         return refuse(f"leaf-timeout: <baseline-seconds> must be a whole number >= 0: {baseline}")
