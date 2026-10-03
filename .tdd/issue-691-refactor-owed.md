@@ -13,3 +13,5 @@
 - skills/tdd/SKILL.md:1493–1504 — move the new predicate-leaf paragraph so it no longer sits between the per-candidate block and "Its prompt is `build-develop-prompt.sh structural`'s…" (line 1505). As placed, that "Its" now seems to refer to the predicate leaf instead of the transform leaf. Fix by renaming it "The transform leaf's prompt" or by reordering the two paragraphs.
 ### structural-predicate.sh exits 3 and writes no record when the report says `PREDICATE: NONE — <why>`, the form the predicate prompt asks for, not only a bare `PREDICATE: NONE` ⟦added⟧ ⟦criterion 2⟧
 - test-only | extract the repeated `(cd "$tree" && "$SP" "$record" >/dev/null 2>&1 <<REPORT) || code=$?` run-and-capture into a helper in structural-predicate.test.sh, used by all four cases including the new #691 `NONE — <why>` case
+### structural-predicate.sh exits 3 and writes no record when NONE is followed directly by a dash or colon, as in `PREDICATE: NONE—<why>` or `PREDICATE: NONE: <why>` ⟦added⟧ ⟦criterion 2⟧
+- test-only | fold the `PREDICATE: NONE — <why>` case (structural-predicate.test.sh:77-90) into the loop at :92-109 as a third line, removing the duplicated run/assert block
