@@ -137,7 +137,7 @@ migration_slice() {  # migration_slice <n> <script> … — the slice's case, ov
   verdict "$name" "${offenders[@]}"
 }
 
-migration_slice 1 add-ledger-step.sh affected-suites.sh build-develop-prompt.sh build-verify-prompt.sh \
+migration_slice 1 add-ledger-step.sh build-develop-prompt.sh build-verify-prompt.sh \
   capture-spec.sh classify-bail.sh clear-refactor-pending.sh
 migration_slice 2 comment-class.sh cover-outcome.sh coverage-blocker.sh criterion-finished.sh \
   detach-command.sh detach-leaf.sh
