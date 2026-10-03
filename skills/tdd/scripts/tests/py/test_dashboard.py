@@ -767,3 +767,46 @@ def test_get_api_chatter_hands_the_renderer_only_the_four_stream_json_lines_of_r
     (chatter,) = served[0][1]
     assert fed == [record_lines.encode()]
     assert json.loads(body(chatter)) == {"chatter": rendered}
+
+
+def test_get_api_chatter_answers_the_empty_rendering_for_run_63_on_no_leaf_and_run_65_whose_leaf_wrote_nothing(
+        tmp_path, monkeypatch, dashboard):
+    noleaf = os.path.join(str(tmp_path), ".tdd", "wt", "63")
+    write(os.path.join(noleaf, ".tdd", "issue-63.md"),
+          "# Plan for #63 — lamps dim\n\n- [ ] a lamp stops dimming\n")
+    write(os.path.join(noleaf, ".tdd", "events.jsonl"),
+          json.dumps({"ts": 1000, "issue": "63", "actor": "conductor", "phase": "",
+                      "step": "a lamp stops dimming", "event": "step-start", "attempt": "",
+                      "skill_commit": "abc"}) + "\n")
+    nolog = os.path.join(str(tmp_path), ".tdd", "wt", "65")
+    write(os.path.join(nolog, ".tdd", "issue-65.md"),
+          "# Plan for #65 — lamps hum\n\n- [ ] a lamp stops humming\n")
+    events = [{"ts": 1000, "issue": "65", "actor": "conductor", "phase": "",
+               "step": "a lamp stops humming", "event": "step-start", "attempt": "",
+               "skill_commit": "abc"},
+              {"ts": 1060, "issue": "65", "actor": "developer", "phase": "red",
+               "step": "a lamp stops humming", "event": "launch", "attempt": "1",
+               "skill_commit": "abc", "name": "develop-red"}]
+    write(os.path.join(nolog, ".tdd", "events.jsonl"),
+          "".join(json.dumps(event) + "\n" for event in events))
+    fed = []
+
+    def fake_run(args, cwd=None, input=None, **kwargs):
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
+        if list(args) == [os.path.join(SCRIPTS, "render-leaf-log.sh")]:
+            fed.append(input)
+            return subprocess.CompletedProcess(args, 0, b"[developer] another leaf's chatter\n", b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, ["/api/chatter?issue=63", "/api/chatter?issue=65"])
+
+    dashboard.main([])
+
+    (noleaf_chatter, nolog_chatter) = served[0][1]
+    assert json.loads(body(noleaf_chatter)) == {"chatter": ""}
+    assert json.loads(body(nolog_chatter)) == {"chatter": ""}
+    assert fed == []
