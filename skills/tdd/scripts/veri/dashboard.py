@@ -15,6 +15,13 @@ from run_dir import run_file
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 status_sh = os.path.join(SCRIPTS, "status.sh")
 metrics_sh = os.path.join(SCRIPTS, "metrics.sh")
+# The renderer the Chatter pane shows a leaf log through — the script beside this one, run
+# rather than re-implemented, the way runs_json runs status.sh: what "rendered" means is
+# render-leaf-log.sh's answer, so the pane cannot drift into a second spelling of it. It
+# reads the log on stdin and writes the rendered lines out; a log it cannot render (exit 2
+# on a line that is not JSON) leaves NOTHING, not what it managed, because it writes its
+# accumulated output only after the loop that exit leaves (render-leaf-log.sh:33-46).
+render_leaf_log_sh = os.path.join(SCRIPTS, "render-leaf-log.sh")
 
 
 # What every reader here does to the script it reads: run it, keep its stdout, and let its
@@ -328,15 +335,6 @@ def tests_json(query):
     else:
         tests = logged_test_runs(run, command) if command else []
     return json.dumps({"tests": tests}).encode()
-
-
-# The renderer the Chatter pane shows a leaf log through — the script beside this one, run
-# rather than re-implemented, the way runs_json runs status.sh: what "rendered" means is
-# render-leaf-log.sh's answer, so the pane cannot drift into a second spelling of it. It
-# reads the log on stdin and writes the rendered lines out; a log it cannot render (exit 2
-# on a line that is not JSON) leaves NOTHING, not what it managed, because it writes its
-# accumulated output only after the loop that exit leaves (render-leaf-log.sh:33-46).
-render_leaf_log_sh = os.path.join(SCRIPTS, "render-leaf-log.sh")
 
 
 # So what the renderer is handed is the log's stream-json records alone, and not the blank
