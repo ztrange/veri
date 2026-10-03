@@ -641,6 +641,20 @@ diff_refused 'diff with an extra positional' --step "$diff_step" diff "$work/spe
 [[ -z "$problems" ]] \
   && ok || no "diff refuses a non-hex base sha, a missing --step and an extra positional argument with exit 2 and nothing on stdout (${problems#; })"
 
+problems=""
+prompt_says "$dp" "diff prompt never forbids reading the range's commit messages" \
+  -iE -e "(never|not|don't|no)[^.]{0,80}commit messages"
+prompt_lacks "$dp" "diff prompt leaves a placeholder unfilled" -F -e '{{'
+prompt_lacks "$dp" "diff prompt names a test under review" -F -e 'the target test'
+dp_ambient="$(VERI_STEP='I tidied the helper because it was ugly' VERI_RATIONALE='the author meant well' \
+  "$BUILD" --step "$diff_step" diff "$work/spec.md" "$diff_base" 2>/dev/null)"
+[[ "$dp_ambient" == "$dp" ]] || problems="$problems; diff prompt changes with VERI_STEP or VERI_RATIONALE in the environment"
+other_base=fedcba9876
+dp_other="$("$BUILD" --step "$diff_step" diff "$work/spec.md" "$other_base" 2>/dev/null)"
+[[ "${dp_other//$other_base/$diff_base}" == "$dp" ]] || problems="$problems; diff prompt differs by more than the base sha when only the base sha changes"
+[[ -z "$problems" ]] \
+  && ok || no "the diff prompt tells the verifier to read git diff <base-sha>..HEAD and not the range's commit messages, and carries nothing but the spec, the step text and the base sha (${problems#; })"
+
 cp "$work/spec.md" "$work/refactor-spec.md"
 printf '\n## Refactor\n\nRun kind: refactor. This issue changes structure, not behaviour.\n' \
   >> "$work/refactor-spec.md"
