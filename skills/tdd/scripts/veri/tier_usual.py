@@ -18,3 +18,7 @@ def main(argv):
     usual = (window[middle - 1] + window[middle]) / 2 if len(window) % 2 == 0 else window[middle]
     print(usual)
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
