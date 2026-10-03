@@ -242,3 +242,62 @@ def test_main_returns_2_on_a_failed_event_write_bad_tunable_or_bad_argument_and_
         (2, [], [], bad_argument.format("--force-with-lease=b:abc1234 extra")),
         (2, [], [], bad_argument.format("--force-with-lease=b:HEAD")),
     )
+
+
+def test_main_retries_an_unreachable_origin_doubling_its_backoff_and_returns_2_on_a_bad_tunable_or_failed_event_write(monkeypatch, capsys, push_branch):
+    push = "git push --set-upstream origin HEAD"
+    rejected = " ! [rejected]        HEAD -> feature (non-fast-forward)"
+    unreachable = (128, "fatal: unable to access origin\n")
+
+    def run_with(env, push_answers, event_code=0):
+        answers = list(push_answers)
+
+        def answer(line):
+            if line == push:
+                return answers.pop(0) if len(answers) > 1 else answers[0]
+            if line == "git rev-parse --abbrev-ref HEAD":
+                return 0, "feature\n"
+            if line == "git ls-remote origin refs/heads/feature":
+                return 0, "abc1234def\trefs/heads/feature\n"
+            if line.startswith("event.sh "):
+                return event_code, ""
+            return 0, ""
+
+        calls = fake_processes(monkeypatch, answer)
+        for name in ("VERI_PUSH_RETRIES", "VERI_PUSH_BACKOFF"):
+            if name in env:
+                monkeypatch.setenv(name, env[name])
+            else:
+                monkeypatch.delenv(name, raising=False)
+        code = push_branch.main([])
+        return code, calls, capsys.readouterr().err
+
+    def kinds(calls):
+        return [line if not line.startswith("event.sh ") else line.split(" ")[1] for line in calls]
+
+    two_retries = run_with({"VERI_PUSH_RETRIES": "2", "VERI_PUSH_BACKOFF": "0"}, [unreachable])
+    default_retries = run_with({"VERI_PUSH_BACKOFF": "0"}, [unreachable])
+    second_lands = run_with({"VERI_PUSH_BACKOFF": "0"}, [unreachable, (0, "")])
+    backoff = run_with({"VERI_PUSH_RETRIES": "3", "VERI_PUSH_BACKOFF": "1"}, [unreachable])
+
+    observed = (
+        (two_retries[0], two_retries[1].count(push), kinds(two_retries[1]).count("push-failed"), two_retries[2]),
+        default_retries[1].count(push),
+        (second_lands[0], kinds(second_lands[1]), second_lands[2]),
+        [line for line in backoff[1] if line.startswith("sleep ")],
+        run_with({"VERI_PUSH_RETRIES": "abc", "VERI_PUSH_BACKOFF": "0"}, [unreachable])[:2],
+        run_with({"VERI_PUSH_RETRIES": "0", "VERI_PUSH_BACKOFF": "1.5"}, [unreachable])[:2],
+        run_with({"VERI_PUSH_RETRIES": "0", "VERI_PUSH_BACKOFF": "0"}, [unreachable], event_code=1)[0],
+        run_with({"VERI_PUSH_RETRIES": "0", "VERI_PUSH_BACKOFF": "0"}, [(1, rejected + "\n")], event_code=1)[0],
+    )
+
+    assert observed == (
+        (0, 3, 1, "push-branch.sh: push failed after 3 attempts; the branch is not on the remote\n"),
+        4,
+        (0, [push, "sleep 0", push], ""),
+        ["sleep 1", "sleep 2", "sleep 4"],
+        (2, []),
+        (2, []),
+        2,
+        2,
+    )
