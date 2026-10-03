@@ -232,4 +232,25 @@ env PATH="$faildir/bin:$PATH" "$SCRIPT" 7 > "$tmp/fail.out" 2> "$tmp/fail.err" |
 
 report "$name"
 
+name='capture-spec.sh, run through a symlink to the skill directory and from another working directory, prints the same spec and exit code as when run in place'
+problems=()
+ln -s "$(cd "$HERE/../.." && pwd)" "$tmp/linked-skill"
+mkdir -p "$tmp/elsewhere"
+in_code=0
+(cd "$HERE/.." && env PATH="$bugdir/bin:$PATH" FIXTURES="$bugdir" LABELS='bug refactor' ./capture-spec.sh 112) \
+  > "$tmp/in-place.out" 2> "$tmp/in-place.err" || in_code=$?
+linked_code=0
+(cd "$tmp/elsewhere" && env PATH="$bugdir/bin:$PATH" FIXTURES="$bugdir" LABELS='bug refactor' \
+  "$tmp/linked-skill/scripts/capture-spec.sh" 112) > "$tmp/linked.out" 2> "$tmp/linked.err" || linked_code=$?
+[[ "$in_code" == 0 ]] && grep -qx '## Bug' "$tmp/in-place.out" ||
+  problems+=("in place: exit want 0 with a '## Bug' section got $in_code; stderr: $(head -2 "$tmp/in-place.err")")
+[[ "$linked_code" == "$in_code" ]] ||
+  problems+=("exit through the symlink want $in_code got $linked_code; stderr: $(head -2 "$tmp/linked.err")")
+cmp -s "$tmp/in-place.out" "$tmp/linked.out" ||
+  problems+=("stdout through the symlink differs: $(diff "$tmp/in-place.out" "$tmp/linked.out")")
+cmp -s "$tmp/in-place.err" "$tmp/linked.err" ||
+  problems+=("stderr through the symlink differs: $(diff "$tmp/in-place.err" "$tmp/linked.err")")
+
+report "$name"
+
 finish
