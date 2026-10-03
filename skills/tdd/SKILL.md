@@ -180,7 +180,7 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   one growth is made of goes in **one call**: the script takes them all at once and reads the
   budget once per call, so a call per text would refuse a third text that one call either fits
   whole or files whole. Every insertion is marked in the log beside the call it made —
-  `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/ledger-steps.sh current < .tdd/issue-<n>.md)" $S/event.sh step-added
+  `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/event.sh step-added
   anchor='<anchor>' added=<count>` — because a plan that changes with no record leaves the
   log unable to say which steps the run chose for itself; an exit 1 owes the same mark with
   `added=0`, since a step the budget refused is still a decision the run made.
@@ -1493,7 +1493,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    git rev-parse origin/<default>   # → <onto-sha>
    git rev-parse HEAD               # → <pre-rebase-sha>
-   $S/build-develop-prompt.sh rebase .tdd/issue-<n>-spec.md "$($S/ledger-steps.sh current < .tdd/issue-<n>.md)" '<test-cmd>' <onto-sha> <pre-rebase-sha> "<conflicting-files>" > .tdd/develop-rebase.prompt
+   $S/build-develop-prompt.sh rebase .tdd/issue-<n>-spec.md "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" '<test-cmd>' <onto-sha> <pre-rebase-sha> "<conflicting-files>" > .tdd/develop-rebase.prompt
    rm -f .tdd/develop-rebase.exit .tdd/develop-rebase.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh develop-rebase $S/run-leaf.sh .tdd/develop-rebase.prompt --permission-mode bypassPermissions > .tdd/develop-rebase.out 2> .tdd/develop-rebase.err
    $S/wait-leaf.sh develop-rebase   # foreground; on exit 3 call it again
@@ -1749,14 +1749,14 @@ For attempt `k = 1 … REVISE_BUDGET`:
 1. **Mirror.** Post a `### ♻️ Revise <phase> — attempt <k>/<REVISE_BUDGET>` comment carrying
    the verifier's **rejection reason verbatim**, and mark the same attempt in the log:
    ```
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/ledger-steps.sh current < .tdd/issue-<n>.md)" VERI_PHASE=<phase> VERI_ATTEMPT=<k> $S/event.sh revise budget=<REVISE_BUDGET>
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" VERI_PHASE=<phase> VERI_ATTEMPT=<k> $S/event.sh revise budget=<REVISE_BUDGET>
    ```
 2. **Fresh developer leaf.** Build the revise prompt from the `revise` template, naming the
    phase being redone and the **reason file** the verifier's stdout went to, then launch
    **through the supervisor** (exit **2 → bail**, system failure, after the stop check in
    *Launching a leaf*):
    ```
-   $S/build-develop-prompt.sh revise <phase> .tdd/issue-<n>-spec.md "$($S/ledger-steps.sh current < .tdd/issue-<n>.md)" '<test-cmd>' .tdd/verify-<phase>.reason '<fast-cmd>' > .tdd/revise-<phase>-<k>.prompt
+   $S/build-develop-prompt.sh revise <phase> .tdd/issue-<n>-spec.md "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" '<test-cmd>' .tdd/verify-<phase>.reason '<fast-cmd>' > .tdd/revise-<phase>-<k>.prompt
    rm -f .tdd/revise-<phase>-<k>.exit .tdd/revise-<phase>-<k>.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh revise-<phase>-<k> $S/run-leaf.sh .tdd/revise-<phase>-<k>.prompt --permission-mode bypassPermissions > .tdd/revise-<phase>-<k>.out 2> .tdd/revise-<phase>-<k>.err
    $S/wait-leaf.sh revise-<phase>-<k>   # foreground; on exit 3 call it again
@@ -1817,7 +1817,7 @@ one last leaf and ask it which of the two is true of this step, rather than deci
 yourself. The reason file the last re-verify overwrote is the whole of what it is told:
 
 ```
-$S/build-develop-prompt.sh exhausted .tdd/issue-<n>-spec.md "$($S/ledger-steps.sh current < .tdd/issue-<n>.md)" '<test-cmd>' .tdd/verify-<phase>.reason > .tdd/develop-exhausted.prompt
+$S/build-develop-prompt.sh exhausted .tdd/issue-<n>-spec.md "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" '<test-cmd>' .tdd/verify-<phase>.reason > .tdd/develop-exhausted.prompt
 rm -f .tdd/develop-exhausted.exit .tdd/develop-exhausted.pid
 VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh develop-exhausted $S/run-leaf.sh .tdd/develop-exhausted.prompt --permission-mode bypassPermissions > .tdd/develop-exhausted.out 2> .tdd/develop-exhausted.err
 $S/wait-leaf.sh develop-exhausted   # foreground; on exit 3 call it again
@@ -1867,7 +1867,7 @@ answer. Each is a branch of its own:
   its own rather than the split's or the bail's — it is the one outcome that stops the run
   without bailing it, and a log holding neither reads as a run that stopped saying nothing:
   ```
-  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/ledger-steps.sh current < .tdd/issue-<n>.md)" $S/event.sh step-escalated anchor="$($S/ledger-steps.sh current < .tdd/issue-<n>.md)"
+  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/event.sh step-escalated anchor="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)"
   ```
 - **exit 3 — neither answer.** The leaf volunteered no split and asked for no decision, so
   there is nothing new to act on: **bail the step** with cause `revise-exhausted` as a
@@ -1895,7 +1895,7 @@ supervisor** like every other:
 
 ```
 cp .tdd/issue-<n>.md .tdd/reconcile-ledger.before
-$S/build-develop-prompt.sh reconcile .tdd/issue-<n>-spec.md "$($S/ledger-steps.sh current < .tdd/issue-<n>.md)" '<test-cmd>' <branch> <remote-sha> > .tdd/develop-reconcile.prompt
+$S/build-develop-prompt.sh reconcile .tdd/issue-<n>-spec.md "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" '<test-cmd>' <branch> <remote-sha> > .tdd/develop-reconcile.prompt
 rm -f .tdd/develop-reconcile.exit .tdd/develop-reconcile.pid
 VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh develop-reconcile $S/run-leaf.sh .tdd/develop-reconcile.prompt --permission-mode bypassPermissions > .tdd/develop-reconcile.out 2> .tdd/develop-reconcile.err
 $S/wait-leaf.sh develop-reconcile   # foreground; on exit 3 call it again
@@ -1958,7 +1958,7 @@ To bail:
    of this bail will want, and the very next step throws it away — so snapshot it before the
    reset, from inside the worktree:
    ```
-   $S/preserve-attempt.sh <n> "$($S/ledger-steps.sh current < .tdd/issue-<n>.md)" <phase> <attempt> bail
+   $S/preserve-attempt.sh <n> "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" <phase> <attempt> bail
    ```
    `<phase>` is the leaf whose trouble caused the bail (`develop-green`, `verify-red`, …) and
    `<attempt>` its number (`1` outside the revise loop, `k` inside it). Best-effort: note it
@@ -1973,7 +1973,7 @@ To bail:
    in the log — the mark sub-step 6's `### ⛔ Bailed` comment mirrors — with the cause token
    and that classification, before anything renders it:
    ```
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/ledger-steps.sh current < .tdd/issue-<n>.md)" VERI_PHASE=<phase> $S/event.sh bail cause=<cause> classification="$classification"
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" VERI_PHASE=<phase> $S/event.sh bail cause=<cause> classification="$classification"
    ```
 4. **Render and commit the metrics**, from inside the worktree and before the push, so the
    branch carrying the progress carries the account of it too: `$S/metrics.sh <n> >
@@ -2047,7 +2047,7 @@ leaves the run resumable. Run this sequence in order.
    tree — that last one wins over the others, because where the tree stands is the first
    thing a resume has to deal with.
    ```
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/ledger-steps.sh current < .tdd/issue-<n>.md)" $S/event.sh stop mode=<mode> at=<at>
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/event.sh stop mode=<mode> at=<at>
    ```
    That is the whole record of the pause, and it is never a `bail` mark: a stop has no
    cause, so there is no system-versus-process label to derive and nothing to derive it
@@ -2131,7 +2131,7 @@ is nothing to re-create or switch. The **resume check** then finds an existing
 4. Post a `### ▶️ Resuming` comment naming that step and, when `$stray` is non-empty, the
    paths it lists, said as what they are: the stray work sub-step 2's reset discarded, seen
    by no verifier and now gone. Mark the pick-up in the log —
-   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/ledger-steps.sh current < .tdd/issue-<n>.md)" $S/event.sh resume` — then
+   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/event.sh resume` — then
    **reuse the claim the previous run left on the branch**, which every tick of the cycle
    loop edits and step 4 rewrites:
    ```
