@@ -28,3 +28,9 @@ def test_main_returns_0_with_the_command_3_with_nothing_and_1_for_a_valueless_ti
     issue = detect.main(["--issue"])
 
     assert (found, none, tier, issue) == ((0, "make test\n"), (3, ""), 1, 1)
+
+
+def test_main_returns_3_with_nothing_for_a_makefile_without_a_test_target(tmp_path, capsys, detect):
+    (tmp_path / "Makefile").write_text("build:\n\tcc main.c\n")
+
+    assert (detect.main([str(tmp_path)]), capsys.readouterr().out) == (3, "")
