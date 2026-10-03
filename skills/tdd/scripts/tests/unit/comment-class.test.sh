@@ -239,7 +239,6 @@ capture-spec:## Acceptance criteria
 dashboard:# Plan for #$2 — $3
 dashboard:## What to build
 dashboard:# Plan for #51 — lamps hum
-dashboard:# Plan for #22 — lamps glow
 dashboard:# Plan for #77 — a kettle boils
 invisible-work:#!/bin/sh
 orchestrate:# A stopped conductor must be stopped by a signal, not by its writes failing, so this stub

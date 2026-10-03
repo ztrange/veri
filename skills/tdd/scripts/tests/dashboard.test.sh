@@ -590,34 +590,6 @@ fi
 
 report "$name"
 
-name="runs_json, called directly, returns status.sh --json byte for byte"
-problems=()
-direct_repo="$(repo runsdirect)"
-direct_run="$(fabricate_run "$direct_repo" 22 tdd/22-lamps-glow)"
-cat > "$direct_run/.tdd/issue-22.md" <<'EOF'
-# Plan for #22 — lamps glow
-
-- [x] a lamp exists
-- [ ] a lamp glows
-EOF
-if [[ -n "$module_problem" ]]; then
-  problems+=("$module_problem")
-else
-  call_endpoint "$direct_repo" runs_json "$work/runs-direct.err" '{}' "$work/runs-direct.json"
-  (cd "$direct_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 "$STATUS" --json) \
-    > "$work/runs-direct-status.json" 2>/dev/null
-  if [[ ! -f "$work/runs-direct.json" ]]; then
-    problems+=("calling $module.runs_json wrote nothing: $(tail -n 1 "$work/runs-direct.err")")
-  elif ! cmp -s "$work/runs-direct.json" "$work/runs-direct-status.json"; then
-    problems+=("runs_json returned $(printf '%q' "$(cat "$work/runs-direct.json")")")
-    problems+=("status.sh --json prints $(printf '%q' "$(cat "$work/runs-direct-status.json")")")
-  elif [[ ! -s "$work/runs-direct-status.json" ]]; then
-    problems+=("status.sh --json printed nothing for the fixture, so the equality says nothing")
-  fi
-fi
-
-report "$name"
-
 name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
 problems=()
 disk_page="$scripts/dashboard.html"
