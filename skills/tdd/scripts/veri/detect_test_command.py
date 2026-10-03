@@ -54,31 +54,35 @@ def declares(path, pattern):
 
 
 def decide(tier, issue, root):
+    def at(name):
+        return root + "/" + name
+
+    def has(name):
+        return os.path.isfile(at(name))
+
     if tier != "fast" and issue and os.path.isfile(issue):
         answer_from_file(issue, b"Test command:")
-    if tier and os.path.isfile(root + "/CLAUDE.md"):
-        answer_from_file(root + "/CLAUDE.md", b"veri: " + os.fsencode(tier) + b" tests:")
-    override = root + "/.veri/test-command"
-    if os.path.isfile(override):
-        for line in lines_of(override):
+    if tier and has("CLAUDE.md"):
+        answer_from_file(at("CLAUDE.md"), b"veri: " + os.fsencode(tier) + b" tests:")
+    if has(".veri/test-command"):
+        for line in lines_of(at(".veri/test-command")):
             if line:
                 raise Answer(line)
-    pkg = root + "/package.json"
-    if os.path.isfile(pkg) and re.search(rb'"scripts":\{[^}]*"test":', bytes(b for b in read(pkg) if b not in SPACE)):
-        if os.path.isfile(root + "/pnpm-lock.yaml"):
+    if has("package.json") and re.search(rb'"scripts":\{[^}]*"test":', bytes(b for b in read(at("package.json")) if b not in SPACE)):
+        if has("pnpm-lock.yaml"):
             raise Answer(b"pnpm test")
-        if os.path.isfile(root + "/yarn.lock"):
+        if has("yarn.lock"):
             raise Answer(b"yarn test")
         raise Answer(b"npm test")
-    if declares(root + "/Makefile", rb"^test[ \t\v\f\r]*:"):
+    if declares(at("Makefile"), rb"^test[ \t\v\f\r]*:"):
         raise Answer(b"make test")
-    if (os.path.isfile(root + "/pytest.ini")
-            or declares(root + "/pyproject.toml", rb"^\[tool\.pytest")
-            or declares(root + "/setup.cfg", rb"^\[tool:pytest\]")):
+    if (has("pytest.ini")
+            or declares(at("pyproject.toml"), rb"^\[tool\.pytest")
+            or declares(at("setup.cfg"), rb"^\[tool:pytest\]")):
         raise Answer(b"pytest -q")
-    if os.path.isfile(root + "/go.mod"):
+    if has("go.mod"):
         raise Answer(b"go test ./...")
-    if os.path.isfile(root + "/Cargo.toml"):
+    if has("Cargo.toml"):
         raise Answer(b"cargo test")
     if any(os.path.isfile(f) for f in glob.glob(glob.escape(root) + "/tests/test_*.py")):
         raise Answer(b"python3 -m unittest discover -q")
