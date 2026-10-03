@@ -101,6 +101,18 @@ expect_records "ledger_steps index/state/kind/criterion differ" "$want" \
 verdict "ledger_steps reports a line ending diff-checked then its criterion tag, open or ticked, with kind diff-checked and that criterion"
 
 problems=""
+doc='- [ ] the whole suite is green ⟦full-suite⟧ ⟦criterion 1⟧
+- [ ] a person checks the page ⟦human-owed⟧ ⟦criterion 2⟧
+- [ ] plain step ⟦criterion 3⟧
+- [ ] a pytest case takes over ⟦replaces-case⟧ ⟦criterion 4⟧
+- [ ] quotes ⟦diff-checked⟧ mid-text ⟦criterion 5⟧
+'
+want=$'1\tfull-suite\n2\thuman-owed\n3\tstep\n4\tstep\n5\tstep'
+expect_records "ledger_steps kind differs beside diff-checked" "$want" \
+  "$(records_of '$1 "\t" $3' "$doc")"
+verdict "ledger_steps still reports full-suite and human-owed as before, and a plain, replaces-case or mid-text diff-checked line as step"
+
+problems=""
 doc='- [x] tidied ⟦criterion 1⟧
 - [x] green ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] open ⟦criterion 3⟧
