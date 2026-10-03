@@ -124,3 +124,25 @@ def test_main_counts_a_repeated_request_id_once_and_a_distinct_one_still(tmp_pat
     lines = capsys.readouterr().out.splitlines()
 
     assert (code, [line for line in want if line not in lines]) == (0, [])
+
+
+def test_main_prices_1h_and_5m_cache_writes_apart_and_a_bare_cache_creation_count_at_5m(tmp_path, monkeypatch, capsys, session_cost):
+    monkeypatch.setenv("TZ", "UTC")
+    time.tzset()
+    transcript = tmp_path / "9d4c71b0-2e86-4a13-b5f7-0c38e1d2a6f5.jsonl"
+    transcript.write_text(
+        '{"type":"assistant","timestamp":"2026-09-14T08:15:03.221Z","requestId":"req_011CSBfS7uVwC3iYaG6tNp0b","sessionId":"9d4c71b0-2e86-4a13-b5f7-0c38e1d2a6f5","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":1,"cache_creation_input_tokens":400000,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":400000},"cache_read_input_tokens":200000,"output_tokens":4000}}}\n'
+        '{"type":"assistant","timestamp":"2026-09-14T08:41:19.508Z","requestId":"req_011CSCgT8vWxD4jZbH7uOq1c","sessionId":"9d4c71b0-2e86-4a13-b5f7-0c38e1d2a6f5","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":1,"cache_creation_input_tokens":400000,"cache_creation":{"ephemeral_5m_input_tokens":400000,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":100000,"output_tokens":2000}}}\n'
+        '{"type":"assistant","timestamp":"2026-09-14T09:03:55.740Z","requestId":"req_011CSDhU9wXyE5kAcI8vPr2d","sessionId":"9d4c71b0-2e86-4a13-b5f7-0c38e1d2a6f5","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":1,"cache_creation_input_tokens":200000,"cache_read_input_tokens":60000,"output_tokens":2000}}}\n'
+    )
+    want = [
+        "  cache read           360000 tokens   $0.54",
+        "  cache write         1000000 tokens   $23.25",
+        "  output                 8000 tokens   $0.60",
+        "  total                                $24.39",
+    ]
+
+    code = session_cost.main(["--since", "2026-09-14", str(transcript)])
+    lines = capsys.readouterr().out.splitlines()
+
+    assert (code, [line for line in want if line not in lines]) == (0, [])
