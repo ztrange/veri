@@ -2,3 +2,5 @@
 - hoist the `codes = {"PASS": 0, "REJECT": 1}` dict out of `main` to a module constant (scope narrowing, not duplication removal, so not applied here)
 - `main` and `inline_reason` each call `first_token(tail)` on the same tail; compute the word once and pass it in
 - test-only | the two pytest cases repeat the `monkeypatch.setattr(sys, "stdin", io.StringIO(...))` + `main([])` + `capsys.readouterr()` sequence; a shared helper or fixture would remove it
+### fix the full-suite failure: no-report-copies.test.sh — FAIL - no suite builds its own scratch directory, exit trap or tmp git repository (parse-verdict.test.sh:52 builds its own scratch instead of the harness's) ⟦suite-repair⟧ ⟦criterion 5⟧
+- test-only | parse-verdict.test.sh:41-44, the no-verdict stderr case, still makes its own temp file with `mktemp` and deletes it with `rm -f`. The symlink case now gets its directory from the harness's `scratch_dir`; the stderr case could write its file there too and drop the `rm`.
