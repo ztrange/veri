@@ -4,8 +4,14 @@ import string
 import sys
 
 SPACE = " \t\n\v\f\r"
-VERDICT_RE = re.compile(f"^[{SPACE}]*verdict:[{SPACE}]*(.*)$", re.IGNORECASE | re.ASCII)
-REASON_RE = re.compile(f"^[{SPACE}]*reason:[{SPACE}]*(.*)$", re.IGNORECASE | re.ASCII)
+
+
+def labelled(label):
+    return re.compile(f"^[{SPACE}]*{label}:[{SPACE}]*(.*)$", re.IGNORECASE | re.ASCII)
+
+
+VERDICT_RE = labelled("verdict")
+REASON_RE = labelled("reason")
 FENCE_RE = re.compile(f"^[{SPACE}]*(```|~~~)[{SPACE}]*$")
 UPPER = str.maketrans(string.ascii_lowercase, string.ascii_uppercase)
 
