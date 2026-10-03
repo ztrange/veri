@@ -55,6 +55,7 @@ dirty_tree='git status --porcelain'
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/first-record.sh"
 
 records_of() {
   awk '
@@ -129,23 +130,20 @@ precedes() {
   fi
 }
 
-first_record() {
-  local line re
-  while IFS= read -r line; do
-    for re in "$@"; do
-      [[ "$line" =~ $re ]] || continue 2
-    done
-    instruction="$line"
-    return 0
-  done <<< "$records"
-  return 1
+first_instruction() {
+  local args=() re
+  for re in "$@"; do
+    args+=(-E "$re")
+  done
+  instruction="$(first_record "$records" "${args[@]}")"
+  [[ -n "$instruction" ]]
 }
 
 instruction=""
 reads() {
   local what="$1"
   shift
-  first_record "$@" && return 0
+  first_instruction "$@" && return 0
   problems+=("$skill_md has no instruction that $what — what that branch prescribes could not be read")
   return 1
 }
@@ -155,7 +153,7 @@ record_of() {
   local where="$1" what="$2"
   shift 2
   record_name="$where's $what"
-  first_record "$@" && return 0
+  first_instruction "$@" && return 0
   problems+=("$where has no $what — what it records about a ticked step could not be read")
   return 1
 }

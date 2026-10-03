@@ -7,7 +7,7 @@
 - [x] The section-end read by next= (the first heading after a line, via head -1 < <(tail -n +… | grep -nE '^#')) is one helper in tests/lib/, used by skill-commit, skill-preflight-launchable and skill-test-command, and on the copies guard's list ⟦criterion 1⟧
 - [x] section_end is on the copies guard's hoisted list, so a suite under tests/ or tests/unit/ that defines its own section_end is named <suite>:<line> ⟦added⟧ ⟦criterion 1⟧
 - [x] frontmatter_name() is defined once in tests/lib/ and sourced by skill-candidates-identity, skill-fix-identity and skill-identity, and on the copies guard's list ⟦criterion 1⟧
-- [ ] first_record() and record_number() are defined once in tests/lib/ and used by skill-draft-pr, skill-refactor-pending and the inline reads in skill-criterion-finished, and both names are on the copies guard's list ⟦criterion 1⟧
+- [x] first_record() and record_number() are defined once in tests/lib/ and used by skill-draft-pr, skill-refactor-pending and the inline reads in skill-criterion-finished, and both names are on the copies guard's list ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] fenced_lines() is defined once in tests/lib/ and sourced by skill-metrics and skill-leaf-launch, and on the copies guard's list ⟦criterion 1⟧
 - [ ] need_claude_md_records() is defined once in tests/lib/ and sourced by model-knobs-recorded and selection-order-recorded, and on the copies guard's list ⟦criterion 1⟧
 - [ ] probe_every_exemption_carries_a_reason() is defined once in tests/lib/ and sourced by no-sigpipe-pipelines, no-gh-json-argv and no-job-spec-kills, and on the copies guard's list ⟦criterion 1⟧

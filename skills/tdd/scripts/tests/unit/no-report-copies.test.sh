@@ -58,7 +58,7 @@ scaffolding_hits() {
   counter_hits "$1"
 }
 
-HOISTED=(win window windows plain section_end frontmatter_name)
+HOISTED=(win window windows plain section_end frontmatter_name first_record record_number)
 
 hoisted_copy_hits() {
   local names hits hit file rest def
@@ -220,6 +220,17 @@ printf '%s\n' '#!/usr/bin/env bash' 'frontmatter_name() {' '  echo x' '}' > "$pl
 printf '%s\n' 'frontmatter_name() { :; }' > "$plant/lib/frontmatter-name.sh"
 got="$(hoisted_copy_hits "$plant" 2>&1)"
 expect_eq "$name" "    a.test.sh:2 defines frontmatter_name()" "$got"
+
+name="#704: a suite that defines first_record or record_number is named by <suite>:<line>"
+plant="$(scratch_dir)"
+mkdir -p "$plant/unit" "$plant/lib"
+printf '%s\n' '#!/usr/bin/env bash' 'first_record() {' '  head -1' '}' > "$plant/a.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'x=1' 'record_number() { :; }' > "$plant/unit/b.test.sh"
+printf '%s\n' 'first_record() { :; }' 'record_number() { :; }' > "$plant/lib/first-record.sh"
+got="$(hoisted_copy_hits "$plant" 2>&1)"
+expect_eq "$name" \
+  "$(printf '    %s\n' 'a.test.sh:2 defines first_record()' 'unit/b.test.sh:3 defines record_number()')" \
+  "$got"
 
 name="#704: no suite under tests/ or tests/unit/ defines its own copy of a helper hoisted into tests/lib/"
 problems="$(hoisted_copy_hits "$TESTS")"
