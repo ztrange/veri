@@ -65,4 +65,17 @@ printf '# Plan for #42\n\n- [x] add lowercasing ⟦criterion 1⟧\n- [x]\n- [ ] 
 { [[ "$code" == 0 ]] && cmp -s <(printf '\n') "$work/out" && [[ ! -s "$work/err" ]]; } \
   && ok || no "last-done counts a done step with empty text as done: prints an empty line and exits 0, not 3 (code=$code out='$(cat "$work/out")' bytes=$(wc -c < "$work/out" | tr -d ' ') stderr='$(cat "$work/err")')"
 
+printf '## What is happening\n\n- [ ] a checkbox in the prose\n\n## Acceptance criteria\n\n- [ ] first criterion\n- [ ] second criterion carries `$S` and "quotes"\n\n## Notes\n\n- [ ] a checkbox after the section\n' > "$work/body.md"
+: > "$work/err"
+second="$("$STEPS" criterion 2 < "$work/body.md" 2> "$work/err")"; second_code=$?
+past="$("$STEPS" criterion 3 < "$work/body.md" 2>> "$work/err")"; past_code=$?
+{ [[ "$second_code" == 0 ]] && [[ "$second" == 'second criterion carries `$S` and "quotes"' ]] \
+  && [[ "$past_code" == 3 ]] && [[ -z "$past" ]] && [[ ! -s "$work/err" ]]; } \
+  && ok || no "criterion <k> prints the k-th checkbox under ## Acceptance criteria only, else exits 3 with no output (second_code=$second_code second='$second' past_code=$past_code past='$past' stderr='$(cat "$work/err")')"
+
+printf '## Acceptance criteria\n\n- [ ] first criterion\n- [ ] last criterion, no final newline' > "$work/no-eol.md"
+got="$("$STEPS" criterion 2 < "$work/no-eol.md" 2> "$work/err")"; code=$?
+{ [[ "$code" == 0 ]] && [[ "$got" == 'last criterion, no final newline' ]] && [[ ! -s "$work/err" ]]; } \
+  && ok || no "criterion <k> reads the last criterion of a body with no final newline (code=$code got='$got' stderr='$(cat "$work/err")')"
+
 finish
