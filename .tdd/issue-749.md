@@ -1,0 +1,9 @@
+# Plan for #749 — every suite's scratch tree copies lib/*.sh wholesale, never a hand-picked list
+
+- [ ] scratch-copy-libs.test.sh gains a guard over a given tests directory that names `<suite>:<line>` for every `cp` or `ln` line in a suite under it or its `unit/` whose source names an individual `skills/tdd/scripts/lib/<name>.sh` by literal path, while a `cp` of `lib/*.sh` or of the whole `lib` directory is not named — shown on a planted scratch directory ⟦criterion 3⟧
+- [ ] the guard expands the suite's own variable assignments: a planted scratch directory holding one hand-picked `cp …/lib/exit-contract.sh …` and one copy of an individual lib through a variable (`GUARD_LIB=…/lib/count-line-guard.sh`, then `cp "$GUARD_LIB" …`) gets both named with their `<suite>:<line>` ⟦criterion 4⟧
+- [ ] the guard also names a `tests/lib/*.sh` helper that copies an individual lib file, and does not name a rewrite into a lib path (`printf`/`sed`/`cat … >`), which is not a copy — shown on a planted scratch directory ⟦criterion 3⟧
+- [ ] the real tree passes the guard: every site in the issue's table, and the tests/lib copy helper, copies `skills/tdd/scripts/lib/*.sh` (or the whole `lib/` dir) in place of its hand-picked list; count-line-guard.test.sh's two deliberate absences are kept by `rm` after the copy; every stub lib is written after the copy ⟦criterion 1⟧
+- [ ] no assertion changes outside scratch-copy-libs.test.sh: every edited line in another suite or helper is a `cp`/`ln`/`mkdir`/`rm` fixture line or a stub heredoc ⟦diff-checked⟧ ⟦criterion 2⟧
+- [ ] scratch-copy-libs.test.sh stays in the unit tier: its source starts no git, network, server, `sleep` or nested suite ⟦diff-checked⟧ ⟦criterion 5⟧
+- [ ] make test is green ⟦full-suite⟧ ⟦criterion 6⟧
