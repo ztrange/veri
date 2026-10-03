@@ -566,3 +566,56 @@ def test_get_api_tests_answers_run_56s_suites_and_passed_from_test_run_marks_of_
     (tests,) = served[0][1]
     assert [(entry["suites"], entry["passed"]) for entry in json.loads(body(tests))["tests"]] == [
         ("", True), (gutter, False), (flicker, True)]
+
+
+def test_get_api_tests_answers_run_57_with_no_test_run_mark_the_empty_list_beside_its_leaf_call_and_run_58s_marks(
+        tmp_path, monkeypatch, dashboard):
+    run = os.path.join(str(tmp_path), ".tdd", "wt", "57")
+    write(os.path.join(run, ".tdd", "issue-57.md"),
+          "# Plan for #57 — lamps sputter\n\n- [ ] a lamp sputters\n")
+    write(os.path.join(run, ".tdd", "issue-57-spec.md"),
+          "## What to build\n\nA lamp sputters.\n\nTest command: make test\n")
+    events = [{"ts": 1000, "issue": "57", "actor": "conductor", "phase": "", "step": "a lamp sputters",
+               "event": "step-start", "attempt": "", "skill_commit": "abc"},
+              {"ts": 1060, "issue": "57", "actor": "conductor", "phase": "develop-red",
+               "step": "a lamp sputters", "event": "launch", "attempt": "1", "skill_commit": "abc",
+               "name": "develop-red"}]
+    write(os.path.join(run, ".tdd", "events.jsonl"),
+          "".join(json.dumps(event) + "\n" for event in events))
+    records = [
+        {"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "tool_use", "id": "toolu_1", "name": "Bash",
+             "input": {"command": "make test", "description": "Run the suite"}}]}},
+        {"type": "user", "message": {"role": "user", "content": [
+            {"tool_use_id": "toolu_1", "type": "tool_result", "content": "----\n5 passed, 0 failed",
+             "is_error": False}]}},
+    ]
+    write(os.path.join(run, ".tdd", "develop-red.out"),
+          "".join(json.dumps(record) + "\n" for record in records))
+    other = os.path.join(str(tmp_path), ".tdd", "wt", "58")
+    write(os.path.join(other, ".tdd", "issue-58.md"),
+          "# Plan for #58 — lamps glare\n\n- [ ] a lamp glares\n")
+    write(os.path.join(other, ".tdd", "issue-58-spec.md"),
+          "## What to build\n\nA lamp glares.\n\nTest command: make test\n")
+    suite = "skills/tdd/scripts/tests/glare.test.sh"
+    marks = [{"ts": 1060 + i * 60, "issue": "58", "actor": "", "phase": "", "step": "a lamp glares",
+              "event": "test-run", "attempt": "", "skill_commit": "abc", "tier": tier,
+              "suites": suites, "seconds": "3", "status": "0"}
+             for i, (tier, suites) in enumerate([("fast", ""), ("affected", suite), ("target", suite)])]
+    write(os.path.join(other, ".tdd", "events.jsonl"),
+          "".join(json.dumps(mark) + "\n" for mark in marks))
+
+    def fake_run(args, cwd=None, **kwargs):
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, ["/api/tests?issue=57"])
+
+    dashboard.main([])
+
+    (tests,) = served[0][1]
+    assert json.loads(body(tests))["tests"] == []
