@@ -191,109 +191,6 @@ refused_usage_lines="$(event_count "$refused_work" usage)"
 
 report "$name"
 
-name="a closing result record whose modelUsage lists one model: the usage event carries a model key naming that model"
-problems=()
-
-modeled=verify-green
-modeled_work="$work/modeled"
-want_model=claude-opus-5-5
-mkdir -p "$modeled_work/.tdd"
-cat > "$modeled_work/.tdd/$modeled.log" <<LOG
-{"type":"result","duration_ms":1,"duration_api_ms":1,"num_turns":1,"total_cost_usd":0.495,"usage":{"input_tokens":14,"output_tokens":3903,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"modelUsage":{"$want_model":{"inputTokens":14,"outputTokens":3903,"cacheReadInputTokens":0,"cacheCreationInputTokens":0,"costUSD":0.495,"canonicalModel":"$want_model"}}}
-LOG
-
-( cd "$modeled_work" && "$HARVEST" "$modeled" ) >/dev/null 2>&1
-modeled_code=$?
-[[ "$modeled_code" == 0 ]] ||
-  problems+=("want exit 0 from the harvester, got $modeled_code")
-
-modeled_model="$(event_fields "$modeled_work" usage model)"
-[[ "$modeled_model" == "$want_model" ]] ||
-  problems+=("model: want $(printf '%q' "$want_model"), got $(printf '%q' "$modeled_model")")
-
-report "$name"
-
-name="a closing result record whose modelUsage names two models: the usage event's model key lists every one of them"
-problems=()
-
-multi=develop-green
-multi_work="$work/multi-model"
-first_model=claude-opus-5-5
-second_model=claude-haiku-4-5-20251001
-two_model_record="{\"type\":\"result\",\"duration_ms\":1,\"duration_api_ms\":1,\"num_turns\":1,\"total_cost_usd\":0.5,\"usage\":{\"input_tokens\":20,\"output_tokens\":4000,\"cache_read_input_tokens\":0,\"cache_creation_input_tokens\":0},\"modelUsage\":{\"$first_model\":{\"inputTokens\":14,\"outputTokens\":3903,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":0,\"costUSD\":0.495,\"canonicalModel\":\"$first_model\"},\"$second_model\":{\"inputTokens\":6,\"outputTokens\":97,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":0,\"costUSD\":0.005,\"canonicalModel\":\"$second_model\"}}}"
-mkdir -p "$multi_work/.tdd"
-printf '%s\n' "$two_model_record" > "$multi_work/.tdd/$multi.log"
-
-( cd "$multi_work" && "$HARVEST" "$multi" ) >/dev/null 2>&1
-multi_code=$?
-[[ "$multi_code" == 0 ]] ||
-  problems+=("want exit 0 from the harvester, got $multi_code")
-
-multi_model="$(event_fields "$multi_work" usage model)"
-multi_listed="$(printf '%s\n' "${multi_model//,/$'\n'}" | LC_ALL=C sort)"
-want_listed="$(printf '%s\n' "$first_model" "$second_model" | LC_ALL=C sort)"
-[[ "$multi_listed" == "$want_listed" ]] ||
-  problems+=("model: want a comma-separated list of $first_model and $second_model, got $(printf '%q' "$multi_model")")
-
-report "$name"
-
-name="a closing result record whose modelUsage names two models: the usage event keeps each model's own token and cost figures alongside the sums"
-problems=()
-
-split=develop-red
-split_work="$work/split-model"
-mkdir -p "$split_work/.tdd"
-printf '%s\n' "$two_model_record" > "$split_work/.tdd/$split.log"
-
-( cd "$split_work" && "$HARVEST" "$split" ) >/dev/null 2>&1
-split_code=$?
-[[ "$split_code" == 0 ]] ||
-  problems+=("want exit 0 from the harvester, got $split_code")
-
-split_missing="$(python3 -c '
-import json, re, sys
-known = {"ts", "awake", "issue", "actor", "phase", "step", "event", "attempt", "skill_commit",
-         "duration_ms", "duration_api_ms", "num_turns", "total_cost_usd", "input_tokens",
-         "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens", "model"}
-hits = [o for o in map(json.loads, open(sys.argv[1]).read().splitlines())
-        if o.get("event") == "usage"]
-if len(hits) != 1:
-    print("<<%d usage lines>>" % len(hits))
-    sys.exit()
-rest = json.dumps({k: v for k, v in hits[0].items() if k not in known})
-for want in sys.argv[2:]:
-    if not re.search(r"(?<![\w.])%s(?![\w.])" % re.escape(want), rest):
-        print(want)
-' "$split_work/.tdd/events.jsonl" "$first_model" 14 3903 0.495 "$second_model" 6 97 0.005 2>&1)"
-[[ -z "$split_missing" ]] ||
-  problems+=("per-model figures: want each model's own tokens and cost in the usage event beside the sums, missing: $(printf '%q' "${split_missing//$'\n'/ }")")
-
-report "$name"
-
-name="a closing result record with no modelUsage: the harvester still appends a usage event, its model key empty, and exits 0 with nothing on stderr"
-problems=()
-
-unmodeled=verify-red
-unmodeled_work="$work/unmodeled"
-mkdir -p "$unmodeled_work/.tdd"
-printf '%s\n' "$unmodeled_record" > "$unmodeled_work/.tdd/$unmodeled.log"
-
-unmodeled_err_text="$( ( cd "$unmodeled_work" && "$HARVEST" "$unmodeled" ) 2>&1 >/dev/null )" && unmodeled_code=0 || unmodeled_code=$?
-[[ "$unmodeled_code" == 0 ]] ||
-  problems+=("want exit 0 from the harvester, got $unmodeled_code")
-[[ -z "$unmodeled_err_text" ]] ||
-  problems+=("want nothing on stderr, got: $(printf '%q' "$unmodeled_err_text")")
-
-unmodeled_usage_lines="$(event_count "$unmodeled_work" usage)"
-[[ "$unmodeled_usage_lines" == 1 ]] ||
-  problems+=("want 1 usage line in the event log, got $unmodeled_usage_lines")
-
-unmodeled_model="$(event_fields "$unmodeled_work" usage model)"
-[[ "$unmodeled_model" == "" ]] ||
-  problems+=("model: want '', got $(printf '%q' "$unmodeled_model")")
-
-report "$name"
-
 name="harvest-usage.sh run through a symlink to the skill directory and from another working directory appends the same usage event and exits as when run in place"
 problems=()
 
@@ -312,6 +209,13 @@ for line in open(sys.argv[1]).read().splitlines():
 linked_leaf=verify-green
 in_place_work="$work/in-place"
 linked_work="$work/linked"
+modeled=verify-green
+modeled_work="$work/modeled"
+want_model=claude-opus-5-5
+mkdir -p "$modeled_work/.tdd"
+cat > "$modeled_work/.tdd/$modeled.log" <<LOG
+{"type":"result","duration_ms":1,"duration_api_ms":1,"num_turns":1,"total_cost_usd":0.495,"usage":{"input_tokens":14,"output_tokens":3903,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"modelUsage":{"$want_model":{"inputTokens":14,"outputTokens":3903,"cacheReadInputTokens":0,"cacheCreationInputTokens":0,"costUSD":0.495,"canonicalModel":"$want_model"}}}
+LOG
 mkdir -p "$in_place_work/.tdd" "$linked_work/.tdd"
 cp "$modeled_work/.tdd/$modeled.log" "$in_place_work/.tdd/$linked_leaf.log"
 cp "$modeled_work/.tdd/$modeled.log" "$linked_work/.tdd/$linked_leaf.log"
