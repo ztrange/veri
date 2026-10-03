@@ -16,6 +16,7 @@ claude_md="CLAUDE.md"
 claude_path="$ROOT/$claude_md"
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/plain.sh"
 
 run_case() {
   local name="$1" probe="$2"
@@ -29,7 +30,6 @@ run_case() {
   fi
 }
 
-plain() { tr -d '*`' | tr '[:upper:]' '[:lower:]'; }
 
 RECORD_SPLIT='/^([-*] |\| )/ { if (rec != "") print rec; rec = $0; next }
               /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }

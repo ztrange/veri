@@ -17,11 +17,9 @@ skill_path="$ROOT/$skill_md"
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/plain.sh"
 source "$HERE/lib/window.sh"
 
-plain() {
-  tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
-}
 
 revise_heading='## Revising on a REJECT'
 
@@ -31,7 +29,7 @@ revise_lines() {
 }
 
 revise_section() {
-  revise_lines | plain
+  revise_lines | plain --join
 }
 section="$(revise_section)"
 
@@ -103,7 +101,7 @@ needs_user_branch() {
   awk -v o="$needs_user_open" -v c="$needs_user_close" \
     '!inside && index($0, o) { inside = 1 }
      inside && index($0, c) && !index($0, o) { exit }
-     inside' "$skill_path" | plain
+     inside' "$skill_path" | plain --join
 }
 branch="$(needs_user_branch)"
 
@@ -164,7 +162,7 @@ report "$name"
 revise_prose_sentences() {
   revise_lines |
     awk '/^[[:space:]]*```/ { fenced = !fenced; next } !fenced' |
-    plain |
+    plain --join |
     awk '{ n = split($0, s, /[.!?] /); for (i = 1; i <= n; i++) print s[i] }'
 }
 
@@ -191,7 +189,7 @@ cost_check_lines() {
 
 cost_check_sentences() {
   cost_check_lines |
-    plain |
+    plain --join |
     awk '{ n = split($0, s, /[.!?] /); for (i = 1; i <= n; i++) print s[i] }'
 }
 
@@ -347,7 +345,7 @@ report "$name"
 over_budget_exit() {
   cost_check_lines |
     awk -v code="$1" '$0 ~ "^- \\*\\*exit " code { inside = 1; print; next } inside && !/^  / { exit } inside' |
-    plain
+    plain --join
 }
 
 name="'$cost_heading' parks the step on the over-budget leaf's exit 1, carrying the leaf's answer and the spent and budget figures, and leaves the plan unchanged"
@@ -426,7 +424,7 @@ report "$name"
 supervisor_exit_2() {
   cost_check_lines |
     awk 'BEGIN { RS = "" } { p = $0; gsub(/[*`]/, "", p); if (tolower(p) ~ /supervisor exit 2/) print }' |
-    plain
+    plain --join
 }
 
 name="'$cost_heading' says a supervisor exit 2 on the over-budget leaf is a killed-stuck bail, and the step's budget stays crossed rather than re-arming"

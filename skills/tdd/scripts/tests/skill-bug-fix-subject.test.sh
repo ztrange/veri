@@ -17,16 +17,14 @@ skill_path="$ROOT/$skill_md"
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/plain.sh"
 source "$HERE/lib/window.sh"
 
-plain() {
-  tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
-}
 
 section() {
   awk -v h="$1" \
     'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path" |
-    plain
+    plain --join
 }
 
 green_heading='#### Green'

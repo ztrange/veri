@@ -18,6 +18,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 TRIAGE="$HERE/../refactor-triage.sh"
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/plain.sh"
 
 name="a report listing structural candidates exits 0 and prints them"
 problems=()
@@ -168,9 +169,6 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
 
-plain() {
-  tr -d '*`' | tr '[:upper:]' '[:lower:]'
-}
 
 refactor_loop() {
   awk -v h='#### Refactor loop' \

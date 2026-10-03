@@ -28,21 +28,19 @@ skill_path="$ROOT/$skill_md"
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/plain.sh"
 source "$HERE/lib/window.sh"
 
-plain() {
-  tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
-}
 
 section() {
   awk -v h="$1" \
     'index($0, h) == 1 { inside = 1; next } inside && /^###? / { exit } inside' "$skill_path" |
-    plain
+    plain --join
 }
 
 plan_heading='### 2. Scope & plan'
 
-skill_text="$(plain < "$skill_path")"
+skill_text="$(plain --join < "$skill_path")"
 
 name="$skill_md tells a refactor-kind run to plan each step as one named refactoring whose criterion is a shell predicate false before the step and true after it"
 problems=()
@@ -77,7 +75,7 @@ rm -f "$cover_spec"
 if [[ -z "$cover_raw" ]]; then
   problems+=("build-develop-prompt.sh cover printed no prompt to read")
 else
-  cover="$(plain <<<"$cover_raw")"
+  cover="$(plain --join <<<"$cover_raw")"
   grep -E 'mutat|break' <<<"$cover" > /dev/null || problems+=("the cover prompt never tells the leaf to mutate the code the step will move")
   grep -E 'run the suite|run the (affected )?suites' <<<"$cover" > /dev/null || problems+=("the cover prompt never tells the leaf to run the suite")
   grep -E 'expect red' <<<"$cover" > /dev/null || problems+=("the cover prompt never tells the leaf to expect red")

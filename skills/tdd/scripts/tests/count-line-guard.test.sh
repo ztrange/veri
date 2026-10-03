@@ -46,6 +46,7 @@ CLAUDE_MD="$ROOT/CLAUDE.md"
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/plain.sh"
 
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
@@ -217,7 +218,6 @@ probe_that_run_could_have_told_the_difference
 
 report "$name"
 
-plain() { tr -d '*`' | tr '[:upper:]' '[:lower:]'; }
 
 says() {
   local fact="$1" re
@@ -530,6 +530,7 @@ verdict() {
 }
 
 unpreempted="$(declare -f plain)"
+eval "honest_plain${unpreempted#plain}"
 barren="$(mktemp)" || {
   problems+=("could not write a document carrying neither fact, so half the criterion went unasked")
   barren=/dev/null
@@ -538,7 +539,7 @@ printf '## Testing idiom\nSuites live beside the scripts they cover and match th
 
 honest_match="$(verdict "$CLAUDE_MD")"
 honest_miss="$(verdict "$barren")"
-plain() { tr -d '*`' | tr '[:upper:]' '[:lower:]'; return 141; }
+eval 'plain() { honest_plain; return 141; }'
 preempted_match="$(verdict "$CLAUDE_MD")"
 preempted_miss="$(verdict "$barren")"
 eval "$unpreempted"
