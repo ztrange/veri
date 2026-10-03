@@ -4,6 +4,6 @@
 - [x] run-suite.sh, the Makefile's test/unit recipe and its VENV_DIR, and the one lookup line of count-line-guard.test.sh take the venv lookup from lib/venv-python.sh, the only file among Makefile, skills/tdd/scripts/*.sh, skills/tdd/scripts/lib/*.sh and count-line-guard.test.sh that spells veri-tools/venv; pytest-leg.test.sh's make_tree and its install-dev tree each copy lib/venv-python.sh into their scratch tree (one cp each, with the mkdir that puts a lib/ in the install-dev tree) so that suite stays green ⟦diff-checked⟧ ⟦criterion 1⟧
 - [x] run-suite.sh over a tests/py/test_*.py file runs $VERI_VENV/bin/python3 when it is present and the python3 on PATH when it is absent ⟦criterion 2⟧
 - [x] make test's pytest leg runs $VERI_VENV/bin/python3 when it is present and the python3 on PATH when it is absent ⟦criterion 2⟧
-- [ ] make install-dev creates the environment at $VERI_VENV, or at ~/.veri-tools/venv when VERI_VENV is unset ⟦criterion 3⟧
+- [x] make install-dev creates the environment at $VERI_VENV, or at ~/.veri-tools/venv when VERI_VENV is unset ⟦criterion 3⟧
 - [ ] count-line-guard.test.sh and pytest-leg.test.sh change no assertion on this branch: their only edits are the one lookup line of count-line-guard.test.sh that the lookup replaces, and one cp of lib/venv-python.sh each in pytest-leg.test.sh's make_tree and its install-dev tree (with the mkdir that puts a lib/ there) ⟦diff-checked⟧ ⟦criterion 4⟧
 - [ ] make test is green ⟦full-suite⟧ ⟦criterion 5⟧
