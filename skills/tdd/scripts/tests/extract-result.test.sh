@@ -127,4 +127,15 @@ if [[ "$linked" == "$in_place" && "$linked_code" -eq "$in_place_code" && "$in_pl
   diff <(printf '%s\nexit %s\n' "$in_place" "$in_place_code") <(printf '%s\nexit %s\n' "$linked" "$linked_code") | sed 's/^/    /'
 fi
 
+name="a result record whose result is a number exits 1 with a traceback on stderr, and an extra argument is ignored, stdin still being extracted with exit 0"
+work="$(scratch_dir)"
+problems=()
+printf '%s' '{"type":"result","result":5}' | "$EXTRACT" > "$work/num.out" 2> "$work/num.err"; num_code=$?
+[[ "$num_code" -eq 1 ]] || problems+=("number: exit $num_code, expected 1")
+grep -F 'Traceback' "$work/num.err" > /dev/null || problems+=("number: no traceback on stderr: $(cat "$work/num.err")")
+arg_out="$(printf '%s' '{"type":"result","result":"VERDICT: PASS\nREASON: extra arg."}' | "$EXTRACT" extra-argument)"; arg_code=$?
+[[ "$arg_code" -eq 0 ]] || problems+=("extra argument: exit $arg_code, expected 0")
+[[ "$arg_out" == $'VERDICT: PASS\nREASON: extra arg.' ]] || problems+=("extra argument: stdout '$arg_out'")
+report "$name"
+
 finish
