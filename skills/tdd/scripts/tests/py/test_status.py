@@ -512,6 +512,14 @@ def test_status_test_sh_floor_holds_an_exit_2_case_and_a_bad_argument_stderr_cas
     assert (unnamed, absent) == ([], [])
 
 
+def test_status_test_sh_no_longer_carries_the_dead_counted_line():
+    suite = (SCRIPTS / "tests" / "status.test.sh").read_text()
+
+    dead = [line for line in suite.splitlines() if line.strip() == 'counted="$(repo counted)"']
+
+    assert dead == []
+
+
 def test_no_case_in_this_suite_calls_a_function_of_veri_status_other_than_main():
     tree = ast.parse(pathlib.Path(__file__).read_text())
 
