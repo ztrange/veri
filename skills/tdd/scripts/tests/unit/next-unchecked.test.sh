@@ -107,7 +107,7 @@ check "an open ⟦diff-checked⟧ line is handed to a leaf, not skipped like ⟦
 work="$(scratch_dir)"
 mkdir "$work/lib"
 cp "$NEXT" "$work/next-unchecked.sh"
-cp "$(dirname "$NEXT")/lib/exit-contract.sh" "$work/lib/exit-contract.sh"
+cp "$(dirname "$NEXT")"/lib/*.sh "$work/lib/"
 { printf '. %q\n' "$(dirname "$NEXT")/lib/ledger.sh"; cat <<'EOF'; } > "$work/lib/ledger.sh"
 ledger_steps() {
   cat > /dev/null

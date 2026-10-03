@@ -403,7 +403,7 @@ problems=()
 tree="$(scratch_dir)"
 mkdir -p "$tree/lib"
 cp "$OWED" "$tree/refactor-owed.sh"
-cp "$HERE/../lib/exit-contract.sh" "$tree/lib/exit-contract.sh"
+cp "$HERE/.."/lib/*.sh "$tree/lib/"
 cat >"$tree/lib/candidate-line.sh" <<SPY
 source "$HERE/../lib/candidate-line.sh"
 test_only_candidate() {

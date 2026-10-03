@@ -12,7 +12,6 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
-source "$HERE/lib/count-line-guard-copy.sh"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 WORK="$(scratch_dir)"
@@ -35,9 +34,8 @@ tree_grown_past_its_prose() {
   mkdir -p "$planted/$(dirname "$SCRIPT")" "$planted/$(dirname "$SUITE")"
   cp "$ROOT/Makefile" "$planted/"
   mkdir -p "$planted/skills/tdd/scripts/lib"
-  copy_count_line_guard "$planted"
+  cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$planted/skills/tdd/scripts/lib/"
   cp "$ROOT/skills/tdd/scripts/run-suite.sh" "$planted/skills/tdd/scripts/"
-  cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$planted/skills/tdd/scripts/lib/"
 
   {
     printf '#!/usr/bin/env bash\n'

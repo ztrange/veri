@@ -302,7 +302,7 @@ rm -f "$run/.tdd/stop"
 
 listed="$work/listed"; mkdir -p "$listed/lib"
 cp "$STOP" "$listed/stop-run.sh"
-cp "$HERE/../lib/exit-contract.sh" "$HERE/../lib/main-working-tree.sh" "$listed/lib/"
+cp "$HERE/.."/lib/*.sh "$listed/lib/"
 { cat "$HERE/../lib/stop-modes.sh"; printf '%s\n' 'STOP_MODES=(at-ledger at-leaf now at-step)'; } > "$listed/lib/stop-modes.sh"
 
 out="$(cd "$repo" && "$listed/stop-run.sh" --mode at-step 5 2>"$work/stderr")" && code=0 || code=$?

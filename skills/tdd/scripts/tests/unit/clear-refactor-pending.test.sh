@@ -48,7 +48,7 @@ check "no matching marked step exits 3, ledger untouched" 3 "percent-encode the 
 stub="$work/stub"
 mkdir -p "$stub/lib"
 cp "$CLEAR" "$stub/clear-refactor-pending.sh"
-cp "$HERE/../../lib/exit-contract.sh" "$stub/lib/exit-contract.sh"
+cp "$HERE/../.."/lib/*.sh "$stub/lib/"
 cat > "$stub/lib/ledger.sh" <<'EOF'
 ledger_clear_pending() {
   printf 'ledger_clear_pending [%s]\n' "$1"

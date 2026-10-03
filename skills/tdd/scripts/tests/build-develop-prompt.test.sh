@@ -81,7 +81,7 @@ revise="$("$BUILD" revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/re
 
 mkdir -p "$work/no-prompts/lib"
 cp "$BUILD" "$work/no-prompts/build-develop-prompt.sh"
-cp "$(dirname "$BUILD")/lib/exit-contract.sh" "$work/no-prompts/lib/exit-contract.sh"
+cp "$(dirname "$BUILD")"/lib/*.sh "$work/no-prompts/lib/"
 
 refusal_bad=""
 refuses() {  # <label> <script> <args...> — records why, if this was not a clean refusal

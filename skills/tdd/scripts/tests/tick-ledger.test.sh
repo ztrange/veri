@@ -59,7 +59,7 @@ stub="$work/stub"
 mkdir -p "$stub/lib"
 cp "$TICK" "$stub/tick-ledger.sh"
 cp "$HERE/../tick-criterion.sh" "$stub/tick-criterion.sh"
-cp "$HERE/../lib/exit-contract.sh" "$stub/lib/exit-contract.sh"
+cp "$HERE/.."/lib/*.sh "$stub/lib/"
 cat > "$stub/lib/ledger.sh" <<'EOF'
 ledger_tick() {
   cat > /dev/null
@@ -78,7 +78,7 @@ foreign="$work/foreign"
 mkdir -p "$foreign/lib"
 cp "$TICK" "$foreign/tick-ledger.sh"
 cp "$HERE/../clear-refactor-pending.sh" "$foreign/clear-refactor-pending.sh"
-cp "$HERE/../lib/exit-contract.sh" "$foreign/lib/exit-contract.sh"
+cp "$HERE/.."/lib/*.sh "$foreign/lib/"
 cat > "$foreign/lib/ledger.sh" <<'EOF'
 ledger_tick() { cat > /dev/null; return 7; }
 ledger_clear_pending() { cat > /dev/null; return 7; }

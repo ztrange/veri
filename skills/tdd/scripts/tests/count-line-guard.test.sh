@@ -46,7 +46,6 @@ CLAUDE_MD="$ROOT/CLAUDE.md"
 
 
 source "$HERE/lib/harness.sh"
-source "$HERE/lib/count-line-guard-copy.sh"
 source "$HERE/lib/plain.sh"
 
 flat() { printf '%s' "$1" | tr '\n' '/'; }
@@ -143,8 +142,7 @@ probe_added_suite_gets_the_check() {
   mkdir -p "$tree/$TESTS_DIR" "$tree/skills/tdd/scripts/lib"
   cp "$MAKEFILE" "$tree/Makefile"
   cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
-  cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/skills/tdd/scripts/lib/"
-  copy_count_line_guard "$tree"
+  cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tree/skills/tdd/scripts/lib/"
   cp "$FIXTURE_PATH" "$tree/$TESTS_DIR/$ADDED_NAME"
   cmp -s "$MAKEFILE" "$tree/Makefile" ||
     problems+=("the runner under test is not this repository's Makefile, so nothing here says the check costs no edit to it")
@@ -573,10 +571,10 @@ scratch_suite_run() {
   mkdir -p "$tree/$TESTS_DIR" "$tree/skills/tdd/scripts/lib"
   cp "$MAKEFILE" "$tree/Makefile"
   cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
-  cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/skills/tdd/scripts/lib/"
-  if [[ $# -lt 3 ]]; then
-    copy_count_line_guard "$tree"
-  elif [[ -n "$3" ]]; then
+  cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tree/skills/tdd/scripts/lib/"
+  if [[ $# -ge 3 && -z "$3" ]]; then
+    rm "$tree/skills/tdd/scripts/lib/count-line-guard.sh"
+  elif [[ $# -ge 3 ]]; then
     printf '%s\n' "$3" > "$tree/skills/tdd/scripts/lib/count-line-guard.sh"
   fi
   printf '#!/bin/sh\n%s\nexit 0\n' "$2" > "$tree/$TESTS_DIR/$1"
@@ -937,7 +935,7 @@ probe_one_lib_rewords_both() {
   mkdir -p "$tree/$TESTS_DIR" "$tree/skills/tdd/scripts/lib"
   cp "$MAKEFILE" "$tree/Makefile"
   cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
-  cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/skills/tdd/scripts/lib/"
+  cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tree/skills/tdd/scripts/lib/"
   sed "s/${GUARD_MESSAGE#: }/${REWORDED#: }/" "$ROOT/$GUARD_LIB" > "$tree/$GUARD_LIB"
   probe="$tree/$TESTS_DIR/countless-under-shared-guard.test.sh"
   printf '#!/bin/sh\necho "a case ran"\nexit 0\n' > "$probe"
@@ -971,8 +969,7 @@ probe_all_green_suites_pass() {
   mkdir -p "$tree/$TESTS_DIR" "$tree/skills/tdd/scripts/lib"
   cp "$MAKEFILE" "$tree/Makefile"
   cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
-  cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/skills/tdd/scripts/lib/"
-  cp "$ROOT/$GUARD_LIB" "$tree/$GUARD_LIB"
+  cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tree/skills/tdd/scripts/lib/"
   for suite in first-green.test.sh second-green.test.sh; do
     printf '#!/bin/sh\necho "a case ran"\necho "2 passed, 0 failed"\nexit 0\n' > "$tree/$TESTS_DIR/$suite"
     chmod +x "$tree/$TESTS_DIR/$suite"
@@ -1113,7 +1110,8 @@ probe_runner_without_guard_lib_refuses_without_make() {
   probe="$tree/$GUARDLESS_SUITE_NAME"
   mkdir -p "$tree/skills/tdd/scripts/lib" "$tree/bin"
   cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
-  cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/skills/tdd/scripts/lib/"
+  cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tree/skills/tdd/scripts/lib/"
+  rm "$tree/$GUARD_LIB"
   printf '#!/bin/sh\necho "1 passed, 0 failed"\n' > "$probe"
   cat > "$tree/bin/make" <<MAKE
 #!/bin/sh
@@ -1151,8 +1149,7 @@ probe_make_refuses_through_the_runner() {
   }
   mkdir -p "$tree/$TESTS_DIR" "$tree/skills/tdd/scripts/lib"
   cp "$MAKEFILE" "$tree/Makefile"
-  cp "$ROOT/$GUARD_LIB" "$tree/$GUARD_LIB"
-  cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/skills/tdd/scripts/lib/"
+  cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tree/skills/tdd/scripts/lib/"
   sed -e 's/its last line was:/its final line read:/' -e 's/its output was empty/it printed nothing/' \
     "$RUNNER" > "$tree/skills/tdd/scripts/run-suite.sh"
   chmod +x "$tree/skills/tdd/scripts/run-suite.sh"

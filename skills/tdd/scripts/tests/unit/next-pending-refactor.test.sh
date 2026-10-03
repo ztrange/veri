@@ -39,7 +39,7 @@ check "no pending step exits 3" 3 "$settled" ""
 work="$(scratch_dir)"
 mkdir "$work/lib"
 cp "$PENDING" "$work/next-pending-refactor.sh"
-cp "$(dirname "$PENDING")/lib/exit-contract.sh" "$work/lib/exit-contract.sh"
+cp "$(dirname "$PENDING")"/lib/*.sh "$work/lib/"
 { printf '. %q\n' "$(dirname "$PENDING")/lib/ledger.sh"; cat <<'EOF'; } > "$work/lib/ledger.sh"
 ledger_steps() {
   cat > /dev/null
