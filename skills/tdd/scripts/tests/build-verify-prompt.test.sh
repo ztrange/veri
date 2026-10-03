@@ -616,6 +616,18 @@ prompt_lacks "$tf" "transform prompt bounds the diff to a green commit" -iE -e '
 [[ -z "$problems" ]] \
   && ok || no "transform takes the predicate record and a hex base sha, tells the verifier to judge git diff <base-sha>..HEAD rather than a green commit's files, and an unknown phase is still exit 2 (${problems#; })"
 
+problems=""
+diff_step='the dead counted line in the status suite is gone ⟦diff-checked⟧ ⟦criterion 5⟧'
+diff_base=0123abcdef
+dp="$("$BUILD" --step "$diff_step" diff "$work/spec.md" "$diff_base" 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; diff exited $code, want 0"
+[[ "$dp" == *"$diff_step"* ]] || problems="$problems; diff prompt lacks the step text"
+[[ "$dp" == *"git diff $diff_base..HEAD"* ]] || problems="$problems; diff prompt never says git diff $diff_base..HEAD"
+prompt_says "$dp" "diff prompt never says the diff alone is the evidence" -iE -e "git diff $diff_base\.\.HEAD[^.]{0,200}alone|alone[^.]{0,200}git diff $diff_base\.\.HEAD"
+[[ "$dp" == *'VERDICT: PASS'* && "$dp" == *'VERDICT: REJECT'* ]] || problems="$problems; diff prompt lacks VERDICT: PASS and VERDICT: REJECT"
+[[ -z "$problems" ]] \
+  && ok || no "diff takes --step, the spec and a hex base sha, carries the step text and tells the verifier to judge it against git diff <base-sha>..HEAD alone, answering VERDICT: PASS or VERDICT: REJECT (${problems#; })"
+
 cp "$work/spec.md" "$work/refactor-spec.md"
 printf '\n## Refactor\n\nRun kind: refactor. This issue changes structure, not behaviour.\n' \
   >> "$work/refactor-spec.md"
