@@ -55,6 +55,7 @@ event="$1"
 shift
 
 if [[ "$event" == structural-pass ]]; then
+  stopped_reasons="candidates-done, budget-spent, nothing-structural"
   stopped_seen=0
   for arg in "$@"; do
     [[ "$arg" == stopped=* ]] || continue
@@ -62,13 +63,13 @@ if [[ "$event" == structural-pass ]]; then
     case "${arg#stopped=}" in
       candidates-done|budget-spent|nothing-structural) ;;
       *)
-        echo "event.sh: structural-pass stopped=${arg#stopped=} is not one of candidates-done, budget-spent, nothing-structural" >&2
+        echo "event.sh: structural-pass stopped=${arg#stopped=} is not one of $stopped_reasons" >&2
         exit 2
         ;;
     esac
   done
   if [[ "$stopped_seen" == 0 ]]; then
-    echo "event.sh: structural-pass needs stopped=, one of candidates-done, budget-spent, nothing-structural" >&2
+    echo "event.sh: structural-pass needs stopped=, one of $stopped_reasons" >&2
     exit 2
   fi
 fi
