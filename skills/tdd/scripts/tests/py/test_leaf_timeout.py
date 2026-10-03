@@ -115,3 +115,30 @@ def test_main_with_full_derives_from_the_full_tier_prints_an_explicit_veri_timeo
         (None, ["5", "--full", "1.5"], 2, "", refusal.format("1.5")),
         (None, ["5", "--full"], 2, "", refusal.format("")),
     ]
+
+
+def test_main_keeps_leaf_timeout_sh_argument_and_environment_quirks(monkeypatch, capsys, leaf_timeout):
+    seen = []
+    for timeout, budget, argv in (
+            ("007", None, ["abc"]), ("007", None, []), ("", None, ["200"]), ("abc", None, []),
+            (None, None, ["5", "--full"]), (None, None, ["200", "foo"]), (None, "5", ["200", "refactor", "x"]),
+            (None, "", ["200", "refactor"]), (None, "-3", ["200", "refactor"])):
+        for name, value in (("VERI_TIMEOUT", timeout), ("VERI_REFACTOR_BUDGET", budget)):
+            if value is None:
+                monkeypatch.delenv(name, raising=False)
+            else:
+                monkeypatch.setenv(name, value)
+        code = leaf_timeout.main(argv)
+        out, err = capsys.readouterr()
+        seen.append((timeout, budget, argv, code, out, err))
+    assert seen == [
+        ("007", None, ["abc"], 0, "007\n", ""),
+        ("007", None, [], 0, "007\n", ""),
+        ("", None, ["200"], 0, "1200\n", ""),
+        ("abc", None, [], 2, "", "leaf-timeout: VERI_TIMEOUT must be a whole number >= 1: abc\n"),
+        (None, None, ["5", "--full"], 2, "", "leaf-timeout: <full-seconds> must be a whole number >= 0: \n" + USAGE + "\n"),
+        (None, None, ["200", "foo"], 0, "1200\n", ""),
+        (None, "5", ["200", "refactor", "x"], 0, "6000\n", ""),
+        (None, "", ["200", "refactor"], 0, "6000\n", ""),
+        (None, "-3", ["200", "refactor"], 0, "1200\n", ""),
+    ]
