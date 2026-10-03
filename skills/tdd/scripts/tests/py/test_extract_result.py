@@ -112,3 +112,41 @@ def test_main_writes_stdin_back_unchanged_when_no_record_carries_a_result(monkey
         code = extract_result.main([])
         seen[name] = (code, capsys.readouterr().out)
     assert seen == {name: (0, text) for name, text in streams.items()}
+
+
+def test_main_ports_the_null_result_non_string_report_case_newline_empty_stdin_and_argument_quirks(
+        monkeypatch, capsys, extract_result):
+    streams = {
+        "a null result and a record with no result key pass through unchanged": (
+            [], '{"type":"result","result":null}\n{"type":"result","subtype":"success"}\n'),
+        "a lowercase report line indented by spaces beats a later record": (
+            [], "\n".join(json.dumps(r) for r in [
+                {"type": "result", "result": "Done.\n  verdict: x"},
+                {"type": "result", "result": "later"}])),
+        "a report line indented by a tab counts as a report": (
+            [], "\n".join(json.dumps(r) for r in [
+                {"type": "result", "result": "Done.\n\tImpl_Path: a.sh"},
+                {"type": "result", "result": "later"}])),
+        "a result already ending in a newline gets none added": (
+            [], json.dumps({"type": "result", "result": "VERDICT: PASS\n"})),
+        "empty stdin": ([], ""),
+        "arguments are ignored": (
+            ["--bogus", "extra"], json.dumps({"type": "result", "result": "VERDICT: PASS"})),
+    }
+    seen = {}
+    for name, (argv, text) in streams.items():
+        fake_stdin(monkeypatch, text)
+        code = extract_result.main(argv)
+        seen[name] = (code, capsys.readouterr().out)
+    fake_stdin(monkeypatch, json.dumps({"type": "result", "result": 7}))
+    with pytest.raises(AttributeError):
+        extract_result.main([])
+    assert seen == {
+        "a null result and a record with no result key pass through unchanged": (
+            0, '{"type":"result","result":null}\n{"type":"result","subtype":"success"}\n'),
+        "a lowercase report line indented by spaces beats a later record": (0, "Done.\n  verdict: x\n"),
+        "a report line indented by a tab counts as a report": (0, "Done.\n\tImpl_Path: a.sh\n"),
+        "a result already ending in a newline gets none added": (0, "VERDICT: PASS\n"),
+        "empty stdin": (0, ""),
+        "arguments are ignored": (0, "VERDICT: PASS\n"),
+    }
