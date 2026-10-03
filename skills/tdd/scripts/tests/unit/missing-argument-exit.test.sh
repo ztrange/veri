@@ -146,7 +146,7 @@ migration_slice 3 ensure-run-state-ignored.sh event.sh exhausted-outcome.sh \
 migration_slice 4 issue-worktree.sh leaf-launchable.sh leaf-model.sh leaf-role.sh \
   ledger-steps.sh metrics.sh
 migration_slice 5 next-pending-refactor.sh next-unchecked.sh orchestrate.sh over-budget.sh \
-  parallel-conductors.sh parse-verdict.sh preserve-attempt.sh
+  parallel-conductors.sh preserve-attempt.sh
 migration_slice 6 profile.sh push-branch.sh rebase-onto-default.sh red-divergence.sh \
   refactor-budget.sh refactor-owed.sh refactor-touched.sh
 migration_slice 7 refactor-triage.sh render-leaf-log.sh run-affordable.sh run-conductor.sh \
