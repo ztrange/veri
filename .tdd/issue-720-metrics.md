@@ -1,9 +1,9 @@
 ### 📊 Metrics — issue 720
 
-Wall time for the issue: 10051 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 11113 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 14 of 16 planned.
-Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/784.
+Outcome: the run bailed — no-verdict, a system failure.
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER unset; models that answered: claude-opus-5-5.
 
@@ -20,13 +20,16 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | predicate | 3 | 0 | 0 | 0 | 39 | 23 | 10 | 20 | 1764 | 417144 | 129518 | 1.15 |
 | structural | 3 | 0 | 0 | 0 | 146 | 77 | 20 | 40 | 7156 | 1004297 | 139934 | 1.46 |
 | transform | 3 | 3 | 0 | 0 | 142 | 59 | 16 | 32 | 6358 | 744835 | 133817 | 1.35 |
+| rebase | 4 | 0 | 0 | 0 | 848 | 30 | 10 | 16 | 2100 | 431518 | 52883 | 0.55 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | verifier | claude-opus-5-5 | 34 | 32 | 2 | 0 | 3406 | 1031 | 230 | 460 | 98093 | 11893329 | 1603922 | 17.17 |
-| developer | claude-opus-5-5 | 37 | 0 | 0 | 0 | 2323 | 1262 | 277 | 548 | 111743 | 15056607 | 1891485 | 20.38 |
+| developer | claude-opus-5-5 | 38 | 0 | 0 | 0 | 3159 | 1292 | 285 | 564 | 113843 | 15488125 | 1944368 | 20.93 |
+| developer | not recorded | 1 | 0 | 0 | 0 | 2 | 0 | 0 | 0 | 0 | 0 | 0 | 0.00 |
+| verifier | not recorded | 2 | 0 | 0 | 0 | 10 | 0 | 2 | 0 | 0 | 0 | 0 | 0.00 |
 
 #### Rework and waste, by phase
 
@@ -41,6 +44,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | predicate | 0 | 0.00 | 0 | 0.00 |
 | structural | 0 | 0.00 | 0 | 0.00 |
 | transform | 0 | 0.00 | 0 | 0.00 |
+| rebase | 0 | 0.00 | 846 | 0.55 |
 
 #### By step
 
@@ -60,6 +64,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | CLAUDE.md's Testing idiom paragraph no longer names push-branch.sh the worked example of the unit-tier pattern (#339): it says push-branch.sh left that pattern for the Python convention status.sh is the worked example of, and names lib/github.sh, sourced by tests/unit/github.test.sh with gh mocked as a shell function, as what still follows it; tests/unit-tier-recorded.test.sh's case about that paragraph pins the new wording in the same commit; tests/unit/push-branch.test.sh is removed, CLAUDE.md's unit-suite count and list move with it, and tests/claude-md-counts.test.sh's unit-tier count case is re-pointed at a unit suite that still exists, in that same commit ⟦criterion 7⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 240 | 53 | 106 | 21939 | 2930206 | 313600 | 3.53 | 774 | unknown | 0/5 | nothing-left |  |  | full |
 | tests/hermetic-suites.test.sh, tests/unit/comment-class.test.sh, tests/unit/exit-contract.test.sh and tests/unit/scratch-copy-libs.test.sh are unchanged by the branch, and tests/unit/missing-argument-exit.test.sh changes only in migration slice 6's script list ⟦diff-checked⟧ ⟦criterion 8⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 22 | 6 | 12 | 2240 | 240089 | 87082 | 0.79 | 99 | unknown | unknown | unknown |  |  | full |
 | fix the full-suite failure: no-nested-suites.test.sh — FAIL - no suite under skills/tdd/scripts/tests/ (or its unit/ tier) launches another real suite outside the exemptions recorded here (claude-md-counts.test.sh:214 and unit-tier-recorded.test.sh:82 name github.test.sh outside a comment, in a shape that file treats as launching it, with no exemption recorded) ⟦suite-repair⟧ ⟦criterion 8⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 216 | 44 | 86 | 15808 | 2276895 | 308097 | 3.24 | 1189 | unknown | 0/5 | nothing-left |  |  | full |
+| make test is green, tests/unit/missing-argument-exit.test.sh, tests/hermetic-suites.test.sh, tests/unit/comment-class.test.sh, tests/unit/exit-contract.test.sh and tests/unit/scratch-copy-libs.test.sh among what it runs ⟦full-suite⟧ ⟦criterion 8⟧ | 3 | 0 | 0 | 0 | 0 | 1 | 30 | 10 | 16 | 2100 | 431518 | 52883 | 0.55 | unknown | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER.
 
@@ -87,9 +92,10 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | affected | 1 | 0 | 1 | 4 | 15 | 3 | 4 | 4 | 1 | 5 | 5 | 5 | 18 | 0 | 0 | 1 | 19 | 0 | 0 | 0 | 15 | 0 | 1 | 1 | 0 | 0 | 13 | 0 | 74 | 12 | 0 | 3 | 13 | 1 | 1 | 0 | 1 | 0 | 13 | 13 | 0 | 56 | 1 | 1 | 0 | 108 | 0 | 98 | 1 | 98 | 1 | 1 | 3 | 5 | 4 | 0 | 4 | 7 | 7 | 8 | 7 | 8 | 11 | 8 | 7 | 0 | 7 | 0 | 11 | 11 |
 | fast | 40 | 46 | 45 | 46 | 48 | 49 | 51 | 43 | 44 | 42 | 41 | 43 | 39 | 42 | 40 | 40 | 40 | 41 | 43 | 40 | 38 | 42 | 725 | 41 | 41 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | target | 0 | 1 | 0 | 1 | 1 | 1 | 0 | 0 | 0 | 1 | 2 | 1 | 1 | 2 | 2 | 14 | 12 | 26 | 14 | 14 | 0 | 0 | 0 | 1 | 0 | 1 | 1 | 0 | 0 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 796 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 507 | 1008 | 209836 | 26949936 | 3495407 | 37.55 |
+| total | 517 | 1024 | 211936 | 27381454 | 3548290 | 38.11 |
