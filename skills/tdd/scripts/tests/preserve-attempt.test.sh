@@ -203,7 +203,7 @@ stub="$work/stub"
 mkdir -p "$stub/lib"
 cp "$PRESERVE" "$stub/preserve-attempt.sh"
 cp "$(dirname "$PRESERVE")/lib/exit-contract.sh" "$stub/lib/exit-contract.sh"
-cat > "$stub/lib/ledger.sh" <<'EOF'
+{ printf '. %q\n' "$(dirname "$PRESERVE")/lib/ledger.sh"; cat <<'EOF'; } > "$stub/lib/ledger.sh"
 ledger_steps() {
   cat >/dev/null
   printf '7\tdone\tstep\t0\t0\t\t%s\n' "A leaf's output is kept under refs/veri, not the branch"

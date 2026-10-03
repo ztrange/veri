@@ -40,7 +40,7 @@ work="$(scratch_dir)"
 mkdir "$work/lib"
 cp "$PENDING" "$work/next-pending-refactor.sh"
 cp "$(dirname "$PENDING")/lib/exit-contract.sh" "$work/lib/exit-contract.sh"
-cat > "$work/lib/ledger.sh" <<'EOF'
+{ printf '. %q\n' "$(dirname "$PENDING")/lib/ledger.sh"; cat <<'EOF'; } > "$work/lib/ledger.sh"
 ledger_steps() {
   cat > /dev/null
   printf '1\tdone\tstep\t0\t0\t1\ttidied in the module ⟦criterion 1⟧\n'
