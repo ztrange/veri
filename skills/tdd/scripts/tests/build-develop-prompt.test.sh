@@ -552,6 +552,26 @@ done
 [[ -z "$problems" ]] \
   && ok || no "#690 a ⟦suite-repair⟧ step naming one red suite builds develop-green and verify-green prompts that name that one suite and its failing case (${problems#; })"
 
+unmodified="$(scratch_dir)"
+cp -R "$HERE/../build-develop-prompt.sh" "$HERE/../build-verify-prompt.sh" "$HERE/../lib" "$HERE/../prompts" "$unmodified/"
+rm "$unmodified/prompts/_develop-green-suite-repair.md" "$unmodified/prompts/_verify-green-suite-repair.md"
+for tpl in "$unmodified"/prompts/*.md; do
+  body="$(cat "$tpl"; printf x)"; body="${body%x}"
+  printf '%s' "${body//\{\{SUITE_REPAIR\}\}/}" > "$tpl"
+done
+scripts_dir="$(cd "$HERE/.." && pwd)"
+plain_args=(green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target")
+problems=""
+built="$("$BUILD" "${plain_args[@]}" "make unit" 2>&1; echo "exit $?")"
+want="$("$unmodified/build-develop-prompt.sh" "${plain_args[@]}" "make unit" 2>&1; echo "exit $?")"; want="${want//"$unmodified"/$scripts_dir}"
+[[ "$built" == "$want" ]] || problems="$problems; develop-green differs from the builder without suite repair: $(diff <(printf '%s\n' "$want") <(printf '%s\n' "$built") | head -5)"
+verify_args=(--step "$step_text" --fast-cmd 'make unit' green "$work/spec.md" "$test_path" "$target")
+built="$("$HERE/../build-verify-prompt.sh" "${verify_args[@]}" 2>&1; echo "exit $?")"
+want="$("$unmodified/build-verify-prompt.sh" "${verify_args[@]}" 2>&1; echo "exit $?")"; want="${want//"$unmodified"/$scripts_dir}"
+[[ "$built" == "$want" ]] || problems="$problems; verify-green differs from the builder without suite repair: $(diff <(printf '%s\n' "$want") <(printf '%s\n' "$built") | head -5)"
+[[ -z "$problems" ]] \
+  && ok || no "#690 develop-green and verify-green prompts for a step without ⟦suite-repair⟧ are byte-identical to the builders' without suite repair (${problems#; })"
+
 exhausted="$("$BUILD" exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md" 2>/dev/null)"; code=$?
 problems=""
 [[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
