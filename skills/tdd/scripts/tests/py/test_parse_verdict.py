@@ -56,3 +56,24 @@ def test_main_reads_the_last_indented_verdict_line_in_any_case_past_new_step_lin
         "new_step plain": (0, "The transform is behaviour-preserving and the suite is green.\n"),
         "new_step proposing": (0, "The transform is behaviour-preserving and the suite is green.\n"),
     }
+
+
+def test_main_reads_a_multiline_or_inline_reason_and_drops_a_closing_fence(monkeypatch, capsys, parse_verdict):
+    inputs = {
+        "multiline reason": "VERDICT: REJECT\nREASON: Two problems:\n- the test is over-coupled to the implementation\n- it is also far too complex for one criterion",
+        "reason inline after verdict": "VERDICT: REJECT — the test never actually runs the code under test",
+        "fenced verdict block": "I ran the test myself.\n```\nVERDICT: REJECT\nREASON: The test asserts a constant and never calls slugify().\n```",
+        "multiline reason then fence": "VERDICT: REJECT\nREASON: Two problems:\n- vacuous assertion\n- no call to the function\n```",
+    }
+    results = {}
+    for name, text in inputs.items():
+        monkeypatch.setattr(sys, "stdin", io.StringIO(text))
+        code = parse_verdict.main([])
+        results[name] = (code, capsys.readouterr().out)
+
+    assert results == {
+        "multiline reason": (1, "Two problems:\n- the test is over-coupled to the implementation\n- it is also far too complex for one criterion\n"),
+        "reason inline after verdict": (1, "the test never actually runs the code under test\n"),
+        "fenced verdict block": (1, "The test asserts a constant and never calls slugify().\n"),
+        "multiline reason then fence": (1, "Two problems:\n- vacuous assertion\n- no call to the function\n"),
+    }
