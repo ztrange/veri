@@ -39,7 +39,10 @@ make_plant_tree() {
   mkdir -p "${guard_copy%/*}/lib" && cp "$GUARD_PLANT_LIB/harness.sh" "${guard_copy%/*}/lib/"
   for companion in ${COMPANIONS[@]+"${COMPANIONS[@]}"}; do
     companion_copy="$tree/$companion"
-    mkdir -p "${companion_copy%/*}" && cp "$ROOT/$companion" "$companion_copy"
+    mkdir -p "${companion_copy%/*}" && cp "$ROOT/$companion" "$companion_copy" || {
+      problems+=("could not copy the companion $companion into the scratch tree, so the criterion went unasked")
+      return 1
+    }
   done
 }
 
