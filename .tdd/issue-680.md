@@ -1,6 +1,6 @@
 # Plan for #680 — parallel-conductors.test.sh's #645 cases synchronise on files and FIFOs, not sleeps
 
-- [ ] the split-event case's stub delivers its one assistant event in two separate writes with no `sleep` between them, the second write held back by a file or FIFO the stub waits on without a time bound, and the case still asserts exactly one `context 7 53438` line ⟦criterion 2⟧
+- [x] the split-event case's stub delivers its one assistant event in two separate writes with no `sleep` between them, the second write held back by a file or FIFO the stub waits on without a time bound, and the case still asserts exactly one `context 7 53438` line ⟦criterion 2⟧
 - [ ] `stub_waits`' `await_context` waits for its `context <issue> <tokens>` line with no `sleep` and no iteration cap, returning only once that line has arrived ⟦criterion 1⟧
 - [ ] `stub_waits`' `heartbeats` carries no `sleep`, and the stop, under, beside and VERI_PARALLEL=1 cases that call it still assert the same expected marks, the stubs waiting on a file or FIFO rather than on elapsed time for the launcher to stop them ⟦criterion 1⟧
 - [ ] the stop case and the VERI_PARALLEL=1 one case wait for the stopped stub to be gone with no `sleep` and no iteration cap before reading its marks ⟦criterion 1⟧
