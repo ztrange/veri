@@ -52,6 +52,7 @@ one_leaf='(one|a single) (refactor |developer |transform )?leaf'
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/window.sh"
 
 plain() {
   tr -d '*`' | tr '[:upper:]' '[:lower:]'
@@ -81,15 +82,8 @@ unnamed_class_problem() {
   printf "%s's Refactor section never names the %s class the leaf's FLAGS: line carries, so %s — the six plan: amend commits this issue counted" "$skill_md" "$1" "$2"
 }
 
-# hazard: BSD grep refuses an interval bound over 255.
-windows() {
-  local radius="${2:-250}"
-  grep -oE ".{0,$radius}$1.{0,$radius}" <<<"$section"
-}
-
-# hazard: fed by a pipe, head's early exit would hand grep's SIGPIPE up under pipefail.
 win() {
-  head -1 < <(windows "$@")
+  window "$section" "$@"
 }
 
 phrase() {
@@ -97,7 +91,7 @@ phrase() {
 }
 
 wins() {
-  windows "$@" | tr '\n' ' '
+  windows "$section" "$@" | tr '\n' ' '
 }
 
 either_order() {

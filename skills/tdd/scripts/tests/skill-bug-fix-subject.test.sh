@@ -17,6 +17,7 @@ skill_path="$ROOT/$skill_md"
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/window.sh"
 
 plain() {
   tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
@@ -30,11 +31,6 @@ section() {
 
 green_heading='#### Green'
 pr_heading='### 4. Draft PR'
-
-# hazard: BSD grep refuses an interval bound over 255.
-window() {
-  head -1 < <(grep -oE ".{0,250}$2.{0,250}" <<<"$1")
-}
 
 probe_fix_line() {
   local heading="$1" unestablished="$2" absent="$3" unqualified="$4" text

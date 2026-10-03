@@ -17,6 +17,7 @@ skill_path="$ROOT/$skill_md"
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/window.sh"
 
 plain() {
   tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
@@ -38,9 +39,8 @@ unreadable=""
 [[ -n "${section// /}" ]] ||
   unreadable="$skill_md has no '$revise_heading' section to read —"
 
-# hazard: BSD grep refuses an interval bound over 255.
 win() {
-  head -1 < <(grep -oE ".{0,250}$2.{0,250}" <<<"$1")
+  window "$@"
 }
 
 outcome_reader='\$s/exhausted-outcome\.sh'
