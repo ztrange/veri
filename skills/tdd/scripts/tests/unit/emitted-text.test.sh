@@ -9,19 +9,11 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTS="$(cd "$HERE/../.." && pwd)"
 source "$HERE/../lib/harness.sh"
+source "$HERE/../lib/verdict.sh"
 unset "${!VERI_@}"
 export LC_ALL=C
 
 work="$(scratch_dir)"
-
-verdict() {
-  if [[ -z "$problems" ]]; then
-    ok
-  else
-    no "$1"
-    printf '%s' "$problems"
-  fi
-}
 
 pin() {
   local want="$1" what="$2" script="$3"; shift 3

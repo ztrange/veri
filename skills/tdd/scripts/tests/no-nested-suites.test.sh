@@ -91,6 +91,7 @@ done < <(awk -v suites="$SUITE_LIST" -v dir="$suites_dir" '
       rest = substr(rest, RSTART + RLENGTH)
       if (!(tok in is_suite) || tok == self) continue
       if (before == "[" && rest ~ /^:[0-9]+\]/) continue
+      if (rest ~ /^:[0-9]+ / || index(line, "$plant/" tok) || index(line, "$plant/unit/" tok)) continue
       pathform = (index(line, dir "/" tok) > 0) || (index(line, dir "/unit/" tok) > 0)
       if (pathform) {
         pending_n++

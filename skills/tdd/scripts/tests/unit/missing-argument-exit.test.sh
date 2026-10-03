@@ -19,6 +19,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTS="$HERE/../.."
 source "$HERE/../../lib/missing-argument-exit.sh"
 source "$HERE/../lib/harness.sh"
+source "$HERE/../lib/verdict.sh"
 offenders=()
 
 refuses() {
@@ -26,19 +27,10 @@ refuses() {
   line="$(missing_argument_offender "$SCRIPTS" "$@")" || offenders+=( "$line" )
 }
 
-verdict() {
-  if (( ${#offenders[@]} > 0 )); then
-    no "$1"
-    printf '    %s\n' "${offenders[@]}"
-  else
-    ok
-  fi
-}
-
 name="a script requiring a positional argument exits 2 with a usage line when called with none"
 unset VERI_TIMEOUT VERI_REFACTOR_BUDGET
 mapfile -t offenders < <(argument_audit "$SCRIPTS" 2>&1)
-verdict "$name"
+verdict "$name" "${offenders[@]}"
 
 usage_stub() {  # usage_stub <path> <usage-line> <exit> — an executable that prints <usage-line> on stderr and exits <exit>
   printf '#!/bin/sh\necho "%s" >&2\nexit %s\n' "$2" "$3" > "$1"
@@ -86,7 +78,7 @@ refuses timed-test-run.sh all ''                          # a suite list may be 
 refuses verify.sh green                                   # no <issue-spec-file>
 refuses verify.sh green spec                              # no <test-path> — the shape #270 reports
 refuses verify.sh --step                                  # no step text
-verdict "$name"
+verdict "$name" "${offenders[@]}"
 
 rejects() {  # rejects <script> [args …] — want exit 2 and a usage line naming <script> on stderr
   local line
@@ -111,7 +103,7 @@ rejects stop-requested.sh --bogus                       # unknown flag
 rejects stop-run.sh --mode bogus 1                      # unknown mode
 rejects stop-run.sh ten                                 # malformed number
 rejects workqueue.sh bogus                              # unknown subcommand
-verdict "$name"
+verdict "$name" "${offenders[@]}"
 
 name="migration slice 6 refuses an unresolvable commit or a missing file with the script's own usage text"
 offenders=()
@@ -122,7 +114,7 @@ unset -f git
 rejects refactor-owed.sh render                         # no <file>
 rejects refactor-owed.sh list                           # no <file>
 rejects refactor-owed.sh append                         # no <file>
-verdict "$name"
+verdict "$name" "${offenders[@]}"
 
 migrated() {  # migrated <script> … — want each to source lib/exit-contract.sh with no hand-built usage-and-exit
   local script lineno text
@@ -142,7 +134,7 @@ migration_slice() {  # migration_slice <n> <script> … — the slice's case, ov
   name="migration slice $n sources lib/exit-contract.sh and refuses through it, with no hand-built usage-and-exit idiom left"
   offenders=()
   migrated "$@"
-  verdict "$name"
+  verdict "$name" "${offenders[@]}"
 }
 
 migration_slice 1 add-ledger-step.sh affected-suites.sh build-develop-prompt.sh build-verify-prompt.sh \
@@ -167,6 +159,6 @@ migration_slice 10 transform-touches-tests.sh verify.sh wait-ci.sh wait-leaf.sh 
 
 name="no script guards a required positional argument with a bare \${N:?…} expansion"
 mapfile -t offenders < <(bare_expansion_offenders "$SCRIPTS")
-verdict "$name"
+verdict "$name" "${offenders[@]}"
 
 finish

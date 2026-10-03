@@ -58,7 +58,9 @@ scaffolding_hits() {
   counter_hits "$1"
 }
 
-HOISTED=(win window windows plain section_end frontmatter_name first_record record_number fenced_lines need_claude_md_records probe_every_exemption_carries_a_reason)
+HOISTED=(win window windows plain section_end frontmatter_name first_record record_number fenced_lines need_claude_md_records probe_every_exemption_carries_a_reason verdict)
+GUARD_ONLY=verdict
+GUARD_SUITES=" count-line-guard$sfx prompt-test-tiers$sfx unit/missing-argument-exit$sfx unit/emitted-text$sfx unit/pending-mark-literal$sfx "
 
 hoisted_copy_hits() {
   local names hits hit file rest def
@@ -72,7 +74,10 @@ hoisted_copy_hits() {
     def="${def#"${def%%[![:space:]]*}"}"
     def="${def#function}"
     def="${def#"${def%%[![:space:]]*}"}"
-    printf '    %s:%s defines %s()\n' "${file#./}" "${rest%%:*}" "${def%%[[:space:](]*}"
+    def="${def%%[[:space:](]*}"
+    file="${file#./}"
+    [[ "$def" == "$GUARD_ONLY" && "$GUARD_SUITES" != *" $file "* ]] && continue
+    printf '    %s:%s defines %s()\n' "$file" "${rest%%:*}" "$def"
   done <<< "$hits"
 }
 
@@ -271,6 +276,19 @@ got="$(hoisted_copy_hits "$plant" 2>&1)"
 expect_eq "$name" \
   "$(printf '    %s\n' 'a.test.sh:2 defines probe_every_exemption_carries_a_reason()' \
     'unit/b.test.sh:3 defines probe_every_exemption_carries_a_reason()')" \
+  "$got"
+
+name="#704: a guard suite that defines verdict is named by <suite>:<line>"
+plant="$(scratch_dir)"
+mkdir -p "$plant/unit" "$plant/lib"
+printf '%s\n' '#!/usr/bin/env bash' 'verdict() {' '  ok' '}' > "$plant/count-line-guard.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'x=1' '  function verdict() { :; }' > "$plant/unit/emitted-text.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'verdict "$name"' > "$plant/prompt-test-tiers.test.sh"
+printf '%s\n' 'verdict() { :; }' > "$plant/lib/verdict.sh"
+got="$(hoisted_copy_hits "$plant" 2>&1)"
+expect_eq "$name" \
+  "$(printf '    %s\n' 'count-line-guard.test.sh:2 defines verdict()' \
+    'unit/emitted-text.test.sh:3 defines verdict()')" \
   "$got"
 
 name="#704: no suite under tests/ or tests/unit/ defines its own copy of a helper hoisted into tests/lib/"

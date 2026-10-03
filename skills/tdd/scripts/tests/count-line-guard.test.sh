@@ -523,7 +523,7 @@ probe_runner_refuses_the_countless_suite_as_a_clean_negative
 name="the pipeline-fed matches give the same verdict on a matching and a non-matching input when the writer is preempted"
 problems=()
 
-verdict() {
+probe_tally() {
   local CLAUDE_MD="$1" idiom="" problems=()
   probe_idiom_records_the_check
   printf '%s\n' "${#problems[@]}" "${problems[@]}"
@@ -537,11 +537,11 @@ barren="$(mktemp)" || {
 }
 printf '## Testing idiom\nSuites live beside the scripts they cover and match the house style.\n\n## Next\n' > "$barren"
 
-honest_match="$(verdict "$CLAUDE_MD")"
-honest_miss="$(verdict "$barren")"
+honest_match="$(probe_tally "$CLAUDE_MD")"
+honest_miss="$(probe_tally "$barren")"
 eval 'plain() { honest_plain; return 141; }'
-preempted_match="$(verdict "$CLAUDE_MD")"
-preempted_miss="$(verdict "$barren")"
+preempted_match="$(probe_tally "$CLAUDE_MD")"
+preempted_miss="$(probe_tally "$barren")"
 eval "$unpreempted"
 rm -f "$barren"
 
