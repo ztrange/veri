@@ -98,9 +98,15 @@ class Scanner:
                 self.cls = 3
 
 
+ASSIGNMENT = re.compile(NAME + "=")
+
+
 def read_lines(name):
-    with open(name, "rb") as f:
-        data = f.read()
+    if name == "-":
+        data = sys.stdin.buffer.read()
+    else:
+        with open(name, "rb") as f:
+            data = f.read()
     lines = data.decode("latin-1").split("\n")
     if lines[-1] == "":
         lines.pop()
@@ -112,12 +118,19 @@ def main(argv):
     sweepable = bool(args) and args[0] == "--sweepable"
     if sweepable:
         args.pop(0)
-    if not args:
+    if not args or args[0] == "":
         print(USAGE, file=sys.stderr)
         return 2
     scanner = Scanner(sweepable, sys.stdout)
     for name in args:
-        for number, line in enumerate(read_lines(name), 1):
+        if ASSIGNMENT.match(name):
+            continue
+        try:
+            lines = read_lines(name)
+        except OSError as error:
+            print("comment-class.sh: can't open file %s: %s" % (name, error.strerror), file=sys.stderr)
+            return 2
+        for number, line in enumerate(lines, 1):
             scanner.record(name, number, line)
     return 0
 

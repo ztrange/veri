@@ -1,5 +1,6 @@
 """In-process cases for veri/comment_class.py, the module comment-class.sh is a shim over."""
 import importlib
+import io
 import pathlib
 import re
 import sys
@@ -420,3 +421,31 @@ def test_main_sweeps_the_unit_fixture_guard_and_offline_suites_to_empty_sweepabl
         "the sweepable report is empty for every shell file under tests/fixtures/, and for tests/unit-guard/git and tests/offline/gh": (0, ""),
         "the sweepable report is empty for tests/unit/comment-class.test.sh, the case labels of its own sweepable-report cases included": (0, ""),
     }
+
+
+def test_main_keeps_awks_argument_handling_for_a_late_sweepable_an_empty_or_unopenable_file_stdin_and_an_assignment(tmp_path, monkeypatch, capsys):
+    comment_class = importlib.import_module("veri.comment_class")
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "a.sh").write_text("# in a\n")
+    (tmp_path / "later.sh").write_text("# in later\n")
+    (tmp_path / "f=a.sh").write_text("# in an assignment-shaped name\n")
+
+    def run(*argv, stdin=b""):
+        monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(stdin)))
+        code = comment_class.main(list(argv))
+        seen = capsys.readouterr()
+        return code, seen.out, seen.err
+
+    late_sweepable = run("a.sh", "--sweepable", "later.sh")[:2]
+    empty_first = run("")
+    unopenable = run("a.sh", "missing.sh", "later.sh")[:2]
+    stdin = run("-", stdin=b"# from stdin\n")
+    assignment = run("a.sh", "f=a.sh")
+
+    assert (late_sweepable, empty_first, unopenable, stdin, assignment) == (
+        (2, "a.sh:1:1\n"),
+        (2, "", "usage: comment-class.sh [--sweepable] <file>…\n"),
+        (2, "a.sh:1:1\n"),
+        (0, "-:1:1\n", ""),
+        (0, "a.sh:1:1\n", ""),
+    )
