@@ -130,8 +130,6 @@ code=0
 [[ "$out" == *"done https://github.com/o/r/pull/41"* ]] || missing+=("#41 done after its event log changed")
 expect_nothing_missing "--watch [seconds] redraws in place, recomputing every run from disk on each render"
 
-counted="$(repo counted)"
-
 unreadable="$(repo unreadable)"
 run="$(fabricate_run "$unreadable" 9 tdd/9-locked)"
 printf '# Plan for #9 — locked\n\n- [ ] a lock\n' > "$run/.tdd/issue-9.md"
