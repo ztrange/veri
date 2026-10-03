@@ -5,7 +5,7 @@
 
 plain() {
   if [[ "${1-}" == --join ]]; then
-    tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
+    plain | tr '\n' ' '
   else
     tr -d '*`' | tr '[:upper:]' '[:lower:]'
   fi
