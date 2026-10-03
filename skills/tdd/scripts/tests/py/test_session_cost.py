@@ -87,3 +87,40 @@ def test_main_sums_every_project_directory_prefixed_by_the_repo_roots_slug_and_n
     lines = capsys.readouterr().out.splitlines()
 
     assert (code, [line for line in want if line not in lines]) == (0, [])
+
+
+def test_main_counts_a_repeated_request_id_once_and_a_distinct_one_still(tmp_path, monkeypatch, capsys, session_cost):
+    monkeypatch.setenv("TZ", "UTC")
+    time.tzset()
+    transcript = tmp_path / "6b3e02f7-d914-4c85-a27e-8f01c6b45d3a.jsonl"
+    a_usage = '{"input_tokens":3,"cache_creation_input_tokens":160000,"cache_creation":{"ephemeral_5m_input_tokens":160000,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":900000,"output_tokens":12400}'
+    contents = [
+        '{"type":"thinking","thinking":"work out the plan"}',
+        '{"type":"tool_use","name":"Bash","input":{"command":"ls"}}',
+        '{"type":"tool_use","name":"Bash","input":{"command":"cat a"}}',
+        '{"type":"tool_use","name":"Bash","input":{"command":"cat b"}}',
+        '{"type":"tool_use","name":"Bash","input":{"command":"cat c"}}',
+        '{"type":"tool_use","name":"Bash","input":{"command":"cat d"}}',
+    ]
+    transcript.write_text(
+        "".join(
+            '{"type":"assistant","timestamp":"2026-09-14T10:02:11.004Z","requestId":"req_011CS9dQ5sTuA1gWyE4rLn8z","sessionId":"6b3e02f7-d914-4c85-a27e-8f01c6b45d3a","message":{"role":"assistant","model":"claude-opus-4-1-20250805","content":['
+            + content
+            + '],"usage":'
+            + a_usage
+            + "}}\n"
+            for content in contents
+        )
+        + '{"type":"assistant","timestamp":"2026-09-14T10:09:47.663Z","requestId":"req_011CSAeR6tUvB2hXzF5sMo9a","sessionId":"6b3e02f7-d914-4c85-a27e-8f01c6b45d3a","message":{"role":"assistant","model":"claude-opus-4-1-20250805","content":[{"type":"text","text":"done"}],"usage":{"input_tokens":1,"cache_creation_input_tokens":40000,"cache_creation":{"ephemeral_5m_input_tokens":40000,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":500000,"output_tokens":7600}}}\n'
+    )
+    want = [
+        "  cache read          1400000 tokens   $2.10",
+        "  cache write          200000 tokens   $3.75",
+        "  output                20000 tokens   $1.50",
+        "  total                                $7.35",
+    ]
+
+    code = session_cost.main(["--since", "2026-09-14", str(transcript)])
+    lines = capsys.readouterr().out.splitlines()
+
+    assert (code, [line for line in want if line not in lines]) == (0, [])
