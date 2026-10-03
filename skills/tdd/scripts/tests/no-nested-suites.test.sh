@@ -138,4 +138,10 @@ report "#595: no-report-copies.test.sh's exemption keys, planted-suite paths and
 mentions_reported ledger-steps.test.sh status.test.sh
 report "#671: ledger-steps.test.sh's ⟦replaces-case⟧ fixture mention of status.test.sh is not read as launching it"
 
+mentions_reported claude-md-counts.test.sh "names github.test.sh"
+from_counts=("${problems[@]}")
+mentions_reported unit-tier-recorded.test.sh "names github.test.sh"
+problems=("${from_counts[@]}" "${problems[@]}")
+report "#720: claude-md-counts.test.sh's and unit-tier-recorded.test.sh's case-text mentions of github.test.sh are not read as launching it"
+
 finish
