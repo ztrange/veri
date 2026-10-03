@@ -211,7 +211,7 @@ unit_count_matches() {
   fi
 }
 
-name="$claude_md's unit-tier suite count matches the unit suites on disk, including github.test.sh"
+name="$claude_md's unit-tier suite count matches the unit suites on disk, including the unit/github suite"
 problems=()
 
 unit_count_matches "skills/tdd/scripts/tests/unit/github.test.sh"

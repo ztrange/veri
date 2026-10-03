@@ -79,7 +79,7 @@ if read_section; then
     'shell functions?|same-named' \
     'cli contract|byte-identical' \
     'unchanged|unmodified|byte-identical'
-  says "that lib/github.sh, sourced by tests/unit/github.test.sh with gh mocked as a shell function, still follows that pattern" \
+  says "that lib/github.sh, sourced by the unit/github suite with gh mocked as a shell function, still follows that pattern" \
     'lib/github\.sh' \
     'tests/unit/github\.test\.sh' \
     '(^|[^a-z])gh([^a-z]|$)' \
