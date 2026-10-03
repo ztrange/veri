@@ -30,25 +30,24 @@ anchor="$3"
 shift 3
 texts=("$@")
 
-added='⟦added⟧'
 ci_repair='⟦ci-repair⟧'
 suite_repair='⟦suite-repair⟧'
 
 # hazard: the marks are multibyte, and under LC_ALL=C a regex reads them byte by byte.
 criterion_of() {
   local line="$1" k
-  [[ "$line" == *"⟦criterion "*"⟧"* ]] || return 0
-  k="${line##*⟦criterion }"
+  [[ "$line" == *"$_ledger_criterion_tag"*"⟧"* ]] || return 0
+  k="${line##*"$_ledger_criterion_tag"}"
   printf '%s' "${k%%⟧*}"
 }
 
 added_steps() {
   local line="$1" k crit text step
   k="$(criterion_of "$line")"
-  crit="${k:+ ⟦criterion $k⟧}"
+  crit="${k:+ $_ledger_criterion_tag$k⟧}"
   for text in "${texts[@]}"; do
     step="$(ledger_add_step "$text" "$k" < /dev/null)"
-    printf '%s\n' "${step% $added ⟦criterion $k⟧}$(added_mark "$text")$crit"
+    printf '%s\n' "${step% "$_ledger_added_mark $_ledger_criterion_tag$k⟧"}$(added_mark "$text")$crit"
   done
 }
 
@@ -56,7 +55,7 @@ is_step() { [[ -n "$(ledger_steps <<< "$1")" ]]; }
 is_anchor_step() { [[ "$1" == *"$anchor"* ]] && is_step "$1"; }
 is_added_step() { _ledger_is_added "$1" && is_step "$1"; }
 is_repair() { [[ "$1" == *"$ci_repair"* || "$1" == *"$suite_repair"* ]]; }
-added_mark() { is_repair "$1" || printf ' %s' "$added"; }
+added_mark() { is_repair "$1" || printf ' %s' "$_ledger_added_mark"; }
 
 count_lines() {
   local pred="$1" line n=0
