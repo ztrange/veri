@@ -1,3 +1,5 @@
 ### `ledger-steps.sh current` prints the text of the first refactor-pending step when one exists, else of the first open `step`-kind step (what `next-unchecked.sh` would print, skipping `⟦full-suite⟧` and `⟦human-owed⟧`), and exits 3 with no output when neither exists ⟦criterion 2⟧
 - move the "first record matching each pattern in turn, print its text, else return 3" loop and the pending/open-step record patterns into lib/ledger.sh, and have ledger-steps.sh's current(), next-unchecked.sh and next-pending-refactor.sh call it, removing three copies of the same loop and two copies of each pattern
 - test-only | the `open.md` and `none.md` fixtures in tests/ledger-steps.test.sh repeat the same three-line ledger prefix; build `none.md` once and append the extra step to make `open.md`
+### `ledger-steps.sh last-done` prints the text of the last done step with ` ⟂ refactor pending` cut, and exits 3 with no output when no step is done ⟦criterion 3⟧
+- `current` and `last_done` in skills/tdd/scripts/ledger-steps.sh each loop over `ledger_steps` records with a regex capturing field 7; fold into one record-matching helper once `criterion <k>` (step 4) adds a third reader
