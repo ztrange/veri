@@ -108,4 +108,23 @@ else
   no "no verdict line exits 2, empty stdout, the no-verdict diagnostic on stderr (got exit $nv_code, stdout '$nv_out', stderr '$nv_stderr')"
 fi
 
+sl_work="$(mktemp -d)"
+ln -s "$(cd "$HERE/../.." && pwd)" "$sl_work/linked-skill"
+mkdir -p "$sl_work/elsewhere"
+sl_input='VERDICT: REJECT
+REASON: The test asserts a constant and never calls slugify().'
+sl_in_place="$(printf '%s' "$sl_input" | "$PARSE" 2>"$sl_work/in-place.err")" && sl_in_place_code=0 || sl_in_place_code=$?
+sl_linked="$(cd "$sl_work/elsewhere" && printf '%s' "$sl_input" | "$sl_work/linked-skill/scripts/parse-verdict.sh" 2>"$sl_work/linked.err")" && sl_linked_code=0 || sl_linked_code=$?
+sl_in_place_err="$(cat "$sl_work/in-place.err")"
+sl_linked_err="$(cat "$sl_work/linked.err")"
+rm -rf "$sl_work"
+if [[ "$sl_linked" == "$sl_in_place" && "$sl_linked_err" == "$sl_in_place_err" && "$sl_linked_code" == "$sl_in_place_code" \
+      && "$sl_in_place_code" == 1 && "$sl_in_place" == 'The test asserts a constant and never calls slugify().' ]]; then
+  ok
+else
+  no "parse-verdict.sh run through a symlink to the skill directory and from another working directory prints the same reason, stderr and exit code as when run in place"
+  diff <(printf '%s\nstderr: %s\nexit %s\n' "$sl_in_place" "$sl_in_place_err" "$sl_in_place_code") \
+       <(printf '%s\nstderr: %s\nexit %s\n' "$sl_linked" "$sl_linked_err" "$sl_linked_code") | sed 's/^/    /'
+fi
+
 finish
