@@ -191,3 +191,54 @@ def test_main_lands_a_lease_push_silently_and_records_the_last_attempts_merged_o
         (1, "push rejected (non-fast-forward): origin/feature is at def5678\n"),
         "event.sh push-failed error=  last out \n  last err  attempts=2",
     )
+
+
+def test_main_returns_2_on_a_failed_event_write_bad_tunable_or_bad_argument_and_1_with_an_empty_remote_sha(monkeypatch, capsys, push_branch):
+    push = "git push --set-upstream origin HEAD"
+    rejected = " ! [rejected]        HEAD -> feature (non-fast-forward)"
+    bad_argument = "push-branch.sh: the only argument is --force-with-lease=<branch>:<sha>, got '{}'\n" \
+                   "usage: push-branch.sh [--force-with-lease=<branch>:<sha>]\n"
+
+    def run_with(argv, push_answer, event_code=0, ls_remote_code=0, retries="0", backoff="0"):
+        stderr_at_event = []
+
+        def answer(line):
+            if line.startswith("git push "):
+                return push_answer
+            if line == "git rev-parse --abbrev-ref HEAD":
+                return 0, "feature\n"
+            if line == "git ls-remote origin refs/heads/feature":
+                return (0, "abc1234def\trefs/heads/feature\n") if ls_remote_code == 0 else (128, "")
+            if line.startswith("event.sh "):
+                stderr_at_event.append(capsys.readouterr().err)
+                return event_code, ""
+            return 0, ""
+
+        calls = fake_processes(monkeypatch, answer)
+        monkeypatch.setenv("VERI_PUSH_RETRIES", retries)
+        monkeypatch.setenv("VERI_PUSH_BACKOFF", backoff)
+        code = push_branch.main(argv)
+        return code, calls, stderr_at_event, capsys.readouterr().err
+
+    unreachable = (128, "fatal: unable to access origin\n")
+    observed = (
+        run_with([], unreachable, event_code=1)[::2],
+        run_with([], (1, rejected + "\n"), event_code=1)[::2],
+        run_with([], (1, rejected + "\n"), ls_remote_code=128),
+        run_with([], unreachable, retries="x"),
+        run_with([], unreachable, backoff="-1"),
+        run_with(["--force-with-lease=b:abc1234", "extra"], unreachable),
+        run_with(["--force-with-lease=b:HEAD"], unreachable),
+    )
+
+    assert observed == (
+        (2, ["push-branch.sh: push failed after 1 attempts; the branch is not on the remote\n"]),
+        (2, ["push rejected (non-fast-forward): origin/feature is at abc1234def\n"]),
+        (1, [push, "git rev-parse --abbrev-ref HEAD", "git ls-remote origin refs/heads/feature",
+             f"event.sh push-rejected remote_sha= error={rejected}"],
+         ["push rejected (non-fast-forward): origin/feature is at \n"], ""),
+        (2, [], [], "push-branch.sh: VERI_PUSH_RETRIES must be a non-negative integer, got 'x'\n"),
+        (2, [], [], "push-branch.sh: VERI_PUSH_BACKOFF must be a non-negative integer, got '-1'\n"),
+        (2, [], [], bad_argument.format("--force-with-lease=b:abc1234 extra")),
+        (2, [], [], bad_argument.format("--force-with-lease=b:HEAD")),
+    )
