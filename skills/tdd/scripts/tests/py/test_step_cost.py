@@ -43,3 +43,23 @@ def test_main_prints_a_steps_usage_events_total_cost_usd_sum_to_two_decimals_and
 
     out, err = capsys.readouterr()
     assert (code, out) == (0, "0.42\n")
+
+
+@pytest.mark.parametrize("log, expected", [
+    ('{"ts": 1, "issue": "448", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30134540000000004"}\n'
+     '{"ts": 2, "issue": "448", "actor": "developer", "phase": "green", "step": "step two", "event": "usage", "total_cost_usd": "1.0"}\n'
+     '{"ts": 3, "issue": "448", "actor": "conductor", "phase": "scope", "step": "", "event": "usage", "total_cost_usd": "0.25"}\n',
+     (0, "1.55\n")),
+    ('{"ts": 1, "issue": "448", "actor": "verifier", "phase": "red", "step": "step one", "event": "verdict", "verdict": "PASS"}\n'
+     '{"ts": 2, "issue": "448", "actor": "developer", "phase": "green", "step": "step one", "event": "test-run", "exit": "0"}\n',
+     (3, "")),
+], ids=["every-usage-event-step-less-included", "no-usage-event"])
+def test_main_run_sums_every_usage_event_step_less_ones_included_and_returns_3_with_nothing_printed_when_there_is_none(log, expected, tmp_path, monkeypatch, capsys, step_cost):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(log)
+    monkeypatch.chdir(tmp_path)
+
+    code = step_cost.main(["--run"])
+
+    out, err = capsys.readouterr()
+    assert (code, out) == expected
