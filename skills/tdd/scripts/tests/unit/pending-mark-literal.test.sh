@@ -14,16 +14,8 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTS="$(cd "$HERE/../.." && pwd)"
 source "$HERE/../lib/harness.sh"
+source "$HERE/../lib/verdict.sh"
 export LC_ALL=C
-
-verdict() {
-  if [[ -z "$problems" ]]; then
-    ok
-  else
-    no "$1"
-    printf '%s' "$problems"
-  fi
-}
 
 mark=' ⟂ refactor pending'
 

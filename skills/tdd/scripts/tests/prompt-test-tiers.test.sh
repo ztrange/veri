@@ -282,7 +282,7 @@ report "$name"
 name="the prompt probes give the same verdict on a matching and a non-matching prompt when the writer is preempted"
 problems=()
 
-verdict() {
+probe_tally() {
   local problems=()
   runs_fast_plus_affected develop-green "$1"
   timed_through develop-green "$1" fast affected
@@ -293,11 +293,11 @@ unpreempted="$(declare -f plain)"
 eval "honest_plain${unpreempted#plain}"
 matching="$green"   # case 4's prompt, which every probe above accepts
 missing='a prompt that names none of it'
-honest_match="$(verdict "$matching")"
-honest_miss="$(verdict "$missing")"
+honest_match="$(probe_tally "$matching")"
+honest_miss="$(probe_tally "$missing")"
 eval 'plain() { honest_plain; return 141; }'
-preempted_match="$(verdict "$matching")"
-preempted_miss="$(verdict "$missing")"
+preempted_match="$(probe_tally "$matching")"
+preempted_miss="$(probe_tally "$missing")"
 eval "$unpreempted"
 
 if [[ "$honest_match" != 0 ]]; then
