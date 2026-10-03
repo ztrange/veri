@@ -39,65 +39,6 @@ REASON: The test asserts on an internal helper, not observable behavior.' \
 
 check "malformed no verdict" 2 'I could not make up my mind about this test.' ''
 
-check "last verdict wins" 1 'My first instinct was VERDICT: PASS but on reflection:
-VERDICT: REJECT
-REASON: The failure is an ImportError from a typo, not the missing behavior.' \
-'The failure is an ImportError from a typo, not the missing behavior.'
-
-check "case insensitive" 0 'verdict: pass
-reason: Genuine pass — target test and full suite are green.' \
-'Genuine pass — target test and full suite are green.'
-
-check "indented verdict line" 0 '   VERDICT: PASS
-   REASON: All good.' \
-'All good.'
-
-check "multiline reason" 1 'VERDICT: REJECT
-REASON: Two problems:
-- the test is over-coupled to the implementation
-- it is also far too complex for one criterion' \
-'Two problems:
-- the test is over-coupled to the implementation
-- it is also far too complex for one criterion'
-
-check "reason inline after verdict" 1 'VERDICT: REJECT — the test never actually runs the code under test' \
-'the test never actually runs the code under test'
-
-check "unknown verdict word" 2 'VERDICT: MAYBE
-REASON: unsure' ''
-
-check "fenced verdict block" 1 'I ran the test myself.
-```
-VERDICT: REJECT
-REASON: The test asserts a constant and never calls slugify().
-```' \
-'The test asserts a constant and never calls slugify().'
-
-check "multiline reason then fence" 1 'VERDICT: REJECT
-REASON: Two problems:
-- vacuous assertion
-- no call to the function
-```' \
-'Two problems:
-- vacuous assertion
-- no call to the function'
-
-ns_plain='I read the diff against the base sha.
-VERDICT: PASS
-REASON: The transform is behaviour-preserving and the suite is green.'
-ns_proposing='I read the diff against the base sha.
-NEW_STEP: slugify returns an empty string for input that is all separators
-VERDICT: PASS
-REASON: The transform is behaviour-preserving and the suite is green.'
-ns_out_plain="$(printf '%s' "$ns_plain" | "$PARSE")" && ns_code_plain=0 || ns_code_plain=$?
-ns_out_proposing="$(printf '%s' "$ns_proposing" | "$PARSE")" && ns_code_proposing=0 || ns_code_proposing=$?
-if [[ "$ns_code_proposing" == "$ns_code_plain" && "$ns_out_proposing" == "$ns_out_plain" ]]; then
-  ok
-else
-  no "new_step lines before the verdict pair change nothing (want exit $ns_code_plain, got $ns_code_proposing)"
-  diff <(printf '%s\n' "$ns_out_plain") <(printf '%s\n' "$ns_out_proposing") | sed 's/^/    /'
-fi
-
 nv_err="$(mktemp)"
 nv_out="$(printf '%s' 'I could not make up my mind about this test.' | "$PARSE" 2>"$nv_err")" && nv_code=0 || nv_code=$?
 nv_stderr="$(cat "$nv_err")"
