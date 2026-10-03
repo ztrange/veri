@@ -177,3 +177,55 @@ def test_main_against_a_gh_refusing_graphql_answers_through_rest_as_a_working_gh
 
         assert (labels, refused[0], refused[1].out) == (labels, working[0], working[1].out)
         assert working[0] == 0
+
+
+REFACTOR_SECTION = "\n## Refactor\n\nRun kind: refactor. This issue changes structure, not behaviour.\n"
+
+
+def test_main_keeps_the_text_rules_of_body_echo_label_match_and_section_extraction(monkeypatch, capsys, capture_spec):
+    def spec(labels, body):
+        fake_gh(monkeypatch, labels, body)
+        code = capture_spec.main(["7"])
+        captured = capsys.readouterr()
+        return (code, captured.out, captured.err)
+
+    assert spec("", "lamps glow\n\n\n") == (0, "lamps glow\n", "")
+    assert spec("", "") == (0, "\n", "")
+
+    assert spec("Bug\n", BUG_BODY) == (0, BUG_BODY, "")
+
+    mixed = (
+        "## What happened \n"
+        "trailing space\n"
+        "## Expected\r\n"
+        "carriage return\n"
+        "## Environment\n"
+        "### Expected\n"
+        "not a section\n"
+        "## Steps to reproduce\n"
+        "first\n"
+        "## Other\n"
+        "skipped\n"
+        "## Steps to reproduce\n"
+        "second\n"
+    )
+    assert spec("bug\nrefactor\n", mixed) == (0, mixed + (
+        "\n## Bug\n"
+        "\n### What happened\n\n"
+        "\n### Expected\n\n"
+        "\n### Steps to reproduce\n\n"
+        "first\n"
+        "second\n"
+        "\n### Environment\n\n"
+        "### Expected\n"
+        "not a section\n"
+    ) + REFACTOR_SECTION, "")
+
+    crlf = BUG_BODY.replace("\n", "\r\n")
+    assert spec("bug\n", crlf) == (0, crlf + (
+        "\n## Bug\n"
+        "\n### What happened\n\n"
+        "\n### Expected\n\n"
+        "\n### Steps to reproduce\n\n"
+        "\n### Environment\n\n"
+    ), "")
