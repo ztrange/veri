@@ -79,3 +79,35 @@ def test_main_pushes_a_valid_lease_ahead_of_set_upstream(monkeypatch, capsys, pu
     push_branch.main(["--force-with-lease=b:abc1234"])
 
     assert calls[:1] == ["git push --force-with-lease=b:abc1234 --set-upstream origin HEAD"]
+
+
+def test_main_reports_a_non_fast_forward_rejection_once_and_records_push_rejected(monkeypatch, capsys, push_branch):
+    rejected = " ! [rejected]        HEAD -> feature (non-fast-forward)"
+    stderr_at_event = []
+
+    def answer(line):
+        if line == "git push --set-upstream origin HEAD":
+            return 1, rejected + "\n"
+        if line == "git rev-parse --abbrev-ref HEAD":
+            return 0, "feature\n"
+        if line == "git ls-remote origin refs/heads/feature":
+            return 0, "abc1234def\trefs/heads/feature\n"
+        if line.startswith("event.sh "):
+            stderr_at_event.append(capsys.readouterr().err)
+        return 0, ""
+
+    calls = fake_processes(monkeypatch, answer)
+    monkeypatch.delenv("VERI_PUSH_RETRIES", raising=False)
+    monkeypatch.delenv("VERI_PUSH_BACKOFF", raising=False)
+
+    code = push_branch.main([])
+
+    captured = capsys.readouterr()
+    assert calls == [
+        "git push --set-upstream origin HEAD",
+        "git rev-parse --abbrev-ref HEAD",
+        "git ls-remote origin refs/heads/feature",
+        f"event.sh push-rejected remote_sha=abc1234def error={rejected}",
+    ]
+    assert (code, captured.out, stderr_at_event, captured.err) == (
+        1, "", ["push rejected (non-fast-forward): origin/feature is at abc1234def\n"], "")
