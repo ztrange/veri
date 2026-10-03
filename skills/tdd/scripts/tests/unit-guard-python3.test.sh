@@ -10,6 +10,8 @@
 #   3. A direct python3 call — -c, a file outside veri/, no arguments — exits 1, names python3 on
 #      stderr and is written to $UNIT_GUARD_LOG.
 #   4. So does python3 -c or python3 with no arguments run with veri/ as the working directory.
+#   5. Under make test, a suite under tests/unit/ gets the same guard — the shim's hand-off goes
+#      through, a direct python3 -c is refused, named and logged — and a suite outside it gets none.
 #
 # Run: skills/tdd/scripts/tests/unit-guard-python3.test.sh
 set -uo pipefail
@@ -159,6 +161,67 @@ for call in "file|$bare/module.py" "-c|print(\"reached-interpreter\")" "none|"; 
   [[ "$logged" == "python3 ${argv[*]+"${argv[*]}"} (cwd "* ]] ||
     problems+=("$kind: want a log line 'python3 ${argv[*]+"${argv[*]}"} (cwd …)'; got: $(flat "$logged")")
 done
+
+report "$name"
+
+name="under make test, a suite under tests/unit/ gets the guard — hand-off through, direct python3 refused, named and logged — and a suite outside it gets none"
+problems=()
+
+mk="$(scratch_dir)"
+mkdir -p "$mk/skills/tdd/scripts/tests/unit" "$mk/skills/tdd/scripts/lib" "$mk/skills/tdd/scripts/veri"
+cp "$ROOT/Makefile" "$mk/Makefile"
+cp "$ROOT/skills/tdd/scripts/run-suite.sh" "$mk/skills/tdd/scripts/"
+cp "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh" "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" \
+  "$mk/skills/tdd/scripts/lib/"
+cp -R "$ROOT/skills/tdd/scripts/tests/offline" "$ROOT/skills/tdd/scripts/tests/unit-guard" "$mk/skills/tdd/scripts/tests/"
+cp "$tree/skills/tdd/scripts/veri/probe_handoff.py" "$mk/skills/tdd/scripts/veri/"
+cp "$tree/skills/tdd/scripts/probe-handoff.sh" "$mk/skills/tdd/scripts/"
+cat > "$mk/skills/tdd/scripts/tests/unit/handoff.test.sh" <<'SUITE'
+#!/usr/bin/env bash
+"$(dirname "$0")/../../probe-handoff.sh" four > "$RECORD_DIR/handoff.out" 2> "$RECORD_DIR/handoff.err"
+echo $? > "$RECORD_DIR/handoff.code"
+echo "1 passed, 0 failed"
+SUITE
+cat > "$mk/skills/tdd/scripts/tests/unit/direct.test.sh" <<'SUITE'
+#!/usr/bin/env bash
+python3 -c 'print("reached-interpreter")' > "$RECORD_DIR/direct.out" 2> "$RECORD_DIR/direct.err"
+echo $? > "$RECORD_DIR/direct.code"
+echo "1 passed, 0 failed"
+SUITE
+cat > "$mk/skills/tdd/scripts/tests/outside.test.sh" <<'SUITE'
+#!/usr/bin/env bash
+python3 -c 'print("reached-interpreter")' > "$RECORD_DIR/outside.out" 2> "$RECORD_DIR/outside.err"
+echo $? > "$RECORD_DIR/outside.code"
+echo "1 passed, 0 failed"
+SUITE
+chmod +x "$mk/skills/tdd/scripts/tests/unit/handoff.test.sh" "$mk/skills/tdd/scripts/tests/unit/direct.test.sh" \
+  "$mk/skills/tdd/scripts/tests/outside.test.sh"
+records="$(scratch_dir)"
+: > "$records/guard.log"
+
+make_out="$(RECORD_DIR="$records" UNIT_GUARD_LOG="$records/guard.log" make --no-print-directory -C "$mk" test 2>&1 < /dev/null)"
+make_code=$?
+[[ "$make_code" == 0 ]] ||
+  problems+=("want make test over the three fixture suites to exit 0; got $make_code: $(flat "$make_out")")
+record() { cat "$records/$1" 2> /dev/null || printf '<no record>'; }
+
+[[ "$(record handoff.out)" == "probe-out four" ]] ||
+  problems+=("tests/unit hand-off: want stdout 'probe-out four'; got: $(flat "$(record handoff.out)")")
+[[ "$(record handoff.err)" == "probe-err" ]] ||
+  problems+=("tests/unit hand-off: want stderr 'probe-err'; got: $(flat "$(record handoff.err)")")
+[[ "$(record handoff.code)" == 7 ]] ||
+  problems+=("tests/unit hand-off: want exit 7, the module's own; got: $(record handoff.code)")
+
+[[ "$(record direct.code)" == 1 ]] ||
+  problems+=("tests/unit direct python3 -c: want exit 1; got: $(record direct.code) (stdout: $(flat "$(record direct.out)"))")
+[[ "$(record direct.err)" == "$refusal" ]] ||
+  problems+=("tests/unit direct python3 -c: want stderr '$refusal'; got: $(flat "$(record direct.err)")")
+logged="$(cat "$records/guard.log")"
+[[ "$logged" == "python3 -c print(\"reached-interpreter\") (cwd "* && "$logged" != *$'\n'* ]] ||
+  problems+=("want \$UNIT_GUARD_LOG to hold the one line 'python3 -c print(\"reached-interpreter\") (cwd …)'; got: $(flat "$logged")")
+
+[[ "$(record outside.out)" == "reached-interpreter" && "$(record outside.code)" == 0 ]] ||
+  problems+=("suite outside tests/unit: want python3 -c to reach the interpreter, stdout 'reached-interpreter', exit 0; got stdout $(flat "$(record outside.out)"), exit $(record outside.code), stderr $(flat "$(record outside.err)")")
 
 report "$name"
 
