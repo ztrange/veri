@@ -13,4 +13,4 @@
 - [x] Across the four suites every case name, every expectation and every suite-specific probe (probe_guard_names_the_narration_case, probe_guard_names_the_routing_case and the like) is left unchanged by the branch ⟦diff-checked⟧ ⟦criterion 2⟧
 - [ ] Each of the four suites was broken on purpose — its guard removed or neutralised in the planted tree — and seen red naming the case, recorded by a human ⟦human-owed⟧ ⟦criterion 3⟧
 - [x] no-nested-suites.test.sh's exemption entry for docs-read-guard.test.sh is left naming that suite with its reason, unchanged by the branch ⟦diff-checked⟧ ⟦criterion 4⟧
-- [ ] make test is green ⟦full-suite⟧ ⟦criterion 5⟧
+- [x] make test is green ⟦full-suite⟧ ⟦criterion 5⟧
