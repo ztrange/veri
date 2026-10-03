@@ -37,12 +37,12 @@ GIT_INDEX_FILE="$index" git add -A
 tree="$(GIT_INDEX_FILE="$index" git write-tree)"
 
 ledger_step_index() {
-  local ledger="$1" prose="$2" record tab=$'\t'
+  local ledger="$1" prose="$2" record index state kind pending added criterion text
   [[ -f "$ledger" ]] || return 1
-  # hazard: `IFS=$'\t' read` merges adjacent tabs, so an empty field would shift the rest; the record is cut by hand.
   while IFS= read -r record; do
-    if [[ "${record#*"$tab"*"$tab"*"$tab"*"$tab"*"$tab"*"$tab"}" == *"$prose"* ]]; then
-      LEDGER_STEP_INDEX="${record%%"$tab"*}"; return 0
+    ledger_fields "$record"
+    if [[ "$text" == *"$prose"* ]]; then
+      LEDGER_STEP_INDEX="$index"; return 0
     fi
   done < <(ledger_steps < "$ledger")
   return 1
