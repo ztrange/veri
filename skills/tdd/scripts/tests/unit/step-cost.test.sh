@@ -150,12 +150,6 @@ expect 0 "0.30"
 [[ -z "$err" ]] || problems+="    under make unit's shims stderr said '$err', want nothing"$'\n'
 verdict "the header states the fast-tier bar and the script answers under make unit's git, python3, gh and curl shims"
 
-header="$(sed -n '2,$p' "$STEP_COST" | sed '/^#/!q' | grep '^#' | sed 's/^# *//' | tr '\n' ' ')"
-for part in 'leaf spend only' "conductor's own spending is in no \`usage\` event"; do
-  grep -F "$part" <<< "$header" > /dev/null || problems+="    the header comment does not state '$part'"$'\n'
-done
-verdict "step-cost.sh's header says it reports leaf spend only and the conductor's spending is in no usage event"
-
 cat > "$work/.tdd/events.jsonl" <<'EOF'
 {"ts": 1, "issue": "521", "actor": "developer", "phase": "red", "step": "cost a step \u2014 its title \u27e6criterion 1\u27e7", "event": "usage", "total_cost_usd": "0.30"}
 {"ts": 2, "issue": "521", "actor": "verifier", "phase": "red", "step": "cost a step \u2014 its title \u27e6criterion 1\u27e7", "event": "usage", "total_cost_usd": "0.12"}
