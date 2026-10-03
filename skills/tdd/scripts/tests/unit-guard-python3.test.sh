@@ -6,6 +6,7 @@
 #   1. A /bin/sh shim that execs python3 on a module file under skills/tdd/scripts/veri/ runs
 #      that module through the real interpreter, and answers with the module's own stdout,
 #      stderr and exit code.
+#   2. It does so when directories with no python3 sit between the guard and the real one on PATH.
 #
 # Run: skills/tdd/scripts/tests/unit-guard-python3.test.sh
 set -uo pipefail
@@ -46,6 +47,26 @@ err="$(cat "$err_file")"
 
 [[ "$out" == "probe-out one two" ]] ||
   problems+=("want stdout 'probe-out one two'; got: $(flat "$out")")
+[[ "$err" == "probe-err" ]] ||
+  problems+=("want stderr 'probe-err'; got: $(flat "$err")")
+[[ "$code" == 7 ]] ||
+  problems+=("want exit 7, the module's own; got: $code")
+
+report "$name"
+
+name="under make unit's guard PATH, a shim's hand-off reaches the real interpreter past PATH directories that hold no python3"
+problems=()
+
+mkdir -p "$tree/empty-a" "$tree/empty-b"
+PATH="$tree/skills/tdd/scripts/tests/unit-guard:$tree/empty-a:$tree/empty-b:$PATH" \
+  UNIT_GUARD_LOG="$tree/guard.log" \
+  "$tree/skills/tdd/scripts/probe-handoff.sh" three > "$out_file" 2> "$err_file"
+code=$?
+out="$(cat "$out_file")"
+err="$(cat "$err_file")"
+
+[[ "$out" == "probe-out three" ]] ||
+  problems+=("want stdout 'probe-out three'; got: $(flat "$out")")
 [[ "$err" == "probe-err" ]] ||
   problems+=("want stderr 'probe-err'; got: $(flat "$err")")
 [[ "$code" == 7 ]] ||
