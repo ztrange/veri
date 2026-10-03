@@ -1557,6 +1557,11 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    answer — then judged by the long
    refactor's blind `transform` verifier against `<base-sha>`, one commit per transform —
    both before the next candidate's leaf is launched. A `REJECT` resets to `<base-sha>` and moves on to the next candidate.
+   ```
+   rm -f .tdd/verdict-transform.exit .tdd/verdict-transform.pid
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current || { cat .tdd/issue-<n>.md | $S/ledger-steps.sh last-done; })" $S/detach-leaf.sh $S/supervise.sh verdict-transform $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current || { cat .tdd/issue-<n>.md | $S/ledger-steps.sh last-done; })" transform .tdd/issue-<n>-spec.md .tdd/issue-<n>-predicate <base-sha> > .tdd/verify-transform.reason 2> .tdd/verify-transform.err
+   $S/wait-leaf.sh verdict-transform   # foreground; on exit 3 call it again
+   ```
    Once the pass ends — the candidates run out, or the budget is spent — mark it once, with
    the transforms it landed, its budget and why it stopped. `stopped=` takes only
    `candidates-done`, `budget-spent` or `nothing-structural`, and `budget-spent` is marked

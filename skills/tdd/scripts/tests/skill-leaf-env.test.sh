@@ -152,6 +152,7 @@ runnable() {
   launch="${launch//<fast-cmd>/make probe-fast}"  # green's --fast-cmd (#341)
   launch="${launch//<onto-sha>/0123abc}"  # rebase's two slots must be shas too (#238)
   launch="${launch//<pre-rebase-sha>/4567def}"
+  launch="${launch//<base-sha>/89abcde}"
   launch="${launch//<conflicting-files>/probe.txt}"
   launch="${launch//\[target\]/probe-target}"
   [[ "$launch" != *'<'*'>'* ]] || return 1
@@ -606,6 +607,30 @@ scan_rebase_verifier_last_done() {
 
 run_case "#753 the verify-rebase launch line in $skill_md, run with every ledger step ticked, hands its verifier the last done step's text as --step, byte-identical" \
   scan_rebase_verifier_last_done
+
+scan_transform_verifier_last_done() {
+  local title="$EXPANDING_STEP"
+  local lineno line numbered launch stage seen tree err got argv
+  numbered="$(awk '
+    /one structural pass/ { inside = 1 }
+    /^2\. \*\*Mark the PR ready/ { inside = 0 }
+    inside && /\$S\/detach-leaf\.sh .*\$S\/supervise\.sh verdict-transform \$S\/run-verdict\.sh/ { print NR ":" $0; exit }
+  ' "$md")"
+  if [[ -z "$numbered" ]]; then
+    no_launch "verdict-transform through supervise.sh into run-verdict.sh in the structural pass"
+    return
+  fi
+  take_line "${numbered//<base-sha>/89abcde}" "$title" || return
+  stage_recorder transform-verifier-last-done
+  printf '# Plan for #%s\n\n- [x] an earlier step the run finished\n- [x] %s\n' \
+    "$SENTINEL_ISSUE" "$title" > "$tree/.tdd/issue-$SENTINEL_ISSUE.md"
+  run_staged '<no verifier was launched>'
+  [[ "$argv" == "$title" ]] ||
+    problem "launched verdict-transform beside a ledger with every step ticked, whose verifier was handed --step <$argv>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})"
+}
+
+run_case "#753 the structural pass in $skill_md spells the transform verifier's launch line, and run with every ledger step ticked it hands its verifier the last done step's text as --step, byte-identical" \
+  scan_transform_verifier_last_done
 
 scan_inline_ledger_reads() {
   local numbered lineno line
