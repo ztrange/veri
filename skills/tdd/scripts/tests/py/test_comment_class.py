@@ -449,3 +449,15 @@ def test_main_keeps_awks_argument_handling_for_a_late_sweepable_an_empty_or_unop
         (0, "-:1:1\n", ""),
         (0, "a.sh:1:1\n", ""),
     )
+
+
+def test_main_skips_an_empty_file_argument_after_the_first_as_awk_does(tmp_path, monkeypatch, capsys):
+    comment_class = importlib.import_module("veri.comment_class")
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "a.sh").write_text("# in a\n")
+    (tmp_path / "b.sh").write_text("# in b\n")
+
+    code = comment_class.main(["a.sh", "", "b.sh"])
+    seen = capsys.readouterr()
+
+    assert (code, seen.out, seen.err) == (0, "a.sh:1:1\nb.sh:1:1\n", "")
