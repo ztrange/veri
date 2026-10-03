@@ -29,6 +29,14 @@ def write_events(path, events):
     path.write_text("".join(json.dumps(event) + "\n" for event in events))
 
 
+def ledger_run(root, issue, text, number=None):
+    """<root>/.tdd/wt/<issue> holding <text> as issue-<number>.md (default: its own)."""
+    run = root / ".tdd" / "wt" / issue
+    (run / ".tdd").mkdir(parents=True, exist_ok=True)
+    (run / ".tdd" / ("issue-%s.md" % (number or issue))).write_text(text)
+    return run
+
+
 def fake_git(monkeypatch, main_tree, branches=None, solvable=None, linked=None):
     """subprocess.run answering `git worktree list` with <main_tree>, then <linked> when given,
     `symbolic-ref` from <branches>, and solvable-issues.sh with <solvable>(scope) -> (exit code, stdout)."""
@@ -51,10 +59,8 @@ def fake_git(monkeypatch, main_tree, branches=None, solvable=None, linked=None):
 
 
 def test_main_renders_a_three_step_ledger_with_one_ticked_as_step_2_of_3(tmp_path, monkeypatch, capsys, status):
-    run = tmp_path / ".tdd" / "wt" / "31"
-    (run / ".tdd").mkdir(parents=True)
-    (run / ".tdd" / "issue-31.md").write_text(
-        "# Plan for #31 — lamps glow\n\n- [x] a lamp exists\n- [ ] a lamp glows\n- [ ] a lamp dims\n")
+    run = ledger_run(tmp_path, "31",
+                     "# Plan for #31 — lamps glow\n\n- [x] a lamp exists\n- [ ] a lamp glows\n- [ ] a lamp dims\n")
 
     lamp_git(monkeypatch, tmp_path, [run])
 
@@ -64,11 +70,8 @@ def test_main_renders_a_three_step_ledger_with_one_ticked_as_step_2_of_3(tmp_pat
 
 
 def test_main_counts_the_ledgers_steps_alone_and_no_stray_checkbox_line_outside_them(tmp_path, monkeypatch, capsys, status):
-    run = tmp_path / ".tdd" / "wt" / "31"
-    (run / ".tdd").mkdir(parents=True)
-    (run / ".tdd" / "issue-31.md").write_text(
-        "# Plan for #31 — lamps glow\n\n- [x] a lamp exists\n- [ ] a lamp glows\n\n"
-        "Notes:\n* [ ] a stray box, not a step\n")
+    run = ledger_run(tmp_path, "31", "# Plan for #31 — lamps glow\n\n- [x] a lamp exists\n- [ ] a lamp glows\n\n"
+                                     "Notes:\n* [ ] a stray box, not a step\n")
     lamp_git(monkeypatch, tmp_path, [run])
 
     code = status.main([])
@@ -80,8 +83,7 @@ def test_main_renders_every_run_as_status_sh_does_and_returns_0(tmp_path, monkey
     ledgers = {"31": "# Plan for #31 — lamps glow\n\n- [x] a lamp exists\n- [ ] a lamp glows\n",
                "32": "# Plan for #32 — bells ring\n\n- [ ] a bell rings\n"}
     for issue, text in ledgers.items():
-        (tmp_path / ".tdd" / "wt" / issue / ".tdd").mkdir(parents=True)
-        (tmp_path / ".tdd" / "wt" / issue / ".tdd" / ("issue-%s.md" % issue)).write_text(text)
+        ledger_run(tmp_path, issue, text)
     fake_git(monkeypatch, tmp_path, {str(tmp_path / ".tdd" / "wt" / "31"): "tdd/31-lamps",
                                      str(tmp_path / ".tdd" / "wt" / "32"): "tdd/32-bells"})
 
@@ -100,9 +102,7 @@ def test_main_prints_no_runs_and_returns_3_when_the_main_working_tree_holds_none
 
 
 def test_main_shows_a_runs_phase_actor_leaf_elapsed_seconds_and_attempts_in_the_step(tmp_path, monkeypatch, capsys, status):
-    run = tmp_path / ".tdd" / "wt" / "8"
-    (run / ".tdd").mkdir(parents=True)
-    (run / ".tdd" / "issue-8.md").write_text("# Plan for #8 — gears turn\n\n- [x] a gear exists\n- [ ] a gear turns\n")
+    run = ledger_run(tmp_path, "8", "# Plan for #8 — gears turn\n\n- [x] a gear exists\n- [ ] a gear turns\n")
 
     def ev(ts, actor, phase, step, event, attempt, name=None):
         return {"ts": ts, "issue": "8", "actor": actor, "phase": phase, "step": step, "event": event,
@@ -130,11 +130,8 @@ def test_main_shows_a_runs_phase_actor_leaf_elapsed_seconds_and_attempts_in_the_
 
 def lamp_run(tmp_path, issue, ledgers=None):
     """.tdd/wt/<issue> holding a ledger per number in <ledgers> (default: its own), each '# Plan for #<n> — lamps glow'."""
-    run = tmp_path / ".tdd" / "wt" / issue
-    (run / ".tdd").mkdir(parents=True)
     for number in ledgers if ledgers is not None else [issue]:
-        (run / ".tdd" / ("issue-%s.md" % number)).write_text(
-            "# Plan for #%s — lamps glow\n\n- [ ] a lamp glows\n" % number)
+        run = ledger_run(tmp_path, issue, "# Plan for #%s — lamps glow\n\n- [ ] a lamp glows\n" % number, number)
     return run
 
 
@@ -378,9 +375,7 @@ def test_main_counts_no_run_for_a_directory_without_its_own_ledger_and_is_not_an
 
 
 def test_main_takes_the_run_activity_and_scope_totals_lines_from_event_logs_one_parse_and_sum_with_figures_unchanged(tmp_path, monkeypatch, capsys, status):
-    run = tmp_path / ".tdd" / "wt" / "9"
-    (run / ".tdd").mkdir(parents=True)
-    (run / ".tdd" / "issue-9.md").write_text("# Plan for #9 — cogs mesh\n\n- [x] a cog exists\n- [ ] two cogs mesh\n")
+    run = ledger_run(tmp_path, "9", "# Plan for #9 — cogs mesh\n\n- [x] a cog exists\n- [ ] two cogs mesh\n")
     cogs = [
         lamp_ev(9700, "9", "launch", step="a cog exists", name="develop-red"),
         lamp_ev(9750, "9", "usage", step="a cog exists", total_cost_usd="0.50", input_tokens="1000",
@@ -437,9 +432,7 @@ def test_main_takes_the_run_activity_and_scope_totals_lines_from_event_logs_one_
 def test_main_resolves_the_main_working_tree_as_the_first_worktree_git_lists_as_lib_main_working_tree_sh_does(tmp_path, monkeypatch, capsys, status):
     main_tree, linked = tmp_path / "main", tmp_path / "linked"
     for tree, issue, title in ((main_tree, "5", "lamps glow"), (linked, "7", "bells ring")):
-        (tree / ".tdd" / "wt" / issue / ".tdd").mkdir(parents=True)
-        (tree / ".tdd" / "wt" / issue / ".tdd" / ("issue-%s.md" % issue)).write_text(
-            "# Plan for #%s — %s\n\n- [ ] a step\n" % (issue, title))
+        ledger_run(tree, issue, "# Plan for #%s — %s\n\n- [ ] a step\n" % (issue, title))
     fake_git(monkeypatch, main_tree,
              {str(main_tree / ".tdd" / "wt" / "5"): "tdd/5-main", str(linked / ".tdd" / "wt" / "7"): "tdd/7-linked"},
              linked=linked)
