@@ -673,3 +673,47 @@ def test_get_api_chatter_hands_the_renderer_run_54s_verify_green_out_the_leaf_it
     (chatter,) = served[0][1]
     assert fed == [green_log.encode()]
     assert json.loads(body(chatter)) == {"chatter": rendered}
+
+
+def test_get_api_chatter_hands_the_renderer_run_59s_verify_red_log_when_no_verify_red_out_exists(
+        tmp_path, monkeypatch, dashboard):
+    run = os.path.join(str(tmp_path), ".tdd", "wt", "59")
+    write(os.path.join(run, ".tdd", "issue-59.md"),
+          "# Plan for #59 — lamps flare\n\n- [ ] a lamp stops flaring\n")
+    records = [
+        {"type": "system", "subtype": "init", "session_id": "s3", "tools": ["Bash"]},
+        {"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "text", "text": "Reading the new case against the spec."}]}},
+        {"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "text", "text": "VERDICT: PASS"}]}},
+    ]
+    verify_log = "".join(json.dumps(record) + "\n" for record in records)
+    write(os.path.join(run, ".tdd", "verify-red.log"), verify_log)
+    events = [{"ts": 1000, "issue": "59", "actor": "conductor", "phase": "", "step": "a lamp stops flaring",
+               "event": "step-start", "attempt": "", "skill_commit": "abc"},
+              {"ts": 1080, "issue": "59", "actor": "verifier", "phase": "red",
+               "step": "a lamp stops flaring", "event": "launch", "attempt": "1",
+               "skill_commit": "abc", "name": "verify-red"}]
+    write(os.path.join(run, ".tdd", "events.jsonl"),
+          "".join(json.dumps(event) + "\n" for event in events))
+    rendered = "[verifier] Reading the new case against the spec.\n[verifier] VERDICT: PASS\n"
+    fed = []
+
+    def fake_run(args, cwd=None, input=None, **kwargs):
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
+        if list(args) == [os.path.join(SCRIPTS, "render-leaf-log.sh")]:
+            fed.append(input)
+            return subprocess.CompletedProcess(args, 0, rendered.encode(), b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, ["/api/chatter?issue=59"])
+
+    dashboard.main([])
+
+    (chatter,) = served[0][1]
+    assert fed == [verify_log.encode()]
+    assert json.loads(body(chatter)) == {"chatter": rendered}

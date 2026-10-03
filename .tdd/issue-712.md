@@ -17,7 +17,7 @@
 - [x] tests/py/test_dashboard.py: GET /api/tests?issue=56 answers suites/passed pairs ("", true), ("…/gutter.test.sh", false), ("…/flicker.test.sh", true) from test-run marks whose status is 0, 1, 0 ⟦criterion 14⟧
 - [x] tests/py/test_dashboard.py: GET /api/tests?issue=57 answers [] for a run whose log has no test-run mark, beside a leaf log with a make test call and a run 58 with three marks ⟦criterion 15⟧
 - [x] tests/py/test_dashboard.py: GET /api/chatter?issue=54 hands the faked render-leaf-log.sh the records of verify-green.out — the leaf the newest launch names, not develop-red.out — and answers chatter as its stdout ⟦criterion 16⟧
-- [ ] tests/py/test_dashboard.py: GET /api/chatter?issue=59 hands the renderer verify-red.log's records when no verify-red.out exists ⟦criterion 17⟧
+- [x] tests/py/test_dashboard.py: GET /api/chatter?issue=59 hands the renderer verify-red.log's records when no verify-red.out exists ⟦criterion 17⟧
 - [ ] tests/py/test_dashboard.py: GET /api/chatter?issue=61 hands the renderer exactly the four stream-json lines of a develop-green.log that ends in a blank line and a plain-text result ⟦criterion 18⟧
 - [ ] tests/py/test_dashboard.py: GET /api/chatter answers "" for run 63 (no launch) and for run 65 (launched develop-red, neither .log nor .out written) ⟦criterion 19⟧
 - [ ] tests/py/test_dashboard.py: GET /api/chatter?issue=55 twice, a develop-green launch appended between, hands the renderer develop-red.out the first time and develop-green.out the second ⟦criterion 20⟧
