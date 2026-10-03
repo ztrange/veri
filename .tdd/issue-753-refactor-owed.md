@@ -1,0 +1,2 @@
+### a `verdict-<phase>` supervision of run-verdict.sh whose verify.sh refused its arguments with exit 2 records 2 in `.tdd/verdict-<phase>.exit` and exits 2, never 1, so the conductor's wait never reads a bad argument as a REJECT ⟦criterion 1⟧
+- test-only | probe_refused_arguments_supervised's inline stage (copy_scripts_to + make_run_dir + a "could not stage" problem) could become a stage_refusing() helper like stage_broken/stage_noisy, for symmetry only; it removes no duplication
