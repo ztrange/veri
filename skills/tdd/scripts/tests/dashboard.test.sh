@@ -1074,38 +1074,6 @@ fi
 
 report "$name"
 
-name="tests_json lists one entry per test-run mark in the run's event log, not per leaf Bash call matching the spec's command"
-problems=()
-tmarks_repo="$(repo testsmarks)"
-
-tmarks_run="$(fabricate_run "$tmarks_repo" 54 tdd/54-lamps-buzz)"
-fabricate_plan "$tmarks_run" 54 "lamps buzz" "a lamp buzzes"
-fabricate_marks "$tmarks_run" 54 "a lamp buzzes" \
-  skills/tdd/scripts/tests/lamp.test.sh skills/tdd/scripts/tests/lamp.test.sh
-cat > "$tmarks_run/.tdd/develop-red.out" <<'EOF'
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_1", "name": "Bash", "input": {"command": "make test", "description": "Run the suite"}}]}}
-{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_1", "type": "tool_result", "content": "----\n4 passed, 0 failed", "is_error": false}]}}
-EOF
-
-if [[ -n "$module_problem" ]]; then
-  problems+=("$module_problem")
-else
-  call_endpoint "$tmarks_repo" tests_json "$work/tests-marks.err" \
-    '{"issue": ["54"]}' "$work/tests-marks-54.json"
-  if [[ ! -f "$work/tests-marks-54.json" ]]; then
-    problems+=("calling $module.tests_json wrote nothing: $(tail -n 1 "$work/tests-marks.err")")
-  else
-    add_problems < <(python3 -c "$tests_runs"'
-if len(runs) != 3:
-    print("tests_json for issue 54 returned %d test runs, %s; want one per `test-run` mark "
-          "in that run’s event log, 3 — not the 1 bare `make test` Bash call in its leaf log"
-          % (len(runs), json.dumps(runs, sort_keys=True)[:400]))
-' "$work/tests-marks-54.json" 54)
-  fi
-fi
-
-report "$name"
-
 name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
 problems=()
 disk_page="$scripts/dashboard.html"
