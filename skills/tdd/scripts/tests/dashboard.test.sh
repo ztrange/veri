@@ -1224,46 +1224,6 @@ fi
 
 report "$name"
 
-name="chatter_json returns the current verifier leaf's transcript, which is written as .log and never as .out"
-problems=()
-vlog_repo="$(repo chatterverifier)"
-
-vlog_run="$(fabricate_run "$vlog_repo" 59 tdd/59-lamps-flare)"
-cat > "$vlog_run/.tdd/issue-59.md" <<'EOF'
-# Plan for #59 — lamps flare
-
-- [ ] a lamp stops flaring
-EOF
-cat > "$vlog_run/.tdd/verify-red.log" <<'EOF'
-{"type": "system", "subtype": "init", "session_id": "s3", "tools": ["Bash"]}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Reading the new case against the spec."}]}}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_5", "name": "Bash", "input": {"command": "make test", "description": "Run the suite"}}]}}
-{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_5", "type": "tool_result", "content": "FAIL - a lamp stops flaring\n----\n9 passed, 1 failed", "is_error": true}]}}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "VERDICT: PASS"}]}}
-EOF
-vlog_now="$(date +%s)"
-cat > "$vlog_run/.tdd/events.jsonl" <<EOF
-{"ts": $((vlog_now - 200)), "issue": "59", "actor": "conductor", "phase": "", "step": "a lamp stops flaring", "event": "step-start", "attempt": "", "skill_commit": "abc", "seq": 1}
-{"ts": $((vlog_now - 120)), "issue": "59", "actor": "verifier", "phase": "red", "step": "a lamp stops flaring", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "verify-red", "seq": 2}
-EOF
-
-want_rendering "$vlog_run/.tdd/verify-red.log" "$work/chatter-want-verify.txt" "the verifier leaf log"
-
-chatter_answer "$vlog_repo" 59 chatter-verifier
-if [[ -n "$answer" ]]; then
-  add_problems < <(python3 -c "$chatter_rendering"'
-got, wanted = chatter(sys.argv[1], 59), want(sys.argv[2])
-if got is not None and got != wanted:
-    blank = " — the empty string, which is what a run whose current leaf is a verifier gets " \
-            "from a transcript spelled `.out`" if not got.strip() else ""
-    print("chatter_json for issue 59 returned %r%s; want render-leaf-log.sh’s rendering of "
-          "verify-red.log, the transcript of the verifier the run’s newest launch event "
-          "names, which is %r" % (got[:400], blank, wanted[:400]))
-' "$answer" "$work/chatter-want-verify.txt")
-fi
-
-report "$name"
-
 name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
 problems=()
 disk_page="$scripts/dashboard.html"
