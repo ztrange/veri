@@ -111,16 +111,24 @@ probe_every_exemption_still_names_its_site
 
 report "$name"
 
-scratch_leaf_env() {
+FIXTURE_REL='skills/tdd/scripts/fixture-step.sh'
+FIXTURE_TEXT=$'STEP=\'A title naming `kill \x251` as written\''
+FIXTURE_KEY="$FIXTURE_REL:$FIXTURE_TEXT"
+
+fixture() {
+  printf '%s\n' '#!/usr/bin/env bash' "$FIXTURE_TEXT" 'printf "%s\n" "$STEP"'
+}
+
+scratch_fixture() {
   ROOT="$(scratch_dir)"
-  mkdir -p "$ROOT/$tests"
-  cat > "$ROOT/$tests/skill-leaf-env.test.sh"
+  mkdir -p "$ROOT/${FIXTURE_REL%/*}"
+  cat > "$ROOT/$FIXTURE_REL"
 }
 
 probe_lines_inserted_above_an_exemption() {
-  local ROOT tests="skills/tdd/scripts/tests"
-  [[ -e "$HERE/skill-leaf-env.test.sh" ]] || return 0
-  scratch_leaf_env < <(printf '# inserted\n# inserted\n# inserted\n'; cat "$HERE/skill-leaf-env.test.sh")
+  local ROOT
+  local -A EXEMPT=([$FIXTURE_KEY]="a fixture's step title, quoted, never run")
+  scratch_fixture < <(printf '# inserted\n# inserted\n# inserted\n'; fixture)
   probe_no_file_kills_by_job_spec
   probe_every_exemption_still_names_its_site
 }
@@ -133,15 +141,14 @@ probe_lines_inserted_above_an_exemption
 report "$name"
 
 probe_an_edited_exempted_line() {
-  local ROOT tests="skills/tdd/scripts/tests" entry problem
-  entry=$'skills/tdd/scripts/tests/skill-leaf-env.test.sh:EXPANDING_STEP=\'A title naming `kill \x251`, the "blind" verifier and $HOME reaches the leaf as written\''
-  [[ -e "$HERE/skill-leaf-env.test.sh" ]] || return 0
-  scratch_leaf_env < <(sed 's/reaches the leaf as written/reaches the leaf verbatim/' "$HERE/skill-leaf-env.test.sh")
+  local ROOT problem
+  local -A EXEMPT=([$FIXTURE_KEY]="a fixture's step title, quoted, never run")
+  scratch_fixture < <(fixture | sed 's/as written/verbatim/')
   problems=()
   probe_every_exemption_still_names_its_site
   edited_entry_named="not named"
   for problem in ${problems+"${problems[@]}"}; do
-    [[ "$problem" == *"[$entry]"* ]] && edited_entry_named="named"
+    [[ "$problem" == *"[$FIXTURE_KEY]"* ]] && edited_entry_named="named"
   done
   problems=()
 }
@@ -154,16 +161,16 @@ probe_an_edited_exempted_line
 expect_eq "$name" "named" "$edited_entry_named"
 
 probe_an_unexempted_job_spec_kill() {
-  local ROOT tests="skills/tdd/scripts/tests" line problem
-  [[ -e "$HERE/skill-leaf-env.test.sh" ]] || return 0
-  scratch_leaf_env < <(sed 's/reaches the leaf as written/reaches the leaf verbatim/' "$HERE/skill-leaf-env.test.sh")
-  line="$(grep -n 'reaches the leaf verbatim' "$ROOT/$tests/skill-leaf-env.test.sh")"
+  local ROOT line problem
+  local -A EXEMPT=([$FIXTURE_KEY]="a fixture's step title, quoted, never run")
+  scratch_fixture < <(fixture | sed 's/as written/verbatim/')
+  line="$(grep -n 'verbatim' "$ROOT/$FIXTURE_REL")"
   line="${line%%:*}"
   problems=()
   probe_no_file_kills_by_job_spec
   unexempted_site_named="not named"
   for problem in ${problems+"${problems[@]}"}; do
-    [[ "$problem" == "$tests/skill-leaf-env.test.sh:$line ends a background process by a job spec"* ]] && unexempted_site_named="named"
+    [[ "$problem" == "$FIXTURE_REL:$line ends a background process by a job spec"* ]] && unexempted_site_named="named"
   done
   problems=()
 }
@@ -176,13 +183,12 @@ probe_an_unexempted_job_spec_kill
 expect_eq "$name" "named" "$unexempted_site_named"
 
 probe_an_exemption_matching_two_lines() {
-  local ROOT tests="skills/tdd/scripts/tests" copy line lines=() problem
-  [[ -e "$HERE/skill-leaf-env.test.sh" ]] || return 0
-  scratch_leaf_env < <(cat "$HERE/skill-leaf-env.test.sh"; grep -F 'reaches the leaf as written' "$HERE/skill-leaf-env.test.sh")
-  copy="$ROOT/$tests/skill-leaf-env.test.sh"
+  local ROOT line lines=() problem
+  local -A EXEMPT=([$FIXTURE_KEY]="a fixture's step title, quoted, never run")
+  scratch_fixture < <(fixture; printf '%s\n' "$FIXTURE_TEXT")
   while IFS= read -r line; do
     lines+=("${line%%:*}")
-  done < <(grep -nF 'reaches the leaf as written' "$copy")
+  done < <(grep -nF 'as written' "$ROOT/$FIXTURE_REL")
   problems=()
   probe_every_exemption_carries_a_reason
   probe_no_file_kills_by_job_spec
@@ -191,7 +197,7 @@ probe_an_exemption_matching_two_lines() {
   matching_lines_named=""
   for line in "${lines[@]}"; do
     for problem in ${problems+"${problems[@]}"}; do
-      if [[ "$problem" == *"$tests/skill-leaf-env.test.sh:$line" || "$problem" == *"$tests/skill-leaf-env.test.sh:$line"[!0-9]* ]]; then
+      if [[ "$problem" == *"$FIXTURE_REL:$line" || "$problem" == *"$FIXTURE_REL:$line"[!0-9]* ]]; then
         matching_lines_named+="${matching_lines_named:+ }$line"
         break
       fi
@@ -209,15 +215,15 @@ probe_an_exemption_matching_two_lines
 expect_eq "$name" "$matching_lines_expected" "$matching_lines_named"
 
 probe_an_exemption_with_no_reason() {
-  local entry problem
-  entry=$'skills/tdd/scripts/tests/skill-leaf-env.test.sh:EXPANDING_STEP=\'A title naming `kill \x251`, the "blind" verifier and $HOME reaches the leaf as written\''
-  local -A EXEMPT=([$entry]="")
+  local ROOT problem
+  local -A EXEMPT=([$FIXTURE_KEY]="")
+  scratch_fixture < <(fixture)
   problems=()
   probe_every_exemption_carries_a_reason
   probe_no_file_kills_by_job_spec
   reasonless_entry_named="not named"
   for problem in ${problems+"${problems[@]}"}; do
-    [[ "$problem" == "the exemption entry [$entry] carries no reason"* ]] && reasonless_entry_named="named"
+    [[ "$problem" == "the exemption entry [$FIXTURE_KEY] carries no reason"* ]] && reasonless_entry_named="named"
   done
   problems=()
 }
