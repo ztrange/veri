@@ -27,6 +27,11 @@ def main(argv):
     baseline = argv[0] if argv else ""
     if not is_whole(baseline):
         return refuse(f"leaf-timeout: <baseline-seconds> must be a whole number >= 0: {baseline}")
+    if argv[1:2] == ["--full"]:
+        full = argv[2] if len(argv) > 2 else ""
+        if not is_whole(full):
+            return refuse(f"leaf-timeout: <full-seconds> must be a whole number >= 0: {full}")
+        baseline = full
     derived = max(900, int(baseline) * 6)
     if argv[1:2] == ["refactor"]:
         derived *= max(1, int(os.environ.get("VERI_REFACTOR_BUDGET") or "5"))

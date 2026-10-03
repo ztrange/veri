@@ -88,3 +88,30 @@ def test_main_with_refactor_multiplies_the_derived_timeout_by_max_1_veri_refacto
         ("900", "5", "200", 0, "900\n", ""),
         ("1800", "5", "200", 0, "1800\n", ""),
     ]
+
+
+def test_main_with_full_derives_from_the_full_tier_prints_an_explicit_veri_timeout_as_given_and_refuses_a_malformed_full_tier(monkeypatch, capsys, leaf_timeout):
+    seen = []
+    for timeout, argv in (
+            (None, ["5", "--full", "600"]),
+            ("900", ["5", "--full", "600"]), ("7200", ["5", "--full", "20"]), ("1", ["150", "--full", "151"]),
+            (None, ["5", "--full", "abc"]), (None, ["5", "--full", "-1"]), (None, ["5", "--full", "1.5"]),
+            (None, ["5", "--full"])):
+        if timeout is None:
+            monkeypatch.delenv("VERI_TIMEOUT", raising=False)
+        else:
+            monkeypatch.setenv("VERI_TIMEOUT", timeout)
+        code = leaf_timeout.main(argv)
+        out, err = capsys.readouterr()
+        seen.append((timeout, argv, code, out, err))
+    refusal = "leaf-timeout: <full-seconds> must be a whole number >= 0: {}\n" + USAGE + "\n"
+    assert seen == [
+        (None, ["5", "--full", "600"], 0, "3600\n", ""),
+        ("900", ["5", "--full", "600"], 0, "900\n", ""),
+        ("7200", ["5", "--full", "20"], 0, "7200\n", ""),
+        ("1", ["150", "--full", "151"], 0, "1\n", ""),
+        (None, ["5", "--full", "abc"], 2, "", refusal.format("abc")),
+        (None, ["5", "--full", "-1"], 2, "", refusal.format("-1")),
+        (None, ["5", "--full", "1.5"], 2, "", refusal.format("1.5")),
+        (None, ["5", "--full"], 2, "", refusal.format("")),
+    ]
