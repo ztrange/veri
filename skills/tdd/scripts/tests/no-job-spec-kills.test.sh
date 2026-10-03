@@ -149,4 +149,29 @@ probe_an_edited_exempted_line
 
 expect_eq "$name" "named" "$edited_entry_named"
 
+probe_an_unexempted_job_spec_kill() {
+  local ROOT tests="skills/tdd/scripts/tests" line problem
+  [[ -e "$HERE/skill-leaf-env.test.sh" ]] || return 0
+  ROOT="$(scratch_dir)"
+  mkdir -p "$ROOT/$tests"
+  sed 's/reaches the leaf as written/reaches the leaf verbatim/' "$HERE/skill-leaf-env.test.sh" \
+    > "$ROOT/$tests/skill-leaf-env.test.sh"
+  line="$(grep -n 'reaches the leaf verbatim' "$ROOT/$tests/skill-leaf-env.test.sh")"
+  line="${line%%:*}"
+  problems=()
+  probe_no_file_kills_by_job_spec
+  unexempted_site_named="not named"
+  for problem in ${problems+"${problems[@]}"}; do
+    [[ "$problem" == "$tests/skill-leaf-env.test.sh:$line ends a background process by a job spec"* ]] && unexempted_site_named="named"
+  done
+  problems=()
+}
+
+name="a job-spec kill no exemption's text matches turns the no-job-spec-kill case red, naming <file>:<line>"
+unexempted_site_named=""
+
+probe_an_unexempted_job_spec_kill
+
+expect_eq "$name" "named" "$unexempted_site_named"
+
 finish
