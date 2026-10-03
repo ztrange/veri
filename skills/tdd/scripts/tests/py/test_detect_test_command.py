@@ -254,3 +254,56 @@ def test_main_without_a_tier_leaves_every_single_command_answer_as_today_and_exi
         want[shape] = (0, command + "\n") if command else (3, "")
 
     assert got == want
+
+
+def test_main_with_a_tier_answers_from_its_claude_md_marker_and_falls_back_to_the_single_command_chain(tmp_path, capsys, detect):
+    def repo(name, files):
+        root = tmp_path / name
+        root.mkdir()
+        for path, text in files.items():
+            (root / path).parent.mkdir(parents=True, exist_ok=True)
+            (root / path).write_text(text)
+        return str(root)
+
+    makefile = "test:\n\techo hi\n"
+    both = repo("tiered-both", {"Makefile": makefile, "CLAUDE.md": '# demo\n\nveri: fast tests: bin/fast-suite  --only "unit tier" -q\nveri: all tests: bin/all-suite  --every "suite there is" -v\n'})
+    quoted = repo("tiered-anywhere-quoted", {"Makefile": makefile, "CLAUDE.md": (
+        "# demo\n\n"
+        "Leaves never read `veri: fast tests: bin/quoted-fast` as a declaration.\n"
+        "In this repo the fast tier is veri: fast tests: `bin/real-fast -q`. More prose.\n"
+        "Nor `veri: all tests: bin/quoted-all` either.\n"
+        "And the full suite is veri: all tests: `bin/real-all -v`. More prose.\n"
+    )})
+    tierless = repo("tierless-claude-md", {"Makefile": makefile, "CLAUDE.md": "# demo\n\nThe fast tests and all tests are the same here.\n"})
+    no_claude = repo("tierless-no-claude-md", {".veri/test-command": "bin/run-suite --all --strict\n"})
+    all_only = repo("tiered-all-only", {"Makefile": makefile, "CLAUDE.md": "# demo\n\nveri: all tests: bin/all-only-suite --every -v\n"})
+    issue_both = repo("tiered-issue-both", {"Makefile": makefile, "CLAUDE.md": "# demo\n\nveri: fast tests: bin/fast-suite --unit -q\nveri: all tests: bin/all-suite --every -v\n"})
+    issue_all_only = repo("tiered-issue-all-only", {"Makefile": makefile, "CLAUDE.md": "# demo\n\nveri: all tests: bin/all-suite --every -v\n"})
+    body = tmp_path / "tiered-issue-body.md"
+    body.write_text('## Notes\n\nTest command: bin/issue-suite --only "this run" -q\n')
+    veri = str(SCRIPTS.parents[2])
+
+    cases = {
+        ("both", "fast"): (["--tier", "fast", both], 'bin/fast-suite  --only "unit tier" -q'),
+        ("both", "all"): (["--tier", "all", both], 'bin/all-suite  --every "suite there is" -v'),
+        ("quoted", "fast"): (["--tier", "fast", quoted], "bin/real-fast -q"),
+        ("quoted", "all"): (["--tier", "all", quoted], "bin/real-all -v"),
+        ("tierless", "fast"): (["--tier", "fast", tierless], "make test"),
+        ("tierless", "all"): (["--tier", "all", tierless], "make test"),
+        ("no-claude-md", "fast"): (["--tier", "fast", no_claude], "bin/run-suite --all --strict"),
+        ("no-claude-md", "all"): (["--tier", "all", no_claude], "bin/run-suite --all --strict"),
+        ("all-only", "fast"): (["--tier", "fast", all_only], "make test"),
+        ("issue-both", "fast"): (["--tier", "fast", "--issue", str(body), issue_both], "bin/fast-suite --unit -q"),
+        ("issue-both", "all"): (["--tier", "all", "--issue", str(body), issue_both], 'bin/issue-suite --only "this run" -q'),
+        ("issue-all-only", "fast"): (["--tier", "fast", "--issue", str(body), issue_all_only], "make test"),
+        ("issue-all-only", "all"): (["--tier", "all", "--issue", str(body), issue_all_only], 'bin/issue-suite --only "this run" -q'),
+        ("veri", "fast"): (["--tier", "fast", veri], "make unit"),
+        ("veri", "all"): (["--tier", "all", veri], "make test"),
+    }
+
+    got, want = {}, {}
+    for key, (argv, command) in cases.items():
+        got[key] = (detect.main(argv), capsys.readouterr().out)
+        want[key] = (0, command + "\n")
+
+    assert got == want
