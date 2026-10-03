@@ -1,9 +1,127 @@
 """comment-class.sh's classification, run in-process."""
+import re
 import sys
 
 USAGE = "usage: comment-class.sh [--sweepable] <file>…"
 
+SPACE = "[ \t\n\v\f\r]"
+NAME = "[A-Za-z_][A-Za-z0-9_]*"
+WRITER = r"\|" + SPACE + "*(tee|dd|sponge)" + SPACE
+COMMENT = re.compile("^" + SPACE + "*#")
+MARKED = re.compile("^" + SPACE + "*# (hazard|pass-through):")
+MD_ASSIGNMENT = re.compile(NAME + "=[^ \t\n\v\f\r;]*\\.md[\"']?(" + SPACE + "|;|$)")
+HEREDOC = re.compile("<<-?" + SPACE + "*[\"']?" + NAME)
+FD_REDIRECT = re.compile("[02-9]>+" + SPACE + "*[^ \t\n\v\f\r]*")
+TO_FILE = re.compile(">" + SPACE + "*[^& \t\n\v\f\r]")
+TO_WRITER = re.compile(WRITER)
+TO_MD = re.compile("(>|" + WRITER + "[^|]*)" + SPACE + "*[^&| \t\n\v\f\r]*\\.md[\"']?(" + SPACE + "|$)")
+TO_VARIABLE = re.compile(">" + SPACE + "*\"?\\$" + NAME)
+
+
+class Scanner:
+    def __init__(self, sweepable, out):
+        self.sweepable = sweepable
+        self.out = out
+        self.cls = self.dash = self.body = 0
+
+    def reset(self, first):
+        self.delim, self.q, self.mdvar = "", "", set()
+        self.header = first.startswith("#!")
+
+    def pop(self):
+        self.q = self.q[:-1]
+
+    def scan(self, s):
+        u = []
+        i = 0
+        while i < len(s):
+            c, t = s[i], self.q[-1:]
+            u.append("_" if t in ("'", '"') and c == "<" else c)
+            if t == "'":
+                if c == "'":
+                    self.pop()
+            elif c == "\\":
+                i += 1
+            elif t == '"':
+                if c == '"':
+                    self.pop()
+                elif c == "$" and s[i + 1:i + 2] == "(":
+                    self.q += "("
+                    i += 1
+            elif t == "(" and c == ")":
+                self.pop()
+            elif t == "(" and c == "(":
+                self.q += "("
+            elif c == "#" and i > 0 and re.match(SPACE, s[i - 1]):
+                return "".join(u)
+            elif c in ("'", '"'):
+                self.q += c
+            i += 1
+        return "".join(u)
+
+    def record(self, name, number, line):
+        if number == 1:
+            self.reset(line)
+        comment = COMMENT.match(line) is not None
+        if not comment:
+            self.header = False
+        if self.delim != "":
+            end = line.lstrip("\t") if self.dash else line
+            if end == self.delim:
+                self.delim = ""
+            elif comment and not (self.sweepable and (self.cls == 3 or (self.body and end.startswith("#!")))):
+                self.out.write("%s:%d:%d\n" % (name, number, self.cls))
+            self.body = 0
+            return
+        if self.q != "":
+            self.scan(line)
+            return
+        if comment:
+            if not (self.sweepable and (self.header or MARKED.match(line))):
+                self.out.write("%s:%d:1\n" % (name, number))
+            return
+        line = self.scan(line).replace("<<<", "")
+        assigned = MD_ASSIGNMENT.search(line)
+        if assigned:
+            self.mdvar.add(assigned.group(0).split("=", 1)[0])
+        opener = HEREDOC.search(line)
+        if opener:
+            out = FD_REDIRECT.sub("", line)
+            self.cls = 2 if TO_FILE.search(out) or TO_WRITER.search(out) else 3
+            if TO_MD.search(out):
+                self.cls = 3
+            delim = opener.group(0)[2:]
+            self.dash = delim.startswith("-")
+            self.body = 1
+            self.delim = re.sub("^-?" + SPACE + "*[\"']?", "", delim, count=1)
+            variable = TO_VARIABLE.search(out)
+            if variable and re.sub("^>" + SPACE + "*\"?\\$", "", variable.group(0)) in self.mdvar:
+                self.cls = 3
+
+
+def read_lines(name):
+    with open(name, "rb") as f:
+        data = f.read()
+    lines = data.decode("latin-1").split("\n")
+    if lines[-1] == "":
+        lines.pop()
+    return lines
+
 
 def main(argv):
-    print(USAGE, file=sys.stderr)
-    return 2
+    args = list(argv)
+    sweepable = bool(args) and args[0] == "--sweepable"
+    if sweepable:
+        args.pop(0)
+    if not args:
+        print(USAGE, file=sys.stderr)
+        return 2
+    scanner = Scanner(sweepable, sys.stdout)
+    for name in args:
+        for number, line in enumerate(read_lines(name), 1):
+            scanner.record(name, number, line)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
