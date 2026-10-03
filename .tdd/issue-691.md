@@ -1,7 +1,7 @@
 # Plan for #691 — the structural pass hands the transform verifier a runnable predicate, not a prose candidate
 
 - [x] build-develop-prompt.sh predicate <spec> <candidate> <test-cmd> <issue-touched-files> prints a predicate-leaf prompt carrying the candidate, the touched files and the test command, asking for one shell predicate that fails on the current tree and succeeds once the candidate is applied, reported as a `PREDICATE: <command>` or `PREDICATE: NONE — <why>` line; a missing argument is exit 2 with no stdout ⟦criterion 1⟧
-- [x] structural-predicate.sh <record>, reading a predicate leaf's report on stdin whose `PREDICATE:` command fails against the current tree, writes that command to <record> and exits 0 ⟦criterion 1⟧ ⟂ refactor pending
+- [x] structural-predicate.sh <record>, reading a predicate leaf's report on stdin whose `PREDICATE:` command fails against the current tree, writes that command to <record> and exits 0 ⟦criterion 1⟧
 - [ ] structural-predicate.sh exits 1 and writes no record when the reported `PREDICATE:` command already succeeds against the current tree, since a predicate true before the transform cannot tell the transform happened ⟦criterion 1⟧
 - [ ] structural-predicate.sh exits 3 and writes no record when the report says `PREDICATE: NONE`, and exits 2 with no record when the report carries no `PREDICATE:` line ⟦criterion 2⟧
 - [ ] refactor-overflow.sh <n> <owed-file> <reached> <skipped-file> files the candidates listed in <skipped-file> in the overflow issue beside the unreached ones, and files them even when every candidate was reached ⟦criterion 2⟧
