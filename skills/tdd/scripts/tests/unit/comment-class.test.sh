@@ -256,8 +256,6 @@ dashboard:# Plan for #3 — an earlier run's committed plan
 dashboard:# Plan for #54 — lamps buzz
 dashboard:# Plan for #59 — lamps flare
 dashboard:# Plan for #61 — lamps flicker
-dashboard:# Plan for #63 — lamps dim
-dashboard:# Plan for #65 — lamps hum
 dashboard:# Plan for #77 — a kettle boils
 invisible-work:#!/bin/sh
 orchestrate:# A stopped conductor must be stopped by a signal, not by its writes failing, so this stub
