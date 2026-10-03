@@ -96,3 +96,11 @@ def test_main_with_no_test_run_event_for_the_tier_raises_and_prints_nothing_on_s
         tier_usual.main(["fast"])
     out, _ = capsys.readouterr()
     assert out == ""
+
+
+def test_main_with_no_event_log_raises_and_prints_nothing_on_stdout(capsys, monkeypatch, tmp_path, tier_usual):
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(Exception):
+        tier_usual.main(["fast"])
+    out, _ = capsys.readouterr()
+    assert out == ""
