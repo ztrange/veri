@@ -146,3 +146,28 @@ def test_main_skips_a_marker_quoted_inside_a_backtick_span_and_answers_a_stated_
         (0, "make test\n"),
         (0, "make test\n"),
     ]
+
+
+def test_main_answers_veri_test_command_ahead_of_package_json_and_makefile_and_names_the_node_runner_by_lockfile(tmp_path, capsys, detect):
+    def answer(repo):
+        return detect.main([str(repo)]), capsys.readouterr().out
+
+    override = tmp_path / "override"
+    (override / ".veri").mkdir(parents=True)
+    (override / ".veri" / "test-command").write_text("bin/run-suite --all --strict\n")
+    (override / "package.json").write_text('{"scripts":{"test":"jest"}}\n')
+    (override / "Makefile").write_text("test:\n\techo hi\n")
+    lockfiles = {"npm": None, "pnpm": ("pnpm-lock.yaml", "lockfileVersion: 9.0\n"), "yarn": ("yarn.lock", "# yarn lockfile v1\n")}
+    for runner, lockfile in lockfiles.items():
+        repo = tmp_path / f"node-{runner}"
+        repo.mkdir()
+        (repo / "package.json").write_text('{"scripts":{"test":"jest"}}\n')
+        if lockfile:
+            (repo / lockfile[0]).write_text(lockfile[1])
+
+    assert [answer(override)] + [answer(tmp_path / f"node-{runner}") for runner in lockfiles] == [
+        (0, "bin/run-suite --all --strict\n"),
+        (0, "npm test\n"),
+        (0, "pnpm test\n"),
+        (0, "yarn test\n"),
+    ]
