@@ -60,4 +60,9 @@ undone="$("$STEPS" last-done < "$work/undone.md" 2>> "$work/err")"; undone_code=
   && [[ "$undone_code" == 3 ]] && [[ -z "$undone" ]] && [[ ! -s "$work/err" ]]; } \
   && ok || no "last-done prints the last done step with ⟂ refactor pending cut, else exits 3 with no output (last_code=$last_code last='$last' undone_code=$undone_code undone='$undone' stderr='$(cat "$work/err")')"
 
+printf '# Plan for #42\n\n- [x] add lowercasing ⟦criterion 1⟧\n- [x]\n- [ ] strip edge hyphens ⟦criterion 2⟧\n' > "$work/empty.md"
+"$STEPS" last-done < "$work/empty.md" > "$work/out" 2> "$work/err"; code=$?
+{ [[ "$code" == 0 ]] && cmp -s <(printf '\n') "$work/out" && [[ ! -s "$work/err" ]]; } \
+  && ok || no "last-done counts a done step with empty text as done: prints an empty line and exits 0, not 3 (code=$code out='$(cat "$work/out")' bytes=$(wc -c < "$work/out" | tr -d ' ') stderr='$(cat "$work/err")')"
+
 finish
