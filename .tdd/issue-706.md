@@ -5,5 +5,5 @@
 - [ ] Record of a manual check: each planted-roster probe, with the roster probe broken on purpose, goes red naming the guard or the empty roster, then is put back ⟦human-owed⟧ ⟦criterion 2⟧
 - [x] The started-child case still runs the roster probe with its failing stubs standing in as HERE, so a probe that starts a guard by `$HERE/<guard>` touches a `.started` file ⟦diff-checked⟧ ⟦criterion 3⟧
 - [ ] Record of a manual check: the started-child case goes red when the roster probe is made to start a guard, then is put back ⟦human-owed⟧ ⟦criterion 3⟧
-- [ ] The started-child case and the header case keep their names and assertions unchanged by the branch ⟦diff-checked⟧ ⟦criterion 4⟧
+- [x] The started-child case and the header case keep their names and assertions unchanged by the branch ⟦diff-checked⟧ ⟦criterion 4⟧
 - [ ] make test is green ⟦full-suite⟧ ⟦criterion 5⟧
