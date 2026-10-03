@@ -403,6 +403,21 @@ for args in "" "--sweepable"; do
 done
 verdict "comment-class.sh with no argument, and with --sweepable alone, exits 2 with empty stdout and only its usage line on stderr"
 
+problems=""
+f="$work/linked.sh"
+printf '%s\n' '# a comment in code' 'cat > out.txt <<EOF' '# written' 'EOF' > "$f"
+mkdir -p "$work/elsewhere"
+ln -s "$(cd "$SCRIPTS/.." && pwd)" "$work/linked-skill"
+in_place="$("$CLASSIFY" "$f" 2>&1)" && in_place_code=0 || in_place_code=$?
+linked="$(cd "$work/elsewhere" && "$work/linked-skill/scripts/comment-class.sh" "$f" 2>&1)" && linked_code=0 || linked_code=$?
+if [[ "$in_place" != "$f:1:1"$'\n'"$f:3:2" || "$in_place_code" != 0 ]]; then
+  problems+="    in place: want '$f:1:1' and '$f:3:2', exit 0; got exit $in_place_code:"$'\n'"$in_place"$'\n'
+fi
+if [[ "$linked" != "$in_place" || "$linked_code" != "$in_place_code" ]]; then
+  problems+="    through the symlink from $work/elsewhere: want exit $in_place_code and:"$'\n'"$in_place"$'\n'"    got exit $linked_code:"$'\n'"$linked"$'\n'
+fi
+verdict "comment-class.sh, run through a symlink to the skill directory and from another working directory, prints the same lines and exit code as when run in place"
+
 header_walk='FNR == 1 { header = /^#!/; para = 0; fresh = 1; next }
   header && /^#$/ { fresh = 1; next }
   !(header && /^#/) { header = 0; next }'
