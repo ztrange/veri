@@ -333,4 +333,29 @@ linked_event="$(usage_event "$linked_work")"
 
 report "$name"
 
+name="harvest-usage.sh exits 1 with no usage event appended when .tdd/<name>.log is missing, 3 when the log has no closing result record, and 2 with exactly its usage line when given no argument"
+problems=()
+
+absent=develop-green
+absent_work="$work/absent"
+mkdir -p "$absent_work/.tdd"
+( cd "$absent_work" && "$HARVEST" "$absent" ) >/dev/null 2>&1 && absent_code=0 || absent_code=$?
+[[ "$absent_code" == 1 ]] ||
+  problems+=("no log file: want exit 1, got $absent_code")
+absent_usage_lines="$(event_count "$absent_work" usage)"
+[[ "$absent_usage_lines" == 0 ]] ||
+  problems+=("no log file: want 0 usage lines in the event log, got $absent_usage_lines")
+
+( cd "$killed_work" && "$HARVEST" "$killed" ) >/dev/null 2>&1 && unrecorded_code=0 || unrecorded_code=$?
+[[ "$unrecorded_code" == 3 ]] ||
+  problems+=("no closing result record: want exit 3, got $unrecorded_code")
+
+bare_err_text="$( ( cd "$absent_work" && "$HARVEST" ) 2>&1 >/dev/null )" && bare_code=0 || bare_code=$?
+[[ "$bare_code" == 2 ]] ||
+  problems+=("no argument: want exit 2, got $bare_code")
+[[ "$bare_err_text" == "usage: harvest-usage.sh <leaf-name>" ]] ||
+  problems+=("no argument: want exactly $(printf '%q' 'usage: harvest-usage.sh <leaf-name>') on stderr, got $(printf '%q' "$bare_err_text")")
+
+report "$name"
+
 finish
