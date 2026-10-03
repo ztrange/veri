@@ -112,6 +112,17 @@ a remark
 check_code "#580: a first refusal on a ledger with no Owed steps heading still creates it, its bullet under it" \
   "$code" 1 "$want"
 
+printf '%s\n\n## Owed steps\n\n- earlier refused\n' "$seeded" > "$led"
+steps_before="$(grep -F -- '- [' "$led")"
+VERI_STEP_GROWTH=0 "$ADD" "$led" after 'collapse to single hyphen' 'later refused'; code=$?
+steps_after="$(grep -F -- '- [' "$led")"
+if [[ "$code" == 1 && "$steps_after" == "$steps_before" ]]; then
+  ok
+else
+  no "#580: a second refusal under the existing Owed steps heading exits 1 and leaves the checkbox steps byte-identical (code=$code)"
+  diff <(printf '%s\n' "$steps_before") <(printf '%s\n' "$steps_after") | sed 's/^/    /'
+fi
+
 seed
 "$ADD" "$led" after 'no such step' 'collapse a unicode dash too'; code1=$?
 "$ADD" "$led" after 'hyphen' 'collapse a unicode dash too'; code2=$?
