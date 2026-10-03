@@ -402,10 +402,10 @@ problems=()
 
 owed_file="$(mktemp)"
 "$OWED" append "$owed_file" 'a step that touched only test files' \
-  'skills/tdd/scripts/tests/unit/scratch-copy-libs.test.sh,skills/tdd/scripts/tests/lib/harness.sh' <<'REPORT' && code=0 || code=$?
+  'skills/tdd/scripts/tests/unit/lib-walk.test.sh,skills/tdd/scripts/tests/lib/harness.sh' <<'REPORT' && code=0 || code=$?
 RESULT: applied "name the lib-copy walk once", suite green
 FLAGS: none
-CANDIDATES: structural | merge the full-path check at scratch-copy-libs.test.sh:45 into the /lib/<name>.sh loop
+CANDIDATES: structural | merge the full-path check at lib-walk.test.sh:45 into the /lib/<name>.sh loop
 REPORT
 
 [[ "$code" == 0 ]] ||
@@ -422,8 +422,8 @@ problems=()
 
 owed_file="$(mktemp)"
 "$OWED" append "$owed_file" 'a step that touched only test files' \
-  'skills/tdd/scripts/tests/unit/scratch-copy-libs.test.sh,skills/tdd/scripts/tests/lib/harness.sh' <<'REPORT'
-CANDIDATES: structural | merge the full-path check at scratch-copy-libs.test.sh:45 into the /lib/<name>.sh loop
+  'skills/tdd/scripts/tests/unit/lib-walk.test.sh,skills/tdd/scripts/tests/lib/harness.sh' <<'REPORT'
+CANDIDATES: structural | merge the full-path check at lib-walk.test.sh:45 into the /lib/<name>.sh loop
 REPORT
 
 rendered="$(mktemp)"
@@ -432,7 +432,7 @@ rendered="$(mktemp)"
 [[ "$code" == 0 ]] ||
   problems+=("want exit 0 from render, got $code")
 
-transform='merge the full-path check at scratch-copy-libs.test.sh:45 into the /lib/<name>.sh loop'
+transform='merge the full-path check at lib-walk.test.sh:45 into the /lib/<name>.sh loop'
 heading_at="$(line_of "$rendered" '### Test-only')"
 if [[ -z "$heading_at" ]]; then
   problems+=("render printed no '### Test-only' heading:" "$(cat "$rendered")")
