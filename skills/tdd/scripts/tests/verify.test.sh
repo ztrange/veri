@@ -717,4 +717,42 @@ rb_malformed_code=$rv_code rb_malformed_name="$rv_name"
   && [[ "$rb_malformed_name" == verify-rebase ]]; } && ok \
   || no "run-verdict.sh rebase returns a verify-rebase leaf's verdict, supervised under that name (PASS arm: code=$rb_pass_code want 0, leaf=$rb_pass_name; REJECT arm: code=$rb_reject_code want 1, leaf=$rb_reject_name; malformed arm: code=$rb_malformed_code want 2, leaf=$rb_malformed_name; every leaf want verify-rebase)"
 
+diff_verdict() {  # diff_verdict <dir> <entry> <fake-out> <args…> -> sets $dv_code, $dv_prompt
+  local dir="$1" entry="$2" text="$3"
+  shift 3
+  mkdir -p "$dir"
+  ( cd "$dir" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$dir/argv" FAKE_OUT_TEXT="$text" \
+      "$HERE/../$entry" "$@" ) >/dev/null 2>"$dir/err"
+  dv_code=$?
+  dv_prompt=no
+  if grep -F 'git diff 0123abc..HEAD' "$dir/argv" >/dev/null 2>&1 \
+     && grep -F 'DIFF-STEP the old cases are gone' "$dir/argv" >/dev/null 2>&1 \
+     && grep -F 'slugify must lowercase' "$dir/argv" >/dev/null 2>&1; then
+    dv_prompt=yes
+  fi
+}
+
+diff_problems=""
+for entry in verify.sh run-verdict.sh; do
+  diff_verdict "$work/diff-pass-$entry" "$entry" 'VERDICT: PASS
+REASON: the diff removes the cases.' --step 'DIFF-STEP the old cases are gone' diff "$work/spec.md" 0123abc
+  [[ "$dv_code" == 0 && "$dv_prompt" == yes ]] \
+    || diff_problems="$diff_problems; $entry PASS arm: code=$dv_code want 0, prompt carries spec, step and git diff 0123abc..HEAD: $dv_prompt ($(head -1 "$work/diff-pass-$entry/err"))"
+  diff_verdict "$work/diff-reject-$entry" "$entry" 'VERDICT: REJECT
+REASON: the diff leaves a case behind.' --step 'DIFF-STEP the old cases are gone' diff "$work/spec.md" 0123abc
+  [[ "$dv_code" == 1 ]] \
+    || diff_problems="$diff_problems; $entry REJECT arm: code=$dv_code want 1 ($(head -1 "$work/diff-reject-$entry/err"))"
+  diff_verdict "$work/diff-nostep-$entry" "$entry" 'VERDICT: PASS
+REASON: ok' diff "$work/spec.md" 0123abc
+  [[ "$dv_code" == 2 ]] || diff_problems="$diff_problems; $entry with no --step: code=$dv_code want 2"
+  diff_verdict "$work/diff-nonhex-$entry" "$entry" 'VERDICT: PASS
+REASON: ok' --step 'DIFF-STEP the old cases are gone' diff "$work/spec.md" not-a-sha
+  [[ "$dv_code" == 2 ]] || diff_problems="$diff_problems; $entry with a non-hex base sha: code=$dv_code want 2"
+  diff_verdict "$work/diff-extra-$entry" "$entry" 'VERDICT: PASS
+REASON: ok' --step 'DIFF-STEP the old cases are gone' diff "$work/spec.md" 0123abc extra
+  [[ "$dv_code" == 2 ]] || diff_problems="$diff_problems; $entry with an extra argument: code=$dv_code want 2"
+done
+[[ -z "$diff_problems" ]] && ok \
+  || no "verify.sh and run-verdict.sh --step diff <spec> <base-sha> run one blind diff verification: 0 on PASS, 1 on REJECT, 2 on a missing --step, a non-hex base sha or an extra argument (${diff_problems#; })"
+
 finish
