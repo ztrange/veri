@@ -26,9 +26,14 @@ ROLES = (
 )
 
 
+def fail(message):
+    print("session-cost.sh: " + message, file=sys.stderr)
+    return 2
+
+
 def refuse(message=None):
     if message is not None:
-        print(message, file=sys.stderr)
+        fail(message)
     print(USAGE, file=sys.stderr)
     return 2
 
@@ -235,8 +240,7 @@ def report(since, as_json, paths):
     tokens = totals(priced)
 
     if not priced:
-        print("session-cost.sh: no known model in any transcript", file=sys.stderr)
-        return 2
+        return fail("no known model in any transcript")
     price = PRICES[family(model_id(priced[0]))]
 
     cost = costed(tokens, price)
@@ -285,15 +289,12 @@ def main(argv):
     if not transcripts:
         transcripts = discover()
         if transcripts is None:
-            print("session-cost.sh: no transcript named, and not inside a git repository",
-                  file=sys.stderr)
-            return 2
+            return fail("no transcript named, and not inside a git repository")
     if not transcripts:
-        print("session-cost.sh: no transcripts found for this repository", file=sys.stderr)
-        return 2
+        return fail("no transcripts found for this repository")
     for path in transcripts:
         if not os.path.isfile(path):
-            return refuse("session-cost.sh: no such transcript: %s" % path)
+            return refuse("no such transcript: %s" % path)
     return report(since, as_json, transcripts)
 
 
