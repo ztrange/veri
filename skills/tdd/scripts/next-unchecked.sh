@@ -23,11 +23,10 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/exit-contract.sh"
 source "$HERE/lib/ledger.sh"
 
-open_step=$'^[0-9]+\topen\t(step|diff-checked)\t[^\t]*\t[^\t]*\t[^\t]*\t(.*)$'
-
 while IFS= read -r record; do
-  [[ "$record" =~ $open_step ]] || continue
-  printf '%s\n' "${BASH_REMATCH[2]}"
+  ledger_fields "$record"
+  [[ "$state" == open && ( "$kind" == step || "$kind" == diff-checked ) ]] || continue
+  printf '%s\n' "$text"
   exit 0
 done < <(ledger_steps)
 
