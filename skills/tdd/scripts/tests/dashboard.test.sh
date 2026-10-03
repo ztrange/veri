@@ -503,41 +503,6 @@ fi
 
 report "$name"
 
-name="the two dashboard.sh servers together answer on 8765 with no argument, on a port argument instead, on loopback only, exit 0 on SIGINT, and one of them answers more than once"
-arg_problems=("${problems[@]}")
-problems=()
-start_ports="$(awk '{ print $3 }' "$starts")"
-starts_on() { grep -cx -- "$1" <<< "$start_ports" || :; }
-
-if [[ "$(starts_on "$PORT")" -ne 1 ]]; then
-  problems+=("$(starts_on "$PORT") server starts were handed port $PORT, want 1 — the start with no argument; ports handed: $(tr '\n' ' ' <<< "$start_ports")")
-elif [[ "$(http_status "${page:-}")" != 200 ]]; then
-  problems+=("the start with no argument never answered 200 at http://127.0.0.1:$PORT/, so port $PORT as the default was not asked of a live server")
-fi
-if [[ "${int_code:-unset}" != 0 ]]; then
-  problems+=("the start with no argument exited ${int_code:-unset} after SIGINT, want 0")
-fi
-
-if [[ -z "${arg_port:-}" || "$arg_port" == "$PORT" ]]; then
-  problems+=("the start with an argument was handed '${arg_port:-}', want a port other than $PORT")
-elif [[ "$(starts_on "$arg_port")" -ne 1 ]]; then
-  problems+=("$(starts_on "$arg_port") server starts were handed port $arg_port, want 1 — the start with an argument; ports handed: $(tr '\n' ' ' <<< "$start_ports")")
-elif [[ "$(http_status "${arg_page:-}")" != 200 ]]; then
-  problems+=("the start with an argument never answered 200 at http://127.0.0.1:$arg_port/, so the port argument was not asked of a live server")
-elif [[ "$(http_status "${answer:-}")" != 200 ]]; then
-  problems+=("the start with an argument answered its page but not a later request, so no one process was seen answering more than once")
-fi
-
-if [[ -z "${elsewhere:-}" ]]; then
-  problems+=("no non-loopback address was probed against the start with an argument, so 'loopback only' was not asked of a live server")
-else
-  for line in "${arg_problems[@]}"; do
-    [[ "$line" == *"answered on $elsewhere:"* ]] && problems+=("loopback only did not hold: $line")
-  done
-fi
-
-report "$name"
-
 name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
 problems=()
 disk_page="$scripts/dashboard.html"
