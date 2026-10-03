@@ -73,9 +73,11 @@ def test_main_lists_orphans_chained_orphans_and_tail_names_and_takes_only_bounde
     answers = []
     for root in (orphans, tail, bounds):
         code = unreachable.main([str(root)])
-        answers.append((code, capsys.readouterr().out))
+        captured = capsys.readouterr()
+        answers.append((code, captured.out, captured.err))
 
-    assert answers == [(0, "orphan-leaf.sh\norphan-top.sh\n"), (0, "leaf.sh\n"), (0, "leaf.sh\n")]
+    assert answers == [
+        (0, "orphan-leaf.sh\norphan-top.sh\n", ""), (0, "leaf.sh\n", ""), (0, "leaf.sh\n", "")]
 
 
 def test_main_does_not_list_scripts_reached_from_a_procedure_file_a_recipe_or_a_hook_and_needs_no_hooks_or_lib_directory(tmp_path, capsys):
