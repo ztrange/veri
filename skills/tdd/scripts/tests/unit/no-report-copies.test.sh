@@ -58,7 +58,7 @@ scaffolding_hits() {
   counter_hits "$1"
 }
 
-HOISTED=(win window windows plain section_end frontmatter_name first_record record_number fenced_lines)
+HOISTED=(win window windows plain section_end frontmatter_name first_record record_number fenced_lines need_claude_md_records)
 
 hoisted_copy_hits() {
   local names hits hit file rest def
@@ -242,6 +242,20 @@ printf '%s\n' 'fenced_lines() { :; }' > "$plant/lib/fenced-lines.sh"
 got="$(hoisted_copy_hits "$plant" 2>&1)"
 expect_eq "$name" \
   "$(printf '    %s\n' 'a.test.sh:2 defines fenced_lines()' 'unit/b.test.sh:3 defines fenced_lines()')" \
+  "$got"
+
+name="#704: a suite that defines need_claude_md_records is named by <suite>:<line>"
+plant="$(scratch_dir)"
+mkdir -p "$plant/unit" "$plant/lib"
+printf '%s\n' '#!/usr/bin/env bash' 'need_claude_md_records() {' '  return 0' '}' > "$plant/a.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'x=1' '  function need_claude_md_records() { :; }' \
+  > "$plant/unit/b.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' '  need_claude_md_records || return' > "$plant/c.test.sh"
+printf '%s\n' 'need_claude_md_records() { :; }' > "$plant/lib/claude-md-records.sh"
+got="$(hoisted_copy_hits "$plant" 2>&1)"
+expect_eq "$name" \
+  "$(printf '    %s\n' 'a.test.sh:2 defines need_claude_md_records()' \
+    'unit/b.test.sh:3 defines need_claude_md_records()')" \
   "$got"
 
 name="#704: no suite under tests/ or tests/unit/ defines its own copy of a helper hoisted into tests/lib/"
