@@ -945,4 +945,25 @@ refuses "predicate missing issue-touched files" "$BUILD" predicate "$work/spec.m
 [[ -z "$problems" ]] \
   && ok || no "#691 develop-predicate asks for one shell predicate for a structural candidate, false on the current tree and true once it is applied, reported as PREDICATE: <command> or PREDICATE: NONE — <why>, and refuses a missing argument with exit 2 and no stdout (${problems#; })"
 
+problems=""
+rk_step='grep -q "zorblat_parse" scripts/lib/zorblat-parser.sh'
+printf '%s\n' "$rk_step" > "$work/rk-predicate.md"
+rk_base=0123abcdef
+rk_dev="$("$BUILD" transform "$work/spec.md" "$rk_step" "$test_cmd" 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; develop transform exited $code, want 0"
+rk_ver="$("$HERE/../build-verify-prompt.sh" --step "$rk_step" transform "$work/spec.md" "$work/rk-predicate.md" "$rk_base" 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; verify transform exited $code, want 0"
+[[ "$rk_dev" == *"$rk_step"* ]] || problems="$problems; develop transform prompt lacks the step text"
+[[ "$rk_ver" == *"$rk_step"* ]] || problems="$problems; verify transform prompt lacks the step text"
+[[ "$rk_ver" == *"$work/rk-predicate.md"* ]] || problems="$problems; verify transform prompt does not name the step's predicate record"
+for rk_label in develop verify; do
+  rk_prompt="$rk_dev"; [[ "$rk_label" == verify ]] && rk_prompt="$rk_ver"
+  prompt_lacks "$rk_prompt" "$rk_label transform prompt names structural-predicate.sh" -F -e 'structural-predicate'
+  prompt_lacks "$rk_prompt" "$rk_label transform prompt names a predicate leaf" -iE -e 'predicate leaf'
+  prompt_lacks "$rk_prompt" "$rk_label transform prompt offers PREDICATE: NONE" -F -e 'PREDICATE: NONE'
+  prompt_lacks "$rk_prompt" "$rk_label transform prompt speaks of the structural pass" -iE -e 'structural[* ]+pass'
+done
+[[ -z "$problems" ]] \
+  && ok || no "#691 a refactor-kind step's transform prompts, develop and verify, build from the step text and its own predicate record with no predicate leaf or structural-predicate.sh involved (${problems#; })"
+
 finish
