@@ -1,5 +1,6 @@
 """In-process cases for veri/capture_spec.py, the module capture-spec.sh is a shim over."""
 import importlib
+import json
 import pathlib
 import subprocess
 import sys
@@ -143,3 +144,36 @@ def test_main_appends_no_bug_section_for_an_unlabelled_issue_and_a_refactor_sect
         "\n## Refactor\n"
         "\nRun kind: refactor. This issue changes structure, not behaviour.\n"
     ), "")
+
+
+def refuse_graphql(monkeypatch, labels, body):
+    """subprocess.run refusing every `gh issue view` with the 403 and answering
+    `gh api repos/{owner}/{repo}/issues/<n>` with the issue's REST JSON, <body> None for null."""
+    refusal = "HTTP 403: GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)\n"
+
+    def fake_run(args, **kwargs):
+        if list(args[:3]) == ["gh", "issue", "view"]:
+            return subprocess.CompletedProcess(args, 1, "", refusal)
+        if list(args[:2]) == ["gh", "api"] and args[2].startswith("repos/{owner}/{repo}/issues/"):
+            n = args[2].rsplit("/", 1)[1]
+            issue = {"number": int(n), "body": body, "labels": [{"name": label} for label in labels]}
+            return subprocess.CompletedProcess(args, 0, json.dumps(issue), None)
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    def fake_popen(args, *rest, **kwargs):
+        raise AssertionError("unexpected Popen: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+
+
+def test_main_against_a_gh_refusing_graphql_answers_through_rest_as_a_working_gh_does_a_null_body_reading_as_empty(monkeypatch, capsys, capture_spec):
+    for labels, body, rest_body in ((["bug", "refactor"], BUG_BODY, BUG_BODY), ([], "", None)):
+        fake_gh(monkeypatch, "".join(label + "\n" for label in labels), body)
+        working = (capture_spec.main(["112"]), capsys.readouterr())
+
+        refuse_graphql(monkeypatch, labels, rest_body)
+        refused = (capture_spec.main(["112"]), capsys.readouterr())
+
+        assert (labels, refused[0], refused[1].out) == (labels, working[0], working[1].out)
+        assert working[0] == 0
