@@ -195,3 +195,32 @@ def test_main_keeps_titles_carrying_double_quotes_apart_in_every_call_and_matche
         observed[arg] = (code, out)
 
     assert observed == expected
+
+
+def test_main_sums_step_less_events_for_an_empty_argument_and_returns_2_for_an_unknown_option_two_arguments_or_a_missing_log(tmp_path, monkeypatch, capsys, step_cost):
+    run = tmp_path / "run"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "events.jsonl").write_text(
+        '{"ts": 1, "issue": "448", "actor": "conductor", "phase": "scope", "step": "", "event": "usage", "total_cost_usd": "0.25"}\n'
+        '{"ts": 2, "issue": "448", "actor": "conductor", "phase": "scope", "event": "usage", "total_cost_usd": "0.10"}\n'
+        '{"ts": 3, "issue": "448", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "1.0"}\n')
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+
+    observed = {}
+    monkeypatch.chdir(run)
+    for name, argv in (("empty-step", [""]), ("unknown-option", ["-x"]), ("two-arguments", ["step one", "--run"])):
+        code = step_cost.main(argv)
+        out, err = capsys.readouterr()
+        observed[name] = (code, out)
+    monkeypatch.chdir(elsewhere)
+    code = step_cost.main(["step one"])
+    out, err = capsys.readouterr()
+    observed["missing-log"] = (code, out, err)
+
+    assert observed == {
+        "empty-step": (0, "0.35\n"),
+        "unknown-option": (2, ""),
+        "two-arguments": (2, ""),
+        "missing-log": (2, "", "step-cost.sh: cannot read .tdd/events.jsonl in %s — run from the run's worktree\n" % elsewhere),
+    }
