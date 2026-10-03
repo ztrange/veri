@@ -619,3 +619,57 @@ def test_get_api_tests_answers_run_57_with_no_test_run_mark_the_empty_list_besid
 
     (tests,) = served[0][1]
     assert json.loads(body(tests))["tests"] == []
+
+
+def test_get_api_chatter_hands_the_renderer_run_54s_verify_green_out_the_leaf_its_newest_launch_names(
+        tmp_path, monkeypatch, dashboard):
+    run = os.path.join(str(tmp_path), ".tdd", "wt", "54")
+    write(os.path.join(run, ".tdd", "issue-54.md"),
+          "# Plan for #54 — lamps buzz\n\n- [x] a lamp buzzes\n- [ ] a lamp stops buzzing\n")
+    red = [
+        {"type": "system", "subtype": "init", "session_id": "s1", "tools": ["Bash"]},
+        {"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "text", "text": "Adding the case that pins the buzz."}]}},
+    ]
+    green = [
+        {"type": "system", "subtype": "init", "session_id": "s2", "tools": ["Bash"]},
+        {"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "text", "text": "Reading the diff against the spec."}]}},
+        {"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "text", "text": "VERDICT: PASS"}]}},
+    ]
+    red_log = "".join(json.dumps(record) + "\n" for record in red)
+    green_log = "".join(json.dumps(record) + "\n" for record in green)
+    write(os.path.join(run, ".tdd", "develop-red.out"), red_log)
+    write(os.path.join(run, ".tdd", "verify-green.out"), green_log)
+    events = [{"ts": 1000, "issue": "54", "actor": "conductor", "phase": "", "step": "a lamp stops buzzing",
+               "event": "step-start", "attempt": "", "skill_commit": "abc"},
+              {"ts": 1010, "issue": "54", "actor": "developer", "phase": "red",
+               "step": "a lamp stops buzzing", "event": "launch", "attempt": "1",
+               "skill_commit": "abc", "name": "develop-red"},
+              {"ts": 1200, "issue": "54", "actor": "verifier", "phase": "green",
+               "step": "a lamp stops buzzing", "event": "launch", "attempt": "1",
+               "skill_commit": "abc", "name": "verify-green"}]
+    write(os.path.join(run, ".tdd", "events.jsonl"),
+          "".join(json.dumps(event) + "\n" for event in events))
+    rendered = "[verifier] Reading the diff against the spec.\n[verifier] VERDICT: PASS\n"
+    fed = []
+
+    def fake_run(args, cwd=None, input=None, **kwargs):
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
+        if list(args) == [os.path.join(SCRIPTS, "render-leaf-log.sh")]:
+            fed.append(input)
+            return subprocess.CompletedProcess(args, 0, rendered.encode(), b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, ["/api/chatter?issue=54"])
+
+    dashboard.main([])
+
+    (chatter,) = served[0][1]
+    assert fed == [green_log.encode()]
+    assert json.loads(body(chatter)) == {"chatter": rendered}
