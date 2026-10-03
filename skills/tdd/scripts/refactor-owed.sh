@@ -51,10 +51,12 @@ case "$verb" in
     test_only_transforms=()
     # hazard: `|| [[ -n "$line" ]]` keeps a last line that has no trailing newline.
     while IFS= read -r line || [[ -n "$line" ]]; do
-      if structural_candidate "$line" && [[ "$all_tests" == 1 ]]; then
-        test_only_transforms+=("${test_only#- }$STRUCTURAL_TRANSFORM")
-      elif structural_candidate "$line"; then
-        structural+=("$STRUCTURAL_TRANSFORM")
+      if structural_candidate "$line"; then
+        if [[ "$all_tests" == 1 ]]; then
+          test_only_transforms+=("${test_only#- }$STRUCTURAL_TRANSFORM")
+        else
+          structural+=("$STRUCTURAL_TRANSFORM")
+        fi
       elif test_only_candidate "$line"; then
         test_only_transforms+=("${test_only#- }$TEST_ONLY_TRANSFORM")
       fi
