@@ -7,6 +7,6 @@
 - [x] `ledger-steps.sh criterion <k>` reading an issue body on stdin prints the text of the k-th checkbox under `## Acceptance criteria` only, never a checkbox from another section, and exits 3 with no output when that section has fewer than k checkboxes ⟦criterion 4⟧
 - [x] `ledger-steps.sh` given an unknown verb, or `criterion` with a missing or non-integer `<k>`, prints a usage line on stderr and exits 2 ⟦criterion 5⟧
 - [x] `ledger-steps.sh criterion <k>` reads a `<k>` with leading zeros in base 10: `criterion 08` prints the 8th acceptance-criterion checkbox, or exits 3 with no output when there are fewer than 8, never failing with a bash arithmetic error ⟦added⟧ ⟦criterion 5⟧
-- [x] SKILL.md's leaf and verifier launch lines read the step through `ledger-steps.sh current`, and a step title carrying `$`, a backtick or a double quote reaches the leaf's `VERI_STEP` and the verifier's `--step` byte-identical ⟦criterion 6⟧ ⟂ refactor pending
+- [x] SKILL.md's leaf and verifier launch lines read the step through `ledger-steps.sh current`, and a step title carrying `$`, a backtick or a double quote reaches the leaf's `VERI_STEP` and the verifier's `--step` byte-identical ⟦criterion 6⟧
 - [ ] SKILL.md spells none of the three inline pipelines — the `|| next-unchecked.sh` current-step read, the `tail -1 | cut -f7-` last-done read and the `sed -n '<k>p'` criterion read — calling `ledger-steps.sh current`, `last-done` and `criterion <k>` instead, and the prose suites that pinned them follow ⟦criterion 7⟧
 - [ ] `make test` is green ⟦full-suite⟧ ⟦criterion 8⟧
