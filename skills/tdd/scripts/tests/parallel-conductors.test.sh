@@ -273,6 +273,10 @@ over_budget_step_done() {
 SH
 }
 
+await_gone() {
+  while [[ -r "$1" ]] && kill -0 "$(cat "$1")" 2>/dev/null; do :; done
+}
+
 await_out="$work/await.out"
 : > "$await_out"
 sh -c "$(stub_waits "$await_out")
@@ -294,6 +298,16 @@ sh -c "$(stub_waits "$await_out")
 sleep() { echo slept; }
 heartbeats 3" > "$work/heartbeats.result" 2>&1 < /dev/null
 expect_lines "stub_waits' heartbeats prints its heartbeat lines without calling sleep" "$(printf '%s\n' "$heartbeat_line" "$heartbeat_line" "$heartbeat_line")" "$(cat "$work/heartbeats.result")" "$await_out"
+
+echo 1 > "$work/gone.pid"
+gone_result="$(
+  sleep() { echo slept; }
+  looks=0
+  kill() { looks=$((looks + 1)); (( looks <= 300 )); }
+  await_gone "$work/gone.pid" 2>&1
+  (( looks > 300 )) && echo returned-once-gone || echo returned-while-alive
+)"
+expect_lines "await_gone returns only once the stopped stub's pid is gone, however many looks that takes, without calling sleep" "returned-once-gone" "$gone_result" "$work/gone.pid"
 
 gh_stop="$work/gh-stop"
 solvable_fixture "$gh_stop" 7
@@ -320,11 +334,7 @@ $(ready_pr "$gh_stop")
 STUB
 
 run_launcher "$gh_stop" "$stop_stub" "$work/stop.out" VERI_CONDUCTOR_CTX_BUDGET=100000
-i=0
-while (( i < 200 )) && [[ -r "$stop_marks.pid" ]] && kill -0 "$(cat "$stop_marks.pid")" 2>/dev/null; do
-  sleep 0.01
-  i=$((i + 1))
-done
+await_gone "$stop_marks.pid"
 expect_lines "a conductor over VERI_CONDUCTOR_CTX_BUDGET is not stopped mid-step nor at the step-done call, and is stopped once that call's result appears" "$(printf 'mid-step\nbefore-result')" "$(cat "$stop_marks")" "$work/stop.out"
 
 gh_under="$work/gh-under"
@@ -475,11 +485,7 @@ $(ready_pr "$gh_one")
 STUB
 
 run_launcher "$gh_one" "$one_stub" "$work/one.out" VERI_PARALLEL=1 VERI_CONDUCTOR_CTX_BUDGET=100000
-i=0
-while (( i < 200 )) && [[ -r "$one_marks.pid" ]] && kill -0 "$(cat "$one_marks.pid")" 2>/dev/null; do
-  sleep 0.01
-  i=$((i + 1))
-done
+await_gone "$one_marks.pid"
 expect_lines "with VERI_PARALLEL=1 a conductor over VERI_CONDUCTOR_CTX_BUDGET mid-step is stopped only after its step-done result and relaunched for the same issue, and one that never crosses the budget is never stopped or relaunched" \
   "$(printf 'mid-step-7\nbefore-result-7\nend-8\n--\n7\n7\n8\n--\nrestarted 7')" \
   "$(cat "$one_marks"; echo --; cat "$one_launches"; echo --; grep '^restarted ' "$work/one.out" || true)" "$work/one.out"
