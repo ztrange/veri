@@ -530,3 +530,39 @@ def test_get_api_tests_answers_run_54s_three_test_run_marks_not_its_one_make_tes
 
     (tests,) = served[0][1]
     assert len(json.loads(body(tests))["tests"]) == 3
+
+
+def test_get_api_tests_answers_run_56s_suites_and_passed_from_test_run_marks_of_status_0_1_0(
+        tmp_path, monkeypatch, dashboard):
+    run = os.path.join(str(tmp_path), ".tdd", "wt", "56")
+    write(os.path.join(run, ".tdd", "issue-56.md"),
+          "# Plan for #56 — lamps gutter\n\n- [ ] a lamp gutters\n")
+    write(os.path.join(run, ".tdd", "issue-56-spec.md"),
+          "## What to build\n\nA lamp gutters.\n\nTest command: make test\n")
+    gutter = "skills/tdd/scripts/tests/gutter.test.sh"
+    flicker = "skills/tdd/scripts/tests/flicker.test.sh"
+    marks = [{"ts": 1000, "issue": "56", "actor": "conductor", "phase": "", "step": "a lamp gutters",
+              "event": "step-start", "attempt": "", "skill_commit": "abc"}]
+    marks += [{"ts": 1060 + i * 60, "issue": "56", "actor": "", "phase": "", "step": "a lamp gutters",
+               "event": "test-run", "attempt": "", "skill_commit": "abc", "tier": tier,
+               "suites": suites, "seconds": "3", "status": status}
+              for i, (tier, suites, status) in enumerate(
+                  [("fast", "", "0"), ("affected", gutter, "1"), ("target", flicker, "0")])]
+    write(os.path.join(run, ".tdd", "events.jsonl"),
+          "".join(json.dumps(mark) + "\n" for mark in marks))
+
+    def fake_run(args, cwd=None, **kwargs):
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, ["/api/tests?issue=56"])
+
+    dashboard.main([])
+
+    (tests,) = served[0][1]
+    assert [(entry["suites"], entry["passed"]) for entry in json.loads(body(tests))["tests"]] == [
+        ("", True), (gutter, False), (flicker, True)]
