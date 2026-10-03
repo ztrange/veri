@@ -12,7 +12,7 @@ def record(*fields):
 
 
 def main(argv):
-    if argv:
+    if argv and not argv[0].startswith("--force-with-lease="):
         print("push-branch.sh: the only argument is --force-with-lease=<branch>:<sha>, "
               f"got '{' '.join(argv)}'", file=sys.stderr)
         print(USAGE, file=sys.stderr)
@@ -22,7 +22,7 @@ def main(argv):
     attempt = 0
     while attempt <= retries:
         attempt += 1
-        pushed = subprocess.run(["git", "push", "--set-upstream", "origin", "HEAD"],
+        pushed = subprocess.run(["git", "push", *argv, "--set-upstream", "origin", "HEAD"],
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         out = pushed.stdout.rstrip("\n")
         if attempt <= retries:

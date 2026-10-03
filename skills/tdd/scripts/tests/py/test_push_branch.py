@@ -69,3 +69,13 @@ def test_main_refuses_a_bogus_argument_with_its_usage_and_no_process(monkeypatch
         2, "",
         "push-branch.sh: the only argument is --force-with-lease=<branch>:<sha>, got '--bogus'\n"
         "usage: push-branch.sh [--force-with-lease=<branch>:<sha>]\n")
+
+
+def test_main_pushes_a_valid_lease_ahead_of_set_upstream(monkeypatch, capsys, push_branch):
+    calls = fake_processes(monkeypatch, lambda line: (0, ""))
+    monkeypatch.setenv("VERI_PUSH_RETRIES", "0")
+    monkeypatch.delenv("VERI_PUSH_BACKOFF", raising=False)
+
+    push_branch.main(["--force-with-lease=b:abc1234"])
+
+    assert calls[:1] == ["git push --force-with-lease=b:abc1234 --set-upstream origin HEAD"]
