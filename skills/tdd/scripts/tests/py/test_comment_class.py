@@ -187,3 +187,34 @@ def test_main_skips_quoted_strings_and_the_heredoc_opening_hashbang_and_classes_
         "md-writers": (0, f"{p['md-writer']}:2:3\n{p['md-tee']}:2:3\n"),
         "md-piped-writers": (0, f"{p['md-dd']}:2:3\n{p['md-sponge']}:2:3\n"),
     }
+
+
+def test_main_classes_md_variable_heredocs_as_3_drops_a_dash_heredoc_hashbang_and_reads_quotes_inside_command_substitutions(tmp_path, capsys):
+    comment_class = importlib.import_module("veri.comment_class")
+    fixtures = {
+        "md-var": ('f="$dir/x.md"; cat > "$f" <<\'EOF\'', "# a markdown heading", "EOF"),
+        "stub-writer-dash": ("cat > stub <<-'EOF'", "\t#!/bin/sh", "\techo hi", "\tEOF"),
+        "quote-in-subst": ("x=\"$(echo 'a \"b')\"", "# a comment in code"),
+        "subshell-in-subst": ("x=\"$( (cd /) && echo 'a \"b')\"", "# a comment in code"),
+    }
+    p = {}
+    for name, lines in fixtures.items():
+        path = tmp_path / f"{name}.sh"
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        p[name] = str(path)
+
+    def classify(*argv):
+        code = comment_class.main(list(argv))
+        return code, capsys.readouterr().out
+
+    assert {
+        "md-var": classify(p["md-var"]),
+        "stub-writer-dash": classify("--sweepable", p["stub-writer-dash"]),
+        "quote-in-subst": classify(p["quote-in-subst"]),
+        "subshell-in-subst": classify(p["subshell-in-subst"]),
+    } == {
+        "md-var": (0, f"{p['md-var']}:2:3\n"),
+        "stub-writer-dash": (0, ""),
+        "quote-in-subst": (0, f"{p['quote-in-subst']}:2:1\n"),
+        "subshell-in-subst": (0, f"{p['subshell-in-subst']}:2:1\n"),
+    }
