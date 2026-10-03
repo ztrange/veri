@@ -397,6 +397,26 @@ rm -f "$owed_file" "$want" "$rendered"
 report "$name"
 
 
+name="list never prints a structural candidate appended for a step whose refactor bounds are all test files, and exits 3 on a file holding only those"
+problems=()
+
+owed_file="$(mktemp)"
+"$OWED" append "$owed_file" 'a step that touched only test files' \
+  'skills/tdd/scripts/tests/unit/scratch-copy-libs.test.sh,skills/tdd/scripts/tests/lib/harness.sh' <<'REPORT' && code=0 || code=$?
+RESULT: applied "name the lib-copy walk once", suite green
+FLAGS: none
+CANDIDATES: structural | merge the full-path check at scratch-copy-libs.test.sh:45 into the /lib/<name>.sh loop
+REPORT
+
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from append, got $code")
+
+answers_none_on list "$owed_file" "a file holding only a structural candidate of a step whose bounds are all test files" "; a transform there is one transform-touches-tests.sh rejects"
+
+rm -f "$owed_file"
+report "$name"
+
+
 name="#683 append records a test-only candidate as test_only_candidate answers it"
 problems=()
 
