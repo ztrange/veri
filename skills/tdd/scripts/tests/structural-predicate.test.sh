@@ -50,4 +50,28 @@ REPORT
   problems+=("structural-predicate.sh wrote a record at $record for a predicate already true")
 report "$name"
 
+name="#691 PREDICATE: NONE exits 3 and a report with no PREDICATE: line exits 2, neither writing a record"
+problems=()
+tree="$(scratch_dir)"
+record="$tree/predicate"
+code=0
+(cd "$tree" && "$SP" "$record" >/dev/null 2>&1 <<REPORT) || code=$?
+No command can tell this candidate's transform apart from the tree as it is.
+PREDICATE: NONE
+REPORT
+[[ "$code" == 3 ]] ||
+  problems+=("PREDICATE: NONE: want exit 3 from structural-predicate.sh, got $code")
+[[ ! -e "$record" ]] ||
+  problems+=("PREDICATE: NONE: structural-predicate.sh wrote a record at $record")
+rm -f "$record"
+code=0
+(cd "$tree" && "$SP" "$record" >/dev/null 2>&1 <<REPORT) || code=$?
+Read the candidate and the files it names.
+REPORT
+[[ "$code" == 2 ]] ||
+  problems+=("no PREDICATE: line: want exit 2 from structural-predicate.sh, got $code")
+[[ ! -e "$record" ]] ||
+  problems+=("no PREDICATE: line: structural-predicate.sh wrote a record at $record")
+report "$name"
+
 finish
