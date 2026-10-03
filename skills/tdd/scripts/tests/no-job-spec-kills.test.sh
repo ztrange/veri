@@ -90,9 +90,13 @@ probe_every_exemption_still_names_its_site() {
   local -A matched=()
   while IFS= read -r hit; do
     split_site "$hit"
-    matched[$site_file:$site_text]=1
+    matched[$site_file:$site_text]+="${matched[$site_file:$site_text]:+, }$site_file:$site_line"
   done < <(kill_lines)
   for key in "${!EXEMPT[@]}"; do
+    if [[ "${matched[$key]:-}" == *,* ]]; then
+      problems+=("the exemption entry [$key] matches more than one line of its file, so one reason would excuse a second site nobody wrote it for: ${matched[$key]}")
+      continue
+    fi
     [[ -n "${matched[$key]:-}" ]] && continue
     [[ -e "$ROOT/${key%%:*}" ]] || continue
     problems+=("the exemption entry [$key] names a line that no longer ends a background process by a job spec, so it excuses nothing there: the site it was written for has moved, and its key must follow it")
@@ -173,5 +177,41 @@ unexempted_site_named=""
 probe_an_unexempted_job_spec_kill
 
 expect_eq "$name" "named" "$unexempted_site_named"
+
+probe_an_exemption_matching_two_lines() {
+  local ROOT tests="skills/tdd/scripts/tests" copy line lines=() problem
+  [[ -e "$HERE/skill-leaf-env.test.sh" ]] || return 0
+  ROOT="$(scratch_dir)"
+  mkdir -p "$ROOT/$tests"
+  copy="$ROOT/$tests/skill-leaf-env.test.sh"
+  { cat "$HERE/skill-leaf-env.test.sh"; grep -F 'reaches the leaf as written' "$HERE/skill-leaf-env.test.sh"; } \
+    > "$copy"
+  while IFS= read -r line; do
+    lines+=("${line%%:*}")
+  done < <(grep -nF 'reaches the leaf as written' "$copy")
+  problems=()
+  probe_every_exemption_carries_a_reason
+  probe_no_file_kills_by_job_spec
+  probe_every_exemption_still_names_its_site
+  matching_lines_expected="${lines[*]}"
+  matching_lines_named=""
+  for line in "${lines[@]}"; do
+    for problem in ${problems+"${problems[@]}"}; do
+      if [[ "$problem" == *"$tests/skill-leaf-env.test.sh:$line" || "$problem" == *"$tests/skill-leaf-env.test.sh:$line"[!0-9]* ]]; then
+        matching_lines_named+="${matching_lines_named:+ }$line"
+        break
+      fi
+    done
+  done
+  problems=()
+}
+
+name="an exemption whose text matches two lines of its file fails the run, naming each matching line"
+matching_lines_expected=""
+matching_lines_named=""
+
+probe_an_exemption_matching_two_lines
+
+expect_eq "$name" "$matching_lines_expected" "$matching_lines_named"
 
 finish
