@@ -74,4 +74,19 @@ REPORT
   problems+=("no PREDICATE: line: structural-predicate.sh wrote a record at $record")
 report "$name"
 
+name="#691 PREDICATE: NONE — <why>, the form the predicate prompt asks for, exits 3 and writes no record"
+problems=()
+tree="$(scratch_dir)"
+record="$tree/predicate"
+code=0
+(cd "$tree" && "$SP" "$record" >/dev/null 2>&1 <<REPORT) || code=$?
+Read the candidate and the files it names.
+PREDICATE: NONE — the transform only renames prose, and no command can tell it apart
+REPORT
+[[ "$code" == 3 ]] ||
+  problems+=("want exit 3 from structural-predicate.sh, got $code")
+[[ ! -e "$record" ]] ||
+  problems+=("structural-predicate.sh wrote a record at $record for PREDICATE: NONE — <why>")
+report "$name"
+
 finish
