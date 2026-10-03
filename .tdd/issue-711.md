@@ -5,7 +5,7 @@
 - [x] session-cost.sh, run through a symlink to the skill directory and from another working directory, prints the same report and exit code as when run in place (a case in tests/session-cost.test.sh) ⟦criterion 3⟧
 - [x] tests/py/test_session_cost.py asserts through veri.session_cost.main what 'project directories: every slug prefixed by the repo root's is summed, an unrelated one is not' asserts — discovery under $HOME/.claude/projects by the physical repo root's slug prefix, with git rev-parse --show-toplevel faked at the subprocess boundary ⟦criterion 4⟧
 - [x] tests/py/test_session_cost.py asserts through veri.session_cost.main what 'one request, six records: a repeated requestId is counted once, a distinct one still counts' asserts ⟦criterion 4⟧
-- [ ] tests/py/test_session_cost.py asserts through veri.session_cost.main what 'cache-write tiers: 1h and 5m are priced apart, and a bare cache_creation_input_tokens falls back to 5m' asserts ⟦criterion 4⟧
+- [x] tests/py/test_session_cost.py asserts through veri.session_cost.main what 'cache-write tiers: 1h and 5m are priced apart, and a bare cache_creation_input_tokens falls back to 5m' asserts ⟦criterion 4⟧
 - [ ] tests/py/test_session_cost.py asserts through veri.session_cost.main what '--since: a record before the window is excluded, one inside it is counted' asserts ⟦criterion 4⟧
 - [ ] tests/py/test_session_cost.py asserts through veri.session_cost.main what 'roles: an sdk-cli session and an interactive session are attributed to their own rows' asserts ⟦criterion 4⟧
 - [ ] tests/py/test_session_cost.py asserts through veri.session_cost.main what 'per-session rows: preamble, final and total context, and an un-cleared ramp named in words' asserts ⟦criterion 4⟧
