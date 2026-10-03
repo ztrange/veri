@@ -231,7 +231,11 @@ case, and no git, network, servers, real waits (`sleep`) or nested suites — ju
 grepping the suite's own source, not by timing it, and stated in its header. `make unit`
 shims `git`, `gh`, `curl` and `python3` so a suite that calls one for real fails, named, and
 `make test` applies the same shims to the suites under `tests/unit/` only, never to another
-suite; a unit suite mocks them as shell functions instead. Everything else stays in `tests/`.
+suite; a unit suite mocks them as shell functions instead. The one `python3` call the guard
+lets through is one whose first argument is a module file under `skills/tdd/scripts/veri/` —
+the hand-off a ported script's shim makes — so a unit suite can run a ported script through its
+entry point; every other `python3` call is refused, named and logged. Everything else stays in
+`tests/`.
 
 **`make unit` and `make test` also run a pytest leg** over `skills/tdd/scripts/tests/py/`, when a `test_*.py` is there; with none, both targets answer as they did before it. A pytest suite's admission rule is no process but the interpreter: under `make unit` a case that starts `git`, `gh` or `curl` fails, naming the command, while the bash suites under `tests/unit/` keep the refusing `python3` shim. The leg runs with `$VERI_VENV/bin/python3` (default `~/.veri-tools/venv`), the environment `make install-dev` creates, falling back to the `python3` on PATH, and sees the recipe's `LC_ALL=C`, stdin and offline settings. Two refusals, both exit 2 before any suite runs: pytest cannot be imported (stderr names pytest and `make install-dev`; `VERI_PYTEST_IMPORTABLE` stands in for the answer), or the interpreter is older than the Python 3.12 floor (stderr names the floor and the version found; `VERI_PYTHON_VERSION` stands in).
 

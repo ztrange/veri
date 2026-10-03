@@ -141,4 +141,19 @@ fi
 
 report "$name"
 
+name="$claude_md's '$section_name' section says which python3 call the fast tier's guard lets through — one whose first argument is a module file under skills/tdd/scripts/veri/"
+problems=()
+
+if read_section; then
+  says "in the admission-bar passage that shims git, gh, curl and python3, that the python3 call let through is one whose first argument is a module file under skills/tdd/scripts/veri/, a ported script's shim hand-off" \
+    'make unit' \
+    'shims git, gh, curl and python3' \
+    'first argument' \
+    'module' \
+    'skills/tdd/scripts/veri/' \
+    'shim'
+fi
+
+report "$name"
+
 finish
