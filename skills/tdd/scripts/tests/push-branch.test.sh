@@ -551,4 +551,21 @@ else
 fi
 report "$name"
 
+name="push-branch.sh exits 2 with nothing on stdout and its exact stderr for a bad argument (the two bad-argument lines) and for VERI_PUSH_RETRIES=x (one line, no usage)"
+problems=()
+( cd "$work" && env VERI_PUSH_BACKOFF=0 "$PUSH" --bogus ) >"$work/bogus.out" 2>"$work/bogus.err" && code=0 || code=$?
+want_err="push-branch.sh: the only argument is --force-with-lease=<branch>:<sha>, got '--bogus'
+usage: push-branch.sh [--force-with-lease=<branch>:<sha>]"
+[[ "$code" == 2 ]] || problems+=("--bogus: want exit 2, got $code")
+[[ ! -s "$work/bogus.out" ]] || problems+=("--bogus: want nothing on stdout, got $(printf '%q' "$(cat "$work/bogus.out")")")
+[[ "$(cat "$work/bogus.err")" == "$want_err" ]] ||
+  problems+=("--bogus: want stderr $(printf '%q' "$want_err"), got $(printf '%q' "$(cat "$work/bogus.err")")")
+( cd "$work" && env VERI_PUSH_RETRIES=x VERI_PUSH_BACKOFF=0 "$PUSH" ) >"$work/tunable.out" 2>"$work/tunable.err" && code=0 || code=$?
+want_err="push-branch.sh: VERI_PUSH_RETRIES must be a non-negative integer, got 'x'"
+[[ "$code" == 2 ]] || problems+=("VERI_PUSH_RETRIES=x: want exit 2, got $code")
+[[ ! -s "$work/tunable.out" ]] || problems+=("VERI_PUSH_RETRIES=x: want nothing on stdout, got $(printf '%q' "$(cat "$work/tunable.out")")")
+[[ "$(cat "$work/tunable.err")" == "$want_err" ]] ||
+  problems+=("VERI_PUSH_RETRIES=x: want stderr $(printf '%q' "$want_err"), got $(printf '%q' "$(cat "$work/tunable.err")")")
+report "$name"
+
 finish
