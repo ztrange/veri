@@ -85,3 +85,30 @@ def test_main_steps_prints_one_dollars_and_leaves_line_per_step_in_first_mention
 
     out, err = capsys.readouterr()
     assert (code, out) == expected
+
+
+@pytest.mark.parametrize("log, expected", [
+    ('{"ts": 1, "issue": "448", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30"}\n'
+     '{"ts": 2, "issue": "448", "actor": "verifier", "phase": "red", "step": "step one", "event": "usage"}\n'
+     '{"ts": 3, "issue": "448", "actor": "developer", "phase": "green", "step": "step one", "event": "usage", "total_cost_usd": ""}\n'
+     '{"ts": 4, "issue": "448", "actor": "developer", "phase": "red", "step": "step two", "event": "usage", "total_cost_usd": "1.0"}\n',
+     {"--steps": (0, "0.30 3\n1.00 1\n"), "step one": (0, "0.30\n"), "--run": (0, "1.30\n")}),
+    ('{"ts": 1, "issue": "448", "actor": "verifier", "phase": "red", "step": "step three", "event": "verdict", "verdict": "PASS"}\n'
+     '{"ts": 2, "issue": "448", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30"}\n'
+     '{"ts": 3, "issue": "448", "actor": "developer", "phase": "green", "step": "step one", "event": "test-run", "exit": "0", "total_cost_usd": "5.0"}\n'
+     '{"ts": 4, "issue": "448", "actor": "verifier", "phase": "green", "step": "step one", "event": "usage", "total_cost_usd": "0.20"}\n'
+     '{"ts": 5, "issue": "448", "actor": "verifier", "phase": "green", "step": "step one", "event": "verdict", "verdict": "PASS"}\n',
+     {"--steps": (0, "0.50 2\n"), "step one": (0, "0.50\n"), "step three": (3, ""), "--run": (0, "0.50\n")}),
+], ids=["absent-or-empty-cost-adds-zero-and-counts-as-a-leaf", "non-usage-events-create-no-step-and-add-no-cost"])
+def test_main_counts_a_usage_event_with_an_absent_or_empty_cost_as_a_zero_cost_leaf_and_ignores_events_that_are_not_usage_events_in_every_call(log, expected, tmp_path, monkeypatch, capsys, step_cost):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(log)
+    monkeypatch.chdir(tmp_path)
+
+    observed = {}
+    for arg in expected:
+        code = step_cost.main([arg])
+        out, err = capsys.readouterr()
+        observed[arg] = (code, out)
+
+    assert observed == expected
