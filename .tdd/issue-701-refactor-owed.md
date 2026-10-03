@@ -1,0 +1,3 @@
+### skills/tdd/scripts/lib/venv-python.sh names the venv directory ($VERI_VENV, or ~/.veri-tools/venv when VERI_VENV is unset) and the interpreter: that directory's bin/python3 when it is executable, else the python3 on PATH ⟦criterion 2⟧
+- test-only | the test header in skills/tdd/scripts/tests/unit/venv-python.test.sh repeats the contract already in the lib/venv-python.sh header; it could be cut to a pointer at the lib
+- test-only | skills/tdd/scripts/tests/unit/venv-python.test.sh writes `problems` to the "$work/problems" file inside a subshell and reads it back; a helper in lib/harness.sh could replace that round-trip, if other suites do the same
