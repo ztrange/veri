@@ -16,4 +16,4 @@
 - [x] tests/session-cost.test.sh keeps only the floor and survivors — the exit-0 case "a day's transcript: session-cost.sh totals its cost, split into cache read, cache write and output", the two exit-2 usage cases (nonexistent transcript, unknown option) and the symlink case — the ten cases replaced by tests/py/test_session_cost.py removed, and no remaining case's assertions changed ⟦diff-checked⟧ ⟦criterion 4⟧
 - [x] tests/unit/emitted-text.test.sh is unchanged by the branch, and tests/unit/missing-argument-exit.test.sh is changed only by the removal of session-cost.sh from migration slice 8's list ⟦diff-checked⟧ ⟦criterion 5⟧
 - [ ] the PR body lists the criterion-1 pytest pair and each cut tests/session-cost.test.sh case beside the tests/py/test_session_cost.py case that replaced it ⟦human-owed⟧ ⟦criterion 4⟧
-- [ ] make test is green, tests/unit/emitted-text.test.sh and tests/unit/missing-argument-exit.test.sh among its suites ⟦full-suite⟧ ⟦criterion 5⟧
+- [x] make test is green, tests/unit/emitted-text.test.sh and tests/unit/missing-argument-exit.test.sh among its suites ⟦full-suite⟧ ⟦criterion 5⟧
