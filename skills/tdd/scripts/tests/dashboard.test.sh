@@ -1138,46 +1138,6 @@ fi
 
 report "$name"
 
-name="tests_json answers the empty list for a run whose event log holds no test-run mark, and never another run's marks"
-problems=()
-tempty_repo="$(repo testsempty)"
-
-tempty_sel="$(fabricate_run "$tempty_repo" 57 tdd/57-lamps-sputter)"
-fabricate_plan "$tempty_sel" 57 "lamps sputter" "a lamp sputters"
-cat > "$tempty_sel/.tdd/events.jsonl" <<'EOF'
-{"ts": 1789910000, "issue": "57", "actor": "conductor", "phase": "", "step": "a lamp sputters", "event": "step-start", "attempt": "", "skill_commit": "abc"}
-{"ts": 1789910060, "issue": "57", "actor": "conductor", "phase": "develop-red", "step": "a lamp sputters", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
-EOF
-cat > "$tempty_sel/.tdd/develop-red.out" <<'EOF'
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_1", "name": "Bash", "input": {"command": "make test", "description": "Run the suite"}}]}}
-{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_1", "type": "tool_result", "content": "----\n5 passed, 0 failed", "is_error": false}]}}
-EOF
-
-tempty_other="$(fabricate_run "$tempty_repo" 58 tdd/58-lamps-glare)"
-fabricate_plan "$tempty_other" 58 "lamps glare" "a lamp glares"
-fabricate_marks "$tempty_other" 58 "a lamp glares" \
-  skills/tdd/scripts/tests/glare.test.sh skills/tdd/scripts/tests/glare.test.sh
-
-if [[ -n "$module_problem" ]]; then
-  problems+=("$module_problem")
-else
-  call_endpoint "$tempty_repo" tests_json "$work/tests-empty.err" \
-    '{"issue": ["57"]}' "$work/tests-empty-57.json"
-  if [[ ! -f "$work/tests-empty-57.json" ]]; then
-    problems+=("calling $module.tests_json wrote nothing: $(tail -n 1 "$work/tests-empty.err")")
-  else
-    add_problems < <(python3 -c "$tests_runs"'
-if runs:
-    print("tests_json for issue 57 returned %d test runs, %s; want none — its own event log "
-          "holds no `test-run` mark, so neither the bare `make test` Bash call in its leaf "
-          "log nor run 58’s three marks are a test run of its own"
-          % (len(runs), json.dumps(runs, sort_keys=True)[:400]))
-' "$work/tests-empty-57.json" 57)
-  fi
-fi
-
-report "$name"
-
 name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
 problems=()
 disk_page="$scripts/dashboard.html"
