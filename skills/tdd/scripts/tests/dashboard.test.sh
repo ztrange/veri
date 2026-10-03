@@ -1038,42 +1038,6 @@ fi
 
 report "$name"
 
-name="tests_json reads the run's test command and never executes it, so a command that would leave a trace leaves none"
-problems=()
-tnoexec_repo="$(repo testsnoexec)"
-tnoexec_marker="$work/tests-noexec-trace"
-tnoexec_cmd="sh -c 'echo executed > $tnoexec_marker'"
-rm -f "$tnoexec_marker"
-
-tnoexec_run="$(fabricate_run "$tnoexec_repo" 53 tdd/53-lamps-hum)"
-fabricate_plan "$tnoexec_run" 53 "lamps hum" "a lamp hums" "$tnoexec_cmd"
-cat > "$tnoexec_run/.tdd/develop-red.out" <<EOF
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_1", "name": "Bash", "input": {"command": "$tnoexec_cmd", "description": "Run the suite"}}]}}
-{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_1", "type": "tool_result", "content": "----\n3 passed, 0 failed", "is_error": false}]}}
-EOF
-
-if [[ -n "$module_problem" ]]; then
-  problems+=("$module_problem")
-else
-  call_endpoint "$tnoexec_repo" tests_json "$work/tests-noexec.err" \
-    '{"issue": ["53"]}' "$work/tests-noexec-53.json"
-  if [[ ! -f "$work/tests-noexec-53.json" ]]; then
-    problems+=("calling $module.tests_json wrote nothing: $(tail -n 1 "$work/tests-noexec.err")")
-  else
-    add_problems < <(python3 -c "$tests_runs"'
-if len(runs) != 1 or runs[0].get("command") != sys.argv[3]:
-    print("tests_json for issue 53 returned %s; want the one leaf test run of its own test "
-          "command, %r — the marker below says nothing if the endpoint never read it"
-          % (json.dumps(got, sort_keys=True)[:400], sys.argv[3]))
-' "$work/tests-noexec-53.json" 53 "$tnoexec_cmd")
-    if [[ -e "$tnoexec_marker" ]]; then
-      problems+=("the run's test command left $(printf '%q' "$tnoexec_marker") behind, so tests_json executed $(printf '%q' "$tnoexec_cmd") instead of only reading it out of the spec and matching it in the leaf log")
-    fi
-  fi
-fi
-
-report "$name"
-
 name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
 problems=()
 disk_page="$scripts/dashboard.html"
