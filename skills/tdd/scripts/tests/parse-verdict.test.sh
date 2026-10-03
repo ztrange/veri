@@ -98,4 +98,14 @@ else
   diff <(printf '%s\n' "$ns_out_plain") <(printf '%s\n' "$ns_out_proposing") | sed 's/^/    /'
 fi
 
+nv_err="$(mktemp)"
+nv_out="$(printf '%s' 'I could not make up my mind about this test.' | "$PARSE" 2>"$nv_err")" && nv_code=0 || nv_code=$?
+nv_stderr="$(cat "$nv_err")"
+rm -f "$nv_err"
+if [[ "$nv_code" == 2 && -z "$nv_out" && "$nv_stderr" == 'parse-verdict: no VERDICT: line found' ]]; then
+  ok
+else
+  no "no verdict line exits 2, empty stdout, the no-verdict diagnostic on stderr (got exit $nv_code, stdout '$nv_out', stderr '$nv_stderr')"
+fi
+
 finish
