@@ -9,7 +9,7 @@
 - [x] tests/py/test_session_cost.py asserts through veri.session_cost.main what '--since: a record before the window is excluded, one inside it is counted' asserts ⟦criterion 4⟧
 - [x] tests/py/test_session_cost.py asserts through veri.session_cost.main what 'roles: an sdk-cli session and an interactive session are attributed to their own rows' asserts ⟦criterion 4⟧
 - [x] tests/py/test_session_cost.py asserts through veri.session_cost.main what 'per-session rows: preamble, final and total context, and an un-cleared ramp named in words' asserts ⟦criterion 4⟧
-- [ ] tests/py/test_session_cost.py asserts through veri.session_cost.main what 'an unknown model: its tokens are reported, its cost is blank, and it is named in a footer' asserts ⟦criterion 4⟧
+- [x] tests/py/test_session_cost.py asserts through veri.session_cost.main what 'an unknown model: its tokens are reported, its cost is blank, and it is named in a footer' asserts ⟦criterion 4⟧
 - [ ] tests/py/test_session_cost.py asserts through veri.session_cost.main what '--json: the machine output states the same four totals as the text report' asserts ⟦criterion 4⟧
 - [ ] tests/py/test_session_cost.py asserts through veri.session_cost.main what 'harness baselines: every session row names its entrypoint, and the bands are min / median / max per harness' asserts ⟦criterion 4⟧
 - [ ] tests/py/test_session_cost.py asserts through veri.session_cost.main what 'an absent entrypoint is a conductor: its rows and its band are named as such, apart from cli's' asserts ⟦criterion 4⟧

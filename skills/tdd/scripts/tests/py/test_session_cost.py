@@ -234,3 +234,37 @@ def test_main_prints_per_session_rows_with_preamble_final_and_total_context_and_
         problems.append("the flat session: named as un-cleared, but its context read is its preamble x its requests")
 
     assert (code, problems) == (0, []), out
+
+
+def test_main_reports_an_unknown_models_tokens_with_no_cost_and_names_it_in_a_footer(tmp_path, monkeypatch, capsys, session_cost):
+    monkeypatch.setenv("TZ", "UTC")
+    time.tzset()
+    known = tmp_path / "1d8b6f40-2a93-4c17-8e65-3b07d9a4f2e1.jsonl"
+    unknown = tmp_path / "9e4a2c58-7f61-4b0d-a392-5c81e6b70d43.jsonl"
+    model = "claude-quasar-9-20260901"
+    known.write_text(
+        '{"type":"assistant","timestamp":"2026-09-14T09:12:44.518Z","requestId":"req_011CSJmZ4bCdJ0pFhN3aUw7i","sessionId":"1d8b6f40-2a93-4c17-8e65-3b07d9a4f2e1","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":2,"cache_creation_input_tokens":40000,"cache_creation":{"ephemeral_5m_input_tokens":40000,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":600000,"output_tokens":4400}}}\n'
+    )
+    unknown.write_text(
+        '{"type":"assistant","timestamp":"2026-09-14T09:48:02.907Z","requestId":"req_011CSKnA5cDeK1qGiO4bVx8j","sessionId":"9e4a2c58-7f61-4b0d-a392-5c81e6b70d43","message":{"role":"assistant","model":"%s","usage":{"input_tokens":0,"cache_creation_input_tokens":24680,"cache_creation":{"ephemeral_5m_input_tokens":24680,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":512345,"output_tokens":3107}}}\n'
+        % model
+    )
+    want = [
+        "  cache read           600000 tokens   $0.90",
+        "  cache write           40000 tokens   $0.75",
+        "  output                 4400 tokens   $0.33",
+        "  total                                $1.98",
+    ]
+
+    code = session_cost.main(["--since", "2026-09-14", str(known), str(unknown)])
+    lines = capsys.readouterr().out.splitlines()
+    footer = [line for line in lines if model in line]
+
+    problems = [line for line in want if line not in lines]
+    if not footer:
+        problems.append("the unknown model: want a line naming %s, the report names it nowhere" % model)
+    if not any(re.search(r"(^|[^0-9])540132([^0-9]|$)", line) for line in footer):
+        problems.append("the unknown model's tokens: want 540132 on a line naming %s, got %r" % (model, footer))
+    if any(re.search(r"\$[0-9]", line) for line in footer):
+        problems.append("the unknown model: want no money on the line naming it, got %r" % footer)
+    assert (code, problems) == (0, []), "\n".join(lines)
