@@ -203,3 +203,20 @@ def test_main_answers_pytest_from_its_config_files_after_a_makefile_test_target_
         (0, "make test\n"),
         (0, "pytest -q\n"),
     ]
+
+
+def test_main_answers_go_test_for_go_mod_cargo_test_for_cargo_toml_and_unittest_for_a_bare_tests_directory(tmp_path, capsys, detect):
+    def answer(repo):
+        return detect.main([str(repo)]), capsys.readouterr().out
+
+    for marker in ("go.mod", "Cargo.toml"):
+        (tmp_path / marker).mkdir()
+        (tmp_path / marker / marker).write_text("")
+    (tmp_path / "unittest-only" / "tests").mkdir(parents=True)
+    (tmp_path / "unittest-only" / "tests" / "test_foo.py").write_text("import unittest\n")
+
+    assert [answer(tmp_path / name) for name in ("go.mod", "Cargo.toml", "unittest-only")] == [
+        (0, "go test ./...\n"),
+        (0, "cargo test\n"),
+        (0, "python3 -m unittest discover -q\n"),
+    ]
