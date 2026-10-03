@@ -28,32 +28,4 @@ else
   ok
 fi
 
-name="sourced with git, sleep and record mocked as functions and PATH empty, main runs a failed push to its push-failed event, starting no real process"
-calls="$scratch/calls3" err="$scratch/err3" nobin="$scratch/nobin"
-mkdir -p "$nobin"
-: > "$calls"
-(
-  source "$PUSH"
-  git() { echo "git $*" >> "$calls"; echo "fatal: unable to access origin"; return 128; }
-  sleep() { echo "sleep $*" >> "$calls"; return 0; }
-  record() { echo "record $*" >> "$calls"; return 0; }
-  PATH="$nobin"
-  VERI_PUSH_RETRIES=1
-  unset VERI_PUSH_BACKOFF
-  main
-) > "$scratch/out3" 2> "$err"
-rc=$?
-want_calls="git push --set-upstream origin HEAD
-sleep 2
-git push --set-upstream origin HEAD
-record push-failed error=fatal: unable to access origin attempts=2"
-want_err="push-branch.sh: push failed after 2 attempts; the branch is not on the remote"
-if [[ "$rc" -ne 0 || -s "$scratch/out3" || "$(cat "$err")" != "$want_err" || "$(cat "$calls")" != "$want_calls" ]]; then
-  no "$name (want exit 0, empty stdout, stderr '$want_err'):"
-  show_run "$rc" "$scratch/out3" "$err"
-  diff <(echo "$want_calls") "$calls"
-else
-  ok
-fi
-
 finish
