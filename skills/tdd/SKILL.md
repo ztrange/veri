@@ -1543,7 +1543,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    list is the record.
    No candidate — `list`
    exits 3 — skips the pass with no bail, marking the log and going straight on to readying
-   the PR:
+   the PR. No owed file is no exception — a missing `.tdd/issue-<n>-refactor-owed.md` is the
+   `list` exit-3 case, so it is marked `stopped=nothing-structural` before the PR is readied:
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh structural-pass stopped=nothing-structural
    ```

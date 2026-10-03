@@ -247,4 +247,16 @@ fi
 
 report "$name"
 
+name="#726: $skill_md's structural pass says a missing .tdd/issue-<n>-refactor-owed.md is the refactor-owed.sh list exit-3 case, marked stopped=nothing-structural before the PR is readied"
+problems=()
+
+if ! missing_pass 'what a missing refactor-owed file means'; then
+  require 'a missing .tdd/issue-<n>-refactor-owed.md is the list exit-3 case' "$squeezed" \
+    "$skill_md's structural pass never says a missing .tdd/issue-<n>-refactor-owed.md is the list exit-3 case, so a run with no owed file reads it as no pass and no mark"
+  require 'marked stopped=nothing-structural before the PR is readied' "$squeezed" \
+    "$skill_md's structural pass never says the missing-file case is marked stopped=nothing-structural before the PR is readied"
+fi
+
+report "$name"
+
 finish
