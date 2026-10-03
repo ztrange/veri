@@ -256,8 +256,7 @@ expect_lines "an assistant event the conductor writes in two pieces still prints
 stub_waits() {
   cat <<SH
 await_context() {
-  i=0
-  while [ \$i -lt 100 ] && ! grep -Fx "\$1" "$1" > /dev/null; do i=\$((i + 1)); sleep 0.02; done
+  until grep -Fx "\$1" "$1" > /dev/null; do :; done
 }
 heartbeats() {
   i=0
@@ -269,6 +268,22 @@ over_budget_step_done() {
 }
 SH
 }
+
+await_out="$work/await.out"
+: > "$await_out"
+sh -c "$(stub_waits "$await_out")
+sleep() { :; }
+looks=0
+grep() {
+  looks=\$((looks + 1))
+  case \" \$* \" in *\" $await_out \"*) ;; *) looks=101 ;; esac
+  [ \$looks -le 100 ] || echo 'context 7 1' >> '$await_out'
+  command grep \"\$@\"
+}
+await_context 'context 7 1'
+command grep -Fx 'context 7 1' '$await_out' > /dev/null && echo returned-after-line || echo returned-before-line" \
+  > "$work/await.result" 2>&1
+expect_lines "stub_waits' await_context returns only once its context line has arrived, however many looks that takes" "returned-after-line" "$(cat "$work/await.result")" "$await_out"
 
 gh_stop="$work/gh-stop"
 solvable_fixture "$gh_stop" 7
