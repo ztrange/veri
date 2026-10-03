@@ -92,6 +92,15 @@ expect_records "ledger_steps kind differs" "$want" \
 verdict "ledger_steps kind is full-suite or human-owed only for a marker right before the criterion tag, step otherwise"
 
 problems=""
+doc='- [ ] the cases are gone ⟦diff-checked⟧ ⟦criterion 5⟧
+- [x] the suite is unchanged ⟦diff-checked⟧ ⟦criterion 6⟧
+'
+want=$'1\topen\tdiff-checked\t5\n2\tdone\tdiff-checked\t6'
+expect_records "ledger_steps index/state/kind/criterion differ" "$want" \
+  "$(records_of '$1 "\t" $2 "\t" $3 "\t" $6' "$doc")"
+verdict "ledger_steps reports a line ending diff-checked then its criterion tag, open or ticked, with kind diff-checked and that criterion"
+
+problems=""
 doc='- [x] tidied ⟦criterion 1⟧
 - [x] green ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] open ⟦criterion 3⟧

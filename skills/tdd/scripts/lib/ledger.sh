@@ -54,7 +54,7 @@ ledger_steps() {
   local line nl state kind pending added criterion text index=0 re open_step done_box
   _ledger_step_grammar
   local criterion_re="${_ledger_criterion_tag}([0-9]+)⟧"
-  local kind_re="⟦(full-suite|human-owed)⟧ $criterion_re"
+  local kind_re="⟦(full-suite|human-owed|diff-checked)⟧ $criterion_re"
   while _ledger_read_line; do
     [[ "$line" =~ $re ]] || continue
     index=$((index + 1))
