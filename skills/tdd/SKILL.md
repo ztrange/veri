@@ -1374,7 +1374,10 @@ green is not taken on trust here — sub-step 1 asks. Like every step since 1.2,
 branch and its commits without any switching.
 
 A red result on that full run does not bail: append a repair step to the ledger, commit it,
-and return to step 3, *The cycle loop* — the failing suite is that step's red evidence. Its
+and return to step 3, *The cycle loop* — the failing suites are that step's red evidence. The
+repair step's text lists every suite the full run left red, each with its first `FAIL -` line;
+the develop and verify prompts take that list from the step's text through their templates,
+and the conductor never edits a built prompt to add a suite one of them left out. Its
 developer adds a unit-tier test when the failure exposes a gap the fast tier missed, and its
 verifier judges the fix against the full command, not the fast one.
 ```

@@ -97,6 +97,10 @@
 #  35. SKILL.md's Draft PR step keys its `ci-red` bail on `⟦ci-repair⟧` only, and states that a
 #      ledger holding a `⟦suite-repair⟧` step and no `⟦ci-repair⟧` step still gets its one CI
 #      repair attempt.
+#  36. SKILL.md's Draft PR step's full-run paragraph says the repair step's text lists every
+#      suite the full run left red, each with its first `FAIL -` line, that the prompts take
+#      that list from the step text through their templates, and that the conductor never
+#      edits a built prompt.
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -923,6 +927,24 @@ if step_or_problem '### 4. Draft PR' "what the ci-red bail is keyed on"; then
   stated="$(first_record "$records" -F "$suite_repair_mark" -F "$ci_repair_mark" -E 'one ci repair attempt')"
   [[ -n "$stated" ]] ||
     problems+=("no instruction of $skill_md's Draft PR step states that a ledger holding a $suite_repair_mark step and no $ci_repair_mark step still gets its one CI repair attempt")
+fi
+report "$name"
+
+name="$skill_md's full-run paragraph says the repair step's text lists every red suite with its first FAIL - line, the prompts take it through their templates, and the conductor never edits a built prompt (#690)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "where the repair step's list of red suites comes from"; then
+  paragraph="$(first_record "$records" -F 'repair step' -wF 'red' -F 'ledger')"
+  if [[ -z "$paragraph" ]]; then
+    problems+=("$skill_md's Draft PR step has no full-run paragraph adding a repair step to read")
+  else
+    grep -E 'every suite[^.]*red[^.]*first .?fail -' > /dev/null <<< "$paragraph" ||
+      problems+=("$skill_md's full-run paragraph never says the repair step's text lists every suite the full run left red, each with its first FAIL - line: $(printf '%.160s' "$paragraph")")
+    grep -E 'prompts[^.]*step.s text[^.]*templates?' > /dev/null <<< "$paragraph" ||
+      problems+=("$skill_md's full-run paragraph never says the prompts take that list from the step text through their templates")
+    grep -E 'never edits a built prompt' > /dev/null <<< "$paragraph" ||
+      problems+=("$skill_md's full-run paragraph never says the conductor never edits a built prompt")
+  fi
 fi
 report "$name"
 
