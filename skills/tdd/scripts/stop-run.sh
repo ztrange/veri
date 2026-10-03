@@ -22,6 +22,7 @@ set -euo pipefail
 lib="$(dirname "$0")/lib"
 source "$lib/exit-contract.sh"
 source "$lib/main-working-tree.sh"
+source "$lib/number-in.sh"
 source "$lib/stop-modes.sh"
 
 complain() {
@@ -72,16 +73,9 @@ fi
 main_tree="$(main_working_tree)"
 [[ -n "$main_tree" ]] || refuse "stop-run: no main working tree here — type this inside the repository"
 
-pid_in() {
-  local pid
-  pid="$(cat "$1" 2>/dev/null || true)"
-  [[ "$pid" =~ ^[0-9]+$ ]] || return 1
-  printf '%s' "$pid"
-}
-
 live_run() {
   local pid
-  pid="$(pid_in "$1/.tdd/conductor.pid")" || return 1
+  pid="$(number_in "$1/.tdd/conductor.pid")" || return 1
   kill -0 "$pid" 2>/dev/null
 }
 
@@ -102,7 +96,7 @@ stop_leaves() {
     [[ -f "$pidfile" ]] || continue
     name="$(basename "$pidfile" .pid)"
     [[ "$name" != conductor ]] || continue
-    pid="$(pid_in "$pidfile")" || continue
+    pid="$(number_in "$pidfile")" || continue
     supervising "$pid" "$name" || continue
     kill -TERM "$pid" 2>/dev/null || true
   done
