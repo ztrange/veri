@@ -4,7 +4,7 @@
 - [x] tests/py/test_dashboard.py runs main([]) and main(["<p>"]) against a faked ThreadingHTTPServer and asserts it was constructed on ("127.0.0.1", 8765) and on ("127.0.0.1", <p>), that one of them answered two GETs with 200, and that main returns 0 when serve_forever raises KeyboardInterrupt ⟦criterion 1⟧
 - [x] tests/py/test_dashboard.py imports veri.dashboard with the server class faked and asserts no server was constructed and the SIGINT handler is unchanged ⟦criterion 2⟧
 - [x] tests/py/test_dashboard.py: GET /api/runs through main answers exactly the stdout the faked <scripts>/status.sh --json printed ⟦criterion 3⟧
-- [ ] tests/py/test_dashboard.py: GET /api/metrics over a live run 31 (no done or bail, a stale committed report) and a run 32 ended by done answers issues["31"] as the faked metrics.sh 31's stdout and issues["32"] as the committed .tdd/issue-32-metrics.md verbatim ⟦criterion 4⟧
+- [x] tests/py/test_dashboard.py: GET /api/metrics over a live run 31 (no done or bail, a stale committed report) and a run 32 ended by done answers issues["31"] as the faked metrics.sh 31's stdout and issues["32"] as the committed .tdd/issue-32-metrics.md verbatim ⟦criterion 4⟧
 - [ ] tests/py/test_dashboard.py: GET /api/metrics answers run 33, ended by bail, with its committed .tdd/issue-33-metrics.md verbatim ⟦criterion 5⟧
 - [ ] tests/py/test_dashboard.py: GET /api/metrics answers run 34, ended by bail with no committed report, with a non-empty marker naming issue-34-metrics.md ⟦criterion 6⟧
 - [ ] tests/py/test_dashboard.py: GET /api/metrics for a run 35 whose log carries a stop mark and no done or bail answers the faked metrics.sh 35's stdout, not a committed report or the missing-report marker ⟦criterion 7⟧

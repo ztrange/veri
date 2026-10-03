@@ -2,6 +2,7 @@
 import http.server
 import importlib
 import io
+import json
 import os
 import signal
 import subprocess
@@ -158,3 +159,46 @@ def test_get_api_runs_through_main_answers_exactly_the_stdout_status_sh_json_pri
     (runs,) = served[0][1]
     assert status_code(runs) == b"200"
     assert body(runs) == printed
+
+
+def write(path, text):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write(text)
+
+
+def test_get_api_metrics_recomputes_a_live_run_and_quotes_the_committed_report_of_one_ended_by_done(
+        tmp_path, monkeypatch, dashboard):
+    live = os.path.join(str(tmp_path), ".tdd", "wt", "31")
+    ended = os.path.join(str(tmp_path), ".tdd", "wt", "32")
+    write(os.path.join(live, ".tdd", "issue-31.md"), "# Plan for #31\n\n- [ ] a lamp glows\n")
+    write(os.path.join(live, ".tdd", "events.jsonl"),
+          '{"ts": 1, "issue": "31", "event": "step-start"}\n'
+          '{"ts": 2, "issue": "31", "event": "launch", "name": "develop-red"}\n')
+    write(os.path.join(live, ".tdd", "issue-31-metrics.md"), "# a stale committed report\n")
+    committed = "# What solving #32 cost\n\n| phase | attempts |\n|---|---|\n| green | 1 |\n"
+    write(os.path.join(ended, ".tdd", "issue-32.md"), "# Plan for #32\n\n- [x] a lamp dims\n")
+    write(os.path.join(ended, ".tdd", "events.jsonl"),
+          '{"ts": 1, "issue": "32", "event": "step-done"}\n'
+          '{"ts": 2, "issue": "32", "event": "done"}\n')
+    write(os.path.join(ended, ".tdd", "issue-32-metrics.md"), committed)
+    recomputed = "# metrics.sh 31, recomputed in its run\n"
+
+    def fake_run(args, cwd=None, **kwargs):
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
+        if list(args) == [os.path.join(SCRIPTS, "metrics.sh"), "31"] and cwd == live:
+            return subprocess.CompletedProcess(args, 0, recomputed.encode(), b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, ["/api/metrics"])
+
+    dashboard.main([])
+
+    (metrics,) = served[0][1]
+    issues = json.loads(body(metrics))["issues"]
+    assert issues["31"] == recomputed
+    assert issues["32"] == committed
