@@ -25,12 +25,12 @@ source "$HERE/lib/plain.sh"
 source "$HERE/lib/window.sh"
 
 
-refactor_section() {
-  awk -v h='#### Refactor' \
-    'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path" |
+skill_section() {
+  awk -v h="$1" -v stop="$2" \
+    'index($0, h) == 1 { inside = 1; next } inside && $0 ~ stop { exit } inside' "$skill_path" |
     plain --join
 }
-section="$(refactor_section)"
+section="$(skill_section '#### Refactor' '^#')"
 
 name="$skill_md's Refactor section appends the step's structural leftovers to the run's owed file and commits that file with the step's refactor-pending clear"
 problems=()
@@ -63,12 +63,7 @@ fi
 
 report "$name"
 
-draft_pr_pass() {
-  awk -v h='### 4. Draft PR' \
-    'index($0, h) == 1 { inside = 1; next } inside && /^### / { exit } inside' "$skill_path" |
-    plain --join
-}
-draft_pr="$(draft_pr_pass)"
+draft_pr="$(skill_section '### 4. Draft PR' '^### ')"
 pass_text="${draft_pr#*one structural pass}"
 
 name="#756: $skill_md's refactor loop passes the step's refactor bounds to refactor-owed.sh append and records an all-test-file step's structural candidate test-only, which the structural pass never lists and so launches no predicate or transform leaf for"
