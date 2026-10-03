@@ -253,4 +253,11 @@ body="$(cat "$body_file" 2>/dev/null)"
 
 report "$name"
 
+name="#691 refactor-overflow exits 2 and files nothing when <skipped-file> names a file that does not exist"
+problems=()
+
+overflow_case "with <skipped-file> missing" 2 504 "$owed_file" 1 "$work/no-such-skipped-file"
+
+report "$name"
+
 finish
