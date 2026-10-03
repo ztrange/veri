@@ -403,4 +403,12 @@ want='# Plan for #42
 check "writes each new step line through lib/ledger.sh's ledger_add_step, spelling no box of its own" \
   "$code" "$want"
 
+seed
+err="$("$ADD" "$led" afterr 'collapse to single hyphen' 'collapse a unicode dash too' 2>&1 > /dev/null)"; code=$?
+if [[ "$code" == 2 && "$err" == *afterr* ]]; then
+  ok
+else
+  no "#697: a position word other than after, before or instead-of exits 2 and stderr names it (code=$code, err=$err)"
+fi
+
 finish
