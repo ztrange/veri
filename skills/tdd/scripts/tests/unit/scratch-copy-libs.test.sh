@@ -36,11 +36,16 @@ lib_copy_hits() {
   local dir="$1" suite line n copy='(^|[[:space:];&|(`{])(cp|ln)[[:space:]]'
   for suite in "$dir"/*.test.sh "$dir"/unit/*.test.sh; do
     [[ -f "$suite" ]] || continue
+    local -A vars=()
+    while IFS= read -r line; do
+      [[ "$line" =~ ^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=[\'\"]?([^\'\"]*)[\'\"]?[[:space:]]*$ ]] \
+        && vars["${BASH_REMATCH[1]}"]="${BASH_REMATCH[2]}"
+    done < "$suite"
     n=0
     while IFS= read -r line; do
       n=$((n + 1))
       [[ "$line" =~ $copy ]] || continue
-      [[ "$line" =~ skills/tdd/scripts/lib/[A-Za-z0-9_.-]+\.sh ]] || continue
+      [[ "$(expand "$line")" =~ skills/tdd/scripts/lib/[A-Za-z0-9_.-]+\.sh ]] || continue
       printf '    %s:%s copies an individual lib file\n' "${suite#"$dir"/}" "$n"
     done < "$suite"
   done
@@ -125,6 +130,17 @@ printf '%s\n' '#!/usr/bin/env bash' \
 got="$(lib_copy_hits "$plant" 2>&1)"
 expect_eq "$name" \
   "$(printf '    %s copies an individual lib file\n' e.test.sh:2 e.test.sh:3)" \
+  "$got"
+
+name="#749: the lib-copy guard names a cp of an individual lib file made through the suite's own variable assignment"
+plant="$(scratch_dir)"
+printf '%s\n' '#!/usr/bin/env bash' \
+  'cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/"' \
+  'GUARD_LIB="$ROOT/skills/tdd/scripts/lib/count-line-guard.sh"' \
+  'cp "$GUARD_LIB" "$tree/lib/"' > "$plant/f.test.sh"
+got="$(lib_copy_hits "$plant" 2>&1)"
+expect_eq "$name" \
+  "$(printf '    %s copies an individual lib file\n' f.test.sh:2 f.test.sh:4)" \
   "$got"
 
 finish
