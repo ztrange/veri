@@ -220,4 +220,17 @@ if [[ "$code" == 0 && -z "$got" ]]; then ok; else
   printf '%s\n' "$got" | sed 's/^/    unreachable: /'
 fi
 
+root="$(fixture_root linked)"
+S="$root/skills/tdd/scripts"
+script "$S/helper.sh" 'echo helped'
+script "$S/orphan.sh" 'echo alone'
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+mkdir -p "$work/elsewhere"
+in_place="$("$UNREACHABLE" "$root" 2>&1)"; in_place_code=$?
+linked="$(cd "$work/elsewhere" && "$work/linked-skill/scripts/unreachable.sh" "$root" 2>&1)"; linked_code=$?
+if [[ "$linked" == "$in_place" && "$linked_code" -eq "$in_place_code" && "$in_place" == *"orphan.sh"* ]]; then ok; else
+  no "unreachable.sh run through a symlink to the skill directory and from another working directory prints the same listing and exit code as when run in place"
+  diff <(printf '%s\nexit %s\n' "$in_place" "$in_place_code") <(printf '%s\nexit %s\n' "$linked" "$linked_code") | sed 's/^/    /'
+fi
+
 finish
