@@ -19,17 +19,12 @@ skill_md="$skill_dir/SKILL.md"
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/frontmatter-name.sh"
 
 have_skill_md() {
   [[ -f "$ROOT/$skill_md" ]] && return 0
   problems+=("want a SKILL.md at $skill_md, found none")
   return 1
-}
-
-frontmatter_name() {
-  awk 'NR == 1 && $0 == "---" { inside = 1; next }
-       inside && $0 == "---" { exit }
-       inside && sub(/^name:[[:space:]]*/, "") { print; exit }' "$1"
 }
 
 fold_prose() {
