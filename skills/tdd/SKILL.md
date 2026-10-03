@@ -1516,7 +1516,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    for `PREDICATE: NONE`, 1 for a command already true — and appended to
    `.tdd/issue-<n>-predicate-skipped`, the `<skipped-file>`, rather than handed to a
    transform leaf; exit 2 is no answer.
-   Its prompt is `build-develop-prompt.sh structural`'s, handed the spec, the candidate as
+   The transform leaf's prompt is `build-develop-prompt.sh structural`'s, handed the spec, the candidate as
    `list` printed it, the test command and `<issue-touched-files>`, written to
    `.tdd/develop-structural.prompt`; the leaf is launched through the supervisor as
    `develop-structural`. Its commits are checked with
