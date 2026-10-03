@@ -204,3 +204,34 @@ def test_main_lists_no_unreachable_script_in_this_repository(capsys):
                          if line and not line.startswith(("test-only: ", "promised-unread: "))]
 
     assert (code, unreachable_names, listing.err) == (0, [], "")
+
+
+def test_main_reads_nothing_under_veri_counts_tests_py_and_orders_its_listing_and_answers_a_missing_root_with_nothing(tmp_path, capsys):
+    unreachable = importlib.import_module("veri.unreachable")
+    root = tmp_path / "ported"
+    scripts = fixture_root(root)
+    (scripts / "veri").mkdir()
+    (scripts / "tests" / "py").mkdir(parents=True)
+    script(scripts / "helper.sh", "echo helped")
+    script(scripts / "py-only.sh", "echo py")
+    script(scripts / "a.sh", "echo alone")
+    script(scripts / "B.sh", "echo alone")
+    (scripts / "veri" / "caller.py").write_text(
+        'import os, subprocess\nsubprocess.run(["py-only.sh"])\nos.environ.get("VERI_PY_ONLY")\n')
+    (scripts / "tests" / "py" / "test_caller.py").write_text('SCRIPT = "py-only.sh"\n')
+    with (root / "skills" / "tdd" / "SKILL.md").open("a") as f:
+        f.write("\nSet `VERI_B`, `VERI_PY_ONLY` or `VERI_A`; run `a-ghost.sh` or `Z-ghost.sh`.\n")
+    (root / "CLAUDE.md").write_text("# notes\n\n`VERI_A` again, and `a-ghost.sh` again.\n")
+
+    listed = unreachable.main([str(root)])
+    listing = capsys.readouterr()
+    missing = unreachable.main([str(tmp_path / "missing")])
+    nothing = capsys.readouterr()
+
+    assert (listed, listing.out, listing.err, missing, nothing.out, nothing.err) == (
+        0,
+        "B.sh\na.sh\ntest-only: py-only.sh\n"
+        "promised-unread: VERI_A\npromised-unread: VERI_B\npromised-unread: VERI_PY_ONLY\n"
+        "promised-unread: Z-ghost.sh\npromised-unread: a-ghost.sh\n",
+        "",
+        0, "", "")
