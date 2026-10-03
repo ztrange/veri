@@ -4,3 +4,5 @@
 - event.sh's case pattern `candidates-done|budget-spent|nothing-structural` repeats the reasons that `$stopped_reasons` now lists for the messages; one could be derived from the other, but that costs more code than it saves
 - test-only | fold event.test.sh's two #726 cases into one loop over (args, expected words), since they differ only in the stopped= argument and the words stderr must name
 - test-only | remove the scratch dirs `$sp_work` and `$ns_work` with `rm -rf` at the end of event.test.sh's two #726 cases, as the cases before them do
+### event.sh refuses a structural-pass mark with stopped=budget-spent whose transforms is not equal to its budget with exit 2, and appends nothing to the event log ⟦criterion 2⟧
+- test-only | event.test.sh's three #726 cases repeat the same scratch-dir / run event.sh / assert exit 2 / assert empty events.jsonl block and could share one helper
