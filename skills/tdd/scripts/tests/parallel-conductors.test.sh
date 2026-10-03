@@ -225,14 +225,32 @@ expect_lines "a non-assistant event carrying cache usage prints no 'context' lin
 gh_split="$work/gh-split"
 solvable_fixture "$gh_split" 7
 split_stub="$work/claude-split"
+split_hold="$work/split.hold"
+mkfifo "$split_hold"
 conductor_stub "$split_stub" <<STUB
 printf '{"type":"assistant","message":{"role":"assistant",'
-sleep 0.3
+: > "$split_hold.written"
+read _ < "$split_hold"
 printf '"usage":{"input_tokens":7,"cache_creation_input_tokens":3438,"cache_read_input_tokens":50000,"output_tokens":120}}}\n'
 $(ready_pr "$gh_split")
 STUB
 
-run_launcher "$gh_split" "$split_stub" "$work/split.out"
+split_bin="$work/split-bin"
+mkdir -p "$split_bin"
+cat > "$split_bin/sleep" <<SH
+#!/bin/sh
+case "\$(ps -o command= -p \$PPID)" in
+  *parallel-conductors.sh*)
+    if [ -e "$split_hold.seen" ]; then
+      mkdir "$split_hold.released" 2>/dev/null && echo go > "$split_hold"
+    elif [ -e "$split_hold.written" ]; then
+      : > "$split_hold.seen"
+    fi ;;
+esac
+exec $(command -v sleep) "\$@"
+SH
+chmod +x "$split_bin/sleep"
+run_launcher "$gh_split" "$split_stub" "$work/split.out" PATH="$split_bin:$PATH"
 expect_lines "an assistant event the conductor writes in two pieces still prints one 'context' line for the whole event" "context 7 53438" "$(grep '^context ' "$work/split.out")" "$work/split.out"
 
 stub_waits() {
