@@ -48,4 +48,35 @@ if [[ "$bad_code" == 2 && "$bad_out" == *"$bogus"* ]]; then ok; else
   no "unresolvable base-sha → exit 2 with a diagnostic naming it (code=$bad_code out=$bad_out)"
 fi
 
+OWED="$HERE/../refactor-owed.sh"
+agree_repo="$work/agree"
+new_repo -b main "$agree_repo" >/dev/null 2>&1
+printf 'seed\n' > "$agree_repo/README"
+commit_all "$agree_repo" "chore: seed"
+problems=()
+for case_ in 'pkg/tests/fixture.sh:test' 'pkg/contests/entry.sh:not-test'; do
+  path="${case_%:*}" want="${case_##*:}"
+  base="$(git -C "$agree_repo" rev-parse HEAD)"
+  mkdir -p "$agree_repo/$(dirname "$path")"
+  printf 'x\n' > "$agree_repo/$path"
+  commit_all "$agree_repo" "refactor: touch $path"
+  (cd "$agree_repo" && "$TOUCHES" "$base" >/dev/null 2>&1); touches_code=$?
+  touches_says=not-test
+  [[ "$touches_code" == 1 ]] && touches_says=test
+
+  owed_file="$work/owed-${want}.md"
+  "$OWED" append "$owed_file" 'a step' "$path" <<'REPORT' >/dev/null 2>&1
+CANDIDATES: structural | fold the two walks into one
+REPORT
+  "$OWED" list "$owed_file" >/dev/null 2>&1; list_code=$?
+  owed_says=not-test
+  [[ "$list_code" == 3 ]] && owed_says=test
+
+  [[ "$touches_says" == "$want" && "$owed_says" == "$want" ]] ||
+    problems+=("$path: want $want from both; transform-touches-tests.sh says $touches_says (exit $touches_code), refactor-owed.sh append says $owed_says (list exit $list_code)")
+done
+if [[ "${#problems[@]}" == 0 ]]; then ok; else
+  no "transform-touches-tests.sh and refactor-owed.sh append agree on what a test file is: ${problems[*]}"
+fi
+
 finish
