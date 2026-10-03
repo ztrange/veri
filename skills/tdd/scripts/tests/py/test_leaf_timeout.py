@@ -142,3 +142,26 @@ def test_main_keeps_leaf_timeout_sh_argument_and_environment_quirks(monkeypatch,
         (None, "", ["200", "refactor"], 0, "6000\n", ""),
         (None, "-3", ["200", "refactor"], 0, "1200\n", ""),
     ]
+
+
+def test_main_reproduces_leaf_timeout_sh_bash_arithmetic_in_stdout_and_return_code(monkeypatch, capsys, leaf_timeout):
+    monkeypatch.delenv("VERI_TIMEOUT", raising=False)
+    seen = []
+    for budget, argv in (
+            (None, ["0200"]), (None, ["08"]), ("abc", ["200", "refactor"]), ("010", ["200", "refactor"]),
+            (None, ["1537228672809129302"]), (None, ["768614336404564651", "refactor"])):
+        if budget is None:
+            monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
+        else:
+            monkeypatch.setenv("VERI_REFACTOR_BUDGET", budget)
+        code = leaf_timeout.main(argv)
+        out, _ = capsys.readouterr()
+        seen.append((budget, argv, code, out))
+    assert seen == [
+        (None, ["0200"], 0, "900\n"),
+        (None, ["08"], 1, ""),
+        ("abc", ["200", "refactor"], 1, ""),
+        ("010", ["200", "refactor"], 0, "9600\n"),
+        (None, ["1537228672809129302"], 0, "900\n"),
+        (None, ["768614336404564651", "refactor"], 0, "4611686018427387914\n"),
+    ]

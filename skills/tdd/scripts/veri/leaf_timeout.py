@@ -10,6 +10,22 @@ def is_whole(text):
     return re.fullmatch(r"[0-9]+", text) is not None
 
 
+def arith(text):
+    match = re.fullmatch(r"(-?)([0-9]+)", text)
+    if match is None:
+        return None
+    digits = match[2]
+    try:
+        value = int(digits, 8 if digits[0] == "0" else 10)
+    except ValueError:
+        return None
+    return -value if match[1] else value
+
+
+def wrap(value):
+    return (value + 2**63) % 2**64 - 2**63
+
+
 def refuse(message):
     print(message, file=sys.stderr)
     print(USAGE, file=sys.stderr)
@@ -32,8 +48,14 @@ def main(argv):
         if not is_whole(full):
             return refuse(f"leaf-timeout: <full-seconds> must be a whole number >= 0: {full}")
         baseline = full
-    derived = max(900, int(baseline) * 6)
+    baseline = arith(baseline)
+    if baseline is None:
+        return 1
+    derived = max(900, wrap(baseline * 6))
     if argv[1:2] == ["refactor"]:
-        derived *= max(1, int(os.environ.get("VERI_REFACTOR_BUDGET") or "5"))
+        budget = arith(os.environ.get("VERI_REFACTOR_BUDGET") or "5")
+        if budget is None:
+            return 1
+        derived = wrap(derived * max(1, budget))
     print(derived)
     return 0
