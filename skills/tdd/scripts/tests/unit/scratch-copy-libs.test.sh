@@ -15,6 +15,7 @@ TESTS="$(cd "$HERE/.." && pwd)"
 SCRIPTS="$(cd "$TESTS/.." && pwd)"
 export LC_ALL=C
 source "$TESTS/lib/harness.sh"
+source "$TESTS/lib/verdict.sh"
 
 needs_contract() {
   [[ -f "$SCRIPTS/$1" ]] && grep -E '^(source|\.)[[:space:]].*lib/exit-contract\.sh' "$SCRIPTS/$1" > /dev/null
@@ -56,12 +57,7 @@ for suite in "$TESTS"/*.test.sh "$TESTS"/unit/*.test.sh; do
   done < "$suite"
   unset vars
 done
-if [[ -z "$problems" ]]; then
-  ok
-else
-  no "$name"
-  printf '%s' "$problems"
-fi
+verdict "$name"
 
 name="a suite that plants a suite into a scratch tree copies every tests/lib file that suite sources"
 problems=""
@@ -79,11 +75,6 @@ for suite in "$TESTS"/*.test.sh "$TESTS"/unit/*.test.sh; do
       || problems+="    ${suite#"$TESTS"/} plants $planted without lib/$lib"$'\n'
   done < <(sed -nE 's#^(source|\.)[[:space:]]+"\$HERE/lib/([A-Za-z0-9_.-]+\.sh)".*#\2#p' "$TESTS/$planted")
 done
-if [[ -z "$problems" ]]; then
-  ok
-else
-  no "$name"
-  printf '%s' "$problems"
-fi
+verdict "$name"
 
 finish
