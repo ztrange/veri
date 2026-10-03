@@ -193,3 +193,14 @@ def test_main_lists_test_only_scripts_and_promised_unread_names_and_reads_no_pro
         (0, "entry.sh\n", ""),
         (0, "promised-unread: VERI_GHOST\n", ""),
     ], True)
+
+
+def test_main_lists_no_unreachable_script_in_this_repository(capsys):
+    unreachable = importlib.import_module("veri.unreachable")
+
+    code = unreachable.main([str(SCRIPTS.parents[2])])
+    listing = capsys.readouterr()
+    unreachable_names = [line for line in listing.out.splitlines()
+                         if line and not line.startswith(("test-only: ", "promised-unread: "))]
+
+    assert (code, unreachable_names, listing.err) == (0, [], "")
