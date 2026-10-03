@@ -23,3 +23,13 @@ def test_main_returns_2_naming_an_unrecognised_verdict_word_with_nothing_on_stdo
     out, err = capsys.readouterr()
 
     assert (code, out, err) == (2, "", "parse-verdict: unrecognised verdict word 'MAYBE'\n")
+
+
+def test_main_returns_0_for_pass_and_1_for_reject_printing_the_reason(monkeypatch, capsys, parse_verdict):
+    results = []
+    for verdict in ("PASS", "REJECT"):
+        monkeypatch.setattr(sys, "stdin", io.StringIO(f"VERDICT: {verdict}\nREASON: the step is pinned"))
+        code = parse_verdict.main([])
+        results.append((code, *capsys.readouterr()))
+
+    assert results == [(0, "the step is pinned\n", ""), (1, "the step is pinned\n", "")]
