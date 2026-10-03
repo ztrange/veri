@@ -383,13 +383,18 @@ ledger_steps() {
 }
 EOF
 seed_lines '* [ ] a lamp glows'
-"$stub/add-ledger-step.sh" "$led" after 'a lamp glows' 'a lamp dims'; code=$?
+"$stub/add-ledger-step.sh" "$led" after 'a lamp glows' 'a lamp dims' 2> "$work/stub.err"; code=$?
 want='# Plan for #42
 
 * [ ] a lamp glows
 - [ ] a lamp dims ⟦added⟧'
-check "finds the anchor step through lib/ledger.sh's ledger_steps, matching no checkbox of its own" \
-  "$code" "$want"
+name="#698: finds the anchor step through lib/ledger.sh's ledger_steps, matching no checkbox of its own, printing nothing on stderr"
+if [[ -s "$work/stub.err" ]]; then
+  no "$name (stderr not empty)"
+  sed 's/^/    /' "$work/stub.err"
+else
+  check "$name" "$code" "$want"
+fi
 
 stub="$work/stub-add"
 stub_script
