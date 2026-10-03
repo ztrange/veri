@@ -4,8 +4,8 @@
 # which runs on the real interpreter.
 here="$(dirname "$0")"
 cmd="$(basename "$0")"
-if [ "$cmd" = python3 ] && [ -f "$1" ]; then
-  veri="$(cd "$here/../../veri" 2>/dev/null && pwd -P)"
+veri="$(cd "$here/../../veri" 2>/dev/null && pwd -P)"
+if [ "$cmd" = python3 ] && [ -n "$veri" ] && [ -f "$1" ]; then
   module_dir="$(cd "$(dirname -- "$1")" && pwd -P)"
   case "$module_dir/" in
     "$veri"/*)

@@ -132,4 +132,34 @@ done
 
 report "$name"
 
+name="when the guard has no veri/ directory beside it, every python3 call — a file included — exits 1 naming python3, is logged, and never reaches the interpreter"
+problems=()
+
+bare="$(scratch_dir)"
+mkdir -p "$bare/skills/tdd/scripts/tests"
+cp -R "$ROOT/skills/tdd/scripts/tests/unit-guard" "$bare/skills/tdd/scripts/tests/"
+printf 'print("reached-interpreter")\n' > "$bare/module.py"
+for call in "file|$bare/module.py" "-c|print(\"reached-interpreter\")" "none|"; do
+  kind="${call%%|*}" arg="${call#*|}"
+  case "$kind" in
+    -c) argv=(-c "$arg") ;;
+    file) argv=("$arg") ;;
+    none) argv=() ;;
+  esac
+  : > "$log"
+  out="$(cd "$bare" && PATH="$bare/skills/tdd/scripts/tests/unit-guard:$PATH" UNIT_GUARD_LOG="$log" \
+    python3 ${argv[@]+"${argv[@]}"} 2> "$err_file" < /dev/null)"
+  code=$?
+  err="$(cat "$err_file")"
+  logged="$(cat "$log")"
+  [[ "$code" == 1 ]] ||
+    problems+=("$kind: want exit 1; got: $code (stdout: $(flat "$out"))")
+  [[ "$err" == "$refusal" ]] ||
+    problems+=("$kind: want stderr '$refusal'; got: $(flat "$err")")
+  [[ "$logged" == "python3 ${argv[*]+"${argv[*]}"} (cwd "* ]] ||
+    problems+=("$kind: want a log line 'python3 ${argv[*]+"${argv[*]}"} (cwd …)'; got: $(flat "$logged")")
+done
+
+report "$name"
+
 finish
