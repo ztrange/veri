@@ -42,4 +42,14 @@ got="$("$STEPS" < "$work/kinds.md" 2> "$work/err")"; code=$?
   && ok || no "with no argument prints ledger_steps's records for every step kind and mark (code=$code stderr='$(cat "$work/err")')
 $(diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /')"
 
+printf '# Plan for #42\n\n- [x] add lowercasing ⟦criterion 1⟧\n- [ ] a person reads the page ⟦human-owed⟧ ⟦criterion 2⟧\n- [ ] `make test` is green ⟦full-suite⟧ ⟦criterion 3⟧\n- [ ] strip edge hyphens ⟦criterion 4⟧\n' > "$work/open.md"
+printf '# Plan for #42\n\n- [x] add lowercasing ⟦criterion 1⟧\n- [ ] a person reads the page ⟦human-owed⟧ ⟦criterion 2⟧\n- [ ] `make test` is green ⟦full-suite⟧ ⟦criterion 3⟧\n' > "$work/none.md"
+pending="$("$STEPS" current < "$work/kinds.md" 2> "$work/err")"; pending_code=$?
+open="$("$STEPS" current < "$work/open.md" 2>> "$work/err")"; open_code=$?
+none="$("$STEPS" current < "$work/none.md" 2>> "$work/err")"; none_code=$?
+{ [[ "$pending_code" == 0 ]] && [[ "$pending" == 'add lowercasing ⟦criterion 1⟧' ]] \
+  && [[ "$open_code" == 0 ]] && [[ "$open" == 'strip edge hyphens ⟦criterion 4⟧' ]] \
+  && [[ "$none_code" == 3 ]] && [[ -z "$none" ]] && [[ ! -s "$work/err" ]]; } \
+  && ok || no "current prints the first refactor-pending step, else the first open step-kind step, else exits 3 with no output (pending_code=$pending_code pending='$pending' open_code=$open_code open='$open' none_code=$none_code none='$none' stderr='$(cat "$work/err")')"
+
 finish
