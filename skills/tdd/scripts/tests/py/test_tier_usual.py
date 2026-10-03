@@ -115,3 +115,17 @@ def test_main_with_a_line_of_the_event_log_that_is_not_json_raises_and_prints_no
         tier_usual.main(["fast"])
     out, _ = capsys.readouterr()
     assert out == ""
+
+
+def test_main_with_a_test_run_event_whose_seconds_is_not_a_number_raises_and_prints_nothing_on_stdout(capsys, monkeypatch, tmp_path, tier_usual):
+    log = tmp_path / ".tdd" / "events.jsonl"
+    log.parent.mkdir()
+    log.write_text("".join(_event(*e) + "\n" for e in [
+        ("test-run", "fast", "5"),
+        ("test-run", "fast", "slow"),
+    ]))
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(Exception):
+        tier_usual.main(["fast"])
+    out, _ = capsys.readouterr()
+    assert out == ""
