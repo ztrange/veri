@@ -14,11 +14,13 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/exit-contract.sh"
 source "$HERE/lib/ledger.sh"
 
+TEXT=$'\t[^\t]*\t[^\t]*\t(.*)$'
+
 current() {
   local records record pattern
   records="$(ledger_steps)"
-  for pattern in $'^[0-9]+\tdone\t[^\t]*\t1\t[^\t]*\t[^\t]*\t(.*)$' \
-                 $'^[0-9]+\topen\tstep\t[^\t]*\t[^\t]*\t[^\t]*\t(.*)$'; do
+  for pattern in $'^[0-9]+\tdone\t[^\t]*\t1'"$TEXT" \
+                 $'^[0-9]+\topen\tstep\t[^\t]*'"$TEXT"; do
     while IFS= read -r record; do
       [[ "$record" =~ $pattern ]] || continue
       printf '%s\n' "${BASH_REMATCH[1]}"
@@ -29,7 +31,7 @@ current() {
 }
 
 last_done() {
-  local record last='' found=0 pattern=$'^[0-9]+\tdone\t[^\t]*\t[^\t]*\t[^\t]*\t[^\t]*\t(.*)$'
+  local record last='' found=0 pattern=$'^[0-9]+\tdone\t[^\t]*\t[^\t]*'"$TEXT"
   while IFS= read -r record; do
     [[ "$record" =~ $pattern ]] && last="${BASH_REMATCH[1]}" found=1
   done <<< "$(ledger_steps)"
@@ -38,7 +40,7 @@ last_done() {
 }
 
 criterion() {
-  local k="$1" line in_section=0 record pattern=$'^[0-9]+\t[^\t]*\t[^\t]*\t[^\t]*\t[^\t]*\t[^\t]*\t(.*)$'
+  local k="$1" line in_section=0 record pattern=$'^[0-9]+\t[^\t]*\t[^\t]*\t[^\t]*'"$TEXT"
   while IFS= read -r record; do
     k=$((k - 1))
     ((k == 0)) || continue
