@@ -1,0 +1,2 @@
+### `stub_waits`' `await_context` waits for its `context <issue> <tokens>` line with no `sleep` and no iteration cap, returning only once that line has arrived ⟦criterion 1⟧
+- test-only | the new case's `sleep() { :; }` override (line 275) is not used by the current `await_context`, which never calls `sleep`; it is only there so a sleep-based version would fail fast. It could be dropped, or kept with a test name that says why it exists
