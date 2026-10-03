@@ -200,6 +200,7 @@ root="$(fixture_root make-target)"
 S="$root/skills/tdd/scripts"
 cp "$HERE/../../../../Makefile" "$root/Makefile"
 cp "$UNREACHABLE" "$S/unreachable.sh"
+cp -R "$HERE/../veri" "$S/veri"
 script "$S/helper.sh" 'echo helped'
 script "$S/orphan.sh" 'echo alone'
 out="$(make --no-print-directory -s -C "$root" unreachable 2>&1)"; code=$?
