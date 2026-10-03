@@ -1,0 +1,2 @@
+### `refactor-owed.sh append` takes the step's refactor bounds (the comma-separated `$touched` list) as a new argument, and when every file in them is a test file it records a `CANDIDATES: structural |` candidate as test-only, so `refactor-owed.sh list` does not print it and exits 3 when nothing else is owed ⟦criterion 1⟧
+- move the test-file regex `(^|/)tests/|\.test\.` into one function in `skills/tdd/scripts/lib/` sourced by both `refactor-owed.sh` (append's bounds loop) and `transform-touches-tests.sh:25`, so the rule has one definition
