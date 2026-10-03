@@ -1,42 +1,8 @@
-#!/usr/bin/env bash
-# extract-result.sh — pull the final assistant text out of a claude stream-json stream.
+#!/bin/sh
+# extract-result.sh — pull the final assistant text out of a claude stream-json stream: a shim over veri/extract_result.py.
 #
-# `claude -p --output-format stream-json --verbose` emits one JSON object per line; the
-# terminal `{"type":"result", ..., "result":"<text>"}` event carries the clean final
-# answer (the same text plain mode would print). This reads that stream on stdin and
-# writes the result text on stdout, so parse-verdict.sh can read a clean VERDICT block.
-#
-# If the input contains no stream-json result event (e.g. a plain-text leaf, or a test
-# stub), the input is passed through unchanged — extraction is a no-op on non-stream data.
-#
-# A leaf re-invoked after it answered (a background task completing) writes a
-# later result record with no verdict in it, so the newest record whose text carries a
-# `VERDICT:`, `IMPL_PATH:`, `SPLIT:`, `TEST_PATH:` or `SUITE:` line wins over a merely newer one; with none, the last record wins.
+# Writes the newest result record whose text carries a `VERDICT:`, `IMPL_PATH:`, `SPLIT:`, `TEST_PATH:`
+# or `SUITE:` line; with none, the last result record. Input with no result record passes through unchanged.
 #
 # Usage:   extract-result.sh < leaf-stream.jsonl
-#
-# Passed via `python3 -c` (not a heredoc) so the leaf stream stays on stdin.
-set -euo pipefail
-
-HERE="$(cd "$(dirname "$0")" && pwd)"
-source "$HERE/lib/exit-contract.sh"
-
-PYTHONPATH="$HERE/veri" exec python3 -c '
-import sys, re
-from leaf_log import result_records
-data = sys.stdin.read()
-result = None
-report = None
-report_re = re.compile(r"^[ \t]*(verdict|impl_path|split|test_path|suite):", re.I | re.M)
-for obj in result_records(data.splitlines()):
-    if "result" in obj:
-        result = obj["result"]          # last result event wins
-        if isinstance(result, str) and report_re.search(result):
-            report = result             # ...unless a later one carries no report
-if report is not None:
-    result = report
-if result is None:
-    sys.stdout.write(data)              # not a stream-json result -> passthrough
-else:
-    sys.stdout.write(result if result.endswith("\n") else result + "\n")
-'
+exec python3 "$(dirname "$0")/veri/extract_result.py" "$@"
