@@ -152,3 +152,41 @@ def test_main_passes_event_sh_a_model_usage_key_with_each_models_figures_only_wh
     assert "total_cost_usd=0.75" in calls[0] and "output_tokens=4000" in calls[0]
     carried = [json.loads(arg[len("model_usage="):]) for arg in calls[0] if arg.startswith("model_usage=")]
     assert carried == ([] if model_usage is None else [model_usage])
+
+
+_RECORD = {"type": "result", "duration_ms": 228265.0, "duration_api_ms": 84513, "num_turns": 13,
+           "total_cost_usd": 1e-05,
+           "usage": {"input_tokens": 41, "cache_creation_input_tokens": 52890,
+                     "cache_read_input_tokens": 1287431, "output_tokens": 8203}}
+_NUMBERS = ["duration_ms=228265.0", "duration_api_ms=84513", "num_turns=13", "total_cost_usd=1e-05",
+            "input_tokens=41", "output_tokens=8203", "cache_read_input_tokens=1287431",
+            "cache_creation_input_tokens=52890", "model="]
+
+
+@pytest.mark.parametrize("name, log, expected_code, expected_err, expected_calls", [
+    ("bogus-green", json.dumps({"type": "system", "subtype": "init"}) + "\n", 3,
+     "harvest-usage.sh: no closing result record in .tdd/bogus-green.log — no usage event appended for bogus-green\n",
+     []),
+    ("bogus-green", None, 1, None, []),
+    ("verify-green", json.dumps({k: v for k, v in _RECORD.items() if k != "usage"}) + "\n", 1, None, []),
+    ("verify-green", json.dumps({k: v for k, v in _RECORD.items() if k != "num_turns"}) + "\n", 1, None, []),
+    ("verify-green", json.dumps(dict(_RECORD, usage={k: v for k, v in _RECORD["usage"].items()
+                                                     if k != "output_tokens"})) + "\n", 1, None, []),
+    ("verify-green", json.dumps(dict(_RECORD, num_turns=99)) + "\n" + json.dumps(_RECORD) + "\n"
+     + "harvest: the leaf exited 0\n", 0, "", [["usage"] + _NUMBERS]),
+], ids=["unknown-name-no-record-3", "unknown-name-no-log-1", "no-usage-1", "no-num-turns-1",
+        "no-output-tokens-1", "last-result-record-before-a-trailing-line-0"])
+def test_main_ports_harvest_usage_sh_quirks_exit_codes_closing_record_number_text_and_no_record_diagnostic(
+        tmp_path, monkeypatch, capsys, harvest_usage, name, log, expected_code, expected_err, expected_calls):
+    (tmp_path / ".tdd").mkdir()
+    if log is not None:
+        (tmp_path / ".tdd" / ("%s.log" % name)).write_text(log)
+    monkeypatch.chdir(tmp_path)
+    calls = _fake_event_sh(monkeypatch, 0)
+
+    code = harvest_usage.main([name])
+
+    captured = capsys.readouterr()
+    assert (code, [args[1:] for args in calls], captured.out) == (expected_code, expected_calls, "")
+    if expected_err is not None:
+        assert captured.err == expected_err
