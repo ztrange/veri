@@ -2,6 +2,7 @@
 import importlib
 import json
 import pathlib
+import re
 import subprocess
 import sys
 import time
@@ -189,3 +190,47 @@ def test_main_attributes_an_sdk_cli_session_and_an_interactive_session_to_their_
     lines = capsys.readouterr().out.splitlines()
 
     assert (code, [line for line in want if line not in lines]) == (0, [])
+
+
+def test_main_prints_per_session_rows_with_preamble_final_and_total_context_and_names_an_uncleared_ramp_in_words(tmp_path, monkeypatch, capsys, session_cost):
+    monkeypatch.setenv("TZ", "UTC")
+    time.tzset()
+    ramp = tmp_path / "a8f3d1c6-4b27-4e50-9a83-7f0d2e6c19b5.jsonl"
+    flat = tmp_path / "5c72e0b4-9d18-4a36-b7e2-0f45c8a13d9e.jsonl"
+
+    def record(stamp, request, session, usage_in, read, write, output):
+        return (
+            '{"type":"assistant","timestamp":"%s","requestId":"%s","sessionId":"%s","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":%d,"cache_creation_input_tokens":%d,"cache_creation":{"ephemeral_5m_input_tokens":%d,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":%d,"output_tokens":%d}}}\n'
+            % (stamp, request, session, usage_in, write, write, read, output)
+        )
+
+    ramp.write_text(
+        record("2026-09-14T07:02:18.443Z", "req_011CSJmZ4bCdJ0pFhN3aUw7i", "a8f3d1c6-4b27-4e50-9a83-7f0d2e6c19b5", 4, 0, 60000, 900)
+        + record("2026-09-14T09:26:51.207Z", "req_011CSKnA5cDeK1qGiO4bVx8j", "a8f3d1c6-4b27-4e50-9a83-7f0d2e6c19b5", 2, 60000, 120000, 700)
+        + record("2026-09-14T13:44:05.912Z", "req_011CSLoB6dEfL2rHjP5cWy9k", "a8f3d1c6-4b27-4e50-9a83-7f0d2e6c19b5", 2, 180000, 220000, 800)
+    )
+    flat.write_text(
+        record("2026-09-14T08:11:32.605Z", "req_011CSMpC7eFgM3sIkQ6dXz0l", "5c72e0b4-9d18-4a36-b7e2-0f45c8a13d9e", 1, 0, 52000, 600)
+        + record("2026-09-14T08:39:14.881Z", "req_011CSNqD8fGhN4tJlR7eYa1m", "5c72e0b4-9d18-4a36-b7e2-0f45c8a13d9e", 1, 52000, 0, 500)
+    )
+    want = {
+        "a8f3d1c6": (60004, 400002, 640008),
+        "5c72e0b4": (52001, 52001, 104002),
+    }
+    ramp_words = re.compile(r"un-?cleared|never cleared|not cleared|ramp", re.IGNORECASE)
+
+    code = session_cost.main(["--since", "2026-09-14", str(ramp), str(flat)])
+    out = capsys.readouterr().out
+
+    problems = []
+    for session, figures in want.items():
+        rows = "\n".join(line for line in out.splitlines() if session in line)
+        for figure in figures:
+            if not re.search(r"(^|[^0-9])%d([^0-9]|$)" % figure, rows, re.MULTILINE):
+                problems.append("session %s: want %d on a line naming it, not found" % (session, figure))
+    if not ramp_words.search("\n".join(line for line in out.splitlines() if "a8f3d1c6" in line)):
+        problems.append("the ramping session: want its row to name it as un-cleared in words, not found")
+    if ramp_words.search("\n".join(line for line in out.splitlines() if "5c72e0b4" in line)):
+        problems.append("the flat session: named as un-cleared, but its context read is its preamble x its requests")
+
+    assert (code, problems) == (0, []), out
