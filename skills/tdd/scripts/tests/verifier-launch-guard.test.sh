@@ -17,6 +17,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/guard-plant.sh"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 GUARD='skills/tdd/scripts/tests/skill-leaf-launch.test.sh'
@@ -31,32 +32,13 @@ MISSING='supervise.sh'
 
 VERIFIER='run-verdict.sh'
 
+CUT_LAUNCH='detach-leaf.sh $S/run-verdict.sh'
+
 scratch="$(scratch_dir)"
 
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
-failures_in() {
-  local line
-  line="$(grep -E '^[0-9]+ passed, [0-9]+ failed$' <<< "$1" | tail -1)"
-  [[ -n "$line" ]] || { printf '%s' '<none>'; return; }
-  line="${line#*, }"
-  printf '%s' "${line% failed}"
-}
-
-make_plant_tree() {
-  tree="$scratch/$1"
-  mkdir -p "$tree/${SKILL%/*}" "$tree/${GUARD%/*}" || {
-    problems+=("could not make a scratch tree to plant the document in, so the criterion went unasked")
-    return 1
-  }
-  guard_copy="$tree/$GUARD"
-  cp "$GUARD_PATH" "$guard_copy"
-  mkdir -p "${guard_copy%/*}/lib" && cp "$HERE/lib/harness.sh" "${guard_copy%/*}/lib/"
-}
-
 plant() {
-  make_plant_tree tree || return 1
-
   planted_skill="$scratch/planted-SKILL.md"
   FRAG="$FRAGMENT" awk '
     !cut && (i = index($0, ENVIRON["FRAG"])) > 0 {
@@ -67,25 +49,13 @@ plant() {
   ' "$SKILL_PATH" > "$planted_skill"
 
   planted_line="$(head -1 < <(grep -nF "$FRAGMENT" "$SKILL_PATH") | cut -d: -f1)"
-  return 0
-}
-
-probe_guard_is_there() {
-  [[ -f "$GUARD_PATH" ]] || {
-    problems+=("there is no guard suite at $GUARD, so no launch line in $SKILL is checked for reaching $VERIFIER without $MISSING")
-    return 1
-  }
-  [[ -x "$GUARD_PATH" ]] || {
-    problems+=("$GUARD is not executable, so \`make test\`'s runner cannot run it")
-    return 1
-  }
-}
-
-probe_plant_is_what_it_claims() {
   [[ "$planted_line" =~ ^[0-9]+$ ]] || {
     problems+=("no line of $SKILL carries '$FRAGMENT' (found '$planted_line'), so there is no supervised verifier launch to cut it out of and the criterion cannot be asked")
-    return
+    return 1
   }
+}
+
+probe_launch_plant_is_what_it_claims() {
   local before after
   probe_one_carrier "$FRAGMENT"
   before="$(sed -n "${planted_line}p" "$SKILL_PATH")"
@@ -97,11 +67,6 @@ probe_plant_is_what_it_claims() {
   [[ "$after" != *"$MISSING"* ]] ||
     problems+=("the planted $SKILL:$planted_line still names $MISSING, so nothing was planted: $(flat "$after")")
   probe_one_line_rewritten "$planted_skill" launch
-}
-
-run_guard_over() {
-  cp "$1" "$tree/$SKILL"
-  guard_out="$("$guard_copy" 2>&1)" && guard_code=0 || guard_code=$?
 }
 
 probe_one_carrier() {
@@ -118,30 +83,11 @@ probe_one_line_rewritten() {
     problems+=("the plant rewrote $changed lines of $SKILL, want exactly one line rewritten (2 diff lines) — a red over a document changed twice is not about the $2")
 }
 
-probe_guard_is_red() {
-  local what="$1" failures
-  failures="$(failures_in "$guard_out")"
-  [[ "$guard_code" != 0 ]] ||
-    problems+=("want ${GUARD##*/} to fail over a $SKILL whose $what; it exited 0 and said: $(flat "$guard_out")")
-  [[ "$failures" != 0 && "$failures" != '<none>' ]] ||
-    problems+=("want ${GUARD##*/}'s own count line to state a failure over that document; it stated '$failures': $(flat "$guard_out")")
-}
-
 probe_only_this_address() {
   local want="$SKILL:$1" addresses
   addresses="$(grep -oE "${SKILL//./\\.}:[0-9]+" <<< "$guard_out" | sort -u | tr '\n' ' ')"
   [[ "$addresses" == "$want " ]] ||
     problems+=("${GUARD##*/} named the addresses '$addresses' over that document, want only $want — the document's other documented lines are correct and a red naming them is a list rather than a fix")
-}
-
-probe_guard_is_green_unplanted() {
-  local failures
-  run_guard_over "$SKILL_PATH"
-  failures="$(failures_in "$guard_out")"
-  [[ "$guard_code" == 0 ]] ||
-    problems+=("want ${GUARD##*/} to pass over $SKILL as committed — red there says nothing about the plant; it exited $guard_code and said: $(flat "$guard_out")")
-  [[ "$failures" == 0 ]] ||
-    problems+=("want ${GUARD##*/}'s own count line to state 0 failed over $SKILL as committed; it stated '$failures': $(flat "$guard_out")")
 }
 
 probe_guard_names_the_planted_launch() {
@@ -167,11 +113,7 @@ planted_line=""
 guard_out=""
 guard_code=0
 
-if probe_guard_is_there && plant; then
-  probe_plant_is_what_it_claims
-  probe_guard_is_green_unplanted
-  probe_guard_names_the_planted_launch
-fi
+run_plant_sequence tree plant "$FRAGMENT" "$CUT_LAUNCH" probe_launch_plant_is_what_it_claims probe_guard_names_the_planted_launch
 report "$name"
 
 
@@ -179,6 +121,9 @@ STEP_ANCHOR='$S/refactor-owed.sh append '
 
 STEP_DOUBLE='"<STEP>"'
 STEP_SINGLE="'<STEP>'"
+
+STEP_CARRIER_DOUBLE='refactor-owed.md "<STEP>"'
+STEP_CARRIER_SINGLE="refactor-owed.md '<STEP>'"
 
 EXEMPT_DECL='declare -A EXEMPT=('
 EXEMPT_REASON='planted by verifier-launch-guard.test.sh to ask what an exemption with a reason does'
@@ -194,8 +139,6 @@ exempting() {
 }
 
 plant_step_title() {
-  make_plant_tree step-tree || return 1
-
   step_line="$(head -1 < <(grep -nF "$STEP_ANCHOR" "$SKILL_PATH") | cut -d: -f1)"
   planted_step_skill="$scratch/planted-step-SKILL.md"
   LINE="$step_line" FROM="$STEP_DOUBLE" TO="$STEP_SINGLE" awk '
@@ -204,14 +147,14 @@ plant_step_title() {
     }
     { print }
   ' "$SKILL_PATH" > "$planted_step_skill"
-  return 0
-}
-
-probe_step_plant_is_what_it_claims() {
+  planted_skill="$planted_step_skill"
   [[ "$step_line" =~ ^[0-9]+$ ]] || {
     problems+=("no line of $SKILL carries '$STEP_ANCHOR' (found '$step_line'), so there is no documented launch to put the title's quotes back on and the criterion cannot be asked")
     return 1
   }
+}
+
+probe_step_plant_is_what_it_claims() {
   local before after
   probe_one_carrier "$STEP_ANCHOR"
   before="$(sed -n "${step_line}p" "$SKILL_PATH")"
@@ -221,7 +164,6 @@ probe_step_plant_is_what_it_claims() {
   [[ "$after" == *"$STEP_SINGLE"* ]] ||
     problems+=("the planted $SKILL:$step_line does not carry $STEP_SINGLE, so nothing was planted: $(flat "$after")")
   probe_one_line_rewritten "$planted_step_skill" "step title"
-  return 0
 }
 
 probe_step_guard_names_the_planted_line() {
@@ -259,6 +201,7 @@ reset_step_case() {
   problems=()
   tree=""
   guard_copy=""
+  planted_skill=""
   planted_step_skill=""
   step_line=""
   guard_out=""
@@ -268,36 +211,33 @@ reset_step_case() {
 name="${GUARD##*/} fails over a $SKILL whose launch line carries $STEP_SINGLE, naming that line and nothing else, unless its exemption table names it with a reason"
 reset_step_case
 
-if probe_guard_is_there && plant_step_title; then
-  if probe_step_plant_is_what_it_claims; then
-    probe_guard_is_green_unplanted
-    probe_step_guard_names_the_planted_line
-    if probe_exemption_with_a_reason_excuses_the_line; then
-      probe_exemption_without_a_reason_excuses_nothing
-    fi
-  fi
-fi
+run_plant_sequence step-tree plant_step_title "$STEP_CARRIER_DOUBLE" "$STEP_CARRIER_SINGLE" \
+  probe_step_plant_is_what_it_claims probe_step_guard_names_the_planted_line \
+  probe_exemption_with_a_reason_excuses_the_line probe_exemption_without_a_reason_excuses_nothing
 report "$name"
 
 PIN_CASE='FAIL - the #431 guard still refuses a single-quoted step title'
 
+probe_pin_answers_over_exempted_plant() {
+  local guard_with_reason
+  guard_with_reason="$(exempting "$EXEMPT_REASON" pin)" || {
+    problems+=("${GUARD##*/} carries no exemption table — no '$EXEMPT_DECL' line — to name $SKILL:$step_line in")
+    return 1
+  }
+  cp "$guard_with_reason" "$guard_copy"
+  run_guard_over "$planted_step_skill"
+  [[ "$(failures_in "$guard_out")" != '<none>' ]] ||
+    problems+=("${GUARD##*/} never reached its count line over that document, so its #431 pin went unasked: $(flat "$guard_out")")
+  grep -F "$PIN_CASE" <<< "$guard_out" > /dev/null &&
+    problems+=("${GUARD##*/}'s #431 pin failed over $SKILL with $SKILL:$step_line planted $STEP_SINGLE and exempted with a reason: $(flat "$guard_out")")
+  return 0
+}
+
 name="${GUARD##*/}'s #431 guard pin still answers over a $SKILL whose one $STEP_DOUBLE line is planted $STEP_SINGLE and exempted with a reason (#437)"
 reset_step_case
 
-if probe_guard_is_there && plant_step_title; then
-  if probe_step_plant_is_what_it_claims; then
-    if guard_with_reason="$(exempting "$EXEMPT_REASON" pin)"; then
-      cp "$guard_with_reason" "$guard_copy"
-      run_guard_over "$planted_step_skill"
-      [[ "$(failures_in "$guard_out")" != '<none>' ]] ||
-        problems+=("${GUARD##*/} never reached its count line over that document, so its #431 pin went unasked: $(flat "$guard_out")")
-      grep -F "$PIN_CASE" <<< "$guard_out" > /dev/null &&
-        problems+=("${GUARD##*/}'s #431 pin failed over $SKILL with $SKILL:$step_line planted $STEP_SINGLE and exempted with a reason: $(flat "$guard_out")")
-    else
-      problems+=("${GUARD##*/} carries no exemption table — no '$EXEMPT_DECL' line — to name $SKILL:$step_line in")
-    fi
-  fi
-fi
+run_plant_sequence step-tree plant_step_title "$STEP_CARRIER_DOUBLE" "$STEP_CARRIER_SINGLE" \
+  probe_step_plant_is_what_it_claims probe_pin_answers_over_exempted_plant
 report "$name"
 
 finish
