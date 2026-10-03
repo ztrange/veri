@@ -82,10 +82,6 @@ unnamed_class_problem() {
   printf "%s's Refactor section never names the %s class the leaf's FLAGS: line carries, so %s — the six plan: amend commits this issue counted" "$skill_md" "$1" "$2"
 }
 
-win() {
-  window "$section" "$@"
-}
-
 phrase() {
   head -1 < <(grep -oE "$1" <<<"$2")
 }
@@ -112,7 +108,7 @@ else
   [[ -z "$relaunch" ]] ||
     problems+=("$skill_md's Refactor section still launches a leaf per transform — it says '$relaunch' — so the leaf-per-transform cost this issue measured is still prescribed")
 
-  dirty="$(win 'git status --porcelain')"
+  dirty="$(window "$section" 'git status --porcelain')"
   if [[ -z "$dirty" ]]; then
     problems+=("$skill_md's Refactor section never asks git status --porcelain, so the conductor walks into verify-refactor over whatever a killed leaf left uncommitted")
   else
@@ -120,7 +116,7 @@ else
       problems+=("$skill_md's Refactor section asks git status --porcelain without saying a non-empty answer stops it, so the check is asked and its answer is advisory")
   fi
 
-  subjects="$(win '(--(format|pretty)=%s|subject)')"
+  subjects="$(window "$section" '(--(format|pretty)=%s|subject)')"
   if [[ -z "$subjects" ]]; then
     problems+=("$skill_md's Refactor section never reads the subjects of the commits since the green commit, so a leaf that committed something other than a refactor: goes to verify-refactor unchallenged")
   else
@@ -130,7 +126,7 @@ else
       problems+=("$skill_md's Refactor section never says a non-refactor: commit since the green commit stops it, so the check has no branch and the run continues either way")
   fi
 
-  counted="$(win 'rev-list --count')"
+  counted="$(window "$section" 'rev-list --count')"
   if [[ -z "$counted" ]]; then
     problems+=("$skill_md's Refactor section never counts the refactor: commits with git rev-list --count, so what it narrates is the leaf's word for what it did rather than what is in the history")
   else
@@ -219,14 +215,14 @@ else
   elif [[ "$calls" -gt 1 ]]; then
     problems+=("$skill_md's Refactor section runs add-ledger-step.sh $calls times, so a step's NEW_STEP: values are inserted a call at a time and the growth budget is read once per value rather than once for the step")
   else
-    added="$(win "$add_ledger_step")"
+    added="$(window "$section" "$add_ledger_step")"
     grep -qE "'<[^>]*behaviou?r>'" <<<"$added" ||
       problems+=("$skill_md's Refactor section runs add-ledger-step.sh without saying the texts are the flags' behaviours, so what the inserted step says is left to judgement")
     grep -qE "after ['\"]?(<step>|\\$\\(\\\$s/next-pending-refactor\\.sh)" <<<"$added" ||
       problems+=("$skill_md's Refactor section runs add-ledger-step.sh without anchoring the insertion after the step just refactored, so the triangulating step lands somewhere other than next to the code it triangulates")
   fi
 
-  cleared="$(win 'clear-refactor-pending\.sh')"
+  cleared="$(window "$section" 'clear-refactor-pending\.sh')"
   if [[ -z "$cleared" ]]; then
     problems+=("$skill_md's Refactor section never clears the refactor-pending mark, so the commit the grown ledger is supposed to ride does not exist to be read for")
   else
@@ -247,7 +243,7 @@ else
   if ! grep -qE "$owed_claim" <<<"$section"; then
     problems+=("$skill_md's Refactor section never says what add-ledger-step.sh exit 1 means, so a conductor meeting the plan-growth budget's refusal is left to read it as the failure every other non-zero exit in this phase is, and the NEW_STEP: values it filed as owed steps go unmentioned")
   else
-    clause="$(win "$owed_claim" 150)"
+    clause="$(window "$section" "$owed_claim" 150)"
     bailed="$(phrase 'bail|abort' "$clause")"
     [[ -z "$bailed" ]] ||
       problems+=("$skill_md's Refactor section says '$bailed' where it narrates add-ledger-step.sh exit 1, so a ledger whose growth budget is full ends a run whose step verified PASS — the owed steps are recorded and the plan simply did not grow, which is nothing to stop for")
@@ -262,7 +258,7 @@ problems=()
 if unreadable_section; then
   problems+=("$(unreadable_problem "what becomes of the verify-refactor verdict's NEW_STEP: lines could not be established")")
 else
-  added="$(win "$add_ledger_step")"
+  added="$(window "$section" "$add_ledger_step")"
   if [[ -z "$added" ]]; then
     problems+=("$skill_md's Refactor section never runs add-ledger-step.sh, so the verifier's NEW_STEP: proposals are narrated and nothing grows the plan — the edge case it stopped REJECTing for is proposed to nobody")
   else
@@ -321,7 +317,7 @@ else
       problems+=("$skill_md's Refactor section amends the plan from an uncovered-spec flag without saying that no other flag class does, so an overfit or beyond-spec flag still becomes a ledger step with a refactor loop of its own")
   fi
 
-  grown="$(win "$add_ledger_step")"
+  grown="$(window "$section" "$add_ledger_step")"
   if [[ -n "$grown" ]] && ! grep -F 'uncovered-spec' >/dev/null <<<"$grown"; then
     problems+=("$skill_md's Refactor section runs add-ledger-step.sh without saying its texts are the uncovered-spec flags' behaviours, so the plan grows from a class other than the one allowed to grow it")
   fi
@@ -380,7 +376,7 @@ whole="$(flat <"$skill_path")"
 if unreadable_section; then
   problems+=("$(unreadable_problem "what the plan is grown from could not be established")")
 else
-  grown="$(win "$add_ledger_step")"
+  grown="$(window "$section" "$add_ledger_step")"
   if [[ -z "$grown" ]]; then
     problems+=("$skill_md's Refactor section never runs add-ledger-step.sh, so no flag is ever planned")
   else

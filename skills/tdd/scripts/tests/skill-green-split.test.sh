@@ -41,10 +41,6 @@ unreadable=""
 [[ -n "${section// /}" ]] ||
   unreadable="$skill_md has no '$green_heading' section to read —"
 
-win() {
-  window "$section" "$1"
-}
-
 add_ledger_step='\$s/add-ledger-step\.sh'
 
 bailing_causes() {
@@ -75,7 +71,7 @@ else
   elif [[ "$calls" -gt 1 ]]; then
     problems+=("$skill_md's Green section runs add-ledger-step.sh $calls times, so a step's SPLIT: criteria are inserted a call at a time and the growth budget is read once per criterion rather than once for the split")
   else
-    added="$(win "$add_ledger_step")"
+    added="$(window "$section" "$add_ledger_step")"
     grep -qE "before ['\"]?(<step>|\\$\\(\\\$s/next-unchecked\\.sh)" <<<"$added" ||
       problems+=("$skill_md's Green section runs add-ledger-step.sh without anchoring the insertion before the step being split, so the smaller steps land after the step they were supposed to come first")
     grep -qE 'commit' <<<"$added" ||
@@ -99,7 +95,7 @@ if [[ -n "$unreadable" ]]; then
 elif ! grep -qE 'step-too-big' <<<"$section"; then
   problems+=("$skill_md's Green section never names the step-too-big cause, so a split refused for growth budget leaves the conductor to invent a stop for a step whose criteria are already filed as owed")
 else
-  over="$(win 'step-too-big')"
+  over="$(window "$section" 'step-too-big')"
   grep -qE 'exits? 1' <<<"$over" ||
     problems+=("$skill_md's Green section names step-too-big without saying it is add-ledger-step.sh's exit 1 that causes it, so the conductor cannot tell the over-budget refusal from a call that worked")
   grep -qE 'bail' <<<"$over" ||

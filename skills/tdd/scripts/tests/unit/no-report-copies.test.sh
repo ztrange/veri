@@ -58,6 +58,24 @@ scaffolding_hits() {
   counter_hits "$1"
 }
 
+HOISTED=(win window windows)
+
+hoisted_copy_hits() {
+  local names hits hit file rest def
+  names="$(IFS='|'; printf '%s' "${HOISTED[*]}")"
+  hits="$(tree_grep "$1" -e "^[[:space:]]*(function[[:space:]]+)?($names)[[:space:]]*\(\)")"
+  while IFS= read -r hit; do
+    [[ -n "$hit" ]] || continue
+    file="${hit%%:*}"
+    rest="${hit#*:}"
+    def="${rest#*:}"
+    def="${def#"${def%%[![:space:]]*}"}"
+    def="${def#function}"
+    def="${def#"${def%%[![:space:]]*}"}"
+    printf '    %s:%s defines %s()\n' "${file#./}" "${rest%%:*}" "${def%%[[:space:](]*}"
+  done <<< "$hits"
+}
+
 name="no suite defines its own report, and lib/harness.sh defines it"
 problems=""
 copies="$(cd "$TESTS" && grep -nE '^[[:space:]]*(function[[:space:]]+)?report[[:space:]]*\(\)' \
@@ -148,6 +166,35 @@ got="$(
   scaffolding_hits "$TESTS" 2>&1 | grep -E '(lib/harness\.sh|unit/harness\.test\.sh):'
 )"
 expect_eq "$name" "" "$got"
+
+name="#704: a suite under tests/ or tests/unit/ that defines win, window or windows is named by <suite>:<line>"
+plant="$(scratch_dir)"
+mkdir -p "$plant/unit" "$plant/lib"
+printf '%s\n' '#!/usr/bin/env bash' 'win() {' '  windows "$1" x' '}' > "$plant/a.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'x=1' 'window() { :; }' 'function windows() { :; }' \
+  '  function window() { :; }' > "$plant/unit/b.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'got="$(windows "$text" x)"' > "$plant/c.test.sh"
+printf '%s\n' 'windows() { :; }' > "$plant/lib/window.sh"
+got="$(hoisted_copy_hits "$plant" 2>&1)"
+expect_eq "$name" \
+  "$(printf '    %s\n' 'a.test.sh:2 defines win()' 'unit/b.test.sh:3 defines window()' \
+    'unit/b.test.sh:4 defines windows()' 'unit/b.test.sh:5 defines window()')" \
+  "$got"
+
+name="#704: a tree with no suite defining win, window or windows is reported clean"
+plant="$(scratch_dir)"
+printf '%s\n' '#!/usr/bin/env bash' 'got="$(windows "$text" x)"' > "$plant/a.test.sh"
+got="$(hoisted_copy_hits "$plant" 2>&1)"
+expect_eq "$name" "" "$got"
+
+name="#704: no suite under tests/ or tests/unit/ defines its own copy of a helper hoisted into tests/lib/"
+problems="$(hoisted_copy_hits "$TESTS")"
+if [[ -z "$problems" ]]; then
+  ok
+else
+  no "$name"
+  printf '%s\n' "$problems"
+fi
 
 name="no suite builds its own scratch directory, exit trap or tmp git repository"
 problems=""
