@@ -9,6 +9,7 @@
 #   2. It does so when directories with no python3 sit between the guard and the real one on PATH.
 #   3. A direct python3 call — -c, a file outside veri/, no arguments — exits 1, names python3 on
 #      stderr and is written to $UNIT_GUARD_LOG.
+#   4. So does python3 -c or python3 with no arguments run with veri/ as the working directory.
 #
 # Run: skills/tdd/scripts/tests/unit-guard-python3.test.sh
 set -uo pipefail
@@ -91,6 +92,32 @@ for call in "-c|print(1)" "file|$tree/outside.py" "none|"; do
   esac
   : > "$log"
   out="$(cd "$tree" && PATH="$tree/skills/tdd/scripts/tests/unit-guard:$PATH" UNIT_GUARD_LOG="$log" \
+    python3 ${argv[@]+"${argv[@]}"} 2> "$err_file" < /dev/null)"
+  code=$?
+  err="$(cat "$err_file")"
+  logged="$(cat "$log")"
+  [[ "$code" == 1 ]] ||
+    problems+=("$kind: want exit 1; got: $code (stdout: $(flat "$out"))")
+  [[ "$err" == "$refusal" ]] ||
+    problems+=("$kind: want stderr '$refusal'; got: $(flat "$err")")
+  [[ "$logged" == "python3 ${argv[*]+"${argv[*]}"} (cwd "* ]] ||
+    problems+=("$kind: want a log line 'python3 ${argv[*]+"${argv[*]}"} (cwd …)'; got: $(flat "$logged")")
+done
+
+report "$name"
+
+name="under make unit's guard PATH, a direct python3 call — -c, no arguments — run from inside veri/ exits 1 naming python3 and is logged"
+problems=()
+
+for call in "-c|print(1)" "none|"; do
+  kind="${call%%|*}" arg="${call#*|}"
+  case "$kind" in
+    -c) argv=(-c "$arg") ;;
+    none) argv=() ;;
+  esac
+  : > "$log"
+  out="$(cd "$tree/skills/tdd/scripts/veri" &&
+    PATH="$tree/skills/tdd/scripts/tests/unit-guard:$PATH" UNIT_GUARD_LOG="$log" \
     python3 ${argv[@]+"${argv[@]}"} 2> "$err_file" < /dev/null)"
   code=$?
   err="$(cat "$err_file")"
