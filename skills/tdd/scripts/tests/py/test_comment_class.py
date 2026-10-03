@@ -387,3 +387,36 @@ def test_main_sweeps_the_top_level_suites_and_the_skill_suites_to_empty_sweepabl
         "the sweepable report is empty for every tests/skill-*.test.sh whose name after skill- starts with a through l": (0, ""),
         "the sweepable report is empty for every tests/skill-*.test.sh whose name after skill- starts with m through z": (0, ""),
     }
+
+
+def test_main_sweeps_the_unit_fixture_guard_and_offline_suites_to_empty_sweepable_reports(capsys):
+    comment_class = importlib.import_module("veri.comment_class")
+    tests = SCRIPTS / "tests"
+
+    def sweep(*patterns, keep=lambda p: True):
+        files = [p for pattern in patterns for p in sorted(tests.glob(pattern)) if keep(p)]
+        code = comment_class.main(["--sweepable", *(str(p) for p in files)])
+        return code, capsys.readouterr().out
+
+    names = ["ledger", "red-divergence", "run-affordable", "step-budget", "step-cost", "stop-requested"]
+
+    assert {
+        "the sweepable report is empty for every tests/unit/*.sh whose name starts with c through e, other than comment-class.test.sh":
+            sweep("unit/[c-e]*.sh", keep=lambda p: p.name != "comment-class.test.sh"),
+        **{
+            f"the sweepable report is empty for tests/unit/{name}.test.sh": sweep(f"unit/{name}.test.sh")
+            for name in names
+        },
+        "the sweepable report is empty for every tests/unit/*.sh whose name starts with m through p":
+            sweep("unit/[m-p]*.sh"),
+        "the sweepable report is empty for every shell file under tests/fixtures/, and for tests/unit-guard/git and tests/offline/gh":
+            sweep("fixtures/*/*.sh", "unit-guard/git", "offline/gh"),
+        "the sweepable report is empty for tests/unit/comment-class.test.sh, the case labels of its own sweepable-report cases included":
+            sweep("unit/comment-class.test.sh"),
+    } == {
+        "the sweepable report is empty for every tests/unit/*.sh whose name starts with c through e, other than comment-class.test.sh": (0, ""),
+        **{f"the sweepable report is empty for tests/unit/{name}.test.sh": (0, "") for name in names},
+        "the sweepable report is empty for every tests/unit/*.sh whose name starts with m through p": (0, ""),
+        "the sweepable report is empty for every shell file under tests/fixtures/, and for tests/unit-guard/git and tests/offline/gh": (0, ""),
+        "the sweepable report is empty for tests/unit/comment-class.test.sh, the case labels of its own sweepable-report cases included": (0, ""),
+    }
