@@ -114,6 +114,7 @@ report "$name"
 FIXTURE_REL='skills/tdd/scripts/fixture-step.sh'
 FIXTURE_TEXT=$'STEP=\'A title naming `kill \x251` as written\''
 FIXTURE_KEY="$FIXTURE_REL:$FIXTURE_TEXT"
+FIXTURE_REASON="a fixture's step title, quoted, never run"
 
 fixture() {
   printf '%s\n' '#!/usr/bin/env bash' "$FIXTURE_TEXT" 'printf "%s\n" "$STEP"'
@@ -127,7 +128,7 @@ scratch_fixture() {
 
 probe_lines_inserted_above_an_exemption() {
   local ROOT
-  local -A EXEMPT=([$FIXTURE_KEY]="a fixture's step title, quoted, never run")
+  local -A EXEMPT=([$FIXTURE_KEY]="$FIXTURE_REASON")
   scratch_fixture < <(printf '# inserted\n# inserted\n# inserted\n'; fixture)
   probe_no_file_kills_by_job_spec
   probe_every_exemption_still_names_its_site
@@ -142,7 +143,7 @@ report "$name"
 
 probe_an_edited_exempted_line() {
   local ROOT problem
-  local -A EXEMPT=([$FIXTURE_KEY]="a fixture's step title, quoted, never run")
+  local -A EXEMPT=([$FIXTURE_KEY]="$FIXTURE_REASON")
   scratch_fixture < <(fixture | sed 's/as written/verbatim/')
   problems=()
   probe_every_exemption_still_names_its_site
@@ -162,7 +163,7 @@ expect_eq "$name" "named" "$edited_entry_named"
 
 probe_an_unexempted_job_spec_kill() {
   local ROOT line problem
-  local -A EXEMPT=([$FIXTURE_KEY]="a fixture's step title, quoted, never run")
+  local -A EXEMPT=([$FIXTURE_KEY]="$FIXTURE_REASON")
   scratch_fixture < <(fixture | sed 's/as written/verbatim/')
   line="$(grep -n 'verbatim' "$ROOT/$FIXTURE_REL")"
   line="${line%%:*}"
@@ -184,7 +185,7 @@ expect_eq "$name" "named" "$unexempted_site_named"
 
 probe_an_exemption_matching_two_lines() {
   local ROOT line lines=() problem
-  local -A EXEMPT=([$FIXTURE_KEY]="a fixture's step title, quoted, never run")
+  local -A EXEMPT=([$FIXTURE_KEY]="$FIXTURE_REASON")
   scratch_fixture < <(fixture; printf '%s\n' "$FIXTURE_TEXT")
   while IFS= read -r line; do
     lines+=("${line%%:*}")
