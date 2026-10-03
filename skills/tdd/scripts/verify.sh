@@ -11,7 +11,8 @@
 #
 # Usage:
 #   verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
-#     phase = red | green | refactor | pin
+#   verify.sh --step '<STEP>' diff <issue-spec-file> <base-sha>
+#     phase = red | green | refactor | pin | diff
 #     --step = the ledger's own line for the step under judgement, passed straight
 #              through to build-verify-prompt.sh
 #     --fast-cmd = the fast tier's test command, required for green, passed straight
@@ -51,7 +52,6 @@ require_args 3 "$@"
 phase="$1"
 spec_file="$2"
 test_path="$3"
-target="${4:-}"
 
 source "$HERE/lib/leaf-model.sh"
 source "$HERE/lib/preserve.sh"
@@ -76,7 +76,7 @@ else
   leaf_args=( "${default_leaf_args[@]}" )
 fi
 
-prompt="$("$HERE/build-verify-prompt.sh" "${flag_args[@]+"${flag_args[@]}"}" "$phase" "$spec_file" "$test_path" "$target")"
+prompt="$("$HERE/build-verify-prompt.sh" "${flag_args[@]+"${flag_args[@]}"}" "$phase" "$spec_file" "$test_path" "${@:4}")"
 
 mkdir -p .tdd
 promptfile=".tdd/$leaf_name.prompt"
