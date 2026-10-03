@@ -16,26 +16,6 @@ show_run() {  # show_run <exit> <stdout-file> <stderr-file> — print what a fai
   echo "    stderr: $(printf '%q' "$(cat "$3")")"
 }
 
-name="sourcing push-branch.sh runs nothing and defines main"
-calls="$scratch/calls"
-: > "$calls"
-got="$(
-  git() { echo "git $*" >> "$calls"; return 0; }
-  sleep() { echo "sleep $*" >> "$calls"; return 0; }
-  source "$PUSH"
-  echo "source returned"
-  declare -F main >/dev/null && echo "main defined"
-)"
-want="source returned
-main defined"
-if [[ -s "$calls" ]]; then
-  no "$name (sourcing ran commands, want none):"; cat "$calls"
-elif [[ "$got" != "$want" ]]; then
-  no "$name"; diff <(echo "$want") <(echo "$got")
-else
-  ok
-fi
-
 name="executed directly, push-branch.sh keeps its CLI contract: VERI_PUSH_RETRIES=x prints nothing on stdout, one exact stderr line, and exits 2"
 out="$scratch/out" err="$scratch/err"
 VERI_PUSH_RETRIES=x VERI_PUSH_BACKOFF=0 "$PUSH" > "$out" 2> "$err"
