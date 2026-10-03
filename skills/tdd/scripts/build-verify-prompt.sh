@@ -9,7 +9,8 @@
 # Usage:
 #   build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
 #   build-verify-prompt.sh rebase <issue-spec-file> <onto-sha> <pre-rebase-sha>
-#     phase = red | green | refactor | pin | plan | rebase | transform
+#   build-verify-prompt.sh --step '<STEP>' diff <issue-spec-file> <base-sha>
+#     phase = red | green | refactor | pin | plan | rebase | transform | diff
 #              for plan the third positional names the proposed ledger, not a test;
 #              for transform it names the step's predicate record, and the fourth is the
 #              step's base sha
@@ -54,8 +55,8 @@ test_path="$3"
 target="${4:-the target test}"
 
 case "$phase" in
-  red|green|refactor|pin|plan|rebase|transform) ;;
-  *) refuse "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin|plan|rebase|transform)" ;;
+  red|green|refactor|pin|plan|rebase|transform|diff) ;;
+  *) refuse "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin|plan|rebase|transform|diff)" ;;
 esac
 
 if [[ ( "$phase" == green || "$phase" == refactor ) && -z "$fast_cmd" ]]; then
@@ -68,6 +69,9 @@ need_sha() {
 }
 
 base_sha="${4:-}"
+if [[ "$phase" == diff ]]; then
+  base_sha="$3"
+fi
 if [[ "$phase" == refactor || "$phase" == transform ]]; then
   need_sha '<base-sha>' "$base_sha"
 fi
