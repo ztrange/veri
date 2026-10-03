@@ -21,10 +21,10 @@ source "$HERE/lib/ledger.sh"
 
 served=0
 while IFS= read -r record; do
-  mapfile -td $'\t' field <<< "$record"
-  [[ "${field[5]}" == "$k" ]] || continue
+  ledger_fields "$record"
+  [[ "$criterion" == "$k" ]] || continue
   served=1
-  [[ "${field[1]}" == done && "${field[3]}" == 0 ]] || exit 3
+  [[ "$state" == done && "$pending" == 0 ]] || exit 3
 done < <(ledger_steps)
 
 [[ "$served" -eq 1 ]] || exit 3
