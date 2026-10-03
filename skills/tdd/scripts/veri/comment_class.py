@@ -123,7 +123,7 @@ def main(argv):
         return 2
     scanner = Scanner(sweepable, sys.stdout)
     for name in args:
-        if ASSIGNMENT.match(name):
+        if name == "" or ASSIGNMENT.match(name):
             continue
         try:
             lines = read_lines(name)
