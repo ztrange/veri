@@ -84,6 +84,19 @@ check_code "over budget: inserts no checkbox, exits 1, and owes both texts as pl
   "$code" 1 "$want"
 
 seed
+VERI_STEP_GROWTH=0 "$ADD" "$led" after 'collapse to single hyphen' 'first refused'; code1=$?
+VERI_STEP_GROWTH=0 "$ADD" "$led" after 'collapse to single hyphen' 'second refused' 'third refused'; code2=$?
+want="$seeded"'
+
+## Owed steps
+
+- first refused
+- second refused
+- third refused'
+check_code "#580: a second refusal appends its bullets under the existing trailing Owed steps heading" \
+  "$code1/$code2" "1/1" "$want"
+
+seed
 "$ADD" "$led" after 'no such step' 'collapse a unicode dash too'; code1=$?
 "$ADD" "$led" after 'hyphen' 'collapse a unicode dash too'; code2=$?
 want="$seeded"
