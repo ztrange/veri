@@ -15,7 +15,7 @@ FD_REDIRECT = re.compile("[02-9]>+" + SPACE + "*[^ \t\n\v\f\r]*")
 TO_FILE = re.compile(">" + SPACE + "*[^& \t\n\v\f\r]")
 TO_WRITER = re.compile(WRITER)
 TO_MD = re.compile("(>|" + WRITER + "[^|]*)" + SPACE + "*[^&| \t\n\v\f\r]*\\.md[\"']?(" + SPACE + "|$)")
-TO_VARIABLE = re.compile(">" + SPACE + "*\"?\\$" + NAME)
+TO_VARIABLE = re.compile(">" + SPACE + "*\"?\\$(" + NAME + ")")
 
 
 class Scanner:
@@ -95,7 +95,7 @@ class Scanner:
             self.body = 1
             self.delim = re.sub("^-?" + SPACE + "*[\"']?", "", delim, count=1)
             variable = TO_VARIABLE.search(out)
-            if variable and re.sub("^>" + SPACE + "*\"?\\$", "", variable.group(0)) in self.mdvar:
+            if variable and variable.group(1) in self.mdvar:
                 self.cls = 3
 
 
