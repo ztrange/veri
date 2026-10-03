@@ -539,6 +539,19 @@ says_both_ways "$repair_revise" "never tells the revise leaf to make every liste
 [[ -z "$problems" ]] \
   && ok || no "#690 develop-revise redoing green for a ⟦suite-repair⟧ step listing two red suites names both suites and both failing cases and tells the leaf to make every listed suite green, as develop-green does (${problems#; })"
 
+single_repair_step='fix the full-suite failure: skills/tdd/scripts/tests/zorblat.test.sh — FAIL - zorblat frobs a nitz ⟦suite-repair⟧'
+single_green="$("$BUILD" green "$work/spec.md" "$single_repair_step" "make test" 'skills/tdd/scripts/tests/zorblat.test.sh' 'zorblat frobs a nitz' "make unit" 2>/dev/null)"; dev_code=$?
+single_verify="$("$HERE/../build-verify-prompt.sh" --step "$single_repair_step" --fast-cmd 'make unit' green "$work/spec.md" 'skills/tdd/scripts/tests/zorblat.test.sh' 'zorblat frobs a nitz' 2>/dev/null)"; verify_code=$?
+problems=""
+[[ "$dev_code" -eq 0 ]] || problems="$problems; develop-green exited $dev_code, want 0"
+[[ "$verify_code" -eq 0 ]] || problems="$problems; verify-green exited $verify_code, want 0"
+for named in 'skills/tdd/scripts/tests/zorblat.test.sh' 'zorblat frobs a nitz'; do
+  [[ "$single_green" == *"$named"* ]] || problems="$problems; develop-green does not name '$named'"
+  [[ "$single_verify" == *"$named"* ]] || problems="$problems; verify-green does not name '$named'"
+done
+[[ -z "$problems" ]] \
+  && ok || no "#690 a ⟦suite-repair⟧ step naming one red suite builds develop-green and verify-green prompts that name that one suite and its failing case (${problems#; })"
+
 exhausted="$("$BUILD" exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md" 2>/dev/null)"; code=$?
 problems=""
 [[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
