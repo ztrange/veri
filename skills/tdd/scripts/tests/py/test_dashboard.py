@@ -717,3 +717,53 @@ def test_get_api_chatter_hands_the_renderer_run_59s_verify_red_log_when_no_verif
     (chatter,) = served[0][1]
     assert fed == [verify_log.encode()]
     assert json.loads(body(chatter)) == {"chatter": rendered}
+
+
+def test_get_api_chatter_hands_the_renderer_only_the_four_stream_json_lines_of_run_61s_develop_green_log(
+        tmp_path, monkeypatch, dashboard):
+    run = os.path.join(str(tmp_path), ".tdd", "wt", "61")
+    write(os.path.join(run, ".tdd", "issue-61.md"),
+          "# Plan for #61 — lamps flicker\n\n- [ ] a lamp stops flickering\n")
+    records = [
+        {"type": "system", "subtype": "init", "session_id": "s4", "tools": ["Bash"]},
+        {"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "text", "text": "Making the flicker case pass."}]}},
+        {"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "tool_use", "id": "toolu_9", "name": "Bash",
+             "input": {"command": "make test", "description": "Run the suite"}}]}},
+        {"type": "user", "message": {"role": "user", "content": [
+            {"tool_use_id": "toolu_9", "type": "tool_result", "content": "10 passed, 0 failed",
+             "is_error": False}]}},
+    ]
+    record_lines = "".join(json.dumps(record) + "\n" for record in records)
+    write(os.path.join(run, ".tdd", "develop-green.log"),
+          record_lines + "\n" + "The step is green: 10 passed, 0 failed.\n")
+    events = [{"ts": 1000, "issue": "61", "actor": "conductor", "phase": "",
+               "step": "a lamp stops flickering", "event": "step-start", "attempt": "",
+               "skill_commit": "abc"},
+              {"ts": 1250, "issue": "61", "actor": "developer", "phase": "green",
+               "step": "a lamp stops flickering", "event": "launch", "attempt": "1",
+               "skill_commit": "abc", "name": "develop-green"}]
+    write(os.path.join(run, ".tdd", "events.jsonl"),
+          "".join(json.dumps(event) + "\n" for event in events))
+    rendered = "[developer] Making the flicker case pass.\n[developer] $ make test\n"
+    fed = []
+
+    def fake_run(args, cwd=None, input=None, **kwargs):
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
+        if list(args) == [os.path.join(SCRIPTS, "render-leaf-log.sh")]:
+            fed.append(input)
+            return subprocess.CompletedProcess(args, 0, rendered.encode(), b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, ["/api/chatter?issue=61"])
+
+    dashboard.main([])
+
+    (chatter,) = served[0][1]
+    assert fed == [record_lines.encode()]
+    assert json.loads(body(chatter)) == {"chatter": rendered}
