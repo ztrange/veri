@@ -18,46 +18,47 @@ USAGE="usage: ledger-steps.sh [current|last-done|criterion <k>]"
 
 TEXT=$'\t[^\t]*\t[^\t]*\t(.*)$'
 
+texts() {
+  local record
+  while IFS= read -r record; do
+    [[ "$record" =~ $1 ]] && printf '%s\n' "${BASH_REMATCH[-1]}"
+  done
+  return 0
+}
+
 current() {
-  local records record pattern
+  local records pattern found
   records="$(ledger_steps)"
   for pattern in $'^[0-9]+\tdone\t[^\t]*\t1'"$TEXT" \
                  $'^[0-9]+\topen\t(step|diff-checked)\t[^\t]*'"$TEXT"; do
-    while IFS= read -r record; do
-      [[ "$record" =~ $pattern ]] || continue
-      printf '%s\n' "${BASH_REMATCH[-1]}"
-      return 0
-    done <<< "$records"
+    mapfile -t found < <(texts "$pattern" <<< "$records")
+    ((${#found[@]})) || continue
+    printf '%s\n' "${found[0]}"
+    return 0
   done
   return 3
 }
 
 last_done() {
-  local record last='' found=0 pattern=$'^[0-9]+\tdone\t[^\t]*\t[^\t]*'"$TEXT"
-  while IFS= read -r record; do
-    [[ "$record" =~ $pattern ]] && last="${BASH_REMATCH[1]}" found=1
-  done <<< "$(ledger_steps)"
-  ((found)) || return 3
-  printf '%s\n' "$last"
+  local found
+  mapfile -t found < <(ledger_steps | texts $'^[0-9]+\tdone\t[^\t]*\t[^\t]*'"$TEXT")
+  ((${#found[@]})) || return 3
+  printf '%s\n' "${found[-1]}"
 }
 
 criterion() {
-  local k=$((10#$1)) line in_section=0 record pattern=$'^[0-9]+\t[^\t]*\t[^\t]*\t[^\t]*'"$TEXT"
-  while IFS= read -r record; do
-    k=$((k - 1))
-    ((k == 0)) || continue
-    [[ "$record" =~ $pattern ]] && printf '%s\n' "${BASH_REMATCH[1]}"
-    return 0
-  done < <(
+  local k=$((10#$1)) line in_section=0 found
+  mapfile -t found < <(
     while IFS= read -r line || [[ -n "$line" ]]; do
       if [[ "$line" == '## '* ]]; then
         in_section=0
         [[ "$line" == '## Acceptance criteria'* ]] && in_section=1
       fi
       ((in_section)) && printf '%s\n' "$line"
-    done | ledger_steps
+    done | ledger_steps | texts $'^[0-9]+\t[^\t]*\t[^\t]*\t[^\t]*'"$TEXT"
   )
-  return 3
+  ((k >= 1 && k <= ${#found[@]})) || return 3
+  printf '%s\n' "${found[k - 1]}"
 }
 
 case "${1:-}" in
