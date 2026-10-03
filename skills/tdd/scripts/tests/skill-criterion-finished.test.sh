@@ -119,6 +119,21 @@ if off_cycle_line '⟦human-owed⟧' 'manual check' 'human' \
 fi
 report "$name"
 
+name="#727: $skill_md's step 2 writes a criterion that is a property of the branch's own diff as one ⟦diff-checked⟧ ledger line, not a Red/Green step and adding no test, and keeps a criterion stating a rule future changes must keep a Red/Green step"
+problems=()
+if off_cycle_line '⟦diff-checked⟧' 'own diff' 'test' \
+  "that is a property of the branch's own diff"; then
+  for shape in removed unchanged confined; do
+    [[ "$ledger_rec" == *"$shape"* ]] ||
+      problems+=("plan guidance: the ⟦diff-checked⟧ instruction never names a criterion of something $shape")
+  done
+  [[ "$ledger_rec" =~ (adds|add|leaves)\ no\ test ]] ||
+    problems+=("plan guidance: the ⟦diff-checked⟧ instruction never says its step adds no test")
+fi
+grep -E 'future change[^.]*red/green|red/green[^.]*future change' < <(grep -F 'rule' <<<"$plan_recs") > /dev/null ||
+  problems+=("plan guidance: no instruction in step 2 says a criterion stating a rule future changes must keep is still a Red/Green step")
+report "$name"
+
 name="#671: $skill_md's step 2 plans a criterion replacing an implementation case under ADR 0027 as one ⟦replaces-case⟧ step naming the suite path and the case's exact name, whose Red is the pytest case failing against the code before the change"
 problems=()
 rc_rec="$(head -1 < <(grep -F '⟦replaces-case⟧' <<<"$plan_recs" | grep -F 'implementation case'))"
