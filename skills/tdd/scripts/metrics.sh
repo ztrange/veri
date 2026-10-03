@@ -566,6 +566,11 @@ if structural is not None:
     if inconsistent is not None:
         print()
         print("Inconsistent mark: %s" % inconsistent)
+elif ending is not None and ending.get("event") == "done":
+    print()
+    print("#### Structural pass")
+    print()
+    print("Stopped: not marked")
 tier_section("#### Test-command seconds, by tier", "tier")
 section("#### Total", "run", COST_COLUMNS, totals)
 ' "$issue" "$log" "$ledger" "$ledger_steps"

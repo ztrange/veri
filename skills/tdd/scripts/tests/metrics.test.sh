@@ -2784,9 +2784,8 @@ render "$structural_work" "$structural_out"
 structural_section_says "$structural_out" "$structured" "1/5" "present:3,10,budget-spent"
 
 fixture_work unstructured_work
-unstructured="a step with no structural pass after it"
+unstructured="a step with no structural pass after it, the run never reaching its PR"
 structural_log "$unstructured"
-sv "" 80040 conductor "" done "" '"pr": "https://github.com/ztrange/veri/pull/999"'
 unstructured_out="$unstructured_work/report.md"
 render "$unstructured_work" "$unstructured_out"
 structural_section_says "$unstructured_out" "$unstructured" "1/5" "absent"
@@ -2897,6 +2896,25 @@ consistent_mark_renders nothing_work "found nothing structural" '"stopped": "not
   'Stopped: nothing-structural'
 
 report_on "$name" "$done_work/report.md"
+
+name="#726 a log that reaches its draft PR with no structural-pass mark renders the Structural pass section, its row saying the pass was not marked"
+problems=()
+
+fixture_work unmarked_work
+unmarked="a step whose run readied its PR without marking the structural pass"
+structural_log "$unmarked"
+sv "" 80040 conductor "" done "" '"pr": "https://github.com/ztrange/veri/pull/999"'
+unmarked_out="$unmarked_work/report.md"
+render "$unmarked_work" "$unmarked_out"
+if grep -F '#### Structural pass' "$unmarked_out" > /dev/null; then
+  structural_section "$unmarked_out" "$unmarked_work/section.txt"
+  grep -i 'not marked' "$unmarked_work/section.txt" > /dev/null ||
+    problems+=("want the Structural pass section to say the pass was not marked, got: $(cat "$unmarked_work/section.txt")")
+else
+  problems+=("want a #### Structural pass section for a run that reached its draft PR without the mark, the report has none")
+fi
+
+report_on "$name" "$unmarked_out"
 
 name="#495 the planned-step count is the number of lib/ledger.sh ledger_steps records, counting no box of its own"
 problems=()
