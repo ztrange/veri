@@ -628,6 +628,19 @@ prompt_says "$dp" "diff prompt never says the diff alone is the evidence" -iE -e
 [[ -z "$problems" ]] \
   && ok || no "diff takes --step, the spec and a hex base sha, carries the step text and tells the verifier to judge it against git diff <base-sha>..HEAD alone, answering VERDICT: PASS or VERDICT: REJECT (${problems#; })"
 
+problems=""
+diff_refused() {  # <label> <args...> — records a diff call that is not exit 2 with an empty stdout
+  local label="$1" out code; shift
+  out="$("$BUILD" "$@" 2>/dev/null)"; code=$?
+  [[ "$code" -eq 2 ]] || problems="$problems; $label exited $code, want 2"
+  [[ -z "$out" ]] || problems="$problems; $label printed ${#out} bytes, want none"
+}
+diff_refused 'diff with a non-hex base' --step "$diff_step" diff "$work/spec.md" 'tidied the helper'
+diff_refused 'diff with no --step' diff "$work/spec.md" "$diff_base"
+diff_refused 'diff with an extra positional' --step "$diff_step" diff "$work/spec.md" "$diff_base" extra
+[[ -z "$problems" ]] \
+  && ok || no "diff refuses a non-hex base sha, a missing --step and an extra positional argument with exit 2 and nothing on stdout (${problems#; })"
+
 cp "$work/spec.md" "$work/refactor-spec.md"
 printf '\n## Refactor\n\nRun kind: refactor. This issue changes structure, not behaviour.\n' \
   >> "$work/refactor-spec.md"

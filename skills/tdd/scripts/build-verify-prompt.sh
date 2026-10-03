@@ -70,9 +70,11 @@ need_sha() {
 
 base_sha="${4:-}"
 if [[ "$phase" == diff ]]; then
+  (( $# == 3 )) || refuse "build-verify-prompt: diff takes <issue-spec-file> <base-sha>, nothing after"
+  [[ -n "$step" ]] || refuse "build-verify-prompt: diff needs --step '<STEP>'"
   base_sha="$3"
 fi
-if [[ "$phase" == refactor || "$phase" == transform ]]; then
+if [[ "$phase" == refactor || "$phase" == transform || "$phase" == diff ]]; then
   need_sha '<base-sha>' "$base_sha"
 fi
 
