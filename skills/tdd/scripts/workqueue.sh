@@ -38,12 +38,8 @@ main_tree="$(main_working_tree)"
 queue="$main_tree/.tdd/workqueue"
 
 if [[ "${1:-}" == next ]]; then
-  if [[ -n "${VERI_GH_JSON:-}" ]]; then
-    exec 3< "$VERI_GH_JSON/issues.json"
-  else
-    issues_json="$(gh_rest_list "repos/{owner}/{repo}/issues?state=all&per_page=100")"
-    exec 3< <(printf '%s' "$issues_json")
-  fi
+  issues_json="$(gh_json issues.json "repos/{owner}/{repo}/issues?state=all&per_page=100")"
+  exec 3< <(printf '%s' "$issues_json")
   origin_url="$(git remote get-url origin 2>/dev/null || true)"
   origin_url="${origin_url%.git}"
   repo=""

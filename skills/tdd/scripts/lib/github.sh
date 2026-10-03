@@ -12,7 +12,8 @@
 #   2 when GitHub gave no answer.
 #
 # gh_json <fixture-file> <rest-path> [gh args…] — print `$VERI_GH_JSON/<fixture-file>` when
-#   VERI_GH_JSON is set, otherwise `gh_list <rest-path> <gh args…>`'s JSON.
+#   VERI_GH_JSON is set, otherwise `gh_list <rest-path> <gh args…>`'s JSON, or with no gh args
+#   `gh_rest_list <rest-path>`'s.
 #
 # gh_list <rest-path> <gh args…> — print `gh <gh args…>`'s JSON, or else `gh_rest_list
 #   <rest-path>`'s; 2 when GitHub gave no answer on either route.
@@ -50,6 +51,8 @@ gh_json() {
   local fixture="$1" rest="$2"; shift 2
   if [[ -n "${VERI_GH_JSON:-}" ]]; then
     cat "$VERI_GH_JSON/$fixture"
+  elif (($# == 0)); then
+    gh_rest_list "$rest"
   else
     gh_list "$rest" "$@"
   fi
