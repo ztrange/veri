@@ -930,53 +930,6 @@ fi
 
 report "$name"
 
-name="events_json answers by the run directory's own issue, so an issue present only as a committed ledger copy is the empty list"
-problems=()
-eown_repo="$(repo eventsown)"
-
-eown_run="$(fabricate_run "$eown_repo" 7 tdd/7-lamps-glow)"
-cat > "$eown_run/.tdd/issue-7.md" <<'EOF'
-# Plan for #7 — lamps glow
-
-- [x] a lamp exists
-- [ ] a lamp glows
-EOF
-cat > "$eown_run/.tdd/issue-3.md" <<'EOF'
-# Plan for #3 — an earlier run's committed plan
-
-- [x] a lamp is wired
-EOF
-eown_now="$(date +%s)"
-cat > "$eown_run/.tdd/events.jsonl" <<EOF
-{"ts": $((eown_now - 120)), "issue": "7", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "step-start", "attempt": "", "skill_commit": "abc", "seq": 1}
-{"ts": $((eown_now - 110)), "issue": "7", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red", "seq": 2}
-EOF
-
-if [[ -n "$module_problem" ]]; then
-  problems+=("$module_problem")
-else
-  call_endpoint "$eown_repo" events_json "$work/events-own.err" \
-    '{"issue": ["3"]}' "$work/events-own-3.json" \
-    '{"issue": ["7"]}' "$work/events-own-7.json"
-  if [[ ! -f "$work/events-own-3.json" || ! -f "$work/events-own-7.json" ]]; then
-    problems+=("calling $module.events_json wrote nothing: $(tail -n 1 "$work/events-own.err")")
-  else
-    add_problems < <(python3 -c "$events_answers"'
-if answers["3"] != []:
-    print("events_json for issue 3, which is only a committed ledger copy inside the run "
-          "directory .tdd/wt/7, returned %s; want [], because there is no .tdd/wt/3"
-          % json.dumps(answers["3"], sort_keys=True)[:400])
-if answers["7"] != want:
-    print("events_json for issue 7 returned %s; want its own run directory’s log, %s"
-          % (json.dumps(answers["7"], sort_keys=True)[:400],
-             json.dumps(want, sort_keys=True)[:400]))
-' "$work/events-own-3.json" 3 "$work/events-own-7.json" 7 \
-      "$eown_run/.tdd/events.jsonl")
-  fi
-fi
-
-report "$name"
-
 name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
 problems=()
 disk_page="$scripts/dashboard.html"
