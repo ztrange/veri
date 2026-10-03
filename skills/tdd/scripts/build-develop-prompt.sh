@@ -13,6 +13,7 @@
 #   build-develop-prompt.sh refactor <issue-spec-file> <step-text> <test-cmd> <touched-files>
 #   build-develop-prompt.sh cover     <issue-spec-file> <step-text> <test-cmd>
 #   build-develop-prompt.sh transform <issue-spec-file> <step-text> <test-cmd>
+#   build-develop-prompt.sh diff      <issue-spec-file> <step-text> <test-cmd>
 #   build-develop-prompt.sh structural <issue-spec-file> <candidate> <test-cmd> <issue-touched-files>
 #   build-develop-prompt.sh predicate <issue-spec-file> <candidate> <test-cmd> <issue-touched-files>
 #   build-develop-prompt.sh revise <phase> <issue-spec-file> <step-text> <test-cmd> <reason-file>
@@ -31,7 +32,7 @@ set -euo pipefail
 # hazard: bash 5.2's patsub_replacement makes an unescaped & in a ${var//…/…} replacement the matched text; off, every value is literal.
 shopt -u patsub_replacement 2>/dev/null || true
 
-phases="red|green|refactor|cover|transform|structural|predicate|revise|reconcile|exhausted|over-budget|rebase"
+phases="red|green|refactor|cover|transform|diff|structural|predicate|revise|reconcile|exhausted|over-budget|rebase"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/exit-contract.sh"
 USAGE="build-develop-prompt.sh: usage: $phases <issue-spec-file> <step-text> <test-cmd> ..."
@@ -42,7 +43,7 @@ case "$phase" in
   red) want=4 ;;
   green) want=7 ;;
   refactor) want=5 ;;
-  cover|transform) want=4 ;;
+  cover|transform|diff) want=4 ;;
   structural|predicate) want=5 ;;
   revise) want=6 ;;
   reconcile) want=6 ;;
@@ -76,7 +77,7 @@ need test_cmd "${4:-}" '<test-cmd>'
 
 test_path="" target="" fast_cmd="" touched="" reason_file="" refactor_budget="" branch="" remote_sha="" spent="" budget="" onto_sha="" pre_rebase_sha="" conflicting=""
 case "$phase" in
-  red|cover|transform) ;;
+  red|cover|transform|diff) ;;
   green)
     need test_path "${5:-}" '<test-path>'
     need target "${6:-}" '<target-test>'
