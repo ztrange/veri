@@ -146,3 +146,24 @@ def test_main_prices_1h_and_5m_cache_writes_apart_and_a_bare_cache_creation_coun
     lines = capsys.readouterr().out.splitlines()
 
     assert (code, [line for line in want if line not in lines]) == (0, [])
+
+
+def test_main_since_excludes_a_record_before_the_window_and_counts_one_inside_it(tmp_path, monkeypatch, capsys, session_cost):
+    monkeypatch.setenv("TZ", "UTC")
+    time.tzset()
+    transcript = tmp_path / "c5a8f30d-9b71-42e6-8d04-5f71e9b2c6a7.jsonl"
+    transcript.write_text(
+        '{"type":"assistant","timestamp":"2026-09-13T16:22:40.118Z","requestId":"req_011CSEiV0xYzF6lBdJ9wQs3e","sessionId":"c5a8f30d-9b71-42e6-8d04-5f71e9b2c6a7","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":2,"cache_creation_input_tokens":80000,"cache_creation":{"ephemeral_5m_input_tokens":80000,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":300000,"output_tokens":6800}}}\n'
+        '{"type":"assistant","timestamp":"2026-09-14T14:07:33.902Z","requestId":"req_011CSFjW1yZaG7mCeK0xRt4f","sessionId":"c5a8f30d-9b71-42e6-8d04-5f71e9b2c6a7","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":2,"cache_creation_input_tokens":120000,"cache_creation":{"ephemeral_5m_input_tokens":120000,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":700000,"output_tokens":9200}}}\n'
+    )
+    want = [
+        "  cache read           700000 tokens   $1.05",
+        "  cache write          120000 tokens   $2.25",
+        "  output                 9200 tokens   $0.69",
+        "  total                                $3.99",
+    ]
+
+    code = session_cost.main(["--since", "2026-09-14", str(transcript)])
+    lines = capsys.readouterr().out.splitlines()
+
+    assert (code, [line for line in want if line not in lines]) == (0, [])
