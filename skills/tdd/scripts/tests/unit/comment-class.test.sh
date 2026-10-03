@@ -388,6 +388,21 @@ sweep_verdict "the sweepable report is empty for every shell file under tests/fi
 
 sweep_verdict "the sweepable report is empty for tests/unit/comment-class.test.sh, the case labels of its own sweepable-report cases included" "$SCRIPTS"/tests/unit/comment-class.test.sh
 
+problems=""
+for args in "" "--sweepable"; do
+  out="$("$CLASSIFY" ${args:+"$args"} 2>"$work/stderr")" && code=0 || code=$?
+  if [[ "$code" != 2 ]]; then
+    problems+="    with '$args': want exit 2, got $code"$'\n'
+  fi
+  if [[ -n "$out" ]]; then
+    problems+="    with '$args': want empty stdout, got:"$'\n'"$out"$'\n'
+  fi
+  if [[ "$(cat "$work/stderr")" != "usage: comment-class.sh [--sweepable] <file>…" ]]; then
+    problems+="    with '$args': want stderr 'usage: comment-class.sh [--sweepable] <file>…', got:"$'\n'"$(cat "$work/stderr")"$'\n'
+  fi
+done
+verdict "comment-class.sh with no argument, and with --sweepable alone, exits 2 with empty stdout and only its usage line on stderr"
+
 header_walk='FNR == 1 { header = /^#!/; para = 0; fresh = 1; next }
   header && /^#$/ { fresh = 1; next }
   !(header && /^#/) { header = 0; next }'
