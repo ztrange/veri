@@ -29,4 +29,4 @@
 - [x] dashboard.sh, run through a symlink to the skill directory and from another working directory, serves dashboard.html at / and status.sh --json's stdout at /api/runs, as it does when run in place ⟦criterion 25⟧
 - [x] scripts/dashboard_endpoints.py is deleted and nothing under the tree imports or names it except docs/adr/0026-three-modules-under-the-entry-points.md:104, left as written ⟦diff-checked⟧ ⟦criterion 27⟧
 - [ ] the PR body lists each cut tests/dashboard.test.sh case beside the tests/py/test_dashboard.py case that replaced it, the count case and the missing-argument-exit.test.sh entry with their reasons, and make profile for tests/dashboard.test.sh plus test_dashboard.py's wall time before and after ⟦human-owed⟧ ⟦criterion 26⟧
-- [ ] `make test` is green ⟦full-suite⟧ ⟦criterion 27⟧
+- [x] `make test` is green ⟦full-suite⟧ ⟦criterion 27⟧
