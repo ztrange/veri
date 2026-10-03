@@ -1,5 +1,6 @@
 """In-process cases for veri/step_cost.py, the module step-cost.sh is a shim over."""
 import importlib
+import os
 import pathlib
 import sys
 
@@ -224,3 +225,31 @@ def test_main_sums_step_less_events_for_an_empty_argument_and_returns_2_for_an_u
         "two-arguments": (2, ""),
         "missing-log": (2, "", "step-cost.sh: cannot read .tdd/events.jsonl in %s — run from the run's worktree\n" % elsewhere),
     }
+
+
+def test_main_names_the_logical_pwd_not_the_symlink_resolved_path_when_the_log_is_missing(tmp_path, monkeypatch, capsys, step_cost):
+    real = tmp_path / "real"
+    real.mkdir()
+    link = tmp_path / "link"
+    link.symlink_to(real)
+    monkeypatch.chdir(link)
+    monkeypatch.setenv("PWD", str(link))
+
+    code = step_cost.main(["step one"])
+
+    out, err = capsys.readouterr()
+    assert (code, out, err) == (
+        2, "", "step-cost.sh: cannot read .tdd/events.jsonl in %s — run from the run's worktree\n" % link)
+
+
+@pytest.mark.parametrize("pwd", [".", "/nonexistent-veri-pwd"], ids=["relative", "missing"])
+def test_main_names_the_physical_directory_when_the_log_is_missing_and_pwd_is_relative_or_names_no_directory(pwd, tmp_path, monkeypatch, capsys, step_cost):
+    monkeypatch.chdir(tmp_path)
+    here = os.getcwd()
+    monkeypatch.setenv("PWD", pwd)
+
+    code = step_cost.main(["step one"])
+
+    out, err = capsys.readouterr()
+    assert (code, out, err) == (
+        2, "", "step-cost.sh: cannot read .tdd/events.jsonl in %s — run from the run's worktree\n" % here)

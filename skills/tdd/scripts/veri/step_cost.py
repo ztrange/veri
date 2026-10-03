@@ -39,10 +39,20 @@ def cost(line):
         return 0.0
 
 
+def logical_cwd():
+    pwd = os.environ.get("PWD", "")
+    try:
+        if os.path.isabs(pwd) and os.path.samefile(pwd, "."):
+            return pwd
+    except OSError:
+        pass
+    return os.getcwd()
+
+
 def report(step):
     if not os.access(LOG, os.R_OK):
         sys.stderr.write("step-cost.sh: cannot read %s in %s — run from the run's worktree\n"
-                         % (LOG, os.getcwd()))
+                         % (LOG, logical_cwd()))
         return 2
     with open(LOG, encoding="utf-8") as log:
         lines = [line.rstrip("\n") for line in log]
