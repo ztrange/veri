@@ -1,7 +1,7 @@
 # Plan for #682 — SKILL.md reads the current step, the last done step and criterion k through ledger-steps.sh verbs instead of inline pipelines
 
 - [x] `ledger-steps.sh` run with no argument prints exactly the tab-separated `ledger_steps` records it prints today, for every step kind and mark ⟦criterion 1⟧
-- [x] `ledger-steps.sh current` prints the text of the first refactor-pending step when one exists, else of the first open `step`-kind step (what `next-unchecked.sh` would print, skipping `⟦full-suite⟧` and `⟦human-owed⟧`), and exits 3 with no output when neither exists ⟦criterion 2⟧ ⟂ refactor pending
+- [x] `ledger-steps.sh current` prints the text of the first refactor-pending step when one exists, else of the first open `step`-kind step (what `next-unchecked.sh` would print, skipping `⟦full-suite⟧` and `⟦human-owed⟧`), and exits 3 with no output when neither exists ⟦criterion 2⟧
 - [ ] `ledger-steps.sh last-done` prints the text of the last done step with ` ⟂ refactor pending` cut, and exits 3 with no output when no step is done ⟦criterion 3⟧
 - [ ] `ledger-steps.sh criterion <k>` reading an issue body on stdin prints the text of the k-th checkbox under `## Acceptance criteria` only, never a checkbox from another section, and exits 3 with no output when that section has fewer than k checkboxes ⟦criterion 4⟧
 - [ ] `ledger-steps.sh` given an unknown verb, or `criterion` with a missing or non-integer `<k>`, prints a usage line on stderr and exits 2 ⟦criterion 5⟧
