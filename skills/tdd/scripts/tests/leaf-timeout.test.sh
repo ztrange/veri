@@ -198,7 +198,7 @@ report "$name"
 
 name="leaf-timeout.sh, run through a symlink to the skill directory and from another working directory, prints the same stdout, stderr and exit code as when run in place, for a good baseline and for a bad one"
 problems=()
-work="$(mktemp -d)"
+work="$(scratch_dir)"
 ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
 mkdir -p "$work/elsewhere"
 for baseline in 200 ten; do
@@ -218,7 +218,6 @@ for baseline in 200 ten; do
   [[ "$ln_code" == "$in_code" ]] ||
     problems+=("baseline $baseline: exit through the symlink $ln_code, in place $in_code")
 done
-rm -rf "$work"
 report "$name"
 
 finish
