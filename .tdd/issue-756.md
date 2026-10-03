@@ -1,7 +1,7 @@
 # Plan for #756 — the structural pass spends a predicate and a transform leaf on a candidate that only touches test files
 
 - [x] `refactor-owed.sh append` takes the step's refactor bounds (the comma-separated `$touched` list) as a new argument, and when every file in them is a test file it records a `CANDIDATES: structural |` candidate as test-only, so `refactor-owed.sh list` does not print it and exits 3 when nothing else is owed ⟦criterion 1⟧
-- [ ] A structural candidate recorded test-only because its step's bounds were all test files appears in `refactor-owed.sh render`'s output under the `### Test-only` section ⟦criterion 2⟧
+- [x] A structural candidate recorded test-only because its step's bounds were all test files appears in `refactor-owed.sh render`'s output under the `### Test-only` section ⟦criterion 2⟧
 - [ ] A structural candidate whose step's bounds include at least one non-test file is listed by `refactor-owed.sh list` exactly as before, in the same order as without the bounds argument ⟦criterion 3⟧
 - [ ] "Test file" is one shared rule (under a `tests/` directory, or named `*.test.*`) that both `transform-touches-tests.sh` and `refactor-owed.sh append` apply, and a test pins that the two agree on a test path and on a non-test path ⟦criterion 4⟧
 - [ ] SKILL.md's refactor loop `append` call passes the step's refactor bounds and says a structural candidate of an all-test-file step is recorded test-only, and its structural pass says such a candidate is never listed and so launches no predicate or transform leaf ⟦criterion 5⟧
