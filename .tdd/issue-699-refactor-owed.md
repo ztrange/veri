@@ -1,3 +1,6 @@
 ### An EXEMPT entry in no-job-spec-kills.test.sh names its site by file and the exempted line's text, not its number (the two real skill-leaf-env.test.sh entries included), so lines inserted above an exempted line leave both cases green ⟦criterion 1⟧
 - test-only | build the exemption key once in `split_site` (`site_key="$site_file:$site_text"`) rather than spelling `$site_file:$site_text` separately in `sites()` (:56) and `probe_every_exemption_still_names_its_site` (:93); this cycle changed both copies together, so the key's format now lives in two places
 - test-only | the stale-entry message at :98 still says "the site it was written for has moved, and its key must follow it", which describes the old line-number key; under the text key, the entry goes stale when the exempted line's text is edited (this is step 2's territory)
+### An EXEMPT entry whose text matches more than one line of its file fails the run, naming each matching line, so one entry never silently excuses a second site ⟦criterion 3⟧
+- test-only | probe_an_exemption_matching_two_lines passes even when the scratch copy has no matching line (expected "" equals named ""); assert that `lines` holds two entries before comparing
+- test-only | the three newer probes each loop over `problems` to set a flag on a glob match; one `problems_include <glob>` helper would replace the loops
