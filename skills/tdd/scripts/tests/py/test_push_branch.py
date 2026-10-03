@@ -138,3 +138,56 @@ def test_main_keeps_bash_octal_arithmetic_for_leading_zero_tunables(monkeypatch,
         (1, [], "push-branch.sh: push failed after 0 attempts; the branch is not on the remote\n"),
         (1, [push, "sleep 09"], ""),
     )
+
+
+def test_main_lands_a_lease_push_silently_and_records_the_last_attempts_merged_output(monkeypatch, capsys, push_branch):
+    def fake_processes_merging(answers):
+        """subprocess.run answering each line from <answers>[line], a list popped per call of
+        (exit code, stdout, stderr), merging stderr into stdout when the caller asks for 2>&1."""
+        calls = []
+
+        def fake_run(args, **kwargs):
+            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+            calls.append(line)
+            code, out, err = answers[line].pop(0) if line in answers else (0, "", "")
+            if kwargs.get("stderr") == subprocess.STDOUT:
+                out, err = out + err, None
+            return subprocess.CompletedProcess(args, code, out, err)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        return calls
+
+    def run_with(argv, answers, retries="0"):
+        calls = fake_processes_merging(answers)
+        monkeypatch.setenv("VERI_PUSH_RETRIES", retries)
+        monkeypatch.setenv("VERI_PUSH_BACKOFF", "0")
+        code = push_branch.main(argv)
+        captured = capsys.readouterr()
+        return code, calls, captured.out, captured.err
+
+    lease = "--force-with-lease=feature:abc1234"
+    leased_push = f"git push {lease} --set-upstream origin HEAD"
+    push = "git push --set-upstream origin HEAD"
+    remote = {
+        "git rev-parse --abbrev-ref HEAD": [(0, "feature\n", "")],
+        "git ls-remote origin refs/heads/feature": [(0, "def5678\trefs/heads/feature\n", "")],
+    }
+    fetch_first = " ! [rejected]  HEAD -> feature (fetch first)"
+    stale_info = " ! [rejected]  HEAD -> feature (stale info)"
+
+    observed = (
+        run_with([lease], {leased_push: [(0, "To origin\n", "  new branch \n")]}),
+        run_with([], {push: [(1, "", "  To origin\n" + fetch_first + "  \n\n")], **remote})[1][-1],
+        run_with([lease], {leased_push: [(1, "", stale_info + "\n")],
+                           "git rev-parse --abbrev-ref HEAD": [(0, "feature\n", "")],
+                           "git ls-remote origin refs/heads/feature": [(0, "def5678\trefs/heads/feature\n", "")]})[::3],
+        run_with([], {push: [(128, "first out\n", "first err\n"),
+                             (128, "  last out \n", "  last err \n\n")]}, retries="1")[1][-1],
+    )
+
+    assert observed == (
+        (0, [leased_push], "", ""),
+        f"event.sh push-rejected remote_sha=def5678 error=  To origin\n{fetch_first}  ",
+        (1, "push rejected (non-fast-forward): origin/feature is at def5678\n"),
+        "event.sh push-failed error=  last out \n  last err  attempts=2",
+    )
