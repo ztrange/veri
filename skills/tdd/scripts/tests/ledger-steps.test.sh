@@ -28,4 +28,18 @@ next="$("$NEXT" < "$work/replaces.md")"; next_code=$?
   && ok || no "an open ⟦replaces-case⟧ step is kind step, added 0, criterion 6, and next-unchecked hands it out (code=$code next_code=$next_code next='$next')
 $(diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /')"
 
+printf '# Plan for #42\n\nprose\n\n- [x] add lowercasing ⟦criterion 1⟧ ⟂ refactor pending\n- [X] trim spaces ⟦added⟧ ⟦criterion 2⟧\n- [x] tidy names ⟦added⟧ ⟦criterion 3⟧ ⟂ refactor pending\n- [ ] strip edge hyphens ⟦criterion 3⟧\n  - [ ] note without a criterion\n- [ ] a person reads the page ⟦human-owed⟧ ⟦criterion 4⟧\n- [ ] `make test` is green ⟦full-suite⟧ ⟦criterion 5⟧' > "$work/kinds.md"
+want="$(printf '%s\n' \
+  $'1\tdone\tstep\t1\t0\t1\tadd lowercasing ⟦criterion 1⟧' \
+  $'2\tdone\tstep\t0\t1\t2\ttrim spaces ⟦added⟧ ⟦criterion 2⟧' \
+  $'3\tdone\tstep\t1\t1\t3\ttidy names ⟦added⟧ ⟦criterion 3⟧' \
+  $'4\topen\tstep\t0\t0\t3\tstrip edge hyphens ⟦criterion 3⟧' \
+  $'5\topen\tstep\t0\t0\t\tnote without a criterion' \
+  $'6\topen\thuman-owed\t0\t0\t4\ta person reads the page ⟦human-owed⟧ ⟦criterion 4⟧' \
+  $'7\topen\tfull-suite\t0\t0\t5\t`make test` is green ⟦full-suite⟧ ⟦criterion 5⟧')"
+got="$("$STEPS" < "$work/kinds.md" 2> "$work/err")"; code=$?
+{ [[ "$code" == 0 ]] && [[ "$got" == "$want" ]] && [[ ! -s "$work/err" ]]; } \
+  && ok || no "with no argument prints ledger_steps's records for every step kind and mark (code=$code stderr='$(cat "$work/err")')
+$(diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /')"
+
 finish
