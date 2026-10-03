@@ -220,3 +220,37 @@ def test_main_answers_go_test_for_go_mod_cargo_test_for_cargo_toml_and_unittest_
         (0, "cargo test\n"),
         (0, "python3 -m unittest discover -q\n"),
     ]
+
+
+def test_main_without_a_tier_leaves_every_single_command_answer_as_today_and_exits_3_on_claude_md_tier_markers_alone(tmp_path, capsys, detect):
+    body = tmp_path / "tier-issue-body.md"
+    body.write_text("## Notes\n\nTest command: bin/issue-suite\n")
+    shapes = {
+        "override": ({".veri/test-command": "bin/run-suite --all --strict\n"}, "bin/run-suite --all --strict"),
+        "npm": ({"package.json": '{"scripts":{"test":"jest"}}\n'}, "npm test"),
+        "pnpm": ({"package.json": '{"scripts":{"test":"jest"}}\n', "pnpm-lock.yaml": "lockfileVersion: 9.0\n"}, "pnpm test"),
+        "yarn": ({"package.json": '{"scripts":{"test":"jest"}}\n', "yarn.lock": "# yarn lockfile v1\n"}, "yarn test"),
+        "make": ({"Makefile": "test:\n\techo hi\n"}, "make test"),
+        "pytest.ini": ({"pytest.ini": ""}, "pytest -q"),
+        "pyproject.toml": ({"pyproject.toml": '[tool.pytest.ini_options]\naddopts = "-ra"\n'}, "pytest -q"),
+        "setup.cfg": ({"setup.cfg": "[tool:pytest]\naddopts = -ra\n"}, "pytest -q"),
+        "go.mod": ({"go.mod": ""}, "go test ./..."),
+        "Cargo.toml": ({"Cargo.toml": ""}, "cargo test"),
+        "unittest": ({"tests/test_foo.py": "import unittest\n"}, "python3 -m unittest discover -q"),
+        "issue": ({"Makefile": "test:\n\techo hi\n"}, "bin/issue-suite"),
+        "markers-only": ({}, None),
+    }
+
+    got, want = {}, {}
+    for shape, (files, command) in shapes.items():
+        repo = tmp_path / f"untiered-{shape}"
+        repo.mkdir()
+        (repo / "CLAUDE.md").write_text("# demo\n\nveri: fast tests: bin/fast-suite\nveri: all tests: bin/all-suite\n")
+        for name, text in files.items():
+            (repo / name).parent.mkdir(parents=True, exist_ok=True)
+            (repo / name).write_text(text)
+        argv = ["--issue", str(body), str(repo)] if shape == "issue" else [str(repo)]
+        got[shape] = (detect.main(argv), capsys.readouterr().out)
+        want[shape] = (0, command + "\n") if command else (3, "")
+
+    assert got == want
