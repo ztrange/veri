@@ -46,6 +46,7 @@ CLAUDE_MD="$ROOT/CLAUDE.md"
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/count-line-guard-copy.sh"
 source "$HERE/lib/plain.sh"
 
 flat() { printf '%s' "$1" | tr '\n' '/'; }
@@ -143,7 +144,7 @@ probe_added_suite_gets_the_check() {
   cp "$MAKEFILE" "$tree/Makefile"
   cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
   cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/skills/tdd/scripts/lib/"
-  cp "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh" "$tree/skills/tdd/scripts/lib/"
+  copy_count_line_guard "$tree"
   cp "$FIXTURE_PATH" "$tree/$TESTS_DIR/$ADDED_NAME"
   cmp -s "$MAKEFILE" "$tree/Makefile" ||
     problems+=("the runner under test is not this repository's Makefile, so nothing here says the check costs no edit to it")
@@ -574,7 +575,7 @@ scratch_suite_run() {
   cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
   cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/skills/tdd/scripts/lib/"
   if [[ $# -lt 3 ]]; then
-    cp "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh" "$tree/skills/tdd/scripts/lib/"
+    copy_count_line_guard "$tree"
   elif [[ -n "$3" ]]; then
     printf '%s\n' "$3" > "$tree/skills/tdd/scripts/lib/count-line-guard.sh"
   fi

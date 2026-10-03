@@ -61,6 +61,7 @@ scaffolding_hits() {
 HOISTED=(win window windows plain section_end frontmatter_name first_record record_number fenced_lines need_claude_md_records probe_every_exemption_carries_a_reason verdict)
 GUARD_ONLY=verdict
 GUARD_SUITES=" count-line-guard$sfx prompt-test-tiers$sfx unit/missing-argument-exit$sfx unit/emitted-text$sfx unit/pending-mark-literal$sfx "
+GUARD_COPY_RE='^[[:space:]]*cp[[:space:]]+"\$ROOT/skills/tdd/scripts/lib/count-line-guard\.sh"[[:space:]]+"[^"]*"[[:space:]]*$'
 
 hoisted_copy_hits() {
   local names hits hit file rest def
@@ -78,6 +79,13 @@ hoisted_copy_hits() {
     file="${file#./}"
     [[ "$def" == "$GUARD_ONLY" && "$GUARD_SUITES" != *" $file "* ]] && continue
     printf '    %s:%s defines %s()\n' "$file" "${rest%%:*}" "$def"
+  done <<< "$hits"
+  hits="$(tree_grep "$1" -e "$GUARD_COPY_RE")"
+  while IFS= read -r hit; do
+    [[ -n "$hit" ]] || continue
+    file="${hit%%:*}"
+    rest="${hit#*:}"
+    printf '    %s:%s copies lib/count-line-guard.sh itself\n' "${file#./}" "${rest%%:*}"
   done <<< "$hits"
 }
 
@@ -289,6 +297,21 @@ got="$(hoisted_copy_hits "$plant" 2>&1)"
 expect_eq "$name" \
   "$(printf '    %s\n' 'count-line-guard.test.sh:2 defines verdict()' \
     'unit/emitted-text.test.sh:3 defines verdict()')" \
+  "$got"
+
+name="#704: a suite that copies lib/count-line-guard.sh into a planted tree itself is named by <suite>:<line>"
+plant="$(scratch_dir)"
+mkdir -p "$plant/unit" "$plant/lib"
+cp_line='  cp "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh" "$tree/skills/tdd/scripts/lib/"'
+printf '%s\n' '#!/usr/bin/env bash' "$cp_line" > "$plant/count-line-guard.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'x=1' "$cp_line" > "$plant/pytest-leg.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' "$cp_line" 'x=1' "$cp_line" > "$plant/watch.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'source "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh"' \
+  > "$plant/prompt-test-tiers.test.sh"
+printf '%s\n' "$cp_line" > "$plant/lib/count-line-guard-copy.sh"
+got="$(hoisted_copy_hits "$plant" 2>&1 | awk '{print $1 " "}')"
+expect_eq "$name" \
+  "$(printf '%s\n' 'count-line-guard.test.sh:2 ' 'pytest-leg.test.sh:3 ' 'watch.test.sh:2 ' 'watch.test.sh:4 ')" \
   "$got"
 
 name="#704: no suite under tests/ or tests/unit/ defines its own copy of a helper hoisted into tests/lib/"

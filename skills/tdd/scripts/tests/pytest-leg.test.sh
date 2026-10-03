@@ -21,6 +21,7 @@ PY_DIR='skills/tdd/scripts/tests/py'
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/count-line-guard-copy.sh"
 
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
@@ -57,7 +58,7 @@ check_refused() {
 make_tree() {
   mkdir -p "$1/$PY_DIR" "$1/skills/tdd/scripts/lib"
   cp "$ROOT/Makefile" "$1/Makefile"
-  cp "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh" "$1/skills/tdd/scripts/lib/"
+  copy_count_line_guard "$1"
   cp "$ROOT/skills/tdd/scripts/run-suite.sh" "$1/skills/tdd/scripts/"
   cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$1/skills/tdd/scripts/lib/"
   ln -s "$HERE/offline" "$1/skills/tdd/scripts/tests/offline"
