@@ -341,3 +341,36 @@ def test_main_reads_tier_only_first_and_issue_only_first_or_after_tier_takes_any
         "missing-issue-file": (0, "make test\n", ""),
         "missing-root": (3, "", ""),
     }
+
+
+def test_main_keeps_a_markers_trailing_whitespace_answers_an_unclosed_backtick_skips_an_empty_command_and_answers_a_whitespace_only_override_line(tmp_path, capsys, detect):
+    def answer(*argv):
+        code = detect.main(list(argv))
+        return code, capsys.readouterr().out
+
+    def body(name, text):
+        path = tmp_path / f"{name}.md"
+        path.write_bytes(text)
+        return str(path)
+
+    made = tmp_path / "made"
+    made.mkdir()
+    (made / "Makefile").write_text("test:\n\techo hi\n")
+    blank = tmp_path / "blank"
+    (blank / ".veri").mkdir(parents=True)
+    (blank / ".veri" / "test-command").write_bytes(b"   \nbin/run-suite\n")
+    (blank / "Makefile").write_text("test:\n\techo hi\n")
+
+    got = [
+        answer("--issue", body("trailing", b"## Notes\n\nTest command: bin/run --all  \t\r\n"), str(made)),
+        answer("--issue", body("unclosed", b"## Notes\n\nTest command: `make docs-test and the rest\n"), str(made)),
+        answer("--issue", body("empty", b"## Notes\n\nTest command: `` and later Test command: make docs-test\n"), str(made)),
+        answer(str(blank)),
+    ]
+
+    assert got == [
+        (0, "bin/run --all  \t\r\n"),
+        (0, "make docs-test and the rest\n"),
+        (0, "make docs-test\n"),
+        (0, "   \n"),
+    ]
