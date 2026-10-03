@@ -10,4 +10,4 @@
 - [x] tests/dashboard.test.sh, tests/py/test_dashboard.py and skills/tdd/scripts/veri/dashboard.py (where the issue's dashboard_endpoints.py now lives) are unchanged by the branch ⟦diff-checked⟧ ⟦criterion 6⟧
 - [ ] the PR body lists the criterion-1 pytest case beside the cut 'the header says a non-JSON line discards the records already rendered' case, and the slice-7 removal ⟦human-owed⟧ ⟦criterion 1⟧
 - [ ] the PR body lists each cut tests/render-leaf-log.test.sh case beside the tests/py/test_render_leaf_log.py case that replaced it, and quotes make profile for tests/render-leaf-log.test.sh and the wall time of tests/py/test_render_leaf_log.py before and after, with the commit beside each figure ⟦human-owed⟧ ⟦criterion 5⟧
-- [ ] make test is green, tests/dashboard.test.sh (want_rendering and the chatter_json cases) and tests/render-leaf-log.test.sh among its suites ⟦full-suite⟧ ⟦criterion 6⟧
+- [x] make test is green, tests/dashboard.test.sh (want_rendering and the chatter_json cases) and tests/render-leaf-log.test.sh among its suites ⟦full-suite⟧ ⟦criterion 6⟧
