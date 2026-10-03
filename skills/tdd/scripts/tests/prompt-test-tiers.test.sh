@@ -153,9 +153,6 @@ report "$name"
 
 name="develop-red, develop-refactor and develop-reconcile run their test commands through timed-test-run.sh, each naming its tier"
 problems=()
-printf 'the verifier objected to the fixture path\n' > "$work/reason.md"
-revise="$("$DEVELOP" revise red "$work/spec.md" 'QWIXTLE step' 'make test' "$work/reason.md" 2>/dev/null)" ||
-  problems+=("build-develop-prompt.sh revise exited $?")
 reconcile="$("$DEVELOP" reconcile "$work/spec.md" 'QWIXTLE step' 'make test' 'tdd/1-zorblat' 'abc1234' 2>/dev/null)" ||
   problems+=("build-develop-prompt.sh reconcile exited $?")
 timed_through develop-red "$red" affected
@@ -165,6 +162,9 @@ report "$name"
 
 name="develop-revise redoing red runs the affected suites through timed-test-run.sh under tier affected, and names no all run"
 problems=()
+printf 'the verifier objected to the fixture path\n' > "$work/reason.md"
+revise="$("$DEVELOP" revise red "$work/spec.md" 'QWIXTLE step' 'make test' "$work/reason.md" 2>/dev/null)" ||
+  problems+=("build-develop-prompt.sh revise red exited $?")
 runs_affected "develop-revise red" "$revise"
 timed_through "develop-revise red" "$revise" affected
 never_timed_under "develop-revise red" "$revise" all
