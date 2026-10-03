@@ -38,7 +38,7 @@ roster() {
   make -C "$ROOT" -n test 2>/dev/null | grep -oE "$suites_dir/[A-Za-z0-9_.-]*\.test\.sh"
 }
 
-probe_every_guard_is_rostered_and_green() {
+probe_every_guard_is_in_the_make_test_roster() {
   local rost guard
   rost="$(roster)"
 
@@ -53,10 +53,10 @@ probe_every_guard_is_rostered_and_green() {
   done
 }
 
-name="the four suites that hold $claude_md are in \`make test\`'s roster and green against the committed document"
+name="the four suites that hold $claude_md are in \`make test\`'s roster"
 problems=()
 
-probe_every_guard_is_rostered_and_green
+probe_every_guard_is_in_the_make_test_roster
 
 report "$name"
 
@@ -79,7 +79,7 @@ probe_against() {
   local real_root="$ROOT" real_here="$HERE"
   problems=()
   ROOT="$1" HERE="$2"
-  probe_every_guard_is_rostered_and_green
+  probe_every_guard_is_in_the_make_test_roster
   ROOT="$real_root" HERE="$real_here"
 }
 
