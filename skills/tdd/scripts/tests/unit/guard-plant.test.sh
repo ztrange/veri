@@ -138,4 +138,41 @@ probe_case 'probe_guard_is_green_unplanted over a green committed document' '' 0
 problems=(${outcomes[@]+"${outcomes[@]}"})
 report "$name"
 
+# 4. probe_plant_is_what_it_claims <removed> <replacement> <planted> adds a problem naming the
+#    document when the committed one carries no <removed> (returning 1), when the planted one
+#    still carries <removed>, carries no <replacement>, or differs on any line but the carriers
+name="guard-plant: probe_plant_is_what_it_claims adds a problem naming the document when the committed one lacks the removed text, the planted one keeps it or lacks the replacement, or the plant changed a line that carried neither — and none over a plant that rewrote exactly the carriers"
+SKILL='d/DOC.md'
+SKILL_PATH="$scratch/claims-committed.md"
+printf 'one DENY here\nplain line\nDENY again\n' > "$SKILL_PATH"
+printf 'one GRANT here\nplain line\nGRANT again\n' > "$scratch/claims-exact.md"
+printf 'one GRANT here\nplain line\nDENY again\n' > "$scratch/claims-kept.md"
+printf 'one OTHER here\nplain line\nOTHER again\n' > "$scratch/claims-elsewise.md"
+printf 'one GRANT here\nplain line changed\nGRANT again\n' > "$scratch/claims-spread.md"
+outcomes=()
+claims_case() {
+  local label="$1" want_code="$2" want_count="$3" want_text="$4" code got one
+  shift 4
+  problems=()
+  probe_plant_is_what_it_claims "$@" 2>/dev/null && code=0 || code=$?
+  got=(${problems[@]+"${problems[@]}"})
+  [[ -z "$want_code" || "$code" == "$want_code" ]] ||
+    outcomes+=("$label: returned $code, want $want_code")
+  [[ "${#got[@]}" == "$want_count" ]] ||
+    outcomes+=("$label: added ${#got[@]} problems (${got[*]:-}), want $want_count")
+  for one in ${got[@]+"${got[@]}"}; do
+    [[ "$one" == *"$SKILL"* ]] ||
+      outcomes+=("$label: the problem '$one' does not name the document $SKILL")
+    [[ -z "$want_text" || "$one" == *"$want_text"* ]] ||
+      outcomes+=("$label: the problem '$one' does not name '$want_text'")
+  done
+}
+claims_case 'over a plant that rewrote exactly the carriers' 0 0 '' DENY GRANT "$scratch/claims-exact.md"
+claims_case 'over a committed document with no removed text' 1 1 ABSENT ABSENT GRANT "$scratch/claims-exact.md"
+claims_case 'over a planted document that keeps the removed text' '' 2 '' DENY GRANT "$scratch/claims-kept.md"
+claims_case 'over a planted document with no replacement' '' 1 GRANT DENY GRANT "$scratch/claims-elsewise.md"
+claims_case 'over a plant that changed a line no carrier was on' '' 1 '' DENY GRANT "$scratch/claims-spread.md"
+problems=(${outcomes[@]+"${outcomes[@]}"})
+report "$name"
+
 finish
