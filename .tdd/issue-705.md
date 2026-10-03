@@ -6,7 +6,7 @@
 - [x] The shared guard-plant library defines the sequence itself — guard-is-there, then plant, then plant-is-what-it-claims, then green-unplanted, then the sourcing suite's own probes, stopping where a probe says the criterion cannot be asked — and the unit suite pins the order and the stops ⟦criterion 1⟧
 - [x] beyond-spec-narration-guard.test.sh sources the shared guard-plant library, runs its cases through the library's sequence, and no longer defines any function the library defines ⟦diff-checked⟧ ⟦criterion 1⟧
 - [x] flag-class-amendment-guard.test.sh sources the shared guard-plant library, runs its cases through the library's sequence, and no longer defines any function the library defines ⟦diff-checked⟧ ⟦criterion 1⟧
-- [ ] verifier-launch-guard.test.sh sources the shared guard-plant library, runs its cases through the library's sequence, and no longer defines any function the library defines ⟦diff-checked⟧ ⟦criterion 1⟧
+- [x] verifier-launch-guard.test.sh sources the shared guard-plant library, runs its cases through the library's sequence, and no longer defines any function the library defines ⟦diff-checked⟧ ⟦criterion 1⟧
 - [ ] docs-read-guard.test.sh sources the shared guard-plant library, runs its cases through the library's sequence, and no longer defines any function the library defines ⟦diff-checked⟧ ⟦criterion 1⟧
 - [ ] verifier-launch-guard.test.sh's planted-run case calls probe_guard_is_red instead of repeating its own exit-status pair check (formerly :246-256) ⟦diff-checked⟧
 - [ ] Across the four suites every case name, every expectation and every suite-specific probe (probe_guard_names_the_narration_case, probe_guard_names_the_routing_case and the like) is left unchanged by the branch ⟦diff-checked⟧ ⟦criterion 2⟧
