@@ -83,17 +83,8 @@ priority_label="${VERI_PRIORITY_LABEL:-priority}"
 source "$(dirname "$0")/lib/github.sh"
 
 # hazard: the `[@]+` expansion keeps an empty array from becoming an empty argument.
-gh_json() {  # gh_json <fixture-file> <rest-path> <gh args…> -> that document on stdout
-  local fixture="$1" rest="$2"; shift 2
-  if [[ -n "${VERI_GH_JSON:-}" ]]; then
-    cat "$VERI_GH_JSON/$fixture"
-  else
-    gh_list "repos/${repo:-"{owner}/{repo}"}/$rest" "$@" "${repo_args[@]+"${repo_args[@]}"}"
-  fi
-}
-
-issues_json="$(gh_json issues.json issues issue list --limit 10000 --json number,title,labels,body,state)"
-prs_json="$(gh_json prs.json pulls pr list --limit 10000 --json body,state)"
+issues_json="$(gh_json issues.json "repos/${repo:-"{owner}/{repo}"}/issues" issue list --limit 10000 --json number,title,labels,body,state "${repo_args[@]+"${repo_args[@]}"}")"
+prs_json="$(gh_json prs.json "repos/${repo:-"{owner}/{repo}"}/pulls" pr list --limit 10000 --json body,state "${repo_args[@]+"${repo_args[@]}"}")"
 
 source "$(dirname "$0")/lib/main-working-tree.sh"
 main_tree="$(main_working_tree)"
