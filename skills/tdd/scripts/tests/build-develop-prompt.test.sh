@@ -925,4 +925,24 @@ says_both_ways "$structural" "does not say to touch no test file" \
 [[ -z "$problems" ]] \
   && ok || no "develop-structural builds a transform prompt for one structural candidate, bounded to the issue's touched files, committed as its own refactor: commit, touching no test file (${problems#; })"
 
+problems=""
+predicate="$("$BUILD" predicate "$work/spec.md" "$candidate" "$test_cmd" "$issue_touched" 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; exit $code"
+[[ "$predicate" == *"$candidate"* ]] || problems="$problems; does not carry the candidate verbatim"
+[[ "$predicate" == *"$issue_touched"* ]] || problems="$problems; does not name the issue's touched files"
+[[ "$predicate" == *"$test_cmd"* ]] || problems="$problems; does not carry the test command"
+says_both_ways "$predicate" "does not ask for one shell predicate" \
+  40 '(one|a single)' '(shell )?predicate'
+says_both_ways "$predicate" "does not say the predicate fails on the current tree" \
+  60 '(fail|false|non-?zero)' '(current|unmodified|before)'
+says_both_ways "$predicate" "does not say the predicate succeeds once the candidate is applied" \
+  80 '(succeed|true|exit(s)? 0)' '(applied|after)'
+[[ "$predicate" == *'PREDICATE: <command>'* ]] || problems="$problems; no 'PREDICATE: <command>' report line"
+[[ "$predicate" == *'PREDICATE: NONE — <why>'* ]] || problems="$problems; no 'PREDICATE: NONE — <why>' report line"
+refusal_bad=""
+refuses "predicate missing issue-touched files" "$BUILD" predicate "$work/spec.md" "$candidate" "$test_cmd"
+[[ -z "$refusal_bad" ]] || problems="$problems${refusal_bad}"
+[[ -z "$problems" ]] \
+  && ok || no "#691 develop-predicate asks for one shell predicate for a structural candidate, false on the current tree and true once it is applied, reported as PREDICATE: <command> or PREDICATE: NONE — <why>, and refuses a missing argument with exit 2 and no stdout (${problems#; })"
+
 finish
