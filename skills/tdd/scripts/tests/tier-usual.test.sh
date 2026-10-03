@@ -92,4 +92,39 @@ out="$( cd "$work" && "$USUAL" fast 2>/dev/null )" && code=0 || code=$?
 rm -rf "$work"
 report "$name"
 
+name="tier-usual.sh run through a symlink to the skill directory and from another working directory prints the same stdout and exit code as in place, for a tier with test-run events and for a missing argument"
+problems=()
+work="$(scratch_dir)"
+mkdir -p "$work/here/.tdd" "$work/elsewhere/.tdd"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+LINKED="$work/linked-skill/scripts/tier-usual.sh"
+{
+  ev test-run fast 3
+  ev test-run all 900
+  ev test-run fast 1
+  ev test-run fast 2
+} > "$work/here/.tdd/events.jsonl"
+cp "$work/here/.tdd/events.jsonl" "$work/elsewhere/.tdd/events.jsonl"
+
+in_place="$( cd "$work/here" && "$USUAL" fast 2>/dev/null )" && in_place_code=0 || in_place_code=$?
+linked="$( cd "$work/elsewhere" && "$LINKED" fast 2>/dev/null )" && linked_code=0 || linked_code=$?
+
+[[ "$in_place" == 2.0 && "$in_place_code" == 0 ]] ||
+  problems+=("in place, tier fast: want 2.0 and exit 0, got $(printf '%q' "$in_place") and exit $in_place_code")
+
+[[ "$linked" == "$in_place" && "$linked_code" == "$in_place_code" ]] ||
+  problems+=("tier fast: in place $(printf '%q' "$in_place") exit $in_place_code, through the symlink $(printf '%q' "$linked") exit $linked_code")
+
+in_place="$( cd "$work/here" && "$USUAL" 2>/dev/null )" && in_place_code=0 || in_place_code=$?
+linked="$( cd "$work/elsewhere" && "$LINKED" 2>/dev/null )" && linked_code=0 || linked_code=$?
+
+[[ -z "$in_place" && "$in_place_code" == 2 ]] ||
+  problems+=("in place, no argument: want nothing and exit 2, got $(printf '%q' "$in_place") and exit $in_place_code")
+
+[[ "$linked" == "$in_place" && "$linked_code" == "$in_place_code" ]] ||
+  problems+=("no argument: in place $(printf '%q' "$in_place") exit $in_place_code, through the symlink $(printf '%q' "$linked") exit $linked_code")
+
+rm -rf "$work"
+report "$name"
+
 finish
