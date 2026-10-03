@@ -513,4 +513,15 @@ done
 [[ -z "$misread" ]] \
   && ok || no "--tier fast/all: run against veri's own repo root, fast prints make unit and all prints make test, from veri's CLAUDE.md —$misread"
 
+repo="$work/linked-repo"
+mkdir -p "$repo" "$work/elsewhere"
+printf 'test:\n\techo hi\n' > "$repo/Makefile"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+in_place="$(cd "$repo" && "$DETECT" 2>&1)"; in_place_code=$?
+linked="$(cd "$work/elsewhere" && "$work/linked-skill/scripts/detect-test-command.sh" "$repo" 2>&1)"; linked_code=$?
+if [[ "$linked" == "$in_place" && "$linked_code" -eq "$in_place_code" && "$in_place" == "make test" ]]; then ok; else
+  no "detect-test-command.sh run through a symlink to the skill directory and from another working directory prints the same command and exit code as when run in place"
+  diff <(printf '%s\nexit %s\n' "$in_place" "$in_place_code") <(printf '%s\nexit %s\n' "$linked" "$linked_code")
+fi
+
 finish
