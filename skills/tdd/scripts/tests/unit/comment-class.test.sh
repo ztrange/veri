@@ -240,10 +240,6 @@ dashboard:# Plan for #$2 — $3
 dashboard:## What to build
 dashboard:# Plan for #51 — lamps hum
 dashboard:# Plan for #22 — lamps glow
-dashboard:# Plan for #31 — lamps glow
-dashboard:# a stale committed report for #31 that metrics.sh would never print
-dashboard:# Plan for #32 — lamps dim
-dashboard:# What solving #32 cost — the committed report, verbatim
 dashboard:# Plan for #77 — a kettle boils
 invisible-work:#!/bin/sh
 orchestrate:# A stopped conductor must be stopped by a signal, not by its writes failing, so this stub
