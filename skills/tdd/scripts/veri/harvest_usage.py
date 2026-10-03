@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import sys
+import traceback
 
 from leaf_log import result_records
 
@@ -61,12 +62,16 @@ def main(argv):
         return 2
     name = argv[0]
     log = ".tdd/%s.log" % name
-    record = closing_result(log)
-    if record is None:
-        print("harvest-usage.sh: no closing result record in %s — no usage event appended for %s" % (log, name),
-              file=sys.stderr)
-        return 3
-    pairs = usage_pairs(record)
+    try:
+        record = closing_result(log)
+        if record is None:
+            print("harvest-usage.sh: no closing result record in %s — no usage event appended for %s" % (log, name),
+                  file=sys.stderr)
+            return 3
+        pairs = usage_pairs(record)
+    except Exception:
+        traceback.print_exc()
+        return 1
     role = leaf_role(name)
     if role is None:
         return 2
