@@ -98,11 +98,18 @@ replaces_file=""
 if [[ "$phase" == green && "$step" == *"⟦replaces-case⟧"* ]]; then
   replaces_file="$HERE/prompts/_verify-green-replaces-case.md"
 fi
+suite_repair_file=""
+if [[ "$phase" == green && "$step" == *"⟦suite-repair⟧"* ]]; then
+  suite_repair_file="$HERE/prompts/_verify-green-suite-repair.md"
+fi
 
 # hazard: `cat` on an unreadable file under set -e would exit 1, the code reserved for an answer.
 readable=("$tpl_file" "$shared_file" "$spec_file")
 if [[ -n "$replaces_file" ]]; then
   readable+=("$replaces_file")
+fi
+if [[ -n "$suite_repair_file" ]]; then
+  readable+=("$suite_repair_file")
 fi
 if [[ -n "$bug_file" ]]; then
   readable+=("$bug_file")
@@ -126,6 +133,8 @@ refactor_plan=""
 if [[ -n "$refactor_plan_file" ]]; then refactor_plan="$(cat "$refactor_plan_file")"; fi
 replaces_case=""
 if [[ -n "$replaces_file" ]]; then replaces_case=$'\n\n'"$(cat "$replaces_file")"; fi
+suite_repair=""
+if [[ -n "$suite_repair_file" ]]; then suite_repair=$'\n\n'"$(cat "$suite_repair_file")"; fi
 ledger=""
 if [[ "$phase" == plan ]]; then
   ledger="$(cat "$test_path")"
@@ -148,6 +157,7 @@ out="${out//\{\{ISSUE_SPEC\}\}/$spec}"
 out="${out//\{\{BUG_REPRODUCTION\}\}/$bug_reproduction}"
 out="${out//\{\{REFACTOR_PLAN\}\}/$refactor_plan}"
 out="${out//\{\{REPLACES_CASE\}\}/$replaces_case}"
+out="${out//\{\{SUITE_REPAIR\}\}/$suite_repair}"
 out="${out//\{\{LEDGER\}\}/$ledger}"
 out="${out//\{\{TEST_PATH\}\}/$test_path}"
 out="${out//\{\{TARGET_TEST\}\}/$target}"

@@ -701,6 +701,23 @@ prompt_lacks "$green" "an unmarked step's prompt makes PASS depend on a pytest c
 [[ -z "$problems" ]] && ok \
   || no "verify-green for a ⟦replaces-case⟧ step PASSes only when the named case is gone and a pytest case asserting the same behaviour was added, and REJECTs a deletion or modification of any other case (${problems#; })"
 
+repair_step='fix the full-suite failure: skills/tdd/scripts/tests/zorblat.test.sh — FAIL - zorblat frobs a nitz; skills/tdd/scripts/tests/quux.test.sh — FAIL - quux & {nitz} round-trips ⟦suite-repair⟧'
+repair_green="$("$BUILD" --step "$repair_step" --fast-cmd 'make unit' green "$work/spec.md" 'skills/tdd/scripts/tests/zorblat.test.sh' 'zorblat frobs a nitz' 2>/dev/null)"; code=$?
+every_suite='(every|each|all)( of the)? (listed|red|named) suites?'
+full_cmd='full test command'
+problems=""
+[[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
+prompt_says "$repair_green" "never makes PASS depend on every listed suite being green" \
+  -iE -e "PASS[^.]{0,250}$every_suite[^.]{0,80}green"
+prompt_says "$repair_green" "never tells the verifier to judge the listed suites by running the full test command" \
+  -iE -e "run[^.]{0,120}$full_cmd|$full_cmd[^.]{0,120}(run|judge)"
+prompt_says "$repair_green" "never says the fast command is not what judges the listed suites" \
+  -iE -e "(not|rather than|instead of)[^.]{0,60}fast (test )?command"
+prompt_lacks "$green" "an unmarked step's prompt tells the verifier to run the full test command too" \
+  -iE -e "run[^.]{0,120}$full_cmd"
+[[ -z "$problems" ]] && ok \
+  || no "#690 verify-green for a ⟦suite-repair⟧ step listing two red suites PASSes only when every listed suite is green, judged by running the full test command rather than the fast one (${problems#; })"
+
 mkdir -p "$work/no-replaces-case"
 cp "$BUILD" "$work/no-replaces-case/"
 cp -R "$HERE/../prompts" "$HERE/../lib" "$work/no-replaces-case/"
@@ -716,6 +733,25 @@ grep -F '_verify-green-replaces-case.md' "$work/no-replaces-case.err" > /dev/nul
 [[ "$code" -eq 0 ]] || problems="$problems; green for an unmarked step without the paragraph's file exited $code, want 0"
 [[ -z "$problems" ]] \
   && ok || no "the replaces-case paragraph is read for a ⟦replaces-case⟧ green step alone, and an unreadable one is exit 2 with no stdout (${problems#; })"
+
+mkdir -p "$work/no-suite-repair"
+cp "$BUILD" "$work/no-suite-repair/"
+cp -R "$HERE/../prompts" "$HERE/../lib" "$work/no-suite-repair/"
+rm "$work/no-suite-repair/prompts/_verify-green-suite-repair.md"
+problems=""
+out="$("$work/no-suite-repair/build-verify-prompt.sh" --step "$repair_step" --fast-cmd 'make unit' green "$work/spec.md" 'skills/tdd/scripts/tests/zorblat.test.sh' 'zorblat frobs a nitz' 2>"$work/no-suite-repair.err")"; code=$?
+[[ "$code" -eq 2 ]] || problems="$problems; green for a ⟦suite-repair⟧ step without the paragraph's file exited $code, want 2"
+[[ -z "$out" ]] || problems="$problems; green without the paragraph's file printed ${#out} bytes, want none"
+grep -F '_verify-green-suite-repair.md' "$work/no-suite-repair.err" > /dev/null \
+  || problems="$problems; stderr does not name _verify-green-suite-repair.md"
+"$work/no-suite-repair/build-verify-prompt.sh" --fast-cmd 'make unit' green "$work/spec.md" "$testpath" test_slugify_lowercases \
+  >/dev/null 2>&1; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; green for an unmarked step without the paragraph's file exited $code, want 0"
+"$work/no-suite-repair/build-verify-prompt.sh" --step "$repair_step" red "$work/spec.md" 'skills/tdd/scripts/tests/zorblat.test.sh' 'zorblat frobs a nitz' \
+  >/dev/null 2>&1; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; red for a ⟦suite-repair⟧ step without the paragraph's file exited $code, want 0"
+[[ -z "$problems" ]] \
+  && ok || no "the suite-repair paragraph is read for a ⟦suite-repair⟧ green step alone, and an unreadable one is exit 2 with no stdout (${problems#; })"
 
 scripts_dir="$(cd "$HERE/.." && pwd)"
 unmarked_step='tests/zorblat.test.sh: "zorblat frobs a nitz" replaces-case moves to tests/py ⟦added⟧ ⟦criterion 4⟧'
