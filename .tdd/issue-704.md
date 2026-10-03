@@ -17,4 +17,4 @@
 - [x] Every suite that switched to the shared helpers keeps its cases unmodified, and no suite gains a case that runs another suite ⟦diff-checked⟧ ⟦criterion 4⟧
 - [x] fix the full-suite failure: beyond-spec-narration-guard.test.sh — FAIL - skill-refactor-leaf.test.sh fails over a skills/tdd/SKILL.md whose Refactor section plans and builds a beyond-spec flag (its scratch tree lacks tests/lib/plain.sh and lib/window.sh); flag-class-amendment-guard.test.sh — the same skill-refactor-leaf.test.sh plant, missing the same libs; verifier-launch-guard.test.sh — want skill-leaf-launch.test.sh to pass over skills/tdd/SKILL.md as committed (its scratch tree lacks tests/lib/fenced-lines.sh); claude-md-counts.test.sh — FAIL - CLAUDE.md's unit-tier suite count matches the unit suites on disk: CLAUDE.md says 'twenty-eight', there are 29 on disk ⟦suite-repair⟧ ⟦criterion 4⟧
 - [ ] The copies guard was broken on purpose and seen red, then restored ⟦human-owed⟧ ⟦criterion 2⟧
-- [ ] make test is green ⟦full-suite⟧ ⟦criterion 5⟧
+- [x] make test is green ⟦full-suite⟧ ⟦criterion 5⟧
