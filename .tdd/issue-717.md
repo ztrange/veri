@@ -11,4 +11,4 @@
 - [x] skills/tdd/scripts/veri/leaf_log.py, tests/supervise.test.sh, tests/supervise-retry.test.sh, tests/unit/emitted-text.test.sh and tests/unit/comment-class.test.sh are unchanged by the branch, and tests/unit/missing-argument-exit.test.sh is changed only by the removal of harvest-usage.sh from migration slice 3's list ⟦diff-checked⟧ ⟦criterion 5⟧
 - [ ] the PR body lists the criterion-1 pytest case beside the slice-3 entry it replaces ⟦human-owed⟧ ⟦criterion 1⟧
 - [ ] the PR body lists each cut tests/harvest-usage.test.sh case beside the tests/py/test_harvest_usage.py case that replaced it, and quotes make profile for tests/harvest-usage.test.sh and the wall time of tests/py/test_harvest_usage.py before and after, with the commit beside each figure ⟦human-owed⟧ ⟦criterion 4⟧
-- [ ] make test is green, tests/supervise.test.sh, tests/supervise-retry.test.sh and every suite launching a leaf through supervise.sh among its suites ⟦full-suite⟧ ⟦criterion 5⟧
+- [x] make test is green, tests/supervise.test.sh, tests/supervise-retry.test.sh and every suite launching a leaf through supervise.sh among its suites ⟦full-suite⟧ ⟦criterion 5⟧
