@@ -92,14 +92,14 @@ def suite_of(f):
         return found
     if match(SCRIPTS + "/veri/*.py"):
         name = basename(f, ".py")
-        found = []
-        if os.path.isfile("%s/tests/py/test_%s.py" % (SCRIPTS, name)):
-            found.append("%s/tests/py/test_%s.py" % (SCRIPTS, name))
+        pytest_suite = "%s/tests/py/test_%s.py" % (SCRIPTS, name)
+        found = [pytest_suite] if os.path.isfile(pytest_suite) else []
         return found + suite_of("%s/%s.sh" % (SCRIPTS, name.replace("_", "-")))
     if match(SCRIPTS + "/*.sh"):
         name = basename(f, ".sh")
-        if os.path.isfile("%s/tests/unit/%s.test.sh" % (SCRIPTS, name)):
-            return ["%s/tests/unit/%s.test.sh" % (SCRIPTS, name)]
+        unit_suite = "%s/tests/unit/%s.test.sh" % (SCRIPTS, name)
+        if os.path.isfile(unit_suite):
+            return [unit_suite]
         return ["%s/tests/%s.test.sh" % (SCRIPTS, name)]
     if match(".tdd/*"):
         return []
