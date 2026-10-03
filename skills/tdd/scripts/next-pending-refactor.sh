@@ -15,11 +15,10 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/exit-contract.sh"
 source "$HERE/lib/ledger.sh"
 
-pending_step=$'^[0-9]+\tdone\t[^\t]*\t1\t[^\t]*\t[^\t]*\t(.*)$'
-
 while IFS= read -r record; do
-  [[ "$record" =~ $pending_step ]] || continue
-  printf '%s\n' "${BASH_REMATCH[1]}"
+  ledger_fields "$record"
+  [[ "$state" == done && "$pending" == 1 ]] || continue
+  printf '%s\n' "$text"
   exit 0
 done < <(ledger_steps)
 
