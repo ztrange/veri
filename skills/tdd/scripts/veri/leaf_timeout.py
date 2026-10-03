@@ -59,3 +59,7 @@ def main(argv):
         derived = wrap(derived * max(1, budget))
     print(derived)
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
