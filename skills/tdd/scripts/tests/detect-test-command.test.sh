@@ -513,6 +513,17 @@ done
 [[ -z "$misread" ]] \
   && ok || no "--tier fast/all: run against veri's own repo root, fast prints make unit and all prints make test, from veri's CLAUDE.md —$misread"
 
+misread=""
+for flag in --tier --issue; do
+  out="$("$DETECT" "$flag" 2>"$work/no-value-stderr")"; code=$?
+  err="$(cat "$work/no-value-stderr")"
+  [[ "$code" == 1 && -z "$out" && -z "$err" ]] \
+    || misread="$misread ($flag: exit=$code want 1, stdout='$out' want '', stderr='$err' want '')"
+done
+
+[[ -z "$misread" ]] \
+  && ok || no "--tier and --issue, each with no value, exit 1 with empty stdout and empty stderr —$misread"
+
 repo="$work/linked-repo"
 mkdir -p "$repo" "$work/elsewhere"
 printf 'test:\n\techo hi\n' > "$repo/Makefile"
