@@ -221,4 +221,36 @@ after="$(snapshot)"
 
 report "$name"
 
+name="#691 refactor-overflow files the candidates listed in <skipped-file> beside the unreached ones, and files them even when every candidate was reached"
+problems=()
+
+skipped_file="$work/issue-504-structural-skipped"
+printf '%s\n' "hoist the ledger path into one variable" > "$skipped_file"
+
+title_file="$work/title-skipped" body_file="$work/body-skipped"
+(cd "$work" && env PATH="$stubdir:$PATH" FAKE_TITLE="$title_file" FAKE_BODY="$body_file" \
+  "$OVERFLOW" 504 "$owed_file" 1 "$skipped_file" >"$out" 2>"$work/err") && code=0 || code=$?
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 with one candidate skipped and two unreached, got $code: $(cat "$work/err")")
+body="$(cat "$body_file" 2>/dev/null)"
+for filed in \
+  "hoist the ledger path into one variable" \
+  "fold verify.sh's two mktemp calls into one helper" \
+  "split the verdict parser out of run-leaf.sh"
+do
+  [[ "$body" == *"$filed"* ]] ||
+    problems+=("want '$filed' in the filed issue's body with one candidate skipped and two unreached, got '$body'")
+done
+
+title_file="$work/title-all-reached" body_file="$work/body-all-reached"
+(cd "$work" && env PATH="$stubdir:$PATH" FAKE_TITLE="$title_file" FAKE_BODY="$body_file" \
+  "$OVERFLOW" 504 "$owed_file" 3 "$skipped_file" >"$out" 2>"$work/err") && code=0 || code=$?
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 when every candidate was reached but one was skipped, got $code: $(cat "$work/err")")
+body="$(cat "$body_file" 2>/dev/null)"
+[[ "$body" == *"hoist the ledger path into one variable"* ]] ||
+  problems+=("want the skipped candidate in the filed issue's body when every candidate was reached, got '$body'")
+
+report "$name"
+
 finish
