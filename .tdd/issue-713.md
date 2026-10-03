@@ -18,4 +18,4 @@
 - [x] tests/unit/comment-class.test.sh, tests/unit/exit-contract.test.sh and tests/unit/emitted-text.test.sh are unchanged by the branch, tests/unit/missing-argument-exit.test.sh is changed only by the removal of detect-test-command.sh from migration slice 3's list, and no suite other than tests/detect-test-command.test.sh runs detect-test-command.sh through its entry point ⟦diff-checked⟧ ⟦criterion 5⟧
 - [ ] the PR body lists the criterion-1 pytest cases beside the slice-3 entry they replace ⟦human-owed⟧ ⟦criterion 1⟧
 - [ ] the PR body lists each cut tests/detect-test-command.test.sh case beside the tests/py/test_detect_test_command.py case that replaced it, and quotes make profile for tests/detect-test-command.test.sh and the wall time of tests/py/test_detect_test_command.py before and after ⟦human-owed⟧ ⟦criterion 4⟧
-- [ ] make test is green, tests/unit/comment-class.test.sh and tests/unit/exit-contract.test.sh among its suites ⟦full-suite⟧ ⟦criterion 5⟧
+- [x] make test is green, tests/unit/comment-class.test.sh and tests/unit/exit-contract.test.sh among its suites ⟦full-suite⟧ ⟦criterion 5⟧
