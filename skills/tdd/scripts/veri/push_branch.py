@@ -39,7 +39,10 @@ def failed(attempts):
 
 
 def number(value):
-    return int(value, 8) if value.startswith("0") else int(value)
+    try:
+        return int(value, 8) if value.startswith("0") else int(value)
+    except ValueError:
+        return None
 
 
 def tunable(name, default):
@@ -64,9 +67,8 @@ def main(argv):
     if backoff is None:
         return 2
     attempt = 0
-    try:
-        retries = number(retries)
-    except ValueError:
+    retries = number(retries)
+    if retries is None:
         failed(0)
         return 1
     while attempt <= retries:
@@ -85,10 +87,10 @@ def main(argv):
             return record("push-rejected", f"remote_sha={remote_sha}", f"error={out}") or 1
         if attempt <= retries:
             run(["sleep", backoff])
-            try:
-                backoff = str(number(backoff) * 2)
-            except ValueError:
+            doubled = number(backoff)
+            if doubled is None:
                 return 1
+            backoff = str(doubled * 2)
     failed(attempt)
     return record("push-failed", f"error={out}", f"attempts={attempt}")
 
