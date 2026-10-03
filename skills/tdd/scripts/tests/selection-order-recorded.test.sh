@@ -26,6 +26,7 @@ claude_path="$ROOT/$claude_md"
 source "$HERE/lib/harness.sh"
 
 source "$HERE/record-helpers.sh"
+source "$HERE/lib/claude-md-records.sh"
 
 entry() {
   awk -v want="^\\\\*\\\\*$1\\\\*\\\\*:" '
@@ -59,11 +60,6 @@ need_entry() {
 need_solvable_bullet() {
   need_passage "$skill_md's solvable-issues.sh bullet" "$(bullet '^[-*] .*solvable-issues\.sh')" \
     "$skill_md has no top-level 'solvable-issues.sh' bullet to read, so the order and the tunable an operator looks up beside VERI_GH_JSON could not be found"
-}
-
-need_claude_md_records() {
-  need_passage "$claude_md" "$(records < "$claude_path")" \
-    "$claude_md could not be read, so nothing could be asked of what it records"
 }
 
 states_the_order() {

@@ -23,6 +23,7 @@ skill_path="$ROOT/$skill_md"
 source "$HERE/lib/harness.sh"
 
 source "$HERE/record-helpers.sh"
+source "$HERE/lib/claude-md-records.sh"
 
 MODEL_ANY='veri_model([^_a-z]|$)'
 MODEL_DEV='veri_model_developer'
@@ -35,14 +36,6 @@ need_supervise_bullet() {
   passage_text="$(bullet '^[-*] .*supervise\.sh')"
   [[ -n "${passage_text// /}" ]] && return 0
   problems+=("$skill_md has no top-level 'supervise.sh' bullet to read, so the tunables an operator looks up beside VERI_TIMEOUT could not be found")
-  return 1
-}
-
-need_claude_md_records() {
-  passage_from="$claude_md"
-  passage_text="$(records < "$claude_path")"
-  [[ -n "${passage_text// /}" ]] && return 0
-  problems+=("$claude_md could not be read, so nothing could be asked of what it records")
   return 1
 }
 
