@@ -13,6 +13,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/guard-plant.sh"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 GUARD='skills/tdd/scripts/tests/skill-refactor-leaf.test.sh'
@@ -32,31 +33,7 @@ scratch="$(scratch_dir)"
 
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
-failures_in() {
-  local line
-  line="$(grep -E '^[0-9]+ passed, [0-9]+ failed$' <<< "$1" | tail -1)"
-  [[ -n "$line" ]] || { printf '%s' '<none>'; return; }
-  line="${line#*, }"
-  printf '%s' "${line% failed}"
-}
-
 plant() {
-  local companion
-  tree="$scratch/tree"
-  mkdir -p "$tree/${SKILL%/*}" "$tree/${GUARD%/*}" || {
-    problems+=("could not make a scratch tree to plant the document in, so the criterion went unasked")
-    return 1
-  }
-  guard_copy="$tree/$GUARD"
-  cp "$GUARD_PATH" "$guard_copy" || return 1
-  mkdir -p "${guard_copy%/*}/lib" && cp "$HERE/lib/harness.sh" "${guard_copy%/*}/lib/" || return 1
-  for companion in "${COMPANIONS[@]}"; do
-    cp "$ROOT/$companion" "$tree/$companion" || {
-      problems+=("$companion could not be copied into the scratch tree, so the guard would be red for a reason that is not the plant")
-      return 1
-    }
-  done
-
   planted_skill="$scratch/planted-SKILL.md"
   FROM="$DENIAL" TO="$GRANT" awk '
     {
@@ -69,52 +46,12 @@ plant() {
       print out rest
     }
   ' "$SKILL_PATH" > "$planted_skill"
-  return 0
 }
 
-probe_guard_is_there() {
-  [[ -f "$GUARD_PATH" ]] || {
-    problems+=("there is no guard suite at $GUARD, so nothing checks that $SKILL's Refactor section keeps a $CLASS flag out of the plan")
-    return 1
-  }
-  [[ -x "$GUARD_PATH" ]] || {
-    problems+=("$GUARD is not executable, so \`make test\`'s runner cannot run it")
-    return 1
-  }
-}
-
-probe_plant_is_what_it_claims() {
-  local carriers changed
-  carriers="$(grep -cF "$DENIAL" "$SKILL_PATH")"
-  [[ "$carriers" -gt 0 ]] || {
-    problems+=("no line of $SKILL says a $CLASS flag $DENIAL, so there is no denial to turn into a grant and the criterion cannot be asked")
-    return 1
-  }
+probe_skill_does_not_already_grant() {
   grep -F "$GRANT" "$SKILL_PATH" > /dev/null &&
     problems+=("$SKILL already says a $CLASS flag $GRANT, so the planted document is the committed one on the clause this plant is about")
-  grep -F "$DENIAL" "$planted_skill" > /dev/null &&
-    problems+=("the planted $SKILL still says a $CLASS flag $DENIAL, so nothing was planted")
-  grep -F "$GRANT" "$planted_skill" > /dev/null ||
-    problems+=("the planted $SKILL nowhere says a $CLASS flag $GRANT, so its Refactor section denies the planning in some other words rather than granting it")
-  changed="$(diff "$SKILL_PATH" "$planted_skill" | grep -c '^[<>]')"
-  [[ "$changed" == "$((carriers * 2))" ]] ||
-    problems+=("the plant rewrote lines adding up to $changed diff lines of $SKILL, want $((carriers * 2)) — the $carriers lines that carried the denial and no other; a red over a document changed elsewhere is not about where a $CLASS flag goes")
   return 0
-}
-
-run_guard_over() {
-  cp "$1" "$tree/$SKILL"
-  guard_out="$("$guard_copy" 2>&1)" && guard_code=0 || guard_code=$?
-}
-
-probe_guard_is_green_unplanted() {
-  local failures
-  run_guard_over "$SKILL_PATH"
-  failures="$(failures_in "$guard_out")"
-  [[ "$guard_code" == 0 ]] ||
-    problems+=("want ${GUARD##*/} to pass over $SKILL as committed — red there says nothing about the plant; it exited $guard_code and said: $(flat "$guard_out")")
-  [[ "$failures" == 0 ]] ||
-    problems+=("want ${GUARD##*/}'s own count line to state 0 failed over $SKILL as committed; it stated '$failures': $(flat "$guard_out")")
 }
 
 probe_guard_names_the_narration_case() {
@@ -142,12 +79,7 @@ planted_skill=""
 guard_out=""
 guard_code=0
 
-if probe_guard_is_there && plant; then
-  if probe_plant_is_what_it_claims; then
-    probe_guard_is_green_unplanted
-    probe_guard_names_the_narration_case
-  fi
-fi
+run_plant_sequence tree plant "$DENIAL" "$GRANT" probe_skill_does_not_already_grant probe_guard_names_the_narration_case
 report "$name"
 
 finish
