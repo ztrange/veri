@@ -36,7 +36,7 @@ make_plant_tree() {
   }
   guard_copy="$tree/$GUARD"
   cp "$GUARD_PATH" "$guard_copy"
-  mkdir -p "${guard_copy%/*}/lib" && cp "$GUARD_PLANT_LIB/harness.sh" "${guard_copy%/*}/lib/"
+  mkdir -p "${guard_copy%/*}/lib" && cp "$GUARD_PLANT_LIB"/*.sh "${guard_copy%/*}/lib/"
   for companion in ${COMPANIONS[@]+"${COMPANIONS[@]}"}; do
     companion_copy="$tree/$companion"
     mkdir -p "${companion_copy%/*}" && cp "$ROOT/$companion" "$companion_copy" || {
