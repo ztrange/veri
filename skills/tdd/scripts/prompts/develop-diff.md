@@ -1,0 +1,37 @@
+{{SHARED}}
+
+## Phase: develop-diff
+
+This step's criterion is a property of the branch's own diff: something removed, left
+unchanged, or confined to named lines. A blind verifier judges it against the diff alone,
+so no test is this step's deliverable.
+
+### The step
+
+{{STEP}}
+
+### The issue's behavior spec (context only)
+
+{{ISSUE_SPEC}}
+
+### The test command
+
+{{TEST_CMD}}
+
+### What to do
+
+1. Make the change the step's criterion names, and nothing else, then commit that change.
+2. When the criterion is that something stays unchanged, make no commit: leave the tree as
+   you found it.
+3. Add no test. A case that pins this criterion by reading another file's text or the git
+   history is rejected.
+4. Run the suites covering the files you touched, through the wrapper `{{TIMED_TEST_RUN}}`:
+
+       {{TIMED_TEST_RUN}} affected '<the suites you ran>' <the command that runs them>
+
+   They must stay green.
+
+### Report (last lines of your output)
+
+DIFF: <the change committed, in one line, or NONE when the criterion is that something stays unchanged>
+SUITE: GREEN | RED — <the final summary line of that run>

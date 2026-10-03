@@ -966,4 +966,23 @@ done
 [[ -z "$problems" ]] \
   && ok || no "#691 a refactor-kind step's transform prompts, develop and verify, build from the step text and its own predicate record with no predicate leaf or structural-predicate.sh involved (${problems#; })"
 
+problems=""
+dd_step='the dead counted line in the status suite is gone ⟦diff-checked⟧ ⟦criterion 5⟧'
+dd="$("$BUILD" diff "$work/spec.md" "$dd_step" "$test_cmd" 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; diff exited $code, want 0"
+[[ "$dd" == *"$dd_step"* ]] || problems="$problems; diff prompt lacks the step text"
+[[ "$dd" == *'zorblat("Frob & Nitz/Quux")'* ]] || problems="$problems; diff prompt lacks the spec"
+[[ "$dd" != "$red" ]] || problems="$problems; diff prompt is red's"
+says_both_ways "$dd" "diff prompt never says to make the change the criterion names" 80 'make' 'change'
+says_both_ways "$dd" "diff prompt never says to commit the change" 120 'change' 'commit'
+says_both_ways "$dd" "diff prompt never says to make no commit when the criterion is that something stays unchanged" \
+  160 '(no|not|never)[^.]{0,20}commit' 'unchanged'
+prompt_says "$dd" "diff prompt never says to add no test" \
+  -iE -e '(add|write)[^.]{0,20}(no|not a single) (new )?(test|case)|(do not|don.t|never) (add|write)[^.]{0,20}(test|case)'
+refusal_bad=""
+refuses "diff missing test-cmd" "$BUILD" diff "$work/spec.md" "$dd_step"
+[[ -z "$refusal_bad" ]] || problems="$problems${refusal_bad}"
+[[ -z "$problems" ]] \
+  && ok || no "develop-diff tells the leaf to make the change the step's criterion names and commit it, to make no commit when the criterion is that something stays unchanged, and to add no test; a missing argument exits 2 with nothing on stdout (${problems#; })"
+
 finish
