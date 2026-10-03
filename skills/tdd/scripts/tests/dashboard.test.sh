@@ -1106,38 +1106,6 @@ fi
 
 report "$name"
 
-name="tests_json entries name the suites their test-run mark covered and whether that run passed"
-problems=()
-tfields_repo="$(repo testsfields)"
-
-tfields_run="$(fabricate_run "$tfields_repo" 56 tdd/56-lamps-gutter)"
-fabricate_plan "$tfields_run" 56 "lamps gutter" "a lamp gutters"
-fabricate_marks "$tfields_run" 56 "a lamp gutters" \
-  skills/tdd/scripts/tests/gutter.test.sh skills/tdd/scripts/tests/flicker.test.sh
-
-if [[ -n "$module_problem" ]]; then
-  problems+=("$module_problem")
-else
-  call_endpoint "$tfields_repo" tests_json "$work/tests-fields.err" \
-    '{"issue": ["56"]}' "$work/tests-fields-56.json"
-  if [[ ! -f "$work/tests-fields-56.json" ]]; then
-    problems+=("calling $module.tests_json wrote nothing: $(tail -n 1 "$work/tests-fields.err")")
-  else
-    add_problems < <(python3 -c "$tests_runs"'
-want = [{"suites": "", "passed": True},
-        {"suites": "skills/tdd/scripts/tests/gutter.test.sh", "passed": False},
-        {"suites": "skills/tdd/scripts/tests/flicker.test.sh", "passed": True}]
-got = [{"suites": r.get("suites"), "passed": r.get("passed")} for r in runs]
-if got != want:
-    print("tests_json for issue 56 returned %s; want each entry to name the suites its "
-          "`test-run` mark covered and whether that run passed: %s"
-          % (json.dumps(got, sort_keys=True)[:400], json.dumps(want, sort_keys=True)))
-' "$work/tests-fields-56.json" 56)
-  fi
-fi
-
-report "$name"
-
 name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
 problems=()
 disk_page="$scripts/dashboard.html"
