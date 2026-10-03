@@ -12,9 +12,13 @@ class Answer(Exception):
         self.command = command
 
 
-def lines_of(path):
+def read(path):
     with open(path, "rb") as f:
-        lines = f.read().split(b"\n")
+        return f.read()
+
+
+def lines_of(path):
+    lines = read(path).split(b"\n")
     if lines[-1] == b"":
         lines.pop()
     return lines
@@ -46,13 +50,7 @@ def answer_from_file(path, marker):
 def declares(path, pattern):
     if not os.path.isfile(path):
         return False
-    with open(path, "rb") as f:
-        return re.search(pattern, f.read(), re.M) is not None
-
-
-def read(path):
-    with open(path, "rb") as f:
-        return f.read()
+    return re.search(pattern, read(path), re.M) is not None
 
 
 def decide(tier, issue, root):
