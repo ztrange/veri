@@ -441,12 +441,16 @@ scan_stage_links() {
 run_case "a stage reaches every script it does not replace by a link to the script under test, never a copy" \
   scan_stage_links
 
-run_recorded() {
-  note_launch "$tree"
+run_staged() {
   err="$( cd "$tree" && "${cleared_run_context[@]}" \
             S="$stage" SEEN="$seen" bash -c "$launch" 2>&1 >/dev/null )"
   got="$(cat "$seen" 2>/dev/null)" || got="$1"
   argv="$(cat "$seen.argv" 2>/dev/null)" || argv='<no verifier was launched>'
+}
+
+run_recorded() {
+  note_launch "$tree"
+  run_staged "$1"
 }
 
 APOSTROPHE_STEP="A background process is killed by the pid recorded when it started, never by that shell's own job spec"
@@ -575,10 +579,7 @@ STUB
     ln -s "$RECORDERS/ledger-steps.sh" "$stage/ledger-steps.sh"
     plant_ledger "$tree" "$DECOY_STEP"
     printf '%s\n' "$title" > "$seen.current"
-    err="$( cd "$tree" && "${cleared_run_context[@]}" \
-              S="$stage" SEEN="$seen" bash -c "$launch" 2>&1 >/dev/null )"
-    got="$(cat "$seen" 2>/dev/null)" || got='<no leaf was launched>'
-    argv="$(cat "$seen.argv" 2>/dev/null)" || argv='<no verifier was launched>'
+    run_staged '<no leaf was launched>'
     [[ "$got" == "$title" ]] ||
       problem "launched $leaf with ledger-steps.sh current answering <$title>, whose leaf saw VERI_STEP=<$got> (the launching shell said: ${err//$'\n'//})"
     [[ "$line" == *--step* ]] || continue
