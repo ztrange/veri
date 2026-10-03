@@ -180,4 +180,19 @@ bad_probe "fast 5 full missing" 5 --full
 report "$name"
 
 
+name="leaf-timeout.sh ten, with VERI_TIMEOUT unset, exits 2 with nothing on stdout and exactly the diagnostic and the usage line on stderr"
+problems=()
+capture env -u VERI_TIMEOUT "$LEAF_TIMEOUT" ten
+want_err="leaf-timeout: <baseline-seconds> must be a whole number >= 0: ten
+usage: leaf-timeout.sh <baseline-seconds> [refactor | --full <full-seconds>]"
+[[ "$probe_code" == 2 ]] ||
+  problems+=("want exit 2, got $probe_code")
+[[ ! -s "$probe_out" ]] ||
+  problems+=("want nothing on stdout, got: $(printf '%q' "$(cat "$probe_out")")")
+[[ "$(cat "$probe_err")" == "$want_err" ]] ||
+  problems+=("want stderr $(printf '%q' "$want_err"), got: $(printf '%q' "$(cat "$probe_err")")")
+capture_done
+report "$name"
+
+
 finish
