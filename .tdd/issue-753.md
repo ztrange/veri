@@ -4,5 +4,5 @@
 - [x] a `verdict-<phase>` supervision of run-verdict.sh whose verify.sh refused its arguments with exit 2 records 2 in `.tdd/verdict-<phase>.exit` and exits 2, never 1, so the conductor's wait never reads a bad argument as a REJECT ⟦criterion 1⟧
 - [x] SKILL.md's verify-rebase launch line passes a `--step` that falls back to the last done step's text (`ledger-steps.sh last-done`) when `ledger-steps.sh current` prints nothing ⟦criterion 2⟧
 - [x] SKILL.md's structural pass spells the transform verifier's launch line, and its `--step` falls back to the last done step's text when no step is open ⟦criterion 2⟧
-- [x] SKILL.md's general verifier launch shape and the revise loop's re-verify line fall back to the last done step's text when no step is open, so an end-of-run verifier launches first time ⟦criterion 2⟧ ⟂ refactor pending
+- [x] SKILL.md's general verifier launch shape and the revise loop's re-verify line fall back to the last done step's text when no step is open, so an end-of-run verifier launches first time ⟦criterion 2⟧
 - [ ] `make test` is green ⟦full-suite⟧ ⟦criterion 3⟧
