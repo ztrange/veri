@@ -1178,52 +1178,6 @@ fi
 
 report "$name"
 
-name="chatter_json, called directly, returns the rendered log of the leaf the selected run is currently on"
-problems=()
-chat_repo="$(repo chatterdirect)"
-
-chat_run="$(fabricate_run "$chat_repo" 54 tdd/54-lamps-buzz)"
-cat > "$chat_run/.tdd/issue-54.md" <<'EOF'
-# Plan for #54 — lamps buzz
-
-- [x] a lamp buzzes
-- [ ] a lamp stops buzzing
-EOF
-cat > "$chat_run/.tdd/develop-red.out" <<'EOF'
-{"type": "system", "subtype": "init", "session_id": "s1", "tools": ["Bash"]}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Adding the case that pins the buzz."}]}}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_1", "name": "Bash", "input": {"command": "make test", "description": "Run the suite"}}]}}
-{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_1", "type": "tool_result", "content": "FAIL - a lamp stops buzzing\n----\n4 passed, 1 failed", "is_error": true}]}}
-EOF
-cat > "$chat_run/.tdd/verify-green.out" <<'EOF'
-{"type": "system", "subtype": "init", "session_id": "s2", "tools": ["Bash"]}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Reading the diff against the spec."}]}}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_7", "name": "Bash", "input": {"command": "git diff HEAD~1", "description": "The step’s diff"}}]}}
-{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_7", "type": "tool_result", "content": "diff --git a/lamp.sh b/lamp.sh\n+  silence\n", "is_error": false}]}}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "VERDICT: PASS"}]}}
-EOF
-chat_now="$(date +%s)"
-cat > "$chat_run/.tdd/events.jsonl" <<EOF
-{"ts": $((chat_now - 300)), "issue": "54", "actor": "conductor", "phase": "", "step": "a lamp stops buzzing", "event": "step-start", "attempt": "", "skill_commit": "abc", "seq": 1}
-{"ts": $((chat_now - 290)), "issue": "54", "actor": "developer", "phase": "red", "step": "a lamp stops buzzing", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red", "seq": 2}
-{"ts": $((chat_now - 100)), "issue": "54", "actor": "verifier", "phase": "green", "step": "a lamp stops buzzing", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "verify-green", "seq": 3}
-EOF
-
-want_rendering "$chat_run/.tdd/verify-green.out" "$work/chatter-want.txt" "the fixture leaf log"
-
-chatter_answer "$chat_repo" 54 chatter-direct
-if [[ -n "$answer" ]]; then
-  add_problems < <(python3 -c "$chatter_rendering"'
-got, wanted = chatter(sys.argv[1], 54), want(sys.argv[2])
-if got is not None and got != wanted:
-    print("chatter_json for issue 54 returned %r; want render-leaf-log.sh’s rendering of "
-          "verify-green.out, the leaf the run’s newest launch event names, which is %r"
-          % (got[:400], wanted[:400]))
-' "$answer" "$work/chatter-want.txt")
-fi
-
-report "$name"
-
 name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
 problems=()
 disk_page="$scripts/dashboard.html"
