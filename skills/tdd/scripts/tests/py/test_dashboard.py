@@ -448,3 +448,42 @@ def test_get_api_tests_answers_run_51s_two_make_test_runs_from_its_leaf_log_when
     for entry, output in zip(runs, (red_fail, red_pass)):
         assert entry["tail"] and output.endswith(entry["tail"])
         assert output.splitlines()[-1] in entry["tail"]
+
+
+def test_get_api_tests_answers_run_53s_one_run_of_its_spec_command_and_never_executes_it(
+        tmp_path, monkeypatch, dashboard):
+    run = os.path.join(str(tmp_path), ".tdd", "wt", "53")
+    marker = os.path.join(str(tmp_path), "tests-noexec-trace")
+    command = "sh -c 'echo executed > %s'" % marker
+    write(os.path.join(run, ".tdd", "issue-53.md"), "# Plan for #53 — lamps hum\n\n- [ ] a lamp hums\n")
+    write(os.path.join(run, ".tdd", "issue-53-spec.md"),
+          "## What to build\n\nA lamp hums.\n\nTest command: %s\n" % command)
+    records = [
+        {"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "tool_use", "id": "toolu_1", "name": "Bash",
+             "input": {"command": command, "description": "Run the suite"}}]}},
+        {"type": "user", "message": {"role": "user", "content": [
+            {"tool_use_id": "toolu_1", "type": "tool_result", "content": "----\n3 passed, 0 failed",
+             "is_error": False}]}},
+    ]
+    write(os.path.join(run, ".tdd", "develop-red.out"),
+          "".join(json.dumps(record) + "\n" for record in records))
+    calls = []
+
+    def fake_run(args, cwd=None, **kwargs):
+        calls.append(args)
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, ["/api/tests?issue=53"])
+
+    dashboard.main([])
+
+    (tests,) = served[0][1]
+    assert [entry["command"] for entry in json.loads(body(tests))["tests"]] == [command]
+    assert not os.path.exists(marker)
+    assert not [args for args in calls if command in (args if isinstance(args, str) else " ".join(args))]
