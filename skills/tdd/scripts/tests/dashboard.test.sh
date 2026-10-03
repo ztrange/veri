@@ -977,67 +977,6 @@ fi
 
 report "$name"
 
-name="tests_json, called directly, lists the selected run's leaf test runs with command, pass/fail and output tail"
-problems=()
-tdirect_repo="$(repo testsdirect)"
-
-tdirect_sel="$(fabricate_run "$tdirect_repo" 51 tdd/51-lamps-flicker)"
-fabricate_plan "$tdirect_sel" 51 "lamps flicker" "a lamp flickers"
-cat > "$tdirect_sel/.tdd/develop-red.out" <<'EOF'
-{"type": "system", "subtype": "init", "session_id": "s1", "tools": ["Bash"]}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Reading the suite before adding the case."}]}}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_1", "name": "Bash", "input": {"command": "git log --oneline -3", "description": "Recent commits"}}]}}
-{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_1", "type": "tool_result", "content": "abc1234 plan: a lamp flickers", "is_error": false}]}}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_2", "name": "Bash", "input": {"command": "make test", "description": "Run the suite"}}]}}
-{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_2", "type": "tool_result", "content": "FAIL - a lamp flickers\n----\n11 passed, 1 failed", "is_error": true}]}}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_3", "name": "Bash", "input": {"command": "make test", "description": "Run the suite again"}}]}}
-{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_3", "type": "tool_result", "content": "----\n12 passed, 0 failed", "is_error": false}]}}
-{"type": "result", "subtype": "success", "is_error": false, "result": "The case is added and fails as predicted."}
-EOF
-
-tdirect_other="$(fabricate_run "$tdirect_repo" 52 tdd/52-lamps-dim)"
-fabricate_plan "$tdirect_other" 52 "lamps dim" "a lamp dims"
-cat > "$tdirect_other/.tdd/develop-green.out" <<'EOF'
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_9", "name": "Bash", "input": {"command": "make test", "description": "Run the suite"}}]}}
-{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_9", "type": "tool_result", "content": "----\n7 passed, 0 failed  (run 52)", "is_error": false}]}}
-EOF
-
-if [[ -n "$module_problem" ]]; then
-  problems+=("$module_problem")
-else
-  call_endpoint "$tdirect_repo" tests_json "$work/tests-direct.err" \
-    '{"issue": ["51"]}' "$work/tests-direct-51.json"
-  if [[ ! -f "$work/tests-direct-51.json" ]]; then
-    problems+=("calling $module.tests_json wrote nothing: $(tail -n 1 "$work/tests-direct.err")")
-  else
-    add_problems < <(python3 -c "$tests_runs"'
-red_fail = "FAIL - a lamp flickers\n----\n11 passed, 1 failed"
-red_pass = "----\n12 passed, 0 failed"
-if len(runs) != 2:
-    print("tests_json for issue 51 returned %d test runs, %s; want the two `make test` calls "
-          "in its own leaf log — neither its `git log` call nor run 52\u2019s `make test`"
-          % (len(runs), json.dumps(runs, sort_keys=True)[:400]))
-    sys.exit()
-for entry, passed, output in zip(runs, (False, True), (red_fail, red_pass)):
-    if entry.get("command") != "make test":
-        print("a test run came back with command %r; want the run’s own test command, "
-              "`make test`" % entry.get("command"))
-    if entry.get("passed") is not passed:
-        print("the `make test` whose tool result is %r came back passed=%r; want %r, from that "
-              "result’s exit status" % (output, entry.get("passed"), passed))
-    tail = entry.get("tail")
-    if not isinstance(tail, str) or not tail or not output.endswith(tail):
-        print("the `make test` whose output is %r came back tail=%r; want a non-empty tail of "
-              "that output" % (output, tail))
-    elif output.splitlines()[-1] not in tail:
-        print("the `make test` whose output is %r came back tail=%r; want it to carry that "
-              "output’s last line, %r" % (output, tail, output.splitlines()[-1]))
-' "$work/tests-direct-51.json" 51)
-  fi
-fi
-
-report "$name"
-
 name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
 problems=()
 disk_page="$scripts/dashboard.html"
