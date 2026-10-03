@@ -8,6 +8,7 @@
 #   3. `git` on a suite's PATH is a symlink straight to the git `xcrun -f git` names, when
 #      xcrun answers,
 #   4. and straight to the git `command -v git` names when it does not.
+#   5. The pytest leg runs $VERI_VENV/bin/python3 when it is present, else the python3 on PATH.
 #
 # Run: skills/tdd/scripts/tests/make-test-env.test.sh
 set -uo pipefail
@@ -129,5 +130,20 @@ done
 [[ -z "$unit_listed" ]] ||
   problems+=("the nested make test over the fixture also ran suites from tests/unit/: $(flat "$unit_listed")")
 report "the nested make test over the fixture runs only the fixture, no suite from tests/unit/"
+
+problems=()
+venv="$work/venv"
+path_py="$work/path-py"
+mkdir -p "$venv/bin" "$path_py"
+printf '#!/bin/sh\necho "venv python3 $*"\n' > "$venv/bin/python3"
+printf '#!/bin/sh\necho "path python3 $*"\n' > "$path_py/python3"
+chmod +x "$venv/bin/python3" "$path_py/python3"
+recipe /dev/null VERI_VENV="$venv" VERI_PYTHON_VERSION=3.12.0 VERI_PYTEST_IMPORTABLE=1 PATH="$path_py:$PATH"
+[[ "$recipe_out" == *"venv python3 -m pytest skills/tdd/scripts/tests/py/test_"* ]] ||
+  problems+=("want \$VERI_VENV/bin/python3 to run the pytest leg when it is present, got: $(flat "$recipe_out")")
+recipe /dev/null VERI_VENV="$work/no-venv" VERI_PYTHON_VERSION=3.12.0 VERI_PYTEST_IMPORTABLE=1 PATH="$path_py:$PATH"
+[[ "$recipe_out" == *"path python3 -m pytest skills/tdd/scripts/tests/py/test_"* ]] ||
+  problems+=("want the python3 on PATH to run the pytest leg when \$VERI_VENV/bin/python3 is absent, got: $(flat "$recipe_out")")
+report "make test's pytest leg runs \$VERI_VENV/bin/python3 when it is present and the python3 on PATH when it is absent"
 
 finish
