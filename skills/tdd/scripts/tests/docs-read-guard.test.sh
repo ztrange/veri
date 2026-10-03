@@ -16,7 +16,6 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 GUARD='skills/tdd/scripts/tests/no-docs-reads.test.sh'
 GUARD_PATH="$ROOT/$GUARD"
-GUARD_NAME="$(basename "$GUARD")"
 
 TESTS_DIR='skills/tdd/scripts/tests'
 
@@ -26,13 +25,20 @@ QUOTER='quotes-a-docs-path.test.sh'
 DOCS_DIR='docs'
 DOCS_READ_PATH="$DOCS_DIR/wt/commentary.py"
 DOCS_FIXTURE_PATH="$DOCS_DIR/wt/app.js"
+UNPLANTED_READ_PATH="fixtures/wt/commentary.py"
 
 MARK='the-binding'
 
 READ_SITE='stated="$(grep -c VERI_HEARTBEAT "$ROOT/$commentary")"'
 
+SKILL="$TESTS_DIR/$READER"
+
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/guard-plant.sh"
+
+scratch="$(scratch_dir)"
+SKILL_PATH="$scratch/unplanted-$READER"
 
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
@@ -74,21 +80,15 @@ EOF
 }
 
 plant() {
-  tree="$(scratch_dir)" || {
-    problems+=("could not make a scratch tree to plant the two suites in, so the criterion went unasked")
-    return 1
-  }
-  mkdir -p "$tree/$TESTS_DIR"
-
-  reader_path="$tree/$TESTS_DIR/$READER"
+  reader_path="$scratch/planted-$READER"
   quoter_path="$tree/$TESTS_DIR/$QUOTER"
-  guard_copy="$tree/$TESTS_DIR/$GUARD_NAME"
+  planted_skill="$reader_path"
 
   plant_reader
   plant_quoter
+  printf 'test:\n\t@echo $(wildcard %s/*.test.sh)\n' "$TESTS_DIR" > "$tree/Makefile"
 
-  cp "$GUARD_PATH" "$guard_copy"
-  mkdir -p "${guard_copy%/*}/lib" && cp "$HERE/lib/harness.sh" "${guard_copy%/*}/lib/"
+  sed "s|$DOCS_READ_PATH|$UNPLANTED_READ_PATH|" "$reader_path" > "$SKILL_PATH" 2>/dev/null
   new_repo "$tree" >/dev/null 2>&1
   git -C "$tree" add -A >/dev/null 2>&1
 
@@ -97,18 +97,7 @@ plant() {
   return 0
 }
 
-probe_guard_is_there() {
-  [[ -f "$GUARD_PATH" ]] || {
-    problems+=("there is no guard suite at $GUARD, so nothing under $TESTS_DIR is checked for reaching into the documentation tree")
-    return 1
-  }
-  [[ -x "$GUARD_PATH" ]] || {
-    problems+=("$GUARD is not executable, so \`make test\`'s runner cannot run it")
-    return 1
-  }
-}
-
-probe_plant_is_what_it_claims() {
+probe_reader_plant_is_what_it_claims() {
   [[ "$reader_line" =~ ^[0-9]+$ ]] || {
     problems+=("the planted reader has no single marked line to name (found '$reader_line'), so the criterion cannot be asked")
     return
@@ -126,11 +115,8 @@ probe_plant_is_what_it_claims() {
     problems+=("the planted quoter carries no path in that tree at all, so a guard that refuses fixture text would still pass this case")
 }
 
-run_guard() {
-  guard_out="$("$guard_copy" 2>&1)" && guard_code=0 || guard_code=$?
-}
-
 probe_guard_names_the_reader_with_its_line() {
+  run_guard_over "$planted_skill"
   [[ "$guard_code" != 0 ]] ||
     problems+=("want the guard to fail over a suite that binds $DOCS_READ_PATH and opens it on a later line; it exited 0 and said: $(flat "$guard_out")")
   local named
@@ -156,17 +142,13 @@ tree=""
 reader_path=""
 quoter_path=""
 guard_copy=""
+planted_skill=""
 reader_line=""
 guard_out=""
 guard_code=0
 
-if probe_guard_is_there && plant; then
-  probe_plant_is_what_it_claims
-  run_guard
-  probe_guard_names_the_reader_with_its_line
-  probe_guard_leaves_the_quoter_alone
-fi
-[[ -z "$tree" ]] || rm -rf "$tree"
+run_plant_sequence tree plant "$UNPLANTED_READ_PATH" "$DOCS_READ_PATH" \
+  probe_reader_plant_is_what_it_claims probe_guard_names_the_reader_with_its_line probe_guard_leaves_the_quoter_alone
 
 report "$name"
 
