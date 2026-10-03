@@ -417,6 +417,38 @@ rm -f "$owed_file"
 report "$name"
 
 
+name="render prints a structural candidate appended for a step whose refactor bounds are all test files under ### Test-only"
+problems=()
+
+owed_file="$(mktemp)"
+"$OWED" append "$owed_file" 'a step that touched only test files' \
+  'skills/tdd/scripts/tests/unit/scratch-copy-libs.test.sh,skills/tdd/scripts/tests/lib/harness.sh' <<'REPORT'
+CANDIDATES: structural | merge the full-path check at scratch-copy-libs.test.sh:45 into the /lib/<name>.sh loop
+REPORT
+
+rendered="$(mktemp)"
+"$OWED" render "$owed_file" >"$rendered" 2>/dev/null && code=0 || code=$?
+
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from render, got $code")
+
+transform='merge the full-path check at scratch-copy-libs.test.sh:45 into the /lib/<name>.sh loop'
+heading_at="$(line_of "$rendered" '### Test-only')"
+if [[ -z "$heading_at" ]]; then
+  problems+=("render printed no '### Test-only' heading:" "$(cat "$rendered")")
+else
+  own_section="$(awk -v from="$heading_at" 'NR > from && /^#+ / { exit } NR > from' "$rendered")"
+  [[ "$own_section" == *"- $transform"* ]] ||
+    problems+=("the candidate '$transform' is not under '### Test-only':" "$(cat "$rendered")")
+fi
+times="$(grep -cF -- "$transform" "$rendered" || true)"
+[[ "$times" == 1 ]] ||
+  problems+=("the candidate '$transform' is printed $times times, want once:" "$(cat "$rendered")")
+
+rm -f "$owed_file" "$rendered"
+report "$name"
+
+
 name="#683 append records a test-only candidate as test_only_candidate answers it"
 problems=()
 
