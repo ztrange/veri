@@ -20,18 +20,13 @@ md="$ROOT/$skill_md"
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/section-end.sh"
 
 sec_start=0 sec_end=0
 section() {
   sec_start="$(awk -v h="$1" 'index($0, h) == 1 { print NR; exit }' "$md")"
   [[ -n "$sec_start" ]] || { sec_end=0; return 1; }
-  local next
-  next="$(head -1 < <(tail -n "+$((sec_start + 1))" "$md" | grep -nE '^#') | cut -d: -f1)"
-  if [[ -n "$next" ]]; then
-    sec_end=$((sec_start + next - 1))
-  else
-    sec_end=$(($(wc -l < "$md")))
-  fi
+  sec_end="$(section_end "$md" "$sec_start")"
   return 0
 }
 
