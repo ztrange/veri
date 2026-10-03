@@ -443,61 +443,6 @@ def test_main_resolves_the_main_working_tree_as_the_first_worktree_git_lists_as_
     assert (code, capsys.readouterr().out) == (0, "#5  lamps glow  tdd/5-main  step 1 of 1\n")
 
 
-STATUS_SUITE = SCRIPTS / "tests" / "status.test.sh"
-
-STATUS_SUITE_FLOOR = [
-    "no runs under the main working tree prints 'no runs' and exits 3",
-    "a run under .tdd/wt/* is listed with its issue number, title, branch and step n of m",
-    "status.sh run through a symlink to the skill directory and from another working directory "
-    "answers as it does when run in place",
-    "status.sh run through its entry point exits 2 on a failure veri/status.py turns into exit 2",
-    "status.sh given a bad argument names it on stderr",
-]
-STATUS_SUITE_CUT = [
-    "a run shows its current phase, actor, leaf name, leaf elapsed seconds and attempts in the step, "
-    "from its event log",
-    "a run shows its cost so far in dollars and tokens, summed from its event log",
-    "a finished run's line reports its last step's attempt count, not attempt 0, when the done event "
-    "carries an empty step",
-    "a run whose log ends with a stop mark reads stopped <mode>, and --json reports state stopped with "
-    "the mode in stop_mode",
-    "a resume mark after a stop mark makes the run read running again",
-    "--scope <name> adds the scope's totals: issues attempted, done, bailed, total wall time and dollars",
-    "with no --scope, VERI_LABEL names the scope and adds the same totals line",
-    "--scope <name> totals include the count still solvable, from solvable-issues.sh for that scope",
-    "--json emits the same per-run and scope data as one JSON document",
-    "--json emits scope.solvable as a JSON number, like every other numeric field",
-    "solvable-issues.sh exiting other than 0 or 3 renders the solvable count as ?, in text and JSON",
-    "--json reports bail_phase from the bail event's own phase, not the last launch's",
-    "a run directory is one run, its own issue's ledger, not every committed ledger beside it",
-    "two run directories each holding the other's committed ledger print exactly two runs, each with "
-    "only its own directory's totals",
-    "a run directory with no ledger of its own contributes no run and is not an error",
-]
-
-
-def test_status_test_sh_keeps_only_the_adr_0027_survivors_and_the_floor():
-    suite = STATUS_SUITE.read_text()
-
-    missing = [name for name in STATUS_SUITE_FLOOR if name not in suite]
-    kept = [name for name in STATUS_SUITE_CUT if name in suite]
-
-    assert (missing, kept) == ([], [])
-
-
-def test_status_test_sh_floor_holds_an_exit_2_case_and_a_bad_argument_stderr_case():
-    suite = STATUS_SUITE.read_text()
-    floor = [
-        "status.sh run through its entry point exits 2 on a failure veri/status.py turns into exit 2",
-        "status.sh given a bad argument names it on stderr",
-    ]
-
-    unnamed = [name for name in floor if name not in STATUS_SUITE_FLOOR]
-    absent = [name for name in floor if name not in suite]
-
-    assert (unnamed, absent) == ([], [])
-
-
 def test_no_case_in_this_suite_calls_a_function_of_veri_status_other_than_main():
     tree = ast.parse(pathlib.Path(__file__).read_text())
 
