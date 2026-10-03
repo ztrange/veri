@@ -447,11 +447,7 @@ run_staged() {
   got="$(cat "$seen" 2>/dev/null)" || got="$1"
   argv="$(cat "$seen.argv" 2>/dev/null)" || argv='<no verifier was launched>'
 }
-
-run_recorded() {
-  note_launch "$tree"
-  run_staged "$1"
-}
+run_recorded() { note_launch "$tree"; run_staged "$1"; }
 
 APOSTROPHE_STEP="A background process is killed by the pid recorded when it started, never by that shell's own job spec"
 
