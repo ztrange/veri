@@ -13,7 +13,7 @@
 - [x] need_claude_md_records() is defined once in tests/lib/ and sourced by model-knobs-recorded and selection-order-recorded, and on the copies guard's list ⟦criterion 1⟧
 - [x] probe_every_exemption_carries_a_reason() is defined once in tests/lib/ and sourced by no-sigpipe-pipelines, no-gh-json-argv and no-job-spec-kills, and on the copies guard's list ⟦criterion 1⟧
 - [x] The guard suites' verdict() is defined once in tests/lib/ and sourced by count-line-guard, prompt-test-tiers, unit/missing-argument-exit, unit/emitted-text and unit/pending-mark-literal, and on the copies guard's list ⟦criterion 1⟧
-- [x] Copying lib/count-line-guard.sh into a planted tree is one helper in tests/lib/, used by count-line-guard, pytest-leg, prose-lag-green, unit-tier and watch in place of their own copy lines, and on the copies guard's list ⟦criterion 1⟧ ⟂ refactor pending
+- [x] Copying lib/count-line-guard.sh into a planted tree is one helper in tests/lib/, used by count-line-guard, pytest-leg, prose-lag-green, unit-tier and watch in place of their own copy lines, and on the copies guard's list ⟦criterion 1⟧
 - [ ] Every suite that switched to the shared helpers keeps its cases unmodified, and no suite gains a case that runs another suite ⟦diff-checked⟧ ⟦criterion 4⟧
 - [ ] The copies guard was broken on purpose and seen red, then restored ⟦human-owed⟧ ⟦criterion 2⟧
 - [ ] make test is green ⟦full-suite⟧ ⟦criterion 5⟧
