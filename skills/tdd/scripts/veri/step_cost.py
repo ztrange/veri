@@ -47,22 +47,20 @@ def report(step):
     with open(LOG, encoding="utf-8") as log:
         lines = [line.rstrip("\n") for line in log]
     usage = [line for line in lines if value(line, "event") == "usage"]
+    if step not in ("--run", "--steps"):
+        escaped = json.dumps(step)[1:-1]
+        usage = [line for line in usage if value(line, "step") == escaped]
+    if not usage:
+        return 3
     if step == "--steps":
         dollars, leaves = {}, {}
         for line in usage:
             s = value(line, "step")
             dollars[s] = dollars.get(s, 0.0) + number(value(line, "total_cost_usd"))
             leaves[s] = leaves.get(s, 0) + 1
-        if not leaves:
-            return 3
         for s in leaves:
             sys.stdout.write("%.2f %d\n" % (dollars[s], leaves[s]))
         return 0
-    if step != "--run":
-        escaped = json.dumps(step)[1:-1]
-        usage = [line for line in usage if value(line, "step") == escaped]
-    if not usage:
-        return 3
     sys.stdout.write("%.2f\n" % sum(number(value(line, "total_cost_usd")) for line in usage))
     return 0
 
