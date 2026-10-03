@@ -459,6 +459,8 @@ def test_main_resolves_the_main_working_tree_as_the_first_worktree_git_lists_as_
     assert (code, capsys.readouterr().out) == (0, "#5  lamps glow  tdd/5-main  step 1 of 1\n")
 
 
+STATUS_SUITE = SCRIPTS / "tests" / "status.test.sh"
+
 STATUS_SUITE_FLOOR = [
     "no runs under the main working tree prints 'no runs' and exits 3",
     "a run under .tdd/wt/* is listed with its issue number, title, branch and step n of m",
@@ -491,7 +493,7 @@ STATUS_SUITE_CUT = [
 
 
 def test_status_test_sh_keeps_only_the_adr_0027_survivors_and_the_floor():
-    suite = (SCRIPTS / "tests" / "status.test.sh").read_text()
+    suite = STATUS_SUITE.read_text()
 
     missing = [name for name in STATUS_SUITE_FLOOR if name not in suite]
     kept = [name for name in STATUS_SUITE_CUT if name in suite]
@@ -500,7 +502,7 @@ def test_status_test_sh_keeps_only_the_adr_0027_survivors_and_the_floor():
 
 
 def test_status_test_sh_floor_holds_an_exit_2_case_and_a_bad_argument_stderr_case():
-    suite = (SCRIPTS / "tests" / "status.test.sh").read_text()
+    suite = STATUS_SUITE.read_text()
     floor = [
         "status.sh run through its entry point exits 2 on a failure veri/status.py turns into exit 2",
         "status.sh given a bad argument names it on stderr",
@@ -513,7 +515,7 @@ def test_status_test_sh_floor_holds_an_exit_2_case_and_a_bad_argument_stderr_cas
 
 
 def test_status_test_sh_no_longer_carries_the_dead_counted_line():
-    suite = (SCRIPTS / "tests" / "status.test.sh").read_text()
+    suite = STATUS_SUITE.read_text()
 
     dead = [line for line in suite.splitlines() if line.strip() == 'counted="$(repo counted)"']
 
