@@ -18,4 +18,4 @@
 - [x] tests/unit/emitted-text.test.sh and tests/unit/exit-contract.test.sh are unchanged by the branch, and tests/unit/missing-argument-exit.test.sh is changed only by the removal of comment-class.sh from migration slice 2's list ⟦diff-checked⟧ ⟦criterion 5⟧
 - [ ] the PR body lists the criterion-1 pair: the slice-2 entry for comment-class.sh beside the pytest case calling veri.comment_class.main([]) ⟦human-owed⟧ ⟦criterion 1⟧
 - [ ] the PR body lists each cut tests/unit/comment-class.test.sh case beside the tests/py/test_comment_class.py case that replaced it, and quotes make profile for tests/unit/comment-class.test.sh and the wall time of tests/py/test_comment_class.py before and after, with the commit beside each figure ⟦human-owed⟧ ⟦criterion 4⟧
-- [ ] make test is green, tests/unit/emitted-text.test.sh, tests/unit/missing-argument-exit.test.sh and tests/unit/exit-contract.test.sh among its suites ⟦full-suite⟧ ⟦criterion 5⟧
+- [x] make test is green, tests/unit/emitted-text.test.sh, tests/unit/missing-argument-exit.test.sh and tests/unit/exit-contract.test.sh among its suites ⟦full-suite⟧ ⟦criterion 5⟧
