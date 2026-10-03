@@ -52,3 +52,20 @@ def test_main_with_a_tier_returns_0_and_prints_the_median_of_its_last_10_test_ru
     code = tier_usual.main(["fast"])
     out, _ = capsys.readouterr()
     assert (code, out) == (0, "5.5\n")
+
+
+def test_main_with_a_tier_holding_an_odd_number_of_test_run_events_prints_the_middle_one_sorted(capsys, monkeypatch, tmp_path, tier_usual):
+    log = tmp_path / ".tdd" / "events.jsonl"
+    log.parent.mkdir()
+    log.write_text("".join(_event(*e) + "\n" for e in [
+        ("test-run", "fast", "3"),
+        ("test-run", "fast", "1"),
+        ("test-run", "all", "900"),
+        ("test-run", "fast", "4"),
+        ("test-run", "fast", "9"),
+        ("test-run", "fast", "7"),
+    ]))
+    monkeypatch.chdir(tmp_path)
+    code = tier_usual.main(["fast"])
+    out, _ = capsys.readouterr()
+    assert (code, out) == (0, "4.0\n")
