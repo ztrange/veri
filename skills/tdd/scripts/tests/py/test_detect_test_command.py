@@ -307,3 +307,37 @@ def test_main_with_a_tier_answers_from_its_claude_md_marker_and_falls_back_to_th
         want[key] = (0, command + "\n")
 
     assert got == want
+
+
+def test_main_reads_tier_only_first_and_issue_only_first_or_after_tier_takes_any_tier_skips_a_missing_issue_and_exits_3_on_a_missing_root(tmp_path, capsys, detect):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "Makefile").write_text("test:\n\techo hi\n")
+    (repo / "CLAUDE.md").write_text("# demo\n\nveri: fast tests: bin/fast-suite\nveri: slow tests: bin/slow-suite\n")
+    body = tmp_path / "body.md"
+    body.write_text("## Notes\n\nTest command: bin/issue-suite\n")
+    missing = str(tmp_path / "no-such-body.md")
+
+    cases = {
+        "issue-before-tier": ["--issue", str(body), "--tier", "fast", str(repo)],
+        "unvalidated-tier": ["--tier", "slow", str(repo)],
+        "unvalidated-tier-reads-issue": ["--tier", "slow", "--issue", str(body), str(repo)],
+        "fast-tier-skips-issue": ["--tier", "fast", "--issue", str(body), str(repo)],
+        "missing-issue-file": ["--issue", missing, str(repo)],
+        "missing-root": [str(tmp_path / "no-such-repo")],
+    }
+
+    got = {}
+    for name, argv in cases.items():
+        code = detect.main(argv)
+        captured = capsys.readouterr()
+        got[name] = (code, captured.out, captured.err)
+
+    assert got == {
+        "issue-before-tier": (0, "bin/issue-suite\n", ""),
+        "unvalidated-tier": (0, "bin/slow-suite\n", ""),
+        "unvalidated-tier-reads-issue": (0, "bin/issue-suite\n", ""),
+        "fast-tier-skips-issue": (0, "bin/fast-suite\n", ""),
+        "missing-issue-file": (0, "make test\n", ""),
+        "missing-root": (3, "", ""),
+    }
