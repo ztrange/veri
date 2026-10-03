@@ -215,4 +215,21 @@ want_err='capture-spec: usage: capture-spec.sh <issue-number>'
 
 report "$name"
 
+name='against a gh that fails both gh issue view and gh api, capture-spec.sh exits 2 with nothing on stdout'
+problems=()
+faildir="$tmp/fail"
+mkdir -p "$faildir/bin"
+cat > "$faildir/bin/gh" <<'STUB'
+#!/bin/sh
+echo "gh stub: refused: gh $*" >&2
+exit 1
+STUB
+chmod +x "$faildir/bin/gh"
+code=0
+env PATH="$faildir/bin:$PATH" "$SCRIPT" 7 > "$tmp/fail.out" 2> "$tmp/fail.err" || code=$?
+[[ "$code" == 2 ]] || problems+=("exit want 2 got $code; stderr: $(head -2 "$tmp/fail.err")")
+[[ ! -s "$tmp/fail.out" ]] || problems+=("stdout want empty got: $(cat "$tmp/fail.out")")
+
+report "$name"
+
 finish
