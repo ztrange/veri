@@ -21,7 +21,8 @@ def gh_issue_view(n, field):
                           stdout=subprocess.PIPE, text=True)
     try:
         issue = json.loads(rest.stdout)
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as error:
+        print("json.decoder.JSONDecodeError: %s" % error, file=sys.stderr)
         raise NoAnswer
     if rest.returncode != 0:
         raise NoAnswer

@@ -229,3 +229,54 @@ def test_main_keeps_the_text_rules_of_body_echo_label_match_and_section_extracti
         "\n### Steps to reproduce\n\n"
         "\n### Environment\n\n"
     ), "")
+
+
+def test_main_asks_labels_before_the_body_of_its_first_argument_and_fails_both_routes_with_exit_2_and_gh_apis_error_then_the_json_decode_line(monkeypatch, capsys, capture_spec):
+    refusal = "HTTP 403: GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)\n"
+    unreachable = "error connecting to api.github.com\ncheck your internet connection or https://githubstatus.com\n"
+    decode_line = "json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\n"
+
+    def fake_gh_failing(labels_answer):
+        calls = []
+
+        def fake_run(args, **kwargs):
+            calls.append(list(args))
+            if list(args[:3]) == ["gh", "issue", "view"] and "labels" in args and labels_answer is not None:
+                code, stdout, stderr = 0, labels_answer, ""
+            elif list(args[:3]) == ["gh", "issue", "view"]:
+                code, stdout, stderr = 1, "", refusal
+            elif list(args[:2]) == ["gh", "api"]:
+                code, stdout, stderr = 1, "", unreachable
+            else:
+                raise AssertionError("unexpected command: %r" % (args,))
+            if kwargs.get("stderr") is None:
+                sys.stderr.write(stderr)
+            return subprocess.CompletedProcess(
+                args, code,
+                stdout if kwargs.get("stdout") == subprocess.PIPE else None,
+                stderr if kwargs.get("stderr") == subprocess.PIPE else None)
+
+        def fake_popen(args, *rest, **kwargs):
+            calls.append(list(args))
+            raise AssertionError("unexpected Popen: %r" % (args,))
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        monkeypatch.setattr(subprocess, "Popen", fake_popen)
+        return calls
+
+    calls = fake_gh_failing(None)
+    code = capture_spec.main(["abc", "extra"])
+    captured = capsys.readouterr()
+    assert (code, captured.out, captured.err, calls) == (2, "", unreachable + decode_line, [
+        ["gh", "issue", "view", "abc", "--json", "labels", "-q", ".labels[].name"],
+        ["gh", "api", "repos/{owner}/{repo}/issues/abc"],
+    ])
+
+    calls = fake_gh_failing("bug\n")
+    code = capture_spec.main(["7"])
+    captured = capsys.readouterr()
+    assert (code, captured.out, captured.err, calls) == (2, "", unreachable + decode_line, [
+        ["gh", "issue", "view", "7", "--json", "labels", "-q", ".labels[].name"],
+        ["gh", "issue", "view", "7", "--json", "body", "-q", ".body"],
+        ["gh", "api", "repos/{owner}/{repo}/issues/7"],
+    ])
