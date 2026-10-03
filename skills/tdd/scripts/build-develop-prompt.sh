@@ -121,16 +121,15 @@ if spec_has_bug_section "$spec_file"; then
   bug_file="$HERE/prompts/_develop-red-bug.md"
 fi
 
-replaces_file=""
-suite_repair_file=""
-if [[ "$phase" == "green" || "$revised_phase" == "green" ]]; then
-  if [[ "$step" == *"⟦replaces-case⟧"* ]]; then
-    replaces_file="$HERE/prompts/_develop-green-replaces-case.md"
+green_partial() {
+  local file=""
+  if [[ ( "$phase" == "green" || "$revised_phase" == "green" ) && "$step" == *"$2"* ]]; then
+    file="$HERE/prompts/$3"
   fi
-  if [[ "$step" == *"⟦suite-repair⟧"* ]]; then
-    suite_repair_file="$HERE/prompts/_develop-green-suite-repair.md"
-  fi
-fi
+  printf -v "$1" '%s' "$file"
+}
+green_partial replaces_file "⟦replaces-case⟧" _develop-green-replaces-case.md
+green_partial suite_repair_file "⟦suite-repair⟧" _develop-green-suite-repair.md
 
 for f in "$tpl_file" "$shared_file" "$spec_file" "$reason_file" "$bug_file" "$replaces_file" "$suite_repair_file"; do
   [[ -n "$f" ]] || continue
