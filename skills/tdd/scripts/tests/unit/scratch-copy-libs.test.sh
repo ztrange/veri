@@ -33,7 +33,7 @@ expand() {
 }
 
 lib_copy_hits() {
-  local dir="$1" suite line n copy='(^|[[:space:];&|(])(cp|ln)[[:space:]]'
+  local dir="$1" suite line n copy='(^|[[:space:];&|(`{])(cp|ln)[[:space:]]'
   for suite in "$dir"/*.test.sh "$dir"/unit/*.test.sh; do
     [[ -f "$suite" ]] || continue
     n=0
@@ -115,6 +115,16 @@ printf '%s\n' '#!/usr/bin/env bash' \
 got="$(lib_copy_hits "$plant" 2>&1)"
 expect_eq "$name" \
   "$(printf '    %s copies an individual lib file\n' d.test.sh:2 d.test.sh:3 d.test.sh:4 d.test.sh:5)" \
+  "$got"
+
+name="#749: the lib-copy guard names a cp or ln of an individual lib file opened by a backtick or a { with no space"
+plant="$(scratch_dir)"
+printf '%s\n' '#!/usr/bin/env bash' \
+  'out=`cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/"`' \
+  '{ln -s "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/"; }' > "$plant/e.test.sh"
+got="$(lib_copy_hits "$plant" 2>&1)"
+expect_eq "$name" \
+  "$(printf '    %s copies an individual lib file\n' e.test.sh:2 e.test.sh:3)" \
   "$got"
 
 finish
