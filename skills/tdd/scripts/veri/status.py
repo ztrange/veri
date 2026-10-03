@@ -12,6 +12,7 @@ import traceback
 
 from event_log import read_events, usage_totals
 from ledger import ledger_steps
+from run_dir import run_file
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -160,14 +161,14 @@ def render(as_json, scope):
         run = run.rstrip("/")
         branch = branch_of(run)
         activity = ""
-        events_path = os.path.join(run, ".tdd", "events.jsonl")
+        events_path = run_file(run, "events.jsonl")
         if os.path.isfile(events_path):
             events.append(events_path)
-            activity = run_activity(events_path, os.path.join(run, ".tdd", "conductor.pid"),
+            activity = run_activity(events_path, run_file(run, "conductor.pid"),
                                     timeout, as_json) or ""
             if not as_json:
                 activity = "  " + activity
-        ledger = os.path.join(run, ".tdd", "issue-%s.md" % os.path.basename(run))
+        ledger = run_file(run, "issue-%s.md" % os.path.basename(run))
         if not os.path.isfile(ledger):
             continue
         with open(ledger) as f:
