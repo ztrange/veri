@@ -176,7 +176,7 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/tdd/scripts/tests/` — 141 files for seventy-one scripts, plus thirty-one suites under `unit/` (five moved there, three written for them, fourteen written with the script or helper they test — `step-cost.test.sh`, `step-budget.test.sh`, `run-affordable.test.sh`, `cover-outcome.test.sh`, `comment-class.test.sh`, `ledger.test.sh`, `github.test.sh`, `exit-contract.test.sh`, `candidate-line.test.sh`, `window.test.sh`, `section-end.test.sh`, `frontmatter-name.test.sh`, `fenced-lines.test.sh` and `venv-python.test.sh` — and two written for the argument contract they all share — `missing-argument-exit.test.sh`, which audits it over every script, and `missing-argument-guard.test.sh`, which plants an offender so that audit is known to go red — one written to pin the text veri emits, `emitted-text.test.sh`, one written to pin where the pending mark is spelled, `pending-mark-literal.test.sh`, one written with the sourced test harness, `harness.test.sh`, one written to pin that no suite carries its own `report`, `no-report-copies.test.sh`, one written to pin that no suite copies a script into a scratch tree without the lib it sources, `scratch-copy-libs.test.sh`, and one written with the sourced guard-plant library, `guard-plant.test.sh`), all run by `make test`.
+`skills/tdd/scripts/tests/` — 141 files for seventy-one scripts, plus thirty suites under `unit/` (five moved there, two written for them, fourteen written with the script or helper they test — `step-cost.test.sh`, `step-budget.test.sh`, `run-affordable.test.sh`, `cover-outcome.test.sh`, `comment-class.test.sh`, `ledger.test.sh`, `github.test.sh`, `exit-contract.test.sh`, `candidate-line.test.sh`, `window.test.sh`, `section-end.test.sh`, `frontmatter-name.test.sh`, `fenced-lines.test.sh` and `venv-python.test.sh` — and two written for the argument contract they all share — `missing-argument-exit.test.sh`, which audits it over every script, and `missing-argument-guard.test.sh`, which plants an offender so that audit is known to go red — one written to pin the text veri emits, `emitted-text.test.sh`, one written to pin where the pending mark is spelled, `pending-mark-literal.test.sh`, one written with the sourced test harness, `harness.test.sh`, one written to pin that no suite carries its own `report`, `no-report-copies.test.sh`, one written to pin that no suite copies a script into a scratch tree without the lib it sources, `scratch-copy-libs.test.sh`, and one written with the sourced guard-plant library, `guard-plant.test.sh`), all run by `make test`.
 `supervise.sh` has a second suite for its retry axis, and two suites belong to no single
 script: `hermetic-suites.test.sh` is a cross-suite test that pins the suites' independence
 from ambient `VERI_*` tunables, and `workflow-timeouts.test.sh` is the first to assert on
@@ -239,13 +239,15 @@ entry point; every other `python3` call is refused, named and logged. Everything
 
 **`make unit` and `make test` also run a pytest leg** over `skills/tdd/scripts/tests/py/`, when a `test_*.py` is there; with none, both targets answer as they did before it. A pytest suite's admission rule is no process but the interpreter: under `make unit` a case that starts `git`, `gh` or `curl` fails, naming the command, while the bash suites under `tests/unit/` keep the refusing `python3` shim. The leg runs with `$VERI_VENV/bin/python3` (default `~/.veri-tools/venv`), the environment `make install-dev` creates, falling back to the `python3` on PATH, and sees the recipe's `LC_ALL=C`, stdin and offline settings. Two refusals, both exit 2 before any suite runs: pytest cannot be imported (stderr names pytest and `make install-dev`; `VERI_PYTEST_IMPORTABLE` stands in for the answer), or the interpreter is older than the Python 3.12 floor (stderr names the floor and the version found; `VERI_PYTHON_VERSION` stands in).
 
-**A script moves into the unit tier by one pattern, and `push-branch.sh` is its worked
-example** (#339). The script's logic goes behind functions, and a main guard —
-`[[ "${BASH_SOURCE[0]}" == "$0" ]] && main "$@"` — is the only code that runs when it is
-executed. A new `tests/unit/<script>.test.sh` sources the script, never execs it, and mocks
-every command it shells out to as a same-named shell function, so those calls start no
-process. The CLI contract — arguments, stdout, stderr, exit codes — stays byte-identical,
-proven by the script's integration suite passing unmodified in `tests/`, where it stays.
+**A script moves into the unit tier by one pattern** (#339). The script's logic goes behind
+functions, and a main guard — `[[ "${BASH_SOURCE[0]}" == "$0" ]] && main "$@"` — is the only
+code that runs when it is executed. A new `tests/unit/<script>.test.sh` sources the script,
+never execs it, and mocks every command it shells out to as a same-named shell function, so
+those calls start no process. The CLI contract — arguments, stdout, stderr, exit codes — stays
+byte-identical, proven by the script's integration suite passing unmodified in `tests/`, where
+it stays. `push-branch.sh` was its first example and has left it, ported to Python under the
+convention `status.sh` is the worked example of (#720). What still follows it is a library:
+`lib/github.sh`, sourced by `tests/unit/github.test.sh` with `gh` mocked as a shell function.
 
 **A script ported to Python follows one convention, and `status.sh` is its worked example**
 (#634). Its logic moves into a module of the `skills/tdd/scripts/veri/` package, and its

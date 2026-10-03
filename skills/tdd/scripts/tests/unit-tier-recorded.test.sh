@@ -68,19 +68,32 @@ fi
 
 report "$name"
 
-name="$claude_md's '$section_name' section documents the unit-tier migration pattern, naming push-branch.sh as the worked example"
+name="$claude_md's '$section_name' section documents the unit-tier migration pattern, naming lib/github.sh as what still follows it and push-branch.sh as having left it for the Python convention"
 problems=()
 
 if read_section; then
-  says "the migration pattern — a main guard, a unit suite that sources the script, dependencies mocked as same-named shell functions, the CLI contract unchanged — naming push-branch.sh as the worked example" \
-    'push-branch\.sh' \
-    'worked example' \
+  says "the migration pattern — a main guard, a unit suite that sources the script, dependencies mocked as same-named shell functions, the CLI contract unchanged" \
     'bash_source|main guard' \
     'sources?|sourcing' \
     'mock' \
     'shell functions?|same-named' \
     'cli contract|byte-identical' \
     'unchanged|unmodified|byte-identical'
+  says "that lib/github.sh, sourced by tests/unit/github.test.sh with gh mocked as a shell function, still follows that pattern" \
+    'lib/github\.sh' \
+    'tests/unit/github\.test\.sh' \
+    '(^|[^a-z])gh([^a-z]|$)' \
+    'mock' \
+    'shell function'
+  says "that push-branch.sh left that pattern for the Python convention status.sh is the worked example of" \
+    'push-branch\.sh' \
+    'left|leaves|moved|ported' \
+    'python' \
+    'status\.sh' \
+    'worked example'
+  if grep -E 'push-branch\.sh is (its|the) worked example' <<< "$passage_text" > /dev/null; then
+    problems+=("$claude_md's '$section_name' section still names push-branch.sh the worked example of the unit-tier pattern")
+  fi
 fi
 
 report "$name"
