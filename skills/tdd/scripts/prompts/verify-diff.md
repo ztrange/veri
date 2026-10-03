@@ -13,4 +13,5 @@ the author's rationale.
 {{ISSUE_SPEC}}
 
 PASS if the diff satisfies the step's criterion. REJECT, naming where the diff falls short,
-otherwise. End with `VERDICT: PASS` or `VERDICT: REJECT`.
+otherwise. REJECT, too, if the diff adds a test: a criterion judged against the diff is never
+also pinned by a case left behind. End with `VERDICT: PASS` or `VERDICT: REJECT`.

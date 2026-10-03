@@ -655,6 +655,9 @@ dp_other="$("$BUILD" --step "$diff_step" diff "$work/spec.md" "$other_base" 2>/d
 [[ -z "$problems" ]] \
   && ok || no "the diff prompt tells the verifier to read git diff <base-sha>..HEAD and not the range's commit messages, and carries nothing but the spec, the step text and the base sha (${problems#; })"
 
+prompt_has "$dp" -iE -e "REJECT[^.]{0,160}(add|adds|added)[^.]{0,40}test|(add|adds|added)[^.]{0,40}test[^.]{0,160}REJECT" \
+  && ok || no "the diff prompt tells the verifier to REJECT when the step's commits add a test"
+
 cp "$work/spec.md" "$work/refactor-spec.md"
 printf '\n## Refactor\n\nRun kind: refactor. This issue changes structure, not behaviour.\n' \
   >> "$work/refactor-spec.md"
