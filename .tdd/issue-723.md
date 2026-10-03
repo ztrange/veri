@@ -1,6 +1,6 @@
 # Plan for #723 — tier-usual.sh runs as a Python module behind its sh shim, as veri/tier_usual.py
 
-- [ ] tier-usual.sh run with no argument exits 2 with nothing on stdout and stderr exactly the one line `usage: tier-usual.sh <tier>` (a floor case in tests/tier-usual.test.sh, written against the bash script before the port) ⟦criterion 4⟧
+- [x] tier-usual.sh run with no argument exits 2 with nothing on stdout and stderr exactly the one line `usage: tier-usual.sh <tier>` (a floor case in tests/tier-usual.test.sh, written against the bash script before the port) ⟦criterion 4⟧
 - [ ] tier-usual.sh <tier>, run where `.tdd/events.jsonl` holds no `test-run` event for that tier, exits 1 with nothing on stdout (a floor case in tests/tier-usual.test.sh, written against the bash script before the port) ⟦criterion 4⟧
 - [ ] tier-usual.sh, run through a symlink to the skill directory and from another working directory, prints the same stdout and exit code as when run in place, for a tier with test-run events and for a missing argument (a case in tests/tier-usual.test.sh) ⟦criterion 3⟧
 - [ ] veri.tier_usual.main([]) returns 2 with nothing on stdout and `usage: tier-usual.sh <tier>` on stderr (tests/py/test_tier_usual.py), and tier-usual.sh is removed from migration slice 9's list in tests/unit/missing-argument-exit.test.sh in the same commit, the slice's other scripts staying ⟦criterion 1⟧
