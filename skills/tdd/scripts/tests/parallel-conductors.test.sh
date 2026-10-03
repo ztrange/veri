@@ -260,7 +260,11 @@ await_context() {
 }
 heartbeats() {
   i=0
-  while [ \$i -lt \$1 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
+  while [ \$i -lt \$1 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); done
+}
+await_stop() {
+  mkfifo "$1.stop.\$\$"
+  read stop_line < "$1.stop.\$\$"
 }
 over_budget_step_done() {
   echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=7 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
@@ -285,6 +289,12 @@ command grep -Fx 'context 7 1' '$await_out' > /dev/null && echo returned-after-l
   > "$work/await.result" 2>&1
 expect_lines "stub_waits' await_context returns only once its context line has arrived, however many looks that takes" "returned-after-line" "$(cat "$work/await.result")" "$await_out"
 
+heartbeat_line='{"type":"system","subtype":"heartbeat"}'
+sh -c "$(stub_waits "$await_out")
+sleep() { echo slept; }
+heartbeats 3" > "$work/heartbeats.result" 2>&1 < /dev/null
+expect_lines "stub_waits' heartbeats prints its heartbeat lines without calling sleep" "$(printf '%s\n' "$heartbeat_line" "$heartbeat_line" "$heartbeat_line")" "$(cat "$work/heartbeats.result")" "$await_out"
+
 gh_stop="$work/gh-stop"
 solvable_fixture "$gh_stop" 7
 stop_marks="$work/stop.marks"
@@ -303,7 +313,7 @@ $(stub_waits "$work/stop.out")
   heartbeats 50
   echo before-result >> "$stop_marks"
   echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
-  heartbeats 200
+  await_stop
   echo after-step-done >> "$stop_marks"
 fi
 $(ready_pr "$gh_stop")
@@ -355,7 +365,7 @@ if [ "\$n" = 7 ] && [ "\$(grep -c '^7$' "$beside_launches")" -eq 1 ]; then
   over_budget_step_done
   echo before-result-7 >> "$beside_marks"
   echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
-  heartbeats 200
+  await_stop
   echo after-step-done-7 >> "$beside_marks"
 elif [ "\$n" = 8 ]; then
   i=0
@@ -451,7 +461,7 @@ if [ "\$n" = 7 ] && [ "\$(grep -c '^7$' "$one_launches")" -eq 1 ]; then
   heartbeats 50
   echo before-result-7 >> "$one_marks"
   echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
-  heartbeats 200
+  await_stop
   echo after-step-done-7 >> "$one_marks"
   exit 0
 elif [ "\$n" = 8 ]; then
