@@ -69,3 +69,16 @@ def test_main_with_a_tier_holding_an_odd_number_of_test_run_events_prints_the_mi
     code = tier_usual.main(["fast"])
     out, _ = capsys.readouterr()
     assert (code, out) == (0, "4.0\n")
+
+
+def test_main_prints_a_whole_median_as_a_float_repr_with_a_trailing_point_zero(capsys, monkeypatch, tmp_path, tier_usual):
+    log = tmp_path / ".tdd" / "events.jsonl"
+    log.parent.mkdir()
+    log.write_text("".join(_event(*e) + "\n" for e in [
+        ("test-run", "fast", "3"),
+        ("test-run", "fast", "5"),
+    ]))
+    monkeypatch.chdir(tmp_path)
+    code = tier_usual.main(["fast"])
+    out, _ = capsys.readouterr()
+    assert (code, out) == (0, "4.0\n")
