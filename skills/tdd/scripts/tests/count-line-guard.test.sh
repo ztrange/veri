@@ -1038,8 +1038,7 @@ report "$name"
 name="run-suite.sh exits 2 over a pytest file when pytest cannot be imported, and when the file does not exist"
 problems=()
 
-real_python3="${VERI_VENV:-$HOME/.veri-tools/venv}/bin/python3"
-[[ -x "$real_python3" ]] || real_python3="$(command -v python3)"
+real_python3="$(source "$ROOT/skills/tdd/scripts/lib/venv-python.sh" && venv_python)"
 siteless="$(scratch_dir)"
 mkdir -p "$siteless/bin"
 python3_stub "$siteless/bin" "exec \"$real_python3\" -S \"\$@\""
