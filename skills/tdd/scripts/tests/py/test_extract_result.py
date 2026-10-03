@@ -93,3 +93,22 @@ def test_main_prefers_the_newest_record_carrying_a_report_line_and_with_none_the
         code = extract_result.main([])
         seen[name] = (code, capsys.readouterr().out)
     assert seen == {name: (0, expected) for name, (_, expected) in streams.items()}
+
+
+def test_main_writes_stdin_back_unchanged_when_no_record_carries_a_result(monkeypatch, capsys, extract_result):
+    streams = {
+        "#624 a developer report with no result record passes through unchanged": (
+            '{"type":"system","subtype":"init"}\n'
+            '{"type":"assistant","message":{"content":[{"type":"text","text":"IMPL_PATH: a.sh"}]}}\n'
+            "Done.\nIMPL_PATH: a.sh\nSUITE: GREEN — 19 passed, 0 failed"),
+        "passthrough non-stream": "VERDICT: PASS\nREASON: plain text, no stream-json here.",
+        "json but no result event": (
+            '{"type":"system","subtype":"init"}\n'
+            '{"type":"assistant","message":{"content":[]}}'),
+    }
+    seen = {}
+    for name, text in streams.items():
+        fake_stdin(monkeypatch, text)
+        code = extract_result.main([])
+        seen[name] = (code, capsys.readouterr().out)
+    assert seen == {name: (0, text) for name, text in streams.items()}
