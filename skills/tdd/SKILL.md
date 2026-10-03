@@ -1504,6 +1504,18 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    $S/refactor-budget.sh --issue <count>   # exit 0 ⇒ launch; exit 3 ⇒ the pass is over
    git rev-parse HEAD                      # → <base-sha>
    ```
+   This is where each candidate's predicate comes from: before its transform leaf, a
+   predicate leaf, prompted by `build-develop-prompt.sh predicate` with the same four
+   arguments and launched through the supervisor as `develop-predicate`, reports one
+   `PREDICATE:` line, which the conductor checks and records:
+   ```
+   $S/structural-predicate.sh .tdd/issue-<n>-predicate < <leaf-report>   # exit 0 ⇒ recorded; 1 or 3 ⇒ skip
+   ```
+   That record is the test path the transform verifier runs, in place of the prose
+   candidate. A candidate with no predicate is skipped — `structural-predicate.sh` exits 3
+   for `PREDICATE: NONE`, 1 for a command already true — and appended to
+   `.tdd/issue-<n>-predicate-skipped`, the `<skipped-file>`, rather than handed to a
+   transform leaf; exit 2 is no answer.
    Its prompt is `build-develop-prompt.sh structural`'s, handed the spec, the candidate as
    `list` printed it, the test command and `<issue-touched-files>`, written to
    `.tdd/develop-structural.prompt`; the leaf is launched through the supervisor as
@@ -1519,12 +1531,14 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh structural-pass transforms=<count> budget=<VERI_ISSUE_REFACTOR_BUDGET> stopped=<reason>
    ```
-   A pass marked `stopped=budget-spent` left candidates no leaf reached; file them as one
-   unlabelled issue naming this one, `<taken>` being the candidates the pass took up:
+   A pass marked `stopped=budget-spent` left candidates no leaf reached, and a pass that
+   skipped a candidate left one no leaf worked; file them as one unlabelled issue naming
+   this one, `<taken>` being the candidates the pass took up, skipped ones included, and
+   `<skipped-file>` passed only when it exists:
    ```
-   $S/refactor-overflow.sh <n> .tdd/issue-<n>-refactor-owed.md <taken>   # → <overflow-url>
+   $S/refactor-overflow.sh <n> .tdd/issue-<n>-refactor-owed.md <taken> <skipped-file>   # → <overflow-url>
    ```
-   A pass that ends `candidates-done` or `nothing-structural` files nothing.
+   With nothing skipped, a pass that ends `candidates-done` or `nothing-structural` files nothing.
    The filing applies no label to this issue and commits no debt file: the PR body's owed
    list is the record.
    No candidate — `list`

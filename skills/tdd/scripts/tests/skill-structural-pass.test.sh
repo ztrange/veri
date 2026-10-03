@@ -229,4 +229,22 @@ fi
 
 report "$name"
 
+name="#691: $skill_md's structural pass takes each candidate's predicate from a build-develop-prompt.sh predicate leaf checked by structural-predicate.sh, whose record is the test path the transform verifier runs, and skips a candidate with no predicate for refactor-overflow.sh to file"
+problems=()
+
+if ! missing_pass 'where each candidate'"'"'s predicate comes from'; then
+  require 'build-develop-prompt.sh predicate' "$squeezed" \
+    "$skill_md's structural pass never builds a build-develop-prompt.sh predicate prompt, so no predicate leaf writes a candidate's predicate"
+  require 'structural-predicate.sh .tdd/issue-<n>-predicate' "$squeezed" \
+    "$skill_md's structural pass never checks the predicate leaf's report with structural-predicate.sh .tdd/issue-<n>-predicate"
+  require 'the test path the transform verifier runs' "$squeezed" \
+    "$skill_md's structural pass never says the record structural-predicate.sh writes is the test path the transform verifier runs, so the verifier is still handed the prose candidate"
+  require 'with no predicate is skipped' "$squeezed" \
+    "$skill_md's structural pass never says a candidate with no predicate is skipped rather than handed to a transform leaf"
+  require 'refactor-overflow.sh <n> .tdd/issue-<n>-refactor-owed.md <taken> <skipped-file>' "$squeezed" \
+    "$skill_md's structural pass never hands refactor-overflow.sh the <skipped-file>, so a candidate skipped for want of a predicate is never filed"
+fi
+
+report "$name"
+
 finish
