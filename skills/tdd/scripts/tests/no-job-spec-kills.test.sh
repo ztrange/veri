@@ -125,4 +125,28 @@ probe_lines_inserted_above_an_exemption
 
 report "$name"
 
+probe_an_edited_exempted_line() {
+  local ROOT tests="skills/tdd/scripts/tests" entry problem
+  entry=$'skills/tdd/scripts/tests/skill-leaf-env.test.sh:EXPANDING_STEP=\'A title naming `kill \x251`, the "blind" verifier and $HOME reaches the leaf as written\''
+  [[ -e "$HERE/skill-leaf-env.test.sh" ]] || return 0
+  ROOT="$(scratch_dir)"
+  mkdir -p "$ROOT/$tests"
+  sed 's/reaches the leaf as written/reaches the leaf verbatim/' "$HERE/skill-leaf-env.test.sh" \
+    > "$ROOT/$tests/skill-leaf-env.test.sh"
+  problems=()
+  probe_every_exemption_still_names_its_site
+  edited_entry_named="not named"
+  for problem in ${problems+"${problems[@]}"}; do
+    [[ "$problem" == *"[$entry]"* ]] && edited_entry_named="named"
+  done
+  problems=()
+}
+
+name="editing an exempted line's text turns the stale-exemption case red, naming the entry"
+edited_entry_named=""
+
+probe_an_edited_exempted_line
+
+expect_eq "$name" "named" "$edited_entry_named"
+
 finish
