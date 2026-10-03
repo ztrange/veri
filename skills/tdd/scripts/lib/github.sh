@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# lib/github.sh — sourced, not run: defines `gh_pr_ready`, `gh_issue_view`, `gh_issue_edit`, `gh_list` and `gh_rest_list`.
+# lib/github.sh — sourced, not run: defines `gh_pr_ready`, `gh_issue_view`, `gh_issue_edit`, `gh_json`, `gh_list` and `gh_rest_list`.
 #
 # gh_pr_ready <n> — mark draft PR <n> ready for review.
 #   0  marked ready
@@ -10,6 +10,9 @@
 #
 # gh_issue_edit <n> <body-file> — replace issue <n>'s body with the contents of <body-file>;
 #   2 when GitHub gave no answer.
+#
+# gh_json <fixture-file> <rest-path> [gh args…] — print `$VERI_GH_JSON/<fixture-file>` when
+#   VERI_GH_JSON is set, otherwise `gh_list <rest-path> <gh args…>`'s JSON.
 #
 # gh_list <rest-path> <gh args…> — print `gh <gh args…>`'s JSON, or else `gh_rest_list
 #   <rest-path>`'s; 2 when GitHub gave no answer on either route.
@@ -41,6 +44,15 @@ else:
 
 gh_issue_edit() {
   gh api -X PATCH "repos/{owner}/{repo}/issues/$1" -F "body=@$2" > /dev/null || return 2
+}
+
+gh_json() {
+  local fixture="$1" rest="$2"; shift 2
+  if [[ -n "${VERI_GH_JSON:-}" ]]; then
+    cat "$VERI_GH_JSON/$fixture"
+  else
+    gh_list "$rest" "$@"
+  fi
 }
 
 gh_list() {
