@@ -9,4 +9,4 @@
 - [x] the real tree passes the guard: every site in the issue's table, and the tests/lib copy helper, copies `skills/tdd/scripts/lib/*.sh` (or the whole `lib/` dir) in place of its hand-picked list; count-line-guard.test.sh's two deliberate absences are kept by `rm` after the copy; every stub lib is written after the copy ⟦criterion 1⟧
 - [x] no assertion changes outside scratch-copy-libs.test.sh: every edited line in another suite or helper is a `cp`/`ln`/`mkdir`/`rm` fixture line or a stub heredoc ⟦diff-checked⟧ ⟦criterion 2⟧
 - [x] scratch-copy-libs.test.sh stays in the unit tier: its source starts no git, network, server, `sleep` or nested suite ⟦diff-checked⟧ ⟦criterion 5⟧
-- [ ] make test is green ⟦full-suite⟧ ⟦criterion 6⟧
+- [x] make test is green ⟦full-suite⟧ ⟦criterion 6⟧
