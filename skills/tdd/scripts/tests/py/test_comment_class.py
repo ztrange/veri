@@ -92,3 +92,53 @@ def test_main_classes_a_heredoc_line_by_its_target_never_as_class_1_and_never_ca
         "fd-redirect": (0, f"{p['fd-redirect']}:2:3\n"),
         "piped-tee": (0, f"{p['piped-tee']}:2:2\n"),
     }
+
+
+def test_main_classes_dd_and_sponge_writes_as_2_and_sweepable_drops_class_3_the_header_hazards_and_quoted_heredoc_operators(tmp_path, capsys):
+    comment_class = importlib.import_module("veri.comment_class")
+    header = (
+        "#!/usr/bin/env bash", "# tool.sh — print its one argument.", "#", "# Usage: tool.sh <arg>",
+        "# Exit: 0 printed, 2 bad arguments.", "set -uo pipefail", "",
+        "# hazard: under set -u an unset name exits with the status of the previous command", 'echo "${1:-}"',
+    )
+    fixtures = {
+        "piped-writers": (
+            'cat <<EOF | dd of="$dir/fixture.txt"', "# written to a file through dd", "EOF",
+            'cat <<EOF | sponge "$dir/fixture.txt"', "# written to a file through sponge", "EOF",
+        ),
+        "sweepable": (
+            "# a comment in code", 'cat > "$dir/fixture.txt" <<EOF', "# written to a file", "EOF",
+            "claude -p <<EOF", "# sent to a model", "EOF",
+        ),
+        "header-hazard": header,
+        "header-then-code-comment": header + ("# print the argument, or nothing", 'echo "${1:-}"'),
+        "quoted-heredoc-operator": (
+            "got=\"$(cat \"$p\" 2>/dev/null || echo '<<no file>>')\"", "cat > \"$dir/stub\" <<'L'", "#!/bin/sh", "L",
+        ),
+        "double-quoted-heredoc-operator": ('echo "<<no file>>"', "cat > \"$dir/stub\" <<'L'", "#!/bin/sh", "L"),
+    }
+    p = {}
+    for name, lines in fixtures.items():
+        path = tmp_path / f"{name}.sh"
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        p[name] = str(path)
+
+    def classify(*argv):
+        code = comment_class.main(list(argv))
+        return code, capsys.readouterr().out
+
+    assert {
+        "piped-writers": classify(p["piped-writers"]),
+        "sweepable": classify("--sweepable", p["sweepable"]),
+        "header-hazard": classify("--sweepable", p["header-hazard"]),
+        "header-then-code-comment": classify("--sweepable", p["header-then-code-comment"]),
+        "quoted-heredoc-operator": classify("--sweepable", p["quoted-heredoc-operator"]),
+        "double-quoted-heredoc-operator": classify("--sweepable", p["double-quoted-heredoc-operator"]),
+    } == {
+        "piped-writers": (0, f"{p['piped-writers']}:2:2\n{p['piped-writers']}:5:2\n"),
+        "sweepable": (0, f"{p['sweepable']}:1:1\n{p['sweepable']}:3:2\n"),
+        "header-hazard": (0, ""),
+        "header-then-code-comment": (0, f"{p['header-then-code-comment']}:10:1\n"),
+        "quoted-heredoc-operator": (0, ""),
+        "double-quoted-heredoc-operator": (0, ""),
+    }
