@@ -74,12 +74,6 @@ fi
 main_tree="$(main_working_tree)"
 [[ -n "$main_tree" ]] || refuse "stop-run: no main working tree here — type this inside the repository"
 
-live_run() {
-  local pid
-  pid="$(number_in "$1/.tdd/conductor.pid")" || return 1
-  kill -0 "$pid" 2>/dev/null
-}
-
 request_stop() {
   printf '%s\n' "$mode" > "$1/.tdd/stop"
   echo "$1"
@@ -108,7 +102,7 @@ if (( all == 1 )); then
   # hazard: an unmatched glob stays its literal text, which `[[ -d ]]` then rejects.
   for candidate in "$main_tree"/.tdd/wt/*; do
     [[ -d "$candidate" ]] || continue
-    if live_run "$candidate"; then
+    if live_conductor "$candidate" > /dev/null; then
       stop_run "$candidate"
       stopped=1
     fi
@@ -116,7 +110,7 @@ if (( all == 1 )); then
   (( stopped == 1 )) || nothing_to_do "no live run to stop"
 else
   target="$main_tree/.tdd/wt/$issue"
-  live_run "$target" ||
+  live_conductor "$target" > /dev/null ||
     nothing_to_do "no live run for issue $issue"
   stop_run "$target"
 fi
