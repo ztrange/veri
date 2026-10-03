@@ -44,17 +44,21 @@ counter_hits() {
   done <<< "$hits"
 }
 
-scaffolding_hits() {
-  local hits hit file rest
-  hits="$(tree_grep "$1" \
-    -e '^[[:space:]]*(function[[:space:]]+)?(ok|no)[[:space:]]*\(\)' \
-    -e '^[[:space:]]*(echo|printf)[[:space:]].*\$(\{pass\}|pass)[^"]* passed, .*failed')"
+name_hits() {
+  local hit file rest
   while IFS= read -r hit; do
     [[ -n "$hit" ]] || continue
     file="${hit%%:*}"
     rest="${hit#*:}"
-    printf '    %s:%s carries its own harness scaffolding\n' "${file#./}" "${rest%%:*}"
-  done <<< "$hits"
+    printf '    %s:%s %s\n' "${file#./}" "${rest%%:*}" "$2"
+  done <<< "$1"
+}
+
+scaffolding_hits() {
+  name_hits "$(tree_grep "$1" \
+    -e '^[[:space:]]*(function[[:space:]]+)?(ok|no)[[:space:]]*\(\)' \
+    -e '^[[:space:]]*(echo|printf)[[:space:]].*\$(\{pass\}|pass)[^"]* passed, .*failed')" \
+    'carries its own harness scaffolding'
   counter_hits "$1"
 }
 
@@ -80,13 +84,7 @@ hoisted_copy_hits() {
     [[ "$def" == "$GUARD_ONLY" && "$GUARD_SUITES" != *" $file "* ]] && continue
     printf '    %s:%s defines %s()\n' "$file" "${rest%%:*}" "$def"
   done <<< "$hits"
-  hits="$(tree_grep "$1" -e "$GUARD_COPY_RE")"
-  while IFS= read -r hit; do
-    [[ -n "$hit" ]] || continue
-    file="${hit%%:*}"
-    rest="${hit#*:}"
-    printf '    %s:%s copies lib/count-line-guard.sh itself\n' "${file#./}" "${rest%%:*}"
-  done <<< "$hits"
+  name_hits "$(tree_grep "$1" -e "$GUARD_COPY_RE")" 'copies lib/count-line-guard.sh itself'
 }
 
 name="no suite defines its own report, and lib/harness.sh defines it"
