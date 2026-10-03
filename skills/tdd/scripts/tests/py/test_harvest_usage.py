@@ -123,3 +123,32 @@ def test_main_on_a_closing_record_with_model_usage_passes_event_sh_a_model_key_l
     model_args = [arg for arg in calls[0] if arg.startswith("model=")]
     assert len(model_args) == 1
     assert sorted(filter(None, model_args[0][len("model="):].split(","))) == sorted(models)
+
+
+@pytest.mark.parametrize("model_usage", [
+    None,
+    {"claude-opus-5-5": {"inputTokens": 12, "outputTokens": 3000, "cacheReadInputTokens": 40,
+                         "cacheCreationInputTokens": 7, "costUSD": 0.5, "canonicalModel": "claude-opus-5-5"},
+     "claude-haiku-4-5-20251001": {"inputTokens": 8, "outputTokens": 1000, "cacheReadInputTokens": 0,
+                                   "cacheCreationInputTokens": 3, "costUSD": 0.25,
+                                   "canonicalModel": "claude-haiku-4-5-20251001"}},
+])
+def test_main_passes_event_sh_a_model_usage_key_with_each_models_figures_only_when_the_record_has_model_usage(
+        tmp_path, monkeypatch, capsys, harvest_usage, model_usage):
+    record = {"type": "result", "duration_ms": 1, "duration_api_ms": 1, "num_turns": 1, "total_cost_usd": 0.75,
+              "usage": {"input_tokens": 20, "output_tokens": 4000,
+                        "cache_read_input_tokens": 40, "cache_creation_input_tokens": 10}}
+    if model_usage is not None:
+        record["modelUsage"] = model_usage
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verify-green.log").write_text(json.dumps(record) + "\n")
+    monkeypatch.chdir(tmp_path)
+    calls = _fake_event_sh(monkeypatch, 0)
+
+    code = harvest_usage.main(["verify-green"])
+
+    captured = capsys.readouterr()
+    assert (code, captured.out, captured.err) == (0, "", "")
+    assert "total_cost_usd=0.75" in calls[0] and "output_tokens=4000" in calls[0]
+    carried = [json.loads(arg[len("model_usage="):]) for arg in calls[0] if arg.startswith("model_usage=")]
+    assert carried == ([] if model_usage is None else [model_usage])
