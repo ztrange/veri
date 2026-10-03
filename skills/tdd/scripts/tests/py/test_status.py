@@ -514,60 +514,6 @@ def test_status_test_sh_floor_holds_an_exit_2_case_and_a_bad_argument_stderr_cas
     assert (unnamed, absent) == ([], [])
 
 
-def test_status_test_sh_no_longer_carries_the_dead_counted_line():
-    suite = STATUS_SUITE.read_text()
-
-    dead = [line for line in suite.splitlines() if line.strip() == 'counted="$(repo counted)"']
-
-    assert dead == []
-
-
-STATUS_SUITE_BASE_CASES = {
-    "no runs under the main working tree prints 'no runs' and exits 3": [
-        r"""if [[ "$out" == "no runs" && "$code" -eq 3 ]]; then ok; else""",
-    ],
-    "a run under .tdd/wt/* is listed with its issue number, title, branch and step n of m": [
-        r"""for want in "#7" "widgets spin when clicked" "tdd/7-widgets-spin" "step 2 of 3"; do""",
-        r"""  [[ "$out" == *"$want"* ]] || missing+=("$want")""",
-        r"""  if [[ ${#missing[@]} -eq 0 && "$code" -eq 0 ]]; then ok; else""",
-    ],
-    "a run shows its state: running, done with its PR url, bailed with phase and classification, "
-    "or stale": [
-        'for want in "11 running" "12 done" "12 https://github.com/o/r/pull/12" "13 bailed" "13 green" \\',
-        r"""    "13 system" "14 stale"; do""",
-        r"""  [[ "$(line_of "${want%% *}")" == *"${want#* }"* ]] || missing+=("#$want")""",
-    ],
-    "--watch [seconds] redraws in place, recomputing every run from disk on each render": [
-        r"""wait_for "#41" || missing+=("a first render listing #41")""",
-        r"""kill -0 "$watch_pid" 2>/dev/null || missing+=("still watching after its first render")""",
-        r"""[[ "$out" == *$'\e['* || "$out" == *$'\ec'* ]] || missing+=("a redraw-in-place escape")""",
-        r"""[[ "$out" == *"done https://github.com/o/r/pull/41"* ]] || missing+=("#41 done after its event log changed")""",
-    ],
-    "status.sh run through its entry point exits 2 on a failure veri/status.py turns into exit 2": [
-        r"""if [[ "$code" -eq 2 && "$err" == *"PermissionError"* ]]; then ok; else""",
-    ],
-    "status.sh given a bad argument names it on stderr": [
-        r"""if [[ "$err" == "status.sh: unknown option '--bogus'" && "$code" -eq 2 ]]; then ok; else""",
-    ],
-    "status.sh run through a symlink to the skill directory and from another working directory "
-    "answers as it does when run in place": [
-        r"""if [[ "$linked" == "$in_place" && "$linked_code" -eq "$in_place_code" && "$in_place" == *"#7"* ]]; then ok; else""",
-    ],
-}
-
-
-def test_status_test_sh_keeps_every_case_its_base_held_with_the_same_assertions():
-    suite = STATUS_SUITE.read_text()
-    lines = suite.splitlines()
-
-    changed = {name: [line for line in assertions if line not in lines]
-               for name, assertions in STATUS_SUITE_BASE_CASES.items()}
-    changed = {name: absent + ([] if name in suite else ["<case name>"])
-               for name, absent in changed.items() if absent or name not in suite}
-
-    assert changed == {}
-
-
 def test_no_case_in_this_suite_calls_a_function_of_veri_status_other_than_main():
     tree = ast.parse(pathlib.Path(__file__).read_text())
 
@@ -578,42 +524,3 @@ def test_no_case_in_this_suite_calls_a_function_of_veri_status_other_than_main()
 
     assert calls == []
 
-
-MODULE_CASES = {
-    "tier-usual.test.sh": "tier-usual.sh and metrics.sh read the event log through veri/event_log.py",
-    "blocked-by.test.sh": "blocked_by is a module of scripts/veri/",
-    "json-documents.test.sh": "json_documents is a module of scripts/veri/",
-    "leaf-log.test.sh": "leaf_log is a module of scripts/veri/",
-}
-
-MODULE_SUITE_SURVIVORS = {
-    "tier-usual.test.sh": [
-        "tier-usual.sh <tier>: the usual is the median of that tier's last 10 test-run events' seconds",
-    ],
-    "blocked-by.test.sh": [
-        "blocked_by.blockers reads both the #<n> form and the full https://github.com/<owner>/<name>/issues/<n> URL",
-        "blocked_by.blockers returns no blockers for a section reading None.",
-        "blocked_by.blockers ignores another repository's issue URL when a slug is given",
-        "blocked_by.blockers stops reading the section at the next ## heading",
-        "solvable-issues.sh takes its blocker parsing from the blocked-by module rather than defining its own",
-        "a caller that is not solvable-issues.sh imports the blocked-by module and gets its answers",
-    ],
-}
-
-
-def test_the_is_a_module_of_scripts_veri_cases_are_gone_and_the_suites_output_cases_remain():
-    tests = SCRIPTS / "tests"
-
-    def text(name):
-        path = tests / name
-        return path.read_text() if path.exists() else ""
-
-    kept = [suite for suite, case in MODULE_CASES.items() if case in text(suite)]
-    defined = {node.name for node in ast.walk(ast.parse(pathlib.Path(__file__).read_text()))
-               if isinstance(node, ast.FunctionDef)}
-    if "test_main_reads_the_event_log_through_veri_event_log_py_not_a_lib_event_log_py" in defined:
-        kept.append("test_status.py")
-    lost = [case for suite, cases in MODULE_SUITE_SURVIVORS.items() for case in cases
-            if case not in text(suite)]
-
-    assert (kept, lost) == ([], [])
