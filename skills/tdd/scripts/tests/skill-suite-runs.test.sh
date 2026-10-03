@@ -3,9 +3,8 @@
 # leaves run the full test suite, read as text.
 #
 # Contract under test:
-#   SKILL.md's Red phase says its leaf runs the suite holding the new case; its Green phase
-#   says its leaf runs the full suite; its Refactor loop says the transform leaf runs the
-#   suites covering the touched files and that the full suite runs at verify-refactor.
+#   SKILL.md's Red phase says its leaf runs the suite holding the new case; its Refactor
+#   loop says the transform leaf runs the suites covering the touched files.
 #   CLAUDE.md names which leaves run the full suite, and no longer claims every leaf runs it
 #   after every edit.
 #
@@ -63,37 +62,41 @@ need_idiom() {
   return 1
 }
 
+full_suite_leaves() {
+  if need_text '#### Red'; then
+    says 'suite (that |which )?(holds|holding|contains|containing|carries)|case.s suite|suite the (new )?(case|test)' \
+      "$skill_md's Red section never says the red leaf runs the suite holding its new case, so the conductor's account of that leaf is the full-suite one the prompt no longer gives"
+  fi
+
+  if need_text '#### Refactor loop'; then
+    says 'suites (covering|that cover|which cover|of the touched)' \
+      "$skill_md's Refactor loop section never says the transform leaf runs the suites covering the touched files — it still describes the full-suite run the prompt dropped"
+  fi
+
+  stale="$(grep -nE 'every [a-z]*[[:space:]]*leaf runs' "$claude_path")"
+  [[ -z "$stale" ]] ||
+    problems+=("$claude_md still says every leaf runs the suite after every edit, which the red and refactor leaves no longer do: $stale")
+  full_suite_paragraphs="$(paragraphs "$claude_path" | grep -E 'full suite')"
+  [[ -n "$full_suite_paragraphs" ]] ||
+    problems+=("$claude_md never names the full suite at all, so which leaves run it is recorded nowhere a reader of this repository would look")
+  grep -qE 'develop-green|verify-green|verifier' <<<"$full_suite_paragraphs" ||
+    problems+=("$claude_md mentions the full suite without naming the leaves that run it (develop-green and the blind verifiers), so the rule reads as a description of every leaf again")
+}
+
 name="$skill_md's phase sections and $claude_md say which leaves run the full suite"
 problems=()
+full_suite_leaves
+report "$name"
 
-if need_text '#### Red'; then
-  says 'suite (that |which )?(holds|holding|contains|containing|carries)|case.s suite|suite the (new )?(case|test)' \
-    "$skill_md's Red section never says the red leaf runs the suite holding its new case, so the conductor's account of that leaf is the full-suite one the prompt no longer gives"
+name="#698: case 1 passes on a $skill_md whose Green section and Refactor loop name no full-suite run"
+problems=()
+fixture="$(scratch_dir)/SKILL.md"
+awk '/Neither .* runs the full suite/ { skip = 1 } !skip { print } skip && /\.$/ { skip = 0 }' "$ROOT/$skill_md" > "$fixture"
+if grep -E 'Neither .* runs the full suite' "$fixture" > /dev/null; then
+  problems+=("the fixture still carries a 'Neither … runs the full suite' sentence")
+else
+  skill_path="$fixture" full_suite_leaves
 fi
-
-if need_text '#### Green'; then
-  says 'full suite' \
-    "$skill_md's Green section never names the full suite, so the one developer leaf that does run it reads like the ones that do not"
-fi
-
-if need_text '#### Refactor loop'; then
-  says 'suites (covering|that cover|which cover|of the touched)' \
-    "$skill_md's Refactor loop section never says the transform leaf runs the suites covering the touched files — it still describes the full-suite run the prompt dropped"
-fi
-if need_text '#### Refactor loop' '^2\. '; then
-  says 'full suite' \
-    "$skill_md's Refactor loop never says the full suite runs at verify-refactor, so the phase's account drops the run that catches a break in an untouched suite"
-fi
-
-stale="$(grep -nE 'every [a-z]*[[:space:]]*leaf runs' "$claude_path")"
-[[ -z "$stale" ]] ||
-  problems+=("$claude_md still says every leaf runs the suite after every edit, which the red and refactor leaves no longer do: $stale")
-full_suite_paragraphs="$(paragraphs "$claude_path" | grep -E 'full suite')"
-[[ -n "$full_suite_paragraphs" ]] ||
-  problems+=("$claude_md never names the full suite at all, so which leaves run it is recorded nowhere a reader of this repository would look")
-grep -qE 'develop-green|verify-green|verifier' <<<"$full_suite_paragraphs" ||
-  problems+=("$claude_md mentions the full suite without naming the leaves that run it (develop-green and the blind verifiers), so the rule reads as a description of every leaf again")
-
 report "$name"
 
 name="$skill_md's verify-refactor entry says the verdict is on the fast tier plus the affected suites, not the full suite"

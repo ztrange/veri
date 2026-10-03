@@ -43,7 +43,7 @@ awk -v sweepable="$sweepable" '
     }
     return u
   }
-  FNR == 1 { delim = ""; q = ""; header = /^#!/ }
+  FNR == 1 { delim = ""; q = ""; header = /^#!/; split("", mdvar) }
   { comment = /^[[:space:]]*#/ }
   !comment { header = 0 }
   delim != "" {
