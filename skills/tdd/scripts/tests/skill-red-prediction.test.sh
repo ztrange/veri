@@ -28,7 +28,7 @@ doc_text() {
     in_s {
       if (!want && $0 ~ from) want = 1
       if (want) print
-    }' "$skill_path" | plain | tr '\n' ' '
+    }' "$skill_path" | plain --join
 }
 
 section() {

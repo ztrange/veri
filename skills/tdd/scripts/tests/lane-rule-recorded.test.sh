@@ -28,7 +28,7 @@ source "$HERE/record-helpers.sh"
 
 section() {
   awk -v heading="$1" '$0 == heading { f = 1; next } f && /^## / { exit } f' "$CLAUDE_MD" |
-    plain | tr '\n' ' '
+    plain --join
 }
 
 section_heading="" section_text=""
