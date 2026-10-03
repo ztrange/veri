@@ -95,12 +95,14 @@ if [[ "$phase" == plan ]] && grep -qE '^## Refactor[[:space:]]*$' "$spec_file" 2
 fi
 
 replaces_file=""
-if [[ "$phase" == green && "$step" == *"⟦replaces-case⟧"* ]]; then
-  replaces_file="$HERE/prompts/_verify-green-replaces-case.md"
-fi
 suite_repair_file=""
-if [[ "$phase" == green && "$step" == *"⟦suite-repair⟧"* ]]; then
-  suite_repair_file="$HERE/prompts/_verify-green-suite-repair.md"
+if [[ "$phase" == green ]]; then
+  if [[ "$step" == *"⟦replaces-case⟧"* ]]; then
+    replaces_file="$HERE/prompts/_verify-green-replaces-case.md"
+  fi
+  if [[ "$step" == *"⟦suite-repair⟧"* ]]; then
+    suite_repair_file="$HERE/prompts/_verify-green-suite-repair.md"
+  fi
 fi
 
 # hazard: `cat` on an unreadable file under set -e would exit 1, the code reserved for an answer.
