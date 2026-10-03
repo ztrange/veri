@@ -1,0 +1,3 @@
+### veri.render_leaf_log.main([]), given a stdin of one `text` record followed by `not json at all`, writes nothing to stdout and returns 2 (tests/py/test_render_leaf_log.py): replaces 'the header says a non-JSON line discards the records already rendered' in skills/tdd/scripts/tests/render-leaf-log.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧
+- test-only | inline `render_after_bad_line` (skills/tdd/scripts/tests/render-leaf-log.test.sh:41-44) into its one remaining caller, the "exits 2 on a line that is not JSON" case, now that the header-prose case that shared it is gone
+- test-only | hoist the `SCRIPTS`/`sys.path` bootstrap duplicated in tests/py/test_render_leaf_log.py:10-13 and tests/py/test_status.py:12-15 (and the other tests/py files) into a shared conftest.py
