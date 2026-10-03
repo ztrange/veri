@@ -374,3 +374,27 @@ def test_main_keeps_a_markers_trailing_whitespace_answers_an_unclosed_backtick_s
         (0, "make docs-test\n"),
         (0, "   \n"),
     ]
+
+
+def test_main_hides_package_json_test_behind_an_object_valued_script_counts_a_makefile_test_assignment_and_looks_for_tests_one_level_deep(tmp_path, capsys, detect):
+    def repo(name, files):
+        root = tmp_path / name
+        root.mkdir()
+        for path, text in files.items():
+            (root / path).parent.mkdir(parents=True, exist_ok=True)
+            (root / path).write_text(text)
+        return detect.main([str(root)]), capsys.readouterr().out
+
+    got = [
+        repo("spaced-package", {"package.json": '{\n  "scripts" : {\n    "test" : "jest"\n  }\n}\n'}),
+        repo("object-before-test", {"package.json": '{"scripts":{"lint":{"cmd":"eslint"},"test":"jest"}}\n'}),
+        repo("make-assignment", {"Makefile": "test := x\n"}),
+        repo("nested-tests", {"tests/unit/test_foo.py": "import unittest\n"}),
+    ]
+
+    assert got == [
+        (0, "npm test\n"),
+        (3, ""),
+        (0, "make test\n"),
+        (3, ""),
+    ]
