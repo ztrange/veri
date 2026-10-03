@@ -1,0 +1,12 @@
+# Plan for #684 — lib/ledger.sh owns the step record's layout, and no caller splits a record or spells a ledger mark by hand
+
+Refactor-kind run: each step is one named refactoring, and its criterion is the shell predicate it names — false before the step, true after it.
+
+- [ ] Move the record split into lib/ledger.sh: add a `ledger_fields <record>` function there that hands its caller a `ledger_steps` record's fields by name (index, state, kind, pending, added, criterion, text), and make criterion-finished.sh read its fields through it instead of `mapfile -td`. Predicate: `grep -qE '^ledger_fields\(\)' skills/tdd/scripts/lib/ledger.sh && grep -qF ledger_fields skills/tdd/scripts/criterion-finished.sh && ! grep -qF 'mapfile -td' skills/tdd/scripts/criterion-finished.sh` ⟦criterion 2⟧
+- [ ] next-unchecked.sh picks the first open `step`-kind record through `ledger_fields` instead of its positional regex. Predicate: `grep -qF ledger_fields skills/tdd/scripts/next-unchecked.sh && ! grep -qF '[^\t]' skills/tdd/scripts/next-unchecked.sh` ⟦criterion 2⟧
+- [ ] next-pending-refactor.sh picks the first done, refactor-pending record through `ledger_fields` instead of its positional regex. Predicate: `grep -qF ledger_fields skills/tdd/scripts/next-pending-refactor.sh && ! grep -qF '[^\t]' skills/tdd/scripts/next-pending-refactor.sh` ⟦criterion 2⟧
+- [ ] preserve-attempt.sh's `ledger_step_index` reads a record's index and text through `ledger_fields` instead of `"$tab"*` globs. Predicate: `grep -qF ledger_fields skills/tdd/scripts/preserve-attempt.sh && ! grep -qF '"$tab"*"$tab"' skills/tdd/scripts/preserve-attempt.sh` ⟦criterion 2⟧
+- [ ] add-ledger-step.sh reads the `⟦added⟧` mark and the `⟦criterion ` tag from lib/ledger.sh (`_ledger_added_mark`, `_ledger_criterion_tag`) instead of spelling them. Predicate: `! grep -v '^#' skills/tdd/scripts/add-ledger-step.sh | grep -nF -e '⟦added⟧' -e '⟦criterion '` ⟦criterion 3⟧
+- [ ] The suites of criterion-finished.sh, next-unchecked.sh, next-pending-refactor.sh, preserve-attempt.sh, add-ledger-step.sh, ledger-steps.sh and lib/ledger.sh pass unmodified ⟦full-suite⟧ ⟦criterion 1⟧
+- [ ] No commit on the branch changes a test file — each step's transform is rejected by transform-touches-tests.sh if it does; checked whole-branch with `test -z "$(git diff --name-only origin/main...HEAD | grep -E '(^|/)tests/|\.test\.')"` at the full-suite run ⟦full-suite⟧ ⟦criterion 4⟧
+- [ ] `make test` is green ⟦full-suite⟧ ⟦criterion 5⟧
