@@ -78,24 +78,18 @@ joined_problems() {
 probe_against() {
   local real_root="$ROOT" real_here="$HERE"
   problems=()
-  ROOT="$1" HERE="$2"
+  ROOT="$1" HERE="${2:-$HERE}"
   probe_every_guard_is_in_the_make_test_roster
   ROOT="$real_root" HERE="$real_here"
 }
 
 probe_names_each_guard_missing_from_a_planted_roster() {
-  local stubs tree missing guard raised found
+  local tree missing raised found
   local unnamed=()
-  stubs="$(scratch_dir)"
-  for guard in "${GUARDS[@]}"; do
-    printf '#!/bin/sh\necho "----"\necho "1 passed, 0 failed"\n' > "$stubs/$guard"
-    chmod 755 "$stubs/$guard"
-  done
-
   for missing in "${GUARDS[@]}"; do
     tree="$(scratch_dir)"
     plant_roster_without "$tree" "$missing"
-    probe_against "$tree" "$stubs"
+    probe_against "$tree"
     found=0
     for raised in ${problems+"${problems[@]}"}; do
       [[ "$raised" == *"$suites_dir/$missing is not in the roster"* ]] && found=1
@@ -117,16 +111,10 @@ report "$name"
 
 
 probe_fails_when_a_planted_roster_names_no_suite() {
-  local stubs tree guard raised found=0
-  stubs="$(scratch_dir)"
-  for guard in "${GUARDS[@]}"; do
-    printf '#!/bin/sh\necho "----"\necho "1 passed, 0 failed"\n' > "$stubs/$guard"
-    chmod 755 "$stubs/$guard"
-  done
-
+  local tree raised found=0
   tree="$(scratch_dir)"
   printf 'test:\n\t@echo no suites here\n' > "$tree/Makefile"
-  probe_against "$tree" "$stubs"
+  probe_against "$tree"
   for raised in ${problems+"${problems[@]}"}; do
     [[ "$raised" == *"\`make -n test\` named no suite in $suites_dir"* ]] && found=1
   done
