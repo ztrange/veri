@@ -568,5 +568,24 @@ grep -F 'usage: session-cost.sh --since <ISO date> [--json] [<transcript.jsonl> 
 
 report "$name"
 
+name="session-cost.sh run through a symlink to the skill directory and from another working directory prints the same report and exit code as when run in place"
+problems=()
+
+day="$work/2f7b41a9-6c30-4d8e-9f02-1a55c7e3b8d4.jsonl"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+mkdir -p "$work/elsewhere"
+
+in_place="$(cd "$HERE/.." && TZ=UTC ./session-cost.sh --since 2026-09-14 "$day" 2>&1)"
+in_place_code=$?
+linked="$(cd "$work/elsewhere" && TZ=UTC "$work/linked-skill/scripts/session-cost.sh" --since 2026-09-14 "$day" 2>&1)"
+linked_code=$?
+
+[[ "$in_place_code" == 0 && "$in_place" == *9.78* ]] ||
+  problems+=("want the in-place run to exit 0 with a 9.78 total, got exit $in_place_code: $(printf '%q' "$in_place")")
+[[ "$linked" == "$in_place" && "$linked_code" == "$in_place_code" ]] ||
+  problems+=("$(diff <(printf '%s\nexit %s\n' "$in_place" "$in_place_code") <(printf '%s\nexit %s\n' "$linked" "$linked_code"))")
+
+report "$name"
+
 
 finish
