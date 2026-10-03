@@ -8,7 +8,7 @@
 - [x] the `git` guard is unchanged: any `git` call from a unit-tier suite, including one whose first argument is a file under `skills/tdd/scripts/veri/`, still exits 1 naming `git` and is logged to `$UNIT_GUARD_LOG`
 - [ ] a planted unit-tier suite calling `python3 -c` directly is watched go red under the changed guard, then removed, and the run is recorded in the PR body ⟦human-owed⟧ ⟦criterion 4⟧
 - [ ] `tests/unit-tier.test.sh`, `tests/make-test-env.test.sh` and `tests/pytest-leg.test.sh` pass unmodified ⟦full-suite⟧ ⟦criterion 5⟧
-- [x] CLAUDE.md's fast-tier paragraph (the admission bar, "`make unit` shims `git`, `gh`, `curl` and `python3`…") says which `python3` call the guard lets through: one whose first argument is a module file under `skills/tdd/scripts/veri/`, the hand-off a ported script's shim makes ⟦criterion 6⟧ ⟂ refactor pending
+- [x] CLAUDE.md's fast-tier paragraph (the admission bar, "`make unit` shims `git`, `gh`, `curl` and `python3`…") says which `python3` call the guard lets through: one whose first argument is a module file under `skills/tdd/scripts/veri/`, the hand-off a ported script's shim makes ⟦criterion 6⟧
 
 ## Owed steps
 
