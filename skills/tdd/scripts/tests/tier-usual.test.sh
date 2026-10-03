@@ -53,4 +53,23 @@ out="$( cd "$work" && "$USUAL" fast 2>/dev/null )" && code=0 || code=$?
 rm -rf "$work"
 report "$name"
 
+name="tier-usual.sh with no argument: exit 2, nothing on stdout, and the one usage line on stderr"
+problems=()
+work="$(scratch_dir)"
+
+out="$( cd "$work" && "$USUAL" 2>"$work/err" )" && code=0 || code=$?
+err="$(cat "$work/err")"
+
+[[ "$code" == 2 ]] ||
+  problems+=("want tier-usual.sh to exit 2, it exited $code")
+
+[[ -z "$out" ]] ||
+  problems+=("stdout: want nothing, got $(printf '%q' "$out")")
+
+[[ "$err" == "usage: tier-usual.sh <tier>" ]] ||
+  problems+=("stderr: want 'usage: tier-usual.sh <tier>', got $(printf '%q' "$err")")
+
+rm -rf "$work"
+report "$name"
+
 finish
