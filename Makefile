@@ -96,7 +96,8 @@ OFFLINE_ENV = PATH="$(GUARD_PATH)$$git_bin:$(OFFLINE_BIN):$$PATH" OFFLINE_REAL_G
 
 NAME_REACHED = while IFS= read -r reached; do printf '%s: %s\n' "$(1)" "$$reached"; fail=1; done < "$$reach_log"
 
-VENV_DIR := $${VERI_VENV:-$$HOME/.veri-tools/venv}
+VENV_LIB := skills/tdd/scripts/lib/venv-python.sh
+VENV_DIR := $$(bash -c '. $(VENV_LIB) && venv_dir')
 
 # veri needs bash 5 (since 2026-09-18), and the suites run under whatever `bash` is first on
 # PATH — every one starts with `#!/usr/bin/env bash`. Nothing tests veri on bash 3.2 any more,
@@ -117,9 +118,8 @@ test unit:
 	@[ -f "$(COUNT_LINE_GUARD)" ] || { printf 'make: %s is missing, so no suite can be held to its count line\n' "$(COUNT_LINE_GUARD)" >&2; exit 2; }
 	@fail=0; reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
 	trap 'rm -f "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
-	py_bin="$(VENV_DIR)/bin/python3"; \
-	[ -x "$$py_bin" ] || py_bin="$$(command -v python3)"; \
 	if [ -n "$(PY_TESTS)" ]; then \
+	  py_bin="$$(bash -c '. $(VENV_LIB) && venv_python')"; \
 	  py_version="$${VERI_PYTHON_VERSION:-$$("$$py_bin" -c 'import platform; print(platform.python_version())' 2>/dev/null)}"; \
 	  py_major="$${py_version%%.*}"; py_minor="$${py_version#*.}"; py_minor="$${py_minor%%.*}"; \
 	  if [ "$$py_major" -lt 3 ] || { [ "$$py_major" -eq 3 ] && [ "$$py_minor" -lt 12 ]; }; then \
