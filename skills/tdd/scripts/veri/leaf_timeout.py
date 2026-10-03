@@ -32,6 +32,12 @@ def refuse(message):
     return 2
 
 
+def require_seconds(name, value):
+    if not is_whole(value):
+        return refuse(f"leaf-timeout: {name} must be a whole number >= 0: {value}")
+    return 0
+
+
 def main(argv):
     override = os.environ.get("VERI_TIMEOUT", "")
     if override:
@@ -41,12 +47,14 @@ def main(argv):
         print(override)
         return 0
     baseline = argv[0] if argv else ""
-    if not is_whole(baseline):
-        return refuse(f"leaf-timeout: <baseline-seconds> must be a whole number >= 0: {baseline}")
+    code = require_seconds("<baseline-seconds>", baseline)
+    if code:
+        return code
     if argv[1:2] == ["--full"]:
         full = argv[2] if len(argv) > 2 else ""
-        if not is_whole(full):
-            return refuse(f"leaf-timeout: <full-seconds> must be a whole number >= 0: {full}")
+        code = require_seconds("<full-seconds>", full)
+        if code:
+            return code
         baseline = full
     baseline = arith(baseline)
     if baseline is None:
