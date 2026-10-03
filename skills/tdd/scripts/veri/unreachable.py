@@ -42,11 +42,15 @@ def files_under(top):
             yield os.path.join(parent, f)
 
 
+def basenames(top, pattern):
+    return [os.path.basename(f) for f in sorted(glob.glob(glob.escape(top) + pattern))]
+
+
 def listing(root):
     scripts = root + b"/skills/tdd/scripts"
-    names = [os.path.basename(f) for f in sorted(glob.glob(glob.escape(scripts) + b"/*.sh"))]
-    libs = [b"lib/" + os.path.basename(f) for f in sorted(glob.glob(glob.escape(scripts) + b"/lib/*.sh"))]
-    docs = [os.path.basename(f) for f in sorted(glob.glob(glob.escape(root) + b"/skills/tdd/*.md"))]
+    names = basenames(scripts, b"/*.sh")
+    libs = [b"lib/" + name for name in basenames(scripts, b"/lib/*.sh")]
+    docs = basenames(root, b"/skills/tdd/*.md")
     nodes = names + libs + docs
 
     def path_of(name):
