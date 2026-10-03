@@ -63,3 +63,25 @@ def test_main_run_sums_every_usage_event_step_less_ones_included_and_returns_3_w
 
     out, err = capsys.readouterr()
     assert (code, out) == expected
+
+
+@pytest.mark.parametrize("log, expected", [
+    ('{"ts": 1, "issue": "448", "actor": "developer", "phase": "red", "step": "step two", "event": "usage", "total_cost_usd": "1.0"}\n'
+     '{"ts": 2, "issue": "448", "actor": "conductor", "phase": "scope", "step": "", "event": "usage", "total_cost_usd": "0.25"}\n'
+     '{"ts": 3, "issue": "448", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30134540000000004"}\n'
+     '{"ts": 4, "issue": "448", "actor": "verifier", "phase": "red", "step": "step two", "event": "usage", "total_cost_usd": "0.5"}\n'
+     '{"ts": 5, "issue": "448", "actor": "conductor", "phase": "scope", "event": "usage", "total_cost_usd": "0.10"}\n'
+     '{"ts": 6, "issue": "448", "actor": "verifier", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.12"}\n',
+     (0, "1.50 2\n0.35 2\n0.42 2\n")),
+    ('{"ts": 1, "issue": "448", "actor": "verifier", "phase": "red", "step": "step one", "event": "verdict", "verdict": "PASS"}\n',
+     (3, "")),
+], ids=["rows-in-first-mention-order-step-less-its-own-row", "no-usage-event"])
+def test_main_steps_prints_one_dollars_and_leaves_line_per_step_in_first_mention_order_step_less_events_their_own_row_and_returns_3_when_there_is_none(log, expected, tmp_path, monkeypatch, capsys, step_cost):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(log)
+    monkeypatch.chdir(tmp_path)
+
+    code = step_cost.main(["--steps"])
+
+    out, err = capsys.readouterr()
+    assert (code, out) == expected
