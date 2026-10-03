@@ -397,15 +397,18 @@ rm -f "$owed_file" "$want" "$rendered"
 report "$name"
 
 
+test_only_bounds='skills/tdd/scripts/tests/unit/lib-walk.test.sh,skills/tdd/scripts/tests/lib/harness.sh'
+test_only_transform='merge the full-path check at lib-walk.test.sh:45 into the /lib/<name>.sh loop'
+
 name="list never prints a structural candidate appended for a step whose refactor bounds are all test files, and exits 3 on a file holding only those"
 problems=()
 
 owed_file="$(mktemp)"
 "$OWED" append "$owed_file" 'a step that touched only test files' \
-  'skills/tdd/scripts/tests/unit/lib-walk.test.sh,skills/tdd/scripts/tests/lib/harness.sh' <<'REPORT' && code=0 || code=$?
+  "$test_only_bounds" <<REPORT && code=0 || code=$?
 RESULT: applied "name the lib-copy walk once", suite green
 FLAGS: none
-CANDIDATES: structural | merge the full-path check at lib-walk.test.sh:45 into the /lib/<name>.sh loop
+CANDIDATES: structural | $test_only_transform
 REPORT
 
 [[ "$code" == 0 ]] ||
@@ -422,8 +425,8 @@ problems=()
 
 owed_file="$(mktemp)"
 "$OWED" append "$owed_file" 'a step that touched only test files' \
-  'skills/tdd/scripts/tests/unit/lib-walk.test.sh,skills/tdd/scripts/tests/lib/harness.sh' <<'REPORT'
-CANDIDATES: structural | merge the full-path check at lib-walk.test.sh:45 into the /lib/<name>.sh loop
+  "$test_only_bounds" <<REPORT
+CANDIDATES: structural | $test_only_transform
 REPORT
 
 rendered="$(mktemp)"
@@ -432,7 +435,7 @@ rendered="$(mktemp)"
 [[ "$code" == 0 ]] ||
   problems+=("want exit 0 from render, got $code")
 
-transform='merge the full-path check at lib-walk.test.sh:45 into the /lib/<name>.sh loop'
+transform="$test_only_transform"
 heading_at="$(line_of "$rendered" '### Test-only')"
 if [[ -z "$heading_at" ]]; then
   problems+=("render printed no '### Test-only' heading:" "$(cat "$rendered")")
