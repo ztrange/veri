@@ -115,3 +115,34 @@ def test_main_does_not_list_scripts_reached_from_a_procedure_file_a_recipe_or_a_
         answers.append((code, listing.out, listing.err))
 
     assert answers == [(0, "orphan.sh\n", "")] * 3
+
+
+def test_main_does_not_list_a_script_or_procedure_file_named_only_through_a_built_path(tmp_path, capsys):
+    unreachable = importlib.import_module("veri.unreachable")
+    plain = tmp_path / "plain"
+    scripts = fixture_root(plain)
+    script(scripts / "helper.sh", 'for kind in red green; do\n  "$(dirname "$0")/build-$kind-prompt.sh" "$@"\ndone')
+    script(scripts / "build-red-prompt.sh", "echo red")
+    script(scripts / "build-green-prompt.sh", "echo green")
+    script(scripts / "orphan.sh", "echo alone")
+    braced = tmp_path / "braced"
+    scripts = fixture_root(braced)
+    script(scripts / "helper.sh", 'for kind in red green; do\n  "$(dirname "$0")/build-${kind}-prompt.sh" "$@"\ndone')
+    script(scripts / "build-red-prompt.sh", "echo red")
+    script(scripts / "orphan.sh", "echo alone")
+    procedure = tmp_path / "procedure"
+    scripts = fixture_root(procedure)
+    (procedure / "skills" / "tdd" / "SKILL.md").write_text(
+        "# skill\n\nRun `$S/entry.sh <n>`, then read `prompts/develop-$phase.md`.\n")
+    (procedure / "skills" / "tdd" / "develop-red.md").write_text("Run `$S/target.sh`.\n")
+    script(scripts / "helper.sh", "echo helped")
+    script(scripts / "target.sh", "echo target")
+    script(scripts / "orphan.sh", "echo alone")
+
+    answers = []
+    for root in (plain, braced, procedure):
+        code = unreachable.main([str(root)])
+        listing = capsys.readouterr()
+        answers.append((code, listing.out, listing.err))
+
+    assert answers == [(0, "orphan.sh\n", "")] * 3
