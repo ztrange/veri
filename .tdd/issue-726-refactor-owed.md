@@ -6,3 +6,5 @@
 - test-only | remove the scratch dirs `$sp_work` and `$ns_work` with `rm -rf` at the end of event.test.sh's two #726 cases, as the cases before them do
 ### event.sh refuses a structural-pass mark with stopped=budget-spent whose transforms is not equal to its budget with exit 2, and appends nothing to the event log ⟦criterion 2⟧
 - test-only | event.test.sh's three #726 cases repeat the same scratch-dir / run event.sh / assert exit 2 / assert empty events.jsonl block and could share one helper
+### metrics.sh on a log that reaches a draft PR (a done mark) but carries no structural-pass mark renders the #### Structural pass section with a row saying the pass was not marked ⟦criterion 4⟧
+- test-only | the #726 case in metrics.test.sh repeats structural_mark_section's log-and-render sequence and its section-not-found check; a helper taking an optional mark could absorb both
