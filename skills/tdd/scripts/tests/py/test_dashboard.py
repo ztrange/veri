@@ -323,3 +323,36 @@ def test_get_api_metrics_keys_issues_by_the_run_directory_7_alone_and_runs_metri
     (metrics,) = served[0][1]
     assert sorted(json.loads(body(metrics))["issues"]) == ["7"]
     assert metrics_calls == [([os.path.join(SCRIPTS, "metrics.sh"), "7"], run)]
+
+
+def test_get_api_events_answers_run_51s_logged_events_in_file_order_and_none_for_issue_99(
+        tmp_path, monkeypatch, dashboard):
+    selected = os.path.join(str(tmp_path), ".tdd", "wt", "51")
+    other = os.path.join(str(tmp_path), ".tdd", "wt", "52")
+    write(os.path.join(selected, ".tdd", "issue-51.md"),
+          "# Plan for #51 — lamps flicker\n\n- [x] a lamp exists\n- [ ] a lamp flickers\n")
+    logged = [{"ts": 1000 + i * 10, "issue": "51", "actor": "developer", "phase": "red",
+               "step": "a lamp flickers", "event": "launch", "attempt": str(i),
+               "skill_commit": "abc", "name": "develop-red", "seq": i} for i in range(1, 31)]
+    write(os.path.join(selected, ".tdd", "events.jsonl"),
+          "".join(json.dumps(event) + "\n" for event in logged))
+    write(os.path.join(other, ".tdd", "issue-52.md"), "# Plan for #52 — lamps dim\n\n- [ ] a lamp dims\n")
+    write(os.path.join(other, ".tdd", "events.jsonl"),
+          '{"ts": 2000, "issue": "52", "event": "step-start", "seq": 1}\n'
+          '{"ts": 2100, "issue": "52", "event": "launch", "name": "develop-green", "seq": 2}\n')
+
+    def fake_run(args, cwd=None, **kwargs):
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, ["/api/events?issue=51", "/api/events?issue=99"])
+
+    dashboard.main([])
+
+    events, none = served[0][1]
+    assert json.loads(body(events))["events"] == logged
+    assert json.loads(body(none)) == {"events": []}
