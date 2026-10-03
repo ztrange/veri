@@ -63,6 +63,7 @@ declare -A EXEMPT=(
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/fenced-lines.sh"
 
 fault() {
   faults="${faults:+$faults, and }$1"
@@ -96,13 +97,6 @@ lowered() {
   tr '[:upper:]' '[:lower:]'
 }
 
-fenced_lines() {
-  PAT="$1" awk '
-    /^[[:space:]]*```/ { fence = !fence; next }
-    fence && $0 ~ ENVIRON["PAT"] { printf "%d\t%s\n", NR, $0 }
-  ' "$skill_path"
-}
-
 name_re() {
   local out="" n
   for n in "$@"; do out+="|${n//./\\.}"; done
@@ -110,7 +104,7 @@ name_re() {
 }
 
 launch_lines() {
-  fenced_lines "$(name_re "$launcher" "$verifier" "$verdict_launcher")"
+  fenced_lines "$skill_path" "$(name_re "$launcher" "$verifier" "$verdict_launcher")"
 }
 
 section_prose() {
@@ -159,7 +153,7 @@ fi
 report "$name"
 
 clear_lines() {
-  fenced_lines 'rm -f .*\.tdd/[^ ]*\.exit'
+  fenced_lines "$skill_path" 'rm -f .*\.tdd/[^ ]*\.exit'
 }
 
 name="$skill_md clears .tdd/<name>.pid together with .tdd/<name>.exit on every launch"
@@ -276,7 +270,7 @@ prose_paragraphs() {
 }
 
 step_lines() {
-  fenced_lines "$step_ph"
+  fenced_lines "$skill_path" "$step_ph"
 }
 
 name="$skill_md states the step-title rule in one place, and every fenced command carrying the title follows it"
@@ -337,7 +331,7 @@ fi
 report "$name"
 
 step_readers() {
-  fenced_lines 'VERI_STEP="\$\(' |
+  fenced_lines "$skill_path" 'VERI_STEP="\$\(' |
     grep -o -E 'VERI_STEP="\$\([^)]*\)' |
     grep -o -E '\$S/[A-Za-z0-9_.-]+' | sed 's|^\$S/||' | sort -u || true
 }
@@ -403,7 +397,7 @@ report "$name"
 name="$skill_md's revise launch hands build-develop-prompt.sh revise the run's fast command '<fast-cmd>' (#636)"
 problems=()
 
-revise_builds="$(fenced_lines 'build-develop-prompt\.sh revise <phase>')"
+revise_builds="$(fenced_lines "$skill_path" 'build-develop-prompt\.sh revise <phase>')"
 if [[ -z "$revise_builds" ]]; then
   unreadable "line building the revise prompt with build-develop-prompt.sh revise inside a fenced block" "what the revise launch hands the prompt builder"
 else

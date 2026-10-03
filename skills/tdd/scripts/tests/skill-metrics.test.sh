@@ -21,6 +21,7 @@ skill_path="$ROOT/$skill_md"
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/fenced-lines.sh"
 
 records_of() {
   awk '
@@ -143,18 +144,11 @@ report "$name"
 name="$skill_md's Draft PR command block reads the open PR's URL before the metrics: commit, ordered line by line"
 problems=()
 
-fenced_lines() {
-  awk '/^## |^### / { inside = (index($0, "### 4. Draft PR") == 1); fence = 0; next }
-    !inside { next }
-    /^[[:space:]]*```/ { fence = !fence; next }
-    fence { print NR " " $0 }' "$skill_path"
-}
-
 first_fenced_line() {
   local n rest
-  while IFS=' ' read -r n rest; do
+  while IFS=$'\t' read -r n rest; do
     [[ "$rest" == *"$1"* ]] && { echo "$n"; return 0; }
-  done <<< "$(fenced_lines)"
+  done <<< "$(fenced_lines "$skill_path" '' '### 4. Draft PR')"
   return 1
 }
 
