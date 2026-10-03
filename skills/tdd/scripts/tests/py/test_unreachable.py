@@ -1,5 +1,6 @@
 """In-process cases for veri/unreachable.py, the module unreachable.sh is a shim over."""
 import importlib
+import io
 import pathlib
 import sys
 
@@ -146,3 +147,49 @@ def test_main_does_not_list_a_script_or_procedure_file_named_only_through_a_buil
         answers.append((code, listing.out, listing.err))
 
     assert answers == [(0, "orphan.sh\n", "")] * 3
+
+
+def test_main_lists_test_only_scripts_and_promised_unread_names_and_reads_no_promise_from_stdin(tmp_path, capsys, monkeypatch):
+    unreachable = importlib.import_module("veri.unreachable")
+    tested = tmp_path / "test-only"
+    scripts = fixture_root(tested)
+    (scripts / "tests").mkdir()
+    script(scripts / "helper.sh", "echo helped")
+    script(scripts / "tested.sh", "echo tested")
+    script(scripts / "tests" / "tested.test.sh", '"$(dirname "$0")/../tested.sh"')
+    script(scripts / "orphan.sh", "echo alone")
+    promised = tmp_path / "promised"
+    scripts = fixture_root(promised)
+    script(scripts / "helper.sh", 'echo "${VERI_READ:-1}"')
+    with (promised / "skills" / "tdd" / "SKILL.md").open("a") as f:
+        f.write("\nSet `VERI_READ` to tune it, or `VERI_UNREAD` to skip it.\n")
+    (scripts / "lib").mkdir()
+    script(scripts / "lib" / "knobs.sh", ': "${VERI_LIBREAD:-1}"')
+    (promised / "CLAUDE.md").write_text(
+        "# notes\n\nRun `helper.sh` or `ghost.sh`; `VERI_READ`, `VERI_LIBREAD` and `VERI_GHOST` are knobs.\n"
+        'Its suite is `helper.test.sh`; a leaf runs `"$S/build-$kind-prompt.sh"`.\n')
+    unpromised = tmp_path / "unpromised"
+    fixture_root(unpromised)
+    (unpromised / "skills" / "tdd" / "SKILL.md").unlink()
+    no_lib = tmp_path / "no-lib"
+    scripts = fixture_root(no_lib)
+    script(scripts / "helper.sh", "echo helped")
+    (no_lib / "CLAUDE.md").write_text("# notes\n\n`VERI_GHOST` is a knob.\n")
+    monkeypatch.setattr(sys, "stdin", io.StringIO("Set `VERI_FROM_STDIN` or run `ghost.sh`.\n"))
+
+    def tree(root):
+        return sorted((p, p.read_bytes()) for p in root.rglob("*") if p.is_file())
+
+    before = tree(tmp_path)
+    answers = []
+    for root in (tested, promised, unpromised, no_lib):
+        code = unreachable.main([str(root)])
+        listing = capsys.readouterr()
+        answers.append((code, listing.out, listing.err))
+
+    assert (answers, tree(tmp_path) == before) == ([
+        (0, "orphan.sh\ntest-only: tested.sh\n", ""),
+        (0, "promised-unread: VERI_GHOST\npromised-unread: VERI_UNREAD\npromised-unread: ghost.sh\n", ""),
+        (0, "entry.sh\n", ""),
+        (0, "promised-unread: VERI_GHOST\n", ""),
+    ], True)
