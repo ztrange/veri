@@ -4,6 +4,6 @@
 - [x] Editing an exempted line's text turns "every exemption names a line under skills/ that ends a background process by a job spec" red, naming the entry ⟦criterion 2⟧
 - [x] A line that kills by a job spec with no exemption matching its text still turns "no file under skills/ ends a background process by a job spec" red, naming `<file>:<line>` ⟦criterion 2⟧
 - [x] An EXEMPT entry whose text matches more than one line of its file fails the run, naming each matching line, so one entry never silently excuses a second site ⟦criterion 3⟧
-- [ ] An EXEMPT entry with an empty reason still fails the run under the text key ⟦criterion 4⟧
+- [x] An EXEMPT entry with an empty reason still fails the run under the text key ⟦criterion 4⟧
 - [ ] Each failure path above was broken on purpose and seen red ⟦human-owed⟧ ⟦criterion 5⟧
 - [ ] make test is green ⟦full-suite⟧ ⟦criterion 6⟧
