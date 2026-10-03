@@ -411,13 +411,24 @@ if [ "\$n" = 7 ] && [ "\$(grep -c '^7$' "$again_launches")" -eq 1 ]; then
 $(stub_waits "$work/again.out")
   over_budget_step_done
   echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
-  sleep 2
+  await_stop
   exit 0
 fi
 $(ready_pr "$gh_again")
 STUB
 
-run_launcher "$gh_again" "$again_stub" "$work/again.out" VERI_CONDUCTOR_CTX_BUDGET=100000
+again_bin="$work/again-bin"
+mkdir -p "$again_bin"
+cat > "$again_bin/sleep" <<SH
+#!/bin/sh
+case "\$(ps -o command= -p \$PPID)" in
+  *claude-again*) echo "sleep \$*" >> "$work/again.slept" ;;
+esac
+exec $(command -v sleep) "\$@"
+SH
+chmod +x "$again_bin/sleep"
+run_launcher "$gh_again" "$again_stub" "$work/again.out" VERI_CONDUCTOR_CTX_BUDGET=100000 PATH="$again_bin:$PATH"
+expect_lines "the again case's stub holds after its step-done result without calling sleep" "" "$(cat "$work/again.slept" 2>/dev/null)" "$work/again.out"
 expect_lines "a conductor stopped over VERI_CONDUCTOR_CTX_BUDGET is launched again for the same issue before a not-yet-launched solvable issue takes its slot" "$(printf '7\n7\n8')" "$(cat "$again_launches")" "$work/again.out"
 
 expect_lines "a conductor relaunched after an over-budget stop prints 'restarted <n>' naming its issue" "restarted 7" "$(grep '^restarted ' "$work/again.out" || true)" "$work/again.out"
