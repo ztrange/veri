@@ -98,6 +98,12 @@ suite_repair_ledger='# Plan for #42
 - [ ] pin the third step ⟦criterion 5⟧'
 check "an unchecked ⟦suite-repair⟧ step is handed to a leaf, not skipped like ⟦full-suite⟧ (#590)" 0 "$suite_repair_ledger" "repair widget-counts.test.sh: FAIL - counts ⟦suite-repair⟧ ⟦criterion 4⟧"
 
+diff_checked_ledger='# Plan for #42
+
+- [ ] the dead counted line is gone ⟦diff-checked⟧ ⟦criterion 1⟧
+- [ ] pin the second step ⟦criterion 2⟧'
+check "an open ⟦diff-checked⟧ line is handed to a leaf, not skipped like ⟦full-suite⟧ (#727)" 0 "$diff_checked_ledger" "the dead counted line is gone ⟦diff-checked⟧ ⟦criterion 1⟧"
+
 work="$(scratch_dir)"
 mkdir "$work/lib"
 cp "$NEXT" "$work/next-unchecked.sh"
