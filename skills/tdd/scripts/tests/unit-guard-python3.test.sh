@@ -7,6 +7,8 @@
 #      that module through the real interpreter, and answers with the module's own stdout,
 #      stderr and exit code.
 #   2. It does so when directories with no python3 sit between the guard and the real one on PATH.
+#   3. A direct python3 call — -c, a file outside veri/, no arguments — exits 1, names python3 on
+#      stderr and is written to $UNIT_GUARD_LOG.
 #
 # Run: skills/tdd/scripts/tests/unit-guard-python3.test.sh
 set -uo pipefail
@@ -71,6 +73,35 @@ err="$(cat "$err_file")"
   problems+=("want stderr 'probe-err'; got: $(flat "$err")")
 [[ "$code" == 7 ]] ||
   problems+=("want exit 7, the module's own; got: $code")
+
+report "$name"
+
+name="under make unit's guard PATH, a direct python3 call — -c, a file outside veri/, no arguments — exits 1 naming python3 and is logged"
+problems=()
+
+printf 'print("outside")\n' > "$tree/outside.py"
+log="$tree/direct.log"
+refusal="make unit: python3 called for real; a unit suite mocks it as a shell function"
+for call in "-c|print(1)" "file|$tree/outside.py" "none|"; do
+  kind="${call%%|*}" arg="${call#*|}"
+  case "$kind" in
+    -c) argv=(-c "$arg") ;;
+    file) argv=("$arg") ;;
+    none) argv=() ;;
+  esac
+  : > "$log"
+  out="$(cd "$tree" && PATH="$tree/skills/tdd/scripts/tests/unit-guard:$PATH" UNIT_GUARD_LOG="$log" \
+    python3 ${argv[@]+"${argv[@]}"} 2> "$err_file" < /dev/null)"
+  code=$?
+  err="$(cat "$err_file")"
+  logged="$(cat "$log")"
+  [[ "$code" == 1 ]] ||
+    problems+=("$kind: want exit 1; got: $code (stdout: $(flat "$out"))")
+  [[ "$err" == "$refusal" ]] ||
+    problems+=("$kind: want stderr '$refusal'; got: $(flat "$err")")
+  [[ "$logged" == "python3 ${argv[*]+"${argv[*]}"} (cwd "* ]] ||
+    problems+=("$kind: want a log line 'python3 ${argv[*]+"${argv[*]}"} (cwd …)'; got: $(flat "$logged")")
+done
 
 report "$name"
 

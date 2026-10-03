@@ -6,7 +6,7 @@ here="$(dirname "$0")"
 cmd="$(basename "$0")"
 if [ "$cmd" = python3 ]; then
   veri="$(cd "$here/../../veri" 2>/dev/null && pwd -P)"
-  module_dir="$(cd "$(dirname "$1")" && pwd -P)"
+  module_dir="$(cd "$(dirname -- "$1")" && pwd -P)"
   case "$module_dir/" in
     "$veri"/*)
       path= rest="$PATH:"
