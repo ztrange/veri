@@ -49,13 +49,14 @@ plant() {
   ' "$SKILL_PATH" > "$planted_skill"
 
   planted_line="$(head -1 < <(grep -nF "$FRAGMENT" "$SKILL_PATH") | cut -d: -f1)"
-  [[ "$planted_line" =~ ^[0-9]+$ ]] || {
-    problems+=("no line of $SKILL carries '$FRAGMENT' (found '$planted_line'), so there is no supervised verifier launch to cut it out of and the criterion cannot be asked")
-    return 1
-  }
+  probe_launch_plant_is_what_it_claims
 }
 
 probe_launch_plant_is_what_it_claims() {
+  [[ "$planted_line" =~ ^[0-9]+$ ]] || {
+    problems+=("no line of $SKILL carries '$FRAGMENT' (found '$planted_line'), so there is no supervised verifier launch to cut it out of and the criterion cannot be asked")
+    return
+  }
   local before after
   probe_one_carrier "$FRAGMENT"
   before="$(sed -n "${planted_line}p" "$SKILL_PATH")"
@@ -113,7 +114,7 @@ planted_line=""
 guard_out=""
 guard_code=0
 
-run_plant_sequence tree plant "$FRAGMENT" "$CUT_LAUNCH" probe_launch_plant_is_what_it_claims probe_guard_names_the_planted_launch
+run_plant_sequence tree plant "$FRAGMENT" "$CUT_LAUNCH" probe_guard_names_the_planted_launch
 report "$name"
 
 
@@ -148,13 +149,14 @@ plant_step_title() {
     { print }
   ' "$SKILL_PATH" > "$planted_step_skill"
   planted_skill="$planted_step_skill"
+  probe_step_plant_is_what_it_claims
+}
+
+probe_step_plant_is_what_it_claims() {
   [[ "$step_line" =~ ^[0-9]+$ ]] || {
     problems+=("no line of $SKILL carries '$STEP_ANCHOR' (found '$step_line'), so there is no documented launch to put the title's quotes back on and the criterion cannot be asked")
     return 1
   }
-}
-
-probe_step_plant_is_what_it_claims() {
   local before after
   probe_one_carrier "$STEP_ANCHOR"
   before="$(sed -n "${step_line}p" "$SKILL_PATH")"
@@ -164,6 +166,7 @@ probe_step_plant_is_what_it_claims() {
   [[ "$after" == *"$STEP_SINGLE"* ]] ||
     problems+=("the planted $SKILL:$step_line does not carry $STEP_SINGLE, so nothing was planted: $(flat "$after")")
   probe_one_line_rewritten "$planted_step_skill" "step title"
+  return 0
 }
 
 probe_step_guard_names_the_planted_line() {
@@ -210,7 +213,7 @@ name="${GUARD##*/} fails over a $SKILL whose launch line carries $STEP_SINGLE, n
 reset_step_case
 
 run_plant_sequence step-tree plant_step_title "$STEP_CARRIER_DOUBLE" "$STEP_CARRIER_SINGLE" \
-  probe_step_plant_is_what_it_claims probe_step_guard_names_the_planted_line \
+  probe_step_guard_names_the_planted_line \
   probe_exemption_with_a_reason_excuses_the_line probe_exemption_without_a_reason_excuses_nothing
 report "$name"
 
@@ -235,7 +238,7 @@ name="${GUARD##*/}'s #431 guard pin still answers over a $SKILL whose one $STEP_
 reset_step_case
 
 run_plant_sequence step-tree plant_step_title "$STEP_CARRIER_DOUBLE" "$STEP_CARRIER_SINGLE" \
-  probe_step_plant_is_what_it_claims probe_pin_answers_over_exempted_plant
+  probe_pin_answers_over_exempted_plant
 report "$name"
 
 finish

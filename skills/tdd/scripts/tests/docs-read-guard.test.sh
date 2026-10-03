@@ -115,8 +115,11 @@ probe_reader_plant_is_what_it_claims() {
     problems+=("the planted quoter carries no path in that tree at all, so a guard that refuses fixture text would still pass this case")
 }
 
-probe_guard_names_the_reader_with_its_line() {
+run_guard() {
   run_guard_over "$planted_skill"
+}
+
+probe_guard_names_the_reader_with_its_line() {
   [[ "$guard_code" != 0 ]] ||
     problems+=("want the guard to fail over a suite that binds $DOCS_READ_PATH and opens it on a later line; it exited 0 and said: $(flat "$guard_out")")
   local named
@@ -148,7 +151,7 @@ guard_out=""
 guard_code=0
 
 run_plant_sequence tree plant "$UNPLANTED_READ_PATH" "$DOCS_READ_PATH" \
-  probe_reader_plant_is_what_it_claims probe_guard_names_the_reader_with_its_line probe_guard_leaves_the_quoter_alone
+  probe_reader_plant_is_what_it_claims run_guard probe_guard_names_the_reader_with_its_line probe_guard_leaves_the_quoter_alone
 
 report "$name"
 
