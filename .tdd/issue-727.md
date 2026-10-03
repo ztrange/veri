@@ -1,6 +1,6 @@
 # Plan for #727 — a criterion about the branch's own diff is verified against the diff and leaves no permanent test
 
-- [ ] `lib/ledger.sh`'s `ledger_steps` reports a line ending `⟦diff-checked⟧ ⟦criterion k⟧`, open or ticked, with kind `diff-checked` and criterion `k` ⟦criterion 2⟧
+- [x] `lib/ledger.sh`'s `ledger_steps` reports a line ending `⟦diff-checked⟧ ⟦criterion k⟧`, open or ticked, with kind `diff-checked` and criterion `k` ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] `lib/ledger.sh`'s `ledger_steps` still reports a `⟦full-suite⟧` line as `full-suite`, a `⟦human-owed⟧` line as `human-owed`, and a plain line, a `⟦replaces-case⟧` line and a line quoting `⟦diff-checked⟧` anywhere but immediately before its closing `⟦criterion k⟧` as `step` ⟦criterion 2⟧
 - [ ] `next-unchecked.sh` prints an open `⟦diff-checked⟧ ⟦criterion k⟧` step as the next step when it is the first unchecked one, rather than skipping it the way it skips `⟦full-suite⟧` and `⟦human-owed⟧` lines ⟦criterion 5⟧
 - [ ] `build-verify-prompt.sh --step '<STEP>' diff <spec-file> <base-sha>` exits 0 and prints a prompt rendered from `prompts/verify-diff.md` that carries the step text and tells the verifier to judge the step's criterion against `git diff <base-sha>..HEAD` alone and to answer `VERDICT: PASS` or `VERDICT: REJECT` ⟦criterion 3⟧
