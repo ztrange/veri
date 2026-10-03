@@ -1,6 +1,7 @@
 """In-process cases for veri/comment_class.py, the module comment-class.sh is a shim over."""
 import importlib
 import pathlib
+import re
 import sys
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
@@ -217,4 +218,128 @@ def test_main_classes_md_variable_heredocs_as_3_drops_a_dash_heredoc_hashbang_an
         "stub-writer-dash": (0, ""),
         "quote-in-subst": (0, f"{p['quote-in-subst']}:2:1\n"),
         "subshell-in-subst": (0, f"{p['subshell-in-subst']}:2:1\n"),
+    }
+
+
+CLASS_3_LINES = """\
+build-develop-prompt:## Bug
+build-develop-prompt:### What happened
+build-develop-prompt:### Expected
+build-develop-prompt:### Steps to reproduce
+build-develop-prompt:### Environment
+build-verify-prompt:# Plan for #426
+build-verify-prompt:# Plan for #439
+build-verify-prompt:## Bug
+build-verify-prompt:### What happened
+build-verify-prompt:### Expected
+build-verify-prompt:### Steps to reproduce
+build-verify-prompt:### Environment
+capture-spec:## What happened
+capture-spec:## Expected
+capture-spec:## Steps to reproduce
+capture-spec:## Environment
+capture-spec:## Acceptance criteria
+capture-spec:## What to build
+capture-spec:## Acceptance criteria
+dashboard:# Plan for #$2 — $3
+dashboard:## What to build
+dashboard:# Plan for #51 — lamps hum
+dashboard:# Plan for #77 — a kettle boils
+invisible-work:#!/bin/sh
+orchestrate:# A stopped conductor must be stopped by a signal, not by its writes failing, so this stub
+orchestrate:# IGNORES SIGPIPE — the state CI's Linux was observed in, where a write to the closed stream
+orchestrate:# came back as plain \\`echo: I/O error\\` and the conductor ran on. On this Mac SIGPIPE is fatal
+orchestrate:# and would end the stub whatever orchestrate.sh did, so without this line the cases below
+orchestrate:# cannot go red here at all, and the regression they exist for is only visible on CI. This is
+orchestrate:# a stub imitating a platform, not a suite repairing its own pipeline (#422).
+parallel-conductors:#!/bin/sh
+run-verdict:#!/bin/sh
+run-verdict:# Stub verifier: record the argv handed to it, one argument per line, and answer like a
+run-verdict:# verifier that passed — what this case reads is the record, not the verdict.
+run-verdict:#!/bin/sh
+run-verdict:# Stub verifier: copy the phase's reason file, as it stands now, into the record this case
+run-verdict:# reads — an unreadable or absent file records as nothing, which is the same answer as a
+run-verdict:# cleared one and the answer this case wants.
+skill-refactor-pending:## The scripts (this skill's `scripts/` directory)
+skill-refactor-pending:## The scripts (this skill's `scripts/` directory)
+solvable-issues:#!/bin/sh
+status:# Plan for #7 — widgets spin when clicked
+unit/emitted-text:## What to build
+unit/emitted-text:## Acceptance criteria
+unit/emitted-text:## Bug
+unit/emitted-text:## Acceptance criteria
+unit/emitted-text:## Refactor
+unit/emitted-text:# Plan for #1 — fixed
+"""
+
+
+def test_main_sweeps_the_scripts_lib_and_suites_to_empty_sweepable_reports_no_cited_issue_and_unchanged_class_3_lines(capsys):
+    comment_class = importlib.import_module("veri.comment_class")
+    tests = SCRIPTS / "tests"
+
+    def classify(*argv):
+        code = comment_class.main([str(a) for a in argv])
+        return code, capsys.readouterr().out
+
+    def sweep(*names):
+        return classify("--sweepable", *(SCRIPTS / n for n in names))
+
+    def text(path, number):
+        return path.read_bytes().decode("utf-8", "surrogateescape").split("\n")[number - 1]
+
+    def by_class(cls, files):
+        code, out = classify(*files)
+        found = []
+        for row in out.splitlines():
+            name, number, got = row.rsplit(":", 2)
+            if got == str(cls):
+                found.append((pathlib.Path(name), int(number)))
+        return code, found
+
+    scripts = sorted(SCRIPTS.glob("*.sh"))
+    libs = sorted((SCRIPTS / "lib").glob("*.sh"))
+    code, comments = by_class(1, scripts + libs)
+    cited = "".join(f"{p}:{n}: {text(p, n)}\n" for p, n in comments if re.search("#[0-9]", text(p, n)))
+    suites = (
+        sorted(tests.glob("*.sh"))
+        + sorted((tests / "unit").glob("*.sh"))
+        + sorted(tests.glob("fixtures/*/*.sh"))
+        + [tests / "unit-guard" / "git", tests / "offline" / "gh"]
+    )
+    code_3, found_3 = by_class(3, suites)
+    class_3 = "".join(
+        f"{str(p.relative_to(tests)).removesuffix('.test.sh')}:{text(p, n)}\n" for p, n in found_3
+    )
+
+    assert {
+        "the sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh":
+            sweep("metrics.sh", "event.sh", "harvest-usage.sh"),
+        "the sweepable report is empty for supervise.sh, run-leaf.sh, detach-leaf.sh, wait-leaf.sh and run-verdict.sh":
+            sweep("supervise.sh", "run-leaf.sh", "detach-leaf.sh", "wait-leaf.sh", "run-verdict.sh"),
+        "the sweepable report is empty for issue-worktree.sh, verify.sh, parse-verdict.sh and extract-result.sh":
+            sweep("issue-worktree.sh", "verify.sh", "parse-verdict.sh", "extract-result.sh"),
+        "the sweepable report is empty for detect-test-command.sh, solvable-issues.sh and session-cost.sh":
+            sweep("detect-test-command.sh", "solvable-issues.sh", "session-cost.sh"),
+        "the sweepable report is empty for build-develop-prompt.sh, build-verify-prompt.sh, run-conductor.sh, stop-run.sh and preserve-attempt.sh":
+            sweep("build-develop-prompt.sh", "build-verify-prompt.sh", "run-conductor.sh", "stop-run.sh",
+                  "preserve-attempt.sh"),
+        "the sweepable report is empty for leaf-timeout.sh, ensure-run-state-ignored.sh, orchestrate.sh, parallel-conductors.sh, workqueue.sh, push-branch.sh, refactor-triage.sh, invisible-work.sh, over-budget.sh, run-suite.sh, leaf-model.sh and leaf-launchable.sh":
+            sweep("leaf-timeout.sh", "ensure-run-state-ignored.sh", "orchestrate.sh", "parallel-conductors.sh",
+                  "workqueue.sh", "push-branch.sh", "refactor-triage.sh", "invisible-work.sh", "over-budget.sh",
+                  "run-suite.sh", "leaf-model.sh", "leaf-launchable.sh"),
+        "the sweepable report is empty for every scripts/*.sh, the classifier itself included": classify("--sweepable", *scripts),
+        "the sweepable report is empty for every shell file under scripts/lib/": classify("--sweepable", *libs),
+        "no comment line in scripts/*.sh or scripts/lib/*.sh, the contract header included, cites an issue number": (code, cited),
+        "the text of every class 3 line in the suites is unchanged, in its file and in its order": (code_3, class_3),
+    } == {
+        "the sweepable report is empty for metrics.sh, event.sh and harvest-usage.sh": (0, ""),
+        "the sweepable report is empty for supervise.sh, run-leaf.sh, detach-leaf.sh, wait-leaf.sh and run-verdict.sh": (0, ""),
+        "the sweepable report is empty for issue-worktree.sh, verify.sh, parse-verdict.sh and extract-result.sh": (0, ""),
+        "the sweepable report is empty for detect-test-command.sh, solvable-issues.sh and session-cost.sh": (0, ""),
+        "the sweepable report is empty for build-develop-prompt.sh, build-verify-prompt.sh, run-conductor.sh, stop-run.sh and preserve-attempt.sh": (0, ""),
+        "the sweepable report is empty for leaf-timeout.sh, ensure-run-state-ignored.sh, orchestrate.sh, parallel-conductors.sh, workqueue.sh, push-branch.sh, refactor-triage.sh, invisible-work.sh, over-budget.sh, run-suite.sh, leaf-model.sh and leaf-launchable.sh": (0, ""),
+        "the sweepable report is empty for every scripts/*.sh, the classifier itself included": (0, ""),
+        "the sweepable report is empty for every shell file under scripts/lib/": (0, ""),
+        "no comment line in scripts/*.sh or scripts/lib/*.sh, the contract header included, cites an issue number": (0, ""),
+        "the text of every class 3 line in the suites is unchanged, in its file and in its order": (0, CLASS_3_LINES),
     }
