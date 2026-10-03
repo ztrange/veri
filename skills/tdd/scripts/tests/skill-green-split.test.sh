@@ -22,18 +22,16 @@ skill_path="$ROOT/$skill_md"
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/plain.sh"
 source "$HERE/lib/window.sh"
 
-plain() {
-  tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
-}
 
 green_heading='#### Green'
 
 green_section() {
   awk -v h="$green_heading" \
     'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path" |
-    plain
+    plain --join
 }
 section="$(green_section)"
 
@@ -50,7 +48,7 @@ bailing_causes() {
     in_s {
       if (!want && $0 ~ /killed-stuck/) want = 1
       if (want) print
-    }' "$skill_path" | plain
+    }' "$skill_path" | plain --join
 }
 
 name="$skill_md's Green section, on SPLIT:, restores the tree to HEAD, adds the split steps before STEP in one add-ledger-step.sh call, commits the ledger, emits step-split and returns to next-unchecked.sh"
@@ -119,7 +117,7 @@ step_too_big_cause() {
     in_s && /^#/ { exit }
     in_s && inside && (/^- / || /^$/) { exit }
     in_s && /^- `step-too-big`/ { inside = 1 }
-    inside' "$skill_path" | plain
+    inside' "$skill_path" | plain --join
 }
 
 name="$skill_md's Bailing entry for step-too-big names all three splits that lead to it: a Green leaf's SPLIT:, the revise-exhausted split and the over-budget split"

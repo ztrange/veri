@@ -58,7 +58,7 @@ scaffolding_hits() {
   counter_hits "$1"
 }
 
-HOISTED=(win window windows)
+HOISTED=(win window windows plain)
 
 hoisted_copy_hits() {
   local names hits hit file rest def
@@ -186,6 +186,20 @@ plant="$(scratch_dir)"
 printf '%s\n' '#!/usr/bin/env bash' 'got="$(windows "$text" x)"' > "$plant/a.test.sh"
 got="$(hoisted_copy_hits "$plant" 2>&1)"
 expect_eq "$name" "" "$got"
+
+name="#704: a suite or record-helpers.sh that defines plain is named by <file>:<line>"
+plant="$(scratch_dir)"
+mkdir -p "$plant/unit" "$plant/lib"
+printf '%s\n' '#!/usr/bin/env bash' "plain() { tr -d '*\`' | tr '[:upper:]' '[:lower:]'; }" \
+  > "$plant/record-helpers.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'x=1' 'plain() {' "  tr -d '*\`' | tr '\n' ' '" '}' \
+  > "$plant/unit/a.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'got="$(plain < "$f")"' > "$plant/b.test.sh"
+printf '%s\n' 'plain() { :; }' > "$plant/lib/plain.sh"
+got="$(hoisted_copy_hits "$plant" 2>&1)"
+expect_eq "$name" \
+  "$(printf '    %s\n' 'record-helpers.sh:2 defines plain()' 'unit/a.test.sh:3 defines plain()')" \
+  "$got"
 
 name="#704: no suite under tests/ or tests/unit/ defines its own copy of a helper hoisted into tests/lib/"
 problems="$(hoisted_copy_hits "$TESTS")"

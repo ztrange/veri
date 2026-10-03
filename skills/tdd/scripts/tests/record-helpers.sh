@@ -1,5 +1,5 @@
 source "${BASH_SOURCE[0]%/*}/lib/harness.sh"
-plain() { tr -d '*`' | tr '[:upper:]' '[:lower:]'; }
+source "${BASH_SOURCE[0]%/*}/lib/plain.sh"
 
 records() {
   awk '/^[-*] / { if (rec != "") print rec; rec = $0; next }

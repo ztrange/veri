@@ -13,14 +13,12 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/plain.sh"
 DEVELOP="$HERE/../build-develop-prompt.sh"
 VERIFY="$HERE/../build-verify-prompt.sh"
 
 work="$(scratch_dir)"
 
-plain() {
-  tr -d '*`' | tr '[:upper:]' '[:lower:]'
-}
 
 runs_affected() {
   local label="$1" prompt="$2" named
@@ -297,7 +295,7 @@ matching="$green"   # case 4's prompt, which every probe above accepts
 missing='a prompt that names none of it'
 honest_match="$(verdict "$matching")"
 honest_miss="$(verdict "$missing")"
-plain() { honest_plain; return 141; }
+eval 'plain() { honest_plain; return 141; }'
 preempted_match="$(verdict "$matching")"
 preempted_miss="$(verdict "$missing")"
 eval "$unpreempted"

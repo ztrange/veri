@@ -18,10 +18,8 @@ skill_path="$ROOT/$skill_md"
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/plain.sh"
 
-plain() {
-  tr -d '*`' | tr '[:upper:]' '[:lower:]'
-}
 
 records() {
   awk '

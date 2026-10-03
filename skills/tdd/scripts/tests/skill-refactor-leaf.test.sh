@@ -52,11 +52,9 @@ one_leaf='(one|a single) (refactor |developer |transform )?leaf'
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/plain.sh"
 source "$HERE/lib/window.sh"
 
-plain() {
-  tr -d '*`' | tr '[:upper:]' '[:lower:]'
-}
 
 refactor_heading='#### Refactor'
 

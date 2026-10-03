@@ -22,10 +22,8 @@ claude_path="$ROOT/$claude_md"
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/plain.sh"
 
-plain() {
-  tr -d '*`' | tr '[:upper:]' '[:lower:]'
-}
 
 doc_text() {
   awk -v h="$2" -v from="$3" '

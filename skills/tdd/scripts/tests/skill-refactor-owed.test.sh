@@ -18,11 +18,9 @@ skill_path="$ROOT/$skill_md"
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/plain.sh"
 source "$HERE/lib/window.sh"
 
-plain() {
-  tr -d '*`' | tr '[:upper:]' '[:lower:]'
-}
 
 refactor_section() {
   awk -v h='#### Refactor' \
