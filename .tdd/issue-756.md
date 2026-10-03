@@ -5,4 +5,5 @@
 - [x] A structural candidate whose step's bounds include at least one non-test file is listed by `refactor-owed.sh list` exactly as before, in the same order as without the bounds argument ⟦criterion 3⟧
 - [x] "Test file" is one shared rule (under a `tests/` directory, or named `*.test.*`) that both `transform-touches-tests.sh` and `refactor-owed.sh append` apply, and a test pins that the two agree on a test path and on a non-test path ⟦criterion 4⟧
 - [x] SKILL.md's refactor loop `append` call passes the step's refactor bounds and says a structural candidate of an all-test-file step is recorded test-only, and its structural pass says such a candidate is never listed and so launches no predicate or transform leaf ⟦criterion 5⟧
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/no-nested-suites.test.sh — FAIL - no suite under skills/tdd/scripts/tests/ (or its unit/ tier) launches another real suite outside the exemptions recorded here (refactor-owed.test.sh:405 and :425 name scratch-copy-libs.test.sh outside a comment, in a shape that file treats as launching it) ⟦suite-repair⟧ ⟦criterion 5⟧
 - [ ] `make test` is green ⟦full-suite⟧ ⟦criterion 6⟧
