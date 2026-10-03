@@ -30,12 +30,7 @@ skill_md="$skill_dir/SKILL.md"
 
 
 source "$HERE/lib/harness.sh"
-
-frontmatter_name() {
-  awk 'NR == 1 && $0 == "---" { inside = 1; next }
-       inside && $0 == "---" { exit }
-       inside && sub(/^name:[[:space:]]*/, "") { print; exit }' "$1"
-}
+source "$HERE/lib/frontmatter-name.sh"
 
 name="the skill ships at $skill_dir/ and its frontmatter reads name: $want_name"
 problems=()
