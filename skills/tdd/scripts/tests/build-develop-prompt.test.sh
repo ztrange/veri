@@ -564,11 +564,11 @@ plain_args=(green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target
 problems=""
 built="$("$BUILD" "${plain_args[@]}" "make unit" 2>&1; echo "exit $?")"
 want="$("$unmodified/build-develop-prompt.sh" "${plain_args[@]}" "make unit" 2>&1; echo "exit $?")"; want="${want//"$unmodified"/$scripts_dir}"
-[[ "$built" == "$want" ]] || problems="$problems; develop-green differs from the builder without suite repair: $(diff <(printf '%s\n' "$want") <(printf '%s\n' "$built") | head -5)"
+[[ "$built" == "$want" ]] || problems="$problems; develop-green differs from the builder without suite repair: $(diff <(printf '%s\n' "$want") <(printf '%s\n' "$built") | sed -n 1,5p)"
 verify_args=(--step "$step_text" --fast-cmd 'make unit' green "$work/spec.md" "$test_path" "$target")
 built="$("$HERE/../build-verify-prompt.sh" "${verify_args[@]}" 2>&1; echo "exit $?")"
 want="$("$unmodified/build-verify-prompt.sh" "${verify_args[@]}" 2>&1; echo "exit $?")"; want="${want//"$unmodified"/$scripts_dir}"
-[[ "$built" == "$want" ]] || problems="$problems; verify-green differs from the builder without suite repair: $(diff <(printf '%s\n' "$want") <(printf '%s\n' "$built") | head -5)"
+[[ "$built" == "$want" ]] || problems="$problems; verify-green differs from the builder without suite repair: $(diff <(printf '%s\n' "$want") <(printf '%s\n' "$built") | sed -n 1,5p)"
 [[ -z "$problems" ]] \
   && ok || no "#690 develop-green and verify-green prompts for a step without ⟦suite-repair⟧ are byte-identical to the builders' without suite repair (${problems#; })"
 
