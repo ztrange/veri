@@ -143,7 +143,7 @@ migration_slice 2 comment-class.sh cover-outcome.sh coverage-blocker.sh criterio
   detach-command.sh detach-leaf.sh
 migration_slice 3 ensure-run-state-ignored.sh event.sh exhausted-outcome.sh \
   extract-result.sh harvest-usage.sh invisible-work.sh
-migration_slice 4 issue-worktree.sh leaf-launchable.sh leaf-model.sh leaf-role.sh leaf-timeout.sh \
+migration_slice 4 issue-worktree.sh leaf-launchable.sh leaf-model.sh leaf-role.sh \
   ledger-steps.sh metrics.sh
 migration_slice 5 next-pending-refactor.sh next-unchecked.sh orchestrate.sh over-budget.sh \
   parallel-conductors.sh parse-verdict.sh preserve-attempt.sh
