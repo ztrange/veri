@@ -6,6 +6,10 @@
 #   run_guard_over <doc>     sets $guard_code and $guard_out
 #   failures_in <output>     prints the count line's failure count, or '<none>'
 #   probe_guard_is_there     appends to $problems and returns 1 when $GUARD_PATH is missing or not executable
+#   probe_plant_is_what_it_claims <removed> <replacement> <planted>
+#                            appends to $problems unless $SKILL_PATH carries <removed> and <planted> is it
+#                            with exactly those carrier lines rewritten to carry <replacement>; returns 1
+#                            when $SKILL_PATH carries no <removed>
 #   probe_guard_is_red <what>  appends to $problems unless the last run exited non-zero and counted a failure
 #   probe_guard_is_green_unplanted  runs over $SKILL_PATH; appends to $problems unless it exited 0 and counted 0 failed
 
@@ -48,6 +52,23 @@ probe_guard_is_there() {
     problems+=("$GUARD is not executable, so \`make test\`'s runner cannot run it over $SKILL")
     return 1
   }
+}
+
+probe_plant_is_what_it_claims() {
+  local removed="$1" replacement="$2" planted="$3" carriers changed
+  carriers="$(grep -cF -- "$removed" "$SKILL_PATH")"
+  [[ "$carriers" -gt 0 ]] || {
+    problems+=("no line of $SKILL carries '$removed', so there is nothing to plant and the criterion cannot be asked")
+    return 1
+  }
+  grep -F -- "$removed" "$planted" > /dev/null &&
+    problems+=("the planted $SKILL still carries '$removed', so nothing was planted")
+  grep -F -- "$replacement" "$planted" > /dev/null ||
+    problems+=("the planted $SKILL nowhere carries '$replacement', so the plant is not what it claims")
+  changed="$(diff "$SKILL_PATH" "$planted" | grep -c '^[<>]')"
+  [[ "$changed" == "$((carriers * 2))" ]] ||
+    problems+=("the plant rewrote lines adding up to $changed diff lines of $SKILL, want $((carriers * 2)) — the $carriers lines that carried '$removed' and no other")
+  return 0
 }
 
 probe_guard_is_red() {
