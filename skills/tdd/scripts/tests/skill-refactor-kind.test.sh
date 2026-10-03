@@ -28,6 +28,7 @@ skill_path="$ROOT/$skill_md"
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/window.sh"
 
 plain() {
   tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
@@ -42,11 +43,6 @@ section() {
 plan_heading='### 2. Scope & plan'
 
 skill_text="$(plain < "$skill_path")"
-
-# hazard: BSD grep refuses an interval bound over 255.
-window() {
-  head -1 < <(grep -oE ".{0,250}$2.{0,250}" <<<"$1")
-}
 
 name="$skill_md tells a refactor-kind run to plan each step as one named refactoring whose criterion is a shell predicate false before the step and true after it"
 problems=()
