@@ -202,3 +202,34 @@ def test_get_api_metrics_recomputes_a_live_run_and_quotes_the_committed_report_o
     issues = json.loads(body(metrics))["issues"]
     assert issues["31"] == recomputed
     assert issues["32"] == committed
+
+
+def test_get_api_metrics_quotes_the_committed_report_of_run_33_ended_by_bail(
+        tmp_path, monkeypatch, dashboard):
+    run = os.path.join(str(tmp_path), ".tdd", "wt", "33")
+    write(os.path.join(run, ".tdd", "issue-33.md"),
+          "# Plan for #33 — lamps flicker\n\n- [x] a lamp exists\n- [ ] a lamp flickers\n")
+    write(os.path.join(run, ".tdd", "events.jsonl"),
+          '{"ts": 1, "issue": "33", "event": "step-start"}\n'
+          '{"ts": 2, "issue": "33", "event": "launch", "name": "develop-red"}\n'
+          '{"ts": 3, "issue": "33", "event": "bail", "reason": "killed-stuck"}\n')
+    committed = ("# What solving #33 cost — the committed report of a bailed run, verbatim\n\n"
+                 "| phase | attempts |\n|---|---|\n| red | 1 |\n")
+    write(os.path.join(run, ".tdd", "issue-33-metrics.md"), committed)
+
+    def fake_run(args, cwd=None, **kwargs):
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
+        if list(args) == [os.path.join(SCRIPTS, "metrics.sh"), "33"]:
+            return subprocess.CompletedProcess(args, 0, b"# metrics.sh 33, recomputed\n", b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, ["/api/metrics"])
+
+    dashboard.main([])
+
+    (metrics,) = served[0][1]
+    assert json.loads(body(metrics))["issues"]["33"] == committed
