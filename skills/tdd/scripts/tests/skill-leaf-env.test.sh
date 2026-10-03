@@ -545,6 +545,51 @@ scan_every_step_title() {
 run_case "a step title carrying a dollar sign, a backtick and a double quote reaches every other developer and verifier leaf $skill_md launches with it, byte-identical (#437)" \
   scan_every_step_title
 
+DECOY_STEP='a decoy step the ledger holds, which ledger-steps.sh current never names'
+
+scan_current_step_title() {
+  local title="$EXPANDING_STEP"
+  local lines numbered filled lineno line launch leaf stage seen tree err got argv
+  lines="$(grep -nE '\$S/detach-leaf\.sh .*\$S/supervise\.sh ' "$md" | grep -F 'VERI_STEP=' |
+           grep -vF -e 'VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)"' \
+                    -e 'VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh)"')"
+  if [[ -z "$lines" ]]; then
+    no_launch "a leaf whose VERI_STEP reads the current step"
+    return
+  fi
+  cat > "$RECORDERS/ledger-steps.sh" <<'STUB'
+#!/bin/sh
+[ "$1" = current ] || exit 2
+cat "$SEEN.current"
+STUB
+  chmod +x "$RECORDERS/ledger-steps.sh"
+  while IFS= read -r numbered; do
+    [[ -n "$numbered" ]] || continue
+    filled="${numbered//<name>/probe-leaf}"
+    filled="${filled//<cmd> \[args...\]/\$S/run-leaf.sh .tdd/probe-leaf.prompt}"
+    take_line "$filled" "$title" || continue
+    line="${numbered#*:}"
+    leaf="$(arg_after supervise.sh "$launch")"
+    stage_recorder "current-step-title-$lineno"
+    rm -f "$stage/ledger-steps.sh"
+    ln -s "$RECORDERS/ledger-steps.sh" "$stage/ledger-steps.sh"
+    plant_ledger "$tree" "$DECOY_STEP"
+    printf '%s\n' "$title" > "$seen.current"
+    err="$( cd "$tree" && "${cleared_run_context[@]}" \
+              S="$stage" SEEN="$seen" bash -c "$launch" 2>&1 >/dev/null )"
+    got="$(cat "$seen" 2>/dev/null)" || got='<no leaf was launched>'
+    argv="$(cat "$seen.argv" 2>/dev/null)" || argv='<no verifier was launched>'
+    [[ "$got" == "$title" ]] ||
+      problem "launched $leaf with ledger-steps.sh current answering <$title>, whose leaf saw VERI_STEP=<$got> (the launching shell said: ${err//$'\n'//})"
+    [[ "$line" == *--step* ]] || continue
+    [[ "$argv" == "$title" ]] ||
+      problem "launched $leaf with ledger-steps.sh current answering <$title>, whose verifier was handed --step <$argv> (the launching shell said: ${err//$'\n'//})"
+  done <<< "$lines"
+}
+
+run_case "every leaf and verifier launch line in $skill_md reads the step through ledger-steps.sh current, and a title carrying a dollar sign, a backtick and a double quote reaches VERI_STEP and --step byte-identical (#682)" \
+  scan_current_step_title
+
 CRITERION_TEXT='The issue'"'"'s own words: `echo $SHELL` in "quotes" and $HOME, as the issue wrote them'
 plant_done_ledger() {
   printf '# Plan for #%s\n\n- [x] %s\n- [ ] a later step the run has not reached\n' \

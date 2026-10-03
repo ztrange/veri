@@ -294,7 +294,7 @@ leaf** (red, green, refactor, revise) is launched straight through the superviso
 
 ```
 rm -f .tdd/<name>.exit .tdd/<name>.pid
-VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh <name> <cmd> [args...] > .tdd/<name>.out 2> .tdd/<name>.err
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh <name> <cmd> [args...] > .tdd/<name>.out 2> .tdd/<name>.err
 $S/wait-leaf.sh <name>
 ```
 
@@ -379,7 +379,7 @@ second shell ever parses it —
 
 ```
 rm -f .tdd/verdict-<phase>.exit .tdd/verdict-<phase>.pid
-VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-<phase> $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" <phase> … > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh verdict-<phase> $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" <phase> … > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err
 $S/wait-leaf.sh verdict-<phase>
 ```
 
@@ -1250,7 +1250,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
 5. **Verify (blind, once) on the settled result.**
    ```
    rm -f .tdd/verdict-refactor.exit .tdd/verdict-refactor.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-refactor $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' refactor .tdd/issue-<n>-spec.md <test-path> <green-sha> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh verdict-refactor $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" --fast-cmd '<fast-cmd>' refactor .tdd/issue-<n>-spec.md <test-path> <green-sha> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err
    $S/wait-leaf.sh verdict-refactor  # foreground; on exit 3 call it again
    ```
    — one verdict on the final state (the **fast tier** plus the **affected suites** still
@@ -1495,10 +1495,10 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    git rev-parse HEAD               # → <pre-rebase-sha>
    $S/build-develop-prompt.sh rebase .tdd/issue-<n>-spec.md "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md || $S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' <onto-sha> <pre-rebase-sha> "<conflicting-files>" > .tdd/develop-rebase.prompt
    rm -f .tdd/develop-rebase.exit .tdd/develop-rebase.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-rebase $S/run-leaf.sh .tdd/develop-rebase.prompt --permission-mode bypassPermissions > .tdd/develop-rebase.out 2> .tdd/develop-rebase.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh develop-rebase $S/run-leaf.sh .tdd/develop-rebase.prompt --permission-mode bypassPermissions > .tdd/develop-rebase.out 2> .tdd/develop-rebase.err
    $S/wait-leaf.sh develop-rebase   # foreground; on exit 3 call it again
    rm -f .tdd/verdict-rebase.exit .tdd/verdict-rebase.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-rebase $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" rebase .tdd/issue-<n>-spec.md <onto-sha> <pre-rebase-sha> > .tdd/verify-rebase.reason 2> .tdd/verify-rebase.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh verdict-rebase $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" rebase .tdd/issue-<n>-spec.md <onto-sha> <pre-rebase-sha> > .tdd/verify-rebase.reason 2> .tdd/verify-rebase.err
    $S/wait-leaf.sh verdict-rebase   # foreground; on exit 3 call it again
    ```
    A verify-rebase `REJECT` goes round *Revising on a REJECT* with phase `rebase`, within
@@ -1758,7 +1758,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    ```
    $S/build-develop-prompt.sh revise <phase> .tdd/issue-<n>-spec.md "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md || $S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' .tdd/verify-<phase>.reason '<fast-cmd>' > .tdd/revise-<phase>-<k>.prompt
    rm -f .tdd/revise-<phase>-<k>.exit .tdd/revise-<phase>-<k>.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh revise-<phase>-<k> $S/run-leaf.sh .tdd/revise-<phase>-<k>.prompt --permission-mode bypassPermissions > .tdd/revise-<phase>-<k>.out 2> .tdd/revise-<phase>-<k>.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh revise-<phase>-<k> $S/run-leaf.sh .tdd/revise-<phase>-<k>.prompt --permission-mode bypassPermissions > .tdd/revise-<phase>-<k>.out 2> .tdd/revise-<phase>-<k>.err
    $S/wait-leaf.sh revise-<phase>-<k>   # foreground; on exit 3 call it again
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — red or green only — see *The step's cost check*
    ```
@@ -1797,7 +1797,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
 4. **Re-verify (blind, same phase).**
    ```
    rm -f .tdd/verdict-<phase>.exit .tdd/verdict-<phase>.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-<phase> $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' <phase> .tdd/issue-<n>-spec.md <test-path> [target] > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh verdict-<phase> $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" --fast-cmd '<fast-cmd>' <phase> .tdd/issue-<n>-spec.md <test-path> [target] > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err
    $S/wait-leaf.sh verdict-<phase>      # foreground; on exit 3 call it again
    ```
    — overwriting the reason file, so attempt `k+1` carries the newest objection. The
@@ -1819,7 +1819,7 @@ yourself. The reason file the last re-verify overwrote is the whole of what it i
 ```
 $S/build-develop-prompt.sh exhausted .tdd/issue-<n>-spec.md "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md || $S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' .tdd/verify-<phase>.reason > .tdd/develop-exhausted.prompt
 rm -f .tdd/develop-exhausted.exit .tdd/develop-exhausted.pid
-VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-exhausted $S/run-leaf.sh .tdd/develop-exhausted.prompt --permission-mode bypassPermissions > .tdd/develop-exhausted.out 2> .tdd/develop-exhausted.err
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh develop-exhausted $S/run-leaf.sh .tdd/develop-exhausted.prompt --permission-mode bypassPermissions > .tdd/develop-exhausted.out 2> .tdd/develop-exhausted.err
 $S/wait-leaf.sh develop-exhausted   # foreground; on exit 3 call it again
 ```
 
@@ -1897,7 +1897,7 @@ supervisor** like every other:
 cp .tdd/issue-<n>.md .tdd/reconcile-ledger.before
 $S/build-develop-prompt.sh reconcile .tdd/issue-<n>-spec.md "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md || $S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' <branch> <remote-sha> > .tdd/develop-reconcile.prompt
 rm -f .tdd/develop-reconcile.exit .tdd/develop-reconcile.pid
-VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-reconcile $S/run-leaf.sh .tdd/develop-reconcile.prompt --permission-mode bypassPermissions > .tdd/develop-reconcile.out 2> .tdd/develop-reconcile.err
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh develop-reconcile $S/run-leaf.sh .tdd/develop-reconcile.prompt --permission-mode bypassPermissions > .tdd/develop-reconcile.out 2> .tdd/develop-reconcile.err
 $S/wait-leaf.sh develop-reconcile   # foreground; on exit 3 call it again
 ```
 
