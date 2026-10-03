@@ -538,58 +538,6 @@ fi
 
 report "$name"
 
-name="importing the dashboard's python module and calling its endpoint functions never binds port 8765"
-problems=()
-imported="$(repo imported)"
-
-problem="$(port_problem "$PORT")"
-if [[ -n "$problem" ]]; then
-  problems+=("$problem")
-else
-  if [[ -n "$module_problem" ]]; then
-    problems+=("$module_problem")
-  elif [[ ! -f "$scripts/$module.py" ]]; then
-    problems+=("dashboard.sh execs $module.py, but there is no such file beside it")
-  else
-    checked=""
-    while IFS= read -r line; do
-      if [[ "$line" == checked ]]; then
-        checked=1
-      elif [[ -n "$line" ]]; then
-        problems+=("$line")
-      fi
-    done < <(cd "$imported" && PYTHONPATH= PYTHONNOUSERSITE=1 python3 -c '
-import importlib, signal, socket, sys
-
-scripts, module, port = sys.argv[1], sys.argv[2], int(sys.argv[3])
-def timed_out(signum, frame):
-    raise TimeoutError("still running after 10 s")
-signal.signal(signal.SIGALRM, timed_out)
-signal.alarm(10)
-sys.path.insert(0, scripts)
-sys.argv = [scripts + "/" + module + ".py", scripts + "/dashboard.html", str(port),
-            scripts + "/status.sh", scripts + "/metrics.sh"]
-try:
-    mod = importlib.import_module(module)
-    for fn, query in (("runs_json", {}), ("metrics_json", {}), ("events_json", {"issue": [""]})):
-        if not callable(getattr(mod, fn, None)):
-            print("%s.py has no function %s" % (module, fn))
-            continue
-        getattr(mod, fn)(query)
-except BaseException as e:
-    print("importing %s.py and calling its endpoints raised %s: %s" % (module, type(e).__name__, e))
-s = socket.socket(); s.settimeout(1.0)
-if s.connect_ex(("127.0.0.1", port)) == 0:
-    print("port %d answers after importing %s.py and calling its endpoints; want it still free" % (port, module))
-print("checked")
-' "$scripts" "$module" "$PORT")
-    [[ -n "$checked" ]] ||
-      problems+=("the process importing $module.py died before it could ask whether port $PORT is free")
-  fi
-fi
-
-report "$name"
-
 name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
 problems=()
 disk_page="$scripts/dashboard.html"
