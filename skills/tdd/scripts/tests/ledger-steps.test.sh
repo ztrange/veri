@@ -78,4 +78,16 @@ got="$("$STEPS" criterion 2 < "$work/no-eol.md" 2> "$work/err")"; code=$?
 { [[ "$code" == 0 ]] && [[ "$got" == 'last criterion, no final newline' ]] && [[ ! -s "$work/err" ]]; } \
   && ok || no "criterion <k> reads the last criterion of a body with no final newline (code=$code got='$got' stderr='$(cat "$work/err")')"
 
+bad_args() {
+  local label="$1" input="$2"; shift 2
+  "$STEPS" "$@" < "$input" > "$work/bad-out" 2> "$work/bad-err"; local code=$?
+  local err; err="$(cat "$work/bad-err")"
+  [[ "$code" == 2 ]] && [[ ! -s "$work/bad-out" ]] && [[ "$err" == *[Uu]sage:*ledger-steps.sh* ]] \
+    || printf '%s: code=%s out=%s stderr=%s\n' "$label" "$code" "$(head -c 80 "$work/bad-out")" "$err"
+}
+bad="$(bad_args unknown "$work/kinds.md" bogus; bad_args missing "$work/body.md" criterion; bad_args non-integer "$work/body.md" criterion two)"
+[[ -z "$bad" ]] \
+  && ok || no "an unknown verb, or criterion with a missing or non-integer <k>, prints a usage line on stderr and exits 2
+$(printf '%s\n' "$bad" | sed 's/^/    /')"
+
 finish

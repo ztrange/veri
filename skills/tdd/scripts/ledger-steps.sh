@@ -14,6 +14,8 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/exit-contract.sh"
 source "$HERE/lib/ledger.sh"
 
+USAGE="usage: ledger-steps.sh [current|last-done|criterion <k>]"
+
 TEXT=$'\t[^\t]*\t[^\t]*\t(.*)$'
 
 current() {
@@ -61,6 +63,7 @@ criterion() {
 case "${1:-}" in
   current) current ;;
   last-done) last_done ;;
-  criterion) criterion "$2" ;;
-  *) ledger_steps ;;
+  criterion) [[ "${2:-}" =~ ^[0-9]+$ ]] || refuse; criterion "$2" ;;
+  '') ledger_steps ;;
+  *) refuse ;;
 esac
