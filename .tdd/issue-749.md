@@ -8,5 +8,5 @@
 - [x] the lib-copy guard also names a `cp` or `ln` whose source reaches an individual file of the scripts `lib/` directory by a relative path rather than the literal `skills/tdd/scripts/lib/` — `$HERE/../lib/<name>.sh`, `$(dirname "$X")/lib/<name>.sh`, `$SCRIPTS/lib/<name>.sh` — while a copy of a tests/lib file such as `$HERE/lib/harness.sh` is not named — shown on a planted scratch directory ⟦added⟧ ⟦criterion 1⟧
 - [x] the real tree passes the guard: every site in the issue's table, and the tests/lib copy helper, copies `skills/tdd/scripts/lib/*.sh` (or the whole `lib/` dir) in place of its hand-picked list; count-line-guard.test.sh's two deliberate absences are kept by `rm` after the copy; every stub lib is written after the copy ⟦criterion 1⟧
 - [x] no assertion changes outside scratch-copy-libs.test.sh: every edited line in another suite or helper is a `cp`/`ln`/`mkdir`/`rm` fixture line or a stub heredoc ⟦diff-checked⟧ ⟦criterion 2⟧
-- [ ] scratch-copy-libs.test.sh stays in the unit tier: its source starts no git, network, server, `sleep` or nested suite ⟦diff-checked⟧ ⟦criterion 5⟧
+- [x] scratch-copy-libs.test.sh stays in the unit tier: its source starts no git, network, server, `sleep` or nested suite ⟦diff-checked⟧ ⟦criterion 5⟧
 - [ ] make test is green ⟦full-suite⟧ ⟦criterion 6⟧
