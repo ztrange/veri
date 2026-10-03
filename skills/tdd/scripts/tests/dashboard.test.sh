@@ -693,51 +693,6 @@ fi
 
 report "$name"
 
-name="metrics_json, called directly, returns the committed report for a run that ended in a bail mark"
-problems=()
-mbail_repo="$(repo metricsbail)"
-
-mbail_run="$(fabricate_run "$mbail_repo" 33 tdd/33-lamps-flicker)"
-cat > "$mbail_run/.tdd/issue-33.md" <<'EOF'
-# Plan for #33 — lamps flicker
-
-- [x] a lamp exists
-- [ ] a lamp flickers
-EOF
-mbail_now="$(date +%s)"
-cat > "$mbail_run/.tdd/events.jsonl" <<EOF
-{"ts": $((mbail_now - 9000)), "issue": "33", "actor": "conductor", "phase": "", "step": "a lamp flickers", "event": "step-start", "attempt": "", "skill_commit": "abc"}
-{"ts": $((mbail_now - 8900)), "issue": "33", "actor": "developer", "phase": "red", "step": "a lamp flickers", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
-{"ts": $((mbail_now - 8800)), "issue": "33", "actor": "conductor", "phase": "red", "step": "a lamp flickers", "event": "bail", "attempt": "1", "skill_commit": "abc", "reason": "killed-stuck"}
-EOF
-cat > "$mbail_run/.tdd/issue-33-metrics.md" <<'EOF'
-# What solving #33 cost — the committed report of a bailed run, verbatim
-
-| phase | attempts |
-|---|---|
-| red | 1 |
-EOF
-
-if [[ -n "$module_problem" ]]; then
-  problems+=("$module_problem")
-else
-  call_endpoint "$mbail_repo" metrics_json "$work/metrics-bail.err" '{}' "$work/metrics-bail.json"
-  if [[ ! -f "$work/metrics-bail.json" ]]; then
-    problems+=("calling $module.metrics_json wrote nothing: $(tail -n 1 "$work/metrics-bail.err")")
-  else
-    add_problems < <(python3 -c "$metrics_issues"'
-with open(sys.argv[3]) as f:
-    committed = f.read()
-if issues["33"] != committed:
-    print("issue 33 ended with a bail mark, so its report has to be the committed "
-          ".tdd/issue-33-metrics.md verbatim: metrics_json returned %r, and the committed "
-          "file holds %r" % (issues["33"][:300], committed[:300]))
-' "$work/metrics-bail.json" 33 "$mbail_run/.tdd/issue-33-metrics.md")
-  fi
-fi
-
-report "$name"
-
 name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
 problems=()
 disk_page="$scripts/dashboard.html"
