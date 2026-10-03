@@ -25,7 +25,7 @@ declare -A COUNTER_EXEMPT=(
 tree_grep() {
   local dir="$1"
   shift
-  (cd "$dir" && shopt -s nullglob && grep -nE "$@" ./*.sh ./unit/*.sh) \
+  (cd "$dir" && shopt -s nullglob && grep -HnE "$@" ./*.sh ./unit/*.sh) \
     | grep -v '^\./unit/harness\.test\.sh:'
 }
 
@@ -58,7 +58,7 @@ scaffolding_hits() {
   counter_hits "$1"
 }
 
-HOISTED=(win window windows plain section_end)
+HOISTED=(win window windows plain section_end frontmatter_name)
 
 hoisted_copy_hits() {
   local names hits hit file rest def
@@ -212,6 +212,14 @@ got="$(hoisted_copy_hits "$plant" 2>&1)"
 expect_eq "$name" \
   "$(printf '    %s\n' 'a.test.sh:2 defines section_end()' 'unit/b.test.sh:3 defines section_end()')" \
   "$got"
+
+name="#704: a suite that defines frontmatter_name is named by <suite>:<line>"
+plant="$(scratch_dir)"
+mkdir -p "$plant/lib"
+printf '%s\n' '#!/usr/bin/env bash' 'frontmatter_name() {' '  echo x' '}' > "$plant/a.test.sh"
+printf '%s\n' 'frontmatter_name() { :; }' > "$plant/lib/frontmatter-name.sh"
+got="$(hoisted_copy_hits "$plant" 2>&1)"
+expect_eq "$name" "    a.test.sh:2 defines frontmatter_name()" "$got"
 
 name="#704: no suite under tests/ or tests/unit/ defines its own copy of a helper hoisted into tests/lib/"
 problems="$(hoisted_copy_hits "$TESTS")"
