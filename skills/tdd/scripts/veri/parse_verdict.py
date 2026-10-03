@@ -36,8 +36,8 @@ def first_token(text):
     return re.split(f"[{SPACE}]", text, maxsplit=1)[0]
 
 
-def inline_reason(tail):
-    inline = tail[len(first_token(tail)):].lstrip(SPACE)
+def inline_reason(tail, token):
+    inline = tail[len(token):].lstrip(SPACE)
     for sep in ("—", "–", "-", ":"):
         inline = inline.removeprefix(sep)
     return inline.lstrip(SPACE)
@@ -66,11 +66,12 @@ def main(argv):
         print("parse-verdict: no VERDICT: line found", file=sys.stderr)
         return 2
     tail = VERDICT_RE.match(lines[vidx]).group(1)
-    word = first_token(tail).translate(UPPER)
+    token = first_token(tail)
+    word = token.translate(UPPER)
     if word not in CODES:
         print(f"parse-verdict: unrecognised verdict word '{word}'", file=sys.stderr)
         return 2
-    reason = following_reason(lines[vidx + 1:]).rstrip(SPACE) or inline_reason(tail)
+    reason = following_reason(lines[vidx + 1:]).rstrip(SPACE) or inline_reason(tail, token)
     print(drop_closing_fence(reason.strip(SPACE)))
     return CODES[word]
 
