@@ -112,3 +112,35 @@ def test_main_counts_a_usage_event_with_an_absent_or_empty_cost_as_a_zero_cost_l
         observed[arg] = (code, out)
 
     assert observed == expected
+
+
+@pytest.mark.parametrize("log, expected", [
+    (r'{"ts": 1, "issue": "521", "actor": "developer", "phase": "red", "step": "cost a step \u2014 its title \u27e6criterion 1\u27e7", "event": "usage", "total_cost_usd": "0.30"}' '\n'
+     r'{"ts": 2, "issue": "521", "actor": "verifier", "phase": "red", "step": "cost a step \u2014 its title \u27e6criterion 1\u27e7", "event": "usage", "total_cost_usd": "0.12"}' '\n'
+     r'{"ts": 3, "issue": "521", "actor": "developer", "phase": "red", "step": "step two", "event": "usage", "total_cost_usd": "1.0"}' '\n',
+     {"--steps": (0, "0.42 2\n1.00 1\n"), "cost a step — its title ⟦criterion 1⟧": (0, "0.42\n")}),
+    (r'{"ts": 1, "issue": "620", "actor": "developer", "phase": "red", "step": "prints \"ok\" on success", "event": "usage", "total_cost_usd": "0.30"}' '\n'
+     r'{"ts": 2, "issue": "620", "actor": "verifier", "phase": "red", "step": "prints \"ok\" on success", "event": "usage", "total_cost_usd": "0.20"}' '\n'
+     r'{"ts": 3, "issue": "620", "actor": "developer", "phase": "red", "step": "step two", "event": "usage", "total_cost_usd": "1.0"}' '\n',
+     {'prints "ok" on success': (0, "0.50\n")}),
+    (r'{"ts": 1, "issue": "620", "actor": "developer", "phase": "red", "step": "a \\\"quoted\\\" path", "event": "usage", "total_cost_usd": "0.25"}' '\n'
+     r'{"ts": 2, "issue": "620", "actor": "verifier", "phase": "red", "step": "a \\\"quoted\\\" path", "event": "usage", "total_cost_usd": "0.10"}' '\n'
+     r'{"ts": 3, "issue": "620", "actor": "developer", "phase": "red", "step": "step two", "event": "usage", "total_cost_usd": "1.0"}' '\n',
+     {r'a \"quoted\" path': (0, "0.35\n")}),
+    (r'{"ts": 1, "issue": "620", "actor": "developer", "phase": "red", "step": "ends in a backslash \\", "event": "usage", "total_cost_usd": "0.40"}' '\n'
+     r'{"ts": 2, "issue": "620", "actor": "verifier", "phase": "red", "step": "ends in a backslash \\", "event": "usage", "total_cost_usd": "0.15"}' '\n'
+     r'{"ts": 3, "issue": "620", "actor": "developer", "phase": "red", "step": "step two", "event": "usage", "total_cost_usd": "1.0"}' '\n',
+     {"ends in a backslash \\": (0, "0.55\n")}),
+], ids=["em-dash-and-criterion-brackets", "double-quote", "backslash-then-double-quote", "trailing-backslash"])
+def test_main_sums_a_step_title_carrying_an_em_dash_criterion_brackets_a_double_quote_or_a_backslash_to_its_usage_events_and_returns_0(log, expected, tmp_path, monkeypatch, capsys, step_cost):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text(log, encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+
+    observed = {}
+    for arg in expected:
+        code = step_cost.main([arg])
+        out, err = capsys.readouterr()
+        observed[arg] = (code, out)
+
+    assert observed == expected
