@@ -32,7 +32,6 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 source "$HERE/lib/harness.sh"
-source "$HERE/lib/count-line-guard-copy.sh"
 
 phony_rule() {
   awk -v t="$1:" '
@@ -100,10 +99,8 @@ scratch="$(scratch_dir)"
 fixture="$scratch/repo"
 mkdir -p "$scratch/bin" "$fixture/skills/tdd/scripts/tests/unit" "$fixture/skills/tdd/scripts/lib"
 cp "$ROOT/Makefile" "$fixture/Makefile"
-cp "$ROOT/skills/tdd/scripts/lib/watch.sh" "$fixture/skills/tdd/scripts/lib/watch.sh"
-copy_count_line_guard "$fixture"
+cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$fixture/skills/tdd/scripts/lib/"
 cp "$ROOT/skills/tdd/scripts/run-suite.sh" "$fixture/skills/tdd/scripts/"
-cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$fixture/skills/tdd/scripts/lib/"
 printf 'original\n' > "$fixture/tracked.txt"
 cat > "$fixture/skills/tdd/scripts/tests/unit/probe.test.sh" <<'SUITE'
 #!/bin/sh
@@ -169,10 +166,8 @@ fixture="$scratch/repo"
 real_make="$(command -v make)"
 mkdir -p "$scratch/bin" "$fixture/skills/tdd/scripts/tests/unit" "$fixture/skills/tdd/scripts/lib"
 cp "$ROOT/Makefile" "$fixture/Makefile"
-cp "$ROOT/skills/tdd/scripts/lib/watch.sh" "$fixture/skills/tdd/scripts/lib/watch.sh"
-copy_count_line_guard "$fixture"
+cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$fixture/skills/tdd/scripts/lib/"
 cp "$ROOT/skills/tdd/scripts/run-suite.sh" "$fixture/skills/tdd/scripts/"
-cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$fixture/skills/tdd/scripts/lib/"
 printf 'original\n' > "$fixture/tracked.txt"
 cat > "$fixture/skills/tdd/scripts/tests/unit/probe.test.sh" <<'SUITE'
 #!/bin/sh

@@ -22,7 +22,6 @@ UNIT_DIR='skills/tdd/scripts/tests/unit'
 
 
 source "$HERE/lib/harness.sh"
-source "$HERE/lib/count-line-guard-copy.sh"
 
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
@@ -237,9 +236,8 @@ problems=()
 tree="$(scratch_dir)"
 mkdir -p "$tree/$UNIT_DIR" "$tree/skills/tdd/scripts/lib"
 cp "$ROOT/Makefile" "$tree/Makefile"
-copy_count_line_guard "$tree"
+cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tree/skills/tdd/scripts/lib/"
 cp "$ROOT/skills/tdd/scripts/run-suite.sh" "$tree/skills/tdd/scripts/"
-cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/skills/tdd/scripts/lib/"
 cp -R "$ROOT/skills/tdd/scripts/tests/offline" "$ROOT/skills/tdd/scripts/tests/unit-guard" "$tree/skills/tdd/scripts/tests/"
 cp "$scratch/calls-real-vcs.test.sh" "$tree/$UNIT_DIR/calls-real-vcs.test.sh"
 
@@ -257,9 +255,8 @@ problems=()
 mixed="$(scratch_dir)"
 mkdir -p "$mixed/$UNIT_DIR" "$mixed/skills/tdd/scripts/lib"
 cp "$ROOT/Makefile" "$mixed/Makefile"
-copy_count_line_guard "$mixed"
+cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$mixed/skills/tdd/scripts/lib/"
 cp "$ROOT/skills/tdd/scripts/run-suite.sh" "$mixed/skills/tdd/scripts/"
-cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$mixed/skills/tdd/scripts/lib/"
 cp -R "$ROOT/skills/tdd/scripts/tests/offline" "$ROOT/skills/tdd/scripts/tests/unit-guard" "$mixed/skills/tdd/scripts/tests/"
 cp "$scratch/mocks-vcs.test.sh" "$mixed/$UNIT_DIR/mocks-vcs.test.sh"
 cp "$scratch/calls-real-vcs.test.sh" "$mixed/skills/tdd/scripts/tests/calls-real-vcs.test.sh"

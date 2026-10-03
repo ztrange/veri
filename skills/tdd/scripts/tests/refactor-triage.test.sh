@@ -283,7 +283,7 @@ problems=()
 tree="$(scratch_dir)"
 mkdir -p "$tree/lib"
 cp "$TRIAGE" "$tree/refactor-triage.sh"
-cp "$HERE/../lib/exit-contract.sh" "$tree/lib/exit-contract.sh"
+cp "$HERE/.."/lib/*.sh "$tree/lib/"
 asked="$tree/asked"
 : >"$asked"
 cat >"$tree/lib/candidate-line.sh" <<SPY

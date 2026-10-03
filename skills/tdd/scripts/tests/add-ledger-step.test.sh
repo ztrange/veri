@@ -39,7 +39,7 @@ seed() { printf '%s\n' "$seeded" > "$led"; }
 stub_script() {
   mkdir -p "$stub/lib"
   cp "$ADD" "$stub/add-ledger-step.sh"
-  cp "$(dirname "$ADD")/lib/exit-contract.sh" "$stub/lib/exit-contract.sh"
+  cp "$(dirname "$ADD")"/lib/*.sh "$stub/lib/"
 }
 
 seed

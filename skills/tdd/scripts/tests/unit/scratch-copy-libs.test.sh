@@ -22,8 +22,9 @@ needs_contract() {
 }
 
 read_vars() {
-  local line
+  local line cd_pwd='^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)="\$\(cd "(.*)" && pwd\)([^"]*)"[[:space:]]*$'
   while IFS= read -r line; do
+    [[ "$line" =~ $cd_pwd ]] && vars["${BASH_REMATCH[1]}"]="${BASH_REMATCH[2]}${BASH_REMATCH[3]}" && continue
     [[ "$line" =~ ^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=[\'\"]?([^\'\"]*)[\'\"]?[[:space:]]*$ ]] \
       && vars["${BASH_REMATCH[1]}"]="${BASH_REMATCH[2]}"
   done < "$1"
@@ -51,7 +52,7 @@ names_script_lib() {
 }
 
 lib_copy_hits() {
-  local dir="$1" suite line n copy='(^|[[:space:];&|(`{])(cp|ln)[[:space:]]'
+  local dir="$1" suite line n before quotes copy='(^|[[:space:];&|(`{])(cp|ln)[[:space:]]'
   for suite in "$dir"/*.test.sh "$dir"/unit/*.test.sh "$dir"/lib/*.sh; do
     [[ -f "$suite" ]] || continue
     local -A vars=()
@@ -60,7 +61,10 @@ lib_copy_hits() {
     while IFS= read -r line; do
       n=$((n + 1))
       [[ "$line" =~ $copy ]] || continue
-      names_script_lib "$(expand "$line")" || continue
+      before="${line%%"${BASH_REMATCH[0]}"*}"
+      quotes="${before//[^\']/}"
+      (( ${#quotes} % 2 == 0 )) || continue
+      names_script_lib "$(expand "${line#"$before"}")" || continue
       printf '    %s:%s copies an individual lib file\n' "${suite#"$dir"/}" "$n"
     done < "$suite"
   done
@@ -171,5 +175,26 @@ printf '%s\n' '#!/usr/bin/env bash' \
   'ln -s "$SCRIPTS/lib/exit-contract.sh" "$tree/lib/"' \
   'cp "$HERE/lib/harness.sh" "$tree/tests/lib/"' > "$plant/h.test.sh"
 expect_hits "$plant" h.test.sh:2 h.test.sh:3 h.test.sh:4
+
+name="#749: the lib-copy guard names a cp of an individual lib file whose variable is assigned \"\$(cd \"<dir>\" && pwd)/<name>.sh\""
+plant="$(scratch_dir)"
+mkdir -p "$plant/lib"
+printf '%s\n' '#!/usr/bin/env bash' \
+  'ONE_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../lib" && pwd)/exit-contract.sh"' \
+  'cp "$ONE_LIB" "$1/skills/tdd/scripts/lib/"' > "$plant/lib/copy-via-cd.sh"
+expect_hits "$plant" lib/copy-via-cd.sh:3
+
+name="#749: the lib-copy guard reads only a cp's own arguments, never a lib named earlier on its line or a cp inside a single-quoted string"
+plant="$(scratch_dir)"
+printf '%s\n' '#!/usr/bin/env bash' \
+  'LIB="$ROOT/skills/tdd/scripts/lib/background.sh"' \
+  '( source "$LIB" && cp "$record" "$kept" )' \
+  "cp_line='  cp \"\$ROOT/skills/tdd/scripts/lib/exit-contract.sh\" \"\$tree/lib/\"'" \
+  "  'cp \"\$ROOT/skills/tdd/scripts/lib/exit-contract.sh\" \"\$tree/lib/\"' > \"\$plant/x.test.sh\"" \
+  'source "$LIB"; cp "$LIB" "$tree/lib/"' > "$plant/i.test.sh"
+expect_hits "$plant" i.test.sh:6
+
+name="#749: the real tree passes the lib-copy guard: no suite or tests/lib helper copies an individual lib file"
+expect_eq "$name" "" "$(lib_copy_hits "$TESTS" 2>&1)"
 
 finish

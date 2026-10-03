@@ -21,7 +21,6 @@ PY_DIR='skills/tdd/scripts/tests/py'
 
 
 source "$HERE/lib/harness.sh"
-source "$HERE/lib/count-line-guard-copy.sh"
 
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
@@ -58,10 +57,8 @@ check_refused() {
 make_tree() {
   mkdir -p "$1/$PY_DIR" "$1/skills/tdd/scripts/lib"
   cp "$ROOT/Makefile" "$1/Makefile"
-  copy_count_line_guard "$1"
+  cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$1/skills/tdd/scripts/lib/"
   cp "$ROOT/skills/tdd/scripts/run-suite.sh" "$1/skills/tdd/scripts/"
-  cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$1/skills/tdd/scripts/lib/"
-  cp "$ROOT/skills/tdd/scripts/lib/venv-python.sh" "$1/skills/tdd/scripts/lib/"
   ln -s "$HERE/offline" "$1/skills/tdd/scripts/tests/offline"
   ln -s "$HERE/unit-guard" "$1/skills/tdd/scripts/tests/unit-guard"
 }
@@ -246,8 +243,8 @@ report "$name"
 
 install="$work/install"
 mkdir -p "$install/bin" "$install/skills/tdd/scripts/lib"
+cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$install/skills/tdd/scripts/lib/"
 cp "$ROOT/Makefile" "$ROOT/requirements-dev.txt" "$install/"
-cp "$ROOT/skills/tdd/scripts/lib/venv-python.sh" "$install/skills/tdd/scripts/lib/"
 cat > "$install/bin/python3" <<SH
 #!/bin/sh
 echo "\$0 \$*" >> "$install/calls"
