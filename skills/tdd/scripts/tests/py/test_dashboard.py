@@ -810,3 +810,58 @@ def test_get_api_chatter_answers_the_empty_rendering_for_run_63_on_no_leaf_and_r
     assert json.loads(body(noleaf_chatter)) == {"chatter": ""}
     assert json.loads(body(nolog_chatter)) == {"chatter": ""}
     assert fed == []
+
+
+def test_get_api_chatter_for_run_55_twice_hands_the_renderer_develop_red_out_then_develop_green_out_after_its_launch(
+        tmp_path, monkeypatch, dashboard):
+    run = os.path.join(str(tmp_path), ".tdd", "wt", "55")
+    write(os.path.join(run, ".tdd", "issue-55.md"), "# Plan for #55 — lamps dim\n\n- [ ] a lamp dims\n")
+    red = [
+        {"type": "system", "subtype": "init", "session_id": "s1", "tools": ["Bash"]},
+        {"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "text", "text": "Adding the case that pins the dimming."}]}},
+    ]
+    green = [
+        {"type": "system", "subtype": "init", "session_id": "s2", "tools": ["Bash"]},
+        {"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "text", "text": "Making the dimming case pass."}]}},
+    ]
+    red_log = "".join(json.dumps(record) + "\n" for record in red)
+    green_log = "".join(json.dumps(record) + "\n" for record in green)
+    write(os.path.join(run, ".tdd", "develop-red.out"), red_log)
+    write(os.path.join(run, ".tdd", "develop-green.out"), green_log)
+    log = os.path.join(run, ".tdd", "events.jsonl")
+    events = [{"ts": 1000, "issue": "55", "actor": "conductor", "phase": "", "step": "a lamp dims",
+               "event": "step-start", "attempt": "", "skill_commit": "abc"},
+              {"ts": 1010, "issue": "55", "actor": "developer", "phase": "red", "step": "a lamp dims",
+               "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}]
+    write(log, "".join(json.dumps(event) + "\n" for event in events))
+    fed = []
+
+    def fake_run(args, cwd=None, input=None, **kwargs):
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
+        if list(args) == [os.path.join(SCRIPTS, "render-leaf-log.sh")]:
+            fed.append(input)
+            return subprocess.CompletedProcess(args, 0, b"rendered %d\n" % len(fed), b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    def requests():
+        yield "/api/chatter?issue=55"
+        with open(log, "a") as f:
+            f.write(json.dumps({"ts": 1300, "issue": "55", "actor": "developer", "phase": "green",
+                                "step": "a lamp dims", "event": "launch", "attempt": "1",
+                                "skill_commit": "abc", "name": "develop-green"}) + "\n")
+        yield "/api/chatter?issue=55"
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, requests())
+
+    dashboard.main([])
+
+    (first, second) = served[0][1]
+    assert fed == [red_log.encode(), green_log.encode()]
+    assert json.loads(body(first)) == {"chatter": "rendered 1\n"}
+    assert json.loads(body(second)) == {"chatter": "rendered 2\n"}
