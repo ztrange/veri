@@ -118,3 +118,28 @@ def test_main_returns_2_with_nothing_on_stdout_when_gh_api_exits_non_zero_with_a
         ["gh", "issue", "view", "7", "--json", "labels", "-q", ".labels[].name"],
         ["gh", "api", "repos/{owner}/{repo}/issues/7"],
     ]
+
+
+PLAIN_BODY = """## What to build
+
+tick-ledger.sh grows a `--dry-run` flag.
+
+## Acceptance criteria
+
+- [ ] `--dry-run` prints the tick it would make and writes nothing
+"""
+
+
+def test_main_appends_no_bug_section_for_an_unlabelled_issue_and_a_refactor_section_for_a_refactor_labelled_one(monkeypatch, capsys, capture_spec):
+    fake_gh(monkeypatch, "", PLAIN_BODY)
+    code = capture_spec.main(["113"])
+    captured = capsys.readouterr()
+    assert (code, captured.out, captured.err) == (0, PLAIN_BODY, "")
+
+    fake_gh(monkeypatch, "refactor\n", PLAIN_BODY)
+    code = capture_spec.main(["499"])
+    captured = capsys.readouterr()
+    assert (code, captured.out, captured.err) == (0, PLAIN_BODY + (
+        "\n## Refactor\n"
+        "\nRun kind: refactor. This issue changes structure, not behaviour.\n"
+    ), "")
