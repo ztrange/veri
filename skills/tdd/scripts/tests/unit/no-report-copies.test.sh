@@ -58,7 +58,7 @@ scaffolding_hits() {
   counter_hits "$1"
 }
 
-HOISTED=(win window windows plain)
+HOISTED=(win window windows plain section_end)
 
 hoisted_copy_hits() {
   local names hits hit file rest def
@@ -199,6 +199,18 @@ printf '%s\n' 'plain() { :; }' > "$plant/lib/plain.sh"
 got="$(hoisted_copy_hits "$plant" 2>&1)"
 expect_eq "$name" \
   "$(printf '    %s\n' 'record-helpers.sh:2 defines plain()' 'unit/a.test.sh:3 defines plain()')" \
+  "$got"
+
+name="#704: a suite under tests/ or tests/unit/ that defines section_end is named by <suite>:<line>"
+plant="$(scratch_dir)"
+mkdir -p "$plant/unit" "$plant/lib"
+printf '%s\n' '#!/usr/bin/env bash' 'section_end() {' '  echo 1' '}' > "$plant/a.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'x=1' '  function section_end() { :; }' > "$plant/unit/b.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'end="$(section_end "$f" 3)"' > "$plant/c.test.sh"
+printf '%s\n' 'section_end() { :; }' > "$plant/lib/section-end.sh"
+got="$(hoisted_copy_hits "$plant" 2>&1)"
+expect_eq "$name" \
+  "$(printf '    %s\n' 'a.test.sh:2 defines section_end()' 'unit/b.test.sh:3 defines section_end()')" \
   "$got"
 
 name="#704: no suite under tests/ or tests/unit/ defines its own copy of a helper hoisted into tests/lib/"
