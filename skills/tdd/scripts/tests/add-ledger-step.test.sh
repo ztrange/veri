@@ -411,4 +411,14 @@ else
   no "#697: a position word other than after, before or instead-of exits 2 and stderr names it (code=$code, err=$err)"
 fi
 
+seed
+cp "$led" "$work/before.md"
+VERI_STEP_GROWTH=0 "$ADD" "$led" afterr 'collapse to single hyphen' 'collapse a unicode dash too' 2> /dev/null; code=$?
+if cmp -s "$work/before.md" "$led"; then
+  ok
+else
+  no "#697: an unknown position word leaves the ledger byte-identical, with no ## Owed steps bullet, even over VERI_STEP_GROWTH (code=$code)"
+  diff "$work/before.md" "$led" | sed 's/^/    /'
+fi
+
 finish
