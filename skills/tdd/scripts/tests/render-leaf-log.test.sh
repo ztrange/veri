@@ -51,4 +51,14 @@ if [[ "$rc" -eq 2 ]]; then ok; else
   echo "    expected exit 2, got $rc"
 fi
 
+work="$(scratch_dir)"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+mkdir -p "$work/elsewhere"
+in_place="$("$RENDER" < "$FIXTURES/leaf.out" 2>&1)"; in_place_code=$?
+linked="$(cd "$work/elsewhere" && "$work/linked-skill/scripts/render-leaf-log.sh" < "$FIXTURES/leaf.out" 2>&1)"; linked_code=$?
+if [[ "$linked" == "$in_place" && "$linked_code" -eq "$in_place_code" && "$in_place" == *"> Bash: make test"* ]]; then ok; else
+  no "render-leaf-log.sh run through a symlink to the skill directory and from another working directory renders as it does when run in place"
+  diff <(printf '%s\nexit %s\n' "$in_place" "$in_place_code") <(printf '%s\nexit %s\n' "$linked" "$linked_code")
+fi
+
 finish
