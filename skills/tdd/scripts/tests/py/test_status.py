@@ -29,13 +29,15 @@ def write_events(path, events):
     path.write_text("".join(json.dumps(event) + "\n" for event in events))
 
 
-def fake_git(monkeypatch, main_tree, branches=None, solvable=None):
-    """subprocess.run answering `git worktree list` with <main_tree>, `symbolic-ref` from <branches>,
-    and solvable-issues.sh with <solvable>(scope) -> (exit code, stdout)."""
+def fake_git(monkeypatch, main_tree, branches=None, solvable=None, linked=None):
+    """subprocess.run answering `git worktree list` with <main_tree>, then <linked> when given,
+    `symbolic-ref` from <branches>, and solvable-issues.sh with <solvable>(scope) -> (exit code, stdout)."""
     def fake_run(args, **kwargs):
         code = 0
         if list(args[:3]) == ["git", "worktree", "list"]:
             stdout = "worktree %s\nHEAD abc\nbranch refs/heads/main\n\n" % main_tree
+            if linked is not None:
+                stdout += "worktree %s\nHEAD def\nbranch refs/heads/side\n\n" % linked
         elif "symbolic-ref" in args:
             stdout = branches[str(args[args.index("-C") + 1]).rstrip("/")] + "\n"
         elif solvable is not None and str(args[0]).endswith("/solvable-issues.sh"):
@@ -438,20 +440,9 @@ def test_main_resolves_the_main_working_tree_as_the_first_worktree_git_lists_as_
         (tree / ".tdd" / "wt" / issue / ".tdd").mkdir(parents=True)
         (tree / ".tdd" / "wt" / issue / ".tdd" / ("issue-%s.md" % issue)).write_text(
             "# Plan for #%s — %s\n\n- [ ] a step\n" % (issue, title))
-    branches = {str(main_tree / ".tdd" / "wt" / "5"): "tdd/5-main", str(linked / ".tdd" / "wt" / "7"): "tdd/7-linked"}
-
-    def fake_run(args, **kwargs):
-        if list(args) == ["git", "worktree", "list", "--porcelain"]:
-            stdout = ("worktree %s\nHEAD abc\nbranch refs/heads/main\n\n"
-                      "worktree %s\nHEAD def\nbranch refs/heads/side\n\n" % (main_tree, linked))
-        elif "symbolic-ref" in args:
-            stdout = branches[str(args[args.index("-C") + 1]).rstrip("/")] + "\n"
-        else:
-            raise AssertionError("unexpected command: %r" % (args,))
-        return subprocess.CompletedProcess(args, 0, stdout, "")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.delenv("VERI_LABEL", raising=False)
+    fake_git(monkeypatch, main_tree,
+             {str(main_tree / ".tdd" / "wt" / "5"): "tdd/5-main", str(linked / ".tdd" / "wt" / "7"): "tdd/7-linked"},
+             linked=linked)
     monkeypatch.chdir(linked)
 
     code = status.main([])
