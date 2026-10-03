@@ -449,6 +449,40 @@ rm -f "$owed_file" "$rendered"
 report "$name"
 
 
+name="list prints a structural candidate appended for a step whose refactor bounds include a non-test file exactly as it does with no bounds, in the same order"
+problems=()
+
+mixed_bounds='skills/tdd/scripts/refactor-owed.sh,skills/tdd/scripts/tests/refactor-owed.test.sh'
+unbounded="$(mktemp)"
+bounded="$(mktemp)"
+for owed_file in "$unbounded" "$bounded"; do
+  bounds=()
+  [[ "$owed_file" == "$bounded" ]] && bounds=("$mixed_bounds")
+  "$OWED" append "$owed_file" 'a first step that touched a script and its suite' "${bounds[@]}" <<'REPORT'
+CANDIDATES: structural | name the bounds walk once
+CANDIDATES: structural | fold the two awk passes into one
+REPORT
+  "$OWED" append "$owed_file" 'a second step that touched a script and its suite' "${bounds[@]}" <<'REPORT'
+CANDIDATES: structural | fold the two awk passes into one
+REPORT
+done
+
+listed_unbounded="$("$OWED" list "$unbounded" 2>/dev/null)" && code_unbounded=0 || code_unbounded=$?
+listed_bounded="$("$OWED" list "$bounded" 2>/dev/null)" && code=0 || code=$?
+
+want='fold the two awk passes into one
+name the bounds walk once'
+[[ "$code_unbounded" == 0 && "$listed_unbounded" == "$want" ]] ||
+  problems+=("with no bounds, list exited $code_unbounded and printed:" "$listed_unbounded" "want:" "$want")
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from list with bounds '$mixed_bounds', got $code")
+[[ "$listed_bounded" == "$listed_unbounded" ]] ||
+  problems+=("with bounds '$mixed_bounds', list printed:" "$listed_bounded" "with no bounds it printed:" "$listed_unbounded")
+
+rm -f "$unbounded" "$bounded"
+report "$name"
+
+
 name="#683 append records a test-only candidate as test_only_candidate answers it"
 problems=()
 
