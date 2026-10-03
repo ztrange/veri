@@ -52,4 +52,12 @@ none="$("$STEPS" current < "$work/none.md" 2>> "$work/err")"; none_code=$?
   && [[ "$none_code" == 3 ]] && [[ -z "$none" ]] && [[ ! -s "$work/err" ]]; } \
   && ok || no "current prints the first refactor-pending step, else the first open step-kind step, else exits 3 with no output (pending_code=$pending_code pending='$pending' open_code=$open_code open='$open' none_code=$none_code none='$none' stderr='$(cat "$work/err")')"
 
+printf '# Plan for #42\n\n- [ ] add lowercasing ⟦criterion 1⟧\n- [ ] `make test` is green ⟦full-suite⟧ ⟦criterion 2⟧\n' > "$work/undone.md"
+: > "$work/err"
+last="$("$STEPS" last-done < "$work/kinds.md" 2> "$work/err")"; last_code=$?
+undone="$("$STEPS" last-done < "$work/undone.md" 2>> "$work/err")"; undone_code=$?
+{ [[ "$last_code" == 0 ]] && [[ "$last" == 'tidy names ⟦added⟧ ⟦criterion 3⟧' ]] \
+  && [[ "$undone_code" == 3 ]] && [[ -z "$undone" ]] && [[ ! -s "$work/err" ]]; } \
+  && ok || no "last-done prints the last done step with ⟂ refactor pending cut, else exits 3 with no output (last_code=$last_code last='$last' undone_code=$undone_code undone='$undone' stderr='$(cat "$work/err")')"
+
 finish
