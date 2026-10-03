@@ -226,7 +226,7 @@ blind_args() {
   printf '%s' "${tail%% > .tdd/verify-*}"
 }
 
-ledger_read_re='cat \.tdd/issue-<n>\.md \| \$S/next-(unchecked|pending-refactor)\.sh'
+ledger_read_re='cat \.tdd/issue-<n>\.md \| \$S/(next-(unchecked|pending-refactor)\.sh|ledger-steps\.sh current)'
 ledger_step_re="\"\\\$\\($ledger_read_re( \\|\\| $ledger_read_re)?\\)\""
 blind_re="^(--step ($double_quoted_step|$ledger_step_re)( --fast-cmd '<fast-cmd>')? (red|green|refactor|pin|<phase>) $spec_re <test-path> (<target-test-id>|<green-sha>|<base-sha>|\[target\])|--step ($double_quoted_step|$ledger_step_re) rebase $spec_re <onto-sha> <pre-rebase-sha>|plan $spec_re \.tdd/issue-<n>\.md)$"
 
