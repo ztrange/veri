@@ -32,9 +32,9 @@ def value(line, key):
     return found.group(1) if found else ""
 
 
-def number(text):
+def cost(line):
     try:
-        return float(text)
+        return float(value(line, "total_cost_usd"))
     except ValueError:
         return 0.0
 
@@ -56,12 +56,12 @@ def report(step):
         dollars, leaves = {}, {}
         for line in usage:
             s = value(line, "step")
-            dollars[s] = dollars.get(s, 0.0) + number(value(line, "total_cost_usd"))
+            dollars[s] = dollars.get(s, 0.0) + cost(line)
             leaves[s] = leaves.get(s, 0) + 1
         for s in leaves:
             sys.stdout.write("%.2f %d\n" % (dollars[s], leaves[s]))
         return 0
-    sys.stdout.write("%.2f\n" % sum(number(value(line, "total_cost_usd")) for line in usage))
+    sys.stdout.write("%.2f\n" % sum(cost(line) for line in usage))
     return 0
 
 
