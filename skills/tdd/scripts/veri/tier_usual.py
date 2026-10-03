@@ -15,6 +15,6 @@ def main(argv):
                if line.get("event") == "test-run" and line.get("tier") == tier]
     window = sorted(seconds[-WINDOW:])
     middle = len(window) // 2
-    usual = (window[middle - 1] + window[middle]) / 2
+    usual = (window[middle - 1] + window[middle]) / 2 if len(window) % 2 == 0 else window[middle]
     print(usual)
     return 0
