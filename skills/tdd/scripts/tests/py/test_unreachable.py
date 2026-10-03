@@ -75,3 +75,43 @@ def test_main_lists_orphans_chained_orphans_and_tail_names_and_takes_only_bounde
         answers.append((code, capsys.readouterr().out))
 
     assert answers == [(0, "orphan-leaf.sh\norphan-top.sh\n"), (0, "leaf.sh\n"), (0, "leaf.sh\n")]
+
+
+def test_main_does_not_list_scripts_reached_from_a_procedure_file_a_recipe_or_a_hook_and_needs_no_hooks_or_lib_directory(tmp_path, capsys):
+    unreachable = importlib.import_module("veri.unreachable")
+    kinds = tmp_path / "kinds"
+    scripts = fixture_root(kinds)
+    (scripts / "lib").mkdir()
+    script(scripts / "helper.sh", "echo helped")
+    with (kinds / "skills" / "tdd" / "SKILL.md").open("a") as f:
+        f.write("\nEach leaf follows `WORKER.md`.\n")
+    (kinds / "skills" / "tdd" / "WORKER.md").write_text("# worker\n\nRun `$S/by-procedure.sh`.\n")
+    (kinds / "Makefile").write_text("test:\n\t@echo ok\n\ncheck:\n\tskills/tdd/scripts/by-make.sh\n")
+    script(scripts / "by-make.sh", '"$(dirname "$0")/chained-make.sh" "$@"')
+    script(scripts / "chained-make.sh", "echo chained")
+    (kinds / "docs" / "hooks" / "reference-transaction").write_text("#!/bin/sh\nskills/tdd/scripts/by-hook.sh\n")
+    script(scripts / "by-hook.sh", 'source "$(dirname "$0")/lib/via-lib.sh"')
+    (scripts / "lib" / "via-lib.sh").write_text('via_lib() { "$S/by-lib.sh"; }\n')
+    script(scripts / "by-procedure.sh", "echo procedure")
+    script(scripts / "by-lib.sh", "echo lib")
+    script(scripts / "orphan.sh", "echo alone")
+    no_hooks = tmp_path / "no-hooks"
+    scripts = fixture_root(no_hooks)
+    hook = no_hooks / "docs" / "hooks" / "reference-transaction"
+    hook.unlink()
+    hook.parent.rmdir()
+    script(scripts / "helper.sh", "echo helped")
+    script(scripts / "orphan.sh", "echo alone")
+    no_lib = tmp_path / "no-lib"
+    scripts = fixture_root(no_lib)
+    script(scripts / "helper.sh", '"$(dirname "$0")/lib.sh" "$@"')
+    script(scripts / "lib.sh", "echo lib")
+    script(scripts / "orphan.sh", "echo alone")
+
+    answers = []
+    for root in (kinds, no_hooks, no_lib):
+        code = unreachable.main([str(root)])
+        listing = capsys.readouterr()
+        answers.append((code, listing.out, listing.err))
+
+    assert answers == [(0, "orphan.sh\n", "")] * 3
