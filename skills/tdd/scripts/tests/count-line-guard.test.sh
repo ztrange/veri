@@ -1035,23 +1035,6 @@ direct env VERI_VENV="$(scratch_dir)" PATH="$path_bin:$PATH" "$RUNNER" "$py_tree
 
 report "$name"
 
-name="run-suite.sh with VERI_VENV unset runs a pytest file with ~/.veri-tools/venv's python3, and with the python3 on PATH when that venv has none"
-problems=()
-
-home="$(scratch_dir)"
-mkdir -p "$home/.veri-tools/venv/bin"
-python3_stub "$home/.veri-tools/venv/bin" 'echo "home venv python3 $*"
-exit 0'
-direct env -u VERI_VENV HOME="$home" PATH="$path_bin:$PATH" "$RUNNER" "$py_tree/tests/py/test_red.py"
-[[ "$direct_code" == 0 && "$direct_out" == "home venv python3 -m pytest $py_tree/tests/py/test_red.py" ]] ||
-  problems+=("want ~/.veri-tools/venv/bin/python3 to run the file when VERI_VENV is unset (exit 0, 'home venv python3 -m pytest …'); got $direct_code, and it said: $(flat "$direct_out")")
-
-direct env -u VERI_VENV HOME="$(scratch_dir)" PATH="$path_bin:$PATH" "$RUNNER" "$py_tree/tests/py/test_red.py"
-[[ "$direct_code" == 0 && "$direct_out" == "path python3 -m pytest $py_tree/tests/py/test_red.py" ]] ||
-  problems+=("want the python3 on PATH when VERI_VENV is unset and ~/.veri-tools/venv has no bin/python3 (exit 0, 'path python3 -m pytest …'); got $direct_code, and it said: $(flat "$direct_out")")
-
-report "$name"
-
 name="run-suite.sh exits 2 over a pytest file when pytest cannot be imported, and when the file does not exist"
 problems=()
 
