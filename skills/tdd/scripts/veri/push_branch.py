@@ -4,6 +4,7 @@ import subprocess
 import sys
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+USAGE = "usage: push-branch.sh [--force-with-lease=<branch>:<sha>]"
 
 
 def record(*fields):
@@ -11,6 +12,11 @@ def record(*fields):
 
 
 def main(argv):
+    if argv:
+        print("push-branch.sh: the only argument is --force-with-lease=<branch>:<sha>, "
+              f"got '{' '.join(argv)}'", file=sys.stderr)
+        print(USAGE, file=sys.stderr)
+        return 2
     retries = int(os.environ.get("VERI_PUSH_RETRIES", "3"))
     backoff = int(os.environ.get("VERI_PUSH_BACKOFF", "2"))
     attempt = 0

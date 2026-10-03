@@ -54,3 +54,18 @@ def test_main_with_one_retry_runs_a_failed_push_to_its_push_failed_event(monkeyp
     ]
     assert (code, captured.out, captured.err) == (
         0, "", "push-branch.sh: push failed after 2 attempts; the branch is not on the remote\n")
+
+
+def test_main_refuses_a_bogus_argument_with_its_usage_and_no_process(monkeypatch, capsys, push_branch):
+    calls = fake_processes(monkeypatch, lambda line: (0, ""))
+    monkeypatch.delenv("VERI_PUSH_RETRIES", raising=False)
+    monkeypatch.delenv("VERI_PUSH_BACKOFF", raising=False)
+
+    code = push_branch.main(["--bogus"])
+
+    captured = capsys.readouterr()
+    assert calls == []
+    assert (code, captured.out, captured.err) == (
+        2, "",
+        "push-branch.sh: the only argument is --force-with-lease=<branch>:<sha>, got '--bogus'\n"
+        "usage: push-branch.sh [--force-with-lease=<branch>:<sha>]\n")
