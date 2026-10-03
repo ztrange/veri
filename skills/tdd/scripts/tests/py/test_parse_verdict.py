@@ -107,3 +107,46 @@ def test_main_ignores_arguments_and_reads_only_a_line_starting_with_a_whitespace
         "word joined to a dash": (2, "", "parse-verdict: unrecognised verdict word 'PASS—REASON'\n"),
         "bare verdict": (2, "", "parse-verdict: unrecognised verdict word ''\n"),
     }
+
+
+def test_main_strips_reason_labels_inline_separators_and_one_closing_fence_with_ascii_whitespace_only(monkeypatch, capsys, parse_verdict):
+    inputs = {
+        "reason label stripped from the first line only": "VERDICT: REJECT\nREASON: first\nREASON: second",
+        "lowercase indented reason label": "VERDICT: PASS\n  reason: ok",
+        "following lines beat the inline text": "VERDICT: REJECT — inline\nfollowing",
+        "inline used when following lines are blank": "VERDICT: REJECT — inline\n   \n\t",
+        "inline used after an empty reason label": "VERDICT: REJECT : inline\nREASON:   ",
+        "each separator stripped once in order": "VERDICT: REJECT —–-: x",
+        "colon before dash strips only the colon": "VERDICT: REJECT :- x",
+        "em dash stripped at most once": "VERDICT: REJECT ——x",
+        "hyphen stripped at most once": "VERDICT: REJECT - -x",
+        "only the last fence dropped": "VERDICT: REJECT\nREASON: a\n```\nb\n~~~",
+        "two closing fences drop one": "VERDICT: REJECT\nREASON: a\n```\n  ```  ",
+        "fence with text kept": "VERDICT: PASS\nREASON: a\n``` x",
+        "no-break space not trimmed": "VERDICT: PASS\nREASON:  kept ",
+        "file separator not trimmed": "VERDICT: PASS\nREASON: \x1ckept\x1c",
+        "long s not upper-cased": "VERDICT: paſs",
+    }
+    results = {}
+    for name, text in inputs.items():
+        monkeypatch.setattr(sys, "stdin", io.StringIO(text))
+        code = parse_verdict.main([])
+        results[name] = (code, *capsys.readouterr())
+
+    assert results == {
+        "reason label stripped from the first line only": (1, "first\nREASON: second\n", ""),
+        "lowercase indented reason label": (0, "ok\n", ""),
+        "following lines beat the inline text": (1, "following\n", ""),
+        "inline used when following lines are blank": (1, "inline\n", ""),
+        "inline used after an empty reason label": (1, "inline\n", ""),
+        "each separator stripped once in order": (1, "x\n", ""),
+        "colon before dash strips only the colon": (1, "- x\n", ""),
+        "em dash stripped at most once": (1, "—x\n", ""),
+        "hyphen stripped at most once": (1, "-x\n", ""),
+        "only the last fence dropped": (1, "a\n```\nb\n", ""),
+        "two closing fences drop one": (1, "a\n```\n", ""),
+        "fence with text kept": (0, "a\n``` x\n", ""),
+        "no-break space not trimmed": (0, " kept \n", ""),
+        "file separator not trimmed": (0, "\x1ckept\x1c\n", ""),
+        "long s not upper-cased": (2, "", "parse-verdict: unrecognised verdict word 'PAſS'\n"),
+    }
