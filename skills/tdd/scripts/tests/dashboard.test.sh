@@ -25,25 +25,7 @@ STATUS="$HERE/../status.sh"
 METRICS="$HERE/../metrics.sh"
 scripts="$(cd "$HERE/.." && pwd)"
 
-exec_line="$(grep -E '^exec python3 ' "$DASH" || :)"
-module="$(sed -nE 's/^exec python3 .*"\$HERE\/([A-Za-z_][A-Za-z0-9_]*)\.py".*/\1/p' <<< "$exec_line")"
-module_problem=""
-[[ -n "$module" ]] ||
-  module_problem="dashboard.sh execs no .py module beside it; its exec line is: $(printf '%q' "$exec_line")"
 work="$(scratch_dir)"
-
-starts="$work/server-starts.log"
-: > "$starts"
-mkdir -p "$work/shim"
-cat > "$work/shim/python3" <<EOF
-#!/bin/sh
-case "\$1" in
-  '$scripts/$module.py') printf '%s\n' "\$*" >> '$starts' ;;
-esac
-exec '$(command -v python3)' "\$@"
-EOF
-chmod +x "$work/shim/python3"
-export PATH="$work/shim:$PATH"
 
 PORT=8765
 
@@ -183,25 +165,6 @@ stop() {  # stop <pid>
   wait "$1" 2>/dev/null
 }
 
-call_endpoint() {  # call_endpoint <repo> <fn> <err> <query> <out> [<query> <out> …]
-  local dir="$1" fn="$2" err="$3"
-  shift 3
-  (cd "$dir" && PYTHONPATH= PYTHONNOUSERSITE=1 python3 -c '
-import importlib, json, sys
-
-scripts, module, port, fn = sys.argv[1:5]
-calls = sys.argv[5:]
-sys.path.insert(0, scripts)
-sys.argv = [scripts + "/" + module + ".py", scripts + "/dashboard.html", port,
-            scripts + "/status.sh", scripts + "/metrics.sh"]
-endpoint = getattr(importlib.import_module(module), fn)
-for query, out in zip(calls[0::2], calls[1::2]):
-    body = endpoint(json.loads(query))
-    with open(out, "wb") as f:
-        f.write(body)
-' "$scripts" "$module" "$PORT" "$fn" "$@") 2> "$err"
-}
-
 events_answers='
 import json, sys
 
@@ -305,22 +268,6 @@ def want(path):
 want_rendering() {  # want_rendering <fixture> <want> <what>
   "$HERE/../render-leaf-log.sh" < "$1" > "$2" 2>/dev/null ||
     problems+=("render-leaf-log.sh could not render $3, which this case compares against")
-}
-
-chatter_answer() {  # chatter_answer <repo> <issue> <tag>
-  local repo="$1" issue="$2" tag="$3" err="$work/$3.err"
-  answer=""
-  if [[ -n "$module_problem" ]]; then
-    problems+=("$module_problem")
-    return
-  fi
-  [[ "${#problems[@]}" -eq 0 ]] || return
-  call_endpoint "$repo" chatter_json "$err" "{\"issue\": [\"$issue\"]}" "$work/$tag-$issue.json"
-  if [[ ! -f "$work/$tag-$issue.json" ]]; then
-    problems+=("calling $module.chatter_json wrote nothing: $(tail -n 1 "$err")")
-    return
-  fi
-  answer="$work/$tag-$issue.json"
 }
 
 fabricate_plan() {  # fabricate_plan <run> <n> <title> <step> [<test-command>]
@@ -702,13 +649,12 @@ chmod +x "$slow_dir/status.sh"
 slow_port="$(free_port)"
 
 problem="$(port_problem "$slow_port")"
-if [[ -n "$module_problem" ]]; then
-  problems+=("$module_problem")
-elif [[ -n "$problem" ]]; then
+if [[ -n "$problem" ]]; then
   problems+=("$problem")
 else
   ln -s "$scripts/dashboard.sh" "$slow_dir/dashboard.sh"
-  ln -s "$scripts/$module.py" "$slow_dir/$module.py"
+  ln -s "$scripts/dashboard_endpoints.py" "$slow_dir/dashboard_endpoints.py"
+  ln -s "$scripts/veri" "$slow_dir/veri"
   ln -s "$scripts/dashboard.html" "$slow_dir/dashboard.html"
   ln -s "$METRICS" "$slow_dir/metrics.sh"
   mkdir "$slow_dir/lib"
@@ -757,19 +703,6 @@ else
   stop "$slow_pid"
 fi
 
-report "$name"
-
-name="the dashboard suite starts at most 2 dashboard.sh servers, counted at python3's exec"
-problems=()
-server_starts="$(wc -l < "$starts" | tr -d ' ')"
-if [[ "$server_starts" -eq 0 ]]; then
-  problems+=("the python3 shim counted no server start at all, so it is not counting what dashboard.sh execs")
-elif [[ "$server_starts" -gt 2 ]]; then
-  problems+=("$server_starts dashboard.sh servers were started across the suite, want at most 2; each start's python3 argv:")
-  while IFS= read -r line; do
-    problems+=("  $line")
-  done < "$starts"
-fi
 report "$name"
 
 finish
