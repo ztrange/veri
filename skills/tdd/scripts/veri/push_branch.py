@@ -42,24 +42,30 @@ def number(value):
     return int(value, 8) if value.startswith("0") else int(value)
 
 
+def tunable(name, default):
+    value = os.environ.get(name) or default
+    if not re.fullmatch(r"[0-9]+", value):
+        print(f"push-branch.sh: {name} must be a non-negative integer, got '{value}'",
+              file=sys.stderr)
+        return None
+    return value
+
+
 def main(argv):
     if argv and (len(argv) != 1 or not LEASE.fullmatch(argv[0])):
         print("push-branch.sh: the only argument is --force-with-lease=<branch>:<sha>, "
               f"got '{' '.join(argv)}'", file=sys.stderr)
         print(USAGE, file=sys.stderr)
         return 2
-    tunables = {}
-    for name, default in (("VERI_PUSH_RETRIES", "3"), ("VERI_PUSH_BACKOFF", "2")):
-        value = os.environ.get(name) or default
-        if not re.fullmatch(r"[0-9]+", value):
-            print(f"push-branch.sh: {name} must be a non-negative integer, got '{value}'",
-                  file=sys.stderr)
-            return 2
-        tunables[name] = value
-    backoff = tunables["VERI_PUSH_BACKOFF"]
+    retries = tunable("VERI_PUSH_RETRIES", "3")
+    if retries is None:
+        return 2
+    backoff = tunable("VERI_PUSH_BACKOFF", "2")
+    if backoff is None:
+        return 2
     attempt = 0
     try:
-        retries = number(tunables["VERI_PUSH_RETRIES"])
+        retries = number(retries)
     except ValueError:
         failed(0)
         return 1
