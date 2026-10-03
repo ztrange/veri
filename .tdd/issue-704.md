@@ -1,6 +1,7 @@
 # Plan for #704 — Prose and guard suites share one helper library
 
-- [x] A shared window helper in tests/lib/ prints one ±250-character window per occurrence of a pattern, so two occurrences 100 characters apart each get a window of their own, pinned by a fast-tier case; the six suites that defined win/window/windows source it instead of their copies ⟦criterion 3⟧ ⟂ refactor pending
+- [x] A shared window helper in tests/lib/ prints one ±250-character window per occurrence of a pattern, so two occurrences 100 characters apart each get a window of their own, pinned by a fast-tier case; the six suites that defined win/window/windows source it instead of their copies ⟦criterion 3⟧
+- [ ] windows() in tests/lib/window.sh terminates on a pattern that can match the empty string (such as x*) instead of looping forever, pinned by a fast-tier case ⟦added⟧ ⟦criterion 3⟧
 - [ ] A copies guard (no-report-copies.test.sh or a sibling under tests/unit/) names <suite>:<line> for any suite under tests/ or tests/unit/ that defines its own copy of a helper hoisted into tests/lib/, proven on a planted suite, with the window helper's former names win, window and windows on its hoisted list ⟦criterion 2⟧
 - [ ] plain() (strip * and backticks, lowercase) is defined once in tests/lib/, taking the copy that also joins lines with tr '\n' ' ' as an argument; every suite and record-helpers.sh that defined plain() sources it, and the copies guard lists plain ⟦criterion 1⟧
 - [ ] The section-end read by next= (the first heading after a line, via head -1 < <(tail -n +… | grep -nE '^#')) is one helper in tests/lib/, used by skill-commit, skill-preflight-launchable and skill-test-command, and on the copies guard's list ⟦criterion 1⟧
