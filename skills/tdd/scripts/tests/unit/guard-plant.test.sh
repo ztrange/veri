@@ -96,8 +96,8 @@ printf 'green\n' > "$scratch/green.md"
 printf 'red\n' > "$scratch/red.md"
 printf 'uncounted\n' > "$scratch/uncounted.md"
 outcomes=()
-probe_case() {
-  local label="$1" want_code="$2" want_count="$3" code got one
+expect_case() {
+  local label="$1" want_code="$2" want_count="$3" code one
   shift 3
   problems=()
   "$@" 2>/dev/null && code=0 || code=$?
@@ -107,10 +107,16 @@ probe_case() {
   [[ "${#got[@]}" == "$want_count" ]] ||
     outcomes+=("$label: added ${#got[@]} problems (${got[*]:-}), want $want_count")
   for one in ${got[@]+"${got[@]}"}; do
-    [[ "$one" == *"$GUARD"* || "$one" == *"${GUARD##*/}"* ]] ||
-      outcomes+=("$label: the problem '$one' does not name the guard $GUARD")
     [[ "$one" == *"$SKILL"* ]] ||
       outcomes+=("$label: the problem '$one' does not name the document $SKILL")
+  done
+}
+probe_case() {
+  local one
+  expect_case "$@"
+  for one in ${got[@]+"${got[@]}"}; do
+    [[ "$one" == *"$GUARD"* || "$one" == *"${GUARD##*/}"* ]] ||
+      outcomes+=("$1: the problem '$one' does not name the guard $GUARD")
   done
 }
 GUARD='g/absent-guard.test.sh'
@@ -151,18 +157,9 @@ printf 'one OTHER here\nplain line\nOTHER again\n' > "$scratch/claims-elsewise.m
 printf 'one GRANT here\nplain line changed\nGRANT again\n' > "$scratch/claims-spread.md"
 outcomes=()
 claims_case() {
-  local label="$1" want_code="$2" want_count="$3" want_text="$4" code got one
-  shift 4
-  problems=()
-  probe_plant_is_what_it_claims "$@" 2>/dev/null && code=0 || code=$?
-  got=(${problems[@]+"${problems[@]}"})
-  [[ -z "$want_code" || "$code" == "$want_code" ]] ||
-    outcomes+=("$label: returned $code, want $want_code")
-  [[ "${#got[@]}" == "$want_count" ]] ||
-    outcomes+=("$label: added ${#got[@]} problems (${got[*]:-}), want $want_count")
+  local label="$1" want_text="$4" one
+  expect_case "$1" "$2" "$3" probe_plant_is_what_it_claims "${@:5}"
   for one in ${got[@]+"${got[@]}"}; do
-    [[ "$one" == *"$SKILL"* ]] ||
-      outcomes+=("$label: the problem '$one' does not name the document $SKILL")
     [[ -z "$want_text" || "$one" == *"$want_text"* ]] ||
       outcomes+=("$label: the problem '$one' does not name '$want_text'")
   done
