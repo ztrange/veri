@@ -356,3 +356,35 @@ def test_get_api_events_answers_run_51s_logged_events_in_file_order_and_none_for
     events, none = served[0][1]
     assert json.loads(body(events))["events"] == logged
     assert json.loads(body(none)) == {"events": []}
+
+
+def test_get_api_events_answers_the_empty_list_for_issue_3_held_only_as_a_ledger_copy_inside_run_7(
+        tmp_path, monkeypatch, dashboard):
+    run = os.path.join(str(tmp_path), ".tdd", "wt", "7")
+    write(os.path.join(run, ".tdd", "issue-7.md"),
+          "# Plan for #7 — lamps glow\n\n- [x] a lamp exists\n- [ ] a lamp glows\n")
+    write(os.path.join(run, ".tdd", "issue-3.md"),
+          "# Plan for #3 — an earlier run's committed plan\n\n- [x] a lamp is wired\n")
+    logged = [{"ts": 1000, "issue": "7", "actor": "conductor", "phase": "", "step": "a lamp glows",
+               "event": "step-start", "attempt": "", "skill_commit": "abc", "seq": 1},
+              {"ts": 1010, "issue": "7", "actor": "developer", "phase": "red",
+               "step": "a lamp glows", "event": "launch", "attempt": "1", "skill_commit": "abc",
+               "name": "develop-red", "seq": 2}]
+    write(os.path.join(run, ".tdd", "events.jsonl"),
+          "".join(json.dumps(event) + "\n" for event in logged))
+
+    def fake_run(args, cwd=None, **kwargs):
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, ["/api/events?issue=3", "/api/events?issue=7"])
+
+    dashboard.main([])
+
+    three, seven = served[0][1]
+    assert json.loads(body(three)) == {"events": []}
+    assert json.loads(body(seven))["events"] == logged

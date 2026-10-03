@@ -10,7 +10,7 @@
 - [x] tests/py/test_dashboard.py: GET /api/metrics for a run 35 whose log carries a stop mark and no done or bail answers the faked metrics.sh 35's stdout, not a committed report or the missing-report marker ⟦criterion 7⟧
 - [x] tests/py/test_dashboard.py: GET /api/metrics over .tdd/wt/7 holding issue-3.md, issue-5.md and issue-7.md answers issues keyed by 7 alone, the faked subprocess seeing exactly one metrics.sh call, [<scripts>/metrics.sh, "7"] with cwd that run ⟦criterion 8⟧
 - [x] tests/py/test_dashboard.py: GET /api/events?issue=51 answers run 51's logged events in file order and none of run 52's, and /api/events?issue=99 answers {"events": []} ⟦criterion 9⟧
-- [ ] tests/py/test_dashboard.py: GET /api/events?issue=3 answers [] when issue-3.md exists only inside .tdd/wt/7, and ?issue=7 answers run 7's log ⟦criterion 10⟧
+- [x] tests/py/test_dashboard.py: GET /api/events?issue=3 answers [] when issue-3.md exists only inside .tdd/wt/7, and ?issue=7 answers run 7's log ⟦criterion 10⟧
 - [ ] tests/py/test_dashboard.py: GET /api/tests?issue=51 for a run with no event log answers two entries from its develop-red.out — command make test, passed false then true, each tail a non-empty tail ending in its tool result's last line — and nothing from its git log call or run 52's log ⟦criterion 11⟧
 - [ ] tests/py/test_dashboard.py: GET /api/tests?issue=53 with the spec's test command sh -c 'echo executed > <marker>' answers the one entry carrying that command, leaves no marker file, and the faked subprocess saw no call carrying that command ⟦criterion 12⟧
 - [ ] tests/py/test_dashboard.py: GET /api/tests?issue=54 answers three entries for a log with three test-run marks beside a leaf log with one make test call ⟦criterion 13⟧
