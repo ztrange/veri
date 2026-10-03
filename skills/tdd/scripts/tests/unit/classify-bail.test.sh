@@ -120,4 +120,28 @@ else
   diff <(printf '%s\n' "$refuse_want") <(printf '%s\n' "$refuse_got") | sed 's/^/    /'
 fi
 
+linked_name="classify-bail.sh run through a symlink to the skill directory and from another working directory answers killed-stuck and an unknown cause as it does in place"
+linked_bad=""
+linked_work="$(mktemp -d)"
+ln -s "$(cd "$HERE/../../.." && pwd)" "$linked_work/linked-skill"
+mkdir -p "$linked_work/elsewhere"
+for cause in killed-stuck bogus; do
+  in_place_out="$("$CLASSIFY" "$cause" 2>"$linked_work/in-place.err")" && in_place_code=0 || in_place_code=$?
+  in_place_err="$(cat "$linked_work/in-place.err")"
+  linked_out="$(cd "$linked_work/elsewhere" && "$linked_work/linked-skill/scripts/classify-bail.sh" "$cause" 2>"$linked_work/linked.err")" && linked_code=0 || linked_code=$?
+  linked_err="$(cat "$linked_work/linked.err")"
+  if [[ "$linked_out" != "$in_place_out" || "$linked_err" != "$in_place_err" || "$linked_code" != "$in_place_code" ]]; then
+    linked_bad+="    $cause in place: exit $in_place_code, stdout '$in_place_out', stderr '$in_place_err'"$'\n'
+    linked_bad+="    $cause through the symlink from elsewhere: exit $linked_code, stdout '$linked_out', stderr '$linked_err'"$'\n'
+  fi
+done
+[[ "$in_place_code" == 2 ]] || linked_bad+="    bogus in place: want exit 2, got exit $in_place_code"$'\n'
+rm -rf "$linked_work"
+if [[ -z "$linked_bad" ]]; then
+  ok
+else
+  no "$linked_name"
+  printf '%s' "$linked_bad"
+fi
+
 finish
