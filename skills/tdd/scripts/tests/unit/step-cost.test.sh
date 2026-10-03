@@ -237,4 +237,18 @@ run_cost 'prints "ok"'
 expect 3 ""
 verdict "#620: in a log holding quoted titles, a step no event carries still prints nothing, exit 3"
 
+cat > "$work/.tdd/events.jsonl" <<'EOF'
+{"ts": 1, "issue": "721", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30"}
+EOF
+ln -s "$(cd "$HERE/../../.." && pwd)" "$work/linked-skill"
+mkdir -p "$work/elsewhere/.tdd"
+cp "$work/.tdd/events.jsonl" "$work/elsewhere/.tdd/events.jsonl"
+run_cost "step one"
+in_place="$out" in_place_code="$code"
+linked="$(cd "$work/elsewhere" && "$work/linked-skill/scripts/step-cost.sh" "step one" 2>&1)" && linked_code=0 || linked_code=$?
+if [[ "$in_place" != "0.30" || "$in_place_code" != 0 || "$linked" != "$in_place" || "$linked_code" != "$in_place_code" ]]; then
+  problems+="    in place: exit $in_place_code, stdout '$in_place'; through the symlink from elsewhere: exit $linked_code, output '$linked'"$'\n'
+fi
+verdict "step-cost.sh run through a symlink to the skill directory and from another working directory prints the same figure and exit code as when run in place"
+
 finish
