@@ -9,7 +9,7 @@ NAME = "[A-Za-z_][A-Za-z0-9_]*"
 WRITER = r"\|" + SPACE + "*(tee|dd|sponge)" + SPACE
 COMMENT = re.compile("^" + SPACE + "*#")
 MARKED = re.compile("^" + SPACE + "*# (hazard|pass-through):")
-MD_ASSIGNMENT = re.compile(NAME + "=[^ \t\n\v\f\r;]*\\.md[\"']?(" + SPACE + "|;|$)")
+MD_ASSIGNMENT = re.compile("(" + NAME + ")=[^ \t\n\v\f\r;]*\\.md[\"']?(" + SPACE + "|;|$)")
 HEREDOC = re.compile("<<(-?)" + SPACE + "*[\"']?(" + NAME + ")")
 FD_REDIRECT = re.compile("[02-9]>+" + SPACE + "*[^ \t\n\v\f\r]*")
 TO_FILE = re.compile(">" + SPACE + "*[^& \t\n\v\f\r]")
@@ -83,7 +83,7 @@ class Scanner:
         line = self.scan(line).replace("<<<", "")
         assigned = MD_ASSIGNMENT.search(line)
         if assigned:
-            self.mdvar.add(assigned.group(0).split("=", 1)[0])
+            self.mdvar.add(assigned.group(1))
         opener = HEREDOC.search(line)
         if opener:
             out = FD_REDIRECT.sub("", line)
