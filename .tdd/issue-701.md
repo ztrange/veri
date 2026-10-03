@@ -6,4 +6,4 @@
 - [x] make test's pytest leg runs $VERI_VENV/bin/python3 when it is present and the python3 on PATH when it is absent ⟦criterion 2⟧
 - [x] make install-dev creates the environment at $VERI_VENV, or at ~/.veri-tools/venv when VERI_VENV is unset ⟦criterion 3⟧
 - [x] count-line-guard.test.sh and pytest-leg.test.sh change no assertion on this branch: their only edits are the one lookup line of count-line-guard.test.sh that the lookup replaces, and one cp of lib/venv-python.sh each in pytest-leg.test.sh's make_tree and its install-dev tree (with the mkdir that puts a lib/ there) ⟦diff-checked⟧ ⟦criterion 4⟧
-- [ ] make test is green ⟦full-suite⟧ ⟦criterion 5⟧
+- [x] make test is green ⟦full-suite⟧ ⟦criterion 5⟧
