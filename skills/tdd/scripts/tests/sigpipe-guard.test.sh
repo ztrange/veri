@@ -97,7 +97,7 @@ open_tree() {
 
 install_guard() {
   cp "$GUARD_PATH" "$guard_copy"
-  mkdir -p "${guard_copy%/*}/lib" && cp "$HERE/lib/harness.sh" "${guard_copy%/*}/lib/"
+  mkdir -p "${guard_copy%/*}/lib" && cp "$HERE/lib/harness.sh" "$HERE/lib/exemption-reasons.sh" "${guard_copy%/*}/lib/"
   new_repo "$tree" >/dev/null 2>&1
   git -C "$tree" add -A >/dev/null 2>&1
 }
