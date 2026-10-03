@@ -19,6 +19,7 @@ skill_path="$ROOT/$skill_md"
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/first-record.sh"
 
 records_of() {
   awk '
@@ -39,7 +40,7 @@ section_records() {
 
 gated_tick() {
   local label="$1" head="$2" extra="$3" rec
-  rec="$(head -1 < <(section_records "$head" | grep -F 'tick-issue-criterion.sh'))"
+  rec="$(first_record "$(section_records "$head")" -F 'tick-issue-criterion.sh')"
   if [[ -z "$rec" ]]; then
     problems+=("$label: no instruction under '$head' runs tick-issue-criterion.sh — the gate could not be checked")
     return
@@ -75,7 +76,7 @@ off_cycle_line() {
   local marker="$1" phrase1="$2" phrase2="$3" what="$4"
   grep -F -- "- [ ] <criterion> $marker ⟦criterion k⟧" <<<"$plan_recs" > /dev/null ||
     problems+=("plan guidance: step 2 never shows the ledger line '- [ ] <criterion> $marker ⟦criterion k⟧'")
-  ledger_rec="$(head -1 < <(grep -F "$marker" <<<"$plan_recs" | grep -F "$phrase1" | grep -F "$phrase2"))"
+  ledger_rec="$(first_record "$plan_recs" -F "$marker" -F "$phrase1" -F "$phrase2")"
   if [[ -z "$ledger_rec" ]]; then
     problems+=("plan guidance: no instruction in step 2 names $marker for a criterion $what")
     return 1
@@ -93,7 +94,7 @@ report "$name"
 
 name="#481: $skill_md's Draft PR step ticks every ⟦full-suite⟧ line and its issue criterion, with no refactor-pending mark, only once the last full-suite run — the rebased tip's after a rebase — is green, never after a red one"
 problems=()
-pr_rec="$(head -1 < <(section_records '### 4. Draft PR' | grep -F '⟦full-suite⟧' | grep -E 'tick'))"
+pr_rec="$(first_record "$(section_records '### 4. Draft PR')" -F '⟦full-suite⟧' -E 'tick')"
 if [[ -z "$pr_rec" ]]; then
   problems+=("draft PR: no instruction in step 4 ticks a ⟦full-suite⟧ ledger line — the rule could not be checked")
 else
@@ -159,7 +160,7 @@ report "$name"
 
 name="#671: $skill_md's step 2 plans a criterion replacing an implementation case under ADR 0027 as one ⟦replaces-case⟧ step naming the suite path and the case's exact name, whose Red is the pytest case failing against the code before the change"
 problems=()
-rc_rec="$(head -1 < <(grep -F '⟦replaces-case⟧' <<<"$plan_recs" | grep -F 'implementation case'))"
+rc_rec="$(first_record "$plan_recs" -F '⟦replaces-case⟧' -F 'implementation case')"
 if [[ -z "$rc_rec" ]]; then
   problems+=("plan guidance: no instruction in step 2 names ⟦replaces-case⟧ for a criterion replacing an implementation case")
 else
@@ -195,7 +196,7 @@ report "$name"
 
 name="#481: $skill_md's Draft PR step lists every ⟦human-owed⟧ ledger line in the PR body under ## Owed by a human, each naming its criterion number, and adds no such section when the ledger holds none"
 problems=()
-owed_rec="$(head -1 < <(section_records '### 4. Draft PR' | grep -F '⟦human-owed⟧' | grep -F '## owed by a human'))"
+owed_rec="$(first_record "$(section_records '### 4. Draft PR')" -F '⟦human-owed⟧' -F '## owed by a human')"
 if [[ -z "$owed_rec" ]]; then
   problems+=("draft PR: no instruction in step 4 lists ⟦human-owed⟧ ledger lines under '## Owed by a human' — the rule could not be checked")
 else
@@ -225,9 +226,9 @@ does_not_hold() {
 name="#481: $skill_md's Draft PR entry condition and Resume's go-to-draft-PR condition say unchecked ⟦full-suite⟧ and ⟦human-owed⟧ lines do not hold a run back from its draft PR"
 problems=()
 does_not_hold 'draft PR entry' \
-  "$(head -1 < <(section_records '### 4. Draft PR' | grep -F 'reached when'))"
+  "$(first_record "$(section_records '### 4. Draft PR')" -F 'reached when')"
 does_not_hold 'resume' \
-  "$(head -1 < <(section_records '## Resume' | grep -E 'go to the \*?\*?draft pr'))"
+  "$(first_record "$(section_records '## Resume')" -E 'go to the \*?\*?draft pr')"
 report "$name"
 
 reads_ledger_steps() {

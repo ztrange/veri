@@ -113,6 +113,7 @@ skill_path="$ROOT/$skill_md"
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/first-record.sh"
 
 records_of() {
   awk '
@@ -130,17 +131,6 @@ section_lines() {
 }
 
 section_records() { section_lines "$1" "$2" | records_of; }
-
-# hazard: a `grep … | head` pipeline under pipefail can answer with grep's SIGPIPE.
-first_record() {
-  local text="$1"
-  shift
-  while [[ "$#" -gt 0 ]]; do
-    text="$(grep "$1" -- "$2" <<< "$text")"
-    shift 2
-  done
-  head -1 <<< "$text"
-}
 
 section_or_problem() {
   section_heading="$1" section_closer="$2"
@@ -269,16 +259,8 @@ report "$name"
 name="$skill_md's Scope & plan step pushes and opens the draft PR after the plan commit, before the Plan comment"
 problems=()
 
-# hazard: a `grep … | head` pipeline under pipefail can answer with grep's SIGPIPE.
-record_number() {
-  local hits
-  hits="$(grep -n "$1" -- "$2" <<< "$records")"
-  [[ -n "$hits" ]] || return 0
-  head -1 <<< "$hits" | cut -d: -f1
-}
-
 if step_or_problem '### 2. Scope & plan' "where the run's draft PR is opened"; then
-  pr_at="$(record_number -F 'gh api repos/{owner}/{repo}/pulls -f draft=true')"
+  pr_at="$(record_number "$records" -F 'gh api repos/{owner}/{repo}/pulls -f draft=true')"
   if [[ -z "$pr_at" ]]; then
     problems+=("$skill_md's Scope & plan step never runs gh pr create, so a multi-step run puts no claim on origin until its last step and a second machine reads the issue as free for the whole of it")
   else
@@ -292,8 +274,8 @@ if step_or_problem '### 2. Scope & plan' "where the run's draft PR is opened"; t
     grep -qF 'push-branch.sh' <<< "$records" ||
       problems+=("$skill_md's Scope & plan step never runs push-branch.sh, so the branch the PR is opened against has never reached the remote")
 
-    commit_at="$(record_number -F 'plan: scope #<n> into')"
-    comment_at="$(record_number -F 'mirror the plan')"
+    commit_at="$(record_number "$records" -F 'plan: scope #<n> into')"
+    comment_at="$(record_number "$records" -F 'mirror the plan')"
     if [[ -z "$commit_at" || -z "$comment_at" ]]; then
       problems+=("$skill_md's Scope & plan step no longer has both the plan commit and the Plan comment to place the PR between — where it is opened could not be checked")
     else
