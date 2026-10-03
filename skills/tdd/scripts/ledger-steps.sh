@@ -42,7 +42,7 @@ last_done() {
 }
 
 criterion() {
-  local k="$1" line in_section=0 record pattern=$'^[0-9]+\t[^\t]*\t[^\t]*\t[^\t]*'"$TEXT"
+  local k=$((10#$1)) line in_section=0 record pattern=$'^[0-9]+\t[^\t]*\t[^\t]*\t[^\t]*'"$TEXT"
   while IFS= read -r record; do
     k=$((k - 1))
     ((k == 0)) || continue
