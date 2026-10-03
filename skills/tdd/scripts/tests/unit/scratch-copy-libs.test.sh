@@ -21,6 +21,14 @@ needs_contract() {
   [[ -f "$SCRIPTS/$1" ]] && grep -E '^(source|\.)[[:space:]].*lib/exit-contract\.sh' "$SCRIPTS/$1" > /dev/null
 }
 
+read_vars() {
+  local line
+  while IFS= read -r line; do
+    [[ "$line" =~ ^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=[\'\"]?([^\'\"]*)[\'\"]?[[:space:]]*$ ]] \
+      && vars["${BASH_REMATCH[1]}"]="${BASH_REMATCH[2]}"
+  done < "$1"
+}
+
 expand() {
   local text="$1" pass var
   for pass in 1 2 3; do
@@ -37,10 +45,7 @@ lib_copy_hits() {
   for suite in "$dir"/*.test.sh "$dir"/unit/*.test.sh; do
     [[ -f "$suite" ]] || continue
     local -A vars=()
-    while IFS= read -r line; do
-      [[ "$line" =~ ^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=[\'\"]?([^\'\"]*)[\'\"]?[[:space:]]*$ ]] \
-        && vars["${BASH_REMATCH[1]}"]="${BASH_REMATCH[2]}"
-    done < "$suite"
+    read_vars "$suite"
     n=0
     while IFS= read -r line; do
       n=$((n + 1))
@@ -58,10 +63,7 @@ for suite in "$TESTS"/*.test.sh "$TESTS"/unit/*.test.sh; do
   grep -E '(^|[[:space:]])cp[[:space:]]+-[A-Za-z]*R' "$suite" > /dev/null && continue
   grep -E '(^|[[:space:]])cp[[:space:]].*lib/\*\.sh' "$suite" > /dev/null && continue
   declare -A vars=()
-  while IFS= read -r line; do
-    [[ "$line" =~ ^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=[\'\"]?([^\'\"]*)[\'\"]?[[:space:]]*$ ]] \
-      && vars["${BASH_REMATCH[1]}"]="${BASH_REMATCH[2]}"
-  done < "$suite"
+  read_vars "$suite"
   n=0
   while IFS= read -r line; do
     n=$((n + 1))
