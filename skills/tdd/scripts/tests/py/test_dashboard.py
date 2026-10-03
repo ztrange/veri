@@ -487,3 +487,46 @@ def test_get_api_tests_answers_run_53s_one_run_of_its_spec_command_and_never_exe
     assert [entry["command"] for entry in json.loads(body(tests))["tests"]] == [command]
     assert not os.path.exists(marker)
     assert not [args for args in calls if command in (args if isinstance(args, str) else " ".join(args))]
+
+
+def test_get_api_tests_answers_run_54s_three_test_run_marks_not_its_one_make_test_leaf_call(
+        tmp_path, monkeypatch, dashboard):
+    run = os.path.join(str(tmp_path), ".tdd", "wt", "54")
+    write(os.path.join(run, ".tdd", "issue-54.md"), "# Plan for #54 — lamps buzz\n\n- [ ] a lamp buzzes\n")
+    write(os.path.join(run, ".tdd", "issue-54-spec.md"),
+          "## What to build\n\nA lamp buzzes.\n\nTest command: make test\n")
+    suite = "skills/tdd/scripts/tests/lamp.test.sh"
+    marks = [{"ts": 1000, "issue": "54", "actor": "conductor", "phase": "", "step": "a lamp buzzes",
+              "event": "step-start", "attempt": "", "skill_commit": "abc"}]
+    marks += [{"ts": 1060 + i * 60, "issue": "54", "actor": "", "phase": "", "step": "a lamp buzzes",
+               "event": "test-run", "attempt": "", "skill_commit": "abc", "tier": tier,
+               "suites": suites, "seconds": "3", "status": status}
+              for i, (tier, suites, status) in enumerate(
+                  [("fast", "", "0"), ("affected", suite, "1"), ("target", suite, "0")])]
+    write(os.path.join(run, ".tdd", "events.jsonl"),
+          "".join(json.dumps(mark) + "\n" for mark in marks))
+    records = [
+        {"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "tool_use", "id": "toolu_1", "name": "Bash",
+             "input": {"command": "make test", "description": "Run the suite"}}]}},
+        {"type": "user", "message": {"role": "user", "content": [
+            {"tool_use_id": "toolu_1", "type": "tool_result", "content": "----\n4 passed, 0 failed",
+             "is_error": False}]}},
+    ]
+    write(os.path.join(run, ".tdd", "develop-red.out"),
+          "".join(json.dumps(record) + "\n" for record in records))
+
+    def fake_run(args, cwd=None, **kwargs):
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, ["/api/tests?issue=54"])
+
+    dashboard.main([])
+
+    (tests,) = served[0][1]
+    assert len(json.loads(body(tests))["tests"]) == 3
