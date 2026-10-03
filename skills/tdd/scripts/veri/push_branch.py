@@ -33,6 +33,11 @@ def output(args):
     return run(args, stdout=subprocess.PIPE, text=True).stdout.rstrip("\n")
 
 
+def failed(attempts):
+    print(f"push-branch.sh: push failed after {attempts} attempts; the branch is not on the remote",
+          file=sys.stderr)
+
+
 def number(value):
     return int(value, 8) if value.startswith("0") else int(value)
 
@@ -56,8 +61,7 @@ def main(argv):
     try:
         retries = number(tunables["VERI_PUSH_RETRIES"])
     except ValueError:
-        print("push-branch.sh: push failed after 0 attempts; the branch is not on the remote",
-              file=sys.stderr)
+        failed(0)
         return 1
     while attempt <= retries:
         attempt += 1
@@ -81,8 +85,7 @@ def main(argv):
                 backoff = str(number(backoff) * 2)
             except ValueError:
                 return 1
-    print(f"push-branch.sh: push failed after {attempt} attempts; the branch is not on the remote",
-          file=sys.stderr)
+    failed(attempt)
     return record("push-failed", f"error={out}", f"attempts={attempt}")
 
 
