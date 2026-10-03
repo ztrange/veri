@@ -1,6 +1,8 @@
 """In-process cases for veri/session_cost.py, the module session-cost.sh is a shim over."""
 import importlib
+import json
 import pathlib
+import subprocess
 import sys
 import time
 
@@ -45,6 +47,43 @@ def test_main_prints_the_days_total_cost_split_into_cache_read_cache_write_and_o
     ]
 
     code = session_cost.main(["--since", "2026-09-14", str(transcript)])
+    lines = capsys.readouterr().out.splitlines()
+
+    assert (code, [line for line in want if line not in lines]) == (0, [])
+
+
+def test_main_sums_every_project_directory_prefixed_by_the_repo_roots_slug_and_not_an_unrelated_one(tmp_path, monkeypatch, capsys, session_cost):
+    monkeypatch.setenv("TZ", "UTC")
+    time.tzset()
+    root = tmp_path.resolve() / "repo"
+    root.mkdir()
+    home = tmp_path / "home"
+    projects = home / ".claude" / "projects"
+    slug = str(root).replace("/", "-")
+    transcripts = {
+        slug: '{"type":"assistant","timestamp":"2026-09-14T09:12:44.512Z","requestId":"req_011CS6aM2pQrX8dTvB1nHk5w","sessionId":"8c1d2e4f-7a93-4b05-8e61-2d7f9a0c3b48","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":2,"cache_creation_input_tokens":100000,"cache_creation":{"ephemeral_5m_input_tokens":100000,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":600000,"output_tokens":10000}}}\n',
+        slug + "--tdd-wt-999": '{"type":"assistant","timestamp":"2026-09-14T11:48:02.907Z","requestId":"req_011CS7bN3qRsY9eUwC2pJl6x","sessionId":"4e90b7c1-35da-4f27-a0b8-6c19d2e84f3a","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":1,"cache_creation_input_tokens":60000,"cache_creation":{"ephemeral_5m_input_tokens":60000,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":300000,"output_tokens":5600}}}\n',
+        "-Users-someone-else-anotherrepo": '{"type":"assistant","timestamp":"2026-09-14T13:20:55.104Z","requestId":"req_011CS8cP4rStZ0fVxD3qKm7y","sessionId":"1a2b3c4d-5e6f-4071-8293-a4b5c6d7e8f9","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":900000,"cache_creation_input_tokens":900000,"cache_creation":{"ephemeral_5m_input_tokens":900000,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":900000,"output_tokens":900000}}}\n',
+    }
+    for directory, record in transcripts.items():
+        (projects / directory).mkdir(parents=True)
+        session = json.loads(record)["sessionId"]
+        (projects / directory / (session + ".jsonl")).write_text(record)
+    monkeypatch.setenv("HOME", str(home))
+
+    def git(argv, **kwargs):
+        assert argv == ["git", "rev-parse", "--show-toplevel"]
+        return subprocess.CompletedProcess(argv, 0, stdout=str(root) + "\n", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", git)
+    want = [
+        "  cache read           900000 tokens   $1.35",
+        "  cache write          160000 tokens   $3.00",
+        "  output                15600 tokens   $1.17",
+        "  total                                $5.52",
+    ]
+
+    code = session_cost.main(["--since", "2026-09-14"])
     lines = capsys.readouterr().out.splitlines()
 
     assert (code, [line for line in want if line not in lines]) == (0, [])
