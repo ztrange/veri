@@ -171,3 +171,35 @@ def test_main_answers_veri_test_command_ahead_of_package_json_and_makefile_and_n
         (0, "pnpm test\n"),
         (0, "yarn test\n"),
     ]
+
+
+def test_main_answers_pytest_from_its_config_files_after_a_makefile_test_target_and_ahead_of_go_mod(tmp_path, capsys, detect):
+    def repo(name, **files):
+        root = tmp_path / name
+        root.mkdir()
+        for file, text in files.items():
+            (root / file.replace("_", ".")).write_text(text)
+        return detect.main([str(root)]), capsys.readouterr().out
+
+    makefile = "test:\n\techo hi\n"
+    setup_cfg = "[tool:pytest]\naddopts = -ra\n"
+
+    got = [
+        repo("make-over-pytest", Makefile=makefile, pytest_ini=""),
+        repo("py-pytest-ini", pytest_ini=""),
+        repo("py-pyproject", pyproject_toml='[tool.pytest.ini_options]\naddopts = "-ra"\n'),
+        repo("py-setup-cfg", setup_cfg=setup_cfg),
+        repo("setupcfg-no-pytest", setup_cfg="[metadata]\nname = demo\n"),
+        repo("setupcfg-vs-makefile", setup_cfg=setup_cfg, Makefile=makefile),
+        repo("setupcfg-vs-go-mod", setup_cfg=setup_cfg, go_mod=""),
+    ]
+
+    assert got == [
+        (0, "make test\n"),
+        (0, "pytest -q\n"),
+        (0, "pytest -q\n"),
+        (0, "pytest -q\n"),
+        (3, ""),
+        (0, "make test\n"),
+        (0, "pytest -q\n"),
+    ]
