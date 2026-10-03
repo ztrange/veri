@@ -39,22 +39,13 @@ here="$(cd "$(dirname "$0")" && pwd)"
 source "$here/lib/exit-contract.sh"
 source "$here/lib/github.sh"
 
-gh_json() {  # gh_json <fixture-file> <rest-path> <gh args…> -> that document on stdout
-  local fixture="$1" rest="$2"; shift 2
-  if [[ -n "${VERI_GH_JSON:-}" ]]; then
-    cat "$VERI_GH_JSON/$fixture"
-  else
-    gh_list "repos/{owner}/{repo}/$rest" "$@"
-  fi
-}
-
 if ! git ls-remote --heads origin > /dev/null; then
   echo "invisible-work.sh: cannot reach origin" >&2
   exit 2
 fi
 
-if ! issues_json="$(gh_json issues.json "issues?state=all&per_page=100" issue list --state all --limit 10000 --json number,state)" ||
-   ! prs_json="$(gh_json prs.json "pulls?state=all&per_page=100" pr list --state all --limit 10000 --json headRefName,state)"; then
+if ! issues_json="$(gh_json issues.json "repos/{owner}/{repo}/issues?state=all&per_page=100" issue list --state all --limit 10000 --json number,state)" ||
+   ! prs_json="$(gh_json prs.json "repos/{owner}/{repo}/pulls?state=all&per_page=100" pr list --state all --limit 10000 --json headRefName,state)"; then
   echo "invisible-work.sh: cannot read issues and PRs from gh (unauthenticated?)" >&2
   exit 2
 fi
