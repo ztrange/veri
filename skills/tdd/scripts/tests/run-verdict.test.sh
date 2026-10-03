@@ -59,7 +59,7 @@ copy_scripts_to() {
   local dir="$1" d
   mkdir -p "$dir" || return 1
   cp "$SCRIPTS"/*.sh "$dir"/ 2>/dev/null
-  for d in lib prompts; do
+  for d in lib prompts veri; do
     if [[ -d "$SCRIPTS/$d" ]]; then cp -R "$SCRIPTS/$d" "$dir/$d"; fi
   done
 }
@@ -243,6 +243,33 @@ if probe_launcher_is_there && stage_noisy; then
   probe_stderr_stays_visible "no .tdd/ directory" "${CALL[@]}"
   mkdir -p "$noisy_run/.tdd"
   probe_stderr_stays_visible "a .tdd/ directory and no phase"
+fi
+report "$name"
+
+probe_refused_arguments_supervised() {
+  local refusing="$work/refusing" refusing_run="$work/refusing-run" out code recorded
+  rm -rf "$refusing"
+  copy_scripts_to "$refusing" && make_run_dir "$refusing_run" || {
+    problems+=("could not stage a tree with the real $VERIFIER")
+    return
+  }
+
+  out="$( cd "$refusing_run" && env VERI_STUCK_RETRIES=0 VERI_POLL=0.02 \
+    "$refusing/supervise.sh" "verdict-$PHASE" "$refusing/$LAUNCHER_NAME" \
+    --step "" "$PHASE" "$SPEC" "$TEST_PATH" a-target-test-id 2>&1 )" && code=0 || code=$?
+  recorded="$(cat "$refusing_run/.tdd/verdict-$PHASE.exit" 2>/dev/null)"
+
+  [[ "$recorded" == 2 ]] ||
+    problems+=(".tdd/verdict-$PHASE.exit recorded ${recorded:-nothing}, want 2 — $VERIFIER refused --step \"\", and a conductor's wait reads 1 there as a REJECT; supervise said: $(flat "$out")")
+  [[ "$code" == 2 ]] ||
+    problems+=("supervise.sh verdict-$PHASE exited $code, want 2 — the code for no answer obtained, never 1; it said: $(flat "$out")")
+}
+
+name="a verdict-$PHASE supervision of $LAUNCHER_NAME whose $VERIFIER refused --step \"\" records 2 in .tdd/verdict-$PHASE.exit and exits 2, never 1 (#753)"
+problems=()
+
+if probe_launcher_is_there; then
+  probe_refused_arguments_supervised
 fi
 report "$name"
 

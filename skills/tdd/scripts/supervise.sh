@@ -35,12 +35,13 @@
 # heartbeat watches) and echoed to this script's stdout on completion, so a verifier leaf
 # can be piped straight into parse-verdict.sh.
 #
-# Status: exit 0 success · 1 leaf-failure · 2 killed-stuck. A one-line status (with the
-# kill cause) is written to stderr, and the same code is recorded in the completion file
-# `.tdd/<name>.exit` on every path — so a leaf launched detached can be waited on by
-# polling that file instead of by reading this script's stdout. The one exception is a leaf
-# that recorded a code in that file itself, as the verifier's launch wrapper does with
-# `verify.sh`'s verdict code: the leaf's own record is the answer and is left alone.
+# Status: exit 0 success · 1 leaf-failure · 2 killed-stuck, or a leaf that exited 2 itself.
+# A one-line status (with the kill cause) is written to stderr, and the same code is recorded
+# in the completion file `.tdd/<name>.exit` on every path — so a leaf launched detached can
+# be waited on by polling that file instead of by reading this script's stdout. The one
+# exception is a leaf that recorded a code in that file itself, as the verifier's launch
+# wrapper does with `verify.sh`'s verdict code: the leaf's own record is the answer and is
+# left alone.
 #
 # Three kinds of event are appended to the run's event log, `.tdd/events.jsonl` (ADR-0014):
 # one `launch` — the leaf's name, the command behind it, the model it runs on
@@ -142,7 +143,7 @@ recover_finished_leaf() {
 }
 
 attempt_once() {
-  local t0 a0 t silence rc last_m seen_at m prev_t prev_a a asleep
+  local t0 a0 t silence last_m seen_at m prev_t prev_a a asleep
   : > "$log"
   rm -f "$rcfile"
 
@@ -252,7 +253,7 @@ done
 
 case "$status" in
   success)      ec=0 ;;
-  failure)      ec=1 ;;
+  failure)      ec=1; [[ "$rc" != 2 ]] || ec=2 ;;
   killed-stuck) ec=2 ;;
   *)            ec=2; status="killed-stuck"; reason="${reason:-unknown}" ;;
 esac
