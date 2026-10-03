@@ -28,7 +28,7 @@ failures_in() {
 }
 
 make_plant_tree() {
-  local companion
+  local companion companion_copy
   tree="$scratch/$1"
   mkdir -p "$tree/${SKILL%/*}" "$tree/${GUARD%/*}" || {
     problems+=("could not make a scratch tree to plant the document in, so the criterion went unasked")
@@ -38,7 +38,8 @@ make_plant_tree() {
   cp "$GUARD_PATH" "$guard_copy"
   mkdir -p "${guard_copy%/*}/lib" && cp "$GUARD_PLANT_LIB/harness.sh" "${guard_copy%/*}/lib/"
   for companion in ${COMPANIONS[@]+"${COMPANIONS[@]}"}; do
-    mkdir -p "$tree/${companion%/*}" && cp "$ROOT/$companion" "$tree/$companion"
+    companion_copy="$tree/$companion"
+    mkdir -p "${companion_copy%/*}" && cp "$ROOT/$companion" "$companion_copy"
   done
 }
 
