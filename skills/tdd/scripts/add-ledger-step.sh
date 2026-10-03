@@ -30,6 +30,14 @@ anchor="$3"
 shift 3
 texts=("$@")
 
+case "$where" in
+  after|before|instead-of) ;;
+  *)
+    printf 'add-ledger-step.sh: position must be after, before or instead-of: %s\n' "$where" >&2
+    exit 2
+    ;;
+esac
+
 ci_repair='⟦ci-repair⟧'
 suite_repair='⟦suite-repair⟧'
 
