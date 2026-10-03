@@ -68,3 +68,39 @@ def test_main_counts_a_makefile_test_assignment_as_a_test_target(tmp_path, capsy
     (tmp_path / "Makefile").write_text("test := x\n")
 
     assert (detect.main([str(tmp_path)]), capsys.readouterr().out) == (0, "make test\n")
+
+
+def test_main_answers_the_issue_bodys_marker_bare_or_backticked_and_falls_through_without_one(tmp_path, capsys, detect):
+    def answer(*argv):
+        return detect.main(list(argv)), capsys.readouterr().out
+
+    override = tmp_path / "override"
+    (override / ".veri").mkdir(parents=True)
+    (override / ".veri" / "test-command").write_text("bin/run-suite --all --strict\n")
+    (override / "package.json").write_text('{"scripts":{"test":"jest"}}\n')
+    inference = tmp_path / "inference"
+    inference.mkdir()
+    (inference / "Makefile").write_text("test:\n\techo hi\n")
+    (inference / "pytest.ini").write_text("")
+    none = tmp_path / "none"
+    (none / "src").mkdir(parents=True)
+    (none / "README.md").write_text("# demo\n\nRun the test suite however you like.\n")
+    silent = tmp_path / "silent.md"
+    silent.write_text("## Notes\n\nNo line here names the run command; `make docs-test` appears in prose only.\n")
+    midline = tmp_path / "midline.md"
+    midline.write_text("## Notes\n\n`docs/wt/app.js`, `docs/wt/style.css`. Test command: `make docs-test`. More prose.\n")
+    linestart = tmp_path / "linestart.md"
+    linestart.write_text("## Notes\n\nTest command: `make docs-test`. `docs/walkthrough.html` is GENERATED — never hand-edit it.\n")
+    bare = tmp_path / "bare.md"
+    bare.write_text("## Notes\n\nTest command: bin/run --all\n")
+    fixtures = SCRIPTS / "tests" / "fixtures" / "detect-test-command"
+
+    untouched = [answer(*flag, str(repo)) for repo in (override, inference, none) for flag in (["--issue", str(silent)], [])]
+    stated = [answer("--issue", str(body), str(inference)) for body in (midline, linestart, bare)]
+    real = [answer("--issue", str(fixtures / f"issue-{n}.md"), str(inference)) for n in (71, 75, 80, 123)]
+
+    assert (untouched, stated, real) == (
+        [(0, "bin/run-suite --all --strict\n")] * 2 + [(0, "make test\n")] * 2 + [(3, "")] * 2,
+        [(0, "make docs-test\n"), (0, "make docs-test\n"), (0, "bin/run --all\n")],
+        [(0, "make docs-test\n")] * 4,
+    )
