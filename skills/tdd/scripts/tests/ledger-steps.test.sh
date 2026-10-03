@@ -52,6 +52,14 @@ none="$("$STEPS" current < "$work/none.md" 2>> "$work/err")"; none_code=$?
   && [[ "$none_code" == 3 ]] && [[ -z "$none" ]] && [[ ! -s "$work/err" ]]; } \
   && ok || no "current prints the first refactor-pending step, else the first open step-kind step, else exits 3 with no output (pending_code=$pending_code pending='$pending' open_code=$open_code open='$open' none_code=$none_code none='$none' stderr='$(cat "$work/err")')"
 
+printf '# Plan for #42\n\n- [x] add lowercasing ⟦criterion 1⟧\n- [ ] a person reads the page ⟦human-owed⟧ ⟦criterion 2⟧\n- [ ] the diff touches only the script ⟦diff-checked⟧ ⟦criterion 3⟧\n- [ ] strip edge hyphens ⟦criterion 4⟧\n' > "$work/diff-checked.md"
+: > "$work/err"
+got="$("$STEPS" current < "$work/diff-checked.md" 2> "$work/err")"; code=$?
+next="$("$NEXT" < "$work/diff-checked.md")"; next_code=$?
+{ [[ "$code" == 0 ]] && [[ "$got" == 'the diff touches only the script ⟦diff-checked⟧ ⟦criterion 3⟧' ]] \
+  && [[ "$got" == "$next" ]] && [[ "$next_code" == 0 ]] && [[ ! -s "$work/err" ]]; } \
+  && ok || no "current hands over an open ⟦diff-checked⟧ step as next-unchecked does (code=$code got='$got' next_code=$next_code next='$next' stderr='$(cat "$work/err")')"
+
 printf '# Plan for #42\n\n- [ ] add lowercasing ⟦criterion 1⟧\n- [ ] `make test` is green ⟦full-suite⟧ ⟦criterion 2⟧\n' > "$work/undone.md"
 : > "$work/err"
 last="$("$STEPS" last-done < "$work/kinds.md" 2> "$work/err")"; last_code=$?

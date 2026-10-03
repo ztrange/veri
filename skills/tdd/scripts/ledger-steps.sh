@@ -22,10 +22,10 @@ current() {
   local records record pattern
   records="$(ledger_steps)"
   for pattern in $'^[0-9]+\tdone\t[^\t]*\t1'"$TEXT" \
-                 $'^[0-9]+\topen\tstep\t[^\t]*'"$TEXT"; do
+                 $'^[0-9]+\topen\t(step|diff-checked)\t[^\t]*'"$TEXT"; do
     while IFS= read -r record; do
       [[ "$record" =~ $pattern ]] || continue
-      printf '%s\n' "${BASH_REMATCH[1]}"
+      printf '%s\n' "${BASH_REMATCH[-1]}"
       return 0
     done <<< "$records"
   done
