@@ -76,9 +76,7 @@ def main(argv):
             remote_sha = "\n".join(line.split("\t")[0] for line in listed.split("\n")) if listed else ""
             print(f"push rejected (non-fast-forward): origin/{branch} is at {remote_sha}",
                   file=sys.stderr)
-            if record("push-rejected", f"remote_sha={remote_sha}", f"error={out}"):
-                return 2
-            return 1
+            return record("push-rejected", f"remote_sha={remote_sha}", f"error={out}") or 1
         if attempt <= retries:
             run(["sleep", backoff])
             try:
