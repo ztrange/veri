@@ -67,11 +67,7 @@ declare -A launched=()    # every issue number this invocation has launched
 order=()                  # the same numbers, in launch order: the order the report follows
 
 prs_json() {
-  if [[ -n "${VERI_GH_JSON:-}" ]]; then
-    cat "$VERI_GH_JSON/prs.json"
-  else
-    gh_list "repos/{owner}/{repo}/pulls?state=open&per_page=100" pr list --state open --limit 10000 --json body,isDraft,url
-  fi
+  gh_json prs.json "repos/{owner}/{repo}/pulls?state=open&per_page=100" pr list --state open --limit 10000 --json body,isDraft,url
 }
 
 outcome() {
