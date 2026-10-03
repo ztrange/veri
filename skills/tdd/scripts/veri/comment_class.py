@@ -4,17 +4,24 @@ import sys
 
 USAGE = "usage: comment-class.sh [--sweepable] <file>…"
 
-SPACE = "[ \t\n\v\f\r]"
+BLANKS = " \t\n\v\f\r"
+SPACE = "[" + BLANKS + "]"
 NAME = "[A-Za-z_][A-Za-z0-9_]*"
+
+
+def not_space(extra=""):
+    return "[^" + extra + BLANKS + "]"
+
+
 WRITER = r"\|" + SPACE + "*(tee|dd|sponge)" + SPACE
 COMMENT = re.compile("^" + SPACE + "*#")
 MARKED = re.compile("^" + SPACE + "*# (hazard|pass-through):")
-MD_ASSIGNMENT = re.compile("(" + NAME + ")=[^ \t\n\v\f\r;]*\\.md[\"']?(" + SPACE + "|;|$)")
+MD_ASSIGNMENT = re.compile("(" + NAME + ")=" + not_space(";") + "*\\.md[\"']?(" + SPACE + "|;|$)")
 HEREDOC = re.compile("<<(-?)" + SPACE + "*[\"']?(" + NAME + ")")
-FD_REDIRECT = re.compile("[02-9]>+" + SPACE + "*[^ \t\n\v\f\r]*")
-TO_FILE = re.compile(">" + SPACE + "*[^& \t\n\v\f\r]")
+FD_REDIRECT = re.compile("[02-9]>+" + SPACE + "*" + not_space() + "*")
+TO_FILE = re.compile(">" + SPACE + "*" + not_space("&"))
 TO_WRITER = re.compile(WRITER)
-TO_MD = re.compile("(>|" + WRITER + "[^|]*)" + SPACE + "*[^&| \t\n\v\f\r]*\\.md[\"']?(" + SPACE + "|$)")
+TO_MD = re.compile("(>|" + WRITER + "[^|]*)" + SPACE + "*" + not_space("&|") + "*\\.md[\"']?(" + SPACE + "|$)")
 TO_VARIABLE = re.compile(">" + SPACE + "*\"?\\$(" + NAME + ")")
 
 
