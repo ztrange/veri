@@ -202,4 +202,17 @@ cmp -s "$out" "$tmp/empty-rest-spec.md" ||
 
 report "$name"
 
+name='with no argument capture-spec.sh exits 2, prints nothing on stdout and its usage line on stderr'
+problems=()
+code=0
+env PATH="$plaindir/bin:$PATH" FIXTURES="$plaindir" LABELS='' "$SCRIPT" \
+  > "$tmp/noarg.out" 2> "$tmp/noarg.err" || code=$?
+[[ "$code" == 2 ]] || problems+=("exit want 2 got $code")
+[[ ! -s "$tmp/noarg.out" ]] || problems+=("stdout want empty got: $(cat "$tmp/noarg.out")")
+want_err='capture-spec: usage: capture-spec.sh <issue-number>'
+[[ "$(cat "$tmp/noarg.err")" == "$want_err" && "$(wc -l < "$tmp/noarg.err" | tr -d ' ')" == 1 ]] ||
+  problems+=("stderr want exactly '$want_err' got: $(cat "$tmp/noarg.err")")
+
+report "$name"
+
 finish
