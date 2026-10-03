@@ -208,4 +208,25 @@ probe_an_exemption_matching_two_lines
 
 expect_eq "$name" "$matching_lines_expected" "$matching_lines_named"
 
+probe_an_exemption_with_no_reason() {
+  local entry problem
+  entry=$'skills/tdd/scripts/tests/skill-leaf-env.test.sh:EXPANDING_STEP=\'A title naming `kill \x251`, the "blind" verifier and $HOME reaches the leaf as written\''
+  local -A EXEMPT=([$entry]="")
+  problems=()
+  probe_every_exemption_carries_a_reason
+  probe_no_file_kills_by_job_spec
+  reasonless_entry_named="not named"
+  for problem in ${problems+"${problems[@]}"}; do
+    [[ "$problem" == "the exemption entry [$entry] carries no reason"* ]] && reasonless_entry_named="named"
+  done
+  problems=()
+}
+
+name="an exemption whose text key carries an empty reason fails the run, naming the entry"
+reasonless_entry_named=""
+
+probe_an_exemption_with_no_reason
+
+expect_eq "$name" "named" "$reasonless_entry_named"
+
 finish
