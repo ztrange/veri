@@ -106,4 +106,18 @@ else
   printf '%s' "$conflict_bad"
 fi
 
+refuse_name="an unknown cause writes its refusal and the usage line on stderr, nothing on stdout, exit 2"
+refuse_err="$(mktemp)"
+refuse_out="$("$CLASSIFY" bogus 2>"$refuse_err")" && code=0 || code=$?
+refuse_got="$(cat "$refuse_err")"
+rm -f "$refuse_err"
+refuse_want="classify-bail: unknown cause: bogus
+usage: classify-bail.sh <cause>"
+if [[ "$code" == 2 && -z "$refuse_out" && "$refuse_got" == "$refuse_want" ]]; then
+  ok
+else
+  no "$refuse_name (want exit 2 and no stdout, got exit $code, stdout '$refuse_out')"
+  diff <(printf '%s\n' "$refuse_want") <(printf '%s\n' "$refuse_got") | sed 's/^/    /'
+fi
+
 finish
