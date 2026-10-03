@@ -320,3 +320,56 @@ def test_main_json_states_the_same_four_totals_as_the_text_report(tmp_path, monk
         if not any(re.search(r"(^|[^0-9])%s([^0-9]|$)" % re.escape(figure), entry) for entry in named):
             problems.append("the JSON %s total: want %s, got %r" % (pattern, figure, named))
     assert (code, json_code, problems) == (0, 0, []), out_json
+
+
+def test_main_names_each_session_rows_entrypoint_and_bands_min_median_max_per_harness(tmp_path, monkeypatch, capsys, session_cost):
+    monkeypatch.setenv("TZ", "UTC")
+    time.tzset()
+    desktop = [
+        ("b2061c86-0d47-4e9a-8153-6fa2c70e91db", 597, 68000),
+        ("c93172d5-1e58-4f0b-9264-7ab3d81fa2ec", 535, 69000),
+        ("da4283e6-2f69-40c1-a375-8bc4e92b03fd", 436, 70000),
+    ]
+    leaf = [
+        ("eb5394f7-3a70-41d2-b486-9cd5fa3c14ae", 321, 28000),
+        ("fc64a508-4b81-42e3-c597-ade60b4d25bf", 1000, 30000),
+        ("0d75b619-5c92-43f4-d6a8-bef71c5e36c0", 155, 33000),
+    ]
+    want_bands = {
+        "claude-desktop": (68597, 69535, 70436),
+        "sdk-cli": (28321, 31000, 33155),
+    }
+
+    transcripts = []
+
+    def write_session(session, entrypoint, usage_in, write, stamp, output):
+        path = tmp_path / (session + ".jsonl")
+        path.write_text(
+            '{"type":"assistant","timestamp":"%s","requestId":"req_%s","sessionId":"%s","entrypoint":"%s","userType":"external","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":%d,"cache_creation_input_tokens":%d,"cache_creation":{"ephemeral_5m_input_tokens":%d,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":0,"output_tokens":%d}}}\n'
+            % (stamp, session, session, entrypoint, usage_in, write, write, output)
+        )
+        transcripts.append(str(path))
+
+    for i in range(3):
+        write_session(desktop[i][0], "claude-desktop", desktop[i][1], desktop[i][2], "2026-09-14T1%d:04:31.807Z" % i, 1100 + i)
+        write_session(leaf[i][0], "sdk-cli", leaf[i][1], leaf[i][2], "2026-09-14T1%d:37:12.204Z" % i, 2200 + i)
+
+    code = session_cost.main(["--since", "2026-09-14"] + transcripts)
+    out = capsys.readouterr().out
+    lines = out.splitlines()
+
+    def anchored(figure):
+        return r"(^|[^0-9])%d([^0-9]|$)" % figure
+
+    problems = []
+    for entrypoint, sessions in (("claude-desktop", desktop), ("sdk-cli", leaf)):
+        for session, _, _ in sessions:
+            if not any(entrypoint in line for line in lines if session[:8] in line):
+                problems.append("session %s: want its row to name the entrypoint %s, it does not" % (session[:8], entrypoint))
+    for harness, figures in want_bands.items():
+        if not any(harness in line and all(re.search(anchored(figure), line) for figure in figures) for line in lines):
+            problems.append(
+                "the %s band: want one line naming %s and stating min %d, median %d and max %d together, no line states all three"
+                % ((harness, harness) + figures)
+            )
+    assert (code, problems) == (0, []), out
