@@ -10,7 +10,7 @@ WRITER = r"\|" + SPACE + "*(tee|dd|sponge)" + SPACE
 COMMENT = re.compile("^" + SPACE + "*#")
 MARKED = re.compile("^" + SPACE + "*# (hazard|pass-through):")
 MD_ASSIGNMENT = re.compile(NAME + "=[^ \t\n\v\f\r;]*\\.md[\"']?(" + SPACE + "|;|$)")
-HEREDOC = re.compile("<<-?" + SPACE + "*[\"']?" + NAME)
+HEREDOC = re.compile("<<(-?)" + SPACE + "*[\"']?(" + NAME + ")")
 FD_REDIRECT = re.compile("[02-9]>+" + SPACE + "*[^ \t\n\v\f\r]*")
 TO_FILE = re.compile(">" + SPACE + "*[^& \t\n\v\f\r]")
 TO_WRITER = re.compile(WRITER)
@@ -90,10 +90,9 @@ class Scanner:
             self.cls = 2 if TO_FILE.search(out) or TO_WRITER.search(out) else 3
             if TO_MD.search(out):
                 self.cls = 3
-            delim = opener.group(0)[2:]
-            self.dash = delim.startswith("-")
+            self.dash = opener.group(1) == "-"
             self.body = 1
-            self.delim = re.sub("^-?" + SPACE + "*[\"']?", "", delim, count=1)
+            self.delim = opener.group(2)
             variable = TO_VARIABLE.search(out)
             if variable and variable.group(1) in self.mdvar:
                 self.cls = 3
