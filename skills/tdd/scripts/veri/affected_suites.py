@@ -57,6 +57,11 @@ def has_line(path, pattern):
     return text is not None and any(pattern.search(line) for line in text.split(b"\n"))
 
 
+def sourcing(lib, tail=b""):
+    return re.compile(
+        rb"^" + SPACE + rb"*(source|\.)" + SPACE + rb".*lib/" + lib + rb"\"?" + SPACE + rb"*" + tail + rb"$")
+
+
 def basename(path, suffix=""):
     name = os.path.basename(path)
     if suffix and name.endswith(suffix) and name != suffix:
@@ -73,20 +78,16 @@ def suite_of(f):
     if match(SCRIPTS + "/tests/*.test.sh", SCRIPTS + "/tests/py/test_*.py"):
         return [f]
     if f == SCRIPTS + "/tests/lib/harness.sh":
-        sourcing = re.compile(
-            rb"^" + SPACE + rb"*(source|\.)" + SPACE + rb".*lib/harness\.sh\"?" + SPACE + rb"*$")
-        return [s for s in every_suite() if has_line(s, sourcing)]
+        return [s for s in every_suite() if has_line(s, sourcing(rb"harness\.sh"))]
     if match(SCRIPTS + "/tests/fixtures/*"):
         return suites_naming(f[len(SCRIPTS + "/tests/"):])
     if match(SCRIPTS + "/prompts/*.md"):
         return suites_naming(f[len(SCRIPTS + "/"):])
     if match(SCRIPTS + "/lib/*.sh"):
-        sourcing = re.compile(
-            rb"^" + SPACE + rb"*(source|\.)" + SPACE + rb".*lib/" + basename(f).encode()
-            + rb"\"?" + SPACE + rb"*(\\)?$")
+        line = sourcing(basename(f).encode(), rb"(\\)?")
         found = []
         for script in suites(SCRIPTS + "/*.sh"):
-            if has_line(script, sourcing):
+            if has_line(script, line):
                 found += suite_of(script)
         return found
     if match(SCRIPTS + "/veri/*.py"):
