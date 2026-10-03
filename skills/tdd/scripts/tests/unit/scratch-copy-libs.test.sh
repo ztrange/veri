@@ -56,6 +56,12 @@ lib_copy_hits() {
   done
 }
 
+expect_hits() {
+  local plant="$1"
+  shift
+  expect_eq "$name" "$(printf '    %s copies an individual lib file\n' "$@")" "$(lib_copy_hits "$plant" 2>&1)"
+}
+
 name="a suite that copies a script sourcing lib/exit-contract.sh into a scratch tree puts that lib there too"
 problems=""
 for suite in "$TESTS"/*.test.sh "$TESTS"/unit/*.test.sh; do
@@ -107,10 +113,7 @@ printf '%s\n' '#!/usr/bin/env bash' 'ln -s "$ROOT/skills/tdd/scripts/lib/exit-co
   > "$plant/unit/b.test.sh"
 printf '%s\n' '#!/usr/bin/env bash' 'cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tree/lib/"' \
   'cp -R "$ROOT/skills/tdd/scripts/lib" "$tree/"' > "$plant/c.test.sh"
-got="$(lib_copy_hits "$plant" 2>&1)"
-expect_eq "$name" \
-  "$(printf '    %s copies an individual lib file\n' a.test.sh:3 unit/b.test.sh:2)" \
-  "$got"
+expect_hits "$plant" a.test.sh:3 unit/b.test.sh:2
 
 name="#749: the lib-copy guard names a cp or ln of an individual lib file that follows ;, &&, | or \$( with no space"
 plant="$(scratch_dir)"
@@ -119,20 +122,14 @@ printf '%s\n' '#!/usr/bin/env bash' \
   'true&&ln -s "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/"' \
   'echo x|cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/"' \
   'out=$(cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/")' > "$plant/d.test.sh"
-got="$(lib_copy_hits "$plant" 2>&1)"
-expect_eq "$name" \
-  "$(printf '    %s copies an individual lib file\n' d.test.sh:2 d.test.sh:3 d.test.sh:4 d.test.sh:5)" \
-  "$got"
+expect_hits "$plant" d.test.sh:2 d.test.sh:3 d.test.sh:4 d.test.sh:5
 
 name="#749: the lib-copy guard names a cp or ln of an individual lib file opened by a backtick or a { with no space"
 plant="$(scratch_dir)"
 printf '%s\n' '#!/usr/bin/env bash' \
   'out=`cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/"`' \
   '{ln -s "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/"; }' > "$plant/e.test.sh"
-got="$(lib_copy_hits "$plant" 2>&1)"
-expect_eq "$name" \
-  "$(printf '    %s copies an individual lib file\n' e.test.sh:2 e.test.sh:3)" \
-  "$got"
+expect_hits "$plant" e.test.sh:2 e.test.sh:3
 
 name="#749: the lib-copy guard names a cp of an individual lib file made through the suite's own variable assignment"
 plant="$(scratch_dir)"
@@ -140,10 +137,7 @@ printf '%s\n' '#!/usr/bin/env bash' \
   'cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/"' \
   'GUARD_LIB="$ROOT/skills/tdd/scripts/lib/count-line-guard.sh"' \
   'cp "$GUARD_LIB" "$tree/lib/"' > "$plant/f.test.sh"
-got="$(lib_copy_hits "$plant" 2>&1)"
-expect_eq "$name" \
-  "$(printf '    %s copies an individual lib file\n' f.test.sh:2 f.test.sh:4)" \
-  "$got"
+expect_hits "$plant" f.test.sh:2 f.test.sh:4
 
 name="#749: the lib-copy guard names a tests/lib helper's cp of an individual lib file, never a printf, sed or cat rewrite into a lib path"
 plant="$(scratch_dir)"
@@ -157,9 +151,6 @@ printf '%s\n' '#!/usr/bin/env bash' \
   'sed "s/a/b/" "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh" > "$tree/skills/tdd/scripts/lib/count-line-guard.sh"' \
   'cat "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" > "$tree/skills/tdd/scripts/lib/exit-contract.sh"' \
   > "$plant/g.test.sh"
-got="$(lib_copy_hits "$plant" 2>&1)"
-expect_eq "$name" \
-  "$(printf '    %s copies an individual lib file\n' lib/copy-one.sh:3)" \
-  "$got"
+expect_hits "$plant" lib/copy-one.sh:3
 
 finish
