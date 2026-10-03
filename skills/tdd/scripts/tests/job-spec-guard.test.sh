@@ -198,16 +198,18 @@ if probe_guard_is_there && probe_guard_carries_an_exemption_table && plant; then
     probe_guard_names_the_offender_with_its_line
     probe_guard_leaves_the_innocent_alone
 
-    exempt_key="$OFFENDER_REL:$offender_line"
+    exempt_key="$OFFENDER_REL:$(sed -n "${offender_line}p" "$offender_path")"
+    empty="''"
+    quoted_key="'${exempt_key/"$KILL "/$KILL$empty }'"
 
-    exempt "$exempt_key" "$EXEMPT_REASON"
-    if probe_entry_is_in_the_table "$exempt_key"; then
+    exempt "$quoted_key" "$EXEMPT_REASON"
+    if probe_entry_is_in_the_table "$quoted_key"; then
       run_guard
       probe_guard_exempts_the_listed_site "$exempt_key"
     fi
 
-    exempt "$exempt_key" ""
-    if probe_entry_is_in_the_table "$exempt_key"; then
+    exempt "$quoted_key" ""
+    if probe_entry_is_in_the_table "$quoted_key"; then
       run_guard
       probe_guard_refuses_a_reasonless_entry "$exempt_key"
     fi
@@ -261,6 +263,25 @@ if probe_guard_is_there && plant; then
         run_guard
         probe_guard_is_green_once_the_plant_is_removed
       fi
+    fi
+  fi
+fi
+drop_tree
+
+report "$name"
+
+name="no-job-spec-kills.test.sh passes over a planted job-spec kill its exemption table lists by file and line text with a reason"
+problems=()
+
+if probe_guard_is_there && probe_guard_carries_an_exemption_table && plant; then
+  if probe_plant_is_what_it_claims; then
+    exempt_key="$OFFENDER_REL:$(sed -n "${offender_line}p" "$offender_path")"
+    empty="''"
+    quoted_key="'${exempt_key/"$KILL "/$KILL$empty }'"
+    exempt "$quoted_key" "$EXEMPT_REASON"
+    if probe_entry_is_in_the_table "$quoted_key"; then
+      run_guard
+      probe_guard_exempts_the_listed_site "$exempt_key"
     fi
   fi
 fi
