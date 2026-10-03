@@ -632,6 +632,32 @@ scan_transform_verifier_last_done() {
 run_case "#753 the structural pass in $skill_md spells the transform verifier's launch line, and run with every ledger step ticked it hands its verifier the last done step's text as --step, byte-identical" \
   scan_transform_verifier_last_done
 
+scan_phase_verifiers_last_done() {
+  local title="$EXPANDING_STEP"
+  local lineno line numbered launch stage seen tree err got argv which pattern
+  for which in general revise; do
+    case "$which" in
+      general) pattern='\$S/supervise\.sh verdict-<phase> \$S/run-verdict\.sh --step .* <phase> … >' ;;
+      revise)  pattern='\$S/supervise\.sh verdict-<phase> \$S/run-verdict\.sh --step .* --fast-cmd .<fast-cmd>. <phase> ' ;;
+    esac
+    numbered="$(head -1 < <(grep -nE "\\\$S/detach-leaf\\.sh .*$pattern" "$md"))"
+    if [[ -z "$numbered" ]]; then
+      no_launch "the $which verdict-<phase> shape through supervise.sh into run-verdict.sh"
+      continue
+    fi
+    take_line "$numbered" "$title" || continue
+    stage_recorder "phase-verifier-last-done-$which"
+    printf '# Plan for #%s\n\n- [x] an earlier step the run finished\n- [x] %s\n' \
+      "$SENTINEL_ISSUE" "$title" > "$tree/.tdd/issue-$SENTINEL_ISSUE.md"
+    run_staged '<no verifier was launched>'
+    [[ "$argv" == "$title" ]] ||
+      problem "launched the $which verdict-<phase> line beside a ledger with every step ticked, whose verifier was handed --step <$argv>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})"
+  done
+}
+
+run_case "#753 the general verifier launch shape and the revise loop's re-verify line in $skill_md, run with every ledger step ticked, hand their verifier the last done step's text as --step, byte-identical" \
+  scan_phase_verifiers_last_done
+
 scan_inline_ledger_reads() {
   local numbered lineno line
   while IFS= read -r numbered; do
