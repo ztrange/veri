@@ -16,22 +16,25 @@ source "$HERE/lib/ledger.sh"
 
 USAGE="usage: ledger-steps.sh [current|last-done|criterion <k>]"
 
-TEXT=$'\t[^\t]*\t[^\t]*\t(.*)$'
-
 texts() {
-  local record
+  local record index state kind pending added criterion text
   while IFS= read -r record; do
-    [[ "$record" =~ $1 ]] && printf '%s\n' "${BASH_REMATCH[-1]}"
+    ledger_fields "$record"
+    "$1" && printf '%s\n' "$text"
   done
   return 0
 }
 
+is_pending() { [[ "$state" == done && "$pending" == 1 ]]; }
+is_open_step() { [[ "$state" == open && ( "$kind" == step || "$kind" == diff-checked ) ]]; }
+is_done() { [[ "$state" == done ]]; }
+is_any() { :; }
+
 current() {
-  local records pattern found
+  local records select found
   records="$(ledger_steps)"
-  for pattern in $'^[0-9]+\tdone\t[^\t]*\t1'"$TEXT" \
-                 $'^[0-9]+\topen\t(step|diff-checked)\t[^\t]*'"$TEXT"; do
-    mapfile -t found < <(texts "$pattern" <<< "$records")
+  for select in is_pending is_open_step; do
+    mapfile -t found < <(texts "$select" <<< "$records")
     ((${#found[@]})) || continue
     printf '%s\n' "${found[0]}"
     return 0
@@ -41,7 +44,7 @@ current() {
 
 last_done() {
   local found
-  mapfile -t found < <(ledger_steps | texts $'^[0-9]+\tdone\t[^\t]*\t[^\t]*'"$TEXT")
+  mapfile -t found < <(ledger_steps | texts is_done)
   ((${#found[@]})) || return 3
   printf '%s\n' "${found[-1]}"
 }
@@ -55,7 +58,7 @@ criterion() {
         [[ "$line" == '## Acceptance criteria'* ]] && in_section=1
       fi
       ((in_section)) && printf '%s\n' "$line"
-    done | ledger_steps | texts $'^[0-9]+\t[^\t]*\t[^\t]*\t[^\t]*'"$TEXT"
+    done | ledger_steps | texts is_any
   )
   ((k >= 1 && k <= ${#found[@]})) || return 3
   printf '%s\n' "${found[k - 1]}"
