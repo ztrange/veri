@@ -522,6 +522,52 @@ def test_status_test_sh_no_longer_carries_the_dead_counted_line():
     assert dead == []
 
 
+STATUS_SUITE_BASE_CASES = {
+    "no runs under the main working tree prints 'no runs' and exits 3": [
+        r"""if [[ "$out" == "no runs" && "$code" -eq 3 ]]; then ok; else""",
+    ],
+    "a run under .tdd/wt/* is listed with its issue number, title, branch and step n of m": [
+        r"""for want in "#7" "widgets spin when clicked" "tdd/7-widgets-spin" "step 2 of 3"; do""",
+        r"""  [[ "$out" == *"$want"* ]] || missing+=("$want")""",
+        r"""  if [[ ${#missing[@]} -eq 0 && "$code" -eq 0 ]]; then ok; else""",
+    ],
+    "a run shows its state: running, done with its PR url, bailed with phase and classification, "
+    "or stale": [
+        'for want in "11 running" "12 done" "12 https://github.com/o/r/pull/12" "13 bailed" "13 green" \\',
+        r"""    "13 system" "14 stale"; do""",
+        r"""  [[ "$(line_of "${want%% *}")" == *"${want#* }"* ]] || missing+=("#$want")""",
+    ],
+    "--watch [seconds] redraws in place, recomputing every run from disk on each render": [
+        r"""wait_for "#41" || missing+=("a first render listing #41")""",
+        r"""kill -0 "$watch_pid" 2>/dev/null || missing+=("still watching after its first render")""",
+        r"""[[ "$out" == *$'\e['* || "$out" == *$'\ec'* ]] || missing+=("a redraw-in-place escape")""",
+        r"""[[ "$out" == *"done https://github.com/o/r/pull/41"* ]] || missing+=("#41 done after its event log changed")""",
+    ],
+    "status.sh run through its entry point exits 2 on a failure veri/status.py turns into exit 2": [
+        r"""if [[ "$code" -eq 2 && "$err" == *"PermissionError"* ]]; then ok; else""",
+    ],
+    "status.sh given a bad argument names it on stderr": [
+        r"""if [[ "$err" == "status.sh: unknown option '--bogus'" && "$code" -eq 2 ]]; then ok; else""",
+    ],
+    "status.sh run through a symlink to the skill directory and from another working directory "
+    "answers as it does when run in place": [
+        r"""if [[ "$linked" == "$in_place" && "$linked_code" -eq "$in_place_code" && "$in_place" == *"#7"* ]]; then ok; else""",
+    ],
+}
+
+
+def test_status_test_sh_keeps_every_case_its_base_held_with_the_same_assertions():
+    suite = STATUS_SUITE.read_text()
+    lines = suite.splitlines()
+
+    changed = {name: [line for line in assertions if line not in lines]
+               for name, assertions in STATUS_SUITE_BASE_CASES.items()}
+    changed = {name: absent + ([] if name in suite else ["<case name>"])
+               for name, absent in changed.items() if absent or name not in suite}
+
+    assert changed == {}
+
+
 def test_no_case_in_this_suite_calls_a_function_of_veri_status_other_than_main():
     tree = ast.parse(pathlib.Path(__file__).read_text())
 
