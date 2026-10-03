@@ -114,4 +114,17 @@ check "json but no result event" \
 '{"type":"system","subtype":"init"}
 {"type":"assistant","message":{"content":[]}}'
 
+name="extract-result.sh run through a symlink to the skill directory and from another working directory writes the same stdout and exit code as when run in place"
+work="$(scratch_dir)"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+mkdir -p "$work/elsewhere"
+stream='{"type":"system","subtype":"init"}
+{"type":"result","result":"VERDICT: PASS\nREASON: linked."}'
+in_place="$(printf '%s' "$stream" | "$EXTRACT")"; in_place_code=$?
+linked="$(cd "$work/elsewhere" && printf '%s' "$stream" | "$work/linked-skill/scripts/extract-result.sh")"; linked_code=$?
+if [[ "$linked" == "$in_place" && "$linked_code" -eq "$in_place_code" && "$in_place" == *"REASON: linked."* ]]; then ok; else
+  no "$name"
+  diff <(printf '%s\nexit %s\n' "$in_place" "$in_place_code") <(printf '%s\nexit %s\n' "$linked" "$linked_code") | sed 's/^/    /'
+fi
+
 finish
