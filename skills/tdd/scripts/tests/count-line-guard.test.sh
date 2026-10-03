@@ -572,9 +572,10 @@ scratch_suite_run() {
   cp "$MAKEFILE" "$tree/Makefile"
   cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
   cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tree/skills/tdd/scripts/lib/"
-  if [[ $# -ge 3 && -z "$3" ]]; then
-    rm "$tree/skills/tdd/scripts/lib/count-line-guard.sh"
-  elif [[ $# -ge 3 ]]; then
+  rm "$tree/skills/tdd/scripts/lib/count-line-guard.sh"
+  if [[ $# -lt 3 ]]; then
+    cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tree/skills/tdd/scripts/lib/"
+  elif [[ -n "$3" ]]; then
     printf '%s\n' "$3" > "$tree/skills/tdd/scripts/lib/count-line-guard.sh"
   fi
   printf '#!/bin/sh\n%s\nexit 0\n' "$2" > "$tree/$TESTS_DIR/$1"
