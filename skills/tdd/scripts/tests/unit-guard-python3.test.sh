@@ -12,6 +12,8 @@
 #   4. So does python3 -c or python3 with no arguments run with veri/ as the working directory.
 #   5. Under make test, a suite under tests/unit/ gets the same guard — the shim's hand-off goes
 #      through, a direct python3 -c is refused, named and logged — and a suite outside it gets none.
+#   6. Any git call — one whose first argument is a file under veri/ included — exits 1, names git on
+#      stderr and is written to $UNIT_GUARD_LOG.
 #
 # Run: skills/tdd/scripts/tests/unit-guard-python3.test.sh
 set -uo pipefail
@@ -160,6 +162,32 @@ for call in "file|$bare/module.py" "-c|print(\"reached-interpreter\")" "none|"; 
     problems+=("$kind: want stderr '$refusal'; got: $(flat "$err")")
   [[ "$logged" == "python3 ${argv[*]+"${argv[*]}"} (cwd "* ]] ||
     problems+=("$kind: want a log line 'python3 ${argv[*]+"${argv[*]}"} (cwd …)'; got: $(flat "$logged")")
+done
+
+report "$name"
+
+name="under make unit's guard PATH, any git call — a file under veri/ as its first argument included — exits 1 naming git and is logged"
+problems=()
+
+git_refusal="make unit: git called for real; a unit suite mocks it as a shell function"
+for call in "veri-file|$tree/skills/tdd/scripts/veri/probe_handoff.py" "status|status" "none|"; do
+  kind="${call%%|*}" arg="${call#*|}"
+  case "$kind" in
+    none) argv=() ;;
+    *) argv=("$arg") ;;
+  esac
+  : > "$log"
+  out="$(cd "$tree" && PATH="$tree/skills/tdd/scripts/tests/unit-guard:$PATH" UNIT_GUARD_LOG="$log" \
+    git ${argv[@]+"${argv[@]}"} 2> "$err_file" < /dev/null)"
+  code=$?
+  err="$(cat "$err_file")"
+  logged="$(cat "$log")"
+  [[ "$code" == 1 ]] ||
+    problems+=("$kind: want exit 1; got: $code (stdout: $(flat "$out"))")
+  [[ "$err" == "$git_refusal" ]] ||
+    problems+=("$kind: want stderr '$git_refusal'; got: $(flat "$err")")
+  [[ "$logged" == "git ${argv[*]+"${argv[*]}"} (cwd "* ]] ||
+    problems+=("$kind: want a log line 'git ${argv[*]+"${argv[*]}"} (cwd …)'; got: $(flat "$logged")")
 done
 
 report "$name"
