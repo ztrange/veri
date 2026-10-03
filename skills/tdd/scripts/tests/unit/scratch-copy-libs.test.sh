@@ -32,6 +32,20 @@ expand() {
   printf '%s' "$text"
 }
 
+lib_copy_hits() {
+  local dir="$1" suite line n
+  for suite in "$dir"/*.test.sh "$dir"/unit/*.test.sh; do
+    [[ -f "$suite" ]] || continue
+    n=0
+    while IFS= read -r line; do
+      n=$((n + 1))
+      [[ "$line" =~ (^|[[:space:]])(cp|ln)[[:space:]] ]] || continue
+      [[ "$line" =~ skills/tdd/scripts/lib/[A-Za-z0-9_.-]+\.sh ]] || continue
+      printf '    %s:%s copies an individual lib file\n' "${suite#"$dir"/}" "$n"
+    done < "$suite"
+  done
+}
+
 name="a suite that copies a script sourcing lib/exit-contract.sh into a scratch tree puts that lib there too"
 problems=""
 for suite in "$TESTS"/*.test.sh "$TESTS"/unit/*.test.sh; do
@@ -76,5 +90,19 @@ for suite in "$TESTS"/*.test.sh "$TESTS"/unit/*.test.sh; do
   done < <(sed -nE 's#^(source|\.)[[:space:]]+"\$HERE/lib/([A-Za-z0-9_.-]+\.sh)".*#\2#p' "$TESTS/$planted")
 done
 verdict "$name"
+
+name="#749: the lib-copy guard names <suite>:<line> for a cp or ln of an individual lib file, never for lib/*.sh or the lib dir"
+plant="$(scratch_dir)"
+mkdir -p "$plant/unit"
+printf '%s\n' '#!/usr/bin/env bash' 'mkdir -p "$tree/lib"' \
+  'cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/"' > "$plant/a.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'ln -s "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$tree/lib/exit-contract.sh"' \
+  > "$plant/unit/b.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tree/lib/"' \
+  'cp -R "$ROOT/skills/tdd/scripts/lib" "$tree/"' > "$plant/c.test.sh"
+got="$(lib_copy_hits "$plant" 2>&1)"
+expect_eq "$name" \
+  "$(printf '    %s copies an individual lib file\n' a.test.sh:3 unit/b.test.sh:2)" \
+  "$got"
 
 finish
