@@ -388,3 +388,63 @@ def test_get_api_events_answers_the_empty_list_for_issue_3_held_only_as_a_ledger
     three, seven = served[0][1]
     assert json.loads(body(three)) == {"events": []}
     assert json.loads(body(seven))["events"] == logged
+
+
+def test_get_api_tests_answers_run_51s_two_make_test_runs_from_its_leaf_log_when_it_has_no_event_log(
+        tmp_path, monkeypatch, dashboard):
+    selected = os.path.join(str(tmp_path), ".tdd", "wt", "51")
+    other = os.path.join(str(tmp_path), ".tdd", "wt", "52")
+    write(os.path.join(selected, ".tdd", "issue-51.md"),
+          "# Plan for #51 — lamps flicker\n\n- [ ] a lamp flickers\n")
+    write(os.path.join(selected, ".tdd", "issue-51-spec.md"),
+          "## What to build\n\nA lamp flickers.\n\nTest command: make test\n")
+    red_fail = "FAIL - a lamp flickers\n----\n11 passed, 1 failed"
+    red_pass = "----\n12 passed, 0 failed"
+
+    def call(use_id, command):
+        return {"type": "assistant", "message": {"role": "assistant", "content": [
+            {"type": "tool_use", "id": use_id, "name": "Bash",
+             "input": {"command": command, "description": "a call"}}]}}
+
+    def result(use_id, content, is_error):
+        return {"type": "user", "message": {"role": "user", "content": [
+            {"tool_use_id": use_id, "type": "tool_result", "content": content,
+             "is_error": is_error}]}}
+
+    records = [
+        {"type": "system", "subtype": "init", "session_id": "s1", "tools": ["Bash"]},
+        call("toolu_1", "git log --oneline -3"),
+        result("toolu_1", "abc1234 plan: a lamp flickers", False),
+        call("toolu_2", "make test"), result("toolu_2", red_fail, True),
+        call("toolu_3", "make test"), result("toolu_3", red_pass, False),
+        {"type": "result", "subtype": "success", "is_error": False, "result": "The case is added."},
+    ]
+    write(os.path.join(selected, ".tdd", "develop-red.out"),
+          "".join(json.dumps(record) + "\n" for record in records))
+    write(os.path.join(other, ".tdd", "issue-52.md"), "# Plan for #52 — lamps dim\n\n- [ ] a lamp dims\n")
+    write(os.path.join(other, ".tdd", "issue-52-spec.md"),
+          "## What to build\n\nA lamp dims.\n\nTest command: make test\n")
+    write(os.path.join(other, ".tdd", "develop-green.out"),
+          json.dumps(call("toolu_9", "make test")) + "\n"
+          + json.dumps(result("toolu_9", "----\n7 passed, 0 failed  (run 52)", False)) + "\n")
+
+    def fake_run(args, cwd=None, **kwargs):
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, ["/api/tests?issue=51"])
+
+    dashboard.main([])
+
+    assert not os.path.exists(os.path.join(selected, ".tdd", "events.jsonl"))
+    (tests,) = served[0][1]
+    runs = json.loads(body(tests))["tests"]
+    assert [(entry["command"], entry["passed"]) for entry in runs] == [
+        ("make test", False), ("make test", True)]
+    for entry, output in zip(runs, (red_fail, red_pass)):
+        assert entry["tail"] and output.endswith(entry["tail"])
+        assert output.splitlines()[-1] in entry["tail"]
