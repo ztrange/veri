@@ -3,7 +3,8 @@
 # to $UNIT_GUARD_LOG when it is set — save python3 on a module file under skills/tdd/scripts/veri/,
 # which runs on the real interpreter.
 here="$(dirname "$0")"
-if [ "$(basename "$0")" = python3 ]; then
+cmd="$(basename "$0")"
+if [ "$cmd" = python3 ]; then
   veri="$(cd "$here/../../veri" 2>/dev/null && pwd -P)"
   module_dir="$(cd "$(dirname "$1")" && pwd -P)"
   case "$module_dir/" in
@@ -17,6 +18,6 @@ if [ "$(basename "$0")" = python3 ]; then
       ;;
   esac
 fi
-printf '%s\n' "$(basename "$0") $* (cwd $PWD)" >> "${UNIT_GUARD_LOG:-/dev/null}"
-echo "make unit: $(basename "$0") called for real; a unit suite mocks it as a shell function" >&2
+printf '%s\n' "$cmd $* (cwd $PWD)" >> "${UNIT_GUARD_LOG:-/dev/null}"
+echo "make unit: $cmd called for real; a unit suite mocks it as a shell function" >&2
 exit 1
