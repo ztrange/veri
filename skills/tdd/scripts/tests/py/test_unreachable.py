@@ -48,3 +48,30 @@ def test_main_with_an_empty_argument_returns_2_naming_its_usage(capsys):
     refusal = capsys.readouterr()
 
     assert (refused, refusal.out, refusal.err) == (2, "", "usage: unreachable.sh <repo-root>\n")
+
+
+def test_main_lists_orphans_chained_orphans_and_tail_names_and_takes_only_bounded_names_as_mentions(tmp_path, capsys):
+    unreachable = importlib.import_module("veri.unreachable")
+    orphans = tmp_path / "orphans"
+    scripts = fixture_root(orphans)
+    script(scripts / "helper.sh", "echo helped")
+    script(scripts / "orphan-top.sh", '"$(dirname "$0")/orphan-leaf.sh" "$@"')
+    script(scripts / "orphan-leaf.sh", '"$(dirname "$0")/orphan-top.sh" --again')
+    tail = tmp_path / "tail"
+    scripts = fixture_root(tail)
+    script(scripts / "helper.sh", '"$(dirname "$0")/run-leaf.sh" "$@"')
+    script(scripts / "run-leaf.sh", "echo ran")
+    script(scripts / "leaf.sh", "echo alone")
+    bounds = tmp_path / "bounds"
+    scripts = fixture_root(bounds)
+    script(scripts / "helper.sh",
+           "kept.sh\n# xleaf.sh 2leaf.sh my_leaf.sh v2.leaf.sh leaf.shx leaf.sh2 leaf.sh_old leaf.sh-old")
+    script(scripts / "kept.sh", "echo kept")
+    script(scripts / "leaf.sh", "echo alone")
+
+    answers = []
+    for root in (orphans, tail, bounds):
+        code = unreachable.main([str(root)])
+        answers.append((code, capsys.readouterr().out))
+
+    assert answers == [(0, "orphan-leaf.sh\norphan-top.sh\n"), (0, "leaf.sh\n"), (0, "leaf.sh\n")]
