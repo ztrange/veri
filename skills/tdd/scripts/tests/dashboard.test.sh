@@ -705,4 +705,43 @@ fi
 
 report "$name"
 
+name="dashboard.sh, run through a symlink to the skill directory and from another working directory, serves dashboard.html at / and status.sh --json's stdout at /api/runs"
+problems=()
+link_repo="$(repo linked)"
+link_log="$work/linked.log"
+ln -s "$(cd "$scripts/.." && pwd)" "$work/skill-link"
+link_port="$(free_port)"
+
+problem="$(port_problem "$link_port")"
+if [[ -n "$problem" ]]; then
+  problems+=("$problem")
+else
+  launch ../skill-link/scripts/dashboard.sh "$link_repo" "$link_log" "$link_port"
+  link_pid=$!
+
+  link_base="http://127.0.0.1:$link_port"
+  link_page="$(serve_until_up "$link_base/")"
+  problem="$(answer_problem "$link_base/" "$link_log" "$link_page")"
+  if [[ -n "$problem" ]]; then
+    problems+=("$problem")
+  else
+    link_served="$(http_body "$link_page")"
+    link_file="$(cat "$scripts/dashboard.html")"
+    [[ "$link_served" == "$link_file" ]] ||
+      problems+=("GET / through the symlink served $(printf '%q' "${link_served:0:200}"); dashboard.html holds $(printf '%q' "${link_file:0:200}")")
+
+    link_runs="$(fetch "$link_base/api/runs" 2>/dev/null || :)"
+    link_status="$(cd "$link_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 "$STATUS" --json 2>/dev/null)"
+    if [[ "$(http_status "$link_runs")" != 200 ]]; then
+      problems+=("GET $link_base/api/runs through the symlink answered '$(http_status "$link_runs")', want 200")
+    elif [[ "$(http_body "$link_runs")" != "$link_status" ]]; then
+      problems+=("GET /api/runs through the symlink answered $(printf '%q' "$(http_body "$link_runs")"); status.sh --json prints $(printf '%q' "$link_status")")
+    fi
+  fi
+
+  stop "$link_pid" || :
+fi
+
+report "$name"
+
 finish
