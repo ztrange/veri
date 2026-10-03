@@ -111,3 +111,30 @@ def test_main_reports_a_non_fast_forward_rejection_once_and_records_push_rejecte
     ]
     assert (code, captured.out, stderr_at_event, captured.err) == (
         1, "", ["push rejected (non-fast-forward): origin/feature is at abc1234def\n"], "")
+
+
+def test_main_keeps_bash_octal_arithmetic_for_leading_zero_tunables(monkeypatch, capsys, push_branch):
+    push = "git push --set-upstream origin HEAD"
+
+    def failing(line):
+        return (128, "fatal: unable to access origin\n") if line == push else (0, "")
+
+    def run_with(retries, backoff):
+        calls = fake_processes(monkeypatch, failing)
+        monkeypatch.setenv("VERI_PUSH_RETRIES", retries)
+        monkeypatch.setenv("VERI_PUSH_BACKOFF", backoff)
+        code = push_branch.main([])
+        return code, calls, capsys.readouterr().err
+
+    _, octal_calls, _ = run_with("007", "0")
+    observed = (
+        octal_calls.count(push),
+        run_with("08", "0"),
+        run_with("1", "09"),
+    )
+
+    assert observed == (
+        8,
+        (1, [], "push-branch.sh: push failed after 0 attempts; the branch is not on the remote\n"),
+        (1, [push, "sleep 09"], ""),
+    )

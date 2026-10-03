@@ -33,6 +33,10 @@ def output(args):
     return run(args, stdout=subprocess.PIPE, text=True).stdout.rstrip("\n")
 
 
+def number(value):
+    return int(value, 8) if value.startswith("0") else int(value)
+
+
 def main(argv):
     if argv and (len(argv) != 1 or not LEASE.fullmatch(argv[0])):
         print("push-branch.sh: the only argument is --force-with-lease=<branch>:<sha>, "
@@ -46,9 +50,15 @@ def main(argv):
             print(f"push-branch.sh: {name} must be a non-negative integer, got '{value}'",
                   file=sys.stderr)
             return 2
-        tunables[name] = int(value)
-    retries, backoff = tunables["VERI_PUSH_RETRIES"], tunables["VERI_PUSH_BACKOFF"]
+        tunables[name] = value
+    backoff = tunables["VERI_PUSH_BACKOFF"]
     attempt = 0
+    try:
+        retries = number(tunables["VERI_PUSH_RETRIES"])
+    except ValueError:
+        print("push-branch.sh: push failed after 0 attempts; the branch is not on the remote",
+              file=sys.stderr)
+        return 1
     while attempt <= retries:
         attempt += 1
         pushed = run(["git", "push", *argv, "--set-upstream", "origin", "HEAD"],
@@ -66,8 +76,11 @@ def main(argv):
                 return 2
             return 1
         if attempt <= retries:
-            run(["sleep", str(backoff)])
-            backoff *= 2
+            run(["sleep", backoff])
+            try:
+                backoff = str(number(backoff) * 2)
+            except ValueError:
+                return 1
     print(f"push-branch.sh: push failed after {attempt} attempts; the branch is not on the remote",
           file=sys.stderr)
     return record("push-failed", f"error={out}", f"attempts={attempt}")
