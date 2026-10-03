@@ -102,3 +102,24 @@ def test_main_passes_event_sh_exit_codes_0_to_3_through_and_maps_any_other_to_2(
     _fake_event_sh(monkeypatch, event_code)
 
     assert harvest_usage.main(["verify-green"]) == expected
+
+
+@pytest.mark.parametrize("models", [["claude-opus-5-5"], ["claude-opus-5-5", "claude-haiku-4-5-20251001"]])
+def test_main_on_a_closing_record_with_model_usage_passes_event_sh_a_model_key_listing_every_model_named(
+        tmp_path, monkeypatch, harvest_usage, models):
+    record = {"type": "result", "duration_ms": 1, "duration_api_ms": 1, "num_turns": 1, "total_cost_usd": 0.5,
+              "usage": {"input_tokens": 20, "output_tokens": 4000,
+                        "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0},
+              "modelUsage": {model: {"inputTokens": 1, "outputTokens": 1, "cacheReadInputTokens": 0,
+                                     "cacheCreationInputTokens": 0, "costUSD": 0.25, "canonicalModel": model}
+                             for model in models}}
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verify-green.log").write_text(json.dumps(record) + "\n")
+    monkeypatch.chdir(tmp_path)
+    calls = _fake_event_sh(monkeypatch, 0)
+
+    assert harvest_usage.main(["verify-green"]) == 0
+
+    model_args = [arg for arg in calls[0] if arg.startswith("model=")]
+    assert len(model_args) == 1
+    assert sorted(filter(None, model_args[0][len("model="):].split(","))) == sorted(models)
