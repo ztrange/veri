@@ -321,4 +321,18 @@ done
   problems+=("want nothing appended to .tdd/events.jsonl, got $(printf '%q' "$(cat "$sp_work/.tdd/events.jsonl")")")
 report "$name"
 
+name="#726: event.sh refuses a structural-pass mark carrying no stopped= with exit 2, naming the three allowed reasons, and appends nothing"
+problems=()
+ns_work="$(scratch_dir)"
+ns_err="$( cd "$ns_work" && env VERI_ISSUE=134 VERI_ACTOR=conductor VERI_AWAKE_CLOCK=/usr/bin/true \
+    "$EVENT" structural-pass transforms=0 budget=10 2>&1 >/dev/null )" && ns_code=0 || ns_code=$?
+[[ "$ns_code" == 2 ]] || problems+=("want exit 2, got $ns_code")
+for ns_word in candidates-done budget-spent nothing-structural; do
+  [[ "$ns_err" == *"$ns_word"* ]] ||
+    problems+=("stderr: want it to name $ns_word, got $(printf '%q' "$ns_err")")
+done
+[[ ! -s "$ns_work/.tdd/events.jsonl" ]] ||
+  problems+=("want nothing appended to .tdd/events.jsonl, got $(printf '%q' "$(cat "$ns_work/.tdd/events.jsonl")")")
+report "$name"
+
 finish

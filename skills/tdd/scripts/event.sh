@@ -55,8 +55,10 @@ event="$1"
 shift
 
 if [[ "$event" == structural-pass ]]; then
+  stopped_seen=0
   for arg in "$@"; do
     [[ "$arg" == stopped=* ]] || continue
+    stopped_seen=1
     case "${arg#stopped=}" in
       candidates-done|budget-spent|nothing-structural) ;;
       *)
@@ -65,6 +67,10 @@ if [[ "$event" == structural-pass ]]; then
         ;;
     esac
   done
+  if [[ "$stopped_seen" == 0 ]]; then
+    echo "event.sh: structural-pass needs stopped=, one of candidates-done, budget-spent, nothing-structural" >&2
+    exit 2
+  fi
 fi
 
 mkdir -p .tdd
