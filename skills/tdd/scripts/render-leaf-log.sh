@@ -12,5 +12,5 @@
 # rendering is written only after the loop, so the records already rendered are
 # discarded along with the line that stopped it.
 #
-# Usage:   render-leaf-log.sh < .tdd/<leaf>.out
+# usage:   render-leaf-log.sh < .tdd/LEAF.out   (takes no argument)
 exec python3 "$(dirname "$0")/veri/render_leaf_log.py"
