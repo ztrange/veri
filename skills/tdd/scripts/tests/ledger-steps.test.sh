@@ -78,6 +78,14 @@ got="$("$STEPS" criterion 2 < "$work/no-eol.md" 2> "$work/err")"; code=$?
 { [[ "$code" == 0 ]] && [[ "$got" == 'last criterion, no final newline' ]] && [[ ! -s "$work/err" ]]; } \
   && ok || no "criterion <k> reads the last criterion of a body with no final newline (code=$code got='$got' stderr='$(cat "$work/err")')"
 
+printf '## Acceptance criteria\n\n- [ ] c1\n- [ ] c2\n- [ ] c3\n- [ ] c4\n- [ ] c5\n- [ ] c6\n- [ ] c7\n- [ ] c8\n- [ ] c9\n' > "$work/nine.md"
+: > "$work/err"
+eight="$("$STEPS" criterion 08 < "$work/nine.md" 2> "$work/err")"; eight_code=$?
+short="$("$STEPS" criterion 08 < "$work/body.md" 2>> "$work/err")"; short_code=$?
+{ [[ "$eight_code" == 0 ]] && [[ "$eight" == 'c8' ]] \
+  && [[ "$short_code" == 3 ]] && [[ -z "$short" ]] && [[ ! -s "$work/err" ]]; } \
+  && ok || no "criterion <k> reads a leading-zero <k> in base 10: 08 prints the 8th checkbox, else exits 3 with no output (eight_code=$eight_code eight='$eight' short_code=$short_code short='$short' stderr='$(cat "$work/err")')"
+
 bad_args() {
   local label="$1" input="$2"; shift 2
   "$STEPS" "$@" < "$input" > "$work/bad-out" 2> "$work/bad-err"; local code=$?
