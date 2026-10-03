@@ -14,6 +14,7 @@ VERDICT_RE = labelled("verdict")
 REASON_RE = labelled("reason")
 FENCE_RE = re.compile(f"^[{SPACE}]*(```|~~~)[{SPACE}]*$")
 UPPER = str.maketrans(string.ascii_lowercase, string.ascii_uppercase)
+CODES = {"PASS": 0, "REJECT": 1}
 
 
 def read_lines(text):
@@ -66,13 +67,12 @@ def main(argv):
         return 2
     tail = VERDICT_RE.match(lines[vidx]).group(1)
     word = first_token(tail).translate(UPPER)
-    codes = {"PASS": 0, "REJECT": 1}
-    if word not in codes:
+    if word not in CODES:
         print(f"parse-verdict: unrecognised verdict word '{word}'", file=sys.stderr)
         return 2
     reason = following_reason(lines[vidx + 1:]).rstrip(SPACE) or inline_reason(tail)
     print(drop_closing_fence(reason.strip(SPACE)))
-    return codes[word]
+    return CODES[word]
 
 
 if __name__ == "__main__":
