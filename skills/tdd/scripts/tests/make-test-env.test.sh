@@ -9,6 +9,7 @@
 #      xcrun answers,
 #   4. and straight to the git `command -v git` names when it does not.
 #   5. The pytest leg runs $VERI_VENV/bin/python3 when it is present, else the python3 on PATH.
+#   6. `make install-dev` creates the environment at $VERI_VENV, else at ~/.veri-tools/venv.
 #
 # Run: skills/tdd/scripts/tests/make-test-env.test.sh
 set -uo pipefail
@@ -145,5 +146,27 @@ recipe /dev/null VERI_VENV="$work/no-venv" VERI_PYTHON_VERSION=3.12.0 VERI_PYTES
 [[ "$recipe_out" == *"path python3 -m pytest skills/tdd/scripts/tests/py/test_"* ]] ||
   problems+=("want the python3 on PATH to run the pytest leg when \$VERI_VENV/bin/python3 is absent, got: $(flat "$recipe_out")")
 report "make test's pytest leg runs \$VERI_VENV/bin/python3 when it is present and the python3 on PATH when it is absent"
+
+problems=()
+venv_maker="$work/venv-maker"
+mkdir -p "$venv_maker"
+cat > "$venv_maker/python3" <<'SH'
+#!/bin/sh
+if [ "$1" = -m ] && [ "$2" = venv ]; then
+  mkdir -p "$3/bin"
+  printf '#!/bin/sh\nexit 0\n' > "$3/bin/python3"
+  chmod +x "$3/bin/python3"
+fi
+SH
+chmod +x "$venv_maker/python3"
+install_out="$(env VERI_VENV="$work/set-venv" HOME="$work/home-set" PATH="$venv_maker:$PATH" \
+  make --no-print-directory -C "$ROOT" install-dev 2>&1 < /dev/null)"
+[[ -x "$work/set-venv/bin/python3" && ! -e "$work/home-set/.veri-tools/venv" ]] ||
+  problems+=("VERI_VENV set: want the environment created at \$VERI_VENV and nothing under \$HOME/.veri-tools/venv, got: $(flat "$install_out")")
+install_out="$(env -u VERI_VENV HOME="$work/home-unset" PATH="$venv_maker:$PATH" \
+  make --no-print-directory -C "$ROOT" install-dev 2>&1 < /dev/null)"
+[[ -x "$work/home-unset/.veri-tools/venv/bin/python3" ]] ||
+  problems+=("VERI_VENV unset: want the environment created at \$HOME/.veri-tools/venv, got: $(flat "$install_out")")
+report "make install-dev creates the environment at \$VERI_VENV, or at ~/.veri-tools/venv when VERI_VENV is unset"
 
 finish
