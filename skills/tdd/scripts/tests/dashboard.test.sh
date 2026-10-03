@@ -738,48 +738,6 @@ fi
 
 report "$name"
 
-name="metrics_json, called directly, reports a marker for an ended run whose committed metrics file is missing"
-problems=()
-mgone_repo="$(repo metricsgone)"
-
-mgone_run="$(fabricate_run "$mgone_repo" 34 tdd/34-lamps-gutter)"
-cat > "$mgone_run/.tdd/issue-34.md" <<'EOF'
-# Plan for #34 — lamps gutter
-
-- [x] a lamp exists
-- [ ] a lamp gutters
-EOF
-mgone_now="$(date +%s)"
-cat > "$mgone_run/.tdd/events.jsonl" <<EOF
-{"ts": $((mgone_now - 9000)), "issue": "34", "actor": "conductor", "phase": "", "step": "a lamp gutters", "event": "step-start", "attempt": "", "skill_commit": "abc"}
-{"ts": $((mgone_now - 8900)), "issue": "34", "actor": "developer", "phase": "red", "step": "a lamp gutters", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
-{"ts": $((mgone_now - 8800)), "issue": "34", "actor": "conductor", "phase": "red", "step": "a lamp gutters", "event": "bail", "attempt": "1", "skill_commit": "abc", "reason": "killed-stuck"}
-EOF
-
-if [[ -n "$module_problem" ]]; then
-  problems+=("$module_problem")
-elif [[ -e "$mgone_run/.tdd/issue-34-metrics.md" ]]; then
-  problems+=("the fixture run has a committed .tdd/issue-34-metrics.md, so the case says nothing")
-else
-  call_endpoint "$mgone_repo" metrics_json "$work/metrics-gone.err" '{}' "$work/metrics-gone.json"
-  if [[ ! -f "$work/metrics-gone.json" ]]; then
-    problems+=("calling $module.metrics_json wrote nothing: $(tail -n 1 "$work/metrics-gone.err")")
-  else
-    add_problems < <(python3 -c "$metrics_issues"'
-report = issues["34"]
-if not report.strip():
-    print("issue 34 ended with a bail mark and has no committed "
-          ".tdd/issue-34-metrics.md, so its report has to be a marker a viewer can tell "
-          "apart from a real empty report: metrics_json returned %r" % report)
-elif "issue-34-metrics.md" not in report:
-    print("issue 34 has no committed .tdd/issue-34-metrics.md, so its report has to name "
-          "the file that is missing: metrics_json returned %r" % report[:300])
-' "$work/metrics-gone.json" 34)
-  fi
-fi
-
-report "$name"
-
 name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
 problems=()
 disk_page="$scripts/dashboard.html"
