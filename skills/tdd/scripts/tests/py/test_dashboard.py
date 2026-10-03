@@ -290,3 +290,36 @@ def test_get_api_metrics_recomputes_run_35_whose_log_carries_a_stop_mark_and_no_
 
     (metrics,) = served[0][1]
     assert json.loads(body(metrics))["issues"]["35"] == recomputed
+
+
+def test_get_api_metrics_keys_issues_by_the_run_directory_7_alone_and_runs_metrics_sh_once_in_it(
+        tmp_path, monkeypatch, dashboard):
+    run = os.path.join(str(tmp_path), ".tdd", "wt", "7")
+    write(os.path.join(run, ".tdd", "issue-7.md"),
+          "# Plan for #7 — lamps glow\n\n- [x] a lamp exists\n- [ ] a lamp glows\n")
+    for other in ("3", "5"):
+        write(os.path.join(run, ".tdd", "issue-%s.md" % other),
+              "# Plan for #%s — an earlier run's committed plan\n\n- [x] a lamp is wired\n" % other)
+    write(os.path.join(run, ".tdd", "events.jsonl"),
+          '{"ts": 1, "issue": "7", "event": "step-start"}\n'
+          '{"ts": 2, "issue": "7", "event": "launch", "name": "develop-red"}\n')
+    metrics_calls = []
+
+    def fake_run(args, cwd=None, **kwargs):
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
+        if list(args)[:1] == [os.path.join(SCRIPTS, "metrics.sh")]:
+            metrics_calls.append((list(args), cwd))
+            return subprocess.CompletedProcess(args, 0, b"a stub report\n", b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, ["/api/metrics"])
+
+    dashboard.main([])
+
+    (metrics,) = served[0][1]
+    assert sorted(json.loads(body(metrics))["issues"]) == ["7"]
+    assert metrics_calls == [([os.path.join(SCRIPTS, "metrics.sh"), "7"], run)]

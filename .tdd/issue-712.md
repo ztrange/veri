@@ -8,7 +8,7 @@
 - [x] tests/py/test_dashboard.py: GET /api/metrics answers run 33, ended by bail, with its committed .tdd/issue-33-metrics.md verbatim ⟦criterion 5⟧
 - [x] tests/py/test_dashboard.py: GET /api/metrics answers run 34, ended by bail with no committed report, with a non-empty marker naming issue-34-metrics.md ⟦criterion 6⟧
 - [x] tests/py/test_dashboard.py: GET /api/metrics for a run 35 whose log carries a stop mark and no done or bail answers the faked metrics.sh 35's stdout, not a committed report or the missing-report marker ⟦criterion 7⟧
-- [ ] tests/py/test_dashboard.py: GET /api/metrics over .tdd/wt/7 holding issue-3.md, issue-5.md and issue-7.md answers issues keyed by 7 alone, the faked subprocess seeing exactly one metrics.sh call, [<scripts>/metrics.sh, "7"] with cwd that run ⟦criterion 8⟧
+- [x] tests/py/test_dashboard.py: GET /api/metrics over .tdd/wt/7 holding issue-3.md, issue-5.md and issue-7.md answers issues keyed by 7 alone, the faked subprocess seeing exactly one metrics.sh call, [<scripts>/metrics.sh, "7"] with cwd that run ⟦criterion 8⟧
 - [ ] tests/py/test_dashboard.py: GET /api/events?issue=51 answers run 51's logged events in file order and none of run 52's, and /api/events?issue=99 answers {"events": []} ⟦criterion 9⟧
 - [ ] tests/py/test_dashboard.py: GET /api/events?issue=3 answers [] when issue-3.md exists only inside .tdd/wt/7, and ?issue=7 answers run 7's log ⟦criterion 10⟧
 - [ ] tests/py/test_dashboard.py: GET /api/tests?issue=51 for a run with no event log answers two entries from its develop-red.out — command make test, passed false then true, each tail a non-empty tail ending in its tool result's last line — and nothing from its git log call or run 52's log ⟦criterion 11⟧
