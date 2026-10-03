@@ -262,3 +262,31 @@ def test_get_api_metrics_answers_run_34_ended_by_bail_with_no_committed_report_w
     report = json.loads(body(metrics))["issues"]["34"]
     assert report.strip()
     assert "issue-34-metrics.md" in report
+
+
+def test_get_api_metrics_recomputes_run_35_whose_log_carries_a_stop_mark_and_no_done_or_bail(
+        tmp_path, monkeypatch, dashboard):
+    run = os.path.join(str(tmp_path), ".tdd", "wt", "35")
+    write(os.path.join(run, ".tdd", "issue-35.md"), "# Plan for #35\n\n- [ ] a lamp glows\n")
+    write(os.path.join(run, ".tdd", "events.jsonl"),
+          '{"ts": 1, "issue": "35", "event": "step-start"}\n'
+          '{"ts": 2, "issue": "35", "event": "launch", "name": "develop-red"}\n'
+          '{"ts": 3, "issue": "35", "event": "stop", "mode": "at-leaf", "at": "planned"}\n')
+    recomputed = "# metrics.sh 35, recomputed in its run\n"
+
+    def fake_run(args, cwd=None, **kwargs):
+        if list(args) == ["git", "worktree", "list", "--porcelain"]:
+            out = "worktree %s\nHEAD abc\nbranch refs/heads/main\n" % tmp_path
+            return subprocess.CompletedProcess(args, 0, out.encode(), b"")
+        if list(args) == [os.path.join(SCRIPTS, "metrics.sh"), "35"] and cwd == run:
+            return subprocess.CompletedProcess(args, 0, recomputed.encode(), b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, ["/api/metrics"])
+
+    dashboard.main([])
+
+    (metrics,) = served[0][1]
+    assert json.loads(body(metrics))["issues"]["35"] == recomputed
