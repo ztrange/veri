@@ -653,7 +653,6 @@ if [[ -n "$problem" ]]; then
   problems+=("$problem")
 else
   ln -s "$scripts/dashboard.sh" "$slow_dir/dashboard.sh"
-  ln -s "$scripts/dashboard_endpoints.py" "$slow_dir/dashboard_endpoints.py"
   ln -s "$scripts/veri" "$slow_dir/veri"
   ln -s "$scripts/dashboard.html" "$slow_dir/dashboard.html"
   ln -s "$METRICS" "$slow_dir/metrics.sh"
