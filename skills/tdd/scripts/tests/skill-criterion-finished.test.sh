@@ -134,6 +134,29 @@ grep -E 'future change[^.]*red/green|red/green[^.]*future change' < <(grep -F 'r
   problems+=("plan guidance: no instruction in step 2 says a criterion stating a rule future changes must keep is still a Red/Green step")
 report "$name"
 
+name="#727: $skill_md's cycle loop runs a ⟦diff-checked⟧ step with no Red leaf — a develop-diff leaf built by build-develop-prompt.sh diff, then the blind diff verifier against git merge-base HEAD origin/<default> — ticking the step and its criterion on PASS, revising under REVISE_BUDGET on REJECT and bailing as a system failure on exit 2"
+problems=()
+dc_rec="$(section_records '### 3. The cycle loop' | grep -F '⟦diff-checked⟧' | tr '\n' ' ')"
+if [[ -z "$dc_rec" ]]; then
+  problems+=("cycle loop: no instruction under '### 3. The cycle loop' names a ⟦diff-checked⟧ step — the rule could not be checked")
+else
+  [[ "$dc_rec" =~ (no|without|never|skips?)\ [^.]*red\ leaf ]] ||
+    problems+=("cycle loop: the ⟦diff-checked⟧ instruction never says the step runs no Red leaf")
+  [[ "$dc_rec" == *develop-diff* && "$dc_rec" == *"build-develop-prompt.sh diff"* ]] ||
+    problems+=("cycle loop: the ⟦diff-checked⟧ instruction never launches a develop-diff leaf built by build-develop-prompt.sh diff")
+  [[ "$dc_rec" =~ (verify|run-verdict)\.sh\ --step\ [^\ ]+\ diff\  ]] ||
+    problems+=("cycle loop: the ⟦diff-checked⟧ instruction never runs the blind diff verifier with --step")
+  [[ "$dc_rec" == *"git merge-base head origin/<default>"* ]] ||
+    problems+=("cycle loop: the ⟦diff-checked⟧ instruction never verifies against the run's branch point, git merge-base HEAD origin/<default>")
+  [[ "$dc_rec" =~ pass[^.]*tick && "$dc_rec" == *tick-issue-criterion.sh* ]] ||
+    problems+=("cycle loop: the ⟦diff-checked⟧ instruction never ties ticking the step and its issue criterion to PASS")
+  [[ "$dc_rec" =~ reject[^.]*revis && "$dc_rec" == *revise_budget* ]] ||
+    problems+=("cycle loop: the ⟦diff-checked⟧ instruction never makes a REJECT a revise under REVISE_BUDGET")
+  [[ "$dc_rec" =~ exit\ \*?\*?2[^.]*system[^.]*bail|exit\ \*?\*?2[^.]*bail[^.]*system ]] ||
+    problems+=("cycle loop: the ⟦diff-checked⟧ instruction never makes the verifier's exit 2 a system bail")
+fi
+report "$name"
+
 name="#671: $skill_md's step 2 plans a criterion replacing an implementation case under ADR 0027 as one ⟦replaces-case⟧ step naming the suite path and the case's exact name, whose Red is the pytest case failing against the code before the change"
 problems=()
 rc_rec="$(head -1 < <(grep -F '⟦replaces-case⟧' <<<"$plan_recs" | grep -F 'implementation case'))"

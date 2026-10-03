@@ -1369,6 +1369,31 @@ Neither the refactor leaf nor verify-refactor runs the full suite: a break in a 
 the step's transforms touched surfaces at the one full-suite run in *4. Draft PR*, where a red
 result appends a repair step.
 
+#### A `⟦diff-checked⟧` step — develop-diff, then verify-diff (blind)
+
+A `⟦diff-checked⟧` step runs no Red leaf, and no Green or Refactor phase either: its
+criterion is a property of the branch's own diff, so there is no failing test to write and
+its step adds none. A `develop-diff` leaf, built by `build-develop-prompt.sh diff`, makes the
+change the criterion names — or makes no commit, when the criterion is that something stays
+unchanged — and then the blind `diff` verifier, `run-verdict.sh --step "<STEP>" diff
+<spec-file> <base-sha>`, judges the step against the run's branch point, `git merge-base
+HEAD origin/<default>`. Both are launched through the supervisor and waited on as
+*Launching a leaf* sets out, the leaf as `develop-diff` and the verifier as `verdict-diff`.
+
+A supervisor exit 2 on the `develop-diff` leaf is a `killed-stuck` bail, as for any developer
+leaf. The verifier's verdict closes the `⟦diff-checked⟧` step:
+
+- **PASS (exit 0):** tick the `⟦diff-checked⟧` step with `tick-ledger.sh` — without
+  `--refactor-pending`, since no refactor loop follows — commit the ledger and push it as
+  Green does, post `### ✅ Step done`, then tick its criterion in the issue body with `tick-issue-criterion.sh` on
+  `criterion-finished.sh` exit 0, ticking nothing on exit 3, exactly as a Refactor loop's
+  PASS does.
+- **REJECT (exit 1):** a revise of the `⟦diff-checked⟧` step's `develop-diff` work under
+  `REVISE_BUDGET` — see *Revising on a REJECT*; on a recovered PASS tick as above, on
+  budget-exhausted **bail**.
+- **Malformed / killed-stuck (exit 2):** no verdict on the `⟦diff-checked⟧` step could be
+  obtained, so **bail** as a system failure (`no-verdict`) — see *Bailing*.
+
 ### 4. Draft PR
 
 Reached when `next-unchecked.sh` exits 3 — every ledger step is checked off but the
