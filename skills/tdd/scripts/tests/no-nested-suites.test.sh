@@ -144,4 +144,7 @@ mentions_reported unit-tier-recorded.test.sh "names github.test.sh"
 problems=("${from_counts[@]}" "${problems[@]}")
 report "#720: claude-md-counts.test.sh's and unit-tier-recorded.test.sh's case-text mentions of github.test.sh are not read as launching it"
 
+mentions_reported refactor-owed.test.sh scratch-copy-libs.test.sh
+report "#756: refactor-owed.test.sh's refactor-bounds fixture paths naming scratch-copy-libs.test.sh are not read as launching it"
+
 finish
