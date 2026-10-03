@@ -123,3 +123,18 @@ def test_main_binds_loopback_on_8765_or_the_port_argument_answers_gets_and_retur
     assert [address for address, _ in served] == [("127.0.0.1", 8765), ("127.0.0.1", 4243)]
     assert [status_code(answer) for answer in served[0][1]] == [b"200", b"200"]
     assert codes == [0, 0]
+
+
+def test_importing_the_module_constructs_no_server_and_leaves_the_sigint_handler_alone(
+        monkeypatch):
+    def sentinel(signum, frame):
+        pass
+
+    signal.signal(signal.SIGINT, sentinel)
+    served = fake_server(monkeypatch, [])
+    monkeypatch.delitem(sys.modules, "veri.dashboard", raising=False)
+
+    importlib.import_module("veri.dashboard")
+
+    assert served == []
+    assert signal.getsignal(signal.SIGINT) is sentinel
