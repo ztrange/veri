@@ -461,3 +461,23 @@ def test_main_skips_an_empty_file_argument_after_the_first_as_awk_does(tmp_path,
     seen = capsys.readouterr()
 
     assert (code, seen.out, seen.err) == (0, "a.sh:1:1\nb.sh:1:1\n", "")
+
+
+def test_main_resets_md_variables_at_every_file_reads_bytes_that_are_not_utf8_and_matches_whitespace_as_ascii(tmp_path, monkeypatch, capsys):
+    comment_class = importlib.import_module("veri.comment_class")
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "b.sh").write_text("f=/tmp/x.md\n")
+    (tmp_path / "c.sh").write_text('cat > "$f" <<EOF\n# in c\nEOF\n')
+    (tmp_path / "one.sh").write_text('f=/tmp/x.md\ncat > "$f" <<EOF\n# in one\nEOF\n')
+    (tmp_path / "d.sh").write_bytes(b"echo \xff\xfe\n\xa0# after a non-breaking space\n# after\n")
+
+    across = comment_class.main(["b.sh", "c.sh"])
+    across_out = capsys.readouterr().out
+    within = comment_class.main(["one.sh"])
+    within_out = capsys.readouterr().out
+    bytes_ = comment_class.main(["d.sh"])
+    bytes_seen = capsys.readouterr()
+
+    assert (across, across_out, within, within_out, bytes_, bytes_seen.out, bytes_seen.err) == (
+        0, "c.sh:2:2\n", 0, "one.sh:3:3\n", 0, "d.sh:3:1\n", "",
+    )
