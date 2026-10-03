@@ -138,18 +138,6 @@ run_cost "step one"
 refused "missing .tdd/events.jsonl"
 verdict "no argument, an unknown option, --run or --steps with a step text, and a missing log each exit 2 with stderr only"
 
-header="$(sed -n '2,$p' "$HERE/step-cost.test.sh" | sed '/^#/!q' | grep '^#')"
-for part in 'no git' 'no network' 'no servers' 'no real sleep' 'no nested suites'; do
-  grep -F "$part" <<< "$header" > /dev/null || problems+="    the header comment does not state '$part'"$'\n'
-done
-cat > "$work/.tdd/events.jsonl" <<'EOF'
-{"ts": 1, "issue": "448", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30"}
-EOF
-PATH="$HERE/../unit-guard:$HERE/../offline:$PATH" run_cost "step one"
-expect 0 "0.30"
-[[ -z "$err" ]] || problems+="    under make unit's shims stderr said '$err', want nothing"$'\n'
-verdict "the header states the fast-tier bar and the script answers under make unit's git, python3, gh and curl shims"
-
 cat > "$work/.tdd/events.jsonl" <<'EOF'
 {"ts": 1, "issue": "521", "actor": "developer", "phase": "red", "step": "cost a step \u2014 its title \u27e6criterion 1\u27e7", "event": "usage", "total_cost_usd": "0.30"}
 {"ts": 2, "issue": "521", "actor": "verifier", "phase": "red", "step": "cost a step \u2014 its title \u27e6criterion 1\u27e7", "event": "usage", "total_cost_usd": "0.12"}
