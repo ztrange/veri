@@ -27,11 +27,11 @@ current() {
 }
 
 last_done() {
-  local record last='' pattern=$'^[0-9]+\tdone\t[^\t]*\t[^\t]*\t[^\t]*\t[^\t]*\t(.*)$'
+  local record last='' found=0 pattern=$'^[0-9]+\tdone\t[^\t]*\t[^\t]*\t[^\t]*\t[^\t]*\t(.*)$'
   while IFS= read -r record; do
-    [[ "$record" =~ $pattern ]] && last="${BASH_REMATCH[1]}"
+    [[ "$record" =~ $pattern ]] && last="${BASH_REMATCH[1]}" found=1
   done <<< "$(ledger_steps)"
-  [[ -n "$last" ]] || return 3
+  ((found)) || return 3
   printf '%s\n' "$last"
 }
 
