@@ -11,6 +11,7 @@ import sys
 import urllib.parse
 
 from veri.event_log import read_events
+from veri.run_dir import run_file
 
 status_sh = sys.argv[3]
 metrics_sh = sys.argv[4]
@@ -52,7 +53,7 @@ def main_working_tree():
 # the whole account of what it did; a run with none recorded nothing, and nothing about it can
 # be read out of marks it never wrote.
 def event_log(run):
-    log = os.path.join(run, ".tdd", "events.jsonl") if run else ""
+    log = run_file(run, "events.jsonl") if run else ""
     return log if log and os.path.exists(log) else ""
 
 
@@ -122,7 +123,7 @@ def runs():
 # that is not a number is no issue at all.
 def has_ledger(run, issue):
     return bool(issue) and os.path.exists(
-        os.path.join(run, ".tdd", "issue-%s.md" % issue))
+        run_file(run, "issue-%s.md" % issue))
 
 
 # The Metrics pane: one entry per run directory, and its report. The walk is all this is —
@@ -186,7 +187,7 @@ TEST_COMMAND = "Test command:"
 
 
 def test_command(run, issue):
-    spec = os.path.join(run, ".tdd", "issue-%s-spec.md" % issue) if run else ""
+    spec = run_file(run, "issue-%s-spec.md" % issue) if run else ""
     if not spec or not os.path.exists(spec):
         return ""
     with open(spec) as f:
@@ -225,10 +226,10 @@ CONDUCTOR_OUT = ".out"
 def leaf_log(run, leaf):
     if not run or not leaf:
         return ""
-    supervised = os.path.join(run, ".tdd", leaf + SUPERVISED_LOG)
+    supervised = run_file(run, leaf + SUPERVISED_LOG)
     if os.path.exists(supervised):
         return supervised
-    return os.path.join(run, ".tdd", leaf + CONDUCTOR_OUT)
+    return run_file(run, leaf + CONDUCTOR_OUT)
 
 
 # Every leaf log of one run, in a stable order — the whole set, as the glob of any leaf name.
@@ -237,7 +238,7 @@ def leaf_log(run, leaf):
 # pattern can be. A run still being born has none, which is the empty list and not an error,
 # and so is the empty run name.
 def leaf_logs(run):
-    return sorted(glob.glob(os.path.join(run, ".tdd", "*" + CONDUCTOR_OUT))) if run else []
+    return sorted(glob.glob(run_file(run, "*" + CONDUCTOR_OUT))) if run else []
 
 
 # One leaf log's records: its stream-json lines, parsed, one per line and in the order the
