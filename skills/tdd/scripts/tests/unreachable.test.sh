@@ -233,4 +233,12 @@ if [[ "$linked" == "$in_place" && "$linked_code" -eq "$in_place_code" && "$in_pl
   diff <(printf '%s\nexit %s\n' "$in_place" "$in_place_code") <(printf '%s\nexit %s\n' "$linked" "$linked_code") | sed 's/^/    /'
 fi
 
+out="$("$UNREACHABLE" 2> "$work/noarg.err")"; code=$?
+err="$(cat "$work/noarg.err")"
+name="unreachable.sh with no argument exits 2 with empty stdout and exactly its usage line on stderr"
+if [[ "$code" == 2 && -z "$out" && "$err" == "usage: unreachable.sh <repo-root>" ]]; then ok; else
+  no "$name (code=$code)"
+  printf '    stdout: %s\n    stderr: %s\n' "$out" "$err"
+fi
+
 finish
