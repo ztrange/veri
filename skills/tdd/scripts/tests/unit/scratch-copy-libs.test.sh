@@ -42,7 +42,7 @@ expand() {
 
 lib_copy_hits() {
   local dir="$1" suite line n copy='(^|[[:space:];&|(`{])(cp|ln)[[:space:]]'
-  for suite in "$dir"/*.test.sh "$dir"/unit/*.test.sh; do
+  for suite in "$dir"/*.test.sh "$dir"/unit/*.test.sh "$dir"/lib/*.sh; do
     [[ -f "$suite" ]] || continue
     local -A vars=()
     read_vars "$suite"
@@ -143,6 +143,23 @@ printf '%s\n' '#!/usr/bin/env bash' \
 got="$(lib_copy_hits "$plant" 2>&1)"
 expect_eq "$name" \
   "$(printf '    %s copies an individual lib file\n' f.test.sh:2 f.test.sh:4)" \
+  "$got"
+
+name="#749: the lib-copy guard names a tests/lib helper's cp of an individual lib file, never a printf, sed or cat rewrite into a lib path"
+plant="$(scratch_dir)"
+mkdir -p "$plant/lib"
+printf '%s\n' '#!/usr/bin/env bash' \
+  'copy_one() {' \
+  '  cp "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" "$1/lib/"' \
+  '}' > "$plant/lib/copy-one.sh"
+printf '%s\n' '#!/usr/bin/env bash' \
+  'printf "%s\n" "x() { :; }" > "$tree/skills/tdd/scripts/lib/ledger.sh"' \
+  'sed "s/a/b/" "$ROOT/skills/tdd/scripts/lib/count-line-guard.sh" > "$tree/skills/tdd/scripts/lib/count-line-guard.sh"' \
+  'cat "$ROOT/skills/tdd/scripts/lib/exit-contract.sh" > "$tree/skills/tdd/scripts/lib/exit-contract.sh"' \
+  > "$plant/g.test.sh"
+got="$(lib_copy_hits "$plant" 2>&1)"
+expect_eq "$name" \
+  "$(printf '    %s copies an individual lib file\n' lib/copy-one.sh:3)" \
   "$got"
 
 finish
