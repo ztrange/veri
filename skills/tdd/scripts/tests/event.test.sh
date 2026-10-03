@@ -307,4 +307,18 @@ fi
 rm -rf "$rs_work"
 report "$name"
 
+name="#726: event.sh refuses a structural-pass mark whose stopped= is not one of the three reasons with exit 2, naming the value and the three allowed ones, and appends nothing"
+problems=()
+sp_work="$(scratch_dir)"
+sp_err="$( cd "$sp_work" && env VERI_ISSUE=612 VERI_ACTOR=conductor VERI_AWAKE_CLOCK=/usr/bin/true \
+    "$EVENT" structural-pass transforms=0 budget=10 stopped=test-files-only 2>&1 >/dev/null )" && sp_code=0 || sp_code=$?
+[[ "$sp_code" == 2 ]] || problems+=("want exit 2, got $sp_code")
+for sp_word in test-files-only candidates-done budget-spent nothing-structural; do
+  [[ "$sp_err" == *"$sp_word"* ]] ||
+    problems+=("stderr: want it to name $sp_word, got $(printf '%q' "$sp_err")")
+done
+[[ ! -s "$sp_work/.tdd/events.jsonl" ]] ||
+  problems+=("want nothing appended to .tdd/events.jsonl, got $(printf '%q' "$(cat "$sp_work/.tdd/events.jsonl")")")
+report "$name"
+
 finish
