@@ -22,8 +22,8 @@ JOB_SPEC='%[0-9]'
 JOB_SPEC_KILL="$KILL_WORD$JOB_ARGS$JOB_SPEC"
 
 declare -A EXEMPT=(
-  [skills/tdd/scripts/tests/skill-leaf-env.test.sh:42]="a step title's text, single-quoted, that every launch line's leaf must receive as VERI_STEP byte for byte (#608): the job spec is the character under test, and no case runs it; a launch line that ran it would do so in a bash -c with no job table, where it reaches no process at all"
-  [skills/tdd/scripts/tests/skill-leaf-env.test.sh:477]="a step title's text, single-quoted, that the case hands a launch line as data (#437): the backticks around it are the character under test, and a fixed launch never runs it; an unfixed one runs it in a bash -c with no job table, where it reaches no process at all"
+  [$'skills/tdd/scripts/tests/skill-leaf-env.test.sh:LITERAL_STEP=\'A title naming `kill \x251`, the "blind" verifier, $HOME and the shell s own job spec\'']="a step title's text, single-quoted, that every launch line's leaf must receive as VERI_STEP byte for byte (#608): the job spec is the character under test, and no case runs it; a launch line that ran it would do so in a bash -c with no job table, where it reaches no process at all"
+  [$'skills/tdd/scripts/tests/skill-leaf-env.test.sh:EXPANDING_STEP=\'A title naming `kill \x251`, the "blind" verifier and $HOME reaches the leaf as written\'']="a step title's text, single-quoted, that the case hands a launch line as data (#437): the backticks around it are the character under test, and a fixed launch never runs it; an unfixed one runs it in a bash -c with no job table, where it reaches no process at all"
 )
 
 
@@ -53,7 +53,7 @@ sites() {
   local hit
   while IFS= read -r hit; do
     split_site "$hit"
-    [[ -n "${EXEMPT[$site_file:$site_line]:-}" ]] && continue
+    [[ -n "${EXEMPT[$site_file:$site_text]:-}" ]] && continue
     printf '%s\n' "$hit"
   done < <(kill_lines)
   return 0
@@ -90,7 +90,7 @@ probe_every_exemption_still_names_its_site() {
   local -A matched=()
   while IFS= read -r hit; do
     split_site "$hit"
-    matched[$site_file:$site_line]=1
+    matched[$site_file:$site_text]=1
   done < <(kill_lines)
   for key in "${!EXEMPT[@]}"; do
     [[ -n "${matched[$key]:-}" ]] && continue
@@ -104,6 +104,24 @@ name="every exemption names a line under skills/ that ends a background process 
 problems=()
 
 probe_every_exemption_still_names_its_site
+
+report "$name"
+
+probe_lines_inserted_above_an_exemption() {
+  local ROOT tests="skills/tdd/scripts/tests"
+  [[ -e "$HERE/skill-leaf-env.test.sh" ]] || return 0
+  ROOT="$(scratch_dir)"
+  mkdir -p "$ROOT/$tests"
+  { printf '# inserted\n# inserted\n# inserted\n'; cat "$HERE/skill-leaf-env.test.sh"; } \
+    > "$ROOT/$tests/skill-leaf-env.test.sh"
+  probe_no_file_kills_by_job_spec
+  probe_every_exemption_still_names_its_site
+}
+
+name="lines inserted above an exempted line leave both cases green"
+problems=()
+
+probe_lines_inserted_above_an_exemption
 
 report "$name"
 
