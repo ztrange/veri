@@ -195,4 +195,30 @@ capture_done
 report "$name"
 
 
+
+name="leaf-timeout.sh, run through a symlink to the skill directory and from another working directory, prints the same stdout, stderr and exit code as when run in place, for a good baseline and for a bad one"
+problems=()
+work="$(mktemp -d)"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+mkdir -p "$work/elsewhere"
+for baseline in 200 ten; do
+  in_out="$(cd "$HERE/.." && env -u VERI_TIMEOUT ./leaf-timeout.sh "$baseline" 2>"$work/in.err")" && in_code=0 || in_code=$?
+  ln_out="$(cd "$work/elsewhere" && env -u VERI_TIMEOUT "$work/linked-skill/scripts/leaf-timeout.sh" "$baseline" 2>"$work/ln.err")" && ln_code=0 || ln_code=$?
+  in_err="$(cat "$work/in.err")" ln_err="$(cat "$work/ln.err")"
+  case "$baseline" in
+    200) [[ "$in_code" == 0 && "$in_out" == 1200 ]] ||
+           problems+=("baseline 200 in place: want 1200 and exit 0, got $(printf '%q' "$in_out") and exit $in_code") ;;
+    ten) [[ "$in_code" == 2 && -n "$in_err" ]] ||
+           problems+=("baseline ten in place: want exit 2 and a diagnostic, got exit $in_code and stderr $(printf '%q' "$in_err")") ;;
+  esac
+  [[ "$ln_out" == "$in_out" ]] ||
+    problems+=("baseline $baseline: stdout through the symlink $(printf '%q' "$ln_out"), in place $(printf '%q' "$in_out")")
+  [[ "$ln_err" == "$in_err" ]] ||
+    problems+=("baseline $baseline: stderr through the symlink $(printf '%q' "$ln_err"), in place $(printf '%q' "$in_err")")
+  [[ "$ln_code" == "$in_code" ]] ||
+    problems+=("baseline $baseline: exit through the symlink $ln_code, in place $in_code")
+done
+rm -rf "$work"
+report "$name"
+
 finish
