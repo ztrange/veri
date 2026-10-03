@@ -13,7 +13,10 @@
 # Output:  the worktree's absolute path on stdout, exit 0.
 set -euo pipefail
 
-source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+lib="$(cd "$(dirname "$0")" && pwd)/lib"
+source "$lib/exit-contract.sh"
+source "$lib/number-in.sh"
+source "$lib/pid-file.sh"
 USAGE="usage: issue-worktree.sh <n> <slug> | --remove <n>"
 require_args 2 "$@"
 
@@ -48,18 +51,8 @@ slug="$2"
 branch="tdd/$n-$slug"
 path="$(wt_path "$n")"
 
-live_conductor() {
-  local pid
-  pid="$(cat "$1/.tdd/conductor.pid" 2>/dev/null || true)"
-  if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then
-    printf '%s\n' "$pid"
-  fi
-  return 0
-}
-
 if grep -qxF "worktree $path" <<<"$registry"; then
-  conductor_pid="$(live_conductor "$path")"
-  if [[ -n "$conductor_pid" ]]; then
+  if conductor_pid="$(live_conductor "$path")"; then
     echo "issue-worktree: $path is held by a live conductor (pid $conductor_pid) — refusing to hand back a run in flight" >&2
     exit 2
   fi
