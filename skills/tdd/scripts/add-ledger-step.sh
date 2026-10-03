@@ -30,13 +30,19 @@ anchor="$3"
 shift 3
 texts=("$@")
 
-case "$where" in
-  after|before|instead-of) ;;
-  *)
-    printf 'add-ledger-step.sh: position must be after, before or instead-of: %s\n' "$where" >&2
-    exit 2
-    ;;
-esac
+place() {
+  case "$where" in
+    before) placed="$1"$'\n'"$2" ;;
+    after) placed="$2"$'\n'"$1" ;;
+    instead-of) placed="$1" ;;
+    *) return 1 ;;
+  esac
+}
+
+place '' '' || {
+  printf 'add-ledger-step.sh: position must be after, before or instead-of: %s\n' "$where" >&2
+  exit 2
+}
 
 ci_repair='⟦ci-repair⟧'
 suite_repair='⟦suite-repair⟧'
@@ -111,11 +117,8 @@ out=""
 while IFS= read -r line; do
   if is_anchor_step "$line"; then
     steps="$(added_steps "$line")"
-    case "$where" in
-      before) line="$steps"$'\n'"$line" ;;
-      after) line="$line"$'\n'"$steps" ;;
-      instead-of) line="$steps" ;;
-    esac
+    place "$steps" "$line"
+    line="$placed"
   fi
   out+="$line"$'\n'
 done < "$file"
