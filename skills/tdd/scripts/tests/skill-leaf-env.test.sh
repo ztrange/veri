@@ -591,6 +591,18 @@ STUB
 run_case "every leaf and verifier launch line in $skill_md reads the step through ledger-steps.sh current, and a title carrying a dollar sign, a backtick and a double quote reaches VERI_STEP and --step byte-identical (#682)" \
   scan_current_step_title
 
+scan_inline_ledger_reads() {
+  local numbered lineno line
+  while IFS= read -r numbered; do
+    lineno="${numbered%%:*}" line="${numbered#*:}"
+    problem "spells a ledger read inline, want ledger-steps.sh current, last-done or criterion <k>"
+  done < <(grep -nF -e '|| $S/next-unchecked.sh' -e '|| cat .tdd/issue-<n>.md' \
+                    -e 'tail -1 | cut -f7-' -e "sed -n '<k>p'" "$md")
+}
+
+run_case "$skill_md spells none of the inline current-step, last-done and criterion <k> pipelines, reading each through ledger-steps.sh current, last-done and criterion <k> (#682)" \
+  scan_inline_ledger_reads
+
 CRITERION_TEXT='The issue'"'"'s own words: `echo $SHELL` in "quotes" and $HOME, as the issue wrote them'
 plant_done_ledger() {
   printf '# Plan for #%s\n\n- [x] %s\n- [ ] a later step the run has not reached\n' \
