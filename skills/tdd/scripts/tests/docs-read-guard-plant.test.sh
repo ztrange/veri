@@ -29,7 +29,7 @@ plant_subject() {
     problems+=("could not make a scratch tree to stand the subject up in, so the criterion went unasked")
     return 1
   }
-  mkdir -p "$tree/$TESTS_DIR/lib" && cp "$ROOT/$TESTS_DIR/lib/harness.sh" "$tree/$TESTS_DIR/lib/"
+  mkdir -p "$tree/$TESTS_DIR/lib" && cp "$ROOT/$TESTS_DIR/lib/harness.sh" "$ROOT/$TESTS_DIR/lib/guard-plant.sh" "$tree/$TESTS_DIR/lib/"
   subject_copy="$tree/$TESTS_DIR/$SUBJECT_NAME"
   sed "$1" "$SUBJECT_PATH" > "$subject_copy"
   chmod 755 "$subject_copy"
