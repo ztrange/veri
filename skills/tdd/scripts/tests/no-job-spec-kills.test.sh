@@ -28,6 +28,7 @@ declare -A EXEMPT=(
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/exemption-reasons.sh"
 
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
@@ -68,19 +69,11 @@ probe_no_file_kills_by_job_spec() {
   return 0
 }
 
-probe_every_exemption_carries_a_reason() {
-  local key
-  for key in "${!EXEMPT[@]}"; do
-    [[ -n "${EXEMPT[$key]}" ]] && continue
-    problems+=("the exemption entry [$key] carries no reason, so it exempts nothing: an entry is an exemption only when it says why a name that dies with the shell is the right one at that site")
-  done
-  return 0
-}
 
 name="no file under skills/ ends a background process by a job spec"
 problems=()
 
-probe_every_exemption_carries_a_reason
+probe_every_exemption_carries_a_reason "an entry is an exemption only when it says why a name that dies with the shell is the right one at that site"
 probe_no_file_kills_by_job_spec
 
 report "$name"

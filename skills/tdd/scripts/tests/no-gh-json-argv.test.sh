@@ -24,6 +24,7 @@ GH_FIXTURE='^[[:space:]]*(local[[:space:]]+)?([A-Za-z_][A-Za-z_0-9]*)="?\$\(cat[
 declare -A EXEMPT=()
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/exemption-reasons.sh"
 
 gh_names() {
   local line
@@ -86,14 +87,6 @@ probe_no_script_hands_python3_a_gh_document() {
   return 0
 }
 
-probe_every_exemption_carries_a_reason() {
-  local key
-  for key in "${!EXEMPT[@]}"; do
-    [[ -n "${EXEMPT[$key]}" ]] && continue
-    problems+=("the exemption entry [$key] carries no reason, so it exempts nothing")
-  done
-  return 0
-}
 
 name="no script under skills/tdd/scripts/ hands python3 a gh JSON document as an argument"
 problems=()

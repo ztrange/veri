@@ -33,6 +33,7 @@ declare -A EXEMPT=(
 
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/exemption-reasons.sh"
 
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
@@ -98,19 +99,11 @@ probe_no_pipefail_suite_ends_a_pipeline_in_an_early_exiting_reader() {
   return 0
 }
 
-probe_every_exemption_carries_a_reason() {
-  local key
-  for key in "${!EXEMPT[@]}"; do
-    [[ -n "${EXEMPT[$key]}" ]] && continue
-    problems+=("the exemption entry [$key] carries no reason, so it exempts nothing: an entry is an exemption only when it says why the reader's early exit is the point at that site")
-  done
-  return 0
-}
 
 name="no suite under skills/tdd/scripts/tests/ that declares pipefail ends a pipeline in a reader that leaves before EOF"
 problems=()
 
-probe_every_exemption_carries_a_reason
+probe_every_exemption_carries_a_reason "an entry is an exemption only when it says why the reader's early exit is the point at that site"
 probe_no_pipefail_suite_ends_a_pipeline_in_an_early_exiting_reader
 
 report "$name"

@@ -58,7 +58,7 @@ scaffolding_hits() {
   counter_hits "$1"
 }
 
-HOISTED=(win window windows plain section_end frontmatter_name first_record record_number fenced_lines need_claude_md_records)
+HOISTED=(win window windows plain section_end frontmatter_name first_record record_number fenced_lines need_claude_md_records probe_every_exemption_carries_a_reason)
 
 hoisted_copy_hits() {
   local names hits hit file rest def
@@ -256,6 +256,21 @@ got="$(hoisted_copy_hits "$plant" 2>&1)"
 expect_eq "$name" \
   "$(printf '    %s\n' 'a.test.sh:2 defines need_claude_md_records()' \
     'unit/b.test.sh:3 defines need_claude_md_records()')" \
+  "$got"
+
+name="#704: a suite that defines probe_every_exemption_carries_a_reason is named by <suite>:<line>"
+plant="$(scratch_dir)"
+mkdir -p "$plant/unit" "$plant/lib"
+printf '%s\n' '#!/usr/bin/env bash' 'probe_every_exemption_carries_a_reason() {' '  return 0' '}' \
+  > "$plant/a.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'x=1' '  function probe_every_exemption_carries_a_reason() { :; }' \
+  > "$plant/unit/b.test.sh"
+printf '%s\n' '#!/usr/bin/env bash' 'probe_every_exemption_carries_a_reason' > "$plant/c.test.sh"
+printf '%s\n' 'probe_every_exemption_carries_a_reason() { :; }' > "$plant/lib/exemption-reasons.sh"
+got="$(hoisted_copy_hits "$plant" 2>&1)"
+expect_eq "$name" \
+  "$(printf '    %s\n' 'a.test.sh:2 defines probe_every_exemption_carries_a_reason()' \
+    'unit/b.test.sh:3 defines probe_every_exemption_carries_a_reason()')" \
   "$got"
 
 name="#704: no suite under tests/ or tests/unit/ defines its own copy of a helper hoisted into tests/lib/"
