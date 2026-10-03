@@ -1,0 +1,2 @@
+### under `make unit`'s guard PATH, a `/bin/sh` shim that `exec`s `python3` on a module file under `skills/tdd/scripts/veri/` runs that module through the real interpreter and answers with the module's own stdout, stderr and exit code ⟦added⟧ ⟦criterion 1⟧
+- test-only | `unit-guard-python3.test.sh` writes stdout/stderr to `$tree/out`/`$tree/err` then `cat`s them back; could capture straight into variables, but `$?` must come from the probe
