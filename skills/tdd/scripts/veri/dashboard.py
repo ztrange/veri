@@ -6,6 +6,7 @@ import os
 import re
 import signal
 import subprocess
+import sys
 import urllib.parse
 
 from event_log import read_events
@@ -459,3 +460,7 @@ def main(argv):
             # process killed by the signal would otherwise report.
             pass
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
