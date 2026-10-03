@@ -211,4 +211,18 @@ sequence_case probe_plant_is_what_it_claims "${all[@]:0:4}"
 problems=(${outcomes[@]+"${outcomes[@]}"})
 report "$name"
 
+# 6. make_plant_tree, when a companion the suite names cannot be copied, appends a problem
+#    naming that companion and returns 1
+name="guard-plant: make_plant_tree appends a problem naming the companion and returns 1 when a companion the suite names cannot be copied"
+source "$HERE/../lib/guard-plant.sh"
+COMPANIONS=(c/MISSING.md c/COMPANION.md)
+problems=()
+make_plant_tree tree6 2>/dev/null && code=0 || code=$?
+planted=(${problems[@]+"${problems[@]}"})
+problems=()
+[[ "$code" == 1 ]] || problems+=("make_plant_tree returned $code over a missing companion, want 1")
+[[ "${#planted[@]}" == 1 && "${planted[0]:-}" == *c/MISSING.md* ]] ||
+  problems+=("make_plant_tree left problems (${planted[*]:-}), want exactly one naming c/MISSING.md")
+report "$name"
+
 finish
