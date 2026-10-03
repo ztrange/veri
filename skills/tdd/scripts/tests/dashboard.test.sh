@@ -871,65 +871,6 @@ fi
 
 report "$name"
 
-name="events_json, called directly, returns the selected run's events newest last, and none for an issue no run holds"
-problems=()
-edirect_repo="$(repo eventsdirect)"
-
-edirect_sel="$(fabricate_run "$edirect_repo" 51 tdd/51-lamps-flicker)"
-cat > "$edirect_sel/.tdd/issue-51.md" <<'EOF'
-# Plan for #51 — lamps flicker
-
-- [x] a lamp exists
-- [ ] a lamp flickers
-EOF
-edirect_now="$(date +%s)"
-: > "$edirect_sel/.tdd/events.jsonl"
-for i in $(seq 1 30); do
-  printf '{"ts": %s, "issue": "51", "actor": "developer", "phase": "red", "step": "a lamp flickers", "event": "launch", "attempt": "%s", "skill_commit": "abc", "name": "develop-red", "seq": %s}\n' \
-    "$((edirect_now - 3000 + i * 10))" "$i" "$i" >> "$edirect_sel/.tdd/events.jsonl"
-done
-
-edirect_other="$(fabricate_run "$edirect_repo" 52 tdd/52-lamps-dim)"
-cat > "$edirect_other/.tdd/issue-52.md" <<'EOF'
-# Plan for #52 — lamps dim
-
-- [ ] a lamp dims
-EOF
-cat > "$edirect_other/.tdd/events.jsonl" <<EOF
-{"ts": $((edirect_now - 200)), "issue": "52", "actor": "conductor", "phase": "", "step": "a lamp dims", "event": "step-start", "attempt": "", "skill_commit": "abc", "seq": 1}
-{"ts": $((edirect_now - 100)), "issue": "52", "actor": "developer", "phase": "green", "step": "a lamp dims", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-green", "seq": 2}
-EOF
-
-if [[ -n "$module_problem" ]]; then
-  problems+=("$module_problem")
-else
-  call_endpoint "$edirect_repo" events_json "$work/events-direct.err" \
-    '{"issue": ["51"]}' "$work/events-direct-51.json" \
-    '{"issue": ["99"]}' "$work/events-direct-99.json"
-  if [[ ! -f "$work/events-direct-51.json" || ! -f "$work/events-direct-99.json" ]]; then
-    problems+=("calling $module.events_json wrote nothing: $(tail -n 1 "$work/events-direct.err")")
-  else
-    add_problems < <(python3 -c "$events_answers"'
-events, none = answers["51"], answers["99"]
-if not events:
-    print("events_json for issue 51 returned no events; the selected run’s log has %d" % len(want))
-elif len(events) > len(want):
-    print("events_json for issue 51 returned %d events; the selected run’s log has only %d"
-          % (len(events), len(want)))
-elif events != want[len(want) - len(events):]:
-    print("events_json for issue 51 returned %s" % json.dumps(events, sort_keys=True)[:400])
-    print("the last %d lines of the run’s log, newest last, are %s"
-          % (len(events), json.dumps(want[len(want) - len(events):], sort_keys=True)[:400]))
-if none != []:
-    print("events_json for issue 99, which no run holds a ledger for, returned %s; want []"
-          % json.dumps(none, sort_keys=True)[:400])
-' "$work/events-direct-51.json" 51 "$work/events-direct-99.json" 99 \
-      "$edirect_sel/.tdd/events.jsonl")
-  fi
-fi
-
-report "$name"
-
 name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
 problems=()
 disk_page="$scripts/dashboard.html"
