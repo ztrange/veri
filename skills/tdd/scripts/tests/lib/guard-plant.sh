@@ -12,6 +12,10 @@
 #                            when $SKILL_PATH carries no <removed>
 #   probe_guard_is_red <what>  appends to $problems unless the last run exited non-zero and counted a failure
 #   probe_guard_is_green_unplanted  runs over $SKILL_PATH; appends to $problems unless it exited 0 and counted 0 failed
+#   run_plant_sequence <tree> <plant-fn> <removed> <replacement> [<own-probe>...]
+#                            guard-is-there, make_plant_tree, <plant-fn> (sets $planted_skill),
+#                            plant-is-what-it-claims, green-unplanted, then each own probe;
+#                            returns 1 after the first of the first four that fails
 
 GUARD_PLANT_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -88,4 +92,17 @@ probe_guard_is_green_unplanted() {
     problems+=("want ${GUARD##*/} to pass over $SKILL as committed — red there says nothing about the plant; it exited $guard_code and said: ${guard_out//$'\n'/\/}")
   [[ "$failures" == 0 ]] ||
     problems+=("want ${GUARD##*/}'s own count line to state 0 failed over $SKILL as committed; it stated '$failures': ${guard_out//$'\n'/\/}")
+}
+
+run_plant_sequence() {
+  local IFS=$' \t\n' tree_name="$1" plant_fn="$2" removed="$3" replacement="$4" probe
+  shift 4
+  probe_guard_is_there || return 1
+  make_plant_tree "$tree_name" || return 1
+  "$plant_fn" || return 1
+  probe_plant_is_what_it_claims "$removed" "$replacement" "$planted_skill" || return 1
+  probe_guard_is_green_unplanted
+  for probe in "$@"; do
+    "$probe"
+  done
 }

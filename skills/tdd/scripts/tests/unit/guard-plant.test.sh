@@ -172,4 +172,43 @@ claims_case 'over a plant that changed a line no carrier was on' '' 1 '' DENY GR
 problems=(${outcomes[@]+"${outcomes[@]}"})
 report "$name"
 
+# 5. run_plant_sequence <tree> <plant-fn> <removed> <replacement> [<own-probe>...] runs
+#    guard-is-there, the plant tree, the suite's plant, plant-is-what-it-claims over its
+#    $planted_skill, green-unplanted and then the own probes in order, stopping after
+#    whichever of the first four returns non-zero
+name="guard-plant: run_plant_sequence runs guard-is-there, the plant, plant-is-what-it-claims, green-unplanted and the suite's own probes in that order, and stops where guard-is-there, the plant or plant-is-what-it-claims says the criterion cannot be asked"
+fails_at=''
+calls=()
+spy() { calls+=("$*"); [[ "$1" != "$fails_at" ]]; }
+probe_guard_is_there() { spy probe_guard_is_there "$@"; }
+make_plant_tree() { spy make_plant_tree "$@"; }
+suite_plant() { planted_skill="$scratch/sequence-planted.md"; spy suite_plant "$@"; }
+probe_plant_is_what_it_claims() { spy probe_plant_is_what_it_claims "$@"; }
+probe_guard_is_green_unplanted() { spy probe_guard_is_green_unplanted "$@"; }
+own_first() { spy own_first "$@"; }
+own_second() { spy own_second "$@"; }
+outcomes=()
+sequence_case() {
+  local IFS='|' want got_calls
+  fails_at="$1"
+  shift
+  want="$*"
+  calls=()
+  planted_skill=''
+  run_plant_sequence tree5 suite_plant DENY GRANT own_first own_second 2>/dev/null
+  got_calls="${calls[*]:-}"
+  [[ "$got_calls" == "$want" ]] ||
+    outcomes+=("with ${fails_at:-nothing} failing, the calls were '$got_calls', want '$want'")
+}
+all=(probe_guard_is_there 'make_plant_tree tree5' suite_plant
+  "probe_plant_is_what_it_claims DENY GRANT $scratch/sequence-planted.md"
+  probe_guard_is_green_unplanted own_first own_second)
+sequence_case '' "${all[@]}"
+sequence_case probe_guard_is_there "${all[@]:0:1}"
+sequence_case make_plant_tree "${all[@]:0:2}"
+sequence_case suite_plant "${all[@]:0:3}"
+sequence_case probe_plant_is_what_it_claims "${all[@]:0:4}"
+problems=(${outcomes[@]+"${outcomes[@]}"})
+report "$name"
+
 finish
