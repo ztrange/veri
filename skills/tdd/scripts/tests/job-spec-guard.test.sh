@@ -189,6 +189,12 @@ probe_guard_refuses_a_reasonless_entry() {
     problems+=("the guard named $key but never said its reason is what is missing, so the author is told a kill is there rather than that their exemption is not one: $(flat "$named")")
 }
 
+text_keys() {
+  local empty="''"
+  exempt_key="$OFFENDER_REL:$(sed -n "${offender_line}p" "$offender_path")"
+  quoted_key="'${exempt_key/"$KILL "/$KILL$empty }'"
+}
+
 name="no-job-spec-kills.test.sh names a file under skills/ that kills a background process by a job spec as <file>:<line>, leaves a kill by recorded pid alone, and honours an exemption entry only when it carries a reason"
 problems=()
 
@@ -198,9 +204,7 @@ if probe_guard_is_there && probe_guard_carries_an_exemption_table && plant; then
     probe_guard_names_the_offender_with_its_line
     probe_guard_leaves_the_innocent_alone
 
-    exempt_key="$OFFENDER_REL:$(sed -n "${offender_line}p" "$offender_path")"
-    empty="''"
-    quoted_key="'${exempt_key/"$KILL "/$KILL$empty }'"
+    text_keys
 
     exempt "$quoted_key" "$EXEMPT_REASON"
     if probe_entry_is_in_the_table "$quoted_key"; then
@@ -275,9 +279,7 @@ problems=()
 
 if probe_guard_is_there && probe_guard_carries_an_exemption_table && plant; then
   if probe_plant_is_what_it_claims; then
-    exempt_key="$OFFENDER_REL:$(sed -n "${offender_line}p" "$offender_path")"
-    empty="''"
-    quoted_key="'${exempt_key/"$KILL "/$KILL$empty }'"
+    text_keys
     exempt "$quoted_key" "$EXEMPT_REASON"
     if probe_entry_is_in_the_table "$quoted_key"; then
       run_guard
