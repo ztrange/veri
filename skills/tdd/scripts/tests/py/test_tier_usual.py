@@ -82,3 +82,17 @@ def test_main_prints_a_whole_median_as_a_float_repr_with_a_trailing_point_zero(c
     code = tier_usual.main(["fast"])
     out, _ = capsys.readouterr()
     assert (code, out) == (0, "4.0\n")
+
+
+def test_main_with_no_test_run_event_for_the_tier_raises_and_prints_nothing_on_stdout(capsys, monkeypatch, tmp_path, tier_usual):
+    log = tmp_path / ".tdd" / "events.jsonl"
+    log.parent.mkdir()
+    log.write_text("".join(_event(*e) + "\n" for e in [
+        ("test-run", "all", "900"),
+        ("leaf-exit", "fast", "5"),
+    ]))
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(Exception):
+        tier_usual.main(["fast"])
+    out, _ = capsys.readouterr()
+    assert out == ""
