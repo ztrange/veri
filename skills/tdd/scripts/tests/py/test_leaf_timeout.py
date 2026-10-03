@@ -64,3 +64,27 @@ def test_main_prints_an_explicit_veri_timeout_as_given_whatever_the_baseline_and
         ("-1", "200", 2, "", refusal.format("-1")),
         ("1.5", "200", 2, "", refusal.format("1.5")),
     ]
+
+
+def test_main_with_refactor_multiplies_the_derived_timeout_by_max_1_veri_refactor_budget_and_prints_an_explicit_veri_timeout_unmultiplied(monkeypatch, capsys, leaf_timeout):
+    seen = []
+    for timeout, budget, baseline in (
+            (None, "5", "200"), (None, "1", "200"), (None, "0", "200"), (None, "3", "5"), (None, None, "5"),
+            ("900", "5", "200"), ("1800", "5", "200")):
+        for name, value in (("VERI_TIMEOUT", timeout), ("VERI_REFACTOR_BUDGET", budget)):
+            if value is None:
+                monkeypatch.delenv(name, raising=False)
+            else:
+                monkeypatch.setenv(name, value)
+        code = leaf_timeout.main([baseline, "refactor"])
+        out, err = capsys.readouterr()
+        seen.append((timeout, budget, baseline, code, out, err))
+    assert seen == [
+        (None, "5", "200", 0, "6000\n", ""),
+        (None, "1", "200", 0, "1200\n", ""),
+        (None, "0", "200", 0, "1200\n", ""),
+        (None, "3", "5", 0, "2700\n", ""),
+        (None, None, "5", 0, "4500\n", ""),
+        ("900", "5", "200", 0, "900\n", ""),
+        ("1800", "5", "200", 0, "1800\n", ""),
+    ]
