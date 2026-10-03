@@ -84,18 +84,21 @@ def decide(tier, issue, root):
         raise Answer(b"python3 -m unittest discover -q")
 
 
+def option(args, flag):
+    if args[:1] != [flag]:
+        return "", args
+    if len(args) < 2:
+        return None, args
+    return args[1], args[2:]
+
+
 def main(argv):
-    args = list(argv)
-    tier = ""
-    if args[:1] == ["--tier"]:
-        if len(args) < 2:
-            return 1
-        tier, args = args[1], args[2:]
-    issue = ""
-    if args[:1] == ["--issue"]:
-        if len(args) < 2:
-            return 1
-        issue, args = args[1], args[2:]
+    tier, args = option(list(argv), "--tier")
+    if tier is None:
+        return 1
+    issue, args = option(args, "--issue")
+    if issue is None:
+        return 1
     root = args[0] if args and args[0] else "."
     try:
         decide(tier, issue, root)
