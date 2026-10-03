@@ -73,12 +73,12 @@ def listing(root):
         reach_from(path_of(queue.pop(0)))
 
     out = []
-    tests = scripts + b"/tests"
+    tests = [read(f) for f in files_under(scripts + b"/tests")]
     for name in names:
         if name in reached:
             continue
         pattern = whole(name)
-        if any(pattern.search(read(f)) for f in files_under(tests)):
+        if any(pattern.search(text) for text in tests):
             out.append(b"test-only: " + name)
         else:
             out.append(name)
