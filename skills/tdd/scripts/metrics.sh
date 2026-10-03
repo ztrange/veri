@@ -541,6 +541,8 @@ if passes:
     for (step, index), (mark, spent_by) in passes.items():
         row([step, index, refactor_spent(mark), mark["stopped"],
              spent_by["verdict"], str(spent_by["revise"]), figure(WALL, spent_by[WALL]), figure(DOLLARS, spent_by[DOLLARS])])
+if structural is None and ending is not None and ending.get("event") == "done":
+    structural = {"stopped": "not marked"}
 if structural is not None:
     stopped = structural.get("stopped", "?")
     if "transforms" not in structural:
@@ -566,11 +568,6 @@ if structural is not None:
     if inconsistent is not None:
         print()
         print("Inconsistent mark: %s" % inconsistent)
-elif ending is not None and ending.get("event") == "done":
-    print()
-    print("#### Structural pass")
-    print()
-    print("Stopped: not marked")
 tier_section("#### Test-command seconds, by tier", "tier")
 section("#### Total", "run", COST_COLUMNS, totals)
 ' "$issue" "$log" "$ledger" "$ledger_steps"
