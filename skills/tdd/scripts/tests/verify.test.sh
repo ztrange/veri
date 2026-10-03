@@ -755,4 +755,24 @@ done
 [[ -z "$diff_problems" ]] && ok \
   || no "verify.sh and run-verdict.sh --step diff <spec> <base-sha> run one blind diff verification: 0 on PASS, 1 on REJECT, 2 on a missing --step, a non-hex base sha or an extra argument (${diff_problems#; })"
 
+empty_step_problems=""
+for form in empty trailing; do
+  es_dir="$work/empty-step-$form"
+  mkdir -p "$es_dir"
+  if [[ "$form" == empty ]]; then
+    es_args=( --step "" red "$work/spec.md" tests/test_slugify.py test_lowercases )
+  else
+    es_args=( --step )
+  fi
+  ( cd "$es_dir" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$es_dir/argv" FAKE_OUT_TEXT='VERDICT: PASS
+REASON: ok' "$VERIFY" "${es_args[@]}" ) >/dev/null 2>"$es_dir/err"
+  es_code=$?
+  [[ "$es_code" == 2 ]] || empty_step_problems="$empty_step_problems; $form: code=$es_code want 2"
+  grep -v '^usage:' "$es_dir/err" > "$es_dir/message"
+  grep -F -- '--step' "$es_dir/message" >/dev/null || empty_step_problems="$empty_step_problems; $form: stderr names --step only in the usage line ($(head -1 "$es_dir/err"))"
+  [[ ! -e "$es_dir/argv" ]] || empty_step_problems="$empty_step_problems; $form: a verifier leaf was launched"
+done
+[[ -z "$empty_step_problems" ]] && ok \
+  || no "#753: verify.sh given --step \"\" or a trailing --step with no value exits 2, names --step on stderr and launches no verifier leaf (${empty_step_problems#; })"
+
 finish
