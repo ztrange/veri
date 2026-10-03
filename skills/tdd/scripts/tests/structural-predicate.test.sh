@@ -34,4 +34,20 @@ else
 fi
 report "$name"
 
+name="#691 a PREDICATE: command that already succeeds on the current tree exits 1 and writes no record"
+problems=()
+tree="$(scratch_dir)"
+record="$tree/predicate"
+touch "$tree/shared-opening.md"
+code=0
+(cd "$tree" && "$SP" "$record" >/dev/null 2>&1 <<REPORT) || code=$?
+Read the candidate and the files it names.
+PREDICATE: test -e shared-opening.md
+REPORT
+[[ "$code" == 1 ]] ||
+  problems+=("want exit 1 from structural-predicate.sh, got $code")
+[[ ! -e "$record" ]] ||
+  problems+=("structural-predicate.sh wrote a record at $record for a predicate already true")
+report "$name"
+
 finish

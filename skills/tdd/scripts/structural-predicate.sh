@@ -2,7 +2,8 @@
 # structural-predicate.sh <record> — read a predicate leaf's report on stdin and write its
 # `PREDICATE:` command to <record>.
 #
-# Exit codes: 0 the command was written; 2 bad arguments.
+# Exit codes: 0 the command was written; 1 the command already succeeds on the current tree,
+# nothing written; 2 bad arguments.
 #
 # Usage:   structural-predicate.sh .tdd/issue-<n>-predicate < <leaf-report>
 set -euo pipefail
@@ -20,4 +21,7 @@ while IFS= read -r line; do
   esac
 done
 
+if bash -c "$predicate" </dev/null >/dev/null 2>&1; then
+  exit 1
+fi
 printf '%s\n' "$predicate" > "$record"
