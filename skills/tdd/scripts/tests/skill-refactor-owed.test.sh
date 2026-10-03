@@ -31,17 +31,13 @@ refactor_section() {
 }
 section="$(refactor_section)"
 
-win() {
-  window "$section" "$1"
-}
-
 name="$skill_md's Refactor section appends the step's structural leftovers to the run's owed file and commits that file with the step's refactor-pending clear"
 problems=()
 
 if [[ -z "${section// /}" ]]; then
   problems+=("$skill_md has no '#### Refactor' section to read — whether a step's structural leftovers are recorded anywhere could not be established")
 else
-  append="$(win 'refactor-owed\.sh append')"
+  append="$(window "$section" 'refactor-owed\.sh append')"
   if [[ -z "$append" ]]; then
     problems+=("$skill_md's Refactor section never runs refactor-owed.sh append, so a step's structural leftovers live only in .tdd/develop-refactor.out and are gone as soon as the next step overwrites it")
   else
@@ -53,7 +49,7 @@ else
       problems+=("$skill_md's Refactor section runs refactor-owed.sh append without the step, so a run's leftovers pile up with nothing saying which step owes which")
   fi
 
-  cleared="$(win 'clear-refactor-pending\.sh')"
+  cleared="$(window "$section" 'clear-refactor-pending\.sh')"
   if [[ -z "$cleared" ]]; then
     problems+=("$skill_md's Refactor section never clears the refactor-pending mark, so the commit the owed file is supposed to ride does not exist to be read for")
   else

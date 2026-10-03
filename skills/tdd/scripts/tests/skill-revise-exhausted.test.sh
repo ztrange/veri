@@ -39,10 +39,6 @@ unreadable=""
 [[ -n "${section// /}" ]] ||
   unreadable="$skill_md has no '$revise_heading' section to read —"
 
-win() {
-  window "$@"
-}
-
 outcome_reader='\$s/exhausted-outcome\.sh'
 add_ledger_step='\$s/add-ledger-step\.sh'
 needs_user='needs_user|needs-user|needs the user'
@@ -60,7 +56,7 @@ else
   if ! grep -qE "$outcome_reader" <<<"$section"; then
     problems+=("$skill_md's revise section never runs exhausted-outcome.sh on the exhausted leaf's report, so which of the three outcomes it reported is decided by reading rather than by exit code")
   else
-    outcome="$(win "$section" "$outcome_reader")"
+    outcome="$(window "$section" "$outcome_reader")"
     grep -qE 'exit 0|exits? 0' <<<"$outcome" ||
       problems+=("$skill_md's revise section runs exhausted-outcome.sh without saying exit 0 is the split, so the conductor cannot tell the split answer from the other two")
     grep -qE 'exit 1|exits? 1' <<<"$outcome" ||
@@ -72,7 +68,7 @@ else
   if ! grep -qE "$add_ledger_step" <<<"$section"; then
     problems+=("$skill_md's revise section never runs add-ledger-step.sh on a split at exhaustion, so the criteria the leaf named are narrated and the plan the run reads is unchanged")
   else
-    added="$(win "$section" "$add_ledger_step")"
+    added="$(window "$section" "$add_ledger_step")"
     grep -qE 'instead-of' <<<"$added" ||
       problems+=("$skill_md's revise section grows the ledger at exhaustion with a placement other than instead-of, so the step nothing could satisfy stays in the plan alongside the criteria that replaced it")
     grep -qE 'commit' <<<"$added" ||
@@ -84,7 +80,7 @@ else
   if ! grep -qE "$needs_user" <<<"$section"; then
     problems+=("$skill_md's revise section never names the needs-user answer, so a leaf that escalates a step to the user is treated as one that volunteered nothing")
   else
-    parked="$(win "$section" "$needs_user")"
+    parked="$(window "$section" "$needs_user")"
     grep -qE 'park' <<<"$parked" ||
       problems+=("$skill_md's revise section names the needs-user answer without parking the step on it, so an escalation the leaf made deliberately ends as the same bail as saying nothing")
   fi
@@ -92,7 +88,7 @@ else
   if ! grep -qE "$bail_cause" <<<"$section"; then
     problems+=("$skill_md's revise section no longer names the revise-exhausted cause, so a leaf that volunteered neither answer leaves the conductor to invent a stop for a step it already had one for")
   else
-    bailed="$(win "$section" "$bail_cause")"
+    bailed="$(window "$section" "$bail_cause")"
     grep -qE 'bail' <<<"$bailed" ||
       problems+=("$skill_md's revise section names revise-exhausted without bailing on it, so the outcome that should end the step exactly as today carries on instead")
   fi
@@ -126,7 +122,7 @@ else
   if ! grep -qE "($issue_mirror)" <<<"$branch"; then
     problems+=("$skill_md's needs-user branch parks the step without posting anything to the issue thread, so the one account of why the run stopped is a leaf log inside a worktree")
   else
-    posted="$(win "$branch" "($issue_mirror)")"
+    posted="$(window "$branch" "($issue_mirror)")"
     grep -qE 'exhausted-answer' <<<"$posted" ||
       problems+=("$skill_md's needs-user branch posts to the issue thread without carrying .tdd/exhausted-answer.txt, so the user reads that the step was parked and never the leaf's own account of why")
     grep -qE 'reason' <<<"$posted" ||
