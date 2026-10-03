@@ -104,3 +104,45 @@ def test_main_answers_the_issue_bodys_marker_bare_or_backticked_and_falls_throug
         [(0, "make docs-test\n"), (0, "make docs-test\n"), (0, "bin/run --all\n")],
         [(0, "make docs-test\n")] * 4,
     )
+
+
+def test_main_skips_a_marker_quoted_inside_a_backtick_span_and_answers_a_stated_one(tmp_path, capsys, detect):
+    def answer(*argv):
+        return detect.main(list(argv)), capsys.readouterr().out
+
+    def body(name, text):
+        path = tmp_path / f"{name}.md"
+        path.write_text(text)
+        return str(path)
+
+    override = tmp_path / "override"
+    (override / ".veri").mkdir(parents=True)
+    (override / ".veri" / "test-command").write_text("bin/run-suite --all --strict\n")
+    made = tmp_path / "made"
+    made.mkdir()
+    (made / "Makefile").write_text("test:\n\techo hi\n")
+    intro = "# Leaves run one suite instead of the full one\n\nSince #120 a leaf takes its command from the issue body: {}, and #131 made that line count mid-sentence.\n\n## Notes\n\n"
+    quoted = body("quoted", intro.format("the `Test command:` line names it") + "Test command: make test\n")
+    only_quoted = body("only-quoted", intro.format("the `Test command:` line names it") + "Files: `skills/tdd/scripts/detect-test-command.sh`.\n")
+    absent = body("absent", intro.format("a line in its Notes names it") + "Files: `skills/tdd/scripts/detect-test-command.sh`.\n")
+    then_stated = body("then-stated", "## Notes\n\nA leaf takes its command from the `Test command:` line, so: Test command: `make docs-test`. More prose.\n")
+    docs_quoted = body("docs-quoted", "# Rule 0 answers a development issue with its own suite\n\nA docs issue writes `Test command: make docs-test` in its Notes, so every leaf on it runs the docs suite. This issue is not a docs issue.\n\n## Notes\n\nFiles: `skills/tdd/scripts/detect-test-command.sh`.\n\nTest command: make test\n")
+    issue_144 = str(SCRIPTS / "tests" / "fixtures" / "detect-test-command" / "issue-144.md")
+
+    got = [
+        answer("--issue", quoted, str(override)),
+        answer("--issue", only_quoted, str(override)),
+        answer("--issue", absent, str(override)),
+        answer("--issue", then_stated, str(made)),
+        answer("--issue", docs_quoted, str(override)),
+        answer("--issue", issue_144, str(override)),
+    ]
+
+    assert got == [
+        (0, "make test\n"),
+        (0, "bin/run-suite --all --strict\n"),
+        (0, "bin/run-suite --all --strict\n"),
+        (0, "make docs-test\n"),
+        (0, "make test\n"),
+        (0, "make test\n"),
+    ]
