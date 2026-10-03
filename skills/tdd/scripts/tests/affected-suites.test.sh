@@ -508,4 +508,12 @@ commit_head
 expect_suites_unwidened "a touched tests/py/test_status.py prints that file, without widening" \
   skills/tdd/scripts/tests/py/test_status.py
 
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+in_place="$(cd "$repo" && "$AFFECTED" "$base..$head" 2>&1)"; in_place_code=$?
+linked="$(cd "$repo" && "$work/linked-skill/scripts/affected-suites.sh" "$base..$head" 2>&1)"; linked_code=$?
+if [[ "$linked" == "$in_place" && "$linked_code" -eq "$in_place_code" && "$in_place" == *"test_status.py"* ]]; then ok; else
+  no "affected-suites.sh run through a symlink to the skill directory from the repository root answers as it does when run in place"
+  diff <(printf '%s\nexit %s\n' "$in_place" "$in_place_code") <(printf '%s\nexit %s\n' "$linked" "$linked_code")
+fi
+
 finish
