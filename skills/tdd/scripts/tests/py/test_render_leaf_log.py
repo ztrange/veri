@@ -39,3 +39,27 @@ def test_main_renders_text_tool_calls_and_truncated_results_one_per_line_and_ret
         "< 3 passed, 0 failed\n"
         "The case is added and fails as predicted.\n"
     ))
+
+
+def test_main_keeps_the_quirks_of_the_bash_it_was_ported_from(monkeypatch, capsys, render_leaf_log):
+    def run(stdin, argv=()):
+        monkeypatch.setattr(sys, "stdin", io.StringIO(stdin))
+        code = render_leaf_log.main(list(argv))
+        captured = capsys.readouterr()
+        return code, captured.out, captured.err
+
+    def record(*blocks):
+        return json.dumps({"type": "assistant", "message": {"content": list(blocks)}}) + "\n"
+
+    assert run("\n") == (2, "", "render-leaf-log.sh: not JSON: \n")
+    assert run("not json at all\n") == (2, "", "render-leaf-log.sh: not JSON: not json at all\n")
+    for stdin in ("[1, 2]\n", record({"type": "text"}), record({"type": "tool_use", "input": {"command": "ls"}})):
+        monkeypatch.setattr(sys, "stdin", io.StringIO(stdin))
+        with pytest.raises(Exception):
+            render_leaf_log.main([])
+    capsys.readouterr()
+    content = [{"type": "text", "text": "x"}]
+    assert run(record({"type": "tool_result", "content": content})) == (0, "< " + str(content) + "\n", "")
+    assert run(record({"type": "tool_use", "name": "Bash", "input": {}})) == (0, "> Bash: \n", "")
+    assert run(record({"type": "text", "text": "one\ntwo"})) == (0, "one\ntwo\n", "")
+    assert run(record({"type": "text", "text": "hello"}), ["--extra", "arg"]) == (0, "hello\n", "")
