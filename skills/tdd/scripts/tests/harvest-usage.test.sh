@@ -294,4 +294,43 @@ unmodeled_model="$(event_fields "$unmodeled_work" usage model)"
 
 report "$name"
 
+name="harvest-usage.sh run through a symlink to the skill directory and from another working directory appends the same usage event and exits as when run in place"
+problems=()
+
+usage_event() {
+  python3 -c '
+import json, sys
+for line in open(sys.argv[1]).read().splitlines():
+    obj = json.loads(line)
+    if obj.get("event") == "usage":
+        obj.pop("ts", None)
+        obj.pop("awake", None)
+        print(json.dumps(obj, sort_keys=True))
+' "$1/.tdd/events.jsonl" 2>/dev/null || echo '<<no event log>>'
+}
+
+linked_leaf=verify-green
+in_place_work="$work/in-place"
+linked_work="$work/linked"
+mkdir -p "$in_place_work/.tdd" "$linked_work/.tdd"
+cp "$modeled_work/.tdd/$modeled.log" "$in_place_work/.tdd/$linked_leaf.log"
+cp "$modeled_work/.tdd/$modeled.log" "$linked_work/.tdd/$linked_leaf.log"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+
+in_place_out="$( cd "$in_place_work" && "$HARVEST" "$linked_leaf" 2>&1 )" && in_place_code=0 || in_place_code=$?
+linked_out="$( cd "$linked_work" && "$work/linked-skill/scripts/harvest-usage.sh" "$linked_leaf" 2>&1 )" && linked_code=0 || linked_code=$?
+in_place_event="$(usage_event "$in_place_work")"
+linked_event="$(usage_event "$linked_work")"
+
+[[ "$in_place_code" == 0 && "$in_place_event" == *'"model": "claude-opus-5-5"'* ]] ||
+  problems+=("setup: want the in-place run to exit 0 and append a usage event, got exit $in_place_code and $(printf '%q' "$in_place_event")")
+[[ "$linked_code" == "$in_place_code" ]] ||
+  problems+=("exit: want $in_place_code as in place, got $linked_code")
+[[ "$linked_out" == "$in_place_out" ]] ||
+  problems+=("output: want $(printf '%q' "$in_place_out") as in place, got $(printf '%q' "$linked_out")")
+[[ "$linked_event" == "$in_place_event" ]] ||
+  problems+=("usage event: want $(printf '%q' "$in_place_event") as in place, got $(printf '%q' "$linked_event")")
+
+report "$name"
+
 finish
