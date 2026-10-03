@@ -7,7 +7,7 @@ import sys
 BUILT = re.compile(rb"[A-Za-z0-9_.-]*(?:\$\{?[A-Za-z0-9_]+\}?[A-Za-z0-9_.-]*)+\.(?:sh|md)")
 PIECE = re.compile(rb"(\$\{?[A-Za-z0-9_]+\}?)")
 KNOB = re.compile(rb"VERI_[A-Z0-9_]+")
-PROMISED = re.compile(rb"(?:^|[^A-Za-z0-9_.${}-])[A-Za-z0-9_-]+\.sh")
+PROMISED = re.compile(rb"(?:^|[^A-Za-z0-9_.${}-])([A-Za-z0-9_-]+\.sh)")
 
 
 def read(path):
@@ -92,8 +92,7 @@ def listing(root):
     promised = set()
     for text in promises:
         for line in text.split(b"\n"):
-            for found in PROMISED.findall(line):
-                promised.add(found if re.match(rb"[A-Za-z0-9_-]", found) else found[1:])
+            promised.update(PROMISED.findall(line))
     for name in sorted(promised):
         if not os.path.exists(scripts + b"/" + name):
             out.append(b"promised-unread: " + name)
