@@ -107,18 +107,9 @@ fi
 
 # hazard: `cat` on an unreadable file under set -e would exit 1, the code reserved for an answer.
 readable=("$tpl_file" "$shared_file" "$spec_file")
-if [[ -n "$replaces_file" ]]; then
-  readable+=("$replaces_file")
-fi
-if [[ -n "$suite_repair_file" ]]; then
-  readable+=("$suite_repair_file")
-fi
-if [[ -n "$bug_file" ]]; then
-  readable+=("$bug_file")
-fi
-if [[ -n "$refactor_plan_file" ]]; then
-  readable+=("$refactor_plan_file")
-fi
+for f in "$replaces_file" "$suite_repair_file" "$bug_file" "$refactor_plan_file"; do
+  if [[ -n "$f" ]]; then readable+=("$f"); fi
+done
 if [[ "$phase" == plan ]]; then
   readable+=("$test_path")
 fi
