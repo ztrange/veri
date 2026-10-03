@@ -372,7 +372,7 @@ fi
 
 stub="$work/stub"
 stub_script
-cat > "$stub/lib/ledger.sh" <<'EOF'
+{ printf '. %q\n' "$(dirname "$ADD")/lib/ledger.sh"; cat <<'EOF'; } > "$stub/lib/ledger.sh"
 ledger_steps() {
   local line i=0
   while IFS= read -r line || [[ -n "$line" ]]; do
@@ -381,7 +381,6 @@ ledger_steps() {
     printf '%s\topen\tstep\t0\t0\t\t%s\n' "$i" "${line#'* ['?'] '}"
   done
 }
-ledger_add_step() { cat; printf -- '- [ ] %s ⟦added⟧ ⟦criterion %s⟧\n' "$1" "$2"; }
 EOF
 seed_lines '* [ ] a lamp glows'
 "$stub/add-ledger-step.sh" "$led" after 'a lamp glows' 'a lamp dims'; code=$?

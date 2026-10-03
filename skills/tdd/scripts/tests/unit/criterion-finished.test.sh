@@ -73,7 +73,7 @@ work="$(scratch_dir)"
 mkdir "$work/lib"
 cp "$FINISHED" "$work/criterion-finished.sh"
 cp "$(dirname "$FINISHED")/lib/exit-contract.sh" "$work/lib/exit-contract.sh"
-cat > "$work/lib/ledger.sh" <<'EOF'
+{ printf '. %q\n' "$(dirname "$FINISHED")/lib/ledger.sh"; cat <<'EOF'; } > "$work/lib/ledger.sh"
 ledger_steps() {
   cat > /dev/null
   printf '1\tdone\tstep\t0\t0\t1\tfinished in the module ⟦criterion 1⟧\n'

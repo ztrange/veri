@@ -108,7 +108,7 @@ work="$(scratch_dir)"
 mkdir "$work/lib"
 cp "$NEXT" "$work/next-unchecked.sh"
 cp "$(dirname "$NEXT")/lib/exit-contract.sh" "$work/lib/exit-contract.sh"
-cat > "$work/lib/ledger.sh" <<'EOF'
+{ printf '. %q\n' "$(dirname "$NEXT")/lib/ledger.sh"; cat <<'EOF'; } > "$work/lib/ledger.sh"
 ledger_steps() {
   cat > /dev/null
   printf '1\tdone\tstep\t0\t0\t1\tticked in the module ⟦criterion 1⟧\n'
