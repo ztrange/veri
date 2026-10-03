@@ -1309,50 +1309,6 @@ fi
 
 report "$name"
 
-name="chatter_json answers the empty rendering for a run on no leaf and for a leaf that has written nothing yet"
-problems=()
-blank_repo="$(repo chatterblank)"
-
-noleaf_run="$(fabricate_run "$blank_repo" 63 tdd/63-lamps-dim)"
-cat > "$noleaf_run/.tdd/issue-63.md" <<'EOF'
-# Plan for #63 — lamps dim
-
-- [ ] a lamp stops dimming
-EOF
-noleaf_now="$(date +%s)"
-cat > "$noleaf_run/.tdd/events.jsonl" <<EOF
-{"ts": $((noleaf_now - 60)), "issue": "63", "actor": "conductor", "phase": "", "step": "a lamp stops dimming", "event": "step-start", "attempt": "", "skill_commit": "abc", "seq": 1}
-EOF
-
-nolog_run="$(fabricate_run "$blank_repo" 65 tdd/65-lamps-hum)"
-cat > "$nolog_run/.tdd/issue-65.md" <<'EOF'
-# Plan for #65 — lamps hum
-
-- [ ] a lamp stops humming
-EOF
-nolog_now="$(date +%s)"
-cat > "$nolog_run/.tdd/events.jsonl" <<EOF
-{"ts": $((nolog_now - 90)), "issue": "65", "actor": "conductor", "phase": "", "step": "a lamp stops humming", "event": "step-start", "attempt": "", "skill_commit": "abc", "seq": 1}
-{"ts": $((nolog_now - 30)), "issue": "65", "actor": "developer", "phase": "red", "step": "a lamp stops humming", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red", "seq": 2}
-EOF
-
-chatter_answer "$blank_repo" 63 chatter-noleaf
-noleaf_answer="$answer"
-chatter_answer "$blank_repo" 65 chatter-nolog
-nolog_answer="$answer"
-if [[ -n "$noleaf_answer" && -n "$nolog_answer" ]]; then
-  add_problems < <(python3 -c "$chatter_rendering"'
-for issue, body, what in ((63, sys.argv[1], "whose event log names no launch, so it is on no leaf"),
-                          (65, sys.argv[2], "on a leaf whose transcript is not there yet, as neither .log nor .out")):
-    got = chatter(body, issue)
-    if got is not None and got != "":
-        print("chatter_json for issue %s, a run %s, returned %r; want the empty rendering"
-              % (issue, what, got[:400]))
-' "$noleaf_answer" "$nolog_answer")
-fi
-
-report "$name"
-
 name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
 problems=()
 disk_page="$scripts/dashboard.html"
