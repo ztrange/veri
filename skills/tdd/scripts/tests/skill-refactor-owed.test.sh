@@ -25,7 +25,7 @@ source "$HERE/lib/window.sh"
 refactor_section() {
   awk -v h='#### Refactor' \
     'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path" |
-    plain | tr '\n' ' '
+    plain --join
 }
 section="$(refactor_section)"
 

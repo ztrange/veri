@@ -13,7 +13,7 @@ bullet() {
   awk -v want="$1" '
     $0 ~ want { inside = 1; print; next }
     inside && /^([-*] |#)/ { exit }
-    inside' "$skill_path" | plain | tr '\n' ' '
+    inside' "$skill_path" | plain --join
 }
 
 says() {

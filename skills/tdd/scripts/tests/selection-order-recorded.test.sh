@@ -31,7 +31,7 @@ entry() {
   awk -v want="^\\\\*\\\\*$1\\\\*\\\\*:" '
     $0 ~ want { inside = 1; next }
     inside && (/^_Avoid_/ || /^\*\*/ || /^## /) { exit }
-    inside' "$context_path" | plain | tr '\n' ' '
+    inside' "$context_path" | plain --join
 }
 
 PRIORITY_BAND='priority'                                  # the band, and the label naming it

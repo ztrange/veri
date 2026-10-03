@@ -231,7 +231,7 @@ says() {
 }
 
 probe_idiom_records_the_check() {
-  idiom="$(awk '/^## Testing idiom/ { f = 1; next } f && /^## / { exit } f' "$CLAUDE_MD" | plain | tr '\n' ' ')"
+  idiom="$(awk '/^## Testing idiom/ { f = 1; next } f && /^## / { exit } f' "$CLAUDE_MD" | plain --join)"
   [[ -n "${idiom// /}" ]] || {
     problems+=("CLAUDE.md has no '## Testing idiom' section to read, so neither half of the rule is recorded where an author writing a suite is sent")
     return

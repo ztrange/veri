@@ -59,7 +59,7 @@ source "$HERE/lib/window.sh"
 refactor_heading='#### Refactor'
 
 flat() {
-  plain | tr '\n' ' '
+  plain --join
 }
 
 refactor_section() {

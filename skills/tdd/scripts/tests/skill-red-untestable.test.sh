@@ -33,7 +33,7 @@ doc_text() {
     in_s {
       if (!want && from != "" && $0 ~ from) want = 1
       if (want) print
-    }' "$skill_path" | plain | tr '\n' ' '
+    }' "$skill_path" | plain --join
 }
 
 says() {

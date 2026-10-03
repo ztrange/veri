@@ -32,7 +32,7 @@ doc_text() {
     in_s {
       if (!want && $0 ~ from) want = 1
       if (want) print
-    }' "$1" | plain | tr '\n' ' '
+    }' "$1" | plain --join
 }
 
 text=""
