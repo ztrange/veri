@@ -96,6 +96,22 @@ want="$seeded"'
 check_code "#580: a second refusal appends its bullets under the existing trailing Owed steps heading" \
   "$code1/$code2" "1/1" "$want"
 
+seed_lines '- [ ] collapse to single hyphen ⟦criterion 2⟧' '' '## Notes' '' 'a remark'
+VERI_STEP_GROWTH=0 "$ADD" "$led" after 'collapse to single hyphen' 'first refused'; code=$?
+want='# Plan for #42
+
+- [ ] collapse to single hyphen ⟦criterion 2⟧
+
+## Notes
+
+a remark
+
+## Owed steps
+
+- first refused'
+check_code "#580: a first refusal on a ledger with no Owed steps heading still creates it, its bullet under it" \
+  "$code" 1 "$want"
+
 seed
 "$ADD" "$led" after 'no such step' 'collapse a unicode dash too'; code1=$?
 "$ADD" "$led" after 'hyphen' 'collapse a unicode dash too'; code2=$?
