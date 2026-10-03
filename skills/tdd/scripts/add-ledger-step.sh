@@ -66,6 +66,14 @@ count_lines() {
   printf '%s' "$n"
 }
 
+last_heading() {
+  local line heading=""
+  while IFS= read -r line; do
+    if [[ "$line" == '## '* ]]; then heading="$line"; fi
+  done < "$file"
+  printf '%s' "$heading"
+}
+
 [[ "$(count_lines is_anchor_step)" == 1 ]] || {
   printf 'add-ledger-step.sh: anchor matches no single step: %s\n' "$anchor" >&2
   exit 2
@@ -86,7 +94,7 @@ done
 
 if (( $(count_lines is_added_step) + growth > budget )); then
   {
-    printf '\n## Owed steps\n\n'
+    [[ "$(last_heading)" == '## Owed steps' ]] || printf '\n## Owed steps\n\n'
     for text in "${texts[@]}"; do printf -- '- %s\n' "$text"; done
   } >> "$file"
   exit 1
