@@ -186,13 +186,11 @@ probe_exemption_with_a_reason_excuses_the_line() {
 }
 
 probe_exemption_without_a_reason_excuses_nothing() {
-  local guard_no_reason failures
+  local guard_no_reason
   guard_no_reason="$(exempting '' noreason)" || return 1
   cp "$guard_no_reason" "$guard_copy"
   run_guard_over "$planted_step_skill"
-  failures="$(failures_in "$guard_out")"
-  [[ "$guard_code" != 0 && "$failures" != 0 && "$failures" != '<none>' ]] ||
-    problems+=("want ${GUARD##*/} to fail over that document when its table names $SKILL:$step_line with no reason — an entry that says nothing excuses nothing; it exited $guard_code, its count line stated '$failures' and it said: $(flat "$guard_out")")
+  probe_guard_is_red "$step_line is named in ${GUARD##*/}'s table with no reason — an entry that says nothing excuses nothing"
   grep -F "$SKILL:$step_line" <<< "$guard_out" > /dev/null ||
     problems+=("${GUARD##*/} failed over that document without naming $SKILL:$step_line, the line the reasonless entry did not excuse; it said: $(flat "$guard_out")")
 }
