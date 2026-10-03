@@ -77,3 +77,33 @@ def test_main_reads_a_multiline_or_inline_reason_and_drops_a_closing_fence(monke
         "fenced verdict block": (1, "The test asserts a constant and never calls slugify().\n"),
         "multiline reason then fence": (1, "Two problems:\n- vacuous assertion\n- no call to the function\n"),
     }
+
+
+def test_main_ignores_arguments_and_reads_only_a_line_starting_with_a_whitespace_delimited_verdict(monkeypatch, capsys, parse_verdict):
+    inputs = {
+        "arguments ignored": (["extra", "args"], "VERDICT: PASS\nREASON: ok\n"),
+        "empty stdin": ([], ""),
+        "last line without newline": ([], "VERDICT: REJECT\nREASON: no newline at the end"),
+        "pass alone": ([], "VERDICT: PASS"),
+        "verdict mid-line": ([], "the answer is VERDICT: PASS"),
+        "word with a full stop": ([], "VERDICT: PASS."),
+        "word joined to a dash": ([], "VERDICT: PASS—reason"),
+        "bare verdict": ([], "VERDICT:"),
+    }
+    results = {}
+    for name, (argv, text) in inputs.items():
+        monkeypatch.setattr(sys, "stdin", io.StringIO(text))
+        code = parse_verdict.main(argv)
+        results[name] = (code, *capsys.readouterr())
+
+    no_verdict = "parse-verdict: no VERDICT: line found\n"
+    assert results == {
+        "arguments ignored": (0, "ok\n", ""),
+        "empty stdin": (2, "", no_verdict),
+        "last line without newline": (1, "no newline at the end\n", ""),
+        "pass alone": (0, "\n", ""),
+        "verdict mid-line": (2, "", no_verdict),
+        "word with a full stop": (2, "", "parse-verdict: unrecognised verdict word 'PASS.'\n"),
+        "word joined to a dash": (2, "", "parse-verdict: unrecognised verdict word 'PASS—REASON'\n"),
+        "bare verdict": (2, "", "parse-verdict: unrecognised verdict word ''\n"),
+    }
