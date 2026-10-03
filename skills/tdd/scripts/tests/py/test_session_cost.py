@@ -373,3 +373,58 @@ def test_main_names_each_session_rows_entrypoint_and_bands_min_median_max_per_ha
                 % ((harness, harness) + figures)
             )
     assert (code, problems) == (0, []), out
+
+
+def test_main_names_an_absent_entrypoints_rows_and_band_conductor_apart_from_clis(tmp_path, monkeypatch, capsys, session_cost):
+    monkeypatch.setenv("TZ", "UTC")
+    time.tzset()
+    conductor = [
+        ("1a842fb0-6d03-4e51-b7c2-8ef1a940d25e", 986, 51000),
+        ("2b953ec1-7e14-4f62-c8d3-9fa2b051e36f", 438, 53000),
+        ("3ca64fd2-8f25-4073-d9e4-0ab3c162f470", 994, 55000),
+    ]
+    cli = [
+        ("4db75063-9036-4184-e0f5-1bc4d273058a", 500, 52000),
+        ("5ec86174-0147-4295-f106-2cd5e384169b", 786, 53000),
+        ("6fd97285-1258-43a6-028f-3de6f495270c", 800, 54000),
+    ]
+    want_bands = {
+        "conductor": (51986, 53438, 55994),
+        "cli": (52500, 53786, 54800),
+    }
+
+    transcripts = []
+
+    def write_keyed_session(session, entrypoint_field, usage_in, write, stamp, output):
+        path = tmp_path / (session + ".jsonl")
+        path.write_text(
+            '{"type":"assistant","timestamp":"%s","requestId":"req_%s","sessionId":"%s",%s"userType":"external","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":%d,"cache_creation_input_tokens":%d,"cache_creation":{"ephemeral_5m_input_tokens":%d,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":0,"output_tokens":%d}}}\n'
+            % (stamp, session, session, entrypoint_field, usage_in, write, write, output)
+        )
+        transcripts.append(str(path))
+
+    for i in range(3):
+        write_keyed_session(conductor[i][0], "", conductor[i][1], conductor[i][2], "2026-09-14T0%d:11:45.310Z" % i, 3300 + i)
+        write_keyed_session(cli[i][0], '"entrypoint":"cli",', cli[i][1], cli[i][2], "2026-09-14T0%d:48:02.915Z" % i, 4400 + i)
+
+    code = session_cost.main(["--since", "2026-09-14"] + transcripts)
+    out = capsys.readouterr().out
+    lines = out.splitlines()
+
+    def anchored(figure):
+        return r"(^|[^0-9])%d([^0-9]|$)" % figure
+
+    problems = []
+    for session, _, _ in conductor:
+        if not any("conductor" in line for line in lines if session[:8] in line):
+            problems.append("session %s: no entrypoint key, want its row to name it a conductor, it does not" % session[:8])
+    for session, _, _ in cli:
+        if not any("cli" in line for line in lines if session[:8] in line):
+            problems.append("session %s: want its row to name the entrypoint cli, it does not" % session[:8])
+    for harness, figures in want_bands.items():
+        if not any(harness in line and all(re.search(anchored(figure), line) for figure in figures) for line in lines):
+            problems.append(
+                "the %s band: want one line naming %s and stating min %d, median %d and max %d together, no line states all three"
+                % ((harness, harness) + figures)
+            )
+    assert (code, problems) == (0, []), out
