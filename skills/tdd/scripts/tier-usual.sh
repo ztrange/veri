@@ -1,49 +1,10 @@
-#!/usr/bin/env bash
-# tier-usual.sh — what one tier's test-command run usually costs.
-# timed-test-run.sh records a `seconds` per run, but a recorded number is only a
-# number until there is something to compare it against. The usual is that something: the
-# median of the tier's last 10 `test-run` events.
+#!/bin/sh
+# tier-usual.sh — what one tier's test-command run usually costs: a shim over veri/tier_usual.py.
 #
-# Usage:   tier-usual.sh <tier>          # prints the median seconds on stdout
+# Prints the median `seconds` of the tier's last 10 `test-run` events in `.tdd/events.jsonl`,
+# read relative to the working directory; an even window prints the mean of its two middles.
 #
-# The median rather than the mean, because one 400 s outlier — a machine that swapped, a
-# first-run executable check — must not move the figure every later run is judged against.
-# The last 10 rather than all of them, because a tier's cost changes when the suites do, and
-# a run from before that change is not evidence about this one. An even window has no single
-# middle, so the answer is the mean of the two: ten runs of 1…10 s are usually 5.5 s, a
-# figure neither of which any single run took.
-#
-# The log is read relative to the directory this runs in, `.tdd/events.jsonl`, the way
-# event.sh writes it (event.sh:60) and the way metrics.sh reads it — the issue's worktree.
-set -euo pipefail
-
-USAGE="usage: tier-usual.sh <tier>"
-
-lib="$(cd "$(dirname "$0")" && pwd)/lib"
-source "$lib/exit-contract.sh"
-
-require_args 1 "$@"
-tier="$1"
-
-log=".tdd/events.jsonl"
-
-# hazard: a quoted heredoc, so an apostrophe in the program is literal where `python3 -c` would end the string.
-
-PYTHONPATH="$(dirname "$lib")/veri" exec python3 - "$tier" "$log" <<'PY'
-import sys
-
-from event_log import read_events
-
-tier, path = sys.argv[1], sys.argv[2]
-
-WINDOW = 10
-
-seconds = [float(line["seconds"]) for line in read_events(path)
-           if line.get("event") == "test-run" and line.get("tier") == tier]
-
-window = sorted(seconds[-WINDOW:])
-middle = len(window) // 2
-usual = (window[middle - 1] + window[middle]) / 2 if len(window) % 2 == 0 else window[middle]
-
-print(usual)
-PY
+# usage: tier-usual.sh <tier>
+# Exit:    0 the median on stdout; 1 no answer from the log (no test-run event for the tier, a missing
+#          or malformed log), nothing on stdout; 2 a missing argument
+exec python3 "$(dirname "$0")/veri/tier_usual.py" "$@"
