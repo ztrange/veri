@@ -1286,8 +1286,11 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    step**. It copies them — never the cosmetic ones — into the run's owed file under this
    step's name, where the Draft PR renders every step's, not just the last one's:
    ```
-   $S/refactor-owed.sh append .tdd/issue-<n>-refactor-owed.md "<STEP>" < .tdd/develop-refactor.out
+   $S/refactor-owed.sh append .tdd/issue-<n>-refactor-owed.md "<STEP>" "$touched" < .tdd/develop-refactor.out
    ```
+   `$touched` is the step's bounds: when all are test files, a structural candidate is
+   recorded test-only — "test file" being `transform-touches-tests.sh`'s rule, under `tests/`
+   or named `*.test.*`, so no transform could land it.
    - **PASS:** the step's cycle is complete — the step is tidied, not merely green, so
      **grow the plan with the behaviours of the leaf's `uncovered-spec` flags (4 above) and of
      the passing verify-refactor verdict's own `uncovered-spec` flags, then clear the refactor-pending mark and commit the grown, cleared
@@ -1531,6 +1534,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    $S/refactor-touched.sh --issue <issue-base>          # → <issue-touched-files>
    $S/refactor-owed.sh list .tdd/issue-<n>-refactor-owed.md   # one candidate per line; exit 3 ⇒ no pass
    ```
+   A candidate recorded test-only is never listed, so it launches no predicate or
+   transform leaf; `render` still shows it under `### Test-only` in the PR body.
    For each candidate, in the order `refactor-owed.sh list` prints them — most valuable first —
    `<count>` being the transforms the pass has already landed:
    ```
