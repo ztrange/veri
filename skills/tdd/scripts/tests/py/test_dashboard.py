@@ -105,3 +105,21 @@ def test_main_serves_on_loopback_8765_or_the_first_argument_with_the_files_besid
         assert body(page) == f.read()
     assert body(runs) == b'{"runs": ["from status.sh"]}'
     assert [os.path.join(SCRIPTS, "status.sh"), "--json"] in calls
+
+
+def status_code(answer):
+    return answer.split(b"\r\n", 1)[0].split()[1]
+
+
+def test_main_binds_loopback_on_8765_or_the_port_argument_answers_gets_and_returns_0_on_keyboard_interrupt(
+        tmp_path, monkeypatch, dashboard):
+    monkeypatch.setattr(subprocess, "run", lambda args, **kwargs: subprocess.CompletedProcess(
+        args, 0, b'{"runs": []}', b""))
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, ["/", "/api/runs"])
+
+    codes = [dashboard.main([]), dashboard.main(["4243"])]
+
+    assert [address for address, _ in served] == [("127.0.0.1", 8765), ("127.0.0.1", 4243)]
+    assert [status_code(answer) for answer in served[0][1]] == [b"200", b"200"]
+    assert codes == [0, 0]
