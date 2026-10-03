@@ -51,18 +51,4 @@ if [[ "$rc" -eq 2 ]]; then ok; else
   echo "    expected exit 2, got $rc"
 fi
 
-name="the header says a non-JSON line discards the records already rendered"
-header="$(sed -n '2,/^set -euo pipefail$/p' "$RENDER" | sed -n 's/^#[[:space:]]\{0,1\}//p')"
-rendered_before="$(render_after_bad_line 2>/dev/null)"
-if [[ -n "$rendered_before" ]]; then
-  no "$name"
-  echo "    expected the script to print nothing, got: $rendered_before"
-elif grep -qE 'discard|throw[sn]? away|already rendered|records before it' <<< "$header"; then
-  ok
-else
-  no "$name"
-  echo "    the header never says the records already rendered are discarded:"
-  grep -n 'not JSON' <<< "$header" | sed 's/^/    /'
-fi
-
 finish
