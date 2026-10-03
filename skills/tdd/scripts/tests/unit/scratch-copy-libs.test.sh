@@ -4,6 +4,7 @@
 # sources lib/exit-contract.sh — by a literal path or through the suite's own variable
 # assignments — is named, unless the suite also puts lib/exit-contract.sh in the tree: by
 # naming it, by copying a directory whole with `cp -R`, or by copying `lib/*.sh`.
+# A suite that plants another suite (its GUARD=) copies every tests/lib file that suite sources.
 # Admitted to the fast tier by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
 # Run: scripts/tests/unit/scratch-copy-libs.test.sh
@@ -54,6 +55,29 @@ for suite in "$TESTS"/*.test.sh "$TESTS"/unit/*.test.sh; do
     done
   done < "$suite"
   unset vars
+done
+if [[ -z "$problems" ]]; then
+  ok
+else
+  no "$name"
+  printf '%s' "$problems"
+fi
+
+name="a suite that plants a suite into a scratch tree copies every tests/lib file that suite sources"
+problems=""
+for suite in "$TESTS"/*.test.sh "$TESTS"/unit/*.test.sh; do
+  [[ "$(< "$suite")" =~ GUARD=\'skills/tdd/scripts/tests/([A-Za-z0-9_.-]+\.test\.sh)\' ]] || continue
+  planted="${BASH_REMATCH[1]}"
+  [[ -f "$TESTS/$planted" ]] || continue
+  copies="$(grep -E '(^|[[:space:]])cp[[:space:]]' "$suite")"
+  grep -E '^(source|\.)[[:space:]].*lib/guard-plant\.sh' "$suite" > /dev/null \
+    && copies+=$'\n'"$(grep -E '(^|[[:space:]])cp[[:space:]]' "$TESTS/lib/guard-plant.sh")"
+  grep -E '(lib|LIB)"?/\*\.sh' <<< "$copies" > /dev/null && continue
+  grep -E '(lib|LIB)"?/harness\.sh' <<< "$copies" > /dev/null || continue
+  while IFS= read -r lib; do
+    grep -E "(lib|LIB)\"?/$lib" <<< "$copies" > /dev/null \
+      || problems+="    ${suite#"$TESTS"/} plants $planted without lib/$lib"$'\n'
+  done < <(sed -nE 's#^(source|\.)[[:space:]]+"\$HERE/lib/([A-Za-z0-9_.-]+\.sh)".*#\2#p' "$TESTS/$planted")
 done
 if [[ -z "$problems" ]]; then
   ok
