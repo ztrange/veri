@@ -17,6 +17,8 @@ windows() {
       from=$((at > radius ? at - radius : 0))
       printf '%s\n' "${line:from:at - from + ${#match} + radius}"
       at=$((at + ${#match}))
+      [[ -z "$match" ]] && at=$((at + 1))
+      ((at > ${#line})) && break
       rest="${line:at}"
     done
   done <<<"$1"

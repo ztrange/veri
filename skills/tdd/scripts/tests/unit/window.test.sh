@@ -23,4 +23,14 @@ actual="$(
 )"
 expect_eq "$name" "$text"$'\n'"$text" "$actual"
 
+name="a pattern that can match the empty string ends instead of looping forever"
+out="$(scratch_dir)/windows.out"
+(
+  # shellcheck disable=SC1090
+  source "$LIB"
+  ulimit -f 1
+  windows 'abc' 'x*' > "$out"
+)
+expect_eq "$name" "0" "$?"
+
 finish
