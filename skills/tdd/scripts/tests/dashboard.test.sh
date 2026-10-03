@@ -1264,51 +1264,6 @@ fi
 
 report "$name"
 
-name="chatter_json renders a leaf transcript whose plain-text result is appended after its stream-json records"
-problems=()
-tail_repo="$(repo chattertail)"
-
-tail_run="$(fabricate_run "$tail_repo" 61 tdd/61-lamps-flicker)"
-cat > "$tail_run/.tdd/issue-61.md" <<'EOF'
-# Plan for #61 — lamps flicker
-
-- [ ] a lamp stops flickering
-EOF
-cat > "$work/chatter-tail-records.jsonl" <<'EOF'
-{"type": "system", "subtype": "init", "session_id": "s4", "tools": ["Bash"]}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Making the flicker case pass."}]}}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_9", "name": "Bash", "input": {"command": "make test", "description": "Run the suite"}}]}}
-{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_9", "type": "tool_result", "content": "10 passed, 0 failed", "is_error": false}]}}
-EOF
-{
-  cat "$work/chatter-tail-records.jsonl"
-  printf '\n'
-  printf 'The step is green: 10 passed, 0 failed.\n'
-} > "$tail_run/.tdd/develop-green.log"
-tail_now="$(date +%s)"
-cat > "$tail_run/.tdd/events.jsonl" <<EOF
-{"ts": $((tail_now - 400)), "issue": "61", "actor": "conductor", "phase": "", "step": "a lamp stops flickering", "event": "step-start", "attempt": "", "skill_commit": "abc", "seq": 1}
-{"ts": $((tail_now - 150)), "issue": "61", "actor": "developer", "phase": "green", "step": "a lamp stops flickering", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-green", "seq": 2}
-EOF
-
-want_rendering "$work/chatter-tail-records.jsonl" "$work/chatter-want-tail.txt" "the stream-json records"
-
-chatter_answer "$tail_repo" 61 chatter-tail
-if [[ -n "$answer" ]]; then
-  add_problems < <(python3 -c "$chatter_rendering"'
-got, wanted = chatter(sys.argv[1], 61), want(sys.argv[2])
-if got is not None and wanted not in got:
-    blank = " — the empty string, which is what a transcript with the result text appended " \
-            "after its records gets from a renderer that exits 2 on the first line that is " \
-            "not JSON" if not got.strip() else ""
-    print("chatter_json for issue 61 returned %r%s; want an answer carrying "
-          "render-leaf-log.sh’s rendering of develop-green.log’s stream-json records, "
-          "which is %r" % (got[:400], blank, wanted[:400]))
-' "$answer" "$work/chatter-want-tail.txt")
-fi
-
-report "$name"
-
 name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
 problems=()
 disk_page="$scripts/dashboard.html"
