@@ -708,6 +708,14 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    it. Write it as one line, `- [ ] <criterion> ⟦human-owed⟧ ⟦criterion k⟧`, marked owed by a
    human.
 
+   A criterion that is a property of the branch's own diff — something removed, something
+   left unchanged, a change confined to named lines — is not planned as a Red/Green step: a
+   test could only check it by reading another suite's source text or the history, which pins
+   text, not behaviour. Write it as one line, `- [ ] <criterion> ⟦diff-checked⟧ ⟦criterion
+   k⟧`, judged against the diff by a blind verifier; its step adds no test. A criterion
+   stating a rule future changes must keep is still a Red/Green step, since it constrains
+   every later diff, not only this branch's.
+
    A criterion replacing an implementation case under ADR 0027 with a pytest case asserting
    the same behaviour is planned as one step marked `⟦replaces-case⟧`, naming the suite path
    and the case's exact name: `- [ ] <criterion>: replaces '<case name>' in <suite path>
