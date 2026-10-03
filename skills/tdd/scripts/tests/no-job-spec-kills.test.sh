@@ -111,13 +111,16 @@ probe_every_exemption_still_names_its_site
 
 report "$name"
 
+scratch_leaf_env() {
+  ROOT="$(scratch_dir)"
+  mkdir -p "$ROOT/$tests"
+  cat > "$ROOT/$tests/skill-leaf-env.test.sh"
+}
+
 probe_lines_inserted_above_an_exemption() {
   local ROOT tests="skills/tdd/scripts/tests"
   [[ -e "$HERE/skill-leaf-env.test.sh" ]] || return 0
-  ROOT="$(scratch_dir)"
-  mkdir -p "$ROOT/$tests"
-  { printf '# inserted\n# inserted\n# inserted\n'; cat "$HERE/skill-leaf-env.test.sh"; } \
-    > "$ROOT/$tests/skill-leaf-env.test.sh"
+  scratch_leaf_env < <(printf '# inserted\n# inserted\n# inserted\n'; cat "$HERE/skill-leaf-env.test.sh")
   probe_no_file_kills_by_job_spec
   probe_every_exemption_still_names_its_site
 }
@@ -133,10 +136,7 @@ probe_an_edited_exempted_line() {
   local ROOT tests="skills/tdd/scripts/tests" entry problem
   entry=$'skills/tdd/scripts/tests/skill-leaf-env.test.sh:EXPANDING_STEP=\'A title naming `kill \x251`, the "blind" verifier and $HOME reaches the leaf as written\''
   [[ -e "$HERE/skill-leaf-env.test.sh" ]] || return 0
-  ROOT="$(scratch_dir)"
-  mkdir -p "$ROOT/$tests"
-  sed 's/reaches the leaf as written/reaches the leaf verbatim/' "$HERE/skill-leaf-env.test.sh" \
-    > "$ROOT/$tests/skill-leaf-env.test.sh"
+  scratch_leaf_env < <(sed 's/reaches the leaf as written/reaches the leaf verbatim/' "$HERE/skill-leaf-env.test.sh")
   problems=()
   probe_every_exemption_still_names_its_site
   edited_entry_named="not named"
@@ -156,10 +156,7 @@ expect_eq "$name" "named" "$edited_entry_named"
 probe_an_unexempted_job_spec_kill() {
   local ROOT tests="skills/tdd/scripts/tests" line problem
   [[ -e "$HERE/skill-leaf-env.test.sh" ]] || return 0
-  ROOT="$(scratch_dir)"
-  mkdir -p "$ROOT/$tests"
-  sed 's/reaches the leaf as written/reaches the leaf verbatim/' "$HERE/skill-leaf-env.test.sh" \
-    > "$ROOT/$tests/skill-leaf-env.test.sh"
+  scratch_leaf_env < <(sed 's/reaches the leaf as written/reaches the leaf verbatim/' "$HERE/skill-leaf-env.test.sh")
   line="$(grep -n 'reaches the leaf verbatim' "$ROOT/$tests/skill-leaf-env.test.sh")"
   line="${line%%:*}"
   problems=()
@@ -181,11 +178,8 @@ expect_eq "$name" "named" "$unexempted_site_named"
 probe_an_exemption_matching_two_lines() {
   local ROOT tests="skills/tdd/scripts/tests" copy line lines=() problem
   [[ -e "$HERE/skill-leaf-env.test.sh" ]] || return 0
-  ROOT="$(scratch_dir)"
-  mkdir -p "$ROOT/$tests"
+  scratch_leaf_env < <(cat "$HERE/skill-leaf-env.test.sh"; grep -F 'reaches the leaf as written' "$HERE/skill-leaf-env.test.sh")
   copy="$ROOT/$tests/skill-leaf-env.test.sh"
-  { cat "$HERE/skill-leaf-env.test.sh"; grep -F 'reaches the leaf as written' "$HERE/skill-leaf-env.test.sh"; } \
-    > "$copy"
   while IFS= read -r line; do
     lines+=("${line%%:*}")
   done < <(grep -nF 'reaches the leaf as written' "$copy")
