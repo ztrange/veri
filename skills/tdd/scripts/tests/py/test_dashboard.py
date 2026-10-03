@@ -138,3 +138,23 @@ def test_importing_the_module_constructs_no_server_and_leaves_the_sigint_handler
 
     assert served == []
     assert signal.getsignal(signal.SIGINT) is sentinel
+
+
+def test_get_api_runs_through_main_answers_exactly_the_stdout_status_sh_json_printed(
+        tmp_path, monkeypatch, dashboard):
+    printed = b'{"runs": [{"issue": 7, "state": "running"}]}\n\xe2\x9f\x82 \t trailing  \n'
+
+    def fake_run(args, **kwargs):
+        if list(args) == [os.path.join(SCRIPTS, "status.sh"), "--json"]:
+            return subprocess.CompletedProcess(args, 3, printed, b"status.sh: diagnostic\n")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.chdir(tmp_path)
+    served = fake_server(monkeypatch, ["/api/runs"])
+
+    dashboard.main([])
+
+    (runs,) = served[0][1]
+    assert status_code(runs) == b"200"
+    assert body(runs) == printed
