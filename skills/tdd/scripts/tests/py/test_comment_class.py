@@ -142,3 +142,48 @@ def test_main_classes_dd_and_sponge_writes_as_2_and_sweepable_drops_class_3_the_
         "quoted-heredoc-operator": (0, ""),
         "double-quoted-heredoc-operator": (0, ""),
     }
+
+
+def test_main_skips_quoted_strings_and_the_heredoc_opening_hashbang_and_classes_md_writes_as_3(tmp_path, capsys):
+    comment_class = importlib.import_module("veri.comment_class")
+    fixtures = {
+        "quoted": (
+            "x='first", "# inside a single-quoted string", "last'", 'y="first', "# inside a double-quoted string",
+            'last"', "# a comment in code",
+        ),
+        "quote-edges": (
+            'a="say \\"hi', "# inside, after an escaped quote", 'bye"', "b=1 # it's a trailing comment",
+            "# a comment after a trailing one", "echo c#'", "# inside, after a # inside a word", "'",
+        ),
+        "stub-writer": (
+            "cat > stub <<'EOF'", "#!/bin/sh", "echo hi", "# a comment later in the body", "#!/bin/sh later in the body",
+            "EOF",
+        ),
+        "md-writer": ('cat > "$dir/CLAUDE.md" <<EOF', "# a markdown heading", "EOF"),
+        "md-tee": ('cat <<EOF | tee -a "$dir/SPEC.md"', "# a markdown heading", "EOF"),
+        "md-dd": ('cat <<EOF | dd of="$dir/CLAUDE.md"', "# a markdown heading", "EOF"),
+        "md-sponge": ('cat <<EOF | sponge "$dir/SPEC.md"', "# a markdown heading", "EOF"),
+    }
+    p = {}
+    for name, lines in fixtures.items():
+        path = tmp_path / f"{name}.sh"
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        p[name] = str(path)
+
+    def classify(*argv):
+        code = comment_class.main(list(argv))
+        return code, capsys.readouterr().out
+
+    assert {
+        "quoted": classify(p["quoted"]),
+        "quote-edges": classify(p["quote-edges"]),
+        "stub-writer": classify("--sweepable", p["stub-writer"]),
+        "md-writers": classify(p["md-writer"], p["md-tee"]),
+        "md-piped-writers": classify(p["md-dd"], p["md-sponge"]),
+    } == {
+        "quoted": (0, f"{p['quoted']}:7:1\n"),
+        "quote-edges": (0, f"{p['quote-edges']}:5:1\n"),
+        "stub-writer": (0, f"{p['stub-writer']}:4:2\n{p['stub-writer']}:5:2\n"),
+        "md-writers": (0, f"{p['md-writer']}:2:3\n{p['md-tee']}:2:3\n"),
+        "md-piped-writers": (0, f"{p['md-dd']}:2:3\n{p['md-sponge']}:2:3\n"),
+    }
