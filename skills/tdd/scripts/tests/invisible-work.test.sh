@@ -301,6 +301,21 @@ out="$(cd "$clone" && env -u VERI_GH_JSON PATH="$work/case10-gh/bin:$PATH" "$INV
 no_answer "gh unreadable" "$work/case10-gh/stderr"
 report "$name"
 
+name="invisible-work.sh: exits 2 with empty stdout and stderr's last line exactly 'invisible-work.sh: cannot reach origin' when origin cannot be reached"
+problems=()
+clone="$(unpr_branch_clone "$work/case-unreachable" "chore/nobody-opened-a-pr" 1)"
+gh_json="$(fixture "$work/case-unreachable/gh")"
+rm -rf "$work/case-unreachable/origin.git"
+out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2> "$work/case-unreachable/stderr")"; rc=$?
+last="$(tail -n 1 "$work/case-unreachable/stderr")"
+[[ "$rc" -eq 2 ]] ||
+  problems+=("want exit 2, got $rc")
+[[ -z "$out" ]] ||
+  problems+=("want empty stdout, got $(printf '%q' "$out")")
+[[ "$last" == "invisible-work.sh: cannot reach origin" ]] ||
+  problems+=("want stderr's last line exactly 'invisible-work.sh: cannot reach origin', got $(printf '%q' "$last")")
+report "$name"
+
 names_invariant() {
   local label="$1" line="${2,,}" n="$3"
   [[ "$line" =~ invariant[^0-9]*$n([^0-9]|$) ]] ||
