@@ -442,3 +442,15 @@ def test_gh_json_answers_the_gh_list_answer_when_veri_gh_json_is_unset_and_gh_ar
 
     assert answer == '[{"number":7},{"number":9}]'
     assert calls == [["gh", "pr", "list", "--json", "number"]]
+
+
+def test_the_module_is_importable_as_from_veri_import_github_and_as_import_veri_github(monkeypatch):
+    monkeypatch.delitem(sys.modules, "veri.github", raising=False)
+    monkeypatch.delattr(importlib.import_module("veri"), "github", raising=False)
+
+    from veri import github as from_import
+    import veri.github as dotted_import
+
+    assert from_import is dotted_import
+    assert pathlib.Path(from_import.__file__) == SCRIPTS / "veri" / "github.py"
+    assert callable(from_import.gh_json)

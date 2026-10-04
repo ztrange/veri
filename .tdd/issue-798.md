@@ -20,7 +20,7 @@
 - [x] veri.github.gh_json with VERI_GH_JSON set answers the fixture file's contents and makes no subprocess call ⟦criterion 2⟧
 - [x] veri.github.gh_json with VERI_GH_JSON unset and no gh args takes the REST-only gh_rest_list path for the rest path ⟦criterion 2⟧
 - [x] veri.github.gh_json with VERI_GH_JSON unset and gh args given takes the gh_list path ⟦criterion 2⟧
-- [ ] veri/github.py is importable as `from veri import github` and as `import veri.github` ⟦criterion 4⟧
+- [x] veri/github.py is importable as `from veri import github` and as `import veri.github` ⟦criterion 4⟧
 - [ ] importing veri.github starts no process and holds no state ⟦criterion 4⟧
 - [ ] the PR body lists the Python modules already copying the fallback — veri/capture_spec.py:14-32 on main, and veri/coverage_blocker.py in #794 — as follow-ups ⟦human-owed⟧ ⟦criterion 5⟧
 - [ ] lib/github.sh, its seven bash users, tests/unit/github.test.sh and tests/no-graphql-gh-calls.test.sh are unmodified by the branch ⟦diff-checked⟧ ⟦criterion 6⟧
