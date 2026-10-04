@@ -98,3 +98,9 @@ def test_main_echoes_a_non_utf8_byte_in_either_value_as_that_byte(monkeypatch, t
         (2, b"", b"time-budget: VERI_TIME_WARN_RATIO must be a number: 1\xff\n"),
         (0, b"010\n01.50\n", b""),
     ]
+
+
+def test_main_raises_rather_than_returning_0_when_stdout_is_closed(monkeypatch, time_budget):
+    monkeypatch.setattr(sys, "stdout", None)
+    with pytest.raises(Exception):
+        time_budget.main([])
