@@ -9,7 +9,7 @@
 # Usage:
 #   build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
 #   build-verify-prompt.sh rebase <issue-spec-file> <onto-sha> <pre-rebase-sha>
-#   build-verify-prompt.sh --step '<STEP>' diff <issue-spec-file> <base-sha>
+#   build-verify-prompt.sh --step '<STEP>' diff <issue-spec-file> <branch-base-sha> [<step-base-sha>]
 #     phase = red | green | refactor | pin | plan | rebase | transform | diff
 #              for plan the third positional names the proposed ledger, not a test;
 #              for transform it names the step's predicate record, and the fourth is the
@@ -68,11 +68,11 @@ need_sha() {
   refuse "build-verify-prompt: $phase needs $1 as 7-40 lowercase hex characters, got '$2'"
 }
 
-base_sha="${4:-}"
+base_sha="${4:-}" step_base_sha=""
 if [[ "$phase" == diff ]]; then
-  (( $# == 3 )) || refuse "build-verify-prompt: diff takes <issue-spec-file> <base-sha>, nothing after"
   [[ -n "$step" ]] || refuse "build-verify-prompt: diff needs --step '<STEP>'"
-  base_sha="$3"
+  base_sha="$3" step_base_sha="${4:-$3}"
+  need_sha '<step-base-sha>' "$step_base_sha"
 fi
 if [[ "$phase" == refactor || "$phase" == transform || "$phase" == diff ]]; then
   need_sha '<base-sha>' "$base_sha"
@@ -162,6 +162,7 @@ out="${out//\{\{LEDGER\}\}/$ledger}"
 out="${out//\{\{TEST_PATH\}\}/$test_path}"
 out="${out//\{\{TARGET_TEST\}\}/$target}"
 out="${out//\{\{BASE_SHA\}\}/$base_sha}"
+out="${out//\{\{STEP_BASE_SHA\}\}/$step_base_sha}"
 out="${out//\{\{FAST_CMD\}\}/$fast_cmd}"
 out="${out//\{\{ONTO_SHA\}\}/$onto_sha}"
 out="${out//\{\{PRE_REBASE_SHA\}\}/$pre_rebase_sha}"
