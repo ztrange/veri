@@ -228,9 +228,8 @@ def locked_main(argv):
                 take_lock(lock)
                 locked = True
             except Abandoned:
-                if command != "assign":
-                    return refuse("workqueue.sh: unknown subcommand: " + command)
-        if command in MOVES:
+                pass
+        if command in MOVES and locked:
             return move(queue, argv, *MOVES[command])
         if command != "assign":
             return refuse("workqueue.sh: unknown subcommand: " + command)
