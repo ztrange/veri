@@ -15,22 +15,22 @@ def write_lines(lines):
     sys.stdout.buffer.write("".join(line + "\n" for line in lines).encode())
 
 
+def answer(record):
+    if record is None:
+        return 3
+    write_lines([record[6]])
+    return 0
+
+
 def current(records):
     pending = [r for r in records if r[1] == "done" and r[3] == "1"]
     open_steps = [r for r in records if r[1] == "open" and r[2] in ("step", "diff-checked")]
-    for found in (pending, open_steps):
-        if found:
-            write_lines([found[0][6]])
-            return 0
-    return 3
+    return answer(next(iter(pending + open_steps), None))
 
 
 def last_done(records):
     done = [r for r in records if r[1] == "done"]
-    if not done:
-        return 3
-    write_lines([done[-1][6]])
-    return 0
+    return answer(done[-1] if done else None)
 
 
 def main(argv):
