@@ -60,11 +60,7 @@ def decimal(text):
 
 
 def capped(value, cap, scope):
-    try:
-        return cap if arith(value, scope) > cap else value
-    except ArithError as error:
-        warn(error)
-        return value
+    return cap if arith(value, scope) > cap else value
 
 
 def fall_back(why):
