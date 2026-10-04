@@ -146,8 +146,8 @@ def read_fields(lines):
         yield re.split(r"\t+", line[:-1].strip("\t"), maxsplit=3) + ["", "", "", ""]
 
 
-def move(queue, argv, source, target):
-    detail = "".join(argv[3:4]) if source == "running" else ""
+def move(queue, argv, fourth, source, target):
+    detail = fourth if source == "running" else ""
     tmp = "%s.tmp.%d" % (queue, os.getpid())
     moved = False
     try:
@@ -230,7 +230,7 @@ def locked_main(argv):
             except Abandoned:
                 pass
         if command in MOVES and locked:
-            return move(queue, argv, *MOVES[command])
+            return move(queue, argv, fourth, *MOVES[command])
         if command != "assign":
             return refuse("workqueue.sh: unknown subcommand: " + command)
         held = held_issue(queue, argv[2:])
