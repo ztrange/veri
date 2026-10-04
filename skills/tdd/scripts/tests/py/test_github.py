@@ -128,3 +128,17 @@ def test_gh_rest_list_is_a_no_answer_when_page_two_fails_with_gh_stderr_passed_t
         ["gh", "api", path + "?page=2"],
     ]
     assert capsys.readouterr().err == refusal
+
+
+def test_gh_rest_list_hands_the_pages_fetched_before_a_failing_page_along_with_the_no_answer(monkeypatch, github):
+    path = "repos/{owner}/{repo}/issues?per_page=2"
+    fake_gh(monkeypatch, {
+        ("gh", "api", path + "&page=1"): (0, '[{"number":1},{"number":2}]\n', ""),
+        ("gh", "api", path + "&page=2"): (0, '[{"number":3},{"number":4}]\n', ""),
+        ("gh", "api", path + "&page=3"): (1, "", "gh: Bad Gateway (HTTP 502)\n"),
+    })
+
+    with pytest.raises(github.NoAnswer) as no_answer:
+        github.gh_rest_list(path)
+
+    assert no_answer.value.answer == '[{"number":1},{"number":2}][{"number":3},{"number":4}]'
