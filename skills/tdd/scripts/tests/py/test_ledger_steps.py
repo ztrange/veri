@@ -7,8 +7,9 @@ import sys
 import pytest
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-if str(SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS))
+for path in (SCRIPTS, SCRIPTS / "veri"):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
 
 USAGE = b"usage: ledger-steps.sh [current|last-done|criterion <k>]\n"
 
