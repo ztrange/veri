@@ -232,3 +232,14 @@ def test_gh_issue_view_answers_the_gh_issue_view_body_and_makes_no_gh_api_call_w
 
     assert answer == "## What to build\n\nA thing.\n"
     assert calls == [["gh", "issue", "view", "60", "--json", "body", "-q", ".body"]]
+
+
+def test_gh_issue_view_answers_the_gh_issue_view_label_names_and_makes_no_gh_api_call_when_it_succeeds(monkeypatch, github):
+    calls = fake_gh(monkeypatch, {
+        ("gh", "issue", "view", "60", "--json", "labels", "-q", ".labels[].name"): (0, "bug\nready-for-agent\n", ""),
+    })
+
+    answer = github.gh_issue_view("60", "labels")
+
+    assert answer == "bug\nready-for-agent\n"
+    assert calls == [["gh", "issue", "view", "60", "--json", "labels", "-q", ".labels[].name"]]
