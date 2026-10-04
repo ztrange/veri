@@ -1,2 +1,4 @@
 ### `make test TESTS=<one shell suite>` runs that shell suite and no pytest case, so a red pytest case elsewhere under tests/py does not change its outcome ⟦criterion 1⟧
 - test-only | make-test-env.test.sh sets the global `make_args` around one case and resets it by hand afterwards; passing it as an argument to `recipe` would remove the need for the reset
+### `make test TESTS=<a tests/py/test_*.py file>` runs that pytest file through the pytest leg, and only that file, rather than executing it as a shell suite
+- test-only | in skills/tdd/scripts/tests/pytest-leg.test.sh, the two TESTS= cases this cycle added (lines 390–418) repeat the same run-make / exit-0 / `== ` headers / `all suites green` block, and that block also duplicates `check_green` (line 27). They could share one helper that takes the TESTS value and the expected headers.
