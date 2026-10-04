@@ -42,3 +42,20 @@ def test_main_with_both_budgets_unset_answers_against_the_default_every_prose_st
         (0, "refactor 4/5 — another transform may run\n"),
         (3, "refactor 5/5 — budget spent\n"),
     ]
+
+
+def test_main_with_both_budgets_unset_answers_each_exit_code_its_header_names(monkeypatch, capsys, refactor_budget):
+    monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
+    monkeypatch.delenv("VERI_ISSUE_REFACTOR_BUDGET", raising=False)
+    seen = []
+    for argv in (["0"], ["--issue", "3"], ["ten"]):
+        code = refactor_budget.main(argv)
+        out, err = capsys.readouterr()
+        seen.append((code, out, err))
+    assert [code for code, _, _ in seen if code not in range(4)] == []
+    assert seen == [
+        (0, "refactor 0/5 — another transform may run\n", ""),
+        (3, "refactor 3/3 — budget spent\n", ""),
+        (2, "", "refactor-budget: <count> must be a whole number >= 0: ten\n"
+                "usage: refactor-budget.sh [--issue] <count>\n"),
+    ]
