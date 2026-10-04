@@ -367,6 +367,19 @@ def test_gh_issue_view_is_a_no_answer_with_the_json_decode_line_when_gh_api_exit
     assert capsys.readouterr().err == "json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\n"
 
 
+def test_gh_issue_view_is_a_no_answer_with_no_json_decode_line_when_gh_api_exits_non_zero_with_a_json_stdout(monkeypatch, capsys, github):
+    fake_gh(monkeypatch, {
+        ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (1, "", ""),
+        ("gh", "api", "repos/{owner}/{repo}/issues/60"): (
+            1, '{"message":"Not Found","documentation_url":"https://docs.github.com/rest","status":"404"}\n', ""),
+    })
+
+    with pytest.raises(github.NoAnswer):
+        github.gh_issue_view("60", "body")
+
+    assert capsys.readouterr().err == ""
+
+
 def test_gh_issue_edit_patches_the_issue_body_from_the_file_and_answers_nothing_of_its_stdout(monkeypatch, capsys, github):
     patch = ("gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/60", "-F", "body=@/tmp/body.md")
     calls = []
