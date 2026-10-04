@@ -175,3 +175,13 @@ def test_main_processes_backslash_escapes_in_every_value_as_awk_v_does(capsys, m
         code = over_budget.main(argv)
         out, _ = capsys.readouterr()
         assert (argv, code, out) == (argv, 0, line)
+
+
+def test_main_processes_awk_v_s_whole_escape_table_not_only_backslash_and_n(capsys, monkeypatch, over_budget):
+    _time_budget(monkeypatch, 0, "10\n1.5\n")
+    for tier, printed in (("x\\ty", "x\ty"), ("x\\\"y", "x\"y"), ("x\\ry", "x\ry"), ("x\\by", "x\by"),
+                          ("x\\fy", "x\fy"), ("x\\vy", "x\vy"), ("x\\ay", "x\ay"), ("x\\/y", "x/y"),
+                          ("x\\101y", "xAy"), ("x\\7y", "x\ay"), ("x\\0123", "x\n3")):
+        code = over_budget.main([tier, "160", "100"])
+        out, _ = capsys.readouterr()
+        assert (tier, code, out) == (tier, 0, "⏱ %s tier took 160 s (usual 100 s, ratio 1.5, unit budget 10 s)\n" % printed)

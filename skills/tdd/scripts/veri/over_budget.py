@@ -9,12 +9,20 @@ SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 USAGE = "usage: over-budget.sh <tier> <seconds> <usual>"
 NUMBER = re.compile(r"[+-]?(?:(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?|0[xX][0-9a-fA-F]+|inf(?:inity)?|nan)", re.IGNORECASE)
 
-ESCAPE = re.compile(r"\\(.)", re.DOTALL)
-ESCAPES = {"\\": "\\", "n": "\n"}
+ESCAPE = re.compile(r"\\([0-7]{1,3}|.)", re.DOTALL)
+ESCAPES = {"\\": "\\", "n": "\n", "t": "\t", '"': '"', "r": "\r", "b": "\b", "f": "\f", "v": "\v", "a": "\a",
+           "/": "/"}
+
+
+def _escaped(match):
+    code = match.group(1)
+    if code[0] in "01234567":
+        return chr(int(code, 8))
+    return ESCAPES.get(code, match.group(0))
 
 
 def _unescape(text):
-    return ESCAPE.sub(lambda m: ESCAPES.get(m.group(1), m.group(0)), text)
+    return ESCAPE.sub(_escaped, text)
 
 
 def _number(text):
