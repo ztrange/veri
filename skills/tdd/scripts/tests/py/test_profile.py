@@ -18,15 +18,17 @@ def profile():
     return importlib.import_module("veri.profile")
 
 
-def fake_processes(monkeypatch):
+def fake_processes(monkeypatch, trace=""):
     """subprocess.run recording each command, its program by basename: a traced bash that
-    writes no trace line, and a sort that hands its input back."""
+    writes `trace` to the fd 9 it is handed, and a sort that hands its input back."""
     calls = []
 
     def fake_run(args, **kwargs):
         program = os.path.basename(str(args[0]))
         calls.append([program] + [str(a) for a in args[1:]])
         if program == "bash":
+            if trace and 9 in kwargs.get("pass_fds", ()):
+                os.write(9, trace.encode())
             return subprocess.CompletedProcess(args, 0, "", "")
         if program == "sort":
             text = kwargs.get("input") or ""
@@ -76,3 +78,22 @@ def test_main_refuses_a_threshold_that_is_not_digits_with_an_optional_fraction(t
     assert calls == []
     assert (code, captured.out, captured.err) == (
         2, "", "profile.sh: VERI_PROFILE_THRESHOLD must be a number of seconds, got '%s'\n" % threshold)
+
+
+def test_main_prints_each_case_as_secs_suite_case_n_and_its_line_range(tmp_path, monkeypatch, capsys, profile):
+    (tmp_path / "format.test.sh").write_text("pass=0\n")
+    monkeypatch.chdir(tmp_path)
+    fake_processes(monkeypatch, trace=(
+        "++10.000000 2 pass=0\n"
+        "++10.000000 2 fail=0\n"
+        "++10.000000 3 EPOCHREALTIME=10.000000\n"
+        "++10.000000 4 pass=1\n"
+        "++10.000000 5 EPOCHREALTIME=11.000000\n"
+        "++11.000000 6 x=1\n"
+        "++11.000000 7 EPOCHREALTIME=13.000000\n"
+        "++13.000000 8 pass=2\n"))
+    monkeypatch.setenv("VERI_PROFILE_THRESHOLD", "0")
+    code = profile.main(["format.test.sh"])
+    captured = capsys.readouterr()
+    assert (code, captured.out) == (
+        0, "0.000000 format.test.sh case 1 L2-4\n3.000000 format.test.sh case 2 L5-8\n")
