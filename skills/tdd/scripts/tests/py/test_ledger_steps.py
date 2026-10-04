@@ -161,3 +161,25 @@ def test_criterion_prints_the_kth_step_line_of_every_acceptance_criteria_section
         "4": (0, b"c4\n", b""),
         "5": (3, b"", b""),
     }
+
+
+def test_criterion_reads_k_as_bash_base_10_64_bit_arithmetic_and_refuses_empty_signed_spaced_or_non_ascii_k(
+        monkeypatch, capsysbinary, ledger_steps):
+    body = "## Acceptance criteria\n" + "".join(f"- [ ] c{i}\n" for i in range(1, 9))
+    ks = ("08", "0", "18446744073709551617", "99999999999999999999", "", "-1", " 1", "١")
+    results = {}
+    for k in ks:
+        fake_stdin(monkeypatch, body.encode())
+        code = ledger_steps.main(["criterion", k])
+        results[k] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        "08": (0, b"c8\n", b""),
+        "0": (3, b"", b""),
+        "18446744073709551617": (0, b"c1\n", b""),
+        "99999999999999999999": (3, b"", b""),
+        "": (2, b"", USAGE),
+        "-1": (2, b"", USAGE),
+        " 1": (2, b"", USAGE),
+        "١": (2, b"", USAGE),
+    }
