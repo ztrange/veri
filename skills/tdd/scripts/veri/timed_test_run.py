@@ -24,8 +24,11 @@ def main(argv):
     if code < 0:
         code = 128 - code
     ended = int(time.time())
-    subprocess.call([EVENT, "test-run", f"tier={tier}", f"suites={suites}",
-                     f"seconds={ended - started}", f"status={code}"])
+    try:
+        subprocess.call([EVENT, "test-run", f"tier={tier}", f"suites={suites}",
+                         f"seconds={ended - started}", f"status={code}"])
+    except OSError:
+        pass
     return code
 
 
