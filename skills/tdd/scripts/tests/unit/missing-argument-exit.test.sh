@@ -145,7 +145,7 @@ migration_slice 5 next-pending-refactor.sh next-unchecked.sh orchestrate.sh \
 migration_slice 6 rebase-onto-default.sh red-divergence.sh \
   refactor-owed.sh
 migration_slice 7 refactor-triage.sh run-affordable.sh run-conductor.sh \
-  run-leaf.sh run-suite.sh run-verdict.sh
+  run-leaf.sh run-suite.sh
 migration_slice 8 solvable-issues.sh \
   stop-requested.sh stop-run.sh
 migration_slice 9 supervise.sh tick-criterion.sh tick-ledger.sh
