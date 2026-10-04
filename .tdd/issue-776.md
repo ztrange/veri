@@ -4,7 +4,7 @@ Octal-parity cases the port pinned — each step below that reverses one names i
 updates only that case's leading-zero / non-number rows to the behaviour this issue asks for;
 criterion 4 excludes exactly those rows.
 
-- [ ] refactor-budget.sh reads VERI_REFACTOR_BUDGET, VERI_ISSUE_REFACTOR_BUDGET and <count> with leading zeros as decimal: budget 010 with count 9 still lets another transform run, and 08 is eight with no arithmetic error (updates the leading-zero rows of test_main_reads_its_arguments_by_position_and_compares_them_as_bash_arithmetic_does in py/test_refactor_budget.py) ⟦criterion 1⟧
+- [x] refactor-budget.sh reads VERI_REFACTOR_BUDGET, VERI_ISSUE_REFACTOR_BUDGET and <count> with leading zeros as decimal: budget 010 with count 9 still lets another transform run, and 08 is eight with no arithmetic error (updates the leading-zero rows of test_main_reads_its_arguments_by_position_and_compares_them_as_bash_arithmetic_does in py/test_refactor_budget.py) ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] refactor-budget.sh compares a <count> past 2^63 as its decimal value, never wrapped: count 9223372036854775808 against budget 5 says the budget is spent (exit 3) (updates the past-2^63 rows of the same case) ⟦criterion 1⟧
 - [ ] refactor-budget.sh given a budget variable or <count> that is not a non-negative whole number exits 2 naming that variable or <count> on stderr ⟦criterion 2⟧
 - [ ] refactor-overflow.sh reads <reached> with leading zeros as decimal: 010 skips ten candidates and 08 skips eight, never exiting 1 with an arithmetic error (updates the leading-zero rows of test_main_returns_gh_s_own_failing_code_and_reads_reached_as_bash_arithmetic in py/test_refactor_overflow.py) ⟦criterion 1⟧

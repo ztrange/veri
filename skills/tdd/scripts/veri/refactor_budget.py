@@ -21,13 +21,7 @@ def _refused(name, value):
 
 
 def _arithmetic(value):
-    base = 8 if value.startswith("0") else 10
-    number = 0
-    for digit in value:
-        if int(digit) >= base:
-            _write(sys.stderr, f'refactor-budget: [[: {value}: value too great for base (error token is "{value}")')
-            return None
-        number = (number * base + int(digit)) % 2**64
+    number = int(value) % 2**64
     return number - 2**64 if number >= 2**63 else number
 
 
@@ -44,7 +38,7 @@ def main(argv):
         _write(sys.stderr, USAGE)
         return 2
     left = _arithmetic(count)
-    spent = left is None or (right := _arithmetic(budget)) is None or left >= right
+    spent = left >= _arithmetic(budget)
     _write(sys.stdout, f"refactor {count}/{budget} — {'budget spent' if spent else 'another transform may run'}")
     return 3 if spent else 0
 
