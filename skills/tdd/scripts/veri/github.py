@@ -1,4 +1,5 @@
 """veri's GitHub access: lib/github.sh's GraphQL→REST fallback, run through gh."""
+import json
 import re
 import subprocess
 
@@ -36,4 +37,8 @@ def gh_issue_view(number, field):
     query = ".body" if field == "body" else ".labels[].name"
     run = subprocess.run(["gh", "issue", "view", number, "--json", field, "-q", query],
                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    if run.returncode != 0:
+        rest = subprocess.run(["gh", "api", "repos/{owner}/{repo}/issues/%s" % number],
+                              stdout=subprocess.PIPE, text=True)
+        return json.loads(rest.stdout)["body"] + "\n"
     return run.stdout

@@ -243,3 +243,34 @@ def test_gh_issue_view_answers_the_gh_issue_view_label_names_and_makes_no_gh_api
 
     assert answer == "bug\nready-for-agent\n"
     assert calls == [["gh", "issue", "view", "60", "--json", "labels", "-q", ".labels[].name"]]
+
+
+def test_gh_issue_view_answers_the_rest_body_and_drops_the_graphql_stderr_when_gh_issue_view_fails(monkeypatch, capsys, github):
+    refusal = "GraphQL: Resource not accessible by integration\n"
+    answers = {
+        ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (1, "", refusal),
+        ("gh", "api", "repos/{owner}/{repo}/issues/60"): (
+            0, '{"number":60,"body":"## What to build\\n\\nA thing.","labels":[]}\n', ""),
+    }
+    calls = []
+
+    def fake_run(args, **kwargs):
+        calls.append(list(args))
+        if tuple(args) not in answers:
+            raise AssertionError("unexpected command: %r" % (args,))
+        returncode, stdout, stderr = answers[tuple(args)]
+        if kwargs.get("stderr") is None:
+            sys.stderr.write(stderr)
+        return subprocess.CompletedProcess(
+            args, returncode, stdout, stderr if kwargs.get("stderr") == subprocess.PIPE else None)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    answer = github.gh_issue_view("60", "body")
+
+    assert answer == "## What to build\n\nA thing.\n"
+    assert calls == [
+        ["gh", "issue", "view", "60", "--json", "body", "-q", ".body"],
+        ["gh", "api", "repos/{owner}/{repo}/issues/60"],
+    ]
+    assert capsys.readouterr().err == ""
