@@ -12,11 +12,15 @@ def gh(*args):
     return subprocess.run(["gh", *args], capture_output=True, text=True)
 
 
+def issue(number):
+    return "repos/{owner}/{repo}/issues/%s" % number
+
+
 def read_body(number):
     view = gh("issue", "view", number, "--json", "body", "-q", ".body")
     if view.returncode == 0:
         return view.stdout
-    return json.loads(gh("api", "repos/{owner}/{repo}/issues/%s" % number).stdout)["body"] or ""
+    return json.loads(gh("api", issue(number)).stdout)["body"] or ""
 
 
 def block(body, new):
@@ -36,7 +40,7 @@ def main(argv):
     try:
         with os.fdopen(fd, "w") as f:
             f.write(body.rstrip("\n") + "\n")
-        edit = gh("api", "-X", "PATCH", "repos/{owner}/{repo}/issues/%s" % argv[0], "-F", "body=@" + tmp)
+        edit = gh("api", "-X", "PATCH", issue(argv[0]), "-F", "body=@" + tmp)
     finally:
         os.remove(tmp)
     return 0 if edit.returncode == 0 else 2
