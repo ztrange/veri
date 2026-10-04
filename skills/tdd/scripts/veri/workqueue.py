@@ -30,17 +30,12 @@ def queue_path():
     return main_working_tree() + "/.tdd/workqueue"
 
 
-class Abandoned(Exception):
-    pass
-
-
 def lock_tries():
     wait = os.environ.get("VERI_WORKQUEUE_LOCK_WAIT") or "30"
     if re.fullmatch(r"[0-9]+", wait):
         return int(wait) * 20
-    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", wait):
-        unbound(wait)
-    raise Abandoned
+    sys.stderr.write("workqueue.sh: VERI_WORKQUEUE_LOCK_WAIT must be a whole number >= 0: %s\n" % wait)
+    raise SystemExit(2)
 
 
 def unbound(name):
@@ -216,12 +211,9 @@ def locked_main(argv):
     locked = False
     try:
         if command in MOVES or command == "assign":
-            try:
-                take_lock(lock)
-                locked = True
-            except Abandoned:
-                pass
-        if command in MOVES and locked:
+            take_lock(lock)
+            locked = True
+        if command in MOVES:
             return move(queue, argv, fourth, *MOVES[command])
         if command != "assign":
             return refuse("workqueue.sh: unknown subcommand: " + command)
