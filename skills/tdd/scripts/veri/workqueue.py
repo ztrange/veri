@@ -225,6 +225,11 @@ def locked_main(argv):
         if held:
             sys.stderr.write("workqueue.sh: issue %s is already %s\n" % held)
             return 2
+        with open(queue, "a+b") as appended:
+            if appended.tell():
+                appended.seek(-1, os.SEEK_END)
+                if appended.read(1) != b"\n":
+                    appended.write(b"\n")
         with open(queue, "a") as appended:
             for issue in argv[2:]:
                 appended.write("%s\t%s\tqueued\t\n" % (argv[1], issue))

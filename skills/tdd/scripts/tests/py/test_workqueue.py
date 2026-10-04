@@ -528,11 +528,11 @@ def test_assign_refuses_short_empty_repeated_or_held_issues_appends_one_queued_l
                                            b"beta\tfoo\tqueued\t\n\t5\tqueued\t\n")
     queue.write_bytes(b"alpha\t12\tmerged\tabc")
     assert run(["assign", "beta", "7", "8"]) == (0, "", "")
-    assert queue.read_bytes() == b"alpha\t12\tmerged\tabcbeta\t7\tqueued\t\nbeta\t8\tqueued\t\n"
+    assert queue.read_bytes() == b"alpha\t12\tmerged\tabc\nbeta\t7\tqueued\t\nbeta\t8\tqueued\t\n"
     assert not lock.exists()
     queue.write_bytes(b"alpha\t12\tqueued\t")
     assert run(["assign", "beta", "12"]) == (0, "", "")
-    assert queue.read_bytes() == b"alpha\t12\tqueued\tbeta\t12\tqueued\t\n"
+    assert queue.read_bytes() == b"alpha\t12\tqueued\t\nbeta\t12\tqueued\t\n"
     queue.write_bytes(b"alpha\t12\tqueued\r\n")
     assert run(["assign", "beta", "12"]) == (0, "", "")
     assert queue.read_bytes() == b"alpha\t12\tqueued\r\nbeta\t12\tqueued\t\n"
@@ -589,3 +589,20 @@ def test_start_done_park_keep_a_last_queue_line_that_has_no_trailing_newline_iss
     queue.write_bytes(b"alpha\t13\trunning\t\nbeta\t14\tqueued\t")
     assert run(["park", "alpha", "13", "flaky"]) == (0, "", "")
     assert queue.read_bytes().splitlines() == [b"alpha\t13\tparked\tflaky", b"beta\t14\tqueued\t"]
+
+
+def test_assign_keeps_a_last_queue_line_that_has_no_trailing_newline_issue_777(tmp_path, monkeypatch, capsys, workqueue):
+    queue = tmp_path / ".tdd" / "workqueue"
+    queue.parent.mkdir()
+
+    def fake_run(args, **kwargs):
+        if list(args[:3]) == ["git", "worktree", "list"]:
+            return subprocess.CompletedProcess(args, 0, "worktree %s\n" % tmp_path, "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    queue.write_bytes(b"alpha\t12\tqueued\t")
+    assert workqueue.main(["assign", "alpha", "13", "14"]) == 0
+    assert capsys.readouterr() == ("", "")
+    assert queue.read_bytes().splitlines() == [b"alpha\t12\tqueued\t", b"alpha\t13\tqueued\t", b"alpha\t14\tqueued\t"]
