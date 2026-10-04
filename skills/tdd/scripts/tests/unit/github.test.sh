@@ -411,4 +411,45 @@ for graphql_answers in yes no; do
 done
 record
 
+# 11. operations with no GraphQL route — gh_issue_edit, gh_rest_list and gh_json with no gh args —
+#     run their gh api call and no GraphQL call whatever VERI_GH_DRIVER says
+name="gh_issue_edit, gh_rest_list and gh_json with no gh args run their gh api call and no gh issue or gh pr call under VERI_GH_DRIVER unset, auto, rest and graphql"
+calls="$scratch/calls11" err="$scratch/err11"
+: > "$calls"
+problems=""
+for driver in unset auto rest graphql; do
+  for op in edit rest_list json; do
+    (
+      gh() {
+        echo "$op gh $*" >> "$calls"
+        case "$1" in
+          issue|pr) echo 'graphql-answer'; return 0 ;;
+          api)
+            case "$*" in *page=1) echo '[{"number":1}]' ;; *page=*) echo '[]' ;; *) echo '{}' ;; esac
+            return 0 ;;
+        esac
+        return 1
+      }
+      unset VERI_GH_DRIVER VERI_GH_JSON
+      [[ "$driver" == unset ]] || VERI_GH_DRIVER="$driver"
+      source "$LIB"
+      case "$op" in
+        edit) gh_issue_edit 7 "$scratch/body11" ;;
+        rest_list) gh_rest_list 'repos/{owner}/{repo}/issues' ;;
+        json) gh_json issues.json 'repos/{owner}/{repo}/issues' ;;
+      esac
+    ) > /dev/null 2>> "$err"
+    rc=$?
+    [[ "$rc" -eq 0 ]] ||
+      problems+="    $op under VERI_GH_DRIVER=$driver: want return 0, got $rc"$'\n'
+    grep -E "^$op gh api " "$calls" > /dev/null ||
+      problems+="    $op under VERI_GH_DRIVER=$driver: want a gh api call, got none"$'\n'
+    if grep -E "^$op gh (issue|pr) " "$calls" > /dev/null; then
+      problems+="    $op under VERI_GH_DRIVER=$driver: want no GraphQL call, got: $(printf '%q' "$(grep -E "^$op gh (issue|pr) " "$calls")")"$'\n'
+    fi
+    : > "$calls"
+  done
+done
+record
+
 finish
