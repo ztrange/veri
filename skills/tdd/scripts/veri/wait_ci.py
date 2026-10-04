@@ -1,5 +1,6 @@
 """wait-ci.sh's logic, run in-process."""
 import json
+import os
 import subprocess
 import sys
 import traceback
@@ -48,38 +49,71 @@ def unreadable(what):
     return 2
 
 
+def record(mark, deadline):
+    try:
+        with open(mark, "w") as out:
+            out.write("%d\n" % deadline)
+    except OSError as error:
+        print("wait-ci.sh: %s" % error, file=sys.stderr)
+
+
 def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
         return 2
     pr = argv[0]
     repo = pr.removeprefix("https://github.com/").rsplit("/pull/", 1)[0]
+    span = int(argv[1]) if len(argv) > 1 and argv[1] else 540
+    total = int(argv[2])
     want = argv[3] if len(argv) > 3 else ""
-    try:
-        mergeable, head = pr_head(repo, pr)
-    except Exception:
-        traceback.print_exc()
-        head = ""
-    if not head:
-        return unreadable(pr)
-    try:
-        state = sha_state(repo, head)
-    except NoAnswer:
-        state = None
-    except Exception:
-        traceback.print_exc()
-        state = None
-    if state is None:
-        return unreadable(head)
-    if state == "none" and mergeable is False:
-        print("wait-ci.sh: %s conflicts with its base branch; no workflow will start until it is rebased"
-              % pr, file=sys.stderr)
-        return 2
-    if want and head != want:
-        state = "pending"
-    if state == "green":
-        return 0
-    if state == "red":
-        return 1
-    subprocess.run(["date", "+%s"], stdout=subprocess.PIPE, text=True)
+    poll = os.environ.get("VERI_POLL") or "10"
+    deadline = None
+    while True:
+        try:
+            mergeable, head = pr_head(repo, pr)
+        except Exception:
+            traceback.print_exc()
+            head = ""
+        if not head:
+            return unreadable(pr)
+        try:
+            state = sha_state(repo, head)
+        except NoAnswer:
+            state = None
+        except Exception:
+            traceback.print_exc()
+            state = None
+        if state is None:
+            return unreadable(head)
+        if state == "none" and mergeable is False:
+            print("wait-ci.sh: %s conflicts with its base branch; no workflow will start until it is rebased"
+                  % pr, file=sys.stderr)
+            return 2
+        if want and head != want:
+            state = "pending"
+        if state == "green":
+            return 0
+        if state == "red":
+            return 1
+        now = int(subprocess.run(["date", "+%s"], stdout=subprocess.PIPE, text=True).stdout)
+        if deadline is None:
+            slice_end = now + span
+            key = want or head
+            mark = ".tdd/ci-deadline-" + key
+            inherited = os.path.isfile(mark)
+            if inherited:
+                with open(mark) as found:
+                    deadline = int(found.read())
+            else:
+                deadline = now + total
+                record(mark, deadline)
+        if now >= deadline:
+            if inherited:
+                print("wait-ci.sh: checks of %s still pending past the deadline recorded for %s"
+                      % (pr, key), file=sys.stderr)
+                return 2
+            break
+        if now >= slice_end:
+            break
+        subprocess.run(["sleep", poll])
     return 3
