@@ -33,11 +33,11 @@ def main(argv):
     s = _number(seconds)
     product = _number(ratio) * _number(usual)
     if s is None:
-        text = "%d" % product if math.isfinite(product) and product == int(product) else "%.6g" % product
-        over = (tier == "unit" and seconds > budget) or seconds > text
+        s, limit = seconds, budget
+        product = "%d" % product if math.isfinite(product) and product == int(product) else "%.6g" % product
     else:
-        over = (tier == "unit" and s > _number(budget)) or s > product
-    if not over:
+        limit = _number(budget)
+    if not ((tier == "unit" and s > limit) or s > product):
         return 1
     print("⏱ %s tier took %s s (usual %s s, ratio %s, unit budget %s s)" % (tier, seconds, usual, ratio, budget))
     return 0
