@@ -10,6 +10,9 @@ def main(argv):
     if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", budget):
         print(f"time-budget: VERI_UNIT_BUDGET must be a number of seconds: {budget}", file=sys.stderr)
         return 2
+    if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", ratio):
+        print(f"time-budget: VERI_TIME_WARN_RATIO must be a number: {ratio}", file=sys.stderr)
+        return 2
     print(budget)
     print(ratio)
     return 0
