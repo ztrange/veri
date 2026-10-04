@@ -22,14 +22,15 @@ def main(argv):
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     listed = subprocess.run([os.path.join(here, "refactor-owed.sh"), "list", owed],
                             stdout=subprocess.PIPE, text=True)
-    if listed.returncode:
+    if listed.returncode not in (0, 3):
         return listed.returncode
+    candidates = listed.stdout if listed.returncode == 0 else ""
     skip = int(reached, 10)
     text = ""
     if skipped:
         with open(skipped) as f:
             text = f.read()
-    text += "\n".join(listed.stdout.split("\n")[skip:])
+    text += "\n".join(candidates.split("\n")[skip:])
     unreached = text.rstrip("\n")
     if not unreached:
         return 3
