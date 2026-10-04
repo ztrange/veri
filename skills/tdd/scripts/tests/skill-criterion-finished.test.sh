@@ -158,6 +158,18 @@ else
 fi
 report "$name"
 
+name="#875: $skill_md's ⟦diff-checked⟧ step records its step base sha with git rev-parse HEAD before the develop-diff leaf runs and passes it to the blind diff verifier after the branch point"
+problems=()
+if [[ -z "$dc_rec" ]]; then
+  problems+=("cycle loop: no instruction under '### 3. The cycle loop' names a ⟦diff-checked⟧ step — the rule could not be checked")
+else
+  [[ "$dc_rec" =~ git\ rev-parse\ head[^.]*before[^.]*develop-diff ]] ||
+    problems+=("cycle loop: the ⟦diff-checked⟧ instruction never records the step's base sha with git rev-parse HEAD before the develop-diff leaf runs")
+  [[ "$dc_rec" =~ run-verdict\.sh\ --step\ [^\ ]+\ diff\ \<spec-file\>\ \<branch-base-sha\>\ \<step-base-sha\> ]] ||
+    problems+=("cycle loop: the ⟦diff-checked⟧ instruction never passes the step base sha to run-verdict.sh after the branch point")
+fi
+report "$name"
+
 name="#671: $skill_md's step 2 plans a criterion replacing an implementation case under ADR 0027 as one ⟦replaces-case⟧ step naming the suite path and the case's exact name, whose Red is the pytest case failing against the code before the change"
 problems=()
 rc_rec="$(first_record "$plan_recs" -F '⟦replaces-case⟧' -F 'implementation case')"
