@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # lib/github.sh — sourced, not run: defines `gh_pr_ready`, `gh_issue_view`, `gh_issue_edit`, `gh_json`, `gh_list` and `gh_rest_list`.
 #
-# gh_pr_ready <n> — mark draft PR <n> ready for review.
+# gh_pr_ready <n> [head-sha] — mark draft PR <n> ready for review; given <head-sha>, only once
+#   pulls/<n> reports it as the head, reading it again every VERI_POLL seconds (default 10).
 #   0  marked ready
 #   2  GitHub gave no answer on either route
 #
@@ -50,6 +51,12 @@ _gh_rest() {
 
 gh_pr_ready() {
   _gh_driver_known || return 2
+  local head
+  while [[ -n "${2:-}" ]]; do
+    head="$(gh api "repos/{owner}/{repo}/pulls/$1" --jq .head.sha)" || return 2
+    [[ "$head" == "$2" ]] && break
+    sleep "${VERI_POLL:-10}"
+  done
   _gh_graphql gh pr ready "$1" ||
     _gh_rest gh api -X POST "repos/{owner}/{repo}/pulls/$1/ccr/ready_for_review" ||
     return 2
