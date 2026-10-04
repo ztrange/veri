@@ -123,11 +123,12 @@ def move(queue, argv, source, target):
             fields = re.split(r"\t+", line[:-1].strip("\t"), maxsplit=3) + ["", "", "", ""]
             if len(argv) < 2:
                 unbound("$2")
-            if fields[0] == argv[1] and len(argv) < 3:
-                unbound("$3")
-            if fields[0] == argv[1] and fields[1:3] == [argv[2], source]:
-                fields[2:4] = [target, detail]
-                moved = True
+            if fields[0] == argv[1]:
+                if len(argv) < 3:
+                    unbound("$3")
+                if fields[1:3] == [argv[2], source]:
+                    fields[2:4] = [target, detail]
+                    moved = True
             rewritten.write("\t".join(fields[:4]) + "\n")
     if not moved:
         os.remove(tmp)
