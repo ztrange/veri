@@ -282,4 +282,28 @@ refusal_case "with <skipped-file> missing" "refactor-overflow: no such skipped f
 
 report "$name"
 
+name="refactor-overflow exits 1 with nothing on stdout and lets gh's stderr through when gh fails while filing"
+problems=()
+
+failing_stubdir="$work/failing-bin"
+mkdir -p "$failing_stubdir"
+cat > "$failing_stubdir/gh" <<'STUB'
+#!/bin/sh
+echo "gh: HTTP 422: Validation Failed" >&2
+exit 1
+STUB
+chmod +x "$failing_stubdir/gh"
+
+(cd "$work" && env PATH="$failing_stubdir:$PATH" \
+  "$OVERFLOW" 504 "$owed_file" 1 >"$out" 2>"$work/err") && code=0 || code=$?
+[[ "$code" == 1 ]] ||
+  problems+=("want exit 1 when gh fails while filing, got $code: $(cat "$work/err")")
+[[ ! -s "$out" ]] ||
+  problems+=("want empty stdout when gh fails while filing, got '$(cat "$out")'")
+got_err="$(cat "$work/err")"
+[[ "$got_err" == *"gh: HTTP 422: Validation Failed"* ]] ||
+  problems+=("want gh's stderr line 'gh: HTTP 422: Validation Failed' on stderr when gh fails while filing, got '$got_err'")
+
+report "$name"
+
 finish
