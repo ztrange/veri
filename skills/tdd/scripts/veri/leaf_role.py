@@ -1,4 +1,5 @@
 """leaf-role.sh's mapping, run in-process."""
+import os
 import re
 import sys
 
@@ -8,7 +9,9 @@ SHAPES = "(want develop-*|revise-*|verify-*|conductor-*)"
 
 
 def _refuse(name, reason):
-    print("leaf-role: leaf name '%s' %s %s" % (name, reason, SHAPES), file=sys.stderr)
+    sys.stderr.flush()
+    sys.stderr.buffer.write(os.fsencode("leaf-role: leaf name '%s' %s %s\n" % (name, reason, SHAPES)))
+    sys.stderr.buffer.flush()
 
 
 def leaf_role(name):
