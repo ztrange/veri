@@ -21,8 +21,12 @@ CHMOD_FLAGS='([[:space:]]+-[RHLPfhv]+)*'
 SHELL_CHMOD="$CHMOD_WORD$CHMOD_FLAGS[[:space:]]+$REVOKING_MODE([[:space:]]|$)"
 PATH_CHMOD='\.chmod\(0o000\)'
 PERMISSION_BIT_CHMOD="$SHELL_CHMOD|$PATH_CHMOD"
+SYSTEM_PATH="(^|[[:space:](=,])[\"']?/(\\.tdd|root|proc)([/\"'[:space:]:)]|\$)"
 
-declare -A EXEMPT=()
+declare -A EXEMPT=(
+  ["skills/tdd/scripts/tests/no-permission-bits.test.sh:PLANT_SYSTEM_PATH='    assert (code, out, err.startswith(\"mkdir: /"".tdd: \")) == (1, \"\", True)'"]="the system-path plant this guard is proven against, text written into a scratch fixture, never run"
+  ['skills/tdd/scripts/tests/no-permission-bits.test.sh:name="a planted pytest line relying on /'.tdd' being unwritable to force a mkdir failure turns the guard red, naming <suite>:<line> (#860)"']="a case name quoting the path it plants, never a path the suite touches"
+)
 
 
 source "$HERE/lib/harness.sh"
@@ -58,9 +62,20 @@ probe_no_suite_revokes_permission_bits() {
   return 0
 }
 
+probe_no_suite_relies_on_a_system_path() {
+  local site
+  while IFS= read -r site; do
+    split_site "$site"
+    [[ -n "${EXEMPT[$site_file:$site_text]:-}" ]] && continue
+    problems+=("$site_file:$site_line relies on a system path being unwritable or unreadable, which uid 0 can write and read, so the failure never happens where veri runs as root: $(flat "$site_text")")
+  done < <(cd "$ROOT" && grep -rInE -- "$SYSTEM_PATH" "$SUBJECT")
+  return 0
+}
+
 probe_the_guard() {
   probe_every_exemption_carries_a_reason
   probe_no_suite_revokes_permission_bits
+  probe_no_suite_relies_on_a_system_path
 }
 
 name="no suite under skills/tdd/scripts/tests/ forces a read or write failure through permission bits (#846)"
@@ -294,5 +309,23 @@ plant_then_removal=""
 probe_a_plant_then_its_removal
 
 expect_eq "$name" "planted red named;removed green;" "$plant_then_removal"
+
+PLANT_SYSTEM_PATH='    assert (code, out, err.startswith("mkdir: /.tdd: ")) == (1, "", True)'
+
+probe_a_planted_system_path() {
+  local ROOT line
+  plant "$PLANT_PY_REL" 'def test_assign_fails_outside_a_repository(monkeypatch):' '    monkeypatch.chdir("/")' '    code, out, err = run(["assign", "beta", "7"])' "$PLANT_SYSTEM_PATH"
+  probe_the_guard
+  line="$(grep -nxF -- "$PLANT_SYSTEM_PATH" "$ROOT/$PLANT_PY_REL")"
+  planted_system_path_named="$(problem_naming "$PLANT_PY_REL:${line%%:*} ")"
+  problems=()
+}
+
+name="a planted pytest line relying on /.tdd being unwritable to force a mkdir failure turns the guard red, naming <suite>:<line> (#860)"
+planted_system_path_named=""
+
+probe_a_planted_system_path
+
+expect_eq "$name" "named" "$planted_system_path_named"
 
 finish
