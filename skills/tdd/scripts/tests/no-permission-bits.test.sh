@@ -85,6 +85,14 @@ plant_and_probe() {
 
 mode_plant() { printf 'chmod %s "$%s"' "$1" "$2"; }
 
+mode_plants() {
+  local var="$1" mode
+  shift
+  for mode; do
+    printf '%s\n' "$(mode_plant "$mode" "$var")"
+  done
+}
+
 modes_named() {
   local var="$1" mode named=""
   shift
@@ -113,10 +121,8 @@ expect_eq "$name" "named" "$planted_chmod_000_named"
 PLANT_REVOKING_MODES=(a-r u-w -w)
 
 probe_planted_revoking_modes() {
-  local ROOT mode plants=()
-  for mode in "${PLANT_REVOKING_MODES[@]}"; do
-    plants+=("$(mode_plant "$mode" ledger)")
-  done
+  local ROOT plants
+  mapfile -t plants < <(mode_plants ledger "${PLANT_REVOKING_MODES[@]}")
   plant_and_probe "$PLANT_REL" '#!/usr/bin/env bash' 'ledger="$(mktemp)"' "${plants[@]}"
   planted_revoking_modes_named="$(modes_named ledger "${PLANT_REVOKING_MODES[@]}")"
   problems=()
@@ -210,10 +216,8 @@ expect_eq "$name" "named" "$planted_read_only_dir_named"
 PLANT_READ_ONLY_DIR_MODES=(a-w 500 u=rx)
 
 probe_planted_read_only_dir_modes() {
-  local ROOT mode plants=()
-  for mode in "${PLANT_READ_ONLY_DIR_MODES[@]}"; do
-    plants+=("$(mode_plant "$mode" dir)")
-  done
+  local ROOT plants
+  mapfile -t plants < <(mode_plants dir "${PLANT_READ_ONLY_DIR_MODES[@]}")
   plant_and_probe "$PLANT_REL" '#!/usr/bin/env bash' 'dir="$PWD/ledgers"' 'mkdir "$dir"' "${plants[@]}" 'touch "$dir/ledger"'
   planted_read_only_dir_modes_named="$(modes_named dir "${PLANT_READ_ONLY_DIR_MODES[@]}")"
   problems=()
