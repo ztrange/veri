@@ -484,6 +484,38 @@ else
   diff <(printf '%s\n' "$want_show") <(printf '%s\n' "$out") | sed 's/^/    /'
 fi
 
+run_sequence() {
+  local script="$1"
+  "$script" assign alpha 7 8 2>&1 && "$script" start alpha 7 2>&1 && "$script" show 2>&1
+}
+make_repo "$work/in-place"
+seed_queue "$work/in-place" 'beta\t4\tqueued\t\n'
+make_repo "$work/via-link"
+git -C "$work/via-link" worktree add -q -b side "$work/via-link.wt" >/dev/null 2>&1
+mkdir -p "$work/via-link.wt/sub/dir"
+seed_queue "$work/via-link" 'beta\t4\tqueued\t\n'
+ln -s "$(cd "$SKILL_DIR" && pwd)" "$work/skill-link"
+want_queue="$(printf 'beta\t4\tqueued\t\nalpha\t7\trunning\t\nalpha\t8\tqueued\t')"
+want_show="$(printf 'beta\n\t4\tqueued\nalpha\n\t7\trunning\n\t8\tqueued')"
+place_out="$(cd "$work/in-place" && run_sequence "$SCRIPT")" && place_code=0 || place_code=$?
+link_out="$(cd "$work/via-link.wt/sub/dir" && run_sequence "$work/skill-link/scripts/workqueue.sh")" \
+  && link_code=0 || link_code=$?
+place_queue="$(cat "$work/in-place/.tdd/workqueue")"
+link_queue="$(cat "$work/via-link/.tdd/workqueue" 2>/dev/null || printf '<no .tdd/workqueue>')"
+if [[ "$link_code" -eq "$place_code" && "$link_code" -eq 0 && "$link_out" == "$place_out" \
+  && "$link_out" == "$want_show" && "$link_queue" == "$place_queue" \
+  && "$link_queue" == "$want_queue" && ! -e "$work/via-link.wt/.tdd/workqueue" \
+  && ! -e "$work/via-link.wt/sub/dir/.tdd/workqueue" ]]; then
+  ok
+else
+  no "run through a symlink to the skill directory from a subdirectory of a linked worktree, workqueue.sh assigns, starts and shows as in place, on the main working tree's queue"
+  echo "    exit: $link_code (in place: $place_code, want 0)"
+  echo "    show via the link, against in place:"
+  diff <(printf '%s\n' "$place_out") <(printf '%s\n' "$link_out") | sed 's/^/    /'
+  echo "    main tree's queue via the link, against in place:"
+  diff <(printf '%s\n' "$place_queue") <(printf '%s\n' "$link_queue") | sed 's/^/    /'
+fi
+
 worker_doc="$SKILL_DIR/WORKER.md"
 calls_missing=""
 for call in next start done park; do
