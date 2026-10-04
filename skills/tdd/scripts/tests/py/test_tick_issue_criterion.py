@@ -100,3 +100,47 @@ def test_main_ticks_the_box_and_patches_the_stripped_body_through_gh_api_reading
     assert run_case(["abc", "alpha", "extra"], True) == (0, "", [
         ("view", "abc"), ("tick", tick, fed),
         ("patch", "repos/{owner}/{repo}/issues/abc", "- [x] alpha\n- [ ] beta")], [])
+
+
+def test_main_keeps_every_failure_path_inside_0_to_3_and_lets_an_uncaught_exception_propagate(monkeypatch, capsys, tick_issue_criterion):
+    real_run = subprocess.run
+
+    def run_case(argv, view=(0, "- [ ] alpha\n"), api=(0, json.dumps({"body": "- [ ] alpha"})), patch=0, tick=None):
+        patches = []
+
+        def fake_run(args, **kwargs):
+            args = [str(arg) for arg in args]
+            if args[:3] == ["gh", "issue", "view"]:
+                return subprocess.CompletedProcess(args, view[0], view[1], "")
+            if args[:4] == ["gh", "api", "-X", "PATCH"]:
+                patches.append(args)
+                return subprocess.CompletedProcess(args, patch, "", "")
+            if args[:2] == ["gh", "api"] and len(args) == 3:
+                return subprocess.CompletedProcess(args, api[0], api[1], "")
+            if args[0] == "gh":
+                raise AssertionError("unexpected gh call: %r" % (args,))
+            if tick is not None:
+                return subprocess.CompletedProcess(args, tick, "", "")
+            return real_run(args, **kwargs)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        code = tick_issue_criterion.main(argv)
+        captured = capsys.readouterr()
+        return code, captured.out, captured.err, len(patches)
+
+    assert run_case(["7", "alpha"], view=(1, ""), api=(1, "")) == (2, "", "", 0)
+    assert run_case(["7", "alpha"], view=(1, ""), api=(0, "")) == (2, "", "", 0)
+    assert run_case(["7", "alpha"], patch=1) == (2, "", "", 1)
+    assert run_case(["7", "alpha"], tick=1) == (1, "", "", 0)
+    assert run_case(["7", "alpha"], tick=2) == (2, "", "", 0)
+    assert run_case(["7", "alpha"], tick=5) == (2, "", "", 0)
+    assert run_case(["7", "alpha"], tick=-9) == (2, "", "", 0)
+    assert run_case(["7", ""], view=(0, "- [x] alpha\n")) == (
+        3, "", "tick-issue-criterion: no unchecked criterion matched '' on #7\n", 0)
+
+    def explode(args, **kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(subprocess, "run", explode)
+    with pytest.raises(RuntimeError, match="boom"):
+        tick_issue_criterion.main(["7", "alpha"])
