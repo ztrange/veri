@@ -313,7 +313,7 @@ def test_main_polls_until_its_slice_or_deadline_and_records_the_deadline_in_tdd(
     assert observed == [expected for *_, expected in cases]
 
 
-def test_main_reads_its_numeric_arguments_and_a_deadline_file_as_bash_arithmetic(
+def test_main_reads_its_numeric_arguments_with_leading_zeros_as_decimal_and_a_deadline_file_as_bash_arithmetic_issue_776(
         monkeypatch, capsys, tmp_path, wait_ci):
     mark = "ci-deadline-abc123"
     past = f"wait-ci.sh: checks of {PR} still pending past the deadline recorded for {SHA}\n"
@@ -322,11 +322,11 @@ def test_main_reads_its_numeric_arguments_and_a_deadline_file_as_bash_arithmetic
     cases = [
         ([PR, "1000", "700", SHA], {}, [1000, 1540],
          (3, "", "", {mark: "1600\n"}, tick + ["date +%s"])),
-        ([PR, "060", "0100", SHA], {}, [1000, 1047, 1048],
-         (3, "", "", {mark: "1064\n"}, tick * 2 + ["date +%s"])),
-        ([PR, "09", "100", SHA], {}, [1000], (3, "", True, {}, ["date +%s"])),
+        ([PR, "060", "0100", SHA], {}, [1000, 1059, 1060],
+         (3, "", "", {mark: "1100\n"}, tick * 2 + ["date +%s"])),
+        ([PR, "09", "100", SHA], {}, [1000, 1009], (3, "", "", {mark: "1100\n"}, tick + ["date +%s"])),
         ([PR, "1.5", "100", SHA], {}, [1000], (3, "", True, {}, ["date +%s"])),
-        ([PR, "60", "09", SHA], {}, [1000], (3, "", True, {}, ["date +%s"])),
+        ([PR, "60", "09", SHA], {}, [1000, 1009], (3, "", "", {mark: "1009\n"}, tick + ["date +%s"])),
         ([PR, "60", "1.5", SHA], {}, [1000], (3, "", True, {}, ["date +%s"])),
         ([PR, "abc", "100", SHA], {}, [1000], (2, "", None, {}, [])),
         ([PR, "60", "abc", SHA], {}, [1000], (2, "", None, {}, [])),
