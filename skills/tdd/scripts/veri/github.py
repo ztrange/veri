@@ -114,6 +114,14 @@ class FallbackAdapter:
         return self.rest_list(path)
 
 
+class NoRouteAdapter:
+    def list(self, *args):
+        raise NoAnswer("")
+
+    def issue_view(self, number, field):
+        raise NoAnswer("")
+
+
 class FixtureAdapter:
     def __init__(self, directory):
         self.directory = directory
@@ -127,7 +135,9 @@ def _select(operation):
     fixtures = os.environ.get("VERI_GH_JSON")
     if operation == "json" and fixtures:
         return FixtureAdapter(fixtures)
-    return FallbackAdapter(GraphQLAdapter(), RestAdapter())
+    if os.environ.get("VERI_GH_DRIVER") == "auto":
+        return FallbackAdapter(GraphQLAdapter(), RestAdapter())
+    return FallbackAdapter(NoRouteAdapter(), RestAdapter())
 
 
 def gh_rest_list(path, empty=r"^\[\]$"):
