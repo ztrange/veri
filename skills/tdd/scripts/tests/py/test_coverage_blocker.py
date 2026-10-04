@@ -186,3 +186,31 @@ def test_main_files_the_issue_blocks_the_refactor_issue_on_it_prints_the_url_and
     ]
     assert seen["body"] == "## Blocked by\n\n- #77\n"
     assert (code, captured.out, captured.err) == (0, "https://github.com/owner/name/issues/77\n", "")
+
+
+def test_main_rewrites_every_blocked_by_section_replacing_none_lines_and_inserting_after_the_last_blocker(tmpdir_env, monkeypatch, capsys, coverage_blocker):
+    def run_with_body(body):
+        seen = {}
+
+        def fake_run(args, **kwargs):
+            args = [str(arg) for arg in args]
+            if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
+                return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
+            if args == ["gh", "issue", "view", "60", "--json", "body", "-q", ".body"]:
+                return subprocess.CompletedProcess(args, 0, body, "")
+            if args[:4] == ["gh", "api", "-X", "PATCH"]:
+                path = args[args.index("-F") + 1].split("body=@", 1)[1]
+                seen["body"] = pathlib.Path(path).read_bytes()
+                return subprocess.CompletedProcess(args, 0, "", "")
+            raise AssertionError("unexpected command: %r" % (args,))
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        code = coverage_blocker.main(["60"])
+        return code, capsys.readouterr().out, seen.get("body")
+
+    url = "https://github.com/owner/name/issues/77\n"
+    assert run_with_body(
+        "## Blocked by\n\n- #12\nNone yet\nNonetheless\n\n## Blocked byproduct\n\n- #13\n\n\n"
+    ) == (0, url, b"## Blocked by\n\n- #12\n- #77\n- #77\n\n## Blocked byproduct\n\n- #13\n- #77\n")
+    assert run_with_body("## Blocked by\r\n\r\n- #12\r\n") == (0, url, b"## Blocked by\r\n\r\n- #12\r\n- #77\n")
+    assert run_with_body("## Parent\n\n#1\n\n\n") == (0, url, b"## Parent\n\n#1\n")
