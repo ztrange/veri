@@ -650,6 +650,30 @@ def test_the_rest_only_operations_run_their_rest_call_and_no_graphql_call_under_
     assert observed == {driver: expected for driver in (None, "auto", "rest", "graphql")}
 
 
+def test_with_veri_gh_json_set_gh_json_answers_the_fixture_file_contents_and_starts_no_process_under_each_veri_gh_driver(monkeypatch, tmp_path, github):
+    fixture = '[{"number":7,"title":"A thing"}]\n'
+    (tmp_path / "prs.json").write_text(fixture)
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    calls = fake_gh(monkeypatch, {})
+    path = "repos/{owner}/{repo}/pulls?state=open"
+    observed = {}
+    for driver in (None, "auto", "rest", "graphql"):
+        if driver is None:
+            monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+        else:
+            monkeypatch.setenv("VERI_GH_DRIVER", driver)
+        del calls[:]
+        answers = []
+        for args in ((), ("pr", "list", "--json", "number,title")):
+            try:
+                answers.append(github.gh_json("prs.json", path, *args))
+            except Exception as error:
+                answers.append(type(error).__name__)
+        observed[driver] = (answers, list(calls))
+
+    assert observed == {driver: ([fixture, fixture], []) for driver in (None, "auto", "rest", "graphql")}
+
+
 def test_the_module_is_importable_as_from_veri_import_github_and_as_import_veri_github(monkeypatch):
     monkeypatch.delitem(sys.modules, "veri.github", raising=False)
     monkeypatch.delattr(importlib.import_module("veri"), "github", raising=False)
