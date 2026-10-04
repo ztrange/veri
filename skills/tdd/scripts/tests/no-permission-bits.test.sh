@@ -270,4 +270,29 @@ probe_an_exemption_table
 
 expect_eq "$name" "exempted not named;unreasoned named;" "$exemption_table_named"
 
+PLANT_SUITE=('#!/usr/bin/env bash' 'ledger="$(mktemp)"' 'printf x > "$ledger"')
+
+guard_state() {
+  if [[ "${#problems[@]}" -eq 0 ]]; then printf green; else printf red; fi
+}
+
+probe_a_plant_then_its_removal() {
+  local ROOT
+  plant "$PLANT_REL" "${PLANT_SUITE[@]}" "$PLANT_CHMOD_000"
+  probe_the_guard
+  plant_then_removal="planted $(guard_state) $(plant_named "$PLANT_REL" "$PLANT_CHMOD_000");"
+  printf '%s\n' "${PLANT_SUITE[@]}" > "$ROOT/$PLANT_REL"
+  problems=()
+  probe_the_guard
+  plant_then_removal+="removed $(guard_state);"
+  problems=()
+}
+
+name="planting a permission-bit chmod into a suite turns the guard red naming the planted <suite>:<line>, and removing the plant turns it green again (#846)"
+plant_then_removal=""
+
+probe_a_plant_then_its_removal
+
+expect_eq "$name" "planted red named;removed green;" "$plant_then_removal"
+
 finish
