@@ -23,3 +23,5 @@
 ### veri.github.gh_issue_view is a no-answer, with the `gh api` call's stderr passed through, when the `gh issue view` call and the `gh api repos/{owner}/{repo}/issues/<n>` call both fail ⟦criterion 1⟧
 - in veri/github.py, `gh_list` and `gh_issue_view` each repeat the same `subprocess.run(["gh", …], stdout=PIPE, stderr=DEVNULL, text=True)` GraphQL call; a `_gh_graphql(args)` helper would mirror `_gh_api`. This is mostly code from earlier cycles, so it is out of bounds here
 - test-only | test_github.py holds five near-identical inline `fake_run` copies (lines 111, 170, 204, 257, 288) that write the fake stderr to `sys.stderr` when the caller doesn't capture it; fold them into the shared `fake_gh` helper (line 20), for example with a flag that passes stderr through
+### veri.github.gh_issue_view's REST route answers "" for a null body ⟦criterion 3⟧
+- test-only | the six inline `fake_run` copies in skills/tdd/scripts/tests/py/test_github.py that write stderr through (e.g. the REST-body and both-routes-fail gh_issue_view tests) duplicate `fake_gh` (:20); `fake_gh` could take the stderr pass-through once and replace them
