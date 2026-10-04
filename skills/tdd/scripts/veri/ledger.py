@@ -3,9 +3,19 @@ import re
 
 PENDING_MARK = " ⟂ refactor pending"
 ADDED_MARK = "⟦added⟧"
+CRITERION_TAG = " ⟦criterion "
 STEP_RE = re.compile(r"(\s*-\s)\[([ xX])\]( (.*))?")
 CRITERION_RE = r"⟦criterion ([0-9]+)⟧"
 KIND_RE = re.compile(r"⟦(full-suite|human-owed|diff-checked)⟧ " + CRITERION_RE)
+
+
+def is_added(step):
+    """True when the added marker ends the text, the pending mark and one criterion marker cut."""
+    untagged = step.removesuffix(PENDING_MARK)
+    tag = untagged.rfind(CRITERION_TAG)
+    if tag != -1 and untagged.endswith("⟧"):
+        untagged = untagged[:tag]
+    return untagged.endswith(" " + ADDED_MARK)
 
 
 def ledger_steps(text):
@@ -19,6 +29,7 @@ def ledger_steps(text):
         step = match.group(4) or ""
         kind = KIND_RE.search(step)
         criterion = re.search(CRITERION_RE, step)
+        added = is_added(step)
         pending = state == "done" and step.endswith(PENDING_MARK)
         if pending:
             step = step[: -len(PENDING_MARK)]
@@ -27,7 +38,7 @@ def ledger_steps(text):
             state,
             kind.group(1) if kind else "step",
             "1" if pending else "0",
-            "1" if ADDED_MARK in step else "0",
+            "1" if added else "0",
             criterion.group(1) if criterion else "",
             step,
         ))
