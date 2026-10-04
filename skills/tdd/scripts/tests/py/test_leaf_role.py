@@ -59,3 +59,23 @@ def test_main_refuses_an_unknown_leading_word_or_no_phase_with_one_diagnostic_li
         (2, "", "leaf-role: leaf name 'develop' says no phase %s\n" % shapes),
         (2, "", "leaf-role: leaf name 'develop-' says no phase %s\n" % shapes),
     ]
+
+
+def test_main_splits_a_trailing_dash_and_digits_off_as_the_attempt_greedily_and_keeps_the_rest_verbatim(
+        capsys, leaf_role):
+    answers = []
+    for argv in (["verify-red-2-3"], ["revise-green-007"], ["develop--2"], ["develop-red-"], ["develop-2"],
+                 ["develop-a\nb-2"], ["develop-a b=c"], ["develop-red", "verify-green-9"]):
+        code = leaf_role.main(argv)
+        captured = capsys.readouterr()
+        answers.append((code, captured.out, captured.err))
+    assert answers == [
+        (0, "VERI_ACTOR=verifier VERI_PHASE=red-2 VERI_ATTEMPT=3\n", ""),
+        (0, "VERI_ACTOR=developer VERI_PHASE=green VERI_ATTEMPT=007\n", ""),
+        (0, "VERI_ACTOR=developer VERI_PHASE= VERI_ATTEMPT=2\n", ""),
+        (0, "VERI_ACTOR=developer VERI_PHASE=red- VERI_ATTEMPT=1\n", ""),
+        (0, "VERI_ACTOR=developer VERI_PHASE=2 VERI_ATTEMPT=1\n", ""),
+        (0, "VERI_ACTOR=developer VERI_PHASE=a\nb VERI_ATTEMPT=2\n", ""),
+        (0, "VERI_ACTOR=developer VERI_PHASE=a b=c VERI_ATTEMPT=1\n", ""),
+        (0, "VERI_ACTOR=developer VERI_PHASE=red VERI_ATTEMPT=1\n", ""),
+    ]

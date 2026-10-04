@@ -21,7 +21,7 @@ def leaf_role(name):
     if not phase:
         _refuse(name, "says no phase")
         return None
-    split = re.fullmatch(r"(.*)-([0-9]+)", phase)
+    split = re.fullmatch(r"(.*)-([0-9]+)", phase, re.DOTALL)
     if split:
         phase, attempt = split.groups()
     return {"VERI_ACTOR": ACTORS[actor_word], "VERI_PHASE": phase, "VERI_ATTEMPT": attempt}
