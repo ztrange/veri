@@ -49,3 +49,7 @@ def main(argv):
     spent = left is None or right is None or left >= right
     _write(sys.stdout, f"refactor {count}/{budget} — {'budget spent' if spent else 'another transform may run'}")
     return 3 if spent else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
