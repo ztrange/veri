@@ -8,10 +8,14 @@ ACTORS = {"develop": "developer", "revise": "developer", "verify": "verifier", "
 SHAPES = "(want develop-*|revise-*|verify-*|conductor-*)"
 
 
+def _write(stream, line):
+    stream.flush()
+    stream.buffer.write(os.fsencode(line + "\n"))
+    stream.buffer.flush()
+
+
 def _refuse(name, reason):
-    sys.stderr.flush()
-    sys.stderr.buffer.write(os.fsencode("leaf-role: leaf name '%s' %s %s\n" % (name, reason, SHAPES)))
-    sys.stderr.buffer.flush()
+    _write(sys.stderr, "leaf-role: leaf name '%s' %s %s" % (name, reason, SHAPES))
 
 
 def leaf_role(name):
@@ -37,7 +41,7 @@ def main(argv):
     role = leaf_role(argv[0])
     if role is None:
         return 2
-    print("VERI_ACTOR=%(VERI_ACTOR)s VERI_PHASE=%(VERI_PHASE)s VERI_ATTEMPT=%(VERI_ATTEMPT)s" % role)
+    _write(sys.stdout, "VERI_ACTOR=%(VERI_ACTOR)s VERI_PHASE=%(VERI_PHASE)s VERI_ATTEMPT=%(VERI_ATTEMPT)s" % role)
     return 0
 
 

@@ -97,3 +97,13 @@ def test_main_writes_a_non_utf8_byte_in_a_name_as_that_raw_byte_on_stdout_and_on
         (2, b"", b"leaf-role: leaf name 'plan-\xff' has an unknown leading word "
                  b"(want develop-*|revise-*|verify-*|conductor-*)\n"),
     ]
+
+
+def test_main_writes_a_non_utf8_byte_in_the_phase_as_that_raw_byte_through_a_strict_utf8_stdout(
+    monkeypatch, leaf_role
+):
+    out = io.BytesIO()
+    monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(out, encoding="utf-8", errors="strict"))
+    code = leaf_role.main([b"develop-r\xffd".decode("utf-8", "surrogateescape")])
+    sys.stdout.flush()
+    assert (code, out.getvalue()) == (0, b"VERI_ACTOR=developer VERI_PHASE=r\xffd VERI_ATTEMPT=1\n")
