@@ -263,3 +263,52 @@ def test_main_blocks_on_whatever_the_create_answers_ignores_extra_arguments_and_
     code, out, err, body, calls = run(["60"], "", create_code=1)
     assert (code, out, body, len(calls)) == (2, "", None, 1)
     assert "HTTP 422: Validation Failed" in err
+
+
+def test_main_reads_the_body_over_rest_when_the_view_fails_dropping_its_stderr_and_returns_2_with_the_json_error_when_both_fail(tmpdir_env, monkeypatch, capfd, coverage_blocker):
+    def run(rest_code, rest_answer, rest_err):
+        calls = []
+        seen = {}
+
+        def answer(args, kwargs, code, out, err):
+            stream = kwargs.get("stderr")
+            if stream is None:
+                os.write(2, err.encode())
+                err = None
+            elif stream != subprocess.PIPE:
+                err = None
+            return subprocess.CompletedProcess(args, code, out, err)
+
+        def fake_run(args, **kwargs):
+            args = [str(arg) for arg in args]
+            calls.append(args)
+            if args == ["gh", "issue", "view", "60", "--json", "body", "-q", ".body"]:
+                return answer(args, kwargs, 1, "", "GraphQL: refused\n")
+            if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
+                return answer(args, kwargs, rest_code, rest_answer, rest_err)
+            if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
+                return answer(args, kwargs, 0, "https://github.com/owner/name/issues/77\n", "")
+            if args[:4] == ["gh", "api", "-X", "PATCH"]:
+                path = args[args.index("-F") + 1].split("body=@", 1)[1]
+                seen["body"] = pathlib.Path(path).read_text()
+                return answer(args, kwargs, 0, "", "")
+            raise AssertionError("unexpected command: %r" % (args,))
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        code = coverage_blocker.main(["60"])
+        captured = capfd.readouterr()
+        return code, captured.out, captured.err, seen.get("body"), calls
+
+    code, out, err, body, calls = run(0, '{"body": "## Blocked by\\n\\nNone\\n"}', "")
+    assert (code, out, err, body) == (0, "https://github.com/owner/name/issues/77\n", "", "## Blocked by\n\n- #77\n")
+    assert all(call[0] == "gh" and call[1:3] not in (["issue", "create"], ["issue", "edit"]) for call in calls)
+
+    code, out, err, body, calls = run(1, "", "HTTP 404: Not Found (https://api.github.com/repos/owner/name/issues/60)\n")
+    assert (code, out, body) == (2, "", None)
+    assert calls[0][:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]
+    assert not any(call[:4] == ["gh", "api", "-X", "PATCH"] for call in calls)
+    assert "GraphQL: refused" not in err
+    api_error = err.find("HTTP 404: Not Found")
+    json_error = err.find("json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\n")
+    assert 0 <= api_error < json_error
+    assert all(call[0] == "gh" and call[1:3] not in (["issue", "create"], ["issue", "edit"]) for call in calls)

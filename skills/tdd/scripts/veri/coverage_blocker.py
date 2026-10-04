@@ -20,7 +20,11 @@ def read_body(number):
     view = gh("issue", "view", number, "--json", "body", "-q", ".body", stderr=subprocess.DEVNULL)
     if view.returncode == 0:
         return view.stdout
-    return json.loads(gh("api", issue(number)).stdout)["body"] or ""
+    try:
+        return json.loads(gh("api", issue(number)).stdout)["body"] or ""
+    except json.JSONDecodeError as error:
+        print("json.decoder.JSONDecodeError: %s" % error, file=sys.stderr)
+        return None
 
 
 def block(body, new):
@@ -55,6 +59,8 @@ def main(argv):
         return 2
     url = create.stdout.rstrip("\n")
     body = read_body(n)
+    if body is None:
+        return 2
     fd, tmp = tempfile.mkstemp()
     try:
         with os.fdopen(fd, "w") as f:
