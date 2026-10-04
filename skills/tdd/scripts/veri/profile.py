@@ -33,23 +33,28 @@ def run_traced(suite, trace):
 def cases(suite, trace_lines, threshold):
     lines = []
     n = 0
-    start = first = None
+    start = first = ""
+    seen = {}
     for line in trace_lines:
+        if not re.match(r"\+\+[^+]", line):
+            continue
         fields = line.split()
         stamp = fields[0][2:]
-        if start is None:
+        if stamp and not start:
             start = stamp
         lineno = fields[1]
-        if first is None:
+        if not first:
             first = lineno
-        if re.fullmatch(r"(pass|fail)=[0-9]+", fields[2]):
-            if int(fields[2].split("=")[1]) > 0:
+        if len(fields) == 3 and re.fullmatch(r"(pass|fail)=[0-9]+", fields[2]):
+            name, value = fields[2].split("=")
+            if int(value) > seen.get(name, 0):
                 n += 1
                 secs = float(stamp) - float(start)
                 if secs >= float(threshold):
                     lines.append("%.6f %s case %d L%d-%d\n" % (secs, suite, n, int(first), int(lineno)))
                 start = stamp
-                first = None
+                first = ""
+            seen[name] = int(value)
     return n, lines
 
 
