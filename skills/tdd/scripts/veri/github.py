@@ -13,6 +13,10 @@ def _gh_api(path):
     return subprocess.run(["gh", "api", path], stdout=subprocess.PIPE, text=True)
 
 
+def _issue(number):
+    return "repos/{owner}/{repo}/issues/%s" % number
+
+
 def gh_rest_list(path, empty=r"^\[\]$"):
     answer = ""
     sep = "&" if "?" in path else "?"
@@ -41,7 +45,7 @@ def gh_issue_view(number, field):
     run = subprocess.run(["gh", "issue", "view", number, "--json", field, "-q", query],
                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     if run.returncode != 0:
-        rest = _gh_api("repos/{owner}/{repo}/issues/%s" % number)
+        rest = _gh_api(_issue(number))
         if rest.returncode != 0:
             raise NoAnswer("")
         try:
@@ -55,5 +59,5 @@ def gh_issue_view(number, field):
 
 
 def gh_issue_edit(number, body_file):
-    subprocess.run(["gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/%s" % number,
+    subprocess.run(["gh", "api", "-X", "PATCH", _issue(number),
                     "-F", "body=@%s" % body_file], stdout=subprocess.DEVNULL)
