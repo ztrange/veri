@@ -53,7 +53,7 @@ def main(argv):
         return refuse()
     text = sys.stdin.buffer.read().decode()
     if verb == "criterion":
-        return criterion(text, int(argv[1]))
+        return criterion(text, int(argv[1]) % 2**64)
     records = ledger_steps(text)
     if verb == "current":
         return current(records)
