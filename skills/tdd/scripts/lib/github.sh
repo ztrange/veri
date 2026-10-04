@@ -22,6 +22,13 @@
 #   page=1, 2, … until one matches <empty-regex> (default: a bare `[]`), one JSON document per
 #   page, back to back; 2 when GitHub gave no answer.
 
+_gh_driver_known() {
+  case "${VERI_GH_DRIVER-rest}" in
+    auto|rest|graphql) ;;
+    *) echo "VERI_GH_DRIVER is '${VERI_GH_DRIVER}': expected auto, rest or graphql" >&2; return 2 ;;
+  esac
+}
+
 _gh_graphql() {
   case "${VERI_GH_DRIVER:-rest}" in auto|graphql) "$@" ;; *) return 1 ;; esac
 }
@@ -31,12 +38,14 @@ _gh_rest() {
 }
 
 gh_pr_ready() {
+  _gh_driver_known || return 2
   _gh_graphql gh pr ready "$1" ||
     _gh_rest gh api -X POST "repos/{owner}/{repo}/pulls/$1/ccr/ready_for_review" ||
     return 2
 }
 
 gh_issue_view() {
+  _gh_driver_known || return 2
   local filter='.body'
   [[ "$2" == labels ]] && filter='.labels[].name'
   _gh_graphql gh issue view "$1" --json "$2" -q "$filter" 2> /dev/null ||
@@ -56,6 +65,7 @@ else:
 }
 
 gh_issue_edit() {
+  _gh_driver_known || return 2
   gh api -X PATCH "repos/{owner}/{repo}/issues/$1" -F "body=@$2" > /dev/null || return 2
 }
 
@@ -76,6 +86,7 @@ gh_list() {
 }
 
 gh_rest_list() {
+  _gh_driver_known || return 2
   local sep='?' page=1 body empty="${2:-^\[\]$}"
   [[ "$1" == *\?* ]] && sep='&'
   while body="$(gh api "$1${sep}page=$page")" || return 2; [[ ! "$body" =~ $empty ]]; do
