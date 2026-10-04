@@ -180,4 +180,41 @@ done
 report "$name"
 
 
+name="timed-test-run.sh, run through a symlink to the skill directory and from another working directory, answers as in place: the command's own status, the same stdout and stderr, event.sh found, and its one test-run line in the caller's .tdd/events.jsonl"
+problems=()
+here_tree="$(scratch_dir)"
+far_tree="$(scratch_dir)"
+links="$(scratch_dir)"
+ln -s "$HERE/../.." "$links/skill"
+cmd=(sh -c 'echo out; echo err >&2; exit 5')
+
+( cd "$here_tree" && env VERI_ISSUE=804 VERI_ACTOR=developer VERI_PHASE=red VERI_STEP=1 \
+    VERI_ATTEMPT=1 "$TIMED" fast 'x.test.sh' "${cmd[@]}" ) \
+  > "$here_tree/out" 2> "$here_tree/err" && here_code=0 || here_code=$?
+( cd "$far_tree" && env VERI_ISSUE=804 VERI_ACTOR=developer VERI_PHASE=red VERI_STEP=1 \
+    VERI_ATTEMPT=1 "$links/skill/scripts/timed-test-run.sh" fast 'x.test.sh' "${cmd[@]}" ) \
+  > "$far_tree/out" 2> "$far_tree/err" && far_code=0 || far_code=$?
+
+[[ "$here_code" == 5 && "$far_code" == 5 ]] ||
+  problems+=("want the command's own exit status 5 both ways, got $here_code in place and $far_code through the link")
+[[ "$(cat "$far_tree/out")" == "$(cat "$here_tree/out")" && "$(cat "$far_tree/out")" == out ]] ||
+  problems+=("stdout: want $(printf '%q' "$(cat "$here_tree/out")") as in place, got $(printf '%q' "$(cat "$far_tree/out")")")
+[[ "$(cat "$far_tree/err")" == "$(cat "$here_tree/err")" && "$(cat "$far_tree/err")" == err ]] ||
+  problems+=("stderr: want $(printf '%q' "$(cat "$here_tree/err")") as in place, got $(printf '%q' "$(cat "$far_tree/err")")")
+
+if wrote_log "$far_tree"; then
+  lines="$(wc -l < "$log" | tr -d ' ')"
+  [[ "$lines" == 1 ]] ||
+    problems+=("want exactly 1 line in the caller's .tdd/events.jsonl, got $lines")
+  got_event="$(jget "$log" event)"
+  got_status="$(jget "$log" status)"
+  [[ "$got_event" == test-run && "$got_status" == 5 ]] ||
+    problems+=("want a test-run line with status 5, got event $(printf '%q' "$got_event") status $(printf '%q' "$got_status")")
+fi
+[[ ! -e "$links/.tdd" && ! -e "$HERE/../../.tdd" ]] ||
+  problems+=("want the line under the caller's working directory only, a .tdd appeared beside the skill")
+rm -rf "$here_tree" "$far_tree" "$links"
+report "$name"
+
+
 finish
