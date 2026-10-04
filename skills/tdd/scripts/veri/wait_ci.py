@@ -2,12 +2,13 @@
 import json
 import subprocess
 import sys
+import traceback
 
 try:
-    from github import _gh_api, gh_rest_list
+    from github import NoAnswer, _gh_api, gh_rest_list
     from json_documents import documents
 except ImportError:
-    from .github import _gh_api, gh_rest_list
+    from .github import NoAnswer, _gh_api, gh_rest_list
     from .json_documents import documents
 
 USAGE = "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]"
@@ -24,7 +25,10 @@ def pr_head(repo, pr):
 
 def sha_state(repo, sha):
     runs = gh_rest_list("repos/%s/commits/%s/check-runs" % (repo, sha), r'"check_runs": *\[ *\]')
-    statuses = _gh_api("repos/%s/commits/%s/status" % (repo, sha)).stdout
+    status = _gh_api("repos/%s/commits/%s/status" % (repo, sha))
+    if status.returncode != 0:
+        raise NoAnswer("")
+    statuses = status.stdout
     docs = documents(runs + statuses)
     states = [s["state"] for s in docs[-1].get("statuses") or []]
     runs = [r for p in docs[:-1] for r in p.get("check_runs") or []]
@@ -46,11 +50,24 @@ def main(argv):
     pr = argv[0]
     repo = pr.removeprefix("https://github.com/").rsplit("/pull/", 1)[0]
     want = argv[3] if len(argv) > 3 else ""
-    mergeable, head = pr_head(repo, pr)
+    try:
+        mergeable, head = pr_head(repo, pr)
+    except Exception:
+        traceback.print_exc()
+        head = ""
     if not head:
         print("wait-ci.sh: could not read the checks of %s" % pr, file=sys.stderr)
         return 2
-    state = sha_state(repo, head)
+    try:
+        state = sha_state(repo, head)
+    except NoAnswer:
+        state = None
+    except Exception:
+        traceback.print_exc()
+        state = None
+    if state is None:
+        print("wait-ci.sh: could not read the checks of %s" % head, file=sys.stderr)
+        return 2
     if state == "none" and mergeable is False:
         print("wait-ci.sh: %s conflicts with its base branch; no workflow will start until it is rebased"
               % pr, file=sys.stderr)
