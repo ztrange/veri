@@ -83,6 +83,17 @@ plant_and_probe() {
   probe_no_suite_revokes_permission_bits
 }
 
+mode_plant() { printf 'chmod %s "$%s"' "$1" "$2"; }
+
+modes_named() {
+  local var="$1" mode named=""
+  shift
+  for mode; do
+    named+="$mode $(plant_named "$PLANT_REL" "$(mode_plant "$mode" "$var")");"
+  done
+  printf '%s' "$named"
+}
+
 PLANT_CHMOD_000="chmod $(printf '%03d' 0) \"\$ledger\""
 
 probe_a_planted_chmod_000() {
@@ -104,13 +115,10 @@ PLANT_REVOKING_MODES=(a-r u-w -w)
 probe_planted_revoking_modes() {
   local ROOT mode plants=()
   for mode in "${PLANT_REVOKING_MODES[@]}"; do
-    plants+=("chmod $mode \"\$ledger\"")
+    plants+=("$(mode_plant "$mode" ledger)")
   done
   plant_and_probe "$PLANT_REL" '#!/usr/bin/env bash' 'ledger="$(mktemp)"' "${plants[@]}"
-  planted_revoking_modes_named=""
-  for mode in "${PLANT_REVOKING_MODES[@]}"; do
-    planted_revoking_modes_named+="$mode $(plant_named "$PLANT_REL" "chmod $mode \"\$ledger\"");"
-  done
+  planted_revoking_modes_named="$(modes_named ledger "${PLANT_REVOKING_MODES[@]}")"
   problems=()
 }
 
@@ -204,13 +212,10 @@ PLANT_READ_ONLY_DIR_MODES=(a-w 500 u=rx)
 probe_planted_read_only_dir_modes() {
   local ROOT mode plants=()
   for mode in "${PLANT_READ_ONLY_DIR_MODES[@]}"; do
-    plants+=("chmod $mode \"\$dir\"")
+    plants+=("$(mode_plant "$mode" dir)")
   done
   plant_and_probe "$PLANT_REL" '#!/usr/bin/env bash' 'dir="$PWD/ledgers"' 'mkdir "$dir"' "${plants[@]}" 'touch "$dir/ledger"'
-  planted_read_only_dir_modes_named=""
-  for mode in "${PLANT_READ_ONLY_DIR_MODES[@]}"; do
-    planted_read_only_dir_modes_named+="$mode $(plant_named "$PLANT_REL" "chmod $mode \"\$dir\"");"
-  done
+  planted_read_only_dir_modes_named="$(modes_named dir "${PLANT_READ_ONLY_DIR_MODES[@]}")"
   problems=()
 }
 
