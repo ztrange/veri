@@ -20,6 +20,9 @@ def _refuse(name, reason):
 
 def leaf_role(name):
     """VERI_ACTOR, VERI_PHASE and VERI_ATTEMPT for a leaf name."""
+    if not name:
+        _write(sys.stderr, "leaf-role: " + USAGE)
+        return None
     actor_word = name.split("-", 1)[0]
     if actor_word not in ACTORS:
         _refuse(name, "has an unknown leading word")

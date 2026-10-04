@@ -117,3 +117,43 @@ def test_main_raises_rather_than_returning_0_for_a_name_it_maps_when_stdout_is_c
         leaf_role.main(["develop-red"])
     sys.stderr.flush()
     assert err.getvalue() == b""
+
+
+def test_leaf_role_answers_in_process_what_main_prints_or_refuses_and_none_after_the_lib_usage_line_for_an_empty_name(
+        monkeypatch, leaf_role):
+    import os
+    import subprocess
+    started = []
+    for owner, attr in ((subprocess, "Popen"), (os, "system"), (os, "fork"), (os, "posix_spawn"),
+                        (os, "execv"), (os, "execve")):
+        monkeypatch.setattr(owner, attr, lambda *a, _n=attr, **k: started.append(_n))
+
+    def captured(call, *args):
+        out, err = io.BytesIO(), io.BytesIO()
+        monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(out, encoding="utf-8", errors="surrogateescape"))
+        monkeypatch.setattr(sys, "stderr", io.TextIOWrapper(err, encoding="utf-8", errors="surrogateescape"))
+        answer = call(*args)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        return answer, out.getvalue(), err.getvalue()
+
+    names = ("develop-red", "revise-green-2", "verify-refactor", "conductor-506", "verify-green-9",
+             "plan-red", "Develop-red", "-red", "develop", "develop-",
+             "verify-red-2-3", "revise-green-007", "develop--2", "develop-red-", "develop-2",
+             "develop-a\nb-2", "develop-a b=c",
+             b"develop-r\xffd".decode("utf-8", "surrogateescape"),
+             b"plan-\xff".decode("utf-8", "surrogateescape"))
+    for name in names:
+        code, cli_out, cli_err = captured(leaf_role.main, [name])
+        role, out, err = captured(leaf_role.leaf_role, name)
+        if code == 0:
+            assert role is not None and all(isinstance(v, str) for v in role.values()), name
+            line = "VERI_ACTOR=%(VERI_ACTOR)s VERI_PHASE=%(VERI_PHASE)s VERI_ATTEMPT=%(VERI_ATTEMPT)s\n" % role
+            assert (sorted(role), os.fsencode(line), out, err) == (
+                ["VERI_ACTOR", "VERI_ATTEMPT", "VERI_PHASE"], cli_out, b"", b""), name
+        else:
+            assert (code, role, out, err) == (2, None, b"", cli_err), name
+    assert captured(leaf_role.leaf_role, "") == (None, b"", b"leaf-role: usage: leaf-role.sh <leaf-name>\n")
+    for name in ("-", "---", "0", "123", "develop-a\x00b", "\x00"):
+        captured(leaf_role.leaf_role, name)
+    assert started == []
