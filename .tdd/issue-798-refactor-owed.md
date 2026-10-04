@@ -17,3 +17,6 @@
 ### veri.github.gh_issue_view answers `gh issue view <n> --json labels -q '.labels[].name'`'s output for labels when that call succeeds, and makes no `gh api` call ⟦criterion 1⟧
 - the `subprocess.run([...], stdout=PIPE, stderr=DEVNULL, text=True)` call in `gh_issue_view` and `gh_list` in `veri/github.py` could become one helper. Not applied: the shared code was written in earlier cycles, not this one, and this cycle changed only the query line.
 - test-only | fold the two `gh_issue_view` GraphQL-success tests in `tests/py/test_github.py` (the body one and the labels one at `:237-245`) into one `pytest.mark.parametrize` case over `(field, query, stdout)`
+### veri.github.gh_issue_view, when the `gh issue view` call exits non-zero, answers the issue's body from `gh api repos/{owner}/{repo}/issues/<n>` and does not pass the GraphQL call's stderr on ⟦criterion 1⟧
+- `gh_list` and `gh_issue_view`'s GraphQL calls repeat the same `subprocess.run(..., stdout=PIPE, stderr=DEVNULL, text=True)` shape; a `_gh_quiet(args)` helper would remove it, but neither call is this cycle's code
+- test-only | fold the four copies of the stderr-writing `fake_run` in test_github.py (this cycle's REST-fallback case plus three earlier cases) into a `fake_gh` variant that writes stderr when the call does not capture it
