@@ -125,3 +125,29 @@ def test_main_returns_2_with_the_usage_line_and_no_gh_call_for_a_missing_or_empt
     monkeypatch.setattr(subprocess, "run", fail_create)
     code = coverage_blocker.main(["60"])
     assert (code, capsys.readouterr().out) == (2, "")
+
+
+def test_main_falls_back_to_rest_when_graphql_refuses_the_read_and_patches_a_null_body_as_one_newline(tmpdir_env, monkeypatch, capsys, coverage_blocker):
+    def run_with_rest_answer(rest_answer):
+        seen = {}
+
+        def fake_run(args, **kwargs):
+            args = [str(arg) for arg in args]
+            if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
+                return subprocess.CompletedProcess(args, 0, rest_answer, "")
+            if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
+                return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
+            if args == ["gh", "issue", "view", "60", "--json", "body", "-q", ".body"]:
+                return subprocess.CompletedProcess(args, 1, "", "GraphQL refused\n")
+            if args[:4] == ["gh", "api", "-X", "PATCH"]:
+                path = args[args.index("-F") + 1].split("body=@", 1)[1]
+                seen["body"] = pathlib.Path(path).read_text()
+                return subprocess.CompletedProcess(args, 0, "{}", "")
+            raise AssertionError("unexpected command: %r" % (args,))
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        code = coverage_blocker.main(["60"])
+        return code, seen.get("body"), capsys.readouterr().err
+
+    assert run_with_rest_answer('{"body": "## Blocked by\\n\\nNone\\n"}') == (0, "## Blocked by\n\n- #77\n", "")
+    assert run_with_rest_answer('{"body": null}') == (0, "\n", "")
