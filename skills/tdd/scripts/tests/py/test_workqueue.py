@@ -366,3 +366,65 @@ def test_the_rewrite_reads_fields_as_bash_read_does_and_a_signalled_mv_returns_2
     assert workqueue.main(["start", "alpha", "13"]) == 2
     assert tmp.read_bytes() == b"alpha\t12\trunning\t\nalpha\t13\trunning\t\nalpha\t14\tqueued\tc\rd\r\n"
     assert capsys.readouterr() == ("", "")
+
+
+def test_start_done_park_refuse_a_tabbed_park_reason_before_the_lock_and_return_1_on_a_missing_argument_or_queue_file(tmp_path, monkeypatch, capsys, workqueue):
+    queue = tmp_path / ".tdd" / "workqueue"
+    lock = tmp_path / ".tdd" / "workqueue.lock"
+    tmp = tmp_path / ".tdd" / ("workqueue.tmp.%d" % os.getpid())
+    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+
+    def fake_run(args, **kwargs):
+        if list(args[:3]) == ["git", "worktree", "list"]:
+            return subprocess.CompletedProcess(args, 0, "worktree %s\n" % tmp_path, "")
+        if list(args[:1]) == ["mv"]:
+            os.replace(args[1], args[2])
+            return subprocess.CompletedProcess(args, 0, "", "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    def run(argv):
+        code = workqueue.main(argv)
+        out, err = capsys.readouterr()
+        return code, out, err
+
+    assert run(["start", "alpha", "12"])[:2] == (1, "")
+    assert (tmp_path / ".tdd").is_dir()
+    assert not queue.exists()
+    assert not lock.exists()
+
+    before = b"alpha\t12\tqueued\t\nalpha\t13\trunning\t\n"
+    queue.write_bytes(before)
+    lock.mkdir()
+    refused = (2, "", "workqueue.sh: a park reason may not hold a tab or a newline\n" + USAGE)
+    assert run(["park", "alpha", "13", "a\tb"]) == refused
+    assert run(["park", "alpha", "13", "a\nb"]) == refused
+    assert run(["park", "alpha", "13"])[:2] == (1, "")
+    assert queue.read_bytes() == before
+    assert not tmp.exists()
+    lock.rmdir()
+
+    assert run(["start"])[:2] == (1, "")
+    assert tmp.exists()
+    tmp.unlink()
+    assert run(["start", "alpha"])[:2] == (1, "")
+    assert tmp.exists()
+    tmp.unlink()
+    assert run(["start", "beta"]) == (1, "", "workqueue.sh: $3: unbound variable\n")
+    assert not tmp.exists()
+    assert queue.read_bytes() == before
+    assert not lock.exists()
+    queue.write_bytes(b"")
+    assert run(["start"]) == (1, "", "workqueue.sh: $2: unbound variable\n")
+    assert not tmp.exists()
+    queue.write_bytes(before)
+
+    assert run(["done", "alpha", "13", "a\tb\nc"]) == (0, "", "")
+    assert queue.read_bytes() == b"alpha\t12\tqueued\t\nalpha\t13\tmerged\ta\tb\nc\n"
+    queue.write_bytes(before)
+    assert run(["start", "alpha", "12"]) == (0, "", "")
+    assert run(["park", "alpha", "12", ""]) == (0, "", "")
+    assert queue.read_bytes() == b"alpha\t12\tparked\t\nalpha\t13\trunning\t\n"
+    assert not tmp.exists()
+    assert not lock.exists()
