@@ -142,3 +142,15 @@ def test_gh_rest_list_hands_the_pages_fetched_before_a_failing_page_along_with_t
         github.gh_rest_list(path)
 
     assert no_answer.value.answer == '[{"number":1},{"number":2}][{"number":3},{"number":4}]'
+
+
+def test_gh_list_answers_the_gh_call_stdout_and_makes_no_gh_api_call_when_it_succeeds(monkeypatch, github):
+    path = "repos/{owner}/{repo}/pulls?state=open"
+    calls = fake_gh(monkeypatch, {
+        ("gh", "pr", "list", "--json", "number"): (0, '[{"number":7},{"number":9}]', ""),
+    })
+
+    answer = github.gh_list(path, "pr", "list", "--json", "number")
+
+    assert answer == '[{"number":7},{"number":9}]'
+    assert calls == [["gh", "pr", "list", "--json", "number"]]
