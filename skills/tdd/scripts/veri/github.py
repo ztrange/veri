@@ -42,5 +42,7 @@ def gh_issue_view(number, field):
                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     if run.returncode != 0:
         rest = _gh_api("repos/{owner}/{repo}/issues/%s" % number)
+        if rest.returncode != 0:
+            raise NoAnswer("")
         return json.loads(rest.stdout)["body"] + "\n"
     return run.stdout
