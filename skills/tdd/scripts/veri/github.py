@@ -58,6 +58,18 @@ class RestAdapter:
             return "".join(label["name"] + "\n" for label in issue["labels"])
         return (issue["body"] or "") + "\n"
 
+    def issue_edit(self, number, body_file):
+        run = _gh("api", "-X", "PATCH", _issue(number), "-F", "body=@%s" % body_file)
+        if run.returncode != 0:
+            raise NoAnswer("")
+
+    def issue_create(self, title, body):
+        run = _gh("api", _ISSUES, "-f", "title=%s" % title,
+                  "-f", "body=%s" % body, "-q", ".html_url")
+        if run.returncode != 0:
+            raise NoAnswer("")
+        return run.stdout
+
 
 def gh_rest_list(path, empty=r"^\[\]$"):
     return RestAdapter().list(path, empty)
@@ -89,14 +101,8 @@ def gh_issue_view(number, field):
 
 
 def gh_issue_edit(number, body_file):
-    run = _gh("api", "-X", "PATCH", _issue(number), "-F", "body=@%s" % body_file)
-    if run.returncode != 0:
-        raise NoAnswer("")
+    RestAdapter().issue_edit(number, body_file)
 
 
 def gh_issue_create(title, body):
-    run = _gh("api", _ISSUES, "-f", "title=%s" % title,
-              "-f", "body=%s" % body, "-q", ".html_url")
-    if run.returncode != 0:
-        raise NoAnswer("")
-    return run.stdout
+    return RestAdapter().issue_create(title, body)
