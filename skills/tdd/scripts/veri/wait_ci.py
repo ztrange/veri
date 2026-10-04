@@ -8,10 +8,10 @@ import traceback
 from datetime import datetime
 
 try:
-    from github import NoAnswer, _gh_api, gh_rest_list
+    from github import NoAnswer, _gh, _gh_api, gh_rest_list
     from json_documents import documents
 except ImportError:
-    from .github import NoAnswer, _gh_api, gh_rest_list
+    from .github import NoAnswer, _gh, _gh_api, gh_rest_list
     from .json_documents import documents
 
 USAGE = "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]"
@@ -67,9 +67,8 @@ def fall_back(why):
 def ci_bound(repo, n=5):
     pages = ""
     for c in ("success", "failure"):
-        run = subprocess.run(["gh", "run", "list", "--repo", repo, "--workflow", "CI", "--status", c,
-                              "--limit", str(n), "--json", "databaseId,conclusion,startedAt,updatedAt"],
-                             stdout=subprocess.PIPE, text=True)
+        run = _gh("run", "list", "--repo", repo, "--workflow", "CI", "--status", c,
+                  "--limit", str(n), "--json", "databaseId,conclusion,startedAt,updatedAt")
         if run.returncode != 0:
             return fall_back("gh run list could not answer")
         pages += run.stdout.rstrip("\n")
