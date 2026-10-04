@@ -113,3 +113,27 @@ def test_main_ends_its_stderr_with_the_unreadable_line_when_gh_cannot_read_the_p
     code, out, err, calls = one_poll(monkeypatch, capsys, wait_ci, None, ["success"], [])
 
     assert (code, out, err.endswith(UNREADABLE), calls) == (2, "", True, [PULL])
+
+
+def test_main_folds_an_absent_or_null_statuses_or_check_runs_key_as_empty(monkeypatch, capsys, wait_ci):
+    head = json.dumps({"mergeable": True, "head": {"sha": SHA}})
+    run = {"status": "completed", "conclusion": "success"}
+    page_3 = f"gh api repos/o/r/commits/{SHA}/check-runs?page=3"
+    one_run = json.dumps({"total_count": 1, "check_runs": [run]})
+    no_runs = json.dumps({"check_runs": []})
+    scenarios = [
+        {PAGE_1: one_run, PAGE_2: no_runs, STATUS: json.dumps({"state": "x"})},
+        {PAGE_1: one_run, PAGE_2: no_runs, STATUS: json.dumps({"state": "x", "statuses": None})},
+        {PAGE_1: json.dumps({"total_count": 1}), PAGE_2: one_run, page_3: no_runs,
+         STATUS: json.dumps({"state": "x", "statuses": [{"state": "success"}]})},
+    ]
+
+    observed = []
+    for bodies in scenarios:
+        bodies = {PULL: head, **bodies}
+        fake_processes(monkeypatch, lambda line: (0, bodies.get(line, ""), ""))
+        code = wait_ci.main([PR, "60", "120", SHA])
+        captured = capsys.readouterr()
+        observed.append((code, captured.out, captured.err))
+
+    assert observed == [(0, "", "")] * 3
