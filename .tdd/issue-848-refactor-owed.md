@@ -6,3 +6,6 @@
 ### Python veri/github.py with VERI_GH_DRIVER=graphql: a GraphQL failure in gh_issue_view, gh_list or gh_json with gh args raises NoAnswer and makes no gh api call; a GraphQL success answers its stdout ⟦criterion 4⟧
 - collapse `_select`'s two `FallbackAdapter` constructions into one by picking `first`/`second` from the driver (it touches the line ledger step 10, criterion 5, must change, so it is better left to that step)
 - test-only | in test_github.py, the graphql case at line 593 and the rest case at line 550 share the same lambda list of three reads and the same "no call of this kind" assertion, which could become one shared helper
+### Bash lib/github.sh with VERI_GH_DRIVER=graphql: a GraphQL failure in gh_issue_view, gh_list, gh_json with gh args or gh_pr_ready returns 2 and makes no gh api call; a GraphQL success answers its stdout ⟦criterion 4⟧
+- `_gh_graphql` and `_gh_rest` each read `${VERI_GH_DRIVER:-rest}` separately; one driver-selection helper could serve both. The step that refuses empty or unknown values (criterion 6) is where that helper belongs, so it was not built here.
+- test-only | cases 9 and 10 of `tests/unit/github.test.sh` share the same per-op loop: the `gh` and `python3` mocks, the `view/list/json/ready` dispatch and the `problems+=` checks. They could be one shared driver-case helper.
