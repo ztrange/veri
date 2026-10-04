@@ -8,3 +8,11 @@
 - [ ] CLAUDE.md's "Testing idiom" section, next to the SIGPIPE and job-spec rules, states that no suite relies on permission bits to make a path unreadable or unwritable, because the cloud runs as root and permission bits are a no-op there ⟦criterion 3⟧
 - [ ] status.test.sh passes when run as uid 0, its exit-2 case included ⟦human-owed⟧ ⟦criterion 1⟧
 - [ ] make test is green on the branch with the guard in it ⟦full-suite⟧ ⟦criterion 2⟧
+
+## Owed steps
+
+- A guard suite passes on today's tree, reporting no suite under skills/tdd/scripts/tests/ that runs `chmod 000`, `chmod a-r`, `chmod u-w` or `chmod -w` ⟦criterion 2⟧
+- The guard fails the run naming `<suite>:<line>` for a planted suite line that starts with `chmod 000 <path>` ⟦criterion 2⟧
+- The guard fails the run naming `<suite>:<line>` for planted suite lines running `chmod a-r <path>`, `chmod u-w <path>` and `chmod -w <path>`, each reported on its own ⟦criterion 2⟧
+- The guard fails the run naming `<suite>:<line>` for a planted permission-bit chmod that follows `;`, `&&`, `||`, `|`, `(`, `{`, `then` or `do` on the same line ⟦criterion 2⟧
+- The guard fails the run naming `<suite>:<line>` for a planted permission-bit chmod that carries an option flag before its mode, such as `chmod -R 000 <dir>` ⟦criterion 2⟧
