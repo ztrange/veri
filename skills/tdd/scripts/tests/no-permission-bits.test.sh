@@ -84,4 +84,37 @@ probe_a_planted_chmod_000
 
 expect_eq "$name" "named" "$planted_chmod_000_named"
 
+PLANT_REVOKING_MODES=(a-r u-w -w)
+
+probe_planted_revoking_modes() {
+  local ROOT mode plant line problem named
+  ROOT="$(scratch_dir)"
+  mkdir -p "$ROOT/${PLANT_REL%/*}"
+  printf '%s\n' '#!/usr/bin/env bash' 'ledger="$(mktemp)"' > "$ROOT/$PLANT_REL"
+  for mode in "${PLANT_REVOKING_MODES[@]}"; do
+    printf '%s\n' "chmod $mode \"\$ledger\"" >> "$ROOT/$PLANT_REL"
+  done
+  problems=()
+  probe_no_suite_revokes_permission_bits
+  planted_revoking_modes_named=""
+  for mode in "${PLANT_REVOKING_MODES[@]}"; do
+    plant="chmod $mode \"\$ledger\""
+    line="$(grep -nxF -- "$plant" "$ROOT/$PLANT_REL")"
+    line="${line%%:*}"
+    named="not named"
+    for problem in ${problems+"${problems[@]}"}; do
+      [[ "$problem" == "$PLANT_REL:$line forces a read or write failure through permission bits"* ]] && named="named"
+    done
+    planted_revoking_modes_named+="$mode $named;"
+  done
+  problems=()
+}
+
+name="planted suite lines running a chmod to a-r, u-w and -w, then a path, each turn the guard red, naming its own <suite>:<line> (#846)"
+planted_revoking_modes_named=""
+
+probe_planted_revoking_modes
+
+expect_eq "$name" "a-r named;u-w named;-w named;" "$planted_revoking_modes_named"
+
 finish
