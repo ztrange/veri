@@ -454,3 +454,19 @@ def test_the_module_is_importable_as_from_veri_import_github_and_as_import_veri_
     assert from_import is dotted_import
     assert pathlib.Path(from_import.__file__) == SCRIPTS / "veri" / "github.py"
     assert callable(from_import.gh_json)
+
+
+def test_importing_the_module_starts_no_process_and_reads_veri_gh_json_only_when_called(monkeypatch, tmp_path):
+    calls = fake_gh(monkeypatch, {})
+    monkeypatch.setattr("os.system", lambda command: calls.append(command))
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    monkeypatch.delitem(sys.modules, "veri.github", raising=False)
+    monkeypatch.delattr(importlib.import_module("veri"), "github", raising=False)
+
+    import veri.github as github
+
+    assert calls == []
+    (tmp_path / "issues.json").write_text('[{"number":5}]')
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    assert github.gh_json("issues.json", "repos/{owner}/{repo}/issues") == '[{"number":5}]'
+    assert calls == []
