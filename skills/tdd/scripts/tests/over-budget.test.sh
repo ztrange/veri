@@ -4,7 +4,8 @@
 #
 # Contract under test:
 #   over-budget.sh <tier> <seconds> <usual>
-#       → exit 0 when the run is over budget, exit 1 when it is not.
+#       → exit 0 when the run is over budget, exit 1 when it is not, exit 2 with nothing on
+#         stdout for a missing argument (stderr: the usage line) or a refused tunable.
 #   A unit-tier run is over budget when its seconds exceed VERI_UNIT_BUDGET (default 10);
 #   at or under that figure it is not. A run of any tier is over budget when its seconds
 #   exceed VERI_TIME_WARN_RATIO (default 1.5) times that tier's usual; at or under that
@@ -143,6 +144,35 @@ after="$(sed -n "$((before + 1)),\$p" "$fixture/.tdd/events.jsonl")"
   problems+=("the over-budget run was retried: a relaunch event was logged: $(printf '%q' "$after")")
 [[ "$after" != *'"event": "bail"'* ]] ||
   problems+=("the over-budget run bailed: a bail event was logged: $(printf '%q' "$after")")
+
+report "$name"
+
+name="over-budget.sh: a missing argument or a tunable time-budget.sh refuses exits 2 with nothing on stdout, and a missing argument names the usage line"
+problems=()
+
+floor_dir="$(scratch_dir)"
+usage="usage: over-budget.sh <tier> <seconds> <usual>"
+
+refused() {
+  local label="$1" code out err
+  shift
+  "$@" >"$floor_dir/out" 2>"$floor_dir/err" && code=0 || code=$?
+  out="$(cat "$floor_dir/out")"
+  err="$(cat "$floor_dir/err")"
+  [[ "$code" == 2 ]] ||
+    problems+=("$label: want exit 2, got $code")
+  [[ -z "$out" ]] ||
+    problems+=("$label: want nothing on stdout, got: $(printf '%q' "$out")")
+  REFUSED_ERR="$err"
+}
+
+refused "no argument" "$CHECK"
+[[ "$REFUSED_ERR" == "$usage" ]] ||
+  problems+=("no argument: want stderr exactly $(printf '%q' "$usage"), got: $(printf '%q' "$REFUSED_ERR")")
+refused "unit 10" "$CHECK" unit 10
+[[ "$REFUSED_ERR" == "$usage" ]] ||
+  problems+=("unit 10: want stderr exactly $(printf '%q' "$usage"), got: $(printf '%q' "$REFUSED_ERR")")
+refused "unit 12 100 under VERI_UNIT_BUDGET=x" env VERI_UNIT_BUDGET=x "$CHECK" unit 12 100
 
 report "$name"
 
