@@ -99,6 +99,30 @@ def next_item(argv):
     return 3
 
 
+MOVES = {"start": ("queued", "running"), "done": ("running", "merged"), "park": ("running", "parked")}
+
+
+def move(queue, argv, source, target):
+    detail = "".join(argv[3:4]) if source == "running" else ""
+    tmp = "%s.tmp.%d" % (queue, os.getpid())
+    moved = False
+    with open(queue, newline="\n") as lines, open(tmp, "w") as rewritten:
+        for line in lines:
+            if not line.endswith("\n"):
+                break
+            fields = re.split(r"\t+", line[:-1].strip("\t"), maxsplit=3) + ["", "", "", ""]
+            if fields[:3] == [argv[1], argv[2], source]:
+                fields[2:4] = [target, detail]
+                moved = True
+            rewritten.write("\t".join(fields[:4]) + "\n")
+    if not moved:
+        os.remove(tmp)
+        sys.stderr.write("workqueue.sh: %s holds no %s item for issue %s\n" % (argv[1], source, argv[2]))
+        return 1
+    status = subprocess.run(["mv", tmp, queue]).returncode
+    return status if 0 <= status <= 3 else 2
+
+
 def main(argv):
     try:
         return locked_main(argv)
@@ -129,14 +153,8 @@ def locked_main(argv):
             except Abandoned:
                 if command != "assign":
                     return refuse("workqueue.sh: unknown subcommand: " + command)
-        if command == "start":
-            with open(queue) as lines:
-                for line in lines:
-                    if line.split("\t")[:3] == [argv[1], argv[2], "queued"]:
-                        break
-                else:
-                    sys.stderr.write("workqueue.sh: %s holds no queued item for issue %s\n" % (argv[1], argv[2]))
-                    return 1
+        if command in MOVES:
+            return move(queue, argv, *MOVES[command])
         if command != "assign":
             return refuse("workqueue.sh: unknown subcommand: " + command)
         with open(queue, "a") as appended:
