@@ -17,16 +17,12 @@ def append_rule(path):
         f.write("".join(line + "\n" for line in RULE).encode())
 
 
-def where(line, lines):
-    return lines.index(line) if line in lines else None
-
-
 def has_rule(path):
     if not os.path.isfile(path):
         return False
     with open(path, "rb") as f:
         lines = f.read().split(b"\n")
-    at = [where(line.encode(), lines) for line in RULE]
+    at = [lines.index(line.encode()) if line.encode() in lines else None for line in RULE]
     if None not in at and at == sorted(at):
         return True
     if at[-1] is not None:
