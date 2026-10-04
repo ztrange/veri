@@ -46,3 +46,16 @@ def test_main_classifies_every_known_cause_as_system_or_process_with_0(capsys, c
         **{cause: (0, "system") for cause in SYSTEM_CAUSES},
         **{cause: (0, "process") for cause in PROCESS_CAUSES},
     }
+
+
+def test_main_refuses_stop_and_budget_words_with_2_and_skill_md_calls_ci_conflict_a_system_failure(capsys, classify_bail):
+    results = {}
+    for cause in ("stopped", "stop", "at-ledger", "at-leaf", "now", "step-over-budget", "over-budget", "wat"):
+        code = classify_bail.main([cause])
+        results[cause] = (code, capsys.readouterr().out)
+
+    bailing = (SCRIPTS.parent / "SKILL.md").read_text().split("\n## Bailing", 1)[1].split("\n## ", 1)[0]
+    entry = bailing.split("\n- `ci-conflict` —", 1)[1].split("\n- ", 1)[0].split("\n\n", 1)[0]
+
+    assert results == {cause: (2, "") for cause in results}
+    assert "**system**" in entry
