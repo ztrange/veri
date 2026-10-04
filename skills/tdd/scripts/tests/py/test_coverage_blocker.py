@@ -104,3 +104,24 @@ def test_main_leaves_no_temp_file_when_the_patch_raises(tmpdir_env, monkeypatch,
         pass
 
     assert list(tmpdir_env.iterdir()) == []
+
+
+def test_main_returns_2_with_the_usage_line_and_no_gh_call_for_a_missing_or_empty_number_and_2_when_the_create_fails(tmpdir_env, monkeypatch, capsys, coverage_blocker):
+    def refuse(args, **kwargs):
+        raise AssertionError("unexpected subprocess call: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", refuse)
+    for argv in ([], [""]):
+        code = coverage_blocker.main(argv)
+        captured = capsys.readouterr()
+        assert (code, captured.out, captured.err) == (2, "", "usage: coverage-blocker.sh <refactor-issue-number>\n")
+
+    def fail_create(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
+            return subprocess.CompletedProcess(args, 1, "", "HTTP 422: Validation Failed\n")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fail_create)
+    code = coverage_blocker.main(["60"])
+    assert (code, capsys.readouterr().out) == (2, "")

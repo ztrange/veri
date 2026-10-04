@@ -1,7 +1,10 @@
 """coverage-blocker.sh's logic: file a coverage issue and block the refactor issue on it."""
 import os
 import subprocess
+import sys
 import tempfile
+
+USAGE = "usage: coverage-blocker.sh <refactor-issue-number>"
 
 
 def gh(*args):
@@ -9,7 +12,11 @@ def gh(*args):
 
 
 def main(argv):
-    gh("api", "repos/{owner}/{repo}/issues")
+    if not argv or not argv[0]:
+        print(USAGE, file=sys.stderr)
+        return 2
+    if gh("api", "repos/{owner}/{repo}/issues").returncode != 0:
+        return 2
     body = gh("issue", "view", argv[0], "--json", "body", "-q", ".body").stdout
     fd, tmp = tempfile.mkstemp()
     try:
