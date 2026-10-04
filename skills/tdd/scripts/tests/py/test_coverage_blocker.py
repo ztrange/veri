@@ -151,3 +151,38 @@ def test_main_falls_back_to_rest_when_graphql_refuses_the_read_and_patches_a_nul
 
     assert run_with_rest_answer('{"body": "## Blocked by\\n\\nNone\\n"}') == (0, "## Blocked by\n\n- #77\n", "")
     assert run_with_rest_answer('{"body": null}') == (0, "\n", "")
+
+
+def test_main_files_the_issue_blocks_the_refactor_issue_on_it_prints_the_url_and_returns_0(tmpdir_env, monkeypatch, capsys, coverage_blocker):
+    calls = []
+    seen = {}
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:4] == ["gh", "api", "-X", "PATCH"]:
+            flag = args.index("-F") + 1
+            seen["body"] = pathlib.Path(args[flag].split("body=@", 1)[1]).read_text()
+            calls.append(args[:flag] + ["body=@<file>"] + args[flag + 1:])
+            return subprocess.CompletedProcess(args, 0, "", "")
+        calls.append(args)
+        if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
+            return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
+        if args[:3] == ["gh", "issue", "view"]:
+            return subprocess.CompletedProcess(args, 0, "## Blocked by\n\nNone\n", "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code = coverage_blocker.main(["60"])
+    captured = capsys.readouterr()
+
+    assert calls == [
+        ["gh", "api", "repos/{owner}/{repo}/issues",
+         "-f", "title=Cover the behaviour #60 refactors",
+         "-f", "body=Refactor #60 refused: its Cover probe found the code it would move uncovered (`COVERED: no`). Find a seam and surround the behaviour with tests, then #60 can be retaken.",
+         "-q", ".html_url"],
+        ["gh", "issue", "view", "60", "--json", "body", "-q", ".body"],
+        ["gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/60", "-F", "body=@<file>"],
+    ]
+    assert seen["body"] == "## Blocked by\n\n- #77\n"
+    assert (code, captured.out, captured.err) == (0, "https://github.com/owner/name/issues/77\n", "")
