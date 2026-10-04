@@ -3,19 +3,22 @@ import os
 import re
 import sys
 
-NUMBER = re.compile(r"[0-9]+(\.[0-9]+)?")
+NUMBER = re.compile(rb"[0-9]+(\.[0-9]+)?")
+
+
+def write(stream, data):
+    stream.buffer.write(data)
+    stream.buffer.flush()
 
 
 def main(argv):
-    budget = os.environ.get("VERI_UNIT_BUDGET") or "10"
-    ratio = os.environ.get("VERI_TIME_WARN_RATIO") or "1.5"
+    budget = os.environb.get(b"VERI_UNIT_BUDGET") or b"10"
+    ratio = os.environb.get(b"VERI_TIME_WARN_RATIO") or b"1.5"
     if not NUMBER.fullmatch(budget):
-        print(f"time-budget: VERI_UNIT_BUDGET must be a number of seconds: {budget}", file=sys.stderr)
+        write(sys.stderr, b"time-budget: VERI_UNIT_BUDGET must be a number of seconds: " + budget + b"\n")
         return 2
     if not NUMBER.fullmatch(ratio):
-        print(f"time-budget: VERI_TIME_WARN_RATIO must be a number: {ratio}", file=sys.stderr)
+        write(sys.stderr, b"time-budget: VERI_TIME_WARN_RATIO must be a number: " + ratio + b"\n")
         return 2
-    print(budget)
-    print(ratio)
+    write(sys.stdout, budget + b"\n" + ratio + b"\n")
     return 0
-
