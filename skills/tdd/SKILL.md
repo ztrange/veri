@@ -1999,14 +1999,15 @@ To bail:
    ```
 4. **Render and commit the metrics**, from inside the worktree and before the push, so the
    branch carrying the progress carries the account of it too: `$S/metrics.sh <n> >
-   .tdd/issue-<n>-metrics.md`, then `git add .tdd/issue-<n>-metrics.md && git commit -m
-   "metrics: what bailing on #<n> cost (#<n>)"`. This is the ending the report is worth most
-   at — every attempt a bailed step spent is waste, and only the file says how much.
+   .tdd/issue-<n>-metrics.md; metrics=$?`, then `if [ "$metrics" = 0 ]; then git add
+   .tdd/issue-<n>-metrics.md && git commit -m "metrics: what bailing on #<n> cost (#<n>)";
+   fi`. This is the ending the report is worth most at — every attempt a bailed step spent is waste, and only the file says how much.
 5. **Push the branch** so completed steps, that metrics commit and the leaf logs are
    recoverable, from inside the worktree (where you already are):
    `git push -u origin tdd/<n>-<slug>` (best-effort; note if it fails).
 6. Post a `### ⛔ Bailed — <phase> (<classification> failure)` comment that names the phase,
-   carries the `### 📊 Metrics` block just committed, carries the last reason
+   carries the `### 📊 Metrics` block just committed (or, when `$metrics` is not 0, the line
+   `metrics could not be rendered: metrics.sh exited $metrics` in its place), carries the last reason
    (`.tdd/verify-<phase>.reason` on a `revise-exhausted` bail, the develop-red leaf's `WHY:`
    line on an `untestable-criterion` bail, the kill cause otherwise),
    and points at the progress log (`.tdd/<phase>.log` or

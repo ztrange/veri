@@ -340,4 +340,32 @@ elif [[ -n "$done_status" ]]; then
 fi
 report "$name"
 
+name="#566: $skill_md's Bailing sub-step 4 makes the metrics: commit only on a metrics.sh exit of 0, and otherwise the ⛔ Bailed comment carries the failed render and its exit code in place of the 📊 Metrics block"
+problems=()
+
+bail_status=""
+if ! bail_render_line="$(first_record_line "$bail_records" 'metrics.sh <n> > .tdd/issue-<n>-metrics.md')"; then
+  problems+=("$skill_md's Bailing section never renders metrics.sh <n> > .tdd/issue-<n>-metrics.md")
+else
+  bail_render="$(record_at "$bail_records" "$bail_render_line")"
+  if [[ "$bail_render" =~ ([a-z_][a-z0-9_]*)=\$\? ]]; then
+    bail_status="${BASH_REMATCH[1]}"
+    after_capture="${bail_render#*"$bail_status"=\$\?}"
+    before_commit="${after_capture%%'git commit -m "metrics:'*}"
+    [[ "$after_capture" == *'git commit -m "metrics:'* && "$before_commit" =~ \$\{?\"?$bail_status([^a-z0-9_]|$) ]] ||
+      problems+=("$skill_md's Bailing section makes the metrics: commit in record $bail_render_line whatever \$$bail_status, metrics.sh's exit status, says, so a failed render's partial report is committed: $(printf '%.160s' "$bail_render")")
+  else
+    problems+=("$skill_md renders metrics.sh in Bailing record $bail_render_line without capturing its exit status, so nothing can keep a failed render out of the metrics: commit: $(printf '%.160s' "$bail_render")")
+  fi
+fi
+
+if ! bailed_line="$(first_record_line "$bail_records" '⛔ bailed' '📊 metrics')"; then
+  problems+=("$skill_md's Bailing section has no ⛔ Bailed comment carrying the 📊 Metrics block")
+elif [[ -n "$bail_status" ]]; then
+  bailed_record="$(record_at "$bail_records" "$bailed_line")"
+  [[ "$bailed_record" == *"metrics.sh"* && "$bailed_record" =~ \$\{?$bail_status([^a-z0-9_]|$) ]] ||
+    problems+=("$skill_md's ⛔ Bailed comment carries no line naming a failed metrics.sh render and its exit code (\$$bail_status) in place of the 📊 Metrics block: $(printf '%.160s' "$bailed_record")")
+fi
+report "$name"
+
 finish
