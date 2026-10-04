@@ -126,3 +126,77 @@ def test_main_prints_a_case_when_its_seconds_reach_the_threshold_default_1(tmp_p
     assert printed("1") == (0, [3, 4, 2])
     assert printed("2.5") == (0, [3, 4])
     assert printed("4") == (0, [3])
+
+
+def test_main_runs_each_suite_under_a_traced_bash_and_every_line_through_one_sort(tmp_path, monkeypatch, capsys, profile):
+    import tempfile
+
+    traces = {"a.test.sh": "++10.000000 2 x=1\n++11.000000 3 x=2\n++12.000000 4 pass=1\n",
+              "b.test.sh": "++20.000000 2 pass=1\n"}
+    for suite in traces:
+        (tmp_path / suite).write_text("pass=0\n")
+    scratch = tmp_path / "tmp"
+    scratch.mkdir()
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(tempfile, "tempdir", str(scratch))
+    monkeypatch.delenv("BASH_XTRACEFD", raising=False)
+    monkeypatch.setenv("VERI_PROFILE_THRESHOLD", "0")
+    devnull = os.stat("/dev/null")
+
+    def is_devnull(handle):
+        if handle == subprocess.DEVNULL:
+            return True
+        fd = handle if isinstance(handle, int) and handle >= 0 else getattr(handle, "fileno", lambda: -1)()
+        if fd < 0:
+            return False
+        st = os.fstat(fd)
+        return (st.st_dev, st.st_ino) == (devnull.st_dev, devnull.st_ino)
+
+    def fake(sort_status):
+        seen = {"calls": [], "env": [], "devnull": [], "trace": [], "sort_input": []}
+
+        def fake_run(args, **kwargs):
+            program = os.path.basename(str(args[0]))
+            seen["calls"].append([program] + [str(a) for a in args[1:]])
+            if program == "bash":
+                env = kwargs.get("env")
+                seen["env"].append((os.environ if env is None else env).get("BASH_XTRACEFD"))
+                seen["devnull"].append([is_devnull(kwargs.get(k)) for k in ("stdin", "stdout", "stderr")])
+                inherited = 9 in kwargs.get("pass_fds", ()) or kwargs.get("close_fds") is False
+                if inherited:
+                    st = os.fstat(9)
+                    held = [os.stat(scratch / name).st_ino for name in os.listdir(scratch)]
+                    seen["trace"].append((st.st_size, held == [st.st_ino]))
+                    os.write(9, traces[str(args[-1])].encode())
+                else:
+                    seen["trace"].append(None)
+                return subprocess.CompletedProcess(args, 1 if args[-1] == "a.test.sh" else 0, None, None)
+            if program == "sort":
+                text = kwargs.get("input") or ""
+                seen["sort_input"].append(text.decode() if isinstance(text, bytes) else text)
+                out = "printed as it is\n"
+                return subprocess.CompletedProcess(args, sort_status, out.encode() if isinstance(text, bytes) else out, None)
+            raise AssertionError("unexpected command: %r" % (args,))
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        return seen
+
+    traced = 'PS4=\'+${EPOCHREALTIME} ${LINENO} \'; set -x; . "$0"'
+    seen = fake(0)
+    code = profile.main(["a.test.sh", "b.test.sh"])
+    captured = capsys.readouterr()
+    assert seen["calls"] == [["bash", "-c", traced, "a.test.sh"], ["bash", "-c", traced, "b.test.sh"], ["sort", "-rn"]]
+    assert seen["env"] == ["9", "9"]
+    assert seen["devnull"] == [[True, True, True], [True, True, True]]
+    assert seen["trace"] == [(0, True), (0, True)]
+    assert sorted(seen["sort_input"][0].splitlines()) == [
+        "0.000000 b.test.sh case 1 L2-2", "2.000000 a.test.sh case 1 L2-4"]
+    assert (code, captured.out) == (0, "printed as it is\n")
+    assert os.listdir(scratch) == []
+
+    for status, answer in ((3, 3), (1, 1), (5, 2), (141, 2)):
+        seen = fake(status)
+        code = profile.main(["a.test.sh", "b.test.sh"])
+        captured = capsys.readouterr()
+        assert (status, code, captured.out) == (status, answer, "printed as it is\n")
+        assert os.listdir(scratch) == []
