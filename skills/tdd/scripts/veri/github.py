@@ -83,9 +83,10 @@ class RestAdapter:
 
 
 class FallbackAdapter:
-    def __init__(self, first, second):
+    def __init__(self, first, second, rest=None):
         self.first = first
         self.second = second
+        self.rest = rest or second
 
     def list(self, path, *args):
         try:
@@ -94,7 +95,7 @@ class FallbackAdapter:
             return self.second.list(path)
 
     def rest_list(self, path, empty=r"^\[\]$"):
-        return self.second.list(path, empty)
+        return self.rest.list(path, empty)
 
     def issue_view(self, number, field):
         try:
@@ -103,10 +104,10 @@ class FallbackAdapter:
             return self.second.issue_view(number, field)
 
     def issue_edit(self, number, body_file):
-        self.second.issue_edit(number, body_file)
+        self.rest.issue_edit(number, body_file)
 
     def issue_create(self, title, body):
-        return self.second.issue_create(title, body)
+        return self.rest.issue_create(title, body)
 
     def json(self, fixture, path, *args):
         if args:
@@ -137,7 +138,7 @@ def _select(operation):
         return FixtureAdapter(fixtures)
     driver = os.environ.get("VERI_GH_DRIVER")
     if driver == "graphql":
-        return FallbackAdapter(GraphQLAdapter(), NoRouteAdapter())
+        return FallbackAdapter(GraphQLAdapter(), NoRouteAdapter(), RestAdapter())
     first = GraphQLAdapter() if driver == "auto" else NoRouteAdapter()
     return FallbackAdapter(first, RestAdapter())
 

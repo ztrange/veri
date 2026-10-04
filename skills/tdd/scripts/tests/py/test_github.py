@@ -613,6 +613,42 @@ def test_with_veri_gh_driver_graphql_the_graphql_route_reads_answer_graphql_stdo
     assert [call for call in calls if call[1] == "api"] == []
 
 
+def test_the_rest_only_operations_run_their_rest_call_and_no_graphql_call_under_each_veri_gh_driver(monkeypatch, github):
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    path = "repos/{owner}/{repo}/issues"
+    patch = ("gh", "api", "-X", "PATCH", path + "/60", "-F", "body=@/tmp/body.md")
+    create = ("gh", "api", path, "-f", "title=T", "-f", "body=B", "-q", ".html_url")
+    calls = fake_gh(monkeypatch, {
+        patch: (0, "", ""),
+        create: (0, "https://github.com/o/r/issues/61\n", ""),
+        ("gh", "api", path + "?page=1"): (0, '[{"number":4}]\n', ""),
+        ("gh", "api", path + "?page=2"): (0, "[]\n", ""),
+    })
+    operations = (lambda: github.gh_issue_edit("60", "/tmp/body.md"),
+                  lambda: github.gh_issue_create("T", "B"),
+                  lambda: github.gh_rest_list(path),
+                  lambda: github.gh_json("issues.json", path))
+    observed = {}
+    for driver in (None, "auto", "rest", "graphql"):
+        if driver is None:
+            monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+        else:
+            monkeypatch.setenv("VERI_GH_DRIVER", driver)
+        del calls[:]
+        answers = []
+        for operation in operations:
+            try:
+                answers.append(operation())
+            except Exception as error:
+                answers.append(type(error).__name__)
+        observed[driver] = (answers, list(calls))
+
+    pages = [["gh", "api", path + "?page=1"], ["gh", "api", path + "?page=2"]]
+    expected = ([None, "https://github.com/o/r/issues/61\n", '[{"number":4}]', '[{"number":4}]'],
+                [list(patch), list(create)] + pages + pages)
+    assert observed == {driver: expected for driver in (None, "auto", "rest", "graphql")}
+
+
 def test_the_module_is_importable_as_from_veri_import_github_and_as_import_veri_github(monkeypatch):
     monkeypatch.delitem(sys.modules, "veri.github", raising=False)
     monkeypatch.delattr(importlib.import_module("veri"), "github", raising=False)
