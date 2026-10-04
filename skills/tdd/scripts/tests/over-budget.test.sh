@@ -176,4 +176,36 @@ refused "unit 12 100 under VERI_UNIT_BUDGET=x" env VERI_UNIT_BUDGET=x "$CHECK" u
 
 report "$name"
 
+name="over-budget.sh: run through a symlink to the skill directory from another working directory, it answers as in place"
+problems=()
+
+link_dir="$(scratch_dir)"
+elsewhere="$(scratch_dir)"
+ln -s "$(cd "$HERE/../.." && pwd)" "$link_dir/skill"
+linked="$link_dir/skill/scripts/over-budget.sh"
+
+for args in "unit 12 100 0" "unit 4 100 1"; do
+  read -r -a argv <<< "$args"
+  want="${argv[3]}"
+  argv=("${argv[@]:0:3}")
+  args="${argv[*]}"
+  in_place="$(env -u VERI_UNIT_BUDGET -u VERI_TIME_WARN_RATIO "$CHECK" "${argv[@]}" 2>/dev/null)" && in_code=0 || in_code=$?
+  via_link="$(cd "$elsewhere" && env -u VERI_UNIT_BUDGET -u VERI_TIME_WARN_RATIO "$linked" "${argv[@]}" 2>/dev/null)" && link_code=0 || link_code=$?
+  [[ "$link_code" == "$in_code" ]] ||
+    problems+=("$args through the symlink from $elsewhere: want exit $in_code as in place, got $link_code")
+  [[ "$via_link" == "$in_place" ]] ||
+    problems+=("$args through the symlink from $elsewhere: want stdout $(printf '%q' "$in_place") as in place, got $(printf '%q' "$via_link")")
+  [[ "$link_code" == "$want" ]] ||
+    problems+=("$args through the symlink from $elsewhere: want exit $want, got $link_code")
+  if [[ "$want" == 0 ]]; then
+    [[ "$via_link" == *⏱* ]] ||
+      problems+=("$args through the symlink from $elsewhere: want the ⏱ line, got $(printf '%q' "$via_link")")
+  else
+    [[ -z "$via_link" ]] ||
+      problems+=("$args through the symlink from $elsewhere: want nothing on stdout, got $(printf '%q' "$via_link")")
+  fi
+done
+
+report "$name"
+
 finish
