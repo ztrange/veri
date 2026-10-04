@@ -15,12 +15,22 @@ def write_lines(lines):
     sys.stdout.buffer.write("".join(line + "\n" for line in lines).encode())
 
 
+def current(records):
+    pending = [r for r in records if r[1] == "done" and r[3] == "1"]
+    open_steps = [r for r in records if r[1] == "open" and r[2] in ("step", "diff-checked")]
+    for found in (pending, open_steps):
+        if found:
+            write_lines([found[0][6]])
+            return 0
+    return 3
+
+
 def main(argv):
     verb = argv[0] if argv else ""
     if verb not in ("", "current"):
         return refuse()
     records = ledger_steps(sys.stdin.buffer.read().decode())
     if verb == "current":
-        return 3
+        return current(records)
     write_lines("\t".join(record) for record in records)
     return 0
