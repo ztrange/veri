@@ -220,3 +220,41 @@ def test_main_reads_only_double_plus_lines_and_cuts_a_case_where_a_three_field_c
     captured = capsys.readouterr()
     assert (code, captured.out) == (
         0, "1.000000 sub/grammar.test.sh case 1 L2-6\n3.000000 sub/grammar.test.sh case 2 L7-9\n")
+
+
+def test_main_ends_the_run_at_a_suite_with_no_counter_still_sorting_the_lines_before_it(tmp_path, monkeypatch, capsys, profile):
+    traces = {"a.test.sh": "++10.000000 2 x=1\n++12.000000 3 pass=1\n",
+              "none.test.sh": "++20.000000 2 x=1\n",
+              "c.test.sh": "++30.000000 2 pass=1\n"}
+    for suite in traces:
+        (tmp_path / suite).write_text("pass=0\n")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_PROFILE_THRESHOLD", "0")
+    calls = []
+
+    def fake_run(args, **kwargs):
+        program = os.path.basename(str(args[0]))
+        calls.append([program, str(args[-1])])
+        if program == "bash":
+            if 9 in kwargs.get("pass_fds", ()):
+                os.write(9, traces.get(str(args[-1]), "").encode())
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if program == "sort":
+            text = kwargs.get("input") or ""
+            return subprocess.CompletedProcess(args, 0, text.decode() if isinstance(text, bytes) else text, "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    code = profile.main(["a.test.sh", "none.test.sh", "c.test.sh"])
+    captured = capsys.readouterr()
+    assert calls == [["bash", "a.test.sh"], ["bash", "none.test.sh"], ["sort", "-rn"]]
+    assert (code, captured.out, captured.err) == (
+        2, "2.000000 a.test.sh case 1 L2-3\n",
+        "profile.sh: none.test.sh: no pass=/fail= increment in its trace\n")
+
+    del calls[:]
+    code = profile.main(["missing.test.sh"])
+    captured = capsys.readouterr()
+    assert calls == [["bash", "missing.test.sh"], ["sort", "-rn"]]
+    assert (code, captured.out, captured.err) == (
+        2, "", "profile.sh: missing.test.sh: no pass=/fail= increment in its trace\n")
