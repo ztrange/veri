@@ -59,3 +59,21 @@ def test_main_refuses_stop_and_budget_words_with_2_and_skill_md_calls_ci_conflic
 
     assert results == {cause: (2, "") for cause in results}
     assert "**system**" in entry
+
+
+def test_main_keeps_the_bash_quirks_exact_case_first_argument_only_no_option_marker_and_empty_is_missing(capsys, classify_bail):
+    results = {}
+    for name, argv in {"upper": ["KILLED-STUCK"], "leading space": [" killed-stuck"],
+                       "extra args": ["killed-stuck", "extra", "args"], "dashdash": ["--", "killed-stuck"],
+                       "empty": [""], "none": []}.items():
+        code = classify_bail.main(argv)
+        results[name] = (code, *capsys.readouterr())
+
+    assert results == {
+        "upper": (2, "", "classify-bail: unknown cause: KILLED-STUCK\n" + USAGE),
+        "leading space": (2, "", "classify-bail: unknown cause:  killed-stuck\n" + USAGE),
+        "extra args": (0, "system\n", ""),
+        "dashdash": (2, "", "classify-bail: unknown cause: --\n" + USAGE),
+        "empty": results["none"],
+        "none": (2, "", "classify-bail: unknown cause: \n" + USAGE),
+    }
