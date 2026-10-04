@@ -21,4 +21,4 @@
 - [ ] the PR body lists the replaced #495 metrics case beside its rewrite ⟦human-owed⟧ ⟦criterion 2⟧
 - [ ] the PR body quotes each new tests/py/test_ledger.py parity case as observed against lib/ledger.sh under LC_ALL=C ⟦human-owed⟧ ⟦criterion 3⟧
 - [ ] the PR body lists each cut tests/ledger-steps.test.sh case beside the tests/py/test_ledger_steps.py case that replaced it, and quotes make profile for tests/ledger-steps.test.sh and the wall time of tests/py/test_ledger_steps.py, before and after, with the commit beside each figure ⟦human-owed⟧ ⟦criterion 6⟧
-- [ ] make test is green, tests/ledger-steps.test.sh, tests/metrics.test.sh, tests/skill-leaf-env.test.sh, tests/unit/missing-argument-exit.test.sh, tests/unit/exit-contract.test.sh, tests/unit/scratch-copy-libs.test.sh and tests/py/test_comment_class.py among its suites ⟦full-suite⟧ ⟦criterion 7⟧
+- [x] make test is green, tests/ledger-steps.test.sh, tests/metrics.test.sh, tests/skill-leaf-env.test.sh, tests/unit/missing-argument-exit.test.sh, tests/unit/exit-contract.test.sh, tests/unit/scratch-copy-libs.test.sh and tests/py/test_comment_class.py among its suites ⟦full-suite⟧ ⟦criterion 7⟧
