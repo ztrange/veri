@@ -133,7 +133,7 @@ report "$name"
 
 name="leaf-role.sh, run through a symlink to the skill directory and from another working directory, prints the same stdout and stderr and exits with the same code as when run in place, for develop-red (exit 0) and plan-red (exit 2)"
 problems=()
-scratch="$(mktemp -d)"
+scratch="$(scratch_dir)"
 ln -s "$(cd "$HERE/../.." && pwd)" "$scratch/skill"
 mkdir "$scratch/elsewhere"
 for leaf in develop-red plan-red; do
