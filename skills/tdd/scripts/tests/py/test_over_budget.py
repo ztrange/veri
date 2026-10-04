@@ -141,3 +141,12 @@ def test_main_reads_a_usual_awk_reads_as_a_string_as_zero_inside_the_product(cap
         code = over_budget.main(argv)
         capsys.readouterr()
         assert (argv, code) == (argv, expected)
+
+
+def test_main_reads_a_dot_as_the_decimal_separator_whatever_lc_all_says(capsys, monkeypatch, over_budget):
+    _time_budget(monkeypatch, 0, "10\n1.5\n")
+    for locale in ("de_DE.UTF-8", "C"):
+        monkeypatch.setenv("LC_ALL", locale)
+        code = over_budget.main(["all", "1,6", "1"])
+        out, _ = capsys.readouterr()
+        assert (locale, code, out) == (locale, 1, "")
