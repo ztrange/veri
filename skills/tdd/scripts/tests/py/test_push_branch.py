@@ -299,3 +299,22 @@ def test_main_retries_an_unreachable_origin_doubling_its_backoff_and_returns_2_o
         2,
         2,
     )
+
+
+def test_main_refuses_a_retries_or_backoff_that_is_not_a_non_negative_whole_number_naming_it_issue_776(monkeypatch, capsys, push_branch):
+    def run_with(name, value):
+        calls = fake_processes(monkeypatch, lambda line: (128, "fatal: unable to access origin\n"))
+        monkeypatch.setenv("VERI_PUSH_RETRIES", "0")
+        monkeypatch.setenv("VERI_PUSH_BACKOFF", "0")
+        monkeypatch.setenv(name, value)
+        code = push_branch.main([])
+        return code, calls, capsys.readouterr().err
+
+    bad = ("+3", " 3", "3 ", "1_0", "1e3", "0x10", "٣")
+    names = ("VERI_PUSH_RETRIES", "VERI_PUSH_BACKOFF")
+    observed = [run_with(name, value) for name in names for value in bad]
+
+    assert observed == [
+        (2, [], f"push-branch.sh: {name} must be a non-negative integer, got '{value}'\n")
+        for name in names for value in bad
+    ]
