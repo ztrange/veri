@@ -21,20 +21,31 @@ def main(argv):
                             stdout=subprocess.PIPE, text=True)
     if listed.returncode:
         return listed.returncode
+    try:
+        skip = int(reached, 8 if reached.startswith("0") else 10)
+    except ValueError:
+        print(f"refactor-overflow: {reached}: value too great for base", file=sys.stderr)
+        return 1
+    start = (skip + 1 + 2**63) % 2**64 - 2**63
+    if start < 0:
+        print(f"refactor-overflow: illegal offset -- +{start}", file=sys.stderr)
+        return 1
     text = ""
     if skipped:
         with open(skipped) as f:
             text = f.read()
-    text += "\n".join(listed.stdout.split("\n")[int(reached):])
+    text += "\n".join(listed.stdout.split("\n")[max(start - 1, 0):])
     unreached = text.rstrip("\n")
     if not unreached:
         return 3
     body = f"Structural candidates #{n}'s closing pass could not reach:\n\n" + "\n".join(
         f"- {line}" for line in unreached.split("\n"))
-    url = subprocess.run(["gh", "api", "repos/{owner}/{repo}/issues",
-                          "-f", f"title=Refactor owed by #{n}", "-f", f"body={body}",
-                          "-q", ".html_url"], stdout=subprocess.PIPE, text=True).stdout
-    print(url.rstrip("\n"))
+    filed = subprocess.run(["gh", "api", "repos/{owner}/{repo}/issues",
+                            "-f", f"title=Refactor owed by #{n}", "-f", f"body={body}",
+                            "-q", ".html_url"], stdout=subprocess.PIPE, text=True)
+    if filed.returncode:
+        return filed.returncode
+    print(filed.stdout.rstrip("\n"))
     return 0
 
 
