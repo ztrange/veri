@@ -53,10 +53,11 @@ def main(argv):
         return 1
     derived = max(900, baseline * 6)
     if argv[1:2] == ["refactor"]:
-        budget = arith(os.environ.get("VERI_REFACTOR_BUDGET") or "5")
-        if budget is None:
-            return 1
-        derived = derived * max(1, budget)
+        budget = os.environ.get("VERI_REFACTOR_BUDGET") or "5"
+        if not is_whole(budget):
+            print(f"leaf-timeout: VERI_REFACTOR_BUDGET must be a whole number >= 0: {budget}", file=sys.stderr)
+            return 2
+        derived = derived * max(1, int(budget))
     print(derived)
     return 0
 

@@ -140,7 +140,7 @@ def test_main_keeps_leaf_timeout_sh_argument_and_environment_quirks(monkeypatch,
         (None, None, ["200", "foo"], 0, "1200\n", ""),
         (None, "5", ["200", "refactor", "x"], 0, "6000\n", ""),
         (None, "", ["200", "refactor"], 0, "6000\n", ""),
-        (None, "-3", ["200", "refactor"], 0, "1200\n", ""),
+        (None, "-3", ["200", "refactor"], 2, "", "leaf-timeout: VERI_REFACTOR_BUDGET must be a whole number >= 0: -3\n"),
     ]
 
 
@@ -163,9 +163,24 @@ def test_main_reproduces_leaf_timeout_sh_bash_arithmetic_in_stdout_and_return_co
         (None, ["0200"], 0, "1200\n"),
         (None, ["08"], 0, "900\n"),
         (None, ["5", "--full", "0200"], 0, "1200\n"),
-        ("abc", ["200", "refactor"], 1, ""),
+        ("abc", ["200", "refactor"], 2, ""),
         ("010", ["200", "refactor"], 0, "12000\n"),
         (None, ["1537228672809129302"], 0, "9223372036854775812\n"),
         (None, ["768614336404564651", "refactor"], 0, "23058430092136939530\n"),
         (None, ["9223372036854775808"], 0, "55340232221128654848\n"),
+    ]
+
+
+def test_main_with_refactor_refuses_a_veri_refactor_budget_not_a_non_negative_whole_number_with_2_naming_it_issue_776(monkeypatch, capsys, leaf_timeout):
+    monkeypatch.delenv("VERI_TIMEOUT", raising=False)
+    seen = []
+    for budget in ("abc", "-3", "1.5"):
+        monkeypatch.setenv("VERI_REFACTOR_BUDGET", budget)
+        code = leaf_timeout.main(["200", "refactor"])
+        out, err = capsys.readouterr()
+        seen.append((budget, code, out, "VERI_REFACTOR_BUDGET" in err))
+    assert seen == [
+        ("abc", 2, "", True),
+        ("-3", 2, "", True),
+        ("1.5", 2, "", True),
     ]
