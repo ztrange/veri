@@ -157,19 +157,13 @@ def move(queue, argv, fourth, source, target):
         return 1
     with lines, open(tmp, "w") as rewritten:
         for fields in read_fields(lines):
-            if len(argv) < 2:
-                unbound("$2")
             if fields[0] == argv[1]:
-                if len(argv) < 3:
-                    unbound("$3")
                 if fields[1:3] == [argv[2], source]:
                     fields[2:4] = [target, detail]
                     moved = True
             rewritten.write("\t".join(fields[:4]) + "\n")
     if not moved:
         os.remove(tmp)
-        if len(argv) < 3:
-            unbound("$%d" % (len(argv) + 1))
         sys.stderr.write("workqueue.sh: %s holds no %s item for issue %s\n" % (argv[1], source, argv[2]))
         return 1
     status = subprocess.run(["mv", tmp, queue]).returncode
