@@ -53,3 +53,30 @@ def test_main_returns_2_and_leaves_no_temp_file_when_the_patch_dies_with_5(tmpdi
     assert seen.get("existed") is True
     assert pathlib.Path(seen["path"]).resolve().parent == tmpdir_env.resolve()
     assert list(tmpdir_env.iterdir()) == []
+
+
+def test_main_patches_the_body_it_read_after_the_create_with_trailing_newlines_collapsed_to_one(tmpdir_env, monkeypatch, coverage_blocker):
+    calls = []
+    seen = {}
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
+            calls.append("create")
+            return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
+        if args == ["gh", "issue", "view", "60", "--json", "body", "-q", ".body"]:
+            calls.append("view")
+            return subprocess.CompletedProcess(args, 0, "## Parent\n\n#1\n\n\n", "")
+        if args[:4] == ["gh", "api", "-X", "PATCH"]:
+            calls.append("patch")
+            path = args[args.index("-F") + 1].split("body=@", 1)[1]
+            seen["body"] = pathlib.Path(path).read_text()
+            return subprocess.CompletedProcess(args, 5, "", "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    coverage_blocker.main(["60"])
+
+    assert calls == ["create", "view", "patch"]
+    assert seen["body"] == "## Parent\n\n#1\n"
