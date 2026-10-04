@@ -3,9 +3,73 @@ import re
 import subprocess
 import sys
 
+try:
+    from github import NoAnswer, gh_json
+    from json_documents import items
+except ImportError:
+    from .github import NoAnswer, gh_json
+    from .json_documents import items
+
+
+class GitFailed(Exception):
+    pass
+
 
 def git(*args, **kwargs):
     return subprocess.run(["git", *args], **kwargs)
+
+
+def git_out(*args):
+    return git(*args, stdout=subprocess.PIPE, text=True).stdout
+
+
+def git_value(*args):
+    run = git(*args, stdout=subprocess.PIPE, text=True)
+    if run.returncode != 0:
+        raise GitFailed()
+    return run.stdout.rstrip("\n")
+
+
+def refs(prefix):
+    for line in git_out("for-each-ref", "--format=%(refname) %(objectname)", prefix).splitlines():
+        ref, tip = line.split(" ", 1)
+        yield ref, tip
+
+
+def remote_rows(default):
+    rows = ""
+    for ref, tip in refs("refs/remotes/origin/"):
+        name = ref.removeprefix("refs/remotes/origin/")
+        if name in (default, "HEAD"):
+            continue
+        ahead = git_value("rev-list", "--count", f"origin/{default}..{ref}")
+        rows += f"{name} {tip} {ahead}\n"
+    return rows
+
+
+def worktrees():
+    worktree_of, path = {}, ""
+    for line in git_out("worktree", "list", "--porcelain").splitlines():
+        fields = line.split(None, 1)
+        key = fields[0] if fields else ""
+        value = fields[1].strip() if len(fields) > 1 else ""
+        if key == "worktree":
+            path = value
+        elif key == "branch":
+            worktree_of[value] = path
+    return worktree_of
+
+
+def local_rows():
+    worktree_of = worktrees()
+    rows = ""
+    for ref, tip in refs("refs/heads/"):
+        name = ref.removeprefix("refs/heads/")
+        if git("show-ref", "-q", "--verify", f"refs/remotes/origin/{name}").returncode == 0:
+            continue
+        lacks = git_value("rev-list", "--count", ref, "--not", "--remotes=origin")
+        rows += f"{name} {tip} {lacks} {worktree_of.get(ref, '')}\n"
+    return rows
 
 
 def main(argv):
@@ -13,20 +77,34 @@ def main(argv):
         print("invisible-work.sh: cannot reach origin", file=sys.stderr)
         return 2
 
-    if git("symbolic-ref", "--short", "refs/remotes/origin/HEAD",
-           stdout=subprocess.PIPE, text=True).returncode != 0:
+    try:
+        issues_text = gh_json("issues.json", "repos/{owner}/{repo}/issues?state=all&per_page=100",
+                              "issue", "list", "--state", "all", "--limit", "10000",
+                              "--json", "number,state")
+        prs_text = gh_json("prs.json", "repos/{owner}/{repo}/pulls?state=all&per_page=100",
+                           "pr", "list", "--state", "all", "--limit", "10000",
+                           "--json", "headRefName,state")
+    except (NoAnswer, OSError):
+        print("invisible-work.sh: cannot read issues and PRs from gh (unauthenticated?)",
+              file=sys.stderr)
         return 2
-    return 3
+
+    try:
+        default = git_value("symbolic-ref", "--short", "refs/remotes/origin/HEAD")
+        default = default.removeprefix("origin/")
+        branches = remote_rows(default)
+        locals_ = local_rows()
+    except GitFailed:
+        return 2
+
+    return report(branches, locals_, issues_text, prs_text)
 
 
 def head(pr):
     return pr["headRefName"] if "headRefName" in pr else pr["head"]["ref"]
 
 
-def report(branches, locals_, documents):
-    from json_documents import items
-
-    issues_text, prs_text = documents.split("\0")
+def report(branches, locals_, issues_text, prs_text):
     issues = {i["number"]: i["state"].upper() for i in items(issues_text)}
     prs = items(prs_text)
     with_pr = {head(p) for p in prs}
@@ -61,4 +139,4 @@ def report(branches, locals_, documents):
 
 
 if __name__ == "__main__":
-    sys.exit(report(sys.argv[1], sys.argv[2], sys.stdin.read()))
+    sys.exit(main(sys.argv[1:]))

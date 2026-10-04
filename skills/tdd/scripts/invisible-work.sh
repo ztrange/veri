@@ -1,6 +1,7 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # invisible-work.sh — report work that is not visible, naming the invariant each finding
-# breaks. Reads, never writes: it deletes nothing, pushes nothing, opens nothing.
+# breaks: a shim over veri/invisible_work.py.
+# Reads, never writes: it deletes nothing, pushes nothing, opens nothing.
 #
 # Invariant 2: a branch is never created without a PR. A branch on `origin` for which
 # no PR was ever opened — not open, not closed, not merged — is reported with its tip, its
@@ -25,56 +26,12 @@
 #   gh issue list --state all --limit 10000 --json number,state
 #   gh pr list --state all --limit 10000 --json headRefName,state
 # VERI_GH_JSON overrides both, naming a directory holding `issues.json` and `prs.json` in those shapes — the same override solvable-issues.sh establishes, so this runs with no
-# network in its tests. The JSON is read with python3, as there.
+# network in its tests.
 #
 # Exit: 0 when at least one finding was printed, 3 with empty stdout when there is nothing
 # to report, 2 with a diagnostic on stderr and empty stdout when `origin` cannot be reached
 # or `gh` cannot be read — so a fetch failure never reads as a clean repository.
 #
-# Usage:   invisible-work.sh
-#          VERI_GH_JSON=<dir> invisible-work.sh
-set -euo pipefail
-
-here="$(cd "$(dirname "$0")" && pwd)"
-source "$here/lib/exit-contract.sh"
-source "$here/lib/github.sh"
-
-if ! git ls-remote --heads origin > /dev/null; then
-  echo "invisible-work.sh: cannot reach origin" >&2
-  exit 2
-fi
-
-if ! issues_json="$(gh_json issues.json "repos/{owner}/{repo}/issues?state=all&per_page=100" issue list --state all --limit 10000 --json number,state)" ||
-   ! prs_json="$(gh_json prs.json "repos/{owner}/{repo}/pulls?state=all&per_page=100" pr list --state all --limit 10000 --json headRefName,state)"; then
-  echo "invisible-work.sh: cannot read issues and PRs from gh (unauthenticated?)" >&2
-  exit 2
-fi
-
-default="$(git symbolic-ref --short refs/remotes/origin/HEAD)"
-default="${default#origin/}"
-
-branches=""
-while read -r ref tip; do
-  name="${ref#refs/remotes/origin/}"
-  [[ "$name" == "$default" || "$name" == HEAD ]] && continue
-  ahead="$(git rev-list --count "origin/$default..$ref")"
-  branches+="$name $tip $ahead"$'\n'
-done < <(git for-each-ref --format='%(refname) %(objectname)' refs/remotes/origin/)
-
-declare -A worktree_of=()
-while read -r key value; do
-  case "$key" in
-    worktree) path="$value" ;;
-    branch) worktree_of["$value"]="$path" ;;
-  esac
-done < <(git worktree list --porcelain)
-
-locals=""
-while read -r ref tip; do
-  name="${ref#refs/heads/}"
-  git show-ref -q --verify "refs/remotes/origin/$name" && continue
-  lacks="$(git rev-list --count "$ref" --not --remotes=origin)"
-  locals+="$name $tip $lacks ${worktree_of[$ref]:-}"$'\n'
-done < <(git for-each-ref --format='%(refname) %(objectname)' refs/heads/)
-
-exec python3 "$here/veri/invisible_work.py" "$branches" "$locals" < <(printf '%s\0%s' "$issues_json" "$prs_json")
+# usage: invisible-work.sh
+#        VERI_GH_JSON=<dir> invisible-work.sh
+exec python3 "$(dirname "$0")/veri/invisible_work.py" "$@"
