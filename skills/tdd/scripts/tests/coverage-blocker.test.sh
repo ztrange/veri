@@ -292,4 +292,30 @@ else
 $(cat "$work/rest.err")"
 fi
 
+name="coverage-blocker.sh run through a symlink to the skill directory and from another working directory prints the same URL, PATCHes the same body and exits as when run in place"
+body='## What to build
+
+Extract the parser.
+
+## Blocked by
+
+None (can start immediately).
+'
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+mkdir -p "$work/elsewhere"
+run_blocker "$body" "$work/inplace-create" "$work/inplace-edit" 60 > "$work/inplace-out" 2>"$work/inplace.err" && in_place_code=0 || in_place_code=$?
+(cd "$work/elsewhere" && env PATH="$stubdir:$PATH" FAKE_BODY="$body" FAKE_CREATE="$work/linked-create" FAKE_OUT="$work/linked-edit" \
+  "$work/linked-skill/scripts/coverage-blocker.sh" 60 > "$work/linked-out" 2>"$work/linked.err") && linked_code=0 || linked_code=$?
+if [[ "$in_place_code" == 0 && "$linked_code" == "$in_place_code" \
+      && "$(cat "$work/inplace-out")" == "https://github.com/owner/name/issues/77" \
+      && -f "$work/linked-edit" ]] && cmp -s "$work/inplace-out" "$work/linked-out" \
+      && cmp -s "$work/inplace-edit" "$work/linked-edit"; then
+  ok
+else
+  no "$name (exit in place $in_place_code, linked $linked_code, want 0 both)
+$(diff "$work/inplace-out" "$work/linked-out")
+$(diff "$work/inplace-edit" "$work/linked-edit" 2>&1)
+$(cat "$work/linked.err")"
+fi
+
 finish
