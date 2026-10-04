@@ -25,3 +25,5 @@
 - test-only | test_github.py holds five near-identical inline `fake_run` copies (lines 111, 170, 204, 257, 288) that write the fake stderr to `sys.stderr` when the caller doesn't capture it; fold them into the shared `fake_gh` helper (line 20), for example with a flag that passes stderr through
 ### veri.github.gh_issue_view's REST route answers "" for a null body ⟦criterion 3⟧
 - test-only | the six inline `fake_run` copies in skills/tdd/scripts/tests/py/test_github.py that write stderr through (e.g. the REST-body and both-routes-fail gh_issue_view tests) duplicate `fake_gh` (:20); `fake_gh` could take the stderr pass-through once and replace them
+### veri.github.gh_issue_view's REST route answers the label names one per line for labels ⟦criterion 3⟧
+- test-only | extract the repeated `gh issue view <n> --json <field> -q <query>` fake setup in test_github.py's gh_issue_view cases into a helper
