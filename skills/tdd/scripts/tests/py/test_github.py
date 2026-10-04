@@ -590,6 +590,29 @@ def test_with_veri_gh_driver_rest_the_graphql_route_reads_run_only_rest_and_a_re
     assert [err.startswith(refusal) for err in errs] == [True, True, True]
 
 
+def test_with_veri_gh_driver_graphql_the_graphql_route_reads_answer_graphql_stdout_and_a_graphql_failure_is_a_no_answer_with_no_gh_api_call(monkeypatch, github):
+    monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    path = "repos/{owner}/{repo}/pulls?state=open"
+    calls = fake_gh(monkeypatch, {
+        ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (0, "A thing.\n", ""),
+        ("gh", "pr", "list", "--json", "number"): (0, '[{"number":7}]', ""),
+        ("gh", "issue", "view", "61", "--json", "body", "-q", ".body"): (1, "", ""),
+        ("gh", "issue", "list", "--json", "number"): (1, "", ""),
+    })
+
+    assert github.gh_issue_view("60", "body") == "A thing.\n"
+    assert github.gh_list(path, "pr", "list", "--json", "number") == '[{"number":7}]'
+    assert github.gh_json("prs.json", path, "pr", "list", "--json", "number") == '[{"number":7}]'
+    for read in (lambda: github.gh_issue_view("61", "body"),
+                 lambda: github.gh_list(path, "issue", "list", "--json", "number"),
+                 lambda: github.gh_json("issues.json", path, "issue", "list", "--json", "number")):
+        with pytest.raises(github.NoAnswer):
+            read()
+
+    assert [call for call in calls if call[1] == "api"] == []
+
+
 def test_the_module_is_importable_as_from_veri_import_github_and_as_import_veri_github(monkeypatch):
     monkeypatch.delitem(sys.modules, "veri.github", raising=False)
     monkeypatch.delattr(importlib.import_module("veri"), "github", raising=False)

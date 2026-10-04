@@ -135,7 +135,10 @@ def _select(operation):
     fixtures = os.environ.get("VERI_GH_JSON")
     if operation == "json" and fixtures:
         return FixtureAdapter(fixtures)
-    first = GraphQLAdapter() if os.environ.get("VERI_GH_DRIVER") == "auto" else NoRouteAdapter()
+    driver = os.environ.get("VERI_GH_DRIVER")
+    if driver == "graphql":
+        return FallbackAdapter(GraphQLAdapter(), NoRouteAdapter())
+    first = GraphQLAdapter() if driver == "auto" else NoRouteAdapter()
     return FallbackAdapter(first, RestAdapter())
 
 
