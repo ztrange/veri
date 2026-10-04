@@ -992,4 +992,11 @@ bogus_revise_out="$("$BUILD" revise bogus "$work/spec.md" "$step_text" "$test_cm
   && grep -F 'red|green|refactor|diff' "$bogus_revise_err" > /dev/null \
   && ok || no "#880 a revise of an unknown phase exits 2 with no prompt and names diff among the accepted revise phases red|green|refactor|diff (exit $code, stderr: $(cat "$bogus_revise_err"))"
 
+revise_diff_err="$work/revise-diff.err"
+revise_diff="$("$BUILD" revise diff "$work/spec.md" "$dd_step" "$test_cmd" "$work/reason.md" 2>"$revise_diff_err")"; code=$?
+[[ "$code" -eq 0 ]] \
+  && [[ "$revise_diff" == *"$dd_step"* ]] \
+  && [[ "$revise_diff" == *"$reason_text"* ]] \
+  && ok || no "#880 a revise of a diff-checked step exits 0 and prints a prompt carrying the step text and the verifier's rejection reason (exit $code, stderr: $(cat "$revise_diff_err"))"
+
 finish
