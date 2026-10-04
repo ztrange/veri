@@ -15,6 +15,8 @@
 #   9. ... and when the outer one ran with a MAKEFLAGS in its environment carrying SUITES= or TESTS=.
 #  10. A make test nested deeper than a fixed bound refuses with exit 2 and a stderr line naming
 #      the depth, before running any suite.
+#  11. A commit a suite makes in a repository whose own config forces auto maintenance on, in
+#      the foreground, leaves its loose objects where they are.
 #
 # Run: skills/tdd/scripts/tests/make-test-env.test.sh
 set -uo pipefail
@@ -284,5 +286,24 @@ done
 [[ -n "$refused" ]] ||
   problems+=("no nested make test exited 2 with a stderr line naming the depth; nested exits [$(flat "$(cat "$tree"/self/*.code 2>/dev/null)")]: $(flat "$(tail -n 5 "$work/depth.out")")")
 report "a make test nested deeper than a fixed bound refuses with exit 2 and a stderr line naming the depth, before running any suite (#816)"
+
+problems=()
+forced="$work/forced-maintenance"
+new_repo "$forced"
+git -C "$forced" config gc.auto 1
+git -C "$forced" config gc.autoDetach false
+git -C "$forced" config maintenance.autoDetach false
+git -C "$forced" config maintenance.geometric-repack.auto -1
+for i in $(seq 1 600); do echo "$i" > "$forced/f$i"; done
+git -C "$forced" add -A
+fanout_before="$(find "$forced/.git/objects" -mindepth 1 -maxdepth 1 -name '[0-9a-f][0-9a-f]' | wc -l | tr -d ' ')"
+recipe /dev/null COMMIT_REPO="$forced"
+fanout_after="$(find "$forced/.git/objects" -mindepth 1 -maxdepth 1 -name '[0-9a-f][0-9a-f]' | wc -l | tr -d ' ')"
+packs="$(find "$forced/.git/objects/pack" -name '*.pack' | wc -l | tr -d ' ')"
+[[ "$fanout_after" -ge "$fanout_before" && "$fanout_before" -gt 0 ]] ||
+  problems+=("the commit left $fanout_after of $fanout_before objects/<xx> fan-out directories — git's auto maintenance repacked the suite's scratch repo")
+[[ "$packs" -eq 0 ]] ||
+  problems+=("the commit wrote $packs pack(s) into the suite's scratch repo, want 0 — auto maintenance ran")
+report "under make test, a commit in a scratch repo whose own config forces foreground auto maintenance leaves its loose objects in place (#862)"
 
 finish
