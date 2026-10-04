@@ -1,0 +1,2 @@
+### a verifier whose run creates an untracked .tdd/ run-state file in a subdirectory of the repo (projects/docs/.tdd/events.jsonl) has its PASS verdict accepted — verify.sh exits 0 with no "modified the repository" refusal ⟦criterion 1⟧
+- test-only | the new case at verify.test.sh:286-298 repeats the `verify_in … green 'VERDICT: PASS / REASON: Target test and full suite are green.' "$stubdir/claude-mutate"` call that `tamper_run` (verify.test.sh:260-261) makes; move that call into a helper both use
