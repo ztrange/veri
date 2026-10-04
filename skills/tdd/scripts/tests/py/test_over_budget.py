@@ -150,3 +150,17 @@ def test_main_reads_a_dot_as_the_decimal_separator_whatever_lc_all_says(capsys, 
         code = over_budget.main(["all", "1,6", "1"])
         out, _ = capsys.readouterr()
         assert (locale, code, out) == (locale, 1, "")
+
+
+def test_main_compares_as_macos_awk_does_not_as_python_float_does(capsys, monkeypatch, over_budget):
+    _time_budget(monkeypatch, 0, "10\n1.5\n")
+    cases = [(["all", seconds, "1"], 0) for seconds in (" 12", "+200", ".5e3", "200.", "2e2", "inf", "0x1A")]
+    cases += [(["all", "nan", "1"], 1), (["unit", "abc", "100"], 0), (["all", "160s", "100"], 0),
+              (["all", "1000s", "100"], 1), (["all", "1e", "1000"], 0), (["all", "1_000", "1000"], 0),
+              (["all", "160", "abc"], 0)]
+    for locale in ("C", "de_DE.UTF-8"):
+        monkeypatch.setenv("LC_ALL", locale)
+        for argv, expected in cases + [(["all", "1,6", "1"], 1)]:
+            code = over_budget.main(argv)
+            capsys.readouterr()
+            assert (locale, argv, code) == (locale, argv, expected)
