@@ -6,6 +6,7 @@ import sys
 import tempfile
 
 USAGE = "usage: coverage-blocker.sh <refactor-issue-number>"
+ISSUES = "repos/{owner}/{repo}/issues"
 
 
 def gh(*args, stderr=None):
@@ -13,7 +14,7 @@ def gh(*args, stderr=None):
 
 
 def issue(number):
-    return "repos/{owner}/{repo}/issues/%s" % number
+    return "%s/%s" % (ISSUES, number)
 
 
 def read_body(number):
@@ -28,7 +29,7 @@ def read_body(number):
 
 
 def existing(title):
-    found = gh("api", "repos/{owner}/{repo}/issues", "-X", "GET", "-f", "state=open", "-f", "per_page=100")
+    found = gh("api", ISSUES, "-X", "GET", "-f", "state=open", "-f", "per_page=100")
     try:
         listing = json.loads(found.stdout)
     except json.JSONDecodeError:
@@ -70,7 +71,7 @@ def main(argv):
     title = "Cover the behaviour #%s refactors" % n
     url = existing(title)
     if url is None:
-        create = gh("api", "repos/{owner}/{repo}/issues", "-f", "title=" + title, "-f", "body=" + text,
+        create = gh("api", ISSUES, "-f", "title=" + title, "-f", "body=" + text,
                     "-q", ".html_url")
         if create.returncode != 0:
             return 2
