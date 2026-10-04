@@ -306,4 +306,41 @@ got_err="$(cat "$work/err")"
 
 report "$name"
 
+name="refactor-overflow run through a symlink to the skill directory and from another working directory files the candidates refactor-owed.sh lists beside it, with gh run in the caller's working directory"
+problems=()
+
+pwd_stubdir="$work/pwd-bin"
+mkdir -p "$pwd_stubdir"
+cat > "$pwd_stubdir/gh" <<STUB
+#!/bin/sh
+pwd -P > "\$FAKE_PWD"
+exec "$stubdir/gh" "\$@"
+STUB
+chmod +x "$pwd_stubdir/gh"
+
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+mkdir -p "$work/elsewhere"
+title_file="$work/title-linked" body_file="$work/body-linked" pwd_file="$work/pwd-linked"
+(cd "$work/elsewhere" && env PATH="$pwd_stubdir:$PATH" FAKE_TITLE="$title_file" FAKE_BODY="$body_file" FAKE_PWD="$pwd_file" \
+  "$work/linked-skill/scripts/refactor-overflow.sh" 504 "$owed_file" 1 >"$out" 2>"$work/err") && code=0 || code=$?
+
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 run through the symlink, got $code: $(cat "$work/err")")
+printed="$(cat "$out")"
+[[ "$printed" == "https://github.com/owner/name/issues/912" ]] ||
+  problems+=("want the new issue's URL on stdout run through the symlink, got '$printed'")
+body="$(cat "$body_file" 2>/dev/null)"
+want_body="Structural candidates #504's closing pass could not reach:
+
+- fold verify.sh's two mktemp calls into one helper
+- split the verdict parser out of run-leaf.sh"
+[[ "$body" == "$want_body" ]] ||
+  problems+=("want the filed body to list the candidates refactor-owed.sh lists after the first 1:" "$want_body" "got" "$body")
+want_pwd="$(cd "$work/elsewhere" && pwd -P)"
+got_pwd="$(cat "$pwd_file" 2>/dev/null)"
+[[ "$got_pwd" == "$want_pwd" ]] ||
+  problems+=("want gh run in the caller's working directory '$want_pwd', got '$got_pwd'")
+
+report "$name"
+
 finish
