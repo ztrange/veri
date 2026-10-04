@@ -17,6 +17,7 @@
 #      the depth, before running any suite.
 #  11. A commit a suite makes in a repository whose own config forces auto maintenance on, in
 #      the foreground, leaves its loose objects where they are.
+#  12. The same commit made outside the recipe's environment repacks them.
 #
 # Run: skills/tdd/scripts/tests/make-test-env.test.sh
 set -uo pipefail
@@ -305,5 +306,23 @@ packs="$(find "$forced/.git/objects/pack" -name '*.pack' | wc -l | tr -d ' ')"
 [[ "$packs" -eq 0 ]] ||
   problems+=("the commit wrote $packs pack(s) into the suite's scratch repo, want 0 — auto maintenance ran")
 report "under make test, a commit in a scratch repo whose own config forces foreground auto maintenance leaves its loose objects in place (#862)"
+
+problems=()
+unguarded="$work/unguarded-maintenance"
+new_repo "$unguarded"
+git -C "$unguarded" config gc.auto 1
+git -C "$unguarded" config gc.autoDetach false
+git -C "$unguarded" config maintenance.autoDetach false
+git -C "$unguarded" config maintenance.geometric-repack.auto -1
+for i in $(seq 1 600); do echo "$i" > "$unguarded/f$i"; done
+git -C "$unguarded" add -A
+env -u GIT_CONFIG_COUNT git -C "$unguarded" commit -qm forced
+fanout_after="$(find "$unguarded/.git/objects" -mindepth 1 -maxdepth 1 -name '[0-9a-f][0-9a-f]' | wc -l | tr -d ' ')"
+packs="$(find "$unguarded/.git/objects/pack" -name '*.pack' | wc -l | tr -d ' ')"
+[[ "$fanout_after" -eq 0 ]] ||
+  problems+=("outside the recipe the forced commit left $fanout_after objects/<xx> fan-out directories, want 0 — $(git --version) did not repack, so the hazard the recipe removes was not shown real")
+[[ "$packs" -gt 0 ]] ||
+  problems+=("outside the recipe the forced commit wrote no pack — $(git --version) ran no auto maintenance")
+report "outside make test's environment, the same forced commit repacks the scratch repo's loose objects, so the hazard is real on this git (#862)"
 
 finish
