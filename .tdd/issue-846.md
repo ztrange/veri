@@ -5,7 +5,7 @@
 - [x] The guard fails the run naming `<suite>:<line>` for a planted suite line that starts with `chmod 000 <path>` ⟦added⟧ ⟦criterion 2⟧
 - [x] The guard fails the run naming `<suite>:<line>` for planted suite lines running `chmod a-r <path>`, `chmod u-w <path>` and `chmod -w <path>`, each reported on its own ⟦added⟧ ⟦criterion 2⟧
 - [x] The guard fails the run naming `<suite>:<line>` for a planted permission-bit chmod that follows `;`, `&&`, `||`, `|`, `(`, `{`, `then` or `do` on the same line ⟦added⟧ ⟦criterion 2⟧
-- [ ] The guard fails the run naming `<suite>:<line>` for a planted permission-bit chmod that carries an option flag before its mode, such as `chmod -R 000 <dir>` ⟦added⟧ ⟦criterion 2⟧
+- [x] The guard fails the run naming `<suite>:<line>` for a planted permission-bit chmod that carries an option flag before its mode, such as `chmod -R 000 <dir>` ⟦added⟧ ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] A guard suite fails the run naming `<suite>:<line>` for a suite that forces a read or write failure through permission bits by `chmod 000`, `chmod a-r`, `chmod u-w` or `chmod -w`, and passes on today's tree ⟦criterion 2⟧
 - [ ] The guard also fails naming `<suite>:<line>` for a suite that makes a directory read-only to force a write failure into it ⟦criterion 2⟧
 - [ ] A line the guard's exemption table lists, with a reason, is not reported, and an exemption entry carrying no reason fails the guard ⟦criterion 2⟧
