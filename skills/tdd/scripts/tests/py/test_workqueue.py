@@ -77,3 +77,40 @@ def test_start_naming_no_queued_item_of_the_worker_returns_1_and_leaves_the_main
 
     assert (code, err) == (1, "workqueue.sh: beta holds no queued item for issue 12\n")
     assert queue.read_bytes() == before
+
+
+@pytest.mark.parametrize("answer", [
+    subprocess.CompletedProcess([], 128, "", "fatal: not a git repository (or any of the parent directories): .git\n"),
+    subprocess.CompletedProcess([], 0, "", ""),
+], ids=["git-refused", "git-printed-nothing"])
+def test_main_refuses_an_unknown_subcommand_with_2_and_writes_nothing_when_git_names_no_main_working_tree_and_ignores_extra_arguments(answer, tmp_path, monkeypatch, capsys, workqueue):
+    def failing_run(args, **kwargs):
+        if list(args[:3]) == ["git", "worktree", "list"]:
+            if not kwargs.get("capture_output") and kwargs.get("stderr") is None:
+                sys.stderr.write(answer.stderr)
+            return subprocess.CompletedProcess(args, answer.returncode, answer.stdout, answer.stderr)
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", failing_run)
+    monkeypatch.chdir(tmp_path)
+
+    def run(argv):
+        code = workqueue.main(argv)
+        out, err = capsys.readouterr()
+        return code, out, err
+
+    assert run([]) == (2, "", "workqueue.sh: unknown subcommand: \n" + USAGE)
+    assert run(["bogus"]) == (2, "", "workqueue.sh: unknown subcommand: bogus\n" + USAGE)
+    assert run(["bogus", "next", "beta"]) == (2, "", "workqueue.sh: unknown subcommand: bogus\n" + USAGE)
+    assert run(["alpha", "start", "12"]) == (2, "", "workqueue.sh: unknown subcommand: alpha\n" + USAGE)
+    assert list(tmp_path.iterdir()) == []
+
+    fake_git(monkeypatch, tmp_path)
+    queue = tmp_path / ".tdd" / "workqueue"
+    queue.parent.mkdir()
+    before = b"alpha\t12\tqueued\t\n"
+    queue.write_bytes(before)
+
+    assert run(["start", "beta", "12", "extra"]) == (1, "", "workqueue.sh: beta holds no queued item for issue 12\n")
+    assert run(["next", "beta", "extra"])[:2] == (3, "")
+    assert queue.read_bytes() == before
