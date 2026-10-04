@@ -1,0 +1,3 @@
+### with python3 below the floor and python3.12 on PATH, make install-dev builds the venv with python3.12, so the venv's interpreter reports a version at or above the floor ⟦criterion 1⟧
+- define the 3.12 floor once in lib/venv-python.sh and have venv_builder's `sys.version_info < (3, 12)` and the Makefile pytest leg's major/minor comparison (Makefile:128-129) both read it — owned by the plan's criterion-5 steps, not applied here
+- test-only | pytest-leg.test.sh's new stub_python fake (a python3 that pretends to be any version) could become a shared helper once criteria 2–4 add more install-dev cases that need fake interpreters at other versions
