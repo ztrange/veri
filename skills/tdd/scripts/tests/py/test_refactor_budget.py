@@ -106,7 +106,7 @@ def test_main_checks_only_the_budget_in_force_before_the_count_and_refuses_what_
     assert seen == wanted
 
 
-def test_main_reads_its_arguments_by_position_and_leading_zeros_as_decimal_issue_776(monkeypatch, capsys, refactor_budget):
+def test_main_reads_its_arguments_by_position_and_leading_zeros_and_counts_past_2_63_as_decimal_issue_776(monkeypatch, capsys, refactor_budget):
     usage = "usage: refactor-budget.sh [--issue] <count>\n"
 
     def run(env, argv):
@@ -136,8 +136,8 @@ def test_main_reads_its_arguments_by_position_and_leading_zeros_as_decimal_issue
         (3, "refactor 08/5 — budget spent\n", ""),
         (0, "refactor 1/08 — another transform may run\n", ""),
         (3, "refactor 8/08 — budget spent\n", ""),
-        (0, "refactor 9223372036854775808/5 — another transform may run\n", ""),
-        (0, "refactor 27670116110564327424/5 — another transform may run\n", ""),
+        (3, "refactor 9223372036854775808/5 — budget spent\n", ""),
+        (3, "refactor 27670116110564327424/5 — budget spent\n", ""),
         (0, "refactor 08/09 — another transform may run\n", ""),
         (3, "refactor 007/5 — budget spent\n", ""),
     ]
