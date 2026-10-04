@@ -264,3 +264,17 @@ def test_main_leaves_a_gitignore_already_carrying_the_rule_byte_identical_when_t
     assert (after, isinstance(outcome, int) and outcome != 0,
             stderr.startswith("ensure-run-state-ignored: ") and "info/exclude" in stderr) == (
         carried, True, True)
+
+
+def test_main_returns_2_when_the_info_exclude_write_fails_as_when_the_gitignore_write_fails_777(
+        tmp_path, monkeypatch, capsys, ensure_run_state_ignored):
+    root = tmp_path / "repo"
+    (root / ".git" / "info" / "exclude").mkdir(parents=True)
+    fake_rev_parse(monkeypatch, 0, ".git\n")
+
+    try:
+        outcome = ensure_run_state_ignored.main([str(root)])
+    except OSError as error:
+        outcome = type(error).__name__
+
+    assert outcome == 2

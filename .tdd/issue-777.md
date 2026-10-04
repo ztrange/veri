@@ -5,7 +5,7 @@
 - [x] workqueue.sh assign onto a queue whose last line has no trailing newline keeps that line intact and puts each new item on a line of its own ⟦criterion 2⟧
 - [x] ensure-run-state-ignored.sh writes both files or neither: when the .gitignore write fails, info/exclude is left byte-identical and it exits 2 ⟦criterion 3⟧
 - [x] ensure-run-state-ignored.sh writes both files or neither: when the info/exclude write fails after the .gitignore write succeeded, .gitignore is left byte-identical to what it was before the run and it exits non-zero, saying why on stderr ⟦added⟧ ⟦criterion 3⟧
-- [ ] ensure-run-state-ignored.sh exits 2 when the info/exclude write fails, as it does when the .gitignore write fails, so a failed write of either file is the same no-answer code ⟦added⟧ ⟦criterion 3⟧
+- [x] ensure-run-state-ignored.sh exits 2 when the info/exclude write fails, as it does when the .gitignore write fails, so a failed write of either file is the same no-answer code ⟦added⟧ ⟦criterion 3⟧ ⟂ refactor pending
 - [ ] coverage-blocker.sh run a second time for the same refactor issue, after a first run that filed the coverage issue and then failed, files no second coverage issue, prints the existing one's URL and blocks the refactor issue on it ⟦criterion 4⟧
 - [ ] every case the four scripts' suites already hold passes ⟦full-suite⟧ ⟦criterion 5⟧
 - [ ] no assertion of any case the four scripts' suites already held is changed or removed by this branch, except a case asserting one of the four named bugs, whose expectation flips to the fixed behaviour and nothing else ⟦diff-checked⟧ ⟦criterion 5⟧
