@@ -14,9 +14,9 @@ TESTS := $(sort $(wildcard skills/tdd/scripts/tests/*.test.sh))
 UNIT_DIR := skills/tdd/scripts/tests/unit
 UNIT_TESTS := $(sort $(wildcard $(UNIT_DIR)/*.test.sh))
 TESTS_NAMED := $(filter command line,$(origin TESTS))
-test profile: SUITES = $(TESTS) $(if $(TESTS_NAMED),,$(UNIT_TESTS))
+test profile: SUITES = $(filter-out %.py,$(TESTS)) $(if $(TESTS_NAMED),,$(UNIT_TESTS))
 unit: SUITES = $(UNIT_TESTS)
-PY_TESTS := $(if $(TESTS_NAMED),,$(sort $(wildcard skills/tdd/scripts/tests/py/test_*.py)))
+PY_TESTS := $(if $(TESTS_NAMED),$(filter %.py,$(TESTS)),$(sort $(wildcard skills/tdd/scripts/tests/py/test_*.py)))
 
 # The fast tier's admission-bar guard: `unit` puts UNIT_GUARD_BIN first on a suite's PATH,
 # where git and python3 refuse, naming themselves; gh and curl fall through to OFFLINE_BIN's shims,
