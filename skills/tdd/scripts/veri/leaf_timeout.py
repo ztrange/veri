@@ -10,14 +10,6 @@ def is_whole(text):
     return re.fullmatch(r"[0-9]+", text) is not None
 
 
-def arith(text):
-    match = re.fullmatch(r"(-?)([0-9]+)", text)
-    if match is None:
-        return None
-    value = int(match[2])
-    return -value if match[1] else value
-
-
 def refuse(message):
     print(message, file=sys.stderr)
     print(USAGE, file=sys.stderr)
@@ -48,10 +40,7 @@ def main(argv):
         if code:
             return code
         baseline = full
-    baseline = arith(baseline)
-    if baseline is None:
-        return 1
-    derived = max(900, baseline * 6)
+    derived = max(900, int(baseline) * 6)
     if argv[1:2] == ["refactor"]:
         budget = os.environ.get("VERI_REFACTOR_BUDGET") or "5"
         if not is_whole(budget):
