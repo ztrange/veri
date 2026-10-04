@@ -33,6 +33,7 @@ def gh_list(path, *args):
 
 
 def gh_issue_view(number, field):
-    run = subprocess.run(["gh", "issue", "view", number, "--json", field, "-q", ".body"],
+    query = ".body" if field == "body" else ".labels[].name"
+    run = subprocess.run(["gh", "issue", "view", number, "--json", field, "-q", query],
                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     return run.stdout
