@@ -40,7 +40,7 @@ def failed(attempts):
 
 def number(value):
     try:
-        return int(value, 8) if value.startswith("0") else int(value)
+        return int(value)
     except ValueError:
         return None
 

@@ -113,8 +113,9 @@ def test_main_reports_a_non_fast_forward_rejection_once_and_records_push_rejecte
         1, "", ["push rejected (non-fast-forward): origin/feature is at abc1234def\n"], "")
 
 
-def test_main_keeps_bash_octal_arithmetic_for_leading_zero_tunables(monkeypatch, capsys, push_branch):
+def test_main_reads_retries_and_backoff_with_leading_zeros_as_decimal_and_records_push_failed_issue_776(monkeypatch, capsys, push_branch):
     push = "git push --set-upstream origin HEAD"
+    event = "event.sh push-failed error=fatal: unable to access origin attempts="
 
     def failing(line):
         return (128, "fatal: unable to access origin\n") if line == push else (0, "")
@@ -124,19 +125,16 @@ def test_main_keeps_bash_octal_arithmetic_for_leading_zero_tunables(monkeypatch,
         monkeypatch.setenv("VERI_PUSH_RETRIES", retries)
         monkeypatch.setenv("VERI_PUSH_BACKOFF", backoff)
         code = push_branch.main([])
-        return code, calls, capsys.readouterr().err
+        sleeps = [line for line in calls if line.startswith("sleep ")]
+        return code, calls.count(push), sleeps[1:], calls[-1:], capsys.readouterr().err
 
-    _, octal_calls, _ = run_with("007", "0")
-    observed = (
-        octal_calls.count(push),
-        run_with("08", "0"),
-        run_with("1", "09"),
-    )
+    failed = "push-branch.sh: push failed after {} attempts; the branch is not on the remote\n"
+    observed = (run_with("007", "0"), run_with("08", "0"), run_with("2", "09"))
 
     assert observed == (
-        8,
-        (1, [], "push-branch.sh: push failed after 0 attempts; the branch is not on the remote\n"),
-        (1, [push, "sleep 09"], ""),
+        (0, 8, ["sleep 0"] * 6, [event + "8"], failed.format(8)),
+        (0, 9, ["sleep 0"] * 7, [event + "9"], failed.format(9)),
+        (0, 3, ["sleep 18"], [event + "3"], failed.format(3)),
     )
 
 
