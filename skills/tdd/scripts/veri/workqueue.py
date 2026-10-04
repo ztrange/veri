@@ -146,7 +146,7 @@ def locked_main(argv):
     lock = queue + ".lock"
     locked = False
     try:
-        if command in ("start", "done", "park", "assign"):
+        if command in MOVES or command == "assign":
             try:
                 take_lock(lock)
                 locked = True
