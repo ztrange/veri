@@ -132,11 +132,15 @@ def show(queue, argv):
 MOVES = {"start": ("queued", "running"), "done": ("running", "merged"), "park": ("running", "parked")}
 
 
+def line_fields(line):
+    return re.split(r"\t+", line.removesuffix("\n").strip("\t"), maxsplit=3) + ["", "", "", ""]
+
+
 def read_fields(lines):
     for line in lines:
         if not line.endswith("\n"):
             return
-        yield re.split(r"\t+", line[:-1].strip("\t"), maxsplit=3) + ["", "", "", ""]
+        yield line_fields(line)
 
 
 def move(queue, argv, fourth, source, target):
@@ -149,7 +153,7 @@ def move(queue, argv, fourth, source, target):
         sys.stderr.write("workqueue.sh: %s: %s\n" % (queue, error.strerror))
         return 1
     with lines, open(tmp, "w") as rewritten:
-        for fields in read_fields(lines):
+        for fields in map(line_fields, lines):
             if fields[0] == argv[1]:
                 if fields[1:3] == [argv[2], source]:
                     fields[2:4] = [target, detail]

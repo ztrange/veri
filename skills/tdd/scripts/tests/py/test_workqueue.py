@@ -324,11 +324,11 @@ def test_start_done_park_rewrite_every_matching_line_in_place_as_four_tab_fields
     assert run(["start", "alpha", "12", "junk"]) == (0, "", "")
     assert moves == [["mv", str(tmp), str(queue)]]
     assert queue.read_bytes() == (b"alpha\t12\trunning\t\nbeta\t12\tqueued\t\nalpha\t12\trunning\t\n\t\t\t\n"
-                                  b"alpha\t13\trunning\t\nalpha\t14\trunning\tx\ty\tz\n")
+                                  b"alpha\t13\trunning\t\nalpha\t14\trunning\tx\ty\tz\nalpha\t15\tqueued\t\n")
     assert run(["done", "alpha", "13", "abc123"]) == (0, "", "")
     assert run(["park", "alpha", "14", "flaky ci"]) == (0, "", "")
     after = (b"alpha\t12\trunning\t\nbeta\t12\tqueued\t\nalpha\t12\trunning\t\n\t\t\t\n"
-             b"alpha\t13\tmerged\tabc123\nalpha\t14\tparked\tflaky ci\n")
+             b"alpha\t13\tmerged\tabc123\nalpha\t14\tparked\tflaky ci\nalpha\t15\tqueued\t\n")
     assert queue.read_bytes() == after
     assert not tmp.exists()
 
@@ -557,3 +557,35 @@ def test_assign_refuses_short_empty_repeated_or_held_issues_appends_one_queued_l
     assert run(["show"])[:2] == (2, "")
     with pytest.raises(FileNotFoundError):
         workqueue.main(["next", "beta"])
+
+
+def test_start_done_park_keep_a_last_queue_line_that_has_no_trailing_newline_issue_777(tmp_path, monkeypatch, capsys, workqueue):
+    queue = tmp_path / ".tdd" / "workqueue"
+    queue.parent.mkdir()
+
+    def fake_run(args, **kwargs):
+        if list(args[:3]) == ["git", "worktree", "list"]:
+            return subprocess.CompletedProcess(args, 0, "worktree %s\n" % tmp_path, "")
+        if list(args[:1]) == ["mv"]:
+            os.replace(args[1], args[2])
+            return subprocess.CompletedProcess(args, 0, "", "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    def run(argv):
+        code = workqueue.main(argv)
+        out, err = capsys.readouterr()
+        return code, out, err
+
+    queue.write_bytes(b"alpha\t13\trunning\t\nalpha\t12\tqueued\t")
+    assert run(["start", "alpha", "12"]) == (0, "", "")
+    assert queue.read_bytes().splitlines() == [b"alpha\t13\trunning\t", b"alpha\t12\trunning\t"]
+
+    queue.write_bytes(b"alpha\t12\tqueued\t\nalpha\t13\trunning\t")
+    assert run(["done", "alpha", "13", "abc123"]) == (0, "", "")
+    assert queue.read_bytes().splitlines() == [b"alpha\t12\tqueued\t", b"alpha\t13\tmerged\tabc123"]
+
+    queue.write_bytes(b"alpha\t13\trunning\t\nbeta\t14\tqueued\t")
+    assert run(["park", "alpha", "13", "flaky"]) == (0, "", "")
+    assert queue.read_bytes().splitlines() == [b"alpha\t13\tparked\tflaky", b"beta\t14\tqueued\t"]
