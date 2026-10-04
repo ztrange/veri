@@ -137,3 +137,44 @@ def test_main_folds_an_absent_or_null_statuses_or_check_runs_key_as_empty(monkey
         observed.append((code, captured.out, captured.err))
 
     assert observed == [(0, "", "")] * 3
+
+
+def test_main_folds_null_unfinished_skipped_absent_conflicting_or_foreign_checks_to_a_verdict(
+        monkeypatch, capsys, tmp_path, wait_ci):
+    other = "def456"
+    done = lambda c: {"status": "completed", "conclusion": c}
+    conflict = f"wait-ci.sh: {PR} conflicts with its base branch; no workflow will start until it is rebased\n"
+    pending = (3, "", "", True)
+    cases = [
+        (True, SHA, [done(None)], ["success"], pending),
+        (True, SHA, [{"status": "queued", "conclusion": "failure"}, done("success")], [], pending),
+        (True, SHA, [done("success")], ["whatever"], (0, "", "", False)),
+        (True, SHA, [done("success")], ["pending"], pending),
+        (True, SHA, [done("skipped"), done("skipped")], ["success"], pending),
+        (True, SHA, [], ["success"], pending),
+        (False, SHA, [], [], (2, "", conflict, False)),
+        (False, SHA, [done("success")], [], (0, "", "", False)),
+        (False, SHA, [], ["success"], pending),
+        (None, SHA, [], [], pending),
+        (True, SHA, [], [], pending),
+        (True, other, [done("success")], ["success"], pending),
+    ]
+
+    observed = []
+    for i, (mergeable, head, runs, states, _) in enumerate(cases):
+        work = tmp_path / str(i)
+        (work / ".tdd").mkdir(parents=True)
+        monkeypatch.chdir(work)
+        bodies = {
+            PULL: json.dumps({"mergeable": mergeable, "head": {"sha": head}}),
+            f"gh api repos/o/r/commits/{head}/check-runs?page=1": json.dumps({"check_runs": runs}),
+            f"gh api repos/o/r/commits/{head}/check-runs?page=2": json.dumps({"check_runs": []}),
+            f"gh api repos/o/r/commits/{head}/status": json.dumps({"statuses": [{"state": s} for s in states]}),
+            "date +%s": "1000\n",
+        }
+        calls = fake_processes(monkeypatch, lambda line, bodies=bodies: (0, bodies.get(line, ""), ""))
+        code = wait_ci.main([PR, "0", "120", SHA])
+        captured = capsys.readouterr()
+        observed.append((code, captured.out, captured.err, "date +%s" in calls))
+
+    assert observed == [expected for *_, expected in cases]
