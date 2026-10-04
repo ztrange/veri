@@ -174,3 +174,65 @@ def test_next_reads_a_queue_line_of_three_tab_fields_and_a_queued_issue_whose_bo
     out, err = capsys.readouterr()
     assert (code, out, err) == (0, "7\n", "")
     assert queue.read_bytes() == before
+
+
+def test_next_fetches_the_listing_first_from_the_fixture_or_gh_pages_returning_2_on_a_failed_page_and_dying_uncaught_on_a_bad_queue_or_listing(tmp_path, monkeypatch, capsys, workqueue):
+    queue = tmp_path / ".tdd" / "workqueue"
+    queue.parent.mkdir()
+    queue.write_bytes(b"alpha\t12\tqueued\t\n")
+    fixture = tmp_path / "gh"
+    fixture.mkdir()
+    listing = "repos/{owner}/{repo}/issues?state=all&per_page=100&page=%d"
+    pages = {}
+    requests = []
+
+    def fake_run(args, **kwargs):
+        if list(args[:3]) == ["git", "worktree", "list"]:
+            return subprocess.CompletedProcess(args, 0, "worktree %s\n" % tmp_path, "")
+        if list(args[:3]) == ["git", "remote", "get-url"]:
+            return subprocess.CompletedProcess(args, 2, "", "error: No such remote 'origin'\n")
+        if list(args[:2]) == ["gh", "api"]:
+            requests.append(args[2])
+            returncode, stdout, stderr = pages[args[2]]
+            if kwargs.get("stderr") is None:
+                sys.stderr.write(stderr)
+            return subprocess.CompletedProcess(args, returncode, stdout, None)
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    def run(argv):
+        requests.clear()
+        code = workqueue.main(argv)
+        out, err = capsys.readouterr()
+        return code, out, err
+
+    def dies(argv):
+        requests.clear()
+        with pytest.raises(Exception):
+            workqueue.main(argv)
+        capsys.readouterr()
+        return list(requests)
+
+    monkeypatch.setenv("VERI_GH_JSON", str(fixture))
+    assert dies(["next", "alpha"]) == []
+    (fixture / "issues.json").write_text("not json")
+    assert dies(["next", "alpha"]) == []
+
+    monkeypatch.delenv("VERI_GH_JSON")
+    pages.update({listing % 1: (0, '[{"number": 12, "state": "OPEN", "body": ""}]\n', ""),
+                  listing % 2: (0, "[]\n", "")})
+    assert run(["next", "alpha"]) == (0, "12\n", "")
+    assert requests == [listing % 1, listing % 2]
+
+    pages[listing % 2] = (1, "", "gh: Server Error (HTTP 502)\n")
+    assert run(["next", "alpha"]) == (2, "", "gh: Server Error (HTTP 502)\n")
+    assert requests == [listing % 1, listing % 2]
+
+    pages[listing % 2] = (0, "[]\n", "")
+    assert dies(["next"]) == [listing % 1, listing % 2]
+    for line in (b"alpha\t12\n", b"alpha\ttwelve\tqueued\t\n"):
+        queue.write_bytes(line)
+        assert dies(["next", "alpha"]) == [listing % 1, listing % 2]
+    queue.unlink()
+    assert dies(["next", "alpha"]) == [listing % 1, listing % 2]
