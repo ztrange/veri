@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # run-verdict.sh — launch one verification, taking the step title through argv rather than
-# through a shell command string.
+# through a shell command string: a shim over veri/run_verdict.py.
 #
 # Usage:  run-verdict.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
 #
@@ -22,28 +22,8 @@
 # verify.sh's judgement, spelled there once, and a copy of it here would be a second guard to
 # keep in step. A call missing an argument therefore gets verify.sh's own usage line and its
 # exit 2, the code CLAUDE.md reserves for "no answer could be obtained".
-set -uo pipefail
-
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$HERE/lib/exit-contract.sh"
-
-if [[ ! -x "$HERE/verify.sh" ]]; then
-  echo "run-verdict.sh: cannot start the verifier: $HERE/verify.sh is missing or not executable" >&2
-  exit 2
+if [ -z "${PYTHONCOERCECLOCALE+set}" ]; then
+  PYTHONCOERCECLOCALE=0 VERI_SHIM_SET_COERCE=1
+  export PYTHONCOERCECLOCALE VERI_SHIM_SET_COERCE
 fi
-
-source "$HERE/lib/verify-options.sh"
-args=("$@")
-while verify_takes_a_value "${args[0]:-}"; do
-  args=("${args[@]:2}")
-done
-phase="${args[0]:-}"
-
-if [[ -n "$phase" && -f ".tdd/verify-$phase.reason" ]]; then
-  : > ".tdd/verify-$phase.reason"
-fi
-
-if [[ -n "$phase" && -d .tdd ]]; then
-  exec "$HERE/verify.sh" "$@" 2>> ".tdd/verify-$phase.stderr"
-fi
-exec "$HERE/verify.sh" "$@"
+exec python3 "$(dirname "$0")/veri/run_verdict.py" "$@"
