@@ -26,10 +26,10 @@ def has_rule(path):
         return False
     with open(path, "rb") as f:
         lines = f.read().split(b"\n")
-    at_all, at_ledger, at_spec = (where(line.encode(), lines) for line in RULE)
-    if None not in (at_all, at_ledger, at_spec) and at_all < at_ledger < at_spec:
+    at = [where(line.encode(), lines) for line in RULE]
+    if None not in at and at == sorted(at):
         return True
-    if at_spec is not None:
+    if at[-1] is not None:
         print("ensure-run-state-ignored: %s carries veri's run-state rule only in part, or with its lines out of order"
               " — fix it by hand" % path, file=sys.stderr)
         return None
