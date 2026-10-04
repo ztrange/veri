@@ -73,3 +73,45 @@ def test_main_execs_verify_sh_once_with_argv_unchanged_and_without_a_tdd_leaves_
     verifier = f"{scripts}/verify.sh"
     assert (execs, dup2s, spawned, dict(os.environ), os.path.realpath(os.getcwd())) == (
         [(verifier, [verifier, *argv])], [], [], environ, os.path.realpath(run))
+
+
+@pytest.mark.parametrize("argv, reason, target", [
+    (["red", "spec.md", "tests/x.test.sh", "case"], "verify-red.reason", "file"),
+    (["--step", "t", "red", "spec.md", "tests/x.test.sh", "case"], "verify-red.reason", "file"),
+    (["red", "spec.md", "tests/x.test.sh", "case"], "verify-red.reason", "symlink"),
+    (["red", "spec.md", "tests/x.test.sh", "case"], "verify-red.reason", "absent"),
+    ([], "verify-.reason", "kept"),
+])
+def test_main_empties_the_phase_reason_file_in_place_before_the_exec_and_never_creates_one(
+        argv, reason, target, tmp_path, monkeypatch):
+    scripts = tmp_path / "scripts"
+    run_verdict = staged_module(scripts)
+    (scripts / "verify.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
+    (scripts / "verify.sh").chmod(0o755)
+    run = tmp_path / "run"
+    (run / ".tdd").mkdir(parents=True)
+    monkeypatch.chdir(run)
+    path = run / ".tdd" / reason
+    held = path
+    if target == "symlink":
+        held = tmp_path / "elsewhere.reason"
+        path.symlink_to(held)
+    if target != "absent":
+        held.write_text("an earlier step's reason\n")
+        inode = held.stat().st_ino
+    import signal
+    seen = []
+    monkeypatch.setattr(os, "execv", lambda path_, args: seen.append(
+        held.read_text() if held.exists() else None))
+    monkeypatch.setattr(os, "dup2", lambda *a, **k: None)
+    monkeypatch.setattr(signal, "signal", lambda signum, handler: None)
+
+    run_verdict.main(list(argv))
+
+    if target == "absent":
+        assert (seen, path.exists()) == ([None], False)
+    elif target == "kept":
+        assert (seen, held.stat().st_ino) == (["an earlier step's reason\n"], inode)
+    else:
+        assert (seen, held.stat().st_ino, path.is_symlink()) == (
+            [""], inode, target == "symlink")

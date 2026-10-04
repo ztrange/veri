@@ -11,6 +11,13 @@ def main(argv):
         print(f"run-verdict.sh: cannot start the verifier: {verifier} is missing or not executable",
               file=sys.stderr)
         return 2
+    args = list(argv)
+    while args[:1] == ["--step"]:
+        args = args[2:]
+    phase = args[0] if args else ""
+    reason = f".tdd/verify-{phase}.reason"
+    if phase and os.path.isfile(reason):
+        open(reason, "w").close()
     os.execv(verifier, [verifier, *argv])
 
 
