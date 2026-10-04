@@ -119,3 +119,17 @@ def test_main_keeps_a_number_with_the_whitespace_macos_awk_skips_and_reads_a_tra
         code = over_budget.main(["all", seconds, "100"])
         capsys.readouterr()
         assert (seconds, code) == (seconds, 1)
+
+
+def test_main_compares_seconds_awk_reads_as_a_string_as_text_against_the_budget_and_the_product_in_percent_6g(capsys, monkeypatch, over_budget):
+    _time_budget(monkeypatch, 0, "10\n1.5\n")
+    for argv, expected in ((["unit", "abc", "100"], 0), (["all", "160s", "100"], 0), (["all", "1000s", "100"], 1),
+                           (["all", "1e", "1000"], 0), (["all", "1_000", "1000"], 0),
+                           (["unit", "12x", "100"], 0), (["all", "12x", "100"], 1),
+                           (["all", "1.6x", "1000001"], 0), (["all", "1.6x", "1000000"], 1),
+                           (["all", "NaN", "100"], 1), (["all", "-Infinity", "-100"], 1),
+                           (["all", "abc", "inf"], 1), (["all", "j", "inf"], 0),
+                           (["all", "abc", "nan"], 1), (["all", "o", "nan"], 0)):
+        code = over_budget.main(argv)
+        capsys.readouterr()
+        assert (argv, code) == (argv, expected)

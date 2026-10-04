@@ -1,15 +1,18 @@
 """over-budget.sh's verdict, run in-process."""
+import math
 import os
+import re
 import subprocess
 import sys
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 USAGE = "usage: over-budget.sh <tier> <seconds> <usual>"
+NUMBER = re.compile(r"[+-]?(?:(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?|0[xX][0-9a-fA-F]+|inf(?:inity)?|nan)", re.IGNORECASE)
 
 
 def _number(text):
     kept = text.rstrip(" \t\r")
-    if kept != kept.rstrip():
+    if kept != kept.rstrip() or not NUMBER.fullmatch(kept.lstrip()):
         return None
     try:
         return float(text)
@@ -28,9 +31,12 @@ def main(argv):
     lines = limits.stdout.splitlines()
     budget, ratio = lines[0], lines[-1]
     s = _number(seconds)
+    product = _number(ratio) * _number(usual)
     if s is None:
-        return 1
-    over = (tier == "unit" and s > _number(budget)) or s > _number(ratio) * _number(usual)
+        text = "%d" % product if math.isfinite(product) and product == int(product) else "%.6g" % product
+        over = (tier == "unit" and seconds > budget) or seconds > text
+    else:
+        over = (tier == "unit" and s > _number(budget)) or s > product
     if not over:
         return 1
     print("⏱ %s tier took %s s (usual %s s, ratio %s, unit budget %s s)" % (tier, seconds, usual, ratio, budget))
