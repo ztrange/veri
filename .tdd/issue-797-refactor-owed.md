@@ -1,0 +1,2 @@
+### SKILL.md's "2. Scope & plan → the ledger" section states that a step bringing in code (a port step, a new module) either comes after the steps that pin every branch it brings in, or brings in only the branches its own test requires, the rest arriving with the steps that pin them ⟦criterion 1⟧
+- test-only | skill-plan-verify.test.sh's `paragraph_with_all` lowercases each line itself, while `span_text`/`bullet_text` pipe through `tr`; make the four readers lowercase the same way
