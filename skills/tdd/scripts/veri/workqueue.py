@@ -47,12 +47,17 @@ def lock_tries():
     if re.fullmatch(r"[1-9][0-9]*", wait):
         return int(wait) * 20
     if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", wait):
-        sys.stderr.write("workqueue.sh: %s: unbound variable\n" % wait)
-        raise SystemExit(1)
+        unbound(wait)
     raise Abandoned
 
 
+def unbound(name):
+    sys.stderr.write("workqueue.sh: %s: unbound variable\n" % name)
+    raise SystemExit(1)
+
+
 def take_lock(lock):
+    os.makedirs(os.path.dirname(lock), exist_ok=True)
     tries = lock_tries()
     while True:
         try:
@@ -106,17 +111,28 @@ def move(queue, argv, source, target):
     detail = "".join(argv[3:4]) if source == "running" else ""
     tmp = "%s.tmp.%d" % (queue, os.getpid())
     moved = False
-    with open(queue, newline="\n") as lines, open(tmp, "w") as rewritten:
+    try:
+        lines = open(queue, newline="\n")
+    except OSError as error:
+        sys.stderr.write("workqueue.sh: %s: %s\n" % (queue, error.strerror))
+        return 1
+    with lines, open(tmp, "w") as rewritten:
         for line in lines:
             if not line.endswith("\n"):
                 break
             fields = re.split(r"\t+", line[:-1].strip("\t"), maxsplit=3) + ["", "", "", ""]
-            if fields[:3] == [argv[1], argv[2], source]:
+            if len(argv) < 2:
+                unbound("$2")
+            if fields[0] == argv[1] and len(argv) < 3:
+                unbound("$3")
+            if fields[0] == argv[1] and fields[1:3] == [argv[2], source]:
                 fields[2:4] = [target, detail]
                 moved = True
             rewritten.write("\t".join(fields[:4]) + "\n")
     if not moved:
         os.remove(tmp)
+        if len(argv) < 3:
+            unbound("$%d" % (len(argv) + 1))
         sys.stderr.write("workqueue.sh: %s holds no %s item for issue %s\n" % (argv[1], source, argv[2]))
         return 1
     status = subprocess.run(["mv", tmp, queue]).returncode
@@ -136,6 +152,11 @@ def locked_main(argv):
         return next_item(argv)
     if command == "done" and not "".join(argv[3:4]):
         return refuse()
+    if command == "park":
+        if "\t" in "".join(argv[3:4]) or "\n" in "".join(argv[3:4]):
+            return refuse("workqueue.sh: a park reason may not hold a tab or a newline")
+        if len(argv) < 4:
+            unbound("$4")
     if command == "assign":
         named = set()
         for issue in argv[2:]:
