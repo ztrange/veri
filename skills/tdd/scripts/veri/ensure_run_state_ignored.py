@@ -70,7 +70,7 @@ def main(argv):
                     with open(gitignore, "wb") as f:
                         f.write(before)
             print("ensure-run-state-ignored: %s" % error, file=sys.stderr)
-            return 1
+            return 2
     print("already present" if present else "added")
     return 0
 
