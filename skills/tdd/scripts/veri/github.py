@@ -91,26 +91,18 @@ class RestAdapter:
         return run.stdout
 
 
-class FallbackAdapter:
-    def __init__(self, first, second, rest):
-        self.first = first
-        self.second = second
-        self.rest = rest
+class RestOnlyAdapter:
+    def __init__(self):
+        self.rest = RestAdapter()
 
     def list(self, path, *args):
-        try:
-            return self.first.list(*args)
-        except NoAnswer:
-            return self.second.list(path)
+        return self.rest.list(path)
 
     def rest_list(self, path, empty=r"^\[\]$"):
         return self.rest.list(path, empty)
 
     def issue_view(self, number, field):
-        try:
-            return self.first.issue_view(number, field)
-        except NoAnswer:
-            return self.second.issue_view(number, field)
+        return self.rest.issue_view(number, field)
 
     def issue_edit(self, number, body_file):
         self.rest.issue_edit(number, body_file)
@@ -124,12 +116,30 @@ class FallbackAdapter:
         return self.rest_list(path)
 
 
-class NoRouteAdapter:
-    def list(self, *args):
-        raise NoAnswer("")
+class GraphQLOnlyAdapter(RestOnlyAdapter):
+    def __init__(self):
+        super().__init__()
+        self.graphql = GraphQLAdapter()
+
+    def list(self, path, *args):
+        return self.graphql.list(*args)
 
     def issue_view(self, number, field):
-        raise NoAnswer("")
+        return self.graphql.issue_view(number, field)
+
+
+class FallbackAdapter(GraphQLOnlyAdapter):
+    def list(self, path, *args):
+        try:
+            return super().list(path, *args)
+        except NoAnswer:
+            return RestOnlyAdapter.list(self, path)
+
+    def issue_view(self, number, field):
+        try:
+            return super().issue_view(number, field)
+        except NoAnswer:
+            return RestOnlyAdapter.issue_view(self, number, field)
 
 
 class FixtureAdapter:
@@ -149,11 +159,11 @@ def _select(operation):
     if driver not in ("auto", "rest", "graphql"):
         print("VERI_GH_DRIVER is '%s': expected auto, rest or graphql" % driver, file=sys.stderr)
         raise NoAnswer("")
-    rest = RestAdapter()
     if driver == "graphql":
-        return FallbackAdapter(GraphQLAdapter(), NoRouteAdapter(), rest)
-    first = GraphQLAdapter() if driver == "auto" else NoRouteAdapter()
-    return FallbackAdapter(first, rest, rest)
+        return GraphQLOnlyAdapter()
+    if driver == "auto":
+        return FallbackAdapter()
+    return RestOnlyAdapter()
 
 
 def gh_rest_list(path, empty=r"^\[\]$"):

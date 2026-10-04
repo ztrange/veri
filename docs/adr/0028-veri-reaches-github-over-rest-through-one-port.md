@@ -35,9 +35,10 @@ back to REST, with the two routes interleaved inside every function. From here o
 
 - **One port, three adapters** (#847): GraphQL, REST, and fixture (`VERI_GH_JSON`). In
   `veri/github.py` they are `GraphQLAdapter`, `RestAdapter` and `FixtureAdapter`. The old
-  GraphQL→REST behaviour is a `FallbackAdapter` composed from a first and a second route, not a
-  copy of them; `rest` and `graphql` are the same composition with `NoRouteAdapter`, a route
-  that never answers, in the place of the route the driver excludes. One selection point,
+  GraphQL→REST behaviour is a `FallbackAdapter` composed from the GraphQL and REST adapters,
+  not a copy of them; `rest` is `RestOnlyAdapter`, which never starts a GraphQL call, and
+  `graphql` is `GraphQLOnlyAdapter`, which keeps the REST-only operations on REST and gives
+  every GraphQL route no fallback. One selection point,
   `_select`, chooses the adapter at call time, never at import. The module's public functions
   stay as a facade with their signatures unchanged. `lib/github.sh` has no adapter objects:
   the same choice is made by the guards `_gh_driver_known`, `_gh_graphql` and `_gh_rest`
