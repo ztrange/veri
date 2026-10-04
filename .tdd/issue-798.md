@@ -15,7 +15,7 @@
 - [x] veri.github.gh_issue_view's REST route answers "" for a null body ⟦criterion 3⟧
 - [x] veri.github.gh_issue_view's REST route answers the label names one per line for labels ⟦criterion 3⟧
 - [x] veri.github.gh_issue_view's REST route is a no-answer when the `gh api` answer is not JSON ⟦criterion 3⟧
-- [ ] veri.github.gh_issue_edit replaces issue <n>'s body by `gh api -X PATCH repos/{owner}/{repo}/issues/<n> -F body=@<body-file>`, answering nothing of that call's stdout ⟦criterion 1⟧
+- [x] veri.github.gh_issue_edit replaces issue <n>'s body by `gh api -X PATCH repos/{owner}/{repo}/issues/<n> -F body=@<body-file>`, answering nothing of that call's stdout ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] veri.github.gh_issue_edit is a no-answer, with gh's stderr passed through, when the PATCH call fails ⟦criterion 1⟧
 - [ ] veri.github.gh_json with VERI_GH_JSON set answers the fixture file's contents and makes no subprocess call ⟦criterion 2⟧
 - [ ] veri.github.gh_json with VERI_GH_JSON unset and no gh args takes the REST-only gh_rest_list path for the rest path ⟦criterion 2⟧

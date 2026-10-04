@@ -352,3 +352,26 @@ def test_gh_issue_view_is_a_no_answer_when_the_rest_answer_is_not_json(monkeypat
         ["gh", "issue", "view", "60", "--json", "body", "-q", ".body"],
         ["gh", "api", "repos/{owner}/{repo}/issues/60"],
     ]
+
+
+def test_gh_issue_edit_patches_the_issue_body_from_the_file_and_answers_nothing_of_its_stdout(monkeypatch, capsys, github):
+    patch = ("gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/60", "-F", "body=@/tmp/body.md")
+    calls = []
+
+    def fake_run(args, **kwargs):
+        calls.append(list(args))
+        if tuple(args) != patch:
+            raise AssertionError("unexpected command: %r" % (args,))
+        stdout = '{"number":60,"body":"New body."}\n'
+        if kwargs.get("stdout") is None:
+            sys.stdout.write(stdout)
+        return subprocess.CompletedProcess(
+            args, 0, stdout if kwargs.get("stdout") == subprocess.PIPE else None, None)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    answer = github.gh_issue_edit("60", "/tmp/body.md")
+
+    assert answer is None
+    assert calls == [list(patch)]
+    assert capsys.readouterr().out == ""

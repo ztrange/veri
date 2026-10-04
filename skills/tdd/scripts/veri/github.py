@@ -52,3 +52,8 @@ def gh_issue_view(number, field):
             return "".join(label["name"] + "\n" for label in issue["labels"])
         return (issue["body"] or "") + "\n"
     return run.stdout
+
+
+def gh_issue_edit(number, body_file):
+    subprocess.run(["gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/%s" % number,
+                    "-F", "body=@%s" % body_file], stdout=subprocess.DEVNULL)
