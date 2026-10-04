@@ -226,3 +226,62 @@ def test_main_returns_the_command_status_unmapped_and_records_it_127_not_found_1
         ("pipe", 141, ["status=141"]),
         ("term", 143, ["status=143"]),
     ]
+
+
+def test_main_returns_the_command_status_when_event_sh_exits_non_zero_or_cannot_be_started(monkeypatch, capfd, timed_test_run):
+    event_outcomes = {
+        "fails": 1,
+        "missing": FileNotFoundError(2, "No such file or directory", "event.sh"),
+        "unexecutable": PermissionError(13, "Permission denied", "event.sh"),
+    }
+    current = {}
+
+    def returncode_for(args):
+        if os.path.basename(str(args[0])) == "event.sh":
+            outcome = event_outcomes[current["event"]]
+            if isinstance(outcome, OSError):
+                raise outcome
+            return outcome
+        return current["command"]
+
+    def fake_call(args, *rest, **kwargs):
+        return returncode_for(args)
+
+    def fake_run(args, *rest, **kwargs):
+        return subprocess.CompletedProcess(args, returncode_for(args))
+
+    class FakePopen:
+        def __init__(self, args, *rest, **kwargs):
+            self.args = args
+            self.returncode = returncode_for(args)
+            self.pid = 0
+
+        def wait(self, timeout=None):
+            return self.returncode
+
+        def poll(self):
+            return self.returncode
+
+        def communicate(self, input=None, timeout=None):
+            return None, None
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    monkeypatch.setattr(subprocess, "call", fake_call)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+
+    observed = []
+    for event, command_code in (("fails", 3), ("missing", 4), ("unexecutable", 5)):
+        current.update(event=event, command=command_code)
+        try:
+            code = timed_test_run.main(["fast", "", "sh", "-c", f"exit {command_code}"])
+        except Exception as raised:
+            code = f"raised {type(raised).__name__}"
+        observed.append((event, code))
+        capfd.readouterr()
+    assert observed == [("fails", 3), ("missing", 4), ("unexecutable", 5)]
