@@ -675,4 +675,30 @@ want="invariant 2 (no PR): $late tip $tip 2 commits ahead, issue #75 OPEN"
   problems+=("three pages: want exit $one_code and $(printf '%q' "$one_out"), got exit $code and $(printf '%q' "$out"); stderr: $(cat "$work/case592/three.err")")
 report "$name"
 
+name="invisible-work.sh, run through a symlink to the skill directory and from a subdirectory of the clone, prints the same report, stderr and exit code as when run in place from the clone's root"
+problems=()
+local_only="tdd/150-a-run-that-never-reached-origin"
+clone="$(unpr_branch_clone "$work/case-linked" "tdd/71-walkthrough-version-the-commentary-too" 2)"
+gh_json="$(fixture "$work/case-linked/gh")"
+git_q "$clone" checkout -q -b "$local_only" main
+git_q "$clone" commit -q --allow-empty -m "feat: a step nobody pushed (#150)"
+git_q "$clone" checkout -q main
+mkdir -p "$clone/sub/dir"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/case-linked/linked-skill"
+in_code=0
+(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE") \
+  > "$work/case-linked/in-place.out" 2> "$work/case-linked/in-place.err" || in_code=$?
+linked_code=0
+(cd "$clone/sub/dir" && VERI_GH_JSON="$gh_json" "$work/case-linked/linked-skill/scripts/invisible-work.sh") \
+  > "$work/case-linked/linked.out" 2> "$work/case-linked/linked.err" || linked_code=$?
+[[ "$in_code" == 0 ]] && grep -F "$local_only" "$work/case-linked/in-place.out" > /dev/null ||
+  problems+=("in place: want exit 0 with a finding naming $local_only, got exit $in_code; stderr: $(cat "$work/case-linked/in-place.err")")
+[[ "$linked_code" == "$in_code" ]] ||
+  problems+=("exit through the symlink want $in_code got $linked_code; stderr: $(cat "$work/case-linked/linked.err")")
+cmp -s "$work/case-linked/in-place.out" "$work/case-linked/linked.out" ||
+  problems+=("stdout through the symlink differs: $(diff "$work/case-linked/in-place.out" "$work/case-linked/linked.out")")
+cmp -s "$work/case-linked/in-place.err" "$work/case-linked/linked.err" ||
+  problems+=("stderr through the symlink differs: $(diff "$work/case-linked/in-place.err" "$work/case-linked/linked.err")")
+report "$name"
+
 finish
