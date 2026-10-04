@@ -82,15 +82,43 @@ class RestAdapter:
         return run.stdout
 
 
+class FallbackAdapter:
+    def __init__(self, first, second):
+        self.first = first
+        self.second = second
+
+    def list(self, path, *args):
+        try:
+            return self.first.list(*args)
+        except NoAnswer:
+            return self.second.list(path)
+
+    def rest_list(self, path, empty=r"^\[\]$"):
+        return self.second.list(path, empty)
+
+    def issue_view(self, number, field):
+        try:
+            return self.first.issue_view(number, field)
+        except NoAnswer:
+            return self.second.issue_view(number, field)
+
+    def issue_edit(self, number, body_file):
+        self.second.issue_edit(number, body_file)
+
+    def issue_create(self, title, body):
+        return self.second.issue_create(title, body)
+
+
+def _fallback():
+    return FallbackAdapter(GraphQLAdapter(), RestAdapter())
+
+
 def gh_rest_list(path, empty=r"^\[\]$"):
     return RestAdapter().list(path, empty)
 
 
 def gh_list(path, *args):
-    try:
-        return GraphQLAdapter().list(*args)
-    except NoAnswer:
-        return RestAdapter().list(path)
+    return _fallback().list(path, *args)
 
 
 def gh_json(fixture, path, *args):
@@ -104,10 +132,7 @@ def gh_json(fixture, path, *args):
 
 
 def gh_issue_view(number, field):
-    try:
-        return GraphQLAdapter().issue_view(number, field)
-    except NoAnswer:
-        return RestAdapter().issue_view(number, field)
+    return _fallback().issue_view(number, field)
 
 
 def gh_issue_edit(number, body_file):
