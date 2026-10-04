@@ -77,44 +77,4 @@ while read -r ref tip; do
   locals+="$name $tip $lacks ${worktree_of[$ref]:-}"$'\n'
 done < <(git for-each-ref --format='%(refname) %(objectname)' refs/heads/)
 
-PYTHONPATH="$here/veri" exec python3 -c '
-import re, sys
-
-from json_documents import items
-
-def head(pr):
-    return pr["headRefName"] if "headRefName" in pr else pr["head"]["ref"]
-
-issues_text, prs_text = sys.stdin.read().split("\0")
-issues = {i["number"]: i["state"].upper() for i in items(issues_text)}
-prs = items(prs_text)
-with_pr = {head(p) for p in prs}
-decided = {head(p) for p in prs if p["state"].upper() in ("MERGED", "CLOSED")}
-findings = []
-
-for row in sys.argv[1].splitlines():
-    name, tip, ahead = row.split()
-    if name in with_pr:
-        continue
-    finding = f"invariant 2 (no PR): {name} tip {tip} {ahead} commits ahead"
-    m = re.match(r"tdd/(\d+)-", name)
-    if m:
-        n = int(m.group(1))
-        state = issues.get(n, "unknown")
-        finding += f", issue #{n} {state}"
-    findings.append(finding)
-
-for row in sys.argv[2].splitlines():
-    name, tip, lacks, worktree = row.split(" ", 3)
-    if name in decided:
-        continue
-    finding = f"invariant 1 (not on origin): {name} tip {tip} {lacks} commits origin lacks"
-    if worktree:
-        finding += f", worktree {worktree}"
-    findings.append(finding)
-
-for finding in findings:
-    print(finding)
-
-sys.exit(0 if findings else 3)
-' "$branches" "$locals" < <(printf '%s\0%s' "$issues_json" "$prs_json")
+exec python3 "$here/veri/invisible_work.py" "$branches" "$locals" < <(printf '%s\0%s' "$issues_json" "$prs_json")
