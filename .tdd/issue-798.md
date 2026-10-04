@@ -6,7 +6,7 @@
 - [x] veri.github.gh_rest_list is a no-answer when any page's `gh api` call fails, a failure on page 2 included, with gh's stderr passed through ⟦criterion 1⟧
 - [x] veri.github.gh_rest_list, when a later page fails, still hands the caller the pages it fetched before that page alongside the no-answer, as lib/github.sh leaves them on stdout before returning 2 ⟦added⟧ ⟦criterion 1⟧
 - [x] veri.github.gh_list answers the stdout of `gh <gh args…>` when that call succeeds, and makes no `gh api` call ⟦criterion 1⟧
-- [x] veri.github.gh_list, when the `gh <gh args…>` call exits non-zero, answers gh_rest_list's pages for the rest path and does not pass that call's stderr on ⟦criterion 1⟧ ⟂ refactor pending
+- [x] veri.github.gh_list, when the `gh <gh args…>` call exits non-zero, answers gh_rest_list's pages for the rest path and does not pass that call's stderr on ⟦criterion 1⟧
 - [ ] veri.github.gh_list is a no-answer, with the REST call's stderr passed through, when the `gh <gh args…>` call and the REST route both fail ⟦criterion 1⟧
 - [ ] veri.github.gh_issue_view answers `gh issue view <n> --json body -q .body`'s output for body when that call succeeds, and makes no `gh api` call ⟦criterion 1⟧
 - [ ] veri.github.gh_issue_view answers `gh issue view <n> --json labels -q '.labels[].name'`'s output for labels when that call succeeds, and makes no `gh api` call ⟦criterion 1⟧
