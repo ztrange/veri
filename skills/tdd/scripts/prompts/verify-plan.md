@@ -67,7 +67,9 @@ REJECT a plan with a step that introduces a branch — a fallback an existing su
 say — that only a later step's test requires: that step's blind green verifier sees code none
 of its own tests requires, and rejects correct code until the revise budget runs out. Your
 reason names both steps, the introducing step and the later pinning step, so the plan can be
-reordered or the branch moved to the step that pins it.
+reordered or the branch moved to the step that pins it. A step bringing in code after the
+steps that pin its branches is not a REJECT on ordering grounds, and neither is one bringing in
+only the branches its own test requires, the rest arriving with the steps that pin them.
 
 {{REFACTOR_PLAN}}
 
