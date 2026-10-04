@@ -268,3 +268,45 @@ def test_main_raises_rather_than_returning_when_stdout_is_closed_or_stdin_cannot
     monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BufferedReader(UnreadableStdin())))
     with pytest.raises(Exception):
         ledger_steps.main(["current"])
+
+
+def test_main_prints_every_record_of_a_replaces_case_ledger_and_current_hands_out_its_open_step_and_criterion_08_past_the_count_exits_3(
+        monkeypatch, capsysbinary, ledger_steps):
+    step = ('replace skills/tdd/scripts/tests/status.test.sh case "status prints the plan" '
+            'with a pytest case ⟦replaces-case⟧ ⟦criterion 6⟧')
+    marks = (
+        "# Plan for #42\n\nprose\n\n"
+        "- [x] add lowercasing ⟦criterion 1⟧ ⟂ refactor pending\n"
+        "- [ ] strip edge hyphens ⟦added⟧ ⟦criterion 2⟧\n"
+    ).encode()
+    replaces = f"# Plan for #42\n\n- [x] add lowercasing ⟦criterion 5⟧\n- [ ] {step}\n".encode()
+    body = (
+        "## What is happening\n\n- [ ] a checkbox in the prose\n\n"
+        "## Acceptance criteria\n\n- [ ] first criterion\n"
+        '- [ ] second criterion carries `$S` and "quotes"\n\n'
+        "## Notes\n\n- [ ] a checkbox after the section\n"
+    ).encode()
+    calls = {
+        "marks": (marks, []),
+        "replaces-case records": (replaces, []),
+        "replaces-case current": (replaces, ["current"]),
+        "criterion 08 past the count": (body, ["criterion", "08"]),
+    }
+    results = {}
+    for name, (stdin, argv) in calls.items():
+        fake_stdin(monkeypatch, stdin)
+        code = ledger_steps.main(argv)
+        results[name] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        "marks": (0, (
+            "1\tdone\tstep\t1\t0\t1\tadd lowercasing ⟦criterion 1⟧\n"
+            "2\topen\tstep\t0\t1\t2\tstrip edge hyphens ⟦added⟧ ⟦criterion 2⟧\n"
+        ).encode(), b""),
+        "replaces-case records": (0, (
+            "1\tdone\tstep\t0\t0\t5\tadd lowercasing ⟦criterion 5⟧\n"
+            f"2\topen\tstep\t0\t0\t6\t{step}\n"
+        ).encode(), b""),
+        "replaces-case current": (0, f"{step}\n".encode(), b""),
+        "criterion 08 past the count": (3, b"", b""),
+    }
