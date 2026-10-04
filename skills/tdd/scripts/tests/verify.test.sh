@@ -321,6 +321,22 @@ code=$?
 { [[ "$code" == 2 ]] && [[ "$out" == *'modified the repository'* ]] && [[ "$out" == *"$ledger"* ]]; } && ok \
   || no "#569: a verifier that edits the root ledger $ledger is refused naming it, even when its run also leaves $subdir_state/events.jsonl behind (code=$code want 2; stdout='$out' want 'modified the repository' and $ledger named)"
 
+tracked_edit_dir="$tamper_work/tracked-edit"
+fixture_repo "$tracked_edit_dir"
+cp "$HERE/../../../../.gitignore" "$tracked_edit_dir/.gitignore"
+mkdir -p "$tracked_edit_dir/projects/$subdir_project"
+printf 'the developer committed this too\n' > "$tracked_edit_dir/projects/$subdir_project/doomed.txt"
+git -C "$tracked_edit_dir" add -A >/dev/null 2>&1
+git -C "$tracked_edit_dir" commit -q -m "the repo's own ignore rules and a second tracked file" >/dev/null 2>&1
+doomed="projects/$subdir_project/doomed.txt" added="projects/$subdir_project/added.txt"
+out="$( FAKE_MUTATE="printf 'the verifier rewrote this\n' > src.txt && rm $doomed && printf 'new\n' > $added && mkdir -p $subdir_state && printf '{}\n' > $subdir_state/events.jsonl" \
+    verify_in "$tracked_edit_dir" green 'VERDICT: PASS
+REASON: Target test and full suite are green.' "$stubdir/claude-mutate" 2>/dev/null )"
+code=$?
+{ [[ "$code" == 2 ]] && [[ "$out" == *'modified the repository'* ]] \
+  && [[ "$out" == *src.txt* ]] && [[ "$out" == *"$doomed"* ]] && [[ "$out" == *"$added"* ]]; } && ok \
+  || no "#569: a verifier that modifies src.txt, deletes $doomed and adds $added under the repo's own .gitignore is refused naming each, even when its run also leaves $subdir_state/events.jsonl behind (code=$code want 2; stdout='$out' want 'modified the repository' and all three paths named)"
+
 leafargs_out="$work/leafargs"
 LEAFARGS_OUT="$leafargs_out" VERIFY_LEAF_ARGS='--permission-mode bypassPermissions --disallowedTools Write' \
   tamper_run leafargs 'printf "%s\n" "$@" > "$LEAFARGS_OUT"; printf "the verifier rewrote this\n" > src.txt'
