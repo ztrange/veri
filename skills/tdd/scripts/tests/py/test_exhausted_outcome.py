@@ -2,6 +2,7 @@
 import importlib
 import io
 import pathlib
+import re
 import sys
 
 import pytest
@@ -79,3 +80,29 @@ def test_main_prints_the_last_needs_user_and_every_later_line_returns_3_on_empty
         ("SPLIT: a\0b",): (0, "ab\n", ""),
         ("NEEDS_USER: q", "extra", "args"): (1, "q\n", ""),
     }
+
+
+def test_main_reads_stdin_as_bytes_and_keeps_the_c_locale_behaviour_whatever_the_callers_locale(monkeypatch, exhausted_outcome):
+    stdin_errors = {"C": "surrogateescape", "C.UTF-8": "strict"}
+    results = {}
+    for locale, errors in stdin_errors.items():
+        for data in (b"SPLIT: \xff", b"SPLIT:\xc2\xa0a"):
+            monkeypatch.setenv("LC_ALL", locale)
+            out = io.BytesIO()
+            monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(data), encoding="utf-8", errors=errors))
+            monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(out, encoding="utf-8", errors=errors))
+            try:
+                code = exhausted_outcome.main([])
+            except Exception as error:
+                code = type(error).__name__
+            sys.stdout.flush()
+            results[(locale, data)] = (code, out.getvalue())
+
+    assert results == {
+        ("C", b"SPLIT: \xff"): (0, b"\xff\n"),
+        ("C", b"SPLIT:\xc2\xa0a"): (0, b"\xc2\xa0a\n"),
+        ("C.UTF-8", b"SPLIT: \xff"): (0, b"\xff\n"),
+        ("C.UTF-8", b"SPLIT:\xc2\xa0a"): (0, b"\xc2\xa0a\n"),
+    }
+    doc = exhausted_outcome.__doc__
+    assert re.search(r"\bC[- ]locale\b", doc) and "UTF-8" in doc, doc
