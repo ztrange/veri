@@ -15,7 +15,7 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 SUBJECT='skills/tdd/scripts/tests'
 
 CHMOD_WORD='(^|[^[:alnum:]_.-])chmod'
-REVOKING_MODE='(000|555|a-r|u-w|-w)'
+REVOKING_MODE='([0145][0-7][0-7]|[ugoa]*-[rwx]*[rw][rwx]*|[ugoa]*=[rx]*)'
 CHMOD_FLAGS='([[:space:]]+-[RHLPfhv]+)*'
 SHELL_CHMOD="$CHMOD_WORD$CHMOD_FLAGS[[:space:]]+$REVOKING_MODE([[:space:]]|$)"
 PATH_CHMOD='\.chmod\(0o000\)'
@@ -198,5 +198,27 @@ planted_read_only_dir_named=""
 probe_a_planted_read_only_dir
 
 expect_eq "$name" "named" "$planted_read_only_dir_named"
+
+PLANT_READ_ONLY_DIR_MODES=(a-w 500 u=rx)
+
+probe_planted_read_only_dir_modes() {
+  local ROOT mode plants=()
+  for mode in "${PLANT_READ_ONLY_DIR_MODES[@]}"; do
+    plants+=("chmod $mode \"\$dir\"")
+  done
+  plant_and_probe "$PLANT_REL" '#!/usr/bin/env bash' 'dir="$PWD/ledgers"' 'mkdir "$dir"' "${plants[@]}" 'touch "$dir/ledger"'
+  planted_read_only_dir_modes_named=""
+  for mode in "${PLANT_READ_ONLY_DIR_MODES[@]}"; do
+    planted_read_only_dir_modes_named+="$mode $(plant_named "$PLANT_REL" "chmod $mode \"\$dir\"");"
+  done
+  problems=()
+}
+
+name="planted suite lines making a directory read-only by chmod a-w, 500 and u=rx, not only 555, each turn the guard red, naming its own <suite>:<line> (#846)"
+planted_read_only_dir_modes_named=""
+
+probe_planted_read_only_dir_modes
+
+expect_eq "$name" "a-w named;500 named;u=rx named;" "$planted_read_only_dir_modes_named"
 
 finish
