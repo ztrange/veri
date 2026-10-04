@@ -36,7 +36,7 @@ class Abandoned(Exception):
 
 def lock_tries():
     wait = os.environ.get("VERI_WORKQUEUE_LOCK_WAIT") or "30"
-    if re.fullmatch(r"0[0-7]*|[1-9][0-9]*", wait):
+    if re.fullmatch(r"[0-9]+", wait):
         return int(wait) * 20
     if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", wait):
         unbound(wait)
