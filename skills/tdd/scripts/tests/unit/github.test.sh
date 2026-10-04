@@ -255,4 +255,49 @@ problems=""
 [[ "$rc_list" -eq 2 ]] || problems+="    want gh_list to return 2 on page 2's network error, got $rc_list"$'\n'
 record
 
+# 8. with VERI_GH_DRIVER unset, every operation with a GraphQL route goes to REST alone: a gh
+#    that would answer GraphQL is never asked, and a REST failure is a no-answer
+name="with VERI_GH_DRIVER unset, gh_issue_view, gh_list, gh_json with gh args and gh_pr_ready run only gh api, never gh issue or gh pr, and return 2 when gh api fails"
+calls="$scratch/calls8" err="$scratch/err8"
+: > "$calls"
+problems=""
+for rest_answers in yes no; do
+  for op in view list json ready; do
+    (
+      gh() {
+        echo "$op gh $*" >> "$calls"
+        case "$1" in
+          issue|pr) echo '[]'; return 0 ;;
+          api)
+            [[ "$rest_answers" == yes ]] || { echo 'gh: Bad Gateway (HTTP 502)' >&2; return 1; }
+            case "$*" in *page=1) echo '[{"number":1}]' ;; *page=*) echo '[]' ;; *) echo '{}' ;; esac
+            return 0 ;;
+        esac
+        return 1
+      }
+      python3() { cat > /dev/null; echo body; }
+      unset VERI_GH_DRIVER VERI_GH_JSON
+      source "$LIB"
+      case "$op" in
+        view) gh_issue_view 7 body ;;
+        list) gh_list 'repos/{owner}/{repo}/issues' issue list --json number ;;
+        json) gh_json issues.json 'repos/{owner}/{repo}/issues' issue list --json number ;;
+        ready) gh_pr_ready 42 ;;
+      esac
+    ) > /dev/null 2>> "$err"
+    rc=$?
+    want=0
+    [[ "$rest_answers" == yes ]] || want=2
+    [[ "$rc" -eq "$want" ]] ||
+      problems+="    $op with REST answering=$rest_answers: want return $want, got $rc"$'\n'
+    grep -E "^$op gh api " "$calls" > /dev/null ||
+      problems+="    $op with REST answering=$rest_answers: want a gh api call, got none"$'\n'
+    if grep -E "^$op gh (issue|pr) " "$calls" > /dev/null; then
+      problems+="    $op with REST answering=$rest_answers: want no GraphQL call, got: $(printf '%q' "$(grep -E "^$op gh (issue|pr) " "$calls")")"$'\n'
+    fi
+    : > "$calls"
+  done
+done
+record
+
 finish

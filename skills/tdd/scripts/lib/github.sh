@@ -22,8 +22,12 @@
 #   page=1, 2, … until one matches <empty-regex> (default: a bare `[]`), one JSON document per
 #   page, back to back; 2 when GitHub gave no answer.
 
+_gh_graphql() {
+  [[ "${VERI_GH_DRIVER:-rest}" == auto ]] && "$@"
+}
+
 gh_pr_ready() {
-  gh pr ready "$1" ||
+  _gh_graphql gh pr ready "$1" ||
     gh api -X POST "repos/{owner}/{repo}/pulls/$1/ccr/ready_for_review" ||
     return 2
 }
@@ -31,7 +35,7 @@ gh_pr_ready() {
 gh_issue_view() {
   local filter='.body'
   [[ "$2" == labels ]] && filter='.labels[].name'
-  gh issue view "$1" --json "$2" -q "$filter" 2> /dev/null ||
+  _gh_graphql gh issue view "$1" --json "$2" -q "$filter" 2> /dev/null ||
     gh api "repos/{owner}/{repo}/issues/$1" | python3 -c '
 import json, sys
 issue = json.load(sys.stdin)
@@ -60,7 +64,7 @@ gh_json() {
 
 gh_list() {
   local rest="$1"; shift
-  gh "$@" 2> /dev/null || gh_rest_list "$rest"
+  _gh_graphql gh "$@" 2> /dev/null || gh_rest_list "$rest"
 }
 
 gh_rest_list() {
