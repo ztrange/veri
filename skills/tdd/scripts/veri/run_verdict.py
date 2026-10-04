@@ -15,11 +15,14 @@ def unopenable(path, error):
     print(f"run-verdict.sh: {path}: {error.strerror}", file=sys.stderr)
 
 
+def cannot_start(verifier, why):
+    print(f"run-verdict.sh: cannot start the verifier: {verifier}{why}", file=sys.stderr)
+
+
 def main(argv):
     verifier = os.path.join(SCRIPTS, "verify.sh")
     if not os.access(verifier, os.X_OK):
-        print(f"run-verdict.sh: cannot start the verifier: {verifier} is missing or not executable",
-              file=sys.stderr)
+        cannot_start(verifier, " is missing or not executable")
         return 2
     args = list(argv)
     while args and takes_a_value(args[0]):
@@ -52,7 +55,7 @@ def main(argv):
         if e.errno == errno.ENOEXEC:
             os.execvp("bash", ["bash", verifier, *argv])
         else:
-            print(f"run-verdict.sh: cannot start the verifier: {verifier}: {e.strerror}", file=sys.stderr)
+            cannot_start(verifier, f": {e.strerror}")
             return 2
 
 
