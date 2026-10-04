@@ -72,14 +72,19 @@ report "$name"
 
 PLANT_REL='skills/tdd/scripts/tests/planted.test.sh'
 
-plant_named() {
-  local rel="$1" plant="$2" line problem
-  line="$(grep -nxF -- "$plant" "$ROOT/$rel")"
-  line="${line%%:*}"
+problem_naming() {
+  local text="$1" problem
   for problem in ${problems+"${problems[@]}"}; do
-    [[ "$problem" == "$rel:$line forces a read or write failure through permission bits"* ]] && { printf named; return; }
+    [[ "$problem" == *"$text"* ]] && { printf named; return; }
   done
   printf 'not named'
+}
+
+plant_named() {
+  local rel="$1" plant="$2" line
+  line="$(grep -nxF -- "$plant" "$ROOT/$rel")"
+  line="${line%%:*}"
+  problem_naming "$rel:$line forces a read or write failure through permission bits"
 }
 
 plant() {
@@ -247,18 +252,14 @@ PLANT_EXEMPTED="$PLANT_CHMOD_000  # exempted"
 PLANT_UNREASONED="$PLANT_CHMOD_000  # unreasoned"
 
 probe_an_exemption_table() {
-  local ROOT problem unreasoned_key="$PLANT_REL:$PLANT_UNREASONED"
+  local ROOT unreasoned_key="$PLANT_REL:$PLANT_UNREASONED"
   local -A EXEMPT=(
     ["$PLANT_REL:$PLANT_EXEMPTED"]="a planted line whose chmod is the text under test, never run"
     ["$unreasoned_key"]=""
   )
   plant "$PLANT_REL" '#!/usr/bin/env bash' 'ledger="$(mktemp)"' "$PLANT_EXEMPTED" "$PLANT_UNREASONED"
   probe_the_guard
-  exemption_table_named="exempted $(plant_named "$PLANT_REL" "$PLANT_EXEMPTED");unreasoned"
-  for problem in ${problems+"${problems[@]}"}; do
-    [[ "$problem" == *"[$unreasoned_key] carries no reason"* ]] && { exemption_table_named+=" named;"; problems=(); return; }
-  done
-  exemption_table_named+=" not named;"
+  exemption_table_named="exempted $(plant_named "$PLANT_REL" "$PLANT_EXEMPTED");unreasoned $(problem_naming "[$unreasoned_key] carries no reason");"
   problems=()
 }
 
