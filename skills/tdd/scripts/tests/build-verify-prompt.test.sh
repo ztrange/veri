@@ -682,6 +682,16 @@ dp_other="$("$BUILD" --step "$diff_step" diff "$work/spec.md" "$other_base" 2>/d
 prompt_has "$dp" -iE -e "REJECT[^.]{0,160}(add|adds|added)[^.]{0,40}test|(add|adds|added)[^.]{0,40}test[^.]{0,160}REJECT" \
   && ok || no "the diff prompt tells the verifier to REJECT when the step's commits add a test"
 
+problems=""
+branch_base=0123abcdef step_base=4567abcdef
+ds="$("$BUILD" --step "$diff_step" diff "$work/spec.md" "$branch_base" "$step_base" 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; diff with a step base exited $code, want 0"
+prompt_says "$ds" "never judges the criterion against git diff $branch_base..HEAD" -F -e "git diff $branch_base..HEAD"
+prompt_says "$ds" "never confines the adds-a-test REJECT to git diff $step_base..HEAD" \
+  -iE -e "(add|adds|added)[^.]{0,40}test[^.]{0,200}git diff $step_base\.\.HEAD|git diff $step_base\.\.HEAD[^.]{0,200}(add|adds|added)[^.]{0,40}test"
+[[ -z "$problems" ]] \
+  && ok || no "#875 diff takes <branch-base-sha> <step-base-sha>, judges the criterion against git diff <branch-base-sha>..HEAD and REJECTs only a test added in git diff <step-base-sha>..HEAD (${problems#; })"
+
 cp "$work/spec.md" "$work/refactor-spec.md"
 printf '\n## Refactor\n\nRun kind: refactor. This issue changes structure, not behaviour.\n' \
   >> "$work/refactor-spec.md"

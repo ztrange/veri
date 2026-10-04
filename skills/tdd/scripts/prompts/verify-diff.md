@@ -13,5 +13,6 @@ the author's rationale.
 {{ISSUE_SPEC}}
 
 PASS if the diff satisfies the step's criterion. REJECT, naming where the diff falls short,
-otherwise. REJECT, too, if the diff adds a test: a criterion judged against the diff is never
-also pinned by a case left behind. End with `VERDICT: PASS` or `VERDICT: REJECT`.
+otherwise. REJECT, too, if the step's own commits add a test — those in
+`git diff {{STEP_BASE_SHA}}..HEAD`, never a test an earlier step of the run added: a criterion
+judged against the diff is never also pinned by a case left behind. End with `VERDICT: PASS` or `VERDICT: REJECT`.
