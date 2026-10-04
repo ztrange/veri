@@ -97,4 +97,20 @@ fi
 
 report "detach-command: #622 a writer whose reader closes early dies of SIGPIPE silently, as it does from a shell"
 
+problems=()
+
+helper start whole sh -c 'echo "sid $(python3 -c "import os; print(os.getsid(0))")"; echo out-line'
+helper wait whole 30
+rc=$?
+[[ "$rc" == 0 ]] || problems+=("wait on a command that exited 0 returned $rc; want 0")
+[[ "$(cat "$work/.tdd/whole.exit" 2>/dev/null)" == 0 ]] ||
+  problems+=("want .tdd/whole.exit to hold 0, got: $(cat "$work/.tdd/whole.exit" 2>&1)")
+grep -Fx out-line "$work/.tdd/whole.out" > /dev/null ||
+  problems+=("want the command's output in .tdd/whole.out, got: $(cat "$work/.tdd/whole.out" 2>&1)")
+sid="$(sed -n 's/^sid //p' "$work/.tdd/whole.out" 2>/dev/null)"
+[[ -n "$sid" && "$sid" == "$(cat "$work/.tdd/whole.pid" 2>/dev/null)" ]] ||
+  problems+=("want the command in a session led by the started pid $(cat "$work/.tdd/whole.pid" 2>&1), got session: '$sid'")
+
+report "detach-command: #622 start still runs its command in a session of its own, records .exit and .out, and wait exits 0 for a clean finish"
+
 finish
