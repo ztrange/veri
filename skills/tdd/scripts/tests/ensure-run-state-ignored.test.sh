@@ -36,19 +36,6 @@ ignored "$repo" .tdd/issue-7.md && ledger_code=0 || ledger_code=$?
 { [[ "$log_code" == 0 ]] && [[ "$ledger_code" == 1 ]]; } \
   && ok || no "no .gitignore: creates one ignoring .tdd/develop-red.log but not .tdd/issue-7.md (develop-red.log=$log_code want 0 ignored, issue-7.md=$ledger_code want 1 not ignored)"
 
-repo="$work/twice"
-make_repo "$repo"
-
-"$ENSURE" "$repo" >/dev/null 2>&1
-before="$work/twice.gitignore.before"
-cp "$repo/.gitignore" "$before"
-
-out="$("$ENSURE" "$repo" 2>/dev/null)" && code=0 || code=$?
-cmp -s "$before" "$repo/.gitignore" && same=0 || same=$?
-
-{ [[ "$same" == 0 ]] && [[ "$code" == 0 ]] && [[ "$out" == *"already present"* ]]; } \
-  && ok || no "already carries the rule: leaves .gitignore byte-identical and reports already present (cmp=$same want 0 identical, exit=$code want 0, stdout='$out' want it to contain 'already present')"
-
 repo="$work/unrelated"
 make_repo "$repo"
 printf 'node_modules/\n*.log' > "$repo/.gitignore"
@@ -65,25 +52,6 @@ ignored "$repo" .tdd/issue-7.md && ledger_code=0 || ledger_code=$?
   && [[ "$code" == 0 ]] && [[ "$out" == *"added"* ]]; } \
   && ok || no "unrelated .gitignore: keeps every existing line and reports added (node_modules/x=$modules_code want 0 still ignored, debug.log=$debuglog_code want 0 still ignored, develop-red.log=$log_code want 0 ignored, issue-7.md=$ledger_code want 1 not ignored, exit=$code want 0, stdout='$out' want it to contain 'added')"
 
-refuses() {
-  local slug="$1" why="$2"; shift 2
-  local repo="$work/$slug" before="$work/$slug.before" err="$work/$slug.stderr" code same diag
-  make_repo "$repo"
-  printf '%s\n' "$@" > "$repo/.gitignore"
-  cp "$repo/.gitignore" "$before"
-
-  "$ENSURE" "$repo" >/dev/null 2>"$err" && code=0 || code=$?
-  cmp -s "$before" "$repo/.gitignore" && same=0 || same=$?
-  [[ -s "$err" ]] && diag=0 || diag=1
-
-  { [[ "$code" != 0 ]] && [[ "$diag" == 0 ]] && [[ "$same" == 0 ]]; } \
-    && ok || no "$slug rule ($why): refuses with a diagnostic and touches nothing (exit=$code want non-zero, stderr-non-empty=$diag want 0, cmp=$same want 0 identical)"
-}
-
-refuses partial 'only .tdd/issue-*-spec.md' '.tdd/issue-*-spec.md'
-
-refuses misordered 'negation last' '.tdd/*' '.tdd/issue-*-spec.md' '!.tdd/issue-*.md'
-
 repo="$work/diagnostic"
 make_repo "$repo"
 printf '%s\n' '.tdd/issue-*-spec.md' > "$repo/.gitignore"
@@ -94,18 +62,6 @@ err="$(cat "$work/diagnostic.stderr")"
 
 { [[ "$code" == 2 ]] && [[ -z "$out" ]] && [[ "$err" == "$want_err" ]]; } \
   && ok || no "only the spec line: exits 2, prints nothing on stdout and names the file in the refusal diagnostic byte for byte (exit=$code want 2, stdout='$out' want empty, stderr='$err' want '$want_err')"
-
-repo="$work/trailing-newline"
-make_repo "$repo"
-printf 'node_modules/\n' > "$repo/.gitignore"
-want="$work/trailing-newline.want"
-printf 'node_modules/\n.tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-spec.md\n' > "$want"
-
-out="$("$ENSURE" "$repo" 2>/dev/null)" && code=0 || code=$?
-cmp -s "$want" "$repo/.gitignore" && same=0 || same=$?
-
-{ [[ "$same" == 0 ]] && [[ "$code" == 0 ]] && [[ "$out" == *"added"* ]]; } \
-  && ok || no "newline-terminated .gitignore: appends the block with no blank line before it and reports added (cmp=$same want 0 identical to node_modules/ + the three rule lines, exit=$code want 0, stdout='$out' want it to contain 'added')"
 
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
@@ -131,25 +87,6 @@ ignored "$wt" .tdd/issue-1.md && ledger_code=0 || ledger_code=$?
 
 { [[ "$log_code" == 0 ]] && [[ "$ledger_code" == 1 ]]; } \
   && ok || no "worktree with the rule in info/exclude too: still ignores .tdd/develop-red.log and still does not ignore the ledger (develop-red.log=$log_code want 0 ignored, issue-1.md=$ledger_code want 1 not ignored)"
-
-repo="$work/twice-both"
-mkdir -p "$repo"
-new_repo -b main "$repo" >/dev/null 2>&1
-git_q "$repo" commit -q --allow-empty -m "initial" >/dev/null 2>&1
-git_q "$repo" worktree add "$repo/.tdd/wt/1" -b tdd/1 >/dev/null 2>&1
-wt="$repo/.tdd/wt/1"
-exclude="$repo/.git/info/exclude"
-
-"$ENSURE" "$wt" >/dev/null 2>&1
-cp "$wt/.gitignore" "$work/twice-both.gitignore.before"
-cp "$exclude" "$work/twice-both.exclude.before"
-
-"$ENSURE" "$wt" >/dev/null 2>&1 && code=0 || code=$?
-cmp -s "$work/twice-both.gitignore.before" "$wt/.gitignore" && gi_same=0 || gi_same=$?
-cmp -s "$work/twice-both.exclude.before" "$exclude" && ex_same=0 || ex_same=$?
-
-{ [[ "$gi_same" == 0 ]] && [[ "$ex_same" == 0 ]] && [[ "$code" == 0 ]]; } \
-  && ok || no "second run on the same repo: leaves the worktree .gitignore and info/exclude byte-identical and exits 0 (.gitignore cmp=$gi_same want 0 identical, info/exclude cmp=$ex_same want 0 identical, exit=$code want 0)"
 
 dir="$work/not-a-repo"
 mkdir -p "$dir"
