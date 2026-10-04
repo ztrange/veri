@@ -6,4 +6,4 @@
 - [x] a verifier that modifies, adds or deletes a tracked file outside .tdd/ is still refused with exit 2, the refusal naming that path ⟦criterion 2⟧
 - [x] in this repository the root ledger .tdd/issue-<n>.md is not ignored by git and the root blind spec .tdd/issue-<n>-spec.md is ignored ⟦criterion 3⟧
 - [x] every case verify.test.sh held at the branch point keeps its assertions unchanged in the branch's diff ⟦diff-checked⟧ ⟦criterion 4⟧
-- [ ] every case verify.test.sh already holds passes under the repository's test command ⟦full-suite⟧ ⟦criterion 4⟧
+- [x] every case verify.test.sh already holds passes under the repository's test command ⟦full-suite⟧ ⟦criterion 4⟧
