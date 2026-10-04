@@ -133,3 +133,11 @@ def test_main_compares_seconds_awk_reads_as_a_string_as_text_against_the_budget_
         code = over_budget.main(argv)
         capsys.readouterr()
         assert (argv, code) == (argv, expected)
+
+
+def test_main_reads_a_usual_awk_reads_as_a_string_as_zero_inside_the_product(capsys, monkeypatch, over_budget):
+    _time_budget(monkeypatch, 0, "10\n1.5\n")
+    for argv, expected in ((["all", "160", "abc"], 0), (["all", "0", "abc"], 1)):
+        code = over_budget.main(argv)
+        capsys.readouterr()
+        assert (argv, code) == (argv, expected)
