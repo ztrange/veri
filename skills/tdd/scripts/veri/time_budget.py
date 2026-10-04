@@ -22,3 +22,7 @@ def main(argv):
         return 2
     write(sys.stdout, budget + b"\n" + ratio + b"\n")
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
