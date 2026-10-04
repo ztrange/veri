@@ -45,7 +45,7 @@ def main(argv):
                             "-f", f"title=Refactor owed by #{n}", "-f", f"body={body}",
                             "-q", ".html_url"], stdout=subprocess.PIPE, text=True)
     if filed.returncode:
-        return filed.returncode
+        return 2
     print(filed.stdout.rstrip("\n"))
     return 0
 

@@ -5,5 +5,5 @@
 #
 # Prints the new issue's URL.
 #
-# Exit: 0 filed; 2 a missing or non-numeric argument, or a missing <skipped-file>; 3 nothing left unreached, nothing filed.
+# Exit: 0 filed; 2 a missing or non-numeric argument, a missing <skipped-file>, or gh failing to file; 3 nothing left unreached, nothing filed.
 exec python3 "$(dirname "$0")/veri/refactor_overflow.py" "$@"

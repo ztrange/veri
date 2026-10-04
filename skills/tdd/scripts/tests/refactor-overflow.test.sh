@@ -296,8 +296,8 @@ chmod +x "$failing_stubdir/gh"
 
 (cd "$work" && env PATH="$failing_stubdir:$PATH" \
   "$OVERFLOW" 504 "$owed_file" 1 >"$out" 2>"$work/err") && code=0 || code=$?
-[[ "$code" == 1 ]] ||
-  problems+=("want exit 1 when gh fails while filing, got $code: $(cat "$work/err")")
+[[ "$code" == 2 ]] ||
+  problems+=("want exit 2 when gh fails while filing, got $code: $(cat "$work/err")")
 [[ ! -s "$out" ]] ||
   problems+=("want empty stdout when gh fails while filing, got '$(cat "$out")'")
 got_err="$(cat "$work/err")"
@@ -340,6 +340,26 @@ want_pwd="$(cd "$work/elsewhere" && pwd -P)"
 got_pwd="$(cat "$pwd_file" 2>/dev/null)"
 [[ "$got_pwd" == "$want_pwd" ]] ||
   problems+=("want gh run in the caller's working directory '$want_pwd', got '$got_pwd'")
+
+report "$name"
+
+name="refactor-overflow exits 2 when gh fails filing the issue with status 1, 3 or 5 (#775)"
+problems=()
+
+status_stubdir="$work/status-bin"
+mkdir -p "$status_stubdir"
+cat > "$status_stubdir/gh" <<'STUB'
+#!/bin/sh
+exit "$FAKE_GH_STATUS"
+STUB
+chmod +x "$status_stubdir/gh"
+
+for status in 1 3 5; do
+  (cd "$work" && env PATH="$status_stubdir:$PATH" FAKE_GH_STATUS="$status" \
+    "$OVERFLOW" 504 "$owed_file" 1 >"$out" 2>"$work/err") && code=0 || code=$?
+  [[ "$code" == 2 ]] ||
+    problems+=("gh filing exit $status: want exit 2, got $code")
+done
 
 report "$name"
 
