@@ -732,4 +732,28 @@ grep -F "still pending past the deadline" "$work/conflict-across.second.err" > /
   || problems+=("conflict-across second call: want stderr saying the checks are still pending past the deadline, got: $(cat "$work/conflict-across.second.err")")
 report "$name"
 
+name="wait-ci.sh called with no argument, or with an empty <pr-url> and slice 60, exits 2 with nothing on stdout, no gh call, and stderr exactly its usage line"
+problems=()
+usage_bin="$(scratch_dir)"
+cat > "$usage_bin/gh" <<'G'
+#!/bin/sh
+printf '%s\n' "$*" >> "$GH_LOG"
+G
+chmod +x "$usage_bin/gh"
+want_usage="usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]"
+for args in none empty; do
+  : > "$work/usage-$args.gh"
+  if [[ "$args" == none ]]; then set --; else set -- "" 60; fi
+  ( cd "$work" && env GH_LOG="$work/usage-$args.gh" PATH="$usage_bin:$PATH" \
+      "$WAIT" "$@" >"$work/usage-$args.out" 2>"$work/usage-$args.err" )
+  got=$?
+  [[ "$got" == 2 ]] || problems+=("$args: want exit 2, got $got")
+  [[ ! -s "$work/usage-$args.out" ]] || problems+=("$args: want nothing on stdout, got: $(cat "$work/usage-$args.out")")
+  [[ ! -s "$work/usage-$args.gh" ]] || problems+=("$args: want no gh call, got: $(cat "$work/usage-$args.gh")")
+  [[ "$(cat "$work/usage-$args.err")" == "$want_usage" ]] \
+    || problems+=("$args: want stderr exactly '$want_usage', got: '$(cat "$work/usage-$args.err")'")
+done
+set --
+report "$name"
+
 finish
