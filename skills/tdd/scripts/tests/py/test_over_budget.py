@@ -164,3 +164,14 @@ def test_main_compares_as_macos_awk_does_not_as_python_float_does(capsys, monkey
             code = over_budget.main(argv)
             capsys.readouterr()
             assert (locale, argv, code) == (locale, argv, expected)
+
+
+def test_main_processes_backslash_escapes_in_every_value_as_awk_v_does(capsys, monkeypatch, over_budget):
+    _time_budget(monkeypatch, 0, "10\n1.5\n")
+    for argv, line in ((["x\\ny", "160", "100"], "⏱ x\ny tier took 160 s (usual 100 s, ratio 1.5, unit budget 10 s)\n"),
+                       (["x\\\\y", "160", "100"], "⏱ x\\y tier took 160 s (usual 100 s, ratio 1.5, unit budget 10 s)\n"),
+                       (["q\\", "160", "100"], "⏱ q\\ tier took 160 s (usual 100 s, ratio 1.5, unit budget 10 s)\n"),
+                       (["unit", "12\\n", "100"], "⏱ unit tier took 12\n s (usual 100 s, ratio 1.5, unit budget 10 s)\n")):
+        code = over_budget.main(argv)
+        out, _ = capsys.readouterr()
+        assert (argv, code, out) == (argv, 0, line)
