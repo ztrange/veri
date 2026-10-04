@@ -316,6 +316,18 @@ last="$(tail -n 1 "$work/case-unreachable/stderr")"
   problems+=("want stderr's last line exactly 'invisible-work.sh: cannot reach origin', got $(printf '%q' "$last")")
 report "$name"
 
+name="invisible-work.sh: exits 1 with empty stdout when the VERI_GH_JSON directory's issues.json is not JSON"
+problems=()
+clone="$(unpr_branch_clone "$work/case-not-json" "chore/nobody-opened-a-pr" 1)"
+gh_json="$(fixture "$work/case-not-json/gh")"
+printf 'this is not JSON\n' > "$gh_json/issues.json"
+out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2> "$work/case-not-json/stderr")"; rc=$?
+[[ "$rc" -eq 1 ]] ||
+  problems+=("issues.json not JSON: want exit 1, got $rc; stderr: $(cat "$work/case-not-json/stderr")")
+[[ -z "$out" ]] ||
+  problems+=("issues.json not JSON: want empty stdout, got $(printf '%q' "$out")")
+report "$name"
+
 names_invariant() {
   local label="$1" line="${2,,}" n="$3"
   [[ "$line" =~ invariant[^0-9]*$n([^0-9]|$) ]] ||
