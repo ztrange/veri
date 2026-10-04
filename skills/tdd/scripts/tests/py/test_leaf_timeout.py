@@ -132,8 +132,8 @@ def test_main_keeps_leaf_timeout_sh_argument_and_environment_quirks(monkeypatch,
         out, err = capsys.readouterr()
         seen.append((timeout, budget, argv, code, out, err))
     assert seen == [
-        ("007", None, ["abc"], 0, "007\n", ""),
-        ("007", None, [], 0, "007\n", ""),
+        ("007", None, ["abc"], 0, "7\n", ""),
+        ("007", None, [], 0, "7\n", ""),
         ("", None, ["200"], 0, "1200\n", ""),
         ("abc", None, [], 2, "", "leaf-timeout: VERI_TIMEOUT must be a whole number >= 1: abc\n"),
         (None, None, ["5", "--full"], 2, "", "leaf-timeout: <full-seconds> must be a whole number >= 0: \n" + USAGE + "\n"),
@@ -184,3 +184,10 @@ def test_main_with_refactor_refuses_a_veri_refactor_budget_not_a_non_negative_wh
         ("-3", 2, "", True),
         ("1.5", 2, "", True),
     ]
+
+
+def test_main_prints_a_veri_timeout_given_with_leading_zeros_as_its_decimal_value_issue_776(monkeypatch, capsys, leaf_timeout):
+    monkeypatch.setenv("VERI_TIMEOUT", "010")
+    code = leaf_timeout.main(["200"])
+    out, err = capsys.readouterr()
+    assert (code, out, err) == (0, "10\n", "")

@@ -28,7 +28,7 @@ def main(argv):
         if not is_whole(override) or int(override) < 1:
             print(f"leaf-timeout: VERI_TIMEOUT must be a whole number >= 1: {override}", file=sys.stderr)
             return 2
-        print(override)
+        print(int(override))
         return 0
     baseline = argv[0] if argv else ""
     code = require_seconds("<baseline-seconds>", baseline)
