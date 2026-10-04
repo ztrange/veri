@@ -266,6 +266,8 @@ def test_start_done_park_and_assign_take_the_lock_directory_polling_it_for_the_w
     assert sleeps == [0.05] * 20
     assert run(["done", "alpha", "13", "abc123"], "010") == held
     assert sleeps == [0.05] * 200
+    assert run(["start", "alpha", "12"], "08") == held
+    assert sleeps == [0.05] * 160
     assert run(["park", "alpha", "13", "flaky"]) == held
     assert sleeps == [0.05] * 600
     assert run(["assign", "beta", "14"], "2") == held
