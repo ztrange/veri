@@ -136,7 +136,10 @@ def _select(operation):
     fixtures = os.environ.get("VERI_GH_JSON")
     if operation == "json" and fixtures:
         return FixtureAdapter(fixtures)
-    driver = os.environ.get("VERI_GH_DRIVER")
+    driver = os.environ.get("VERI_GH_DRIVER", "rest")
+    if driver not in ("auto", "rest", "graphql"):
+        print("VERI_GH_DRIVER is '%s': expected auto, rest or graphql" % driver, file=sys.stderr)
+        raise NoAnswer("")
     rest = RestAdapter()
     if driver == "graphql":
         return FallbackAdapter(GraphQLAdapter(), NoRouteAdapter(), rest)
