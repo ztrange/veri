@@ -4,9 +4,9 @@
 # reaches over a tree, not a script.
 #
 # Contract under test:
-#   Over a copy of this tree with refactor-budget.sh's VERI_REFACTOR_BUDGET default bumped by
-#   one and both prose statements of it untouched, `make test` runs the suite that owns that
-#   script, comes back non-zero with its own `SUITES FAILED` verdict, and the output names
+#   Over a copy of this tree with veri/refactor_budget.py's VERI_REFACTOR_BUDGET default bumped
+#   by one and both prose statements of it untouched, `make test` runs the pytest leg that owns
+#   that module, comes back non-zero with its own `SUITES FAILED` verdict, and the output names
 #   both sentences the change left behind.
 #
 # Run: skills/tdd/scripts/tests/prose-drift-red.test.sh
@@ -20,8 +20,9 @@ WORK="$(scratch_dir)"
 
 TUNABLE='VERI_REFACTOR_BUDGET'
 SCRIPT='skills/tdd/scripts/refactor-budget.sh'
-SUITE='skills/tdd/scripts/tests/refactor-budget.test.sh'
-SUITE_NAME="${SUITE##*/}"
+MODULE='skills/tdd/scripts/veri/refactor_budget.py'
+SUITE='skills/tdd/scripts/tests/py/test_refactor_budget.py'
+SUITE_NAME='pytest'
 
 SKILL_MARKER='SKILL.md'
 HEADER_MARKER='header'
@@ -39,7 +40,7 @@ figure() {
   printf '%s' "$hit" | grep -oE '[0-9]+' | tail -1
 }
 
-ENCODED_RE="$TUNABLE:-[0-9]+"
+ENCODED_RE="DEFAULT_BUDGET = [0-9]+"
 HEADER_RE="$TUNABLE \(default [0-9]+"
 SKILL_RE="$TUNABLE.{0,3} \(default [0-9]+"
 
@@ -48,20 +49,19 @@ tree_whose_default_moved() {
   mkdir -p "$planted"
   cp -R "$ROOT/skills" "$planted/skills"
   cp "$ROOT/Makefile" "$planted/"
-  here_default="$(figure "$ROOT/$SCRIPT" "$ENCODED_RE")"
-  sed -E "s/$TUNABLE:-[0-9]+/$TUNABLE:-$((here_default + 1))/" \
-    "$ROOT/$SCRIPT" > "$planted/$SCRIPT.planted"
-  mv "$planted/$SCRIPT.planted" "$planted/$SCRIPT"
-  chmod 755 "$planted/$SCRIPT"
+  here_default="$(figure "$ROOT/$MODULE" "$ENCODED_RE")"
+  sed -E "s/$ENCODED_RE/DEFAULT_BUDGET = $((here_default + 1))/" \
+    "$ROOT/$MODULE" > "$planted/$MODULE.planted"
+  mv "$planted/$MODULE.planted" "$planted/$MODULE"
   printf '%s' "$planted"
 }
 
 probe_plant_is_real() {
   local moved here site
-  moved="$(figure "$1/$SCRIPT" "$ENCODED_RE")"
-  here="$(figure "$ROOT/$SCRIPT" "$ENCODED_RE")"
+  moved="$(figure "$1/$MODULE" "$ENCODED_RE")"
+  here="$(figure "$ROOT/$MODULE" "$ENCODED_RE")"
   [[ "$moved" =~ ^[0-9]+$ && "$here" =~ ^[0-9]+$ && "$moved" != "$here" ]] ||
-    problems+=("the case is vacuous: $SCRIPT encodes $moved in the copy against $here here, so the constant the prose describes has not moved")
+    problems+=("the case is vacuous: $MODULE encodes $moved in the copy against $here here, so the constant the prose describes has not moved")
   while IFS='|' read -r site file regex; do
     [[ -n "$site" ]] || continue
     [[ "$(figure "$1/$file" "$regex")" == "$here" ]] ||
@@ -78,7 +78,7 @@ problems=()
 planted="$(tree_whose_default_moved)"
 probe_plant_is_real "$planted"
 
-out="$(make -C "$planted" test TESTS="$SUITE" UNIT_TESTS= 2>&1)" && code=0 || code=$?
+out="$(make -C "$planted" test TESTS= UNIT_TESTS= PY_TESTS="$SUITE" 2>&1)" && code=0 || code=$?
 
 [[ "$code" != 0 ]] ||
   problems+=("want a non-zero exit from the runner over a tree whose $TUNABLE default has drifted from the prose stating it; got 0: $(flat "$out")")

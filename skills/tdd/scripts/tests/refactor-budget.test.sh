@@ -140,23 +140,6 @@ stated() {
   printf '%s' "$hit" | grep -oE '[0-9]+' | tail -1
 }
 
-encoded="$(stated "$BUDGET" 'VERI_REFACTOR_BUDGET:-[0-9]+')"
-
-name="the default budget encoded in refactor-budget.sh and every prose statement of it agree"
-problems=()
-[[ "$encoded" =~ ^[0-9]+$ ]] ||
-  problems+=("refactor-budget.sh: no VERI_REFACTOR_BUDGET default found, got: $encoded")
-while IFS='|' read -r where file regex; do
-  [[ -n "$where" ]] || continue
-  got="$(stated "$ROOT/$file" "$regex")"
-  [[ "$got" == "$encoded" ]] ||
-    problems+=("$where: says $got, refactor-budget.sh encodes $encoded")
-done <<'SITES'
-refactor-budget.sh-header|skills/tdd/scripts/refactor-budget.sh|VERI_REFACTOR_BUDGET \(default [0-9]+
-SKILL.md-refactor|skills/tdd/SKILL.md|VERI_REFACTOR_BUDGET.{0,3} \(default [0-9]+
-SITES
-report "$name"
-
 name="--issue reads VERI_ISSUE_REFACTOR_BUDGET (default 3): exit 0 under it, 3 once spent, 2 on a bad value; without the flag VERI_REFACTOR_BUDGET still applies"
 problems=()
 while IFS='|' read -r label envs args exp_code exp_err; do
