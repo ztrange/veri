@@ -23,12 +23,16 @@
 #   page, back to back; 2 when GitHub gave no answer.
 
 _gh_graphql() {
-  [[ "${VERI_GH_DRIVER:-rest}" == auto ]] && "$@"
+  [[ "${VERI_GH_DRIVER:-rest}" == auto || "${VERI_GH_DRIVER:-rest}" == graphql ]] && "$@"
+}
+
+_gh_rest() {
+  [[ "${VERI_GH_DRIVER:-rest}" != graphql ]] && "$@"
 }
 
 gh_pr_ready() {
   _gh_graphql gh pr ready "$1" ||
-    gh api -X POST "repos/{owner}/{repo}/pulls/$1/ccr/ready_for_review" ||
+    _gh_rest gh api -X POST "repos/{owner}/{repo}/pulls/$1/ccr/ready_for_review" ||
     return 2
 }
 
@@ -36,7 +40,11 @@ gh_issue_view() {
   local filter='.body'
   [[ "$2" == labels ]] && filter='.labels[].name'
   _gh_graphql gh issue view "$1" --json "$2" -q "$filter" 2> /dev/null ||
-    gh api "repos/{owner}/{repo}/issues/$1" | python3 -c '
+    _gh_rest _gh_rest_issue_view "$1" "$2" || return 2
+}
+
+_gh_rest_issue_view() {
+  gh api "repos/{owner}/{repo}/issues/$1" | python3 -c '
 import json, sys
 issue = json.load(sys.stdin)
 if sys.argv[1] == "labels":
@@ -44,7 +52,7 @@ if sys.argv[1] == "labels":
         print(label["name"])
 else:
     print(issue["body"] or "")
-' "$2" || return 2
+' "$2"
 }
 
 gh_issue_edit() {
@@ -64,7 +72,7 @@ gh_json() {
 
 gh_list() {
   local rest="$1"; shift
-  _gh_graphql gh "$@" 2> /dev/null || gh_rest_list "$rest"
+  _gh_graphql gh "$@" 2> /dev/null || _gh_rest gh_rest_list "$rest" || return 2
 }
 
 gh_rest_list() {
