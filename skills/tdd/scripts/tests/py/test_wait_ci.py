@@ -239,3 +239,75 @@ def test_main_reads_check_run_pages_to_the_empty_one_and_answers_2_when_gh_or_a_
         observed.append((code, captured.out, err, calls))
 
     assert observed == [expected for _, expected in cases]
+
+
+def test_main_polls_until_its_slice_or_deadline_and_records_the_deadline_in_tdd(
+        monkeypatch, capsys, tmp_path, wait_ci):
+    past = f"wait-ci.sh: checks of {PR} still pending past the deadline recorded for {SHA}\n"
+    bad_sleep = "sleep: invalid time interval 'abc'\n"
+    tick = ["date +%s", "sleep 10"]
+    cases = [
+        ([PR, "20", "100", SHA], None, True, {}, [1000, 1010, 1020],
+         (3, "", "", {"ci-deadline-abc123": "1100\n"}, tick * 2 + ["date +%s"])),
+        ([PR, "60", "120"], None, True, {"ci-deadline-abc123": "1000\n"}, [1000],
+         (2, "", past, {"ci-deadline-abc123": "1000\n"}, ["date +%s"])),
+        ([PR, "60", "10", SHA], None, True, {}, [1000, 1010],
+         (3, "", "", {"ci-deadline-abc123": "1010\n"}, tick + ["date +%s"])),
+        ([PR, "20", "100", SHA], "abc", True, {}, [1000, 1010, 1020],
+         (3, "", bad_sleep * 2, {"ci-deadline-abc123": "1100\n"},
+          ["date +%s", "sleep abc", "date +%s", "sleep abc", "date +%s"])),
+        ([PR, "20", "100", SHA], None, False, {}, [1000, 1010, 1020],
+         (3, "", True, None, tick * 2 + ["date +%s"])),
+        ([PR, "20", "100", "a/b"], None, True, {}, [1000, 1010, 1020],
+         (3, "", True, {}, tick * 2 + ["date +%s"])),
+        ([PR, "", "10000", SHA], None, True, {}, [1000, 1539, 1540],
+         (3, "", "", {"ci-deadline-abc123": "11000\n"}, tick * 2 + ["date +%s"])),
+    ]
+    bodies = {
+        PULL: json.dumps({"mergeable": True, "head": {"sha": SHA}}),
+        PAGE_1: json.dumps({"check_runs": [{"status": "completed", "conclusion": None}]}),
+        PAGE_2: json.dumps({"check_runs": []}),
+        STATUS: json.dumps({"statuses": []}),
+    }
+
+    observed = []
+    for i, (argv, poll, tdd, marks, clock, expected) in enumerate(cases):
+        work = tmp_path / str(i)
+        work.mkdir()
+        if tdd:
+            (work / ".tdd").mkdir()
+            for name, text in marks.items():
+                (work / ".tdd" / name).write_text(text)
+        monkeypatch.chdir(work)
+        if poll is None:
+            monkeypatch.delenv("VERI_POLL", raising=False)
+        else:
+            monkeypatch.setenv("VERI_POLL", poll)
+        calls = []
+        readings = iter(clock)
+
+        def fake_run(args, calls=calls, readings=readings, **kwargs):
+            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+            calls.append(line)
+            if line == "date +%s":
+                code, out, err = 0, f"{next(readings)}\n", ""
+            elif line.startswith("sleep "):
+                code, out, err = (1, "", bad_sleep) if line == "sleep abc" else (0, "", "")
+            else:
+                code, out, err = 0, bodies.get(line, ""), ""
+            if kwargs.get("stderr") is None:
+                sys.stderr.write(err)
+                err = None
+            return subprocess.CompletedProcess(args, code, out, err)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        code = wait_ci.main(argv)
+        captured = capsys.readouterr()
+        err = captured.err if isinstance(expected[2], str) else bool(captured.err)
+        recorded = None if not (work / ".tdd").exists() else {
+            str(p.relative_to(work / ".tdd")): p.read_text()
+            for p in (work / ".tdd").rglob("*") if p.is_file()}
+        observed.append((code, captured.out, err, recorded,
+                         [c for c in calls if not c.startswith("gh ")]))
+
+    assert observed == [expected for *_, expected in cases]
