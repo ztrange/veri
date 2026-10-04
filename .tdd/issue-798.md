@@ -22,6 +22,6 @@
 - [x] veri.github.gh_json with VERI_GH_JSON unset and gh args given takes the gh_list path ⟦criterion 2⟧
 - [x] veri/github.py is importable as `from veri import github` and as `import veri.github` ⟦criterion 4⟧
 - [x] importing veri.github starts no process and holds no state ⟦criterion 4⟧
-- [ ] the PR body lists the Python modules already copying the fallback — veri/capture_spec.py:14-32 on main, and veri/coverage_blocker.py in #794 — as follow-ups ⟦human-owed⟧ ⟦criterion 5⟧
+- [x] the PR body lists the Python modules already copying the fallback — veri/capture_spec.py:14-32 on main, and veri/coverage_blocker.py in #794 — as follow-ups ⟦human-owed⟧ ⟦criterion 5⟧ — checked 2026-10-04 (Mario-delegated review): the two follow-ups are the only veri/*.py modules carrying their own gh fallback on main abfc851e1 (grep for gh/issues over veri/*.py: capture_spec.py, coverage_blocker.py; blocked_by.py only matches an issue-URL regex); fix: PR body now says coverage_blocker.py is on main since #794 merged
 - [x] lib/github.sh, its seven bash users, tests/unit/github.test.sh and tests/no-graphql-gh-calls.test.sh are unmodified by the branch ⟦diff-checked⟧ ⟦criterion 6⟧
 - [x] the full suite, those files' suites included, passes ⟦full-suite⟧ ⟦criterion 6⟧
