@@ -408,4 +408,46 @@ if [[ -n "$go_status" && -n "${go_push_line:-}" && -n "${go_edit_line:-}" ]]; th
 fi
 report "$name"
 
+name="#566: $skill_md's Bailing sub-step 4, on a non-zero metrics.sh exit, does not stop the bail: it goes on to sub-step 5's push and sub-step 6's ⛔ Bailed comment"
+problems=()
+
+bs_status=""
+if ! bs_render_line="$(first_record_line "$bail_records" 'metrics.sh <n> > .tdd/issue-<n>-metrics.md')"; then
+  problems+=("$skill_md's Bailing section never renders metrics.sh <n> > .tdd/issue-<n>-metrics.md")
+else
+  bs_render="$(record_at "$bail_records" "$bs_render_line")"
+  if [[ "$bs_render" =~ ([a-z_][a-z0-9_]*)=\$\? ]]; then
+    bs_status="${BASH_REMATCH[1]}"
+    [[ "$bs_render" =~ ^4\. ]] ||
+      problems+=("$skill_md renders metrics.sh in Bailing record $bs_render_line, which is not sub-step 4: $(printf '%.120s' "$bs_render")")
+    after_capture="${bs_render#*"$bs_status"=\$\?}"
+    [[ "$after_capture" =~ (event\.sh[[:space:]]+bail|(^|[^a-z0-9_-])(exit|return|stop|stops|skip|skips|abort|aborts)([^a-z0-9_-]|$)) ]] &&
+      problems+=("$skill_md's Bailing sub-step 4 stops or skips on \$$bs_status, metrics.sh's exit status, so a failed render ends the bail before its push and comment: $(printf '%.160s' "$after_capture")")
+  else
+    problems+=("$skill_md renders metrics.sh in Bailing record $bs_render_line without capturing its exit status")
+  fi
+fi
+
+if [[ -n "$bs_status" ]]; then
+  if ! bs_push_line="$(first_record_line "$bail_records" 'git push')"; then
+    problems+=("$skill_md's Bailing section never pushes the branch")
+  else
+    bs_push="$(record_at "$bail_records" "$bs_push_line")"
+    [[ "$bs_push" =~ ^5\. && "$bs_push_line" -gt "$bs_render_line" ]] ||
+      problems+=("$skill_md's Bailing push is not sub-step 5, after the metrics render in record $bs_render_line: $(printf '%.120s' "$bs_push")")
+    [[ "$bs_push" =~ \$\{?$bs_status([^a-z0-9_]|$) ]] &&
+      problems+=("$skill_md's Bailing sub-step 5 push is conditioned on \$$bs_status, so a non-zero metrics.sh exit may skip it: $(printf '%.160s' "$bs_push")")
+  fi
+  if ! bs_bailed_line="$(first_record_line "$bail_records" '⛔ bailed' '📊 metrics')"; then
+    problems+=("$skill_md's Bailing section has no ⛔ Bailed comment carrying the 📊 Metrics block")
+  else
+    bs_bailed="$(record_at "$bail_records" "$bs_bailed_line")"
+    [[ "$bs_bailed" =~ ^6\. && "$bs_bailed_line" -gt "$bs_render_line" ]] ||
+      problems+=("$skill_md's ⛔ Bailed comment is not sub-step 6, after the metrics render in record $bs_render_line: $(printf '%.120s' "$bs_bailed")")
+    [[ "$bs_bailed" =~ (^|[^a-z0-9_-])(stop|stops|skip|skips|omit|abort|aborts)([^a-z0-9_-]|$) ]] &&
+      problems+=("$skill_md's ⛔ Bailed comment in sub-step 6 is skipped or stopped on a failed render: $(printf '%.160s' "$bs_bailed")")
+  fi
+fi
+report "$name"
+
 finish
