@@ -128,3 +128,41 @@ def test_main_writes_bytes_whatever_the_locale_and_exits_1_when_stdout_is_closed
     fd.closed_now = False
     wanted["closed-fd"] = 1
     assert seen == wanted
+
+
+def test_main_answers_each_contract_case_of_the_bash_suite_with_its_return_code_and_streams(monkeypatch, capsys, step_budget):
+    def bad(var, value):
+        return "step-budget: %s must be a non-negative decimal number: %s\n" % (var, value)
+
+    def run(env, argv):
+        monkeypatch.delenv("VERI_STEP_BUDGET", raising=False)
+        monkeypatch.delenv("VERI_RUN_BUDGET", raising=False)
+        for name, value in env.items():
+            monkeypatch.setenv(name, value)
+        code = step_budget.main(argv)
+        out, err = capsys.readouterr()
+        return (code, out, err)
+
+    cases = {
+        "neither budget set prints 12 then 120, each on its own line, exit 0":
+            [({}, [], (0, "12\n120\n", ""))],
+        "a set VERI_STEP_BUDGET then a set VERI_RUN_BUDGET, decimals included, printed in that order":
+            [({"VERI_STEP_BUDGET": "7.5", "VERI_RUN_BUDGET": "42.25"}, [], (0, "7.5\n42.25\n", ""))],
+        "a VERI_STEP_BUDGET that is not a non-negative decimal number exits 2, names it on stderr, prints nothing on stdout":
+            [({"VERI_STEP_BUDGET": "twelve"}, [], (2, "", bad("VERI_STEP_BUDGET", "twelve")))],
+        "a VERI_RUN_BUDGET that is not a non-negative decimal number exits 2, names it on stderr, prints nothing on stdout":
+            [({"VERI_RUN_BUDGET": "-5"}, [], (2, "", bad("VERI_RUN_BUDGET", "-5")))],
+        "both budgets invalid at once exits 2 and prints nothing on stdout, not the first figure then a failure":
+            [({"VERI_STEP_BUDGET": "twelve", "VERI_RUN_BUDGET": "-5"}, [], (2, "", bad("VERI_STEP_BUDGET", "twelve")))],
+        "either budget exported as the empty string exits 2 rather than falling back to its default":
+            [({"VERI_STEP_BUDGET": ""}, [], (2, "", bad("VERI_STEP_BUDGET", ""))),
+             ({"VERI_RUN_BUDGET": ""}, [], (2, "", bad("VERI_RUN_BUDGET", "")))],
+        "a budget of 0 is accepted for either variable and printed back":
+            [({"VERI_STEP_BUDGET": "0"}, [], (0, "0\n120\n", "")),
+             ({"VERI_RUN_BUDGET": "0"}, [], (0, "12\n0\n", ""))],
+        "any argument exits 2":
+            [({}, ["0"], (2, "", "usage: step-budget.sh (takes no arguments)\n"))],
+    }
+    seen = {name: [run(env, argv) for env, argv, _ in runs] for name, runs in cases.items()}
+    wanted = {name: [want for _, _, want in runs] for name, runs in cases.items()}
+    assert seen == wanted
