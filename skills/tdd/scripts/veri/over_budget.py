@@ -9,6 +9,13 @@ SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 USAGE = "usage: over-budget.sh <tier> <seconds> <usual>"
 NUMBER = re.compile(r"[+-]?(?:(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?|0[xX][0-9a-fA-F]+|inf(?:inity)?|nan)", re.IGNORECASE)
 
+ESCAPE = re.compile(r"\\(.)", re.DOTALL)
+ESCAPES = {"\\": "\\", "n": "\n"}
+
+
+def _unescape(text):
+    return ESCAPE.sub(lambda m: ESCAPES.get(m.group(1), m.group(0)), text)
+
 
 def _number(text):
     kept = text.rstrip(" \t\r")
@@ -24,7 +31,7 @@ def main(argv):
     if len(argv) < 3 or not all(argv[:3]):
         print(USAGE, file=sys.stderr)
         return 2
-    tier, seconds, usual = argv[:3]
+    tier, seconds, usual = (_unescape(value) for value in argv[:3])
     limits = subprocess.run([os.path.join(SCRIPTS, "time-budget.sh")], stdout=subprocess.PIPE, text=True)
     if limits.returncode != 0:
         return 2
