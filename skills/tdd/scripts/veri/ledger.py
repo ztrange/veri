@@ -5,7 +5,7 @@ PENDING_MARK = " ⟂ refactor pending"
 ADDED_MARK = "⟦added⟧"
 STEP_RE = re.compile(r"(\s*-\s)\[([ xX])\]( (.*))?")
 CRITERION_RE = r"⟦criterion ([0-9]+)⟧"
-KIND_RE = re.compile(r"⟦(full-suite|human-owed)⟧ " + CRITERION_RE)
+KIND_RE = re.compile(r"⟦(full-suite|human-owed|diff-checked)⟧ " + CRITERION_RE)
 
 
 def ledger_steps(text):

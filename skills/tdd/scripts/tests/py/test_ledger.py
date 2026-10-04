@@ -31,3 +31,11 @@ def test_ledger_steps_returns_the_records_lib_ledger_sh_prints():
         ("5", "open", "human-owed", "0", "0", "4", "the PR body lists the cogs ⟦human-owed⟧ ⟦criterion 4⟧"),
         ("6", "open", "step", "0", "0", "", "a note with no criterion"),
     ]
+
+
+def test_ledger_steps_returns_kind_diff_checked_for_an_open_diff_checked_step():
+    ledger = importlib.import_module("veri.ledger")
+
+    assert [tuple(record) for record in ledger.ledger_steps("- [ ] x ⟦diff-checked⟧ ⟦criterion 3⟧\n")] == [
+        ("1", "open", "diff-checked", "0", "0", "3", "x ⟦diff-checked⟧ ⟦criterion 3⟧"),
+    ]
