@@ -36,12 +36,16 @@ _gh_driver_known() {
   esac
 }
 
+_gh_route_open() {
+  case "${VERI_GH_DRIVER:-rest}:$1" in auto:graphql | graphql:graphql) ;; graphql:rest | *:graphql) return 1 ;; esac
+}
+
 _gh_graphql() {
-  case "${VERI_GH_DRIVER:-rest}" in auto|graphql) "$@" ;; *) return 1 ;; esac
+  _gh_route_open graphql && "$@"
 }
 
 _gh_rest() {
-  [[ "${VERI_GH_DRIVER:-rest}" != graphql ]] && "$@"
+  _gh_route_open rest && "$@"
 }
 
 gh_pr_ready() {
