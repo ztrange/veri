@@ -38,13 +38,6 @@ def failed(attempts):
           file=sys.stderr)
 
 
-def number(value):
-    try:
-        return int(value)
-    except ValueError:
-        return None
-
-
 def tunable(name, default):
     value = os.environ.get(name) or default
     if not re.fullmatch(r"[0-9]+", value):
@@ -67,10 +60,7 @@ def main(argv):
     if backoff is None:
         return 2
     attempt = 0
-    retries = number(retries)
-    if retries is None:
-        failed(0)
-        return 1
+    retries = int(retries)
     while attempt <= retries:
         attempt += 1
         pushed = run(["git", "push", *argv, "--set-upstream", "origin", "HEAD"],
@@ -87,10 +77,7 @@ def main(argv):
             return record("push-rejected", f"remote_sha={remote_sha}", f"error={out}") or 1
         if attempt <= retries:
             run(["sleep", backoff])
-            doubled = number(backoff)
-            if doubled is None:
-                return 1
-            backoff = str(doubled * 2)
+            backoff = str(int(backoff) * 2)
     failed(attempt)
     return record("push-failed", f"error={out}", f"attempts={attempt}")
 
