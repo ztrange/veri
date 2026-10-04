@@ -72,15 +72,22 @@ plant_named() {
   done
   printf 'not named'
 }
+
+plant_and_probe() {
+  local rel="$1"
+  shift
+  ROOT="$(scratch_dir)"
+  mkdir -p "$ROOT/${rel%/*}"
+  printf '%s\n' "$@" > "$ROOT/$rel"
+  problems=()
+  probe_no_suite_revokes_permission_bits
+}
+
 PLANT_CHMOD_000="chmod $(printf '%03d' 0) \"\$ledger\""
 
 probe_a_planted_chmod_000() {
   local ROOT
-  ROOT="$(scratch_dir)"
-  mkdir -p "$ROOT/${PLANT_REL%/*}"
-  printf '%s\n' '#!/usr/bin/env bash' 'ledger="$(mktemp)"' "$PLANT_CHMOD_000" > "$ROOT/$PLANT_REL"
-  problems=()
-  probe_no_suite_revokes_permission_bits
+  plant_and_probe "$PLANT_REL" '#!/usr/bin/env bash' 'ledger="$(mktemp)"' "$PLANT_CHMOD_000"
   planted_chmod_000_named="$(plant_named "$PLANT_REL" "$PLANT_CHMOD_000")"
   problems=()
 }
@@ -95,15 +102,11 @@ expect_eq "$name" "named" "$planted_chmod_000_named"
 PLANT_REVOKING_MODES=(a-r u-w -w)
 
 probe_planted_revoking_modes() {
-  local ROOT mode
-  ROOT="$(scratch_dir)"
-  mkdir -p "$ROOT/${PLANT_REL%/*}"
-  printf '%s\n' '#!/usr/bin/env bash' 'ledger="$(mktemp)"' > "$ROOT/$PLANT_REL"
+  local ROOT mode plants=()
   for mode in "${PLANT_REVOKING_MODES[@]}"; do
-    printf '%s\n' "chmod $mode \"\$ledger\"" >> "$ROOT/$PLANT_REL"
+    plants+=("chmod $mode \"\$ledger\"")
   done
-  problems=()
-  probe_no_suite_revokes_permission_bits
+  plant_and_probe "$PLANT_REL" '#!/usr/bin/env bash' 'ledger="$(mktemp)"' "${plants[@]}"
   planted_revoking_modes_named=""
   for mode in "${PLANT_REVOKING_MODES[@]}"; do
     planted_revoking_modes_named+="$mode $(plant_named "$PLANT_REL" "chmod $mode \"\$ledger\"");"
@@ -132,11 +135,7 @@ PLANT_SEPARATOR_LINES=(
 
 probe_planted_chmods_after_a_separator() {
   local ROOT i
-  ROOT="$(scratch_dir)"
-  mkdir -p "$ROOT/${PLANT_REL%/*}"
-  printf '%s\n' '#!/usr/bin/env bash' 'ledger="$(mktemp)"' "${PLANT_SEPARATOR_LINES[@]}" > "$ROOT/$PLANT_REL"
-  problems=()
-  probe_no_suite_revokes_permission_bits
+  plant_and_probe "$PLANT_REL" '#!/usr/bin/env bash' 'ledger="$(mktemp)"' "${PLANT_SEPARATOR_LINES[@]}"
   planted_separators_named=""
   for i in "${!PLANT_SEPARATORS[@]}"; do
     planted_separators_named+="${PLANT_SEPARATORS[$i]} $(plant_named "$PLANT_REL" "${PLANT_SEPARATOR_LINES[$i]}");"
@@ -155,11 +154,7 @@ PLANT_CHMOD_FLAGGED="chmod -R $(printf '%03d' 0) \"\$dir\""
 
 probe_a_planted_chmod_with_a_flag() {
   local ROOT
-  ROOT="$(scratch_dir)"
-  mkdir -p "$ROOT/${PLANT_REL%/*}"
-  printf '%s\n' '#!/usr/bin/env bash' 'dir="$(mktemp)"' "$PLANT_CHMOD_FLAGGED" > "$ROOT/$PLANT_REL"
-  problems=()
-  probe_no_suite_revokes_permission_bits
+  plant_and_probe "$PLANT_REL" '#!/usr/bin/env bash' 'dir="$(mktemp)"' "$PLANT_CHMOD_FLAGGED"
   planted_chmod_flagged_named="$(plant_named "$PLANT_REL" "$PLANT_CHMOD_FLAGGED")"
   problems=()
 }
@@ -176,11 +171,7 @@ PLANT_PY_CHMOD="    ledger.chmod(0o$(printf '%03d' 0))"
 
 probe_a_planted_pytest_chmod_000() {
   local ROOT
-  ROOT="$(scratch_dir)"
-  mkdir -p "$ROOT/${PLANT_PY_REL%/*}"
-  printf '%s\n' 'def test_unreadable_ledger(tmp_path):' '    ledger = tmp_path / "issue-9.md"' "$PLANT_PY_CHMOD" > "$ROOT/$PLANT_PY_REL"
-  problems=()
-  probe_no_suite_revokes_permission_bits
+  plant_and_probe "$PLANT_PY_REL" 'def test_unreadable_ledger(tmp_path):' '    ledger = tmp_path / "issue-9.md"' "$PLANT_PY_CHMOD"
   planted_pytest_chmod_named="$(plant_named "$PLANT_PY_REL" "$PLANT_PY_CHMOD")"
   problems=()
 }
