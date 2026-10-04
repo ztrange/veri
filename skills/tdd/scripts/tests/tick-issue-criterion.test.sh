@@ -33,7 +33,7 @@ run() {  # run <name> <expected-exit> <expect-edit:yes|no> <env-assignment> <mat
   local name="$1" exp_code="$2" expect_edit="$3" envassign="$4" matcher="$5"
   local out="$stubdir/out"; rm -f "$out"
   local code
-  env PATH="$stubdir:$PATH" FAKE_BODY="$FAKE_BODY" FAKE_OUT="$out" $envassign \
+  env VERI_GH_DRIVER=auto PATH="$stubdir:$PATH" FAKE_BODY="$FAKE_BODY" FAKE_OUT="$out" $envassign \
     "$WRAP" 7 "$matcher" >/dev/null 2>&1 && code=0 || code=$?
 
   local ok=1
@@ -99,7 +99,7 @@ chmod +x "$refuseddir/gh"
 working_out="$stubdir/working-out"; refused_out="$stubdir/refused-out"; edit="$stubdir/refused-edit"
 working_err="$stubdir/working-err"; refused_err="$stubdir/refused-err"
 rm -f "$stubdir/out" "$edit"
-env PATH="$stubdir:$PATH" FAKE_BODY="$FAKE_BODY" FAKE_OUT="$stubdir/out" \
+env VERI_GH_DRIVER=auto PATH="$stubdir:$PATH" FAKE_BODY="$FAKE_BODY" FAKE_OUT="$stubdir/out" \
   "$WRAP" 7 alpha > "$working_out" 2> "$working_err" && working_code=0 || working_code=$?
 env PATH="$refuseddir:$PATH" REFUSED_DIR="$refuseddir" FAKE_OUT="$edit" \
   "$WRAP" 7 alpha > "$refused_out" 2> "$refused_err" && code=0 || code=$?
@@ -157,7 +157,7 @@ STUB
 chmod +x "$badpatchdir/gh"
 
 bad_out="$stubdir/bad-patch-out"
-env PATH="$badpatchdir:$PATH" FAKE_BODY="$FAKE_BODY" \
+env VERI_GH_DRIVER=auto PATH="$badpatchdir:$PATH" FAKE_BODY="$FAKE_BODY" \
   "$WRAP" 7 alpha > "$bad_out" 2> /dev/null && code=0 || code=$?
 
 name="when the body PATCH fails with an HTTP 502, exits 2 with nothing on stdout"
@@ -194,9 +194,9 @@ ln -s "$(cd "$HERE/../.." && pwd)" "$stubdir/linked-skill"
 mkdir -p "$stubdir/elsewhere"
 in_place_edit="$stubdir/in-place-edit"; linked_edit="$stubdir/linked-edit"
 rm -f "$in_place_edit" "$linked_edit"
-in_place="$(env PATH="$stubdir:$PATH" FAKE_BODY="$FAKE_BODY" FAKE_OUT="$in_place_edit" \
+in_place="$(env VERI_GH_DRIVER=auto PATH="$stubdir:$PATH" FAKE_BODY="$FAKE_BODY" FAKE_OUT="$in_place_edit" \
   "$WRAP" 7 alpha 2>&1)" && in_place_code=0 || in_place_code=$?
-linked="$(cd "$stubdir/elsewhere" && env PATH="$stubdir:$PATH" FAKE_BODY="$FAKE_BODY" FAKE_OUT="$linked_edit" \
+linked="$(cd "$stubdir/elsewhere" && env VERI_GH_DRIVER=auto PATH="$stubdir:$PATH" FAKE_BODY="$FAKE_BODY" FAKE_OUT="$linked_edit" \
   "$stubdir/linked-skill/scripts/tick-issue-criterion.sh" 7 alpha 2>&1)" && linked_code=0 || linked_code=$?
 
 name="run through a symlink to the skill directory and from another working directory, ticks the box and PATCHes the same body with the same exit and output as when run in place"
