@@ -19,6 +19,10 @@ SLICE_CAP = 540
 CEILING = 600
 
 
+def warn(message):
+    print("wait-ci.sh: %s" % message, file=sys.stderr)
+
+
 class ArithError(ValueError):
     pass
 
@@ -48,7 +52,7 @@ def capped(value, cap, scope):
     try:
         return cap if arith(value, scope) > cap else value
     except ArithError as error:
-        print("wait-ci.sh: %s" % error, file=sys.stderr)
+        warn(error)
         return value
 
 
@@ -81,7 +85,7 @@ def sha_state(repo, sha):
 
 
 def unreadable(what):
-    print("wait-ci.sh: could not read the checks of %s" % what, file=sys.stderr)
+    warn("could not read the checks of %s" % what)
     return 2
 
 
@@ -90,7 +94,7 @@ def record(mark, deadline):
         with open(mark, "w") as out:
             out.write("%s\n" % deadline)
     except OSError as error:
-        print("wait-ci.sh: %s" % error, file=sys.stderr)
+        warn(error)
 
 
 def main(argv):
@@ -123,8 +127,7 @@ def main(argv):
         if state is None:
             return unreadable(head)
         if state == "none" and mergeable is False:
-            print("wait-ci.sh: %s conflicts with its base branch; no workflow will start until it is rebased"
-                  % pr, file=sys.stderr)
+            warn("%s conflicts with its base branch; no workflow will start until it is rebased" % pr)
             return 2
         if want and head != want:
             state = "pending"
@@ -147,12 +150,11 @@ def main(argv):
                     deadline = str(now + arith(total, scope))
                     record(mark, deadline)
             except ArithError as error:
-                print("wait-ci.sh: %s" % error, file=sys.stderr)
+                warn(error)
                 break
         if now >= arith(deadline, scope):
             if inherited:
-                print("wait-ci.sh: checks of %s still pending past the deadline recorded for %s"
-                      % (pr, key), file=sys.stderr)
+                warn("checks of %s still pending past the deadline recorded for %s" % (pr, key))
                 return 2
             break
         if now >= slice_end:
