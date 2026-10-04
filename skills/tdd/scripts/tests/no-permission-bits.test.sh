@@ -52,24 +52,22 @@ chmod_lines() {
   return 0
 }
 
-probe_no_suite_revokes_permission_bits() {
-  local site
+report_sites() {
+  local why="$1" site
   while IFS= read -r site; do
     split_site "$site"
     [[ -n "${EXEMPT[$site_file:$site_text]:-}" ]] && continue
-    problems+=("$site_file:$site_line forces a read or write failure through permission bits, which uid 0 ignores, so the failure never happens where veri runs as root: $(flat "$site_text")")
-  done < <(chmod_lines)
+    problems+=("$site_file:$site_line $why, so the failure never happens where veri runs as root: $(flat "$site_text")")
+  done
   return 0
 }
 
+probe_no_suite_revokes_permission_bits() {
+  report_sites "forces a read or write failure through permission bits, which uid 0 ignores" < <(chmod_lines)
+}
+
 probe_no_suite_relies_on_a_system_path() {
-  local site
-  while IFS= read -r site; do
-    split_site "$site"
-    [[ -n "${EXEMPT[$site_file:$site_text]:-}" ]] && continue
-    problems+=("$site_file:$site_line relies on a system path being unwritable or unreadable, which uid 0 can write and read, so the failure never happens where veri runs as root: $(flat "$site_text")")
-  done < <(cd "$ROOT" && grep -rInE -- "$SYSTEM_PATH" "$SUBJECT")
-  return 0
+  report_sites "relies on a system path being unwritable or unreadable, which uid 0 can write and read" < <(cd "$ROOT" && grep -rInE -- "$SYSTEM_PATH" "$SUBJECT")
 }
 
 probe_the_guard() {
