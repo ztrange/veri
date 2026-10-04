@@ -1,6 +1,6 @@
 # Plan for #848 — VERI_GH_DRIVER picks veri's GitHub driver, REST by default (rest, auto or graphql)
 
-- [ ] Every existing case in tests/py/test_github.py and tests/unit/github.test.sh that pins the GraphQL-then-REST fallback order, and every other suite whose gh stub answers a twin's call only on the GraphQL route, is changed only to set VERI_GH_DRIVER=auto, and still passes ⟦diff-checked⟧ ⟦criterion 2⟧
+- [x] Every existing case in tests/py/test_github.py and tests/unit/github.test.sh that pins the GraphQL-then-REST fallback order, and every other suite whose gh stub answers a twin's call only on the GraphQL route, is changed only to set VERI_GH_DRIVER=auto, and still passes ⟦diff-checked⟧ ⟦criterion 2⟧
 - [ ] Python veri/github.py with VERI_GH_DRIVER unset: gh_issue_view, gh_list and gh_json with gh args run only their REST gh api call and no GraphQL gh call; a REST failure raises NoAnswer ⟦criterion 1⟧
 - [ ] Bash lib/github.sh with VERI_GH_DRIVER unset: gh_issue_view, gh_list, gh_json with gh args and gh_pr_ready run only their REST gh api call and no GraphQL gh call; a REST failure returns 2 ⟦criterion 1⟧
 - [ ] Python veri/github.py with VERI_GH_DRIVER=rest: no GraphQL gh command runs whether REST succeeds or fails; gh_issue_view, gh_list and gh_json with gh args answer from REST, and a REST failure raises NoAnswer with gh api's stderr passed through ⟦criterion 3⟧
