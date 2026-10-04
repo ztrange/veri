@@ -18,10 +18,19 @@ def main(argv):
         return 2
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     listed = subprocess.run([os.path.join(here, "refactor-owed.sh"), "list", owed],
-                            capture_output=True, text=True).stdout
-    unreached = listed.splitlines()[int(reached):]
+                            capture_output=True, text=True)
+    if listed.returncode:
+        return listed.returncode
+    text = ""
+    if skipped:
+        with open(skipped) as f:
+            text = f.read()
+    text += "\n".join(listed.stdout.split("\n")[int(reached):])
+    unreached = text.rstrip("\n")
+    if not unreached:
+        return 3
     body = f"Structural candidates #{n}'s closing pass could not reach:\n\n" + "\n".join(
-        f"- {line}" for line in unreached)
+        f"- {line}" for line in unreached.split("\n"))
     url = subprocess.run(["gh", "api", "repos/{owner}/{repo}/issues",
                           "-f", f"title=Refactor owed by #{n}", "-f", f"body={body}",
                           "-q", ".html_url"], capture_output=True, text=True).stdout
