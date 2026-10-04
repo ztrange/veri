@@ -49,3 +49,24 @@ def test_main_returns_2_on_a_non_numeric_ratio_and_names_only_the_budget_when_bo
         (2, "", "time-budget: VERI_TIME_WARN_RATIO must be a number: 1,5\n"),
         (2, "", "time-budget: VERI_UNIT_BUDGET must be a number of seconds: ten\n"),
     ]
+
+
+def test_main_treats_an_empty_budget_as_unset_and_accepts_only_a_whole_numeric_value_as_given(capfd, monkeypatch, time_budget):
+    answers = []
+    monkeypatch.setenv("VERI_UNIT_BUDGET", "")
+    code = time_budget.main([])
+    answers.append((code,) + capfd.readouterr())
+    for value in ("1.", "-1", "1,5", "2\n", "010", "01.50"):
+        monkeypatch.setenv("VERI_UNIT_BUDGET", value)
+        code = time_budget.main([])
+        answers.append((code,) + capfd.readouterr())
+    refused = "time-budget: VERI_UNIT_BUDGET must be a number of seconds: {}\n"
+    assert answers == [
+        (0, "10\n1.5\n", ""),
+        (2, "", refused.format("1.")),
+        (2, "", refused.format("-1")),
+        (2, "", refused.format("1,5")),
+        (2, "", refused.format("2\n")),
+        (0, "010\n1.5\n", ""),
+        (0, "01.50\n1.5\n", ""),
+    ]
