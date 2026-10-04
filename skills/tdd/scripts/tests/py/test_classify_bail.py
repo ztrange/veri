@@ -29,3 +29,20 @@ def test_main_prints_the_category_of_a_known_cause_and_refuses_an_unknown_or_mis
         "bogus": (2, "", "classify-bail: unknown cause: bogus\n" + USAGE),
         "none": (2, "", "classify-bail: unknown cause: \n" + USAGE),
     }
+
+
+SYSTEM_CAUSES = ("killed-stuck", "no-verdict", "reconcile-failed", "ci-timeout", "ci-conflict")
+PROCESS_CAUSES = ("revise-exhausted", "untestable-criterion", "step-too-big", "rebase-unresolved",
+                  "uncovered", "ci-red", "suite-red")
+
+
+def test_main_classifies_every_known_cause_as_system_or_process_with_0(capsys, classify_bail):
+    results = {}
+    for cause in SYSTEM_CAUSES + PROCESS_CAUSES:
+        code = classify_bail.main([cause])
+        results[cause] = (code, capsys.readouterr().out.split("\n")[0])
+
+    assert results == {
+        **{cause: (0, "system") for cause in SYSTEM_CAUSES},
+        **{cause: (0, "process") for cause in PROCESS_CAUSES},
+    }
