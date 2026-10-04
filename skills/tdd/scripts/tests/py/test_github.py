@@ -189,3 +189,35 @@ def test_gh_list_answers_the_rest_pages_and_drops_the_graphql_stderr_when_the_gh
         ["gh", "api", path + "&page=3"],
     ]
     assert capsys.readouterr().err == ""
+
+
+def test_gh_list_is_a_no_answer_with_the_rest_stderr_passed_through_when_both_routes_fail(monkeypatch, capsys, github):
+    path = "repos/{owner}/{repo}/pulls?state=open"
+    graphql_refusal = "GraphQL: Resource not accessible by integration\n"
+    rest_refusal = "gh: HTTP 502: Bad Gateway (https://api.github.com/repos/o/r/pulls?state=open&page=1)\n"
+    answers = {
+        ("gh", "pr", "list", "--json", "number"): (1, "", graphql_refusal),
+        ("gh", "api", path + "&page=1"): (1, "", rest_refusal),
+    }
+    calls = []
+
+    def fake_run(args, **kwargs):
+        calls.append(list(args))
+        if tuple(args) not in answers:
+            raise AssertionError("unexpected command: %r" % (args,))
+        returncode, stdout, stderr = answers[tuple(args)]
+        if kwargs.get("stderr") is None:
+            sys.stderr.write(stderr)
+        return subprocess.CompletedProcess(
+            args, returncode, stdout, stderr if kwargs.get("stderr") == subprocess.PIPE else None)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    with pytest.raises(github.NoAnswer):
+        github.gh_list(path, "pr", "list", "--json", "number")
+
+    assert calls == [
+        ["gh", "pr", "list", "--json", "number"],
+        ["gh", "api", path + "&page=1"],
+    ]
+    assert capsys.readouterr().err == rest_refusal
