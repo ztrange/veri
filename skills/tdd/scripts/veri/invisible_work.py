@@ -37,13 +37,13 @@ def refs(prefix):
 
 
 def remote_rows(default):
-    rows = ""
+    rows = []
     for ref, tip in refs("refs/remotes/origin/"):
         name = ref.removeprefix("refs/remotes/origin/")
         if name in (default, "HEAD"):
             continue
         ahead = git_value("rev-list", "--count", f"origin/{default}..{ref}")
-        rows += f"{name} {tip} {ahead}\n"
+        rows.append((name, tip, ahead))
     return rows
 
 
@@ -62,13 +62,13 @@ def worktrees():
 
 def local_rows():
     worktree_of = worktrees()
-    rows = ""
+    rows = []
     for ref, tip in refs("refs/heads/"):
         name = ref.removeprefix("refs/heads/")
         if git("show-ref", "-q", "--verify", f"refs/remotes/origin/{name}").returncode == 0:
             continue
         lacks = git_value("rev-list", "--count", ref, "--not", "--remotes=origin")
-        rows += f"{name} {tip} {lacks} {worktree_of.get(ref, '')}\n"
+        rows.append((name, tip, lacks, worktree_of.get(ref, "")))
     return rows
 
 
@@ -111,8 +111,7 @@ def report(branches, locals_, issues_text, prs_text):
     decided = {head(p) for p in prs if p["state"].upper() in ("MERGED", "CLOSED")}
     findings = []
 
-    for row in branches.splitlines():
-        name, tip, ahead = row.split()
+    for name, tip, ahead in branches:
         if name in with_pr:
             continue
         finding = f"invariant 2 (no PR): {name} tip {tip} {ahead} commits ahead"
@@ -123,8 +122,7 @@ def report(branches, locals_, issues_text, prs_text):
             finding += f", issue #{n} {state}"
         findings.append(finding)
 
-    for row in locals_.splitlines():
-        name, tip, lacks, worktree = row.split(" ", 3)
+    for name, tip, lacks, worktree in locals_:
         if name in decided:
             continue
         finding = f"invariant 1 (not on origin): {name} tip {tip} {lacks} commits origin lacks"
