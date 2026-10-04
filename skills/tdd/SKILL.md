@@ -1700,8 +1700,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
 3. **Never merge the PR.** Landing the code is always the human's deliberate act.
 4. Post a final `### ✅ Done — <pr-url>` comment with the same `### 📊 Metrics` block
    under it, pasted verbatim from the file just committed — or, when `$metrics` is not 0,
-   the line `metrics could not be rendered: metrics.sh exited $metrics` in place of that
-   block. It mirrors the
+   the PR body's failed-render line for `metrics.sh` and `$metrics` in place of that block.
+   It mirrors the
    `$S/event.sh done pr=<pr-url>` mark sub-step 2 already wrote, so it writes no second one.
    Before posting it, run `$S/stop-requested.sh`; on exit 0 or 2 run
    `$S/stop-requested.sh --clear` and add a line to the comment saying that a stop arrived
