@@ -3,13 +3,50 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 
 TRACED = 'PS4=\'+${EPOCHREALTIME} ${LINENO} \'; set -x; . "$0"'
 
 
-def run_traced(suite):
-    subprocess.run(["bash", "-c", TRACED, suite], stdin=subprocess.DEVNULL,
-                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+def run_traced(suite, trace):
+    try:
+        held = os.dup(9)
+    except OSError:
+        held = None
+    fd = os.open(trace, os.O_WRONLY | os.O_TRUNC)
+    os.dup2(fd, 9)
+    os.close(fd)
+    try:
+        subprocess.run(["bash", "-c", TRACED, suite], stdin=subprocess.DEVNULL,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, pass_fds=(9,))
+    finally:
+        if held is None:
+            os.close(9)
+        else:
+            os.dup2(held, 9)
+            os.close(held)
+    with open(trace) as fd:
+        return fd.read().splitlines()
+
+
+def cases(suite, trace_lines):
+    lines = []
+    start = first = None
+    for line in trace_lines:
+        fields = line.split()
+        stamp = fields[0][2:]
+        if start is None:
+            start = stamp
+        lineno = fields[1]
+        if first is None:
+            first = lineno
+        if re.fullmatch(r"(pass|fail)=[0-9]+", fields[2]):
+            if int(fields[2].split("=")[1]) > 0:
+                secs = float(stamp) - float(start)
+                lines.append("%.6f %s case %d L%d-%d\n" % (secs, suite, len(lines) + 1, int(first), int(lineno)))
+                start = stamp
+                first = None
+    return lines
 
 
 def sort_lines(lines):
@@ -24,11 +61,19 @@ def main(argv):
         print("profile.sh: VERI_PROFILE_THRESHOLD must be a number of seconds, got '%s'" % threshold,
               file=sys.stderr)
         return 2
-    for suite in argv:
-        run_traced(suite)
-        print("profile.sh: %s: no pass=/fail= increment in its trace" % suite, file=sys.stderr)
-        return 2
-    return sort_lines([])
+    fd, trace = tempfile.mkstemp()
+    os.close(fd)
+    try:
+        lines = []
+        for suite in argv:
+            found = cases(suite, run_traced(suite, trace))
+            if not found:
+                print("profile.sh: %s: no pass=/fail= increment in its trace" % suite, file=sys.stderr)
+                return 2
+            lines += found
+        return sort_lines(lines)
+    finally:
+        os.remove(trace)
 
 
 if __name__ == "__main__":
