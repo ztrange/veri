@@ -120,17 +120,16 @@ probe_planted_revoking_modes
 
 expect_eq "$name" "a-r named;u-w named;-w named;" "$planted_revoking_modes_named"
 
-PLANT_CHMOD_ZERO="chmod $(printf '%03d' 0) \"\$ledger\""
 PLANT_SEPARATORS=(';' '&&' '||' '|' '(' '{' 'then' 'do')
 PLANT_SEPARATOR_LINES=(
-  "true; $PLANT_CHMOD_ZERO"
-  "true && $PLANT_CHMOD_ZERO"
-  "false || $PLANT_CHMOD_ZERO"
-  "true | $PLANT_CHMOD_ZERO"
-  "($PLANT_CHMOD_ZERO)"
-  "{ $PLANT_CHMOD_ZERO; }"
-  "if true; then $PLANT_CHMOD_ZERO; fi"
-  "for f in x; do $PLANT_CHMOD_ZERO; done"
+  "true; $PLANT_CHMOD_000"
+  "true && $PLANT_CHMOD_000"
+  "false || $PLANT_CHMOD_000"
+  "true | $PLANT_CHMOD_000"
+  "($PLANT_CHMOD_000)"
+  "{ $PLANT_CHMOD_000; }"
+  "if true; then $PLANT_CHMOD_000; fi"
+  "for f in x; do $PLANT_CHMOD_000; done"
 )
 
 probe_planted_chmods_after_a_separator() {
