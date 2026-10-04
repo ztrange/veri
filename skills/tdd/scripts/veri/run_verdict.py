@@ -9,6 +9,10 @@ def takes_a_value(word):
     return word in ("--step", "--fast-cmd")
 
 
+def unopenable(path, error):
+    print(f"run-verdict.sh: {path}: {error.strerror}", file=sys.stderr)
+
+
 def main(argv):
     verifier = os.path.join(SCRIPTS, "verify.sh")
     if not os.access(verifier, os.X_OK):
@@ -22,11 +26,18 @@ def main(argv):
     if phase:
         stem = f".tdd/verify-{phase}"
         if os.path.isfile(f"{stem}.reason"):
-            open(f"{stem}.reason", "w").close()
+            try:
+                open(f"{stem}.reason", "w").close()
+            except OSError as e:
+                unopenable(f"{stem}.reason", e)
         if os.path.isdir(".tdd"):
-            fd = os.open(f"{stem}.stderr", os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
-            os.dup2(fd, 2)
-            os.close(fd)
+            try:
+                fd = os.open(f"{stem}.stderr", os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
+            except OSError as e:
+                unopenable(f"{stem}.stderr", e)
+            else:
+                os.dup2(fd, 2)
+                os.close(fd)
     os.execv(verifier, [verifier, *argv])
 
 
