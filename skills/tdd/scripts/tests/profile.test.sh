@@ -223,6 +223,15 @@ want="profile.sh: VERI_PROFILE_THRESHOLD must be a number of seconds, got 'abc'"
   problems+=("want stderr exactly '$want', got: $(printf '%q' "$(cat "$err")")")
 report "$name"
 
+name="through a symlink to the skill, from another directory: a relative suite is read there and printed as given"
+problems=()
+link="$scratch/skill-link"
+ln -sfn "$(cd "$HERE/../.." && pwd)" "$link"
+out="$(cd "$scratch" && VERI_PROFILE_THRESHOLD=1 "$link/scripts/profile.sh" format.test.sh 2>/dev/null)" && code=0 || code=$?
+[[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
+expect_line "format.test.sh case 2 L5-8" 3
+report "$name"
+
 name="make -n profile: the same suites as make -n test, in the same offline environment"
 problems=()
 ROOT="$(cd "$HERE/../../../.." && pwd)"
