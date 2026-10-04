@@ -4,7 +4,8 @@
 #
 # Contract under test:
 #   No suite under skills/tdd/scripts/tests/ takes read or write permission away from a path
-#   with chmod, outside a comment. An offender is reported as `<suite>:<line>`.
+#   with chmod, outside a comment. An offender is reported as `<suite>:<line>`, unless EXEMPT lists its
+#   `<suite>:<line text>` with a reason; an entry carrying no reason fails the run.
 #
 # Run: skills/tdd/scripts/tests/no-permission-bits.test.sh
 set -uo pipefail
@@ -21,8 +22,11 @@ SHELL_CHMOD="$CHMOD_WORD$CHMOD_FLAGS[[:space:]]+$REVOKING_MODE([[:space:]]|$)"
 PATH_CHMOD='\.chmod\(0o000\)'
 PERMISSION_BIT_CHMOD="$SHELL_CHMOD|$PATH_CHMOD"
 
+declare -A EXEMPT=()
+
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/exemption-reasons.sh"
 
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
@@ -48,16 +52,21 @@ probe_no_suite_revokes_permission_bits() {
   local site
   while IFS= read -r site; do
     split_site "$site"
+    [[ -n "${EXEMPT[$site_file:$site_text]:-}" ]] && continue
     problems+=("$site_file:$site_line forces a read or write failure through permission bits, which uid 0 ignores, so the failure never happens where veri runs as root: $(flat "$site_text")")
   done < <(chmod_lines)
   return 0
 }
 
+probe_the_guard() {
+  probe_every_exemption_carries_a_reason
+  probe_no_suite_revokes_permission_bits
+}
 
 name="no suite under skills/tdd/scripts/tests/ forces a read or write failure through permission bits (#846)"
 problems=()
 
-probe_no_suite_revokes_permission_bits
+probe_the_guard
 
 report "$name"
 
@@ -73,13 +82,17 @@ plant_named() {
   printf 'not named'
 }
 
-plant_and_probe() {
+plant() {
   local rel="$1"
   shift
   ROOT="$(scratch_dir)"
   mkdir -p "$ROOT/${rel%/*}"
   printf '%s\n' "$@" > "$ROOT/$rel"
   problems=()
+}
+
+plant_and_probe() {
+  plant "$@"
   probe_no_suite_revokes_permission_bits
 }
 
@@ -229,5 +242,31 @@ planted_read_only_dir_modes_named=""
 probe_planted_read_only_dir_modes
 
 expect_eq "$name" "a-w named;500 named;u=rx named;" "$planted_read_only_dir_modes_named"
+
+PLANT_EXEMPTED="$PLANT_CHMOD_000  # exempted"
+PLANT_UNREASONED="$PLANT_CHMOD_000  # unreasoned"
+
+probe_an_exemption_table() {
+  local ROOT problem unreasoned_key="$PLANT_REL:$PLANT_UNREASONED"
+  local -A EXEMPT=(
+    ["$PLANT_REL:$PLANT_EXEMPTED"]="a planted line whose chmod is the text under test, never run"
+    ["$unreasoned_key"]=""
+  )
+  plant "$PLANT_REL" '#!/usr/bin/env bash' 'ledger="$(mktemp)"' "$PLANT_EXEMPTED" "$PLANT_UNREASONED"
+  probe_the_guard
+  exemption_table_named="exempted $(plant_named "$PLANT_REL" "$PLANT_EXEMPTED");unreasoned"
+  for problem in ${problems+"${problems[@]}"}; do
+    [[ "$problem" == *"[$unreasoned_key] carries no reason"* ]] && { exemption_table_named+=" named;"; problems=(); return; }
+  done
+  exemption_table_named+=" not named;"
+  problems=()
+}
+
+name="a line the exemption table lists with a reason is not reported, and an entry carrying no reason turns the guard red, naming the entry (#846)"
+exemption_table_named=""
+
+probe_an_exemption_table
+
+expect_eq "$name" "exempted not named;unreasoned named;" "$exemption_table_named"
 
 finish
