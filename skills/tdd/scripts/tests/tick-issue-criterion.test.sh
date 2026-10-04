@@ -210,4 +210,30 @@ problems=()
   || problems+=("linked: PATCHed body differs from in place (written=$([[ -f "$linked_edit" ]] && echo yes || echo no))")
 report "$name"
 
+faileditdir="$stubdir/failed-edit"
+mkdir -p "$faileditdir"
+cat > "$faileditdir/gh" <<'STUB'
+#!/bin/sh
+case "$*" in
+  "issue view"*) cat "$REMOTE_BODY" ;;
+  "issue edit"*) printf 'overwritten by issue edit\n' > "$REMOTE_BODY" ;;
+  "api -X PATCH"*) exit "$FAKE_EDIT_STATUS" ;;
+  "api "*) python3 -c 'import json, sys; print(json.dumps({"body": open(sys.argv[1]).read()}))' "$REMOTE_BODY" ;;
+esac
+STUB
+chmod +x "$faileditdir/gh"
+
+name="when gh fails on the body edit with status 1, 3 or 5, exits 2 and leaves the issue body unchanged (#775)"
+problems=()
+remote_body="$stubdir/failed-edit-body"
+for status in 1 3 5; do
+  printf '%s\n' "$FAKE_BODY" > "$remote_body"
+  env PATH="$faileditdir:$PATH" REMOTE_BODY="$remote_body" FAKE_EDIT_STATUS="$status" \
+    "$WRAP" 7 alpha > /dev/null 2>&1 && code=0 || code=$?
+  [[ "$code" == 2 ]] || problems+=("gh edit exit $status: exit want 2 got $code")
+  [[ "$(cat "$remote_body")" == "$FAKE_BODY" ]] \
+    || problems+=("gh edit exit $status: body='$(tr '\n' '|' < "$remote_body")' want '$(tr '\n' '|' <<< "$FAKE_BODY")'")
+done
+report "$name"
+
 finish
