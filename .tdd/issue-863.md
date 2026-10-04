@@ -1,6 +1,6 @@
 # Plan for #863 — make install-dev builds its venv from a python3 below veri's 3.12 floor
 
-- [ ] with python3 below the floor and python3.12 on PATH, make install-dev builds the venv with python3.12, so the venv's interpreter reports a version at or above the floor ⟦criterion 1⟧
+- [x] with python3 below the floor and python3.12 on PATH, make install-dev builds the venv with python3.12, so the venv's interpreter reports a version at or above the floor ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] with python3 at or above the floor, make install-dev builds the venv with python3, as it does today ⟦criterion 2⟧
 - [ ] with no candidate on PATH meeting the floor, make install-dev exits 2, its stderr names the floor, and no venv is created at $VERI_VENV ⟦criterion 3⟧
 - [ ] with an existing venv at $VERI_VENV whose interpreter is below the floor, make install-dev exits 2, its stderr names the venv's path, its version and the floor, and the venv is left in place, neither reused for pip install nor deleted ⟦criterion 4⟧

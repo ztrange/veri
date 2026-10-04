@@ -289,6 +289,65 @@ for run in first second; do
 done
 report "$name"
 
+real_python3="$(command -v python3)"
+stub_python() {
+  local path="$1" version="$2"
+  cat > "$path" <<SH
+#!/bin/sh
+echo "\$0 \$*" >> "$floor/calls"
+case "\$1" in
+  --version|-V) echo "Python $version" ;;
+  -c) shift; exec "$real_python3" -c '
+import platform, sys
+v = tuple(int(n) for n in "$version".split("."))
+class VersionInfo(tuple):
+    major = property(lambda s: s[0])
+    minor = property(lambda s: s[1])
+    micro = property(lambda s: s[2])
+sys.version_info = VersionInfo(v + ("final", 0))
+sys.version = "$version"
+platform.python_version = lambda: "$version"
+platform.python_version_tuple = lambda: tuple("$version".split("."))
+code = sys.argv[1]
+sys.argv = ["-c"] + sys.argv[2:]
+exec(code)
+' "\$@" ;;
+  -m)
+    if [ "\$2" = venv ]; then
+      for d in "\$@"; do :; done
+      mkdir -p "\$d/bin"
+      cp "\$0" "\$d/bin/python3"
+      cp "\$0" "\$d/bin/pip"
+    fi ;;
+esac
+SH
+  chmod +x "$path"
+}
+
+floor="$work/floor"
+mkdir -p "$floor/bin" "$floor/sys" "$floor/skills/tdd/scripts/lib"
+cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$floor/skills/tdd/scripts/lib/"
+cp "$ROOT/Makefile" "$ROOT/requirements-dev.txt" "$floor/"
+ln -s /bin/* /usr/bin/* "$floor/sys/" 2> /dev/null
+rm -f "$floor"/sys/python*
+ln -sf "$(command -v bash)" "$floor/sys/bash"
+stub_python "$floor/bin/python3" 3.11.15
+stub_python "$floor/bin/python3.12" 3.12.4
+floor_venv="$floor/venv"
+
+name="#863: make install-dev, with the python3 on PATH at 3.11 (below veri's 3.12 floor) and python3.12 also on PATH, builds the environment at VERI_VENV with python3.12, so the environment's interpreter reports a version at or above the floor"
+problems=()
+: > "$floor/calls"
+env -u PYTHONPATH VERI_VENV="$floor_venv" PATH="$floor/bin:$floor/sys" \
+  "$(command -v make)" --no-print-directory -C "$floor" install-dev > "$work/out" 2> "$work/err" < /dev/null &&
+  code=0 || code=$?
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0, got $code: $(flat "$(cat "$work/out")") $(flat "$(cat "$work/err")")")
+venv_version="$("$floor_venv/bin/python3" --version 2> /dev/null || true)"
+[[ "$venv_version" =~ ^Python\ 3\.(1[2-9]|[2-9][0-9])(\.|$) ]] ||
+  problems+=("want $floor_venv/bin/python3 to report Python 3.12 or newer, got: '$venv_version' (calls: $(flat "$(cat "$floor/calls")"))")
+report "$name"
+
 reach="$work/reach"
 make_tree "$reach"
 
