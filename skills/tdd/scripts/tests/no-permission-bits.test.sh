@@ -93,11 +93,14 @@ problem_naming() {
   printf 'not named'
 }
 
+planted_line() {
+  local line
+  line="$(grep -nxF -- "$2" "$ROOT/$1")"
+  printf '%s' "${line%%:*}"
+}
+
 plant_named() {
-  local rel="$1" plant="$2" line
-  line="$(grep -nxF -- "$plant" "$ROOT/$rel")"
-  line="${line%%:*}"
-  problem_naming "$rel:$line forces a read or write failure through permission bits"
+  problem_naming "$1:$(planted_line "$1" "$2") forces a read or write failure through permission bits"
 }
 
 plant() {
@@ -311,11 +314,10 @@ expect_eq "$name" "planted red named;removed green;" "$plant_then_removal"
 PLANT_SYSTEM_PATH='    assert (code, out, err.startswith("mkdir: /.tdd: ")) == (1, "", True)'
 
 probe_a_planted_system_path() {
-  local ROOT line
+  local ROOT
   plant "$PLANT_PY_REL" 'def test_assign_fails_outside_a_repository(monkeypatch):' '    monkeypatch.chdir("/")' '    code, out, err = run(["assign", "beta", "7"])' "$PLANT_SYSTEM_PATH"
   probe_the_guard
-  line="$(grep -nxF -- "$PLANT_SYSTEM_PATH" "$ROOT/$PLANT_PY_REL")"
-  planted_system_path_named="$(problem_naming "$PLANT_PY_REL:${line%%:*} ")"
+  planted_system_path_named="$(problem_naming "$PLANT_PY_REL:$(planted_line "$PLANT_PY_REL" "$PLANT_SYSTEM_PATH") ")"
   problems=()
 }
 
