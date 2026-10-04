@@ -23,4 +23,4 @@ criterion 4 excludes exactly those rows.
 - [x] push-branch.sh reads VERI_PUSH_RETRIES and VERI_PUSH_BACKOFF with leading zeros as decimal: VERI_PUSH_RETRIES=007 makes 7 retries after the first attempt and 08 makes 8, never exiting 1 without recording its push-failed event (updates test_main_keeps_bash_octal_arithmetic_for_leading_zero_tunables in py/test_push_branch.py) ⟦criterion 1⟧
 - [x] push-branch.sh given a VERI_PUSH_RETRIES or VERI_PUSH_BACKOFF that is not a non-negative whole number exits 2 naming that variable on stderr ⟦criterion 2⟧
 - [x] every case the six scripts' bash and pytest suites held before this branch keeps its assertions unchanged, apart from the octal-parity rows the steps above name ⟦diff-checked⟧ ⟦criterion 4⟧
-- [ ] every case each script's suites already hold passes ⟦full-suite⟧ ⟦criterion 4⟧
+- [x] every case each script's suites already hold passes ⟦full-suite⟧ ⟦criterion 4⟧
