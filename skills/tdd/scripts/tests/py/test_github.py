@@ -81,3 +81,19 @@ def test_gh_rest_list_joins_page_with_an_ampersand_when_the_path_already_holds_a
         ["gh", "api", path + "&page=1"],
         ["gh", "api", path + "&page=2"],
     ]
+
+
+def test_gh_rest_list_stops_at_the_first_page_matching_a_caller_given_empty_pattern(monkeypatch, github):
+    path = "repos/{owner}/{repo}/commits/abc123/check-runs"
+    calls = fake_gh(monkeypatch, {
+        ("gh", "api", path + "?page=1"): (0, '{"total_count":1,"check_runs":[{"id":1}]}', ""),
+        ("gh", "api", path + "?page=2"): (0, '{"total_count":1,"check_runs": [ ]}', ""),
+    })
+
+    answer = github.gh_rest_list(path, r'"check_runs": *\[ *\]')
+
+    assert answer == '{"total_count":1,"check_runs":[{"id":1}]}'
+    assert calls == [
+        ["gh", "api", path + "?page=1"],
+        ["gh", "api", path + "?page=2"],
+    ]

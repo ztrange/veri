@@ -2,7 +2,7 @@
 
 - [x] veri.github.gh_rest_list requests `gh api <rest-path>?page=1`, `page=2`, … and answers every page's body back to back with no separator, stopping at the first page that is a bare `[]`, which is not part of the answer ⟦criterion 1⟧
 - [x] veri.github.gh_rest_list requests `<rest-path>&page=N` when the rest path already holds a `?` ⟦criterion 1⟧
-- [ ] veri.github.gh_rest_list stops at the first page matching a caller-given empty pattern, such as wait-ci.sh:80's `"check_runs": *\[ *\]`, and does not include that page ⟦criterion 1⟧
+- [x] veri.github.gh_rest_list stops at the first page matching a caller-given empty pattern, such as wait-ci.sh:80's `"check_runs": *\[ *\]`, and does not include that page ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] veri.github.gh_rest_list is a no-answer when any page's `gh api` call fails, a failure on page 2 included, with gh's stderr passed through ⟦criterion 1⟧
 - [ ] veri.github.gh_list answers the stdout of `gh <gh args…>` when that call succeeds, and makes no `gh api` call ⟦criterion 1⟧
 - [ ] veri.github.gh_list, when the `gh <gh args…>` call exits non-zero, answers gh_rest_list's pages for the rest path and does not pass that call's stderr on ⟦criterion 1⟧
