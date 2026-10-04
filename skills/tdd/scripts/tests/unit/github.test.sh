@@ -547,4 +547,42 @@ for driver in unset auto rest graphql; do
 done
 record
 
+# #879: gh_pr_ready <n> <head-sha> waits until pulls/<n> reports <head-sha> as the head before
+#    marking the PR ready, reading it again every VERI_POLL seconds
+name="#879 gh_pr_ready 42 <head-sha> marks PR 42 ready only after pulls/42 reports <head-sha> as its head, reading it again after VERI_POLL seconds while it reports another"
+calls="$scratch/calls879" err="$scratch/err879" reads="$scratch/reads879"
+old=8a7980e1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa new=a245e8b0bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+: > "$calls"; : > "$reads"
+(
+  gh() {
+    echo "gh $*" >> "$calls"
+    case "$*" in
+      *pulls/42/ccr/ready_for_review*) return 0 ;;
+      *pulls/42*)
+        echo x >> "$reads"
+        local sha="$old"
+        (($(wc -l < "$reads") >= 3)) && sha="$new"
+        if [[ "$*" == *--jq* || "$*" == *" -q "* ]]; then echo "$sha"; else printf '{"head":{"sha":"%s"}}\n' "$sha"; fi
+        return 0 ;;
+    esac
+    echo "stub gh: unexpected call $*" >&2; return 1
+  }
+  sleep() { echo "sleep $*" >> "$calls"; }
+  unset VERI_GH_DRIVER
+  VERI_POLL=7
+  source "$LIB"
+  gh_pr_ready 42 "$new"
+) > /dev/null 2> "$err"
+rc=$?
+problems=""
+[[ "$rc" -eq 0 ]] || problems+="    want return 0, got $rc"$'\n'
+nreads="$(grep -cE '^gh api .*pulls/42([^/]|$)' "$calls")"
+[[ "$nreads" -eq 3 ]] || problems+="    want 3 reads of pulls/42, got $nreads"$'\n'
+ready_at="$(grep -m1 -nF 'ccr/ready_for_review' "$calls" | cut -d: -f1)"
+before="$(awk -v n="${ready_at:-1}" 'NR < n && /^gh api .*pulls\/42([^\/]|$)/ { c++ } END { print c + 0 }' "$calls")"
+[[ -n "$ready_at" && "$before" -eq 3 ]] ||
+  problems+="    want the ready call only after the read that reported $new, got it at call ${ready_at:-none} with $before reads before it"$'\n'
+grep -Fx "sleep 7" "$calls" > /dev/null || problems+="    want a 'sleep 7' between reads, got none"$'\n'
+record
+
 finish
