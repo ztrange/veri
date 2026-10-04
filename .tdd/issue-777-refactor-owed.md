@@ -12,3 +12,6 @@
 - test-only | the `w/.gitignore`-is-a-directory block at the end of `test_main_builds_paths_by_concatenation_checks_gitignore_then_exclude_and_wr…` now duplicates what the new `_777` test checks: exit 2 with info/exclude untouched. One of the two could go, or the two could merge.
 ### ensure-run-state-ignored.sh writes both files or neither: when the info/exclude write fails after the .gitignore write succeeded, .gitignore is left byte-identical to what it was before the run and it exits non-zero, saying why on stderr ⟦added⟧ ⟦criterion 3⟧
 - test-only | extract a helper in test_ensure_run_state_ignored.py for the `try: main(...) except OSError` + `capsys.readouterr().err` block that the three new #777 cases and the earlier info/exclude case each repeat
+### ensure-run-state-ignored.sh exits 2 when the info/exclude write fails, as it does when the .gitignore write fails, so a failed write of either file is the same no-answer code ⟦added⟧ ⟦criterion 3⟧
+- move the .gitignore restore (remove if it did not exist, else rewrite `before`) out of main's info/exclude except branch into its own function
+- test-only | drop the try/except OSError wrapper around main() in test_main_returns_2_when_the_info_exclude_write_fails_as_when_the_gitignore_write_fails_777, since main now catches the error itself
