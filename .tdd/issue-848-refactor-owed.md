@@ -9,3 +9,6 @@
 ### Bash lib/github.sh with VERI_GH_DRIVER=graphql: a GraphQL failure in gh_issue_view, gh_list, gh_json with gh args or gh_pr_ready returns 2 and makes no gh api call; a GraphQL success answers its stdout ⟦criterion 4⟧
 - `_gh_graphql` and `_gh_rest` each read `${VERI_GH_DRIVER:-rest}` separately; one driver-selection helper could serve both. The step that refuses empty or unknown values (criterion 6) is where that helper belongs, so it was not built here.
 - test-only | cases 9 and 10 of `tests/unit/github.test.sh` share the same per-op loop: the `gh` and `python3` mocks, the `view/list/json/ready` dispatch and the `problems+=` checks. They could be one shared driver-case helper.
+### Python veri/github.py: gh_issue_edit, gh_issue_create, gh_rest_list and gh_json with no gh args run their REST gh api call and no GraphQL call under each of unset, auto, rest and graphql ⟦criterion 5⟧
+- the empty-page pattern `r"^\[\]$"` is the default in three places (`RestAdapter.list`, `FallbackAdapter.rest_list`, `gh_rest_list`); it could become one module constant. This cycle did not write it, so it is out of scope here
+- test-only | the driver loop in `test_the_rest_only_operations_run_their_rest_call_and_no_graphql_call_under_each_veri_gh_driver` (unset/auto/rest/graphql set via monkeypatch) could become a `pytest.mark.parametrize` over the driver
