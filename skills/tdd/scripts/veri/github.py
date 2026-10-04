@@ -109,6 +109,15 @@ class FallbackAdapter:
         return self.second.issue_create(title, body)
 
 
+class FixtureAdapter:
+    def __init__(self, directory):
+        self.directory = directory
+
+    def json(self, fixture):
+        with open(os.path.join(self.directory, fixture)) as f:
+            return f.read()
+
+
 def _fallback():
     return FallbackAdapter(GraphQLAdapter(), RestAdapter())
 
@@ -127,8 +136,7 @@ def gh_json(fixture, path, *args):
         if args:
             return gh_list(path, *args)
         return gh_rest_list(path)
-    with open(os.path.join(fixtures, fixture)) as f:
-        return f.read()
+    return FixtureAdapter(fixtures).json(fixture)
 
 
 def gh_issue_view(number, field):
