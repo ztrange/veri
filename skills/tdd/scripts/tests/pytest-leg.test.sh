@@ -382,4 +382,22 @@ for target in unit test; do
 done
 report "$name"
 
+scoped="$work/scoped"
+make_tree "$scoped"
+cp "$tree/$PY_DIR/test_leg_probe.py" "$scoped/$PY_DIR/test_leg_probe.py"
+stub_bash_suites "$scoped"
+
+name="make test TESTS=<one shell suite>, with a failing test_*.py under $PY_DIR, runs that suite and no pytest case, exits 0 and ends all suites green"
+problems=()
+env VERI_VENV="$work/no-venv" PYTHONPATH="$fake_pytest" \
+  make --no-print-directory -C "$scoped" test TESTS=skills/tdd/scripts/tests/slow.test.sh \
+  > "$work/out" 2> "$work/err" < /dev/null && code=0 || code=$?
+out="$(cat "$work/out")"
+[[ "$code" == 0 ]] || problems+=("want exit 0, got $code: $(flat "$out") $(flat "$(cat "$work/err")")")
+heads="$(grep '^== ' <<< "$out" | tr '\n' '/')"
+[[ "$heads" == '== slow.test.sh/' ]] || problems+=("want only == slow.test.sh/, got: $heads")
+[[ "$(tail -n 1 <<< "$out")" == 'all suites green' ]] ||
+  problems+=("want stdout's last line all suites green, got: $(tail -n 1 <<< "$out")")
+report "$name"
+
 finish

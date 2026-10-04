@@ -33,10 +33,12 @@ probe="$work/probe"
 
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
+make_args=()
+
 recipe() {
   local in="$1"; shift
   rm -f "$probe"
-  recipe_out="$(env "$@" PROBE_OUT="$probe" make -C "$ROOT" test TESTS="$FIXTURE" UNIT_TESTS= 2>&1 < "$in")" &&
+  recipe_out="$(env "$@" PROBE_OUT="$probe" make -C "$ROOT" test TESTS="$FIXTURE" UNIT_TESTS= "${make_args[@]}" 2>&1 < "$in")" &&
     recipe_code=0 || recipe_code=$?
   [[ "$recipe_code" -eq 0 ]] ||
     problems+=("make test over the fixture exited $recipe_code: $(flat "$recipe_out")")
@@ -145,12 +147,15 @@ mkdir -p "$venv/bin" "$path_py"
 printf '#!/bin/sh\necho "venv python3 $*"\n' > "$venv/bin/python3"
 printf '#!/bin/sh\necho "path python3 $*"\n' > "$path_py/python3"
 chmod +x "$venv/bin/python3" "$path_py/python3"
+py_tests=("$ROOT"/skills/tdd/scripts/tests/py/test_*.py)
+make_args=(PY_TESTS="${py_tests[0]#"$ROOT/"}")
 recipe /dev/null VERI_VENV="$venv" VERI_PYTHON_VERSION=3.12.0 VERI_PYTEST_IMPORTABLE=1 PATH="$path_py:$PATH"
 [[ "$recipe_out" == *"venv python3 -m pytest skills/tdd/scripts/tests/py/test_"* ]] ||
   problems+=("want \$VERI_VENV/bin/python3 to run the pytest leg when it is present, got: $(flat "$recipe_out")")
 recipe /dev/null VERI_VENV="$work/no-venv" VERI_PYTHON_VERSION=3.12.0 VERI_PYTEST_IMPORTABLE=1 PATH="$path_py:$PATH"
 [[ "$recipe_out" == *"path python3 -m pytest skills/tdd/scripts/tests/py/test_"* ]] ||
   problems+=("want the python3 on PATH to run the pytest leg when \$VERI_VENV/bin/python3 is absent, got: $(flat "$recipe_out")")
+make_args=()
 report "make test's pytest leg runs \$VERI_VENV/bin/python3 when it is present and the python3 on PATH when it is absent"
 
 problems=()
