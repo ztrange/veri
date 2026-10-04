@@ -1,0 +1,2 @@
+### veri.github.gh_rest_list requests `gh api <rest-path>?page=1`, `page=2`, … and answers every page's body back to back with no separator, stopping at the first page that is a bare `[]`, which is not part of the answer ⟦criterion 1⟧
+- test-only | the `SCRIPTS`/`sys.path` preamble at the top of `tests/py/test_github.py` is the same one eleven other `tests/py/test_*.py` files carry, so it could move into a shared `tests/py/conftest.py`. That would change mostly files this cycle did not write, so it is out of scope here.
