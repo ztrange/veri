@@ -683,6 +683,14 @@ plan comment with the rest) rather than dropping it silently. A behaviour left u
 surfaces mid-run as a plan amendment — a late extra step, or a verifier's remark — as it
 did in #43's step 5 and #41's step 6, instead of at scoping time.
 
+**Order a step that brings in code after the steps that pin its branches.** A step that
+introduces code — a port step, a new module — either comes after the steps whose tests pin
+every branch it brings in, or brings in only the branches its own test requires, the rest
+arriving with the steps that pin them. A branch an existing suite forces in (a fallback, a
+usage header, a null guard) is still one no test of that step requires if only a later step
+pins it, and the blind verify-green rejects it as unrequired code, as #760's port step was
+three times over branches its ledger pinned on later lines.
+
 1. Write the plan as a checkbox list to the **ledger** `.tdd/issue-<n>.md`, e.g.:
    ```
    # Plan for #<n> — <issue title>

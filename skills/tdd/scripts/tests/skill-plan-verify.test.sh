@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Unit test for where skills/tdd/SKILL.md verifies the plan, read as text.
 #
-# Contract under test — three cases, one per criterion:
+# Contract under test — four cases, one per criterion:
 #   1. SKILL.md launches the `plan` verdict between the instruction that commits the ledger
 #      and the heading that opens the cycle loop, and the prose in that same span says a
 #      REJECT rewrites the plan and re-verifies it, rather than ending the run.
@@ -9,6 +9,9 @@
 #      **system** failure bail, rather than letting it read as a PASS.
 #   3. The script inventory's own entries for `build-verify-prompt.sh`, `verify.sh` and
 #      `run-verdict.sh` name `plan` among the phases they accept.
+#   4. One paragraph of the "2. Scope & plan" section orders a step that brings in code (a
+#      port, a new module) after the steps pinning its branches, or has it bring in only the
+#      branches its own test requires.
 #
 # Run: skills/tdd/scripts/tests/skill-plan-verify.test.sh
 set -uo pipefail
@@ -131,6 +134,42 @@ for script in "${entry_scripts[@]}"; do
     esac
   done
 done
+
+report "$name"
+
+scope_re='^### 2[.] Scope & plan'
+scope_end_re='^### 2b[.]'
+
+paragraph_with_all() {
+  awk -v a="$1" -v b="$2" -v words="$3" '
+    function check(   i, n, w) {
+      n = split(words, w, "|")
+      for (i = 1; i <= n; i++) if (index(para, w[i]) == 0) return
+      if (!found) { print start; found = 1 }
+    }
+    NR <= a || NR >= b { next }
+    /^[[:space:]]*$/ { check(); para = ""; next }
+    { if (para == "") start = NR; para = para " " tolower($0) }
+    END { check() }
+  ' "$skill_path"
+}
+
+name="SKILL.md's plan section orders a step bringing in code after the steps pinning its branches, or has it bring in only the branches its own test requires"
+problems=()
+
+scope_line="$(line_of "$scope_re")"
+scope_end="$(line_of "$scope_end_re")"
+order_words="branch|pin|after|its own test requires|module"
+sep="', '"
+
+if [[ "$scope_line" -eq 0 || "$scope_end" -eq 0 ]]; then
+  problems+=("$skill_md is missing a landmark of the plan section (/$scope_re/ at line $scope_line, /$scope_end_re/ at line $scope_end)")
+else
+  hit="$(paragraph_with_all "$scope_line" "$scope_end" "$order_words")"
+  if [[ -z "$hit" ]]; then
+    problems+=("no paragraph between $skill_md:$scope_line and :$scope_end names all of '${order_words//|/$sep}', so a plan may put the step that brings a module in ahead of the steps pinning the branches it brings, and verify-green rejects code no test of that step requires")
+  fi
+fi
 
 report "$name"
 
