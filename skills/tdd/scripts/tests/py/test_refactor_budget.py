@@ -175,11 +175,15 @@ def test_main_writes_bytes_whatever_the_locale_and_exits_1_when_stdout_is_closed
         seen[(locale, "budget")] = run(locale, {"VERI_REFACTOR_BUDGET": ff}, ["1"])
         wanted[(locale, "budget")] = (2, b"", b"refactor-budget: VERI_REFACTOR_BUDGET must be a whole number >= 0: \xff\n")
     monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
-    monkeypatch.setattr(sys, "stdout", None)
-    try:
-        seen["closed"] = refactor_budget.main(["4"])
-    except Exception:
-        seen["closed"] = 1
+
+    def closed(stdout):
+        monkeypatch.setattr(sys, "stdout", stdout)
+        try:
+            return refactor_budget.main(["4"])
+        except Exception:
+            return 1
+
+    seen["closed"] = closed(None)
     wanted["closed"] = 1
 
     class ClosedFd(io.RawIOBase):
@@ -194,11 +198,7 @@ def test_main_writes_bytes_whatever_the_locale_and_exits_1_when_stdout_is_closed
             return len(data)
 
     fd = ClosedFd()
-    monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(io.BufferedWriter(fd)))
-    try:
-        seen["closed-fd"] = refactor_budget.main(["4"])
-    except OSError:
-        seen["closed-fd"] = 1
+    seen["closed-fd"] = closed(io.TextIOWrapper(io.BufferedWriter(fd)))
     fd.closed_now = False
     wanted["closed-fd"] = 1
     assert seen == wanted
