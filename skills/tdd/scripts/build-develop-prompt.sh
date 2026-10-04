@@ -66,7 +66,7 @@ if [[ "$phase" == "revise" ]]; then
   need revised_phase "${2:-}" '<phase> being revised'
   case "$revised_phase" in
     red|green|refactor) ;;
-    *) refuse "build-develop-prompt.sh: unknown phase to revise '$revised_phase' (want red|green|refactor)" ;;
+    *) refuse "build-develop-prompt.sh: unknown phase to revise '$revised_phase' (want red|green|refactor|diff)" ;;
   esac
   shift
 fi
