@@ -1,5 +1,6 @@
 """In-process cases for veri/github.py, lib/github.sh's GraphQL→REST fallback in Python."""
 import importlib
+import os
 import pathlib
 import subprocess
 import sys
@@ -675,3 +676,55 @@ def test_importing_the_module_starts_no_process_and_reads_veri_gh_json_only_when
     monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
     assert github.gh_json("issues.json", "repos/{owner}/{repo}/issues") == '[{"number":5}]'
     assert calls == []
+
+
+def test_with_veri_gh_driver_empty_or_unknown_every_public_function_starts_no_gh_process_and_is_a_no_answer_naming_the_variable_and_value(monkeypatch, capsys):
+    calls = fake_gh(monkeypatch, {})
+    reads = []
+
+    class RecordingEnviron(dict):
+        def get(self, key, default=None):
+            reads.append(key)
+            return dict.get(self, key, default)
+
+        def __getitem__(self, key):
+            reads.append(key)
+            return dict.__getitem__(self, key)
+
+    environ = RecordingEnviron(os.environ)
+    environ.pop("VERI_GH_JSON", None)
+    environ["VERI_GH_DRIVER"] = "gql"
+    monkeypatch.setattr(os, "environ", environ)
+    monkeypatch.delitem(sys.modules, "veri.github", raising=False)
+    monkeypatch.delattr(importlib.import_module("veri"), "github", raising=False)
+
+    import veri.github as github
+
+    assert (reads, calls, capsys.readouterr().err) == ([], [], "")
+
+    path = "repos/{owner}/{repo}/issues"
+    operations = (lambda: github.gh_rest_list(path),
+                  lambda: github.gh_list(path, "issue", "list", "--json", "number"),
+                  lambda: github.gh_json("issues.json", path, "issue", "list", "--json", "number"),
+                  lambda: github.gh_json("issues.json", path),
+                  lambda: github.gh_issue_view("60", "body"),
+                  lambda: github.gh_issue_edit("60", "/tmp/body.md"),
+                  lambda: github.gh_issue_create("T", "B"))
+    observed = {}
+    for driver in ("", "REST", "gql"):
+        environ["VERI_GH_DRIVER"] = driver
+        outcomes = []
+        for operation in operations:
+            del calls[:]
+            try:
+                operation()
+                outcome = "answered"
+            except Exception as error:
+                outcome = type(error).__name__
+            err = capsys.readouterr().err
+            outcomes.append((outcome, list(calls), err.count("\n"),
+                             "VERI_GH_DRIVER" in err, "'%s'" % driver in err))
+        observed[driver] = outcomes
+
+    refused = [("NoAnswer", [], 1, True, True)] * len(operations)
+    assert observed == {driver: refused for driver in ("", "REST", "gql")}
