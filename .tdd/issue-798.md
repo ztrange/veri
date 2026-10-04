@@ -23,5 +23,5 @@
 - [x] veri/github.py is importable as `from veri import github` and as `import veri.github` ⟦criterion 4⟧
 - [x] importing veri.github starts no process and holds no state ⟦criterion 4⟧
 - [ ] the PR body lists the Python modules already copying the fallback — veri/capture_spec.py:14-32 on main, and veri/coverage_blocker.py in #794 — as follow-ups ⟦human-owed⟧ ⟦criterion 5⟧
-- [ ] lib/github.sh, its seven bash users, tests/unit/github.test.sh and tests/no-graphql-gh-calls.test.sh are unmodified by the branch ⟦diff-checked⟧ ⟦criterion 6⟧
+- [x] lib/github.sh, its seven bash users, tests/unit/github.test.sh and tests/no-graphql-gh-calls.test.sh are unmodified by the branch ⟦diff-checked⟧ ⟦criterion 6⟧
 - [ ] the full suite, those files' suites included, passes ⟦full-suite⟧ ⟦criterion 6⟧
