@@ -199,7 +199,7 @@ def locked_main(argv):
     command = argv[0] if argv else ""
     if command == "next":
         return next_item(argv)
-    if command in MOVES and len(argv) < 3:
+    if (command in MOVES or command == "assign") and len(argv) < 3:
         return refuse()
     fourth = "".join(argv[3:4])
     if command == "done" and not fourth:
@@ -210,8 +210,6 @@ def locked_main(argv):
         if len(argv) < 4:
             return refuse()
     if command == "assign":
-        if len(argv) < 3:
-            return refuse()
         named = set()
         for issue in argv[2:]:
             if not issue:
