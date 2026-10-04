@@ -12,15 +12,22 @@ def append_rule(path):
         f.write("".join(line + "\n" for line in RULE))
 
 
-def refuses(path):
+def where(line, lines):
+    return lines.index(line) if line in lines else None
+
+
+def has_rule(path):
     if not os.path.isfile(path):
         return False
     with open(path, "rb") as f:
         lines = f.read().split(b"\n")
-    if RULE[2].encode() in lines:
+    at_all, at_ledger, at_spec = (where(line.encode(), lines) for line in RULE)
+    if None not in (at_all, at_ledger, at_spec):
+        return True
+    if at_spec is not None:
         print("ensure-run-state-ignored: %s carries veri's run-state rule only in part, or with its lines out of order"
               " — fix it by hand" % path, file=sys.stderr)
-        return True
+        return None
     return False
 
 
@@ -31,12 +38,16 @@ def main(argv):
                            stdout=subprocess.PIPE, text=True)
     if found.returncode != 0:
         return 2
-    if refuses(gitignore):
+    present = has_rule(gitignore)
+    if present is None:
         return 2
     common_dir = root + "/" + found.stdout.rstrip("\n")
-    append_rule(common_dir + "/info/exclude")
-    append_rule(gitignore)
-    print("added")
+    exclude = common_dir + "/info/exclude"
+    if not has_rule(exclude):
+        append_rule(exclude)
+    if not present:
+        append_rule(gitignore)
+    print("already present" if present else "added")
     return 0
 
 
