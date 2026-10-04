@@ -313,12 +313,14 @@ def test_main_polls_until_its_slice_or_deadline_and_records_the_deadline_in_tdd(
     assert observed == [expected for *_, expected in cases]
 
 
-def test_main_reads_its_numeric_arguments_with_leading_zeros_as_decimal_and_a_deadline_file_as_bash_arithmetic_issue_776(
+def test_main_reads_its_numeric_arguments_with_leading_zeros_as_decimal_and_refuses_a_deadline_file_without_one_issue_776(
         monkeypatch, capsys, tmp_path, wait_ci):
     mark = "ci-deadline-abc123"
     past = f"wait-ci.sh: checks of {PR} still pending past the deadline recorded for {SHA}\n"
     tick = ["date +%s", "sleep 10"]
     raised = "raised"
+    locked = "locked"
+    refused = f"wait-ci.sh: deadline file .tdd/{mark} is unreadable or not a non-negative whole number\n"
     cases = [
         ([PR, "1000", "700", SHA], {}, [1000, 1540],
          (3, "", "", {mark: "1600\n"}, tick + ["date +%s"])),
@@ -341,12 +343,15 @@ def test_main_reads_its_numeric_arguments_with_leading_zeros_as_decimal_and_a_de
          (2, "", "wait-ci.sh: total-seconds '-5' is not a non-negative whole number\n", {}, [])),
         ([PR, "0", "100", SHA], {mark: "1100\n\n\n"}, [1000],
          (3, "", "", {mark: "1100\n\n\n"}, ["date +%s"])),
-        ([PR, "60", "100", SHA], {mark: ""}, [1000], (2, "", past, {mark: ""}, ["date +%s"])),
-        ([PR, "60", "100", SHA], {mark: "0x10"}, [1000], (2, "", past, {mark: "0x10"}, ["date +%s"])),
-        ([PR, "60", "100", SHA], {mark: "now\n"}, [1000], (2, "", past, {mark: "now\n"}, ["date +%s"])),
-        ([PR, "60", "100", SHA], {mark: "abc\n"}, [1000], (raised, "", None, {mark: "abc\n"}, ["date +%s"])),
+        ([PR, "0", "100", SHA], {mark: "01100\n"}, [1000],
+         (3, "", "", {mark: "01100\n"}, ["date +%s"])),
+        ([PR, "60", "100", SHA], {mark: ""}, [1000], (2, "", refused, {mark: ""}, ["date +%s"])),
+        ([PR, "60", "100", SHA], {mark: "0x10"}, [1000], (2, "", refused, {mark: "0x10"}, ["date +%s"])),
+        ([PR, "60", "100", SHA], {mark: "now\n"}, [1000], (2, "", refused, {mark: "now\n"}, ["date +%s"])),
+        ([PR, "60", "100", SHA], {mark: "abc\n"}, [1000], (2, "", refused, {mark: "abc\n"}, ["date +%s"])),
         ([PR, "60", "100", SHA], {mark: "5000 x\n"}, [1000],
-         (raised, "", None, {mark: "5000 x\n"}, ["date +%s"])),
+         (2, "", refused, {mark: "5000 x\n"}, ["date +%s"])),
+        ([PR, "60", "100", SHA], {mark: locked}, [1000], (2, "", refused, {mark: "1100\n"}, ["date +%s"])),
         ([PR, "60", "120", SHA, "extra", "more"], {}, [1000, 1060],
          (3, "", "", {mark: "1120\n"}, tick + ["date +%s"])),
     ]
@@ -363,7 +368,9 @@ def test_main_reads_its_numeric_arguments_with_leading_zeros_as_decimal_and_a_de
         work = tmp_path / str(i)
         (work / ".tdd").mkdir(parents=True)
         for name, text in marks.items():
-            (work / ".tdd" / name).write_text(text)
+            (work / ".tdd" / name).write_text("1100\n" if text == locked else text)
+            if text == locked:
+                (work / ".tdd" / name).chmod(0)
         monkeypatch.chdir(work)
         calls = []
         readings = iter(clock)
@@ -385,6 +392,8 @@ def test_main_reads_its_numeric_arguments_with_leading_zeros_as_decimal_and_a_de
         captured = capsys.readouterr()
         err = None if expected[2] is None else (
             captured.err if isinstance(expected[2], str) else bool(captured.err))
+        for p in (work / ".tdd").rglob("*"):
+            p.chmod(0o644)
         recorded = {str(p.relative_to(work / ".tdd")): p.read_text()
                     for p in (work / ".tdd").rglob("*") if p.is_file()}
         observed.append((code, captured.out, err, recorded,

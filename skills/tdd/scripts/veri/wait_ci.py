@@ -185,8 +185,15 @@ def main(argv):
                 mark = ".tdd/ci-deadline-" + key
                 inherited = os.path.isfile(mark)
                 if inherited:
-                    with open(mark) as found:
-                        deadline = found.read().rstrip("\n")
+                    try:
+                        with open(mark) as found:
+                            deadline = found.read().rstrip("\n")
+                    except OSError:
+                        deadline = ""
+                    if not re.fullmatch(r"[0-9]+", deadline):
+                        warn("deadline file %s is unreadable or not a non-negative whole number" % mark)
+                        return 2
+                    deadline = decimal(deadline)
                 else:
                     deadline = str(now + arith(total, scope))
                     record(mark, deadline)
