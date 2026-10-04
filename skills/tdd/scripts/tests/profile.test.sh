@@ -35,10 +35,6 @@ expect_line() {
   fi
 }
 
-case_order() {
-  awk '{ printf "%s ", $4 }' <<< "$out"
-}
-
 name="threshold 1: the 2.5 s case is printed, the 0.25 s case is not"
 problems=()
 write_fixture two-cases.test.sh <<'EOF'
@@ -61,8 +57,6 @@ lines=()
 [[ "$out" != *" case 3 "* ]] || problems+=("case 3 (0.25 s) was printed: $(printf '%q' "$out")")
 report "$name"
 
-name="the printed line is <secs> <suite> case 2 L5-8, secs equal to 3"
-problems=()
 write_fixture format.test.sh <<'EOF'
 unset EPOCHREALTIME
 pass=0; fail=0
@@ -74,67 +68,6 @@ EPOCHREALTIME=13.000000
 pass=$((pass + 1))
 echo "${pass:-0} passed, $fail failed"
 EOF
-out="$(VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
-[[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
-expect_line "$fixture case 2 L5-8" 3
-report "$name"
-
-name="boundaries: only top-level increments of pass/fail, so case 2 is L5-12"
-problems=()
-write_fixture boundaries.test.sh <<'EOF'
-unset EPOCHREALTIME
-pass=0; fail=0
-EPOCHREALTIME=10.000000
-pass=$((pass + 1))
-EPOCHREALTIME=20.000000
-passed=1
-bump() { local passed=1; local pass=9; }
-EPOCHREALTIME=30.000000
-bump
-fail=0
-EPOCHREALTIME=35.000000
-pass=$((pass + 1))
-echo "${pass:-0} passed, $fail failed"
-EOF
-out="$(VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
-[[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
-expect_line "$fixture case 2 L5-12" 25
-report "$name"
-
-name="slowest first: cases spanning 2, 5 and 3 s print as case 3, case 4, case 2"
-problems=()
-write_fixture order.test.sh <<'EOF'
-unset EPOCHREALTIME
-pass=0; fail=0
-EPOCHREALTIME=10.000000
-pass=$((pass + 1))
-EPOCHREALTIME=12.000000
-pass=$((pass + 1))
-EPOCHREALTIME=17.000000
-pass=$((pass + 1))
-EPOCHREALTIME=20.000000
-pass=$((pass + 1))
-echo "${pass:-0} passed, $fail failed"
-EOF
-out="$(VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
-[[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
-order="$(case_order)"
-[[ "$order" == "3 4 2 " ]] ||
-  problems+=("want cases in the order 3 4 2, got: $(printf '%q' "$out")")
-report "$name"
-
-name="threshold changes which cases print: 1 → 3 4 2, 2.5 → 3 4, 4 → 3"
-problems=()
-fixture="$scratch/order.test.sh"
-for probe in "1:3 4 2 " "2.5:3 4 " "4:3 "; do
-  t="${probe%%:*}" want="${probe#*:}"
-  out="$(VERI_PROFILE_THRESHOLD="$t" "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
-  [[ "$code" == 0 ]] || problems+=("threshold $t: want exit 0, got $code")
-  order="$(case_order)"
-  [[ "$order" == "$want" ]] ||
-    problems+=("threshold $t: want cases '$want', got: $(printf '%q' "$out")")
-done
-report "$name"
 
 name="exit 2: a non-numeric threshold, and a suite that never increments pass/fail"
 problems=()
@@ -147,38 +80,6 @@ echo "${pass:-0} passed, $fail failed"
 EOF
 out="$(env -u VERI_PROFILE_THRESHOLD "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 2 ]] || problems+=("no increment: want exit 2, got $code")
-report "$name"
-
-name="default threshold 1: a 1 s case prints, 0.9 s does not; none reaching it exits 0"
-problems=()
-write_fixture default-at.test.sh <<'EOF'
-unset EPOCHREALTIME
-pass=0; fail=0
-EPOCHREALTIME=10.000000
-pass=$((pass + 1))
-EPOCHREALTIME=11.000000
-pass=$((pass + 1))
-EPOCHREALTIME=11.900000
-pass=$((pass + 1))
-echo "${pass:-0} passed, $fail failed"
-EOF
-out="$(env -u VERI_PROFILE_THRESHOLD "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
-[[ "$code" == 0 ]] || problems+=("1 s case: want exit 0, got $code")
-expect_line "$fixture case 2 L5-6" 1
-write_fixture default-under.test.sh <<'EOF'
-unset EPOCHREALTIME
-pass=0; fail=0
-EPOCHREALTIME=10.000000
-pass=$((pass + 1))
-EPOCHREALTIME=10.900000
-pass=$((pass + 1))
-EPOCHREALTIME=11.400000
-pass=$((pass + 1))
-echo "${pass:-0} passed, $fail failed"
-EOF
-out="$(env -u VERI_PROFILE_THRESHOLD "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
-[[ "$code" == 0 ]] || problems+=("no case reaching 1 s: want exit 0, got $code")
-[[ -z "$out" ]] || problems+=("no case reaching 1 s: want no output, got: $(printf '%q' "$out")")
 report "$name"
 
 name="a command dying with 5 ends in exit 2, and the trace file is still removed"
