@@ -5,6 +5,8 @@ import pathlib
 import subprocess
 import sys
 
+import pytest
+
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
@@ -207,3 +209,47 @@ def test_main_reads_issues_and_prs_from_veri_gh_json_or_from_gh_list_falling_bac
         2, "", [issue_list, ["gh", "api", issues_rest + "1"]])
     assert failing_out.err.endswith(
         "invisible-work.sh: cannot read issues and PRs from gh (unauthenticated?)\n")
+
+
+def test_main_keeps_the_report_rules_of_the_embedded_program_and_raises_on_a_malformed_answer(
+        monkeypatch, tmp_path, capsys):
+    invisible_work = importlib.import_module("veri.invisible_work")
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git(monkeypatch, [
+        (["rev-list", "--count", "origin/main..refs/remotes/origin/closed-pr"], 0, "5\n"),
+        (["rev-list", "--count", "origin/main..refs/remotes/origin/merged-pr"], 0, "6\n"),
+        (["rev-list", "--count", "refs/heads/done"], 0, "7\n"),
+        (["rev-list", "--count", "refs/heads/gone"], 0, "8\n"),
+    ] + sweep_answers(
+        "refs/remotes/origin/HEAD 1111\nrefs/remotes/origin/closed-pr eeee\n"
+        "refs/remotes/origin/main 1111\nrefs/remotes/origin/merged-pr ffff\n"
+        "refs/remotes/origin/tdd/007-x aaaa\nrefs/remotes/origin/zeta bbbb\n",
+        "refs/heads/done 9999\nrefs/heads/feature cccc\nrefs/heads/gone 8888\n"
+        "refs/heads/main 1111\nrefs/heads/solo dddd\nrefs/heads/tdd/007-x aaaa\n"))
+
+    (tmp_path / "issues.json").write_text('[{"number": 7, "state": "closed"}]')
+    (tmp_path / "prs.json").write_text(
+        '[{"head": {"ref": "closed-pr"}, "state": "closed"},'
+        ' {"headRefName": "merged-pr", "state": "MERGED"},'
+        ' {"head": {"ref": "done"}, "state": "closed"},'
+        ' {"headRefName": "gone", "state": "MERGED"}]')
+    swept = invisible_work.main(["--help"])
+    swept_out = capsys.readouterr()
+
+    assert (swept, swept_out.out) == (
+        0,
+        "invariant 2 (no PR): tdd/007-x tip aaaa 2 commits ahead, issue #7 CLOSED\n"
+        "invariant 2 (no PR): zeta tip bbbb 1 commits ahead\n"
+        "invariant 1 (not on origin): feature tip cccc 3 commits origin lacks, worktree /wt/with space\n"
+        "invariant 1 (not on origin): solo tip dddd 4 commits origin lacks\n")
+
+    malformed = [
+        ("not json", "[]"),
+        ('[{"number": 7}]', "[]"),
+        ("[]", '{"headRefName": "zeta", "state": "OPEN"}'),
+    ]
+    for issues, prs in malformed:
+        (tmp_path / "issues.json").write_text(issues)
+        (tmp_path / "prs.json").write_text(prs)
+        with pytest.raises(Exception):
+            invisible_work.main([])
