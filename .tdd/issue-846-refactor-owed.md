@@ -4,3 +4,5 @@
 - test-only | no-permission-bits.test.sh: `PLANT_CHMOD_ZERO` (line 121) holds the same string as `PLANT_CHMOD_000` (line 63), so one of them could go.
 ### The guard also fails naming `<suite>:<line>` for a suite that makes a directory read-only to force a write failure into it ⟦criterion 2⟧
 - test-only | fold probe_a_planted_read_only_dir (the single 555 plant) into PLANT_READ_ONLY_DIR_MODES so one mode-list probe covers 555, a-w, 500 and u=rx
+### A line the guard's exemption table lists, with a reason, is not reported, and an exemption entry carrying no reason fails the guard ⟦criterion 2⟧
+- test-only | the seven plant probes repeat `local ROOT; plant_and_probe …; <var>="$(plant_named …)"; problems=()` and could share one helper (code from earlier cycles, outside this step's bounds)
