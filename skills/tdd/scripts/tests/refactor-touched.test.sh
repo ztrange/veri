@@ -96,4 +96,26 @@ if [[ "$code" == 2 && -z "$out" && "$err" == *"usage: refactor-touched.sh"* ]]; 
   no "--issue with no base → exit 2 with the usage (code=$code, stdout=$out, stderr=$err)"
 fi
 
+repo="$(make_repo linked)"
+mkdir -p "$repo/.tdd" "$repo/elsewhere" "$repo/lib" "$repo/src"
+printf -- '- [ ] a step\n' > "$repo/.tdd/issue-13.md"
+printf 'here\n' > "$repo/elsewhere/keep"
+commit_all "$repo" "plan: scope #13"
+printf 'zeta\n' > "$repo/src/zeta.sh"
+printf 'alpha\n' > "$repo/lib/alpha.test.sh"
+commit_all "$repo" "feat: a step (#13)"
+code_commit="$(git -C "$repo" rev-parse HEAD)"
+printf -- '- [x] a step\n' > "$repo/.tdd/issue-13.md"
+commit_all "$repo" "chore: tick the ledger (#13)"
+ledger_only="$(git -C "$repo" rev-parse HEAD)"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+in_place="$(cd "$repo" && "$TOUCHED" "$code_commit" 2>/dev/null)"; in_place_code=$?
+linked="$(cd "$repo/elsewhere" && "$work/linked-skill/scripts/refactor-touched.sh" "$code_commit" 2>/dev/null)"; linked_code=$?
+none_out="$(cd "$repo/elsewhere" && "$work/linked-skill/scripts/refactor-touched.sh" "$ledger_only" 2>/dev/null)"; none_code=$?
+if [[ "$in_place_code" == 0 && "$in_place" == "lib/alpha.test.sh,src/zeta.sh" \
+   && "$linked_code" == 0 && "$linked" == "$in_place" \
+   && "$none_code" == 3 && -z "$none_out" ]]; then ok; else
+  no "refactor-touched.sh run through a symlink to the skill directory and from another working directory answers as it does when run in place (in_place_code=$in_place_code, in_place=$in_place; linked_code=$linked_code, linked=$linked; none_code=$none_code, none_out=$none_out)"
+fi
+
 finish
