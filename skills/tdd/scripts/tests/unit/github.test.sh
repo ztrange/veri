@@ -360,4 +360,55 @@ for rest_answers in yes no; do
 done
 record
 
+# 10. with VERI_GH_DRIVER=graphql, every operation with a GraphQL route answers from GraphQL
+#     alone: a GraphQL failure is a no-answer with no gh api call, a success answers its stdout
+name="with VERI_GH_DRIVER=graphql, gh_issue_view, gh_list, gh_json with gh args and gh_pr_ready return 2 with no gh api call when GraphQL fails, and answer GraphQL's stdout when it succeeds"
+calls="$scratch/calls10" err="$scratch/err10" out="$scratch/out10"
+: > "$calls"
+problems=""
+for graphql_answers in yes no; do
+  for op in view list json ready; do
+    (
+      gh() {
+        echo "$op gh $*" >> "$calls"
+        case "$1" in
+          issue|pr)
+            [[ "$graphql_answers" == yes ]] || { echo "$refusal" >&2; return 1; }
+            echo 'graphql-answer'; return 0 ;;
+          api)
+            case "$*" in *page=1) echo '[{"number":1}]' ;; *page=*) echo '[]' ;; *) echo '{}' ;; esac
+            return 0 ;;
+        esac
+        return 1
+      }
+      python3() { cat > /dev/null; echo rest-body; }
+      unset VERI_GH_JSON
+      VERI_GH_DRIVER=graphql
+      source "$LIB"
+      case "$op" in
+        view) gh_issue_view 7 body ;;
+        list) gh_list 'repos/{owner}/{repo}/issues' issue list --json number ;;
+        json) gh_json issues.json 'repos/{owner}/{repo}/issues' issue list --json number ;;
+        ready) gh_pr_ready 42 ;;
+      esac
+    ) > "$out" 2>> "$err"
+    rc=$?
+    want=0
+    [[ "$graphql_answers" == yes ]] || want=2
+    [[ "$rc" -eq "$want" ]] ||
+      problems+="    $op with GraphQL answering=$graphql_answers: want return $want, got $rc"$'\n'
+    grep -E "^$op gh (issue|pr) " "$calls" > /dev/null ||
+      problems+="    $op with GraphQL answering=$graphql_answers: want a GraphQL call, got none"$'\n'
+    if grep -E "^$op gh api " "$calls" > /dev/null; then
+      problems+="    $op with GraphQL answering=$graphql_answers: want no gh api call, got: $(printf '%q' "$(grep -E "^$op gh api " "$calls")")"$'\n'
+    fi
+    if [[ "$graphql_answers" == yes ]]; then
+      [[ "$(cat "$out")" == graphql-answer ]] ||
+        problems+="    $op with GraphQL answering=yes: want stdout graphql-answer, got $(printf '%q' "$(cat "$out")")"$'\n'
+    fi
+    : > "$calls"
+  done
+done
+record
+
 finish
