@@ -318,4 +318,16 @@ $(diff "$work/inplace-edit" "$work/linked-edit" 2>&1)
 $(cat "$work/linked.err")"
 fi
 
+name="coverage-blocker.sh with no argument and with an empty argument exits 2 with exactly its usage line on stderr and nothing on stdout"
+usage_line='usage: coverage-blocker.sh <refactor-issue-number>'
+run_blocker x "$work/usage-none-create" "$work/usage-none-edit" > "$work/usage-none.out" 2> "$work/usage-none.err" && none_code=0 || none_code=$?
+run_blocker x "$work/usage-empty-create" "$work/usage-empty-edit" "" > "$work/usage-empty.out" 2> "$work/usage-empty.err" && empty_code=0 || empty_code=$?
+if [[ "$none_code" == 2 && "$empty_code" == 2 \
+      && "$(cat "$work/usage-none.err")" == "$usage_line" && "$(cat "$work/usage-empty.err")" == "$usage_line" \
+      && ! -s "$work/usage-none.out" && ! -s "$work/usage-empty.out" ]]; then
+  ok
+else
+  no "$name (exit none=$none_code empty=$empty_code want 2 both; stderr none='$(cat "$work/usage-none.err")' empty='$(cat "$work/usage-empty.err")' want '$usage_line'; stdout none='$(cat "$work/usage-none.out")' empty='$(cat "$work/usage-empty.out")' want '')"
+fi
+
 finish
