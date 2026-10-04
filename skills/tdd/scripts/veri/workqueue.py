@@ -251,3 +251,7 @@ def locked_main(argv):
     finally:
         if locked:
             release_lock(lock)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
