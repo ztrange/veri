@@ -214,3 +214,52 @@ def test_main_rewrites_every_blocked_by_section_replacing_none_lines_and_inserti
     ) == (0, url, b"## Blocked by\n\n- #12\n- #77\n- #77\n\n## Blocked byproduct\n\n- #13\n- #77\n")
     assert run_with_body("## Blocked by\r\n\r\n- #12\r\n") == (0, url, b"## Blocked by\r\n\r\n- #12\r\n- #77\n")
     assert run_with_body("## Parent\n\n#1\n\n\n") == (0, url, b"## Parent\n\n#1\n")
+
+
+def test_main_blocks_on_whatever_the_create_answers_ignores_extra_arguments_and_passes_a_failed_create_stderr_through(tmpdir_env, monkeypatch, capfd, coverage_blocker):
+    def run(argv, create_answer, create_code=0):
+        calls = []
+        seen = {}
+
+        def fake_run(args, **kwargs):
+            args = [str(arg) for arg in args]
+            if args[:4] == ["gh", "api", "-X", "PATCH"]:
+                path = args[args.index("-F") + 1].split("body=@", 1)[1]
+                seen["body"] = pathlib.Path(path).read_text()
+                calls.append(args[:5])
+                return subprocess.CompletedProcess(args, 0, "", "")
+            calls.append(args)
+            if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
+                err = "HTTP 422: Validation Failed\n" if create_code else ""
+                stream = kwargs.get("stderr")
+                if stream is None:
+                    os.write(2, err.encode())
+                    err = None
+                elif stream != subprocess.PIPE:
+                    err = None
+                return subprocess.CompletedProcess(args, create_code, create_answer, err)
+            if args[:3] == ["gh", "issue", "view"]:
+                return subprocess.CompletedProcess(args, 0, "## Blocked by\n\nNone\n", "")
+            raise AssertionError("unexpected command: %r" % (args,))
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        code = coverage_blocker.main(argv)
+        captured = capfd.readouterr()
+        return code, captured.out, captured.err, seen.get("body"), calls
+
+    code, out, err, body, _ = run(["60"], "")
+    assert (code, out, err, body) == (0, "\n", "", "## Blocked by\n\n- #\n")
+
+    code, out, err, body, _ = run(["60"], "no-slash-here\n")
+    assert (code, out, err, body) == (0, "no-slash-here\n", "", "## Blocked by\n\n- #no-slash-here\n")
+
+    code, out, err, body, calls = run(["abc", "extra"], "https://github.com/owner/name/issues/77\n")
+    assert (code, out, err, body) == (0, "https://github.com/owner/name/issues/77\n", "", "## Blocked by\n\n- #77\n")
+    assert calls[0][:5] == ["gh", "api", "repos/{owner}/{repo}/issues", "-f", "title=Cover the behaviour #abc refactors"]
+    assert calls[1] == ["gh", "issue", "view", "abc", "--json", "body", "-q", ".body"]
+    assert calls[2] == ["gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/abc"]
+    assert not any("extra" in arg for call in calls for arg in call)
+
+    code, out, err, body, calls = run(["60"], "", create_code=1)
+    assert (code, out, body, len(calls)) == (2, "", None, 1)
+    assert "HTTP 422: Validation Failed" in err
