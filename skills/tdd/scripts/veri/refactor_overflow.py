@@ -24,10 +24,7 @@ def main(argv):
                             stdout=subprocess.PIPE, text=True)
     if listed.returncode:
         return listed.returncode
-    try:
-        skip = int(reached, 8 if reached.startswith("0") else 10)
-    except ValueError:
-        return fail(f"{reached}: value too great for base", 1)
+    skip = int(reached, 10)
     start = (skip + 1 + 2**63) % 2**64 - 2**63
     if start < 0:
         return fail(f"illegal offset -- +{start}", 1)
