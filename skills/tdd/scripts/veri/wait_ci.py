@@ -1,6 +1,7 @@
 """wait-ci.sh's logic, run in-process."""
 import json
 import os
+import re
 import subprocess
 import sys
 import traceback
@@ -14,6 +15,41 @@ except ImportError:
 
 USAGE = "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]"
 PASSING = ("success", "neutral", "skipped")
+SLICE_CAP = 540
+CEILING = 600
+
+
+class ArithError(ValueError):
+    pass
+
+
+def arith(text, scope):
+    word = str(text).strip()
+    if not word:
+        return 0
+    sign = -1 if word[0] == "-" else 1
+    body = word[1:] if word[0] == "-" else word
+    if re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", body):
+        if body not in scope:
+            raise NameError("%s: unbound variable" % body)
+        return sign * arith(scope[body], scope)
+    if re.fullmatch(r"0[xX][0-9a-fA-F]+", body):
+        return sign * int(body, 16)
+    if re.fullmatch(r"0[0-7]*", body):
+        return sign * int(body, 8)
+    if re.fullmatch(r"0[0-9]+", body):
+        raise ArithError('%s: value too great for base (error token is "%s")' % (word, body))
+    if re.fullmatch(r"[1-9][0-9]*", body):
+        return sign * int(body)
+    raise ArithError('%s: syntax error: invalid arithmetic operator (error token is "%s")' % (word, body))
+
+
+def capped(value, cap, scope):
+    try:
+        return cap if arith(value, scope) > cap else value
+    except ArithError as error:
+        print("wait-ci.sh: %s" % error, file=sys.stderr)
+        return value
 
 
 def pr_head(repo, pr):
@@ -52,7 +88,7 @@ def unreadable(what):
 def record(mark, deadline):
     try:
         with open(mark, "w") as out:
-            out.write("%d\n" % deadline)
+            out.write("%s\n" % deadline)
     except OSError as error:
         print("wait-ci.sh: %s" % error, file=sys.stderr)
 
@@ -63,11 +99,12 @@ def main(argv):
         return 2
     pr = argv[0]
     repo = pr.removeprefix("https://github.com/").rsplit("/pull/", 1)[0]
-    span = int(argv[1]) if len(argv) > 1 and argv[1] else 540
-    total = int(argv[2])
+    scope = {}
+    span = capped(argv[1] if len(argv) > 1 and argv[1] else str(SLICE_CAP), SLICE_CAP, scope)
+    total = capped(argv[2], CEILING, scope)
     want = argv[3] if len(argv) > 3 else ""
     poll = os.environ.get("VERI_POLL") or "10"
-    deadline = None
+    deadline = ""
     while True:
         try:
             mergeable, head = pr_head(repo, pr)
@@ -96,18 +133,23 @@ def main(argv):
         if state == "red":
             return 1
         now = int(subprocess.run(["date", "+%s"], stdout=subprocess.PIPE, text=True).stdout)
-        if deadline is None:
-            slice_end = now + span
-            key = want or head
-            mark = ".tdd/ci-deadline-" + key
-            inherited = os.path.isfile(mark)
-            if inherited:
-                with open(mark) as found:
-                    deadline = int(found.read())
-            else:
-                deadline = now + total
-                record(mark, deadline)
-        if now >= deadline:
+        scope["now"] = now
+        if not deadline:
+            try:
+                slice_end = now + arith(span, scope)
+                key = want or head
+                mark = ".tdd/ci-deadline-" + key
+                inherited = os.path.isfile(mark)
+                if inherited:
+                    with open(mark) as found:
+                        deadline = found.read().rstrip("\n")
+                else:
+                    deadline = str(now + arith(total, scope))
+                    record(mark, deadline)
+            except ArithError as error:
+                print("wait-ci.sh: %s" % error, file=sys.stderr)
+                break
+        if now >= arith(deadline, scope):
             if inherited:
                 print("wait-ci.sh: checks of %s still pending past the deadline recorded for %s"
                       % (pr, key), file=sys.stderr)
