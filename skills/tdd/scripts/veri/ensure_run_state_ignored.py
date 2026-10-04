@@ -8,8 +8,13 @@ RULE = (".tdd/*", "!.tdd/issue-*.md", ".tdd/issue-*-spec.md")
 
 def append_rule(path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "a") as f:
-        f.write("".join(line + "\n" for line in RULE))
+    with open(path, "ab+") as f:
+        f.seek(0, os.SEEK_END)
+        if f.tell() > 0:
+            f.seek(-1, os.SEEK_END)
+            if f.read(1) != b"\n":
+                f.write(b"\n")
+        f.write("".join(line + "\n" for line in RULE).encode())
 
 
 def where(line, lines):
@@ -22,7 +27,7 @@ def has_rule(path):
     with open(path, "rb") as f:
         lines = f.read().split(b"\n")
     at_all, at_ledger, at_spec = (where(line.encode(), lines) for line in RULE)
-    if None not in (at_all, at_ledger, at_spec):
+    if None not in (at_all, at_ledger, at_spec) and at_all < at_ledger < at_spec:
         return True
     if at_spec is not None:
         print("ensure-run-state-ignored: %s carries veri's run-state rule only in part, or with its lines out of order"
