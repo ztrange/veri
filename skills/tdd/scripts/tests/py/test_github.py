@@ -337,3 +337,18 @@ def test_gh_issue_view_is_a_no_answer_with_the_rest_stderr_passed_through_when_b
         ["gh", "api", "repos/{owner}/{repo}/issues/60"],
     ]
     assert capsys.readouterr().err == rest_refusal
+
+
+def test_gh_issue_view_is_a_no_answer_when_the_rest_answer_is_not_json(monkeypatch, github):
+    calls = fake_gh(monkeypatch, {
+        ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (1, "", ""),
+        ("gh", "api", "repos/{owner}/{repo}/issues/60"): (0, "<html>Bad Gateway</html>\n", ""),
+    })
+
+    with pytest.raises(github.NoAnswer):
+        github.gh_issue_view("60", "body")
+
+    assert calls == [
+        ["gh", "issue", "view", "60", "--json", "body", "-q", ".body"],
+        ["gh", "api", "repos/{owner}/{repo}/issues/60"],
+    ]

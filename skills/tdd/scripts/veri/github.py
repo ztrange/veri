@@ -44,7 +44,10 @@ def gh_issue_view(number, field):
         rest = _gh_api("repos/{owner}/{repo}/issues/%s" % number)
         if rest.returncode != 0:
             raise NoAnswer("")
-        issue = json.loads(rest.stdout)
+        try:
+            issue = json.loads(rest.stdout)
+        except ValueError:
+            raise NoAnswer("")
         if field == "labels":
             return "".join(label["name"] + "\n" for label in issue["labels"])
         return (issue["body"] or "") + "\n"
