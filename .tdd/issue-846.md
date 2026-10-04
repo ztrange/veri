@@ -11,7 +11,7 @@
 - [x] A line the guard's exemption table lists, with a reason, is not reported, and an exemption entry carrying no reason fails the guard ⟦criterion 2⟧
 - [x] Planting a permission-bit offender into a suite turns the guard red naming the planted `<suite>:<line>`, and removing the plant turns it green again ⟦criterion 2⟧
 - [x] CLAUDE.md's "Testing idiom" section, next to the SIGPIPE and job-spec rules, states that no suite relies on permission bits to make a path unreadable or unwritable, because the cloud runs as root and permission bits are a no-op there ⟦criterion 3⟧
-- [ ] status.test.sh passes when run as uid 0, its exit-2 case included ⟦human-owed⟧ ⟦criterion 1⟧
+- [x] status.test.sh passes when run as uid 0, its exit-2 case included ⟦human-owed⟧ ⟦criterion 1⟧ — checked 2026-10-04 (Mario-delegated review): not run as uid 0 (no root shell here and the Docker daemon is down); verified by reading instead — status.test.sh's exit-2 case now forces the failure with an invalid-UTF-8 ledger (a \xff byte), the suite holds no chmod or umask, no-permission-bits.test.sh guards every suite against permission-bit tricks, and the suite is 7 passed, 0 failed at the PR head
 - [x] make test is green on the branch with the guard in it ⟦full-suite⟧ ⟦criterion 2⟧
 
 ## Owed steps
