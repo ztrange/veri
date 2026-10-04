@@ -57,7 +57,11 @@ def unbound(name):
 
 
 def take_lock(lock):
-    os.makedirs(os.path.dirname(lock), exist_ok=True)
+    try:
+        os.makedirs(os.path.dirname(lock), exist_ok=True)
+    except OSError as error:
+        sys.stderr.write("mkdir: %s: %s\n" % (error.filename, error.strerror))
+        raise SystemExit(1)
     tries = lock_tries()
     while True:
         try:
@@ -174,6 +178,21 @@ def move(queue, argv, source, target):
     return status if 0 <= status <= 3 else 2
 
 
+def held_issue(queue, issues):
+    if not os.path.isfile(queue):
+        return None
+    with open(queue, newline="\n") as lines:
+        for line in lines:
+            if not line.endswith("\n"):
+                break
+            fields = re.split(r"\t+", line[:-1].strip("\t"), maxsplit=3) + ["", ""]
+            if fields[2] not in ("queued", "running"):
+                continue
+            if fields[1] in issues:
+                return fields[1], fields[2]
+    return None
+
+
 def main(argv):
     try:
         return locked_main(argv)
@@ -194,8 +213,12 @@ def locked_main(argv):
         if len(argv) < 4:
             unbound("$4")
     if command == "assign":
+        if len(argv) < 3:
+            return refuse()
         named = set()
         for issue in argv[2:]:
+            if not issue:
+                return refuse("workqueue.sh: an issue argument is empty")
             if issue in named:
                 return refuse("workqueue.sh: issue %s is named twice" % issue)
             named.add(issue)
@@ -216,6 +239,10 @@ def locked_main(argv):
             return move(queue, argv, *MOVES[command])
         if command != "assign":
             return refuse("workqueue.sh: unknown subcommand: " + command)
+        held = held_issue(queue, argv[2:])
+        if held:
+            sys.stderr.write("workqueue.sh: issue %s is already %s\n" % held)
+            return 2
         with open(queue, "a") as appended:
             for issue in argv[2:]:
                 appended.write("%s\t%s\tqueued\t\n" % (argv[1], issue))
