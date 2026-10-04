@@ -43,10 +43,8 @@ def main(argv):
     if _refused("<count>", count):
         _write(sys.stderr, USAGE)
         return 2
-    left, right = _arithmetic(count), None
-    if left is not None:
-        right = _arithmetic(budget)
-    spent = left is None or right is None or left >= right
+    left = _arithmetic(count)
+    spent = left is None or (right := _arithmetic(budget)) is None or left >= right
     _write(sys.stdout, f"refactor {count}/{budget} — {'budget spent' if spent else 'another transform may run'}")
     return 3 if spent else 0
 
