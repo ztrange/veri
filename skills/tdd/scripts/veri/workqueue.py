@@ -199,6 +199,8 @@ def locked_main(argv):
     command = argv[0] if argv else ""
     if command == "next":
         return next_item(argv)
+    if command in MOVES and len(argv) < 3:
+        return refuse()
     fourth = "".join(argv[3:4])
     if command == "done" and not fourth:
         return refuse()
@@ -206,7 +208,7 @@ def locked_main(argv):
         if "\t" in fourth or "\n" in fourth:
             return refuse("workqueue.sh: a park reason may not hold a tab or a newline")
         if len(argv) < 4:
-            unbound("$4")
+            return refuse()
     if command == "assign":
         if len(argv) < 3:
             return refuse()

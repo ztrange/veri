@@ -744,4 +744,25 @@ else
   echo "    exit: $code (want 2), stderr: $(cat "$work/trap-lifetime.err")"
 fi
 
+repo="$work/missing-argument"
+make_repo "$repo"
+problems=()
+for args in "start" "start alpha" "park alpha 13"; do
+  seed_queue "$repo" 'alpha\t12\tqueued\t\nalpha\t13\trunning\t\n'
+  (cd "$repo" && "$SCRIPT" $args > /dev/null 2>"$work/missing-argument.err") && code=0 || code=$?
+  [[ "$code" -eq 2 ]] || problems+=("'$args': exit $code (want 2)")
+  grep -F 'workqueue.sh: usage: workqueue.sh assign <worker> <issue>...' "$work/missing-argument.err" > /dev/null &&
+    grep -F 'workqueue.sh show [<worker>]' "$work/missing-argument.err" > /dev/null ||
+    problems+=("'$args': stderr $(printf '%q' "$(cat "$work/missing-argument.err")") (want the usage text)")
+  leftover="$(cd "$repo/.tdd" && ls -d workqueue.tmp.* 2>/dev/null)"
+  [[ -z "$leftover" ]] || problems+=("'$args': left $leftover behind (want no .tdd/workqueue.tmp.*)")
+  rm -f "$repo"/.tdd/workqueue.tmp.*
+done
+if [[ ${#problems[@]} -eq 0 ]]; then
+  ok
+else
+  no "workqueue.sh with a missing worker, a missing issue or a missing park reason exits 2 with its usage text on stderr and leaves no .tdd/workqueue.tmp.* file (#775)"
+  printf '    %s\n' "${problems[@]}"
+fi
+
 finish
