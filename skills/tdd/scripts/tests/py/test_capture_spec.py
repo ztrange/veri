@@ -153,6 +153,8 @@ def refuse_graphql(monkeypatch, labels, body):
 
     def fake_run(args, **kwargs):
         if list(args[:3]) == ["gh", "issue", "view"]:
+            if kwargs.get("stderr") is None:
+                sys.stderr.write(refusal)
             return subprocess.CompletedProcess(args, 1, "", refusal)
         if list(args[:2]) == ["gh", "api"] and args[2].startswith("repos/{owner}/{repo}/issues/"):
             n = args[2].rsplit("/", 1)[1]
@@ -175,7 +177,7 @@ def test_main_against_a_gh_refusing_graphql_answers_through_rest_as_a_working_gh
         refuse_graphql(monkeypatch, labels, rest_body)
         refused = (capture_spec.main(["112"]), capsys.readouterr())
 
-        assert (labels, refused[0], refused[1].out) == (labels, working[0], working[1].out)
+        assert (labels, refused[0], refused[1].out, refused[1].err) == (labels, working[0], working[1].out, working[1].err)
         assert working[0] == 0
 
 
