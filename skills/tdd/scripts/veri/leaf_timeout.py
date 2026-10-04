@@ -14,11 +14,7 @@ def arith(text):
     match = re.fullmatch(r"(-?)([0-9]+)", text)
     if match is None:
         return None
-    digits = match[2]
-    try:
-        value = int(digits, 8 if digits[0] == "0" else 10)
-    except ValueError:
-        return None
+    value = int(match[2])
     return -value if match[1] else value
 
 
