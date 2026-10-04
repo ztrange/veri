@@ -27,3 +27,5 @@
 - test-only | the six inline `fake_run` copies in skills/tdd/scripts/tests/py/test_github.py that write stderr through (e.g. the REST-body and both-routes-fail gh_issue_view tests) duplicate `fake_gh` (:20); `fake_gh` could take the stderr pass-through once and replace them
 ### veri.github.gh_issue_view's REST route answers the label names one per line for labels ⟦criterion 3⟧
 - test-only | extract the repeated `gh issue view <n> --json <field> -q <query>` fake setup in test_github.py's gh_issue_view cases into a helper
+### veri.github.gh_issue_view's REST route is a no-answer when the `gh api` answer is not JSON ⟦criterion 3⟧
+- test-only | in skills/tdd/scripts/tests/py/test_github.py, the four gh_issue_view REST-route tests (:279, :295, :311, :342) each repeat the same failing `gh issue view … --json body -q .body` fake and the same two-entry `calls ==` assertion ending in `["gh","api","repos/{owner}/{repo}/issues/60"]`; a shared helper could hold both
