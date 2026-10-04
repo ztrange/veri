@@ -20,14 +20,20 @@ def refactor_budget():
     return importlib.import_module("veri.refactor_budget")
 
 
+def budgets(monkeypatch, env):
+    monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
+    monkeypatch.delenv("VERI_ISSUE_REFACTOR_BUDGET", raising=False)
+    for name, value in env.items():
+        monkeypatch.setenv(name, value)
+
+
 def stated(path, pattern):
     hit = re.search(pattern, path.read_text().replace("\n", " "))
     return re.findall(r"[0-9]+", hit.group(0))[-1] if hit else "<none>"
 
 
 def test_main_with_both_budgets_unset_answers_against_the_default_every_prose_statement_of_it_names(monkeypatch, capsys, refactor_budget):
-    monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
-    monkeypatch.delenv("VERI_ISSUE_REFACTOR_BUDGET", raising=False)
+    budgets(monkeypatch, {})
     seen = []
     for count in ("4", "5"):
         code = refactor_budget.main([count])
@@ -48,8 +54,7 @@ def test_main_with_both_budgets_unset_answers_against_the_default_every_prose_st
 
 
 def test_main_with_both_budgets_unset_answers_each_exit_code_its_header_names(monkeypatch, capsys, refactor_budget):
-    monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
-    monkeypatch.delenv("VERI_ISSUE_REFACTOR_BUDGET", raising=False)
+    budgets(monkeypatch, {})
     seen = []
     for argv in (["0"], ["--issue", "3"], ["ten"]):
         code = refactor_budget.main(argv)
@@ -68,10 +73,7 @@ def test_main_checks_only_the_budget_in_force_before_the_count_and_refuses_what_
     usage = "usage: refactor-budget.sh [--issue] <count>\n"
 
     def run(env, argv):
-        monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
-        monkeypatch.delenv("VERI_ISSUE_REFACTOR_BUDGET", raising=False)
-        for name, value in env.items():
-            monkeypatch.setenv(name, value)
+        budgets(monkeypatch, env)
         try:
             code = refactor_budget.main(argv)
         except Exception as error:
@@ -108,10 +110,7 @@ def test_main_reads_its_arguments_by_position_and_compares_them_as_bash_arithmet
     usage = "usage: refactor-budget.sh [--issue] <count>\n"
 
     def run(env, argv, too_great=None):
-        monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
-        monkeypatch.delenv("VERI_ISSUE_REFACTOR_BUDGET", raising=False)
-        for name, value in env.items():
-            monkeypatch.setenv(name, value)
+        budgets(monkeypatch, env)
         code = refactor_budget.main(argv)
         out, err = capsys.readouterr()
         if too_great is not None:
@@ -149,10 +148,7 @@ def test_main_writes_bytes_whatever_the_locale_and_exits_1_when_stdout_is_closed
     def run(locale, env, argv):
         encoding, errors = streams[locale]
         monkeypatch.setenv("LC_ALL", locale)
-        monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
-        monkeypatch.delenv("VERI_ISSUE_REFACTOR_BUDGET", raising=False)
-        for name, value in env.items():
-            monkeypatch.setenv(name, value)
+        budgets(monkeypatch, env)
         out, err = io.BytesIO(), io.BytesIO()
         monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(out, encoding=encoding, errors=errors, write_through=True))
         monkeypatch.setattr(sys, "stderr", io.TextIOWrapper(err, encoding=encoding, errors="backslashreplace",
