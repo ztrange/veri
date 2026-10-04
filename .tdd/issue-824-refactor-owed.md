@@ -4,3 +4,6 @@
 - test-only | merge `test_gh_issue_view_is_a_no_answer_with_the_json_decode_line_when_gh_api_exits_0_with_a_non_json_stdout` into `test_gh_issue_view_is_a_no_answer_when_the_rest_answer_is_not_json` (test_github.py:342 and :357 use the same fake_gh answers and call; the merged case would assert both the calls and the stderr decode line)
 ### gh_issue_create("T", "B") runs exactly ["gh", "api", "repos/{owner}/{repo}/issues", "-f", "title=T", "-f", "body=B", "-q", ".html_url"] as its only command and answers that command's stdout ⟦criterion 4⟧
 - gh_issue_edit calls subprocess.run(["gh", ...]) directly instead of going through _gh (not this cycle's code, so out of scope)
+### gh_issue_create, when gh api exits non-zero, raises NoAnswer with gh's stderr passed through to stderr ⟦criterion 4⟧
+- `gh_issue_create`, `gh_issue_edit` and `gh_issue_view`'s REST route each repeat `if run.returncode != 0: raise NoAnswer("")` in `skills/tdd/scripts/veri/github.py`. One shared helper could replace all three, but it would mostly reach code this cycle did not write, and the check is two lines, so I did not apply it.
+- test-only | the `create` argv tuple appears in both `gh_issue_create` tests in `skills/tdd/scripts/tests/py/test_github.py`; it could be hoisted into one module-level constant.
