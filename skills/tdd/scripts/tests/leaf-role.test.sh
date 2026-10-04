@@ -111,4 +111,24 @@ role_probe verify-refactor VERI_ACTOR=verifier  VERI_PHASE=refactor
 role_probe conductor-506   VERI_ACTOR=conductor VERI_PHASE=506      VERI_ATTEMPT=1
 report "$name"
 
+name="leaf-role.sh refuses no argument and one empty argument with exit 2, nothing on stdout and stderr exactly the line usage: leaf-role.sh <leaf-name>"
+problems=()
+for args in none empty; do
+  out="$(mktemp)" err="$(mktemp)"
+  if [[ "$args" == none ]]; then
+    "$LEAF_ROLE" >"$out" 2>"$err" && code=0 || code=$?
+  else
+    "$LEAF_ROLE" "" >"$out" 2>"$err" && code=0 || code=$?
+  fi
+  out_text="$(cat "$out")" err_text="$(cat "$err")"
+  rm -f "$out" "$err"
+  [[ "$code" == 2 ]] ||
+    problems+=("$args: want exit 2, got $code")
+  [[ -z "$out_text" ]] ||
+    problems+=("$args: want nothing on stdout, got: $(printf '%q' "$out_text")")
+  [[ "$err_text" == 'usage: leaf-role.sh <leaf-name>' ]] ||
+    problems+=("$args: want stderr exactly 'usage: leaf-role.sh <leaf-name>', got: $(printf '%q' "$err_text")")
+done
+report "$name"
+
 finish
