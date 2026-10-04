@@ -1,32 +1,12 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # refactor-touched.sh — print the files a step's green commit touched, as the bounds of that
-# step's refactor.
+# step's refactor: a shim over veri/refactor_touched.py.
 #
-# The green commit is the atomic tick-and-commit, so it always carries the ledger under `.tdd/`.
-# The ledger is run state, not code a refactor may tidy, so it is left out here, once, for both
-# the cycle loop and Resume.
+# The ledger under `.tdd/` is run state, not code a refactor may tidy, so it is left out.
 #
-# Usage:   refactor-touched.sh <commit>
-#          refactor-touched.sh --issue <base>
+# usage: refactor-touched.sh <commit> | --issue <base>
 #
 # Prints the touched files comma-joined, in `git diff --name-only` order: those <commit>
 # touched, or with `--issue` every file changed between <base> and HEAD.
-set -euo pipefail
-
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/exit-contract.sh"
-USAGE="usage: refactor-touched.sh <commit> | --issue <base>"
-rev="${1:-}"; from="$rev^"; to="$rev"
-if [[ "$rev" == --issue ]]; then
-  rev="${2:-}"; from="$rev"; to=HEAD
-fi
-[[ -n "$rev" ]] || refuse
-
-# hazard: under pipefail, `grep -v` on a failed `git diff` exits 1, read as nothing touched.
-git rev-parse --verify --quiet "$rev^{commit}" >/dev/null ||
-  refuse "refactor-touched: cannot resolve commit '$rev'"
-
-# hazard: `grep` finding no line exits 1, which pipefail makes the script's.
-touched="$(git diff --name-only "$from" "$to" | grep -v '^\.tdd/' || true)"
-[[ -n "$touched" ]] || exit 3
-
-printf '%s\n' "$touched" | paste -sd, -
+# Exit:    0 files printed; 2 a missing or unresolvable <commit>/<base>; 3 nothing outside .tdd/ touched
+exec python3 "$(dirname "$0")/veri/refactor_touched.py" "$@"
