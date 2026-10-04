@@ -412,3 +412,20 @@ def test_gh_json_answers_the_fixture_file_contents_and_makes_no_subprocess_call_
 
     assert answer == fixture
     assert calls == []
+
+
+def test_gh_json_answers_the_rest_pages_when_veri_gh_json_is_unset_and_no_gh_args_are_given(monkeypatch, github):
+    path = "repos/{owner}/{repo}/issues"
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    calls = fake_gh(monkeypatch, {
+        ("gh", "api", path + "?page=1"): (0, '[{"number":4}]\n', ""),
+        ("gh", "api", path + "?page=2"): (0, "[]\n", ""),
+    })
+
+    answer = github.gh_json("issues.json", path)
+
+    assert answer == '[{"number":4}]'
+    assert calls == [
+        ["gh", "api", path + "?page=1"],
+        ["gh", "api", path + "?page=2"],
+    ]
