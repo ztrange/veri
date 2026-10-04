@@ -4,5 +4,5 @@
 - [x] A nested `make test TESTS=<x>` started by a suite runs only `<x>` when the outer `make test` was given `SUITES=` on its command line ⟦criterion 1⟧
 - [x] A nested `make test TESTS=<x>` started by a suite runs only `<x>` when the outer `make test` ran with a `MAKEFLAGS` in its environment carrying `SUITES=` or `TESTS=` ⟦criterion 1⟧
 - [x] A `make test` nested deeper than a fixed bound refuses with exit 2 and a stderr line naming the depth, before running any suite ⟦criterion 2⟧
-- [ ] No existing case of make-test-env.test.sh, count-line-guard.test.sh, bash-version-guard.test.sh or unit-tier.test.sh is edited or removed by the branch ⟦diff-checked⟧ ⟦criterion 4⟧
+- [x] No existing case of make-test-env.test.sh, count-line-guard.test.sh, bash-version-guard.test.sh or unit-tier.test.sh is edited or removed by the branch ⟦diff-checked⟧ ⟦criterion 4⟧
 - [ ] Every existing case of make-test-env.test.sh, count-line-guard.test.sh, bash-version-guard.test.sh and unit-tier.test.sh passes ⟦full-suite⟧ ⟦criterion 4⟧
