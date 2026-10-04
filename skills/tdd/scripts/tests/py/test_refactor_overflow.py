@@ -154,3 +154,30 @@ def test_main_builds_the_unreached_text_from_the_skipped_file_then_the_list_line
     assert calls == expected_calls
     expected_out = "https://github.com/o/r/issues/9\n" if expected_code == 0 else ""
     assert (code, captured.out) == (expected_code, expected_out)
+
+
+@pytest.mark.parametrize("list_code, expected_code", [(0, 0), (3, 3), (1, 1)])
+def test_main_lets_what_list_writes_to_stderr_through_to_the_callers_stderr_on_every_exit(
+        monkeypatch, capsys, tmp_path, refactor_overflow, list_code, expected_code):
+    owed = str(tmp_path / "owed.md")
+    list_err = "refactor-owed: a warning\n"
+
+    def fake_run(args, *rest, **kwargs):
+        args = [str(a) for a in args]
+        if args[0] == "gh":
+            return subprocess.CompletedProcess(args, 0, "https://github.com/o/r/issues/9\n", "")
+        if kwargs.get("capture_output") or kwargs.get("stderr") is not None:
+            return subprocess.CompletedProcess(args, list_code, "first\nsecond\n", list_err)
+        sys.stderr.write(list_err)
+        return subprocess.CompletedProcess(args, list_code, "first\nsecond\n", None)
+
+    def refuse_popen(args, *rest, **kwargs):
+        raise AssertionError(f"started a process through Popen: {args}")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", refuse_popen)
+
+    code = refactor_overflow.main(["7", owed, "1"])
+
+    captured = capsys.readouterr()
+    assert (code, captured.err) == (expected_code, list_err)

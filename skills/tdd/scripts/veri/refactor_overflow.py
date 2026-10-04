@@ -18,7 +18,7 @@ def main(argv):
         return 2
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     listed = subprocess.run([os.path.join(here, "refactor-owed.sh"), "list", owed],
-                            capture_output=True, text=True)
+                            stdout=subprocess.PIPE, text=True)
     if listed.returncode:
         return listed.returncode
     text = ""
