@@ -13,6 +13,8 @@
 #   7. A suite whose nested `make test` would re-run itself ends within a deadline.
 #   8. A suite's nested `make test TESTS=<x>` runs only <x>, when the outer one was given SUITES=.
 #   9. ... and when the outer one ran with a MAKEFLAGS in its environment carrying SUITES= or TESTS=.
+#  10. A make test nested deeper than a fixed bound refuses with exit 2 and a stderr line naming
+#      the depth, before running any suite.
 #
 # Run: skills/tdd/scripts/tests/make-test-env.test.sh
 set -uo pipefail
@@ -237,5 +239,45 @@ for carried in SUITES TESTS; do
     problems+=("MAKEFLAGS=$carried=…: the nested make test TESTS=inner.test.sh ran [$(flat "$nested_ran")], want only [inner.test.sh]: $(flat "$outer_out")")
 done
 report "a suite's nested make test TESTS=<x> runs only <x> when the outer make test ran with MAKEFLAGS carrying SUITES= or TESTS= (#816)"
+
+problems=()
+cat > "$tree/skills/tdd/scripts/tests/self.test.sh" <<'SH'
+#!/usr/bin/env bash
+root="$(cd "$(dirname "$0")/../../../.." && pwd)"
+mkdir -p "$root/self"
+make -C "$root" test TESTS=skills/tdd/scripts/tests/self.test.sh UNIT_TESTS= \
+  > "$root/self/$$.out" 2> "$root/self/$$.err"
+echo $? > "$root/self/$$.code"
+echo "1 passed, 0 failed"
+SH
+chmod +x "$tree/skills/tdd/scripts/tests/self.test.sh"
+done_file="$work/depth.exit"
+bg_start "$work/depth.pid" env -u MAKEFLAGS -u MAKELEVEL -u MFLAGS bash -c '
+  ulimit -u "$1" || exit 2
+  shift
+  exec python3 -c "import os, sys; os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])" \
+    sh -c "\"\$@\"; echo \$? > \"\$0\"" "$@"
+' _ "$cap" "$done_file" make -C "$tree" test TESTS=skills/tdd/scripts/tests/self.test.sh UNIT_TESTS= \
+  > "$work/depth.out" 2>&1 < /dev/null
+read -r depth_pid _ < "$work/depth.pid"
+start=$SECONDS
+while [[ ! -s "$done_file" ]] && (( SECONDS - start < deadline )); do sleep 0.1; done
+if [[ ! -s "$done_file" ]]; then
+  kill -KILL -- "-$depth_pid" 2>/dev/null || kill -KILL "$depth_pid" 2>/dev/null
+  problems+=("make test TESTS=<a suite whose nested make test names itself> was still running at the ${deadline} s deadline, and its process group was killed")
+fi
+wait "$depth_pid" 2>/dev/null
+refused=""
+for code in "$tree"/self/*.code; do
+  [[ "$(cat "$code" 2>/dev/null)" == 2 ]] || continue
+  level="${code%.code}"
+  grep -i 'depth' "$level.err" | grep '[0-9]' > /dev/null || continue
+  grep '^== ' "$level.out" > /dev/null &&
+    problems+=("the make test that refused at depth still ran a suite: $(flat "$(cat "$level.out")")")
+  refused="$level"
+done
+[[ -n "$refused" ]] ||
+  problems+=("no nested make test exited 2 with a stderr line naming the depth; nested exits [$(flat "$(cat "$tree"/self/*.code 2>/dev/null)")]: $(flat "$(tail -n 5 "$work/depth.out")")")
+report "a make test nested deeper than a fixed bound refuses with exit 2 and a stderr line naming the depth, before running any suite (#816)"
 
 finish
