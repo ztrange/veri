@@ -4,7 +4,7 @@ import subprocess
 import sys
 
 import blocked_by
-from github import gh_json
+from github import NoAnswer, gh_json
 from json_documents import items
 
 USAGE = """workqueue.sh: usage: workqueue.sh assign <worker> <issue>...
@@ -41,8 +41,13 @@ def origin_slug():
     return match.group(1) if match else ""
 
 
-def next_item(worker):
-    issues = items(gh_json("issues.json", "repos/{owner}/{repo}/issues?state=all&per_page=100"))
+def next_item(argv):
+    try:
+        listing = gh_json("issues.json", "repos/{owner}/{repo}/issues?state=all&per_page=100")
+    except NoAnswer:
+        return 2
+    issues = items(listing)
+    worker = argv[1]
     repo = origin_slug()
     open_issues = {i["number"] for i in issues if i.get("state", "").upper() == "OPEN"}
     bodies = {i["number"]: i.get("body") or "" for i in issues}
@@ -60,7 +65,7 @@ def next_item(worker):
 def main(argv):
     command = argv[0] if argv else ""
     if command == "next":
-        return next_item(argv[1])
+        return next_item(argv)
     if command == "done" and not "".join(argv[3:4]):
         return refuse()
     if command == "start":
