@@ -95,3 +95,10 @@ def test_main_echoes_an_unknown_cause_back_byte_for_byte_on_stderr_newline_and_n
         "newline": (2, "", b"classify-bail: unknown cause: line one\nline two\n" + USAGE.encode()),
         "0xff": (2, "", b"classify-bail: unknown cause: bad\xffbyte\n" + USAGE.encode()),
     }
+
+
+def test_main_raises_rather_than_returning_0_when_stdout_is_closed(monkeypatch, classify_bail):
+    monkeypatch.setattr(sys, "stdout", None)
+
+    with pytest.raises(Exception):
+        classify_bail.main(["killed-stuck"])

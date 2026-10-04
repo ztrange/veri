@@ -19,7 +19,7 @@ def main(argv):
     if category is None:
         sys.stderr.buffer.write(os.fsencode("classify-bail: unknown cause: %s\n%s\n" % (cause, USAGE)))
         return 2
-    print(category)
+    sys.stdout.write(category + "\n")
     return 0
 
 
