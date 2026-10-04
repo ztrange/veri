@@ -2,10 +2,12 @@
 # A fixture, not a suite: only make-test-env.test.sh runs it, as `make test TESTS=<this>`.
 # Writes one `key=value` line each to $PROBE_OUT for the locale, OFFLINE_REAL_GIT, the target
 # of the `git` symlink on PATH, the GIT_EXEC_PATH and GIT_TEMPLATE_DIR it was given and
-# whether stdin is /dev/null, then reports a pass.
+# whether stdin is /dev/null, then reports a pass. With $COMMIT_REPO set, first commits what
+# that repository has staged.
 set -uo pipefail
 
 out="${PROBE_OUT:?PROBE_OUT names the file this fixture reports to}"
+[[ -z "${COMMIT_REPO:-}" ]] || git -C "$COMMIT_REPO" commit -qm forced
 if [[ /dev/stdin -ef /dev/null ]]; then stdin=devnull; else stdin=inherited; fi
 # hazard: BSD and GNU `readlink -f` differ; plain `readlink` names the immediate target.
 git_path="$(command -v git 2>/dev/null || echo '<none>')"
