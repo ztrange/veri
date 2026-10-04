@@ -1,4 +1,5 @@
 """classify-bail.sh's classification, run in-process."""
+import os
 import sys
 
 USAGE = "usage: classify-bail.sh <cause>"
@@ -16,7 +17,7 @@ def main(argv):
     cause = argv[0] if argv else ""
     category = CATEGORIES.get(cause)
     if category is None:
-        sys.stderr.write("classify-bail: unknown cause: %s\n%s\n" % (cause, USAGE))
+        sys.stderr.buffer.write(os.fsencode("classify-bail: unknown cause: %s\n%s\n" % (cause, USAGE)))
         return 2
     print(category)
     return 0
