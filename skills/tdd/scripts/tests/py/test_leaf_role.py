@@ -1,5 +1,6 @@
 """In-process cases for veri/leaf_role.py, the module leaf-role.sh is a shim over."""
 import importlib
+import io
 import pathlib
 import sys
 
@@ -78,4 +79,21 @@ def test_main_splits_a_trailing_dash_and_digits_off_as_the_attempt_greedily_and_
         (0, "VERI_ACTOR=developer VERI_PHASE=a\nb VERI_ATTEMPT=2\n", ""),
         (0, "VERI_ACTOR=developer VERI_PHASE=a b=c VERI_ATTEMPT=1\n", ""),
         (0, "VERI_ACTOR=developer VERI_PHASE=red VERI_ATTEMPT=1\n", ""),
+    ]
+
+
+def test_main_writes_a_non_utf8_byte_in_a_name_as_that_raw_byte_on_stdout_and_on_stderr(monkeypatch, leaf_role):
+    answers = []
+    for raw in (b"develop-r\xffd", b"plan-\xff"):
+        out, err = io.BytesIO(), io.BytesIO()
+        monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(out, encoding="utf-8", errors="surrogateescape"))
+        monkeypatch.setattr(sys, "stderr", io.TextIOWrapper(err, encoding="utf-8", errors="backslashreplace"))
+        code = leaf_role.main([raw.decode("utf-8", "surrogateescape")])
+        sys.stdout.flush()
+        sys.stderr.flush()
+        answers.append((code, out.getvalue(), err.getvalue()))
+    assert answers == [
+        (0, b"VERI_ACTOR=developer VERI_PHASE=r\xffd VERI_ATTEMPT=1\n", b""),
+        (2, b"", b"leaf-role: leaf name 'plan-\xff' has an unknown leading word "
+                 b"(want develop-*|revise-*|verify-*|conductor-*)\n"),
     ]
