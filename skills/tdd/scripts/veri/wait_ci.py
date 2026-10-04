@@ -36,16 +36,18 @@ def arith(text, scope):
     if re.fullmatch(r"[A-Za-z_][A-Za-z_0-9]*", body):
         if body not in scope:
             raise NameError("%s: unbound variable" % body)
-        return sign * arith(scope[body], scope)
-    if re.fullmatch(r"0[xX][0-9a-fA-F]+", body):
-        return sign * int(body, 16)
-    if re.fullmatch(r"0[0-7]*", body):
-        return sign * int(body, 8)
-    if re.fullmatch(r"0[0-9]+", body):
+        value = arith(scope[body], scope)
+    elif re.fullmatch(r"0[xX][0-9a-fA-F]+", body):
+        value = int(body, 16)
+    elif re.fullmatch(r"0[0-7]*", body):
+        value = int(body, 8)
+    elif re.fullmatch(r"0[0-9]+", body):
         raise ArithError('%s: value too great for base (error token is "%s")' % (word, body))
-    if re.fullmatch(r"[1-9][0-9]*", body):
-        return sign * int(body)
-    raise ArithError('%s: syntax error: invalid arithmetic operator (error token is "%s")' % (word, body))
+    elif re.fullmatch(r"[1-9][0-9]*", body):
+        value = int(body)
+    else:
+        raise ArithError('%s: syntax error: invalid arithmetic operator (error token is "%s")' % (word, body))
+    return sign * value
 
 
 def capped(value, cap, scope):
