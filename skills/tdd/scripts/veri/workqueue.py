@@ -118,7 +118,8 @@ def locked_main(argv):
             if issue in named:
                 return refuse("workqueue.sh: issue %s is named twice" % issue)
             named.add(issue)
-    lock = queue_path() + ".lock"
+    queue = queue_path()
+    lock = queue + ".lock"
     locked = False
     try:
         if command in ("start", "done", "park", "assign"):
@@ -129,7 +130,7 @@ def locked_main(argv):
                 if command != "assign":
                     return refuse("workqueue.sh: unknown subcommand: " + command)
         if command == "start":
-            with open(queue_path()) as lines:
+            with open(queue) as lines:
                 for line in lines:
                     if line.split("\t")[:3] == [argv[1], argv[2], "queued"]:
                         break
@@ -138,9 +139,9 @@ def locked_main(argv):
                     return 1
         if command != "assign":
             return refuse("workqueue.sh: unknown subcommand: " + command)
-        with open(queue_path(), "a") as queue:
+        with open(queue, "a") as appended:
             for issue in argv[2:]:
-                queue.write("%s\t%s\tqueued\t\n" % (argv[1], issue))
+                appended.write("%s\t%s\tqueued\t\n" % (argv[1], issue))
         return 0
     finally:
         if locked:
