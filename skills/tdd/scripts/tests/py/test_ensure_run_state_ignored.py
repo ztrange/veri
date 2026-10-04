@@ -1,0 +1,53 @@
+"""In-process cases for veri/ensure_run_state_ignored.py, the module ensure-run-state-ignored.sh is a shim over."""
+import importlib
+import pathlib
+import subprocess
+import sys
+
+import pytest
+
+SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
+for path in (SCRIPTS, SCRIPTS / "veri"):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
+
+RULE = ".tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-spec.md\n"
+
+
+@pytest.fixture
+def ensure_run_state_ignored():
+    return importlib.import_module("veri.ensure_run_state_ignored")
+
+
+def fake_rev_parse(monkeypatch, code, stdout):
+    """subprocess.run answering `git -C <root> rev-parse --git-common-dir` with <code> and <stdout>."""
+    def fake_run(args, **kwargs):
+        if list(args[:2]) != ["git", "-C"] or list(args[3:]) != ["rev-parse", "--git-common-dir"]:
+            raise AssertionError("unexpected command: %r" % (args,))
+        captured = stdout if kwargs.get("stdout") == subprocess.PIPE else None
+        if captured is not None and not kwargs.get("text"):
+            captured = captured.encode()
+        return subprocess.CompletedProcess(args, code, captured, None)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+
+def test_main_adds_the_rule_to_both_files_and_returns_2_when_rev_parse_fails(tmp_path, monkeypatch, capsys,
+                                                                              ensure_run_state_ignored):
+    root = tmp_path / "repo"
+    (root / ".git").mkdir(parents=True)
+    fake_rev_parse(monkeypatch, 0, ".git\n")
+
+    code = ensure_run_state_ignored.main([str(root)])
+
+    assert (code, capsys.readouterr()[:]) == (0, ("added\n", ""))
+    assert (root / ".gitignore").read_text() == RULE
+    assert (root / ".git" / "info" / "exclude").read_text() == RULE
+
+    broken = tmp_path / "broken"
+    (broken / ".git").mkdir(parents=True)
+    fake_rev_parse(monkeypatch, 128, "")
+
+    assert ensure_run_state_ignored.main([str(broken)]) == 2
+    assert not (broken / ".gitignore").exists()
+    assert not (broken / ".git" / "info" / "exclude").exists()
