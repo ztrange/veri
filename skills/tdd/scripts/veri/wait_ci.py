@@ -24,8 +24,8 @@ def sha_state(repo, sha):
     runs = gh_rest_list("repos/%s/commits/%s/check-runs" % (repo, sha), r'"check_runs": *\[ *\]')
     statuses = _gh_api("repos/%s/commits/%s/status" % (repo, sha)).stdout
     docs = documents(runs + statuses)
-    states = [s["state"] for s in docs[-1].get("statuses")]
-    outcomes = [r.get("conclusion") for p in docs[:-1] for r in p.get("check_runs")]
+    states = [s["state"] for s in docs[-1].get("statuses") or []]
+    outcomes = [r.get("conclusion") for p in docs[:-1] for r in p.get("check_runs") or []]
     if any(o not in PASSING for o in outcomes) or any(s in ("failure", "error") for s in states):
         return "red"
     return "green"
