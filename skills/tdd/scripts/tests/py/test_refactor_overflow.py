@@ -208,3 +208,46 @@ def test_main_lets_what_gh_writes_to_stderr_through_to_the_callers_stderr_on_eve
     refactor_overflow.main(["7", owed, "1"])
 
     assert capsys.readouterr().err == gh_err
+
+
+TEN_LINES = "".join(f"l{i}\n" for i in range(1, 11))
+
+
+@pytest.mark.parametrize("reached, gh_code, expected_code, expected_out, expected_body", [
+    ("1", 1, 1, "", "- l2\n- l3\n- l4\n- l5\n- l6\n- l7\n- l8\n- l9\n- l10"),
+    ("1", 4, 4, "", "- l2\n- l3\n- l4\n- l5\n- l6\n- l7\n- l8\n- l9\n- l10"),
+    ("010", 0, 0, "https://github.com/o/r/issues/9\n", "- l9\n- l10"),
+    ("08", 0, 1, "", None),
+    ("18446744073709551615", 0, 0, "https://github.com/o/r/issues/9\n",
+     "- l1\n- l2\n- l3\n- l4\n- l5\n- l6\n- l7\n- l8\n- l9\n- l10"),
+    ("99999999999999999999", 0, 3, "", None),
+    ("9223372036854775808", 0, 1, "", None),
+])
+def test_main_returns_gh_s_own_failing_code_and_reads_reached_as_bash_arithmetic(
+        monkeypatch, capsys, tmp_path, refactor_overflow,
+        reached, gh_code, expected_code, expected_out, expected_body):
+    owed = str(tmp_path / "owed.md")
+    gh_calls = []
+
+    def fake_run(args, *rest, **kwargs):
+        args = [str(a) for a in args]
+        if args[0] == "gh":
+            gh_calls.append(args[1:])
+            out = "https://github.com/o/r/issues/9\n" if gh_code == 0 else ""
+            return subprocess.CompletedProcess(args, gh_code, out, None)
+        return subprocess.CompletedProcess(args, 0, TEN_LINES, None)
+
+    def refuse_popen(args, *rest, **kwargs):
+        raise AssertionError(f"started a process through Popen: {args}")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", refuse_popen)
+
+    code = refactor_overflow.main(["7", owed, reached])
+
+    captured = capsys.readouterr()
+    expected_gh = [] if expected_body is None else [
+        ["api", "repos/{owner}/{repo}/issues", "-f", "title=Refactor owed by #7",
+         "-f", BODY_HEAD + expected_body, "-q", ".html_url"]]
+    assert gh_calls == expected_gh
+    assert (code, captured.out) == (expected_code, expected_out)
