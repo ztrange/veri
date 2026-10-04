@@ -547,6 +547,49 @@ def test_with_veri_gh_driver_unset_the_graphql_route_reads_run_only_their_rest_c
     ]
 
 
+def test_with_veri_gh_driver_rest_the_graphql_route_reads_run_only_rest_and_a_rest_failure_is_a_no_answer_with_gh_api_stderr(monkeypatch, capsys, github):
+    monkeypatch.setenv("VERI_GH_DRIVER", "rest")
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    path = "repos/{owner}/{repo}/pulls?state=open"
+    broken = "repos/{owner}/{repo}/issues?state=open"
+    refusal = "gh: HTTP 502: Bad Gateway\n"
+    answers = {
+        ("gh", "api", "repos/{owner}/{repo}/issues/60"): (
+            0, '{"number":60,"body":"A thing.","labels":[]}\n', ""),
+        ("gh", "api", path + "&page=1"): (0, '[{"number":7}]\n', ""),
+        ("gh", "api", path + "&page=2"): (0, "[]\n", ""),
+        ("gh", "api", "repos/{owner}/{repo}/issues/61"): (1, "", refusal),
+        ("gh", "api", broken + "&page=1"): (1, "", refusal),
+    }
+    calls = []
+
+    def fake_run(args, **kwargs):
+        calls.append(list(args))
+        if tuple(args) not in answers:
+            raise AssertionError("unexpected command: %r" % (args,))
+        returncode, stdout, stderr = answers[tuple(args)]
+        if kwargs.get("stderr") is None:
+            sys.stderr.write(stderr)
+        return subprocess.CompletedProcess(args, returncode, stdout, None)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert github.gh_issue_view("60", "body") == "A thing.\n"
+    assert github.gh_list(path, "pr", "list", "--json", "number") == '[{"number":7}]'
+    assert github.gh_json("prs.json", path, "pr", "list", "--json", "number") == '[{"number":7}]'
+    capsys.readouterr()
+    errs = []
+    for read in (lambda: github.gh_issue_view("61", "body"),
+                 lambda: github.gh_list(broken, "issue", "list", "--json", "number"),
+                 lambda: github.gh_json("issues.json", broken, "issue", "list", "--json", "number")):
+        with pytest.raises(github.NoAnswer):
+            read()
+        errs.append(capsys.readouterr().err)
+
+    assert [call for call in calls if call[1] != "api"] == []
+    assert [err.startswith(refusal) for err in errs] == [True, True, True]
+
+
 def test_the_module_is_importable_as_from_veri_import_github_and_as_import_veri_github(monkeypatch):
     monkeypatch.delitem(sys.modules, "veri.github", raising=False)
     monkeypatch.delattr(importlib.import_module("veri"), "github", raising=False)
