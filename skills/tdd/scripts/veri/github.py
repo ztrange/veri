@@ -9,13 +9,16 @@ class NoAnswer(Exception):
         self.answer = answer
 
 
+def _gh_api(path):
+    return subprocess.run(["gh", "api", path], stdout=subprocess.PIPE, text=True)
+
+
 def gh_rest_list(path, empty=r"^\[\]$"):
     answer = ""
     sep = "&" if "?" in path else "?"
     page = 1
     while True:
-        run = subprocess.run(["gh", "api", "%s%spage=%d" % (path, sep, page)],
-                             stdout=subprocess.PIPE, text=True)
+        run = _gh_api("%s%spage=%d" % (path, sep, page))
         if run.returncode != 0:
             raise NoAnswer(answer)
         body = run.stdout.rstrip("\n")
@@ -38,7 +41,6 @@ def gh_issue_view(number, field):
     run = subprocess.run(["gh", "issue", "view", number, "--json", field, "-q", query],
                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     if run.returncode != 0:
-        rest = subprocess.run(["gh", "api", "repos/{owner}/{repo}/issues/%s" % number],
-                              stdout=subprocess.PIPE, text=True)
+        rest = _gh_api("repos/{owner}/{repo}/issues/%s" % number)
         return json.loads(rest.stdout)["body"] + "\n"
     return run.stdout
