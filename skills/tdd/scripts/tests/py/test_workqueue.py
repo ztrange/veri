@@ -4,6 +4,7 @@ import json
 import pathlib
 import subprocess
 import sys
+import time
 
 import pytest
 
@@ -236,3 +237,54 @@ def test_next_fetches_the_listing_first_from_the_fixture_or_gh_pages_returning_2
         assert dies(["next", "alpha"]) == [listing % 1, listing % 2]
     queue.unlink()
     assert dies(["next", "alpha"]) == [listing % 1, listing % 2]
+
+
+def test_start_done_park_and_assign_take_the_lock_directory_polling_it_for_the_wait_times_20_and_release_it_on_every_path(tmp_path, monkeypatch, capsys, workqueue):
+    fake_git(monkeypatch, tmp_path)
+    queue = tmp_path / ".tdd" / "workqueue"
+    lock = tmp_path / ".tdd" / "workqueue.lock"
+    queue.parent.mkdir()
+    before = b"alpha\t12\tqueued\t\nalpha\t13\trunning\t\n"
+    queue.write_bytes(before)
+    sleeps = []
+    monkeypatch.setattr(time, "sleep", sleeps.append)
+
+    def run(argv, wait=None):
+        if wait is None:
+            monkeypatch.delenv("VERI_WORKQUEUE_LOCK_WAIT", raising=False)
+        else:
+            monkeypatch.setenv("VERI_WORKQUEUE_LOCK_WAIT", wait)
+        sleeps.clear()
+        code = workqueue.main(argv)
+        out, err = capsys.readouterr()
+        return code, out, err
+
+    lock.mkdir()
+    held = (2, "", "workqueue.sh: could not take the lock %s\n" % lock)
+    assert run(["start", "alpha", "12"], "1") == held
+    assert sleeps == [0.05] * 20
+    assert run(["done", "alpha", "13", "abc123"], "010") == held
+    assert sleeps == [0.05] * 160
+    assert run(["park", "alpha", "13", "flaky"]) == held
+    assert sleeps == [0.05] * 600
+    assert run(["assign", "beta", "14"], "2") == held
+    assert sleeps == [0.05] * 40
+    assert queue.read_bytes() == before
+    assert lock.is_dir()
+
+    assert run(["start", "alpha", "12"], "abc") == (1, "", "workqueue.sh: abc: unbound variable\n")
+    assert queue.read_bytes() == before
+    assert run(["start", "alpha", "12"], "0.5") == (2, "", "workqueue.sh: unknown subcommand: start\n" + USAGE)
+    assert queue.read_bytes() == before
+    assert run(["assign", "beta", "14"], "0.5") == (0, "", "")
+    assert queue.read_bytes() == before + b"beta\t14\tqueued\t\n"
+    assert lock.is_dir()
+
+    lock.rmdir()
+    queue.write_bytes(before)
+    assert run(["start", "beta", "12"]) == (1, "", "workqueue.sh: beta holds no queued item for issue 12\n")
+    assert not lock.exists()
+    assert run(["assign", "beta", "14"]) == (0, "", "")
+    assert queue.read_bytes() == before + b"beta\t14\tqueued\t\n"
+    assert not lock.exists()
+    assert sleeps == []
