@@ -619,6 +619,13 @@ prompt_says "$plan" "never requires the REJECT reason to name both the introduci
 [[ -z "$problems" ]] && ok || no "verify-plan REJECTs a plan whose step introduces a branch only a later step's test requires, naming both the introducing step and the later pinning step (${problems#; })"
 
 problems=""
+prompt_says "$plan" "never says a step bringing in code after the steps pinning its branches is not a REJECT on ordering grounds" \
+  -iE -e "after[^.]{0,80}pin[^.]{0,200}not[^.]{0,40}REJECT|not[^.]{0,40}REJECT[^.]{0,200}after[^.]{0,80}pin"
+prompt_says "$plan" "never says a step bringing in only the branches its own test requires is not a REJECT on ordering grounds" \
+  -iE -e "only[^.]{0,40}branch[^.]{0,80}own test[^.]{0,200}not[^.]{0,40}REJECT|not[^.]{0,40}REJECT[^.]{0,200}only[^.]{0,40}branch[^.]{0,80}own test"
+[[ -z "$problems" ]] && ok || no "verify-plan does not REJECT on ordering grounds a step bringing in code after the steps pinning its branches, or bringing in only the branches its own test requires (${problems#; })"
+
+problems=""
 printf '%s\n' 'grep -q "extract_helper" lib/foo.sh' > "$work/predicate.md"
 tf_base=0123abcdef
 tf="$("$BUILD" transform "$work/spec.md" "$work/predicate.md" "$tf_base" 2>/dev/null)"; code=$?
