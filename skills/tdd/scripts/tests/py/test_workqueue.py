@@ -428,3 +428,65 @@ def test_start_done_park_refuse_a_tabbed_park_reason_before_the_lock_and_return_
     assert queue.read_bytes() == b"alpha\t12\tparked\t\nalpha\t13\trunning\t\n"
     assert not tmp.exists()
     assert not lock.exists()
+
+
+def test_show_groups_items_by_worker_in_first_appearance_order_reading_the_worker_with_awks_backslash_escapes(tmp_path, monkeypatch, capsys, workqueue):
+    fake_git(monkeypatch, tmp_path)
+    queue = tmp_path / ".tdd" / "workqueue"
+    queue.parent.mkdir()
+
+    def run(argv):
+        code = workqueue.main(argv)
+        out, err = capsys.readouterr()
+        return code, out, err
+
+    assert run(["show"])[:2] == (2, "")
+
+    before = (b"alpha\t12\trunning\t\nbeta\t4\tqueued\t\nalpha\t7\tqueued\tx\n"
+              b"a\\tb\t5\tqueued\t\na\\b\t6\tqueued\t\n")
+    queue.write_bytes(before)
+    grouped = "alpha\n\t12\trunning\n\t7\tqueued\nbeta\n\t4\tqueued\na\\tb\n\t5\tqueued\na\\b\n\t6\tqueued\n"
+    assert run(["show"]) == (0, grouped, "")
+    assert run(["show", ""]) == (0, grouped, "")
+    assert run(["show", "alpha", "extra"]) == (0, "alpha\n\t12\trunning\n\t7\tqueued\n", "")
+    assert run(["show", "delta"]) == (0, "", "")
+    assert run(["show", "a\\tb"]) == (0, "", "")
+    assert run(["show", "a\\\\b"]) == (0, "a\\b\n\t6\tqueued\n", "")
+    assert queue.read_bytes() == before
+
+
+def test_show_reads_short_lines_an_empty_queue_and_every_escape_as_macos_awk_does(tmp_path, monkeypatch, capsys, workqueue):
+    fake_git(monkeypatch, tmp_path)
+    queue = tmp_path / ".tdd" / "workqueue"
+    queue.parent.mkdir()
+
+    def run(argv):
+        code = workqueue.main(argv)
+        out, err = capsys.readouterr()
+        return code, out, err
+
+    assert run(["show"]) == (2, "", "awk: can't open file %s\n source line number 1\n" % queue)
+
+    queue.write_bytes(b"")
+    assert run(["show"]) == (0, "", "")
+
+    queue.write_bytes(b"alpha\n\nbeta\t4\n")
+    assert run(["show"]) == (0, "alpha\n\t\t\n\n\t\t\nbeta\n\t4\t\n", "")
+
+    queue.write_bytes(b"alpha\r\t3\tqueued\n")
+    assert run(["show"]) == (0, "alpha\r\n\t3\tqueued\n", "")
+
+    letters = "abfnrtvq"
+    queue.write_bytes(b"".join(b"%s\t%d\tqueued\n" % (c.encode(), i) for i, c in enumerate(letters))
+                      + b"AB\t20\tqueued\n\x08\t21\tqueued\n\x01\t22\tqueued\n")
+    for letter in "afnrtv":
+        assert run(["show", "\\" + letter]) == (0, "", ""), letter
+    assert run(["show", "\\b"]) == (0, "\x08\n\t21\tqueued\n", "")
+    assert run(["show", "\\q"]) == (0, "q\n\t7\tqueued\n", "")
+    assert run(["show", "\\101B"]) == (0, "AB\n\t20\tqueued\n", "")
+    assert run(["show", "\\8"]) == (0, "\x08\n\t21\tqueued\n", "")
+    assert run(["show", "\\010"]) == (0, "\x08\n\t21\tqueued\n", "")
+    assert run(["show", "\\401"]) == (0, "\x01\n\t22\tqueued\n", "")
+    everything = run(["show"])
+    assert run(["show", "\\0"]) == everything
+    assert run(["show", "\\400"]) == everything
