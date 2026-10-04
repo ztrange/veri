@@ -4,7 +4,7 @@ import re
 PENDING_MARK = " ⟂ refactor pending"
 ADDED_MARK = "⟦added⟧"
 CRITERION_TAG = "⟦criterion "
-STEP_RE = re.compile(r"(\s*-\s)\[([ xX])\]( (.*))?")
+STEP_RE = re.compile(r"([ \t\n\v\f\r]*-[ \t\n\v\f\r])\[([ xX])\]( (.*))?")
 CRITERION_RE = CRITERION_TAG + "([0-9]+)⟧"
 KIND_RE = re.compile(r"⟦(full-suite|human-owed|diff-checked)⟧ " + CRITERION_RE)
 

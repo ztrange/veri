@@ -59,3 +59,18 @@ def test_ledger_steps_marks_added_only_by_lib_ledger_sh_s_suffix_rule():
         ("4", "open", "step", "0", "0", "2", "x ⟦added⟧ ⟦criterion 2⟧ y"),
         ("5", "open", "step", "0", "1", "", "x ⟦added⟧"),
     ]
+
+
+def test_ledger_steps_reads_no_step_from_a_line_led_by_nbsp_em_space_or_x1c():
+    text = (
+        " - [ ] nbsp\n"
+        " - [ ] em\n"
+        "\x1c- [ ] fs\n"
+        "\t- [ ] tab\n"
+    )
+
+    ledger = importlib.import_module("veri.ledger")
+
+    assert [tuple(record) for record in ledger.ledger_steps(text)] == [
+        ("1", "open", "step", "0", "0", "", "tab"),
+    ]
