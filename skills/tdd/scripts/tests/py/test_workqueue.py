@@ -541,15 +541,19 @@ def test_assign_refuses_short_empty_repeated_or_held_issues_appends_one_queued_l
     assert queue.read_bytes() == b"beta\t7\tqueued\t\n"
     assert not lock.exists()
 
-    fake_git(monkeypatch, "")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / ".tdd").write_bytes(b"")
+    fake_git(monkeypatch, outside)
     fixture = tmp_path / "gh"
     fixture.mkdir()
     (fixture / "issues.json").write_text("[]")
     monkeypatch.setenv("VERI_GH_JSON", str(fixture))
     code, out, err = run(["assign", "beta", "7"])
-    assert (code, out, err.startswith("mkdir: /.tdd: ")) == (1, "", True)
+    assert (code, out, err.startswith("mkdir: %s/.tdd: " % outside)) == (1, "", True)
     code, out, err = run(["start", "beta", "7"])
-    assert (code, out, err.startswith("mkdir: /.tdd: ")) == (1, "", True)
+    assert (code, out, err.startswith("mkdir: %s/.tdd: " % outside)) == (1, "", True)
+    fake_git(monkeypatch, "")
     assert run(["show"])[:2] == (2, "")
     with pytest.raises(FileNotFoundError):
         workqueue.main(["next", "beta"])
