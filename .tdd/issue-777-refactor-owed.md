@@ -15,3 +15,6 @@
 ### ensure-run-state-ignored.sh exits 2 when the info/exclude write fails, as it does when the .gitignore write fails, so a failed write of either file is the same no-answer code ⟦added⟧ ⟦criterion 3⟧
 - move the .gitignore restore (remove if it did not exist, else rewrite `before`) out of main's info/exclude except branch into its own function
 - test-only | drop the try/except OSError wrapper around main() in test_main_returns_2_when_the_info_exclude_write_fails_as_when_the_gitignore_write_fails_777, since main now catches the error itself
+### coverage-blocker.sh run a second time for the same refactor issue, after a first run that filed the coverage issue and then failed, files no second coverage issue, prints the existing one's URL and blocks the refactor issue on it ⟦criterion 4⟧
+- test-only | the new test's fake_run in test_coverage_blocker.py has branches nothing reaches (`gh issue list`, `search/issues`) and listing fields nothing reads (`number`, `body`, `state`, `url`); remove them
+- test-only | test_coverage_blocker.py repeats the PATCH-body capture (`args[args.index("-F") + 1].split("body=@", 1)[1]` then read the file) across several fake_run functions; extract one helper
