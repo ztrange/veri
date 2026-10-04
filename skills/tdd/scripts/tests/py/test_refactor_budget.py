@@ -59,3 +59,43 @@ def test_main_with_both_budgets_unset_answers_each_exit_code_its_header_names(mo
         (2, "", "refactor-budget: <count> must be a whole number >= 0: ten\n"
                 "usage: refactor-budget.sh [--issue] <count>\n"),
     ]
+
+
+def test_main_checks_only_the_budget_in_force_before_the_count_and_refuses_what_bash_refuses(monkeypatch, capsys, refactor_budget):
+    usage = "usage: refactor-budget.sh [--issue] <count>\n"
+
+    def run(env, argv):
+        monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
+        monkeypatch.delenv("VERI_ISSUE_REFACTOR_BUDGET", raising=False)
+        for name, value in env.items():
+            monkeypatch.setenv(name, value)
+        try:
+            code = refactor_budget.main(argv)
+        except Exception as error:
+            code = repr(error)
+        out, err = capsys.readouterr()
+        return (code, out, err)
+
+    bad = ["two", "-1", "1.5", "5\n", "٣"]
+    seen, wanted = [], []
+    for value in bad:
+        for argv, var in ((["1"], "VERI_REFACTOR_BUDGET"), (["--issue", "1"], "VERI_ISSUE_REFACTOR_BUDGET")):
+            refusal = (2, "", f"refactor-budget: {var} must be a whole number >= 0: {value}\n")
+            seen.append(run({var: value}, argv))
+            wanted.append(refusal)
+            seen.append(run({var: value}, argv[:-1] + ["ten"]))
+            wanted.append(refusal)
+        seen.append(run({"VERI_REFACTOR_BUDGET": value}, ["--issue", "1"]))
+        wanted.append((0, "refactor 1/3 — another transform may run\n", ""))
+        seen.append(run({"VERI_ISSUE_REFACTOR_BUDGET": value}, ["1"]))
+        wanted.append((0, "refactor 1/5 — another transform may run\n", ""))
+    seen.append(run({"VERI_REFACTOR_BUDGET": ""}, ["1"]))
+    wanted.append((0, "refactor 1/5 — another transform may run\n", ""))
+    seen.append(run({"VERI_ISSUE_REFACTOR_BUDGET": ""}, ["--issue", "1"]))
+    wanted.append((0, "refactor 1/3 — another transform may run\n", ""))
+    for count in ("ten", "5\n", "٣"):
+        seen.append(run({}, [count]))
+        wanted.append((2, "", f"refactor-budget: <count> must be a whole number >= 0: {count}\n" + usage))
+    seen.append(run({}, []))
+    wanted.append((2, "", "refactor-budget: <count> must be a whole number >= 0: \n" + usage))
+    assert seen == wanted
