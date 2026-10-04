@@ -314,3 +314,32 @@ def test_main_resets_sigpipe_and_sigxfsz_to_sig_dfl_before_the_exec(tmp_path, mo
     run_verdict.main(["red", "spec.md", "tests/x.test.sh", "case"])
 
     assert at_exec == [(signal.SIG_DFL, signal.SIG_DFL)]
+
+
+@pytest.mark.parametrize("environ, at_exec", [
+    ({"VERI_SHIM_SET_COERCE": "1", "PYTHONCOERCECLOCALE": "0"}, (None, None)),
+    ({"PYTHONCOERCECLOCALE": "1"}, (None, "1")),
+])
+def test_main_drops_the_shims_coerce_guard_and_marker_before_the_exec_and_keeps_a_callers_own(
+        environ, at_exec, tmp_path, monkeypatch):
+    import signal
+    scripts = tmp_path / "scripts"
+    run_verdict = staged_module(scripts)
+    (scripts / "verify.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
+    (scripts / "verify.sh").chmod(0o755)
+    run = tmp_path / "run"
+    run.mkdir()
+    monkeypatch.chdir(run)
+    monkeypatch.delenv("VERI_SHIM_SET_COERCE", raising=False)
+    monkeypatch.delenv("PYTHONCOERCECLOCALE", raising=False)
+    for name, value in environ.items():
+        monkeypatch.setenv(name, value)
+    seen = []
+    monkeypatch.setattr(signal, "signal", lambda signum, handler: None)
+    monkeypatch.setattr(os, "dup2", lambda *a, **k: None)
+    monkeypatch.setattr(os, "execv", lambda path, args: seen.append(
+        (os.environ.get("VERI_SHIM_SET_COERCE"), os.environ.get("PYTHONCOERCECLOCALE"))))
+
+    run_verdict.main(["red", "spec.md", "tests/x.test.sh", "case"])
+
+    assert seen == [at_exec]

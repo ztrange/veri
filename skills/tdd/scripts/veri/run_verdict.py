@@ -40,6 +40,9 @@ def main(argv):
             else:
                 os.dup2(fd, 2)
                 os.close(fd)
+    if os.environ.get("VERI_SHIM_SET_COERCE") == "1":
+        del os.environ["VERI_SHIM_SET_COERCE"]
+        os.environ.pop("PYTHONCOERCECLOCALE", None)
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)
     signal.signal(signal.SIGXFSZ, signal.SIG_DFL)
     os.execv(verifier, [verifier, *argv])
