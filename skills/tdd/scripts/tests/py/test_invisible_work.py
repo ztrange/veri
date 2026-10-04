@@ -134,3 +134,76 @@ def test_main_returns_2_with_the_gh_diagnostic_when_a_veri_gh_json_fixture_is_mi
     assert out.err.endswith(
         "invisible-work.sh: cannot read issues and PRs from gh (unauthenticated?)\n")
     assert [line for line in calls if line.startswith("gh")] == []
+
+
+def test_main_reads_issues_and_prs_from_veri_gh_json_or_from_gh_list_falling_back_to_rest_pages(
+        monkeypatch, tmp_path, capsys):
+    invisible_work = importlib.import_module("veri.invisible_work")
+    issues_rest = "repos/{owner}/{repo}/issues?state=all&per_page=100&page="
+    pulls_rest = "repos/{owner}/{repo}/pulls?state=all&per_page=100&page="
+    issue_list = ["gh", "issue", "list", "--state", "all", "--limit", "10000", "--json", "number,state"]
+    pr_list = ["gh", "pr", "list", "--state", "all", "--limit", "10000", "--json", "headRefName,state"]
+    git_answers = sweep_answers(
+        "refs/remotes/origin/HEAD 1111\nrefs/remotes/origin/main 1111\n"
+        "refs/remotes/origin/tdd/007-x aaaa\n",
+        "refs/heads/main 1111\n")
+
+    def fake_subprocess(gh_answers):
+        calls = []
+
+        def fake_run(args, **kwargs):
+            args = [str(a) for a in args]
+            line = " ".join([os.path.basename(args[0])] + args[1:])
+            if os.path.basename(args[0]) == "gh":
+                calls.append(["gh"] + args[1:])
+                code, out = gh_answers.get(tuple(args[1:]), (0, ""))
+            else:
+                code, out = 0, ""
+                for words, answer_code, answer_out in git_answers:
+                    if all(word in line.split(" ") for word in words):
+                        code, out = answer_code, answer_out
+                        break
+            text = kwargs.get("text") or kwargs.get("encoding") or kwargs.get("universal_newlines")
+            return subprocess.CompletedProcess(args, code, out if text else out.encode(),
+                                               "" if text else b"")
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        return calls
+
+    (tmp_path / "issues.json").write_text('[{"number": 7, "state": "OPEN"}]')
+    (tmp_path / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fixture_calls = fake_subprocess({})
+    fixture = invisible_work.main([])
+    fixture_out = capsys.readouterr()
+
+    monkeypatch.delenv("VERI_GH_JSON")
+    rest_calls = fake_subprocess({
+        tuple(issue_list[1:]): (1, ""),
+        ("api", issues_rest + "1"): (0, "[]\n"),
+        tuple(pr_list[1:]): (1, ""),
+        ("api", pulls_rest + "1"): (0, '[{"head": {"ref": "other"}, "state": "open"}]\n'),
+        ("api", pulls_rest + "2"): (0, "[]\n"),
+    })
+    rest = invisible_work.main([])
+    rest_out = capsys.readouterr()
+
+    monkeypatch.setenv("VERI_GH_JSON", "")
+    failing_calls = fake_subprocess({
+        tuple(issue_list[1:]): (1, ""),
+        ("api", issues_rest + "1"): (1, ""),
+    })
+    failing = invisible_work.main([])
+    failing_out = capsys.readouterr()
+
+    assert (fixture, fixture_out.out, fixture_calls) == (
+        0, "invariant 2 (no PR): tdd/007-x tip aaaa 2 commits ahead, issue #7 OPEN\n", [])
+    assert (rest, rest_out.out, rest_calls) == (
+        0,
+        "invariant 2 (no PR): tdd/007-x tip aaaa 2 commits ahead, issue #7 unknown\n",
+        [issue_list, ["gh", "api", issues_rest + "1"],
+         pr_list, ["gh", "api", pulls_rest + "1"], ["gh", "api", pulls_rest + "2"]])
+    assert (failing, failing_out.out, failing_calls) == (
+        2, "", [issue_list, ["gh", "api", issues_rest + "1"]])
+    assert failing_out.err.endswith(
+        "invisible-work.sh: cannot read issues and PRs from gh (unauthenticated?)\n")
