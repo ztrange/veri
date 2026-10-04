@@ -80,3 +80,27 @@ def test_main_patches_the_body_it_read_after_the_create_with_trailing_newlines_c
 
     assert calls == ["create", "view", "patch"]
     assert seen["body"] == "## Parent\n\n#1\n"
+
+
+def test_main_leaves_no_temp_file_when_the_patch_raises(tmpdir_env, monkeypatch, coverage_blocker):
+    class PatchDied(Exception):
+        pass
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
+            return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
+        if args[:3] == ["gh", "issue", "view"]:
+            return subprocess.CompletedProcess(args, 0, "## Blocked by\n\nNone\n", "")
+        if args[:4] == ["gh", "api", "-X", "PATCH"]:
+            raise PatchDied()
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    try:
+        coverage_blocker.main(["60"])
+    except PatchDied:
+        pass
+
+    assert list(tmpdir_env.iterdir()) == []
