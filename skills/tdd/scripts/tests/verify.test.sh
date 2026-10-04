@@ -796,25 +796,25 @@ diff_verdict() {  # diff_verdict <dir> <entry> <fake-out> <args…> -> sets $dv_
 diff_problems=""
 for entry in verify.sh run-verdict.sh; do
   diff_verdict "$work/diff-pass-$entry" "$entry" 'VERDICT: PASS
-REASON: the diff removes the cases.' --step 'DIFF-STEP the old cases are gone' diff "$work/spec.md" 0123abc
+REASON: the diff removes the cases.' --step 'DIFF-STEP the old cases are gone' diff "$work/spec.md" 0123abc 0123abc
   [[ "$dv_code" == 0 && "$dv_prompt" == yes ]] \
     || diff_problems="$diff_problems; $entry PASS arm: code=$dv_code want 0, prompt carries spec, step and git diff 0123abc..HEAD: $dv_prompt ($(head -1 "$work/diff-pass-$entry/err"))"
   diff_verdict "$work/diff-reject-$entry" "$entry" 'VERDICT: REJECT
-REASON: the diff leaves a case behind.' --step 'DIFF-STEP the old cases are gone' diff "$work/spec.md" 0123abc
+REASON: the diff leaves a case behind.' --step 'DIFF-STEP the old cases are gone' diff "$work/spec.md" 0123abc 0123abc
   [[ "$dv_code" == 1 ]] \
     || diff_problems="$diff_problems; $entry REJECT arm: code=$dv_code want 1 ($(head -1 "$work/diff-reject-$entry/err"))"
   diff_verdict "$work/diff-nostep-$entry" "$entry" 'VERDICT: PASS
-REASON: ok' diff "$work/spec.md" 0123abc
+REASON: ok' diff "$work/spec.md" 0123abc 0123abc
   [[ "$dv_code" == 2 ]] || diff_problems="$diff_problems; $entry with no --step: code=$dv_code want 2"
   diff_verdict "$work/diff-nonhex-$entry" "$entry" 'VERDICT: PASS
-REASON: ok' --step 'DIFF-STEP the old cases are gone' diff "$work/spec.md" not-a-sha
+REASON: ok' --step 'DIFF-STEP the old cases are gone' diff "$work/spec.md" not-a-sha 0123abc
   [[ "$dv_code" == 2 ]] || diff_problems="$diff_problems; $entry with a non-hex base sha: code=$dv_code want 2"
   diff_verdict "$work/diff-extra-$entry" "$entry" 'VERDICT: PASS
-REASON: ok' --step 'DIFF-STEP the old cases are gone' diff "$work/spec.md" 0123abc extra
+REASON: ok' --step 'DIFF-STEP the old cases are gone' diff "$work/spec.md" 0123abc 0123abc extra
   [[ "$dv_code" == 2 ]] || diff_problems="$diff_problems; $entry with an extra argument: code=$dv_code want 2"
 done
 [[ -z "$diff_problems" ]] && ok \
-  || no "verify.sh and run-verdict.sh --step diff <spec> <base-sha> run one blind diff verification: 0 on PASS, 1 on REJECT, 2 on a missing --step, a non-hex base sha or an extra argument (${diff_problems#; })"
+  || no "verify.sh and run-verdict.sh --step diff <spec> <branch-base-sha> <step-base-sha> run one blind diff verification: 0 on PASS, 1 on REJECT, 2 on a missing --step, a non-hex base sha or an extra argument (${diff_problems#; })"
 
 empty_step_problems=""
 for form in empty trailing; do

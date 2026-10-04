@@ -11,7 +11,7 @@
 #
 # Usage:
 #   verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
-#   verify.sh --step '<STEP>' diff <issue-spec-file> <base-sha>
+#   verify.sh --step '<STEP>' diff <issue-spec-file> <branch-base-sha> <step-base-sha>
 #     phase = red | green | refactor | pin | diff
 #     --step = the ledger's own line for the step under judgement, passed straight
 #              through to build-verify-prompt.sh

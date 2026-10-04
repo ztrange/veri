@@ -643,7 +643,7 @@ prompt_lacks "$tf" "transform prompt bounds the diff to a green commit" -iE -e '
 problems=""
 diff_step='the dead counted line in the status suite is gone ⟦diff-checked⟧ ⟦criterion 5⟧'
 diff_base=0123abcdef
-dp="$("$BUILD" --step "$diff_step" diff "$work/spec.md" "$diff_base" 2>/dev/null)"; code=$?
+dp="$("$BUILD" --step "$diff_step" diff "$work/spec.md" "$diff_base" "$diff_base" 2>/dev/null)"; code=$?
 [[ "$code" -eq 0 ]] || problems="$problems; diff exited $code, want 0"
 [[ "$dp" == *"$diff_step"* ]] || problems="$problems; diff prompt lacks the step text"
 [[ "$dp" == *"git diff $diff_base..HEAD"* ]] || problems="$problems; diff prompt never says git diff $diff_base..HEAD"
@@ -659,9 +659,9 @@ diff_refused() {  # <label> <args...> — records a diff call that is not exit 2
   [[ "$code" -eq 2 ]] || problems="$problems; $label exited $code, want 2"
   [[ -z "$out" ]] || problems="$problems; $label printed ${#out} bytes, want none"
 }
-diff_refused 'diff with a non-hex base' --step "$diff_step" diff "$work/spec.md" 'tidied the helper'
-diff_refused 'diff with no --step' diff "$work/spec.md" "$diff_base"
-diff_refused 'diff with an extra positional' --step "$diff_step" diff "$work/spec.md" "$diff_base" extra
+diff_refused 'diff with a non-hex base' --step "$diff_step" diff "$work/spec.md" 'tidied the helper' "$diff_base"
+diff_refused 'diff with no --step' diff "$work/spec.md" "$diff_base" "$diff_base"
+diff_refused 'diff with an extra positional' --step "$diff_step" diff "$work/spec.md" "$diff_base" "$diff_base" extra
 [[ -z "$problems" ]] \
   && ok || no "diff refuses a non-hex base sha, a missing --step and an extra positional argument with exit 2 and nothing on stdout (${problems#; })"
 
@@ -671,10 +671,10 @@ prompt_says "$dp" "diff prompt never forbids reading the range's commit messages
 prompt_lacks "$dp" "diff prompt leaves a placeholder unfilled" -F -e '{{'
 prompt_lacks "$dp" "diff prompt names a test under review" -F -e 'the target test'
 dp_ambient="$(VERI_STEP='I tidied the helper because it was ugly' VERI_RATIONALE='the author meant well' \
-  "$BUILD" --step "$diff_step" diff "$work/spec.md" "$diff_base" 2>/dev/null)"
+  "$BUILD" --step "$diff_step" diff "$work/spec.md" "$diff_base" "$diff_base" 2>/dev/null)"
 [[ "$dp_ambient" == "$dp" ]] || problems="$problems; diff prompt changes with VERI_STEP or VERI_RATIONALE in the environment"
 other_base=fedcba9876
-dp_other="$("$BUILD" --step "$diff_step" diff "$work/spec.md" "$other_base" 2>/dev/null)"
+dp_other="$("$BUILD" --step "$diff_step" diff "$work/spec.md" "$other_base" "$other_base" 2>/dev/null)"
 [[ "${dp_other//$other_base/$diff_base}" == "$dp" ]] || problems="$problems; diff prompt differs by more than the base sha when only the base sha changes"
 [[ -z "$problems" ]] \
   && ok || no "the diff prompt tells the verifier to read git diff <base-sha>..HEAD and not the range's commit messages, and carries nothing but the spec, the step text and the base sha (${problems#; })"
@@ -691,6 +691,14 @@ prompt_says "$ds" "never confines the adds-a-test REJECT to git diff $step_base.
   -iE -e "(add|adds|added)[^.]{0,40}test[^.]{0,200}git diff $step_base\.\.HEAD|git diff $step_base\.\.HEAD[^.]{0,200}(add|adds|added)[^.]{0,40}test"
 [[ -z "$problems" ]] \
   && ok || no "#875 diff takes <branch-base-sha> <step-base-sha>, judges the criterion against git diff <branch-base-sha>..HEAD and REJECTs only a test added in git diff <step-base-sha>..HEAD (${problems#; })"
+
+problems=""
+diff_refused 'diff with no step base' --step "$diff_step" diff "$work/spec.md" "$branch_base"
+diff_refused 'diff with a non-hex step base' --step "$diff_step" diff "$work/spec.md" "$branch_base" 'tidied the helper'
+diff_refused 'diff with an uppercase step base' --step "$diff_step" diff "$work/spec.md" "$branch_base" 4567ABCDEF
+diff_refused 'diff with a 6-character step base' --step "$diff_step" diff "$work/spec.md" "$branch_base" 4567ab
+[[ -z "$problems" ]] \
+  && ok || no "#875 diff refuses a missing step base sha, or one not 7-40 lowercase hex characters, with exit 2 and nothing on stdout (${problems#; })"
 
 cp "$work/spec.md" "$work/refactor-spec.md"
 printf '\n## Refactor\n\nRun kind: refactor. This issue changes structure, not behaviour.\n' \
