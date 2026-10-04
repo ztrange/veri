@@ -13,3 +13,7 @@
 - [ ] CLAUDE.md's "Testing idiom" section, next to the SIGPIPE and job-spec rules, states that no suite relies on permission bits to make a path unreadable or unwritable, because the cloud runs as root and permission bits are a no-op there ⟦criterion 3⟧
 - [ ] status.test.sh passes when run as uid 0, its exit-2 case included ⟦human-owed⟧ ⟦criterion 1⟧
 - [ ] make test is green on the branch with the guard in it ⟦full-suite⟧ ⟦criterion 2⟧
+
+## Owed steps
+
+- The guard fails the run naming `<suite>:<line>` for a planted permission-bit chmod carrying a GNU long option before its mode, such as `chmod --recursive 000 <dir>`
