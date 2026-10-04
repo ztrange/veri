@@ -86,3 +86,69 @@ def test_main_refuses_every_short_or_empty_argument_shape_and_passes_a_7_through
     assert events[0][1:4] == ["test-run", "tier=fast", "suites="]
     assert re.fullmatch(r"seconds=[0-9]+", events[0][4])
     assert events[0][5:] == ["status=7"]
+
+
+def test_main_runs_the_command_inheriting_everything_then_records_whole_second_seconds_and_status_through_the_sibling_event_sh(monkeypatch, timed_test_run):
+    log = []
+    readings = [100.9, 102.1]
+
+    def clock():
+        reading = readings.pop(0)
+        log.append(("clock", reading))
+        return reading
+
+    def code_for(args):
+        return 0 if os.path.basename(str(args[0])) == "event.sh" else 7
+
+    def fake_call(args, *rest, **kwargs):
+        log.append(("call", list(args), rest, kwargs))
+        return code_for(args)
+
+    def fake_run(args, *rest, **kwargs):
+        log.append(("call", list(args), rest, kwargs))
+        return subprocess.CompletedProcess(args, code_for(args))
+
+    class FakePopen:
+        def __init__(self, args, *rest, **kwargs):
+            log.append(("call", list(args), rest, kwargs))
+            self.args = args
+            self.returncode = code_for(args)
+            self.pid = 0
+
+        def wait(self, timeout=None):
+            return self.returncode
+
+        def poll(self):
+            return self.returncode
+
+        def communicate(self, input=None, timeout=None):
+            return None, None
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    monkeypatch.setattr(subprocess, "call", fake_call)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    monkeypatch.setattr(timed_test_run.time, "time", clock)
+
+    event_sh = str(SCRIPTS / "event.sh")
+    inherited = {"stdin", "stdout", "stderr", "env", "cwd", "shell", "executable", "close_fds", "pass_fds"}
+    for tier, suites in (("a=b", "x\ny"), ("fast", "")):
+        log.clear()
+        readings[:] = [100.9, 102.1]
+        assert timed_test_run.main([tier, suites, "sh", "-c", "exit 7"]) == 7
+        assert [entry[:2] for entry in log] == [
+            ("clock", 100.9),
+            ("call", ["sh", "-c", "exit 7"]),
+            ("clock", 102.1),
+            ("call", [event_sh, "test-run", f"tier={tier}", f"suites={suites}", "seconds=2", "status=7"]),
+        ]
+        command = log[1]
+        assert command[2] == ()
+        assert {key: value for key, value in command[3].items()
+                if key in inherited and value is not None and value is not False
+                and not (key == "close_fds" and value is True)} == {}
