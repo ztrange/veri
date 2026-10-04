@@ -1,3 +1,5 @@
 ### refactor-overflow.sh files every candidate in <skipped-file> when refactor-owed.sh list exits 3 (owed file missing, empty, or holding no structural candidate) ⟦criterion 1⟧
 - test-only | the new `test_main_files_the_skipped_file_s_candidates_when_list_exits_3_issue_777` copies its `fake_run`/`refuse_popen` pair from the four earlier tests in `test_refactor_overflow.py`. Moving that pair into one shared fixture would remove the copies.
 - test-only | the new test overlaps the flipped parametrized case at `test_refactor_overflow.py:118` (skipped file, list exits 3, issue filed). Folding its two-line skipped file and its `list`-call assertion into that table would remove the separate test.
+### workqueue.sh start, done and park keep a last queue line that has no trailing newline when they rewrite the queue ⟦criterion 2⟧
+- test-only | extract the repeated git-worktree/mv `fake_run` and the capsys `run` helper shared by test_start_done_park_rewrite_every_matching_line_in_place… (test_workqueue.py:294) and test_start_done_park_keep_a_last_queue_line_that_has_no_trailing_newline_issue_777 (test_workqueue.py:557) into one fixture
