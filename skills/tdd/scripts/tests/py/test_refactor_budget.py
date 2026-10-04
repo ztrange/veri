@@ -99,3 +99,41 @@ def test_main_checks_only_the_budget_in_force_before_the_count_and_refuses_what_
     seen.append(run({}, []))
     wanted.append((2, "", "refactor-budget: <count> must be a whole number >= 0: \n" + usage))
     assert seen == wanted
+
+
+def test_main_reads_its_arguments_by_position_and_compares_them_as_bash_arithmetic_does(monkeypatch, capsys, refactor_budget):
+    usage = "usage: refactor-budget.sh [--issue] <count>\n"
+
+    def run(env, argv, too_great=None):
+        monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
+        monkeypatch.delenv("VERI_ISSUE_REFACTOR_BUDGET", raising=False)
+        for name, value in env.items():
+            monkeypatch.setenv(name, value)
+        code = refactor_budget.main(argv)
+        out, err = capsys.readouterr()
+        if too_great is not None:
+            err = err.count("\n") == 1 and too_great in err and "value too great for base" in err
+        return (code, out, err)
+
+    seen = [
+        run({}, ["1", "--issue"]),
+        run({}, ["--issue", "--issue", "1"]),
+        run({"VERI_REFACTOR_BUDGET": "010"}, ["9"]),
+        run({}, ["08"], too_great="08"),
+        run({"VERI_REFACTOR_BUDGET": "08"}, ["1"], too_great="08"),
+        run({}, ["9223372036854775808"]),
+        run({}, ["27670116110564327424"]),
+        run({"VERI_REFACTOR_BUDGET": "09"}, ["08"], too_great="08"),
+        run({}, ["007"]),
+    ]
+    assert seen == [
+        (0, "refactor 1/5 — another transform may run\n", ""),
+        (2, "", "refactor-budget: <count> must be a whole number >= 0: --issue\n" + usage),
+        (3, "refactor 9/010 — budget spent\n", ""),
+        (3, "refactor 08/5 — budget spent\n", True),
+        (3, "refactor 1/08 — budget spent\n", True),
+        (0, "refactor 9223372036854775808/5 — another transform may run\n", ""),
+        (0, "refactor 27670116110564327424/5 — another transform may run\n", ""),
+        (3, "refactor 08/09 — budget spent\n", True),
+        (3, "refactor 007/5 — budget spent\n", ""),
+    ]
