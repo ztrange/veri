@@ -141,3 +141,34 @@ def test_main_with_issue_diffs_base_against_head_and_ignores_trailing_and_non_fi
     answers["resolves"] = False
     assert answer(["--issue", base]) == (
         2, "", f"refactor-touched: cannot resolve commit '{base}'\n" + USAGE)
+
+
+def test_main_refuses_an_empty_commit_or_base_and_filters_only_paths_starting_tdd_printed_as_git_prints_them(
+        monkeypatch, capsys, refactor_touched):
+    sha = "0123456789abcdef0123456789abcdef01234567"
+    calls = fake_processes(monkeypatch)
+
+    for argv in ([""], ["--issue", ""]):
+        code = refactor_touched.main(argv)
+        captured = capsys.readouterr()
+        assert (argv, code, captured.out, captured.err) == (argv, 2, "", USAGE)
+    assert calls == []
+
+    diff = 'sub/.tdd/x\n".tdd/\\303\\244.sh"\n.tdd/issue-1-plan.md\na,b.sh\n'
+
+    def fake(args, *rest, **kwargs):
+        args = list(args)
+        out = diff if args == ["git", "diff", "--name-only", f"{sha}^", sha] else ""
+        if not kwargs.get("text") and not kwargs.get("universal_newlines") \
+                and not kwargs.get("encoding"):
+            out = out.encode()
+        return subprocess.CompletedProcess(args, 0, out, "")
+
+    for entry in ("run", "Popen", "call", "check_call"):
+        monkeypatch.setattr(subprocess, entry, fake)
+    monkeypatch.setattr(subprocess, "check_output", lambda *a, **k: fake(*a, **k).stdout)
+
+    code = refactor_touched.main([sha])
+    captured = capsys.readouterr()
+    assert (code, captured.out, captured.err) == (
+        0, 'sub/.tdd/x,".tdd/\\303\\244.sh",a,b.sh\n', "")
