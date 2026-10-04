@@ -985,4 +985,11 @@ refuses "diff missing test-cmd" "$BUILD" diff "$work/spec.md" "$dd_step"
 [[ -z "$problems" ]] \
   && ok || no "develop-diff tells the leaf to make the change the step's criterion names and commit it, to make no commit when the criterion is that something stays unchanged, and to add no test; a missing argument exits 2 with nothing on stdout (${problems#; })"
 
+bogus_revise_err="$work/bogus-revise.err"
+bogus_revise_out="$("$BUILD" revise bogus "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md" 2>"$bogus_revise_err")"; code=$?
+[[ "$code" -eq 2 ]] \
+  && [[ -z "$bogus_revise_out" ]] \
+  && grep -F 'red|green|refactor|diff' "$bogus_revise_err" > /dev/null \
+  && ok || no "#880 a revise of an unknown phase exits 2 with no prompt and names diff among the accepted revise phases red|green|refactor|diff (exit $code, stderr: $(cat "$bogus_revise_err"))"
+
 finish
