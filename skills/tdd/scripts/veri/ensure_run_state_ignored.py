@@ -32,6 +32,14 @@ def has_rule(path):
     return False
 
 
+def restore(path, before):
+    if before is None:
+        os.remove(path)
+    else:
+        with open(path, "wb") as f:
+            f.write(before)
+
+
 def write_failed(error):
     print("ensure-run-state-ignored: %s" % error, file=sys.stderr)
     return 2
@@ -68,11 +76,7 @@ def main(argv):
             append_rule(exclude)
         except OSError as error:
             if not present:
-                if before is None:
-                    os.remove(gitignore)
-                else:
-                    with open(gitignore, "wb") as f:
-                        f.write(before)
+                restore(gitignore, before)
             return write_failed(error)
     print("already present" if present else "added")
     return 0
