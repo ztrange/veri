@@ -43,6 +43,11 @@ def sha_state(repo, sha):
     return "green"
 
 
+def unreadable(what):
+    print("wait-ci.sh: could not read the checks of %s" % what, file=sys.stderr)
+    return 2
+
+
 def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
@@ -56,8 +61,7 @@ def main(argv):
         traceback.print_exc()
         head = ""
     if not head:
-        print("wait-ci.sh: could not read the checks of %s" % pr, file=sys.stderr)
-        return 2
+        return unreadable(pr)
     try:
         state = sha_state(repo, head)
     except NoAnswer:
@@ -66,8 +70,7 @@ def main(argv):
         traceback.print_exc()
         state = None
     if state is None:
-        print("wait-ci.sh: could not read the checks of %s" % head, file=sys.stderr)
-        return 2
+        return unreadable(head)
     if state == "none" and mergeable is False:
         print("wait-ci.sh: %s conflicts with its base branch; no workflow will start until it is rebased"
               % pr, file=sys.stderr)
