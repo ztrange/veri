@@ -306,6 +306,21 @@ code=$?
   && [[ "$out" != *'modified the repository'* ]]; } && ok \
   || no "#569: a verifier whose run leaves $deep_state/run.log behind under the repo's own .gitignore has its REJECT accepted (code=$code want 1; stdout='$out' want the verdict's reason and no 'modified the repository')"
 
+ledger_edit_dir="$tamper_work/ledger-edit"
+fixture_repo "$ledger_edit_dir"
+cp "$HERE/../../../../.gitignore" "$ledger_edit_dir/.gitignore"
+ledger=".tdd/issue-569.md"
+mkdir -p "$ledger_edit_dir/.tdd"
+printf -- '- [ ] a step\n' > "$ledger_edit_dir/$ledger"
+git -C "$ledger_edit_dir" add -A >/dev/null 2>&1
+git -C "$ledger_edit_dir" commit -q -m "the repo's own ignore rules and a ledger" >/dev/null 2>&1
+out="$( FAKE_MUTATE="printf -- '- [x] a step\n' > $ledger && mkdir -p $subdir_state && printf '{}\n' > $subdir_state/events.jsonl" \
+    verify_in "$ledger_edit_dir" green 'VERDICT: PASS
+REASON: Target test and full suite are green.' "$stubdir/claude-mutate" 2>/dev/null )"
+code=$?
+{ [[ "$code" == 2 ]] && [[ "$out" == *'modified the repository'* ]] && [[ "$out" == *"$ledger"* ]]; } && ok \
+  || no "#569: a verifier that edits the root ledger $ledger is refused naming it, even when its run also leaves $subdir_state/events.jsonl behind (code=$code want 2; stdout='$out' want 'modified the repository' and $ledger named)"
+
 leafargs_out="$work/leafargs"
 LEAFARGS_OUT="$leafargs_out" VERIFY_LEAF_ARGS='--permission-mode bypassPermissions --disallowedTools Write' \
   tamper_run leafargs 'printf "%s\n" "$@" > "$LEAFARGS_OUT"; printf "the verifier rewrote this\n" > src.txt'
