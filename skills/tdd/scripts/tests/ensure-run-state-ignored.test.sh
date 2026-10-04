@@ -173,4 +173,14 @@ ex_tail="$(tail -n 3 "$repo/.git/info/exclude" 2>/dev/null)"
 { [[ "$code" == 1 ]] && [[ -z "$out" ]] && [[ "$diag" == 0 ]] && [[ "$ex_tail" == "$want_tail" ]]; } \
   && ok || no ".gitignore is a directory: exits 1, prints nothing on stdout, says why on stderr, and info/exclude already ends in the three rule lines (exit=$code want 1, stdout='$out' want empty, stderr-non-empty=$diag want 0, info/exclude tail='$ex_tail' want '$want_tail')"
 
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+make_repo "$work/in-place"
+make_repo "$work/linked"
+in_place="$(cd "$work/in-place" && "$ENSURE" 2>&1)" && in_place_code=0 || in_place_code=$?
+linked="$(cd "$work/linked" && "$work/linked-skill/scripts/ensure-run-state-ignored.sh" 2>&1)" && linked_code=0 || linked_code=$?
+cmp -s "$work/in-place/.gitignore" "$work/linked/.gitignore" && same=0 || same=$?
+
+{ [[ "$linked" == "$in_place" ]] && [[ "$linked_code" == "$in_place_code" ]] && [[ "$in_place" == "added" ]] && [[ "$same" == 0 ]]; } \
+  && ok || no "run through a symlink to the skill directory and from another working directory with no argument, answers as it does when run in place, the caller's working directory the root (linked='$linked' exit=$linked_code, in place='$in_place' exit=$in_place_code want both 'added' exit 0, .gitignore cmp=$same want 0 identical)"
+
 finish
