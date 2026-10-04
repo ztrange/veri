@@ -96,12 +96,12 @@ def sha_state(repo, sha):
     statuses = status.stdout
     docs = documents(runs + statuses)
     states = [s["state"] for s in docs[-1].get("statuses") or []]
-    runs = [r for p in docs[:-1] for r in p.get("check_runs") or []]
-    outcomes = [r.get("conclusion") if r.get("status") == "completed" else None for r in runs]
+    check_runs = [r for p in docs[:-1] for r in p.get("check_runs") or []]
+    outcomes = [r.get("conclusion") if r.get("status") == "completed" else None for r in check_runs]
     if any(o is not None and o not in PASSING for o in outcomes) \
             or any(s in ("failure", "error") for s in states):
         return "red"
-    if not runs and not states:
+    if not check_runs and not states:
         return "none"
     if None in outcomes or all(o == "skipped" for o in outcomes) or "pending" in states:
         return "pending"
