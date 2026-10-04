@@ -29,6 +29,7 @@ def _gh_api(path):
 
 
 _ISSUES = "repos/{owner}/{repo}/issues"
+_EMPTY_PAGE = r"^\[\]$"
 
 
 def _issue(number):
@@ -51,7 +52,7 @@ class GraphQLAdapter:
 
 
 class RestAdapter:
-    def list(self, path, empty=r"^\[\]$"):
+    def list(self, path, empty=_EMPTY_PAGE):
         answer = ""
         sep = "&" if "?" in path else "?"
         page = 1
@@ -98,7 +99,7 @@ class RestOnlyAdapter:
     def list(self, path, *args):
         return self.rest.list(path)
 
-    def rest_list(self, path, empty=r"^\[\]$"):
+    def rest_list(self, path, empty=_EMPTY_PAGE):
         return self.rest.list(path, empty)
 
     def issue_view(self, number, field):
@@ -166,7 +167,7 @@ def _select(operation):
     return RestOnlyAdapter()
 
 
-def gh_rest_list(path, empty=r"^\[\]$"):
+def gh_rest_list(path, empty=_EMPTY_PAGE):
     return _select("rest_list").rest_list(path, empty)
 
 
