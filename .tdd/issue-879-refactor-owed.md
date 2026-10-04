@@ -1,0 +1,2 @@
+### gh_pr_ready <n> <head-sha> marks PR <n> ready only once GitHub's pulls/<n> reports <head-sha> as the PR's head: while it reports another sha it reads pulls/<n> again after VERI_POLL seconds and does not mark the PR ready meanwhile
+- test-only | the #879 case in tests/unit/github.test.sh answers both `--jq` and raw-JSON forms of the pulls/42 read, but the code only ever sends `--jq`, so the raw-JSON branch never runs
