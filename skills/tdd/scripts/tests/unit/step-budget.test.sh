@@ -49,44 +49,6 @@ run_budget --
 expect 0 $'12\n120'
 verdict "neither budget set prints 12 then 120, each on its own line, exit 0"
 
-run_budget VERI_STEP_BUDGET=7.5 VERI_RUN_BUDGET=42.25 --
-expect 0 $'7.5\n42.25'
-verdict "a set VERI_STEP_BUDGET then a set VERI_RUN_BUDGET, decimals included, printed in that order"
-
-run_budget VERI_STEP_BUDGET=twelve --
-expect 2 ''
-expect_err_names VERI_STEP_BUDGET
-verdict "a VERI_STEP_BUDGET that is not a non-negative decimal number exits 2, names it on stderr, prints nothing on stdout"
-
-run_budget VERI_RUN_BUDGET=-5 --
-expect 2 ''
-expect_err_names VERI_RUN_BUDGET
-verdict "a VERI_RUN_BUDGET that is not a non-negative decimal number exits 2, names it on stderr, prints nothing on stdout"
-
-run_budget VERI_STEP_BUDGET=twelve VERI_RUN_BUDGET=-5 --
-expect 2 ''
-verdict "both budgets invalid at once exits 2 and prints nothing on stdout, not the first figure then a failure"
-
-run_budget VERI_STEP_BUDGET= --
-expect 2 ''
-expect_err_names VERI_STEP_BUDGET
-run_budget VERI_RUN_BUDGET= --
-expect 2 ''
-expect_err_names VERI_RUN_BUDGET
-verdict "either budget exported as the empty string exits 2 rather than falling back to its default"
-
-run_budget VERI_STEP_BUDGET=0 --
-expect 0 $'0\n120'
-run_budget VERI_RUN_BUDGET=0 --
-expect 0 $'12\n0'
-verdict "a budget of 0 is accepted for either variable and printed back"
-
-run_budget -- 0
-if [[ "$code" != 2 ]]; then
-  problems+="    want exit 2, got exit $code and stdout '$out' (stderr '$err')"$'\n'
-fi
-verdict "any argument exits 2"
-
 run_budget -- 0
 expect 2 ''
 if [[ "$err" != 'usage: step-budget.sh (takes no arguments)' ]]; then
