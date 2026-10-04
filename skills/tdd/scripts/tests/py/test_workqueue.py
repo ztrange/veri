@@ -400,23 +400,21 @@ def test_start_done_park_refuse_a_tabbed_park_reason_before_the_lock_and_return_
     refused = (2, "", "workqueue.sh: a park reason may not hold a tab or a newline\n" + USAGE)
     assert run(["park", "alpha", "13", "a\tb"]) == refused
     assert run(["park", "alpha", "13", "a\nb"]) == refused
-    assert run(["park", "alpha", "13"])[:2] == (1, "")
+    assert run(["park", "alpha", "13"])[:2] == (2, "")
     assert queue.read_bytes() == before
     assert not tmp.exists()
     lock.rmdir()
 
-    assert run(["start"])[:2] == (1, "")
-    assert tmp.exists()
-    tmp.unlink()
-    assert run(["start", "alpha"])[:2] == (1, "")
-    assert tmp.exists()
-    tmp.unlink()
-    assert run(["start", "beta"]) == (1, "", "workqueue.sh: $3: unbound variable\n")
+    assert run(["start"])[:2] == (2, "")
+    assert not tmp.exists()
+    assert run(["start", "alpha"])[:2] == (2, "")
+    assert not tmp.exists()
+    assert run(["start", "beta"]) == (2, "", USAGE)
     assert not tmp.exists()
     assert queue.read_bytes() == before
     assert not lock.exists()
     queue.write_bytes(b"")
-    assert run(["start"]) == (1, "", "workqueue.sh: $2: unbound variable\n")
+    assert run(["start"]) == (2, "", USAGE)
     assert not tmp.exists()
     queue.write_bytes(before)
 
