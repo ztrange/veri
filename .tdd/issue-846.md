@@ -1,7 +1,7 @@
 # Plan for #846 — make test is red under uid 0: status.test.sh relies on chmod 000, which root bypasses
 
 - [x] status.test.sh's "exits 2 on a failure veri/status.py turns into exit 2" case forces the ledger read to fail by a means permission bits play no part in (e.g. `$run/.tdd/issue-9.md` made a directory, so the read raises IsADirectoryError), with no `chmod` and no skip when `$EUID` is 0, and asserts exit 2 with a non-empty stderr instead of the literal `PermissionError` ⟦criterion 1⟧
-- [ ] A guard suite passes on today's tree, reporting no suite under skills/tdd/scripts/tests/ that runs `chmod 000`, `chmod a-r`, `chmod u-w` or `chmod -w` ⟦added⟧ ⟦criterion 2⟧
+- [x] A guard suite passes on today's tree, reporting no suite under skills/tdd/scripts/tests/ that runs `chmod 000`, `chmod a-r`, `chmod u-w` or `chmod -w` ⟦added⟧ ⟦criterion 2⟧
 - [ ] The guard fails the run naming `<suite>:<line>` for a planted suite line that starts with `chmod 000 <path>` ⟦added⟧ ⟦criterion 2⟧
 - [ ] The guard fails the run naming `<suite>:<line>` for planted suite lines running `chmod a-r <path>`, `chmod u-w <path>` and `chmod -w <path>`, each reported on its own ⟦added⟧ ⟦criterion 2⟧
 - [ ] The guard fails the run naming `<suite>:<line>` for a planted permission-bit chmod that follows `;`, `&&`, `||`, `|`, `(`, `{`, `then` or `do` on the same line ⟦added⟧ ⟦criterion 2⟧
