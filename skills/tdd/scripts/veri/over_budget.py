@@ -8,6 +8,9 @@ USAGE = "usage: over-budget.sh <tier> <seconds> <usual>"
 
 
 def _number(text):
+    kept = text.rstrip(" \t\r")
+    if kept != kept.rstrip():
+        return None
     try:
         return float(text)
     except ValueError:
@@ -25,6 +28,8 @@ def main(argv):
     lines = limits.stdout.splitlines()
     budget, ratio = lines[0], lines[-1]
     s = _number(seconds)
+    if s is None:
+        return 1
     over = (tier == "unit" and s > _number(budget)) or s > _number(ratio) * _number(usual)
     if not over:
         return 1

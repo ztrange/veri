@@ -107,3 +107,15 @@ def test_main_reads_what_macos_awk_reads_as_a_number_as_a_number(capsys, monkeyp
         code = over_budget.main(argv)
         capsys.readouterr()
         assert (argv, code) == (argv, 1)
+
+
+def test_main_keeps_a_number_with_the_whitespace_macos_awk_skips_and_reads_a_trailing_formfeed_or_vtab_as_a_string(capsys, monkeypatch, over_budget):
+    _time_budget(monkeypatch, 0, "10\n1.5\n")
+    for seconds in ("\f1000", "\v1000", "\r1000", "1000 ", "1000\t", "1000\r"):
+        code = over_budget.main(["all", seconds, "100"])
+        capsys.readouterr()
+        assert (seconds, code) == (seconds, 0)
+    for seconds in ("1000\f", "1000\v"):
+        code = over_budget.main(["all", seconds, "100"])
+        capsys.readouterr()
+        assert (seconds, code) == (seconds, 1)
