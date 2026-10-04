@@ -67,8 +67,7 @@ def gh_issue_view(number, field):
         try:
             issue = json.loads(rest.stdout)
         except json.JSONDecodeError as error:
-            if rest.returncode != 0:
-                print("json.decoder.JSONDecodeError: %s" % error, file=sys.stderr)
+            print("json.decoder.JSONDecodeError: %s" % error, file=sys.stderr)
             raise NoAnswer("")
         if rest.returncode != 0:
             raise NoAnswer("")

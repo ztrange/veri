@@ -130,7 +130,8 @@ def test_main_keeps_every_failure_path_inside_0_to_3_and_lets_an_uncaught_except
 
     assert run_case(["7", "alpha"], view=(1, ""), api=(1, "")) == (
         2, "", "json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\n", 0)
-    assert run_case(["7", "alpha"], view=(1, ""), api=(0, "")) == (2, "", "", 0)
+    assert run_case(["7", "alpha"], view=(1, ""), api=(0, "")) == (
+        2, "", "json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\n", 0)
     assert run_case(["7", "alpha"], patch=1) == (2, "", "", 1)
     assert run_case(["7", "alpha"], tick=1) == (1, "", "", 0)
     assert run_case(["7", "alpha"], tick=2) == (2, "", "", 0)
