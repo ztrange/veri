@@ -4,12 +4,19 @@ import sys
 
 USAGE = "usage: leaf-role.sh <leaf-name>"
 ACTORS = {"develop": "developer", "revise": "developer", "verify": "verifier", "conductor": "conductor"}
+SHAPES = "(want develop-*|revise-*|verify-*|conductor-*)"
 
 
 def leaf_role(name):
     """VERI_ACTOR, VERI_PHASE and VERI_ATTEMPT for a leaf name."""
     actor_word = name.split("-", 1)[0]
+    if actor_word not in ACTORS:
+        print("leaf-role: leaf name '%s' has an unknown leading word %s" % (name, SHAPES), file=sys.stderr)
+        return None
     phase, attempt = name[len(actor_word) + 1:], "1"
+    if not phase:
+        print("leaf-role: leaf name '%s' says no phase %s" % (name, SHAPES), file=sys.stderr)
+        return None
     split = re.fullmatch(r"(.*)-([0-9]+)", phase)
     if split:
         phase, attempt = split.groups()
@@ -21,6 +28,8 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     role = leaf_role(argv[0])
+    if role is None:
+        return 2
     print("VERI_ACTOR=%(VERI_ACTOR)s VERI_PHASE=%(VERI_PHASE)s VERI_ATTEMPT=%(VERI_ATTEMPT)s" % role)
     return 0
 

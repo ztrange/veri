@@ -43,3 +43,19 @@ def test_main_maps_each_leading_word_to_its_actor_and_splits_phase_and_attempt(c
         (0, "VERI_ACTOR=verifier VERI_PHASE=refactor VERI_ATTEMPT=1\n", ""),
         (0, "VERI_ACTOR=conductor VERI_PHASE=506 VERI_ATTEMPT=1\n", ""),
     ]
+
+
+def test_main_refuses_an_unknown_leading_word_or_no_phase_with_one_diagnostic_line_and_2(capsys, leaf_role):
+    shapes = "(want develop-*|revise-*|verify-*|conductor-*)"
+    answers = []
+    for name in ("plan-red", "Develop-red", "-red", "develop", "develop-"):
+        code = leaf_role.main([name])
+        captured = capsys.readouterr()
+        answers.append((code, captured.out, captured.err))
+    assert answers == [
+        (2, "", "leaf-role: leaf name 'plan-red' has an unknown leading word %s\n" % shapes),
+        (2, "", "leaf-role: leaf name 'Develop-red' has an unknown leading word %s\n" % shapes),
+        (2, "", "leaf-role: leaf name '-red' has an unknown leading word %s\n" % shapes),
+        (2, "", "leaf-role: leaf name 'develop' says no phase %s\n" % shapes),
+        (2, "", "leaf-role: leaf name 'develop-' says no phase %s\n" % shapes),
+    ]
