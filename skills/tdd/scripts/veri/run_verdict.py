@@ -1,4 +1,5 @@
 """run-verdict.sh's logic, run in-process."""
+import errno
 import os
 import signal
 import sys
@@ -45,7 +46,14 @@ def main(argv):
         os.environ.pop("PYTHONCOERCECLOCALE", None)
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)
     signal.signal(signal.SIGXFSZ, signal.SIG_DFL)
-    os.execv(verifier, [verifier, *argv])
+    try:
+        os.execv(verifier, [verifier, *argv])
+    except OSError as e:
+        if e.errno == errno.ENOEXEC:
+            os.execvp("bash", ["bash", verifier, *argv])
+        else:
+            print(f"run-verdict.sh: cannot start the verifier: {verifier}: {e.strerror}", file=sys.stderr)
+            return 2
 
 
 if __name__ == "__main__":

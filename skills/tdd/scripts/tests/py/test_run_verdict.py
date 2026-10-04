@@ -343,3 +343,45 @@ def test_main_drops_the_shims_coerce_guard_and_marker_before_the_exec_and_keeps_
     run_verdict.main(["red", "spec.md", "tests/x.test.sh", "case"])
 
     assert seen == [at_exec]
+
+
+@pytest.mark.parametrize("raised", ["ENOEXEC", "EACCES", "ENOENT", "not an OSError"])
+def test_main_retries_an_enoexec_exec_under_bash_returns_2_for_any_other_exec_failure_and_wraps_nothing(
+        raised, tmp_path, monkeypatch, capfd):
+    import errno
+    import signal
+    scripts = tmp_path / "scripts"
+    run_verdict = staged_module(scripts)
+    (scripts / "verify.sh").write_text("exit 0\n")
+    (scripts / "verify.sh").chmod(0o755)
+    run = tmp_path / "run"
+    run.mkdir()
+    monkeypatch.chdir(run)
+    verifier = f"{scripts}/verify.sh"
+    argv = ["--step", "t", "red", "spec.md", "tests/x.test.sh", "case"]
+    error = (RuntimeError("not an exec failure") if raised == "not an OSError"
+             else OSError(getattr(errno, raised), os.strerror(getattr(errno, raised)), verifier))
+    execvps = []
+
+    def execv(path, args):
+        raise error
+
+    monkeypatch.setattr(os, "execv", execv)
+    monkeypatch.setattr(os, "execvp", lambda file, args: execvps.append((file, list(args))))
+    monkeypatch.setattr(os, "dup2", lambda *a, **k: None)
+    monkeypatch.setattr(signal, "signal", lambda signum, handler: None)
+
+    if raised == "not an OSError":
+        with pytest.raises(RuntimeError):
+            run_verdict.main(list(argv))
+        assert execvps == []
+        return
+    code = run_verdict.main(list(argv))
+
+    captured = capfd.readouterr()
+    if raised == "ENOEXEC":
+        assert (execvps, captured.err) == ([("bash", ["bash", verifier, *argv])], "")
+    else:
+        assert (code, execvps, captured.err) == (
+            2, [],
+            f"run-verdict.sh: cannot start the verifier: {verifier}: {os.strerror(getattr(errno, raised))}\n")
