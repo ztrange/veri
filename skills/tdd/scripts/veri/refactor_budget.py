@@ -15,6 +15,17 @@ def _refused(name, value):
     return True
 
 
+def _arithmetic(value):
+    base = 8 if value.startswith("0") else 10
+    number = 0
+    for digit in value:
+        if int(digit) >= base:
+            print(f'refactor-budget: [[: {value}: value too great for base (error token is "{value}")', file=sys.stderr)
+            return None
+        number = (number * base + int(digit)) % 2**64
+    return number - 2**64 if number >= 2**63 else number
+
+
 def main(argv):
     budget_var, default = "VERI_REFACTOR_BUDGET", DEFAULT_BUDGET
     if argv[:1] == ["--issue"]:
@@ -27,6 +38,9 @@ def main(argv):
     if _refused("<count>", count):
         print(USAGE, file=sys.stderr)
         return 2
-    spent = int(count) >= int(budget)
+    left, right = _arithmetic(count), None
+    if left is not None:
+        right = _arithmetic(budget)
+    spent = left is None or right is None or left >= right
     print(f"refactor {count}/{budget} — {'budget spent' if spent else 'another transform may run'}")
     return 3 if spent else 0
