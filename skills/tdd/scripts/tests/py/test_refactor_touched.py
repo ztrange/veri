@@ -93,3 +93,51 @@ def test_main_prints_the_commits_paths_outside_tdd_comma_joined_or_returns_3_whe
     code = refactor_touched.main([sha])
     captured = capsys.readouterr()
     assert (code, captured.out) == (3, "")
+
+
+def test_main_with_issue_diffs_base_against_head_and_ignores_trailing_and_non_first_issue_arguments(
+        monkeypatch, capsys, refactor_touched):
+    base = "fedcba9876543210fedcba9876543210fedcba98"
+    sha = "0123456789abcdef0123456789abcdef01234567"
+    answers = {"resolves": True}
+    calls = []
+
+    def fake(args, *rest, **kwargs):
+        args = list(args)
+        calls.append(args)
+        if args[:4] == ["git", "rev-parse", "--verify", "--quiet"]:
+            return subprocess.CompletedProcess(args, 0 if answers["resolves"] else 1, "", "")
+        if args == ["git", "diff", "--name-only", base, "HEAD"]:
+            out = answers["diff"]
+        elif args == ["git", "diff", "--name-only", f"{sha}^", sha]:
+            out = "c.sh\n"
+        else:
+            out = ""
+        if not kwargs.get("text") and not kwargs.get("universal_newlines") \
+                and not kwargs.get("encoding"):
+            out = out.encode()
+        return subprocess.CompletedProcess(args, 0, out, "")
+
+    for entry in ("run", "Popen", "call", "check_call"):
+        monkeypatch.setattr(subprocess, entry, fake)
+    monkeypatch.setattr(subprocess, "check_output", lambda *a, **k: fake(*a, **k).stdout)
+
+    def answer(argv):
+        code = refactor_touched.main(argv)
+        captured = capsys.readouterr()
+        return code, captured.out, captured.err
+
+    answers["diff"] = "a.py\n.tdd/issue-1-plan.md\nb.sh\n"
+    assert answer(["--issue", base]) == (0, "a.py,b.sh\n", "")
+    assert ["git", "diff", "--name-only", base, "HEAD"] in calls
+    assert answer(["--issue", base, "extra"]) == (0, "a.py,b.sh\n", "")
+
+    answers["diff"] = ".tdd/issue-1-plan.md\n"
+    assert answer(["--issue", base]) == (3, "", "")
+
+    assert answer([sha, "extra"]) == (0, "c.sh\n", "")
+    assert answer([sha, "--issue", base]) == (0, "c.sh\n", "")
+
+    answers["resolves"] = False
+    assert answer(["--issue", base]) == (
+        2, "", f"refactor-touched: cannot resolve commit '{base}'\n" + USAGE)

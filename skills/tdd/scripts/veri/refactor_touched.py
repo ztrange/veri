@@ -14,15 +14,17 @@ def refuse(message=None):
 
 def main(argv):
     rev = argv[0] if argv else ""
+    span = [f"{rev}^", rev]
     if rev == "--issue":
         rev = argv[1] if len(argv) > 1 else ""
+        span = [rev, "HEAD"]
     if not rev:
         return refuse()
     check = subprocess.run(["git", "rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}"],
                            stdout=subprocess.DEVNULL)
     if check.returncode != 0:
         return refuse(f"refactor-touched: cannot resolve commit '{rev}'")
-    diff = subprocess.run(["git", "diff", "--name-only", f"{rev}^", rev],
+    diff = subprocess.run(["git", "diff", "--name-only", *span],
                           stdout=subprocess.PIPE, text=True)
     touched = [p for p in diff.stdout.splitlines() if not p.startswith(".tdd/")]
     if not touched:
