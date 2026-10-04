@@ -30,19 +30,37 @@ def _issue(number):
     return "%s/%s" % (_ISSUES, number)
 
 
+class RestAdapter:
+    def list(self, path, empty=r"^\[\]$"):
+        answer = ""
+        sep = "&" if "?" in path else "?"
+        page = 1
+        while True:
+            run = _gh_api("%s%spage=%d" % (path, sep, page))
+            if run.returncode != 0:
+                raise NoAnswer(answer)
+            body = run.stdout.rstrip("\n")
+            if re.search(empty, body):
+                return answer
+            answer += body
+            page += 1
+
+    def issue_view(self, number, field):
+        rest = _gh_api(_issue(number))
+        try:
+            issue = json.loads(rest.stdout)
+        except json.JSONDecodeError as error:
+            print("json.decoder.JSONDecodeError: %s" % error, file=sys.stderr)
+            raise NoAnswer("")
+        if rest.returncode != 0:
+            raise NoAnswer("")
+        if field == "labels":
+            return "".join(label["name"] + "\n" for label in issue["labels"])
+        return (issue["body"] or "") + "\n"
+
+
 def gh_rest_list(path, empty=r"^\[\]$"):
-    answer = ""
-    sep = "&" if "?" in path else "?"
-    page = 1
-    while True:
-        run = _gh_api("%s%spage=%d" % (path, sep, page))
-        if run.returncode != 0:
-            raise NoAnswer(answer)
-        body = run.stdout.rstrip("\n")
-        if re.search(empty, body):
-            return answer
-        answer += body
-        page += 1
+    return RestAdapter().list(path, empty)
 
 
 def gh_list(path, *args):
@@ -66,17 +84,7 @@ def gh_issue_view(number, field):
     query = ".body" if field == "body" else ".labels[].name"
     run = _gh_graphql("issue", "view", number, "--json", field, "-q", query)
     if run.returncode != 0:
-        rest = _gh_api(_issue(number))
-        try:
-            issue = json.loads(rest.stdout)
-        except json.JSONDecodeError as error:
-            print("json.decoder.JSONDecodeError: %s" % error, file=sys.stderr)
-            raise NoAnswer("")
-        if rest.returncode != 0:
-            raise NoAnswer("")
-        if field == "labels":
-            return "".join(label["name"] + "\n" for label in issue["labels"])
-        return (issue["body"] or "") + "\n"
+        return RestAdapter().issue_view(number, field)
     return run.stdout
 
 
