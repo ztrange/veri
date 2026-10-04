@@ -134,7 +134,7 @@ def main(argv):
     scope = {}
     slice_arg, total_arg = (argv[1:3] + ["", ""])[:2]
     for which, given in (("slice-seconds", slice_arg), ("total-seconds", total_arg)):
-        if given and not re.fullmatch(r"-?[0-9]+", given):
+        if given and not re.fullmatch(r"[0-9]+", given):
             warn("%s '%s' is not a non-negative whole number" % (which, given))
             return 2
     span = capped(decimal(slice_arg) if slice_arg else str(SLICE_CAP), SLICE_CAP, scope)
