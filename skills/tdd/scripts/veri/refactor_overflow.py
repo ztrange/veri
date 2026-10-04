@@ -4,18 +4,21 @@ import re
 import subprocess
 import sys
 
-USAGE = "refactor-overflow: usage: refactor-overflow.sh <n> <owed-file> <reached>"
+USAGE = "usage: refactor-overflow.sh <n> <owed-file> <reached>"
 NUMBER = re.compile(r"[0-9]+")
+
+
+def fail(message, code):
+    print(f"refactor-overflow: {message}", file=sys.stderr)
+    return code
 
 
 def main(argv):
     n, owed, reached, skipped = (list(argv[:4]) + [""] * 4)[:4]
     if not NUMBER.fullmatch(n) or not owed or not NUMBER.fullmatch(reached):
-        print(USAGE, file=sys.stderr)
-        return 2
+        return fail(USAGE, 2)
     if skipped and not os.path.isfile(skipped):
-        print(f"refactor-overflow: no such skipped file: {skipped}", file=sys.stderr)
-        return 2
+        return fail(f"no such skipped file: {skipped}", 2)
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     listed = subprocess.run([os.path.join(here, "refactor-owed.sh"), "list", owed],
                             stdout=subprocess.PIPE, text=True)
@@ -24,12 +27,10 @@ def main(argv):
     try:
         skip = int(reached, 8 if reached.startswith("0") else 10)
     except ValueError:
-        print(f"refactor-overflow: {reached}: value too great for base", file=sys.stderr)
-        return 1
+        return fail(f"{reached}: value too great for base", 1)
     start = (skip + 1 + 2**63) % 2**64 - 2**63
     if start < 0:
-        print(f"refactor-overflow: illegal offset -- +{start}", file=sys.stderr)
-        return 1
+        return fail(f"illegal offset -- +{start}", 1)
     text = ""
     if skipped:
         with open(skipped) as f:
