@@ -1038,4 +1038,52 @@ fi
 
 report "$name"
 
+name="VERI_GH_DRIVER set on the launch reaches the conductor child and a leaf it detaches through supervise.sh and run-leaf.sh (#848)"
+problems=()
+
+clone30="$work/clone30"
+skill_clone "$clone30"
+leaf30="$work/leaf30"
+mkdir -p "$leaf30"
+echo "the leaf prompt" > "$leaf30/leaf.prompt"
+env30="$work/env30"
+leafenv30="$leaf30/leaf-driver"
+
+cat > "$stubdir/driver-claude" <<'STUB'
+#!/bin/sh
+printf '%s\n' "${VERI_GH_DRIVER-<unset>}" > "$LEAF_DRIVER_OUT"
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+STUB
+chmod +x "$stubdir/driver-claude"
+
+cat > "$stubdir/driver-hook" <<HOOK
+#!/bin/sh
+base="\$1"
+cd "$leaf30" || exit 1
+env CLAUDE_BIN="$stubdir/driver-claude" LEAF_DRIVER_OUT="$leafenv30" VERI_POLL=0.02 \
+  "\$base/scripts/detach-leaf.sh" "\$base/scripts/supervise.sh" develop-red "\$base/scripts/run-leaf.sh" leaf.prompt > supervise.out 2> supervise.err
+VERI_POLL=0.02 "\$base/scripts/wait-leaf.sh" develop-red 5 > /dev/null 2>&1
+HOOK
+chmod +x "$stubdir/driver-hook"
+
+caller30="$work/caller30"
+caller_repo "$caller30"
+launch_from "$caller30" "$clone30" CONDUCTOR_HOOK="$stubdir/driver-hook" ENV_OUT="$env30" VERI_GH_DRIVER=graphql
+
+if [[ ! -f "$env30" ]]; then
+  problems+=("the conductor binary was never launched — recorded no environment: $(cat "$launch_err")")
+else
+  conductor30="$(sed -n 's/^VERI_GH_DRIVER=//p' "$env30")"
+  [[ "$conductor30" == graphql ]] ||
+    problems+=("the conductor child saw VERI_GH_DRIVER=${conductor30:-<unset>}, not graphql")
+fi
+if [[ ! -s "$leafenv30" ]]; then
+  problems+=("the detached leaf's claude never ran: $(cat "$leaf30/supervise.err" 2>/dev/null)")
+else
+  [[ "$(cat "$leafenv30")" == graphql ]] ||
+    problems+=("the leaf's claude saw VERI_GH_DRIVER=$(cat "$leafenv30"), not graphql")
+fi
+
+report "$name"
+
 finish
