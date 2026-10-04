@@ -22,6 +22,12 @@ def main(argv):
                            stdout=subprocess.DEVNULL)
     if check.returncode != 0:
         return refuse(f"refactor-touched: cannot resolve commit '{rev}'")
+    diff = subprocess.run(["git", "diff", "--name-only", f"{rev}^", rev],
+                          stdout=subprocess.PIPE, text=True)
+    touched = [p for p in diff.stdout.splitlines() if not p.startswith(".tdd/")]
+    if not touched:
+        return 3
+    print(",".join(touched))
     return 0
 
 
