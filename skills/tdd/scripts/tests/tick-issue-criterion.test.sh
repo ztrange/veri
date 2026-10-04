@@ -143,4 +143,29 @@ else
   echo "FAIL - $name (exit want 0 got $code; edit-written=$([[ -f "$silent_edit" ]] && echo yes || echo no))"
 fi
 
+badpatchdir="$stubdir/bad-patch"
+mkdir -p "$badpatchdir"
+cat > "$badpatchdir/gh" <<'STUB'
+#!/bin/sh
+if [ "$1" = "issue" ] && [ "$2" = "view" ]; then
+  printf '%s' "$FAKE_BODY"
+elif [ "$1" = "api" ]; then
+  echo "HTTP 502: Bad Gateway (https://api.github.com/repos/o/r/issues/7)" >&2
+  exit 1
+fi
+STUB
+chmod +x "$badpatchdir/gh"
+
+bad_out="$stubdir/bad-patch-out"
+env PATH="$badpatchdir:$PATH" FAKE_BODY="$FAKE_BODY" \
+  "$WRAP" 7 alpha > "$bad_out" 2> /dev/null && code=0 || code=$?
+
+name="when the body PATCH fails with an HTTP 502, exits 2 with nothing on stdout"
+if [[ "$code" == 2 && ! -s "$bad_out" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - $name (exit want 2 got $code; stdout='$(tr '\n' '|' < "$bad_out")' want '')"
+fi
+
 finish
