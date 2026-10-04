@@ -212,6 +212,17 @@ for mode in unset override; do
 done
 report "$name"
 
+name="threshold abc: exit 2, nothing on stdout, and stderr names the threshold it refused"
+problems=()
+err="$scratch/threshold-abc.err"
+out="$(VERI_PROFILE_THRESHOLD=abc "$PROFILE" "$scratch/format.test.sh" 2>"$err")" && code=0 || code=$?
+[[ "$code" == 2 ]] || problems+=("want exit 2, got $code")
+[[ -z "$out" ]] || problems+=("want nothing on stdout, got: $(printf '%q' "$out")")
+want="profile.sh: VERI_PROFILE_THRESHOLD must be a number of seconds, got 'abc'"
+[[ "$(cat "$err")" == "$want" ]] ||
+  problems+=("want stderr exactly '$want', got: $(printf '%q' "$(cat "$err")")")
+report "$name"
+
 name="make -n profile: the same suites as make -n test, in the same offline environment"
 problems=()
 ROOT="$(cd "$HERE/../../../.." && pwd)"
