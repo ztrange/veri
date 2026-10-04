@@ -240,7 +240,7 @@ def test_next_fetches_the_listing_first_from_the_fixture_or_gh_pages_returning_2
     assert dies(["next", "alpha"]) == [listing % 1, listing % 2]
 
 
-def test_start_done_park_and_assign_take_the_lock_directory_polling_it_for_the_wait_times_20_and_release_it_on_every_path(tmp_path, monkeypatch, capsys, workqueue):
+def test_start_done_park_and_assign_take_the_lock_directory_polling_it_for_the_wait_times_20_reading_leading_zeros_as_decimal_and_release_it_on_every_path_issue_776(tmp_path, monkeypatch, capsys, workqueue):
     fake_git(monkeypatch, tmp_path)
     queue = tmp_path / ".tdd" / "workqueue"
     lock = tmp_path / ".tdd" / "workqueue.lock"
@@ -265,7 +265,7 @@ def test_start_done_park_and_assign_take_the_lock_directory_polling_it_for_the_w
     assert run(["start", "alpha", "12"], "1") == held
     assert sleeps == [0.05] * 20
     assert run(["done", "alpha", "13", "abc123"], "010") == held
-    assert sleeps == [0.05] * 160
+    assert sleeps == [0.05] * 200
     assert run(["park", "alpha", "13", "flaky"]) == held
     assert sleeps == [0.05] * 600
     assert run(["assign", "beta", "14"], "2") == held
