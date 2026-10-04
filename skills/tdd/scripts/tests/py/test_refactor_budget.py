@@ -1,5 +1,8 @@
 """In-process cases for veri/refactor_budget.py, the module refactor-budget.sh is a shim over."""
+import errno
 import importlib
+import io
+import os
 import pathlib
 import re
 import sys
@@ -137,3 +140,65 @@ def test_main_reads_its_arguments_by_position_and_compares_them_as_bash_arithmet
         (3, "refactor 08/09 — budget spent\n", True),
         (3, "refactor 007/5 — budget spent\n", ""),
     ]
+
+
+def test_main_writes_bytes_whatever_the_locale_and_exits_1_when_stdout_is_closed(monkeypatch, refactor_budget):
+    streams = {"C": ("ascii", "surrogateescape"), "C.UTF-8": ("utf-8", "strict")}
+    ff = os.fsdecode(b"\xff")
+
+    def run(locale, env, argv):
+        encoding, errors = streams[locale]
+        monkeypatch.setenv("LC_ALL", locale)
+        monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
+        monkeypatch.delenv("VERI_ISSUE_REFACTOR_BUDGET", raising=False)
+        for name, value in env.items():
+            monkeypatch.setenv(name, value)
+        out, err = io.BytesIO(), io.BytesIO()
+        monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(out, encoding=encoding, errors=errors, write_through=True))
+        monkeypatch.setattr(sys, "stderr", io.TextIOWrapper(err, encoding=encoding, errors="backslashreplace",
+                                                            write_through=True))
+        try:
+            code = refactor_budget.main(argv)
+        except Exception:
+            code = 1
+        sys.stdout.flush()
+        sys.stderr.flush()
+        return (code, out.getvalue(), err.getvalue())
+
+    seen, wanted = {}, {}
+    for locale in streams:
+        seen[(locale, "status")] = run(locale, {}, ["4"])
+        wanted[(locale, "status")] = (0, b"refactor 4/5 \xe2\x80\x94 another transform may run\n", b"")
+        seen[(locale, "count")] = run(locale, {}, [ff])
+        wanted[(locale, "count")] = (2, b"", b"refactor-budget: <count> must be a whole number >= 0: \xff\n"
+                                             b"usage: refactor-budget.sh [--issue] <count>\n")
+        seen[(locale, "budget")] = run(locale, {"VERI_REFACTOR_BUDGET": ff}, ["1"])
+        wanted[(locale, "budget")] = (2, b"", b"refactor-budget: VERI_REFACTOR_BUDGET must be a whole number >= 0: \xff\n")
+    monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
+    monkeypatch.setattr(sys, "stdout", None)
+    try:
+        seen["closed"] = refactor_budget.main(["4"])
+    except Exception:
+        seen["closed"] = 1
+    wanted["closed"] = 1
+
+    class ClosedFd(io.RawIOBase):
+        closed_now = True
+
+        def writable(self):
+            return True
+
+        def write(self, data):
+            if self.closed_now:
+                raise OSError(errno.EBADF, "Bad file descriptor")
+            return len(data)
+
+    fd = ClosedFd()
+    monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(io.BufferedWriter(fd)))
+    try:
+        seen["closed-fd"] = refactor_budget.main(["4"])
+    except OSError:
+        seen["closed-fd"] = 1
+    fd.closed_now = False
+    wanted["closed-fd"] = 1
+    assert seen == wanted
