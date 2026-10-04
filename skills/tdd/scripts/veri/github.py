@@ -3,6 +3,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 
 
 class NoAnswer(Exception):
@@ -64,6 +65,10 @@ def gh_issue_view(number, field):
     if run.returncode != 0:
         rest = _gh_api(_issue(number))
         if rest.returncode != 0:
+            try:
+                json.loads(rest.stdout)
+            except json.JSONDecodeError as error:
+                print("json.decoder.JSONDecodeError: %s" % error, file=sys.stderr)
             raise NoAnswer("")
         try:
             issue = json.loads(rest.stdout)

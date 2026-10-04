@@ -308,9 +308,10 @@ def test_gh_issue_view_answers_the_label_names_one_per_line_from_the_rest_route_
     ]
 
 
-def test_gh_issue_view_is_a_no_answer_with_the_rest_stderr_passed_through_when_both_routes_fail(monkeypatch, capsys, github):
+def test_gh_issue_view_is_a_no_answer_with_the_rest_stderr_then_the_json_decode_line_when_both_routes_fail_with_an_empty_rest_stdout(monkeypatch, capsys, github):
     graphql_refusal = "GraphQL: Resource not accessible by integration\n"
     rest_refusal = "gh: HTTP 502: Bad Gateway (https://api.github.com/repos/o/r/issues/60)\n"
+    decode_line = "json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\n"
     answers = {
         ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (1, "", graphql_refusal),
         ("gh", "api", "repos/{owner}/{repo}/issues/60"): (1, "", rest_refusal),
@@ -336,7 +337,7 @@ def test_gh_issue_view_is_a_no_answer_with_the_rest_stderr_passed_through_when_b
         ["gh", "issue", "view", "60", "--json", "body", "-q", ".body"],
         ["gh", "api", "repos/{owner}/{repo}/issues/60"],
     ]
-    assert capsys.readouterr().err == rest_refusal
+    assert capsys.readouterr().err == rest_refusal + decode_line
 
 
 def test_gh_issue_view_is_a_no_answer_when_the_rest_answer_is_not_json(monkeypatch, github):
