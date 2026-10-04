@@ -464,3 +464,27 @@ def test_main_bounds_an_omitted_or_empty_total_by_the_mean_of_the_last_five_ci_r
                          [c for c in calls if not c.startswith("gh api ")]))
 
     assert observed == [expected for *_, expected in cases]
+
+
+def test_main_splits_the_pr_url_at_its_last_pull_and_keys_the_deadline_by_a_head_holding_a_space(
+        monkeypatch, capsys, tmp_path, wait_ci):
+    pr = "https://github.com/o/r/pull/9/pull/7"
+    head = "abc 123"
+    commits = f"gh api repos/o/r/pull/9/commits/{head}"
+    bodies = {
+        "gh api repos/o/r/pull/9/pulls/7": json.dumps({"mergeable": True, "head": {"sha": head}}),
+        f"{commits}/check-runs?page=1": json.dumps({"check_runs": [{"status": "completed", "conclusion": None}]}),
+        f"{commits}/check-runs?page=2": json.dumps({"check_runs": []}),
+        f"{commits}/status": json.dumps({"statuses": []}),
+        "date +%s": "1000\n",
+    }
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.chdir(tmp_path)
+    calls = fake_processes(monkeypatch, lambda line: (0, bodies.get(line, ""), ""))
+
+    code = wait_ci.main([pr, "0", "100"])
+    captured = capsys.readouterr()
+
+    assert (code, captured.out, captured.err, calls,
+            {p.name: p.read_text() for p in (tmp_path / ".tdd").iterdir()}) == (
+        3, "", "", list(bodies), {f"ci-deadline-{head}": "1100\n"})
