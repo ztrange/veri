@@ -9,6 +9,7 @@ NUMBER = re.compile(rb"[0-9]+(\.[0-9]+)?")
 
 def _write(stream, data):
     stream.buffer.write(data + b"\n")
+    stream.buffer.flush()
 
 
 def main(argv):
