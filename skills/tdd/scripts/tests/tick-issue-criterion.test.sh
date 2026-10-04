@@ -210,4 +210,28 @@ problems=()
   || problems+=("linked: PATCHed body differs from in place (written=$([[ -f "$linked_edit" ]] && echo yes || echo no))")
 report "$name"
 
+planted="$stubdir/planted"
+mkdir -p "$planted/scripts"
+cp "$WRAP" "$HERE/../tick-criterion.sh" "$planted/scripts/"
+cp -R "$HERE/../lib" "$planted/scripts/lib"
+cp -R "$HERE/../veri" "$planted/scripts/veri"
+rm -rf "$planted/scripts/lib/__pycache__" "$planted/scripts/veri/__pycache__"
+cat > "$planted/scripts/veri/tick_issue_criterion.py" <<'PY'
+import sys
+
+if __name__ == "__main__":
+    print("planted " + " ".join(sys.argv[1:]))
+    sys.exit(3)
+PY
+planted_edit="$stubdir/planted-edit"; rm -f "$planted_edit"
+planted_out="$(env PATH="$stubdir:$PATH" FAKE_BODY="$FAKE_BODY" FAKE_OUT="$planted_edit" PYTHONDONTWRITEBYTECODE=1 \
+  "$planted/scripts/tick-issue-criterion.sh" 7 alpha 2>/dev/null)" && planted_code=0 || planted_code=$?
+
+name="answers through its entry point with the stdout and exit code veri/tick_issue_criterion.py gives it, rather than its own"
+problems=()
+[[ "$planted_code" == 3 ]] || problems+=("exit want 3 got $planted_code")
+[[ "$planted_out" == "planted 7 alpha" ]] || problems+=("stdout='$planted_out' want 'planted 7 alpha'")
+[[ ! -e "$planted_edit" ]] || problems+=("a body was PATCHed; want none")
+report "$name"
+
 finish
