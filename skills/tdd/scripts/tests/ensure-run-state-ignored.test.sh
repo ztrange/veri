@@ -84,6 +84,17 @@ refuses partial 'only .tdd/issue-*-spec.md' '.tdd/issue-*-spec.md'
 
 refuses misordered 'negation last' '.tdd/*' '.tdd/issue-*-spec.md' '!.tdd/issue-*.md'
 
+repo="$work/diagnostic"
+make_repo "$repo"
+printf '%s\n' '.tdd/issue-*-spec.md' > "$repo/.gitignore"
+want_err="ensure-run-state-ignored: $repo/.gitignore carries veri's run-state rule only in part, or with its lines out of order — fix it by hand"
+
+out="$("$ENSURE" "$repo" 2>"$work/diagnostic.stderr")" && code=0 || code=$?
+err="$(cat "$work/diagnostic.stderr")"
+
+{ [[ "$code" == 2 ]] && [[ -z "$out" ]] && [[ "$err" == "$want_err" ]]; } \
+  && ok || no "only the spec line: exits 2, prints nothing on stdout and names the file in the refusal diagnostic byte for byte (exit=$code want 2, stdout='$out' want empty, stderr='$err' want '$want_err')"
+
 repo="$work/trailing-newline"
 make_repo "$repo"
 printf 'node_modules/\n' > "$repo/.gitignore"
