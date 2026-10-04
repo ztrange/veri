@@ -368,4 +368,44 @@ elif [[ -n "$bail_status" ]]; then
 fi
 report "$name"
 
+name="#566: $skill_md's Draft PR step, on a non-zero metrics.sh exit, neither bails nor stops: it goes on to push-branch.sh and gh api -X PATCH"
+problems=()
+
+go_status=""
+if ! go_render_line="$(first_fenced_line 'metrics.sh <n> > .tdd/issue-<n>-metrics.md')"; then
+  problems+=("$skill_md's Draft PR command block never renders metrics.sh <n> > .tdd/issue-<n>-metrics.md")
+elif [[ "$(sed -n "${go_render_line}p" "$skill_path")" =~ ([A-Za-z_][A-Za-z0-9_]*)=\$\? ]]; then
+  go_status="${BASH_REMATCH[1]}"
+else
+  problems+=("$skill_md renders metrics.sh at SKILL.md:$go_render_line without capturing its exit status")
+fi
+go_push_line="$(first_fenced_line 'push-branch.sh')" ||
+  problems+=("$skill_md's Draft PR command block never runs push-branch.sh")
+go_edit_line="$(first_fenced_line "$pr_edit")" ||
+  problems+=("$skill_md's Draft PR command block never runs gh api -X PATCH")
+
+if [[ -n "$go_status" && -n "${go_push_line:-}" && -n "${go_edit_line:-}" ]]; then
+  gated_ifs=0
+  while IFS=$'\t' read -r n text; do
+    (( n > go_render_line && n <= go_edit_line )) || continue
+    mentions=0
+    [[ "$text" =~ \$\{?$go_status([^A-Za-z0-9_]|$) ]] && mentions=1
+    if [[ "$text" =~ ^[[:space:]]*if[[:space:]] ]]; then
+      [[ "$mentions" -eq 1 || "$gated_ifs" -gt 0 ]] && gated_ifs=$((gated_ifs + 1))
+    elif [[ "$text" =~ ^[[:space:]]*fi([[:space:];]|$) && "$gated_ifs" -gt 0 ]]; then
+      gated_ifs=$((gated_ifs - 1))
+    fi
+    if [[ "$mentions" -eq 1 && "$text" =~ (event\.sh[[:space:]]+bail|(^|[^A-Za-z0-9_-])(exit|return)([^A-Za-z0-9_-]|$)) ]]; then
+      problems+=("$skill_md stops or bails on \$$go_status, metrics.sh's exit status, at SKILL.md:$n, so a failed render ends the Draft PR step instead of reaching its push and PR body rewrite: $(printf '%.120s' "$text")")
+    fi
+    if [[ "$n" -eq "$go_push_line" || "$n" -eq "$go_edit_line" ]]; then
+      [[ "$gated_ifs" -eq 0 ]] ||
+        problems+=("$skill_md runs SKILL.md:$n inside an if on \$$go_status, so a non-zero metrics.sh exit skips it: $(printf '%.120s' "$text")")
+      [[ "$text" =~ ^[[:space:]]*(\$S/push-branch\.sh|gh[[:space:]]+api[[:space:]]+-X[[:space:]]+PATCH) ]] ||
+        problems+=("$skill_md guards SKILL.md:$n behind a condition, so a non-zero metrics.sh exit may skip it: $(printf '%.120s' "$text")")
+    fi
+  done <<< "$(fenced_lines "$skill_path" '' '### 4. Draft PR')"
+fi
+report "$name"
+
 finish
