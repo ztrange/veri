@@ -585,4 +585,38 @@ before="$(awk -v n="${ready_at:-1}" 'NR < n && /^gh api .*pulls\/42([^\/]|$)/ { 
 grep -Fx "sleep 7" "$calls" > /dev/null || problems+="    want a 'sleep 7' between reads, got none"$'\n'
 record
 
+# #879: gh_pr_ready <n> <head-sha> gives up after a bounded number of reads of pulls/<n> that
+#    all report another sha, returning 2 with PR <n> unready and both shas named on stderr
+name="#879 gh_pr_ready 42 <head-sha> returns 2 without marking PR 42 ready when pulls/42 still reports another sha after its bounded number of reads, naming both shas on stderr"
+calls="$scratch/calls879b" err="$scratch/err879b" reads="$scratch/reads879b"
+: > "$calls"; : > "$reads"
+(
+  gh() {
+    echo "gh $*" >> "$calls"
+    case "$*" in
+      *pulls/42/ccr/ready_for_review*) return 0 ;;
+      *pulls/42*)
+        echo x >> "$reads"
+        (($(wc -l < "$reads") > 200)) && { echo "stub gh: pulls/42 read more than 200 times" >&2; return 1; }
+        if [[ "$*" == *--jq* || "$*" == *" -q "* ]]; then echo "$old"; else printf '{"head":{"sha":"%s"}}\n' "$old"; fi
+        return 0 ;;
+    esac
+    echo "stub gh: unexpected call $*" >&2; return 1
+  }
+  sleep() { echo "sleep $*" >> "$calls"; }
+  unset VERI_GH_DRIVER
+  VERI_POLL=7
+  source "$LIB"
+  gh_pr_ready 42 "$new"
+) > /dev/null 2> "$err"
+rc=$?
+problems=""
+[[ "$rc" -eq 2 ]] || problems+="    want return 2, got $rc"$'\n'
+ready_calls="$(grep -E 'ccr/ready_for_review|^gh pr ready' "$calls")"
+[[ -z "$ready_calls" ]] || problems+="    want no ready call, got: $ready_calls"$'\n'
+nreads="$(wc -l < "$reads" | tr -d ' ')"
+((nreads <= 200)) || problems+="    want a bounded number of reads of pulls/42, got $nreads before the stub refused"$'\n'
+grep -F "$new" "$err" | grep -F "$old" > /dev/null || problems+="    want a stderr line naming $new and $old, got none"$'\n'
+record
+
 finish

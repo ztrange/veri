@@ -2,9 +2,10 @@
 # lib/github.sh — sourced, not run: defines `gh_pr_ready`, `gh_issue_view`, `gh_issue_edit`, `gh_json`, `gh_list` and `gh_rest_list`.
 #
 # gh_pr_ready <n> [head-sha] — mark draft PR <n> ready for review; given <head-sha>, only once
-#   pulls/<n> reports it as the head, reading it again every VERI_POLL seconds (default 10).
+#   pulls/<n> reports it as the head, reading it again every VERI_POLL seconds (default 10),
+#   at most 30 times.
 #   0  marked ready
-#   2  GitHub gave no answer on either route
+#   2  GitHub gave no answer on either route, or pulls/<n> never reported <head-sha>
 #
 # gh_issue_view <n> body|labels — print issue <n>'s body, or its label names one per line;
 #   2 when GitHub gave no answer on either route.
@@ -51,10 +52,11 @@ _gh_rest() {
 
 gh_pr_ready() {
   _gh_driver_known || return 2
-  local head
+  local head tries=0
   while [[ -n "${2:-}" ]]; do
     head="$(gh api "repos/{owner}/{repo}/pulls/$1" --jq .head.sha)" || return 2
     [[ "$head" == "$2" ]] && break
+    ((++tries < 30)) || { echo "gh_pr_ready: PR $1 head is $head after $tries reads, expected $2" >&2; return 2; }
     sleep "${VERI_POLL:-10}"
   done
   _gh_graphql gh pr ready "$1" ||
