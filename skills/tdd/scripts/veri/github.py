@@ -83,10 +83,10 @@ class RestAdapter:
 
 
 class FallbackAdapter:
-    def __init__(self, first, second, rest=None):
+    def __init__(self, first, second, rest):
         self.first = first
         self.second = second
-        self.rest = rest or second
+        self.rest = rest
 
     def list(self, path, *args):
         try:
@@ -137,10 +137,11 @@ def _select(operation):
     if operation == "json" and fixtures:
         return FixtureAdapter(fixtures)
     driver = os.environ.get("VERI_GH_DRIVER")
+    rest = RestAdapter()
     if driver == "graphql":
-        return FallbackAdapter(GraphQLAdapter(), NoRouteAdapter(), RestAdapter())
+        return FallbackAdapter(GraphQLAdapter(), NoRouteAdapter(), rest)
     first = GraphQLAdapter() if driver == "auto" else NoRouteAdapter()
-    return FallbackAdapter(first, RestAdapter())
+    return FallbackAdapter(first, rest, rest)
 
 
 def gh_rest_list(path, empty=r"^\[\]$"):
