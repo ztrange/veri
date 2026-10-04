@@ -45,9 +45,9 @@ def cases(suite, trace_lines, threshold):
         lineno = fields[1]
         if not first:
             first = lineno
-        if len(fields) == 3 and re.fullmatch(r"(pass|fail)=[0-9]+", fields[2]):
-            name, value = fields[2].split("=")
-            value = int(value)
+        counter = len(fields) == 3 and re.fullmatch(r"(pass|fail)=([0-9]+)", fields[2])
+        if counter:
+            name, value = counter[1], int(counter[2])
             if value > seen.get(name, 0):
                 n += 1
                 secs = float(stamp) - float(start)
