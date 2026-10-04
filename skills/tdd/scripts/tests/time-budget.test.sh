@@ -73,4 +73,22 @@ err="$( VERI_UNIT_BUDGET=ten "$BUDGET" 2>&1 >"$out_file" )" && code=0 || code=$?
 
 report "$name"
 
+name="time-budget.sh run through a symlink to the skill directory and from another working directory answers as it does when run in place"
+problems=()
+
+work="$(scratch_dir)"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+mkdir -p "$work/here" "$work/elsewhere"
+
+for tunable in "" "VERI_UNIT_BUDGET=ten"; do
+  in_place_out="$(cd "$work/here" && env -u VERI_UNIT_BUDGET -u VERI_TIME_WARN_RATIO $tunable "$BUDGET" 2>"$work/in_place_err")"; in_place_code=$?
+  linked_out="$(cd "$work/elsewhere" && env -u VERI_UNIT_BUDGET -u VERI_TIME_WARN_RATIO $tunable "$work/linked-skill/scripts/time-budget.sh" 2>"$work/linked_err")"; linked_code=$?
+  in_place="$(printf 'stdout:\n%s\nstderr:\n%s\nexit %s' "$in_place_out" "$(cat "$work/in_place_err")" "$in_place_code")"
+  linked="$(printf 'stdout:\n%s\nstderr:\n%s\nexit %s' "$linked_out" "$(cat "$work/linked_err")" "$linked_code")"
+  [[ "$linked" == "$in_place" ]] ||
+    problems+=("${tunable:-both tunables unset}: in place $(printf '%q' "$in_place"), through the symlink $(printf '%q' "$linked")")
+done
+
+report "$name"
+
 finish
