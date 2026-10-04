@@ -21,6 +21,13 @@
 # gh_rest_list <rest-path> [empty-regex] — print every page of `gh api <rest-path>`, requested as
 #   page=1, 2, … until one matches <empty-regex> (default: a bare `[]`), one JSON document per
 #   page, back to back; 2 when GitHub gave no answer.
+#
+# VERI_GH_DRIVER picks the route of gh_pr_ready, gh_issue_view, gh_list and gh_json with gh args:
+#   rest (the default when unset) runs only `gh api`, graphql only the gh porcelain command with no
+#   fallback, auto GraphQL then REST. Set but empty, or any other value, returns 2 with a stderr
+#   line naming the variable and the value, checked at call time. gh_issue_edit, gh_rest_list and
+#   gh_json with no gh args use REST under every value, and VERI_GH_JSON takes precedence over it.
+#   A Claude Code cloud session, where GraphQL is refused, needs nothing set.
 
 _gh_driver_known() {
   case "${VERI_GH_DRIVER-rest}" in

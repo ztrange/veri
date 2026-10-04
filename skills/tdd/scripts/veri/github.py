@@ -1,4 +1,13 @@
-"""veri's GitHub access: lib/github.sh's GraphQL→REST fallback, run through gh."""
+"""veri's GitHub access through gh, the Python twin of lib/github.sh.
+
+VERI_GH_DRIVER picks the route an operation with a GraphQL route takes (gh_issue_view,
+gh_list, gh_json with gh args): rest, the default when unset, runs only `gh api`; graphql
+runs only the gh porcelain command, with no fallback; auto tries GraphQL, then REST. Set
+but empty, or any other value, raises NoAnswer at call time with a stderr line naming the
+variable and the value. Operations with no GraphQL route (issue edit and create,
+gh_rest_list, gh_json with no gh args) use REST under every value, and VERI_GH_JSON takes
+precedence over it. A Claude Code cloud session, where GraphQL is refused, needs nothing set.
+"""
 import json
 import os
 import re
