@@ -132,12 +132,13 @@ def main(argv):
     pr = argv[0]
     repo = pr.removeprefix("https://github.com/").rsplit("/pull/", 1)[0]
     scope = {}
-    for which, given in zip(("slice-seconds", "total-seconds"), argv[1:3]):
+    slice_arg, total_arg = (argv[1:3] + ["", ""])[:2]
+    for which, given in (("slice-seconds", slice_arg), ("total-seconds", total_arg)):
         if given and not re.fullmatch(r"-?[0-9]+", given):
             warn("%s '%s' is not a non-negative whole number" % (which, given))
             return 2
-    span = capped(decimal(argv[1]) if len(argv) > 1 and argv[1] else str(SLICE_CAP), SLICE_CAP, scope)
-    total = decimal(argv[2]) if len(argv) > 2 else ""
+    span = capped(decimal(slice_arg) if slice_arg else str(SLICE_CAP), SLICE_CAP, scope)
+    total = decimal(total_arg)
     if total:
         total = capped(total, CEILING, scope)
     else:
