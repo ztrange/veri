@@ -115,3 +115,55 @@ def test_main_empties_the_phase_reason_file_in_place_before_the_exec_and_never_c
     else:
         assert (seen, held.stat().st_ino, path.is_symlink()) == (
             [""], inode, target == "symlink")
+
+
+def test_main_finds_the_phase_value_blind_past_leading_step_and_fast_cmd_pairs_as_the_library_says(
+        tmp_path, monkeypatch):
+    import signal
+    import subprocess
+    scripts = tmp_path / "scripts"
+    run_verdict = staged_module(scripts)
+    (scripts / "verify.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
+    (scripts / "verify.sh").chmod(0o755)
+    run = tmp_path / "run"
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(os, "execv", lambda path, args: None)
+    monkeypatch.setattr(os, "dup2", lambda *a, **k: None)
+    monkeypatch.setattr(signal, "signal", lambda signum, handler: None)
+
+    def emptied(argv):
+        if run.exists():
+            shutil.rmtree(run)
+        (run / ".tdd").mkdir(parents=True)
+        for word in {"", *argv}:
+            (run / ".tdd" / f"verify-{word}.reason").write_text("an earlier step's reason\n")
+        monkeypatch.chdir(run)
+        run_verdict.main(list(argv))
+        monkeypatch.chdir(tmp_path)
+        return sorted(p.name for p in (run / ".tdd").iterdir() if p.read_text() == "")
+
+    tail = ["spec.md", "t.sh", "case"]
+    found = {
+        "fast-cmd pair": emptied(["--fast-cmd", "make unit", "red", *tail]),
+        "empty step value": emptied(["--step", "", "red", *tail]),
+        "option as a value": emptied(["--step", "--fast-cmd", "x", "red"]),
+        "lone step": emptied(["--step"]),
+        "step=": emptied(["--step=t", "red"]),
+        "option after the phase": emptied(["red", "--step", "t", *tail]),
+    }
+    assert found == {
+        "fast-cmd pair": ["verify-red.reason"],
+        "empty step value": ["verify-red.reason"],
+        "option as a value": ["verify-x.reason"],
+        "lone step": [],
+        "step=": ["verify---step=t.reason"],
+        "option after the phase": ["verify-red.reason"],
+    }
+
+    library = SCRIPTS / "lib" / "verify-options.sh"
+    words = ["--step", "--fast-cmd", "--steps", "-s", ""]
+    by_library = {word: subprocess.run(
+        ["bash", "-c", 'source "$1" && verify_takes_a_value "$2"', "bash", str(library), word],
+        stdin=subprocess.DEVNULL).returncode == 0 for word in words}
+    by_main = {word: emptied([word, "v", "red", *tail]) == ["verify-red.reason"] for word in words}
+    assert by_main == by_library
