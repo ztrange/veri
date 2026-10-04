@@ -452,4 +452,61 @@ for driver in unset auto rest graphql; do
 done
 record
 
+# 12. VERI_GH_DRIVER set but empty, or set to a value it does not know, is refused before any gh
+#     process starts: every gh_* function returns 2 with one stderr line naming the variable and
+#     the value, and solvable-issues.sh, built on the library, exits 2
+name="with VERI_GH_DRIVER empty, REST or gql, every gh_* function starts no gh process, returns 2 and prints one stderr line naming VERI_GH_DRIVER and the value, and solvable-issues.sh exits 2"
+calls="$scratch/calls12" err="$scratch/err12"
+: > "$calls"
+mkdir -p "$scratch/bin12"
+printf '#!/bin/sh\necho "$op python3" >> "$calls"\nexit 1\n' > "$scratch/bin12/python3"
+chmod +x "$scratch/bin12/python3"
+problems=""
+for driver in '' REST gql; do
+  for op in view list json json_rest ready edit rest_list solvable; do
+    (
+      gh() {
+        echo "$op gh $*" >> "$calls"
+        case "$1" in
+          issue|pr) echo '[]'; return 0 ;;
+          api) echo '[]'; return 0 ;;
+        esac
+        return 1
+      }
+      git() { echo "$op git $*" >> "$calls"; return 1; }
+      python3() { echo "$op python3 $*" >> "$calls"; cat > /dev/null; echo rest-body; }
+      unset VERI_GH_JSON VERI_LABEL VERI_PRIORITY_LABEL
+      export VERI_GH_DRIVER="$driver"
+      source "$LIB"
+      case "$op" in
+        view) gh_issue_view 7 body ;;
+        list) gh_list 'repos/{owner}/{repo}/issues' issue list --json number ;;
+        json) gh_json issues.json 'repos/{owner}/{repo}/issues' issue list --json number ;;
+        json_rest) gh_json issues.json 'repos/{owner}/{repo}/issues' ;;
+        ready) gh_pr_ready 42 ;;
+        edit) gh_issue_edit 7 "$scratch/body12" ;;
+        rest_list) gh_rest_list 'repos/{owner}/{repo}/issues' ;;
+        solvable)
+          export calls op
+          export -f gh git
+          PATH="$scratch/bin12:$PATH" bash "$HERE/../../solvable-issues.sh" ;;
+      esac
+    ) > /dev/null 2> "$err.one"
+    rc=$?
+    cat "$err.one" >> "$err"
+    [[ "$rc" -eq 2 ]] ||
+      problems+="    $op under VERI_GH_DRIVER='$driver': want return 2, got $rc"$'\n'
+    if grep -E "^$op gh " "$calls" > /dev/null; then
+      problems+="    $op under VERI_GH_DRIVER='$driver': want no gh process, got: $(printf '%q' "$(grep -E "^$op gh " "$calls")")"$'\n'
+    fi
+    lines="$(wc -l < "$err.one" | tr -d ' ')"
+    if [[ "$lines" != 1 ]] || ! grep -F "VERI_GH_DRIVER" "$err.one" > /dev/null ||
+        ! grep -F "'$driver'" "$err.one" > /dev/null; then
+      problems+="    $op under VERI_GH_DRIVER='$driver': want one stderr line naming VERI_GH_DRIVER and '$driver', got $(printf '%q' "$(cat "$err.one")")"$'\n'
+    fi
+    : > "$calls"
+  done
+done
+record
+
 finish
