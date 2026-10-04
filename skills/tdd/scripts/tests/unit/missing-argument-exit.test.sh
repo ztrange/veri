@@ -107,10 +107,6 @@ verdict "$name" "${offenders[@]}"
 
 name="migration slice 6 refuses an unresolvable commit or a missing file with the script's own usage text"
 offenders=()
-git() { return 1; }
-export -f git
-rejects refactor-touched.sh deadbeefdeadbeefdeadbeefdeadbeefdeadbeef  # unresolvable <commit>
-unset -f git
 rejects refactor-owed.sh render                         # no <file>
 rejects refactor-owed.sh list                           # no <file>
 rejects refactor-owed.sh append                         # no <file>

@@ -42,3 +42,24 @@ def test_main_with_no_commit_or_no_base_returns_2_with_the_usage_line_alone_and_
         assert (argv, code, captured.out, captured.err) == (argv, 2, "", USAGE)
 
     assert calls == []
+
+
+def test_main_with_an_unresolvable_commit_returns_2_naming_it_then_the_usage_line_and_runs_no_diff(
+        monkeypatch, capsys, refactor_touched):
+    sha = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+    calls = []
+
+    def fake(args, *rest, **kwargs):
+        calls.append(list(args))
+        code = 1 if list(args)[:4] == ["git", "rev-parse", "--verify", "--quiet"] else 0
+        return subprocess.CompletedProcess(args, code, "", "")
+
+    for entry in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, entry, fake)
+
+    code = refactor_touched.main([sha])
+    captured = capsys.readouterr()
+
+    assert (code, captured.out, captured.err) == (
+        2, "", f"refactor-touched: cannot resolve commit '{sha}'\n" + USAGE)
+    assert [c for c in calls if c[:2] == ["git", "diff"]] == []
