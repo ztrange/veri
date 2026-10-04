@@ -14,6 +14,10 @@ def _gh(*args, stderr=None):
     return subprocess.run(["gh", *args], stdout=subprocess.PIPE, stderr=stderr, text=True)
 
 
+def _gh_graphql(*args):
+    return _gh(*args, stderr=subprocess.DEVNULL)
+
+
 def _gh_api(path):
     return _gh("api", path)
 
@@ -38,7 +42,7 @@ def gh_rest_list(path, empty=r"^\[\]$"):
 
 
 def gh_list(path, *args):
-    run = _gh(*args, stderr=subprocess.DEVNULL)
+    run = _gh_graphql(*args)
     if run.returncode != 0:
         return gh_rest_list(path)
     return run.stdout
@@ -56,8 +60,7 @@ def gh_json(fixture, path, *args):
 
 def gh_issue_view(number, field):
     query = ".body" if field == "body" else ".labels[].name"
-    run = subprocess.run(["gh", "issue", "view", number, "--json", field, "-q", query],
-                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    run = _gh_graphql("issue", "view", number, "--json", field, "-q", query)
     if run.returncode != 0:
         rest = _gh_api(_issue(number))
         if rest.returncode != 0:
