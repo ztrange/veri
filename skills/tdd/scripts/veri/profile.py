@@ -79,6 +79,7 @@ def main(argv):
             n, found = cases(suite, run_traced(suite, trace), threshold)
             if not n:
                 print("profile.sh: %s: no pass=/fail= increment in its trace" % suite, file=sys.stderr)
+                sort_lines(lines)
                 return 2
             lines += found
         return sort_lines(lines)
