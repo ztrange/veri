@@ -59,5 +59,7 @@ def gh_issue_view(number, field):
 
 
 def gh_issue_edit(number, body_file):
-    subprocess.run(["gh", "api", "-X", "PATCH", _issue(number),
-                    "-F", "body=@%s" % body_file], stdout=subprocess.DEVNULL)
+    run = subprocess.run(["gh", "api", "-X", "PATCH", _issue(number),
+                          "-F", "body=@%s" % body_file], stdout=subprocess.DEVNULL)
+    if run.returncode != 0:
+        raise NoAnswer("")

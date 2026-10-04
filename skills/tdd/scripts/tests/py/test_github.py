@@ -375,3 +375,27 @@ def test_gh_issue_edit_patches_the_issue_body_from_the_file_and_answers_nothing_
     assert answer is None
     assert calls == [list(patch)]
     assert capsys.readouterr().out == ""
+
+
+def test_gh_issue_edit_is_a_no_answer_with_gh_stderr_passed_through_when_the_patch_fails(monkeypatch, capsys, github):
+    patch = ("gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/60", "-F", "body=@/tmp/body.md")
+    refusal = "gh: HTTP 502: Bad Gateway (https://api.github.com/repos/o/r/issues/60)\n"
+    calls = []
+
+    def fake_run(args, **kwargs):
+        calls.append(list(args))
+        if tuple(args) != patch:
+            raise AssertionError("unexpected command: %r" % (args,))
+        if kwargs.get("stderr") is None:
+            sys.stderr.write(refusal)
+        return subprocess.CompletedProcess(
+            args, 1, "" if kwargs.get("stdout") == subprocess.PIPE else None,
+            refusal if kwargs.get("stderr") == subprocess.PIPE else None)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    with pytest.raises(github.NoAnswer):
+        github.gh_issue_edit("60", "/tmp/body.md")
+
+    assert calls == [list(patch)]
+    assert capsys.readouterr().err == refusal
