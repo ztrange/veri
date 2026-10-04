@@ -10,8 +10,12 @@ class NoAnswer(Exception):
         self.answer = answer
 
 
+def _gh(*args, stderr=None):
+    return subprocess.run(["gh", *args], stdout=subprocess.PIPE, stderr=stderr, text=True)
+
+
 def _gh_api(path):
-    return subprocess.run(["gh", "api", path], stdout=subprocess.PIPE, text=True)
+    return _gh("api", path)
 
 
 def _issue(number):
@@ -34,8 +38,7 @@ def gh_rest_list(path, empty=r"^\[\]$"):
 
 
 def gh_list(path, *args):
-    run = subprocess.run(["gh", *args], stdout=subprocess.PIPE,
-                         stderr=subprocess.DEVNULL, text=True)
+    run = _gh(*args, stderr=subprocess.DEVNULL)
     if run.returncode != 0:
         return gh_rest_list(path)
     return run.stdout
