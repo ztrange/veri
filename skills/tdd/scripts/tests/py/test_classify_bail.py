@@ -1,5 +1,7 @@
 """In-process cases for veri/classify_bail.py, the module classify-bail.sh is a shim over."""
 import importlib
+import io
+import os
 import pathlib
 import sys
 
@@ -76,4 +78,20 @@ def test_main_keeps_the_bash_quirks_exact_case_first_argument_only_no_option_mar
         "dashdash": (2, "", "classify-bail: unknown cause: --\n" + USAGE),
         "empty": results["none"],
         "none": (2, "", "classify-bail: unknown cause: \n" + USAGE),
+    }
+
+
+def test_main_echoes_an_unknown_cause_back_byte_for_byte_on_stderr_newline_and_non_utf8_byte_kept(monkeypatch, capsys, classify_bail):
+    results = {}
+    for name, cause in {"newline": b"line one\nline two", "0xff": b"bad\xffbyte"}.items():
+        stderr = io.BytesIO()
+        monkeypatch.setattr(sys, "stderr", io.TextIOWrapper(stderr, encoding="utf-8", errors="backslashreplace",
+                                                            write_through=True))
+        code = classify_bail.main([os.fsdecode(cause)])
+        sys.stderr.flush()
+        results[name] = (code, capsys.readouterr().out, stderr.getvalue())
+
+    assert results == {
+        "newline": (2, "", b"classify-bail: unknown cause: line one\nline two\n" + USAGE.encode()),
+        "0xff": (2, "", b"classify-bail: unknown cause: bad\xffbyte\n" + USAGE.encode()),
     }
