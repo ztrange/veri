@@ -11,6 +11,7 @@
 #   5. The pytest leg runs $VERI_VENV/bin/python3 when it is present, else the python3 on PATH.
 #   6. `make install-dev` creates the environment at $VERI_VENV, else at ~/.veri-tools/venv.
 #   7. A suite whose nested `make test` would re-run itself ends within a deadline.
+#   8. A suite's nested `make test TESTS=<x>` runs only <x>, when the outer one was given SUITES=.
 #
 # Run: skills/tdd/scripts/tests/make-test-env.test.sh
 set -uo pipefail
@@ -207,5 +208,22 @@ wait "$reentry_pid" 2>/dev/null
 grep -F 'Resource temporarily unavailable' "$work/reentry.out" > /dev/null &&
   problems+=("the planted re-entry ended only because it ran out of processes: $(flat "$(tail -n 5 "$work/reentry.out")")")
 report "a planted re-entry through make test SUITES=… ends with a refusal or a bounded run, not a growing process tree (#816)"
+
+problems=()
+cat > "$tree/skills/tdd/scripts/tests/runs-inner.test.sh" <<'SH'
+#!/usr/bin/env bash
+root="$(cd "$(dirname "$0")/../../../.." && pwd)"
+if mkdir "$root/nested-ran" 2>/dev/null; then
+  make -C "$root" test TESTS=skills/tdd/scripts/tests/inner.test.sh UNIT_TESTS= > "$root/nested.out" 2>&1
+fi
+echo "1 passed, 0 failed"
+SH
+chmod +x "$tree/skills/tdd/scripts/tests/runs-inner.test.sh"
+outer_out="$(env -u MAKEFLAGS -u MAKELEVEL -u MFLAGS \
+  make -C "$tree" test SUITES=skills/tdd/scripts/tests/runs-inner.test.sh 2>&1 < /dev/null)"
+nested_ran="$(sed -n 's/^== //p' "$tree/nested.out" 2>/dev/null)"
+[[ "$nested_ran" == inner.test.sh ]] ||
+  problems+=("the nested make test TESTS=inner.test.sh ran [$(flat "$nested_ran")], want only [inner.test.sh]: $(flat "$outer_out")")
+report "a suite's nested make test TESTS=<x> runs only <x> when the outer make test was given SUITES= (#816)"
 
 finish
