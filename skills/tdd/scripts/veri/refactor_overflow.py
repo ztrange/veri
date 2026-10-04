@@ -1,6 +1,7 @@
 """refactor-overflow.sh's logic, run in-process."""
 import os
 import re
+import subprocess
 import sys
 
 USAGE = "refactor-overflow: usage: refactor-overflow.sh <n> <owed-file> <reached>"
@@ -15,6 +16,16 @@ def main(argv):
     if skipped and not os.path.isfile(skipped):
         print(f"refactor-overflow: no such skipped file: {skipped}", file=sys.stderr)
         return 2
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    listed = subprocess.run([os.path.join(here, "refactor-owed.sh"), "list", owed],
+                            capture_output=True, text=True).stdout
+    unreached = listed.splitlines()[int(reached):]
+    body = f"Structural candidates #{n}'s closing pass could not reach:\n\n" + "\n".join(
+        f"- {line}" for line in unreached)
+    url = subprocess.run(["gh", "api", "repos/{owner}/{repo}/issues",
+                          "-f", f"title=Refactor owed by #{n}", "-f", f"body={body}",
+                          "-q", ".html_url"], capture_output=True, text=True).stdout
+    print(url.rstrip("\n"))
     return 0
 
 

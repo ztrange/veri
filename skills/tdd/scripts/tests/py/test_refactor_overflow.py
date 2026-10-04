@@ -63,3 +63,41 @@ def test_main_refuses_a_bad_argument_with_exit_2_its_stderr_line_and_no_process(
     captured = capsys.readouterr()
     assert calls == []
     assert (code, captured.out, captured.err) == (2, "", expected)
+
+
+@pytest.mark.parametrize("n", ["504", "007"])
+def test_main_files_the_unreached_list_lines_through_gh_and_prints_its_url(
+        monkeypatch, capsys, tmp_path, refactor_overflow, n):
+    owed = str(tmp_path / "owed.md")
+    cwd = os.getcwd()
+    calls = []
+
+    def fake_run(args, *rest, **kwargs):
+        args = [str(a) for a in args]
+        calls.append((args, kwargs.get("cwd"), os.getcwd()))
+        if args[0] == "gh":
+            return subprocess.CompletedProcess(args, 0, "https://github.com/o/r/issues/9\n\n", "")
+        return subprocess.CompletedProcess(args, 0, "- [ ] first\n- [ ] second\n- [ ] third\n", "")
+
+    def refuse_popen(args, *rest, **kwargs):
+        raise AssertionError(f"started a process through Popen: {args}")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", refuse_popen)
+
+    code = refactor_overflow.main([n, owed, "1"])
+
+    captured = capsys.readouterr()
+    assert [c[0][1:] for c in calls] == [
+        ["list", owed],
+        ["api", "repos/{owner}/{repo}/issues",
+         "-f", f"title=Refactor owed by #{n}",
+         "-f", f"body=Structural candidates #{n}'s closing pass could not reach:\n\n"
+               "- - [ ] second\n- - [ ] third",
+         "-q", ".html_url"],
+    ]
+    assert pathlib.Path(calls[0][0][0]).resolve() == SCRIPTS / "refactor-owed.sh"
+    assert calls[1][0][0] == "gh"
+    assert [(c[1], c[2]) for c in calls] == [(None, cwd), (None, cwd)]
+    assert os.getcwd() == cwd
+    assert (code, captured.out) == (0, "https://github.com/o/r/issues/9\n")
