@@ -131,4 +131,26 @@ for args in none empty; do
 done
 report "$name"
 
+name="leaf-role.sh, run through a symlink to the skill directory and from another working directory, prints the same stdout and stderr and exits with the same code as when run in place, for develop-red (exit 0) and plan-red (exit 2)"
+problems=()
+scratch="$(mktemp -d)"
+ln -s "$(cd "$HERE/../.." && pwd)" "$scratch/skill"
+mkdir "$scratch/elsewhere"
+for leaf in develop-red plan-red; do
+  "$LEAF_ROLE" "$leaf" >"$scratch/in.out" 2>"$scratch/in.err" && in_code=0 || in_code=$?
+  (cd "$scratch/elsewhere" && "$scratch/skill/scripts/leaf-role.sh" "$leaf") \
+    >"$scratch/link.out" 2>"$scratch/link.err" && link_code=0 || link_code=$?
+  case "$leaf" in develop-red) want=0 ;; plan-red) want=2 ;; esac
+  [[ "$in_code" == "$want" ]] ||
+    problems+=("$leaf: want exit $want in place, got $in_code")
+  [[ "$link_code" == "$in_code" ]] ||
+    problems+=("$leaf: want exit $in_code through the symlink, got $link_code")
+  for stream in out err; do
+    cmp -s "$scratch/in.$stream" "$scratch/link.$stream" ||
+      problems+=("$leaf: std$stream differs through the symlink: in place $(printf '%q' "$(cat "$scratch/in.$stream")"), through the symlink $(printf '%q' "$(cat "$scratch/link.$stream")")")
+  done
+done
+rm -rf "$scratch"
+report "$name"
+
 finish
