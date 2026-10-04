@@ -63,3 +63,17 @@ def test_main_refuses_bad_arguments_with_2_and_the_usage_text_and_answers_next_w
     monkeypatch.setenv("VERI_GH_JSON", str(fixture))
     code, out, _ = run(["next", "beta"])
     assert (code, out) == (3, "")
+
+
+def test_start_naming_no_queued_item_of_the_worker_returns_1_and_leaves_the_main_working_tree_queue_unchanged(tmp_path, monkeypatch, capsys, workqueue):
+    fake_git(monkeypatch, tmp_path)
+    queue = tmp_path / ".tdd" / "workqueue"
+    queue.parent.mkdir()
+    before = b"alpha\t12\tqueued\t\nalpha\t13\trunning\t\n"
+    queue.write_bytes(before)
+
+    code = workqueue.main(["start", "beta", "12"])
+    _, err = capsys.readouterr()
+
+    assert (code, err) == (1, "workqueue.sh: beta holds no queued item for issue 12\n")
+    assert queue.read_bytes() == before
