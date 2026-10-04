@@ -287,3 +287,30 @@ def test_main_names_a_filing_or_reason_file_it_cannot_open_on_the_original_stder
     assert (captured.err, execs) == (line, [(verifier, [verifier, *argv])])
     if unopenable != "reason":
         assert dup2s == []
+
+
+def test_main_resets_sigpipe_and_sigxfsz_to_sig_dfl_before_the_exec(tmp_path, monkeypatch):
+    import signal
+    scripts = tmp_path / "scripts"
+    run_verdict = staged_module(scripts)
+    (scripts / "verify.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
+    (scripts / "verify.sh").chmod(0o755)
+    run = tmp_path / "run"
+    run.mkdir()
+    monkeypatch.chdir(run)
+    dispositions = {signal.SIGPIPE: signal.SIG_IGN, signal.SIGXFSZ: signal.SIG_IGN}
+    at_exec = []
+
+    def signal_(signum, handler):
+        previous = dispositions.get(signum, signal.SIG_DFL)
+        dispositions[signum] = handler
+        return previous
+
+    monkeypatch.setattr(signal, "signal", signal_)
+    monkeypatch.setattr(os, "dup2", lambda *a, **k: None)
+    monkeypatch.setattr(os, "execv", lambda path, args: at_exec.append(
+        (dispositions[signal.SIGPIPE], dispositions[signal.SIGXFSZ])))
+
+    run_verdict.main(["red", "spec.md", "tests/x.test.sh", "case"])
+
+    assert at_exec == [(signal.SIG_DFL, signal.SIG_DFL)]

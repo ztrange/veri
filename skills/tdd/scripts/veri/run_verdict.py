@@ -1,5 +1,6 @@
 """run-verdict.sh's logic, run in-process."""
 import os
+import signal
 import sys
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -39,6 +40,8 @@ def main(argv):
             else:
                 os.dup2(fd, 2)
                 os.close(fd)
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+    signal.signal(signal.SIGXFSZ, signal.SIG_DFL)
     os.execv(verifier, [verifier, *argv])
 
 
