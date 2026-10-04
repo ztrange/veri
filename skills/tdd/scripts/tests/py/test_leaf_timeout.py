@@ -150,7 +150,8 @@ def test_main_reproduces_leaf_timeout_sh_bash_arithmetic_in_stdout_and_return_co
     for budget, argv in (
             (None, ["0200"]), (None, ["08"]), (None, ["5", "--full", "0200"]), ("abc", ["200", "refactor"]),
             ("010", ["200", "refactor"]),
-            (None, ["1537228672809129302"]), (None, ["768614336404564651", "refactor"])):
+            (None, ["1537228672809129302"]), (None, ["768614336404564651", "refactor"]),
+            (None, ["9223372036854775808"])):
         if budget is None:
             monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
         else:
@@ -164,6 +165,7 @@ def test_main_reproduces_leaf_timeout_sh_bash_arithmetic_in_stdout_and_return_co
         (None, ["5", "--full", "0200"], 0, "1200\n"),
         ("abc", ["200", "refactor"], 1, ""),
         ("010", ["200", "refactor"], 0, "12000\n"),
-        (None, ["1537228672809129302"], 0, "900\n"),
-        (None, ["768614336404564651", "refactor"], 0, "4611686018427387914\n"),
+        (None, ["1537228672809129302"], 0, "9223372036854775812\n"),
+        (None, ["768614336404564651", "refactor"], 0, "23058430092136939530\n"),
+        (None, ["9223372036854775808"], 0, "55340232221128654848\n"),
     ]
