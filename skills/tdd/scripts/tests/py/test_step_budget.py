@@ -1,5 +1,8 @@
 """In-process cases for veri/step_budget.py, the module step-budget.sh is a shim over."""
+import errno
 import importlib
+import io
+import os
 import pathlib
 import sys
 
@@ -63,3 +66,65 @@ def test_main_checks_the_budgets_echoing_them_as_given_and_refusing_a_bad_one_af
         seen.append((env, argv, (code, out, err)))
         expected.append((env, argv, want))
     assert seen == expected
+
+
+def test_main_writes_bytes_whatever_the_locale_and_exits_1_when_stdout_is_closed(monkeypatch, step_budget):
+    streams = {"C": ("ascii", "surrogateescape"), "C.UTF-8": ("utf-8", "strict")}
+    ff = os.fsdecode(b"\xff")
+
+    def run(locale, env):
+        encoding, errors = streams[locale]
+        monkeypatch.setenv("LC_ALL", locale)
+        monkeypatch.delenv("VERI_STEP_BUDGET", raising=False)
+        monkeypatch.delenv("VERI_RUN_BUDGET", raising=False)
+        for name, value in env.items():
+            monkeypatch.setenv(name, value)
+        out, err = io.BytesIO(), io.BytesIO()
+        monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(out, encoding=encoding, errors=errors, write_through=True))
+        monkeypatch.setattr(sys, "stderr", io.TextIOWrapper(err, encoding=encoding, errors="backslashreplace",
+                                                            write_through=True))
+        try:
+            code = step_budget.main([])
+        except Exception:
+            code = 1
+        sys.stdout.flush()
+        sys.stderr.flush()
+        return (code, out.getvalue(), err.getvalue())
+
+    seen, wanted = {}, {}
+    for locale in streams:
+        seen[(locale, "valid")] = run(locale, {"VERI_STEP_BUDGET": "007.50", "VERI_RUN_BUDGET": "42.25"})
+        wanted[(locale, "valid")] = (0, b"007.50\n42.25\n", b"")
+        seen[(locale, "step")] = run(locale, {"VERI_STEP_BUDGET": ff})
+        wanted[(locale, "step")] = (2, b"", b"step-budget: VERI_STEP_BUDGET must be a non-negative decimal number: \xff\n")
+        seen[(locale, "run")] = run(locale, {"VERI_RUN_BUDGET": "1" + ff})
+        wanted[(locale, "run")] = (2, b"", b"step-budget: VERI_RUN_BUDGET must be a non-negative decimal number: 1\xff\n")
+    monkeypatch.delenv("VERI_STEP_BUDGET", raising=False)
+    monkeypatch.delenv("VERI_RUN_BUDGET", raising=False)
+
+    def closed(stdout):
+        monkeypatch.setattr(sys, "stdout", stdout)
+        try:
+            return step_budget.main([])
+        except Exception:
+            return 1
+
+    seen["closed"] = closed(None)
+    wanted["closed"] = 1
+
+    class ClosedFd(io.RawIOBase):
+        closed_now = True
+
+        def writable(self):
+            return True
+
+        def write(self, data):
+            if self.closed_now:
+                raise OSError(errno.EBADF, "Bad file descriptor")
+            return len(data)
+
+    fd = ClosedFd()
+    seen["closed-fd"] = closed(io.TextIOWrapper(io.BufferedWriter(fd)))
+    fd.closed_now = False
+    wanted["closed-fd"] = 1
+    assert seen == wanted
