@@ -226,4 +226,25 @@ hits="$(git -C "$ROOT" grep -nE "$stale" -- . ':!docs' ':!projects/docs' ':!.tdd
   problems+=("want no statement of default $old_default for $issue_var, found:"$'\n'"$hits")
 report "$name"
 
+name="refactor-budget.sh run through a symlink to the skill directory and from another working directory answers as it does when run in place"
+problems=()
+work="$(scratch_dir)"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+mkdir -p "$work/elsewhere"
+while IFS='|' read -r count exp_code exp_out; do
+  [[ -n "$count" ]] || continue
+  in_place="$(env -u VERI_REFACTOR_BUDGET -u VERI_ISSUE_REFACTOR_BUDGET "$BUDGET" "$count" 2>/dev/null)" && in_place_code=0 || in_place_code=$?
+  linked="$(cd "$work/elsewhere" && env -u VERI_REFACTOR_BUDGET -u VERI_ISSUE_REFACTOR_BUDGET \
+    "$work/linked-skill/scripts/refactor-budget.sh" "$count" 2>/dev/null)" && linked_code=0 || linked_code=$?
+  [[ "$linked" == "$exp_out" && "$linked_code" == "$exp_code" ]] ||
+    problems+=("count $count linked: want exit $exp_code and $(printf '%q' "$exp_out"), got exit $linked_code and $(printf '%q' "$linked")")
+  [[ "$linked" == "$in_place" && "$linked_code" == "$in_place_code" ]] ||
+    problems+=("count $count: linked answered exit $linked_code $(printf '%q' "$linked"), in place exit $in_place_code $(printf '%q' "$in_place")")
+done <<'PROBES'
+4|0|refactor 4/5 — another transform may run
+5|3|refactor 5/5 — budget spent
+ten|2|
+PROBES
+report "$name"
+
 finish
