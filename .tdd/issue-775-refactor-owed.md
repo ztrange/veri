@@ -3,3 +3,5 @@
 - test-only | fold the gh stub of the new case "exits 2 when gh fails filing the issue with status 1, 3 or 5" (refactor-overflow.test.sh:346-363) and the `failing_stubdir` stub at :288-295 into one stub with a parameterised status
 ### wait-ci.sh given a non-numeric slice or a non-numeric total exits 2 and names the bad argument on stderr, never 1 ⟦criterion 3⟧
 - test-only | in tests/wait-ci.test.sh's #775 case, put the bad word straight into each loop entry instead of splitting `what`/`rest` and then choosing between `$slice` and `$total` with an if
+### workqueue.sh with a missing worker, a missing issue or a missing park reason exits 2 with its usage text on stderr and leaves no .tdd/workqueue.tmp.* file ⟦criterion 4⟧
+- delete the now-unreachable `len(argv) < 2` / `len(argv) < 3` → `unbound(...)` branches in `move()` (skills/tdd/scripts/veri/workqueue.py), since `locked_main` refuses with fewer than 3 arguments before `move` is called
