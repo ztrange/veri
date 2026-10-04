@@ -22,3 +22,7 @@ def gh_rest_list(path, empty=r"^\[\]$"):
             return answer
         answer += body
         page += 1
+
+
+def gh_list(path, *args):
+    return subprocess.run(["gh", *args], stdout=subprocess.PIPE, text=True).stdout
