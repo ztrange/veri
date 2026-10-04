@@ -25,3 +25,7 @@ def main(argv):
     _write(sys.stdout, step)
     _write(sys.stdout, run)
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
