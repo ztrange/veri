@@ -220,3 +220,29 @@ def test_main_reads_the_verb_from_argv_0_alone_an_empty_verb_prints_every_record
         "empty verb": (0, every_record, b""),
         "empty stdin": (0, b"", b""),
     }
+
+
+def test_main_passes_bytes_through_as_bash_does_drops_nul_and_keeps_the_cr_of_a_crlf_document(
+        monkeypatch, capsysbinary, ledger_steps):
+    calls = {
+        "xff byte": (b"- [ ] a \xff cog\n", ["current"]),
+        "nul byte": (b"- [ ] a c\x00og\n", ["current"]),
+        "crlf criterion": (b"## Acceptance criteria\r\n- [ ] c1\r\n- [ ] c2\r\n", ["criterion", "1"]),
+        "crlf pending": (
+            "- [x] the cog is oiled ⟂ refactor pending\r\n- [ ] the cog stops\r\n".encode(), []),
+    }
+    results = {}
+    for name, (stdin, argv) in calls.items():
+        fake_stdin(monkeypatch, stdin)
+        code = ledger_steps.main(argv)
+        results[name] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        "xff byte": (0, b"a \xff cog\n", b""),
+        "nul byte": (0, b"a cog\n", b""),
+        "crlf criterion": (0, b"c1\r\n", b""),
+        "crlf pending": (0, (
+            "1\tdone\tstep\t0\t0\t\tthe cog is oiled ⟂ refactor pending\r\n"
+            "2\topen\tstep\t0\t0\t\tthe cog stops\r\n"
+        ).encode(), b""),
+    }

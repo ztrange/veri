@@ -13,7 +13,7 @@ def refuse():
 
 
 def write_lines(lines):
-    sys.stdout.buffer.write("".join(line + "\n" for line in lines).encode())
+    sys.stdout.buffer.write("".join(line + "\n" for line in lines).encode(errors="surrogateescape"))
 
 
 def answer(record):
@@ -51,7 +51,7 @@ def main(argv):
         return refuse()
     if verb == "criterion" and not re.fullmatch("[0-9]+", argv[1] if len(argv) > 1 else ""):
         return refuse()
-    text = sys.stdin.buffer.read().decode()
+    text = sys.stdin.buffer.read().replace(b"\0", b"").decode(errors="surrogateescape")
     if verb == "criterion":
         return criterion(text, int(argv[1]) % 2**64)
     records = ledger_steps(text)
