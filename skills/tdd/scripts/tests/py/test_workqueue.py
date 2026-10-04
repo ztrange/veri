@@ -1,5 +1,6 @@
 """In-process cases for veri/workqueue.py, the module workqueue.sh is a shim over."""
 import importlib
+import json
 import pathlib
 import subprocess
 import sys
@@ -31,12 +32,14 @@ def workqueue():
     return importlib.import_module("veri.workqueue")
 
 
-def fake_git(monkeypatch, main_tree):
-    """subprocess.run answering `git worktree list` with <main_tree> and `git remote get-url origin` with no origin."""
+def fake_git(monkeypatch, main_tree, origin=None):
+    """subprocess.run answering `git worktree list` with <main_tree> and `git remote get-url origin` with <origin>, or no origin."""
     def fake_run(args, **kwargs):
         if list(args[:3]) == ["git", "worktree", "list"]:
             return subprocess.CompletedProcess(args, 0, "worktree %s\nHEAD abc\nbranch refs/heads/main\n\n" % main_tree, "")
         if list(args[:3]) == ["git", "remote", "get-url"]:
+            if origin is not None:
+                return subprocess.CompletedProcess(args, 0, origin + "\n", "")
             return subprocess.CompletedProcess(args, 2, "", "error: No such remote 'origin'\n")
         raise AssertionError("unexpected command: %r" % (args,))
 
@@ -110,7 +113,64 @@ def test_main_refuses_an_unknown_subcommand_with_2_and_writes_nothing_when_git_n
     queue.parent.mkdir()
     before = b"alpha\t12\tqueued\t\n"
     queue.write_bytes(before)
+    fixture = tmp_path / "gh"
+    fixture.mkdir()
+    (fixture / "issues.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(fixture))
 
     assert run(["start", "beta", "12", "extra"]) == (1, "", "workqueue.sh: beta holds no queued item for issue 12\n")
     assert run(["next", "beta", "extra"])[:2] == (3, "")
+    assert queue.read_bytes() == before
+
+
+def test_next_prints_the_workers_first_queued_item_with_no_open_blocker_reading_blockers_against_the_origin_slug(tmp_path, monkeypatch, capsys, workqueue):
+    queue = tmp_path / ".tdd" / "workqueue"
+    queue.parent.mkdir()
+    before = (b"beta\t1\tqueued\t\nalpha\t2\trunning\t\nalpha\t012\tqueued\t\nalpha\t14\tqueued\t\n"
+              b"alpha\t13\tqueued\t\nalpha\t99\tqueued\t\ngamma\t12\tqueued\t\n")
+    queue.write_bytes(before)
+    fixture = tmp_path / "gh"
+    fixture.mkdir()
+    (fixture / "issues.json").write_text(json.dumps([
+        {"number": 1, "state": "OPEN", "body": ""},
+        {"number": 2, "state": "OPEN", "body": ""},
+        {"number": 5, "state": "open", "body": ""},
+        {"number": 6, "state": "CLOSED", "body": ""},
+        {"number": 7, "state": "Open", "body": None},
+        {"number": 12, "state": "OPEN", "body": "Work.\n\n## Blocked by\n\n- #5\n- #6\n"},
+        {"number": 14, "state": "OPEN", "body": "Work.\n\n## Blocked by\n\n- https://github.com/ztrange/veri/issues/7\n"},
+        {"number": 13, "state": "OPEN", "body": "Work.\n\n## Blocked by\n\n- https://github.com/other/repo/issues/7\n- #6\n"},
+    ]))
+    monkeypatch.setenv("VERI_GH_JSON", str(fixture))
+
+    def run(argv):
+        code = workqueue.main(argv)
+        out, err = capsys.readouterr()
+        return code, out, err
+
+    fake_git(monkeypatch, tmp_path, origin="https://github.com/ztrange/veri.git")
+    assert run(["next", "alpha"]) == (0, "13\n", "")
+    fake_git(monkeypatch, tmp_path, origin="git@github.com:ztrange/veri.git")
+    assert run(["next", "alpha"]) == (0, "13\n", "")
+    assert run(["next", "gamma"]) == (3, "", "")
+    assert run(["next", "delta"]) == (3, "", "")
+    fake_git(monkeypatch, tmp_path)
+    assert run(["next", "alpha"]) == (0, "99\n", "")
+    assert queue.read_bytes() == before
+
+
+def test_next_reads_a_queue_line_of_three_tab_fields_and_a_queued_issue_whose_body_is_null(tmp_path, monkeypatch, capsys, workqueue):
+    queue = tmp_path / ".tdd" / "workqueue"
+    queue.parent.mkdir()
+    before = b"alpha\t7\tqueued\n"
+    queue.write_bytes(before)
+    fixture = tmp_path / "gh"
+    fixture.mkdir()
+    (fixture / "issues.json").write_text(json.dumps([{"number": 7, "state": "OPEN", "body": None}]))
+    monkeypatch.setenv("VERI_GH_JSON", str(fixture))
+    fake_git(monkeypatch, tmp_path)
+
+    code = workqueue.main(["next", "alpha"])
+    out, err = capsys.readouterr()
+    assert (code, out, err) == (0, "7\n", "")
     assert queue.read_bytes() == before
