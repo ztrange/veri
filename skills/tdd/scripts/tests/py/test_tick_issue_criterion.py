@@ -1,5 +1,7 @@
 """In-process cases for veri/tick_issue_criterion.py, the module tick-issue-criterion.sh is a shim over."""
 import importlib
+import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -49,3 +51,52 @@ def test_main_returns_3_with_no_patch_and_names_the_matcher_and_issue_when_no_un
     code = tick_issue_criterion.main(["7", "zeta"])
 
     assert (code, capsys.readouterr().err, patches) == (3, "tick-issue-criterion: no unchecked criterion matched 'zeta' on #7\n", [])
+
+
+def test_main_ticks_the_box_and_patches_the_stripped_body_through_gh_api_reading_either_route_with_tick_criterion_run_beside_it(monkeypatch, capsys, tick_issue_criterion):
+    real_run = subprocess.run
+    body = "- [ ] alpha\n- [ ] beta\n\n\n"
+
+    def run_case(argv, view_ok):
+        calls = []
+        patched = []
+
+        def fake_run(args, **kwargs):
+            args = [str(arg) for arg in args]
+            if args[:3] == ["gh", "issue", "view"]:
+                calls.append(("view", args[3]))
+                if view_ok:
+                    return subprocess.CompletedProcess(args, 0, body, "")
+                return subprocess.CompletedProcess(args, 1, "", "")
+            if args[:4] == ["gh", "api", "-X", "PATCH"]:
+                assert args[5] == "-F" and args[6].startswith("body=@")
+                patched.append(args[6][len("body=@"):])
+                with open(patched[-1]) as f:
+                    calls.append(("patch", args[4], f.read()))
+                return subprocess.CompletedProcess(args, 0, "", "")
+            if args[:2] == ["gh", "api"] and len(args) == 3:
+                calls.append(("api", args[2]))
+                return subprocess.CompletedProcess(args, 0, json.dumps({"body": body}), "")
+            if args[0] == "gh":
+                raise AssertionError("unexpected gh call: %r" % (args,))
+            calls.append(("tick", os.path.realpath(args[0]), kwargs.get("input")))
+            return real_run(args, **kwargs)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        code = tick_issue_criterion.main(argv)
+        return code, capsys.readouterr().out, calls, [p for p in patched if os.path.exists(p)]
+
+    tick = os.path.realpath(SCRIPTS / "tick-criterion.sh")
+    fed = body.rstrip("\n")
+    assert run_case(["7", "alpha"], True) == (0, "", [
+        ("view", "7"), ("tick", tick, fed),
+        ("patch", "repos/{owner}/{repo}/issues/7", "- [x] alpha\n- [ ] beta")], [])
+    assert run_case(["7", "alpha"], False) == (0, "", [
+        ("view", "7"), ("api", "repos/{owner}/{repo}/issues/7"), ("tick", tick, fed),
+        ("patch", "repos/{owner}/{repo}/issues/7", "- [x] alpha\n- [ ] beta")], [])
+    assert run_case(["7"], True) == (0, "", [
+        ("view", "7"), ("tick", tick, fed),
+        ("patch", "repos/{owner}/{repo}/issues/7", "- [x] alpha\n- [ ] beta")], [])
+    assert run_case(["abc", "alpha", "extra"], True) == (0, "", [
+        ("view", "abc"), ("tick", tick, fed),
+        ("patch", "repos/{owner}/{repo}/issues/abc", "- [x] alpha\n- [ ] beta")], [])
