@@ -999,4 +999,11 @@ revise_diff="$("$BUILD" revise diff "$work/spec.md" "$dd_step" "$test_cmd" "$wor
   && [[ "$revise_diff" == *"$reason_text"* ]] \
   && ok || no "#880 a revise of a diff-checked step exits 0 and prints a prompt carrying the step text and the verifier's rejection reason (exit $code, stderr: $(cat "$revise_diff_err"))"
 
+problems=""
+prompt_lacks "$revise_diff" "asks the leaf to rewrite a test" -iE -e 'rewritten test|rewrite (a|the) test'
+prompt_lacks "$revise_diff" "asks for an AGAINST_UNMODIFIED: report line" -F -e 'AGAINST_UNMODIFIED:'
+prompt_lacks "$revise_diff" "asks for a PREDICTED_FAILURE: report line" -F -e 'PREDICTED_FAILURE:'
+[[ -z "$problems" ]] \
+  && ok || no "#880 a revise of a diff-checked step does not ask the leaf to write or rewrite a test, since a diff-checked step adds none (${problems#; })"
+
 finish
