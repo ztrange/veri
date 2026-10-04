@@ -1,2 +1,4 @@
 ### refactor-budget.sh reads VERI_REFACTOR_BUDGET, VERI_ISSUE_REFACTOR_BUDGET and <count> with leading zeros as decimal: budget 010 with count 9 still lets another transform run, and 08 is eight with no arithmetic error (updates the leading-zero rows of test_main_reads_its_arguments_by_position_and_compares_them_as_bash_arithmetic_does in py/test_refactor_budget.py) ⟦criterion 1⟧
 - inline the single-use local `left` into `spent = _arithmetic(count) >= _arithmetic(budget)` in skills/tdd/scripts/veri/refactor_budget.py
+### refactor-budget.sh compares a <count> past 2^63 as its decimal value, never wrapped: count 9223372036854775808 against budget 5 says the budget is spent (exit 3) (updates the past-2^63 rows of the same case) ⟦criterion 1⟧
+- inline the `left` temporary at `refactor_budget.py:40` into the comparison on line 41 (`spent = int(count) >= _arithmetic(budget)`); this is an inline, not duplication removal, so it is out of this phase's allowance
