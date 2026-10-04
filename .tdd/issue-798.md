@@ -11,7 +11,7 @@
 - [x] veri.github.gh_issue_view answers `gh issue view <n> --json body -q .body`'s output for body when that call succeeds, and makes no `gh api` call ⟦criterion 1⟧
 - [x] veri.github.gh_issue_view answers `gh issue view <n> --json labels -q '.labels[].name'`'s output for labels when that call succeeds, and makes no `gh api` call ⟦criterion 1⟧
 - [x] veri.github.gh_issue_view, when the `gh issue view` call exits non-zero, answers the issue's body from `gh api repos/{owner}/{repo}/issues/<n>` and does not pass the GraphQL call's stderr on ⟦criterion 1⟧
-- [ ] veri.github.gh_issue_view is a no-answer, with the `gh api` call's stderr passed through, when the `gh issue view` call and the `gh api repos/{owner}/{repo}/issues/<n>` call both fail ⟦criterion 1⟧
+- [x] veri.github.gh_issue_view is a no-answer, with the `gh api` call's stderr passed through, when the `gh issue view` call and the `gh api repos/{owner}/{repo}/issues/<n>` call both fail ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] veri.github.gh_issue_view's REST route answers "" for a null body ⟦criterion 3⟧
 - [ ] veri.github.gh_issue_view's REST route answers the label names one per line for labels ⟦criterion 3⟧
 - [ ] veri.github.gh_issue_view's REST route is a no-answer when the `gh api` answer is not JSON ⟦criterion 3⟧
