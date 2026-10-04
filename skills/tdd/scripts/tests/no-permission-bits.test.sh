@@ -17,7 +17,9 @@ SUBJECT='skills/tdd/scripts/tests'
 CHMOD_WORD='(^|[^[:alnum:]_.-])chmod'
 REVOKING_MODE='(000|a-r|u-w|-w)'
 CHMOD_FLAGS='([[:space:]]+-[RHLPfhv]+)*'
-PERMISSION_BIT_CHMOD="$CHMOD_WORD$CHMOD_FLAGS[[:space:]]+$REVOKING_MODE([[:space:]]|$)"
+SHELL_CHMOD="$CHMOD_WORD$CHMOD_FLAGS[[:space:]]+$REVOKING_MODE([[:space:]]|$)"
+PATH_CHMOD='\.chmod\(0o000\)'
+PERMISSION_BIT_CHMOD="$SHELL_CHMOD|$PATH_CHMOD"
 
 
 source "$HERE/lib/harness.sh"
@@ -183,5 +185,31 @@ planted_chmod_flagged_named=""
 probe_a_planted_chmod_with_a_flag
 
 expect_eq "$name" "named" "$planted_chmod_flagged_named"
+
+PLANT_PY_REL='skills/tdd/scripts/tests/py/test_planted.py'
+PLANT_PY_CHMOD="    ledger.chmod(0o$(printf '%03d' 0))"
+
+probe_a_planted_pytest_chmod_000() {
+  local ROOT line problem
+  ROOT="$(scratch_dir)"
+  mkdir -p "$ROOT/${PLANT_PY_REL%/*}"
+  printf '%s\n' 'def test_unreadable_ledger(tmp_path):' '    ledger = tmp_path / "issue-9.md"' "$PLANT_PY_CHMOD" > "$ROOT/$PLANT_PY_REL"
+  line="$(grep -nxF -- "$PLANT_PY_CHMOD" "$ROOT/$PLANT_PY_REL")"
+  line="${line%%:*}"
+  problems=()
+  probe_no_suite_revokes_permission_bits
+  planted_pytest_chmod_named="not named"
+  for problem in ${problems+"${problems[@]}"}; do
+    [[ "$problem" == "$PLANT_PY_REL:$line forces a read or write failure through permission bits"* ]] && planted_pytest_chmod_named="named"
+  done
+  problems=()
+}
+
+name="a planted pytest suite that chmods a path to mode 000 turns the guard red, naming <suite>:<line> (#846)"
+planted_pytest_chmod_named=""
+
+probe_a_planted_pytest_chmod_000
+
+expect_eq "$name" "named" "$planted_pytest_chmod_named"
 
 finish
