@@ -8,7 +8,7 @@
 - [x] veri.github.gh_list answers the stdout of `gh <gh args…>` when that call succeeds, and makes no `gh api` call ⟦criterion 1⟧
 - [x] veri.github.gh_list, when the `gh <gh args…>` call exits non-zero, answers gh_rest_list's pages for the rest path and does not pass that call's stderr on ⟦criterion 1⟧
 - [x] veri.github.gh_list is a no-answer, with the REST call's stderr passed through, when the `gh <gh args…>` call and the REST route both fail ⟦criterion 1⟧
-- [ ] veri.github.gh_issue_view answers `gh issue view <n> --json body -q .body`'s output for body when that call succeeds, and makes no `gh api` call ⟦criterion 1⟧
+- [x] veri.github.gh_issue_view answers `gh issue view <n> --json body -q .body`'s output for body when that call succeeds, and makes no `gh api` call ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] veri.github.gh_issue_view answers `gh issue view <n> --json labels -q '.labels[].name'`'s output for labels when that call succeeds, and makes no `gh api` call ⟦criterion 1⟧
 - [ ] veri.github.gh_issue_view, when the `gh issue view` call exits non-zero, answers the issue's body from `gh api repos/{owner}/{repo}/issues/<n>` and does not pass the GraphQL call's stderr on ⟦criterion 1⟧
 - [ ] veri.github.gh_issue_view is a no-answer, with the `gh api` call's stderr passed through, when the `gh issue view` call and the `gh api repos/{owner}/{repo}/issues/<n>` call both fail ⟦criterion 1⟧
