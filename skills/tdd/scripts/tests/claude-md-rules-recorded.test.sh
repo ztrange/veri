@@ -236,4 +236,20 @@ probe_job_spec_rule_is_stated_once() {
 run_case "$claude_md states once that a background process is killed by its recorded pid, never by a job spec" \
   probe_job_spec_rule_is_stated_once
 
+probe_idiom_records_the_permission_bits_rule() {
+  idiom_records_carry \
+    "nothing states the permission-bits rule where the agent writing a suite would find it" \
+    "$claude_md has no single record in its '$IDIOM_HEADING' section stating that no suite relies on permission bits to make a path unreadable or unwritable, because the cloud runs as root and they are a no-op there, naming no-permission-bits as the guard" \
+    'permission bits' \
+    'unreadable|unwritable' \
+    'root|uid 0' \
+    'cloud' \
+    'no-op' \
+    'no-permission-bits' \
+    'never|must not|no suite'
+}
+
+run_case "$claude_md's testing idiom section states that no suite relies on permission bits, since the cloud runs as root (#846)" \
+  probe_idiom_records_the_permission_bits_rule
+
 finish
