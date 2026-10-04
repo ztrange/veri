@@ -1,47 +1,11 @@
-#!/usr/bin/env bash
-# refactor-budget.sh — bound the refactor loop, so a step costs the same on every run.
+#!/bin/sh
+# refactor-budget.sh — bound the refactor loop: a shim over veri/refactor_budget.py.
 #
-# Given the number of transforms done so far as $1, say whether another one may run:
-# exit 0 while <count> is below VERI_REFACTOR_BUDGET (default 5), exit 3 once the budget
-# is spent. A one-line status goes to stdout either way, so the conductor can mirror it.
+# Given the number of transforms done so far as <count>, say whether another one may run, against
+# VERI_REFACTOR_BUDGET (default 5); with --issue, the per-issue structural pass is bounded instead,
+# by VERI_ISSUE_REFACTOR_BUDGET (default 3). A one-line status goes to stdout either way.
 #
-# A budget that is not a whole number >= 0 is a misconfigured run, not a decision: fail
-# closed like classify-bail.sh does on an unrecognised cause — a diagnostic on stderr and
-# exit 2, with nothing on stdout, so a conductor mirroring stdout cannot mistake it for a
-# real status.
-#
-# The count gets the same treatment, for the same reason: a malformed call is not a
-# decision either.
-#
-# With --issue, the per-issue structural pass is bounded instead, by
-# VERI_ISSUE_REFACTOR_BUDGET (default 3).
-#
-# Usage:   refactor-budget.sh [--issue] <count>   # <count> a whole number >= 0
-set -euo pipefail
-
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/exit-contract.sh"
-USAGE="usage: refactor-budget.sh [--issue] <count>"
-budget_var=VERI_REFACTOR_BUDGET
-budget="${VERI_REFACTOR_BUDGET:-5}"
-if [[ "${1:-}" == --issue ]]; then
-  shift
-  budget_var=VERI_ISSUE_REFACTOR_BUDGET
-  budget="${VERI_ISSUE_REFACTOR_BUDGET:-3}"
-fi
-count="${1:-}"
-
-if [[ ! "$budget" =~ ^[0-9]+$ ]]; then
-  echo "refactor-budget: $budget_var must be a whole number >= 0: $budget" >&2
-  exit 2
-fi
-
-if [[ ! "$count" =~ ^[0-9]+$ ]]; then
-  refuse "refactor-budget: <count> must be a whole number >= 0: $count"
-fi
-
-if [[ "$count" -lt "$budget" ]]; then
-  echo "refactor $count/$budget — another transform may run"
-else
-  echo "refactor $count/$budget — budget spent"
-  exit 3
-fi
+# usage: refactor-budget.sh [--issue] <count>   # <count> a whole number >= 0
+# Exit:    0 <count> is below the budget; 2 a budget or <count> that is not a whole number >= 0,
+#          nothing on stdout; 3 the budget is spent
+exec python3 "$(dirname "$0")/veri/refactor_budget.py" "$@"
