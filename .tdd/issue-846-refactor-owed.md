@@ -1,0 +1,4 @@
+### The guard fails the run naming `<suite>:<line>` for a planted permission-bit chmod that carries an option flag before its mode, such as `chmod -R 000 <dir>` ⟦added⟧ ⟦criterion 2⟧
+- test-only | no-permission-bits.test.sh: the per-plant "named / not named" loop is written out four times (lines 74-77, 105-108, 147-149, 173-176). One helper, e.g. `plant_named <plant-line> <file>`, could replace all four. It is not applied because it changes only a file under tests/.
+- test-only | no-permission-bits.test.sh: `probe_a_planted_chmod_with_a_flag` (lines 164-178, written this cycle) repeats `probe_a_planted_chmod_000` (lines 65-79) except for the plant line and the variable name in its setup line. One single-plant probe that takes the plant line as an argument could serve both.
+- test-only | no-permission-bits.test.sh: `PLANT_CHMOD_ZERO` (line 121) holds the same string as `PLANT_CHMOD_000` (line 63), so one of them could go.
