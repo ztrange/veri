@@ -319,4 +319,25 @@ else
 fi
 report "$name"
 
+name="#566: $skill_md's Draft PR step, on a non-zero metrics.sh exit, puts the failed render and its exit code in the ✅ Done comment in place of the 📊 Metrics block"
+problems=()
+
+done_status=""
+if ! done_render_line="$(first_fenced_line 'metrics.sh <n> > .tdd/issue-<n>-metrics.md')"; then
+  problems+=("$skill_md's Draft PR command block never renders metrics.sh <n> > .tdd/issue-<n>-metrics.md")
+elif [[ "$(sed -n "${done_render_line}p" "$skill_path")" =~ ([A-Za-z_][A-Za-z0-9_]*)=\$\? ]]; then
+  done_status="$(tr '[:upper:]' '[:lower:]' <<< "${BASH_REMATCH[1]}")"
+else
+  problems+=("$skill_md renders metrics.sh at SKILL.md:$done_render_line without capturing its exit status, so no ✅ Done comment can name it")
+fi
+
+if ! done_record_line="$(first_record_line "$pr_records" '✅ done' '📊 metrics')"; then
+  problems+=("$skill_md's Draft PR step has no ✅ Done comment carrying the 📊 Metrics block")
+elif [[ -n "$done_status" ]]; then
+  done_record="$(record_at "$pr_records" "$done_record_line")"
+  [[ "$done_record" == *"metrics.sh"* && "$done_record" =~ \$\{?$done_status([^a-z0-9_]|$) ]] ||
+    problems+=("$skill_md's ✅ Done comment carries no line naming a failed metrics.sh render and its exit code (\$$done_status), so a failed render leaves the comment pasting a report that was never committed: $(printf '%.160s' "$done_record")")
+fi
+report "$name"
+
 finish
