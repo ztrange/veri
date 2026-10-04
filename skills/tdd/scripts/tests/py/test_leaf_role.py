@@ -29,3 +29,17 @@ def test_main_refuses_no_or_an_empty_leaf_name_with_the_usage_line_and_2_and_map
         (0, "VERI_ACTOR=developer VERI_PHASE=red VERI_ATTEMPT=1\n", ""),
     ]
     assert all(0 <= code <= 3 for code, _, _ in answers)
+
+
+def test_main_maps_each_leading_word_to_its_actor_and_splits_phase_and_attempt(capsys, leaf_role):
+    answers = []
+    for name in ("develop-red", "revise-green-2", "verify-refactor", "conductor-506"):
+        code = leaf_role.main([name])
+        captured = capsys.readouterr()
+        answers.append((code, captured.out, captured.err))
+    assert answers == [
+        (0, "VERI_ACTOR=developer VERI_PHASE=red VERI_ATTEMPT=1\n", ""),
+        (0, "VERI_ACTOR=developer VERI_PHASE=green VERI_ATTEMPT=2\n", ""),
+        (0, "VERI_ACTOR=verifier VERI_PHASE=refactor VERI_ATTEMPT=1\n", ""),
+        (0, "VERI_ACTOR=conductor VERI_PHASE=506 VERI_ATTEMPT=1\n", ""),
+    ]
