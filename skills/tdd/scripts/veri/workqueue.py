@@ -1,4 +1,5 @@
 """workqueue.sh's subcommands, run in-process."""
+import locale
 import os
 import re
 import subprocess
@@ -230,9 +231,10 @@ def locked_main(argv):
                 appended.seek(-1, os.SEEK_END)
                 if appended.read(1) != b"\n":
                     appended.write(b"\n")
-        with open(queue, "a") as appended:
+            encoding = locale.getpreferredencoding(False)
             for issue in argv[2:]:
-                appended.write("%s\t%s\tqueued\t\n" % (argv[1], issue))
+                appended.write(
+                    ("%s\t%s\tqueued\t\n" % (argv[1], issue)).encode(encoding))
         return 0
     finally:
         if locked:
