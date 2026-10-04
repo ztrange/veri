@@ -209,3 +209,58 @@ def test_main_leaves_info_exclude_byte_identical_and_returns_2_when_the_gitignor
         outcome = type(error).__name__
 
     assert ((root / ".git" / "info" / "exclude").read_bytes(), outcome) == (b"*.swp\n", 2)
+
+
+def test_main_leaves_gitignore_byte_identical_and_fails_on_stderr_when_the_info_exclude_write_fails_777(
+        tmp_path, monkeypatch, capsys, ensure_run_state_ignored):
+    root = tmp_path / "repo"
+    (root / ".git" / "info" / "exclude").mkdir(parents=True)
+    (root / ".gitignore").write_bytes(b"node_modules/\n")
+    fake_rev_parse(monkeypatch, 0, ".git\n")
+
+    try:
+        outcome = ensure_run_state_ignored.main([str(root)])
+    except OSError as error:
+        outcome = type(error).__name__
+    stderr = capsys.readouterr().err
+
+    assert ((root / ".gitignore").read_bytes(), isinstance(outcome, int) and outcome != 0,
+            stderr.startswith("ensure-run-state-ignored: ") and "info/exclude" in stderr) == (
+        b"node_modules/\n", True, True)
+
+
+def test_main_leaves_no_gitignore_and_fails_on_stderr_when_there_was_none_and_the_info_exclude_write_fails_777(
+        tmp_path, monkeypatch, capsys, ensure_run_state_ignored):
+    root = tmp_path / "repo"
+    (root / ".git" / "info" / "exclude").mkdir(parents=True)
+    fake_rev_parse(monkeypatch, 0, ".git\n")
+
+    try:
+        outcome = ensure_run_state_ignored.main([str(root)])
+    except OSError as error:
+        outcome = type(error).__name__
+    stderr = capsys.readouterr().err
+
+    assert ((root / ".gitignore").exists(), isinstance(outcome, int) and outcome != 0,
+            stderr.startswith("ensure-run-state-ignored: ") and "info/exclude" in stderr) == (
+        False, True, True)
+
+
+def test_main_leaves_a_gitignore_already_carrying_the_rule_byte_identical_when_the_info_exclude_write_fails_777(
+        tmp_path, monkeypatch, capsys, ensure_run_state_ignored):
+    root = tmp_path / "repo"
+    (root / ".git" / "info" / "exclude").mkdir(parents=True)
+    carried = b"node_modules/\n.tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-spec.md\n"
+    (root / ".gitignore").write_bytes(carried)
+    fake_rev_parse(monkeypatch, 0, ".git\n")
+
+    try:
+        outcome = ensure_run_state_ignored.main([str(root)])
+    except OSError as error:
+        outcome = type(error).__name__
+    stderr = capsys.readouterr().err
+    after = (root / ".gitignore").read_bytes() if (root / ".gitignore").exists() else None
+
+    assert (after, isinstance(outcome, int) and outcome != 0,
+            stderr.startswith("ensure-run-state-ignored: ") and "info/exclude" in stderr) == (
+        carried, True, True)

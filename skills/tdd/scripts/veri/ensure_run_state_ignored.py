@@ -49,14 +49,28 @@ def main(argv):
     in_exclude = has_rule(exclude)
     if in_exclude is None:
         return 2
+    before = None
     if not present:
+        if os.path.isfile(gitignore):
+            with open(gitignore, "rb") as f:
+                before = f.read()
         try:
             append_rule(gitignore)
         except OSError as error:
             print("ensure-run-state-ignored: %s" % error, file=sys.stderr)
             return 2
     if not in_exclude:
-        append_rule(exclude)
+        try:
+            append_rule(exclude)
+        except OSError as error:
+            if not present:
+                if before is None:
+                    os.remove(gitignore)
+                else:
+                    with open(gitignore, "wb") as f:
+                        f.write(before)
+            print("ensure-run-state-ignored: %s" % error, file=sys.stderr)
+            return 1
     print("already present" if present else "added")
     return 0
 
