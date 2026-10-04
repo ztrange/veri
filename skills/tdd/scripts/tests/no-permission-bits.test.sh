@@ -15,7 +15,7 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 SUBJECT='skills/tdd/scripts/tests'
 
 CHMOD_WORD='(^|[^[:alnum:]_.-])chmod'
-REVOKING_MODE='(000|a-r|u-w|-w)'
+REVOKING_MODE='(000|555|a-r|u-w|-w)'
 CHMOD_FLAGS='([[:space:]]+-[RHLPfhv]+)*'
 SHELL_CHMOD="$CHMOD_WORD$CHMOD_FLAGS[[:space:]]+$REVOKING_MODE([[:space:]]|$)"
 PATH_CHMOD='\.chmod\(0o000\)'
@@ -182,5 +182,21 @@ planted_pytest_chmod_named=""
 probe_a_planted_pytest_chmod_000
 
 expect_eq "$name" "named" "$planted_pytest_chmod_named"
+
+PLANT_CHMOD_READ_ONLY_DIR="chmod $(printf '%o' 365) \"\$dir\""
+
+probe_a_planted_read_only_dir() {
+  local ROOT
+  plant_and_probe "$PLANT_REL" '#!/usr/bin/env bash' 'dir="$PWD/ledgers"' 'mkdir "$dir"' "$PLANT_CHMOD_READ_ONLY_DIR" 'touch "$dir/ledger"'
+  planted_read_only_dir_named="$(plant_named "$PLANT_REL" "$PLANT_CHMOD_READ_ONLY_DIR")"
+  problems=()
+}
+
+name="a planted suite that makes a directory read-only, chmod to r-x for all, to force a write into it to fail turns the guard red, naming <suite>:<line> (#846)"
+planted_read_only_dir_named=""
+
+probe_a_planted_read_only_dir
+
+expect_eq "$name" "named" "$planted_read_only_dir_named"
 
 finish
