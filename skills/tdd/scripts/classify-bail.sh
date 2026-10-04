@@ -1,25 +1,8 @@
-#!/usr/bin/env bash
-# classify-bail.sh — classify a bail's <cause> into a category.
+#!/bin/sh
+# classify-bail.sh — classify a bail's <cause> into a category: a shim over veri/classify_bail.py.
 #
 # Given a cause as $1, print its category on the first stdout line and exit 0.
 # An unrecognised cause prints an error to stderr and exits non-zero (2).
 #
-# Usage:   classify-bail.sh <cause>
-set -euo pipefail
-
-source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
-
-USAGE="usage: classify-bail.sh <cause>"
-cause="${1:-}"
-
-case "$cause" in
-  killed-stuck | no-verdict | reconcile-failed | ci-timeout | ci-conflict)
-    echo system
-    ;;
-  revise-exhausted | untestable-criterion | step-too-big | rebase-unresolved | uncovered | ci-red | suite-red)
-    echo process
-    ;;
-  *)
-    refuse "classify-bail: unknown cause: $cause"
-    ;;
-esac
+# usage: classify-bail.sh <cause>
+exec python3 "$(dirname "$0")/veri/classify_bail.py" "$@"
