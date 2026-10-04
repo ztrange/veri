@@ -34,6 +34,37 @@ got_err="$(cat "$err"; printf x)" got_err="${got_err%x}"
 rm -f "$out" "$err"
 report "$name"
 
+name="#776 a budget variable or <count> that is not a non-negative whole number exits 2 naming it on stderr"
+problems=()
+while IFS='|' read -r var value; do
+  [[ -n "$var" ]] || continue
+  args=(1) env_set=() want_err="refactor-budget: $var must be a whole number >= 0: $value"$'\n'
+  case "$var" in
+    VERI_REFACTOR_BUDGET) env_set=("$var=$value") ;;
+    VERI_ISSUE_REFACTOR_BUDGET) env_set=("$var=$value") args=(--issue 1) ;;
+    '<count>') args=("$value") want_err+='usage: refactor-budget.sh [--issue] <count>'$'\n' ;;
+  esac
+  out="$(mktemp)" err="$(mktemp)"
+  env -u VERI_REFACTOR_BUDGET -u VERI_ISSUE_REFACTOR_BUDGET ${env_set+"${env_set[@]}"} \
+    "$BUDGET" "${args[@]}" >"$out" 2>"$err" && code=0 || code=$?
+  [[ "$code" == 2 ]] ||
+    problems+=("$var=$value: want exit 2, got $code")
+  [[ ! -s "$out" ]] ||
+    problems+=("$var=$value: want nothing on stdout, got: $(printf '%q' "$(cat "$out")")")
+  got_err="$(cat "$err"; printf x)" got_err="${got_err%x}"
+  [[ "$got_err" == "$want_err" ]] ||
+    problems+=("$var=$value: want stderr $(printf '%q' "$want_err"), got: $(printf '%q' "$got_err")")
+  rm -f "$out" "$err"
+done <<'PROBES'
+VERI_REFACTOR_BUDGET|1.5
+VERI_REFACTOR_BUDGET|-1
+VERI_ISSUE_REFACTOR_BUDGET|1.5
+VERI_ISSUE_REFACTOR_BUDGET|-1
+<count>|1.5
+<count>|-1
+PROBES
+report "$name"
+
 name="valid counts 0, 4 and 5 keep their answers — exit 0, 0, 3, one line on stdout, nothing on stderr"
 problems=()
 for probe in "0 0" "4 0" "5 3"; do
