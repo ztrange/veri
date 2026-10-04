@@ -337,6 +337,13 @@ code=$?
   && [[ "$out" == *src.txt* ]] && [[ "$out" == *"$doomed"* ]] && [[ "$out" == *"$added"* ]]; } && ok \
   || no "#569: a verifier that modifies src.txt, deletes $doomed and adds $added under the repo's own .gitignore is refused naming each, even when its run also leaves $subdir_state/events.jsonl behind (code=$code want 2; stdout='$out' want 'modified the repository' and all three paths named)"
 
+root_spec=".tdd/issue-569-spec.md"
+ledger_ignored=no spec_ignored=no
+git -C "$subdir_state_dir" check-ignore --no-index -q "$ledger" && ledger_ignored=yes
+git -C "$subdir_state_dir" check-ignore --no-index -q "$root_spec" && spec_ignored=yes
+{ [[ "$ledger_ignored" == no ]] && [[ "$spec_ignored" == yes ]]; } && ok \
+  || no "#569: under the repo's own .gitignore the root ledger $ledger is not ignored and the root blind spec $root_spec is (ledger ignored=$ledger_ignored want no; spec ignored=$spec_ignored want yes)"
+
 leafargs_out="$work/leafargs"
 LEAFARGS_OUT="$leafargs_out" VERIFY_LEAF_ARGS='--permission-mode bypassPermissions --disallowedTools Write' \
   tamper_run leafargs 'printf "%s\n" "$@" > "$LEAFARGS_OUT"; printf "the verifier rewrote this\n" > src.txt'
