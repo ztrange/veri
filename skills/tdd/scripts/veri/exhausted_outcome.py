@@ -7,8 +7,7 @@ ASCII whitespace is stripped after the colon, so a no-break space is kept.
 import re
 import sys
 
-SPLIT_RE = re.compile(rb"^SPLIT:\s*(.*)$")
-NEEDS_USER_RE = re.compile(rb"^NEEDS_USER:\s*(.*)$")
+MARKER_RE = re.compile(rb"^(SPLIT|NEEDS_USER):\s*(.*)$")
 
 
 def _read_stdin():
@@ -28,12 +27,13 @@ def main(argv):
         lines.pop()
     criteria, uidx = [], None
     for i, line in enumerate(lines):
-        split = SPLIT_RE.match(line)
-        needs_user = NEEDS_USER_RE.match(line)
-        if split:
-            criteria.append(split.group(1))
-        elif needs_user:
-            uidx, utail = i, needs_user.group(1)
+        marker = MARKER_RE.match(line)
+        if not marker:
+            continue
+        if marker.group(1) == b"SPLIT":
+            criteria.append(marker.group(2))
+        else:
+            uidx, utail = i, marker.group(2)
     if criteria:
         _print_lines(criteria)
         return 0
