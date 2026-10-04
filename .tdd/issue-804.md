@@ -11,7 +11,7 @@
 - [x] skills/tdd/scripts/event.sh, tests/unit/emitted-text.test.sh, tests/prompt-test-tiers.test.sh, tests/unit/exit-contract.test.sh, tests/unit/scratch-copy-libs.test.sh and tests/py/test_comment_class.py are unchanged by the branch, and tests/unit/missing-argument-exit.test.sh is changed only by the removal of timed-test-run.sh from migration slice 9's list ⟦diff-checked⟧ ⟦criterion 5⟧
 - [ ] the PR body lists the criterion-1 pair: the slice-9 entry removed beside the pytest case that replaced it ⟦human-owed⟧ ⟦criterion 1⟧
 - [ ] the PR body lists each cut tests/timed-test-run.test.sh case beside the tests/py/test_timed_test_run.py case that replaced it, and quotes make profile for tests/timed-test-run.test.sh and the wall time of tests/py/test_timed_test_run.py, before and after, with the commit beside each figure ⟦human-owed⟧ ⟦criterion 4⟧
-- [ ] make test is green, tests/timed-test-run.test.sh, tests/py/test_timed_test_run.py, tests/unit/missing-argument-exit.test.sh, tests/unit/emitted-text.test.sh, tests/prompt-test-tiers.test.sh, tests/unit/exit-contract.test.sh, tests/unit/scratch-copy-libs.test.sh and tests/py/test_comment_class.py among its suites ⟦full-suite⟧ ⟦criterion 5⟧
+- [x] make test is green, tests/timed-test-run.test.sh, tests/py/test_timed_test_run.py, tests/unit/missing-argument-exit.test.sh, tests/unit/emitted-text.test.sh, tests/prompt-test-tiers.test.sh, tests/unit/exit-contract.test.sh, tests/unit/scratch-copy-libs.test.sh and tests/py/test_comment_class.py among its suites ⟦full-suite⟧ ⟦criterion 5⟧
 
 ## Notes — what the port does where no case pins it
 
