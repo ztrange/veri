@@ -9,6 +9,8 @@
 #      `VERI_REFACTOR_BUDGET`.
 #   3. The same item calls `step-budget.sh` beside `refactor-budget.sh 0`, and spells its
 #      exit 2 in the paragraph that makes the call.
+#   4. The item that checks `claude auth status` checks GitHub with `gh api user`, and the
+#      paragraph that names it says a non-zero exit stops the run as a preflight failure.
 #
 # Run: scripts/tests/skill-preflight-launchable.test.sh
 set -uo pipefail
@@ -25,6 +27,9 @@ growth='VERI_STEP_GROWTH'
 step_budget='step-budget.sh'
 refactor_budget='refactor-budget.sh 0'
 refusal='exits? 2'
+claude_auth='claude auth status'
+gh_check='gh api user'
+nonzero='non-zero'
 preflight='### 0. Preflight'
 
 
@@ -110,6 +115,25 @@ if preflight_or_problem "a $step_budget check"; then
       problems+=("$skill_md:$sb_at calls $step_budget outside the preflight item that runs $refactor_budget")
     grep -iE "$refusal" > /dev/null < <(paragraph_around "$sb_at") ||
       problems+=("$skill_md:$sb_at calls $step_budget in a paragraph that spells no exit 2, so nothing says a budget it cannot read stops the run before a leaf launches")
+  fi
+fi
+
+report "$name"
+
+name="$skill_md's preflight checks GitHub with $gh_check and stops the run on its non-zero exit (#864)"
+problems=()
+
+if preflight_or_problem "the GitHub check"; then
+  auth_at="$(call_at "$claude_auth")"
+  if [[ -z "$auth_at" ]]; then
+    problems+=("$skill_md's '$preflight' section never names $claude_auth, so the item that checks authentication — the one the GitHub check belongs in — could not be read")
+  elif ! grep -F -- "$gh_check" > /dev/null < <(item_around "$auth_at"); then
+    problems+=("$skill_md:$auth_at checks $claude_auth in a preflight item that never names $gh_check, so GitHub is checked by a call other than the REST one every other GitHub read uses")
+  else
+    gh_at="$(call_at "$gh_check")"
+    para="$(paragraph_around "$gh_at")"
+    grep -iF -- "$nonzero" > /dev/null <<< "$para" && grep -iF -- "preflight" > /dev/null <<< "$para" ||
+      problems+=("$skill_md:$gh_at names $gh_check in a paragraph that does not say its $nonzero exit stops the run as a preflight failure, so a conductor can carry on past a failed GitHub check")
   fi
 fi
 
