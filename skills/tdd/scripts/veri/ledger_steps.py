@@ -1,4 +1,5 @@
 """ledger-steps.sh's computations, run in-process."""
+import re
 import sys
 
 from veri.ledger import ledger_steps
@@ -33,11 +34,27 @@ def last_done(records):
     return answer(done[-1] if done else None)
 
 
+def criterion(text, k):
+    kept, in_section = [], False
+    for line in text.split("\n"):
+        if line.startswith("## "):
+            in_section = line.startswith("## Acceptance criteria")
+        if in_section:
+            kept.append(line)
+    found = ledger_steps("\n".join(kept))
+    return answer(found[k - 1] if 1 <= k <= len(found) else None)
+
+
 def main(argv):
     verb = argv[0] if argv else ""
-    if verb not in ("", "current", "last-done"):
+    if verb not in ("", "current", "last-done", "criterion"):
         return refuse()
-    records = ledger_steps(sys.stdin.buffer.read().decode())
+    if verb == "criterion" and not re.fullmatch("[0-9]+", argv[1] if len(argv) > 1 else ""):
+        return refuse()
+    text = sys.stdin.buffer.read().decode()
+    if verb == "criterion":
+        return criterion(text, int(argv[1]))
+    records = ledger_steps(text)
     if verb == "current":
         return current(records)
     if verb == "last-done":

@@ -129,3 +129,35 @@ def test_last_done_prints_the_last_done_step_x_or_X_with_the_mark_cut_an_empty_l
         "empty text": (0, b"\n", b""),
         "none done": (3, b"", b""),
     }
+
+
+def test_criterion_prints_the_kth_step_line_of_every_acceptance_criteria_section_else_exits_3(
+        monkeypatch, capsysbinary, ledger_steps):
+    body = (
+        "# Title\n"
+        "- [ ] not a criterion\n"
+        "## Acceptance criteriaX\n"
+        "- [ ] c1\n"
+        "### a subsection\n"
+        "  - [ ] c2\n"
+        "* [ ] not a step\n"
+        "## Other\n"
+        "- [ ] not a criterion either\n"
+        "## Acceptance criteria\n"
+        "- [x] c3 ⟂ refactor pending\n"
+        "- [ ] c4"
+    ).encode()
+    results = {}
+    for k in ("0", "1", "2", "3", "4", "5"):
+        fake_stdin(monkeypatch, body)
+        code = ledger_steps.main(["criterion", k])
+        results[k] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        "0": (3, b"", b""),
+        "1": (0, b"c1\n", b""),
+        "2": (0, b"c2\n", b""),
+        "3": (0, b"c3\n", b""),
+        "4": (0, b"c4\n", b""),
+        "5": (3, b"", b""),
+    }
