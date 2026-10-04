@@ -60,4 +60,21 @@ rm -f "$err_file"
 [[ -z "$problems" ]] \
   && ok || no "exhausted-outcome ignores its arguments and never writes to stderr (${problems#; })"
 
+problems=""
+sl_work="$(scratch_dir)"
+ln -s "$(cd "$HERE/../.." && pwd)" "$sl_work/linked-skill"
+mkdir -p "$sl_work/elsewhere"
+for pair in 'SPLIT: a|a|0' 'NEEDS_USER: q|q|1' 'neither||3'; do
+  IFS='|' read -r report want want_code <<< "$pair"
+  in_place="$(printf '%s' "$report" | "$OUTCOME")" && in_place_code=0 || in_place_code=$?
+  linked="$(cd "$sl_work/elsewhere" && printf '%s' "$report" | "$sl_work/linked-skill/scripts/exhausted-outcome.sh")" && linked_code=0 || linked_code=$?
+  [[ "$linked" == "$want" && "$linked_code" == "$want_code" ]] \
+    || problems="$problems; '$report' through the symlink printed '$linked' exit $linked_code, want '$want' exit $want_code"
+  [[ "$linked" == "$in_place" && "$linked_code" == "$in_place_code" ]] \
+    || problems="$problems; '$report' through the symlink printed '$linked' exit $linked_code, in place '$in_place' exit $in_place_code"
+done
+
+[[ -z "$problems" ]] \
+  && ok || no "exhausted-outcome.sh run through a symlink to the skill directory and from another working directory answers as it does when run in place (${problems#; })"
+
 finish
