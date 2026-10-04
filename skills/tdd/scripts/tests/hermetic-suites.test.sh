@@ -113,6 +113,64 @@ report "$name"
 
 rm -f "$label_cut"
 
+name="solvable-issues.test.sh, tick-issue-criterion.test.sh, parallel-conductors.test.sh and invisible-work.test.sh: an ambient VERI_GH_DRIVER of auto, rest or graphql gives the same exit and the same stdout as a cleared run"
+problems=()
+driver_solvable="$(mktemp "$HERE/.hermetic-driver-slice.XXXXXX")"
+driver_parallel="$(mktemp "$HERE/.hermetic-driver-slice.XXXXXX")"
+driver_invisible="$(mktemp "$HERE/.hermetic-driver-slice.XXXXXX")"
+awk '
+  /^fx="\$\(fixture ordering\)"$/ {skip=1}
+  /^fx="\$\(fixture gh\)"$/ {skip=0}
+  /^fx="\$\(fixture default-label\)"$/ {skip=1}
+  /^fx="\$\(fixture graphql-refused\)"$/ {skip=0}
+  !skip
+' "$HERE/solvable-issues.test.sh" > "$driver_solvable"
+awk '
+  /^timeline="\$work\/timeline"$/ {skip=1}
+  /^refusing_gh="\$work\/graphql-refusing-bin"$/ {skip=0}
+  /^failing_cat="\$work\/failing-cat-bin"$/ {skip=1}
+  /^finish$/ {skip=0}
+  !skip
+' "$HERE/parallel-conductors.test.sh" > "$driver_parallel"
+awk '
+  /^name="invisible-work\.sh: a branch on origin with no PR / {skip=1}
+  /^run_both_ghs\(\) / {skip=0}
+  /^name="invisible-work\.sh reads issues and PR documents larger / {skip=1}
+  /^name="invisible-work\.sh: against a gh that serves issues and PRs over three pages / {skip=0}
+  /^name="invisible-work\.sh, run through a symlink / {skip=1}
+  /^finish$/ {skip=0}
+  !skip
+' "$HERE/invisible-work.test.sh" > "$driver_invisible"
+chmod +x "$driver_solvable" "$driver_parallel" "$driver_invisible"
+slice_problems=()
+for slice in "solvable-issues.test.sh:$driver_solvable:ok || no :11" \
+  "parallel-conductors.test.sh:$driver_parallel:ok || no :4" \
+  "invisible-work.test.sh:$driver_invisible:^report :5"; do
+  IFS=: read -r slice_suite slice_path slice_pattern slice_want <<< "$slice"
+  slice_got="$(grep -c -- "$slice_pattern" "$slice_path")"
+  [[ "$slice_got" == "$slice_want" ]] ||
+    slice_problems+=("the slice of $slice_suite held $slice_got assertions, want $slice_want — the markers may have moved")
+done
+if (( ${#slice_problems[@]} )); then
+  problems=("${slice_problems[@]}")
+else
+  driver_findings=()
+  for driver_suite in "solvable-issues.test.sh:$driver_solvable" "tick-issue-criterion.test.sh:$HERE/tick-issue-criterion.test.sh" \
+    "parallel-conductors.test.sh:$driver_parallel" "invisible-work.test.sh:$driver_invisible"; do
+    cleared_driver_out="$(env -u VERI_GH_DRIVER "${driver_suite#*:}" 2>/dev/null)" && cleared_driver_code=0 || cleared_driver_code=$?
+    for driver in auto rest graphql; do
+      ambient_driver_out="$(env VERI_GH_DRIVER="$driver" "${driver_suite#*:}" 2>/dev/null)" && ambient_driver_code=0 || ambient_driver_code=$?
+      same_answer cleared "$cleared_driver_code" "$cleared_driver_out" "$ambient_driver_code" "$ambient_driver_out"
+      for problem in ${problems[@]+"${problems[@]}"}; do
+        driver_findings+=("${driver_suite%%:*} under VERI_GH_DRIVER=$driver: $problem")
+      done
+    done
+  done
+  problems=(${driver_findings[@]+"${driver_findings[@]}"})
+fi
+rm -f "$driver_solvable" "$driver_parallel" "$driver_invisible"
+report "$name"
+
 name="every suite that invokes push-branch.sh sets VERI_PUSH_BACKOFF in its environment"
 problems=()
 push_invocations=0

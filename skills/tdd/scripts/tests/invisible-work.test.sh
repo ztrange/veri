@@ -10,6 +10,7 @@
 #
 # Run: scripts/tests/invisible-work.test.sh
 set -uo pipefail
+unset VERI_GH_DRIVER
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
