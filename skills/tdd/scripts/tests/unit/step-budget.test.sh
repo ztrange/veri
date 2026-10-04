@@ -87,6 +87,13 @@ if [[ "$code" != 2 ]]; then
 fi
 verdict "any argument exits 2"
 
+run_budget -- 0
+expect 2 ''
+if [[ "$err" != 'usage: step-budget.sh (takes no arguments)' ]]; then
+  problems+="    want stderr 'usage: step-budget.sh (takes no arguments)' alone, got '$err'"$'\n'
+fi
+verdict "an argument exits 2 with nothing on stdout and the usage line alone on stderr"
+
 BAR='no git, no network, no servers, no real sleep, no nested suites'
 self="$HERE/$(basename "$0")"
 [[ "$self" == */skills/tdd/scripts/tests/unit/step-budget.test.sh ]] ||
