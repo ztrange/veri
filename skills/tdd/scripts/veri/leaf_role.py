@@ -36,7 +36,7 @@ def leaf_role(name):
 
 def main(argv):
     if not argv or not argv[0]:
-        print(USAGE, file=sys.stderr)
+        _write(sys.stderr, USAGE)
         return 2
     role = leaf_role(argv[0])
     if role is None:
