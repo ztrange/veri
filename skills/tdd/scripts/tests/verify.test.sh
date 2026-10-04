@@ -283,6 +283,20 @@ tamper_run reverted 'b="$(mktemp)"; cp src.txt "$b"; printf "the verifier broke 
 { [[ "$code" == 0 ]] && [[ "$out" == *'full suite are green'* ]]; } && ok \
   || no "a verifier that restored its own mutation gets its verdict's normal exit code (code=$code want 0, stdout='$out' want the verdict's reason)"
 
+subdir_state_dir="$tamper_work/subdir-run-state"
+fixture_repo "$subdir_state_dir"
+cp "$HERE/../../../../.gitignore" "$subdir_state_dir/.gitignore"
+git -C "$subdir_state_dir" commit -q -a -m "the repo's own ignore rules" >/dev/null 2>&1
+subdir_project=docs
+subdir_state="projects/$subdir_project/.tdd"
+out="$( FAKE_MUTATE="mkdir -p $subdir_state && printf '{}\n' > $subdir_state/events.jsonl" \
+    verify_in "$subdir_state_dir" green 'VERDICT: PASS
+REASON: Target test and full suite are green.' "$stubdir/claude-mutate" 2>/dev/null )"
+code=$?
+{ [[ "$code" == 0 ]] && [[ "$out" == *'full suite are green'* ]] \
+  && [[ "$out" != *'modified the repository'* ]]; } && ok \
+  || no "#569: a verifier whose run leaves $subdir_state/events.jsonl behind under the repo's own .gitignore has its PASS accepted (code=$code want 0; stdout='$out' want the verdict's reason and no 'modified the repository')"
+
 leafargs_out="$work/leafargs"
 LEAFARGS_OUT="$leafargs_out" VERIFY_LEAF_ARGS='--permission-mode bypassPermissions --disallowedTools Write' \
   tamper_run leafargs 'printf "%s\n" "$@" > "$LEAFARGS_OUT"; printf "the verifier rewrote this\n" > src.txt'
