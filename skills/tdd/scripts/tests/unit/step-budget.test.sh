@@ -94,6 +94,28 @@ if [[ "$err" != 'usage: step-budget.sh (takes no arguments)' ]]; then
 fi
 verdict "an argument exits 2 with nothing on stdout and the usage line alone on stderr"
 
+ln -s "$(cd "$HERE/../../.." && pwd)" "$work/linked-skill"
+mkdir -p "$work/elsewhere"
+linked_matches() {
+  local in_out="$out" in_code="$code" linked linked_code
+  linked="$(cd "$work/elsewhere" && env -u VERI_STEP_BUDGET -u VERI_RUN_BUDGET "$@" "$work/linked-skill/scripts/step-budget.sh" "${args[@]}" 2>/dev/null)" && linked_code=0 || linked_code=$?
+  if [[ "$linked" != "$in_out" || "$linked_code" != "$in_code" ]]; then
+    problems+="    in place: exit $in_code, stdout '$in_out'; through the symlink from elsewhere: exit $linked_code, stdout '$linked'"$'\n'
+  fi
+}
+args=()
+run_budget --
+expect 0 $'12\n120'
+linked_matches
+run_budget VERI_STEP_BUDGET=twelve --
+expect 2 ''
+linked_matches VERI_STEP_BUDGET=twelve
+args=(0)
+run_budget -- 0
+expect 2 ''
+linked_matches
+verdict "step-budget.sh run through a symlink to the skill directory and from another working directory answers no argument, VERI_STEP_BUDGET=twelve and the argument 0 as it does in place"
+
 BAR='no git, no network, no servers, no real sleep, no nested suites'
 self="$HERE/$(basename "$0")"
 [[ "$self" == */skills/tdd/scripts/tests/unit/step-budget.test.sh ]] ||
