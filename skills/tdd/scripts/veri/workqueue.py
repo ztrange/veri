@@ -8,6 +8,7 @@ import time
 import blocked_by
 from github import NoAnswer, gh_json
 from json_documents import items
+from status import main_working_tree
 
 USAGE = """workqueue.sh: usage: workqueue.sh assign <worker> <issue>...
                      workqueue.sh next <worker>
@@ -23,13 +24,6 @@ def refuse(message=None):
         sys.stderr.write(message + "\n")
     sys.stderr.write(USAGE)
     return 2
-
-
-def main_working_tree():
-    listing = subprocess.run(["git", "worktree", "list", "--porcelain"],
-                             capture_output=True, text=True).stdout
-    first = listing.split("\n", 1)[0]
-    return first.removeprefix("worktree ")
 
 
 def queue_path():
