@@ -33,7 +33,7 @@ def main(argv):
         f"- {line}" for line in unreached.split("\n"))
     url = subprocess.run(["gh", "api", "repos/{owner}/{repo}/issues",
                           "-f", f"title=Refactor owed by #{n}", "-f", f"body={body}",
-                          "-q", ".html_url"], capture_output=True, text=True).stdout
+                          "-q", ".html_url"], stdout=subprocess.PIPE, text=True).stdout
     print(url.rstrip("\n"))
     return 0
 

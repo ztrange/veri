@@ -181,3 +181,30 @@ def test_main_lets_what_list_writes_to_stderr_through_to_the_callers_stderr_on_e
 
     captured = capsys.readouterr()
     assert (code, captured.err) == (expected_code, list_err)
+
+
+@pytest.mark.parametrize("gh_code", [0, 1])
+def test_main_lets_what_gh_writes_to_stderr_through_to_the_callers_stderr_on_every_exit(
+        monkeypatch, capsys, tmp_path, refactor_overflow, gh_code):
+    owed = str(tmp_path / "owed.md")
+    gh_err = "gh: a warning\n"
+
+    def fake_run(args, *rest, **kwargs):
+        args = [str(a) for a in args]
+        if args[0] != "gh":
+            return subprocess.CompletedProcess(args, 0, "first\nsecond\n", None)
+        out = "https://github.com/o/r/issues/9\n" if gh_code == 0 else ""
+        if kwargs.get("capture_output") or kwargs.get("stderr") is not None:
+            return subprocess.CompletedProcess(args, gh_code, out, gh_err)
+        sys.stderr.write(gh_err)
+        return subprocess.CompletedProcess(args, gh_code, out, None)
+
+    def refuse_popen(args, *rest, **kwargs):
+        raise AssertionError(f"started a process through Popen: {args}")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", refuse_popen)
+
+    refactor_overflow.main(["7", owed, "1"])
+
+    assert capsys.readouterr().err == gh_err
