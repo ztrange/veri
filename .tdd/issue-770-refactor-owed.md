@@ -1,0 +1,2 @@
+### veri.time_budget.main([]) with VERI_TIME_WARN_RATIO=1,5 returns 2 with nothing on stdout and stderr exactly `time-budget: VERI_TIME_WARN_RATIO must be a number: 1,5`; with both variables bad it prints only the VERI_UNIT_BUDGET line (tests/py/test_time_budget.py, faking only the environment, never patching a function of veri.time_budget) ⟦criterion 4⟧
+- test-only | extract the repeated `code = time_budget.main(argv); answers.append((code,) + capfd.readouterr())` call-and-capture pair in tests/py/test_time_budget.py into one helper
