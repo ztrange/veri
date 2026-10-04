@@ -17,7 +17,7 @@ def main(argv):
         return 2
     lines = limits.stdout.splitlines()
     budget, ratio = lines[0], lines[-1]
-    over = float(seconds) > float(budget) or float(seconds) > float(ratio) * float(usual)
+    over = (tier == "unit" and float(seconds) > float(budget)) or float(seconds) > float(ratio) * float(usual)
     if not over:
         return 1
     print("⏱ %s tier took %s s (usual %s s, ratio %s, unit budget %s s)" % (tier, seconds, usual, ratio, budget))
