@@ -292,6 +292,22 @@ def test_gh_issue_view_answers_an_empty_body_from_the_rest_route_when_the_issue_
     ]
 
 
+def test_gh_issue_view_answers_the_label_names_one_per_line_from_the_rest_route_for_labels(monkeypatch, github):
+    calls = fake_gh(monkeypatch, {
+        ("gh", "issue", "view", "60", "--json", "labels", "-q", ".labels[].name"): (1, "", ""),
+        ("gh", "api", "repos/{owner}/{repo}/issues/60"): (
+            0, '{"number":60,"body":"A thing.","labels":[{"name":"bug"},{"name":"ready-for-agent"}]}\n', ""),
+    })
+
+    answer = github.gh_issue_view("60", "labels")
+
+    assert answer == "bug\nready-for-agent\n"
+    assert calls == [
+        ["gh", "issue", "view", "60", "--json", "labels", "-q", ".labels[].name"],
+        ["gh", "api", "repos/{owner}/{repo}/issues/60"],
+    ]
+
+
 def test_gh_issue_view_is_a_no_answer_with_the_rest_stderr_passed_through_when_both_routes_fail(monkeypatch, capsys, github):
     graphql_refusal = "GraphQL: Resource not accessible by integration\n"
     rest_refusal = "gh: HTTP 502: Bad Gateway (https://api.github.com/repos/o/r/issues/60)\n"
