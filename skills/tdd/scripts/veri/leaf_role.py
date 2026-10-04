@@ -7,15 +7,19 @@ ACTORS = {"develop": "developer", "revise": "developer", "verify": "verifier", "
 SHAPES = "(want develop-*|revise-*|verify-*|conductor-*)"
 
 
+def _refuse(name, reason):
+    print("leaf-role: leaf name '%s' %s %s" % (name, reason, SHAPES), file=sys.stderr)
+
+
 def leaf_role(name):
     """VERI_ACTOR, VERI_PHASE and VERI_ATTEMPT for a leaf name."""
     actor_word = name.split("-", 1)[0]
     if actor_word not in ACTORS:
-        print("leaf-role: leaf name '%s' has an unknown leading word %s" % (name, SHAPES), file=sys.stderr)
+        _refuse(name, "has an unknown leading word")
         return None
     phase, attempt = name[len(actor_word) + 1:], "1"
     if not phase:
-        print("leaf-role: leaf name '%s' says no phase %s" % (name, SHAPES), file=sys.stderr)
+        _refuse(name, "says no phase")
         return None
     split = re.fullmatch(r"(.*)-([0-9]+)", phase)
     if split:
