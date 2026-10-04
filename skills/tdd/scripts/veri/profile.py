@@ -29,8 +29,9 @@ def run_traced(suite, trace):
         return fd.read().splitlines()
 
 
-def cases(suite, trace_lines):
+def cases(suite, trace_lines, threshold):
     lines = []
+    n = 0
     start = first = None
     for line in trace_lines:
         fields = line.split()
@@ -42,11 +43,13 @@ def cases(suite, trace_lines):
             first = lineno
         if re.fullmatch(r"(pass|fail)=[0-9]+", fields[2]):
             if int(fields[2].split("=")[1]) > 0:
+                n += 1
                 secs = float(stamp) - float(start)
-                lines.append("%.6f %s case %d L%d-%d\n" % (secs, suite, len(lines) + 1, int(first), int(lineno)))
+                if secs >= float(threshold):
+                    lines.append("%.6f %s case %d L%d-%d\n" % (secs, suite, n, int(first), int(lineno)))
                 start = stamp
                 first = None
-    return lines
+    return n, lines
 
 
 def sort_lines(lines):
@@ -66,8 +69,8 @@ def main(argv):
     try:
         lines = []
         for suite in argv:
-            found = cases(suite, run_traced(suite, trace))
-            if not found:
+            n, found = cases(suite, run_traced(suite, trace), threshold)
+            if not n:
                 print("profile.sh: %s: no pass=/fail= increment in its trace" % suite, file=sys.stderr)
                 return 2
             lines += found

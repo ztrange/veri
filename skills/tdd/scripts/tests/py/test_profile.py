@@ -97,3 +97,32 @@ def test_main_prints_each_case_as_secs_suite_case_n_and_its_line_range(tmp_path,
     captured = capsys.readouterr()
     assert (code, captured.out) == (
         0, "0.000000 format.test.sh case 1 L2-4\n3.000000 format.test.sh case 2 L5-8\n")
+
+
+def test_main_prints_a_case_when_its_seconds_reach_the_threshold_default_1(tmp_path, monkeypatch, capsys, profile):
+    def trace(*secs):
+        lines, stamp = [], 10.0
+        for n, d in enumerate(secs, 1):
+            lines.append("++%.6f %d x=%d\n" % (stamp, 2 * n, n))
+            stamp += d
+            lines.append("++%.6f %d pass=%d\n" % (stamp, 2 * n + 1, n))
+        return "".join(lines)
+
+    def printed(threshold):
+        monkeypatch.setenv("VERI_PROFILE_THRESHOLD", threshold)
+        code = profile.main(["t.test.sh"])
+        out = capsys.readouterr().out
+        ordered = sorted(out.splitlines(), key=lambda line: float(line.split()[0]), reverse=True)
+        return code, [int(line.split()[3]) for line in ordered]
+
+    (tmp_path / "t.test.sh").write_text("pass=0\n")
+    monkeypatch.chdir(tmp_path)
+
+    fake_processes(monkeypatch, trace=trace(1.0, 0.9))
+    assert printed("") == (0, [1])
+
+    fake_processes(monkeypatch, trace=trace(0.25, 2.0, 5.0, 3.0))
+    assert printed("0") == (0, [3, 4, 2, 1])
+    assert printed("1") == (0, [3, 4, 2])
+    assert printed("2.5") == (0, [3, 4])
+    assert printed("4") == (0, [3])
