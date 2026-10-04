@@ -141,8 +141,7 @@ migration_slice 1 add-ledger-step.sh build-develop-prompt.sh build-verify-prompt
   clear-refactor-pending.sh
 migration_slice 2 cover-outcome.sh coverage-blocker.sh criterion-finished.sh \
   detach-command.sh detach-leaf.sh
-migration_slice 3 ensure-run-state-ignored.sh event.sh exhausted-outcome.sh \
-  invisible-work.sh
+migration_slice 3 ensure-run-state-ignored.sh event.sh invisible-work.sh
 migration_slice 4 issue-worktree.sh leaf-launchable.sh leaf-model.sh leaf-role.sh \
   ledger-steps.sh metrics.sh
 migration_slice 5 next-pending-refactor.sh next-unchecked.sh orchestrate.sh over-budget.sh \
