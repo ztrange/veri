@@ -10,7 +10,7 @@
 - [x] The guard also fails naming `<suite>:<line>` for a suite that makes a directory read-only to force a write failure into it ⟦criterion 2⟧
 - [x] A line the guard's exemption table lists, with a reason, is not reported, and an exemption entry carrying no reason fails the guard ⟦criterion 2⟧
 - [x] Planting a permission-bit offender into a suite turns the guard red naming the planted `<suite>:<line>`, and removing the plant turns it green again ⟦criterion 2⟧
-- [x] CLAUDE.md's "Testing idiom" section, next to the SIGPIPE and job-spec rules, states that no suite relies on permission bits to make a path unreadable or unwritable, because the cloud runs as root and permission bits are a no-op there ⟦criterion 3⟧ ⟂ refactor pending
+- [x] CLAUDE.md's "Testing idiom" section, next to the SIGPIPE and job-spec rules, states that no suite relies on permission bits to make a path unreadable or unwritable, because the cloud runs as root and permission bits are a no-op there ⟦criterion 3⟧
 - [ ] status.test.sh passes when run as uid 0, its exit-2 case included ⟦human-owed⟧ ⟦criterion 1⟧
 - [ ] make test is green on the branch with the guard in it ⟦full-suite⟧ ⟦criterion 2⟧
 
