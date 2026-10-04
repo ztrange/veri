@@ -15,7 +15,14 @@ def main(argv):
         return 2
     tier, suites, command = argv[0], argv[1], argv[2:]
     started = int(time.time())
-    code = subprocess.call(command)
+    try:
+        code = subprocess.call(command)
+    except FileNotFoundError:
+        code = 127
+    except PermissionError:
+        code = 126
+    if code < 0:
+        code = 128 - code
     ended = int(time.time())
     subprocess.call([EVENT, "test-run", f"tier={tier}", f"suites={suites}",
                      f"seconds={ended - started}", f"status={code}"])

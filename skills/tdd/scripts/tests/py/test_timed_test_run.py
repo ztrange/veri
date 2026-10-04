@@ -152,3 +152,77 @@ def test_main_runs_the_command_inheriting_everything_then_records_whole_second_s
         assert {key: value for key, value in command[3].items()
                 if key in inherited and value is not None and value is not False
                 and not (key == "close_fds" and value is True)} == {}
+
+
+def test_main_returns_the_command_status_unmapped_and_records_it_127_not_found_126_not_executable_128_plus_n_for_a_signal(monkeypatch, capfd, timed_test_run):
+    outcomes = {
+        "true": 0,
+        "seven": 7,
+        "nosuchcmd": FileNotFoundError(2, "No such file or directory", "nosuchcmd"),
+        "/etc/hosts": PermissionError(13, "Permission denied", "/etc/hosts"),
+        "int": -2,
+        "kill": -9,
+        "pipe": -13,
+        "term": -15,
+    }
+    events = []
+
+    def returncode_for(args):
+        if os.path.basename(str(args[0])) == "event.sh":
+            events.append([str(a) for a in args])
+            return 0
+        outcome = outcomes[str(args[0])]
+        if isinstance(outcome, OSError):
+            raise outcome
+        return outcome
+
+    def fake_call(args, *rest, **kwargs):
+        return returncode_for(args)
+
+    def fake_run(args, *rest, **kwargs):
+        return subprocess.CompletedProcess(args, returncode_for(args))
+
+    class FakePopen:
+        def __init__(self, args, *rest, **kwargs):
+            self.args = args
+            self.returncode = returncode_for(args)
+            self.pid = 0
+
+        def wait(self, timeout=None):
+            return self.returncode
+
+        def poll(self):
+            return self.returncode
+
+        def communicate(self, input=None, timeout=None):
+            return None, None
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    monkeypatch.setattr(subprocess, "call", fake_call)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+
+    observed = []
+    for command in outcomes:
+        events.clear()
+        try:
+            code = timed_test_run.main(["fast", "", command])
+        except Exception as raised:
+            code = f"raised {type(raised).__name__}"
+        observed.append((command, code, [event[-1] for event in events]))
+        capfd.readouterr()
+    assert observed == [
+        ("true", 0, ["status=0"]),
+        ("seven", 7, ["status=7"]),
+        ("nosuchcmd", 127, ["status=127"]),
+        ("/etc/hosts", 126, ["status=126"]),
+        ("int", 130, ["status=130"]),
+        ("kill", 137, ["status=137"]),
+        ("pipe", 141, ["status=141"]),
+        ("term", 143, ["status=143"]),
+    ]
