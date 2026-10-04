@@ -283,7 +283,15 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   and the second band's is GitHub's own `bug`. **Exit 0** when it printed at least one,
   **exit 3** with empty stdout when none is takeable (nothing to do, not an error).
   `VERI_GH_JSON=<dir>` reads `issues.json` / `prs.json` fixtures instead of shelling out to
-  `gh`, which is what makes it testable with no network. The conductor does not call this —
+  `gh`, which is what makes it testable with no network. `VERI_GH_DRIVER` picks the route
+  every GitHub read and write takes, through `veri/github.py` and `lib/github.sh` alike:
+  `rest` (the default when unset) runs only `gh api`, `graphql` runs only the `gh issue` /
+  `gh pr` command with no fallback, and `auto` tries GraphQL then REST. Set but empty, or any
+  other value, is **exit 2**, with a stderr line naming `VERI_GH_DRIVER` and the value, checked
+  at call time. Operations with no GraphQL route — issue edit and create, `gh_rest_list`,
+  `gh_json` with no gh args — use REST under every value, and `VERI_GH_JSON` takes precedence
+  over it. A Claude Code cloud session, where GraphQL is refused, needs nothing set: the
+  default is already `rest`. The conductor does not call this —
   it is rung 2's, driven by the loop branch of this skill.
 
 ## Launching a leaf — detach, then wait in the foreground
