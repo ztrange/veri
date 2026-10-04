@@ -32,6 +32,7 @@ def test_main_returns_2_with_the_usage_line_and_no_subprocess_call_for_a_missing
 
 
 def test_main_returns_3_with_no_patch_and_names_the_matcher_and_issue_when_no_unchecked_criterion_matches(monkeypatch, capsys, tick_issue_criterion):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     real_run = subprocess.run
     patches = []
 
@@ -54,6 +55,7 @@ def test_main_returns_3_with_no_patch_and_names_the_matcher_and_issue_when_no_un
 
 
 def test_main_ticks_the_box_and_patches_the_stripped_body_through_gh_api_reading_either_route_with_tick_criterion_run_beside_it(monkeypatch, capsys, tick_issue_criterion):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     real_run = subprocess.run
     body = "- [ ] alpha\n- [ ] beta\n\n\n"
 
@@ -103,6 +105,7 @@ def test_main_ticks_the_box_and_patches_the_stripped_body_through_gh_api_reading
 
 
 def test_main_keeps_every_failure_path_inside_0_to_3_and_lets_an_uncaught_exception_propagate(monkeypatch, capsys, tick_issue_criterion):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     real_run = subprocess.run
 
     def run_case(argv, view=(0, "- [ ] alpha\n"), api=(0, json.dumps({"body": "- [ ] alpha"})), patch=0, tick=None):

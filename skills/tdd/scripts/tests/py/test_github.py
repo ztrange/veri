@@ -145,6 +145,7 @@ def test_gh_rest_list_hands_the_pages_fetched_before_a_failing_page_along_with_t
 
 
 def test_gh_list_answers_the_gh_call_stdout_and_makes_no_gh_api_call_when_it_succeeds(monkeypatch, github):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     path = "repos/{owner}/{repo}/pulls?state=open"
     calls = fake_gh(monkeypatch, {
         ("gh", "pr", "list", "--json", "number"): (0, '[{"number":7},{"number":9}]', ""),
@@ -157,6 +158,7 @@ def test_gh_list_answers_the_gh_call_stdout_and_makes_no_gh_api_call_when_it_suc
 
 
 def test_gh_list_answers_the_rest_pages_and_drops_the_graphql_stderr_when_the_gh_call_fails(monkeypatch, capsys, github):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     path = "repos/{owner}/{repo}/pulls?state=open"
     refusal = "GraphQL: Resource not accessible by integration\n"
     answers = {
@@ -192,6 +194,7 @@ def test_gh_list_answers_the_rest_pages_and_drops_the_graphql_stderr_when_the_gh
 
 
 def test_gh_list_is_a_no_answer_with_the_rest_stderr_passed_through_when_both_routes_fail(monkeypatch, capsys, github):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     path = "repos/{owner}/{repo}/pulls?state=open"
     graphql_refusal = "GraphQL: Resource not accessible by integration\n"
     rest_refusal = "gh: HTTP 502: Bad Gateway (https://api.github.com/repos/o/r/pulls?state=open&page=1)\n"
@@ -224,6 +227,7 @@ def test_gh_list_is_a_no_answer_with_the_rest_stderr_passed_through_when_both_ro
 
 
 def test_gh_issue_view_answers_the_gh_issue_view_body_and_makes_no_gh_api_call_when_it_succeeds(monkeypatch, github):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     calls = fake_gh(monkeypatch, {
         ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (0, "## What to build\n\nA thing.\n", ""),
     })
@@ -235,6 +239,7 @@ def test_gh_issue_view_answers_the_gh_issue_view_body_and_makes_no_gh_api_call_w
 
 
 def test_gh_issue_view_answers_the_gh_issue_view_label_names_and_makes_no_gh_api_call_when_it_succeeds(monkeypatch, github):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     calls = fake_gh(monkeypatch, {
         ("gh", "issue", "view", "60", "--json", "labels", "-q", ".labels[].name"): (0, "bug\nready-for-agent\n", ""),
     })
@@ -246,6 +251,7 @@ def test_gh_issue_view_answers_the_gh_issue_view_label_names_and_makes_no_gh_api
 
 
 def test_gh_issue_view_answers_the_rest_body_and_drops_the_graphql_stderr_when_gh_issue_view_fails(monkeypatch, capsys, github):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     refusal = "GraphQL: Resource not accessible by integration\n"
     answers = {
         ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (1, "", refusal),
@@ -277,6 +283,7 @@ def test_gh_issue_view_answers_the_rest_body_and_drops_the_graphql_stderr_when_g
 
 
 def test_gh_issue_view_answers_an_empty_body_from_the_rest_route_when_the_issue_body_is_null(monkeypatch, github):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     calls = fake_gh(monkeypatch, {
         ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (1, "", ""),
         ("gh", "api", "repos/{owner}/{repo}/issues/60"): (
@@ -293,6 +300,7 @@ def test_gh_issue_view_answers_an_empty_body_from_the_rest_route_when_the_issue_
 
 
 def test_gh_issue_view_answers_the_label_names_one_per_line_from_the_rest_route_for_labels(monkeypatch, github):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     calls = fake_gh(monkeypatch, {
         ("gh", "issue", "view", "60", "--json", "labels", "-q", ".labels[].name"): (1, "", ""),
         ("gh", "api", "repos/{owner}/{repo}/issues/60"): (
@@ -309,6 +317,7 @@ def test_gh_issue_view_answers_the_label_names_one_per_line_from_the_rest_route_
 
 
 def test_gh_issue_view_is_a_no_answer_with_the_rest_stderr_then_the_json_decode_line_when_both_routes_fail_with_an_empty_rest_stdout(monkeypatch, capsys, github):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     graphql_refusal = "GraphQL: Resource not accessible by integration\n"
     rest_refusal = "gh: HTTP 502: Bad Gateway (https://api.github.com/repos/o/r/issues/60)\n"
     decode_line = "json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\n"
@@ -341,6 +350,7 @@ def test_gh_issue_view_is_a_no_answer_with_the_rest_stderr_then_the_json_decode_
 
 
 def test_gh_issue_view_is_a_no_answer_when_the_rest_answer_is_not_json(monkeypatch, github):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     calls = fake_gh(monkeypatch, {
         ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (1, "", ""),
         ("gh", "api", "repos/{owner}/{repo}/issues/60"): (0, "<html>Bad Gateway</html>\n", ""),
@@ -356,6 +366,7 @@ def test_gh_issue_view_is_a_no_answer_when_the_rest_answer_is_not_json(monkeypat
 
 
 def test_gh_issue_view_is_a_no_answer_with_the_json_decode_line_when_gh_api_exits_0_with_a_non_json_stdout(monkeypatch, capsys, github):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     fake_gh(monkeypatch, {
         ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (1, "", ""),
         ("gh", "api", "repos/{owner}/{repo}/issues/60"): (0, "<html>Bad Gateway</html>\n", ""),
@@ -368,6 +379,7 @@ def test_gh_issue_view_is_a_no_answer_with_the_json_decode_line_when_gh_api_exit
 
 
 def test_gh_issue_view_is_a_no_answer_with_no_json_decode_line_when_gh_api_exits_non_zero_with_a_json_stdout(monkeypatch, capsys, github):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     fake_gh(monkeypatch, {
         ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (1, "", ""),
         ("gh", "api", "repos/{owner}/{repo}/issues/60"): (
@@ -494,6 +506,7 @@ def test_gh_json_answers_the_rest_pages_when_veri_gh_json_is_unset_and_no_gh_arg
 
 
 def test_gh_json_answers_the_gh_list_answer_when_veri_gh_json_is_unset_and_gh_args_are_given(monkeypatch, github):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     path = "repos/{owner}/{repo}/pulls?state=open"
     monkeypatch.delenv("VERI_GH_JSON", raising=False)
     calls = fake_gh(monkeypatch, {

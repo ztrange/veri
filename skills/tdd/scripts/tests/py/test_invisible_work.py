@@ -140,6 +140,7 @@ def test_main_returns_2_with_the_gh_diagnostic_when_a_veri_gh_json_fixture_is_mi
 
 def test_main_reads_issues_and_prs_from_veri_gh_json_or_from_gh_list_falling_back_to_rest_pages(
         monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     invisible_work = importlib.import_module("veri.invisible_work")
     issues_rest = "repos/{owner}/{repo}/issues?state=all&per_page=100&page="
     pulls_rest = "repos/{owner}/{repo}/pulls?state=all&per_page=100&page="

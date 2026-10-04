@@ -255,7 +255,7 @@ chmod +x "$stubdir/gh"
 gh_run() {  # gh_run <argv-log> [script args...]; sets $out and $code
   local log="$1"; shift
   : > "$log"
-  out="$(env -u VERI_GH_JSON PATH="$stubdir:$PATH" ARGV_OUT="$log" \
+  out="$(env -u VERI_GH_JSON VERI_GH_DRIVER=auto PATH="$stubdir:$PATH" ARGV_OUT="$log" \
          GH_ISSUES="$fx/issues.json" GH_PRS="$fx/prs.json" \
          "$SOLVABLE" "$@" 2>/dev/null)" && code=0 || code=$?
 }
@@ -901,7 +901,7 @@ STUB
 }
 
 paged_run() {  # paged_run <dir of a paging_gh stub>; the real gh path, sets $out and $code
-  out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$1:$PATH" \
+  out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL VERI_GH_DRIVER=auto PATH="$1:$PATH" \
          "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
 }
 
@@ -1156,7 +1156,7 @@ refused_run "$nameddir" --repo owner/name
   && ok || no "--repo owner/name, against a gh that refuses GraphQL and answers REST only under repos/owner/name/, prints the same issue numbers and exit code as a working gh (#568) (working gh: exit=$working_code stdout='$(tr '\n' '|' <<<"$working")' want 0 and '74|70'; GraphQL refused: exit=$code stdout='$(tr '\n' '|' <<<"$out")' want the same)"
 
 
-env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$stubdir:$PATH" ARGV_OUT="$work/argv-stderr-working" \
+env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL VERI_GH_DRIVER=auto PATH="$stubdir:$PATH" ARGV_OUT="$work/argv-stderr-working" \
   GH_ISSUES="$fx/issues.json" GH_PRS="$fx/prs.json" \
   "$SOLVABLE" >/dev/null 2>"$work/stderr-working" || true
 refused_run "$refusedir"; refused_err="$err"

@@ -73,6 +73,7 @@ calls="$scratch/calls1" err="$scratch/err1"
 : > "$calls"
 (
   gh() { echo "gh $*" >> "$calls"; return 0; }
+  VERI_GH_DRIVER=auto
   source "$LIB"
   gh_pr_ready 42
 ) > /dev/null 2> "$err"
@@ -102,6 +103,7 @@ calls="$scratch/calls2" err="$scratch/err2"
     esac
     return 1
   }
+  VERI_GH_DRIVER=auto
   source "$LIB"
   gh_pr_ready 42
 ) > /dev/null 2> "$err"
@@ -118,6 +120,7 @@ name="gh_pr_ready 42 returns 2 when gh pr ready fails with a 404, and when pulls
 err="$scratch/err3"
 (
   gh() { echo "HTTP 404: Not Found (https://api.github.com/graphql)" >&2; return 1; }
+  VERI_GH_DRIVER=auto
   source "$LIB"
   gh_pr_ready 42
 ) > /dev/null 2> "$err"
@@ -130,6 +133,7 @@ rc_ordinary=$?
     esac
     return 1
   }
+  VERI_GH_DRIVER=auto
   source "$LIB"
   gh_pr_ready 42
 ) > /dev/null 2>> "$err"
@@ -201,6 +205,7 @@ calls="$scratch/calls6" err="$scratch/err6" out="$scratch/out6"
     shift
     three_pages_on_repos "$@"
   }
+  VERI_GH_DRIVER=auto
   source "$LIB"
   gh_list 'repos/{owner}/{repo}/issues?per_page=2' issue list --state all --json number
 ) > "$out" 2> "$err"
@@ -240,6 +245,7 @@ rc_rest=$?
       *) echo "HTTP 403: $refusal" >&2; return 1 ;;
     esac
   }
+  VERI_GH_DRIVER=auto
   source "$LIB"
   gh_list 'repos/{owner}/{repo}/issues?per_page=2' issue list --state all --json number
 ) > /dev/null 2>> "$err"
