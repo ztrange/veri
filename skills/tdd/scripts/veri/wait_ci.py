@@ -193,3 +193,7 @@ def main(argv):
             break
         subprocess.run(["sleep", poll])
     return 3
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
