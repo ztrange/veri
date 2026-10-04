@@ -63,6 +63,12 @@ REJECT a plan that turns a diff-property criterion into a Red/Green step instead
 or the git history: such a test pins text rather than behaviour, and goes red on the next
 legitimate edit of what it reads.
 
+REJECT a plan with a step that introduces a branch — a fallback an existing suite forces in,
+say — that only a later step's test requires: that step's blind green verifier sees code none
+of its own tests requires, and rejects correct code until the revise budget runs out. Your
+reason names both steps, the introducing step and the later pinning step, so the plan can be
+reordered or the branch moved to the step that pins it.
+
 {{REFACTOR_PLAN}}
 
 A REJECT must name the criterion it fails on and state the part of it no step covers, in

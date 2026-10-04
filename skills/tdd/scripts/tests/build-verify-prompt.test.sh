@@ -612,6 +612,13 @@ done
 [[ -z "$problems" ]] && ok || no "verify-plan names the diff-property shape, counts a ⟦diff-checked⟧ ⟦criterion k⟧ line as delivering criterion k, and REJECTs a plan that makes such a criterion a Red/Green step or plans a test reading another suite's source text or the git history (${problems#; })"
 
 problems=""
+prompt_says "$plan" "never directs a REJECT for a step introducing a branch only a later step's test requires" \
+  -iE -e "REJECT[^.]{0,200}branch[^.]{0,200}later step|branch[^.]{0,200}later step[^.]{0,200}REJECT"
+prompt_says "$plan" "never requires the REJECT reason to name both the introducing step and the later pinning step" \
+  -iE -e "nam(e|es|ing)[^.]{0,40}both[^.]{0,200}introduc[^.]{0,200}pin|nam(e|es|ing)[^.]{0,40}both[^.]{0,200}pin[^.]{0,200}introduc"
+[[ -z "$problems" ]] && ok || no "verify-plan REJECTs a plan whose step introduces a branch only a later step's test requires, naming both the introducing step and the later pinning step (${problems#; })"
+
+problems=""
 printf '%s\n' 'grep -q "extract_helper" lib/foo.sh' > "$work/predicate.md"
 tf_base=0123abcdef
 tf="$("$BUILD" transform "$work/spec.md" "$work/predicate.md" "$tf_base" 2>/dev/null)"; code=$?
