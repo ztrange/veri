@@ -246,3 +246,24 @@ def test_main_passes_bytes_through_as_bash_does_drops_nul_and_keeps_the_cr_of_a_
             "2\topen\tstep\t0\t0\t\tthe cog stops\r\n"
         ).encode(), b""),
     }
+
+
+class UnreadableStdin(io.RawIOBase):
+    def readable(self):
+        return True
+
+    def readinto(self, buffer):
+        raise IsADirectoryError(21, "Is a directory")
+
+
+def test_main_raises_rather_than_returning_when_stdout_is_closed_or_stdin_cannot_be_read(
+        monkeypatch, ledger_steps):
+    fake_stdin(monkeypatch, "- [ ] the cog turns ⟦criterion 1⟧\n".encode())
+    monkeypatch.setattr(sys, "stdout", None)
+    with pytest.raises(Exception):
+        ledger_steps.main([])
+
+    monkeypatch.undo()
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BufferedReader(UnreadableStdin())))
+    with pytest.raises(Exception):
+        ledger_steps.main(["current"])
