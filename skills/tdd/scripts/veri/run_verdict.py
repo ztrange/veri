@@ -11,6 +11,7 @@ def main(argv):
         print(f"run-verdict.sh: cannot start the verifier: {verifier} is missing or not executable",
               file=sys.stderr)
         return 2
+    os.execv(verifier, [verifier, *argv])
 
 
 if __name__ == "__main__":
