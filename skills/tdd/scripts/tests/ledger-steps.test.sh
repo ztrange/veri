@@ -111,4 +111,19 @@ $(printf '%s\n' "$bad" | sed 's/^/    /')"
   && cmp -s <(printf 'usage: ledger-steps.sh [current|last-done|criterion <k>]\n') "$work/err"; } \
   && ok || no "bogus exits 2 with nothing on stdout and stderr exactly the one usage line (code=$code out='$(cat "$work/out")' stderr='$(cat "$work/err")')"
 
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+mkdir -p "$work/elsewhere"
+answer() {
+  local out err code
+  out="$(cd "$1" && "$2" "${@:4}" < "$3" 2> "$work/answer-err")"; code=$?
+  err="$(cat "$work/answer-err")"
+  printf 'stdout:\n%s\nstderr:\n%s\nexit %s\n' "$out" "$err" "$code"
+}
+in_place="$(answer "$HERE/.." "$STEPS" "$work/kinds.md"; answer "$HERE/.." "$STEPS" "$work/none.md" current)"
+linked="$(answer "$work/elsewhere" "$work/linked-skill/scripts/ledger-steps.sh" "$work/kinds.md"
+  answer "$work/elsewhere" "$work/linked-skill/scripts/ledger-steps.sh" "$work/none.md" current)"
+{ [[ "$linked" == "$in_place" ]] && [[ "$in_place" == "stdout:"$'\n1\tdone\t'*$'\nexit 0\nstdout:\n\nstderr:\n\nexit 3' ]]; } \
+  && ok || no "ledger-steps.sh run through a symlink to the skill directory and from another working directory answers as it does when run in place
+$(diff <(printf '%s\n' "$in_place") <(printf '%s\n' "$linked") | sed 's/^/    /')"
+
 finish
