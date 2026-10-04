@@ -229,11 +229,16 @@ carrying a reason per entry.
 `chmod 000`, `chmod a-r`, `chmod u-w` or a read-only directory forces a failure only for an
 ordinary user: the cloud runs as root, uid 0 ignores permission bits, so there the chmod is a
 no-op, the read succeeds, and the case goes red — which made `make test` red in every cloud
-session and stopped `/tdd` at preflight. Force the failure in a way root cannot bypass, such as
-making the path a directory so the read raises `IsADirectoryError`; never skip the case when
-`$EUID` is 0, which leaves the failure path untested exactly where it broke.
-`no-permission-bits.test.sh` fails the run naming `<suite>:<line>`, against an exemption table
-carrying a reason per entry.
+session and stopped `/tdd` at preflight. The same holds for a system location (#860): under uid
+0 every path is writable and readable, so a case that expects creating `/.tdd`, or reading
+`/root` or `/proc`, to fail passes nothing there — it succeeds, and leaves its write behind at
+the filesystem root. A forced failure has to come from the file's type or the path's shape,
+never from permissions or from the path being a system location: make the path a directory so
+the read raises `IsADirectoryError`, or put a regular file where a directory would be created
+so mkdir fails, inside the case's own scratch tree. Never skip the case when `$EUID` is 0,
+which leaves the failure path untested exactly where it broke.
+`no-permission-bits.test.sh` fails the run naming `<suite>:<line>`, for a chmod and for a
+system path alike, against an exemption table carrying a reason per entry.
 
 **`skills/tdd/scripts/tests/unit/` is the fast tier**, run alone by `make unit` and also by
 `make test`. A suite belongs there only if it clears the admission bar: about 100 ms per
