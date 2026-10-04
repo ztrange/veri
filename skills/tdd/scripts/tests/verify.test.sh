@@ -297,6 +297,15 @@ code=$?
   && [[ "$out" != *'modified the repository'* ]]; } && ok \
   || no "#569: a verifier whose run leaves $subdir_state/events.jsonl behind under the repo's own .gitignore has its PASS accepted (code=$code want 0; stdout='$out' want the verdict's reason and no 'modified the repository')"
 
+deep_state="a/b/.tdd"
+out="$( FAKE_MUTATE="mkdir -p $deep_state && printf 'log\n' > $deep_state/run.log" \
+    verify_in "$subdir_state_dir" green 'VERDICT: REJECT
+REASON: The target test still fails.' "$stubdir/claude-mutate" 2>/dev/null )"
+code=$?
+{ [[ "$code" == 1 ]] && [[ "$out" == *'target test still fails'* ]] \
+  && [[ "$out" != *'modified the repository'* ]]; } && ok \
+  || no "#569: a verifier whose run leaves $deep_state/run.log behind under the repo's own .gitignore has its REJECT accepted (code=$code want 1; stdout='$out' want the verdict's reason and no 'modified the repository')"
+
 leafargs_out="$work/leafargs"
 LEAFARGS_OUT="$leafargs_out" VERIFY_LEAF_ARGS='--permission-mode bypassPermissions --disallowedTools Write' \
   tamper_run leafargs 'printf "%s\n" "$@" > "$LEAFARGS_OUT"; printf "the verifier rewrote this\n" > src.txt'
