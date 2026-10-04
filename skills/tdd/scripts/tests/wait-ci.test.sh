@@ -756,6 +756,19 @@ done
 set --
 report "$name"
 
+name="wait-ci.sh given a non-numeric slice or a non-numeric total exits 2, never 1, and names the bad argument on stderr (#775)"
+problems=()
+for bad in slice:abc:100 total:60:xyz; do
+  what="${bad%%:*}" rest="${bad#*:}"
+  slice="${rest%%:*}" total="${rest#*:}"
+  if [[ "$what" == slice ]]; then word="$slice"; else word="$total"; fi
+  got="$(waited pending "$slice" "$total")"
+  [[ "$got" == 2 ]] || problems+=("non-numeric $what '$word': want exit 2, got $got (stderr: $(cat "$work/pending.err"))")
+  grep -F -- "$word" "$work/pending.err" > /dev/null \
+    || problems+=("non-numeric $what '$word': want stderr naming '$word', got: '$(cat "$work/pending.err")'")
+done
+report "$name"
+
 name="wait-ci.sh run through a symlink to the skill directory and from another working directory holding its own .tdd/ exits 3 on a pending check, recording the deadline in that directory's .tdd/ci-deadline-<sha>, and 0 on a green check, as when run in place"
 problems=()
 ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"

@@ -128,11 +128,15 @@ def main(argv):
     pr = argv[0]
     repo = pr.removeprefix("https://github.com/").rsplit("/pull/", 1)[0]
     scope = {}
-    span = capped(argv[1] if len(argv) > 1 and argv[1] else str(SLICE_CAP), SLICE_CAP, scope)
     total = argv[2] if len(argv) > 2 else ""
-    if total:
-        total = capped(total, CEILING, scope)
-    else:
+    try:
+        span = capped(argv[1] if len(argv) > 1 and argv[1] else str(SLICE_CAP), SLICE_CAP, scope)
+        if total:
+            total = capped(total, CEILING, scope)
+    except NameError as error:
+        warn(error)
+        return 2
+    if not total:
         try:
             total = ci_bound(repo)
         except Exception:
