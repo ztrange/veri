@@ -282,6 +282,18 @@ refusal_case "with <skipped-file> missing" "refactor-overflow: no such skipped f
 
 report "$name"
 
+name="#776 a <reached> that is not a non-negative whole number exits 2 naming <reached> on stderr"
+problems=()
+
+for value in 1.5 -1 abc "" " 7" 7x 0x10; do
+  overflow_case "on <reached> '$value'" 2 504 "$owed_file" "$value"
+  got_err="$(cat "$work/err")"
+  [[ "$got_err" == *"<reached>"* ]] ||
+    problems+=("want stderr naming <reached> on <reached> '$value', got '$got_err'")
+done
+
+report "$name"
+
 name="refactor-overflow exits 1 with nothing on stdout and lets gh's stderr through when gh fails while filing"
 problems=()
 
