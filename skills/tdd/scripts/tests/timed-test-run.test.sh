@@ -158,4 +158,26 @@ done
 report "$name"
 
 
+name="timed-test-run.sh refuses fewer than three arguments, an empty <tier> or an empty <cmd>: exit 2, the usage line alone on stderr, nothing on stdout, no event written"
+problems=()
+want_err="usage: timed-test-run.sh <tier> <suites> <cmd> [args …]"
+for shape in '' 'all' "all ''" "all '' ''" "'' '' true"; do
+  work="$(scratch_dir)"
+  eval "args=($shape)"
+  ( cd "$work" && "$TIMED" ${args+"${args[@]}"} ) > "$work/out" 2> "$work/err" &&
+    code=0 || code=$?
+  [[ "$code" == 2 ]] ||
+    problems+=("args ($shape): want exit 2, got $code")
+  [[ ! -s "$work/out" ]] ||
+    problems+=("args ($shape): want nothing on stdout, got $(printf '%q' "$(cat "$work/out")")")
+  got_err="$(cat "$work/err")"
+  [[ "$got_err" == "$want_err" && "$(wc -l < "$work/err" | tr -d ' ')" == 1 ]] ||
+    problems+=("args ($shape): want stderr exactly $(printf '%q' "$want_err"), got $(printf '%q' "$got_err")")
+  [[ ! -e "$work/.tdd/events.jsonl" ]] ||
+    problems+=("args ($shape): want no .tdd/events.jsonl, one was written")
+  rm -rf "$work"
+done
+report "$name"
+
+
 finish
