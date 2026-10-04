@@ -8,6 +8,7 @@
 #
 # Run: scripts/tests/tick-issue-criterion.test.sh
 set -uo pipefail
+unset VERI_GH_DRIVER
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 WRAP="$HERE/../tick-issue-criterion.sh"

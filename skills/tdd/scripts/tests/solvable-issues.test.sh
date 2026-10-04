@@ -14,6 +14,7 @@
 #
 # Run: scripts/tests/solvable-issues.test.sh
 set -uo pipefail
+unset VERI_GH_DRIVER
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SOLVABLE="$HERE/../solvable-issues.sh"

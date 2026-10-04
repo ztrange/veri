@@ -14,6 +14,7 @@
 #
 # Run: scripts/tests/parallel-conductors.test.sh
 set -uo pipefail
+unset VERI_GH_DRIVER
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PARALLEL="$HERE/../parallel-conductors.sh"
