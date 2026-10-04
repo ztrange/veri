@@ -15,10 +15,6 @@ def _gh(*args, stderr=None):
     return subprocess.run(["gh", *args], stdout=subprocess.PIPE, stderr=stderr, text=True)
 
 
-def _gh_graphql(*args):
-    return _gh(*args, stderr=subprocess.DEVNULL)
-
-
 def _gh_api(path):
     return _gh("api", path)
 
@@ -28,6 +24,21 @@ _ISSUES = "repos/{owner}/{repo}/issues"
 
 def _issue(number):
     return "%s/%s" % (_ISSUES, number)
+
+
+class GraphQLAdapter:
+    def _run(self, *args):
+        run = _gh(*args, stderr=subprocess.DEVNULL)
+        if run.returncode != 0:
+            raise NoAnswer("")
+        return run.stdout
+
+    def list(self, *args):
+        return self._run(*args)
+
+    def issue_view(self, number, field):
+        query = ".body" if field == "body" else ".labels[].name"
+        return self._run("issue", "view", number, "--json", field, "-q", query)
 
 
 class RestAdapter:
@@ -76,10 +87,10 @@ def gh_rest_list(path, empty=r"^\[\]$"):
 
 
 def gh_list(path, *args):
-    run = _gh_graphql(*args)
-    if run.returncode != 0:
-        return gh_rest_list(path)
-    return run.stdout
+    try:
+        return GraphQLAdapter().list(*args)
+    except NoAnswer:
+        return RestAdapter().list(path)
 
 
 def gh_json(fixture, path, *args):
@@ -93,11 +104,10 @@ def gh_json(fixture, path, *args):
 
 
 def gh_issue_view(number, field):
-    query = ".body" if field == "body" else ".labels[].name"
-    run = _gh_graphql("issue", "view", number, "--json", field, "-q", query)
-    if run.returncode != 0:
+    try:
+        return GraphQLAdapter().issue_view(number, field)
+    except NoAnswer:
         return RestAdapter().issue_view(number, field)
-    return run.stdout
 
 
 def gh_issue_edit(number, body_file):
