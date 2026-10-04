@@ -1,5 +1,6 @@
 """In-process cases for veri/over_budget.py, the module over-budget.sh is a shim over."""
 import importlib
+import os
 import pathlib
 import subprocess
 import sys
@@ -51,3 +52,33 @@ def test_main_refuses_a_missing_argument_with_2_and_answers_0_1_or_2_from_time_b
     code = over_budget.main(["unit", "12", "100"])
     out, _ = capsys.readouterr()
     assert (code, out) == (2, "")
+
+
+def test_main_runs_time_budget_beside_the_scripts_with_no_argument_and_reads_its_first_and_last_lines(capsys, monkeypatch, over_budget):
+    monkeypatch.setenv("VERI_TIME_WARN_RATIO", "1.5")
+    seen = []
+
+    def fake_run(args, *rest, **kwargs):
+        seen.append((list(args), rest, kwargs))
+        if kwargs.get("env") is None:
+            assert os.environ.get("VERI_TIME_WARN_RATIO") == "1.5"
+        return subprocess.CompletedProcess(args, 0, "1000\n7\n1.5\n", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    beside = pathlib.Path(over_budget.__file__).resolve().parents[1] / "time-budget.sh"
+
+    code = over_budget.main(["all", "160", "100", "extra"])
+    out, _ = capsys.readouterr()
+    assert (code, out) == (0, "⏱ all tier took 160 s (usual 100 s, ratio 1.5, unit budget 1000 s)\n")
+
+    code = over_budget.main(["unit", "12", "100", "extra"])
+    out, _ = capsys.readouterr()
+    assert (code, out) == (1, "")
+
+    assert len(seen) == 2
+    for args, rest, kwargs in seen:
+        assert rest == ()
+        assert [pathlib.Path(args[0]).resolve()] + args[1:] == [beside]
+        assert kwargs.get("env") is None
+        assert kwargs.get("stdout") == subprocess.PIPE or kwargs.get("capture_output")
+        assert kwargs.get("stderr") is None and not kwargs.get("capture_output")
