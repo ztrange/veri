@@ -63,3 +63,33 @@ def test_main_with_an_unresolvable_commit_returns_2_naming_it_then_the_usage_lin
     assert (code, captured.out, captured.err) == (
         2, "", f"refactor-touched: cannot resolve commit '{sha}'\n" + USAGE)
     assert [c for c in calls if c[:2] == ["git", "diff"]] == []
+
+
+def test_main_prints_the_commits_paths_outside_tdd_comma_joined_or_returns_3_when_only_tdd_changed(
+        monkeypatch, capsys, refactor_touched):
+    sha = "0123456789abcdef0123456789abcdef01234567"
+    answers = {}
+
+    def fake(args, *rest, **kwargs):
+        args = list(args)
+        if args == ["git", "diff", "--name-only", f"{sha}^", sha]:
+            out = answers["diff"]
+            if not kwargs.get("text") and not kwargs.get("universal_newlines") \
+                    and not kwargs.get("encoding"):
+                out = out.encode()
+            return subprocess.CompletedProcess(args, 0, out, "")
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    for entry in ("run", "Popen", "call", "check_call"):
+        monkeypatch.setattr(subprocess, entry, fake)
+    monkeypatch.setattr(subprocess, "check_output", lambda *a, **k: fake(*a, **k).stdout)
+
+    answers["diff"] = "skills/b.sh\n.tdd/issue-1-plan.md\nsub/.tdd/x\na.py\n"
+    code = refactor_touched.main([sha])
+    captured = capsys.readouterr()
+    assert (code, captured.out) == (0, "skills/b.sh,sub/.tdd/x,a.py\n")
+
+    answers["diff"] = ".tdd/issue-1-plan.md\n.tdd/issue-1-skill-commit\n"
+    code = refactor_touched.main([sha])
+    captured = capsys.readouterr()
+    assert (code, captured.out) == (3, "")
