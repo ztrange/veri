@@ -30,6 +30,10 @@ def main_working_tree():
     return first.removeprefix("worktree ")
 
 
+def queue_path():
+    return main_working_tree() + "/.tdd/workqueue"
+
+
 def origin_slug():
     url = subprocess.run(["git", "remote", "get-url", "origin"],
                          capture_output=True, text=True).stdout.rstrip("\n").removesuffix(".git")
@@ -42,7 +46,7 @@ def next_item(worker):
     repo = origin_slug()
     open_issues = {i["number"] for i in issues if i.get("state", "").upper() == "OPEN"}
     bodies = {i["number"]: i.get("body") or "" for i in issues}
-    with open(main_working_tree() + "/.tdd/workqueue") as lines:
+    with open(queue_path()) as lines:
         for line in lines:
             owner, issue, state = line.rstrip("\n").split("\t")[:3]
             if owner != worker or state != "queued":
@@ -60,8 +64,7 @@ def main(argv):
     if command == "done" and not "".join(argv[3:4]):
         return refuse()
     if command == "start":
-        queue = main_working_tree() + "/.tdd/workqueue"
-        with open(queue) as lines:
+        with open(queue_path()) as lines:
             for line in lines:
                 if line.split("\t")[:3] == [argv[1], argv[2], "queued"]:
                     break
