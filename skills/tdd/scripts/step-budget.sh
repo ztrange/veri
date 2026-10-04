@@ -1,32 +1,11 @@
-#!/usr/bin/env bash
-# step-budget.sh — the two money budgets: VERI_STEP_BUDGET, what
-# one step may spend, and VERI_RUN_BUDGET, what the whole run may.
+#!/bin/sh
+# step-budget.sh — the two money budgets: a shim over veri/step_budget.py.
 #
-# Usage:   step-budget.sh          # prints the resolved step budget, then the resolved run budget
+# VERI_STEP_BUDGET (default 12) is what one step may spend, VERI_RUN_BUDGET (default 120) what the
+# whole run may; each must be a non-negative decimal number.
 #
-# The shape is time-budget.sh's, for the same reason: the no-argument call is the preflight
-# one, at the point `refactor-budget.sh 0` already occupies in SKILL.md step 5.
-set -euo pipefail
-
-source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
-USAGE="usage: step-budget.sh (takes no arguments)"
-
-[[ $# -eq 0 ]] || refuse
-
-step="${VERI_STEP_BUDGET-12}"
-run="${VERI_RUN_BUDGET-120}"
-
-number='^[0-9]+(\.[0-9]+)?$'
-
-require_number() {
-  if [[ ! "$2" =~ $number ]]; then
-    echo "step-budget: $1 must be a non-negative decimal number: $2" >&2
-    exit 2
-  fi
-}
-
-require_number VERI_STEP_BUDGET "$step"
-require_number VERI_RUN_BUDGET "$run"
-
-echo "$step"
-echo "$run"
+# usage: step-budget.sh (takes no arguments)
+#          prints the resolved step budget, then the resolved run budget, one per line.
+# Exit:    0 both printed; 2 an argument, or a budget that is not a non-negative decimal number,
+#          nothing on stdout
+exec python3 "$(dirname "$0")/veri/step_budget.py" "$@"
