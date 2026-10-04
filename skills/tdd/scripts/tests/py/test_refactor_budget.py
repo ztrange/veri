@@ -198,3 +198,64 @@ def test_main_writes_bytes_whatever_the_locale_and_exits_1_when_stdout_is_closed
     fd.closed_now = False
     wanted["closed-fd"] = 1
     assert seen == wanted
+
+
+def test_main_answers_each_contract_case_the_bash_suite_ran_through_the_entry_point(monkeypatch, capsys, refactor_budget):
+    problems = []
+
+    def run(label, env, argv, code=None, out=None, err=None):
+        budgets(monkeypatch, env)
+        got_code = refactor_budget.main(argv)
+        got_out, got_err = capsys.readouterr()
+        if code is not None and got_code != code:
+            problems.append(f"{label}: want exit {code}, got {got_code}")
+        if out == "one-line" and (got_out == "" or got_out.count("\n") != 1 or not got_out.endswith("\n")):
+            problems.append(f"{label}: want a one-line status on stdout, got {got_out!r}")
+        elif out == "" and got_out != "":
+            problems.append(f"{label}: want no status on stdout, got {got_out!r}")
+        elif out not in (None, "one-line", "") and not got_out.startswith(out + " "):
+            problems.append(f"{label}: want a status starting {out + ' '!r}, got {got_out!r}")
+        if err == "some" and got_err == "":
+            problems.append(f"{label}: want a diagnostic on stderr, got nothing")
+        elif err == "" and got_err != "":
+            problems.append(f"{label}: want nothing on stderr, got {got_err!r}")
+        elif err not in (None, "some", "") and err + " " not in got_err:
+            problems.append(f"{label}: want stderr naming {err!r}, got {got_err!r}")
+
+    for count, code in (("0", 0), ("4", 0), ("5", 3)):
+        run(f"default count {count}", {}, [count], code=code, out="one-line", err="")
+    run("VERI_REFACTOR_BUDGET=0 count 0", {"VERI_REFACTOR_BUDGET": "0"}, ["0"], code=3)
+    for bad in ("two", "-1"):
+        run(f"VERI_REFACTOR_BUDGET={bad}", {"VERI_REFACTOR_BUDGET": bad}, ["0"], code=2, out="", err="some")
+    for label, argv in (("count abc", ["abc"]), ("count -1", ["-1"]), ("no argument", []), ("count 1.5", ["1.5"])):
+        run(label, {}, argv, code=2, out="", err="some")
+    for label, env, argv, code, err in (
+        ("--issue default count 0", {"VERI_REFACTOR_BUDGET": "0"}, ["--issue", "0"], 0, None),
+        ("--issue default count 1", {"VERI_REFACTOR_BUDGET": "0"}, ["--issue", "1"], 0, None),
+        ("--issue default count 2", {"VERI_REFACTOR_BUDGET": "0"}, ["--issue", "2"], 0, None),
+        ("--issue default count 3", {"VERI_REFACTOR_BUDGET": "0"}, ["--issue", "3"], 3, None),
+        ("--issue VERI_ISSUE_REFACTOR_BUDGET=10 count 9",
+         {"VERI_REFACTOR_BUDGET": "0", "VERI_ISSUE_REFACTOR_BUDGET": "10"}, ["--issue", "9"], 0, None),
+        ("--issue VERI_ISSUE_REFACTOR_BUDGET=10 count 10",
+         {"VERI_REFACTOR_BUDGET": "0", "VERI_ISSUE_REFACTOR_BUDGET": "10"}, ["--issue", "10"], 3, None),
+        ("--issue VERI_ISSUE_REFACTOR_BUDGET=two", {"VERI_ISSUE_REFACTOR_BUDGET": "two"}, ["--issue", "0"], 2,
+         "VERI_ISSUE_REFACTOR_BUDGET"),
+        ("--issue VERI_ISSUE_REFACTOR_BUDGET=-1", {"VERI_ISSUE_REFACTOR_BUDGET": "-1"}, ["--issue", "0"], 2,
+         "VERI_ISSUE_REFACTOR_BUDGET"),
+        ("no flag VERI_REFACTOR_BUDGET=2 count 2",
+         {"VERI_REFACTOR_BUDGET": "2", "VERI_ISSUE_REFACTOR_BUDGET": "20"}, ["2"], 3, None),
+    ):
+        run(label, env, argv, code=code, err=err)
+    for label, env, argv, code, out in (
+        ("--issue VERI_ISSUE_REFACTOR_BUDGET=two", {"VERI_ISSUE_REFACTOR_BUDGET": "two"}, ["--issue", "0"], 2, ""),
+        ("--issue VERI_ISSUE_REFACTOR_BUDGET=-1", {"VERI_ISSUE_REFACTOR_BUDGET": "-1"}, ["--issue", "0"], 2, ""),
+        ("--issue VERI_ISSUE_REFACTOR_BUDGET=1.5", {"VERI_ISSUE_REFACTOR_BUDGET": "1.5"}, ["--issue", "0"], 2, ""),
+        ("--issue VERI_ISSUE_REFACTOR_BUDGET=10 count 9", {"VERI_ISSUE_REFACTOR_BUDGET": "10"}, ["--issue", "9"], 0,
+         "refactor 9/10"),
+        ("--issue VERI_ISSUE_REFACTOR_BUDGET=10 count 10", {"VERI_ISSUE_REFACTOR_BUDGET": "10"}, ["--issue", "10"], 3,
+         "refactor 10/10"),
+        ("no flag, VERI_REFACTOR_BUDGET unset, count 4", {"VERI_ISSUE_REFACTOR_BUDGET": "3"}, ["4"], 0, "refactor 4/5"),
+        ("no flag, VERI_REFACTOR_BUDGET unset, count 5", {"VERI_ISSUE_REFACTOR_BUDGET": "3"}, ["5"], 3, "refactor 5/5"),
+    ):
+        run(label, env, argv, code=code, out=out)
+    assert problems == []
