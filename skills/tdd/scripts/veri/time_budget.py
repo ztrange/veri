@@ -14,12 +14,13 @@ def write(stream, data):
 def main(argv):
     budget = os.environb.get(b"VERI_UNIT_BUDGET") or b"10"
     ratio = os.environb.get(b"VERI_TIME_WARN_RATIO") or b"1.5"
-    if not NUMBER.fullmatch(budget):
-        write(sys.stderr, b"time-budget: VERI_UNIT_BUDGET must be a number of seconds: " + budget + b"\n")
-        return 2
-    if not NUMBER.fullmatch(ratio):
-        write(sys.stderr, b"time-budget: VERI_TIME_WARN_RATIO must be a number: " + ratio + b"\n")
-        return 2
+    for value, what in (
+        (budget, b"VERI_UNIT_BUDGET must be a number of seconds"),
+        (ratio, b"VERI_TIME_WARN_RATIO must be a number"),
+    ):
+        if not NUMBER.fullmatch(value):
+            write(sys.stderr, b"time-budget: " + what + b": " + value + b"\n")
+            return 2
     write(sys.stdout, budget + b"\n" + ratio + b"\n")
     return 0
 
