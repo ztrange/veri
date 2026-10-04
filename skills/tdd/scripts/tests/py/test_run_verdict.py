@@ -231,3 +231,59 @@ def test_main_files_fd_2_under_tdd_verify_phase_stderr_appending_with_mode_0o666
                 filed.read_text() if filed.exists() else None,
                 filed.stat().st_mode & 0o777 if filed.exists() else None) == (
             [(2, True)], [], earlier + "this verdict's stderr\n", mode)
+
+
+@pytest.mark.parametrize("argv, unopenable, line", [
+    (["a/b", "spec.md", "tests/x.test.sh", "case"], None,
+     "run-verdict.sh: .tdd/verify-a/b.stderr: No such file or directory\n"),
+    (["red", "spec.md", "tests/x.test.sh", "case"], "stderr directory",
+     "run-verdict.sh: .tdd/verify-red.stderr: Is a directory\n"),
+    (["red", "spec.md", "tests/x.test.sh", "case"], "reason",
+     "run-verdict.sh: .tdd/verify-red.reason: Permission denied\n"),
+])
+def test_main_names_a_filing_or_reason_file_it_cannot_open_on_the_original_stderr_and_still_execs(
+        argv, unopenable, line, tmp_path, monkeypatch, capfd):
+    import builtins
+    import errno
+    import signal
+    scripts = tmp_path / "scripts"
+    run_verdict = staged_module(scripts)
+    (scripts / "verify.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
+    (scripts / "verify.sh").chmod(0o755)
+    run = tmp_path / "run"
+    (run / ".tdd").mkdir(parents=True)
+    if unopenable == "stderr directory":
+        (run / ".tdd" / "verify-red.stderr").mkdir()
+    reason = os.path.join(".tdd", "verify-red.reason")
+    if unopenable == "reason":
+        (run / ".tdd" / "verify-red.reason").write_text("an earlier step's reason\n")
+    monkeypatch.chdir(run)
+    real_os_open, real_open = os.open, builtins.open
+
+    def refused(path):
+        if unopenable == "reason" and os.path.normpath(os.fspath(path)) == reason:
+            raise PermissionError(errno.EACCES, os.strerror(errno.EACCES), os.fspath(path))
+
+    def os_open(path, *a, **k):
+        refused(path)
+        return real_os_open(path, *a, **k)
+
+    def open_(file, *a, **k):
+        if isinstance(file, (str, bytes, os.PathLike)):
+            refused(file)
+        return real_open(file, *a, **k)
+
+    execs, dup2s = [], []
+    monkeypatch.setattr(os, "open", os_open)
+    monkeypatch.setattr(builtins, "open", open_)
+    monkeypatch.setattr(os, "execv", lambda path, args: execs.append((path, list(args))))
+    monkeypatch.setattr(os, "dup2", lambda *a, **k: dup2s.append(a))
+    monkeypatch.setattr(signal, "signal", lambda signum, handler: None)
+
+    run_verdict.main(list(argv))
+
+    verifier = f"{scripts}/verify.sh"
+    captured = capfd.readouterr()
+    assert (captured.err, execs) == (line, [(verifier, [verifier, *argv])])
+    if unopenable != "reason":
+        assert dup2s == []
