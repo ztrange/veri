@@ -2,7 +2,7 @@
 import re
 import sys
 
-from veri.ledger import ledger_steps
+from ledger import ledger_steps
 
 USAGE = "usage: ledger-steps.sh [current|last-done|criterion <k>]"
 
@@ -61,3 +61,7 @@ def main(argv):
         return last_done(records)
     write_lines("\t".join(record) for record in records)
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

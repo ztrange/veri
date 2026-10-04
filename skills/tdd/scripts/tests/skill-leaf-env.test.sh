@@ -398,7 +398,7 @@ stage_recorder() {
   tree="$WORK/$1-tree"
   mkdir -p "$stage" "$tree/.tdd"
   local script
-  for script in "$SCRIPTS"/*.sh "$SCRIPTS/lib" "$SCRIPTS/prompts"; do
+  for script in "$SCRIPTS"/*.sh "$SCRIPTS/lib" "$SCRIPTS/prompts" "$SCRIPTS/veri"; do
     [[ "${script##*/}" == detach-leaf.sh ]] || ln -s "$script" "$stage/"
   done
   ln -s "$RECORDERS/detach-leaf.sh" "$stage/detach-leaf.sh"
