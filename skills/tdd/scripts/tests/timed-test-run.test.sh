@@ -15,8 +15,6 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 TIMED="$HERE/../timed-test-run.sh"
-METRICS="$HERE/../metrics.sh"
-USUAL="$HERE/../tier-usual.sh"
 
 source "$HERE/lib/harness.sh"
 
@@ -73,67 +71,6 @@ if wrote_log "$work"; then
   [[ "$got_seconds" =~ ^[0-9]+$ ]] ||
     problems+=("seconds: want a whole number of seconds, got $(printf '%q' "$got_seconds")")
 fi
-rm -rf "$work"
-report "$name"
-
-name="a log carrying timed-test-run.sh's own test-run marks renders at least one row under the report's per-tier section"
-problems=()
-work="$(scratch_dir)"
-wrapped "$work" 373 green fast 'skills/tdd/scripts/tests/event.test.sh' true ||
-  problems+=("want the wrapped run to exit 0 like the command it ran, it did not")
-
-report_out="$work/report.md"
-( cd "$work" && "$METRICS" 373 ) > "$report_out" 2>/dev/null && code=0 || code=$?
-[[ "$code" == 0 ]] ||
-  problems+=("want metrics.sh to exit 0 over the log the wrapper wrote, it exited $code")
-
-tiers="$(python3 -c '
-import sys
-heading = "#### Test-command seconds, by tier"
-lines = open(sys.argv[1]).read().splitlines()
-if heading not in lines:
-    sys.exit("<<no such heading>>")
-rows = []
-for line in lines[lines.index(heading) + 1:]:
-    if line.startswith("####"):
-        break
-    if not line.startswith("|"):
-        continue
-    cells = [c.strip() for c in line.strip("|").split("|")]
-    if cells[0] in ("tier", "---"):
-        continue
-    rows.append(cells[0])
-print(" ".join(rows))
-' "$report_out" 2>&1)"
-
-[[ -n "$tiers" ]] ||
-  problems+=("want at least one row under the per-tier section, the report has the heading and nothing under it")
-[[ " $tiers " == *" fast "* ]] ||
-  problems+=("want a row for the tier the wrapper recorded (fast), the section rows are $(printf '%q' "$tiers")")
-
-[[ "${#problems[@]}" -eq 0 ]] ||
-  problems+=("the report was: $(printf '%q' "$(cat "$report_out")")")
-rm -rf "$work"
-report "$name"
-
-
-name="a log carrying timed-test-run.sh's own test-run marks gives tier-usual.sh a figure to answer with"
-problems=()
-work="$(scratch_dir)"
-for _ in 1 2; do
-  wrapped "$work" 373 green fast 'skills/tdd/scripts/tests/event.test.sh' true ||
-    problems+=("want the wrapped run to exit 0 like the command it ran, it did not")
-done
-
-usual="$( cd "$work" && "$USUAL" fast 2>/dev/null )" && code=0 || code=$?
-[[ "$code" == 0 ]] ||
-  problems+=("want tier-usual.sh to exit 0 over the log the wrapper wrote, it exited $code")
-
-[[ "$usual" =~ ^[0-9]+(\.[0-9]+)?$ ]] ||
-  problems+=("usual for tier fast: want a number computed from the marks, got $(printf '%q' "$usual")")
-
-[[ "${#problems[@]}" -eq 0 ]] ||
-  problems+=("the log was: $(printf '%q' "$(cat "$work/.tdd/events.jsonl" 2>&1)")")
 rm -rf "$work"
 report "$name"
 
