@@ -1,2 +1,4 @@
 ### veri.ledger.ledger_steps returns kind `diff-checked` for an open step whose text is `x`, then the diff-checked marker, then a criterion-3 marker (the double-bracketed tags the ledger grammar reads), as lib/ledger.sh's ledger_steps prints under LC_ALL=C (a tests/py/test_ledger.py case; tests/py/test_status.py unmodified) ⟦criterion 3⟧
 - test-only | hoist `importlib.import_module("veri.ledger")`, repeated in both test functions of tests/py/test_ledger.py, into one module-level import
+### veri.ledger.ledger_steps reads the step grammar's whitespace as `[[:space:]]` under LC_ALL=C — space, tab, newline, vertical tab, form feed, carriage return only — so a line led by NBSP, by EM SPACE or by `\x1c` is no step (tests/py/test_ledger.py cases) ⟦criterion 3⟧
+- test-only | tests/py/test_ledger.py repeats `importlib.import_module("veri.ledger")` and `[tuple(record) for record in ledger.ledger_steps(...)]` in every case; one module-level helper would remove the duplication
