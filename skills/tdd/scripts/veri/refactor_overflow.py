@@ -25,14 +25,11 @@ def main(argv):
     if listed.returncode:
         return listed.returncode
     skip = int(reached, 10)
-    start = (skip + 1 + 2**63) % 2**64 - 2**63
-    if start < 0:
-        return fail(f"illegal offset -- +{start}", 1)
     text = ""
     if skipped:
         with open(skipped) as f:
             text = f.read()
-    text += "\n".join(listed.stdout.split("\n")[max(start - 1, 0):])
+    text += "\n".join(listed.stdout.split("\n")[skip:])
     unreached = text.rstrip("\n")
     if not unreached:
         return 3
