@@ -756,4 +756,30 @@ done
 set --
 report "$name"
 
+name="wait-ci.sh run through a symlink to the skill directory and from another working directory holding its own .tdd/ exits 3 on a pending check, recording the deadline in that directory's .tdd/ci-deadline-<sha>, and 0 on a green check, as when run in place"
+problems=()
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+head_sha=0123456789abcdef0123456789abcdef01234567
+for where in inplace linked; do
+  for want in pending:3 green:0; do
+    f="${want%%:*}"
+    dir="$work/$where-$f"; mkdir -p "$dir/.tdd"
+    : > "$work/$where-$f.clock"; : > "$work/$f.json.calls"
+    if [[ "$where" == linked ]]; then script="$work/linked-skill/scripts/wait-ci.sh"; else script="$WAIT"; fi
+    ( cd "$dir" && env VERI_POLL=0 VERI_CLOCK_STEP=900 VERI_CLOCK_LOG="$work/$where-$f.clock" \
+        PR_URL="$PR" ROLLUP="$work/$f.json" PATH="$work/bin:$PATH" \
+        "$script" "$PR" 540 600 >"$work/$where-$f.out" 2>"$work/$where-$f.err" )
+    got=$?
+    [[ "$got" == "${want##*:}" ]] || problems+=("$where $f: want exit ${want##*:}, got $got (stderr: $(cat "$work/$where-$f.err"))")
+    [[ ! -s "$work/$where-$f.out" ]] || problems+=("$where $f: want nothing on stdout, got: $(cat "$work/$where-$f.out")")
+  done
+  [[ "$(cat "$work/$where-pending/.tdd/ci-deadline-$head_sha" 2>/dev/null)" == 600 ]] \
+    || problems+=("$where pending: want deadline 600 in its working directory's .tdd/ci-deadline-$head_sha, got: '$(cat "$work/$where-pending/.tdd/ci-deadline-$head_sha" 2>&1)'")
+  [[ ! -e "$work/$where-green/.tdd/ci-deadline-$head_sha" ]] \
+    || problems+=("$where green: want no deadline recorded, got one")
+done
+cmp -s "$work/inplace-pending.err" "$work/linked-pending.err" \
+  || problems+=("pending: stderr differs between in place and linked: $(diff "$work/inplace-pending.err" "$work/linked-pending.err")")
+report "$name"
+
 finish
