@@ -178,3 +178,64 @@ def test_main_folds_null_unfinished_skipped_absent_conflicting_or_foreign_checks
         observed.append((code, captured.out, captured.err, "date +%s" in calls))
 
     assert observed == [expected for *_, expected in cases]
+
+
+def test_main_reads_check_run_pages_to_the_empty_one_and_answers_2_when_gh_or_a_body_fails(
+        monkeypatch, capsys, wait_ci):
+    page_3 = f"gh api repos/o/r/commits/{SHA}/check-runs?page=3"
+    head = json.dumps({"mergeable": True, "head": {"sha": SHA}})
+    one_run = json.dumps({"check_runs": [{"status": "completed", "conclusion": "success"}]})
+    no_runs = json.dumps({"check_runs": []})
+    green = json.dumps({"statuses": [{"state": "success"}]})
+    gh_err = "gh: HTTP 502: Bad Gateway\n"
+    failed = (1, "", gh_err)
+    by_sha = f"wait-ci.sh: could not read the checks of {SHA}\n"
+    traced = "Traceback (most recent call last):\n"
+    cases = [
+        ({PULL: head, PAGE_1: one_run, PAGE_2: '{"x": [1], "check_runs":  [  ], "total_count": 1}',
+          page_3: failed, STATUS: green},
+         (0, "", "", [PULL, PAGE_1, PAGE_2, STATUS])),
+        ({PULL: head, PAGE_1: one_run, PAGE_2: failed, STATUS: green},
+         (2, "", gh_err + by_sha, [PULL, PAGE_1, PAGE_2])),
+        ({PULL: head, PAGE_1: no_runs, STATUS: failed},
+         (2, "", gh_err + by_sha, [PULL, PAGE_1, STATUS])),
+        ({PULL: failed},
+         (2, "", gh_err + UNREADABLE, [PULL])),
+        ({PULL: head, PAGE_1: '{"check_runs": [{"status": ', PAGE_2: no_runs, STATUS: green},
+         (2, "", traced + by_sha, [PULL, PAGE_1, PAGE_2, STATUS])),
+        ({PULL: head, PAGE_1: one_run, PAGE_2: no_runs, STATUS: '[{"state": "success"}]'},
+         (2, "", traced + by_sha, [PULL, PAGE_1, PAGE_2, STATUS])),
+        ({PULL: head, PAGE_1: one_run, PAGE_2: no_runs, STATUS: '{"statuses": [{"context": "ci"}]}'},
+         (2, "", traced + by_sha, [PULL, PAGE_1, PAGE_2, STATUS])),
+        ({PULL: '{"mergeable": true, "head": '},
+         (2, "", traced + UNREADABLE, [PULL])),
+        ({PULL: json.dumps({"mergeable": True, "head": {}})},
+         (2, "", traced + UNREADABLE, [PULL])),
+    ]
+
+    observed = []
+    for bodies, _ in cases:
+        calls = []
+
+        def fake_run(args, bodies=bodies, calls=calls, **kwargs):
+            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+            calls.append(line)
+            answer = bodies.get(line, (1, "", f"unexpected: {line}\n"))
+            code, out, err = (0, answer, "") if isinstance(answer, str) else answer
+            if kwargs.get("stderr") is None:
+                sys.stderr.write(err)
+                err = None
+            return subprocess.CompletedProcess(args, code, out, err)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        try:
+            code = wait_ci.main([PR, "60", "120", SHA])
+        except Exception as e:
+            code = f"raised {type(e).__name__}"
+        captured = capsys.readouterr()
+        err = captured.err
+        if err.startswith(traced):
+            err = traced + err.splitlines(keepends=True)[-1]
+        observed.append((code, captured.out, err, calls))
+
+    assert observed == [expected for _, expected in cases]
