@@ -31,7 +31,7 @@ def main(argv):
     lines = limits.stdout.splitlines()
     budget, ratio = lines[0], lines[-1]
     s = _number(seconds)
-    product = _number(ratio) * _number(usual)
+    product = _number(ratio) * (_number(usual) or 0)
     if s is None:
         s, limit = seconds, budget
         product = "%d" % product if math.isfinite(product) and product == int(product) else "%.6g" % product
