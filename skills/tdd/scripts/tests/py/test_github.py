@@ -427,6 +427,18 @@ def test_gh_issue_edit_is_a_no_answer_with_gh_stderr_passed_through_when_the_pat
     assert capsys.readouterr().err == refusal
 
 
+def test_gh_issue_create_runs_only_the_rest_create_call_and_answers_its_stdout(monkeypatch, github):
+    create = ("gh", "api", "repos/{owner}/{repo}/issues", "-f", "title=T", "-f", "body=B", "-q", ".html_url")
+    calls = fake_gh(monkeypatch, {
+        create: (0, "https://github.com/o/r/issues/61\n", ""),
+    })
+
+    answer = github.gh_issue_create("T", "B")
+
+    assert answer == "https://github.com/o/r/issues/61\n"
+    assert calls == [list(create)]
+
+
 def test_gh_json_answers_the_fixture_file_contents_and_makes_no_subprocess_call_when_veri_gh_json_is_set(monkeypatch, tmp_path, github):
     fixture = '[{"number":7,"title":"A thing"}]\n'
     (tmp_path / "prs.json").write_text(fixture)

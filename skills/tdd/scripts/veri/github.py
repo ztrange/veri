@@ -82,3 +82,8 @@ def gh_issue_edit(number, body_file):
                           "-F", "body=@%s" % body_file], stdout=subprocess.DEVNULL)
     if run.returncode != 0:
         raise NoAnswer("")
+
+
+def gh_issue_create(title, body):
+    return _gh("api", "repos/{owner}/{repo}/issues", "-f", "title=%s" % title,
+               "-f", "body=%s" % body, "-q", ".html_url").stdout
