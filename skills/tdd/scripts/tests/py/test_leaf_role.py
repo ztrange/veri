@@ -107,3 +107,13 @@ def test_main_writes_a_non_utf8_byte_in_the_phase_as_that_raw_byte_through_a_str
     code = leaf_role.main([b"develop-r\xffd".decode("utf-8", "surrogateescape")])
     sys.stdout.flush()
     assert (code, out.getvalue()) == (0, b"VERI_ACTOR=developer VERI_PHASE=r\xffd VERI_ATTEMPT=1\n")
+
+
+def test_main_raises_rather_than_returning_0_for_a_name_it_maps_when_stdout_is_closed(monkeypatch, leaf_role):
+    err = io.BytesIO()
+    monkeypatch.setattr(sys, "stdout", None)
+    monkeypatch.setattr(sys, "stderr", io.TextIOWrapper(err, encoding="utf-8"))
+    with pytest.raises(Exception):
+        leaf_role.main(["develop-red"])
+    sys.stderr.flush()
+    assert err.getvalue() == b""
