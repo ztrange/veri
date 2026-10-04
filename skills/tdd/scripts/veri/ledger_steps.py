@@ -25,12 +25,22 @@ def current(records):
     return 3
 
 
+def last_done(records):
+    done = [r for r in records if r[1] == "done"]
+    if not done:
+        return 3
+    write_lines([done[-1][6]])
+    return 0
+
+
 def main(argv):
     verb = argv[0] if argv else ""
-    if verb not in ("", "current"):
+    if verb not in ("", "current", "last-done"):
         return refuse()
     records = ledger_steps(sys.stdin.buffer.read().decode())
     if verb == "current":
         return current(records)
+    if verb == "last-done":
+        return last_done(records)
     write_lines("\t".join(record) for record in records)
     return 0

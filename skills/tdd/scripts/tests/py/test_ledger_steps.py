@@ -92,3 +92,40 @@ def test_current_prints_the_first_pending_step_with_the_mark_cut_else_the_first_
         "replaces-case": (0, "the cog turns ⟦replaces-case⟧ ⟦criterion 6⟧\n".encode(), b""),
         "diff-checked": (0, "the cog is unchanged ⟦diff-checked⟧ ⟦criterion 3⟧\n".encode(), b""),
     }
+
+
+def test_last_done_prints_the_last_done_step_x_or_X_with_the_mark_cut_an_empty_line_for_empty_text_else_exits_3(
+        monkeypatch, capsysbinary, ledger_steps):
+    ledgers = {
+        "pending": (
+            "- [x] a cog exists ⟦criterion 1⟧\n"
+            "- [X] the cog is oiled ⟦criterion 2⟧ ⟂ refactor pending\n"
+            "- [ ] the cog stops ⟦criterion 3⟧\n"
+        ),
+        "lowercase x": (
+            "- [X] a cog exists ⟦criterion 1⟧\n"
+            "- [x] the cog turns ⟦criterion 2⟧\n"
+            "- [ ] the cog stops ⟦criterion 3⟧\n"
+        ),
+        "empty text": (
+            "- [x] a cog exists ⟦criterion 1⟧\n"
+            "- [x]\n"
+            "- [ ] the cog stops ⟦criterion 2⟧\n"
+        ),
+        "none done": (
+            "- [ ] a cog exists ⟦criterion 1⟧\n"
+            "- [ ] make test is green ⟦full-suite⟧ ⟦criterion 2⟧\n"
+        ),
+    }
+    results = {}
+    for name, ledger in ledgers.items():
+        fake_stdin(monkeypatch, ledger.encode())
+        code = ledger_steps.main(["last-done"])
+        results[name] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        "pending": (0, "the cog is oiled ⟦criterion 2⟧\n".encode(), b""),
+        "lowercase x": (0, "the cog turns ⟦criterion 2⟧\n".encode(), b""),
+        "empty text": (0, b"\n", b""),
+        "none done": (3, b"", b""),
+    }
