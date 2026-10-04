@@ -519,6 +519,34 @@ def test_gh_json_answers_the_gh_list_answer_when_veri_gh_json_is_unset_and_gh_ar
     assert calls == [["gh", "pr", "list", "--json", "number"]]
 
 
+def test_with_veri_gh_driver_unset_the_graphql_route_reads_run_only_their_rest_call_and_a_rest_failure_is_a_no_answer(monkeypatch, github):
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    path = "repos/{owner}/{repo}/pulls?state=open"
+    calls = fake_gh(monkeypatch, {
+        ("gh", "api", "repos/{owner}/{repo}/issues/60"): (
+            0, '{"number":60,"body":"A thing.","labels":[]}\n', ""),
+        ("gh", "api", path + "&page=1"): (0, '[{"number":7}]\n', ""),
+        ("gh", "api", path + "&page=2"): (0, "[]\n", ""),
+        ("gh", "api", "repos/{owner}/{repo}/issues/61"): (1, "", ""),
+    })
+
+    assert github.gh_issue_view("60", "body") == "A thing.\n"
+    assert github.gh_list(path, "pr", "list", "--json", "number") == '[{"number":7}]'
+    assert github.gh_json("prs.json", path, "pr", "list", "--json", "number") == '[{"number":7}]'
+    with pytest.raises(github.NoAnswer):
+        github.gh_issue_view("61", "body")
+
+    assert calls == [
+        ["gh", "api", "repos/{owner}/{repo}/issues/60"],
+        ["gh", "api", path + "&page=1"],
+        ["gh", "api", path + "&page=2"],
+        ["gh", "api", path + "&page=1"],
+        ["gh", "api", path + "&page=2"],
+        ["gh", "api", "repos/{owner}/{repo}/issues/61"],
+    ]
+
+
 def test_the_module_is_importable_as_from_veri_import_github_and_as_import_veri_github(monkeypatch):
     monkeypatch.delitem(sys.modules, "veri.github", raising=False)
     monkeypatch.delattr(importlib.import_module("veri"), "github", raising=False)
