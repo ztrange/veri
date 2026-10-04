@@ -104,6 +104,40 @@ def next_item(argv):
     return 3
 
 
+AWK_ESCAPES = {"a": "\a", "b": "\b", "f": "\f", "n": "\n", "r": "\r", "t": "\t", "v": "\v"}
+
+
+def awk_unescape(value):
+    def one(match):
+        code = match.group(1)
+        if code[0] in "0123456789":
+            number = 0
+            for digit in code:
+                number = number * 8 + int(digit)
+            return chr(number % 256)
+        return AWK_ESCAPES.get(code, code)
+    return re.sub(r"\\([0-9]{1,3}|.)", one, value).partition("\0")[0]
+
+
+def show(queue, argv):
+    only = awk_unescape("".join(argv[1:2]))
+    try:
+        with open(queue, newline="\n") as lines:
+            records = lines.read()
+    except OSError:
+        sys.stderr.write("awk: can't open file %s\n source line number 1\n" % queue)
+        return 2
+    grouped = {}
+    for record in records.removesuffix("\n").split("\n") if records else []:
+        fields = record.split("\t") + ["", ""]
+        if only and fields[0] != only:
+            continue
+        grouped.setdefault(fields[0], []).append("\t%s\t%s\n" % (fields[1], fields[2]))
+    for worker, entries in grouped.items():
+        sys.stdout.write(worker + "\n" + "".join(entries))
+    return 0
+
+
 MOVES = {"start": ("queued", "running"), "done": ("running", "merged"), "park": ("running", "parked")}
 
 
@@ -166,6 +200,8 @@ def locked_main(argv):
                 return refuse("workqueue.sh: issue %s is named twice" % issue)
             named.add(issue)
     queue = queue_path()
+    if command == "show":
+        return show(queue, argv)
     lock = queue + ".lock"
     locked = False
     try:
