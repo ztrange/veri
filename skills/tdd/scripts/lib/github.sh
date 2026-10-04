@@ -23,7 +23,7 @@
 #   page, back to back; 2 when GitHub gave no answer.
 
 _gh_graphql() {
-  [[ "${VERI_GH_DRIVER:-rest}" == auto || "${VERI_GH_DRIVER:-rest}" == graphql ]] && "$@"
+  case "${VERI_GH_DRIVER:-rest}" in auto|graphql) "$@" ;; *) return 1 ;; esac
 }
 
 _gh_rest() {
