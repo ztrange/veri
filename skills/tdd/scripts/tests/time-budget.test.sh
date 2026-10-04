@@ -56,4 +56,21 @@ out="$( VERI_TIME_WARN_RATIO=1,5 "$BUDGET" 2>/dev/null )" || true
 
 report "$name"
 
+name="time-budget.sh: VERI_UNIT_BUDGET=ten exits 2, nothing on stdout, stderr exactly the one diagnostic line"
+problems=()
+
+out_file="$(scratch_dir)/out"
+err="$( VERI_UNIT_BUDGET=ten "$BUDGET" 2>&1 >"$out_file" )" && code=0 || code=$?
+
+[[ "$code" == 2 ]] ||
+  problems+=("want VERI_UNIT_BUDGET=ten to exit 2, it exited $code")
+
+[[ ! -s "$out_file" ]] ||
+  problems+=("want nothing on stdout, got $(printf '%q' "$(cat "$out_file")")")
+
+[[ "$err" == 'time-budget: VERI_UNIT_BUDGET must be a number of seconds: ten' ]] ||
+  problems+=("want stderr exactly 'time-budget: VERI_UNIT_BUDGET must be a number of seconds: ten', got $(printf '%q' "$err")")
+
+report "$name"
+
 finish
