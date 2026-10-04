@@ -1,6 +1,7 @@
 """In-process cases for veri/workqueue.py, the module workqueue.sh is a shim over."""
 import importlib
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -288,3 +289,80 @@ def test_start_done_park_and_assign_take_the_lock_directory_polling_it_for_the_w
     assert queue.read_bytes() == before + b"beta\t14\tqueued\t\n"
     assert not lock.exists()
     assert sleeps == []
+
+
+def test_start_done_park_rewrite_every_matching_line_in_place_as_four_tab_fields_and_rename_the_temp_file_with_mv(tmp_path, monkeypatch, capsys, workqueue):
+    queue = tmp_path / ".tdd" / "workqueue"
+    tmp = tmp_path / ".tdd" / ("workqueue.tmp.%d" % os.getpid())
+    queue.parent.mkdir()
+    moves = []
+    mv_status = [0]
+
+    def fake_run(args, **kwargs):
+        if list(args[:3]) == ["git", "worktree", "list"]:
+            return subprocess.CompletedProcess(args, 0, "worktree %s\n" % tmp_path, "")
+        if list(args[:1]) == ["mv"]:
+            moves.append(list(args))
+            if mv_status[0] == 0:
+                os.replace(args[1], args[2])
+            return subprocess.CompletedProcess(args, mv_status[0], "", "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    def run(argv):
+        moves.clear()
+        code = workqueue.main(argv)
+        out, err = capsys.readouterr()
+        return code, out, err
+
+    queue.write_bytes(b"alpha\t12\tqueued\t\nbeta\t12\tqueued\t\nalpha\t12\tqueued\told\n\n"
+                      b"alpha\t13\trunning\t\nalpha\t14\trunning\tx\ty\tz\nalpha\t15\tqueued\t")
+    assert run(["start", "alpha", "12", "junk"]) == (0, "", "")
+    assert moves == [["mv", str(tmp), str(queue)]]
+    assert queue.read_bytes() == (b"alpha\t12\trunning\t\nbeta\t12\tqueued\t\nalpha\t12\trunning\t\n\t\t\t\n"
+                                  b"alpha\t13\trunning\t\nalpha\t14\trunning\tx\ty\tz\n")
+    assert run(["done", "alpha", "13", "abc123"]) == (0, "", "")
+    assert run(["park", "alpha", "14", "flaky ci"]) == (0, "", "")
+    after = (b"alpha\t12\trunning\t\nbeta\t12\tqueued\t\nalpha\t12\trunning\t\n\t\t\t\n"
+             b"alpha\t13\tmerged\tabc123\nalpha\t14\tparked\tflaky ci\n")
+    assert queue.read_bytes() == after
+    assert not tmp.exists()
+
+    assert run(["park", "beta", "12", "flaky"]) == (1, "", "workqueue.sh: beta holds no running item for issue 12\n")
+    assert moves == []
+    assert not tmp.exists()
+    assert queue.read_bytes() == after
+
+    for status, code in ((5, 2), (1, 1)):
+        mv_status[0] = status
+        assert run(["done", "alpha", "12", "def456"]) == (code, "", "")
+        assert moves == [["mv", str(tmp), str(queue)]]
+        assert queue.read_bytes() == after
+        assert tmp.read_bytes() == after.replace(b"alpha\t12\trunning\t\n", b"alpha\t12\tmerged\tdef456\n")
+        tmp.unlink()
+
+
+def test_the_rewrite_reads_fields_as_bash_read_does_and_a_signalled_mv_returns_2(tmp_path, monkeypatch, capsys, workqueue):
+    queue = tmp_path / ".tdd" / "workqueue"
+    tmp = tmp_path / ".tdd" / ("workqueue.tmp.%d" % os.getpid())
+    queue.parent.mkdir()
+    mv_status = [0]
+
+    def fake_run(args, **kwargs):
+        if list(args[:3]) == ["git", "worktree", "list"]:
+            return subprocess.CompletedProcess(args, 0, "worktree %s\n" % tmp_path, "")
+        if list(args[:1]) == ["mv"]:
+            if mv_status[0] == 0:
+                os.replace(args[1], args[2])
+            return subprocess.CompletedProcess(args, mv_status[0], "", "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    queue.write_bytes(b"\talpha\t12\tqueued\tn\t\nalpha\t\t13\tqueued\tx\t\ty\t\nalpha\t14\tqueued\tc\rd\r\n")
+    assert workqueue.main(["start", "alpha", "12"]) == 0
+    assert queue.read_bytes() == b"alpha\t12\trunning\t\nalpha\t13\tqueued\tx\t\ty\nalpha\t14\tqueued\tc\rd\r\n"
+    mv_status[0] = -15
+    assert workqueue.main(["start", "alpha", "13"]) == 2
+    assert tmp.read_bytes() == b"alpha\t12\trunning\t\nalpha\t13\trunning\t\nalpha\t14\tqueued\tc\rd\r\n"
+    assert capsys.readouterr() == ("", "")
