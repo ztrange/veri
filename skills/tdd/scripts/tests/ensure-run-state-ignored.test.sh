@@ -151,4 +151,14 @@ cmp -s "$work/twice-both.exclude.before" "$exclude" && ex_same=0 || ex_same=$?
 { [[ "$gi_same" == 0 ]] && [[ "$ex_same" == 0 ]] && [[ "$code" == 0 ]]; } \
   && ok || no "second run on the same repo: leaves the worktree .gitignore and info/exclude byte-identical and exits 0 (.gitignore cmp=$gi_same want 0 identical, info/exclude cmp=$ex_same want 0 identical, exit=$code want 0)"
 
+dir="$work/not-a-repo"
+mkdir -p "$dir"
+want_err="$(GIT_CEILING_DIRECTORIES="$work" git -C "$dir" rev-parse --git-common-dir 2>&1 >/dev/null)"
+
+out="$(GIT_CEILING_DIRECTORIES="$work" "$ENSURE" "$dir" 2>"$work/not-a-repo.stderr")" && code=0 || code=$?
+err="$(cat "$work/not-a-repo.stderr")"
+
+{ [[ "$code" == 2 ]] && [[ -z "$out" ]] && [[ -n "$want_err" ]] && [[ "$err" == "$want_err" ]]; } \
+  && ok || no "not a git repository: exits 2, prints nothing on stdout and lets git's own diagnostic through (exit=$code want 2, stdout='$out' want empty, stderr='$err' want '$want_err')"
+
 finish
