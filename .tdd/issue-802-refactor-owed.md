@@ -1,0 +1,2 @@
+### veri.ledger.ledger_steps returns kind `diff-checked` for an open step whose text is `x`, then the diff-checked marker, then a criterion-3 marker (the double-bracketed tags the ledger grammar reads), as lib/ledger.sh's ledger_steps prints under LC_ALL=C (a tests/py/test_ledger.py case; tests/py/test_status.py unmodified) ⟦criterion 3⟧
+- test-only | hoist `importlib.import_module("veri.ledger")`, repeated in both test functions of tests/py/test_ledger.py, into one module-level import
