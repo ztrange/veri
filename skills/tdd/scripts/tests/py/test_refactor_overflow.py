@@ -214,8 +214,8 @@ TEN_LINES = "".join(f"l{i}\n" for i in range(1, 11))
 
 
 @pytest.mark.parametrize("reached, gh_code, expected_code, expected_out, expected_body", [
-    ("1", 1, 1, "", "- l2\n- l3\n- l4\n- l5\n- l6\n- l7\n- l8\n- l9\n- l10"),
-    ("1", 4, 4, "", "- l2\n- l3\n- l4\n- l5\n- l6\n- l7\n- l8\n- l9\n- l10"),
+    ("1", 1, 2, "", "- l2\n- l3\n- l4\n- l5\n- l6\n- l7\n- l8\n- l9\n- l10"),
+    ("1", 4, 2, "", "- l2\n- l3\n- l4\n- l5\n- l6\n- l7\n- l8\n- l9\n- l10"),
     ("010", 0, 0, "https://github.com/o/r/issues/9\n", "- l9\n- l10"),
     ("08", 0, 1, "", None),
     ("18446744073709551615", 0, 0, "https://github.com/o/r/issues/9\n",
