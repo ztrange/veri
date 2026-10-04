@@ -316,4 +316,44 @@ if probe_launcher_is_there; then
 fi
 report "$name"
 
+OLD_NOISE='an earlier verifier wrote this to stderr'
+
+probe_linked_launch_answers_as_in_place() {
+  local skill="$work/linked-skill" link="$work/skill-link" elsewhere="$work/elsewhere" \
+    record="$work/linked.argv" out code got want
+  rm -rf "$skill" "$link" "$elsewhere" "$record"
+  copy_scripts_to "$skill/scripts" && make_run_dir "$elsewhere" &&
+    mkdir -p "$elsewhere/.tdd" && ln -s "$skill" "$link" || {
+    problems+=("could not stage a skill directory reached through a symlink")
+    return
+  }
+  printf '#!/bin/sh\nfor a in "$@"; do printf "%%s\\n" "$a"; done > "$VERI_STUB_ARGV"\nprintf "%%s\\n" "%s" >&2\nprintf "%%s\\n" "%s"\n' \
+    "$NOISE" "$VERDICT_LINE" | install_stub "$skill/scripts"
+  printf '%s\n' "$STALE" > "$elsewhere/$REASON"
+  printf '%s\n' "$OLD_NOISE" > "$elsewhere/.tdd/verify-$PHASE.stderr"
+
+  out="$( cd "$elsewhere" && env VERI_STUB_ARGV="$record" "$link/scripts/$LAUNCHER_NAME" "${CALL[@]}" 2>&1 )" &&
+    code=0 || code=$?
+
+  [[ "$code" == 0 ]] ||
+    problems+=("run through $link/scripts, $LAUNCHER exited $code, want 0 — the stub verifier passed; it said: $(flat "$out")")
+  got="$(cat "$record" 2>/dev/null)"
+  want="$(printf '%s\n' "${CALL[@]}")"
+  [[ "$got" == "$want" ]] ||
+    problems+=("run through $link/scripts, $VERIFIER was called with: $(flat "$got") — want the argv unchanged: $(flat "$want")")
+  [[ -f "$elsewhere/$REASON" && ! -s "$elsewhere/$REASON" ]] ||
+    problems+=("run through $link/scripts, the caller's $REASON was not emptied: $(flat "$(cat "$elsewhere/$REASON" 2>/dev/null)")")
+  got="$(cat "$elsewhere/.tdd/verify-$PHASE.stderr" 2>/dev/null)"
+  [[ "$got" == "$OLD_NOISE"$'\n'"$NOISE" ]] ||
+    problems+=("run through $link/scripts, the caller's .tdd/verify-$PHASE.stderr held: $(flat "$got") — want the earlier line, then $VERIFIER's stderr appended")
+}
+
+name="$LAUNCHER_NAME run through a symlink to the skill directory from another working directory finds $VERIFIER, hands it the argv unchanged, empties the caller's $REASON and appends to the caller's .tdd/verify-$PHASE.stderr"
+problems=()
+
+if probe_launcher_is_there; then
+  probe_linked_launch_answers_as_in_place
+fi
+report "$name"
+
 finish
