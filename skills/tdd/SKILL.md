@@ -504,8 +504,9 @@ unauthenticated baseline never gets a cycle.
    by construction — but the check **stays**: the conductor still reads the issue and the
    default branch from here, and a dirty caller's checkout means something else is mid-work
    in it.
-2. **`gh` and `claude` authenticated.** `gh auth status` succeeds, and `claude auth status`
-   reports `"loggedIn": true`. Every leaf is a `claude -p` subprocess: with an expired
+2. **`gh` and `claude` authenticated.** `gh api user` succeeds — the same REST route every
+   other GitHub read here takes; a non-zero exit from it is a preflight failure, so report it
+   and stop — and `claude auth status` reports `"loggedIn": true`. Every leaf is a `claude -p` subprocess: with an expired
    session each one fails at launch (`supervise.sh` exit 1 before any work), which is
    neither a verdict nor a hang and so has no bail classification — catch it here.
    Then run `$S/leaf-launchable.sh`, which asks the other half of the same question: not
