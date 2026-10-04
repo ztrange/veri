@@ -10,3 +10,5 @@
 - test-only | fold the hand-rolled `fake_run` in `test_gh_rest_list_is_a_no_answer_when_page_two_fails_with_gh_stderr_passed_through` (test_github.py:103-117) into `fake_gh`, by having `fake_gh` write stderr to `sys.stderr` when the caller does not capture it
 ### veri.github.gh_list answers the stdout of `gh <gh args…>` when that call succeeds, and makes no `gh api` call ⟦criterion 1⟧
 - extract a private `_gh(*args)` subprocess wrapper shared by gh_rest_list and gh_list once step 9 fixes what each one does with stderr, and other helpers add more callers
+### veri.github.gh_list, when the `gh <gh args…>` call exits non-zero, answers gh_rest_list's pages for the rest path and does not pass that call's stderr on ⟦criterion 1⟧
+- test-only | the stderr-aware `fake_run` in `test_gh_list_answers_the_rest_pages_and_drops_the_graphql_stderr_when_the_gh_call_fails` is a copy of the one in `test_gh_rest_list_is_a_no_answer_when_page_two_fails_with_gh_stderr_passed_through`. Fold both copies into `fake_gh`: write `stderr` to `sys.stderr` when the caller does not capture it, and return it only under `stderr=PIPE`.
