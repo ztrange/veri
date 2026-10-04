@@ -97,3 +97,34 @@ def test_gh_rest_list_stops_at_the_first_page_matching_a_caller_given_empty_patt
         ["gh", "api", path + "?page=1"],
         ["gh", "api", path + "?page=2"],
     ]
+
+
+def test_gh_rest_list_is_a_no_answer_when_page_two_fails_with_gh_stderr_passed_through(monkeypatch, capsys, github):
+    path = "repos/{owner}/{repo}/pulls"
+    refusal = "gh: HTTP 502: Bad Gateway (https://api.github.com/repos/o/r/pulls?page=2)\n"
+    answers = {
+        ("gh", "api", path + "?page=1"): (0, '[{"number":1}]', ""),
+        ("gh", "api", path + "?page=2"): (1, "", refusal),
+    }
+    calls = []
+
+    def fake_run(args, **kwargs):
+        calls.append(list(args))
+        if tuple(args) not in answers:
+            raise AssertionError("unexpected command: %r" % (args,))
+        returncode, stdout, stderr = answers[tuple(args)]
+        if kwargs.get("stderr") is None:
+            sys.stderr.write(stderr)
+        return subprocess.CompletedProcess(
+            args, returncode, stdout, stderr if kwargs.get("stderr") == subprocess.PIPE else None)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    with pytest.raises(github.NoAnswer):
+        github.gh_rest_list(path)
+
+    assert calls == [
+        ["gh", "api", path + "?page=1"],
+        ["gh", "api", path + "?page=2"],
+    ]
+    assert capsys.readouterr().err == refusal
