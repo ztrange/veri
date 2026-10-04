@@ -27,6 +27,20 @@ def read_body(number):
         return None
 
 
+def existing(title):
+    found = gh("api", "repos/{owner}/{repo}/issues", "-X", "GET", "-f", "state=open", "-f", "per_page=100")
+    try:
+        listing = json.loads(found.stdout)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(listing, list):
+        return None
+    for item in listing:
+        if item.get("title") == title:
+            return item["html_url"]
+    return None
+
+
 def block(body, new):
     blocker = "- #" + new
     lines = []
@@ -53,11 +67,14 @@ def main(argv):
     n = argv[0]
     text = ("Refactor #%s refused: its Cover probe found the code it would move uncovered (`COVERED: no`). "
             "Find a seam and surround the behaviour with tests, then #%s can be retaken." % (n, n))
-    create = gh("api", "repos/{owner}/{repo}/issues", "-f", "title=Cover the behaviour #%s refactors" % n,
-                "-f", "body=" + text, "-q", ".html_url")
-    if create.returncode != 0:
-        return 2
-    url = create.stdout.rstrip("\n")
+    title = "Cover the behaviour #%s refactors" % n
+    url = existing(title)
+    if url is None:
+        create = gh("api", "repos/{owner}/{repo}/issues", "-f", "title=" + title, "-f", "body=" + text,
+                    "-q", ".html_url")
+        if create.returncode != 0:
+            return 2
+        url = create.stdout.rstrip("\n")
     body = read_body(n)
     if body is None:
         return 2

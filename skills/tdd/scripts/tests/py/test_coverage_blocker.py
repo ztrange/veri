@@ -1,5 +1,6 @@
 """In-process cases for veri/coverage_blocker.py, the module coverage-blocker.sh is a shim over."""
 import importlib
+import json
 import os
 import pathlib
 import subprocess
@@ -61,6 +62,9 @@ def test_main_patches_the_body_it_read_after_the_create_with_trailing_newlines_c
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
+        if args[:5] == ["gh", "api", "repos/{owner}/{repo}/issues", "-X", "GET"]:
+            calls.append("lookup")
+            return subprocess.CompletedProcess(args, 0, "[]", "")
         if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
             calls.append("create")
             return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
@@ -78,7 +82,7 @@ def test_main_patches_the_body_it_read_after_the_create_with_trailing_newlines_c
 
     coverage_blocker.main(["60"])
 
-    assert calls == ["create", "view", "patch"]
+    assert calls == ["lookup", "create", "view", "patch"]
     assert seen["body"] == "## Parent\n\n#1\n"
 
 
@@ -177,6 +181,7 @@ def test_main_files_the_issue_blocks_the_refactor_issue_on_it_prints_the_url_and
     captured = capsys.readouterr()
 
     assert calls == [
+        ["gh", "api", "repos/{owner}/{repo}/issues", "-X", "GET", "-f", "state=open", "-f", "per_page=100"],
         ["gh", "api", "repos/{owner}/{repo}/issues",
          "-f", "title=Cover the behaviour #60 refactors",
          "-f", "body=Refactor #60 refused: its Cover probe found the code it would move uncovered (`COVERED: no`). Find a seam and surround the behaviour with tests, then #60 can be retaken.",
@@ -255,13 +260,13 @@ def test_main_blocks_on_whatever_the_create_answers_ignores_extra_arguments_and_
 
     code, out, err, body, calls = run(["abc", "extra"], "https://github.com/owner/name/issues/77\n")
     assert (code, out, err, body) == (0, "https://github.com/owner/name/issues/77\n", "", "## Blocked by\n\n- #77\n")
-    assert calls[0][:5] == ["gh", "api", "repos/{owner}/{repo}/issues", "-f", "title=Cover the behaviour #abc refactors"]
-    assert calls[1] == ["gh", "issue", "view", "abc", "--json", "body", "-q", ".body"]
-    assert calls[2] == ["gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/abc"]
+    assert calls[1][:5] == ["gh", "api", "repos/{owner}/{repo}/issues", "-f", "title=Cover the behaviour #abc refactors"]
+    assert calls[2] == ["gh", "issue", "view", "abc", "--json", "body", "-q", ".body"]
+    assert calls[3] == ["gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/abc"]
     assert not any("extra" in arg for call in calls for arg in call)
 
     code, out, err, body, calls = run(["60"], "", create_code=1)
-    assert (code, out, body, len(calls)) == (2, "", None, 1)
+    assert (code, out, body, len(calls)) == (2, "", None, 2)
     assert "HTTP 422: Validation Failed" in err
 
 
@@ -312,3 +317,57 @@ def test_main_reads_the_body_over_rest_when_the_view_fails_dropping_its_stderr_a
     json_error = err.find("json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\n")
     assert 0 <= api_error < json_error
     assert all(call[0] == "gh" and call[1:3] not in (["issue", "create"], ["issue", "edit"]) for call in calls)
+
+
+def test_main_rerun_after_a_first_run_that_filed_then_failed_files_no_second_issue_prints_the_first_url_and_blocks_on_it_777(tmpdir_env, monkeypatch, capsys, coverage_blocker):
+    issues = {60: {"title": "Refactor something", "body": "## Blocked by\n\nNone\n", "state": "open"}}
+    read_fails = {"on": True}
+    seen = {}
+
+    def url(number):
+        return "https://github.com/owner/name/issues/%d" % number
+
+    def listing():
+        return [{"number": number, "title": issue["title"], "body": issue["body"], "state": issue["state"],
+                 "url": url(number), "html_url": url(number)} for number, issue in sorted(issues.items())]
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:3] == ["gh", "issue", "view"] and args[3] == "60":
+            if read_fails["on"]:
+                return subprocess.CompletedProcess(args, 1, "", "GraphQL refused\n")
+            return subprocess.CompletedProcess(args, 0, issues[60]["body"], "")
+        if args[:3] == ["gh", "issue", "list"]:
+            return subprocess.CompletedProcess(args, 0, json.dumps(listing()), "")
+        if args[:4] == ["gh", "api", "-X", "PATCH"]:
+            path = args[args.index("-F") + 1].split("body=@", 1)[1]
+            seen["body"] = pathlib.Path(path).read_text()
+            issues[60]["body"] = seen["body"]
+            return subprocess.CompletedProcess(args, 0, "{}", "")
+        if args[:2] == ["gh", "api"] and args[2] == "repos/{owner}/{repo}/issues/60":
+            if read_fails["on"]:
+                return subprocess.CompletedProcess(args, 1, "", "HTTP 502: Bad Gateway\n")
+            return subprocess.CompletedProcess(args, 0, json.dumps({"body": issues[60]["body"]}), "")
+        if args[:2] == ["gh", "api"] and args[2].startswith("repos/{owner}/{repo}/issues"):
+            fields = dict(arg.split("=", 1) for arg in args[3:] if "=" in arg)
+            if "title" in fields:
+                number = max(issues) + 1 if max(issues) >= 77 else 77
+                issues[number] = {"title": fields["title"], "body": fields.get("body", ""), "state": "open"}
+                return subprocess.CompletedProcess(args, 0, url(number) + "\n", "")
+            return subprocess.CompletedProcess(args, 0, json.dumps(listing()), "")
+        if args[:2] == ["gh", "api"] and args[2].startswith("search/issues"):
+            return subprocess.CompletedProcess(args, 0, json.dumps({"items": listing()}), "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    first = coverage_blocker.main(["60"])
+    capsys.readouterr()
+    read_fails["on"] = False
+    second = coverage_blocker.main(["60"])
+    out = capsys.readouterr().out
+    covers = [n for n, issue in issues.items() if issue["title"] == "Cover the behaviour #60 refactors"]
+
+    assert first == 2
+    assert (second, out, len(covers), seen.get("body")) == (
+        0, "https://github.com/owner/name/issues/77\n", 1, "## Blocked by\n\n- #77\n")
