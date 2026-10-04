@@ -5,6 +5,10 @@ import sys
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def takes_a_value(word):
+    return word in ("--step", "--fast-cmd")
+
+
 def main(argv):
     verifier = os.path.join(SCRIPTS, "verify.sh")
     if not os.access(verifier, os.X_OK):
@@ -12,7 +16,7 @@ def main(argv):
               file=sys.stderr)
         return 2
     args = list(argv)
-    while args[:1] == ["--step"]:
+    while args and takes_a_value(args[0]):
         args = args[2:]
     phase = args[0] if args else ""
     reason = f".tdd/verify-{phase}.reason"
