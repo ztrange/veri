@@ -150,7 +150,7 @@ migration_slice 8 solvable-issues.sh \
   stop-requested.sh stop-run.sh
 migration_slice 9 supervise.sh tick-criterion.sh tick-ledger.sh \
   timed-test-run.sh
-migration_slice 10 transform-touches-tests.sh verify.sh wait-ci.sh wait-leaf.sh
+migration_slice 10 transform-touches-tests.sh verify.sh wait-leaf.sh
 
 name="no script guards a required positional argument with a bare \${N:?…} expansion"
 mapfile -t offenders < <(bare_expansion_offenders "$SCRIPTS")
