@@ -490,3 +490,65 @@ def test_show_reads_short_lines_an_empty_queue_and_every_escape_as_macos_awk_doe
     everything = run(["show"])
     assert run(["show", "\\0"]) == everything
     assert run(["show", "\\400"]) == everything
+
+
+def test_assign_refuses_short_empty_repeated_or_held_issues_appends_one_queued_line_per_issue_unvalidated_and_fails_outside_a_repository(tmp_path, monkeypatch, capsys, workqueue):
+    fake_git(monkeypatch, tmp_path)
+    queue = tmp_path / ".tdd" / "workqueue"
+    lock = tmp_path / ".tdd" / "workqueue.lock"
+    queue.parent.mkdir()
+    before = b"alpha\t12\tqueued\t\nalpha\t13\trunning\t\nalpha\t14\tmerged\tabc\n\t15\tqueued\t\n"
+    queue.write_bytes(before)
+    monkeypatch.setenv("VERI_WORKQUEUE_LOCK_WAIT", "0")
+
+    def run(argv):
+        code = workqueue.main(argv)
+        out, err = capsys.readouterr()
+        return code, out, err
+
+    assert run(["assign"]) == (2, "", USAGE)
+    assert run(["assign", "beta"]) == (2, "", USAGE)
+    assert queue.read_bytes() == before
+
+    lock.mkdir()
+    assert run(["assign", "beta", "16", ""]) == (2, "", "workqueue.sh: an issue argument is empty\n" + USAGE)
+    assert run(["assign", "beta", "16", "16"]) == (2, "", "workqueue.sh: issue 16 is named twice\n" + USAGE)
+    assert lock.is_dir()
+    lock.rmdir()
+
+    assert run(["assign", "beta", "16", "12"]) == (2, "", "workqueue.sh: issue 12 is already queued\n")
+    assert run(["assign", "beta", "13"]) == (2, "", "workqueue.sh: issue 13 is already running\n")
+    assert queue.read_bytes() == before
+    assert not lock.exists()
+
+    assert run(["assign", "beta", "012", "14", "15", "foo"]) == (0, "", "")
+    assert run(["assign", "", "5"]) == (0, "", "")
+    assert queue.read_bytes() == before + (b"beta\t012\tqueued\t\nbeta\t14\tqueued\t\nbeta\t15\tqueued\t\n"
+                                           b"beta\tfoo\tqueued\t\n\t5\tqueued\t\n")
+    queue.write_bytes(b"alpha\t12\tmerged\tabc")
+    assert run(["assign", "beta", "7", "8"]) == (0, "", "")
+    assert queue.read_bytes() == b"alpha\t12\tmerged\tabcbeta\t7\tqueued\t\nbeta\t8\tqueued\t\n"
+    assert not lock.exists()
+    queue.write_bytes(b"alpha\t12\tqueued\t")
+    assert run(["assign", "beta", "12"]) == (0, "", "")
+    assert queue.read_bytes() == b"alpha\t12\tqueued\tbeta\t12\tqueued\t\n"
+    queue.write_bytes(b"alpha\t12\tqueued\r\n")
+    assert run(["assign", "beta", "12"]) == (0, "", "")
+    assert queue.read_bytes() == b"alpha\t12\tqueued\r\nbeta\t12\tqueued\t\n"
+    queue.unlink()
+    assert run(["assign", "beta", "7"]) == (0, "", "")
+    assert queue.read_bytes() == b"beta\t7\tqueued\t\n"
+    assert not lock.exists()
+
+    fake_git(monkeypatch, "")
+    fixture = tmp_path / "gh"
+    fixture.mkdir()
+    (fixture / "issues.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(fixture))
+    code, out, err = run(["assign", "beta", "7"])
+    assert (code, out, err.startswith("mkdir: /.tdd: ")) == (1, "", True)
+    code, out, err = run(["start", "beta", "7"])
+    assert (code, out, err.startswith("mkdir: /.tdd: ")) == (1, "", True)
+    assert run(["show"])[:2] == (2, "")
+    with pytest.raises(FileNotFoundError):
+        workqueue.main(["next", "beta"])
