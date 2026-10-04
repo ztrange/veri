@@ -113,6 +113,7 @@ case "$phase" in
 esac
 
 tpl_file="$HERE/prompts/develop-$phase.md"
+[[ "$revised_phase" == diff ]] && tpl_file="$HERE/prompts/develop-revise-diff.md"
 shared_file="$HERE/prompts/_develop-shared.md"
 
 # hazard: `||` on `source`, or a missing lib file dies under set -e with 1 instead of 2.
