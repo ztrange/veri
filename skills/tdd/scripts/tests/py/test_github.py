@@ -429,3 +429,16 @@ def test_gh_json_answers_the_rest_pages_when_veri_gh_json_is_unset_and_no_gh_arg
         ["gh", "api", path + "?page=1"],
         ["gh", "api", path + "?page=2"],
     ]
+
+
+def test_gh_json_answers_the_gh_list_answer_when_veri_gh_json_is_unset_and_gh_args_are_given(monkeypatch, github):
+    path = "repos/{owner}/{repo}/pulls?state=open"
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    calls = fake_gh(monkeypatch, {
+        ("gh", "pr", "list", "--json", "number"): (0, '[{"number":7},{"number":9}]', ""),
+    })
+
+    answer = github.gh_json("prs.json", path, "pr", "list", "--json", "number")
+
+    assert answer == '[{"number":7},{"number":9}]'
+    assert calls == [["gh", "pr", "list", "--json", "number"]]

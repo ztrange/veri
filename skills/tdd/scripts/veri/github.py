@@ -44,6 +44,8 @@ def gh_list(path, *args):
 def gh_json(fixture, path, *args):
     fixtures = os.environ.get("VERI_GH_JSON")
     if not fixtures:
+        if args:
+            return gh_list(path, *args)
         return gh_rest_list(path)
     with open(os.path.join(fixtures, fixture)) as f:
         return f.read()
