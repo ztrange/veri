@@ -108,44 +108,47 @@ class FallbackAdapter:
     def issue_create(self, title, body):
         return self.second.issue_create(title, body)
 
+    def json(self, fixture, path, *args):
+        if args:
+            return self.list(path, *args)
+        return self.rest_list(path)
+
 
 class FixtureAdapter:
     def __init__(self, directory):
         self.directory = directory
 
-    def json(self, fixture):
+    def json(self, fixture, path, *args):
         with open(os.path.join(self.directory, fixture)) as f:
             return f.read()
 
 
-def _fallback():
+def _select(operation):
+    fixtures = os.environ.get("VERI_GH_JSON")
+    if operation == "json" and fixtures:
+        return FixtureAdapter(fixtures)
     return FallbackAdapter(GraphQLAdapter(), RestAdapter())
 
 
 def gh_rest_list(path, empty=r"^\[\]$"):
-    return RestAdapter().list(path, empty)
+    return _select("rest_list").rest_list(path, empty)
 
 
 def gh_list(path, *args):
-    return _fallback().list(path, *args)
+    return _select("list").list(path, *args)
 
 
 def gh_json(fixture, path, *args):
-    fixtures = os.environ.get("VERI_GH_JSON")
-    if not fixtures:
-        if args:
-            return gh_list(path, *args)
-        return gh_rest_list(path)
-    return FixtureAdapter(fixtures).json(fixture)
+    return _select("json").json(fixture, path, *args)
 
 
 def gh_issue_view(number, field):
-    return _fallback().issue_view(number, field)
+    return _select("issue_view").issue_view(number, field)
 
 
 def gh_issue_edit(number, body_file):
-    RestAdapter().issue_edit(number, body_file)
+    _select("issue_edit").issue_edit(number, body_file)
 
 
 def gh_issue_create(title, body):
-    return RestAdapter().issue_create(title, body)
+    return _select("issue_create").issue_create(title, body)
