@@ -183,3 +183,40 @@ def test_criterion_reads_k_as_bash_base_10_64_bit_arithmetic_and_refuses_empty_s
         " 1": (2, b"", USAGE),
         "١": (2, b"", USAGE),
     }
+
+
+def test_main_reads_the_verb_from_argv_0_alone_an_empty_verb_prints_every_record_and_empty_stdin_prints_nothing(
+        monkeypatch, capsysbinary, ledger_steps):
+    ledger = (
+        "- [x] a cog exists ⟦criterion 1⟧\n"
+        "- [ ] the cog turns ⟦criterion 2⟧\n"
+    ).encode()
+    body = b"## Acceptance criteria\n- [ ] c1\n- [ ] c2\n"
+    calls = {
+        "current": (ledger, ["current"]),
+        "current extra": (ledger, ["current", "extra"]),
+        "criterion 1": (body, ["criterion", "1"]),
+        "criterion 1 extra": (body, ["criterion", "1", "extra"]),
+        "no argument": (ledger, []),
+        "empty verb": (ledger, [""]),
+        "empty stdin": (b"", []),
+    }
+    results = {}
+    for name, (stdin, argv) in calls.items():
+        fake_stdin(monkeypatch, stdin)
+        code = ledger_steps.main(argv)
+        results[name] = (code, *capsysbinary.readouterr())
+
+    every_record = (
+        "1\tdone\tstep\t0\t0\t1\ta cog exists ⟦criterion 1⟧\n"
+        "2\topen\tstep\t0\t0\t2\tthe cog turns ⟦criterion 2⟧\n"
+    ).encode()
+    assert results == {
+        "current": (0, "the cog turns ⟦criterion 2⟧\n".encode(), b""),
+        "current extra": (0, "the cog turns ⟦criterion 2⟧\n".encode(), b""),
+        "criterion 1": (0, b"c1\n", b""),
+        "criterion 1 extra": (0, b"c1\n", b""),
+        "no argument": (0, every_record, b""),
+        "empty verb": (0, every_record, b""),
+        "empty stdin": (0, b"", b""),
+    }
