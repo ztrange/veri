@@ -2,3 +2,5 @@
 - test-only | the new #875 case in tests/build-verify-prompt.test.sh repeats the bidirectional `(add|adds|added)[^.]{0,40}test … REJECT` regex shape of the case above it; it could share one helper that builds the pattern around an anchor
 ### build-verify-prompt.sh diff refuses with exit 2 and no stdout when the step base sha is missing or is not 7-40 lowercase hex characters
 - test-only | verify.test.sh's `diff_verdict` calls repeat the literal `--step 'DIFF-STEP the old cases are gone' diff "$work/spec.md"` five times per entry; a local variable could replace it, but that duplication predates this cycle
+### SKILL.md's ⟦diff-checked⟧ section records the step's base sha (`git rev-parse HEAD` before the develop-diff leaf runs) and passes it to the blind diff verifier after the branch point, `run-verdict.sh --step "<STEP>" diff <spec-file> <branch-base-sha> <step-base-sha>`
+- test-only | the #875 case in skill-criterion-finished.test.sh repeats the #727 case's `[[ -z "$dc_rec" ]]` guard and its "could not be checked" message word for word; the two could share one guard
