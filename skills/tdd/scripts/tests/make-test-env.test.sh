@@ -12,6 +12,7 @@
 #   6. `make install-dev` creates the environment at $VERI_VENV, else at ~/.veri-tools/venv.
 #   7. A suite whose nested `make test` would re-run itself ends within a deadline.
 #   8. A suite's nested `make test TESTS=<x>` runs only <x>, when the outer one was given SUITES=.
+#   9. ... and when the outer one ran with a MAKEFLAGS in its environment carrying SUITES= or TESTS=.
 #
 # Run: skills/tdd/scripts/tests/make-test-env.test.sh
 set -uo pipefail
@@ -225,5 +226,16 @@ nested_ran="$(sed -n 's/^== //p' "$tree/nested.out" 2>/dev/null)"
 [[ "$nested_ran" == inner.test.sh ]] ||
   problems+=("the nested make test TESTS=inner.test.sh ran [$(flat "$nested_ran")], want only [inner.test.sh]: $(flat "$outer_out")")
 report "a suite's nested make test TESTS=<x> runs only <x> when the outer make test was given SUITES= (#816)"
+
+problems=()
+for carried in SUITES TESTS; do
+  rm -rf "$tree/nested-ran" "$tree/nested.out"
+  outer_out="$(env -u MAKEFLAGS -u MAKELEVEL -u MFLAGS MAKEFLAGS="$carried=skills/tdd/scripts/tests/runs-inner.test.sh" \
+    make -C "$tree" test 2>&1 < /dev/null)"
+  nested_ran="$(sed -n 's/^== //p' "$tree/nested.out" 2>/dev/null)"
+  [[ "$nested_ran" == inner.test.sh ]] ||
+    problems+=("MAKEFLAGS=$carried=…: the nested make test TESTS=inner.test.sh ran [$(flat "$nested_ran")], want only [inner.test.sh]: $(flat "$outer_out")")
+done
+report "a suite's nested make test TESTS=<x> runs only <x> when the outer make test ran with MAKEFLAGS carrying SUITES= or TESTS= (#816)"
 
 finish
