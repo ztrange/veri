@@ -5,6 +5,7 @@ import re
 import subprocess
 import sys
 import traceback
+from datetime import datetime
 
 try:
     from github import NoAnswer, _gh_api, gh_rest_list
@@ -58,6 +59,28 @@ def capped(value, cap, scope):
         return value
 
 
+def fall_back(why):
+    warn("%s; bounding the wait at %s s" % (why, SLICE_CAP))
+    return str(SLICE_CAP)
+
+
+def ci_bound(repo, n=5):
+    pages = ""
+    for c in ("success", "failure"):
+        run = subprocess.run(["gh", "run", "list", "--repo", repo, "--workflow", "CI", "--status", c,
+                              "--limit", str(n), "--json", "databaseId,conclusion,startedAt,updatedAt"],
+                             stdout=subprocess.PIPE, text=True)
+        if run.returncode != 0:
+            return fall_back("gh run list could not answer")
+        pages += run.stdout.rstrip("\n")
+    at = lambda s: datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").timestamp()
+    runs = sorted((r for page in documents(pages) for r in page),
+                  key=lambda r: r["databaseId"], reverse=True)[:n]
+    if len(runs) < n:
+        return fall_back("fewer than %d success or failure CI runs found" % n)
+    return str(min(CEILING, round(2 * sum(at(r["updatedAt"]) - at(r["startedAt"]) for r in runs) / len(runs))))
+
+
 def pr_head(repo, pr):
     run = _gh_api("repos/%s/pulls/%s" % (repo, pr.rsplit("/pull/", 1)[-1]))
     if run.returncode != 0:
@@ -107,7 +130,15 @@ def main(argv):
     repo = pr.removeprefix("https://github.com/").rsplit("/pull/", 1)[0]
     scope = {}
     span = capped(argv[1] if len(argv) > 1 and argv[1] else str(SLICE_CAP), SLICE_CAP, scope)
-    total = capped(argv[2], CEILING, scope)
+    total = argv[2] if len(argv) > 2 else ""
+    if total:
+        total = capped(total, CEILING, scope)
+    else:
+        try:
+            total = ci_bound(repo)
+        except Exception:
+            traceback.print_exc()
+            total = span
     want = argv[3] if len(argv) > 3 else ""
     poll = os.environ.get("VERI_POLL") or "10"
     deadline = ""

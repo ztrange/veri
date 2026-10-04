@@ -385,3 +385,82 @@ def test_main_reads_its_numeric_arguments_and_a_deadline_file_as_bash_arithmetic
                          [c for c in calls if not c.startswith("gh ")]))
 
     assert observed == [expected for *_, expected in cases]
+
+
+def test_main_bounds_an_omitted_or_empty_total_by_the_mean_of_the_last_five_ci_runs(
+        monkeypatch, capsys, tmp_path, wait_ci):
+    mark = "ci-deadline-abc123"
+    listing = "gh run list --repo o/r --workflow CI --status %s --limit 5 --json databaseId,conclusion,startedAt,updatedAt"
+    success, failure = listing % "success", listing % "failure"
+    tick = ["date +%s", "sleep 10", "date +%s"]
+    traceback = "traceback"
+
+    def runs(*spans, updated="%02d:%02d:%02dZ"):
+        return json.dumps([
+            {"databaseId": i, "conclusion": "x", "startedAt": "2026-01-01T00:00:00Z",
+             "updatedAt": "2026-01-01T" + updated % (s // 3600, s // 60 % 60, s % 60)}
+            for i, s in spans])
+
+    mixed = {success: runs((9, 120), (7, 125), (5, 132)), failure: runs((8, 120), (6, 130), (1, 10000))}
+    long = {success: runs((9, 400), (7, 400), (5, 400)), failure: runs((8, 400), (6, 400), (1, 10))}
+    instant = {success: runs((9, 0), (7, 0), (5, 0)), failure: runs((8, 0), (6, 0))}
+    few = {success: runs((9, 120), (7, 120)), failure: runs((8, 120), (6, 120))}
+    fewer = "wait-ci.sh: fewer than 5 success or failure CI runs found; bounding the wait at 540 s\n"
+    silent = "wait-ci.sh: gh run list could not answer; bounding the wait at 540 s\n"
+    cases = [
+        ([PR, "30"], mixed, (3, "", "", {mark: "1251\n"}, [success, failure] + tick)),
+        ([PR, "30", "", SHA], mixed, (3, "", "", {mark: "1251\n"}, [success, failure] + tick)),
+        ([PR, "30", "", SHA], long, (3, "", "", {mark: "1600\n"}, [success, failure] + tick)),
+        ([PR, "30", "", SHA], instant, (3, "", "", {mark: "1000\n"}, [success, failure, "date +%s"])),
+        ([PR, "30", "", SHA], few, (3, "", fewer, {mark: "1540\n"}, [success, failure] + tick)),
+        ([PR, "30", "", SHA], {success: None}, (3, "", silent, {mark: "1540\n"}, [success] + tick)),
+        ([PR, "30", "", SHA], {success: "not json", failure: "[]"},
+         (3, "", traceback, {mark: "1030\n"}, [success, failure] + tick)),
+        ([PR, "30", "", SHA], {success: runs((9, 120), (7, 120), (5, 120), updated="%02d:%02d:%02d.5Z"),
+                               failure: runs((8, 120), (6, 120))},
+         (3, "", traceback, {mark: "1030\n"}, [success, failure] + tick)),
+        ([PR, "30", "100", SHA], mixed, (3, "", "", {mark: "1100\n"}, tick)),
+    ]
+    bodies = {
+        PULL: json.dumps({"mergeable": True, "head": {"sha": SHA}}),
+        PAGE_1: json.dumps({"check_runs": [{"status": "completed", "conclusion": None}]}),
+        PAGE_2: json.dumps({"check_runs": []}),
+        STATUS: json.dumps({"statuses": []}),
+    }
+    monkeypatch.delenv("VERI_POLL", raising=False)
+
+    observed = []
+    for i, (argv, pages, expected) in enumerate(cases):
+        work = tmp_path / str(i)
+        (work / ".tdd").mkdir(parents=True)
+        monkeypatch.chdir(work)
+        calls = []
+        readings = iter([1000, 1030])
+
+        def fake_run(args, calls=calls, readings=readings, pages=pages, **kwargs):
+            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+            calls.append(line)
+            code = 0
+            if line == "date +%s":
+                out = f"{next(readings, 99999)}\n"
+            elif line in pages:
+                code, out = (1, "") if pages[line] is None else (0, pages[line])
+            else:
+                out = bodies.get(line, "")
+            return subprocess.CompletedProcess(args, code, out, "" if kwargs.get("stderr") else None)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        try:
+            code = wait_ci.main(argv)
+        except Exception as error:
+            code = type(error).__name__
+        captured = capsys.readouterr()
+        err = captured.err
+        if expected[2] == traceback and err.startswith("Traceback") and "bounding" not in err:
+            err = traceback
+        recorded = {str(p.relative_to(work / ".tdd")): p.read_text()
+                    for p in (work / ".tdd").rglob("*") if p.is_file()}
+        observed.append((code, captured.out, err, recorded,
+                         [c for c in calls if not c.startswith("gh api ")]))
+
+    assert observed == [expected for *_, expected in cases]
