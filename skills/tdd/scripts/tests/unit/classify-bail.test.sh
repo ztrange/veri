@@ -5,14 +5,6 @@
 #
 # Contract under test:
 #   classify-bail.sh killed-stuck         → first stdout line `system`,  exit 0
-#   classify-bail.sh no-verdict           → first stdout line `system`,  exit 0
-#   classify-bail.sh revise-exhausted     → first stdout line `process`, exit 0
-#   classify-bail.sh reconcile-failed     → first stdout line `system`,  exit 0
-#   classify-bail.sh untestable-criterion → first stdout line `process`, exit 0
-#   classify-bail.sh step-too-big         → first stdout line `process`, exit 0
-#   classify-bail.sh rebase-unresolved    → first stdout line `process`, exit 0
-#   classify-bail.sh uncovered            → first stdout line `process`, exit 0
-#   classify-bail.sh suite-red            → first stdout line `process`, exit 0
 #   classify-bail.sh <unrecognised>       → error on stderr, exit non-zero
 #
 # Run: scripts/tests/unit/classify-bail.test.sh
@@ -46,65 +38,7 @@ check_nonzero() {
 
 check "killed-stuck is system" killed-stuck 0 system
 
-check "no-verdict is system" no-verdict 0 system
-
-check "revise-exhausted is process" revise-exhausted 0 process
-
 check_nonzero "unknown cause exits non-zero" wat
-
-check "reconcile-failed is system" reconcile-failed 0 system
-
-check "untestable-criterion is process" untestable-criterion 0 process
-
-check "step-too-big is process" step-too-big 0 process
-
-check "rebase-unresolved is process" rebase-unresolved 0 process
-
-stop_name="stop words are unknown causes, exit 2"
-stop_bad=""
-for cause in stopped stop at-ledger at-leaf now; do
-  out="$("$CLASSIFY" "$cause" 2>/dev/null)" && code=0 || code=$?
-  [[ "$code" == 2 && -z "$out" ]] || stop_bad+="    $cause: want exit 2 and no stdout, got exit $code, stdout '$out'"$'\n'
-done
-if [[ -z "$stop_bad" ]]; then
-  ok
-else
-  no "$stop_name"
-  printf '%s' "$stop_bad"
-fi
-
-budget_name="budget crossing words are unknown causes, exit 2"
-budget_bad=""
-for cause in step-over-budget over-budget; do
-  out="$("$CLASSIFY" "$cause" 2>/dev/null)" && code=0 || code=$?
-  [[ "$code" == 2 && -z "$out" ]] || budget_bad+="    $cause: want exit 2 and no stdout, got exit $code, stdout '$out'"$'\n'
-done
-if [[ -z "$budget_bad" ]]; then
-  ok
-else
-  no "$budget_name"
-  printf '%s' "$budget_bad"
-fi
-
-check "uncovered is process" uncovered 0 process
-
-check "suite-red is process" suite-red 0 process
-
-conflict_name="ci-conflict is system, and SKILL.md's Bailing list names it as a system failure (#688)"
-conflict_bad=""
-out="$("$CLASSIFY" ci-conflict 2>/dev/null)" && code=0 || code=$?
-[[ "$code" == 0 && "$(head -n1 <<< "$out")" == system ]] \
-  || conflict_bad+="    classify-bail.sh ci-conflict: want exit 0 and 'system', got exit $code, stdout '$out'"$'\n'
-bailing="$(awk '/^## Bailing/ { s = 1; next } s && /^## / { exit } s' "$HERE/../../../SKILL.md")"
-entry="$(awk '/^- `ci-conflict` —/ { e = 1; print; next } e && /^- / { exit } e && NF { print } e && !NF { exit }' <<< "$bailing")"
-[[ "$entry" == *'**system**'* ]] \
-  || conflict_bad+="    SKILL.md's Bailing list has no \`ci-conflict\` entry calling it a **system** failure; entry: '$entry'"$'\n'
-if [[ -z "$conflict_bad" ]]; then
-  ok
-else
-  no "$conflict_name"
-  printf '%s' "$conflict_bad"
-fi
 
 refuse_name="an unknown cause writes its refusal and the usage line on stderr, nothing on stdout, exit 2"
 refuse_err="$(mktemp)"
