@@ -16,7 +16,8 @@ SUBJECT='skills/tdd/scripts/tests'
 
 CHMOD_WORD='(^|[^[:alnum:]_.-])chmod'
 REVOKING_MODE='(000|a-r|u-w|-w)'
-PERMISSION_BIT_CHMOD="$CHMOD_WORD[[:space:]]+$REVOKING_MODE([[:space:]]|$)"
+CHMOD_FLAGS='([[:space:]]+-[RHLPfhv]+)*'
+PERMISSION_BIT_CHMOD="$CHMOD_WORD$CHMOD_FLAGS[[:space:]]+$REVOKING_MODE([[:space:]]|$)"
 
 
 source "$HERE/lib/harness.sh"
@@ -157,5 +158,30 @@ planted_separators_named=""
 probe_planted_chmods_after_a_separator
 
 expect_eq "$name" "; named;&& named;|| named;| named;( named;{ named;then named;do named;" "$planted_separators_named"
+
+PLANT_CHMOD_FLAGGED="chmod -R $(printf '%03d' 0) \"\$dir\""
+
+probe_a_planted_chmod_with_a_flag() {
+  local ROOT line problem
+  ROOT="$(scratch_dir)"
+  mkdir -p "$ROOT/${PLANT_REL%/*}"
+  printf '%s\n' '#!/usr/bin/env bash' 'dir="$(mktemp)"' "$PLANT_CHMOD_FLAGGED" > "$ROOT/$PLANT_REL"
+  line="$(grep -nxF -- "$PLANT_CHMOD_FLAGGED" "$ROOT/$PLANT_REL")"
+  line="${line%%:*}"
+  problems=()
+  probe_no_suite_revokes_permission_bits
+  planted_chmod_flagged_named="not named"
+  for problem in ${problems+"${problems[@]}"}; do
+    [[ "$problem" == "$PLANT_REL:$line forces a read or write failure through permission bits"* ]] && planted_chmod_flagged_named="named"
+  done
+  problems=()
+}
+
+name="a planted chmod -R to mode zero, an option flag before its mode, turns the guard red, naming <suite>:<line> (#846)"
+planted_chmod_flagged_named=""
+
+probe_a_planted_chmod_with_a_flag
+
+expect_eq "$name" "named" "$planted_chmod_flagged_named"
 
 finish
