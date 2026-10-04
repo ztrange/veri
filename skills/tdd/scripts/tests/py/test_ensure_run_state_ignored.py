@@ -81,3 +81,29 @@ def test_main_refuses_a_gitignore_holding_only_the_spec_line(tmp_path, monkeypat
                                                       "hand\n" % root))
     assert (root / ".gitignore").read_bytes() == b".tdd/issue-*-spec.md\n"
     assert (root / ".git" / "info" / "exclude").read_bytes() == b""
+
+
+def test_main_reports_already_present_from_the_gitignore_alone_and_leaves_both_files_on_a_second_run(
+        tmp_path, monkeypatch, capsys, ensure_run_state_ignored):
+    fake_rev_parse(monkeypatch, 0, ".git\n")
+    root = tmp_path / "repo"
+    (root / ".git").mkdir(parents=True)
+    assert ensure_run_state_ignored.main([str(root)]) == 0
+    capsys.readouterr()
+
+    code = ensure_run_state_ignored.main([str(root)])
+
+    assert (code, capsys.readouterr()[:]) == (0, ("already present\n", ""))
+    assert (root / ".gitignore").read_text() == RULE
+    assert (root / ".git" / "info" / "exclude").read_text() == RULE
+
+    carried = tmp_path / "carried"
+    (carried / ".git" / "info").mkdir(parents=True)
+    (carried / ".gitignore").write_text(RULE)
+    (carried / ".git" / "info" / "exclude").write_text("")
+
+    code = ensure_run_state_ignored.main([str(carried)])
+
+    assert (code, capsys.readouterr()[:]) == (0, ("already present\n", ""))
+    assert (carried / ".gitignore").read_text() == RULE
+    assert (carried / ".git" / "info" / "exclude").read_text() == RULE
