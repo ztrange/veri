@@ -32,6 +32,11 @@ def has_rule(path):
     return False
 
 
+def write_failed(error):
+    print("ensure-run-state-ignored: %s" % error, file=sys.stderr)
+    return 2
+
+
 def main(argv):
     root = argv[0] if argv and argv[0] else "."
     gitignore = root + "/.gitignore"
@@ -57,8 +62,7 @@ def main(argv):
         try:
             append_rule(gitignore)
         except OSError as error:
-            print("ensure-run-state-ignored: %s" % error, file=sys.stderr)
-            return 2
+            return write_failed(error)
     if not in_exclude:
         try:
             append_rule(exclude)
@@ -69,8 +73,7 @@ def main(argv):
                 else:
                     with open(gitignore, "wb") as f:
                         f.write(before)
-            print("ensure-run-state-ignored: %s" % error, file=sys.stderr)
-            return 2
+            return write_failed(error)
     print("already present" if present else "added")
     return 0
 
