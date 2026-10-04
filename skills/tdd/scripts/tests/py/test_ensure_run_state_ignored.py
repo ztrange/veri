@@ -188,9 +188,24 @@ def test_main_builds_paths_by_concatenation_checks_gitignore_then_exclude_and_wr
     monkeypatch.chdir(tmp_path)
     pathlib.Path("w/.gitignore").mkdir(parents=True)
     answer(".git\n")
-    with pytest.raises(IsADirectoryError):
-        ensure_run_state_ignored.main(["w"])
-    assert pathlib.Path("w/.git/info/exclude").read_text() == RULE
+    assert ensure_run_state_ignored.main(["w"]) == 2
+    assert not pathlib.Path("w/.git/info/exclude").exists()
 
     patched = "monkeypatch.setattr(" + "ensure_run_state_ignored"
     assert patched not in pathlib.Path(__file__).read_text()
+
+
+def test_main_leaves_info_exclude_byte_identical_and_returns_2_when_the_gitignore_write_fails_777(
+        tmp_path, monkeypatch, capsys, ensure_run_state_ignored):
+    root = tmp_path / "repo"
+    (root / ".git" / "info").mkdir(parents=True)
+    (root / ".git" / "info" / "exclude").write_bytes(b"*.swp\n")
+    (root / ".gitignore").mkdir()
+    fake_rev_parse(monkeypatch, 0, ".git\n")
+
+    try:
+        outcome = ensure_run_state_ignored.main([str(root)])
+    except OSError as error:
+        outcome = type(error).__name__
+
+    assert ((root / ".git" / "info" / "exclude").read_bytes(), outcome) == (b"*.swp\n", 2)
