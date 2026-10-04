@@ -140,7 +140,7 @@ def test_main_finds_the_phase_value_blind_past_leading_step_and_fast_cmd_pairs_a
         monkeypatch.chdir(run)
         run_verdict.main(list(argv))
         monkeypatch.chdir(tmp_path)
-        return sorted(p.name for p in (run / ".tdd").iterdir() if p.read_text() == "")
+        return sorted(p.name for p in (run / ".tdd").glob("*.reason") if p.read_text() == "")
 
     tail = ["spec.md", "t.sh", "case"]
     found = {
@@ -167,3 +167,67 @@ def test_main_finds_the_phase_value_blind_past_leading_step_and_fast_cmd_pairs_a
         stdin=subprocess.DEVNULL).returncode == 0 for word in words}
     by_main = {word: emptied([word, "v", "red", *tail]) == ["verify-red.reason"] for word in words}
     assert by_main == by_library
+
+
+@pytest.mark.parametrize("argv, tdd, stderr_file", [
+    (["red", "spec.md", "tests/x.test.sh", "case"], "directory", "existing"),
+    (["red", "spec.md", "tests/x.test.sh", "case"], "directory", "absent"),
+    (["--step", "t", "red", "spec.md", "tests/x.test.sh", "case"], "symlink", "existing"),
+    ([], "directory", "absent"),
+    (["red", "spec.md", "tests/x.test.sh", "case"], "absent", "absent"),
+])
+def test_main_files_fd_2_under_tdd_verify_phase_stderr_appending_with_mode_0o666_before_the_exec(
+        argv, tdd, stderr_file, tmp_path, monkeypatch):
+    import signal
+    scripts = tmp_path / "scripts"
+    run_verdict = staged_module(scripts)
+    (scripts / "verify.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
+    (scripts / "verify.sh").chmod(0o755)
+    run = tmp_path / "run"
+    run.mkdir()
+    if tdd == "directory":
+        (run / ".tdd").mkdir()
+    elif tdd == "symlink":
+        (tmp_path / "held").mkdir()
+        (run / ".tdd").symlink_to(tmp_path / "held")
+    filed = run / ".tdd" / "verify-red.stderr"
+    if stderr_file == "existing":
+        filed.write_text("an earlier verdict's stderr\n")
+        filed.chmod(0o644)
+    monkeypatch.chdir(run)
+    spare = os.open(os.devnull, os.O_WRONLY)
+    real_dup2 = os.dup2
+    dup2s, open_at_exec = [], []
+
+    def dup2(fd, fd2, inheritable=True):
+        dup2s.append((fd, fd2, inheritable))
+        return real_dup2(fd, spare, inheritable)
+
+    def execv(path, args):
+        for fd, _, _ in dup2s:
+            try:
+                os.fstat(fd)
+                open_at_exec.append(fd)
+            except OSError:
+                pass
+
+    monkeypatch.setattr(os, "dup2", dup2)
+    monkeypatch.setattr(os, "execv", execv)
+    monkeypatch.setattr(signal, "signal", lambda signum, handler: None)
+    umask = os.umask(0o027)
+    try:
+        run_verdict.main(list(argv))
+    finally:
+        os.umask(umask)
+    os.write(spare, b"this verdict's stderr\n")
+    os.close(spare)
+
+    if tdd == "absent" or not argv:
+        assert (dup2s, filed.exists()) == ([], False)
+    else:
+        earlier = "an earlier verdict's stderr\n" if stderr_file == "existing" else ""
+        mode = 0o644 if stderr_file == "existing" else 0o640
+        assert ([(fd2, inheritable) for _, fd2, inheritable in dup2s], open_at_exec,
+                filed.read_text() if filed.exists() else None,
+                filed.stat().st_mode & 0o777 if filed.exists() else None) == (
+            [(2, True)], [], earlier + "this verdict's stderr\n", mode)

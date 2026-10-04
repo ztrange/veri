@@ -22,6 +22,10 @@ def main(argv):
     reason = f".tdd/verify-{phase}.reason"
     if phase and os.path.isfile(reason):
         open(reason, "w").close()
+    if phase and os.path.isdir(".tdd"):
+        fd = os.open(f".tdd/verify-{phase}.stderr", os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
+        os.dup2(fd, 2)
+        os.close(fd)
     os.execv(verifier, [verifier, *argv])
 
 
