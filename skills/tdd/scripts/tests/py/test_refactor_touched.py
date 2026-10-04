@@ -172,3 +172,50 @@ def test_main_refuses_an_empty_commit_or_base_and_filters_only_paths_starting_td
     captured = capsys.readouterr()
     assert (code, captured.out, captured.err) == (
         0, 'sub/.tdd/x,".tdd/\\303\\244.sh",a,b.sh\n', "")
+
+
+def test_main_runs_git_in_the_callers_directory_letting_its_stderr_through_on_a_failed_rev_parse_or_diff(
+        monkeypatch, capsys, tmp_path, refactor_touched):
+    root = "0123456789abcdef0123456789abcdef01234567"
+    answers = {}
+    calls = []
+
+    def fake(args, *rest, **kwargs):
+        args = list(args)
+        calls.append((args, kwargs))
+        if args[:2] == ["git", "rev-parse"]:
+            code, err = answers["rev-parse"]
+        elif args[:2] == ["git", "diff"]:
+            code, err = answers["diff"]
+        else:
+            code, err = 0, ""
+        if err and kwargs.get("stderr") not in (subprocess.PIPE, subprocess.DEVNULL,
+                                                 subprocess.STDOUT):
+            print(err, file=sys.stderr, end="")
+        out = ""
+        if not kwargs.get("text") and not kwargs.get("universal_newlines") \
+                and not kwargs.get("encoding"):
+            out = out.encode()
+        return subprocess.CompletedProcess(args, code, out, None)
+
+    for entry in ("run", "Popen", "call", "check_call"):
+        monkeypatch.setattr(subprocess, entry, fake)
+    monkeypatch.setattr(subprocess, "check_output", lambda *a, **k: fake(*a, **k).stdout)
+    monkeypatch.chdir(tmp_path)
+
+    fatal = "fatal: not a git repository (or any of the parent directories): .git\n"
+    answers["rev-parse"] = (128, fatal)
+    code = refactor_touched.main(["HEAD"])
+    captured = capsys.readouterr()
+    assert (code, captured.out, captured.err) == (
+        2, "", fatal + "refactor-touched: cannot resolve commit 'HEAD'\n" + USAGE)
+
+    ambiguous = f"fatal: ambiguous argument '{root}^': unknown revision or path not in the working tree.\n"
+    answers["rev-parse"] = (0, "")
+    answers["diff"] = (128, ambiguous)
+    code = refactor_touched.main([root])
+    captured = capsys.readouterr()
+    assert (code, captured.out, captured.err) == (3, "", ambiguous)
+
+    assert all(args[0] == "git" and "-C" not in args and "cwd" not in kwargs
+               for args, kwargs in calls)
