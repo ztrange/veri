@@ -161,4 +161,16 @@ err="$(cat "$work/not-a-repo.stderr")"
 { [[ "$code" == 2 ]] && [[ -z "$out" ]] && [[ -n "$want_err" ]] && [[ "$err" == "$want_err" ]]; } \
   && ok || no "not a git repository: exits 2, prints nothing on stdout and lets git's own diagnostic through (exit=$code want 2, stdout='$out' want empty, stderr='$err' want '$want_err')"
 
+repo="$work/gitignore-dir"
+make_repo "$repo"
+mkdir -p "$repo/.gitignore"
+want_tail="$(printf '%s\n' '.tdd/*' '!.tdd/issue-*.md' '.tdd/issue-*-spec.md')"
+
+out="$("$ENSURE" "$repo" 2>"$work/gitignore-dir.stderr")" && code=0 || code=$?
+[[ -s "$work/gitignore-dir.stderr" ]] && diag=0 || diag=1
+ex_tail="$(tail -n 3 "$repo/.git/info/exclude" 2>/dev/null)"
+
+{ [[ "$code" == 1 ]] && [[ -z "$out" ]] && [[ "$diag" == 0 ]] && [[ "$ex_tail" == "$want_tail" ]]; } \
+  && ok || no ".gitignore is a directory: exits 1, prints nothing on stdout, says why on stderr, and info/exclude already ends in the three rule lines (exit=$code want 1, stdout='$out' want empty, stderr-non-empty=$diag want 0, info/exclude tail='$ex_tail' want '$want_tail')"
+
 finish
