@@ -795,4 +795,18 @@ cmp -s "$work/inplace-pending.err" "$work/linked-pending.err" \
   || problems+=("pending: stderr differs between in place and linked: $(diff "$work/inplace-pending.err" "$work/linked-pending.err")")
 report "$name"
 
+name="#776 wait-ci.sh given a slice-seconds or total-seconds argument that is not a non-negative whole number exits 2 naming that argument on stderr, rather than giving up after one poll with exit 3"
+problems=()
+for value in 1.5 abc; do
+  for which in slice-seconds total-seconds; do
+    if [[ "$which" == slice-seconds ]]; then set -- "$value" 100; else set -- 60 "$value"; fi
+    got="$(waited pending "$@")"
+    [[ "$got" == 2 ]] || problems+=("$which '$value': want exit 2, got $got (stderr: $(cat "$work/pending.err"))")
+    grep -F "$which" "$work/pending.err" > /dev/null \
+      || problems+=("$which '$value': want stderr naming $which, got: '$(cat "$work/pending.err")'")
+  done
+done
+set --
+report "$name"
+
 finish
