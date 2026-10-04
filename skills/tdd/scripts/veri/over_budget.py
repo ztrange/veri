@@ -54,6 +54,9 @@ def main(argv):
         limit = _number(budget)
     if not ((tier == "unit" and s > limit) or s > product):
         return 1
+    if sys.stdout is None:
+        print("over-budget: i/o error occurred while writing /dev/stdout", file=sys.stderr)
+        return 2
     print("⏱ %s tier took %s s (usual %s s, ratio %s, unit budget %s s)" % (tier, seconds, usual, ratio, budget))
     return 0
 

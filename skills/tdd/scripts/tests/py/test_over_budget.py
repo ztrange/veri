@@ -185,3 +185,23 @@ def test_main_processes_awk_v_s_whole_escape_table_not_only_backslash_and_n(caps
         code = over_budget.main([tier, "160", "100"])
         out, _ = capsys.readouterr()
         assert (tier, code, out) == (tier, 0, "⏱ %s tier took 160 s (usual 100 s, ratio 1.5, unit budget 10 s)\n" % printed)
+
+
+def test_main_with_stdout_closed_returns_2_with_one_line_on_stderr_when_over_and_1_with_nothing_when_not(capsys, monkeypatch, over_budget):
+    _time_budget(monkeypatch, 0, "10\n1.5\n")
+    monkeypatch.setattr(sys, "stdout", None)
+
+    code = over_budget.main(["unit", "12", "100"])
+    err = capsys.readouterr().err
+    assert (code, err.count("\n"), err.endswith("\n"), err.strip() != "") == (2, 1, True, True)
+
+    code = over_budget.main(["unit", "4", "100"])
+    err = capsys.readouterr().err
+    assert (code, err) == (1, "")
+
+    def failing_run(args, *rest, **kwargs):
+        raise OSError("time-budget.sh could not start")
+
+    monkeypatch.setattr(subprocess, "run", failing_run)
+    with pytest.raises(OSError):
+        over_budget.main(["unit", "12", "100"])
