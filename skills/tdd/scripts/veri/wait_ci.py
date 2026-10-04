@@ -51,12 +51,8 @@ def arith(text, scope):
     return sign * value
 
 
-def whole(text):
-    return re.fullmatch(r"[0-9]+", text) is not None
-
-
 def decimal(text):
-    return str(int(text)) if re.fullmatch(r"0[0-9]+", text) else text
+    return str(int(text)) if re.fullmatch(r"[0-9]+", text) else None
 
 
 def capped(value, cap, scope):
@@ -132,13 +128,15 @@ def main(argv):
     pr = argv[0]
     repo = pr.removeprefix("https://github.com/").rsplit("/pull/", 1)[0]
     scope = {}
-    slice_arg, total_arg = (argv[1:3] + ["", ""])[:2]
-    for which, given in (("slice-seconds", slice_arg), ("total-seconds", total_arg)):
-        if given and not whole(given):
+    numbers = []
+    for which, given in zip(("slice-seconds", "total-seconds"), (argv[1:3] + ["", ""])[:2]):
+        value = decimal(given) if given else ""
+        if value is None:
             warn("%s '%s' is not a non-negative whole number" % (which, given))
             return 2
-    span = capped(decimal(slice_arg) if slice_arg else str(SLICE_CAP), SLICE_CAP, scope)
-    total = decimal(total_arg)
+        numbers.append(value)
+    slice_arg, total = numbers
+    span = capped(slice_arg or str(SLICE_CAP), SLICE_CAP, scope)
     if total:
         total = capped(total, CEILING, scope)
     else:
@@ -190,10 +188,10 @@ def main(argv):
                             deadline = found.read().rstrip("\n")
                     except OSError:
                         deadline = ""
-                    if not whole(deadline):
+                    deadline = decimal(deadline)
+                    if deadline is None:
                         warn("deadline file %s is unreadable or not a non-negative whole number" % mark)
                         return 2
-                    deadline = decimal(deadline)
                 else:
                     deadline = str(now + arith(total, scope))
                     record(mark, deadline)
