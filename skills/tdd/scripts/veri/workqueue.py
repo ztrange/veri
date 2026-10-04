@@ -145,6 +145,13 @@ def show(queue, argv):
 MOVES = {"start": ("queued", "running"), "done": ("running", "merged"), "park": ("running", "parked")}
 
 
+def read_fields(lines):
+    for line in lines:
+        if not line.endswith("\n"):
+            return
+        yield re.split(r"\t+", line[:-1].strip("\t"), maxsplit=3) + ["", "", "", ""]
+
+
 def move(queue, argv, source, target):
     detail = "".join(argv[3:4]) if source == "running" else ""
     tmp = "%s.tmp.%d" % (queue, os.getpid())
@@ -155,10 +162,7 @@ def move(queue, argv, source, target):
         sys.stderr.write("workqueue.sh: %s: %s\n" % (queue, error.strerror))
         return 1
     with lines, open(tmp, "w") as rewritten:
-        for line in lines:
-            if not line.endswith("\n"):
-                break
-            fields = re.split(r"\t+", line[:-1].strip("\t"), maxsplit=3) + ["", "", "", ""]
+        for fields in read_fields(lines):
             if len(argv) < 2:
                 unbound("$2")
             if fields[0] == argv[1]:
@@ -182,10 +186,7 @@ def held_issue(queue, issues):
     if not os.path.isfile(queue):
         return None
     with open(queue, newline="\n") as lines:
-        for line in lines:
-            if not line.endswith("\n"):
-                break
-            fields = re.split(r"\t+", line[:-1].strip("\t"), maxsplit=3) + ["", ""]
+        for fields in read_fields(lines):
             if fields[2] not in ("queued", "running"):
                 continue
             if fields[1] in issues:
