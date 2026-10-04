@@ -390,7 +390,7 @@ stub_bash_suites "$scoped"
 name="make test TESTS=<one shell suite>, with a failing test_*.py under $PY_DIR, runs that suite and no pytest case, exits 0 and ends all suites green"
 problems=()
 env VERI_VENV="$work/no-venv" PYTHONPATH="$fake_pytest" \
-  make --no-print-directory -C "$scoped" test TESTS=skills/tdd/scripts/tests/slow.test.sh \
+  make --no-print-directory -C "$scoped" test TESTS=skills/tdd/scripts/tests/slow.test.sh UNIT_TESTS= \
   > "$work/out" 2> "$work/err" < /dev/null && code=0 || code=$?
 out="$(cat "$work/out")"
 [[ "$code" == 0 ]] || problems+=("want exit 0, got $code: $(flat "$out") $(flat "$(cat "$work/err")")")
@@ -405,7 +405,7 @@ cp "$green/$PY_DIR/test_leg_probe.py" "$scoped/$PY_DIR/test_named_probe.py"
 name="make test TESTS=<one test_*.py under $PY_DIR>, with another failing test_*.py beside it, runs only that file through the pytest leg, exits 0 and ends all suites green"
 problems=()
 env VERI_VENV="$work/no-venv" PYTHONPATH="$fake_pytest" \
-  make --no-print-directory -C "$scoped" test TESTS="$PY_DIR/test_named_probe.py" \
+  make --no-print-directory -C "$scoped" test TESTS="$PY_DIR/test_named_probe.py" UNIT_TESTS= \
   > "$work/out" 2> "$work/err" < /dev/null && code=0 || code=$?
 out="$(cat "$work/out")"
 [[ "$code" == 0 ]] || problems+=("want exit 0, got $code: $(flat "$out") $(flat "$(cat "$work/err")")")
