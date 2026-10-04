@@ -2,3 +2,5 @@
 - inline the single-use local `left` into `spent = _arithmetic(count) >= _arithmetic(budget)` in skills/tdd/scripts/veri/refactor_budget.py
 ### refactor-budget.sh compares a <count> past 2^63 as its decimal value, never wrapped: count 9223372036854775808 against budget 5 says the budget is spent (exit 3) (updates the past-2^63 rows of the same case) ⟦criterion 1⟧
 - inline the `left` temporary at `refactor_budget.py:40` into the comparison on line 41 (`spent = int(count) >= _arithmetic(budget)`); this is an inline, not duplication removal, so it is out of this phase's allowance
+### refactor-overflow.sh reads <reached> with leading zeros as decimal: 010 skips ten candidates and 08 skips eight, never exiting 1 with an arithmetic error (updates the leading-zero rows of test_main_returns_gh_s_own_failing_code_and_reads_reached_as_bash_arithmetic in py/test_refactor_overflow.py) ⟦criterion 1⟧
+- the two's-complement wrap `(skip + 1 + 2**63) % 2**64 - 2**63` in refactor_overflow.py:28 repeats `_arithmetic` in refactor_budget.py. This cycle did not write that line, and the next plan step (reading `<reached>` past 2^63 as decimal) is expected to remove it.
