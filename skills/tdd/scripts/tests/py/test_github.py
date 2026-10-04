@@ -221,3 +221,14 @@ def test_gh_list_is_a_no_answer_with_the_rest_stderr_passed_through_when_both_ro
         ["gh", "api", path + "&page=1"],
     ]
     assert capsys.readouterr().err == rest_refusal
+
+
+def test_gh_issue_view_answers_the_gh_issue_view_body_and_makes_no_gh_api_call_when_it_succeeds(monkeypatch, github):
+    calls = fake_gh(monkeypatch, {
+        ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (0, "## What to build\n\nA thing.\n", ""),
+    })
+
+    answer = github.gh_issue_view("60", "body")
+
+    assert answer == "## What to build\n\nA thing.\n"
+    assert calls == [["gh", "issue", "view", "60", "--json", "body", "-q", ".body"]]

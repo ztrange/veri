@@ -30,3 +30,9 @@ def gh_list(path, *args):
     if run.returncode != 0:
         return gh_rest_list(path)
     return run.stdout
+
+
+def gh_issue_view(number, field):
+    run = subprocess.run(["gh", "issue", "view", number, "--json", field, "-q", ".body"],
+                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    return run.stdout
