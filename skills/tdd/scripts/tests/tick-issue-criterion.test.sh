@@ -190,4 +190,24 @@ problems=()
 [[ ! -e "$noarg_calls" ]] || problems+=("gh calls='$(tr '\n' '|' < "$noarg_calls")' want none")
 report "$name"
 
+ln -s "$(cd "$HERE/../.." && pwd)" "$stubdir/linked-skill"
+mkdir -p "$stubdir/elsewhere"
+in_place_edit="$stubdir/in-place-edit"; linked_edit="$stubdir/linked-edit"
+rm -f "$in_place_edit" "$linked_edit"
+in_place="$(env PATH="$stubdir:$PATH" FAKE_BODY="$FAKE_BODY" FAKE_OUT="$in_place_edit" \
+  "$WRAP" 7 alpha 2>&1)" && in_place_code=0 || in_place_code=$?
+linked="$(cd "$stubdir/elsewhere" && env PATH="$stubdir:$PATH" FAKE_BODY="$FAKE_BODY" FAKE_OUT="$linked_edit" \
+  "$stubdir/linked-skill/scripts/tick-issue-criterion.sh" 7 alpha 2>&1)" && linked_code=0 || linked_code=$?
+
+name="run through a symlink to the skill directory and from another working directory, ticks the box and PATCHes the same body with the same exit and output as when run in place"
+problems=()
+[[ "$in_place_code" == 0 ]] || problems+=("in place: exit want 0 got $in_place_code")
+[[ "$linked_code" == "$in_place_code" ]] || problems+=("linked: exit want $in_place_code got $linked_code")
+[[ "$linked" == "$in_place" ]] || problems+=("linked output='$(tr '\n' '|' <<< "$linked")' want '$(tr '\n' '|' <<< "$in_place")'")
+[[ -f "$in_place_edit" ]] && grep -F -- "- [x] alpha" "$in_place_edit" > /dev/null \
+  || problems+=("in place: no ticked body PATCHed")
+[[ -f "$linked_edit" ]] && cmp -s "$in_place_edit" "$linked_edit" \
+  || problems+=("linked: PATCHed body differs from in place (written=$([[ -f "$linked_edit" ]] && echo yes || echo no))")
+report "$name"
+
 finish
