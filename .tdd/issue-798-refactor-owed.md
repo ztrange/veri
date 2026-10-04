@@ -29,3 +29,5 @@
 - test-only | extract the repeated `gh issue view <n> --json <field> -q <query>` fake setup in test_github.py's gh_issue_view cases into a helper
 ### veri.github.gh_issue_view's REST route is a no-answer when the `gh api` answer is not JSON ⟦criterion 3⟧
 - test-only | in skills/tdd/scripts/tests/py/test_github.py, the four gh_issue_view REST-route tests (:279, :295, :311, :342) each repeat the same failing `gh issue view … --json body -q .body` fake and the same two-entry `calls ==` assertion ending in `["gh","api","repos/{owner}/{repo}/issues/60"]`; a shared helper could hold both
+### veri.github.gh_issue_edit replaces issue <n>'s body by `gh api -X PATCH repos/{owner}/{repo}/issues/<n> -F body=@<body-file>`, answering nothing of that call's stdout ⟦criterion 1⟧
+- test-only | the `gh_issue_edit` test's own `fake_run` copies `fake_gh` except that it honours the `stdout=` redirect; extending `fake_gh` to honour `stdout`/`stderr` redirects would also fold in the copies of `fake_run` that write stderr (`test_github.py:111`, `:170`, `:204`, `:257`, `:320`)
