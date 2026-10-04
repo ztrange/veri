@@ -2,7 +2,7 @@
 import re
 import sys
 
-SPLIT_RE = re.compile("^SPLIT: (.*)$")
+SPLIT_RE = re.compile(r"^SPLIT:\s*(.*)$")
 NEEDS_USER_RE = re.compile("^NEEDS_USER: (.*)$")
 
 
