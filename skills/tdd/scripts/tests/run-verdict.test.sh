@@ -273,4 +273,47 @@ if probe_launcher_is_there; then
 fi
 report "$name"
 
+probe_verifier_code_passes_through() {
+  local want="$1" tree="$work/exits-$1" tree_run="$work/exits-$1-run" out code
+  rm -rf "$tree"
+  copy_scripts_to "$tree" && make_run_dir "$tree_run" || {
+    problems+=("could not stage a tree whose $VERIFIER exits $want")
+    return
+  }
+  printf '#!/bin/sh\nexit %s\n' "$want" | install_stub "$tree"
+
+  out="$( cd "$tree_run" && "$tree/$LAUNCHER_NAME" "${CALL[@]}" 2>&1 )" && code=0 || code=$?
+
+  [[ "$code" == "$want" ]] ||
+    problems+=("with a $VERIFIER exiting $want, $LAUNCHER exited $code, want $want passed through unmapped; it said: $(flat "$out")")
+}
+
+probe_missing_verifier_named() {
+  local err code want
+  stage_broken missing || {
+    problems+=("could not stage a tree with no $VERIFIER")
+    return
+  }
+  want="$LAUNCHER_NAME: cannot start the verifier: $broken/$VERIFIER is missing or not executable"
+
+  err="$( cd "$broken_run" && "$broken/$LAUNCHER_NAME" "${CALL[@]}" 2>&1 >/dev/null )" && code=0 || code=$?
+
+  [[ "$code" == 2 ]] ||
+    problems+=("with no $VERIFIER, $LAUNCHER exited $code, want 2; it said: $(flat "$err")")
+  [[ "$err" == "$want" ]] ||
+    problems+=("with no $VERIFIER, $LAUNCHER said on stderr: $(flat "$err") — want exactly: $want")
+}
+
+name="$LAUNCHER_NAME exits with $VERIFIER's own 1 and 5 unmapped, and with no $VERIFIER exits 2 naming <scripts>/$VERIFIER on stderr"
+problems=()
+broken=""
+broken_run=""
+
+if probe_launcher_is_there; then
+  probe_verifier_code_passes_through 1
+  probe_verifier_code_passes_through 5
+  probe_missing_verifier_named
+fi
+report "$name"
+
 finish
