@@ -300,4 +300,64 @@ for rest_answers in yes no; do
 done
 record
 
+
+# 9. with VERI_GH_DRIVER=rest, every operation with a GraphQL route answers from REST alone, and
+#    a REST failure is a no-answer that passes gh api's stderr through
+name="with VERI_GH_DRIVER=rest, gh_issue_view, gh_list, gh_json with gh args and gh_pr_ready answer from gh api alone, never gh issue or gh pr, and return 2 with gh api's stderr when it fails"
+calls="$scratch/calls9" err="$scratch/err9" out="$scratch/out9" op_err="$scratch/operr9"
+: > "$calls"
+problems=""
+for rest_answers in yes no; do
+  for op in view list json ready; do
+    (
+      gh() {
+        echo "$op gh $*" >> "$calls"
+        case "$1" in
+          issue|pr) echo 'graphql-answer'; return 0 ;;
+          api)
+            [[ "$rest_answers" == yes ]] || { echo 'gh: Bad Gateway (HTTP 502)' >&2; return 1; }
+            case "$*" in *page=1) echo '[{"number":1}]' ;; *page=*) echo '[]' ;; *) echo '{}' ;; esac
+            return 0 ;;
+        esac
+        return 1
+      }
+      python3() { cat > /dev/null; echo rest-body; }
+      unset VERI_GH_JSON
+      VERI_GH_DRIVER=rest
+      source "$LIB"
+      case "$op" in
+        view) gh_issue_view 7 body ;;
+        list) gh_list 'repos/{owner}/{repo}/issues' issue list --json number ;;
+        json) gh_json issues.json 'repos/{owner}/{repo}/issues' issue list --json number ;;
+        ready) gh_pr_ready 42 > /dev/null ;;
+      esac
+    ) > "$out" 2> "$op_err"
+    rc=$?
+    cat "$op_err" >> "$err"
+    want=0
+    [[ "$rest_answers" == yes ]] || want=2
+    [[ "$rc" -eq "$want" ]] ||
+      problems+="    $op with REST answering=$rest_answers: want return $want, got $rc"$'\n'
+    grep -E "^$op gh api " "$calls" > /dev/null ||
+      problems+="    $op with REST answering=$rest_answers: want a gh api call, got none"$'\n'
+    if grep -E "^$op gh (issue|pr) " "$calls" > /dev/null; then
+      problems+="    $op with REST answering=$rest_answers: want no GraphQL call, got: $(printf '%q' "$(grep -E "^$op gh (issue|pr) " "$calls")")"$'\n'
+    fi
+    if [[ "$rest_answers" == yes ]]; then
+      case "$op" in
+        view) want_out='rest-body' ;;
+        list|json) want_out='[{"number":1}]' ;;
+        ready) want_out='' ;;
+      esac
+      [[ "$(cat "$out")" == "$want_out" ]] ||
+        problems+="    $op with REST answering=yes: want stdout $(printf '%q' "$want_out"), got $(printf '%q' "$(cat "$out")")"$'\n'
+    else
+      grep -F 'gh: Bad Gateway (HTTP 502)' "$op_err" > /dev/null ||
+        problems+="    $op with REST answering=no: want gh api's stderr passed through, got $(printf '%q' "$(cat "$op_err")")"$'\n'
+    fi
+    : > "$calls"
+  done
+done
+record
+
 finish
