@@ -23,8 +23,11 @@ def _gh_api(path):
     return _gh("api", path)
 
 
+_ISSUES = "repos/{owner}/{repo}/issues"
+
+
 def _issue(number):
-    return "repos/{owner}/{repo}/issues/%s" % number
+    return "%s/%s" % (_ISSUES, number)
 
 
 def gh_rest_list(path, empty=r"^\[\]$"):
@@ -85,5 +88,5 @@ def gh_issue_edit(number, body_file):
 
 
 def gh_issue_create(title, body):
-    return _gh("api", "repos/{owner}/{repo}/issues", "-f", "title=%s" % title,
+    return _gh("api", _ISSUES, "-f", "title=%s" % title,
                "-f", "body=%s" % body, "-q", ".html_url").stdout
