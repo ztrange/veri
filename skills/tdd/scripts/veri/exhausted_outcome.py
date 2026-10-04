@@ -41,3 +41,7 @@ def main(argv):
         _print_lines([utail, *lines[uidx + 1:]])
         return 1
     return 3
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
