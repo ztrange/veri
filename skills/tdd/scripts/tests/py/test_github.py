@@ -276,6 +276,22 @@ def test_gh_issue_view_answers_the_rest_body_and_drops_the_graphql_stderr_when_g
     assert capsys.readouterr().err == ""
 
 
+def test_gh_issue_view_answers_an_empty_body_from_the_rest_route_when_the_issue_body_is_null(monkeypatch, github):
+    calls = fake_gh(monkeypatch, {
+        ("gh", "issue", "view", "60", "--json", "body", "-q", ".body"): (1, "", ""),
+        ("gh", "api", "repos/{owner}/{repo}/issues/60"): (
+            0, '{"number":60,"body":null,"labels":[]}\n', ""),
+    })
+
+    answer = github.gh_issue_view("60", "body")
+
+    assert answer == "\n"
+    assert calls == [
+        ["gh", "issue", "view", "60", "--json", "body", "-q", ".body"],
+        ["gh", "api", "repos/{owner}/{repo}/issues/60"],
+    ]
+
+
 def test_gh_issue_view_is_a_no_answer_with_the_rest_stderr_passed_through_when_both_routes_fail(monkeypatch, capsys, github):
     graphql_refusal = "GraphQL: Resource not accessible by integration\n"
     rest_refusal = "gh: HTTP 502: Bad Gateway (https://api.github.com/repos/o/r/issues/60)\n"
