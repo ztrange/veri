@@ -47,14 +47,15 @@ def cases(suite, trace_lines, threshold):
             first = lineno
         if len(fields) == 3 and re.fullmatch(r"(pass|fail)=[0-9]+", fields[2]):
             name, value = fields[2].split("=")
-            if int(value) > seen.get(name, 0):
+            value = int(value)
+            if value > seen.get(name, 0):
                 n += 1
                 secs = float(stamp) - float(start)
                 if secs >= float(threshold):
                     lines.append("%.6f %s case %d L%d-%d\n" % (secs, suite, n, int(first), int(lineno)))
                 start = stamp
                 first = ""
-            seen[name] = int(value)
+            seen[name] = value
     return n, lines
 
 
