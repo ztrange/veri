@@ -35,7 +35,7 @@ case "$mode" in
   start)
     [[ $# -gt 0 ]] || refuse
     rm -f "$exit_file"
-    python3 -c 'import os, sys; os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])' \
+    python3 -c 'import os, signal, sys; signal.signal(signal.SIGPIPE, signal.SIG_DFL); os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])' \
       sh -c '"$@"; rc=$?; echo "$rc" > "$0.tmp"; mv "$0.tmp" "$0"' "$exit_file" "$@" \
       > ".tdd/$name.out" 2>&1 < /dev/null &
     echo $! > "$pid_file"

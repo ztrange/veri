@@ -72,4 +72,29 @@ rc=$?
 
 report "detach-command: #601 wait exits 1, printing the recorded code, for a command that finished non-zero"
 
+PIPE_SCRIPT="$work/pipe-writer.sh"
+PIPE_STATUS="$work/pipe-writer.status"
+PIPE_ERR="$work/pipe-writer.err"
+cat > "$PIPE_SCRIPT" <<'P'
+exec 2> "$2"
+s="$(printf '%070000d' 0)"
+printf '%s\n' x "$s" "$s" "$s" "$s" "$s" | { IFS= read -r _; }
+printf '%s\n' "${PIPESTATUS[0]}" > "$1"
+P
+
+problems=()
+
+helper start pipe bash "$PIPE_SCRIPT" "$PIPE_STATUS" "$PIPE_ERR"
+helper wait pipe 30
+if [[ -f "$PIPE_STATUS" ]]; then
+  [[ "$(cat "$PIPE_STATUS")" == 141 ]] ||
+    problems+=("want the writer killed by SIGPIPE (status 141), got status: $(cat "$PIPE_STATUS")")
+  [[ ! -s "$PIPE_ERR" ]] ||
+    problems+=("want nothing on the writer's stderr, got: $(cat "$PIPE_ERR")")
+else
+  problems+=("the command started through detach-command.sh never wrote $PIPE_STATUS")
+fi
+
+report "detach-command: #622 a writer whose reader closes early dies of SIGPIPE silently, as it does from a shell"
+
 finish
