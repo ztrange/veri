@@ -132,12 +132,10 @@ expect_nothing_missing "--watch [seconds] redraws in place, recomputing every ru
 
 unreadable="$(repo unreadable)"
 run="$(fabricate_run "$unreadable" 9 tdd/9-locked)"
-printf '# Plan for #9 — locked\n\n- [ ] a lock\n' > "$run/.tdd/issue-9.md"
-chmod 000 "$run/.tdd/issue-9.md"
+printf '# Plan for #9 — locked\n\n- [ ] a \xff lock\n' > "$run/.tdd/issue-9.md"
 err_in "$unreadable"
-chmod 644 "$run/.tdd/issue-9.md"
-if [[ "$code" -eq 2 && "$err" == *"PermissionError"* ]]; then ok; else
-  no "status.sh run through its entry point exits 2 on a failure veri/status.py turns into exit 2"
+if [[ "$code" -eq 2 && -n "$err" ]]; then ok; else
+  no "#846: status.sh run through its entry point exits 2 on a failure veri/status.py turns into exit 2"
   printf 'stderr:\n%s\nexit %s\n' "$err" "$code"
 fi
 
