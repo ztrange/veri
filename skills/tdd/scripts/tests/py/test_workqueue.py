@@ -275,12 +275,13 @@ def test_start_done_park_and_assign_take_the_lock_directory_polling_it_for_the_w
     assert queue.read_bytes() == before
     assert lock.is_dir()
 
-    assert run(["start", "alpha", "12"], "abc") == (1, "", "workqueue.sh: abc: unbound variable\n")
-    assert queue.read_bytes() == before
-    assert run(["start", "alpha", "12"], "0.5") == (2, "", "workqueue.sh: unknown subcommand: start\n" + USAGE)
-    assert queue.read_bytes() == before
-    assert run(["assign", "beta", "14"], "0.5") == (0, "", "")
-    assert queue.read_bytes() == before + b"beta\t14\tqueued\t\n"
+    for wait in ("abc", "0.5"):
+        for argv in (["start", "alpha", "12"], ["done", "alpha", "13", "abc123"], ["park", "alpha", "13", "flaky"], ["assign", "beta", "14"]):
+            code, out, err = run(argv, wait)
+            assert (code, out) == (2, ""), (wait, argv, code, out, err)
+            assert "VERI_WORKQUEUE_LOCK_WAIT" in err, (wait, argv, err)
+            assert "unknown subcommand" not in err, (wait, argv, err)
+            assert queue.read_bytes() == before
     assert lock.is_dir()
 
     lock.rmdir()
