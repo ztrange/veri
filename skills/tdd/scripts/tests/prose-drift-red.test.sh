@@ -40,7 +40,8 @@ figure() {
   printf '%s' "$hit" | grep -oE '[0-9]+' | tail -1
 }
 
-ENCODED_RE="DEFAULT_BUDGET = [0-9]+"
+ENCODED_AS='DEFAULT_BUDGET = '
+ENCODED_RE="$ENCODED_AS[0-9]+"
 HEADER_RE="$TUNABLE \(default [0-9]+"
 SKILL_RE="$TUNABLE.{0,3} \(default [0-9]+"
 
@@ -50,7 +51,7 @@ tree_whose_default_moved() {
   cp -R "$ROOT/skills" "$planted/skills"
   cp "$ROOT/Makefile" "$planted/"
   here_default="$(figure "$ROOT/$MODULE" "$ENCODED_RE")"
-  sed -E "s/$ENCODED_RE/DEFAULT_BUDGET = $((here_default + 1))/" \
+  sed -E "s/$ENCODED_RE/$ENCODED_AS$((here_default + 1))/" \
     "$ROOT/$MODULE" > "$planted/$MODULE.planted"
   mv "$planted/$MODULE.planted" "$planted/$MODULE"
   printf '%s' "$planted"
