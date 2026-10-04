@@ -82,3 +82,16 @@ def test_main_runs_time_budget_beside_the_scripts_with_no_argument_and_reads_its
         assert kwargs.get("env") is None
         assert kwargs.get("stdout") == subprocess.PIPE or kwargs.get("capture_output")
         assert kwargs.get("stderr") is None and not kwargs.get("capture_output")
+
+
+def test_main_compares_strictly_matches_the_tier_exactly_multiplies_as_doubles_and_prints_each_value_as_given(capsys, monkeypatch, over_budget):
+    _time_budget(monkeypatch, 0, "10\n1.5\n")
+    for argv in (["unit", "10", "100"], ["all", "150", "100"], ["Unit", "12", "100"], ["all", "0.15", "0.1"]):
+        code = over_budget.main(argv)
+        out, _ = capsys.readouterr()
+        assert (argv, code, out) == (argv, 1, "")
+
+    _time_budget(monkeypatch, 0, "10.0\n1.50\n")
+    code = over_budget.main(["unit", "12.0", "100"])
+    out, _ = capsys.readouterr()
+    assert (code, out) == (0, "⏱ unit tier took 12.0 s (usual 100 s, ratio 1.50, unit budget 10.0 s)\n")
