@@ -65,3 +65,19 @@ def test_main_does_not_refuse_a_gitignore_holding_other_lines_but_not_the_spec_l
 
         assert (code, capsys.readouterr()[:]) == (0, ("added\n", ""))
         assert (root / ".gitignore").read_bytes() == original + RULE.encode()
+
+
+def test_main_refuses_a_gitignore_holding_only_the_spec_line(tmp_path, monkeypatch, capsys, ensure_run_state_ignored):
+    root = tmp_path / "repo"
+    (root / ".git" / "info").mkdir(parents=True)
+    (root / ".gitignore").write_bytes(b".tdd/issue-*-spec.md\n")
+    (root / ".git" / "info" / "exclude").write_bytes(b"")
+    fake_rev_parse(monkeypatch, 0, ".git\n")
+
+    code = ensure_run_state_ignored.main([str(root)])
+
+    assert (code, capsys.readouterr()[:]) == (2, ("", "ensure-run-state-ignored: %s/.gitignore carries veri's run-state "
+                                                      "rule only in part, or with its lines out of order — fix it by "
+                                                      "hand\n" % root))
+    assert (root / ".gitignore").read_bytes() == b".tdd/issue-*-spec.md\n"
+    assert (root / ".git" / "info" / "exclude").read_bytes() == b""
