@@ -25,16 +25,17 @@ def main(argv):
     phase = args[0] if args else ""
     if phase:
         stem = f".tdd/verify-{phase}"
-        if os.path.isfile(f"{stem}.reason"):
+        reason, filing = f"{stem}.reason", f"{stem}.stderr"
+        if os.path.isfile(reason):
             try:
-                open(f"{stem}.reason", "w").close()
+                open(reason, "w").close()
             except OSError as e:
-                unopenable(f"{stem}.reason", e)
+                unopenable(reason, e)
         if os.path.isdir(".tdd"):
             try:
-                fd = os.open(f"{stem}.stderr", os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
+                fd = os.open(filing, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
             except OSError as e:
-                unopenable(f"{stem}.stderr", e)
+                unopenable(filing, e)
             else:
                 os.dup2(fd, 2)
                 os.close(fd)
