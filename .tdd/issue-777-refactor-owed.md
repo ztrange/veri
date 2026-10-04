@@ -1,0 +1,3 @@
+### refactor-overflow.sh files every candidate in <skipped-file> when refactor-owed.sh list exits 3 (owed file missing, empty, or holding no structural candidate) ⟦criterion 1⟧
+- test-only | the new `test_main_files_the_skipped_file_s_candidates_when_list_exits_3_issue_777` copies its `fake_run`/`refuse_popen` pair from the four earlier tests in `test_refactor_overflow.py`. Moving that pair into one shared fixture would remove the copies.
+- test-only | the new test overlaps the flipped parametrized case at `test_refactor_overflow.py:118` (skipped file, list exits 3, issue filed). Folding its two-line skipped file and its `list`-call assertion into that table would remove the separate test.
