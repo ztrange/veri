@@ -509,4 +509,42 @@ for driver in '' REST gql; do
 done
 record
 
+# 13. with VERI_GH_JSON set, gh_json answers the fixture file's contents byte for byte and starts no
+#     gh or python3 process, with and without gh args, under every VERI_GH_DRIVER
+name="with VERI_GH_JSON set, gh_json with and without gh args prints the fixture file's contents and starts no gh or python3 process under VERI_GH_DRIVER unset, auto, rest and graphql"
+calls="$scratch/calls13" err="$scratch/err13" out="$scratch/out13"
+: > "$calls"
+mkdir -p "$scratch/fixtures13"
+printf '[{"number":7,"title":"A thing"}]\n' > "$scratch/fixtures13/prs.json"
+problems=""
+for driver in unset auto rest graphql; do
+  for op in json json_rest; do
+    (
+      gh() {
+        echo "$op gh $*" >> "$calls"
+        case "$*" in *page=1) echo '[{"number":99}]' ;; *page=*) echo '[]' ;; *) echo '[{"number":99}]' ;; esac
+      }
+      python3() { echo "$op python3 $*" >> "$calls"; return 1; }
+      unset VERI_GH_DRIVER
+      export VERI_GH_JSON="$scratch/fixtures13"
+      [[ "$driver" == unset ]] || export VERI_GH_DRIVER="$driver"
+      source "$LIB"
+      case "$op" in
+        json) gh_json prs.json 'repos/{owner}/{repo}/pulls?state=open' pr list --json number,title ;;
+        json_rest) gh_json prs.json 'repos/{owner}/{repo}/pulls?state=open' ;;
+      esac
+    ) > "$out" 2>> "$err"
+    rc=$?
+    [[ "$rc" -eq 0 ]] ||
+      problems+="    $op under VERI_GH_DRIVER=$driver: want return 0, got $rc"$'\n'
+    cmp -s "$out" "$scratch/fixtures13/prs.json" ||
+      problems+="    $op under VERI_GH_DRIVER=$driver: want the fixture's contents, got $(printf '%q' "$(cat "$out")")"$'\n'
+    if grep -E "^$op (gh|python3) " "$calls" > /dev/null; then
+      problems+="    $op under VERI_GH_DRIVER=$driver: want no process, got: $(printf '%q' "$(grep -E "^$op (gh|python3) " "$calls")")"$'\n'
+    fi
+    : > "$calls"
+  done
+done
+record
+
 finish
