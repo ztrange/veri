@@ -51,6 +51,10 @@ def arith(text, scope):
     return sign * value
 
 
+def whole(text):
+    return re.fullmatch(r"[0-9]+", text) is not None
+
+
 def decimal(text):
     return str(int(text)) if re.fullmatch(r"0[0-9]+", text) else text
 
@@ -134,7 +138,7 @@ def main(argv):
     scope = {}
     slice_arg, total_arg = (argv[1:3] + ["", ""])[:2]
     for which, given in (("slice-seconds", slice_arg), ("total-seconds", total_arg)):
-        if given and not re.fullmatch(r"[0-9]+", given):
+        if given and not whole(given):
             warn("%s '%s' is not a non-negative whole number" % (which, given))
             return 2
     span = capped(decimal(slice_arg) if slice_arg else str(SLICE_CAP), SLICE_CAP, scope)
@@ -190,7 +194,7 @@ def main(argv):
                             deadline = found.read().rstrip("\n")
                     except OSError:
                         deadline = ""
-                    if not re.fullmatch(r"[0-9]+", deadline):
+                    if not whole(deadline):
                         warn("deadline file %s is unreadable or not a non-negative whole number" % mark)
                         return 2
                     deadline = decimal(deadline)
