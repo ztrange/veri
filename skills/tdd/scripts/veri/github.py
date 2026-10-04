@@ -4,7 +4,8 @@ import subprocess
 
 
 class NoAnswer(Exception):
-    pass
+    def __init__(self, answer):
+        self.answer = answer
 
 
 def gh_rest_list(path, empty=r"^\[\]$"):
@@ -15,7 +16,7 @@ def gh_rest_list(path, empty=r"^\[\]$"):
         run = subprocess.run(["gh", "api", "%s%spage=%d" % (path, sep, page)],
                              stdout=subprocess.PIPE, text=True)
         if run.returncode != 0:
-            raise NoAnswer
+            raise NoAnswer(answer)
         body = run.stdout.rstrip("\n")
         if re.search(empty, body):
             return answer
