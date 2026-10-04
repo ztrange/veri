@@ -70,4 +70,21 @@ fi
 
 report "$name"
 
+name="$GUARD_BASE.test.sh passes over a suite whose only match is a case name quoting the recipe call, not a call (#816)"
+problems=()
+
+if [[ -f "$GUARD_PATH" ]] && plant; then
+  {
+    echo '#!/usr/bin/env bash'
+    printf 'report "a nested %s test TESTS=<x> runs only <x> when the outer make test ran with MAKEFLAGS carrying TESTS= (#816)"\n' "$MAKE_CMD"
+  } > "$plant_path"
+  run_guard
+  [[ "$guard_code" == 0 ]] ||
+    problems+=("want the guard to pass over a planted suite whose only match is a report name; it exited $guard_code and said: $(flat "$guard_out")")
+else
+  problems+=("there is no guard suite at $GUARD_PATH, or the plant could not be made")
+fi
+
+report "$name"
+
 finish

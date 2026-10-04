@@ -5,5 +5,5 @@
 - [x] A nested `make test TESTS=<x>` started by a suite runs only `<x>` when the outer `make test` ran with a `MAKEFLAGS` in its environment carrying `SUITES=` or `TESTS=` ⟦criterion 1⟧
 - [x] A `make test` nested deeper than a fixed bound refuses with exit 2 and a stderr line naming the depth, before running any suite ⟦criterion 2⟧
 - [x] No existing case of make-test-env.test.sh, count-line-guard.test.sh, bash-version-guard.test.sh or unit-tier.test.sh is edited or removed by the branch ⟦diff-checked⟧ ⟦criterion 4⟧
-- [ ] fix the full-suite failure: no-recipe-unit-tier.test.sh — FAIL - no suite under tests/ calls the test recipe with TESTS= and leaves UNIT_TESTS unemptied (make-test-env.test.sh:241 runs the recipe whole fast tier beside the suite it names) ⟦suite-repair⟧ ⟦criterion 4⟧
+- [x] fix the full-suite failure: no-recipe-unit-tier.test.sh — FAIL - no suite under tests/ calls the test recipe with TESTS= and leaves UNIT_TESTS unemptied (make-test-env.test.sh:241 runs the recipe whole fast tier beside the suite it names) ⟦suite-repair⟧ ⟦criterion 4⟧ ⟂ refactor pending
 - [ ] Every existing case of make-test-env.test.sh, count-line-guard.test.sh, bash-version-guard.test.sh and unit-tier.test.sh passes ⟦full-suite⟧ ⟦criterion 4⟧

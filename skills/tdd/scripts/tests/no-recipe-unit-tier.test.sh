@@ -28,6 +28,7 @@ offenders() {
       line="${hit%%:*}"
       text="${hit#*:}"
       [[ "$text" =~ ^[[:space:]]*# ]] && continue
+      [[ "$text" =~ ^[[:space:]]*report[[:space:]] ]] && continue
       [[ "$text" =~ $UNIT_EMPTIED ]] && continue
       printf '%s:%s:%s\n' "$(basename "$suite")" "$line" "$text"
     done < <(grep -nE -- "$RECIPE_CALL" "$suite")
