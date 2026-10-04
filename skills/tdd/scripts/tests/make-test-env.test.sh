@@ -10,12 +10,14 @@
 #   4. and straight to the git `command -v git` names when it does not.
 #   5. The pytest leg runs $VERI_VENV/bin/python3 when it is present, else the python3 on PATH.
 #   6. `make install-dev` creates the environment at $VERI_VENV, else at ~/.veri-tools/venv.
+#   7. A suite whose nested `make test` would re-run itself ends within a deadline.
 #
 # Run: skills/tdd/scripts/tests/make-test-env.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
+source "$HERE/../lib/background.sh"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 FIXTURE='skills/tdd/scripts/tests/fixtures/make-test-env/reports-env.test.sh'
@@ -168,5 +170,42 @@ install_out="$(env -u VERI_VENV HOME="$work/home-unset" PATH="$venv_maker:$PATH"
 [[ -x "$work/home-unset/.veri-tools/venv/bin/python3" ]] ||
   problems+=("VERI_VENV unset: want the environment created at \$HOME/.veri-tools/venv, got: $(flat "$install_out")")
 report "make install-dev creates the environment at \$VERI_VENV, or at ~/.veri-tools/venv when VERI_VENV is unset"
+
+
+problems=()
+tree="$(scratch_dir)"
+mkdir -p "$tree/skills/tdd/scripts/lib" "$tree/skills/tdd/scripts/tests"
+cp "$ROOT/Makefile" "$tree/Makefile"
+cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tree/skills/tdd/scripts/lib/"
+cp "$ROOT/skills/tdd/scripts/run-suite.sh" "$tree/skills/tdd/scripts/"
+cp -R "$ROOT/skills/tdd/scripts/tests/offline" "$ROOT/skills/tdd/scripts/tests/unit-guard" "$tree/skills/tdd/scripts/tests/"
+cat > "$tree/skills/tdd/scripts/tests/reenters.test.sh" <<'SH'
+#!/usr/bin/env bash
+make -C "$(cd "$(dirname "$0")/../../../.." && pwd)" test TESTS=skills/tdd/scripts/tests/inner.test.sh UNIT_TESTS=
+echo "1 passed, 0 failed"
+SH
+printf '#!/bin/sh\necho "1 passed, 0 failed"\n' > "$tree/skills/tdd/scripts/tests/inner.test.sh"
+chmod +x "$tree/skills/tdd/scripts/tests/reenters.test.sh" "$tree/skills/tdd/scripts/tests/inner.test.sh"
+cap=$(( $(ps -U "$(id -u)" -o pid= | wc -l) + 500 ))
+deadline=8
+done_file="$work/reentry.exit"
+bg_start "$work/reentry.pid" env -u MAKEFLAGS -u MAKELEVEL -u MFLAGS bash -c '
+  ulimit -u "$1" || exit 2
+  shift
+  exec python3 -c "import os, sys; os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])" \
+    sh -c "\"\$@\"; echo \$? > \"\$0\"" "$@"
+' _ "$cap" "$done_file" make -C "$tree" test SUITES=skills/tdd/scripts/tests/reenters.test.sh \
+  > "$work/reentry.out" 2>&1 < /dev/null
+read -r reentry_pid _ < "$work/reentry.pid"
+start=$SECONDS
+while [[ ! -s "$done_file" ]] && (( SECONDS - start < deadline )); do sleep 0.1; done
+if [[ ! -s "$done_file" ]]; then
+  kill -KILL -- "-$reentry_pid" 2>/dev/null || kill -KILL "$reentry_pid" 2>/dev/null
+  problems+=("make test SUITES=<a suite whose nested make test names another> was still running at the ${deadline} s deadline, and its process group was killed: $(flat "$(tail -n 5 "$work/reentry.out")")")
+fi
+wait "$reentry_pid" 2>/dev/null
+grep -F 'Resource temporarily unavailable' "$work/reentry.out" > /dev/null &&
+  problems+=("the planted re-entry ended only because it ran out of processes: $(flat "$(tail -n 5 "$work/reentry.out")")")
+report "a planted re-entry through make test SUITES=… ends with a refusal or a bounded run, not a growing process tree (#816)"
 
 finish
