@@ -107,3 +107,40 @@ def test_main_reports_already_present_from_the_gitignore_alone_and_leaves_both_f
     assert (code, capsys.readouterr()[:]) == (0, ("already present\n", ""))
     assert (carried / ".gitignore").read_text() == RULE
     assert (carried / ".git" / "info" / "exclude").read_text() == RULE
+
+
+def test_main_appends_after_a_newline_only_where_one_is_missing_and_refuses_a_misordered_rule(
+        tmp_path, monkeypatch, capsys, ensure_run_state_ignored):
+    fake_rev_parse(monkeypatch, 0, ".git\n")
+    appended = (
+        ("newline_terminated", b"node_modules/\n", b"node_modules/\n"),
+        ("misordered", b".tdd/*\n.tdd/issue-*-spec.md\n!.tdd/issue-*.md\n", None),
+        ("no_trailing_newline", b"node_modules/", b"node_modules/\n"),
+        ("crlf", b"node_modules/\r\n", b"node_modules/\r\n"),
+        ("empty", b"", b""),
+        ("trailing_space", b".tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-spec.md \n",
+         b".tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-spec.md \n"),
+        ("trailing_cr", b".tdd/*\r\n!.tdd/issue-*.md\r\n.tdd/issue-*-spec.md\r\n",
+         b".tdd/*\r\n!.tdd/issue-*.md\r\n.tdd/issue-*-spec.md\r\n"),
+        ("ignore_all_only", b".tdd/*\n", b".tdd/*\n"),
+    )
+    for name, original, before_rule in appended:
+        root = tmp_path / name
+        (root / ".git").mkdir(parents=True)
+        (root / ".gitignore").write_bytes(original)
+        if before_rule is None:
+            (root / ".git" / "info").mkdir()
+            (root / ".git" / "info" / "exclude").write_bytes(b"")
+
+        code = ensure_run_state_ignored.main([str(root)])
+
+        if before_rule is None:
+            assert (name, code, capsys.readouterr()[:]) == (name, 2, (
+                "", "ensure-run-state-ignored: %s/.gitignore carries veri's run-state rule only in part, or with its "
+                    "lines out of order — fix it by hand\n" % root))
+            assert (root / ".gitignore").read_bytes() == original
+            assert (root / ".git" / "info" / "exclude").read_bytes() == b""
+        else:
+            assert (name, code, capsys.readouterr()[:]) == (name, 0, ("added\n", ""))
+            assert (name, (root / ".gitignore").read_bytes()) == (name, before_rule + RULE.encode())
+            assert (name, (root / ".git" / "info" / "exclude").read_bytes()) == (name, RULE.encode())
