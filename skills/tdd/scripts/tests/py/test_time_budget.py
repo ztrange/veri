@@ -35,3 +35,17 @@ def test_main_prints_the_defaults_with_or_without_an_argument_and_returns_2_on_a
         (0, "10\n1.5\n", ""),
         (2, "", "time-budget: VERI_UNIT_BUDGET must be a number of seconds: ten\n"),
     ]
+
+
+def test_main_returns_2_on_a_non_numeric_ratio_and_names_only_the_budget_when_both_are_bad(capfd, monkeypatch, time_budget):
+    answers = []
+    monkeypatch.setenv("VERI_TIME_WARN_RATIO", "1,5")
+    code = time_budget.main([])
+    answers.append((code,) + capfd.readouterr())
+    monkeypatch.setenv("VERI_UNIT_BUDGET", "ten")
+    code = time_budget.main([])
+    answers.append((code,) + capfd.readouterr())
+    assert answers == [
+        (2, "", "time-budget: VERI_TIME_WARN_RATIO must be a number: 1,5\n"),
+        (2, "", "time-budget: VERI_UNIT_BUDGET must be a number of seconds: ten\n"),
+    ]
