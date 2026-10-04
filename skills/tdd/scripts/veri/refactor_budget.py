@@ -37,7 +37,7 @@ def main(argv):
     if _refused("<count>", count):
         _write(sys.stderr, USAGE)
         return 2
-    left = _arithmetic(count)
+    left = int(count)
     spent = left >= _arithmetic(budget)
     _write(sys.stdout, f"refactor {count}/{budget} — {'budget spent' if spent else 'another transform may run'}")
     return 3 if spent else 0
