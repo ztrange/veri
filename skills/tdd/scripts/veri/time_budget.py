@@ -3,14 +3,16 @@ import os
 import re
 import sys
 
+NUMBER = re.compile(r"[0-9]+(\.[0-9]+)?")
+
 
 def main(argv):
     budget = os.environ.get("VERI_UNIT_BUDGET") or "10"
     ratio = os.environ.get("VERI_TIME_WARN_RATIO") or "1.5"
-    if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", budget):
+    if not NUMBER.fullmatch(budget):
         print(f"time-budget: VERI_UNIT_BUDGET must be a number of seconds: {budget}", file=sys.stderr)
         return 2
-    if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", ratio):
+    if not NUMBER.fullmatch(ratio):
         print(f"time-budget: VERI_TIME_WARN_RATIO must be a number: {ratio}", file=sys.stderr)
         return 2
     print(budget)
