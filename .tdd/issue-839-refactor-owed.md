@@ -1,0 +1,3 @@
+### the symlink case in tests/leaf-role.test.sh takes its scratch directory from the harness rather than its own mktemp -d, so tests/unit/no-report-copies.test.sh is green again and the case still passes with its assertions unchanged ⟦added⟧ ⟦criterion 3⟧
+- test-only | remove the `rm -rf "$scratch"` at the end of the symlink case in skills/tdd/scripts/tests/leaf-role.test.sh — `scratch_dir` already records the directory and the harness's EXIT trap (`lib/harness.sh:42-52`) removes it, so the line is redundant
+- test-only | the usage-floor case (the `for args in none empty` loop) builds its own mktemp/redirect/cat capture, which duplicates `capture()` (`leaf-role.test.sh:36-42`); `capture` could take a variable argument list so both use it
