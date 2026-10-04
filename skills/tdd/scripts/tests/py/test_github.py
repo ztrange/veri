@@ -65,3 +65,19 @@ def test_gh_rest_list_drops_the_trailing_newlines_gh_api_prints_after_each_page(
     })
 
     assert github.gh_rest_list(path) == '[{"number":1}][{"number":2}]'
+
+
+def test_gh_rest_list_joins_page_with_an_ampersand_when_the_path_already_holds_a_query(monkeypatch, github):
+    path = "repos/{owner}/{repo}/commits/abc123/check-runs?per_page=100"
+    calls = fake_gh(monkeypatch, {
+        ("gh", "api", path + "&page=1"): (0, '[{"id":1}]', ""),
+        ("gh", "api", path + "&page=2"): (0, "[]", ""),
+    })
+
+    answer = github.gh_rest_list(path)
+
+    assert answer == '[{"id":1}]'
+    assert calls == [
+        ["gh", "api", path + "&page=1"],
+        ["gh", "api", path + "&page=2"],
+    ]
