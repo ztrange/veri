@@ -115,7 +115,7 @@ BODY_HEAD = "body=Structural candidates #7's closing pass could not reach:\n\n"
     (None, (0, "first\nsecond\n"), "2", 3, None),
     (None, (0, "first\n\n\n"), "1", 3, None),
     ("", (0, "first\n"), "1", 3, None),
-    ("a skipped candidate\n", (3, ""), "0", 3, None),
+    ("a skipped candidate\n", (3, ""), "0", 0, "- a skipped candidate"),
     ("a skipped candidate\n", (1, "first\nsecond\n"), "0", 1, None),
     (None, (4, "first\nsecond\n"), "0", 4, None),
 ])
@@ -250,3 +250,33 @@ def test_main_returns_gh_s_own_failing_code_and_reads_reached_with_leading_zeros
          "-f", BODY_HEAD + expected_body, "-q", ".html_url"]]
     assert gh_calls == expected_gh
     assert (code, captured.out) == (expected_code, expected_out)
+
+
+def test_main_files_the_skipped_file_s_candidates_when_list_exits_3_issue_777(
+        monkeypatch, capsys, tmp_path, refactor_overflow):
+    owed = str(tmp_path / "owed.md")
+    (tmp_path / "skipped.md").write_text("a skipped candidate\nanother skipped\n")
+    calls = []
+
+    def fake_run(args, *rest, **kwargs):
+        args = [str(a) for a in args]
+        calls.append(args[1:])
+        if args[0] == "gh":
+            return subprocess.CompletedProcess(args, 0, "https://github.com/o/r/issues/9\n", "")
+        return subprocess.CompletedProcess(args, 3, "", "")
+
+    def refuse_popen(args, *rest, **kwargs):
+        raise AssertionError(f"started a process through Popen: {args}")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", refuse_popen)
+
+    code = refactor_overflow.main(["7", owed, "0", str(tmp_path / "skipped.md")])
+
+    captured = capsys.readouterr()
+    assert calls == [["list", owed],
+                     ["api", "repos/{owner}/{repo}/issues",
+                      "-f", "title=Refactor owed by #7",
+                      "-f", BODY_HEAD + "- a skipped candidate\n- another skipped",
+                      "-q", ".html_url"]]
+    assert (code, captured.out) == (0, "https://github.com/o/r/issues/9\n")
