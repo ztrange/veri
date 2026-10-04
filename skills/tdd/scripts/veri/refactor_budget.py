@@ -17,8 +17,6 @@ def main(argv):
         print(f"refactor-budget: <count> must be a whole number >= 0: {count}", file=sys.stderr)
         print(USAGE, file=sys.stderr)
         return 2
-    if int(count) < int(budget):
-        print(f"refactor {count}/{budget} — another transform may run")
-        return 0
-    print(f"refactor {count}/{budget} — budget spent")
-    return 3
+    spent = int(count) >= int(budget)
+    print(f"refactor {count}/{budget} — {'budget spent' if spent else 'another transform may run'}")
+    return 3 if spent else 0
