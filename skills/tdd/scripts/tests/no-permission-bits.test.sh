@@ -62,21 +62,26 @@ probe_no_suite_revokes_permission_bits
 report "$name"
 
 PLANT_REL='skills/tdd/scripts/tests/planted.test.sh'
+
+plant_named() {
+  local rel="$1" plant="$2" line problem
+  line="$(grep -nxF -- "$plant" "$ROOT/$rel")"
+  line="${line%%:*}"
+  for problem in ${problems+"${problems[@]}"}; do
+    [[ "$problem" == "$rel:$line forces a read or write failure through permission bits"* ]] && { printf named; return; }
+  done
+  printf 'not named'
+}
 PLANT_CHMOD_000="chmod $(printf '%03d' 0) \"\$ledger\""
 
 probe_a_planted_chmod_000() {
-  local ROOT line problem
+  local ROOT
   ROOT="$(scratch_dir)"
   mkdir -p "$ROOT/${PLANT_REL%/*}"
   printf '%s\n' '#!/usr/bin/env bash' 'ledger="$(mktemp)"' "$PLANT_CHMOD_000" > "$ROOT/$PLANT_REL"
-  line="$(grep -nxF -- "$PLANT_CHMOD_000" "$ROOT/$PLANT_REL")"
-  line="${line%%:*}"
   problems=()
   probe_no_suite_revokes_permission_bits
-  planted_chmod_000_named="not named"
-  for problem in ${problems+"${problems[@]}"}; do
-    [[ "$problem" == "$PLANT_REL:$line forces a read or write failure through permission bits"* ]] && planted_chmod_000_named="named"
-  done
+  planted_chmod_000_named="$(plant_named "$PLANT_REL" "$PLANT_CHMOD_000")"
   problems=()
 }
 
@@ -90,7 +95,7 @@ expect_eq "$name" "named" "$planted_chmod_000_named"
 PLANT_REVOKING_MODES=(a-r u-w -w)
 
 probe_planted_revoking_modes() {
-  local ROOT mode plant line problem named
+  local ROOT mode
   ROOT="$(scratch_dir)"
   mkdir -p "$ROOT/${PLANT_REL%/*}"
   printf '%s\n' '#!/usr/bin/env bash' 'ledger="$(mktemp)"' > "$ROOT/$PLANT_REL"
@@ -101,14 +106,7 @@ probe_planted_revoking_modes() {
   probe_no_suite_revokes_permission_bits
   planted_revoking_modes_named=""
   for mode in "${PLANT_REVOKING_MODES[@]}"; do
-    plant="chmod $mode \"\$ledger\""
-    line="$(grep -nxF -- "$plant" "$ROOT/$PLANT_REL")"
-    line="${line%%:*}"
-    named="not named"
-    for problem in ${problems+"${problems[@]}"}; do
-      [[ "$problem" == "$PLANT_REL:$line forces a read or write failure through permission bits"* ]] && named="named"
-    done
-    planted_revoking_modes_named+="$mode $named;"
+    planted_revoking_modes_named+="$mode $(plant_named "$PLANT_REL" "chmod $mode \"\$ledger\"");"
   done
   problems=()
 }
@@ -133,7 +131,7 @@ PLANT_SEPARATOR_LINES=(
 )
 
 probe_planted_chmods_after_a_separator() {
-  local ROOT i plant line problem named
+  local ROOT i
   ROOT="$(scratch_dir)"
   mkdir -p "$ROOT/${PLANT_REL%/*}"
   printf '%s\n' '#!/usr/bin/env bash' 'ledger="$(mktemp)"' "${PLANT_SEPARATOR_LINES[@]}" > "$ROOT/$PLANT_REL"
@@ -141,14 +139,7 @@ probe_planted_chmods_after_a_separator() {
   probe_no_suite_revokes_permission_bits
   planted_separators_named=""
   for i in "${!PLANT_SEPARATORS[@]}"; do
-    plant="${PLANT_SEPARATOR_LINES[$i]}"
-    line="$(grep -nxF -- "$plant" "$ROOT/$PLANT_REL")"
-    line="${line%%:*}"
-    named="not named"
-    for problem in ${problems+"${problems[@]}"}; do
-      [[ "$problem" == "$PLANT_REL:$line forces a read or write failure through permission bits"* ]] && named="named"
-    done
-    planted_separators_named+="${PLANT_SEPARATORS[$i]} $named;"
+    planted_separators_named+="${PLANT_SEPARATORS[$i]} $(plant_named "$PLANT_REL" "${PLANT_SEPARATOR_LINES[$i]}");"
   done
   problems=()
 }
@@ -163,18 +154,13 @@ expect_eq "$name" "; named;&& named;|| named;| named;( named;{ named;then named;
 PLANT_CHMOD_FLAGGED="chmod -R $(printf '%03d' 0) \"\$dir\""
 
 probe_a_planted_chmod_with_a_flag() {
-  local ROOT line problem
+  local ROOT
   ROOT="$(scratch_dir)"
   mkdir -p "$ROOT/${PLANT_REL%/*}"
   printf '%s\n' '#!/usr/bin/env bash' 'dir="$(mktemp)"' "$PLANT_CHMOD_FLAGGED" > "$ROOT/$PLANT_REL"
-  line="$(grep -nxF -- "$PLANT_CHMOD_FLAGGED" "$ROOT/$PLANT_REL")"
-  line="${line%%:*}"
   problems=()
   probe_no_suite_revokes_permission_bits
-  planted_chmod_flagged_named="not named"
-  for problem in ${problems+"${problems[@]}"}; do
-    [[ "$problem" == "$PLANT_REL:$line forces a read or write failure through permission bits"* ]] && planted_chmod_flagged_named="named"
-  done
+  planted_chmod_flagged_named="$(plant_named "$PLANT_REL" "$PLANT_CHMOD_FLAGGED")"
   problems=()
 }
 
@@ -189,18 +175,13 @@ PLANT_PY_REL='skills/tdd/scripts/tests/py/test_planted.py'
 PLANT_PY_CHMOD="    ledger.chmod(0o$(printf '%03d' 0))"
 
 probe_a_planted_pytest_chmod_000() {
-  local ROOT line problem
+  local ROOT
   ROOT="$(scratch_dir)"
   mkdir -p "$ROOT/${PLANT_PY_REL%/*}"
   printf '%s\n' 'def test_unreadable_ledger(tmp_path):' '    ledger = tmp_path / "issue-9.md"' "$PLANT_PY_CHMOD" > "$ROOT/$PLANT_PY_REL"
-  line="$(grep -nxF -- "$PLANT_PY_CHMOD" "$ROOT/$PLANT_PY_REL")"
-  line="${line%%:*}"
   problems=()
   probe_no_suite_revokes_permission_bits
-  planted_pytest_chmod_named="not named"
-  for problem in ${problems+"${problems[@]}"}; do
-    [[ "$problem" == "$PLANT_PY_REL:$line forces a read or write failure through permission bits"* ]] && planted_pytest_chmod_named="named"
-  done
+  planted_pytest_chmod_named="$(plant_named "$PLANT_PY_REL" "$PLANT_PY_CHMOD")"
   problems=()
 }
 
