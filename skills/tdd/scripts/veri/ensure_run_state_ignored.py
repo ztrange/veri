@@ -37,7 +37,7 @@ def has_rule(path):
 
 
 def main(argv):
-    root = argv[0]
+    root = argv[0] if argv and argv[0] else "."
     gitignore = root + "/.gitignore"
     found = subprocess.run(["git", "-C", root, "rev-parse", "--git-common-dir"],
                            stdout=subprocess.PIPE, text=True)
@@ -46,9 +46,14 @@ def main(argv):
     present = has_rule(gitignore)
     if present is None:
         return 2
-    common_dir = root + "/" + found.stdout.rstrip("\n")
+    common_dir = found.stdout.rstrip("\n")
+    if not common_dir.startswith("/"):
+        common_dir = root + "/" + common_dir
     exclude = common_dir + "/info/exclude"
-    if not has_rule(exclude):
+    in_exclude = has_rule(exclude)
+    if in_exclude is None:
+        return 2
+    if not in_exclude:
         append_rule(exclude)
     if not present:
         append_rule(gitignore)

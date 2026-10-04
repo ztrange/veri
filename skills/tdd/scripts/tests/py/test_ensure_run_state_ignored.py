@@ -144,3 +144,53 @@ def test_main_appends_after_a_newline_only_where_one_is_missing_and_refuses_a_mi
             assert (name, code, capsys.readouterr()[:]) == (name, 0, ("added\n", ""))
             assert (name, (root / ".gitignore").read_bytes()) == (name, before_rule + RULE.encode())
             assert (name, (root / ".git" / "info" / "exclude").read_bytes()) == (name, RULE.encode())
+
+
+def test_main_builds_paths_by_concatenation_checks_gitignore_then_exclude_and_writes_exclude_first(
+        tmp_path, monkeypatch, capsys, ensure_run_state_ignored):
+    refusal = ("ensure-run-state-ignored: %s carries veri's run-state rule only in part, or with its lines out of "
+               "order — fix it by hand\n")
+    roots = []
+
+    def answer(stdout):
+        fake_rev_parse(monkeypatch, 0, stdout)
+        faked = subprocess.run
+        monkeypatch.setattr(subprocess, "run", lambda args, **kwargs: (roots.append(args[2]), faked(args, **kwargs))[1])
+
+    monkeypatch.chdir(tmp_path)
+    common = tmp_path / "common"
+    (common / "info").mkdir(parents=True)
+    (common / "info" / "exclude").write_bytes(b".tdd/issue-*-spec.md\n")
+    pathlib.Path("a").mkdir()
+    answer(str(common) + "\n")
+    assert (ensure_run_state_ignored.main(["a"]), capsys.readouterr()[:]) == (2, ("", refusal % (str(common) +
+                                                                                                "/info/exclude")))
+    assert not pathlib.Path("a/.gitignore").exists()
+
+    pathlib.Path("r/sub").mkdir(parents=True)
+    pathlib.Path("r/.git/info").mkdir(parents=True)
+    pathlib.Path("r/.git/info/exclude").write_bytes(b".tdd/issue-*-spec.md\n")
+    pathlib.Path("r/.gitignore").write_bytes(b".tdd/issue-*-spec.md\n")
+    answer(".git\n")
+    assert (ensure_run_state_ignored.main(["r/"]), capsys.readouterr()[:]) == (2, ("", refusal % "r//.gitignore"))
+    answer("../.git\n")
+    assert (ensure_run_state_ignored.main(["r/sub", "--bogus", "x"]), capsys.readouterr()[:]) == (
+        2, ("", refusal % "r/sub/../.git/info/exclude"))
+    assert not pathlib.Path("r/sub/.gitignore").exists()
+    assert pathlib.Path("r/.git/info/exclude").read_bytes() == b".tdd/issue-*-spec.md\n"
+
+    monkeypatch.chdir(tmp_path / "r")
+    answer(".git\n")
+    for argv in ([""], []):
+        assert (ensure_run_state_ignored.main(argv), capsys.readouterr()[:]) == (2, ("", refusal % "./.gitignore"))
+    assert roots == ["a", "r/", "r/sub", ".", "."]
+
+    monkeypatch.chdir(tmp_path)
+    pathlib.Path("w/.gitignore").mkdir(parents=True)
+    answer(".git\n")
+    with pytest.raises(IsADirectoryError):
+        ensure_run_state_ignored.main(["w"])
+    assert pathlib.Path("w/.git/info/exclude").read_text() == RULE
+
+    patched = "monkeypatch.setattr(" + "ensure_run_state_ignored"
+    assert patched not in pathlib.Path(__file__).read_text()
