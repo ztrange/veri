@@ -51,3 +51,17 @@ def test_main_adds_the_rule_to_both_files_and_returns_2_when_rev_parse_fails(tmp
     assert ensure_run_state_ignored.main([str(broken)]) == 2
     assert not (broken / ".gitignore").exists()
     assert not (broken / ".git" / "info" / "exclude").exists()
+
+
+def test_main_does_not_refuse_a_gitignore_holding_other_lines_but_not_the_spec_line(tmp_path, monkeypatch, capsys,
+                                                                                     ensure_run_state_ignored):
+    fake_rev_parse(monkeypatch, 0, ".git\n")
+    for name, original in (("node_modules", b"node_modules/\n"), ("non_utf8", b"\xff\xfe\n")):
+        root = tmp_path / name
+        (root / ".git").mkdir(parents=True)
+        (root / ".gitignore").write_bytes(original)
+
+        code = ensure_run_state_ignored.main([str(root)])
+
+        assert (code, capsys.readouterr()[:]) == (0, ("added\n", ""))
+        assert (root / ".gitignore").read_bytes() == original + RULE.encode()
