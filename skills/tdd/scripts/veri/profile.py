@@ -51,7 +51,7 @@ def cases(suite, trace_lines, threshold):
             if value > seen.get(name, 0):
                 n += 1
                 secs = float(stamp) - float(start)
-                if secs >= float(threshold):
+                if secs >= threshold:
                     lines.append("%.6f %s case %d L%d-%d\n" % (secs, suite, n, int(first), int(lineno)))
                 start = stamp
                 first = ""
@@ -71,12 +71,13 @@ def main(argv):
         print("profile.sh: VERI_PROFILE_THRESHOLD must be a number of seconds, got '%s'" % threshold,
               file=sys.stderr)
         return 2
+    seconds = float(threshold)
     fd, trace = tempfile.mkstemp()
     os.close(fd)
     try:
         lines = []
         for suite in argv:
-            n, found = cases(suite, run_traced(suite, trace), threshold)
+            n, found = cases(suite, run_traced(suite, trace), seconds)
             if not n:
                 print("profile.sh: %s: no pass=/fail= increment in its trace" % suite, file=sys.stderr)
                 sort_lines(lines)
