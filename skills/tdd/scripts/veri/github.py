@@ -135,9 +135,8 @@ def _select(operation):
     fixtures = os.environ.get("VERI_GH_JSON")
     if operation == "json" and fixtures:
         return FixtureAdapter(fixtures)
-    if os.environ.get("VERI_GH_DRIVER") == "auto":
-        return FallbackAdapter(GraphQLAdapter(), RestAdapter())
-    return FallbackAdapter(NoRouteAdapter(), RestAdapter())
+    first = GraphQLAdapter() if os.environ.get("VERI_GH_DRIVER") == "auto" else NoRouteAdapter()
+    return FallbackAdapter(first, RestAdapter())
 
 
 def gh_rest_list(path, empty=r"^\[\]$"):
