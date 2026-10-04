@@ -18,7 +18,8 @@ def run_traced(suite, trace):
     os.close(fd)
     try:
         subprocess.run(["bash", "-c", TRACED, suite], stdin=subprocess.DEVNULL,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, pass_fds=(9,))
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, pass_fds=(9,),
+                       env={**os.environ, "BASH_XTRACEFD": "9"})
     finally:
         if held is None:
             os.close(9)
@@ -55,7 +56,7 @@ def cases(suite, trace_lines, threshold):
 def sort_lines(lines):
     done = subprocess.run(["sort", "-rn"], input="".join(lines), text=True, stdout=subprocess.PIPE)
     sys.stdout.write(done.stdout)
-    return done.returncode
+    return done.returncode if 0 <= done.returncode <= 3 else 2
 
 
 def main(argv):
