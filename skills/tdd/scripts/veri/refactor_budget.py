@@ -8,10 +8,15 @@ DEFAULT_ISSUE_BUDGET = 3
 USAGE = "usage: refactor-budget.sh [--issue] <count>"
 
 
+def _write(stream, text):
+    stream.buffer.write(os.fsencode(text + "\n"))
+    stream.buffer.flush()
+
+
 def _refused(name, value):
     if re.fullmatch(r"[0-9]+", value):
         return False
-    print(f"refactor-budget: {name} must be a whole number >= 0: {value}", file=sys.stderr)
+    _write(sys.stderr, f"refactor-budget: {name} must be a whole number >= 0: {value}")
     return True
 
 
@@ -20,7 +25,7 @@ def _arithmetic(value):
     number = 0
     for digit in value:
         if int(digit) >= base:
-            print(f'refactor-budget: [[: {value}: value too great for base (error token is "{value}")', file=sys.stderr)
+            _write(sys.stderr, f'refactor-budget: [[: {value}: value too great for base (error token is "{value}")')
             return None
         number = (number * base + int(digit)) % 2**64
     return number - 2**64 if number >= 2**63 else number
@@ -36,11 +41,11 @@ def main(argv):
     if _refused(budget_var, budget):
         return 2
     if _refused("<count>", count):
-        print(USAGE, file=sys.stderr)
+        _write(sys.stderr, USAGE)
         return 2
     left, right = _arithmetic(count), None
     if left is not None:
         right = _arithmetic(budget)
     spent = left is None or right is None or left >= right
-    print(f"refactor {count}/{budget} — {'budget spent' if spent else 'another transform may run'}")
+    _write(sys.stdout, f"refactor {count}/{budget} — {'budget spent' if spent else 'another transform may run'}")
     return 3 if spent else 0
