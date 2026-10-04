@@ -261,7 +261,7 @@ def test_main_polls_until_its_slice_or_deadline_and_records_the_deadline_in_tdd(
         ([PR, "20", "100", "a/b"], None, True, {}, [1000, 1010, 1020],
          (3, "", True, {}, tick * 2 + ["date +%s"])),
         ([PR, "", "10000", SHA], None, True, {}, [1000, 1539, 1540],
-         (3, "", "", {"ci-deadline-abc123": "11000\n"}, tick * 2 + ["date +%s"])),
+         (3, "", "", {"ci-deadline-abc123": "1600\n"}, tick * 2 + ["date +%s"])),
     ]
     bodies = {
         PULL: json.dumps({"mergeable": True, "head": {"sha": SHA}}),
@@ -307,6 +307,80 @@ def test_main_polls_until_its_slice_or_deadline_and_records_the_deadline_in_tdd(
         recorded = None if not (work / ".tdd").exists() else {
             str(p.relative_to(work / ".tdd")): p.read_text()
             for p in (work / ".tdd").rglob("*") if p.is_file()}
+        observed.append((code, captured.out, err, recorded,
+                         [c for c in calls if not c.startswith("gh ")]))
+
+    assert observed == [expected for *_, expected in cases]
+
+
+def test_main_reads_its_numeric_arguments_and_a_deadline_file_as_bash_arithmetic(
+        monkeypatch, capsys, tmp_path, wait_ci):
+    mark = "ci-deadline-abc123"
+    past = f"wait-ci.sh: checks of {PR} still pending past the deadline recorded for {SHA}\n"
+    tick = ["date +%s", "sleep 10"]
+    raised = "raised"
+    cases = [
+        ([PR, "1000", "700", SHA], {}, [1000, 1540],
+         (3, "", "", {mark: "1600\n"}, tick + ["date +%s"])),
+        ([PR, "060", "0100", SHA], {}, [1000, 1047, 1048],
+         (3, "", "", {mark: "1064\n"}, tick * 2 + ["date +%s"])),
+        ([PR, "09", "100", SHA], {}, [1000], (3, "", True, {}, ["date +%s"])),
+        ([PR, "1.5", "100", SHA], {}, [1000], (3, "", True, {}, ["date +%s"])),
+        ([PR, "60", "09", SHA], {}, [1000], (3, "", True, {}, ["date +%s"])),
+        ([PR, "60", "1.5", SHA], {}, [1000], (3, "", True, {}, ["date +%s"])),
+        ([PR, "abc", "100", SHA], {}, [1000], (raised, "", None, {}, [])),
+        ([PR, "60", "abc", SHA], {}, [1000], (raised, "", None, {}, [])),
+        ([PR, "-5", "100", SHA], {}, [1000], (3, "", "", {mark: "1100\n"}, ["date +%s"])),
+        ([PR, "60", "0", SHA], {}, [1000], (3, "", "", {mark: "1000\n"}, ["date +%s"])),
+        ([PR, "60", "-5", SHA], {}, [1000], (3, "", "", {mark: "995\n"}, ["date +%s"])),
+        ([PR, "0", "100", SHA], {mark: "1100\n\n\n"}, [1000],
+         (3, "", "", {mark: "1100\n\n\n"}, ["date +%s"])),
+        ([PR, "60", "100", SHA], {mark: ""}, [1000], (2, "", past, {mark: ""}, ["date +%s"])),
+        ([PR, "60", "100", SHA], {mark: "0x10"}, [1000], (2, "", past, {mark: "0x10"}, ["date +%s"])),
+        ([PR, "60", "100", SHA], {mark: "now\n"}, [1000], (2, "", past, {mark: "now\n"}, ["date +%s"])),
+        ([PR, "60", "100", SHA], {mark: "abc\n"}, [1000], (raised, "", None, {mark: "abc\n"}, ["date +%s"])),
+        ([PR, "60", "100", SHA], {mark: "5000 x\n"}, [1000],
+         (raised, "", None, {mark: "5000 x\n"}, ["date +%s"])),
+        ([PR, "60", "120", SHA, "extra", "more"], {}, [1000, 1060],
+         (3, "", "", {mark: "1120\n"}, tick + ["date +%s"])),
+    ]
+    bodies = {
+        PULL: json.dumps({"mergeable": True, "head": {"sha": SHA}}),
+        PAGE_1: json.dumps({"check_runs": [{"status": "completed", "conclusion": None}]}),
+        PAGE_2: json.dumps({"check_runs": []}),
+        STATUS: json.dumps({"statuses": []}),
+    }
+    monkeypatch.delenv("VERI_POLL", raising=False)
+
+    observed = []
+    for i, (argv, marks, clock, expected) in enumerate(cases):
+        work = tmp_path / str(i)
+        (work / ".tdd").mkdir(parents=True)
+        for name, text in marks.items():
+            (work / ".tdd" / name).write_text(text)
+        monkeypatch.chdir(work)
+        calls = []
+        readings = iter(clock)
+
+        def fake_run(args, calls=calls, readings=readings, **kwargs):
+            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+            calls.append(line)
+            if line == "date +%s":
+                out = f"{next(readings, 99999)}\n"
+            else:
+                out = bodies.get(line, "")
+            return subprocess.CompletedProcess(args, 0, out, "" if kwargs.get("stderr") else None)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        try:
+            code = wait_ci.main(argv)
+        except Exception:
+            code = raised
+        captured = capsys.readouterr()
+        err = None if expected[2] is None else (
+            captured.err if isinstance(expected[2], str) else bool(captured.err))
+        recorded = {str(p.relative_to(work / ".tdd")): p.read_text()
+                    for p in (work / ".tdd").rglob("*") if p.is_file()}
         observed.append((code, captured.out, err, recorded,
                          [c for c in calls if not c.startswith("gh ")]))
 
