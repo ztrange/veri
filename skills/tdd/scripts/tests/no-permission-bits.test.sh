@@ -117,4 +117,45 @@ probe_planted_revoking_modes
 
 expect_eq "$name" "a-r named;u-w named;-w named;" "$planted_revoking_modes_named"
 
+PLANT_CHMOD_ZERO="chmod $(printf '%03d' 0) \"\$ledger\""
+PLANT_SEPARATORS=(';' '&&' '||' '|' '(' '{' 'then' 'do')
+PLANT_SEPARATOR_LINES=(
+  "true; $PLANT_CHMOD_ZERO"
+  "true && $PLANT_CHMOD_ZERO"
+  "false || $PLANT_CHMOD_ZERO"
+  "true | $PLANT_CHMOD_ZERO"
+  "($PLANT_CHMOD_ZERO)"
+  "{ $PLANT_CHMOD_ZERO; }"
+  "if true; then $PLANT_CHMOD_ZERO; fi"
+  "for f in x; do $PLANT_CHMOD_ZERO; done"
+)
+
+probe_planted_chmods_after_a_separator() {
+  local ROOT i plant line problem named
+  ROOT="$(scratch_dir)"
+  mkdir -p "$ROOT/${PLANT_REL%/*}"
+  printf '%s\n' '#!/usr/bin/env bash' 'ledger="$(mktemp)"' "${PLANT_SEPARATOR_LINES[@]}" > "$ROOT/$PLANT_REL"
+  problems=()
+  probe_no_suite_revokes_permission_bits
+  planted_separators_named=""
+  for i in "${!PLANT_SEPARATORS[@]}"; do
+    plant="${PLANT_SEPARATOR_LINES[$i]}"
+    line="$(grep -nxF -- "$plant" "$ROOT/$PLANT_REL")"
+    line="${line%%:*}"
+    named="not named"
+    for problem in ${problems+"${problems[@]}"}; do
+      [[ "$problem" == "$PLANT_REL:$line forces a read or write failure through permission bits"* ]] && named="named"
+    done
+    planted_separators_named+="${PLANT_SEPARATORS[$i]} $named;"
+  done
+  problems=()
+}
+
+name="a planted chmod to mode zero after ;, &&, ||, |, (, {, then or do on the same line turns the guard red, naming its <suite>:<line> (#846)"
+planted_separators_named=""
+
+probe_planted_chmods_after_a_separator
+
+expect_eq "$name" "; named;&& named;|| named;| named;( named;{ named;then named;do named;" "$planted_separators_named"
+
 finish
