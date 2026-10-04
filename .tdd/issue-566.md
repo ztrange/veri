@@ -1,6 +1,6 @@
 # Plan for #566 — a failed metrics.sh render is committed as the run's metrics report
 
-- [ ] SKILL.md's Draft PR step commits `.tdd/issue-<n>-metrics.md` only when `metrics.sh` exits 0; on a non-zero exit it makes no `metrics:` commit and the PR body carries a line naming the failed render and its exit code in place of the file's contents ⟦criterion 1⟧
+- [x] SKILL.md's Draft PR step commits `.tdd/issue-<n>-metrics.md` only when `metrics.sh` exits 0; on a non-zero exit it makes no `metrics:` commit and the PR body carries a line naming the failed render and its exit code in place of the file's contents ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] SKILL.md's Draft PR step, on a non-zero `metrics.sh` exit, puts the same failed-render line with its exit code in the `### ✅ Done` comment in place of the `### 📊 Metrics` block
 - [ ] SKILL.md's Bailing sub-step 4 commits `.tdd/issue-<n>-metrics.md` only when `metrics.sh` exits 0; on a non-zero exit it makes no `metrics:` commit and the `### ⛔ Bailed` comment carries the failed-render line with its exit code in place of the `### 📊 Metrics` block ⟦criterion 2⟧
 - [ ] a non-zero `metrics.sh` exit in the Draft PR step does not bail or stop the run: the step goes on to its push and the PR body rewrite ⟦criterion 3⟧
