@@ -25,4 +25,8 @@ def gh_rest_list(path, empty=r"^\[\]$"):
 
 
 def gh_list(path, *args):
-    return subprocess.run(["gh", *args], stdout=subprocess.PIPE, text=True).stdout
+    run = subprocess.run(["gh", *args], stdout=subprocess.PIPE,
+                         stderr=subprocess.DEVNULL, text=True)
+    if run.returncode != 0:
+        return gh_rest_list(path)
+    return run.stdout

@@ -154,3 +154,38 @@ def test_gh_list_answers_the_gh_call_stdout_and_makes_no_gh_api_call_when_it_suc
 
     assert answer == '[{"number":7},{"number":9}]'
     assert calls == [["gh", "pr", "list", "--json", "number"]]
+
+
+def test_gh_list_answers_the_rest_pages_and_drops_the_graphql_stderr_when_the_gh_call_fails(monkeypatch, capsys, github):
+    path = "repos/{owner}/{repo}/pulls?state=open"
+    refusal = "GraphQL: Resource not accessible by integration\n"
+    answers = {
+        ("gh", "pr", "list", "--json", "number"): (1, "", refusal),
+        ("gh", "api", path + "&page=1"): (0, '[{"number":7}]\n', ""),
+        ("gh", "api", path + "&page=2"): (0, '[{"number":9}]\n', ""),
+        ("gh", "api", path + "&page=3"): (0, "[]\n", ""),
+    }
+    calls = []
+
+    def fake_run(args, **kwargs):
+        calls.append(list(args))
+        if tuple(args) not in answers:
+            raise AssertionError("unexpected command: %r" % (args,))
+        returncode, stdout, stderr = answers[tuple(args)]
+        if kwargs.get("stderr") is None:
+            sys.stderr.write(stderr)
+        return subprocess.CompletedProcess(
+            args, returncode, stdout, stderr if kwargs.get("stderr") == subprocess.PIPE else None)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    answer = github.gh_list(path, "pr", "list", "--json", "number")
+
+    assert answer == '[{"number":7}][{"number":9}]'
+    assert calls == [
+        ["gh", "pr", "list", "--json", "number"],
+        ["gh", "api", path + "&page=1"],
+        ["gh", "api", path + "&page=2"],
+        ["gh", "api", path + "&page=3"],
+    ]
+    assert capsys.readouterr().err == ""
