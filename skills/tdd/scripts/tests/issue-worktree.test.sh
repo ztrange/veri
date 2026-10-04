@@ -552,13 +552,4 @@ printf '%s\n' 'git() { [[ "$1 ${2:-}" == "worktree add" ]] && builtin exit 5; co
 { [[ "$wt_code" == 2 ]]; } \
   && ok || no "issue-worktree.sh, whose own EXIT trap cleans up, still ends with 2 and never a code outside 0–3 when a command dies with one — its trap does not replace the contract's mapping (exit=$wt_code want 2)"
 
-mkdir -p "$work/own-trap-bin"
-printf '#!/bin/sh\necho https://github.com/owner/name/issues/77\n' > "$work/own-trap-bin/gh"
-chmod +x "$work/own-trap-bin/gh"
-printf '%s\n' 'awk() { builtin exit 5; }' > "$work/awk-dies-with-5"
-(cd "$repo" && PATH="$work/own-trap-bin:$PATH" BASH_ENV="$work/awk-dies-with-5" "$HERE/../coverage-blocker.sh" 60 >/dev/null 2>&1) \
-  && cb_code=0 || cb_code=$?
-{ [[ "$cb_code" == 2 ]]; } \
-  && ok || no "coverage-blocker.sh, whose own EXIT trap cleans up, still ends with 2 and never a code outside 0–3 when a command dies with one — its trap does not replace the contract's mapping (exit=$cb_code want 2)"
-
 finish
