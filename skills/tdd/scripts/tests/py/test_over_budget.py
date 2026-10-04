@@ -95,3 +95,15 @@ def test_main_compares_strictly_matches_the_tier_exactly_multiplies_as_doubles_a
     code = over_budget.main(["unit", "12.0", "100"])
     out, _ = capsys.readouterr()
     assert (code, out) == (0, "⏱ unit tier took 12.0 s (usual 100 s, ratio 1.50, unit budget 10.0 s)\n")
+
+
+def test_main_reads_what_macos_awk_reads_as_a_number_as_a_number(capsys, monkeypatch, over_budget):
+    _time_budget(monkeypatch, 0, "10\n1.5\n")
+    for seconds in (" 12", "+200", ".5e3", "200.", "2e2", "inf", "0x1A"):
+        code = over_budget.main(["all", seconds, "1"])
+        capsys.readouterr()
+        assert (seconds, code) == (seconds, 0)
+    for argv in (["all", "nan", "1"], ["all", "-inf", "-1"]):
+        code = over_budget.main(argv)
+        capsys.readouterr()
+        assert (argv, code) == (argv, 1)

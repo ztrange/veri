@@ -7,6 +7,13 @@ SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 USAGE = "usage: over-budget.sh <tier> <seconds> <usual>"
 
 
+def _number(text):
+    try:
+        return float(text)
+    except ValueError:
+        return float(int(text, 16))
+
+
 def main(argv):
     if len(argv) < 3 or not all(argv[:3]):
         print(USAGE, file=sys.stderr)
@@ -17,7 +24,7 @@ def main(argv):
         return 2
     lines = limits.stdout.splitlines()
     budget, ratio = lines[0], lines[-1]
-    over = (tier == "unit" and float(seconds) > float(budget)) or float(seconds) > float(ratio) * float(usual)
+    over = (tier == "unit" and _number(seconds) > _number(budget)) or _number(seconds) > _number(ratio) * _number(usual)
     if not over:
         return 1
     print("⏱ %s tier took %s s (usual %s s, ratio %s, unit budget %s s)" % (tier, seconds, usual, ratio, budget))
