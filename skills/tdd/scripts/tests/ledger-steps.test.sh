@@ -106,4 +106,9 @@ bad="$(bad_args unknown "$work/kinds.md" bogus; bad_args missing "$work/body.md"
   && ok || no "an unknown verb, or criterion with a missing or non-integer <k>, prints a usage line on stderr and exits 2
 $(printf '%s\n' "$bad" | sed 's/^/    /')"
 
+"$STEPS" bogus < "$work/kinds.md" > "$work/out" 2> "$work/err"; code=$?
+{ [[ "$code" == 2 ]] && [[ ! -s "$work/out" ]] \
+  && cmp -s <(printf 'usage: ledger-steps.sh [current|last-done|criterion <k>]\n') "$work/err"; } \
+  && ok || no "bogus exits 2 with nothing on stdout and stderr exactly the one usage line (code=$code out='$(cat "$work/out")' stderr='$(cat "$work/err")')"
+
 finish
