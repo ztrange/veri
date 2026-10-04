@@ -78,6 +78,23 @@ problems=()
 count_probe "count 1.5" 1.5
 report "$name"
 
+name="a bad count exits 2 with nothing on stdout and stderr naming the count, then the usage line"
+problems=()
+out="$(mktemp)" err="$(mktemp)"
+env -u VERI_REFACTOR_BUDGET -u VERI_ISSUE_REFACTOR_BUDGET "$BUDGET" ten >"$out" 2>"$err" && code=0 || code=$?
+[[ "$code" == 2 ]] ||
+  problems+=("count ten: want exit 2, got $code")
+[[ ! -s "$out" ]] ||
+  problems+=("count ten: want nothing on stdout, got: $(printf '%q' "$(cat "$out")")")
+want_err='refactor-budget: <count> must be a whole number >= 0: ten
+usage: refactor-budget.sh [--issue] <count>
+'
+got_err="$(cat "$err"; printf x)" got_err="${got_err%x}"
+[[ "$got_err" == "$want_err" ]] ||
+  problems+=("count ten: want stderr $(printf '%q' "$want_err"), got: $(printf '%q' "$got_err")")
+rm -f "$out" "$err"
+report "$name"
+
 name="valid counts 0, 4 and 5 keep their answers — exit 0, 0, 3, one line on stdout, nothing on stderr"
 problems=()
 for probe in "0 0" "4 0" "5 3"; do
