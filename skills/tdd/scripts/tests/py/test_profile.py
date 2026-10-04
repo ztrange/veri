@@ -63,3 +63,16 @@ def test_main_refuses_a_bad_threshold_answers_nothing_for_no_suite_and_refuses_a
     assert calls[0][0] == "bash" and calls[0][-1] == str(suite)
     assert (code, captured.out, captured.err) == (
         2, "", "profile.sh: %s: no pass=/fail= increment in its trace\n" % suite)
+
+
+@pytest.mark.parametrize("threshold", ["1.", ".5", "1e3", " 1"])
+def test_main_refuses_a_threshold_that_is_not_digits_with_an_optional_fraction(threshold, tmp_path, monkeypatch, capsys, profile):
+    suite = tmp_path / "a.test.sh"
+    suite.write_text("pass=0\n")
+    calls = fake_processes(monkeypatch)
+    monkeypatch.setenv("VERI_PROFILE_THRESHOLD", threshold)
+    code = profile.main([str(suite)])
+    captured = capsys.readouterr()
+    assert calls == []
+    assert (code, captured.out, captured.err) == (
+        2, "", "profile.sh: VERI_PROFILE_THRESHOLD must be a number of seconds, got '%s'\n" % threshold)
