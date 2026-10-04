@@ -122,7 +122,7 @@ fi
 
 linked_name="classify-bail.sh run through a symlink to the skill directory and from another working directory answers killed-stuck and an unknown cause as it does in place"
 linked_bad=""
-linked_work="$(mktemp -d)"
+linked_work="$(scratch_dir)"
 ln -s "$(cd "$HERE/../../.." && pwd)" "$linked_work/linked-skill"
 mkdir -p "$linked_work/elsewhere"
 for cause in killed-stuck bogus; do
