@@ -280,4 +280,43 @@ if [[ -n "${bail_render_line:-}" && -n "${bail_mark_line:-}" && "$bail_mark_line
 fi
 report "$name"
 
+name="#566: $skill_md's Draft PR step makes the metrics: commit only on a metrics.sh exit of 0, and otherwise puts the failed render and its exit code in the PR body"
+problems=()
+
+render_status=""
+if ! render_line="$(first_fenced_line 'metrics.sh <n> > .tdd/issue-<n>-metrics.md')"; then
+  problems+=("$skill_md's Draft PR command block never renders metrics.sh <n> > .tdd/issue-<n>-metrics.md")
+else
+  render_cmd="$(sed -n "${render_line}p" "$skill_path")"
+  if [[ "$render_cmd" =~ ([A-Za-z_][A-Za-z0-9_]*)=\$\? ]]; then
+    render_status="${BASH_REMATCH[1]}"
+  else
+    problems+=("$skill_md renders metrics.sh at SKILL.md:$render_line without capturing its exit status, so nothing can keep a failed render out of the metrics: commit: $(printf '%.120s' "$render_cmd")")
+  fi
+fi
+
+if ! commit_line="$(first_fenced_line 'git commit -m "metrics:')"; then
+  problems+=("$skill_md's Draft PR command block never runs git commit -m \"metrics: …\"")
+elif [[ -n "$render_status" ]]; then
+  gated=0 open_if=0
+  while IFS= read -r line; do
+    [[ "$line" =~ ^[[:space:]]*if[[:space:]].*\$\{?$render_status([^A-Za-z0-9_]|$) ]] && open_if=1
+    [[ "$line" =~ ^[[:space:]]*fi([[:space:];]|$) ]] && open_if=0
+  done < <(sed -n "$((render_line + 1)),$((commit_line - 1))p" "$skill_path")
+  commit_cmd="$(sed -n "${commit_line}p" "$skill_path")"
+  [[ "$commit_cmd" =~ \$\{?$render_status([^A-Za-z0-9_]|$) ]] && gated=1
+  [[ "$open_if" -eq 1 ]] && gated=1
+  [[ "$gated" -eq 1 ]] ||
+    problems+=("$skill_md runs the metrics: commit at SKILL.md:$commit_line whatever \$$render_status, metrics.sh's exit status, says, so a failed render's partial report is committed: $(printf '%.120s' "$commit_cmd")")
+fi
+
+if ! edit_line="$(first_fenced_line "$pr_edit")"; then
+  problems+=("$skill_md's Draft PR command block never runs gh api -X PATCH, so no PR body can name a failed render")
+else
+  edit_cmd="$(sed -n "${edit_line}p" "$skill_path" | tr '[:upper:]' '[:lower:]')"
+  [[ "$edit_cmd" == *"-f body="*"metrics.sh"*"exit"* ]] ||
+    problems+=("$skill_md's gh api -X PATCH at SKILL.md:$edit_line puts no line naming a failed metrics.sh render and its exit code in the PR body, so a failed render leaves the body quoting a report that was never committed: $(printf '%.120s' "$edit_cmd")")
+fi
+report "$name"
+
 finish
