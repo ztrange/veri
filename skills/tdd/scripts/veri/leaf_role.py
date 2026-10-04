@@ -1,14 +1,19 @@
 """leaf-role.sh's mapping, run in-process."""
+import re
 import sys
 
 USAGE = "usage: leaf-role.sh <leaf-name>"
-ACTORS = {"develop": "developer"}
+ACTORS = {"develop": "developer", "revise": "developer", "verify": "verifier", "conductor": "conductor"}
 
 
 def leaf_role(name):
     """VERI_ACTOR, VERI_PHASE and VERI_ATTEMPT for a leaf name."""
     actor_word = name.split("-", 1)[0]
-    return {"VERI_ACTOR": ACTORS[actor_word], "VERI_PHASE": name[len(actor_word) + 1:], "VERI_ATTEMPT": "1"}
+    phase, attempt = name[len(actor_word) + 1:], "1"
+    split = re.fullmatch(r"(.*)-([0-9]+)", phase)
+    if split:
+        phase, attempt = split.groups()
+    return {"VERI_ACTOR": ACTORS[actor_word], "VERI_PHASE": phase, "VERI_ATTEMPT": attempt}
 
 
 def main(argv):
