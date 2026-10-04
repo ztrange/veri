@@ -1,5 +1,6 @@
 """veri's GitHub access: lib/github.sh's GraphQL→REST fallback, run through gh."""
 import json
+import os
 import re
 import subprocess
 
@@ -38,6 +39,11 @@ def gh_list(path, *args):
     if run.returncode != 0:
         return gh_rest_list(path)
     return run.stdout
+
+
+def gh_json(fixture, path, *args):
+    with open(os.path.join(os.environ["VERI_GH_JSON"], fixture)) as f:
+        return f.read()
 
 
 def gh_issue_view(number, field):

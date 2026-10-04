@@ -399,3 +399,16 @@ def test_gh_issue_edit_is_a_no_answer_with_gh_stderr_passed_through_when_the_pat
 
     assert calls == [list(patch)]
     assert capsys.readouterr().err == refusal
+
+
+def test_gh_json_answers_the_fixture_file_contents_and_makes_no_subprocess_call_when_veri_gh_json_is_set(monkeypatch, tmp_path, github):
+    fixture = '[{"number":7,"title":"A thing"}]\n'
+    (tmp_path / "prs.json").write_text(fixture)
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    calls = fake_gh(monkeypatch, {})
+
+    answer = github.gh_json("prs.json", "repos/{owner}/{repo}/pulls?state=open",
+                            "pr", "list", "--json", "number,title")
+
+    assert answer == fixture
+    assert calls == []
