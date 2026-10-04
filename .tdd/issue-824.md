@@ -5,4 +5,4 @@
 - [x] gh_issue_view, with the GraphQL call failing and gh api exiting non-zero with a JSON stdout (a REST error body such as {"message":"Not Found"}), raises NoAnswer with no decode line on stderr ⟦criterion 3⟧
 - [x] gh_issue_create("T", "B") runs exactly ["gh", "api", "repos/{owner}/{repo}/issues", "-f", "title=T", "-f", "body=B", "-q", ".html_url"] as its only command and answers that command's stdout ⟦criterion 4⟧
 - [x] gh_issue_create, when gh api exits non-zero, raises NoAnswer with gh's stderr passed through to stderr ⟦criterion 4⟧
-- [ ] every pre-existing case of tests/py/test_github.py other than the both-routes-fail case is unmodified by the branch, and lib/github.sh and tests/unit/github.test.sh are unmodified ⟦diff-checked⟧ ⟦criterion 5⟧
+- [x] every pre-existing case of tests/py/test_github.py other than the both-routes-fail case is unmodified by the branch, and lib/github.sh and tests/unit/github.test.sh are unmodified ⟦diff-checked⟧ ⟦criterion 5⟧
