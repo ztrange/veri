@@ -2916,7 +2916,7 @@ fi
 
 report_on "$name" "$unmarked_out"
 
-name="#495 the planned-step count is the number of lib/ledger.sh ledger_steps records, counting no box of its own"
+name="#495 the planned-step count is the number of ledger-steps.sh's records, counting no box of its own"
 problems=()
 
 fixture_work ledger_steps_work
@@ -2927,17 +2927,17 @@ plan_of "$counted_step"
 
 stub="$ledger_steps_work/stub"
 mkdir -p "$stub"
-cp "$METRICS" "$HERE/../ledger-steps.sh" "$stub/"
+cp "$METRICS" "$stub/"
 cp -R "$HERE/../lib" "$stub/lib"
 cp -R "$HERE/../veri" "$stub/veri"
-cat > "$stub/lib/ledger.sh" <<'EOF'
-ledger_steps() {
-  cat >/dev/null
-  printf '1\tdone\tstep\t0\t0\t\ta step the stub module numbers first of three\n'
-  printf '2\topen\tstep\t0\t0\t\ta second step\n'
-  printf '3\topen\tstep\t0\t0\t\ta third step\n'
-}
+cat > "$stub/ledger-steps.sh" <<'EOF'
+#!/bin/sh
+cat >/dev/null
+printf '1\tdone\tstep\t0\t0\t\ta step the stub module numbers first of three\n'
+printf '2\topen\tstep\t0\t0\t\ta second step\n'
+printf '3\topen\tstep\t0\t0\t\ta third step\n'
 EOF
+chmod +x "$stub/ledger-steps.sh"
 
 ledger_steps_out="$ledger_steps_work/report.md"
 METRICS="$stub/metrics.sh" render "$ledger_steps_work" "$ledger_steps_out"
