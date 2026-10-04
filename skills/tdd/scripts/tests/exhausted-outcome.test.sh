@@ -45,4 +45,19 @@ run "$neither_report"
 [[ -z "$problems" ]] \
   && ok || no "exhausted-outcome answers exit 0 with the SPLIT: criteria, exit 1 with the needs-user answer, exit 3 and nothing for neither (${problems#; })"
 
+problems=""
+err_file="$(mktemp)"
+args_out="$(printf 'SPLIT: a' | "$OUTCOME" extra args 2>"$err_file")" && args_code=0 || args_code=$?
+[[ "$args_code" -eq 0 ]] || problems="$problems; called with extra args it exited $args_code, want 0"
+[[ "$args_out" == "a" ]] || problems="$problems; called with extra args it printed '$args_out', want 'a'"
+[[ ! -s "$err_file" ]] || problems="$problems; called with extra args it wrote '$(cat "$err_file")' on stderr"
+for report in 'SPLIT: a' 'NEEDS_USER: q' 'neither'; do
+  printf '%s' "$report" | "$OUTCOME" >/dev/null 2>"$err_file" || true
+  [[ ! -s "$err_file" ]] || problems="$problems; '$report' wrote '$(cat "$err_file")' on stderr"
+done
+rm -f "$err_file"
+
+[[ -z "$problems" ]] \
+  && ok || no "exhausted-outcome ignores its arguments and never writes to stderr (${problems#; })"
+
 finish
