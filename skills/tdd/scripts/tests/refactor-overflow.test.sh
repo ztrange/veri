@@ -260,4 +260,26 @@ overflow_case "with <skipped-file> missing" 2 504 "$owed_file" 1 "$work/no-such-
 
 report "$name"
 
+name="refactor-overflow's refusals exit 2 with exactly their usage or no-such-skipped-file line on stderr, nothing on stdout and no gh call"
+problems=()
+
+usage_line="refactor-overflow: usage: refactor-overflow.sh <n> <owed-file> <reached>"
+refusal_case() {
+  local label="$1" want_err="$2" got_err
+  shift 2
+  overflow_case "$label" 2 "$@"
+  got_err="$(cat "$work/err")"
+  [[ "$got_err" == "$want_err" ]] ||
+    problems+=("want exactly '$want_err' on stderr $label, got '$got_err'")
+}
+
+refusal_case "with no argument" "$usage_line"
+refusal_case "on a non-numeric <n>" "$usage_line" five-oh-four "$owed_file" 1
+refusal_case "on a non-numeric <reached>" "$usage_line" 504 "$owed_file" two
+refusal_case "on an empty <owed-file>" "$usage_line" 504 "" 1
+refusal_case "with <skipped-file> missing" "refactor-overflow: no such skipped file: $work/no-such-skipped-file" \
+  504 "$owed_file" 1 "$work/no-such-skipped-file"
+
+report "$name"
+
 finish
