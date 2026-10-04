@@ -1,13 +1,12 @@
 """wait-ci.sh's logic, run in-process."""
 import json
-import subprocess
 import sys
 
 try:
-    from github import gh_rest_list
+    from github import _gh_api, gh_rest_list
     from json_documents import documents
 except ImportError:
-    from .github import gh_rest_list
+    from .github import _gh_api, gh_rest_list
     from .json_documents import documents
 
 USAGE = "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]"
@@ -15,8 +14,7 @@ PASSING = ("success", "neutral", "skipped")
 
 
 def pr_head(repo, pr):
-    run = subprocess.run(["gh", "api", "repos/%s/pulls/%s" % (repo, pr.rsplit("/pull/", 1)[-1])],
-                         stdout=subprocess.PIPE, text=True)
+    run = _gh_api("repos/%s/pulls/%s" % (repo, pr.rsplit("/pull/", 1)[-1]))
     if run.returncode != 0:
         return ""
     return json.loads(run.stdout)["head"]["sha"]
@@ -24,8 +22,7 @@ def pr_head(repo, pr):
 
 def sha_state(repo, sha):
     runs = gh_rest_list("repos/%s/commits/%s/check-runs" % (repo, sha), r'"check_runs": *\[ *\]')
-    statuses = subprocess.run(["gh", "api", "repos/%s/commits/%s/status" % (repo, sha)],
-                              stdout=subprocess.PIPE, text=True).stdout
+    statuses = _gh_api("repos/%s/commits/%s/status" % (repo, sha)).stdout
     docs = documents(runs + statuses)
     states = [s["state"] for s in docs[-1].get("statuses")]
     outcomes = [r.get("conclusion") for p in docs[:-1] for r in p.get("check_runs")]
