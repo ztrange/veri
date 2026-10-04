@@ -168,4 +168,26 @@ else
   echo "FAIL - $name (exit want 2 got $code; stdout='$(tr '\n' '|' < "$bad_out")' want '')"
 fi
 
+noargdir="$stubdir/no-arg"
+mkdir -p "$noargdir"
+cat > "$noargdir/gh" <<'STUB'
+#!/bin/sh
+printf '%s\n' "$*" >> "$GH_CALLS"
+STUB
+chmod +x "$noargdir/gh"
+
+noarg_out="$stubdir/no-arg-out"; noarg_err="$stubdir/no-arg-err"; noarg_calls="$stubdir/no-arg-calls"
+rm -f "$noarg_calls"
+env PATH="$noargdir:$PATH" GH_CALLS="$noarg_calls" \
+  "$WRAP" > "$noarg_out" 2> "$noarg_err" && code=0 || code=$?
+
+name="with no argument, exits 2 with nothing on stdout, the usage line alone on stderr, and no gh call"
+problems=()
+[[ "$code" == 2 ]] || problems+=("exit want 2 got $code")
+[[ ! -s "$noarg_out" ]] || problems+=("stdout='$(tr '\n' '|' < "$noarg_out")' want ''")
+[[ "$(cat "$noarg_err")" == "usage: tick-issue-criterion.sh <issue-number> <matcher>" ]] \
+  || problems+=("stderr='$(tr '\n' '|' < "$noarg_err")' want 'usage: tick-issue-criterion.sh <issue-number> <matcher>'")
+[[ ! -e "$noarg_calls" ]] || problems+=("gh calls='$(tr '\n' '|' < "$noarg_calls")' want none")
+report "$name"
+
 finish
