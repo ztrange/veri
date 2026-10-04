@@ -2,3 +2,5 @@
 - test-only | no-permission-bits.test.sh: the per-plant "named / not named" loop is written out four times (lines 74-77, 105-108, 147-149, 173-176). One helper, e.g. `plant_named <plant-line> <file>`, could replace all four. It is not applied because it changes only a file under tests/.
 - test-only | no-permission-bits.test.sh: `probe_a_planted_chmod_with_a_flag` (lines 164-178, written this cycle) repeats `probe_a_planted_chmod_000` (lines 65-79) except for the plant line and the variable name in its setup line. One single-plant probe that takes the plant line as an argument could serve both.
 - test-only | no-permission-bits.test.sh: `PLANT_CHMOD_ZERO` (line 121) holds the same string as `PLANT_CHMOD_000` (line 63), so one of them could go.
+### The guard also fails naming `<suite>:<line>` for a suite that makes a directory read-only to force a write failure into it ⟦criterion 2⟧
+- test-only | fold probe_a_planted_read_only_dir (the single 555 plant) into PLANT_READ_ONLY_DIR_MODES so one mode-list probe covers 555, a-w, 500 and u=rx
