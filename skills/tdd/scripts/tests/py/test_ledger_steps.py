@@ -57,3 +57,38 @@ def test_main_refuses_with_2_and_the_usage_line_exits_3_for_no_current_step_and_
             "3\topen\tfull-suite\t0\t0\t2\tmake test is green ⟦full-suite⟧ ⟦criterion 2⟧\n"
         ).encode(), b""),
     }
+
+
+def test_current_prints_the_first_pending_step_with_the_mark_cut_else_the_first_open_step_or_diff_checked_step(
+        monkeypatch, capsysbinary, ledger_steps):
+    ledgers = {
+        "pending": (
+            "- [x] a cog exists ⟦criterion 1⟧\n"
+            "- [ ] the cog turns ⟦replaces-case⟧ ⟦criterion 6⟧\n"
+            "- [x] the cog is oiled ⟦criterion 2⟧ ⟂ refactor pending\n"
+            "- [x] the cog is greased ⟦criterion 3⟧ ⟂ refactor pending\n"
+        ),
+        "replaces-case": (
+            "- [x] a cog exists ⟦criterion 1⟧\n"
+            "- [ ] the PR body lists the cogs ⟦human-owed⟧ ⟦criterion 2⟧\n"
+            "- [ ] make test is green ⟦full-suite⟧ ⟦criterion 2⟧\n"
+            "- [ ] the cog turns ⟦replaces-case⟧ ⟦criterion 6⟧\n"
+            "- [ ] the cog stops ⟦criterion 7⟧\n"
+        ),
+        "diff-checked": (
+            "- [ ] the PR body lists the cogs ⟦human-owed⟧ ⟦criterion 2⟧\n"
+            "- [ ] the cog is unchanged ⟦diff-checked⟧ ⟦criterion 3⟧\n"
+            "- [ ] the cog stops ⟦criterion 7⟧\n"
+        ),
+    }
+    results = {}
+    for name, ledger in ledgers.items():
+        fake_stdin(monkeypatch, ledger.encode())
+        code = ledger_steps.main(["current"])
+        results[name] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        "pending": (0, "the cog is oiled ⟦criterion 2⟧\n".encode(), b""),
+        "replaces-case": (0, "the cog turns ⟦replaces-case⟧ ⟦criterion 6⟧\n".encode(), b""),
+        "diff-checked": (0, "the cog is unchanged ⟦diff-checked⟧ ⟦criterion 3⟧\n".encode(), b""),
+    }
