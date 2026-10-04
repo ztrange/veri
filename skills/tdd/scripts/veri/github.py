@@ -88,5 +88,8 @@ def gh_issue_edit(number, body_file):
 
 
 def gh_issue_create(title, body):
-    return _gh("api", _ISSUES, "-f", "title=%s" % title,
-               "-f", "body=%s" % body, "-q", ".html_url").stdout
+    run = _gh("api", _ISSUES, "-f", "title=%s" % title,
+              "-f", "body=%s" % body, "-q", ".html_url")
+    if run.returncode != 0:
+        raise NoAnswer("")
+    return run.stdout

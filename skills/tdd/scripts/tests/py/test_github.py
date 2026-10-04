@@ -439,6 +439,30 @@ def test_gh_issue_create_runs_only_the_rest_create_call_and_answers_its_stdout(m
     assert calls == [list(create)]
 
 
+def test_gh_issue_create_is_a_no_answer_with_gh_stderr_passed_through_when_the_create_fails(monkeypatch, capsys, github):
+    create = ("gh", "api", "repos/{owner}/{repo}/issues", "-f", "title=T", "-f", "body=B", "-q", ".html_url")
+    refusal = "gh: HTTP 422: Validation Failed (https://api.github.com/repos/o/r/issues)\n"
+    calls = []
+
+    def fake_run(args, **kwargs):
+        calls.append(list(args))
+        if tuple(args) != create:
+            raise AssertionError("unexpected command: %r" % (args,))
+        if kwargs.get("stderr") is None:
+            sys.stderr.write(refusal)
+        return subprocess.CompletedProcess(
+            args, 1, "" if kwargs.get("stdout") == subprocess.PIPE else None,
+            refusal if kwargs.get("stderr") == subprocess.PIPE else None)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    with pytest.raises(github.NoAnswer):
+        github.gh_issue_create("T", "B")
+
+    assert calls == [list(create)]
+    assert capsys.readouterr().err == refusal
+
+
 def test_gh_json_answers_the_fixture_file_contents_and_makes_no_subprocess_call_when_veri_gh_json_is_set(monkeypatch, tmp_path, github):
     fixture = '[{"number":7,"title":"A thing"}]\n'
     (tmp_path / "prs.json").write_text(fixture)
