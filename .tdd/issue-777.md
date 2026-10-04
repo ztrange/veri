@@ -6,4 +6,4 @@
 - [ ] ensure-run-state-ignored.sh writes both files or neither: when the .gitignore write fails, info/exclude is left byte-identical and it exits 2 ⟦criterion 3⟧
 - [ ] coverage-blocker.sh run a second time for the same refactor issue, after a first run that filed the coverage issue and then failed, files no second coverage issue, prints the existing one's URL and blocks the refactor issue on it ⟦criterion 4⟧
 - [ ] every case the four scripts' suites already hold passes ⟦full-suite⟧ ⟦criterion 5⟧
-- [ ] no assertion of any case the four scripts' suites already held is changed or removed by this branch ⟦diff-checked⟧ ⟦criterion 5⟧
+- [ ] no assertion of any case the four scripts' suites already held is changed or removed by this branch, except a case asserting one of the four named bugs, whose expectation flips to the fixed behaviour and nothing else ⟦diff-checked⟧ ⟦criterion 5⟧
