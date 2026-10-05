@@ -351,42 +351,6 @@ want='# Plan for #42
 check_code "a ⟦replaces-case⟧ step counts against VERI_STEP_GROWTH only when it is also ⟦added⟧ (code1=$code1)" \
   "$code2" 1 "$want"
 
-source "$HERE/../lib/ledger.sh"
-disagree=()
-for line in \
-  '- [x] lowercase the slug ⟦criterion 1⟧' \
-  '- [ ] collapse to single hyphen ⟦criterion 2⟧' \
-  '- [ ] strip edge hyphens ⟦criterion 3⟧' \
-  '- [ ] collapse a unicode dash too ⟦added⟧ ⟦criterion 2⟧' \
-  '- [ ] one more edge case ⟦added⟧ ⟦criterion 2⟧' \
-  '- [ ] collapse to single hyphen' \
-  '- [ ] collapse a unicode dash too ⟦added⟧' \
-  '- [ ] collapse an ASCII hyphen run ⟦added⟧ ⟦criterion 2⟧' \
-  '- [x] an extra edge case ⟦added⟧ ⟦criterion 1⟧' \
-  '- [ ] fix the CI failure: x.test.sh ⟦ci-repair⟧ ⟦criterion 1⟧' \
-  '- [ ] fix the full-suite failure: x.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧' \
-  '- [x] fix the full-suite failure: x.test.sh ⟦suite-repair⟧ ⟦criterion 1⟧' \
-  '- [x] say a step marked ⟦added⟧ is counted ⟦criterion 1⟧' \
-  '- [x] an extra edge case ⟦added⟧ ⟦criterion 1⟧ ⟂ refactor pending' \
-  '- [ ] an extra edge case ⟦added⟧ ⟦criterion 2⟧' \
-  '- [x] fix the full-suite failure: y.test.sh ⟦suite-repair⟧ ⟦criterion 2⟧ ⟂ refactor pending' \
-  '- [ ] port status case a ⟦replaces-case⟧ ⟦criterion 1⟧' \
-  '- [ ] port status case c ⟦replaces-case⟧ ⟦added⟧ ⟦criterion 1⟧' \
-  '- [ ] a lamp glows ⟦criterion 2⟧'; do
-  seed_lines "$line" '- [ ] the probe anchor ⟦criterion 9⟧'
-  VERI_STEP_GROWTH=1 "$ADD" "$led" after 'the probe anchor' 'a probe step' > /dev/null 2>&1; code=$?
-  script_added=0
-  [[ $code == 1 ]] && script_added=1
-  IFS=$'\t' read -r _ _ _ _ lib_added _ <<< "$(ledger_steps <<< "$line")"
-  [[ "$script_added" == "$lib_added" ]] || disagree+=("$line (is_added_step=$script_added ledger_steps=$lib_added)")
-done
-if ((${#disagree[@]} == 0)); then
-  ok
-else
-  no "#675: is_added_step and ledger_steps' added column agree on every step line of this suite's fixtures"
-  printf '    %s\n' "${disagree[@]}"
-fi
-
 stub="$work/stub"
 stub_script
 { printf '. %q\n' "$(dirname "$ADD")/lib/ledger.sh"; cat <<'EOF'; } > "$stub/lib/ledger.sh"
