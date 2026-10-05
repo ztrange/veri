@@ -46,6 +46,8 @@ def default_branch():
         m = re.match(r"ref: refs/heads/(\S+)\s+HEAD$", line)
         if m:
             return m.group(1)
+    print("invisible-work.sh: no refs/remotes/origin/HEAD and origin names no default branch",
+          file=sys.stderr)
     raise GitFailed()
 
 
