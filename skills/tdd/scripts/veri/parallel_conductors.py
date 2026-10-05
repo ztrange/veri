@@ -58,6 +58,8 @@ class _Conductor:
 
     def _watch_context(self, lines):
         for line in lines:
+            if self.stopped:
+                return
             if self.armed and b'"type":"user"' in line:
                 self.armed = False
                 try:

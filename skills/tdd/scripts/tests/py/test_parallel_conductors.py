@@ -884,3 +884,69 @@ def test_the_log_is_followed_as_bytes_waiting_veri_poll_seconds_for_it_joining_a
     assert (slept, [line for line in out.splitlines() if line.startswith("context ")]) == (
         [3.0, 3.0], ["context 7 101", "context 7 202"])
     assert code in (0, 1, 2, 3)
+
+
+def test_a_stopped_conductor_s_context_is_no_longer_watched_and_the_conductor_beside_it_is_never_stopped(
+        capsys, monkeypatch, tmp_path, parallel_conductors):
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("VERI_PARALLEL", "2")
+    monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", "50")
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(gh))
+    work = tmp_path / "repo"
+    (work / ".tdd").mkdir(parents=True)
+    monkeypatch.chdir(work)
+    logs = {n: work / ".tdd" / ("conductor-%s.log" % n) for n in ("7", "8")}
+    step_done = (b'{"type":"assistant","message":{"content":[{"type":"tool_use","input":{"command":'
+                 b'"skills/tdd/scripts/event.sh step-done 3"}}],"usage":{"cache_creation_input_tokens":1,'
+                 b'"cache_read_input_tokens":100}}}\n')
+    beside = b'{"type":"assistant","message":{"usage":{"cache_creation_input_tokens":0,"cache_read_input_tokens":900}}}\n'
+    later = b'{"type":"assistant","message":{"usage":{"cache_creation_input_tokens":0,"cache_read_input_tokens":500}}}\n'
+    user = b'{"type":"user","message":{"content":[{"type":"tool_result","content":"ok"}]}}\n'
+    launches, sleeps = [], [0]
+
+    def on_launch(sup):
+        n = sup.args[-1]
+        launches.append(n)
+        sup.pid = 1000 + int(n) + 100 * (launches.count(n) - 1)
+        if launches.count(n) > 1:
+            logs[n].write_bytes(b"")
+            sup.exit(0)
+        else:
+            logs[n].write_bytes(step_done if n == "7" else beside)
+
+    def on_sleep(supervisors):
+        sleeps[0] += 1
+        if sleeps[0] == 1:
+            for n in ("7", "8"):
+                with open(logs[n], "ab") as f:
+                    f.write(user)
+        elif sleeps[0] == 2:
+            with open(logs["7"], "ab") as f:
+                f.write(later + step_done + user)
+            with open(logs["8"], "ab") as f:
+                f.write(beside + user)
+        elif sleeps[0] == 3:
+            supervisors[0].exit(143)
+            supervisors[1].exit(0)
+
+    supervisors = _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7 8\n"))
+    sent = []
+
+    def recording_kill(pid, sig):
+        sent.append((pid, sig))
+        if not [s for s in supervisors if s.pid == pid and s.returncode is None]:
+            raise ProcessLookupError(pid)
+
+    monkeypatch.setattr(os, "kill", recording_kill)
+
+    code = parallel_conductors.main([])
+    out, _ = capsys.readouterr()
+
+    assert ([s for s in sent if s[1] == signal.SIGTERM],
+            [line for line in out.splitlines() if line.startswith(("context ", "restarted "))]) == (
+        [(1007, signal.SIGTERM)], ["context 7 101", "context 8 900", "context 8 900", "restarted 7"])
+    assert code in (0, 1, 2, 3)
