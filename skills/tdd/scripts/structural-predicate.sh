@@ -11,19 +11,15 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/exit-contract.sh"
+source "$HERE/lib/report.sh"
 USAGE="usage: structural-predicate.sh <record>"
 require_args 1 "$@"
 record="$1"
 
-predicate=""
-seen=0
-while IFS= read -r line; do
-  case "$line" in
-    PREDICATE:*) predicate="${line#PREDICATE:}"; predicate="${predicate# }"; seen=1 ;;
-  esac
-done
+unset predicate
+report_read --optional-space --terminated-only PREDICATE predicate
 
-if (( ! seen )); then
+if [[ ! -v predicate ]]; then
   echo "structural-predicate.sh: the report carries no PREDICATE: line" >&2
   exit 2
 fi
