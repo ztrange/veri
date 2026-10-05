@@ -83,9 +83,9 @@ def ci_bound(repo, n=5):
 def pr_head(repo, pr):
     run = _gh_api("repos/%s/pulls/%s" % (repo, pr.rsplit("/pull/", 1)[-1]))
     if run.returncode != 0:
-        return None, ""
+        return None, "", False
     pull = json.loads(run.stdout)
-    return pull.get("mergeable"), pull["head"]["sha"] or ""
+    return pull.get("mergeable"), pull["head"]["sha"] or "", bool(pull.get("draft"))
 
 
 def sha_state(repo, sha):
@@ -150,7 +150,7 @@ def main(argv):
     deadline = ""
     while True:
         try:
-            mergeable, head = pr_head(repo, pr)
+            mergeable, head, draft = pr_head(repo, pr)
         except Exception:
             traceback.print_exc()
             head = ""
@@ -192,6 +192,8 @@ def main(argv):
                     if deadline is None:
                         warn("deadline file %s is unreadable or not a non-negative whole number" % mark)
                         return 2
+                elif draft:
+                    deadline = str(slice_end)
                 else:
                     deadline = str(now + arith(total, scope))
                     record(mark, deadline)
