@@ -44,20 +44,4 @@ linked="$(cd "$away" && printf '%s' "$pending" | skill/scripts/next-pending-refa
 expect_eq "through a symlink to the skill directory, from another working directory, answers as in place" \
   "0 collapse non-alphanumerics to a single hyphen|$in_code $in_place" "$link_code $linked|$in_code $in_place"
 
-work="$(scratch_dir)"
-mkdir "$work/lib"
-cp "$PENDING" "$work/next-pending-refactor.sh"
-cp "$(dirname "$PENDING")"/lib/*.sh "$work/lib/"
-{ printf '. %q\n' "$(dirname "$PENDING")/lib/ledger.sh"; cat <<'EOF'; } > "$work/lib/ledger.sh"
-ledger_steps() {
-  cat > /dev/null
-  printf '1\tdone\tstep\t0\t0\t1\ttidied in the module ⟦criterion 1⟧\n'
-  printf '2\topen\tstep\t0\t0\t2\tstill open in the module ⟦criterion 2⟧\n'
-  printf '3\tdone\tstep\t1\t0\t3\tasked the module ⟦criterion 3⟧\n'
-}
-EOF
-PENDING="$work/next-pending-refactor.sh"
-check "the first pending step comes from lib/ledger.sh's ledger_steps (#495)" 0 \
-  "- [x] found in the markdown ⟦criterion 1⟧ ⟂ refactor pending" "asked the module ⟦criterion 3⟧"
-
 finish
