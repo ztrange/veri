@@ -39,7 +39,6 @@ def main(argv):
             full.append(float(dollars))
     if not full:
         return 3
-    full.sort()
     middle = len(full) // 2
     median = full[middle] if len(full) % 2 else (full[middle - 1] + full[middle]) / 2
     n = float(remaining)
