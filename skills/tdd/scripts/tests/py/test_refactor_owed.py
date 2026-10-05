@@ -45,3 +45,26 @@ def test_main_refuses_a_missing_argument_or_unknown_verb_with_the_usage_text_and
     monkeypatch.setattr(sys, "stdin", io.StringIO("CANDIDATES: structural | x\n"))
     code = refactor_owed.main(["append", str(owed), "S"])
     assert code == 0
+
+
+def test_append_writes_a_test_only_line_under_the_step_as_test_only_candidate_answers_and_no_other_class_as_test_only(
+        monkeypatch, tmp_path, refactor_owed):
+    step = "append records a test-only candidate as test_only_candidate answers it"
+    for line, transform in (
+            ("CANDIDATES: test-only | fold the two fixtures into one", "fold the two fixtures into one"),
+            ("CANDIDATES: structural | extract the parser", None),
+            ("CANDIDATES: cosmetic | rename x to count", None),
+            ("CANDIDATES: none", None)):
+        owed = tmp_path / "owed.md"
+        if owed.exists():
+            owed.unlink()
+        monkeypatch.setattr(sys, "stdin", io.StringIO(line + "\n"))
+        code = refactor_owed.main(["append", str(owed), step])
+        text = owed.read_text() if owed.exists() else ""
+        assert (line, code) == (line, 0)
+        if transform is None:
+            assert (line, [l for l in text.splitlines() if l.startswith("- test-only | ")]) == (line, [])
+            if not line.startswith("CANDIDATES: structural"):
+                assert (line, owed.exists()) == (line, False)
+        else:
+            assert (line, text) == (line, f"### {step}\n- test-only | {transform}\n")
