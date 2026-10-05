@@ -779,3 +779,193 @@ def test_main_renders_per_phase_revise_cells_the_by_step_kind_and_the_note_namin
     assert not note.startswith("#")
     for word in ("turns", "dollars", "comparable", "VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER"):
         assert word in note
+
+
+def test_main_renders_per_pass_refactor_rows_and_the_structural_pass_section_with_its_stops_and_inconsistent_marks(tmp_path, monkeypatch, capsys, metrics):
+    def report(name, events):
+        root = tmp_path / name
+        root.mkdir()
+        write_log(root, events)
+        monkeypatch.chdir(root)
+        return render(metrics, capsys)
+
+    def mark(step, ts, transforms, budget, stopped, index=None):
+        fields = dict(transforms=transforms, budget=budget, stopped=stopped)
+        if index is not None:
+            fields["pass"] = index
+        return conductor(step, ts, "refactor", "refactor", **fields)
+
+    def verdict(step, ts, phase, attempt, said):
+        return leaf(step, ts, "verifier", phase, attempt, 0, verdict=said)[-1:]
+
+    def passes(out, step, columns):
+        return {row["pass"]: [row[c] for c in columns] for row in table(out, "#### By refactor pass")
+                if row["step"] == step}
+
+    def money(cells):
+        return [cells[0], float(cells[1]), float(cells[2])]
+
+    def usage(dollars):
+        return cost(3, dollars, (100, 200, 300, 400))
+
+    twice = report("twice", conductor("t", 50000, "step-start")
+                   + leaf("t", 50002, "developer", "refactor", 1, 6)
+                   + mark("t", 50010, "2", "5", "nothing-structural", "1")
+                   + leaf("t", 50012, "verifier", "refactor", 1, 4, verdict="PASS")
+                   + leaf("t", 50102, "developer", "refactor", 2, 6)
+                   + mark("t", 50110, "1", "5", "structural-owed", "2")
+                   + leaf("t", 50112, "verifier", "refactor", 2, 4, verdict="PASS")
+                   + conductor("t", 50120, "step-done"))
+    assert passes(twice, "t", ["refactor", "stopped"]) == {"1": ["2/5", "nothing-structural"],
+                                                          "2": ["1/5", "structural-owed"]}
+
+    once = report("once", conductor("u", 60000, "step-start") + leaf("u", 60002, "developer", "refactor", 1, 6)
+                  + mark("u", 60010, "3", "5", "structural-owed") + conductor("u", 60020, "step-done")
+                  + conductor("i", 61000, "step-start") + leaf("i", 61002, "developer", "refactor", 1, 6)
+                  + mark("i", 61010, "1", "4", "nothing-structural", "1") + conductor("i", 61020, "step-done"))
+    assert cells(once, "#### By step", ["refactor", "stopped"]) == {"u": ["3/5", "structural-owed"],
+                                                                     "i": ["1/4", "nothing-structural"]}
+    assert [row["step"] for row in table(once, "#### By refactor pass")] == ["u", "i"]
+
+    def two_pass_log(step, order, ending=None):
+        def pass_mark(ts, *fields):
+            return mark(step, ts, *fields)
+
+        first, second = ("2", "5", "nothing-structural", "1"), ("1", "5", "structural-owed", "2")
+        events = conductor(step, 70000, "step-start")
+        events += leaf(step, 70001, "developer", "green", 1, 9, usage=usage("0.70"))
+        events += leaf(step, 70002, "developer", "refactor", 1, 6, usage=usage("0.30"))
+        events += pass_mark(70010, *first) if order == "mark-first" else []
+        events += leaf(step, 70012, "verifier", "refactor", 1, 4, usage=usage("0.20"), verdict="PASS")
+        events += pass_mark(70017, *first) if order == "verdict-first" else []
+        events += leaf(step, 70050, "developer", "green", 2, 8, usage=usage("0.60"))
+        events += leaf(step, 70102, "developer", "refactor", 2, 7, usage=usage("0.25"))
+        events += pass_mark(70110, *second) if order == "mark-first" else []
+        events += leaf(step, 70112, "verifier", "refactor", 2, 5, usage=usage("0.15"), verdict="REJECT")
+        events += pass_mark(70118, *second) if order == "verdict-first" else []
+        events += leaf(step, 70119, "verifier", "green", 2, 1, usage=usage("0.05"), verdict="PASS")
+        if ending is None or ending == "bail":
+            events += conductor(step, 70121, "bail", cause="revise-exhausted", classification="process")
+        elif ending == "done":
+            events += conductor(step, 70122, "done", pr="https://github.com/ztrange/veri/pull/999")
+        else:
+            events += conductor(step, 70122, "stop", "refactor", mode="at-ledger", at="refactor")
+        return events
+
+    COSTED = ["verdict", "wall s", "$"]
+    for order in ("mark-first", "verdict-first"):
+        costed = report(order, two_pass_log("c", order))
+        assert {index: money(row) for index, row in passes(costed, "c", COSTED).items()} == {
+            "1": ["PASS", 10.0, 0.50], "2": ["REJECT", 12.0, 0.40]}
+
+    revised = report("revised", conductor("r", 80000, "step-start")
+                     + verdict("r", 80010, "refactor", 1, "REJECT")
+                     + conductor("r", 80011, "revise", "refactor", attempt="1", budget="3")
+                     + verdict("r", 80020, "refactor", 2, "PASS")
+                     + mark("r", 80021, "2", "5", "nothing-structural", "1")
+                     + verdict("r", 80030, "green", 2, "REJECT")
+                     + conductor("r", 80031, "revise", "green", attempt="1", budget="3")
+                     + verdict("r", 80040, "green", 3, "PASS")
+                     + verdict("r", 80050, "refactor", 3, "REJECT")
+                     + conductor("r", 80051, "revise", "refactor", attempt="1", budget="3")
+                     + verdict("r", 80060, "refactor", 4, "REJECT")
+                     + conductor("r", 80061, "revise", "refactor", attempt="2", budget="3")
+                     + verdict("r", 80070, "refactor", 5, "PASS")
+                     + mark("r", 80071, "1", "5", "structural-owed", "2")
+                     + conductor("r", 80072, "step-done"))
+    assert passes(revised, "r", ["revise"]) == {"1": ["1"], "2": ["2"]}
+
+    looped = report("looped", conductor("l", 90000, "step-start")
+                    + leaf("l", 90002, "developer", "refactor", 1, 6, usage=usage("0.30"))
+                    + leaf("l", 90010, "verifier", "refactor", 1, 4, usage=usage("0.20"), verdict="REJECT")
+                    + mark("l", 90015, "2", "5", "nothing-structural", "1")
+                    + conductor("l", 90016, "revise", "refactor", attempt="1", budget="3")
+                    + leaf("l", 90017, "developer", "refactor", 2, 5, usage=usage("0.10"))
+                    + leaf("l", 90023, "verifier", "refactor", 2, 3, usage=usage("0.05"), verdict="PASS")
+                    + leaf("l", 90050, "developer", "green", 2, 8, usage=usage("0.60"))
+                    + leaf("l", 90060, "developer", "refactor", 3, 7, usage=usage("0.25"))
+                    + leaf("l", 90068, "verifier", "refactor", 3, 2, usage=usage("0.15"), verdict="PASS")
+                    + mark("l", 90071, "1", "5", "nothing-left", "2")
+                    + conductor("l", 90072, "step-done"))
+    assert {index: money(row) for index, row in passes(looped, "l", COSTED).items()} == {
+        "1": ["PASS", 18.0, 0.65], "2": ["PASS", 9.0, 0.40]}
+    assert passes(looped, "l", ["revise"]) == {"1": ["1"], "2": ["0"]}
+
+    for ending in ("done", "bail", "stop"):
+        ended = report("ended-" + ending, two_pass_log("e", "verdict-first", ending))
+        assert ended.startswith("### 📊 Metrics — issue 108\n")
+        assert [line for line in ended.split("\n") if line.startswith("### ")] == ["### 📊 Metrics — issue 108"]
+        assert passes(ended, "e", ["refactor", "stopped"]) == {"1": ["2/5", "nothing-structural"],
+                                                              "2": ["1/5", "structural-owed"]}
+
+    def header(out, heading):
+        lines = out.split("\n")
+        return [cell.strip() for cell in lines[lines.index(heading) + 2].strip("|").split("|")]
+
+    headed = report("headed", two_pass_log("h", "verdict-first"))
+    assert {heading: header(headed, heading) for heading in
+            ("#### By phase", "#### Rework and waste, by phase", "#### By step", "#### Total")} == {
+        "#### By phase": ["phase", "attempts", "PASS", "REJECT", "kills", "wall s", "API s", "turns",
+                          "input", "output", "cache read", "cache creation", "$"],
+        "#### Rework and waste, by phase": ["phase", "rework wall s", "rework $", "waste wall s", "waste $"],
+        "#### By step": ["step", "attempts", "PASS", "REJECT", "kills", "retries", "no-verdict", "API s",
+                         "turns", "input", "output", "cache read", "cache creation", "$", "wall s",
+                         "revise", "refactor", "stopped", "crossed at", "split", "kind"],
+        "#### Total": ["run", "turns", "input", "output", "cache read", "cache creation", "$"],
+    }
+    assert header(headed, "#### Test-command seconds, by tier")[0] == "tier"
+    per_pass = header(headed, "#### By refactor pass")
+    assert per_pass[:2] == ["step", "pass"] and "kind" not in per_pass
+
+    def structural(name, fields, ending="done"):
+        events = (conductor("s", 80000, "step-start") + leaf("s", 80002, "developer", "refactor", 1, 6)
+                  + mark("s", 80010, "1", "5", "nothing-structural", "1") + conductor("s", 80020, "step-done"))
+        if fields is not None:
+            events += conductor("", 80030, "structural-pass", **fields)
+        if ending == "done":
+            events += conductor("", 80040, "done", pr="https://github.com/ztrange/veri/pull/999")
+        out = report(name, events)
+        assert cells(out, "#### By step", ["refactor"])["s"] == ["1/5"]
+        lines = out.split("\n")
+        if "#### Structural pass" not in lines:
+            return out, None
+        at = lines.index("#### Structural pass") + 1
+        end = next((i for i in range(at, len(lines)) if lines[i].startswith("#")), len(lines))
+        return out, [line for line in lines[at:end] if line]
+
+    def inconsistent(section):
+        return [line for line in section if "inconsistent" in line.lower()]
+
+    spent = dict(transforms="3", budget="10", stopped="budget-spent")
+    assert structural("present", spent)[1][:3] == ["| pass | refactor | stopped |", "| --- | ---: | --- |",
+                                                    "| issue | 3/10 | budget-spent |"]
+    assert structural("absent", None, ending=None)[1] is None
+
+    bare_out, bare = structural("bare", dict(stopped="nothing-structural"))
+    assert bare == ["Stopped: nothing-structural"]
+    assert "#### Total" in bare_out.split("\n")
+
+    unspent = inconsistent(structural("unspent", dict(transforms="0", budget="10", stopped="budget-spent"))[1])
+    assert len(unspent) == 1 and {"0", "10"} <= set(re.findall(r"\b\d+\b", unspent[0]))
+    assert inconsistent(structural("all-spent", dict(transforms="10", budget="10", stopped="budget-spent"))[1]) == []
+
+    other = inconsistent(structural("other", dict(transforms="1", budget="3", stopped="test-files-only"))[1])
+    assert len(other) == 1 and "test-files-only" in other[0]
+
+    for name, fields in (("no-stop", dict(transforms="1", budget="3")),
+                         ("no-budget", dict(transforms="1", stopped="candidates-done")),
+                         ("neither", dict(budget="3"))):
+        out, section = structural(name, fields)
+        assert len(inconsistent(section)) == 1, name
+        assert "#### Total" in out.split("\n"), name
+
+    for name, fields, want in (
+            ("candidates", dict(transforms="2", budget="3", stopped="candidates-done"),
+             ["| pass | refactor | stopped |", "| --- | ---: | --- |", "| issue | 2/3 | candidates-done |"]),
+            ("whole", dict(transforms="3", budget="3", stopped="budget-spent"),
+             ["| pass | refactor | stopped |", "| --- | ---: | --- |", "| issue | 3/3 | budget-spent |"]),
+            ("nothing", dict(stopped="nothing-structural"), ["Stopped: nothing-structural"])):
+        assert structural(name, fields)[1] == want, name
+
+    unmarked = structural("unmarked", None)[1]
+    assert unmarked is not None and any("not marked" in line.lower() for line in unmarked)
