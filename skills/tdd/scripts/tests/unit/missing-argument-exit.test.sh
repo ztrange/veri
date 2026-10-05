@@ -139,8 +139,7 @@ migration_slice 2 cover-outcome.sh criterion-finished.sh \
   detach-command.sh detach-leaf.sh
 migration_slice 3 event.sh
 migration_slice 4 leaf-launchable.sh
-migration_slice 5 orchestrate.sh \
-  parallel-conductors.sh preserve-attempt.sh
+migration_slice 5 orchestrate.sh preserve-attempt.sh
 migration_slice 6 red-divergence.sh
 migration_slice 7 refactor-triage.sh run-conductor.sh \
   run-leaf.sh run-suite.sh
