@@ -29,12 +29,7 @@ alone, so no test is this step's deliverable.
    that objection — then commit that change, its subject ending in `(#<issue>)`.
 2. Add no test. A case that pins this criterion by reading another file's text or the git
    history is rejected.
-3. Run the fast command, `{{FAST_CMD}}`, then the suites that `affected-suites.sh` prints
-   for your change, each through the wrapper {{INCLUDE:_timed-test-run-tier.md}}:
-
-{{INCLUDE:_timed-test-run-fast-affected.md}}
-
-   Finish only when both runs are green.
+3. {{INCLUDE:_develop-diff-run-fast-affected.md}}
 4. If the objection **cannot** be met — the criterion is already satisfied, or the reason
    asks for something the step cannot deliver — report `IMPOSSIBLE` and say why.
 
