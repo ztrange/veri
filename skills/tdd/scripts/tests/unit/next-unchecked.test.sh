@@ -104,6 +104,17 @@ diff_checked_ledger='# Plan for #42
 - [ ] pin the second step ⟦criterion 2⟧'
 check "an open ⟦diff-checked⟧ line is handed to a leaf, not skipped like ⟦full-suite⟧ (#727)" 0 "$diff_checked_ledger" "the dead counted line is gone ⟦diff-checked⟧ ⟦criterion 1⟧"
 
+linked="$(scratch_dir)"
+ln -s "$(cd "$HERE/../../.." && pwd)" "$linked/skill"
+mkdir "$linked/elsewhere"
+name="run through a symlink to the skill directory from another directory, answers as in place"
+want="collapse non-alphanumerics to a single hyphen"
+got="$(cd "$linked/elsewhere" && printf '%s' "$ledger" | ../skill/scripts/next-unchecked.sh)" && code=0 || code=$?
+if [[ "$code" == 0 && "$got" == "$want" ]]; then ok; else
+  no "$name (want exit 0, got $code)"
+  diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
+fi
+
 work="$(scratch_dir)"
 mkdir "$work/lib"
 cp "$NEXT" "$work/next-unchecked.sh"
