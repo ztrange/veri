@@ -6,8 +6,8 @@ from .ledger import CRITERION_TAG, new_step
 USAGE = "usage: add-ledger-step.sh <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]"
 
 
-def refuse():
-    sys.stderr.write(USAGE + "\n")
+def refuse(message):
+    sys.stderr.write(message + "\n")
     return 2
 
 
@@ -17,11 +17,10 @@ def criterion_of(line):
 
 def main(argv):
     if len(argv) < 4 or "" in argv[:3]:
-        return refuse()
+        return refuse(USAGE)
     path, where, anchor, *texts = argv
     if where != "after":
-        sys.stderr.write("add-ledger-step.sh: position must be after, before or instead-of: %s\n" % where)
-        return 2
+        return refuse("add-ledger-step.sh: position must be after, before or instead-of: " + where)
     with open(path, "rb") as f:
         lines = f.read().decode().split("\n")
     out = []
