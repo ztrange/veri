@@ -870,4 +870,15 @@ rendered="$("$dangling/build-verify-prompt.sh" red "$work/spec.md" "$testpath" t
 named=""; grep -F "$dangling/prompts/_probe-absent.md" "$dangling/err" > /dev/null && named=named
 expect_eq "$name" "2:named:" "$code:$named:$rendered"
 
+name="#703 a partial that includes itself through another partial exits 2 naming that partial on stderr, with nothing on stdout, rather than looping"
+cycle="$(scratch_dir)"
+cp -R "$BUILD" "$HERE/../lib" "$HERE/../prompts" "$cycle/"
+printf 'before {{INCLUDE:_probe-cycle-a.md}} after\n' > "$cycle/prompts/verify-red.md"
+printf 'a {{INCLUDE:_probe-cycle-b.md}}\n' > "$cycle/prompts/_probe-cycle-a.md"
+printf 'b {{INCLUDE:_probe-cycle-a.md}}\n' > "$cycle/prompts/_probe-cycle-b.md"
+# hazard: a looping builder never returns; the CPU-time limit ends it instead of the suite.
+rendered="$(ulimit -t 2; "$cycle/build-verify-prompt.sh" red "$work/spec.md" "$testpath" test_slugify_lowercases 2>"$cycle/err")"; code=$?
+named=""; grep -F "_probe-cycle-a.md" "$cycle/err" > /dev/null && named=named
+expect_eq "$name" "2:named:" "$code:$named:$rendered"
+
 finish
