@@ -1947,9 +1947,9 @@ supervisor** like every other:
 
 ```
 cp .tdd/issue-<n>.md .tdd/reconcile-ledger.before
-$S/build-develop-prompt.sh reconcile .tdd/issue-<n>-spec.md "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" '<test-cmd>' <branch> <remote-sha> > .tdd/develop-reconcile.prompt
+$S/build-develop-prompt.sh reconcile .tdd/issue-<n>-spec.md "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current || { cat .tdd/issue-<n>.md | $S/ledger-steps.sh last-done; })" '<test-cmd>' <branch> <remote-sha> > .tdd/develop-reconcile.prompt
 rm -f .tdd/develop-reconcile.exit .tdd/develop-reconcile.pid
-VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/detach-leaf.sh $S/supervise.sh develop-reconcile $S/run-leaf.sh .tdd/develop-reconcile.prompt --permission-mode bypassPermissions > .tdd/develop-reconcile.out 2> .tdd/develop-reconcile.err
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current || { cat .tdd/issue-<n>.md | $S/ledger-steps.sh last-done; })" $S/detach-leaf.sh $S/supervise.sh develop-reconcile $S/run-leaf.sh .tdd/develop-reconcile.prompt --permission-mode bypassPermissions > .tdd/develop-reconcile.out 2> .tdd/develop-reconcile.err
 $S/wait-leaf.sh develop-reconcile   # foreground; on exit 3 call it again
 ```
 
