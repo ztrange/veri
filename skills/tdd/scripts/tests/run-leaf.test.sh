@@ -168,4 +168,8 @@ leaf_env_lacks CLAUDE_CODE_SESSION_ID VERI_FAKE_CARRIER -- CLAUDE_CODE_SESSION_I
   VERI_FAKE_CARRIER=x-sess-933-fake-y
 report "strips a variable whose value contains the session id, and the id itself (#933)"
 
+leaf_env_lacks CLAUDE_CODE_REMOTE_SESSION_ID -- CLAUDE_CODE_SESSION_ID=sess-966-fake \
+  CLAUDE_CODE_REMOTE_SESSION_ID=remote-unrelated-value
+report "starts claude without CLAUDE_CODE_REMOTE_SESSION_ID, whose value need not contain the session id (#966)"
+
 finish
