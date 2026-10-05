@@ -23,6 +23,8 @@
 #      names no venv path.
 #  11. leaf-launchable.sh's Python-floor refusal, with no venv at $VERI_VENV, is today's one line and
 #      names no venv path.
+#  12. run-conductor.sh's and leaf-launchable.sh's Python-floor refusals, with a venv at $VERI_VENV
+#      whose own interpreter is also below the floor, are today's one line and name no venv path.
 #
 # Run: skills/tdd/scripts/tests/bash-version-guard.test.sh
 set -uo pipefail
@@ -163,6 +165,30 @@ lln_err="$(env VERI_BASH_MAJOR=5 VERI_PYTHON_VERSION=3.11.9 VERI_VENV="$work/no-
 [[ "$lln_err" == "leaf-launchable: veri needs Python 3.12 or newer; the python3 on PATH is version 3.11.9." ]] ||
   problems+=("want stderr to be exactly today's one-line refusal: $(flat "$lln_err")")
 [[ "$lln_err" != *"$work/no-venv"* ]] || problems+=("want stderr to name no venv path: $(flat "$lln_err")")
+report "$name"
+
+name="run-conductor.sh's and leaf-launchable.sh's Python-floor refusals, with a venv at \$VERI_VENV below the floor too, exit 2 with today's message and name no venv path (#936)"
+problems=()
+mkdir -p "$work/venv-old/bin" "$work/py-oldvenv-conductor"
+cat > "$work/venv-old/bin/python3" <<'P'
+#!/bin/sh
+case "$*" in *version_info*) exit 1 ;; *platform*) echo 3.11.2 ;; esac
+exit 0
+P
+chmod +x "$work/venv-old/bin/python3"
+po_err="$( cd "$work/py-oldvenv-conductor" && env VERI_BASH_MAJOR=5 VERI_PYTHON_VERSION=3.11.9 VERI_VENV="$work/venv-old" \
+    CLAUDE_BIN="$work/claude" LAUNCHED="$work/py-oldvenv-conductor/launched" "$SCRIPTS/run-conductor.sh" 4242 2>&1 >/dev/null )" &&
+  po_code=0 || po_code=$?
+[[ "$po_code" == 2 ]] || problems+=("run-conductor: want exit 2, got $po_code: $(flat "$po_err")")
+[[ "$po_err" == "run-conductor: veri needs Python 3.12 or newer; the python3 on PATH is version 3.11.9." ]] ||
+  problems+=("run-conductor: want stderr to be exactly today's one-line refusal: $(flat "$po_err")")
+[[ "$po_err" != *"$work/venv-old"* ]] || problems+=("run-conductor: want stderr to name no venv path: $(flat "$po_err")")
+llo_err="$(env VERI_BASH_MAJOR=5 VERI_PYTHON_VERSION=3.11.9 VERI_VENV="$work/venv-old" CLAUDE_BIN="$work/claude" \
+    LAUNCHED="$work/llo-launched" "$SCRIPTS/leaf-launchable.sh" 2>&1 >/dev/null)" && llo_code=0 || llo_code=$?
+[[ "$llo_code" == 2 ]] || problems+=("leaf-launchable: want exit 2, got $llo_code: $(flat "$llo_err")")
+[[ "$llo_err" == "leaf-launchable: veri needs Python 3.12 or newer; the python3 on PATH is version 3.11.9." ]] ||
+  problems+=("leaf-launchable: want stderr to be exactly today's one-line refusal: $(flat "$llo_err")")
+[[ "$llo_err" != *"$work/venv-old"* ]] || problems+=("leaf-launchable: want stderr to name no venv path: $(flat "$llo_err")")
 report "$name"
 
 if [[ -x /bin/bash ]] && [[ "$(/bin/bash -c 'echo "${BASH_VERSINFO[0]}"')" -lt 5 ]]; then
