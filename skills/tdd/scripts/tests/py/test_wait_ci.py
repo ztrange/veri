@@ -351,7 +351,7 @@ def test_main_reads_its_numeric_arguments_with_leading_zeros_as_decimal_and_refu
         ([PR, "60", "100", SHA], {mark: "abc\n"}, [1000], (2, "", refused, {mark: "abc\n"}, ["date +%s"])),
         ([PR, "60", "100", SHA], {mark: "5000 x\n"}, [1000],
          (2, "", refused, {mark: "5000 x\n"}, ["date +%s"])),
-        ([PR, "60", "100", SHA], {mark: locked}, [1000], (2, "", refused, {mark: "1100\n"}, ["date +%s"])),
+        ([PR, "60", "100", SHA], {mark: locked}, [1000], (2, "", refused, {}, ["date +%s"])),
         ([PR, "60", "120", SHA, "extra", "more"], {}, [1000, 1060],
          (3, "", "", {mark: "1120\n"}, tick + ["date +%s"])),
     ]
@@ -368,9 +368,10 @@ def test_main_reads_its_numeric_arguments_with_leading_zeros_as_decimal_and_refu
         work = tmp_path / str(i)
         (work / ".tdd").mkdir(parents=True)
         for name, text in marks.items():
-            (work / ".tdd" / name).write_text("1100\n" if text == locked else text)
             if text == locked:
-                (work / ".tdd" / name).chmod(0)
+                (work / ".tdd" / name).mkdir()
+            else:
+                (work / ".tdd" / name).write_text(text)
         monkeypatch.chdir(work)
         calls = []
         readings = iter(clock)
@@ -392,8 +393,6 @@ def test_main_reads_its_numeric_arguments_with_leading_zeros_as_decimal_and_refu
         captured = capsys.readouterr()
         err = None if expected[2] is None else (
             captured.err if isinstance(expected[2], str) else bool(captured.err))
-        for p in (work / ".tdd").rglob("*"):
-            p.chmod(0o644)
         recorded = {str(p.relative_to(work / ".tdd")): p.read_text()
                     for p in (work / ".tdd").rglob("*") if p.is_file()}
         observed.append((code, captured.out, err, recorded,
