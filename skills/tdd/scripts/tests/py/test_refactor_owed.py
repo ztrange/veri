@@ -118,3 +118,12 @@ def test_append_with_no_step_argument_writes_the_block_under_an_empty_step_headi
     code = refactor_owed.main(["append", str(owed)])
     written = owed.read_bytes() if owed.exists() else b""
     assert (code, written) == (0, b"### \n- x\n")
+
+
+def test_append_reading_the_real_stdin_as_bytes_keeps_a_crlf_lines_carriage_return_in_the_transform(
+        monkeypatch, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(b"CANDIDATES: structural | h\r\n")))
+    code = refactor_owed.main(["append", str(owed), "S"])
+    written = owed.read_bytes() if owed.exists() else b""
+    assert (code, written) == (0, b"### S\n- h\r\n")
