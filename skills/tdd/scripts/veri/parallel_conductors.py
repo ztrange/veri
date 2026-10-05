@@ -52,7 +52,12 @@ class _Conductor:
         for line in lines:
             if self.armed and b'"type":"user"' in line:
                 self.armed = False
-                if self.context > int(_ctx_budget()):
+                budget = _ctx_budget()
+                try:
+                    budget = int(budget, 8 if budget.startswith("0") else 10)
+                except ValueError:
+                    continue
+                if self.context > budget:
                     os.kill(self.sup.pid, signal.SIGTERM)
                     self.stopped = True
                 continue
