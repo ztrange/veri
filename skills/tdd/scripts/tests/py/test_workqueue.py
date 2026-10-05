@@ -555,8 +555,45 @@ def test_assign_refuses_short_empty_repeated_or_held_issues_appends_one_queued_l
     assert (code, out, err.startswith("mkdir: %s/.tdd: " % outside)) == (1, "", True)
     fake_git(monkeypatch, "")
     assert run(["show"])[:2] == (2, "")
-    with pytest.raises(FileNotFoundError):
-        workqueue.main(["next", "beta"])
+    assert run(["next", "beta"])[:2] == (2, "")
+
+
+def test_show_next_and_assign_with_an_empty_toplevel_exit_2_and_read_lock_and_write_nothing_under_the_filesystem_root_issue_898(tmp_path, monkeypatch, capsys, workqueue):
+    root = tmp_path / "root"
+    (root / ".tdd").mkdir(parents=True)
+    planted = root / ".tdd" / "workqueue"
+    planted.write_bytes(b"beta\t7\tqueued\t\n")
+    touched = []
+
+    def rooted(path):
+        if isinstance(path, str) and path.startswith("/.tdd"):
+            touched.append(path)
+            return str(root) + path
+        return path
+
+    real_open, real_mkdir, real_makedirs, real_rmdir, real_isfile = open, os.mkdir, os.makedirs, os.rmdir, os.path.isfile
+    monkeypatch.setattr(workqueue, "open", lambda path, *a, **k: real_open(rooted(path), *a, **k), raising=False)
+    monkeypatch.setattr(os, "mkdir", lambda path, *a, **k: real_mkdir(rooted(path), *a, **k))
+    monkeypatch.setattr(os, "makedirs", lambda path, *a, **k: real_makedirs(rooted(path), *a, **k))
+    monkeypatch.setattr(os, "rmdir", lambda path, *a, **k: real_rmdir(rooted(path), *a, **k))
+    monkeypatch.setattr(os.path, "isfile", lambda path: real_isfile(rooted(path)))
+    fake_git(monkeypatch, "")
+    fixture = tmp_path / "gh"
+    fixture.mkdir()
+    (fixture / "issues.json").write_text('[{"number": 7, "state": "OPEN", "body": ""}]')
+    monkeypatch.setenv("VERI_GH_JSON", str(fixture))
+
+    def run(argv):
+        code = workqueue.main(argv)
+        out, err = capsys.readouterr()
+        return code, out, err
+
+    assert run(["show"])[:2] == (2, "")
+    assert run(["next", "beta"])[:2] == (2, "")
+    assert run(["assign", "beta", "8"])[:2] == (2, "")
+    assert touched == []
+    assert planted.read_bytes() == b"beta\t7\tqueued\t\n"
+    assert sorted(p.name for p in (root / ".tdd").iterdir()) == ["workqueue"]
 
 
 def test_start_done_park_keep_a_last_queue_line_that_has_no_trailing_newline_issue_777(tmp_path, monkeypatch, capsys, workqueue):
