@@ -256,4 +256,29 @@ parent="$(git -C "$repo" rev-parse HEAD~1 2>/dev/null)"
 [[ "$parent" == "$onto" ]] || problems+=("HEAD~1: want the onto sha $onto, got $parent")
 report_stderr "$name"
 
+name="rebase-onto-default.test.sh: with no refs/remotes/origin/HEAD and a remote that names its default branch, a branch already containing it exits 3 and a conflicting rebase exits 1 naming the conflicting files, as when the ref is set (#865)"
+problems=()
+dir="$work/no-origin-head-up-to-date"
+stderr_file="$work/no-origin-head-up-to-date.err"
+origin_fixture "$dir"
+repo="$dir/clone"
+run_branch "$repo"
+git -C "$repo" config remote.origin.followRemoteHEAD never
+git -C "$repo" remote set-head origin -d >/dev/null 2>&1
+out="$(cd "$repo" && bash "$REBASE" 2>"$stderr_file")"
+rc=$?
+[[ "$rc" -eq 3 ]] || problems+=("up to date, exit: want 3, got $rc")
+[[ -z "$out" ]] || problems+=("up to date, stdout: want empty, got $(printf '%q' "$out")")
+dir="$work/no-origin-head-conflict"
+origin_fixture "$dir"
+repo="$dir/clone"
+git -C "$repo" config remote.origin.followRemoteHEAD never
+git -C "$repo" remote set-head origin -d >/dev/null 2>&1
+conflicting_branch "$dir"
+pre="$(git -C "$repo" rev-parse HEAD)"
+out="$(cd "$repo" && bash "$REBASE" 2>>"$stderr_file")"
+rc=$?
+expect_conflict_aborted "$repo" "$pre" "$rc" "$out"
+report_stderr "$name"
+
 finish
