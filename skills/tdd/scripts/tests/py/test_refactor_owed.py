@@ -177,3 +177,20 @@ def test_render_prints_the_file_under_refactor_owed_with_test_only_lines_moved_u
         code = refactor_owed.main(["render", str(path)])
         captured = capsys.readouterr()
         assert (path.name, code, captured.out) == (path.name, 0, expected)
+
+
+def test_render_and_list_print_an_owed_file_holding_non_utf8_bytes_verbatim_and_return_0(
+        monkeypatch, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    owed.write_bytes(b"### S\n- caf\xe9 \xff\n- test-only | t\xe9\n")
+    for verb, expected in (
+            ("render", b"## Refactor owed\n\n### S\n- caf\xe9 \xff\n"
+             b"\n### Test-only\n\n"
+             b"These change only files under tests/; the structural pass does not work them.\n\n"
+             b"- t\xe9\n"),
+            ("list", b"caf\xe9 \xff\n")):
+        stdout = io.TextIOWrapper(io.BytesIO(), write_through=True)
+        monkeypatch.setattr(sys, "stdout", stdout)
+        code = refactor_owed.main([verb, str(owed)])
+        stdout.flush()
+        assert (verb, code, stdout.buffer.getvalue()) == (verb, 0, expected)

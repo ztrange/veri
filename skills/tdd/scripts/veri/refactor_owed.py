@@ -53,13 +53,22 @@ def append(file, step, bounds):
     return 0
 
 
-def render(file):
+def emit(text):
+    sys.stdout.buffer.write(text.encode(errors="surrogateescape"))
+
+
+def owed_lines(file):
     lines = []
     if not os.path.isdir(file):
-        with open(file) as owed:
+        with open(file, errors="surrogateescape") as owed:
             lines = owed.read().split("\n")
         if lines[-1] == "":
             lines.pop()
+    return lines
+
+
+def render(file):
+    lines = owed_lines(file)
     kept, test_only = [], []
     for l in lines:
         if l.startswith(TEST_ONLY_MARK):
@@ -71,7 +80,13 @@ def render(file):
         out += ("\n### Test-only\n\n"
                 "These change only files under tests/; the structural pass does not work them.\n\n"
                 + bullets(test_only))
-    sys.stdout.write(out)
+    emit(out)
+    return 0
+
+
+def list_owed(file):
+    emit("".join(f"{l[2:]}\n" for l in owed_lines(file)
+                 if l.startswith("- ") and not l.startswith(TEST_ONLY_MARK)))
     return 0
 
 
@@ -86,4 +101,6 @@ def main(argv):
             return 3
     if verb == "render":
         return render(file)
+    if verb == "list":
+        return list_owed(file)
     return refuse()
