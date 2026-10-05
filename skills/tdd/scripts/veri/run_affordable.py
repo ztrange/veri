@@ -20,8 +20,8 @@ def _sibling(*args):
 def main(argv):
     remaining = argv[0] if argv else ""
     if not re.fullmatch(r"[0-9]+", remaining):
-        print("run-affordable.sh: <steps-remaining> is not a whole number: '%s'" % remaining, file=sys.stderr)
-        print(USAGE, file=sys.stderr)
+        sys.stderr.buffer.write(os.fsencode("run-affordable.sh: <steps-remaining> is not a whole number: '%s'\n%s\n"
+                                            % (remaining, USAGE)))
         return 2
     status, budgets = _sibling("step-budget.sh")
     if status:
