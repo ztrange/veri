@@ -152,3 +152,28 @@ def test_append_records_every_structural_transform_test_only_when_every_bound_on
         written = owed.read_bytes() if owed.exists() else b""
         expected = b"### S\n- test-only | s\n" if all_test else b"### S\n- s\n"
         assert (bounds, code, written) == (bounds, 0, expected)
+
+
+def test_render_prints_the_file_under_refactor_owed_with_test_only_lines_moved_under_a_heading_of_their_own(
+        monkeypatch, capsys, tmp_path, refactor_owed):
+    heading = "## Refactor owed\n\n"
+    test_only = ("\n### Test-only\n\n"
+                 "These change only files under tests/; the structural pass does not work them.\n\n")
+    mixed = tmp_path / "mixed.md"
+    mixed.write_text("### S1\n- a\n- test-only | t1\njunk line\n  - test-only | indented\n"
+                     "### S2\n- test-only | t2\n")
+    structural = tmp_path / "structural.md"
+    structural.write_text("### S1\n- a\njunk line\n")
+    newline = tmp_path / "newline.md"
+    newline.write_text("\n")
+    directory = tmp_path / "dd"
+    directory.mkdir()
+    for path, expected in (
+            (mixed, heading + "### S1\n- a\njunk line\n  - test-only | indented\n### S2\n"
+             + test_only + "- t1\n- t2\n"),
+            (structural, heading + "### S1\n- a\njunk line\n"),
+            (newline, heading + "\n"),
+            (directory, heading)):
+        code = refactor_owed.main(["render", str(path)])
+        captured = capsys.readouterr()
+        assert (path.name, code, captured.out) == (path.name, 0, expected)
