@@ -73,9 +73,11 @@ def render(issue, path, ledger):
             with open(path, "rb") as f:
                 text = f.read().replace(b"\0", b"").decode(errors="surrogateescape")
         except OSError:
-            return None
-        records = "".join("\t".join(record) + "\n" for record in ledger_steps(text))
-        return counted(len(records.encode(errors="surrogateescape").decode().splitlines()))
+            return None, 0
+        steps = ledger_steps(text)
+        records = "".join("\t".join(record) + "\n" for record in steps)
+        full_suite = sum(1 for record in steps if record[2] == "full-suite")
+        return counted(len(records.encode(errors="surrogateescape").decode().splitlines())), full_suite
 
     counts = {}
     steps = {}
@@ -347,9 +349,9 @@ def render(issue, path, ledger):
     if not clocked:
         print("Every figure in this report is wall-clock: the log carries no awake-clock reading, "
               "so time the machine spent asleep is counted in them.")
-    planned = planned_steps(ledger)
+    planned, full_suite = planned_steps(ledger)
     print("Steps done: %s of %s planned."
-          % (known(counted(len(recovered))), known(planned)))
+          % (known(counted(len(recovered) + full_suite)), known(planned)))
     if ending is None:
         print("Outcome: %s — the log carries no mark ending the run." % UNKNOWN)
     elif ending.get("event") == "done":
