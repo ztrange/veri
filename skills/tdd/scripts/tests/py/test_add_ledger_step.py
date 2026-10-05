@@ -118,3 +118,26 @@ def test_main_inserts_the_line_veri_ledger_new_step_returns_for_the_text_and_the
     capsys.readouterr()
     assert code == 0
     assert ledger.read_bytes().split(b"\n")[3] == importlib.import_module("veri.ledger").new_step("a lamp dims", "2").encode()
+
+
+def test_main_puts_the_texts_above_below_or_in_place_of_the_anchor_and_gives_none_a_criterion_the_anchor_lacks(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
+    ledger = tmp_path / "issue-42.md"
+    head = "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n"
+    anchor = "- [ ] b two ⟦criterion 2⟧\n"
+    added = "- [ ] t ⟦added⟧ ⟦criterion 2⟧\n- [ ] u ⟦added⟧ ⟦criterion 2⟧\n"
+    tail = "- [ ] c three ⟦criterion 3⟧\n"
+    got = {}
+    for where in ("before", "after", "instead-of"):
+        ledger.write_bytes(LEDGER)
+        code = add_ledger_step.main([str(ledger), where, "b two", "t", "u"])
+        got[where] = (code, capsys.readouterr().err, ledger.read_bytes().decode())
+    assert got == {
+        "before": (0, "", head + added + anchor + tail),
+        "after": (0, "", head + anchor + added + tail),
+        "instead-of": (0, "", head + added + tail),
+    }
+
+    ledger.write_bytes("# Plan for #42\n\n- [ ] b two\n".encode())
+    code = add_ledger_step.main([str(ledger), "after", "b two", "t"])
+    assert (code, ledger.read_bytes().decode()) == (0, "# Plan for #42\n\n- [ ] b two\n- [ ] t ⟦added⟧\n")
