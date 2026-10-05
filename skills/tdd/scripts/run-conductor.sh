@@ -55,6 +55,10 @@ py_version="${VERI_PYTHON_VERSION:-$(python3 -c 'import platform; print(platform
 py_major="${py_version%%.*}"; py_minor="${py_version#*.}"; py_minor="${py_minor%%.*}"
 if [[ "$py_major" =~ ^[0-9]+$ && "$py_minor" =~ ^[0-9]+$ ]] && (( py_major < 3 || (py_major == 3 && py_minor < 12) )); then
   echo "run-conductor: veri needs Python 3.12 or newer; the python3 on PATH is version $py_version." >&2
+  source "$(dirname "$0")/lib/venv-python.sh"
+  if venv_meets_floor "$(venv_dir)/bin/python3"; then
+    echo "run-conductor: the environment at $(venv_dir) meets it; put $(venv_dir)/bin first on PATH." >&2
+  fi
   exit 2
 fi
 

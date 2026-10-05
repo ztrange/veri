@@ -15,6 +15,8 @@
 #   6. leaf-launchable.sh refuses with exit 2, naming the Python 3.12 floor and the version
 #      found, when python3 is older than 3.12.
 #   7. leaf-launchable.sh does not refuse on the Python floor when the python3 version cannot be read.
+#   8. run-conductor.sh's Python-floor refusal names $VERI_VENV/bin to put first on PATH when the
+#      venv there meets the floor.
 #
 # Run: skills/tdd/scripts/tests/bash-version-guard.test.sh
 set -uo pipefail
@@ -79,6 +81,23 @@ py_err="$( cd "$work/py-conductor" && env VERI_BASH_MAJOR=5 VERI_PYTHON_VERSION=
 [[ "$py_err" == *"Python 3.12"* ]] || problems+=("want stderr to name the Python 3.12 floor: $(flat "$py_err")")
 [[ "$py_err" == *"3.11.9"* ]] || problems+=("want stderr to name the version found, 3.11.9: $(flat "$py_err")")
 [[ ! -e "$work/py-conductor/launched" ]] || problems+=("the conductor's binary was launched before the refusal")
+report "$name"
+
+name="run-conductor.sh's Python-floor refusal names \$VERI_VENV/bin to put first on PATH when the venv there meets the floor (#936)"
+problems=()
+mkdir -p "$work/venv-ok/bin" "$work/py-venv-conductor"
+cat > "$work/venv-ok/bin/python3" <<'P'
+#!/bin/sh
+case "$*" in *platform*) echo 3.13.1 ;; esac
+exit 0
+P
+chmod +x "$work/venv-ok/bin/python3"
+pv_err="$( cd "$work/py-venv-conductor" && env VERI_BASH_MAJOR=5 VERI_PYTHON_VERSION=3.11.9 VERI_VENV="$work/venv-ok" \
+    CLAUDE_BIN="$work/claude" LAUNCHED="$work/py-venv-conductor/launched" "$SCRIPTS/run-conductor.sh" 4242 2>&1 >/dev/null )" &&
+  pv_code=0 || pv_code=$?
+[[ "$pv_code" == 2 ]] || problems+=("want exit 2, got $pv_code: $(flat "$pv_err")")
+[[ "$pv_err" == *"$work/venv-ok/bin"* && "$pv_err" == *PATH* ]] ||
+  problems+=("want stderr to name $work/venv-ok/bin to put first on PATH: $(flat "$pv_err")")
 report "$name"
 
 name="leaf-launchable.sh refuses with exit 2 when bash is older than 5, and still answers 0 for a launchable binary on bash 5"
