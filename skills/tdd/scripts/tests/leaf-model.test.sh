@@ -84,6 +84,25 @@ model_probe 'opus[1m]' unset unset develop-red  'opus[1m]'
 model_probe unset unset 'opus[1m]' verify-green 'opus[1m]'
 report "$name"
 
+name="no argument and one empty argument each exit 2 with nothing on stdout and exactly the usage line on stderr"
+problems=()
+for args in none empty; do
+  out="$(mktemp)" err="$(mktemp)"
+  if [[ "$args" == none ]]; then
+    env -u VERI_MODEL -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER "$LEAF_MODEL" >"$out" 2>"$err" && code=0 || code=$?
+  else
+    env -u VERI_MODEL -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER "$LEAF_MODEL" "" >"$out" 2>"$err" && code=0 || code=$?
+  fi
+  [[ "$code" == 2 ]] ||
+    problems+=("$args argument: want exit 2, got $code")
+  [[ ! -s "$out" ]] ||
+    problems+=("$args argument: want nothing on stdout, got: $(printf '%q' "$(cat "$out")")")
+  [[ "$(cat "$err")" == "usage: leaf-model.sh <leaf-name>" && "$(wc -l < "$err" | tr -d ' ')" == 1 ]] ||
+    problems+=("$args argument: want exactly 'usage: leaf-model.sh <leaf-name>' on stderr, got: $(printf '%q' "$(cat "$err")")")
+  rm -f "$out" "$err"
+done
+report "$name"
+
 name="$skill_md's preflight runs leaf-model.sh for a developer name and for a verifier name, and says its exit 2 stops the run"
 problems=()
 preflight="$(awk '/^### [0-9]+\..*[Pp]reflight/ { inside = 1; print; next }
