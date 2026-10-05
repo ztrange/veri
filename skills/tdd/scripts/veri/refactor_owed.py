@@ -26,8 +26,12 @@ def all_tests(bounds):
     return bool(bounds) and all(TEST_FILE.search(f) for f in files)
 
 
+def joined(lines):
+    return "".join(f"{l}\n" for l in lines)
+
+
 def bullets(transforms):
-    return "".join(f"- {t}\n" for t in transforms)
+    return joined(f"- {t}" for t in transforms)
 
 
 def refuse():
@@ -75,7 +79,7 @@ def render(file):
             test_only.append(l[len(TEST_ONLY_MARK):])
         else:
             kept.append(l)
-    out = "## Refactor owed\n\n" + "".join(f"{l}\n" for l in kept)
+    out = "## Refactor owed\n\n" + joined(kept)
     if test_only:
         out += ("\n### Test-only\n\n"
                 "These change only files under tests/; the structural pass does not work them.\n\n"
@@ -85,8 +89,8 @@ def render(file):
 
 
 def list_owed(file):
-    emit("".join(f"{l[2:]}\n" for l in owed_lines(file)
-                 if l.startswith("- ") and not l.startswith(TEST_ONLY_MARK)))
+    emit(joined(l[2:] for l in owed_lines(file)
+                if l.startswith("- ") and not l.startswith(TEST_ONLY_MARK)))
     return 0
 
 
