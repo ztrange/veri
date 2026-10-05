@@ -16,7 +16,15 @@ def main(argv):
     base = argv[0] if argv else ""
     if not base:
         return refuse()
-    check = subprocess.run(["git", "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}"])
+    check = subprocess.run(["git", "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}"],
+                           stdout=subprocess.DEVNULL)
     if check.returncode != 0:
         return refuse(f"transform-touches-tests.sh: base-sha does not resolve to a commit: {base}")
-    return 0
+    log = subprocess.run(["git", "log", "--format=", "--name-only", f"{base}..HEAD"],
+                         stdout=subprocess.PIPE)
+    matched = [line for line in log.stdout.split(b"\n") if b"tests/" in line]
+    if not matched:
+        return 0
+    touched = b"\n".join(matched).decode()
+    print(f"transform changed a test file: {touched}")
+    return 1
