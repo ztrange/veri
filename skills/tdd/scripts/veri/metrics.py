@@ -76,7 +76,7 @@ def render(issue, path, ledger):
             return None, 0
         steps = ledger_steps(text)
         records = "".join("\t".join(record) + "\n" for record in steps)
-        full_suite = sum(1 for record in steps if record[2] == "full-suite")
+        full_suite = sum(1 for record in steps if record[1] == "done" and record[2] == "full-suite")
         return counted(len(records.encode(errors="surrogateescape").decode().splitlines())), full_suite
 
     counts = {}
