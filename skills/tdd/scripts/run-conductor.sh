@@ -71,6 +71,10 @@ record=".tdd/issue-$issue-skill-commit"
 run_wt=".tdd/wt/$issue"
 head_rev=HEAD
 pinned=""
+refuse_unpinned() {
+  echo "run-conductor: refs/remotes/origin/HEAD is not set in '$base' and $1 — refusing to run unpinned" >&2
+  exit 2
+}
 if git -C "$base" remote get-url origin >/dev/null 2>&1; then
   fetches=1
   until fetch_err="$(git -C "$base" fetch -q origin 2>&1)"; do
@@ -83,11 +87,10 @@ if git -C "$base" remote get-url origin >/dev/null 2>&1; then
   if ! git -C "$base" rev-parse -q --verify "$head_rev" >/dev/null; then
     default="$(git -C "$base" ls-remote --symref origin HEAD 2>/dev/null |
       awk '$1 == "ref:" { sub("^refs/heads/", "", $2); print $2 }')"
-    [[ -n "$default" ]] ||
-      { echo "run-conductor: refs/remotes/origin/HEAD is not set in '$base' and origin names no default branch — refusing to run unpinned" >&2; exit 2; }
+    [[ -n "$default" ]] || refuse_unpinned "origin names no default branch"
     head_rev="refs/remotes/origin/$default"
     git -C "$base" rev-parse -q --verify "$head_rev" >/dev/null ||
-      { echo "run-conductor: refs/remotes/origin/HEAD is not set in '$base' and origin's default branch '$default' has no $head_rev — refusing to run unpinned" >&2; exit 2; }
+      refuse_unpinned "origin's default branch '$default' has no $head_rev"
   fi
 fi
 if commit="$(git -C "$base" rev-parse "$head_rev" 2>/dev/null)"; then
