@@ -19,6 +19,7 @@
 #      the foreground, leaves its loose objects where they are.
 #  12. The same commit made outside the recipe's environment repacks them.
 #  13. A suite run by make test or make unit sees neither BASH_ENV nor ENV the caller exported.
+#  14. A suite that sets BASH_ENV itself still has it: a bash child it starts sources that file.
 #
 # Run: skills/tdd/scripts/tests/make-test-env.test.sh
 set -uo pipefail
@@ -146,6 +147,11 @@ unit_out="$(env BASH_ENV="$startup" ENV="$startup" PROBE_OUT="$probe" \
 expect BASH_ENV "<unset>" "make unit passed the caller's BASH_ENV through"
 expect ENV "<unset>" "make unit passed the caller's ENV through"
 report "#949: a suite run by make test or make unit sees neither BASH_ENV nor ENV, even when the caller exported both"
+
+problems=()
+recipe /dev/null BASH_ENV="$startup" ENV="$startup"
+expect OWN_BASH_ENV sourced "a bash child the suite started with its own BASH_ENV did not source that file"
+report "#949: a suite run by make test that sets BASH_ENV itself for one case still has it: a bash child it starts with its own BASH_ENV sources that file"
 
 problems=()
 recipe /dev/null
