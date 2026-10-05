@@ -126,9 +126,10 @@ test unit:
 	if [ -n "$(PY_TESTS)" ]; then \
 	  py_bin="$$(bash -c '. $(VENV_LIB) && venv_python')"; \
 	  py_version="$${VERI_PYTHON_VERSION:-$$("$$py_bin" -c 'import platform; print(platform.python_version())' 2>/dev/null)}"; \
+	  py_floor="$$(bash -c '. $(VENV_LIB) && echo "$$VENV_FLOOR"')"; \
 	  py_major="$${py_version%%.*}"; py_minor="$${py_version#*.}"; py_minor="$${py_minor%%.*}"; \
-	  if [ "$$py_major" -lt 3 ] || { [ "$$py_major" -eq 3 ] && [ "$$py_minor" -lt 12 ]; }; then \
-	    printf 'veri needs Python 3.12 or newer for the suites under skills/tdd/scripts/tests/py/; %s is version %s.\n' "$$py_bin" "$$py_version" >&2; \
+	  if [ "$$py_major" -lt "$${py_floor%%.*}" ] || { [ "$$py_major" -eq "$${py_floor%%.*}" ] && [ "$$py_minor" -lt "$${py_floor#*.}" ]; }; then \
+	    printf 'veri needs Python %s or newer for the suites under skills/tdd/scripts/tests/py/; %s is version %s.\n' "$$py_floor" "$$py_bin" "$$py_version" >&2; \
 	    exit 2; \
 	  fi; \
 	  if [ "$${VERI_PYTEST_IMPORTABLE:-$$("$$py_bin" -c 'import pytest' > /dev/null 2>&1 && echo 1 || echo 0)}" != 1 ]; then \
