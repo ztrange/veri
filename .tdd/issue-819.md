@@ -5,4 +5,4 @@
 - [x] rebase-onto-default.sh run while a rebase is already in progress in the worktree exits 2 and leaves that rebase in progress, with HEAD and the rebase state directory unchanged ⟦criterion 2⟧
 - [x] issue-worktree.sh <n> <slug> given an <n> that is not a positive whole number exits 2 with its usage on stderr and creates no worktree and no branch ⟦criterion 3⟧
 - [x] issue-worktree.sh --remove <n> given an <n> that is not a positive whole number exits 2 with its usage on stderr and removes no worktree ⟦criterion 3⟧
-- [ ] every case each script's suites already hold passes with its assertions unchanged, apart from an assertion pinning a defect fixed above, listed by file:line in the PR body ⟦full-suite⟧ ⟦criterion 4⟧
+- [x] every case each script's suites already hold passes with its assertions unchanged, apart from an assertion pinning a defect fixed above, listed by file:line in the PR body ⟦full-suite⟧ ⟦criterion 4⟧
