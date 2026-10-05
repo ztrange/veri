@@ -146,3 +146,38 @@ def test_main_refuses_with_2_and_the_not_set_line_before_any_fetch_when_no_defau
     captured = capsys.readouterr()
     assert (code, captured.out) == (2, "")
     assert captured.err.endswith(refusal)
+
+
+def test_main_exits_2_when_ls_remote_fails_after_the_fetch_or_an_unchecked_rev_parse_echo_differs_from_its_first_field(
+        monkeypatch, capsys, rebase_onto_default):
+    ls_remote = "git ls-remote origin refs/heads/main"
+    rev_parse = "git rev-parse origin/main"
+
+    def run(**overrides):
+        calls = fake_git(monkeypatch, **overrides)
+        fake_run = subprocess.run
+        stderrs = {}
+
+        def recording_run(args, **kwargs):
+            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+            stderrs[line] = kwargs.get("stderr")
+            return fake_run(args, **kwargs)
+
+        monkeypatch.setattr(subprocess, "run", recording_run)
+        code = rebase_onto_default.main([])
+        return code, capsys.readouterr().out, calls, stderrs
+
+    code, out, calls, stderrs = run(**{ls_remote: (2, f"{ONTO}\trefs/heads/main\n")})
+    assert (code, out) == (2, "")
+    assert "git fetch -q origin" in calls
+    assert stderrs[ls_remote] == subprocess.DEVNULL
+    assert [c for c in calls if c.startswith(("git merge-base", "git rebase"))] == []
+
+    code, out, calls, _ = run(**{rev_parse: (128, "origin/main\n")})
+    assert (code, out) == (2, "")
+    assert [c for c in calls if c.startswith("git merge-base")] == []
+
+    code, out, calls, _ = run(**{ls_remote: (0, "origin/main\trefs/heads/main\n"),
+                                 rev_parse: (128, "origin/main\n")})
+    assert "git merge-base --is-ancestor origin/main HEAD" in calls
+    assert (code, out) == (3, "")

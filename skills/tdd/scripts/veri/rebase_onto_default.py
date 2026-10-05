@@ -33,8 +33,13 @@ def main(argv):
         return 2
     if git("fetch", "-q", "origin").returncode != 0:
         return 2
-    git("ls-remote", "origin", f"refs/heads/{default}")
+    remote = git("ls-remote", "origin", f"refs/heads/{default}",
+                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    if remote.returncode != 0:
+        return 2
     onto = output("rev-parse", f"origin/{default}")
+    if onto != re.match(r"\S*", remote.stdout).group():
+        return 2
     if git("merge-base", "--is-ancestor", onto, "HEAD").returncode == 0:
         return 3
     pre = output("rev-parse", "HEAD")
