@@ -18,8 +18,8 @@ after. It is the step's red; your transform is what makes it true.
 1. Apply exactly the refactoring the step names — no other transform, no behaviour change.
 2. Run the step's predicate and confirm it now holds.
 3. {{INCLUDE:_develop-run-affected.md}}
-4. Commit the transform. Never modify a test file: a transform commit that touches one is
-   rejected.
+4. Commit the transform, as `refactor: <what changed> (#<issue>)`. Never modify
+   a test file: a transform commit that touches one is rejected.
 
 {{INCLUDE:_develop-transform-report.md}}
 PREDICATE: HOLDS | FAILS

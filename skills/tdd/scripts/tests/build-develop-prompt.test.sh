@@ -1042,4 +1042,9 @@ rendered="$(ulimit -t 2; "$cycle/build-develop-prompt.sh" red "$work/spec.md" "$
 named=""; grep -F "_probe-cycle-a.md" "$cycle/err" > /dev/null && named=named
 expect_eq "$name" "2:named:" "$code:$named:$rendered"
 
+name="#935 the transform prompt tells the leaf to give its commit a subject ending in (#<issue>), the convention develop-refactor states"
+tf="$("$BUILD" transform "$work/spec.md" "$step_text" "$test_cmd" 2>/dev/null)"; code=$?
+suffix=""; grep -F '(#<issue>)' <<<"$tf" | grep -iF 'commit' > /dev/null && suffix=stated
+expect_eq "$name" "0:stated" "$code:$suffix"
+
 finish
