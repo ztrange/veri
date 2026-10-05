@@ -72,3 +72,19 @@ def test_main_prints_the_first_done_and_pending_record_veri_ledger_ledger_steps_
     code = next_pending_refactor.main([])
 
     assert (code, *capsysbinary.readouterr()) == (0, (first[6] + "\n").encode(), b"")
+
+
+def test_main_prints_the_step_text_and_exactly_one_newline_and_a_bare_pending_step_as_an_empty_line(
+        monkeypatch, capsysbinary, next_pending_refactor):
+    results = {}
+    for ledger_name, ledger in (
+            ("worded", "- [x] trim the slug ⟦criterion 1⟧ ⟂ refactor pending".encode()),
+            ("bare", "- [x]  ⟂ refactor pending\n- [x] later ⟂ refactor pending\n".encode())):
+        fake_stdin(monkeypatch, ledger)
+        code = next_pending_refactor.main([])
+        results[ledger_name] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        "worded": (0, "trim the slug ⟦criterion 1⟧\n".encode(), b""),
+        "bare": (0, b"\n", b""),
+    }
