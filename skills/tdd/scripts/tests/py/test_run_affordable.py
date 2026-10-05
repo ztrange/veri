@@ -1,5 +1,6 @@
 """In-process cases for veri/run_affordable.py, the module run-affordable.sh is a shim over."""
 import importlib
+import io
 import os
 import pathlib
 import subprocess
@@ -111,3 +112,34 @@ def test_main_runs_step_budget_then_step_cost_beside_its_scripts_and_passes_thei
         code = run_affordable.main(["4"])
         out, _ = capsys.readouterr()
         assert ((budget_status, cost_status), code, out, calls) == ((budget_status, cost_status), expected, "", ran)
+
+
+def test_main_reads_steps_remaining_first_refusing_all_but_whole_numbers_and_echoing_them_byte_for_byte(monkeypatch, run_affordable):
+    usage = b"usage: run-affordable.sh <steps-remaining> (a whole number)\n"
+    monkeypatch.setenv("VERI_RUN_BUDGET", "fifty")
+    calls = _siblings(monkeypatch, "12\n40\n", "5.25 6\n7.50 6\n9.75 6\n")
+
+    def run(argv):
+        out, err = io.BytesIO(), io.BytesIO()
+        monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(out, encoding="utf-8", errors="backslashreplace",
+                                                            write_through=True))
+        monkeypatch.setattr(sys, "stderr", io.TextIOWrapper(err, encoding="utf-8", errors="backslashreplace",
+                                                            write_through=True))
+        code = run_affordable.main(argv)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        return (code, out.getvalue(), err.getvalue())
+
+    bad = {" 3": b" 3", "--": b"--", "1.5": b"1.5", "-1": b"-1", "3\n": b"3\n", os.fsdecode(b"\xff"): b"\xff"}
+    seen = {arg: run([arg]) for arg in bad}
+    wanted = {arg: (2, b"", b"run-affordable.sh: <steps-remaining> is not a whole number: '" + shown + b"'\n" + usage)
+              for arg, shown in bad.items()}
+    assert (seen, calls) == (wanted, [])
+
+    monkeypatch.delenv("VERI_RUN_BUDGET")
+    seen = {"007": run(["007"]), "3 extra": run(["3", "extra"]), "3": run(["3"])}
+    assert seen == {
+        "007": (1, b"spent 22.50, steps remaining 7, median 7.50, projection 75.00\n", b""),
+        "3 extra": (1, b"spent 22.50, steps remaining 3, median 7.50, projection 45.00\n", b""),
+        "3": (1, b"spent 22.50, steps remaining 3, median 7.50, projection 45.00\n", b""),
+    }
