@@ -262,3 +262,30 @@ def test_main_reads_both_documents_returning_2_on_no_answer_raising_on_a_missing
     code = solvable_issues.main([])
     out, err = capsys.readouterr()
     assert (code, out) == (0, "5\n5\n6\n")
+
+
+def test_main_counts_an_issue_open_by_its_upper_cased_state_and_withholds_one_an_open_pr_closes(tmp_path, monkeypatch, capsys, solvable_issues):
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git_answering_nothing(monkeypatch)
+    stateless = opted_in(2)
+    del stateless["state"]
+    (tmp_path / "issues.json").write_text(json.dumps([
+        dict(opted_in(1), state="open"), stateless, dict(opted_in(3), state="CLOSED"), opted_in(5),
+        opted_in(10), opted_in(11), opted_in(12), opted_in(13), opted_in(14), opted_in(50)]))
+    (tmp_path / "prs.json").write_text(json.dumps([
+        {"state": "open", "body": "Closes #10"},
+        {"state": "CLOSED", "body": "Closes #11"},
+        {"state": "OPEN", "body": None},
+        {"state": "OPEN", "body": "closes #12"},
+        {"state": "OPEN", "body": "Fixes #13"},
+        {"state": "OPEN", "body": "xCloses #14"},
+        {"state": "OPEN", "body": "Closes #50"}]))
+
+    code = solvable_issues.main([])
+
+    out, err = capsys.readouterr()
+    assert (code, out) == (0, "1\n5\n11\n12\n13\n14\n")
+
+    (tmp_path / "issues.json").write_text(json.dumps([dict(opted_in(5), state=None)]))
+    with pytest.raises(AttributeError):
+        solvable_issues.main([])

@@ -1,5 +1,6 @@
 """solvable-issues.sh's selection, run in-process."""
 import os
+import re
 import subprocess
 import sys
 
@@ -26,6 +27,10 @@ def refused_if_empty(name):
     return False
 
 
+def is_open(entry):
+    return entry.get("state", "").upper() == "OPEN"
+
+
 def carries(issue, label):
     return any(entry["name"] == label for entry in issue.get("labels", []))
 
@@ -47,9 +52,10 @@ def main(argv):
     except NoAnswer:
         return 2
     issues = [issue for issue in items(issues) if "pull_request" not in issue]
-    items(prs)
+    claimed = {int(n) for pr in items(prs) if is_open(pr) for n in re.findall(r"\bCloses #(\d+)", pr["body"] or "")}
     main_tree = main_working_tree()
     for issue in issues:
-        if carries(issue, label) and not in_flight(main_tree, issue["number"]):
+        if (is_open(issue) and carries(issue, label) and issue["number"] not in claimed
+                and not in_flight(main_tree, issue["number"])):
             print(issue["number"])
     return 0
