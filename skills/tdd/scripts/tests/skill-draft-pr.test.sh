@@ -930,4 +930,20 @@ if step_or_problem '### 4. Draft PR' "where the repair step's list of red suites
 fi
 report "$name"
 
+name="$skill_md's Draft PR step readies the PR with gh_pr_ready <pr-number> \"\$(git rev-parse HEAD)\", so the ready_for_review CI run starts on the head just pushed (#879)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "which head the step readies the PR on"; then
+  commands="$(section_commands)"
+  readies="$(grep -E '(^|&& |; )gh_pr_ready( |$)' <<< "$commands" || true)"
+  [[ -n "$readies" ]] ||
+    problems+=("$skill_md's Draft PR step never runs gh_pr_ready, so which head it readies the PR on could not be checked")
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    grep -E 'gh_pr_ready <pr-number> "?[$][(]git rev-parse head[)]"?' > /dev/null <<< "$line" ||
+      problems+=("$skill_md's Draft PR step readies the PR without the head sha it just pushed, so the ready_for_review run can start on the pre-rebase sha: $(printf '%.120s' "$line")")
+  done <<< "$readies"
+fi
+report "$name"
+
 finish
