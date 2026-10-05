@@ -17,13 +17,14 @@ venv_python() {
 }
 
 venv_builder() {
-  local candidate
-  for candidate in python3 python3.13 python3.12; do
+  local candidates=(python3 python3.13 python3.12) candidate names
+  for candidate in "${candidates[@]}"; do
     if "$candidate" -c 'import sys; sys.exit(sys.version_info < (3, 12))' 2> /dev/null; then
       printf '%s\n' "$candidate"
       return 0
     fi
   done
-  printf 'veri needs Python 3.12 or newer to build its environment; none of python3, python3.13, python3.12 on PATH is.\n' >&2
+  names="$(printf '%s, ' "${candidates[@]}")"
+  printf 'veri needs Python 3.12 or newer to build its environment; none of %s on PATH is.\n' "${names%, }" >&2
   return 2
 }
