@@ -647,4 +647,18 @@ set --
 { [[ -z "$problems" ]]; } \
   && ok || no "a bad argument list — none, 270 alone, --remove alone, an empty first argument — exits 2 with nothing on stdout and stderr exactly the usage line (${problems#; })"
 
+repo="$work/skill-link-caller"
+make_repo "$repo"
+skill_link="$work/skill-link"
+ln -s "$(cd "$HERE/../.." && pwd -P)" "$skill_link"
+want="$(wt_path "$repo" 34)"
+errfile="$work/skill-link.err"
+
+out="$(cd "$repo" && "$skill_link/scripts/issue-worktree.sh" 34 via-skill-link 2>"$errfile")" && code=0 || code=$?
+top="$(git -C "$want" rev-parse --show-toplevel 2>/dev/null || true)"
+branch="$(git -C "$want" branch --show-current 2>/dev/null || true)"
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "$want" ]] && [[ "$top" == "$want" ]] && [[ "$branch" == "tdd/34-via-skill-link" ]]; } \
+  && ok || no "run through a symlink to the skill directory from another repository: prints that repository's .tdd/wt/34 and creates the worktree there, as when run in place (exit=$code want 0, stdout='$out' want '$want', toplevel='$top' want '$want', branch='$branch' want 'tdd/34-via-skill-link', stderr='$(cat "$errfile")')"
+
 finish
