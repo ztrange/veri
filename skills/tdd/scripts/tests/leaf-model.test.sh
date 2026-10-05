@@ -103,6 +103,23 @@ for args in none empty; do
 done
 report "$name"
 
+name="run through a symlink to the skill directory and from another working directory, VERI_MODEL=sonnet still prints sonnet for develop-red, exit 0, nothing on stderr"
+problems=()
+work="$(scratch_dir)"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/skill"
+mkdir "$work/elsewhere"
+out="$work/out" err="$work/err"
+(cd "$work/elsewhere" &&
+  env -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER VERI_MODEL=sonnet \
+    "$work/skill/scripts/leaf-model.sh" develop-red) >"$out" 2>"$err" && code=0 || code=$?
+[[ "$code" == 0 ]] ||
+  problems+=("via symlink: want exit 0, got $code")
+[[ "$(cat "$out")" == sonnet ]] ||
+  problems+=("via symlink: want sonnet on stdout, got: $(printf '%q' "$(cat "$out")")")
+[[ ! -s "$err" ]] ||
+  problems+=("via symlink: want nothing on stderr, got: $(printf '%q' "$(cat "$err")")")
+report "$name"
+
 name="$skill_md's preflight runs leaf-model.sh for a developer name and for a verifier name, and says its exit 2 stops the run"
 problems=()
 preflight="$(awk '/^### [0-9]+\..*[Pp]reflight/ { inside = 1; print; next }
