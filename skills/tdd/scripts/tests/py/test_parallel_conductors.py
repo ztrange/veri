@@ -514,3 +514,38 @@ def test_a_user_line_after_the_step_done_call_stops_a_conductor_over_the_context
     assert ([s for s in sent if s[1] == signal.SIGTERM], launches,
             [line for line in out.splitlines() if line.startswith("restarted ")]) == (kills, launched, restarted)
     assert code in (0, 1, 2, 3)
+
+
+@pytest.mark.parametrize("max_issues, launched, code", [
+    ("010", [str(n) for n in range(1, 9)], 0),
+    ("08", [], 3),
+    ("09", [], 3),
+], ids=["010-is-octal-8", "08-is-no-number", "09-is-no-number"])
+def test_veri_max_issues_with_a_leading_zero_is_read_as_bash_s_bare_arithmetic_reads_it(
+        max_issues, launched, code, capsys, monkeypatch, tmp_path, parallel_conductors):
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("VERI_PARALLEL", "20")
+    monkeypatch.setenv("VERI_MAX_ISSUES", max_issues)
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(gh))
+    work = tmp_path / "repo"
+    (work / ".tdd").mkdir(parents=True)
+    monkeypatch.chdir(work)
+    numbers = []
+
+    def on_launch(sup):
+        numbers.append(sup.args[-1])
+        (work / ".tdd" / ("conductor-%s.log" % sup.args[-1])).write_bytes(b"")
+        sup.exit(0)
+
+    _boundaries(monkeypatch, tmp_path, on_launch, lambda supervisors: None,
+                solvable=(0, " ".join(str(n) for n in range(1, 13)) + "\n"))
+
+    returned = parallel_conductors.main([])
+    out, _ = capsys.readouterr()
+
+    assert (numbers, [line for line in out.splitlines() if line.startswith("stopped: ")], returned) == (
+        launched, ["stopped: VERI_MAX_ISSUES reached"], code)
