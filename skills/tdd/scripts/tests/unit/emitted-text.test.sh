@@ -118,7 +118,7 @@ pin '2685828962 7064' prompt build-develop-prompt.sh green "$spec" "$step" "$cmd
 pin '1977169211 9358' prompt build-develop-prompt.sh refactor "$spec" "$step" "$cmd" "a.sh b.sh"
 pin '2726450276 5614' prompt build-develop-prompt.sh cover "$spec" "$step" "$cmd"
 pin '1733087293 4610' prompt build-develop-prompt.sh transform "$spec" "$step" "$cmd"
-pin '1534404821 4600' prompt build-develop-prompt.sh structural "$spec" "a candidate" "$cmd" "a.sh b.sh"
+pin '2675334764 4630' prompt build-develop-prompt.sh structural "$spec" "a candidate" "$cmd" "a.sh b.sh"
 pin '3418142173 7530' prompt build-develop-prompt.sh revise red "$spec" "$step" "$cmd" "$work/reason.md"
 pin '4242964580 7532' prompt build-develop-prompt.sh revise green "$spec" "$step" "$cmd" "$work/reason.md"
 pin '1029241971 7535' prompt build-develop-prompt.sh revise refactor "$spec" "$step" "$cmd" "$work/reason.md"

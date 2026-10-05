@@ -1047,4 +1047,9 @@ tf="$("$BUILD" transform "$work/spec.md" "$step_text" "$test_cmd" 2>/dev/null)";
 suffix=""; grep -F '(#<issue>)' <<<"$tf" | grep -iF 'commit' > /dev/null && suffix=stated
 expect_eq "$name" "0:stated" "$code:$suffix"
 
+name="#935 the structural prompt tells the leaf to give its commit a subject ending in (#<issue>), the convention develop-refactor states"
+st="$("$BUILD" structural "$work/spec.md" "a candidate" "$test_cmd" "a.sh b.sh" 2>/dev/null)"; code=$?
+suffix=""; grep -F '(#<issue>)' <<<"$st" | grep -iF 'commit' > /dev/null && suffix=stated
+expect_eq "$name" "0:stated" "$code:$suffix"
+
 finish
