@@ -200,3 +200,56 @@ def test_a_failing_removal_of_the_run_s_scratch_directory_at_exit_returns_2_and_
     assert code == 2
     assert removals, "the run's scratch directory was never removed"
     assert (work / ".tdd" / "parallel.exit").read_text() == "3\n"
+
+
+@pytest.mark.parametrize("env, refusal", [
+    ({"VERI_CONDUCTOR_CTX_BUDGET": "-1", "VERI_PARALLEL": "0", "VERI_MAX_ISSUES": ""},
+     "parallel-conductors: VERI_CONDUCTOR_CTX_BUDGET must be a whole number >= 0: '-1'"),
+    ({"VERI_CONDUCTOR_CTX_BUDGET": "", "VERI_PARALLEL": "", "VERI_MAX_ISSUES": "x"},
+     "parallel-conductors: VERI_PARALLEL must be a whole number >= 1: ''"),
+    ({"VERI_PARALLEL": "0"}, "parallel-conductors: VERI_PARALLEL must be a whole number >= 1: '0'"),
+    ({"VERI_PARALLEL": "two", "VERI_MAX_ISSUES": "0"},
+     "parallel-conductors: VERI_PARALLEL must be a whole number >= 1: 'two'"),
+    ({"VERI_CONDUCTOR_CTX_BUDGET": "007", "VERI_MAX_ISSUES": ""},
+     "parallel-conductors: VERI_MAX_ISSUES must be a whole number >= 1: ''"),
+    ({"VERI_PARALLEL": "007", "VERI_MAX_ISSUES": "0"},
+     "parallel-conductors: VERI_MAX_ISSUES must be a whole number >= 1: '0'"),
+    ({"VERI_CONDUCTOR_CTX_BUDGET": "0", "VERI_PARALLEL": "007", "VERI_MAX_ISSUES": "007",
+      "VERI_RUN_TIMEOUT": "soon", "VERI_POLL": "often"}, None),
+])
+def test_tunables_are_validated_in_order_naming_only_the_first_bad_one_and_a_refusal_returns_2_before_solvable_issues_runs(
+        env, refusal, capsys, monkeypatch, tmp_path, parallel_conductors):
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    for name, value in env.items():
+        monkeypatch.setenv(name, value)
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(gh))
+    work = tmp_path / "repo"
+    work.mkdir()
+    monkeypatch.chdir(work)
+
+    def on_launch(sup):
+        raise AssertionError("nothing should launch when solvable-issues.sh exits 5")
+
+    _boundaries(monkeypatch, tmp_path, on_launch, lambda supervisors: None, solvable=(5, ""))
+    faked_run = subprocess.run
+    solvable_calls = []
+
+    def recording_run(args, *rest, **kwargs):
+        if pathlib.Path(args[0]).name == "solvable-issues.sh":
+            solvable_calls.append(args)
+        return faked_run(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", recording_run)
+
+    code = parallel_conductors.main([])
+    out, err = capsys.readouterr()
+
+    if refusal is None:
+        assert (code, err, len(solvable_calls)) == (3, "", 1)
+    else:
+        assert (code, out, err.splitlines(), solvable_calls) == (2, "", [refusal], [])
+        assert (work / ".tdd" / "parallel.exit").read_text() == "2\n"
