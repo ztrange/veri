@@ -700,6 +700,21 @@ diff_refused 'diff with a 6-character step base' --step "$diff_step" diff "$work
 [[ -z "$problems" ]] \
   && ok || no "#875 diff refuses a missing step base sha, or one not 7-40 lowercase hex characters, with exit 2 and nothing on stdout (${problems#; })"
 
+problems=""
+diff_fast='make unit ZORBLAT=diff -- --only "frob & nitz/quux"'
+df="$("$BUILD" --step "$diff_step" --fast-cmd "$diff_fast" diff "$work/spec.md" "$branch_base" "$step_base" 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; diff with --fast-cmd exited $code, want 0"
+[[ "$df" == *"timed-test-run.sh fast '' $diff_fast"* ]] \
+  || problems="$problems; never runs --fast-cmd's value verbatim through timed-test-run.sh fast"
+after_fast="${df#*"timed-test-run.sh fast '' $diff_fast"}"
+[[ "$after_fast" != "$df" && "$after_fast" == *'affected-suites.sh'* ]] \
+  || problems="$problems; never runs the suites affected-suites.sh prints after the fast command"
+red_word='(red|fails?|failing|not green)[^[:alnum:]]'
+prompt_says "$df" "never REJECTs when the fast command or the affected suites are red" \
+  -iE -e "(fast|affected)[^.]{0,200}$red_word[^.]{0,200}REJECT|REJECT[^.]{0,200}(fast|affected)[^.]{0,200}$red_word"
+[[ -z "$problems" ]] \
+  && ok || no "#974 diff with --fast-cmd tells the verifier to run that command, then the affected suites, and to REJECT when either is red (${problems#; })"
+
 cp "$work/spec.md" "$work/refactor-spec.md"
 printf '\n## Refactor\n\nRun kind: refactor. This issue changes structure, not behaviour.\n' \
   >> "$work/refactor-spec.md"
