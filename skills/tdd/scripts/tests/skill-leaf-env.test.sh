@@ -846,6 +846,30 @@ scan_stop_last_done() {
 run_case "#907 Stopping in $skill_md, run with every ledger step ticked, gives the stop mark's VERI_STEP the last done step's text, byte-identical" \
   scan_stop_last_done
 
+scan_resume_last_done() {
+  local title="$EXPANDING_STEP"
+  local lineno line numbered launch stage seen tree err got argv
+  stage_recorder resume-last-done
+  rm -f "$stage/event.sh"
+  ln -s "$RECORDERS/title.sh" "$stage/event.sh"
+  plant_done_ledger "$title"
+  numbered="$(head -1 < <(grep -noE '`VERI_ISSUE=[^`]*\$S/event\.sh resume`' "$md"))"
+  numbered="${numbered//\`/}"
+  if [[ -z "$numbered" ]]; then
+    no_launch "Resume's resume mark"
+    return
+  fi
+  take_line "$numbered" "$title" || return
+  rm -f "$seen" "$seen".*
+  run_staged '<not run>'
+  got="$(head -1 "$seen.event" 2>/dev/null)" || got='<no mark was made>'
+  [[ "$got" == "$title" ]] ||
+    problem "marked resume beside a ledger with every step ticked with VERI_STEP=<$got>, want the last done step <$title> (the typing shell said: ${err//$'\n'//})"
+}
+
+run_case "#907 Resume in $skill_md, run with every ledger step ticked, gives the resume mark's VERI_STEP the last done step's text, byte-identical" \
+  scan_resume_last_done
+
 scan_transform_verifier_last_done() {
   local title="$EXPANDING_STEP"
   local lineno line numbered launch stage seen tree err got argv
