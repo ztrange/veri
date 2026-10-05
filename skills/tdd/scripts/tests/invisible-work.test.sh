@@ -719,4 +719,18 @@ unset_out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>"$work/case86
   problems+=("with no origin/HEAD: want exit $set_code and $(printf '%q' "$set_out"), got exit $unset_code and $(printf '%q' "$unset_out"); stderr: $(cat "$work/case865/unset.err")")
 report "$name"
 
+name="invisible-work.sh, in a clone with no refs/remotes/origin/HEAD and a remote whose default cannot be resolved, exits 2 with stderr naming refs/remotes/origin/HEAD (#865)"
+problems=()
+clone="$(unpr_branch_clone "$work/case865-unresolvable" "tdd/71-walkthrough-version-the-commentary-too" 1)"
+gh_json="$(fixture "$work/case865-unresolvable/gh")"
+git_q "$clone" config remote.origin.followRemoteHEAD never
+git_q "$clone" symbolic-ref --delete refs/remotes/origin/HEAD
+bare="$work/case865-unresolvable/origin.git"
+git_q "$bare" update-ref --no-deref HEAD "$(git_q "$bare" rev-parse refs/heads/main)"
+code=0
+out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>"$work/case865-unresolvable/err")" || code=$?
+[[ "$code" == 2 ]] && grep -F 'refs/remotes/origin/HEAD' "$work/case865-unresolvable/err" > /dev/null ||
+  problems+=("want exit 2 and stderr naming refs/remotes/origin/HEAD, got exit $code and stderr $(printf '%q' "$(cat "$work/case865-unresolvable/err")"); stdout: $(printf '%q' "$out")")
+report "$name"
+
 finish
