@@ -108,3 +108,12 @@ def test_main_exits_3_silent_for_empty_stdin_and_keeps_an_open_steps_refactor_pe
         "empty": (3, b"", b""),
         "pending open": (0, "the cog turns ⟦criterion 2⟧ ⟂ refactor pending\n".encode(), b""),
     }
+
+
+def test_main_drops_nul_bytes_and_prints_a_non_utf8_byte_back_as_itself(
+        monkeypatch, capsysbinary, next_unchecked):
+    fake_stdin(monkeypatch, b"- [x] done\n- [ ] a caf\xe9 c\x00og\n- [ ] later")
+
+    code = next_unchecked.main([])
+
+    assert (code, *capsysbinary.readouterr()) == (0, b"a caf\xe9 cog\n", b"")

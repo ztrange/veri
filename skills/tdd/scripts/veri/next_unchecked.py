@@ -9,9 +9,9 @@ def handed_out(record):
 
 
 def main(argv):
-    text = sys.stdin.buffer.read().decode()
+    text = sys.stdin.buffer.read().replace(b"\0", b"").decode(errors="surrogateescape")
     for record in ledger_steps(text):
         if handed_out(record):
-            sys.stdout.buffer.write((record[6] + "\n").encode())
+            sys.stdout.buffer.write((record[6] + "\n").encode(errors="surrogateescape"))
             return 0
     return 3
