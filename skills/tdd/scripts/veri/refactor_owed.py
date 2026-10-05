@@ -7,6 +7,7 @@ USAGE = ("refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' < leaf-r
          "                      refactor-owed.sh render <file>\n"
          "                      refactor-owed.sh list <file>")
 
+STRUCTURAL = re.compile(r"^CANDIDATES:[ \t\n\r\f\v]*structural[ \t\n\r\f\v]*[|][ \t\n\r\f\v]*(.*)$")
 TEST_ONLY = re.compile(r"^CANDIDATES:[ \t\n\r\f\v]*test-only[ \t\n\r\f\v]*[|][ \t\n\r\f\v]*(.*)$")
 
 
@@ -18,6 +19,9 @@ def refuse():
 def append(file, step):
     owed = []
     for line in sys.stdin.read().split("\n"):
+        match = STRUCTURAL.match(line)
+        if match:
+            owed.append(match.group(1))
         match = TEST_ONLY.match(line)
         if match:
             owed.append("test-only | " + match.group(1))
