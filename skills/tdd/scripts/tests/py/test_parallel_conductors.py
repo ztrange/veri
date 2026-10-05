@@ -317,3 +317,67 @@ def test_the_exclude_gains_tdd_once_as_a_whole_line_before_any_tunable_is_valida
     written = exclude.read_bytes().decode() if exclude.is_file() else None
     assert (returned, written) == (code, after)
     assert (work / ".tdd" / "parallel.exit").is_file() == (git_status == 0)
+
+
+@pytest.mark.parametrize("env, words, run_timeout", [
+    ({"VERI_HEARTBEAT": "5", "VERI_POLL": "2"}, ["VERI_HEARTBEAT=5", "VERI_POLL=2"], "14400"),
+    ({"VERI_POLL": "3", "VERI_STUCK_RETRIES": "4", "VERI_TIMEOUT": "", "VERI_HEARTBEAT": "6",
+      "VERI_RUN_TIMEOUT": "60"},
+     ["VERI_HEARTBEAT=6", "VERI_TIMEOUT=", "VERI_STUCK_RETRIES=4", "VERI_POLL=3"], "60"),
+    ({}, [], "14400"),
+], ids=["two-set", "all-set", "none-set"])
+def test_each_issue_launches_as_supervise_env_run_conductor_with_the_caller_s_four_tunables_as_words_and_the_run_timeout_in_supervise_s_environment(
+        env, words, run_timeout, capsys, monkeypatch, tmp_path, parallel_conductors):
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    for name, value in env.items():
+        monkeypatch.setenv(name, value)
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(gh))
+    work = tmp_path / "repo"
+    (work / ".tdd").mkdir(parents=True)
+    monkeypatch.chdir(work)
+    log = work / ".tdd" / "conductor-7.log"
+    log.write_bytes(b'{"type":"assistant","cache_read_input_tokens":1,"cache_creation_input_tokens":1}\n')
+    stale_at_launch = []
+
+    def on_launch(sup):
+        stale_at_launch.append(log.exists())
+        log.write_bytes(b"")
+        sup.exit(0)
+
+    _boundaries(monkeypatch, tmp_path, on_launch, lambda supervisors: None)
+    faked_run, faked_popen = subprocess.run, subprocess.Popen
+    solvable_calls, launches = [], []
+
+    def recording_run(args, *rest, **kwargs):
+        if pathlib.Path(args[0]).name == "solvable-issues.sh":
+            solvable_calls.append((list(args), dict(kwargs)))
+        return faked_run(args, *rest, **kwargs)
+
+    def recording_popen(args, *rest, **kwargs):
+        launches.append((list(args), dict(kwargs), dict(kwargs.get("env") or os.environ)))
+        return faked_popen(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", recording_run)
+    monkeypatch.setattr(subprocess, "Popen", recording_popen)
+
+    parallel_conductors.main([])
+    out, _ = capsys.readouterr()
+
+    scripts = os.path.dirname(os.path.dirname(os.path.abspath(parallel_conductors.__file__)))
+    assert [argv for argv, _, _ in launches] == [
+        [os.path.join(scripts, "supervise.sh"), "conductor-7", "env",
+         "-u", "VERI_HEARTBEAT", "-u", "VERI_TIMEOUT", "-u", "VERI_STUCK_RETRIES", "-u", "VERI_POLL",
+         *words, os.path.join(scripts, "run-conductor.sh"), "7"]]
+    _, kwargs, launch_env = launches[0]
+    assert (launch_env.get("VERI_HEARTBEAT"), launch_env.get("VERI_TIMEOUT"),
+            launch_env.get("VERI_STUCK_RETRIES")) == (run_timeout, run_timeout, "0")
+    assert (kwargs.get("stdout"), kwargs.get("stderr")) == (subprocess.DEVNULL, None)
+    assert stale_at_launch == [False]
+    assert "context 7 2" not in out.splitlines()
+    assert solvable_calls and all(argv == [os.path.join(scripts, "solvable-issues.sh")] for argv, _ in solvable_calls)
+    assert [(kw.get("stdout"), kw.get("stderr"), kw.get("capture_output", False)) for _, kw in solvable_calls] == [
+        (subprocess.PIPE, None, False)] * len(solvable_calls)
