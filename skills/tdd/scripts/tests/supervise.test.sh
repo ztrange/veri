@@ -1244,4 +1244,14 @@ done
 { [[ "${#bad_settled_problems[@]}" -eq 0 ]]; } && ok \
   || no "#954: with VERI_TIMEOUT unset, a .tdd/issue-954-timeout record that is empty or not a whole number >= 1 is refused with exit 2 and a stderr line naming the file, not read as 900 or misread (${bad_settled_problems[*]})"
 
+subdir_work="$(scratch_dir)"
+new_repo -b main "$subdir_work" >/dev/null 2>&1
+mkdir -p "$subdir_work/.tdd" "$subdir_work/src/deep"
+printf '3\n' > "$subdir_work/.tdd/issue-954-timeout"
+( cd "$subdir_work/src/deep" && env -u VERI_TIMEOUT -u VERI_STEP VERI_ISSUE=954 VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 \
+    VERI_POLL=0.02 VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-busy-ten" ) >/dev/null 2>"$subdir_work/err"
+subdir_code=$?
+{ [[ "$subdir_code" == 2 ]] && grep -F 'hard timeout 3s exceeded' "$subdir_work/err" > /dev/null; } && ok \
+  || no "#954: launched from src/deep, a subdirectory of the run worktree, with VERI_TIMEOUT unset and the worktree root's .tdd/issue-954-timeout recording a settled 3s, a leaf busy for 10s is killed-stuck on 'hard timeout 3s exceeded', not run under the 900s default (code=$subdir_code want 2, err=$(cat "$subdir_work/err"))"
+
 finish
