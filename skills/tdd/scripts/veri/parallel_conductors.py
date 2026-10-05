@@ -8,6 +8,7 @@ import tempfile
 import time
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PASSED_THROUGH = ("VERI_HEARTBEAT", "VERI_TIMEOUT", "VERI_STUCK_RETRIES", "VERI_POLL")
 CACHE_READ = re.compile(rb'"cache_read_input_tokens":([0-9]+)')
 CACHE_CREATION = re.compile(rb'"cache_creation_input_tokens":([0-9]+)')
 
@@ -37,8 +38,16 @@ def _watch_context(n, lines):
 
 def _launch(n):
     log = os.path.join(".tdd", "conductor-%s.log" % n)
-    sup = subprocess.Popen([os.path.join(SCRIPTS, "supervise.sh"), "conductor-%s" % n,
-                            os.path.join(SCRIPTS, "run-conductor.sh"), n], stdout=subprocess.DEVNULL)
+    try:
+        os.remove(log)
+    except FileNotFoundError:
+        pass
+    words = ["%s=%s" % (name, os.environ[name]) for name in PASSED_THROUGH if name in os.environ]
+    run_timeout = os.environ.get("VERI_RUN_TIMEOUT") or "14400"
+    env = dict(os.environ, VERI_HEARTBEAT=run_timeout, VERI_TIMEOUT=run_timeout, VERI_STUCK_RETRIES="0")
+    sup = subprocess.Popen([os.path.join(SCRIPTS, "supervise.sh"), "conductor-%s" % n, "env",
+                            *[w for name in PASSED_THROUGH for w in ("-u", name)], *words,
+                            os.path.join(SCRIPTS, "run-conductor.sh"), n], stdout=subprocess.DEVNULL, env=env)
     _watch_context(n, _lines(sup, log))
     return sup.wait()
 
