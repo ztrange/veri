@@ -1610,6 +1610,11 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current || { cat .tdd/issue-<n>.md | $S/ledger-steps.sh last-done; })" $S/detach-leaf.sh $S/supervise.sh verdict-transform $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current || { cat .tdd/issue-<n>.md | $S/ledger-steps.sh last-done; })" transform .tdd/issue-<n>-spec.md .tdd/issue-<n>-predicate <base-sha> > .tdd/verify-transform.reason 2> .tdd/verify-transform.err
    $S/wait-leaf.sh verdict-transform   # foreground; on exit 3 call it again
    ```
+   A `PASS` records the candidate as applied, with the commit that applied it, so `render`
+   lists it as applied rather than owed:
+   ```
+   $S/refactor-owed.sh applied .tdd/issue-<n>-refactor-owed.md '<candidate>' "$(git rev-parse HEAD)"
+   ```
    Once the pass ends — the candidates run out, or the budget is spent — mark it once, with
    the transforms it landed, its budget and why it stopped. `stopped=` takes only
    `candidates-done`, `budget-spent` or `nothing-structural`, and `budget-spent` is marked
