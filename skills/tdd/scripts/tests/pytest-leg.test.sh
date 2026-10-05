@@ -461,6 +461,31 @@ tried_312="$(grep -F "/bin/python3.12 " "$floor/calls" || true)"
   problems+=("want nothing created at $raised_venv, found: $(flat "$(ls -A "$raised_venv")")")
 report "$name"
 
+leg_raised="$work/leg-raised"
+make_tree "$leg_raised"
+cp "$green/$PY_DIR/test_leg_probe.py" "$leg_raised/$PY_DIR/test_leg_probe.py"
+leg_lib="$leg_raised/skills/tdd/scripts/lib/venv-python.sh"
+
+name="#863: with lib/venv-python.sh's one floor definition, VENV_FLOOR=3.12, raised to 3.13 and nothing else edited, the pytest leg of make unit and make test refuses the 3.12.4 interpreter it accepted at 3.12: exit 2 before any suite runs, stderr naming the floor 3.13"
+problems=()
+env -u PYTHONPATH VERI_PYTHON_VERSION=3.12.4 VERI_VENV="$work/venv" \
+  make --no-print-directory -C "$leg_raised" unit > "$work/out" 2> "$work/err" < /dev/null &&
+  code=0 || code=$?
+check_green "floor 3.12, make unit"
+sed 's/^VENV_FLOOR=3\.12$/VENV_FLOOR=3.13/' "$leg_lib" > "$leg_lib.new" && mv "$leg_lib.new" "$leg_lib"
+for target in unit test; do
+  env -u PYTHONPATH VERI_PYTHON_VERSION=3.12.4 VERI_VENV="$work/venv" \
+    make --no-print-directory -C "$leg_raised" "$target" > "$work/out" 2> "$work/err" < /dev/null &&
+    code=0 || code=$?
+  out="$(cat "$work/out")"
+  err="$(cat "$work/err")"
+  [[ "$code" != 0 && "$err" =~ \[(Makefile:[0-9]+:\ )?$target\]\ Error\ 2 ]] ||
+    problems+=("floor 3.13, make $target: want make's [$target] Error 2 on stderr, got exit $code: $(flat "$err")")
+  [[ "$out" != *'== '* ]] || problems+=("floor 3.13, make $target: a suite ran before the refusal: $(flat "$out")")
+  [[ "$err" == *3.13* ]] || problems+=("floor 3.13, make $target: want stderr to name the floor 3.13, got: $(flat "$err")")
+done
+report "$name"
+
 reach="$work/reach"
 make_tree "$reach"
 
