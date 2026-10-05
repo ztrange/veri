@@ -127,4 +127,16 @@ rc=$?
 
 report "detach-command: #964 wait refuses a max-seconds that is a word with exit 2 and the usage line while the command runs"
 
+problems=()
+
+printf '0\n' > "$work/.tdd/fin.exit"
+out="$(cd "$work" && VERI_POLL=0.05 "$HELPER" wait fin abc 2>"$work/fin.err")"
+rc=$?
+[[ "$rc" == 2 ]] || problems+=("wait fin abc with .tdd/fin.exit holding 0 returned $rc; want 2")
+[[ -z "$out" ]] || problems+=("wait fin abc printed '$out' on stdout; want nothing")
+[[ "$(cat "$work/fin.err")" == "usage: detach-command.sh start <name> <cmd> [args…] | wait <name> [max-seconds]" ]] ||
+  problems+=("wait fin abc printed '$(cat "$work/fin.err")' on stderr; want the usage line")
+
+report "detach-command: #964 wait refuses a max-seconds that is a word with exit 2 and the usage line when the exit file already holds 0"
+
 finish
