@@ -1,8 +1,10 @@
 """transform-touches-tests.sh's range check, run in-process."""
+import re
 import subprocess
 import sys
 
 USAGE = "usage: transform-touches-tests.sh <base-sha>"
+TEST_FILE = re.compile(rb"(^|/)tests/|\.test\.")
 
 
 def refuse(message=None):
@@ -22,7 +24,7 @@ def main(argv):
         return refuse(f"transform-touches-tests.sh: base-sha does not resolve to a commit: {base}")
     log = subprocess.run(["git", "log", "--format=", "--name-only", f"{base}..HEAD"],
                          stdout=subprocess.PIPE)
-    matched = [line for line in log.stdout.split(b"\n") if b"tests/" in line]
+    matched = [line for line in log.stdout.split(b"\n") if TEST_FILE.search(line)]
     if not matched:
         return 0
     touched = b"\n".join(matched).decode()
