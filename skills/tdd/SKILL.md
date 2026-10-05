@@ -602,11 +602,10 @@ unauthenticated baseline never gets a cycle.
    a bail to undo. An empty print is the normal answer for a run that chose no model, so exit
    0 with nothing on stdout means continue.
 7. **Size the run's hard timeout from the full-tier measurement.** Hand step 3's `baseline`
-   and its `full` measurement to `$S/leaf-timeout.sh` with the issue number, so every
-   leaf of the run is launched under the result rather than under the supervisor's fixed
-   900 s default:
+   and its `full` measurement to `$S/leaf-timeout.sh`, so every leaf of the run is launched
+   under the result rather than under the supervisor's fixed 900 s default:
    ```
-   timeout="$(VERI_ISSUE=<n> $S/leaf-timeout.sh "$baseline" --full "$full")"
+   timeout="$($S/leaf-timeout.sh "$baseline" --full "$full")"
    ```
    `--full` says which of the two measurements the timeout is sized from: the full-tier one
    displaces the fast one rather than mixing with it, because a leaf runs the full tier and
@@ -614,8 +613,9 @@ unauthenticated baseline never gets a cycle.
    The script keeps a quick suite on today's 900 s and gives a slow one 6 × its baseline —
    which is what stops a leaf whose own test command takes minutes being killed as stuck
    while it is working (#71: a 900 s cap against a 140-250 s suite, two bails, both steps
-   reverted). An export would not survive: every Bash call is a fresh shell. So the script
-   records the settled number once per issue in `.tdd/issue-<n>-timeout` at the run
+   reverted). An export would not survive: every Bash call is a fresh shell. So step 1.2,
+   once it has entered the issue's worktree, calls the script again with the issue number,
+   which records the settled number once per issue in `.tdd/issue-<n>-timeout` at the run
    worktree's root, and `supervise.sh` reads that file whenever `VERI_TIMEOUT` is unset —
    in every phase of every cycle below, and after a resume, without re-measuring; no launch
    line has to pass it. An explicit `VERI_TIMEOUT` is printed back as given, so setting one by hand still
@@ -656,6 +656,11 @@ unauthenticated baseline never gets a cycle.
    handed to a stranger. **Nothing deletes it**: liveness is the whole rule, so a bail, a crash
    or a `kill` frees the worktree — never the issue, which its PR goes on holding — with no
    cleanup step to forget, and a resume overwrites the dead pid with its own here.
+   Then record the timeout preflight step 7 settled, here, where this run's `supervise.sh`
+   reads it — never from the caller's checkout, where preflight ran:
+   ```
+   VERI_ISSUE=<n> $S/leaf-timeout.sh "$baseline" --full "$full" > /dev/null
+   ```
    **Every later step of the run happens inside that worktree**: the blind spec
    (`.tdd/issue-<n>-spec.md`), the ledger (`.tdd/issue-<n>.md`), every leaf log and prompt,
    every commit, the push and the PR. All the `.tdd/…` paths below are **relative to the
