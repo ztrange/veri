@@ -61,7 +61,15 @@ gh_pr_ready() {
   done
   _gh_graphql gh pr ready "$1" ||
     _gh_rest gh api -X POST "repos/{owner}/{repo}/pulls/$1/ccr/ready_for_review" ||
+    _gh_rest _gh_api_graphql_ready "$1" ||
     return 2
+}
+
+_gh_api_graphql_ready() {
+  local id
+  id=$(gh api "repos/{owner}/{repo}/pulls/$1" -q .node_id) || return 1
+  gh api graphql -f query='mutation($id: ID!) { markPullRequestReadyForReview(input: {pullRequestId: $id}) { pullRequest { isDraft } } }' \
+    -f id="$id" > /dev/null
 }
 
 gh_issue_view() {
