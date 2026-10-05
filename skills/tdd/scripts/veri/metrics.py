@@ -308,10 +308,13 @@ def render(issue, path, ledger):
         mark = spent.get(step, {})
         return [step_wall(step)] + budget_cells(step) + [mark.get(column, "") for column in MARK_COLUMNS] + [mark.get(KIND, "full")]
 
-    def table_head(heading, key_column, columns, aligns):
+    def heading_block(heading):
         print()
         print(heading)
         print()
+
+    def table_head(heading, key_column, columns, aligns):
+        heading_block(heading)
         row([key_column] + columns)
         row(["---"] + aligns)
 
@@ -389,9 +392,7 @@ def render(issue, path, ledger):
     if structural is not None:
         stopped = structural.get("stopped", "?")
         if "transforms" not in structural:
-            print()
-            print("#### Structural pass")
-            print()
+            heading_block("#### Structural pass")
             print("Stopped: %s" % stopped)
         else:
             table_head("#### Structural pass", "pass", ["refactor", "stopped"], ["---:", "---"])
