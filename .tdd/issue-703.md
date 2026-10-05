@@ -1,7 +1,7 @@
 # Plan for #703 — Prompt templates share repeated passages through partial files, not copies
 
 - [x] build-develop-prompt.sh replaces a `{{INCLUDE:<file>}}` token in a template with the contents of `skills/tdd/scripts/prompts/<file>` (trailing newlines stripped, as `$(cat …)` does), before every other substitution, so a placeholder inside the partial is still filled
-- [ ] build-develop-prompt.sh resolves a `{{INCLUDE:<file>}}` token that appears inside an included partial, recursively
+- [x] build-develop-prompt.sh resolves a `{{INCLUDE:<file>}}` token that appears inside an included partial, recursively ⟂ refactor pending
 - [ ] build-verify-prompt.sh replaces a `{{INCLUDE:<file>}}` token in a template, and inside an included partial recursively, with that partial's contents before every other substitution, taking no new parameter ⟦criterion 5⟧
 - [ ] a template or partial whose `{{INCLUDE:<file>}}` names a partial that does not exist makes build-develop-prompt.sh exit 2 with the missing file's path on stderr and nothing on stdout ⟦criterion 3⟧
 - [ ] a template or partial whose `{{INCLUDE:<file>}}` names a partial that does not exist makes build-verify-prompt.sh exit 2 with the missing file's path on stderr and nothing on stdout ⟦criterion 3⟧
