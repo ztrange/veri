@@ -37,12 +37,9 @@ def append(file, step, bounds):
     report = stream.read().decode(errors="surrogateescape") if stream else sys.stdin.read()
     for line in report.split("\n"):
         match = STRUCTURAL.match(line)
-        if match and tests_bound:
-            test_only.append("test-only | " + match.group(1))
-        elif match:
+        if match and not tests_bound:
             structural.append(match.group(1))
-        match = TEST_ONLY.match(line)
-        if match:
+        elif match or (match := TEST_ONLY.match(line)):
             test_only.append("test-only | " + match.group(1))
     owed = structural + test_only
     if owed:
