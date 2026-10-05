@@ -2,3 +2,5 @@
 - once a later step gives `build-verify-prompt.sh` the same `{{INCLUDE:…}}` loop, move the loop at `build-develop-prompt.sh:142-149` into a sourced function under `skills/tdd/scripts/lib/` so both builders share it. Not applied: the second copy does not exist yet, so there is no duplication to remove in this step.
 ### build-develop-prompt.sh resolves a `{{INCLUDE:<file>}}` token that appears inside an included partial, recursively
 - test-only | build-develop-prompt.test.sh: the two #703 cases repeat the same scratch-tree setup (`scratch_dir` + `cp -R build-develop-prompt.sh lib prompts`); it could become one helper that both cases call
+### build-verify-prompt.sh replaces a `{{INCLUDE:<file>}}` token in a template, and inside an included partial recursively, with that partial's contents before every other substitution, taking no new parameter ⟦criterion 5⟧
+- test-only | the #703 include cases in build-develop-prompt.test.sh and build-verify-prompt.test.sh build the same scratch tree and probe partials; a shared fixture helper could hold the setup once
