@@ -7,3 +7,5 @@
 - test-only | fold the three near-identical #935 cases in build-develop-prompt.test.sh (transform, structural, diff) into one loop over the phase invocations
 ### The prompt `build-develop-prompt.sh revise diff …` prints tells the leaf to give its commit a subject ending in `(#<issue>)` ⟦criterion 2⟧
 - test-only | fold the four #935 cases in build-develop-prompt.test.sh (L1045–1063), which repeat `suffix=""; grep -F '(#<issue>)' <<<"$x" | grep -iF 'commit' > /dev/null && suffix=stated`, into one helper that takes the rendered prompt
+### That same check stays green over a planted prompt that makes no commit (its only instruction is "make no commit"), and over the real prompts directory ⟦criterion 3⟧
+- test-only | in `skills/tdd/scripts/tests/unit/commit-suffix.test.sh`, both cases build their planted prompt the same way (`mkdir -p <dir>`, then `printf '%s\n' '## Phase: develop-<x>' '' '<instruction>' > <dir>/develop-<x>.md`); that could become one `plant_prompt <dir> <name> <instruction>` helper
