@@ -555,6 +555,20 @@ done
 [[ -z "$usage_seen" ]] \
   && ok || no "no argument, one argument and --remove alone: exits 2, nothing on stdout, stderr is the one usage line —$usage_seen want exit 2, empty stdout, stderr '$usage_line'"
 
+name="issue-worktree.sh run through a symlink to the skill directory and from another working directory inside a repository answers as it does when run in place: exit 0, the caller's repository's .tdd/wt/64 on stdout, made there on tdd/64-linked-skill"
+repo="$work/linked-skill-caller"
+make_repo "$repo"
+mkdir -p "$repo/sub/dir"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+want="$(wt_path "$repo" 64)"
+
+out="$(cd "$repo/sub/dir" && "$work/linked-skill/scripts/issue-worktree.sh" 64 linked-skill 2>"$work/linked-skill.err")" && code=0 || code=$?
+top="$(git -C "$want" rev-parse --show-toplevel 2>/dev/null)"
+branch="$(git -C "$want" branch --show-current 2>/dev/null)"
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "$want" ]] && [[ "$top" == "$want" ]] && [[ "$branch" == "tdd/64-linked-skill" ]]; } \
+  && ok || no "$name (exit=$code want 0, stdout='$out' want '$want', toplevel='$top' want '$want', branch='$branch' want 'tdd/64-linked-skill', stderr='$(cat "$work/linked-skill.err")')"
+
 repo="$work/own-trap"
 make_repo "$repo"
 mkdir -p "$(wt_path "$repo" 63)/.tdd"
