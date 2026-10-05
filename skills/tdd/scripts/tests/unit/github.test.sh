@@ -652,4 +652,36 @@ if grep -E '^sleep ' "$calls" > /dev/null; then
 fi
 record
 
+# 14. with VERI_GH_DRIVER unset, a 404 on the ccr route — github.com has no such REST route —
+#     falls back to GraphQL's markPullRequestReadyForReview over gh api graphql, never gh pr ready
+name="#888: with VERI_GH_DRIVER unset, gh_pr_ready 42 whose pulls/42/ccr/ready_for_review 404s sends markPullRequestReadyForReview with the PR's node id over gh api graphql, never runs gh pr ready, and returns 0"
+calls="$scratch/calls14" err="$scratch/err14"
+: > "$calls"
+(
+  gh() {
+    echo "gh $*" >> "$calls"
+    [[ "$1" == api ]] || return 1
+    case "$*" in
+      *ccr/ready_for_review*) echo 'gh: Not Found (HTTP 404)' >&2; return 1 ;;
+      *markPullRequestReadyForReview*) echo '{"data":{"markPullRequestReadyForReview":{"pullRequest":{"isDraft":false}}}}' ;;
+      *' -q '* | *' --jq '* | *--jq=*) echo 'PR_kwDOnode42' ;;
+      *graphql*) echo '{"data":{"repository":{"pullRequest":{"id":"PR_kwDOnode42"}}}}' ;;
+      *pulls/42*) echo '{"number":42,"node_id":"PR_kwDOnode42","draft":true}' ;;
+      *) return 1 ;;
+    esac
+  }
+  unset VERI_GH_DRIVER VERI_GH_JSON
+  source "$LIB"
+  gh_pr_ready 42
+) > /dev/null 2> "$err"
+rc=$?
+problems=""
+[[ "$rc" -eq 0 ]] || problems+="    want return 0, got $rc"$'\n'
+grep -E '^gh api graphql .*markPullRequestReadyForReview.*PR_kwDOnode42|^gh api graphql .*PR_kwDOnode42.*markPullRequestReadyForReview' "$calls" > /dev/null ||
+  problems+="    want a 'gh api graphql' markPullRequestReadyForReview call carrying PR_kwDOnode42, got: $(printf '%q' "$(cat "$calls")")"$'\n'
+if grep -E '^gh pr ' "$calls" > /dev/null; then
+  problems+="    want no gh pr call, got: $(printf '%q' "$(grep -E '^gh pr ' "$calls")")"$'\n'
+fi
+record
+
 finish
