@@ -16,10 +16,11 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 SUBJECT='skills/tdd/scripts/tests'
 
 CHMOD_WORD='(^|[^[:alnum:]_.-])chmod'
-REVOKING_MODE='([0-7]{1,2}|[0-7]?[0-5][0-7]{2}|[ugoa]*-[rwx]*[rw][rwx]*|[ugoa]*=[rx]*)'
+REVOKING_NUMBER='[0-7]{1,2}|[0-7]?[0-5][0-7]{2}'
+REVOKING_MODE="($REVOKING_NUMBER|[ugoa]*-[rwx]*[rw][rwx]*|[ugoa]*=[rx]*)"
 CHMOD_FLAGS='([[:space:]]+-[RHLPfhv]+)*'
 SHELL_CHMOD="$CHMOD_WORD$CHMOD_FLAGS[[:space:]]+$REVOKING_MODE([[:space:]]|$)"
-PY_REVOKING_MODE='[[:space:]]*(0|0o([0-7]{1,2}|[0-7]?[0-5][0-7]{2}))[[:space:]]*\)'
+PY_REVOKING_MODE="[[:space:]]*(0|0o($REVOKING_NUMBER))[[:space:]]*\\)"
 PATH_CHMOD="\\.chmod\\($PY_REVOKING_MODE|(^|[^[:alnum:]_])os\\.chmod\\([^,]+,$PY_REVOKING_MODE"
 PERMISSION_BIT_CHMOD="$SHELL_CHMOD|$PATH_CHMOD"
 SYSTEM_PATH="(^|[[:space:](=,])[\"']?/(\\.tdd|root|proc)([/\"'[:space:]:)]|\$)"
