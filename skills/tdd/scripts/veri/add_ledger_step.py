@@ -3,7 +3,10 @@ import os
 import re
 import sys
 
-from .ledger import ADDED_MARK, CRITERION_TAG, ledger_steps, new_step
+try:
+    from .ledger import ADDED_MARK, CRITERION_TAG, ledger_steps, new_step
+except ImportError:
+    from ledger import ADDED_MARK, CRITERION_TAG, ledger_steps, new_step
 
 REPAIR_MARKS = ("⟦ci-repair⟧", "⟦suite-repair⟧")
 BYTES = "surrogateescape"
@@ -90,3 +93,7 @@ def main(argv):
     with open(path, "wb") as f:
         f.write("".join(line + "\n" for line in out).encode(errors=BYTES))
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
