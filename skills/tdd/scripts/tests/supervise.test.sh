@@ -656,6 +656,19 @@ vbogus_lines="$(grep -c "^leaf-role: leaf name 'bogus-x' has an unknown leading 
 (( vbogus_lines >= 1 )) && ok \
   || no "#956: supervise.sh bogus-x, neither a known role nor verdict-*, still writes the leaf-role: unknown leading word line to stderr (leaf-role lines=$vbogus_lines want >= 1, err=$(cat "$vbogus_work/err"))"
 
+rharv_problems=()
+for rharv_name in develop-red verify-plan; do
+  rharv_work="$work/role-harvest-$rharv_name"
+  mkdir -p "$rharv_work"
+  ( cd "$rharv_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+      VERI_KILL_POLL=0.01 "$SUP" "$rharv_name" "$stub/leaf-ok" ) >/dev/null 2>"$rharv_work/err"
+  rharv_lines="$(grep -c "^harvest-usage.sh: no closing result record in .tdd/$rharv_name.log" "$rharv_work/err")"
+  (( rharv_lines == 1 )) \
+    || rharv_problems+=("$rharv_name: harvest-usage lines=$rharv_lines want 1, err=$(cat "$rharv_work/err")")
+done
+[[ "${#rharv_problems[@]}" -eq 0 ]] && ok \
+  || no "#956: a develop-* or verify-* supervision whose log holds no closing result record still writes the harvest-usage.sh: no closing result record line to stderr (${rharv_problems[*]})"
+
 kp_work="$work/kill-poll-bad"; mkdir -p "$kp_work"
 kp_problems=()
 for bad in two -1; do
