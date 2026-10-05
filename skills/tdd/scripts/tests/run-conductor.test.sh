@@ -1488,4 +1488,32 @@ done
 
 report "$name"
 
+name="a local branch for another issue whose number starts with <n> (tdd/<n>6-*) does not count as a run past preflight: the skill record is removed (#866)"
+problems=()
+
+remote40="$work/remote40"
+clone40="$work/clone40"
+cloned_skill "$remote40" "$clone40"
+
+caller40="$work/caller40"
+caller_repo "$caller40"
+git -C "$caller40" commit -q --allow-empty -m base
+
+cat > "$stubdir/other-branch-hook" <<HOOK
+#!/bin/sh
+git -C "$caller40" branch "tdd/${issue}6-other-issue"
+HOOK
+chmod +x "$stubdir/other-branch-hook"
+
+launch_from "$caller40" "$clone40" CONDUCTOR_HOOK="$stubdir/other-branch-hook"
+record40="$caller40/.tdd/issue-$issue-skill-commit"
+
+if ! git -C "$caller40" show-ref --verify -q "refs/heads/tdd/${issue}6-other-issue"; then
+  problems+=("the conductor left no local branch tdd/${issue}6-other-issue: $(cat "$launch_err")")
+elif [[ -e "$record40" ]]; then
+  problems+=("the record $record40 survived a conductor that left only tdd/${issue}6-other-issue, another issue's branch, holding '$(cat "$record40")'")
+fi
+
+report "$name"
+
 finish
