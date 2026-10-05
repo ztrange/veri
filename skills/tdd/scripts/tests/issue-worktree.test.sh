@@ -431,6 +431,26 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
 { [[ "$code" == 0 ]] && [[ -z "$origin_head" ]] && [[ "$local_main" == "$main_only_tip" ]] && [[ "$tip" == "$develop_tip" ]]; } \
   && ok || no "#865: an origin remote whose default is develop, a local main, and no refs/remotes/origin/HEAD: cuts tdd/865-develop-default from the remote's own default, not the guessed main (exit=$code want 0, the clone's refs/remotes/origin/HEAD='$origin_head' want absent, local main='$local_main' want $main_only_tip, tip='$tip' want origin/develop's $develop_tip not main's $main_only_tip, stderr='$(cat "$errfile")')"
 
+upstream="$work/unresolvable-default-upstream"
+make_repo "$upstream"
+clone="$work/unresolvable-default-clone"
+git clone -q "$upstream" "$clone" >/dev/null 2>&1
+git_q "$clone" config remote.origin.followRemoteHEAD never >/dev/null 2>&1
+git_q "$clone" symbolic-ref --delete refs/remotes/origin/HEAD >/dev/null 2>&1
+git_q "$clone" remote set-url origin "$work/unresolvable-default-gone" >/dev/null 2>&1
+want="$(wt_path "$clone" 866)"
+
+origin_head="$(git_q "$clone" symbolic-ref --quiet refs/remotes/origin/HEAD 2>/dev/null)"
+before="$(registry "$clone")"
+
+errfile="$work/unresolvable-default.err"
+out="$(cd "$clone" && "$WT" 866 unresolvable-default 2>"$errfile")" && code=0 || code=$?
+after="$(registry "$clone")"
+
+{ [[ "$code" == 2 ]] && [[ -z "$origin_head" ]] && grep -F 'refs/remotes/origin/HEAD' "$errfile" >/dev/null \
+  && [[ ! -e "$want" ]] && [[ "$after" == "$before" ]]; } \
+  && ok || no "#865: an origin remote whose default cannot be resolved and no refs/remotes/origin/HEAD: exits 2 naming refs/remotes/origin/HEAD and creates no worktree (exit=$code want 2, the clone's refs/remotes/origin/HEAD='$origin_head' want absent, stderr='$(cat "$errfile")' want it to name refs/remotes/origin/HEAD, $want $( [[ -e "$want" ]] && echo "exists" || echo "absent, good" ), git's worktree+branch registry $( [[ "$after" == "$before" ]] && echo unchanged || echo changed ), stdout='$out')"
+
 upstream="$work/remote-only-upstream"
 make_repo "$upstream"
 git_q "$upstream" switch -q -c tdd/49-remote-only >/dev/null 2>&1

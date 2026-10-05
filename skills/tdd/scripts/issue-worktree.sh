@@ -98,6 +98,10 @@ default_branch_name() {
     printf '%s\n' "$head"
     return 0
   fi
+  if git remote get-url origin >/dev/null 2>&1; then
+    echo "issue-worktree: cannot determine origin's default branch (no refs/remotes/origin/HEAD, and the remote did not name one)" >&2
+    return 2
+  fi
   for candidate in main master; do
     if branch_exists "$candidate"; then
       printf '%s\n' "$candidate"
