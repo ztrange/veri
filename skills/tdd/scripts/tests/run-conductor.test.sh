@@ -1179,4 +1179,41 @@ grep -F -- "$tip32" "$prompt" > /dev/null 2>&1 ||
 
 report "$name"
 
+name="a fetch of origin whose URL is no remote is refused with exit 2 and the fetch-failed message after one fetch, not after the lock retries (#886)"
+problems=()
+
+clone33="$work/clone33"
+skill_clone "$clone33"
+git -C "$clone33" remote add origin "$work/no-remote33"
+
+shim33="$work/shim33"
+fetches33="$work/fetches33"
+mkdir -p "$shim33"
+: > "$fetches33"
+cat > "$shim33/git" <<SHIM
+#!/bin/sh
+case " \$* " in *" fetch "*) echo fetch >> "$fetches33" ;; esac
+exec "$(command -v git)" "\$@"
+SHIM
+chmod +x "$shim33/git"
+
+caller33="$work/caller33"
+caller_repo "$caller33"
+
+rm -f "$argv"
+launch_from "$caller33" "$clone33" PATH="$shim33:$PATH"
+status=$?
+count33="$(wc -l < "$fetches33" | tr -d ' ')"
+
+[[ "$status" -eq 2 ]] ||
+  problems+=("the launch exited $status, not 2")
+[[ ! -f "$argv" ]] ||
+  problems+=("a conductor was launched although origin is no remote")
+grep -F 'fetch of origin failed' "$launch_err" > /dev/null 2>&1 ||
+  problems+=("stderr does not say 'fetch of origin failed' — stderr was: '$(tr '\n' ' ' < "$launch_err")'")
+[[ "$count33" == 1 ]] ||
+  problems+=("origin was fetched $count33 times, not once, although the failure was no ref lock")
+
+report "$name"
+
 finish
