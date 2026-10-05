@@ -16,6 +16,7 @@ supervising() {
 live_conductor() {
   local pid
   pid="$(number_in "$1/.tdd/conductor.pid")" || return 1
+  [[ "$pid" =~ [1-9] ]] || return 1
   kill -0 "$pid" 2>/dev/null || return 1
   printf '%s\n' "$pid"
 }
