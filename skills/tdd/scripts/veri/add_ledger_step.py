@@ -25,10 +25,9 @@ def is_repair(text):
 
 
 def added_step(text, k):
-    step = new_step(text, k).removesuffix(f" {ADDED_MARK} {CRITERION_TAG}{k}⟧")
-    mark = "" if is_repair(text) else f" {ADDED_MARK}"
-    crit = f" {CRITERION_TAG}{k}⟧" if k else ""
-    return step + mark + crit
+    head, tail = new_step(text, k).rsplit(f" {ADDED_MARK}", 1)
+    step = head + ("" if is_repair(text) else f" {ADDED_MARK}") + tail
+    return step if k else step.removesuffix(f" {CRITERION_TAG}⟧")
 
 
 def is_anchor_step(line, anchor):
