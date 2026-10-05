@@ -91,11 +91,11 @@ has_origin() { git remote get-url origin >/dev/null 2>&1; }
 default_branch_name() {
   local head candidate
   if head="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)"; then
-    printf '%s\n' "${head#origin/}"
-    return 0
+    head="${head#origin/}"
+  else
+    head="$(git ls-remote --symref origin HEAD 2>/dev/null)" || true
+    head="$(sed -n 's|^ref: refs/heads/\([^[:space:]]*\)[[:space:]]*HEAD$|\1|p' <<<"$head")"
   fi
-  head="$(git ls-remote --symref origin HEAD 2>/dev/null)" || true
-  head="$(sed -n 's|^ref: refs/heads/\([^[:space:]]*\)[[:space:]]*HEAD$|\1|p' <<<"$head")"
   if [[ -n "$head" ]]; then
     printf '%s\n' "$head"
     return 0
