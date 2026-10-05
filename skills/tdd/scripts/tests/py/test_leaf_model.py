@@ -99,3 +99,48 @@ def test_main_resolves_the_role_variable_before_veri_model_for_its_own_role_only
         ("verify-green", 0, "back\\slash\n", ""),
         ("develop-red", 0, "opus\n", ""),
     ]
+
+
+def test_main_refuses_a_resolved_value_holding_ascii_whitespace_and_passes_other_spaces_and_unread_whitespace(
+        capsys, monkeypatch, leaf_model):
+    runs = [
+        ({"VERI_MODEL": "a b"}, ["develop-red"]),
+        ({"VERI_MODEL": "a\tb"}, ["verify-green"]),
+        ({"VERI_MODEL_DEVELOPER": "a\nb"}, ["develop-red"]),
+        ({"VERI_MODEL_VERIFIER": "a\vb"}, ["verify-green"]),
+        ({"VERI_MODEL": "a\fb"}, ["develop-red"]),
+        ({"VERI_MODEL": "a\rb"}, ["develop-red"]),
+        ({"VERI_MODEL": "a\x1cb"}, ["develop-red"]),
+        ({"VERI_MODEL": "a\x85b"}, ["develop-red"]),
+        ({"VERI_MODEL": "a b"}, ["develop-red"]),
+        ({"VERI_MODEL": "a b", "VERI_MODEL_DEVELOPER": "opus"}, ["develop-red"]),
+        ({"VERI_MODEL_VERIFIER": "a b"}, ["develop-red"]),
+        ({"VERI_MODEL": "sonnet", "VERI_MODEL_DEVELOPER": "a\tb"}, ["verify-green"]),
+    ]
+    answers = []
+    for environment, argv in runs:
+        for variable in MODEL_VARIABLES:
+            monkeypatch.delenv(variable, raising=False)
+        for variable, value in environment.items():
+            monkeypatch.setenv(variable, value)
+        code = leaf_model.main(argv)
+        captured = capsys.readouterr()
+        answers.append((code, captured.out, captured.err))
+
+    def refusal(value):
+        return (2, "", f"leaf-model: model '{value}' contains whitespace (a model id or alias is one word)\n")
+
+    assert answers == [
+        refusal("a b"),
+        refusal("a\tb"),
+        refusal("a\nb"),
+        refusal("a\vb"),
+        refusal("a\fb"),
+        refusal("a\rb"),
+        (0, "a\x1cb\n", ""),
+        (0, "a\x85b\n", ""),
+        (0, "a b\n", ""),
+        (0, "opus\n", ""),
+        (0, "", ""),
+        (0, "sonnet\n", ""),
+    ]
