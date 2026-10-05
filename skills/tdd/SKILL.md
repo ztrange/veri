@@ -1426,11 +1426,13 @@ result appends a repair step.
 A `⟦diff-checked⟧` step runs no Red leaf, and no Green or Refactor phase either: its
 criterion is a property of the branch's own diff, so there is no failing test to write and
 its step adds none. Record the step's base sha with `git rev-parse HEAD` before the
-`develop-diff` leaf runs. That leaf, built by `build-develop-prompt.sh diff`, makes the
-change the criterion names — or makes no commit, when the criterion is that something stays
-unchanged — and then the blind `diff` verifier, `run-verdict.sh --step "<STEP>" diff
-<spec-file> <branch-base-sha> <step-base-sha>`, judges the step against the run's branch
-point, `git merge-base HEAD origin/<default>`, and its own diff from the step base sha. Both are launched through the supervisor and waited on as
+`develop-diff` leaf runs. That leaf, built by `build-develop-prompt.sh diff <spec-file>
+"<STEP>" '<test-cmd>' '<fast-cmd>'`, makes the change the criterion names — or makes no
+commit, when the criterion is that something stays unchanged — and keeps the fast tier and
+then the affected suites green before it reports. Then the blind `diff` verifier,
+`run-verdict.sh --step "<STEP>" diff <spec-file> <branch-base-sha> <step-base-sha>`, runs the fast tier and then the affected suites, rejecting the step when
+either is red, and judges it against the run's branch point, `git merge-base HEAD
+origin/<default>`, and its own diff from the step base sha. Both are launched through the supervisor and waited on as
 *Launching a leaf* sets out, the leaf as `develop-diff` and the verifier as `verdict-diff`.
 
 A supervisor exit 2 on the `develop-diff` leaf is a `killed-stuck` bail, as for any developer

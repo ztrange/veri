@@ -142,6 +142,19 @@ if need_text '#### Green' '^1\. '; then
 fi
 report "$name"
 
+name="#974: $skill_md's diff-checked section says develop-diff and verify-diff each run the fast tier plus the affected suites"
+problems=()
+if need_text '#### A `⟦diff-checked⟧` step'; then
+  section="$text"
+  text="${section%%verifier*}"
+  says_fast_plus_affected "$skill_md's develop-diff account" \
+    'develop-diff.md tells the leaf to run before it reports'
+  text="${section#*verifier}"
+  says_fast_plus_affected "$skill_md's verify-diff account" \
+    'verify-diff.md tells the verifier to run'
+fi
+report "$name"
+
 name="$claude_md's Testing idiom paragraph states what runs per step and per PR"
 problems=()
 if need_idiom; then
