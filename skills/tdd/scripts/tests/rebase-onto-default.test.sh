@@ -218,7 +218,7 @@ advance_origin "$dir"
 expect_refused "$repo" "$dir/stdout" ", not rebased onto the stale origin/main"
 report_stderr "$name"
 
-name="rebase-onto-default.test.sh: when origin/HEAD still names no branch after a successful fetch, exits 2 with nothing on stdout and HEAD unchanged"
+name="rebase-onto-default.test.sh: with no refs/remotes/origin/HEAD and a remote whose default branch cannot be resolved, exits 2 naming refs/remotes/origin/HEAD, HEAD unchanged and no rebase started (#865)"
 problems=()
 dir="$work/no-origin-head"
 stderr_file="$work/no-origin-head.err"
@@ -226,7 +226,14 @@ behind_branch "$dir"
 repo="$dir/clone"
 git -C "$repo" config remote.origin.followRemoteHEAD never
 git -C "$repo" remote set-head origin -d >/dev/null 2>&1
+git -C "$dir/origin.git" symbolic-ref HEAD refs/heads/no-such-branch
 expect_refused "$repo" "$dir/stdout" ", with no default branch to rebase onto"
+grep -F 'refs/remotes/origin/HEAD' "$stderr_file" > /dev/null ||
+  problems+=("stderr: want a line naming refs/remotes/origin/HEAD, got $(printf '%q' "$(cat "$stderr_file")")")
+for d in rebase-merge rebase-apply; do
+  [[ ! -e "$(git -C "$repo" rev-parse --path-format=absolute --git-path "$d")" ]] ||
+    problems+=("rebase: want none started, found $d")
+done
 report_stderr "$name"
 
 finish

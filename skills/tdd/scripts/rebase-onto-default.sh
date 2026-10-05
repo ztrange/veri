@@ -32,7 +32,8 @@ main() {
   set -uo pipefail
 
   local default
-  default="$(git rev-parse --abbrev-ref origin/HEAD)"
+  default="$(git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD)" ||
+    { echo "rebase-onto-default: refs/remotes/origin/HEAD is not set — no default branch to rebase onto" >&2; exit 2; }
 
   git fetch -q origin >/dev/null 2>&1 || exit 2
 
