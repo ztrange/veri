@@ -126,12 +126,16 @@ def main(argv):
 
 def _run():
     parallel = int(os.environ.get("VERI_PARALLEL", "1"))
-    max_issues = int(os.environ.get("VERI_MAX_ISSUES", "0"))
+    max_issues = os.environ.get("VERI_MAX_ISSUES", "0")
+    try:
+        max_issues = int(max_issues, 8 if max_issues.startswith("0") else 10)
+    except ValueError:
+        max_issues = -1
     launched, in_flight, codes = [], [], {}
     plumbing, why = False, ""
     while True:
         while len(in_flight) < parallel:
-            if max_issues and len(launched) >= max_issues:
+            if max_issues < 0 or max_issues and len(launched) >= max_issues:
                 why = "VERI_MAX_ISSUES reached"
                 break
             solvable = subprocess.run([os.path.join(SCRIPTS, "solvable-issues.sh")], stdout=subprocess.PIPE, text=True)
