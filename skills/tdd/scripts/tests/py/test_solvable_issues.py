@@ -364,3 +364,30 @@ def test_main_reads_a_lock_under_the_main_tree_git_names_from_the_callers_direct
     assert run((0, "", "")) == (0, unlocked)
     assert run(FileNotFoundError(2, "No such file or directory", "git")) == (0, unlocked)
     assert calls == [(True, subprocess.DEVNULL)] * 5
+
+
+def test_main_sorts_survivors_by_priority_then_bug_band_then_number_never_widening_the_pool_and_returns_3_when_none_survive(tmp_path, monkeypatch, capsys, solvable_issues):
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git_answering_nothing(monkeypatch)
+    (tmp_path / "issues.json").write_text(json.dumps([
+        opted_in(1), labelled(2, "ready-for-agent", "bug"), labelled(3, "ready-for-agent", "priority"),
+        labelled(4, "priority", "bug"), dict(blocked_by(5, "#1"), labels=[{"name": "ready-for-agent"}, {"name": "priority"}]),
+        labelled(6, "ready-for-agent", "bug"), dict(labelled(7, "ready-for-agent", "priority"), state="CLOSED"),
+        labelled(8, "ready-for-agent", "bug", "priority"), labelled(9, "ready-for-agent", "urgent"), labelled(10, "urgent")]))
+    (tmp_path / "prs.json").write_text(json.dumps([{"state": "OPEN", "body": "Closes #6"}]))
+
+    observed = []
+    for tunables in ({}, {"VERI_PRIORITY_LABEL": "urgent"}):
+        for name, value in tunables.items():
+            monkeypatch.setenv(name, value)
+        code = solvable_issues.main([])
+        out, err = capsys.readouterr()
+        observed.append((code, out))
+    monkeypatch.delenv("VERI_PRIORITY_LABEL")
+    (tmp_path / "issues.json").write_text(json.dumps([
+        labelled(4, "priority", "bug"), dict(labelled(7, "ready-for-agent", "priority"), state="CLOSED")]))
+    code = solvable_issues.main([])
+    out, err = capsys.readouterr()
+    observed.append((code, out))
+
+    assert observed == [(0, "3\n8\n2\n1\n9\n"), (0, "9\n2\n8\n1\n3\n"), (3, "")]
