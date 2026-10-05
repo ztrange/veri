@@ -259,4 +259,22 @@ fi
 
 report "$name"
 
+name="#952: $skill_md's structural pass runs refactor-owed.sh applied on the run's owed file with the candidate and the commit after each transform verifier PASS, before the PR body is rendered"
+problems=()
+applied_phrase='refactor-owed.sh applied .tdd/issue-<n>-refactor-owed.md'
+
+if ! missing_pass 'whether an applied transform is recorded'; then
+  applied="$(offset "$applied_phrase" "$pass_text")"
+  verifier="$(offset "$verifier_phrase" "$pass_text")"
+  if [[ "$applied" -lt 0 ]]; then
+    problems+=("$skill_md's structural pass never runs $applied_phrase before gh pr ready, so refactor-owed.sh render still lists a transform the pass applied as owed")
+  elif [[ "$verifier" -ge "$applied" ]]; then
+    problems+=("$skill_md's structural pass runs $applied_phrase at $verifier_phrase's offset $verifier or before ($applied), not after the transform verifier's PASS")
+  fi
+  require 'PASS' "$pass_text" \
+    "$skill_md's structural pass never ties refactor-owed.sh applied to a transform verifier PASS"
+fi
+
+report "$name"
+
 finish
