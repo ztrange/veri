@@ -90,6 +90,9 @@ def render(issue, path, ledger):
 
     spent = {}
 
+    def step_mark(step):
+        return spent.setdefault(step, {})
+
     passes = {}
     open_passes = {}
 
@@ -176,7 +179,7 @@ def render(issue, path, ledger):
         if event == "structural-pass":
             structural = line
         if event in ("step-start", "step-done") and step:
-            spent.setdefault(step, {})[event] = line
+            step_mark(step)[event] = line
             if event == "step-done":
                 recovered.add(step)
             continue
@@ -187,9 +190,9 @@ def render(issue, path, ledger):
             continue
         if event == "pin" and step:
             recovered.add(step)
-            spent.setdefault(step, {})[KIND] = "pin"
+            step_mark(step)[KIND] = "pin"
         elif event == "verdict" and phase == "pin" and line.get("verdict") == "PASS" and step:
-            spent.setdefault(step, {}).setdefault(KIND, "already-satisfied")
+            step_mark(step).setdefault(KIND, "already-satisfied")
         attempt_no = line.get("attempt", "")
         attempt = attempt_in(phase, step, attempt_no)
         if event == "launch":
@@ -221,13 +224,13 @@ def render(issue, path, ledger):
             current["verdict"] = line.get("verdict", "")
             settle_pass(step, current)
         if event == "revise" and step:
-            per_phase = spent.setdefault(step, {}).setdefault("revise phases", {})
+            per_phase = step_mark(step).setdefault("revise phases", {})
             per_phase[phase] = (per_phase.get(phase, (0, ""))[0] + 1, line.get("budget", ""))
             if phase == "refactor":
                 open_pass(step)["revise"] += 1
             continue
         if event == "refactor" and step:
-            mark = spent.setdefault(step, {})
+            mark = step_mark(step)
             mark["transforms"] = line.get("transforms", "")
             mark["refactor"] = line.get("budget", "")
             mark["stopped"] = line.get("stopped", "")
@@ -238,7 +241,7 @@ def render(issue, path, ledger):
             continue
         if event in CELL_MARKS and step:
             column, attribute = CELL_MARKS[event]
-            spent.setdefault(step, {})[column] = line.get(attribute, "")
+            step_mark(step)[column] = line.get(attribute, "")
             continue
         if event == "launch":
             count = "attempts"
