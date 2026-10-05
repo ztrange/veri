@@ -898,6 +898,8 @@ skill_archive "$remote31" "$tip31" "$tipdir31"
 
 caller31="$work/caller31-865"
 caller_repo "$caller31"
+git -C "$caller31" commit -q --allow-empty -m base
+git -C "$caller31" branch "tdd/$issue-past-preflight"
 base31="$work/base31-865"
 mkdir -p "$base31"
 env31="$work/env31-865"
