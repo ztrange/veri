@@ -79,4 +79,13 @@ out="$( source "$LIB" && commit_suffix_offenders "$bare" 2>&1 )" || rc=$?
 named=""; grep -F 'develop-bare.md' <<< "$out" > /dev/null && named=named
 expect_eq "$name" "1:named" "$rc:$named"
 
+name="#946 the commit-suffix check fails, naming the file, over a planted develop prompt saying \"make a commit\" without stating (#<issue>)"
+make="$scratch/make"
+mkdir -p "$make"
+printf '%s\n' '## Phase: develop-make' '' 'Make the change the step names, then make a commit.' > "$make/develop-make.md"
+rc=0
+out="$( source "$LIB" && commit_suffix_offenders "$make" 2>&1 )" || rc=$?
+named=""; grep -F 'develop-make.md' <<< "$out" > /dev/null && named=named
+expect_eq "$name" "1:named" "$rc:$named"
+
 finish
