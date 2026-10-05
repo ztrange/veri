@@ -6,6 +6,7 @@ import sys
 from .ledger import ADDED_MARK, CRITERION_TAG, ledger_steps, new_step
 
 REPAIR_MARKS = ("⟦ci-repair⟧", "⟦suite-repair⟧")
+BYTES = "surrogateescape"
 USAGE = "usage: add-ledger-step.sh <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]"
 
 
@@ -50,7 +51,7 @@ def main(argv):
     if where not in ("after", "before", "instead-of"):
         return refuse("add-ledger-step.sh: position must be after, before or instead-of: " + where)
     with open(path, "rb") as f:
-        lines = f.read().decode(errors="surrogateescape").split("\n")[:-1]
+        lines = f.read().decode(errors=BYTES).split("\n")[:-1]
     if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:
         return refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
     budget = os.environ.get("VERI_STEP_GROWTH", "5")
@@ -65,7 +66,7 @@ def main(argv):
         owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
         owed += "".join(f"- {text}\n" for text in texts)
         with open(path, "ab") as f:
-            f.write(owed.encode(errors="surrogateescape"))
+            f.write(owed.encode(errors=BYTES))
         return 1
     out = []
     for line in lines:
@@ -79,5 +80,5 @@ def main(argv):
         if where == "before":
             out.append(line)
     with open(path, "wb") as f:
-        f.write("".join(line + "\n" for line in out).encode(errors="surrogateescape"))
+        f.write("".join(line + "\n" for line in out).encode(errors=BYTES))
     return 0
