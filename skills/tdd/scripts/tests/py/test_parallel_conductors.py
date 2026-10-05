@@ -253,3 +253,67 @@ def test_tunables_are_validated_in_order_naming_only_the_first_bad_one_and_a_ref
     else:
         assert (code, out, err.splitlines(), solvable_calls) == (2, "", [refusal], [])
         assert (work / ".tdd" / "parallel.exit").read_text() == "2\n"
+
+
+@pytest.mark.parametrize("env, info, before, git_status, code, after", [
+    ({}, None, None, 0, 3, ".tdd/*\n"),
+    ({}, "dir", "", 0, 3, ".tdd/*\n"),
+    ({}, "dir", "a\nb", 0, 3, "a\nb\n.tdd/*\n"),
+    ({}, "dir", "a\nb\n", 0, 3, "a\nb\n.tdd/*\n"),
+    ({}, "dir", "x.tdd/*\n.tdd/*x\n", 0, 3, "x.tdd/*\n.tdd/*x\n.tdd/*\n"),
+    ({}, "dir", "a\n.tdd/*\nb", 0, 3, "a\n.tdd/*\nb"),
+    ({"VERI_PARALLEL": "0"}, None, None, 0, 2, ".tdd/*\n"),
+    ({"VERI_CONDUCTOR_CTX_BUDGET": "-1"}, "dir", "a", 0, 2, "a\n.tdd/*\n"),
+    ({}, "dir", "a", 128, 2, "a"),
+], ids=["no-info-dir", "empty", "no-final-newline", "final-newline", "not-a-whole-line",
+        "present-already", "refused-tunable", "refused-budget", "git-128"])
+def test_the_exclude_gains_tdd_once_as_a_whole_line_before_any_tunable_is_validated_and_git_failing_returns_2_with_no_parallel_exit(
+        env, info, before, git_status, code, after, capsys, monkeypatch, tmp_path, parallel_conductors):
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    for name, value in env.items():
+        monkeypatch.setenv(name, value)
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(gh))
+    work = tmp_path / "repo"
+    work.mkdir()
+    monkeypatch.chdir(work)
+
+    def on_launch(sup):
+        raise AssertionError("nothing should launch when solvable-issues.sh exits 5")
+
+    _boundaries(monkeypatch, tmp_path, on_launch, lambda supervisors: None, solvable=(5, ""))
+    exclude = tmp_path / ".git" / "info" / "exclude"
+    if info is None:
+        shutil.rmtree(exclude.parent)
+    if before is not None:
+        exclude.write_bytes(before.encode())
+    faked_run, faked_check_output = subprocess.run, subprocess.check_output
+
+    def git_failing(args):
+        return pathlib.Path(args[0]).name == "git" and git_status
+
+    def run(args, *rest, **kwargs):
+        if not git_failing(args):
+            return faked_run(args, *rest, **kwargs)
+        if kwargs.get("check"):
+            raise subprocess.CalledProcessError(git_status, args)
+        text = kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")
+        return subprocess.CompletedProcess(args, git_status, "" if text else b"", "" if text else b"")
+
+    def check_output(args, *rest, **kwargs):
+        if git_failing(args):
+            raise subprocess.CalledProcessError(git_status, args)
+        return faked_check_output(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", run)
+    monkeypatch.setattr(subprocess, "check_output", check_output)
+
+    returned = parallel_conductors.main([])
+    capsys.readouterr()
+
+    written = exclude.read_bytes().decode() if exclude.is_file() else None
+    assert (returned, written) == (code, after)
+    assert (work / ".tdd" / "parallel.exit").is_file() == (git_status == 0)
