@@ -465,6 +465,28 @@ old_installs="$(grep -E "^$old_venv/bin/(python3 -m pip|pip) install" "$floor/ca
   problems+=("want no pip install through $old_venv, got: $(flat "$old_installs")")
 report "$name"
 
+name="#936: make install-dev refusing — no interpreter on PATH meets the floor, or the existing environment at VERI_VENV is below it — exits 2 with its current message and prints no PATH line"
+problems=()
+stub_python "$floor/bin/python3" 3.11.15
+refused_venv="$floor/venv-refused"
+for scenario in "no interpreter:$refused_venv:veri needs Python 3.12 or newer to build its environment; none of python3, python3.13, python3.12 on PATH is." \
+  "old environment:$old_venv:veri needs Python 3.12 or newer; the environment at $old_venv runs Python 3.11.15. Remove it and run make install-dev again."; do
+  label="${scenario%%:*}" rest="${scenario#*:}"
+  venv="${rest%%:*}" message="${rest#*:}"
+  env -u PYTHONPATH VERI_VENV="$venv" PATH="$floor/bin:$floor/sys" \
+    "$(command -v make)" --no-print-directory -C "$floor" install-dev > "$work/out" 2> "$work/err" < /dev/null &&
+    code=0 || code=$?
+  [[ "$code" == 2 ]] ||
+    problems+=("$label: want exit 2, got $code: $(flat "$(cat "$work/out")") $(flat "$(cat "$work/err")")")
+  [[ "$(cat "$work/err")" == *"$message"* ]] ||
+    problems+=("$label: want stderr to carry '$message', got: $(flat "$(cat "$work/err")")")
+  both="$(cat "$work/out" "$work/err")"
+  [[ "$both" != *"first on PATH"* && "$both" != *"$venv/bin:"* ]] ||
+    problems+=("$label: want no PATH line, got: $(flat "$both")")
+done
+stub_python "$floor/bin/python3" 3.12.7
+report "$name"
+
 raised="$work/raised"
 mkdir -p "$raised/bin" "$raised/skills/tdd/scripts/lib"
 cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$raised/skills/tdd/scripts/lib/"
