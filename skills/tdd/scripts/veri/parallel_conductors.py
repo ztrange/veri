@@ -8,6 +8,13 @@ import sys
 import tempfile
 import time
 
+try:
+    from github import gh_json
+    from json_documents import items
+except ImportError:
+    from .github import gh_json
+    from .json_documents import items
+
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PASSED_THROUGH = ("VERI_HEARTBEAT", "VERI_TIMEOUT", "VERI_STUCK_RETRIES", "VERI_POLL")
 CACHE_READ = re.compile(rb'"cache_read_input_tokens":([0-9]+)')
@@ -69,6 +76,25 @@ class _Conductor:
                 print("context %s %d" % (self.n, self.context), flush=True)
             if b"event.sh step-done" in line:
                 self.armed = True
+
+
+def _outcome(n, code, prs):
+    if code == 2:
+        return "killed after %ss" % _run_timeout()
+    if os.path.exists(os.path.join(".tdd", "parked", "%s.md" % n)):
+        return ""
+    for pr in prs:
+        if n in re.findall(r"\bCloses #(\d+)", pr.get("body") or ""):
+            url = pr.get("html_url", pr.get("url", ""))
+            if not pr.get("isDraft", pr.get("draft")):
+                return "done %s" % url
+            try:
+                with open(os.path.join(".tdd", "wt", n, ".tdd", "events.jsonl"), "rb") as f:
+                    last = f.read().removesuffix(b"\n").rsplit(b"\n", 1)[-1]
+            except OSError:
+                last = b""
+            return "bailed %s" % url if b'"event": "bail"' in last else ""
+    return ""
 
 
 def _ctx_budget():
@@ -159,10 +185,13 @@ def _run():
             in_flight.append(_Conductor(n))
         if not in_flight:
             failed = False
+            prs = items(gh_json("prs.json", "repos/{owner}/{repo}/pulls?state=open&per_page=100",
+                                "pr", "list", "--state", "open", "--limit", "10000", "--json", "body,isDraft,url"))
             for n in launched:
-                if codes.get(n) == 2:
-                    print("#%s — killed after %ss" % (n, _run_timeout()), flush=True)
-                    failed = True
+                got = _outcome(n, codes.get(n), prs)
+                if got:
+                    print("#%s — %s" % (n, got), flush=True)
+                failed = failed or got.startswith(("killed ", "bailed "))
             print("stopped: %s" % why, flush=True)
             return _finish(2 if plumbing else 1 if failed else 3 if not launched else 0)
         done = [c for c in in_flight if not c.follow()]
