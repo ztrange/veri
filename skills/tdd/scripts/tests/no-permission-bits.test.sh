@@ -244,18 +244,17 @@ py_mode_plant() {
 }
 
 probe_planted_pytest_revoking_modes() {
-  local ROOT form mode plants=()
+  local ROOT form mode i labels=() plants=()
   for form in path os; do
     for mode in "${PLANT_PY_REVOKING_MODES[@]}"; do
+      labels+=("$form $mode")
       plants+=("$(py_mode_plant "$form" "$mode")")
     done
   done
   plant_and_probe "$PLANT_PY_REL" "${PLANT_PY_SUITE[@]}" "${plants[@]}"
   planted_pytest_revoking_modes_named=""
-  for form in path os; do
-    for mode in "${PLANT_PY_REVOKING_MODES[@]}"; do
-      planted_pytest_revoking_modes_named+="$form $mode $(plant_named "$PLANT_PY_REL" "$(py_mode_plant "$form" "$mode")");"
-    done
+  for i in "${!plants[@]}"; do
+    planted_pytest_revoking_modes_named+="${labels[$i]} $(plant_named "$PLANT_PY_REL" "${plants[$i]}");"
   done
   problems=()
 }
