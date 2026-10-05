@@ -120,13 +120,15 @@ def list_owed(file):
 
 
 def main(argv):
-    verb, file, step, bounds = (list(argv) + ["", "", "", ""])[:4]
+    verb, file, *args = (list(argv) + ["", "", "", ""])[:4]
     if not verb or not file:
         return refuse()
     if verb == "append":
+        step, bounds = args
         return append(file, step, bounds)
     if verb == "applied":
-        return applied(file, step, bounds)
+        transform, sha = args
+        return applied(file, transform, sha)
     if verb in ("render", "list"):
         if not os.path.exists(file) or os.path.getsize(file) == 0:
             return 3
