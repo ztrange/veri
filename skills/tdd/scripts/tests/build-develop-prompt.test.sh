@@ -1006,4 +1006,12 @@ prompt_lacks "$revise_diff" "asks for a PREDICTED_FAILURE: report line" -F -e 'P
 [[ -z "$problems" ]] \
   && ok || no "#880 a revise of a diff-checked step does not ask the leaf to write or rewrite a test, since a diff-checked step adds none (${problems#; })"
 
+name="#703 a {{INCLUDE:<file>}} token is replaced by that partial under prompts/, trailing newlines stripped, before the other placeholders, so one inside the partial is filled"
+included="$(scratch_dir)"
+cp -R "$HERE/../build-develop-prompt.sh" "$HERE/../lib" "$HERE/../prompts" "$included/"
+printf 'before {{INCLUDE:_probe-partial.md}} after\n' > "$included/prompts/develop-red.md"
+printf 'partial runs {{TEST_CMD}}\n\n\n' > "$included/prompts/_probe-partial.md"
+rendered="$("$included/build-develop-prompt.sh" red "$work/spec.md" "$step_text" "$test_cmd" 2>&1)"; code=$?
+expect_eq "$name" "0:before partial runs $test_cmd after" "$code:$rendered"
+
 finish
