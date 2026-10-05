@@ -14,6 +14,15 @@ def candidate(cls):
 
 STRUCTURAL = candidate("structural")
 TEST_ONLY = candidate("test-only")
+TEST_FILE = re.compile(r"(^|/)tests/|\.test\.")
+
+
+def all_tests(bounds):
+    line = bounds.split("\n")[0]
+    files = line.split(",")
+    if files and files[-1] == "":
+        files.pop()
+    return bool(bounds) and all(TEST_FILE.search(f) for f in files)
 
 
 def refuse():
@@ -21,13 +30,16 @@ def refuse():
     return 2
 
 
-def append(file, step):
+def append(file, step, bounds):
     structural, test_only = [], []
+    tests_bound = all_tests(bounds)
     stream = getattr(sys.stdin, "buffer", None)
     report = stream.read().decode(errors="surrogateescape") if stream else sys.stdin.read()
     for line in report.split("\n"):
         match = STRUCTURAL.match(line)
-        if match:
+        if match and tests_bound:
+            test_only.append("test-only | " + match.group(1))
+        elif match:
             structural.append(match.group(1))
         match = TEST_ONLY.match(line)
         if match:
@@ -40,11 +52,11 @@ def append(file, step):
 
 
 def main(argv):
-    verb, file, step = (list(argv) + ["", "", ""])[:3]
+    verb, file, step, bounds = (list(argv) + ["", "", "", ""])[:4]
     if not verb or not file:
         return refuse()
     if verb == "append":
-        return append(file, step)
+        return append(file, step, bounds)
     if verb in ("render", "list"):
         if not os.path.exists(file) or os.path.getsize(file) == 0:
             return 3
