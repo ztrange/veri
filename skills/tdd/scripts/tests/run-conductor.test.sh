@@ -1216,4 +1216,45 @@ grep -F 'fetch of origin failed' "$launch_err" > /dev/null 2>&1 ||
 
 report "$name"
 
+name="a ref lock that outlives five back-to-back fetches and is released only while the run waits between retries still lets the conductor start, pinned to origin's tip (#886)"
+problems=()
+
+src34="$work/src34"
+remote34="$work/remote34"
+clone34="$work/clone34"
+skill_clone "$src34"
+git clone -q --bare "$src34" "$remote34"
+git clone -q "$remote34" "$clone34"
+branch34="$(git -C "$remote34" symbolic-ref --short HEAD)"
+advance_clone "$src34" "# a commit another conductor's fetch is bringing in"
+git -C "$src34" push -q "$remote34" "HEAD:$branch34"
+tip34="$(git -C "$remote34" rev-parse HEAD)"
+
+lock34="$clone34/.git/refs/remotes/origin/$branch34.lock"
+: > "$lock34"
+
+shim34="$work/shim34"
+mkdir -p "$shim34"
+cat > "$shim34/sleep" <<SHIM
+#!/bin/sh
+rm -f "$lock34"
+SHIM
+chmod +x "$shim34/sleep"
+
+caller34="$work/caller34"
+caller_repo "$caller34"
+
+rm -f "$argv" "$prompt"
+launch_from "$caller34" "$clone34" PATH="$shim34:$PATH"
+status=$?
+
+[[ "$status" -eq 0 ]] ||
+  problems+=("the launch exited $status, not 0, although the ref lock was released while the run waited between fetches — stderr was: '$(tr '\n' ' ' < "$launch_err")'")
+[[ -f "$argv" ]] ||
+  problems+=("no conductor was launched")
+grep -F -- "$tip34" "$prompt" > /dev/null 2>&1 ||
+  problems+=("the conductor's prompt does not name origin's tip $tip34 as the pinned skill commit")
+
+report "$name"
+
 finish
