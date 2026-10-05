@@ -702,4 +702,21 @@ cmp -s "$work/case-linked/in-place.err" "$work/case-linked/linked.err" ||
   problems+=("stderr through the symlink differs: $(diff "$work/case-linked/in-place.err" "$work/case-linked/linked.err")")
 report "$name"
 
+name="invisible-work.sh, in a clone with no refs/remotes/origin/HEAD, resolves the default branch from the remote and prints the same report and exit code as when the ref is set (#865)"
+problems=()
+branch="tdd/71-walkthrough-version-the-commentary-too"
+clone="$(unpr_branch_clone "$work/case865" "$branch" 3)"
+gh_json="$(fixture "$work/case865/gh")"
+set_code=0
+set_out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>"$work/case865/set.err")" || set_code=$?
+git_q "$clone" config remote.origin.followRemoteHEAD never
+git_q "$clone" symbolic-ref --delete refs/remotes/origin/HEAD
+unset_code=0
+unset_out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>"$work/case865/unset.err")" || unset_code=$?
+[[ "$set_code" == 0 && "$set_out" == *"$branch"* ]] ||
+  problems+=("with origin/HEAD set: want exit 0 and a finding naming $branch, got exit $set_code and $(printf '%q' "$set_out"); stderr: $(cat "$work/case865/set.err")")
+[[ "$unset_code" == "$set_code" && "$unset_out" == "$set_out" ]] ||
+  problems+=("with no origin/HEAD: want exit $set_code and $(printf '%q' "$set_out"), got exit $unset_code and $(printf '%q' "$unset_out"); stderr: $(cat "$work/case865/unset.err")")
+report "$name"
+
 finish
