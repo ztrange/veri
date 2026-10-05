@@ -250,3 +250,45 @@ def test_main_returns_2_without_the_conflict_path_when_a_failed_rebase_leaves_ne
     code = rebase_onto_default.main([])
     assert (code, capsys.readouterr().out) == (2, "")
     assert [c for c in calls if c.startswith(("git diff", "git rebase --abort"))] == []
+
+
+def test_main_returns_2_with_no_rebase_directory_prints_one_empty_line_for_no_unmerged_files_and_takes_a_rebase_already_in_progress_for_its_own_conflict(
+        monkeypatch, capsys, tmp_path, rebase_onto_default):
+    rebase = f"git rebase -q {ONTO}"
+    diff = "git diff --name-only --diff-filter=U"
+    abort = "git rebase --abort"
+    merge, apply = tmp_path / "rebase-merge", tmp_path / "rebase-apply"
+    refusal = ("fatal: It seems that there is already a rebase-merge directory, and\n"
+               "I wonder if you are in the middle of another rebase.\n")
+
+    def run(diff_answer, refuse=False):
+        calls = fake_git(monkeypatch, **{
+            rebase: (1, ""),
+            "git rev-parse --git-path rebase-merge": (0, f"{merge}\n"),
+            "git rev-parse --git-path rebase-apply": (0, f"{apply}\n"),
+            diff: diff_answer})
+        fake_run = subprocess.run
+
+        def refusing_run(args, **kwargs):
+            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+            if refuse and line == rebase and kwargs.get("stderr") is None:
+                sys.stderr.write(refusal)
+            return fake_run(args, **kwargs)
+
+        monkeypatch.setattr(subprocess, "run", refusing_run)
+        code = rebase_onto_default.main([])
+        return code, capsys.readouterr(), calls
+
+    code, captured, calls = run((0, "a.txt\n"))
+    assert (code, captured.out) == (2, "")
+    assert [c for c in calls if c.startswith(("git diff", abort))] == []
+
+    merge.mkdir()
+    code, captured, calls = run((0, ""))
+    assert (code, captured.out) == (1, "\n")
+    assert calls.index(diff) < calls.index(abort)
+
+    code, captured, calls = run((0, "earlier.txt\n"), refuse=True)
+    assert (code, captured.out) == (1, "earlier.txt\n")
+    assert refusal in captured.err
+    assert calls.index(diff) < calls.index(abort)
