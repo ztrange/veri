@@ -190,3 +190,23 @@ def test_main_hands_back_a_registered_worktree_by_n_alone_unless_its_pid_file_na
         calls = routing_git(monkeypatch, {listing: (0, registry, "")})
         code = issue_worktree.main(["7", "slug"])
         assert (content, code, capsys.readouterr()[:], calls) == (content, 0, (path + "\n", ""), [list(listing)])
+
+
+def test_main_refuses_a_branch_any_registry_entry_has_checked_out_the_main_working_tree_included_before_any_cut(
+        monkeypatch, capsys, issue_worktree):
+    main_tree = "/srv/repo"
+    elsewhere = "/srv/elsewhere"
+    listing = ("git", "worktree", "list", "--porcelain")
+    owned = "issue-worktree: branch tdd/5-x is already checked out in %s — another conductor owns it\n"
+    registries = (
+        ("worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/tdd/5-x\n\n" % main_tree,
+         main_tree),
+        ("worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n"
+         "worktree %s\nHEAD 2222222222222222222222222222222222222222\nbranch refs/heads/tdd/5-x\n\n"
+         % (main_tree, elsewhere), elsewhere),
+    )
+
+    for registry, holder in registries:
+        calls = routing_git(monkeypatch, {listing: (0, registry, "")})
+        code = issue_worktree.main(["5", "x"])
+        assert (holder, code, capsys.readouterr()[:], calls) == (holder, 2, ("", owned % holder), [list(listing)])
