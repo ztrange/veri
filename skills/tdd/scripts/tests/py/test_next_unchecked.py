@@ -92,3 +92,19 @@ def test_main_prints_the_text_and_one_newline_and_a_textless_open_step_as_an_emp
         "bare box": (0, b"\n", b""),
         "box and one space": (0, b"\n", b""),
     }
+
+
+def test_main_exits_3_silent_for_empty_stdin_and_keeps_an_open_steps_refactor_pending_mark(
+        monkeypatch, capsysbinary, next_unchecked):
+    results = {}
+    for name, ledger in (
+            ("empty", b""),
+            ("pending open", "- [x] done\n- [ ] the cog turns ⟦criterion 2⟧ ⟂ refactor pending\n".encode())):
+        fake_stdin(monkeypatch, ledger)
+        code = next_unchecked.main([])
+        results[name] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        "empty": (3, b"", b""),
+        "pending open": (0, "the cog turns ⟦criterion 2⟧ ⟂ refactor pending\n".encode(), b""),
+    }
