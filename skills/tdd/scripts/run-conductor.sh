@@ -86,6 +86,8 @@ if git -C "$base" remote get-url origin >/dev/null 2>&1; then
     [[ -n "$default" ]] ||
       { echo "run-conductor: refs/remotes/origin/HEAD is not set in '$base' and origin names no default branch — refusing to run unpinned" >&2; exit 2; }
     head_rev="refs/remotes/origin/$default"
+    git -C "$base" rev-parse -q --verify "$head_rev" >/dev/null ||
+      { echo "run-conductor: refs/remotes/origin/HEAD is not set in '$base' and origin's default branch '$default' has no $head_rev — refusing to run unpinned" >&2; exit 2; }
   fi
 fi
 if commit="$(git -C "$base" rev-parse "$head_rev" 2>/dev/null)"; then
