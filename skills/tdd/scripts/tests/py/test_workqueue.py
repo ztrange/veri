@@ -603,6 +603,17 @@ def test_show_with_an_empty_toplevel_exits_2_with_empty_stdout_saying_it_is_outs
     assert (code, out, err) == (2, "", "workqueue.sh: outside a repository\n")
 
 
+def test_next_with_an_empty_toplevel_exits_2_with_empty_stdout_saying_it_is_outside_a_repository_issue_898(tmp_path, monkeypatch, capsys, workqueue):
+    fake_git(monkeypatch, "")
+    fixture = tmp_path / "gh"
+    fixture.mkdir()
+    (fixture / "issues.json").write_text('[{"number": 7, "state": "OPEN", "body": ""}]')
+    monkeypatch.setenv("VERI_GH_JSON", str(fixture))
+    code = workqueue.main(["next", "beta"])
+    out, err = capsys.readouterr()
+    assert (code, out, err) == (2, "", "workqueue.sh: outside a repository\n")
+
+
 def test_show_when_git_worktree_list_fails_with_no_output_exits_2_with_empty_stdout_saying_it_is_outside_a_repository_issue_898(monkeypatch, capsys, workqueue):
     def fake_run(args, **kwargs):
         if list(args[:3]) == ["git", "worktree", "list"]:
