@@ -181,4 +181,28 @@ expect_code 1
 expect_figures 15.00 10 7.50 90.00
 verdict "a run early in a long plan whose projection exceeds VERI_RUN_BUDGET exits 1 while spent is still under it"
 
+: > "$work/.tdd/events.jsonl"
+three_full_steps
+run_affordable VERI_RUN_BUDGET=50 -- 4
+in_place="$code $out"
+in_place_work="$work"
+links="$(scratch_dir)"
+ln -s "$(cd "$HERE/../../.." && pwd)" "$links/skill"
+work="$(scratch_dir)"
+mkdir -p "$work/.tdd"
+cp "$in_place_work/.tdd/events.jsonl" "$work/.tdd/events.jsonl"
+RUN_AFFORDABLE="$links/skill/scripts/run-affordable.sh" run_affordable VERI_RUN_BUDGET=50 -- 4
+expect_code 1
+expect_figures 22.50 4 7.50 52.50
+[[ "$code $out" == "$in_place" ]] ||
+  problems+="    want '$in_place' as in place, got '$code $out' through the symlink"$'\n'
+rm "$work/.tdd/events.jsonl"
+RUN_AFFORDABLE="$links/skill/scripts/run-affordable.sh" run_affordable VERI_RUN_BUDGET=50 -- 4
+expect_code 2
+expect_silent "a directory with no event log"
+grep -F -- "cannot read .tdd/events.jsonl in $work " <<< "$err" > /dev/null ||
+  problems+="    want stderr naming '$work', got '$err'"$'\n'
+work="$in_place_work"
+verdict "run through a symlink to the skill directory from another working directory, it answers as in place and reads that directory's event log"
+
 finish
