@@ -272,7 +272,7 @@ case "$status" in
   *)            ec=2; status="killed-stuck"; reason="${reason:-unknown}" ;;
 esac
 
-"$HERE/harvest-usage.sh" "$name" >&2 || true
+(( ! heartbeat_watched )) || "$HERE/harvest-usage.sh" "$name" >&2 || true
 
 echo "supervise[$name]: $status${reason:+ — $reason}" >&2
 payload=(status="$ec")

@@ -640,6 +640,14 @@ vrole_role_lines="$(grep -c '^leaf-role:' "$vrole_work/err")"
   && [[ "$vrole_exits" == 0 || "$vrole_exits" == '<<no event log>>' ]]; } && ok \
   || no "#956: supervise.sh verdict-plan writes no leaf-role: line to stderr, exits 0, records 0 in .tdd/verdict-plan.exit and appends no launch or exit event (code=$vrole_code want 0, exit file=$vrole_exit want 0, leaf-role lines=$vrole_role_lines want 0, launch events=$vrole_launch want 0 or no event log, exit events=$vrole_exits want 0 or no event log, err=$(cat "$vrole_work/err"))"
 
+vharv_work="$work/verdict-harvest"
+mkdir -p "$vharv_work"
+( cd "$vharv_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" verdict-plan "$stub/leaf-ok" ) >/dev/null 2>"$vharv_work/err"
+vharv_lines="$(grep -c '^harvest-usage.sh:' "$vharv_work/err")"
+[[ "$vharv_lines" == 0 ]] && ok \
+  || no "#956: supervise.sh verdict-plan whose log holds no closing result record writes no harvest-usage.sh: line to stderr (harvest-usage lines=$vharv_lines want 0, err=$(cat "$vharv_work/err"))"
+
 kp_work="$work/kill-poll-bad"; mkdir -p "$kp_work"
 kp_problems=()
 for bad in two -1; do
