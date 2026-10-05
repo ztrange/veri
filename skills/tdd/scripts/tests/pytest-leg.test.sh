@@ -656,4 +656,18 @@ heads="$(grep '^== ' <<< "$out" | tr '\n' '/')"
   problems+=("want stdout's last line all suites green, got: $(tail -n 1 <<< "$out")")
 report "$name"
 
+name="#899: a plain make unit, with no UNIT_TESTS on the command line, runs every suite under tests/unit and the full pytest leg over every test_*.py under $PY_DIR, and with one of them failing its recipe exits 1 and stdout ends SUITES FAILED"
+problems=()
+env VERI_VENV="$work/no-venv" PYTHONPATH="$fake_pytest" \
+  make --no-print-directory -C "$scoped" unit > "$work/out" 2> "$work/err" < /dev/null && code=0 || code=$?
+out="$(cat "$work/out")"
+err="$(cat "$work/err")"
+heads="$(grep '^== ' <<< "$out" | tr '\n' '/')"
+[[ "$heads" == '== fast.test.sh/== pytest/' ]] ||
+  problems+=("want == fast.test.sh/== pytest/, got: $heads")
+[[ "$out" == *'1 failed, 1 passed'* ]] ||
+  problems+=("want the pytest leg to report 1 failed, 1 passed, got: $(flat "$out")")
+check_failed "make unit" unit
+report "$name"
+
 finish
