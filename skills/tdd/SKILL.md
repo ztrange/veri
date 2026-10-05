@@ -454,6 +454,10 @@ skill mid-run. The record is run state and is git-ignored. Two cases refuse rath
 
 - **A recorded commit the launching clone cannot resolve** (a second clone, a shallow one, a
   pruned branch) is exit 2, never a silent re-pin to whatever the clone holds.
+- **An `origin` remote with `refs/remotes/origin/HEAD` absent** (a cloud clone): the launch
+  resolves the default branch from the remote itself (`git ls-remote --symref origin HEAD`)
+  and pins to that branch's tip; when the remote's default cannot be resolved that way it is
+  exit 2, stderr naming `refs/remotes/origin/HEAD`, never an unpinned run.
 - **Taking the new skill is an explicit act:** `VERI_NEW_SKILL=1` on a resume replaces the
   recorded commit with the fresh tip and writes a `skill-repin` event to the run worktree's
   `.tdd/events.jsonl`, where `metrics.sh` reads it.
