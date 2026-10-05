@@ -79,7 +79,12 @@ source "$HERE/lib/number-in.sh"
 source "$HERE/lib/awake-seconds.sh"
 
 heartbeat="${VERI_HEARTBEAT:-180}"
-timeout="${VERI_TIMEOUT:-900}"
+timeout="${VERI_TIMEOUT:-}"
+settled_timeout=".tdd/issue-${VERI_ISSUE:-}-timeout"
+if [[ -z "$timeout" && -n "${VERI_ISSUE:-}" && -f "$settled_timeout" ]]; then
+  timeout="$(<"$settled_timeout")"
+fi
+timeout="${timeout:-900}"
 poll="${VERI_POLL:-1}"
 retries="${VERI_STUCK_RETRIES:-1}"
 
