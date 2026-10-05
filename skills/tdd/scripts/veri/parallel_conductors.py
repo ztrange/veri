@@ -52,9 +52,8 @@ class _Conductor:
         for line in lines:
             if self.armed and b'"type":"user"' in line:
                 self.armed = False
-                budget = _ctx_budget()
                 try:
-                    budget = int(budget, 8 if budget.startswith("0") else 10)
+                    budget = _bash_arithmetic(_ctx_budget())
                 except ValueError:
                     continue
                 if self.context > budget:
@@ -74,6 +73,10 @@ class _Conductor:
 
 def _ctx_budget():
     return os.environ.get("VERI_CONDUCTOR_CTX_BUDGET") or "120000"
+
+
+def _bash_arithmetic(value):
+    return int(value, 8 if value.startswith("0") else 10)
 
 
 def _run_timeout():
@@ -133,7 +136,7 @@ def _run():
     parallel = int(os.environ.get("VERI_PARALLEL", "1"))
     max_issues = os.environ.get("VERI_MAX_ISSUES", "0")
     try:
-        max_issues = int(max_issues, 8 if max_issues.startswith("0") else 10)
+        max_issues = _bash_arithmetic(max_issues)
     except ValueError:
         max_issues = -1
     launched, in_flight, codes = [], [], {}
