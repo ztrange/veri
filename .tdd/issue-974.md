@@ -1,0 +1,12 @@
+# Plan for #974 — a ⟦diff-checked⟧ step never runs the fast tier: develop-diff and verify-diff skip make unit, so a fast-tier rule breaks only at the full run
+
+- [ ] `build-develop-prompt.sh diff <spec> <step> <test-cmd> <fast-cmd>` prints a prompt that tells the develop-diff leaf to run the given fast command through `{{TIMED_TEST_RUN}} fast` and then the affected suites, and to finish only with both green ⟦criterion 1⟧
+- [ ] `build-develop-prompt.sh diff <spec> <step> <test-cmd>` with the fast command left out exits 2 with a diagnostic on stderr and nothing on stdout ⟦criterion 1⟧
+- [ ] `build-develop-prompt.sh revise diff <spec> <step> <test-cmd> <reason-file> <fast-cmd>` prints a prompt that tells the revise leaf to run the given fast command through `{{TIMED_TEST_RUN}} fast` and then the affected suites, and to finish only with both green ⟦criterion 1⟧
+- [ ] `build-develop-prompt.sh revise diff <spec> <step> <test-cmd> <reason-file>` with the fast command left out exits 2 with a diagnostic on stderr and nothing on stdout ⟦criterion 1⟧
+- [ ] `build-verify-prompt.sh --fast-cmd '<cmd>' diff <spec> <branch-base> <step-base>` prints a prompt that tells the verifier to run that command and then the affected suites, and to REJECT when either is red ⟦criterion 2⟧
+- [ ] `build-verify-prompt.sh diff <spec> <branch-base> <step-base>` without `--fast-cmd` exits 2 with a diagnostic on stderr and nothing on stdout, as `green` and `refactor` already do ⟦criterion 2⟧
+- [ ] `skills/tdd/SKILL.md`'s *A `⟦diff-checked⟧` step* section names the fast tier and the affected suites for both develop-diff and verify-diff, pinned by `says_fast_plus_affected` checks in `skills/tdd/scripts/tests/skill-suite-runs.test.sh` ⟦criterion 3⟧
+- [ ] `skills/tdd/SKILL.md`'s *A `⟦diff-checked⟧` step* section spells its `build-develop-prompt.sh diff` command line with the fast command and its `run-verdict.sh … diff` command line with `--fast-cmd`, pinned by a case in `skills/tdd/scripts/tests/skill-suite-runs.test.sh` ⟦criterion 3⟧
+- [ ] `skills/tdd/SKILL.md`'s `revise diff` command line under *Revising on a REJECT* passes the fast command, and its `diff` re-verify passes `--fast-cmd`, pinned by a case in `skills/tdd/scripts/tests/skill-suite-runs.test.sh`
+- [ ] Each new case has been seen to go red with its fix removed: break each fix on purpose, watch the case fail, restore it ⟦human-owed⟧ ⟦criterion 4⟧
