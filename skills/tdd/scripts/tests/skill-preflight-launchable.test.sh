@@ -11,6 +11,8 @@
 #      exit 2 in the paragraph that makes the call.
 #   4. The item that checks `claude auth status` checks GitHub with `gh api user`, and the
 #      paragraph that names it says a non-zero exit stops the run as a preflight failure.
+#   5. The fast-tier baseline call (`detect-test-command.sh --tier fast`) comes after the line
+#      that has `issue-worktree.sh` cut the branch and `cd`s into its worktree.
 #
 # Run: scripts/tests/skill-preflight-launchable.test.sh
 set -uo pipefail
@@ -31,6 +33,9 @@ claude_auth='claude auth status'
 gh_check='gh api user'
 nonzero='non-zero'
 preflight='### 0. Preflight'
+fast_call='detect-test-command.sh --tier fast'
+worktree_call='issue-worktree.sh'
+enter_call='cd "$wt"'
 
 
 source "$HERE/lib/harness.sh"
@@ -135,6 +140,22 @@ if preflight_or_problem "the GitHub check"; then
     grep -iF -- "$nonzero" > /dev/null <<< "$para" && grep -iF -- "preflight" > /dev/null <<< "$para" ||
       problems+=("$skill_md:$gh_at names $gh_check in a paragraph that does not say its $nonzero exit stops the run as a preflight failure, so a conductor can carry on past a failed GitHub check")
   fi
+fi
+
+report "$name"
+
+name="$skill_md runs the fast-tier baseline inside the issue's worktree, after $worktree_call cut the branch (#955)"
+problems=()
+
+enter_at="$(awk -v w="$worktree_call" -v c="$enter_call" 'index($0, w) && index($0, c) { print NR; exit }' "$md")"
+fast_at="$(awk -v f="$fast_call" 'index($0, f) { print NR; exit }' "$md")"
+
+if [[ -z "$enter_at" ]]; then
+  problems+=("$skill_md has no line that runs $worktree_call and then $enter_call, so where the run enters the issue's worktree could not be read")
+elif [[ -z "$fast_at" ]]; then
+  problems+=("$skill_md never names $fast_call, so no baseline suite runs at all")
+elif [[ "$fast_at" -lt "$enter_at" ]]; then
+  problems+=("$skill_md:$fast_at runs the baseline ($fast_call) before line $enter_at enters the worktree $worktree_call cuts from origin/<default>, so the baseline proves the caller's checkout, not the commit the branch is cut from")
 fi
 
 report "$name"
