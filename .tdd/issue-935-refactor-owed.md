@@ -1,0 +1,2 @@
+### The prompt `build-develop-prompt.sh transform …` prints tells the leaf to give its commit a subject ending in `(#<issue>)`, the convention develop-refactor.md states ⟦criterion 1⟧
+- once steps 2–4 put the same `(#<issue>)` commit-shape sentence into develop-structural.md, develop-diff.md and develop-revise-diff.md, move it into one shared `{{INCLUDE:…}}` file (develop-refactor.md must stay out of it, because criterion 4 freezes its wording)
