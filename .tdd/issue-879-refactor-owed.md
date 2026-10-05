@@ -2,3 +2,5 @@
 - test-only | the #879 case in tests/unit/github.test.sh answers both `--jq` and raw-JSON forms of the pulls/42 read, but the code only ever sends `--jq`, so the raw-JSON branch never runs
 ### gh_pr_ready <n> <head-sha> returns 2 without marking PR <n> ready when pulls/<n> still reports another sha after its bounded number of reads, with a stderr line naming both the expected and the reported sha
 - test-only | the #879 give-up case in unit/github.test.sh repeats the step-1 case's pulls/42 `gh` stub and `sleep` spy almost line for line; both could share one stub helper
+### SKILL.md's Draft PR step readies the PR with gh_pr_ready <pr-number> "$(git rev-parse HEAD)", so the ready_for_review CI run starts on the head just pushed rather than the pre-rebase sha
+- test-only | in skill-draft-pr.test.sh's #879 case (line 938), find the ready lines with the file's existing `ready_run` pattern (`grep -E "^$ready_run"`, line 324) instead of the case's own `(^|&& |; )gh_pr_ready( |$)` regex, so the file spells "a line that runs gh_pr_ready" in one place
