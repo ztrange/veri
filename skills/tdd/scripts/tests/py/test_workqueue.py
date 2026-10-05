@@ -566,7 +566,7 @@ def test_show_next_and_assign_with_an_empty_toplevel_exit_2_and_read_lock_and_wr
     touched = []
 
     def rooted(path):
-        if isinstance(path, str) and path.startswith("/.tdd"):
+        if isinstance(path, str) and path.startswith(os.sep + ".tdd"):
             touched.append(path)
             return str(root) + path
         return path
@@ -606,7 +606,7 @@ def test_the_outside_a_repository_part_of_the_assign_case_reads_and_writes_nothi
     def rooted(path):
         path = os.fspath(path)
         touched.append(path)
-        return str(root) + path if path.startswith("/.tdd") else path
+        return str(root) + path if path.startswith(os.sep + ".tdd") else path
 
     real_open, real_mkdir, real_makedirs, real_rmdir, real_remove, real_isfile = (
         open, os.mkdir, os.makedirs, os.rmdir, os.remove, os.path.isfile)
