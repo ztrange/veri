@@ -140,7 +140,7 @@ migration_slice 2 cover-outcome.sh criterion-finished.sh \
 migration_slice 3 event.sh
 migration_slice 4 issue-worktree.sh leaf-launchable.sh \
   metrics.sh
-migration_slice 5 next-pending-refactor.sh next-unchecked.sh orchestrate.sh \
+migration_slice 5 next-pending-refactor.sh orchestrate.sh \
   parallel-conductors.sh preserve-attempt.sh
 migration_slice 6 rebase-onto-default.sh red-divergence.sh \
   refactor-owed.sh
