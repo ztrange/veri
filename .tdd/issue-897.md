@@ -5,4 +5,4 @@
 - [x] no-permission-bits.test.sh names `<file>:<line>` for a Python `Path.chmod(<mode>)` or `os.chmod(<path>, <mode>)` whose decimal or octal mode leaves the owner without read or write (`0`, `0o000`, `0o400`, `0o444`, `0o200`), outside a comment and outside its exemption table ⟦criterion 3⟧
 - [x] no-permission-bits.test.sh names `<file>:<line>` for a bash numeric chmod mode of one to four digits whose owner digit is 0 to 5 (`chmod 0`, `chmod 000`, `chmod 200`, `chmod 300`, `chmod 0400`, `chmod 444`), and still for the symbolic `-r` / `-w` forms ⟦criterion 3⟧
 - [x] no-permission-bits.test.sh stays green on chmods that keep the owner's read and write: `.chmod(0o755)`, `.chmod(0o644)`, `os.chmod(p, 0o755)`, `chmod +x`, `chmod 755`, `chmod -x` ⟦criterion 4⟧
-- [ ] planting `.chmod(0)`, `os.chmod(p, 0o444)` or `chmod 0400 "$f"` in a scratch suite turns no-permission-bits.test.sh red, naming the planted `<file>:<line>` ⟦criterion 5⟧
+- [x] planting `.chmod(0)`, `os.chmod(p, 0o444)` or `chmod 0400 "$f"` in a scratch suite turns no-permission-bits.test.sh red, naming the planted `<file>:<line>` ⟦criterion 5⟧

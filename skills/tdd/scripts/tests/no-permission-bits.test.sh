@@ -409,6 +409,31 @@ probe_planted_keeping_modes
 
 expect_eq "$name" "pytest green;ledger.chmod(0o755) not named;ledger.chmod(0o644) not named;os.chmod(ledger, 0o755) not named;bash green;chmod +x \"\$ledger\" not named;chmod 755 \"\$ledger\" not named;chmod -x \"\$ledger\" not named;" "$planted_keeping_modes"
 
+PLANT_ISSUE_PY_LINES=("    p.chmod($(printf '%d' 0))" "    os.chmod(p, 0o$(printf '%o' 292))")
+PLANT_ISSUE_SHELL_LINE="$(mode_plant "0$(printf '%o' 256)" f)"
+
+probe_the_issues_three_plants() {
+  local ROOT plant
+  issue_plants_named=""
+  plant "$PLANT_PY_REL" 'import os' 'def test_unreadable_ledger(tmp_path):' '    p = tmp_path / "issue-9.md"' "${PLANT_ISSUE_PY_LINES[@]}"
+  probe_the_guard
+  issue_plants_named+="pytest $(guard_state);"
+  for plant in "${PLANT_ISSUE_PY_LINES[@]}"; do
+    issue_plants_named+="${plant#    } $(plant_named "$PLANT_PY_REL" "$plant");"
+  done
+  plant "$PLANT_REL" '#!/usr/bin/env bash' 'f="$(mktemp)"' "$PLANT_ISSUE_SHELL_LINE"
+  probe_the_guard
+  issue_plants_named+="bash $(guard_state);$PLANT_ISSUE_SHELL_LINE $(plant_named "$PLANT_REL" "$PLANT_ISSUE_SHELL_LINE");"
+  problems=()
+}
+
+name="planting the issue's three examples in a scratch suite, a Path.chmod to decimal mode 0, an os.chmod of p to octal 444 and a shell chmod of \$f to 0400, turns the guard red, naming the planted <suite>:<line> (#897)"
+issue_plants_named=""
+
+probe_the_issues_three_plants
+
+expect_eq "$name" "pytest red;${PLANT_ISSUE_PY_LINES[0]#    } named;${PLANT_ISSUE_PY_LINES[1]#    } named;bash red;$PLANT_ISSUE_SHELL_LINE named;" "$issue_plants_named"
+
 PLANT_SYSTEM_PATH='    assert (code, out, err.startswith("mkdir: /.tdd: ")) == (1, "", True)'
 
 probe_a_planted_system_path() {
