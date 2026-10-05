@@ -15,11 +15,8 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/exit-contract.sh"
 source "$HERE/lib/ledger.sh"
 
-while IFS= read -r record; do
-  ledger_fields "$record"
-  [[ "$state" == done && "$pending" == 1 ]] || continue
-  printf '%s\n' "$text"
-  exit 0
-done < <(ledger_steps)
+refactor_pending() {
+  [[ "$state" == done && "$pending" == 1 ]]
+}
 
-exit 3
+ledger_first_step refactor_pending
