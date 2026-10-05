@@ -1398,4 +1398,57 @@ fi
 
 report "$name"
 
+name="a conductor that exits with a local tdd/<n>-* branch and no worktree keeps the skill record, and the next launch runs the recorded commit (#866)"
+problems=()
+
+remote38="$work/remote38"
+clone38="$work/clone38"
+cloned_skill "$remote38" "$clone38"
+first38="$(git -C "$remote38" rev-parse HEAD)"
+
+pinned38="$work/pinned38"
+skill_archive "$remote38" "$first38" "$pinned38"
+
+caller38="$work/caller38"
+caller_repo "$caller38"
+git -C "$caller38" commit -q --allow-empty -m base
+
+cat > "$stubdir/branch-hook" <<HOOK
+#!/bin/sh
+git -C "$caller38" branch "tdd/$issue-past-preflight"
+HOOK
+chmod +x "$stubdir/branch-hook"
+
+launch_from "$caller38" "$clone38" CONDUCTOR_HOOK="$stubdir/branch-hook"
+record38="$caller38/.tdd/issue-$issue-skill-commit"
+
+if ! git -C "$caller38" show-ref --verify -q "refs/heads/tdd/$issue-past-preflight"; then
+  problems+=("the conductor left no local branch tdd/$issue-past-preflight: $(cat "$launch_err")")
+elif [[ -n "$(git -C "$caller38" worktree list --porcelain | grep -F ".tdd/wt/$issue" || true)" ]]; then
+  problems+=("the conductor left a worktree at .tdd/wt/$issue, so the branch alone is not what kept the record")
+elif [[ ! -f "$record38" ]]; then
+  problems+=("the record $record38 is gone after a conductor that left a local tdd/$issue-* branch and no worktree")
+else
+  [[ "$(cat "$record38")" == "$first38" ]] ||
+    problems+=("the record holds '$(cat "$record38")', not the launch's pin $first38")
+fi
+
+advance_clone "$remote38" "# a commit that landed on the remote after the run got past preflight"
+moved38="$(git -C "$remote38" rev-parse HEAD)"
+
+resumed38="$work/resumed38"
+mkdir -p "$resumed38"
+rm -f "$prompt"
+launch_from "$caller38" "$clone38" BASE_OUT="$resumed38"
+
+if [[ -z "$(prompt_base)" ]]; then
+  problems+=("the next launch's prompt names no base directory: $(cat "$launch_err")")
+else
+  holds_skill "$resumed38" "$pinned38/skills/tdd" "next launch's" "recorded pin $first38 (origin moved to $moved38)"
+  grep -q -- "$first38" "$prompt" ||
+    problems+=("the next launch's prompt does not name the recorded pin $first38")
+fi
+
+report "$name"
+
 finish
