@@ -1516,4 +1516,38 @@ fi
 
 report "$name"
 
+name="after a launch that left no worktree and no tdd/<n>-* branch, the next launch without VERI_NEW_SKILL pins the default branch's tip at that moment, not the earlier launch's commit (#866)"
+problems=()
+
+remote41="$work/remote41"
+clone41="$work/clone41"
+cloned_skill "$remote41" "$clone41"
+first41="$(git -C "$remote41" rev-parse HEAD)"
+
+caller41="$work/caller41"
+caller_repo "$caller41"
+git -C "$caller41" commit -q --allow-empty -m base
+launch_from "$caller41" "$clone41"
+
+advance_clone "$remote41" "# a commit that landed on the remote after the run stopped at preflight"
+moved41="$(git -C "$remote41" rev-parse HEAD)"
+
+pinned41="$work/pinned41"
+skill_archive "$remote41" "$moved41" "$pinned41"
+
+relaunched41="$work/relaunched41"
+mkdir -p "$relaunched41"
+rm -f "$prompt"
+launch_from "$caller41" "$clone41" BASE_OUT="$relaunched41"
+
+if [[ -z "$(prompt_base)" ]]; then
+  problems+=("the next launch's prompt names no base directory: $(cat "$launch_err")")
+else
+  holds_skill "$relaunched41" "$pinned41/skills/tdd" "next launch's" "the tip $moved41 (the earlier launch pinned $first41)"
+  grep -q -- "$moved41" "$prompt" ||
+    problems+=("the next launch's prompt does not name the tip $moved41 (the earlier launch pinned $first41)")
+fi
+
+report "$name"
+
 finish
