@@ -31,21 +31,22 @@ rebase_in_progress() {
 main() {
   set -uo pipefail
 
-  local default symref
-  if ! default="$(git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD)"; then
-    symref="$(git ls-remote --symref origin HEAD 2>/dev/null)"
-    symref="$(sed -n 's|^ref: refs/heads/\([^[:space:]]*\)[[:space:]]*HEAD$|\1|p' <<<"$symref")"
-    default="origin/$symref"
+  local default
+  if default="$(git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD)"; then
+    default="${default#origin/}"
+  else
+    default="$(git ls-remote --symref origin HEAD 2>/dev/null)"
+    default="$(sed -n 's|^ref: refs/heads/\([^[:space:]]*\)[[:space:]]*HEAD$|\1|p' <<<"$default")"
   fi
-  [[ "$default" != origin/ ]] ||
+  [[ -n "$default" ]] ||
     { echo "rebase-onto-default: refs/remotes/origin/HEAD is not set — no default branch to rebase onto" >&2; exit 2; }
 
   git fetch -q origin >/dev/null 2>&1 || exit 2
 
   # hazard: a fetch that exits 0 need not have refreshed origin/<default>.
   local remote_sha onto
-  remote_sha="$(git ls-remote origin "refs/heads/${default#origin/}" 2>/dev/null)" || exit 2
-  onto="$(git rev-parse "$default")"
+  remote_sha="$(git ls-remote origin "refs/heads/$default" 2>/dev/null)" || exit 2
+  onto="$(git rev-parse "origin/$default")"
   [[ "${remote_sha%%[[:space:]]*}" == "$onto" ]] || exit 2
 
   git merge-base --is-ancestor "$onto" HEAD && exit 3
