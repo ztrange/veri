@@ -52,7 +52,7 @@ class _Conductor:
         for line in lines:
             if self.armed and b'"type":"user"' in line:
                 self.armed = False
-                if self.context > int(os.environ.get("VERI_CONDUCTOR_CTX_BUDGET") or "120000"):
+                if self.context > int(_ctx_budget()):
                     os.kill(self.sup.pid, signal.SIGTERM)
                     self.stopped = True
                 continue
@@ -65,6 +65,10 @@ class _Conductor:
                 print("context %s %d" % (self.n, self.context), flush=True)
             if b"event.sh step-done" in line:
                 self.armed = True
+
+
+def _ctx_budget():
+    return os.environ.get("VERI_CONDUCTOR_CTX_BUDGET") or "120000"
 
 
 def _run_timeout():
@@ -106,7 +110,7 @@ def _exclude_tdd():
 def main(argv):
     if not _exclude_tdd():
         return 2
-    if not (_whole_number("VERI_CONDUCTOR_CTX_BUDGET", os.environ.get("VERI_CONDUCTOR_CTX_BUDGET") or "120000", 0)
+    if not (_whole_number("VERI_CONDUCTOR_CTX_BUDGET", _ctx_budget(), 0)
             and _whole_number("VERI_PARALLEL", os.environ.get("VERI_PARALLEL", "1"), 1)
             and ("VERI_MAX_ISSUES" not in os.environ
                  or _whole_number("VERI_MAX_ISSUES", os.environ["VERI_MAX_ISSUES"], 1))):
