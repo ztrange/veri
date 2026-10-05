@@ -14,6 +14,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LEAF_TIMEOUT="$HERE/../leaf-timeout.sh"
+unset VERI_ISSUE
 
 source "$HERE/lib/harness.sh"
 

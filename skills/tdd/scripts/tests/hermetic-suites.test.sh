@@ -406,4 +406,20 @@ if [[ -z "${HERMETIC_SKILLCOMMIT_PROBE:-}" ]]; then
   report "$name"
 fi
 
+name="#954: leaf-timeout.test.sh run inside a run worktree with VERI_ISSUE=954 in its environment, as a leaf's test run is, leaves no .tdd/issue-954-timeout in that worktree"
+problems=()
+run_wt="$(scratch_dir)"
+new_repo -b main "$run_wt" >/dev/null 2>&1
+mkdir -p "$run_wt/skills/tdd/scripts/veri" "$run_wt/skills/tdd/scripts/tests/lib"
+cp "$HERE/../leaf-timeout.sh" "$run_wt/skills/tdd/scripts/"
+cp "$HERE/../veri/leaf_timeout.py" "$run_wt/skills/tdd/scripts/veri/"
+cp "$HERE/leaf-timeout.test.sh" "$run_wt/skills/tdd/scripts/tests/"
+cp "$HERE"/lib/*.sh "$run_wt/skills/tdd/scripts/tests/lib/"
+leaf_out="$(cd "$run_wt" && env -u VERI_TIMEOUT VERI_ISSUE=954 skills/tdd/scripts/tests/leaf-timeout.test.sh 2>/dev/null)" && leaf_code=0 || leaf_code=$?
+[[ "$leaf_code" == 0 && "$(tail -n 1 <<< "$leaf_out")" == *" passed, 0 failed" ]] ||
+  problems+=("want leaf-timeout.test.sh green under VERI_ISSUE=954, got exit $leaf_code: $(printf '%q' "$(tail -n 1 <<< "$leaf_out")")")
+[[ ! -e "$run_wt/.tdd/issue-954-timeout" ]] ||
+  problems+=("want no .tdd/issue-954-timeout in the run worktree, found one holding $(printf '%q' "$(cat "$run_wt/.tdd/issue-954-timeout")")")
+report "$name"
+
 finish

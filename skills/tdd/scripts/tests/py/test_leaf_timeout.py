@@ -14,7 +14,8 @@ USAGE = "usage: leaf-timeout.sh <baseline-seconds> [refactor | --full <full-seco
 
 
 @pytest.fixture
-def leaf_timeout():
+def leaf_timeout(monkeypatch):
+    monkeypatch.delenv("VERI_ISSUE", raising=False)
     return importlib.import_module("veri.leaf_timeout")
 
 
