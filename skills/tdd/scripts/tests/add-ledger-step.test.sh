@@ -132,7 +132,7 @@ check_code "ambiguous or absent anchor: exits 2 and leaves the ledger byte-ident
 
 seed
 env -u VERI_STEP_GROWTH "$ADD" "$led" after 'collapse to single hyphen' \
-  'first added' 'second added' 'third added'; code1=$?
+  'first added' 'second added' 'third added' 'fourth added' 'fifth added'; code1=$?
 VERI_STEP_GROWTH=three "$ADD" "$led" after 'collapse to single hyphen' 'a fourth'; code2=$?
 VERI_STEP_GROWTH= "$ADD" "$led" after 'collapse to single hyphen' 'a fourth'; code3=$?
 want='# Plan for #42
@@ -142,9 +142,26 @@ want='# Plan for #42
 - [ ] first added ⟦added⟧ ⟦criterion 2⟧
 - [ ] second added ⟦added⟧ ⟦criterion 2⟧
 - [ ] third added ⟦added⟧ ⟦criterion 2⟧
+- [ ] fourth added ⟦added⟧ ⟦criterion 2⟧
+- [ ] fifth added ⟦added⟧ ⟦criterion 2⟧
 - [ ] strip edge hyphens ⟦criterion 3⟧'
-check_code "unset allows three added steps; a non-integer or empty budget exits 2, ledger untouched" \
+check_code "unset allows five added steps; a non-integer or empty budget exits 2, ledger untouched" \
   "$code1/$code2/$code3" "0/2/2" "$want"
+
+seed
+env -u VERI_STEP_GROWTH "$ADD" "$led" after 'collapse to single hyphen' \
+  'one' 'two' 'three' 'four' 'five' 'six'; code=$?
+want="$seeded"'
+
+## Owed steps
+
+- one
+- two
+- three
+- four
+- five
+- six'
+check_code "unset refuses a sixth added step: exits 1 and owes the whole batch" "$code" 1 "$want"
 
 seed
 "$ADD" "$led" instead-of 'collapse to single hyphen' \
