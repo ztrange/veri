@@ -180,7 +180,7 @@ if preflight_or_problem "the red-baseline stop"; then
   else
     [[ -n "$plan_at" && "$fast_in" -lt "$plan_at" ]] ||
       problems+=("$skill_md:$fast_in runs the baseline after '$plan_heading' (line ${plan_at:-none}), so a red baseline cannot stop the run before the plan")
-    stops="$(item_around "$fast_in" | tr '\n' ' ' | sed 's/  */ /g' | awk 'BEGIN { RS = "[.] " } tolower($0) ~ /red baseline/')"
+    stops="$(item_around "$fast_in" | tr '\n' ' ' | sed 's/  */ /g' | awk -v p="$red_phrase" 'BEGIN { RS = "[.] " } index(tolower($0), p)')"
     if ! grep -iF -- "preflight" <<< "$stops" | grep -F -- "$callers" > /dev/null; then
       problems+=("$skill_md:$fast_in's item has no sentence that stops on a $red_phrase as a preflight-class stop whatever the $callers holds — it says only: ${stops:-nothing}")
     fi
