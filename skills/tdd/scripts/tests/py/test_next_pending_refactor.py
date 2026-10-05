@@ -88,3 +88,25 @@ def test_main_prints_the_step_text_and_exactly_one_newline_and_a_bare_pending_st
         "worded": (0, "trim the slug ⟦criterion 1⟧\n".encode(), b""),
         "bare": (0, b"\n", b""),
     }
+
+
+def test_main_returns_a_ticked_step_of_any_kind_counts_an_upper_case_box_and_exits_3_when_only_an_open_step_ends_in_the_mark(
+        monkeypatch, capsysbinary, next_pending_refactor):
+    results = {}
+    for ledger_name, ledger in (
+            ("full-suite", "- [ ] open ⟂ refactor pending\n- [x] ⟦full-suite⟧ ⟦criterion 2⟧ ⟂ refactor pending"),
+            ("human-owed", "- [ ] open ⟂ refactor pending\n- [x] ⟦human-owed⟧ ⟦criterion 3⟧ ⟂ refactor pending"),
+            ("diff-checked", "- [ ] open ⟂ refactor pending\n- [x] ⟦diff-checked⟧ ⟦criterion 4⟧ ⟂ refactor pending"),
+            ("upper-case", "- [ ] open ⟂ refactor pending\n- [X] ticked upper-case ⟂ refactor pending"),
+            ("open-only", "- [x] tidied already\n- [ ] still open ⟂ refactor pending\n")):
+        fake_stdin(monkeypatch, ledger.encode())
+        code = next_pending_refactor.main([])
+        results[ledger_name] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        "full-suite": (0, "⟦full-suite⟧ ⟦criterion 2⟧\n".encode(), b""),
+        "human-owed": (0, "⟦human-owed⟧ ⟦criterion 3⟧\n".encode(), b""),
+        "diff-checked": (0, "⟦diff-checked⟧ ⟦criterion 4⟧\n".encode(), b""),
+        "upper-case": (0, b"ticked upper-case\n", b""),
+        "open-only": (3, b"", b""),
+    }
