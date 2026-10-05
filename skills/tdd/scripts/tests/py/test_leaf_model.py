@@ -42,3 +42,60 @@ def test_main_refuses_no_or_an_empty_leaf_name_with_the_usage_line_and_prints_ve
         (0, ""),
     ]
     assert all(0 <= answer[0] <= 3 for answer in answers)
+
+
+def test_main_resolves_the_role_variable_before_veri_model_for_its_own_role_only_and_prints_the_value_verbatim(
+        capsys, monkeypatch, leaf_model):
+    runs = [
+        ({"VERI_MODEL": "sonnet"}, ["develop-red"]),
+        ({"VERI_MODEL": "sonnet"}, ["verify-green"]),
+        ({}, ["develop-red"]),
+        ({}, ["verify-green"]),
+        ({"VERI_MODEL": "sonnet", "VERI_MODEL_DEVELOPER": "opus"}, ["develop-red"]),
+        ({"VERI_MODEL": "sonnet", "VERI_MODEL_DEVELOPER": "opus"}, ["revise-green-2"]),
+        ({"VERI_MODEL": "sonnet", "VERI_MODEL_DEVELOPER": "opus"}, ["verify-green"]),
+        ({"VERI_MODEL": "sonnet", "VERI_MODEL_VERIFIER": "haiku"}, ["verify-red"]),
+        ({"VERI_MODEL": "sonnet", "VERI_MODEL_VERIFIER": "haiku"}, ["develop-red"]),
+        ({"VERI_MODEL_CONDUCTOR": "opus"}, ["conductor-x"]),
+        ({"VERI_MODEL": "sonnet", "VERI_MODEL_CONDUCTOR": "opus"}, ["develop-red"]),
+        ({"VERI_MODEL": "sonnet", "VERI_MODEL_DEVELOPER": ""}, ["develop-red"]),
+        ({"VERI_MODEL": "sonnet", "VERI_MODEL_VERIFIER": ""}, ["verify-green"]),
+        ({"VERI_MODEL": ""}, ["develop-red"]),
+        ({"VERI_MODEL": "", "VERI_MODEL_VERIFIER": ""}, ["verify-green"]),
+        ({"VERI_MODEL_DEVELOPER": "opus"}, ["verify-green"]),
+        ({"VERI_MODEL_VERIFIER": "haiku"}, ["develop-red"]),
+        ({"VERI_MODEL": "opus[1m]"}, ["develop-red"]),
+        ({"VERI_MODEL_VERIFIER": "back\\slash"}, ["verify-green"]),
+        ({"VERI_MODEL_DEVELOPER": "opus"}, ["develop-red", "verify-green", "extra"]),
+    ]
+    answers = []
+    for environment, argv in runs:
+        for variable in MODEL_VARIABLES + ("VERI_MODEL_CONDUCTOR",):
+            monkeypatch.delenv(variable, raising=False)
+        for variable, value in environment.items():
+            monkeypatch.setenv(variable, value)
+        code = leaf_model.main(argv)
+        captured = capsys.readouterr()
+        answers.append((argv[0], code, captured.out, captured.err))
+    assert answers == [
+        ("develop-red", 0, "sonnet\n", ""),
+        ("verify-green", 0, "sonnet\n", ""),
+        ("develop-red", 0, "", ""),
+        ("verify-green", 0, "", ""),
+        ("develop-red", 0, "opus\n", ""),
+        ("revise-green-2", 0, "opus\n", ""),
+        ("verify-green", 0, "sonnet\n", ""),
+        ("verify-red", 0, "haiku\n", ""),
+        ("develop-red", 0, "sonnet\n", ""),
+        ("conductor-x", 0, "opus\n", ""),
+        ("develop-red", 0, "sonnet\n", ""),
+        ("develop-red", 0, "sonnet\n", ""),
+        ("verify-green", 0, "sonnet\n", ""),
+        ("develop-red", 0, "", ""),
+        ("verify-green", 0, "", ""),
+        ("verify-green", 0, "", ""),
+        ("develop-red", 0, "", ""),
+        ("develop-red", 0, "opus[1m]\n", ""),
+        ("verify-green", 0, "back\\slash\n", ""),
+        ("develop-red", 0, "opus\n", ""),
+    ]
