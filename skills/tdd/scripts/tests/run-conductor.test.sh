@@ -1604,4 +1604,43 @@ rc43=$?
 
 report "$name"
 
+name="with no worktree and no tdd/<n>-* branch, VERI_NEW_SKILL=1 still re-pins the record to the fresh tip for the conductor's run and writes its skill-repin event (#866)"
+problems=()
+
+remote44="$work/remote44"
+clone44="$work/clone44"
+cloned_skill "$remote44" "$clone44"
+first44="$(git -C "$remote44" rev-parse HEAD)"
+
+caller44="$work/caller44"
+caller_repo "$caller44"
+git -C "$caller44" commit -q --allow-empty -m base
+mkdir -p "$caller44/.tdd"
+printf '%s\n' "$first44" > "$caller44/.tdd/issue-$issue-skill-commit"
+
+advance_clone "$remote44" "# a commit the operator asks the run to take"
+moved44="$(git -C "$remote44" rev-parse HEAD)"
+
+during44="$work/record-during44"
+cat > "$stubdir/repin-hook" <<HOOK
+#!/bin/sh
+cp "$caller44/.tdd/issue-$issue-skill-commit" "$during44"
+HOOK
+chmod +x "$stubdir/repin-hook"
+
+rm -f "$prompt"
+launch_from "$caller44" "$clone44" CONDUCTOR_HOOK="$stubdir/repin-hook" VERI_NEW_SKILL=1
+
+if [[ ! -f "$during44" ]]; then
+  problems+=("the conductor ran with no skill record to read: $(cat "$launch_err")")
+elif [[ "$(cat "$during44")" != "$moved44" ]]; then
+  problems+=("the record held '$(cat "$during44")' while the conductor ran, not the fresh tip $moved44 (the earlier pin was $first44)")
+fi
+grep -q -- "$moved44" "$prompt" ||
+  problems+=("the conductor's prompt does not name the fresh tip $moved44")
+repin_in "$caller44/.tdd/wt/$issue/.tdd/events.jsonl" "$moved44" ||
+  problems+=("no skill-repin event naming $moved44 in $caller44/.tdd/wt/$issue/.tdd/events.jsonl")
+
+report "$name"
+
 finish
