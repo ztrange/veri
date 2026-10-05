@@ -11,8 +11,8 @@
 - [x] next-pending-refactor.sh becomes a /bin/sh shim that execs python3 on veri/next_pending_refactor.py, its header carrying a lowercase usage line that names no angle-bracket argument and no issue number, and neither shim nor module spelling the pending mark or a checkbox; no assertion in tests/unit/next-pending-refactor.test.sh, tests/tick-ledger.test.sh, tests/skill-event-marks.test.sh or tests/skill-leaf-env.test.sh is changed ⟦diff-checked⟧ ⟦criterion 3⟧
 - [x] tests/unit/next-pending-refactor.test.sh keeps only the floor — "first pending description, mark stripped", "no pending step exits 3" and the symlink case — and tests/py/test_next_pending_refactor.py holds the replacing and Order-matters cases, each through main(argv) with stdin faked as bytes, patching nothing of veri.next_pending_refactor and asserting main's return code ⟦diff-checked⟧ ⟦criterion 5⟧
 - [x] lib/ledger.sh and veri/ledger.py are unchanged by the branch, the seven other scripts still source lib/ledger.sh, and none of the suites the issue lists as passing unmodified is changed by the branch except missing-argument-exit.test.sh's slice-5 line ⟦diff-checked⟧ ⟦criterion 7⟧
-- [ ] the contract cases of next-pending-refactor.test.sh, tick-ledger.test.sh, skill-event-marks.test.sh and skill-leaf-env.test.sh, and the symlink case under the unit-tier guard, pass against the shim ⟦full-suite⟧ ⟦criterion 3⟧
-- [ ] the suites the issue lists as reading next-pending-refactor.sh's source or running it pass unmodified against the shim ⟦full-suite⟧ ⟦criterion 7⟧
+- [x] the contract cases of next-pending-refactor.test.sh, tick-ledger.test.sh, skill-event-marks.test.sh and skill-leaf-env.test.sh, and the symlink case under the unit-tier guard, pass against the shim ⟦full-suite⟧ ⟦criterion 3⟧
+- [x] the suites the issue lists as reading next-pending-refactor.sh's source or running it pass unmodified against the shim ⟦full-suite⟧ ⟦criterion 7⟧
 
 ## Notes (decisions the issue asks the plan to state; no step pins them)
 
