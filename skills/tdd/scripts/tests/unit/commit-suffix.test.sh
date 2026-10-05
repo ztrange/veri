@@ -97,4 +97,12 @@ out="$( source "$LIB" && commit_suffix_offenders "$create" 2>&1 )" || rc=$?
 named=""; grep -F 'develop-create.md' <<< "$out" > /dev/null && named=named
 expect_eq "$name" "1:named" "$rc:$named"
 
+name="#946 the commit-suffix check stays green over a planted develop prompt whose only mention of a commit is \"\`git diff <base-sha>..HEAD\`\""
+diff="$scratch/diff"
+mkdir -p "$diff"
+printf '%s\n' '## Phase: develop-diff' '' 'Read what the step changed with `git diff <base-sha>..HEAD`.' > "$diff/develop-diff.md"
+rc=0
+out="$( source "$LIB" && commit_suffix_offenders "$diff" 2>&1 )" || rc=$?
+expect_eq "$name" "0:" "$rc:$out"
+
 finish
