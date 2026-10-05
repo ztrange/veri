@@ -63,13 +63,7 @@ if [[ -f "$HOME/.gitconfig" ]]; then
 fi
 export GIT_CONFIG_GLOBAL="$leaf_gitconfig"
 
-session_id="${CLAUDE_CODE_SESSION_ID:-}"
-unset "${SESSION_VARS[@]}"
-if [[ -n "$session_id" ]]; then
-  for name in $(compgen -e); do
-    if [[ "${!name}" == *"$session_id"* ]]; then unset "$name"; fi
-  done
-fi
+strip_session_env
 
 # hazard: set -e with pipefail would abort before PIPESTATUS is read.
 set +e

@@ -127,13 +127,8 @@ Pinned skill commit (name it in the plan comment): $pinned
 }
 Solve issue #$issue by the procedure above."
 
-session_id="${CLAUDE_CODE_SESSION_ID:-}"
-unset "${SESSION_VARS[@]}" VERI_NEW_SKILL
-if [[ -n "$session_id" ]]; then
-  for name in $(compgen -e); do
-    if [[ "${!name}" == *"$session_id"* ]]; then unset "$name"; fi
-  done
-fi
+strip_session_env
+unset VERI_NEW_SKILL
 
 code=0
 printf '%s\n' "$prompt" | "${CLAUDE_BIN:-claude}" -p \
