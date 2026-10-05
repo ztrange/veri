@@ -153,3 +153,55 @@ def test_main_refuses_an_empty_label_tunable_and_opts_in_by_exact_label_name(tmp
     (tmp_path / "issues.json").write_text(json.dumps([dict(opted_in(5), labels=None)]))
     with pytest.raises(TypeError):
         run([])
+
+
+def fake_gh_refusing_graphql(monkeypatch):
+    """subprocess.run refusing `gh issue list`/`gh pr list`, answering `gh api` with an empty page and git with nothing; records the gh commands."""
+    started = []
+
+    def fake_run(args, *rest, **kwargs):
+        args = list(args)
+        if args[:1] == ["gh"]:
+            started.append(args)
+            if args[1] == "api":
+                return subprocess.CompletedProcess(args, 0, "[]\n", "")
+            return subprocess.CompletedProcess(args, 1, "", "")
+        if args[:4] == ["git", "worktree", "list", "--porcelain"]:
+            return subprocess.CompletedProcess(args, 0, "", "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", fake_run)
+    return started
+
+
+@pytest.mark.parametrize("gh_json_dir", [None, ""])
+def test_main_reads_issues_then_prs_through_gh_forwarding_repo_verbatim_and_falls_back_to_rest_paths(gh_json_dir, monkeypatch, capsys, solvable_issues):
+    if gh_json_dir is not None:
+        monkeypatch.setenv("VERI_GH_JSON", gh_json_dir)
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+
+    def reads(repo):
+        scope = ["--repo", repo] if repo else []
+        prefix = "repos/%s" % (repo or "{owner}/{repo}")
+        return [
+            ["gh", "issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope],
+            ["gh", "api", prefix + "/issues?page=1"],
+            ["gh", "pr", "list", "--limit", "10000", "--json", "body,state", *scope],
+            ["gh", "api", prefix + "/pulls?page=1"],
+        ]
+
+    observed = {}
+    for argv in ([], ["--repo", "o/n"], ["--repo", "o/n", "--repo", "x/y"], ["--repo=x"], ["foo"]):
+        started = fake_gh_refusing_graphql(monkeypatch)
+        solvable_issues.main(argv)
+        capsys.readouterr()
+        observed[tuple(argv)] = started
+
+    assert observed == {
+        (): reads(None),
+        ("--repo", "o/n"): reads("o/n"),
+        ("--repo", "o/n", "--repo", "x/y"): reads("o/n"),
+        ("--repo=x",): reads(None),
+        ("foo",): reads(None),
+    }
