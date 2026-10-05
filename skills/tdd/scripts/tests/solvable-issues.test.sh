@@ -1276,4 +1276,28 @@ VERI_GH_JSON="$bad_arg" "$SOLVABLE" --repo >"$bad_arg/out" 2>"$bad_arg/err" && c
   && [[ "$(wc -l < "$bad_arg/err" | tr -d ' ')" == 1 ]]; } \
   && ok || no "--repo with no value exits 2 with nothing on stdout and stderr exactly the usage line (exit=$code want 2, stdout='$(cat "$bad_arg/out")' want '', stderr='$(cat "$bad_arg/err")' want 'usage: solvable-issues.sh [--repo owner/name]')"
 
+sym_fx="$(fixture symlinked-skill)"
+cat > "$sym_fx/issues.json" <<'JSON'
+[
+  {"number": 5, "title": "in flight", "labels": [{"name": "ready-for-agent"}], "state": "OPEN", "body": "## Blocked by\n\nNone.\n"},
+  {"number": 6, "title": "takeable", "labels": [{"name": "ready-for-agent"}], "state": "OPEN", "body": "## Blocked by\n\nNone.\n"}
+]
+JSON
+sym_repo="$work/symlinked-skill/repo"
+new_repo -b main "$sym_repo" >/dev/null 2>&1
+git -C "$sym_repo" -c user.name=veri -c user.email=veri@example.test \
+  commit -q --allow-empty -m initial >/dev/null 2>&1
+git -C "$sym_repo" worktree add -q -b linked "$work/symlinked-skill/linked" main >/dev/null 2>&1
+mkdir -p "$sym_repo/.tdd/wt/5/.tdd"
+printf '%s\n' "$$" > "$sym_repo/.tdd/wt/5/.tdd/conductor.pid"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/symlinked-skill/skill-link"
+in_place_out="$(cd "$work/symlinked-skill/linked" && VERI_GH_JSON="$sym_fx" "$SOLVABLE" 2>/dev/null)" \
+  && in_place_code=0 || in_place_code=$?
+linked_out="$(cd "$work/symlinked-skill/linked" \
+  && VERI_GH_JSON="$sym_fx" "$work/symlinked-skill/skill-link/scripts/solvable-issues.sh" 2>/dev/null)" \
+  && linked_code=0 || linked_code=$?
+{ [[ "$in_place_code" == 0 && "$in_place_out" == 6 ]] \
+  && [[ "$linked_code" == "$in_place_code" && "$linked_out" == "$in_place_out" ]]; } \
+  && ok || no "run through a symlink to the skill directory from a linked worktree, solvable-issues.sh prints the same numbers and exit code as in place, the issue locked under the main working tree withheld either way (in place: exit=$in_place_code stdout='$(tr '\n' '|' <<<"$in_place_out")' want 0 and '6'; through the symlink: exit=$linked_code stdout='$(tr '\n' '|' <<<"$linked_out")' want the same)"
+
 finish
