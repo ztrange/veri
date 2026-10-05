@@ -285,6 +285,9 @@ def render(issue, path, ledger):
     def figure(column, value):
         return "%.2f" % value if column in MONEY else "%d" % value
 
+    def figures(row_counts, columns):
+        return [figure(c, row_counts[c]) for c in columns]
+
     def refactor_spent(mark):
         return "%s/%s" % (mark["transforms"], mark.get("budget", "?"))
 
@@ -324,7 +327,7 @@ def render(issue, path, ledger):
         table_head(heading, key_column, columns + headings,
                    ["---:"] * len(columns) + ["---"] * len(headings))
         for key, row_counts in table.items():
-            cells = [key] + [figure(c, row_counts[c]) for c in columns]
+            cells = [key] + figures(row_counts, columns)
             row(cells + (cells_for(key) if cells_for else []))
 
     def tier_section(heading, key_column):
@@ -373,7 +376,7 @@ def render(issue, path, ledger):
     if models or any(mark.get("event") == "launch" and "model" in mark for mark in marks):
         table_head("#### By model", "role", ["model"] + PHASE_COLUMNS, ["---"] + ["---:"] * len(PHASE_COLUMNS))
         for (role, model), row_counts in by_model.items():
-            row([role, model or "not recorded"] + [figure(c, row_counts[c]) for c in PHASE_COLUMNS])
+            row([role, model or "not recorded"] + figures(row_counts, PHASE_COLUMNS))
     section("#### Rework and waste, by phase", "phase", LOST_COLUMNS, lost)
     section("#### By step", "step", STEP_COUNTS + [API] + COST_COLUMNS, steps,
             ([WALL] + BUDGETS + MARK_COLUMNS + [KIND], step_cells))
@@ -386,7 +389,7 @@ def render(issue, path, ledger):
                    ["---:", "---:", "---", "---", "---:", "---:", "---:"])
         for (step, index), (mark, spent_by) in passes.items():
             row([step, index, refactor_spent(mark), mark["stopped"],
-                 spent_by["verdict"], str(spent_by["revise"]), figure(WALL, spent_by[WALL]), figure(DOLLARS, spent_by[DOLLARS])])
+                 spent_by["verdict"], str(spent_by["revise"])] + figures(spent_by, [WALL, DOLLARS]))
     if structural is None and ending is not None and ending.get("event") == "done":
         structural = {"stopped": "not marked"}
     if structural is not None:
