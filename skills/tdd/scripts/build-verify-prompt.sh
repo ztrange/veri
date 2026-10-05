@@ -91,6 +91,8 @@ shared_file="$HERE/prompts/_shared.md"
 # hazard: `||` on `source`, or a missing lib file dies under set -e with 1 instead of 2.
 source "$HERE/lib/bug-section.sh" \
   || { echo "build-verify-prompt: cannot read '$HERE/lib/bug-section.sh'" >&2; exit 2; }
+source "$HERE/lib/include.sh" \
+  || { echo "build-verify-prompt: cannot read '$HERE/lib/include.sh'" >&2; exit 2; }
 bug_file=""
 if spec_has_bug_section "$spec_file"; then
   bug_file="$HERE/prompts/_verify-red-bug.md"
@@ -124,14 +126,7 @@ for f in "${readable[@]}"; do
 done
 
 tpl="$(cat "$tpl_file")"
-include_re='\{\{INCLUDE:([^}]*)\}\}'
-rest="$tpl" tpl=""
-while [[ "$rest" =~ $include_re ]]; do
-  token="${BASH_REMATCH[0]}"
-  tpl+="${rest%%"$token"*}"
-  rest="$(cat "$HERE/prompts/${BASH_REMATCH[1]}")${rest#*"$token"}"
-done
-tpl+="$rest"
+resolve_includes tpl "$HERE/prompts"
 shared="$(cat "$shared_file")"
 spec="$(cat "$spec_file")"
 optional() {
