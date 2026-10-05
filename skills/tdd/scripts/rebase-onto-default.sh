@@ -31,8 +31,13 @@ rebase_in_progress() {
 main() {
   set -uo pipefail
 
-  local default
-  default="$(git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD)" ||
+  local default symref
+  if ! default="$(git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD)"; then
+    symref="$(git ls-remote --symref origin HEAD 2>/dev/null)"
+    symref="$(sed -n 's|^ref: refs/heads/\([^[:space:]]*\)[[:space:]]*HEAD$|\1|p' <<<"$symref")"
+    default="origin/$symref"
+  fi
+  [[ "$default" != origin/ ]] ||
     { echo "rebase-onto-default: refs/remotes/origin/HEAD is not set — no default branch to rebase onto" >&2; exit 2; }
 
   git fetch -q origin >/dev/null 2>&1 || exit 2
