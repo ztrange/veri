@@ -291,12 +291,10 @@ def render(issue, path, ledger):
     def refactor_spent(mark):
         return "%s/%s" % (mark["transforms"], mark.get("budget", "?"))
 
-    def step_wall(step):
-        mark = spent.get(step, {})
+    def step_wall(mark):
         return known(awake_span_or_wall(mark.get("step-start"), mark.get("step-done")))
 
-    def budget_cells(step):
-        mark = spent.get(step, {})
+    def budget_cells(mark):
         phases = mark.get("revise phases", {})
         named = len(phases) > 1
         revise = ", ".join(("%s " % phase if named else "") + "%d/%s" % (count, budget or "?")
@@ -309,7 +307,7 @@ def render(issue, path, ledger):
 
     def step_cells(step):
         mark = spent.get(step, {})
-        return [step_wall(step)] + budget_cells(step) + [mark.get(column, "") for column in MARK_COLUMNS] + [mark.get(KIND, "full")]
+        return [step_wall(mark)] + budget_cells(mark) + [mark.get(column, "") for column in MARK_COLUMNS] + [mark.get(KIND, "full")]
 
     def heading_block(heading):
         print()
