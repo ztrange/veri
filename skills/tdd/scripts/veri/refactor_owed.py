@@ -45,12 +45,12 @@ def append(file, step, bounds):
     tests_bound = all_tests(bounds)
     stream = getattr(sys.stdin, "buffer", None)
     report = stream.read().decode(errors="surrogateescape") if stream else sys.stdin.read()
+    routes = ((STRUCTURAL, test_only if tests_bound else structural, "test-only | " if tests_bound else ""),
+              (TEST_ONLY, test_only, "test-only | "))
     for line in report.split("\n"):
-        match = STRUCTURAL.match(line)
-        if match and not tests_bound:
-            structural.append(match.group(1))
-        elif match or (match := TEST_ONLY.match(line)):
-            test_only.append("test-only | " + match.group(1))
+        for pattern, group, prefix in routes:
+            if match := pattern.match(line):
+                group.append(prefix + match.group(1))
     owed = structural + test_only
     if owed:
         try:
