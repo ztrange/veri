@@ -204,9 +204,11 @@ attempt_once() {
   secs=$(( $("$awake_clock") - a0 ))
 }
 
-role="$(leaf_role "$name")" || role=""
-
-model="$(leaf_model "$name")" || model=""
+role="" model=""
+if (( heartbeat_watched )); then
+  role="$(leaf_role "$name")" || role=""
+  model="$(leaf_model "$name")" || model=""
+fi
 
 export VERI_LEAF_MODEL="$model"
 
