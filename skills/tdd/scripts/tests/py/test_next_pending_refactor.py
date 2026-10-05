@@ -118,3 +118,11 @@ def test_main_returns_3_with_nothing_on_stdout_for_empty_stdin(
     code = next_pending_refactor.main([])
 
     assert (code, capsysbinary.readouterr().out) == (3, b"")
+
+
+def test_main_drops_nul_bytes_and_prints_a_non_utf8_byte_in_the_step_text_back_as_that_byte(
+        monkeypatch, capsysbinary, next_pending_refactor):
+    fake_stdin(monkeypatch, b"- [x] caf\xe9 sl\x00ug " + "⟂ refactor pending\n".encode())
+    code = next_pending_refactor.main([])
+
+    assert (code, *capsysbinary.readouterr()) == (0, b"caf\xe9 slug\n", b"")
