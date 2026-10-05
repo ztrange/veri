@@ -404,3 +404,36 @@ def test_main_writes_a_non_utf_8_byte_of_a_text_back_unchanged_when_it_inserts_a
         ),
         "owed": (1, "", "", LEDGER + b"\n## Owed steps\n\n- t \xff\n"),
     }
+
+
+def test_main_returns_2_naming_the_anchor_for_a_missing_or_directory_ledger_and_raises_on_a_failed_write(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
+    missing = tmp_path / "nofile.md"
+    directory = tmp_path / "dir.md"
+    directory.mkdir()
+    got = {}
+    for name, path in (("missing", missing), ("directory", directory)):
+        code = add_ledger_step.main([str(path), "after", "b two", "t"])
+        captured = capsys.readouterr()
+        got[name] = (code, captured.out, captured.err.splitlines()[-1:], sorted(p.name for p in tmp_path.iterdir()))
+    assert got == {
+        name: (2, "", ["add-ledger-step.sh: anchor matches no single step: b two"], ["dir.md"])
+        for name in ("missing", "directory")
+    }
+
+    ledger = tmp_path / "issue-42.md"
+    real_open = open
+
+    def unwritable(file, mode="r", *args, **kwargs):
+        if str(file) == str(ledger) and any(c in mode for c in "wa"):
+            raise PermissionError(13, "Permission denied", str(file))
+        return real_open(file, mode, *args, **kwargs)
+
+    for budget in ("3", "0"):
+        monkeypatch.setenv("VERI_STEP_GROWTH", budget)
+        ledger.write_bytes(LEDGER)
+        monkeypatch.setattr("builtins.open", unwritable)
+        with pytest.raises(PermissionError):
+            add_ledger_step.main([str(ledger), "after", "b two", "t"])
+        monkeypatch.setattr("builtins.open", real_open)
+        assert ledger.read_bytes() == LEDGER
