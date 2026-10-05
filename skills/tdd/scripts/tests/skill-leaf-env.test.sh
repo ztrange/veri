@@ -608,54 +608,19 @@ scan_rebase_verifier_last_done() {
 run_case "#753 the verify-rebase launch line in $skill_md, run with every ledger step ticked, hands its verifier the last done step's text as --step, byte-identical" \
   scan_rebase_verifier_last_done
 
-scan_develop_rebase_last_done() {
-  local title="$EXPANDING_STEP"
+scan_develop_last_done() {
+  local phase="$1" title="$EXPANDING_STEP"
   local lineno line numbered launch stage seen tree err got argv rec k want
-  stage_recorder develop-rebase-last-done
+  stage_recorder "develop-$phase-last-done"
   rm -f "$stage/build-develop-prompt.sh"
   ln -s "$RECORDERS/title.sh" "$stage/build-develop-prompt.sh"
   printf '# Plan for #%s\n\n- [x] an earlier step the run finished\n- [x] %s\n' \
     "$SENTINEL_ISSUE" "$title" > "$tree/.tdd/issue-$SENTINEL_ISSUE.md"
-  numbered="$(head -1 < <(grep -nE '\$S/build-develop-prompt\.sh rebase .*> \.tdd/develop-rebase\.prompt' "$md"))"
-  if [[ -z "$numbered" ]]; then
-    no_launch "build-develop-prompt.sh rebase into .tdd/develop-rebase.prompt"
-  elif take_line "$numbered" "$title"; then
-    run_staged '<no prompt was built>'
-    want='<no step argument>'
-    mapfile -t rec < "$seen.build-develop-prompt" 2>/dev/null || rec=()
-    for (( k = 1; k + 1 < ${#rec[@]}; k++ )); do
-      [[ "${rec[k]}" != *-spec.md ]] || { want="${rec[k+1]}"; break; }
-    done
-    [[ "$want" == "$title" ]] ||
-      problem "built the develop-rebase prompt beside a ledger with every step ticked, passing build-develop-prompt.sh the step <$want>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})"
-  fi
-  numbered="$(head -1 < <(grep -nE '\$S/detach-leaf\.sh .*\$S/supervise\.sh develop-rebase \$S/run-leaf\.sh' "$md"))"
-  if [[ -z "$numbered" ]]; then
-    no_launch "develop-rebase through supervise.sh into run-leaf.sh"
-    return
-  fi
-  take_line "$numbered" "$title" || return
-  run_staged '<no leaf was launched>'
-  [[ "$got" == "$title" ]] ||
-    problem "launched develop-rebase beside a ledger with every step ticked, whose leaf saw VERI_STEP=<$got>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})"
-}
-
-run_case "#892 the Draft PR step's develop-rebase block in $skill_md, run with every ledger step ticked, passes build-develop-prompt.sh rebase and the leaf's VERI_STEP the last done step's text, byte-identical" \
-  scan_develop_rebase_last_done
-
-scan_develop_reconcile_last_done() {
-  local title="$EXPANDING_STEP"
-  local lineno line numbered launch stage seen tree err got argv rec k want
-  stage_recorder develop-reconcile-last-done
-  rm -f "$stage/build-develop-prompt.sh"
-  ln -s "$RECORDERS/title.sh" "$stage/build-develop-prompt.sh"
-  printf '# Plan for #%s\n\n- [x] an earlier step the run finished\n- [x] %s\n' \
-    "$SENTINEL_ISSUE" "$title" > "$tree/.tdd/issue-$SENTINEL_ISSUE.md"
-  numbered="$(head -1 < <(grep -nE '\$S/build-develop-prompt\.sh reconcile .*> \.tdd/develop-reconcile\.prompt' "$md"))"
+  numbered="$(head -1 < <(grep -nE "\\\$S/build-develop-prompt\\.sh $phase .*> \\.tdd/develop-$phase\\.prompt" "$md"))"
   numbered="${numbered//<branch>/tdd/probe-branch}"
   numbered="${numbered//<remote-sha>/0123abc}"
   if [[ -z "$numbered" ]]; then
-    no_launch "build-develop-prompt.sh reconcile into .tdd/develop-reconcile.prompt"
+    no_launch "build-develop-prompt.sh $phase into .tdd/develop-$phase.prompt"
   elif take_line "$numbered" "$title"; then
     run_staged '<no prompt was built>'
     want='<no step argument>'
@@ -664,21 +629,24 @@ scan_develop_reconcile_last_done() {
       [[ "${rec[k]}" != *-spec.md ]] || { want="${rec[k+1]}"; break; }
     done
     [[ "$want" == "$title" ]] ||
-      problem "built the develop-reconcile prompt beside a ledger with every step ticked, passing build-develop-prompt.sh the step <$want>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})"
+      problem "built the develop-$phase prompt beside a ledger with every step ticked, passing build-develop-prompt.sh the step <$want>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})"
   fi
-  numbered="$(head -1 < <(grep -nE '\$S/detach-leaf\.sh .*\$S/supervise\.sh develop-reconcile \$S/run-leaf\.sh' "$md"))"
+  numbered="$(head -1 < <(grep -nE "\\\$S/detach-leaf\\.sh .*\\\$S/supervise\\.sh develop-$phase \\\$S/run-leaf\\.sh" "$md"))"
   if [[ -z "$numbered" ]]; then
-    no_launch "develop-reconcile through supervise.sh into run-leaf.sh"
+    no_launch "develop-$phase through supervise.sh into run-leaf.sh"
     return
   fi
   take_line "$numbered" "$title" || return
   run_staged '<no leaf was launched>'
   [[ "$got" == "$title" ]] ||
-    problem "launched develop-reconcile beside a ledger with every step ticked, whose leaf saw VERI_STEP=<$got>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})"
+    problem "launched develop-$phase beside a ledger with every step ticked, whose leaf saw VERI_STEP=<$got>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})"
 }
 
+run_case "#892 the Draft PR step's develop-rebase block in $skill_md, run with every ledger step ticked, passes build-develop-prompt.sh rebase and the leaf's VERI_STEP the last done step's text, byte-identical" \
+  scan_develop_last_done rebase
+
 run_case "#892 the develop-reconcile block of Reconciling a rejected push in $skill_md, run with every ledger step ticked, passes build-develop-prompt.sh reconcile and the leaf's VERI_STEP the last done step's text, byte-identical" \
-  scan_develop_reconcile_last_done
+  scan_develop_last_done reconcile
 
 scan_transform_verifier_last_done() {
   local title="$EXPANDING_STEP"
