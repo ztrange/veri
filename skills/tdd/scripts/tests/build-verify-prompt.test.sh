@@ -862,4 +862,12 @@ printf 'inner judges {{TEST_PATH}}\n' > "$included/prompts/_probe-inner.md"
 rendered="$("$included/build-verify-prompt.sh" red "$work/spec.md" "$testpath" test_slugify_lowercases 2>&1)"; code=$?
 expect_eq "$name" "0:before outer inner judges $testpath end after" "$code:$rendered"
 
+name="#703 a {{INCLUDE:<file>}} naming a partial that does not exist exits 2 with that partial's path on stderr and nothing on stdout"
+dangling="$(scratch_dir)"
+cp -R "$BUILD" "$HERE/../lib" "$HERE/../prompts" "$dangling/"
+printf 'before {{INCLUDE:_probe-absent.md}} after\n' > "$dangling/prompts/verify-red.md"
+rendered="$("$dangling/build-verify-prompt.sh" red "$work/spec.md" "$testpath" test_slugify_lowercases 2>"$dangling/err")"; code=$?
+named=""; grep -F "$dangling/prompts/_probe-absent.md" "$dangling/err" > /dev/null && named=named
+expect_eq "$name" "2:named:" "$code:$named:$rendered"
+
 finish
