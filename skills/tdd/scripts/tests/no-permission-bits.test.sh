@@ -451,4 +451,24 @@ probe_a_planted_system_path
 
 expect_eq "$name" "named" "$planted_system_path_named"
 
+ISSUE_WORKTREE_PY='skills/tdd/scripts/tests/py/test_issue_worktree.py'
+
+probe_issue_worktree_py_system_paths() {
+  local problem
+  problems=()
+  probe_no_suite_relies_on_a_system_path
+  issue_worktree_py_named=""
+  for problem in ${problems+"${problems[@]}"}; do
+    [[ "$problem" == "$ISSUE_WORKTREE_PY:"* ]] && issue_worktree_py_named+="${problem%% *};"
+  done
+  problems=()
+}
+
+name="tests/py/test_issue_worktree.py builds its faked worktree paths with no line the system-path probe reads as a system path (#807)"
+issue_worktree_py_named=""
+
+probe_issue_worktree_py_system_paths
+
+expect_eq "$name" "" "$issue_worktree_py_named"
+
 finish
