@@ -91,16 +91,16 @@ has_origin() { git remote get-url origin >/dev/null 2>&1; }
 default_branch_name() {
   local head candidate
   if head="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)"; then
-    head="${head#origin/}"
-  else
-    head="$(git ls-remote --symref origin HEAD 2>/dev/null)" || true
-    head="$(sed -n 's|^ref: refs/heads/\([^[:space:]]*\)[[:space:]]*HEAD$|\1|p' <<<"$head")"
-  fi
-  if [[ -n "$head" ]]; then
-    printf '%s\n' "$head"
+    printf '%s\n' "${head#origin/}"
     return 0
   fi
   if has_origin; then
+    head="$(git ls-remote --symref origin HEAD 2>/dev/null)" || true
+    head="$(sed -n 's|^ref: refs/heads/\([^[:space:]]*\)[[:space:]]*HEAD$|\1|p' <<<"$head")"
+    if [[ -n "$head" ]]; then
+      printf '%s\n' "$head"
+      return 0
+    fi
     echo "issue-worktree: cannot determine origin's default branch (no refs/remotes/origin/HEAD, and the remote did not name one)" >&2
     return 2
   fi
