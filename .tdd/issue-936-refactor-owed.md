@@ -1,0 +1,2 @@
+### `make install-dev` that builds a fresh venv at $VERI_VENV ends its output with a line naming `$VERI_VENV/bin` and telling the reader to put it first on PATH ⟦criterion 1⟧
+- test-only | extract the repeated `env -u PYTHONPATH VERI_VENV=… PATH="$floor/bin:$floor/sys" make --no-print-directory -C "$floor" install-dev > "$work/out" 2> "$work/err"` invocation (the #863 case and the new #936 case in skills/tdd/scripts/tests/pytest-leg.test.sh) into one helper taking the venv path
