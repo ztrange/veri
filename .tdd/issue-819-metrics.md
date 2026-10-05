@@ -1,9 +1,9 @@
 ### 📊 Metrics — issue 819
 
-Wall time for the issue: 6239 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1249 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 5 of 6 planned.
-Outcome: the run bailed — ci-timeout, a system failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/970.
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER unset; models that answered: claude-opus-5-5.
 
