@@ -781,6 +781,46 @@ scan_exhausted_last_done() {
 run_case "#907 the revise-exhausted path of Revising on a REJECT in $skill_md, run with every ledger step ticked, passes build-develop-prompt.sh exhausted, the develop-exhausted leaf's VERI_STEP and the step-escalated mark's VERI_STEP the last done step's text, byte-identical" \
   scan_exhausted_last_done
 
+scan_bail_last_done() {
+  local title="$EXPANDING_STEP"
+  local lineno line numbered launch stage seen tree err got argv which pattern rec
+  stage_recorder bail-last-done
+  rm -f "$stage/preserve-attempt.sh" "$stage/event.sh"
+  ln -s "$RECORDERS/title.sh" "$stage/preserve-attempt.sh"
+  ln -s "$RECORDERS/title.sh" "$stage/event.sh"
+  plant_done_ledger "$title"
+  for which in preserve mark; do
+    case "$which" in
+      preserve) pattern='\$S/preserve-attempt\.sh <n> .* <phase> <attempt> bail$' ;;
+      mark)     pattern='\$S/event\.sh bail cause=<cause>' ;;
+    esac
+    numbered="$(head -1 < <(grep -nE "$pattern" "$md"))"
+    numbered="${numbered//<attempt>/1}"
+    numbered="${numbered//<cause>/suite-red}"
+    if [[ -z "$numbered" ]]; then
+      no_launch "Bailing's $which line"
+      continue
+    fi
+    take_line "$numbered" "$title" || continue
+    rm -f "$seen" "$seen".*
+    run_staged '<not run>'
+    case "$which" in
+      preserve)
+        mapfile -t rec < "$seen.preserve-attempt" 2>/dev/null || rec=()
+        got="${rec[2]-<no step argument>}"
+        [[ "$got" == "$title" ]] ||
+          problem "preserved a bailed attempt beside a ledger with every step ticked, passing preserve-attempt.sh the step <$got>, want the last done step <$title> (the typing shell said: ${err//$'\n'//})" ;;
+      mark)
+        got="$(head -1 "$seen.event" 2>/dev/null)" || got='<no mark was made>'
+        [[ "$got" == "$title" ]] ||
+          problem "marked bail beside a ledger with every step ticked with VERI_STEP=<$got>, want the last done step <$title> (the typing shell said: ${err//$'\n'//})" ;;
+    esac
+  done
+}
+
+run_case "#907 Bailing in $skill_md, run with every ledger step ticked, passes preserve-attempt.sh and the bail mark's VERI_STEP the last done step's text, byte-identical" \
+  scan_bail_last_done
+
 scan_transform_verifier_last_done() {
   local title="$EXPANDING_STEP"
   local lineno line numbered launch stage seen tree err got argv
