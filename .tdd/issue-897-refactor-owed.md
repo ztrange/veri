@@ -1,0 +1,2 @@
+### wait-ci refuses a deadline path .tdd/ci-deadline-<key> that exists but is a directory: exit 2, stderr `wait-ci.sh: deadline file .tdd/ci-deadline-<key> is unreadable or not a non-negative whole number`, and no deadline recorded — pinned by the #776 test's case at index 18 putting a directory where the deadline file goes ⟦criterion 1⟧
+- test-only | rename the sentinel `locked` (`test_wait_ci.py:322`, used at `:354` and `:371`) to something like `a_directory`. The case no longer locks a file; it puts a directory where the deadline file goes, so the old name now misleads.
