@@ -1,0 +1,2 @@
+### A test with a fake filesystem root (a monkeypatched path, never the real `/`) holding a `.tdd/workqueue` with a queued line for the worker pins that `show`, `next` and `assign` with an empty toplevel read, lock and write nothing under that root — failing on today's code, which reads that queue, prints the worker's line and appends to it ⟦criterion 2⟧
+- test-only | the new issue-898 test defines its own `run(argv)` helper, the same shape as the one in the case above it; it could share one module-level helper
