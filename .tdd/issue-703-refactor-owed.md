@@ -1,2 +1,4 @@
 ### build-develop-prompt.sh replaces a `{{INCLUDE:<file>}}` token in a template with the contents of `skills/tdd/scripts/prompts/<file>` (trailing newlines stripped, as `$(cat …)` does), before every other substitution, so a placeholder inside the partial is still filled
 - once a later step gives `build-verify-prompt.sh` the same `{{INCLUDE:…}}` loop, move the loop at `build-develop-prompt.sh:142-149` into a sourced function under `skills/tdd/scripts/lib/` so both builders share it. Not applied: the second copy does not exist yet, so there is no duplication to remove in this step.
+### build-develop-prompt.sh resolves a `{{INCLUDE:<file>}}` token that appears inside an included partial, recursively
+- test-only | build-develop-prompt.test.sh: the two #703 cases repeat the same scratch-tree setup (`scratch_dir` + `cp -R build-develop-prompt.sh lib prompts`); it could become one helper that both cases call
