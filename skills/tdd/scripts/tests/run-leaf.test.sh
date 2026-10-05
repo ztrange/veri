@@ -142,4 +142,17 @@ for who in leaf conductor; do
 done
 report "a variable added to the shared session list reaches neither the leaf's nor the conductor's claude (#621)"
 
+lost=()
+for how in unset empty; do
+  if [[ "$how" == unset ]]; then id_args=(-u CLAUDE_CODE_SESSION_ID); else id_args=(CLAUDE_CODE_SESSION_ID=); fi
+  leaf_env_lacks -- "${id_args[@]}" 'VERI_TEST_CMD=make unit' VERI_FAKE_CARRIER=x-unrelated-y
+  grep -Fx 'VERI_TEST_CMD=make unit' "$work/env" > /dev/null 2>&1 \
+    || problems+=("session id $how: VERI_TEST_CMD did not reach the leaf's claude with the caller's value")
+  grep -Fx 'VERI_FAKE_CARRIER=x-unrelated-y' "$work/env" > /dev/null 2>&1 \
+    || problems+=("session id $how: VERI_FAKE_CARRIER did not reach the leaf's claude with the caller's value")
+  lost+=("${problems[@]}")
+done
+problems=("${lost[@]}")
+report "with the session id unset or empty, strips nothing beyond SESSION_VARS (#933)"
+
 finish
