@@ -124,4 +124,24 @@ then
 fi
 report "$name"
 
+name="#954: $skill_md makes the leaf-timeout.sh call that records .tdd/issue-<n>-timeout after step 1.2 has entered the issue's worktree, not from the caller's checkout where preflight runs"
+problems=()
+
+entered="$(grep -m 1 -nE 'issue-worktree\.sh <n> .*cd "\$wt"' "$ROOT/$skill_md" | cut -d: -f1)"
+recording="$(grep -nE 'VERI_ISSUE=<n>.*leaf-timeout\.sh' "$ROOT/$skill_md" | cut -d: -f1)"
+if [[ -z "$entered" ]]
+then
+  problems+=("$skill_md: no step 1.2 line that enters the worktree with issue-worktree.sh")
+elif [[ -z "$recording" ]]
+then
+  problems+=("$skill_md: no leaf-timeout.sh call carrying VERI_ISSUE=<n>, the one that records the settled timeout")
+else
+  for line in $recording
+  do
+    (( line > entered )) ||
+      problems+=("$skill_md:$line: the leaf-timeout.sh call that records the settled timeout runs before step 1.2 enters the worktree (line $entered)")
+  done
+fi
+report "$name"
+
 finish
