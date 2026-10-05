@@ -2,6 +2,8 @@
 import os
 import sys
 
+from leaf_role import leaf_role
+
 USAGE = "usage: leaf-model.sh <leaf-name>"
 
 
@@ -15,7 +17,8 @@ def main(argv):
     if not argv or not argv[0]:
         _write(sys.stderr, USAGE)
         return 2
-    model = os.environ.get("VERI_MODEL", "")
+    actor = leaf_role(argv[0])["VERI_ACTOR"]
+    model = os.environ.get("VERI_MODEL_" + actor.upper()) or os.environ.get("VERI_MODEL", "")
     if model:
         _write(sys.stdout, model)
     return 0
