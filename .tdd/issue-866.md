@@ -10,4 +10,4 @@
 - [x] `VERI_NEW_SKILL=1` still re-pins the record to the fresh tip and writes its `skill-repin` event ⟦criterion 5⟧
 - [x] `SKILL.md`'s *The skill snapshot* says the record survives only a run that got past preflight, and that this is decided after the conductor exits by a registered `.tdd/wt/<n>` worktree or a local `tdd/<n>-*` branch, not by the conductor's exit code ⟦criterion 6⟧
 - [x] every case `run-conductor.test.sh` and `issue-worktree.test.sh` already held on the default branch is still present with its assertions unchanged by this branch's diff (fixture setup may change) ⟦diff-checked⟧ ⟦criterion 7⟧
-- [ ] the repository's full test command passes ⟦full-suite⟧ ⟦criterion 7⟧
+- [x] the repository's full test command passes ⟦full-suite⟧ ⟦criterion 7⟧
