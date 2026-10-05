@@ -94,7 +94,7 @@ case "$phase" in
     ;;
   revise|exhausted)
     need reason_file "${5:-}" '<reason-file>'
-    [[ "$revised_phase" == diff ]] && fast_cmd="${6:-}"
+    [[ "$revised_phase" != diff ]] || need fast_cmd "${6:-}" '<fast-cmd>'
     ;;
   reconcile)
     need branch "${5:-}" '<branch>'
