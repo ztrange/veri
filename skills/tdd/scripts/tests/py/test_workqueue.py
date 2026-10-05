@@ -614,6 +614,13 @@ def test_next_with_an_empty_toplevel_exits_2_with_empty_stdout_saying_it_is_outs
     assert (code, out, err) == (2, "", "workqueue.sh: outside a repository\n")
 
 
+def test_assign_with_an_empty_toplevel_exits_2_with_empty_stdout_saying_it_is_outside_a_repository_issue_898(monkeypatch, capsys, workqueue):
+    fake_git(monkeypatch, "")
+    code = workqueue.main(["assign", "beta", "8"])
+    out, err = capsys.readouterr()
+    assert (code, out, err) == (2, "", "workqueue.sh: outside a repository\n")
+
+
 def test_show_when_git_worktree_list_fails_with_no_output_exits_2_with_empty_stdout_saying_it_is_outside_a_repository_issue_898(monkeypatch, capsys, workqueue):
     def fake_run(args, **kwargs):
         if list(args[:3]) == ["git", "worktree", "list"]:
