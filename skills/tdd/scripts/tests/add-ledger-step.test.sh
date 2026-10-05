@@ -443,4 +443,17 @@ else
   diff "$work/before.md" "$led" | sed 's/^/    /'
 fi
 
+usage='usage: add-ledger-step.sh <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]'
+name="no argument, and three arguments, each exit 2 with nothing on stdout and stderr exactly the usage line"
+"$ADD" > "$work/usage0.out" 2> "$work/usage0.err"; code0=$?
+"$ADD" l.md after anchor > "$work/usage3.out" 2> "$work/usage3.err"; code3=$?
+if [[ "$code0" == 2 && ! -s "$work/usage0.out" && "$(cat "$work/usage0.err")" == "$usage" \
+   && "$code3" == 2 && ! -s "$work/usage3.out" && "$(cat "$work/usage3.err")" == "$usage" ]]; then
+  ok
+else
+  no "$name (code0=$code0, code3=$code3)"
+  sed 's/^/    0 args stderr: /' "$work/usage0.err"
+  sed 's/^/    3 args stderr: /' "$work/usage3.err"
+fi
+
 finish
