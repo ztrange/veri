@@ -757,3 +757,78 @@ def test_the_open_pr_list_is_read_through_gh_json_a_no_answer_at_the_report_retu
     code, lines, err, numbers, _, _ = run("not-json", {}, (0, "7 8\n"), fixture="not json\n")
     assert (code, lines, numbers) == (0, ["stopped: nothing solvable"], ["7", "8"])
     assert "Traceback" in err and "JSONDecodeError" in err
+
+
+def test_a_finished_sweep_in_launch_order_restarts_past_a_stop_prints_parked_alone_stops_at_the_first_bail_or_kill_and_honours_continue_on_bail_only_as_argv_0(
+        capsys, monkeypatch, tmp_path, parallel_conductors):
+    step_done = (b'{"type":"assistant","message":{"content":[{"type":"tool_use","input":{"command":'
+                 b'"skills/tdd/scripts/event.sh step-done 3"}}],"usage":{"cache_creation_input_tokens":1,'
+                 b'"cache_read_input_tokens":100}}}\n')
+    user = b'{"type":"user","message":{"content":[{"type":"tool_result","content":"ok"}]}}\n'
+
+    def run(name, argv, env, solvable, exits):
+        for var in TUNABLES:
+            monkeypatch.delenv(var, raising=False)
+        for var, value in env.items():
+            monkeypatch.setenv(var, value)
+        root = tmp_path / name
+        gh = root / "gh"
+        gh.mkdir(parents=True)
+        (gh / "prs.json").write_text(json.dumps([
+            {"body": "Closes #4", "isDraft": True, "url": "https://github.com/o/r/pull/104"},
+            {"body": "Closes #6", "isDraft": True, "url": "https://github.com/o/r/pull/106"},
+        ]))
+        monkeypatch.setenv("VERI_GH_JSON", str(gh))
+        work = root / "repo"
+        (work / ".tdd" / "parked").mkdir(parents=True)
+        (work / ".tdd" / "parked" / "4.md").write_text("parked\n")
+        for n in ("4", "6"):
+            (work / ".tdd" / "wt" / n / ".tdd").mkdir(parents=True)
+            (work / ".tdd" / "wt" / n / ".tdd" / "events.jsonl").write_text('{"event": "red"}\n{"event": "bail"}\n')
+        monkeypatch.chdir(work)
+        launches = []
+
+        def on_launch(sup):
+            n = sup.args[-1]
+            launches.append(n)
+            sup.pid = 5000 + len(launches)
+            log = work / ".tdd" / ("conductor-%s.log" % n)
+            if n == "3" and launches.count("3") == 1:
+                log.write_bytes(step_done + user)
+            else:
+                log.write_bytes(b"")
+                if n not in exits:
+                    sup.exit(0)
+
+        def on_sleep(supervisors):
+            for sup in supervisors:
+                if sup.returncode is None and sup.args[-1] in exits:
+                    sup.exit(exits[sup.args[-1]])
+
+        supervisors = _boundaries(monkeypatch, root, on_launch, on_sleep, solvable=(0, solvable))
+
+        def terminating_kill(pid, sig):
+            live = [s for s in supervisors if s.pid == pid and s.returncode is None]
+            if not live:
+                raise ProcessLookupError(pid)
+            if sig == signal.SIGTERM:
+                live[0].exit(143)
+
+        monkeypatch.setattr(os, "kill", terminating_kill)
+        code = parallel_conductors.main(argv)
+        out, _ = capsys.readouterr()
+        return code, launches, [line for line in out.splitlines()
+                                if line.startswith(("parked ", "restarted ", "#", "stopped: "))]
+
+    assert run("sweep", [], {"VERI_PARALLEL": "4", "VERI_MAX_ISSUES": "4", "VERI_CONDUCTOR_CTX_BUDGET": "100"},
+               "4 5 6 3 9\n", {"4": 0, "5": 2, "6": 0}) == (1, ["4", "5", "6", "3", "3"], [
+        "parked 4",
+        "restarted 3",
+        "#5 — killed after 14400s",
+        "#6 — bailed https://github.com/o/r/pull/106",
+        "stopped: #5 killed",
+    ])
+    assert run("continue-not-first", ["--repo", "o/r", "--continue-on-bail"], {}, "6 9\n", {"6": 0}) == (1, ["6"], [
+        "#6 — bailed https://github.com/o/r/pull/106",
+        "stopped: #6 bailed",
+    ])

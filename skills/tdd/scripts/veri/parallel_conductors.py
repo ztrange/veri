@@ -227,6 +227,8 @@ def _run(continue_on_bail):
             if c.stopped:
                 print("restarted %s" % c.n, flush=True)
                 in_flight.append(_Conductor(c.n))
+            elif os.path.exists(os.path.join(".tdd", "parked", "%s.md" % c.n)):
+                print("parked %s" % c.n, flush=True)
             elif not continue_on_bail and not stopped:
                 got = _outcome(c.n, codes[c.n], _finish_prs_json())
                 if _is_failure(got):
