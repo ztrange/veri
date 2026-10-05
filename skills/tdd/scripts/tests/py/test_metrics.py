@@ -611,6 +611,20 @@ def test_issue_934_a_step_of_cover_transform_and_diff_phases_with_a_budget_mark_
     assert budgets[column] == expected
 
 
+def test_issue_934_a_step_of_red_green_and_refactor_phases_with_no_budget_mark_still_prints_unknown(tmp_path, monkeypatch, capsys, metrics):
+    events = conductor("1", 40000, "step-start")
+    events += leaf("1", 40010, "developer", "red", 1, 20) + leaf("1", 40040, "verifier", "red", 1, 10, verdict="PASS")
+    events += leaf("1", 40060, "developer", "green", 1, 20) + leaf("1", 40090, "verifier", "green", 1, 10, verdict="PASS")
+    events += leaf("1", 40110, "developer", "refactor", 1, 20) + leaf("1", 40140, "verifier", "refactor", 1, 10, verdict="PASS")
+    events += conductor("1", 40160, "step-done")
+    write_log(tmp_path, events)
+    monkeypatch.chdir(tmp_path)
+
+    budgets = cells(render(metrics, capsys), "#### By step", ["revise", "refactor", "stopped"])["1"]
+
+    assert budgets == ["unknown", "unknown", "unknown"]
+
+
 def test_main_reports_relaunches_triage_stops_budget_crossings_splits_tier_seconds_and_stop_outcomes(tmp_path, monkeypatch, capsys, metrics):
     def report(name, events):
         root = tmp_path / name
