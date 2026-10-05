@@ -1,0 +1,2 @@
+### wait-ci.sh called on a draft PR whose checks are pending records no .tdd/ci-deadline-<sha> file and exits 3 when its slice runs out ⟦criterion 1⟧
+- test-only | the #894 case builds its draft fixture by rewriting `draft.json` with `printf`/`cut`/`mv` after `rollup` has written it; a `draft` argument to `rollup()` (wait-ci.test.sh:103) would remove that rewrite, but only this one case needs it today
