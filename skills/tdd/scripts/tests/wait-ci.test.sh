@@ -52,7 +52,7 @@ case "$*" in
       python3 -c '
 import json, sys
 doc = json.load(open(sys.argv[1]))
-pull = {"number": 1, "state": "open", "draft": False, "head": {"sha": doc.get("headRefOid")}}
+pull = {"number": 1, "state": "open", "draft": doc.get("draft", False), "head": {"sha": doc.get("headRefOid")}}
 if "mergeable" in doc:
     pull["mergeable"], pull["mergeable_state"] = {"MERGEABLE": (True, "clean"), "CONFLICTING": (False, "dirty"), "UNKNOWN": (None, "unknown")}[doc["mergeable"]]
 print(json.dumps(pull))' "$(served '')"
@@ -807,6 +807,19 @@ for value in 1.5 abc; do
   done
 done
 set --
+report "$name"
+
+name="#894 wait-ci.sh called on a draft PR whose checks are pending records no .tdd/ci-deadline-<sha> and exits 3 when its slice runs out"
+problems=()
+sha=4455667788990011223344556677889900aabbcc
+rollup draft.json "$(check IN_PROGRESS '')" "$sha"
+printf '{"draft":true,%s\n' "$(cut -c2- < "$work/draft.json")" > "$work/draft.json.new"
+mv "$work/draft.json.new" "$work/draft.json"
+shared draft
+got="$(again draft first 120 600 "$sha")"
+[[ "$got" == 3 ]] || problems+=("draft PR: want exit 3, got $got (stderr: $(cat "$work/draft.first.err"))")
+[[ ! -e "$work/draft/.tdd/ci-deadline-$sha" ]] \
+  || problems+=("draft PR: want no .tdd/ci-deadline-$sha recorded, got '$(cat "$work/draft/.tdd/ci-deadline-$sha")'")
 report "$name"
 
 finish
