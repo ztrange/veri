@@ -46,9 +46,13 @@ callers="caller's checkout"
 source "$HERE/lib/harness.sh"
 source "$HERE/lib/section-end.sh"
 
+heading_at() {
+  awk -v h="$1" 'index($0, h) == 1 { print NR; exit }' "$md"
+}
+
 sec_start=0 sec_end=0
 section() {
-  sec_start="$(awk -v h="$1" 'index($0, h) == 1 { print NR; exit }' "$md")"
+  sec_start="$(heading_at "$1")"
   [[ -n "$sec_start" ]] || { sec_end=0; return 1; }
   sec_end="$(section_end "$md" "$sec_start")"
   return 0
@@ -170,7 +174,7 @@ problems=()
 
 if preflight_or_problem "the red-baseline stop"; then
   fast_in="$(call_at "$fast_call")"
-  plan_at="$(awk -v h="$plan_heading" 'index($0, h) == 1 { print NR; exit }' "$md")"
+  plan_at="$(heading_at "$plan_heading")"
   if [[ -z "$fast_in" ]]; then
     problems+=("$skill_md's '$preflight' section never names $fast_call, so the item that stops on a red baseline could not be read")
   else
