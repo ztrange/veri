@@ -124,9 +124,7 @@ test unit:
 	@fail=0; reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
 	trap 'rm -f "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
 	if [ -n "$(PY_TESTS)" ]; then \
-	  py_bin="$$(bash -c '. $(VENV_LIB) && venv_python')"; \
-	  py_version="$${VERI_PYTHON_VERSION:-$$("$$py_bin" -c 'import platform; print(platform.python_version())' 2>/dev/null)}"; \
-	  bash -c '. $(VENV_LIB) && venv_version_usable "$$1" "$$2"' _ "$$py_bin" "$$py_version" || exit 2; \
+	  py_bin="$$(bash -c '. $(VENV_LIB) && py="$$(venv_python)" && venv_version_usable "$$py" "$${VERI_PYTHON_VERSION:-$$("$$py" -c "import platform; print(platform.python_version())" 2>/dev/null)}" && printf "%s\n" "$$py"')" || exit 2; \
 	  if [ "$${VERI_PYTEST_IMPORTABLE:-$$("$$py_bin" -c 'import pytest' > /dev/null 2>&1 && echo 1 || echo 0)}" != 1 ]; then \
 	    printf 'veri needs pytest for the suites under skills/tdd/scripts/tests/py/; %s cannot import it. Install it with `make install-dev`.\n' "$$py_bin" >&2; \
 	    exit 2; \
