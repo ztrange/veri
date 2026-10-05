@@ -13,6 +13,8 @@
 #      paragraph that names it says a non-zero exit stops the run as a preflight failure.
 #   5. The fast-tier baseline call (`detect-test-command.sh --tier fast`) comes after the line
 #      that has `issue-worktree.sh` cut the branch and `cd`s into its worktree.
+#   6. The baseline item sits before the plan section, and a sentence of it that stops on a red
+#      baseline calls the stop preflight-class and says the caller's checkout does not change it.
 #
 # Run: scripts/tests/skill-preflight-launchable.test.sh
 set -uo pipefail
@@ -36,6 +38,9 @@ preflight='### 0. Preflight'
 fast_call='detect-test-command.sh --tier fast'
 worktree_call='issue-worktree.sh'
 enter_call='cd "$wt"'
+plan_heading='### 2. Scope & plan'
+red_phrase='red baseline'
+callers="caller's checkout"
 
 
 source "$HERE/lib/harness.sh"
@@ -156,6 +161,26 @@ elif [[ -z "$fast_at" ]]; then
   problems+=("$skill_md never names $fast_call, so no baseline suite runs at all")
 elif [[ "$fast_at" -lt "$enter_at" ]]; then
   problems+=("$skill_md:$fast_at runs the baseline ($fast_call) before line $enter_at enters the worktree $worktree_call cuts from origin/<default>, so the baseline proves the caller's checkout, not the commit the branch is cut from")
+fi
+
+report "$name"
+
+name="$skill_md stops the run on a red baseline in the worktree as a preflight failure, whatever state the caller's checkout is in (#955)"
+problems=()
+
+if preflight_or_problem "the red-baseline stop"; then
+  fast_in="$(call_at "$fast_call")"
+  plan_at="$(awk -v h="$plan_heading" 'index($0, h) == 1 { print NR; exit }' "$md")"
+  if [[ -z "$fast_in" ]]; then
+    problems+=("$skill_md's '$preflight' section never names $fast_call, so the item that stops on a red baseline could not be read")
+  else
+    [[ -n "$plan_at" && "$fast_in" -lt "$plan_at" ]] ||
+      problems+=("$skill_md:$fast_in runs the baseline after '$plan_heading' (line ${plan_at:-none}), so a red baseline cannot stop the run before the plan")
+    stops="$(item_around "$fast_in" | tr '\n' ' ' | sed 's/  */ /g' | awk 'BEGIN { RS = "[.] " } tolower($0) ~ /red baseline/')"
+    if ! grep -iF -- "preflight" <<< "$stops" | grep -F -- "$callers" > /dev/null; then
+      problems+=("$skill_md:$fast_in's item has no sentence that stops on a $red_phrase as a preflight-class stop whatever the $callers holds — it says only: ${stops:-nothing}")
+    fi
+  fi
 fi
 
 report "$name"
