@@ -3,7 +3,7 @@
 - [x] build-develop-prompt.sh replaces a `{{INCLUDE:<file>}}` token in a template with the contents of `skills/tdd/scripts/prompts/<file>` (trailing newlines stripped, as `$(cat …)` does), before every other substitution, so a placeholder inside the partial is still filled
 - [x] build-develop-prompt.sh resolves a `{{INCLUDE:<file>}}` token that appears inside an included partial, recursively
 - [x] build-verify-prompt.sh replaces a `{{INCLUDE:<file>}}` token in a template, and inside an included partial recursively, with that partial's contents before every other substitution, taking no new parameter ⟦criterion 5⟧
-- [x] a template or partial whose `{{INCLUDE:<file>}}` names a partial that does not exist makes build-develop-prompt.sh exit 2 with the missing file's path on stderr and nothing on stdout ⟦criterion 3⟧ ⟂ refactor pending
+- [x] a template or partial whose `{{INCLUDE:<file>}}` names a partial that does not exist makes build-develop-prompt.sh exit 2 with the missing file's path on stderr and nothing on stdout ⟦criterion 3⟧
 - [ ] a template or partial whose `{{INCLUDE:<file>}}` names a partial that does not exist makes build-verify-prompt.sh exit 2 with the missing file's path on stderr and nothing on stdout ⟦criterion 3⟧
 - [ ] a partial that includes itself, directly or through another partial, makes build-develop-prompt.sh exit 2 naming the file on stderr, with nothing on stdout, rather than looping ⟦criterion 4⟧
 - [ ] a partial that includes itself, directly or through another partial, makes build-verify-prompt.sh exit 2 naming the file on stderr, with nothing on stdout, rather than looping ⟦criterion 4⟧
