@@ -579,6 +579,38 @@ def test_issue_934_a_log_with_no_ledger_beside_it_reports_the_planned_figure_as_
     assert "Steps done: 4 of unknown planned.\n" in render(metrics, capsys)
 
 
+def test_issue_934_a_step_of_cover_transform_and_diff_phases_prints_no_unknown_budget_cell(tmp_path, monkeypatch, capsys, metrics):
+    events = conductor("1", 40000, "step-start")
+    events += leaf("1", 40010, "developer", "cover", 1, 20) + leaf("1", 40040, "verifier", "cover", 1, 10, verdict="PASS")
+    events += leaf("1", 40060, "developer", "transform", 1, 20) + leaf("1", 40090, "verifier", "transform", 1, 10, verdict="PASS")
+    events += leaf("1", 40110, "developer", "diff", 1, 20) + leaf("1", 40140, "verifier", "diff", 1, 10, verdict="PASS")
+    events += conductor("1", 40160, "step-done")
+    write_log(tmp_path, events)
+    monkeypatch.chdir(tmp_path)
+
+    budgets = cells(render(metrics, capsys), "#### By step", ["revise", "refactor", "stopped"])["1"]
+
+    assert "unknown" not in budgets
+
+
+@pytest.mark.parametrize("mark, column, expected", [
+    (conductor("1", 40150, "revise", phase="transform", budget="3"), 0, "1/3"),
+    (conductor("1", 40150, "refactor", phase="refactor", transforms="2", budget="4", stopped="budget-spent", **{"pass": "1"}), 1, "2/4"),
+])
+def test_issue_934_a_step_of_cover_transform_and_diff_phases_with_a_budget_mark_still_prints_it(tmp_path, monkeypatch, capsys, metrics, mark, column, expected):
+    events = conductor("1", 40000, "step-start")
+    events += leaf("1", 40010, "developer", "cover", 1, 20) + leaf("1", 40040, "verifier", "cover", 1, 10, verdict="PASS")
+    events += leaf("1", 40060, "developer", "transform", 1, 20) + leaf("1", 40090, "verifier", "transform", 1, 10, verdict="PASS")
+    events += leaf("1", 40110, "developer", "diff", 1, 20) + leaf("1", 40140, "verifier", "diff", 1, 10, verdict="PASS")
+    events += mark + conductor("1", 40160, "step-done")
+    write_log(tmp_path, events)
+    monkeypatch.chdir(tmp_path)
+
+    budgets = cells(render(metrics, capsys), "#### By step", ["revise", "refactor", "stopped"])["1"]
+
+    assert budgets[column] == expected
+
+
 def test_main_reports_relaunches_triage_stops_budget_crossings_splits_tier_seconds_and_stop_outcomes(tmp_path, monkeypatch, capsys, metrics):
     def report(name, events):
         root = tmp_path / name

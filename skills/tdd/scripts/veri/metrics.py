@@ -44,6 +44,10 @@ MONEY = {DOLLARS, REWORK_COST, WASTE_COST}
 
 UNKNOWN = "unknown"
 
+NOT_APPLICABLE = "n/a"
+
+UNBUDGETED_PHASES = {"cover", "transform", "diff"}
+
 
 def render(issue, path, ledger):
     def known(number):
@@ -199,6 +203,7 @@ def render(issue, path, ledger):
         attempt = attempt_in(phase, step, attempt_no)
         if event == "launch":
             launched[(step, phase, attempt_no)] = line
+            step_mark(step).setdefault("leaf phases", set()).add(phase)
         if event == "exit":
             awake = span(reading(launched.get((step, phase, attempt_no)), "awake"),
                          reading(line, "awake"))
@@ -297,6 +302,9 @@ def render(issue, path, ledger):
         return known(awake_span_or_wall(mark.get("step-start"), mark.get("step-done")))
 
     def budget_cells(mark):
+        leaf_phases = mark.get("leaf phases")
+        if leaf_phases and leaf_phases <= UNBUDGETED_PHASES and not mark.get("revise phases") and not mark.get("refactor"):
+            return [NOT_APPLICABLE] * len(BUDGETS)
         phases = mark.get("revise phases", {})
         named = len(phases) > 1
         revise = ", ".join(("%s " % phase if named else "") + "%d/%s" % (count, budget or "?")
