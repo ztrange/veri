@@ -611,3 +611,83 @@ def test_main_reports_relaunches_triage_stops_budget_crossings_splits_tier_secon
                      + conductor("r", 70200, "resume") + conductor("r", 70300, "step-start"))
     outcome = [line for line in resumed.split("\n") if line.startswith("Outcome:")]
     assert outcome == ["Outcome: unknown — the log carries no mark ending the run."]
+
+
+def test_main_reads_walls_off_the_awake_clock_and_falls_back_to_the_wall_clock_saying_so(tmp_path, monkeypatch, capsys, metrics):
+    def report(name, events):
+        root = tmp_path / name
+        root.mkdir()
+        write_log(root, events)
+        monkeypatch.chdir(root)
+        return render(metrics, capsys)
+
+    def run(ts_awake, attempts=(), done=True):
+        (start, start_awake), *rest = ts_awake
+        events = conductor("s", start, "step-start")
+        if start_awake is not None:
+            events[0]["awake"] = start_awake
+        for (ts, awake, phase_event, fields) in attempts:
+            event = {"ts": ts, "issue": "108", "actor": "developer", "phase": "red", "step": "s",
+                     "event": phase_event, **fields}
+            if awake is not None:
+                event["awake"] = awake
+            events.append(event)
+        for (ts, awake), kind in zip(rest, ["step-done", "done"] if done else ["step-done"]):
+            extra = {"pr": "https://github.com/ztrange/veri/pull/998"} if kind == "done" else {}
+            events += conductor("s", ts, kind, **extra)
+            if awake is not None:
+                events[-1]["awake"] = awake
+        return events
+
+    def line(out, prefix):
+        found = [l for l in out.split("\n") if l.startswith(prefix)]
+        return found[0][len(prefix):].split(" s", 1)[0] if found else None
+
+    def walls(out):
+        return (line(out, "Wall time for the issue: "),
+                cells(out, "#### By step", ["wall s"]).get("s", [None])[0],
+                {row["phase"]: row["wall s"] for row in table(out, "#### By phase")})
+
+    def wall_clock(out):
+        return "Every figure in this report is wall-clock" in out
+
+    not_running = "Seconds the machine was not running inside that span: "
+
+    slept = report("slept", run([(80000, 5000), (80100, 5100), (90217, 5217)]))
+    assert line(slept, "Wall time for the issue: ") == "217"
+    assert line(slept, not_running) == "10000"
+
+    level = report("level", run([(70000, 4000), (70100, 4100), (70217, 4217)]))
+    assert line(level, not_running) == "0"
+
+    ahead = report("ahead", run([(70000, 4000), (70100, 4100), (70217, 4218)]))
+    assert line(ahead, not_running) == "0"
+    assert int(line(ahead, "Wall time for the issue: ")) <= 217
+
+    step_slept = report("step_slept", run([(60000, 3000), (70100, 3100), (70150, 3150)], attempts=[
+        (60010, 3010, "launch", {"attempt": "1", "name": "develop-red"}),
+        (70050, 3050, "exit", {"attempt": "1", "status": "0", "secs": "40"})]))
+    assert walls(step_slept)[1] == "100"
+    assert not wall_clock(step_slept)
+
+    phase_slept = report("phase_slept", run([(50000, 2000), (60100, 2100), (60150, 2150)], attempts=[
+        (50010, 2010, "launch", {"attempt": "1", "name": "develop-red"}),
+        (60050, 2050, "exit", {"attempt": "1", "status": "0", "secs": "10040"})]))
+    assert walls(phase_slept)[2] == {"red": "40"}
+
+    unclocked = report("unclocked", run([(40000, None), (40100, None), (40150, None)], attempts=[
+        (40010, None, "launch", {"attempt": "1", "name": "develop-red"}),
+        (40050, None, "exit", {"attempt": "1", "status": "0", "secs": "40"})]))
+    assert walls(unclocked) == ("150", "100", {"red": "40"})
+    assert wall_clock(unclocked)
+
+    mixed = report("mixed", run([(30000, None), (40100, 1100), (40150, 1150)], attempts=[
+        (30010, None, "launch", {"attempt": "1", "name": "develop-red"}),
+        (30040, None, "exit", {"attempt": "1", "status": "2", "cause": "no heartbeat for 300s (window 120s)", "secs": "30"}),
+        (30050, 1050, "launch", {"attempt": "2", "name": "develop-red"}),
+        (40090, 1090, "exit", {"attempt": "2", "status": "0", "secs": "10040"})]))
+    assert walls(mixed) == ("10150", "10100", {"red": "10070"})
+    assert wall_clock(mixed)
+
+    empty = report("empty", [])
+    assert wall_clock(empty)
