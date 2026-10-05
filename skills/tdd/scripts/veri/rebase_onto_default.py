@@ -23,7 +23,14 @@ def default_branch():
 
 
 def main(argv):
-    default = default_branch()
+    try:
+        default = default_branch()
+    except FileNotFoundError:
+        default = ""
+    if not default:
+        sys.stderr.write("rebase-onto-default: refs/remotes/origin/HEAD is not set"
+                         " — no default branch to rebase onto\n")
+        return 2
     if git("fetch", "-q", "origin").returncode != 0:
         return 2
     git("ls-remote", "origin", f"refs/heads/{default}")
