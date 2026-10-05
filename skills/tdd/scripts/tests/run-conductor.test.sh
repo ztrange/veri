@@ -1550,4 +1550,31 @@ fi
 
 report "$name"
 
+name="an unregistered .tdd/wt/<n> holding only .tdd/events.jsonl, as VERI_NEW_SKILL=1 leaves it, does not count as a run past preflight: with no worktree and no branch the skill record is removed (#866)"
+problems=()
+
+remote42="$work/remote42"
+clone42="$work/clone42"
+cloned_skill "$remote42" "$clone42"
+
+caller42="$work/caller42"
+caller_repo "$caller42"
+git -C "$caller42" commit -q --allow-empty -m base
+mkdir -p "$caller42/.tdd"
+git -C "$remote42" rev-parse HEAD > "$caller42/.tdd/issue-$issue-skill-commit"
+
+launch_from "$caller42" "$clone42" VERI_NEW_SKILL=1
+record42="$caller42/.tdd/issue-$issue-skill-commit"
+left42="$(cd "$caller42/.tdd/wt/$issue" 2>/dev/null && find . -type f)"
+
+if [[ "$left42" != "./.tdd/events.jsonl" ]]; then
+  problems+=("the re-pinning launch did not leave .tdd/wt/$issue holding only .tdd/events.jsonl, it held '$left42': $(cat "$launch_err")")
+elif git -C "$caller42" worktree list --porcelain | grep -F ".tdd/wt/$issue" >/dev/null; then
+  problems+=("the conductor registered .tdd/wt/$issue as a worktree")
+elif [[ -e "$record42" ]]; then
+  problems+=("the record $record42 survived a conductor that left only an unregistered .tdd/wt/$issue holding .tdd/events.jsonl, holding '$(cat "$record42")'")
+fi
+
+report "$name"
+
 finish
