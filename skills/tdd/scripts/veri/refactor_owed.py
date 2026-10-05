@@ -14,6 +14,7 @@ def candidate(cls):
 
 STRUCTURAL = candidate("structural")
 TEST_ONLY = candidate("test-only")
+TEST_ONLY_MARK = "- test-only | "
 TEST_FILE = re.compile(r"(^|/)tests/|\.test\.")
 
 
@@ -48,6 +49,23 @@ def append(file, step, bounds):
     return 0
 
 
+def render(file):
+    lines = []
+    if not os.path.isdir(file):
+        with open(file) as owed:
+            lines = owed.read().split("\n")
+        if lines[-1] == "":
+            lines.pop()
+    out = "## Refactor owed\n\n" + "".join(f"{l}\n" for l in lines if not l.startswith(TEST_ONLY_MARK))
+    test_only = [l[len(TEST_ONLY_MARK):] for l in lines if l.startswith(TEST_ONLY_MARK)]
+    if test_only:
+        out += ("\n### Test-only\n\n"
+                "These change only files under tests/; the structural pass does not work them.\n\n"
+                + "".join(f"- {t}\n" for t in test_only))
+    sys.stdout.write(out)
+    return 0
+
+
 def main(argv):
     verb, file, step, bounds = (list(argv) + ["", "", "", ""])[:4]
     if not verb or not file:
@@ -57,4 +75,6 @@ def main(argv):
     if verb in ("render", "list"):
         if not os.path.exists(file) or os.path.getsize(file) == 0:
             return 3
+    if verb == "render":
+        return render(file)
     return refuse()
