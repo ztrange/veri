@@ -244,3 +244,110 @@ def test_main_refuses_an_uppercase_verb_and_returns_1_naming_the_file_when_the_a
     assert (code, captured.out) == (1, "")
     assert len(captured.err.splitlines()) == 1
     assert str(directory) in captured.err
+
+
+def test_main_answers_every_refactor_owed_contract_case_outside_the_floor_as_the_bash_suite_asserts(
+        monkeypatch, capsys, tmp_path, refactor_owed):
+    fold = "fold verify.sh's two mktemp calls into one helper"
+    hoist = "hoist the ledger path into one variable"
+    rename = "rename $tmp to $prompt_file, which is what it holds"
+    split = "split the verdict parser out of run-leaf.sh"
+    fixtures = "fold the three answers_none fixtures into one helper"
+    ledger = "rename $owed_file to $ledger in the list cases"
+    lib_walk = "merge the full-path check at lib-walk.test.sh:45 into the /lib/<name>.sh loop"
+    test_bounds = "skills/tdd/scripts/tests/unit/lib-walk.test.sh,skills/tdd/scripts/tests/lib/harness.sh"
+    mixed_bounds = "skills/tdd/scripts/refactor-owed.sh,skills/tdd/scripts/tests/refactor-owed.test.sh"
+    test_only_heading = ("### Test-only\n\n"
+                         "These change only files under tests/; the structural pass does not work them.\n\n")
+
+    def run(argv, report=""):
+        monkeypatch.setattr(sys, "stdin", io.StringIO(report))
+        code = refactor_owed.main(argv)
+        return code, capsys.readouterr().out
+
+    def append(owed, step, *lines, bounds=()):
+        report = "".join(f"{l}\n" for l in lines)
+        return run(["append", str(owed), step, *bounds], report)[0]
+
+    def under_step(text, step, transform):
+        lines = text.splitlines()
+        heading = lines.index(f"### {step}")
+        return f"- {transform}" in lines[heading + 1:]
+
+    owed = tmp_path / "two-appends.md"
+    first, second = ("refactor-owed.sh append writes only the structural CANDIDATES lines",
+                     "two append calls for different steps keep both steps")
+    assert append(owed, first, 'RESULT: applied "x", suite green', "FLAGS: none",
+                  f"CANDIDATES: structural | {fold}") == 0
+    assert append(owed, second, f"CANDIDATES: cosmetic | reflow the header",
+                  f"CANDIDATES: structural | {hoist}") == 0
+    text = owed.read_text()
+    assert all(w in text for w in (first, second, fold, hoist))
+
+    owed = tmp_path / "render.md"
+    append(owed, "first step", "FLAGS: none", f"CANDIDATES: structural | {fold}")
+    append(owed, "second step", f"CANDIDATES: structural | {hoist}", f"CANDIDATES: structural | {rename}")
+    code, out = run(["render", str(owed)])
+    assert (code, out.startswith("## Refactor owed\n")) == (0, True)
+    assert all((under_step(out, "first step", fold), under_step(out, "second step", hoist),
+                under_step(out, "second step", rename)))
+
+    code, out = run(["list", str(owed)])
+    assert (code, out) == (0, f"{fold}\n{hoist}\n{rename}\n")
+    absent, empty = tmp_path / "absent.md", tmp_path / "empty.md"
+    empty.write_text("")
+    for path in (absent, empty):
+        assert run(["list", str(path)]) == (3, "")
+
+    owed = tmp_path / "order.md"
+    append(owed, "first step", f"CANDIDATES: structural | {fold}", f"CANDIDATES: structural | {hoist}")
+    append(owed, "second step", f"CANDIDATES: structural | {hoist}", f"CANDIDATES: structural | {rename}")
+    append(owed, "third step", f"CANDIDATES: structural | {rename}", f"CANDIDATES: structural | {hoist}",
+           f"CANDIDATES: structural | {split}")
+    assert run(["list", str(owed)]) == (0, f"{hoist}\n{rename}\n{fold}\n{split}\n")
+
+    owed = tmp_path / "test-only.md"
+    step = "refactor-owed.sh append keeps a test-only candidate under its step"
+    assert append(owed, step, f"CANDIDATES: test-only | {fixtures}") == 0
+    assert under_step(owed.read_text(), step, f"test-only | {fixtures}")
+    assert run(["list", str(owed)]) == (3, "")
+
+    alone, both = tmp_path / "alone.md", tmp_path / "both.md"
+    append(alone, "first step", f"CANDIDATES: structural | {fold}", f"CANDIDATES: structural | {hoist}")
+    append(alone, "second step", f"CANDIDATES: structural | {hoist}")
+    append(both, "first step", f"CANDIDATES: test-only | {fixtures}", f"CANDIDATES: structural | {fold}",
+           f"CANDIDATES: test-only | {ledger}", f"CANDIDATES: structural | {hoist}")
+    append(both, "second step", f"CANDIDATES: test-only | {fixtures}", f"CANDIDATES: structural | {hoist}",
+           f"CANDIDATES: test-only | {ledger}")
+    alone_listed = run(["list", str(alone)])
+    assert run(["list", str(both)]) == alone_listed == (0, f"{hoist}\n{fold}\n")
+
+    owed = tmp_path / "render-test-only.md"
+    append(owed, "first step", f"CANDIDATES: structural | {fold}", f"CANDIDATES: test-only | {fixtures}")
+    append(owed, "second step", f"CANDIDATES: test-only | {ledger}", f"CANDIDATES: structural | {hoist}")
+    code, out = run(["render", str(owed)])
+    section = out[out.index("### Test-only"):] if "### Test-only" in out else ""
+    assert (code, out.startswith("## Refactor owed\n"), section) == (
+        0, True, f"{test_only_heading}- {fixtures}\n- {ledger}\n")
+    assert [out.count(t) for t in (fixtures, ledger)] == [1, 1]
+
+    owed = tmp_path / "structural-only.md"
+    append(owed, "first step", f"CANDIDATES: structural | {fold}", "CANDIDATES: cosmetic | rename $tmp")
+    assert run(["render", str(owed)]) == (0, "## Refactor owed\n\n" + owed.read_text())
+
+    owed = tmp_path / "test-bounds.md"
+    assert append(owed, "a step that touched only test files", 'RESULT: applied "x"', "FLAGS: none",
+                  f"CANDIDATES: structural | {lib_walk}", bounds=(test_bounds,)) == 0
+    assert run(["list", str(owed)]) == (3, "")
+    code, out = run(["render", str(owed)])
+    section = out[out.index("### Test-only"):] if "### Test-only" in out else ""
+    assert (code, f"- {lib_walk}" in section, out.count(lib_walk)) == (0, True, 1)
+
+    unbounded, bounded = tmp_path / "unbounded.md", tmp_path / "bounded.md"
+    for path, bounds in ((unbounded, ()), (bounded, (mixed_bounds,))):
+        append(path, "a first step", "CANDIDATES: structural | name the bounds walk once",
+               "CANDIDATES: structural | fold the two awk passes into one", bounds=bounds)
+        append(path, "a second step", "CANDIDATES: structural | fold the two awk passes into one",
+               bounds=bounds)
+    want = (0, "fold the two awk passes into one\nname the bounds walk once\n")
+    assert run(["list", str(unbounded)]) == run(["list", str(bounded)]) == want
