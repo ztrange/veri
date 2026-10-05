@@ -1,9 +1,9 @@
 ### 📊 Metrics — issue 842
 
-Wall time for the issue: 11470 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1445 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 19 of 24 planned.
-Outcome: the run bailed — ci-conflict, a system failure.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/960.
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
@@ -18,7 +18,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | exhausted | 1 | 0 | 0 | 0 | 36 | 35 | 7 | 12 | 3253 | 322916 | 61844 | 0.62 |
 | refactor | 30 | 15 | 0 | 0 | 1507 | 560 | 168 | 326 | 52304 | 8700711 | 1638559 | 12.59 |
 | diff | 6 | 3 | 0 | 0 | 288 | 131 | 32 | 62 | 12178 | 1626982 | 317632 | 2.44 |
-| rebase | 4 | 2 | 0 | 0 | 1615 | 66 | 19 | 34 | 6719 | 819437 | 204275 | 1.49 |
+| rebase | 6 | 3 | 0 | 0 | 2341 | 100 | 29 | 54 | 9844 | 1321026 | 305754 | 2.25 |
 | predicate | 5 | 0 | 0 | 0 | 138 | 124 | 18 | 36 | 5842 | 814693 | 246391 | 2.25 |
 | structural | 1 | 0 | 0 | 0 | 59 | 22 | 7 | 14 | 2317 | 378144 | 51858 | 0.54 |
 | transform | 1 | 1 | 0 | 0 | 59 | 14 | 4 | 8 | 1369 | 186756 | 49720 | 0.25 |
@@ -27,8 +27,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 63 | 55 | 8 | 0 | 3397 | 1085 | 312 | 592 | 115673 | 15198624 | 3090089 | 16.56 |
-| developer | claude-opus-5-5 | 68 | 0 | 0 | 0 | 6000 | 3081 | 579 | 1118 | 267757 | 35536286 | 4190639 | 45.99 |
+| verifier | claude-sonnet-5-5 | 64 | 56 | 8 | 0 | 3759 | 1099 | 316 | 600 | 117159 | 15385682 | 3140868 | 16.81 |
+| developer | claude-opus-5-5 | 69 | 0 | 0 | 0 | 6364 | 3101 | 585 | 1130 | 269396 | 35850817 | 4241339 | 46.49 |
 
 #### Rework and waste, by phase
 
@@ -41,7 +41,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | exhausted | 0 | 0.00 | 36 | 0.62 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | diff | 0 | 0.00 | 0 | 0.00 |
-| rebase | 0 | 0.00 | 881 | 0.75 |
+| rebase | 0 | 0.00 | 1607 | 1.51 |
 | predicate | 0 | 0.00 | 0 | 0.00 |
 | structural | 0 | 0.00 | 0 | 0.00 |
 | transform | 0 | 0.00 | 0 | 0.00 |
@@ -71,7 +71,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | parallel-conductors.sh is a /bin/sh shim that execs python3 on "$(dirname "$0")/veri/parallel_conductors.py" once per invocation, as status.sh does, holding no Python source (no heredoc, no `python3 -c`), keeping its capitalised `# Usage:   parallel-conductors.sh [--repo owner/name] [--continue-on-bail]` header line, no lowercase `usage:` text, and no issue number in any comment; veri/parallel_conductors.py gains its `if __name__ == "__main__"` block, imports veri/github.py's gh_json and veri/json_documents.py's items, holds no copy of the GraphQL→REST fallback or of the document reader, has no wrapper turning an uncaught exception into exit 2, and starts no process but git, solvable-issues.sh and supervise.sh; lib/appendable.sh is deleted in the same commit, and `git grep -n 'appendable' -- skills/tdd/scripts` then finds only the module; the commit touches no test suite ⟦diff-checked⟧ ⟦criterion 5⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 53 | 14 | 28 | 4894 | 779976 | 106911 | 0.89 | 134 | unknown | unknown | unknown |  |  | full |
 | tests/parallel-conductors.test.sh differs from the branch point only by the removal of the cases at `:225-254`, `:1154-1160` and `:1162-1184` and the addition of the symlink case — the 36 contract cases, the 8 helper and prose cases and the floor (the exit-code cases at `:849-880` and the refusal text at `:1009`) keep their assertions unmodified — and tests/invisible-work.test.sh is unchanged; no case in tests/py/test_parallel_conductors.py patches a function of veri.parallel_conductors ⟦diff-checked⟧ ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 56 | 12 | 22 | 5130 | 594722 | 113481 | 0.88 | 143 | unknown | unknown | unknown |  |  | full |
 | solvable-issues.sh, supervise.sh, run-conductor.sh, lib/github.sh, tests/solvable-issues.test.sh, tests/supervise.test.sh, tests/run-conductor.test.sh, tests/unit/github.test.sh, tests/invisible-work.test.sh, tests/py/test_comment_class.py, tests/unit/exit-contract.test.sh, tests/unit/scratch-copy-libs.test.sh, tests/no-graphql-gh-calls.test.sh and tests/no-python-in-ported-scripts.test.sh are unchanged by the branch, and tests/unit/missing-argument-exit.test.sh is changed only by the removal of parallel-conductors.sh from migration slice 5's list ⟦diff-checked⟧ ⟦criterion 6⟧ | 11 | 3 | 0 | 0 | 0 | 0 | 214 | 44 | 86 | 15091 | 2012317 | 547371 | 4.45 | 55 | unknown | unknown | unknown |  |  | full |
-| make test is green, tests/solvable-issues.test.sh, tests/supervise.test.sh, tests/run-conductor.test.sh, tests/unit/github.test.sh, tests/py/test_comment_class.py, tests/unit/exit-contract.test.sh, tests/unit/scratch-copy-libs.test.sh, tests/unit/missing-argument-exit.test.sh, tests/no-graphql-gh-calls.test.sh and tests/no-python-in-ported-scripts.test.sh among its suites ⟦full-suite⟧ ⟦criterion 6⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 34 | 10 | 18 | 3310 | 438997 | 102113 | 0.75 | unknown | unknown | unknown | unknown |  |  | full |
+| make test is green, tests/solvable-issues.test.sh, tests/supervise.test.sh, tests/run-conductor.test.sh, tests/unit/github.test.sh, tests/py/test_comment_class.py, tests/unit/exit-contract.test.sh, tests/unit/scratch-copy-libs.test.sh, tests/unit/missing-argument-exit.test.sh, tests/no-graphql-gh-calls.test.sh and tests/no-python-in-ported-scripts.test.sh among its suites ⟦full-suite⟧ ⟦criterion 6⟧ | 4 | 2 | 0 | 0 | 0 | 0 | 68 | 20 | 38 | 6435 | 940586 | 203592 | 1.51 | unknown | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER.
 
@@ -108,10 +108,10 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | target | 36 | 4 | 0 | 0 | 1 | 0 | 1 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 1 | 1 | 1 | 1 | 1 | 1 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | affected | 38 | 1 | 1 | 77 | 38 | 0 | 0 | 36 | 1 | 0 | 35 | 2 | 35 | 37 | 0 | 37 | 36 | 0 | 36 | 0 | 0 | 35 | 36 | 0 | 36 | 0 | 0 | 38 | 34 | 0 | 1 | 37 | 1 | 0 | 39 | 0 | 39 | 0 | 0 | 0 | 35 | 0 | 2 | 1 | 1 | 36 | 0 | 1 | 1 | 0 | 1 | 35 | 1 | 1 | 35 | 0 | 0 | 1 | 35 | 0 | 34 | 35 | 0 | 0 | 0 | 1 | 1 | 35 | 1 | 0 | 36 | 36 | 0 | 0 | 0 | 35 | 0 | 1 | 0 | 1 | 35 | 0 | 35 | 0 | 35 | 0 | 0 | 0 | 34 | 35 | 0 | 0 | 0 | 0 | 36 | 1 | 35 | 37 | 0 | 34 | 1 | 1 | 36 | 0 | 0 | 35 | 35 | 0 | 1 | 35 | 0 | 0 | 0 | 34 | 0 | 35 | 43 | 14 | 34 | 15 | 34 | 43 |
 | fast | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 15 | 14 | 14 | 15 | 14 | 14 | 14 | 16 | 17 | 16 | 16 | 14 | 15 | 15 | 14 | 14 | 15 | 15 | 14 | 20 | 14 | 14 | 15 | 15 | 15 | 14 | 15 | 15 | 14 | 15 | 16 | 16 | 15 | 15 | 14 | 14 | 14 | 15 | 15 | 15 | 14 | 14 | 14 | 15 | 15 | 14 | 14 | 15 | 14 | 14 | 14 | 14 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| all | 347 | 352 | 418 | 423 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| all | 347 | 352 | 418 | 423 | 339 | 345 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 891 | 1710 | 383430 | 50734910 | 7280728 | 62.55 |
+| total | 901 | 1730 | 386555 | 51236499 | 7382207 | 63.31 |
