@@ -84,3 +84,48 @@ def test_main_refuses_a_missing_argument_with_the_usage_line_and_2_before_any_gi
     code = issue_worktree.main(["7", "slug"])
     captured = capsys.readouterr()
     assert (code, captured.out) == (2, "")
+
+
+def test_main_hands_back_a_registered_worktree_keyed_on_n_alone_at_the_main_tree_s_unnormalised_path(
+        tmp_path, capsys, monkeypatch, issue_worktree):
+    (tmp_path / "a").mkdir()
+    main_tree = "%s/a/../main" % tmp_path
+    (tmp_path / "main" / ".tdd" / "wt" / "7").mkdir(parents=True)
+    registry = (
+        "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n"
+        "worktree %s/.tdd/wt/7\nHEAD 2222222222222222222222222222222222222222\nbranch refs/heads/tdd/7-slug\n\n"
+        "worktree %s/.tdd/wt/abc\nHEAD 3333333333333333333333333333333333333333\nbranch refs/heads/tdd/abc-x\nprunable gitdir file points to non-existent location\n\n"
+    ) % (main_tree, main_tree, main_tree)
+    calls = _git(monkeypatch, {("worktree", "list", "--porcelain"): (0, registry)})
+    answers = []
+    for argv in (["7", "other"], ["7", "other", "extra"], ["7", "--remove"], ["abc", "slug"]):
+        code = issue_worktree.main(argv)
+        captured = capsys.readouterr()
+        answers.append((argv, code, captured.out))
+    assert answers == [
+        (["7", "other"], 0, "%s/.tdd/wt/7\n" % main_tree),
+        (["7", "other", "extra"], 0, "%s/.tdd/wt/7\n" % main_tree),
+        (["7", "--remove"], 0, "%s/.tdd/wt/7\n" % main_tree),
+        (["abc", "slug"], 0, "%s/.tdd/wt/abc\n" % main_tree),
+    ]
+    assert not (tmp_path / "main" / ".tdd" / "wt" / "abc").exists()
+    assert [call[1:] for call in calls] == [["worktree", "list", "--porcelain"]] * 4
+
+
+def test_main_hands_back_nothing_for_a_path_the_registry_only_nearly_holds(
+        tmp_path, capsys, monkeypatch, issue_worktree):
+    main_tree = "%s/a/../main" % tmp_path
+    (tmp_path / "main" / ".tdd" / "wt" / "7").mkdir(parents=True)
+    registry = (
+        "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n"
+        "worktree %s/.tdd/wt/70\nHEAD 2222222222222222222222222222222222222222\nbranch refs/heads/tdd/70-x\n\n"
+        "worktree %s/.tdd/wt/7/\nHEAD 3333333333333333333333333333333333333333\nbranch refs/heads/tdd/7-y\n\n"
+        "worktree %s/main/.tdd/wt/7\nHEAD 4444444444444444444444444444444444444444\nbranch refs/heads/tdd/7-z\n\n"
+    ) % (main_tree, main_tree, main_tree, tmp_path)
+    calls = _git(monkeypatch, {("worktree", "list", "--porcelain"): (0, registry)})
+    try:
+        issue_worktree.main(["7", "slug"])
+    except AssertionError as refused:
+        assert str(refused).startswith("unexpected subprocess call")
+    assert capsys.readouterr().out == ""
+    assert calls[0][1:] == ["worktree", "list", "--porcelain"]

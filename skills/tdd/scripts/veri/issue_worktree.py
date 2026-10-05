@@ -14,5 +14,12 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     registry = subprocess.run(["git", "worktree", "list", "--porcelain"], stdout=subprocess.PIPE, text=True)
-    return to_contract(registry.returncode)
+    if registry.returncode:
+        return to_contract(registry.returncode)
+    lines = registry.stdout.split("\n")
+    main_tree = lines[0].removeprefix("worktree ")
+    path = "%s/.tdd/wt/%s" % (main_tree, argv[0])
+    if "worktree " + path in lines:
+        print(path)
+    return 0
 
