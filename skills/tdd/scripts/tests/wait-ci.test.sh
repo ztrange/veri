@@ -822,4 +822,25 @@ got="$(again draft first 120 600 "$sha")"
   || problems+=("draft PR: want no .tdd/ci-deadline-$sha recorded, got '$(cat "$work/draft/.tdd/ci-deadline-$sha")'")
 report "$name"
 
+name="#894 after a draft call left no deadline, a call on the same PR once it is ready with the same head sha records the deadline counted from that call, and checks turning green within it exit 0"
+problems=()
+sha=5566778899001122334455667788990011aabbcc
+rollup readied.json "$(check COMPLETED SUCCESS)" "$sha"
+for n in 1 2 3 4; do
+  rollup "readied.json.$n" "$(check IN_PROGRESS '')" "$sha"
+done
+for n in 1 2 3; do
+  printf '{"draft":true,%s\n' "$(cut -c2- < "$work/readied.json.$n")" > "$work/readied.json.$n.new"
+  mv "$work/readied.json.$n.new" "$work/readied.json.$n"
+done
+shared readied
+got="$(again readied first 120 120 "$sha")"
+[[ "$got" == 3 ]] || problems+=("draft call: want exit 3, got $got (stderr: $(cat "$work/readied.first.err"))")
+got="$(again readied second 120 120 "$sha")"
+[[ "$got" == 0 ]] || problems+=("ready call: want exit 0, got $got (stderr: $(cat "$work/readied.second.err"))")
+recorded="$(cat "$work/readied/.tdd/ci-deadline-$sha" 2>/dev/null)"
+[[ "$recorded" == 300 ]] \
+  || problems+=("ready call: want .tdd/ci-deadline-$sha holding 300, its first clock reading 180 plus total 120, got '$recorded'")
+report "$name"
+
 finish
