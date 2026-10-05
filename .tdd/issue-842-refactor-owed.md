@@ -22,3 +22,7 @@
 - test-only | the cycle's test redefines `recording_kill` with the same live-supervisor lookup as `_boundaries`' `fake_kill`; let `_boundaries` record kills and end a supervisor on SIGTERM instead
 - test-only | every test repeats the same setup — clear the tunables, write the `prs.json` fixture, set `VERI_GH_JSON`, make and enter the work directory; move it into one fixture
 - test-only | the cycle's `on_sleep` repeats `with open(log, "ab") as f: f.write(...)` twice; use one append helper
+### veri.parallel_conductors.main reads VERI_MAX_ISSUES as bash's bare arithmetic at `:176` does: `010` caps at 8 launches; `08`/`09` launch nothing, print `stopped: VERI_MAX_ISSUES reached` and exit 3. ⟦added⟧ ⟦criterion 4⟧
+- VERI_PARALLEL and VERI_MAX_ISSUES are each read from os.environ twice, once in `main` (:114-116) to validate and once in `_run` (:128-129) to use; reading each once and passing the value to `_run` removes the second read (the VERI_PARALLEL read predates this cycle)
+- when the next step adds the leading-zero read for VERI_CONDUCTOR_CTX_BUDGET at :55, pull the base-8 parse at :129-133 into one helper that both reads use
+- test-only | extract the per-test setup repeated in all 9 cases of tests/py/test_parallel_conductors.py (clear TUNABLES, write an empty `prs.json` fixture under VERI_GH_JSON, make and chdir into `repo/.tdd`) into one fixture; the new leading-zero case at :524-536 is its latest copy
