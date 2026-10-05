@@ -117,6 +117,10 @@ def _outcome(n, code, prs):
     return ""
 
 
+def _is_failure(got):
+    return got.startswith(("killed ", "bailed "))
+
+
 def _ctx_budget():
     return os.environ.get("VERI_CONDUCTOR_CTX_BUDGET") or "120000"
 
@@ -213,7 +217,7 @@ def _run(continue_on_bail):
                 got = _outcome(n, codes.get(n), prs)
                 if got:
                     print("#%s — %s" % (n, got), flush=True)
-                failed = failed or got.startswith(("killed ", "bailed "))
+                failed = failed or _is_failure(got)
             print("stopped: %s" % (stopped or why), flush=True)
             return _finish(2 if plumbing else 1 if failed else 3 if not launched else 0)
         done = [c for c in in_flight if not c.follow()]
@@ -225,7 +229,7 @@ def _run(continue_on_bail):
                 in_flight.append(_Conductor(c.n))
             elif not continue_on_bail and not stopped:
                 got = _outcome(c.n, codes[c.n], _finish_prs_json())
-                if got.startswith(("killed ", "bailed ")):
+                if _is_failure(got):
                     stopped = "#%s %s" % (c.n, got.split()[0])
         if not done:
             time.sleep(1)
