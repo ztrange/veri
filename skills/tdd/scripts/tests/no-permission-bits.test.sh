@@ -16,7 +16,7 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 SUBJECT='skills/tdd/scripts/tests'
 
 CHMOD_WORD='(^|[^[:alnum:]_.-])chmod'
-REVOKING_MODE='([0145][0-7][0-7]|[ugoa]*-[rwx]*[rw][rwx]*|[ugoa]*=[rx]*)'
+REVOKING_MODE='([0-7]{1,2}|[0-7]?[0-5][0-7]{2}|[ugoa]*-[rwx]*[rw][rwx]*|[ugoa]*=[rx]*)'
 CHMOD_FLAGS='([[:space:]]+-[RHLPfhv]+)*'
 SHELL_CHMOD="$CHMOD_WORD$CHMOD_FLAGS[[:space:]]+$REVOKING_MODE([[:space:]]|$)"
 PY_REVOKING_MODE='[[:space:]]*(0|0o([0-7]{1,2}|[0-7]?[0-5][0-7]{2}))[[:space:]]*\)'
@@ -169,6 +169,23 @@ planted_revoking_modes_named=""
 probe_planted_revoking_modes
 
 expect_eq "$name" "a-r named;u-w named;-w named;" "$planted_revoking_modes_named"
+
+PLANT_NUMERIC_REVOKING_MODES=(0 000 200 300 0400 444 -r -w)
+
+probe_planted_numeric_revoking_modes() {
+  local ROOT plants
+  mapfile -t plants < <(mode_plants ledger "${PLANT_NUMERIC_REVOKING_MODES[@]}")
+  plant_and_probe "$PLANT_REL" '#!/usr/bin/env bash' 'ledger="$(mktemp)"' "${plants[@]}"
+  planted_numeric_revoking_modes_named="$(modes_named ledger "${PLANT_NUMERIC_REVOKING_MODES[@]}")"
+  problems=()
+}
+
+name="planted suite lines running a chmod to a one-to-four-digit mode whose owner digit is 0 to 5 (0, 000, 200, 300, 0400, 444), or to -r or -w, each turn the guard red, naming its own <suite>:<line> (#897)"
+planted_numeric_revoking_modes_named=""
+
+probe_planted_numeric_revoking_modes
+
+expect_eq "$name" "0 named;000 named;200 named;300 named;0400 named;444 named;-r named;-w named;" "$planted_numeric_revoking_modes_named"
 
 PLANT_SEPARATORS=(';' '&&' '||' '|' '(' '{' 'then' 'do')
 PLANT_SEPARATOR_LINES=(
