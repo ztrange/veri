@@ -139,6 +139,14 @@ for f in "$tpl_file" "$shared_file" "$spec_file" "$reason_file" "$bug_file" "$re
 done
 
 tpl="$(cat "$tpl_file")"
+include_re='\{\{INCLUDE:([^}]*)\}\}'
+rest="$tpl" tpl=""
+while [[ "$rest" =~ $include_re ]]; do
+  token="${BASH_REMATCH[0]}"
+  tpl+="${rest%%"$token"*}$(cat "$HERE/prompts/${BASH_REMATCH[1]}")"
+  rest="${rest#*"$token"}"
+done
+tpl+="$rest"
 shared="$(cat "$shared_file")"
 spec="$(cat "$spec_file")"
 optional() {
