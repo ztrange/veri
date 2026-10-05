@@ -7,7 +7,7 @@
 - [x] rebase-onto-default.sh with no refs/remotes/origin/HEAD resolves the default branch from the remote and answers exit 3, 0 or 1 by the same rules as when the ref is set ⟦criterion 3⟧
 - [x] rebase-onto-default.sh with no refs/remotes/origin/HEAD and the default resolved from the remote exits 3 for a branch already containing it and exits 1 naming the conflicting files for a conflicting rebase, as when the ref is set ⟦added⟧ ⟦criterion 3⟧
 - [x] rebase-onto-default.sh with no refs/remotes/origin/HEAD and a remote whose default cannot be resolved exits 2 with stderr naming refs/remotes/origin/HEAD, HEAD unchanged and no rebase started ⟦criterion 3⟧
-- [x] issue-worktree.sh, with an origin remote and no refs/remotes/origin/HEAD, cuts the issue branch from the remote's own default branch even when a local main exists and the remote's default has another name ⟦criterion 4⟧ ⟂ refactor pending
+- [x] issue-worktree.sh, with an origin remote and no refs/remotes/origin/HEAD, cuts the issue branch from the remote's own default branch even when a local main exists and the remote's default has another name ⟦criterion 4⟧
 - [ ] issue-worktree.sh, with an origin remote, no refs/remotes/origin/HEAD and a remote whose default cannot be resolved, exits 2 with stderr naming refs/remotes/origin/HEAD and creates no worktree ⟦criterion 4⟧
 - [ ] issue-worktree.sh with no origin remote at all still falls back to a local main or master as the base ⟦criterion 4⟧
 - [ ] invisible-work.sh with no refs/remotes/origin/HEAD resolves the default branch from the remote and reports as it does when the ref is set ⟦criterion 5⟧
