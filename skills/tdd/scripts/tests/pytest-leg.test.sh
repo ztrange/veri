@@ -431,6 +431,36 @@ old_installs="$(grep -E "^$old_venv/bin/(python3 -m pip|pip) install" "$floor/ca
   problems+=("want no pip install through $old_venv, got: $(flat "$old_installs")")
 report "$name"
 
+raised="$work/raised"
+mkdir -p "$raised/bin" "$raised/skills/tdd/scripts/lib"
+cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$raised/skills/tdd/scripts/lib/"
+cp "$ROOT/Makefile" "$ROOT/requirements-dev.txt" "$raised/"
+stub_python "$raised/bin/python3" 3.11.15
+stub_python "$raised/bin/python3.12" 3.12.4
+raised_lib="$raised/skills/tdd/scripts/lib/venv-python.sh"
+raised_venv="$raised/venv"
+
+name="#863: with lib/venv-python.sh's one floor definition, VENV_FLOOR=3.12, raised to 3.13 and nothing else edited, make install-dev never tries python3.12: with python3 at 3.11 and python3.12 at 3.12 on PATH it exits 2, its stderr names the floor 3.13, and no environment is created at VERI_VENV"
+problems=()
+floor_lines="$(grep -c -x 'VENV_FLOOR=3\.12' "$raised_lib" || true)"
+[[ "$floor_lines" == 1 ]] ||
+  problems+=("want exactly one line VENV_FLOOR=3.12 in lib/venv-python.sh, found $floor_lines")
+sed 's/^VENV_FLOOR=3\.12$/VENV_FLOOR=3.13/' "$raised_lib" > "$raised_lib.new" && mv "$raised_lib.new" "$raised_lib"
+: > "$floor/calls"
+env -u PYTHONPATH VERI_VENV="$raised_venv" PATH="$raised/bin:$floor/sys" \
+  "$(command -v make)" --no-print-directory -C "$raised" install-dev > "$work/out" 2> "$work/err" < /dev/null &&
+  code=0 || code=$?
+[[ "$code" == 2 ]] ||
+  problems+=("want exit 2, got $code: $(flat "$(cat "$work/out")") $(flat "$(cat "$work/err")")")
+tried_312="$(grep -F "/bin/python3.12 " "$floor/calls" || true)"
+[[ -z "$tried_312" ]] ||
+  problems+=("want python3.12 never tried once the floor is 3.13, got: $(flat "$tried_312")")
+[[ "$(cat "$work/err")" == *3.13* ]] ||
+  problems+=("want stderr to name the floor 3.13, got: $(flat "$(cat "$work/err")")")
+[[ ! -e "$raised_venv" ]] ||
+  problems+=("want nothing created at $raised_venv, found: $(flat "$(ls -A "$raised_venv")")")
+report "$name"
+
 reach="$work/reach"
 make_tree "$reach"
 
