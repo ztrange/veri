@@ -23,11 +23,8 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/exit-contract.sh"
 source "$HERE/lib/ledger.sh"
 
-while IFS= read -r record; do
-  ledger_fields "$record"
-  [[ "$state" == open && ( "$kind" == step || "$kind" == diff-checked ) ]] || continue
-  printf '%s\n' "$text"
-  exit 0
-done < <(ledger_steps)
+handed_out() {
+  [[ "$state" == open && ( "$kind" == step || "$kind" == diff-checked ) ]]
+}
 
-exit 3
+ledger_first_step handed_out
