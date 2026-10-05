@@ -23,8 +23,8 @@ def git_out(*args):
     return git(*args, stdout=subprocess.PIPE, text=True).stdout
 
 
-def git_value(*args):
-    run = git(*args, stdout=subprocess.PIPE, text=True)
+def git_value(*args, **kwargs):
+    run = git(*args, stdout=subprocess.PIPE, text=True, **kwargs)
     if run.returncode != 0:
         raise GitFailed()
     return run.stdout.rstrip("\n")
@@ -37,10 +37,11 @@ def refs(prefix):
 
 
 def default_branch():
-    run = git("symbolic-ref", "--short", "refs/remotes/origin/HEAD",
-              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-    if run.returncode == 0:
-        return run.stdout.rstrip("\n").removeprefix("origin/")
+    try:
+        return git_value("symbolic-ref", "--short", "refs/remotes/origin/HEAD",
+                         stderr=subprocess.DEVNULL).removeprefix("origin/")
+    except GitFailed:
+        pass
     for line in git_out("ls-remote", "--symref", "origin", "HEAD").splitlines():
         m = re.match(r"ref: refs/heads/(\S+)\s+HEAD$", line)
         if m:
