@@ -684,4 +684,34 @@ if grep -E '^gh pr ' "$calls" > /dev/null; then
 fi
 record
 
+# 15. with VERI_GH_DRIVER unset, when the ccr route and the gh api graphql fallback both fail,
+#     the PR is not readied and gh_pr_ready says so with 2
+name="#888: with VERI_GH_DRIVER unset, gh_pr_ready 42 whose pulls/42/ccr/ready_for_review 404s and whose gh api graphql markPullRequestReadyForReview fails with a 502 tries both and returns 2"
+calls="$scratch/calls15" err="$scratch/err15"
+: > "$calls"
+(
+  gh() {
+    echo "gh $*" >> "$calls"
+    [[ "$1" == api ]] || return 1
+    case "$*" in
+      *ccr/ready_for_review*) echo 'gh: Not Found (HTTP 404)' >&2; return 1 ;;
+      *markPullRequestReadyForReview*) echo 'gh: Bad Gateway (HTTP 502)' >&2; return 1 ;;
+      *' -q '* | *' --jq '* | *--jq=*) echo 'PR_kwDOnode42' ;;
+      *pulls/42*) echo '{"number":42,"node_id":"PR_kwDOnode42","draft":true}' ;;
+      *) return 1 ;;
+    esac
+  }
+  unset VERI_GH_DRIVER VERI_GH_JSON
+  source "$LIB"
+  gh_pr_ready 42
+) > /dev/null 2> "$err"
+rc=$?
+problems=""
+[[ "$rc" -eq 2 ]] || problems+="    want return 2, got $rc"$'\n'
+grep -F 'ccr/ready_for_review' "$calls" > /dev/null ||
+  problems+="    want a pulls/42/ccr/ready_for_review call, got: $(printf '%q' "$(cat "$calls")")"$'\n'
+grep -E '^gh api graphql .*markPullRequestReadyForReview' "$calls" > /dev/null ||
+  problems+="    want a 'gh api graphql' markPullRequestReadyForReview call, got: $(printf '%q' "$(cat "$calls")")"$'\n'
+record
+
 finish
