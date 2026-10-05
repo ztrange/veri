@@ -308,3 +308,41 @@ def test_main_counts_only_steps_ending_in_added_and_inserts_repair_texts_unmarke
         ("open", "step", "fix the CI failure: x.test.sh ⟦ci-repair⟧ ⟦criterion 2⟧"),
         ("open", "step", "⟦suite-repair⟧ mid-text: y.test.sh ⟦criterion 2⟧"),
     ]
+
+
+def test_main_reads_veri_step_growth_as_bash_arithmetic_octal_base_errors_and_64_bit_wraps(tmp_path, monkeypatch, capsys, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    text = LEDGER.decode()
+    extras = lambda n: "".join(f"- [ ] extra {i} ⟦added⟧ ⟦criterion 2⟧\n" for i in range(n))
+    ten = [f"t{i}" for i in range(10)]
+    got = {}
+    for name, budget, seed, texts in (
+        ("010, eighth added step", "010", text + extras(7), ["t"]),
+        ("010, ninth added step", "010", text + extras(8), ["t"]),
+        ("08", "08", text, ten),
+        ("09", "09", text, ten),
+        ("2^64", "18446744073709551616", text, ["t"]),
+        ("2^65", "36893488147419103232", text, ["t"]),
+        ("2^63", "9223372036854775808", text, ["t"]),
+    ):
+        ledger.write_bytes(seed.encode())
+        monkeypatch.setenv("VERI_STEP_GROWTH", budget)
+        code = add_ledger_step.main([str(ledger), "after", "c three", *texts])
+        captured = capsys.readouterr()
+        lines = captured.err.splitlines()
+        named = len(lines) == 1 and f"{budget}: value too great for base" in lines[0]
+        got[name] = (code, captured.out, captured.err if not named else "named", ledger.read_bytes().decode())
+    inserted = lambda seed, texts: seed.replace(
+        "- [ ] c three ⟦criterion 3⟧\n",
+        "- [ ] c three ⟦criterion 3⟧\n" + "".join(f"- [ ] {t} ⟦added⟧ ⟦criterion 3⟧\n" for t in texts),
+    )
+    owed = text + "\n## Owed steps\n\n- t\n"
+    assert got == {
+        "010, eighth added step": (0, "", "", inserted(text + extras(7), ["t"])),
+        "010, ninth added step": (1, "", "", text + extras(8) + "\n## Owed steps\n\n- t\n"),
+        "08": (0, "", "named", inserted(text, ten)),
+        "09": (0, "", "named", inserted(text, ten)),
+        "2^64": (1, "", "", owed),
+        "2^65": (1, "", "", owed),
+        "2^63": (1, "", "", owed),
+    }

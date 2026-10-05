@@ -30,6 +30,15 @@ def added_step(text, k):
     return step if k else step.removesuffix(f" {CRITERION_TAG}⟧")
 
 
+def bash_integer(value):
+    try:
+        n = int(value, 8 if value.startswith("0") else 10)
+    except ValueError:
+        return None
+    n %= 2**64
+    return n - 2**64 if n >= 2**63 else n
+
+
 def is_anchor_step(line, anchor):
     return anchor in line and ledger_steps(line)
 
@@ -49,7 +58,10 @@ def main(argv):
     if not re.fullmatch("[0-9]+", budget):
         return refuse("add-ledger-step.sh: VERI_STEP_GROWTH must be a whole number >= 0: " + budget)
     added = sum(record[4] == "1" for record in ledger_steps(content))
-    if added + sum(not is_repair(text) for text in texts) > int(budget):
+    cap = bash_integer(budget)
+    if cap is None:
+        sys.stderr.write(f'add-ledger-step.sh: {budget}: value too great for base (error token is "{budget}")\n')
+    if cap is not None and added + sum(not is_repair(text) for text in texts) > cap:
         headings = [line for line in lines[:-1] if line.startswith("## ")]
         owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
         owed += "".join(f"- {text}\n" for text in texts)
