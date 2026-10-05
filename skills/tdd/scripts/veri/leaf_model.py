@@ -8,10 +8,17 @@ USAGE = "usage: leaf-model.sh <leaf-name>"
 WHITESPACE = " \t\n\v\f\r"
 
 
-def _write(stream, line):
+def _write(stream, line, end="\n"):
     stream.flush()
-    stream.buffer.write(os.fsencode(line + "\n"))
+    stream.buffer.write(os.fsencode(line + end))
     stream.buffer.flush()
+
+
+def _echo(value):
+    if len(value) > 1 and value[0] == "-" and all(c in "neE" for c in value[1:]):
+        _write(sys.stdout, "", "" if "n" in value else "\n")
+    else:
+        _write(sys.stdout, value)
 
 
 def main(argv):
@@ -27,7 +34,7 @@ def main(argv):
         _write(sys.stderr, f"leaf-model: model '{model}' contains whitespace (a model id or alias is one word)")
         return 2
     if model:
-        _write(sys.stdout, model)
+        _echo(model)
     return 0
 
 

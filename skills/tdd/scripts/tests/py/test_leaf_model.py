@@ -172,3 +172,25 @@ def test_main_maps_the_name_before_reading_any_model_variable_and_refuses_with_l
         (2, "", unknown),
         (2, "", no_phase),
     ]
+
+
+def test_main_prints_a_resolved_value_as_bashs_builtin_echo_does_reading_an_n_e_E_cluster_as_options(
+        capsys, monkeypatch, leaf_model):
+    values = ["-n", "-nE", "-ne", "-e", "-E", "-", "--", "-x", "-nx"]
+    answers = []
+    for value in values:
+        monkeypatch.setenv("VERI_MODEL", value)
+        code = leaf_model.main(["develop-red"])
+        captured = capsys.readouterr()
+        answers.append((value, code, captured.out, captured.err))
+    assert answers == [
+        ("-n", 0, "", ""),
+        ("-nE", 0, "", ""),
+        ("-ne", 0, "", ""),
+        ("-e", 0, "\n", ""),
+        ("-E", 0, "\n", ""),
+        ("-", 0, "-\n", ""),
+        ("--", 0, "--\n", ""),
+        ("-x", 0, "-x\n", ""),
+        ("-nx", 0, "-nx\n", ""),
+    ]
