@@ -143,3 +143,26 @@ def test_main_reads_steps_remaining_first_refusing_all_but_whole_numbers_and_ech
         "3 extra": (1, b"spent 22.50, steps remaining 3, median 7.50, projection 45.00\n", b""),
         "3": (1, b"spent 22.50, steps remaining 3, median 7.50, projection 45.00\n", b""),
     }
+
+
+def test_main_projects_from_the_median_full_step_counting_every_step_toward_spent_and_comparing_strictly(capsys, monkeypatch, run_affordable):
+    def run(remaining, ceiling, steps):
+        _siblings(monkeypatch, "12\n%s\n" % ceiling, steps)
+        code = run_affordable.main([remaining])
+        out, err = capsys.readouterr()
+        return (code, out, err)
+
+    seen = {
+        "odd": run("1", "0", "5.00 6\n1.00 6\n2.00 2\n3.00 3\n"),
+        "even": run("2", "0", "3.00 6\n1.00 6\n2.00 2\n4.00 6\n2.00 6\n"),
+        "pins only": run("4", "1", "100 2\n100 2\n"),
+        "at the ceiling": run("0", "9", "9.00 6\n"),
+        "over the ceiling": run("0", "8.98", "8.99 6\n"),
+    }
+    assert seen == {
+        "odd": (1, "spent 11.00, steps remaining 1, median 3.00, projection 14.00\n", ""),
+        "even": (1, "spent 12.00, steps remaining 2, median 2.50, projection 17.00\n", ""),
+        "pins only": (3, "", ""),
+        "at the ceiling": (0, "", ""),
+        "over the ceiling": (1, "spent 8.99, steps remaining 0, median 8.99, projection 8.99\n", ""),
+    }
