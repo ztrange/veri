@@ -10,8 +10,12 @@ BYTES = "surrogateescape"
 USAGE = "usage: add-ledger-step.sh <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]"
 
 
-def refuse(message):
+def warn(message):
     sys.stderr.write(message + "\n")
+
+
+def refuse(message):
+    warn(message)
     return 2
 
 
@@ -54,7 +58,7 @@ def main(argv):
         with open(path, "rb") as f:
             lines = f.read().decode(errors=BYTES).split("\n")[:-1]
     except OSError as error:
-        sys.stderr.write(f"add-ledger-step.sh: {path}: {error.strerror}\n")
+        warn(f"add-ledger-step.sh: {path}: {error.strerror}")
         lines = []
     if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:
         return refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
@@ -64,7 +68,7 @@ def main(argv):
     added = sum(record[4] == "1" for record in ledger_steps("\n".join(lines)))
     cap = bash_integer(budget)
     if cap is None:
-        sys.stderr.write(f'add-ledger-step.sh: {budget}: value too great for base (error token is "{budget}")\n')
+        warn(f'add-ledger-step.sh: {budget}: value too great for base (error token is "{budget}")')
     if cap is not None and added + sum(not is_repair(text) for text in texts) > cap:
         headings = [line for line in lines if line.startswith("## ")]
         owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
