@@ -1,0 +1,2 @@
+### `refactor-owed.sh applied <file> '<candidate>' <sha>` records that the structural pass applied a candidate, after which `refactor-owed.sh render <file>` no longer lists that candidate as owed under any step and instead lists it as applied, naming <sha> ⟦criterion 1⟧
+- in `main`, `applied` is called with the variables named `step` and `bounds`, which here hold the transform and the sha; unpacking per verb would give them names that don't mislead
