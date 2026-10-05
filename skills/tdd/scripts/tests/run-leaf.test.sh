@@ -155,4 +155,13 @@ done
 problems=("${lost[@]}")
 report "with the session id unset or empty, strips nothing beyond SESSION_VARS (#933)"
 
+leaf_env_lacks -- CLAUDE_CODE_SESSION_ID=sess-933-fake 'VERI_TEST_CMD=make unit' \
+  GIT_CONFIG_GLOBAL=/from/the/caller
+grep -Fx 'VERI_TEST_CMD=make unit' "$work/env" > /dev/null 2>&1 \
+  || problems+=("VERI_TEST_CMD did not reach the leaf's claude with the caller's value")
+gcg="$(grep -E '^GIT_CONFIG_GLOBAL=' "$work/env" 2>/dev/null)"
+[[ -n "${gcg#GIT_CONFIG_GLOBAL=}" && "$gcg" != 'GIT_CONFIG_GLOBAL=/from/the/caller' ]] \
+  || problems+=("GIT_CONFIG_GLOBAL in the leaf's claude was not the one run-leaf.sh set: '${gcg}'")
+report "with the session id set, still passes VERI_TEST_CMD and run-leaf.sh's GIT_CONFIG_GLOBAL through (#933)"
+
 finish
