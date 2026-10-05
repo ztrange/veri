@@ -1079,4 +1079,12 @@ nofast="$("$BUILD" diff "$work/spec.md" "$dd_step" "$test_cmd" 2>"$nofast_err")"
 diag=""; [[ -s "$nofast_err" ]] && diag=diagnostic
 expect_eq "$name" "2::diagnostic" "$code:${nofast:+prompt}:$diag"
 
+name="#974 the revise-diff prompt tells the leaf to run the given fast command through timed-test-run.sh fast and then the affected suites, and to finish only with both green"
+rdf="$("$BUILD" revise diff "$work/spec.md" "$dd_step" "$test_cmd" "$work/reason.md" "$dd_fast" 2>/dev/null)"; code=$?
+fast="" order="" both=""
+[[ "$rdf" == *"$fast_line"* ]] && fast=fast
+[[ "$rdf" == *"$fast_line"*"$timed affected "* ]] && order=affected-after
+grep -iE 'both( runs)?( are| stay)? green' <<<"$rdf" > /dev/null && both=both-green
+expect_eq "$name" "0:fast:affected-after:both-green" "$code:$fast:$order:$both"
+
 finish
