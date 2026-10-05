@@ -15,6 +15,9 @@
 #      that has `issue-worktree.sh` cut the branch and `cd`s into its worktree.
 #   6. The baseline item sits before the plan section, and a sentence of it that stops on a red
 #      baseline calls the stop preflight-class and says the caller's checkout does not change it.
+#   7. The full-tier call (`detect-test-command.sh --tier all`) comes after the fast-tier one with
+#      no line between them that leaves the worktree or moves its commit, and the
+#      `leaf-timeout.sh ... --full` call comes after it.
 #
 # Run: scripts/tests/skill-preflight-launchable.test.sh
 set -uo pipefail
@@ -36,6 +39,9 @@ gh_check='gh api user'
 nonzero='non-zero'
 preflight='### 0. Preflight'
 fast_call='detect-test-command.sh --tier fast'
+full_call='detect-test-command.sh --tier all'
+timeout_call='leaf-timeout.sh'
+timeout_flag='--full'
 worktree_call='issue-worktree.sh'
 enter_call='cd "$wt"'
 plan_heading='### 2. Scope & plan'
@@ -184,6 +190,32 @@ if preflight_or_problem "the red-baseline stop"; then
     if ! grep -iF -- "preflight" <<< "$stops" | grep -F -- "$callers" > /dev/null; then
       problems+=("$skill_md:$fast_in's item has no sentence that stops on a $red_phrase as a preflight-class stop whatever the $callers holds — it says only: ${stops:-nothing}")
     fi
+  fi
+fi
+
+report "$name"
+
+name="$skill_md takes the full-tier measurement in the worktree, on the fast-tier baseline's commit, and sizes $timeout_call $timeout_flag only after it (#955)"
+problems=()
+
+if preflight_or_problem "the full-tier measurement"; then
+  fast_in="$(call_at "$fast_call")"
+  full_in="$(call_at "$full_call")"
+  timeout_in="$(awk -v s="$sec_start" -v e="$sec_end" -v t="$timeout_call" -v f="$timeout_flag" \
+    'NR >= s && NR <= e && index($0, t) && index($0, f) { print NR; exit }' "$md")"
+  if [[ -z "$fast_in" || -z "$full_in" ]]; then
+    problems+=("$skill_md's '$preflight' section does not name both $fast_call (${fast_in:-none}) and $full_call (${full_in:-none}), so where the full tier is measured could not be read")
+  elif [[ "$full_in" -lt "$fast_in" ]]; then
+    problems+=("$skill_md:$full_in measures the full tier ($full_call) before line $fast_in runs the fast-tier baseline in the worktree, so it times a different tree than the leaves run on")
+  else
+    moves="$(sed -n "${fast_in},${full_in}p" "$md" | grep -nE '(^|[^[:alnum:]_-])cd |git (checkout|switch|pull|fetch|reset|rebase)|issue-worktree\.sh')"
+    [[ -z "$moves" ]] ||
+      problems+=("$skill_md between line $fast_in ($fast_call) and line $full_in ($full_call) leaves the worktree or moves its commit: $moves")
+  fi
+  if [[ -z "$timeout_in" ]]; then
+    problems+=("$skill_md's '$preflight' section has no $timeout_call call with $timeout_flag, so what sizes the timeout could not be read")
+  elif [[ -n "$full_in" && "$timeout_in" -lt "$full_in" ]]; then
+    problems+=("$skill_md:$timeout_in sizes the timeout ($timeout_call $timeout_flag) before line $full_in takes the full-tier measurement it is sized from")
   fi
 fi
 
