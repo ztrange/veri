@@ -394,6 +394,22 @@ fi
 [[ -z "$problems" ]] \
   && ok || no "SKILL.md's issue-worktree.sh entry says the branch is cut from the freshly fetched remote default branch and why the local one is not used (${problems#; }; text read: '$entry')"
 
+problems=""
+if [[ -z "${entry// /}" ]]; then
+  problems="; no bullet for '\$S/issue-worktree.sh <n> <slug>' found in $SKILL — how the default branch is named could not be established"
+else
+  says "nothing says the default branch's name is resolved from the remote when refs/remotes/origin/HEAD is absent" \
+    'refs/remotes/origin/head[^.]*(absent|missing)[^.]*(ls-remote|from the remote|remote itself)|(ls-remote|from the remote|remote itself)[^.]*refs/remotes/origin/head[^.]*(absent|missing)'
+  says "nothing says the refusal when the remote's default cannot be resolved names refs/remotes/origin/HEAD" \
+    'nam(e|es|ing)[^.]{0,40}refs/remotes/origin/head'
+  says "nothing says the local main/master fallback holds only when there is no origin remote" \
+    'main/master[^.]*no origin remote|no origin remote[^.]*main/master'
+  [[ "$entry" =~ records[[:space:]]+no[[:space:]]+origin/head ]] &&
+    problems="$problems; it still says a local main/master supplies the name when the clone records no origin/HEAD — the guess #865 removes"
+fi
+[[ -z "$problems" ]] \
+  && ok || no "#865: SKILL.md's issue-worktree.sh entry says the default branch's name is resolved from the remote when refs/remotes/origin/HEAD is absent, the refusal names that ref when it cannot be, and the local main/master fallback holds only with no origin remote (${problems#; }; text read: '$entry')"
+
 ahead_pair no-origin-head
 git_q "$clone" symbolic-ref --delete refs/remotes/origin/HEAD >/dev/null 2>&1
 want="$(wt_path "$clone" 47)"
