@@ -347,4 +347,19 @@ check_code 2
 
 report "#683: stop-run.sh's usage line names the modes lib/stop-modes.sh lists"
 
+problems=()
+
+for zero in 0 00; do
+  label="conductor.pid holding $zero"
+  zero_run="$repo/.tdd/wt/1$zero"
+  mkdir -p "$zero_run/.tdd"
+  printf '%s\n' "$zero" > "$zero_run/.tdd/conductor.pid"
+  run_stop "1$zero"
+  check_code 3
+  check_no_stop "$zero_run"
+done
+label=""
+
+report "#819: an issue whose .tdd/conductor.pid holds 0 or 00 exits 3 and writes no .tdd/stop"
+
 finish
