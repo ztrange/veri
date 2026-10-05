@@ -33,6 +33,7 @@ set -euo pipefail
 shopt -u patsub_replacement 2>/dev/null || true
 
 phases="red|green|refactor|cover|transform|diff|structural|predicate|revise|reconcile|exhausted|over-budget|rebase"
+revise_phases="red|green|refactor|diff"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/exit-contract.sh"
 USAGE="build-develop-prompt.sh: usage: $phases <issue-spec-file> <step-text> <test-cmd> ..."
@@ -64,10 +65,8 @@ need() {
 revised_phase=""
 if [[ "$phase" == "revise" ]]; then
   need revised_phase "${2:-}" '<phase> being revised'
-  case "$revised_phase" in
-    red|green|refactor|diff) ;;
-    *) refuse "build-develop-prompt.sh: unknown phase to revise '$revised_phase' (want red|green|refactor|diff)" ;;
-  esac
+  [[ "$revised_phase" =~ ^($revise_phases)$ ]] ||
+    refuse "build-develop-prompt.sh: unknown phase to revise '$revised_phase' (want $revise_phases)"
   shift
 fi
 
