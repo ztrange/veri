@@ -1577,4 +1577,31 @@ fi
 
 report "$name"
 
+name="with no worktree and no tdd/<n>-* branch, an unresolvable recorded skill commit still exits 2 before launching any conductor (#866)"
+problems=()
+
+clone43="$work/clone43"
+skill_clone "$clone43"
+
+foreign43="$work/foreign43"
+caller_repo "$foreign43"
+git -C "$foreign43" -c user.name=t -c user.email=t@t commit -q --allow-empty -m elsewhere
+missing43="$(git -C "$foreign43" rev-parse HEAD)"
+
+caller43="$work/caller43"
+caller_repo "$caller43"
+git -C "$caller43" commit -q --allow-empty -m base
+mkdir -p "$caller43/.tdd"
+printf '%s\n' "$missing43" > "$caller43/.tdd/issue-$issue-skill-commit"
+
+rm -f "$argv"
+launch_from "$caller43" "$clone43"
+rc43=$?
+[[ "$rc43" == 2 ]] ||
+  problems+=("the launch exited $rc43, not 2: $(cat "$launch_err")")
+[[ ! -f "$argv" ]] ||
+  problems+=("the conductor was launched anyway over unresolvable recorded commit $missing43")
+
+report "$name"
+
 finish
