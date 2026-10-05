@@ -648,6 +648,54 @@ run_case "#892 the Draft PR step's develop-rebase block in $skill_md, run with e
 run_case "#892 the develop-reconcile block of Reconciling a rejected push in $skill_md, run with every ledger step ticked, passes build-develop-prompt.sh reconcile and the leaf's VERI_STEP the last done step's text, byte-identical" \
   scan_develop_last_done reconcile
 
+scan_revise_last_done() {
+  local title="$EXPANDING_STEP"
+  local lineno line numbered launch stage seen tree err got argv rec k want which pattern
+  stage_recorder revise-last-done
+  rm -f "$stage/build-develop-prompt.sh" "$stage/event.sh"
+  ln -s "$RECORDERS/title.sh" "$stage/build-develop-prompt.sh"
+  ln -s "$RECORDERS/title.sh" "$stage/event.sh"
+  printf '# Plan for #%s\n\n- [x] an earlier step the run finished\n- [x] %s\n' \
+    "$SENTINEL_ISSUE" "$title" > "$tree/.tdd/issue-$SENTINEL_ISSUE.md"
+  for which in mark prompt leaf re-verify; do
+    case "$which" in
+      mark)      pattern='\$S/event\.sh revise budget=' ;;
+      prompt)    pattern='\$S/build-develop-prompt\.sh revise <phase> .*> \.tdd/revise-<phase>-<k>\.prompt' ;;
+      leaf)      pattern='\$S/detach-leaf\.sh .*\$S/supervise\.sh revise-<phase>-<k> \$S/run-leaf\.sh' ;;
+      re-verify) pattern='\$S/detach-leaf\.sh .*\$S/supervise\.sh verdict-<phase> \$S/run-verdict\.sh --step .* --fast-cmd ' ;;
+    esac
+    numbered="$(head -1 < <(grep -nE "$pattern" "$md"))"
+    numbered="${numbered//<REVISE_BUDGET>/3}"
+    if [[ -z "$numbered" ]]; then
+      no_launch "the revise loop's $which line"
+      continue
+    fi
+    take_line "$numbered" "$title" || continue
+    rm -f "$seen" "$seen".*
+    run_staged '<no leaf was launched>'
+    case "$which" in
+      mark)
+        got="$(head -1 "$seen.event" 2>/dev/null)" || got='<no mark was made>'
+        [[ "$got" == "$title" ]] ||
+          problem "marked the revise event beside a ledger with every step ticked with VERI_STEP=<$got>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})" ;;
+      prompt)
+        want='<no step argument>'
+        mapfile -t rec < "$seen.build-develop-prompt" 2>/dev/null || rec=()
+        for (( k = 1; k + 1 < ${#rec[@]}; k++ )); do
+          [[ "${rec[k]}" != *-spec.md ]] || { want="${rec[k+1]}"; break; }
+        done
+        [[ "$want" == "$title" ]] ||
+          problem "built the revise prompt beside a ledger with every step ticked, passing build-develop-prompt.sh the step <$want>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})" ;;
+      *)
+        [[ "$got" == "$title" ]] ||
+          problem "launched the revise loop's $which line beside a ledger with every step ticked, whose leaf saw VERI_STEP=<$got>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})" ;;
+    esac
+  done
+}
+
+run_case "#892 the revise loop of Revising on a REJECT in $skill_md, run with every ledger step ticked, passes the revise mark's VERI_STEP, build-develop-prompt.sh revise, the revise leaf's VERI_STEP and the re-verify launch's VERI_STEP the last done step's text, byte-identical" \
+  scan_revise_last_done
+
 scan_transform_verifier_last_done() {
   local title="$EXPANDING_STEP"
   local lineno line numbered launch stage seen tree err got argv
