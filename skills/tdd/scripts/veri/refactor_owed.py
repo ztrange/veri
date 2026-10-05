@@ -22,14 +22,15 @@ def refuse():
 
 
 def append(file, step):
-    owed = []
+    structural, test_only = [], []
     for line in sys.stdin.read().split("\n"):
         match = STRUCTURAL.match(line)
         if match:
-            owed.append(match.group(1))
+            structural.append(match.group(1))
         match = TEST_ONLY.match(line)
         if match:
-            owed.append("test-only | " + match.group(1))
+            test_only.append("test-only | " + match.group(1))
+    owed = structural + test_only
     if owed:
         with open(file, "a") as out:
             out.write(f"### {step}\n" + "".join(f"- {t}\n" for t in owed))

@@ -86,3 +86,26 @@ def test_append_counts_only_an_unindented_candidate_line_and_records_its_transfo
     code = refactor_owed.main(["append", str(owed), "S"])
     written = owed.read_bytes() if owed.exists() else b""
     assert (code, written) == (0, b"### S\n- a\n- e  \n- f | g\n- \n- h\r\n")
+
+
+def test_append_writes_structural_before_test_only_and_appends_a_block_only_when_a_line_is_owed(
+        monkeypatch, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    owed.write_bytes(b"prior\n")
+    monkeypatch.setattr(sys, "stdin", io.StringIO("CANDIDATES: test-only | t1\n"
+                                                  "CANDIDATES: structural | s1\n"
+                                                  "CANDIDATES: test-only | t2\n"
+                                                  "CANDIDATES: structural | s2"))
+    code = refactor_owed.main(["append", str(owed), "", "src/a.sh", "tests/x"])
+    assert (code, owed.read_bytes()) == (
+        0, b"prior\n### \n- s1\n- s2\n- test-only | t1\n- test-only | t2\n")
+
+    absent = tmp_path / "absent.md"
+    monkeypatch.setattr(sys, "stdin", io.StringIO("CANDIDATES: cosmetic | rename k\njunk line\n"))
+    code = refactor_owed.main(["append", str(absent), "S"])
+    assert (code, absent.exists()) == (0, False)
+
+    before = owed.read_bytes()
+    monkeypatch.setattr(sys, "stdin", io.StringIO("CANDIDATES: cosmetic | rename k\njunk line\n"))
+    code = refactor_owed.main(["append", str(owed), "S"])
+    assert (code, owed.read_bytes()) == (0, before)
