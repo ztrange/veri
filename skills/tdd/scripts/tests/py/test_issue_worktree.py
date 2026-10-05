@@ -1,8 +1,10 @@
 """In-process cases for veri/issue_worktree.py, the module issue-worktree.sh is a shim over."""
 import importlib
+import os
 import pathlib
 import subprocess
 import sys
+import tempfile
 
 import pytest
 
@@ -351,3 +353,114 @@ def test_main_cuts_from_a_fetched_origin_default_with_no_track_and_refuses_to_cu
     out, err = capsys.readouterr()
     assert (code, out, err[-len(refusal):], [tuple(c) for c in recorded if c[1:3] == ["worktree", "add"]]) == (
         2, "", refusal, [])
+
+
+def test_main_puts_a_seeded_log_back_when_the_cut_dies_and_still_maps_the_dying_add_into_0_to_3(
+        monkeypatch, capsys, tmp_path, issue_worktree):
+    main_tree = str(tmp_path / "repo")
+    path = main_tree + "/.tdd/wt/63"
+    seeded = pathlib.Path(path, ".tdd", "events.jsonl")
+    seeded.parent.mkdir(parents=True)
+    seeded.write_bytes(b'{"event":"seeded"}\n{"event":"second"}\n')
+    tmpdir = tmp_path / "tmp"
+    tmpdir.mkdir()
+    monkeypatch.setenv("TMPDIR", str(tmpdir))
+    monkeypatch.setattr(tempfile, "tempdir", None)
+    registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
+    routing_git(monkeypatch, {
+        ("git", "worktree", "list", "--porcelain"): (0, registry, ""),
+        ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/63-own-trap"): (1, "", ""),
+        ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/63-own-trap"): (1, "", ""),
+        ("git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"): (1, "", ""),
+        ("git", "remote", "get-url", "origin"): (2, "", "error: No such remote 'origin'\n"),
+        ("git", "show-ref", "--verify", "--quiet", "refs/heads/main"): (0, "", ""),
+        ("git", "worktree", "add", "-q", "--no-track", "-b", "tdd/63-own-trap", path, "main"): (5, "", ""),
+    })
+    routed = subprocess.run
+    path_at_add = []
+
+    def run(args, **kwargs):
+        if list(args[:3]) == ["git", "worktree", "add"]:
+            path_at_add.append(sorted(str(p.relative_to(path)) for p in pathlib.Path(path).rglob("*"))
+                               if os.path.exists(path) else None)
+        return routed(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", run)
+
+    code = issue_worktree.main(["63", "own-trap"])
+
+    assert (code, capsys.readouterr().out, path_at_add, seeded.read_bytes(), sorted(tmpdir.rglob("*"))) == (
+        2, "", [None], b'{"event":"seeded"}\n{"event":"second"}\n', [])
+
+
+@pytest.mark.parametrize("extra", ["notes.txt", ".tdd/.lock"])
+def test_main_leaves_a_path_holding_more_than_the_seeded_log_where_it_is_for_git_to_refuse(
+        monkeypatch, capsys, tmp_path, issue_worktree, extra):
+    main_tree = str(tmp_path / "repo")
+    path = main_tree + "/.tdd/wt/63"
+    seeded = pathlib.Path(path, ".tdd", "events.jsonl")
+    seeded.parent.mkdir(parents=True)
+    seeded.write_bytes(b'{"event":"seeded"}\n')
+    pathlib.Path(path, extra).write_bytes(b"x\n")
+    tmpdir = tmp_path / "tmp"
+    tmpdir.mkdir()
+    monkeypatch.setenv("TMPDIR", str(tmpdir))
+    monkeypatch.setattr(tempfile, "tempdir", None)
+    registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
+    routing_git(monkeypatch, {
+        ("git", "worktree", "list", "--porcelain"): (0, registry, ""),
+        ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/63-own-trap"): (1, "", ""),
+        ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/63-own-trap"): (1, "", ""),
+        ("git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"): (1, "", ""),
+        ("git", "remote", "get-url", "origin"): (2, "", "error: No such remote 'origin'\n"),
+        ("git", "show-ref", "--verify", "--quiet", "refs/heads/main"): (0, "", ""),
+        ("git", "worktree", "add", "-q", "--no-track", "-b", "tdd/63-own-trap", path, "main"): (
+            128, "", "fatal: '%s' already exists\n" % path),
+    })
+    routed = subprocess.run
+    path_at_add = []
+
+    def run(args, **kwargs):
+        if list(args[:3]) == ["git", "worktree", "add"]:
+            path_at_add.append(sorted(str(p.relative_to(path)) for p in pathlib.Path(path).rglob("*")))
+        return routed(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", run)
+
+    code = issue_worktree.main(["63", "own-trap"])
+
+    assert (code, capsys.readouterr().out, path_at_add, seeded.read_bytes(), sorted(tmpdir.rglob("*"))) == (
+        2, "", [sorted([".tdd", ".tdd/events.jsonl", extra])], b'{"event":"seeded"}\n', [])
+
+
+def test_main_appends_a_seeded_log_into_the_tdd_directory_a_successful_cut_checked_out(
+        monkeypatch, capsys, tmp_path, issue_worktree):
+    main_tree = str(tmp_path / "repo")
+    path = main_tree + "/.tdd/wt/63"
+    seeded = pathlib.Path(path, ".tdd", "events.jsonl")
+    seeded.parent.mkdir(parents=True)
+    seeded.write_bytes(b'{"event":"seeded"}\n')
+    tmpdir = tmp_path / "tmp"
+    tmpdir.mkdir()
+    monkeypatch.setenv("TMPDIR", str(tmpdir))
+    monkeypatch.setattr(tempfile, "tempdir", None)
+    registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
+    routing_git(monkeypatch, {
+        ("git", "worktree", "list", "--porcelain"): (0, registry, ""),
+        ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/63-own-trap"): (0, "", ""),
+        ("git", "worktree", "add", "-q", path, "tdd/63-own-trap"): (0, "", ""),
+    })
+    routed = subprocess.run
+
+    def run(args, **kwargs):
+        if list(args[:3]) == ["git", "worktree", "add"]:
+            pathlib.Path(path, ".tdd").mkdir(parents=True)
+            pathlib.Path(path, ".tdd", "events.jsonl").write_bytes(b'{"event":"committed"}\n')
+        return routed(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", run)
+
+    code = issue_worktree.main(["63", "own-trap"])
+
+    assert (code, capsys.readouterr().out, seeded.read_bytes(), sorted(tmpdir.rglob("*"))) == (
+        0, path + "\n", b'{"event":"committed"}\n{"event":"seeded"}\n', [])

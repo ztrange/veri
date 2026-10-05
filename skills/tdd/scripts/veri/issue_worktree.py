@@ -1,8 +1,10 @@
 """issue-worktree.sh's worktree handling, run in-process."""
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 
 USAGE = "usage: issue-worktree.sh <n> <slug> | --remove <n>"
 
@@ -113,6 +115,25 @@ def main(argv):
         sys.stderr.write("issue-worktree: branch %s is already checked out in %s"
                          " — another conductor owns it\n" % (branch, holder))
         return 2
+    seeded_log = None
+    if (os.path.isfile(path + "/.tdd/events.jsonl")
+            and os.listdir(path) == [".tdd"] and os.listdir(path + "/.tdd") == ["events.jsonl"]):
+        fd, seeded_log = tempfile.mkstemp()
+        os.close(fd)
+        shutil.move(path + "/.tdd/events.jsonl", seeded_log)
+        os.rmdir(path + "/.tdd")
+        os.rmdir(path)
+    try:
+        return cut(path, branch)
+    finally:
+        if seeded_log is not None:
+            os.makedirs(path + "/.tdd", exist_ok=True)
+            with open(seeded_log, "rb") as src, open(path + "/.tdd/events.jsonl", "ab") as dst:
+                dst.write(src.read())
+            os.remove(seeded_log)
+
+
+def cut(path, branch):
     remote_ref = "refs/remotes/origin/" + branch
     if ref_exists("refs/heads/" + branch):
         code = worktree_add(path, branch)
