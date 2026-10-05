@@ -311,3 +311,56 @@ def test_main_withholds_an_issue_blocked_by_an_open_fetched_issue_as_number_or_u
         observed[tuple(argv)] = (code, out)
 
     assert observed == {(): (0, "22\n23\n24\n"), ("--repo", "o/r"): (0, "22\n23\n24\n25\n")}
+
+
+def dead_pid():
+    pid = os.fork()
+    if pid == 0:
+        os._exit(0)
+    os.waitpid(pid, 0)
+    return pid
+
+
+def test_main_reads_a_lock_under_the_main_tree_git_names_from_the_callers_directory_as_an_int_pid_that_is_alive(tmp_path, monkeypatch, capsys, solvable_issues):
+    numbers = range(10, 21)
+    (tmp_path / "issues.json").write_text(json.dumps([opted_in(n) for n in numbers]))
+    (tmp_path / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    pid = str(os.getpid())
+    texts = {10: " %s \n" % pid, 11: "+" + pid, 12: pid[0] + "_" + pid[1:] if len(pid) > 1 else pid,
+             14: "abc\n", 15: "%d\n" % dead_pid(), 16: "1\n", 17: "0\n", 18: pid + "\n"}
+    decoy = tmp_path / "decoy"
+    for number, text in texts.items():
+        lock = decoy / ".tdd" / "wt" / str(number) / ".tdd" / "conductor.pid"
+        lock.parent.mkdir(parents=True)
+        lock.write_text(text)
+    (decoy / ".tdd" / "wt" / "13" / ".tdd" / "conductor.pid").mkdir(parents=True)
+    caller = tmp_path / "caller"
+    stray = caller / ".tdd" / "wt" / "19" / ".tdd" / "conductor.pid"
+    stray.parent.mkdir(parents=True)
+    stray.write_text(pid)
+    monkeypatch.chdir(caller)
+    calls = []
+
+    def run(answer):
+        def fake_run(args, *rest, **kwargs):
+            if list(args) != ["git", "worktree", "list", "--porcelain"]:
+                raise AssertionError("unexpected command: %r" % (args,))
+            calls.append((kwargs.get("cwd") in (None, str(caller), caller), kwargs.get("stderr")))
+            if isinstance(answer, BaseException):
+                raise answer
+            return subprocess.CompletedProcess(args, *answer)
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        monkeypatch.setattr(subprocess, "Popen", fake_run)
+        code = solvable_issues.main([])
+        out, err = capsys.readouterr()
+        return code, out
+
+    unlocked = "".join("%d\n" % n for n in numbers)
+    assert run((0, "worktree %s\nHEAD 0000000\n" % decoy, "")) == (0, "13\n14\n15\n19\n20\n")
+    assert run((0, "%s\nHEAD 0000000\n" % decoy, "")) == (0, "13\n14\n15\n19\n20\n")
+    assert run((128, "", "fatal: not a git repository\n")) == (0, unlocked)
+    assert run((0, "", "")) == (0, unlocked)
+    assert run(FileNotFoundError(2, "No such file or directory", "git")) == (0, unlocked)
+    assert calls == [(True, subprocess.DEVNULL)] * 5
