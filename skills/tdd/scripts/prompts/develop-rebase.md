@@ -40,7 +40,7 @@ both sides' intent survives.
    The wrapper hands the command's own exit status straight back, so a red run stays red.
 4. Do not push. The conductor pushes and re-verifies the resolution.
 5. Do not edit the ledger `.tdd/issue-<n>.md` beyond what the rebase itself carries: every
-   `[x]` tick and every ` ⟂ refactor pending` mark must survive exactly as it is.
+   {{INCLUDE:_develop-ledger-tick.md}} {{INCLUDE:_develop-ledger-mark.md}}
 
 ### Report (last lines of your output)
 

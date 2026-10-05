@@ -2,10 +2,7 @@
 
 ## Phase: develop-revise (redoing {{REVISE_PHASE}})
 
-A previous attempt at this step was **rejected** by the blind verifier. You are a fresh
-leaf: you never saw that attempt or its reasoning, so the rejection reason below is the
-whole of what you have to work from. The work it left is on disk — read it, then fix
-exactly what the reason objects to.
+{{INCLUDE:_develop-revise-opening.md}}
 
 ### The step (this cycle's criterion)
 
@@ -19,10 +16,7 @@ exactly what the reason objects to.
 
 Redoing green only: when the step needs more than one new behaviour at once, neither a
 rewritten implementation nor `IMPOSSIBLE` is the honest answer. Report `SPLIT:` lines
-instead of an implementation, changing no production code — one to three of them, each a
-behaviour-level criterion small enough to be one red-green cycle of its own, in the order
-they must be built. The conductor restores the tree, adds those steps ahead of this one
-and comes back to this step later, so leave the working tree exactly as you found it.
+instead of an {{INCLUDE:_develop-split.md}} leave the working tree exactly as you found it.
 
 ### The issue's behavior spec (context — the criterion above is what is in scope)
 

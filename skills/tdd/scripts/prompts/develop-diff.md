@@ -10,26 +10,14 @@ so no test is this step's deliverable.
 
 {{STEP}}
 
-### The issue's behavior spec (context only)
-
-{{ISSUE_SPEC}}
-
-### The test command
-
-{{TEST_CMD}}
-
-### What to do
+{{INCLUDE:_develop-spec-context-only.md}}
 
 1. Make the change the step's criterion names, and nothing else, then commit that change.
 2. When the criterion is that something stays unchanged, make no commit: leave the tree as
    you found it.
 3. Add no test. A case that pins this criterion by reading another file's text or the git
    history is rejected.
-4. Run the suites covering the files you touched, through the wrapper `{{TIMED_TEST_RUN}}`:
-
-       {{TIMED_TEST_RUN}} affected '<the suites you ran>' <the command that runs them>
-
-   They must stay green.
+4. {{INCLUDE:_develop-run-affected.md}}
 
 ### Report (last lines of your output)
 
