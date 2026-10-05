@@ -542,3 +542,72 @@ def test_main_reports_steps_done_of_planned_the_outcome_and_the_issue_wall_summe
         "red": ["10", "1111", "2222", "3333", "4444", "0.80"]}
     assert cells(accrued, "#### Total", ["turns", "input", "output", "cache read", "cache creation", "$"]) == {
         "total": ["10", "1111", "2222", "3333", "4444", "0.80"]}
+
+
+def test_main_reports_relaunches_triage_stops_budget_crossings_splits_tier_seconds_and_stop_outcomes(tmp_path, monkeypatch, capsys, metrics):
+    def report(name, events):
+        root = tmp_path / name
+        root.mkdir()
+        write_log(root, events)
+        monkeypatch.chdir(root)
+        return render(metrics, capsys)
+
+    def relaunch(ts):
+        return [dict(leaf("s", ts, "verifier", "green", 1, 20)[1], event="relaunch", cause="no-verdict")]
+
+    relaunched = report("relaunched", conductor("s", 30000, "step-start")
+                        + leaf("s", 30010, "developer", "green", 1, 90)
+                        + leaf("s", 30110, "verifier", "green", 1, 20) + relaunch(30110)
+                        + leaf("s", 30140, "verifier", "green", 1, 20) + relaunch(30140)
+                        + leaf("s", 30170, "verifier", "green", 1, 20, verdict="REJECT")
+                        + conductor("s", 30200, "revise", phase="green", attempt="1", budget="3")
+                        + leaf("s", 30210, "developer", "green", 2, 120, retries=1)
+                        + leaf("s", 30340, "verifier", "green", 2, 20, verdict="PASS")
+                        + conductor("s", 30370, "step-done"))
+    assert cells(relaunched, "#### By step", ["attempts", "PASS", "REJECT", "kills", "retries", "no-verdict"]) == {"s": ["6", "1", "1", "0", "1", "2"]}
+
+    def triaged(step, ts, transforms, stopped):
+        return (conductor(step, ts, "step-start") + leaf(step, ts + 2, "developer", "refactor", 1, 6)
+                + conductor(step, ts + 10, "refactor", phase="refactor", transforms=transforms, budget="5", stopped=stopped)
+                + conductor(step, ts + 20, "step-done"))
+
+    triage = report("triage", triaged("tidied", 40000, "1", "nothing-structural")
+                    + triaged("owing", 41000, "3", "structural-owed"))
+    assert cells(triage, "#### By step", ["stopped"]) == {"tidied": ["nothing-structural"], "owing": ["structural-owed"]}
+
+    def worked(step, ts, *marks):
+        return conductor(step, ts, "step-start") + leaf(step, ts + 2, "developer", "green", 1, 6) + list(marks)
+
+    crossing = report("crossing", worked("crossed", 42000, *conductor("crossed", 42010, "step-over-budget",
+                                                                      spent="12.40", budget="10.00"))
+                      + conductor("crossed", 42020, "step-done")
+                      + worked("under", 43000) + conductor("under", 43020, "step-done"))
+    assert cells(crossing, "#### By step", ["crossed at"]) == {"crossed": ["12.40"], "under": [""]}
+
+    exhausted = report("exhausted", worked("split", 44000, *conductor("split", 44010, "step-split", at="exhausted")))
+    over = report("over", worked("split", 44000, *conductor("split", 44010, "step-split", at="over-budget")))
+    assert exhausted != over
+    assert cells(exhausted, "#### By step", ["split"]) == {"split": ["exhausted"]}
+    assert cells(over, "#### By step", ["split"]) == {"split": ["over-budget"]}
+
+    def ran_tests(step, ts, actor, *runs):
+        return [dict(conductor(step, ts + i, "test-run")[0], actor=actor, phase="green", attempt="1",
+                     tier=tier, suites="metrics.test.sh", seconds=seconds) for i, (tier, seconds) in enumerate(runs)]
+
+    tiers = report("tiers", conductor("t", 50000, "step-start")
+                   + ran_tests("t", 50010, "developer", ("fast", "4"), ("all", "120"))
+                   + ran_tests("t", 50050, "verifier", ("fast", "6"), ("all", "100"), ("fast", "5"), ("all", "140"))
+                   + conductor("t", 50950, "step-done"))
+    assert cells(tiers, "#### Test-command seconds, by tier", ["run 1 s", "run 2 s", "run 3 s"]) == {
+        "fast": ["4", "6", "5"], "all": ["120", "100", "140"]}
+
+    stopped = report("stopped", conductor("h", 60000, "step-start") + conductor("h", 60200, "step-done")
+                     + conductor("h", 60340, "stop", phase="green", mode="at-ledger", at="green"))
+    assert "Outcome: the run was stopped — mode at-ledger, at green." in stopped
+    assert "Wall time for the issue: 340 s," in stopped
+
+    resumed = report("resumed", conductor("r", 70000, "step-start")
+                     + conductor("r", 70100, "stop", phase="red", mode="at-leaf", at="red")
+                     + conductor("r", 70200, "resume") + conductor("r", 70300, "step-start"))
+    outcome = [line for line in resumed.split("\n") if line.startswith("Outcome:")]
+    assert outcome == ["Outcome: unknown — the log carries no mark ending the run."]
