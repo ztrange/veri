@@ -23,7 +23,9 @@ def refuse():
 
 def append(file, step):
     structural, test_only = [], []
-    for line in sys.stdin.read().split("\n"):
+    stream = getattr(sys.stdin, "buffer", None)
+    report = stream.read().decode() if stream else sys.stdin.read()
+    for line in report.split("\n"):
         match = STRUCTURAL.match(line)
         if match:
             structural.append(match.group(1))
