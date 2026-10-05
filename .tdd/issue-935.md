@@ -1,7 +1,7 @@
 # Plan for #935 — transform, structural and diff leaves commit without the (#<n>) suffix: only develop-refactor.md states it
 
 - [x] The prompt `build-develop-prompt.sh transform …` prints tells the leaf to give its commit a subject ending in `(#<issue>)`, the convention develop-refactor.md states ⟦criterion 1⟧
-- [ ] The prompt `build-develop-prompt.sh structural …` prints tells the leaf to give its commit a subject ending in `(#<issue>)` ⟦criterion 2⟧
+- [x] The prompt `build-develop-prompt.sh structural …` prints tells the leaf to give its commit a subject ending in `(#<issue>)` ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] The prompt `build-develop-prompt.sh diff …` prints tells the leaf to give its commit a subject ending in `(#<issue>)` ⟦criterion 2⟧
 - [ ] The prompt `build-develop-prompt.sh revise diff …` prints tells the leaf to give its commit a subject ending in `(#<issue>)` ⟦criterion 2⟧
 - [ ] A check over every `skills/tdd/scripts/prompts/develop-*.md` that tells the leaf to commit fails, naming the file, when a planted prompt asks for a commit without stating the `(#<issue>)` convention ⟦criterion 3⟧
