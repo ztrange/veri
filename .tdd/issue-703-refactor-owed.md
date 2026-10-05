@@ -6,3 +6,5 @@
 - test-only | the #703 include cases in build-develop-prompt.test.sh and build-verify-prompt.test.sh build the same scratch tree and probe partials; a shared fixture helper could hold the setup once
 ### a template or partial whose `{{INCLUDE:<file>}}` names a partial that does not exist makes build-develop-prompt.sh exit 2 with the missing file's path on stderr and nothing on stdout ⟦criterion 3⟧
 - test-only | the three #703 cases in build-develop-prompt.test.sh repeat the same `cp -R build-develop-prompt.sh lib prompts` scratch setup; one helper could set it up once
+### a partial that includes itself, directly or through another partial, makes build-develop-prompt.sh exit 2 naming the file on stderr, with nothing on stdout, rather than looping ⟦criterion 4⟧
+- test-only | the four #703 cases in build-develop-prompt.test.sh each repeat `scratch_dir` + `cp -R "$HERE/../build-develop-prompt.sh" "$HERE/../lib" "$HERE/../prompts" …` (the self-include case added the fourth copy); a helper that builds and prints a builder tree would hold that line once
