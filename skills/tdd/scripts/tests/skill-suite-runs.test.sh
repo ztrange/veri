@@ -165,6 +165,21 @@ if need_text '#### A `⟦diff-checked⟧` step'; then
 fi
 report "$name"
 
+name="#974: $skill_md's revise diff command line passes the fast command and its diff re-verify passes --fast-cmd"
+problems=()
+if need_text '## Revising on a REJECT' '^[*][*]The `diff` phase'; then
+  section="$text"
+  text="${section#*build-develop-prompt.sh revise diff}"
+  text="${text%%.prompt*}"
+  says "'<fast-cmd>'" \
+    "$skill_md's build-develop-prompt.sh revise diff command line never passes '<fast-cmd>', so revise-diff is built without the fast command"
+  text="${section#*the re-verify is}"
+  text="${text%%launched as*}"
+  says "run-verdict\.sh [^,]*--fast-cmd [^,]* diff " \
+    "$skill_md's diff re-verify run-verdict.sh line never passes --fast-cmd, so the revised step's verify-diff is launched without the fast command"
+fi
+report "$name"
+
 name="$claude_md's Testing idiom paragraph states what runs per step and per PR"
 problems=()
 if need_idiom; then

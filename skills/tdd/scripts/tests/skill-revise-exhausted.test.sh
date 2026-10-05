@@ -479,7 +479,7 @@ problems=()
 if [[ -n "$unreadable" ]]; then
   problems+=("$unreadable which base shas a diff revise is re-verified against could not be established")
 else
-  grep -F -- 'run-verdict.sh --step "<step>" diff <spec-file> <branch-base-sha> <step-base-sha>' <<<"$section" > /dev/null ||
+  grep -E -- 'run-verdict\.sh --step "<step>" (--fast-cmd [^ ]+ )?diff <spec-file> <branch-base-sha> <step-base-sha>' <<<"$section" > /dev/null ||
     problems+=("$skill_md's revise section never re-verifies a diff revise with run-verdict.sh --step \"<STEP>\" diff <spec-file> <branch-base-sha> <step-base-sha>, so the re-verify does not get the two base shas verify-diff takes")
   revise_prose_sentences |
     grep -F -- 'step base sha' |
