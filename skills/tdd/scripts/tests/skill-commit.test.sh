@@ -134,4 +134,29 @@ if need_scripts_prose; then
 fi
 report "$name"
 
+name="#866: $skill_md's skill snapshot says the record survives only a run past preflight, decided after the conductor exits by a registered .tdd/wt/<n> worktree or a local tdd/<n>-* branch, not the exit code"
+problems=()
+
+if need_section '## Launching the conductor' 'what the skill snapshot says about its record could not be read'; then
+  snapshot_records="$(awk -v s="$sec_start" -v e="$sec_end" '
+    NR < s || NR > e { next }
+    /^#/ { next }
+    /^([0-9]+\.|[-*]) / { if (rec != "") print rec; rec = $0; next }
+    /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
+    { rec = (rec == "" ? $0 : rec " " $0) }
+    END { if (rec != "") print rec }' "$md" | tr -d '*`' | tr '[:upper:]' '[:lower:]')"
+  found=""
+  while IFS= read -r line; do
+    for re in 'skill-commit|record' 'preflight' 'regist[a-z]* .*worktree|worktree .*regist' \
+      '\.tdd/wt/' 'tdd/<n>-' 'branch' 'exit (code|status)' 'not|never|whatever'; do
+      [[ "$line" =~ $re ]] || continue 2
+    done
+    found=1
+    break
+  done <<< "$snapshot_records"
+  [[ -n "$found" ]] ||
+    problems+=("$skill_md's '$sec_name' section has no paragraph or bullet saying the skill-commit record survives only a run that got past preflight, decided by a registered .tdd/wt/<n> worktree or a local tdd/<n>-* branch rather than the conductor's exit code")
+fi
+report "$name"
+
 finish
