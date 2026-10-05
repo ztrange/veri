@@ -57,6 +57,21 @@ if [[ "$nosuch_code" == 2 && -z "$nosuch_out" ]] && cmp -s <(printf '%s\n' "$nos
   diff <(printf '%s\n' "$nosuch_want") "$nosuch_err"
 fi
 
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+LINKED="$work/linked-skill/scripts/transform-touches-tests.sh"
+clean_base="$(git -C "$repo" rev-parse HEAD~1)"
+in_place_dirty="$(cd "$repo" && "$TOUCHES" "$base" 2>&1)"; in_place_dirty_code=$?
+in_place_clean="$(cd "$repo" && "$TOUCHES" "$clean_base" 2>&1)"; in_place_clean_code=$?
+linked_dirty="$(cd "$repo" && "$LINKED" "$base" 2>&1)"; linked_dirty_code=$?
+linked_clean="$(cd "$repo" && "$LINKED" "$clean_base" 2>&1)"; linked_clean_code=$?
+if [[ "$linked_dirty_code" == 1 && "$linked_dirty" == *"tests/widget.test.sh"* && "$linked_clean_code" == 0 && -z "$linked_clean" \
+      && "$linked_dirty" == "$in_place_dirty" && "$linked_dirty_code" == "$in_place_dirty_code" \
+      && "$linked_clean" == "$in_place_clean" && "$linked_clean_code" == "$in_place_clean_code" ]]; then ok; else
+  no "transform-touches-tests.sh run through a symlink to the skill directory and from another repository reads that repository and answers as when run in place"
+  diff <(printf '%s\nexit %s\n%s\nexit %s\n' "$in_place_dirty" "$in_place_dirty_code" "$in_place_clean" "$in_place_clean_code") \
+    <(printf '%s\nexit %s\n%s\nexit %s\n' "$linked_dirty" "$linked_dirty_code" "$linked_clean" "$linked_clean_code")
+fi
+
 OWED="$HERE/../refactor-owed.sh"
 agree_repo="$work/agree"
 new_repo -b main "$agree_repo" >/dev/null 2>&1
