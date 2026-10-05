@@ -464,3 +464,62 @@ def test_main_appends_a_seeded_log_into_the_tdd_directory_a_successful_cut_check
 
     assert (code, capsys.readouterr().out, seeded.read_bytes(), sorted(tmpdir.rglob("*"))) == (
         0, path + "\n", b'{"event":"committed"}\n{"event":"seeded"}\n', [])
+
+
+def test_main_puts_a_seeded_log_back_when_it_refuses_for_the_origin_default_the_missing_default_or_the_failed_fetch(
+        monkeypatch, capsys, tmp_path, issue_worktree):
+    main_tree = str(tmp_path / "repo")
+    path = main_tree + "/.tdd/wt/63"
+    seeded = pathlib.Path(path, ".tdd", "events.jsonl")
+    tmpdir = tmp_path / "tmp"
+    tmpdir.mkdir()
+    monkeypatch.setenv("TMPDIR", str(tmpdir))
+    monkeypatch.setattr(tempfile, "tempdir", None)
+    registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
+    symref = ("git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
+    get_url = ("git", "remote", "get-url", "origin")
+    ls_remote = ("git", "ls-remote", "--symref", "origin", "HEAD")
+    fetch = ("git", "fetch", "-q", "origin", "trunk")
+    base = {
+        ("git", "worktree", "list", "--porcelain"): (0, registry, ""),
+        ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/63-own-trap"): (1, "", ""),
+        ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/63-own-trap"): (1, "", ""),
+    }
+    refusals = (
+        ("origin default", ls_remote,
+         {symref: (1, "", ""), get_url: (0, "https://example.invalid/repo.git\n", ""), ls_remote: (128, "", "")},
+         "issue-worktree: cannot determine origin's default branch"
+         " (no refs/remotes/origin/HEAD, and the remote did not name one)\n"),
+        ("no origin", ("git", "show-ref", "--verify", "--quiet", "refs/heads/master"),
+         {symref: (1, "", ""), get_url: (2, "", ""),
+          ("git", "show-ref", "--verify", "--quiet", "refs/heads/main"): (1, "", ""),
+          ("git", "show-ref", "--verify", "--quiet", "refs/heads/master"): (1, "", "")},
+         "issue-worktree: cannot determine the default branch (no origin/HEAD, no local main or master)\n"),
+        ("fetch", fetch,
+         {symref: (0, "origin/trunk\n", ""), get_url: (0, "https://example.invalid/repo.git\n", ""),
+          fetch: (1, "", "fatal: couldn't find remote ref trunk\n")},
+         "issue-worktree: git fetch origin trunk failed — refusing to cut tdd/63-own-trap from a stale origin/trunk\n"),
+    )
+    for label, refusing, answers, refusal in refusals:
+        seeded.parent.mkdir(parents=True)
+        seeded.write_bytes(b'{"event":"seeded"}\n{"event":"second"}\n')
+        routing_git(monkeypatch, {**base, **answers})
+        routed = subprocess.run
+        path_at_refusal = []
+
+        def run(args, **kwargs):
+            if tuple(args) == refusing:
+                path_at_refusal.append(os.path.exists(path))
+            return routed(args, **kwargs)
+
+        monkeypatch.setattr(subprocess, "run", run)
+
+        code = issue_worktree.main(["63", "own-trap"])
+
+        out, err = capsys.readouterr()
+        assert (label, code, out, err.endswith(refusal), path_at_refusal,
+                seeded.read_bytes() if seeded.exists() else None, sorted(tmpdir.rglob("*"))) == (
+            label, 2, "", True, [False], b'{"event":"seeded"}\n{"event":"second"}\n', [])
+        seeded.unlink()
+        seeded.parent.rmdir()
+        pathlib.Path(path).rmdir()
