@@ -19,13 +19,27 @@ def in_flight(main_tree, number):
     return os.path.exists(os.path.join(main_tree, ".tdd", "wt", str(number), ".tdd", "conductor.pid"))
 
 
+def refused_if_empty(name):
+    if os.environ.get(name) == "":
+        print("solvable-issues: %s is set but empty: name a label or leave it unset" % name, file=sys.stderr)
+        return True
+    return False
+
+
+def carries(issue, label):
+    return any(entry["name"] == label for entry in issue.get("labels", []))
+
+
 def main(argv):
     if argv[:1] == ["--repo"] and not "".join(argv[1:2]):
         print(USAGE, file=sys.stderr)
         return 2
+    if refused_if_empty("VERI_LABEL") or refused_if_empty("VERI_PRIORITY_LABEL"):
+        return 2
+    label = os.environ.get("VERI_LABEL", "ready-for-agent")
     issues = items(gh_json("issues.json", "repos/{owner}/{repo}/issues"))
     main_tree = main_working_tree()
     for issue in issues:
-        if not in_flight(main_tree, issue["number"]):
+        if carries(issue, label) and not in_flight(main_tree, issue["number"]):
             print(issue["number"])
     return 0
