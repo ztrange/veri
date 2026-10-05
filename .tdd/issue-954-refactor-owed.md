@@ -5,3 +5,5 @@
 - test-only | the two earlier #954 cases and this step's `bad_settled` loop in `skills/tdd/scripts/tests/supervise.test.sh` repeat the same invocation: `cd <work> && env -u VERI_TIMEOUT -u VERI_STEP VERI_ISSUE=… VERI_STUCK_RETRIES=0 … "$SUP" develop-red <stub>`. Pulling it into one helper that takes the work dir, the VERI_ISSUE setting and the stub would remove that repetition.
 ### supervise.sh finds the settled-timeout record for VERI_ISSUE when launched from a subdirectory of the run worktree, not only from its root ⟦added⟧ ⟦criterion 1⟧
 - test-only | supervise.test.sh's #954 subdirectory case repeats the scratch-repo + `.tdd/issue-954-timeout` + `env -u VERI_TIMEOUT … "$SUP" develop-red "$stub/leaf-busy-ten"` setup of the earlier #954 cases; a shared helper would remove it
+### leaf-timeout.sh, settling from a subdirectory of the run worktree, records the settled timeout at the worktree root's .tdd/issue-<n>-timeout, where supervise.sh reads it ⟦added⟧ ⟦criterion 2⟧
+- extract the `.git`-walking worktree-root lookup in leaf_timeout.py into a shared `veri` helper; nothing else in the package uses it today, so the extraction has nothing to share yet
