@@ -194,3 +194,33 @@ def test_render_and_list_print_an_owed_file_holding_non_utf8_bytes_verbatim_and_
         code = refactor_owed.main([verb, str(owed)])
         stdout.flush()
         assert (verb, code, stdout.buffer.getvalue()) == (verb, 0, expected)
+
+
+def test_list_prints_each_structural_transform_once_most_occurrences_first_and_returns_3_when_none_is_left(
+        monkeypatch, capsys, tmp_path, refactor_owed):
+    mixed = tmp_path / "mixed.md"
+    mixed.write_text("-x\n- d\n- a\njunk line\n### S1\n- b\n- a\n- test-only | t\n  - c\n"
+                     "- tab\there\n### S2\n- b\n- a\n")
+    empty_transforms = tmp_path / "empty-transforms.md"
+    empty_transforms.write_text("- \n- \n- z\n")
+    empty_last = tmp_path / "empty-last.md"
+    empty_last.write_text("- z\n- z\n- \n")
+    test_only = tmp_path / "test-only.md"
+    test_only.write_text("### S\n- test-only | t1\n- test-only | t2\n")
+    only_empty = tmp_path / "only-empty.md"
+    only_empty.write_text("### S\n- \n- \n")
+    newline = tmp_path / "newline.md"
+    newline.write_text("\n")
+    directory = tmp_path / "dd"
+    directory.mkdir()
+    for path, expected in (
+            (mixed, (0, "a\nb\nd\ntab\there\n")),
+            (empty_transforms, (0, "\nz\n")),
+            (empty_last, (0, "z\n")),
+            (test_only, (3, "")),
+            (only_empty, (3, "")),
+            (newline, (3, "")),
+            (directory, (3, ""))):
+        code = refactor_owed.main(["list", str(path)])
+        captured = capsys.readouterr()
+        assert (path.name, code, captured.out) == (path.name, *expected)
