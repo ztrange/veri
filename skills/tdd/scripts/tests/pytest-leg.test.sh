@@ -348,6 +348,28 @@ venv_version="$("$floor_venv/bin/python3" --version 2> /dev/null || true)"
   problems+=("want $floor_venv/bin/python3 to report Python 3.12 or newer, got: '$venv_version' (calls: $(flat "$(cat "$floor/calls")"))")
 report "$name"
 
+stub_python "$floor/bin/python3.12" 3.11.9
+stub_python "$floor/bin/python3.13" 3.13.1
+newest_venv="$floor/venv-newest"
+
+name="#863: make install-dev, with python3 and python3.12 on PATH both below veri's 3.12 floor and python3.13 also on PATH, builds the environment at VERI_VENV with python3.13, trying python3.13 before python3.12"
+problems=()
+: > "$floor/calls"
+env -u PYTHONPATH VERI_VENV="$newest_venv" PATH="$floor/bin:$floor/sys" \
+  "$(command -v make)" --no-print-directory -C "$floor" install-dev > "$work/out" 2> "$work/err" < /dev/null &&
+  code=0 || code=$?
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0, got $code: $(flat "$(cat "$work/out")") $(flat "$(cat "$work/err")")")
+venv_version="$("$newest_venv/bin/python3" --version 2> /dev/null || true)"
+[[ "$venv_version" =~ ^Python\ 3\.13(\.|$) ]] ||
+  problems+=("want $newest_venv/bin/python3 to report Python 3.13, got: '$venv_version'")
+at_313="$(grep -n -m1 -F "/bin/python3.13 " "$floor/calls" || true)"
+at_312="$(grep -n -m1 -F "/bin/python3.12 " "$floor/calls" || true)"
+if [[ -z "$at_313" ]] || { [[ -n "$at_312" ]] && ((${at_312%%:*} < ${at_313%%:*})); }; then
+  problems+=("want python3.13 tried before python3.12, calls: $(flat "$(cat "$floor/calls")")")
+fi
+report "$name"
+
 reach="$work/reach"
 make_tree "$reach"
 
