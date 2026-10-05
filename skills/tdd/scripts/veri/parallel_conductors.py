@@ -96,7 +96,7 @@ def _finish_prs_json():
 def _outcome(n, code, prs):
     if code == 2:
         return "killed after %ss" % _run_timeout()
-    if os.path.exists(os.path.join(".tdd", "parked", "%s.md" % n)):
+    if _parked(n):
         return ""
     try:
         prs = items(prs)
@@ -115,6 +115,10 @@ def _outcome(n, code, prs):
                 last = b""
             return "bailed %s" % url if b'"event": "bail"' in last else ""
     return ""
+
+
+def _parked(n):
+    return os.path.exists(os.path.join(".tdd", "parked", "%s.md" % n))
 
 
 def _is_failure(got):
@@ -227,7 +231,7 @@ def _run(continue_on_bail):
             if c.stopped:
                 print("restarted %s" % c.n, flush=True)
                 in_flight.append(_Conductor(c.n))
-            elif os.path.exists(os.path.join(".tdd", "parked", "%s.md" % c.n)):
+            elif _parked(c.n):
                 print("parked %s" % c.n, flush=True)
             elif not continue_on_bail and not stopped:
                 got = _outcome(c.n, codes[c.n], _finish_prs_json())
