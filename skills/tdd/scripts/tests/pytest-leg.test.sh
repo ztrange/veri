@@ -370,6 +370,22 @@ if [[ -z "$at_313" ]] || { [[ -n "$at_312" ]] && ((${at_312%%:*} < ${at_313%%:*}
 fi
 report "$name"
 
+stub_python "$floor/bin/python3" 3.12.7
+current_venv="$floor/venv-current"
+
+name="#863: make install-dev, with the python3 on PATH at 3.12 (at veri's floor) and python3.13 and python3.12 also on PATH, builds the environment at VERI_VENV with python3, as it did before the floor"
+problems=()
+: > "$floor/calls"
+env -u PYTHONPATH VERI_VENV="$current_venv" PATH="$floor/bin:$floor/sys" \
+  "$(command -v make)" --no-print-directory -C "$floor" install-dev > "$work/out" 2> "$work/err" < /dev/null &&
+  code=0 || code=$?
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0, got $code: $(flat "$(cat "$work/out")") $(flat "$(cat "$work/err")")")
+venv_version="$("$current_venv/bin/python3" --version 2> /dev/null || true)"
+[[ "$venv_version" == "Python 3.12.7" ]] ||
+  problems+=("want $current_venv/bin/python3 to report python3's Python 3.12.7, got: '$venv_version' (calls: $(flat "$(cat "$floor/calls")"))")
+report "$name"
+
 reach="$work/reach"
 make_tree "$reach"
 
