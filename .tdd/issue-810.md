@@ -22,5 +22,5 @@
 - [ ] the PR body lists the slice-6 removal beside the pytest cases that replaced it ⟦human-owed⟧ ⟦criterion 1⟧
 - [ ] the PR body lists the removed #683 case beside the pytest cases that replaced it ⟦human-owed⟧ ⟦criterion 2⟧
 - [ ] the PR body lists each cut tests/refactor-owed.test.sh case beside the pytest case that replaced it, and quotes make profile for tests/refactor-owed.test.sh and the wall time of tests/py/test_refactor_owed.py before and after, with the commit beside each figure ⟦human-owed⟧ ⟦criterion 5⟧
-- [ ] make test is green against the shim, tests/refactor-owed.test.sh's contract cases among its suites ⟦full-suite⟧ ⟦criterion 3⟧
-- [ ] make test is green, tests/refactor-overflow.test.sh, tests/transform-touches-tests.test.sh, tests/build-develop-prompt.test.sh, tests/unit/missing-argument-exit.test.sh under the unit-tier guard, tests/unit/exit-contract.test.sh and tests/py/test_comment_class.py among its suites ⟦full-suite⟧ ⟦criterion 6⟧
+- [x] make test is green against the shim, tests/refactor-owed.test.sh's contract cases among its suites ⟦full-suite⟧ ⟦criterion 3⟧
+- [x] make test is green, tests/refactor-overflow.test.sh, tests/transform-touches-tests.test.sh, tests/build-develop-prompt.test.sh, tests/unit/missing-argument-exit.test.sh under the unit-tier guard, tests/unit/exit-contract.test.sh and tests/py/test_comment_class.py among its suites ⟦full-suite⟧ ⟦criterion 6⟧
