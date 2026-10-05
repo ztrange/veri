@@ -1855,8 +1855,7 @@ overwriting `.tdd/verify-diff.reason`, and its `<base-sha>` is the same base sha
 verify-diff verdict ran against — the run's branch point — so the revised work is judged
 against the diff the rejection was about. A
 recovered PASS on the `⟦diff-checked⟧` step is ticked exactly as the `⟦diff-checked⟧` PASS
-bullet in *A `⟦diff-checked⟧` step* describes: `tick-ledger.sh` without `--refactor-pending`,
-then the issue criterion.
+bullet in *A `⟦diff-checked⟧` step* describes.
 
 If all `REVISE_BUDGET` attempts are still `REJECT`, the step is **not** bailed on the spot. A
 criterion no blind verifier could be satisfied about in that many attempts is usually a
