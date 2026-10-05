@@ -30,6 +30,17 @@ def live_conductor(path):
     return pid
 
 
+def checkout_holder(registry, branch):
+    seen = ""
+    for line in registry.split("\n"):
+        key, _, value = line.partition(" ")
+        if key == "worktree":
+            seen = value
+        elif key == "branch" and value == "refs/heads/" + branch:
+            return seen
+    return ""
+
+
 def wt_path(main_tree, n):
     return main_tree + "/.tdd/wt/" + n
 
@@ -60,4 +71,10 @@ def main(argv):
             return 2
         sys.stdout.write(path + "\n")
         return 0
+    branch = "tdd/%s-%s" % (argv[0], argv[1])
+    holder = checkout_holder(registry.stdout, branch)
+    if holder:
+        sys.stderr.write("issue-worktree: branch %s is already checked out in %s"
+                         " — another conductor owns it\n" % (branch, holder))
+        return 2
     return 0
