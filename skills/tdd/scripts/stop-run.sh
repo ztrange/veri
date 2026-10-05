@@ -33,11 +33,6 @@ complain() {
 modes_listed="${STOP_MODES[*]}"
 USAGE="usage: stop-run.sh [--mode ${modes_listed// /|}] <issue> | --all"
 
-modes_named() {
-  local wanted="${STOP_MODES[*]:0:${#STOP_MODES[@]}-1}"
-  printf '%s or %s' "${wanted// /, }" "${STOP_MODES[*]: -1}"
-}
-
 nothing_to_do() {
   complain "$1"
   exit 3
