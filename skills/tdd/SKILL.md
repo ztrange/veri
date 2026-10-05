@@ -511,9 +511,9 @@ drive it to a draft PR or to a clean stop on a `REJECT`.
 
 ### 0. Preflight — baseline checks (bail before any cycle)
 
-These run **first**, before any branch or cycle. If any fails, the baseline is poisoned —
+These run **first**, before any cycle. If any fails, the baseline is poisoned —
 **bail immediately**: report which check failed and stop. This is a degenerate bail (no
-branch, no commits, nothing to revert or push) — just refuse to start. A red, dirty, or
+commits, nothing to revert or push) — just refuse to start. A red, dirty, or
 unauthenticated baseline never gets a cycle.
 
 1. **Git repo & clean tree.** `git rev-parse --is-inside-work-tree` succeeds and
@@ -535,8 +535,17 @@ unauthenticated baseline never gets a cycle.
    expensive half of preflight and is wasted either way when no leaf can launch; a run that
    discovers this later has already paid for the suite, the worktree, the spec and a public
    `### ▶️ Resuming` comment on the issue thread.
-3. **Suite is green at baseline — and time it.** The issue may name its own test command,
-   so read its body first — into a temp file, since the caller's checkout must stay clean:
+3. **Suite is green at baseline — and time it — on the commit the cycles build on.** Enter
+   the issue's worktree first, as step 1.2 describes — slug from the title, exit 2 a
+   preflight-class stop — and take its lock there before anything else:
+   ```
+   wt="$($S/issue-worktree.sh <n> <slug>)" && cd "$wt"
+   ```
+   Every run below happens in it, so the baseline proves the commit the branch is cut from —
+   the freshly fetched `origin/<default>` for a new branch, the branch head on a resume — not
+   whatever the caller's checkout has checked out.
+   The issue may name its own test command,
+   so read its body first — into a temp file, since the worktree must stay clean:
    ```
    body="$(mktemp)" && gh api repos/{owner}/{repo}/issues/<n> -q .body > "$body"
    ```
@@ -629,7 +638,8 @@ unauthenticated baseline never gets a cycle.
 1. Read the issue: `gh api repos/{owner}/{repo}/issues/<n> -q '{number, title, body, url: .html_url}'`.
 2. **Derive the slug and enter the issue's worktree.** Slug from the title — lowercase,
    non-alphanumerics to `-`, collapse and trim `-`, cap to ~6 words. Then let the script
-   make (or hand back) the worktree the issue branch lives in, and move into it:
+   make (or hand back) the worktree the issue branch lives in, and move into it — preflight
+   step 3 has already done this, so its baseline runs on the branch's own commit:
    ```
    wt="$($S/issue-worktree.sh <n> <slug>)" && cd "$wt"
    ```
