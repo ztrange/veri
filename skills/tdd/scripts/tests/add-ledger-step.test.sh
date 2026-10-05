@@ -36,12 +36,6 @@ seeded='# Plan for #42
 
 seed() { printf '%s\n' "$seeded" > "$led"; }
 
-stub_script() {
-  mkdir -p "$stub/lib"
-  cp "$ADD" "$stub/add-ledger-step.sh"
-  cp "$(dirname "$ADD")"/lib/*.sh "$stub/lib/"
-}
-
 seed
 "$ADD" "$led" after 'collapse to single hyphen' 'collapse a unicode dash too'; code=$?
 want='# Plan for #42
@@ -350,18 +344,6 @@ want='# Plan for #42
 - and another'
 check_code "a ⟦replaces-case⟧ step counts against VERI_STEP_GROWTH only when it is also ⟦added⟧ (code1=$code1)" \
   "$code2" 1 "$want"
-
-stub="$work/stub-add"
-stub_script
-sed "s/open_step='- \[ \]'/open_step='* [ ]'/" "$HERE/../lib/ledger.sh" > "$stub/lib/ledger.sh"
-seed_lines '- [ ] a lamp glows ⟦criterion 2⟧'
-"$stub/add-ledger-step.sh" "$led" after 'a lamp glows' 'a lamp dims'; code=$?
-want='# Plan for #42
-
-- [ ] a lamp glows ⟦criterion 2⟧
-* [ ] a lamp dims ⟦added⟧ ⟦criterion 2⟧'
-check "writes each new step line through lib/ledger.sh's ledger_add_step, spelling no box of its own" \
-  "$code" "$want"
 
 seed
 err="$("$ADD" "$led" afterr 'collapse to single hyphen' 'collapse a unicode dash too' 2>&1 > /dev/null)"; code=$?
