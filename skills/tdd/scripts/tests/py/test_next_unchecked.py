@@ -134,3 +134,67 @@ def test_main_writes_nothing_on_stderr_for_a_printed_step_exit_3_or_arguments_gi
         ("no step",): (3, b""),
         ("no step", "--bogus", "extra"): (3, b""),
     }
+
+
+CONTRACT_CASES = (
+    ("no checkboxes exits 3", "# just a heading\nsome prose", 3, ""),
+    ("nested step", "  - [ ] nested criterion", 0, "nested criterion"),
+    ("verbatim special chars",
+     '- [x] done one\n- [ ] `slugify("a/b")` returns `a-b`', 0, '`slugify("a/b")` returns `a-b`'),
+    ("first line unchecked", "- [ ] only step", 0, "only step"),
+    ("owed bullets are not steps",
+     "# Plan for #42\n\n"
+     "- [x] collapse non-alphanumerics to a single hyphen\n"
+     "- [x] strip leading and trailing hyphens\n\n"
+     "## Owed steps\n\n"
+     "- a unicode dash collapses too\n"
+     '- an empty slug falls back to "n-a"', 3, ""),
+    ("full-suite skipped",
+     "# Plan for #42\n\n"
+     "- [ ] the suites are green ⟦full-suite⟧ ⟦criterion 1⟧\n"
+     "- [ ] pin the second step ⟦criterion 2⟧", 0, "pin the second step ⟦criterion 2⟧"),
+    ("human-owed skipped",
+     "# Plan for #42\n\n"
+     "- [ ] each suite broken on purpose, its red output recorded ⟦human-owed⟧ ⟦criterion 1⟧\n"
+     "- [ ] pin the second step ⟦criterion 2⟧", 0, "pin the second step ⟦criterion 2⟧"),
+    ("quoted marker handed out",
+     "# Plan for #42\n\n"
+     "- [ ] a step whose text quotes ⟦full-suite⟧ or ⟦human-owed⟧ is still handed to a leaf ⟦criterion 2⟧",
+     0, "a step whose text quotes ⟦full-suite⟧ or ⟦human-owed⟧ is still handed to a leaf ⟦criterion 2⟧"),
+    ("written marker skipped",
+     "# Plan for #42\n\n"
+     "- [ ] the suites are green ⟦full-suite⟧ ⟦criterion 1⟧\n"
+     "- [ ] each suite broken on purpose, its red output recorded ⟦human-owed⟧ ⟦criterion 2⟧\n"
+     "- [ ] pin the third step ⟦criterion 3⟧", 0, "pin the third step ⟦criterion 3⟧"),
+    ("written plus quoted marker skipped",
+     "# Plan for #42\n\n"
+     "- [ ] the text quotes ⟦human-owed⟧ yet the suites are green ⟦full-suite⟧ ⟦criterion 1⟧\n"
+     "- [ ] pin the second step ⟦criterion 2⟧", 0, "pin the second step ⟦criterion 2⟧"),
+    ("fully ticked quoting ledger exits 3",
+     "# Plan for #42\n\n"
+     "- [x] a step whose text quotes ⟦full-suite⟧ or ⟦human-owed⟧ is still handed to a leaf ⟦criterion 1⟧\n"
+     "- [x] the suites are green ⟦full-suite⟧ ⟦criterion 2⟧\n"
+     "- [x] pin the third step ⟦criterion 3⟧", 3, ""),
+    ("suite-repair handed out",
+     "# Plan for #42\n\n"
+     "- [ ] the suites are green ⟦full-suite⟧ ⟦criterion 3⟧\n"
+     "- [ ] repair widget-counts.test.sh: FAIL - counts ⟦suite-repair⟧ ⟦criterion 4⟧\n"
+     "- [ ] pin the third step ⟦criterion 5⟧",
+     0, "repair widget-counts.test.sh: FAIL - counts ⟦suite-repair⟧ ⟦criterion 4⟧"),
+    ("diff-checked handed out",
+     "# Plan for #42\n\n"
+     "- [ ] the dead counted line is gone ⟦diff-checked⟧ ⟦criterion 1⟧\n"
+     "- [ ] pin the second step ⟦criterion 2⟧",
+     0, "the dead counted line is gone ⟦diff-checked⟧ ⟦criterion 1⟧"),
+)
+
+
+def test_main_answers_each_contract_case_of_the_bash_suite(monkeypatch, capsysbinary, next_unchecked):
+    results, want = {}, {}
+    for name, ledger, code, text in CONTRACT_CASES:
+        fake_stdin(monkeypatch, ledger.encode())
+        results[name] = (next_unchecked.main([]), *capsysbinary.readouterr())
+        want[name] = (code, (text + "\n").encode() if code == 0 else b"", b"")
+
+    assert len(CONTRACT_CASES) == 13
+    assert results == want
