@@ -141,3 +141,28 @@ def test_main_puts_the_texts_above_below_or_in_place_of_the_anchor_and_gives_non
     ledger.write_bytes("# Plan for #42\n\n- [ ] b two\n".encode())
     code = add_ledger_step.main([str(ledger), "after", "b two", "t"])
     assert (code, ledger.read_bytes().decode()) == (0, "# Plan for #42\n\n- [ ] b two\n- [ ] t ⟦added⟧\n")
+
+
+def test_main_inherits_the_last_criterion_unvalidated_and_writes_empty_multiline_and_indented_inserts_verbatim(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
+    ledger = tmp_path / "issue-42.md"
+    head = "# Plan for #42\n\n"
+    cases = {
+        "unvalidated": ("- [ ] b two ⟦criterion abc⟧\n", "t"),
+        "last tag": ("- [ ] b two ⟦criterion 1⟧ ⟦criterion 2⟧ x\n", "t"),
+        "empty text": ("- [ ] b two ⟦criterion 2⟧\n", ""),
+        "newline": ("- [ ] b two ⟦criterion 2⟧\n", "x\ny"),
+        "indented": ("  - [ ] b two ⟦criterion 4⟧\n", "t"),
+    }
+    got = {}
+    for name, (anchor, text) in cases.items():
+        ledger.write_bytes((head + anchor).encode())
+        code = add_ledger_step.main([str(ledger), "after", "b two", text])
+        got[name] = (code, capsys.readouterr().err, ledger.read_bytes().decode())
+    assert got == {
+        "unvalidated": (0, "", head + "- [ ] b two ⟦criterion abc⟧\n- [ ] t ⟦added⟧ ⟦criterion abc⟧\n"),
+        "last tag": (0, "", head + "- [ ] b two ⟦criterion 1⟧ ⟦criterion 2⟧ x\n- [ ] t ⟦added⟧ ⟦criterion 2⟧\n"),
+        "empty text": (0, "", head + "- [ ] b two ⟦criterion 2⟧\n- [ ]  ⟦added⟧ ⟦criterion 2⟧\n"),
+        "newline": (0, "", head + "- [ ] b two ⟦criterion 2⟧\n- [ ] x\ny ⟦added⟧ ⟦criterion 2⟧\n"),
+        "indented": (0, "", head + "  - [ ] b two ⟦criterion 4⟧\n- [ ] t ⟦added⟧ ⟦criterion 4⟧\n"),
+    }
