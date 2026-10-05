@@ -22,6 +22,18 @@ def require_seconds(name, value):
     return 0
 
 
+def record(timeout):
+    issue = os.environ.get("VERI_ISSUE", "")
+    if not issue:
+        return
+    os.makedirs(".tdd", exist_ok=True)
+    try:
+        with open(f".tdd/issue-{issue}-timeout", "x") as settled:
+            settled.write(f"{timeout}\n")
+    except FileExistsError:
+        pass
+
+
 def main(argv):
     override = os.environ.get("VERI_TIMEOUT", "")
     if override:
@@ -47,6 +59,7 @@ def main(argv):
             print(f"leaf-timeout: VERI_REFACTOR_BUDGET must be a whole number >= 0: {budget}", file=sys.stderr)
             return 2
         derived = derived * max(1, int(budget))
+    record(derived)
     print(derived)
     return 0
 

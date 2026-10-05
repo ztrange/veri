@@ -113,4 +113,31 @@ for baseline in 200 ten; do
 done
 report "$name"
 
+name="#954: VERI_ISSUE=954 leaf-timeout.sh 10 --full 200 records its settled 1200 in the run worktree's .tdd/issue-954-timeout, and a second settling for the same issue (--full 300, a resumed session) leaves that 1200 in place"
+problems=()
+work="$(scratch_dir)"
+new_repo -b main "$work" >/dev/null 2>&1
+mkdir -p "$work/.tdd"
+( cd "$work" && env -u VERI_TIMEOUT VERI_ISSUE=954 "$LEAF_TIMEOUT" 10 --full 200 ) >/dev/null 2>"$work/first.err"
+first_record="$(cat "$work/.tdd/issue-954-timeout" 2>/dev/null || echo '<no record>')"
+[[ "$first_record" == 1200 ]] ||
+  problems+=("first settling: want .tdd/issue-954-timeout holding 1200, got $(printf '%q' "$first_record") (stderr: $(cat "$work/first.err"))")
+( cd "$work" && env -u VERI_TIMEOUT VERI_ISSUE=954 "$LEAF_TIMEOUT" 10 --full 300 ) >/dev/null 2>"$work/second.err"
+second_record="$(cat "$work/.tdd/issue-954-timeout" 2>/dev/null || echo '<no record>')"
+[[ "$second_record" == 1200 ]] ||
+  problems+=("second settling: want .tdd/issue-954-timeout still holding the first session's 1200, got $(printf '%q' "$second_record") (stderr: $(cat "$work/second.err"))")
+report "$name"
+
+name="#954: with VERI_ISSUE unset, leaf-timeout.sh 10 --full 200 still prints 1200 and records no settled timeout under .tdd"
+problems=()
+work="$(scratch_dir)"
+new_repo -b main "$work" >/dev/null 2>&1
+( cd "$work" && env -u VERI_TIMEOUT -u VERI_ISSUE "$LEAF_TIMEOUT" 10 --full 200 ) >"$work/out" 2>"$work/err"
+[[ "$(cat "$work/out")" == 1200 ]] ||
+  problems+=("want stdout 1200, got $(printf '%q' "$(cat "$work/out")") (stderr: $(cat "$work/err"))")
+recorded=("$work"/.tdd/issue-*timeout)
+[[ ! -e "${recorded[0]}" ]] ||
+  problems+=("want no .tdd/issue-*timeout record, found: ${recorded[*]#"$work"/}")
+report "$name"
+
 finish
