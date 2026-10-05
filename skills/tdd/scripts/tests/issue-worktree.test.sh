@@ -661,6 +661,31 @@ $after"
 { [[ -z "$problems" ]]; } \
   && ok || no "#819: an <n> that is not a positive whole number — abc, 0, -3, 7a, ../escape — exits 2 with the usage line on stderr and creates no worktree and no branch (${problems#; })"
 
+repo="$work/remove-not-a-number"
+make_repo "$repo"
+victim="$(cd "$repo" && pwd -P)/.claude/worktrees/victim"
+git_q "$repo" worktree add -q -b victim "$victim" main >/dev/null 2>&1
+(cd "$repo" && "$WT" 5 held >/dev/null 2>&1)
+before="$(registry "$repo")"
+problems=""
+for n in abc 0 -3 ../../.claude/worktrees/victim; do
+  errfile="$work/remove-not-a-number.err"
+  out="$(cd "$repo" && "$WT" --remove "$n" 2>"$errfile")" && code=0 || code=$?
+  err="$(cat "$errfile")"
+  [[ "$code" == 2 ]] || problems+="; ($n) exit=$code want 2"
+  [[ -z "$out" ]] || problems+="; ($n) stdout='$out' want empty"
+  [[ "$err" == "$usage_line" ]] || problems+="; ($n) stderr='$err' want exactly '$usage_line'"
+done
+after="$(registry "$repo")"
+[[ "$after" == "$before" ]] || problems+="; git's worktree+branch registry changed:
+--- before
+$before
+--- after
+$after"
+[[ -d "$victim" ]] || problems+="; the clean worktree at $victim was removed"
+{ [[ -z "$problems" ]]; } \
+  && ok || no "#819: --remove given an <n> that is not a positive whole number — abc, 0, -3, ../../.claude/worktrees/victim — exits 2 with the usage line on stderr and removes no worktree (${problems#; })"
+
 repo="$work/skill-link-caller"
 make_repo "$repo"
 skill_link="$work/skill-link"
