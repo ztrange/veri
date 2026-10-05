@@ -1,5 +1,6 @@
 """In-process cases for veri/leaf_model.py, the module leaf-model.sh is a shim over."""
 import importlib
+import os
 import pathlib
 import sys
 
@@ -194,3 +195,21 @@ def test_main_prints_a_resolved_value_as_bashs_builtin_echo_does_reading_an_n_e_
         ("-x", 0, "-x\n", ""),
         ("-nx", 0, "-nx\n", ""),
     ]
+
+
+def test_main_writes_the_value_as_bytes_and_raises_rather_than_returning_when_stdout_is_closed(
+        capsysbinary, monkeypatch, leaf_model):
+    answers = []
+    for value in (b"\xff", b"a\xff b"):
+        monkeypatch.setitem(os.environb, b"VERI_MODEL", value)
+        code = leaf_model.main(["develop-red"])
+        captured = capsysbinary.readouterr()
+        answers.append((code, captured.out, captured.err))
+    assert answers == [
+        (0, b"\xff\n", b""),
+        (2, b"", b"leaf-model: model 'a\xff b' contains whitespace (a model id or alias is one word)\n"),
+    ]
+    monkeypatch.setenv("VERI_MODEL", "sonnet")
+    monkeypatch.setattr(sys, "stdout", None)
+    with pytest.raises(Exception):
+        leaf_model.main(["develop-red"])
