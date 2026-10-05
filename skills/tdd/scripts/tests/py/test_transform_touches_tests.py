@@ -216,7 +216,7 @@ def test_main_ports_the_failure_paths_as_they_are_swallowed_git_log_closed_stdou
     script.update(log_code=128, log_text="")
     code = transform_touches_tests.main(["HEAD~1"])
     captured = capsys.readouterr()
-    assert (code, captured.out, captured.err) == (0, "", "")
+    assert (code, captured.out, captured.err) == (2, "", "")
     log_kwargs = [kwargs for args, kwargs in calls if args[:2] == ["git", "log"]]
     assert [(kwargs.get("stderr"), bool(kwargs.get("capture_output"))) for kwargs in log_kwargs] == [
         (None, False)]

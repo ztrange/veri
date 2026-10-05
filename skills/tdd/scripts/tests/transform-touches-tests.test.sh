@@ -103,4 +103,21 @@ if [[ "${#problems[@]}" == 0 ]]; then ok; else
   no "transform-touches-tests.sh and refactor-owed.sh append agree on what a test file is: ${problems[*]}"
 fi
 
+broken_repo="$work/broken"
+new_repo -b main "$broken_repo" >/dev/null 2>&1
+mkdir -p "$broken_repo/src"
+printf 'a\n' > "$broken_repo/src/a.sh"
+commit_all "$broken_repo" "feat: a"
+broken_base="$(git -C "$broken_repo" rev-parse HEAD)"
+printf 'b\n' > "$broken_repo/src/a.sh"
+commit_all "$broken_repo" "refactor: b"
+middle="$(git -C "$broken_repo" rev-parse HEAD)"
+printf 'c\n' > "$broken_repo/src/a.sh"
+commit_all "$broken_repo" "refactor: c"
+rm -f "$broken_repo/.git/objects/${middle:0:2}/${middle:2}"
+broken_out="$(cd "$broken_repo" && "$TOUCHES" "$broken_base" 2>/dev/null)"; broken_code=$?
+if [[ "$broken_code" == 2 ]]; then ok; else
+  no "#818: base-sha resolves but git log over base..HEAD fails on a missing commit object → exit 2, never 0 (code=$broken_code out=$broken_out)"
+fi
+
 finish
