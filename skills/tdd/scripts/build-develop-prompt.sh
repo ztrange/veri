@@ -13,7 +13,7 @@
 #   build-develop-prompt.sh refactor <issue-spec-file> <step-text> <test-cmd> <touched-files>
 #   build-develop-prompt.sh cover     <issue-spec-file> <step-text> <test-cmd>
 #   build-develop-prompt.sh transform <issue-spec-file> <step-text> <test-cmd>
-#   build-develop-prompt.sh diff      <issue-spec-file> <step-text> <test-cmd>
+#   build-develop-prompt.sh diff      <issue-spec-file> <step-text> <test-cmd> <fast-cmd>
 #   build-develop-prompt.sh structural <issue-spec-file> <candidate> <test-cmd> <issue-touched-files>
 #   build-develop-prompt.sh predicate <issue-spec-file> <candidate> <test-cmd> <issue-touched-files>
 #   build-develop-prompt.sh revise <phase> <issue-spec-file> <step-text> <test-cmd> <reason-file>
@@ -76,7 +76,8 @@ need test_cmd "${4:-}" '<test-cmd>'
 
 test_path="" target="" fast_cmd="" touched="" reason_file="" refactor_budget="" branch="" remote_sha="" spent="" budget="" onto_sha="" pre_rebase_sha="" conflicting=""
 case "$phase" in
-  red|cover|transform|diff) ;;
+  red|cover|transform) ;;
+  diff) fast_cmd="${5:-}" ;;
   green)
     need test_path "${5:-}" '<test-path>'
     need target "${6:-}" '<target-test>'

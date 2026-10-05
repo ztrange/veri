@@ -1062,4 +1062,15 @@ rd="$("$BUILD" revise diff "$work/spec.md" "$dd_step" "$test_cmd" "$work/reason.
 suffix=""; grep -F '(#<issue>)' <<<"$rd" | grep -iF 'commit' > /dev/null && suffix=stated
 expect_eq "$name" "0:stated" "$code:$suffix"
 
+name="#974 the diff prompt tells the leaf to run the given fast command through timed-test-run.sh fast and then the affected suites, and to finish only with both green"
+dd_fast='make unit ZORBLAT=fast -- --only "frob & nitz/quux"'
+ddf="$("$BUILD" diff "$work/spec.md" "$dd_step" "$test_cmd" "$dd_fast" 2>/dev/null)"; code=$?
+timed="$(cd "$HERE/.." && pwd)/timed-test-run.sh"
+fast_line="$timed fast '' $dd_fast"
+fast="" order="" both=""
+[[ "$ddf" == *"$fast_line"* ]] && fast=fast
+[[ "$ddf" == *"$fast_line"*"$timed affected "* ]] && order=affected-after
+grep -iE 'both( runs)?( are| stay)? green' <<<"$ddf" > /dev/null && both=both-green
+expect_eq "$name" "0:fast:affected-after:both-green" "$code:$fast:$order:$both"
+
 finish
