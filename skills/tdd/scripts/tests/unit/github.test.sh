@@ -619,4 +619,37 @@ nreads="$(wc -l < "$reads" | tr -d ' ')"
 grep -F "$new" "$err" | grep -F "$old" > /dev/null || problems+="    want a stderr line naming $new and $old, got none"$'\n'
 record
 
+# #879: gh_pr_ready <n> with no head-sha marks the PR ready at once, as before the wait existed
+name="#879 gh_pr_ready 42 with no head-sha marks PR 42 ready at once, reading no pulls/42 and never sleeping"
+calls="$scratch/calls879c" err="$scratch/err879c"
+: > "$calls"
+(
+  gh() {
+    echo "gh $*" >> "$calls"
+    case "$*" in
+      *pulls/42/ccr/ready_for_review*) return 0 ;;
+      *pulls/42*)
+        if [[ "$*" == *--jq* || "$*" == *" -q "* ]]; then echo "$old"; else printf '{"head":{"sha":"%s"}}\n' "$old"; fi
+        return 0 ;;
+    esac
+    echo "stub gh: unexpected call $*" >&2; return 1
+  }
+  sleep() { echo "sleep $*" >> "$calls"; }
+  unset VERI_GH_DRIVER
+  VERI_POLL=7
+  source "$LIB"
+  gh_pr_ready 42
+) > /dev/null 2> "$err"
+rc=$?
+problems=""
+[[ "$rc" -eq 0 ]] || problems+="    want return 0, got $rc"$'\n'
+grep -F "ccr/ready_for_review" "$calls" > /dev/null ||
+  problems+="    want a ready call for PR 42, got: $(printf '%q' "$(cat "$calls")")"$'\n'
+nreads="$(grep -cE '^gh api .*pulls/42([^/]|$)' "$calls")"
+[[ "$nreads" -eq 0 ]] || problems+="    want no read of pulls/42, got $nreads"$'\n'
+if grep -E '^sleep ' "$calls" > /dev/null; then
+  problems+="    want no sleep, got: $(grep -E '^sleep ' "$calls" | tr '\n' ' ')"$'\n'
+fi
+record
+
 finish
