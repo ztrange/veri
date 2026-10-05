@@ -31,13 +31,13 @@ def carries(issue, label):
 
 
 def main(argv):
-    if argv[:1] == ["--repo"] and not "".join(argv[1:2]):
+    repo = "".join(argv[1:2]) if argv[:1] == ["--repo"] else None
+    if repo == "":
         print(USAGE, file=sys.stderr)
         return 2
     if refused_if_empty("VERI_LABEL") or refused_if_empty("VERI_PRIORITY_LABEL"):
         return 2
     label = os.environ.get("VERI_LABEL", "ready-for-agent")
-    repo = argv[1] if argv[:1] == ["--repo"] else ""
     scope = ["--repo", repo] if repo else []
     prefix = "repos/%s" % (repo or "{owner}/{repo}")
     issues = items(gh_json("issues.json", prefix + "/issues",
