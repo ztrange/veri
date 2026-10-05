@@ -843,4 +843,24 @@ recorded="$(cat "$work/readied/.tdd/ci-deadline-$sha" 2>/dev/null)"
   || problems+=("ready call: want .tdd/ci-deadline-$sha holding 300, its first clock reading 180 plus total 120, got '$recorded'")
 report "$name"
 
+name="#894 a ready PR whose checks stay pending past the deadline its first ready call recorded, after a draft call recorded none, still exits 2 naming the deadline"
+problems=()
+sha=6677889900112233445566778899001122aabbcc
+rollup stalled.json "$(check IN_PROGRESS '')" "$sha"
+for n in 1 2 3; do
+  rollup "stalled.json.$n" "$(check IN_PROGRESS '')" "$sha"
+  printf '{"draft":true,%s\n' "$(cut -c2- < "$work/stalled.json.$n")" > "$work/stalled.json.$n.new"
+  mv "$work/stalled.json.$n.new" "$work/stalled.json.$n"
+done
+shared stalled
+got="$(again stalled first 120 120 "$sha")"
+[[ "$got" == 3 ]] || problems+=("draft call: want exit 3, got $got (stderr: $(cat "$work/stalled.first.err"))")
+got="$(again stalled second 120 120 "$sha")"
+[[ "$got" == 3 ]] || problems+=("first ready call: want exit 3, got $got (stderr: $(cat "$work/stalled.second.err"))")
+got="$(again stalled third 120 120 "$sha")"
+[[ "$got" == 2 ]] || problems+=("ready call past the recorded deadline: want exit 2, got $got (stderr: $(cat "$work/stalled.third.err"))")
+grep -F "still pending past the deadline recorded for $sha" "$work/stalled.third.err" > /dev/null \
+  || problems+=("ready call past the recorded deadline: want stderr saying the checks are still pending past the deadline recorded for $sha, got: $(cat "$work/stalled.third.err")")
+report "$name"
+
 finish
