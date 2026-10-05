@@ -28,7 +28,11 @@ def refuse(message=None):
 
 
 def queue_path():
-    return main_working_tree() + "/.tdd/workqueue"
+    tree = main_working_tree()
+    if not tree:
+        sys.stderr.write("workqueue.sh: outside a repository\n")
+        raise SystemExit(2)
+    return tree + "/.tdd/workqueue"
 
 
 def lock_tries():
@@ -209,6 +213,8 @@ def locked_main(argv):
             if issue in named:
                 return refuse("workqueue.sh: issue %s is named twice" % issue)
             named.add(issue)
+    if command not in MOVES and command not in ("assign", "show"):
+        return refuse("workqueue.sh: unknown subcommand: " + command)
     queue = queue_path()
     if command == "show":
         return show(queue, argv)
