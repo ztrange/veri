@@ -41,6 +41,16 @@ def refuse():
     return 2
 
 
+def write(file, text):
+    try:
+        with open(file, "a", errors="surrogateescape") as out:
+            out.write(text)
+    except OSError as error:
+        print(f"refactor-owed.sh: {file}: {error.strerror}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def append(file, step, bounds):
     structural, test_only = [], []
     tests_bound = all_tests(bounds)
@@ -53,24 +63,11 @@ def append(file, step, bounds):
             if match := pattern.match(line):
                 group.append(prefix + match.group(1))
     owed = structural + test_only
-    if owed:
-        try:
-            with open(file, "a", errors="surrogateescape") as out:
-                out.write(f"### {step}\n" + bullets(owed))
-        except OSError as error:
-            print(f"refactor-owed.sh: {file}: {error.strerror}", file=sys.stderr)
-            return 1
-    return 0
+    return write(file, f"### {step}\n" + bullets(owed)) if owed else 0
 
 
 def applied(file, transform, sha):
-    try:
-        with open(file, "a", errors="surrogateescape") as out:
-            out.write(f"{APPLIED_MARK}{sha} | {transform}\n")
-    except OSError as error:
-        print(f"refactor-owed.sh: {file}: {error.strerror}", file=sys.stderr)
-        return 1
-    return 0
+    return write(file, f"{APPLIED_MARK}{sha} | {transform}\n")
 
 
 def emit(text):
