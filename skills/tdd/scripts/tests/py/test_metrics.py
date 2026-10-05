@@ -296,3 +296,168 @@ def test_two_main_calls_in_one_process_render_independent_reports(tmp_path, monk
 
     assert again == first
     assert [row["attempts"] for row in table(first, "#### By phase")] == ["1"]
+
+
+def leaf(step, ts, actor, phase, attempt, secs, status="0", usage=None, verdict=None, retries=0):
+    mark = {"issue": "108", "actor": actor, "phase": phase, "step": step, "attempt": str(attempt)}
+    events = [dict(mark, ts=ts, event="launch", name="%s-%s" % (actor, phase))]
+    events += [dict(mark, ts=ts + i + 1, event="retry", cause="no heartbeat") for i in range(retries)]
+    events.append(dict(mark, ts=ts + secs, event="exit", status=status, secs=str(secs)))
+    if usage is not None:
+        events.append(dict(mark, ts=ts + secs, event="usage", **usage))
+    if verdict is not None:
+        events.append(dict(mark, ts=ts + secs, event="verdict", verdict=verdict))
+    return events
+
+
+def conductor(step, ts, event, phase="", **fields):
+    return [{"ts": ts, "issue": "108", "actor": "conductor", "phase": phase, "step": step, "event": event,
+             "attempt": "", **fields}]
+
+
+def cost(turns, dollars, tokens, api_ms="0"):
+    return dict(zip(["input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"],
+                    map(str, tokens)),
+                duration_ms="0", duration_api_ms=str(api_ms), num_turns=str(turns), total_cost_usd=dollars)
+
+
+def cells(out, heading, columns):
+    rows = table(out, heading)
+    key = next(iter(rows[0]))
+    return {row[key]: [row[c] for c in columns] for row in rows}
+
+
+def test_main_reports_counts_budgets_times_costs_rework_and_waste_per_phase_and_step(tmp_path, monkeypatch, capsys, metrics):
+    def report(name, events):
+        root = tmp_path / name
+        root.mkdir()
+        write_log(root, events)
+        monkeypatch.chdir(root)
+        return render(metrics, capsys)
+
+    COUNTS = ["attempts", "PASS", "REJECT", "kills"]
+    COSTS = ["turns", "input", "output", "cache read", "cache creation", "$"]
+    LOST = ["rework wall s", "rework $", "waste wall s", "waste $"]
+
+    phases = report("phases", conductor("s", 990, "step-start")
+                    + leaf("s", 1000, "developer", "red", 1, 100) + leaf("s", 1110, "verifier", "red", 1, 20, verdict="PASS")
+                    + leaf("s", 1200, "developer", "green", 1, 100) + leaf("s", 1310, "verifier", "green", 1, 20, verdict="REJECT")
+                    + leaf("s", 1340, "developer", "green", 2, 60) + leaf("s", 1410, "verifier", "green", 2, 20, verdict="REJECT")
+                    + leaf("s", 1440, "developer", "green", 3, 60, status="2") + leaf("s", 1510, "developer", "green", 3, 60, status="2")
+                    + leaf("s", 1580, "developer", "green", 3, 60, status="2") + leaf("s", 1650, "developer", "green", 3, 50)
+                    + leaf("s", 1710, "verifier", "green", 3, 20, verdict="PASS") + conductor("s", 1740, "step-done"))
+    assert cells(phases, "#### By phase", COUNTS) == {"red": ["2", "1", "0", "0"], "green": ["9", "1", "2", "3"]}
+
+    steps = report("steps", conductor("one", 2000, "step-start")
+                   + leaf("one", 2010, "developer", "red", 1, 90) + leaf("one", 2110, "verifier", "red", 1, 20, verdict="PASS")
+                   + leaf("one", 2200, "developer", "green", 1, 100) + leaf("one", 2310, "verifier", "green", 1, 20, verdict="PASS")
+                   + conductor("one", 2340, "step-done") + conductor("two", 2400, "step-start")
+                   + leaf("two", 2410, "developer", "red", 1, 90) + leaf("two", 2510, "verifier", "red", 1, 20, verdict="PASS")
+                   + leaf("two", 2600, "developer", "green", 1, 100) + leaf("two", 2710, "verifier", "green", 1, 20, verdict="REJECT")
+                   + leaf("two", 2740, "developer", "green", 2, 120, status="2", retries=1)
+                   + leaf("two", 2870, "developer", "green", 2, 180, status="2", retries=2)
+                   + leaf("two", 3060, "developer", "green", 2, 120, status="2", retries=1)
+                   + leaf("two", 3190, "developer", "green", 2, 60) + leaf("two", 3260, "verifier", "green", 2, 20, verdict="REJECT"))
+    assert cells(steps, "#### By step", COUNTS + ["retries"]) == {
+        "one": ["4", "2", "0", "0", "0"], "two": ["9", "1", "2", "3", "4"]}
+
+    def budgeted(step, ts, revises, transforms, stopped):
+        events = conductor(step, ts, "step-start") + leaf(step, ts + 10, "developer", "red", 1, 90)
+        events += leaf(step, ts + 110, "verifier", "red", 1, 20, verdict="PASS")
+        for attempt in range(1, revises + 2):
+            at = ts + 100 * attempt + 100
+            events += leaf(step, at, "developer", "green", attempt, 60)
+            events += leaf(step, at + 70, "verifier", "green", attempt, 20,
+                           verdict="PASS" if attempt == revises + 1 else "REJECT")
+            if attempt <= revises:
+                events += conductor(step, at + 90, "revise", phase="green", attempt=str(attempt), budget="3")
+        at = ts + 100 * revises + 300
+        events += leaf(step, at, "developer", "refactor", 1, 150)
+        events += conductor(step, at + 160, "refactor", phase="refactor", transforms=transforms, budget="5", stopped=stopped)
+        events += leaf(step, at + 170, "verifier", "refactor", 1, 20, verdict="PASS")
+        return events + conductor(step, at + 200, "step-done")
+
+    budgets = report("budgets", budgeted("frugal", 4000, 1, "2", "nothing left to tidy")
+                     + budgeted("spendthrift", 5000, 3, "5", "budget"))
+    assert cells(budgets, "#### By step", ["revise", "refactor", "stopped"]) == {
+        "frugal": ["1/3", "2/5", "nothing left to tidy"], "spendthrift": ["3/3", "5/5", "budget"]}
+
+    def api(ms):
+        return cost(9, "0.5", (1000, 2000, 3000, 4000), api_ms=ms)
+
+    times = report("times", conductor("brisk", 7000, "step-start")
+                   + leaf("brisk", 7010, "developer", "red", 1, 90, usage=api(70000))
+                   + leaf("brisk", 7110, "verifier", "red", 1, 20, usage=api(15000), verdict="PASS")
+                   + leaf("brisk", 7200, "developer", "green", 1, 100, usage=api(80000))
+                   + leaf("brisk", 7310, "verifier", "green", 1, 20, usage=api(10000), verdict="PASS")
+                   + conductor("brisk", 7400, "step-done") + conductor("slow", 8000, "step-start")
+                   + leaf("slow", 8010, "developer", "red", 1, 80, usage=api(60000))
+                   + leaf("slow", 8110, "verifier", "red", 1, 20, usage=api(10000), verdict="PASS")
+                   + leaf("slow", 8200, "developer", "green", 1, 100, usage=api(85000))
+                   + leaf("slow", 8310, "verifier", "green", 1, 20, usage=api(10000), verdict="REJECT")
+                   + conductor("slow", 8340, "revise", phase="green", attempt="1", budget="3")
+                   + leaf("slow", 8350, "developer", "green", 2, 70, status="2")
+                   + leaf("slow", 8430, "developer", "green", 2, 60, usage=api(45000))
+                   + leaf("slow", 8500, "verifier", "green", 2, 20, usage=api(10000), verdict="PASS")
+                   + conductor("slow", 8600, "step-done") + conductor("slow", 8700, "done", pr="https://example.test/pr/999"))
+    assert cells(times, "#### By phase", ["wall s", "API s"]) == {"red": ["210", "155"], "green": ["390", "240"]}
+    assert cells(times, "#### By step", ["wall s", "API s"]) == {"brisk": ["400", "175"], "slow": ["600", "220"]}
+    assert "Wall time for the issue: 1700 s," in times
+
+    def priced(step, ts, red, verify_red, green, verify_green):
+        return (conductor(step, ts, "step-start")
+                + leaf(step, ts + 10, "developer", "red", 1, 90, usage=cost(*red))
+                + leaf(step, ts + 110, "verifier", "red", 1, 20, usage=cost(*verify_red), verdict="PASS")
+                + leaf(step, ts + 200, "developer", "green", 1, 100, usage=cost(*green))
+                + leaf(step, ts + 310, "verifier", "green", 1, 20, usage=cost(*verify_green), verdict="PASS")
+                + conductor(step, ts + 400, "step-done"))
+
+    costs = report("costs", priced("cheap", 9000, (3, "0.10", (100, 200, 1000, 400)), (2, "0.05", (50, 30, 500, 100)),
+                                   (7, "0.40", (300, 600, 4000, 900)), (4, "0.20", (120, 70, 900, 300)))
+                   + priced("dear", 9500, (6, "0.25", (210, 340, 2200, 600)), (2, "0.05", (40, 60, 700, 200)),
+                            (9, "0.55", (500, 800, 6000, 1500)), (3, "0.15", (90, 110, 1100, 400)))
+                   + conductor("dear", 9910, "done", pr="https://example.test/pr/999"))
+    assert cells(costs, "#### By phase", COSTS) == {
+        "red": ["13", "400", "630", "4400", "1300", "0.45"], "green": ["23", "1010", "1580", "12000", "3100", "1.30"]}
+    assert cells(costs, "#### By step", COSTS) == {
+        "cheap": ["16", "570", "900", "6400", "1700", "0.75"], "dear": ["20", "840", "1310", "10000", "2700", "1.00"]}
+    assert cells(costs, "#### Total", COSTS) == {"total": ["36", "1410", "2210", "16400", "4400", "1.75"]}
+    assert ("Cost is every leaf of the run, and the conductor own spending is not in it: "
+            "this log carries no usage record of the conductor own.\n") in costs
+
+    counted = report("counted", conductor("one", 9000, "step-start")
+                     + leaf("one", 9010, "developer", "red", 1, 90, usage=cost(3, "0.10", (100, 200, 1000, 400)))
+                     + conductor("one", 9110, "step-done")
+                     + [dict(conductor("", 9200, "usage")[0], **cost(12, "0.90", (800, 400, 20000, 2500)))])
+    assert ("Cost is every leaf of the run, and the conductor own closing accounting with them, "
+            "which this log carries.\n") in counted
+
+    def reworked(step, ts, red, verify_red, green):
+        events = (conductor(step, ts, "step-start")
+                  + leaf(step, ts + 10, "developer", "red", 1, red[0], usage=cost(3, red[1], (1, 1, 1, 1)))
+                  + leaf(step, ts + 50, "verifier", "red", 1, verify_red[0], usage=cost(2, verify_red[1], (1, 1, 1, 1)),
+                         verdict="PASS"))
+        for attempt, (secs, dollars, verify_secs, verify_dollars, verdict) in enumerate(green, 1):
+            at = ts + 100 * attempt
+            events += leaf(step, at, "developer", "green", attempt, secs, usage=cost(5, dollars, (1, 1, 1, 1)))
+            events += leaf(step, at + secs, "verifier", "green", attempt, verify_secs,
+                           usage=cost(2, verify_dollars, (1, 1, 1, 1)), verdict=verdict)
+            if verdict == "REJECT":
+                events += conductor(step, at + secs + verify_secs, "revise", phase="green", attempt=str(attempt), budget="3")
+        return events
+
+    rework = report("rework", reworked("unrejected", 100, (90, "0.11"), (20, "0.07"), [(80, "0.22", 10, "0.13", "PASS")])
+                    + conductor("unrejected", 400, "step-done")
+                    + reworked("recovered", 500, (30, "0.03"), (10, "0.02"),
+                               [(100, "0.40", 20, "0.10", "REJECT"), (60, "0.24", 20, "0.06", "PASS")])
+                    + conductor("recovered", 900, "step-done") + conductor("recovered", 910, "done", pr="p"))
+    assert cells(rework, "#### Rework and waste, by phase", LOST) == {
+        "red": ["0", "0.00", "0", "0.00"], "green": ["120", "0.50", "0", "0.00"]}
+
+    bail = report("bail", reworked("landed", 7000, (30, "0.03"), (10, "0.02"), [(40, "0.05", 10, "0.01", "PASS")])
+                  + conductor("landed", 7200, "step-done")
+                  + reworked("bailed", 7300, (100, "0.40"), (20, "0.10"),
+                             [(60, "0.20", 20, "0.05", "REJECT"), (50, "0.10", 10, "0.05", "REJECT")])
+                  + conductor("bailed", 7700, "bail", phase="green", cause="revise-budget", classification="process"))
+    assert cells(bail, "#### Rework and waste, by phase", LOST) == {
+        "red": ["0", "0.00", "120", "0.50"], "green": ["0", "0.00", "140", "0.40"]}
