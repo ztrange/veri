@@ -141,7 +141,7 @@ for f in "$tpl_file" "$shared_file" "$spec_file" "$reason_file" "$bug_file" "$re
 done
 
 tpl="$(cat "$tpl_file")"
-resolve_includes tpl "$HERE/prompts"
+resolve_includes tpl "$HERE/prompts" || exit 2
 shared="$(cat "$shared_file")"
 spec="$(cat "$spec_file")"
 optional() {
