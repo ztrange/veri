@@ -1850,10 +1850,11 @@ with a test path. The revise leaf is built as:
 $S/build-develop-prompt.sh revise diff .tdd/issue-<n>-spec.md "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" '<test-cmd>' .tdd/verify-diff.reason > .tdd/revise-diff-<k>.prompt
 ```
 and launched as `revise-diff-<k>` like any revise leaf. The re-verify is `run-verdict.sh
---step "<STEP>" diff <spec-file> <base-sha>`, launched as `verdict-diff` with its stdout
-overwriting `.tdd/verify-diff.reason`, and its `<base-sha>` is the same base sha the original
-verify-diff verdict ran against — the run's branch point — so the revised work is judged
-against the diff the rejection was about. A
+--step "<STEP>" diff <spec-file> <branch-base-sha> <step-base-sha>`, launched as `verdict-diff`
+with its stdout overwriting `.tdd/verify-diff.reason`, and each `<base-sha>` is the same base sha
+the original verify-diff verdict ran against — the run's branch point, and the step base sha
+recorded before the step's develop-diff leaf ran, not one recorded before the revise leaf — so
+the revised work is judged against the diff the rejection was about. A
 recovered PASS on the `⟦diff-checked⟧` step is ticked exactly as the `⟦diff-checked⟧` PASS
 bullet in *A `⟦diff-checked⟧` step* describes.
 

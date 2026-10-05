@@ -473,4 +473,21 @@ fi
 
 report "$name"
 
+name="#880: $skill_md's '$revise_heading' re-verifies a diff revise with both base shas the original verify-diff verdict ran against: run-verdict.sh --step \"<STEP>\" diff <spec-file> <branch-base-sha> <step-base-sha>, the step base sha the one recorded before the step's develop-diff leaf"
+problems=()
+
+if [[ -n "$unreadable" ]]; then
+  problems+=("$unreadable which base shas a diff revise is re-verified against could not be established")
+else
+  grep -F -- 'run-verdict.sh --step "<step>" diff <spec-file> <branch-base-sha> <step-base-sha>' <<<"$section" > /dev/null ||
+    problems+=("$skill_md's revise section never re-verifies a diff revise with run-verdict.sh --step \"<STEP>\" diff <spec-file> <branch-base-sha> <step-base-sha>, so the re-verify does not get the two base shas verify-diff takes")
+  revise_prose_sentences |
+    grep -F -- 'step base sha' |
+    grep -F -- 'develop-diff' |
+    grep -E -- 'record|before' > /dev/null ||
+    problems+=("no sentence of '$revise_heading' says the step base sha is the one recorded before the step's develop-diff leaf")
+fi
+
+report "$name"
+
 finish
