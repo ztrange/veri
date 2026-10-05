@@ -5,4 +5,4 @@
 - [x] commit_suffix_offenders reports a planted develop-*.md saying "make a commit" with no (#<issue>) ⟦criterion 1⟧
 - [x] commit_suffix_offenders does not report a planted develop-*.md whose only mention of a commit is "`git diff <base-sha>..HEAD`" ⟦added⟧ ⟦criterion 1⟧
 - [x] commit_suffix_offenders does not report a planted develop-*.md that only mentions "the step's green commit" without asking for a commit ⟦criterion 2⟧
-- [ ] every shipped prompts/develop-*.md still passes commit_suffix_offenders ⟦criterion 3⟧
+- [x] every shipped prompts/develop-*.md still passes commit_suffix_offenders ⟦criterion 3⟧

@@ -113,4 +113,9 @@ rc=0
 out="$( source "$LIB" && commit_suffix_offenders "$green" 2>&1 )" || rc=$?
 expect_eq "$name" "0:" "$rc:$out"
 
+name="#946 the commit-suffix check stays green, reporting nothing, over every shipped develop-*.md prompt"
+rc=0
+out="$( source "$LIB" && commit_suffix_offenders "$HERE/../../prompts" 2>&1 )" || rc=$?
+expect_eq "$name" "0:" "$rc:$out"
+
 finish
