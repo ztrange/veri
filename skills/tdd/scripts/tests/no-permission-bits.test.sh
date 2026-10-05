@@ -19,7 +19,8 @@ CHMOD_WORD='(^|[^[:alnum:]_.-])chmod'
 REVOKING_MODE='([0145][0-7][0-7]|[ugoa]*-[rwx]*[rw][rwx]*|[ugoa]*=[rx]*)'
 CHMOD_FLAGS='([[:space:]]+-[RHLPfhv]+)*'
 SHELL_CHMOD="$CHMOD_WORD$CHMOD_FLAGS[[:space:]]+$REVOKING_MODE([[:space:]]|$)"
-PATH_CHMOD='\.chmod\(0o000\)'
+PY_REVOKING_MODE='[[:space:]]*(0|0o([0-7]{1,2}|[0-7]?[0-5][0-7]{2}))[[:space:]]*\)'
+PATH_CHMOD="\\.chmod\\($PY_REVOKING_MODE|(^|[^[:alnum:]_])os\\.chmod\\([^,]+,$PY_REVOKING_MODE"
 PERMISSION_BIT_CHMOD="$SHELL_CHMOD|$PATH_CHMOD"
 SYSTEM_PATH="(^|[[:space:](=,])[\"']?/(\\.tdd|root|proc)([/\"'[:space:]:)]|\$)"
 
@@ -230,6 +231,63 @@ planted_pytest_chmod_named=""
 probe_a_planted_pytest_chmod_000
 
 expect_eq "$name" "named" "$planted_pytest_chmod_named"
+
+PLANT_PY_REVOKING_MODES=(0 0o000 0o400 0o444 0o200)
+
+py_mode_plant() {
+  case "$1" in
+    path) printf '    ledger.chmod(%s)' "$2" ;;
+    os) printf '    os.chmod(ledger, %s)' "$2" ;;
+  esac
+}
+
+probe_planted_pytest_revoking_modes() {
+  local ROOT form mode plants=()
+  for form in path os; do
+    for mode in "${PLANT_PY_REVOKING_MODES[@]}"; do
+      plants+=("$(py_mode_plant "$form" "$mode")")
+    done
+  done
+  plant_and_probe "$PLANT_PY_REL" 'import os' 'def test_unreadable_ledger(tmp_path):' '    ledger = tmp_path / "issue-9.md"' "${plants[@]}"
+  planted_pytest_revoking_modes_named=""
+  for form in path os; do
+    for mode in "${PLANT_PY_REVOKING_MODES[@]}"; do
+      planted_pytest_revoking_modes_named+="$form $mode $(plant_named "$PLANT_PY_REL" "$(py_mode_plant "$form" "$mode")");"
+    done
+  done
+  problems=()
+}
+
+name="planted pytest lines taking the owner's read or write away by Path.chmod or os.chmod, mode 0, 0o000, 0o400, 0o444 or 0o200, each turn the guard red, naming its own <suite>:<line> (#897)"
+planted_pytest_revoking_modes_named=""
+
+probe_planted_pytest_revoking_modes
+
+expect_eq "$name" "path 0 named;path 0o000 named;path 0o400 named;path 0o444 named;path 0o200 named;os 0 named;os 0o000 named;os 0o400 named;os 0o444 named;os 0o200 named;" "$planted_pytest_revoking_modes_named"
+
+PLANT_PY_MODE_SHAPES=(
+  "    ledger.chmod(0o$(printf '%o' 7))"
+  "    ledger.chmod(0o$(printf '%o' 768))"
+  "    os.chmod(ledger, 0o$(printf '%o' 292) )"
+  "    xos.chmod(ledger, $(printf '%d' 0))"
+)
+
+probe_planted_pytest_mode_shapes() {
+  local ROOT plant
+  plant_and_probe "$PLANT_PY_REL" 'import os' 'def test_unreadable_ledger(tmp_path):' '    ledger = tmp_path / "issue-9.md"' "${PLANT_PY_MODE_SHAPES[@]}"
+  planted_pytest_mode_shapes_named=""
+  for plant in "${PLANT_PY_MODE_SHAPES[@]}"; do
+    planted_pytest_mode_shapes_named+="${plant#    } $(plant_named "$PLANT_PY_REL" "$plant");"
+  done
+  problems=()
+}
+
+name="a planted pytest chmod to a one-digit octal mode, to an owner-revoking mode behind a special-bit digit, or with a space before its ), turns the guard red, and a call to a function merely ending in os.chmod does not (#897)"
+planted_pytest_mode_shapes_named=""
+
+probe_planted_pytest_mode_shapes
+
+expect_eq "$name" "${PLANT_PY_MODE_SHAPES[0]#    } named;${PLANT_PY_MODE_SHAPES[1]#    } named;${PLANT_PY_MODE_SHAPES[2]#    } named;${PLANT_PY_MODE_SHAPES[3]#    } not named;" "$planted_pytest_mode_shapes_named"
 
 PLANT_CHMOD_READ_ONLY_DIR="chmod $(printf '%o' 365) \"\$dir\""
 
