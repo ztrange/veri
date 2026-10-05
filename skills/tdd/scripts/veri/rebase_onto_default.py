@@ -31,7 +31,8 @@ def main(argv):
         sys.stderr.write("rebase-onto-default: refs/remotes/origin/HEAD is not set"
                          " — no default branch to rebase onto\n")
         return 2
-    if git("fetch", "-q", "origin").returncode != 0:
+    if git("fetch", "-q", "origin",
+           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode != 0:
         return 2
     remote = git("ls-remote", "origin", f"refs/heads/{default}",
                  stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
@@ -43,6 +44,6 @@ def main(argv):
     if git("merge-base", "--is-ancestor", onto, "HEAD").returncode == 0:
         return 3
     pre = output("rev-parse", "HEAD")
-    git("rebase", "-q", onto)
+    git("rebase", "-q", onto, stdout=subprocess.DEVNULL)
     sys.stdout.write(f"{pre}\n{onto}\n")
     return 0

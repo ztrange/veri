@@ -181,3 +181,27 @@ def test_main_exits_2_when_ls_remote_fails_after_the_fetch_or_an_unchecked_rev_p
                                  rev_parse: (128, "origin/main\n")})
     assert "git merge-base --is-ancestor origin/main HEAD" in calls
     assert (code, out) == (3, "")
+
+
+def test_main_drops_the_fetch_s_stdout_and_stderr_and_the_rebase_s_stdout_and_passes_the_rebase_s_stderr_through(
+        monkeypatch, capsys, rebase_onto_default):
+    fetch = "git fetch -q origin"
+    rebase = f"git rebase -q {ONTO}"
+    fake_git(monkeypatch)
+    fake_run = subprocess.run
+    speech = {fetch: ("fetch out\n", "fetch err\n"), rebase: ("rebase out\n", "rebase err\n")}
+
+    def speaking_run(args, **kwargs):
+        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+        out, err = speech.get(line, ("", ""))
+        if kwargs.get("stdout") is None:
+            sys.stdout.write(out)
+        if kwargs.get("stderr") is None:
+            sys.stderr.write(err)
+        return fake_run(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", speaking_run)
+    code = rebase_onto_default.main([])
+    captured = capsys.readouterr()
+    assert (code, captured.out) == (0, f"{PRE}\n{ONTO}\n")
+    assert captured.err == "rebase err\n"
