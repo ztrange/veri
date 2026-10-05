@@ -289,3 +289,25 @@ def test_main_counts_an_issue_open_by_its_upper_cased_state_and_withholds_one_an
     (tmp_path / "issues.json").write_text(json.dumps([dict(opted_in(5), state=None)]))
     with pytest.raises(AttributeError):
         solvable_issues.main([])
+
+
+def blocked_by(number, *refs):
+    return dict(opted_in(number), body="## Blocked by\n\n" + "".join("- %s\n" % ref for ref in refs) + "\n## Notes\n\n#1\n")
+
+
+def test_main_withholds_an_issue_blocked_by_an_open_fetched_issue_as_number_or_url_reading_other_repos_urls_only_under_repo(tmp_path, monkeypatch, capsys, solvable_issues):
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    fake_git_answering_nothing(monkeypatch)
+    (tmp_path / "issues.json").write_text(json.dumps([
+        labelled(1, "other"), dict(labelled(2, "other"), state="CLOSED"),
+        blocked_by(20, "#1"), blocked_by(21, "https://github.com/o/r/issues/1"), blocked_by(22, "#2"),
+        blocked_by(23, "#99"), blocked_by(24, "#40"), blocked_by(25, "https://github.com/x/y/issues/1")]))
+    (tmp_path / "prs.json").write_text(json.dumps([{"number": 40, "state": "OPEN", "body": "nothing"}]))
+
+    observed = {}
+    for argv in ([], ["--repo", "o/r"]):
+        code = solvable_issues.main(argv)
+        out, err = capsys.readouterr()
+        observed[tuple(argv)] = (code, out)
+
+    assert observed == {(): (0, "22\n23\n24\n"), ("--repo", "o/r"): (0, "22\n23\n24\n25\n")}
