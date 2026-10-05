@@ -1300,4 +1300,23 @@ three_page_run three
   && [[ "$code" == "$one_code" && "$out" == "$one_out" ]]; } \
   && ok || no "against a gh that serves issues and PRs over three pages on repos/{owner}/{repo} and refuses repositories/{id} with the proxy's 403, prints the same issue numbers and exit code as against a single-page fixture holding the same issues and PRs (#592) (single page: exit=$one_code stdout='$(tr '\n' '|' <<<"$one_out")' want 0 and '75|73'; three pages: exit=$code stdout='$(tr '\n' '|' <<<"$out")' want the same; three pages stderr='$(tr '\n' '|' < "$work/three-pages/three.err")')"
 
+
+mkdir -p "$work/refused-driver/bin"
+printf '#!/bin/sh\necho "gh $*" >> "$GH_CALLS"\necho "[]"\n' > "$work/refused-driver/bin/gh"
+chmod +x "$work/refused-driver/bin/gh"
+driver_problems=""
+for driver in '' REST gql; do
+  : > "$work/refused-driver/calls"
+  out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL VERI_GH_DRIVER="$driver" \
+         PATH="$work/refused-driver/bin:$PATH" GH_CALLS="$work/refused-driver/calls" \
+         "$SOLVABLE" 2>"$work/refused-driver/err")" && code=0 || code=$?
+  err="$(cat "$work/refused-driver/err")"
+  { [[ "$code" == 2 && -z "$out" && ! -s "$work/refused-driver/calls" ]] \
+    && [[ "$(wc -l < "$work/refused-driver/err" | tr -d ' ')" == 1 && "$err" == *VERI_GH_DRIVER* && "$err" == *"'$driver'"* ]]; } \
+    || driver_problems+="VERI_GH_DRIVER='$driver': exit=$code stdout='$out' stderr='$(tr '\n' '|' <<<"$err")' gh calls='$(tr '\n' '|' < "$work/refused-driver/calls")'; "
+done
+
+[[ -z "$driver_problems" ]] \
+  && ok || no "with VERI_GH_DRIVER empty, REST or gql, solvable-issues.sh starts no gh process, prints nothing on stdout, exits 2 and prints one stderr line naming VERI_GH_DRIVER and the value ($driver_problems want exit 2, empty stdout, no gh call and one stderr line naming VERI_GH_DRIVER and the value)"
+
 finish
