@@ -12,15 +12,7 @@ some existing test goes red when that behaviour breaks. Write **NO** production 
 
 {{STEP}}
 
-### The issue's behavior spec (context only)
-
-{{ISSUE_SPEC}}
-
-### The test command
-
-{{TEST_CMD}}
-
-### What to do
+{{INCLUDE:_develop-spec-context-only.md}}
 
 1. Read the step and find the code it will move or reshape.
 2. Copy the file first — `cp <file> <file>.orig` — then **break its behaviour by hand**

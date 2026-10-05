@@ -2,8 +2,7 @@
 
 ## Phase: develop-predicate
 
-This is the issue's **structural pass**: every step is green, and the structural candidates
-the steps recorded instead of applying are now due. Before a transform leaf applies the
+{{INCLUDE:_develop-structural-pass.md}} Before a transform leaf applies the
 candidate below, it needs a check its verifier can run. Write **one shell predicate** for
 it — a command that fails (exits non-zero) on the current tree, and succeeds (exits 0) once
 the candidate is applied. Apply nothing yourself, and change no file.
@@ -18,15 +17,7 @@ The transform may change only the files this issue touched:
 
 {{TOUCHED_FILES}}
 
-### The issue's behavior spec (context only)
-
-{{ISSUE_SPEC}}
-
-### The test command
-
-{{TEST_CMD}}
-
-### What to do
+{{INCLUDE:_develop-spec-context-only.md}}
 
 1. Read the candidate and the files it names.
 2. Write one shell command, runnable from the repository root, that observes the candidate's

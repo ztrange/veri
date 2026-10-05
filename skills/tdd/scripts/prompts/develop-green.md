@@ -24,10 +24,7 @@ stop — do not edit it.{{REPLACES_CASE}}{{SUITE_REPAIR}}
 
 A step that needs more than one new behaviour at once has a third answer, and it is not a
 weakened test or a half-written implementation. Report `SPLIT:` lines instead of an
-implementation, changing no production code — one to three of them, each a
-behaviour-level criterion small enough to be one red-green cycle of its own, in the order
-they must be built. The conductor restores the tree, adds those steps ahead of this one
-and comes back to this step later, so a tree left carrying part of an implementation
+{{INCLUDE:_develop-split.md}} a tree left carrying part of an implementation
 nobody has written a test for would poison the first of them: leave the working tree
 exactly as you found it.
 
