@@ -31,3 +31,7 @@ def main(argv):
     touched = touched.decode()
     print(f"transform changed a test file: {touched}")
     return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
