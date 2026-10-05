@@ -21,6 +21,8 @@
 #      venv there meets the floor.
 #  10. run-conductor.sh's Python-floor refusal, with no venv at $VERI_VENV, is today's one line and
 #      names no venv path.
+#  11. leaf-launchable.sh's Python-floor refusal, with no venv at $VERI_VENV, is today's one line and
+#      names no venv path.
 #
 # Run: skills/tdd/scripts/tests/bash-version-guard.test.sh
 set -uo pipefail
@@ -151,6 +153,16 @@ llv_err="$(env VERI_BASH_MAJOR=5 VERI_PYTHON_VERSION=3.11.9 VERI_VENV="$work/ven
 [[ "$llv_code" == 2 ]] || problems+=("want exit 2, got $llv_code: $(flat "$llv_err")")
 [[ "$llv_err" == *"$work/venv-ok/bin"* && "$llv_err" == *PATH* ]] ||
   problems+=("want stderr to name $work/venv-ok/bin to put first on PATH: $(flat "$llv_err")")
+report "$name"
+
+name="leaf-launchable.sh's Python-floor refusal, with no venv at \$VERI_VENV, exits 2 with today's message and names no venv path (#936)"
+problems=()
+lln_err="$(env VERI_BASH_MAJOR=5 VERI_PYTHON_VERSION=3.11.9 VERI_VENV="$work/no-venv" CLAUDE_BIN="$work/claude" \
+    LAUNCHED="$work/lln-launched" "$SCRIPTS/leaf-launchable.sh" 2>&1 >/dev/null)" && lln_code=0 || lln_code=$?
+[[ "$lln_code" == 2 ]] || problems+=("want exit 2, got $lln_code: $(flat "$lln_err")")
+[[ "$lln_err" == "leaf-launchable: veri needs Python 3.12 or newer; the python3 on PATH is version 3.11.9." ]] ||
+  problems+=("want stderr to be exactly today's one-line refusal: $(flat "$lln_err")")
+[[ "$lln_err" != *"$work/no-venv"* ]] || problems+=("want stderr to name no venv path: $(flat "$lln_err")")
 report "$name"
 
 if [[ -x /bin/bash ]] && [[ "$(/bin/bash -c 'echo "${BASH_VERSINFO[0]}"')" -lt 5 ]]; then
