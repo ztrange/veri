@@ -11,3 +11,5 @@
 - test-only | fold the green (build-verify-prompt.test.sh:244-246) and #974 diff missing --fast-cmd refusal checks into one shared assertion over both phases
 ### `skills/tdd/SKILL.md`'s *A `⟦diff-checked⟧` step* section spells its `build-develop-prompt.sh diff` command line with the fast command and its `run-verdict.sh … diff` command line with `--fast-cmd`, pinned by a case in `skills/tdd/scripts/tests/skill-suite-runs.test.sh` ⟦criterion 3⟧
 - test-only | update skill-suite-runs.test.sh's "Contract under test" header to name the Green, verify-refactor and diff-checked accounts it now pins (cosmetic in kind)
+### `skills/tdd/SKILL.md`'s `revise diff` command line under *Revising on a REJECT* passes the fast command, and its `diff` re-verify passes `--fast-cmd`, pinned by a case in `skills/tdd/scripts/tests/skill-suite-runs.test.sh`
+- test-only | the `run-verdict\.sh [^,]*--fast-cmd [^,]* diff ` pattern appears twice in `skill-suite-runs.test.sh`, once in each of the two #974 cases. It could become one shared variable, but the two problem messages say different things, so the gain is marginal.
