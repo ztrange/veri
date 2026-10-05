@@ -386,6 +386,27 @@ venv_version="$("$current_venv/bin/python3" --version 2> /dev/null || true)"
   problems+=("want $current_venv/bin/python3 to report python3's Python 3.12.7, got: '$venv_version' (calls: $(flat "$(cat "$floor/calls")"))")
 report "$name"
 
+stub_python "$floor/bin/python3" 3.11.15
+stub_python "$floor/bin/python3.13" 3.11.2
+stub_python "$floor/bin/python3.12" 3.11.9
+none_venv="$floor/venv-none"
+
+name="#863: make install-dev, with python3, python3.13 and python3.12 on PATH all below veri's 3.12 floor, exits 2, its stderr names the floor 3.12, and no environment is created at VERI_VENV nor anything run from it"
+problems=()
+: > "$floor/calls"
+env -u PYTHONPATH VERI_VENV="$none_venv" PATH="$floor/bin:$floor/sys" \
+  "$(command -v make)" --no-print-directory -C "$floor" install-dev > "$work/out" 2> "$work/err" < /dev/null &&
+  code=0 || code=$?
+[[ "$code" == 2 ]] ||
+  problems+=("want exit 2, got $code: $(flat "$(cat "$work/out")") $(flat "$(cat "$work/err")")")
+[[ "$(cat "$work/err")" == *3.12* ]] ||
+  problems+=("want stderr to name the floor 3.12, got: $(flat "$(cat "$work/err")")")
+[[ ! -e "$none_venv" ]] ||
+  problems+=("want nothing created at $none_venv, found: $(flat "$(ls -A "$none_venv")")")
+[[ "$(cat "$work/err")" != *"$none_venv"* ]] ||
+  problems+=("want the recipe to stop at the refusal, running nothing from $none_venv, got: $(flat "$(cat "$work/err")")")
+report "$name"
+
 reach="$work/reach"
 make_tree "$reach"
 

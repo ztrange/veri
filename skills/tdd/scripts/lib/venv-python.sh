@@ -3,7 +3,8 @@
 #
 # venv_dir    — echo the environment the pytest leg runs in: $VERI_VENV, else ~/.veri-tools/venv.
 # venv_python — echo that environment's bin/python3 when it is executable, else the python3 on PATH.
-# venv_builder — echo the first of python3, python3.13, python3.12 on PATH that is Python 3.12 or newer.
+# venv_builder — echo the first of python3, python3.13, python3.12 on PATH that is Python 3.12 or newer;
+#                with none, name the floor on stderr and return 2.
 venv_dir() {
   printf '%s\n' "${VERI_VENV:-$HOME/.veri-tools/venv}"
 }
@@ -23,4 +24,6 @@ venv_builder() {
       return 0
     fi
   done
+  printf 'veri needs Python 3.12 or newer to build its environment; none of python3, python3.13, python3.12 on PATH is.\n' >&2
+  return 2
 }

@@ -157,7 +157,10 @@ test unit:
 .PHONY: install-dev
 install-dev:
 	@venv="$(VENV_DIR)"; \
-	[ -x "$$venv/bin/python3" ] || "$$(bash -c '. $(VENV_LIB) && venv_builder')" -m venv "$$venv"; \
+	if [ ! -x "$$venv/bin/python3" ]; then \
+	  builder="$$(bash -c '. $(VENV_LIB) && venv_builder')" || exit 2; \
+	  "$$builder" -m venv "$$venv"; \
+	fi; \
 	"$$venv/bin/python3" -m pip install -r requirements-dev.txt
 
 # `make profile` runs the suites `test` runs, under the same offline environment, through
