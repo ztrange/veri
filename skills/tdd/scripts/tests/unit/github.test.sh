@@ -454,16 +454,13 @@ record
 
 # 12. VERI_GH_DRIVER set but empty, or set to a value it does not know, is refused before any gh
 #     process starts: every gh_* function returns 2 with one stderr line naming the variable and
-#     the value, and solvable-issues.sh, built on the library, exits 2
-name="with VERI_GH_DRIVER empty, REST or gql, every gh_* function starts no gh process, returns 2 and prints one stderr line naming VERI_GH_DRIVER and the value, and solvable-issues.sh exits 2"
+#     the value
+name="with VERI_GH_DRIVER empty, REST or gql, every gh_* function starts no gh process, returns 2 and prints one stderr line naming VERI_GH_DRIVER and the value"
 calls="$scratch/calls12" err="$scratch/err12"
 : > "$calls"
-mkdir -p "$scratch/bin12"
-printf '#!/bin/sh\necho "$op python3" >> "$calls"\nexit 1\n' > "$scratch/bin12/python3"
-chmod +x "$scratch/bin12/python3"
 problems=""
 for driver in '' REST gql; do
-  for op in view list json json_rest ready edit rest_list solvable; do
+  for op in view list json json_rest ready edit rest_list; do
     (
       gh() {
         echo "$op gh $*" >> "$calls"
@@ -486,10 +483,6 @@ for driver in '' REST gql; do
         ready) gh_pr_ready 42 ;;
         edit) gh_issue_edit 7 "$scratch/body12" ;;
         rest_list) gh_rest_list 'repos/{owner}/{repo}/issues' ;;
-        solvable)
-          export calls op
-          export -f gh git
-          PATH="$scratch/bin12:$PATH" bash "$HERE/../../solvable-issues.sh" ;;
       esac
     ) > /dev/null 2> "$err.one"
     rc=$?
