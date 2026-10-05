@@ -17,6 +17,8 @@
 #   7. leaf-launchable.sh does not refuse on the Python floor when the python3 version cannot be read.
 #   8. run-conductor.sh's Python-floor refusal names $VERI_VENV/bin to put first on PATH when the
 #      venv there meets the floor.
+#   9. leaf-launchable.sh's Python-floor refusal names $VERI_VENV/bin to put first on PATH when the
+#      venv there meets the floor.
 #
 # Run: skills/tdd/scripts/tests/bash-version-guard.test.sh
 set -uo pipefail
@@ -126,6 +128,15 @@ llnv_err="$(env VERI_BASH_MAJOR=5 VERI_PYTHON_VERSION=unknown CLAUDE_BIN="$work/
     "$SCRIPTS/leaf-launchable.sh" 2>&1 >/dev/null)" && llnv_code=0 || llnv_code=$?
 [[ "$llnv_code" == 0 ]] || problems+=("want exit 0 for an unreadable python3 version, got $llnv_code: $(flat "$llnv_err")")
 [[ "$llnv_err" != *"Python 3.12"* ]] || problems+=("want no Python-floor refusal for an unreadable version: $(flat "$llnv_err")")
+report "$name"
+
+name="leaf-launchable.sh's Python-floor refusal names \$VERI_VENV/bin to put first on PATH when the venv there meets the floor (#936)"
+problems=()
+llv_err="$(env VERI_BASH_MAJOR=5 VERI_PYTHON_VERSION=3.11.9 VERI_VENV="$work/venv-ok" CLAUDE_BIN="$work/claude" \
+    LAUNCHED="$work/llv-launched" "$SCRIPTS/leaf-launchable.sh" 2>&1 >/dev/null)" && llv_code=0 || llv_code=$?
+[[ "$llv_code" == 2 ]] || problems+=("want exit 2, got $llv_code: $(flat "$llv_err")")
+[[ "$llv_err" == *"$work/venv-ok/bin"* && "$llv_err" == *PATH* ]] ||
+  problems+=("want stderr to name $work/venv-ok/bin to put first on PATH: $(flat "$llv_err")")
 report "$name"
 
 if [[ -x /bin/bash ]] && [[ "$(/bin/bash -c 'echo "${BASH_VERSINFO[0]}"')" -lt 5 ]]; then
