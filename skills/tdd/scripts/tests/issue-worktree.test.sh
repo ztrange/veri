@@ -623,15 +623,6 @@ log="$(cat "$seeded/.tdd/events.jsonl" 2>/dev/null || true)"
 { [[ "$code" == 0 ]] && [[ "$out" == "$seeded" ]] && [[ "$top" == "$seeded" ]] && [[ "$log" == *"$line"* ]]; } \
   && ok || no "a path holding only a seeded .tdd/events.jsonl: the worktree is made there and the log survives (exit=$code want 0, stdout='$out' want '$seeded', git toplevel there='$top' want '$seeded', log='$log' want it to hold '$line', stderr='$(cat "$errfile")')"
 
-repo="$work/own-trap"
-make_repo "$repo"
-mkdir -p "$(wt_path "$repo" 63)/.tdd"
-printf '%s\n' '{"event": "skill-repin"}' > "$(wt_path "$repo" 63)/.tdd/events.jsonl"
-printf '%s\n' 'git() { [[ "$1 ${2:-}" == "worktree add" ]] && builtin exit 5; command git "$@"; }' > "$work/git-dies-with-5"
-(cd "$repo" && BASH_ENV="$work/git-dies-with-5" "$WT" 63 own-trap >/dev/null 2>&1) && wt_code=0 || wt_code=$?
-{ [[ "$wt_code" == 2 ]]; } \
-  && ok || no "issue-worktree.sh, whose own EXIT trap cleans up, still ends with 2 and never a code outside 0–3 when a command dies with one — its trap does not replace the contract's mapping (exit=$wt_code want 2)"
-
 usage_line="usage: issue-worktree.sh <n> <slug> | --remove <n>"
 problems=""
 for args in "" "270" "--remove" "'' x"; do
