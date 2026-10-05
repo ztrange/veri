@@ -1,2 +1,4 @@
 ### `supervise.sh verdict-<phase> <cmd>` writes no `leaf-role:` line to stderr, while its exit code and its completion file `.tdd/verdict-<phase>.exit` are unchanged and it still appends no `launch` or `exit` event to `.tdd/events.jsonl` ⟦criterion 1⟧
 - test-only | extract a helper in supervise.test.sh for "event count is 0 or no event log" (3 copies, 2 added this cycle in the verdict-plan case)
+### `supervise.sh verdict-<phase> <cmd>` whose log holds no closing result record writes no `harvest-usage.sh:` line to stderr ⟦criterion 1⟧
+- test-only | the case at `supervise.test.sh:643-649` (`vharv_*`) runs the same `verdict-plan` supervision with the same env and stub as the case at `:629-641` (`vrole_*`); the two could share one run, with the `harvest-usage.sh:` count read from `$vrole_work/err`
