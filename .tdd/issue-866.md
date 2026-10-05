@@ -1,7 +1,7 @@
 # Plan for #866 — a run that stops at preflight leaves its skill pin behind for the next launch
 
 - [x] a launch whose conductor exits with `.tdd/wt/<n>` registered as a git worktree keeps `.tdd/issue-<n>-skill-commit`, and the next launch runs the recorded commit ⟦criterion 3⟧
-- [ ] a launch whose conductor exits with a local `tdd/<n>-*` branch and no worktree keeps `.tdd/issue-<n>-skill-commit`, and the next launch runs the recorded commit ⟦criterion 3⟧
+- [x] a launch whose conductor exits with a local `tdd/<n>-*` branch and no worktree keeps `.tdd/issue-<n>-skill-commit`, and the next launch runs the recorded commit ⟦criterion 3⟧
 - [ ] a launch whose conductor exits with no registered `.tdd/wt/<n>` worktree and no local `tdd/<n>-*` branch leaves no `.tdd/issue-<n>-skill-commit`, whether the conductor exits 0 or non-zero; the existing `run-conductor.test.sh` cases whose later launch relies on the record surviving a stub conductor (the resume-snapshot, keeps-its-pin and unresolvable-commit cases) model a run past preflight by giving their caller repo a local `tdd/<n>-*` branch in fixture setup, with their assertions unchanged ⟦criterion 1⟧
 - [ ] a local branch for a different issue whose number merely starts with `<n>` (e.g. `tdd/<n>6-x`) does not count as a run past preflight: the record is removed ⟦criterion 3⟧
 - [ ] after a launch that left no worktree and no branch, the next launch of the same issue, with VERI_NEW_SKILL unset, pins the default branch's tip at that moment rather than the earlier launch's commit ⟦criterion 2⟧
