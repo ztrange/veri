@@ -18,12 +18,7 @@ so no test is this step's deliverable.
    you found it.
 3. Add no test. A case that pins this criterion by reading another file's text or the git
    history is rejected.
-4. Run the fast command, `{{FAST_CMD}}`, then the suites that `affected-suites.sh` prints
-   for your change, each through the wrapper {{INCLUDE:_timed-test-run-tier.md}}:
-
-{{INCLUDE:_timed-test-run-fast-affected.md}}
-
-   Finish only when both runs are green.
+4. {{INCLUDE:_develop-diff-run-fast-affected.md}}
 
 ### Report (last lines of your output)
 
