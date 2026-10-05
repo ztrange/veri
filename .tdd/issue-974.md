@@ -1,6 +1,6 @@
 # Plan for #974 — a ⟦diff-checked⟧ step never runs the fast tier: develop-diff and verify-diff skip make unit, so a fast-tier rule breaks only at the full run
 
-- [x] `build-develop-prompt.sh diff <spec> <step> <test-cmd> <fast-cmd>` prints a prompt that tells the develop-diff leaf to run the given fast command through `{{TIMED_TEST_RUN}} fast` and then the affected suites, and to finish only with both green ⟦criterion 1⟧ ⟂ refactor pending
+- [x] `build-develop-prompt.sh diff <spec> <step> <test-cmd> <fast-cmd>` prints a prompt that tells the develop-diff leaf to run the given fast command through `{{TIMED_TEST_RUN}} fast` and then the affected suites, and to finish only with both green ⟦criterion 1⟧
 - [ ] `build-develop-prompt.sh diff <spec> <step> <test-cmd>` with the fast command left out exits 2 with a diagnostic on stderr and nothing on stdout ⟦criterion 1⟧
 - [ ] `build-develop-prompt.sh revise diff <spec> <step> <test-cmd> <reason-file> <fast-cmd>` prints a prompt that tells the revise leaf to run the given fast command through `{{TIMED_TEST_RUN}} fast` and then the affected suites, and to finish only with both green ⟦criterion 1⟧
 - [ ] `build-develop-prompt.sh revise diff <spec> <step> <test-cmd> <reason-file>` with the fast command left out exits 2 with a diagnostic on stderr and nothing on stdout ⟦criterion 1⟧
