@@ -22,7 +22,7 @@ class _Conductor:
         except FileNotFoundError:
             pass
         words = ["%s=%s" % (name, os.environ[name]) for name in PASSED_THROUGH if name in os.environ]
-        run_timeout = os.environ.get("VERI_RUN_TIMEOUT") or "14400"
+        run_timeout = _run_timeout()
         env = dict(os.environ, VERI_HEARTBEAT=run_timeout, VERI_TIMEOUT=run_timeout, VERI_STUCK_RETRIES="0")
         self.sup = subprocess.Popen([os.path.join(SCRIPTS, "supervise.sh"), "conductor-%s" % n, "env",
                                      *[w for name in PASSED_THROUGH for w in ("-u", name)], *words,
@@ -43,6 +43,10 @@ class _Conductor:
         *whole, self.part = (self.part + chunk).split(b"\n")
         _watch_context(self.n, whole)
         return alive
+
+
+def _run_timeout():
+    return os.environ.get("VERI_RUN_TIMEOUT") or "14400"
 
 
 def _watch_context(n, lines):
@@ -129,7 +133,7 @@ def _run():
             failed = False
             for n in launched:
                 if codes.get(n) == 2:
-                    print("#%s — killed after %ss" % (n, os.environ.get("VERI_RUN_TIMEOUT") or "14400"), flush=True)
+                    print("#%s — killed after %ss" % (n, _run_timeout()), flush=True)
                     failed = True
             print("stopped: %s" % why, flush=True)
             return _finish(2 if plumbing else 1 if failed else 3 if not launched else 0)
