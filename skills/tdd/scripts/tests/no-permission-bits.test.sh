@@ -232,6 +232,8 @@ probe_a_planted_pytest_chmod_000
 
 expect_eq "$name" "named" "$planted_pytest_chmod_named"
 
+PLANT_PY_SUITE=('import os' 'def test_unreadable_ledger(tmp_path):' '    ledger = tmp_path / "issue-9.md"')
+
 PLANT_PY_REVOKING_MODES=(0 0o000 0o400 0o444 0o200)
 
 py_mode_plant() {
@@ -248,7 +250,7 @@ probe_planted_pytest_revoking_modes() {
       plants+=("$(py_mode_plant "$form" "$mode")")
     done
   done
-  plant_and_probe "$PLANT_PY_REL" 'import os' 'def test_unreadable_ledger(tmp_path):' '    ledger = tmp_path / "issue-9.md"' "${plants[@]}"
+  plant_and_probe "$PLANT_PY_REL" "${PLANT_PY_SUITE[@]}" "${plants[@]}"
   planted_pytest_revoking_modes_named=""
   for form in path os; do
     for mode in "${PLANT_PY_REVOKING_MODES[@]}"; do
@@ -274,7 +276,7 @@ PLANT_PY_MODE_SHAPES=(
 
 probe_planted_pytest_mode_shapes() {
   local ROOT plant
-  plant_and_probe "$PLANT_PY_REL" 'import os' 'def test_unreadable_ledger(tmp_path):' '    ledger = tmp_path / "issue-9.md"' "${PLANT_PY_MODE_SHAPES[@]}"
+  plant_and_probe "$PLANT_PY_REL" "${PLANT_PY_SUITE[@]}" "${PLANT_PY_MODE_SHAPES[@]}"
   planted_pytest_mode_shapes_named=""
   for plant in "${PLANT_PY_MODE_SHAPES[@]}"; do
     planted_pytest_mode_shapes_named+="${plant#    } $(plant_named "$PLANT_PY_REL" "$plant");"
