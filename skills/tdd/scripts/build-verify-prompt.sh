@@ -124,6 +124,14 @@ for f in "${readable[@]}"; do
 done
 
 tpl="$(cat "$tpl_file")"
+include_re='\{\{INCLUDE:([^}]*)\}\}'
+rest="$tpl" tpl=""
+while [[ "$rest" =~ $include_re ]]; do
+  token="${BASH_REMATCH[0]}"
+  tpl+="${rest%%"$token"*}"
+  rest="$(cat "$HERE/prompts/${BASH_REMATCH[1]}")${rest#*"$token"}"
+done
+tpl+="$rest"
 shared="$(cat "$shared_file")"
 spec="$(cat "$spec_file")"
 optional() {

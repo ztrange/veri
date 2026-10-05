@@ -853,4 +853,13 @@ green_sums_as 'green, no --step'       '4188760161 6638'
 [[ -z "$problems" ]] \
   && ok || no "verify-green for a --step not carrying ⟦replaces-case⟧, or no --step, renders byte-identically to before #671 (${problems#; })"
 
+name="#703 a {{INCLUDE:<file>}} token, in a template and recursively inside an included partial, is replaced by that partial under prompts/ before the other placeholders, with no new parameter"
+included="$(scratch_dir)"
+cp -R "$BUILD" "$HERE/../lib" "$HERE/../prompts" "$included/"
+printf 'before {{INCLUDE:_probe-outer.md}} after\n' > "$included/prompts/verify-red.md"
+printf 'outer {{INCLUDE:_probe-inner.md}} end\n' > "$included/prompts/_probe-outer.md"
+printf 'inner judges {{TEST_PATH}}\n' > "$included/prompts/_probe-inner.md"
+rendered="$("$included/build-verify-prompt.sh" red "$work/spec.md" "$testpath" test_slugify_lowercases 2>&1)"; code=$?
+expect_eq "$name" "0:before outer inner judges $testpath end after" "$code:$rendered"
+
 finish
