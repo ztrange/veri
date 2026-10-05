@@ -407,6 +407,30 @@ env -u PYTHONPATH VERI_VENV="$none_venv" PATH="$floor/bin:$floor/sys" \
   problems+=("want the recipe to stop at the refusal, running nothing from $none_venv, got: $(flat "$(cat "$work/err")")")
 report "$name"
 
+stub_python "$floor/bin/python3" 3.12.7
+old_venv="$floor/venv-old"
+mkdir -p "$old_venv/bin"
+stub_python "$old_venv/bin/python3" 3.11.15
+stub_python "$old_venv/bin/pip" 3.11.15
+
+name="#863: make install-dev, with an existing environment at VERI_VENV whose interpreter is 3.11 (below veri's 3.12 floor), exits 2, its stderr names the environment's path, its version and the floor, and the environment is left in place, neither used for pip install nor deleted"
+problems=()
+: > "$floor/calls"
+env -u PYTHONPATH VERI_VENV="$old_venv" PATH="$floor/bin:$floor/sys" \
+  "$(command -v make)" --no-print-directory -C "$floor" install-dev > "$work/out" 2> "$work/err" < /dev/null &&
+  code=0 || code=$?
+[[ "$code" == 2 ]] ||
+  problems+=("want exit 2, got $code: $(flat "$(cat "$work/out")") $(flat "$(cat "$work/err")")")
+err="$(cat "$work/err")"
+[[ "$err" == *"$old_venv"* && "$err" == *3.11* && "$err" == *3.12* ]] ||
+  problems+=("want stderr to name $old_venv, its version 3.11 and the floor 3.12, got: $(flat "$err")")
+[[ -x "$old_venv/bin/python3" && -x "$old_venv/bin/pip" ]] ||
+  problems+=("want the environment left in place at $old_venv, found: $(flat "$(ls -A "$old_venv/bin" 2> /dev/null)")")
+old_installs="$(grep -E "^$old_venv/bin/(python3 -m pip|pip) install" "$floor/calls" || true)"
+[[ -z "$old_installs" ]] ||
+  problems+=("want no pip install through $old_venv, got: $(flat "$old_installs")")
+report "$name"
+
 reach="$work/reach"
 make_tree "$reach"
 
