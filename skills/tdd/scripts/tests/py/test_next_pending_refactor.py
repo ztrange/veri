@@ -126,3 +126,23 @@ def test_main_drops_nul_bytes_and_prints_a_non_utf8_byte_in_the_step_text_back_a
     code = next_pending_refactor.main([])
 
     assert (code, *capsysbinary.readouterr()) == (0, b"caf\xe9 slug\n", b"")
+
+
+def test_main_writes_nothing_on_stderr_for_a_printed_step_for_exit_3_and_with_arguments_given(
+        monkeypatch, capsysbinary, next_pending_refactor):
+    stderr = {}
+    for ledger_name, ledger in (
+            ("printed", SLUGIFY),
+            ("empty", b""),
+            ("no step line", b"# Plan for #42\n\nprose only\n"),
+            ("settled", b"- [x] tidied already\n- [ ] still open")):
+        for argv in ([], ["--bogus"], ["a", "b"]):
+            fake_stdin(monkeypatch, ledger)
+            code = next_pending_refactor.main(argv)
+            stderr[(ledger_name, *argv)] = (code, capsysbinary.readouterr().err)
+
+    assert stderr == {
+        (ledger_name, *argv): (0 if ledger_name == "printed" else 3, b"")
+        for ledger_name in ("printed", "empty", "no step line", "settled")
+        for argv in ([], ["--bogus"], ["a", "b"])
+    }
