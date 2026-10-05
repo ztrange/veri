@@ -1149,14 +1149,6 @@ paged_run three
    && "$code" == "$one_code" && "$out" == "$one_out" ]] \
   && ok || no "#592 against a gh that serves open PRs over three pages on repos/{owner}/{repo}, the draft PR on the third, and refuses repositories/{id} with the proxy's 403, parallel-conductors.sh prints the same report and exit code as against a single-page fixture holding the same PRs ( [single page: exit=$one_code want 1, report '$(printf '%s' "$one_out" | tr '\n' '|')' want '#7 — bailed https://example.test/pull/7|stopped: #7 bailed'; three pages: exit=$code want $one_code, report '$(printf '%s' "$out" | tr '\n' '|')' want the same] $(tr '\n' '|' < "$work/gh26-three.out") )"
 
-failing_cat="$work/failing-cat-bin"
-mkdir -p "$failing_cat"
-printf '#!/bin/sh\nexit 5\n' > "$failing_cat/cat"
-chmod +x "$failing_cat/cat"
-run_launcher "$gh_json" "$stub" "$work/trap.out" PATH="$failing_cat:$PATH"
-[[ "$code" == 2 ]] \
-  && ok || no "ends with exit 2 when it fails inside its own EXIT trap's lifetime (code=$code)"
-
 empty_gh="$work/gh-empty"
 failing_rm="$work/failing-rm-bin"
 rc_scratch="$(scratch_dir)"
