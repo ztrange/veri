@@ -24,4 +24,14 @@ out="$( source "$LIB" && commit_suffix_offenders "$plant" 2>&1 )" || rc=$?
 named=""; grep -F 'develop-planted.md' <<< "$out" > /dev/null && named=named
 expect_eq "$name" "1:named" "$rc:$named"
 
+name="#935 the commit-suffix check stays green over a planted develop prompt that makes no commit, and over the real prompts directory"
+quiet="$scratch/quiet"
+mkdir -p "$quiet"
+printf '%s\n' '## Phase: develop-quiet' '' 'Make no commit.' > "$quiet/develop-quiet.md"
+planted_rc=0
+( source "$LIB" && commit_suffix_offenders "$quiet" > /dev/null 2>&1 ) || planted_rc=$?
+real_rc=0
+( source "$LIB" && commit_suffix_offenders "$HERE/../../prompts" > /dev/null 2>&1 ) || real_rc=$?
+expect_eq "$name" "0:0" "$planted_rc:$real_rc"
+
 finish
