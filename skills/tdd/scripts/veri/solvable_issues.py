@@ -4,6 +4,7 @@ import re
 import subprocess
 import sys
 
+import blocked_by
 from github import NoAnswer, gh_json
 from json_documents import items
 
@@ -53,9 +54,11 @@ def main(argv):
         return 2
     issues = [issue for issue in items(issues) if "pull_request" not in issue]
     claimed = {int(n) for pr in items(prs) if is_open(pr) for n in re.findall(r"\bCloses #(\d+)", pr["body"] or "")}
+    open_issues = {issue["number"] for issue in issues if is_open(issue)}
     main_tree = main_working_tree()
     for issue in issues:
         if (is_open(issue) and carries(issue, label) and issue["number"] not in claimed
-                and not in_flight(main_tree, issue["number"])):
+                and not in_flight(main_tree, issue["number"])
+                and all(n not in open_issues for n in blocked_by.blockers(issue.get("body") or "", repo or ""))):
             print(issue["number"])
     return 0
