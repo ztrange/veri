@@ -44,7 +44,8 @@ case "$phase" in
   red) want=4 ;;
   green) want=7 ;;
   refactor) want=5 ;;
-  cover|transform|diff) want=4 ;;
+  cover|transform) want=4 ;;
+  diff) want=5 ;;
   structural|predicate) want=5 ;;
   revise) want=6 ;;
   reconcile) want=6 ;;
@@ -77,7 +78,7 @@ need test_cmd "${4:-}" '<test-cmd>'
 test_path="" target="" fast_cmd="" touched="" reason_file="" refactor_budget="" branch="" remote_sha="" spent="" budget="" onto_sha="" pre_rebase_sha="" conflicting=""
 case "$phase" in
   red|cover|transform) ;;
-  diff) fast_cmd="${5:-}" ;;
+  diff) need fast_cmd "${5:-}" '<fast-cmd>' ;;
   green)
     need test_path "${5:-}" '<test-path>'
     need target "${6:-}" '<target-test>'

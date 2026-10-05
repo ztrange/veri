@@ -968,7 +968,7 @@ done
 
 problems=""
 dd_step='the dead counted line in the status suite is gone ⟦diff-checked⟧ ⟦criterion 5⟧'
-dd="$("$BUILD" diff "$work/spec.md" "$dd_step" "$test_cmd" 2>/dev/null)"; code=$?
+dd="$("$BUILD" diff "$work/spec.md" "$dd_step" "$test_cmd" "make unit" 2>/dev/null)"; code=$?
 [[ "$code" -eq 0 ]] || problems="$problems; diff exited $code, want 0"
 [[ "$dd" == *"$dd_step"* ]] || problems="$problems; diff prompt lacks the step text"
 [[ "$dd" == *'zorblat("Frob & Nitz/Quux")'* ]] || problems="$problems; diff prompt lacks the spec"
@@ -1053,7 +1053,7 @@ suffix=""; grep -F '(#<issue>)' <<<"$st" | grep -iF 'commit' > /dev/null && suff
 expect_eq "$name" "0:stated" "$code:$suffix"
 
 name="#935 the diff prompt tells the leaf to give its commit a subject ending in (#<issue>), the convention develop-refactor states"
-df="$("$BUILD" diff "$work/spec.md" "$step_text" "$test_cmd" 2>/dev/null)"; code=$?
+df="$("$BUILD" diff "$work/spec.md" "$step_text" "$test_cmd" "make unit" 2>/dev/null)"; code=$?
 suffix=""; grep -F '(#<issue>)' <<<"$df" | grep -iF 'commit' > /dev/null && suffix=stated
 expect_eq "$name" "0:stated" "$code:$suffix"
 
@@ -1072,5 +1072,11 @@ fast="" order="" both=""
 [[ "$ddf" == *"$fast_line"*"$timed affected "* ]] && order=affected-after
 grep -iE 'both( runs)?( are| stay)? green' <<<"$ddf" > /dev/null && both=both-green
 expect_eq "$name" "0:fast:affected-after:both-green" "$code:$fast:$order:$both"
+
+name="#974 build-develop-prompt.sh diff with the fast command left out exits 2 with a diagnostic on stderr and nothing on stdout"
+nofast_err="$work/diff-no-fast.err"
+nofast="$("$BUILD" diff "$work/spec.md" "$dd_step" "$test_cmd" 2>"$nofast_err")"; code=$?
+diag=""; [[ -s "$nofast_err" ]] && diag=diagnostic
+expect_eq "$name" "2::diagnostic" "$code:${nofast:+prompt}:$diag"
 
 finish
