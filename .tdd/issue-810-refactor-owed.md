@@ -15,3 +15,6 @@
 - test-only | factor the repeated `monkeypatch.setattr(sys, "stdin", io.StringIO(...))` + `refactor_owed.main(["append", ...])` pair in tests/py/test_refactor_owed.py into one feed-and-append helper
 ### veri.refactor_owed.main render and list over an owed file holding non-UTF-8 bytes return 0 and print those bytes verbatim on stdout, as the bash script does ⟦added⟧ ⟦criterion 5⟧
 - test-only | test_refactor_owed.py repeats `owed.read_bytes() if owed.exists() else b""` in five cases and the `io.TextIOWrapper(io.BytesIO(...))` stdin fake in two; fold each into a fixture helper
+### veri.refactor_owed.main list takes the lines starting `- ` but not `- test-only | ` wherever they sit (`-x` not one), counts each transform's occurrences, prints each once count descending with ties in first-seen order, prints a transform holding a tab whole, prints an empty transform as a blank line, and returns 3 with nothing on stdout for a file of only test-only lines, only empty transforms, one newline, or a directory ⟦criterion 5⟧
+- test-only | test_render_… and test_list_… in tests/py/test_refactor_owed.py repeat the same "for path, expected: main([verb, path]); capsys.readouterr(); assert (path.name, code, out)" loop — fold into one helper
+- test-only | the "owed = tmp_path/'owed.md'; if owed.exists(): owed.unlink()" reset repeats in two append tests — one helper
