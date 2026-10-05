@@ -596,6 +596,53 @@ def test_show_next_and_assign_with_an_empty_toplevel_exit_2_and_read_lock_and_wr
     assert sorted(p.name for p in (root / ".tdd").iterdir()) == ["workqueue"]
 
 
+def test_the_outside_a_repository_part_of_the_assign_case_reads_and_writes_nothing_outside_tmp_path_whatever_exists_at_the_root_issue_898(tmp_path, monkeypatch, capsys, workqueue):
+    root = tmp_path / "root"
+    (root / ".tdd").mkdir(parents=True)
+    planted = root / ".tdd" / "workqueue"
+    planted.write_bytes(b"beta\t7\tqueued\t\n")
+    touched = []
+
+    def rooted(path):
+        path = os.fspath(path)
+        touched.append(path)
+        return str(root) + path if path.startswith("/.tdd") else path
+
+    real_open, real_mkdir, real_makedirs, real_rmdir, real_remove, real_isfile = (
+        open, os.mkdir, os.makedirs, os.rmdir, os.remove, os.path.isfile)
+    monkeypatch.setattr(workqueue, "open", lambda path, *a, **k: real_open(rooted(path), *a, **k), raising=False)
+    monkeypatch.setattr(os, "mkdir", lambda path, *a, **k: real_mkdir(rooted(path), *a, **k))
+    monkeypatch.setattr(os, "makedirs", lambda path, *a, **k: real_makedirs(rooted(path), *a, **k))
+    monkeypatch.setattr(os, "rmdir", lambda path, *a, **k: real_rmdir(rooted(path), *a, **k))
+    monkeypatch.setattr(os, "remove", lambda path, *a, **k: real_remove(rooted(path), *a, **k))
+    monkeypatch.setattr(os.path, "isfile", lambda path: real_isfile(rooted(path)))
+    monkeypatch.setenv("VERI_WORKQUEUE_LOCK_WAIT", "0")
+
+    def run(argv):
+        code = workqueue.main(argv)
+        out, err = capsys.readouterr()
+        return code, out, err
+
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / ".tdd").write_bytes(b"")
+    fake_git(monkeypatch, outside)
+    fixture = tmp_path / "gh"
+    fixture.mkdir()
+    (fixture / "issues.json").write_text('[{"number": 7, "state": "OPEN", "body": ""}]')
+    monkeypatch.setenv("VERI_GH_JSON", str(fixture))
+    code, out, err = run(["assign", "beta", "7"])
+    assert (code, out, err.startswith("mkdir: %s/.tdd: " % outside)) == (1, "", True)
+    code, out, err = run(["start", "beta", "7"])
+    assert (code, out, err.startswith("mkdir: %s/.tdd: " % outside)) == (1, "", True)
+    fake_git(monkeypatch, "")
+    assert run(["show"])[:2] == (2, "")
+    assert run(["next", "beta"])[:2] == (2, "")
+    assert [path for path in touched if not path.startswith(str(tmp_path) + "/")] == []
+    assert planted.read_bytes() == b"beta\t7\tqueued\t\n"
+    assert sorted(p.name for p in (root / ".tdd").iterdir()) == ["workqueue"]
+
+
 def test_show_with_an_empty_toplevel_exits_2_with_empty_stdout_saying_it_is_outside_a_repository_issue_898(monkeypatch, capsys, workqueue):
     fake_git(monkeypatch, "")
     code = workqueue.main(["show"])

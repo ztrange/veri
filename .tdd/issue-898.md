@@ -6,4 +6,4 @@
 - [x] With an empty toplevel, `workqueue.sh next <worker>` exits 2 with empty stdout and the outside-a-repository stderr line instead of raising FileNotFoundError (the existing case's FileNotFoundError expectation is replaced by this one) ⟦criterion 1⟧
 - [x] With an empty toplevel, `workqueue.sh assign <worker> <issue>` exits 2 with empty stdout and the outside-a-repository stderr line ⟦criterion 1⟧
 - [x] With an empty toplevel, `start`, `done` and `park` each exit 2 with empty stdout and the outside-a-repository stderr line, taking no lock ⟦criterion 1⟧
-- [ ] The outside-a-repository part of the existing assign case reads and writes nothing outside `tmp_path` and passes whatever the uid and whether or not `/.tdd/workqueue` exists, never skipped when uid is 0 ⟦criterion 3⟧
+- [x] The outside-a-repository part of the existing assign case reads and writes nothing outside `tmp_path` and passes whatever the uid and whether or not `/.tdd/workqueue` exists, never skipped when uid is 0 ⟦criterion 3⟧
