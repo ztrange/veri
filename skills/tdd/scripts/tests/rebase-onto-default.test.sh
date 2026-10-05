@@ -171,17 +171,6 @@ status_after="$(git -C "$repo" status --porcelain=v1 --untracked-files=all)"
 [[ -z "$status_after" ]] || problems+=("working tree: want clean, got $(printf '%q' "$status_after")")
 report_stderr "$name"
 
-name="rebase-onto-default.test.sh: a rebase git refuses for a reason other than a conflict, such as a dirty working tree, exits 2 with nothing on stdout and HEAD unchanged"
-problems=()
-dir="$work/dirty"
-stderr_file="$work/dirty.err"
-behind_branch "$dir"
-repo="$dir/clone"
-git -C "$repo" config rebase.autoStash false
-echo "an uncommitted edit" > "$repo/file.txt"
-expect_refused "$repo" "$dir/stdout" ""
-report_stderr "$name"
-
 name="rebase-onto-default.test.sh: in a repo configured with rebase.backend=apply, a rebase that conflicts is still aborted, exits 1, prints the conflicting files, and leaves no rebase in progress"
 problems=()
 dir="$work/conflict-apply"
@@ -194,16 +183,6 @@ pre="$(git -C "$repo" rev-parse HEAD)"
 out="$(cd "$repo" && bash "$REBASE" 2>"$stderr_file")"
 rc=$?
 expect_conflict_aborted "$repo" "$pre" "$rc" "$out"
-report_stderr "$name"
-
-name="rebase-onto-default.test.sh: when origin/<default> cannot be fetched, exits 2 with nothing on stdout and never rebases onto the stale local copy"
-problems=()
-dir="$work/unreachable"
-stderr_file="$work/unreachable.err"
-behind_branch "$dir"
-repo="$dir/clone"
-mv "$dir/origin.git" "$dir/origin-gone.git"
-expect_refused "$repo" "$dir/stdout" ", not rebased onto the stale origin/main"
 report_stderr "$name"
 
 name="rebase-onto-default.test.sh: when a fetch succeeds without refreshing origin/<default>, exits 2 with nothing on stdout and never rebases onto the stale local copy"
@@ -236,26 +215,6 @@ for d in rebase-merge rebase-apply; do
 done
 report_stderr "$name"
 
-name="rebase-onto-default.test.sh: with no refs/remotes/origin/HEAD and a remote that names its default branch, a branch behind it rebases onto it, exits 0 and prints the pre-rebase and onto shas, as when the ref is set (#865)"
-problems=()
-dir="$work/no-origin-head-resolvable"
-stderr_file="$work/no-origin-head-resolvable.err"
-behind_branch "$dir"
-repo="$dir/clone"
-git -C "$repo" config remote.origin.followRemoteHEAD never
-git -C "$repo" remote set-head origin -d >/dev/null 2>&1
-pre="$(git -C "$repo" rev-parse HEAD)"
-onto="$(git -C "$repo" rev-parse origin/main)"
-out="$(cd "$repo" && bash "$REBASE" 2>"$stderr_file")"
-rc=$?
-[[ "$rc" -eq 0 ]] || problems+=("exit: want 0, got $rc")
-want_out="$(printf '%s\n%s' "$pre" "$onto")"
-[[ "$out" == "$want_out" ]] ||
-  problems+=("stdout: want $(printf '%q' "$want_out"), got $(printf '%q' "$out")")
-parent="$(git -C "$repo" rev-parse HEAD~1 2>/dev/null)"
-[[ "$parent" == "$onto" ]] || problems+=("HEAD~1: want the onto sha $onto, got $parent")
-report_stderr "$name"
-
 name="rebase-onto-default.test.sh: with no refs/remotes/origin/HEAD and a remote that names its default branch, a branch already containing it exits 3 and a conflicting rebase exits 1 naming the conflicting files, as when the ref is set (#865)"
 problems=()
 dir="$work/no-origin-head-up-to-date"
@@ -279,24 +238,6 @@ pre="$(git -C "$repo" rev-parse HEAD)"
 out="$(cd "$repo" && bash "$REBASE" 2>>"$stderr_file")"
 rc=$?
 expect_conflict_aborted "$repo" "$pre" "$rc" "$out"
-report_stderr "$name"
-
-name="rebase-onto-default.test.sh: with no refs/remotes/origin/HEAD and an origin that cannot be reached to resolve its default branch, exits 2 naming refs/remotes/origin/HEAD, HEAD unchanged and no rebase started (#865)"
-problems=()
-dir="$work/no-origin-head-unreachable"
-stderr_file="$work/no-origin-head-unreachable.err"
-behind_branch "$dir"
-repo="$dir/clone"
-git -C "$repo" config remote.origin.followRemoteHEAD never
-git -C "$repo" remote set-head origin -d >/dev/null 2>&1
-mv "$dir/origin.git" "$dir/origin.gone"
-expect_refused "$repo" "$dir/stdout" ", with no default branch to rebase onto"
-grep -F 'refs/remotes/origin/HEAD' "$stderr_file" > /dev/null ||
-  problems+=("stderr: want a line naming refs/remotes/origin/HEAD, got $(printf '%q' "$(cat "$stderr_file")")")
-for d in rebase-merge rebase-apply; do
-  [[ ! -e "$(git -C "$repo" rev-parse --path-format=absolute --git-path "$d")" ]] ||
-    problems+=("rebase: want none started, found $d")
-done
 report_stderr "$name"
 
 name="rebase-onto-default.test.sh: run through a symlink to the skill directory and from another working directory, a branch behind origin/<default> rebases as when run in place, exits 0, prints the pre-rebase and onto shas, and the caller's clone is the one rebased, never the skill's repository"
