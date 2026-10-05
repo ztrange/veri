@@ -36,6 +36,14 @@ settled='# Plan for #42
 - [ ] collapse non-alphanumerics to a single hyphen'
 check "no pending step exits 3" 3 "$settled" ""
 
+away="$(scratch_dir)"
+ln -s "$(cd "$HERE/../../.." && pwd)" "$away/skill"
+in_place="$(printf '%s' "$pending" | "$PENDING")" && in_code=0 || in_code=$?
+linked="$(cd "$away" && printf '%s' "$pending" | skill/scripts/next-pending-refactor.sh 2>&1)" \
+  && link_code=0 || link_code=$?
+expect_eq "through a symlink to the skill directory, from another working directory, answers as in place" \
+  "0 collapse non-alphanumerics to a single hyphen|$in_code $in_place" "$link_code $linked|$in_code $in_place"
+
 work="$(scratch_dir)"
 mkdir "$work/lib"
 cp "$PENDING" "$work/next-pending-refactor.sh"
