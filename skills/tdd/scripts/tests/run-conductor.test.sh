@@ -1118,7 +1118,7 @@ caller31="$work/caller31"
 caller_repo "$caller31"
 
 rm -f "$argv" "$prompt"
-launch_from "$caller31" "$clone31" PATH="$shim31:$PATH"
+launch_from "$caller31" "$clone31" PATH="$shim31:$PATH" VERI_FETCH_RETRY_SLEEP=0
 status=$?
 
 [[ "$status" -eq 0 ]] ||
@@ -1167,7 +1167,7 @@ caller32="$work/caller32"
 caller_repo "$caller32"
 
 rm -f "$argv" "$prompt"
-launch_from "$caller32" "$clone32" PATH="$shim32:$PATH"
+launch_from "$caller32" "$clone32" PATH="$shim32:$PATH" VERI_FETCH_RETRY_SLEEP=0
 status=$?
 
 [[ "$status" -eq 0 ]] ||
