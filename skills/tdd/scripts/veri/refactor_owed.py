@@ -24,7 +24,7 @@ def refuse():
 def append(file, step):
     structural, test_only = [], []
     stream = getattr(sys.stdin, "buffer", None)
-    report = stream.read().decode() if stream else sys.stdin.read()
+    report = stream.read().decode(errors="surrogateescape") if stream else sys.stdin.read()
     for line in report.split("\n"):
         match = STRUCTURAL.match(line)
         if match:
@@ -34,7 +34,7 @@ def append(file, step):
             test_only.append("test-only | " + match.group(1))
     owed = structural + test_only
     if owed:
-        with open(file, "a") as out:
+        with open(file, "a", errors="surrogateescape") as out:
             out.write(f"### {step}\n" + "".join(f"- {t}\n" for t in owed))
     return 0
 

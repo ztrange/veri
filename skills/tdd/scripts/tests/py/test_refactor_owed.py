@@ -127,3 +127,12 @@ def test_append_reading_the_real_stdin_as_bytes_keeps_a_crlf_lines_carriage_retu
     code = refactor_owed.main(["append", str(owed), "S"])
     written = owed.read_bytes() if owed.exists() else b""
     assert (code, written) == (0, b"### S\n- h\r\n")
+
+
+def test_append_writes_a_structural_transform_holding_non_utf8_bytes_to_the_owed_file_verbatim(
+        monkeypatch, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(b"CANDIDATES: structural | caf\xe9 \xff\xfe\n")))
+    code = refactor_owed.main(["append", str(owed), "S"])
+    written = owed.read_bytes() if owed.exists() else b""
+    assert (code, written) == (0, b"### S\n- caf\xe9 \xff\xfe\n")
