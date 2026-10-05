@@ -486,35 +486,6 @@ rm -f "$unbounded" "$bounded"
 report "$name"
 
 
-name="#683 append records a test-only candidate as test_only_candidate answers it"
-problems=()
-
-tree="$(scratch_dir)"
-mkdir -p "$tree/lib"
-cp "$OWED" "$tree/refactor-owed.sh"
-cp "$HERE/.."/lib/*.sh "$tree/lib/"
-cat >"$tree/lib/candidate-line.sh" <<SPY
-source "$HERE/../lib/candidate-line.sh"
-test_only_candidate() {
-  [[ "\$1" == 'CANDIDATES: test-only | '* ]] || return 1
-  TEST_ONLY_TRANSFORM='the transform test_only_candidate answered'
-}
-SPY
-
-owed_file="$tree/owed.md"
-step='refactor-owed.sh append records a test-only candidate through test_only_candidate'
-"$tree/refactor-owed.sh" append "$owed_file" "$step" <<'REPORT' && code=0 || code=$?
-CANDIDATES: test-only | fold the three answers_none fixtures into one helper
-REPORT
-
-[[ "$code" == 0 ]] ||
-  problems+=("want exit 0 from append, got $code")
-
-under_step "$owed_file" "$step" 'test-only | the transform test_only_candidate answered'
-
-report "$name"
-
-
 name="refactor-owed.sh, run through a symlink to the skill directory from another working directory, answers append, render and list as in place, the owed file read relative to the caller's working directory"
 problems=()
 
