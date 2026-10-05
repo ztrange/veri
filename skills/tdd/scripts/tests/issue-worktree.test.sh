@@ -632,4 +632,19 @@ printf '%s\n' 'git() { [[ "$1 ${2:-}" == "worktree add" ]] && builtin exit 5; co
 { [[ "$wt_code" == 2 ]]; } \
   && ok || no "issue-worktree.sh, whose own EXIT trap cleans up, still ends with 2 and never a code outside 0–3 when a command dies with one — its trap does not replace the contract's mapping (exit=$wt_code want 2)"
 
+usage_line="usage: issue-worktree.sh <n> <slug> | --remove <n>"
+problems=""
+for args in "" "270" "--remove" "'' x"; do
+  eval "set -- $args"
+  errfile="$work/usage.err"
+  out="$(cd "$work" && "$WT" "$@" 2>"$errfile")" && code=0 || code=$?
+  err="$(cat "$errfile")"
+  [[ "$code" == 2 ]] || problems+="; ($args) exit=$code want 2"
+  [[ -z "$out" ]] || problems+="; ($args) stdout='$out' want empty"
+  [[ "$err" == "$usage_line" ]] || problems+="; ($args) stderr='$err' want exactly '$usage_line'"
+done
+set --
+{ [[ -z "$problems" ]]; } \
+  && ok || no "a bad argument list — none, 270 alone, --remove alone, an empty first argument — exits 2 with nothing on stdout and stderr exactly the usage line (${problems#; })"
+
 finish
