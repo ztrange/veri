@@ -26,7 +26,7 @@ alone, so no test is this step's deliverable.
 ### What to do
 
 1. Read what this step left on disk and change it to answer that objection — and only
-   that objection — then commit that change.
+   that objection — then commit that change, its subject ending in `(#<issue>)`.
 2. Add no test. A case that pins this criterion by reading another file's text or the git
    history is rejected.
 3. {{INCLUDE:_develop-run-affected.md}}
