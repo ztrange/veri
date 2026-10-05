@@ -5,7 +5,7 @@ from ledger import ledger_steps
 
 
 def handed_out(record):
-    return record[1] == "open"
+    return record[1] == "open" and record[2] in ("step", "diff-checked")
 
 
 def main(argv):

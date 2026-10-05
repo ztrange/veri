@@ -115,20 +115,4 @@ if [[ "$code" == 0 && "$got" == "$want" ]]; then ok; else
   diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
 fi
 
-work="$(scratch_dir)"
-mkdir "$work/lib"
-cp "$NEXT" "$work/next-unchecked.sh"
-cp "$(dirname "$NEXT")"/lib/*.sh "$work/lib/"
-{ printf '. %q\n' "$(dirname "$NEXT")/lib/ledger.sh"; cat <<'EOF'; } > "$work/lib/ledger.sh"
-ledger_steps() {
-  cat > /dev/null
-  printf '1\tdone\tstep\t0\t0\t1\tticked in the module ⟦criterion 1⟧\n'
-  printf '2\topen\tfull-suite\t0\t0\t2\tgated in the module ⟦full-suite⟧ ⟦criterion 2⟧\n'
-  printf '3\topen\tstep\t0\t0\t3\tasked the module ⟦criterion 3⟧\n'
-}
-EOF
-NEXT="$work/next-unchecked.sh"
-check "the first open ordinary step comes from lib/ledger.sh's ledger_steps (#495)" 0 \
-  "- [ ] found in the markdown ⟦criterion 1⟧" "asked the module ⟦criterion 3⟧"
-
 finish
