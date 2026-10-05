@@ -48,6 +48,15 @@ if [[ "$bad_code" == 2 && "$bad_out" == *"$bogus"* ]]; then ok; else
   no "unresolvable base-sha → exit 2 with a diagnostic naming it (code=$bad_code out=$bad_out)"
 fi
 
+nosuch_err="$work/nosuch.err"
+nosuch_out="$(cd "$repo" && "$TOUCHES" nosuch 2>"$nosuch_err")"; nosuch_code=$?
+nosuch_want="transform-touches-tests.sh: base-sha does not resolve to a commit: nosuch
+usage: transform-touches-tests.sh <base-sha>"
+if [[ "$nosuch_code" == 2 && -z "$nosuch_out" ]] && cmp -s <(printf '%s\n' "$nosuch_want") "$nosuch_err"; then ok; else
+  no "base-sha nosuch → exit 2, nothing on stdout, stderr the refusal then the usage line (code=$nosuch_code out=$nosuch_out)"
+  diff <(printf '%s\n' "$nosuch_want") "$nosuch_err"
+fi
+
 OWED="$HERE/../refactor-owed.sh"
 agree_repo="$work/agree"
 new_repo -b main "$agree_repo" >/dev/null 2>&1
