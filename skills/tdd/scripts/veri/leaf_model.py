@@ -2,21 +2,16 @@
 import os
 import sys
 
-from leaf_role import leaf_role
+from leaf_role import _write, leaf_role
 
 USAGE = "usage: leaf-model.sh <leaf-name>"
 WHITESPACE = " \t\n\v\f\r"
 
 
-def _write(stream, line, end="\n"):
-    stream.flush()
-    stream.buffer.write(os.fsencode(line + end))
-    stream.buffer.flush()
-
-
 def _echo(value):
     if len(value) > 1 and value[0] == "-" and all(c in "neE" for c in value[1:]):
-        _write(sys.stdout, "", "" if "n" in value else "\n")
+        if "n" not in value:
+            _write(sys.stdout, "")
     else:
         _write(sys.stdout, value)
 
