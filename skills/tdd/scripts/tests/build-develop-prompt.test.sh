@@ -1014,4 +1014,13 @@ printf 'partial runs {{TEST_CMD}}\n\n\n' > "$included/prompts/_probe-partial.md"
 rendered="$("$included/build-develop-prompt.sh" red "$work/spec.md" "$step_text" "$test_cmd" 2>&1)"; code=$?
 expect_eq "$name" "0:before partial runs $test_cmd after" "$code:$rendered"
 
+name="#703 a {{INCLUDE:<file>}} token inside an included partial is itself resolved, recursively"
+nested="$(scratch_dir)"
+cp -R "$HERE/../build-develop-prompt.sh" "$HERE/../lib" "$HERE/../prompts" "$nested/"
+printf 'before {{INCLUDE:_probe-outer.md}} after\n' > "$nested/prompts/develop-red.md"
+printf 'outer {{INCLUDE:_probe-inner.md}} end\n' > "$nested/prompts/_probe-outer.md"
+printf 'inner runs {{TEST_CMD}}\n' > "$nested/prompts/_probe-inner.md"
+rendered="$("$nested/build-develop-prompt.sh" red "$work/spec.md" "$step_text" "$test_cmd" 2>&1)"; code=$?
+expect_eq "$name" "0:before outer inner runs $test_cmd end after" "$code:$rendered"
+
 finish
