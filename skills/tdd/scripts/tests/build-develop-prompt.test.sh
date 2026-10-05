@@ -1052,4 +1052,9 @@ st="$("$BUILD" structural "$work/spec.md" "a candidate" "$test_cmd" "a.sh b.sh" 
 suffix=""; grep -F '(#<issue>)' <<<"$st" | grep -iF 'commit' > /dev/null && suffix=stated
 expect_eq "$name" "0:stated" "$code:$suffix"
 
+name="#935 the diff prompt tells the leaf to give its commit a subject ending in (#<issue>), the convention develop-refactor states"
+df="$("$BUILD" diff "$work/spec.md" "$step_text" "$test_cmd" 2>/dev/null)"; code=$?
+suffix=""; grep -F '(#<issue>)' <<<"$df" | grep -iF 'commit' > /dev/null && suffix=stated
+expect_eq "$name" "0:stated" "$code:$suffix"
+
 finish

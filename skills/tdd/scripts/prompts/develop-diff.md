@@ -12,7 +12,8 @@ so no test is this step's deliverable.
 
 {{INCLUDE:_develop-spec-context-only.md}}
 
-1. Make the change the step's criterion names, and nothing else, then commit that change.
+1. Make the change the step's criterion names, and nothing else, then commit that change
+   as its own commit, its subject ending in `(#<issue>)`.
 2. When the criterion is that something stays unchanged, make no commit: leave the tree as
    you found it.
 3. Add no test. A case that pins this criterion by reading another file's text or the git
