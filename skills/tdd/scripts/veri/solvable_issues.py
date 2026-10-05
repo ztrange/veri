@@ -12,13 +12,29 @@ USAGE = "usage: solvable-issues.sh [--repo owner/name]"
 
 
 def main_working_tree():
-    answer = subprocess.run(["git", "worktree", "list", "--porcelain"],
-                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True).stdout
+    try:
+        answer = subprocess.run(["git", "worktree", "list", "--porcelain"],
+                                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True).stdout
+    except OSError:
+        return ""
     return answer.split("\n", 1)[0].removeprefix("worktree ")
 
 
 def in_flight(main_tree, number):
-    return os.path.exists(os.path.join(main_tree, ".tdd", "wt", str(number), ".tdd", "conductor.pid"))
+    if not main_tree:
+        return False
+    try:
+        with open(os.path.join(main_tree, ".tdd", "wt", str(number), ".tdd", "conductor.pid")) as lock:
+            pid = int(lock.read().strip())
+    except (OSError, ValueError):
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except OSError:
+        pass
+    return True
 
 
 def refused_if_empty(name):
