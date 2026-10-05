@@ -2108,7 +2108,7 @@ leaves the run resumable. Run this sequence in order.
    tree — that last one wins over the others, because where the tree stands is the first
    thing a resume has to deal with.
    ```
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/event.sh stop mode=<mode> at=<at>
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current || { cat .tdd/issue-<n>.md | $S/ledger-steps.sh last-done; })" $S/event.sh stop mode=<mode> at=<at>
    ```
    That is the whole record of the pause, and it is never a `bail` mark: a stop has no
    cause, so there is no system-versus-process label to derive and nothing to derive it

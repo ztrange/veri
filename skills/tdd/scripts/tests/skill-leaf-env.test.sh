@@ -821,6 +821,31 @@ scan_bail_last_done() {
 run_case "#907 Bailing in $skill_md, run with every ledger step ticked, passes preserve-attempt.sh and the bail mark's VERI_STEP the last done step's text, byte-identical" \
   scan_bail_last_done
 
+scan_stop_last_done() {
+  local title="$EXPANDING_STEP"
+  local lineno line numbered launch stage seen tree err got argv
+  stage_recorder stop-last-done
+  rm -f "$stage/event.sh"
+  ln -s "$RECORDERS/title.sh" "$stage/event.sh"
+  plant_done_ledger "$title"
+  numbered="$(head -1 < <(grep -nE '\$S/event\.sh stop mode=<mode> at=<at>' "$md"))"
+  numbered="${numbered//<mode>/at-ledger}"
+  numbered="${numbered//<at>/step-done}"
+  if [[ -z "$numbered" ]]; then
+    no_launch "Stopping's stop mark"
+    return
+  fi
+  take_line "$numbered" "$title" || return
+  rm -f "$seen" "$seen".*
+  run_staged '<not run>'
+  got="$(head -1 "$seen.event" 2>/dev/null)" || got='<no mark was made>'
+  [[ "$got" == "$title" ]] ||
+    problem "marked stop beside a ledger with every step ticked with VERI_STEP=<$got>, want the last done step <$title> (the typing shell said: ${err//$'\n'//})"
+}
+
+run_case "#907 Stopping in $skill_md, run with every ledger step ticked, gives the stop mark's VERI_STEP the last done step's text, byte-identical" \
+  scan_stop_last_done
+
 scan_transform_verifier_last_done() {
   local title="$EXPANDING_STEP"
   local lineno line numbered launch stage seen tree err got argv
