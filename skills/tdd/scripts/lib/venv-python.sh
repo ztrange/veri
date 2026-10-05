@@ -9,6 +9,8 @@
 #                Python $VENV_FLOOR or newer; with none, name the floor on stderr and return 2.
 # venv_usable  — return 0 when the environment at $1 runs Python $VENV_FLOOR or newer; else name its path,
 #                its version and the floor on stderr and return 2.
+# venv_version_usable — return 0 when the interpreter $1, reporting version $2, is Python $VENV_FLOOR or
+#                newer; else name the floor, the interpreter and its version on stderr and return 2.
 VENV_FLOOR=3.12
 
 venv_dir() {
@@ -48,4 +50,13 @@ venv_usable() {
   version="$("$py" -c 'import platform; print(platform.python_version())' 2> /dev/null)"
   printf 'veri needs Python %s or newer; the environment at %s runs Python %s. Remove it and run make install-dev again.\n' "$VENV_FLOOR" "$1" "${version:-unknown}" >&2
   return 2
+}
+
+venv_version_usable() {
+  local major="${2%%.*}" minor="${2#*.}"
+  minor="${minor%%.*}"
+  if [ "$major" -lt "${VENV_FLOOR%%.*}" ] || { [ "$major" -eq "${VENV_FLOOR%%.*}" ] && [ "$minor" -lt "${VENV_FLOOR#*.}" ]; }; then
+    printf 'veri needs Python %s or newer for the suites under skills/tdd/scripts/tests/py/; %s is version %s.\n' "$VENV_FLOOR" "$1" "$2" >&2
+    return 2
+  fi
 }
