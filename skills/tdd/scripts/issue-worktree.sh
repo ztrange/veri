@@ -86,6 +86,8 @@ remote_branch_ref() { printf '%s\n' "refs/remotes/origin/$1"; }
 
 remote_branch_exists() { ref_exists "$(remote_branch_ref "$1")"; }
 
+has_origin() { git remote get-url origin >/dev/null 2>&1; }
+
 default_branch_name() {
   local head candidate
   if head="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)"; then
@@ -98,7 +100,7 @@ default_branch_name() {
     printf '%s\n' "$head"
     return 0
   fi
-  if git remote get-url origin >/dev/null 2>&1; then
+  if has_origin; then
     echo "issue-worktree: cannot determine origin's default branch (no refs/remotes/origin/HEAD, and the remote did not name one)" >&2
     return 2
   fi
@@ -117,7 +119,7 @@ default_base() {
   local name
   name="$(default_branch_name)" || return 2
 
-  if ! git remote get-url origin >/dev/null 2>&1; then
+  if ! has_origin; then
     printf '%s\n' "$name"
     return 0
   fi
