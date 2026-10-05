@@ -1842,6 +1842,22 @@ For attempt `k = 1 … REVISE_BUDGET`:
    - **REJECT (exit 1):** if attempts remain, loop; otherwise fall through to the bail below.
    - **Malformed / killed-stuck (exit 2):** **bail** (system failure).
 
+**The `diff` phase.** A REJECT on a `⟦diff-checked⟧` step runs the same loop with `<phase>`
+set to `diff`, with two differences: no `step-cost.sh` line and no prediction check, since the
+step has no failing test, and a re-verify that is the blind `diff` verifier rather than one
+with a test path. The revise leaf is built as:
+```
+$S/build-develop-prompt.sh revise diff .tdd/issue-<n>-spec.md "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" '<test-cmd>' .tdd/verify-diff.reason > .tdd/revise-diff-<k>.prompt
+```
+and launched as `revise-diff-<k>` like any revise leaf. The re-verify is `run-verdict.sh
+--step "<STEP>" diff <spec-file> <base-sha>`, launched as `verdict-diff` with its stdout
+overwriting `.tdd/verify-diff.reason`, and its `<base-sha>` is the same base sha the original
+verify-diff verdict ran against — the run's branch point — so the revised work is judged
+against the diff the rejection was about. A
+recovered PASS on the `⟦diff-checked⟧` step is ticked exactly as the `⟦diff-checked⟧` PASS
+bullet in *A `⟦diff-checked⟧` step* describes: `tick-ledger.sh` without `--refactor-pending`,
+then the issue criterion.
+
 If all `REVISE_BUDGET` attempts are still `REJECT`, the step is **not** bailed on the spot. A
 criterion no blind verifier could be satisfied about in that many attempts is usually a
 criterion carrying more than one behaviour — the very condition `SPLIT:` exists for — so send
