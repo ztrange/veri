@@ -12,22 +12,27 @@ def _passed(status):
     return status if 0 <= status <= 3 else 2
 
 
+def _sibling(*args):
+    answer = subprocess.run([os.path.join(SCRIPTS, args[0]), *args[1:]], stdout=subprocess.PIPE, text=True)
+    return _passed(answer.returncode), answer.stdout
+
+
 def main(argv):
     remaining = argv[0] if argv else ""
     if not re.fullmatch(r"[0-9]+", remaining):
         print("run-affordable.sh: <steps-remaining> is not a whole number: '%s'" % remaining, file=sys.stderr)
         print(USAGE, file=sys.stderr)
         return 2
-    budgets = subprocess.run([os.path.join(SCRIPTS, "step-budget.sh")], stdout=subprocess.PIPE, text=True)
-    if budgets.returncode:
-        return _passed(budgets.returncode)
-    ceiling = float(budgets.stdout.splitlines()[-1])
-    steps = subprocess.run([os.path.join(SCRIPTS, "step-cost.sh"), "--steps"], stdout=subprocess.PIPE, text=True)
-    if steps.returncode:
-        return _passed(steps.returncode)
+    status, budgets = _sibling("step-budget.sh")
+    if status:
+        return status
+    ceiling = float(budgets.splitlines()[-1])
+    status, steps = _sibling("step-cost.sh", "--steps")
+    if status:
+        return status
     spent = 0.0
     full = []
-    for line in steps.stdout.splitlines():
+    for line in steps.splitlines():
         dollars, leaves = line.split()
         spent += float(dollars)
         if int(leaves) > 2:
