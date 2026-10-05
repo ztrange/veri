@@ -612,6 +612,25 @@ scan_rebase_verifier_last_done() {
 run_case "#753 the verify-rebase launch line in $skill_md, run with every ledger step ticked, hands its verifier the last done step's text as --step, byte-identical" \
   scan_rebase_verifier_last_done
 
+scan_rebase_verifier_env_last_done() {
+  local title="$EXPANDING_STEP"
+  local lineno line numbered launch stage seen tree err got argv
+  numbered="$(head -1 < <(grep -nE '\$S/detach-leaf\.sh .*\$S/supervise\.sh verdict-rebase \$S/run-verdict\.sh' "$md"))"
+  if [[ -z "$numbered" ]]; then
+    no_launch "verdict-rebase through supervise.sh into run-verdict.sh"
+    return
+  fi
+  take_line "$numbered" "$title" || return
+  stage_recorder rebase-verifier-env-last-done
+  plant_done_ledger "$title"
+  run_staged '<no verifier was launched>'
+  [[ "$got" == "$title" ]] ||
+    problem "launched verdict-rebase beside a ledger with every step ticked, whose verifier saw VERI_STEP=<$got>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})"
+}
+
+run_case "#907 the Draft PR step's verdict-rebase launch line in $skill_md, run with every ledger step ticked, gives its verifier the last done step's text as VERI_STEP, byte-identical" \
+  scan_rebase_verifier_env_last_done
+
 prompt_step_arg() {
   local rec k
   mapfile -t rec < "$seen.build-develop-prompt" 2>/dev/null || rec=()
