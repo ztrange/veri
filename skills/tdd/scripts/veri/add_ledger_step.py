@@ -24,6 +24,10 @@ def added_step(text, k):
     return step if k else step.removesuffix(f" {CRITERION_TAG}⟧")
 
 
+def is_anchor_step(line, anchor):
+    return anchor in line and ledger_steps(line)
+
+
 def main(argv):
     if len(argv) < 4 or "" in argv[:3]:
         return refuse(USAGE)
@@ -33,7 +37,7 @@ def main(argv):
     with open(path, "rb") as f:
         content = f.read().decode()
     lines = content.split("\n")
-    if sum(1 for line in lines if anchor in line and ledger_steps(line)) != 1:
+    if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:
         return refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
     budget = os.environ.get("VERI_STEP_GROWTH", "5")
     if not re.fullmatch("[0-9]+", budget):
@@ -48,7 +52,7 @@ def main(argv):
         return 1
     out = []
     for line in lines:
-        if not (anchor in line and ledger_steps(line)):
+        if not is_anchor_step(line, anchor):
             out.append(line)
             continue
         steps = [added_step(text, criterion_of(line)) for text in texts]
