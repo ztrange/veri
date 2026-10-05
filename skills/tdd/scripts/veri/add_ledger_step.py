@@ -72,7 +72,7 @@ def main(argv):
     cap = bash_integer(budget)
     if cap is None:
         warn(f'add-ledger-step.sh: {budget}: value too great for base (error token is "{budget}")')
-    if cap is not None and added + sum(not is_repair(text) for text in texts) > cap:
+    elif added + sum(not is_repair(text) for text in texts) > cap:
         headings = [line for line in lines if line.startswith("## ")]
         owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
         owed += "".join(f"- {text}\n" for text in texts)
