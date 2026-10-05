@@ -37,7 +37,12 @@ def main(argv):
     if refused_if_empty("VERI_LABEL") or refused_if_empty("VERI_PRIORITY_LABEL"):
         return 2
     label = os.environ.get("VERI_LABEL", "ready-for-agent")
-    issues = items(gh_json("issues.json", "repos/{owner}/{repo}/issues"))
+    repo = argv[1] if argv[:1] == ["--repo"] else ""
+    scope = ["--repo", repo] if repo else []
+    prefix = "repos/%s" % (repo or "{owner}/{repo}")
+    issues = items(gh_json("issues.json", prefix + "/issues",
+                           "issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope))
+    gh_json("prs.json", prefix + "/pulls", "pr", "list", "--limit", "10000", "--json", "body,state", *scope)
     main_tree = main_working_tree()
     for issue in issues:
         if carries(issue, label) and not in_flight(main_tree, issue["number"]):
