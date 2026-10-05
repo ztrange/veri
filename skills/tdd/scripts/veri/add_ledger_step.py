@@ -51,6 +51,11 @@ def is_anchor_step(line, anchor):
     return anchor in line and ledger_steps(line)
 
 
+def write_ledger(path, mode, text):
+    with open(path, mode) as f:
+        f.write(text.encode(errors=BYTES))
+
+
 def main(argv):
     if len(argv) < 4 or "" in argv[:3]:
         return refuse(USAGE)
@@ -76,8 +81,7 @@ def main(argv):
         headings = [line for line in lines if line.startswith("## ")]
         owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
         owed += "".join(f"- {text}\n" for text in texts)
-        with open(path, "ab") as f:
-            f.write(owed.encode(errors=BYTES))
+        write_ledger(path, "ab", owed)
         return 1
     out = []
     for line in lines:
@@ -90,8 +94,7 @@ def main(argv):
         out.extend(steps)
         if where == "before":
             out.append(line)
-    with open(path, "wb") as f:
-        f.write("".join(line + "\n" for line in out).encode(errors=BYTES))
+    write_ledger(path, "wb", "".join(line + "\n" for line in out))
     return 0
 
 
