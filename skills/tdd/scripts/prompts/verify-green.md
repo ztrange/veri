@@ -26,8 +26,7 @@ A developer agent has written the implementation intended to make the target tes
    conductor runs that once, before it readies the PR. Make each of those two runs through
    the same wrapper, each under its own tier:
 
-       {{TIMED_TEST_RUN}} fast '' {{FAST_CMD}}
-       {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>
+{{INCLUDE:_timed-test-run-fast-affected.md}}
 
 3. **The pass is genuine.** The behavior the spec asks for is actually present — the test
    was not made to pass by weakening the assertion, deleting cases, skipping/xfailing the

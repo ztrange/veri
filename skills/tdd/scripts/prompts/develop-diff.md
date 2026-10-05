@@ -21,8 +21,7 @@ so no test is this step's deliverable.
 4. Run the fast command, `{{FAST_CMD}}`, then the suites that `affected-suites.sh` prints
    for your change, each through the wrapper {{INCLUDE:_timed-test-run-tier.md}}:
 
-       {{TIMED_TEST_RUN}} fast '' {{FAST_CMD}}
-       {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>
+{{INCLUDE:_timed-test-run-fast-affected.md}}
 
    Finish only when both runs are green.
 

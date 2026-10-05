@@ -51,8 +51,7 @@ exactly as you found it.
    green. Make each of those two runs through the wrapper
    {{INCLUDE:_timed-test-run-tier.md}}:
 
-       {{TIMED_TEST_RUN}} fast '' {{FAST_CMD}}
-       {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>
+{{INCLUDE:_timed-test-run-fast-affected.md}}
 
    The wrapper hands the command's own exit status straight back, so a red run stays red.
    That pair
