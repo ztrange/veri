@@ -15,8 +15,8 @@ UNIT_DIR := skills/tdd/scripts/tests/unit
 UNIT_TESTS := $(sort $(wildcard $(UNIT_DIR)/*.test.sh))
 TESTS_NAMED := $(filter command line,$(origin TESTS))
 test profile: SUITES = $(filter-out %.py,$(TESTS)) $(if $(TESTS_NAMED),,$(UNIT_TESTS))
-unit: SUITES = $(UNIT_TESTS)
-unit: PY_TESTS = $(if $(filter command line,$(origin UNIT_TESTS)),,$(PY_ALL))
+unit: SUITES = $(filter-out %.py,$(UNIT_TESTS))
+unit: PY_TESTS = $(if $(filter command line,$(origin UNIT_TESTS)),$(filter %.py,$(UNIT_TESTS)),$(PY_ALL))
 PY_ALL := $(sort $(wildcard skills/tdd/scripts/tests/py/test_*.py))
 PY_TESTS := $(if $(TESTS_NAMED),$(filter %.py,$(TESTS)),$(PY_ALL))
 
