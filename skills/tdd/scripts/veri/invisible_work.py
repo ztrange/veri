@@ -36,6 +36,18 @@ def refs(prefix):
         yield ref, tip
 
 
+def default_branch():
+    run = git("symbolic-ref", "--short", "refs/remotes/origin/HEAD",
+              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    if run.returncode == 0:
+        return run.stdout.rstrip("\n").removeprefix("origin/")
+    for line in git_out("ls-remote", "--symref", "origin", "HEAD").splitlines():
+        m = re.match(r"ref: refs/heads/(\S+)\s+HEAD$", line)
+        if m:
+            return m.group(1)
+    raise GitFailed()
+
+
 def remote_rows(default):
     rows = []
     for ref, tip in refs("refs/remotes/origin/"):
@@ -90,8 +102,7 @@ def main(argv):
         return 2
 
     try:
-        default = git_value("symbolic-ref", "--short", "refs/remotes/origin/HEAD")
-        default = default.removeprefix("origin/")
+        default = default_branch()
         branches = remote_rows(default)
         locals_ = local_rows()
     except GitFailed:
