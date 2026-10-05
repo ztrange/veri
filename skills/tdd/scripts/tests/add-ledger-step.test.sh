@@ -456,4 +456,27 @@ else
   sed 's/^/    3 args stderr: /' "$work/usage3.err"
 fi
 
+name="run through a symlink to the skill directory and from another working directory, a relative <ledger-file> is read and rewritten in the caller's working directory exactly as when run in place"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+linked_add="$work/linked-skill/scripts/add-ledger-step.sh"
+mkdir -p "$work/in-place" "$work/elsewhere"
+printf '%s\n' "$seeded" > "$work/in-place/l.md"
+printf '%s\n' "$seeded" > "$work/elsewhere/l.md"
+(cd "$work/in-place" && "$ADD" l.md after 'collapse to single hyphen' 't' 2> "$work/in-place.after.err"); in_after=$?
+(cd "$work/elsewhere" && "$linked_add" l.md after 'collapse to single hyphen' 't' 2> "$work/linked.after.err"); linked_after=$?
+(cd "$work/in-place" && "$ADD" l.md after 'no such step' 't' 2> "$work/in-place.none.err"); in_none=$?
+(cd "$work/elsewhere" && "$linked_add" l.md after 'no such step' 't' 2> "$work/linked.none.err"); linked_none=$?
+if [[ "$in_after" == 0 && "$linked_after" == 0 && "$in_none" == 2 && "$linked_none" == 2 ]] \
+   && grep -Fx -- '- [ ] t ⟦added⟧ ⟦criterion 2⟧' "$work/in-place/l.md" > /dev/null \
+   && cmp -s "$work/in-place/l.md" "$work/elsewhere/l.md" \
+   && cmp -s "$work/in-place.after.err" "$work/linked.after.err" \
+   && [[ "$(cat "$work/in-place.none.err")" == "add-ledger-step.sh: anchor matches no single step: no such step" ]] \
+   && cmp -s "$work/in-place.none.err" "$work/linked.none.err"; then
+  ok
+else
+  no "$name (after: in place $in_after, linked $linked_after; no match: in place $in_none, linked $linked_none)"
+  diff "$work/in-place/l.md" "$work/elsewhere/l.md" | sed 's/^/    ledger: /'
+  diff "$work/in-place.none.err" "$work/linked.none.err" | sed 's/^/    stderr: /'
+fi
+
 finish
