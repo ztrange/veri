@@ -641,4 +641,19 @@ heads="$(grep '^== ' <<< "$out" | tr '\n' '/')"
   problems+=("want stdout's last line all suites green, got: $(tail -n 1 <<< "$out")")
 report "$name"
 
+name="#899: make unit UNIT_TESTS=<one test_*.py under $PY_DIR>, with another failing test_*.py beside it, runs only that file through the pytest leg, exits 0 and ends all suites green"
+problems=()
+env VERI_VENV="$work/no-venv" PYTHONPATH="$fake_pytest" \
+  make --no-print-directory -C "$scoped" unit UNIT_TESTS="$PY_DIR/test_named_probe.py" \
+  > "$work/out" 2> "$work/err" < /dev/null && code=0 || code=$?
+out="$(cat "$work/out")"
+[[ "$code" == 0 ]] || problems+=("want exit 0, got $code: $(flat "$out") $(flat "$(cat "$work/err")")")
+heads="$(grep '^== ' <<< "$out" | tr '\n' '/')"
+[[ "$heads" == '== pytest/' ]] || problems+=("want only == pytest/, got: $heads")
+[[ "$out" == *'0 failed, 1 passed'* ]] ||
+  problems+=("want the pytest leg to report 0 failed, 1 passed, got: $(flat "$out")")
+[[ "$(tail -n 1 <<< "$out")" == 'all suites green' ]] ||
+  problems+=("want stdout's last line all suites green, got: $(tail -n 1 <<< "$out")")
+report "$name"
+
 finish
