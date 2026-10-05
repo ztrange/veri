@@ -2,4 +2,4 @@
 
 - [x] A suite run by `make test` or by `make unit` sees neither `BASH_ENV` nor `ENV` in its environment, even when the caller exported both, pinned in `make-test-env.test.sh` ⟦criterion 1⟧
 - [x] A suite run by `make test` that sets `BASH_ENV` itself for one case still has it in that case: a bash child it starts with its own `BASH_ENV` sources that file ⟦criterion 3⟧
-- [ ] With `BASH_ENV` pointing at a file that prepends a directory to PATH, `pytest-leg.test.sh` and its unit-guard case give the same result under the recipe as with it unset, watched going red with the recipe change reverted and green with it restored ⟦human-owed⟧ ⟦criterion 2⟧
+- [x] With `BASH_ENV` pointing at a file that prepends a directory to PATH, `pytest-leg.test.sh` and its unit-guard case give the same result under the recipe as with it unset, watched going red with the recipe change reverted and green with it restored ⟦human-owed⟧ ⟦criterion 2⟧ — checked 2026-10-05 (Mario-delegated review) at 78839b526: with a decoy-PATH BASH_ENV, pytest-leg.test.sh via make test TESTS=… gave 28/0 unset and set, 22/6 with the unset reverted (unit-guard case among the failures), 28/0 restored
