@@ -38,12 +38,11 @@ def append(file, step):
 
 
 def main(argv):
-    verb = argv[0] if argv else ""
-    file = argv[1] if len(argv) > 1 else ""
+    verb, file, step = (list(argv) + ["", "", ""])[:3]
     if not verb or not file:
         return refuse()
     if verb == "append":
-        return append(file, argv[2] if len(argv) > 2 else "")
+        return append(file, step)
     if verb in ("render", "list"):
         if not os.path.exists(file) or os.path.getsize(file) == 0:
             return 3
