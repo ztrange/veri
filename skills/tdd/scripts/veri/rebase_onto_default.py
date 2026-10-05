@@ -50,8 +50,10 @@ def main(argv):
     if git("merge-base", "--is-ancestor", onto, "HEAD").returncode == 0:
         return 3
     pre = output("rev-parse", "HEAD")
+    callers = any(pathlib.Path(path).is_dir() for path in output(
+        "rev-parse", "--git-path", "rebase-merge", "--git-path", "rebase-apply").splitlines())
     if git("rebase", "-q", onto, stdout=subprocess.DEVNULL).returncode != 0:
-        if not rebase_in_progress():
+        if callers or not rebase_in_progress():
             return 2
         conflicts = output("diff", "--name-only", "--diff-filter=U")
         git("rebase", "--abort")

@@ -240,6 +240,32 @@ rc=$?
 expect_conflict_aborted "$repo" "$pre" "$rc" "$out"
 report_stderr "$name"
 
+name="rebase-onto-default.test.sh: run while the caller's own rebase is in progress, exits 2 and leaves that rebase in progress, with HEAD and the rebase state directory unchanged (#819)"
+problems=()
+dir="$work/caller-rebase"
+stderr_file="$work/caller-rebase.err"
+origin_fixture "$dir"
+repo="$dir/clone"
+conflicting_branch "$dir"
+git_q "$repo" rebase -q origin/main >/dev/null 2>&1
+echo "a third run's work" > "$dir/seed/third.txt"
+advance_origin "$dir"
+state_dir="$(git -C "$repo" rev-parse --path-format=absolute --git-path rebase-merge)"
+state_of() { [[ -d "$state_dir" ]] && (cd "$state_dir" && find . -type f -exec cksum {} + | LC_ALL=C sort); }
+head_before="$(git -C "$repo" rev-parse HEAD)"
+state_before="$(state_of)"
+[[ -n "$state_before" ]] || problems+=("fixture: want the caller's rebase in progress at $state_dir, found none")
+out="$(cd "$repo" && bash "$REBASE" 2>"$stderr_file")"
+rc=$?
+[[ "$rc" -eq 2 ]] || problems+=("exit: want 2, got $rc")
+head_after="$(git -C "$repo" rev-parse HEAD)"
+[[ "$head_after" == "$head_before" ]] || problems+=("HEAD: want it unchanged at $head_before, got $head_after")
+[[ -d "$state_dir" ]] || problems+=("rebase: want the caller's rebase still in progress at $state_dir, found none")
+state_after="$(state_of)"
+[[ "$state_after" == "$state_before" ]] ||
+  problems+=("rebase state: want it unchanged at $(printf '%q' "$state_before"), got $(printf '%q' "$state_after")")
+report_stderr "$name"
+
 name="rebase-onto-default.test.sh: run through a symlink to the skill directory and from another working directory, a branch behind origin/<default> rebases as when run in place, exits 0, prints the pre-rebase and onto shas, and the caller's clone is the one rebased, never the skill's repository"
 problems=()
 stderr_file="$work/symlink.err"
