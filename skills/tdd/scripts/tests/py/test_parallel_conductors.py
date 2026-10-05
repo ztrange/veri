@@ -9,6 +9,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 
 import pytest
 
@@ -682,3 +683,77 @@ def test_the_report_prints_one_line_per_issue_in_launch_order_killed_ahead_of_an
         "#7 — bailed https://github.com/o/r/pull/107",
         "#11 — done https://github.com/o/r/pull/111",
     ]
+
+
+def test_the_open_pr_list_is_read_through_gh_json_a_no_answer_at_the_report_returns_2_unwritten_at_a_finish_it_decides_over_the_pages_read_and_a_missing_or_non_json_list_is_survived_as_bash_survives_it(
+        capsys, monkeypatch, tmp_path, parallel_conductors):
+    graphql = ["gh", "pr", "list", "--state", "open", "--limit", "10000", "--json", "body,isDraft,url"]
+    rest = "repos/{owner}/{repo}/pulls?state=open&per_page=100&page=%d"
+    bailed = json.dumps([{"body": "Closes #7", "draft": True, "html_url": "https://github.com/o/r/pull/107"}])
+
+    def run(name, env, solvable, gh_answer=None, fixture=None):
+        for var in TUNABLES + ("VERI_GH_DRIVER",):
+            monkeypatch.delenv(var, raising=False)
+        for var, value in env.items():
+            monkeypatch.setenv(var, value)
+        root = tmp_path / name
+        work = root / "repo"
+        (work / ".tdd" / "wt" / "7" / ".tdd").mkdir(parents=True)
+        (work / ".tdd" / "wt" / "7" / ".tdd" / "events.jsonl").write_text('{"event": "red"}\n{"event": "bail"}\n')
+        if fixture is not None:
+            gh = root / "gh"
+            gh.mkdir()
+            if fixture:
+                (gh / "prs.json").write_text(fixture)
+            monkeypatch.setenv("VERI_GH_JSON", str(gh))
+        monkeypatch.chdir(work)
+        numbers, gh_calls = [], []
+
+        def on_launch(sup):
+            numbers.append(sup.args[-1])
+            (work / ".tdd" / ("conductor-%s.log" % sup.args[-1])).write_bytes(b"")
+            sup.exit(0)
+
+        _boundaries(monkeypatch, root, on_launch, lambda supervisors: None, solvable=solvable)
+        faked_run = subprocess.run
+
+        def gh_run(args, *rest_args, **kwargs):
+            if args[0] != "gh":
+                return faked_run(args, *rest_args, **kwargs)
+            gh_calls.append(list(args))
+            rc, out = gh_answer(len(gh_calls), list(args))
+            return subprocess.CompletedProcess(args, rc, out, "")
+
+        monkeypatch.setattr(subprocess, "run", gh_run)
+        try:
+            code = parallel_conductors.main([])
+        except Exception:
+            traceback.print_exc()
+            code = 1
+        out, err = capsys.readouterr()
+        lines = [line for line in out.splitlines() if line.startswith(("#", "stopped:"))]
+        return code, lines, err, numbers, gh_calls, (work / ".tdd" / "parallel.exit").exists()
+
+    code, lines, _, numbers, calls, written = run(
+        "report-no-answer", {"VERI_GH_DRIVER": "graphql"}, (0, "7\n"), lambda i, args: (1, ""))
+    assert (code, lines, written, numbers) == (2, [], False, ["7"])
+    assert calls and all(call == graphql for call in calls)
+
+    def paged(i, args):
+        if i == 1:
+            return 0, bailed + "\n"
+        if i == 2:
+            return 1, ""
+        return (0, bailed + "\n") if i % 2 else (0, "[]\n")
+
+    code, lines, _, numbers, calls, _ = run("finish-no-answer", {}, (0, "7 8\n"), paged)
+    assert (code, lines, numbers) == (1, ["#7 — bailed https://github.com/o/r/pull/107", "stopped: #7 bailed"], ["7"])
+    assert calls[:2] == [["gh", "api", rest % 1], ["gh", "api", rest % 2]]
+
+    code, lines, err, numbers, _, _ = run("missing-fixture", {}, (0, "7 8\n"), fixture="")
+    assert (code, lines, numbers) == (1, [], ["7", "8"])
+    assert "Traceback" in err and "FileNotFoundError" in err
+
+    code, lines, err, numbers, _, _ = run("not-json", {}, (0, "7 8\n"), fixture="not json\n")
+    assert (code, lines, numbers) == (0, ["stopped: nothing solvable"], ["7", "8"])
+    assert "Traceback" in err and "JSONDecodeError" in err
