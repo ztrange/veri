@@ -1023,4 +1023,12 @@ printf 'inner runs {{TEST_CMD}}\n' > "$nested/prompts/_probe-inner.md"
 rendered="$("$nested/build-develop-prompt.sh" red "$work/spec.md" "$step_text" "$test_cmd" 2>&1)"; code=$?
 expect_eq "$name" "0:before outer inner runs $test_cmd end after" "$code:$rendered"
 
+name="#703 a {{INCLUDE:<file>}} naming a partial that does not exist exits 2 with that partial's path on stderr and nothing on stdout"
+dangling="$(scratch_dir)"
+cp -R "$HERE/../build-develop-prompt.sh" "$HERE/../lib" "$HERE/../prompts" "$dangling/"
+printf 'before {{INCLUDE:_probe-absent.md}} after\n' > "$dangling/prompts/develop-red.md"
+rendered="$("$dangling/build-develop-prompt.sh" red "$work/spec.md" "$step_text" "$test_cmd" 2>"$dangling/err")"; code=$?
+named=""; grep -F "$dangling/prompts/_probe-absent.md" "$dangling/err" > /dev/null && named=named
+expect_eq "$name" "2:named:" "$code:$named:$rendered"
+
 finish
