@@ -623,3 +623,62 @@ def test_veri_conductor_ctx_budget_with_a_leading_zero_is_read_as_bash_s_bare_ar
             [line for line in out.splitlines() if line.startswith("restarted ")],
             [line for line in out.splitlines() if line.startswith("context ")], code) == (
         kills, launched, restarted, contexts, 0)
+
+
+def test_the_report_prints_one_line_per_issue_in_launch_order_killed_ahead_of_any_pr_parked_never_then_the_first_open_pr_closing_it_done_or_bailed(
+        capsys, monkeypatch, tmp_path, parallel_conductors):
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("VERI_RUN_TIMEOUT", "60")
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text(json.dumps([
+        {"body": "Closes #21", "isDraft": False, "url": "https://github.com/o/r/pull/121"},
+        {"body": "Closes #3", "isDraft": False, "url": "https://github.com/o/r/pull/103"},
+        {"body": "Fixes the thing.\n\nCloses #14", "isDraft": False, "url": "https://github.com/o/r/pull/114"},
+        {"body": "Closes #5", "draft": False, "html_url": "https://github.com/o/r/pull/105"},
+        {"body": "Closes #6", "isDraft": False},
+        {"body": "Closes #7", "isDraft": True, "url": "https://github.com/o/r/pull/107"},
+        {"body": "Closes #8", "draft": True, "html_url": "https://github.com/o/r/pull/108"},
+        {"body": "Closes #9", "isDraft": True, "url": "https://github.com/o/r/pull/109"},
+        {"body": "closes #10 and Closes #100", "isDraft": False, "url": "https://github.com/o/r/pull/110"},
+        {"body": None, "isDraft": False, "url": "https://github.com/o/r/pull/1"},
+        {"body": "Closes #110 and Closes #11", "isDraft": False, "draft": True,
+         "html_url": "https://github.com/o/r/pull/111", "url": "https://api.github.com/o/r/pulls/111"},
+        {"body": "Closes #11", "isDraft": False, "url": "https://github.com/o/r/pull/211"},
+        {"body": "Closes #12", "isDraft": True, "url": "https://github.com/o/r/pull/112"},
+    ]))
+    monkeypatch.setenv("VERI_GH_JSON", str(gh))
+    work = tmp_path / "repo"
+    (work / ".tdd" / "parked").mkdir(parents=True)
+    (work / ".tdd" / "parked" / "3.md").write_text("parked\n")
+    events = {"7": '{"event": "red"}\n{"event": "bail", "why": "stuck"}\n',
+              "8": '{"event": "bail", "why": "stuck"}\n{"event": "resume"}\n',
+              "9": '{"event":"bail"}\n'}
+    for n, text in events.items():
+        (work / ".tdd" / "wt" / n / ".tdd").mkdir(parents=True)
+        (work / ".tdd" / "wt" / n / ".tdd" / "events.jsonl").write_text(text)
+    monkeypatch.chdir(work)
+    order = ["21", "3", "14", "5", "6", "7", "8", "9", "10", "11", "12"]
+    numbers = []
+
+    def on_launch(sup):
+        n = sup.args[-1]
+        numbers.append(n)
+        (work / ".tdd" / ("conductor-%s.log" % n)).write_bytes(b"")
+        sup.exit(2 if n == "21" else 0)
+
+    _boundaries(monkeypatch, tmp_path, on_launch, lambda supervisors: None, solvable=(0, " ".join(order) + "\n"))
+
+    parallel_conductors.main(["--continue-on-bail"])
+    out, _ = capsys.readouterr()
+
+    assert numbers == order
+    assert [line for line in out.splitlines() if line.startswith("#")] == [
+        "#21 — killed after 60s",
+        "#14 — done https://github.com/o/r/pull/114",
+        "#5 — done https://github.com/o/r/pull/105",
+        "#6 — done ",
+        "#7 — bailed https://github.com/o/r/pull/107",
+        "#11 — done https://github.com/o/r/pull/111",
+    ]
