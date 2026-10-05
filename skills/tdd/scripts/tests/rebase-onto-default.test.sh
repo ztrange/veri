@@ -236,4 +236,24 @@ for d in rebase-merge rebase-apply; do
 done
 report_stderr "$name"
 
+name="rebase-onto-default.test.sh: with no refs/remotes/origin/HEAD and a remote that names its default branch, a branch behind it rebases onto it, exits 0 and prints the pre-rebase and onto shas, as when the ref is set (#865)"
+problems=()
+dir="$work/no-origin-head-resolvable"
+stderr_file="$work/no-origin-head-resolvable.err"
+behind_branch "$dir"
+repo="$dir/clone"
+git -C "$repo" config remote.origin.followRemoteHEAD never
+git -C "$repo" remote set-head origin -d >/dev/null 2>&1
+pre="$(git -C "$repo" rev-parse HEAD)"
+onto="$(git -C "$repo" rev-parse origin/main)"
+out="$(cd "$repo" && bash "$REBASE" 2>"$stderr_file")"
+rc=$?
+[[ "$rc" -eq 0 ]] || problems+=("exit: want 0, got $rc")
+want_out="$(printf '%s\n%s' "$pre" "$onto")"
+[[ "$out" == "$want_out" ]] ||
+  problems+=("stdout: want $(printf '%q' "$want_out"), got $(printf '%q' "$out")")
+parent="$(git -C "$repo" rev-parse HEAD~1 2>/dev/null)"
+[[ "$parent" == "$onto" ]] || problems+=("HEAD~1: want the onto sha $onto, got $parent")
+report_stderr "$name"
+
 finish
