@@ -292,3 +292,50 @@ def test_main_returns_2_with_no_rebase_directory_prints_one_empty_line_for_no_un
     assert (code, captured.out) == (1, "earlier.txt\n")
     assert refusal in captured.err
     assert calls.index(diff) < calls.index(abort)
+
+
+def test_main_answers_the_cut_contract_cases_a_dirty_tree_refusal_an_unfetchable_origin_a_fallback_rebase_and_an_unreachable_fallback(
+        monkeypatch, capsys, tmp_path, rebase_onto_default):
+    local = "git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD"
+    symref = "git ls-remote --symref origin HEAD"
+    rebase = f"git rebase -q {ONTO}"
+    refused = ("error: Your local changes to the following files would be overwritten by checkout:\n"
+               "\tfile.txt\nerror: could not detach HEAD\n")
+
+    def run(**overrides):
+        calls = fake_git(monkeypatch, **{
+            "git rev-parse --git-path rebase-merge": (0, f"{tmp_path / 'rebase-merge'}\n"),
+            "git rev-parse --git-path rebase-apply": (0, f"{tmp_path / 'rebase-apply'}\n")},
+            **overrides)
+        fake_run = subprocess.run
+
+        def refusing_run(args, **kwargs):
+            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+            result = fake_run(args, **kwargs)
+            if line == rebase and result.returncode != 0 and kwargs.get("stderr") is None:
+                sys.stderr.write(refused)
+            return result
+
+        monkeypatch.setattr(subprocess, "run", refusing_run)
+        code = rebase_onto_default.main([])
+        return code, capsys.readouterr(), calls
+
+    code, captured, calls = run(**{rebase: (1, "")})
+    assert (code, captured.out) == (2, "")
+    assert refused in captured.err
+    assert [c for c in calls if c.startswith(("git diff", "git rebase --abort"))] == []
+
+    code, captured, calls = run(**{"git fetch -q origin": (128, "")})
+    assert (code, captured.out) == (2, "")
+    assert [c for c in calls if c.startswith(("git merge-base", "git rebase"))] == []
+
+    code, captured, calls = run(**{local: (1, ""),
+                                   symref: (0, f"ref: refs/heads/main\tHEAD\n{ONTO}\tHEAD\n")})
+    assert (code, captured.out) == (0, f"{PRE}\n{ONTO}\n")
+    assert rebase in calls
+
+    code, captured, calls = run(**{local: (1, ""), symref: (128, ""),
+                                   "git fetch -q origin": (128, "")})
+    assert (code, captured.out) == (2, "")
+    assert "refs/remotes/origin/HEAD" in captured.err
+    assert [c for c in calls if c.startswith(("git fetch", "git merge-base", "git rebase"))] == []
