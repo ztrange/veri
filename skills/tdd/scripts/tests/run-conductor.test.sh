@@ -1347,4 +1347,55 @@ grep -F -- "$tip36" "$prompt" > /dev/null 2>&1 ||
 
 report "$name"
 
+name="a conductor that exits with .tdd/wt/<n> registered as a worktree keeps the skill record, and the next launch runs the recorded commit (#866)"
+problems=()
+
+remote37="$work/remote37"
+clone37="$work/clone37"
+cloned_skill "$remote37" "$clone37"
+first37="$(git -C "$remote37" rev-parse HEAD)"
+
+pinned37="$work/pinned37"
+skill_archive "$remote37" "$first37" "$pinned37"
+
+caller37="$work/caller37"
+caller_repo "$caller37"
+git -C "$caller37" commit -q --allow-empty -m base
+
+cat > "$stubdir/worktree-hook" <<HOOK
+#!/bin/sh
+git -C "$caller37" worktree add -q --detach "$caller37/.tdd/wt/$issue"
+HOOK
+chmod +x "$stubdir/worktree-hook"
+
+launch_from "$caller37" "$clone37" CONDUCTOR_HOOK="$stubdir/worktree-hook"
+record37="$caller37/.tdd/issue-$issue-skill-commit"
+
+if ! git -C "$caller37" worktree list --porcelain | grep -x "worktree $(cd "$caller37/.tdd/wt/$issue" 2>/dev/null && pwd -P)" > /dev/null; then
+  problems+=("the conductor left no registered worktree at .tdd/wt/$issue: $(cat "$launch_err")")
+elif [[ ! -f "$record37" ]]; then
+  problems+=("the record $record37 is gone after a conductor that left .tdd/wt/$issue registered as a worktree")
+else
+  [[ "$(cat "$record37")" == "$first37" ]] ||
+    problems+=("the record holds '$(cat "$record37")', not the launch's pin $first37")
+fi
+
+advance_clone "$remote37" "# a commit that landed on the remote after the run got past preflight"
+moved37="$(git -C "$remote37" rev-parse HEAD)"
+
+resumed37="$work/resumed37"
+mkdir -p "$resumed37"
+rm -f "$prompt"
+launch_from "$caller37" "$clone37" BASE_OUT="$resumed37"
+
+if [[ -z "$(prompt_base)" ]]; then
+  problems+=("the next launch's prompt names no base directory: $(cat "$launch_err")")
+else
+  holds_skill "$resumed37" "$pinned37/skills/tdd" "next launch's" "recorded pin $first37 (origin moved to $moved37)"
+  grep -q -- "$first37" "$prompt" ||
+    problems+=("the next launch's prompt does not name the recorded pin $first37")
+fi
+
+report "$name"
+
 finish
