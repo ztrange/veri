@@ -13,7 +13,7 @@
 - [x] invisible-work.sh with no refs/remotes/origin/HEAD resolves the default branch from the remote and reports as it does when the ref is set ⟦criterion 5⟧
 - [x] invisible-work.sh with no refs/remotes/origin/HEAD and a remote whose default cannot be resolved exits 2 with stderr naming refs/remotes/origin/HEAD ⟦criterion 5⟧
 - [x] SKILL.md's *The skill snapshot* section describes the launch resolving the default branch from the remote when refs/remotes/origin/HEAD is absent, refusing with exit 2 when it cannot, and running unpinned only for a launch with no resolvable commit at all ⟦criterion 6⟧
-- [ ] SKILL.md's issue-worktree.sh entry describes the default branch's name resolved from the remote when refs/remotes/origin/HEAD is absent, a refusal naming that ref when it cannot be, and the local main/master fallback only when there is no origin remote ⟦criterion 6⟧
+- [x] SKILL.md's issue-worktree.sh entry describes the default branch's name resolved from the remote when refs/remotes/origin/HEAD is absent, a refusal naming that ref when it cannot be, and the local main/master fallback only when there is no origin remote ⟦criterion 6⟧ ⟂ refactor pending
 - [ ] the branch's diff changes no existing assertion in the touched scripts' suites except one that pins the local main/master guess or the silent unpinned run this issue removes ⟦diff-checked⟧ ⟦criterion 7⟧
 - [ ] every case the touched scripts' suites already hold passes ⟦full-suite⟧ ⟦criterion 7⟧
 - [ ] the PR body lists by file:line every existing suite assertion the branch changed because it pinned the removed guess ⟦human-owed⟧ ⟦criterion 7⟧

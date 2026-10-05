@@ -249,10 +249,12 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   **local** branch of that name: that one **lags the remote by design**, since a run executes the skill pinned from
   `origin/<default>` and nothing obliges anyone to pull the primary clone, so a branch cut
   from it starts **stale** and its PR then owes a rebase over everything that landed meanwhile.
-  The fetch moves no local branch and touches no working tree. A local `main`/`master` is the
-  fallback on two separate axes: it supplies `<default>`'s **name** when the clone records no
-  `origin/HEAD` (an origin does not guarantee one), and it is the **base** itself when there is
-  **no remote** at all, as before. Prints the worktree's **absolute path on stdout** — the only
+  The fetch moves no local branch and touches no working tree. `<default>`'s **name** is read
+  from `refs/remotes/origin/HEAD`; when that ref is absent (an origin does not guarantee one) it
+  is resolved from the remote itself with `git ls-remote --symref origin HEAD`, and when the
+  remote names none either it exits 2 naming `refs/remotes/origin/HEAD` — never a guessed
+  `main`. A local `main`/`master` is the fallback only when there is **no origin remote** at all:
+  then it supplies both the name and the **base** itself, as before. Prints the worktree's **absolute path on stdout** — the only
   thing on stdout; git's chatter goes to stderr, so the path is safe to capture.
   **Idempotent**: a second call for the same issue prints the same path and creates nothing,
   which is what makes a resume land in the worktree the first run made — an existing issue
