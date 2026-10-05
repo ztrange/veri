@@ -348,6 +348,21 @@ venv_version="$("$floor_venv/bin/python3" --version 2> /dev/null || true)"
   problems+=("want $floor_venv/bin/python3 to report Python 3.12 or newer, got: '$venv_version' (calls: $(flat "$(cat "$floor/calls")"))")
 report "$name"
 
+path_venv="$floor/venv-path-line"
+
+name="#936: make install-dev that builds a fresh environment at VERI_VENV ends its output with a line naming \$VERI_VENV/bin and telling the reader to put it first on PATH"
+problems=()
+: > "$floor/calls"
+env -u PYTHONPATH VERI_VENV="$path_venv" PATH="$floor/bin:$floor/sys" \
+  "$(command -v make)" --no-print-directory -C "$floor" install-dev > "$work/out" 2> "$work/err" < /dev/null &&
+  code=0 || code=$?
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0, got $code: $(flat "$(cat "$work/out")") $(flat "$(cat "$work/err")")")
+last="$(tail -n 1 "$work/out")"
+[[ "$last" == *"$path_venv/bin"* && "$last" == *PATH* && "$last" == *first* ]] ||
+  problems+=("want stdout's last line to name $path_venv/bin and say to put it first on PATH, got: '$last'")
+report "$name"
+
 stub_python "$floor/bin/python3.12" 3.11.9
 stub_python "$floor/bin/python3.13" 3.13.1
 newest_venv="$floor/venv-newest"

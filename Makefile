@@ -161,7 +161,8 @@ install-dev:
 	else \
 	  bash -c '. $(VENV_LIB) && venv_usable "$$1"' _ "$$venv" || exit 2; \
 	fi; \
-	"$$venv/bin/python3" -m pip install -r requirements-dev.txt
+	"$$venv/bin/python3" -m pip install -r requirements-dev.txt && \
+	echo "put $$venv/bin first on PATH: export PATH=\"$$venv/bin:\$$PATH\""
 
 # `make profile` runs the suites `test` runs, under the same offline environment, through
 # profile.sh: one line per case at or above VERI_PROFILE_THRESHOLD seconds, slowest first
