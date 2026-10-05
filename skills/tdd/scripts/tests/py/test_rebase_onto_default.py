@@ -339,3 +339,28 @@ def test_main_answers_the_cut_contract_cases_a_dirty_tree_refusal_an_unfetchable
     assert (code, captured.out) == (2, "")
     assert "refs/remotes/origin/HEAD" in captured.err
     assert [c for c in calls if c.startswith(("git fetch", "git merge-base", "git rebase"))] == []
+
+
+def test_main_leaves_a_rebase_already_in_progress_alone_and_exits_2_however_it_asks_for_the_rebase_directories_819(
+        monkeypatch, capsys, tmp_path, rebase_onto_default):
+    rebase = f"git rebase -q {ONTO}"
+    merge = tmp_path / "rebase-merge"
+    merge.mkdir()
+    (merge / "head-name").write_text("refs/heads/caller\n")
+    calls = fake_git(monkeypatch, **{rebase: (1, "")})
+    fake_run = subprocess.run
+
+    def git_path_run(args, **kwargs):
+        if list(args[:3]) == ["git", "rev-parse", "--git-path"]:
+            fake_run(args, **kwargs)
+            names = [a for a in args[2:] if a != "--git-path"]
+            out = "".join(f"{tmp_path / name}\n" for name in names)
+            return subprocess.CompletedProcess(
+                args, 0, out if kwargs.get("stdout") == subprocess.PIPE else None, "")
+        return fake_run(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", git_path_run)
+    code = rebase_onto_default.main([])
+    assert (code, capsys.readouterr().out) == (2, "")
+    assert [c for c in calls if c.startswith("git rebase") and c != rebase] == []
+    assert sorted(p.name for p in merge.iterdir()) == ["head-name"]
