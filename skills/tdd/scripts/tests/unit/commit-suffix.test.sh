@@ -43,4 +43,13 @@ out="$( source "$LIB" && commit_suffix_offenders "$other" 2>&1 )" || rc=$?
 named=""; grep -F 'develop-other.md' <<< "$out" > /dev/null && named=named
 expect_eq "$name" "1:named" "$rc:$named"
 
+name="#946 the commit-suffix check fails, naming the file, over a planted develop prompt saying \"Commit these changes.\" without stating (#<issue>)"
+these="$scratch/these"
+mkdir -p "$these"
+printf '%s\n' '## Phase: develop-these' '' 'Commit these changes.' > "$these/develop-these.md"
+rc=0
+out="$( source "$LIB" && commit_suffix_offenders "$these" 2>&1 )" || rc=$?
+named=""; grep -F 'develop-these.md' <<< "$out" > /dev/null && named=named
+expect_eq "$name" "1:named" "$rc:$named"
+
 finish
