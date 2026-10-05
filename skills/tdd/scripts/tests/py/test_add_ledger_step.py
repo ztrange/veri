@@ -108,3 +108,13 @@ def test_main_inserts_beside_the_one_dash_step_holding_the_anchor_leaving_prose_
         "- [ ] a lamp glows ⟦criterion 2⟧\n"
         "- [ ] a lamp dims ⟦added⟧ ⟦criterion 2⟧\n"
     )
+
+
+def test_main_inserts_the_line_veri_ledger_new_step_returns_for_the_text_and_the_anchor_criterion(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes("# Plan for #42\n\n- [ ] a lamp glows ⟦criterion 2⟧\n".encode())
+    code = add_ledger_step.main([str(ledger), "after", "a lamp glows", "a lamp dims"])
+    capsys.readouterr()
+    assert code == 0
+    assert ledger.read_bytes().split(b"\n")[3] == importlib.import_module("veri.ledger").new_step("a lamp dims", "2").encode()
