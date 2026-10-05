@@ -577,4 +577,21 @@ done
 report "$name"
 
 
+name="refactor-owed.sh append whose owed file path is a directory, fed one structural candidate, exits 1 with nothing on stdout"
+problems=()
+
+work="$(scratch_dir)"
+mkdir -p "$work/owed.md"
+"$OWED" append "$work/owed.md" 'the step' >"$work/append.out" 2>/dev/null <<'REPORT' && code=0 || code=$?
+CANDIDATES: structural | extract the parser
+REPORT
+
+[[ "$code" == 1 ]] ||
+  problems+=("want exit 1 from append into a directory, got $code")
+[[ ! -s "$work/append.out" ]] ||
+  problems+=("append printed '$(cat "$work/append.out")' on stdout")
+
+report "$name"
+
+
 finish
