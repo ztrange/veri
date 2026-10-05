@@ -32,7 +32,7 @@ both sides' intent survives.
    If a conflict cannot be resolved without dropping one side's behaviour, run
    `git rebase --abort`, which returns the branch to `{{PRE_REBASE_SHA}}`, and report FAILED.
 3. Confirm the test command is green on the rebased tip, through the wrapper
-   `{{TIMED_TEST_RUN}}`, which records what the run cost and names the tier it belongs to —
+   {{INCLUDE:_timed-test-run-tier.md}} —
    `all`, since the whole test command is what runs:
 
        {{TIMED_TEST_RUN}} all '' {{TEST_CMD}}

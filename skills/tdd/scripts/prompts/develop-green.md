@@ -43,15 +43,13 @@ exactly as you found it.
    later steps triangulate those.
 2. Iterate against the suite that holds the target case, not the full suite: that one
    suite answers the only question each iteration asks, and answers it in a fraction of
-   the time. Run one suite through `run-suite.sh <suite>` — the one invocation for a single
-   suite, so that every leaf on this step runs it the same way and none of them is handed a
-   suite that died partway and still exited 0. If that runner cannot run a suite in this
-   repository, fall back to the test command above and say so in your report.
+   the time. Run one suite through {{INCLUDE:_run-suite-lead.md}}
+   suite, {{INCLUDE:_run-suite-same-way.md}} the test command above and say so in your report.
 3. Exactly once, immediately before you write the `SUITE:` report line, run the fast
    command, `{{FAST_CMD}}` (`detect-test-command.sh --tier fast` prints it), then run
    the suites that `affected-suites.sh` prints for your change, and confirm both runs are
    green. Make each of those two runs through the wrapper
-   `{{TIMED_TEST_RUN}}`, which records what the run cost and names the tier it belongs to:
+   {{INCLUDE:_timed-test-run-tier.md}}:
 
        {{TIMED_TEST_RUN}} fast '' {{FAST_CMD}}
        {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>

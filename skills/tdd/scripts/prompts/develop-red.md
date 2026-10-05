@@ -70,11 +70,9 @@ implementation-pinning test anyway to force a pass.
    the new case FAILS or PASSES. The only question this phase asks is whether that one case
    fails; the suite holding the new case is among those it prints, and the others read the
    same files, and must stay green. Run one suite through
-   `run-suite.sh <suite>` — the one invocation for a single suite, so that every leaf on this
-   step runs it the same way and none of them is handed a suite that died partway and still
-   exited 0. If that runner cannot run a suite in this repository, fall back to
+   {{INCLUDE:_run-suite-lead.md}} suite, {{INCLUDE:_develop-run-suite-same-way.md}}
    the test command above and say so in your report.
-   Make that run through the wrapper `{{TIMED_TEST_RUN}}`, which records what the run cost
+   Make that run through the wrapper {{INCLUDE:_timed-test-run.md}}
    and names the tier it belongs to:
 
        {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>

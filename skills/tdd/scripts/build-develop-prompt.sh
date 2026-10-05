@@ -143,6 +143,7 @@ done
 tpl="$(cat "$tpl_file")"
 resolve_includes tpl "$HERE/prompts" || exit 2
 shared="$(cat "$shared_file")"
+resolve_includes shared "$HERE/prompts" || exit 2
 spec="$(cat "$spec_file")"
 optional() {
   local content=""
@@ -152,6 +153,8 @@ optional() {
 optional reason "$reason_file"
 optional replaces_case "$replaces_file" $'\n\n'
 optional suite_repair "$suite_repair_file" $'\n\n'
+resolve_includes replaces_case "$HERE/prompts" || exit 2
+resolve_includes suite_repair "$HERE/prompts" || exit 2
 optional bug_reproduction "$bug_file"
 
 out="${tpl//\{\{SHARED\}\}/$shared}"
