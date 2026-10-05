@@ -172,7 +172,7 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
 - `$S/add-ledger-step.sh <ledger> after|before "<anchor substring>" '<text>' […]` — **grow
   the plan mid-run**: insert each text as `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` directly after
   the anchor step, or directly before it, inheriting the anchor's criterion. `VERI_STEP_GROWTH`
-  (default 3) bounds how many `⟦added⟧` steps one ledger may hold, on a **fifth axis** of its
+  (default 5) bounds how many `⟦added⟧` steps one ledger may hold, on a **fifth axis** of its
   own — plan growth, never merged with the other four. **Exit 0** = inserted; **exit 1** = the
   budget cannot hold them, so nothing is inserted and every text is appended as a plain bullet
   under a trailing `## Owed steps` heading instead; **exit 2** = the anchor matches no step or

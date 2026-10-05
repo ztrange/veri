@@ -6,7 +6,7 @@
 # after the step containing <anchor-substring>, or on the lines before it, in the order
 # given. `instead-of` puts them where that step was and drops the step itself — the
 # placement a step that turned out to be several behaviours takes.
-# VERI_STEP_GROWTH (default 3) caps how many ⟦added⟧ steps one ledger may hold, and
+# VERI_STEP_GROWTH (default 5) caps how many ⟦added⟧ steps one ledger may hold, and
 # the call is all or nothing: a batch that would exceed the cap inserts nothing, exits 1 and
 # records every text as a plain bullet under `## Owed steps`, where next-unchecked.sh will
 # not find it. A <text> carrying ⟦ci-repair⟧ or ⟦suite-repair⟧ is inserted without ⟦added⟧
@@ -93,7 +93,7 @@ last_heading() {
 }
 
 # hazard: `-`, not `:-`, so set-but-empty reaches the guard rather than the default.
-budget="${VERI_STEP_GROWTH-3}"
+budget="${VERI_STEP_GROWTH-5}"
 
 if [[ ! "$budget" =~ ^[0-9]+$ ]]; then
   printf 'add-ledger-step.sh: VERI_STEP_GROWTH must be a whole number >= 0: %s\n' "$budget" >&2

@@ -46,8 +46,10 @@ PRD #354 settled all three onto one mechanism.
   | `VERI_STEP_GROWTH` | **how much larger than scoped a plan may get** |
 
   Merging it with `REVISE_BUDGET` would trade "the verifier keeps rejecting" against "the
-  plan keeps growing", two failures fixed in different places. It defaults to 3 and is
-  checked in preflight.
+  plan keeps growing", two failures fixed in different places. It defaults to 5 and is
+  checked in preflight. (It defaulted to 3 until 2026-10-04, when two runs in one night,
+  #803 and #846, bailed `step-too-big` on a split the budget refused and each was resumed by
+  hand-moving its owed steps into the plan; 5 lets a plan absorb one such split.)
 - **No human in the loop for adding a step.** Proposals are behaviour-level criteria that go
   through the same Red → Green → Refactor cycle and blind verification as scoped steps, so an
   added step earns its code the way every other step does.
