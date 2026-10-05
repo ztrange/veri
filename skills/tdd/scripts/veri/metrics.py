@@ -295,14 +295,9 @@ def render(issue, path, ledger):
     def budget_cells(step):
         mark = spent.get(step, {})
         phases = mark.get("revise phases", {})
-        if len(phases) > 1:
-            revise = ", ".join("%s %d/%s" % (phase, count, budget or "?")
-                               for phase, (count, budget) in phases.items())
-        elif phases:
-            (count, budget), = phases.values()
-            revise = "%d/%s" % (count, budget or "?")
-        else:
-            revise = UNKNOWN
+        named = len(phases) > 1
+        revise = ", ".join(("%s " % phase if named else "") + "%d/%s" % (count, budget or "?")
+                           for phase, (count, budget) in phases.items()) or UNKNOWN
         if mark.get("refactor"):
             refactor = "%s/%s" % (mark.get("transforms") or "?", mark["refactor"])
         else:
