@@ -109,3 +109,12 @@ def test_append_writes_structural_before_test_only_and_appends_a_block_only_when
     monkeypatch.setattr(sys, "stdin", io.StringIO("CANDIDATES: cosmetic | rename k\njunk line\n"))
     code = refactor_owed.main(["append", str(owed), "S"])
     assert (code, owed.read_bytes()) == (0, before)
+
+
+def test_append_with_no_step_argument_writes_the_block_under_an_empty_step_heading(
+        monkeypatch, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    monkeypatch.setattr(sys, "stdin", io.StringIO("CANDIDATES: structural | x\n"))
+    code = refactor_owed.main(["append", str(owed)])
+    written = owed.read_bytes() if owed.exists() else b""
+    assert (code, written) == (0, b"### \n- x\n")

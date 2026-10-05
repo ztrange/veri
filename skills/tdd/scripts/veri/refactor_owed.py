@@ -43,7 +43,7 @@ def main(argv):
     if not verb or not file:
         return refuse()
     if verb == "append":
-        return append(file, argv[2])
+        return append(file, argv[2] if len(argv) > 2 else "")
     if verb in ("render", "list"):
         if not os.path.exists(file) or os.path.getsize(file) == 0:
             return 3
