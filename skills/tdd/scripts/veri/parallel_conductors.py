@@ -174,13 +174,14 @@ def _exclude_tdd():
 def main(argv):
     if not _exclude_tdd():
         return 2
+    parallel = os.environ.get("VERI_PARALLEL", "1")
+    max_issues = os.environ.get("VERI_MAX_ISSUES")
     if not (_whole_number("VERI_CONDUCTOR_CTX_BUDGET", _ctx_budget(), 0)
-            and _whole_number("VERI_PARALLEL", os.environ.get("VERI_PARALLEL", "1"), 1)
-            and ("VERI_MAX_ISSUES" not in os.environ
-                 or _whole_number("VERI_MAX_ISSUES", os.environ["VERI_MAX_ISSUES"], 1))):
+            and _whole_number("VERI_PARALLEL", parallel, 1)
+            and (max_issues is None or _whole_number("VERI_MAX_ISSUES", max_issues, 1))):
         return _finish(2)
     rc_dir = tempfile.mkdtemp()
-    code = _run(argv[:1] == ["--continue-on-bail"])
+    code = _run(argv[:1] == ["--continue-on-bail"], int(parallel), max_issues or "0")
     try:
         shutil.rmtree(rc_dir)
     except OSError:
@@ -188,9 +189,7 @@ def main(argv):
     return code
 
 
-def _run(continue_on_bail):
-    parallel = int(os.environ.get("VERI_PARALLEL", "1"))
-    max_issues = os.environ.get("VERI_MAX_ISSUES", "0")
+def _run(continue_on_bail, parallel, max_issues):
     try:
         max_issues = _bash_arithmetic(max_issues)
     except ValueError:
