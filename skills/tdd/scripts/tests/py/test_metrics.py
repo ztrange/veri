@@ -569,6 +569,16 @@ def test_issue_934_an_unticked_full_suite_line_does_not_count_as_done(tmp_path, 
     assert "Steps done: 4 of 5 planned.\n" in render(metrics, capsys)
 
 
+def test_issue_934_a_log_with_no_ledger_beside_it_reports_the_planned_figure_as_unknown(tmp_path, monkeypatch, capsys, metrics):
+    events = []
+    for i, step in enumerate("abcd"):
+        events += conductor(step, 30000 + 200 * i, "step-start") + conductor(step, 30100 + 200 * i, "step-done")
+    write_log(tmp_path, events)
+    monkeypatch.chdir(tmp_path)
+
+    assert "Steps done: 4 of unknown planned.\n" in render(metrics, capsys)
+
+
 def test_main_reports_relaunches_triage_stops_budget_crossings_splits_tier_seconds_and_stop_outcomes(tmp_path, monkeypatch, capsys, metrics):
     def report(name, events):
         root = tmp_path / name
