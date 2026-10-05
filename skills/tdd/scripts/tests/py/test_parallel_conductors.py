@@ -47,8 +47,8 @@ class FakeSupervisor:
         return self.returncode
 
 
-def _boundaries(monkeypatch, tmp_path, on_launch, on_sleep):
-    """Fake git, solvable-issues.sh (answering 7), supervise.sh, os.kill and the clock."""
+def _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n")):
+    """Fake git, solvable-issues.sh (answering 7 by default), supervise.sh, os.kill and the clock."""
     common = tmp_path / ".git"
     (common / "info").mkdir(parents=True)
     supervisors = []
@@ -56,7 +56,7 @@ def _boundaries(monkeypatch, tmp_path, on_launch, on_sleep):
     def answer(args):
         name = pathlib.Path(args[0]).name
         if name == "solvable-issues.sh":
-            return subprocess.CompletedProcess(args, 0, "7\n", "")
+            return subprocess.CompletedProcess(args, solvable[0], solvable[1], "")
         if name == "git" and list(args[1:]) == ["rev-parse", "--git-common-dir"]:
             return subprocess.CompletedProcess(args, 0, "%s\n" % common, "")
         raise AssertionError("unexpected subprocess call: %r" % (args,))
@@ -140,3 +140,27 @@ def test_an_assistant_event_the_conductor_writes_in_two_pieces_still_prints_one_
     assert len(sleeps_after_head) == 2
     assert [line for line in out.splitlines() if line.startswith("context ")] == ["context 7 53438"]
     assert code in (0, 1, 2, 3)
+
+
+def test_a_solvable_issues_exit_other_than_0_and_2_stops_with_nothing_solvable_and_returns_3(
+        capsys, monkeypatch, tmp_path, parallel_conductors):
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(gh))
+    work = tmp_path / "repo"
+    work.mkdir()
+    monkeypatch.chdir(work)
+
+    def on_launch(sup):
+        raise AssertionError("nothing should launch when solvable-issues.sh exits 5")
+
+    _boundaries(monkeypatch, tmp_path, on_launch, lambda supervisors: None, solvable=(5, ""))
+
+    code = parallel_conductors.main([])
+    out, _ = capsys.readouterr()
+
+    assert code == 3
+    assert "stopped: nothing solvable" in out.splitlines()

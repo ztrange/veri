@@ -45,6 +45,9 @@ def main(argv):
     launched = []
     while True:
         solvable = subprocess.run([os.path.join(SCRIPTS, "solvable-issues.sh")], stdout=subprocess.PIPE, text=True)
+        if solvable.returncode:
+            print("stopped: nothing solvable", flush=True)
+            return 3
         n = next((c for c in solvable.stdout.split() if c not in launched), None)
         if n is None:
             return 0
