@@ -1,2 +1,4 @@
 ### commit_suffix_offenders reports a planted develop-*.md saying "Commit these changes." with no (#<issue>) ⟦criterion 1⟧
 - test-only | fold the four identical "planted prompt is reported" blocks in skills/tdd/scripts/tests/unit/commit-suffix.test.sh (#935 planted, #935 other, #946 these, #946 everything — each mkdir/printf/rc/out/named/expect_eq) into one helper taking the case name, file stem and prompt line
+### commit_suffix_offenders reports a planted develop-*.md saying "commit them" with no (#<issue>) ⟦added⟧ ⟦criterion 1⟧
+- test-only | fold the six identical "planted prompt is reported" blocks in skills/tdd/scripts/tests/unit/commit-suffix.test.sh (#935 planted, #935 other, #946 these, #946 everything, #946 them, #946 bare — each mkdir/printf/rc/out/named/expect_eq) into one helper taking the case name, file stem and prompt lines
