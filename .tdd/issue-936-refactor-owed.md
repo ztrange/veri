@@ -1,2 +1,4 @@
 ### `make install-dev` that builds a fresh venv at $VERI_VENV ends its output with a line naming `$VERI_VENV/bin` and telling the reader to put it first on PATH ⟦criterion 1⟧
 - test-only | extract the repeated `env -u PYTHONPATH VERI_VENV=… PATH="$floor/bin:$floor/sys" make --no-print-directory -C "$floor" install-dev > "$work/out" 2> "$work/err"` invocation (the #863 case and the new #936 case in skills/tdd/scripts/tests/pytest-leg.test.sh) into one helper taking the venv path
+### `run-conductor.sh`, with the python3 on PATH below the floor and a venv at $VERI_VENV whose interpreter meets it, exits 2 and its stderr names `$VERI_VENV/bin` as what to put first on PATH ⟦criterion 3⟧
+- extract the venv-meets-floor check and its "put <venv>/bin first on PATH" line into a helper in lib/venv-python.sh, shared by run-conductor.sh, the coming leaf-launchable.sh refusal and Makefile:165's install-dev line
