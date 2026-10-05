@@ -1763,4 +1763,20 @@ fi
 
 report "$name"
 
+name="run-conductor.sh starts claude without CLAUDE_CODE_REMOTE_SESSION_ID, whose value need not contain the session id (#966)"
+problems=()
+env966="$work/env966"
+
+( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" ENV_OUT="$env966" \
+    CLAUDE_CODE_SESSION_ID=sess-966-fake CLAUDE_CODE_REMOTE_SESSION_ID=remote-unrelated-value \
+    "$CONDUCTOR" "$issue" ) >/dev/null 2>&1
+
+if [[ ! -f "$env966" ]]; then
+  problems+=("the conductor binary was never launched — $CONDUCTOR recorded no environment")
+elif grep "^CLAUDE_CODE_REMOTE_SESSION_ID=" "$env966" > /dev/null; then
+  problems+=("CLAUDE_CODE_REMOTE_SESSION_ID is still in the child's environment: $(grep "^CLAUDE_CODE_REMOTE_SESSION_ID=" "$env966")")
+fi
+
+report "$name"
+
 finish
