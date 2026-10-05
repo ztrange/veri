@@ -50,13 +50,15 @@ def has_origin():
                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
 
 
+def quiet_git(*args):
+    return subprocess.run(["git", *args], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+
+
 def default_branch_name():
-    head = subprocess.run(["git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"],
-                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    head = quiet_git("symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
     if head.returncode == 0:
         return head.stdout.rstrip("\n").removeprefix("origin/")
-    answer = subprocess.run(["git", "ls-remote", "--symref", "origin", "HEAD"],
-                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    answer = quiet_git("ls-remote", "--symref", "origin", "HEAD")
     return "\n".join(re.findall(r"^ref: refs/heads/(\S*)\s*HEAD$", answer.stdout, re.MULTILINE))
 
 
