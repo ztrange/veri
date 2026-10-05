@@ -103,7 +103,7 @@ def routing_git(monkeypatch, answers):
 def test_main_remove_refuses_a_dirty_worktree_and_removes_a_clean_one_without_force_at_the_unnormalised_registry_path(
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/a/../repo"
-    path = main_tree + "/.tdd/wt/7"
+    path = f"{main_tree}/.tdd/wt/7"
     registry = ("worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n"
                 "worktree /srv/other\nHEAD 2222222222222222222222222222222222222222\nbranch refs/heads/x\n\n" % main_tree)
     listing = ("git", "worktree", "list", "--porcelain")
@@ -132,7 +132,7 @@ def test_main_remove_refuses_a_dirty_worktree_and_removes_a_clean_one_without_fo
 def test_main_remove_returns_a_dying_gits_status_inside_0_to_3_as_it_is_and_maps_only_one_outside_to_2(
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/repo"
-    path = main_tree + "/.tdd/wt/7"
+    path = f"{main_tree}/.tdd/wt/7"
     registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
     listing = ("git", "worktree", "list", "--porcelain")
     status = ("git", "-C", path, "status", "--porcelain")
@@ -155,7 +155,7 @@ def test_main_hands_back_a_registered_worktree_by_n_alone_unless_its_pid_file_na
     import os
 
     main_tree = str(tmp_path / "repo")
-    path = main_tree + "/.tdd/wt/7"
+    path = f"{main_tree}/.tdd/wt/7"
     registry = ("worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n"
                 "worktree %s\nHEAD 2222222222222222222222222222222222222222\nbranch refs/heads/tdd/7-slug\n\n"
                 % (main_tree, path))
@@ -217,7 +217,7 @@ def test_main_refuses_a_branch_any_registry_entry_has_checked_out_the_main_worki
 def test_main_checks_out_a_local_branch_else_cuts_from_the_remote_one_without_a_fetch_and_maps_a_dying_add_to_2(
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/repo"
-    path = main_tree + "/.tdd/wt/7"
+    path = f"{main_tree}/.tdd/wt/7"
     registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
     listing = ("git", "worktree", "list", "--porcelain")
     local = ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/7-slug")
@@ -273,7 +273,7 @@ def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_sy
     )
     for label, answers, name in named:
         fetch = ("git", "fetch", "-q", "origin", name)
-        add = ("git", "worktree", "add", "-q", "--no-track", "-b", "tdd/7-slug", main_tree + "/.tdd/wt/7", "origin/" + name)
+        add = ("git", "worktree", "add", "-q", "--no-track", "-b", "tdd/7-slug", f"{main_tree}/.tdd/wt/7", "origin/" + name)
         code, (out, err), calls = run({**base, **answers, fetch: (0, "", ""), add: (0, "", "")})
         before = calls[:calls.index(fetch)] if fetch in calls else calls
         assert (label, fetch in calls, calls.count(get_url),
@@ -295,7 +295,7 @@ def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_sy
 def test_main_falls_back_to_a_local_main_then_master_only_without_an_origin_remote_and_refuses_when_neither_exists(
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/repo"
-    path = main_tree + "/.tdd/wt/7"
+    path = f"{main_tree}/.tdd/wt/7"
     registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
     listing = ("git", "worktree", "list", "--porcelain")
     local = ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/7-slug")
@@ -329,7 +329,7 @@ def test_main_falls_back_to_a_local_main_then_master_only_without_an_origin_remo
 def test_main_cuts_from_a_fetched_origin_default_with_no_track_and_refuses_to_cut_from_a_stale_one_when_the_fetch_fails(
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/repo"
-    path = main_tree + "/.tdd/wt/7"
+    path = f"{main_tree}/.tdd/wt/7"
     registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
     listing = ("git", "worktree", "list", "--porcelain")
     local = ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/7-slug")
@@ -358,7 +358,7 @@ def test_main_cuts_from_a_fetched_origin_default_with_no_track_and_refuses_to_cu
 def test_main_puts_a_seeded_log_back_when_the_cut_dies_and_still_maps_the_dying_add_into_0_to_3(
         monkeypatch, capsys, tmp_path, issue_worktree):
     main_tree = str(tmp_path / "repo")
-    path = main_tree + "/.tdd/wt/63"
+    path = f"{main_tree}/.tdd/wt/63"
     seeded = pathlib.Path(path, ".tdd", "events.jsonl")
     seeded.parent.mkdir(parents=True)
     seeded.write_bytes(b'{"event":"seeded"}\n{"event":"second"}\n')
@@ -397,7 +397,7 @@ def test_main_puts_a_seeded_log_back_when_the_cut_dies_and_still_maps_the_dying_
 def test_main_leaves_a_path_holding_more_than_the_seeded_log_where_it_is_for_git_to_refuse(
         monkeypatch, capsys, tmp_path, issue_worktree, extra):
     main_tree = str(tmp_path / "repo")
-    path = main_tree + "/.tdd/wt/63"
+    path = f"{main_tree}/.tdd/wt/63"
     seeded = pathlib.Path(path, ".tdd", "events.jsonl")
     seeded.parent.mkdir(parents=True)
     seeded.write_bytes(b'{"event":"seeded"}\n')
@@ -436,7 +436,7 @@ def test_main_leaves_a_path_holding_more_than_the_seeded_log_where_it_is_for_git
 def test_main_appends_a_seeded_log_into_the_tdd_directory_a_successful_cut_checked_out(
         monkeypatch, capsys, tmp_path, issue_worktree):
     main_tree = str(tmp_path / "repo")
-    path = main_tree + "/.tdd/wt/63"
+    path = f"{main_tree}/.tdd/wt/63"
     seeded = pathlib.Path(path, ".tdd", "events.jsonl")
     seeded.parent.mkdir(parents=True)
     seeded.write_bytes(b'{"event":"seeded"}\n')
@@ -469,7 +469,7 @@ def test_main_appends_a_seeded_log_into_the_tdd_directory_a_successful_cut_check
 def test_main_puts_a_seeded_log_back_when_it_refuses_for_the_origin_default_the_missing_default_or_the_failed_fetch(
         monkeypatch, capsys, tmp_path, issue_worktree):
     main_tree = str(tmp_path / "repo")
-    path = main_tree + "/.tdd/wt/63"
+    path = f"{main_tree}/.tdd/wt/63"
     seeded = pathlib.Path(path, ".tdd", "events.jsonl")
     tmpdir = tmp_path / "tmp"
     tmpdir.mkdir()
