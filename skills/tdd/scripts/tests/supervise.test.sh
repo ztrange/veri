@@ -1228,4 +1228,20 @@ unissued_code=$?
 [[ "$unissued_code" == 0 ]] && ok \
   || no "#954: with VERI_ISSUE unset, a .tdd/issue--timeout recording 3s is no settled timeout, so a leaf busy for 10s finishes under the 900s default (code=$unissued_code want 0, err=$(cat "$unissued_work/err"))"
 
+bad_settled_work="$(scratch_dir)"
+mkdir -p "$bad_settled_work/.tdd"
+bad_settled_problems=()
+for bad in '' 0 abc 1.5; do
+  printf '%s\n' "$bad" > "$bad_settled_work/.tdd/issue-954-timeout"
+  ( cd "$bad_settled_work" && env -u VERI_TIMEOUT -u VERI_STEP VERI_ISSUE=954 VERI_STUCK_RETRIES=0 \
+      VERI_POLL=0.02 VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-ok" ) >/dev/null 2>"$bad_settled_work/err"
+  bad_settled_code=$?
+  [[ "$bad_settled_code" == 2 ]] ||
+    bad_settled_problems+=("record '$bad': want exit 2, got $bad_settled_code")
+  grep -F '.tdd/issue-954-timeout' "$bad_settled_work/err" > /dev/null ||
+    bad_settled_problems+=("record '$bad': want stderr naming .tdd/issue-954-timeout, got: $(cat "$bad_settled_work/err")")
+done
+{ [[ "${#bad_settled_problems[@]}" -eq 0 ]]; } && ok \
+  || no "#954: with VERI_TIMEOUT unset, a .tdd/issue-954-timeout record that is empty or not a whole number >= 1 is refused with exit 2 and a stderr line naming the file, not read as 900 or misread (${bad_settled_problems[*]})"
+
 finish
