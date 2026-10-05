@@ -166,3 +166,35 @@ def test_main_inherits_the_last_criterion_unvalidated_and_writes_empty_multiline
         "newline": (0, "", head + "- [ ] b two ⟦criterion 2⟧\n- [ ] x\ny ⟦added⟧ ⟦criterion 2⟧\n"),
         "indented": (0, "", head + "  - [ ] b two ⟦criterion 4⟧\n- [ ] t ⟦added⟧ ⟦criterion 4⟧\n"),
     }
+
+
+def test_main_over_budget_returns_1_silently_and_owes_every_text_under_the_last_owed_steps_heading(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    ledger = tmp_path / "issue-42.md"
+    text = LEDGER.decode()
+    notes = text + "\n## Owed steps\n\n- old\n\n## Notes\n\na remark\n"
+    unterminated = text + "\n## Owed steps\n\n- old"
+    unseen_heading = text + "\n## Owed steps"
+    got = {}
+    for name, seed, batches in (
+        ("fresh then again", text, (["t", "fix x.test.sh ⟦suite-repair⟧"], ["u"])),
+        ("notes after owed", notes, (["t"],)),
+        ("unterminated last line", unterminated, (["t"],)),
+        ("unterminated owed heading", unseen_heading, (["t"],)),
+    ):
+        ledger.write_bytes(seed.encode())
+        runs = []
+        for texts in batches:
+            code = add_ledger_step.main([str(ledger), "after", "b two", *texts])
+            captured = capsys.readouterr()
+            runs.append((code, captured.out, captured.err))
+        got[name] = (runs, ledger.read_bytes().decode())
+    assert got == {
+        "fresh then again": (
+            [(1, "", ""), (1, "", "")],
+            text + "\n## Owed steps\n\n- t\n- fix x.test.sh ⟦suite-repair⟧\n- u\n",
+        ),
+        "notes after owed": ([(1, "", "")], notes + "\n## Owed steps\n\n- t\n"),
+        "unterminated last line": ([(1, "", "")], unterminated + "- t\n"),
+        "unterminated owed heading": ([(1, "", "")], unseen_heading + "\n## Owed steps\n\n- t\n"),
+    }
