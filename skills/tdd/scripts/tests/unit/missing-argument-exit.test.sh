@@ -144,7 +144,7 @@ migration_slice 5 next-pending-refactor.sh next-unchecked.sh orchestrate.sh \
   parallel-conductors.sh preserve-attempt.sh
 migration_slice 6 rebase-onto-default.sh red-divergence.sh \
   refactor-owed.sh
-migration_slice 7 refactor-triage.sh run-affordable.sh run-conductor.sh \
+migration_slice 7 refactor-triage.sh run-conductor.sh \
   run-leaf.sh run-suite.sh
 migration_slice 8 solvable-issues.sh \
   stop-requested.sh stop-run.sh
