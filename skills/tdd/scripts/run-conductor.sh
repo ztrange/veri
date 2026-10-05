@@ -71,8 +71,11 @@ record=".tdd/issue-$issue-skill-commit"
 head_rev=HEAD
 pinned=""
 if git -C "$base" remote get-url origin >/dev/null 2>&1; then
-  git -C "$base" fetch -q origin || git -C "$base" fetch -q origin ||
-    { echo "run-conductor: fetch of origin failed in '$base' — refusing to run a skill that may be stale" >&2; exit 2; }
+  fetches=1
+  until git -C "$base" fetch -q origin; do
+    (( fetches++ < 5 )) ||
+      { echo "run-conductor: fetch of origin failed in '$base' — refusing to run a skill that may be stale" >&2; exit 2; }
+  done
   head_rev=refs/remotes/origin/HEAD
 fi
 if commit="$(git -C "$base" rev-parse "$head_rev" 2>/dev/null)"; then

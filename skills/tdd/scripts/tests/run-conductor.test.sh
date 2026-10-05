@@ -1130,4 +1130,53 @@ grep -F -- "$tip31" "$prompt" > /dev/null 2>&1 ||
 
 report "$name"
 
+name="a fetch of origin whose ref lock is still held when the second fetch runs keeps retrying until the lock is released, and the conductor starts (#886)"
+problems=()
+
+src32="$work/src32"
+remote32="$work/remote32"
+clone32="$work/clone32"
+skill_clone "$src32"
+git clone -q --bare "$src32" "$remote32"
+git clone -q "$remote32" "$clone32"
+branch32="$(git -C "$remote32" symbolic-ref --short HEAD)"
+advance_clone "$src32" "# a commit another conductor's fetch is bringing in"
+git -C "$src32" push -q "$remote32" "HEAD:$branch32"
+tip32="$(git -C "$remote32" rev-parse HEAD)"
+
+lock32="$clone32/.git/refs/remotes/origin/$branch32.lock"
+: > "$lock32"
+
+shim32="$work/shim32"
+fetches32="$work/fetches32"
+mkdir -p "$shim32"
+cat > "$shim32/git" <<SHIM
+#!/bin/sh
+"$(command -v git)" "\$@"
+status=\$?
+case " \$* " in
+  *" fetch "*)
+    echo fetch >> "$fetches32"
+    [ "\$(wc -l < "$fetches32")" -ge 2 ] && rm -f "$lock32" ;;
+esac
+exit \$status
+SHIM
+chmod +x "$shim32/git"
+
+caller32="$work/caller32"
+caller_repo "$caller32"
+
+rm -f "$argv" "$prompt"
+launch_from "$caller32" "$clone32" PATH="$shim32:$PATH"
+status=$?
+
+[[ "$status" -eq 0 ]] ||
+  problems+=("the launch exited $status, not 0, although the ref lock was released after its second fetch — stderr was: '$(tr '\n' ' ' < "$launch_err")'")
+[[ -f "$argv" ]] ||
+  problems+=("no conductor was launched")
+grep -F -- "$tip32" "$prompt" > /dev/null 2>&1 ||
+  problems+=("the conductor's prompt does not name origin's tip $tip32 as the pinned skill commit")
+
+report "$name"
+
 finish
