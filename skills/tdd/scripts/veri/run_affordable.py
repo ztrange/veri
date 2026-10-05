@@ -32,7 +32,7 @@ def main(argv):
         return status
     spent = 0.0
     full = []
-    for line in steps.splitlines():
+    for line in sorted(steps.splitlines(), key=lambda line: (float(line.split()[0]), line)):
         dollars, leaves = line.split()
         spent += float(dollars)
         if int(leaves) > 2:
@@ -42,11 +42,14 @@ def main(argv):
     full.sort()
     middle = len(full) // 2
     median = full[middle] if len(full) % 2 else (full[middle - 1] + full[middle]) / 2
-    n = int(remaining)
+    n = float(remaining)
     projection = spent + n * median
     if not projection > ceiling:
         return 0
-    print("spent %.2f, steps remaining %d, median %.2f, projection %.2f" % (spent, n, median, projection))
+    if sys.stdout is None:
+        return 2
+    count = int(n) if n < 2**63 else -2**63
+    print("spent %.2f, steps remaining %d, median %.2f, projection %.2f" % (spent, count, median, projection))
     return 1
 
 
