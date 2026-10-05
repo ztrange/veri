@@ -9,3 +9,5 @@
 - test-only | build-verify-prompt.test.sh's `fast_for` helper (line 22) adds `--fast-cmd` only for `green` and `refactor`. Once `diff` requires the flag, it could cover `diff` too.
 ### `build-verify-prompt.sh diff <spec> <branch-base> <step-base>` without `--fast-cmd` exits 2 with a diagnostic on stderr and nothing on stdout, as `green` and `refactor` already do ⟦criterion 2⟧
 - test-only | fold the green (build-verify-prompt.test.sh:244-246) and #974 diff missing --fast-cmd refusal checks into one shared assertion over both phases
+### `skills/tdd/SKILL.md`'s *A `⟦diff-checked⟧` step* section spells its `build-develop-prompt.sh diff` command line with the fast command and its `run-verdict.sh … diff` command line with `--fast-cmd`, pinned by a case in `skills/tdd/scripts/tests/skill-suite-runs.test.sh` ⟦criterion 3⟧
+- test-only | update skill-suite-runs.test.sh's "Contract under test" header to name the Green, verify-refactor and diff-checked accounts it now pins (cosmetic in kind)
