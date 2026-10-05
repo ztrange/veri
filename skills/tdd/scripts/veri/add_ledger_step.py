@@ -31,16 +31,17 @@ def main(argv):
         return refuse("add-ledger-step.sh: position must be after, before or instead-of: " + where)
     with open(path, "rb") as f:
         content = f.read().decode()
+    lines = content.split("\n")
     added = sum(record[4] == "1" for record in ledger_steps(content))
     if added + len(texts) > int(os.environ.get("VERI_STEP_GROWTH", "5")):
-        headings = [line for line in content.split("\n")[:-1] if line.startswith("## ")]
+        headings = [line for line in lines[:-1] if line.startswith("## ")]
         owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
         owed += "".join(f"- {text}\n" for text in texts)
         with open(path, "ab") as f:
             f.write(owed.encode())
         return 1
     out = []
-    for line in content.split("\n"):
+    for line in lines:
         if not (anchor in line and ledger_steps(line)):
             out.append(line)
             continue
