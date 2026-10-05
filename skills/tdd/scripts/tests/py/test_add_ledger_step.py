@@ -346,3 +346,40 @@ def test_main_reads_veri_step_growth_as_bash_arithmetic_octal_base_errors_and_64
         "2^65": (1, "", "", owed),
         "2^63": (1, "", "", owed),
     }
+
+
+def test_main_reads_and_rewrites_the_ledger_as_bytes_line_by_line_in_place(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
+    ledger = tmp_path / "issue-42.md"
+    unterminated = LEDGER.removesuffix("- [ ] c three ⟦criterion 3⟧\n".encode()).removesuffix(b"\n")
+    crlf = LEDGER.replace(b"\n", b"\r\n")
+    latin = LEDGER.replace(b"# Plan for #42", b"# Plan for #42 \xff")
+    got = {}
+    for name, seed, anchor in (
+        ("anchor on an unterminated last line", unterminated, "b two"),
+        ("insert before an unterminated last line", unterminated, "a one"),
+        ("crlf", crlf, "a one"),
+        ("non-utf-8", latin, "a one"),
+    ):
+        ledger.write_bytes(seed)
+        inode = ledger.stat().st_ino
+        code = add_ledger_step.main([str(ledger), "after", anchor, "t"])
+        captured = capsys.readouterr()
+        got[name] = (code, captured.out, captured.err, ledger.read_bytes(), ledger.stat().st_ino == inode)
+    step = "- [ ] t ⟦added⟧ ⟦criterion 1⟧\n".encode()
+    assert got == {
+        "anchor on an unterminated last line": (
+            2, "", "add-ledger-step.sh: anchor matches no single step: b two\n", unterminated, True
+        ),
+        "insert before an unterminated last line": (
+            0, "", "", unterminated.removesuffix("- [ ] b two ⟦criterion 2⟧".encode()).replace(
+                "a one ⟦criterion 1⟧\n".encode(), "a one ⟦criterion 1⟧\n".encode() + step
+            ), True,
+        ),
+        "crlf": (
+            0, "", "", crlf.replace("a one ⟦criterion 1⟧\r\n".encode(), "a one ⟦criterion 1⟧\r\n".encode() + step), True
+        ),
+        "non-utf-8": (
+            0, "", "", latin.replace("a one ⟦criterion 1⟧\n".encode(), "a one ⟦criterion 1⟧\n".encode() + step), True
+        ),
+    }
