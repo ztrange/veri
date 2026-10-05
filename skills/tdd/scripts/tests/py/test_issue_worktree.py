@@ -146,3 +146,47 @@ def test_main_remove_returns_a_dying_gits_status_inside_0_to_3_as_it_is_and_maps
         code = issue_worktree.main(["--remove", "7"])
         assert (remove_code, code, capsys.readouterr().out, calls) == (
             remove_code, want, "", [list(listing), list(status), list(remove)])
+
+
+def test_main_hands_back_a_registered_worktree_by_n_alone_unless_its_pid_file_names_a_live_conductor(
+        monkeypatch, capsys, tmp_path, issue_worktree):
+    import os
+
+    main_tree = str(tmp_path / "repo")
+    path = main_tree + "/.tdd/wt/7"
+    registry = ("worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n"
+                "worktree %s\nHEAD 2222222222222222222222222222222222222222\nbranch refs/heads/tdd/7-slug\n\n"
+                % (main_tree, path))
+    listing = ("git", "worktree", "list", "--porcelain")
+    live = {0, 4242}
+
+    def fake_kill(pid, sig):
+        if pid > 2 ** 63:
+            raise OverflowError("signed integer is greater than maximum")
+        if pid == 1:
+            raise PermissionError(1, "Operation not permitted")
+        if pid not in live:
+            raise ProcessLookupError(3, "No such process")
+
+    monkeypatch.setattr(os, "kill", fake_kill)
+
+    for slug in ("slug", "other"):
+        calls = routing_git(monkeypatch, {listing: (0, registry, "")})
+        code = issue_worktree.main(["7", slug])
+        assert (slug, code, capsys.readouterr()[:], calls) == (slug, 0, (path + "\n", ""), [list(listing)])
+
+    pid_file = pathlib.Path(path) / ".tdd" / "conductor.pid"
+    pid_file.parent.mkdir(parents=True)
+    held = "issue-worktree: %s is held by a live conductor (pid %s) — refusing to hand back a run in flight\n"
+    for content, digits in ((" \t4242\t \nignored\n", "4242"), ("004242\n", "004242"), ("0\n", "0")):
+        pid_file.write_text(content)
+        calls = routing_git(monkeypatch, {listing: (0, registry, "")})
+        code = issue_worktree.main(["7", "slug"])
+        assert (content, code, capsys.readouterr()[:], calls) == (
+            content, 2, ("", held % (path, digits)), [list(listing)])
+
+    for content in ("4242\r\n", "pid 4242\n", "-4242\n", "1\n", "999\n", "99999999999999999999\n", "", "\n"):
+        pid_file.write_text(content)
+        calls = routing_git(monkeypatch, {listing: (0, registry, "")})
+        code = issue_worktree.main(["7", "slug"])
+        assert (content, code, capsys.readouterr()[:], calls) == (content, 0, (path + "\n", ""), [list(listing)])
