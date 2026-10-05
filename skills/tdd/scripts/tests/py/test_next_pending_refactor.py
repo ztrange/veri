@@ -110,3 +110,11 @@ def test_main_returns_a_ticked_step_of_any_kind_counts_an_upper_case_box_and_exi
         "upper-case": (0, b"ticked upper-case\n", b""),
         "open-only": (3, b"", b""),
     }
+
+
+def test_main_returns_3_with_nothing_on_stdout_for_empty_stdin(
+        monkeypatch, capsysbinary, next_pending_refactor):
+    fake_stdin(monkeypatch, b"")
+    code = next_pending_refactor.main([])
+
+    assert (code, capsysbinary.readouterr().out) == (3, b"")
