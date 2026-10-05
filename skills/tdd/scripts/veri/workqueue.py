@@ -226,8 +226,6 @@ def locked_main(argv):
             locked = True
         if command in MOVES:
             return move(queue, argv, fourth, *MOVES[command])
-        if command != "assign":
-            return refuse("workqueue.sh: unknown subcommand: " + command)
         held = held_issue(queue, argv[2:])
         if held:
             sys.stderr.write("workqueue.sh: issue %s is already %s\n" % held)
