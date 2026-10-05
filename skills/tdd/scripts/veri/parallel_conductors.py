@@ -1,5 +1,4 @@
 """parallel-conductors.sh's launcher, run in-process."""
-import contextlib
 import os
 import re
 import shutil
@@ -45,12 +44,25 @@ def _launch(n):
 
 
 def _finish(code):
-    with contextlib.suppress(FileNotFoundError), open(os.path.join(".tdd", "parallel.exit"), "w") as f:
+    os.makedirs(".tdd", exist_ok=True)
+    with open(os.path.join(".tdd", "parallel.exit"), "w") as f:
         f.write("%d\n" % code)
     return code
 
 
+def _whole_number(name, value, floor):
+    if re.fullmatch(r"[0-9]+", value) and int(value) >= floor:
+        return True
+    print("parallel-conductors: %s must be a whole number >= %d: '%s'" % (name, floor, value), file=sys.stderr)
+    return False
+
+
 def main(argv):
+    if not (_whole_number("VERI_CONDUCTOR_CTX_BUDGET", os.environ.get("VERI_CONDUCTOR_CTX_BUDGET") or "120000", 0)
+            and _whole_number("VERI_PARALLEL", os.environ.get("VERI_PARALLEL", "1"), 1)
+            and ("VERI_MAX_ISSUES" not in os.environ
+                 or _whole_number("VERI_MAX_ISSUES", os.environ["VERI_MAX_ISSUES"], 1))):
+        return _finish(2)
     rc_dir = tempfile.mkdtemp()
     code = _run()
     try:
