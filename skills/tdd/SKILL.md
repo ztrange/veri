@@ -2162,7 +2162,9 @@ finished steps.
 On re-run, step 1.2 calls `issue-worktree.sh` again; because it is **idempotent** it prints
 the same `.tdd/wt/<n>` path and creates nothing, so the `cd` puts you back in the very
 worktree the previous run committed in — the branch is already checked out there, and there
-is nothing to re-create or switch. The **resume check** then finds an existing
+is nothing to re-create or switch. Preflight step 3 has already entered that existing
+worktree, so a resumed run's baseline runs on the branch head there, before any cycle of the
+resumed run starts. The **resume check** then finds an existing
 `.tdd/issue-<n>.md`. When it does:
 
 1. Do **not** re-plan — the ledger is the source of truth. Re-write only the blind spec

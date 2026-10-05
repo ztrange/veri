@@ -18,6 +18,8 @@
 #   7. The full-tier call (`detect-test-command.sh --tier all`) comes after the fast-tier one with
 #      no line between them that leaves the worktree or moves its commit, and the
 #      `leaf-timeout.sh ... --full` call comes after it.
+#   8. The Resume section has a sentence saying the baseline runs on the branch head, in its
+#      existing worktree, before any cycle of the resumed run.
 #
 # Run: scripts/tests/skill-preflight-launchable.test.sh
 set -uo pipefail
@@ -47,6 +49,8 @@ enter_call='cd "$wt"'
 plan_heading='### 2. Scope & plan'
 red_phrase='red baseline'
 callers="caller's checkout"
+resume_heading='## Resume'
+branch_head='branch head'
 
 
 source "$HERE/lib/harness.sh"
@@ -217,6 +221,20 @@ if preflight_or_problem "the full-tier measurement"; then
   elif [[ -n "$full_in" && "$timeout_in" -lt "$full_in" ]]; then
     problems+=("$skill_md:$timeout_in sizes the timeout ($timeout_call $timeout_flag) before line $full_in takes the full-tier measurement it is sized from")
   fi
+fi
+
+report "$name"
+
+name="$skill_md says a resumed run's baseline runs on the $branch_head in its existing worktree, before any cycle (#955)"
+problems=()
+
+if section "$resume_heading"; then
+  says="$(sed -n "${sec_start},${sec_end}p" "$md" | tr '\n' ' ' | sed 's/  */ /g' |
+    awk -v b="baseline" -v h="$branch_head" 'BEGIN { RS = "[.] " } { l = tolower($0) } index(l, b) && index(l, h) && index(l, "worktree") && index(l, "cycle")')"
+  [[ -n "$says" ]] ||
+    problems+=("$skill_md's '$resume_heading' section has no sentence saying the baseline runs on the $branch_head in its existing worktree before any cycle of the resumed run")
+else
+  problems+=("$skill_md has no '$resume_heading' section — where a resumed run's baseline is stated could not be read")
 fi
 
 report "$name"
