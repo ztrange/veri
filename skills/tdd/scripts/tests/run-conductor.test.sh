@@ -378,6 +378,8 @@ skill_archive "$clone3" "$recorded" "$pinned"
 
 caller3="$work/caller3"
 caller_repo "$caller3"
+git -C "$caller3" commit -q --allow-empty -m base
+git -C "$caller3" branch "tdd/$issue-past-preflight"
 
 first_base="$work/first-base"
 mkdir -p "$first_base"
@@ -410,6 +412,8 @@ skill_clone "$clone4"
 
 caller4="$work/caller4"
 caller_repo "$caller4"
+git -C "$caller4" commit -q --allow-empty -m base
+git -C "$caller4" branch "tdd/$issue-past-preflight"
 
 launch_from "$caller4" "$clone4"
 
@@ -632,6 +636,8 @@ skill_archive "$remote10" "$first10" "$pinned10"
 
 caller10="$work/caller10"
 caller_repo "$caller10"
+git -C "$caller10" commit -q --allow-empty -m base
+git -C "$caller10" branch "tdd/$issue-past-preflight"
 
 launch_from "$caller10" "$clone10"
 
@@ -702,6 +708,8 @@ missing12="$(git -C "$foreign12" rev-parse HEAD)"
 
 caller12="$work/caller12"
 caller_repo "$caller12"
+git -C "$caller12" commit -q --allow-empty -m base
+git -C "$caller12" branch "tdd/$issue-past-preflight"
 launch_from "$caller12" "$clone12"
 
 printf '%s\n' "$missing12" > "$caller12/.tdd/issue-$issue-skill-commit"
@@ -736,6 +744,8 @@ skill_clone "$clone13"
 
 caller13="$work/caller13"
 caller_repo "$caller13"
+git -C "$caller13" commit -q --allow-empty -m base
+git -C "$caller13" branch "tdd/$issue-past-preflight"
 launch_from "$caller13" "$clone13"
 
 advance_clone "$clone13" "# a commit the operator asks the run to take"
@@ -850,6 +860,8 @@ skill_clone "$clone24"
 
 caller24="$work/caller24"
 caller_repo "$caller24"
+git -C "$caller24" commit -q --allow-empty -m base
+git -C "$caller24" branch "tdd/$issue-past-preflight"
 
 launch_from "$caller24" "$clone24"
 
@@ -955,6 +967,8 @@ skill_clone "$clone26"
 
 caller26="$work/caller26"
 caller_repo "$caller26"
+git -C "$caller26" commit -q --allow-empty -m base
+git -C "$caller26" branch "tdd/$issue-past-preflight"
 launch_from "$caller26" "$clone26"
 
 advance_clone "$clone26" "# a commit the operator asks the run to take"
@@ -1448,6 +1462,29 @@ else
   grep -q -- "$first38" "$prompt" ||
     problems+=("the next launch's prompt does not name the recorded pin $first38")
 fi
+
+report "$name"
+
+name="a conductor that exits, 0 or non-zero, with no registered .tdd/wt/<n> worktree and no local tdd/<n>-* branch leaves no skill record (#866)"
+problems=()
+
+remote39="$work/remote39"
+clone39="$work/clone39"
+cloned_skill "$remote39" "$clone39"
+
+for exit39 in 0 1; do
+  caller39="$work/caller39-$exit39"
+  caller_repo "$caller39"
+  git -C "$caller39" commit -q --allow-empty -m base
+  launch_from "$caller39" "$clone39" STUB_EXIT="$exit39"
+  rc39=$?
+  record39="$caller39/.tdd/issue-$issue-skill-commit"
+  if [[ "$rc39" != "$exit39" ]]; then
+    problems+=("the launch whose conductor exits $exit39 exited $rc39: $(cat "$launch_err")")
+  elif [[ -e "$record39" ]]; then
+    problems+=("the record $record39 survived a conductor that exited $exit39 with no worktree and no tdd/$issue-* branch, holding '$(cat "$record39")'")
+  fi
+done
 
 report "$name"
 
