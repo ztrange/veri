@@ -3,3 +3,5 @@
 - test-only | the three pytest cases each repeat the same steps (set stdin, call `main(["append", …])`, read the owed file) and could share one helper
 ### veri.refactor_owed.main append writes every structural transform before every test-only one, each group in report order; appends the `### <STEP>` block only when at least one line is owed, leaving an absent file uncreated and an existing file byte-identical otherwise; keeps a last stdin line with no trailing newline; writes `### ` with a trailing space for an empty STEP; and ignores arguments after the fourth ⟦criterion 5⟧
 - test-only | test_refactor_owed.py repeats `monkeypatch.setattr(sys, "stdin", io.StringIO(...))` in each append case; a small `feed(monkeypatch, text)` helper would remove the repetition
+### veri.refactor_owed.main(["append", <file>]) with no third argument returns 0 and writes the block under the heading `### ` with a trailing space, as an empty STEP does ⟦added⟧ ⟦criterion 5⟧
+- test-only | fold the repeated `owed.read_bytes() if owed.exists() else b""` and `monkeypatch.setattr(sys, "stdin", io.StringIO(...))` setup in test_refactor_owed.py into one helper
