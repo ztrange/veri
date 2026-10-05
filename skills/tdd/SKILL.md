@@ -462,6 +462,14 @@ skill mid-run. The record is run state and is git-ignored. Two cases refuse rath
   same clone causes: that is retried up to 5 times, `VERI_FETCH_RETRY_SLEEP` seconds apart
   (default 1).
 
+**The record survives only a run that got past preflight.** After the conductor exits,
+`run-conductor.sh` keeps `.tdd/issue-<n>-skill-commit` when `.tdd/wt/<n>` is registered as a
+git worktree or a local `tdd/<n>-*` branch exists — what step 1.2, the first thing after
+preflight, creates — and removes it otherwise, whatever the conductor's exit code. An
+unregistered `.tdd/wt/<n>` directory, such as the one `VERI_NEW_SKILL=1` leaves, does not
+count. So a launch that stopped at preflight pins nothing, and the next launch takes the
+fresh tip.
+
 When no commit can be resolved at all the launch runs unpinned, says so on stderr, and hands
 the conductor `VERI_SKILL_UNPINNED=1` for the plan comment (step 2.4).
 
