@@ -57,7 +57,27 @@ def _whole_number(name, value, floor):
     return False
 
 
+def _exclude_tdd():
+    git = subprocess.run(["git", "rev-parse", "--git-common-dir"], stdout=subprocess.PIPE, text=True)
+    if git.returncode:
+        return False
+    exclude = os.path.join(git.stdout.rstrip("\n"), "info", "exclude")
+    try:
+        with open(exclude, "rb") as f:
+            text = f.read()
+    except FileNotFoundError:
+        text = b""
+    if b".tdd/*" in text.split(b"\n"):
+        return True
+    os.makedirs(os.path.dirname(exclude), exist_ok=True)
+    with open(exclude, "ab") as f:
+        f.write((b"\n" if text and not text.endswith(b"\n") else b"") + b".tdd/*\n")
+    return True
+
+
 def main(argv):
+    if not _exclude_tdd():
+        return 2
     if not (_whole_number("VERI_CONDUCTOR_CTX_BUDGET", os.environ.get("VERI_CONDUCTOR_CTX_BUDGET") or "120000", 0)
             and _whole_number("VERI_PARALLEL", os.environ.get("VERI_PARALLEL", "1"), 1)
             and ("VERI_MAX_ISSUES" not in os.environ
