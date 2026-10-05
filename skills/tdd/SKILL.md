@@ -921,8 +921,8 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   ```
   git reset --hard HEAD
   git clean -f -- <test-path>   # a test file Red created is untracked, so the reset leaves it
-  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-added anchor="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" added=<count>
-  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-split at=over-budget anchor="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" added=<count>
+  step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$step" added=<count>
+  step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-split at=over-budget anchor="$step" added=<count>
   $S/add-ledger-step.sh .tdd/issue-<n>.md instead-of "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<criterion>' …   # every line of the answer in ONE call
   git add -A && git commit -m "plan: replace <STEP summary> with <count> smaller steps (#<n>)"
   ```
@@ -937,7 +937,7 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   run there, carrying that answer and the two figures, what the step has spent and the
   step budget, and leave the plan as it is so the user's decision picks the run back up:
   ```
-  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-escalated at=over-budget anchor="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"
+  step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-escalated at=over-budget anchor="$step"
   ```
   The `at=over-budget` is what tells this park apart from the revise-exhausted one: a verifier
   that could not be satisfied and a step that got expensive are different facts about the run.
@@ -1090,8 +1090,8 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    ```
    git reset --hard HEAD
    git clean -f -- <test-path>   # a test file Red created is untracked, so the reset leaves it; one git already tracked the reset restored
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-added anchor="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" added=<count>
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-split anchor="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" added=<count>
+   step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$step" added=<count>
+   step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-split anchor="$step" added=<count>
    $S/add-ledger-step.sh .tdd/issue-<n>.md before "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<SPLIT: value>' …   # every SPLIT: value in ONE call
    git add -A && git commit -m "plan: split <STEP summary> into <count> smaller steps (#<n>)"
    ```
@@ -1319,7 +1319,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      follow-ups in the `### 🛠️ Refactor` comment and the PR body, since the step's refactor
      loop has already closed and no triangulation reopens it:
      ```
-     VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" $S/event.sh step-added anchor="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" added=<count>
+     step="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$step" added=<count>
      $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" '<leaf or verdict uncovered-spec behaviour>' …   # every one in ONE call
      $S/clear-refactor-pending.sh .tdd/issue-<n>.md "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)"
      git add -A && git commit -m "chore: refactor verified for <STEP summary> (#<n>)"
@@ -1435,7 +1435,7 @@ and the conductor never edits a built prompt to add a suite one of them left out
 developer adds a unit-tier test when the failure exposes a gap the fast tier missed, and its
 verifier judges the fix against the full command, not the fast one.
 ```
-VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" $S/event.sh step-added anchor="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" added=1
+step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1
 $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the full-suite failure: <suite> — <its FAIL - line>> ⟦suite-repair⟧'
 git add .tdd/issue-<n>.md
 git commit -m "plan: repair the red full suite (#<n>)"
@@ -1626,7 +1626,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    gh api "repos/{owner}/{repo}/commits/$(git rev-parse HEAD)/check-runs" -q '.check_runs[] | {name, status, conclusion}'
    gh run view <run-id> --log-failed          # a failed check only → its suite and FAIL - line
    grep -F '⟦ci-repair⟧' .tdd/issue-<n>.md > /dev/null && VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)"
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" $S/event.sh step-added anchor="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" added=1
+   step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1
    $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>> ⟦ci-repair⟧'
    git add .tdd/issue-<n>.md
    git commit -m "plan: repair the red CI check (#<n>)"
@@ -1888,8 +1888,8 @@ answer. Each is a branch of its own:
   ```
   git reset --hard HEAD
   git clean -f -- <test-path>   # a test file Red created is untracked, so the reset leaves it
-  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-added anchor="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" added=<count>
-  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-split at=exhausted anchor="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" added=<count>
+  step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$step" added=<count>
+  step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-split at=exhausted anchor="$step" added=<count>
   $S/add-ledger-step.sh .tdd/issue-<n>.md instead-of "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<criterion>' …   # every line of the answer in ONE call
   git add -A && git commit -m "plan: replace <STEP summary> with <count> smaller steps (#<n>)"
   ```
@@ -1915,7 +1915,7 @@ answer. Each is a branch of its own:
   its own rather than the split's or the bail's — it is the one outcome that stops the run
   without bailing it, and a log holding neither reads as a run that stopped saying nothing:
   ```
-  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" $S/event.sh step-escalated anchor="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)"
+  step="$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-escalated anchor="$step"
   ```
 - **exit 3 — neither answer.** The leaf volunteered no split and asked for no decision, so
   there is nothing new to act on: **bail the step** with cause `revise-exhausted` as a
