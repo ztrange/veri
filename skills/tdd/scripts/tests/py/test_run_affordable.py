@@ -166,3 +166,31 @@ def test_main_projects_from_the_median_full_step_counting_every_step_toward_spen
         "at the ceiling": (0, "", ""),
         "over the ceiling": (1, "spent 8.99, steps remaining 0, median 8.99, projection 8.99\n", ""),
     }
+
+
+def test_main_sums_in_sort_order_formats_unlocalised_wraps_the_count_and_returns_2_when_stdout_is_closed(capsys, monkeypatch, run_affordable):
+    def run(remaining, ceiling, steps):
+        _siblings(monkeypatch, "12\n%s\n" % ceiling, steps)
+        code = run_affordable.main([remaining])
+        out, err = capsys.readouterr()
+        return (code, out, err)
+
+    seen = {"sort order": run("0", "0", "62867166030098.60 6\n0.08 2\n0.69 2\n"),
+            "half-cent median": run("1", "0", "1.02 6\n1.01 6\n")}
+    monkeypatch.setenv("LC_ALL", "de_DE.UTF-8")
+    seen["de_DE locale"] = run("1", "0", "3.00 6\n")
+    monkeypatch.delenv("LC_ALL")
+    seen["past 2^63"] = run("99999999999999999999", "0", "4.50 6\n")
+    monkeypatch.setattr(sys, "stdout", None)
+    seen["stdout closed, over"] = run("1", "0", "3.00 6\n")[0]
+    seen["stdout closed, within"] = run("1", "100", "3.00 6\n")[0]
+    assert seen == {
+        "sort order": (1, "spent 62867166030099.38, steps remaining 0, median 62867166030098.60, "
+                          "projection 62867166030099.38\n", ""),
+        "half-cent median": (1, "spent 2.03, steps remaining 1, median 1.02, projection 3.05\n", ""),
+        "de_DE locale": (1, "spent 3.00, steps remaining 1, median 3.00, projection 6.00\n", ""),
+        "past 2^63": (1, "spent 4.50, steps remaining -9223372036854775808, median 4.50, "
+                         "projection 450000000000000000000.00\n", ""),
+        "stdout closed, over": 2,
+        "stdout closed, within": 0,
+    }
