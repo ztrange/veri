@@ -236,3 +236,55 @@ def test_main_checks_out_a_local_branch_else_cuts_from_the_remote_one_without_a_
         code = issue_worktree.main(["7", "slug"])
         assert (add_code, code, capsys.readouterr()[:], calls) == (
             add_code, want, (out, "Preparing worktree\n"), [list(listing), list(local), list(remote), list(track)])
+
+
+def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_symref_and_refuses_when_neither_names_one(
+        monkeypatch, capsys, issue_worktree):
+    main_tree = "/srv/repo"
+    registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
+    listing = ("git", "worktree", "list", "--porcelain")
+    local = ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/7-slug")
+    remote = ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/7-slug")
+    symref = ("git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
+    get_url = ("git", "remote", "get-url", "origin")
+    ls_remote = ("git", "ls-remote", "--symref", "origin", "HEAD")
+    refusal = ("issue-worktree: cannot determine origin's default branch"
+               " (no refs/remotes/origin/HEAD, and the remote did not name one)\n")
+    sha = "2222222222222222222222222222222222222222"
+
+    def run(answers):
+        recorded = routing_git(monkeypatch, answers)
+        code = issue_worktree.main(["7", "slug"])
+        calls = [tuple(c) for c in recorded]
+        return code, capsys.readouterr()[:], calls
+
+    base = {listing: (0, registry, ""), local: (1, "", ""), remote: (1, "", ""),
+            get_url: (0, "https://example.invalid/repo.git\n", "url noise\n")}
+    named = (
+        ("origin/HEAD", {symref: (0, "origin/trunk\n", "")}, "trunk"),
+        ("symref", {symref: (1, "", "symref noise\n"),
+                    ls_remote: (0, "ref: refs/heads/develop\tHEAD\n%s\tHEAD\n" % sha, "ls noise\n")}, "develop"),
+        ("symref, exit ignored", {symref: (1, "", ""),
+                                  ls_remote: (2, "ref: refs/heads/develop\tHEAD\n", "")}, "develop"),
+        ("symref, no prefix stripped", {symref: (1, "", ""),
+                                        ls_remote: (0, "ref: refs/heads/origin/x\tHEAD\n", "")}, "origin/x"),
+    )
+    for label, answers, name in named:
+        fetch = ("git", "fetch", "-q", "origin", name)
+        add = ("git", "worktree", "add", "-q", "--no-track", "-b", "tdd/7-slug", main_tree + "/.tdd/wt/7", "origin/" + name)
+        code, (out, err), calls = run({**base, **answers, fetch: (0, "", ""), add: (0, "", "")})
+        before = calls[:calls.index(fetch)] if fetch in calls else calls
+        assert (label, fetch in calls, calls.count(get_url),
+                [c for c in calls if c[-1] in ("refs/heads/main", "refs/heads/master")],
+                "noise" in out + err) == (label, True, 1, [], False)
+        assert (label, sorted(set(before) - {ls_remote})) == (label, sorted({listing, local, remote, symref, get_url}))
+
+    unnamed = (
+        ("no ref: line", (0, "%s\tHEAD\n" % sha, "ls noise\n")),
+        ("unreachable", (128, "", "fatal: could not read from remote repository\n")),
+        ("outside refs/heads", (0, "ref: refs/tags/v1\tHEAD\n%s\tHEAD\n" % sha, "")),
+    )
+    for label, answer in unnamed:
+        code, captured, calls = run({**base, symref: (1, "", "symref noise\n"), ls_remote: answer})
+        assert (label, code, captured, calls[-1], sorted(calls)) == (
+            label, 2, ("", refusal), ls_remote, sorted([listing, local, remote, symref, get_url, ls_remote]))

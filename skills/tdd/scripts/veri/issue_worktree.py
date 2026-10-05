@@ -45,6 +45,21 @@ def ref_exists(ref):
     return subprocess.run(["git", "show-ref", "--verify", "--quiet", ref]).returncode == 0
 
 
+def has_origin():
+    return subprocess.run(["git", "remote", "get-url", "origin"],
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+
+
+def default_branch_name():
+    head = subprocess.run(["git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"],
+                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    if head.returncode == 0:
+        return head.stdout.rstrip("\n").removeprefix("origin/")
+    answer = subprocess.run(["git", "ls-remote", "--symref", "origin", "HEAD"],
+                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    return "\n".join(re.findall(r"^ref: refs/heads/(\S*)\s*HEAD$", answer.stdout, re.MULTILINE))
+
+
 def worktree_add(*args):
     return subprocess.run(["git", "worktree", "add", "-q", *args], stdout=sys.stderr).returncode
 
@@ -91,7 +106,14 @@ def main(argv):
     elif ref_exists(remote_ref):
         code = worktree_add("-b", branch, path, remote_ref)
     else:
-        return 0
+        has_origin()
+        name = default_branch_name()
+        if not name:
+            sys.stderr.write("issue-worktree: cannot determine origin's default branch"
+                             " (no refs/remotes/origin/HEAD, and the remote did not name one)\n")
+            return 2
+        subprocess.run(["git", "fetch", "-q", "origin", name], stdout=sys.stderr)
+        code = worktree_add("--no-track", "-b", branch, path, "origin/" + name)
     if code != 0:
         return to_contract(code)
     sys.stdout.write(path + "\n")
