@@ -43,6 +43,20 @@ venv_path_hint() {
   fi
 }
 
+venv_path_python_floor() {
+  local version major minor
+  version="${VERI_PYTHON_VERSION:-$(python3 -c 'import platform; print(platform.python_version())' 2> /dev/null || true)}"
+  major="${version%%.*}"
+  minor="${version#*.}"
+  minor="${minor%%.*}"
+  if [[ "$major" =~ ^[0-9]+$ && "$minor" =~ ^[0-9]+$ ]] &&
+    ((major < ${VENV_FLOOR%%.*} || (major == ${VENV_FLOOR%%.*} && minor < ${VENV_FLOOR#*.}))); then
+    printf '%s: veri needs Python %s or newer; the python3 on PATH is version %s.\n' "$1" "$VENV_FLOOR" "$version" >&2
+    venv_path_hint "$1"
+    return 2
+  fi
+}
+
 venv_builder() {
   local candidates=(python3) candidate names minor
   for ((minor = 13; minor >= ${VENV_FLOOR#*.}; minor--)); do
