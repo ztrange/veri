@@ -1,9 +1,9 @@
 ### 📊 Metrics — issue 843
 
-Wall time for the issue: 817 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 1813 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 11 of 18 planned.
-Outcome: the run bailed — no-verdict, a system failure.
+Steps done: 14 of 18 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/872.
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
@@ -16,14 +16,14 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | pin | 2 | 2 | 0 | 0 | 66 | 28 | 8 | 16 | 3106 | 366204 | 97682 | 0.50 |
 | green | 18 | 9 | 0 | 0 | 912 | 476 | 126 | 252 | 42286 | 6701968 | 913356 | 7.52 |
 | refactor | 18 | 9 | 0 | 0 | 525 | 293 | 83 | 166 | 25410 | 4040594 | 900325 | 6.65 |
-| diff | 2 | 0 | 1 | 0 | 154 | 49 | 11 | 22 | 4268 | 561468 | 102215 | 0.81 |
+| diff | 7 | 3 | 1 | 0 | 287 | 108 | 25 | 50 | 9927 | 1112800 | 335374 | 2.30 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 32 | 30 | 2 | 0 | 993 | 530 | 158 | 316 | 53818 | 7746918 | 1540602 | 8.25 |
-| developer | claude-opus-5-5 | 33 | 0 | 0 | 0 | 1616 | 1169 | 228 | 448 | 97863 | 12518407 | 1728655 | 18.29 |
+| verifier | claude-sonnet-5-5 | 35 | 33 | 2 | 0 | 1080 | 564 | 166 | 332 | 57436 | 8053870 | 1681599 | 8.91 |
+| developer | claude-opus-5-5 | 35 | 0 | 0 | 0 | 1662 | 1194 | 234 | 460 | 99904 | 12762787 | 1820817 | 19.12 |
 
 #### Rework and waste, by phase
 
@@ -34,7 +34,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | pin | 0 | 0.00 | 0 | 0.00 |
 | green | 0 | 0.00 | 0 | 0.00 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
-| diff | 0 | 0.00 | 154 | 0.81 |
+| diff | 218 | 1.05 | 0 | 0.00 |
 
 #### By step
 
@@ -51,7 +51,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | veri.run_verdict.main sets SIGPIPE and SIGXFSZ back to SIG_DFL before os.execv, undoing Python's startup SIG_IGN that an exec would otherwise hand to verify.sh: both are SIG_DFL when the faked os.execv is reached (tests/py/test_run_verdict.py, faking signal.signal beside os.execv) ⟦criterion 4⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 127 | 34 | 68 | 11171 | 1752594 | 303680 | 2.38 | 241 | unknown | 0/5 | nothing-structural |  |  | full |
 | veri.run_verdict.main, when its environment carries VERI_SHIM_SET_COERCE=1, removes both VERI_SHIM_SET_COERCE and PYTHONCOERCECLOCALE from os.environ before os.execv, so verify.sh inherits neither the shim's PEP 538 guard nor its marker; without the marker a caller's own PYTHONCOERCECLOCALE (`1`) reaches os.execv's environment unchanged (tests/py/test_run_verdict.py, faking only the exec boundary and the environment) ⟦criterion 4⟧ | 7 | 3 | 0 | 0 | 0 | 0 | 135 | 36 | 70 | 11743 | 1817888 | 306544 | 2.41 | 274 | unknown | 0/5 | nothing-left |  |  | full |
 | veri.run_verdict.main keeps today's codes when the exec itself fails: an os.execv raising OSError with errno ENOEXEC (an executable verify.sh with no `#!`) is retried as bash retries it, `os.execvp("bash", ["bash", <scripts>/verify.sh, *argv])`; any other OSError makes main return 2 with one line `run-verdict.sh: cannot start the verifier: <scripts>/verify.sh: <strerror>` on stderr, never 1; veri.run_verdict carries no wrapper turning an uncaught exception into a return code (tests/py/test_run_verdict.py, faking only the exec boundary) ⟦criterion 4⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 148 | 39 | 78 | 13607 | 2089609 | 313210 | 2.54 | 276 | unknown | 1/5 | nothing-left |  |  | full |
-| run-verdict.sh is a /bin/sh shim that execs python3 on "$(dirname "$0")/veri/run_verdict.py" once per invocation, as status.sh does — adding `PYTHONCOERCECLOCALE=0 VERI_SHIM_SET_COERCE=1` to python3's environment only when the caller's environment has no PYTHONCOERCECLOCALE — holding no Python source (no heredoc, no `python3 -c`), keeping its capitalised `# Usage:  run-verdict.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]` header line and no lowercase `usage:` text anywhere, citing no issue number in any comment; veri/run_verdict.py hands over with os.execv, never subprocess, and reproduces the option list of lib/verify-options.sh in-process; every case in tests/run-verdict.test.sh and tests/verify.test.sh passes with its assertions unmodified, in a commit that precedes any cut, whose diff in the test suites touches only copy lines and stub libs and changes no assertion ⟦diff-checked⟧ ⟦criterion 2⟧ | 2 | 0 | 1 | 0 | 0 | 0 | 49 | 11 | 22 | 4268 | 561468 | 102215 | 0.81 | unknown | unknown | unknown | unknown |  |  | full |
+| run-verdict.sh is a /bin/sh shim that execs python3 on "$(dirname "$0")/veri/run_verdict.py" once per invocation, as status.sh does — adding `PYTHONCOERCECLOCALE=0 VERI_SHIM_SET_COERCE=1` to python3's environment only when the caller's environment has no PYTHONCOERCECLOCALE — holding no Python source (no heredoc, no `python3 -c`), keeping its capitalised `# Usage:  run-verdict.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]` header line and no lowercase `usage:` text anywhere, citing no issue number in any comment; veri/run_verdict.py hands over with os.execv, never subprocess, and reproduces the option list of lib/verify-options.sh in-process; every case in tests/run-verdict.test.sh and tests/verify.test.sh passes with its assertions unmodified, in a commit that precedes any cut, whose diff in the test suites touches only copy lines and stub libs and changes no assertion ⟦diff-checked⟧ ⟦criterion 2⟧ | 3 | 1 | 1 | 0 | 0 | 0 | 65 | 15 | 30 | 6071 | 741837 | 150206 | 1.05 | 14415 | unknown | unknown | unknown |  |  | full |
+| tests/run-verdict.test.sh cuts no case — all five original cases run the script through its entry point, cases 1 and 3 are pinned by tests/py/test_comment_class.py's CLASS_3_LINES, case 2 is the floor's own exit 2, case 4 the floor's pass-through of 0 and case 5 a real supervision — and holds besides only the floor cases and the symlink case, with no pre-existing case's assertions changed ⟦diff-checked⟧ ⟦criterion 4⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 21 | 5 | 10 | 1806 | 185137 | 93309 | 0.62 | unknown | unknown | unknown | unknown |  |  | full |
+| verify.sh, lib/verify-options.sh, skills/tdd/SKILL.md, tests/verify.test.sh, tests/py/test_comment_class.py, tests/unit/exit-contract.test.sh, tests/unit/scratch-copy-libs.test.sh, tests/no-python-in-ported-scripts.test.sh, tests/skill-leaf-env.test.sh, tests/skill-leaf-launch.test.sh and tests/verifier-launch-guard.test.sh are unchanged by the branch, and tests/unit/missing-argument-exit.test.sh is changed only by the removal of run-verdict.sh from migration slice 7's list ⟦diff-checked⟧ ⟦criterion 5⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 22 | 5 | 10 | 2050 | 185826 | 91859 | 0.62 | unknown | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER.
 
@@ -69,16 +71,20 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | veri.run_verdict.main, when its environment carries VERI_SHIM_SET_COERCE=1, removes both VERI_SHIM_SET_COERCE and PYTHONCOERCECLOCALE from os.environ before os.execv, so verify.sh inherits neither the shim's PEP 538 guard nor its marker; without the marker a caller's own PYTHONCOERCECLOCALE (`1`) reaches os.execv's environment unchanged (tests/py/test_run_verdict.py, faking only the exec boundary and the environment) ⟦criterion 4⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 45 | 0.71 |
 | veri.run_verdict.main keeps today's codes when the exec itself fails: an os.execv raising OSError with errno ENOEXEC (an executable verify.sh with no `#!`) is retried as bash retries it, `os.execvp("bash", ["bash", <scripts>/verify.sh, *argv])`; any other OSError makes main return 2 with one line `run-verdict.sh: cannot start the verifier: <scripts>/verify.sh: <strerror>` on stderr, never 1; veri.run_verdict carries no wrapper turning an uncaught exception into a return code (tests/py/test_run_verdict.py, faking only the exec boundary) ⟦criterion 4⟧ | 1 | 1/5 | nothing-left | PASS | 0 | 58 | 0.76 |
 
+#### Structural pass
+
+Stopped: nothing-structural
+
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 5 | 6 | 0 | 1 | 1 | 0 | 0 | 8 | 3 | 4 | 0 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 5 | 5 | 0 | 5 | 4 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 5 | 0 | 1 | 0 | 5 | 4 | 0 | 5 | 1 | 6 | 0 | 0 | 0 | 1 | 6 | 0 | 6 | 1 | 0 | 1 | 0 | 1 | 7 | 0 | 0 | 1 | 1 | 1 | 0 | 0 | 2 | 0 | 0 | 1 | 1 | 1 | 2 | 1 | 50 |
-| target | 4 | 4 | 4 | 4 | 7 | 4 | 5 | 0 | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 0 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| fast | 33 | 16 | 16 | 15 | 16 | 18 | 16 | 16 | 17 | 16 | 18 | 16 | 16 | 16 | 17 | 17 | 18 | 17 | 17 | 17 | 17 | 14 | 15 | 15 | 14 | 14 | 15 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 5 | 6 | 0 | 1 | 1 | 0 | 0 | 8 | 3 | 4 | 0 | 0 | 0 | 0 | 0 | 6 | 0 | 0 | 5 | 5 | 0 | 5 | 4 | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 5 | 0 | 1 | 0 | 5 | 4 | 0 | 5 | 1 | 6 | 0 | 0 | 0 | 1 | 6 | 0 | 6 | 1 | 0 | 1 | 0 | 1 | 7 | 0 | 0 | 1 | 1 | 1 | 0 | 0 | 2 | 0 | 0 | 1 | 1 | 1 | 2 | 1 | 50 | 1 | 15 |
+| target | 4 | 4 | 4 | 4 | 7 | 4 | 5 | 0 | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 0 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| fast | 33 | 16 | 16 | 15 | 16 | 18 | 16 | 16 | 17 | 16 | 18 | 16 | 16 | 16 | 17 | 17 | 18 | 17 | 17 | 17 | 17 | 14 | 15 | 15 | 14 | 14 | 15 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 386 | 764 | 151681 | 20265325 | 3269257 | 26.54 |
+| total | 400 | 792 | 157340 | 20816657 | 3502416 | 28.03 |
