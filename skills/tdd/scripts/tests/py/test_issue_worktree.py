@@ -322,3 +322,32 @@ def test_main_falls_back_to_a_local_main_then_master_only_without_an_origin_remo
         adds = [c for c in calls if c[1:3] == ("worktree", "add")]
         assert (label, code, capsys.readouterr()[:], adds[-1] if adds else None,
                 [c for c in calls if c[1] in ("fetch", "ls-remote")]) == (label, *want, [])
+
+
+def test_main_cuts_from_a_fetched_origin_default_with_no_track_and_refuses_to_cut_from_a_stale_one_when_the_fetch_fails(
+        monkeypatch, capsys, issue_worktree):
+    main_tree = "/srv/repo"
+    path = main_tree + "/.tdd/wt/7"
+    registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
+    listing = ("git", "worktree", "list", "--porcelain")
+    local = ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/7-slug")
+    remote = ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/7-slug")
+    symref = ("git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
+    get_url = ("git", "remote", "get-url", "origin")
+    fetch = ("git", "fetch", "-q", "origin", "trunk")
+    add = ("git", "worktree", "add", "-q", "--no-track", "-b", "tdd/7-slug", path, "origin/trunk")
+    refusal = ("issue-worktree: git fetch origin trunk failed"
+               " — refusing to cut tdd/7-slug from a stale origin/trunk\n")
+    base = {listing: (0, registry, ""), local: (1, "", ""), remote: (1, "", ""),
+            symref: (0, "origin/trunk\n", ""), get_url: (0, "https://example.invalid/repo.git\n", ""),
+            add: (0, "", "")}
+
+    recorded = routing_git(monkeypatch, {**base, fetch: (0, "fetched\n", "")})
+    code = issue_worktree.main(["7", "slug"])
+    assert (code, capsys.readouterr()[:], [tuple(c) for c in recorded][-2:]) == (0, (path + "\n", "fetched\n"), [fetch, add])
+
+    recorded = routing_git(monkeypatch, {**base, fetch: (1, "", "fatal: couldn't find remote ref trunk\n")})
+    code = issue_worktree.main(["7", "slug"])
+    out, err = capsys.readouterr()
+    assert (code, out, err[-len(refusal):], [tuple(c) for c in recorded if c[1:3] == ["worktree", "add"]]) == (
+        2, "", refusal, [])

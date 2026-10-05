@@ -124,7 +124,10 @@ def main(argv):
         if not name:
             return 2
         if origin:
-            subprocess.run(["git", "fetch", "-q", "origin", name], stdout=sys.stderr)
+            if subprocess.run(["git", "fetch", "-q", "origin", name], stdout=sys.stderr).returncode != 0:
+                sys.stderr.write("issue-worktree: git fetch origin %s failed"
+                                 " — refusing to cut %s from a stale origin/%s\n" % (name, branch, name))
+                return 2
             name = "origin/" + name
         code = worktree_add("--no-track", "-b", branch, path, name)
     if code != 0:
