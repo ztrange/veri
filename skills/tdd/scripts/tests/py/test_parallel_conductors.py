@@ -832,3 +832,55 @@ def test_a_finished_sweep_in_launch_order_restarts_past_a_stop_prints_parked_alo
         "#6 — bailed https://github.com/o/r/pull/106",
         "stopped: #6 bailed",
     ])
+
+
+def test_the_log_is_followed_as_bytes_waiting_veri_poll_seconds_for_it_joining_a_partial_line_reading_once_after_supervise_dies_and_dropping_an_unterminated_last_line(
+        capsys, monkeypatch, tmp_path, parallel_conductors):
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("VERI_POLL", "3")
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(gh))
+    work = tmp_path / "repo"
+    work.mkdir()
+    monkeypatch.chdir(work)
+    log = work / ".tdd" / "conductor-7.log"
+
+    def assistant(read, creation):
+        return (b'{"type":"assistant","message":{"usage":{"cache_creation_input_tokens":%d,'
+                b'"cache_read_input_tokens":%d}}}' % (creation, read))
+
+    first = assistant(100, 1)
+    ticks = [0]
+
+    def on_sleep(supervisors):
+        sup = supervisors[-1]
+        if sup.returncode is not None:
+            return
+        ticks[0] += 1
+        if ticks[0] == 1:
+            log.parent.mkdir(parents=True, exist_ok=True)
+            log.write_bytes(b'{"type":"system","text":"\xff\xfe caf\xe9"}\n' + first[:20])
+        elif ticks[0] == 2:
+            with open(log, "ab") as f:
+                f.write(first[20:] + b"\n" + assistant(200, 2) + b"\n" + assistant(300, 3))
+            sup.exit(0)
+
+    _boundaries(monkeypatch, tmp_path, lambda sup: None, on_sleep)
+    faked_sleep = time.sleep
+    slept = []
+
+    def recording_sleep(seconds):
+        slept.append(float(seconds))
+        faked_sleep(seconds)
+
+    monkeypatch.setattr(time, "sleep", recording_sleep)
+
+    code = parallel_conductors.main([])
+    out, _ = capsys.readouterr()
+
+    assert (slept, [line for line in out.splitlines() if line.startswith("context ")]) == (
+        [3.0, 3.0], ["context 7 101", "context 7 202"])
+    assert code in (0, 1, 2, 3)

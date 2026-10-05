@@ -238,7 +238,7 @@ def _run(continue_on_bail):
                 if _is_failure(got):
                     stopped = "#%s %s" % (c.n, got.split()[0])
         if not done:
-            time.sleep(1)
+            time.sleep(float(os.environ.get("VERI_POLL") or "1"))
 
 
 if __name__ == "__main__":
