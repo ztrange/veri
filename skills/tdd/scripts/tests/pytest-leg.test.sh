@@ -363,6 +363,25 @@ last="$(tail -n 1 "$work/out")"
   problems+=("want stdout's last line to name $path_venv/bin and say to put it first on PATH, got: '$last'")
 report "$name"
 
+reuse_venv="$floor/venv-reused-path-line"
+mkdir -p "$reuse_venv/bin"
+stub_python "$reuse_venv/bin/python3" 3.13.1
+
+name="#936: make install-dev that reuses an existing environment at VERI_VENV meeting the floor ends its output with a line naming \$VERI_VENV/bin and telling the reader to put it first on PATH"
+problems=()
+: > "$floor/calls"
+env -u PYTHONPATH VERI_VENV="$reuse_venv" PATH="$floor/bin:$floor/sys" \
+  "$(command -v make)" --no-print-directory -C "$floor" install-dev > "$work/out" 2> "$work/err" < /dev/null &&
+  code=0 || code=$?
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0, got $code: $(flat "$(cat "$work/out")") $(flat "$(cat "$work/err")")")
+[[ "$(cat "$floor/calls")" != *'-m venv'* ]] ||
+  problems+=("want the existing environment reused, not rebuilt, got calls: $(flat "$(cat "$floor/calls")")")
+last="$(tail -n 1 "$work/out")"
+[[ "$last" == *"$reuse_venv/bin"* && "$last" == *PATH* && "$last" == *first* ]] ||
+  problems+=("want stdout's last line to name $reuse_venv/bin and say to put it first on PATH, got: '$last'")
+report "$name"
+
 stub_python "$floor/bin/python3.12" 3.11.9
 stub_python "$floor/bin/python3.13" 3.13.1
 newest_venv="$floor/venv-newest"
