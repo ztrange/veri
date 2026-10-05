@@ -41,8 +41,8 @@ report "$name"
 plant_tree() {
   ROOT="$(scratch_dir)"
   mkdir -p "$ROOT/skills/tdd/scripts"
-  printf '%s\n' '# Procedure' '' '- `gh auth status` succeeds.' > "$ROOT/skills/tdd/SKILL.md"
-  printf '%s\n' '#!/usr/bin/env bash' 'gh auth status || exit 2' > "$ROOT/skills/tdd/scripts/planted.sh"
+  printf '%s\n' '# Procedure' '' "- \`$1\` succeeds." > "$ROOT/skills/tdd/SKILL.md"
+  printf '%s\n' '#!/usr/bin/env bash' "$1 || exit 2" > "$ROOT/skills/tdd/scripts/planted.sh"
 }
 
 named_in_problems() {
@@ -55,12 +55,11 @@ named_in_problems() {
 
 probe_a_planted_gh_auth_status() {
   local ROOT
-  plant_tree
+  plant_tree 'gh auth status'
   problems=()
   probe_no_graphql_call_is_left
   planted_named="SKILL.md $(named_in_problems skills/tdd/SKILL.md:3);script $(named_in_problems skills/tdd/scripts/planted.sh:2);"
-  printf '%s\n' '# Procedure' '' '- `gh api user` succeeds.' > "$ROOT/skills/tdd/SKILL.md"
-  printf '%s\n' '#!/usr/bin/env bash' 'gh api user || exit 2' > "$ROOT/skills/tdd/scripts/planted.sh"
+  plant_tree 'gh api user'
   problems=()
   probe_no_graphql_call_is_left
   planted_named+="clean ${#problems[@]}"
