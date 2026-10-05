@@ -8,4 +8,4 @@
 - [x] `run-conductor.sh`, with the python3 on PATH below the floor and no venv at $VERI_VENV, exits 2 with today's message and names no venv path ⟦criterion 4⟧
 - [x] `leaf-launchable.sh`, with the python3 on PATH below the floor and no venv at $VERI_VENV, exits 2 with today's message and names no venv path ⟦criterion 4⟧
 - [x] `run-conductor.sh` and `leaf-launchable.sh`, with the python3 on PATH below the floor and a venv at $VERI_VENV whose own interpreter is also below the floor, exit 2 with today's message and name no venv path
-- [ ] Every case `venv-python.test.sh`, `pytest-leg.test.sh` and `make-test-env.test.sh` already hold still passes with its assertions unchanged ⟦diff-checked⟧ ⟦criterion 5⟧
+- [x] Every case `venv-python.test.sh`, `pytest-leg.test.sh` and `make-test-env.test.sh` already hold still passes with its assertions unchanged ⟦diff-checked⟧ ⟦criterion 5⟧
