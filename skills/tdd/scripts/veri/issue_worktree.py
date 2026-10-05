@@ -24,7 +24,7 @@ def number_in(file):
 
 def live_conductor(path):
     pid = number_in(path + "/.tdd/conductor.pid")
-    if pid is None or int(pid) == 0:
+    if pid is None or not positive_whole(pid):
         return None
     try:
         os.kill(int(pid), 0)
