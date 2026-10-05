@@ -1269,4 +1269,11 @@ three_page_run three
   && [[ "$code" == "$one_code" && "$out" == "$one_out" ]]; } \
   && ok || no "against a gh that serves issues and PRs over three pages on repos/{owner}/{repo} and refuses repositories/{id} with the proxy's 403, prints the same issue numbers and exit code as against a single-page fixture holding the same issues and PRs (#592) (single page: exit=$one_code stdout='$(tr '\n' '|' <<<"$one_out")' want 0 and '75|73'; three pages: exit=$code stdout='$(tr '\n' '|' <<<"$out")' want the same; three pages stderr='$(tr '\n' '|' < "$work/three-pages/three.err")')"
 
+bad_arg="$(fixture bad-argument)"
+VERI_GH_JSON="$bad_arg" "$SOLVABLE" --repo >"$bad_arg/out" 2>"$bad_arg/err" && code=0 || code=$?
+{ [[ "$code" == 2 ]] && [[ ! -s "$bad_arg/out" ]] \
+  && [[ "$(cat "$bad_arg/err")" == "usage: solvable-issues.sh [--repo owner/name]" ]] \
+  && [[ "$(wc -l < "$bad_arg/err" | tr -d ' ')" == 1 ]]; } \
+  && ok || no "--repo with no value exits 2 with nothing on stdout and stderr exactly the usage line (exit=$code want 2, stdout='$(cat "$bad_arg/out")' want '', stderr='$(cat "$bad_arg/err")' want 'usage: solvable-issues.sh [--repo owner/name]')"
+
 finish
