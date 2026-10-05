@@ -302,10 +302,10 @@ def render(issue, path, ledger):
         return known(awake_span_or_wall(mark.get("step-start"), mark.get("step-done")))
 
     def budget_cells(mark):
-        leaf_phases = mark.get("leaf phases")
-        if leaf_phases and leaf_phases <= UNBUDGETED_PHASES and not mark.get("revise phases") and not mark.get("refactor"):
-            return [NOT_APPLICABLE] * len(BUDGETS)
         phases = mark.get("revise phases", {})
+        leaf_phases = mark.get("leaf phases")
+        if leaf_phases and leaf_phases <= UNBUDGETED_PHASES and not phases and not mark.get("refactor"):
+            return [NOT_APPLICABLE] * len(BUDGETS)
         named = len(phases) > 1
         revise = ", ".join(("%s " % phase if named else "") + "%d/%s" % (count, budget or "?")
                            for phase, (count, budget) in phases.items()) or UNKNOWN
