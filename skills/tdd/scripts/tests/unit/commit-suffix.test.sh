@@ -52,4 +52,13 @@ out="$( source "$LIB" && commit_suffix_offenders "$these" 2>&1 )" || rc=$?
 named=""; grep -F 'develop-these.md' <<< "$out" > /dev/null && named=named
 expect_eq "$name" "1:named" "$rc:$named"
 
+name="#946 the commit-suffix check fails, naming the file, over a planted develop prompt saying \"Commit everything you changed.\" without stating (#<issue>)"
+everything="$scratch/everything"
+mkdir -p "$everything"
+printf '%s\n' '## Phase: develop-everything' '' 'Commit everything you changed.' > "$everything/develop-everything.md"
+rc=0
+out="$( source "$LIB" && commit_suffix_offenders "$everything" 2>&1 )" || rc=$?
+named=""; grep -F 'develop-everything.md' <<< "$out" > /dev/null && named=named
+expect_eq "$name" "1:named" "$rc:$named"
+
 finish
