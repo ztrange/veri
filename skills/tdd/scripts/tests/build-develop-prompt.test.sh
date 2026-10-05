@@ -993,7 +993,7 @@ bogus_revise_out="$("$BUILD" revise bogus "$work/spec.md" "$step_text" "$test_cm
   && ok || no "#880 a revise of an unknown phase exits 2 with no prompt and names diff among the accepted revise phases red|green|refactor|diff (exit $code, stderr: $(cat "$bogus_revise_err"))"
 
 revise_diff_err="$work/revise-diff.err"
-revise_diff="$("$BUILD" revise diff "$work/spec.md" "$dd_step" "$test_cmd" "$work/reason.md" 2>"$revise_diff_err")"; code=$?
+revise_diff="$("$BUILD" revise diff "$work/spec.md" "$dd_step" "$test_cmd" "$work/reason.md" "make unit" 2>"$revise_diff_err")"; code=$?
 [[ "$code" -eq 0 ]] \
   && [[ "$revise_diff" == *"$dd_step"* ]] \
   && [[ "$revise_diff" == *"$reason_text"* ]] \
@@ -1058,7 +1058,7 @@ suffix=""; grep -F '(#<issue>)' <<<"$df" | grep -iF 'commit' > /dev/null && suff
 expect_eq "$name" "0:stated" "$code:$suffix"
 
 name="#935 the revise-diff prompt tells the leaf to give its commit a subject ending in (#<issue>), the convention develop-refactor states"
-rd="$("$BUILD" revise diff "$work/spec.md" "$dd_step" "$test_cmd" "$work/reason.md" 2>/dev/null)"; code=$?
+rd="$("$BUILD" revise diff "$work/spec.md" "$dd_step" "$test_cmd" "$work/reason.md" "make unit" 2>/dev/null)"; code=$?
 suffix=""; grep -F '(#<issue>)' <<<"$rd" | grep -iF 'commit' > /dev/null && suffix=stated
 expect_eq "$name" "0:stated" "$code:$suffix"
 
@@ -1086,5 +1086,11 @@ fast="" order="" both=""
 [[ "$rdf" == *"$fast_line"*"$timed affected "* ]] && order=affected-after
 grep -iE 'both( runs)?( are| stay)? green' <<<"$rdf" > /dev/null && both=both-green
 expect_eq "$name" "0:fast:affected-after:both-green" "$code:$fast:$order:$both"
+
+name="#974 build-develop-prompt.sh revise diff with the fast command left out exits 2 with a diagnostic on stderr and nothing on stdout"
+rd_nofast_err="$work/revise-diff-no-fast.err"
+rd_nofast="$("$BUILD" revise diff "$work/spec.md" "$dd_step" "$test_cmd" "$work/reason.md" 2>"$rd_nofast_err")"; code=$?
+diag=""; [[ -s "$rd_nofast_err" ]] && diag=diagnostic
+expect_eq "$name" "2::diagnostic" "$code:${rd_nofast:+prompt}:$diag"
 
 finish
