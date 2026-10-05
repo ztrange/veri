@@ -1257,4 +1257,49 @@ grep -F -- "$tip34" "$prompt" > /dev/null 2>&1 ||
 
 report "$name"
 
+name="a locked fetch is retried after waiting the interval VERI_FETCH_RETRY_SLEEP names, so VERI_FETCH_RETRY_SLEEP=0 retries without waiting on the real clock (#900)"
+problems=()
+
+src35="$work/src35"
+remote35="$work/remote35"
+clone35="$work/clone35"
+skill_clone "$src35"
+git clone -q --bare "$src35" "$remote35"
+git clone -q "$remote35" "$clone35"
+branch35="$(git -C "$remote35" symbolic-ref --short HEAD)"
+advance_clone "$src35" "# a commit another conductor's fetch is bringing in"
+git -C "$src35" push -q "$remote35" "HEAD:$branch35"
+tip35="$(git -C "$remote35" rev-parse HEAD)"
+
+lock35="$clone35/.git/refs/remotes/origin/$branch35.lock"
+: > "$lock35"
+
+shim35="$work/shim35"
+sleeps35="$work/sleeps35"
+mkdir -p "$shim35"
+: > "$sleeps35"
+cat > "$shim35/sleep" <<SHIM
+#!/bin/sh
+printf '%s\\n' "\$*" >> "$sleeps35"
+rm -f "$lock35"
+SHIM
+chmod +x "$shim35/sleep"
+
+caller35="$work/caller35"
+caller_repo "$caller35"
+
+rm -f "$argv" "$prompt"
+launch_from "$caller35" "$clone35" PATH="$shim35:$PATH" VERI_FETCH_RETRY_SLEEP=0
+status=$?
+waits35="$(tr '\n' ' ' < "$sleeps35")"
+
+[[ "$status" -eq 0 ]] ||
+  problems+=("the launch exited $status, not 0 — stderr was: '$(tr '\n' ' ' < "$launch_err")'")
+[[ "$waits35" == "0 " ]] ||
+  problems+=("the run waited between fetches with sleep '${waits35:-<never>}', not once with sleep '0 ' as VERI_FETCH_RETRY_SLEEP=0 names")
+grep -F -- "$tip35" "$prompt" > /dev/null 2>&1 ||
+  problems+=("the conductor's prompt does not name origin's tip $tip35 as the pinned skill commit")
+
+report "$name"
+
 finish
