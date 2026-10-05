@@ -59,20 +59,16 @@ def quiet_git(*args):
 def default_branch_name(origin):
     head = quiet_git("symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
     if head.returncode == 0:
-        return head.stdout.rstrip("\n").removeprefix("origin/")
+        return head.stdout.rstrip("\n").removeprefix("origin/"), None
     if origin:
         answer = quiet_git("ls-remote", "--symref", "origin", "HEAD")
         name = "\n".join(re.findall(r"^ref: refs/heads/(\S*)\s*HEAD$", answer.stdout, re.MULTILINE))
-        if not name:
-            sys.stderr.write("issue-worktree: cannot determine origin's default branch"
-                             " (no refs/remotes/origin/HEAD, and the remote did not name one)\n")
-        return name
+        return name, ("cannot determine origin's default branch"
+                      " (no refs/remotes/origin/HEAD, and the remote did not name one)")
     for name in ("main", "master"):
         if ref_exists("refs/heads/" + name):
-            return name
-    sys.stderr.write("issue-worktree: cannot determine the default branch"
-                     " (no origin/HEAD, no local main or master)\n")
-    return ""
+            return name, None
+    return "", "cannot determine the default branch (no origin/HEAD, no local main or master)"
 
 
 def worktree_add(*args):
@@ -142,8 +138,10 @@ def cut(path, branch):
         code = worktree_add("-b", branch, path, remote_ref)
     else:
         origin = has_origin()
-        name = default_branch_name(origin)
+        name, refusal = default_branch_name(origin)
         if not name:
+            if refusal:
+                sys.stderr.write("issue-worktree: %s\n" % refusal)
             return 2
         if origin:
             if subprocess.run(["git", "fetch", "-q", "origin", name], stdout=sys.stderr).returncode != 0:
