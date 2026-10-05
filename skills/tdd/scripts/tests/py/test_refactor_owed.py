@@ -241,6 +241,23 @@ def test_applied_takes_a_candidate_off_every_step_render_lists_as_owed_and_lists
     assert [l for l in out.splitlines() if "extract venv_path_advice" in l and "1a9ce1d" in l] != []
 
 
+def test_render_still_lists_as_owed_under_its_step_a_candidate_no_applied_call_named_beside_an_applied_one_952(
+        monkeypatch, capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    owed.write_text("### S1\n- extract venv_path_advice\n- fold the two awk passes into one\n"
+                    "### S2\n- extract venv_path_advice\n- name the bounds walk once\n")
+    code = refactor_owed.main(["applied", str(owed), "extract venv_path_advice", "1a9ce1d"])
+    capsys.readouterr()
+    assert code == 0
+
+    code = refactor_owed.main(["render", str(owed)])
+    out = capsys.readouterr().out
+    owed_section = out.split("\n### Applied")[0]
+    assert (code, owed_section) == (
+        0, "## Refactor owed\n\n### S1\n- fold the two awk passes into one\n"
+           "### S2\n- name the bounds walk once\n")
+
+
 def test_main_refuses_an_uppercase_verb_and_returns_1_naming_the_file_when_the_append_write_fails(
         monkeypatch, capsys, tmp_path, refactor_owed):
     monkeypatch.chdir(tmp_path)
