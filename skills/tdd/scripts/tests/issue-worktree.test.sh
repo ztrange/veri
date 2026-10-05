@@ -407,6 +407,30 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
 { [[ "$code" == 0 ]] && [[ -z "$origin_head" ]] && [[ "$tip" == "$remote_tip" ]]; } \
   && ok || no "an origin remote but no refs/remotes/origin/HEAD: cuts tdd/47-no-origin-head from origin's freshly fetched tip (exit=$code want 0, stdout='$out' want '$want', the clone's refs/remotes/origin/HEAD $( [[ -z "$origin_head" ]] && echo "absent as seeded, good" || echo "was '$origin_head' — the seed did not remove it, so this case cannot tell the arms apart" ), tip='$tip' want origin's $remote_tip not the stale local main's $stale_tip)"
 
+upstream="$work/develop-default-upstream"
+make_repo "$upstream"
+main_only_tip="$(git_q "$upstream" rev-parse main)"
+git_q "$upstream" switch -q -c develop >/dev/null 2>&1
+git_q "$upstream" commit -q --allow-empty -m "work on the default branch" >/dev/null 2>&1
+develop_tip="$(git_q "$upstream" rev-parse develop)"
+clone="$work/develop-default-clone"
+git clone -q "$upstream" "$clone" >/dev/null 2>&1
+git_q "$clone" branch main refs/remotes/origin/main >/dev/null 2>&1
+git_q "$clone" config remote.origin.followRemoteHEAD never >/dev/null 2>&1
+git_q "$clone" symbolic-ref --delete refs/remotes/origin/HEAD >/dev/null 2>&1
+want="$(wt_path "$clone" 865)"
+
+origin_head="$(git_q "$clone" symbolic-ref --quiet refs/remotes/origin/HEAD 2>/dev/null)"
+local_main="$(git_q "$clone" rev-parse --verify --quiet refs/heads/main 2>/dev/null)"
+
+errfile="$work/develop-default.err"
+out="$(cd "$clone" && "$WT" 865 develop-default 2>"$errfile")" && code=0 || code=$?
+
+tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
+
+{ [[ "$code" == 0 ]] && [[ -z "$origin_head" ]] && [[ "$local_main" == "$main_only_tip" ]] && [[ "$tip" == "$develop_tip" ]]; } \
+  && ok || no "#865: an origin remote whose default is develop, a local main, and no refs/remotes/origin/HEAD: cuts tdd/865-develop-default from the remote's own default, not the guessed main (exit=$code want 0, the clone's refs/remotes/origin/HEAD='$origin_head' want absent, local main='$local_main' want $main_only_tip, tip='$tip' want origin/develop's $develop_tip not main's $main_only_tip, stderr='$(cat "$errfile")')"
+
 upstream="$work/remote-only-upstream"
 make_repo "$upstream"
 git_q "$upstream" switch -q -c tdd/49-remote-only >/dev/null 2>&1

@@ -92,6 +92,12 @@ default_branch_name() {
     printf '%s\n' "${head#origin/}"
     return 0
   fi
+  head="$(git ls-remote --symref origin HEAD 2>/dev/null)" || true
+  head="$(sed -n 's|^ref: refs/heads/\([^[:space:]]*\)[[:space:]]*HEAD$|\1|p' <<<"$head")"
+  if [[ -n "$head" ]]; then
+    printf '%s\n' "$head"
+    return 0
+  fi
   for candidate in main master; do
     if branch_exists "$candidate"; then
       printf '%s\n' "$candidate"
