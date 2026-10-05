@@ -205,3 +205,60 @@ def test_main_reads_issues_then_prs_through_gh_forwarding_repo_verbatim_and_fall
         ("--repo=x",): reads(None),
         ("foo",): reads(None),
     }
+
+
+def fake_gh_refusing(monkeypatch, refused):
+    """subprocess.run failing every gh command whose argv holds a word in `refused`, answering the rest with an empty page and git with nothing; records the gh commands."""
+    started = []
+
+    def fake_run(args, *rest, **kwargs):
+        args = list(args)
+        if args[:1] == ["gh"]:
+            started.append(args)
+            if any(word in refused for word in args[1:3]) or any(word in args[-1] for word in refused):
+                return subprocess.CompletedProcess(args, 1, "", "")
+            return subprocess.CompletedProcess(args, 0, "[]\n", "")
+        if args[:4] == ["git", "worktree", "list", "--porcelain"]:
+            return subprocess.CompletedProcess(args, 0, "", "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", fake_run)
+    return started
+
+
+def test_main_reads_both_documents_returning_2_on_no_answer_raising_on_a_missing_or_broken_one_and_joining_pages_without_prs(tmp_path, monkeypatch, capsys, solvable_issues):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+
+    started = fake_gh_refusing(monkeypatch, ("issue", "/issues"))
+    code = solvable_issues.main([])
+    out, err = capsys.readouterr()
+    assert (code, out, [args for args in started if "pr" in args or any("/pulls" in word for word in args)]) == (2, "", [])
+
+    fake_gh_refusing(monkeypatch, ("pr", "/pulls"))
+    code = solvable_issues.main([])
+    out, err = capsys.readouterr()
+    assert (code, out) == (2, "")
+
+    fake_git_answering_nothing(monkeypatch)
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    (tmp_path / "prs.json").write_text("[]")
+    with pytest.raises(FileNotFoundError):
+        solvable_issues.main([])
+
+    (tmp_path / "issues.json").write_text("not json")
+    with pytest.raises(json.JSONDecodeError):
+        solvable_issues.main([])
+
+    (tmp_path / "issues.json").write_text("[]")
+    (tmp_path / "prs.json").write_text("not json")
+    with pytest.raises(json.JSONDecodeError):
+        solvable_issues.main([])
+    capsys.readouterr()
+
+    (tmp_path / "prs.json").write_text("[]\n[]\n")
+    pull = dict(opted_in(7), pull_request={"url": "https://api.github.com/repos/o/n/pulls/7"})
+    (tmp_path / "issues.json").write_text(json.dumps([opted_in(5)]) + "\n" + json.dumps([opted_in(5), pull, opted_in(6)]) + "\n")
+    code = solvable_issues.main([])
+    out, err = capsys.readouterr()
+    assert (code, out) == (0, "5\n5\n6\n")

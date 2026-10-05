@@ -3,7 +3,7 @@ import os
 import subprocess
 import sys
 
-from github import gh_json
+from github import NoAnswer, gh_json
 from json_documents import items
 
 USAGE = "usage: solvable-issues.sh [--repo owner/name]"
@@ -40,9 +40,14 @@ def main(argv):
     label = os.environ.get("VERI_LABEL", "ready-for-agent")
     scope = ["--repo", repo] if repo else []
     prefix = "repos/%s" % (repo or "{owner}/{repo}")
-    issues = items(gh_json("issues.json", prefix + "/issues",
-                           "issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope))
-    gh_json("prs.json", prefix + "/pulls", "pr", "list", "--limit", "10000", "--json", "body,state", *scope)
+    try:
+        issues = gh_json("issues.json", prefix + "/issues",
+                         "issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope)
+        prs = gh_json("prs.json", prefix + "/pulls", "pr", "list", "--limit", "10000", "--json", "body,state", *scope)
+    except NoAnswer:
+        return 2
+    issues = [issue for issue in items(issues) if "pull_request" not in issue]
+    items(prs)
     main_tree = main_working_tree()
     for issue in issues:
         if carries(issue, label) and not in_flight(main_tree, issue["number"]):
