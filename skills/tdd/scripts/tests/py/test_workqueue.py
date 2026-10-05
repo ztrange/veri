@@ -621,6 +621,19 @@ def test_assign_with_an_empty_toplevel_exits_2_with_empty_stdout_saying_it_is_ou
     assert (code, out, err) == (2, "", "workqueue.sh: outside a repository\n")
 
 
+def test_start_done_and_park_with_an_empty_toplevel_exit_2_with_empty_stdout_saying_it_is_outside_a_repository_taking_no_lock_issue_898(monkeypatch, capsys, workqueue):
+    fake_git(monkeypatch, "")
+    locks = []
+    monkeypatch.setattr(workqueue, "take_lock", locks.append)
+    answers = []
+    for argv in (["start", "beta", "7"], ["done", "beta", "7", "abc1234"], ["park", "beta", "7", "stuck"]):
+        code = workqueue.main(argv)
+        out, err = capsys.readouterr()
+        answers.append((argv[0], code, out, err))
+    assert answers == [(command, 2, "", "workqueue.sh: outside a repository\n") for command in ("start", "done", "park")]
+    assert locks == []
+
+
 def test_show_when_git_worktree_list_fails_with_no_output_exits_2_with_empty_stdout_saying_it_is_outside_a_repository_issue_898(monkeypatch, capsys, workqueue):
     def fake_run(args, **kwargs):
         if list(args[:3]) == ["git", "worktree", "list"]:
