@@ -97,7 +97,7 @@ run_launcher() {
   (( $# )) && shift
   env -u VERI_PARALLEL -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES -u VERI_CONDUCTOR_CTX_BUDGET \
     VERI_GH_JSON="$gh" CLAUDE_BIN="$stub" VERI_POLL=0.05 "${vars[@]+"${vars[@]}"}" \
-    "${launcher:-$skill/scripts/parallel-conductors.sh}" "$@" > "$out" 2>&1 && code=0 || code=$?
+    "$skill/scripts/parallel-conductors.sh" "$@" > "$out" 2>&1 && code=0 || code=$?
 }
 
 run_launcher_in() {
@@ -902,9 +902,9 @@ for shape in in-place symlink; do
   gh_where="$work/gh-where-$shape"
   solvable_fixture "$gh_where" 7
   record_stub "$work/claude-where-$shape" "$work/where-$shape-record" "$gh_where"
-  where_launcher="$skill/scripts/parallel-conductors.sh"
-  [[ "$shape" == symlink ]] && where_launcher="$work/skill-link/scripts/parallel-conductors.sh"
-  launcher="$where_launcher" run_launcher_in "$repo" "$gh_where" "$work/claude-where-$shape" "$work/where-$shape.out"
+  where_skill="$skill"
+  [[ "$shape" == symlink ]] && where_skill="$work/skill-link"
+  skill="$where_skill" run_launcher_in "$repo" "$gh_where" "$work/claude-where-$shape" "$work/where-$shape.out"
   where_code[$shape]="$code"
   where_report[$shape]="$(grep -E '^(#[0-9]+ — |stopped: )' "$work/where-$shape.out")"
   where_file[$shape]="$(cat "$repo/.tdd/parallel.exit" 2>/dev/null || echo '<missing>')"
@@ -1148,6 +1148,5 @@ paged_run three
 [[ "$one_code" == 1 && "$one_out" == "$(printf '#7 — bailed https://example.test/pull/7\nstopped: #7 bailed')" \
    && "$code" == "$one_code" && "$out" == "$one_out" ]] \
   && ok || no "#592 against a gh that serves open PRs over three pages on repos/{owner}/{repo}, the draft PR on the third, and refuses repositories/{id} with the proxy's 403, parallel-conductors.sh prints the same report and exit code as against a single-page fixture holding the same PRs ( [single page: exit=$one_code want 1, report '$(printf '%s' "$one_out" | tr '\n' '|')' want '#7 — bailed https://example.test/pull/7|stopped: #7 bailed'; three pages: exit=$code want $one_code, report '$(printf '%s' "$out" | tr '\n' '|')' want the same] $(tr '\n' '|' < "$work/gh26-three.out") )"
-
 
 finish
