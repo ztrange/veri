@@ -885,22 +885,22 @@ report "$name"
 name="with no refs/remotes/origin/HEAD the launch pins to the remote's default branch tip, records it and runs pinned (#865)"
 problems=()
 
-remote31="$work/remote31"
-clone31="$work/clone31"
+remote31="$work/remote31-865"
+clone31="$work/clone31-865"
 cloned_skill "$remote31" "$clone31"
 git -C "$clone31" remote set-head origin -d
 git -C "$clone31" config remote.origin.followRemoteHEAD never
 advance_clone "$remote31" "# a commit that landed on the remote after the clone was cut"
 tip31="$(git -C "$remote31" rev-parse HEAD)"
 
-tipdir31="$work/tip31"
+tipdir31="$work/tip31-865"
 skill_archive "$remote31" "$tip31" "$tipdir31"
 
-caller31="$work/caller31"
+caller31="$work/caller31-865"
 caller_repo "$caller31"
-base31="$work/base31"
+base31="$work/base31-865"
 mkdir -p "$base31"
-env31="$work/env31"
+env31="$work/env31-865"
 rm -f "$env31"
 
 ( unset VERI_SKILL_UNPINNED; launch_from "$caller31" "$clone31" BASE_OUT="$base31" ENV_OUT="$env31" )
@@ -926,17 +926,17 @@ report "$name"
 name="with no refs/remotes/origin/HEAD and no resolvable remote default branch the launch exits 2 naming the ref and never runs unpinned (#865)"
 problems=()
 
-remote32="$work/remote32"
-clone32="$work/clone32"
+remote32="$work/remote32-865"
+clone32="$work/clone32-865"
 cloned_skill "$remote32" "$clone32"
 git -C "$clone32" remote set-head origin -d
 git -C "$clone32" config remote.origin.followRemoteHEAD never
 git -C "$remote32" checkout -q --detach
 git -C "$remote32" -c user.name=t -c user.email=t@t commit -q --allow-empty -m 'on no branch'
 
-caller32="$work/caller32"
+caller32="$work/caller32-865"
 caller_repo "$caller32"
-env32="$work/env32"
+env32="$work/env32-865"
 rm -f "$env32"
 
 ( unset VERI_SKILL_UNPINNED; launch_from "$caller32" "$clone32" ENV_OUT="$env32" )
@@ -954,8 +954,8 @@ report "$name"
 name="with no refs/remotes/origin/HEAD and the remote's named default branch absent locally the launch exits 2 naming the ref and never runs unpinned (#865)"
 problems=()
 
-remote33="$work/remote33"
-clone33="$work/clone33"
+remote33="$work/remote33-865"
+clone33="$work/clone33-865"
 cloned_skill "$remote33" "$clone33"
 default33="$(git -C "$remote33" symbolic-ref --short HEAD)"
 git -C "$remote33" branch -q side33
@@ -964,9 +964,9 @@ git -C "$clone33" config remote.origin.followRemoteHEAD never
 git -C "$clone33" config remote.origin.fetch '+refs/heads/side33:refs/remotes/origin/side33'
 git -C "$clone33" update-ref -d "refs/remotes/origin/$default33"
 
-caller33="$work/caller33"
+caller33="$work/caller33-865"
 caller_repo "$caller33"
-env33="$work/env33"
+env33="$work/env33-865"
 rm -f "$env33"
 
 ( unset VERI_SKILL_UNPINNED; launch_from "$caller33" "$clone33" ENV_OUT="$env33" )
