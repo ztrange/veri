@@ -7,7 +7,7 @@ commit_suffix_offenders() {
   local file rc=0
   for file in "$1"/develop-*.md; do
     [[ -f "$file" ]] || continue
-    grep -iE '(^|[^[:alpha:]])commit (it|that|the|these|everything|each|this|your)([^[:alpha:]]|$)' "$file" > /dev/null || continue
+    grep -iE '(^|[^[:alpha:]])commit (it|that|the|these|them|everything|each|this|your)([^[:alpha:]]|$)' "$file" > /dev/null || continue
     grep -F '(#<issue>)' "$file" > /dev/null && continue
     printf '%s: asks for a commit without stating the (#<issue>) subject suffix\n' "$file"
     rc=1
