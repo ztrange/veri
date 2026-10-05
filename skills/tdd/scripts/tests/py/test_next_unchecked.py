@@ -117,3 +117,20 @@ def test_main_drops_nul_bytes_and_prints_a_non_utf8_byte_back_as_itself(
     code = next_unchecked.main([])
 
     assert (code, *capsysbinary.readouterr()) == (0, b"a caf\xe9 cog\n", b"")
+
+
+def test_main_writes_nothing_on_stderr_for_a_printed_step_exit_3_or_arguments_given(
+        monkeypatch, capsysbinary, next_unchecked):
+    stderr = {}
+    for ledger_name, ledger in (("printed step", SLUGIFY), ("no step", b"# Plan for #42\n")):
+        for argv in ([], ["--bogus", "extra"]):
+            fake_stdin(monkeypatch, ledger)
+            code = next_unchecked.main(argv)
+            stderr[(ledger_name, *argv)] = (code, capsysbinary.readouterr().err)
+
+    assert stderr == {
+        ("printed step",): (0, b""),
+        ("printed step", "--bogus", "extra"): (0, b""),
+        ("no step",): (3, b""),
+        ("no step", "--bogus", "extra"): (3, b""),
+    }
