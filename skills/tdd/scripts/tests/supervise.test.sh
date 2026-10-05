@@ -648,6 +648,14 @@ vharv_lines="$(grep -c '^harvest-usage.sh:' "$vharv_work/err")"
 [[ "$vharv_lines" == 0 ]] && ok \
   || no "#956: supervise.sh verdict-plan whose log holds no closing result record writes no harvest-usage.sh: line to stderr (harvest-usage lines=$vharv_lines want 0, err=$(cat "$vharv_work/err"))"
 
+vbogus_work="$work/bogus-role"
+mkdir -p "$vbogus_work"
+( cd "$vbogus_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" bogus-x "$stub/leaf-ok" ) >/dev/null 2>"$vbogus_work/err"
+vbogus_lines="$(grep -c "^leaf-role: leaf name 'bogus-x' has an unknown leading word" "$vbogus_work/err")"
+(( vbogus_lines >= 1 )) && ok \
+  || no "#956: supervise.sh bogus-x, neither a known role nor verdict-*, still writes the leaf-role: unknown leading word line to stderr (leaf-role lines=$vbogus_lines want >= 1, err=$(cat "$vbogus_work/err"))"
+
 kp_work="$work/kill-poll-bad"; mkdir -p "$kp_work"
 kp_problems=()
 for bad in two -1; do
