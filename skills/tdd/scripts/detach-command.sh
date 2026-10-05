@@ -42,6 +42,7 @@ case "$mode" in
     ;;
   wait)
     max="${1:-60}"
+    [[ "$max" =~ ^[0-9]+$ ]] || refuse
     poll="${VERI_POLL:-1}"
     start=$SECONDS
     while :; do

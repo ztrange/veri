@@ -113,4 +113,18 @@ sid="$(sed -n 's/^sid //p' "$work/.tdd/whole.out" 2>/dev/null)"
 
 report "detach-command: #622 start still runs its command in a session of its own, records .exit and .out, and wait exits 0 for a clean finish"
 
+problems=()
+
+WORD_GO="$work/word-go"
+helper start word "$BLOCKER" "$WORD_GO" 0
+out="$(cd "$work" && VERI_POLL=0.05 "$HELPER" wait word abc 2>"$work/word.err")"
+rc=$?
+: > "$WORD_GO"
+[[ "$rc" == 2 ]] || problems+=("wait word abc on a running command returned $rc; want 2")
+[[ -z "$out" ]] || problems+=("wait word abc printed '$out' on stdout; want nothing")
+[[ "$(cat "$work/word.err")" == "usage: detach-command.sh start <name> <cmd> [args…] | wait <name> [max-seconds]" ]] ||
+  problems+=("wait word abc printed '$(cat "$work/word.err")' on stderr; want the usage line")
+
+report "detach-command: #964 wait refuses a max-seconds that is a word with exit 2 and the usage line while the command runs"
+
 finish
