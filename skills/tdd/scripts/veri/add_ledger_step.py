@@ -50,8 +50,12 @@ def main(argv):
     path, where, anchor, *texts = argv
     if where not in ("after", "before", "instead-of"):
         return refuse("add-ledger-step.sh: position must be after, before or instead-of: " + where)
-    with open(path, "rb") as f:
-        lines = f.read().decode(errors=BYTES).split("\n")[:-1]
+    try:
+        with open(path, "rb") as f:
+            lines = f.read().decode(errors=BYTES).split("\n")[:-1]
+    except OSError as error:
+        sys.stderr.write(f"add-ledger-step.sh: {path}: {error.strerror}\n")
+        lines = []
     if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:
         return refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
     budget = os.environ.get("VERI_STEP_GROWTH", "5")
