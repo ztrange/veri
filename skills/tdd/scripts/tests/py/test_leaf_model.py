@@ -144,3 +144,31 @@ def test_main_refuses_a_resolved_value_holding_ascii_whitespace_and_passes_other
         (0, "", ""),
         (0, "sonnet\n", ""),
     ]
+
+
+def test_main_maps_the_name_before_reading_any_model_variable_and_refuses_with_leaf_roles_own_line(
+        capsys, monkeypatch, leaf_model):
+    runs = [
+        ({}, ["frobnicate-red"]),
+        ({}, ["develop"]),
+        ({"VERI_MODEL": "a b"}, ["frobnicate-red"]),
+        ({"VERI_MODEL": "a b"}, ["develop"]),
+    ]
+    answers = []
+    for environment, argv in runs:
+        for variable in MODEL_VARIABLES:
+            monkeypatch.delenv(variable, raising=False)
+        for variable, value in environment.items():
+            monkeypatch.setenv(variable, value)
+        code = leaf_model.main(argv)
+        captured = capsys.readouterr()
+        answers.append((code, captured.out, captured.err))
+    unknown = ("leaf-role: leaf name 'frobnicate-red' has an unknown leading word"
+               " (want develop-*|revise-*|verify-*|conductor-*)\n")
+    no_phase = "leaf-role: leaf name 'develop' says no phase (want develop-*|revise-*|verify-*|conductor-*)\n"
+    assert answers == [
+        (2, "", unknown),
+        (2, "", no_phase),
+        (2, "", unknown),
+        (2, "", no_phase),
+    ]
