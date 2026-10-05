@@ -125,7 +125,7 @@ test unit:
 	@if [ "$(MAKELEVEL)" -gt $(MAX_MAKE_DEPTH) ]; then printf 'make: refusing a make %s nested at depth %s, deeper than %s\n' "$@" "$(MAKELEVEL)" "$(MAX_MAKE_DEPTH)" >&2; exit 2; fi
 	@$(BASH_GUARD)
 	@[ -f "$(COUNT_LINE_GUARD)" ] || { printf 'make: %s is missing, so no suite can be held to its count line\n' "$(COUNT_LINE_GUARD)" >&2; exit 2; }
-	@fail=0; reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
+	@unset BASH_ENV ENV; fail=0; reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
 	trap 'rm -f "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
 	if [ -n "$(PY_TESTS)" ]; then \
 	  py_bin="$$(bash -c '. $(VENV_LIB) && py="$$(venv_python)" && venv_version_usable "$$py" "$${VERI_PYTHON_VERSION:-$$("$$py" -c "import platform; print(platform.python_version())" 2>/dev/null)}" && printf "%s\n" "$$py"')" || exit 2; \
