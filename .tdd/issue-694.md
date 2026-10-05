@@ -2,6 +2,6 @@
 
 - [x] Move Function: move `modes_named` out of `skills/tdd/scripts/stop-run.sh` into `skills/tdd/scripts/lib/stop-modes.sh`, unchanged, so it reads `STOP_MODES` at call time and `stop-run.sh` calls the library's copy at its two refusals. Predicate, false before and true after: `grep -Eq '^modes_named\(\)' skills/tdd/scripts/lib/stop-modes.sh && ! grep -Eq 'modes_named\(\)' skills/tdd/scripts/stop-run.sh && grep -Fq '$(modes_named)' skills/tdd/scripts/stop-run.sh` ⟦criterion 2⟧
 - [x] Replace Literal with Function Call: `stop-requested.sh`'s malformed-request refusal builds the mode phrase with `$(modes_named)` in place of the hand-spelled `at-ledger, at-leaf or now`, its message otherwise unchanged. Predicate, false before and true after: `grep -Fq '$(modes_named)' skills/tdd/scripts/stop-requested.sh && ! grep -Fq 'at-ledger, at-leaf or now' skills/tdd/scripts/stop-requested.sh` ⟦criterion 2⟧
-- [ ] for every input, `stop-run.sh`'s and `stop-requested.sh`'s stdout, stderr and exit codes are what they are on origin/main, both exit-2 refusals still naming "at-ledger, at-leaf or now" ⟦diff-checked⟧ ⟦criterion 1⟧
+- [x] for every input, `stop-run.sh`'s and `stop-requested.sh`'s stdout, stderr and exit codes are what they are on origin/main, both exit-2 refusals still naming "at-ledger, at-leaf or now" ⟦diff-checked⟧ ⟦criterion 1⟧
 - [ ] every case in `tests/stop-run.test.sh` and `tests/unit/stop-requested.test.sh` passes ⟦full-suite⟧ ⟦criterion 3⟧
 - [ ] no test file is changed anywhere on the branch ⟦diff-checked⟧ ⟦criterion 3⟧
