@@ -83,7 +83,7 @@ def routing_git(monkeypatch, answers):
         out_to = subprocess.PIPE if captured else kwargs.get("stdout")
         err_to = subprocess.PIPE if captured else kwargs.get("stderr")
         deliver(stdout, out_to)
-        deliver(stderr, err_to)
+        deliver(stderr, 2 if err_to is None else err_to)
         if kwargs.get("check") and code != 0:
             raise subprocess.CalledProcessError(code, args, stdout, stderr)
         return subprocess.CompletedProcess(
@@ -125,3 +125,24 @@ def test_main_remove_refuses_a_dirty_worktree_and_removes_a_clean_one_without_fo
                                       remove: (128, "", "fatal: '%s' is not a working tree\n" % path)})
     code = issue_worktree.main(["--remove", "7"])
     assert (code, capsys.readouterr().out, calls) == (2, "", [list(listing), list(status), list(remove)])
+
+
+def test_main_remove_returns_a_dying_gits_status_inside_0_to_3_as_it_is_and_maps_only_one_outside_to_2(
+        monkeypatch, capsys, issue_worktree):
+    main_tree = "/srv/repo"
+    path = main_tree + "/.tdd/wt/7"
+    registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
+    listing = ("git", "worktree", "list", "--porcelain")
+    status = ("git", "-C", path, "status", "--porcelain")
+    remove = ("git", "worktree", "remove", path)
+
+    calls = routing_git(monkeypatch, {listing: (1, "", "error: listing failed\n")})
+    code = issue_worktree.main(["--remove", "7"])
+    assert (code, capsys.readouterr().out, calls) == (1, "", [list(listing)])
+
+    for remove_code, want in ((1, 1), (128, 2)):
+        calls = routing_git(monkeypatch, {listing: (0, registry, ""), status: (0, "", ""),
+                                          remove: (remove_code, "", "error: remove failed\n")})
+        code = issue_worktree.main(["--remove", "7"])
+        assert (remove_code, code, capsys.readouterr().out, calls) == (
+            remove_code, want, "", [list(listing), list(status), list(remove)])
