@@ -19,6 +19,8 @@
 #      venv there meets the floor.
 #   9. leaf-launchable.sh's Python-floor refusal names $VERI_VENV/bin to put first on PATH when the
 #      venv there meets the floor.
+#  10. run-conductor.sh's Python-floor refusal, with no venv at $VERI_VENV, is today's one line and
+#      names no venv path.
 #
 # Run: skills/tdd/scripts/tests/bash-version-guard.test.sh
 set -uo pipefail
@@ -100,6 +102,18 @@ pv_err="$( cd "$work/py-venv-conductor" && env VERI_BASH_MAJOR=5 VERI_PYTHON_VER
 [[ "$pv_code" == 2 ]] || problems+=("want exit 2, got $pv_code: $(flat "$pv_err")")
 [[ "$pv_err" == *"$work/venv-ok/bin"* && "$pv_err" == *PATH* ]] ||
   problems+=("want stderr to name $work/venv-ok/bin to put first on PATH: $(flat "$pv_err")")
+report "$name"
+
+name="run-conductor.sh's Python-floor refusal, with no venv at \$VERI_VENV, exits 2 with today's message and names no venv path (#936)"
+problems=()
+mkdir -p "$work/py-novenv-conductor"
+pn_err="$( cd "$work/py-novenv-conductor" && env VERI_BASH_MAJOR=5 VERI_PYTHON_VERSION=3.11.9 VERI_VENV="$work/no-venv" \
+    CLAUDE_BIN="$work/claude" LAUNCHED="$work/py-novenv-conductor/launched" "$SCRIPTS/run-conductor.sh" 4242 2>&1 >/dev/null )" &&
+  pn_code=0 || pn_code=$?
+[[ "$pn_code" == 2 ]] || problems+=("want exit 2, got $pn_code: $(flat "$pn_err")")
+[[ "$pn_err" == "run-conductor: veri needs Python 3.12 or newer; the python3 on PATH is version 3.11.9." ]] ||
+  problems+=("want stderr to be exactly today's one-line refusal: $(flat "$pn_err")")
+[[ "$pn_err" != *"$work/no-venv"* ]] || problems+=("want stderr to name no venv path: $(flat "$pn_err")")
 report "$name"
 
 name="leaf-launchable.sh refuses with exit 2 when bash is older than 5, and still answers 0 for a launchable binary on bash 5"
