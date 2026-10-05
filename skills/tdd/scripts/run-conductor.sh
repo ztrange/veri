@@ -72,8 +72,9 @@ head_rev=HEAD
 pinned=""
 if git -C "$base" remote get-url origin >/dev/null 2>&1; then
   fetches=1
-  until git -C "$base" fetch -q origin; do
-    (( fetches++ < 5 )) ||
+  until fetch_err="$(git -C "$base" fetch -q origin 2>&1)"; do
+    printf '%s\n' "$fetch_err" >&2
+    [[ "$fetch_err" == *"cannot lock ref"* ]] && (( fetches++ < 5 )) ||
       { echo "run-conductor: fetch of origin failed in '$base' — refusing to run a skill that may be stale" >&2; exit 2; }
   done
   head_rev=refs/remotes/origin/HEAD
