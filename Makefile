@@ -128,7 +128,8 @@ test unit:
 	  py_version="$${VERI_PYTHON_VERSION:-$$("$$py_bin" -c 'import platform; print(platform.python_version())' 2>/dev/null)}"; \
 	  py_floor="$$(bash -c '. $(VENV_LIB) && echo "$$VENV_FLOOR"')"; \
 	  py_major="$${py_version%%.*}"; py_minor="$${py_version#*.}"; py_minor="$${py_minor%%.*}"; \
-	  if [ "$$py_major" -lt "$${py_floor%%.*}" ] || { [ "$$py_major" -eq "$${py_floor%%.*}" ] && [ "$$py_minor" -lt "$${py_floor#*.}" ]; }; then \
+	  floor_major="$${py_floor%%.*}"; floor_minor="$${py_floor#*.}"; \
+	  if [ "$$py_major" -lt "$$floor_major" ] || { [ "$$py_major" -eq "$$floor_major" ] && [ "$$py_minor" -lt "$$floor_minor" ]; }; then \
 	    printf 'veri needs Python %s or newer for the suites under skills/tdd/scripts/tests/py/; %s is version %s.\n' "$$py_floor" "$$py_bin" "$$py_version" >&2; \
 	    exit 2; \
 	  fi; \
