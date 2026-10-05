@@ -740,6 +740,47 @@ scan_revise_diff_last_done() {
 run_case "#907 the revise diff prompt line of Revising on a REJECT in $skill_md, run with every ledger step ticked, passes build-develop-prompt.sh revise diff the last done step's text, byte-identical" \
   scan_revise_diff_last_done
 
+scan_exhausted_last_done() {
+  local title="$EXPANDING_STEP"
+  local lineno line numbered launch stage seen tree err got argv want which pattern
+  stage_recorder exhausted-last-done
+  rm -f "$stage/build-develop-prompt.sh" "$stage/event.sh"
+  ln -s "$RECORDERS/title.sh" "$stage/build-develop-prompt.sh"
+  ln -s "$RECORDERS/title.sh" "$stage/event.sh"
+  plant_done_ledger "$title"
+  for which in prompt leaf mark; do
+    case "$which" in
+      prompt) pattern='\$S/build-develop-prompt\.sh exhausted .*> \.tdd/develop-exhausted\.prompt' ;;
+      leaf)   pattern='\$S/detach-leaf\.sh .*\$S/supervise\.sh develop-exhausted \$S/run-leaf\.sh' ;;
+      mark)   pattern='\$S/event\.sh step-escalated anchor=' ;;
+    esac
+    numbered="$(head -1 < <(grep -nE "$pattern" "$md"))"
+    if [[ -z "$numbered" ]]; then
+      no_launch "the revise-exhausted path's $which line"
+      continue
+    fi
+    take_line "$numbered" "$title" || continue
+    rm -f "$seen" "$seen".*
+    run_staged '<no leaf was launched>'
+    case "$which" in
+      prompt)
+        want="$(prompt_step_arg)"
+        [[ "$want" == "$title" ]] ||
+          problem "built the exhausted prompt beside a ledger with every step ticked, passing build-develop-prompt.sh the step <$want>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})" ;;
+      leaf)
+        [[ "$got" == "$title" ]] ||
+          problem "launched develop-exhausted beside a ledger with every step ticked, whose leaf saw VERI_STEP=<$got>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})" ;;
+      mark)
+        got="$(head -1 "$seen.event" 2>/dev/null)" || got='<no mark was made>'
+        [[ "$got" == "$title" ]] ||
+          problem "marked step-escalated beside a ledger with every step ticked with VERI_STEP=<$got>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})" ;;
+    esac
+  done
+}
+
+run_case "#907 the revise-exhausted path of Revising on a REJECT in $skill_md, run with every ledger step ticked, passes build-develop-prompt.sh exhausted, the develop-exhausted leaf's VERI_STEP and the step-escalated mark's VERI_STEP the last done step's text, byte-identical" \
+  scan_exhausted_last_done
+
 scan_transform_verifier_last_done() {
   local title="$EXPANDING_STEP"
   local lineno line numbered launch stage seen tree err got argv
