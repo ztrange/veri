@@ -74,3 +74,21 @@ def test_main_prints_the_first_open_step_or_diff_checked_record_veri_ledger_find
     code = next_unchecked.main([])
 
     assert (code, *capsysbinary.readouterr()) == (0, (want + "\n").encode(), b"")
+
+
+def test_main_prints_the_text_and_one_newline_and_a_textless_open_step_as_an_empty_line(
+        monkeypatch, capsysbinary, next_unchecked):
+    results = {}
+    for name, ledger in (
+            ("text", b"- [x] done\n- [ ] collapse to one hyphen\n- [ ] later"),
+            ("bare box", b"- [x] done\n- [ ]\n- [ ] later"),
+            ("box and one space", b"- [x] done\n- [ ] \n- [ ] later")):
+        fake_stdin(monkeypatch, ledger)
+        code = next_unchecked.main([])
+        results[name] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        "text": (0, b"collapse to one hyphen\n", b""),
+        "bare box": (0, b"\n", b""),
+        "box and one space": (0, b"\n", b""),
+    }
