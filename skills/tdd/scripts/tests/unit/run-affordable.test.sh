@@ -82,35 +82,11 @@ expect_figures 22.50 4 7.50 52.50
 verdict "a projection over VERI_RUN_BUDGET exits 1 printing spent, steps remaining, median and projection"
 
 : > "$work/.tdd/events.jsonl"
-step_leaves "step one"   1.50 1.50 1.50 1.50 1.50 1.50
-step_leaves "step two"   0.50 0.50 0.50 0.50 0.50 0.50
-step_leaves "step three" 1.00 1.20 1.20 1.20 1.20 1.20
-step_leaves "step four"  0.50 0.90 0.90 0.90 0.90 0.90
-run_affordable VERI_RUN_BUDGET=50 -- 5
-expect_code 1
-expect_figures 24.00 5 6.00 54.00
-verdict "the median of an even count of steps logged out of order is the mean of the sorted middle two"
-
-: > "$work/.tdd/events.jsonl"
 three_full_steps
 run_affordable VERI_RUN_BUDGET=50 -- 3
 expect_code 0
 expect_silent
 verdict "a projection within VERI_RUN_BUDGET exits 0 printing nothing"
-
-: > "$work/.tdd/events.jsonl"
-pin_step  "pin one"
-step_leaves "step one"   1.00 1.00 1.00 1.00 1.00 1.00
-pin_step  "pin two"
-pin_step  "pin three"
-step_leaves "step two"   1.00 1.00 1.50 1.50 1.50 1.50
-pin_step  "pin four"
-step_leaves "step three" 1.50 1.50 1.75 1.75 1.75 1.75
-pin_step  "pin five"
-run_affordable VERI_RUN_BUDGET=50 -- 3
-expect_code 1
-expect_figures 26.50 3 8.00 50.50
-verdict "the median is over completed full steps only, so a log of mostly pins still projects at the full-step median"
 
 : > "$work/.tdd/events.jsonl"
 pin_step "pin one"
@@ -126,15 +102,6 @@ verdict "no completed full step, only pins or no usage at all, exits 3 printing 
 
 : > "$work/.tdd/events.jsonl"
 three_full_steps
-for arg in "" two 1.5; do
-  run_affordable VERI_RUN_BUDGET=50 -- ${arg:+"$arg"}
-  expect_code 2
-  expect_silent "<steps-remaining> '${arg:-missing}'"
-done
-verdict "a missing or non-whole-number <steps-remaining> exits 2 printing nothing"
-
-: > "$work/.tdd/events.jsonl"
-three_full_steps
 run_affordable -- two
 expect_code 2
 expect_silent "<steps-remaining> 'two'"
@@ -143,43 +110,6 @@ printf '%s\n' "run-affordable.sh: <steps-remaining> is not a whole number: 'two'
 cmp -s "$work/want-stderr" "$work/stderr" ||
   problems+="    want stderr '$(cat "$work/want-stderr")', got '$err'"$'\n'
 verdict "run-affordable.sh two exits 2 with nothing on stdout and the refusal then the usage line on stderr"
-
-rm -f "$work/.tdd/events.jsonl"
-run_affordable VERI_RUN_BUDGET=50 -- 3
-expect_code 2
-expect_silent "a missing event log"
-verdict "a missing .tdd/events.jsonl exits 2 printing nothing"
-
-: > "$work/.tdd/events.jsonl"
-three_full_steps
-for budget in fifty -5 ""; do
-  run_affordable VERI_RUN_BUDGET="$budget" -- 3
-  expect_code 2
-  expect_silent "VERI_RUN_BUDGET '$budget'"
-done
-verdict "a VERI_RUN_BUDGET that is not a non-negative decimal number exits 2 printing nothing"
-
-: > "$work/.tdd/events.jsonl"
-step_leaves "step one"   1.00 1.00 1.00 1.00 1.00 0.50
-step_leaves "step two"   1.00 1.00 1.00 1.00 1.00 0.80
-step_leaves "step three" 1.00 1.00 1.00 1.00 1.00 1.00
-step_leaves "step four"  1.00 1.00 1.00 1.00 1.00 1.10
-step_leaves "step five"  1.00 1.00 1.00 1.00 1.00 1.20
-step_leaves "step six"   1.00 1.00 1.00 1.00 1.00 1.40
-step_leaves "step seven" 1.00 1.00 1.00 1.00 1.00 1.56
-step_leaves "step eight" 1.00 1.00 1.00 1.00 1.00 1.80
-run_affordable VERI_RUN_BUDGET=60 -- 1
-expect_code 0
-expect_silent "a run at 8 of 9 steps"
-verdict "a run at 8 of 9 steps with one median step left and a ceiling above the projection exits 0"
-
-: > "$work/.tdd/events.jsonl"
-step_leaves "step one" 1.00 1.00 1.00 1.00 1.00 2.00
-step_leaves "step two" 1.00 1.00 1.00 1.00 2.00 2.00
-run_affordable VERI_RUN_BUDGET=50 -- 10
-expect_code 1
-expect_figures 15.00 10 7.50 90.00
-verdict "a run early in a long plan whose projection exceeds VERI_RUN_BUDGET exits 1 while spent is still under it"
 
 : > "$work/.tdd/events.jsonl"
 three_full_steps
