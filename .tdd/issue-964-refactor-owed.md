@@ -1,0 +1,2 @@
+### through the detach-command.sh entry point, with a command started by `start` and still running, `wait <name> abc` exits 2, prints nothing on stdout, and prints the usage line on stderr ⟦criterion 1⟧
+- test-only | the #964 case in skills/tdd/scripts/tests/detach-command.test.sh writes out the full usage line, a copy of `USAGE` at detach-command.sh:20; deriving it, or sharing one expected-usage variable with later cases, would remove that duplication
