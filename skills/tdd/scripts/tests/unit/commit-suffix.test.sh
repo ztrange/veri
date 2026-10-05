@@ -34,4 +34,13 @@ real_rc=0
 ( source "$LIB" && commit_suffix_offenders "$HERE/../../prompts" > /dev/null 2>&1 ) || real_rc=$?
 expect_eq "$name" "0:0" "$planted_rc:$real_rc"
 
+name="#935 the commit-suffix check fails, naming the file, over a planted develop prompt whose commit instruction uses another phrasing without stating (#<issue>)"
+other="$scratch/other"
+mkdir -p "$other"
+printf '%s\n' '## Phase: develop-other' '' 'Commit your change.' > "$other/develop-other.md"
+rc=0
+out="$( source "$LIB" && commit_suffix_offenders "$other" 2>&1 )" || rc=$?
+named=""; grep -F 'develop-other.md' <<< "$out" > /dev/null && named=named
+expect_eq "$name" "1:named" "$rc:$named"
+
 finish
