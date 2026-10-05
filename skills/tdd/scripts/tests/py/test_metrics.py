@@ -2,6 +2,7 @@
 import importlib
 import json
 import pathlib
+import re
 import sys
 
 import pytest
@@ -691,3 +692,90 @@ def test_main_reads_walls_off_the_awake_clock_and_falls_back_to_the_wall_clock_s
 
     empty = report("empty", [])
     assert wall_clock(empty)
+
+
+def test_main_renders_per_phase_revise_cells_the_by_step_kind_and_the_note_naming_turns_dollars_and_the_model_knobs(tmp_path, monkeypatch, capsys, metrics):
+    def report(name, events):
+        root = tmp_path / name
+        root.mkdir()
+        write_log(root, events)
+        monkeypatch.chdir(root)
+        return render(metrics, capsys)
+
+    def revise(step, ts, phase, attempt, budget):
+        return conductor(step, ts, "revise", phase, attempt=str(attempt), budget=budget)
+
+    def red_launch(step, ts):
+        return leaf(step, ts, "developer", "red", 1, 5)[:1]
+
+    def revise_cells(out):
+        return cells(out, "#### By step", ["revise"])
+
+    def entries(cell):
+        return set(re.findall(r"([a-z]+) ([0-9]+)/([0-9?]+)", cell))
+
+    phased = report("phased", conductor("p", 9000, "step-start") + red_launch("p", 9010)
+                    + revise("p", 9100, "red", 1, "3") + revise("p", 9200, "red", 2, "3")
+                    + revise("p", 9300, "refactor", 1, "3") + conductor("p", 9400, "step-done"))
+    assert entries(revise_cells(phased)["p"][0]) == {("red", "2", "3"), ("refactor", "1", "3")}
+
+    twice = report("twice", conductor("t", 9500, "step-start") + red_launch("t", 9510)
+                   + revise("t", 9600, "red", 1, "2") + revise("t", 9700, "refactor", 1, "2")
+                   + conductor("t", 9800, "step-done"))
+    assert entries(revise_cells(twice)["t"][0]) == {("red", "1", "2"), ("refactor", "1", "2")}
+
+    spent = report("spent", conductor("s", 9900, "step-start") + red_launch("s", 9910)
+                   + revise("s", 9920, "red", 1, "2") + revise("s", 9930, "red", 2, "2")
+                   + conductor("s", 9940, "step-done"))
+    assert re.fullmatch(r"(red )?2/2", revise_cells(spent)["s"][0])
+
+    unrevised = report("unrevised", conductor("u", 10000, "step-start") + red_launch("u", 10010)
+                       + conductor("u", 10020, "step-done"))
+    assert revise_cells(unrevised)["u"] == ["unknown"]
+
+    def full_step(step, t):
+        events = conductor(step, t, "step-start")
+        for i, phase in enumerate(["red", "green", "refactor"]):
+            events += leaf(step, t + 10 + 30 * i, "developer", phase, 1, 5)[:1]
+            events += leaf(step, t + 20 + 30 * i, "verifier", phase, 1, 10, verdict="PASS")
+        return events + conductor(step, t + 100, "step-done")
+
+    def satisfied_red(step, t, rejects=0):
+        events = conductor(step, t, "step-start")
+        for attempt in range(1, rejects + 1):
+            events += leaf(step, t + 30 * attempt, "verifier", "red", attempt, 0, verdict="REJECT")[-1:]
+        events += leaf(step, t + 70, "verifier", "pin", 1, 0, verdict="PASS")[-1:]
+        return events
+
+    def kinds(out):
+        return {step: cell for step, [cell] in cells(out, "#### By step", ["kind"]).items()}
+
+    pinned = report("pinned", full_step("full", 18000) + satisfied_red("pinned", 18200)
+                    + conductor("pinned", 18240, "pin", "pin"))
+    assert kinds(pinned) == {"full": "full", "pinned": "pin"}
+
+    satisfied = report("satisfied", full_step("full", 19000) + satisfied_red("satisfied", 19200))
+    assert kinds(satisfied) == {"full": "full", "satisfied": "already-satisfied"}
+
+    leafcount = report("leafcount", satisfied_red("many-pin", 20000, rejects=2)
+                       + conductor("many-pin", 20090, "pin", "pin")
+                       + satisfied_red("many-sat", 20100, rejects=2)
+                       + conductor("two-leaf", 20200, "step-start")
+                       + leaf("two-leaf", 20210, "developer", "green", 1, 5)[:1]
+                       + leaf("two-leaf", 20220, "verifier", "green", 1, 10, verdict="PASS")
+                       + conductor("two-leaf", 20240, "step-done"))
+    assert kinds(leafcount) == {"many-pin": "pin", "many-sat": "already-satisfied", "two-leaf": "full"}
+
+    all_full = report("all_full", full_step("first", 21000) + full_step("second", 21200))
+    assert kinds(all_full) == {"first": "full", "second": "full"}
+
+    lines = all_full.split("\n")
+    at = lines.index("#### By step") + 1
+    while not lines[at].startswith("|"):
+        at += 1
+    while lines[at].startswith("|"):
+        at += 1
+    note = next(line for line in lines[at:] if line.strip())
+    assert not note.startswith("#")
+    for word in ("turns", "dollars", "comparable", "VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER"):
+        assert word in note
