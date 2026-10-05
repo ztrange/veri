@@ -5,3 +5,5 @@
 - test-only | the #935 transform and structural cases in build-develop-prompt.test.sh repeat the same three-line probe (build, grep `(#<issue>)` on a line with `commit`, expect `0:stated`); a helper could take the built prompt and the case name
 ### The prompt `build-develop-prompt.sh diff …` prints tells the leaf to give its commit a subject ending in `(#<issue>)` ⟦criterion 2⟧
 - test-only | fold the three near-identical #935 cases in build-develop-prompt.test.sh (transform, structural, diff) into one loop over the phase invocations
+### The prompt `build-develop-prompt.sh revise diff …` prints tells the leaf to give its commit a subject ending in `(#<issue>)` ⟦criterion 2⟧
+- test-only | fold the four #935 cases in build-develop-prompt.test.sh (L1045–1063), which repeat `suffix=""; grep -F '(#<issue>)' <<<"$x" | grep -iF 'commit' > /dev/null && suffix=stated`, into one helper that takes the rendered prompt
