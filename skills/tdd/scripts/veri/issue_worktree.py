@@ -156,3 +156,7 @@ def cut(path, branch):
         return to_contract(code)
     sys.stdout.write(path + "\n")
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
