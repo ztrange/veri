@@ -53,8 +53,12 @@ def append(file, step, bounds):
             test_only.append("test-only | " + match.group(1))
     owed = structural + test_only
     if owed:
-        with open(file, "a", errors="surrogateescape") as out:
-            out.write(f"### {step}\n" + bullets(owed))
+        try:
+            with open(file, "a", errors="surrogateescape") as out:
+                out.write(f"### {step}\n" + bullets(owed))
+        except OSError as error:
+            print(f"refactor-owed.sh: {file}: {error.strerror}", file=sys.stderr)
+            return 1
     return 0
 
 
