@@ -138,6 +138,12 @@ def test_main_puts_the_texts_above_below_or_in_place_of_the_anchor_and_gives_non
         "instead-of": (0, "", head + added + tail),
     }
 
+    monkeypatch.setenv("VERI_STEP_GROWTH", "1")
+    ledger.write_bytes(LEDGER)
+    code = add_ledger_step.main([str(ledger), "instead-of", "c three", "t", "u"])
+    assert (code, ledger.read_bytes()) == (1, LEDGER + "\n## Owed steps\n\n- t\n- u\n".encode())
+    monkeypatch.delenv("VERI_STEP_GROWTH")
+
     ledger.write_bytes("# Plan for #42\n\n- [ ] b two\n".encode())
     code = add_ledger_step.main([str(ledger), "after", "b two", "t"])
     assert (code, ledger.read_bytes().decode()) == (0, "# Plan for #42\n\n- [ ] b two\n- [ ] t ⟦added⟧\n")
@@ -244,7 +250,7 @@ def test_main_refuses_position_then_anchor_then_budget_each_with_2_and_unset_all
     sixth = run("after", "c three", "sixth")
     assert (fifth[:3], sixth[:3]) == ((0, "", ""), (1, "", ""))
     assert b"- [ ] fifth \xe2\x9f\xa6added\xe2\x9f\xa7" in fifth[3]
-    assert b"- [ ] sixth" not in sixth[3]
+    assert sixth[3] == fifth[3] + "\n## Owed steps\n\n- sixth\n".encode()
 
 
 def test_main_counts_only_steps_ending_in_added_and_inserts_repair_texts_unmarked_and_uncounted(tmp_path, monkeypatch, capsys, add_ledger_step):
