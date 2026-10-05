@@ -1,5 +1,6 @@
 """leaf-timeout.sh's derivation, run in-process."""
 import os
+import pathlib
 import re
 import sys
 
@@ -26,9 +27,12 @@ def record(timeout):
     issue = os.environ.get("VERI_ISSUE", "")
     if not issue:
         return
-    os.makedirs(".tdd", exist_ok=True)
+    here = pathlib.Path.cwd()
+    root = next((d for d in (here, *here.parents) if (d / ".git").exists()), here)
+    state = os.path.join(root, ".tdd")
+    os.makedirs(state, exist_ok=True)
     try:
-        with open(f".tdd/issue-{issue}-timeout", "x") as settled:
+        with open(os.path.join(state, f"issue-{issue}-timeout"), "x") as settled:
             settled.write(f"{timeout}\n")
     except FileExistsError:
         pass
