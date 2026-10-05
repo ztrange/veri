@@ -16,6 +16,7 @@ def candidate(cls):
 STRUCTURAL = candidate("structural")
 TEST_ONLY = candidate("test-only")
 TEST_ONLY_MARK = "- test-only | "
+APPLIED_MARK = "applied | "
 TEST_FILE = re.compile(r"(^|/)tests/|\.test\.")
 
 
@@ -62,6 +63,16 @@ def append(file, step, bounds):
     return 0
 
 
+def applied(file, transform, sha):
+    try:
+        with open(file, "a", errors="surrogateescape") as out:
+            out.write(f"{APPLIED_MARK}{sha} | {transform}\n")
+    except OSError as error:
+        print(f"refactor-owed.sh: {file}: {error.strerror}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def emit(text):
     sys.stdout.buffer.write(text.encode(errors="surrogateescape"))
 
@@ -78,8 +89,14 @@ def owed_lines(file):
 
 def render(file):
     lines = owed_lines(file)
-    kept, test_only = [], []
+    kept, test_only, done = [], [], {}
     for l in lines:
+        if l.startswith(APPLIED_MARK):
+            sha, _, transform = l[len(APPLIED_MARK):].partition(" | ")
+            done[transform] = sha
+    for l in lines:
+        if l.startswith(APPLIED_MARK) or (l.startswith("- ") and l[2:] in done):
+            continue
         if l.startswith(TEST_ONLY_MARK):
             test_only.append(l[len(TEST_ONLY_MARK):])
         else:
@@ -89,6 +106,8 @@ def render(file):
         out += ("\n### Test-only\n\n"
                 "These change only files under tests/; the structural pass does not work them.\n\n"
                 + bullets(test_only))
+    if done:
+        out += "\n### Applied\n\n" + bullets(f"{t} — {sha}" for t, sha in done.items())
     emit(out)
     return 0
 
@@ -109,6 +128,8 @@ def main(argv):
         return refuse()
     if verb == "append":
         return append(file, step, bounds)
+    if verb == "applied":
+        return applied(file, step, bounds)
     if verb in ("render", "list"):
         if not os.path.exists(file) or os.path.getsize(file) == 0:
             return 3

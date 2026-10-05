@@ -226,6 +226,21 @@ def test_list_prints_each_structural_transform_once_most_occurrences_first_and_r
         assert (path.name, code, captured.out) == (path.name, *expected)
 
 
+def test_applied_takes_a_candidate_off_every_step_render_lists_as_owed_and_lists_it_as_applied_naming_the_sha_952(
+        monkeypatch, capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    owed.write_text("### S1\n- extract venv_path_advice\n### S2\n- extract venv_path_advice\n")
+    code = refactor_owed.main(["applied", str(owed), "extract venv_path_advice", "1a9ce1d"])
+    capsys.readouterr()
+    assert code == 0
+
+    code = refactor_owed.main(["render", str(owed)])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert [l for l in out.splitlines() if l == "- extract venv_path_advice"] == []
+    assert [l for l in out.splitlines() if "extract venv_path_advice" in l and "1a9ce1d" in l] != []
+
+
 def test_main_refuses_an_uppercase_verb_and_returns_1_naming_the_file_when_the_append_write_fails(
         monkeypatch, capsys, tmp_path, refactor_owed):
     monkeypatch.chdir(tmp_path)
