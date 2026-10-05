@@ -83,6 +83,10 @@ timeout="${VERI_TIMEOUT:-}"
 settled_timeout=".tdd/issue-${VERI_ISSUE:-}-timeout"
 if [[ -z "$timeout" && -n "${VERI_ISSUE:-}" && -f "$settled_timeout" ]]; then
   timeout="$(<"$settled_timeout")"
+  if [[ ! "$timeout" =~ ^[0-9]+$ ]] || (( 10#$timeout < 1 )); then
+    echo "supervise: $settled_timeout must hold a whole number of seconds >= 1: '$timeout'" >&2
+    exit 2
+  fi
 fi
 timeout="${timeout:-900}"
 poll="${VERI_POLL:-1}"
