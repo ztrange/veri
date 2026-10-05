@@ -85,10 +85,11 @@ def main(argv):
         sys.stderr.write("issue-worktree: branch %s is already checked out in %s"
                          " — another conductor owns it\n" % (branch, holder))
         return 2
+    remote_ref = "refs/remotes/origin/" + branch
     if ref_exists("refs/heads/" + branch):
         code = worktree_add(path, branch)
-    elif ref_exists("refs/remotes/origin/" + branch):
-        code = worktree_add("-b", branch, path, "refs/remotes/origin/" + branch)
+    elif ref_exists(remote_ref):
+        code = worktree_add("-b", branch, path, remote_ref)
     else:
         return 0
     if code != 0:
