@@ -637,12 +637,9 @@ unauthenticated baseline never gets a cycle.
 
 1. Read the issue: `gh api repos/{owner}/{repo}/issues/<n> -q '{number, title, body, url: .html_url}'`.
 2. **Derive the slug and enter the issue's worktree.** Slug from the title — lowercase,
-   non-alphanumerics to `-`, collapse and trim `-`, cap to ~6 words. Then let the script
-   make (or hand back) the worktree the issue branch lives in, and move into it — preflight
-   step 3 has already done this, so its baseline runs on the branch's own commit:
-   ```
-   wt="$($S/issue-worktree.sh <n> <slug>)" && cd "$wt"
-   ```
+   non-alphanumerics to `-`, collapse and trim `-`, cap to ~6 words. Preflight step 3 has
+   already let `issue-worktree.sh` make (or hand back) the worktree the issue branch lives
+   in, and moved into it, so its baseline runs on the branch's own commit.
    Then **take the worktree**, before anything else you do in there:
    ```
    mkdir -p .tdd && printf '%s\n' "$PPID" > .tdd/conductor.pid && $S/stop-requested.sh --clear
