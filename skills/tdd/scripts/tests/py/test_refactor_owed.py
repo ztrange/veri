@@ -224,3 +224,23 @@ def test_list_prints_each_structural_transform_once_most_occurrences_first_and_r
         code = refactor_owed.main(["list", str(path)])
         captured = capsys.readouterr()
         assert (path.name, code, captured.out) == (path.name, *expected)
+
+
+def test_main_refuses_an_uppercase_verb_and_returns_1_naming_the_file_when_the_append_write_fails(
+        monkeypatch, capsys, tmp_path, refactor_owed):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, "stdin", io.StringIO(""))
+    owed = tmp_path / "owed.md"
+    owed.write_text("- a\n")
+    code = refactor_owed.main(["LIST", str(owed)])
+    captured = capsys.readouterr()
+    assert (code, captured.out, captured.err) == (2, "", USAGE)
+
+    directory = tmp_path / "owed-dir"
+    directory.mkdir()
+    monkeypatch.setattr(sys, "stdin", io.StringIO("CANDIDATES: structural | x\n"))
+    code = refactor_owed.main(["append", str(directory), "S"])
+    captured = capsys.readouterr()
+    assert (code, captured.out) == (1, "")
+    assert len(captured.err.splitlines()) == 1
+    assert str(directory) in captured.err
