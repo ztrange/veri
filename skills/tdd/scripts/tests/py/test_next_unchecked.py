@@ -51,3 +51,26 @@ def test_main_prints_the_first_open_step_exits_3_over_an_all_done_ledger_and_ign
         ("all done",): (3, b"", b""),
         ("all done", "--bogus"): (3, b"", b""),
     }
+
+
+def test_main_prints_the_first_open_step_or_diff_checked_record_veri_ledger_finds(
+        monkeypatch, capsysbinary, next_unchecked):
+    ledger = (
+        "# Plan for #42\n"
+        "\n"
+        "- [X] ticked with an upper-case box ⟦criterion 1⟧\n"
+        "- [ ] run the whole suite ⟦full-suite⟧ ⟦criterion 2⟧\n"
+        "- [ ] ask a human ⟦human-owed⟧ ⟦criterion 3⟧\n"
+        "- [ ] the counted line is gone ⟦diff-checked⟧ ⟦criterion 4⟧\n"
+        "\v- [ ] the vertical-tab-indented step ⟦criterion 5⟧\n"
+        "- [x] already done ⟦criterion 6⟧"
+    )
+    ledger_steps = importlib.import_module("veri.ledger").ledger_steps
+    want = next(
+        record[6] for record in ledger_steps(ledger)
+        if record[1] == "open" and record[2] in ("step", "diff-checked"))
+    fake_stdin(monkeypatch, ledger.encode())
+
+    code = next_unchecked.main([])
+
+    assert (code, *capsysbinary.readouterr()) == (0, (want + "\n").encode(), b"")
