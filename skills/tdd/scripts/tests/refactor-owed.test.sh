@@ -553,4 +553,28 @@ done
 report "$name"
 
 
+name="refactor-owed.sh with no argument, or with the unknown verb bogus and a file, exits 2 with nothing on stdout and the three usage lines on stderr"
+problems=()
+
+work="$(scratch_dir)"
+cat >"$work/usage.want" <<'USAGE'
+refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' < leaf-report.txt
+                      refactor-owed.sh render <file>
+                      refactor-owed.sh list <file>
+USAGE
+
+for call in none bogus; do
+  if [[ "$call" == none ]]; then args=(); else args=(bogus "$work/owed.md"); fi
+  "$OWED" "${args[@]}" >"$work/$call.out" 2>"$work/$call.err" && code=0 || code=$?
+  [[ "$code" == 2 ]] ||
+    problems+=("$call: want exit 2, got $code")
+  [[ ! -s "$work/$call.out" ]] ||
+    problems+=("$call: printed '$(cat "$work/$call.out")' on stdout")
+  diff "$work/usage.want" "$work/$call.err" >/dev/null ||
+    problems+=("$call: stderr differs from the three usage lines:" "$(diff "$work/usage.want" "$work/$call.err")")
+done
+
+report "$name"
+
+
 finish
