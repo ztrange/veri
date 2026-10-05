@@ -105,4 +105,12 @@ rc=0
 out="$( source "$LIB" && commit_suffix_offenders "$diff" 2>&1 )" || rc=$?
 expect_eq "$name" "0:" "$rc:$out"
 
+name="#946 the commit-suffix check stays green over a planted develop prompt whose only mention of a commit is \"the step's green commit\""
+green="$scratch/green"
+mkdir -p "$green"
+printf '%s\n' '## Phase: develop-green' '' "Compare the tree against the step's green commit." > "$green/develop-green.md"
+rc=0
+out="$( source "$LIB" && commit_suffix_offenders "$green" 2>&1 )" || rc=$?
+expect_eq "$name" "0:" "$rc:$out"
+
 finish
