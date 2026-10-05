@@ -9,20 +9,20 @@
 # Usage:
 #   build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
 #   build-verify-prompt.sh rebase <issue-spec-file> <onto-sha> <pre-rebase-sha>
-#   build-verify-prompt.sh --step '<STEP>' diff <issue-spec-file> <branch-base-sha> <step-base-sha>
+#   build-verify-prompt.sh --step '<STEP>' --fast-cmd '<CMD>' diff <issue-spec-file> <branch-base-sha> <step-base-sha>
 #     phase = red | green | refactor | pin | plan | rebase | transform | diff
 #              for plan the third positional names the proposed ledger, not a test;
 #              for transform it names the step's predicate record, and the fourth is the
 #              step's base sha
 #     --step = the ledger's own line for the step under judgement: it scopes the
 #              verdict to that criterion, and carries the conductor's words, not the leaf's
-#     --fast-cmd = the fast tier's test command, required for green and refactor:
+#     --fast-cmd = the fast tier's test command, required for green, refactor and diff:
 #              verify-green and verify-refactor run it plus the affected suites, and a verifier in a target repository has
 #              no detect-test-command.sh of its own to ask. It is a command the conductor
 #              detected, never anything the developer leaf wrote.
 #
 # Prints the assembled prompt on stdout (feed it to run-leaf.sh). Exit 2 on an unknown
-# phase, a missing template/spec file, or a green or refactor call without --fast-cmd.
+# phase, a missing template/spec file, or a green, refactor or diff call without --fast-cmd.
 set -euo pipefail
 
 # hazard: bash 5.2's patsub_replacement makes an unescaped & in a ${var//…/…} replacement the matched text; off, every value is literal.
@@ -59,7 +59,7 @@ case "$phase" in
   *) refuse "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin|plan|rebase|transform|diff)" ;;
 esac
 
-if [[ ( "$phase" == green || "$phase" == refactor ) && -z "$fast_cmd" ]]; then
+if [[ ( "$phase" == green || "$phase" == refactor || "$phase" == diff ) && -z "$fast_cmd" ]]; then
   refuse "build-verify-prompt: $phase needs --fast-cmd '<fast-tier test command>'"
 fi
 

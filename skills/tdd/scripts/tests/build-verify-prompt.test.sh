@@ -642,8 +642,8 @@ prompt_lacks "$tf" "transform prompt bounds the diff to a green commit" -iE -e '
 
 problems=""
 diff_step='the dead counted line in the status suite is gone ⟦diff-checked⟧ ⟦criterion 5⟧'
-diff_base=0123abcdef
-dp="$("$BUILD" --step "$diff_step" diff "$work/spec.md" "$diff_base" "$diff_base" 2>/dev/null)"; code=$?
+diff_base=0123abcdef diff_fast_cmd="make unit"
+dp="$("$BUILD" --step "$diff_step" --fast-cmd "$diff_fast_cmd" diff "$work/spec.md" "$diff_base" "$diff_base" 2>/dev/null)"; code=$?
 [[ "$code" -eq 0 ]] || problems="$problems; diff exited $code, want 0"
 [[ "$dp" == *"$diff_step"* ]] || problems="$problems; diff prompt lacks the step text"
 [[ "$dp" == *"git diff $diff_base..HEAD"* ]] || problems="$problems; diff prompt never says git diff $diff_base..HEAD"
@@ -671,10 +671,10 @@ prompt_says "$dp" "diff prompt never forbids reading the range's commit messages
 prompt_lacks "$dp" "diff prompt leaves a placeholder unfilled" -F -e '{{'
 prompt_lacks "$dp" "diff prompt names a test under review" -F -e 'the target test'
 dp_ambient="$(VERI_STEP='I tidied the helper because it was ugly' VERI_RATIONALE='the author meant well' \
-  "$BUILD" --step "$diff_step" diff "$work/spec.md" "$diff_base" "$diff_base" 2>/dev/null)"
+  "$BUILD" --step "$diff_step" --fast-cmd "$diff_fast_cmd" diff "$work/spec.md" "$diff_base" "$diff_base" 2>/dev/null)"
 [[ "$dp_ambient" == "$dp" ]] || problems="$problems; diff prompt changes with VERI_STEP or VERI_RATIONALE in the environment"
 other_base=fedcba9876
-dp_other="$("$BUILD" --step "$diff_step" diff "$work/spec.md" "$other_base" "$other_base" 2>/dev/null)"
+dp_other="$("$BUILD" --step "$diff_step" --fast-cmd "$diff_fast_cmd" diff "$work/spec.md" "$other_base" "$other_base" 2>/dev/null)"
 [[ "${dp_other//$other_base/$diff_base}" == "$dp" ]] || problems="$problems; diff prompt differs by more than the base sha when only the base sha changes"
 [[ -z "$problems" ]] \
   && ok || no "the diff prompt tells the verifier to read git diff <base-sha>..HEAD and not the range's commit messages, and carries nothing but the spec, the step text and the base sha (${problems#; })"
@@ -684,7 +684,7 @@ prompt_has "$dp" -iE -e "REJECT[^.]{0,160}(add|adds|added)[^.]{0,40}test|(add|ad
 
 problems=""
 branch_base=0123abcdef step_base=4567abcdef
-ds="$("$BUILD" --step "$diff_step" diff "$work/spec.md" "$branch_base" "$step_base" 2>/dev/null)"; code=$?
+ds="$("$BUILD" --step "$diff_step" --fast-cmd "$diff_fast_cmd" diff "$work/spec.md" "$branch_base" "$step_base" 2>/dev/null)"; code=$?
 [[ "$code" -eq 0 ]] || problems="$problems; diff with a step base exited $code, want 0"
 prompt_says "$ds" "never judges the criterion against git diff $branch_base..HEAD" -F -e "git diff $branch_base..HEAD"
 prompt_says "$ds" "never confines the adds-a-test REJECT to git diff $step_base..HEAD" \
@@ -714,6 +714,11 @@ prompt_says "$df" "never REJECTs when the fast command or the affected suites ar
   -iE -e "(fast|affected)[^.]{0,200}$red_word[^.]{0,200}REJECT|REJECT[^.]{0,200}(fast|affected)[^.]{0,200}$red_word"
 [[ -z "$problems" ]] \
   && ok || no "#974 diff with --fast-cmd tells the verifier to run that command, then the affected suites, and to REJECT when either is red (${problems#; })"
+
+name="#974 diff without --fast-cmd exits 2 with a diagnostic on stderr and nothing on stdout, as green and refactor do"
+out="$("$BUILD" --step "$diff_step" diff "$work/spec.md" "$branch_base" "$step_base" 2>"$work/diff-fast.err")"; code=$?
+diagnosed=""; [[ -s "$work/diff-fast.err" ]] && diagnosed=diagnosed
+expect_eq "$name" "2:diagnosed:0" "$code:$diagnosed:${#out}"
 
 cp "$work/spec.md" "$work/refactor-spec.md"
 printf '\n## Refactor\n\nRun kind: refactor. This issue changes structure, not behaviour.\n' \
