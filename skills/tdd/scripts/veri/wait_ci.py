@@ -181,7 +181,7 @@ def main(argv):
                 slice_end = now + arith(span, scope)
                 key = want or head
                 mark = ".tdd/ci-deadline-" + key
-                inherited = os.path.isfile(mark)
+                inherited = os.path.exists(mark)
                 if inherited:
                     try:
                         with open(mark) as found:
