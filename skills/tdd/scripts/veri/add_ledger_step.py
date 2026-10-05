@@ -3,8 +3,9 @@ import os
 import re
 import sys
 
-from .ledger import CRITERION_TAG, ledger_steps, new_step
+from .ledger import ADDED_MARK, CRITERION_TAG, ledger_steps, new_step
 
+REPAIR_MARKS = ("⟦ci-repair⟧", "⟦suite-repair⟧")
 USAGE = "usage: add-ledger-step.sh <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]"
 
 
@@ -19,9 +20,15 @@ def criterion_of(line):
     return line.rsplit(CRITERION_TAG, 1)[1].split("⟧", 1)[0]
 
 
+def is_repair(text):
+    return any(mark in text for mark in REPAIR_MARKS)
+
+
 def added_step(text, k):
-    step = new_step(text, k)
-    return step if k else step.removesuffix(f" {CRITERION_TAG}⟧")
+    step = new_step(text, k).removesuffix(f" {ADDED_MARK} {CRITERION_TAG}{k}⟧")
+    mark = "" if is_repair(text) else f" {ADDED_MARK}"
+    crit = f" {CRITERION_TAG}{k}⟧" if k else ""
+    return step + mark + crit
 
 
 def is_anchor_step(line, anchor):
@@ -43,7 +50,7 @@ def main(argv):
     if not re.fullmatch("[0-9]+", budget):
         return refuse("add-ledger-step.sh: VERI_STEP_GROWTH must be a whole number >= 0: " + budget)
     added = sum(record[4] == "1" for record in ledger_steps(content))
-    if added + len(texts) > int(budget):
+    if added + sum(not is_repair(text) for text in texts) > int(budget):
         headings = [line for line in lines[:-1] if line.startswith("## ")]
         owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
         owed += "".join(f"- {text}\n" for text in texts)

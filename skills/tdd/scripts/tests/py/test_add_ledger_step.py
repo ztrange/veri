@@ -245,3 +245,66 @@ def test_main_refuses_position_then_anchor_then_budget_each_with_2_and_unset_all
     assert (fifth[:3], sixth[:3]) == ((0, "", ""), (1, "", ""))
     assert b"- [ ] fifth \xe2\x9f\xa6added\xe2\x9f\xa7" in fifth[3]
     assert b"- [ ] sixth" not in sixth[3]
+
+
+def test_main_counts_only_steps_ending_in_added_and_inserts_repair_texts_unmarked_and_uncounted(tmp_path, monkeypatch, capsys, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    uncounted = (
+        "# Plan for #42\n"
+        "\n"
+        "Steps the run grew carry ⟦added⟧\n"
+        "- [x] say a step marked ⟦added⟧ is counted ⟦criterion 1⟧\n"
+        "- [ ] fix the CI failure: x.test.sh ⟦ci-repair⟧ ⟦criterion 2⟧\n"
+        "- [x] fix the full-suite failure: y.test.sh ⟦suite-repair⟧ ⟦criterion 2⟧ ⟂ refactor pending\n"
+        "- [ ] port status case a ⟦replaces-case⟧ ⟦criterion 1⟧\n"
+        "- [ ] collapse to single hyphen ⟦criterion 2⟧\n"
+        "\n"
+        "## Owed steps\n"
+        "\n"
+        "- an earlier edge case ⟦added⟧\n"
+    )
+    counted = (
+        "# Plan for #42\n"
+        "\n"
+        "- [x] an extra edge case ⟦added⟧ ⟦criterion 1⟧ ⟂ refactor pending\n"
+        "- [ ] collapse to single hyphen ⟦criterion 2⟧\n"
+    )
+    unadded = (
+        "# Plan for #42\n"
+        "\n"
+        "- [x] an extra edge case ⟦criterion 1⟧\n"
+        "- [ ] collapse to single hyphen ⟦criterion 2⟧\n"
+    )
+    got = {}
+    for name, seed, budget, texts in (
+        ("uncounted lines, one added text", uncounted, "1",
+         ["one more edge case", "fix the full-suite failure: z.test.sh ⟦suite-repair⟧"]),
+        ("a pending added step spends the budget", counted, "1", ["one more edge case"]),
+        ("repair texts at a budget of 0", unadded, "0",
+         ["fix the CI failure: x.test.sh ⟦ci-repair⟧", "⟦suite-repair⟧ mid-text: y.test.sh"]),
+    ):
+        ledger.write_bytes(seed.encode())
+        monkeypatch.setenv("VERI_STEP_GROWTH", budget)
+        code = add_ledger_step.main([str(ledger), "after", "collapse to single hyphen", *texts])
+        captured = capsys.readouterr()
+        got[name] = (code, captured.out, captured.err, ledger.read_bytes().decode())
+    anchor = "- [ ] collapse to single hyphen ⟦criterion 2⟧\n"
+    repairs = (
+        "- [ ] fix the CI failure: x.test.sh ⟦ci-repair⟧ ⟦criterion 2⟧\n"
+        "- [ ] ⟦suite-repair⟧ mid-text: y.test.sh ⟦criterion 2⟧\n"
+    )
+    assert got == {
+        "uncounted lines, one added text": (0, "", "", uncounted.replace(
+            anchor,
+            anchor
+            + "- [ ] one more edge case ⟦added⟧ ⟦criterion 2⟧\n"
+            + "- [ ] fix the full-suite failure: z.test.sh ⟦suite-repair⟧ ⟦criterion 2⟧\n",
+        )),
+        "a pending added step spends the budget": (1, "", "", counted + "\n## Owed steps\n\n- one more edge case\n"),
+        "repair texts at a budget of 0": (0, "", "", unadded + repairs),
+    }
+    records = importlib.import_module("veri.ledger").ledger_steps(ledger.read_bytes().decode())[-2:]
+    assert [(state, kind, text) for _, state, kind, _, _, _, text in records] == [
+        ("open", "step", "fix the CI failure: x.test.sh ⟦ci-repair⟧ ⟦criterion 2⟧"),
+        ("open", "step", "⟦suite-repair⟧ mid-text: y.test.sh ⟦criterion 2⟧"),
+    ]
