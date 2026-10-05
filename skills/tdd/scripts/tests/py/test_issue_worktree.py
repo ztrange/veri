@@ -288,3 +288,37 @@ def test_main_names_the_default_branch_from_origin_head_else_from_the_remotes_sy
         code, captured, calls = run({**base, symref: (1, "", "symref noise\n"), ls_remote: answer})
         assert (label, code, captured, calls[-1], sorted(calls)) == (
             label, 2, ("", refusal), ls_remote, sorted([listing, local, remote, symref, get_url, ls_remote]))
+
+
+def test_main_falls_back_to_a_local_main_then_master_only_without_an_origin_remote_and_refuses_when_neither_exists(
+        monkeypatch, capsys, issue_worktree):
+    main_tree = "/srv/repo"
+    path = main_tree + "/.tdd/wt/7"
+    registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
+    listing = ("git", "worktree", "list", "--porcelain")
+    local = ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/7-slug")
+    remote = ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/7-slug")
+    symref = ("git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
+    get_url = ("git", "remote", "get-url", "origin")
+    ls_remote = ("git", "ls-remote", "--symref", "origin", "HEAD")
+    main = ("git", "show-ref", "--verify", "--quiet", "refs/heads/main")
+    master = ("git", "show-ref", "--verify", "--quiet", "refs/heads/master")
+    refusal = "issue-worktree: cannot determine the default branch (no origin/HEAD, no local main or master)\n"
+
+    def cut(name):
+        return ("git", "worktree", "add", "-q", "--no-track", "-b", "tdd/7-slug", path, name)
+
+    base = {listing: (0, registry, ""), local: (1, "", ""), remote: (1, "", ""),
+            symref: (1, "", "symref noise\n"), get_url: (2, "", "error: No such remote 'origin'\n"),
+            ls_remote: (128, "", "fatal: 'origin' does not appear to be a git repository\n"),
+            cut("main"): (0, "", ""), cut("master"): (0, "", "")}
+    for label, main_code, master_code, want in (
+            ("main", 0, 0, (0, (path + "\n", ""), cut("main"))),
+            ("master", 1, 0, (0, (path + "\n", ""), cut("master"))),
+            ("neither", 1, 1, (2, ("", refusal), None))):
+        recorded = routing_git(monkeypatch, {**base, main: (main_code, "", ""), master: (master_code, "", "")})
+        code = issue_worktree.main(["7", "slug"])
+        calls = [tuple(c) for c in recorded]
+        adds = [c for c in calls if c[1:3] == ("worktree", "add")]
+        assert (label, code, capsys.readouterr()[:], adds[-1] if adds else None,
+                [c for c in calls if c[1] in ("fetch", "ls-remote")]) == (label, *want, [])

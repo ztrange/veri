@@ -54,12 +54,23 @@ def quiet_git(*args):
     return subprocess.run(["git", *args], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
 
 
-def default_branch_name():
+def default_branch_name(origin):
     head = quiet_git("symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
     if head.returncode == 0:
         return head.stdout.rstrip("\n").removeprefix("origin/")
-    answer = quiet_git("ls-remote", "--symref", "origin", "HEAD")
-    return "\n".join(re.findall(r"^ref: refs/heads/(\S*)\s*HEAD$", answer.stdout, re.MULTILINE))
+    if origin:
+        answer = quiet_git("ls-remote", "--symref", "origin", "HEAD")
+        name = "\n".join(re.findall(r"^ref: refs/heads/(\S*)\s*HEAD$", answer.stdout, re.MULTILINE))
+        if not name:
+            sys.stderr.write("issue-worktree: cannot determine origin's default branch"
+                             " (no refs/remotes/origin/HEAD, and the remote did not name one)\n")
+        return name
+    for name in ("main", "master"):
+        if ref_exists("refs/heads/" + name):
+            return name
+    sys.stderr.write("issue-worktree: cannot determine the default branch"
+                     " (no origin/HEAD, no local main or master)\n")
+    return ""
 
 
 def worktree_add(*args):
@@ -108,14 +119,14 @@ def main(argv):
     elif ref_exists(remote_ref):
         code = worktree_add("-b", branch, path, remote_ref)
     else:
-        has_origin()
-        name = default_branch_name()
+        origin = has_origin()
+        name = default_branch_name(origin)
         if not name:
-            sys.stderr.write("issue-worktree: cannot determine origin's default branch"
-                             " (no refs/remotes/origin/HEAD, and the remote did not name one)\n")
             return 2
-        subprocess.run(["git", "fetch", "-q", "origin", name], stdout=sys.stderr)
-        code = worktree_add("--no-track", "-b", branch, path, "origin/" + name)
+        if origin:
+            subprocess.run(["git", "fetch", "-q", "origin", name], stdout=sys.stderr)
+            name = "origin/" + name
+        code = worktree_add("--no-track", "-b", branch, path, name)
     if code != 0:
         return to_contract(code)
     sys.stdout.write(path + "\n")
