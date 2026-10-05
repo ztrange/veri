@@ -159,4 +159,28 @@ if need_section '## Launching the conductor' 'what the skill snapshot says about
 fi
 report "$name"
 
+name="#865 $skill_md's skill snapshot resolves the default branch from the remote when refs/remotes/origin/HEAD is absent, refuses with exit 2 when it cannot, and runs unpinned only with no resolvable commit at all"
+problems=()
+
+snap_start="$(awk 'index($0, "**The skill snapshot") == 1 { print NR; exit }' "$md")"
+if [[ -z "$snap_start" ]]; then
+  problems+=("$skill_md has no '**The skill snapshot' paragraph — what a launch does without refs/remotes/origin/HEAD could not be read")
+else
+  sec_name="The skill snapshot"
+  paras="$(awk -v s="$snap_start" '
+    NR < s { next }
+    NR > s && /^#/ { exit }
+    /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
+    /^[-*] / { if (rec != "") print rec; rec = $0; next }
+    { rec = (rec == "" ? $0 : rec " " $0) }
+    END { if (rec != "") print rec }' "$md" | tr -d '*`' | tr '[:upper:]' '[:lower:]')"
+  claim 'says that with refs/remotes/origin/HEAD absent the launch resolves the default branch from the remote' \
+    'refs/remotes/origin/head' 'absent|missing|no refs/remotes/origin/head' 'ls-remote|from the remote|remote itself'
+  claim 'says that when the remote default cannot be resolved the launch exits 2 naming refs/remotes/origin/HEAD' \
+    'refs/remotes/origin/head' 'exit 2' 'cannot|can not|fails'
+  claim 'says the launch runs unpinned when no commit can be resolved at all' \
+    'unpinned' 'no (skill )?commit' 'at all'
+fi
+report "$name"
+
 finish
