@@ -12,16 +12,11 @@
 set -uo pipefail
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/exit-contract.sh"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/report.sh"
 
 prediction="" predicted="" fail_output="" note=""
-while IFS= read -r line || [[ -n "$line" ]]; do
-  case "$line" in
-    "PREDICTION: "*)      prediction="${line#PREDICTION: }" ;;
-    "PREDICTED_FAILURE: "*) predicted="${line#PREDICTED_FAILURE: }" ;;
-    "FAIL_OUTPUT: "*)     fail_output="${line#FAIL_OUTPUT: }" ;;
-    "PREDICTION_NOTE: "*) note="${line#PREDICTION_NOTE: }" ;;
-  esac
-done
+report_read PREDICTION prediction PREDICTED_FAILURE predicted \
+  FAIL_OUTPUT fail_output PREDICTION_NOTE note
 
 verdict="${prediction%% *}"
 case "${verdict%[,;:.]}" in
