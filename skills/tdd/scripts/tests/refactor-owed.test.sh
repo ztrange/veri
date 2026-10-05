@@ -515,4 +515,42 @@ under_step "$owed_file" "$step" 'test-only | the transform test_only_candidate a
 report "$name"
 
 
+name="refactor-owed.sh, run through a symlink to the skill directory from another working directory, answers append, render and list as in place, the owed file read relative to the caller's working directory"
+problems=()
+
+work="$(scratch_dir)"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+mkdir -p "$work/in-place" "$work/elsewhere"
+cat >"$work/report.txt" <<'REPORT'
+CANDIDATES: structural | extract the parser
+CANDIDATES: cosmetic | rename a local
+CANDIDATES: test-only | fold the fixtures
+REPORT
+
+for where in in-place elsewhere; do
+  if [[ "$where" == in-place ]]; then script="$OWED"; else script="$work/linked-skill/scripts/refactor-owed.sh"; fi
+  (cd "$work/$where" && "$script" append owed.md 'the step' < "$work/report.txt") \
+    >"$work/$where.append.out" 2>/dev/null && echo 0 >"$work/$where.append.code" || echo $? >"$work/$where.append.code"
+  for verb in render list; do
+    (cd "$work/$where" && "$script" "$verb" owed.md) \
+      >"$work/$where.$verb.out" 2>/dev/null && echo 0 >"$work/$where.$verb.code" || echo $? >"$work/$where.$verb.code"
+  done
+done
+
+[[ -s "$work/elsewhere/owed.md" ]] ||
+  problems+=("append through the symlink wrote no owed.md in the caller's working directory")
+cmp -s "$work/in-place/owed.md" "$work/elsewhere/owed.md" ||
+  problems+=("owed file through the symlink differs: $(diff "$work/in-place/owed.md" "$work/elsewhere/owed.md")")
+for verb in append render list; do
+  [[ "$(cat "$work/in-place.$verb.code")" == 0 ]] ||
+    problems+=("$verb in place: want exit 0, got $(cat "$work/in-place.$verb.code")")
+  [[ "$(cat "$work/elsewhere.$verb.code")" == "$(cat "$work/in-place.$verb.code")" ]] ||
+    problems+=("$verb through the symlink: exit $(cat "$work/elsewhere.$verb.code"), in place $(cat "$work/in-place.$verb.code")")
+  cmp -s "$work/in-place.$verb.out" "$work/elsewhere.$verb.out" ||
+    problems+=("$verb stdout through the symlink differs: $(diff "$work/in-place.$verb.out" "$work/elsewhere.$verb.out")")
+done
+
+report "$name"
+
+
 finish
