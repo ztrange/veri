@@ -17,8 +17,11 @@ def to_contract(code):
 def number_in(file):
     if not os.path.isfile(file):
         return None
-    with open(file, "rb") as f:
-        n = f.readline().rstrip(b"\n").strip(b" \t")
+    try:
+        with open(file, "rb") as f:
+            n = f.readline().rstrip(b"\n").strip(b" \t")
+    except OSError:
+        return None
     return n.decode() if re.fullmatch(rb"[0-9]+", n) else None
 
 

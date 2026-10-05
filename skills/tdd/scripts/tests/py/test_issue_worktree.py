@@ -211,6 +211,32 @@ def test_main_hands_back_a_registered_worktree_whose_pid_file_holds_0_or_00_issu
         assert (content, code, capsys.readouterr()[:], calls) == (content, 0, (path + "\n", ""), [list(listing)])
 
 
+def test_main_hands_back_a_registered_worktree_whose_pid_file_open_cannot_read_issue_965(
+        capsys, tmp_path, issue_worktree, monkeypatch):
+    import builtins
+
+    main_tree = str(tmp_path / "repo")
+    path = f"{main_tree}/.tdd/wt/7"
+    registry = ("worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n"
+                "worktree %s\nHEAD 2222222222222222222222222222222222222222\nbranch refs/heads/tdd/7-slug\n\n"
+                % (main_tree, path))
+    listing = ("git", "worktree", "list", "--porcelain")
+    pid_file = pathlib.Path(path) / ".tdd" / "conductor.pid"
+    pid_file.parent.mkdir(parents=True)
+    pid_file.write_text("4242\n")
+    real_open = builtins.open
+
+    def fake_open(file, *args, **kwargs):
+        if os.fspath(file) == str(pid_file):
+            raise PermissionError(13, "Permission denied", str(pid_file))
+        return real_open(file, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", fake_open)
+    calls = routing_git(monkeypatch, {listing: (0, registry, "")})
+    code = issue_worktree.main(["7", "slug"])
+    assert (code, capsys.readouterr()[:], calls) == (0, (path + "\n", ""), [list(listing)])
+
+
 def test_main_refuses_a_branch_any_registry_entry_has_checked_out_the_main_working_tree_included_before_any_cut(
         monkeypatch, capsys, issue_worktree):
     main_tree = "/srv/repo"
