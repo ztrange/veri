@@ -81,6 +81,9 @@ source "$HERE/lib/awake-seconds.sh"
 heartbeat="${VERI_HEARTBEAT:-180}"
 timeout="${VERI_TIMEOUT:-}"
 settled_timeout=".tdd/issue-${VERI_ISSUE:-}-timeout"
+if [[ -z "$timeout" && -n "${VERI_ISSUE:-}" ]]; then
+  run_root="$(git rev-parse --show-toplevel 2>/dev/null)" && settled_timeout="$run_root/$settled_timeout"
+fi
 if [[ -z "$timeout" && -n "${VERI_ISSUE:-}" && -f "$settled_timeout" ]]; then
   timeout="$(<"$settled_timeout")"
   if [[ ! "$timeout" =~ ^[0-9]+$ ]] || (( 10#$timeout < 1 )); then
