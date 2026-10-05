@@ -80,6 +80,11 @@ if git -C "$base" remote get-url origin >/dev/null 2>&1; then
     sleep "${VERI_FETCH_RETRY_SLEEP:-1}"
   done
   head_rev=refs/remotes/origin/HEAD
+  if ! git -C "$base" rev-parse -q --verify "$head_rev" >/dev/null; then
+    default="$(git -C "$base" ls-remote --symref origin HEAD 2>/dev/null |
+      awk '$1 == "ref:" { sub("^refs/heads/", "", $2); print $2 }')"
+    [[ -n "$default" ]] && head_rev="refs/remotes/origin/$default"
+  fi
 fi
 if commit="$(git -C "$base" rev-parse "$head_rev" 2>/dev/null)"; then
   mkdir -p .tdd

@@ -694,6 +694,47 @@ fi
 
 report "$name"
 
+name="with no refs/remotes/origin/HEAD the launch pins to the remote's default branch tip, records it and runs pinned (#865)"
+problems=()
+
+remote31="$work/remote31"
+clone31="$work/clone31"
+cloned_skill "$remote31" "$clone31"
+git -C "$clone31" remote set-head origin -d
+git -C "$clone31" config remote.origin.followRemoteHEAD never
+advance_clone "$remote31" "# a commit that landed on the remote after the clone was cut"
+tip31="$(git -C "$remote31" rev-parse HEAD)"
+
+tipdir31="$work/tip31"
+skill_archive "$remote31" "$tip31" "$tipdir31"
+
+caller31="$work/caller31"
+caller_repo "$caller31"
+base31="$work/base31"
+mkdir -p "$base31"
+env31="$work/env31"
+rm -f "$env31"
+
+( unset VERI_SKILL_UNPINNED; launch_from "$caller31" "$clone31" BASE_OUT="$base31" ENV_OUT="$env31" )
+rc31=$?
+
+record31="$caller31/.tdd/issue-$issue-skill-commit"
+[[ "$rc31" == 0 ]] ||
+  problems+=("the launch exited $rc31, not 0: $(cat "$launch_err")")
+if [[ ! -f "$record31" ]]; then
+  problems+=("no skill-commit record was written at $record31 — stderr was: '$(cat "$launch_err")'")
+elif [[ "$(cat "$record31")" != "$tip31" ]]; then
+  problems+=("the record holds '$(cat "$record31")', not the remote default branch's tip $tip31")
+fi
+holds_skill "$base31" "$tipdir31/skills/tdd" "launch's" "the remote default branch's tip $tip31"
+if [[ ! -f "$env31" ]]; then
+  problems+=("the conductor was never launched: $(cat "$launch_err")")
+elif grep -q '^VERI_SKILL_UNPINNED=' "$env31"; then
+  problems+=("the launch exported VERI_SKILL_UNPINNED to the conductor")
+fi
+
+report "$name"
+
 name="an unresolvable recorded skill commit refuses with exit 2 unless VERI_NEW_SKILL=1, which re-pins and logs a skill-repin event"
 problems=()
 
