@@ -18,6 +18,7 @@
 #  11. A commit a suite makes in a repository whose own config forces auto maintenance on, in
 #      the foreground, leaves its loose objects where they are.
 #  12. The same commit made outside the recipe's environment repacks them.
+#  13. A suite run by make test or make unit sees neither BASH_ENV nor ENV the caller exported.
 #
 # Run: skills/tdd/scripts/tests/make-test-env.test.sh
 set -uo pipefail
@@ -131,6 +132,20 @@ rm -rf "$work/tmpl-git/share"
 recipe /dev/null -u OFFLINE_REAL_GIT GIT_TEMPLATE_DIR="$work/ambient-templates" PATH="$stub:$PATH" XCRUN_GIT="$tmpl_git"
 expect GIT_TEMPLATE_DIR "<unset>" "with no templates directory beside the real git, the recipe must leave GIT_TEMPLATE_DIR unset"
 report "make test gives every suite a GIT_TEMPLATE_DIR beside the real git when that directory exists, and none when it does not (#582)"
+
+problems=()
+startup="$work/startup.sh"
+printf ':\n' > "$startup"
+recipe /dev/null BASH_ENV="$startup" ENV="$startup"
+expect BASH_ENV "<unset>" "make test passed the caller's BASH_ENV through, so every bash a suite starts re-reads the caller's startup file"
+expect ENV "<unset>" "make test passed the caller's ENV through, the POSIX-sh counterpart of BASH_ENV"
+rm -f "$probe"
+unit_out="$(env BASH_ENV="$startup" ENV="$startup" PROBE_OUT="$probe" \
+  make -C "$ROOT" unit UNIT_TESTS="$FIXTURE" 2>&1 < /dev/null)" || problems+=("make unit over the fixture failed: $(flat "$unit_out")")
+[[ -s "$probe" ]] || problems+=("make unit wrote no fixture report, so the recipe never ran it: $(flat "$unit_out")")
+expect BASH_ENV "<unset>" "make unit passed the caller's BASH_ENV through"
+expect ENV "<unset>" "make unit passed the caller's ENV through"
+report "#949: a suite run by make test or make unit sees neither BASH_ENV nor ENV, even when the caller exported both"
 
 problems=()
 recipe /dev/null
