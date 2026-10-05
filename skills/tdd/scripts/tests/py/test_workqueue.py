@@ -596,6 +596,13 @@ def test_show_next_and_assign_with_an_empty_toplevel_exit_2_and_read_lock_and_wr
     assert sorted(p.name for p in (root / ".tdd").iterdir()) == ["workqueue"]
 
 
+def test_show_with_an_empty_toplevel_exits_2_with_empty_stdout_saying_it_is_outside_a_repository_issue_898(monkeypatch, capsys, workqueue):
+    fake_git(monkeypatch, "")
+    code = workqueue.main(["show"])
+    out, err = capsys.readouterr()
+    assert (code, out, err) == (2, "", "workqueue.sh: outside a repository\n")
+
+
 def test_start_done_park_keep_a_last_queue_line_that_has_no_trailing_newline_issue_777(tmp_path, monkeypatch, capsys, workqueue):
     queue = tmp_path / ".tdd" / "workqueue"
     queue.parent.mkdir()
