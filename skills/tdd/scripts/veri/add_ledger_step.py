@@ -65,7 +65,7 @@ def main(argv):
         owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
         owed += "".join(f"- {text}\n" for text in texts)
         with open(path, "ab") as f:
-            f.write(owed.encode())
+            f.write(owed.encode(errors="surrogateescape"))
         return 1
     out = []
     for line in lines:

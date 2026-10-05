@@ -383,3 +383,24 @@ def test_main_reads_and_rewrites_the_ledger_as_bytes_line_by_line_in_place(tmp_p
             0, "", "", latin.replace("a one ⟦criterion 1⟧\n".encode(), "a one ⟦criterion 1⟧\n".encode() + step), True
         ),
     }
+
+
+def test_main_writes_a_non_utf_8_byte_of_a_text_back_unchanged_when_it_inserts_and_when_it_owes(tmp_path, monkeypatch, capsys, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+    text = b"t \xff".decode(errors="surrogateescape")
+    got = {}
+    for name, budget in (("inserted", "3"), ("owed", "0")):
+        monkeypatch.setenv("VERI_STEP_GROWTH", budget)
+        ledger.write_bytes(LEDGER)
+        code = add_ledger_step.main([str(ledger), "after", "b two", text])
+        captured = capsys.readouterr()
+        got[name] = (code, captured.out, captured.err, ledger.read_bytes())
+    assert got == {
+        "inserted": (
+            0, "", "", LEDGER.replace(
+                "b two ⟦criterion 2⟧\n".encode(),
+                "b two ⟦criterion 2⟧\n- [ ] t ".encode() + b"\xff" + " ⟦added⟧ ⟦criterion 2⟧\n".encode(),
+            ),
+        ),
+        "owed": (1, "", "", LEDGER + b"\n## Owed steps\n\n- t \xff\n"),
+    }
