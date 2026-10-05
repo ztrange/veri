@@ -8,4 +8,4 @@
 - [x] install-dev's candidate list is derived from the one floor definition in lib/venv-python.sh: raising that definition to 3.13 alone drops python3.12 from the candidates install-dev tries ⟦criterion 5⟧
 - [x] the pytest leg's floor check in the Makefile reads the same floor definition: raising that definition alone makes the leg refuse an interpreter it accepted before, naming the new floor ⟦criterion 5⟧
 - [x] every case pytest-leg.test.sh and make-test-env.test.sh already hold keeps its assertions unchanged on this branch ⟦diff-checked⟧ ⟦criterion 6⟧
-- [ ] every case pytest-leg.test.sh and make-test-env.test.sh already hold passes ⟦full-suite⟧ ⟦criterion 6⟧
+- [x] every case pytest-leg.test.sh and make-test-env.test.sh already hold passes ⟦full-suite⟧ ⟦criterion 6⟧
