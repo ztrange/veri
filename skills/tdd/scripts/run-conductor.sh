@@ -68,6 +68,7 @@ issue="$1"
 
 base="$(cd "$HERE/.." && pwd)"
 record=".tdd/issue-$issue-skill-commit"
+run_wt=".tdd/wt/$issue"
 head_rev=HEAD
 pinned=""
 if git -C "$base" remote get-url origin >/dev/null 2>&1; then
@@ -87,7 +88,6 @@ if commit="$(git -C "$base" rev-parse "$head_rev" 2>/dev/null)"; then
     printf '%s\n' "$commit" > "$record"
   elif [[ "${VERI_NEW_SKILL:-}" == 1 ]]; then
     printf '%s\n' "$commit" > "$record"
-    run_wt=".tdd/wt/$issue"
     mkdir -p "$run_wt"
     (cd "$run_wt" && VERI_ISSUE="$issue" "$HERE/event.sh" skill-repin commit="$commit") || exit 2
   elif recorded="$(cat "$record")" &&
@@ -127,9 +127,9 @@ printf '%s\n' "$prompt" | "${CLAUDE_BIN:-claude}" -p \
   --permission-mode bypassPermissions || code=$?
 
 past_preflight() {
-  local wt=".tdd/wt/$issue" top
-  if top="$(git -C "$wt" rev-parse --show-toplevel 2>/dev/null)" &&
-     [[ "$top" == "$(cd "$wt" && pwd -P)" ]]; then
+  local top
+  if top="$(git -C "$run_wt" rev-parse --show-toplevel 2>/dev/null)" &&
+     [[ "$top" == "$(cd "$run_wt" && pwd -P)" ]]; then
     return 0
   fi
   [[ -n "$(git for-each-ref --format='%(refname)' "refs/heads/tdd/$issue-*" 2>/dev/null)" ]]
