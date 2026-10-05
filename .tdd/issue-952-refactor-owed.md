@@ -2,3 +2,4 @@
 - in `main`, `applied` is called with the variables named `step` and `bounds`, which here hold the transform and the sha; unpacking per verb would give them names that don't mislead
 ### SKILL.md's Draft PR structural pass runs `refactor-owed.sh applied` on the run's owed file with the candidate and the commit after each `transform` verifier PASS, before the PR body is rendered ⟦criterion 1⟧
 - test-only | skill-structural-pass.test.sh: the #952 case's offset-then-compare ordering check (applied after verifier) repeats the shape of the earlier "checks order" case (touches < verifier < next); the two could share one ordering helper
+applied | 98794e1df | in `main`, `applied` is called with the variables named `step` and `bounds`, which here hold the transform and the sha; unpacking per verb would give them names that don't mislead
