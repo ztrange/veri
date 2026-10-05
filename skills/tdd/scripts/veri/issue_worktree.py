@@ -1,4 +1,5 @@
 """issue-worktree.sh's worktree handling, run in-process."""
+import contextlib
 import os
 import re
 import shutil
@@ -111,6 +112,12 @@ def main(argv):
         sys.stderr.write("issue-worktree: branch %s is already checked out in %s"
                          " — another conductor owns it\n" % (branch, holder))
         return 2
+    with seeded_log_set_aside(path):
+        return cut(path, branch)
+
+
+@contextlib.contextmanager
+def seeded_log_set_aside(path):
     tdd = path + "/.tdd"
     log = tdd + "/events.jsonl"
     seeded_log = None
@@ -121,7 +128,7 @@ def main(argv):
         os.rmdir(tdd)
         os.rmdir(path)
     try:
-        return cut(path, branch)
+        yield
     finally:
         if seeded_log is not None:
             os.makedirs(tdd, exist_ok=True)
