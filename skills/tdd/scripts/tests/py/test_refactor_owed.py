@@ -136,3 +136,19 @@ def test_append_writes_a_structural_transform_holding_non_utf8_bytes_to_the_owed
     code = refactor_owed.main(["append", str(owed), "S"])
     written = owed.read_bytes() if owed.exists() else b""
     assert (code, written) == (0, b"### S\n- caf\xe9 \xff\xfe\n")
+
+
+def test_append_records_every_structural_transform_test_only_when_every_bound_on_the_first_line_is_a_test_file(
+        monkeypatch, tmp_path, refactor_owed):
+    for bounds, all_test in (
+            ("a/tests/x,", True), ("x.test.sh", True), ("tests/a\nsrc/b", True),
+            (",", False), ("tests/x,,tests/y", False), ("contests/x", False), ("src/tests", False),
+            ("Tests/x", False), (" tests/x", False), ("a.tested.sh", False), ("pkg/x.test", False)):
+        owed = tmp_path / "owed.md"
+        if owed.exists():
+            owed.unlink()
+        monkeypatch.setattr(sys, "stdin", io.StringIO("CANDIDATES: structural | s\n"))
+        code = refactor_owed.main(["append", str(owed), "S", bounds])
+        written = owed.read_bytes() if owed.exists() else b""
+        expected = b"### S\n- test-only | s\n" if all_test else b"### S\n- s\n"
+        assert (bounds, code, written) == (bounds, 0, expected)
