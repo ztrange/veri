@@ -1086,4 +1086,48 @@ fi
 
 report "$name"
 
+name="a fetch of origin that loses a ref lock held by another process is retried once the lock is released, and the conductor starts (#886)"
+problems=()
+
+src31="$work/src31"
+remote31="$work/remote31"
+clone31="$work/clone31"
+skill_clone "$src31"
+git clone -q --bare "$src31" "$remote31"
+git clone -q "$remote31" "$clone31"
+branch31="$(git -C "$remote31" symbolic-ref --short HEAD)"
+advance_clone "$src31" "# a commit another conductor's fetch is bringing in"
+git -C "$src31" push -q "$remote31" "HEAD:$branch31"
+tip31="$(git -C "$remote31" rev-parse HEAD)"
+
+lock31="$clone31/.git/refs/remotes/origin/$branch31.lock"
+: > "$lock31"
+
+shim31="$work/shim31"
+mkdir -p "$shim31"
+cat > "$shim31/git" <<SHIM
+#!/bin/sh
+"$(command -v git)" "\$@"
+status=\$?
+case " \$* " in *" fetch "*) rm -f "$lock31" ;; esac
+exit \$status
+SHIM
+chmod +x "$shim31/git"
+
+caller31="$work/caller31"
+caller_repo "$caller31"
+
+rm -f "$argv" "$prompt"
+launch_from "$caller31" "$clone31" PATH="$shim31:$PATH"
+status=$?
+
+[[ "$status" -eq 0 ]] ||
+  problems+=("the launch exited $status, not 0, although the ref lock was released after its first fetch — stderr was: '$(tr '\n' ' ' < "$launch_err")'")
+[[ -f "$argv" ]] ||
+  problems+=("no conductor was launched")
+grep -F -- "$tip31" "$prompt" > /dev/null 2>&1 ||
+  problems+=("the conductor's prompt does not name origin's tip $tip31 as the pinned skill commit")
+
+report "$name"
+
 finish
