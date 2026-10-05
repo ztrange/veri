@@ -13,14 +13,21 @@ def refuse(message):
 
 
 def criterion_of(line):
+    if CRITERION_TAG not in line:
+        return ""
     return line.rsplit(CRITERION_TAG, 1)[1].split("⟧", 1)[0]
+
+
+def added_step(text, k):
+    crit = f" {CRITERION_TAG}{k}⟧" if k else ""
+    return new_step(text, k).removesuffix(f" {CRITERION_TAG}{k}⟧") + crit
 
 
 def main(argv):
     if len(argv) < 4 or "" in argv[:3]:
         return refuse(USAGE)
     path, where, anchor, *texts = argv
-    if where != "after":
+    if where not in ("after", "before", "instead-of"):
         return refuse("add-ledger-step.sh: position must be after, before or instead-of: " + where)
     with open(path, "rb") as f:
         content = f.read().decode()
@@ -29,9 +36,15 @@ def main(argv):
         return 1
     out = []
     for line in content.split("\n"):
-        out.append(line)
-        if anchor in line and ledger_steps(line):
-            out.extend(new_step(text, criterion_of(line)) for text in texts)
+        if not (anchor in line and ledger_steps(line)):
+            out.append(line)
+            continue
+        steps = [added_step(text, criterion_of(line)) for text in texts]
+        if where == "after":
+            out.append(line)
+        out.extend(steps)
+        if where == "before":
+            out.append(line)
     with open(path, "wb") as f:
         f.write("\n".join(out).encode())
     return 0
