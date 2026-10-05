@@ -14,7 +14,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-GH_CALL='(^|[^[:alnum:]_.-])gh[[:space:]]+(issue|pr|repo)([[:space:]]|$)'
+GH_CALL='(^|[^[:alnum:]_.-])gh[[:space:]]+((issue|pr|repo)([[:space:]]|$)|auth[[:space:]]+status([^[:alnum:]_-]|$))'
 
 source "$HERE/lib/harness.sh"
 
@@ -37,5 +37,41 @@ problems=()
 probe_no_graphql_call_is_left
 
 report "$name"
+
+plant_tree() {
+  ROOT="$(scratch_dir)"
+  mkdir -p "$ROOT/skills/tdd/scripts"
+  printf '%s\n' '# Procedure' '' '- `gh auth status` succeeds.' > "$ROOT/skills/tdd/SKILL.md"
+  printf '%s\n' '#!/usr/bin/env bash' 'gh auth status || exit 2' > "$ROOT/skills/tdd/scripts/planted.sh"
+}
+
+named_in_problems() {
+  local problem
+  for problem in ${problems+"${problems[@]}"}; do
+    [[ "$problem" == "$1 "* ]] && { printf named; return; }
+  done
+  printf 'not named'
+}
+
+probe_a_planted_gh_auth_status() {
+  local ROOT
+  plant_tree
+  problems=()
+  probe_no_graphql_call_is_left
+  planted_named="SKILL.md $(named_in_problems skills/tdd/SKILL.md:3);script $(named_in_problems skills/tdd/scripts/planted.sh:2);"
+  printf '%s\n' '# Procedure' '' '- `gh api user` succeeds.' > "$ROOT/skills/tdd/SKILL.md"
+  printf '%s\n' '#!/usr/bin/env bash' 'gh api user || exit 2' > "$ROOT/skills/tdd/scripts/planted.sh"
+  problems=()
+  probe_no_graphql_call_is_left
+  planted_named+="clean ${#problems[@]}"
+  problems=()
+}
+
+name="a gh auth status call planted in SKILL.md or a scripts/*.sh is named as <file>:<line>, and a tree holding none passes (#864)"
+planted_named=""
+
+probe_a_planted_gh_auth_status
+
+expect_eq "$name" "SKILL.md named;script named;clean 0" "$planted_named"
 
 finish
