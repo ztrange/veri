@@ -608,6 +608,21 @@ $before
 --- after
 $after" ))"
 
+repo="$work/non-utf8-pid"
+make_repo "$repo"
+want="$(wt_path "$repo" 965)"
+
+first="$(cd "$repo" && "$WT" 965 non-utf8 2>/dev/null)" && first_code=0 || first_code=$?
+mkdir -p "$want/.tdd"
+printf '\xff\xfe\n' > "$want/.tdd/conductor.pid"
+
+errfile="$work/non-utf8-pid.err"
+out="$(cd "$repo" && "$WT" 965 non-utf8 2>"$errfile")" && code=0 || code=$?
+err="$(cat "$errfile")"
+
+{ [[ "$first_code" == 0 ]] && [[ "$code" == 0 ]] && [[ "$out" == "$want" ]] && [[ -z "$err" ]]; } \
+  && ok || no "#965: a second call for a registered worktree whose .tdd/conductor.pid holds the bytes \\xff\\xfe\\n: prints the path, exits 0 and prints nothing on stderr (seed: first call exit=$first_code want 0, stdout='$first'; second call exit=$code want 0, stdout='$out' want '$want', stderr='$err' want empty)"
+
 repo="$work/seeded-log"
 make_repo "$repo"
 seeded="$(wt_path "$repo" 62)"
