@@ -381,3 +381,67 @@ def test_each_issue_launches_as_supervise_env_run_conductor_with_the_caller_s_fo
     assert solvable_calls and all(argv == [os.path.join(scripts, "solvable-issues.sh")] for argv, _ in solvable_calls)
     assert [(kw.get("stdout"), kw.get("stderr"), kw.get("capture_output", False)) for _, kw in solvable_calls] == [
         (subprocess.PIPE, None, False)] * len(solvable_calls)
+
+
+@pytest.mark.parametrize("env, answers, exits, launched, slots, stopped, code", [
+    ({"VERI_PARALLEL": "2"}, [(0, "7 8\n")], {}, ["7", "8"], 2, "stopped: nothing solvable", 0),
+    ({}, [(0, "7 8\n"), (0, "7\t9\n8\n"), (1, "")], {}, ["7", "9"], 1, "stopped: nothing solvable", 0),
+    ({"VERI_PARALLEL": "3", "VERI_MAX_ISSUES": "2"}, [(0, "7 8 9\n")], {}, ["7", "8"], 2,
+     "stopped: VERI_MAX_ISSUES reached", 0),
+    ({}, [(2, "")], {}, [], 0, "stopped: solvable-issues.sh could not answer", 2),
+    ({}, [(5, "")], {}, [], 0, "stopped: nothing solvable", 3),
+    ({"VERI_PARALLEL": "2"}, [(0, "7\n"), (2, "")], {"7": 2}, ["7"], 1, None, 2),
+    ({}, [(0, "7\n"), (1, "")], {"7": 2}, ["7"], 1, None, 1),
+], ids=["two-slots", "afresh-first-unlaunched", "max-issues-cap", "plumbing", "nothing-launched",
+        "plumbing-beats-failure", "failure"])
+def test_slots_fill_from_a_fresh_solvable_issues_answer_up_to_the_cap_and_the_exit_code_ranks_plumbing_failure_nothing_launched_then_done(
+        env, answers, exits, launched, slots, stopped, code, capsys, monkeypatch, tmp_path, parallel_conductors):
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    for name, value in env.items():
+        monkeypatch.setenv(name, value)
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(gh))
+    work = tmp_path / "repo"
+    (work / ".tdd").mkdir(parents=True)
+    monkeypatch.chdir(work)
+    lock = threading.Lock()
+    lives, numbers, in_flight_at_launch, sleeps = {}, [], [], [0]
+
+    def on_launch(sup):
+        n = sup.args[-1]
+        with lock:
+            in_flight_at_launch.append(1 + sum(1 for s in lives if s.returncode is None))
+            lives[sup] = sleeps[0] + 5
+            numbers.append(n)
+        (work / ".tdd" / ("conductor-%s.log" % n)).write_bytes(b"")
+
+    def on_sleep(supervisors):
+        with lock:
+            sleeps[0] += 1
+            for sup, until in lives.items():
+                if sup.returncode is None and sleeps[0] >= until:
+                    sup.exit(exits.get(sup.args[-1], 0))
+
+    _boundaries(monkeypatch, tmp_path, on_launch, on_sleep)
+    faked_run = subprocess.run
+    calls = []
+
+    def answering_run(args, *rest, **kwargs):
+        if pathlib.Path(args[0]).name != "solvable-issues.sh":
+            return faked_run(args, *rest, **kwargs)
+        rc, out = answers[min(len(calls), len(answers) - 1)]
+        calls.append(args)
+        return subprocess.CompletedProcess(args, rc, out if kwargs.get("text") else out.encode(), None)
+
+    monkeypatch.setattr(subprocess, "run", answering_run)
+
+    returned = parallel_conductors.main([])
+    out, _ = capsys.readouterr()
+
+    assert (numbers, max(in_flight_at_launch, default=0), returned) == (launched, slots, code)
+    if stopped is not None:
+        assert [line for line in out.splitlines() if line.startswith("stopped: ")] == [stopped]
+    assert (work / ".tdd" / "parallel.exit").read_text() == "%d\n" % code
