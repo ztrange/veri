@@ -298,7 +298,8 @@ build.
 
 Where a test would otherwise need a real model or a real clock, it injects instead:
 `CLAUDE_BIN` swaps in a stub binary, and `VERI_HEARTBEAT` / `VERI_TIMEOUT` /
-`VERI_STUCK_RETRIES` shrink the supervisor's windows so nothing waits on wall time. That
+`VERI_STUCK_RETRIES` shrink the supervisor's windows, and `VERI_FETCH_RETRY_SLEEP` the conductor's
+ref-lock fetch retry, so nothing waits on wall time. That
 is why every tunable is read as `${VAR:-default}`.
 
 **A suite asserts behaviour** — outputs, exit codes, files and events the unit under test
