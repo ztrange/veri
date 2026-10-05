@@ -3,3 +3,5 @@
 - test-only | fold run-conductor.test.sh:717-722's record-exists / record-equals-tip checks into a shared assert helper used by the other pinned-launch cases
 ### run-conductor.sh, with an origin remote, no refs/remotes/origin/HEAD, and a remote whose default branch cannot be resolved, exits 2 before launching the conductor with stderr naming refs/remotes/origin/HEAD, and never runs unpinned ⟦criterion 2⟧
 - test-only | extract a helper in run-conductor.test.sh that makes a cloned skill with no refs/remotes/origin/HEAD (`cloned_skill` + `remote set-head origin -d` + `config remote.origin.followRemoteHEAD never`), shared by the #865 cases at :693-697 and :735-739
+### run-conductor.sh, when origin names a default branch but refs/remotes/origin/<default> does not exist locally, exits 2 with stderr naming refs/remotes/origin/HEAD rather than running unpinned ⟦added⟧ ⟦criterion 2⟧
+- test-only | run-conductor.test.sh cases 32 and 33 repeat the same launch-and-three-assertions block (exit 2, stderr names refs/remotes/origin/HEAD, no conductor env written); it could become one shared helper in the suite
