@@ -543,6 +543,18 @@ log="$(cat "$seeded/.tdd/events.jsonl" 2>/dev/null || true)"
 { [[ "$code" == 0 ]] && [[ "$out" == "$seeded" ]] && [[ "$top" == "$seeded" ]] && [[ "$log" == *"$line"* ]]; } \
   && ok || no "a path holding only a seeded .tdd/events.jsonl: the worktree is made there and the log survives (exit=$code want 0, stdout='$out' want '$seeded', git toplevel there='$top' want '$seeded', log='$log' want it to hold '$line', stderr='$(cat "$errfile")')"
 
+usage_line="usage: issue-worktree.sh <n> <slug> | --remove <n>"
+usage_seen=""
+for args in "" "270" "--remove"; do
+  errfile="$work/usage.err"
+  out="$(cd "$work" && "$WT" $args 2>"$errfile")" && code=0 || code=$?
+  err="$(cat "$errfile")"
+  [[ "$code" == 2 && -z "$out" && "$err" == "$usage_line" ]] \
+    || usage_seen+=" [args='$args' exit=$code stdout='$out' stderr='$err']"
+done
+[[ -z "$usage_seen" ]] \
+  && ok || no "no argument, one argument and --remove alone: exits 2, nothing on stdout, stderr is the one usage line —$usage_seen want exit 2, empty stdout, stderr '$usage_line'"
+
 repo="$work/own-trap"
 make_repo "$repo"
 mkdir -p "$(wt_path "$repo" 63)/.tdd"
