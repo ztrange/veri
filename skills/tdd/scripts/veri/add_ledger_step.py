@@ -1,5 +1,6 @@
 """add-ledger-step.sh's computations, run in-process."""
 import os
+import re
 import sys
 
 from .ledger import CRITERION_TAG, ledger_steps, new_step
@@ -32,8 +33,13 @@ def main(argv):
     with open(path, "rb") as f:
         content = f.read().decode()
     lines = content.split("\n")
+    if sum(1 for line in lines if anchor in line and ledger_steps(line)) != 1:
+        return refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
+    budget = os.environ.get("VERI_STEP_GROWTH", "5")
+    if not re.fullmatch("[0-9]+", budget):
+        return refuse("add-ledger-step.sh: VERI_STEP_GROWTH must be a whole number >= 0: " + budget)
     added = sum(record[4] == "1" for record in ledger_steps(content))
-    if added + len(texts) > int(os.environ.get("VERI_STEP_GROWTH", "5")):
+    if added + len(texts) > int(budget):
         headings = [line for line in lines[:-1] if line.startswith("## ")]
         owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
         owed += "".join(f"- {text}\n" for text in texts)
