@@ -457,6 +457,10 @@ skill mid-run. The record is run state and is git-ignored. Two cases refuse rath
 - **Taking the new skill is an explicit act:** `VERI_NEW_SKILL=1` on a resume replaces the
   recorded commit with the fresh tip and writes a `skill-repin` event to the run worktree's
   `.tdd/events.jsonl`, where `metrics.sh` reads it.
+- **A fetch of origin that fails** before the snapshot is exit 2, since the tip it would pin
+  may be stale. The one exception is `cannot lock ref`, which a parallel conductor's fetch of the
+  same clone causes: that is retried up to 5 times, `VERI_FETCH_RETRY_SLEEP` seconds apart
+  (default 1).
 
 When no commit can be resolved at all the launch runs unpinned, says so on stderr, and hands
 the conductor `VERI_SKILL_UNPINNED=1` for the plan comment (step 2.4).
