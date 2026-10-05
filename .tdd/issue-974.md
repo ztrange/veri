@@ -9,4 +9,4 @@
 - [x] `skills/tdd/SKILL.md`'s *A `⟦diff-checked⟧` step* section names the fast tier and the affected suites for both develop-diff and verify-diff, pinned by `says_fast_plus_affected` checks in `skills/tdd/scripts/tests/skill-suite-runs.test.sh` ⟦criterion 3⟧
 - [x] `skills/tdd/SKILL.md`'s *A `⟦diff-checked⟧` step* section spells its `build-develop-prompt.sh diff` command line with the fast command and its `run-verdict.sh … diff` command line with `--fast-cmd`, pinned by a case in `skills/tdd/scripts/tests/skill-suite-runs.test.sh` ⟦criterion 3⟧
 - [x] `skills/tdd/SKILL.md`'s `revise diff` command line under *Revising on a REJECT* passes the fast command, and its `diff` re-verify passes `--fast-cmd`, pinned by a case in `skills/tdd/scripts/tests/skill-suite-runs.test.sh`
-- [ ] Each new case has been seen to go red with its fix removed: break each fix on purpose, watch the case fail, restore it ⟦human-owed⟧ ⟦criterion 4⟧
+- [x] Each new case has been seen to go red with its fix removed: break each fix on purpose, watch the case fail, restore it ⟦human-owed⟧ ⟦criterion 4⟧
