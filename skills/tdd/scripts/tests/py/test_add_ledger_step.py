@@ -85,3 +85,26 @@ def test_main_counts_against_a_budget_of_one_exactly_the_fixture_lines_lib_ledge
         got[line] = add_ledger_step.main([str(ledger), "after", "the probe anchor", "a probe step"])
         capsys.readouterr()
     assert got == dict(COUNTED_FIXTURES)
+
+
+def test_main_inserts_beside_the_one_dash_step_holding_the_anchor_leaving_prose_and_star_lines_alone(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(
+        "# Plan for #42\n"
+        "\n"
+        "a lamp glows in this prose line\n"
+        "* [ ] a lamp glows\n"
+        "- [ ] a lamp glows ⟦criterion 2⟧\n".encode()
+    )
+    code = add_ledger_step.main([str(ledger), "after", "a lamp glows", "a lamp dims"])
+    captured = capsys.readouterr()
+    assert (code, captured.err) == (0, "")
+    assert ledger.read_bytes().decode() == (
+        "# Plan for #42\n"
+        "\n"
+        "a lamp glows in this prose line\n"
+        "* [ ] a lamp glows\n"
+        "- [ ] a lamp glows ⟦criterion 2⟧\n"
+        "- [ ] a lamp dims ⟦added⟧ ⟦criterion 2⟧\n"
+    )
