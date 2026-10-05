@@ -110,4 +110,18 @@ then
 fi
 report "$name"
 
+name="#954: $skill_md's preflight step 7 names the run-state file the settled timeout is recorded in and says supervise.sh reads it when VERI_TIMEOUT is unset, not that an export in the conductor's shell is in force for later launches"
+problems=()
+
+if preflight_records
+then
+  claim 'names .tdd/issue-<n>-timeout as where the settled timeout is recorded and says supervise.sh reads it when VERI_TIMEOUT is unset' \
+    'leaf-timeout\.sh' '\.tdd/issue-<n>-timeout' 'supervise\.sh' 'veri_timeout[^.]*unset'
+  if grep -E "conductor's own shell" <<< "$records" | grep -E 'in force' > /dev/null
+  then
+    problems+=("$records_from: still claims an export in the conductor's own shell is in force for later launches")
+  fi
+fi
+report "$name"
+
 finish

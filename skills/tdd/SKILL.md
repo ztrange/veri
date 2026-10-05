@@ -602,11 +602,11 @@ unauthenticated baseline never gets a cycle.
    a bail to undo. An empty print is the normal answer for a run that chose no model, so exit
    0 with nothing on stdout means continue.
 7. **Size the run's hard timeout from the full-tier measurement.** Hand step 3's `baseline`
-   and its `full` measurement to `$S/leaf-timeout.sh` and **export** the result, so every
-   leaf of the run is launched under it rather than under the supervisor's fixed 900 s
-   default:
+   and its `full` measurement to `$S/leaf-timeout.sh` with the issue number, so every
+   leaf of the run is launched under the result rather than under the supervisor's fixed
+   900 s default:
    ```
-   timeout="$($S/leaf-timeout.sh "$baseline" --full "$full")" && export VERI_TIMEOUT="$timeout"
+   timeout="$(VERI_ISSUE=<n> $S/leaf-timeout.sh "$baseline" --full "$full")"
    ```
    `--full` says which of the two measurements the timeout is sized from: the full-tier one
    displaces the fast one rather than mixing with it, because a leaf runs the full tier and
@@ -614,9 +614,11 @@ unauthenticated baseline never gets a cycle.
    The script keeps a quick suite on today's 900 s and gives a slow one 6 × its baseline —
    which is what stops a leaf whose own test command takes minutes being killed as stuck
    while it is working (#71: a 900 s cap against a 140-250 s suite, two bails, both steps
-   reverted). Because the export is done here, in the conductor's own shell, it is in force
-   for every `supervise.sh` in every phase of every cycle below; nothing else has to pass
-   it. An explicit `VERI_TIMEOUT` is printed back as given, so setting one by hand still
+   reverted). An export would not survive: every Bash call is a fresh shell. So the script
+   records the settled number once per issue in `.tdd/issue-<n>-timeout` at the run
+   worktree's root, and `supervise.sh` reads that file whenever `VERI_TIMEOUT` is unset —
+   in every phase of every cycle below, and after a resume, without re-measuring; no launch
+   line has to pass it. An explicit `VERI_TIMEOUT` is printed back as given, so setting one by hand still
    wins and the liveness axis stays yours. **Exit 2** means the number could not be read —
    a malformed measurement, or an explicit `VERI_TIMEOUT` that is not a whole number ≥ 1 —
    and is a preflight-class stop like step 5: report its stderr diagnostic verbatim and do
