@@ -33,6 +33,10 @@ def live_conductor(path):
     return pid
 
 
+def positive_whole(n):
+    return re.fullmatch(r"[0-9]+", n) is not None and int(n) > 0
+
+
 def checkout_holder(registry, branch):
     seen = ""
     for line in registry.split("\n"):
@@ -81,7 +85,7 @@ def wt_path(main_tree, n):
 
 
 def main(argv):
-    if len(argv) < 2 or not argv[0] or not argv[1]:
+    if len(argv) < 2 or not argv[0] or not argv[1] or (argv[0] != "--remove" and not positive_whole(argv[0])):
         sys.stderr.write(USAGE + "\n")
         return 2
     registry = subprocess.run(["git", "worktree", "list", "--porcelain"], stdout=subprocess.PIPE, text=True)

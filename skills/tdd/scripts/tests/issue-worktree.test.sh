@@ -638,6 +638,29 @@ set --
 { [[ -z "$problems" ]]; } \
   && ok || no "a bad argument list — none, 270 alone, --remove alone, an empty first argument — exits 2 with nothing on stdout and stderr exactly the usage line (${problems#; })"
 
+repo="$work/not-a-number"
+make_repo "$repo"
+before="$(registry "$repo")"
+problems=""
+for n in abc 0 -3 7a ../escape; do
+  errfile="$work/not-a-number.err"
+  out="$(cd "$repo" && "$WT" "$n" slug 2>"$errfile")" && code=0 || code=$?
+  err="$(cat "$errfile")"
+  [[ "$code" == 2 ]] || problems+="; ($n) exit=$code want 2"
+  [[ -z "$out" ]] || problems+="; ($n) stdout='$out' want empty"
+  [[ "$err" == "$usage_line" ]] || problems+="; ($n) stderr='$err' want exactly '$usage_line'"
+done
+after="$(registry "$repo")"
+leftover="$(cd "$repo" && ls -A .tdd 2>/dev/null || true)"
+[[ "$after" == "$before" ]] || problems+="; git's worktree+branch registry changed:
+--- before
+$before
+--- after
+$after"
+[[ -z "$leftover" ]] || problems+="; .tdd holds '$leftover' want nothing created"
+{ [[ -z "$problems" ]]; } \
+  && ok || no "#819: an <n> that is not a positive whole number — abc, 0, -3, 7a, ../escape — exits 2 with the usage line on stderr and creates no worktree and no branch (${problems#; })"
+
 repo="$work/skill-link-caller"
 make_repo "$repo"
 skill_link="$work/skill-link"
