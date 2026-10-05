@@ -603,6 +603,18 @@ def test_show_with_an_empty_toplevel_exits_2_with_empty_stdout_saying_it_is_outs
     assert (code, out, err) == (2, "", "workqueue.sh: outside a repository\n")
 
 
+def test_show_when_git_worktree_list_fails_with_no_output_exits_2_with_empty_stdout_saying_it_is_outside_a_repository_issue_898(monkeypatch, capsys, workqueue):
+    def fake_run(args, **kwargs):
+        if list(args[:3]) == ["git", "worktree", "list"]:
+            return subprocess.CompletedProcess(args, 128, "", "fatal: not a git repository (or any of the parent directories): .git\n")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    code = workqueue.main(["show"])
+    out, err = capsys.readouterr()
+    assert (code, out, err) == (2, "", "workqueue.sh: outside a repository\n")
+
+
 def test_start_done_park_keep_a_last_queue_line_that_has_no_trailing_newline_issue_777(tmp_path, monkeypatch, capsys, workqueue):
     queue = tmp_path / ".tdd" / "workqueue"
     queue.parent.mkdir()
