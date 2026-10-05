@@ -219,11 +219,8 @@ def locked_main(argv):
     if command == "show":
         return show(queue, argv)
     lock = queue + ".lock"
-    locked = False
+    take_lock(lock)
     try:
-        if command in MOVES or command == "assign":
-            take_lock(lock)
-            locked = True
         if command in MOVES:
             return move(queue, argv, fourth, *MOVES[command])
         held = held_issue(queue, argv[2:])
@@ -241,8 +238,7 @@ def locked_main(argv):
                     ("%s\t%s\tqueued\t\n" % (argv[1], issue)).encode(encoding))
         return 0
     finally:
-        if locked:
-            release_lock(lock)
+        release_lock(lock)
 
 
 if __name__ == "__main__":
