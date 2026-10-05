@@ -50,19 +50,18 @@ def main(argv):
     if where not in ("after", "before", "instead-of"):
         return refuse("add-ledger-step.sh: position must be after, before or instead-of: " + where)
     with open(path, "rb") as f:
-        content = f.read().decode()
-    lines = content.split("\n")
+        lines = f.read().decode(errors="surrogateescape").split("\n")[:-1]
     if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:
         return refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
     budget = os.environ.get("VERI_STEP_GROWTH", "5")
     if not re.fullmatch("[0-9]+", budget):
         return refuse("add-ledger-step.sh: VERI_STEP_GROWTH must be a whole number >= 0: " + budget)
-    added = sum(record[4] == "1" for record in ledger_steps(content))
+    added = sum(record[4] == "1" for record in ledger_steps("\n".join(lines)))
     cap = bash_integer(budget)
     if cap is None:
         sys.stderr.write(f'add-ledger-step.sh: {budget}: value too great for base (error token is "{budget}")\n')
     if cap is not None and added + sum(not is_repair(text) for text in texts) > cap:
-        headings = [line for line in lines[:-1] if line.startswith("## ")]
+        headings = [line for line in lines if line.startswith("## ")]
         owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
         owed += "".join(f"- {text}\n" for text in texts)
         with open(path, "ab") as f:
@@ -80,5 +79,5 @@ def main(argv):
         if where == "before":
             out.append(line)
     with open(path, "wb") as f:
-        f.write("\n".join(out).encode())
+        f.write("".join(line + "\n" for line in out).encode(errors="surrogateescape"))
     return 0
