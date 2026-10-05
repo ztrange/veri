@@ -68,3 +68,21 @@ def test_append_writes_a_test_only_line_under_the_step_as_test_only_candidate_an
                 assert (line, owed.exists()) == (line, False)
         else:
             assert (line, text) == (line, f"### {step}\n- test-only | {transform}\n")
+
+
+def test_append_counts_only_an_unindented_candidate_line_and_records_its_transform_after_the_bar_and_its_blanks(
+        monkeypatch, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    report = ("CANDIDATES:structural|a\n"
+              "  CANDIDATES: structural | b\n"
+              "CANDIDATES: Structural | c\n"
+              "CANDIDATES:   structural   |   e  \n"
+              "CANDIDATES: structural | f | g\n"
+              "CANDIDATES: structural |\n"
+              "CANDIDATES: structural | h\r\n"
+              "CANDIDATES: cosmetic | rename k\n"
+              "junk line\n")
+    monkeypatch.setattr(sys, "stdin", io.StringIO(report))
+    code = refactor_owed.main(["append", str(owed), "S"])
+    written = owed.read_bytes() if owed.exists() else b""
+    assert (code, written) == (0, b"### S\n- a\n- e  \n- f | g\n- \n- h\r\n")
