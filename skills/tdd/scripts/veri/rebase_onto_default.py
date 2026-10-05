@@ -1,4 +1,5 @@
 """rebase-onto-default.sh's logic, run in-process."""
+import pathlib
 import re
 import subprocess
 import sys
@@ -20,6 +21,11 @@ def default_branch():
     answer = git("ls-remote", "--symref", "origin", "HEAD",
                  stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
     return "\n".join(re.findall(r"^ref: refs/heads/(\S*)[^\S\n]*HEAD$", answer, re.MULTILINE))
+
+
+def rebase_in_progress():
+    return any(pathlib.Path(output("rev-parse", "--git-path", name)).is_dir()
+               for name in ("rebase-merge", "rebase-apply"))
 
 
 def main(argv):
@@ -44,6 +50,12 @@ def main(argv):
     if git("merge-base", "--is-ancestor", onto, "HEAD").returncode == 0:
         return 3
     pre = output("rev-parse", "HEAD")
-    git("rebase", "-q", onto, stdout=subprocess.DEVNULL)
+    if git("rebase", "-q", onto, stdout=subprocess.DEVNULL).returncode != 0:
+        if not rebase_in_progress():
+            return 2
+        conflicts = output("diff", "--name-only", "--diff-filter=U")
+        git("rebase", "--abort")
+        sys.stdout.write(f"{conflicts}\n")
+        return 1
     sys.stdout.write(f"{pre}\n{onto}\n")
     return 0

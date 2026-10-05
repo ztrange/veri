@@ -205,3 +205,48 @@ def test_main_drops_the_fetch_s_stdout_and_stderr_and_the_rebase_s_stdout_and_pa
     captured = capsys.readouterr()
     assert (code, captured.out) == (0, f"{PRE}\n{ONTO}\n")
     assert captured.err == "rebase err\n"
+
+
+def test_main_aborts_a_conflicting_rebase_under_either_backend_and_returns_1_printing_the_abort_s_stdout_then_the_unmerged_files(
+        monkeypatch, capsys, tmp_path, rebase_onto_default):
+    rebase = f"git rebase -q {ONTO}"
+    diff = "git diff --name-only --diff-filter=U"
+    abort = "git rebase --abort"
+    merge, apply = tmp_path / "rebase-merge", tmp_path / "rebase-apply"
+
+    def run(present):
+        present.mkdir()
+        calls = fake_git(monkeypatch, **{
+            rebase: (1, ""),
+            "git rev-parse --git-path rebase-merge": (0, f"{merge}\n"),
+            "git rev-parse --git-path rebase-apply": (0, f"{apply}\n"),
+            diff: (0, "a.txt\nsub/b.txt\n\n\n"),
+            abort: (1, "")})
+        fake_run = subprocess.run
+
+        def speaking_run(args, **kwargs):
+            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+            if line == abort and kwargs.get("stdout") is None:
+                sys.stdout.write("abort out\n")
+            return fake_run(args, **kwargs)
+
+        monkeypatch.setattr(subprocess, "run", speaking_run)
+        code = rebase_onto_default.main([])
+        present.rmdir()
+        return code, capsys.readouterr().out, calls
+
+    for present in (merge, apply):
+        code, out, calls = run(present)
+        assert (code, out) == (1, "abort out\na.txt\nsub/b.txt\n")
+        assert calls.index(diff) < calls.index(abort)
+
+
+def test_main_returns_2_without_the_conflict_path_when_a_failed_rebase_leaves_neither_rebase_directory(
+        monkeypatch, capsys, tmp_path, rebase_onto_default):
+    calls = fake_git(monkeypatch, **{
+        f"git rebase -q {ONTO}": (1, ""),
+        "git rev-parse --git-path rebase-merge": (0, f"{tmp_path / 'rebase-merge'}\n"),
+        "git rev-parse --git-path rebase-apply": (0, f"{tmp_path / 'rebase-apply'}\n")})
+    code = rebase_onto_default.main([])
+    assert (code, capsys.readouterr().out) == (2, "")
+    assert [c for c in calls if c.startswith(("git diff", "git rebase --abort"))] == []
