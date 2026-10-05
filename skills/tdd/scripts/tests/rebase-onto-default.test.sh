@@ -299,4 +299,31 @@ for d in rebase-merge rebase-apply; do
 done
 report_stderr "$name"
 
+name="rebase-onto-default.test.sh: run through a symlink to the skill directory and from another working directory, a branch behind origin/<default> rebases as when run in place, exits 0, prints the pre-rebase and onto shas, and the caller's clone is the one rebased, never the skill's repository"
+problems=()
+stderr_file="$work/symlink.err"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+skill_head_before="$(git -C "$HERE" rev-parse HEAD)"
+for where in in-place linked; do
+  dir="$work/symlink-$where"
+  behind_branch "$dir"
+  repo="$dir/clone"
+  pre="$(git -C "$repo" rev-parse HEAD)"
+  onto="$(git -C "$repo" rev-parse origin/main)"
+  script="$REBASE"
+  [[ "$where" == linked ]] && script="$work/linked-skill/scripts/rebase-onto-default.sh"
+  out="$(cd "$repo" && bash "$script" 2>>"$stderr_file")"
+  rc=$?
+  [[ "$rc" -eq 0 ]] || problems+=("$where, exit: want 0, got $rc")
+  want_out="$(printf '%s\n%s' "$pre" "$onto")"
+  [[ "$out" == "$want_out" ]] ||
+    problems+=("$where, stdout: want $(printf '%q' "$want_out"), got $(printf '%q' "$out")")
+  parent="$(git -C "$repo" rev-parse HEAD~1 2>/dev/null)"
+  [[ "$parent" == "$onto" ]] || problems+=("$where, HEAD~1: want the onto sha $onto, got $parent")
+done
+skill_head_after="$(git -C "$HERE" rev-parse HEAD)"
+[[ "$skill_head_after" == "$skill_head_before" ]] ||
+  problems+=("skill repository HEAD: want it unchanged at $skill_head_before, got $skill_head_after")
+report_stderr "$name"
+
 finish
