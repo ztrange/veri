@@ -160,6 +160,8 @@ install-dev:
 	if [ ! -x "$$venv/bin/python3" ]; then \
 	  builder="$$(bash -c '. $(VENV_LIB) && venv_builder')" || exit 2; \
 	  "$$builder" -m venv "$$venv"; \
+	else \
+	  bash -c '. $(VENV_LIB) && venv_usable "$$1"' _ "$$venv" || exit 2; \
 	fi; \
 	"$$venv/bin/python3" -m pip install -r requirements-dev.txt
 
