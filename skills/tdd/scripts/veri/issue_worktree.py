@@ -115,20 +115,21 @@ def main(argv):
         sys.stderr.write("issue-worktree: branch %s is already checked out in %s"
                          " — another conductor owns it\n" % (branch, holder))
         return 2
+    tdd = path + "/.tdd"
+    log = tdd + "/events.jsonl"
     seeded_log = None
-    if (os.path.isfile(path + "/.tdd/events.jsonl")
-            and os.listdir(path) == [".tdd"] and os.listdir(path + "/.tdd") == ["events.jsonl"]):
+    if os.path.isfile(log) and os.listdir(path) == [".tdd"] and os.listdir(tdd) == ["events.jsonl"]:
         fd, seeded_log = tempfile.mkstemp()
         os.close(fd)
-        shutil.move(path + "/.tdd/events.jsonl", seeded_log)
-        os.rmdir(path + "/.tdd")
+        shutil.move(log, seeded_log)
+        os.rmdir(tdd)
         os.rmdir(path)
     try:
         return cut(path, branch)
     finally:
         if seeded_log is not None:
-            os.makedirs(path + "/.tdd", exist_ok=True)
-            with open(seeded_log, "rb") as src, open(path + "/.tdd/events.jsonl", "ab") as dst:
+            os.makedirs(tdd, exist_ok=True)
+            with open(seeded_log, "rb") as src, open(log, "ab") as dst:
                 dst.write(src.read())
             os.remove(seeded_log)
 
