@@ -1,102 +1,13 @@
-#!/usr/bin/env bash
-# refactor-owed.sh — carry a step's structural leftovers out of its refactor loop.
+#!/bin/sh
+# refactor-owed.sh — carry a step's structural leftovers out of its refactor loop: a shim over veri/refactor_owed.py.
 #
-# When a step's refactor stops with structural candidates still listed, nothing had
-# recorded them: `.tdd/develop-refactor.out` is overwritten by the next step, so by the
-# draft PR every step's leftovers but the last were gone. This
-# script appends them to a file that survives the run — `.tdd/issue-<n>-refactor-owed.md`,
-# which the ledger's .gitignore rule already tracks — so the work a follow-up owes is in
-# front of the human deciding the merge. `render` prints that file back as the
-# `## Refactor owed` section SKILL.md's Draft PR step puts in the body.
+# `append` reads a finished refactor leaf's report on stdin and appends the transform of every
+# `CANDIDATES: structural | …` and `CANDIDATES: test-only | …` line to <file> under the named step;
+# `render` prints <file> as the `## Refactor owed` section; `list` prints each structural transform once.
 #
-#     refactor-owed.sh append <file> '<STEP>' < leaf-report.txt
-#     refactor-owed.sh render <file>
-#     refactor-owed.sh list <file>
-#
-# Reads a finished refactor leaf's report on stdin, the same lines refactor-triage.sh
-# reads, and appends the transform of every `CANDIDATES: structural | …` line to <file>
-# under the named step. Cosmetic candidates are never written: a reflowed comment put in
-# front of the merge decision is a mixed backlog.
-set -euo pipefail
-
-HERE="$(cd "$(dirname "$0")" && pwd)"
-source "$HERE/lib/exit-contract.sh"
-source "$HERE/lib/candidate-line.sh"
-
-USAGE="refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' < leaf-report.txt
-                      refactor-owed.sh render <file>
-                      refactor-owed.sh list <file>"
-
-verb="${1:-}"
-file="${2:-}"
-require_args 2 "$@"
-
-test_only='- test-only | '
-
-case "$verb" in
-  append)
-    step="${3:-}"
-    bounds="${4:-}"
-
-    all_tests=0
-    if [[ -n "$bounds" ]]; then
-      all_tests=1
-      IFS=, read -r -a bound_files <<<"$bounds"
-      for f in "${bound_files[@]}"; do
-        [[ "$f" =~ (^|/)tests/|\.test\. ]] || all_tests=0
-      done
-    fi
-
-    structural=()
-    test_only_transforms=()
-    # hazard: `|| [[ -n "$line" ]]` keeps a last line that has no trailing newline.
-    while IFS= read -r line || [[ -n "$line" ]]; do
-      if structural_candidate "$line"; then
-        if [[ "$all_tests" == 1 ]]; then
-          test_only_transforms+=("${test_only#- }$STRUCTURAL_TRANSFORM")
-        else
-          structural+=("$STRUCTURAL_TRANSFORM")
-        fi
-      elif test_only_candidate "$line"; then
-        test_only_transforms+=("${test_only#- }$TEST_ONLY_TRANSFORM")
-      fi
-    done
-
-    owed=("${structural[@]}" "${test_only_transforms[@]}")
-    if [[ "${#owed[@]}" -gt 0 ]]; then
-      {
-        printf '### %s\n' "$step"
-        printf -- '- %s\n' "${owed[@]}"
-      } >>"$file"
-    fi
-    ;;
-  render)
-    [[ -s "$file" ]] || exit 3
-
-    printf '## Refactor owed\n\n'
-    awk -v mark="$test_only" 'index($0, mark) == 1 { test_only[++k] = substr($0, length(mark) + 1); next }
-         { print }
-         END {
-           if (!k) exit
-           printf "\n### Test-only\n\nThese change only files under tests/; the structural pass does not work them.\n\n"
-           for (i = 1; i <= k; i++) printf "- %s\n", test_only[i]
-         }' "$file"
-    ;;
-  list)
-    [[ -s "$file" ]] || exit 3
-    listed="$(awk -v mark="$test_only" 'index($0, mark) == 1 { next }
-         /^- / {
-           t = substr($0, 3)
-           if (!(t in n)) order[++k] = t
-           n[t]++
-         }
-         END { for (i = 1; i <= k; i++) printf "%d\t%d\t%s\n", n[order[i]], i, order[i] }' "$file" |
-      sort -t "$(printf '\t')" -k1,1nr -k2,2n |
-      cut -f3-)"
-    [[ -n "$listed" ]] || exit 3
-    printf '%s\n' "$listed"
-    ;;
-  *)
-    refuse
-    ;;
-esac
+# usage:   refactor-owed.sh append <file> '<STEP>' [<bounds>] < leaf-report.txt
+#          refactor-owed.sh render <file>
+#          refactor-owed.sh list <file>
+# Exit:    0 done; 1 the append's write failed; 2 a missing argument or an unknown verb;
+#          3 render or list found <file> absent or empty, or list found no structural transform
+exec python3 "$(dirname "$0")/veri/refactor_owed.py" "$@"

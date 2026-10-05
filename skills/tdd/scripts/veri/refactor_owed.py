@@ -117,3 +117,7 @@ def main(argv):
     if verb == "list":
         return list_owed(file)
     return refuse()
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
