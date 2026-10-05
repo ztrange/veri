@@ -156,35 +156,28 @@ expect_eq "$name" "named" "$planted_chmod_000_named"
 
 PLANT_REVOKING_MODES=(a-r u-w -w)
 
-probe_planted_revoking_modes() {
-  local ROOT plants
-  mapfile -t plants < <(mode_plants ledger "${PLANT_REVOKING_MODES[@]}")
+probe_planted_shell_modes() {
+  local into="$1" ROOT plants
+  shift
+  mapfile -t plants < <(mode_plants ledger "$@")
   plant_and_probe "$PLANT_REL" '#!/usr/bin/env bash' 'ledger="$(mktemp)"' "${plants[@]}"
-  planted_revoking_modes_named="$(modes_named ledger "${PLANT_REVOKING_MODES[@]}")"
+  printf -v "$into" '%s' "$(modes_named ledger "$@")"
   problems=()
 }
 
 name="planted suite lines running a chmod to a-r, u-w and -w, then a path, each turn the guard red, naming its own <suite>:<line> (#846)"
 planted_revoking_modes_named=""
 
-probe_planted_revoking_modes
+probe_planted_shell_modes planted_revoking_modes_named "${PLANT_REVOKING_MODES[@]}"
 
 expect_eq "$name" "a-r named;u-w named;-w named;" "$planted_revoking_modes_named"
 
 PLANT_NUMERIC_REVOKING_MODES=(0 000 200 300 0400 444 -r -w)
 
-probe_planted_numeric_revoking_modes() {
-  local ROOT plants
-  mapfile -t plants < <(mode_plants ledger "${PLANT_NUMERIC_REVOKING_MODES[@]}")
-  plant_and_probe "$PLANT_REL" '#!/usr/bin/env bash' 'ledger="$(mktemp)"' "${plants[@]}"
-  planted_numeric_revoking_modes_named="$(modes_named ledger "${PLANT_NUMERIC_REVOKING_MODES[@]}")"
-  problems=()
-}
-
 name="planted suite lines running a chmod to a one-to-four-digit mode whose owner digit is 0 to 5 (0, 000, 200, 300, 0400, 444), or to -r or -w, each turn the guard red, naming its own <suite>:<line> (#897)"
 planted_numeric_revoking_modes_named=""
 
-probe_planted_numeric_revoking_modes
+probe_planted_shell_modes planted_numeric_revoking_modes_named "${PLANT_NUMERIC_REVOKING_MODES[@]}"
 
 expect_eq "$name" "0 named;000 named;200 named;300 named;0400 named;444 named;-r named;-w named;" "$planted_numeric_revoking_modes_named"
 
