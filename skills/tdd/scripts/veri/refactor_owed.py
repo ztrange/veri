@@ -60,8 +60,13 @@ def render(file):
             lines = owed.read().split("\n")
         if lines[-1] == "":
             lines.pop()
-    out = "## Refactor owed\n\n" + "".join(f"{l}\n" for l in lines if not l.startswith(TEST_ONLY_MARK))
-    test_only = [l[len(TEST_ONLY_MARK):] for l in lines if l.startswith(TEST_ONLY_MARK)]
+    kept, test_only = [], []
+    for l in lines:
+        if l.startswith(TEST_ONLY_MARK):
+            test_only.append(l[len(TEST_ONLY_MARK):])
+        else:
+            kept.append(l)
+    out = "## Refactor owed\n\n" + "".join(f"{l}\n" for l in kept)
     if test_only:
         out += ("\n### Test-only\n\n"
                 "These change only files under tests/; the structural pass does not work them.\n\n"
