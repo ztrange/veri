@@ -7,3 +7,4 @@
 - [x] With an empty toplevel, `workqueue.sh assign <worker> <issue>` exits 2 with empty stdout and the outside-a-repository stderr line ⟦criterion 1⟧
 - [x] With an empty toplevel, `start`, `done` and `park` each exit 2 with empty stdout and the outside-a-repository stderr line, taking no lock ⟦criterion 1⟧
 - [x] The outside-a-repository part of the existing assign case reads and writes nothing outside `tmp_path` and passes whatever the uid and whether or not `/.tdd/workqueue` exists, never skipped when uid is 0 ⟦criterion 3⟧
+- [ ] fix the full-suite failure: no-permission-bits.test.sh — FAIL - no suite under skills/tdd/scripts/tests/ forces a read or write failure through permission bits (#846): test_workqueue.py:569 and :609 match its system-path rule on their "/.tdd" literals ⟦suite-repair⟧ ⟦criterion 3⟧
