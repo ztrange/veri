@@ -718,6 +718,28 @@ scan_revise_last_done() {
 run_case "#892 the revise loop of Revising on a REJECT in $skill_md, run with every ledger step ticked, passes the revise mark's VERI_STEP, build-develop-prompt.sh revise, the revise leaf's VERI_STEP and the re-verify launch's VERI_STEP the last done step's text, byte-identical" \
   scan_revise_last_done
 
+scan_revise_diff_last_done() {
+  local title="$EXPANDING_STEP"
+  local lineno line numbered launch stage seen tree err got argv want
+  numbered="$(head -1 < <(grep -nE '\$S/build-develop-prompt\.sh revise diff .*> \.tdd/revise-diff-<k>\.prompt' "$md"))"
+  if [[ -z "$numbered" ]]; then
+    no_launch "build-develop-prompt.sh revise diff into .tdd/revise-diff-<k>.prompt"
+    return
+  fi
+  take_line "$numbered" "$title" || return
+  stage_recorder revise-diff-last-done
+  rm -f "$stage/build-develop-prompt.sh"
+  ln -s "$RECORDERS/title.sh" "$stage/build-develop-prompt.sh"
+  plant_done_ledger "$title"
+  run_staged '<no prompt was built>'
+  want="$(prompt_step_arg)"
+  [[ "$want" == "$title" ]] ||
+    problem "built the revise diff prompt beside a ledger with every step ticked, passing build-develop-prompt.sh the step <$want>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})"
+}
+
+run_case "#907 the revise diff prompt line of Revising on a REJECT in $skill_md, run with every ledger step ticked, passes build-develop-prompt.sh revise diff the last done step's text, byte-identical" \
+  scan_revise_diff_last_done
+
 scan_transform_verifier_last_done() {
   local title="$EXPANDING_STEP"
   local lineno line numbered launch stage seen tree err got argv

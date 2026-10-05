@@ -1859,7 +1859,7 @@ set to `diff`, with two differences: no `step-cost.sh` line and no prediction ch
 step has no failing test, and a re-verify that is the blind `diff` verifier rather than one
 with a test path. The revise leaf is built as:
 ```
-$S/build-develop-prompt.sh revise diff .tdd/issue-<n>-spec.md "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current)" '<test-cmd>' .tdd/verify-diff.reason > .tdd/revise-diff-<k>.prompt
+$S/build-develop-prompt.sh revise diff .tdd/issue-<n>-spec.md "$(cat .tdd/issue-<n>.md | $S/ledger-steps.sh current || { cat .tdd/issue-<n>.md | $S/ledger-steps.sh last-done; })" '<test-cmd>' .tdd/verify-diff.reason > .tdd/revise-diff-<k>.prompt
 ```
 and launched as `revise-diff-<k>` like any revise leaf. The re-verify is `run-verdict.sh
 --step "<STEP>" diff <spec-file> <branch-base-sha> <step-base-sha>`, launched as `verdict-diff`
