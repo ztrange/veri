@@ -1,0 +1,2 @@
+### run-conductor.sh waits between ref-lock fetch retries for the interval VERI_FETCH_RETRY_SLEEP names, so a run with VERI_FETCH_RETRY_SLEEP=0 retries a locked fetch without waiting on the real clock ⟦criterion 1⟧
+- test-only | extract the locked-ref fixture shared by cases 34 and 35 of skills/tdd/scripts/tests/run-conductor.test.sh (src/remote/clone setup, advance-and-push to origin, the `.lock` file, the `sleep` shim that removes the lock, caller_repo) into one helper that both cases call
