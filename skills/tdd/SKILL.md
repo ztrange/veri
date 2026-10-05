@@ -2159,12 +2159,11 @@ The committed ledger makes a run **resumable**: re-running `/tdd <n>` picks up
 where a previous run stopped (a bail, an interruption, or a human pause), without redoing
 finished steps.
 
-On re-run, step 1.2 calls `issue-worktree.sh` again; because it is **idempotent** it prints
-the same `.tdd/wt/<n>` path and creates nothing, so the `cd` puts you back in the very
-worktree the previous run committed in — the branch is already checked out there, and there
-is nothing to re-create or switch. Preflight step 3 has already entered that existing
-worktree, so a resumed run's baseline runs on the branch head there, before any cycle of the
-resumed run starts. The **resume check** then finds an existing
+On re-run, preflight step 3 calls `issue-worktree.sh` again; because it is **idempotent** it
+prints the same `.tdd/wt/<n>` path and creates nothing, so the `cd` puts you back in the very
+worktree the previous run committed in — the branch is already checked out there, nothing is
+re-created or switched, and a resumed run's baseline runs on the branch head there, before
+any cycle of the resumed run starts. The **resume check** then finds an existing
 `.tdd/issue-<n>.md`. When it does:
 
 1. Do **not** re-plan — the ledger is the source of truth. Re-write only the blind spec
