@@ -3102,4 +3102,28 @@ by_model_says "$unmodeled_out" "developer@not recorded=1" "verifier@not recorded
 
 report_on "$name" "$unmodeled_out"
 
+name="metrics.sh run through a symlink to the skill directory, from another working directory, answers with the same stdout and exit code as run in place, reading that directory's .tdd/ and never the skill's"
+problems=()
+
+linked="$(scratch_dir)"
+ln -s "$HERE/../.." "$linked/skill"
+
+in_place_out="$landed_work/in-place.md"
+linked_out="$landed_work/linked.md"
+( cd "$landed_work" && "$METRICS" 108 ) > "$in_place_out" 2>/dev/null
+in_place_status=$?
+( cd "$landed_work" && "$linked/skill/scripts/metrics.sh" 108 ) > "$linked_out" 2>/dev/null
+linked_status=$?
+
+[[ "$linked_status" -eq "$in_place_status" ]] ||
+  problems+=("want the symlinked run to exit $in_place_status as the in-place run does, it exited $linked_status")
+[[ "$linked_status" -eq 0 ]] ||
+  problems+=("want the symlinked run to exit 0, it exited $linked_status")
+cmp -s "$in_place_out" "$linked_out" ||
+  problems+=("want the symlinked run's stdout to be the in-place run's, the diff is: $(diff "$in_place_out" "$linked_out")")
+progress_says "$linked_out" 2 2
+outcome_says "$linked_out" pr
+
+report_on "$name" "$linked_out"
+
 finish
