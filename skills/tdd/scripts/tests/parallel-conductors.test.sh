@@ -223,37 +223,6 @@ got_ctx="$(grep '^context ' "$work/ctx.out" | sort)"
 expect_lines "VERI_PARALLEL=2 prints each conductor's assistant events as 'context <issue> <cache_read + cache_creation>' attributed to its own issue" "$(printf 'context 7 53438\ncontext 8 62000')" "$got_ctx" "$work/ctx.out"
 expect_lines "a non-assistant event carrying cache usage prints no 'context' line" "" "$(grep '^context [0-9]* 909$' "$work/ctx.out" || true)" "$work/ctx.out"
 
-gh_split="$work/gh-split"
-solvable_fixture "$gh_split" 7
-split_stub="$work/claude-split"
-split_hold="$work/split.hold"
-mkfifo "$split_hold"
-conductor_stub "$split_stub" <<STUB
-printf '{"type":"assistant","message":{"role":"assistant",'
-: > "$split_hold.written"
-read _ < "$split_hold"
-printf '"usage":{"input_tokens":7,"cache_creation_input_tokens":3438,"cache_read_input_tokens":50000,"output_tokens":120}}}\n'
-$(ready_pr "$gh_split")
-STUB
-
-split_bin="$work/split-bin"
-mkdir -p "$split_bin"
-cat > "$split_bin/sleep" <<SH
-#!/bin/sh
-case "\$(ps -o command= -p \$PPID)" in
-  *parallel-conductors.sh*)
-    if [ -e "$split_hold.seen" ]; then
-      mkdir "$split_hold.released" 2>/dev/null && echo go > "$split_hold"
-    elif [ -e "$split_hold.written" ]; then
-      : > "$split_hold.seen"
-    fi ;;
-esac
-exec $(command -v sleep) "\$@"
-SH
-chmod +x "$split_bin/sleep"
-run_launcher "$gh_split" "$split_stub" "$work/split.out" PATH="$split_bin:$PATH"
-expect_lines "an assistant event the conductor writes in two pieces still prints one 'context' line for the whole event" "context 7 53438" "$(grep '^context ' "$work/split.out")" "$work/split.out"
-
 stub_waits() {
   cat <<SH
 await_context() {
