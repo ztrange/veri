@@ -5,7 +5,7 @@
 - [x] the branch's diff leaves CLAUDE_CODE_REMOTE_SESSION_ID in SESSION_VARS in skills/tdd/scripts/lib/session-env.sh, and adds to that file's comment block a record that it is the variable carrying the parent session to a child claude, found by #966's bisection in a Claude Code cloud session (Linux, uid 0, claude 2.1.289), that its value does not contain CLAUDE_CODE_SESSION_ID so #948's value scan let it through, and that the child still authenticates without it ⟦diff-checked⟧ ⟦criterion 1⟧
 - [x] no assertion of any case run-leaf.test.sh or run-conductor.test.sh held before the branch is changed by the branch's diff ⟦diff-checked⟧ ⟦criterion 3⟧
 - [x] fix the full-suite failure: skills/tdd/scripts/tests/py/test_comment_class.py — FAILED test_main_sweeps_the_scripts_lib_and_suites_to_empty_sweepable_reports_no_cited_issue_and_unchanged_class_3_lines: no comment line in scripts/*.sh or scripts/lib/*.sh may cite an issue number, and skills/tdd/scripts/lib/session-env.sh:7 does (#948, #966) ⟦suite-repair⟧ ⟦criterion 3⟧
-- [ ] every case run-leaf.test.sh and run-conductor.test.sh held before the branch still passes ⟦full-suite⟧ ⟦criterion 3⟧
+- [x] every case run-leaf.test.sh and run-conductor.test.sh held before the branch still passes ⟦full-suite⟧ ⟦criterion 3⟧
 
 ## Notes (the bisection evidence the plan rests on; no step pins it)
 
