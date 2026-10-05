@@ -16,15 +16,10 @@
 set -uo pipefail
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+source "$(cd "$(dirname "$0")" && pwd)/lib/report.sh"
 
 covered="" caught_by="" proof=""
-while IFS= read -r line || [[ -n "$line" ]]; do
-  case "$line" in
-    "COVERED: "*)   covered="${line#COVERED: }" ;;
-    "CAUGHT_BY: "*) caught_by="${line#CAUGHT_BY: }" ;;
-    "PROOF: "*)     proof="${line#PROOF: }" ;;
-  esac
-done
+report_read COVERED covered CAUGHT_BY caught_by PROOF proof
 
 case "$covered" in
   yes) printf '%s\n' "$caught_by" ;;
