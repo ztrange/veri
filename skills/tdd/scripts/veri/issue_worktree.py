@@ -41,6 +41,14 @@ def checkout_holder(registry, branch):
     return ""
 
 
+def ref_exists(ref):
+    return subprocess.run(["git", "show-ref", "--verify", "--quiet", ref]).returncode == 0
+
+
+def worktree_add(*args):
+    return subprocess.run(["git", "worktree", "add", "-q", *args], stdout=sys.stderr).returncode
+
+
 def wt_path(main_tree, n):
     return main_tree + "/.tdd/wt/" + n
 
@@ -77,4 +85,13 @@ def main(argv):
         sys.stderr.write("issue-worktree: branch %s is already checked out in %s"
                          " — another conductor owns it\n" % (branch, holder))
         return 2
+    if ref_exists("refs/heads/" + branch):
+        code = worktree_add(path, branch)
+    elif ref_exists("refs/remotes/origin/" + branch):
+        code = worktree_add("-b", branch, path, "refs/remotes/origin/" + branch)
+    else:
+        return 0
+    if code != 0:
+        return to_contract(code)
+    sys.stdout.write(path + "\n")
     return 0

@@ -210,3 +210,29 @@ def test_main_refuses_a_branch_any_registry_entry_has_checked_out_the_main_worki
         calls = routing_git(monkeypatch, {listing: (0, registry, "")})
         code = issue_worktree.main(["5", "x"])
         assert (holder, code, capsys.readouterr()[:], calls) == (holder, 2, ("", owned % holder), [list(listing)])
+
+
+def test_main_checks_out_a_local_branch_else_cuts_from_the_remote_one_without_a_fetch_and_maps_a_dying_add_to_2(
+        monkeypatch, capsys, issue_worktree):
+    main_tree = "/srv/repo"
+    path = main_tree + "/.tdd/wt/7"
+    registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
+    listing = ("git", "worktree", "list", "--porcelain")
+    local = ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/7-slug")
+    remote = ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/7-slug")
+    checkout = ("git", "worktree", "add", "-q", path, "tdd/7-slug")
+    track = ("git", "worktree", "add", "-q", "-b", "tdd/7-slug", path, "refs/remotes/origin/tdd/7-slug")
+
+    for add_code, want, out in ((0, 0, path + "\n"), (128, 2, "")):
+        calls = routing_git(monkeypatch, {listing: (0, registry, ""), local: (0, "", ""),
+                                          checkout: (add_code, "Preparing worktree\n", "")})
+        code = issue_worktree.main(["7", "slug"])
+        assert (add_code, code, capsys.readouterr()[:], calls) == (
+            add_code, want, (out, "Preparing worktree\n"), [list(listing), list(local), list(checkout)])
+
+    for add_code, want, out in ((0, 0, path + "\n"), (128, 2, "")):
+        calls = routing_git(monkeypatch, {listing: (0, registry, ""), local: (1, "", ""), remote: (0, "", ""),
+                                          track: (add_code, "Preparing worktree\n", "")})
+        code = issue_worktree.main(["7", "slug"])
+        assert (add_code, code, capsys.readouterr()[:], calls) == (
+            add_code, want, (out, "Preparing worktree\n"), [list(listing), list(local), list(remote), list(track)])
