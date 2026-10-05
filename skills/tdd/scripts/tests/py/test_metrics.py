@@ -461,3 +461,84 @@ def test_main_reports_counts_budgets_times_costs_rework_and_waste_per_phase_and_
                   + conductor("bailed", 7700, "bail", phase="green", cause="revise-budget", classification="process"))
     assert cells(bail, "#### Rework and waste, by phase", LOST) == {
         "red": ["0", "0.00", "120", "0.50"], "green": ["0", "0.00", "140", "0.40"]}
+
+
+def test_main_reports_steps_done_of_planned_the_outcome_and_the_issue_wall_summed_over_a_resumed_run(tmp_path, monkeypatch, capsys, metrics):
+    def report(name, events, done, pending=()):
+        root = tmp_path / name
+        root.mkdir()
+        write_log(root, events)
+        (root / ".tdd" / "issue-108.md").write_text(
+            "".join("- [x] %s\n" % step for step in done) + "".join("- [ ] %s\n" % step for step in pending))
+        monkeypatch.chdir(root)
+        return render(metrics, capsys)
+
+    def ran(step, ts, gap=100):
+        return conductor(step, ts, "step-start") + conductor(step, ts + gap, "step-done")
+
+    resumed_wall = "Wall time for the issue: 200 s, from the last `resume`"
+    first_event_wall = "Wall time for the issue: 250 s, from the last `resume`, or the first event of the log"
+
+    system = report("system", ran("a", 11000) + conductor("b", 11200, "step-start")
+                    + conductor("b", 11300, "bail", phase="green", cause="killed-stuck", classification="system"),
+                    ["a"], ["b", "c"])
+    assert "Steps done: 1 of 3 planned." in system
+    assert "Outcome: the run bailed — killed-stuck, a system failure." in system
+
+    process = report("process", ran("a", 12000) + ran("b", 12200) + conductor("c", 12400, "step-start")
+                     + conductor("c", 12500, "bail", phase="green", cause="revise-exhausted", classification="process"),
+                     ["a", "b"], ["c", "d"])
+    assert "Steps done: 2 of 4 planned." in process
+    assert "Outcome: the run bailed — revise-exhausted, a process failure." in process
+
+    landed = report("landed", ran("a", 13000) + ran("b", 13200)
+                    + conductor("b", 13400, "done", pr="https://github.com/ztrange/veri/pull/999"), ["a", "b"])
+    assert "Steps done: 2 of 2 planned." in landed
+    assert "Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/999." in landed
+    assert "Wall time for the issue: 400 s," in landed
+
+    unmarked = report("unmarked", leaf("a", 14000, "developer", "red", 1, 100)
+                      + leaf("a", 14110, "verifier", "red", 1, 20, verdict="PASS"), [], ["a", "b"])
+    assert "Steps done: unknown of 2 planned." in unmarked
+
+    pinned = report("pinned", ran("a", 15000) + conductor("b", 15200, "step-start") + conductor("b", 15300, "pin", phase="pin"),
+                    ["a", "b"])
+    assert "Steps done: 2 of 2 planned." in pinned
+
+    two_pins = report("two_pins", conductor("a", 16000, "step-start") + conductor("a", 16100, "pin", phase="pin")
+                      + conductor("b", 16200, "step-start") + conductor("b", 16300, "pin", phase="pin") + ran("c", 16400),
+                      ["a", "b", "c"])
+    assert "Steps done: 3 of 3 planned." in two_pins
+
+    unpinned = report("unpinned", ran("a", 17000) + ran("b", 17200) + conductor("c", 17400, "step-start")
+                      + leaf("c", 17500, "developer", "red", 1, 10)[:1], ["a", "b"], ["c"])
+    assert "Steps done: 2 of 3 planned." in unpinned
+
+    rerun = report("rerun", conductor("a", 18000, "step-start")
+                   + conductor("a", 18100, "bail", cause="poisoned-baseline", classification="system")
+                   + conductor("a", 18200, "resume") + conductor("a", 18300, "step-done")
+                   + conductor("a", 18400, "done", pr="https://github.com/ztrange/veri/pull/998"), ["a"])
+    assert "Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/998." in rerun
+    assert "bail" not in rerun.split("Outcome:")[1].split("\n")[0]
+    assert resumed_wall in rerun
+
+    single = report("single", ran("a", 19000, gap=150)
+                    + conductor("a", 19250, "bail", phase="green", cause="killed-stuck", classification="system"), ["a"])
+    assert first_event_wall in single
+    assert "Outcome: the run bailed — killed-stuck, a system failure." in single
+
+    accrued = report("accrued", conductor("a", 20000, "step-start")
+                     + leaf("a", 20010, "developer", "red", 1, 100, usage=cost(3, "0.25", (100, 200, 300, 400)))
+                     + leaf("a", 20120, "verifier", "red", 1, 20, usage=cost(2, "0.10", (10, 20, 30, 40)), verdict="REJECT")
+                     + conductor("a", 20200, "bail", cause="poisoned-baseline", classification="system")
+                     + conductor("a", 20300, "resume")
+                     + leaf("a", 20310, "developer", "red", 2, 60, usage=cost(4, "0.40", (1000, 2000, 3000, 4000)))
+                     + leaf("a", 20380, "verifier", "red", 2, 30, usage=cost(1, "0.05", (1, 2, 3, 4)), verdict="PASS")
+                     + conductor("a", 20500, "step-done")
+                     + conductor("a", 20600, "done", pr="https://github.com/ztrange/veri/pull/997"), ["a"])
+    assert cells(accrued, "#### By phase", ["attempts", "PASS", "REJECT", "kills", "wall s"]) == {
+        "red": ["4", "1", "1", "0", "210"]}
+    assert cells(accrued, "#### By phase", ["turns", "input", "output", "cache read", "cache creation", "$"]) == {
+        "red": ["10", "1111", "2222", "3333", "4444", "0.80"]}
+    assert cells(accrued, "#### Total", ["turns", "input", "output", "cache read", "cache creation", "$"]) == {
+        "total": ["10", "1111", "2222", "3333", "4444", "0.80"]}
