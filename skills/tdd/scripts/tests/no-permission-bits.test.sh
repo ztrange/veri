@@ -381,6 +381,34 @@ probe_a_plant_then_its_removal
 
 expect_eq "$name" "planted red named;removed green;" "$plant_then_removal"
 
+PLANT_PY_KEEPING_MODES=('    ledger.chmod(0o755)' '    ledger.chmod(0o644)' '    os.chmod(ledger, 0o755)')
+PLANT_KEEPING_MODES=('chmod +x "$ledger"' 'chmod 755 "$ledger"' 'chmod -x "$ledger"')
+
+probe_planted_keeping_modes() {
+  local ROOT plant
+  planted_keeping_modes=""
+  plant "$PLANT_PY_REL" "${PLANT_PY_SUITE[@]}" "${PLANT_PY_KEEPING_MODES[@]}"
+  probe_the_guard
+  planted_keeping_modes+="pytest $(guard_state);"
+  for plant in "${PLANT_PY_KEEPING_MODES[@]}"; do
+    planted_keeping_modes+="${plant#    } $(plant_named "$PLANT_PY_REL" "$plant");"
+  done
+  plant "$PLANT_REL" '#!/usr/bin/env bash' 'ledger="$(mktemp)"' "${PLANT_KEEPING_MODES[@]}"
+  probe_the_guard
+  planted_keeping_modes+="bash $(guard_state);"
+  for plant in "${PLANT_KEEPING_MODES[@]}"; do
+    planted_keeping_modes+="$plant $(plant_named "$PLANT_REL" "$plant");"
+  done
+  problems=()
+}
+
+name="planted chmods keeping the owner's read and write, .chmod(0o755), .chmod(0o644), os.chmod(p, 0o755), chmod +x, chmod 755 and chmod -x, leave the guard green, naming none of them (#897)"
+planted_keeping_modes=""
+
+probe_planted_keeping_modes
+
+expect_eq "$name" "pytest green;ledger.chmod(0o755) not named;ledger.chmod(0o644) not named;os.chmod(ledger, 0o755) not named;bash green;chmod +x \"\$ledger\" not named;chmod 755 \"\$ledger\" not named;chmod -x \"\$ledger\" not named;" "$planted_keeping_modes"
+
 PLANT_SYSTEM_PATH='    assert (code, out, err.startswith("mkdir: /.tdd: ")) == (1, "", True)'
 
 probe_a_planted_system_path() {
