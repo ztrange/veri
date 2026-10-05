@@ -141,3 +141,41 @@ def test_main_counts_a_path_as_a_test_file_by_the_case_sensitive_ere_on_the_path
                           else (0, "", ""))
 
     assert observed == expected
+
+
+def test_main_reports_what_sort_u_on_path_prints_with_the_prefix_on_the_first_name_only(
+        monkeypatch, capsys, transform_touches_tests):
+    sorts = []
+    sorted_out = "my.test.dir\npkg/tests/a.sh\ntests/b.sh\nx.test.js\n"
+    log_text = "x.test.js\ntests/b.sh\n\nsrc/a.sh\npkg/tests/a.sh\nmy.test.dir\n\ntests/b.sh\n"
+
+    def as_requested(text, kwargs):
+        wants_str = kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")
+        return text if wants_str else text.encode()
+
+    def fake_run(args, *rest, **kwargs):
+        args = list(args)
+        if args[:2] == ["git", "log"]:
+            return subprocess.CompletedProcess(args, 0, as_requested(log_text, kwargs), None)
+        if args[:1] == ["sort"]:
+            given = kwargs.get("input") or ""
+            sorts.append((args, given.decode() if isinstance(given, bytes) else given))
+            return subprocess.CompletedProcess(args, 0, as_requested(sorted_out, kwargs), None)
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    def refused(*args, **kwargs):
+        raise AssertionError(f"unexpected subprocess entry: {args!r}")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    for entry in ("Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, entry, refused)
+
+    code = transform_touches_tests.main(["HEAD~1"])
+    captured = capsys.readouterr()
+
+    assert (code, captured.out, captured.err) == (
+        1,
+        "transform changed a test file: my.test.dir\npkg/tests/a.sh\ntests/b.sh\nx.test.js\n",
+        "")
+    assert sorts == [(["sort", "-u"],
+                      "x.test.js\ntests/b.sh\npkg/tests/a.sh\nmy.test.dir\ntests/b.sh\n")]
