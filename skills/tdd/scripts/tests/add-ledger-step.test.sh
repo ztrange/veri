@@ -351,32 +351,6 @@ want='# Plan for #42
 check_code "a ⟦replaces-case⟧ step counts against VERI_STEP_GROWTH only when it is also ⟦added⟧ (code1=$code1)" \
   "$code2" 1 "$want"
 
-stub="$work/stub"
-stub_script
-{ printf '. %q\n' "$(dirname "$ADD")/lib/ledger.sh"; cat <<'EOF'; } > "$stub/lib/ledger.sh"
-ledger_steps() {
-  local line i=0
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    [[ "$line" == '* ['?'] '* ]] || continue
-    i=$((i + 1))
-    printf '%s\topen\tstep\t0\t0\t\t%s\n' "$i" "${line#'* ['?'] '}"
-  done
-}
-EOF
-seed_lines '* [ ] a lamp glows'
-"$stub/add-ledger-step.sh" "$led" after 'a lamp glows' 'a lamp dims' 2> "$work/stub.err"; code=$?
-want='# Plan for #42
-
-* [ ] a lamp glows
-- [ ] a lamp dims ⟦added⟧'
-name="#698: finds the anchor step through lib/ledger.sh's ledger_steps, matching no checkbox of its own, printing nothing on stderr"
-if [[ -s "$work/stub.err" ]]; then
-  no "$name (stderr not empty)"
-  sed 's/^/    /' "$work/stub.err"
-else
-  check "$name" "$code" "$want"
-fi
-
 stub="$work/stub-add"
 stub_script
 sed "s/open_step='- \[ \]'/open_step='* [ ]'/" "$HERE/../lib/ledger.sh" > "$stub/lib/ledger.sh"

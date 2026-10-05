@@ -30,7 +30,7 @@ def main(argv):
     out = []
     for line in content.split("\n"):
         out.append(line)
-        if anchor in line:
+        if anchor in line and ledger_steps(line):
             out.extend(new_step(text, criterion_of(line)) for text in texts)
     with open(path, "wb") as f:
         f.write("\n".join(out).encode())
