@@ -7,8 +7,13 @@ USAGE = ("refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' < leaf-r
          "                      refactor-owed.sh render <file>\n"
          "                      refactor-owed.sh list <file>")
 
-STRUCTURAL = re.compile(r"^CANDIDATES:[ \t\n\r\f\v]*structural[ \t\n\r\f\v]*[|][ \t\n\r\f\v]*(.*)$")
-TEST_ONLY = re.compile(r"^CANDIDATES:[ \t\n\r\f\v]*test-only[ \t\n\r\f\v]*[|][ \t\n\r\f\v]*(.*)$")
+
+def candidate(cls):
+    return re.compile(rf"^CANDIDATES:[ \t\n\r\f\v]*{cls}[ \t\n\r\f\v]*[|][ \t\n\r\f\v]*(.*)$")
+
+
+STRUCTURAL = candidate("structural")
+TEST_ONLY = candidate("test-only")
 
 
 def refuse():
