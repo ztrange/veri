@@ -969,3 +969,58 @@ def test_main_renders_per_pass_refactor_rows_and_the_structural_pass_section_wit
 
     unmarked = structural("unmarked", None)[1]
     assert unmarked is not None and any("not marked" in line.lower() for line in unmarked)
+
+
+def test_main_renders_a_by_model_table_per_role_and_model_and_states_the_requested_model_knobs(tmp_path, monkeypatch, capsys, metrics):
+    def report(name, events):
+        root = tmp_path / name
+        root.mkdir()
+        write_log(root, events)
+        monkeypatch.chdir(root)
+        return render(metrics, capsys)
+
+    columns = ["attempts", "PASS", "REJECT", "kills", "wall s", "API s", "turns",
+               "input", "output", "cache read", "cache creation", "$"]
+
+    def by_model(out):
+        return {(row["role"], row["model"]): [row[c] for c in columns] for row in table(out, "#### By model")}
+
+    def used(api_ms, model=None):
+        return dict(cost(9, "0.5", [1000, 2000, 3000, 4000], api_ms), **({} if model is None else {"model": model}))
+
+    opus, haiku, sonnet = "claude-opus-5-5", "claude-haiku-4-5-20251001", "claude-sonnet-5-5"
+    for knob in ("VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER"):
+        monkeypatch.delenv(knob, raising=False)
+
+    modeled = report("modeled", conductor("1", 9000, "step-start")
+                     + leaf("1", 9010, "developer", "red", 1, 90, usage=used(70000, opus))
+                     + leaf("1", 9110, "verifier", "red", 1, 20, usage=used(15000, haiku), verdict="PASS")
+                     + leaf("1", 9200, "developer", "green", 1, 100, usage=used(80000, opus))
+                     + leaf("1", 9310, "verifier", "green", 1, 20, usage=used(10000, haiku), verdict="REJECT")
+                     + conductor("1", 9400, "usage", **used(5000, opus))
+                     + conductor("1", 9400, "step-done"))
+    assert by_model(modeled) == {
+        ("developer", opus): ["2", "0", "0", "0", "190", "150", "18", "2000", "4000", "6000", "8000", "1.00"],
+        ("verifier", haiku): ["2", "1", "1", "0", "40", "25", "18", "2000", "4000", "6000", "8000", "1.00"]}
+
+    monkeypatch.setenv("VERI_MODEL", "")
+    monkeypatch.setenv("VERI_MODEL_DEVELOPER", opus)
+    monkeypatch.setenv("VERI_MODEL_VERIFIER", sonnet)
+    knobbed = report("knobbed", conductor("1", 9000, "step-start")
+                     + [dict(e, model=opus) if e["event"] == "launch" else e
+                        for e in leaf("1", 9010, "developer", "red", 1, 90, usage=used(70000, opus))]
+                     + [dict(e, model=sonnet) if e["event"] == "launch" else e
+                        for e in leaf("1", 9110, "verifier", "red", 1, 20, usage=used(15000, haiku), verdict="PASS")]
+                     + conductor("1", 9400, "step-done"))
+    assert ("Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER %s, VERI_MODEL_VERIFIER %s; "
+            "models that answered: %s, %s.\n" % (opus, sonnet, haiku, opus)) in knobbed.split("#### ")[0]
+
+    unmodeled = report("unmodeled", conductor("1", 9000, "step-start")
+                       + [dict(e, model="") if e["event"] == "launch" else e
+                          for e in leaf("1", 9010, "developer", "red", 1, 90, usage=used(70000))]
+                       + [dict(e, model="") if e["event"] == "launch" else e
+                          for e in leaf("1", 9110, "verifier", "red", 1, 20, usage=used(15000), verdict="PASS")]
+                       + conductor("1", 9400, "step-done"))
+    assert "Models requested:" not in unmodeled
+    assert {key: row[0] for key, row in by_model(unmodeled).items()} == {
+        ("developer", "not recorded"): "1", ("verifier", "not recorded"): "1"}
