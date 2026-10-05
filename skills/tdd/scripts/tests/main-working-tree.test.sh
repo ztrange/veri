@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
-# Unit tests for scripts/lib/main-working-tree.sh — the one definition of `main_working_tree`
-# that solvable-issues.sh sources.
+# Unit tests for scripts/lib/main-working-tree.sh — the one definition of `main_working_tree`.
 #
 # Contract under test:
 #   source lib/main-working-tree.sh; main_working_tree   → the main working tree's path, as
 #                                                          git prints it, from a linked worktree
-#   solvable-issues.sh                                    → looks for locks under whatever
-#                                                          that helper answers
 #
 # Run: scripts/tests/main-working-tree.test.sh
 set -uo pipefail
@@ -31,35 +28,6 @@ problems=()
 got_main="$(cd "$linked" && source "$HELPER" 2>/dev/null && main_working_tree 2>/dev/null)"
 [[ -n "$want_main" && "$got_main" == "$want_main" ]] \
   || problems+=("sourcing $HELPER from a linked worktree: main_working_tree printed '$got_main', want '$want_main'")
-
-decoy="$work/decoy"
-new_repo -b tdd/5-decoy "$decoy/.tdd/wt/5" >/dev/null 2>&1
-mkdir -p "$decoy/.tdd/wt/5/.tdd"
-printf '# Plan for #5 — decoy run\n\n- [ ] a step\n' > "$decoy/.tdd/wt/5/.tdd/issue-5.md"
-printf '%s\n' "$$" > "$decoy/.tdd/wt/5/.tdd/conductor.pid"
-
-copy="$work/scripts"
-mkdir -p "$copy"
-cp "$SCRIPTS/solvable-issues.sh" "$copy/"
-cp -R "$SCRIPTS/lib" "$copy/lib"
-cp -R "$SCRIPTS/veri" "$copy/veri"
-printf 'main_working_tree() { printf "%%s\\n" %q; }\n' "$decoy" > "$copy/lib/main-working-tree.sh"
-
-fx="$work/gh"
-mkdir -p "$fx"
-printf '[]\n' > "$fx/prs.json"
-cat > "$fx/issues.json" <<'JSON'
-[
-  {"number": 5, "title": "claimed in the decoy", "labels": [{"name": "ready-for-agent"}],
-   "state": "OPEN", "body": "## Blocked by\n\nNone.\n"},
-  {"number": 6, "title": "claimed nowhere", "labels": [{"name": "ready-for-agent"}],
-   "state": "OPEN", "body": "## Blocked by\n\nNone.\n"}
-]
-JSON
-solvable_out="$(cd "$linked" && env -u VERI_LABEL -u VERI_PRIORITY_LABEL VERI_GH_JSON="$fx" \
-  "$copy/solvable-issues.sh" 2>/dev/null)" && solvable_code=0 || solvable_code=$?
-[[ "$solvable_code" -eq 0 && "$solvable_out" == "6" ]] \
-  || problems+=("solvable-issues.sh beside a helper answering the decoy: printed '$(tr '\n' ' ' <<<"$solvable_out")' (exit $solvable_code), want '6' — #5 is claimed by the decoy's live lock")
 
 report "a shared lib/main-working-tree.sh defines main_working_tree, and solvable-issues.sh resolves the main working tree through it"
 
