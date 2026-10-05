@@ -9,3 +9,6 @@
 - extract the `.git`-walking worktree-root lookup in leaf_timeout.py into a shared `veri` helper; nothing else in the package uses it today, so the extraction has nothing to share yet
 ### a leaf's test run cannot settle the run's timeout: running leaf-timeout.test.sh inside a run worktree with VERI_ISSUE=<n> in the environment, as every leaf has, leaves no .tdd/issue-<n>-timeout in that worktree ⟦added⟧ ⟦criterion 2⟧
 - test-only | drop the now-redundant `-u VERI_ISSUE` from the `env` call at skills/tdd/scripts/tests/leaf-timeout.test.sh:136, since the suite unsets VERI_ISSUE at line 17
+### SKILL.md's preflight step 7 no longer claims an export in the conductor's shell is in force for later launches; it names the run-state file the settled timeout is recorded in and says supervise.sh picks it up when VERI_TIMEOUT is unset ⟦criterion 4⟧
+- test-only | skills/tdd/scripts/tests/skill-timeout.test.sh header ("Contract under test") still says preflight "exports the result as `VERI_TIMEOUT`"; it should say the result is recorded in `.tdd/issue-<n>-timeout`, which supervise.sh reads
+- test-only | rename `claim_exports_timeout` and its "exports … as VERI_TIMEOUT" claim text in skill-timeout.test.sh, plus the first two cases' names. The regex still matches through its `every leaf` alternative, but the name now describes the wrong mechanism.
