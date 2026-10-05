@@ -1,0 +1,3 @@
+### through the issue-worktree.sh entry point (tests/issue-worktree.test.sh), a second call for a registered worktree whose .tdd/conductor.pid holds the bytes \xff\xfe\n prints the worktree's path on stdout, exits 0 and prints nothing on stderr ⟦criterion 1⟧
+- `positive_whole`'s `re.fullmatch(r"[0-9]+", n)` repeats the digit check `number_in` already applied (`rb"[0-9]+"`) before `live_conductor` hands it the pid. That check came from #819, not this cycle, so it is out of scope here.
+- test-only | the new #965 case in `issue-worktree.test.sh` (after `:608`) repeats the make_repo → first call → plant pid file → second call setup that the surrounding pid-file cases also write out by hand. A shared helper would remove the repetition.
