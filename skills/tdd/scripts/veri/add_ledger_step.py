@@ -19,8 +19,8 @@ def criterion_of(line):
 
 
 def added_step(text, k):
-    crit = f" {CRITERION_TAG}{k}⟧" if k else ""
-    return new_step(text, k).removesuffix(f" {CRITERION_TAG}{k}⟧") + crit
+    step = new_step(text, k)
+    return step if k else step.removesuffix(f" {CRITERION_TAG}⟧")
 
 
 def main(argv):
