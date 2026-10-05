@@ -89,8 +89,14 @@ def render(file):
 
 
 def list_owed(file):
-    emit(joined(l[2:] for l in owed_lines(file)
-                if l.startswith("- ") and not l.startswith(TEST_ONLY_MARK)))
+    counts = {}
+    for l in owed_lines(file):
+        if l.startswith("- ") and not l.startswith(TEST_ONLY_MARK):
+            counts[l[2:]] = counts.get(l[2:], 0) + 1
+    listed = "\n".join(sorted(counts, key=counts.get, reverse=True)).rstrip("\n")
+    if not listed:
+        return 3
+    emit(listed + "\n")
     return 0
 
 
