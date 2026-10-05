@@ -5,6 +5,7 @@
 # venv_dir    — echo the environment the pytest leg runs in: $VERI_VENV, else ~/.veri-tools/venv.
 # venv_python — echo that environment's bin/python3 when it is executable, else the python3 on PATH.
 # venv_meets_floor — return 0 when the interpreter $1 runs Python $VENV_FLOOR or newer.
+# venv_path_advice — echo the instruction to put the bin of the environment at $1 first on PATH.
 # venv_path_hint — when the environment at venv_dir meets the floor, tell stderr, prefixed "$1: ", to put
 #                  its bin first on PATH. Always returns 0.
 # venv_builder — echo the first of python3, then python3.13 down to python$VENV_FLOOR, on PATH that is
@@ -30,11 +31,15 @@ venv_meets_floor() {
   "$1" -c 'import sys; sys.exit(sys.version_info < ('"${VENV_FLOOR%%.*}, ${VENV_FLOOR#*.}"'))' 2> /dev/null
 }
 
+venv_path_advice() {
+  printf 'put %s/bin first on PATH\n' "$1"
+}
+
 venv_path_hint() {
   local venv
   venv="$(venv_dir)"
   if venv_meets_floor "$venv/bin/python3"; then
-    printf '%s: the environment at %s meets it; put %s/bin first on PATH.\n' "$1" "$venv" "$venv" >&2
+    printf '%s: the environment at %s meets it; %s.\n' "$1" "$venv" "$(venv_path_advice "$venv")" >&2
   fi
 }
 
