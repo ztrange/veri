@@ -12,9 +12,8 @@ def output(*args, **kwargs):
 
 
 def main(argv):
-    local = git("rev-parse", "-q", "--verify", "--abbrev-ref", "refs/remotes/origin/HEAD",
-                stdout=subprocess.PIPE)
-    default = local.stdout.rstrip("\n").removeprefix("origin/")
+    default = output("rev-parse", "-q", "--verify", "--abbrev-ref",
+                     "refs/remotes/origin/HEAD").removeprefix("origin/")
     if git("fetch", "-q", "origin").returncode != 0:
         return 2
     onto = output("rev-parse", f"origin/{default}")
