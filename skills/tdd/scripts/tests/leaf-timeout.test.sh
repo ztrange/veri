@@ -140,4 +140,15 @@ recorded=("$work"/.tdd/issue-*timeout)
   problems+=("want no .tdd/issue-*timeout record, found: ${recorded[*]#"$work"/}")
 report "$name"
 
+name="#954: VERI_ISSUE=954 leaf-timeout.sh 10 --full 200, run from a subdirectory of the run worktree, records its settled 1200 at the worktree root's .tdd/issue-954-timeout, where supervise.sh reads it"
+problems=()
+work="$(scratch_dir)"
+new_repo -b main "$work" >/dev/null 2>&1
+mkdir -p "$work/sub/dir"
+( cd "$work/sub/dir" && env -u VERI_TIMEOUT VERI_ISSUE=954 "$LEAF_TIMEOUT" 10 --full 200 ) >/dev/null 2>"$work/err"
+root_record="$(cat "$work/.tdd/issue-954-timeout" 2>/dev/null || echo '<no record>')"
+[[ "$root_record" == 1200 ]] ||
+  problems+=("want the worktree root's .tdd/issue-954-timeout holding 1200, got $(printf '%q' "$root_record") (stderr: $(cat "$work/err"))")
+report "$name"
+
 finish
