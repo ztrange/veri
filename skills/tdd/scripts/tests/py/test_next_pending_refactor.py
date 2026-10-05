@@ -52,3 +52,23 @@ def test_main_prints_the_first_pending_step_exits_3_over_a_settled_ledger_and_ig
         ("settled",): (3, b"", b""),
         ("settled", "--bogus"): (3, b"", b""),
     }
+
+
+def test_main_prints_the_first_done_and_pending_record_veri_ledger_ledger_steps_returns(
+        monkeypatch, capsysbinary, next_pending_refactor):
+    ledger = (
+        "# Plan for #42\n"
+        "\n"
+        "- [ ] still open though it ends in the mark ⟦criterion 1⟧ ⟂ refactor pending\n"
+        "- [x] tidied already ⟦criterion 2⟧\n"
+        "\v- [X] indented by a vertical tab, upper-case box ⟦criterion 3⟧ ⟂ refactor pending\n"
+        "- [x] ⟦full-suite⟧ ⟦criterion 4⟧ ⟂ refactor pending"
+    ).encode()
+    ledger_steps = importlib.import_module("veri.ledger").ledger_steps
+    first = next(record for record in ledger_steps(ledger.decode())
+                 if record[1] == "done" and record[3] == "1")
+
+    fake_stdin(monkeypatch, ledger)
+    code = next_pending_refactor.main([])
+
+    assert (code, *capsysbinary.readouterr()) == (0, (first[6] + "\n").encode(), b"")
