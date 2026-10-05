@@ -99,3 +99,45 @@ def test_main_asks_git_to_resolve_the_base_then_reads_the_range_and_names_its_te
     assert answers["clean"][:3] == (0, "", "")
     assert answers["touched"][:3] == (1, "transform changed a test file: tests/widget.test.sh\n", "")
     assert answers["extra"][:3] == answers["touched"][:3]
+
+
+def test_main_counts_a_path_as_a_test_file_by_the_case_sensitive_ere_on_the_path_as_git_prints_it(
+        monkeypatch, capsys, transform_touches_tests):
+    log = {"text": ""}
+
+    def as_requested(text, kwargs):
+        wants_str = kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")
+        return text if wants_str else text.encode()
+
+    def fake_run(args, *rest, **kwargs):
+        args = list(args)
+        if args[:2] == ["git", "log"]:
+            return subprocess.CompletedProcess(args, 0, as_requested(log["text"], kwargs), None)
+        if args[:1] == ["sort"]:
+            given = kwargs.get("input") or ""
+            given = given.decode() if isinstance(given, bytes) else given
+            lines = sorted(set(line for line in given.split("\n") if line))
+            joined = "".join(line + "\n" for line in lines)
+            return subprocess.CompletedProcess(args, 0, as_requested(joined, kwargs), None)
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    def refused(*args, **kwargs):
+        raise AssertionError(f"unexpected subprocess entry: {args!r}")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    for entry in ("Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, entry, refused)
+
+    counted = ("pkg/tests/x", "x.test.js", "my.test.dir", "a.test.d/x",
+               r'"pkg/tests/\303\251.sh"', r'"\303\251.test.sh"')
+    ignored = ("pkg/contests/x", "Tests/c", "test/d", "foo_test.go", r'"tests/\303\251.sh"')
+    expected, observed = {}, {}
+    for path in counted + ignored:
+        log["text"] = f"src/a.sh\n{path}\n"
+        code = transform_touches_tests.main(["HEAD~1"])
+        captured = capsys.readouterr()
+        observed[path] = (code, captured.out, captured.err)
+        expected[path] = ((1, f"transform changed a test file: {path}\n", "") if path in counted
+                          else (0, "", ""))
+
+    assert observed == expected
