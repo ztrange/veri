@@ -198,3 +198,50 @@ def test_main_over_budget_returns_1_silently_and_owes_every_text_under_the_last_
         "unterminated last line": ([(1, "", "")], unterminated + "- t\n"),
         "unterminated owed heading": ([(1, "", "")], unseen_heading + "\n## Owed steps\n\n- t\n"),
     }
+
+
+def test_main_refuses_position_then_anchor_then_budget_each_with_2_and_unset_allows_a_fifth_added_step(tmp_path, monkeypatch, capsys, add_ledger_step):
+    ledger = tmp_path / "issue-42.md"
+
+    def run(*argv):
+        code = add_ledger_step.main([str(ledger), *argv])
+        captured = capsys.readouterr()
+        return (code, captured.out, captured.err, ledger.read_bytes() if ledger.exists() else None)
+
+    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    assert run("afterr", "b two", "t") == (
+        2, "", "add-ledger-step.sh: position must be after, before or instead-of: afterr\n", None
+    )
+
+    ledger.write_bytes(LEDGER)
+    monkeypatch.setenv("VERI_STEP_GROWTH", "5")
+    anchors = ("nothing", "⟦criterion", "*", "t[w]o")
+    assert {anchor: run("after", anchor, "t") for anchor in anchors} == {
+        anchor: (2, "", f"add-ledger-step.sh: anchor matches no single step: {anchor}\n", LEDGER)
+        for anchor in anchors
+    }
+
+    budgets = ("", "x", "-1", "1.5")
+    got = {}
+    for budget in budgets:
+        monkeypatch.setenv("VERI_STEP_GROWTH", budget)
+        got[budget] = run("after", "b two", "t")
+    assert got == {
+        budget: (2, "", f"add-ledger-step.sh: VERI_STEP_GROWTH must be a whole number >= 0: {budget}\n", LEDGER)
+        for budget in budgets
+    }
+
+    monkeypatch.setenv("VERI_STEP_GROWTH", "x")
+    assert run("after", "nothing", "t") == (
+        2, "", "add-ledger-step.sh: anchor matches no single step: nothing\n", LEDGER
+    )
+
+    monkeypatch.delenv("VERI_STEP_GROWTH")
+    four = "".join(f"- [ ] extra {n} ⟦added⟧ ⟦criterion 2⟧\n" for n in range(4))
+    seed = (LEDGER.decode() + four).encode()
+    ledger.write_bytes(seed)
+    fifth = run("after", "c three", "fifth")
+    sixth = run("after", "c three", "sixth")
+    assert (fifth[:3], sixth[:3]) == ((0, "", ""), (1, "", ""))
+    assert b"- [ ] fifth \xe2\x9f\xa6added\xe2\x9f\xa7" in fifth[3]
+    assert b"- [ ] sixth" not in sixth[3]
