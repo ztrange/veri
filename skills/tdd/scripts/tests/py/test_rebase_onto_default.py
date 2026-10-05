@@ -72,3 +72,54 @@ def test_main_exits_2_on_a_failed_fetch_3_when_up_to_date_0_when_rebased_and_ign
     assert f"git rebase -q {ONTO}" in calls
 
     assert run(["--bogus"], **up_to_date)[:2] == run([], **up_to_date)[:2] == (3, "")
+
+
+def test_main_falls_back_to_the_remote_symref_only_when_the_local_read_fails_and_keeps_its_refs_heads_name_whole(
+        monkeypatch, capsys, rebase_onto_default):
+    symref = "git ls-remote --symref origin HEAD"
+    local = "git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD"
+
+    def run(answer, **overrides):
+        calls = fake_git(monkeypatch, **{local: (1, ""), symref: answer}, **overrides)
+        fake_run = subprocess.run
+        stderrs = {}
+
+        def recording_run(args, **kwargs):
+            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+            stderrs[line] = kwargs.get("stderr")
+            return fake_run(args, **kwargs)
+
+        monkeypatch.setattr(subprocess, "run", recording_run)
+        code = rebase_onto_default.main([])
+        return code, capsys.readouterr().out, calls, stderrs
+
+    calls = fake_git(monkeypatch)
+    rebase_onto_default.main([])
+    capsys.readouterr()
+    assert symref not in calls
+
+    code, out, calls, stderrs = run((2, f"ref: refs/heads/trunk\tHEAD\n{ONTO}\tHEAD\n"),
+                                    **{"git ls-remote origin refs/heads/trunk":
+                                       (0, f"{ONTO}\trefs/heads/trunk\n"),
+                                       "git rev-parse origin/trunk": (0, f"{ONTO}\n")})
+    assert symref in calls
+    assert stderrs[symref] == subprocess.DEVNULL
+    after = calls[calls.index(symref) + 1:]
+    assert after[:3] == ["git fetch -q origin", "git ls-remote origin refs/heads/trunk",
+                         "git rev-parse origin/trunk"]
+    assert (code, out) == (0, f"{PRE}\n{ONTO}\n")
+
+    def names_a_default(calls):
+        return [c for c in calls
+                if c.startswith(("git ls-remote origin refs/heads/", "git rev-parse origin/"))
+                and c not in ("git ls-remote origin refs/heads/", "git rev-parse origin/")]
+
+    for answer in [(0, f"{ONTO}\tHEAD\n"), (0, f"ref: refs/tags/v1\tHEAD\n{ONTO}\tHEAD\n")]:
+        code, out, calls, _ = run(answer)
+        assert symref in calls
+        assert names_a_default(calls) == []
+        assert code in range(0, 4)
+
+    code, out, calls, _ = run((0, f"ref: refs/heads/origin/x\tHEAD\n{ONTO}\tHEAD\n"))
+    assert names_a_default(calls) == ["git ls-remote origin refs/heads/origin/x",
+                                      "git rev-parse origin/origin/x"]
