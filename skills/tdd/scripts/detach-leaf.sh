@@ -23,8 +23,9 @@
 set -uo pipefail
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+source "$(cd "$(dirname "$0")" && pwd)/lib/detach.sh"
 USAGE="usage: detach-leaf.sh <cmd> [args…]"
 
 [[ $# -gt 0 ]] || refuse
 
-python3 -c 'import os, signal, sys; signal.signal(signal.SIGPIPE, signal.SIG_DFL); os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])' "$@" &
+detach_exec "$@" &
