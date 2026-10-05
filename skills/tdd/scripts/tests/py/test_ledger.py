@@ -74,3 +74,9 @@ def test_ledger_steps_reads_no_step_from_a_line_led_by_nbsp_em_space_or_x1c():
     assert [tuple(record) for record in ledger.ledger_steps(text)] == [
         ("1", "open", "step", "0", "0", "", "tab"),
     ]
+
+
+def test_new_step_returns_lib_ledger_sh_s_added_step_line():
+    ledger = importlib.import_module("veri.ledger")
+
+    assert ledger.new_step("t", "2").encode() == "- [ ] t ⟦added⟧ ⟦criterion 2⟧".encode()

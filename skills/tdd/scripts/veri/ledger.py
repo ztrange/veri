@@ -1,6 +1,7 @@
 """lib/ledger.sh's ledger_steps, run in-process."""
 import re
 
+OPEN_STEP = "- [ ]"
 PENDING_MARK = " ⟂ refactor pending"
 ADDED_MARK = "⟦added⟧"
 CRITERION_TAG = "⟦criterion "
@@ -17,6 +18,11 @@ def is_added(step):
     if tag != -1 and untagged.endswith("⟧"):
         untagged = untagged[:tag]
     return untagged.endswith(" " + ADDED_MARK)
+
+
+def new_step(text, criterion):
+    """lib/ledger.sh's ledger_add_step line for text and criterion."""
+    return f"{OPEN_STEP} {text} {ADDED_MARK} {CRITERION_TAG}{criterion}⟧"
 
 
 def ledger_steps(text):
