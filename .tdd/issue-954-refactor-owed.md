@@ -7,3 +7,5 @@
 - test-only | supervise.test.sh's #954 subdirectory case repeats the scratch-repo + `.tdd/issue-954-timeout` + `env -u VERI_TIMEOUT … "$SUP" develop-red "$stub/leaf-busy-ten"` setup of the earlier #954 cases; a shared helper would remove it
 ### leaf-timeout.sh, settling from a subdirectory of the run worktree, records the settled timeout at the worktree root's .tdd/issue-<n>-timeout, where supervise.sh reads it ⟦added⟧ ⟦criterion 2⟧
 - extract the `.git`-walking worktree-root lookup in leaf_timeout.py into a shared `veri` helper; nothing else in the package uses it today, so the extraction has nothing to share yet
+### a leaf's test run cannot settle the run's timeout: running leaf-timeout.test.sh inside a run worktree with VERI_ISSUE=<n> in the environment, as every leaf has, leaves no .tdd/issue-<n>-timeout in that worktree ⟦added⟧ ⟦criterion 2⟧
+- test-only | drop the now-redundant `-u VERI_ISSUE` from the `env` call at skills/tdd/scripts/tests/leaf-timeout.test.sh:136, since the suite unsets VERI_ISSUE at line 17
