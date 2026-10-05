@@ -7,12 +7,13 @@ import subprocess
 import sys
 import tempfile
 import time
+import traceback
 
 try:
-    from github import gh_json
+    from github import NoAnswer, gh_json
     from json_documents import items
 except ImportError:
-    from .github import gh_json
+    from .github import NoAnswer, gh_json
     from .json_documents import items
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -78,10 +79,29 @@ class _Conductor:
                 self.armed = True
 
 
+def _prs_json():
+    return gh_json("prs.json", "repos/{owner}/{repo}/pulls?state=open&per_page=100",
+                   "pr", "list", "--state", "open", "--limit", "10000", "--json", "body,isDraft,url")
+
+
+def _finish_prs_json():
+    try:
+        return _prs_json()
+    except NoAnswer as error:
+        return error.answer
+    except FileNotFoundError:
+        return ""
+
+
 def _outcome(n, code, prs):
     if code == 2:
         return "killed after %ss" % _run_timeout()
     if os.path.exists(os.path.join(".tdd", "parked", "%s.md" % n)):
+        return ""
+    try:
+        prs = items(prs)
+    except ValueError:
+        traceback.print_exc()
         return ""
     for pr in prs:
         if n in re.findall(r"\bCloses #(\d+)", pr.get("body") or ""):
@@ -150,7 +170,7 @@ def main(argv):
                  or _whole_number("VERI_MAX_ISSUES", os.environ["VERI_MAX_ISSUES"], 1))):
         return _finish(2)
     rc_dir = tempfile.mkdtemp()
-    code = _run()
+    code = _run(argv[:1] == ["--continue-on-bail"])
     try:
         shutil.rmtree(rc_dir)
     except OSError:
@@ -158,7 +178,7 @@ def main(argv):
     return code
 
 
-def _run():
+def _run(continue_on_bail):
     parallel = int(os.environ.get("VERI_PARALLEL", "1"))
     max_issues = os.environ.get("VERI_MAX_ISSUES", "0")
     try:
@@ -166,9 +186,9 @@ def _run():
     except ValueError:
         max_issues = -1
     launched, in_flight, codes = [], [], {}
-    plumbing, why = False, ""
+    plumbing, why, stopped = False, "", ""
     while True:
-        while len(in_flight) < parallel:
+        while len(in_flight) < parallel and not stopped:
             if max_issues < 0 or max_issues and len(launched) >= max_issues:
                 why = "VERI_MAX_ISSUES reached"
                 break
@@ -185,14 +205,16 @@ def _run():
             in_flight.append(_Conductor(n))
         if not in_flight:
             failed = False
-            prs = items(gh_json("prs.json", "repos/{owner}/{repo}/pulls?state=open&per_page=100",
-                                "pr", "list", "--state", "open", "--limit", "10000", "--json", "body,isDraft,url"))
+            try:
+                prs = _prs_json()
+            except NoAnswer:
+                return 2
             for n in launched:
                 got = _outcome(n, codes.get(n), prs)
                 if got:
                     print("#%s — %s" % (n, got), flush=True)
                 failed = failed or got.startswith(("killed ", "bailed "))
-            print("stopped: %s" % why, flush=True)
+            print("stopped: %s" % (stopped or why), flush=True)
             return _finish(2 if plumbing else 1 if failed else 3 if not launched else 0)
         done = [c for c in in_flight if not c.follow()]
         for c in done:
@@ -201,6 +223,10 @@ def _run():
             if c.stopped:
                 print("restarted %s" % c.n, flush=True)
                 in_flight.append(_Conductor(c.n))
+            elif not continue_on_bail and not stopped:
+                got = _outcome(c.n, codes[c.n], _finish_prs_json())
+                if got.startswith(("killed ", "bailed ")):
+                    stopped = "#%s %s" % (c.n, got.split()[0])
         if not done:
             time.sleep(1)
 
