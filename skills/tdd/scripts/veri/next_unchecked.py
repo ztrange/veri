@@ -15,3 +15,7 @@ def main(argv):
             sys.stdout.buffer.write((record[6] + "\n").encode(errors="surrogateescape"))
             return 0
     return 3
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
