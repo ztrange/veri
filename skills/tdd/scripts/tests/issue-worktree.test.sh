@@ -451,6 +451,26 @@ after="$(registry "$clone")"
   && [[ ! -e "$want" ]] && [[ "$after" == "$before" ]]; } \
   && ok || no "#865: an origin remote whose default cannot be resolved and no refs/remotes/origin/HEAD: exits 2 naming refs/remotes/origin/HEAD and creates no worktree (exit=$code want 2, the clone's refs/remotes/origin/HEAD='$origin_head' want absent, stderr='$(cat "$errfile")' want it to name refs/remotes/origin/HEAD, $want $( [[ -e "$want" ]] && echo "exists" || echo "absent, good" ), git's worktree+branch registry $( [[ "$after" == "$before" ]] && echo unchanged || echo changed ), stdout='$out')"
 
+repo="$work/no-origin-local-main"
+make_repo "$repo"
+main_tip="$(git_q "$repo" rev-parse main)"
+git_q "$repo" switch -q -c side >/dev/null 2>&1
+git_q "$repo" commit -q --allow-empty -m "work on side" >/dev/null 2>&1
+side_tip="$(git_q "$repo" rev-parse side)"
+want="$(wt_path "$repo" 867)"
+
+remotes="$(git_q "$repo" remote 2>/dev/null)"
+
+errfile="$work/no-origin-local-main.err"
+out="$(cd "$repo" && "$WT" 867 no-origin-local-main 2>"$errfile")" && code=0 || code=$?
+
+branch="$(git -C "$want" branch --show-current 2>/dev/null)"
+tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
+
+{ [[ "$code" == 0 ]] && [[ -z "$remotes" ]] && [[ "$out" == "$want" ]] \
+  && [[ "$branch" == "tdd/867-no-origin-local-main" ]] && [[ "$tip" == "$main_tip" ]]; } \
+  && ok || no "#865: no origin remote at all and a local main: still falls back to the local main as the base (exit=$code want 0, remotes='$remotes' want none, stdout='$out' want '$want', branch='$branch' want 'tdd/867-no-origin-local-main', tip='$tip' want main's $main_tip not side's $side_tip, stderr='$(cat "$errfile")')"
+
 upstream="$work/remote-only-upstream"
 make_repo "$upstream"
 git_q "$upstream" switch -q -c tdd/49-remote-only >/dev/null 2>&1
