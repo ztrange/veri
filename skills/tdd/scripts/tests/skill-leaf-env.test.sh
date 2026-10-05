@@ -588,6 +588,11 @@ STUB
 run_case "every leaf and verifier launch line in $skill_md reads the step through ledger-steps.sh current, and a title carrying a dollar sign, a backtick and a double quote reaches VERI_STEP and --step byte-identical (#682)" \
   scan_current_step_title
 
+plant_done_ledger() {
+  printf '# Plan for #%s\n\n- [x] an earlier step the run finished\n- [x] %s\n' \
+    "$SENTINEL_ISSUE" "$1" > "$tree/.tdd/issue-$SENTINEL_ISSUE.md"
+}
+
 scan_rebase_verifier_last_done() {
   local title="$EXPANDING_STEP"
   local lineno line numbered launch stage seen tree err got argv
@@ -598,8 +603,7 @@ scan_rebase_verifier_last_done() {
   fi
   take_line "$numbered" "$title" || return
   stage_recorder rebase-verifier-last-done
-  printf '# Plan for #%s\n\n- [x] an earlier step the run finished\n- [x] %s\n' \
-    "$SENTINEL_ISSUE" "$title" > "$tree/.tdd/issue-$SENTINEL_ISSUE.md"
+  plant_done_ledger "$title"
   run_staged '<no verifier was launched>'
   [[ "$argv" == "$title" ]] ||
     problem "launched verdict-rebase beside a ledger with every step ticked, whose verifier was handed --step <$argv>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})"
@@ -623,8 +627,7 @@ scan_develop_last_done() {
   stage_recorder "develop-$phase-last-done"
   rm -f "$stage/build-develop-prompt.sh"
   ln -s "$RECORDERS/title.sh" "$stage/build-develop-prompt.sh"
-  printf '# Plan for #%s\n\n- [x] an earlier step the run finished\n- [x] %s\n' \
-    "$SENTINEL_ISSUE" "$title" > "$tree/.tdd/issue-$SENTINEL_ISSUE.md"
+  plant_done_ledger "$title"
   numbered="$(head -1 < <(grep -nE "\\\$S/build-develop-prompt\\.sh $phase .*> \\.tdd/develop-$phase\\.prompt" "$md"))"
   numbered="${numbered//<branch>/tdd/probe-branch}"
   numbered="${numbered//<remote-sha>/0123abc}"
@@ -660,8 +663,7 @@ scan_revise_last_done() {
   rm -f "$stage/build-develop-prompt.sh" "$stage/event.sh"
   ln -s "$RECORDERS/title.sh" "$stage/build-develop-prompt.sh"
   ln -s "$RECORDERS/title.sh" "$stage/event.sh"
-  printf '# Plan for #%s\n\n- [x] an earlier step the run finished\n- [x] %s\n' \
-    "$SENTINEL_ISSUE" "$title" > "$tree/.tdd/issue-$SENTINEL_ISSUE.md"
+  plant_done_ledger "$title"
   for which in mark prompt leaf re-verify; do
     case "$which" in
       mark)      pattern='\$S/event\.sh revise budget=' ;;
@@ -711,8 +713,7 @@ scan_transform_verifier_last_done() {
   fi
   take_line "${numbered//<base-sha>/89abcde}" "$title" || return
   stage_recorder transform-verifier-last-done
-  printf '# Plan for #%s\n\n- [x] an earlier step the run finished\n- [x] %s\n' \
-    "$SENTINEL_ISSUE" "$title" > "$tree/.tdd/issue-$SENTINEL_ISSUE.md"
+  plant_done_ledger "$title"
   run_staged '<no verifier was launched>'
   [[ "$argv" == "$title" ]] ||
     problem "launched verdict-transform beside a ledger with every step ticked, whose verifier was handed --step <$argv>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})"
@@ -736,8 +737,7 @@ scan_phase_verifiers_last_done() {
     fi
     take_line "$numbered" "$title" || continue
     stage_recorder "phase-verifier-last-done-$which"
-    printf '# Plan for #%s\n\n- [x] an earlier step the run finished\n- [x] %s\n' \
-      "$SENTINEL_ISSUE" "$title" > "$tree/.tdd/issue-$SENTINEL_ISSUE.md"
+    plant_done_ledger "$title"
     run_staged '<no verifier was launched>'
     [[ "$argv" == "$title" ]] ||
       problem "launched the $which verdict-<phase> line beside a ledger with every step ticked, whose verifier was handed --step <$argv>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})"
