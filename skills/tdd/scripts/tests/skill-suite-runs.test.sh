@@ -155,6 +155,16 @@ if need_text '#### A `⟦diff-checked⟧` step'; then
 fi
 report "$name"
 
+name="#974: $skill_md's diff-checked section's build-develop-prompt.sh diff and run-verdict.sh diff command lines pass the fast command"
+problems=()
+if need_text '#### A `⟦diff-checked⟧` step'; then
+  says "build-develop-prompt\.sh diff [^,]*<fast-cmd>" \
+    "$skill_md's diff-checked build-develop-prompt.sh diff command line never passes '<fast-cmd>', so develop-diff is built without the fast command"
+  says "run-verdict\.sh [^,]*--fast-cmd [^,]* diff " \
+    "$skill_md's diff-checked run-verdict.sh … diff command line never passes --fast-cmd, so verify-diff is launched without the fast command"
+fi
+report "$name"
+
 name="$claude_md's Testing idiom paragraph states what runs per step and per PR"
 problems=()
 if need_idiom; then

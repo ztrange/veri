@@ -1430,7 +1430,7 @@ its step adds none. Record the step's base sha with `git rev-parse HEAD` before 
 "<STEP>" '<test-cmd>' '<fast-cmd>'`, makes the change the criterion names — or makes no
 commit, when the criterion is that something stays unchanged — and keeps the fast tier and
 then the affected suites green before it reports. Then the blind `diff` verifier,
-`run-verdict.sh --step "<STEP>" diff <spec-file> <branch-base-sha> <step-base-sha>`, runs the fast tier and then the affected suites, rejecting the step when
+`run-verdict.sh --step "<STEP>" --fast-cmd '<fast-cmd>' diff <spec-file> <branch-base-sha> <step-base-sha>`, runs the fast tier and then the affected suites, rejecting the step when
 either is red, and judges it against the run's branch point, `git merge-base HEAD
 origin/<default>`, and its own diff from the step base sha. Both are launched through the supervisor and waited on as
 *Launching a leaf* sets out, the leaf as `develop-diff` and the verifier as `verdict-diff`.

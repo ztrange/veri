@@ -145,7 +145,7 @@ else
     problems+=("cycle loop: the ⟦diff-checked⟧ instruction never says the step runs no Red leaf")
   [[ "$dc_rec" == *develop-diff* && "$dc_rec" == *"build-develop-prompt.sh diff"* ]] ||
     problems+=("cycle loop: the ⟦diff-checked⟧ instruction never launches a develop-diff leaf built by build-develop-prompt.sh diff")
-  [[ "$dc_rec" =~ (verify|run-verdict)\.sh\ --step\ [^\ ]+\ diff\  ]] ||
+  [[ "$dc_rec" =~ (verify|run-verdict)\.sh\ --step\ [^\ ]+\ (--fast-cmd\ [^\ ]+\ )?diff\  ]] ||
     problems+=("cycle loop: the ⟦diff-checked⟧ instruction never runs the blind diff verifier with --step")
   [[ "$dc_rec" == *"git merge-base head origin/<default>"* ]] ||
     problems+=("cycle loop: the ⟦diff-checked⟧ instruction never verifies against the run's branch point, git merge-base HEAD origin/<default>")
@@ -165,7 +165,7 @@ if [[ -z "$dc_rec" ]]; then
 else
   [[ "$dc_rec" =~ git\ rev-parse\ head[^.]*before[^.]*develop-diff ]] ||
     problems+=("cycle loop: the ⟦diff-checked⟧ instruction never records the step's base sha with git rev-parse HEAD before the develop-diff leaf runs")
-  [[ "$dc_rec" =~ run-verdict\.sh\ --step\ [^\ ]+\ diff\ \<spec-file\>\ \<branch-base-sha\>\ \<step-base-sha\> ]] ||
+  [[ "$dc_rec" =~ run-verdict\.sh\ --step\ [^\ ]+\ (--fast-cmd\ [^\ ]+\ )?diff\ \<spec-file\>\ \<branch-base-sha\>\ \<step-base-sha\> ]] ||
     problems+=("cycle loop: the ⟦diff-checked⟧ instruction never passes the step base sha to run-verdict.sh after the branch point")
 fi
 report "$name"
