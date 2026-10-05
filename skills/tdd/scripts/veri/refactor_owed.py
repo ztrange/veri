@@ -26,6 +26,10 @@ def all_tests(bounds):
     return bool(bounds) and all(TEST_FILE.search(f) for f in files)
 
 
+def bullets(transforms):
+    return "".join(f"- {t}\n" for t in transforms)
+
+
 def refuse():
     print(USAGE, file=sys.stderr)
     return 2
@@ -45,7 +49,7 @@ def append(file, step, bounds):
     owed = structural + test_only
     if owed:
         with open(file, "a", errors="surrogateescape") as out:
-            out.write(f"### {step}\n" + "".join(f"- {t}\n" for t in owed))
+            out.write(f"### {step}\n" + bullets(owed))
     return 0
 
 
@@ -61,7 +65,7 @@ def render(file):
     if test_only:
         out += ("\n### Test-only\n\n"
                 "These change only files under tests/; the structural pass does not work them.\n\n"
-                + "".join(f"- {t}\n" for t in test_only))
+                + bullets(test_only))
     sys.stdout.write(out)
     return 0
 
