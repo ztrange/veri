@@ -608,6 +608,41 @@ scan_rebase_verifier_last_done() {
 run_case "#753 the verify-rebase launch line in $skill_md, run with every ledger step ticked, hands its verifier the last done step's text as --step, byte-identical" \
   scan_rebase_verifier_last_done
 
+scan_develop_rebase_last_done() {
+  local title="$EXPANDING_STEP"
+  local lineno line numbered launch stage seen tree err got argv rec k want
+  stage_recorder develop-rebase-last-done
+  rm -f "$stage/build-develop-prompt.sh"
+  ln -s "$RECORDERS/title.sh" "$stage/build-develop-prompt.sh"
+  printf '# Plan for #%s\n\n- [x] an earlier step the run finished\n- [x] %s\n' \
+    "$SENTINEL_ISSUE" "$title" > "$tree/.tdd/issue-$SENTINEL_ISSUE.md"
+  numbered="$(head -1 < <(grep -nE '\$S/build-develop-prompt\.sh rebase .*> \.tdd/develop-rebase\.prompt' "$md"))"
+  if [[ -z "$numbered" ]]; then
+    no_launch "build-develop-prompt.sh rebase into .tdd/develop-rebase.prompt"
+  elif take_line "$numbered" "$title"; then
+    run_staged '<no prompt was built>'
+    want='<no step argument>'
+    mapfile -t rec < "$seen.build-develop-prompt" 2>/dev/null || rec=()
+    for (( k = 1; k + 1 < ${#rec[@]}; k++ )); do
+      [[ "${rec[k]}" != *-spec.md ]] || { want="${rec[k+1]}"; break; }
+    done
+    [[ "$want" == "$title" ]] ||
+      problem "built the develop-rebase prompt beside a ledger with every step ticked, passing build-develop-prompt.sh the step <$want>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})"
+  fi
+  numbered="$(head -1 < <(grep -nE '\$S/detach-leaf\.sh .*\$S/supervise\.sh develop-rebase \$S/run-leaf\.sh' "$md"))"
+  if [[ -z "$numbered" ]]; then
+    no_launch "develop-rebase through supervise.sh into run-leaf.sh"
+    return
+  fi
+  take_line "$numbered" "$title" || return
+  run_staged '<no leaf was launched>'
+  [[ "$got" == "$title" ]] ||
+    problem "launched develop-rebase beside a ledger with every step ticked, whose leaf saw VERI_STEP=<$got>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})"
+}
+
+run_case "#892 the Draft PR step's develop-rebase block in $skill_md, run with every ledger step ticked, passes build-develop-prompt.sh rebase and the leaf's VERI_STEP the last done step's text, byte-identical" \
+  scan_develop_rebase_last_done
+
 scan_transform_verifier_last_done() {
   local title="$EXPANDING_STEP"
   local lineno line numbered launch stage seen tree err got argv
