@@ -16,6 +16,7 @@
 set -uo pipefail
 
 source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
+source "$(cd "$(dirname "$0")" && pwd)/lib/detach.sh"
 USAGE="usage: detach-command.sh start <name> <cmd> [args…] | wait <name> [max-seconds]"
 
 [[ $# -ge 2 ]] || refuse
@@ -35,8 +36,7 @@ case "$mode" in
   start)
     [[ $# -gt 0 ]] || refuse
     rm -f "$exit_file"
-    python3 -c 'import os, signal, sys; signal.signal(signal.SIGPIPE, signal.SIG_DFL); os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])' \
-      sh -c '"$@"; rc=$?; echo "$rc" > "$0.tmp"; mv "$0.tmp" "$0"' "$exit_file" "$@" \
+    detach_exec sh -c '"$@"; rc=$?; echo "$rc" > "$0.tmp"; mv "$0.tmp" "$0"' "$exit_file" "$@" \
       > ".tdd/$name.out" 2>&1 < /dev/null &
     echo $! > "$pid_file"
     ;;
