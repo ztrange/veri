@@ -126,5 +126,11 @@ printf '%s\n' "$prompt" | "${CLAUDE_BIN:-claude}" -p \
   --output-format stream-json --verbose \
   --permission-mode bypassPermissions || code=$?
 
+past_preflight() {
+  [[ -d ".tdd/wt/$issue" ]] && return 0
+  [[ -n "$(git for-each-ref --format='%(refname)' "refs/heads/tdd/$issue-*" 2>/dev/null)" ]]
+}
+past_preflight || rm -f "$record"
+
 # pass-through: the caller reads the conductor's own status, whatever it is.
 exit "$code"
