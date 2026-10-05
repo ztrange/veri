@@ -448,4 +448,29 @@ fi
 
 report "$name"
 
+name="#880: $skill_md's '$revise_heading' covers the diff phase: the revise leaf is built with revise diff, the re-verify is the blind diff verifier against the same base sha as the original verify-diff verdict, and its PASS is ticked as the ⟦diff-checked⟧ PASS bullet describes"
+problems=()
+
+if [[ -n "$unreadable" ]]; then
+  problems+=("$unreadable how a REJECT on a ⟦diff-checked⟧ step is revised could not be established")
+else
+  grep -F -- '$s/build-develop-prompt.sh revise diff' <<<"$section" > /dev/null ||
+    problems+=("$skill_md's revise section never builds the revise leaf with build-develop-prompt.sh revise diff, so a REJECT on a ⟦diff-checked⟧ step has no revise leaf to launch")
+  if ! grep -E -- 'run-verdict\.sh [^|]* diff [^|]*<base-sha>' <<<"$section" > /dev/null; then
+    problems+=("$skill_md's revise section never re-verifies a diff revise with run-verdict.sh ... diff ... <base-sha>, so the blind diff verifier is not what judges the revised work")
+  fi
+  revise_prose_sentences |
+    grep -E -- 'verify-diff|verdict-diff' |
+    grep -F -- 'same' |
+    grep -F -- 'base' > /dev/null ||
+    problems+=("no sentence of '$revise_heading' says the diff re-verify runs against the same base sha as the original verify-diff verdict")
+  revise_prose_sentences |
+    grep -F -- '⟦diff-checked⟧' |
+    grep -F -- 'pass' |
+    grep -F -- 'tick' > /dev/null ||
+    problems+=("no sentence of '$revise_heading' says a recovered diff PASS is ticked as the ⟦diff-checked⟧ PASS bullet describes")
+fi
+
+report "$name"
+
 finish
