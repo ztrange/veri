@@ -1,0 +1,3 @@
+### run-conductor.sh, with an origin remote, no refs/remotes/origin/HEAD, and a remote whose HEAD names its default branch, pins the run to that branch's tip: the skill-commit record is written, the snapshot is archived, and VERI_SKILL_UNPINNED is not exported ⟦criterion 1⟧
+- once rebase-onto-default.sh, issue-worktree.sh and invisible_work.py gain the same `ls-remote --symref origin HEAD` resolution (plan steps 3–11), extract it into one shared lib function, removing the duplicate of run-conductor.sh:77-81
+- test-only | fold run-conductor.test.sh:717-722's record-exists / record-equals-tip checks into a shared assert helper used by the other pinned-launch cases

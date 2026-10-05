@@ -1,6 +1,6 @@
 # Plan for #865 — without origin/HEAD, run-conductor runs unpinned and rebase-onto-default, issue-worktree and invisible-work guess or fail unnamed
 
-- [x] run-conductor.sh, with an origin remote, no refs/remotes/origin/HEAD, and a remote whose HEAD names its default branch, pins the run to that branch's tip: the skill-commit record is written, the snapshot is archived, and VERI_SKILL_UNPINNED is not exported ⟦criterion 1⟧ ⟂ refactor pending
+- [x] run-conductor.sh, with an origin remote, no refs/remotes/origin/HEAD, and a remote whose HEAD names its default branch, pins the run to that branch's tip: the skill-commit record is written, the snapshot is archived, and VERI_SKILL_UNPINNED is not exported ⟦criterion 1⟧
 - [ ] run-conductor.sh, with an origin remote, no refs/remotes/origin/HEAD, and a remote whose default branch cannot be resolved, exits 2 before launching the conductor with stderr naming refs/remotes/origin/HEAD, and never runs unpinned ⟦criterion 2⟧
 - [ ] rebase-onto-default.sh with no refs/remotes/origin/HEAD resolves the default branch from the remote and answers exit 3, 0 or 1 by the same rules as when the ref is set ⟦criterion 3⟧
 - [ ] rebase-onto-default.sh with no refs/remotes/origin/HEAD and a remote whose default cannot be resolved exits 2 with stderr naming refs/remotes/origin/HEAD, HEAD unchanged and no rebase started ⟦criterion 3⟧
