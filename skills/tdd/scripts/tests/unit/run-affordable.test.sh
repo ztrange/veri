@@ -133,6 +133,17 @@ for arg in "" two 1.5; do
 done
 verdict "a missing or non-whole-number <steps-remaining> exits 2 printing nothing"
 
+: > "$work/.tdd/events.jsonl"
+three_full_steps
+run_affordable -- two
+expect_code 2
+expect_silent "<steps-remaining> 'two'"
+printf '%s\n' "run-affordable.sh: <steps-remaining> is not a whole number: 'two'" \
+  "usage: run-affordable.sh <steps-remaining> (a whole number)" > "$work/want-stderr"
+cmp -s "$work/want-stderr" "$work/stderr" ||
+  problems+="    want stderr '$(cat "$work/want-stderr")', got '$err'"$'\n'
+verdict "run-affordable.sh two exits 2 with nothing on stdout and the refusal then the usage line on stderr"
+
 rm -f "$work/.tdd/events.jsonl"
 run_affordable VERI_RUN_BUDGET=50 -- 3
 expect_code 2
