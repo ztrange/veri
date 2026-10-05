@@ -608,9 +608,18 @@ scan_rebase_verifier_last_done() {
 run_case "#753 the verify-rebase launch line in $skill_md, run with every ledger step ticked, hands its verifier the last done step's text as --step, byte-identical" \
   scan_rebase_verifier_last_done
 
+prompt_step_arg() {
+  local rec k
+  mapfile -t rec < "$seen.build-develop-prompt" 2>/dev/null || rec=()
+  for (( k = 1; k + 1 < ${#rec[@]}; k++ )); do
+    [[ "${rec[k]}" != *-spec.md ]] || { printf '%s' "${rec[k+1]}"; return; }
+  done
+  printf '<no step argument>'
+}
+
 scan_develop_last_done() {
   local phase="$1" title="$EXPANDING_STEP"
-  local lineno line numbered launch stage seen tree err got argv rec k want
+  local lineno line numbered launch stage seen tree err got argv want
   stage_recorder "develop-$phase-last-done"
   rm -f "$stage/build-develop-prompt.sh"
   ln -s "$RECORDERS/title.sh" "$stage/build-develop-prompt.sh"
@@ -623,11 +632,7 @@ scan_develop_last_done() {
     no_launch "build-develop-prompt.sh $phase into .tdd/develop-$phase.prompt"
   elif take_line "$numbered" "$title"; then
     run_staged '<no prompt was built>'
-    want='<no step argument>'
-    mapfile -t rec < "$seen.build-develop-prompt" 2>/dev/null || rec=()
-    for (( k = 1; k + 1 < ${#rec[@]}; k++ )); do
-      [[ "${rec[k]}" != *-spec.md ]] || { want="${rec[k+1]}"; break; }
-    done
+    want="$(prompt_step_arg)"
     [[ "$want" == "$title" ]] ||
       problem "built the develop-$phase prompt beside a ledger with every step ticked, passing build-develop-prompt.sh the step <$want>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})"
   fi
@@ -650,7 +655,7 @@ run_case "#892 the develop-reconcile block of Reconciling a rejected push in $sk
 
 scan_revise_last_done() {
   local title="$EXPANDING_STEP"
-  local lineno line numbered launch stage seen tree err got argv rec k want which pattern
+  local lineno line numbered launch stage seen tree err got argv want which pattern
   stage_recorder revise-last-done
   rm -f "$stage/build-develop-prompt.sh" "$stage/event.sh"
   ln -s "$RECORDERS/title.sh" "$stage/build-develop-prompt.sh"
@@ -679,11 +684,7 @@ scan_revise_last_done() {
         [[ "$got" == "$title" ]] ||
           problem "marked the revise event beside a ledger with every step ticked with VERI_STEP=<$got>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})" ;;
       prompt)
-        want='<no step argument>'
-        mapfile -t rec < "$seen.build-develop-prompt" 2>/dev/null || rec=()
-        for (( k = 1; k + 1 < ${#rec[@]}; k++ )); do
-          [[ "${rec[k]}" != *-spec.md ]] || { want="${rec[k+1]}"; break; }
-        done
+        want="$(prompt_step_arg)"
         [[ "$want" == "$title" ]] ||
           problem "built the revise prompt beside a ledger with every step ticked, passing build-develop-prompt.sh the step <$want>, want the last done step <$title> (the launching shell said: ${err//$'\n'//})" ;;
       *)
