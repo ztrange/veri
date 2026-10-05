@@ -60,6 +60,7 @@ def main(argv):
     if refused_if_empty("VERI_LABEL") or refused_if_empty("VERI_PRIORITY_LABEL"):
         return 2
     label = os.environ.get("VERI_LABEL", "ready-for-agent")
+    priority = os.environ.get("VERI_PRIORITY_LABEL", "priority")
     scope = ["--repo", repo] if repo else []
     prefix = "repos/%s" % (repo or "{owner}/{repo}")
     try:
@@ -72,9 +73,13 @@ def main(argv):
     claimed = {int(n) for pr in items(prs) if is_open(pr) for n in re.findall(r"\bCloses #(\d+)", pr["body"] or "")}
     open_issues = {issue["number"] for issue in issues if is_open(issue)}
     main_tree = main_working_tree()
-    for issue in issues:
-        if (is_open(issue) and carries(issue, label) and issue["number"] not in claimed
-                and not in_flight(main_tree, issue["number"])
-                and all(n not in open_issues for n in blocked_by.blockers(issue.get("body") or "", repo or ""))):
-            print(issue["number"])
+    survivors = [issue for issue in issues
+                 if is_open(issue) and carries(issue, label) and issue["number"] not in claimed
+                 and not in_flight(main_tree, issue["number"])
+                 and all(n not in open_issues for n in blocked_by.blockers(issue.get("body") or "", repo or ""))]
+    if not survivors:
+        return 3
+    for issue in sorted(survivors, key=lambda issue: (0 if carries(issue, priority) else 1 if carries(issue, "bug") else 2,
+                                                       issue["number"])):
+        print(issue["number"])
     return 0
