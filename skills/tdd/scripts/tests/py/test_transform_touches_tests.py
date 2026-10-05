@@ -43,3 +43,59 @@ def test_main_refuses_a_missing_or_unresolvable_base_sha_with_exit_2_and_the_usa
     assert (code, captured.out, captured.err) == (
         2, "",
         "transform-touches-tests.sh: base-sha does not resolve to a commit: nosuch\n" + USAGE)
+
+
+def test_main_asks_git_to_resolve_the_base_then_reads_the_range_and_names_its_test_files(
+        monkeypatch, capsys, transform_touches_tests):
+    calls = []
+    log = {"text": ""}
+
+    def as_requested(text, kwargs):
+        wants_str = kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")
+        return text if wants_str else text.encode()
+
+    def fake_run(args, *rest, **kwargs):
+        args = list(args)
+        calls.append((args, kwargs))
+        if args[:2] == ["git", "log"]:
+            return subprocess.CompletedProcess(args, 0, as_requested(log["text"], kwargs), None)
+        if args[:1] == ["sort"]:
+            given = kwargs.get("input") or ""
+            given = given.decode() if isinstance(given, bytes) else given
+            lines = sorted(set(line for line in given.split("\n") if line))
+            joined = "".join(line + "\n" for line in lines)
+            return subprocess.CompletedProcess(args, 0, as_requested(joined, kwargs), None)
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    def refused(*args, **kwargs):
+        raise AssertionError(f"unexpected subprocess entry: {args!r}")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    for entry in ("Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, entry, refused)
+
+    answers = {}
+    for name, text, argv in (
+            ("clean", "src/a.sh\n\nsrc/b.py\n", ["HEAD~1"]),
+            ("touched", "tests/widget.test.sh\nsrc/a.sh\n", ["HEAD~1"]),
+            ("extra", "tests/widget.test.sh\nsrc/a.sh\n", ["HEAD~1", "extra"])):
+        calls.clear()
+        log["text"] = text
+        code = transform_touches_tests.main(argv)
+        captured = capsys.readouterr()
+        answers[name] = (code, captured.out, captured.err, list(calls))
+
+    for name, (_, _, _, made) in answers.items():
+        resolve_args, resolve_kwargs = made[0]
+        assert (name, resolve_args, resolve_kwargs.get("stdout"), resolve_kwargs.get("stderr"),
+                bool(resolve_kwargs.get("capture_output")), resolve_kwargs.get("cwd")) == (
+            name, ["git", "rev-parse", "--verify", "--quiet", "HEAD~1^{commit}"],
+            subprocess.DEVNULL, None, False, None)
+        git_calls = [(args, kwargs.get("cwd")) for args, kwargs in made if args[:1] == ["git"]]
+        assert (name, git_calls) == (name, [
+            (["git", "rev-parse", "--verify", "--quiet", "HEAD~1^{commit}"], None),
+            (["git", "log", "--format=", "--name-only", "HEAD~1..HEAD"], None)])
+
+    assert answers["clean"][:3] == (0, "", "")
+    assert answers["touched"][:3] == (1, "transform changed a test file: tests/widget.test.sh\n", "")
+    assert answers["extra"][:3] == answers["touched"][:3]
