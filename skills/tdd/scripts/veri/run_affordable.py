@@ -29,7 +29,7 @@ def main(argv):
     ceiling = float(budgets.splitlines()[-1])
     status, steps = _sibling("step-cost.sh", "--steps")
     if status:
-        return status
+        return status if status == 3 else 2
     spent = 0.0
     full = []
     for line in sorted(steps.splitlines(), key=lambda line: (float(line.split()[0]), line)):

@@ -106,7 +106,7 @@ def test_main_runs_step_budget_then_step_cost_beside_its_scripts_and_passes_thei
         (5, 0, 2, both[:1]),
         (0, 3, 3, both),
         (0, 2, 2, both),
-        (0, 1, 1, both),
+        (0, 1, 2, both),
         (0, 5, 2, both),
     ):
         calls = answer("12\n50\n", budget_status, cost_status)

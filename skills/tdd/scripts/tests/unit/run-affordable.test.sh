@@ -135,4 +135,12 @@ grep -F -- "cannot read .tdd/events.jsonl in $work " <<< "$err" > /dev/null ||
 work="$in_place_work"
 verdict "run through a symlink to the skill directory from another working directory, it answers as in place and reads that directory's event log"
 
+: > "$work/.tdd/events.jsonl"
+three_full_steps
+step_leaves $'step \xff' 1.00 1.00 1.00
+run_affordable VERI_RUN_BUDGET=50 -- 4
+expect_code 2
+expect_silent "an event log step-cost.sh fails on"
+verdict "#818: step-cost.sh failing with 1 on an event log holding a non-UTF-8 byte exits 2 printing nothing"
+
 finish
