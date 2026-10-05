@@ -27,8 +27,7 @@ is then lost. To see the committed version of a file, read it with `git show HEA
 to compare a whole tree against it, make a throwaway checkout with
 `git worktree add --detach <scratch> HEAD` and remove it afterwards. Never undo a probe with
 `git checkout -- <file>` or `git restore`: both copy the file back from the index, so they also
-throw away the step's uncommitted work. Copy the file aside with `cp <file> <file>.orig` before
-the mutation and put it back with `mv <file>.orig <file>` after.
+throw away the step's uncommitted work. {{INCLUDE:_probe-restore.md}}
 
 **Never change global or user-level configuration** — not git's (`git config --global`,
 `~/.gitconfig`), not your shell's, not `~/.claude`. It is shared with the operator and with

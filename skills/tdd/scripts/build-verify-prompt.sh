@@ -128,6 +128,7 @@ done
 tpl="$(cat "$tpl_file")"
 resolve_includes tpl "$HERE/prompts"
 shared="$(cat "$shared_file")"
+resolve_includes shared "$HERE/prompts"
 spec="$(cat "$spec_file")"
 optional() {
   local content=""
@@ -138,6 +139,8 @@ optional bug_reproduction "$bug_file"
 optional refactor_plan "$refactor_plan_file"
 optional replaces_case "$replaces_file" $'\n\n'
 optional suite_repair "$suite_repair_file" $'\n\n'
+resolve_includes replaces_case "$HERE/prompts"
+resolve_includes suite_repair "$HERE/prompts"
 ledger=""
 if [[ "$phase" == plan ]]; then
   ledger="$(cat "$test_path")"
