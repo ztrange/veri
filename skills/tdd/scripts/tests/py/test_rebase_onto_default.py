@@ -123,3 +123,26 @@ def test_main_falls_back_to_the_remote_symref_only_when_the_local_read_fails_and
     code, out, calls, _ = run((0, f"ref: refs/heads/origin/x\tHEAD\n{ONTO}\tHEAD\n"))
     assert names_a_default(calls) == ["git ls-remote origin refs/heads/origin/x",
                                       "git rev-parse origin/origin/x"]
+
+
+def test_main_refuses_with_2_and_the_not_set_line_before_any_fetch_when_no_default_branch_resolves_or_git_cannot_start(
+        monkeypatch, capsys, rebase_onto_default):
+    refusal = ("rebase-onto-default: refs/remotes/origin/HEAD is not set — "
+               "no default branch to rebase onto\n")
+    symref = "git ls-remote --symref origin HEAD"
+    calls = fake_git(monkeypatch, **{
+        "git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD": (1, ""),
+        symref: (0, f"{ONTO}\tHEAD\n")})
+    code = rebase_onto_default.main([])
+    captured = capsys.readouterr()
+    assert (code, captured.out, captured.err) == (2, "", refusal)
+    assert calls[calls.index(symref) + 1:] == []
+
+    def no_git(args, **kwargs):
+        raise FileNotFoundError(2, "No such file or directory", "git")
+
+    monkeypatch.setattr(subprocess, "run", no_git)
+    code = rebase_onto_default.main([])
+    captured = capsys.readouterr()
+    assert (code, captured.out) == (2, "")
+    assert captured.err.endswith(refusal)
