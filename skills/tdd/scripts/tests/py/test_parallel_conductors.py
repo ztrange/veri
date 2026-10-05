@@ -4,6 +4,7 @@ import json
 import os
 import pathlib
 import shutil
+import signal
 import subprocess
 import sys
 import threading
@@ -445,3 +446,71 @@ def test_slots_fill_from_a_fresh_solvable_issues_answer_up_to_the_cap_and_the_ex
     if stopped is not None:
         assert [line for line in out.splitlines() if line.startswith("stopped: ")] == [stopped]
     assert (work / ".tdd" / "parallel.exit").read_text() == "%d\n" % code
+
+
+@pytest.mark.parametrize("budget, kills, launched, restarted", [
+    ("100", [(FakeSupervisor.pid, signal.SIGTERM)], ["7", "7"], ["restarted 7"]),
+    ("101", [], ["7"], []),
+], ids=["over-budget", "at-budget-disarms"])
+def test_a_user_line_after_the_step_done_call_stops_a_conductor_over_the_context_budget_and_relaunches_it_past_the_cap(
+        budget, kills, launched, restarted, capsys, monkeypatch, tmp_path, parallel_conductors):
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", budget)
+    monkeypatch.setenv("VERI_MAX_ISSUES", "1")
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(gh))
+    work = tmp_path / "repo"
+    (work / ".tdd").mkdir(parents=True)
+    monkeypatch.chdir(work)
+    log = work / ".tdd" / "conductor-7.log"
+    step_done = (b'{"type":"assistant","message":{"content":[{"type":"tool_use","input":{"command":'
+                 b'"skills/tdd/scripts/event.sh step-done 3"}}],"usage":{"cache_creation_input_tokens":1,'
+                 b'"cache_read_input_tokens":100}}}\n')
+    later = b'{"type":"assistant","message":{"usage":{"cache_creation_input_tokens":0,"cache_read_input_tokens":500}}}\n'
+    user = b'{"type":"user","message":{"content":[{"type":"tool_result","content":"ok"}]}}\n'
+    launches, sleeps = [], [0]
+
+    def on_launch(sup):
+        launches.append(sup.args[-1])
+        if len(launches) == 1:
+            log.write_bytes(step_done)
+        else:
+            log.write_bytes(b"")
+            sup.exit(0)
+
+    def on_sleep(supervisors):
+        first = supervisors[0]
+        if first.returncode is not None:
+            return
+        sleeps[0] += 1
+        if sleeps[0] == 1:
+            with open(log, "ab") as f:
+                f.write(user)
+        elif sleeps[0] == 2:
+            with open(log, "ab") as f:
+                f.write(later + user)
+        elif sleeps[0] >= 5:
+            first.exit(0)
+
+    supervisors = _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7 8\n"))
+    sent = []
+
+    def recording_kill(pid, sig):
+        sent.append((pid, sig))
+        live = [s for s in supervisors if s.pid == pid and s.returncode is None]
+        if not live:
+            raise ProcessLookupError(pid)
+        if sig == signal.SIGTERM:
+            live[0].exit(143)
+
+    monkeypatch.setattr(os, "kill", recording_kill)
+
+    code = parallel_conductors.main([])
+    out, _ = capsys.readouterr()
+
+    assert ([s for s in sent if s[1] == signal.SIGTERM], launches,
+            [line for line in out.splitlines() if line.startswith("restarted ")]) == (kills, launched, restarted)
+    assert code in (0, 1, 2, 3)

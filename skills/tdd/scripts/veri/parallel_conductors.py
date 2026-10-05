@@ -2,6 +2,7 @@
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -30,6 +31,9 @@ class _Conductor:
                                     stdout=subprocess.DEVNULL, env=env)
         self.read = 0
         self.part = b""
+        self.context = 0
+        self.armed = False
+        self.stopped = False
 
     def follow(self):
         alive = self.sup.poll() is None
@@ -41,22 +45,30 @@ class _Conductor:
             chunk = b""
         self.read += len(chunk)
         *whole, self.part = (self.part + chunk).split(b"\n")
-        _watch_context(self.n, whole)
+        self._watch_context(whole)
         return alive
+
+    def _watch_context(self, lines):
+        for line in lines:
+            if self.armed and b'"type":"user"' in line:
+                self.armed = False
+                if self.context > int(os.environ.get("VERI_CONDUCTOR_CTX_BUDGET") or "120000"):
+                    os.kill(self.sup.pid, signal.SIGTERM)
+                    self.stopped = True
+                continue
+            if b'"type":"assistant"' not in line:
+                continue
+            cache_read = CACHE_READ.search(line)
+            cache_creation = CACHE_CREATION.search(line) if cache_read else None
+            if cache_creation:
+                self.context = int(cache_read.group(1)) + int(cache_creation.group(1))
+                print("context %s %d" % (self.n, self.context), flush=True)
+            if b"event.sh step-done" in line:
+                self.armed = True
 
 
 def _run_timeout():
     return os.environ.get("VERI_RUN_TIMEOUT") or "14400"
-
-
-def _watch_context(n, lines):
-    for line in lines:
-        if b'"type":"assistant"' not in line:
-            continue
-        cache_read = CACHE_READ.search(line)
-        cache_creation = CACHE_CREATION.search(line) if cache_read else None
-        if cache_creation:
-            print("context %s %d" % (n, int(cache_read.group(1)) + int(cache_creation.group(1))), flush=True)
 
 
 def _finish(code):
@@ -141,6 +153,9 @@ def _run():
         for c in done:
             in_flight.remove(c)
             codes[c.n] = c.sup.wait()
+            if c.stopped:
+                print("restarted %s" % c.n, flush=True)
+                in_flight.append(_Conductor(c.n))
         if not done:
             time.sleep(1)
 
