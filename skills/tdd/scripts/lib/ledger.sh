@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# lib/ledger.sh — sourced, not run: defines `ledger_steps`, `ledger_fields`, `ledger_tick`,
-# `ledger_clear_pending` and `ledger_add_step`.
+# lib/ledger.sh — sourced, not run: defines `ledger_steps`, `ledger_fields`, `ledger_first_step`,
+# `ledger_tick`, `ledger_clear_pending` and `ledger_add_step`.
 #
 # ledger_steps — stdin → one tab-separated record per step line, in document order:
 # index  state  kind  pending  added  criterion  text. `index` is 1-based over step lines only; `state` is `open` for
@@ -12,6 +12,10 @@
 #
 # ledger_fields <record> — assigns the caller's `index`, `state`, `kind`, `pending`, `added`, `criterion`
 # and `text` from one `ledger_steps` record.
+#
+# ledger_first_step <predicate> — stdin → the `text` of the first record for which the function
+# <predicate> succeeds, reading the fields `ledger_fields` assigns.
+# Exit: 0 a step was printed; 3 none matched, nothing printed.
 #
 # ledger_tick <matcher> [pending] — stdin → stdout: the first open step whose line contains <matcher>
 # (an empty matcher: the first open step) becomes `[x]`, and with `pending` also gains
@@ -87,6 +91,17 @@ ledger_fields() {
   pending="${rest%%$'\t'*}" rest="${rest#*$'\t'}"
   added="${rest%%$'\t'*}" rest="${rest#*$'\t'}"
   criterion="${rest%%$'\t'*}" text="${rest#*$'\t'}"
+}
+
+ledger_first_step() {
+  local record index state kind pending added criterion text
+  while IFS= read -r record; do
+    ledger_fields "$record"
+    "$1" || continue
+    printf '%s\n' "$text"
+    return 0
+  done < <(ledger_steps)
+  return 3
 }
 
 ledger_tick() {
