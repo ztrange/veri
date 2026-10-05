@@ -127,7 +127,11 @@ printf '%s\n' "$prompt" | "${CLAUDE_BIN:-claude}" -p \
   --permission-mode bypassPermissions || code=$?
 
 past_preflight() {
-  [[ -d ".tdd/wt/$issue" ]] && return 0
+  local wt=".tdd/wt/$issue" top
+  if top="$(git -C "$wt" rev-parse --show-toplevel 2>/dev/null)" &&
+     [[ "$top" == "$(cd "$wt" && pwd -P)" ]]; then
+    return 0
+  fi
   [[ -n "$(git for-each-ref --format='%(refname)' "refs/heads/tdd/$issue-*" 2>/dev/null)" ]]
 }
 past_preflight || rm -f "$record"
