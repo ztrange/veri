@@ -1149,28 +1149,5 @@ paged_run three
    && "$code" == "$one_code" && "$out" == "$one_out" ]] \
   && ok || no "#592 against a gh that serves open PRs over three pages on repos/{owner}/{repo}, the draft PR on the third, and refuses repositories/{id} with the proxy's 403, parallel-conductors.sh prints the same report and exit code as against a single-page fixture holding the same PRs ( [single page: exit=$one_code want 1, report '$(printf '%s' "$one_out" | tr '\n' '|')' want '#7 — bailed https://example.test/pull/7|stopped: #7 bailed'; three pages: exit=$code want $one_code, report '$(printf '%s' "$out" | tr '\n' '|')' want the same] $(tr '\n' '|' < "$work/gh26-three.out") )"
 
-empty_gh="$work/gh-empty"
-failing_rm="$work/failing-rm-bin"
-rc_scratch="$(scratch_dir)"
-mkdir -p "$failing_rm"
-solvable_fixture "$empty_gh"
-cat > "$failing_rm/mktemp" <<SH
-#!/bin/sh
-[ "\$*" = -d ] && { echo "$rc_scratch"; exit 0; }
-exec /usr/bin/mktemp "\$@"
-SH
-cat > "$failing_rm/rm" <<SH
-#!/bin/sh
-for arg in "\$@"; do
-  case "\$arg" in "$rc_scratch"*) : > "$work/rm-attempted"; exit 1 ;; esac
-done
-exec /bin/rm "\$@"
-SH
-chmod +x "$failing_rm/mktemp" "$failing_rm/rm"
-run_launcher "$empty_gh" "$stub" "$work/rm-trap.out" PATH="$failing_rm:$PATH"
-rm_attempted=no
-[[ -e "$work/rm-attempted" ]] && rm_attempted=yes
-[[ "$rm_attempted" == yes && "$code" == 2 ]] \
-  && ok || no "ends with exit 2 when its EXIT trap's own cleanup command (rm -rf \"\$rc_dir\") fails (code=$code want 2, failing rm reached=$rm_attempted want yes) $(tr '\n' '|' < "$work/rm-trap.out")"
 
 finish

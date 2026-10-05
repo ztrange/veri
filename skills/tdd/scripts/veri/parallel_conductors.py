@@ -1,8 +1,11 @@
 """parallel-conductors.sh's launcher, run in-process."""
+import contextlib
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -41,16 +44,32 @@ def _launch(n):
     return sup.wait()
 
 
+def _finish(code):
+    with contextlib.suppress(FileNotFoundError), open(os.path.join(".tdd", "parallel.exit"), "w") as f:
+        f.write("%d\n" % code)
+    return code
+
+
 def main(argv):
+    rc_dir = tempfile.mkdtemp()
+    code = _run()
+    try:
+        shutil.rmtree(rc_dir)
+    except OSError:
+        return 2
+    return code
+
+
+def _run():
     launched = []
     while True:
         solvable = subprocess.run([os.path.join(SCRIPTS, "solvable-issues.sh")], stdout=subprocess.PIPE, text=True)
         if solvable.returncode:
             print("stopped: nothing solvable", flush=True)
-            return 3
+            return _finish(3)
         n = next((c for c in solvable.stdout.split() if c not in launched), None)
         if n is None:
-            return 0
+            return _finish(0)
         launched.append(n)
         _launch(n)
 

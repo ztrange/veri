@@ -3,6 +3,7 @@ import importlib
 import json
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 import threading
@@ -164,3 +165,38 @@ def test_a_solvable_issues_exit_other_than_0_and_2_stops_with_nothing_solvable_a
 
     assert code == 3
     assert "stopped: nothing solvable" in out.splitlines()
+
+
+def test_a_failing_removal_of_the_run_s_scratch_directory_at_exit_returns_2_and_leaves_parallel_exit_holding_the_code_written_before_it(
+        capsys, monkeypatch, tmp_path, parallel_conductors):
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(gh))
+    work = tmp_path / "repo"
+    (work / ".tdd").mkdir(parents=True)
+    monkeypatch.chdir(work)
+    real_rmtree = shutil.rmtree
+    removals = []
+
+    def failing_rmtree(path, *args, **kwargs):
+        removals.append(str(path))
+        raise OSError("rm: %s: cannot remove" % path)
+
+    def on_launch(sup):
+        raise AssertionError("nothing should launch when solvable-issues.sh exits 5")
+
+    _boundaries(monkeypatch, tmp_path, on_launch, lambda supervisors: None, solvable=(5, ""))
+    monkeypatch.setattr(shutil, "rmtree", failing_rmtree)
+
+    code = parallel_conductors.main([])
+    capsys.readouterr()
+    monkeypatch.undo()
+    for path in removals:
+        real_rmtree(path, ignore_errors=True)
+
+    assert code == 2
+    assert removals, "the run's scratch directory was never removed"
+    assert (work / ".tdd" / "parallel.exit").read_text() == "3\n"
