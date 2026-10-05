@@ -30,6 +30,10 @@ def live_conductor(path):
     return pid
 
 
+def wt_path(main_tree, n):
+    return main_tree + "/.tdd/wt/" + n
+
+
 def main(argv):
     if len(argv) < 2 or not argv[0] or not argv[1]:
         sys.stderr.write(USAGE + "\n")
@@ -39,7 +43,7 @@ def main(argv):
         return to_contract(registry.returncode)
     main_tree = registry.stdout.split("\n", 1)[0].removeprefix("worktree ")
     if argv[0] == "--remove":
-        path = main_tree + "/.tdd/wt/" + argv[1]
+        path = wt_path(main_tree, argv[1])
         status = subprocess.run(["git", "-C", path, "status", "--porcelain"],
                                 stdout=subprocess.PIPE, stderr=sys.stderr, text=True)
         if status.stdout:
@@ -47,7 +51,7 @@ def main(argv):
             return 2
         removed = subprocess.run(["git", "worktree", "remove", path], stdout=sys.stderr, stderr=sys.stderr)
         return to_contract(removed.returncode)
-    path = main_tree + "/.tdd/wt/" + argv[0]
+    path = wt_path(main_tree, argv[0])
     if "worktree " + path in registry.stdout.split("\n"):
         pid = live_conductor(path)
         if pid is not None:
