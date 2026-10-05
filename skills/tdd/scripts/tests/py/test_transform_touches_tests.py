@@ -179,3 +179,57 @@ def test_main_reports_what_sort_u_on_path_prints_with_the_prefix_on_the_first_na
         "")
     assert sorts == [(["sort", "-u"],
                       "x.test.js\ntests/b.sh\npkg/tests/a.sh\nmy.test.dir\ntests/b.sh\n")]
+
+
+def test_main_ports_the_failure_paths_as_they_are_swallowed_git_log_closed_stdout_and_exceptions(
+        monkeypatch, capsys, transform_touches_tests):
+    calls = []
+    script = {"log_code": 0, "log_text": "", "raise": None}
+
+    def as_requested(text, kwargs):
+        wants_str = kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")
+        return text if wants_str else text.encode()
+
+    def fake_run(args, *rest, **kwargs):
+        args = list(args)
+        calls.append((args, kwargs))
+        if args[:2] == ["git", "log"]:
+            if script["raise"]:
+                raise script["raise"]
+            return subprocess.CompletedProcess(
+                args, script["log_code"], as_requested(script["log_text"], kwargs), None)
+        if args[:1] == ["sort"]:
+            given = kwargs.get("input") or ""
+            given = given.decode() if isinstance(given, bytes) else given
+            lines = sorted(set(line for line in given.split("\n") if line))
+            joined = "".join(line + "\n" for line in lines)
+            return subprocess.CompletedProcess(args, 0, as_requested(joined, kwargs), None)
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    def refused(*args, **kwargs):
+        raise AssertionError(f"unexpected subprocess entry: {args!r}")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    for entry in ("Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, entry, refused)
+
+    script.update(log_code=128, log_text="")
+    code = transform_touches_tests.main(["HEAD~1"])
+    captured = capsys.readouterr()
+    assert (code, captured.out, captured.err) == (0, "", "")
+    log_kwargs = [kwargs for args, kwargs in calls if args[:2] == ["git", "log"]]
+    assert [(kwargs.get("stderr"), bool(kwargs.get("capture_output"))) for kwargs in log_kwargs] == [
+        (None, False)]
+
+    open_stdout = sys.stdout
+    monkeypatch.setattr(sys, "stdout", None)
+    closed = {}
+    for name, text in (("touched", "tests/b.sh\nsrc/a.sh\n"), ("clean", "src/a.sh\n")):
+        script.update(log_code=0, log_text=text)
+        closed[name] = transform_touches_tests.main(["HEAD~1"])
+    monkeypatch.setattr(sys, "stdout", open_stdout)
+    assert closed == {"touched": 1, "clean": 0}
+
+    script["raise"] = RuntimeError("unexpected failure inside main")
+    with pytest.raises(RuntimeError, match="unexpected failure inside main"):
+        transform_touches_tests.main(["HEAD~1"])
