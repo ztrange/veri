@@ -86,7 +86,7 @@ def suite_of(f):
     if match(SCRIPTS + "/tests/fixtures/*"):
         return suites_naming(f[len(SCRIPTS + "/tests/"):])
     if match(SCRIPTS + "/prompts/*.md"):
-        return suites_naming(f[len(SCRIPTS + "/"):])
+        return suites_naming(f[len(SCRIPTS + "/"):]) + existing(SCRIPTS + "/tests/unit/emitted-text.test.sh")
     if match(SCRIPTS + "/lib/*.sh"):
         line = sourcing(basename(f).encode(), rb"(\\)?")
         found = []
