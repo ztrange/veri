@@ -408,4 +408,30 @@ bullets="$(grep -E '^- ' <<<"$body")"
 
 report "$name"
 
+name="#1058 refactor-overflow files no out-of-scope candidate the owed file records as applied, and still files an unapplied out-of-scope one beside it"
+problems=()
+
+applied_owed="$work/issue-1058-refactor-owed.md"
+"$OWED" append "$applied_owed" 'fourth step' <<'REPORT'
+CANDIDATES: out-of-scope | remove gh(), issue() and the subprocess import from coverage_blocker.py
+REPORT
+"$OWED" applied "$applied_owed" 'out-of-scope | remove gh(), issue() and the subprocess import from coverage_blocker.py' 1b4ed26
+
+overflow_case "with only an applied out-of-scope candidate in the owed file" 3 1058 "$applied_owed" 0
+
+"$OWED" append "$applied_owed" 'fifth step' <<'REPORT'
+CANDIDATES: out-of-scope | extract the five copies of the mktemp dance across the skill
+REPORT
+
+title_file="$work/title-applied" body_file="$work/body-applied"
+(cd "$work" && env PATH="$stubdir:$PATH" FAKE_TITLE="$title_file" FAKE_BODY="$body_file" \
+  "$OVERFLOW" 1058 "$applied_owed" 0 >"$out" 2>"$work/err") && code=0 || code=$?
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 with an unapplied out-of-scope candidate beside the applied one, got $code: $(cat "$work/err")")
+bullets="$(grep -E '^- ' "$body_file" 2>/dev/null)"
+[[ "$bullets" == "- extract the five copies of the mktemp dance across the skill" ]] ||
+  problems+=("want the body to list only the unapplied out-of-scope candidate, got '$bullets'")
+
+report "$name"
+
 finish

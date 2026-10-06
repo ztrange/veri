@@ -92,7 +92,10 @@ def owed_lines(file):
 def out_of_scope_transforms(file):
     if not os.path.isfile(file):
         return []
-    return [l[len(OUT_OF_SCOPE_MARK):] for l in owed_lines(file) if l.startswith(OUT_OF_SCOPE_MARK)]
+    lines = owed_lines(file)
+    done = applied_records(lines)
+    return [l[len(OUT_OF_SCOPE_MARK):] for l in lines
+            if l.startswith(OUT_OF_SCOPE_MARK) and OUT_OF_SCOPE_PREFIX + l[len(OUT_OF_SCOPE_MARK):] not in done]
 
 
 def applied_records(lines):
