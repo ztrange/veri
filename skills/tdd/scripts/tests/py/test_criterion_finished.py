@@ -147,3 +147,36 @@ def test_main_takes_a_steps_first_criterion_marker_and_reads_only_step_lines(
         "1 over a tab after the dash": 3,
         "1 over a last open line with no newline": 3,
     }
+
+
+def test_main_reads_stdin_as_bytes_dropping_nul_keeping_invalid_utf8_and_crlf(
+    monkeypatch, criterion_finished
+):
+    one = "⟦criterion 1⟧".encode()
+    answers = {}
+    for name, ledger in {
+        "a NUL inside an open box beside a ticked step": (
+            b"- [\x00 ] a " + one + b"\n- [x] b " + one + b"\n"
+        ),
+        "a \\xff byte in a ticked step": b"- [x] a \xff " + one + b"\n",
+        "a \\xff byte in an open step beside a ticked one": (
+            b"- [ ] a \xff " + one + b"\n- [x] b " + one + b"\n"
+        ),
+        "a pending mark followed by CRLF": (
+            b"- [x] a " + one + " ⟂ refactor pending\r\n".encode()
+        ),
+        "a pending mark followed by a space": (
+            b"- [x] a " + one + " ⟂ refactor pending \n".encode()
+        ),
+        "a CRLF open step": b"- [ ] a " + one + b"\r\n",
+    }.items():
+        fake_stdin(monkeypatch, ledger)
+        answers[name] = criterion_finished.main(["1"])
+    assert answers == {
+        "a NUL inside an open box beside a ticked step": 3,
+        "a \\xff byte in a ticked step": 0,
+        "a \\xff byte in an open step beside a ticked one": 3,
+        "a pending mark followed by CRLF": 0,
+        "a pending mark followed by a space": 0,
+        "a CRLF open step": 3,
+    }
