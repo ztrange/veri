@@ -20,6 +20,9 @@
 #      `leaf-timeout.sh ... --full` call comes after it.
 #   8. The Resume section has a sentence saying the baseline runs on the branch head, in its
 #      existing worktree, before any cycle of the resumed run.
+#   9. The line that writes `$PPID` to `.tdd/conductor.pid` comes after the `issue-worktree.sh`
+#      line that `cd`s into the worktree and before the first fast-tier baseline command
+#      (`detect-test-command.sh --tier fast` or `detach-command.sh start`) after it.
 #
 # Run: scripts/tests/skill-preflight-launchable.test.sh
 set -uo pipefail
@@ -51,6 +54,9 @@ red_phrase='red baseline'
 callers="caller's checkout"
 resume_heading='## Resume'
 branch_head='branch head'
+pid_write='> .tdd/conductor.pid'
+pid_value='"$PPID"'
+detach_start='detach-command.sh start'
 
 
 source "$HERE/lib/harness.sh"
@@ -235,6 +241,30 @@ if section "$resume_heading"; then
     problems+=("$skill_md's '$resume_heading' section has no sentence saying the baseline runs on the $branch_head in its existing worktree before any cycle of the resumed run")
 else
   problems+=("$skill_md has no '$resume_heading' section — where a resumed run's baseline is stated could not be read")
+fi
+
+report "$name"
+
+name="$skill_md takes the worktree's .tdd/conductor.pid lock in preflight step 3, after $enter_call and before the fast-tier baseline (#987)"
+problems=()
+
+enter_at="$(awk -v w="$worktree_call" -v c="$enter_call" 'index($0, w) && index($0, c) { print NR; exit }' "$md")"
+pid_at="$(awk -v w="$pid_write" -v v="$pid_value" 'index($0, w) && index($0, v) { print NR; exit }' "$md")"
+
+if [[ -z "$enter_at" ]]; then
+  problems+=("$skill_md has no line that runs $worktree_call and then $enter_call, so where the run enters the issue's worktree could not be read")
+elif [[ -z "$pid_at" ]]; then
+  problems+=("$skill_md has no line writing $pid_value $pid_write, so nothing locks the issue's worktree against a second conductor")
+else
+  base_at="$(awk -v s="$((enter_at + 1))" -v f="$fast_call" -v d="$detach_start" \
+    'NR >= s && (index($0, f) || index($0, d)) { print NR; exit }' "$md")"
+  if [[ -z "$base_at" ]]; then
+    problems+=("$skill_md names neither $fast_call nor $detach_start after line $enter_at enters the worktree, so where the baseline starts could not be read")
+  elif [[ "$pid_at" -lt "$enter_at" ]]; then
+    problems+=("$skill_md:$pid_at writes $pid_write before line $enter_at enters the worktree, so the lock lands in the caller's checkout")
+  elif [[ "$pid_at" -gt "$base_at" ]]; then
+    problems+=("$skill_md:$pid_at writes $pid_write after line $base_at starts the fast-tier baseline, so for the whole baseline issue-worktree.sh hands the worktree to a second conductor")
+  fi
 fi
 
 report "$name"

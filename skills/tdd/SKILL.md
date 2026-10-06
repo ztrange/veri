@@ -540,6 +540,7 @@ unauthenticated baseline never gets a cycle.
    preflight-class stop — and take its lock there before anything else:
    ```
    wt="$($S/issue-worktree.sh <n> <slug>)" && cd "$wt"
+   mkdir -p .tdd && printf '%s\n' "$PPID" > .tdd/conductor.pid
    ```
    Every run below happens in it, so the baseline proves the commit the branch is cut from —
    the freshly fetched `origin/<default>` for a new branch, the branch head on a resume — not
