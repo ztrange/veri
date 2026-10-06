@@ -1,0 +1,2 @@
+### With a fake `gh api` serving the issue listing in pages that shift between calls (an item closed and removed from the open-only listing after page 1 is served), solvable-issues.sh still prints every solvable issue the fake holds ⟦criterion 1⟧
+- test-only | in `solvable-issues.test.sh`, the shifting-pages case builds `missing` and `extra` with two `comm` pipelines that differ only in the `-23`/`-13` flag; a small helper could replace both, but the gain is two lines
