@@ -88,3 +88,37 @@ def test_main_reads_an_out_of_scope_candidate_and_never_prints_it_exiting_3_alon
             b"refactor-triage: candidate line has no class, or one that is neither structural nor cosmetic: "
             b"CANDIDATES: Out-of-scope | x\n"),
     }
+
+
+def test_main_reads_and_writes_bytes_keeping_a_last_line_without_newline_dropping_nul_passing_non_utf8_through_reading_no_break_space_as_not_whitespace_under_any_locale_and_ignoring_argv(
+        monkeypatch, capsysbinary, refactor_triage):
+    results = {}
+    for report in (
+            b"CANDIDATES: structural | a",
+            b"CANDIDATES: structural | a\0b\n",
+            b"CANDIDATES: structural | \377\n"):
+        fake_stdin(monkeypatch, report)
+        code = refactor_triage.main([])
+        results[report] = (code, *capsysbinary.readouterr())
+    for env in ({}, {"LC_ALL": "en_US.UTF-8"}, {"LC_CTYPE": "en_US.UTF-8"}, {"LANG": "en_US.UTF-8"}):
+        for name in ("LC_ALL", "LC_CTYPE", "LANG"):
+            monkeypatch.delenv(name, raising=False)
+        for name, value in env.items():
+            monkeypatch.setenv(name, value)
+        fake_stdin(monkeypatch, b"CANDIDATES:\xc2\xa0structural | a\n")
+        code = refactor_triage.main([])
+        results[tuple(env.items())] = (code, capsysbinary.readouterr().out)
+    fake_stdin(monkeypatch, b"CANDIDATES: structural | x\n")
+    code = refactor_triage.main(["foo", "bar"])
+    results["argv"] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        b"CANDIDATES: structural | a": (0, b"a\n", b""),
+        b"CANDIDATES: structural | a\0b\n": (0, b"ab\n", b""),
+        b"CANDIDATES: structural | \377\n": (0, b"\377\n", b""),
+        (): (2, b""),
+        (("LC_ALL", "en_US.UTF-8"),): (2, b""),
+        (("LC_CTYPE", "en_US.UTF-8"),): (2, b""),
+        (("LANG", "en_US.UTF-8"),): (2, b""),
+        "argv": (0, b"x\n", b""),
+    }
