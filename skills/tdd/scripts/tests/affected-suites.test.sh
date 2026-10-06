@@ -156,6 +156,22 @@ commit_head
 expect_suites "rule 1 via tests/unit/: a change to scripts/foo.sh prints exactly tests/unit/foo.test.sh" \
   "skills/tdd/scripts/tests/unit/foo.test.sh"
 
+make_repo rule1-no-suite
+mkdir -p "$s/tests"
+printf 'run\n' > "$s/run-suite.sh"
+printf '#!/usr/bin/env bash\nRUN="$HERE/../run-suite.sh"\n' > "$s/tests/run-suite-venv.test.sh"
+commit_base
+printf 'run 2\n' > "$s/run-suite.sh"
+commit_head
+out="$(run_affected 2>/dev/null)"; code=$?
+missing=""
+while IFS= read -r line; do
+  [[ -n "$line" && ! -e "$repo/$line" ]] && missing+="$line "
+done <<< "$out"
+if [[ ( "$code" == 0 || "$code" == 3 ) && -z "$missing" ]]; then ok; else
+  no "#1011: a change to a script with no same-named suite prints no path that does not exist (code=$code, missing=${missing:-<none>})"
+fi
+
 make_repo rule2
 mkdir -p "$s/tests" "$s/lib"
 printf 'bar_fn() { :; }\n' > "$s/lib/bar.sh"
@@ -395,6 +411,7 @@ counts_suite
 commit_base
 rm "$s/bar.sh"
 printf 'newbie\n' > "$s/newbie.sh"
+printf '# newbie suite\n' > "$s/tests/newbie.test.sh"
 commit_head
 expect_suites "a range that adds or deletes a script under scripts/ pulls in skills/tdd/scripts/tests/claude-md-counts.test.sh" \
   skills/tdd/scripts/tests/bar.test.sh \
@@ -447,7 +464,8 @@ expect_suites "#487: a comment that names a lib file is still not a dependency" 
   skills/tdd/scripts/tests/alpha.test.sh
 
 make_repo rule2-bug-section
-mkdir -p "$s/lib"
+mkdir -p "$s/lib" "$s/tests"
+for name in build-develop-prompt build-verify-prompt; do printf '# %s suite\n' "$name" > "$s/tests/$name.test.sh"; done
 for f in "$HERE"/../*.sh "$HERE/../lib/bug-section.sh"; do
   rel="${f#"$HERE"/../}"
   cat "$f" > "$s/$rel"
