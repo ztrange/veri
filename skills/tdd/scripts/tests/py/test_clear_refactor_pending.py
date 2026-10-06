@@ -38,3 +38,22 @@ def test_main_refuses_a_missing_or_empty_ledger_file_clears_the_first_matching_m
     }
     assert cleared.read_bytes() == "- [x] a\n- [x] b ⟂ refactor pending\n".encode()
     assert unmatched.read_bytes() == seed
+
+
+def test_main_writes_what_the_ledger_modules_ledger_clear_pending_returns_and_passes_it_the_matcher(
+        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
+    matchers = []
+
+    def substitute(text, matcher):
+        matchers.append(matcher)
+        return True, f"cleared by the module: {matcher}\n"
+
+    monkeypatch.setattr(sys.modules["ledger"], "ledger_clear_pending", substitute)
+    led = tmp_path / "issue-42.md"
+    led.write_bytes("- [x] collapse to single hyphen ⟂ refactor pending\n".encode())
+
+    code = clear_refactor_pending.main([str(led), "collapse to single hyphen"])
+
+    assert (code, *capsysbinary.readouterr()) == (0, b"", b"")
+    assert matchers == ["collapse to single hyphen"]
+    assert led.read_bytes() == b"cleared by the module: collapse to single hyphen\n"
