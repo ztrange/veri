@@ -398,3 +398,17 @@ def test_render_prints_no_heading_for_a_step_whose_only_leftovers_are_test_only_
         0, [], "### Test-only\n\n"
                "These change only files under tests/; the structural pass does not work them.\n\n"
                "- fold helper A\n")
+
+
+def test_render_prints_the_structural_steps_heading_and_bullet_and_not_a_test_only_steps_heading_989(
+        monkeypatch, capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    monkeypatch.setattr(sys, "stdin", io.StringIO("CANDIDATES: test-only | fold helper A\n"))
+    assert refactor_owed.main(["append", str(owed), "step one", "a.sh"]) == 0
+    monkeypatch.setattr(sys, "stdin", io.StringIO("CANDIDATES: structural | real one\n"))
+    assert refactor_owed.main(["append", str(owed), "step two", "b.sh"]) == 0
+
+    code = refactor_owed.main(["render", str(owed)])
+    out = capsys.readouterr().out
+    assert (code, [l for l in out.splitlines() if l == "### step one"],
+            "### step two\n- real one\n" in out) == (0, [], True)
