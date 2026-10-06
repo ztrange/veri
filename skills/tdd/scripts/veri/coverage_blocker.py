@@ -5,6 +5,11 @@ import subprocess
 import sys
 import tempfile
 
+try:
+    from github import NoAnswer, gh_issue_view
+except ImportError:
+    from .github import NoAnswer, gh_issue_view
+
 USAGE = "usage: coverage-blocker.sh <refactor-issue-number>"
 ISSUES = "repos/{owner}/{repo}/issues"
 
@@ -18,13 +23,9 @@ def issue(number):
 
 
 def read_body(number):
-    view = gh("issue", "view", number, "--json", "body", "-q", ".body", stderr=subprocess.DEVNULL)
-    if view.returncode == 0:
-        return view.stdout
     try:
-        return json.loads(gh("api", issue(number)).stdout)["body"] or ""
-    except json.JSONDecodeError as error:
-        print("json.decoder.JSONDecodeError: %s" % error, file=sys.stderr)
+        return gh_issue_view(number, "body")
+    except NoAnswer:
         return None
 
 
