@@ -20,8 +20,8 @@ skill_md="skills/tdd/SKILL.md"
 source "$HERE/lib/harness.sh"
 
 section() {
-  awk -v want="$1" '
-    $0 ~ want { inside = 1; print; next }
+  want="$1" awk '
+    $0 ~ ENVIRON["want"] { inside = 1; print; next }
     inside && /^### / { exit }
     inside' "$ROOT/$skill_md"
 }
@@ -143,5 +143,10 @@ else
   done
 fi
 report "$name"
+
+name="#1037: section given '^### run\\.sh' starts at '### run.sh', not at '### runXsh'"
+fixture="$(scratch_dir)"
+printf '### runXsh\nwrong\n### run.sh\nright\n### end\n' > "$fixture/SKILL.md"
+expect_eq "$name" $'### run.sh\nright' "$(ROOT="$fixture" skill_md=SKILL.md section '^### run\.sh')"
 
 finish
