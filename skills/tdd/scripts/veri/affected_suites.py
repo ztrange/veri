@@ -129,10 +129,11 @@ def main(argv):
         if git("rev-parse", "--verify", "--quiet", rev + "^{commit}", stdout=subprocess.DEVNULL).returncode != 0:
             return refuse("affected-suites: cannot resolve revision '%s'" % rev)
 
+    working_tree = ".." not in range_
     code, files = changed(range_)
     if code != 0:
         return code if code in (1, 2, 3) else 2
-    if ".." not in range_:
+    if working_tree:
         _, new = untracked()
         files = "\n".join(f for f in [files, new] if f)
     if not files:
@@ -147,7 +148,7 @@ def main(argv):
 
     counting = ("--", SCRIPTS + "/tests", ":(glob)%s/*.sh" % SCRIPTS)
     _, counted = changed(range_, "--diff-filter=AD", *counting)
-    if ".." not in range_ and not counted:
+    if working_tree and not counted:
         _, counted = untracked(*counting)
     if counted:
         placed.append(SCRIPTS + "/tests/claude-md-counts.test.sh")
