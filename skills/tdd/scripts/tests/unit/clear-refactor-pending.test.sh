@@ -62,6 +62,29 @@ else
   printf '    stdout: %s\n' "$(cat "$work/out")"
 fi
 
+ln -s "$(cd "$HERE/../../.." && pwd)" "$work/skill-link"
+mkdir -p "$work/caller" "$work/inplace"
+printf '%s\n' "$ledger" > "$work/caller/issue-42.md"
+printf '%s\n' "$ledger" > "$work/inplace/issue-42.md"
+"$CLEAR" "$work/inplace/issue-42.md" "collapse to single hyphen" > "$work/in-out" 2> "$work/in-err" && in_code=0 || in_code=$?
+(cd "$work/caller" && "$work/skill-link/scripts/clear-refactor-pending.sh" issue-42.md "collapse to single hyphen") \
+  > "$work/ln-out" 2> "$work/ln-err" && ln_code=0 || ln_code=$?
+printf '%s\n' '# Plan for #42
+
+- [x] add the slugify lowercasing ⟂ refactor pending
+- [x] collapse to single hyphen
+- [x] collapse to single hyphen (again)
+- [ ] percent-encode the remainder' > "$work/want.md"
+if [[ "$ln_code" == "$in_code" && "$ln_code" == 0 ]] && cmp -s "$work/in-out" "$work/ln-out" \
+  && cmp -s "$work/in-err" "$work/ln-err" && cmp -s "$work/want.md" "$work/caller/issue-42.md" \
+  && cmp -s "$work/inplace/issue-42.md" "$work/caller/issue-42.md"; then
+  ok
+else
+  no "through a symlinked skill directory from another working directory, a relative ledger is cleared as in place (in place exit $in_code, through link exit $ln_code)"
+  diff "$work/want.md" "$work/caller/issue-42.md" | sed 's/^/    /'
+  printf '    stdout: %s\n    stderr: %s\n' "$(cat "$work/ln-out")" "$(cat "$work/ln-err")"
+fi
+
 stub="$work/stub"
 mkdir -p "$stub/lib"
 cp "$CLEAR" "$stub/clear-refactor-pending.sh"
