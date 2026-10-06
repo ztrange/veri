@@ -23,7 +23,7 @@ source "$HERE/lib/section-end.sh"
 
 sec_start=0 sec_end=0
 section() {
-  sec_start="$(awk -v h="$1" 'index($0, h) == 1 { print NR; exit }' "$md")"
+  sec_start="$(h="$1" awk 'index($0, ENVIRON["h"]) == 1 { print NR; exit }' "$md")"
   [[ -n "$sec_start" ]] || { sec_end=0; return 1; }
   sec_end="$(section_end "$md" "$sec_start")"
   return 0
