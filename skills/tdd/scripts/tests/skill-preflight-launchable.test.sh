@@ -23,6 +23,10 @@
 #   9. The line that writes `$PPID` to `.tdd/conductor.pid` comes after the `issue-worktree.sh`
 #      line that `cd`s into the worktree and before the first fast-tier baseline command
 #      (`detect-test-command.sh --tier fast` or `detach-command.sh start`) after it.
+#  10. The paragraph naming the **worktree guard** has a sentence naming the lock,
+#      `preflight step 3` and `before the baseline`; no sentence of step 1.2's item pairs a
+#      take/write verb with the word `here`, and no sentence anywhere says `step 1.2 takes`
+#      (or writes, locks) or `taken in step 1.2` (or written, took, wrote).
 #
 # Run: scripts/tests/skill-preflight-launchable.test.sh
 set -uo pipefail
@@ -57,6 +61,9 @@ branch_head='branch head'
 pid_write='> .tdd/conductor.pid'
 pid_value='"$PPID"'
 detach_start='detach-command.sh start'
+guard_name='**worktree guard**'
+step1_heading='### 1. Read the issue'
+slug_item='**Derive the slug'
 
 
 source "$HERE/lib/harness.sh"
@@ -266,6 +273,43 @@ else
     problems+=("$skill_md:$pid_at writes $pid_write after line $base_at starts the fast-tier baseline, so for the whole baseline issue-worktree.sh hands the worktree to a second conductor")
   fi
 fi
+
+report "$name"
+
+name="$skill_md's worktree-guard prose says the lock is taken in preflight step 3, before the baseline, and never in step 1.2 (#987)"
+problems=()
+
+sentences() {
+  tr '\n' ' ' | awk '{ gsub(/  +/, " "); gsub(/[.] /, ".\n"); print }'
+}
+
+guard_at="$(awk -v g="$guard_name" 'index($0, g) { print NR; exit }' "$md")"
+if [[ -z "$guard_at" ]]; then
+  problems+=("$skill_md never names the $guard_name, so the prose explaining the lock could not be read")
+else
+  says="$(paragraph_around "$guard_at" | sentences | grep -iF 'lock' | grep -iF 'preflight step 3' | grep -iF 'before the baseline')"
+  [[ -n "$says" ]] ||
+    problems+=("$skill_md:$guard_at's $guard_name paragraph has no sentence naming the lock, 'preflight step 3' and 'before the baseline'")
+fi
+
+if section "$step1_heading"; then
+  slug_at="$(call_at "$slug_item")"
+  if [[ -z "$slug_at" ]]; then
+    problems+=("$skill_md's '$step1_heading' section has no '$slug_item' item, so step 1.2 could not be read")
+  else
+    here="$(item_around "$slug_at" | sentences |
+      grep -iE '(^|[^[:alpha:]])(takes?|took|taken|writes?|wrote|written|overwrites?)([^[:alpha:]]|$)' |
+      grep -iE '(^|[^[:alpha:]])here([^[:alpha:]]|$)')"
+    [[ -z "$here" ]] ||
+      problems+=("$skill_md:$slug_at's step 1.2 says the lock is taken there: $here")
+  fi
+else
+  problems+=("$skill_md has no '$step1_heading' section, so step 1.2 could not be read")
+fi
+
+elsewhere="$(sentences < "$md" | grep -iE 'step 1\.2 (takes|writes|locks)|(taken|written|took|wrote) in step 1\.2')"
+[[ -z "$elsewhere" ]] ||
+  problems+=("$skill_md says the lock is taken in step 1.2: $elsewhere")
 
 report "$name"
 
