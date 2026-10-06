@@ -72,7 +72,10 @@ def ledger_step_index(issue, step):
     except OSError as error:
         print(f"preserve-attempt.sh: {ledger}: {error.strerror}", file=sys.stderr)
         return step
-    return next((record[0] for record in ledger_steps(text) if step in record[6]), step)
+    records = ledger_steps(text)
+    if any(record[0] == step for record in records):
+        return step
+    return next((record[0] for record in records if step in record[6]), step)
 
 
 def sanitised(step_ref):
