@@ -21,6 +21,7 @@ probe_no_suite_passes_a_pattern_through_awk_v() {
     while IFS= read -r hit; do
       lineno="${hit%%:*}"
       text="${hit#*:}"
+      [[ "$text" =~ ^[[:space:]]*# ]] && continue
       problems+=("$name:$lineno passes awk a pattern through -v, which drops its backslashes: $text")
     done < <(grep -n 'awk' "$f")
   done
@@ -62,5 +63,19 @@ planted_match_named=""
 probe_a_planted_awk_v_pattern
 
 expect_eq "$name" "named named" "$planted_tilde_named $planted_match_named"
+
+probe_a_planted_comment_quoting_awk_v() {
+  local ROOT
+  plant "$PLANT_REL" '#!/usr/bin/env bash' "# awk -v re=\"\$1\" … \$0 ~ re"
+  probe_no_suite_passes_a_pattern_through_awk_v
+  planted_comment_named="$(problem_naming "planted.test.sh:2")"
+}
+
+name="a planted suite whose comment line only quotes an awk -v pattern site leaves the guard green (#1037)"
+planted_comment_named=""
+
+probe_a_planted_comment_quoting_awk_v
+
+expect_eq "$name" "not named" "$planted_comment_named"
 
 finish
