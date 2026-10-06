@@ -14,14 +14,15 @@ def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
         return 2
-    with open(argv[0], newline="") as file:
-        cleared, new = ledger.ledger_clear_pending(file.read(), argv[1] if len(argv) > 1 else "")
+    with open(argv[0], "rb") as file:
+        text = file.read().replace(b"\0", b"").decode(errors="surrogateescape")
+    cleared, new = ledger.ledger_clear_pending(text, argv[1] if len(argv) > 1 else "")
     if not isinstance(cleared, bool):
         return to_contract(cleared)
     if not cleared:
         return 3
-    with open(argv[0], "w", newline="") as file:
-        file.write(new.rstrip("\n") + "\n")
+    with open(argv[0], "wb") as file:
+        file.write((new.rstrip("\n") + "\n").encode(errors="surrogateescape"))
     return 0
 
 
