@@ -66,3 +66,33 @@ def test_main_answers_for_criterion_k_alone(monkeypatch, criterion_finished):
         "1 beside an open criterion-2 step": 0,
         "1 over a refactor-pending criterion-1 step": 3,
     }
+
+
+def test_main_compares_k_to_each_criterion_as_a_string_and_ignores_extra_arguments(
+    monkeypatch, criterion_finished
+):
+    answers = {}
+    for name, (argv, ledger) in {
+        "01 over criterion 1": (["01"], "- [x] a ⟦criterion 1⟧\n"),
+        "01 over criterion 01": (["01"], "- [x] a ⟦criterion 01⟧\n"),
+        "1 over criterion 01": (["1"], "- [x] a ⟦criterion 01⟧\n"),
+        "'1 ' over criterion 1": (["1 "], "- [x] a ⟦criterion 1⟧\n"),
+        "* over criterion 1": (["*"], "- [x] a ⟦criterion 1⟧\n"),
+        "1 over full-width criterion": (["1"], "- [x] a ⟦criterion １⟧\n"),
+        "full-width over full-width criterion": (["１"], "- [x] a ⟦criterion １⟧\n"),
+        "1 junk over ticked criterion 1": (["1", "junk"], "- [x] a ⟦criterion 1⟧\n"),
+        "1 junk over open criterion 1": (["1", "junk"], "- [ ] a ⟦criterion 1⟧\n"),
+    }.items():
+        fake_stdin(monkeypatch, ledger.encode())
+        answers[name] = criterion_finished.main(argv)
+    assert answers == {
+        "01 over criterion 1": 3,
+        "01 over criterion 01": 0,
+        "1 over criterion 01": 3,
+        "'1 ' over criterion 1": 3,
+        "* over criterion 1": 3,
+        "1 over full-width criterion": 3,
+        "full-width over full-width criterion": 3,
+        "1 junk over ticked criterion 1": 0,
+        "1 junk over open criterion 1": 3,
+    }
