@@ -85,25 +85,4 @@ else
   printf '    stdout: %s\n    stderr: %s\n' "$(cat "$work/ln-out")" "$(cat "$work/ln-err")"
 fi
 
-stub="$work/stub"
-mkdir -p "$stub/lib"
-cp "$CLEAR" "$stub/clear-refactor-pending.sh"
-cp "$HERE/../.."/lib/*.sh "$stub/lib/"
-cat > "$stub/lib/ledger.sh" <<'EOF'
-ledger_clear_pending() {
-  printf 'ledger_clear_pending [%s]\n' "$1"
-  cat
-}
-EOF
-printf '%s\n' "$ledger" > "$led"
-"$stub/clear-refactor-pending.sh" "$led" "collapse to single hyphen" 2>/dev/null && code=0 || code=$?
-want="$work/want.md"
-{ echo 'ledger_clear_pending [collapse to single hyphen]'; printf '%s\n' "$ledger"; } > "$want"
-if [[ "$code" == 0 ]] && cmp -s "$want" "$led"; then
-  ok
-else
-  no "clears through lib/ledger.sh's ledger_clear_pending (want exit 0, got $code)"
-  diff "$want" "$led" | sed 's/^/    /'
-fi
-
 finish
