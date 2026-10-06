@@ -17,8 +17,12 @@ def main(argv):
         return 2
     issue, step, phase, attempt = argv[:4]
     coords = f"issue {issue} step {step} {phase} attempt {attempt}"
+    top = git("rev-parse", "--show-toplevel", quiet=True)
+    if top.returncode != 0:
+        print("preserve-attempt.sh: not in a git work tree", file=sys.stderr)
+        return 2
     try:
-        os.chdir(git("rev-parse", "--show-toplevel").stdout.rstrip("\n"))
+        os.chdir(top.stdout.rstrip("\n"))
     except OSError:
         print("preserve-attempt.sh: cannot enter the repository's top level", file=sys.stderr)
         return 2
@@ -79,9 +83,10 @@ def sanitised(step_ref):
     return re.sub(rb"[^0-9A-Za-z-]", b"-", raw).decode()
 
 
-def git(*args, env=None, capture=True):
+def git(*args, env=None, capture=True, quiet=False):
     return subprocess.run(["git", *args], env=env, text=True,
-                          stdout=subprocess.PIPE if capture else None)
+                          stdout=subprocess.PIPE if capture else None,
+                          stderr=subprocess.DEVNULL if quiet else None)
 
 
 def mapped(code):
