@@ -326,4 +326,27 @@ fi
 
 report "$name"
 
+name="#1058: $skill_md's structural pass records a candidate whose predicate already holds (structural-predicate.sh exit 1) as applied with refactor-owed.sh applied at the current HEAD, not in <skipped-file>; only exit 3 appends to <skipped-file>"
+problems=()
+
+if ! missing_pass 'what an already-applied candidate becomes'; then
+  predicate_text="${squeezed#*structural-predicate.sh .tdd/issue-<n>-predicate}"
+  predicate_text="${predicate_text%%The transform leaf*}"
+  if [[ "$predicate_text" == "$squeezed" ]]; then
+    problems+=("$skill_md's structural pass never runs structural-predicate.sh .tdd/issue-<n>-predicate — what its exit 1 leads to could not be established")
+  else
+    require 'refactor-owed.sh applied .tdd/issue-<n>-refactor-owed.md' "$predicate_text" \
+      "$skill_md's structural pass never records a candidate structural-predicate.sh exits 1 for with refactor-owed.sh applied, so refactor-overflow.sh files an already-applied candidate as owed"
+    require 'git rev-parse HEAD' "$predicate_text" \
+      "$skill_md's structural pass never records an already-applied candidate at the current HEAD"
+    require 'only exit 3' "$predicate_text" \
+      "$skill_md's structural pass never says only exit 3 (PREDICATE: NONE) appends a candidate to <skipped-file>"
+    if [[ "$predicate_text" == *'1 or 3 ⇒ skip'* ]]; then
+      problems+=("$skill_md's structural pass still says structural-predicate.sh exit 1 or 3 ⇒ skip, so an already-applied candidate lands in <skipped-file>")
+    fi
+  fi
+fi
+
+report "$name"
+
 finish
