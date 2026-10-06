@@ -20,6 +20,8 @@
 #  12. The same commit made outside the recipe's environment repacks them.
 #  13. A suite run by make test or make unit sees neither BASH_ENV nor ENV the caller exported.
 #  14. A suite that sets BASH_ENV itself still has it: a bash child it starts sources that file.
+#  15. A suite run through run-suite.sh reads maintenance.auto=false from its git config, as it
+#      does under make test.
 #
 # Run: skills/tdd/scripts/tests/make-test-env.test.sh
 set -uo pipefail
@@ -345,5 +347,22 @@ packs="$(find "$unguarded/.git/objects/pack" -name '*.pack' | wc -l | tr -d ' ')
 [[ "$packs" -gt 0 ]] ||
   problems+=("outside the recipe the forced commit wrote no pack — $(git --version) ran no auto maintenance")
 report "outside make test's environment, the same forced commit repacks the scratch repo's loose objects, so the hazard is real on this git (#862)"
+
+problems=()
+planted="$work/reads-maintenance.test.sh"
+cat > "$planted" <<'SH'
+#!/bin/sh
+git config --get maintenance.auto > "$PROBE_OUT"
+echo "1 passed, 0 failed"
+SH
+chmod +x "$planted"
+rm -f "$probe"
+runner_out="$(cd "$work" && env -u GIT_CONFIG_COUNT -u GIT_CONFIG_KEY_3 -u GIT_CONFIG_VALUE_3 \
+  GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 PROBE_OUT="$probe" \
+  "$ROOT/skills/tdd/scripts/run-suite.sh" "$planted" 2>&1 < /dev/null)"
+got="$(cat "$probe" 2>/dev/null)"
+[[ "$got" == false ]] ||
+  problems+=("a suite run through run-suite.sh saw maintenance.auto=${got:-<nothing>}, want false, as under make test: $(flat "$runner_out")")
+report "a suite run through run-suite.sh reads maintenance.auto=false from its git config, as it does under make test"
 
 finish

@@ -25,6 +25,9 @@ USAGE="usage: run-suite.sh <suite>"
 require_args 1 "$@"
 suite="$1"
 
+n="${GIT_CONFIG_COUNT:-0}"
+export "GIT_CONFIG_KEY_$n=maintenance.auto" "GIT_CONFIG_VALUE_$n=false" GIT_CONFIG_COUNT=$((n + 1))
+
 case "$suite" in
   */tests/py/test_*.py)
     source "$HERE/lib/venv-python.sh"
