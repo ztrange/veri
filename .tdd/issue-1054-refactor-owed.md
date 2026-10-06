@@ -1,0 +1,2 @@
+### When pulls/<n>/ccr/ready_for_review is refused with a 404 and the GraphQL-over-gh-api route then readies the PR, gh_pr_ready exits 0 and its stderr carries no HTTP 404 line ⟦criterion 1⟧
+- test-only | fold case 16's `gh` mock in `skills/tdd/scripts/tests/unit/github.test.sh` into case 14 (its stub is case 14's minus the `*graphql*` arm). Case 14 could then assert there is no `HTTP 404` on stderr, or both cases could share one stub function.
