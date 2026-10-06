@@ -117,6 +117,10 @@ def changed(range_, *args):
     return output("diff", "--name-only", *args[:1], range_, *args[1:])
 
 
+def untracked(*args):
+    return output("ls-files", "--others", "--exclude-standard", *args)
+
+
 def main(argv):
     if not argv or not argv[0]:
         return refuse()
@@ -129,8 +133,8 @@ def main(argv):
     if code != 0:
         return code if code in (1, 2, 3) else 2
     if ".." not in range_:
-        _, untracked = output("ls-files", "--others", "--exclude-standard")
-        files = "\n".join(f for f in [files, untracked] if f)
+        _, new = untracked()
+        files = "\n".join(f for f in [files, new] if f)
     if not files:
         return 3
 
@@ -144,7 +148,7 @@ def main(argv):
     counting = ("--", SCRIPTS + "/tests", ":(glob)%s/*.sh" % SCRIPTS)
     _, counted = changed(range_, "--diff-filter=AD", *counting)
     if ".." not in range_ and not counted:
-        _, counted = output("ls-files", "--others", "--exclude-standard", *counting)
+        _, counted = untracked(*counting)
     if counted:
         placed.append(SCRIPTS + "/tests/claude-md-counts.test.sh")
 
