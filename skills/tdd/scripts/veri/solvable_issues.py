@@ -64,7 +64,7 @@ def main(argv):
     scope = ["--repo", repo] if repo else []
     prefix = "repos/%s" % (repo or "{owner}/{repo}")
     try:
-        issues = gh_json("issues.json", prefix + "/issues",
+        issues = gh_json("issues.json", prefix + "/issues?state=all&sort=created&direction=asc",
                          "issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope)
         prs = gh_json("prs.json", prefix + "/pulls", "pr", "list", "--limit", "10000", "--json", "body,state", *scope)
     except NoAnswer:
