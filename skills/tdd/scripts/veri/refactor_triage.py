@@ -25,7 +25,7 @@ def _refuse(text):
 def main(argv):
     structural = []
     candidates_seen = False
-    for line in sys.stdin.buffer.read().split(b"\n"):
+    for line in sys.stdin.buffer.read().replace(b"\0", b"").split(b"\n"):
         found = CANDIDATE.match(line)
         if not found:
             continue
