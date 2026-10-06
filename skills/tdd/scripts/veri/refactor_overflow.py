@@ -4,7 +4,7 @@ import re
 import subprocess
 import sys
 
-from refactor_owed import OUT_OF_SCOPE_MARK, owed_lines
+from refactor_owed import out_of_scope_transforms
 
 USAGE = "usage: refactor-overflow.sh <n> <owed-file> <reached>"
 NUMBER = re.compile(r"[0-9]+")
@@ -33,9 +33,7 @@ def main(argv):
         with open(skipped) as f:
             text = f.read()
     text += "\n".join(candidates.split("\n")[skip:])
-    out_of_scope = [l[len(OUT_OF_SCOPE_MARK):] for l in owed_lines(owed)
-                    if l.startswith(OUT_OF_SCOPE_MARK)] if os.path.isfile(owed) else []
-    unreached = "\n".join([l for l in [text.rstrip("\n")] if l] + out_of_scope)
+    unreached = "\n".join([l for l in [text.rstrip("\n")] if l] + out_of_scope_transforms(owed))
     if not unreached:
         return 3
     body = f"Structural candidates #{n}'s closing pass could not reach:\n\n" + "\n".join(

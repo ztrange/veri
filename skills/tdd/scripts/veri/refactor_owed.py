@@ -89,22 +89,27 @@ def owed_lines(file):
     return lines
 
 
+def out_of_scope_transforms(file):
+    if not os.path.isfile(file):
+        return []
+    return [l[len(OUT_OF_SCOPE_MARK):] for l in owed_lines(file) if l.startswith(OUT_OF_SCOPE_MARK)]
+
+
 def render(file):
     lines = owed_lines(file)
-    kept, test_only, out_of_scope, done = [], [], [], {}
+    kept, test_only, done = [], [], {}
     for l in lines:
         if l.startswith(APPLIED_MARK):
             sha, _, transform = l[len(APPLIED_MARK):].partition(" | ")
             done[transform] = sha
     for l in lines:
-        if l.startswith(APPLIED_MARK) or (l.startswith("- ") and l[2:] in done):
+        if l.startswith((APPLIED_MARK, OUT_OF_SCOPE_MARK)) or (l.startswith("- ") and l[2:] in done):
             continue
-        for mark, group in ((TEST_ONLY_MARK, test_only), (OUT_OF_SCOPE_MARK, out_of_scope)):
-            if l.startswith(mark):
-                group.append(l[len(mark):])
-                break
+        if l.startswith(TEST_ONLY_MARK):
+            test_only.append(l[len(TEST_ONLY_MARK):])
         else:
             kept.append(l)
+    out_of_scope = [t for t in out_of_scope_transforms(file) if OUT_OF_SCOPE_PREFIX + t not in done]
     kept = [l for l, after in zip(kept, kept[1:] + ["### "])
             if not (l.startswith("### ") and after.startswith("### "))]
     out ="## Refactor owed\n\n" + joined(kept)
