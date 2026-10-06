@@ -296,4 +296,34 @@ fi
 
 report "$name"
 
+name="#992: $skill_md's structural pass hands the owed file's out-of-scope candidates to refactor-overflow.sh even when the pass skipped nothing or list exits 3, so they are still filed as Refactor owed by #<n>"
+problems=()
+
+if ! missing_pass 'whether out-of-scope candidates are filed with no candidate listed'; then
+  no_candidate="${squeezed#*list exits 3}"
+  no_candidate="${no_candidate%%Mark the PR ready for review*}"
+  if [[ "$no_candidate" == "$squeezed" ]]; then
+    problems+=("$skill_md's structural pass has no 'list exits 3' case — whether out-of-scope candidates are filed without a pass could not be established")
+  else
+    require 'refactor-overflow.sh' "$no_candidate" \
+      "$skill_md's structural pass never runs refactor-overflow.sh when list exits 3, so an owed file holding only out-of-scope candidates files nothing"
+    require 'out-of-scope' "$no_candidate" \
+      "$skill_md's structural pass never names the out-of-scope candidates in its list exit-3 case, so they are not handed to refactor-overflow.sh there"
+  fi
+  nothing_skipped="${squeezed#*With nothing skipped}"
+  nothing_skipped="${nothing_skipped%%No candidate*}"
+  if [[ "$nothing_skipped" == "$squeezed" ]]; then
+    problems+=("$skill_md's structural pass has no 'With nothing skipped' case — whether out-of-scope candidates are filed when the pass skipped nothing could not be established")
+  else
+    require 'refactor-overflow.sh' "$nothing_skipped" \
+      "$skill_md's structural pass never runs refactor-overflow.sh with nothing skipped, so a pass that applies every structural candidate drops the out-of-scope ones"
+    require 'out-of-scope' "$nothing_skipped" \
+      "$skill_md's structural pass never names the out-of-scope candidates in its nothing-skipped case, so they are not handed to refactor-overflow.sh there"
+  fi
+  require 'Refactor owed by #<n>' "$squeezed" \
+    "$skill_md's structural pass never says out-of-scope candidates are filed as Refactor owed by #<n>"
+fi
+
+report "$name"
+
 finish
