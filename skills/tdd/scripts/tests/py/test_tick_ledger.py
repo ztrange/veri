@@ -67,3 +67,20 @@ def test_main_returns_0_for_a_tick_3_for_an_unmatched_matcher_and_2_for_no_argum
 
     assert codes == [0, 3, 2]
     assert all(0 <= code <= 3 for code in codes)
+
+
+def test_main_rewrites_the_ledger_as_printf_over_a_command_substitution_collapsing_trailing_newlines_adding_a_final_one_and_dropping_nul(
+        tmp_path, capsysbinary, tick_ledger):
+    results = {}
+    for seed in (b"- [ ] a\n\n\n", b"- [ ] a", b"- [ ] a\0z"):
+        ledger = tmp_path / f"ledger{len(results)}.md"
+        ledger.write_bytes(seed)
+        code = tick_ledger.main([str(ledger), "a"])
+        capsysbinary.readouterr()
+        results[seed] = (code, ledger.read_bytes())
+
+    assert results == {
+        b"- [ ] a\n\n\n": (0, b"- [x] a\n"),
+        b"- [ ] a": (0, b"- [x] a\n"),
+        b"- [ ] a\0z": (0, b"- [x] az\n"),
+    }
