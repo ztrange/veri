@@ -12,3 +12,5 @@
 - test-only | collapse each case's global-init + probe function + expect_eq into `scan_planted …; expect_eq "$name" … "$(problem_naming …)"`
 ### no-awk-v-patterns.test.sh does not flag a planted `awk -v` whose variable is only compared with `==` or passed to `index(` ⟦criterion 4⟧
 - test-only | each planted case repeats the same shape (scan_planted, problem_naming per line, name=, blank pre-inits, probe call, expect_eq) across lines 56–139; folding it into a helper would change only this tests/ file and depart from the per-case idiom the other suites use
+### no-awk-v-patterns.test.sh flags a planted awk line binding two `-v` variables, `awk -v a="$x" -v re="$1" '$0 ~ re'`, whose second variable is the one used on the right of `~` ⟦added⟧ ⟦criterion 4⟧
+- test-only | the six probe_*/name/init/expect_eq case blocks in no-awk-v-patterns.test.sh repeat one shape and could be folded into a table-driven helper — cases from earlier steps, not this cycle's duplication
