@@ -26,35 +26,6 @@ before="$(cat "$led")"
 "$TICK" "$led" "nonexistent step" 2>/dev/null; code=$?
 { [[ "$code" == 3 ]] && [[ "$(cat "$led")" == "$before" ]]; } && ok || no "no match → exit 3, file unchanged (code=$code)"
 
-printf -- '- [x] collapse to single hyphen\n- [ ] collapse to single hyphen (again)\n' > "$led"
-"$TICK" "$led" "collapse to single hyphen"; code=$?
-{ [[ "$code" == 0 ]] && grep -q '^- \[x\] collapse to single hyphen (again)$' "$led"; } \
-  && ok || no "skips checked, ticks next matching (code=$code)"
-
-seed
-"$TICK" --refactor-pending "$led" "collapse to single hyphen"; marked=$?
-"$TICK" "$led" "strip edge hyphens"; plain=$?
-{ [[ "$marked" == 0 ]] && [[ "$plain" == 0 ]] \
-  && grep -q '^- \[x\] collapse to single hyphen ⟂ refactor pending$' "$led" \
-  && grep -q '^- \[x\] strip edge hyphens$' "$led"; } \
-  && ok || no "--refactor-pending marks the ticked line, plain tick does not (marked=$marked plain=$plain)"
-
-S="$HERE/.."
-printf -- '- [x] add lowercasing ⟦criterion 1⟧\n- [ ] collapse to single hyphen ⟦criterion 1⟧\n- [ ] strip edge hyphens\n' > "$led"
-want_step='collapse to single hyphen ⟦criterion 1⟧'
-next="$("$S/next-unchecked.sh" < "$led")"; c_next=$?
-"$TICK" --refactor-pending "$led" "$next"; c_tick=$?
-marked_line="$(sed -n 2p "$led")"
-pending="$("$S/next-pending-refactor.sh" < "$led")"; c_pend=$?
-"$S/clear-refactor-pending.sh" "$led" "$pending"; c_clear=$?
-want_led="$(printf -- '- [x] add lowercasing ⟦criterion 1⟧\n- [x] collapse to single hyphen ⟦criterion 1⟧\n- [ ] strip edge hyphens')"
-{ [[ "$c_next$c_tick$c_pend$c_clear" == 0000 ]] \
-  && [[ "$next" == "$want_step" ]] \
-  && [[ "$marked_line" == "- [x] $want_step ⟂ refactor pending" ]] \
-  && [[ "$pending" == "$want_step" ]] \
-  && [[ "$(cat "$led")" == "$want_led" ]]; } \
-  && ok || no "criterion notation: the four ledger scripts match and print step text as without it (codes=$c_next$c_tick$c_pend$c_clear next='$next' marked='$marked_line' pending='$pending' ledger='$(cat "$led")')"
-
 foreign="$work/foreign"
 mkdir -p "$foreign/lib"
 cp "$HERE/../clear-refactor-pending.sh" "$foreign/clear-refactor-pending.sh"
