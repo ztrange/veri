@@ -17,13 +17,21 @@ def main(argv):
         return 2
     issue, step, phase, attempt = argv[:4]
     coords = f"issue {issue} step {step} {phase} attempt {attempt}"
-    os.chdir(git("rev-parse", "--show-toplevel").stdout.rstrip("\n"))
+    try:
+        os.chdir(git("rev-parse", "--show-toplevel").stdout.rstrip("\n"))
+    except OSError:
+        print("preserve-attempt.sh: cannot enter the repository's top level", file=sys.stderr)
+        return 1
     scratch = tempfile.mkdtemp()
     try:
         index = {**os.environ, "GIT_INDEX_FILE": os.path.join(scratch, "index")}
-        git("add", "-A", env=index, capture=False)
-        tree = git("write-tree", env=index).stdout.strip()
-        result = git("commit-tree", tree, "-p", "HEAD", "-m", f"attempt: {coords}")
+        result = git("add", "-A", env=index, capture=False)
+        if result.returncode != 0:
+            return mapped(result.returncode)
+        result = git("write-tree", env=index)
+        if result.returncode != 0:
+            return mapped(result.returncode)
+        result = git("commit-tree", result.stdout.strip(), "-p", "HEAD", "-m", f"attempt: {coords}")
         if result.returncode != 0:
             return mapped(result.returncode)
     finally:

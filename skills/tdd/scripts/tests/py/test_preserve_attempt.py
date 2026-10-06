@@ -310,3 +310,52 @@ def test_main_runs_git_from_the_top_level_with_a_fresh_index_for_the_snapshot_an
         "git", "commit-tree", "4b825dc642cb6eb9a060e54bf8d69288fbee4904", "-p", "HEAD",
         "-m", f"attempt: issue 409 step {step} develop-green attempt 1"]
     assert by_verb["update-ref"]["argv"][2] == "refs/veri/attempts/409/2/develop-green-1"
+
+
+def test_main_returns_1_outside_a_work_tree_and_maps_a_failing_add_or_write_tree_with_the_scratch_gone(
+        monkeypatch, tmp_path, capsys, preserve_attempt):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    scratch_parent = tmp_path / "tmp"
+    scratch_parent.mkdir()
+    monkeypatch.setenv("TMPDIR", str(scratch_parent))
+    monkeypatch.setattr(tempfile, "tempdir", None)
+
+    def scenario(failing_verb, status):
+        monkeypatch.chdir(repo)
+        verbs = []
+
+        def fake_run(args, *_, **__):
+            verbs.append(str(args[1]))
+            if args[1] == failing_verb:
+                return subprocess.CompletedProcess(args, status, "", None)
+            if args[1] == "rev-parse":
+                return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+            if args[1] == "write-tree":
+                return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+            if args[1] == "commit-tree":
+                return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
+            return subprocess.CompletedProcess(args, 0, "", "")
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        code = preserve_attempt.main(["409", "3", "develop-green", "1"])
+        captured = capsys.readouterr()
+        return (failing_verb, status, code, verbs, captured.out, captured.err.splitlines()[-1:],
+                sorted(os.listdir(scratch_parent)))
+
+    answers = [
+        scenario("rev-parse", 128),
+        scenario("add", 1),
+        scenario("add", 128),
+        scenario("write-tree", 1),
+        scenario("write-tree", 128),
+    ]
+
+    assert answers == [
+        ("rev-parse", 128, 1, ["rev-parse"], "",
+         ["preserve-attempt.sh: cannot enter the repository's top level"], []),
+        ("add", 1, 1, ["rev-parse", "add"], "", [], []),
+        ("add", 128, 2, ["rev-parse", "add"], "", [], []),
+        ("write-tree", 1, 1, ["rev-parse", "add", "write-tree"], "", [], []),
+        ("write-tree", 128, 2, ["rev-parse", "add", "write-tree"], "", [], []),
+    ]
