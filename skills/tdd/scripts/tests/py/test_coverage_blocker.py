@@ -400,3 +400,35 @@ def test_main_reads_the_body_over_rest_only_with_no_issue_view_call_when_veri_gh
     assert ["gh", "api", "repos/{owner}/{repo}/issues/60"] in calls
     assert (code, capsys.readouterr().out, seen.get("body")) == (
         0, "https://github.com/owner/name/issues/77\n", "## Blocked by\n\n- #77\n")
+
+
+def test_main_falls_back_from_a_refused_issue_view_to_the_rest_read_and_patches_the_body_it_answers_under_veri_gh_driver_auto(tmpdir_env, monkeypatch, capsys, coverage_blocker):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    calls = []
+    seen = {}
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        calls.append(args)
+        if args[:3] == ["gh", "issue", "view"]:
+            return subprocess.CompletedProcess(args, 1, "", "GraphQL: refused\n")
+        if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
+            return subprocess.CompletedProcess(args, 0, '{"body": "## Blocked by\\n\\n- #12\\n"}', "")
+        if args[:4] == ["gh", "api", "-X", "PATCH"]:
+            path = args[args.index("-F") + 1].split("body=@", 1)[1]
+            seen["body"] = pathlib.Path(path).read_text()
+            return subprocess.CompletedProcess(args, 0, "{}", "")
+        if args[:2] == ["gh", "api"] and args[2].startswith("repos/{owner}/{repo}/issues"):
+            if any(arg.startswith("title=") for arg in args):
+                return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code = coverage_blocker.main(["60"])
+
+    reads = [call for call in calls if call[:3] == ["gh", "issue", "view"] or call == ["gh", "api", "repos/{owner}/{repo}/issues/60"]]
+    assert reads == [["gh", "issue", "view", "60", "--json", "body", "-q", ".body"], ["gh", "api", "repos/{owner}/{repo}/issues/60"]]
+    assert (code, capsys.readouterr().out, seen.get("body")) == (
+        0, "https://github.com/owner/name/issues/77\n", "## Blocked by\n\n- #12\n- #77\n")
