@@ -50,11 +50,12 @@ def main(argv):
 
 
 def copy_leaf_files(step_ref, phase, attempt, mark):
-    os.makedirs(os.path.join(".tdd", "attempts"), exist_ok=True)
+    attempts = os.path.join(".tdd", "attempts")
+    os.makedirs(attempts, exist_ok=True)
     for ext in ("log", "out"):
         source = os.path.join(".tdd", f"{phase}.{ext}")
         if os.path.isfile(source):
-            shutil.copy(source, os.path.join(".tdd", "attempts", f"{step_ref}-{phase}-{attempt}-{mark}.{ext}"))
+            shutil.copy(source, os.path.join(attempts, f"{step_ref}-{phase}-{attempt}-{mark}.{ext}"))
 
 
 def ledger_step_index(issue, step):
