@@ -353,7 +353,7 @@ def test_main_returns_2_outside_a_work_tree_and_maps_a_failing_add_or_write_tree
 
     assert answers == [
         ("rev-parse", 128, 2, ["rev-parse"], "",
-         ["preserve-attempt.sh: cannot enter the repository's top level"], []),
+         ["preserve-attempt.sh: not in a git work tree"], []),
         ("add", 1, 1, ["rev-parse", "add"], "", [], []),
         ("add", 128, 2, ["rev-parse", "add"], "", [], []),
         ("write-tree", 1, 1, ["rev-parse", "add", "write-tree"], "", [], []),

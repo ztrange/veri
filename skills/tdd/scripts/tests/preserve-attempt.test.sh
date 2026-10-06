@@ -236,4 +236,19 @@ tree_linked="$(git_q "$linked" rev-parse --verify --quiet "$REF^{tree}" 2>&1)"
   && ok || no "run through a symlink to the skill directory from a subdirectory of another repository, preserves that repository's worktree to the same ref, tree and exit code as in place (code=$code_inplace/$code_linked tree='$tree_inplace'/'$tree_linked')"
 
 
+outside="$work/outside"
+mkdir -p "$outside/bin" "$outside/cwd" "$outside/tmp"
+real_git="$(command -v git)"
+printf '#!/bin/sh\necho "$1" >> "%s"\nexec "%s" "$@"\n' "$outside/git.log" "$real_git" > "$outside/bin/git"
+chmod +x "$outside/bin/git"
+( cd "$outside/cwd" && env GIT_CEILING_DIRECTORIES="$work" TMPDIR="$outside/tmp" PATH="$outside/bin:$PATH" \
+    "$PRESERVE" 409 3 develop-green 1 ) >/dev/null 2>"$outside/err"
+err="$(cat "$outside/err")"
+verbs="$(tr '\n' ' ' < "$outside/git.log" 2>/dev/null)"
+left="$(ls -A "$outside/tmp")"
+{ [[ "$(wc -l < "$outside/err" | tr -d ' ')" == 1 ]] && [[ "$err" == preserve-attempt.sh:*"not in a git work tree"* ]] \
+    && [[ -z "$left" ]] && [[ "$verbs" != *add* ]]; } \
+  && ok || no "outside a git work tree prints exactly one stderr line naming preserve-attempt.sh and saying it is not in a git work tree, makes no scratch directory and runs no git add (#1030) (err='$err' left='$left' verbs='$verbs')"
+
+
 finish
