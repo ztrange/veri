@@ -181,7 +181,8 @@ def test_main_prints_the_transform_after_the_first_bar_keeping_trailing_whitespa
         b"CANDIDATES: structural |  x  \n": (0, b"x  \n", b""),
         b"CANDIDATES: structural | a | b\n": (0, b"a | b\n", b""),
         b"CANDIDATES: structural | x\r\n": (0, b"x\r\n", b""),
-        b"CANDIDATES: structural |\n": (0, b"\n", b""),
+        b"CANDIDATES: structural |\n": (
+            2, b"", b"refactor-triage: structural candidate line names no transform: CANDIDATES: structural |\n"),
         b"CANDIDATES: structural | x\nCANDIDATES: structural | y\nCANDIDATES: structural | x\n": (
             0, b"x\ny\nx\n", b""),
         b"CANDIDATES: none\nCANDIDATES: structural | x\n": (0, b"x\n", b""),
@@ -258,3 +259,13 @@ def test_main_answers_the_six_contract_cases_of_refactor_triage_test_sh_in_proce
                        b"CANDIDATES: out-of-scope | extract the shared mktemp helper across scripts "
                        b"outside this issue's files\n")
     assert (code, out) == (3, b"")
+
+
+def test_main_refuses_a_structural_candidate_with_nothing_after_the_bar_with_exit_2_a_diagnostic_and_nothing_on_stdout_820(
+        monkeypatch, capsysbinary, refactor_triage):
+    fake_stdin(monkeypatch, b"CANDIDATES: structural |\n")
+    code = refactor_triage.main([])
+    out, err = capsysbinary.readouterr()
+
+    assert (code, out) == (2, b"")
+    assert err != b""

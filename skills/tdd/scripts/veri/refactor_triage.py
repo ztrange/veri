@@ -32,6 +32,8 @@ def main(argv):
         candidates_seen = True
         transform = STRUCTURAL.match(line)
         if transform:
+            if not transform.group(1):
+                return _refuse(b"structural candidate line names no transform: " + line)
             structural.append(transform.group(1))
         elif not (TEST_ONLY.match(line) or COSMETIC.match(line) or OUT_OF_SCOPE.match(line)
                      or NONE.match(found.group(1))):
