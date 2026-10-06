@@ -1,2 +1,4 @@
 ### For a range changing a script under skills/tdd/scripts/ with no same-named suite, affected-suites.sh prints no path that does not exist on disk ⟦criterion 1⟧
 - test-only | the #1011 case's inline "every printed line exists on disk" loop in affected-suites.test.sh could become a reusable `expect_all_exist` assertion beside `expect_suites`
+### For a range changing a script under skills/tdd/scripts/ with no same-named suite, affected-suites.sh prints the existing suites under skills/tdd/scripts/tests/ that name that script's file, so a change to run-suite.sh prints run-suite-venv.test.sh
+- test-only | the `rule1-no-suite` and `rule1-naming-suites` cases in `affected-suites.test.sh` build the same fixture (`run-suite.sh` plus a `run-suite-venv.test.sh` that names it, then the base commit, the edit and the head commit). That setup could become one shared helper.
