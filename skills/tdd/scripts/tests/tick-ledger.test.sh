@@ -98,4 +98,17 @@ want_err='usage: tick-ledger.sh [--refactor-pending] <ledger-file> <matcher>'
 { [[ "$code" == 1 ]] && [[ ! -s "$work/missing.out" ]]; } \
   && ok || no "a missing ledger → exit 1, nothing on stdout (code=$code out='$(cat "$work/missing.out")')"
 
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+mkdir -p "$work/in-place" "$work/caller"
+seed_in() { printf '# Plan for #42\n\n- [ ] add lowercasing\n- [ ] collapse to single hyphen\n' > "$1/issue-42.md"; }
+seed_in "$work/in-place"; seed_in "$work/caller"
+in_place="$(cd "$work/in-place" && "$TICK" --refactor-pending issue-42.md "collapse to single hyphen" 2>&1)"; in_place_code=$?
+linked="$(cd "$work/caller" && "$work/linked-skill/scripts/tick-ledger.sh" --refactor-pending issue-42.md "collapse to single hyphen" 2>&1)"; linked_code=$?
+if [[ "$linked" == "$in_place" && "$linked_code" -eq "$in_place_code" && "$in_place_code" -eq 0 ]] \
+  && cmp -s "$work/in-place/issue-42.md" "$work/caller/issue-42.md" \
+  && grep -F -- '- [x] collapse to single hyphen ⟂ refactor pending' "$work/caller/issue-42.md" > /dev/null; then ok; else
+  no "tick-ledger.sh run through a symlink to the skill directory and from another working directory ticks the relative ledger under the caller's working directory as it does when run in place"
+  diff <(printf '%s\nexit %s\n' "$in_place" "$in_place_code"; cat "$work/in-place/issue-42.md") <(printf '%s\nexit %s\n' "$linked" "$linked_code"; cat "$work/caller/issue-42.md")
+fi
+
 finish
