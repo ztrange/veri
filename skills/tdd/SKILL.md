@@ -1534,7 +1534,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    the full test command (`$S/detect-test-command.sh --tier all`'s, via `detach-command.sh`) once on the rebased tip,
    in the same start-then-wait shape as the preflight baseline, and read its exit code from `wait`.
    A red result on the rebased tip does **bail**, as a **process** failure
-   (`rebased-tip-red`), with the PR left a draft: it is never readied. On green, publish the rewritten history:
+   (`rebased-tip-red`), with the PR left a draft: it is never readied. Before *Bailing*'s push,
+   `git reset --hard <pre-rebase-sha>` puts the branch back where it stood, so that push is a
+   fast-forward and the un-rebased branch is what is kept. On green, publish the rewritten history:
 
        $S/push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>
 
