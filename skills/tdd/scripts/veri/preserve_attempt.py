@@ -38,8 +38,12 @@ def ledger_step_index(issue, step):
     ledger = os.path.join(".tdd", f"issue-{issue}.md")
     if not os.path.isfile(ledger):
         return step
-    with open(ledger, "rb") as f:
-        text = f.read().decode(errors="surrogateescape")
+    try:
+        with open(ledger, "rb") as f:
+            text = f.read().replace(b"\0", b"").decode(errors="surrogateescape")
+    except OSError as error:
+        print(f"preserve-attempt.sh: {ledger}: {error.strerror}", file=sys.stderr)
+        return step
     return next((record[0] for record in ledger_steps(text) if step in record[6]), step)
 
 
