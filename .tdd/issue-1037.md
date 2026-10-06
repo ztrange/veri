@@ -13,6 +13,6 @@
 - [x] no-awk-v-patterns.test.sh does not flag a planted `awk -v` whose variable is only compared with `==` or passed to `index(` ⟦criterion 4⟧
 - [x] no-awk-v-patterns.test.sh flags a planted awk line binding two `-v` variables, `awk -v a="$x" -v re="$1" '$0 ~ re'`, whose second variable is the one used on the right of `~` ⟦added⟧ ⟦criterion 4⟧
 - [x] no-awk-v-patterns.test.sh passes a flagged planted site that its exemption table lists with a reason ⟦criterion 4⟧
-- [x] no-awk-v-patterns.test.sh fails the run on an exemption-table entry that carries no reason ⟦criterion 4⟧ ⟂ refactor pending
+- [x] no-awk-v-patterns.test.sh fails the run on an exemption-table entry that carries no reason ⟦criterion 4⟧
 - [ ] no-awk-v-patterns.test.sh is green over the repository's own suites: every remaining `awk -v` pattern variable it flags carries an exemption with a reason naming why its value can hold no backslash ⟦criterion 4⟧
 - [ ] `make test` on gawk prints no `escape sequence` warning from any suite — checked by reading this PR's CI `make test` log ⟦human-owed⟧ ⟦criterion 1⟧
