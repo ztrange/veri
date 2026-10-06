@@ -426,3 +426,16 @@ def test_render_prints_no_heading_for_a_step_whose_every_structural_bullet_is_ap
     section = out[out.index("### Applied"):] if "### Applied" in out else ""
     assert (code, [l for l in out.splitlines() if l == "### step A"], section) == (
         0, [], "### Applied\n\n- x — abc123\n")
+
+
+def test_append_records_an_out_of_scope_candidate_and_list_then_exits_3_printing_nothing_992(
+        monkeypatch, capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    monkeypatch.setattr(sys, "stdin", io.StringIO(
+        "CANDIDATES: out-of-scope | extract the shared parser across the other scripts\n"))
+    appended = refactor_owed.main(["append", str(owed), "step one", "a.sh"])
+    recorded = owed.exists() and "extract the shared parser across the other scripts" in owed.read_text()
+    capsys.readouterr()
+
+    code = refactor_owed.main(["list", str(owed)])
+    assert (appended, recorded, code, capsys.readouterr().out) == (0, True, 3, "")
