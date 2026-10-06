@@ -1604,14 +1604,15 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    arguments and launched through the supervisor as `develop-predicate`, reports one
    `PREDICATE:` line, which the conductor checks and records:
    ```
-   $S/structural-predicate.sh .tdd/issue-<n>-predicate < <leaf-report>   # exit 0 ⇒ recorded; 1 or 3 ⇒ skip
+   $S/structural-predicate.sh .tdd/issue-<n>-predicate < <leaf-report>   # exit 0 ⇒ recorded; 1 ⇒ already applied; 3 ⇒ skip
    ```
    That record is the test path the transform verifier runs, in place of the prose
-   candidate. A candidate with no predicate is skipped — `structural-predicate.sh` exits 3
-   for `PREDICATE: NONE`, 1 for a command already true — and appended to
-   `.tdd/issue-<n>-predicate-skipped`, the `<skipped-file>`, rather than handed to a
-   transform leaf; exit 2 is no answer.
-   The transform leaf's prompt is `build-develop-prompt.sh structural`'s, handed the spec, the candidate as
+   candidate. A candidate with no predicate is skipped — only exit 3, for
+   `PREDICATE: NONE`, appends it to `.tdd/issue-<n>-predicate-skipped`, the
+   `<skipped-file>`, rather than handing it to a transform leaf; exit 1, a command already
+   true, means the candidate is already applied, and it is recorded as applied below
+   without a transform leaf; exit 2 is no answer.
+   Each transform leaf's prompt is `build-develop-prompt.sh structural`'s, handed the spec, the candidate as
    `list` printed it, the test command and `<issue-touched-files>`, written to
    `.tdd/develop-structural.prompt`; the leaf is launched through the supervisor as
    `develop-structural`. Its commits are checked with
@@ -1626,6 +1627,13 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    A `PASS` records the candidate as applied, with the commit that applied it, so `render`
    lists it as applied rather than owed:
+   ```
+   $S/refactor-owed.sh applied .tdd/issue-<n>-refactor-owed.md '<candidate>' "$(git rev-parse HEAD)"
+   git add .tdd/issue-<n>-refactor-owed.md
+   git commit -m "chore: record the structural pass's applied candidate (#<n>)"
+   ```
+   A candidate `structural-predicate.sh` exited 1 for launches no transform leaf and is
+   recorded the same way, at the current HEAD, so `refactor-overflow.sh` never files it:
    ```
    $S/refactor-owed.sh applied .tdd/issue-<n>-refactor-owed.md '<candidate>' "$(git rev-parse HEAD)"
    git add .tdd/issue-<n>-refactor-owed.md
