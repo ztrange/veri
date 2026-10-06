@@ -67,6 +67,25 @@ problems=()
 [[ -s "$floor_err" ]] && problems+=("stderr: want empty, got [$(cat "$floor_err")]")
 report "floor: no argument ticks the first open box, exit 0, nothing on stderr"
 
+linkdir="$(scratch_dir)"
+ln -s "$(cd "$HERE/../.." && pwd)" "$linkdir/linked-skill"
+mkdir "$linkdir/elsewhere"
+problems=()
+for pair in beta:0 zeta:3; do
+  matcher="${pair%%:*}" want="${pair#*:}"
+  in_place_out="$(printf -- '- [ ] alpha\n- [ ] beta\n' | "$TICK" "$matcher" 2> "$linkdir/in-place.err")" \
+    && in_place_code=0 || in_place_code=$?
+  linked_out="$(cd "$linkdir/elsewhere" && printf -- '- [ ] alpha\n- [ ] beta\n' \
+    | "$linkdir/linked-skill/scripts/tick-criterion.sh" "$matcher" 2> "$linkdir/linked.err")" \
+    && linked_code=0 || linked_code=$?
+  [[ "$linked_out" == "$in_place_out" ]] || problems+=("$matcher stdout: in place [$in_place_out], linked [$linked_out]")
+  [[ "$(cat "$linkdir/linked.err")" == "$(cat "$linkdir/in-place.err")" ]] \
+    || problems+=("$matcher stderr: in place [$(cat "$linkdir/in-place.err")], linked [$(cat "$linkdir/linked.err")]")
+  [[ "$linked_code" == "$in_place_code" ]] || problems+=("$matcher exit: in place $in_place_code, linked $linked_code")
+  [[ "$in_place_code" == "$want" ]] || problems+=("$matcher in place: want exit $want, got $in_place_code")
+done
+report "tick-criterion.sh run through a symlink to the skill directory and from another working directory answers as it does when run in place"
+
 work="$(scratch_dir)"
 mkdir "$work/lib"
 cp "$TICK" "$work/tick-criterion.sh"
