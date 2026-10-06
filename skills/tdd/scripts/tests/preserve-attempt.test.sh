@@ -289,4 +289,25 @@ listed="$(git_q "$repo" ls-tree --name-only "$REF" 2>&1 | tr '\n' ' ')"
   && ok || no "beside a tracked ignored file, leaves an untracked ignored file and a deleted tracked file out of the preserved tree and keeps an untracked non-ignored one (#1033) (code=$code listed='$listed')"
 
 
+repo="$work/trackedignoredcaller"
+make_repo "$repo"
+printf 'committed\n' > "$repo/t.txt"
+git_q "$repo" add t.txt >/dev/null 2>&1
+git_q "$repo" commit -q -m "track t.txt" >/dev/null 2>&1
+printf 't.txt\n' > "$repo/.gitignore"
+printf 'edited by the leaf\n' > "$repo/t.txt"
+printf 'staged\n' > "$repo/staged.txt"
+git_q "$repo" add staged.txt >/dev/null 2>&1
+head_before="$(git_q "$repo" rev-parse HEAD 2>&1)"
+branch_before="$(git_q "$repo" symbolic-ref HEAD 2>&1)"
+index_before="$(git_q "$repo" ls-files -s 2>&1)"
+preserve "$repo" 409 3 develop-green 1 >/dev/null 2>&1; code=$?
+head_after="$(git_q "$repo" rev-parse HEAD 2>&1)"
+branch_after="$(git_q "$repo" symbolic-ref HEAD 2>&1)"
+index_after="$(git_q "$repo" ls-files -s 2>&1)"
+{ [[ "$code" == 0 ]] && [[ "$head_after" == "$head_before" ]] && [[ "$branch_after" == "$branch_before" ]] \
+    && [[ "$index_after" == "$index_before" ]]; } \
+  && ok || no "preserving a worktree holding a tracked file .gitignore matches leaves the caller's index, HEAD and branch untouched (#1033) (code=$code head=$head_before/$head_after branch=$branch_before/$branch_after index_changed=$([[ "$index_after" == "$index_before" ]] && echo no || echo yes))"
+
+
 finish
