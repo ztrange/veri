@@ -160,3 +160,33 @@ def test_main_reads_the_class_with_optional_whitespace_around_it_and_the_bar_mat
         b" CANDIDATES: structural | a\n": (2, b"", b"refactor-triage: the report has no CANDIDATES: line\n"),
         b"candidates: structural | a\n": (2, b"", b"refactor-triage: the report has no CANDIDATES: line\n"),
     }
+
+
+def test_main_prints_the_transform_after_the_first_bar_keeping_trailing_whitespace_and_cr_printing_duplicates_and_empty_transforms_and_stops_at_the_first_refused_line(
+        monkeypatch, capsysbinary, refactor_triage):
+    results = {}
+    for report in (
+            b"CANDIDATES: structural |  x  \n",
+            b"CANDIDATES: structural | a | b\n",
+            b"CANDIDATES: structural | x\r\n",
+            b"CANDIDATES: structural |\n",
+            b"CANDIDATES: structural | x\nCANDIDATES: structural | y\nCANDIDATES: structural | x\n",
+            b"CANDIDATES: none\nCANDIDATES: structural | x\n",
+            b"CANDIDATES: structural | x\nCANDIDATES: cosmic | y\r\nCANDIDATES: structural | z\n"):
+        fake_stdin(monkeypatch, report)
+        code = refactor_triage.main([])
+        results[report] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        b"CANDIDATES: structural |  x  \n": (0, b"x  \n", b""),
+        b"CANDIDATES: structural | a | b\n": (0, b"a | b\n", b""),
+        b"CANDIDATES: structural | x\r\n": (0, b"x\r\n", b""),
+        b"CANDIDATES: structural |\n": (0, b"\n", b""),
+        b"CANDIDATES: structural | x\nCANDIDATES: structural | y\nCANDIDATES: structural | x\n": (
+            0, b"x\ny\nx\n", b""),
+        b"CANDIDATES: none\nCANDIDATES: structural | x\n": (0, b"x\n", b""),
+        b"CANDIDATES: structural | x\nCANDIDATES: cosmic | y\r\nCANDIDATES: structural | z\n": (
+            2, b"",
+            b"refactor-triage: candidate line has no class, or one that is neither structural nor cosmetic: "
+            b"CANDIDATES: cosmic | y\r\n"),
+    }
