@@ -490,3 +490,13 @@ def test_append_records_only_the_other_structural_candidate_and_no_bare_bullet_f
     code = refactor_owed.main(["append", str(owed), "S"])
     written = owed.read_bytes() if owed.exists() else b""
     assert (code, written) == (0, b"### S\n- extract the parser\n")
+
+
+def test_append_records_only_the_other_structural_candidate_for_one_with_only_whitespace_after_the_bar_820(
+        monkeypatch, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    monkeypatch.setattr(sys, "stdin", io.StringIO("CANDIDATES: structural |  \t \n"
+                                                  "CANDIDATES: structural | extract the parser\n"))
+    code = refactor_owed.main(["append", str(owed), "S"])
+    written = owed.read_bytes() if owed.exists() else b""
+    assert (code, written) == (0, b"### S\n- extract the parser\n")
