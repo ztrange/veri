@@ -222,5 +222,21 @@ preserve "$repo" 409 3 develop-green 1 >/dev/null 2>&1; code=$?
 [[ "$code" == 2 ]] \
   && ok || no "ends with exit 2 when it fails inside its own EXIT trap's lifetime (code=$code)"
 
+inplace="$work/inplace"
+linked="$work/linked"
+for repo in "$inplace" "$linked"; do
+  dirty_repo "$repo"
+  mkdir -p "$repo/sub"
+  printf 'nested\n' > "$repo/sub/nested.txt"
+done
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/skill-link"
+preserve "$inplace" 409 3 develop-green 1 >/dev/null 2>&1; code_inplace=$?
+( cd "$linked/sub" && env "${ident[@]}" "$work/skill-link/scripts/preserve-attempt.sh" 409 3 develop-green 1 ) >/dev/null 2>&1; code_linked=$?
+tree_inplace="$(git_q "$inplace" rev-parse --verify --quiet "$REF^{tree}" 2>&1)"
+tree_linked="$(git_q "$linked" rev-parse --verify --quiet "$REF^{tree}" 2>&1)"
+{ [[ "$code_linked" == "$code_inplace" ]] && [[ "$code_inplace" == 0 ]] \
+    && [[ -n "$tree_inplace" ]] && [[ "$tree_linked" == "$tree_inplace" ]]; } \
+  && ok || no "run through a symlink to the skill directory from a subdirectory of another repository, preserves that repository's worktree to the same ref, tree and exit code as in place (code=$code_inplace/$code_linked tree='$tree_inplace'/'$tree_linked')"
+
 
 finish
