@@ -14,39 +14,60 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 PLANTED_FIXTURE="fixture text this suite writes into a scratch tree as the planted suite; it is scanned, never run, so no value ever reaches a -v binding"
 CASE_NAME="a case name, a string this suite prints and never runs, so no value ever reaches a -v binding"
+BRACKET_CLASSES="wait_ci_run and push_run spell every literal character as a bracket class, [$] [.], never with a backslash, so the -v value holds none to drop"
 declare -A EXEMPT=(
-  [no-awk-v-patterns.test.sh:80]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:81]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:95]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:166]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:170]="$CASE_NAME"
-  [no-awk-v-patterns.test.sh:179]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:183]="$CASE_NAME"
-  [no-awk-v-patterns.test.sh:192]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:196]="$CASE_NAME"
+  [no-awk-v-patterns.test.sh:101]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:102]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:116]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:187]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:191]="$CASE_NAME"
+  [no-awk-v-patterns.test.sh:200]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:204]="$CASE_NAME"
+  [no-awk-v-patterns.test.sh:213]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:217]="$CASE_NAME"
+  [no-awk-v-patterns.test.sh:225]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:238]="$PLANTED_FIXTURE"
+  [parallel-conductors.test.sh:950]="record is handed only '^3[.] [*][*]Parallel[*][*]' and '^[*][*]In flight[*][*]:', literal characters spelled as bracket classes, so the -v value holds no backslash to drop"
+  [skill-draft-pr.test.sh:762]="$BRACKET_CLASSES"
+  [skill-draft-pr.test.sh:778]="$BRACKET_CLASSES"
+  [skill-draft-pr.test.sh:807]="$BRACKET_CLASSES"
+  [skill-draft-pr.test.sh:853]="$BRACKET_CLASSES"
   [skill-plan-verify.test.sh:34]="every pattern its line_of is handed spells a literal character as a bracket class, [.] [(] [$] [<], never with a backslash, so the -v value holds none to drop"
+  [skill-plan-verify.test.sh:48]="bullet_text is handed only exit2_re, '[(]exit 2[)]', a literal parenthesis spelled as a bracket class, so the -v value holds no backslash to drop"
+  [skill-red-prediction.test.sh:25]="doc_text's from is handed only '### 🔴 Red' and 'red-divergence', plain text with no backslash to drop"
+  [solvable-issues.test.sh:379]="loop_bullet is handed only '^- [*][*]Exit 3:', '^- [*][*]Exit 0:' and '^### ', literal characters spelled as bracket classes, so the -v value holds no backslash to drop"
 )
 
 source "$HERE/lib/harness.sh"
 source "$HERE/lib/exemption-reasons.sh"
 
 probe_no_suite_passes_a_pattern_through_awk_v() {
-  local f name hit lineno text var rest
+  local f name hit lineno text var rest prog quotes i
   local bind_re='-v[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)='
+  local -a lines
   for f in "$ROOT"/skills/tdd/scripts/tests/*.test.sh; do
     name="$(basename "$f")"
+    mapfile -t lines < "$f"
     while IFS= read -r hit; do
       lineno="${hit%%:*}"
       text="${hit#*:}"
       [[ "$text" =~ ^[[:space:]]*# ]] && continue
       [[ -n "${EXEMPT[$name:$lineno]:-}" ]] && continue
       [[ "$text" == *"'"* ]] || continue
+      prog="$text"
+      quotes="${text//[!\']/}"
+      i="$lineno"
+      while (( ${#quotes} % 2 == 1 && i < ${#lines[@]} )); do
+        prog+=$'\n'"${lines[i]}"
+        quotes+="${lines[i]//[!\']/}"
+        (( i++ ))
+      done
       rest="$text"
       while [[ "$rest" =~ $bind_re ]]; do
         var="${BASH_REMATCH[1]}"
         rest="${rest#*"${BASH_REMATCH[0]}"}"
-        if [[ "$text" =~ ~[[:space:]]*${var}([^A-Za-z0-9_]) \
-          || "$text" =~ match\([^,]*,[[:space:]]*${var}([^A-Za-z0-9_]) ]]; then
+        if [[ "$prog" =~ ~[[:space:]]*${var}([^A-Za-z0-9_]) \
+          || "$prog" =~ match\([^,]*,[[:space:]]*${var}([^A-Za-z0-9_]) ]]; then
           problems+=("$name:$lineno passes awk a pattern through -v, which drops its backslashes: $text")
           break
         fi
@@ -199,6 +220,31 @@ planted_reasonless_named=""
 probe_a_planted_awk_v_pattern_exempted_with_no_reason
 
 expect_eq "$name" "named" "$planted_reasonless_named"
+
+probe_a_planted_multi_line_awk_v_pattern() {
+  scan_planted '#!/usr/bin/env bash' 'numbered() {' "  awk -v re=\"\$1\" '" \
+    '    $0 ~ re { print }' "  ' \"\$2\"" '}'
+  planted_multi_line_named="$(problem_naming "planted.test.sh:3")"
+}
+
+name="a planted multi-line awk program, -v re=\"\$1\" opening it on one line and \$0 ~ re on a later one, turns the guard red, naming the -v line as <suite>:<line> (#1037)"
+planted_multi_line_named=""
+
+probe_a_planted_multi_line_awk_v_pattern
+
+expect_eq "$name" "named" "$planted_multi_line_named"
+
+probe_a_planted_awk_v_program_left_open_at_eof() {
+  scan_planted '#!/usr/bin/env bash' 'numbered() {' "  awk -v re=\"\$1\" '" '    $0 ~ re { print }'
+  planted_open_at_eof_named="$(problem_naming "planted.test.sh:3")"
+}
+
+name="a planted awk -v re=\"\$1\" program whose single quote is never closed before the end of the file is still scanned to the end, naming the -v line as <suite>:<line> (#1037)"
+planted_open_at_eof_named=""
+
+probe_a_planted_awk_v_program_left_open_at_eof
+
+expect_eq "$name" "named" "$planted_open_at_eof_named"
 
 name="no suite under skills/tdd/scripts/tests/ passes awk a pattern through -v but where the exemption table says why its value can hold no backslash (#1037)"
 problems=()
