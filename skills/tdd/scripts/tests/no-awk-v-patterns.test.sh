@@ -39,18 +39,12 @@ problem_naming() {
   printf 'not named'
 }
 
-plant() {
-  local rel="$1"
-  shift
-  ROOT="$(scratch_dir)"
-  mkdir -p "$ROOT/${rel%/*}"
-  printf '%s\n' "$@" > "$ROOT/$rel"
-  problems=()
-}
-
 scan_planted() {
   local ROOT
-  plant "$PLANT_REL" "$@"
+  ROOT="$(scratch_dir)"
+  mkdir -p "$ROOT/${PLANT_REL%/*}"
+  printf '%s\n' "$@" > "$ROOT/$PLANT_REL"
+  problems=()
   probe_no_suite_passes_a_pattern_through_awk_v
 }
 
