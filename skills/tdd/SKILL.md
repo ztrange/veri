@@ -1453,7 +1453,7 @@ Reached when `next-unchecked.sh` exits 3 — every ledger step is checked off bu
 `⟦full-suite⟧` and `⟦human-owed⟧` lines, which that script skips and no cycle closes: an
 unchecked line carrying either does not hold the run back from this step. The full suite
 must be green before this step: run `$S/detect-test-command.sh --tier all`'s command via `detach-command.sh` here,
-in the same start-then-wait shape as the preflight baseline, exactly once — the only full-suite gate left in the cycle, since every leaf runs the fast
+in the same start-then-wait shape as the preflight baseline, exactly once — the branch's own full-suite gate, since every leaf runs the fast
 command, the affected suites, or both. That nothing is left uncommitted and no step is still only
 green is not taken on trust here — sub-step 1 asks. Like every step since 1.2, this one runs
 **from inside the worktree** — every command below is issued there, so each sees the issue

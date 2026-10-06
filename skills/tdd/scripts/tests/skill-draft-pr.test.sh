@@ -103,6 +103,8 @@
 #      edits a built prompt.
 #  37. SKILL.md's Draft PR step says the branch's own full run, and any `⟦suite-repair⟧` step
 #      it adds, finishes green before `rebase-onto-default.sh` runs.
+#  38. SKILL.md's Draft PR step never calls the branch's own full run the only full-suite run,
+#      and names the rebased tip's run as the extra run a rebase owes, not a replacement for it.
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -955,6 +957,19 @@ if step_or_problem '### 4. Draft PR' "what has to be green before the step rebas
   order="$(first_record "$(unmarked_records)" -E "own full(-suite)? run" -F "$suite_repair_mark" -wF 'green' -E 'before[^.]*rebase-onto-default[.]sh')"
   [[ -n "$order" ]] ||
     problems+=("no instruction of $skill_md's Draft PR step says the branch's own full run, and any $suite_repair_mark step it adds, finishes green before rebase-onto-default.sh runs, so the rebased tip's run can be read as replacing it")
+fi
+report "$name"
+
+name="$skill_md's Draft PR step no longer calls the branch's own full run the only full-suite run, and names the rebased tip's run as the extra run a rebase owes (#975)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "whether the branch's own full run is still called the only one"; then
+  only="$(first_record "$(unmarked_records)" -E 'only full(-suite)? (gate|run)')"
+  [[ -z "$only" ]] ||
+    problems+=("$skill_md's Draft PR step still calls the branch's own full run the only full-suite run, which the rebased tip's run then contradicts: $(printf '%.160s' "$only")")
+  extra="$(first_record "$(unmarked_records)" -E 'rebased tip.s run' -F 'extra run a rebase owes' -F 'replacement')"
+  [[ -n "$extra" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step names the rebased tip's run as the extra run a rebase owes, not a replacement for the branch's own")
 fi
 report "$name"
 
