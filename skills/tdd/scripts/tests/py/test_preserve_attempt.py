@@ -150,7 +150,7 @@ def test_main_names_the_ref_by_the_ledger_index_ledger_steps_gives_the_step_past
     assert (index, code, update_refs) == ("2", 0, ["refs/veri/attempts/409/2/develop-green-1"])
 
 
-def test_main_names_the_ref_by_the_first_matching_step_and_keeps_the_argument_when_the_ledger_gives_none(
+def test_main_keeps_the_argument_for_a_step_only_a_substring_of_ledger_steps_or_when_the_ledger_gives_none_issue_1031(
         monkeypatch, tmp_path, capsys, preserve_attempt):
     import builtins
     import io
@@ -200,7 +200,7 @@ def test_main_names_the_ref_by_the_first_matching_step_and_keeps_the_argument_wh
     answers.append(scenario("unreadable", two_matches, "abcd"))
 
     assert answers == [
-        ("two-matches", 0, ["refs/veri/attempts/409/2/develop-green-1"], ""),
+        ("two-matches", 0, ["refs/veri/attempts/409/abcd/develop-green-1"], ""),
         ("no-match", 0, ["refs/veri/attempts/409/zzz/develop-green-1"], ""),
         ("no-ledger", 0, ["refs/veri/attempts/409/zzz/develop-green-1"], ""),
         ("nul", 0, ["refs/veri/attempts/409/2/develop-green-1"], ""),
