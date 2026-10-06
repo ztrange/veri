@@ -55,25 +55,6 @@ want_led="$(printf -- '- [x] add lowercasing ⟦criterion 1⟧\n- [x] collapse t
   && [[ "$(cat "$led")" == "$want_led" ]]; } \
   && ok || no "criterion notation: the four ledger scripts match and print step text as without it (codes=$c_next$c_tick$c_pend$c_clear next='$next' marked='$marked_line' pending='$pending' ledger='$(cat "$led")')"
 
-stub="$work/stub"
-mkdir -p "$stub/lib"
-cp "$TICK" "$stub/tick-ledger.sh"
-cp "$HERE/../tick-criterion.sh" "$stub/tick-criterion.sh"
-cp "$HERE/.."/lib/*.sh "$stub/lib/"
-cat > "$stub/lib/ledger.sh" <<'EOF'
-ledger_tick() {
-  cat > /dev/null
-  printf 'ledger_tick [%s] [%s]\n' "$1" "${2:-}"
-}
-EOF
-seed
-"$stub/tick-ledger.sh" --refactor-pending "$led" "collapse to single hyphen"; code=$?
-got="$(cat "$led")"
-want='ledger_tick [collapse to single hyphen] [pending]'
-{ [[ "$code" == 0 ]] && [[ "$got" == "$want" ]]; } \
-  && ok || no "--refactor-pending ticks through lib/ledger.sh's ledger_tick … pending (code=$code)
-$(diff <(printf '%s\n' "$want") <(printf '%s\n' "$got"))"
-
 foreign="$work/foreign"
 mkdir -p "$foreign/lib"
 cp "$TICK" "$foreign/tick-ledger.sh"

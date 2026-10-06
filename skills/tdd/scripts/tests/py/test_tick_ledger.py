@@ -35,3 +35,24 @@ def test_main_refuses_a_missing_or_empty_ledger_file_with_the_usage_line_and_exi
         (str(ledger), "zeta"): (3, b"", b""),
     }
     assert ledger.read_bytes() == b"- [ ] alpha\n"
+
+
+def test_main_ticks_the_matching_step_in_place_marking_it_refactor_pending_only_with_the_flag(
+        tmp_path, capsysbinary, tick_ledger):
+    seed = (b"# Plan for #42\n\n- [ ] add lowercasing\n- [ ] collapse to single hyphen\n"
+            b"- [ ] strip edge hyphens\n")
+    results = {}
+    for flag in (["--refactor-pending"], []):
+        ledger = tmp_path / f"ledger{len(flag)}.md"
+        ledger.write_bytes(seed)
+        code = tick_ledger.main([*flag, str(ledger), "collapse to single hyphen"])
+        out, _ = capsysbinary.readouterr()
+        results[tuple(flag)] = (code, out, ledger.read_bytes())
+
+    assert results == {
+        ("--refactor-pending",): (0, b"", "# Plan for #42\n\n- [ ] add lowercasing\n"
+                                  "- [x] collapse to single hyphen ⟂ refactor pending\n"
+                                  "- [ ] strip edge hyphens\n".encode()),
+        (): (0, b"", b"# Plan for #42\n\n- [ ] add lowercasing\n- [x] collapse to single hyphen\n"
+                     b"- [ ] strip edge hyphens\n"),
+    }
