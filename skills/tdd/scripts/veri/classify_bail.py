@@ -9,7 +9,7 @@ CATEGORIES = {
         ("killed-stuck", "no-verdict", "reconcile-failed", "ci-timeout", "ci-conflict"), "system"),
     **dict.fromkeys(
         ("revise-exhausted", "untestable-criterion", "step-too-big", "rebase-unresolved",
-         "uncovered", "ci-red", "suite-red"), "process"),
+         "uncovered", "ci-red", "suite-red", "rebased-tip-red"), "process"),
 }
 
 
