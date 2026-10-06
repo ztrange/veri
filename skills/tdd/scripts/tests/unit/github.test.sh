@@ -707,4 +707,35 @@ grep -E '^gh api graphql .*markPullRequestReadyForReview' "$calls" > /dev/null |
   problems+="    want a 'gh api graphql' markPullRequestReadyForReview call, got: $(printf '%q' "$(cat "$calls")")"$'\n'
 record
 
+# 16. with VERI_GH_DRIVER unset, a 404 on the ccr route that the gh api graphql fallback then
+#     recovers from leaves no trace on stderr: the PR is ready, and nothing reads like a failure
+name="#1054: with VERI_GH_DRIVER unset, gh_pr_ready 42 whose pulls/42/ccr/ready_for_review 404s and whose gh api graphql markPullRequestReadyForReview then readies it returns 0 with no HTTP 404 line on stderr"
+calls="$scratch/calls16" err="$scratch/err16"
+: > "$calls"
+(
+  gh() {
+    echo "gh $*" >> "$calls"
+    [[ "$1" == api ]] || return 1
+    case "$*" in
+      *ccr/ready_for_review*) echo 'gh: Not Found (HTTP 404)' >&2; return 1 ;;
+      *markPullRequestReadyForReview*) echo '{"data":{"markPullRequestReadyForReview":{"pullRequest":{"isDraft":false}}}}' ;;
+      *' -q '* | *' --jq '* | *--jq=*) echo 'PR_kwDOnode42' ;;
+      *pulls/42*) echo '{"number":42,"node_id":"PR_kwDOnode42","draft":true}' ;;
+      *) return 1 ;;
+    esac
+  }
+  unset VERI_GH_DRIVER VERI_GH_JSON
+  source "$LIB"
+  gh_pr_ready 42
+) > /dev/null 2> "$err"
+rc=$?
+problems=""
+[[ "$rc" -eq 0 ]] || problems+="    want return 0, got $rc"$'\n'
+grep -E '^gh api graphql .*markPullRequestReadyForReview' "$calls" > /dev/null ||
+  problems+="    want a 'gh api graphql' markPullRequestReadyForReview call, got: $(printf '%q' "$(cat "$calls")")"$'\n'
+if grep -F 'HTTP 404' "$err" > /dev/null; then
+  problems+="    want no HTTP 404 line on stderr, got: $(printf '%q' "$(grep -F 'HTTP 404' "$err")")"$'\n'
+fi
+record
+
 finish
