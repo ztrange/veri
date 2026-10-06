@@ -32,7 +32,7 @@ both sides' intent survives.
    If a conflict cannot be resolved without dropping one side's behaviour, run
    `git rebase --abort`, which returns the branch to `{{PRE_REBASE_SHA}}`, and report FAILED.
 3. Confirm the test command is green on the rebased tip, through the wrapper
-   {{INCLUDE:_timed-test-run-tier.md}} —
+   `{{TIMED_TEST_RUN}}`, which records what the run cost and names the tier it belongs to —
    `all`, since the whole test command is what runs:
 
        {{TIMED_TEST_RUN}} all '' {{TEST_CMD}}
@@ -40,7 +40,7 @@ both sides' intent survives.
    The wrapper hands the command's own exit status straight back, so a red run stays red.
 4. Do not push. The conductor pushes and re-verifies the resolution.
 5. Do not edit the ledger `.tdd/issue-<n>.md` beyond what the rebase itself carries: every
-   {{INCLUDE:_develop-ledger-tick.md}} {{INCLUDE:_develop-ledger-mark.md}}
+   `[x]` tick and every ` ⟂ refactor pending` mark must survive exactly as it is.
 
 ### Report (last lines of your output)
 

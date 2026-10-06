@@ -12,7 +12,7 @@ A developer agent has written the implementation intended to make the target tes
 ### Your checks
 
 1. **The target test passes.** Run `{{TARGET_TEST}}` yourself; it must pass. Make that run
-   through the wrapper {{INCLUDE:_timed-test-run.md}} and names the
+   through the wrapper `{{TIMED_TEST_RUN}}`, which records what the run cost and names the
    tier it belongs to:
 
        {{TIMED_TEST_RUN}} target '{{TEST_PATH}}' <the command that runs the target test>
@@ -41,7 +41,12 @@ A developer agent has written the implementation intended to make the target tes
    required it. Then restore the tree exactly — `mv <file>.orig <file>`, and confirm that
    `git diff` prints what it printed before the probe — before you report, since a verifier
    that reports first leaves the developer's tree mutated for the next leaf.
-5. {{INCLUDE:_verify-comments-lead.md}} change {{INCLUDE:_verify-comments-allowed.md}} change {{INCLUDE:_verify-comments-never-reject.md}}
+5. **Only the two allowed comments.** A comment the change adds is allowed only as a
+   contract header (a usage line or exit-code table) or a succinct warning where the shell
+   itself is the hazard (bash 3.2, BSD versus GNU flags, `set -u`'s exit status, a
+   load-bearing `|| true`). REJECT any other rationale comment the change adds, and name
+   it in REASON:.
+   A contract header or a shell-hazard warning is never grounds for REJECT.
 
 PASS only if the target test, the fast command and the affected suites are green and the pass genuinely reflects
 the behavior the spec requires.

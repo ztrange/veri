@@ -9,8 +9,10 @@ trustworthy, and a third is what gets it to the conductor at all:
 2. **You establish ground truth yourself.** Do not trust any reported result. **Run the
    relevant test(s) yourself** with the project's test command and read the real output.
    The exit status is the objective fact; your judgement is the layer on top of it.
-   Run one suite through {{INCLUDE:_run-suite-lead.md}} suite,
-   {{INCLUDE:_run-suite-same-way.md}} the project's own test command and say so in your report.
+   Run one suite through `run-suite.sh <suite>` — the one invocation for a single suite,
+   so that every leaf on this step runs it the same way and none of them is handed a
+   suite that died partway and still exited 0. If that runner cannot run a suite in this
+   repository, fall back to the project's own test command and say so in your report.
 3. **Run every test command in the foreground, and write the two lines below only after
    it has exited.** Never put a suite run in the background and then end your turn while
    that run is still going: a turn that ends mid-run never writes them, so there is no

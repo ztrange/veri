@@ -16,7 +16,10 @@
 
 Redoing green only: when the step needs more than one new behaviour at once, neither a
 rewritten implementation nor `IMPOSSIBLE` is the honest answer. Report `SPLIT:` lines
-instead of an {{INCLUDE:_develop-split.md}} leave the working tree exactly as you found it.
+instead of an implementation, changing no production code — one to three of them, each a
+behaviour-level criterion small enough to be one red-green cycle of its own, in the order
+they must be built. The conductor restores the tree, adds those steps ahead of this one
+and comes back to this step later, so leave the working tree exactly as you found it.
 
 ### The issue's behavior spec (context — the criterion above is what is in scope)
 
@@ -44,7 +47,9 @@ instead of an {{INCLUDE:_develop-split.md}} leave the working tree exactly as yo
    rejected predicted a different test, so there is nothing here for you to inherit.
 3. Redoing green only: first run the fast command, the one `detect-test-command.sh --tier
    fast` prints, and confirm it is green. Then, whichever phase you are redoing, run the
-   suites {{INCLUDE:_affected-suites-working-tree.md}} — and confirm the result the phase you
+   suites `affected-suites.sh HEAD` prints for your change — it reads `HEAD` to the
+   working tree, untracked files included, so build no commit, stash or worktree to name a
+   range — and confirm the result the phase you
    are redoing calls for. Make each run through the wrapper `{{TIMED_TEST_RUN}}`, which
    records what the run cost and names the tier it belongs to:
 

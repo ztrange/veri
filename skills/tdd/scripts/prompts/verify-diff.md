@@ -13,7 +13,7 @@ the author's rationale.
 {{ISSUE_SPEC}}
 
 Run the fast command, `{{FAST_CMD}}`, then the suites `affected-suites.sh` prints for the
-files the diff touched, each through the wrapper {{INCLUDE:_timed-test-run-tier.md}}:
+files the diff touched, each through the wrapper `{{TIMED_TEST_RUN}}`, which records what the run cost and names the tier it belongs to:
 
 {{INCLUDE:_timed-test-run-fast-affected.md}}
 

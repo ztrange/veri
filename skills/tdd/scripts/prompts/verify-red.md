@@ -15,7 +15,7 @@ test is `{{TARGET_TEST}}`). Confirm the Red step is sound.
 1. **It runs and fails.** Run the suites `affected-suites.sh` prints for the change
    yourself, not one suite picked by hand. The target test must **fail** — check 2 is
    where the way it failed is judged. Make that run through the wrapper
-   {{INCLUDE:_timed-test-run-tier.md}}:
+   `{{TIMED_TEST_RUN}}`, which records what the run cost and names the tier it belongs to:
 
        {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>
 

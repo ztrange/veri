@@ -40,8 +40,8 @@ not contain. Your job is to make the push land without losing anyone's commits.
      `git push --force-with-lease={{BRANCH}}:{{REMOTE_SHA}} origin HEAD:{{BRANCH}}`.
 3. Never force-push any other way: no unpinned lease, and no plain force flag. If the
    pinned push is itself rejected, the remote moved again — stop and report it.
-4. Do not edit the ledger `.tdd/issue-<n>.md`: every {{INCLUDE:_develop-ledger-tick.md}}
-   {{INCLUDE:_develop-ledger-mark.md}}
+4. Do not edit the ledger `.tdd/issue-<n>.md`: every `[x]` tick and every
+   ` ⟂ refactor pending` mark must survive exactly as it is.
 
 ### Report (last lines of your output)
 

@@ -65,13 +65,17 @@ implementation-pinning test anyway to force a pass.
    and the shape of the message the suite will print. It is formed from the test and the code,
    never from the output: a prediction written after the run is a transcription of it, and
    answers nothing.
-3. Run the suites {{INCLUDE:_affected-suites-working-tree.md}} — not the full suite, and not one suite picked by hand — against the **unmodified** production code, and record whether
+3. Run the suites `affected-suites.sh HEAD` prints for your change — it reads `HEAD` to the
+   working tree, untracked files included, so build no commit, stash or worktree to name a
+   range — not the full suite, and not one suite picked by hand — against the **unmodified** production code, and record whether
    the new case FAILS or PASSES. The only question this phase asks is whether that one case
    fails; the suite holding the new case is among those it prints, and the others read the
    same files, and must stay green. Run one suite through
-   {{INCLUDE:_run-suite-lead.md}} suite, {{INCLUDE:_develop-run-suite-same-way.md}}
+   `run-suite.sh <suite>` — the one invocation for a single suite, so that every leaf on this
+   step runs it the same way and none of them is handed a suite that died partway and still
+   exited 0. If that runner cannot run a suite in this repository, fall back to
    the test command above and say so in your report.
-   Make that run through the wrapper {{INCLUDE:_timed-test-run.md}}
+   Make that run through the wrapper `{{TIMED_TEST_RUN}}`, which records what the run cost
    and names the tier it belongs to:
 
        {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>

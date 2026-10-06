@@ -68,7 +68,9 @@ your words rather than its own judgement:
    the ones listed above — after each transform, not the full suite: they answer what one transform could plausibly break, and answer it in a fraction of the
    time. Those suites must stay green; revert a transform that turns them red rather than
    leave a red suite behind, and carry on with the next candidate. Run one suite through
-   {{INCLUDE:_run-suite-lead.md}} suite, {{INCLUDE:_develop-run-suite-same-way.md}} the test
+   `run-suite.sh <suite>` — the one invocation for a single suite, so that every leaf on this
+   step runs it the same way and none of them is handed a suite that died partway and still
+   exited 0. If that runner cannot run a suite in this repository, fall back to the test
    command above and say so in your report.
    Make each of those runs through the wrapper `{{TIMED_TEST_RUN}}`, which records what the
    run cost and names the tier it belongs to:
@@ -98,4 +100,4 @@ your words rather than its own judgement:
 
 RESULT: <"applied <the transform>, suites green" — one line per transform you applied, each on its own RESULT: line, in the order you applied them — or "nothing left to tidy" if you applied none>
 CANDIDATES: <"structural | <transform>", "cosmetic | <transform>", "test-only | <transform>" or "out-of-scope | <transform>" — a transform you still see left in those files, carrying the class it falls into — one per line, each on its own CANDIDATES: line — or "none">
-FLAGS: <"overfit | <the {{INCLUDE:_flag-overfit.md}}", "{{INCLUDE:_flag-uncovered-spec.md}}" or "{{INCLUDE:_flag-beyond-spec.md}}" — one finding per line, each on its own FLAGS: line, carrying the class it falls into — or "none">
+FLAGS: <"overfit | <the code> | <the case that would force the general implementation>", "uncovered-spec | <the behaviour> | <the criterion or spec line requiring it>" or "beyond-spec | <what it names>" — one finding per line, each on its own FLAGS: line, carrying the class it falls into — or "none">

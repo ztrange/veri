@@ -24,7 +24,10 @@ stop — do not edit it.{{REPLACES_CASE}}{{SUITE_REPAIR}}
 
 A step that needs more than one new behaviour at once has a third answer, and it is not a
 weakened test or a half-written implementation. Report `SPLIT:` lines instead of an
-{{INCLUDE:_develop-split.md}} a tree left carrying part of an implementation
+implementation, changing no production code — one to three of them, each a
+behaviour-level criterion small enough to be one red-green cycle of its own, in the order
+they must be built. The conductor restores the tree, adds those steps ahead of this one
+and comes back to this step later, so a tree left carrying part of an implementation
 nobody has written a test for would poison the first of them: leave the working tree
 exactly as you found it.
 
@@ -43,12 +46,16 @@ exactly as you found it.
    later steps triangulate those.
 2. Iterate against the suite that holds the target case, not the full suite: that one
    suite answers the only question each iteration asks, and answers it in a fraction of
-   the time. Run one suite through {{INCLUDE:_run-suite-lead.md}}
-   suite, {{INCLUDE:_run-suite-same-way.md}} the test command above and say so in your report.
+   the time. Run one suite through `run-suite.sh <suite>` — the one invocation for a single
+   suite, so that every leaf on this step runs it the same way and none of them is handed a
+   suite that died partway and still exited 0. If that runner cannot run a suite in this
+   repository, fall back to the test command above and say so in your report.
 3. Exactly once, immediately before you write the `SUITE:` report line, run the fast
    command, `{{FAST_CMD}}` (`detect-test-command.sh --tier fast` prints it), then run
-   the suites that {{INCLUDE:_affected-suites-working-tree.md}} — and confirm both runs are green. Make each of those two runs through the wrapper
-   {{INCLUDE:_timed-test-run-tier.md}}:
+   the suites that `affected-suites.sh HEAD` prints for your change — it reads `HEAD` to the
+   working tree, untracked files included, so build no commit, stash or worktree to name a
+   range — and confirm both runs are green. Make each of those two runs through the wrapper
+   `{{TIMED_TEST_RUN}}`, which records what the run cost and names the tier it belongs to:
 
 {{INCLUDE:_timed-test-run-fast-affected.md}}
 

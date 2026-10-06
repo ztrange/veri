@@ -19,7 +19,7 @@ Render one verdict on the settled result.
    prints it), then run the suites `affected-suites.sh` prints for the files the refactor
    touched yourself; both must be **green**. A refactor that changed observable behavior or
    broke any test is a REJECT. Make each of those two runs through the wrapper
-   {{INCLUDE:_timed-test-run-tier.md}}:
+   `{{TIMED_TEST_RUN}}`, which records what the run cost and names the tier it belongs to:
 
 {{INCLUDE:_timed-test-run-fast-affected.md}}
 
@@ -35,10 +35,10 @@ Render one verdict on the settled result.
    can give you — the answer to a missing case is a new test, not tidier code. Report the
    unhandled edge case on a `FLAGS:` line instead, written before the final
    `VERDICT:`/`REASON:` pair, carrying the class it falls into: `FLAGS: overfit | <the
-   {{INCLUDE:_flag-overfit.md}}` when the code passes the
+   code> | <the case that would force the general implementation>` when the code passes the
    step's test without implementing what the step's criterion states, `FLAGS:
-   {{INCLUDE:_flag-uncovered-spec.md}}` when the
-   spec requires a behaviour no step covers, or `FLAGS: {{INCLUDE:_flag-beyond-spec.md}}` for
+   uncovered-spec | <the behaviour> | <the criterion or spec line requiring it>` when the
+   spec requires a behaviour no step covers, or `FLAGS: beyond-spec | <what it names>` for
    anything the spec does not ask for. One finding per line.
 4. **No assertion loosened.** A removed or weakened test assertion in the range is a REJECT,
    and the REJECT names that assertion: the suite stays green while it loosens, so the diff
@@ -57,7 +57,12 @@ Render one verdict on the settled result.
    them; derive that list yourself, and read it as paths and nothing else. A changed file
    outside that list is a REJECT, unless its hunk removes duplication between that file and
    code in the list — the one reason a transform was allowed to leave the list for.
-9. {{INCLUDE:_verify-comments-lead.md}} range {{INCLUDE:_verify-comments-allowed.md}} range {{INCLUDE:_verify-comments-never-reject.md}}
+9. **Only the two allowed comments.** A comment the range adds is allowed only as a
+   contract header (a usage line or exit-code table) or a succinct warning where the shell
+   itself is the hazard (bash 3.2, BSD versus GNU flags, `set -u`'s exit status, a
+   load-bearing `|| true`). REJECT any other rationale comment the range adds, and name
+   it in REASON:.
+   A contract header or a shell-hazard warning is never grounds for REJECT.
 
 PASS if the suite is green and the code is up to standard. REJECT, naming the specific
 weakness, if the tidy-up left the code below standard or altered behavior.

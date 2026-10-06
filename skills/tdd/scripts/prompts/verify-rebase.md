@@ -16,7 +16,7 @@ branch at `HEAD`.
 1. **The full test command is green on HEAD.** Run the project's full test command
    (`detect-test-command.sh` prints it) yourself, on `HEAD`, not the fast tier: a resolution
    can break a suite no single file's change would name. Make that run through the wrapper
-   {{INCLUDE:_timed-test-run-tier.md}} —
+   `{{TIMED_TEST_RUN}}`, which records what the run cost and names the tier it belongs to —
    `all`, since the whole test command is what runs:
 
        {{TIMED_TEST_RUN}} all '' <the full test command>
