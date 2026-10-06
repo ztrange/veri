@@ -151,3 +151,15 @@ def test_main_prints_a_unit_suite_that_alone_names_a_script_with_no_suite_of_its
     (tests / "unit/names.test.sh").write_text('source "$scripts/orphan.sh"\n')
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
         0, "skills/tdd/scripts/tests/unit/names.test.sh\n", "")
+
+
+def test_main_prints_the_emitted_text_suite_for_a_prompt_no_suite_names_1024(
+        tmp_path, monkeypatch, capsys, affected):
+    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/unnamed.md"]))
+    monkeypatch.chdir(tmp_path)
+    tests = tmp_path / "skills/tdd/scripts/tests"
+    (tests / "unit").mkdir(parents=True)
+    (tests / "other.test.sh").write_text("")
+    (tests / "unit/emitted-text.test.sh").write_text('cksum < "$out"\n')
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "skills/tdd/scripts/tests/unit/emitted-text.test.sh\n", "")
