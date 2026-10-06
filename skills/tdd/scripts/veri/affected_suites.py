@@ -113,8 +113,8 @@ def output(*args):
     return out.returncode, out.stdout.rstrip("\n")
 
 
-def changed(range_, *args):
-    return output("diff", "--name-only", *args[:1], range_, *args[1:])
+def changed(revisions, *args):
+    return output("diff", "--name-only", *args[:1], revisions, *args[1:])
 
 
 def untracked(*args):
@@ -124,13 +124,13 @@ def untracked(*args):
 def main(argv):
     if not argv or not argv[0]:
         return refuse()
-    range_ = argv[0]
-    for rev in range_.split("..", 1):
+    revisions = argv[0]
+    for rev in revisions.split("..", 1):
         if git("rev-parse", "--verify", "--quiet", rev + "^{commit}", stdout=subprocess.DEVNULL).returncode != 0:
             return refuse("affected-suites: cannot resolve revision '%s'" % rev)
 
-    working_tree = ".." not in range_
-    code, files = changed(range_)
+    working_tree = ".." not in revisions
+    code, files = changed(revisions)
     if code != 0:
         return code if code in (1, 2, 3) else 2
     if working_tree:
@@ -147,7 +147,7 @@ def main(argv):
             unplaced.append(f)
 
     counting = ("--", SCRIPTS + "/tests", ":(glob)%s/*.sh" % SCRIPTS)
-    _, counted = changed(range_, "--diff-filter=AD", *counting)
+    _, counted = changed(revisions, "--diff-filter=AD", *counting)
     if working_tree and not counted:
         _, counted = untracked(*counting)
     if counted:
