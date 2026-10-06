@@ -1,0 +1,2 @@
+### classify-bail.sh rebased-tip-red prints process and exits 0, pinned in tests/py/test_classify_bail.py ⟦criterion 1⟧
+- test-only | fold `test_main_classifies_rebased_tip_red_as_a_process_failure_with_0` into `test_main_classifies_every_known_cause_as_system_or_process_with_0` by adding "rebased-tip-red" to `PROCESS_CAUSES` in tests/py/test_classify_bail.py. Today the new cause sits outside the table that is meant to list every known cause.
