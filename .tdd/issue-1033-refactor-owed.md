@@ -1,0 +1,2 @@
+### A file tracked in HEAD and matched by .gitignore appears in the preserved attempt's tree with its worktree content, the in-process cases that pin the snapshot's git call sequence updated to the new sequence ⟦criterion 1⟧
+- test-only | in `skills/tdd/scripts/tests/py/test_preserve_attempt.py`, fold the three `by_verb[...]["env"] == {**inherited, "GIT_INDEX_FILE": index}` asserts (read-tree, add, write-tree) into one loop, the way the next assert already loops over rev-parse, commit-tree and update-ref
