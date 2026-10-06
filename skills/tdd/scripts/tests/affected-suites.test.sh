@@ -156,10 +156,11 @@ commit_head
 expect_suites "rule 1 via tests/unit/: a change to scripts/foo.sh prints exactly tests/unit/foo.test.sh" \
   "skills/tdd/scripts/tests/unit/foo.test.sh"
 
+venv_suite=run-suite-venv
 make_repo rule1-no-suite
 mkdir -p "$s/tests"
 printf 'run\n' > "$s/run-suite.sh"
-printf '#!/usr/bin/env bash\nRUN="$HERE/../run-suite.sh"\n' > "$s/tests/run-suite-venv.test.sh"
+printf '#!/usr/bin/env bash\nRUN="$HERE/../run-suite.sh"\n' > "$s/tests/$venv_suite.test.sh"
 commit_base
 printf 'run 2\n' > "$s/run-suite.sh"
 commit_head
@@ -176,7 +177,7 @@ make_repo rule1-naming-suites
 mkdir -p "$s/tests"
 printf 'run\n' > "$s/run-suite.sh"
 printf 'gamma\n' > "$s/gamma.sh"
-printf '#!/usr/bin/env bash\nRUN="$HERE/../run-suite.sh"\n' > "$s/tests/run-suite-venv.test.sh"
+printf '#!/usr/bin/env bash\nRUN="$HERE/../run-suite.sh"\n' > "$s/tests/$venv_suite.test.sh"
 printf '#!/usr/bin/env bash\nGAMMA="$HERE/../gamma.sh"\n' > "$s/tests/gamma.test.sh"
 commit_base
 printf 'run 2\n' > "$s/run-suite.sh"
