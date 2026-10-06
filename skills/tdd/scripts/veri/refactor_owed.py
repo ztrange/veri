@@ -15,7 +15,9 @@ def candidate(cls):
 
 STRUCTURAL = candidate("structural")
 TEST_ONLY = candidate("test-only")
+OUT_OF_SCOPE = candidate("out-of-scope")
 TEST_ONLY_MARK = "- test-only | "
+OUT_OF_SCOPE_MARK = "- out-of-scope | "
 APPLIED_MARK = "applied | "
 TEST_FILE = re.compile(r"(^|/)tests/|\.test\.")
 
@@ -52,17 +54,18 @@ def write(file, text):
 
 
 def append(file, step, bounds):
-    structural, test_only = [], []
+    structural, test_only, out_of_scope = [], [], []
     tests_bound = all_tests(bounds)
     stream = getattr(sys.stdin, "buffer", None)
     report = stream.read().decode(errors="surrogateescape") if stream else sys.stdin.read()
     routes = ((STRUCTURAL, test_only if tests_bound else structural, "test-only | " if tests_bound else ""),
-              (TEST_ONLY, test_only, "test-only | "))
+              (TEST_ONLY, test_only, "test-only | "),
+              (OUT_OF_SCOPE, out_of_scope, "out-of-scope | "))
     for line in report.split("\n"):
         for pattern, group, prefix in routes:
             if match := pattern.match(line):
                 group.append(prefix + match.group(1))
-    owed = structural + test_only
+    owed = structural + test_only + out_of_scope
     return write(file, f"### {step}\n" + bullets(owed)) if owed else 0
 
 
@@ -113,7 +116,7 @@ def render(file):
 
 def list_owed(file):
     counts = Counter(l[2:] for l in owed_lines(file)
-                     if l.startswith("- ") and not l.startswith(TEST_ONLY_MARK))
+                     if l.startswith("- ") and not l.startswith((TEST_ONLY_MARK, OUT_OF_SCOPE_MARK)))
     listed = "\n".join(t for t, _ in counts.most_common()).rstrip("\n")
     if not listed:
         return 3
