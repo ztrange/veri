@@ -1564,7 +1564,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    `REVISE_BUDGET` like any other phase; a malformed verdict does **bail** as a **system**
    failure (`no-verdict`).
    Only on a verify-rebase `PASS` does the run go on to ready the PR, and first as on exit 0:
-   the full test command once on the rebased tip, a bail on red (`rebased-tip-red`), and on green the push under
+   the full test command once on the rebased tip, a bail on red (`rebased-tip-red`) with
+   `git reset --hard <pre-rebase-sha>` before *Bailing*'s push, and on green the push under
    the lease pinned to `<pre-rebase-sha>`.
 
    A rebase not resolved within budget — the leaf reports `REBASE: FAILED` or exits 1 or 2,
