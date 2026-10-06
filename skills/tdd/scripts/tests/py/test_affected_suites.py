@@ -127,3 +127,14 @@ def test_main_prints_a_unit_suite_that_names_a_changed_prompt_1024(tmp_path, mon
     (unit / "names.test.sh").write_text('cat "$scripts/prompts/develop-red.md"\n')
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
         0, "skills/tdd/scripts/tests/unit/names.test.sh\n", "")
+
+
+def test_main_prints_a_unit_suite_that_alone_names_a_changed_fixture_1024(tmp_path, monkeypatch, capsys, affected):
+    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/tests/fixtures/sample.txt"]))
+    monkeypatch.chdir(tmp_path)
+    tests = tmp_path / "skills/tdd/scripts/tests"
+    (tests / "unit").mkdir(parents=True)
+    (tests / "other.test.sh").write_text("")
+    (tests / "unit/names.test.sh").write_text('cat "$here/../fixtures/sample.txt"\n')
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "skills/tdd/scripts/tests/unit/names.test.sh\n", "")
