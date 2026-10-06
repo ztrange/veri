@@ -114,7 +114,7 @@ pin '3584306278 149' usage verify.sh --step
 spec="$work/spec.md" step="the step" cmd="make test"
 pin '1056104798 10342' prompt build-develop-prompt.sh red "$spec" "$step" "$cmd"
 pin '2318554213 11317' prompt build-develop-prompt.sh red "$work/bug.md" "$step" "$cmd"
-pin '2685828962 7064' prompt build-develop-prompt.sh green "$spec" "$step" "$cmd" t/x.test.sh "case one" "make unit"
+pin '3930120823 7196' prompt build-develop-prompt.sh green "$spec" "$step" "$cmd" t/x.test.sh "case one" "make unit"
 pin '1977169211 9358' prompt build-develop-prompt.sh refactor "$spec" "$step" "$cmd" "a.sh b.sh"
 pin '2726450276 5614' prompt build-develop-prompt.sh cover "$spec" "$step" "$cmd"
 pin '1733087293 4610' prompt build-develop-prompt.sh transform "$spec" "$step" "$cmd"

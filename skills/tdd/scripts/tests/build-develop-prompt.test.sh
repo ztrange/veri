@@ -727,7 +727,7 @@ renders_as() {  # <label> <want-cksum> <args...> — records a prompt whose sum 
   [[ "$got" == "$want" ]] || problems="$problems; $label renders as '$got', want '$want'"
 }
 renders_as red            '981610769 10392'       red "$work/spec.md" "$step_text" "$test_cmd"
-renders_as green          '2615734855 7168'     green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit"
+renders_as green          '3453024810 7300'     green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit"
 renders_as refactor       '1398370756 9452'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
 renders_as 'revise red'   '788521639 7651'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as 'revise green' '2849870849 7653'  revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
@@ -739,7 +739,7 @@ renders_as reconcile      '3578743599 5598'       reconcile "$work/spec.md" "$st
 
 problems=""
 unmarked_step='tests/zorblat.test.sh: "zorblat frobs a nitz" replaces-case moves to tests/py ⟦added⟧ ⟦criterion 2⟧'
-renders_as 'green, unmarked step' '2880759674 7206' green "$work/spec.md" "$unmarked_step" "$test_cmd" "$test_path" "$target" "make unit"
+renders_as 'green, unmarked step' '1396175610 7338' green "$work/spec.md" "$unmarked_step" "$test_cmd" "$test_path" "$target" "make unit"
 [[ -z "$problems" ]] \
   && ok || no "develop-green for a step not carrying ⟦replaces-case⟧ renders byte-identically to before #671 (${problems#; })"
 
@@ -1096,6 +1096,11 @@ expect_eq "$name" "2::diagnostic" "$code:${rd_nofast:+prompt}:$diag"
 name="#990 the red prompt spells the working-tree call affected-suites.sh HEAD, so the leaf never builds a commit, stash or worktree to name a range"
 red="$("$BUILD" red "$work/spec.md" "$step_text" "$test_cmd" 2>/dev/null)"; code=$?
 call=""; [[ "$red" == *'affected-suites.sh HEAD'* ]] && call=spelled
+expect_eq "$name" "0:spelled" "$code:$call"
+
+name="#990 the green prompt spells the working-tree call affected-suites.sh HEAD, so the leaf never builds a commit, stash or worktree to name a range"
+green="$("$BUILD" green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit" 2>/dev/null)"; code=$?
+call=""; [[ "$green" == *'affected-suites.sh HEAD'* ]] && call=spelled
 expect_eq "$name" "0:spelled" "$code:$call"
 
 finish
