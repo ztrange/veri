@@ -27,7 +27,8 @@ source "$HERE/lib/plain.sh"
 
 
 doc_text() {
-  awk -v h="$1" -v from="${2:-}" '
+  from="${2:-}" awk -v h="$1" '
+    BEGIN { from = ENVIRON["from"] }
     !in_s && index($0, h) == 1 { in_s = 1; if (from == "") want = 1; next }
     in_s && /^#/ { exit }
     in_s {
@@ -82,5 +83,10 @@ else
     "$skill_md's Bailing causes list never classifies untestable-criterion as a process failure"
 fi
 report "$name"
+
+name="#1037: doc_text given 'run\\.sh' starts at 'run.sh', not at 'runXsh'"
+fixture="$(scratch_dir)"
+printf -- '## H\nrunXsh wrong\nrun.sh right\n# end\n' > "$fixture/SKILL.md"
+expect_eq "$name" 'run.sh right ' "$(skill_path="$fixture/SKILL.md" doc_text '## H' 'run\.sh')"
 
 finish
