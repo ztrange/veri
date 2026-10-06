@@ -48,11 +48,15 @@ plant() {
   problems=()
 }
 
-probe_a_planted_awk_v_pattern() {
+scan_planted() {
   local ROOT
-  plant "$PLANT_REL" '#!/usr/bin/env bash' 'numbered() {' "  awk -v re=\"\$1\" '\$0 ~ re { print }' \"\$2\"" '}' \
-    'starts() {' "  awk -v at=\"\$1\" 'match(\$0, at) { print NR }' \"\$2\"" '}'
+  plant "$PLANT_REL" "$@"
   probe_no_suite_passes_a_pattern_through_awk_v
+}
+
+probe_a_planted_awk_v_pattern() {
+  scan_planted '#!/usr/bin/env bash' 'numbered() {' "  awk -v re=\"\$1\" '\$0 ~ re { print }' \"\$2\"" '}' \
+    'starts() {' "  awk -v at=\"\$1\" 'match(\$0, at) { print NR }' \"\$2\"" '}'
   planted_tilde_named="$(problem_naming "planted.test.sh:3")"
   planted_match_named="$(problem_naming "planted.test.sh:6")"
 }
@@ -66,9 +70,7 @@ probe_a_planted_awk_v_pattern
 expect_eq "$name" "named named" "$planted_tilde_named $planted_match_named"
 
 probe_a_planted_comment_quoting_awk_v() {
-  local ROOT
-  plant "$PLANT_REL" '#!/usr/bin/env bash' "# awk -v re=\"\$1\" … \$0 ~ re"
-  probe_no_suite_passes_a_pattern_through_awk_v
+  scan_planted '#!/usr/bin/env bash' "# awk -v re=\"\$1\" … \$0 ~ re"
   planted_comment_named="$(problem_naming "planted.test.sh:2")"
 }
 
@@ -80,10 +82,8 @@ probe_a_planted_comment_quoting_awk_v
 expect_eq "$name" "not named" "$planted_comment_named"
 
 probe_a_planted_awk_v_with_unquoted_program() {
-  local ROOT
-  plant "$PLANT_REL" '#!/usr/bin/env bash' 'numbered() {' "  awk -v re=\"\$1\" -f prog.awk \"\$2\"" \
+  scan_planted '#!/usr/bin/env bash' 'numbered() {' "  awk -v re=\"\$1\" -f prog.awk \"\$2\"" \
     "  [[ \"\$2\" =~ \$re ]] && echo matched" '}'
-  probe_no_suite_passes_a_pattern_through_awk_v
   planted_unquoted_named="$(problem_naming "planted.test.sh:3")"
 }
 
