@@ -9,6 +9,7 @@ from github import NoAnswer, gh_json
 from json_documents import items
 
 USAGE = "usage: solvable-issues.sh [--repo owner/name]"
+OLDEST_FIRST = "?state=all&sort=created&direction=asc"
 
 
 def main_working_tree():
@@ -64,9 +65,9 @@ def main(argv):
     scope = ["--repo", repo] if repo else []
     prefix = "repos/%s" % (repo or "{owner}/{repo}")
     try:
-        issues = gh_json("issues.json", prefix + "/issues?state=all&sort=created&direction=asc",
+        issues = gh_json("issues.json", prefix + "/issues" + OLDEST_FIRST,
                          "issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope)
-        prs = gh_json("prs.json", prefix + "/pulls?state=all&sort=created&direction=asc",
+        prs = gh_json("prs.json", prefix + "/pulls" + OLDEST_FIRST,
                       "pr", "list", "--limit", "10000", "--json", "body,state", *scope)
     except NoAnswer:
         return 2
