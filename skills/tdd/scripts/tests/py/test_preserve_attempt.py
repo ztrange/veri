@@ -359,3 +359,71 @@ def test_main_returns_1_outside_a_work_tree_and_maps_a_failing_add_or_write_tree
         ("write-tree", 1, 1, ["rev-parse", "add", "write-tree"], "", [], []),
         ("write-tree", 128, 2, ["rev-parse", "add", "write-tree"], "", [], []),
     ]
+
+
+def test_main_copies_each_regular_leaf_file_under_its_mark_and_returns_1_when_a_copy_fails(
+        monkeypatch, tmp_path, preserve_attempt):
+    def scenario(name, argv, plant):
+        repo = tmp_path / name
+        tdd = repo / ".tdd"
+        tdd.mkdir(parents=True)
+        plant(tdd)
+        monkeypatch.chdir(repo)
+
+        def fake_run(args, *_, **__):
+            if args[1] == "rev-parse":
+                return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+            if args[1] == "write-tree":
+                return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+            if args[1] == "commit-tree":
+                return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
+            return subprocess.CompletedProcess(args, 0, "", "")
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        code = preserve_attempt.main(argv)
+        attempts = tdd / "attempts"
+        listing = None
+        if attempts.is_dir():
+            listing = {
+                entry.name: (entry.read_text(), oct(entry.stat().st_mode & 0o777)) if entry.is_file() else "dir"
+                for entry in sorted(attempts.iterdir())
+            }
+        return name, code, listing
+
+    def leaf_files(tdd):
+        (tdd / "develop-green.log").write_text("new log\n")
+        (tdd / "develop-green.log").chmod(0o640)
+        (tdd / "develop-green.out").write_text("new out\n")
+        (tdd / "develop-green.out").chmod(0o750)
+        (tdd / "attempts").mkdir()
+        (tdd / "attempts" / "3-develop-green-1-reject.log").write_text("earlier log\n")
+        (tdd / "attempts" / "3-develop-green-1-reject.log").chmod(0o640)
+
+    def log_and_a_directory_named_out(tdd):
+        (tdd / "develop-green.log").write_text("new log\n")
+        (tdd / "develop-green.log").chmod(0o640)
+        (tdd / "develop-green.out").mkdir()
+
+    def blocked_copy(tdd):
+        (tdd / "develop-green.log").write_text("new log\n")
+        (tdd / "attempts" / "3-develop-green-1-reject.log" / "develop-green.log").mkdir(parents=True)
+
+    answers = [
+        scenario("neither", ["409", "3", "develop-green", "1", "reject"], lambda tdd: None),
+        scenario("both", ["409", "3", "develop-green", "1", "reject", "ignored", "too"], leaf_files),
+        scenario("not-regular", ["409", "3", "develop-green", "1", "reject"], log_and_a_directory_named_out),
+        scenario("no-mark", ["409", "3", "develop-green", "1", ""],
+                 lambda tdd: (tdd / "develop-green.log").write_text("new log\n")),
+        scenario("blocked", ["409", "3", "develop-green", "1", "reject"], blocked_copy)[:2],
+    ]
+
+    assert answers == [
+        ("neither", 0, {}),
+        ("both", 0, {
+            "3-develop-green-1-reject.log": ("new log\n", "0o640"),
+            "3-develop-green-1-reject.out": ("new out\n", "0o750"),
+        }),
+        ("not-regular", 0, {"3-develop-green-1-reject.log": ("new log\n", "0o640")}),
+        ("no-mark", 0, None),
+        ("blocked", 1),
+    ]
