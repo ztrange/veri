@@ -93,3 +93,24 @@ def test_main_reads_a_lone_ledger_file_as_an_empty_matcher_clearing_the_first_ma
     }
     assert lone.read_bytes() == "- [x] a\n- [x] b ⟂ refactor pending\n".encode()
     assert extra.read_bytes() == "- [x] a ⟂ refactor pending\n- [x] b\n".encode()
+
+
+def test_main_matches_the_matcher_as_a_literal_substring_of_the_whole_line_box_and_mark_included(
+        tmp_path, capsysbinary, clear_refactor_pending):
+    seed = "- [x] a ⟂ refactor pending\n- [x] b * c ⟂ refactor pending\n".encode()
+    results = {}
+    for name, matcher in (("pending", "refactor pending"), ("box", "[x] a"), ("mark", "a ⟂"),
+                          ("star", "*"), ("glob", "b*c")):
+        led = tmp_path / f"{name}.md"
+        led.write_bytes(seed)
+        code = clear_refactor_pending.main([str(led), matcher])
+        results[matcher] = (code, *capsysbinary.readouterr(), led.read_bytes())
+
+    first_cleared = "- [x] a\n- [x] b * c ⟂ refactor pending\n".encode()
+    assert results == {
+        "refactor pending": (0, b"", b"", first_cleared),
+        "[x] a": (0, b"", b"", first_cleared),
+        "a ⟂": (0, b"", b"", first_cleared),
+        "*": (0, b"", b"", "- [x] a ⟂ refactor pending\n- [x] b * c\n".encode()),
+        "b*c": (3, b"", b"", seed),
+    }
