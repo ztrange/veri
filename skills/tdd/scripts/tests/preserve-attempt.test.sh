@@ -273,4 +273,20 @@ shown="$(git_q "$repo" show "$REF:t.txt" 2>&1)"
   && ok || no "keeps a file tracked in HEAD and matched by .gitignore in the preserved tree with its worktree content (#1033) (code=$code shown='$shown')"
 
 
+repo="$work/trackedignoredneighbours"
+make_repo "$repo"
+printf 'committed\n' > "$repo/t.txt"
+printf 'committed\n' > "$repo/gone.txt"
+git_q "$repo" add t.txt gone.txt >/dev/null 2>&1
+git_q "$repo" commit -q -m "track t.txt and gone.txt" >/dev/null 2>&1
+printf 't.txt\nscratch.log\n' > "$repo/.gitignore"
+printf 'ignored\n' > "$repo/scratch.log"
+printf 'new\n' > "$repo/fresh.txt"
+rm "$repo/gone.txt"
+preserve "$repo" 409 3 develop-green 1 >/dev/null 2>&1; code=$?
+listed="$(git_q "$repo" ls-tree --name-only "$REF" 2>&1 | tr '\n' ' ')"
+{ [[ "$code" == 0 ]] && [[ "$listed" == ".gitignore fresh.txt stop-run.sh t.txt " ]]; } \
+  && ok || no "beside a tracked ignored file, leaves an untracked ignored file and a deleted tracked file out of the preserved tree and keeps an untracked non-ignored one (#1033) (code=$code listed='$listed')"
+
+
 finish
