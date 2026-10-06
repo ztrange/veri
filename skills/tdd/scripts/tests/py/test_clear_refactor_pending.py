@@ -114,3 +114,26 @@ def test_main_matches_the_matcher_as_a_literal_substring_of_the_whole_line_box_a
         "*": (0, b"", b"", "- [x] a ⟂ refactor pending\n- [x] b * c\n".encode()),
         "b*c": (3, b"", b"", seed),
     }
+
+
+def test_main_exits_3_leaving_an_open_marked_step_a_crlf_mark_and_a_mark_before_a_space_untouched_and_clears_only_the_last_of_a_double_mark(
+        tmp_path, capsysbinary, clear_refactor_pending):
+    seeds = {
+        "open": "- [ ] a ⟂ refactor pending\n".encode(),
+        "crlf": "- [x] a ⟂ refactor pending\r\n".encode(),
+        "space": "- [x] a ⟂ refactor pending \n".encode(),
+        "double": "- [x] a ⟂ refactor pending ⟂ refactor pending\n".encode(),
+    }
+    results = {}
+    for name, seed in seeds.items():
+        led = tmp_path / f"{name}.md"
+        led.write_bytes(seed)
+        code = clear_refactor_pending.main([str(led), "a"])
+        results[name] = (code, *capsysbinary.readouterr(), led.read_bytes())
+
+    assert results == {
+        "open": (3, b"", b"", seeds["open"]),
+        "crlf": (3, b"", b"", seeds["crlf"]),
+        "space": (3, b"", b"", seeds["space"]),
+        "double": (0, b"", b"", "- [x] a ⟂ refactor pending\n".encode()),
+    }
