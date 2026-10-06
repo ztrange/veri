@@ -427,3 +427,42 @@ def test_main_copies_each_regular_leaf_file_under_its_mark_and_returns_1_when_a_
         ("no-mark", 0, None),
         ("blocked", 1),
     ]
+
+
+def test_main_writes_nothing_on_stdout_preserved_refused_arguments_update_ref_refused_or_git_failure(
+        monkeypatch, tmp_path, capfd, preserve_attempt):
+    def scenario(name, argv, failing_verb):
+        repo = tmp_path / name
+        (repo / ".tdd").mkdir(parents=True)
+        (repo / ".tdd" / "develop-green.log").write_text("log\n")
+        (repo / ".tdd" / "develop-green.out").write_text("out\n")
+        monkeypatch.chdir(repo)
+
+        def fake_run(args, *_, **__):
+            if args[1] == failing_verb:
+                return subprocess.CompletedProcess(args, 128, "", None)
+            if args[1] == "rev-parse":
+                return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+            if args[1] == "write-tree":
+                return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+            if args[1] == "commit-tree":
+                return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
+            return subprocess.CompletedProcess(args, 0, "", "")
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        code = preserve_attempt.main(argv)
+        return name, code, capfd.readouterr().out
+
+    answers = [
+        scenario("preserved", ["409", "3", "develop-green", "1", "reject"], None),
+        scenario("refused-arguments", ["409", "3", "develop-green"], None),
+        scenario("update-ref-refused", ["409", "3", "develop-green", "1", "reject"], "update-ref"),
+        scenario("git-failure", ["409", "3", "develop-green", "1", "reject"], "commit-tree"),
+    ]
+
+    assert answers == [
+        ("preserved", 0, ""),
+        ("refused-arguments", 2, ""),
+        ("update-ref-refused", 1, ""),
+        ("git-failure", 2, ""),
+    ]
