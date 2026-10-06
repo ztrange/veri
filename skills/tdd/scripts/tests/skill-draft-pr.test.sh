@@ -109,6 +109,8 @@
 #      `suite-red`, after a clean rebase and after a verified conflict resolution alike.
 #  40. SKILL.md's bail on a red rebased tip runs `git reset --hard <pre-rebase-sha>` before
 #      *Bailing*'s push.
+#  41. SKILL.md's bail on a red rebased tip after a verified conflict resolution also runs
+#      `git reset --hard <pre-rebase-sha>` before *Bailing*'s push.
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -1005,6 +1007,23 @@ if step_or_problem '### 4. Draft PR' "what a red rebased tip's bail does to the 
   reset="$(first_record "$(unmarked_records)" -F 'rebased-tip-red' -F 'git reset --hard <pre-rebase-sha>' -E 'bailing[^.]*push')"
   [[ -n "$reset" ]] ||
     problems+=("no instruction of $skill_md's Draft PR step that bails with rebased-tip-red runs git reset --hard <pre-rebase-sha> before Bailing's push, so that push of the rebased branch is not a fast-forward and is rejected")
+fi
+report "$name"
+
+name="$skill_md's bail on a red rebased tip after a verify-rebase PASS also runs git reset --hard <pre-rebase-sha> before Bailing's push (#975)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "what a red rebased tip's bail after a verified conflict resolution does to the branch before Bailing's push"; then
+  record="$(first_record "$(unmarked_records)" -F 'only on a verify-rebase pass' -F 'rebased-tip-red')"
+  resolved=""
+  [[ "$record" =~ only\ on\ a\ verify-rebase\ pass.* ]] && resolved="${BASH_REMATCH[0]}"
+  if [[ "$resolved" != *rebased-tip-red* ]]; then
+    problems+=("no instruction of $skill_md's Draft PR step bails with rebased-tip-red after a verify-rebase PASS")
+  else
+    reset="$(first_record "$resolved" -F 'git reset --hard <pre-rebase-sha>' -E 'bailing[^.]*push')"
+    [[ -n "$reset" ]] ||
+      problems+=("$skill_md's bail on a red rebased tip after a verify-rebase PASS does not run git reset --hard <pre-rebase-sha> before Bailing's push, so that push of the rebased branch is not a fast-forward and is rejected: $(printf '%.160s' "$resolved")")
+  fi
 fi
 report "$name"
 
