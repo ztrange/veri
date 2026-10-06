@@ -91,7 +91,7 @@ def owed_lines(file):
 
 def render(file):
     lines = owed_lines(file)
-    kept, test_only, done = [], [], {}
+    kept, test_only, out_of_scope, done = [], [], [], {}
     for l in lines:
         if l.startswith(APPLIED_MARK):
             sha, _, transform = l[len(APPLIED_MARK):].partition(" | ")
@@ -101,6 +101,8 @@ def render(file):
             continue
         if l.startswith(TEST_ONLY_MARK):
             test_only.append(l[len(TEST_ONLY_MARK):])
+        elif l.startswith(OUT_OF_SCOPE_MARK):
+            out_of_scope.append(l[len(OUT_OF_SCOPE_MARK):])
         else:
             kept.append(l)
     kept = [l for l, after in zip(kept, kept[1:] + ["### "])
@@ -110,6 +112,8 @@ def render(file):
         out += ("\n### Test-only\n\n"
                 "These change only files under tests/; the structural pass does not work them.\n\n"
                 + bullets(test_only))
+    if out_of_scope:
+        out += "\n### Out-of-scope\n\n" + bullets(out_of_scope)
     if done:
         out += "\n### Applied\n\n" + bullets(f"{t} — {sha}" for t, sha in done.items())
     emit(out)
