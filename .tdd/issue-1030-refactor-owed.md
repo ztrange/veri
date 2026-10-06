@@ -1,0 +1,2 @@
+### Run from a directory that is not inside a git work tree, preserve-attempt.sh <issue> <step> <phase> <attempt> exits 2 (the existing case pinning exit 1 there changes to 2) ⟦criterion 1⟧
+- test-only | rename `test_main_returns_2_outside_a_work_tree_and_maps_a_failing_add_or_write_tree_with_the_scratch_gone_issue_1030` in skills/tdd/scripts/tests/py/test_preserve_attempt.py to drop the `_issue_1030` suffix (issue archaeology in an identifier; blame already holds it)
