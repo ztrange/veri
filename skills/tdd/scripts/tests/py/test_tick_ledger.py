@@ -84,3 +84,20 @@ def test_main_rewrites_the_ledger_as_printf_over_a_command_substitution_collapsi
         b"- [ ] a": (0, b"- [x] a\n"),
         b"- [ ] a\0z": (0, b"- [x] az\n"),
     }
+
+
+def test_main_ticks_the_first_open_step_for_an_omitted_or_empty_matcher_ignores_arguments_after_the_second_and_reads_the_flag_only_first(
+        tmp_path, capsysbinary, tick_ledger):
+    results = {}
+    for argv in ([], [""], ["b", "--refactor-pending"], ["--refactor-pending"]):
+        ledger = tmp_path / f"ledger{len(results)}.md"
+        ledger.write_bytes(b"- [ ] a\n- [ ] b\n")
+        code = tick_ledger.main([str(ledger), *argv])
+        results[tuple(argv)] = (code, *capsysbinary.readouterr(), ledger.read_bytes())
+
+    assert results == {
+        (): (0, b"", b"", b"- [x] a\n- [ ] b\n"),
+        ("",): (0, b"", b"", b"- [x] a\n- [ ] b\n"),
+        ("b", "--refactor-pending"): (0, b"", b"", b"- [ ] a\n- [x] b\n"),
+        ("--refactor-pending",): (3, b"", b"", b"- [ ] a\n- [ ] b\n"),
+    }
