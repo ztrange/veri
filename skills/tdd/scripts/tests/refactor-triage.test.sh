@@ -344,4 +344,27 @@ cosmic|refactor-triage: candidate line has no class, or one that is neither stru
 PROBES
 report "$name"
 
+name="refactor-triage.sh answers from veri/refactor_triage.py alone: run from a copy of scripts/ with no lib/, it answers a structural, a cosmetic-only and an empty report"
+problems=()
+work="$(scratch_dir)"
+cp -R "$HERE/.." "$work/scripts"
+rm -rf "$work/scripts/lib" "$work/scripts/tests"
+printf 'CANDIDATES: structural | extract the parser\nCANDIDATES: cosmetic | rename a local\n' >"$work/structural"
+printf 'CANDIDATES: cosmetic | rename a local\n' >"$work/cosmetic"
+: >"$work/empty"
+while IFS='|' read -r fixture exp_code exp_out exp_err; do
+  "$work/scripts/refactor-triage.sh" <"$work/$fixture" >"$work/out" 2>"$work/err" && code=0 || code=$?
+  [[ "$code" == "$exp_code" ]] ||
+    problems+=("$fixture report with no lib/: want exit $exp_code, got $code, stderr $(printf '%q' "$(cat "$work/err")")")
+  [[ "$(cat "$work/out")" == "$exp_out" ]] ||
+    problems+=("$fixture report with no lib/: want stdout $(printf '%q' "$exp_out"), got $(printf '%q' "$(cat "$work/out")")")
+  [[ "$(cat "$work/err")" == "$exp_err" ]] ||
+    problems+=("$fixture report with no lib/: want stderr $(printf '%q' "$exp_err"), got $(printf '%q' "$(cat "$work/err")")")
+done <<'PROBES'
+structural|0|extract the parser|
+cosmetic|3||
+empty|2||refactor-triage: the report has no CANDIDATES: line
+PROBES
+report "$name"
+
 finish
