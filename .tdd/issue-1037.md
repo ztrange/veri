@@ -10,7 +10,7 @@
 - [x] no-awk-v-patterns.test.sh, run over a scratch tree holding a planted suite with `awk -v re="$1"` whose `re` is later used on the right of `~` or in `match(`, fails the run naming `<suite>:<line>` ⟦added⟧ ⟦criterion 4⟧
 - [x] no-awk-v-patterns.test.sh does not flag a planted suite's comment line (`# awk -v re="$1" … $0 ~ re`) that only quotes an `awk -v` pattern site ⟦added⟧ ⟦criterion 4⟧
 - [x] no-awk-v-patterns.test.sh does not flag a planted `awk -v re="$1" -f prog.awk` whose program is not single-quoted in the suite, even when a later line of that suite (holding no single quote) uses `re` on the right of `=~` ⟦added⟧ ⟦criterion 4⟧
-- [x] no-awk-v-patterns.test.sh does not flag a planted `awk -v` whose variable is only compared with `==` or passed to `index(` ⟦criterion 4⟧ ⟂ refactor pending
+- [x] no-awk-v-patterns.test.sh does not flag a planted `awk -v` whose variable is only compared with `==` or passed to `index(` ⟦criterion 4⟧
 - [ ] no-awk-v-patterns.test.sh passes a flagged planted site that its exemption table lists with a reason ⟦criterion 4⟧
 - [ ] no-awk-v-patterns.test.sh fails the run on an exemption-table entry that carries no reason ⟦criterion 4⟧
 - [ ] no-awk-v-patterns.test.sh is green over the repository's own suites: every remaining `awk -v` pattern variable it flags carries an exemption with a reason naming why its value can hold no backslash ⟦criterion 4⟧
