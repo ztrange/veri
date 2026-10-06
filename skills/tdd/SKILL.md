@@ -1641,6 +1641,18 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh structural-pass transforms=<count> budget=<VERI_ISSUE_REFACTOR_BUDGET> stopped=<reason>
    ```
+   Before any `refactor-overflow.sh` call below, every out-of-scope candidate is re-checked
+   against the tree, since a later plan step may have applied it:
+   ```
+   $S/refactor-owed.sh out-of-scope .tdd/issue-<n>-refactor-owed.md   # one candidate per line; exit 3 ⇒ none
+   ```
+   For each, a `develop-predicate` leaf is launched as above and its report checked with
+   `structural-predicate.sh`; exit 1 records it applied, with its marker, so the filing leaves
+   it out:
+   ```
+   $S/refactor-owed.sh applied .tdd/issue-<n>-refactor-owed.md 'out-of-scope | <candidate>' "$(git rev-parse HEAD)"
+   ```
+   Any other exit leaves it to be filed.
    A pass marked `stopped=budget-spent` left candidates no leaf reached, and a pass that
    skipped a candidate left one no leaf worked; file them as one unlabelled issue naming
    this one, `<taken>` being the candidates the pass took up, skipped ones included, and
