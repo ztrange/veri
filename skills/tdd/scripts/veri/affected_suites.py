@@ -108,9 +108,13 @@ def suite_of(f):
     raise Unplaced(f)
 
 
-def changed(range_, *args):
-    out = git("diff", "--name-only", *args[:1], range_, *args[1:], stdout=subprocess.PIPE, text=True)
+def output(*args):
+    out = git(*args, stdout=subprocess.PIPE, text=True)
     return out.returncode, out.stdout.rstrip("\n")
+
+
+def changed(range_, *args):
+    return output("diff", "--name-only", *args[:1], range_, *args[1:])
 
 
 def main(argv):
@@ -125,8 +129,8 @@ def main(argv):
     if code != 0:
         return code if code in (1, 2, 3) else 2
     if ".." not in range_:
-        untracked = git("ls-files", "--others", "--exclude-standard", stdout=subprocess.PIPE, text=True)
-        files = "\n".join(f for f in [files, untracked.stdout.rstrip("\n")] if f)
+        _, untracked = output("ls-files", "--others", "--exclude-standard")
+        files = "\n".join(f for f in [files, untracked] if f)
     if not files:
         return 3
 
