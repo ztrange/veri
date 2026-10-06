@@ -172,6 +172,18 @@ if [[ ( "$code" == 0 || "$code" == 3 ) && -z "$missing" ]]; then ok; else
   no "#1011: a change to a script with no same-named suite prints no path that does not exist (code=$code, missing=${missing:-<none>})"
 fi
 
+make_repo rule1-naming-suites
+mkdir -p "$s/tests"
+printf 'run\n' > "$s/run-suite.sh"
+printf 'gamma\n' > "$s/gamma.sh"
+printf '#!/usr/bin/env bash\nRUN="$HERE/../run-suite.sh"\n' > "$s/tests/run-suite-venv.test.sh"
+printf '#!/usr/bin/env bash\nGAMMA="$HERE/../gamma.sh"\n' > "$s/tests/gamma.test.sh"
+commit_base
+printf 'run 2\n' > "$s/run-suite.sh"
+commit_head
+expect_suites "#1011: a change to a script with no same-named suite prints the existing suites that name its file" \
+  skills/tdd/scripts/tests/run-suite-venv.test.sh
+
 make_repo rule2
 mkdir -p "$s/tests" "$s/lib"
 printf 'bar_fn() { :; }\n' > "$s/lib/bar.sh"
