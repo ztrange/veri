@@ -16,4 +16,4 @@
 - [x] no-awk-v-patterns.test.sh fails the run on an exemption-table entry that carries no reason ⟦criterion 4⟧
 - [x] no-awk-v-patterns.test.sh is green over the repository's own suites: every remaining `awk -v` pattern variable it flags carries an exemption with a reason naming why its value can hold no backslash ⟦criterion 4⟧
 - [x] no-awk-v-patterns.test.sh flags a planted multi-line awk program, `awk -v re="$1" '` on one line and `$0 ~ re` on a later line of the same single-quoted program, naming the `-v` line as `<suite>:<line>` ⟦added⟧ ⟦criterion 4⟧
-- [ ] `make test` on gawk prints no `escape sequence` warning from any suite — checked by reading this PR's CI `make test` log ⟦human-owed⟧ ⟦criterion 1⟧
+- [x] `make test` on gawk prints no `escape sequence` warning from any suite — checked by reading this PR's CI `make test` log ⟦human-owed⟧ ⟦criterion 1⟧ — checked 2026-10-06 (Mario-delegated review): CI run 37477493625 on head 2b798746b ran make test with 0 `escape sequence` lines in its log; the baseline run 37442418793 on the same ubuntu-latest gates job had 17
