@@ -143,3 +143,38 @@ def test_main_writes_the_bodys_line_ends_as_read(monkeypatch, capsysbinary, tick
         "no final newline": (0, b"- [x] a", b""),
         "trailing blank lines": (0, b"- [x] a\n\n\n", b""),
     }
+
+
+def test_main_reads_the_box_grammar_as_bash_does(monkeypatch, capsysbinary, tick_criterion):
+    cases = {
+        "[X] is done": (["a"], b"- [X] a\n- [ ] a\n"),
+        "tab after the dash": (["a"], b"-\t[ ] a"),
+        "tab before the dash": (["a"], b"\t- [ ] a"),
+        "spaces before the dash": (["a"], b"   - [ ] a"),
+        "bare box": ([], b"- [ ]"),
+        "bare box and a space": ([], b"- [ ] "),
+        "nothing between box and text": (["x"], b"- [ ]x"),
+        "two spaces after the dash": (["x"], b"-  [ ] x"),
+        "star bullet": (["x"], b"* [ ] x"),
+        "matcher holds the box": (["- [ ] t"], b"- [ ] one\n- [ ] two"),
+        "matcher is the box": (["[ ]"], b"- [x] done\n- [ ] one\n- [ ] two"),
+    }
+    results = {}
+    for name, (argv, body) in cases.items():
+        fake_stdin(monkeypatch, body)
+        code = tick_criterion.main(argv)
+        results[name] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        "[X] is done": (0, b"- [X] a\n- [x] a\n", b""),
+        "tab after the dash": (0, b"-\t[x] a", b""),
+        "tab before the dash": (0, b"\t- [x] a", b""),
+        "spaces before the dash": (0, b"   - [x] a", b""),
+        "bare box": (0, b"- [x]", b""),
+        "bare box and a space": (0, b"- [x] ", b""),
+        "nothing between box and text": (3, b"- [ ]x", b""),
+        "two spaces after the dash": (3, b"-  [ ] x", b""),
+        "star bullet": (3, b"* [ ] x", b""),
+        "matcher holds the box": (0, b"- [ ] one\n- [x] two", b""),
+        "matcher is the box": (0, b"- [x] done\n- [x] one\n- [ ] two", b""),
+    }
