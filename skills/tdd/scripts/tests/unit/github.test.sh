@@ -799,4 +799,34 @@ if grep -E '^gh api graphql' "$calls" > /dev/null; then
 fi
 record
 
+# 19. with VERI_GH_DRIVER unset, the 404 body gh api prints on stdout for a refused ccr route
+#     never reaches the caller's stdout once the gh api graphql fallback readies the PR
+name="#1063: with VERI_GH_DRIVER unset, gh_pr_ready 42 whose pulls/42/ccr/ready_for_review 404s with its response body on stdout and whose gh api graphql markPullRequestReadyForReview then readies it returns 0 with nothing on stdout"
+calls="$scratch/calls19" err="$scratch/err19" out="$scratch/out19"
+: > "$calls"
+(
+  gh() {
+    echo "gh $*" >> "$calls"
+    [[ "$1" == api ]] || return 1
+    case "$*" in
+      *ccr/ready_for_review*)
+        printf '{\n  "message": "Not Found",\n  "documentation_url": "https://docs.github.com/rest",\n  "status": "404"\n}\n'
+        echo 'gh: Not Found (HTTP 404)' >&2
+        return 1 ;;
+      *markPullRequestReadyForReview*) echo '{"data":{"markPullRequestReadyForReview":{"pullRequest":{"isDraft":false}}}}' ;;
+      *' -q '* | *' --jq '* | *--jq=*) echo 'PR_kwDOnode42' ;;
+      *pulls/42*) echo '{"number":42,"node_id":"PR_kwDOnode42","draft":true}' ;;
+      *) return 1 ;;
+    esac
+  }
+  unset VERI_GH_DRIVER VERI_GH_JSON
+  source "$LIB"
+  gh_pr_ready 42
+) > "$out" 2> "$err"
+rc=$?
+problems=""
+[[ "$rc" -eq 0 ]] || problems+="    want return 0, got $rc"$'\n'
+[[ -s "$out" ]] && problems+="    want nothing on stdout, got: $(printf '%q' "$(cat "$out")")"$'\n'
+record
+
 finish
