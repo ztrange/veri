@@ -21,7 +21,7 @@ def main(argv):
         os.chdir(git("rev-parse", "--show-toplevel").stdout.rstrip("\n"))
     except OSError:
         print("preserve-attempt.sh: cannot enter the repository's top level", file=sys.stderr)
-        return 1
+        return 2
     scratch = tempfile.mkdtemp()
     try:
         index = {**os.environ, "GIT_INDEX_FILE": os.path.join(scratch, "index")}

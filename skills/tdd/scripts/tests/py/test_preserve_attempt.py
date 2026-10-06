@@ -312,7 +312,7 @@ def test_main_runs_git_from_the_top_level_with_a_fresh_index_for_the_snapshot_an
     assert by_verb["update-ref"]["argv"][2] == "refs/veri/attempts/409/2/develop-green-1"
 
 
-def test_main_returns_1_outside_a_work_tree_and_maps_a_failing_add_or_write_tree_with_the_scratch_gone(
+def test_main_returns_2_outside_a_work_tree_and_maps_a_failing_add_or_write_tree_with_the_scratch_gone_issue_1030(
         monkeypatch, tmp_path, capsys, preserve_attempt):
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -352,7 +352,7 @@ def test_main_returns_1_outside_a_work_tree_and_maps_a_failing_add_or_write_tree
     ]
 
     assert answers == [
-        ("rev-parse", 128, 1, ["rev-parse"], "",
+        ("rev-parse", 128, 2, ["rev-parse"], "",
          ["preserve-attempt.sh: cannot enter the repository's top level"], []),
         ("add", 1, 1, ["rev-parse", "add"], "", [], []),
         ("add", 128, 2, ["rev-parse", "add"], "", [], []),
