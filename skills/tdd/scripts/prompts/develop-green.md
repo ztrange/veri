@@ -47,9 +47,7 @@ exactly as you found it.
    suite, {{INCLUDE:_run-suite-same-way.md}} the test command above and say so in your report.
 3. Exactly once, immediately before you write the `SUITE:` report line, run the fast
    command, `{{FAST_CMD}}` (`detect-test-command.sh --tier fast` prints it), then run
-   the suites that `affected-suites.sh HEAD` prints for your change — it reads `HEAD` to the
-   working tree, untracked files included, so build no commit, stash or worktree to name a
-   range — and confirm both runs are green. Make each of those two runs through the wrapper
+   the suites that {{INCLUDE:_affected-suites-working-tree.md}} — and confirm both runs are green. Make each of those two runs through the wrapper
    {{INCLUDE:_timed-test-run-tier.md}}:
 
 {{INCLUDE:_timed-test-run-fast-affected.md}}
