@@ -29,8 +29,8 @@ source "$HERE/record-helpers.sh"
 source "$HERE/lib/claude-md-records.sh"
 
 entry() {
-  awk -v want="^\\\\*\\\\*$1\\\\*\\\\*:" '
-    $0 ~ want { inside = 1; next }
+  want="^\\*\\*$1\\*\\*:" awk '
+    $0 ~ ENVIRON["want"] { inside = 1; next }
     inside && (/^_Avoid_/ || /^\*\*/ || /^## /) { exit }
     inside' "$context_path" | plain --join
 }
@@ -107,5 +107,10 @@ probe_skill_bullet_states_order_and_tunable
 probe_claude_md_names_the_tunable_and_the_bound
 
 report "$name"
+
+name="#1037: entry given 'run\\.sh' starts at the entry where run.sh stands, not the one where runXsh does"
+fixture="$(scratch_dir)"
+printf -- '**runXsh**:\nwrong\n**run.sh**:\nright\n' > "$fixture/CONTEXT.md"
+expect_eq "$name" 'right ' "$(context_path="$fixture/CONTEXT.md" entry 'run\.sh')"
 
 finish
