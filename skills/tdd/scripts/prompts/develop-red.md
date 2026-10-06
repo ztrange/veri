@@ -65,8 +65,9 @@ implementation-pinning test anyway to force a pass.
    and the shape of the message the suite will print. It is formed from the test and the code,
    never from the output: a prediction written after the run is a transcription of it, and
    answers nothing.
-3. Run the suites `affected-suites.sh` prints for your change — not the full suite, and not
-   one suite picked by hand — against the **unmodified** production code, and record whether
+3. Run the suites `affected-suites.sh HEAD` prints for your change — it reads `HEAD` to the
+   working tree, untracked files included, so build no commit, stash or worktree to name a
+   range — not the full suite, and not one suite picked by hand — against the **unmodified** production code, and record whether
    the new case FAILS or PASSES. The only question this phase asks is whether that one case
    fails; the suite holding the new case is among those it prints, and the others read the
    same files, and must stay green. Run one suite through
