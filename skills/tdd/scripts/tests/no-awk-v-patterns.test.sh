@@ -22,6 +22,7 @@ probe_no_suite_passes_a_pattern_through_awk_v() {
       lineno="${hit%%:*}"
       text="${hit#*:}"
       [[ "$text" =~ ^[[:space:]]*# ]] && continue
+      [[ "$text" == *"'"* ]] || continue
       problems+=("$name:$lineno passes awk a pattern through -v, which drops its backslashes: $text")
     done < <(grep -n 'awk' "$f")
   done
@@ -77,5 +78,20 @@ planted_comment_named=""
 probe_a_planted_comment_quoting_awk_v
 
 expect_eq "$name" "not named" "$planted_comment_named"
+
+probe_a_planted_awk_v_with_unquoted_program() {
+  local ROOT
+  plant "$PLANT_REL" '#!/usr/bin/env bash' 'numbered() {' "  awk -v re=\"\$1\" -f prog.awk \"\$2\"" \
+    "  [[ \"\$2\" =~ \$re ]] && echo matched" '}'
+  probe_no_suite_passes_a_pattern_through_awk_v
+  planted_unquoted_named="$(problem_naming "planted.test.sh:3")"
+}
+
+name="a planted awk -v re=\"\$1\" -f prog.awk with no single-quoted program leaves the guard green, even when a later quote-free line uses re on the right of =~ (#1037)"
+planted_unquoted_named=""
+
+probe_a_planted_awk_v_with_unquoted_program
+
+expect_eq "$name" "not named" "$planted_unquoted_named"
 
 finish
