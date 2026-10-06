@@ -12,7 +12,18 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-declare -A EXEMPT=()
+declare -A EXEMPT=(
+  [no-awk-v-patterns.test.sh:78]="fixture text this suite writes into a scratch tree as the planted suite; it is scanned, never run, so no value ever reaches a -v binding"
+  [no-awk-v-patterns.test.sh:79]="fixture text this suite writes into a scratch tree as the planted suite; it is scanned, never run, so no value ever reaches a -v binding"
+  [no-awk-v-patterns.test.sh:93]="fixture text this suite writes into a scratch tree as the planted suite; it is scanned, never run, so no value ever reaches a -v binding"
+  [no-awk-v-patterns.test.sh:164]="fixture text this suite writes into a scratch tree as the planted suite; it is scanned, never run, so no value ever reaches a -v binding"
+  [no-awk-v-patterns.test.sh:168]="a case name, a string this suite prints and never runs, so no value ever reaches a -v binding"
+  [no-awk-v-patterns.test.sh:177]="fixture text this suite writes into a scratch tree as the planted suite; it is scanned, never run, so no value ever reaches a -v binding"
+  [no-awk-v-patterns.test.sh:181]="a case name, a string this suite prints and never runs, so no value ever reaches a -v binding"
+  [no-awk-v-patterns.test.sh:190]="fixture text this suite writes into a scratch tree as the planted suite; it is scanned, never run, so no value ever reaches a -v binding"
+  [no-awk-v-patterns.test.sh:194]="a case name, a string this suite prints and never runs, so no value ever reaches a -v binding"
+  [skill-plan-verify.test.sh:34]="every pattern its line_of is handed spells a literal character as a bracket class, [.] [(] [$] [<], never with a backslash, so the -v value holds none to drop"
+)
 
 source "$HERE/lib/harness.sh"
 source "$HERE/lib/exemption-reasons.sh"
@@ -186,5 +197,13 @@ planted_reasonless_named=""
 probe_a_planted_awk_v_pattern_exempted_with_no_reason
 
 expect_eq "$name" "named" "$planted_reasonless_named"
+
+name="no suite under skills/tdd/scripts/tests/ passes awk a pattern through -v but where the exemption table says why its value can hold no backslash (#1037)"
+problems=()
+
+probe_every_exemption_carries_a_reason "an entry is an exemption only when it says why the value can hold no backslash"
+probe_no_suite_passes_a_pattern_through_awk_v
+
+report "$name"
 
 finish
