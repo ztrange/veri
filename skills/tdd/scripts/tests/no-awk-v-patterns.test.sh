@@ -15,6 +15,7 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 declare -A EXEMPT=()
 
 source "$HERE/lib/harness.sh"
+source "$HERE/lib/exemption-reasons.sh"
 
 probe_no_suite_passes_a_pattern_through_awk_v() {
   local f name hit lineno text var rest
@@ -58,6 +59,7 @@ scan_planted() {
   mkdir -p "$ROOT/${PLANT_REL%/*}"
   printf '%s\n' "$@" > "$ROOT/$PLANT_REL"
   problems=()
+  probe_every_exemption_carries_a_reason
   probe_no_suite_passes_a_pattern_through_awk_v
 }
 
@@ -171,5 +173,18 @@ planted_exempted_named=""
 probe_a_planted_awk_v_pattern_exempted_with_a_reason
 
 expect_eq "$name" "not named" "$planted_exempted_named"
+
+probe_a_planted_awk_v_pattern_exempted_with_no_reason() {
+  local -A EXEMPT=([planted.test.sh:3]="")
+  scan_planted '#!/usr/bin/env bash' 'numbered() {' "  awk -v re=\"\$1\" '\$0 ~ re { print }' \"\$2\"" '}'
+  planted_reasonless_named="$(problem_naming "[planted.test.sh:3] carries no reason")"
+}
+
+name="an exemption-table entry for a planted awk -v re=\"\$1\" '\$0 ~ re' that carries no reason turns the guard red, naming the entry (#1037)"
+planted_reasonless_named=""
+
+probe_a_planted_awk_v_pattern_exempted_with_no_reason
+
+expect_eq "$name" "named" "$planted_reasonless_named"
 
 finish
