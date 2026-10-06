@@ -79,3 +79,34 @@ def test_main_returns_2_when_commit_tree_exits_128_with_the_scratch_directory_go
 
     update_refs = [line for line in calls if line.startswith("git update-ref")]
     assert (code, update_refs, sorted(os.listdir(scratch_parent))) == (2, [], [])
+
+
+def test_main_returns_1_with_its_could_not_preserve_line_and_no_copy_when_update_ref_exits_128(
+        monkeypatch, tmp_path, capsys, preserve_attempt):
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    (repo / ".tdd" / "develop-green.log").write_text("log\n")
+    (repo / ".tdd" / "develop-green.out").write_text("out\n")
+    monkeypatch.chdir(repo)
+
+    def fake_run(args, *_, **__):
+        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+        if line.startswith("git rev-parse --show-toplevel"):
+            return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+        if line.startswith("git write-tree"):
+            return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+        if line.startswith("git commit-tree"):
+            return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
+        if line.startswith("git update-ref"):
+            return subprocess.CompletedProcess(args, 128, None, None)
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code = preserve_attempt.main(["409", "3", "develop-green", "1", "reject"])
+    captured = capsys.readouterr()
+
+    line = ("preserve-attempt.sh: could not preserve issue 409 step 3 develop-green attempt 1"
+            " to refs/veri/attempts/409/3/develop-green-1")
+    assert (code, captured.out, captured.err.splitlines()[-1:], (repo / ".tdd" / "attempts").exists()) == (
+        1, "", [line], False)
