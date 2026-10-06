@@ -98,7 +98,9 @@ def render(file):
             test_only.append(l[len(TEST_ONLY_MARK):])
         else:
             kept.append(l)
-    out = "## Refactor owed\n\n" + joined(kept)
+    kept = [l for l, after in zip(kept, kept[1:] + ["### "])
+            if not (l.startswith("### ") and after.startswith("### "))]
+    out ="## Refactor owed\n\n" + joined(kept)
     if test_only:
         out += ("\n### Test-only\n\n"
                 "These change only files under tests/; the structural pass does not work them.\n\n"
