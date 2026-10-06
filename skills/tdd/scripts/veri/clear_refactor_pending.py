@@ -15,7 +15,7 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     with open(argv[0], newline="") as file:
-        cleared, new = ledger.ledger_clear_pending(file.read(), argv[1])
+        cleared, new = ledger.ledger_clear_pending(file.read(), argv[1] if len(argv) > 1 else "")
     if not isinstance(cleared, bool):
         return to_contract(cleared)
     if not cleared:
