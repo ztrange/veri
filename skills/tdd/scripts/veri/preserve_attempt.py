@@ -83,11 +83,7 @@ def unmarked(text):
 
 
 def sanitised(step_ref):
-    locale = os.environ.get("LC_ALL") or os.environ.get("LC_CTYPE") or os.environ.get("LANG") or ""
-    if re.search(r"utf-?8", locale, re.IGNORECASE):
-        return re.sub(r"[^0-9A-Za-z-]", "-", step_ref)
-    raw = step_ref.encode(errors="surrogateescape")
-    return re.sub(rb"[^0-9A-Za-z-]", b"-", raw).decode()
+    return re.sub(r"[^0-9A-Za-z-]", "-", step_ref)
 
 
 def git(*args, env=None, capture=True, quiet=False):
