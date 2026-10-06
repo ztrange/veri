@@ -195,6 +195,15 @@ if [[ "$err" == *preserve-attempt.sh* && "$err" == *409* && "$err" == *develop-g
 { [[ "$code" != 0 ]] && [[ "$said" == yes ]]; } \
   && ok || no "says on stderr that it could not preserve the attempt when the ref write fails for another reason (code=$code said=$said err='$err')"
 
+repo="$work/refusedexact"
+dirty_repo "$repo"
+git_q "$repo" update-ref "refs/veri/attempts/409/3" HEAD >/dev/null 2>&1
+err="$(preserve "$repo" 409 3 develop-green 1 2>&1 >/dev/null)"; code=$?
+last="$(printf '%s\n' "$err" | tail -n 1)"
+expected="preserve-attempt.sh: could not preserve issue 409 step 3 develop-green attempt 1 to $REF"
+{ [[ "$code" == 1 ]] && [[ "$last" == "$expected" ]]; } \
+  && ok || no "exits exactly 1 with the could-not-preserve line last on stderr when an existing refs/veri/attempts/409/3 refuses the ref write (code=$code last='$last')"
+
 repo="$work/ledgermodule"
 dirty_repo "$repo"
 prose="A leaf's output is kept under refs/veri, not the branch"
