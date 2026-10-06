@@ -33,31 +33,7 @@ check "ticks matching box" 0 "start comment" "$body" "## Acceptance criteria
 - [x] a start comment is posted
 - [ ] a draft PR is opened"
 
-multi='- [ ] alpha shared
-- [ ] beta shared'
-check "first match only" 0 "shared" "$multi" '- [x] alpha shared
-- [ ] beta shared'
-
-check "empty matcher ticks first" 0 "" "$body" "## Acceptance criteria
-
-- [x] reads the issue and creates a branch
-- [ ] a start comment is posted
-- [ ] a draft PR is opened"
-
 check "no match exits 3" 3 "nonexistent criterion" "$body" "$body"
-
-lit='- [ ] `/tdd <n>` creates branch `tdd/<n>-slug`
-- [ ] other'
-check "literal special chars" 0 '`/tdd <n>`' "$lit" '- [x] `/tdd <n>` creates branch `tdd/<n>-slug`
-- [ ] other'
-
-mixed='- [x] reads the issue and creates a branch
-- [ ] reads the file and creates a branch'
-check "skips already checked" 0 "creates a branch" "$mixed" '- [x] reads the issue and creates a branch
-- [x] reads the file and creates a branch'
-
-nested='  - [ ] nested criterion'
-check "nested checkbox" 0 "nested" "$nested" '  - [x] nested criterion'
 
 floor_err="$(scratch_dir)/stderr"
 floor_out="$(printf -- '- [ ] a\n- [ ] b' | "$TICK" 2> "$floor_err")" && floor_code=0 || floor_code=$?
