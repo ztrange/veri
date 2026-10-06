@@ -4,4 +4,4 @@
 - [x] Beside a tracked file .gitignore matches, an untracked ignored file is absent from the preserved tree, an untracked non-ignored file is present, and a tracked file deleted from the worktree is absent ⟦criterion 2⟧
 - [x] Preserving a worktree holding a tracked file .gitignore matches leaves the caller's index, HEAD and branch untouched ⟦criterion 3⟧
 - [x] The existing contract cases in tests/preserve-attempt.test.sh are unchanged by the branch, tests/py/test_preserve_attempt.py changes only assertions pinning the snapshot's git call sequence, and both suites are green ⟦diff-checked⟧ ⟦criterion 4⟧
-- [ ] make test is green ⟦full-suite⟧ ⟦criterion 5⟧
+- [x] make test is green ⟦full-suite⟧ ⟦criterion 5⟧
