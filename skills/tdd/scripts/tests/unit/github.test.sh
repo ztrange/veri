@@ -829,4 +829,35 @@ problems=""
 [[ -s "$out" ]] && problems+="    want nothing on stdout, got: $(printf '%q' "$(cat "$out")")"$'\n'
 record
 
+# 20. with VERI_GH_DRIVER unset and every route failing, the 404 body the refused ccr route
+#     printed on stdout reaches the caller on stderr
+name="#1063: with VERI_GH_DRIVER unset, gh_pr_ready 42 whose pulls/42/ccr/ready_for_review 404s with its response body on stdout and whose gh api graphql markPullRequestReadyForReview also fails returns 2 with that body on stderr"
+calls="$scratch/calls20" err="$scratch/err20" out="$scratch/out20"
+: > "$calls"
+(
+  gh() {
+    echo "gh $*" >> "$calls"
+    [[ "$1" == api ]] || return 1
+    case "$*" in
+      *ccr/ready_for_review*)
+        printf '{\n  "message": "Not Found",\n  "documentation_url": "https://docs.github.com/rest",\n  "status": "404"\n}\n'
+        echo 'gh: Not Found (HTTP 404)' >&2
+        return 1 ;;
+      *markPullRequestReadyForReview*) echo 'gh: Something went wrong (HTTP 502)' >&2; return 1 ;;
+      *' -q '* | *' --jq '* | *--jq=*) echo 'PR_kwDOnode42' ;;
+      *pulls/42*) echo '{"number":42,"node_id":"PR_kwDOnode42","draft":true}' ;;
+      *) return 1 ;;
+    esac
+  }
+  unset VERI_GH_DRIVER VERI_GH_JSON
+  source "$LIB"
+  gh_pr_ready 42
+) > "$out" 2> "$err"
+rc=$?
+problems=""
+[[ "$rc" -eq 2 ]] || problems+="    want return 2, got $rc"$'\n'
+grep -F '"documentation_url": "https://docs.github.com/rest",' "$err" > /dev/null ||
+  problems+="    want the ccr route's response body on stderr"$'\n'
+record
+
 finish
