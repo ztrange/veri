@@ -201,3 +201,17 @@ def test_main_reads_the_grammars_whitespace_as_lc_all_c_space(monkeypatch, capsy
         "\\v before the dash": (0, b"\v- [x] a", b""),
         "\\r before the dash": (0, b"\r- [x] a", b""),
     }
+
+
+def test_main_raises_rather_than_returning_when_stdout_is_none_on_a_match_and_on_no_match(
+        monkeypatch, tick_criterion):
+    monkeypatch.setattr(sys, "stdout", None)
+    outcomes = {}
+    for matcher in ("beta", "zeta"):
+        fake_stdin(monkeypatch, BODY)
+        try:
+            outcomes[matcher] = ("returned", tick_criterion.main([matcher]))
+        except Exception:
+            outcomes[matcher] = ("raised", None)
+
+    assert outcomes == {"beta": ("raised", None), "zeta": ("raised", None)}
