@@ -107,6 +107,8 @@
 #      and names the rebased tip's run as the extra run a rebase owes, not a replacement for it.
 #  39. SKILL.md's Draft PR step bails on a red rebased tip with cause `rebased-tip-red`, never
 #      `suite-red`, after a clean rebase and after a verified conflict resolution alike.
+#  40. SKILL.md's bail on a red rebased tip runs `git reset --hard <pre-rebase-sha>` before
+#      *Bailing*'s push.
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -993,6 +995,16 @@ if step_or_problem '### 4. Draft PR' "which cause a red rebased tip bails with";
     grep -F 'suite-red' > /dev/null <<< "$record" &&
       problems+=("$skill_md's Draft PR step bails on a red rebased tip after a $path rebase with cause suite-red, which names a red run after a ⟦suite-repair⟧ step: $(printf '%.160s' "$record")")
   done
+fi
+report "$name"
+
+name="$skill_md's bail on a red rebased tip runs git reset --hard <pre-rebase-sha> before Bailing's push (#975)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "what a red rebased tip's bail does to the branch before Bailing's push"; then
+  reset="$(first_record "$(unmarked_records)" -F 'rebased-tip-red' -F 'git reset --hard <pre-rebase-sha>' -E 'bailing[^.]*push')"
+  [[ -n "$reset" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step that bails with rebased-tip-red runs git reset --hard <pre-rebase-sha> before Bailing's push, so that push of the rebased branch is not a fast-forward and is rejected")
 fi
 report "$name"
 
