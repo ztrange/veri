@@ -59,10 +59,12 @@ gh_pr_ready() {
     ((++tries < 30)) || { echo "gh_pr_ready: PR $1 head is $head after $tries reads, expected $2" >&2; return 2; }
     sleep "${VERI_POLL:-10}"
   done
-  _gh_graphql gh pr ready "$1" ||
-    _gh_rest gh api -X POST "repos/{owner}/{repo}/pulls/$1/ccr/ready_for_review" 2> /dev/null ||
-    _gh_rest _gh_api_graphql_ready "$1" ||
-    return 2
+  local ccr_err
+  _gh_graphql gh pr ready "$1" && return
+  { ccr_err="$(_gh_rest gh api -X POST "repos/{owner}/{repo}/pulls/$1/ccr/ready_for_review" 2>&1 1>&3)"; } 3>&1 && return
+  _gh_rest _gh_api_graphql_ready "$1" && return
+  [[ -z "$ccr_err" ]] || echo "$ccr_err" >&2
+  return 2
 }
 
 _gh_api_graphql_ready() {
