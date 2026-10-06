@@ -52,12 +52,12 @@ def ledger_steps(text):
     return records
 
 
-def ledger_tick(text, matcher):
+def ledger_tick(text, matcher, pending=False):
     """(True, text with the first open step holding matcher ticked), or (False, text)."""
     lines = text.split("\n")
     for i, line in enumerate(lines):
         match = STEP_RE.fullmatch(line)
         if match and match.group(2) == " " and matcher in line:
-            lines[i] = f"{match.group(1)}[x]{match.group(3) or ''}"
+            lines[i] = f"{match.group(1)}[x]{match.group(3) or ''}{PENDING_MARK if pending else ''}"
             return True, "\n".join(lines)
     return False, text
