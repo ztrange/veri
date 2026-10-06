@@ -405,4 +405,9 @@ probe_plain_shell_probe_unsourced
 
 report "$name"
 
+name="#1037: bullet given '^[-*] run\\.sh' starts at '- run.sh', not at '- runXsh'"
+fixture="$(scratch_dir)"
+printf -- '- runXsh wrong\n- run.sh right\n- end\n' > "$fixture/SKILL.md"
+expect_eq "$name" '- run.sh right ' "$(skill_path="$fixture/SKILL.md" bullet '^[-*] run\.sh')"
+
 finish

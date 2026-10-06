@@ -2,7 +2,7 @@
 
 - [x] prompt-test-tiers.test.sh's `numbered_item`, given a pattern containing `\.`, selects the numbered item where a literal dot stands and rejects one where an arbitrary character stands in the dot's place ⟦criterion 3⟧
 - [x] skill-timeout.test.sh's `section`, given a pattern containing `\.`, starts at the line where a literal dot stands and rejects one where an arbitrary character stands in the dot's place ⟦criterion 3⟧
-- [ ] record-helpers.sh's `bullet`, given a pattern containing `\.`, starts at the bullet where a literal dot stands and rejects one where an arbitrary character stands in the dot's place ⟦criterion 3⟧
+- [x] record-helpers.sh's `bullet`, given a pattern containing `\.`, starts at the bullet where a literal dot stands and rejects one where an arbitrary character stands in the dot's place ⟦criterion 3⟧ ⟂ refactor pending
 - [ ] skill-red-untestable.test.sh's `doc_text`, given a `from` pattern containing `\.`, starts its output at the line where a literal dot stands, not at one where an arbitrary character stands in the dot's place ⟦criterion 3⟧
 - [ ] skill-test-command.test.sh's `at`, given a pattern containing `\.`, prints the line number of the line where a literal dot stands and rejects one where an arbitrary character stands in the dot's place ⟦criterion 3⟧
 - [ ] selection-order-recorded.test.sh's `entry`, given a name whose pattern carries `\.`, starts at the line where a literal dot stands and rejects one where an arbitrary character stands in the dot's place ⟦criterion 3⟧
