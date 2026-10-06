@@ -43,3 +43,7 @@ def main(argv):
     sys.stdout.buffer.write(b"".join(t + b"\n" for t in structural))
     sys.stdout.buffer.flush()
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
