@@ -105,6 +105,8 @@
 #      it adds, finishes green before `rebase-onto-default.sh` runs.
 #  38. SKILL.md's Draft PR step never calls the branch's own full run the only full-suite run,
 #      and names the rebased tip's run as the extra run a rebase owes, not a replacement for it.
+#  39. SKILL.md's Draft PR step bails on a red rebased tip with cause `rebased-tip-red`, never
+#      `suite-red`, after a clean rebase and after a verified conflict resolution alike.
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -970,6 +972,27 @@ if step_or_problem '### 4. Draft PR' "whether the branch's own full run is still
   extra="$(first_record "$(unmarked_records)" -E 'rebased tip.s run' -F 'extra run a rebase owes' -F 'replacement')"
   [[ -n "$extra" ]] ||
     problems+=("no instruction of $skill_md's Draft PR step names the rebased tip's run as the extra run a rebase owes, not a replacement for the branch's own")
+fi
+report "$name"
+
+name="$skill_md's Draft PR step bails on a red rebased tip with cause rebased-tip-red, not suite-red, after a clean rebase and after a verified conflict resolution alike (#975)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "which cause a red rebased tip bails with"; then
+  plain="$(unmarked_records)"
+  clean="$(first_record "$plain" -F 'an exit 0' -F 'rebased tip' -wF 'bail')"
+  resolved="$(first_record "$plain" -F 'verify-rebase pass' -F 'rebased tip' -wF 'bail')"
+  for path in clean resolved; do
+    record="${!path}"
+    if [[ -z "$record" ]]; then
+      problems+=("no instruction of $skill_md's Draft PR step bails on a red rebased tip after a $path rebase")
+      continue
+    fi
+    grep -F 'rebased-tip-red' > /dev/null <<< "$record" ||
+      problems+=("$skill_md's Draft PR step bails on a red rebased tip after a $path rebase without naming cause rebased-tip-red: $(printf '%.160s' "$record")")
+    grep -F 'suite-red' > /dev/null <<< "$record" &&
+      problems+=("$skill_md's Draft PR step bails on a red rebased tip after a $path rebase with cause suite-red, which names a red run after a ⟦suite-repair⟧ step: $(printf '%.160s' "$record")")
+  done
 fi
 report "$name"
 
