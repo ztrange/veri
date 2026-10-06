@@ -455,3 +455,16 @@ def test_render_prints_an_out_of_scope_candidate_under_its_own_heading_not_under
     section = after[:next((i for i, l in enumerate(after) if l.startswith("### ")), len(after))]
     assert (code, [l for l in lines if l == "### step one"], [l for l in section if transform in l],
             sum(transform in l for l in lines)) == (0, [], [f"- {transform}"], 1)
+
+
+def test_list_omits_a_candidate_recorded_as_applied_and_still_prints_the_ones_not_applied_1023(
+        monkeypatch, capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    owed.write_text("### S7\n- extract the shared partial\n- fold the two awk passes into one\n"
+                    "### S8\n- extract the shared partial\n- name the bounds walk once\n")
+    assert refactor_owed.main(["applied", str(owed), "extract the shared partial", "2130b6c1d"]) == 0
+    capsys.readouterr()
+
+    code = refactor_owed.main(["list", str(owed)])
+    assert (code, capsys.readouterr().out) == (
+        0, "fold the two awk passes into one\nname the bounds walk once\n")

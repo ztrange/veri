@@ -126,8 +126,11 @@ def render(file):
 
 
 def list_owed(file):
-    counts = Counter(l[2:] for l in owed_lines(file)
-                     if l.startswith("- ") and not l.startswith((TEST_ONLY_MARK, OUT_OF_SCOPE_MARK)))
+    lines = owed_lines(file)
+    done = {l[len(APPLIED_MARK):].partition(" | ")[2] for l in lines if l.startswith(APPLIED_MARK)}
+    counts = Counter(l[2:] for l in lines
+                     if l.startswith("- ") and not l.startswith((TEST_ONLY_MARK, OUT_OF_SCOPE_MARK))
+                     and l[2:] not in done)
     listed = "\n".join(t for t, _ in counts.most_common()).rstrip("\n")
     if not listed:
         return 3
