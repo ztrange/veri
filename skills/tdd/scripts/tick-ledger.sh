@@ -1,35 +1,10 @@
-#!/usr/bin/env bash
-# tick-ledger.sh [--refactor-pending] <ledger-file> <matcher> — check off one step in the
-# local ledger.
+#!/bin/sh
+# tick-ledger.sh — check off one step in the local ledger, in place: a shim over veri/tick_ledger.py.
 #
-# Thin file wrapper around lib/ledger.sh's ledger_tick: flips the first unchecked `- [ ]`
-# step containing <matcher> to `- [x]`, in place. The conductor stages and commits the
-# ledger together with the step's green code, so git and ledger never diverge. Exit 3 if no
-# unchecked step matched — the file is left untouched.
+# Flips the first unchecked `- [ ]` step containing <matcher> to `- [x]`. --refactor-pending
+# also appends the pending mark to that same line in the same write.
 #
-# --refactor-pending also appends lib/ledger.sh's pending mark to that same line in the same
-# write, so the green commit records that the step is green but not yet tidied. Without the
-# flag the line is ticked with no mark.
-#
-# Usage:   tick-ledger.sh [--refactor-pending] .tdd/issue-<n>.md '<substring of the step>'
-set -euo pipefail
-
-USAGE="usage: tick-ledger.sh [--refactor-pending] <ledger-file> <matcher>"
-
-HERE="$(cd "$(dirname "$0")" && pwd)"
-source "$HERE/lib/exit-contract.sh"
-
-pending=""
-if [[ "${1:-}" == "--refactor-pending" ]]; then
-  pending=pending
-  shift
-fi
-
-require_args 1 "$@"
-file="$1"
-matcher="${2:-}"
-source "$HERE/lib/ledger.sh"
-
-new="$(ledger_tick "$matcher" $pending < "$file")" || exit "$(to_contract $?)"
-
-printf '%s\n' "$new" > "$file"
+# usage: tick-ledger.sh [--refactor-pending] <ledger-file> <matcher>
+# Exit:    0 a step ticked; 1 the ledger could not be read or written; 2 no <ledger-file>;
+#          3 no unchecked step matched — the file is left untouched
+exec python3 "$(dirname "$0")/veri/tick_ledger.py" "$@"
