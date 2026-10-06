@@ -1480,6 +1480,10 @@ A `⟦suite-repair⟧` line already in the ledger is what says the red run is th
 grep -F '⟦suite-repair⟧' .tdd/issue-<n>.md > /dev/null && VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=suite-red classification="$($S/classify-bail.sh suite-red)" suites='<every suite still red>'
 ```
 
+The branch's own full run comes first, and it, with any `⟦suite-repair⟧` step it adds, has to
+finish green before sub-step 1 runs `rebase-onto-default.sh`: the rebased tip's run there is
+the extra run a rebase owes, never a replacement for the branch's own.
+
 A `⟦full-suite⟧` ledger line is the one step no cycle ticks — `next-unchecked.sh` skips it,
 so it is still unchecked here — and this step ticks it, only once the run's last full-suite
 run before the PR is readied is green: the rebased tip's run when sub-step 1 rebased the

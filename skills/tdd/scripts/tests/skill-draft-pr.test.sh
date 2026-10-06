@@ -101,6 +101,8 @@
 #      suite the full run left red, each with its first `FAIL -` line, that the prompts take
 #      that list from the step text through their templates, and that the conductor never
 #      edits a built prompt.
+#  37. SKILL.md's Draft PR step says the branch's own full run, and any `⟦suite-repair⟧` step
+#      it adds, finishes green before `rebase-onto-default.sh` runs.
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -943,6 +945,16 @@ if step_or_problem '### 4. Draft PR' "which head the step readies the PR on"; th
     grep -E 'gh_pr_ready <pr-number> "?[$][(]git rev-parse head[)]"?' > /dev/null <<< "$line" ||
       problems+=("$skill_md's Draft PR step readies the PR without the head sha it just pushed, so the ready_for_review run can start on the pre-rebase sha: $(printf '%.120s' "$line")")
   done <<< "$readies"
+fi
+report "$name"
+
+name="$skill_md's Draft PR step says the branch's own full run, and any ⟦suite-repair⟧ step it adds, finishes green before rebase-onto-default.sh runs (#975)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "what has to be green before the step rebases"; then
+  order="$(first_record "$(unmarked_records)" -E "own full(-suite)? run" -F "$suite_repair_mark" -wF 'green' -E 'before[^.]*rebase-onto-default[.]sh')"
+  [[ -n "$order" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step says the branch's own full run, and any $suite_repair_mark step it adds, finishes green before rebase-onto-default.sh runs, so the rebased tip's run can be read as replacing it")
 fi
 report "$name"
 
