@@ -1626,14 +1626,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    $S/wait-leaf.sh verdict-transform   # foreground; on exit 3 call it again
    ```
    A `PASS` records the candidate as applied, with the commit that applied it, so `render`
-   lists it as applied rather than owed:
-   ```
-   $S/refactor-owed.sh applied .tdd/issue-<n>-refactor-owed.md '<candidate>' "$(git rev-parse HEAD)"
-   git add .tdd/issue-<n>-refactor-owed.md
-   git commit -m "chore: record the structural pass's applied candidate (#<n>)"
-   ```
-   A candidate `structural-predicate.sh` exited 1 for launches no transform leaf and is
-   recorded the same way, at the current HEAD, so `refactor-overflow.sh` never files it:
+   lists it as applied rather than owed; a candidate `structural-predicate.sh` exited 1 for
+   launches no transform leaf and is recorded the same way, at the current HEAD, so
+   `refactor-overflow.sh` never files it:
    ```
    $S/refactor-owed.sh applied .tdd/issue-<n>-refactor-owed.md '<candidate>' "$(git rev-parse HEAD)"
    git add .tdd/issue-<n>-refactor-owed.md
