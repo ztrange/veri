@@ -23,6 +23,7 @@ probe_no_suite_passes_a_pattern_through_awk_v() {
       text="${hit#*:}"
       [[ "$text" =~ ^[[:space:]]*# ]] && continue
       [[ "$text" == *"'"* ]] || continue
+      [[ "$text" == *'~'* || "$text" == *'match('* ]] || continue
       problems+=("$name:$lineno passes awk a pattern through -v, which drops its backslashes: $text")
     done < <(grep -n 'awk' "$f")
   done
@@ -87,5 +88,20 @@ planted_unquoted_named=""
 probe_a_planted_awk_v_with_unquoted_program
 
 expect_eq "$name" "not named" "$planted_unquoted_named"
+
+probe_a_planted_awk_v_compared_or_indexed() {
+  scan_planted '#!/usr/bin/env bash' 'equal() {' "  awk -v want=\"\$1\" '\$0 == want { print }' \"\$2\"" '}' \
+    'holds() {' "  awk -v h=\"\$1\" 'index(\$0, h) { print NR }' \"\$2\"" '}'
+  planted_equal_named="$(problem_naming "planted.test.sh:3")"
+  planted_index_named="$(problem_naming "planted.test.sh:6")"
+}
+
+name="a planted awk -v whose variable is only compared with == or passed to index( leaves the guard green (#1037)"
+planted_equal_named=""
+planted_index_named=""
+
+probe_a_planted_awk_v_compared_or_indexed
+
+expect_eq "$name" "not named not named" "$planted_equal_named $planted_index_named"
 
 finish
