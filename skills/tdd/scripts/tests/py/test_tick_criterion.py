@@ -83,3 +83,24 @@ def test_main_answers_the_bash_suites_contract_cases_with_their_stdout_and_retur
         results[name] = (code, *capsysbinary.readouterr())
 
     assert results == {name: (0, want, b"") for name, (_, _, want) in CONTRACT_CASES.items()}
+
+
+def test_main_reads_the_matcher_from_argv_0_alone_and_returns_3_writing_nothing_on_empty_stdin(
+        monkeypatch, capsysbinary, tick_criterion):
+    body = b"- [ ] b\n- [ ] a\n"
+    results = {}
+    for argv in ([""], [], ["a", "b", "c"], ["a"]):
+        fake_stdin(monkeypatch, body)
+        code = tick_criterion.main(argv)
+        results[tuple(argv)] = (code, *capsysbinary.readouterr())
+    fake_stdin(monkeypatch, b"")
+    code = tick_criterion.main(["a"])
+    results["empty stdin"] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        ("",): (0, b"- [x] b\n- [ ] a\n", b""),
+        (): (0, b"- [x] b\n- [ ] a\n", b""),
+        ("a", "b", "c"): (0, b"- [ ] b\n- [x] a\n", b""),
+        ("a",): (0, b"- [ ] b\n- [x] a\n", b""),
+        "empty stdin": (3, b"", b""),
+    }
