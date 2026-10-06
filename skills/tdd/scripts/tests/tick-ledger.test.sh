@@ -26,18 +26,6 @@ before="$(cat "$led")"
 "$TICK" "$led" "nonexistent step" 2>/dev/null; code=$?
 { [[ "$code" == 3 ]] && [[ "$(cat "$led")" == "$before" ]]; } && ok || no "no match → exit 3, file unchanged (code=$code)"
 
-foreign="$work/foreign"
-mkdir -p "$foreign/lib"
-cp "$HERE/../clear-refactor-pending.sh" "$foreign/clear-refactor-pending.sh"
-cp "$HERE/.."/lib/*.sh "$foreign/lib/"
-cat > "$foreign/lib/ledger.sh" <<'EOF'
-ledger_clear_pending() { cat > /dev/null; return 7; }
-EOF
-seed
-"$foreign/clear-refactor-pending.sh" "$led" "collapse to single hyphen" 2>/dev/null; clear=$?
-[[ "$clear" == 2 ]] \
-  && ok || no "a foreign ledger-transform code exits 2 from clear-refactor-pending.sh (clear=$clear)"
-
 "$TICK" > "$work/usage.out" 2> "$work/usage.err"; code=$?
 want_err='usage: tick-ledger.sh [--refactor-pending] <ledger-file> <matcher>'
 { [[ "$code" == 2 ]] && [[ ! -s "$work/usage.out" ]] && [[ "$(cat "$work/usage.err")" == "$want_err" ]]; } \

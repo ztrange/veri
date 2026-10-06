@@ -1,24 +1,9 @@
-#!/usr/bin/env bash
-# clear-refactor-pending.sh <ledger-file> <matcher> — drop the pending mark from one step in
-# the local ledger.
+#!/bin/sh
+# clear-refactor-pending.sh — drop the pending mark from one step in the local ledger: a shim over veri/clear_refactor_pending.py.
 #
-# Thin file wrapper around lib/ledger.sh's ledger_clear_pending, the counterpart of
-# `tick-ledger.sh --refactor-pending`: strips the mark from the first ticked step that
-# contains <matcher> and carries it, in place, and exits 0. Exit 3 if no such step matched —
-# the file is left byte-identical, because nothing is written unless the transform found
-# its line.
+# Strips the mark from the first ticked step that contains <matcher> and carries it, in place.
 #
-# Usage:   clear-refactor-pending.sh .tdd/issue-<n>.md '<substring of the step>'
-set -euo pipefail
-
-HERE="$(cd "$(dirname "$0")" && pwd)"
-source "$HERE/lib/exit-contract.sh"
-USAGE="usage: clear-refactor-pending.sh <ledger-file> <matcher>"
-require_args 1 "$@"
-file="$1"
-matcher="${2:-}"
-source "$HERE/lib/ledger.sh"
-
-new="$(ledger_clear_pending "$matcher" < "$file")" || exit "$(to_contract "$?")"
-
-printf '%s\n' "$new" > "$file"
+# usage: clear-refactor-pending.sh <ledger-file> <matcher>
+# Exit:    0 the mark cleared, the file rewritten; 1 the ledger could not be read or written;
+#          2 a missing argument; 3 nothing to do — no step matched, the file byte-identical
+exec python3 "$(dirname "$0")/veri/clear_refactor_pending.py" "$@"
