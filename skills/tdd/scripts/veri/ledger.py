@@ -67,7 +67,8 @@ def ledger_clear_pending(text, matcher):
     """(True, text with the first line holding matcher cleared of the mark), or (False, text)."""
     lines = text.split("\n")
     for i, line in enumerate(lines):
-        if matcher in line:
+        match = STEP_RE.fullmatch(line)
+        if match and match.group(2) != " " and line.endswith(PENDING_MARK) and matcher in line:
             lines[i] = line.removesuffix(PENDING_MARK)
             return True, "\n".join(lines)
     return False, text
