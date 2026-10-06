@@ -12,16 +12,18 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
+PLANTED_FIXTURE="fixture text this suite writes into a scratch tree as the planted suite; it is scanned, never run, so no value ever reaches a -v binding"
+CASE_NAME="a case name, a string this suite prints and never runs, so no value ever reaches a -v binding"
 declare -A EXEMPT=(
-  [no-awk-v-patterns.test.sh:78]="fixture text this suite writes into a scratch tree as the planted suite; it is scanned, never run, so no value ever reaches a -v binding"
-  [no-awk-v-patterns.test.sh:79]="fixture text this suite writes into a scratch tree as the planted suite; it is scanned, never run, so no value ever reaches a -v binding"
-  [no-awk-v-patterns.test.sh:93]="fixture text this suite writes into a scratch tree as the planted suite; it is scanned, never run, so no value ever reaches a -v binding"
-  [no-awk-v-patterns.test.sh:164]="fixture text this suite writes into a scratch tree as the planted suite; it is scanned, never run, so no value ever reaches a -v binding"
-  [no-awk-v-patterns.test.sh:168]="a case name, a string this suite prints and never runs, so no value ever reaches a -v binding"
-  [no-awk-v-patterns.test.sh:177]="fixture text this suite writes into a scratch tree as the planted suite; it is scanned, never run, so no value ever reaches a -v binding"
-  [no-awk-v-patterns.test.sh:181]="a case name, a string this suite prints and never runs, so no value ever reaches a -v binding"
-  [no-awk-v-patterns.test.sh:190]="fixture text this suite writes into a scratch tree as the planted suite; it is scanned, never run, so no value ever reaches a -v binding"
-  [no-awk-v-patterns.test.sh:194]="a case name, a string this suite prints and never runs, so no value ever reaches a -v binding"
+  [no-awk-v-patterns.test.sh:80]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:81]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:95]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:166]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:170]="$CASE_NAME"
+  [no-awk-v-patterns.test.sh:179]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:183]="$CASE_NAME"
+  [no-awk-v-patterns.test.sh:192]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:196]="$CASE_NAME"
   [skill-plan-verify.test.sh:34]="every pattern its line_of is handed spells a literal character as a bracket class, [.] [(] [$] [<], never with a backslash, so the -v value holds none to drop"
 )
 
