@@ -515,3 +515,37 @@ def test_main_pages_the_open_issue_lookup_until_an_empty_page_and_blocks_on_a_co
     ], [])
     assert (code, capsys.readouterr().out, seen.get("body")) == (
         0, "https://github.com/owner/name/issues/88\n", "## Blocked by\n\n- #88\n")
+
+
+def test_main_files_the_issue_as_when_no_match_is_found_when_a_later_lookup_page_fails_ignoring_a_match_on_the_pages_before_it(tmpdir_env, monkeypatch, capsys, coverage_blocker):
+    lookup = "repos/{owner}/{repo}/issues?state=open&per_page=100&page="
+    page_1 = [{"number": 88, "title": "Cover the behaviour #60 refactors", "html_url": "https://github.com/owner/name/issues/88"}]
+    lookups = []
+    creates = []
+    seen = {}
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:2] == ["gh", "api"] and args[2].startswith(lookup):
+            lookups.append(args)
+            if args[2] == lookup + "1":
+                return subprocess.CompletedProcess(args, 0, json.dumps(page_1), "")
+            return subprocess.CompletedProcess(args, 1, "", "HTTP 502\n")
+        if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
+            return subprocess.CompletedProcess(args, 0, '{"body": "## Blocked by\\n\\nNone\\n"}', "")
+        if args[:4] == ["gh", "api", "-X", "PATCH"]:
+            path = args[args.index("-F") + 1].split("body=@", 1)[1]
+            seen["body"] = pathlib.Path(path).read_text()
+            return subprocess.CompletedProcess(args, 0, "{}", "")
+        if any(arg.startswith("title=") for arg in args):
+            creates.append(args)
+            return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/99\n", "")
+        return subprocess.CompletedProcess(args, 1, "", "unexpected\n")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code = coverage_blocker.main(["60"])
+
+    assert (lookups, len(creates)) == ([["gh", "api", lookup + "1"], ["gh", "api", lookup + "2"]], 1)
+    assert (code, capsys.readouterr().out, seen.get("body")) == (
+        0, "https://github.com/owner/name/issues/99\n", "## Blocked by\n\n- #99\n")
