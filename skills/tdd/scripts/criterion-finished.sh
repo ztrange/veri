@@ -1,31 +1,9 @@
-#!/usr/bin/env bash
-# criterion-finished.sh — say whether an issue acceptance criterion is finished.
+#!/bin/sh
+# criterion-finished.sh — say whether an issue acceptance criterion is finished: a shim over veri/criterion_finished.py.
 #
-# Reads a ledger (checkbox markdown) on stdin; the step grammar is lib/ledger.sh's
-# `ledger_steps`. A step serves criterion k when it carries `⟦criterion k⟧`. Exits 0 when
-# every such step is done and not refactor-pending, and 3 when some step serving k is
-# still open or pending — or when no step serves k at all, since a ticked step carrying no
-# token finishes no criterion.
+# usage: criterion-finished.sh <k> < .tdd/issue-<n>.md
 #
-# Usage:   criterion-finished.sh <k> < .tdd/issue-<n>.md
-set -euo pipefail
-
-HERE="$(cd "$(dirname "$0")" && pwd)"
-source "$HERE/lib/exit-contract.sh"
-
-USAGE="usage: criterion-finished.sh <k> < .tdd/issue-<n>.md"
-require_args 1 "$@"
-k="$1"
-
-source "$HERE/lib/ledger.sh"
-
-served=0
-while IFS= read -r record; do
-  ledger_fields "$record"
-  [[ "$criterion" == "$k" ]] || continue
-  served=1
-  [[ "$state" == done && "$pending" == 0 ]] || exit 3
-done < <(ledger_steps)
-
-[[ "$served" -eq 1 ]] || exit 3
-exit 0
+# A step serves criterion k when it carries `⟦criterion k⟧`.
+# Exit:    0 every step serving k done and not refactor-pending; 2 a missing or empty <k>;
+#          3 some step serving k open or pending, or no step serving k
+exec python3 "$(dirname "$0")/veri/criterion_finished.py" "$@"
