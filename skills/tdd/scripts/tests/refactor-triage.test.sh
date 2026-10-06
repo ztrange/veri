@@ -356,4 +356,24 @@ empty|2
 PROBES
 report "$name"
 
+name="refactor-triage.sh's two diagnostics are exact: an empty report and an unknown class each exit 2 with that one line on stderr and nothing on stdout"
+problems=()
+work="$(scratch_dir)"
+: >"$work/empty"
+printf 'CANDIDATES: cosmic | x\n' >"$work/cosmic"
+while IFS='|' read -r fixture want_err; do
+  "$TRIAGE" <"$work/$fixture" >"$work/out" 2>"$work/err" && code=0 || code=$?
+  [[ "$code" == 2 ]] ||
+    problems+=("$fixture report: want exit 2, got $code")
+  [[ -s "$work/out" ]] &&
+    problems+=("$fixture report: want nothing on stdout, got $(printf '%q' "$(cat "$work/out")")")
+  printf '%s\n' "$want_err" >"$work/want"
+  cmp -s "$work/want" "$work/err" ||
+    problems+=("$fixture report: want stderr $(printf '%q' "$(cat "$work/want")"), got $(printf '%q' "$(cat "$work/err")")")
+done <<'PROBES'
+empty|refactor-triage: the report has no CANDIDATES: line
+cosmic|refactor-triage: candidate line has no class, or one that is neither structural nor cosmetic: CANDIDATES: cosmic | x
+PROBES
+report "$name"
+
 finish
