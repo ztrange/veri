@@ -45,3 +45,23 @@ def test_main_prints_structural_candidates_exits_3_with_none_left_and_refuses_a_
             b"refactor-triage: candidate line has no class, or one that is neither structural nor cosmetic: "
             b"CANDIDATES: cosmic | x\n"),
     }
+
+
+def test_main_reads_a_test_only_candidate_as_its_own_class_exiting_3_alone_printing_only_the_structural_beside_it_and_refusing_a_capitalised_class(
+        monkeypatch, capsysbinary, refactor_triage):
+    results = {}
+    for report in (
+            b'RESULT: applied "inline the single-use variable", suite green\n'
+            b"CANDIDATES: test-only | fold the three mktemp fixtures into one helper\n",
+            b"CANDIDATES: test-only | x\nCANDIDATES: structural | y\n",
+            b"CANDIDATES: Test-only | x\n"):
+        fake_stdin(monkeypatch, report)
+        code = refactor_triage.main([])
+        results[report] = (code, capsysbinary.readouterr().out)
+
+    assert results == {
+        b'RESULT: applied "inline the single-use variable", suite green\n'
+        b"CANDIDATES: test-only | fold the three mktemp fixtures into one helper\n": (3, b""),
+        b"CANDIDATES: test-only | x\nCANDIDATES: structural | y\n": (0, b"y\n"),
+        b"CANDIDATES: Test-only | x\n": (2, b""),
+    }
