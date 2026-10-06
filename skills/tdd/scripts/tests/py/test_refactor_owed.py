@@ -468,3 +468,15 @@ def test_list_omits_a_candidate_recorded_as_applied_and_still_prints_the_ones_no
     code = refactor_owed.main(["list", str(owed)])
     assert (code, capsys.readouterr().out) == (
         0, "fold the two awk passes into one\nname the bounds walk once\n")
+
+
+def test_list_exits_3_printing_nothing_when_every_structural_candidate_is_recorded_as_applied_1023(
+        capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    owed.write_text("### S7\n- extract the shared partial\n### S8\n- name the bounds walk once\n")
+    assert refactor_owed.main(["applied", str(owed), "extract the shared partial", "2130b6c1d"]) == 0
+    assert refactor_owed.main(["applied", str(owed), "name the bounds walk once", "abc1234"]) == 0
+    capsys.readouterr()
+
+    code = refactor_owed.main(["list", str(owed)])
+    assert (code, capsys.readouterr().out) == (3, "")
