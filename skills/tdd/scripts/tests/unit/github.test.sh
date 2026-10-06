@@ -768,4 +768,35 @@ grep -F 'gh: Bad Gateway (HTTP 502)' "$err" > /dev/null ||
   problems+="    want the gh api graphql route's 'gh: Bad Gateway (HTTP 502)' on stderr"$'\n'
 record
 
+# 18. with VERI_GH_DRIVER unset, a ccr route that readies the PR is the only route taken: the
+#     gh api graphql fallback is never called, and gh_pr_ready returns 0
+name="#1054: with VERI_GH_DRIVER unset, gh_pr_ready 42 whose pulls/42/ccr/ready_for_review succeeds readies PR 42 by that route alone, never calls gh api graphql, and returns 0"
+calls="$scratch/calls18" err="$scratch/err18"
+: > "$calls"
+(
+  gh() {
+    echo "gh $*" >> "$calls"
+    [[ "$1" == api ]] || return 1
+    case "$*" in
+      *ccr/ready_for_review*) echo '{"number":42,"draft":false}' ;;
+      *markPullRequestReadyForReview*) echo '{"data":{"markPullRequestReadyForReview":{"pullRequest":{"isDraft":false}}}}' ;;
+      *' -q '* | *' --jq '* | *--jq=*) echo 'PR_kwDOnode42' ;;
+      *pulls/42*) echo '{"number":42,"node_id":"PR_kwDOnode42","draft":true}' ;;
+      *) return 1 ;;
+    esac
+  }
+  unset VERI_GH_DRIVER VERI_GH_JSON
+  source "$LIB"
+  gh_pr_ready 42
+) > /dev/null 2> "$err"
+rc=$?
+problems=""
+[[ "$rc" -eq 0 ]] || problems+="    want return 0, got $rc"$'\n'
+grep -E '^gh api -X POST .*pulls/42/ccr/ready_for_review' "$calls" > /dev/null ||
+  problems+="    want a POST to pulls/42/ccr/ready_for_review, got: $(printf '%q' "$(cat "$calls")")"$'\n'
+if grep -E '^gh api graphql' "$calls" > /dev/null; then
+  problems+="    want no gh api graphql call, got: $(printf '%q' "$(grep -E '^gh api graphql' "$calls")")"$'\n'
+fi
+record
+
 finish
