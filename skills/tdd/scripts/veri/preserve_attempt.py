@@ -40,7 +40,7 @@ def main(argv):
             return mapped(result.returncode)
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
-    step_ref = sanitised(ledger_step_index(issue, step))
+    step_ref = sanitised(ledger_step_index(issue, os.fsencode(step).decode("utf-8", "surrogateescape")))
     ref = f"refs/veri/attempts/{issue}/{step_ref}/{phase}-{attempt}"
     if git("update-ref", ref, result.stdout.strip(), capture=False).returncode != 0:
         print(f"preserve-attempt.sh: could not preserve {coords} to {ref}", file=sys.stderr)
