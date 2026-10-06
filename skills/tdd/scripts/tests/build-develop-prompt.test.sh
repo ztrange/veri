@@ -1000,11 +1000,8 @@ says_both_ways "$dd" "diff prompt never says to make no commit when the criterio
   160 '(no|not|never)[^.]{0,20}commit' 'unchanged'
 prompt_says "$dd" "diff prompt never says to add no test" \
   -iE -e '(add|write)[^.]{0,20}(no|not a single) (new )?(test|case)|(do not|don.t|never) (add|write)[^.]{0,20}(test|case)'
-refusal_bad=""
-refuses "diff missing test-cmd" "$BUILD" diff "$work/spec.md" "$dd_step"
-[[ -z "$refusal_bad" ]] || problems="$problems${refusal_bad}"
 [[ -z "$problems" ]] \
-  && ok || no "develop-diff tells the leaf to make the change the step's criterion names and commit it, to make no commit when the criterion is that something stays unchanged, and to add no test; a missing argument exits 2 with nothing on stdout (${problems#; })"
+  && ok || no "develop-diff tells the leaf to make the change the step's criterion names and commit it, to make no commit when the criterion is that something stays unchanged, and to add no test (${problems#; })"
 
 dd_err="$work/diff-no-test-cmd.err"
 dd_out="$("$BUILD" diff "$work/spec.md" "$dd_step" '' 'make unit' 2>"$dd_err")"; code=$?
