@@ -540,8 +540,10 @@ unauthenticated baseline never gets a cycle.
    preflight-class stop — and take its lock there before anything else:
    ```
    wt="$($S/issue-worktree.sh <n> <slug>)" && cd "$wt"
-   mkdir -p .tdd && printf '%s\n' "$PPID" > .tdd/conductor.pid
+   mkdir -p .tdd && printf '%s\n' "$PPID" > .tdd/conductor.pid && $S/stop-requested.sh --clear
    ```
+   The `--clear` beside it drops a stale stop request a killed run never got to clear, so a
+   `.tdd/stop` left behind cannot stop the run that resumes it at its first checkpoint.
    Every run below happens in it, so the baseline proves the commit the branch is cut from —
    the freshly fetched `origin/<default>` for a new branch, the branch head on a resume — not
    whatever the caller's checkout has checked out.
