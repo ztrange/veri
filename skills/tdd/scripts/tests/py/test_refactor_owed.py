@@ -412,3 +412,17 @@ def test_render_prints_the_structural_steps_heading_and_bullet_and_not_a_test_on
     out = capsys.readouterr().out
     assert (code, [l for l in out.splitlines() if l == "### step one"],
             "### step two\n- real one\n" in out) == (0, [], True)
+
+
+def test_render_prints_no_heading_for_a_step_whose_every_structural_bullet_is_applied_and_lists_them_under_applied_989(
+        monkeypatch, capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "o2.md"
+    monkeypatch.setattr(sys, "stdin", io.StringIO("CANDIDATES: structural | x\n"))
+    assert refactor_owed.main(["append", str(owed), "step A", "b.sh"]) == 0
+    assert refactor_owed.main(["applied", str(owed), "x", "abc123"]) == 0
+
+    code = refactor_owed.main(["render", str(owed)])
+    out = capsys.readouterr().out
+    section = out[out.index("### Applied"):] if "### Applied" in out else ""
+    assert (code, [l for l in out.splitlines() if l == "### step A"], section) == (
+        0, [], "### Applied\n\n- x — abc123\n")
