@@ -1,2 +1,4 @@
 ### classify-bail.sh rebased-tip-red prints process and exits 0, pinned in tests/py/test_classify_bail.py ⟦criterion 1⟧
 - test-only | fold `test_main_classifies_rebased_tip_red_as_a_process_failure_with_0` into `test_main_classifies_every_known_cause_as_system_or_process_with_0` by adding "rebased-tip-red" to `PROCESS_CAUSES` in tests/py/test_classify_bail.py. Today the new cause sits outside the table that is meant to list every known cause.
+### SKILL.md's Draft PR step no longer calls the branch's own full run the only full-suite run: the rebased-tip run is named as the extra run a rebase owes, not a replacement for it
+- test-only | skill-draft-pr.test.sh case 38 calls `unmarked_records` twice; it could keep the result in one local and reuse it, the way the earlier cases read the step once
