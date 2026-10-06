@@ -2,3 +2,5 @@
 - rename `range_` in `veri/affected_suites.py` `main` and `changed` (around lines 111–137): since this cycle it can hold a bare `<base>`, not only a `<base>..<head>` range, so the name now misleads. Rename only, so it is not applied here.
 ### `affected-suites.sh <base>` with a new, untracked suite also prints `claude-md-counts.test.sh`, as the `<base>..<head>` form does for a committed added suite
 - test-only | the two new cases in `skills/tdd/scripts/tests/affected-suites.test.sh` (working-tree-untracked-counts, working-tree-committed-counts) repeat the same setup, expected value and diff-on-fail block, which could become one helper that takes a "commit it or not" argument
+### `prompts/develop-red.md` spells the working-tree call `affected-suites.sh HEAD`, pinned as text in the style of the existing prompt suites ⟦criterion 6⟧
+- once develop-green.md and develop-revise.md spell the same "`affected-suites.sh HEAD` … build no commit, stash or worktree" clause, extract it into a shared `_*.md` partial; not yet duplicated in this cycle
