@@ -1,6 +1,6 @@
 # Plan for #1037 — Six suites still pass regexes through awk -v, which drops their backslashes (17 gawk warnings on CI)
 
-- [ ] prompt-test-tiers.test.sh's `numbered_item`, given a pattern containing `\.`, selects the numbered item where a literal dot stands and rejects one where an arbitrary character stands in the dot's place ⟦criterion 3⟧
+- [x] prompt-test-tiers.test.sh's `numbered_item`, given a pattern containing `\.`, selects the numbered item where a literal dot stands and rejects one where an arbitrary character stands in the dot's place ⟦criterion 3⟧ ⟂ refactor pending
 - [ ] skill-timeout.test.sh's `section`, given a pattern containing `\.`, starts at the line where a literal dot stands and rejects one where an arbitrary character stands in the dot's place ⟦criterion 3⟧
 - [ ] record-helpers.sh's `bullet`, given a pattern containing `\.`, starts at the bullet where a literal dot stands and rejects one where an arbitrary character stands in the dot's place ⟦criterion 3⟧
 - [ ] skill-red-untestable.test.sh's `doc_text`, given a `from` pattern containing `\.`, starts its output at the line where a literal dot stands, not at one where an arbitrary character stands in the dot's place ⟦criterion 3⟧

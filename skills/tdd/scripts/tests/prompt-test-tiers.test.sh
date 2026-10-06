@@ -87,10 +87,10 @@ names_runner_fallback() {
 }
 
 numbered_item() {
-  awk -v re="$1" '
-    /^[0-9]+\. /{if (item ~ re) {printf "%s", lines; done=1; exit} item=""; lines=""}
+  re="$1" awk '
+    /^[0-9]+\. /{if (item ~ ENVIRON["re"]) {printf "%s", lines; done=1; exit} item=""; lines=""}
     /^[0-9]+\. /||item!=""{item=item " " $0; lines=lines $0 "\n"}
-    END{if (!done && item ~ re) printf "%s", lines}'
+    END{if (!done && item ~ ENVIRON["re"]) printf "%s", lines}'
 }
 
 printf 'zorblat must return frob\n' > "$work/spec.md"
@@ -313,4 +313,7 @@ if [[ "$preempted_miss" != "$honest_miss" ]]; then
   problems+=("a preempted writer changes the probes' verdict on a non-matching prompt: ${honest_miss%%$'\n'*} problems become ${preempted_miss%%$'\n'*}")
 fi
 report "$name"
+
+name="#1037: numbered_item given 'run-suite\\.sh' selects '2. run-suite.sh', not '1. run-suiteXsh'"
+expect_eq "$name" "2. run-suite.sh" "$(printf '1. run-suiteXsh\n2. run-suite.sh\n' | numbered_item 'run-suite\.sh')"
 finish
