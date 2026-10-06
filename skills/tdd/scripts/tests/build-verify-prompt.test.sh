@@ -736,6 +736,12 @@ diff_refused_as 'diff with a 6-character step base' "$(hex_msg '<step-base-sha>'
 [[ -z "$problems" ]] \
   && ok || no "#995 diff with --fast-cmd refuses a non-hex base, a missing --step and a missing, non-hex, uppercase or 6-character step base, each with exit 2, nothing on stdout and its own check's message on stderr (${problems#; })"
 
+problems=""
+diff_refused_as 'diff with an extra positional' "build-verify-prompt: too many arguments" \
+  --step "$diff_step" "${fc[@]}" diff "$work/spec.md" "$diff_base" "$diff_base" extra
+[[ -z "$problems" ]] \
+  && ok || no "#1041 diff with --fast-cmd refuses an extra positional argument with exit 2, nothing on stdout and the extra-argument check's message on stderr (${problems#; })"
+
 cp "$work/spec.md" "$work/refactor-spec.md"
 printf '\n## Refactor\n\nRun kind: refactor. This issue changes structure, not behaviour.\n' \
   >> "$work/refactor-spec.md"
