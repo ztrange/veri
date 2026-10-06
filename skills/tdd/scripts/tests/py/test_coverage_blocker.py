@@ -40,6 +40,8 @@ def test_main_returns_2_and_leaves_no_temp_file_when_the_patch_dies_with_5(tmpdi
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
+        if args[2].startswith("repos/{owner}/{repo}/issues?"):
+            return subprocess.CompletedProcess(args, 0, "[]", "")
         if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
             return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
         if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
@@ -67,7 +69,7 @@ def test_main_patches_the_body_it_read_after_the_create_with_trailing_newlines_c
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        if args[:5] == ["gh", "api", "repos/{owner}/{repo}/issues", "-X", "GET"]:
+        if args[2].startswith("repos/{owner}/{repo}/issues?"):
             calls.append("lookup")
             return subprocess.CompletedProcess(args, 0, "[]", "")
         if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
@@ -97,6 +99,8 @@ def test_main_leaves_no_temp_file_when_the_patch_raises(tmpdir_env, monkeypatch,
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
+        if args[2].startswith("repos/{owner}/{repo}/issues?"):
+            return subprocess.CompletedProcess(args, 0, "[]", "")
         if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
             return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
         if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
@@ -127,6 +131,8 @@ def test_main_returns_2_with_the_usage_line_and_no_gh_call_for_a_missing_or_empt
 
     def fail_create(args, **kwargs):
         args = [str(arg) for arg in args]
+        if args[2].startswith("repos/{owner}/{repo}/issues?"):
+            return subprocess.CompletedProcess(args, 0, "[]", "")
         if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
             return subprocess.CompletedProcess(args, 1, "", "HTTP 422: Validation Failed\n")
         raise AssertionError("unexpected command: %r" % (args,))
@@ -144,6 +150,8 @@ def test_main_falls_back_to_rest_when_graphql_refuses_the_read_and_patches_a_nul
             args = [str(arg) for arg in args]
             if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
                 return subprocess.CompletedProcess(args, 0, rest_answer, "")
+            if args[2].startswith("repos/{owner}/{repo}/issues?"):
+                return subprocess.CompletedProcess(args, 0, "[]", "")
             if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
                 return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
             if args[:4] == ["gh", "api", "-X", "PATCH"]:
@@ -172,6 +180,8 @@ def test_main_files_the_issue_blocks_the_refactor_issue_on_it_prints_the_url_and
             calls.append(args[:flag] + ["body=@<file>"] + args[flag + 1:])
             return subprocess.CompletedProcess(args, 0, "", "")
         calls.append(args)
+        if args[2].startswith("repos/{owner}/{repo}/issues?"):
+            return subprocess.CompletedProcess(args, 0, "[]", "")
         if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
             return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
         if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
@@ -184,7 +194,7 @@ def test_main_files_the_issue_blocks_the_refactor_issue_on_it_prints_the_url_and
     captured = capsys.readouterr()
 
     assert calls == [
-        ["gh", "api", "repos/{owner}/{repo}/issues", "-X", "GET", "-f", "state=open", "-f", "per_page=100"],
+        ["gh", "api", "repos/{owner}/{repo}/issues?state=open&per_page=100&page=1"],
         ["gh", "api", "repos/{owner}/{repo}/issues",
          "-f", "title=Cover the behaviour #60 refactors",
          "-f", "body=Refactor #60 refused: its Cover probe found the code it would move uncovered (`COVERED: no`). Find a seam and surround the behaviour with tests, then #60 can be retaken.",
@@ -202,6 +212,8 @@ def test_main_rewrites_every_blocked_by_section_replacing_none_lines_and_inserti
 
         def fake_run(args, **kwargs):
             args = [str(arg) for arg in args]
+            if args[2].startswith("repos/{owner}/{repo}/issues?"):
+                return subprocess.CompletedProcess(args, 0, "[]", "")
             if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
                 return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
             if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
@@ -237,6 +249,8 @@ def test_main_blocks_on_whatever_the_create_answers_ignores_extra_arguments_and_
                 calls.append(args[:5])
                 return subprocess.CompletedProcess(args, 0, "", "")
             calls.append(args)
+            if args[2].startswith("repos/{owner}/{repo}/issues?"):
+                return subprocess.CompletedProcess(args, 0, "[]", "")
             if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
                 err = "HTTP 422: Validation Failed\n" if create_code else ""
                 stream = kwargs.get("stderr")
@@ -292,6 +306,8 @@ def test_main_reads_the_body_over_rest_when_the_view_fails_dropping_its_stderr_a
             calls.append(args)
             if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
                 return answer(args, kwargs, rest_code, rest_answer, rest_err)
+            if args[2].startswith("repos/{owner}/{repo}/issues?"):
+                return subprocess.CompletedProcess(args, 0, "[]", "")
             if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
                 return answer(args, kwargs, 0, "https://github.com/owner/name/issues/77\n", "")
             if args[:4] == ["gh", "api", "-X", "PATCH"]:
@@ -311,7 +327,7 @@ def test_main_reads_the_body_over_rest_when_the_view_fails_dropping_its_stderr_a
 
     code, out, err, body, calls = run(1, "", "HTTP 404: Not Found (https://api.github.com/repos/owner/name/issues/60)\n")
     assert (code, out, body) == (2, "", None)
-    assert calls[0][:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]
+    assert calls[0] == ["gh", "api", "repos/{owner}/{repo}/issues?state=open&per_page=100&page=1"]
     assert not any(call[:4] == ["gh", "api", "-X", "PATCH"] for call in calls)
     assert "GraphQL: refused" not in err
     api_error = err.find("HTTP 404: Not Found")
@@ -351,7 +367,9 @@ def test_main_rerun_after_a_first_run_that_filed_then_failed_files_no_second_iss
                 number = max(issues) + 1 if max(issues) >= 77 else 77
                 issues[number] = {"title": fields["title"], "body": fields.get("body", ""), "state": "open"}
                 return subprocess.CompletedProcess(args, 0, url(number) + "\n", "")
-            return subprocess.CompletedProcess(args, 0, json.dumps(listing()), "")
+            if args[2].endswith("&page=1"):
+                return subprocess.CompletedProcess(args, 0, json.dumps(listing()), "")
+            return subprocess.CompletedProcess(args, 0, "[]", "")
         if args[:2] == ["gh", "api"] and args[2].startswith("search/issues"):
             return subprocess.CompletedProcess(args, 0, json.dumps({"items": listing()}), "")
         raise AssertionError("unexpected command: %r" % (args,))
@@ -457,3 +475,43 @@ def test_main_returns_2_with_no_patch_and_no_traceback_when_the_rest_read_exits_
     captured = capfd.readouterr()
     assert [call for call in calls if call[:4] == ["gh", "api", "-X", "PATCH"]] == []
     assert (code, captured.out, "Traceback" in captured.err) == (2, "", False)
+
+
+def test_main_pages_the_open_issue_lookup_until_an_empty_page_and_blocks_on_a_coverage_issue_found_on_page_2_without_creating_one(tmpdir_env, monkeypatch, capsys, coverage_blocker):
+    lookup = "repos/{owner}/{repo}/issues?state=open&per_page=100&page="
+    pages = {
+        "1": [{"number": 70, "title": "Something else", "html_url": "https://github.com/owner/name/issues/70"}],
+        "2": [{"number": 88, "title": "Cover the behaviour #60 refactors", "html_url": "https://github.com/owner/name/issues/88"}],
+    }
+    lookups = []
+    creates = []
+    seen = {}
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:2] == ["gh", "api"] and args[2].startswith(lookup):
+            page = args[2][len(lookup):]
+            lookups.append(args)
+            return subprocess.CompletedProcess(args, 0, json.dumps(pages.get(page, [])), "")
+        if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
+            return subprocess.CompletedProcess(args, 0, '{"body": "## Blocked by\\n\\nNone\\n"}', "")
+        if args[:4] == ["gh", "api", "-X", "PATCH"]:
+            path = args[args.index("-F") + 1].split("body=@", 1)[1]
+            seen["body"] = pathlib.Path(path).read_text()
+            return subprocess.CompletedProcess(args, 0, "{}", "")
+        if any(arg.startswith("title=") for arg in args):
+            creates.append(args)
+            return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/99\n", "")
+        return subprocess.CompletedProcess(args, 1, "", "unexpected\n")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code = coverage_blocker.main(["60"])
+
+    assert (lookups, creates) == ([
+        ["gh", "api", lookup + "1"],
+        ["gh", "api", lookup + "2"],
+        ["gh", "api", lookup + "3"],
+    ], [])
+    assert (code, capsys.readouterr().out, seen.get("body")) == (
+        0, "https://github.com/owner/name/issues/88\n", "## Blocked by\n\n- #88\n")

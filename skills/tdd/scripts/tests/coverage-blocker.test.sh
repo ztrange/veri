@@ -28,6 +28,7 @@ case "$*" in
     done
     echo '{}' ;;
   "api "*"repos/"*"/issues/60"*) python3 -c 'import json, sys; print(json.dumps({"body": sys.argv[1]}))' "$FAKE_BODY" ;;
+  "api "*"repos/"*"/issues?"*) echo '[]' ;;
   "api "*"repos/"*"/issues"*)
     printf '%s\n' "$@" > "$FAKE_CREATE"
     echo "https://github.com/owner/name/issues/77" ;;
@@ -243,6 +244,7 @@ case "$*" in
     done
     echo '{}' ;;
   "api "*"repos/"*"/issues/60") python3 -c 'import json, sys; print(json.dumps({"body": sys.argv[1]}))' "$FAKE_BODY" ;;
+  "api "*"repos/"*"/issues?"*) echo '[]' ;;
   "api "*"repos/"*"/issues"*) echo "https://github.com/owner/name/issues/77" ;;
   *) exit 1 ;;
 esac

@@ -6,9 +6,11 @@ import sys
 import tempfile
 
 try:
-    from github import NoAnswer, gh_issue_view
+    from github import NoAnswer, gh_issue_view, gh_rest_list
+    from json_documents import documents
 except ImportError:
-    from .github import NoAnswer, gh_issue_view
+    from .github import NoAnswer, gh_issue_view, gh_rest_list
+    from .json_documents import documents
 
 USAGE = "usage: coverage-blocker.sh <refactor-issue-number>"
 ISSUES = "repos/{owner}/{repo}/issues"
@@ -30,14 +32,13 @@ def read_body(number):
 
 
 def existing(title):
-    found = gh("api", ISSUES, "-X", "GET", "-f", "state=open", "-f", "per_page=100")
     try:
-        listing = json.loads(found.stdout)
-    except json.JSONDecodeError:
+        pages = documents(gh_rest_list(ISSUES + "?state=open&per_page=100"))
+    except (NoAnswer, json.JSONDecodeError):
         return None
-    if not isinstance(listing, list):
+    if not all(isinstance(page, list) for page in pages):
         return None
-    for item in listing:
+    for item in (item for page in pages for item in page):
         if item.get("title") == title:
             return item["html_url"]
     return None
