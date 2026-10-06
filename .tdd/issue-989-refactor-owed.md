@@ -1,0 +1,2 @@
+### `refactor-owed.sh render` over a file whose only step holds test-only leftovers prints no `### <that step>` line, while the leftovers still appear under `### Test-only` ⟦criterion 1⟧
+- test-only | the new 989 test in skills/tdd/scripts/tests/py/test_refactor_owed.py spells out the `### Test-only` section text, and other render tests in the same file also contain it; a shared helper could replace those copies
