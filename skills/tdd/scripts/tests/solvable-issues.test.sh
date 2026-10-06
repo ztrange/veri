@@ -1112,6 +1112,133 @@ done
 
 [[ -z "$driver_problems" ]] \
   && ok || no "with VERI_GH_DRIVER empty, REST or gql, solvable-issues.sh starts no gh process, prints nothing on stdout, exits 2 and prints one stderr line naming VERI_GH_DRIVER and the value ($driver_problems want exit 2, empty stdout, no gh call and one stderr line naming VERI_GH_DRIVER and the value)"
+
+shiftdir="$work/shifting-pages"
+mkdir -p "$shiftdir/bin"
+python3 -c '
+import json, sys
+issues = [{"number": n, "title": "issue %d" % n, "state": "open", "body": "## Blocked by\n\nNone.\n",
+           "labels": [] if n in (1, 130) else [{"name": "ready-for-agent"}]}
+          for n in range(1, 131)]
+json.dump(issues, open(sys.argv[1], "w"))
+' "$shiftdir/issues.json"
+cat > "$shiftdir/bin/gh" <<'STUB'
+#!/bin/sh
+[ "$1" = api ] || { echo "gh stub: unexpected call: gh $*" >&2; exit 1; }
+shift
+exec python3 -c '
+import json, os, sys
+from urllib.parse import parse_qs, urlsplit
+fixture, closed_file, args = sys.argv[1], sys.argv[2], sys.argv[3:]
+paginate = "--paginate" in args
+paths = [a for a in args if not a.startswith("-")]
+if len(paths) != 1 or len(paths) + paginate != len(args):
+    sys.exit("gh stub: unsupported call: gh api %s" % " ".join(args))
+url = urlsplit(paths[0])
+query = {k: v[-1] for k, v in parse_qs(url.query).items()}
+if url.path.endswith("/pulls"):
+    sys.stdout.write("[]")
+    sys.exit(0)
+if not url.path.endswith("/issues"):
+    sys.exit("gh stub: unexpected path %s" % paths[0])
+size = min(int(query.get("per_page", 30)), 100)
+page = int(query.get("page", 1))
+def listing():
+    closed = open(closed_file).read().split() if os.path.exists(closed_file) else []
+    items = json.load(open(fixture))
+    for item in items:
+        if str(item["number"]) in closed:
+            item["state"] = "closed"
+    state = query.get("state", "open")
+    items = [i for i in items if state == "all" or i["state"] == state]
+    return sorted(items, key=lambda i: i["number"], reverse=query.get("direction", "desc") == "desc")
+out = []
+while True:
+    served = listing()[(page - 1) * size:page * size]
+    out.append(json.dumps(served))
+    if served and not os.path.exists(closed_file):
+        open(closed_file, "w").write("%d\n" % served[0]["number"])
+    if not paginate or not served:
+        break
+    page += 1
+sys.stdout.write("".join(out))
+' "$GH_SHIFT_ISSUES" "$GH_SHIFT_CLOSED" "$@"
+STUB
+chmod +x "$shiftdir/bin/gh"
+
+out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_GH_DRIVER PATH="$shiftdir/bin:$PATH" \
+       GH_SHIFT_ISSUES="$shiftdir/issues.json" GH_SHIFT_CLOSED="$shiftdir/closed" \
+       "$SOLVABLE" 2>"$shiftdir/stderr")" && code=0 || code=$?
+missing="$(comm -23 <(seq 2 129 | sort) <(printf '%s\n' "$out" | sort) | sort -n | tr '\n' ' ')"
+extra="$(comm -13 <(seq 2 129 | sort) <(printf '%s\n' "$out" | sort) | sort -n | tr '\n' ' ')"
+
+{ [[ "$code" == 0 && "$out" == "$(seq 2 129)" ]]; } \
+  && ok || no "against a fake gh api whose open-only issue listing shifts between calls — the first issue it serves is closed once page 1 has gone out — solvable-issues.sh still prints every solvable issue the fake holds (#1051) (130 open issues, #2–#129 opted in, closed after page 1: #$(cat "$shiftdir/closed" 2>/dev/null | tr -d '\n'); exit=$code want 0; missing='$missing' want ''; unexpected='$extra' want ''; stderr='$(tr '\n' '|' < "$shiftdir/stderr")')"
+
+
+prshift="$work/shifting-pr-pages"
+mkdir -p "$prshift/bin"
+python3 -c '
+import json, sys
+issues = [{"number": n, "title": "issue %d" % n, "state": "open", "body": "## Blocked by\n\nNone.\n",
+           "labels": [{"name": "ready-for-agent"}]} for n in range(1, 11)]
+prs = [{"number": n, "state": "open", "body": "Closes #5" if n == 230 else "Tidies something."}
+       for n in range(201, 261)]
+json.dump(issues, open(sys.argv[1], "w"))
+json.dump(prs, open(sys.argv[2], "w"))
+' "$prshift/issues.json" "$prshift/prs.json"
+cat > "$prshift/bin/gh" <<'STUB'
+#!/bin/sh
+[ "$1" = api ] || { echo "gh stub: unexpected call: gh $*" >&2; exit 1; }
+shift
+exec python3 -c '
+import json, os, sys
+from urllib.parse import parse_qs, urlsplit
+issues_file, prs_file, closed_file, args = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4:]
+paginate = "--paginate" in args
+paths = [a for a in args if not a.startswith("-")]
+if len(paths) != 1 or len(paths) + paginate != len(args):
+    sys.exit("gh stub: unsupported call: gh api %s" % " ".join(args))
+url = urlsplit(paths[0])
+query = {k: v[-1] for k, v in parse_qs(url.query).items()}
+if url.path.endswith("/issues"):
+    fixture, shifts = issues_file, False
+elif url.path.endswith("/pulls"):
+    fixture, shifts = prs_file, True
+else:
+    sys.exit("gh stub: unexpected path %s" % paths[0])
+size = min(int(query.get("per_page", 30)), 100)
+page = int(query.get("page", 1))
+def listing():
+    closed = open(closed_file).read().split() if shifts and os.path.exists(closed_file) else []
+    items = json.load(open(fixture))
+    for item in items:
+        if str(item["number"]) in closed:
+            item["state"] = "closed"
+    state = query.get("state", "open")
+    items = [i for i in items if state == "all" or i["state"] == state]
+    return sorted(items, key=lambda i: i["number"], reverse=query.get("direction", "desc") == "desc")
+out = []
+while True:
+    served = listing()[(page - 1) * size:page * size]
+    out.append(json.dumps(served))
+    if shifts and served and not os.path.exists(closed_file):
+        open(closed_file, "w").write("%d\n" % served[0]["number"])
+    if not paginate or not served:
+        break
+    page += 1
+sys.stdout.write("".join(out))
+' "$GH_SHIFT_ISSUES" "$GH_SHIFT_PRS" "$GH_SHIFT_CLOSED" "$@"
+STUB
+chmod +x "$prshift/bin/gh"
+
+out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_GH_DRIVER PATH="$prshift/bin:$PATH" \
+       GH_SHIFT_ISSUES="$prshift/issues.json" GH_SHIFT_PRS="$prshift/prs.json" GH_SHIFT_CLOSED="$prshift/closed" \
+       "$SOLVABLE" 2>"$prshift/stderr")" && code=0 || code=$?
+
+{ [[ "$code" == 0 && "$out" == "$(printf '%s\n' 1 2 3 4 6 7 8 9 10)" ]]; } \
+  && ok || no "against a fake gh api whose open-only PR listing shifts between calls — the first PR it serves is closed once page 1 has gone out — an issue claimed by an open PR on a later page is still left out of solvable-issues.sh's output (#1051) (issues #1–#10 opted in, 60 open PRs #201–#260, #230 says 'Closes #5', closed after page 1: PR #$(cat "$prshift/closed" 2>/dev/null | tr -d '\n'); exit=$code want 0; stdout='$(tr '\n' '|' <<<"$out")' want '1|2|3|4|6|7|8|9|10'; stderr='$(tr '\n' '|' < "$prshift/stderr")')"
+
 fx="$(fixture graphql-refused)"
 cat > "$fx/issues.json" <<'JSON'
 [
@@ -1316,132 +1443,5 @@ three_page_run three
 { [[ "$one_code" == 0 && "$one_out" == $'75\n73' ]] \
   && [[ "$code" == "$one_code" && "$out" == "$one_out" ]]; } \
   && ok || no "against a gh that serves issues and PRs over three pages on repos/{owner}/{repo} and refuses repositories/{id} with the proxy's 403, prints the same issue numbers and exit code as against a single-page fixture holding the same issues and PRs (#592) (single page: exit=$one_code stdout='$(tr '\n' '|' <<<"$one_out")' want 0 and '75|73'; three pages: exit=$code stdout='$(tr '\n' '|' <<<"$out")' want the same; three pages stderr='$(tr '\n' '|' < "$work/three-pages/three.err")')"
-
-
-shiftdir="$work/shifting-pages"
-mkdir -p "$shiftdir/bin"
-python3 -c '
-import json, sys
-issues = [{"number": n, "title": "issue %d" % n, "state": "open", "body": "## Blocked by\n\nNone.\n",
-           "labels": [] if n in (1, 130) else [{"name": "ready-for-agent"}]}
-          for n in range(1, 131)]
-json.dump(issues, open(sys.argv[1], "w"))
-' "$shiftdir/issues.json"
-cat > "$shiftdir/bin/gh" <<'STUB'
-#!/bin/sh
-[ "$1" = api ] || { echo "gh stub: unexpected call: gh $*" >&2; exit 1; }
-shift
-exec python3 -c '
-import json, os, sys
-from urllib.parse import parse_qs, urlsplit
-fixture, closed_file, args = sys.argv[1], sys.argv[2], sys.argv[3:]
-paginate = "--paginate" in args
-paths = [a for a in args if not a.startswith("-")]
-if len(paths) != 1 or len(paths) + paginate != len(args):
-    sys.exit("gh stub: unsupported call: gh api %s" % " ".join(args))
-url = urlsplit(paths[0])
-query = {k: v[-1] for k, v in parse_qs(url.query).items()}
-if url.path.endswith("/pulls"):
-    sys.stdout.write("[]")
-    sys.exit(0)
-if not url.path.endswith("/issues"):
-    sys.exit("gh stub: unexpected path %s" % paths[0])
-size = min(int(query.get("per_page", 30)), 100)
-page = int(query.get("page", 1))
-def listing():
-    closed = open(closed_file).read().split() if os.path.exists(closed_file) else []
-    items = json.load(open(fixture))
-    for item in items:
-        if str(item["number"]) in closed:
-            item["state"] = "closed"
-    state = query.get("state", "open")
-    items = [i for i in items if state == "all" or i["state"] == state]
-    return sorted(items, key=lambda i: i["number"], reverse=query.get("direction", "desc") == "desc")
-out = []
-while True:
-    served = listing()[(page - 1) * size:page * size]
-    out.append(json.dumps(served))
-    if served and not os.path.exists(closed_file):
-        open(closed_file, "w").write("%d\n" % served[0]["number"])
-    if not paginate or not served:
-        break
-    page += 1
-sys.stdout.write("".join(out))
-' "$GH_SHIFT_ISSUES" "$GH_SHIFT_CLOSED" "$@"
-STUB
-chmod +x "$shiftdir/bin/gh"
-
-out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_GH_DRIVER PATH="$shiftdir/bin:$PATH" \
-       GH_SHIFT_ISSUES="$shiftdir/issues.json" GH_SHIFT_CLOSED="$shiftdir/closed" \
-       "$SOLVABLE" 2>"$shiftdir/stderr")" && code=0 || code=$?
-missing="$(comm -23 <(seq 2 129 | sort) <(printf '%s\n' "$out" | sort) | sort -n | tr '\n' ' ')"
-extra="$(comm -13 <(seq 2 129 | sort) <(printf '%s\n' "$out" | sort) | sort -n | tr '\n' ' ')"
-
-{ [[ "$code" == 0 && "$out" == "$(seq 2 129)" ]]; } \
-  && ok || no "against a fake gh api whose open-only issue listing shifts between calls — the first issue it serves is closed once page 1 has gone out — solvable-issues.sh still prints every solvable issue the fake holds (#1051) (130 open issues, #2–#129 opted in, closed after page 1: #$(cat "$shiftdir/closed" 2>/dev/null | tr -d '\n'); exit=$code want 0; missing='$missing' want ''; unexpected='$extra' want ''; stderr='$(tr '\n' '|' < "$shiftdir/stderr")')"
-
-
-prshift="$work/shifting-pr-pages"
-mkdir -p "$prshift/bin"
-python3 -c '
-import json, sys
-issues = [{"number": n, "title": "issue %d" % n, "state": "open", "body": "## Blocked by\n\nNone.\n",
-           "labels": [{"name": "ready-for-agent"}]} for n in range(1, 11)]
-prs = [{"number": n, "state": "open", "body": "Closes #5" if n == 230 else "Tidies something."}
-       for n in range(201, 261)]
-json.dump(issues, open(sys.argv[1], "w"))
-json.dump(prs, open(sys.argv[2], "w"))
-' "$prshift/issues.json" "$prshift/prs.json"
-cat > "$prshift/bin/gh" <<'STUB'
-#!/bin/sh
-[ "$1" = api ] || { echo "gh stub: unexpected call: gh $*" >&2; exit 1; }
-shift
-exec python3 -c '
-import json, os, sys
-from urllib.parse import parse_qs, urlsplit
-issues_file, prs_file, closed_file, args = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4:]
-paginate = "--paginate" in args
-paths = [a for a in args if not a.startswith("-")]
-if len(paths) != 1 or len(paths) + paginate != len(args):
-    sys.exit("gh stub: unsupported call: gh api %s" % " ".join(args))
-url = urlsplit(paths[0])
-query = {k: v[-1] for k, v in parse_qs(url.query).items()}
-if url.path.endswith("/issues"):
-    fixture, shifts = issues_file, False
-elif url.path.endswith("/pulls"):
-    fixture, shifts = prs_file, True
-else:
-    sys.exit("gh stub: unexpected path %s" % paths[0])
-size = min(int(query.get("per_page", 30)), 100)
-page = int(query.get("page", 1))
-def listing():
-    closed = open(closed_file).read().split() if shifts and os.path.exists(closed_file) else []
-    items = json.load(open(fixture))
-    for item in items:
-        if str(item["number"]) in closed:
-            item["state"] = "closed"
-    state = query.get("state", "open")
-    items = [i for i in items if state == "all" or i["state"] == state]
-    return sorted(items, key=lambda i: i["number"], reverse=query.get("direction", "desc") == "desc")
-out = []
-while True:
-    served = listing()[(page - 1) * size:page * size]
-    out.append(json.dumps(served))
-    if shifts and served and not os.path.exists(closed_file):
-        open(closed_file, "w").write("%d\n" % served[0]["number"])
-    if not paginate or not served:
-        break
-    page += 1
-sys.stdout.write("".join(out))
-' "$GH_SHIFT_ISSUES" "$GH_SHIFT_PRS" "$GH_SHIFT_CLOSED" "$@"
-STUB
-chmod +x "$prshift/bin/gh"
-
-out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_GH_DRIVER PATH="$prshift/bin:$PATH" \
-       GH_SHIFT_ISSUES="$prshift/issues.json" GH_SHIFT_PRS="$prshift/prs.json" GH_SHIFT_CLOSED="$prshift/closed" \
-       "$SOLVABLE" 2>"$prshift/stderr")" && code=0 || code=$?
-
-{ [[ "$code" == 0 && "$out" == "$(printf '%s\n' 1 2 3 4 6 7 8 9 10)" ]]; } \
-  && ok || no "against a fake gh api whose open-only PR listing shifts between calls — the first PR it serves is closed once page 1 has gone out — an issue claimed by an open PR on a later page is still left out of solvable-issues.sh's output (#1051) (issues #1–#10 opted in, 60 open PRs #201–#260, #230 says 'Closes #5', closed after page 1: PR #$(cat "$prshift/closed" 2>/dev/null | tr -d '\n'); exit=$code want 0; stdout='$(tr '\n' '|' <<<"$out")' want '1|2|3|4|6|7|8|9|10'; stderr='$(tr '\n' '|' < "$prshift/stderr")')"
 
 finish
