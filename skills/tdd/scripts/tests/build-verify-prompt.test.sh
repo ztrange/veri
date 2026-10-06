@@ -720,6 +720,32 @@ out="$("$BUILD" --step "$diff_step" diff "$work/spec.md" "$branch_base" "$step_b
 diagnosed=""; [[ -s "$work/diff-fast.err" ]] && diagnosed=diagnosed
 expect_eq "$name" "2:diagnosed:0" "$code:$diagnosed:${#out}"
 
+problems=""
+diff_refused_as() {  # <label> <want stderr line> <args...> — records a diff call that is not exit 2, empty stdout, <want> first on stderr
+  local label="$1" want="$2" out code err; shift 2
+  out="$("$BUILD" "$@" 2>"$work/diff-refused.err")"; code=$?
+  IFS= read -r err < "$work/diff-refused.err"
+  [[ "$code" -eq 2 ]] || problems="$problems; $label exited $code, want 2"
+  [[ -z "$out" ]] || problems="$problems; $label printed ${#out} bytes, want none"
+  [[ "$err" == "$want" ]] || problems="$problems; $label's first stderr line is '$err', want '$want'"
+}
+hex_msg() { printf "build-verify-prompt: diff needs %s as 7-40 lowercase hex characters, got '%s'" "$1" "$2"; }
+fc=( --fast-cmd "$diff_fast_cmd" )
+diff_refused_as 'diff with a non-hex base' "$(hex_msg '<base-sha>' 'tidied the helper')" \
+  --step "$diff_step" "${fc[@]}" diff "$work/spec.md" 'tidied the helper' "$diff_base"
+diff_refused_as 'diff with no --step' "build-verify-prompt: diff needs --step '<STEP>'" \
+  "${fc[@]}" diff "$work/spec.md" "$diff_base" "$diff_base"
+diff_refused_as 'diff with no step base' "$(hex_msg '<step-base-sha>' '')" \
+  --step "$diff_step" "${fc[@]}" diff "$work/spec.md" "$branch_base"
+diff_refused_as 'diff with a non-hex step base' "$(hex_msg '<step-base-sha>' 'tidied the helper')" \
+  --step "$diff_step" "${fc[@]}" diff "$work/spec.md" "$branch_base" 'tidied the helper'
+diff_refused_as 'diff with an uppercase step base' "$(hex_msg '<step-base-sha>' 4567ABCDEF)" \
+  --step "$diff_step" "${fc[@]}" diff "$work/spec.md" "$branch_base" 4567ABCDEF
+diff_refused_as 'diff with a 6-character step base' "$(hex_msg '<step-base-sha>' 4567ab)" \
+  --step "$diff_step" "${fc[@]}" diff "$work/spec.md" "$branch_base" 4567ab
+[[ -z "$problems" ]] \
+  && ok || no "#995 diff with --fast-cmd refuses a non-hex base, a missing --step and a missing, non-hex, uppercase or 6-character step base, each with exit 2, nothing on stdout and its own check's message on stderr (${problems#; })"
+
 cp "$work/spec.md" "$work/refactor-spec.md"
 printf '\n## Refactor\n\nRun kind: refactor. This issue changes structure, not behaviour.\n' \
   >> "$work/refactor-spec.md"
