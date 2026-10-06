@@ -421,7 +421,7 @@ elif grep -Eq -e '--force($|[^-]|-($|[^w]))' "$rc_tpl" \
   problems="$problems; template offers a --force that is not a pinned --force-with-lease="
 fi
 refusal_bad=""
-refuses "reconcile missing remote sha" "$BUILD" reconcile "$work/spec.md" "$step_text" "$test_cmd" "$rc_branch"
+refuses "reconcile missing remote sha" "$BUILD" reconcile "$work/spec.md" "$step_text" "$test_cmd" "$rc_branch" ''
 [[ -z "$refusal_bad" ]] || problems="$problems${refusal_bad}"
 [[ -z "$problems" ]] \
   && ok || no "develop-reconcile carries the remote sha, the branch and a pinned --force-with-lease=<branch>:<sha>, offers no bare --force, and refuses a missing argument with exit 2 (${problems#; })"
@@ -459,7 +459,7 @@ fast_green="$("$BUILD" green "$work/spec.md" "$step_text" "$test_cmd" "$test_pat
 [[ "$code" -eq 0 ]] || problems="$problems; with <fast-cmd> exited $code, want 0"
 [[ "$fast_green" == *"$fast_cmd"* ]] || problems="$problems; the prompt does not carry <fast-cmd> verbatim"
 refusal_bad=""
-refuses "missing <fast-cmd>" "$BUILD" green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target"
+refuses "missing <fast-cmd>" "$BUILD" green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" ''
 [[ -z "$refusal_bad" ]] || problems="$problems${refusal_bad}"
 [[ -z "$problems" ]] \
   && ok || no "develop-green takes <fast-cmd> as a seventh positional, carries it verbatim, and refuses a call without it with exit 2 (${problems#; })"
@@ -781,8 +781,8 @@ rb_last="$(printf '%s\n' "$rebase" | sed '/^[[:space:]]*$/d' | tail -n 1)"
 [[ "$rb_last" == 'REBASE: RESOLVED | FAILED'* ]] \
   || problems="$problems; last line is '$rb_last', want 'REBASE: RESOLVED | FAILED …'"
 refusal_bad=""
-refuses "rebase missing conflicting files" "$BUILD" rebase "$work/spec.md" "$step_text" "$test_cmd" "$rb_onto" "$rb_pre"
-refuses "rebase missing pre-rebase sha" "$BUILD" rebase "$work/spec.md" "$step_text" "$test_cmd" "$rb_onto"
+refuses "rebase missing conflicting files" "$BUILD" rebase "$work/spec.md" "$step_text" "$test_cmd" "$rb_onto" "$rb_pre" ''
+refuses "rebase missing pre-rebase sha" "$BUILD" rebase "$work/spec.md" "$step_text" "$test_cmd" "$rb_onto" '' "$rb_files"
 [[ -z "$refusal_bad" ]] || problems="$problems${refusal_bad}"
 [[ -z "$problems" ]] \
   && ok || no "develop-rebase names the onto sha, the pre-rebase sha, every conflicting file and the test command, resolves by git rebase <onto-sha>, leaves the ledger's ticks and marks untouched, ends with REBASE: RESOLVED | FAILED, and refuses a missing argument with exit 2 and no stdout (${problems#; })"
@@ -949,7 +949,7 @@ says_both_ways "$predicate" "does not say the predicate succeeds once the candid
 [[ "$predicate" == *'PREDICATE: <command>'* ]] || problems="$problems; no 'PREDICATE: <command>' report line"
 [[ "$predicate" == *'PREDICATE: NONE — <why>'* ]] || problems="$problems; no 'PREDICATE: NONE — <why>' report line"
 refusal_bad=""
-refuses "predicate missing issue-touched files" "$BUILD" predicate "$work/spec.md" "$candidate" "$test_cmd"
+refuses "predicate missing issue-touched files" "$BUILD" predicate "$work/spec.md" "$candidate" "$test_cmd" ''
 [[ -z "$refusal_bad" ]] || problems="$problems${refusal_bad}"
 [[ -z "$problems" ]] \
   && ok || no "#691 develop-predicate asks for one shell predicate for a structural candidate, false on the current tree and true once it is applied, reported as PREDICATE: <command> or PREDICATE: NONE — <why>, and refuses a missing argument with exit 2 and no stdout (${problems#; })"
@@ -1101,7 +1101,7 @@ expect_eq "$name" "0:fast:affected-after:both-green" "$code:$fast:$order:$both"
 
 name="#974 build-develop-prompt.sh diff with the fast command left out exits 2 with a diagnostic on stderr and nothing on stdout"
 nofast_err="$work/diff-no-fast.err"
-nofast="$("$BUILD" diff "$work/spec.md" "$dd_step" "$test_cmd" 2>"$nofast_err")"; code=$?
+nofast="$("$BUILD" diff "$work/spec.md" "$dd_step" "$test_cmd" '' 2>"$nofast_err")"; code=$?
 diag=""; [[ -s "$nofast_err" ]] && diag=diagnostic
 expect_eq "$name" "2::diagnostic" "$code:${nofast:+prompt}:$diag"
 
