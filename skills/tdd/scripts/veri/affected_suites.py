@@ -45,7 +45,7 @@ def every_suite():
 
 def suites_naming(*needles):
     found = []
-    for suite in suites(SCRIPTS + "/tests/*.test.sh"):
+    for suite in suites(SCRIPTS + "/tests/*.test.sh") + suites(SCRIPTS + "/tests/unit/*.test.sh"):
         text = read(suite)
         if text is not None and any(n.encode() in text for n in needles):
             found.append(suite)
