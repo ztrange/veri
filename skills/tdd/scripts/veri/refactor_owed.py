@@ -95,13 +95,14 @@ def out_of_scope_transforms(file):
     return [l[len(OUT_OF_SCOPE_MARK):] for l in owed_lines(file) if l.startswith(OUT_OF_SCOPE_MARK)]
 
 
+def applied_records(lines):
+    return {transform: sha for sha, _, transform in
+            (l[len(APPLIED_MARK):].partition(" | ") for l in lines if l.startswith(APPLIED_MARK))}
+
+
 def render(file):
     lines = owed_lines(file)
-    kept, test_only, done = [], [], {}
-    for l in lines:
-        if l.startswith(APPLIED_MARK):
-            sha, _, transform = l[len(APPLIED_MARK):].partition(" | ")
-            done[transform] = sha
+    kept, test_only, done = [], [], applied_records(lines)
     for l in lines:
         if l.startswith((APPLIED_MARK, OUT_OF_SCOPE_MARK)) or (l.startswith("- ") and l[2:] in done):
             continue
@@ -127,7 +128,7 @@ def render(file):
 
 def list_owed(file):
     lines = owed_lines(file)
-    done = {l[len(APPLIED_MARK):].partition(" | ")[2] for l in lines if l.startswith(APPLIED_MARK)}
+    done = applied_records(lines)
     counts = Counter(l[2:] for l in lines
                      if l.startswith("- ") and not l.startswith((TEST_ONLY_MARK, OUT_OF_SCOPE_MARK))
                      and l[2:] not in done)
