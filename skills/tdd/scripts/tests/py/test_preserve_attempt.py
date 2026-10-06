@@ -210,6 +210,37 @@ def test_main_names_the_ref_by_the_first_matching_step_and_keeps_the_argument_wh
     ]
 
 
+def test_main_reads_a_digits_only_step_as_the_ledger_index_past_an_earlier_step_containing_the_digit_issue_1031(
+        monkeypatch, tmp_path, preserve_attempt):
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    (repo / ".tdd" / "issue-409.md").write_text(
+        "# Plan for #409\n"
+        "- [x] say what #125 owes ⟦criterion 1⟧\n"
+        "- [ ] keep the leaf's output under refs/veri ⟦criterion 2⟧\n"
+    )
+    monkeypatch.chdir(repo)
+    update_refs = []
+
+    def fake_run(args, *_, **__):
+        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+        if line.startswith("git rev-parse --show-toplevel"):
+            return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+        if line.startswith("git write-tree"):
+            return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+        if line.startswith("git commit-tree"):
+            return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
+        if line.startswith("git update-ref"):
+            update_refs.append(str(args[2]))
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code = preserve_attempt.main(["409", "2", "develop-green", "1"])
+
+    assert (code, update_refs) == (0, ["refs/veri/attempts/409/2/develop-green-1"])
+
+
 def test_main_sanitises_the_step_ref_per_byte_or_per_character_by_lc_all_then_lc_ctype_then_lang(
         monkeypatch, tmp_path, preserve_attempt):
     repo = tmp_path / "repo"
