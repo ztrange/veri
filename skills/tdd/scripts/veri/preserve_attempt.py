@@ -1,5 +1,6 @@
 """preserve-attempt.sh's computation, run in-process."""
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -27,7 +28,7 @@ def main(argv):
             return mapped(result.returncode)
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
-    ref = f"refs/veri/attempts/{issue}/{ledger_step_index(issue, step)}/{phase}-{attempt}"
+    ref = f"refs/veri/attempts/{issue}/{sanitised(ledger_step_index(issue, step))}/{phase}-{attempt}"
     if git("update-ref", ref, result.stdout.strip(), capture=False).returncode != 0:
         print(f"preserve-attempt.sh: could not preserve {coords} to {ref}", file=sys.stderr)
         return 1
@@ -45,6 +46,14 @@ def ledger_step_index(issue, step):
         print(f"preserve-attempt.sh: {ledger}: {error.strerror}", file=sys.stderr)
         return step
     return next((record[0] for record in ledger_steps(text) if step in record[6]), step)
+
+
+def sanitised(step_ref):
+    locale = os.environ.get("LC_ALL") or os.environ.get("LC_CTYPE") or os.environ.get("LANG") or ""
+    if re.search(r"utf-?8", locale, re.IGNORECASE):
+        return re.sub(r"[^0-9A-Za-z-]", "-", step_ref)
+    raw = step_ref.encode(errors="surrogateescape")
+    return re.sub(rb"[^0-9A-Za-z-]", b"-", raw).decode()
 
 
 def git(*args, env=None, capture=True):
