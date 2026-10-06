@@ -44,3 +44,25 @@ def test_main_refuses_a_missing_or_empty_argument_with_its_usage_and_answers_0_o
         answers[name] = criterion_finished.main(["1"])
     assert answers == {"ticked": 0, "unticked": 3}
     assert all(code in range(4) for code in answers.values())
+
+
+def test_main_answers_for_criterion_k_alone(monkeypatch, criterion_finished):
+    answers = {}
+    for name, (k, ledger) in {
+        "2 over a ticked criterion-1 step": ("2", "- [x] a ⟦criterion 1⟧\n"),
+        "1 beside an open criterion-2 step": (
+            "1",
+            "- [x] a ⟦criterion 1⟧\n- [ ] b ⟦criterion 2⟧\n",
+        ),
+        "1 over a refactor-pending criterion-1 step": (
+            "1",
+            "- [x] a ⟦criterion 1⟧ ⟂ refactor pending\n",
+        ),
+    }.items():
+        fake_stdin(monkeypatch, ledger.encode())
+        answers[name] = criterion_finished.main([k])
+    assert answers == {
+        "2 over a ticked criterion-1 step": 3,
+        "1 beside an open criterion-2 step": 0,
+        "1 over a refactor-pending criterion-1 step": 3,
+    }
