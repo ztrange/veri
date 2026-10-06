@@ -201,3 +201,26 @@ def test_main_matches_a_step_line_by_the_c_locale_grammar_clearing_a_capital_box
         "fs": (3, b"", b"", seeds["fs"]),
         "nbsp": (3, b"", b"", seeds["nbsp"]),
     }
+
+
+def test_main_writes_the_ledger_in_place_keeping_a_symlink_a_symlink_and_reading_a_relative_ledger_file_from_the_working_directory(
+        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
+    seed = "- [x] a ⟂ refactor pending\n".encode()
+    target = tmp_path / "target.md"
+    target.write_bytes(seed)
+    link = tmp_path / "link.md"
+    link.symlink_to(target)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    (cwd / "relative.md").write_bytes(seed)
+    (tmp_path / "relative.md").write_bytes(seed)
+    monkeypatch.chdir(cwd)
+    results = {}
+    for argv in ([str(link), "a"], ["relative.md", "a"]):
+        code = clear_refactor_pending.main(argv)
+        results[argv[0]] = (code, *capsysbinary.readouterr())
+
+    assert results == {str(link): (0, b"", b""), "relative.md": (0, b"", b"")}
+    assert (link.is_symlink(), target.read_bytes()) == (True, b"- [x] a\n")
+    assert (cwd / "relative.md").read_bytes() == b"- [x] a\n"
+    assert (tmp_path / "relative.md").read_bytes() == seed
