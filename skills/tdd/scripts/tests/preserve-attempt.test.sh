@@ -260,4 +260,17 @@ git_q "$repo" check-ref-format "$made" >/dev/null 2>&1; accepted=$?
   && ok || no "for a step holding multi-byte characters, '/', an apostrophe and spaces creates one ref git check-ref-format accepts (#1032) (code=$code made='$made' accepted=$accepted)"
 
 
+repo="$work/trackedignored"
+make_repo "$repo"
+printf 'committed\n' > "$repo/t.txt"
+git_q "$repo" add t.txt >/dev/null 2>&1
+git_q "$repo" commit -q -m "track t.txt" >/dev/null 2>&1
+printf 't.txt\n' > "$repo/.gitignore"
+printf 'edited by the leaf\n' > "$repo/t.txt"
+preserve "$repo" 409 3 develop-green 1 >/dev/null 2>&1; code=$?
+shown="$(git_q "$repo" show "$REF:t.txt" 2>&1)"
+{ [[ "$code" == 0 ]] && [[ "$shown" == "edited by the leaf" ]]; } \
+  && ok || no "keeps a file tracked in HEAD and matched by .gitignore in the preserved tree with its worktree content (#1033) (code=$code shown='$shown')"
+
+
 finish

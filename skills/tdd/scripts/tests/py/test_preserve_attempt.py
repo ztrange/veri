@@ -390,10 +390,12 @@ def test_main_runs_git_from_the_top_level_with_a_fresh_index_for_the_snapshot_an
     index = by_verb["add"]["env"].get("GIT_INDEX_FILE", "")
     assert code == 0
     assert [call["argv"][1] for call in calls] == [
-        "rev-parse", "add", "write-tree", "commit-tree", "update-ref"]
-    assert [call["cwd"] for call in calls[1:]] == [str(repo)] * 4
+        "rev-parse", "read-tree", "add", "write-tree", "commit-tree", "update-ref"]
+    assert [call["cwd"] for call in calls[1:]] == [str(repo)] * 5
     assert os.path.dirname(os.path.dirname(index)) == str(scratch_parent)
     assert (by_verb["add"]["index_dir_existed"], by_verb["add"]["index_existed"]) == (True, False)
+    assert by_verb["read-tree"]["argv"] == ["git", "read-tree", "HEAD"]
+    assert by_verb["read-tree"]["env"] == {**inherited, "GIT_INDEX_FILE": index}
     assert by_verb["add"]["env"] == {**inherited, "GIT_INDEX_FILE": index}
     assert by_verb["write-tree"]["env"] == {**inherited, "GIT_INDEX_FILE": index}
     for verb in ("rev-parse", "commit-tree", "update-ref"):
@@ -446,10 +448,10 @@ def test_main_returns_2_outside_a_work_tree_and_maps_a_failing_add_or_write_tree
     assert answers == [
         ("rev-parse", 128, 2, ["rev-parse"], "",
          ["preserve-attempt.sh: not in a git work tree"], []),
-        ("add", 1, 1, ["rev-parse", "add"], "", [], []),
-        ("add", 128, 2, ["rev-parse", "add"], "", [], []),
-        ("write-tree", 1, 1, ["rev-parse", "add", "write-tree"], "", [], []),
-        ("write-tree", 128, 2, ["rev-parse", "add", "write-tree"], "", [], []),
+        ("add", 1, 1, ["rev-parse", "read-tree", "add"], "", [], []),
+        ("add", 128, 2, ["rev-parse", "read-tree", "add"], "", [], []),
+        ("write-tree", 1, 1, ["rev-parse", "read-tree", "add", "write-tree"], "", [], []),
+        ("write-tree", 128, 2, ["rev-parse", "read-tree", "add", "write-tree"], "", [], []),
     ]
 
 
