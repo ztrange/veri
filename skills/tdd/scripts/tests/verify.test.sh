@@ -831,6 +831,15 @@ done
 [[ -z "$diff_refusal_problems" ]] && ok \
   || no "#995 verify.sh and run-verdict.sh diff with --fast-cmd refuse a missing --step and a non-hex base sha with exit 2 and the named check's own message on stderr (${diff_refusal_problems#; })"
 
+diff_refusal_problems=""
+for entry in verify.sh run-verdict.sh; do
+  diff_refused_with "$work/diff-fc-extra-$entry" "$entry" 'with an extra argument' \
+    "build-verify-prompt: too many arguments" \
+    --step 'DIFF-STEP the old cases are gone' --fast-cmd 'make unit' diff "$work/spec.md" 0123abc 0123abc extra
+done
+[[ -z "$diff_refusal_problems" ]] && ok \
+  || no "verify.sh and run-verdict.sh diff with --fast-cmd refuse an extra argument with exit 2 and the extra-argument check's own message first on stderr (${diff_refusal_problems#; })"
+
 empty_step_problems=""
 for form in empty trailing; do
   es_dir="$work/empty-step-$form"
