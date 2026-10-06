@@ -1,4 +1,4 @@
-"""lib/ledger.sh's ledger_steps, run in-process."""
+"""lib/ledger.sh's ledger_steps and ledger_tick, run in-process."""
 import re
 
 OPEN_STEP = "- [ ]"
@@ -50,3 +50,14 @@ def ledger_steps(text):
             step,
         ))
     return records
+
+
+def ledger_tick(text, matcher):
+    """(True, text with the first open step holding matcher ticked), or (False, text)."""
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        match = STEP_RE.fullmatch(line)
+        if match and match.group(2) == " " and matcher in line:
+            lines[i] = f"{match.group(1)}[x]{match.group(3) or ''}"
+            return True, "\n".join(lines)
+    return False, text

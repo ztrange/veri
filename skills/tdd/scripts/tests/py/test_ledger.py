@@ -80,3 +80,32 @@ def test_new_step_returns_lib_ledger_sh_s_added_step_line():
     ledger = importlib.import_module("veri.ledger")
 
     assert ledger.new_step("t", "2").encode() == "- [ ] t ⟦added⟧ ⟦criterion 2⟧".encode()
+
+
+def test_ledger_tick_ticks_the_first_open_step_whose_whole_line_holds_the_matcher():
+    text = (
+        "# Plan\n"
+        "- [x] two done\n"
+        "- [X] two shouted\n"
+        "- [ ] one a*b\n"
+        "  - [ ] two\n"
+        "- [ ] three\n"
+    )
+
+    ledger = importlib.import_module("veri.ledger")
+
+    assert ledger.ledger_tick(text, "two") == (True, text.replace("  - [ ] two", "  - [x] two"))
+    assert ledger.ledger_tick(text, "- [ ] t") == (True, text.replace("  - [ ] two", "  - [x] two"))
+    assert ledger.ledger_tick(text, "[ ]") == (True, text.replace("- [ ] one", "- [x] one"))
+    assert ledger.ledger_tick(text, "") == (True, text.replace("- [ ] one", "- [x] one"))
+    assert ledger.ledger_tick(text, "a*b") == (True, text.replace("- [ ] one", "- [x] one"))
+    assert ledger.ledger_tick(text, "*") == (True, text.replace("- [ ] one", "- [x] one"))
+    assert ledger.ledger_tick(text, "a.b") == (False, text)
+    assert ledger.ledger_tick(text, "done") == (False, text)
+    assert ledger.ledger_tick(text, "shouted") == (False, text)
+
+
+def test_ledger_tick_ticks_a_bare_box_with_nothing_after_it():
+    ledger = importlib.import_module("veri.ledger")
+
+    assert ledger.ledger_tick("- [x] a\n- [ ]\n", "") == (True, "- [x] a\n- [x]\n")
