@@ -65,3 +65,26 @@ def test_main_reads_a_test_only_candidate_as_its_own_class_exiting_3_alone_print
         b"CANDIDATES: test-only | x\nCANDIDATES: structural | y\n": (0, b"y\n"),
         b"CANDIDATES: Test-only | x\n": (2, b""),
     }
+
+
+def test_main_reads_an_out_of_scope_candidate_and_never_prints_it_exiting_3_alone_printing_only_the_structural_beside_it_in_either_order_and_refusing_a_capitalised_class(
+        monkeypatch, capsysbinary, refactor_triage):
+    results = {}
+    for report in (
+            b"CANDIDATES: out-of-scope | x\n",
+            b"CANDIDATES: out-of-scope | x\nCANDIDATES: structural | y\n",
+            b"CANDIDATES: structural | y\nCANDIDATES: out-of-scope | x\n",
+            b"CANDIDATES: Out-of-scope | x\n"):
+        fake_stdin(monkeypatch, report)
+        code = refactor_triage.main([])
+        results[report] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        b"CANDIDATES: out-of-scope | x\n": (3, b"", b""),
+        b"CANDIDATES: out-of-scope | x\nCANDIDATES: structural | y\n": (0, b"y\n", b""),
+        b"CANDIDATES: structural | y\nCANDIDATES: out-of-scope | x\n": (0, b"y\n", b""),
+        b"CANDIDATES: Out-of-scope | x\n": (
+            2, b"",
+            b"refactor-triage: candidate line has no class, or one that is neither structural nor cosmetic: "
+            b"CANDIDATES: Out-of-scope | x\n"),
+    }
