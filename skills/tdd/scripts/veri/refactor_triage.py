@@ -10,6 +10,7 @@ def _candidate(cls):
 
 
 STRUCTURAL = _candidate(rb"structural")
+TEST_ONLY = _candidate(rb"test-only")
 COSMETIC = _candidate(rb"cosmetic")
 NONE = re.compile(rb"^none\s*$")
 
@@ -31,7 +32,7 @@ def main(argv):
         transform = STRUCTURAL.match(line)
         if transform:
             structural.append(transform.group(1))
-        elif not (COSMETIC.match(line) or NONE.match(found.group(1))):
+        elif not (TEST_ONLY.match(line) or COSMETIC.match(line) or NONE.match(found.group(1))):
             return _refuse(b"candidate line has no class, or one that is neither structural nor cosmetic: " + line)
     if not candidates_seen:
         return _refuse(b"the report has no CANDIDATES: line")

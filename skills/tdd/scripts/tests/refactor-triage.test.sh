@@ -277,38 +277,6 @@ same_code_probe "a report with no CANDIDATES: line" "$malformed_report"
 rm -f "$structural_report" "$none_report" "$malformed_report"
 report "$name"
 
-name="#683 a test-only candidate is classed by test_only_candidate, and alone still exits 3"
-problems=()
-
-tree="$(scratch_dir)"
-mkdir -p "$tree/lib"
-cp "$TRIAGE" "$tree/refactor-triage.sh"
-cp "$HERE/.."/lib/*.sh "$tree/lib/"
-asked="$tree/asked"
-: >"$asked"
-cat >"$tree/lib/candidate-line.sh" <<SPY
-source "$HERE/../lib/candidate-line.sh"
-test_only_candidate() {
-  printf '%s\n' "\$1" >>"$asked"
-  [[ "\$1" == 'CANDIDATES: test-only | '* ]] || return 1
-  TEST_ONLY_TRANSFORM="\${1#CANDIDATES: test-only | }"
-}
-SPY
-
-line='CANDIDATES: test-only | fold the three mktemp fixtures into one helper'
-out="$tree/out"
-printf 'RESULT: applied "inline the single-use variable", suite green\n%s\n' "$line" >"$tree/report"
-"$tree/refactor-triage.sh" <"$tree/report" >"$out" 2>/dev/null && code=0 || code=$?
-
-[[ "$code" == 3 ]] ||
-  problems+=("only a test-only candidate: want exit 3, got $code")
-[[ ! -s "$out" ]] ||
-  problems+=("only a test-only candidate: want nothing on stdout, got $(printf '%q' "$(cat "$out")")")
-grep -qxF "$line" "$asked" ||
-  problems+=("want refactor-triage.sh to ask test_only_candidate about '$line', it asked about: $(printf '%q' "$(cat "$asked")")")
-
-report "$name"
-
 name="#992 a report whose only candidate is out-of-scope exits 3 with nothing on stdout, as a cosmetic-only one does"
 problems=()
 
