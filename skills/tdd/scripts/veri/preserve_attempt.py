@@ -34,11 +34,27 @@ def main(argv):
             return mapped(result.returncode)
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
-    ref = f"refs/veri/attempts/{issue}/{sanitised(ledger_step_index(issue, step))}/{phase}-{attempt}"
+    step_ref = sanitised(ledger_step_index(issue, step))
+    ref = f"refs/veri/attempts/{issue}/{step_ref}/{phase}-{attempt}"
     if git("update-ref", ref, result.stdout.strip(), capture=False).returncode != 0:
         print(f"preserve-attempt.sh: could not preserve {coords} to {ref}", file=sys.stderr)
         return 1
+    mark = argv[4] if len(argv) > 4 else ""
+    if mark:
+        try:
+            copy_leaf_files(step_ref, phase, attempt, mark)
+        except OSError as error:
+            print(f"preserve-attempt.sh: {error}", file=sys.stderr)
+            return 1
     return 0
+
+
+def copy_leaf_files(step_ref, phase, attempt, mark):
+    os.makedirs(os.path.join(".tdd", "attempts"), exist_ok=True)
+    for ext in ("log", "out"):
+        source = os.path.join(".tdd", f"{phase}.{ext}")
+        if os.path.isfile(source):
+            shutil.copy(source, os.path.join(".tdd", "attempts", f"{step_ref}-{phase}-{attempt}-{mark}.{ext}"))
 
 
 def ledger_step_index(issue, step):
