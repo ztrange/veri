@@ -122,3 +122,11 @@ def test_main_leaves_an_empty_ledger_unwritten_with_exit_3_marks_a_crlf_step_aft
         b"- [ ] a\r\n": (0, b"", b"", "- [x] a\r ⟂ refactor pending\n".encode(), False),
         b"- [x] a\n- [X] a\n- [ ] a\n": (0, b"", b"", b"- [x] a\n- [X] a\n- [x] a\n", False),
     }
+
+
+def test_main_raises_out_of_main_on_a_missing_ledger_and_on_a_directory_rather_than_returning_a_code(
+        tmp_path, capsysbinary, tick_ledger):
+    with pytest.raises(FileNotFoundError):
+        tick_ledger.main([str(tmp_path / "missing.md"), "a"])
+    with pytest.raises(IsADirectoryError):
+        tick_ledger.main([str(tmp_path), "a"])
