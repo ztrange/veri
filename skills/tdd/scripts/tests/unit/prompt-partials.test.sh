@@ -40,4 +40,26 @@ for tpl in "$PROMPTS"/*.md; do
 done
 report "$name"
 
+closes_cleanly() {
+  local text="$1" trimmed line
+  trimmed="${text%"${text##*[![:space:]]}"}"
+  [[ -z "$trimmed" ]] && return 0
+  line="${trimmed##*$'\n'}"
+  [[ "$line" =~ ^[[:space:]]*(#|\`\`\`) ]] && return 0
+  [[ "$line" =~ ^(    |$'\t') ]] && return 0
+  [[ "$line" =~ ^[A-Z_]+:\  ]] && return 0
+  [[ "$line" =~ ^\{\{[A-Z_]+\}\}$ ]] && return 0
+  [[ "$trimmed" =~ [.!?](\*\*|\)|\")?$ ]]
+}
+
+name="#1014 every _*.md partial under prompts/ closes at a sentence's end: after a sentence's end, a heading, a report line, a code block or a lone placeholder"
+problems=()
+for partial in "$PROMPTS"/_*.md; do
+  text="$(<"$partial")"
+  if ! closes_cleanly "$text"; then
+    problems+=("${partial##*/} ends: ${text##*$'\n'}")
+  fi
+done
+report "$name"
+
 finish
