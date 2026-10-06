@@ -142,8 +142,8 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   travels in argv and its exit code is `verify.sh`'s.
 - `$S/parse-verdict.sh` — extracts `PASS|REJECT` + reason from a leaf's output (used by
   `verify.sh`).
-- `$S/tick-criterion.sh "<substring>"` — the pure text transform both tick wrappers
-  delegate to: reads a checkbox body on stdin, flips the first unchecked `- [ ]` matching
+- `$S/tick-criterion.sh "<substring>"` — the pure text transform `tick-issue-criterion.sh`
+  delegates to (`tick-ledger.sh` ticks through `lib/ledger.sh`'s `ledger_tick` instead): reads a checkbox body on stdin, flips the first unchecked `- [ ]` matching
   the substring, writes it back on stdout. **Exit 3** if nothing matched.
 - `$S/tick-issue-criterion.sh <n> "<substring>"` — tick a criterion checkbox in the
   issue body (the human-facing mirror).
