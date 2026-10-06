@@ -73,3 +73,23 @@ def test_main_returns_2_leaving_the_ledger_byte_identical_when_the_ledger_module
 
     assert (code, *capsysbinary.readouterr()) == (2, b"", b"")
     assert led.read_bytes() == seed
+
+
+def test_main_reads_a_lone_ledger_file_as_an_empty_matcher_clearing_the_first_marked_done_step_and_ignores_arguments_after_the_second(
+        tmp_path, capsysbinary, clear_refactor_pending):
+    seed = "- [x] a ⟂ refactor pending\n- [x] b ⟂ refactor pending\n".encode()
+    lone = tmp_path / "lone.md"
+    lone.write_bytes(seed)
+    extra = tmp_path / "extra.md"
+    extra.write_bytes(seed)
+    results = {}
+    for argv in ([str(lone)], [str(extra), "b", "zeta", "eta"]):
+        code = clear_refactor_pending.main(argv)
+        results[tuple(argv)] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        (str(lone),): (0, b"", b""),
+        (str(extra), "b", "zeta", "eta"): (0, b"", b""),
+    }
+    assert lone.read_bytes() == "- [x] a\n- [x] b ⟂ refactor pending\n".encode()
+    assert extra.read_bytes() == "- [x] a ⟂ refactor pending\n- [x] b\n".encode()
