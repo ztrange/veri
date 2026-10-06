@@ -109,3 +109,11 @@ def test_ledger_tick_ticks_a_bare_box_with_nothing_after_it():
     ledger = importlib.import_module("veri.ledger")
 
     assert ledger.ledger_tick("- [x] a\n- [ ]\n", "") == (True, "- [x] a\n- [x]\n")
+
+
+def test_ledger_tick_copies_every_character_but_the_ticked_box_unchanged():
+    ledger = importlib.import_module("veri.ledger")
+
+    assert ledger.ledger_tick("- [ ] a\n- [ ] b", "b") == (True, "- [ ] a\n- [x] b")
+    assert ledger.ledger_tick("- [ ] a\n\n\n", "a") == (True, "- [x] a\n\n\n")
+    assert ledger.ledger_tick("- [x] a\r\n- [ ] b\r\n", "b") == (True, "- [x] a\r\n- [x] b\r\n")
