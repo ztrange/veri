@@ -174,3 +174,30 @@ def test_main_drops_a_nul_byte_on_a_clear_and_passes_a_non_utf8_byte_through_in_
     raw.write_bytes(b"- [x] a\xff" + " ⟂ refactor pending\n".encode())
     code = clear_refactor_pending.main([str(raw), os.fsdecode(b"a\xff")])
     assert (code, *capsysbinary.readouterr(), raw.read_bytes()) == (0, b"", b"", b"- [x] a\xff\n")
+
+
+def test_main_matches_a_step_line_by_the_c_locale_grammar_clearing_a_capital_box_a_tab_and_ascii_space_before_the_dash_but_not_034_or_nbsp(
+        tmp_path, capsysbinary, clear_refactor_pending):
+    seeds = {
+        "capital": "- [X] a ⟂ refactor pending\n".encode(),
+        "tab": "-\t[x] a ⟂ refactor pending\n".encode(),
+        "spaces": "  - [x] a ⟂ refactor pending\n".encode(),
+        "formfeed": "\f- [x] a ⟂ refactor pending\n".encode(),
+        "fs": "\034- [x] a ⟂ refactor pending\n".encode(),
+        "nbsp": " - [x] a ⟂ refactor pending\n".encode(),
+    }
+    results = {}
+    for name, seed in seeds.items():
+        led = tmp_path / f"{name}.md"
+        led.write_bytes(seed)
+        code = clear_refactor_pending.main([str(led), "a"])
+        results[name] = (code, *capsysbinary.readouterr(), led.read_bytes())
+
+    assert results == {
+        "capital": (0, b"", b"", b"- [X] a\n"),
+        "tab": (0, b"", b"", b"-\t[x] a\n"),
+        "spaces": (0, b"", b"", b"  - [x] a\n"),
+        "formfeed": (0, b"", b"", b"\f- [x] a\n"),
+        "fs": (3, b"", b"", seeds["fs"]),
+        "nbsp": (3, b"", b"", seeds["nbsp"]),
+    }
