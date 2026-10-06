@@ -6,4 +6,4 @@
 - [x] SKILL.md's bail on a red rebased tip, after a clean rebase and after a verified conflict resolution alike, names cause rebased-tip-red, not suite-red ⟦criterion 3⟧
 - [x] SKILL.md's bail on a red rebased tip runs git reset --hard <pre-rebase-sha> before Bailing's push ⟦criterion 3⟧
 - [x] SKILL.md's bail on a red rebased tip after a verified conflict resolution (the verify-rebase PASS path) also runs git reset --hard <pre-rebase-sha> before Bailing's push ⟦added⟧ ⟦criterion 3⟧
-- [ ] Bailing's cause-token list names rebased-tip-red and classifies it as a process failure ⟦criterion 4⟧
+- [x] Bailing's cause-token list names rebased-tip-red and classifies it as a process failure ⟦criterion 4⟧ ⟂ refactor pending
