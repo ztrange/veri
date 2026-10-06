@@ -277,4 +277,23 @@ fi
 
 report "$name"
 
+name="#980: $skill_md's structural pass stages and commits .tdd/issue-<n>-refactor-owed.md after refactor-owed.sh applied records a transform, before the PR is readied"
+problems=()
+stage_phrase='git add .tdd/issue-<n>-refactor-owed.md'
+
+if ! missing_pass 'whether the applied record is committed'; then
+  applied="$(offset "$applied_phrase" "$pass_text")"
+  staged="$(offset "$stage_phrase" "$pass_text")"
+  after_stage="${pass_text:$(( staged < 0 ? 0 : staged ))}"
+  if [[ "$applied" -lt 0 || "$staged" -lt 0 ]]; then
+    problems+=("$skill_md's structural pass is missing a phrase to order before gh pr ready: $applied_phrase at $applied, $stage_phrase at $staged (-1 = absent), so the applied record never rides a commit")
+  elif [[ "$staged" -le "$applied" ]]; then
+    problems+=("$skill_md's structural pass stages the owed file at $staged, not after $applied_phrase at $applied")
+  elif [[ "$after_stage" != *'git commit'* ]]; then
+    problems+=("$skill_md's structural pass stages .tdd/issue-<n>-refactor-owed.md but never runs git commit after it before gh pr ready")
+  fi
+fi
+
+report "$name"
+
 finish
