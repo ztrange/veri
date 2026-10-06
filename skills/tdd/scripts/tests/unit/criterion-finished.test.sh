@@ -43,42 +43,6 @@ else
   ok
 fi
 
-name="a step serving no criterion makes no criterion finished: criterion 2 served by no step exits 3"
-all_done='# Plan for #42
-
-- [x] lowercase the slug ⟦criterion 1⟧
-- [x] reject an empty title'
-got_unserved="$(code_for 2 "$all_done")"
-if [[ "$got_unserved" != 3 ]]; then
-  no "$name (criterion 2 served by no step: want exit 3, got $got_unserved)"
-else
-  ok
-fi
-
-name="an unchecked ⟦added⟧ step serving criterion 1 keeps it unfinished: exits 3"
-with_added='# Plan for #42
-
-- [x] lowercase the slug ⟦criterion 1⟧
-- [ ] collapse a run of hyphens ⟦added⟧ ⟦criterion 1⟧
-- [x] collapse non-alphanumerics to a single hyphen ⟦criterion 1⟧'
-got_added="$(code_for 1 "$with_added")"
-if [[ "$got_added" != 3 ]]; then
-  no "$name (unchecked added step serving criterion 1: want exit 3, got $got_added)"
-else
-  ok
-fi
-
-name="a ticked untagged step whose text is 3 does not finish criterion 3: exits 3"
-text_is_k='# Plan for #42
-
-- [x] 3'
-got_text_k="$(code_for 3 "$text_is_k")"
-if [[ "$got_text_k" != 3 ]]; then
-  no "$name (untagged ticked step with text 3: want exit 3, got $got_text_k)"
-else
-  ok
-fi
-
 name="no argument and an empty one exit 2 with nothing on stdout, stdin unread and the usage line alone on stderr"
 work="$(scratch_dir)"
 printf -- '- [x] a ⟦criterion 1⟧\n' > "$work/ledger"

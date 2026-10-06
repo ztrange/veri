@@ -196,3 +196,32 @@ def test_main_reads_its_steps_through_the_ledger_module(monkeypatch, criterion_f
     )
     fake_stdin(monkeypatch, "# Plan for #42\n\n- [ ] found open in the markdown ⟦criterion 1⟧\n".encode())
     assert criterion_finished.main(["1"]) == 0
+
+
+def test_main_answers_3_for_an_unserved_criterion_an_open_added_step_and_an_untagged_step_whose_text_is_k(
+    monkeypatch, criterion_finished
+):
+    answers = {}
+    for name, (k, ledger) in {
+        "a step serving no criterion makes no criterion finished": (
+            "2",
+            "# Plan for #42\n\n- [x] lowercase the slug ⟦criterion 1⟧\n- [x] reject an empty title",
+        ),
+        "an unchecked ⟦added⟧ step serving criterion 1 keeps it unfinished": (
+            "1",
+            "# Plan for #42\n\n- [x] lowercase the slug ⟦criterion 1⟧\n"
+            "- [ ] collapse a run of hyphens ⟦added⟧ ⟦criterion 1⟧\n"
+            "- [x] collapse non-alphanumerics to a single hyphen ⟦criterion 1⟧",
+        ),
+        "a ticked untagged step whose text is 3 does not finish criterion 3": (
+            "3",
+            "# Plan for #42\n\n- [x] 3",
+        ),
+    }.items():
+        fake_stdin(monkeypatch, ledger.encode())
+        answers[name] = criterion_finished.main([k])
+    assert answers == {
+        "a step serving no criterion makes no criterion finished": 3,
+        "an unchecked ⟦added⟧ step serving criterion 1 keeps it unfinished": 3,
+        "a ticked untagged step whose text is 3 does not finish criterion 3": 3,
+    }
