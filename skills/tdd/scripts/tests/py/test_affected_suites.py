@@ -117,3 +117,13 @@ def test_main_skips_a_directory_named_like_a_script_when_reading_lib_callers(tmp
     (scripts / "tests/user.test.sh").write_text("")
     assert affected.main(["base..head"]) == 0
     assert capsys.readouterr().out == "skills/tdd/scripts/tests/user.test.sh\n"
+
+
+def test_main_prints_a_unit_suite_that_names_a_changed_prompt_1024(tmp_path, monkeypatch, capsys, affected):
+    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/prompts/develop-red.md"]))
+    monkeypatch.chdir(tmp_path)
+    unit = tmp_path / "skills/tdd/scripts/tests/unit"
+    unit.mkdir(parents=True)
+    (unit / "names.test.sh").write_text('cat "$scripts/prompts/develop-red.md"\n')
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "skills/tdd/scripts/tests/unit/names.test.sh\n", "")
