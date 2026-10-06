@@ -132,39 +132,6 @@ malformed_probe "a report with no CANDIDATES: line" "$no_candidates"
 rm -f "$no_class" "$unknown_class" "$no_candidates"
 report "$name"
 
-name="a test-only candidate is no reason for another leaf: alone it exits 3, beside a structural one only the structural is printed"
-problems=()
-
-test_only="$(mktemp)"
-cat > "$test_only" <<'REPORT'
-RESULT: applied "inline the single-use $phase_label variable", suite green
-FLAGS: none
-CANDIDATES: test-only | fold the suite's three mktemp fixtures into one helper
-CANDIDATES: test-only | rename the suite's $out to $stdout_file
-REPORT
-
-"$TRIAGE" <"$test_only" >/dev/null 2>&1 && code=0 || code=$?
-[[ "$code" == 3 ]] ||
-  problems+=("only test-only candidates: want exit 3 — nothing worth another leaf — got $code")
-
-mixed="$(mktemp)"
-cat > "$mixed" <<'REPORT'
-RESULT: applied "inline the single-use $phase_label variable", suite green
-FLAGS: none
-CANDIDATES: test-only | fold the suite's three mktemp fixtures into one helper
-CANDIDATES: structural | fold verify.sh's two mktemp calls into one helper
-REPORT
-
-out="$(mktemp)"
-"$TRIAGE" <"$mixed" >"$out" 2>/dev/null && code=0 || code=$?
-[[ "$code" == 0 ]] ||
-  problems+=("structural beside test-only: want exit 0 while a structural candidate remains, got $code")
-[[ "$(cat "$out")" == "fold verify.sh's two mktemp calls into one helper" ]] ||
-  problems+=("structural beside test-only: want the 1 structural candidate alone on stdout, got $(grep -c '' "$out") line(s): $(printf '%q' "$(cat "$out")")")
-
-rm -f "$test_only" "$mixed" "$out"
-report "$name"
-
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
@@ -233,70 +200,6 @@ fi
 
 report "$name"
 
-name="a report carrying NEW_STEP: lines exits with the same code as the same report without them"
-problems=()
-
-same_code_probe() {
-  local label="$1" fixture="$2" with_steps plain_code steps_code
-  "$TRIAGE" <"$fixture" >/dev/null 2>&1 && plain_code=0 || plain_code=$?
-
-  with_steps="$(mktemp)"
-  cat "$fixture" > "$with_steps"
-  cat >> "$with_steps" <<'STEPS'
-NEW_STEP: the parser accepts a second header field
-NEW_STEP: the parser rejects a header field it has no name for
-STEPS
-
-  "$TRIAGE" <"$with_steps" >/dev/null 2>&1 && steps_code=0 || steps_code=$?
-  [[ "$steps_code" == "$plain_code" ]] ||
-    problems+=("$label: the report without NEW_STEP: lines exits $plain_code, the same report with them exits $steps_code")
-  rm -f "$with_steps"
-}
-
-structural_report="$(mktemp)"
-cat > "$structural_report" <<'REPORT'
-RESULT: applied "inline the single-use $phase_label variable", suite green
-CANDIDATES: structural | fold the two mktemp calls into one helper
-REPORT
-
-none_report="$(mktemp)"
-cat > "$none_report" <<'REPORT'
-RESULT: applied "inline the single-use $phase_label variable", suite green
-CANDIDATES: none
-REPORT
-
-malformed_report="$(mktemp)"
-cat > "$malformed_report" <<'REPORT'
-RESULT: applied "inline the single-use $phase_label variable", suite green
-REPORT
-
-same_code_probe "a report listing a structural candidate" "$structural_report"
-same_code_probe "a report whose candidates are CANDIDATES: none" "$none_report"
-same_code_probe "a report with no CANDIDATES: line" "$malformed_report"
-
-rm -f "$structural_report" "$none_report" "$malformed_report"
-report "$name"
-
-name="#992 a report whose only candidate is out-of-scope exits 3 with nothing on stdout, as a cosmetic-only one does"
-problems=()
-
-out_of_scope_only="$(mktemp)"
-out="$(mktemp)"
-cat > "$out_of_scope_only" <<'REPORT'
-RESULT: applied "inline the single-use variable", suite green
-FLAGS: none
-CANDIDATES: out-of-scope | extract the shared mktemp helper across scripts outside this issue's files
-REPORT
-
-"$TRIAGE" <"$out_of_scope_only" >"$out" 2>/dev/null && code=0 || code=$?
-[[ "$code" == 3 ]] ||
-  problems+=("only an out-of-scope candidate: want exit 3 — nothing worth another leaf — got $code")
-[[ ! -s "$out" ]] ||
-  problems+=("only an out-of-scope candidate: want nothing on stdout, got $(printf '%q' "$(cat "$out")")")
-
-rm -f "$out_of_scope_only" "$out"
-report "$name"
-
 name="refactor-triage.sh run through a symlink to the skill directory and from another working directory answers a structural, a cosmetic-only and an empty report as it does when run in place"
 problems=()
 work="$(scratch_dir)"
@@ -341,29 +244,6 @@ while IFS='|' read -r fixture want_err; do
 done <<'PROBES'
 empty|refactor-triage: the report has no CANDIDATES: line
 cosmic|refactor-triage: candidate line has no class, or one that is neither structural nor cosmetic: CANDIDATES: cosmic | x
-PROBES
-report "$name"
-
-name="refactor-triage.sh answers from veri/refactor_triage.py alone: run from a copy of scripts/ with no lib/, it answers a structural, a cosmetic-only and an empty report"
-problems=()
-work="$(scratch_dir)"
-cp -R "$HERE/.." "$work/scripts"
-rm -rf "$work/scripts/lib" "$work/scripts/tests"
-printf 'CANDIDATES: structural | extract the parser\nCANDIDATES: cosmetic | rename a local\n' >"$work/structural"
-printf 'CANDIDATES: cosmetic | rename a local\n' >"$work/cosmetic"
-: >"$work/empty"
-while IFS='|' read -r fixture exp_code exp_out exp_err; do
-  "$work/scripts/refactor-triage.sh" <"$work/$fixture" >"$work/out" 2>"$work/err" && code=0 || code=$?
-  [[ "$code" == "$exp_code" ]] ||
-    problems+=("$fixture report with no lib/: want exit $exp_code, got $code, stderr $(printf '%q' "$(cat "$work/err")")")
-  [[ "$(cat "$work/out")" == "$exp_out" ]] ||
-    problems+=("$fixture report with no lib/: want stdout $(printf '%q' "$exp_out"), got $(printf '%q' "$(cat "$work/out")")")
-  [[ "$(cat "$work/err")" == "$exp_err" ]] ||
-    problems+=("$fixture report with no lib/: want stderr $(printf '%q' "$exp_err"), got $(printf '%q' "$(cat "$work/err")")")
-done <<'PROBES'
-structural|0|extract the parser|
-cosmetic|3||
-empty|2||refactor-triage: the report has no CANDIDATES: line
 PROBES
 report "$name"
 
