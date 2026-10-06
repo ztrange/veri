@@ -419,16 +419,16 @@ if load_section 'Procedure'; then
 fi
 report "$name"
 
-name="step 1.2 runs stop-requested.sh --clear beside the .tdd/conductor.pid write, so a stale request from a killed run cannot stop the run that resumes it"
+name="#987: preflight step 3 runs stop-requested.sh --clear beside the .tdd/conductor.pid write, so a stale request from a killed run cannot stop the run that resumes it"
 problems=()
 if load_section 'Procedure'; then
-  joined_branch '^2\. derive the slug' '^3\. '
+  joined_branch '^3\. suite is green at baseline' '^4\. '
   require '\.tdd/conductor\.pid' \
-    "step 1.2 has no .tdd/conductor.pid write to read — nothing could be checked beside it"
+    "preflight step 3 has no .tdd/conductor.pid write to read — nothing could be checked beside it"
   require 'stop-requested\.sh --clear' \
-    "step 1.2 never runs stop-requested.sh --clear — a request a killed run left behind would stop the run that resumes it"
+    "preflight step 3 never runs stop-requested.sh --clear — a request a killed run left behind would stop the run that resumes it"
   require "$(either_order '(stale|killed)' '(request|stop)')" \
-    "step 1.2 never says the clear is for a stale request left by a killed run"
+    "preflight step 3 never says the clear is for a stale request left by a killed run"
 fi
 report "$name"
 
