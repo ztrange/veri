@@ -75,10 +75,7 @@ def ledger_step_index(issue, step):
     records = ledger_steps(text)
     if any(record[0] == step for record in records):
         return step
-    exact = next((record[0] for record in records if step in (record[6], unmarked(record[6]))), None)
-    if exact is not None:
-        return exact
-    return next((record[0] for record in records if step in record[6]), step)
+    return next((record[0] for record in records if step in (record[6], unmarked(record[6]))), step)
 
 
 def unmarked(text):
