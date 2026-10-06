@@ -7,5 +7,5 @@
 - [x] `affected-suites.sh <base>` with an unresolvable `<base>` exits 2 with a diagnostic on stderr and nothing on stdout ⟦criterion 4⟧
 - [ ] `affected-suites.sh <base>..<head>` prints what it printed before, for the existing cases in its suites ⟦full-suite⟧ ⟦criterion 5⟧
 - [x] `prompts/develop-red.md` spells the working-tree call `affected-suites.sh HEAD`, pinned as text in the style of the existing prompt suites ⟦criterion 6⟧
-- [x] `prompts/develop-green.md` spells the working-tree call `affected-suites.sh HEAD`, pinned as text in the style of the existing prompt suites ⟦criterion 6⟧ ⟂ refactor pending
+- [x] `prompts/develop-green.md` spells the working-tree call `affected-suites.sh HEAD`, pinned as text in the style of the existing prompt suites ⟦criterion 6⟧
 - [ ] `prompts/develop-revise.md` spells the working-tree call `affected-suites.sh HEAD`, pinned as text in the style of the existing prompt suites ⟦criterion 6⟧

@@ -4,3 +4,5 @@
 - test-only | the two new cases in `skills/tdd/scripts/tests/affected-suites.test.sh` (working-tree-untracked-counts, working-tree-committed-counts) repeat the same setup, expected value and diff-on-fail block, which could become one helper that takes a "commit it or not" argument
 ### `prompts/develop-red.md` spells the working-tree call `affected-suites.sh HEAD`, pinned as text in the style of the existing prompt suites ⟦criterion 6⟧
 - once develop-green.md and develop-revise.md spell the same "`affected-suites.sh HEAD` … build no commit, stash or worktree" clause, extract it into a shared `_*.md` partial; not yet duplicated in this cycle
+### `prompts/develop-green.md` spells the working-tree call `affected-suites.sh HEAD`, pinned as text in the style of the existing prompt suites ⟦criterion 6⟧
+- test-only | the #990 red and green cases in build-develop-prompt.test.sh repeat the same three lines (build the prompt, check it contains `affected-suites.sh HEAD`, compare); one helper taking the phase and its arguments would replace both
