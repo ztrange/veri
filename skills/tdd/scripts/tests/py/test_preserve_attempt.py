@@ -347,6 +347,58 @@ def test_main_names_the_step_ref_and_its_attempts_files_the_same_under_every_loc
     assert answers == [answers[0]] * 4
 
 
+def test_main_names_the_step_ref_and_its_attempts_files_by_the_steps_bytes_under_a_non_utf8_locale_issue_1047(
+        monkeypatch, tmp_path, preserve_attempt):
+    update_refs = []
+    real_fsencode = os.fsencode
+
+    def scenario(name, lc_all, charset):
+        for variable in ("LC_ALL", "LC_CTYPE", "LANG"):
+            monkeypatch.delenv(variable, raising=False)
+        monkeypatch.setenv("LC_ALL", lc_all)
+        if charset is None:
+            monkeypatch.setattr(os, "fsencode", real_fsencode)
+            monkeypatch.setattr(sys, "getfilesystemencoding", lambda: "utf-8")
+            step = "a—b"
+        else:
+            monkeypatch.setattr(os, "fsencode", lambda s: s.encode(charset, "surrogateescape")
+                                if isinstance(s, str) else real_fsencode(s))
+            monkeypatch.setattr(sys, "getfilesystemencoding", lambda: charset)
+            step = "a—b".encode("utf-8").decode(charset, "surrogateescape")
+        repo = tmp_path / name
+        tdd = repo / ".tdd"
+        tdd.mkdir(parents=True)
+        (tdd / "develop-green.log").write_text("log\n")
+        monkeypatch.chdir(repo)
+
+        def fake_run(args, *_, **__):
+            if args[1] == "rev-parse":
+                return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+            if args[1] == "write-tree":
+                return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+            if args[1] == "commit-tree":
+                return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
+            if args[1] == "update-ref":
+                update_refs.append(str(args[2]))
+            return subprocess.CompletedProcess(args, 0, "", "")
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        del update_refs[:]
+        code = preserve_attempt.main(["409", step, "develop-green", "1", "stuck"])
+        attempts = tdd / "attempts"
+        files = sorted(os.listdir(attempts)) if attempts.is_dir() else None
+        return code, list(update_refs), files
+
+    answers = [
+        scenario("c", "C", None),
+        scenario("utf8", "en_US.UTF-8", None),
+        scenario("latin1", "en_US.ISO8859-1", "iso-8859-1"),
+    ]
+
+    assert answers[0][0] == 0 and len(answers[0][1]) == 1 and answers[0][2]
+    assert answers == [answers[0]] * 3
+
+
 def test_main_runs_git_from_the_top_level_with_a_fresh_index_for_the_snapshot_and_the_raw_step_in_the_message(
         monkeypatch, tmp_path, preserve_attempt):
     repo = tmp_path / "repo"
