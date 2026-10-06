@@ -329,4 +329,31 @@ REPORT
 rm -f "$out_of_scope_only" "$out"
 report "$name"
 
+name="refactor-triage.sh run through a symlink to the skill directory and from another working directory answers a structural, a cosmetic-only and an empty report as it does when run in place"
+problems=()
+work="$(scratch_dir)"
+ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
+mkdir -p "$work/elsewhere"
+printf 'CANDIDATES: structural | extract the parser\nCANDIDATES: cosmetic | rename a local\n' >"$work/structural"
+printf 'CANDIDATES: cosmetic | rename a local\n' >"$work/cosmetic"
+: >"$work/empty"
+while IFS='|' read -r fixture exp_code; do
+  "$TRIAGE" <"$work/$fixture" >"$work/in-place.out" 2>"$work/in-place.err" && in_place_code=0 || in_place_code=$?
+  (cd "$work/elsewhere" && "$work/linked-skill/scripts/refactor-triage.sh") <"$work/$fixture" \
+    >"$work/linked.out" 2>"$work/linked.err" && linked_code=0 || linked_code=$?
+  [[ "$linked_code" == "$exp_code" ]] ||
+    problems+=("$fixture report linked: want exit $exp_code, got $linked_code, stderr $(printf '%q' "$(cat "$work/linked.err")")")
+  [[ "$linked_code" == "$in_place_code" ]] ||
+    problems+=("$fixture report: linked exit $linked_code, in place exit $in_place_code")
+  cmp -s "$work/in-place.out" "$work/linked.out" ||
+    problems+=("$fixture report: linked stdout $(printf '%q' "$(cat "$work/linked.out")"), in place $(printf '%q' "$(cat "$work/in-place.out")")")
+  cmp -s "$work/in-place.err" "$work/linked.err" ||
+    problems+=("$fixture report: linked stderr $(printf '%q' "$(cat "$work/linked.err")"), in place $(printf '%q' "$(cat "$work/in-place.err")")")
+done <<'PROBES'
+structural|0
+cosmetic|3
+empty|2
+PROBES
+report "$name"
+
 finish
