@@ -126,4 +126,34 @@ else
   ok
 fi
 
+name="run through a symlink to the skill directory and from another working directory, it answers as it does in place: exit 0, 3 and 2 with the same stdout and stderr"
+work="$(scratch_dir)"
+ln -s "$(cd "$HERE/../../.." && pwd)" "$work/linked-skill"
+mkdir "$work/elsewhere"
+printf -- '- [x] a ⟦criterion 1⟧\n' > "$work/finished"
+printf -- '- [ ] a ⟦criterion 1⟧\n' > "$work/unfinished"
+verdict=""
+for input in finished:0 unfinished:3 none:2; do
+  ledger="${input%%:*}" want="${input##*:}"
+  if [[ "$ledger" == none ]]; then set --; ledger=finished; else set -- 1; fi
+  "$FINISHED" "$@" < "$work/$ledger" > "$work/out.here" 2> "$work/err.here" && here=0 || here=$?
+  (cd "$work/elsewhere" && "$work/linked-skill/scripts/criterion-finished.sh" "$@") \
+    < "$work/$ledger" > "$work/out.linked" 2> "$work/err.linked" && linked=0 || linked=$?
+  if [[ "$here" != "$want" ]]; then
+    verdict="${input%%:*}: in place, want exit $want, got $here"
+  elif [[ "$linked" != "$here" ]]; then
+    verdict="${input%%:*}: through the symlink, want exit $here, got $linked ($(cat "$work/err.linked"))"
+  elif ! cmp -s "$work/out.here" "$work/out.linked"; then
+    verdict="${input%%:*}: through the symlink, want stdout '$(cat "$work/out.here")', got '$(cat "$work/out.linked")'"
+  elif ! cmp -s "$work/err.here" "$work/err.linked"; then
+    verdict="${input%%:*}: through the symlink, want stderr '$(cat "$work/err.here")', got '$(cat "$work/err.linked")'"
+  fi
+  [[ -z "$verdict" ]] || break
+done
+if [[ -n "$verdict" ]]; then
+  no "$name ($verdict)"
+else
+  ok
+fi
+
 finish
