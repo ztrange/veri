@@ -88,9 +88,10 @@ names_runner_fallback() {
 
 numbered_item() {
   re="$1" awk '
-    /^[0-9]+\. /{if (item ~ ENVIRON["re"]) {printf "%s", lines; done=1; exit} item=""; lines=""}
+    BEGIN{re=ENVIRON["re"]}
+    /^[0-9]+\. /{if (item ~ re) {printf "%s", lines; done=1; exit} item=""; lines=""}
     /^[0-9]+\. /||item!=""{item=item " " $0; lines=lines $0 "\n"}
-    END{if (!done && item ~ ENVIRON["re"]) printf "%s", lines}'
+    END{if (!done && item ~ re) printf "%s", lines}'
 }
 
 printf 'zorblat must return frob\n' > "$work/spec.md"
