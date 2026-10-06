@@ -642,9 +642,9 @@ unauthenticated baseline never gets a cycle.
 2. **Derive the slug and enter the issue's worktree.** Slug from the title — lowercase,
    non-alphanumerics to `-`, collapse and trim `-`, cap to ~6 words. Preflight step 3 has
    already let `issue-worktree.sh` make (or hand back) the worktree the issue branch lives
-   in, and moved into it, so its baseline runs on the branch's own commit, and took the
-   worktree's lock there.
-   That lock is the **worktree guard**, taken in preflight step 3 before the baseline, and it guards this machine's worktree only: for
+   in, and moved into it, so its baseline runs on the branch's own commit.
+   Preflight step 3 took the worktree's lock there too, before the baseline: that lock is
+   the **worktree guard**, and it guards this machine's worktree only: for
    exactly as long as the pid in there answers `kill -0`, `issue-worktree.sh` refuses this
    worktree to a second conductor on this computer, so none can land in a live run's tree and
    follow *Resume*, whose `git reset --hard HEAD` on a `⟂ refactor pending` step throws your
