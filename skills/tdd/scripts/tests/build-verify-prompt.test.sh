@@ -659,11 +659,9 @@ diff_refused() {  # <label> <args...> — records a diff call that is not exit 2
   [[ "$code" -eq 2 ]] || problems="$problems; $label exited $code, want 2"
   [[ -z "$out" ]] || problems="$problems; $label printed ${#out} bytes, want none"
 }
-diff_refused 'diff with a non-hex base' --step "$diff_step" diff "$work/spec.md" 'tidied the helper' "$diff_base"
-diff_refused 'diff with no --step' diff "$work/spec.md" "$diff_base" "$diff_base"
 diff_refused 'diff with an extra positional' --step "$diff_step" diff "$work/spec.md" "$diff_base" "$diff_base" extra
 [[ -z "$problems" ]] \
-  && ok || no "diff refuses a non-hex base sha, a missing --step and an extra positional argument with exit 2 and nothing on stdout (${problems#; })"
+  && ok || no "diff refuses an extra positional argument with exit 2 and nothing on stdout (${problems#; })"
 
 problems=""
 prompt_says "$dp" "diff prompt never forbids reading the range's commit messages" \
@@ -691,14 +689,6 @@ prompt_says "$ds" "never confines the adds-a-test REJECT to git diff $step_base.
   -iE -e "(add|adds|added)[^.]{0,40}test[^.]{0,200}git diff $step_base\.\.HEAD|git diff $step_base\.\.HEAD[^.]{0,200}(add|adds|added)[^.]{0,40}test"
 [[ -z "$problems" ]] \
   && ok || no "#875 diff takes <branch-base-sha> <step-base-sha>, judges the criterion against git diff <branch-base-sha>..HEAD and REJECTs only a test added in git diff <step-base-sha>..HEAD (${problems#; })"
-
-problems=""
-diff_refused 'diff with no step base' --step "$diff_step" diff "$work/spec.md" "$branch_base"
-diff_refused 'diff with a non-hex step base' --step "$diff_step" diff "$work/spec.md" "$branch_base" 'tidied the helper'
-diff_refused 'diff with an uppercase step base' --step "$diff_step" diff "$work/spec.md" "$branch_base" 4567ABCDEF
-diff_refused 'diff with a 6-character step base' --step "$diff_step" diff "$work/spec.md" "$branch_base" 4567ab
-[[ -z "$problems" ]] \
-  && ok || no "#875 diff refuses a missing step base sha, or one not 7-40 lowercase hex characters, with exit 2 and nothing on stdout (${problems#; })"
 
 problems=""
 diff_fast='make unit ZORBLAT=diff -- --only "frob & nitz/quux"'

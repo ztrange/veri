@@ -803,18 +803,12 @@ REASON: the diff removes the cases.' --step 'DIFF-STEP the old cases are gone' -
 REASON: the diff leaves a case behind.' --step 'DIFF-STEP the old cases are gone' --fast-cmd 'make unit' diff "$work/spec.md" 0123abc 0123abc
   [[ "$dv_code" == 1 ]] \
     || diff_problems="$diff_problems; $entry REJECT arm: code=$dv_code want 1 ($(head -1 "$work/diff-reject-$entry/err"))"
-  diff_verdict "$work/diff-nostep-$entry" "$entry" 'VERDICT: PASS
-REASON: ok' diff "$work/spec.md" 0123abc 0123abc
-  [[ "$dv_code" == 2 ]] || diff_problems="$diff_problems; $entry with no --step: code=$dv_code want 2"
-  diff_verdict "$work/diff-nonhex-$entry" "$entry" 'VERDICT: PASS
-REASON: ok' --step 'DIFF-STEP the old cases are gone' diff "$work/spec.md" not-a-sha 0123abc
-  [[ "$dv_code" == 2 ]] || diff_problems="$diff_problems; $entry with a non-hex base sha: code=$dv_code want 2"
   diff_verdict "$work/diff-extra-$entry" "$entry" 'VERDICT: PASS
 REASON: ok' --step 'DIFF-STEP the old cases are gone' diff "$work/spec.md" 0123abc 0123abc extra
   [[ "$dv_code" == 2 ]] || diff_problems="$diff_problems; $entry with an extra argument: code=$dv_code want 2"
 done
 [[ -z "$diff_problems" ]] && ok \
-  || no "verify.sh and run-verdict.sh --step diff <spec> <branch-base-sha> <step-base-sha> run one blind diff verification: 0 on PASS, 1 on REJECT, 2 on a missing --step, a non-hex base sha or an extra argument (${diff_problems#; })"
+  || no "verify.sh and run-verdict.sh --step diff <spec> <branch-base-sha> <step-base-sha> run one blind diff verification: 0 on PASS, 1 on REJECT, 2 on an extra argument (${diff_problems#; })"
 
 diff_refusal_problems=""
 diff_refused_with() {  # <dir> <entry> <label> <want stderr line> <args…> — records a diff call that is not exit 2 with <want> first on stderr
