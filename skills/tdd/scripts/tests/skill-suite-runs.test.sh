@@ -25,7 +25,8 @@ source "$HERE/lib/plain.sh"
 
 
 doc_text() {
-  awk -v h="$2" -v from="$3" '
+  from="$3" awk -v h="$2" '
+    BEGIN { from = ENVIRON["from"] }
     !in_s && index($0, h) == 1 { in_s = 1; want = (from == "" ? 1 : 0); next }
     in_s && /^#/ { exit }
     in_s {
@@ -221,5 +222,10 @@ else
   problems+=("$skill_md has no text from '#### Red' to '### 4. Draft PR' to read")
 fi
 report "$name"
+
+name="#991: doc_text given the from regex '^5\. ' starts at the line '5. y', not at '5x y'"
+fixture="$(scratch_dir)/doc.md"
+printf '## Section\n5x y\n5. y\n' > "$fixture"
+expect_eq "$name" "5. y " "$(doc_text "$fixture" '## Section' '^5\. ')"
 
 finish
