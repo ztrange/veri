@@ -16,8 +16,10 @@ def candidate(cls):
 STRUCTURAL = candidate("structural")
 TEST_ONLY = candidate("test-only")
 OUT_OF_SCOPE = candidate("out-of-scope")
-TEST_ONLY_MARK = "- test-only | "
-OUT_OF_SCOPE_MARK = "- out-of-scope | "
+TEST_ONLY_PREFIX = "test-only | "
+OUT_OF_SCOPE_PREFIX = "out-of-scope | "
+TEST_ONLY_MARK = "- " + TEST_ONLY_PREFIX
+OUT_OF_SCOPE_MARK = "- " + OUT_OF_SCOPE_PREFIX
 APPLIED_MARK = "applied | "
 TEST_FILE = re.compile(r"(^|/)tests/|\.test\.")
 
@@ -58,9 +60,9 @@ def append(file, step, bounds):
     tests_bound = all_tests(bounds)
     stream = getattr(sys.stdin, "buffer", None)
     report = stream.read().decode(errors="surrogateescape") if stream else sys.stdin.read()
-    routes = ((STRUCTURAL, test_only if tests_bound else structural, "test-only | " if tests_bound else ""),
-              (TEST_ONLY, test_only, "test-only | "),
-              (OUT_OF_SCOPE, out_of_scope, "out-of-scope | "))
+    routes = ((STRUCTURAL, test_only if tests_bound else structural, TEST_ONLY_PREFIX if tests_bound else ""),
+              (TEST_ONLY, test_only, TEST_ONLY_PREFIX),
+              (OUT_OF_SCOPE, out_of_scope, OUT_OF_SCOPE_PREFIX))
     for line in report.split("\n"):
         for pattern, group, prefix in routes:
             if match := pattern.match(line):
