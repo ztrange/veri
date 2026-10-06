@@ -45,6 +45,15 @@ check "clears the first matching marked step" 0 "collapse to single hyphen" '# P
 
 check "no matching marked step exits 3, ledger untouched" 3 "percent-encode the remainder" "$ledger"
 
+"$CLEAR" > "$work/out" 2> "$work/err" && code=0 || code=$?
+printf '%s\n' 'usage: clear-refactor-pending.sh <ledger-file> <matcher>' > "$work/want-err"
+if [[ "$code" == 2 && ! -s "$work/out" ]] && cmp -s "$work/want-err" "$work/err"; then
+  ok
+else
+  no "no argument exits 2 with the usage line on stderr and nothing on stdout (want exit 2, got $code)"
+  printf '    stdout: %s\n    stderr: %s\n' "$(cat "$work/out")" "$(cat "$work/err")"
+fi
+
 stub="$work/stub"
 mkdir -p "$stub/lib"
 cp "$CLEAR" "$stub/clear-refactor-pending.sh"
