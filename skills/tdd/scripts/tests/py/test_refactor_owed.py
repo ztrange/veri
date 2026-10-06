@@ -169,7 +169,7 @@ def test_render_prints_the_file_under_refactor_owed_with_test_only_lines_moved_u
     directory = tmp_path / "dd"
     directory.mkdir()
     for path, expected in (
-            (mixed, heading + "### S1\n- a\njunk line\n  - test-only | indented\n### S2\n"
+            (mixed, heading + "### S1\n- a\njunk line\n  - test-only | indented\n"
              + test_only + "- t1\n- t2\n"),
             (structural, heading + "### S1\n- a\njunk line\n"),
             (newline, heading + "\n"),
@@ -383,3 +383,18 @@ def test_main_answers_every_refactor_owed_contract_case_outside_the_floor_as_the
                bounds=bounds)
     want = (0, "fold the two awk passes into one\nname the bounds walk once\n")
     assert run(["list", str(unbounded)]) == run(["list", str(bounded)]) == want
+
+
+def test_render_prints_no_heading_for_a_step_whose_only_leftovers_are_test_only_and_lists_them_under_test_only_989(
+        monkeypatch, capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    monkeypatch.setattr(sys, "stdin", io.StringIO("CANDIDATES: test-only | fold helper A\n"))
+    assert refactor_owed.main(["append", str(owed), "step one", "a.sh"]) == 0
+
+    code = refactor_owed.main(["render", str(owed)])
+    out = capsys.readouterr().out
+    section = out[out.index("### Test-only"):] if "### Test-only" in out else ""
+    assert (code, [l for l in out.splitlines() if l == "### step one"], section) == (
+        0, [], "### Test-only\n\n"
+               "These change only files under tests/; the structural pass does not work them.\n\n"
+               "- fold helper A\n")
