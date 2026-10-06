@@ -1,2 +1,4 @@
 ### `affected-suites.sh <base>` (one revision, no `..`) with an uncommitted edit to a script prints that script's suite, exits 0, and leaves `git stash list`, `git worktree list` and `HEAD` exactly as they were ⟦criterion 1⟧
 - rename `range_` in `veri/affected_suites.py` `main` and `changed` (around lines 111–137): since this cycle it can hold a bare `<base>`, not only a `<base>..<head>` range, so the name now misleads. Rename only, so it is not applied here.
+### `affected-suites.sh <base>` with a new, untracked suite also prints `claude-md-counts.test.sh`, as the `<base>..<head>` form does for a committed added suite
+- test-only | the two new cases in `skills/tdd/scripts/tests/affected-suites.test.sh` (working-tree-untracked-counts, working-tree-committed-counts) repeat the same setup, expected value and diff-on-fail block, which could become one helper that takes a "commit it or not" argument
