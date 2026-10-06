@@ -52,23 +52,30 @@ def ledger_steps(text):
     return records
 
 
-def ledger_tick(text, matcher, pending=False):
-    """(True, text with the first open step holding matcher ticked), or (False, text)."""
+def _rewrite_first_step(text, selects, rewrite):
+    """(True, text with the first step line selects accepts rewritten), or (False, text)."""
     lines = text.split("\n")
     for i, line in enumerate(lines):
         match = STEP_RE.fullmatch(line)
-        if match and match.group(2) == " " and matcher in line:
-            lines[i] = f"{match.group(1)}[x]{match.group(3) or ''}{PENDING_MARK if pending else ''}"
+        if match and selects(match, line):
+            lines[i] = rewrite(match, line)
             return True, "\n".join(lines)
     return False, text
+
+
+def ledger_tick(text, matcher, pending=False):
+    """(True, text with the first open step holding matcher ticked), or (False, text)."""
+    return _rewrite_first_step(
+        text,
+        lambda match, line: match.group(2) == " " and matcher in line,
+        lambda match, line: f"{match.group(1)}[x]{match.group(3) or ''}{PENDING_MARK if pending else ''}",
+    )
 
 
 def ledger_clear_pending(text, matcher):
     """(True, text with the first line holding matcher cleared of the mark), or (False, text)."""
-    lines = text.split("\n")
-    for i, line in enumerate(lines):
-        match = STEP_RE.fullmatch(line)
-        if match and match.group(2) != " " and line.endswith(PENDING_MARK) and matcher in line:
-            lines[i] = line.removesuffix(PENDING_MARK)
-            return True, "\n".join(lines)
-    return False, text
+    return _rewrite_first_step(
+        text,
+        lambda match, line: match.group(2) != " " and line.endswith(PENDING_MARK) and matcher in line,
+        lambda match, line: line.removesuffix(PENDING_MARK),
+    )
