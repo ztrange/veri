@@ -99,10 +99,10 @@ def render(file):
     for l in lines:
         if l.startswith(APPLIED_MARK) or (l.startswith("- ") and l[2:] in done):
             continue
-        if l.startswith(TEST_ONLY_MARK):
-            test_only.append(l[len(TEST_ONLY_MARK):])
-        elif l.startswith(OUT_OF_SCOPE_MARK):
-            out_of_scope.append(l[len(OUT_OF_SCOPE_MARK):])
+        for mark, group in ((TEST_ONLY_MARK, test_only), (OUT_OF_SCOPE_MARK, out_of_scope)):
+            if l.startswith(mark):
+                group.append(l[len(mark):])
+                break
         else:
             kept.append(l)
     kept = [l for l, after in zip(kept, kept[1:] + ["### "])
