@@ -17,3 +17,5 @@
 ### no-awk-v-patterns.test.sh passes a flagged planted site that its exemption table lists with a reason ⟦criterion 4⟧
 - test-only | the planted `numbered()` lines in `probe_a_planted_awk_v_pattern_exempted_with_a_reason` (no-awk-v-patterns.test.sh:164) repeat the ones in `probe_a_planted_awk_v_pattern` (:65) word for word; they could be pulled into one shared variable
 - test-only | the "probe sets globals, set them to empty, call, expect_eq" pattern repeats in each of the eight cases (no-awk-v-patterns.test.sh:64–173); it could become one helper that runs a case
+### no-awk-v-patterns.test.sh fails the run on an exemption-table entry that carries no reason ⟦criterion 4⟧
+- test-only | skills/tdd/scripts/tests/no-awk-v-patterns.test.sh:166 and :179 plant the same four-line `numbered()` suite (`awk -v re="$1" '$0 ~ re { print }' "$2"`), and :67 plants it again as its first function. One fixture variable or helper, e.g. `NUMBERED_PLANT=(…)`, passed to `scan_planted`, would remove that repetition. Every file it would touch is under `tests/`, so this is reported rather than applied.
