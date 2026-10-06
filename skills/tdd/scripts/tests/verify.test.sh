@@ -816,6 +816,27 @@ done
 [[ -z "$diff_problems" ]] && ok \
   || no "verify.sh and run-verdict.sh --step diff <spec> <branch-base-sha> <step-base-sha> run one blind diff verification: 0 on PASS, 1 on REJECT, 2 on a missing --step, a non-hex base sha or an extra argument (${diff_problems#; })"
 
+diff_refusal_problems=""
+diff_refused_with() {  # <dir> <entry> <label> <want stderr line> <args…> — records a diff call that is not exit 2 with <want> first on stderr
+  local dir="$1" entry="$2" label="$3" want="$4" err=""
+  shift 4
+  diff_verdict "$dir" "$entry" 'VERDICT: PASS
+REASON: ok' "$@"
+  IFS= read -r err < "$dir/err"
+  [[ "$dv_code" == 2 ]] || diff_refusal_problems="$diff_refusal_problems; $entry $label: code=$dv_code want 2"
+  [[ "$err" == "$want" ]] || diff_refusal_problems="$diff_refusal_problems; $entry $label: first stderr line '$err', want '$want'"
+}
+for entry in verify.sh run-verdict.sh; do
+  diff_refused_with "$work/diff-fc-nostep-$entry" "$entry" 'with no --step' \
+    "build-verify-prompt: diff needs --step '<STEP>'" \
+    --fast-cmd 'make unit' diff "$work/spec.md" 0123abc 0123abc
+  diff_refused_with "$work/diff-fc-nonhex-$entry" "$entry" 'with a non-hex base sha' \
+    "build-verify-prompt: diff needs <base-sha> as 7-40 lowercase hex characters, got 'not-a-sha'" \
+    --step 'DIFF-STEP the old cases are gone' --fast-cmd 'make unit' diff "$work/spec.md" not-a-sha 0123abc
+done
+[[ -z "$diff_refusal_problems" ]] && ok \
+  || no "#995 verify.sh and run-verdict.sh diff with --fast-cmd refuse a missing --step and a non-hex base sha with exit 2 and the named check's own message on stderr (${diff_refusal_problems#; })"
+
 empty_step_problems=""
 for form in empty trailing; do
   es_dir="$work/empty-step-$form"

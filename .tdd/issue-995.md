@@ -1,5 +1,5 @@
 # Plan for #995 — Eight diff refusal cases reach #974's missing --fast-cmd check, not the check they are named for
 
 - [x] build-verify-prompt.test.sh's six diff refusal cases (non-hex base, no --step, no step base, non-hex step base, uppercase step base, 6-character step base) pass --fast-cmd (and --step where the case is not about --step) and each asserts its named check's own stderr message, so each goes red when that check is deleted from build-verify-prompt.sh ⟦criterion 1⟧
-- [ ] verify.test.sh's diff arms "with no --step" and "with a non-hex base sha" pass --fast-cmd for both verify.sh and run-verdict.sh and assert the named check's stderr message, so each arm goes red when that check is deleted from build-verify-prompt.sh ⟦criterion 2⟧
+- [x] verify.test.sh's diff arms "with no --step" and "with a non-hex base sha" pass --fast-cmd for both verify.sh and run-verdict.sh and assert the named check's stderr message, so each arm goes red when that check is deleted from build-verify-prompt.sh ⟦criterion 2⟧
 - [ ] build-develop-prompt.test.sh's "diff missing test-cmd" case passes an empty test command plus the fast command as the 5th argument and asserts "missing <test-cmd>" on stderr, so it goes red when need test_cmd is deleted from build-develop-prompt.sh ⟦criterion 3⟧
