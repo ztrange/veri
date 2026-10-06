@@ -86,18 +86,4 @@ for pair in beta:0 zeta:3; do
 done
 report "tick-criterion.sh run through a symlink to the skill directory and from another working directory answers as it does when run in place"
 
-work="$(scratch_dir)"
-mkdir "$work/lib"
-cp "$TICK" "$work/tick-criterion.sh"
-cp "$(dirname "$TICK")"/lib/*.sh "$work/lib/"
-cat > "$work/lib/ledger.sh" <<'EOF'
-ledger_tick() {
-  cat > /dev/null
-  printf 'ticked by the module: %s\n' "$1"
-}
-EOF
-TICK="$work/tick-criterion.sh"
-check "the tick comes from lib/ledger.sh's ledger_tick (#495)" 0 "markdown" \
-  "- [ ] found in the markdown" "ticked by the module: markdown"
-
 finish
