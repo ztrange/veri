@@ -60,7 +60,7 @@ gh_pr_ready() {
     sleep "${VERI_POLL:-10}"
   done
   _gh_graphql gh pr ready "$1" ||
-    _gh_rest gh api -X POST "repos/{owner}/{repo}/pulls/$1/ccr/ready_for_review" ||
+    _gh_rest gh api -X POST "repos/{owner}/{repo}/pulls/$1/ccr/ready_for_review" 2> /dev/null ||
     _gh_rest _gh_api_graphql_ready "$1" ||
     return 2
 }
