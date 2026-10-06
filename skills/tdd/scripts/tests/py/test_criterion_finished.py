@@ -180,3 +180,9 @@ def test_main_reads_stdin_as_bytes_dropping_nul_keeping_invalid_utf8_and_crlf(
         "a pending mark followed by a space": 0,
         "a CRLF open step": 3,
     }
+
+
+def test_main_answers_3_silently_when_stdin_is_closed(monkeypatch, capsys, criterion_finished):
+    monkeypatch.setattr(sys, "stdin", None)
+    code = criterion_finished.main(["1"])
+    assert (code, capsys.readouterr()) == (3, ("", ""))
