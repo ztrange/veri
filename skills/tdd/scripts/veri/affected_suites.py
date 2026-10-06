@@ -100,7 +100,8 @@ def suite_of(f):
         unit_suite = "%s/tests/unit/%s.test.sh" % (SCRIPTS, name)
         if os.path.isfile(unit_suite):
             return [unit_suite]
-        return ["%s/tests/%s.test.sh" % (SCRIPTS, name)]
+        suite = "%s/tests/%s.test.sh" % (SCRIPTS, name)
+        return [suite] if os.path.isfile(suite) else []
     if match(".tdd/*"):
         return []
     raise Unplaced(f)

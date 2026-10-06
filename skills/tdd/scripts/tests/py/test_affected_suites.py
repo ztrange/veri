@@ -48,6 +48,7 @@ def test_main_prints_the_suite_of_a_touched_script_and_returns_0(tmp_path, monke
     monkeypatch.chdir(tmp_path)
     (tmp_path / "skills/tdd/scripts/tests").mkdir(parents=True)
     (tmp_path / "skills/tdd/scripts/foo.sh").write_text("#!/usr/bin/env bash\n")
+    (tmp_path / "skills/tdd/scripts/tests/foo.test.sh").write_text("")
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
         0, "skills/tdd/scripts/tests/foo.test.sh\n", "")
 
@@ -75,6 +76,8 @@ def test_main_returns_a_failed_git_diff_status_mapped_into_0_to_3(
 def test_main_keeps_the_suffix_of_a_script_named_only_by_its_suffix(tmp_path, monkeypatch, capsys, affected):
     monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/.sh"]))
     monkeypatch.chdir(tmp_path)
+    (tmp_path / "skills/tdd/scripts/tests").mkdir(parents=True)
+    (tmp_path / "skills/tdd/scripts/tests/.sh.test.sh").write_text("")
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
         0, "skills/tdd/scripts/tests/.sh.test.sh\n", "")
 
@@ -108,5 +111,7 @@ def test_main_skips_a_directory_named_like_a_script_when_reading_lib_callers(tmp
     scripts = tmp_path / "skills/tdd/scripts"
     (scripts / "dir.sh").mkdir(parents=True)
     (scripts / "user.sh").write_text('source "$here/lib/x.sh"\n')
+    (scripts / "tests").mkdir()
+    (scripts / "tests/user.test.sh").write_text("")
     assert affected.main(["base..head"]) == 0
     assert capsys.readouterr().out == "skills/tdd/scripts/tests/user.test.sh\n"
