@@ -15,7 +15,7 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 source "$HERE/lib/harness.sh"
 
 probe_no_suite_passes_a_pattern_through_awk_v() {
-  local f name hit lineno text var
+  local f name hit lineno text var rest
   local bind_re='-v[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)='
   for f in "$ROOT"/skills/tdd/scripts/tests/*.test.sh; do
     name="$(basename "$f")"
@@ -24,11 +24,16 @@ probe_no_suite_passes_a_pattern_through_awk_v() {
       text="${hit#*:}"
       [[ "$text" =~ ^[[:space:]]*# ]] && continue
       [[ "$text" == *"'"* ]] || continue
-      [[ "$text" =~ $bind_re ]] || continue
-      var="${BASH_REMATCH[1]}"
-      [[ "$text" =~ ~[[:space:]]*${var}([^A-Za-z0-9_]) \
-        || "$text" =~ match\([^,]*,[[:space:]]*${var}([^A-Za-z0-9_]) ]] || continue
-      problems+=("$name:$lineno passes awk a pattern through -v, which drops its backslashes: $text")
+      rest="$text"
+      while [[ "$rest" =~ $bind_re ]]; do
+        var="${BASH_REMATCH[1]}"
+        rest="${rest#*"${BASH_REMATCH[0]}"}"
+        if [[ "$text" =~ ~[[:space:]]*${var}([^A-Za-z0-9_]) \
+          || "$text" =~ match\([^,]*,[[:space:]]*${var}([^A-Za-z0-9_]) ]]; then
+          problems+=("$name:$lineno passes awk a pattern through -v, which drops its backslashes: $text")
+          break
+        fi
+      done
     done < <(grep -n 'awk' "$f")
   done
   return 0
@@ -137,5 +142,18 @@ planted_longer_match_named=""
 probe_a_planted_awk_matching_a_longer_name
 
 expect_eq "$name" "not named not named" "$planted_longer_tilde_named $planted_longer_match_named"
+
+probe_a_planted_awk_binding_two_v_variables() {
+  scan_planted '#!/usr/bin/env bash' 'second() {' \
+    "  awk -v a=\"\$x\" -v re=\"\$1\" '\$0 ~ re { print }' \"\$2\"" '}'
+  planted_second_v_named="$(problem_naming "planted.test.sh:3")"
+}
+
+name="a planted awk -v a=\"\$x\" -v re=\"\$1\" '\$0 ~ re', whose second -v variable is the pattern, turns the guard red, naming <suite>:<line> (#1037)"
+planted_second_v_named=""
+
+probe_a_planted_awk_binding_two_v_variables
+
+expect_eq "$name" "named" "$planted_second_v_named"
 
 finish
