@@ -642,13 +642,8 @@ unauthenticated baseline never gets a cycle.
 2. **Derive the slug and enter the issue's worktree.** Slug from the title — lowercase,
    non-alphanumerics to `-`, collapse and trim `-`, cap to ~6 words. Preflight step 3 has
    already let `issue-worktree.sh` make (or hand back) the worktree the issue branch lives
-   in, and moved into it, so its baseline runs on the branch's own commit.
-   Then **take the worktree**, before anything else you do in there:
-   ```
-   mkdir -p .tdd && printf '%s\n' "$PPID" > .tdd/conductor.pid && $S/stop-requested.sh --clear
-   ```
-   The `--clear` beside it drops a stale stop request a killed run never got to clear, so a
-   `.tdd/stop` left behind cannot stop the run that resumes it at its first checkpoint.
+   in, and moved into it, so its baseline runs on the branch's own commit, and took the
+   worktree's lock there.
    That lock is the **worktree guard**, and it guards this machine's worktree only: for
    exactly as long as the pid in there answers `kill -0`, `issue-worktree.sh` refuses this
    worktree to a second conductor on this computer, so none can land in a live run's tree and

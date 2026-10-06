@@ -432,6 +432,19 @@ if load_section 'Procedure'; then
 fi
 report "$name"
 
+name="#987: step 1.2 neither writes .tdd/conductor.pid nor runs stop-requested.sh --clear — preflight step 3 already took the lock"
+problems=()
+if load_section 'Procedure'; then
+  joined_branch '^2\. derive the slug' '^3\. '
+  [[ -n "${section// }" ]] \
+    || problems+=("step 1.2 has no branch to read — nothing could be checked")
+  refuse '> \.tdd/conductor\.pid' \
+    "step 1.2 writes .tdd/conductor.pid again — the lock belongs to preflight step 3, and a second write here is the one #987 moved"
+  refuse 'stop-requested\.sh --clear' \
+    "step 1.2 runs stop-requested.sh --clear again — the stale-request clear belongs beside preflight step 3's lock"
+fi
+report "$name"
+
 scope_loop_md="skills/tdd/SCOPE-LOOP.md"
 
 scope_loop_section() {
