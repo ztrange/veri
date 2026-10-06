@@ -96,3 +96,54 @@ def test_main_compares_k_to_each_criterion_as_a_string_and_ignores_extra_argumen
         "1 junk over ticked criterion 1": 0,
         "1 junk over open criterion 1": 3,
     }
+
+
+def test_main_takes_a_steps_first_criterion_marker_and_reads_only_step_lines(
+    monkeypatch, criterion_finished
+):
+    answers = {}
+    for name, (k, ledger) in {
+        "1 over a step tagged 1 then 2": ("1", "- [x] a ⟦criterion 1⟧ ⟦criterion 2⟧\n"),
+        "2 over a step tagged 1 then 2": ("2", "- [x] a ⟦criterion 1⟧ ⟦criterion 2⟧\n"),
+        "1 over a tag followed by x": ("1", "- [x] a ⟦criterion 1⟧x\n"),
+        "1 over a ticked then an open serving step": (
+            "1",
+            "- [x] a ⟦criterion 1⟧\n- [ ] b ⟦criterion 1⟧\n- [x] c ⟦criterion 1⟧\n",
+        ),
+        "1 over a pending then a ticked serving step": (
+            "1",
+            "- [x] a ⟦criterion 1⟧ ⟂ refactor pending\n- [x] b ⟦criterion 1⟧\n",
+        ),
+        "1 over an upper-case X": ("1", "- [X] a ⟦criterion 1⟧\n"),
+        "1 over a step serving no criterion": ("1", "- [x] a\n"),
+        "1 over empty stdin": ("1", ""),
+        "1 over a star bullet beside a ticked step": (
+            "1",
+            "* [ ] a ⟦criterion 1⟧\n- [x] b ⟦criterion 1⟧\n",
+        ),
+        "1 over a box with no space after it beside a ticked step": (
+            "1",
+            "- [ ]b ⟦criterion 1⟧\n- [x] c ⟦criterion 1⟧\n",
+        ),
+        "1 over a tab after the dash": ("1", "-\t[ ] a ⟦criterion 1⟧\n- [x] b ⟦criterion 1⟧\n"),
+        "1 over a last open line with no newline": (
+            "1",
+            "- [x] a ⟦criterion 1⟧\n- [ ] b ⟦criterion 1⟧",
+        ),
+    }.items():
+        fake_stdin(monkeypatch, ledger.encode())
+        answers[name] = criterion_finished.main([k])
+    assert answers == {
+        "1 over a step tagged 1 then 2": 0,
+        "2 over a step tagged 1 then 2": 3,
+        "1 over a tag followed by x": 0,
+        "1 over a ticked then an open serving step": 3,
+        "1 over a pending then a ticked serving step": 3,
+        "1 over an upper-case X": 0,
+        "1 over a step serving no criterion": 3,
+        "1 over empty stdin": 3,
+        "1 over a star bullet beside a ticked step": 0,
+        "1 over a box with no space after it beside a ticked step": 0,
+        "1 over a tab after the dash": 3,
+        "1 over a last open line with no newline": 3,
+    }
