@@ -309,4 +309,24 @@ grep -qxF "$line" "$asked" ||
 
 report "$name"
 
+name="#992 a report whose only candidate is out-of-scope exits 3 with nothing on stdout, as a cosmetic-only one does"
+problems=()
+
+out_of_scope_only="$(mktemp)"
+out="$(mktemp)"
+cat > "$out_of_scope_only" <<'REPORT'
+RESULT: applied "inline the single-use variable", suite green
+FLAGS: none
+CANDIDATES: out-of-scope | extract the shared mktemp helper across scripts outside this issue's files
+REPORT
+
+"$TRIAGE" <"$out_of_scope_only" >"$out" 2>/dev/null && code=0 || code=$?
+[[ "$code" == 3 ]] ||
+  problems+=("only an out-of-scope candidate: want exit 3 — nothing worth another leaf — got $code")
+[[ ! -s "$out" ]] ||
+  problems+=("only an out-of-scope candidate: want nothing on stdout, got $(printf '%q' "$(cat "$out")")")
+
+rm -f "$out_of_scope_only" "$out"
+report "$name"
+
 finish

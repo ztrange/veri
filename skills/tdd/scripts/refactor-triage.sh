@@ -49,6 +49,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     structural+=("$STRUCTURAL_TRANSFORM")
   elif test_only_candidate "$line" ||
        cosmetic_candidate "$line" ||
+       candidate_of_class out-of-scope "$line" ||
        [[ "$class_and_transform" =~ ^none[[:space:]]*$ ]]; then
     :
   else
