@@ -53,3 +53,33 @@ def test_main_writes_what_the_ledger_modules_ledger_tick_returns(monkeypatch, ca
     code = tick_criterion.main(["markdown"])
 
     assert (code, *capsysbinary.readouterr()) == (0, b"ticked by the module: markdown\n", b"")
+
+
+CRITERIA = (b"## Acceptance criteria\n\n- [ ] reads the issue and creates a branch\n"
+            b"- [ ] a start comment is posted\n- [ ] a draft PR is opened")
+LITERAL = b"- [ ] `/tdd <n>` creates branch `tdd/<n>-slug`\n- [ ] other"
+WILDCARD = b"- [ ] a*b\n- [ ] axb"
+MIXED = b"- [x] reads the issue and creates a branch\n- [ ] reads the file and creates a branch"
+CONTRACT_CASES = {
+    "ticks matching box": (["start comment"], CRITERIA, CRITERIA.replace(
+        b"- [ ] a start", b"- [x] a start")),
+    "first match only": (["shared"], b"- [ ] alpha shared\n- [ ] beta shared",
+                         b"- [x] alpha shared\n- [ ] beta shared"),
+    "literal special chars": (["`/tdd <n>`"], LITERAL, b"- [x]" + LITERAL[5:]),
+    "literal x is not a wildcard": (["x"], WILDCARD, b"- [ ] a*b\n- [x] axb"),
+    "literal * matches only itself": (["*"], WILDCARD, b"- [x] a*b\n- [ ] axb"),
+    "skips already checked": (["creates a branch"], MIXED, MIXED.replace(
+        b"- [ ] reads the file", b"- [x] reads the file")),
+    "nested checkbox": (["nested"], b"  - [ ] nested criterion", b"  - [x] nested criterion"),
+}
+
+
+def test_main_answers_the_bash_suites_contract_cases_with_their_stdout_and_return_code_0(
+        monkeypatch, capsysbinary, tick_criterion):
+    results = {}
+    for name, (argv, body, _) in CONTRACT_CASES.items():
+        fake_stdin(monkeypatch, body)
+        code = tick_criterion.main(argv)
+        results[name] = (code, *capsysbinary.readouterr())
+
+    assert results == {name: (0, want, b"") for name, (_, _, want) in CONTRACT_CASES.items()}
