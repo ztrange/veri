@@ -570,4 +570,29 @@ if [[ $'\n'"$out"$'\n' == *$'\nskills/tdd/scripts/tests/baz.test.sh\n'* ]]; then
   no "affected-suites.sh <base> with a new, untracked suite prints that suite (code=$code, stdout=${out:-<empty>})"
 fi
 
+make_repo working-tree-untracked-counts
+foo_tree
+counts_suite
+commit_base
+printf '# baz suite\n' > "$s/tests/baz.test.sh"
+out="$(run_affected "$base" 2>/dev/null)"; code=$?
+expected=$'skills/tdd/scripts/tests/baz.test.sh\nskills/tdd/scripts/tests/claude-md-counts.test.sh'
+if [[ "$code" == 0 && "$out" == "$expected" ]]; then ok; else
+  no "affected-suites.sh <base> with a new, untracked suite also prints skills/tdd/scripts/tests/claude-md-counts.test.sh (code=$code)"
+  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
+fi
+
+make_repo working-tree-committed-counts
+foo_tree
+counts_suite
+commit_base
+printf '# baz suite\n' > "$s/tests/baz.test.sh"
+commit_all "$repo" "add baz"
+out="$(run_affected "$base" 2>/dev/null)"; code=$?
+expected=$'skills/tdd/scripts/tests/baz.test.sh\nskills/tdd/scripts/tests/claude-md-counts.test.sh'
+if [[ "$code" == 0 && "$out" == "$expected" ]]; then ok; else
+  no "affected-suites.sh <base> with a committed added suite and no untracked file still prints skills/tdd/scripts/tests/claude-md-counts.test.sh (code=$code)"
+  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
+fi
+
 finish
