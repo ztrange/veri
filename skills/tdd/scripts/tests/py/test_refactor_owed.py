@@ -439,3 +439,19 @@ def test_append_records_an_out_of_scope_candidate_and_list_then_exits_3_printing
 
     code = refactor_owed.main(["list", str(owed)])
     assert (appended, recorded, code, capsys.readouterr().out) == (0, True, 3, "")
+
+
+def test_render_prints_an_out_of_scope_candidate_under_its_own_heading_not_under_its_step_nor_test_only_992(
+        monkeypatch, capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    transform = "extract the shared parser across the other scripts"
+    monkeypatch.setattr(sys, "stdin", io.StringIO(f"CANDIDATES: out-of-scope | {transform}\n"))
+    assert refactor_owed.main(["append", str(owed), "step one", "a.sh"]) == 0
+
+    code = refactor_owed.main(["render", str(owed)])
+    lines = capsys.readouterr().out.splitlines()
+    heads = [i for i, l in enumerate(lines) if l.startswith("### ") and "out-of-scope" in l.lower()]
+    after = lines[heads[0] + 1:] if heads else []
+    section = after[:next((i for i, l in enumerate(after) if l.startswith("### ")), len(after))]
+    assert (code, [l for l in lines if l == "### step one"], [l for l in section if transform in l],
+            sum(transform in l for l in lines)) == (0, [], [f"- {transform}"], 1)
