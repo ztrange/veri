@@ -25,8 +25,8 @@ The transform may change only the files this issue touched:
 3. Run it on the current tree and confirm it fails. When the candidate is already applied on
    the current tree, report the predicate that observes its end state anyway — it then
    succeeds — and never PREDICATE: NONE.
-4. Keep PREDICATE: NONE for a candidate no single command can observe: when no command can
-   tell the tree before the candidate from the tree after it, say why instead of writing one.
+4. Keep PREDICATE: NONE for a candidate no single command can observe, and say why instead
+   of writing one.
 
 ### Report (last line of your output)
 
