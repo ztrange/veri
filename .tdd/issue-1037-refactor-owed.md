@@ -14,3 +14,6 @@
 - test-only | each planted case repeats the same shape (scan_planted, problem_naming per line, name=, blank pre-inits, probe call, expect_eq) across lines 56–139; folding it into a helper would change only this tests/ file and depart from the per-case idiom the other suites use
 ### no-awk-v-patterns.test.sh flags a planted awk line binding two `-v` variables, `awk -v a="$x" -v re="$1" '$0 ~ re'`, whose second variable is the one used on the right of `~` ⟦added⟧ ⟦criterion 4⟧
 - test-only | the six probe_*/name/init/expect_eq case blocks in no-awk-v-patterns.test.sh repeat one shape and could be folded into a table-driven helper — cases from earlier steps, not this cycle's duplication
+### no-awk-v-patterns.test.sh passes a flagged planted site that its exemption table lists with a reason ⟦criterion 4⟧
+- test-only | the planted `numbered()` lines in `probe_a_planted_awk_v_pattern_exempted_with_a_reason` (no-awk-v-patterns.test.sh:164) repeat the ones in `probe_a_planted_awk_v_pattern` (:65) word for word; they could be pulled into one shared variable
+- test-only | the "probe sets globals, set them to empty, call, expect_eq" pattern repeats in each of the eight cases (no-awk-v-patterns.test.sh:64–173); it could become one helper that runs a case
