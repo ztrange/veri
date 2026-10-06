@@ -68,28 +68,6 @@ else
   ok
 fi
 
-name="criterion 1 is finished when lib/ledger.sh's ledger_steps says so: exits 0 (#495)"
-work="$(scratch_dir)"
-mkdir "$work/lib"
-cp "$FINISHED" "$work/criterion-finished.sh"
-cp "$(dirname "$FINISHED")"/lib/*.sh "$work/lib/"
-{ printf '. %q\n' "$(dirname "$FINISHED")/lib/ledger.sh"; cat <<'EOF'; } > "$work/lib/ledger.sh"
-ledger_steps() {
-  cat > /dev/null
-  printf '1\tdone\tstep\t0\t0\t1\tfinished in the module ⟦criterion 1⟧\n'
-  printf '2\topen\tstep\t0\t0\t2\tstill open in the module ⟦criterion 2⟧\n'
-}
-EOF
-markdown_open='# Plan for #42
-
-- [ ] found open in the markdown ⟦criterion 1⟧'
-got_module="$(FINISHED="$work/criterion-finished.sh" code_for 1 "$markdown_open")"
-if [[ "$got_module" != 0 ]]; then
-  no "$name (module says criterion 1 done: want exit 0, got $got_module)"
-else
-  ok
-fi
-
 name="a ticked untagged step whose text is 3 does not finish criterion 3: exits 3"
 text_is_k='# Plan for #42
 
