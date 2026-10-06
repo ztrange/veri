@@ -729,9 +729,9 @@ renders_as() {  # <label> <want-cksum> <args...> — records a prompt whose sum 
 renders_as red            '981610769 10392'       red "$work/spec.md" "$step_text" "$test_cmd"
 renders_as green          '3453024810 7300'     green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit"
 renders_as refactor       '1398370756 9452'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
-renders_as 'revise red'   '788521639 7651'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as 'revise green' '2849870849 7653'  revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as 'revise refactor' '1919967131 7656' revise refactor "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+renders_as 'revise red'   '2457909894 7787'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+renders_as 'revise green' '2359866403 7789'  revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+renders_as 'revise refactor' '3942894315 7792' revise refactor "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as exhausted      '124126523 3995'       exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as reconcile      '3578743599 5598'       reconcile "$work/spec.md" "$step_text" "$test_cmd" "$rc_branch" "$rc_sha"
 [[ -z "$problems" ]] \
@@ -749,7 +749,7 @@ replaces_revise="$("$BUILD" revise green "$work/spec.md" "$replaces_step" "$test
 prompt_says "$replaces_revise" "never permits deleting the case the step names" -iE -e "$licence"
 says_both_ways "$replaces_revise" "no longer forbids modifying or deleting any other case" \
   60 '(never|not|forbid|forbidden|must not|rejected)' '(any|every) other (bash )?case'
-renders_as 'revise green, unmarked step' '4146217642 7691' revise green "$work/spec.md" "$unmarked_step" "$test_cmd" "$work/reason.md"
+renders_as 'revise green, unmarked step' '961542236 7827' revise green "$work/spec.md" "$unmarked_step" "$test_cmd" "$work/reason.md"
 [[ -z "$problems" ]] \
   && ok || no "develop-revise redoing green for a ⟦replaces-case⟧ step permits deleting the one bash case the step names and still forbids modifying or deleting any other case, and for an unmarked step renders byte-identically to before #671 (${problems#; })"
 
@@ -1101,6 +1101,11 @@ expect_eq "$name" "0:spelled" "$code:$call"
 name="#990 the green prompt spells the working-tree call affected-suites.sh HEAD, so the leaf never builds a commit, stash or worktree to name a range"
 green="$("$BUILD" green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit" 2>/dev/null)"; code=$?
 call=""; [[ "$green" == *'affected-suites.sh HEAD'* ]] && call=spelled
+expect_eq "$name" "0:spelled" "$code:$call"
+
+name="#990 the revise prompt spells the working-tree call affected-suites.sh HEAD, so the leaf never builds a commit, stash or worktree to name a range"
+revise="$("$BUILD" revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md" 2>/dev/null)"; code=$?
+call=""; [[ "$revise" == *'affected-suites.sh HEAD'* ]] && call=spelled
 expect_eq "$name" "0:spelled" "$code:$call"
 
 finish
