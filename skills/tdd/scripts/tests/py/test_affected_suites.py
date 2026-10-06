@@ -138,3 +138,16 @@ def test_main_prints_a_unit_suite_that_alone_names_a_changed_fixture_1024(tmp_pa
     (tests / "unit/names.test.sh").write_text('cat "$here/../fixtures/sample.txt"\n')
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
         0, "skills/tdd/scripts/tests/unit/names.test.sh\n", "")
+
+
+def test_main_prints_a_unit_suite_that_alone_names_a_script_with_no_suite_of_its_own_1024(
+        tmp_path, monkeypatch, capsys, affected):
+    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/orphan.sh"]))
+    monkeypatch.chdir(tmp_path)
+    tests = tmp_path / "skills/tdd/scripts/tests"
+    (tests / "unit").mkdir(parents=True)
+    (tmp_path / "skills/tdd/scripts/orphan.sh").write_text("#!/usr/bin/env bash\n")
+    (tests / "other.test.sh").write_text("")
+    (tests / "unit/names.test.sh").write_text('source "$scripts/orphan.sh"\n')
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "skills/tdd/scripts/tests/unit/names.test.sh\n", "")
