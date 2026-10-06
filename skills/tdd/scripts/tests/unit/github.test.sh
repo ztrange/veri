@@ -738,4 +738,34 @@ if grep -F 'HTTP 404' "$err" > /dev/null; then
 fi
 record
 
+# 17. with VERI_GH_DRIVER unset, when the ccr route and the gh api graphql fallback both fail,
+#     gh_pr_ready returns 2 and stderr carries each route's own failure message
+name="#1054: with VERI_GH_DRIVER unset, gh_pr_ready 42 whose pulls/42/ccr/ready_for_review 404s and whose gh api graphql markPullRequestReadyForReview fails with a 502 returns 2 with both routes' failure messages on stderr"
+calls="$scratch/calls17" err="$scratch/err17"
+: > "$calls"
+(
+  gh() {
+    echo "gh $*" >> "$calls"
+    [[ "$1" == api ]] || return 1
+    case "$*" in
+      *ccr/ready_for_review*) echo 'gh: Not Found (HTTP 404)' >&2; return 1 ;;
+      *markPullRequestReadyForReview*) echo 'gh: Bad Gateway (HTTP 502)' >&2; return 1 ;;
+      *' -q '* | *' --jq '* | *--jq=*) echo 'PR_kwDOnode42' ;;
+      *pulls/42*) echo '{"number":42,"node_id":"PR_kwDOnode42","draft":true}' ;;
+      *) return 1 ;;
+    esac
+  }
+  unset VERI_GH_DRIVER VERI_GH_JSON
+  source "$LIB"
+  gh_pr_ready 42
+) > /dev/null 2> "$err"
+rc=$?
+problems=""
+[[ "$rc" -eq 2 ]] || problems+="    want return 2, got $rc"$'\n'
+grep -F 'gh: Not Found (HTTP 404)' "$err" > /dev/null ||
+  problems+="    want the ccr route's 'gh: Not Found (HTTP 404)' on stderr"$'\n'
+grep -F 'gh: Bad Gateway (HTTP 502)' "$err" > /dev/null ||
+  problems+="    want the gh api graphql route's 'gh: Bad Gateway (HTTP 502)' on stderr"$'\n'
+record
+
 finish
