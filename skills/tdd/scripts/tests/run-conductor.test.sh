@@ -1557,6 +1557,57 @@ grep -F 'cannot lock ref' "$launch_err" > /dev/null 2>&1 ||
 
 report "$name"
 
+name="a fetch of origin that fails for a reason other than a ref lock is refused with exit 2 after one fetch, without waiting for any retry (#1012)"
+problems=()
+
+clone1012c="$work/clone1012c"
+skill_clone "$clone1012c"
+git -C "$clone1012c" remote add origin "$work/remote1012c"
+
+shim1012c="$work/shim1012c"
+fetches1012c="$work/fetches1012c"
+sleeps1012c="$work/sleeps1012c"
+mkdir -p "$shim1012c"
+: > "$fetches1012c"
+: > "$sleeps1012c"
+cat > "$shim1012c/git" <<SHIM
+#!/bin/sh
+case " \$* " in
+  *" fetch "*)
+    echo fetch >> "$fetches1012c"
+    echo "fatal: unable to access '$work/remote1012c/': Could not resolve host: origin.invalid" >&2
+    exit 128 ;;
+esac
+exec "$(command -v git)" "\$@"
+SHIM
+cat > "$shim1012c/sleep" <<SHIM
+#!/bin/sh
+printf '%s\\n' "\$*" >> "$sleeps1012c"
+SHIM
+chmod +x "$shim1012c/git" "$shim1012c/sleep"
+
+caller1012c="$work/caller1012c"
+caller_repo "$caller1012c"
+
+rm -f "$argv"
+launch_from "$caller1012c" "$clone1012c" PATH="$shim1012c:$PATH" VERI_FETCH_RETRY_SLEEP=0
+status=$?
+count1012c="$(wc -l < "$fetches1012c" | tr -d ' ')"
+waits1012c="$(tr '\n' ' ' < "$sleeps1012c")"
+
+[[ "$status" -eq 2 ]] ||
+  problems+=("the launch exited $status, not 2, although the fetch failed for no ref lock")
+[[ ! -f "$argv" ]] ||
+  problems+=("a conductor was launched although the fetch failed")
+grep -F 'fetch of origin failed' "$launch_err" > /dev/null 2>&1 ||
+  problems+=("stderr does not say 'fetch of origin failed' — stderr was: '$(tr '\n' ' ' < "$launch_err")'")
+[[ "$count1012c" == 1 ]] ||
+  problems+=("origin was fetched $count1012c times, not once, although the failure was no ref lock")
+[[ -z "$waits1012c" ]] ||
+  problems+=("the run waited with sleep '$waits1012c' before refusing, although the failure was no ref lock")
+
+report "$name"
+
 name="a conductor that exits with .tdd/wt/<n> registered as a worktree keeps the skill record, and the next launch runs the recorded commit (#866)"
 problems=()
 
