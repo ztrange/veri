@@ -117,3 +117,19 @@ def test_ledger_tick_copies_every_character_but_the_ticked_box_unchanged():
     assert ledger.ledger_tick("- [ ] a\n- [ ] b", "b") == (True, "- [ ] a\n- [x] b")
     assert ledger.ledger_tick("- [ ] a\n\n\n", "a") == (True, "- [x] a\n\n\n")
     assert ledger.ledger_tick("- [x] a\r\n- [ ] b\r\n", "b") == (True, "- [x] a\r\n- [x] b\r\n")
+
+
+def test_ledger_tick_appends_the_refactor_pending_mark_at_the_line_end_only_when_asked():
+    seed = "# Plan for #42\n\n- [ ] add lowercasing\n- [ ] collapse to single hyphen\n- [ ] strip edge hyphens\n"
+
+    ledger = importlib.import_module("veri.ledger")
+
+    assert ledger.ledger_tick(seed, "collapse to single hyphen", pending=True) == (
+        True,
+        "# Plan for #42\n\n- [ ] add lowercasing\n- [x] collapse to single hyphen ⟂ refactor pending\n- [ ] strip edge hyphens\n",
+    )
+    assert ledger.ledger_tick("- [ ] a\r\n", "a", pending=True) == (True, "- [x] a\r ⟂ refactor pending\n")
+    assert ledger.ledger_tick(seed, "collapse to single hyphen") == (
+        True,
+        "# Plan for #42\n\n- [ ] add lowercasing\n- [x] collapse to single hyphen\n- [ ] strip edge hyphens\n",
+    )
