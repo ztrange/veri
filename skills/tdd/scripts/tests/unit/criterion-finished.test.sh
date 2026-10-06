@@ -101,4 +101,29 @@ else
   ok
 fi
 
+name="no argument and an empty one exit 2 with nothing on stdout, stdin unread and the usage line alone on stderr"
+work="$(scratch_dir)"
+printf -- '- [x] a ⟦criterion 1⟧\n' > "$work/ledger"
+usage='usage: criterion-finished.sh <k> < .tdd/issue-<n>.md'
+verdict=""
+for args in none empty; do
+  { if [[ "$args" == none ]]; then "$FINISHED"; else "$FINISHED" ''; fi > "$work/out" 2> "$work/err" && code=0 || code=$?
+    cat > "$work/rest"; } < "$work/ledger"
+  if [[ "$code" != 2 ]]; then
+    verdict="$args argument: want exit 2, got $code"
+  elif [[ -s "$work/out" ]]; then
+    verdict="$args argument: want nothing on stdout, got $(cat "$work/out")"
+  elif ! cmp -s "$work/ledger" "$work/rest"; then
+    verdict="$args argument: want stdin unread, got $(cat "$work/rest") left of it"
+  elif [[ "$(cat "$work/err")" != "$usage" ]] || [[ "$(wc -l < "$work/err" | tr -d ' ')" != 1 ]]; then
+    verdict="$args argument: want stderr '$usage', got '$(cat "$work/err")'"
+  fi
+  [[ -z "$verdict" ]] || break
+done
+if [[ -n "$verdict" ]]; then
+  no "$name ($verdict)"
+else
+  ok
+fi
+
 finish
