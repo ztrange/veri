@@ -15,7 +15,8 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 source "$HERE/lib/harness.sh"
 
 probe_no_suite_passes_a_pattern_through_awk_v() {
-  local f name hit lineno text
+  local f name hit lineno text var
+  local bind_re='-v[[:space:]]+([A-Za-z_][A-Za-z0-9_]*)='
   for f in "$ROOT"/skills/tdd/scripts/tests/*.test.sh; do
     name="$(basename "$f")"
     while IFS= read -r hit; do
@@ -23,7 +24,10 @@ probe_no_suite_passes_a_pattern_through_awk_v() {
       text="${hit#*:}"
       [[ "$text" =~ ^[[:space:]]*# ]] && continue
       [[ "$text" == *"'"* ]] || continue
-      [[ "$text" == *'~'* || "$text" == *'match('* ]] || continue
+      [[ "$text" =~ $bind_re ]] || continue
+      var="${BASH_REMATCH[1]}"
+      [[ "$text" =~ ~[[:space:]]*${var}([^A-Za-z0-9_]) \
+        || "$text" =~ match\([^,]*,[[:space:]]*${var}([^A-Za-z0-9_]) ]] || continue
       problems+=("$name:$lineno passes awk a pattern through -v, which drops its backslashes: $text")
     done < <(grep -n 'awk' "$f")
   done
@@ -103,5 +107,35 @@ planted_index_named=""
 probe_a_planted_awk_v_compared_or_indexed
 
 expect_eq "$name" "not named not named" "$planted_equal_named $planted_index_named"
+
+probe_a_planted_awk_matching_no_v_bound_variable() {
+  scan_planted '#!/usr/bin/env bash' 'dotted() {' "  awk '\$0 ~ /x\\./ { print }' \"\$1\"" '}' \
+    'other() {' "  awk -v n=\"\$1\" '\$0 ~ other { print }' \"\$2\"" '}'
+  planted_no_v_named="$(problem_naming "planted.test.sh:3")"
+  planted_unmatched_v_named="$(problem_naming "planted.test.sh:6")"
+}
+
+name="a planted awk '\$0 ~ /x\\./' with no -v, and an awk -v n=\"\$1\" '\$0 ~ other' whose n is never matched, leave the guard green (#1037)"
+planted_no_v_named=""
+planted_unmatched_v_named=""
+
+probe_a_planted_awk_matching_no_v_bound_variable
+
+expect_eq "$name" "not named not named" "$planted_no_v_named $planted_unmatched_v_named"
+
+probe_a_planted_awk_matching_a_longer_name() {
+  scan_planted '#!/usr/bin/env bash' 'tilde() {' "  awk -v n=\"\$1\" '\$0 ~ name { print }' \"\$2\"" '}' \
+    'starts() {' "  awk -v n=\"\$1\" 'match(\$0, name) { print NR }' \"\$2\"" '}'
+  planted_longer_tilde_named="$(problem_naming "planted.test.sh:3")"
+  planted_longer_match_named="$(problem_naming "planted.test.sh:6")"
+}
+
+name="a planted awk -v n=\"\$1\" whose program matches only a longer name, with ~ name or match(\$0, name), leaves the guard green (#1037)"
+planted_longer_tilde_named=""
+planted_longer_match_named=""
+
+probe_a_planted_awk_matching_a_longer_name
+
+expect_eq "$name" "not named not named" "$planted_longer_tilde_named $planted_longer_match_named"
 
 finish
