@@ -253,3 +253,60 @@ def test_main_sanitises_the_step_ref_per_byte_or_per_character_by_lc_all_then_lc
     ]
 
     assert answers == [by_byte, by_char, by_byte, by_char, by_char, by_byte]
+
+
+def test_main_runs_git_from_the_top_level_with_a_fresh_index_for_the_snapshot_and_the_raw_step_in_the_message(
+        monkeypatch, tmp_path, preserve_attempt):
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    (repo / "sub" / "dir").mkdir(parents=True)
+    step = "keep it/ok's"
+    (repo / ".tdd" / "issue-409.md").write_text(f"# Plan\n- [x] an earlier step\n- [ ] {step}\n")
+    scratch_parent = tmp_path / "tmp"
+    scratch_parent.mkdir()
+    monkeypatch.setenv("TMPDIR", str(scratch_parent))
+    monkeypatch.setattr(tempfile, "tempdir", None)
+    monkeypatch.setenv("GIT_AUTHOR_NAME", "Inherited Author")
+    monkeypatch.delenv("GIT_INDEX_FILE", raising=False)
+    monkeypatch.chdir(repo / "sub" / "dir")
+    calls = []
+
+    def fake_run(args, *_, env=None, **__):
+        effective = dict(os.environ if env is None else env)
+        index = effective.get("GIT_INDEX_FILE")
+        calls.append({
+            "argv": [os.path.basename(str(args[0]))] + [str(a) for a in args[1:]],
+            "cwd": os.getcwd(),
+            "env": effective,
+            "index_existed": index is not None and os.path.exists(index),
+            "index_dir_existed": index is not None and os.path.isdir(os.path.dirname(index)),
+        })
+        if args[1] == "rev-parse":
+            return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+        if args[1] == "write-tree":
+            return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+        if args[1] == "commit-tree":
+            return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    inherited = dict(os.environ)
+
+    code = preserve_attempt.main(["409", step, "develop-green", "1"])
+
+    by_verb = {call["argv"][1]: call for call in calls}
+    index = by_verb["add"]["env"].get("GIT_INDEX_FILE", "")
+    assert code == 0
+    assert [call["argv"][1] for call in calls] == [
+        "rev-parse", "add", "write-tree", "commit-tree", "update-ref"]
+    assert [call["cwd"] for call in calls[1:]] == [str(repo)] * 4
+    assert os.path.dirname(os.path.dirname(index)) == str(scratch_parent)
+    assert (by_verb["add"]["index_dir_existed"], by_verb["add"]["index_existed"]) == (True, False)
+    assert by_verb["add"]["env"] == {**inherited, "GIT_INDEX_FILE": index}
+    assert by_verb["write-tree"]["env"] == {**inherited, "GIT_INDEX_FILE": index}
+    for verb in ("rev-parse", "commit-tree", "update-ref"):
+        assert by_verb[verb]["env"] == inherited, verb
+    assert by_verb["commit-tree"]["argv"] == [
+        "git", "commit-tree", "4b825dc642cb6eb9a060e54bf8d69288fbee4904", "-p", "HEAD",
+        "-m", f"attempt: issue 409 step {step} develop-green attempt 1"]
+    assert by_verb["update-ref"]["argv"][2] == "refs/veri/attempts/409/2/develop-green-1"
