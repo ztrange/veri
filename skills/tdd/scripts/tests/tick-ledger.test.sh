@@ -57,18 +57,6 @@ want_led="$(printf -- '- [x] add lowercasing ⟦criterion 1⟧\n- [x] collapse t
 
 foreign="$work/foreign"
 mkdir -p "$foreign/lib"
-cp "$TICK" "$foreign/tick-ledger.sh"
-cp "$HERE/.."/lib/*.sh "$foreign/lib/"
-cat > "$foreign/lib/ledger.sh" <<'EOF'
-ledger_tick() { cat > /dev/null; return 7; }
-EOF
-seed
-"$foreign/tick-ledger.sh" "$led" "collapse to single hyphen" 2>/dev/null; tick=$?
-[[ "$tick" == 2 ]] \
-  && ok || no "a foreign ledger-transform code exits 2 from tick-ledger.sh (tick=$tick)"
-
-foreign="$work/foreign"
-mkdir -p "$foreign/lib"
 cp "$HERE/../clear-refactor-pending.sh" "$foreign/clear-refactor-pending.sh"
 cp "$HERE/.."/lib/*.sh "$foreign/lib/"
 cat > "$foreign/lib/ledger.sh" <<'EOF'
