@@ -43,3 +43,13 @@ def test_main_ticks_the_matching_box_exits_3_echoing_stdin_on_no_match_and_ticks
         ("zeta",): (3, BODY, b""),
         (): (0, b"- [x] alpha\n- [ ] beta\n", b""),
     }
+
+
+def test_main_writes_what_the_ledger_modules_ledger_tick_returns(monkeypatch, capsysbinary, tick_criterion):
+    monkeypatch.setattr(sys.modules["ledger"], "ledger_tick",
+                        lambda text, matcher: (True, f"ticked by the module: {matcher}\n"))
+    fake_stdin(monkeypatch, b"- [ ] found in the markdown\n")
+
+    code = tick_criterion.main(["markdown"])
+
+    assert (code, *capsysbinary.readouterr()) == (0, b"ticked by the module: markdown\n", b"")
