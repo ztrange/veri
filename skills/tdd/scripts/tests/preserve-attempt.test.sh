@@ -231,6 +231,14 @@ preserve "$repo" 409 3 develop-green 1 >/dev/null 2>&1; code=$?
 [[ "$code" == 2 ]] \
   && ok || no "ends with exit 2 when it fails inside its own EXIT trap's lifetime (code=$code)"
 
+repo="$work/threeargs"
+dirty_repo "$repo"
+out="$(preserve "$repo" 409 3 develop-green 2>"$work/threeargs.err")"; code=$?
+err="$(cat "$work/threeargs.err")"
+usage="usage: preserve-attempt.sh <issue> <step> <phase> <attempt> [<mark>]"
+{ [[ "$code" == 2 ]] && [[ "$err" == "$usage" ]] && [[ -z "$out" ]]; } \
+  && ok || no "called with three arguments exits 2 with exactly the usage line on stderr and nothing on stdout (code=$code out='$out' err='$err')"
+
 inplace="$work/inplace"
 linked="$work/linked"
 for repo in "$inplace" "$linked"; do
