@@ -726,7 +726,7 @@ renders_as() {  # <label> <want-cksum> <args...> — records a prompt whose sum 
   got="$(printf '%s\n' "${out//"$scripts_dir"/@SCRIPTS@}" | cksum)"
   [[ "$got" == "$want" ]] || problems="$problems; $label renders as '$got', want '$want'"
 }
-renders_as red            '1253458810 10263'       red "$work/spec.md" "$step_text" "$test_cmd"
+renders_as red            '981610769 10392'       red "$work/spec.md" "$step_text" "$test_cmd"
 renders_as green          '2615734855 7168'     green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit"
 renders_as refactor       '1398370756 9452'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
 renders_as 'revise red'   '788521639 7651'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
@@ -1092,5 +1092,10 @@ rd_nofast_err="$work/revise-diff-no-fast.err"
 rd_nofast="$("$BUILD" revise diff "$work/spec.md" "$dd_step" "$test_cmd" "$work/reason.md" 2>"$rd_nofast_err")"; code=$?
 diag=""; [[ -s "$rd_nofast_err" ]] && diag=diagnostic
 expect_eq "$name" "2::diagnostic" "$code:${rd_nofast:+prompt}:$diag"
+
+name="#990 the red prompt spells the working-tree call affected-suites.sh HEAD, so the leaf never builds a commit, stash or worktree to name a range"
+red="$("$BUILD" red "$work/spec.md" "$step_text" "$test_cmd" 2>/dev/null)"; code=$?
+call=""; [[ "$red" == *'affected-suites.sh HEAD'* ]] && call=spelled
+expect_eq "$name" "0:spelled" "$code:$call"
 
 finish
