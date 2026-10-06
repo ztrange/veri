@@ -1,0 +1,2 @@
+### skill-suite-runs.test.sh's `doc_text`, given a `from` regex `^5\. ` over a section holding the lines `5x y` and `5. y`, starts its output at `5. y`, not at `5x y` ⟦criterion 1⟧
+- test-only | pass `h` to `doc_text`'s awk through ENVIRON as well as `from`, so neither argument goes through awk's `-v` escape processing (no current caller passes a heading with a backslash, so today this changes no output)
