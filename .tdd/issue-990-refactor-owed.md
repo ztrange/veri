@@ -8,3 +8,4 @@
 - test-only | the #990 red and green cases in build-develop-prompt.test.sh repeat the same three lines (build the prompt, check it contains `affected-suites.sh HEAD`, compare); one helper taking the phase and its arguments would replace both
 ### `prompts/develop-revise.md` spells the working-tree call `affected-suites.sh HEAD`, pinned as text in the style of the existing prompt suites ⟦criterion 6⟧
 - test-only | fold the three identical `#990 … spells the working-tree call affected-suites.sh HEAD` cases in skills/tdd/scripts/tests/build-develop-prompt.test.sh (red, green, revise) into one helper called once per phase
+applied | 2130b6c1d | once develop-green.md and develop-revise.md spell the same "`affected-suites.sh HEAD` … build no commit, stash or worktree" clause, extract it into a shared `_*.md` partial; not yet duplicated in this cycle
