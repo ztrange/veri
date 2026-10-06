@@ -36,8 +36,8 @@ need_section() {
 }
 
 at() {
-  awk -v s="$sec_start" -v e="$sec_end" -v re="$1" \
-    'NR >= s && NR <= e && $0 ~ re { print NR; exit }' "$md"
+  re="$1" awk -v s="$sec_start" -v e="$sec_end" \
+    'NR >= s && NR <= e && $0 ~ ENVIRON["re"] { print NR; exit }' "$md"
 }
 
 line_at() { sed -n "${1}p" "$md"; }
@@ -97,5 +97,10 @@ if need_section '### 0. Preflight' 'what the baseline runs could not be read'; t
   fi
 fi
 report "$name"
+
+name="#1037: at given 'run\\.sh' prints the line where run.sh stands, not the one where runXsh does"
+fixture="$(scratch_dir)"
+printf -- 'runXsh wrong\nrun.sh right\n' > "$fixture/SKILL.md"
+expect_eq "$name" '2' "$(md="$fixture/SKILL.md" sec_start=1 sec_end=2 at 'run\.sh')"
 
 finish
