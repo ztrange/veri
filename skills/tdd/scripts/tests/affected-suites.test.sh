@@ -603,4 +603,13 @@ if [[ "$code" == 3 && -z "$out" ]]; then ok; else
   no "affected-suites.sh <base> with no committed and no uncommitted change since <base> exits 3 and prints nothing (code=$code, stdout=${out:-<empty>})"
 fi
 
+make_repo working-tree-unresolvable
+foo_tree
+commit_base
+out="$(run_affected no-such-revision 2>"$work/unresolvable.err")"; code=$?
+err="$(cat "$work/unresolvable.err")"
+if [[ "$code" == 2 && -z "$out" && "$err" == *no-such-revision* ]]; then ok; else
+  no "affected-suites.sh <base> with an unresolvable <base> exits 2 with a diagnostic on stderr and nothing on stdout (code=$code, stdout=${out:-<empty>}, stderr=${err:-<empty>})"
+fi
+
 finish
