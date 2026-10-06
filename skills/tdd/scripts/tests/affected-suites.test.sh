@@ -595,4 +595,12 @@ if [[ "$code" == 0 && "$out" == "$expected" ]]; then ok; else
   diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
 fi
 
+make_repo working-tree-unchanged
+foo_tree
+commit_base
+out="$(run_affected "$base" 2>/dev/null)"; code=$?
+if [[ "$code" == 3 && -z "$out" ]]; then ok; else
+  no "affected-suites.sh <base> with no committed and no uncommitted change since <base> exits 3 and prints nothing (code=$code, stdout=${out:-<empty>})"
+fi
+
 finish
