@@ -326,6 +326,15 @@ says_both_ways "$refactor" "does not say a test-only candidate is never reported
   && ok || no "develop-refactor reports a candidate whose transform changes only files under a tests/ directory on a CANDIDATES: test-only line, never a CANDIDATES: structural one (${problems#; })"
 
 problems=""
+offers_class CANDIDATES out-of-scope
+says_both_ways "$refactor" "does not define out-of-scope as a transform outside the issue's bounds or ruled out by its spec" \
+  160 'out-of-scope' "outside the issue.s bounds[^.]{0,80}ruled out by (its|the) spec"
+says_both_ways "$refactor" "does not say to report an out-of-scope candidate instead of on a CANDIDATES: structural line" \
+  160 'out-of-scope' '(instead of|rather than|never|not)( on| as)? an? `?(CANDIDATES: )?structural'
+[[ -z "$problems" ]] \
+  && ok || no "develop-refactor defines the out-of-scope class, for a transform outside the issue's bounds or ruled out by its spec, reported on a CANDIDATES: out-of-scope line instead of a structural one (${problems#; })"
+
+problems=""
 says_both_ways "$refactor" "does not say the structural candidates are applied up to the budget it is given" \
   80 'budget' 'structural'
 says_both_ways "$refactor" "does not tell the leaf to commit its transforms itself as refactor:" \
@@ -728,7 +737,7 @@ renders_as() {  # <label> <want-cksum> <args...> — records a prompt whose sum 
 }
 renders_as red            '981610769 10392'       red "$work/spec.md" "$step_text" "$test_cmd"
 renders_as green          '3453024810 7300'     green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit"
-renders_as refactor       '1398370756 9452'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
+renders_as refactor       '4038231874 9685'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
 renders_as 'revise red'   '2457909894 7787'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as 'revise green' '2359866403 7789'  revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as 'revise refactor' '3942894315 7792' revise refactor "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
