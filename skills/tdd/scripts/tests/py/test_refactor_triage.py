@@ -269,3 +269,13 @@ def test_main_refuses_a_structural_candidate_with_nothing_after_the_bar_with_exi
 
     assert (code, out) == (2, b"")
     assert err != b""
+
+
+def test_main_refuses_a_structural_candidate_with_only_whitespace_after_the_bar_with_exit_2_a_diagnostic_and_nothing_on_stdout_820(
+        monkeypatch, capsysbinary, refactor_triage):
+    fake_stdin(monkeypatch, b"CANDIDATES: structural |  \t \n")
+    code = refactor_triage.main([])
+    out, err = capsysbinary.readouterr()
+
+    assert (code, out) == (2, b"")
+    assert err != b""
