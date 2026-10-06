@@ -137,6 +137,38 @@ done
 report "$name"
 
 
+name="refactor-owed.sh out-of-scope prints the owed file's out-of-scope candidates not recorded as applied, one per line without the prefix, and exits 3 with nothing on stdout when none is left or the file is missing"
+problems=()
+
+work="$(scratch_dir)"
+cat >"$work/owed.md" <<'OWED'
+### step 2
+- extract the parser
+- out-of-scope | remove gh() from coverage_blocker.py
+- out-of-scope | drop the subprocess import
+- out-of-scope | fold the two loaders
+applied | 1b4ed26e6 | out-of-scope | remove gh() from coverage_blocker.py
+OWED
+printf '%s\n' 'drop the subprocess import' 'fold the two loaders' >"$work/want.out"
+
+"$OWED" out-of-scope "$work/owed.md" >"$work/got.out" 2>/dev/null && code=0 || code=$?
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from out-of-scope on a file with unapplied candidates, got $code")
+diff "$work/want.out" "$work/got.out" >/dev/null ||
+  problems+=("out-of-scope stdout differs from the two unapplied candidates:" "$(diff "$work/want.out" "$work/got.out")")
+
+cat >"$work/all-applied.md" <<'OWED'
+### step 2
+- extract the parser
+- out-of-scope | remove gh() from coverage_blocker.py
+applied | 1b4ed26e6 | out-of-scope | remove gh() from coverage_blocker.py
+OWED
+answers_none_on out-of-scope "$work/all-applied.md" "a file whose every out-of-scope candidate is applied" ""
+answers_none_on out-of-scope "$work/missing.md" "an absent file" ""
+
+report "$name"
+
+
 name="refactor-owed.sh with no argument, or with the unknown verb bogus and a file, exits 2 with nothing on stdout and the three usage lines on stderr"
 problems=()
 
