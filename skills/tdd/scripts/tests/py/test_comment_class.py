@@ -254,6 +254,8 @@ orchestrate:# and would end the stub whatever orchestrate.sh did, so without thi
 orchestrate:# cannot go red here at all, and the regression they exist for is only visible on CI. This is
 orchestrate:# a stub imitating a platform, not a suite repairing its own pipeline (#422).
 parallel-conductors:#!/bin/sh
+refactor-owed:### step 2
+refactor-owed:### step 2
 run-verdict:#!/bin/sh
 run-verdict:# Stub verifier: record the argv handed to it, one argument per line, and answer like a
 run-verdict:# verifier that passed — what this case reads is the record, not the verdict.

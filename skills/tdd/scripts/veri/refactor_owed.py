@@ -142,6 +142,14 @@ def list_owed(file):
     return 0
 
 
+def list_out_of_scope(file):
+    transforms = out_of_scope_transforms(file)
+    if not transforms:
+        return 3
+    emit(joined(transforms))
+    return 0
+
+
 def main(argv):
     verb, file, *args = (list(argv) + ["", "", "", ""])[:4]
     if not verb or not file:
@@ -159,6 +167,8 @@ def main(argv):
         return render(file)
     if verb == "list":
         return list_owed(file)
+    if verb == "out-of-scope":
+        return list_out_of_scope(file)
     return refuse()
 
 

@@ -9,6 +9,8 @@
 #          refactor-owed.sh applied <file> '<transform>' <sha>
 #          refactor-owed.sh render <file>
 #          refactor-owed.sh list <file>
+#          refactor-owed.sh out-of-scope <file>
 # Exit:    0 done; 1 the append's or applied's write failed; 2 a missing argument or an unknown verb;
-#          3 render or list found <file> absent or empty, or list found no structural transform
+#          3 render or list found <file> absent or empty, list found no structural transform,
+#            or out-of-scope found no out-of-scope candidate left unapplied
 exec python3 "$(dirname "$0")/veri/refactor_owed.py" "$@"
