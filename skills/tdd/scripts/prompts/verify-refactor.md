@@ -62,7 +62,7 @@ Render one verdict on the settled result.
    itself is the hazard (bash 3.2, BSD versus GNU flags, `set -u`'s exit status, a
    load-bearing `|| true`). REJECT any other rationale comment the range adds, and name
    it in REASON:.
-   A contract header or a shell-hazard warning is never grounds for REJECT.
+   {{INCLUDE:_verify-comments-never-reject.md}}
 
 PASS if the suite is green and the code is up to standard. REJECT, naming the specific
 weakness, if the tidy-up left the code below standard or altered behavior.

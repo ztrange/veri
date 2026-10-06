@@ -46,7 +46,7 @@ A developer agent has written the implementation intended to make the target tes
    itself is the hazard (bash 3.2, BSD versus GNU flags, `set -u`'s exit status, a
    load-bearing `|| true`). REJECT any other rationale comment the change adds, and name
    it in REASON:.
-   A contract header or a shell-hazard warning is never grounds for REJECT.
+   {{INCLUDE:_verify-comments-never-reject.md}}
 
 PASS only if the target test, the fast command and the affected suites are green and the pass genuinely reflects
 the behavior the spec requires.
