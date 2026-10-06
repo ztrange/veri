@@ -1511,6 +1511,52 @@ grep -F -- "$tip1012" "$prompt" > /dev/null 2>&1 ||
 
 report "$name"
 
+name="a ref lock that is never released makes the launch refuse with exit 2 once the retry bound, past today's five fetches, is reached, launching no conductor and naming the ref lock (#1012)"
+problems=()
+
+src1012b="$work/src1012b"
+remote1012b="$work/remote1012b"
+clone1012b="$work/clone1012b"
+skill_clone "$src1012b"
+git clone -q --bare "$src1012b" "$remote1012b"
+git clone -q "$remote1012b" "$clone1012b"
+branch1012b="$(git -C "$remote1012b" symbolic-ref --short HEAD)"
+advance_clone "$src1012b" "# a commit a parallel fetch that never finishes is bringing in"
+git -C "$src1012b" push -q "$remote1012b" "HEAD:$branch1012b"
+
+lock1012b="$clone1012b/.git/refs/remotes/origin/$branch1012b.lock"
+: > "$lock1012b"
+
+shim1012b="$work/shim1012b"
+fetches1012b="$work/fetches1012b"
+mkdir -p "$shim1012b"
+: > "$fetches1012b"
+cat > "$shim1012b/git" <<SHIM
+#!/bin/sh
+case " \$* " in *" fetch "*) echo fetch >> "$fetches1012b" ;; esac
+exec "$(command -v git)" "\$@"
+SHIM
+chmod +x "$shim1012b/git"
+
+caller1012b="$work/caller1012b"
+caller_repo "$caller1012b"
+
+rm -f "$argv"
+launch_from "$caller1012b" "$clone1012b" PATH="$shim1012b:$PATH" VERI_FETCH_RETRY_SLEEP=0
+status=$?
+count1012b="$(wc -l < "$fetches1012b" | tr -d ' ')"
+
+[[ "$status" -eq 2 ]] ||
+  problems+=("the launch exited $status, not 2, although the ref lock was never released")
+[[ ! -f "$argv" ]] ||
+  problems+=("a conductor was launched although the ref lock was never released")
+grep -F 'cannot lock ref' "$launch_err" > /dev/null 2>&1 ||
+  problems+=("stderr does not name the ref lock ('cannot lock ref') — stderr was: '$(tr '\n' ' ' < "$launch_err")'")
+(( count1012b > 5 )) ||
+  problems+=("origin was fetched $count1012b times before the refusal, not more than today's 5")
+
+report "$name"
+
 name="a conductor that exits with .tdd/wt/<n> registered as a worktree keeps the skill record, and the next launch runs the recorded commit (#866)"
 problems=()
 
