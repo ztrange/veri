@@ -14,11 +14,11 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     with open(argv[0]) as file:
-        ticked, new = ledger.ledger_tick(file.read(), argv[1], pending)
+        ticked, new = ledger.ledger_tick(file.read().replace("\0", ""), argv[1], pending)
     if not ticked:
         return 3
     with open(argv[0], "w") as file:
-        file.write(new)
+        file.write(new.rstrip("\n") + "\n")
     return 0
 
 
