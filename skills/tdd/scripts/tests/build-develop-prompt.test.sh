@@ -994,6 +994,14 @@ refuses "diff missing test-cmd" "$BUILD" diff "$work/spec.md" "$dd_step"
 [[ -z "$problems" ]] \
   && ok || no "develop-diff tells the leaf to make the change the step's criterion names and commit it, to make no commit when the criterion is that something stays unchanged, and to add no test; a missing argument exits 2 with nothing on stdout (${problems#; })"
 
+dd_err="$work/diff-no-test-cmd.err"
+dd_out="$("$BUILD" diff "$work/spec.md" "$dd_step" '' 'make unit' 2>"$dd_err")"; code=$?
+dd_first=""; IFS= read -r dd_first < "$dd_err"
+[[ "$code" -eq 2 ]] \
+  && [[ -z "$dd_out" ]] \
+  && [[ "$dd_first" == 'build-develop-prompt: missing <test-cmd>' ]] \
+  && ok || no "#995 develop-diff given every argument but an empty <test-cmd> exits 2 with no prompt and 'missing <test-cmd>' on stderr (exit $code, stderr: $(cat "$dd_err"))"
+
 bogus_revise_err="$work/bogus-revise.err"
 bogus_revise_out="$("$BUILD" revise bogus "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md" 2>"$bogus_revise_err")"; code=$?
 [[ "$code" -eq 2 ]] \
