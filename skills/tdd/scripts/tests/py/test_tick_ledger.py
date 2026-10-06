@@ -1,5 +1,6 @@
 """In-process cases for veri/tick_ledger.py, the module tick-ledger.sh is a shim over."""
 import importlib
+import os
 import pathlib
 import sys
 
@@ -100,4 +101,24 @@ def test_main_ticks_the_first_open_step_for_an_omitted_or_empty_matcher_ignores_
         ("",): (0, b"", b"", b"- [x] a\n- [ ] b\n"),
         ("b", "--refactor-pending"): (0, b"", b"", b"- [ ] a\n- [x] b\n"),
         ("--refactor-pending",): (3, b"", b"", b"- [ ] a\n- [ ] b\n"),
+    }
+
+
+def test_main_leaves_an_empty_ledger_unwritten_with_exit_3_marks_a_crlf_step_after_its_cr_and_skips_a_lower_and_upper_x_step(
+        tmp_path, capsysbinary, tick_ledger):
+    results = {}
+    for flag, seed, matcher in (
+            ([], b"", "a"),
+            (["--refactor-pending"], b"- [ ] a\r\n", "a"),
+            ([], b"- [x] a\n- [X] a\n- [ ] a\n", "a")):
+        ledger = tmp_path / f"ledger{len(results)}.md"
+        ledger.write_bytes(seed)
+        os.utime(ledger, ns=(0, 0))
+        code = tick_ledger.main([*flag, str(ledger), matcher])
+        results[seed] = (code, *capsysbinary.readouterr(), ledger.read_bytes(), ledger.stat().st_mtime_ns == 0)
+
+    assert results == {
+        b"": (3, b"", b"", b"", True),
+        b"- [ ] a\r\n": (0, b"", b"", "- [x] a\r ⟂ refactor pending\n".encode(), False),
+        b"- [x] a\n- [X] a\n- [ ] a\n": (0, b"", b"", b"- [x] a\n- [X] a\n- [x] a\n", False),
     }
