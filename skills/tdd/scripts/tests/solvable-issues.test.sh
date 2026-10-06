@@ -570,20 +570,20 @@ fi
 [[ -z "$entry_missing" ]] \
   && ok || no "$context_md's Solvable entry names the conductor PID lock, and a live holder, as what marks a run in flight (missing:$entry_missing)"
 
-step1="$(awk '/^### 1\./ { keep = 1; next } keep && /^### / { exit } keep' "$REPO_ROOT/$procedure_doc")"
+preflight="$(awk '/^### 0\./ { keep = 1; next } keep && /^### / { exit } keep' "$REPO_ROOT/$procedure_doc")"
 
-step1_missing=""
-if [[ -z "${step1// /}" ]]; then
-  step1_missing="$step1_missing step-1-itself"
+preflight_missing=""
+if [[ -z "${preflight// /}" ]]; then
+  preflight_missing="$preflight_missing preflight-itself"
 else
-  grep -qE '> *"?\.tdd/conductor\.pid' <<<"$step1" \
-    || step1_missing="$step1_missing the-write-into-the-lock"
-  grep -qE '\$PPID[^>]*> *"?\.tdd/conductor\.pid' <<<"$step1" \
-    || step1_missing="$step1_missing the-pid-that-outlives-one-command"
+  grep -qE '> *"?\.tdd/conductor\.pid' <<<"$preflight" \
+    || preflight_missing="$preflight_missing the-write-into-the-lock"
+  grep -qE '\$PPID[^>]*> *"?\.tdd/conductor\.pid' <<<"$preflight" \
+    || preflight_missing="$preflight_missing the-pid-that-outlives-one-command"
 fi
 
-[[ -z "$step1_missing" ]] \
-  && ok || no "$procedure_doc step 1 tells the conductor to write its own long-lived pid (\$PPID, not \$\$) into .tdd/conductor.pid, so the lock cases 17 and 18 read is one a real run leaves (missing:$step1_missing)"
+[[ -z "$preflight_missing" ]] \
+  && ok || no "$procedure_doc preflight tells the conductor to write its own long-lived pid (\$PPID, not \$\$) into .tdd/conductor.pid, so the lock cases 17 and 18 read is one a real run leaves (missing:$preflight_missing)"
 
 fx="$(fixture pushed-branch)"
 cat > "$fx/issues.json" <<'JSON'
