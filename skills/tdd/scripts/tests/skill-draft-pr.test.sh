@@ -1027,4 +1027,17 @@ if step_or_problem '### 4. Draft PR' "what a red rebased tip's bail after a veri
 fi
 report "$name"
 
+name="$skill_md's Bailing cause-token list names rebased-tip-red and classifies it as a process failure (#975)"
+problems=()
+
+if section_or_problem '## Bailing' '^## ' "whether its cause-token list names rebased-tip-red"; then
+  token="$(first_record "$records" -E '^ *- `rebased-tip-red`')"
+  if [[ -z "$token" ]]; then
+    problems+=("$skill_md's Bailing cause-token list has no rebased-tip-red entry, so a red rebased tip's bail names a cause the list never defines")
+  elif ! grep -F '**process** failure' > /dev/null <<< "$token"; then
+    problems+=("$skill_md's Bailing cause-token list names rebased-tip-red without classifying it as a **process** failure: $(printf '%.160s' "$token")")
+  fi
+fi
+report "$name"
+
 finish
