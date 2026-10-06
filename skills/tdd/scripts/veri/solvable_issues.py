@@ -66,7 +66,8 @@ def main(argv):
     try:
         issues = gh_json("issues.json", prefix + "/issues?state=all&sort=created&direction=asc",
                          "issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope)
-        prs = gh_json("prs.json", prefix + "/pulls", "pr", "list", "--limit", "10000", "--json", "body,state", *scope)
+        prs = gh_json("prs.json", prefix + "/pulls?state=all&sort=created&direction=asc",
+                      "pr", "list", "--limit", "10000", "--json", "body,state", *scope)
     except NoAnswer:
         return 2
     issues = [issue for issue in items(issues) if "pull_request" not in issue]

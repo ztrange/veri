@@ -188,7 +188,7 @@ def test_main_reads_issues_then_prs_through_gh_forwarding_repo_verbatim_and_fall
             ["gh", "issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope],
             ["gh", "api", prefix + "/issues?state=all&sort=created&direction=asc&page=1"],
             ["gh", "pr", "list", "--limit", "10000", "--json", "body,state", *scope],
-            ["gh", "api", prefix + "/pulls?page=1"],
+            ["gh", "api", prefix + "/pulls?state=all&sort=created&direction=asc&page=1"],
         ]
 
     observed = {}
