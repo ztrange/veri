@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-# tick-criterion.sh — tick one acceptance-criterion checkbox in an issue body.
+#!/bin/sh
+# tick-criterion.sh — tick one acceptance-criterion checkbox in an issue body: a shim over veri/tick_criterion.py.
 #
 # Pure text transform: reads the issue body on stdin and writes the updated body to
 # stdout. Flips the FIRST unchecked GitHub task-list item ("- [ ]") whose text contains
@@ -9,10 +9,4 @@
 # Exit: 0 if a box was ticked, 3 if no unchecked box matched (body emitted unchanged).
 #
 # Usage: tick-criterion.sh <matcher>  < body.md > new-body.md
-set -euo pipefail
-
-HERE="$(cd "$(dirname "$0")" && pwd)"
-source "$HERE/lib/exit-contract.sh"
-source "$HERE/lib/ledger.sh"
-
-ledger_tick "${1:-}"
+exec python3 "$(dirname "$0")/veri/tick_criterion.py" "$@"
