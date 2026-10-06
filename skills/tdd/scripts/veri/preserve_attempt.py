@@ -26,12 +26,10 @@ def main(argv):
     try:
         index = {**os.environ, "GIT_INDEX_FILE": os.path.join(scratch, "index")}
         result = git("add", "-A", env=index, capture=False)
-        if result.returncode != 0:
-            return mapped(result.returncode)
-        result = git("write-tree", env=index)
-        if result.returncode != 0:
-            return mapped(result.returncode)
-        result = git("commit-tree", result.stdout.strip(), "-p", "HEAD", "-m", f"attempt: {coords}")
+        if result.returncode == 0:
+            result = git("write-tree", env=index)
+        if result.returncode == 0:
+            result = git("commit-tree", result.stdout.strip(), "-p", "HEAD", "-m", f"attempt: {coords}")
         if result.returncode != 0:
             return mapped(result.returncode)
     finally:
