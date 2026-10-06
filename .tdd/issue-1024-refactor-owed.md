@@ -1,0 +1,2 @@
+### A change to any skills/tdd/scripts/prompts/*.md, even one no suite names, prints skills/tdd/scripts/tests/unit/emitted-text.test.sh ⟦criterion 3⟧
+- test-only | the four `_1024` cases in test_affected_suites.py (lines 122–165) repeat the same setup: patch `fake_git` for one path, chdir, mkdir `tests/unit`, write an empty `other.test.sh`, write one unit suite, then assert `(main(...),) + readouterr()` against a single unit-suite path. That setup could become one helper.
