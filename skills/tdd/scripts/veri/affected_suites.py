@@ -141,7 +141,10 @@ def main(argv):
         except Unplaced:
             unplaced.append(f)
 
-    _, counted = changed(range_, "--diff-filter=AD", "--", SCRIPTS + "/tests", ":(glob)%s/*.sh" % SCRIPTS)
+    counting = ("--", SCRIPTS + "/tests", ":(glob)%s/*.sh" % SCRIPTS)
+    _, counted = changed(range_, "--diff-filter=AD", *counting)
+    if ".." not in range_ and not counted:
+        _, counted = output("ls-files", "--others", "--exclude-standard", *counting)
     if counted:
         placed.append(SCRIPTS + "/tests/claude-md-counts.test.sh")
 
