@@ -148,3 +148,63 @@ def test_main_names_the_ref_by_the_ledger_index_ledger_steps_gives_the_step_past
 
     index = next(record[0] for record in ledger_steps(ledger) if step in record[6])
     assert (index, code, update_refs) == ("2", 0, ["refs/veri/attempts/409/2/develop-green-1"])
+
+
+def test_main_names_the_ref_by_the_first_matching_step_and_keeps_the_argument_when_the_ledger_gives_none(
+        monkeypatch, tmp_path, capsys, preserve_attempt):
+    import builtins
+    import io
+
+    real_open = builtins.open
+
+    def refusing_open(file, mode="r", *args, **kwargs):
+        if os.path.abspath(str(file)).endswith("unreadable/.tdd/issue-409.md") and "r" in mode:
+            raise OSError(5, "Input/output error")
+        return real_open(file, mode, *args, **kwargs)
+
+    def scenario(name, ledger, step):
+        repo = tmp_path / name
+        (repo / ".tdd").mkdir(parents=True, exist_ok=True)
+        if ledger is not None:
+            (repo / ".tdd" / "issue-409.md").write_bytes(ledger)
+        monkeypatch.chdir(repo)
+        update_refs = []
+
+        def fake_run(args, *_, **__):
+            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+            if line.startswith("git rev-parse --show-toplevel"):
+                return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+            if line.startswith("git write-tree"):
+                return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+            if line.startswith("git commit-tree"):
+                return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
+            if line.startswith("git update-ref"):
+                update_refs.append(str(args[2]))
+            return subprocess.CompletedProcess(args, 0, "", "")
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        code = preserve_attempt.main(["409", step, "develop-green", "1"])
+        return name, code, update_refs, capsys.readouterr().err
+
+    two_matches = b"# Plan\n- [ ] unrelated\n- [ ] first abcd one\n- [ ] second abcd two\n"
+    answers = [
+        scenario("two-matches", two_matches, "abcd"),
+        scenario("no-match", two_matches, "zzz"),
+        scenario("no-ledger", None, "zzz"),
+        scenario("nul", b"# Plan\n- [ ] unrelated\n- [ ] ab\0cd\n", "abcd"),
+    ]
+    (tmp_path / "directory" / ".tdd" / "issue-409.md").mkdir(parents=True)
+    answers.append(scenario("directory", None, "zzz"))
+    monkeypatch.setattr(builtins, "open", refusing_open)
+    monkeypatch.setattr(io, "open", refusing_open)
+    answers.append(scenario("unreadable", two_matches, "abcd"))
+
+    assert answers == [
+        ("two-matches", 0, ["refs/veri/attempts/409/2/develop-green-1"], ""),
+        ("no-match", 0, ["refs/veri/attempts/409/zzz/develop-green-1"], ""),
+        ("no-ledger", 0, ["refs/veri/attempts/409/zzz/develop-green-1"], ""),
+        ("nul", 0, ["refs/veri/attempts/409/2/develop-green-1"], ""),
+        ("directory", 0, ["refs/veri/attempts/409/zzz/develop-green-1"], ""),
+        ("unreadable", 0, ["refs/veri/attempts/409/abcd/develop-green-1"],
+         "preserve-attempt.sh: .tdd/issue-409.md: Input/output error\n"),
+    ]
