@@ -94,4 +94,8 @@ want_err='usage: tick-ledger.sh [--refactor-pending] <ledger-file> <matcher>'
 { [[ "$code" == 2 ]] && [[ ! -s "$work/usage.out" ]] && [[ "$(cat "$work/usage.err")" == "$want_err" ]]; } \
   && ok || no "no argument → exit 2, nothing on stdout, the usage line on stderr (code=$code out='$(cat "$work/usage.out")' err='$(cat "$work/usage.err")')"
 
+"$TICK" "$work/no-such-ledger.md" "collapse to single hyphen" > "$work/missing.out" 2> /dev/null; code=$?
+{ [[ "$code" == 1 ]] && [[ ! -s "$work/missing.out" ]]; } \
+  && ok || no "a missing ledger → exit 1, nothing on stdout (code=$code out='$(cat "$work/missing.out")')"
+
 finish
