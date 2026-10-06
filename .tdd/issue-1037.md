@@ -8,7 +8,7 @@
 - [x] selection-order-recorded.test.sh's `entry`, given a name whose pattern carries `\.`, starts at the line where a literal dot stands and rejects one where an arbitrary character stands in the dot's place ⟦criterion 3⟧
 - [x] None of the sites the issue lists (prompt-test-tiers.test.sh, skill-timeout.test.sh, record-helpers.sh, skill-red-untestable.test.sh, skill-test-command.test.sh's two, and selection-order-recorded.test.sh's own) hands a backslash-carrying value to awk through `-v`; each reads it from `ENVIRON[...]` ⟦diff-checked⟧ ⟦criterion 2⟧
 - [x] no-awk-v-patterns.test.sh, run over a scratch tree holding a planted suite with `awk -v re="$1"` whose `re` is later used on the right of `~` or in `match(`, fails the run naming `<suite>:<line>` ⟦added⟧ ⟦criterion 4⟧
-- [ ] no-awk-v-patterns.test.sh does not flag a planted suite's comment line (`# awk -v re="$1" … $0 ~ re`) that only quotes an `awk -v` pattern site ⟦added⟧ ⟦criterion 4⟧
+- [x] no-awk-v-patterns.test.sh does not flag a planted suite's comment line (`# awk -v re="$1" … $0 ~ re`) that only quotes an `awk -v` pattern site ⟦added⟧ ⟦criterion 4⟧ ⟂ refactor pending
 - [ ] no-awk-v-patterns.test.sh does not flag a planted `awk -v re="$1" -f prog.awk` whose program is not single-quoted in the suite, even when a later line of that suite (holding no single quote) uses `re` on the right of `=~` ⟦added⟧ ⟦criterion 4⟧
 - [ ] no-awk-v-patterns.test.sh does not flag a planted `awk -v` whose variable is only compared with `==` or passed to `index(` ⟦criterion 4⟧
 - [ ] no-awk-v-patterns.test.sh passes a flagged planted site that its exemption table lists with a reason ⟦criterion 4⟧
