@@ -27,11 +27,10 @@ case "$*" in
       case "$a" in *=@*) cp "${a#*=@}" "$FAKE_OUT" ;; esac
     done
     echo '{}' ;;
-  "api "*"repos/"*"/issues/60"*) printf '%s' "$FAKE_BODY" ;;
+  "api "*"repos/"*"/issues/60"*) python3 -c 'import json, sys; print(json.dumps({"body": sys.argv[1]}))' "$FAKE_BODY" ;;
   "api "*"repos/"*"/issues"*)
     printf '%s\n' "$@" > "$FAKE_CREATE"
     echo "https://github.com/owner/name/issues/77" ;;
-  "issue view"*) printf '%s' "$FAKE_BODY" ;;
 esac
 STUB
 chmod +x "$stubdir/gh"
@@ -39,7 +38,7 @@ chmod +x "$stubdir/gh"
 run_blocker() {
   local body="$1" create="$2" out="$3"
   shift 3
-  env PATH="$stubdir:$PATH" FAKE_BODY="$body" FAKE_CREATE="$create" FAKE_OUT="$out" "$BLOCKER" "$@"
+  env -u VERI_GH_DRIVER PATH="$stubdir:$PATH" FAKE_BODY="$body" FAKE_CREATE="$create" FAKE_OUT="$out" "$BLOCKER" "$@"
 }
 
 expect_edit() {
@@ -216,7 +215,7 @@ None (can start immediately).
 '
 working_out="$work/working-out" refused_out="$work/refused-out" refused_edit="$work/refused-edit"
 run_blocker "$body" "$work/working-create" "$work/working-edit" 60 > "$working_out" 2>/dev/null && working_code=0 || working_code=$?
-env PATH="$refuseddir:$PATH" FAKE_BODY="$body" FAKE_CREATE="$work/refused-create" FAKE_OUT="$refused_edit" \
+env -u VERI_GH_DRIVER PATH="$refuseddir:$PATH" FAKE_BODY="$body" FAKE_CREATE="$work/refused-create" FAKE_OUT="$refused_edit" \
   "$BLOCKER" 60 > "$refused_out" 2>"$work/refused.err" && code=0 || code=$?
 cmp -s "$working_out" "$refused_out" && same=yes || same=no
 blocked=no
@@ -236,7 +235,6 @@ cat > "$restdir/gh" <<'STUB'
 echo "$*" >> "$FAKE_CALLS"
 case "$1 $2" in
   "issue create"|"issue edit") exit 1 ;;
-  "issue view") printf '%s' "$FAKE_BODY"; exit 0 ;;
 esac
 case "$*" in
   *PATCH*)
@@ -244,6 +242,7 @@ case "$*" in
       case "$a" in *=@*) cp "${a#*=@}" "$FAKE_OUT" ;; esac
     done
     echo '{}' ;;
+  "api "*"repos/"*"/issues/60") python3 -c 'import json, sys; print(json.dumps({"body": sys.argv[1]}))' "$FAKE_BODY" ;;
   "api "*"repos/"*"/issues"*) echo "https://github.com/owner/name/issues/77" ;;
   *) exit 1 ;;
 esac
@@ -261,7 +260,7 @@ None (can start immediately).
 '
 calls="$work/rest-calls" rest_edit="$work/rest-edit"
 : > "$calls"
-env PATH="$restdir:$PATH" FAKE_BODY="$body" FAKE_CALLS="$calls" FAKE_OUT="$rest_edit" \
+env -u VERI_GH_DRIVER PATH="$restdir:$PATH" FAKE_BODY="$body" FAKE_CALLS="$calls" FAKE_OUT="$rest_edit" \
   "$BLOCKER" 60 > "$work/rest-out" 2>"$work/rest.err" && code=0 || code=$?
 issue_calls="$(grep -E '^issue (create|edit)' "$calls")"
 blocked=no
@@ -286,7 +285,7 @@ None (can start immediately).
 ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
 mkdir -p "$work/elsewhere"
 run_blocker "$body" "$work/inplace-create" "$work/inplace-edit" 60 > "$work/inplace-out" 2>"$work/inplace.err" && in_place_code=0 || in_place_code=$?
-(cd "$work/elsewhere" && env PATH="$stubdir:$PATH" FAKE_BODY="$body" FAKE_CREATE="$work/linked-create" FAKE_OUT="$work/linked-edit" \
+(cd "$work/elsewhere" && env -u VERI_GH_DRIVER PATH="$stubdir:$PATH" FAKE_BODY="$body" FAKE_CREATE="$work/linked-create" FAKE_OUT="$work/linked-edit" \
   "$work/linked-skill/scripts/coverage-blocker.sh" 60 > "$work/linked-out" 2>"$work/linked.err") && linked_code=0 || linked_code=$?
 if [[ "$in_place_code" == 0 && "$linked_code" == "$in_place_code" \
       && "$(cat "$work/inplace-out")" == "https://github.com/owner/name/issues/77" \

@@ -20,6 +20,11 @@ def coverage_blocker():
     return importlib.import_module("veri.coverage_blocker")
 
 
+@pytest.fixture(autouse=True)
+def default_driver(monkeypatch):
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+
+
 @pytest.fixture
 def tmpdir_env(tmp_path, monkeypatch):
     """TMPDIR pointed at an empty directory under tmp_path."""
@@ -37,8 +42,8 @@ def test_main_returns_2_and_leaves_no_temp_file_when_the_patch_dies_with_5(tmpdi
         args = [str(arg) for arg in args]
         if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
             return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
-        if args[:3] == ["gh", "issue", "view"]:
-            return subprocess.CompletedProcess(args, 0, "## Blocked by\n\nNone\n", "")
+        if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
+            return subprocess.CompletedProcess(args, 0, '{"body": "## Blocked by\\n\\nNone\\n"}', "")
         if args[:4] == ["gh", "api", "-X", "PATCH"]:
             path = args[args.index("-F") + 1].split("body=@", 1)[1]
             seen["path"] = path
@@ -68,9 +73,9 @@ def test_main_patches_the_body_it_read_after_the_create_with_trailing_newlines_c
         if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
             calls.append("create")
             return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
-        if args == ["gh", "issue", "view", "60", "--json", "body", "-q", ".body"]:
+        if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
             calls.append("view")
-            return subprocess.CompletedProcess(args, 0, "## Parent\n\n#1\n\n\n", "")
+            return subprocess.CompletedProcess(args, 0, json.dumps({"body": "## Parent\n\n#1\n\n\n"}), "")
         if args[:4] == ["gh", "api", "-X", "PATCH"]:
             calls.append("patch")
             path = args[args.index("-F") + 1].split("body=@", 1)[1]
@@ -94,8 +99,8 @@ def test_main_leaves_no_temp_file_when_the_patch_raises(tmpdir_env, monkeypatch,
         args = [str(arg) for arg in args]
         if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
             return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
-        if args[:3] == ["gh", "issue", "view"]:
-            return subprocess.CompletedProcess(args, 0, "## Blocked by\n\nNone\n", "")
+        if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
+            return subprocess.CompletedProcess(args, 0, '{"body": "## Blocked by\\n\\nNone\\n"}', "")
         if args[:4] == ["gh", "api", "-X", "PATCH"]:
             raise PatchDied()
         raise AssertionError("unexpected command: %r" % (args,))
@@ -141,8 +146,6 @@ def test_main_falls_back_to_rest_when_graphql_refuses_the_read_and_patches_a_nul
                 return subprocess.CompletedProcess(args, 0, rest_answer, "")
             if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
                 return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
-            if args == ["gh", "issue", "view", "60", "--json", "body", "-q", ".body"]:
-                return subprocess.CompletedProcess(args, 1, "", "GraphQL refused\n")
             if args[:4] == ["gh", "api", "-X", "PATCH"]:
                 path = args[args.index("-F") + 1].split("body=@", 1)[1]
                 seen["body"] = pathlib.Path(path).read_text()
@@ -171,8 +174,8 @@ def test_main_files_the_issue_blocks_the_refactor_issue_on_it_prints_the_url_and
         calls.append(args)
         if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
             return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
-        if args[:3] == ["gh", "issue", "view"]:
-            return subprocess.CompletedProcess(args, 0, "## Blocked by\n\nNone\n", "")
+        if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
+            return subprocess.CompletedProcess(args, 0, '{"body": "## Blocked by\\n\\nNone\\n"}', "")
         raise AssertionError("unexpected command: %r" % (args,))
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -186,7 +189,7 @@ def test_main_files_the_issue_blocks_the_refactor_issue_on_it_prints_the_url_and
          "-f", "title=Cover the behaviour #60 refactors",
          "-f", "body=Refactor #60 refused: its Cover probe found the code it would move uncovered (`COVERED: no`). Find a seam and surround the behaviour with tests, then #60 can be retaken.",
          "-q", ".html_url"],
-        ["gh", "issue", "view", "60", "--json", "body", "-q", ".body"],
+        ["gh", "api", "repos/{owner}/{repo}/issues/60"],
         ["gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/60", "-F", "body=@<file>"],
     ]
     assert seen["body"] == "## Blocked by\n\n- #77\n"
@@ -201,8 +204,8 @@ def test_main_rewrites_every_blocked_by_section_replacing_none_lines_and_inserti
             args = [str(arg) for arg in args]
             if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
                 return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
-            if args == ["gh", "issue", "view", "60", "--json", "body", "-q", ".body"]:
-                return subprocess.CompletedProcess(args, 0, body, "")
+            if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
+                return subprocess.CompletedProcess(args, 0, json.dumps({"body": body}), "")
             if args[:4] == ["gh", "api", "-X", "PATCH"]:
                 path = args[args.index("-F") + 1].split("body=@", 1)[1]
                 seen["body"] = pathlib.Path(path).read_bytes()
@@ -243,8 +246,8 @@ def test_main_blocks_on_whatever_the_create_answers_ignores_extra_arguments_and_
                 elif stream != subprocess.PIPE:
                     err = None
                 return subprocess.CompletedProcess(args, create_code, create_answer, err)
-            if args[:3] == ["gh", "issue", "view"]:
-                return subprocess.CompletedProcess(args, 0, "## Blocked by\n\nNone\n", "")
+            if len(args) == 3 and args[2].startswith("repos/{owner}/{repo}/issues/"):
+                return subprocess.CompletedProcess(args, 0, '{"body": "## Blocked by\\n\\nNone\\n"}', "")
             raise AssertionError("unexpected command: %r" % (args,))
 
         monkeypatch.setattr(subprocess, "run", fake_run)
@@ -261,7 +264,7 @@ def test_main_blocks_on_whatever_the_create_answers_ignores_extra_arguments_and_
     code, out, err, body, calls = run(["abc", "extra"], "https://github.com/owner/name/issues/77\n")
     assert (code, out, err, body) == (0, "https://github.com/owner/name/issues/77\n", "", "## Blocked by\n\n- #77\n")
     assert calls[1][:5] == ["gh", "api", "repos/{owner}/{repo}/issues", "-f", "title=Cover the behaviour #abc refactors"]
-    assert calls[2] == ["gh", "issue", "view", "abc", "--json", "body", "-q", ".body"]
+    assert calls[2] == ["gh", "api", "repos/{owner}/{repo}/issues/abc"]
     assert calls[3] == ["gh", "api", "-X", "PATCH", "repos/{owner}/{repo}/issues/abc"]
     assert not any("extra" in arg for call in calls for arg in call)
 
@@ -287,8 +290,6 @@ def test_main_reads_the_body_over_rest_when_the_view_fails_dropping_its_stderr_a
         def fake_run(args, **kwargs):
             args = [str(arg) for arg in args]
             calls.append(args)
-            if args == ["gh", "issue", "view", "60", "--json", "body", "-q", ".body"]:
-                return answer(args, kwargs, 1, "", "GraphQL: refused\n")
             if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
                 return answer(args, kwargs, rest_code, rest_answer, rest_err)
             if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
@@ -333,10 +334,6 @@ def test_main_rerun_after_a_first_run_that_filed_then_failed_files_no_second_iss
 
     def fake_run(args, **kwargs):
         args = [str(arg) for arg in args]
-        if args[:3] == ["gh", "issue", "view"] and args[3] == "60":
-            if read_fails["on"]:
-                return subprocess.CompletedProcess(args, 1, "", "GraphQL refused\n")
-            return subprocess.CompletedProcess(args, 0, issues[60]["body"], "")
         if args[:3] == ["gh", "issue", "list"]:
             return subprocess.CompletedProcess(args, 0, json.dumps(listing()), "")
         if args[:4] == ["gh", "api", "-X", "PATCH"]:
@@ -371,3 +368,35 @@ def test_main_rerun_after_a_first_run_that_filed_then_failed_files_no_second_iss
     assert first == 2
     assert (second, out, len(covers), seen.get("body")) == (
         0, "https://github.com/owner/name/issues/77\n", 1, "## Blocked by\n\n- #77\n")
+
+
+def test_main_reads_the_body_over_rest_only_with_no_issue_view_call_when_veri_gh_driver_is_unset(tmpdir_env, monkeypatch, capsys, coverage_blocker):
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    calls = []
+    seen = {}
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        calls.append(args)
+        if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
+            return subprocess.CompletedProcess(args, 0, '{"body": "## Blocked by\\n\\nNone\\n"}', "")
+        if args[:3] == ["gh", "issue", "view"]:
+            return subprocess.CompletedProcess(args, 0, "## Read over GraphQL\n", "")
+        if args[:4] == ["gh", "api", "-X", "PATCH"]:
+            path = args[args.index("-F") + 1].split("body=@", 1)[1]
+            seen["body"] = pathlib.Path(path).read_text()
+            return subprocess.CompletedProcess(args, 0, "{}", "")
+        if args[:2] == ["gh", "api"] and args[2].startswith("repos/{owner}/{repo}/issues"):
+            if "-f" in args and any(arg.startswith("title=") for arg in args):
+                return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code = coverage_blocker.main(["60"])
+
+    assert [call for call in calls if call[:3] == ["gh", "issue", "view"]] == []
+    assert ["gh", "api", "repos/{owner}/{repo}/issues/60"] in calls
+    assert (code, capsys.readouterr().out, seen.get("body")) == (
+        0, "https://github.com/owner/name/issues/77\n", "## Blocked by\n\n- #77\n")
