@@ -9,3 +9,4 @@
 ### `prompts/develop-revise.md` spells the working-tree call `affected-suites.sh HEAD`, pinned as text in the style of the existing prompt suites ⟦criterion 6⟧
 - test-only | fold the three identical `#990 … spells the working-tree call affected-suites.sh HEAD` cases in skills/tdd/scripts/tests/build-develop-prompt.test.sh (red, green, revise) into one helper called once per phase
 applied | 2130b6c1d | once develop-green.md and develop-revise.md spell the same "`affected-suites.sh HEAD` … build no commit, stash or worktree" clause, extract it into a shared `_*.md` partial; not yet duplicated in this cycle
+applied | d995a20417dacb4af725f128553a8ee956d46d33 | rename `range_` in `veri/affected_suites.py` `main` and `changed` (around lines 111–137): since this cycle it can hold a bare `<base>`, not only a `<base>..<head>` range, so the name now misleads. Rename only, so it is not applied here.
