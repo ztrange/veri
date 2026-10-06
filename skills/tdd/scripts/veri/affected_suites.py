@@ -69,6 +69,10 @@ def basename(path, suffix=""):
     return name
 
 
+def existing(path):
+    return [path] if os.path.isfile(path) else []
+
+
 def suite_of(f):
     def match(*patterns):
         return any(fnmatch.fnmatchcase(f, p) for p in patterns)
@@ -92,16 +96,12 @@ def suite_of(f):
         return found
     if match(SCRIPTS + "/veri/*.py"):
         name = basename(f, ".py")
-        pytest_suite = "%s/tests/py/test_%s.py" % (SCRIPTS, name)
-        found = [pytest_suite] if os.path.isfile(pytest_suite) else []
-        return found + suite_of("%s/%s.sh" % (SCRIPTS, name.replace("_", "-")))
+        return (existing("%s/tests/py/test_%s.py" % (SCRIPTS, name))
+                + suite_of("%s/%s.sh" % (SCRIPTS, name.replace("_", "-"))))
     if match(SCRIPTS + "/*.sh"):
         name = basename(f, ".sh")
-        unit_suite = "%s/tests/unit/%s.test.sh" % (SCRIPTS, name)
-        if os.path.isfile(unit_suite):
-            return [unit_suite]
-        suite = "%s/tests/%s.test.sh" % (SCRIPTS, name)
-        return [suite] if os.path.isfile(suite) else []
+        return (existing("%s/tests/unit/%s.test.sh" % (SCRIPTS, name))
+                or existing("%s/tests/%s.test.sh" % (SCRIPTS, name)))
     if match(".tdd/*"):
         return []
     raise Unplaced(f)
