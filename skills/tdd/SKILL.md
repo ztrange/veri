@@ -1645,7 +1645,12 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    $S/refactor-overflow.sh <n> .tdd/issue-<n>-refactor-owed.md <taken> <skipped-file>   # → <overflow-url>
    ```
-   With nothing skipped, a pass that ends `candidates-done` or `nothing-structural` files nothing.
+   With nothing skipped, a pass that ends `candidates-done` or `nothing-structural` files nothing
+   but the owed file's out-of-scope candidates, still handed to `refactor-overflow.sh` with
+   `<taken>` being every candidate it took up:
+   ```
+   $S/refactor-overflow.sh <n> .tdd/issue-<n>-refactor-owed.md <taken>   # exit 3 ⇒ nothing to file
+   ```
    The filing applies no label to this issue and commits no debt file: the PR body's owed
    list is the record.
    No candidate — `list` exits 3, and a missing `.tdd/issue-<n>-refactor-owed.md` is the
@@ -1653,6 +1658,12 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    before the PR is readied:
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh structural-pass stopped=nothing-structural
+   ```
+   A candidate recorded out-of-scope is never listed either, so it launches no leaf; when
+   `list` exits 3 the owed file's out-of-scope candidates are still handed to
+   `refactor-overflow.sh` with `<taken>` 0, and filed as `Refactor owed by #<n>`:
+   ```
+   $S/refactor-overflow.sh <n> .tdd/issue-<n>-refactor-owed.md 0   # exit 3 ⇒ nothing to file
    ```
 2. **Mark the PR ready for review and read its CI, then close the run's log with the PR's
    URL, render the metrics, commit them, and rewrite the PR into its final form** — one
