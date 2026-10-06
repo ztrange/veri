@@ -15,13 +15,6 @@ USAGE = "usage: coverage-blocker.sh <refactor-issue-number>"
 ISSUES = "repos/{owner}/{repo}/issues"
 
 
-def read_body(number):
-    try:
-        return gh_issue_view(number, "body")
-    except NoAnswer:
-        return None
-
-
 def existing(title):
     try:
         pages = documents(gh_rest_list(ISSUES + "?state=open&per_page=100"))
@@ -68,8 +61,9 @@ def main(argv):
             url = gh_issue_create(title, text).rstrip("\n")
         except NoAnswer:
             return 2
-    body = read_body(n)
-    if body is None:
+    try:
+        body = gh_issue_view(n, "body")
+    except NoAnswer:
         return 2
     fd, tmp = tempfile.mkstemp()
     try:
