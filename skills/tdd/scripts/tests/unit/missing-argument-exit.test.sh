@@ -133,8 +133,7 @@ migration_slice() {  # migration_slice <n> <script> … — the slice's case, ov
   verdict "$name" "${offenders[@]}"
 }
 
-migration_slice 1 build-develop-prompt.sh build-verify-prompt.sh \
-  clear-refactor-pending.sh
+migration_slice 1 build-develop-prompt.sh build-verify-prompt.sh
 migration_slice 2 cover-outcome.sh \
   detach-command.sh detach-leaf.sh
 migration_slice 3 event.sh

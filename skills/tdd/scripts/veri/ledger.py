@@ -61,3 +61,13 @@ def ledger_tick(text, matcher, pending=False):
             lines[i] = f"{match.group(1)}[x]{match.group(3) or ''}{PENDING_MARK if pending else ''}"
             return True, "\n".join(lines)
     return False, text
+
+
+def ledger_clear_pending(text, matcher):
+    """(True, text with the first line holding matcher cleared of the mark), or (False, text)."""
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        if matcher in line:
+            lines[i] = line.removesuffix(PENDING_MARK)
+            return True, "\n".join(lines)
+    return False, text
