@@ -3,8 +3,14 @@ import re
 import sys
 
 CANDIDATE = re.compile(rb"^CANDIDATES:\s*(.*)$")
-STRUCTURAL = re.compile(rb"^CANDIDATES:\s*structural\s*[|]\s*(.*)$")
-COSMETIC = re.compile(rb"^CANDIDATES:\s*cosmetic\s*[|]\s*(.*)$")
+
+
+def _candidate(cls):
+    return re.compile(rb"^CANDIDATES:\s*" + cls + rb"\s*[|]\s*(.*)$")
+
+
+STRUCTURAL = _candidate(rb"structural")
+COSMETIC = _candidate(rb"cosmetic")
 NONE = re.compile(rb"^none\s*$")
 
 
