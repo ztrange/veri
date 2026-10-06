@@ -1,2 +1,4 @@
 ### When pulls/<n>/ccr/ready_for_review is refused with a 404 and the GraphQL-over-gh-api route then readies the PR, gh_pr_ready exits 0 and its stderr carries no HTTP 404 line ⟦criterion 1⟧
 - test-only | fold case 16's `gh` mock in `skills/tdd/scripts/tests/unit/github.test.sh` into case 14 (its stub is case 14's minus the `*graphql*` arm). Case 14 could then assert there is no `HTTP 404` on stderr, or both cases could share one stub function.
+### When the ccr/ready_for_review route and the GraphQL-over-gh-api route both fail, gh_pr_ready exits 2 and its stderr carries each route's own failure message ⟦criterion 2⟧
+- test-only | the `gh` stubs in cases 16 and 17 of `skills/tdd/scripts/tests/unit/github.test.sh` are the same except for the `*markPullRequestReadyForReview*` arm. A shared stub whose GraphQL-mutation outcome is a parameter would remove that duplication.
