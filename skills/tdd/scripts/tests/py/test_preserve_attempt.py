@@ -208,3 +208,48 @@ def test_main_names_the_ref_by_the_first_matching_step_and_keeps_the_argument_wh
         ("unreadable", 0, ["refs/veri/attempts/409/abcd/develop-green-1"],
          "preserve-attempt.sh: .tdd/issue-409.md: Input/output error\n"),
     ]
+
+
+def test_main_sanitises_the_step_ref_per_byte_or_per_character_by_lc_all_then_lc_ctype_then_lang(
+        monkeypatch, tmp_path, preserve_attempt):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    monkeypatch.chdir(repo)
+    update_refs = []
+
+    def fake_run(args, *_, **__):
+        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+        if line.startswith("git rev-parse --show-toplevel"):
+            return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+        if line.startswith("git write-tree"):
+            return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+        if line.startswith("git commit-tree"):
+            return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
+        if line.startswith("git update-ref"):
+            update_refs.append(str(args[2]))
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    def scenario(lc_all, lc_ctype, lang):
+        for name, value in (("LC_ALL", lc_all), ("LC_CTYPE", lc_ctype), ("LANG", lang)):
+            if value is None:
+                monkeypatch.delenv(name, raising=False)
+            else:
+                monkeypatch.setenv(name, value)
+        del update_refs[:]
+        code = preserve_attempt.main(["409", "a—b ⟦x⟧/c'd", "develop-green", "1"])
+        return code, list(update_refs)
+
+    by_byte = (0, ["refs/veri/attempts/409/a---b----x----c-d/develop-green-1"])
+    by_char = (0, ["refs/veri/attempts/409/a-b--x--c-d/develop-green-1"])
+    answers = [
+        scenario("C", "en_US.UTF-8", "en_US.UTF-8"),
+        scenario("en_US.UTF-8", "C", "C"),
+        scenario(None, "C", "en_US.UTF-8"),
+        scenario(None, "en_US.UTF-8", "C"),
+        scenario(None, None, "en_US.UTF-8"),
+        scenario(None, None, None),
+    ]
+
+    assert answers == [by_byte, by_char, by_byte, by_char, by_char, by_byte]
