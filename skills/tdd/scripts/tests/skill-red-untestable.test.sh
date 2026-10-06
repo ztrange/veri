@@ -27,8 +27,8 @@ source "$HERE/lib/plain.sh"
 
 
 doc_text() {
-  from="${2:-}" awk -v h="$1" '
-    BEGIN { from = ENVIRON["from"] }
+  h="$1" from="${2:-}" awk '
+    BEGIN { h = ENVIRON["h"]; from = ENVIRON["from"] }
     !in_s && index($0, h) == 1 { in_s = 1; if (from == "") want = 1; next }
     in_s && /^#/ { exit }
     in_s {
