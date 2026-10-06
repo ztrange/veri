@@ -20,5 +20,5 @@
 - [ ] the PR body lists the criterion-2 pair: the cut '--refactor-pending ticks through lib/ledger.sh's ledger_tick … pending' case beside its tests/py/test_tick_ledger.py and tests/py/test_ledger.py replacements ⟦human-owed⟧ ⟦criterion 2⟧
 - [ ] the PR body lists the criterion-3 pair and says beside it that the module has no foreign status to map ⟦human-owed⟧ ⟦criterion 3⟧
 - [ ] the PR body lists each cut tests/tick-ledger.test.sh case beside the tests/py/test_tick_ledger.py case that replaced it, and quotes `make profile` for tests/tick-ledger.test.sh plus the wall time of tests/py/test_tick_ledger.py before and after, with the commit beside each figure ⟦human-owed⟧ ⟦criterion 6⟧
-- [ ] make test is green, every remaining case of tests/tick-ledger.test.sh among its suites ⟦full-suite⟧ ⟦criterion 4⟧
-- [ ] make test is green, tests/unit/emitted-text.test.sh, tests/unit/missing-argument-exit.test.sh and tests/unit/exit-contract.test.sh passing under the unit-tier guard and tests/py/test_comment_class.py in the pytest leg ⟦full-suite⟧ ⟦criterion 7⟧
+- [x] make test is green, every remaining case of tests/tick-ledger.test.sh among its suites ⟦full-suite⟧ ⟦criterion 4⟧
+- [x] make test is green, tests/unit/emitted-text.test.sh, tests/unit/missing-argument-exit.test.sh and tests/unit/exit-contract.test.sh passing under the unit-tier guard and tests/py/test_comment_class.py in the pytest leg ⟦full-suite⟧ ⟦criterion 7⟧
