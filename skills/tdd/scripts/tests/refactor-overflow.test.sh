@@ -375,4 +375,37 @@ done
 
 report "$name"
 
+name="#992 refactor-overflow <n> <owed-file> 0 over an owed file holding only an out-of-scope candidate files one 'Refactor owed by #<n>' issue whose body lists that transform"
+problems=()
+
+out_of_scope_owed="$work/issue-992-refactor-owed.md"
+"$OWED" append "$out_of_scope_owed" 'first step' <<'REPORT'
+CANDIDATES: out-of-scope | extract the five copies of the mktemp dance across the skill
+REPORT
+
+: > "$calls"
+title_file="$work/title-out-of-scope" body_file="$work/body-out-of-scope"
+(cd "$work" && env PATH="$stubdir:$PATH" FAKE_CALLS="$calls" FAKE_TITLE="$title_file" FAKE_BODY="$body_file" \
+  "$OVERFLOW" 992 "$out_of_scope_owed" 0 >"$out" 2>"$work/err") && code=0 || code=$?
+
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 with one out-of-scope candidate owed, got $code: $(cat "$work/err")")
+printed="$(cat "$out")"
+[[ "$printed" == "https://github.com/owner/name/issues/912" ]] ||
+  problems+=("want the new issue's URL on stdout, got '$printed'")
+filings="$(grep -cE '^(issue create|api repos/)' "$calls")"
+[[ "$filings" == 1 ]] ||
+  problems+=("want exactly one gh call filing the issue, got $filings: '$(cat "$calls")'")
+title="$(cat "$title_file" 2>/dev/null)"
+[[ "$title" == "Refactor owed by #992" ]] ||
+  problems+=("want the filed title 'Refactor owed by #992', got '$title'")
+body="$(cat "$body_file" 2>/dev/null)"
+[[ "$body" == *"extract the five copies of the mktemp dance across the skill"* ]] ||
+  problems+=("want the out-of-scope transform in the filed issue's body, got '$body'")
+bullets="$(grep -E '^- ' <<<"$body")"
+[[ "$bullets" == "- extract the five copies of the mktemp dance across the skill" ]] ||
+  problems+=("want the body to list exactly one bullet, the transform, got '$bullets'")
+
+report "$name"
+
 finish
