@@ -251,4 +251,13 @@ left="$(ls -A "$outside/tmp")"
   && ok || no "outside a git work tree prints exactly one stderr line naming preserve-attempt.sh and saying it is not in a git work tree, makes no scratch directory and runs no git add (#1030) (err='$err' left='$left' verbs='$verbs')"
 
 
+repo="$work/refformat"
+dirty_repo "$repo"
+preserve "$repo" 409 "a—b ⟦x⟧/c'd e" develop-green 1 >/dev/null 2>&1; code=$?
+made="$(git_q "$repo" for-each-ref --format='%(refname)' refs/veri/attempts/409/ 2>&1)"
+git_q "$repo" check-ref-format "$made" >/dev/null 2>&1; accepted=$?
+{ [[ "$code" == 0 ]] && [[ "$(printf '%s\n' "$made" | wc -l | tr -d ' ')" == 1 ]] && [[ "$accepted" == 0 ]]; } \
+  && ok || no "for a step holding multi-byte characters, '/', an apostrophe and spaces creates one ref git check-ref-format accepts (#1032) (code=$code made='$made' accepted=$accepted)"
+
+
 finish
