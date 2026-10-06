@@ -75,7 +75,7 @@ if git -C "$base" remote get-url origin >/dev/null 2>&1; then
   fetches=1
   until fetch_err="$(git -C "$base" fetch -q origin 2>&1)"; do
     printf '%s\n' "$fetch_err" >&2
-    [[ "$fetch_err" == *"cannot lock ref"* ]] && (( fetches++ < 5 )) ||
+    [[ "$fetch_err" == *"cannot lock ref"* ]] && (( fetches++ < 60 )) ||
       { echo "run-conductor: fetch of origin failed in '$base' — refusing to run a skill that may be stale" >&2; exit 2; }
     sleep "${VERI_FETCH_RETRY_SLEEP:-1}"
   done

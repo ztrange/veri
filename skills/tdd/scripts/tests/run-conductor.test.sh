@@ -1462,6 +1462,55 @@ grep -F -- "$tip36" "$prompt" > /dev/null 2>&1 ||
 
 report "$name"
 
+name="a ref lock still held when the fifth fetch runs, and released only after it, lets the conductor start pinned to origin's tip (#1012)"
+problems=()
+
+src1012="$work/src1012"
+remote1012="$work/remote1012"
+clone1012="$work/clone1012"
+skill_clone "$src1012"
+git clone -q --bare "$src1012" "$remote1012"
+git clone -q "$remote1012" "$clone1012"
+branch1012="$(git -C "$remote1012" symbolic-ref --short HEAD)"
+advance_clone "$src1012" "# a commit a slow parallel fetch is bringing in"
+git -C "$src1012" push -q "$remote1012" "HEAD:$branch1012"
+tip1012="$(git -C "$remote1012" rev-parse HEAD)"
+
+lock1012="$clone1012/.git/refs/remotes/origin/$branch1012.lock"
+: > "$lock1012"
+
+shim1012="$work/shim1012"
+fetches1012="$work/fetches1012"
+mkdir -p "$shim1012"
+cat > "$shim1012/git" <<SHIM
+#!/bin/sh
+"$(command -v git)" "\$@"
+status=\$?
+case " \$* " in
+  *" fetch "*)
+    echo fetch >> "$fetches1012"
+    [ "\$(wc -l < "$fetches1012")" -ge 5 ] && rm -f "$lock1012" ;;
+esac
+exit \$status
+SHIM
+chmod +x "$shim1012/git"
+
+caller1012="$work/caller1012"
+caller_repo "$caller1012"
+
+rm -f "$argv" "$prompt"
+launch_from "$caller1012" "$clone1012" PATH="$shim1012:$PATH" VERI_FETCH_RETRY_SLEEP=0
+status=$?
+
+[[ "$status" -eq 0 ]] ||
+  problems+=("the launch exited $status, not 0, although the ref lock was released after its fifth fetch — stderr was: '$(tr '\n' ' ' < "$launch_err")'")
+[[ -f "$argv" ]] ||
+  problems+=("no conductor was launched")
+grep -F -- "$tip1012" "$prompt" > /dev/null 2>&1 ||
+  problems+=("the conductor's prompt does not name origin's tip $tip1012 as the pinned skill commit")
+
+report "$name"
+
 name="a conductor that exits with .tdd/wt/<n> registered as a worktree keeps the skill record, and the next launch runs the recorded commit (#866)"
 problems=()
 
