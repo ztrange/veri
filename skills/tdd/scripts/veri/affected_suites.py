@@ -43,13 +43,12 @@ def every_suite():
             if os.path.isfile(s)]
 
 
+def suites_matching(pattern):
+    return [s for s in every_suite() if re.search(pattern, read(s) or b"")]
+
+
 def suites_naming(*needles):
-    found = []
-    for suite in every_suite():
-        text = read(suite)
-        if text is not None and any(n.encode() in text for n in needles):
-            found.append(suite)
-    return found
+    return suites_matching(b"|".join(re.escape(n.encode()) for n in needles))
 
 
 def has_line(path, pattern):
@@ -102,8 +101,7 @@ def suite_of(f):
         name = basename(f, ".sh")
         return (existing("%s/tests/unit/%s.test.sh" % (SCRIPTS, name))
                 or existing("%s/tests/%s.test.sh" % (SCRIPTS, name))
-                or [s for s in every_suite()
-                    if re.search(rb"(?<!lib)/" + re.escape(name.encode()) + rb"\.sh", read(s) or b"")])
+                or suites_matching(rb"(?<!lib)/" + re.escape(name.encode()) + rb"\.sh"))
     if match(".tdd/*"):
         return []
     raise Unplaced(f)
