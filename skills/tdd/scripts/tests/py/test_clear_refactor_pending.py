@@ -1,4 +1,5 @@
 """In-process cases for veri/clear_refactor_pending.py, the module clear-refactor-pending.sh is a shim over."""
+import builtins
 import importlib
 import os
 import pathlib
@@ -224,3 +225,33 @@ def test_main_writes_the_ledger_in_place_keeping_a_symlink_a_symlink_and_reading
     assert (link.is_symlink(), target.read_bytes()) == (True, b"- [x] a\n")
     assert (cwd / "relative.md").read_bytes() == b"- [x] a\n"
     assert (tmp_path / "relative.md").read_bytes() == seed
+
+
+def test_main_raises_rather_than_returning_a_code_on_a_missing_ledger_a_directory_and_a_refused_write_back_leaving_the_refused_ledger_byte_identical(
+        tmp_path, monkeypatch, clear_refactor_pending):
+    missing = tmp_path / "missing.md"
+    directory = tmp_path / "directory.md"
+    directory.mkdir()
+    seed = "- [x] a ⟂ refactor pending\n".encode()
+    refused = tmp_path / "refused.md"
+    refused.write_bytes(seed)
+    real_open = builtins.open
+
+    def refusing_open(file, mode="r", *args, **kwargs):
+        if os.fspath(file) == str(refused) and "w" in mode:
+            raise PermissionError(13, "Permission denied", str(refused))
+        return real_open(file, mode, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", refusing_open)
+    raised = {}
+    for name, led in (("missing", missing), ("directory", directory), ("refused", refused)):
+        with pytest.raises(OSError) as caught:
+            clear_refactor_pending.main([str(led), "a"])
+        raised[name] = type(caught.value)
+
+    assert raised == {
+        "missing": FileNotFoundError,
+        "directory": IsADirectoryError,
+        "refused": PermissionError,
+    }
+    assert refused.read_bytes() == seed
