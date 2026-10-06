@@ -130,3 +130,15 @@ def test_main_raises_out_of_main_on_a_missing_ledger_and_on_a_directory_rather_t
         tick_ledger.main([str(tmp_path / "missing.md"), "a"])
     with pytest.raises(IsADirectoryError):
         tick_ledger.main([str(tmp_path), "a"])
+
+
+def test_main_ticks_a_criterion_notation_step_by_a_matcher_carrying_its_criterion_marker_and_marks_it_refactor_pending(
+        tmp_path, capsysbinary, tick_ledger):
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes("- [x] add lowercasing ⟦criterion 1⟧\n- [ ] collapse to single hyphen ⟦criterion 1⟧\n"
+                       "- [ ] strip edge hyphens\n".encode())
+    code = tick_ledger.main(["--refactor-pending", str(ledger), "collapse to single hyphen ⟦criterion 1⟧"])
+    out, _ = capsysbinary.readouterr()
+
+    assert (code, out, ledger.read_bytes().decode().split("\n")[1]) == (
+        0, b"", "- [x] collapse to single hyphen ⟦criterion 1⟧ ⟂ refactor pending")
