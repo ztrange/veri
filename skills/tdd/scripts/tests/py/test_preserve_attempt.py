@@ -110,3 +110,41 @@ def test_main_returns_1_with_its_could_not_preserve_line_and_no_copy_when_update
             " to refs/veri/attempts/409/3/develop-green-1")
     assert (code, captured.out, captured.err.splitlines()[-1:], (repo / ".tdd" / "attempts").exists()) == (
         1, "", [line], False)
+
+
+def test_main_names_the_ref_by_the_ledger_index_ledger_steps_gives_the_step_past_prose_and_star_lines(
+        monkeypatch, tmp_path, preserve_attempt):
+    from veri.ledger import ledger_steps
+
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    step = "keep the leaf's output under refs/veri"
+    ledger = (
+        "# Plan for #409\n"
+        f"Prose first: {step}, never the branch.\n"
+        f"* [ ] {step}\n"
+        "- [x] an earlier step ⟦criterion 1⟧\n"
+        f"- [ ] {step} ⟦criterion 2⟧\n"
+    )
+    (repo / ".tdd" / "issue-409.md").write_text(ledger)
+    monkeypatch.chdir(repo)
+    update_refs = []
+
+    def fake_run(args, *_, **__):
+        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+        if line.startswith("git rev-parse --show-toplevel"):
+            return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+        if line.startswith("git write-tree"):
+            return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+        if line.startswith("git commit-tree"):
+            return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
+        if line.startswith("git update-ref"):
+            update_refs.append(str(args[2]))
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code = preserve_attempt.main(["409", step, "develop-green", "1"])
+
+    index = next(record[0] for record in ledger_steps(ledger) if step in record[6])
+    assert (index, code, update_refs) == ("2", 0, ["refs/veri/attempts/409/2/develop-green-1"])

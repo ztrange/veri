@@ -5,6 +5,8 @@ import subprocess
 import sys
 import tempfile
 
+from ledger import ledger_steps
+
 USAGE = "usage: preserve-attempt.sh <issue> <step> <phase> <attempt> [<mark>]"
 
 
@@ -25,11 +27,20 @@ def main(argv):
             return mapped(result.returncode)
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
-    ref = f"refs/veri/attempts/{issue}/{step}/{phase}-{attempt}"
+    ref = f"refs/veri/attempts/{issue}/{ledger_step_index(issue, step)}/{phase}-{attempt}"
     if git("update-ref", ref, result.stdout.strip(), capture=False).returncode != 0:
         print(f"preserve-attempt.sh: could not preserve {coords} to {ref}", file=sys.stderr)
         return 1
     return 0
+
+
+def ledger_step_index(issue, step):
+    ledger = os.path.join(".tdd", f"issue-{issue}.md")
+    if not os.path.isfile(ledger):
+        return step
+    with open(ledger, "rb") as f:
+        text = f.read().decode(errors="surrogateescape")
+    return next((record[0] for record in ledger_steps(text) if step in record[6]), step)
 
 
 def git(*args, env=None, capture=True):
