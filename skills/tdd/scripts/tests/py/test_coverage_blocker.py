@@ -432,3 +432,28 @@ def test_main_falls_back_from_a_refused_issue_view_to_the_rest_read_and_patches_
     assert reads == [["gh", "issue", "view", "60", "--json", "body", "-q", ".body"], ["gh", "api", "repos/{owner}/{repo}/issues/60"]]
     assert (code, capsys.readouterr().out, seen.get("body")) == (
         0, "https://github.com/owner/name/issues/77\n", "## Blocked by\n\n- #12\n- #77\n")
+
+
+def test_main_returns_2_with_no_patch_and_no_traceback_when_the_rest_read_exits_nonzero_with_a_json_error_body_and_no_body_key(tmpdir_env, monkeypatch, capfd, coverage_blocker):
+    calls = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        calls.append(args)
+        if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
+            return subprocess.CompletedProcess(args, 1, '{"message":"Not Found"}', "gh: Not Found (HTTP 404)\n")
+        if args[:4] == ["gh", "api", "-X", "PATCH"]:
+            return subprocess.CompletedProcess(args, 0, "{}", "")
+        if args[:2] == ["gh", "api"] and args[2].startswith("repos/{owner}/{repo}/issues"):
+            if any(arg.startswith("title=") for arg in args):
+                return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code = coverage_blocker.main(["60"])
+
+    captured = capfd.readouterr()
+    assert [call for call in calls if call[:4] == ["gh", "api", "-X", "PATCH"]] == []
+    assert (code, captured.out, "Traceback" in captured.err) == (2, "", False)
