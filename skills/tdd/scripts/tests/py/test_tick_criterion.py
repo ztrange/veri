@@ -104,3 +104,21 @@ def test_main_reads_the_matcher_from_argv_0_alone_and_returns_3_writing_nothing_
         ("a",): (0, b"- [ ] b\n- [x] a\n", b""),
         "empty stdin": (3, b"", b""),
     }
+
+
+def test_main_passes_a_non_utf8_byte_through_and_drops_a_nul_as_bash_read_does(
+        monkeypatch, capsysbinary, tick_criterion):
+    cases = {
+        "non-utf8": (["a"], b"- [ ] a\xff\n\xff untouched\n"),
+        "nul": (["a"], b"- [ ] a\0z"),
+    }
+    results = {}
+    for name, (argv, body) in cases.items():
+        fake_stdin(monkeypatch, body)
+        code = tick_criterion.main(argv)
+        results[name] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        "non-utf8": (0, b"- [x] a\xff\n\xff untouched\n", b""),
+        "nul": (0, b"- [x] az", b""),
+    }
