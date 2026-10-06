@@ -201,3 +201,60 @@ def test_main_lets_an_unexpected_failure_escape_as_an_exception_with_stdin_or_st
     monkeypatch.setattr(sys, "stdout", None)
     with pytest.raises(Exception):
         refactor_triage.main([])
+
+
+def test_main_answers_the_six_contract_cases_of_refactor_triage_test_sh_in_process(
+        monkeypatch, capsysbinary, refactor_triage):
+    def run(report):
+        fake_stdin(monkeypatch, report)
+        code = refactor_triage.main([])
+        return (code, *capsysbinary.readouterr())
+
+    structural = (b'RESULT: applied "fold verify.sh\'s two prompt paths into one", suite green\n'
+                  b"FLAGS: none\n"
+                  b"CANDIDATES: structural | fold verify.sh's two mktemp calls into one helper\n"
+                  b"CANDIDATES: cosmetic | reflow the header comment to ninety columns\n"
+                  b"CANDIDATES: structural | rename $tmp to $prompt_file, which is what it holds\n")
+    code, out, _ = run(structural)
+    assert (code, out) == (
+        0, b"fold verify.sh's two mktemp calls into one helper\n"
+           b"rename $tmp to $prompt_file, which is what it holds\n")
+
+    applied = b'RESULT: applied "inline the single-use $phase_label variable", suite green\nFLAGS: none\n'
+    for report in (
+            b'RESULT: applied "extract the two mktemp calls into one helper", suite green\nFLAGS: none\n'
+            b"CANDIDATES: cosmetic | reflow the header comment to ninety columns\n"
+            b"CANDIDATES: cosmetic | re-cite SKILL.md's Refactor entry by section, not line\n",
+            applied + b"CANDIDATES: none\n"):
+        assert run(report)[0] == 3
+
+    extracted = b'RESULT: applied "extract the two mktemp calls into one helper", suite green\nFLAGS: none\n'
+    for report in (
+            extracted + b"CANDIDATES: fold verify.sh's two prompt paths into one\n",
+            extracted + b"CANDIDATES: cosmic | reflow the header comment to ninety columns\n",
+            applied):
+        code, out, err = run(report)
+        assert (code, out) == (2, b"")
+        assert err != b""
+
+    assert run(applied
+               + b"CANDIDATES: test-only | fold the suite's three mktemp fixtures into one helper\n"
+               + b"CANDIDATES: test-only | rename the suite's $out to $stdout_file\n")[0] == 3
+    code, out, _ = run(applied
+                       + b"CANDIDATES: test-only | fold the suite's three mktemp fixtures into one helper\n"
+                       + b"CANDIDATES: structural | fold verify.sh's two mktemp calls into one helper\n")
+    assert (code, out) == (0, b"fold verify.sh's two mktemp calls into one helper\n")
+
+    new_steps = (b"NEW_STEP: the parser accepts a second header field\n"
+                 b"NEW_STEP: the parser rejects a header field it has no name for\n")
+    for report in (
+            b'RESULT: applied "inline the single-use $phase_label variable", suite green\n'
+            b"CANDIDATES: structural | fold the two mktemp calls into one helper\n",
+            b'RESULT: applied "inline the single-use $phase_label variable", suite green\nCANDIDATES: none\n',
+            b'RESULT: applied "inline the single-use $phase_label variable", suite green\n'):
+        assert run(report + new_steps)[0] == run(report)[0]
+
+    code, out, _ = run(b'RESULT: applied "inline the single-use variable", suite green\nFLAGS: none\n'
+                       b"CANDIDATES: out-of-scope | extract the shared mktemp helper across scripts "
+                       b"outside this issue's files\n")
+    assert (code, out) == (3, b"")
