@@ -1,0 +1,2 @@
+### `refactor-overflow.sh <n> <owed-file> 0` over an owed file holding only an out-of-scope candidate files one `Refactor owed by #<n>` issue whose body lists that transform (gh faked) ⟦criterion 3⟧
+- move the out-of-scope mark-stripping that `refactor_overflow.py:36-37` repeats from `render` (`refactor_owed.py:102-105`) into one `refactor_owed` helper that returns a file's out-of-scope transforms, missing-file guard included. It would change both modules, so it is a cross-file move rather than duplication removal within this cycle
