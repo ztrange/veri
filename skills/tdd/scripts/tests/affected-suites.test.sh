@@ -561,4 +561,13 @@ if [[ "$code" == 0 && "$out" == "skills/tdd/scripts/tests/foo.test.sh" && "$afte
   diff <(printf '%s\n' "$before") <(printf '%s\n' "$after") | sed 's/^/    /'
 fi
 
+make_repo working-tree-untracked
+foo_tree
+commit_base
+printf '# baz suite\n' > "$s/tests/baz.test.sh"
+out="$(run_affected "$base" 2>/dev/null)"; code=$?
+if [[ $'\n'"$out"$'\n' == *$'\nskills/tdd/scripts/tests/baz.test.sh\n'* ]]; then ok; else
+  no "affected-suites.sh <base> with a new, untracked suite prints that suite (code=$code, stdout=${out:-<empty>})"
+fi
+
 finish

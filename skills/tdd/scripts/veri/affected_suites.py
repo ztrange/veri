@@ -124,6 +124,9 @@ def main(argv):
     code, files = changed(range_)
     if code != 0:
         return code if code in (1, 2, 3) else 2
+    if ".." not in range_:
+        untracked = git("ls-files", "--others", "--exclude-standard", stdout=subprocess.PIPE, text=True)
+        files = "\n".join(f for f in [files, untracked.stdout.rstrip("\n")] if f)
     if not files:
         return 3
 
