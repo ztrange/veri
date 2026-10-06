@@ -1107,6 +1107,41 @@ rm -f "$work/.test-inside-window"
   && grep -F 'hard timeout 4s exceeded' "$work/err" > /dev/null; } && ok \
   || no "#472: a noisy leaf running 2s then on past a 4s VERI_TIMEOUT of awake time (no suspend) survives the first and is killed on the hard timeout (code=$code want 2, survived inside the timeout=$runaway_inside want yes, err=$(cat "$work/err"))"
 
+# hazard: load is simulated, never waited for: loaded_py's time.time() runs 3s late once .test-loaded exists.
+loaded_py="$(scratch_dir)"
+cat > "$loaded_py/python3" <<P
+#!/bin/sh
+if [ "\$1" = -c ]; then
+  shift
+  exec "$(command -v python3)" -c 'import os, sys, time
+_read = time.time
+time.time = lambda: _read() + (3 if os.path.exists(".test-loaded") else 0)
+_code = sys.argv[1]
+sys.argv = sys.argv[:1] + sys.argv[2:]
+exec(_code)' "\$@"
+fi
+exec "$(command -v python3)" "\$@"
+P
+cat > "$stub/leaf-loaded-runaway" <<'L'
+: > .test-clock-reads
+echo "leaf: starting"
+clock-jump 1; await-poll; await-poll
+echo "leaf: busy"
+: > .test-loaded; await-poll; await-poll
+clock-jump 1; await-poll; await-poll
+: > .test-inside-window
+for i in 1 2 3 4 5 6 7 8 9 10; do echo "leaf: busy $i"; clock-jump 1; await-poll; done
+exit 0
+L
+chmod +x "$loaded_py/python3" "$stub/leaf-loaded-runaway"
+rm -f "$work/.test-suspended" "$work/.test-inside-window" "$work/.test-loaded"
+PATH="$loaded_py:$PATH" sup loaded-runaway 30 4 leaf-loaded-runaway
+loaded_inside="$([[ -e "$work/.test-inside-window" ]] && echo yes || echo no)"
+rm -rf "$work/.test-inside-window" "$work/.test-loaded" "$loaded_py"
+{ [[ "$code" == 2 ]] && [[ "$loaded_inside" == yes ]] \
+  && grep -F 'hard timeout 4s exceeded' "$work/err" > /dev/null; } && ok \
+  || no "#972: the #472 awake-runaway leaf, with load stretching the real wall time between its injected clock jumps by 3s, still survives inside a 4s VERI_TIMEOUT and is killed on the hard timeout (code=$code want 2, survived inside the timeout=$loaded_inside want yes, err=$(cat "$work/err"))"
+
 cat > "$stub/leaf-asleep-an-hour" <<'L'
 : > .test-clock-reads
 echo "leaf: starting"
