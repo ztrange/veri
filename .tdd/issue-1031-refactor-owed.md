@@ -1,0 +1,2 @@
+### With a ledger whose step 1 text contains the digit `2` and which has a step 2, a digits-only step argument `2` is read as a ledger index and writes the ref under `refs/veri/attempts/<issue>/2/` ⟦criterion 1⟧
+- test-only | the new test's `fake_run` (test_preserve_attempt.py:225–235) repeats the update-ref-recording `fake_run` from the tests at :133, :173 and :251. Moving it into a shared fixture would change only files under `tests/`.
