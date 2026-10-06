@@ -1,5 +1,6 @@
 """In-process cases for veri/clear_refactor_pending.py, the module clear-refactor-pending.sh is a shim over."""
 import importlib
+import os
 import pathlib
 import sys
 
@@ -160,3 +161,16 @@ def test_main_rewrites_a_cleared_ledger_ending_in_exactly_one_newline_and_leaves
         "unmatched": (3, b"", b"", seeds["unmatched"][0]),
         "empty": (3, b"", b"", b""),
     }
+
+
+def test_main_drops_a_nul_byte_on_a_clear_and_passes_a_non_utf8_byte_through_in_the_file_and_the_matcher(
+        tmp_path, capsysbinary, clear_refactor_pending):
+    nul = tmp_path / "nul.md"
+    nul.write_bytes("- [x] a\0z ⟂ refactor pending\n".encode())
+    code = clear_refactor_pending.main([str(nul), "a"])
+    assert (code, *capsysbinary.readouterr(), nul.read_bytes()) == (0, b"", b"", b"- [x] az\n")
+
+    raw = tmp_path / "raw.md"
+    raw.write_bytes(b"- [x] a\xff" + " ⟂ refactor pending\n".encode())
+    code = clear_refactor_pending.main([str(raw), os.fsdecode(b"a\xff")])
+    assert (code, *capsysbinary.readouterr(), raw.read_bytes()) == (0, b"", b"", b"- [x] a\xff\n")
