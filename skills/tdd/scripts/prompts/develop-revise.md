@@ -44,7 +44,7 @@ instead of an {{INCLUDE:_develop-split.md}} leave the working tree exactly as yo
    rejected predicted a different test, so there is nothing here for you to inherit.
 3. Redoing green only: first run the fast command, the one `detect-test-command.sh --tier
    fast` prints, and confirm it is green. Then, whichever phase you are redoing, run the
-   suites `affected-suites.sh` prints for your change and confirm the result the phase you
+   suites {{INCLUDE:_affected-suites-working-tree.md}} — and confirm the result the phase you
    are redoing calls for. Make each run through the wrapper `{{TIMED_TEST_RUN}}`, which
    records what the run cost and names the tier it belongs to:
 
