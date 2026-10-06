@@ -1,27 +1,18 @@
 """coverage-blocker.sh's logic: file a coverage issue and block the refactor issue on it."""
 import json
 import os
-import subprocess
 import sys
 import tempfile
 
 try:
-    from github import NoAnswer, gh_issue_view, gh_rest_list
+    from github import NoAnswer, gh_issue_create, gh_issue_edit, gh_issue_view, gh_rest_list
     from json_documents import documents
 except ImportError:
-    from .github import NoAnswer, gh_issue_view, gh_rest_list
+    from .github import NoAnswer, gh_issue_create, gh_issue_edit, gh_issue_view, gh_rest_list
     from .json_documents import documents
 
 USAGE = "usage: coverage-blocker.sh <refactor-issue-number>"
 ISSUES = "repos/{owner}/{repo}/issues"
-
-
-def gh(*args, stderr=None):
-    return subprocess.run(["gh", *args], stdout=subprocess.PIPE, stderr=stderr, text=True)
-
-
-def issue(number):
-    return "%s/%s" % (ISSUES, number)
 
 
 def read_body(number):
@@ -73,11 +64,10 @@ def main(argv):
     title = "Cover the behaviour #%s refactors" % n
     url = existing(title)
     if url is None:
-        create = gh("api", ISSUES, "-f", "title=" + title, "-f", "body=" + text,
-                    "-q", ".html_url")
-        if create.returncode != 0:
+        try:
+            url = gh_issue_create(title, text).rstrip("\n")
+        except NoAnswer:
             return 2
-        url = create.stdout.rstrip("\n")
     body = read_body(n)
     if body is None:
         return 2
@@ -85,11 +75,11 @@ def main(argv):
     try:
         with os.fdopen(fd, "w") as f:
             f.write(block(body.rstrip("\n"), url.rsplit("/", 1)[-1]) + "\n")
-        edit = gh("api", "-X", "PATCH", issue(n), "-F", "body=@" + tmp)
+        gh_issue_edit(n, tmp)
+    except NoAnswer:
+        return 2
     finally:
         os.remove(tmp)
-    if edit.returncode != 0:
-        return 2
     print(url)
     return 0
 
