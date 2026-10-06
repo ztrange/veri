@@ -15,4 +15,5 @@
 - [x] no-awk-v-patterns.test.sh passes a flagged planted site that its exemption table lists with a reason ⟦criterion 4⟧
 - [x] no-awk-v-patterns.test.sh fails the run on an exemption-table entry that carries no reason ⟦criterion 4⟧
 - [x] no-awk-v-patterns.test.sh is green over the repository's own suites: every remaining `awk -v` pattern variable it flags carries an exemption with a reason naming why its value can hold no backslash ⟦criterion 4⟧
+- [ ] no-awk-v-patterns.test.sh flags a planted multi-line awk program, `awk -v re="$1" '` on one line and `$0 ~ re` on a later line of the same single-quoted program, naming the `-v` line as `<suite>:<line>` ⟦added⟧ ⟦criterion 4⟧
 - [ ] `make test` on gawk prints no `escape sequence` warning from any suite — checked by reading this PR's CI `make test` log ⟦human-owed⟧ ⟦criterion 1⟧
