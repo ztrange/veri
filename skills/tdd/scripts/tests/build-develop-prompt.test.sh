@@ -955,6 +955,18 @@ refuses "predicate missing issue-touched files" "$BUILD" predicate "$work/spec.m
   && ok || no "#691 develop-predicate asks for one shell predicate for a structural candidate, false on the current tree and true once it is applied, reported as PREDICATE: <command> or PREDICATE: NONE — <why>, and refuses a missing argument with exit 2 and no stdout (${problems#; })"
 
 problems=""
+says_both_ways "$predicate" "does not say a candidate already applied on the current tree is reported with the predicate observing its end state" \
+  120 'already applied' '(report|PREDICATE: <command>)[^.]{0,60}end state'
+says_both_ways "$predicate" "does not say that predicate then succeeds" \
+  120 'already applied' '(succeed|exits? 0)'
+says_both_ways "$predicate" "does not say an already-applied candidate is never reported as PREDICATE: NONE" \
+  120 'already applied' '(never|not)[^.]{0,30}PREDICATE: NONE'
+says_both_ways "$predicate" "does not keep PREDICATE: NONE for a candidate no single command can observe" \
+  120 'PREDICATE: NONE' 'no single command can observe'
+[[ -z "$problems" ]] \
+  && ok || no "#1058 develop-predicate reports a candidate already applied on the current tree with the predicate observing its end state, which then succeeds, never as PREDICATE: NONE, kept for a candidate no single command can observe (${problems#; })"
+
+problems=""
 rk_step='grep -q "zorblat_parse" scripts/lib/zorblat-parser.sh'
 printf '%s\n' "$rk_step" > "$work/rk-predicate.md"
 rk_base=0123abcdef
