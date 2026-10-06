@@ -190,3 +190,14 @@ def test_main_prints_the_transform_after_the_first_bar_keeping_trailing_whitespa
             b"refactor-triage: candidate line has no class, or one that is neither structural nor cosmetic: "
             b"CANDIDATES: cosmic | y\r\n"),
     }
+
+
+def test_main_lets_an_unexpected_failure_escape_as_an_exception_with_stdin_or_stdout_closed(
+        monkeypatch, capsysbinary, refactor_triage):
+    monkeypatch.setattr(sys, "stdin", None)
+    with pytest.raises(Exception):
+        refactor_triage.main([])
+    fake_stdin(monkeypatch, b"CANDIDATES: structural | x\n")
+    monkeypatch.setattr(sys, "stdout", None)
+    with pytest.raises(Exception):
+        refactor_triage.main([])
