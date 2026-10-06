@@ -349,4 +349,31 @@ fi
 
 report "$name"
 
+name="#1058: $skill_md's Draft PR step re-checks every refactor-owed.sh out-of-scope candidate against the tree before refactor-overflow.sh runs: a develop-predicate leaf per candidate, and structural-predicate.sh exit 1 records it applied as out-of-scope | <candidate>"
+problems=()
+
+if ! missing_pass 'whether out-of-scope candidates are re-checked before filing'; then
+  recheck_cmd='refactor-owed.sh out-of-scope .tdd/issue-<n>-refactor-owed.md'
+  overflow_cmd='refactor-overflow.sh <n> .tdd/issue-<n>-refactor-owed.md'
+  recheck="$(offset "$recheck_cmd" "$squeezed")"
+  overflow="$(offset "$overflow_cmd" "$squeezed")"
+  if [[ "$recheck" -lt 0 || "$overflow" -lt 0 ]]; then
+    problems+=("$skill_md's structural pass is missing a command to order: $recheck_cmd at $recheck, $overflow_cmd at $overflow (-1 = absent), so an out-of-scope candidate a later plan step applied is filed as owed")
+  elif [[ "$recheck" -gt "$overflow" ]]; then
+    problems+=("$skill_md's structural pass runs $overflow_cmd at $overflow before $recheck_cmd at $recheck, so out-of-scope candidates are filed before they are re-checked")
+  else
+    recheck_text="${squeezed:$recheck:$((overflow - recheck))}"
+    require 'develop-predicate' "$recheck_text" \
+      "$skill_md never launches a develop-predicate leaf per out-of-scope candidate between $recheck_cmd and $overflow_cmd"
+    require 'structural-predicate.sh' "$recheck_text" \
+      "$skill_md never checks an out-of-scope candidate's predicate with structural-predicate.sh between $recheck_cmd and $overflow_cmd"
+    require 'refactor-owed.sh applied .tdd/issue-<n>-refactor-owed.md' "$recheck_text" \
+      "$skill_md never records an already-applied out-of-scope candidate with refactor-owed.sh applied before $overflow_cmd"
+    require 'out-of-scope | <candidate>' "$recheck_text" \
+      "$skill_md never records an already-applied out-of-scope candidate as 'out-of-scope | <candidate>', so refactor-overflow.sh still files it"
+  fi
+fi
+
+report "$name"
+
 finish
