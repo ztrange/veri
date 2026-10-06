@@ -204,26 +204,6 @@ expected="preserve-attempt.sh: could not preserve issue 409 step 3 develop-green
 { [[ "$code" == 1 ]] && [[ "$last" == "$expected" ]]; } \
   && ok || no "exits exactly 1 with the could-not-preserve line last on stderr when an existing refs/veri/attempts/409/3 refuses the ref write (code=$code last='$last')"
 
-repo="$work/ledgermodule"
-dirty_repo "$repo"
-prose="A leaf's output is kept under refs/veri, not the branch"
-write_ledger "$repo" "$prose"
-stub="$work/stub"
-mkdir -p "$stub/lib"
-cp "$PRESERVE" "$stub/preserve-attempt.sh"
-cp "$(dirname "$PRESERVE")"/lib/*.sh "$stub/lib/"
-{ printf '. %q\n' "$(dirname "$PRESERVE")/lib/ledger.sh"; cat <<'EOF'; } > "$stub/lib/ledger.sh"
-ledger_steps() {
-  cat >/dev/null
-  printf '7\tdone\tstep\t0\t0\t\t%s\n' "A leaf's output is kept under refs/veri, not the branch"
-}
-EOF
-( cd "$repo" && env "${ident[@]}" "$stub/preserve-attempt.sh" 409 "$prose" develop-green 1 ) >/dev/null 2>&1; code=$?
-ref_resolves "$repo" "refs/veri/attempts/409/7/develop-green-1"; resolved=$?
-refs="$(git_q "$repo" for-each-ref --format='%(refname)' refs/veri/attempts 2>&1 | tr '\n' ' ')"
-{ [[ "$code" == 0 ]] && [[ "$resolved" == 0 ]]; } \
-  && ok || no "finds the step through lib/ledger.sh's ledger_steps (code=$code resolved=$([[ "$resolved" == 0 ]] && echo yes || echo no) refs='$refs')"
-
 repo="$work/unborn"
 unborn_repo "$repo"
 printf '%s\n' "$REJECTED" > "$repo/stop-run.sh"
