@@ -65,7 +65,7 @@ def append(file, step, bounds):
               (OUT_OF_SCOPE, out_of_scope, OUT_OF_SCOPE_PREFIX))
     for line in report.split("\n"):
         for pattern, group, prefix in routes:
-            if match := pattern.match(line):
+            if (match := pattern.match(line)) and match.group(1):
                 group.append(prefix + match.group(1))
     owed = structural + test_only + out_of_scope
     return write(file, f"### {step}\n" + bullets(owed)) if owed else 0

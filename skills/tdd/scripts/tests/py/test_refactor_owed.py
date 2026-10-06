@@ -85,7 +85,7 @@ def test_append_counts_only_an_unindented_candidate_line_and_records_its_transfo
     monkeypatch.setattr(sys, "stdin", io.StringIO(report))
     code = refactor_owed.main(["append", str(owed), "S"])
     written = owed.read_bytes() if owed.exists() else b""
-    assert (code, written) == (0, b"### S\n- a\n- e  \n- f | g\n- \n- h\r\n")
+    assert (code, written) == (0, b"### S\n- a\n- e  \n- f | g\n- h\r\n")
 
 
 def test_append_writes_structural_before_test_only_and_appends_a_block_only_when_a_line_is_owed(
@@ -480,3 +480,13 @@ def test_list_exits_3_printing_nothing_when_every_structural_candidate_is_record
 
     code = refactor_owed.main(["list", str(owed)])
     assert (code, capsys.readouterr().out) == (3, "")
+
+
+def test_append_records_only_the_other_structural_candidate_and_no_bare_bullet_for_an_empty_transform_820(
+        monkeypatch, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    monkeypatch.setattr(sys, "stdin", io.StringIO("CANDIDATES: structural |\n"
+                                                  "CANDIDATES: structural | extract the parser\n"))
+    code = refactor_owed.main(["append", str(owed), "S"])
+    written = owed.read_bytes() if owed.exists() else b""
+    assert (code, written) == (0, b"### S\n- extract the parser\n")
