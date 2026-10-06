@@ -122,3 +122,41 @@ def test_main_reads_and_writes_bytes_keeping_a_last_line_without_newline_droppin
         (("LANG", "en_US.UTF-8"),): (2, b""),
         "argv": (0, b"x\n", b""),
     }
+
+
+def test_main_reads_the_class_with_optional_whitespace_around_it_and_the_bar_matched_exactly_and_case_sensitively_and_counts_only_a_line_starting_candidates(
+        monkeypatch, capsysbinary, refactor_triage):
+    results = {}
+    for report in (
+            b"CANDIDATES:none\n",
+            b"CANDIDATES: none \r\n",
+            b"CANDIDATES:\tstructural\t|\tx\n",
+            b"CANDIDATES: structural\v| x\n",
+            b"CANDIDATES: Structural | x\n",
+            b"CANDIDATES: None\n",
+            b"CANDIDATES:\n",
+            b"CANDIDATES: none | x\n",
+            b"CANDIDATES: test-only\n",
+            b"CANDIDATES: out-of-scope\n"):
+        fake_stdin(monkeypatch, report)
+        code = refactor_triage.main([])
+        results[report] = (code, capsysbinary.readouterr().out)
+    for report in (b" CANDIDATES: structural | a\n", b"candidates: structural | a\n"):
+        fake_stdin(monkeypatch, report)
+        code = refactor_triage.main([])
+        results[report] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        b"CANDIDATES:none\n": (3, b""),
+        b"CANDIDATES: none \r\n": (3, b""),
+        b"CANDIDATES:\tstructural\t|\tx\n": (0, b"x\n"),
+        b"CANDIDATES: structural\v| x\n": (0, b"x\n"),
+        b"CANDIDATES: Structural | x\n": (2, b""),
+        b"CANDIDATES: None\n": (2, b""),
+        b"CANDIDATES:\n": (2, b""),
+        b"CANDIDATES: none | x\n": (2, b""),
+        b"CANDIDATES: test-only\n": (2, b""),
+        b"CANDIDATES: out-of-scope\n": (2, b""),
+        b" CANDIDATES: structural | a\n": (2, b"", b"refactor-triage: the report has no CANDIDATES: line\n"),
+        b"candidates: structural | a\n": (2, b"", b"refactor-triage: the report has no CANDIDATES: line\n"),
+    }
