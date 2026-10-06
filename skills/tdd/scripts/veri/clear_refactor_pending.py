@@ -21,7 +21,7 @@ def main(argv):
     if not cleared:
         return 3
     with open(argv[0], "w", newline="") as file:
-        file.write(new)
+        file.write(new.rstrip("\n") + "\n")
     return 0
 
 

@@ -137,3 +137,26 @@ def test_main_exits_3_leaving_an_open_marked_step_a_crlf_mark_and_a_mark_before_
         "space": (3, b"", b"", seeds["space"]),
         "double": (0, b"", b"", "- [x] a ⟂ refactor pending\n".encode()),
     }
+
+
+def test_main_rewrites_a_cleared_ledger_ending_in_exactly_one_newline_and_leaves_an_unmatched_or_empty_ledger_byte_identical(
+        tmp_path, capsysbinary, clear_refactor_pending):
+    seeds = {
+        "unterminated": ("- [x] a ⟂ refactor pending".encode(), "a"),
+        "triple": ("- [x] a ⟂ refactor pending\n\n\n".encode(), "a"),
+        "unmatched": ("- [x] a ⟂ refactor pending\n\n\n".encode(), "zeta"),
+        "empty": (b"", "a"),
+    }
+    results = {}
+    for name, (seed, matcher) in seeds.items():
+        led = tmp_path / f"{name}.md"
+        led.write_bytes(seed)
+        code = clear_refactor_pending.main([str(led), matcher])
+        results[name] = (code, *capsysbinary.readouterr(), led.read_bytes())
+
+    assert results == {
+        "unterminated": (0, b"", b"", b"- [x] a\n"),
+        "triple": (0, b"", b"", b"- [x] a\n"),
+        "unmatched": (3, b"", b"", seeds["unmatched"][0]),
+        "empty": (3, b"", b"", b""),
+    }
