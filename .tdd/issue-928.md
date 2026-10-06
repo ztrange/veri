@@ -28,5 +28,5 @@ Decisions the issue left to the plan:
 - [x] make test is green against the shim, the 12 contract cases of tests/preserve-attempt.test.sh, tests/supervise.test.sh:709-751, tests/verify.test.sh:555-579, :582-607, :681-694, :696-708 and tests/unit/missing-argument-exit.test.sh:30-33 among its suites ⟦full-suite⟧ ⟦criterion 3⟧
 - [x] make test is green, tests/py/test_preserve_attempt.py and the survivors and floor of tests/preserve-attempt.test.sh among its suites ⟦full-suite⟧ ⟦criterion 5⟧
 - [x] make test is green, the suites criterion 6 names as reading or running preserve-attempt.sh among them ⟦full-suite⟧ ⟦criterion 6⟧
-- [ ] the PR body lists each cut bash case — the slice-5 entry and `:198-216` — beside the pytest case that replaced it, and names the pytest case beside each Order-matters branch ⟦human-owed⟧ ⟦criterion 1⟧
-- [ ] the PR body quotes make profile for tests/preserve-attempt.test.sh and the wall time of tests/py/test_preserve_attempt.py, before and after, with the commit beside each figure ⟦human-owed⟧ ⟦criterion 5⟧
+- [x] the PR body lists each cut bash case — the slice-5 entry and `:198-216` — beside the pytest case that replaced it, and names the pytest case beside each Order-matters branch ⟦human-owed⟧ ⟦criterion 1⟧
+- [x] the PR body quotes make profile for tests/preserve-attempt.test.sh and the wall time of tests/py/test_preserve_attempt.py, before and after, with the commit beside each figure ⟦human-owed⟧ ⟦criterion 5⟧
