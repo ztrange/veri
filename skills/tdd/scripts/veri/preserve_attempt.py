@@ -6,7 +6,7 @@ import subprocess
 import sys
 import tempfile
 
-from ledger import ledger_steps
+from ledger import CRITERION_RE, ledger_steps
 
 USAGE = "usage: preserve-attempt.sh <issue> <step> <phase> <attempt> [<mark>]"
 
@@ -75,10 +75,14 @@ def ledger_step_index(issue, step):
     records = ledger_steps(text)
     if any(record[0] == step for record in records):
         return step
-    exact = next((record[0] for record in records if record[6] == step), None)
+    exact = next((record[0] for record in records if step in (record[6], unmarked(record[6]))), None)
     if exact is not None:
         return exact
     return next((record[0] for record in records if step in record[6]), step)
+
+
+def unmarked(text):
+    return re.sub(" " + CRITERION_RE + "$", "", text)
 
 
 def sanitised(step_ref):
