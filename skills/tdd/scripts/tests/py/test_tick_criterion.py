@@ -178,3 +178,26 @@ def test_main_reads_the_box_grammar_as_bash_does(monkeypatch, capsysbinary, tick
         "matcher holds the box": (0, b"- [ ] one\n- [x] two", b""),
         "matcher is the box": (0, b"- [x] done\n- [x] one\n- [ ] two", b""),
     }
+
+
+def test_main_reads_the_grammars_whitespace_as_lc_all_c_space(monkeypatch, capsysbinary, tick_criterion):
+    cases = {
+        "\\x1c before the dash": b"\x1c- [ ] a",
+        "U+00A0 before the dash": b"\xc2\xa0- [ ] a",
+        "U+00A0 after the dash": b"-\xc2\xa0[ ] a",
+        "\\v before the dash": b"\v- [ ] a",
+        "\\r before the dash": b"\r- [ ] a",
+    }
+    results = {}
+    for name, body in cases.items():
+        fake_stdin(monkeypatch, body)
+        code = tick_criterion.main(["a"])
+        results[name] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        "\\x1c before the dash": (3, b"\x1c- [ ] a", b""),
+        "U+00A0 before the dash": (3, b"\xc2\xa0- [ ] a", b""),
+        "U+00A0 after the dash": (3, b"-\xc2\xa0[ ] a", b""),
+        "\\v before the dash": (0, b"\v- [x] a", b""),
+        "\\r before the dash": (0, b"\r- [x] a", b""),
+    }
