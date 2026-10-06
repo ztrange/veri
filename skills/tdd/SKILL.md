@@ -1623,6 +1623,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    lists it as applied rather than owed:
    ```
    $S/refactor-owed.sh applied .tdd/issue-<n>-refactor-owed.md '<candidate>' "$(git rev-parse HEAD)"
+   git add .tdd/issue-<n>-refactor-owed.md
+   git commit -m "chore: record the structural pass's applied candidate (#<n>)"
    ```
    Once the pass ends — the candidates run out, or the budget is spent — mark it once, with
    the transforms it landed, its budget and why it stopped. `stopped=` takes only
