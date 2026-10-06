@@ -54,6 +54,14 @@ else
   printf '    stdout: %s\n    stderr: %s\n' "$(cat "$work/out")" "$(cat "$work/err")"
 fi
 
+"$CLEAR" "$work/absent.md" "collapse to single hyphen" > "$work/out" 2>/dev/null && code=0 || code=$?
+if [[ "$code" == 1 && ! -s "$work/out" ]]; then
+  ok
+else
+  no "a ledger path that does not exist exits 1 with nothing on stdout (want exit 1, got $code)"
+  printf '    stdout: %s\n' "$(cat "$work/out")"
+fi
+
 stub="$work/stub"
 mkdir -p "$stub/lib"
 cp "$CLEAR" "$stub/clear-refactor-pending.sh"
