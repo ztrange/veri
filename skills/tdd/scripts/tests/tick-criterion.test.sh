@@ -59,6 +59,14 @@ check "skips already checked" 0 "creates a branch" "$mixed" '- [x] reads the iss
 nested='  - [ ] nested criterion'
 check "nested checkbox" 0 "nested" "$nested" '  - [x] nested criterion'
 
+floor_err="$(scratch_dir)/stderr"
+floor_out="$(printf -- '- [ ] a\n- [ ] b' | "$TICK" 2> "$floor_err")" && floor_code=0 || floor_code=$?
+problems=()
+[[ "$floor_code" == 0 ]] || problems+=("exit: want 0, got $floor_code")
+[[ "$floor_out" == $'- [x] a\n- [ ] b' ]] || problems+=("stdout: want [- [x] a\\n- [ ] b], got [$floor_out]")
+[[ -s "$floor_err" ]] && problems+=("stderr: want empty, got [$(cat "$floor_err")]")
+report "floor: no argument ticks the first open box, exit 0, nothing on stderr"
+
 work="$(scratch_dir)"
 mkdir "$work/lib"
 cp "$TICK" "$work/tick-criterion.sh"
