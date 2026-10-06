@@ -102,3 +102,9 @@ def test_main_raises_rather_than_returning_0_when_stdout_is_closed(monkeypatch, 
 
     with pytest.raises(Exception):
         classify_bail.main(["killed-stuck"])
+
+
+def test_main_classifies_rebased_tip_red_as_a_process_failure_with_0(capsys, classify_bail):
+    code = classify_bail.main(["rebased-tip-red"])
+
+    assert (code, *capsys.readouterr()) == (0, "process\n", "")
