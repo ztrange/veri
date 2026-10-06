@@ -303,49 +303,48 @@ def test_main_reads_a_step_equal_to_a_later_steps_text_without_its_trailing_mark
     assert (code, update_refs) == (0, ["refs/veri/attempts/409/2/refactor-1"])
 
 
-def test_main_sanitises_the_step_ref_per_byte_or_per_character_by_lc_all_then_lc_ctype_then_lang(
+def test_main_names_the_step_ref_and_its_attempts_files_the_same_under_every_locale_issue_1032(
         monkeypatch, tmp_path, preserve_attempt):
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    monkeypatch.chdir(repo)
     update_refs = []
 
-    def fake_run(args, *_, **__):
-        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-        if line.startswith("git rev-parse --show-toplevel"):
-            return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
-        if line.startswith("git write-tree"):
-            return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
-        if line.startswith("git commit-tree"):
-            return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
-        if line.startswith("git update-ref"):
-            update_refs.append(str(args[2]))
-        return subprocess.CompletedProcess(args, 0, "", "")
+    def scenario(name, lc_all):
+        for variable in ("LC_ALL", "LC_CTYPE", "LANG"):
+            monkeypatch.delenv(variable, raising=False)
+        if lc_all is not None:
+            monkeypatch.setenv("LC_ALL", lc_all)
+        repo = tmp_path / name
+        tdd = repo / ".tdd"
+        tdd.mkdir(parents=True)
+        (tdd / "develop-green.log").write_text("log\n")
+        monkeypatch.chdir(repo)
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+        def fake_run(args, *_, **__):
+            if args[1] == "rev-parse":
+                return subprocess.CompletedProcess(args, 0, f"{repo}\n", "")
+            if args[1] == "write-tree":
+                return subprocess.CompletedProcess(args, 0, "4b825dc642cb6eb9a060e54bf8d69288fbee4904\n", "")
+            if args[1] == "commit-tree":
+                return subprocess.CompletedProcess(args, 0, "1111111111111111111111111111111111111111\n", "")
+            if args[1] == "update-ref":
+                update_refs.append(str(args[2]))
+            return subprocess.CompletedProcess(args, 0, "", "")
 
-    def scenario(lc_all, lc_ctype, lang):
-        for name, value in (("LC_ALL", lc_all), ("LC_CTYPE", lc_ctype), ("LANG", lang)):
-            if value is None:
-                monkeypatch.delenv(name, raising=False)
-            else:
-                monkeypatch.setenv(name, value)
+        monkeypatch.setattr(subprocess, "run", fake_run)
         del update_refs[:]
-        code = preserve_attempt.main(["409", "a—b ⟦x⟧/c'd", "develop-green", "1"])
-        return code, list(update_refs)
+        code = preserve_attempt.main(["409", "a—b ⟦x⟧/c'd", "develop-green", "1", "stuck"])
+        attempts = tdd / "attempts"
+        files = sorted(os.listdir(attempts)) if attempts.is_dir() else None
+        return code, list(update_refs), files
 
-    by_byte = (0, ["refs/veri/attempts/409/a---b----x----c-d/develop-green-1"])
-    by_char = (0, ["refs/veri/attempts/409/a-b--x--c-d/develop-green-1"])
     answers = [
-        scenario("C", "en_US.UTF-8", "en_US.UTF-8"),
-        scenario("en_US.UTF-8", "C", "C"),
-        scenario(None, "C", "en_US.UTF-8"),
-        scenario(None, "en_US.UTF-8", "C"),
-        scenario(None, None, "en_US.UTF-8"),
-        scenario(None, None, None),
+        scenario("c", "C"),
+        scenario("utf8", "en_US.UTF-8"),
+        scenario("codeset-less", "en_US"),
+        scenario("unset", None),
     ]
 
-    assert answers == [by_byte, by_char, by_byte, by_char, by_char, by_byte]
+    assert answers[0][0] == 0 and len(answers[0][1]) == 1 and answers[0][2]
+    assert answers == [answers[0]] * 4
 
 
 def test_main_runs_git_from_the_top_level_with_a_fresh_index_for_the_snapshot_and_the_raw_step_in_the_message(
