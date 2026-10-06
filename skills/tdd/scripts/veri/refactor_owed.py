@@ -94,8 +94,8 @@ def out_of_scope_transforms(file):
         return []
     lines = owed_lines(file)
     done = applied_records(lines)
-    return [l[len(OUT_OF_SCOPE_MARK):] for l in lines
-            if l.startswith(OUT_OF_SCOPE_MARK) and OUT_OF_SCOPE_PREFIX + l[len(OUT_OF_SCOPE_MARK):] not in done]
+    return [t for t in (l[len(OUT_OF_SCOPE_MARK):] for l in lines if l.startswith(OUT_OF_SCOPE_MARK))
+            if OUT_OF_SCOPE_PREFIX + t not in done]
 
 
 def applied_records(lines):
