@@ -12,6 +12,8 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
+declare -A EXEMPT=()
+
 source "$HERE/lib/harness.sh"
 
 probe_no_suite_passes_a_pattern_through_awk_v() {
@@ -23,6 +25,7 @@ probe_no_suite_passes_a_pattern_through_awk_v() {
       lineno="${hit%%:*}"
       text="${hit#*:}"
       [[ "$text" =~ ^[[:space:]]*# ]] && continue
+      [[ -n "${EXEMPT[$name:$lineno]:-}" ]] && continue
       [[ "$text" == *"'"* ]] || continue
       rest="$text"
       while [[ "$rest" =~ $bind_re ]]; do
@@ -155,5 +158,18 @@ planted_second_v_named=""
 probe_a_planted_awk_binding_two_v_variables
 
 expect_eq "$name" "named" "$planted_second_v_named"
+
+probe_a_planted_awk_v_pattern_exempted_with_a_reason() {
+  local -A EXEMPT=([planted.test.sh:3]="the planted site's pattern carries no backslash")
+  scan_planted '#!/usr/bin/env bash' 'numbered() {' "  awk -v re=\"\$1\" '\$0 ~ re { print }' \"\$2\"" '}'
+  planted_exempted_named="$(problem_naming "planted.test.sh:3")"
+}
+
+name="a planted awk -v re=\"\$1\" '\$0 ~ re' that the exemption table lists with a reason leaves the guard green (#1037)"
+planted_exempted_named=""
+
+probe_a_planted_awk_v_pattern_exempted_with_a_reason
+
+expect_eq "$name" "not named" "$planted_exempted_named"
 
 finish
