@@ -122,3 +122,24 @@ def test_main_passes_a_non_utf8_byte_through_and_drops_a_nul_as_bash_read_does(
         "non-utf8": (0, b"- [x] a\xff\n\xff untouched\n", b""),
         "nul": (0, b"- [x] az", b""),
     }
+
+
+def test_main_writes_the_bodys_line_ends_as_read(monkeypatch, capsysbinary, tick_criterion):
+    cases = {
+        "crlf": b"- [ ] a\r\n- [ ] b\r\n",
+        "final newline": b"- [ ] a\n",
+        "no final newline": b"- [ ] a",
+        "trailing blank lines": b"- [ ] a\n\n\n",
+    }
+    results = {}
+    for name, body in cases.items():
+        fake_stdin(monkeypatch, body)
+        code = tick_criterion.main(["a"])
+        results[name] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        "crlf": (0, b"- [x] a\r\n- [ ] b\r\n", b""),
+        "final newline": (0, b"- [x] a\n", b""),
+        "no final newline": (0, b"- [x] a", b""),
+        "trailing blank lines": (0, b"- [x] a\n\n\n", b""),
+    }
