@@ -58,17 +58,26 @@ want_led="$(printf -- '- [x] add lowercasing ⟦criterion 1⟧\n- [x] collapse t
 foreign="$work/foreign"
 mkdir -p "$foreign/lib"
 cp "$TICK" "$foreign/tick-ledger.sh"
-cp "$HERE/../clear-refactor-pending.sh" "$foreign/clear-refactor-pending.sh"
 cp "$HERE/.."/lib/*.sh "$foreign/lib/"
 cat > "$foreign/lib/ledger.sh" <<'EOF'
 ledger_tick() { cat > /dev/null; return 7; }
-ledger_clear_pending() { cat > /dev/null; return 7; }
 EOF
 seed
 "$foreign/tick-ledger.sh" "$led" "collapse to single hyphen" 2>/dev/null; tick=$?
+[[ "$tick" == 2 ]] \
+  && ok || no "a foreign ledger-transform code exits 2 from tick-ledger.sh (tick=$tick)"
+
+foreign="$work/foreign"
+mkdir -p "$foreign/lib"
+cp "$HERE/../clear-refactor-pending.sh" "$foreign/clear-refactor-pending.sh"
+cp "$HERE/.."/lib/*.sh "$foreign/lib/"
+cat > "$foreign/lib/ledger.sh" <<'EOF'
+ledger_clear_pending() { cat > /dev/null; return 7; }
+EOF
+seed
 "$foreign/clear-refactor-pending.sh" "$led" "collapse to single hyphen" 2>/dev/null; clear=$?
-{ [[ "$tick" == 2 ]] && [[ "$clear" == 2 ]]; } \
-  && ok || no "a foreign ledger-transform code exits 2 from tick-ledger.sh and clear-refactor-pending.sh (tick=$tick clear=$clear)"
+[[ "$clear" == 2 ]] \
+  && ok || no "a foreign ledger-transform code exits 2 from clear-refactor-pending.sh (clear=$clear)"
 
 "$TICK" > "$work/usage.out" 2> "$work/usage.err"; code=$?
 want_err='usage: tick-ledger.sh [--refactor-pending] <ledger-file> <matcher>'
