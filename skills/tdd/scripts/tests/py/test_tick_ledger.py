@@ -56,3 +56,14 @@ def test_main_ticks_the_matching_step_in_place_marking_it_refactor_pending_only_
         (): (0, b"", b"# Plan for #42\n\n- [ ] add lowercasing\n- [x] collapse to single hyphen\n"
                      b"- [ ] strip edge hyphens\n"),
     }
+
+
+def test_main_returns_0_for_a_tick_3_for_an_unmatched_matcher_and_2_for_no_argument_every_exit_inside_0_to_3(
+        tmp_path, capsysbinary, tick_ledger):
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(b"- [ ] alpha\n- [ ] beta\n")
+    codes = [tick_ledger.main(argv) for argv in ([str(ledger), "alpha"], [str(ledger), "zeta"], [])]
+    capsysbinary.readouterr()
+
+    assert codes == [0, 3, 2]
+    assert all(0 <= code <= 3 for code in codes)
