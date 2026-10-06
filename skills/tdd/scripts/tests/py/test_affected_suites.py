@@ -163,3 +163,16 @@ def test_main_prints_the_emitted_text_suite_for_a_prompt_no_suite_names_1024(
     (tests / "unit/emitted-text.test.sh").write_text('cksum < "$out"\n')
     assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
         0, "skills/tdd/scripts/tests/unit/emitted-text.test.sh\n", "")
+
+
+def test_main_skips_a_suite_that_names_only_the_lib_of_the_same_name_for_a_script_with_no_suite_1024(
+        tmp_path, monkeypatch, capsys, affected):
+    monkeypatch.setattr(subprocess, "run", fake_git(["skills/tdd/scripts/orphan.sh"]))
+    monkeypatch.chdir(tmp_path)
+    tests = tmp_path / "skills/tdd/scripts/tests"
+    (tests / "unit").mkdir(parents=True)
+    (tmp_path / "skills/tdd/scripts/orphan.sh").write_text("#!/usr/bin/env bash\n")
+    (tests / "lib-only.test.sh").write_text('source "$scripts/lib/orphan.sh"\n')
+    (tests / "names.test.sh").write_text('"$scripts/orphan.sh"\n')
+    assert (affected.main(["base..head"]),) + tuple(capsys.readouterr()) == (
+        0, "skills/tdd/scripts/tests/names.test.sh\n", "")

@@ -102,7 +102,8 @@ def suite_of(f):
         name = basename(f, ".sh")
         return (existing("%s/tests/unit/%s.test.sh" % (SCRIPTS, name))
                 or existing("%s/tests/%s.test.sh" % (SCRIPTS, name))
-                or suites_naming("/%s.sh" % name))
+                or [s for s in every_suite()
+                    if re.search(rb"(?<!lib)/" + re.escape(name.encode()) + rb"\.sh", read(s) or b"")])
     if match(".tdd/*"):
         return []
     raise Unplaced(f)
