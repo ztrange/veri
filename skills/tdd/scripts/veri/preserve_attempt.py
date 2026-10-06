@@ -74,10 +74,10 @@ def ledger_step_index(issue, step):
     except OSError as error:
         print(f"preserve-attempt.sh: {ledger}: {error.strerror}", file=sys.stderr)
         return step
-    records = ledger_steps(text)
-    if any(record[0] == step for record in records):
+    steps = [(index, step_text) for index, *_, step_text in ledger_steps(text)]
+    if any(index == step for index, _ in steps):
         return step
-    return next((record[0] for record in records if step in (record[6], unmarked(record[6]))), step)
+    return next((index for index, step_text in steps if step in (step_text, unmarked(step_text))), step)
 
 
 def unmarked(text):
