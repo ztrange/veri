@@ -89,4 +89,9 @@ seed
 { [[ "$tick" == 2 ]] && [[ "$clear" == 2 ]]; } \
   && ok || no "a foreign ledger-transform code exits 2 from tick-ledger.sh and clear-refactor-pending.sh (tick=$tick clear=$clear)"
 
+"$TICK" > "$work/usage.out" 2> "$work/usage.err"; code=$?
+want_err='usage: tick-ledger.sh [--refactor-pending] <ledger-file> <matcher>'
+{ [[ "$code" == 2 ]] && [[ ! -s "$work/usage.out" ]] && [[ "$(cat "$work/usage.err")" == "$want_err" ]]; } \
+  && ok || no "no argument → exit 2, nothing on stdout, the usage line on stderr (code=$code out='$(cat "$work/usage.out")' err='$(cat "$work/usage.err")')"
+
 finish
