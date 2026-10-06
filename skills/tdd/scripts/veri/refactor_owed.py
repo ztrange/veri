@@ -113,7 +113,7 @@ def render(file):
             test_only.append(l[len(TEST_ONLY_MARK):])
         else:
             kept.append(l)
-    out_of_scope = [t for t in out_of_scope_transforms(file) if OUT_OF_SCOPE_PREFIX + t not in done]
+    out_of_scope = out_of_scope_transforms(file)
     kept = [l for l, after in zip(kept, kept[1:] + ["### "])
             if not (l.startswith("### ") and after.startswith("### "))]
     out ="## Refactor owed\n\n" + joined(kept)
