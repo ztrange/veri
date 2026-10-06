@@ -19,12 +19,14 @@ def affected():
     return importlib.import_module("veri.affected_suites")
 
 
-def test_main_returns_2_with_the_usage_line_for_no_argument_and_names_a_range_without_dots(capsys, affected):
+def test_main_returns_2_with_the_usage_line_for_no_argument_and_names_an_unresolvable_base(
+        monkeypatch, capsys, affected):
+    monkeypatch.setattr(subprocess, "run", lambda args, **kwargs: subprocess.CompletedProcess(args, 1, "", ""))
     missing = (affected.main([]),) + tuple(capsys.readouterr())
-    malformed = (affected.main(["no-range"]),) + tuple(capsys.readouterr())
-    assert (missing, malformed) == (
+    unresolvable = (affected.main(["no-range"]),) + tuple(capsys.readouterr())
+    assert (missing, unresolvable) == (
         (2, "", USAGE),
-        (2, "", "affected-suites: 'no-range' is not a <base>..<head> range\n" + USAGE),
+        (2, "", "affected-suites: cannot resolve revision 'no-range'\n" + USAGE),
     )
 
 

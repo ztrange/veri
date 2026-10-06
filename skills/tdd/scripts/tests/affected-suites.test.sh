@@ -116,7 +116,7 @@ mkdir -p "$s"
 printf 'wolf\n' > "$s/wolf.sh"
 commit_head
 bad=""
-for arg in "$head" "$head..no-such-rev" "no-such-rev..$head"; do
+for arg in "$head..no-such-rev" "no-such-rev..$head"; do
   err="$(run_affected "$arg" 2>&1 >/dev/null)"; code=$?
   if [[ "$code" != 2 || "$err" != *"usage: affected-suites.sh"* ]]; then
     bad="${arg/$head/<head>}: code=$code, stderr=${err:-<empty>}"
@@ -545,6 +545,20 @@ linked="$(cd "$repo" && "$work/linked-skill/scripts/affected-suites.sh" "$base..
 if [[ "$linked" == "$in_place" && "$linked_code" -eq "$in_place_code" && "$in_place" == *"test_status.py"* ]]; then ok; else
   no "affected-suites.sh run through a symlink to the skill directory from the repository root answers as it does when run in place"
   diff <(printf '%s\nexit %s\n' "$in_place" "$in_place_code") <(printf '%s\nexit %s\n' "$linked" "$linked_code")
+fi
+
+git_state() { git -C "$repo" stash list; git -C "$repo" worktree list; git -C "$repo" rev-parse HEAD; }
+
+make_repo working-tree
+foo_bar_tree
+commit_base
+printf 'foo 2\n' > "$s/foo.sh"
+before="$(git_state)"
+out="$(run_affected "$base" 2>/dev/null)"; code=$?
+after="$(git_state)"
+if [[ "$code" == 0 && "$out" == "skills/tdd/scripts/tests/foo.test.sh" && "$after" == "$before" ]]; then ok; else
+  no "affected-suites.sh <base> with an uncommitted edit to a script prints its suite, exits 0, and leaves stash, worktrees and HEAD as they were (code=$code, stdout=${out:-<empty>})"
+  diff <(printf '%s\n' "$before") <(printf '%s\n' "$after") | sed 's/^/    /'
 fi
 
 finish
