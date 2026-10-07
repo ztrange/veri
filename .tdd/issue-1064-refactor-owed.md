@@ -1,0 +1,2 @@
+### With a fake gh api holding more than 100 open issues whose pages shift between calls, solvable-issues.sh reads the grow-only issue listing at per_page=100 (issues?state=all&sort=created&direction=asc&per_page=100) and still prints every solvable issue ⟦criterion 2⟧
+- test-only | fold the #1064 per_page=100 case (solvable-issues.test.sh:1178–1195) into the #1051 shifting-pages case just above it: wrap that case's gh stub with the call recorder and add the grep for `per_page=100` to its assertion, so the fixture and the run happen once instead of twice
