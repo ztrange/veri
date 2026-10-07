@@ -182,4 +182,23 @@ printf 'usage: run-leaf.sh <prompt-file|-> [claude args...]\n' > "$noarg/want-er
 cmp -s "$noarg/want-err" "$noarg/err" || problems+=("stderr was not exactly the usage line: $(cat "$noarg/err")")
 report "with no argument, prints exactly the usage line and one newline on stderr, nothing on stdout, and exits 2"
 
+problems=()
+linked="$(scratch_dir)"
+ln -s "$(cd "$HERE/../.." && pwd)" "$linked/skill"
+elsewhere="$(scratch_dir)"
+printf 'the prompt in the other working directory' > "$elsewhere/prompt.txt"
+for how in linked inplace; do
+  if [[ "$how" == linked ]]; then leaf="$linked/skill/scripts/run-leaf.sh"; else leaf="$LEAF"; fi
+  ( cd "$elsewhere" && env PATH="$stubdir:$PATH" ARGV_OUT="$elsewhere/$how.argv" \
+      FAKE_RESULT='VERDICT: PASS' FAKE_CODE=3 "$leaf" prompt.txt > "$elsewhere/$how.out" 2>/dev/null )
+  printf '%s\n' "$?" > "$elsewhere/$how.code"
+done
+grep -Fx 'the prompt in the other working directory' "$elsewhere/linked.argv" > /dev/null 2>&1 \
+  || problems+=("through the symlink, claude was not given the other working directory's prompt")
+cmp -s "$elsewhere/inplace.out" "$elsewhere/linked.out" \
+  || problems+=("stdout through the symlink differed from in place: $(cat "$elsewhere/linked.out")")
+[[ "$(cat "$elsewhere/linked.code")" == 3 && "$(cat "$elsewhere/inplace.code")" == 3 ]] \
+  || problems+=("exit codes: through the symlink $(cat "$elsewhere/linked.code"), in place $(cat "$elsewhere/inplace.code"), wanted 3 and 3")
+report "run through a symlink to the skill directory from another working directory, reads that directory's relative prompt and prints and exits as in place"
+
 finish
