@@ -1,0 +1,6 @@
+# Plan for #825 — veri/capture_spec.py reads the issue through veri/github.py instead of its own gh_issue_view
+
+- [ ] Substitute Algorithm: capture_spec.py's gh_issue_view delegates to veri.github.gh_issue_view, stripping trailing newlines from its answer, and main catches veri.github's NoAnswer; the local NoAnswer class and the subprocess and json imports this leaves dead are deleted in the same step. Predicate: `grep -qE 'from \.?github import' skills/tdd/scripts/veri/capture_spec.py && ! grep -nE 'subprocess|"gh"|class NoAnswer' skills/tdd/scripts/veri/capture_spec.py` ⟦criterion 2⟧
+- [ ] Inline Function: capture_spec.py's local gh_issue_view wrapper is inlined at its two call sites in main, which call veri.github.gh_issue_view and strip trailing newlines themselves. Predicate: `! grep -q 'def gh_issue_view' skills/tdd/scripts/veri/capture_spec.py && [ "$(grep -cE 'gh_issue_view\(n, "(labels|body)"\)' skills/tdd/scripts/veri/capture_spec.py)" = 2 ]` ⟦criterion 2⟧
+- [ ] capture-spec.sh <n>'s stdout, stderr and exit code are unchanged in every case tests/py/test_capture_spec.py and tests/capture-spec.test.sh cover, both suites passing unmodified ⟦full-suite⟧ ⟦criterion 1⟧
+- [ ] no commit on the branch changes a test file ⟦diff-checked⟧ ⟦criterion 3⟧
