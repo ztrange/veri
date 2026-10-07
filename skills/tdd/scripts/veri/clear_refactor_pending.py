@@ -36,8 +36,9 @@ def main(argv):
     if not cleared:
         return 3
     data = (new.rstrip("\n") + "\n").encode(errors="surrogateescape")
+    path = os.path.realpath(argv[0])
     try:
-        backup = write_beside(os.path.realpath(argv[0]), raw)
+        backup = write_beside(path, raw)
     except OSError:
         return 2
     file = open(argv[0], "wb")
@@ -49,7 +50,7 @@ def main(argv):
             with os.fdopen(os.open(argv[0], os.O_WRONLY), "wb") as file:
                 file.write(raw)
         except OSError:
-            os.replace(backup, os.path.realpath(argv[0]))
+            os.replace(backup, path)
             return 2
         os.unlink(backup)
         return 2
