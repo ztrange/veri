@@ -200,4 +200,26 @@ want_out=$'## What to build\n\ntick-ledger.sh grows a flag.'
 
 report "$name"
 
+name='with VERI_GH_DRIVER=graphql a failing gh issue view makes capture-spec.sh exit 2 with nothing on stdout and no gh api call (#1114)'
+problems=()
+gqldir="$tmp/graphql"
+mkdir -p "$gqldir/bin"
+cat > "$gqldir/bin/gh" <<'STUB'
+#!/bin/sh
+echo "gh $*" >> "$FIXTURES/calls"
+echo "gh stub: refused: gh $*" >&2
+exit 1
+STUB
+chmod +x "$gqldir/bin/gh"
+: > "$gqldir/calls"
+code=0
+env VERI_GH_DRIVER=graphql PATH="$gqldir/bin:$PATH" FIXTURES="$gqldir" "$SCRIPT" 7 \
+  > "$tmp/graphql.out" 2> "$tmp/graphql.err" || code=$?
+[[ "$code" == 2 ]] || problems+=("exit want 2 got $code; stderr: $(head -2 "$tmp/graphql.err")")
+[[ ! -s "$tmp/graphql.out" ]] || problems+=("stdout want empty got: $(cat "$tmp/graphql.out")")
+! grep -F 'gh api' "$gqldir/calls" > /dev/null ||
+  problems+=("gh api was called: $(grep -F 'gh api' "$gqldir/calls")")
+
+report "$name"
+
 finish
