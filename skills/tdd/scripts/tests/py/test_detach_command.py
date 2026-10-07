@@ -162,3 +162,30 @@ def test_wait_refuses_a_max_seconds_not_all_ascii_digits_before_reading_any_file
 
     code = detach_command.main(["wait", "x", ""])
     assert (code != 2, capsys.readouterr().err) == (True, "")
+
+
+def test_wait_answers_a_recorded_code_over_a_dead_pid_and_rechecks_the_exit_file_after_a_dead_pid(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "x.pid").write_text("4242\n")
+    (tdd / "x.exit").write_text("5\n")
+
+    def dead(pid, signum):
+        raise ProcessLookupError
+
+    monkeypatch.setattr(os, "kill", dead)
+    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+    code = detach_command.main(["wait", "x", "0"])
+    assert (code, capsys.readouterr()) == (1, ("5\n", ""))
+
+    (tdd / "x.exit").unlink()
+
+    def records_then_dies(pid, signum):
+        (tdd / "x.exit").write_text("4\n")
+        raise ProcessLookupError
+
+    monkeypatch.setattr(os, "kill", records_then_dies)
+    code = detach_command.main(["wait", "x", "0"])
+    assert (code, capsys.readouterr()) == (1, ("4\n", ""))
