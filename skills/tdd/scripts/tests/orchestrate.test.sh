@@ -24,7 +24,7 @@ work="$(scratch_dir)"
 scripts="$work/scripts"
 mkdir -p "$scripts"
 cp "$HERE/../orchestrate.sh" "$scripts/orchestrate.sh" 2>/dev/null
-cp -R "$HERE/../lib" "$scripts/"
+cp -R "$HERE/../lib" "$HERE/../veri" "$scripts/"
 
 cat > "$scripts/solvable-issues.sh" <<'STUB'
 #!/bin/sh
@@ -51,7 +51,7 @@ orchestrate() {
 conductor_stub() {
   mkdir -p "$1"
   cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$1/"
-  cp -R "$scripts/lib" "$1/"
+  cp -R "$scripts/lib" "$scripts/veri" "$1/"
   {
     printf '#!/bin/sh\n"%s/run-conductor.sh" "$1"\n' "$scripts"
     cat <<PRELUDE
@@ -132,7 +132,7 @@ name="exits 2 without launching a conductor when solvable-issues.sh exits other 
 broken="$work/broken"
 mkdir -p "$broken"
 cp "$scripts/orchestrate.sh" "$scripts/run-conductor.sh" "$broken/"
-cp -R "$scripts/lib" "$broken/"
+cp -R "$scripts/lib" "$scripts/veri" "$broken/"
 cat > "$broken/solvable-issues.sh" <<'STUB'
 #!/bin/sh
 calls=$(($(cat "$SOLVABLE.calls" 2>/dev/null || echo 0) + 1))
