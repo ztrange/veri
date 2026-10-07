@@ -475,3 +475,114 @@ def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_
         "fifth positional": {p: (2, b"") for p in every},
         "unknown phase": True,
     }
+
+
+def test_main_carries_and_checks_refactors_base_sha_scopes_every_prompt_to_its_step_ignoring_veri_step_and_renders_the_configuration_mechanism_fast_cmd_name_error_unrequired_code_restore_and_checkout_rules(
+        tmp_path, capsysbinary, monkeypatch, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'slugify("Hello & World/Foo") must return "hello-world-foo" \xe2\x80\x94 see {ref}\\n done.\n')
+    s, testpath, base_sha = str(spec), "tests/test_slugify.py", "3f9a1c07e2b4"
+    step = "frobnicate --dry-run prints the plan and writes nothing ⟦criterion 3⟧"
+    ambient_step = "frobnicate --dry-run prints the plan and writes nothing ⟦criterion 9⟧"
+    fast_cmd = 'make unit ZORBLAT=fast -- --only "frob & nitz/quux"'
+    every = ("red", "green", "refactor", "pin")
+
+    def run(argv):
+        code = build_verify_prompt.main(argv)
+        return (code, *capsysbinary.readouterr())
+
+    def call(phase, step_args=()):
+        fast = ["--fast-cmd", "make unit"] if phase in ("green", "refactor") else []
+        slot4 = "0123abc" if phase == "refactor" else "test_slugify_lowercases"
+        return [*step_args, *fast, phase, s, testpath, slot4]
+
+    def has(out, pattern, flags=re.I):
+        return re.search(pattern.encode(), out.replace(b"\n", b" "), flags) is not None
+
+    monkeypatch.delenv("VERI_STEP", raising=False)
+    prompts = {phase: run(call(phase))[1] for phase in every}
+    red, green = prompts["red"], prompts["green"]
+    with_base = run(["--fast-cmd", "make unit", "refactor", s, testpath, base_sha])
+    refusals = {label: run(["--fast-cmd", "make unit", "refactor", s, testpath, *sha])[::2]
+                for label, sha in (("missing", []), ("short", ["abc123"]), ("uppercase", ["3F9A1C07E2B4"]),
+                                   ("with-text", ["3f9a1c07e2b4 because it tidies"]),
+                                   ("too-long", ["3f9a1c07e2b43f9a1c07e2b43f9a1c07e2b43f9a1"]))}
+    stepped = {phase: run(call(phase, ["--step", step])) for phase in every}
+    scoped_refactor = run(["--step", step, "--fast-cmd", "make unit", "refactor", s, testpath, base_sha])[1]
+    monkeypatch.setenv("VERI_STEP", ambient_step)
+    ambient = {phase: run(call(phase))[1] for phase in every}
+    fast_green = run(["--fast-cmd", fast_cmd, "green", s, testpath, "test_slugify_lowercases"])
+    no_fast = run(["green", s, testpath, "test_slugify_lowercases"])
+
+    refactor = with_base[1]
+    assert {
+        "base sha carried": (with_base[0], base_sha.encode() in refactor),
+        "base sha refusals": {label: (code, bool(err)) for label, (code, err) in refusals.items()},
+        "diff range": (f"git diff {base_sha}..HEAD".encode() in refactor,
+                       has(refactor, r"(never|not|don't|no)[^.]{0,80}commit messages")),
+        "weakened assertion": [has(refactor, p) for p in (
+            r"(removed|weakened)[^.]{0,80}assertion[^.]{0,120}REJECT|REJECT[^.]{0,120}(removed|weakened)[^.]{0,80}assertion",
+            r"REJECT[^.]{0,120}nam(e|es|ing)[^.]{0,40}assertion",
+            r"cosmetic[^.]{0,160}REASON:",
+            r"cosmetic[^.]{0,200}(not|never|no)[^.]{0,60}REJECT",
+            r"empty (range|diff)[^.]{0,160}(not|never|no)[^.]{0,60}REJECT")],
+        "step scoping": {phase: (code, step.encode() in out, has(
+            out, r"verdict[^.]{0,160}(criterion|step)[^.]{0,40}only|verdict[^.]{0,160}only[^.]{0,40}(criterion|step)"))
+            for phase, (code, out, _) in stepped.items()},
+        "VERI_STEP reaches nothing": {phase: ambient[phase] == prompts[phase]
+                                      and ambient_step.encode() not in ambient[phase] for phase in every},
+        "out of scope": (has(scoped_refactor, r"out of scope[^.]{0,200}REASON:|REASON:[^.]{0,200}out of scope"),
+                         has(scoped_refactor, r"outside[^.]{0,240}(not|never|no)[^.]{0,80}REJECT"
+                                              r"|out of scope[^.]{0,240}(not|never|no)[^.]{0,80}REJECT")),
+        "configuration": {phase: (has(out, r"(never|do not|don't|not)[^.]{0,80}(global|user-level)[^.]{0,60}config"),
+                                  has(out, r"environment variables?"),
+                                  has(out, r"(throwaway|temporary|scratch)[^.]{0,20}director(y|ies)"))
+                          for phase, out in {**prompts, "refactor": refactor}.items()},
+        "mechanism": {phase: [has(prompts[phase], p) for p in (
+            r"(process|fork)[^.]{0,20}count|timing",
+            r"in-process spy",
+            r"PATH[^.]{0,60}shim|shim[^.]{0,60}(count|real process)",
+            r"(runs?|running)[^.]{0,40}(another|other)[^.]{0,20}suite|re-runs?[^.]{0,30}suite")]
+            for phase in ("red", "pin")},
+        "fast-cmd": (fast_green[0], fast_cmd.encode() in fast_green[1], no_fast[0], bool(no_fast[2])),
+        "red name error": [has(red, p) for p in (
+            r"error[^.]{0,160}(exactly the name|the exact name)[^.]{0,200}(valid|legitimate) red"
+            r"|(valid|legitimate) red[^.]{0,200}error[^.]{0,160}(exactly the name|the exact name)",
+            r"(missing|absent)[^.]{0,120}(script|file)[^.]{0,120}(route|field)",
+            r"any [^.]{0,20}other[^.]{0,20} error[^.]{0,60}before[^.]{0,40}assertion[^.]{0,80}REJECT",
+            r"typo", r"wrong path|incorrect path|path that does not exist",
+            r"(missing|absent) fixture", r"syntax error")],
+        "red reaching assertions": [has(red, p) for p in (
+            r"(must|has to|should)[^.]{0,100}not error before[^.]{0,60}assertion",
+            r"(must|has to|should)[^.]{0,100}reach(es)? its assertions")],
+        "green unrequired code": [has(green, p) for p in (
+            r"REJECT[^.]{0,200}code[^.]{0,80}no test requires|code[^.]{0,80}no test requires[^.]{0,200}REJECT",
+            r"branch[^.]{0,80}option[^.]{0,80}flag[^.]{0,80}parameter",
+            r"remov(e|ed|ing|al)[^.]{0,140}(leaves?|leaving)[^.]{0,60}tests? green"
+            r"|remov(e|ed|ing|al)[^.]{0,140}(every|all) tests? [^.]{0,40}green",
+            r"REASON:?[^.]{0,160}nam(e|es|ing)[^.]{0,60}code|nam(e|es|ing)[^.]{0,60}code[^.]{0,160}REASON")],
+        "green restore": [has(green, p) for p in (
+            r"remov(e|ing)[^.]{0,120}run[^.]{0,80}suite",
+            r"restor(e|ing)[^.]{0,80}(tree|code|file)",
+            r"before[^.]{0,60}report")],
+        "checkout rule": (has(red, r"(never|do not|don't|not)[^.]{0,120}git checkout -- <file>"),
+                          has(red, r"(never|do not|don't|not)[^.]{0,160}git restore"),
+                          has(red, r"(undo|restor)[^.]{0,60}(probe|mutat)"),
+                          b"cp <file> <file>.orig" in red, b"mv <file>.orig <file>" in red),
+    } == {
+        "base sha carried": (0, True),
+        "base sha refusals": {label: (2, True) for label in refusals},
+        "diff range": (True, True),
+        "weakened assertion": [True] * 5,
+        "step scoping": {phase: (0, True, True) for phase in every},
+        "VERI_STEP reaches nothing": {phase: True for phase in every},
+        "out of scope": (True, True),
+        "configuration": {phase: (True, True, True) for phase in every},
+        "mechanism": {"red": [True] * 4, "pin": [True] * 4},
+        "fast-cmd": (0, True, 2, True),
+        "red name error": [True] * 7,
+        "red reaching assertions": [False, False],
+        "green unrequired code": [True] * 4,
+        "green restore": [True] * 3,
+        "checkout rule": (True, True, True, True, True),
+    }
