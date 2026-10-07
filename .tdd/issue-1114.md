@@ -5,7 +5,7 @@
 - [x] with VERI_GH_DRIVER=graphql, capture_spec.main reads the issue through `gh issue view` only, and a GraphQL failure is exit 2 with nothing on stdout and no `gh api` call ⟦criterion 1⟧
 - [x] with VERI_GH_DRIVER empty or any value other than auto, rest or graphql, capture_spec.main exits 2 with nothing on stdout, a stderr line naming VERI_GH_DRIVER and the value, and no gh process started ⟦criterion 1⟧
 - [x] capture-spec.test.sh has a case running capture-spec.sh with VERI_GH_DRIVER unset against a stub gh answering `gh api repos/{owner}/{repo}/issues/<n>`, getting the spec on stdout and recording no `gh issue view` call ⟦criterion 1⟧
-- [ ] capture-spec.test.sh has a case running capture-spec.sh with VERI_GH_DRIVER=graphql in which a failing `gh issue view` gives exit 2, nothing on stdout and no `gh api` call ⟦criterion 1⟧
+- [x] capture-spec.test.sh has a case running capture-spec.sh with VERI_GH_DRIVER=graphql in which a failing `gh issue view` gives exit 2, nothing on stdout and no `gh api` call ⟦criterion 1⟧
 - [ ] hermetic-suites.test.sh's ambient-VERI_GH_DRIVER case covers capture-spec.test.sh: an ambient VERI_GH_DRIVER of auto, rest or graphql gives it the same exit and stdout as a cleared run ⟦criterion 1⟧
 - [ ] every case in tests/py/test_capture_spec.py that runs capture_spec.main sets or clears VERI_GH_DRIVER itself, so the pytest suite's result does not depend on the caller's shell ⟦diff-checked⟧ ⟦criterion 1⟧
 - [ ] the default-route case (variable unset → no `gh issue view` call) and the graphql-no-fallback case have each been watched to go red against the `FallbackAdapter()` call capture_spec.py made before this branch — the Red comments on the issue thread are the record ⟦human-owed⟧ ⟦criterion 2⟧
