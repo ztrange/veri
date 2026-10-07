@@ -201,4 +201,43 @@ cmp -s "$elsewhere/inplace.out" "$elsewhere/linked.out" \
   || problems+=("exit codes: through the symlink $(cat "$elsewhere/linked.code"), in place $(cat "$elsewhere/inplace.code"), wanted 3 and 3")
 report "run through a symlink to the skill directory from another working directory, reads that directory's relative prompt and prints and exits as in place"
 
+problems=()
+source "$HERE/../lib/background.sh"
+streamed="$(scratch_dir)"
+streamstub="$(scratch_dir)"
+claude_stub "$streamstub" "$(cat <<'STUB'
+printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
+looks=0
+while [ ! -e "$RELEASE" ] && [ "$looks" -lt 1500 ]; do sleep 0.02; looks=$((looks + 1)); done
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"VERDICT: PASS"}'
+STUB
+)"
+appears_in() {  # appears_in <file> <line>
+  local looks=0
+  while [[ "$looks" -lt 500 ]]; do
+    grep -Fx "$2" "$1" > /dev/null 2>&1 && return 0
+    looks=$((looks + 1))
+    sleep 0.02
+  done
+  return 1
+}
+on_exit bg_kill "$streamed/record"
+bg_start "$streamed/record" env CLAUDE_BIN="$streamstub/claude" RELEASE="$streamed/release" \
+  "$LEAF" "$work/prompt.txt" > "$streamed/out" 2>/dev/null
+read -r streamed_pid _ < "$streamed/record"
+appears_in "$streamed/out" '{"type":"system","subtype":"init","session_id":"x"}' \
+  || problems+=("the first stream-json line was not in stdout while claude waited: '$(cat "$streamed/out")'")
+grep -F '"type":"result"' "$streamed/out" > /dev/null \
+  && problems+=("the result record was in stdout before the release: '$(cat "$streamed/out")'")
+: > "$streamed/release"
+wait "$streamed_pid"; code=$?
+bg_kill "$streamed/record"
+expected='{"type":"system","subtype":"init","session_id":"x"}
+{"type":"result","subtype":"success","is_error":false,"result":"VERDICT: PASS"}
+
+VERDICT: PASS'
+[[ "$code" == 0 ]] || problems+=("exited $code, wanted 0")
+[[ "$(cat "$streamed/out")" == "$expected" ]] || problems+=("stdout after the release differed: '$(cat "$streamed/out")'")
+report "streams claude's stdout as it arrives: the first line is out while claude waits, the result record only after, then the full stdout and exit 0"
+
 finish
