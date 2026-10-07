@@ -253,3 +253,87 @@ def test_every_conductor_is_stopped_by_sigterm_to_its_group_else_its_pid_silentl
                          ("killpg", 4003, term), ("kill", 4003, term), ("killpg", 4004, term)]
     assert stops[6:] in ([], [("kill", 4004, term)])
     assert len(asks) == 5
+
+
+class _Stream:
+    """A conductor's stdout over <lines>, snapshotting <out>'s flushed text at each line asked for."""
+
+    def __init__(self, lines, out, snapshots):
+        self.lines, self.out, self.snapshots = list(lines), out, snapshots
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        line = self.readline()
+        if not line:
+            raise StopIteration
+        return line
+
+    def readline(self, *args):
+        self.snapshots.append(self.out.flushed)
+        return self.lines.pop(0) if self.lines else b""
+
+    def close(self):
+        pass
+
+
+class _Out:
+    def __init__(self):
+        self.pending, self.flushed = "", ""
+
+    def write(self, text):
+        self.pending += text
+        return len(text)
+
+    def flush(self):
+        self.flushed, self.pending = self.flushed + self.pending, ""
+
+
+def test_the_watch_prints_each_assistant_lines_cache_read_plus_creation_and_stops_on_a_user_line_over_budget_after_step_done(
+        capsys, monkeypatch, tmp_path, orchestrate):
+    import signal
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", "100")
+    asks, _ = _passes(monkeypatch, [(0, "7\n"), (0, "8\n"), (3, "")], lambda n, issue: None)
+    out, snapshots, stops = _Out(), [], []
+
+    def usage(read, creation):
+        return '"cache_read_input_tokens":%d,"cache_creation_input_tokens":%d' % (read, creation)
+
+    streams = [[
+        b'{"type":"assistant","message":{"usage":{%s}}}\n' % usage(10, 5).encode(),
+        b'{"type":"assistant","message":{"usage":{"cache_read_input_tokens":999}}}\n',
+        b'{"type":"result","usage":{%s}}\n' % usage(999, 1).encode(),
+        b'{"type":"user","usage":{%s}}\n' % usage(1, 1).encode(),
+        b'{"type":"assistant","usage":{"cache_creation_input_tokens":60,"cache_read_input_tokens":40},'
+        b'"x":{%s}}\n' % usage(1000, 2000).encode(),
+        b'{"type":"assistant","input":"bash event.sh step-done 3","usage":{%s}}\n' % usage(30, 70).encode(),
+        b'{"type":"user","x":{"type":"assistant","usage":{%s}}}\n' % usage(50, 60).encode(),
+        b'{"type":"user","content":"ok"}\n',
+        b'{"type":"assistant","usage":{%s}}\n' % usage(60, 50).encode(),
+        b'{"type":"assistant","input":"bash event.sh step-done 4"}\n',
+        b'{"type":"user","content":"done"}\n',
+        b'{"type":"assistant","usage":{%s}}\n' % usage(1, 1).encode(),
+    ], [
+        b'{"type":"assistant","usage":{%s}}\n' % usage(3, 4).encode(),
+        b'{"type":"assistant","usage":{%s}}' % usage(8, 9).encode(),
+    ]]
+    pids = iter((4001, 4002))
+
+    def fake_popen(args, *rest, **kwargs):
+        conductor = _FakeConductor(next(pids))
+        conductor.stdout = _Stream(streams.pop(0), out, snapshots)
+        return conductor
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+    monkeypatch.setattr(os, "killpg", lambda pid, sig: stops.append((pid, sig)))
+    monkeypatch.setattr(sys, "stdout", out)
+    code = orchestrate.main([])
+    _, err = capsys.readouterr()
+    assert (code, out.flushed + out.pending, err) == (
+        0, "context 7 15\ncontext 7 100\ncontext 7 100\ncontext 7 110\ncontext 7 110\ncontext 8 7\n", "")
+    assert out.pending == ""
+    assert snapshots[1] == "context 7 15\n"
+    assert stops == [(4001, signal.SIGTERM), (4002, signal.SIGTERM)]
+    assert len(asks) == 3

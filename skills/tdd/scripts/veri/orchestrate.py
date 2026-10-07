@@ -30,11 +30,31 @@ def main(argv):
         except OSError as e:
             sys.stderr.write("orchestrate.sh: cannot start %s: %s\n" % (CONDUCTOR, e.strerror))
             continue
-        for _ in conductor.stdout:
-            pass
+        _watch(issue, conductor.stdout, int(budget))
         _stop(conductor.pid)
         if _parked(issue):
             sys.stdout.write("parked %s\n" % issue)
+            sys.stdout.flush()
+
+
+def _watch(issue, stream, budget):
+    context, step_done = 0, False
+    for line in stream:
+        if not line.endswith(b"\n"):
+            return
+        if step_done and b'"type":"user"' in line:
+            if context > budget:
+                return
+            step_done = False
+        if b'"type":"assistant"' not in line:
+            continue
+        if b"event.sh step-done" in line:
+            step_done = True
+        read = re.search(rb'"cache_read_input_tokens":([0-9]+)', line)
+        creation = re.search(rb'"cache_creation_input_tokens":([0-9]+)', line)
+        if read and creation:
+            context = int(read.group(1)) + int(creation.group(1))
+            sys.stdout.write("context %s %d\n" % (issue, context))
             sys.stdout.flush()
 
 
