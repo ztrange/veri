@@ -221,3 +221,36 @@ def test_python_refusal_reads_the_floor_from_the_lib_beside_the_module_and_refus
         ("3.12", None, "3.12.1", 0, "", ""),
         ("3.13", None, "3.12.1", 2, "", refusal("3.13", "3.12.1")),
     ]
+
+
+def test_python_refusal_parses_the_version_as_the_lib_does_major_before_the_first_dot_minor_up_to_the_second(
+        capsys, monkeypatch, tmp_path, launch_floor):
+    import platform
+
+    def no_venv(args, **kwargs):
+        return subprocess.CompletedProcess(args, 1, "" if kwargs.get("text") else b"", "")
+
+    def no_popen(args, **kwargs):
+        raise FileNotFoundError(2, "No such file or directory", args[0])
+
+    monkeypatch.setenv("VERI_VENV", str(tmp_path / "no-venv"))
+    monkeypatch.setattr(subprocess, "run", no_venv)
+    monkeypatch.setattr(subprocess, "call", lambda args, **kwargs: 1)
+    monkeypatch.setattr(subprocess, "Popen", no_popen)
+    monkeypatch.setattr(platform, "python_version", lambda: "3.13.0")
+
+    answers = []
+    for value in ("3", "unknown", "3.x", "3.12rc1", " 3.11", "3.08", ""):
+        monkeypatch.setenv("VERI_PYTHON_VERSION", value)
+        code = launch_floor.python_refusal("some-prefix")
+        captured = capsys.readouterr()
+        answers.append((value, code, captured.out, captured.err))
+    assert answers == [
+        ("3", 2, "", "some-prefix: veri needs Python 3.12 or newer; the python3 on PATH is version 3.\n"),
+        ("unknown", 0, "", ""),
+        ("3.x", 0, "", ""),
+        ("3.12rc1", 0, "", ""),
+        (" 3.11", 0, "", ""),
+        ("3.08", 0, "", ""),
+        ("", 0, "", ""),
+    ]

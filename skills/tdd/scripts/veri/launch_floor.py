@@ -32,8 +32,20 @@ def python_refusal(prefix):
     with open(lib) as f:
         floor = re.search("^VENV_FLOOR=(.*)$", f.read(), re.M).group(1)
     version = os.environ.get("VERI_PYTHON_VERSION", "") or platform.python_version()
-    if [int(part) for part in version.split(".")] < [int(part) for part in floor.split(".")]:
+    major, dot, rest = version.partition(".")
+    minor = rest.partition(".")[0] if dot else major
+    numbers = [_bash_number(major), _bash_number(minor)]
+    if None not in numbers and numbers < [int(part) for part in floor.split(".")[:2]]:
         sys.stderr.write("%s: veri needs Python %s or newer; the python3 on PATH is version %s.\n"
                          % (prefix, floor, version))
         return 2
     return 0
+
+
+def _bash_number(text):
+    if not re.fullmatch("[0-9]+", text):
+        return None
+    try:
+        return int(text, 8) if len(text) > 1 and text.startswith("0") else int(text)
+    except ValueError:
+        return None
