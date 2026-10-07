@@ -586,3 +586,161 @@ def test_main_carries_and_checks_refactors_base_sha_scopes_every_prompt_to_its_s
         "green restore": [True] * 3,
         "checkout rule": (True, True, True, True, True),
     }
+
+
+def test_main_scopes_refactor_to_the_cycles_files_with_flags_lines_checks_plan_refusals_and_criteria_rebase_transform_and_diff_rendering_test_adding_and_fast_cmd_rules(
+        tmp_path, monkeypatch, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'slugify("Hello & World/Foo") must return "hello-world-foo" \xe2\x80\x94 see {ref}\\n done.\n')
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes("# Plan for #426\n\n- [ ] A verdict launcher script runs verify.sh with the step title"
+                       " as an argument ⟦criterion 1⟧\n".encode())
+    predicate = tmp_path / "predicate.md"
+    predicate.write_bytes(b'grep -q "extract_helper" lib/foo.sh\n')
+    s, testpath, base_sha = str(spec), "tests/test_slugify.py", "3f9a1c07e2b4"
+    diff_step = "the dead counted line in the status suite is gone ⟦diff-checked⟧ ⟦criterion 5⟧"
+    diff_fast = 'make unit ZORBLAT=diff -- --only "frob & nitz/quux"'
+    every = ("red", "green", "refactor", "pin")
+
+    def run(argv):
+        code = build_verify_prompt.main(argv)
+        return (code, *capsysbinary.readouterr())
+
+    def call(phase):
+        fast = ["--fast-cmd", "make unit"] if phase in ("green", "refactor") else []
+        slot4 = "0123abc" if phase == "refactor" else "test_slugify_lowercases"
+        return [*fast, phase, s, testpath, slot4]
+
+    def has(out, pattern, flags=re.I):
+        return re.search(pattern.encode(), out.replace(b"\n", b" "), flags) is not None
+
+    def diff(base, step_base, fast="make unit"):
+        return run(["--step", diff_step, "--fast-cmd", fast, "diff", s, base, step_base])
+
+    monkeypatch.delenv("VERI_STEP", raising=False)
+    monkeypatch.delenv("VERI_RATIONALE", raising=False)
+    prompts = {phase: run(call(phase))[1] for phase in every}
+    refactor = prompts["refactor"]
+    with_base = run(["--fast-cmd", "make unit", "refactor", s, testpath, base_sha])[1]
+    plan = run(["plan", s, str(ledger)])[1]
+    no_ledger = run(["plan", s])[:2]
+    missing_ledger = run(["plan", s, str(tmp_path / "absent-ledger.md")])[:2]
+    rb_onto, rb_pre = "8d05a4410c2e", "278252a1b9f3"
+    rebase = run(["rebase", s, rb_onto, rb_pre])
+    rebase_refusals = {label: run(["rebase", s, *shas])[:2] for label, shas in (
+        ("short onto", ["abc123", rb_pre]), ("uppercase onto", ["8D05A4410C2E", rb_pre]),
+        ("onto with text", [f"{rb_onto} because it merged", rb_pre]),
+        ("short pre-rebase", [rb_onto, "abc123"]), ("uppercase pre-rebase", [rb_onto, "278252A1B9F3"]),
+        ("pre-rebase with text", [rb_onto, f"{rb_pre} because it was green"]))}
+    transform = run(["transform", s, str(predicate), "0123abcdef"])
+    transform_bad_base = run(["transform", s, str(predicate), "tidied the helper"])[0]
+    transforms = run(["transforms", s, str(predicate), "0123abcdef"])[0]
+    dp = diff("0123abcdef", "0123abcdef")
+    monkeypatch.setenv("VERI_STEP", "I tidied the helper because it was ugly")
+    monkeypatch.setenv("VERI_RATIONALE", "the author meant well")
+    dp_ambient = diff("0123abcdef", "0123abcdef")[1]
+    monkeypatch.delenv("VERI_STEP")
+    monkeypatch.delenv("VERI_RATIONALE")
+    dp_other = diff("fedcba9876", "fedcba9876")[1]
+    ds = diff("0123abcdef", "4567abcdef")
+    df = diff("0123abcdef", "4567abcdef", diff_fast)
+    fast_line = f"timed-test-run.sh fast '' {diff_fast}".encode()
+    _, found, after_fast = df[1].partition(fast_line)
+    deliver = r"deliver(s|ed|ing)?[^a-z]"
+    red_word = r"(red|fails?|failing|not green)[^0-9A-Za-z]"
+    gap_step = r"gap step|untagged|no[^.]{0,20}criterion[^.]{0,20}tag"
+
+    def rejects_shape(marker, ere):
+        return [f"⟦{marker}⟧".encode() in plan, has(plan, rf"REJECT[^.]{{0,200}}{ere}|{ere}[^.]{{0,200}}REJECT"),
+                has(plan, rf"Red[^.]{{0,40}}Green[^.]{{0,200}}{marker}|{marker}[^.]{{0,200}}Red[^.]{{0,40}}Green")]
+
+    assert {
+        "refactor file scope": (f"git diff --name-only {base_sha}^ {base_sha}".encode() in with_base,
+                                has(with_base, r"outside[^.]{0,80}list[^.]{0,160}REJECT|REJECT[^.]{0,160}outside[^.]{0,80}list"),
+                                has(with_base, r"(unless|except)[^.]{0,160}duplication|duplication[^.]{0,160}(unless|except)")),
+        "refactor edge case flag": [has(refactor, p) for p in (
+            r"unhandled edge case[^.]{0,200}FLAGS|FLAGS[^.]{0,200}unhandled edge case",
+            r"FLAGS[^.]{0,120}before[^.]{0,120}VERDICT",
+            r"(edge case|robust)[^.]{0,200}not( by itself)? a REJECT|not( by itself)? a REJECT[^.]{0,200}(edge case|robust)")],
+        "FLAGS allowed": {phase: [has(out, p) for p in (
+            r"FLAGS[^.]{0,200}(may|can|allow|permit)|(may|can|allow|permit)[^.]{0,200}FLAGS",
+            r"FLAGS[^.]{0,160}before[^.]{0,160}(VERDICT|(final|last)[^.]{0,40}two lines)")]
+            for phase, out in prompts.items()},
+        "plan ledger refusals": (no_ledger, missing_ledger),
+        "plan together": [has(plan, p) for p in (
+            r"together[^.]{0,200}deliver|deliver[^.]{0,200}together",
+            r"as written|in its own terms|the criterion.{0,20}own (words|terms|wording)",
+            r"REJECT[^.]{0,120}(name|identif|say|state)[^.]{0,200}criterion[^.]{0,200}(no step|nothing[^.]{0,40}cover|uncovered)",
+            r"PASS[^.]{0,200}every criterion[^.]{0,200}(deliver|cover)|every criterion[^.]{0,200}(deliver|cover)[^.]{0,200}PASS")],
+        "plan too big": [has(plan, p) for p in (
+            r"(too (big|large)|too much|does not fit|not fit)[^.]{0,150}cycle",
+            r"(name|names|say so|state)[^.]{0,100}(REASON:|reason\b)",
+            r"(whether|either way|regardless)[^.]{0,100}(PASS|REJECT|verdict)")],
+        "plan untagged step": [has(plan, p) for p in (
+            rf"{gap_step}|(carries|carrying|with|without|has) no[^.]{{0,40}}criterion",
+            rf"({gap_step})[^.]{{0,200}}(not|never|no)[^.]{{0,80}}REJECT",
+            r"(by itself|on its own|alone|in itself)[^.]{0,100}REJECT|REJECT[^.]{0,100}(by itself|on its own|alone|in itself)")],
+        "plan mechanism": [has(plan, p) for p in (
+            r"mechanism[^.]{0,200}(sufficient|suffices|enough)|(sufficient|suffices|enough)[^.]{0,200}mechanism",
+            r"REJECT[^.]{0,200}(no step|nothing)[^.]{0,150}(establish|deliver)|(no step|nothing)[^.]{0,150}(establish|deliver)[^.]{0,200}REJECT")],
+        "refactor flag classes": (b"FLAGS:" in refactor, [c in refactor for c in (b"overfit", b"uncovered-spec", b"beyond-spec")],
+                                  b"NEW_STEP" in refactor),
+        "rebase": (rebase[0], b'slugify("Hello & World/Foo")' in rebase[1], rb_onto.encode() in rebase[1],
+                   rb_pre.encode() in rebase[1], b"{{" in rebase[1],
+                   has(rebase[1], r"full[^.]{0,80}(test|suite)"), b"HEAD" in rebase[1], has(rebase[1], r"default branch"),
+                   has(rebase[1], r"both[^.]{0,200}(surviv|preserv|intact|kept)|(surviv|preserv|intact|kept)[^.]{0,200}both")),
+        "rebase sha refusals": rebase_refusals,
+        "plan full-suite": rejects_shape("full-suite", r"(test command|suites?)[^.]{0,120}pass"),
+        "plan human-owed": rejects_shape("human-owed", r"(manual|human)[^.]{0,120}(check|record)"),
+        "plan marker delivers": [has(plan, rf"⟦{m}⟧[^.]{{0,200}}{deliver}|{deliver}[^.]{{0,200}}⟦{m}⟧")
+                                 for m in ("full-suite", "human-owed", "diff-checked")],
+        "plan diff-checked": rejects_shape("diff-checked", r"diff[- ]property"),
+        "plan forbidden reads": [has(plan, rf"REJECT[^.]{{0,200}}{r}|{r}[^.]{{0,200}}REJECT")
+                                 for r in ("another suite's source text", "git history")],
+        "plan ordering": [has(plan, p) for p in (
+            r"REJECT[^.]{0,200}branch[^.]{0,200}later step|branch[^.]{0,200}later step[^.]{0,200}REJECT",
+            r"nam(e|es|ing)[^.]{0,40}both[^.]{0,200}introduc[^.]{0,200}pin|nam(e|es|ing)[^.]{0,40}both[^.]{0,200}pin[^.]{0,200}introduc",
+            r"after[^.]{0,80}pin[^.]{0,200}not[^.]{0,40}REJECT|not[^.]{0,40}REJECT[^.]{0,200}after[^.]{0,80}pin",
+            r"only[^.]{0,40}branch[^.]{0,80}own test[^.]{0,200}not[^.]{0,40}REJECT"
+            r"|not[^.]{0,40}REJECT[^.]{0,200}only[^.]{0,40}branch[^.]{0,80}own test")],
+        "transform": (transform[0], b'slugify("Hello & World/Foo")' in transform[1],
+                      b"git diff 0123abcdef..HEAD" in transform[1], has(transform[1], r"green commit"),
+                      transform_bad_base, transforms),
+        "diff rendering": (dp[0], diff_step.encode() in dp[1], b"git diff 0123abcdef..HEAD" in dp[1],
+                           has(dp[1], r"git diff 0123abcdef\.\.HEAD[^.]{0,200}alone|alone[^.]{0,200}git diff 0123abcdef\.\.HEAD"),
+                           b"VERDICT: PASS" in dp[1] and b"VERDICT: REJECT" in dp[1]),
+        "diff blind": (has(dp[1], r"(never|not|don't|no)[^.]{0,80}commit messages"), b"{{" in dp[1],
+                       b"the target test" in dp[1], dp_ambient == dp[1],
+                       dp_other.replace(b"fedcba9876", b"0123abcdef") == dp[1]),
+        "diff adds a test": has(dp[1], r"REJECT[^.]{0,160}(add|adds|added)[^.]{0,40}test|(add|adds|added)[^.]{0,40}test[^.]{0,160}REJECT"),
+        "diff step base": (ds[0], b"git diff 0123abcdef..HEAD" in ds[1],
+                           has(ds[1], r"(add|adds|added)[^.]{0,40}test[^.]{0,200}git diff 4567abcdef\.\.HEAD"
+                                      r"|git diff 4567abcdef\.\.HEAD[^.]{0,200}(add|adds|added)[^.]{0,40}test")),
+        "diff fast-cmd": (df[0], bool(found), b"affected-suites.sh" in after_fast,
+                          has(df[1], rf"(fast|affected)[^.]{{0,200}}{red_word}[^.]{{0,200}}REJECT"
+                                     rf"|REJECT[^.]{{0,200}}(fast|affected)[^.]{{0,200}}{red_word}")),
+    } == {
+        "refactor file scope": (True, True, True),
+        "refactor edge case flag": [True] * 3,
+        "FLAGS allowed": {phase: [True, True] for phase in every},
+        "plan ledger refusals": ((2, b""), (2, b"")),
+        "plan together": [True] * 4,
+        "plan too big": [True] * 3,
+        "plan untagged step": [True] * 3,
+        "plan mechanism": [True] * 2,
+        "refactor flag classes": (True, [True] * 3, False),
+        "rebase": (0, True, True, True, False, True, True, True, True),
+        "rebase sha refusals": {label: (2, b"") for label in rebase_refusals},
+        "plan full-suite": [True] * 3,
+        "plan human-owed": [True] * 3,
+        "plan marker delivers": [True] * 3,
+        "plan diff-checked": [True] * 3,
+        "plan forbidden reads": [True] * 2,
+        "plan ordering": [True] * 4,
+        "transform": (0, True, True, False, 2, 2),
+        "diff rendering": (0, True, True, True, True),
+        "diff blind": (True, False, False, True, True),
+        "diff adds a test": True,
+        "diff step base": (0, True, True),
+        "diff fast-cmd": (0, True, True, True),
+    }
