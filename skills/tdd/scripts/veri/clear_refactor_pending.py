@@ -1,6 +1,7 @@
 """clear-refactor-pending.sh's clear, run in-process."""
 import os
 import sys
+import tempfile
 
 import ledger
 
@@ -23,10 +24,19 @@ def main(argv):
         return to_contract(cleared)
     if not cleared:
         return 3
+    data = (new.rstrip("\n") + "\n").encode(errors="surrogateescape")
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(argv[0])))
+    try:
+        with os.fdopen(fd, "wb") as file:
+            file.write(data)
+    except OSError:
+        return 2
+    finally:
+        os.unlink(tmp)
     file = open(argv[0], "wb")
     try:
         with file:
-            file.write((new.rstrip("\n") + "\n").encode(errors="surrogateescape"))
+            file.write(data)
     except OSError:
         with os.fdopen(os.open(argv[0], os.O_WRONLY), "wb") as file:
             file.write(raw)

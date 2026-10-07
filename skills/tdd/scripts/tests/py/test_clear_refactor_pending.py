@@ -3,6 +3,7 @@ import builtins
 import importlib
 import os
 import pathlib
+import resource
 import sys
 
 import pytest
@@ -289,6 +290,25 @@ def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_writing_the_cl
     except OSError as error:
         code = type(error).__name__
     monkeypatch.undo()
+    capsysbinary.readouterr()
+
+    assert (code, led.read_bytes()) == (2, seed)
+
+
+def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_every_write_to_the_ledger_fails_817(
+        tmp_path, capsysbinary, clear_refactor_pending):
+    seed = "".join(f"- [x] step {n} of a ledger long enough to outgrow the file size limit ⟂ refactor pending\n"
+                   for n in range(8)).encode()
+    led = tmp_path / "ledger.md"
+    led.write_bytes(seed)
+    soft, hard = resource.getrlimit(resource.RLIMIT_FSIZE)
+    resource.setrlimit(resource.RLIMIT_FSIZE, (64, hard))
+    try:
+        code = clear_refactor_pending.main([str(led), "step 3"])
+    except OSError as error:
+        code = type(error).__name__
+    finally:
+        resource.setrlimit(resource.RLIMIT_FSIZE, (soft, hard))
     capsysbinary.readouterr()
 
     assert (code, led.read_bytes()) == (2, seed)
