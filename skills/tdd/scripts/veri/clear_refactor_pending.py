@@ -12,6 +12,17 @@ def to_contract(code):
     return code if 0 <= code <= 3 else 2
 
 
+def write_beside(path, data):
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path))
+    try:
+        with os.fdopen(fd, "wb") as file:
+            file.write(data)
+    except BaseException:
+        os.unlink(tmp)
+        raise
+    return tmp
+
+
 def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
@@ -26,16 +37,10 @@ def main(argv):
         return 3
     data = (new.rstrip("\n") + "\n").encode(errors="surrogateescape")
     try:
-        fd, tmp = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(argv[0])))
+        tmp = write_beside(os.path.abspath(argv[0]), data)
     except OSError:
         return 2
-    try:
-        with os.fdopen(fd, "wb") as file:
-            file.write(data)
-    except OSError:
-        return 2
-    finally:
-        os.unlink(tmp)
+    os.unlink(tmp)
     file = open(argv[0], "wb")
     try:
         with file:
@@ -45,10 +50,7 @@ def main(argv):
             with os.fdopen(os.open(argv[0], os.O_WRONLY), "wb") as file:
                 file.write(raw)
         except OSError:
-            fd, tmp = tempfile.mkstemp(dir=os.path.dirname(os.path.realpath(argv[0])))
-            with os.fdopen(fd, "wb") as file:
-                file.write(raw)
-            os.replace(tmp, os.path.realpath(argv[0]))
+            os.replace(write_beside(os.path.realpath(argv[0]), raw), os.path.realpath(argv[0]))
         return 2
     return 0
 
