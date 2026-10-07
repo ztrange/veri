@@ -17,3 +17,5 @@
 - test-only | name the absent sha `0123456789abcdef0123456789abcdef01234567` once in skill-drift.test.sh instead of repeating it in the criterion 4, 5 and 6 cases
 ### skill-drift.sh with VERI_SKILL_REF naming a ref that does not resolve in the clone prints `Skill drift: unavailable — <ref> does not resolve in <clone>` and exits 0
 - test-only | the new ref-does-not-resolve case in skill-drift.test.sh repeats the scratch upstream + touch_commit + git clone setup the commit-not-in-clone case uses; a shared fixture helper would remove it
+### skill-drift.sh over a clone whose origin cannot be fetched still prints the list from the ref as it stands, followed by `origin could not be fetched — list is as of the last fetch of <ref>`, and exits 0 ⟦criterion 7⟧
+- test-only | extract a helper in skill-drift.test.sh for the repeated `env -u VERI_SKILL_UNPINNED VERI_SKILL_COMMIT=… VERI_SKILL_CLONE=… VERI_SKILL_REF=… "$SKILL_DRIFT"` invocation and the upstream/pinned/clone setup repeated across five cases
