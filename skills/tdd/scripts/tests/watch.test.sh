@@ -101,6 +101,7 @@ mkdir -p "$scratch/bin" "$fixture/skills/tdd/scripts/tests/unit" "$fixture/skill
 cp "$ROOT/Makefile" "$fixture/Makefile"
 cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$fixture/skills/tdd/scripts/lib/"
 cp "$ROOT/skills/tdd/scripts/run-suite.sh" "$fixture/skills/tdd/scripts/"
+cp -R "$ROOT/skills/tdd/scripts/veri" "$fixture/skills/tdd/scripts/"
 printf 'original\n' > "$fixture/tracked.txt"
 cat > "$fixture/skills/tdd/scripts/tests/unit/probe.test.sh" <<'SUITE'
 #!/bin/sh
@@ -168,6 +169,7 @@ mkdir -p "$scratch/bin" "$fixture/skills/tdd/scripts/tests/unit" "$fixture/skill
 cp "$ROOT/Makefile" "$fixture/Makefile"
 cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$fixture/skills/tdd/scripts/lib/"
 cp "$ROOT/skills/tdd/scripts/run-suite.sh" "$fixture/skills/tdd/scripts/"
+cp -R "$ROOT/skills/tdd/scripts/veri" "$fixture/skills/tdd/scripts/"
 printf 'original\n' > "$fixture/tracked.txt"
 cat > "$fixture/skills/tdd/scripts/tests/unit/probe.test.sh" <<'SUITE'
 #!/bin/sh

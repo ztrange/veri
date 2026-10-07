@@ -59,6 +59,7 @@ make_tree() {
   cp "$ROOT/Makefile" "$1/Makefile"
   cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$1/skills/tdd/scripts/lib/"
   cp "$ROOT/skills/tdd/scripts/run-suite.sh" "$1/skills/tdd/scripts/"
+  cp -R "$ROOT/skills/tdd/scripts/veri" "$1/skills/tdd/scripts/"
   ln -s "$HERE/offline" "$1/skills/tdd/scripts/tests/offline"
   ln -s "$HERE/unit-guard" "$1/skills/tdd/scripts/tests/unit-guard"
 }
