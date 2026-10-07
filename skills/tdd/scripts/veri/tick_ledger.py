@@ -35,7 +35,10 @@ def main(argv):
         shutil.copymode(argv[0], tmp)
         os.replace(tmp, argv[0])
     except OSError:
-        os.unlink(tmp)
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
         return 2
     return 0
 
