@@ -10,10 +10,6 @@ USAGE = "capture-spec: usage: capture-spec.sh <issue-number>"
 BUG_HEADINGS = ("What happened", "Expected", "Steps to reproduce", "Environment")
 
 
-def gh_issue_view(n, field):
-    return FallbackAdapter().issue_view(n, field).rstrip("\n")
-
-
 def part(body, heading):
     want = "## " + heading
     inside = False
@@ -32,8 +28,8 @@ def main(argv):
         return 2
     n = argv[0]
     try:
-        labels = gh_issue_view(n, "labels").split("\n")
-        body = gh_issue_view(n, "body")
+        labels = FallbackAdapter().issue_view(n, "labels").rstrip("\n").split("\n")
+        body = FallbackAdapter().issue_view(n, "body").rstrip("\n")
     except NoAnswer:
         return 2
     out = body + "\n"
