@@ -5,5 +5,5 @@
 #
 # usage: clear-refactor-pending.sh <ledger-file> <matcher>
 # Exit:    0 the mark cleared, the file rewritten; 1 the ledger could not be read or written;
-#          2 a missing argument, or the ledger is a directory; 3 nothing to do — no step matched, the file byte-identical
+#          2 a missing argument, or the ledger is a directory or does not exist; 3 nothing to do — no step matched, the file byte-identical
 exec python3 "$(dirname "$0")/veri/clear_refactor_pending.py" "$@"

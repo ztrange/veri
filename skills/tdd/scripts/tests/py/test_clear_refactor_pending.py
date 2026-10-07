@@ -230,9 +230,8 @@ def test_main_writes_the_ledger_in_place_keeping_a_symlink_a_symlink_and_reading
     assert (tmp_path / "relative.md").read_bytes() == seed
 
 
-def test_main_raises_rather_than_returning_a_code_on_a_missing_ledger_and_a_refused_write_back_leaving_the_refused_ledger_byte_identical(
+def test_main_raises_rather_than_returning_a_code_on_a_refused_write_back_leaving_the_ledger_byte_identical(
         tmp_path, monkeypatch, clear_refactor_pending):
-    missing = tmp_path / "missing.md"
     seed = "- [x] a ⟂ refactor pending\n".encode()
     refused = tmp_path / "refused.md"
     refused.write_bytes(seed)
@@ -244,16 +243,8 @@ def test_main_raises_rather_than_returning_a_code_on_a_missing_ledger_and_a_refu
         return real_open(file, mode, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "open", refusing_open)
-    raised = {}
-    for name, led in (("missing", missing), ("refused", refused)):
-        with pytest.raises(OSError) as caught:
-            clear_refactor_pending.main([str(led), "a"])
-        raised[name] = type(caught.value)
-
-    assert raised == {
-        "missing": FileNotFoundError,
-        "refused": PermissionError,
-    }
+    with pytest.raises(PermissionError):
+        clear_refactor_pending.main([str(refused), "a"])
     assert refused.read_bytes() == seed
 
 
@@ -431,6 +422,14 @@ def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_the_in_place_w
     capsysbinary.readouterr()
 
     assert (code, led.read_bytes()) == (2, seed)
+
+
+def test_main_returns_2_on_a_missing_ledger_with_one_stderr_line_naming_it(
+        tmp_path, capsysbinary, clear_refactor_pending):
+    code = clear_refactor_pending.main([str(tmp_path / "missing.md"), "a"])
+    out, err = capsysbinary.readouterr()
+    assert (code, out) == (2, b"")
+    assert err.decode() == f"clear-refactor-pending.sh: {tmp_path / 'missing.md'}: No such file or directory\n"
 
 
 def test_main_returns_2_on_a_directory_as_the_ledger_with_one_stderr_line_naming_it(
