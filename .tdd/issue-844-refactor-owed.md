@@ -5,3 +5,7 @@
 ### tests/py/test_pid_file.py: number_in answers no number for a missing path, a directory, and a regular file whose builtins.open (faked, looked up at call time) raises PermissionError ⟦criterion 3⟧
 - test-only | tests/py/test_pid_file.py: the second and third tests repeat the same loop (call `number_in`, record the answer, or record the exception's type name if it raises). Both could call one shared helper.
 - test-only | tests/py/test_pid_file.py: every test repeats `importlib.import_module("veri.pid_file")`. A single module-level import would replace the three copies.
+### tests/py/test_pid_file.py: live_conductor(run_dir) reads run_dir + "/.tdd/conductor.pid" and answers the digits as read when a faked os.kill(pid, 0) succeeds; answers None with os.kill never called when there is no pid file, and for "0" and "00" even when the fake would succeed ⟦criterion 3⟧
+- test-only | each of the five cases in `tests/py/test_pid_file.py` calls `importlib.import_module("veri.pid_file")` itself; that could become one module-level import or a fixture.
+- test-only | four cases in `tests/py/test_pid_file.py` repeat the same `try: answers[name] = … except Exception as error: answers[name] = type(error).__name__` loop body; that could become one helper.
+- out-of-scope | `veri/issue_worktree.py:17-37` repeats `number_in` and `live_conductor`, which `veri/pid_file.py` now also defines. Removing that copy is the plan's own move step (`from pid_file import live_conductor`, ⟦criterion 1⟧), so it isn't this refactor's to do.
