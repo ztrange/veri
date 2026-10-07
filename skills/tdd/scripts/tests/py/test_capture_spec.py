@@ -326,3 +326,36 @@ def test_main_reads_the_issue_through_gh_api_only_when_veri_gh_driver_is_unset_o
             ["gh", "api", "repos/{owner}/{repo}/issues/7"],
             ["gh", "api", "repos/{owner}/{repo}/issues/7"],
         ])
+
+
+def test_main_reads_the_issue_through_gh_issue_view_only_when_veri_gh_driver_is_graphql_and_a_graphql_failure_is_exit_2_with_no_gh_api_call_1114(monkeypatch, capsys, capture_spec):
+    monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
+    calls = fake_gh(monkeypatch, "bug\n", BUG_BODY)
+
+    code = capture_spec.main(["7"])
+    captured = capsys.readouterr()
+
+    assert (code, captured.out, captured.err, calls) == (0, BUG_SPEC, "", [
+        ["gh", "issue", "view", "7", "--json", "labels", "-q", ".labels[].name"],
+        ["gh", "issue", "view", "7", "--json", "body", "-q", ".body"],
+    ])
+
+    calls = []
+
+    def fake_run(args, **kwargs):
+        calls.append(list(args))
+        if list(args[:3]) == ["gh", "issue", "view"]:
+            return subprocess.CompletedProcess(args, 1, "", "")
+        if list(args) == ["gh", "api", "repos/{owner}/{repo}/issues/7"]:
+            issue = {"number": 7, "body": BUG_BODY, "labels": [{"name": "bug"}]}
+            return subprocess.CompletedProcess(args, 0, json.dumps(issue), None)
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code = capture_spec.main(["7"])
+    captured = capsys.readouterr()
+
+    assert (code, captured.out, calls) == (2, "", [
+        ["gh", "issue", "view", "7", "--json", "labels", "-q", ".labels[].name"],
+    ])
