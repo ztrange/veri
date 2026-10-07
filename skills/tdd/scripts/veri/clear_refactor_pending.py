@@ -23,6 +23,13 @@ def write_beside(path, data):
     return tmp
 
 
+def discard(path):
+    try:
+        os.unlink(path)
+    except OSError:
+        pass
+
+
 def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
@@ -48,7 +55,7 @@ def main(argv):
     try:
         file = open(argv[0], "wb")
     except OSError:
-        os.unlink(backup)
+        discard(backup)
         return 2
     code = 0
     try:
@@ -63,7 +70,7 @@ def main(argv):
             try:
                 os.replace(backup, path)
             except OSError:
-                os.unlink(backup)
+                discard(backup)
             return 2
     os.unlink(backup)
     return code
