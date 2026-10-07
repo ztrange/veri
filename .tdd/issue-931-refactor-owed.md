@@ -1,0 +1,2 @@
+### veri.verify.main returns 2 with stderr `verify: --step needs a value` (or `verify: --fast-cmd needs a value`) then the usage line, nothing on stdout, for ["--step"], ["--step", ""] and ["--fast-cmd", "", "green", "s", "t"], starting no process ⟦criterion 1⟧
+- test-only | tests/py/test_verify.py's two cases repeat the chdir / fake_processes / import_module / main / readouterr setup; a shared helper returning (code, out, err, calls) would remove it
