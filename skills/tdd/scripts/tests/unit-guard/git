@@ -14,7 +14,8 @@ if [ "$cmd" = python3 ] && [ -n "$veri" ] && [ -f "$1" ]; then
         entry="${rest%%:*}" rest="${rest#*:}"
         [ "$entry" = "$here" ] || path="${path:+$path:}$entry"
       done
-      PATH="$path" exec python3 "$@"
+      real="$(PATH="$path" command -v python3)"
+      exec "$real" "$@"
       ;;
   esac
 fi

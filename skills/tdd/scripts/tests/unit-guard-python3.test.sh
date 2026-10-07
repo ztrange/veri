@@ -14,6 +14,8 @@
 #      through, a direct python3 -c is refused, named and logged — and a suite outside it gets none.
 #   6. Any git call — one whose first argument is a file under veri/ included — exits 1, names git on
 #      stderr and is written to $UNIT_GUARD_LOG.
+#   7. The veri/ module the hand-off runs keeps the guard first on its children's PATH, so a git or
+#      python3 it starts is refused, named and logged.
 #
 # Run: skills/tdd/scripts/tests/unit-guard-python3.test.sh
 set -uo pipefail
@@ -189,6 +191,37 @@ for call in "veri-file|$tree/skills/tdd/scripts/veri/probe_handoff.py" "status|s
   [[ "$logged" == "git ${argv[*]+"${argv[*]}"} (cwd "* ]] ||
     problems+=("$kind: want a log line 'git ${argv[*]+"${argv[*]}"} (cwd …)'; got: $(flat "$logged")")
 done
+
+report "$name"
+
+name="under make unit's guard PATH, a veri/ module the hand-off runs still has the guard first on its children's PATH, so a git or python3 it starts is refused, named and logged"
+problems=()
+
+cat > "$tree/skills/tdd/scripts/veri/probe_children.py" <<'PY'
+import subprocess
+for argv in (["git", "--version"], ["python3", "-c", "print(1)"]):
+    r = subprocess.run(argv, capture_output=True, text=True, stdin=subprocess.DEVNULL)
+    print(f"{argv[0]} exit={r.returncode} out={r.stdout.strip()} err={r.stderr.strip()}")
+PY
+cat > "$tree/skills/tdd/scripts/probe-children.sh" <<'SH'
+#!/bin/sh
+exec python3 "$(dirname "$0")/veri/probe_children.py" "$@"
+SH
+chmod +x "$tree/skills/tdd/scripts/probe-children.sh"
+: > "$log"
+out="$(cd "$tree" && PATH="$tree/skills/tdd/scripts/tests/unit-guard:$PATH" UNIT_GUARD_LOG="$log" \
+  "$tree/skills/tdd/scripts/probe-children.sh" 2> "$err_file" < /dev/null)"
+code=$?
+logged="$(cat "$log")"
+
+want_git="git exit=1 out= err=$git_refusal"
+want_py="python3 exit=1 out= err=$refusal"
+[[ "$code" == 0 ]] ||
+  problems+=("want the module to exit 0; got: $code (stderr: $(flat "$(cat "$err_file")"))")
+[[ "$out" == "$want_git"$'\n'"$want_py" ]] ||
+  problems+=("want the module's children refused: '$want_git' / '$want_py'; got: $(flat "$out")")
+[[ "$logged" == "git --version (cwd "*$'\n'"python3 -c print(1) (cwd "* ]] ||
+  problems+=("want \$UNIT_GUARD_LOG to hold 'git --version (cwd …)' then 'python3 -c print(1) (cwd …)'; got: $(flat "$logged")")
 
 report "$name"
 
