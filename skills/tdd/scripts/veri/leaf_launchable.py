@@ -3,6 +3,7 @@
 import os
 import subprocess
 import sys
+import tempfile
 
 import launch_floor
 
@@ -10,8 +11,14 @@ import launch_floor
 def main(argv):
     if launch_floor.bash_refusal("leaf-launchable") or launch_floor.python_refusal("leaf-launchable"):
         return 2
-    leaf_bin = os.environ.get("CLAUDE_BIN")
-    if subprocess.call([leaf_bin, "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
+    leaf_bin = os.environ.get("CLAUDE_BIN") or "claude"
+    with tempfile.TemporaryFile() as probe_err:
+        try:
+            status = subprocess.call([leaf_bin, "--version"], stdout=subprocess.DEVNULL, stderr=probe_err)
+        except OSError as error:
+            sys.stderr.write("    %s\n" % error)
+            return 2
+    if status == 0:
         return 0
     return 2
 
