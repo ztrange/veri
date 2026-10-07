@@ -56,11 +56,13 @@ def main(argv):
             complain(git_path, error)
             return 1
         os.environ["GIT_CONFIG_GLOBAL"] = git_path
-        env = dict(os.environ)
-        strip_session_env(env)
+        strip_session_env(os.environ)
+        if os.environ.get("VERI_SHIM_SET_COERCE") == "1":
+            del os.environ["VERI_SHIM_SET_COERCE"]
+            os.environ.pop("PYTHONCOERCECLOCALE", None)
         command = leaf_argv(prompt, argv[1:])
         try:
-            leaf = subprocess.Popen(command, stdout=subprocess.PIPE, env=env)
+            leaf = subprocess.Popen(command, stdout=subprocess.PIPE, env=dict(os.environ))
         except OSError as error:
             complain(command[0], error)
             status = 2
