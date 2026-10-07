@@ -1,34 +1,13 @@
-#!/usr/bin/env bash
-# red-divergence.sh — say whether a red leaf's prediction diverged from what it saw.
+#!/bin/sh
+# red-divergence.sh — say whether a red leaf's prediction diverged from what it saw: a shim over veri/red_divergence.py.
 #
 # Reads a develop-red or revise-red report on stdin. A leaf that predicted one failure and
 # got another reports `PREDICTION: DIVERGED`: Beck stops on that surprise, because the test
-# is then the suspect. Exits 0 on DIVERGED and prints the reason the conductor writes to
-# .tdd/verify-red.reason — the report's PREDICTED_FAILURE:, FAIL_OUTPUT: and
-# PREDICTION_NOTE: values, so the revise leaf is told what was predicted, what actually
-# failed, and why the leaf could not reconcile them.
+# is then the suspect.
 #
-# Usage:   red-divergence.sh < <the leaf's report>
-set -uo pipefail
-
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/exit-contract.sh"
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/report.sh"
-
-prediction="" predicted="" fail_output="" note=""
-report_read PREDICTION prediction PREDICTED_FAILURE predicted \
-  FAIL_OUTPUT fail_output PREDICTION_NOTE note
-
-verdict="${prediction%% *}"
-case "${verdict%[,;:.]}" in
-  DIVERGED) ;;
-  MATCHED)  exit 3 ;;
-  *)        exit 2 ;;
-esac
-
-cat <<REASON
-The red leaf's prediction diverged from the failure it saw, so the test is the suspect.
-
-PREDICTED_FAILURE: $predicted
-FAIL_OUTPUT: $fail_output
-PREDICTION_NOTE: $note
-REASON
+# usage: red-divergence.sh (a develop-red or revise-red report on stdin)
+#
+# stdout:  on DIVERGED, the reason the conductor writes to .tdd/verify-red.reason — the
+#          report's PREDICTED_FAILURE:, FAIL_OUTPUT: and PREDICTION_NOTE: values.
+# exit:    0 DIVERGED · 3 MATCHED (nothing to do) · 2 no readable PREDICTION: line
+exec python3 "$(dirname "$0")/veri/red_divergence.py" "$@"
