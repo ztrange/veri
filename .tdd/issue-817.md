@@ -12,7 +12,7 @@
 - [x] add-ledger-step.sh counts a last line with no trailing newline that carries ⟦added⟧ against VERI_STEP_GROWTH, so a batch that only fits without it exits 1 and files the texts as owed ⟦criterion 2⟧
 - [x] add-ledger-step.sh's `## Owed steps` append after a last line with no trailing newline starts that heading on a line of its own, leaving the last line intact ⟦criterion 2⟧
 - [ ] the suites of tick-ledger.sh, clear-refactor-pending.sh and add-ledger-step.sh pass, as part of the repository's full test command ⟦full-suite⟧ ⟦criterion 3⟧
-- [ ] no existing assertion in tick-ledger's, clear-refactor-pending's or add-ledger-step's suites (bash or pytest) changes, except one that pinned a defect criterion 1 or 2 fixes, changed only to the exit code, stderr or file state that criterion names ⟦diff-checked⟧ ⟦criterion 3⟧
+- [x] no existing assertion in tick-ledger's, clear-refactor-pending's or add-ledger-step's suites (bash or pytest) changes, except one that pinned a defect criterion 1 or 2 fixes, changed only to the exit code, stderr or file state that criterion names ⟦diff-checked⟧ ⟦criterion 3⟧
 
 ## Owed steps
 
