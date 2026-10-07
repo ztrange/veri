@@ -7,7 +7,7 @@
 - [x] skill-drift.sh with VERI_SKILL_CLONE unset, or naming a directory that is not a git work tree, prints `Skill drift: unavailable — skill clone not known` and exits 0 ⟦criterion 5⟧
 - [x] skill-drift.sh with VERI_SKILL_COMMIT naming a sha the clone does not have prints `Skill drift: unavailable — pinned commit <sha> is not in <clone>` and exits 0 ⟦criterion 6⟧
 - [x] skill-drift.sh with VERI_SKILL_REF naming a ref that does not resolve in the clone prints `Skill drift: unavailable — <ref> does not resolve in <clone>` and exits 0
-- [ ] skill-drift.sh over a clone whose origin cannot be fetched still prints the list from the ref as it stands, followed by `origin could not be fetched — list is as of the last fetch of <ref>`, and exits 0 ⟦criterion 7⟧
+- [x] skill-drift.sh over a clone whose origin cannot be fetched still prints the list from the ref as it stands, followed by `origin could not be fetched — list is as of the last fetch of <ref>`, and exits 0 ⟦criterion 7⟧ ⟂ refactor pending
 - [ ] run-conductor.sh on a pinned launch hands the conductor VERI_SKILL_CLONE set to the clone it archived from and VERI_SKILL_REF set to the ref it pinned against; on an unpinned launch it sets neither ⟦criterion 8⟧
 - [ ] skills/tdd/SKILL.md Bailing sub-step 6 runs $S/skill-drift.sh and puts its output in the ### ⛔ Bailed comment after the reason, with `Skill drift: unavailable — skill-drift.sh exited <code>` there instead on a non-zero exit, and sub-steps 7 and 8 carry the same block to the PR and to the user ⟦diff-checked⟧ ⟦criterion 9⟧
 - [ ] skills/tdd/scripts/skill-drift.sh is a /bin/sh shim that execs python3 on veri/skill_drift.py, with no Python source in the shim ⟦diff-checked⟧ ⟦criterion 10⟧

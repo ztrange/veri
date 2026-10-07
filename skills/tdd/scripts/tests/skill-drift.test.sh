@@ -153,4 +153,26 @@ out="$(env -u VERI_SKILL_UNPINNED VERI_SKILL_COMMIT="$pinned" VERI_SKILL_CLONE="
 [[ "$out" == "$want" ]] || problems+=("want stdout '$want', got $(printf '%q' "$out")")
 report "$name"
 
+name="with a clone whose origin cannot be fetched, the list is still printed from the ref as it stands, followed by 'origin could not be fetched — list is as of the last fetch of <ref>', exit 0"
+problems=()
+tmp="$(scratch_dir)"
+upstream="$tmp/upstream" clone="$tmp/clone"
+new_repo -b main "$upstream"
+touch_commit "$upstream" skills/tdd/scripts/run-leaf.sh "feat: the pinned skill (#9)"
+pinned="$(git -C "$upstream" rev-parse HEAD)"
+touch_commit "$upstream" skills/tdd/scripts/supervise.sh "fix: the supervisor's window (#12)"
+git clone -q "$upstream" "$clone"
+git -C "$clone" remote set-url origin "$tmp/gone"
+out="$(env -u VERI_SKILL_UNPINNED VERI_SKILL_COMMIT="$pinned" VERI_SKILL_CLONE="$clone" \
+  VERI_SKILL_REF=refs/remotes/origin/main "$SKILL_DRIFT" 2>/dev/null)" && code=0 || code=$?
+[[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
+line12="$(grep -n -E "^- #12 — fix: the supervisor's window( \(#12\))? \(1 commits\)$" <<<"$out" | cut -d: -f1)"
+linefetch="$(grep -n -x -F "origin could not be fetched — list is as of the last fetch of refs/remotes/origin/main" <<<"$out" | cut -d: -f1)"
+[[ -n "$line12" ]] || problems+=("want the '- #12 — <subject> (1 commits)' line from the ref as it stands")
+[[ -n "$linefetch" ]] ||
+  problems+=("want 'origin could not be fetched — list is as of the last fetch of refs/remotes/origin/main'")
+[[ -n "$line12" && -n "$linefetch" && "$line12" -lt "$linefetch" ]] || problems+=("want the fetch line after the list")
+((${#problems[@]} == 0)) || problems+=("stdout was: $(printf '%q' "$out")")
+report "$name"
+
 finish
