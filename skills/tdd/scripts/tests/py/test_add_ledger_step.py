@@ -490,3 +490,21 @@ def test_main_counts_a_last_added_step_without_a_trailing_newline_against_the_bu
     assert (code, captured.out, captured.err) == (1, "", "")
     assert "- [ ] t" not in after
     assert after.endswith("## Owed steps\n\n- t\n")
+
+
+def test_main_starts_the_owed_steps_heading_on_its_own_line_after_a_last_line_without_a_trailing_newline_817(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    ledger = tmp_path / "issue-42.md"
+    seed = LEDGER.removesuffix(b"\n")
+    ledger.write_bytes(seed)
+
+    code = add_ledger_step.main([str(ledger), "after", "b two", "t"])
+    captured = capsys.readouterr()
+
+    after = ledger.read_bytes()
+    lines = after.decode().split("\n")
+    assert (code, captured.out, captured.err) == (1, "", "")
+    assert after.startswith(seed + b"\n")
+    assert "- [ ] c three ⟦criterion 3⟧" in lines
+    assert "## Owed steps" in lines
+    assert after.endswith(b"## Owed steps\n\n- t\n")
