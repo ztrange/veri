@@ -9,3 +9,6 @@
 - test-only | each of the five cases in `tests/py/test_pid_file.py` calls `importlib.import_module("veri.pid_file")` itself; that could become one module-level import or a fixture.
 - test-only | four cases in `tests/py/test_pid_file.py` repeat the same `try: answers[name] = … except Exception as error: answers[name] = type(error).__name__` loop body; that could become one helper.
 - out-of-scope | `veri/issue_worktree.py:17-37` repeats `number_in` and `live_conductor`, which `veri/pid_file.py` now also defines. Removing that copy is the plan's own move step (`from pid_file import live_conductor`, ⟦criterion 1⟧), so it isn't this refactor's to do.
+### tests/py/test_pid_file.py: live_conductor answers None and raises nothing when the faked os.kill raises PermissionError, ProcessLookupError or OverflowError ⟦criterion 3⟧
+- test-only | extract a helper in tests/py/test_pid_file.py that makes `<tmp_path>/<name>/.tdd/` and optionally writes `conductor.pid`, shared by the two live_conductor cases (lines 112-139 and 144-169)
+- out-of-scope | remove the duplicate number_in/live_conductor from veri/issue_worktree.py by importing from veri/pid_file.py; this is the plan's move step, not this cycle's refactor
