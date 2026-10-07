@@ -33,7 +33,9 @@ def main(argv):
         return unavailable("skill clone not known")
     if not resolves(clone, commit):
         return unavailable("pinned commit %s is not in %s" % (commit, clone))
-    ref = os.environ["VERI_SKILL_REF"]
+    ref = os.environ.get("VERI_SKILL_REF", "")
+    if not ref:
+        return unavailable("skill ref not known")
     fetched = run(clone, "fetch", "-q", "origin").returncode == 0
     if not resolves(clone, ref):
         return unavailable("%s does not resolve in %s" % (ref, clone))
