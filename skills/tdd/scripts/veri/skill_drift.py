@@ -23,6 +23,8 @@ def main(argv):
     clone = os.environ.get("VERI_SKILL_CLONE", "")
     if not clone or git(clone, "rev-parse", "--is-inside-work-tree").strip() != "true":
         return unavailable("skill clone not known")
+    if not git(clone, "rev-parse", "--verify", "--quiet", commit + "^{commit}").strip():
+        return unavailable("pinned commit %s is not in %s" % (commit, clone))
     ref = os.environ["VERI_SKILL_REF"]
     log = git(clone, "log", "--format=%h %s", "%s..%s" % (commit, ref),
               "--", "skills/tdd", ":(exclude)skills/tdd/scripts/tests")

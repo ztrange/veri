@@ -123,4 +123,19 @@ for variant in unset not-a-work-tree; do
 done
 report "$name"
 
+name="with VERI_SKILL_COMMIT naming a sha the clone does not have, the output is 'Skill drift: unavailable — pinned commit <sha> is not in <clone>', exit 0"
+problems=()
+tmp="$(scratch_dir)"
+upstream="$tmp/upstream" clone="$tmp/clone"
+new_repo -b main "$upstream"
+touch_commit "$upstream" skills/tdd/scripts/run-leaf.sh "feat: a skill (#9)"
+git clone -q "$upstream" "$clone"
+absent=0123456789abcdef0123456789abcdef01234567
+want="Skill drift: unavailable — pinned commit $absent is not in $clone"
+out="$(env -u VERI_SKILL_UNPINNED VERI_SKILL_COMMIT="$absent" VERI_SKILL_CLONE="$clone" \
+  VERI_SKILL_REF=refs/remotes/origin/main "$SKILL_DRIFT" 2>/dev/null)" && code=0 || code=$?
+[[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
+[[ "$out" == "$want" ]] || problems+=("want stdout '$want', got $(printf '%q' "$out")")
+report "$name"
+
 finish
