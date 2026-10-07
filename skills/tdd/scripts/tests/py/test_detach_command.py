@@ -255,3 +255,18 @@ def test_wait_reads_a_missing_empty_unparsable_esrch_or_eperm_pid_file_as_dead_a
     monkeypatch.setattr(os, "kill", lambda pid, signum: kills.append((pid, signum)))
     code = detach_command.main(["wait", "x", "0"])
     assert (code, capsys.readouterr(), kills) == (3, ("", ""), [(-4242, 0)])
+
+
+def test_wait_parses_the_pid_file_as_bash_kill_does_blanks_a_plus_and_leading_zeros_passing_0_and_negatives_on(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+
+    for pid_text, pid in ((" +007 \t\n", 7), ("\t 0 \n", 0), (" -0012\n", -12)):
+        kills = []
+        (tdd / "x.pid").write_text(pid_text)
+        monkeypatch.setattr(os, "kill", lambda pid, signum: kills.append((pid, signum)))
+        code = detach_command.main(["wait", "x", "0"])
+        assert (pid_text, code, capsys.readouterr(), kills) == (pid_text, 3, ("", ""), [(pid, 0)])
