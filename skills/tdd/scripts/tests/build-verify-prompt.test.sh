@@ -764,7 +764,7 @@ prompt_lacks "$plan" "a spec with no Refactor section still demands a runnable s
 
 mkdir -p "$work/no-refactor-plan"
 cp "$BUILD" "$work/no-refactor-plan/"
-cp -R "$HERE/../prompts" "$HERE/../lib" "$work/no-refactor-plan/"
+cp -R "$HERE/../prompts" "$HERE/../lib" "$HERE/../veri" "$work/no-refactor-plan/"
 rm "$work/no-refactor-plan/prompts/_verify-plan-refactor.md"
 problems=""
 out="$("$work/no-refactor-plan/build-verify-prompt.sh" plan "$work/refactor-spec.md" "$work/ledger.md" 2>"$work/no-refactor-plan.err")"; code=$?
@@ -847,7 +847,7 @@ prompt_lacks "$green" "an unmarked step's prompt tells the verifier to run the f
 
 mkdir -p "$work/no-replaces-case"
 cp "$BUILD" "$work/no-replaces-case/"
-cp -R "$HERE/../prompts" "$HERE/../lib" "$work/no-replaces-case/"
+cp -R "$HERE/../prompts" "$HERE/../lib" "$HERE/../veri" "$work/no-replaces-case/"
 rm "$work/no-replaces-case/prompts/_verify-green-replaces-case.md"
 problems=""
 out="$("$work/no-replaces-case/build-verify-prompt.sh" --step "$replaces_step" --fast-cmd 'make unit' green "$work/spec.md" 'tests/py/test_zorblat.py' test_zorblat_frobs_a_nitz 2>"$work/no-replaces-case.err")"; code=$?
@@ -863,7 +863,7 @@ grep -F '_verify-green-replaces-case.md' "$work/no-replaces-case.err" > /dev/nul
 
 mkdir -p "$work/no-suite-repair"
 cp "$BUILD" "$work/no-suite-repair/"
-cp -R "$HERE/../prompts" "$HERE/../lib" "$work/no-suite-repair/"
+cp -R "$HERE/../prompts" "$HERE/../lib" "$HERE/../veri" "$work/no-suite-repair/"
 rm "$work/no-suite-repair/prompts/_verify-green-suite-repair.md"
 problems=""
 out="$("$work/no-suite-repair/build-verify-prompt.sh" --step "$repair_step" --fast-cmd 'make unit' green "$work/spec.md" 'skills/tdd/scripts/tests/zorblat.test.sh' 'zorblat frobs a nitz' 2>"$work/no-suite-repair.err")"; code=$?
@@ -898,7 +898,7 @@ green_sums_as 'green, no --step'       '4188760161 6638'
 
 name="#703 a {{INCLUDE:<file>}} token, in a template and recursively inside an included partial, is replaced by that partial under prompts/ before the other placeholders, with no new parameter"
 included="$(scratch_dir)"
-cp -R "$BUILD" "$HERE/../lib" "$HERE/../prompts" "$included/"
+cp -R "$BUILD" "$HERE/../lib" "$HERE/../prompts" "$HERE/../veri" "$included/"
 printf 'before {{INCLUDE:_probe-outer.md}} after\n' > "$included/prompts/verify-red.md"
 printf 'outer {{INCLUDE:_probe-inner.md}} end\n' > "$included/prompts/_probe-outer.md"
 printf 'inner judges {{TEST_PATH}}\n' > "$included/prompts/_probe-inner.md"
@@ -907,7 +907,7 @@ expect_eq "$name" "0:before outer inner judges $testpath end after" "$code:$rend
 
 name="#703 a {{INCLUDE:<file>}} naming a partial that does not exist exits 2 with that partial's path on stderr and nothing on stdout"
 dangling="$(scratch_dir)"
-cp -R "$BUILD" "$HERE/../lib" "$HERE/../prompts" "$dangling/"
+cp -R "$BUILD" "$HERE/../lib" "$HERE/../prompts" "$HERE/../veri" "$dangling/"
 printf 'before {{INCLUDE:_probe-absent.md}} after\n' > "$dangling/prompts/verify-red.md"
 rendered="$("$dangling/build-verify-prompt.sh" red "$work/spec.md" "$testpath" test_slugify_lowercases 2>"$dangling/err")"; code=$?
 named=""; grep -F "$dangling/prompts/_probe-absent.md" "$dangling/err" > /dev/null && named=named
@@ -915,7 +915,7 @@ expect_eq "$name" "2:named:" "$code:$named:$rendered"
 
 name="#703 a partial that includes itself through another partial exits 2 naming that partial on stderr, with nothing on stdout, rather than looping"
 cycle="$(scratch_dir)"
-cp -R "$BUILD" "$HERE/../lib" "$HERE/../prompts" "$cycle/"
+cp -R "$BUILD" "$HERE/../lib" "$HERE/../prompts" "$HERE/../veri" "$cycle/"
 printf 'before {{INCLUDE:_probe-cycle-a.md}} after\n' > "$cycle/prompts/verify-red.md"
 printf 'a {{INCLUDE:_probe-cycle-b.md}}\n' > "$cycle/prompts/_probe-cycle-a.md"
 printf 'b {{INCLUDE:_probe-cycle-a.md}}\n' > "$cycle/prompts/_probe-cycle-b.md"
