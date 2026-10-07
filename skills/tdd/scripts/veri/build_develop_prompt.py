@@ -87,10 +87,11 @@ def main(argv):
             _write(sys.stderr, f"build-develop-prompt: cannot read '{path}'")
             return 2
     prompts_b = os.fsencode(prompts)
-    values = dict.fromkeys(("BUG_REPRODUCTION", "REPLACES_CASE", "SUITE_REPAIR", "REJECTION_REASON"), b"")
+    values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "REPLACES_CASE", "SUITE_REPAIR", "STEP",
+                            "TEST_CMD", "TIMED_TEST_RUN", "REJECTION_REASON"), b"")
     try:
         text = _expand(_read(paths[0]), prompts_b)
-        shared = _expand(_read(paths[1]), prompts_b)
+        values["SHARED"] = _expand(_read(paths[1]), prompts_b)
         for placeholder, path in optional.items():
             values[placeholder] = _read(path)
             if placeholder in ("REPLACES_CASE", "SUITE_REPAIR"):
@@ -98,12 +99,9 @@ def main(argv):
     except _IncludeRefused as refusal:
         sys.stderr.buffer.write(refusal.args[0] + b"\n")
         return 2
-    for name, value in (("SHARED", shared), ("ISSUE_SPEC", _read(spec)),
-                        ("BUG_REPRODUCTION", values["BUG_REPRODUCTION"]),
-                        ("REPLACES_CASE", values["REPLACES_CASE"]), ("SUITE_REPAIR", values["SUITE_REPAIR"]),
-                        ("STEP", os.fsencode(step)), ("TEST_CMD", os.fsencode(args[2])),
-                        ("TIMED_TEST_RUN", os.fsencode(f"{HERE}/timed-test-run.sh")),
-                        ("REJECTION_REASON", values["REJECTION_REASON"])):
+    values.update(ISSUE_SPEC=_read(spec), STEP=os.fsencode(step), TEST_CMD=os.fsencode(args[2]),
+                  TIMED_TEST_RUN=os.fsencode(f"{HERE}/timed-test-run.sh"))
+    for name, value in values.items():
         text = text.replace(b"{{" + name.encode() + b"}}", value)
     sys.stdout.buffer.write(text + b"\n")
     return 0
