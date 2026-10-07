@@ -120,3 +120,40 @@ def test_main_passes_a_byte_that_is_not_utf_8_through_unchanged_from_caught_by_a
         "CAUGHT_BY": (0, b"widget\xff.test.sh\n", b""),
         "PROOF": (3, b"type-only: npx tsc \xff--noEmit\n", b""),
     }
+
+
+def test_main_exits_2_for_unreachable_or_type_only_with_no_proof_line_or_proof_none(monkeypatch, capsys, cover_outcome):
+    results = {}
+    for kind in ("unreachable", "type-only"):
+        results[kind + " with no PROOF: line"] = run(monkeypatch, capsys, cover_outcome, "some narration\nCOVERED: %s\nCAUGHT_BY: NONE\nMUTATION: NONE" % kind, [])[:2]
+        results[kind + " with PROOF: NONE"] = run(monkeypatch, capsys, cover_outcome, "some narration\nCOVERED: %s\nCAUGHT_BY: NONE\nPROOF: NONE\nMUTATION: NONE" % kind, [])[:2]
+
+    assert results == {
+        "unreachable with no PROOF: line": (2, ""),
+        "unreachable with PROOF: NONE": (2, ""),
+        "type-only with no PROOF: line": (2, ""),
+        "type-only with PROOF: NONE": (2, ""),
+    }
+
+
+def test_main_exits_1_for_covered_no_with_a_proof_line(monkeypatch, capsys, cover_outcome):
+    report = "some narration\nCOVERED: no\nCAUGHT_BY: NONE\nPROOF: useWidgetSync: its one caller, WidgetPanel, passes onChange={() => {}}\nMUTATION: widget.sh: painted the widget red"
+
+    assert run(monkeypatch, capsys, cover_outcome, report, [])[:2] == (1, "")
+
+
+def test_main_leaves_yes_no_and_no_covered_line_answering_as_before_beside_a_proof_line(monkeypatch, capsys, cover_outcome):
+    caught_by = "widget.test.sh: a stubbed widget stays blue"
+    mutation = "widget.sh: painted the widget red"
+    proof = "npx tsc --noEmit"
+    results = {
+        "yes": run(monkeypatch, capsys, cover_outcome, "some narration\nCOVERED: yes\nCAUGHT_BY: %s\nPROOF: %s\nMUTATION: %s" % (caught_by, proof, mutation), [])[:2],
+        "no": run(monkeypatch, capsys, cover_outcome, "some narration\nCOVERED: no\nCAUGHT_BY: NONE\nPROOF: %s\nMUTATION: %s" % (proof, mutation), [])[:2],
+        "none": run(monkeypatch, capsys, cover_outcome, "some narration with no COVERED: line\nPROOF: %s" % proof, [])[:2],
+    }
+
+    assert results == {
+        "yes": (0, caught_by + "\n"),
+        "no": (1, ""),
+        "none": (2, ""),
+    }

@@ -70,54 +70,6 @@ MUTATION: NONE"
 [[ "$out" == "type-only: $proof" ]] || problems+=("COVERED: type-only: want stdout 'type-only: $proof', got '$(printf '%s' "$out" | tr '\n' '|')'")
 verdict "$name"
 
-name="#679: COVERED: unreachable or type-only with no PROOF: line or PROOF: NONE exits 2"
-problems=()
-for kind in unreachable type-only; do
-  run_on "some narration
-COVERED: $kind
-CAUGHT_BY: NONE
-MUTATION: NONE"
-  [[ "$code" == 2 ]] || problems+=("COVERED: $kind with no PROOF: line: want exit 2, got $code")
-  run_on "some narration
-COVERED: $kind
-CAUGHT_BY: NONE
-PROOF: NONE
-MUTATION: NONE"
-  [[ "$code" == 2 ]] || problems+=("COVERED: $kind with PROOF: NONE: want exit 2, got $code")
-done
-verdict "$name"
-
-name="#679: COVERED: no with a PROOF: line still exits 1"
-problems=()
-run_on "some narration
-COVERED: no
-CAUGHT_BY: NONE
-PROOF: useWidgetSync: its one caller, WidgetPanel, passes onChange={() => {}}
-MUTATION: $mutation"
-[[ "$code" == 1 ]] || problems+=("COVERED: no with a PROOF: line: want exit 1, got $code")
-verdict "$name"
-
-name="#679: a PROOF: line leaves COVERED: yes exiting 0 printing CAUGHT_BY, COVERED: no exiting 1 and no COVERED: line exiting 2"
-problems=()
-proof='npx tsc --noEmit'
-run_on "some narration
-COVERED: yes
-CAUGHT_BY: $caught_by
-PROOF: $proof
-MUTATION: $mutation"
-[[ "$code" == 0 ]] || problems+=("COVERED: yes with a PROOF: line: want exit 0, got $code")
-[[ "$out" == "$caught_by" ]] || problems+=("COVERED: yes with a PROOF: line: want stdout '$caught_by', got '$(printf '%s' "$out" | tr '\n' '|')'")
-run_on "some narration
-COVERED: no
-CAUGHT_BY: NONE
-PROOF: $proof
-MUTATION: $mutation"
-[[ "$code" == 1 ]] || problems+=("COVERED: no with a PROOF: line: want exit 1, got $code")
-run_on "some narration with no COVERED: line
-PROOF: $proof"
-[[ "$code" == 2 ]] || problems+=("no COVERED: line with a PROOF: line: want exit 2, got $code")
-verdict "$name"
-
 name="a report with no COVERED: line exits 2, stdout empty, stderr exactly 'cover-outcome: no COVERED: line found'"
 problems=()
 err_file="$(mktemp)"
