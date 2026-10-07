@@ -54,8 +54,8 @@ def main(argv):
         except OSError as error:
             complain(git_path, error)
             return 1
+        os.environ["GIT_CONFIG_GLOBAL"] = git_path
         command = leaf_argv(prompt, argv[1:])
-        stream = b""
         try:
             leaf = subprocess.Popen(command, stdout=subprocess.PIPE)
         except OSError as error:
@@ -66,18 +66,22 @@ def main(argv):
                 while chunk := os.read(leaf.stdout.fileno(), 65536):
                     os.write(1, chunk)
                     os.write(stream_fd, chunk)
-                    stream += chunk
             status = leaf.returncode
+        os.write(1, b"\n")
+        try:
+            with open(stream_path, "rb") as f:
+                stream = f.read()
+        except OSError as error:
+            complain(stream_path, error)
+            return 1
     finally:
         os.close(stream_fd)
-        os.remove(stream_path)
-        with contextlib.suppress(OSError):
-            os.remove(git_path)
-    os.write(1, b"\n")
+        for path in (stream_path, git_path):
+            with contextlib.suppress(OSError):
+                os.remove(path)
     text = stream.decode(sys.__stdin__.encoding, sys.__stdin__.errors)
     os.write(1, extract(text).encode(sys.__stdout__.encoding, sys.__stdout__.errors))
     return status if 0 <= status <= 3 else 2
-
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
