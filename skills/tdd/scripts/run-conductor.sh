@@ -108,6 +108,7 @@ if commit="$(git -C "$base" rev-parse "$head_rev" 2>/dev/null)"; then
   snapshot="$(mktemp -d)"
   at_exit 'rm -rf "$snapshot"'
   git -C "$base" archive "$commit" . | tar -x -C "$snapshot"
+  export VERI_SKILL_CLONE="$base" VERI_SKILL_REF="$head_rev"
   base="$snapshot"
   export VERI_SKILL_COMMIT="$commit"
   pinned="$commit"
