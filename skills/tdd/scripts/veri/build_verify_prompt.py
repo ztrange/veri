@@ -6,6 +6,7 @@ import sys
 PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff")
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 USAGE = "usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]"
+GREEN_PARAGRAPHS = {"REPLACES_CASE": "replaces-case", "SUITE_REPAIR": "suite-repair"}
 
 
 def _write(stream, text):
@@ -92,7 +93,7 @@ def main(argv):
         optional["BUG_REPRODUCTION"] = f"{prompts}/_verify-red-bug.md"
     if phase == "plan" and _has_heading(spec, b"Refactor"):
         optional["REFACTOR_PLAN"] = f"{prompts}/_verify-plan-refactor.md"
-    for placeholder, mark in (("REPLACES_CASE", "replaces-case"), ("SUITE_REPAIR", "suite-repair")):
+    for placeholder, mark in GREEN_PARAGRAPHS.items():
         if phase == "green" and f"⟦{mark}⟧" in options["--step"]:
             optional[placeholder] = f"{prompts}/_verify-green-{mark}.md"
     paths = [f"{prompts}/verify-{phase}.md", f"{prompts}/_shared.md", spec, *optional.values()]
@@ -110,7 +111,7 @@ def main(argv):
         shared = _expand(_read(paths[1]), prompts_b)
         for placeholder, path in optional.items():
             values[placeholder] = _read(path)
-            if placeholder in ("REPLACES_CASE", "SUITE_REPAIR"):
+            if placeholder in GREEN_PARAGRAPHS:
                 values[placeholder] = _expand(b"\n\n" + values[placeholder], prompts_b)
     except _IncludeRefused as refusal:
         sys.stderr.buffer.write(refusal.args[0] + b"\n")
