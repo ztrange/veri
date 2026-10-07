@@ -58,7 +58,7 @@ section() {
 
 run_spec() {
   local dir="$1" labels="$2" issue="$3" out="$4" err="$4.err" code=0
-  env PATH="$dir/bin:$PATH" FIXTURES="$dir" LABELS="$labels" "$SCRIPT" "$issue" \
+  env VERI_GH_DRIVER=auto PATH="$dir/bin:$PATH" FIXTURES="$dir" LABELS="$labels" "$SCRIPT" "$issue" \
     > "$out" 2> "$err" || code=$?
   problems=()
   [[ "$code" == 0 ]] || problems+=("exit want 0 got $code; stderr: $(head -2 "$err")")
@@ -123,7 +123,7 @@ report "$name"
 name='with no argument capture-spec.sh exits 2, prints nothing on stdout and its usage line on stderr'
 problems=()
 code=0
-env PATH="$plaindir/bin:$PATH" FIXTURES="$plaindir" LABELS='' "$SCRIPT" \
+env VERI_GH_DRIVER=auto PATH="$plaindir/bin:$PATH" FIXTURES="$plaindir" LABELS='' "$SCRIPT" \
   > "$tmp/noarg.out" 2> "$tmp/noarg.err" || code=$?
 [[ "$code" == 2 ]] || problems+=("exit want 2 got $code")
 [[ ! -s "$tmp/noarg.out" ]] || problems+=("stdout want empty got: $(cat "$tmp/noarg.out")")
@@ -144,7 +144,7 @@ exit 1
 STUB
 chmod +x "$faildir/bin/gh"
 code=0
-env PATH="$faildir/bin:$PATH" "$SCRIPT" 7 > "$tmp/fail.out" 2> "$tmp/fail.err" || code=$?
+env VERI_GH_DRIVER=auto PATH="$faildir/bin:$PATH" "$SCRIPT" 7 > "$tmp/fail.out" 2> "$tmp/fail.err" || code=$?
 [[ "$code" == 2 ]] || problems+=("exit want 2 got $code; stderr: $(head -2 "$tmp/fail.err")")
 [[ ! -s "$tmp/fail.out" ]] || problems+=("stdout want empty got: $(cat "$tmp/fail.out")")
 
@@ -155,10 +155,10 @@ problems=()
 ln -s "$(cd "$HERE/../.." && pwd)" "$tmp/linked-skill"
 mkdir -p "$tmp/elsewhere"
 in_code=0
-(cd "$HERE/.." && env PATH="$bugdir/bin:$PATH" FIXTURES="$bugdir" LABELS='bug refactor' ./capture-spec.sh 112) \
+(cd "$HERE/.." && env VERI_GH_DRIVER=auto PATH="$bugdir/bin:$PATH" FIXTURES="$bugdir" LABELS='bug refactor' ./capture-spec.sh 112) \
   > "$tmp/in-place.out" 2> "$tmp/in-place.err" || in_code=$?
 linked_code=0
-(cd "$tmp/elsewhere" && env PATH="$bugdir/bin:$PATH" FIXTURES="$bugdir" LABELS='bug refactor' \
+(cd "$tmp/elsewhere" && env VERI_GH_DRIVER=auto PATH="$bugdir/bin:$PATH" FIXTURES="$bugdir" LABELS='bug refactor' \
   "$tmp/linked-skill/scripts/capture-spec.sh" 112) > "$tmp/linked.out" 2> "$tmp/linked.err" || linked_code=$?
 [[ "$in_code" == 0 ]] && grep -qx '## Bug' "$tmp/in-place.out" ||
   problems+=("in place: exit want 0 with a '## Bug' section got $in_code; stderr: $(head -2 "$tmp/in-place.err")")
