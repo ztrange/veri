@@ -116,7 +116,7 @@ def render(file):
     out_of_scope = out_of_scope_transforms(file)
     kept = [l for l, after in zip(kept, kept[1:] + ["### "])
             if not (l.startswith("### ") and after.startswith("### "))]
-    out ="## Refactor owed\n\n" + joined(kept)
+    out = "## Refactor owed\n" + ("" if not kept and (test_only or out_of_scope or done) else "\n") + joined(kept)
     if test_only:
         out += ("\n### Test-only\n\n"
                 "These change only files under tests/; the structural pass does not work them.\n\n"

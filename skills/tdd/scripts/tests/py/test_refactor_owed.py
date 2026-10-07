@@ -500,3 +500,15 @@ def test_append_records_only_the_other_structural_candidate_for_one_with_only_wh
     code = refactor_owed.main(["append", str(owed), "S"])
     written = owed.read_bytes() if owed.exists() else b""
     assert (code, written) == (0, b"### S\n- extract the parser\n")
+
+
+def test_render_prints_one_blank_line_between_refactor_owed_and_the_first_subsection_when_no_step_entry_is_left_1018(
+        capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    owed.write_text("### S1\n- x\n### S2\n- test-only | t\n")
+    assert refactor_owed.main(["applied", str(owed), "x", "abc1234"]) == 0
+    capsys.readouterr()
+
+    code = refactor_owed.main(["render", str(owed)])
+    out = capsys.readouterr().out
+    assert (code, out[:out.index("###")] if "###" in out else out) == (0, "## Refactor owed\n\n")
