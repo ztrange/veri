@@ -34,8 +34,8 @@ def render_printf(fmt, arg):
         elif c == "%" and nxt == "d":
             out.append("0")
             i += 2
-        elif c == "\\" and re.match(r"[0-7]", nxt):
-            digits = re.match(r"[0-7]{1,3}", fmt[i + 1:]).group(0)
+        elif c == "\\" and (octal := re.match(r"[0-7]{1,3}", fmt[i + 1:])):
+            digits = octal.group(0)
             out.append(chr(int(digits, 8)))
             i += 1 + len(digits)
         elif c == "\\" and nxt in escapes:
