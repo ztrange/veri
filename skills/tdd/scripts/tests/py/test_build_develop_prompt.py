@@ -435,3 +435,60 @@ def test_main_substitutes_every_placeholder_sequentially_globally_and_literally_
                              b"printed>' <the command that runs them>"], b"")
 
     assert results == expected
+
+
+def test_main_reads_veri_refactor_budget_for_the_refactor_phase_only_rendering_5_when_unset_or_empty_and_any_other_value_verbatim(
+        tmp_path, capsysbinary, monkeypatch):
+    scripts = tmp_path / "scripts"
+    (scripts / "veri").mkdir(parents=True)
+    for source in (SCRIPTS / "veri").glob("*.py"):
+        (scripts / "veri" / source.name).write_bytes(source.read_bytes())
+    (scripts / "prompts").mkdir()
+    for phase in ("red", "green", "refactor", "cover", "transform", "diff", "structural", "predicate", "revise",
+                  "revise-diff", "reconcile", "exhausted", "over-budget", "rebase"):
+        (scripts / "prompts" / f"develop-{phase}.md").write_bytes(b"budget=[{{REFACTOR_BUDGET}}]\n")
+    (scripts / "prompts" / "_develop-shared.md").write_bytes(b"shared\n")
+    loader = importlib.util.spec_from_file_location("build_develop_prompt_budget",
+                                                    scripts / "veri" / "build_develop_prompt.py")
+    module = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(module)
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"why\n")
+    s, r = str(spec), str(reason)
+
+    def render(argv, budget):
+        if budget is None:
+            monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
+        else:
+            monkeypatch.setenv("VERI_REFACTOR_BUDGET", budget)
+        code = module.main(argv)
+        return (code, *capsysbinary.readouterr())
+
+    refactor = ["refactor", s, "step", "make test", "a.sh"]
+    results = {budget: render(refactor, budget) for budget in (None, "", "3", "lots & \\1")}
+    others = {
+        "red": ["red", s, "step", "make test"],
+        "green": ["green", s, "step", "make test", "t.sh", "case", "make unit"],
+        "cover": ["cover", s, "step", "make test"],
+        "transform": ["transform", s, "step", "make test"],
+        "diff": ["diff", s, "step", "make test", "make unit"],
+        "structural": ["structural", s, "step", "make test", "a.sh"],
+        "predicate": ["predicate", s, "step", "make test", "a.sh"],
+        "revise refactor": ["revise", "refactor", s, "step", "make test", r],
+        "revise diff": ["revise", "diff", s, "step", "make test", r, "make unit"],
+        "reconcile": ["reconcile", s, "step", "make test", "tdd/1", "abc"],
+        "exhausted": ["exhausted", s, "step", "make test", r],
+        "over-budget": ["over-budget", s, "step", "make test", "1", "2"],
+        "rebase": ["rebase", s, "step", "make test", "onto", "pre", "x.sh"],
+    }
+    results.update({key: render(argv, "9") for key, argv in others.items()})
+
+    assert results == {
+        None: (0, b"budget=[5]\n", b""),
+        "": (0, b"budget=[5]\n", b""),
+        "3": (0, b"budget=[3]\n", b""),
+        "lots & \\1": (0, b"budget=[lots & \\1]\n", b""),
+        **{key: (0, b"budget=[]\n", b"") for key in others},
+    }
