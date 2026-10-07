@@ -59,7 +59,7 @@ def main(argv):
                 shutil.copyfile(gitconfig, git_path)
         except OSError as error:
             complain(git_path, error)
-            return 1
+            return 2
         env = dict(os.environ)
         env["GIT_CONFIG_GLOBAL"] = git_path
         strip_session_env(env)

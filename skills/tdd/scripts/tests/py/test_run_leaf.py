@@ -5,6 +5,7 @@ import os
 import pathlib
 import select
 import shlex
+import shutil
 import signal
 import subprocess
 import sys
@@ -300,7 +301,7 @@ def test_main_returns_the_leafs_status_when_it_is_0_to_3_else_2_and_for_a_leaf_t
         [(2, b"\n", 1, True, True)] * 3)
 
 
-def test_main_when_copying_a_regular_gitconfig_into_the_leafs_temp_file_fails_returns_1_launches_nothing_and_leaves_no_temp_file(
+def test_main_when_copying_a_regular_gitconfig_into_the_leafs_temp_file_fails_returns_2_launches_nothing_and_leaves_no_temp_file(
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
@@ -329,10 +330,10 @@ def test_main_when_copying_a_regular_gitconfig_into_the_leafs_temp_file_fails_re
     capfd.readouterr()
 
     left = sorted(path for path in tmp.rglob("*") if not path.is_dir())
-    assert (code, launches, left) == (1, [], [])
+    assert (code, launches, left) == (2, [], [])
 
 
-def test_main_when_a_gitconfig_that_was_a_regular_file_cannot_be_read_as_one_returns_1_launches_nothing_and_leaves_neither_temp_file(
+def test_main_when_a_gitconfig_that_was_a_regular_file_cannot_be_read_as_one_returns_2_launches_nothing_and_leaves_neither_temp_file(
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
@@ -359,7 +360,40 @@ def test_main_when_a_gitconfig_that_was_a_regular_file_cannot_be_read_as_one_ret
         code = type(error).__name__
     capfd.readouterr()
 
-    assert (code, launches, sorted(tmp.iterdir())) == (1, [], [])
+    assert (code, launches, sorted(tmp.iterdir())) == (2, [], [])
+
+
+def test_main_when_copying_the_gitconfig_into_the_leafs_temp_git_config_raises_oserror_returns_2_launches_nothing_leaves_no_temp_file_and_names_it_on_stderr(
+        tmp_path, monkeypatch, capfd):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, tmp = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("do the step\n")
+    (tmp_path / "home" / ".gitconfig").write_text("[user]\n\tname = operator\n")
+    made = []
+    real_mkstemp = tempfile.mkstemp
+
+    def recording_mkstemp(*args, **kwargs):
+        fd, path = real_mkstemp(*args, **kwargs)
+        made.append(path)
+        return fd, path
+
+    def copyfile_out_of_space(*args, **kwargs):
+        raise OSError(28, "No space left on device")
+
+    monkeypatch.setattr(tempfile, "mkstemp", recording_mkstemp)
+    monkeypatch.setattr(shutil, "copyfile", copyfile_out_of_space)
+    launches = []
+    monkeypatch.setattr(subprocess, "Popen",
+                        lambda argv, *args, **kwargs: _FakeLeaf(launches, argv, **kwargs))
+
+    try:
+        code = run_leaf.main(["prompt.txt"])
+    except Exception as error:
+        code = type(error).__name__
+    err = capfd.readouterr().err
+
+    assert (code, launches, sorted(tmp.iterdir()), err) == (
+        2, [], [], f"run-leaf.sh: {made[1]}: No space left on device\n")
 
 
 def test_main_makes_the_stream_then_the_git_config_temp_file_in_tmpdir_copies_the_gitconfig_into_it_launches_with_git_config_global_on_it_and_removes_both(
