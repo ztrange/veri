@@ -51,3 +51,35 @@ def test_main_refuses_a_missing_or_empty_record_with_its_usage_reading_no_stdin_
         assert stdin.buffer.read() == report
     assert started == []
     assert list(tmp_path.iterdir()) == []
+
+
+def test_main_reads_the_last_terminated_predicate_line_and_refuses_a_report_without_one(
+    monkeypatch, capsys, tmp_path, structural_predicate
+):
+    monkeypatch.chdir(tmp_path)
+    started = spy_subprocess(monkeypatch)
+    monkeypatch.setenv("predicate", "false")
+    missing = "structural-predicate.sh: the report carries no PREDICATE: line\n"
+    for report in (
+        b"no line here\n",
+        b"text\nPREDICATE: false",
+        b"  PREDICATE: false\n",
+        b"PREDICATES: false\n",
+    ):
+        fake_stdin(monkeypatch, report)
+        code = structural_predicate.main(["record"])
+        assert (report, code, capsys.readouterr()) == (report, 2, ("", missing))
+    assert started == []
+    assert list(tmp_path.iterdir()) == []
+
+    ran = []
+
+    def run(args, *rest, **kwargs):
+        ran.append(args)
+        return subprocess.CompletedProcess(args, 0)
+
+    monkeypatch.setattr(subprocess, "run", run)
+    fake_stdin(monkeypatch, b"PREDICATE: first\nPREDICATE: tr\0ue\r\n")
+    code = structural_predicate.main(["record"])
+    assert (code, capsys.readouterr().out, ran) == (1, "", [["bash", "-c", "true\r"]])
+    assert list(tmp_path.iterdir()) == []
