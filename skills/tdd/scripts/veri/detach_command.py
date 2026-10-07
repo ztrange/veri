@@ -14,7 +14,10 @@ def _recorded(exit_file):
     if not os.path.isfile(exit_file):
         return None
     with open(exit_file) as handle:
-        print(handle.read().rstrip("\n"))
+        code = handle.read().rstrip("\n")
+    if code == "0":
+        return 0
+    print(code)
     return 1
 
 
