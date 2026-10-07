@@ -29,6 +29,8 @@ def main(argv):
     text = out.decode(errors="surrogateescape")
     lines = text.split("\n")
     last_line = lines[-2] if text.endswith("\n") else lines[-1]
+    if re.search(guard["COUNT_LINE"], last_line):
+        return proc.returncode
     name = os.path.basename(suite)
     sys.stdout.write(guard["COUNTLESS"].replace("\\n", "\n").replace("%s", name))
     if text.strip():

@@ -33,3 +33,12 @@ def test_main_refuses_a_countless_suite_quoting_its_last_line_or_naming_its_empt
         (1, ["partial.test.sh: never reached its count line", "partial.test.sh: its last line was: partial"]),
         (1, ["silent.test.sh: never reached its count line", "silent.test.sh: its output was empty"]),
     ]
+
+
+def test_main_reads_a_suite_output_over_one_mebibyte_to_its_count_line(tmp_path, capfd, run_suite):
+    output = tmp_path / "output.txt"
+    output.write_text(("y" * 79 + "\n") * 13200 + "13 passed, 0 failed\n")
+    assert output.stat().st_size > 1024 * 1024
+    code = run_suite.main([fake_suite(tmp_path, "big.test.sh", 'cat "%s"\nexit 0\n' % output)])
+    out, _ = capfd.readouterr()
+    assert (code, "never reached its count line" in out) == (0, False)
