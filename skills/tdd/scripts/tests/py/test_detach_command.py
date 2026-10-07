@@ -270,3 +270,30 @@ def test_wait_parses_the_pid_file_as_bash_kill_does_blanks_a_plus_and_leading_ze
         monkeypatch.setattr(os, "kill", lambda pid, signum: kills.append((pid, signum)))
         code = detach_command.main(["wait", "x", "0"])
         assert (pid_text, code, capsys.readouterr(), kills) == (pid_text, 3, ("", ""), [(pid, 0)])
+
+
+def test_wait_takes_an_absent_or_empty_max_as_60_makes_one_round_for_0_and_ignores_arguments_past_max(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "x.pid").write_text("4242\n")
+    monkeypatch.delenv("VERI_POLL", raising=False)
+    now = [1000.0]
+    sleeps, kills = [], []
+
+    def fake_sleep(seconds):
+        sleeps.append(float(seconds))
+        now[0] += float(seconds)
+
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "sleep", fake_sleep)
+    monkeypatch.setattr(os, "kill", lambda pid, signum: kills.append((pid, signum)))
+
+    for label, rest, rounds in (("absent", [], 61), ("empty", [""], 61), ("0", ["0"], 1),
+                                ("past max", ["2", "junk", "-x"], 3)):
+        sleeps.clear()
+        kills.clear()
+        code = detach_command.main(["wait", "x", *rest])
+        assert (label, code, capsys.readouterr(), len(kills), sleeps) == (
+            label, 3, ("", ""), rounds, [1.0] * (rounds - 1))
