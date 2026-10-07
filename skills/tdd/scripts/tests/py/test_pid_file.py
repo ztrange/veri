@@ -52,3 +52,40 @@ def test_number_in_answers_no_number_for_a_first_line_that_is_not_ascii_digits(t
             answers[name] = type(error).__name__
 
     assert answers == {name: None for name in answers}
+
+
+def test_number_in_answers_no_number_for_a_path_it_cannot_read_as_a_file(tmp_path, monkeypatch):
+    import builtins
+    import io
+    import os
+
+    pid_file = importlib.import_module("veri.pid_file")
+    directory = tmp_path / "directory"
+    directory.mkdir()
+    unreadable = tmp_path / "unreadable"
+    unreadable.write_bytes(b"12\n")
+    fifo = tmp_path / "fifo"
+    os.mkfifo(fifo)
+    real_open = builtins.open
+
+    def fake_open(file, *args, **kwargs):
+        if os.fspath(file) == str(unreadable):
+            raise PermissionError(13, "Permission denied", str(unreadable))
+        if os.fspath(file) == str(fifo):
+            return io.BytesIO(b"12\n")
+        return real_open(file, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", fake_open)
+    answers = {}
+    for name, path in [
+        ("missing", tmp_path / "missing"),
+        ("directory", directory),
+        ("unreadable", unreadable),
+        ("fifo", fifo),
+    ]:
+        try:
+            answers[name] = pid_file.number_in(str(path))
+        except Exception as error:
+            answers[name] = type(error).__name__
+
+    assert answers == {"missing": None, "directory": None, "unreadable": None, "fifo": None}
