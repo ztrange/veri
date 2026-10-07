@@ -702,6 +702,50 @@ def test_main_returns_2_without_raising_writing_back_exactly_the_old_bytes_and_n
     assert (code, b"Traceback" in err, beside, led.read_bytes()) == (2, False, [], seed)
 
 
+def test_main_returns_2_without_raising_restoring_the_old_bytes_and_nothing_beside_the_ledger_when_a_truncating_write_and_the_write_back_fail_but_the_restore_succeeds_1125(
+        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
+    seed = "".join(f"- [x] step {n} ⟂ refactor pending\n" for n in range(8)).encode()
+    led = tmp_path / "ledger.md"
+    led.write_bytes(seed)
+    real_open = builtins.open
+    real_os_open = os.open
+
+    class FullDisk:
+        def __init__(self, file):
+            self.file = file
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            self.file.close()
+
+        def write(self, data):
+            raise OSError(errno.ENOSPC, os.strerror(errno.ENOSPC), str(led))
+
+    def truncating_full_disk_open(file, mode="r", *args, **kwargs):
+        if os.fspath(file) == str(led) and "w" in mode:
+            return FullDisk(real_open(file, "wb"))
+        return real_open(file, mode, *args, **kwargs)
+
+    def refusing_os_open(path, *args, **kwargs):
+        if os.path.abspath(path) == str(led):
+            raise OSError(errno.EIO, os.strerror(errno.EIO), path)
+        return real_os_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", truncating_full_disk_open)
+    monkeypatch.setattr(os, "open", refusing_os_open)
+    try:
+        code = clear_refactor_pending.main([str(led), "step 3"])
+    except OSError as error:
+        code = type(error).__name__
+    monkeypatch.undo()
+    err = capsysbinary.readouterr().err
+    beside = [p.name for p in tmp_path.iterdir() if p.name != "ledger.md"]
+
+    assert (code, b"Traceback" in err, led.read_bytes(), beside) == (2, False, seed, [])
+
+
 def test_main_returns_2_on_a_missing_ledger_with_one_stderr_line_naming_it(
         tmp_path, capsysbinary, clear_refactor_pending):
     code = clear_refactor_pending.main([str(tmp_path / "missing.md"), "a"])
