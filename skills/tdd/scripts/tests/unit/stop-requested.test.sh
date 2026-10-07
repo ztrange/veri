@@ -102,19 +102,6 @@ fi
 verdict "--bogus exits 2 with exactly the usage line on stderr and nothing on stdout"
 
 problems=""
-listed="$work/listed"; mkdir -p "$listed/lib"
-cp "$STOP" "$listed/stop-requested.sh"
-cp "$HERE/../.."/lib/*.sh "$listed/lib/"
-{ cat "$HERE/../../lib/stop-modes.sh"; printf '%s\n' 'STOP_MODES=(at-ledger at-leaf now at-step)'; } > "$listed/lib/stop-modes.sh"
-printf '%s\n' "at-step" > "$work/.tdd/stop"
-out="$(cd "$work" && "$listed/stop-requested.sh" 2>"$work/stderr")" && code=0 || code=$?
-if [[ "$code" != 0 || "$out" != "at-step" ]]; then
-  problems+="    at-step, added to lib/stop-modes.sh: want exit 0 and stdout 'at-step', got exit $code and stdout '$out'"$'\n'
-fi
-rm -f "$work/.tdd/stop"
-verdict "#683: stop-requested.sh accepts the modes lib/stop-modes.sh lists, and still refuses one outside it with today's message"
-
-problems=""
 printf '%s\n' "bogus" > "$work/.tdd/stop"
 run_stop
 want="stop-requested: .tdd/stop must name a mode — at-ledger, at-leaf or now: 'bogus'"

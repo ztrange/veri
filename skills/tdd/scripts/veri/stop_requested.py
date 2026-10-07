@@ -2,6 +2,8 @@
 import os
 import sys
 
+import stop_modes
+
 FILE = ".tdd/stop"
 USAGE = b"usage: stop-requested.sh [--clear]\n"
 
@@ -16,5 +18,12 @@ def main(argv):
     if not os.path.isfile(FILE):
         return 3
     with open(FILE, "rb") as stop:
-        sys.stdout.buffer.write(stop.readline())
+        line = stop.readline()
+    mode = line.removesuffix(b"\n")
+    if not stop_modes.stop_mode_known(mode.decode()):
+        sys.stderr.buffer.write(
+            f"stop-requested: {FILE} must name a mode — {stop_modes.modes_named()}: '".encode()
+            + mode + b"'\n")
+        return 2
+    sys.stdout.buffer.write(line)
     return 0
