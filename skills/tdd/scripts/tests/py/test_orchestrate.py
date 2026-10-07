@@ -374,3 +374,68 @@ def test_the_budget_reads_as_bash_does_unset_or_empty_120000_a_leading_zero_octa
     for budget in ("08", "09"):
         error = 'orchestrate.sh: %s: value too great for base (error token is "%s")\n' % (budget, budget)
         assert run(budget) == (0, every, error * 4)
+
+
+def test_stdout_carries_only_context_and_parked_lines_and_a_closed_stdout_raises_broken_pipe_out_of_the_next_context_write(
+        capsys, monkeypatch, tmp_path, orchestrate):
+    import re
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", "100")
+    parked = tmp_path / ".tdd" / "parked"
+    parked.mkdir(parents=True)
+
+    def park(n, issue):
+        if n == 1:
+            (parked / ("%s.md" % issue)).write_text("")
+
+    _passes(monkeypatch, [(0, "7\n"), (0, "7\n8\n"), (3, "")], lambda n, issue: None)
+    usage = b'"cache_read_input_tokens":%d,"cache_creation_input_tokens":%d'
+    streams = [
+        b'{"type":"assistant","usage":{%s}}\n' % (usage % (60, 10))
+        + b'{"type":"assistant","input":"bash event.sh step-done 1","usage":{%s}}\n' % (usage % (90, 20))
+        + b'{"type":"user","content":"ok"}\n'
+        + b'{"type":"assistant","usage":{%s}}\n' % (usage % (1, 1)),
+        b'{"type":"result","usage":{%s}}\n' % (usage % (5, 5))
+        + b'{"type":"assistant","usage":{%s}}\n' % (usage % (3, 4)),
+    ]
+    stops = []
+    pids = iter((4001, 4002))
+
+    def fake_popen(args, *rest, **kwargs):
+        conductor = _FakeConductor(next(pids))
+        park(conductor.pid - 4000, args[1])
+        conductor.stdout = io.BytesIO(streams.pop(0))
+        return conductor
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+    monkeypatch.setattr(os, "killpg", lambda pid, sig: stops.append(pid))
+    code = orchestrate.main([])
+    out, err = capsys.readouterr()
+    assert (code, out, err) == (0, "context 7 70\ncontext 7 110\nparked 7\ncontext 8 7\n", "")
+    assert all(re.fullmatch(r"(context [0-9]+ [0-9]+|parked [0-9]+)", line) for line in out.splitlines())
+    assert stops == [4001, 4002]
+
+    _passes(monkeypatch, [(0, "9\n"), (3, "")], lambda n, issue: None)
+    first = b'{"type":"assistant","usage":{%s}}\n' % (usage % (1, 2))
+    stream = io.BytesIO(first + b'{"type":"assistant","usage":{%s}}\n' % (usage % (3, 4)))
+
+    def closed_popen(args, *rest, **kwargs):
+        conductor = _FakeConductor(4003)
+        conductor.stdout = stream
+        return conductor
+
+    monkeypatch.setattr(subprocess, "Popen", closed_popen)
+    read_end, write_end = os.pipe()
+    os.close(read_end)
+    closed = os.fdopen(write_end, "w")
+    monkeypatch.setattr(sys, "stdout", closed)
+    try:
+        with pytest.raises(BrokenPipeError):
+            orchestrate.main([])
+        assert stream.tell() == len(first)
+    finally:
+        monkeypatch.setattr(sys, "stdout", sys.__stdout__)
+        try:
+            closed.close()
+        except BrokenPipeError:
+            pass
