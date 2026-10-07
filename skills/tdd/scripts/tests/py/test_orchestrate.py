@@ -184,3 +184,30 @@ def test_a_conductor_launches_as_a_new_session_leader_with_signals_as_todays_lau
     assert dispositions == {sig: signal.SIG_IGN for sig in watched}
     assert after == {sig: signal.SIG_DFL for sig in watched}
     assert asks == [[os.path.join(orchestrate.SCRIPTS, "solvable-issues.sh")]] * 2
+
+
+def test_a_conductor_that_cannot_start_prints_one_line_sends_no_stop_and_asks_again(
+        capsys, monkeypatch, tmp_path, orchestrate):
+    import errno
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+    asks, _ = _passes(monkeypatch, [(0, "7\n"), (0, "7\n"), (3, "")], lambda n, issue: None)
+    failures = [errno.ENOENT, errno.EACCES]
+    launches, stops = [], []
+
+    def failing_popen(args, *rest, **kwargs):
+        launches.append(list(args))
+        code = failures.pop(0)
+        raise OSError(code, os.strerror(code), args[0])
+
+    monkeypatch.setattr(subprocess, "Popen", failing_popen)
+    monkeypatch.setattr(os, "killpg", lambda pid, sig: stops.append(("killpg", pid, sig)))
+    monkeypatch.setattr(os, "kill", lambda pid, sig: stops.append(("kill", pid, sig)))
+    code = orchestrate.main([])
+    out, err = capsys.readouterr()
+    conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
+    assert (code, out, err) == (0, "", "orchestrate.sh: cannot start %s: %s\norchestrate.sh: cannot start %s: %s\n" % (
+        conductor, os.strerror(errno.ENOENT), conductor, os.strerror(errno.EACCES)))
+    assert stops == []
+    assert launches == [[conductor, "7"]] * 2
+    assert asks == [[os.path.join(orchestrate.SCRIPTS, "solvable-issues.sh")]] * 3

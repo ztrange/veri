@@ -24,7 +24,11 @@ def main(argv):
         issue = next((n for n in os.fsdecode(answer.stdout).rstrip("\n").split("\n") if not _parked(n)), "")
         if not issue:
             return 0
-        conductor = _launch(issue)
+        try:
+            conductor = _launch(issue)
+        except OSError as e:
+            sys.stderr.write("orchestrate.sh: cannot start %s: %s\n" % (os.path.join(SCRIPTS, "run-conductor.sh"), e.strerror))
+            continue
         for _ in conductor.stdout:
             pass
         if _parked(issue):
