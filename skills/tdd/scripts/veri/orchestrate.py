@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CONDUCTOR = os.path.join(SCRIPTS, "run-conductor.sh")
 
 
 def main(argv):
@@ -27,7 +28,7 @@ def main(argv):
         try:
             conductor = _launch(issue)
         except OSError as e:
-            sys.stderr.write("orchestrate.sh: cannot start %s: %s\n" % (os.path.join(SCRIPTS, "run-conductor.sh"), e.strerror))
+            sys.stderr.write("orchestrate.sh: cannot start %s: %s\n" % (CONDUCTOR, e.strerror))
             continue
         for _ in conductor.stdout:
             pass
@@ -40,7 +41,7 @@ def _launch(issue):
     ignored = (signal.SIGINT, signal.SIGQUIT, signal.SIGPIPE, signal.SIGXFSZ)
     saved = {sig: signal.signal(sig, signal.SIG_IGN) for sig in ignored}
     try:
-        return subprocess.Popen([os.path.join(SCRIPTS, "run-conductor.sh"), issue], start_new_session=True,
+        return subprocess.Popen([CONDUCTOR, issue], start_new_session=True,
                                 stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, restore_signals=False)
     finally:
         for sig, handler in saved.items():
