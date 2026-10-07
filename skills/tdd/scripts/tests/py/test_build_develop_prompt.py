@@ -624,3 +624,231 @@ def test_main_answers_what_the_bash_contract_cases_before_the_out_of_scope_class
         for line in refusals["no arguments"][2].split(b"\n"))
 
     assert checks == dict.fromkeys(checks, True)
+
+
+def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_to_the_over_budget_reason_asserted(
+        tmp_path, capsysbinary, monkeypatch, build_develop_prompt):
+    monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
+    build_verify_prompt = importlib.import_module("veri.build_verify_prompt")
+    spec = tmp_path / "spec.md"
+    spec_bytes = b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux" \xe2\x80\x94 see {ref}\\n done.\n'
+    spec.write_bytes(spec_bytes)
+    step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
+    cmd = 'make test ZORBLAT=1 -- --only "frob & nitz/quux"'
+    test_path, target = "tests/zorblat/test_frob & nitz.sh", "qwixtle seeds a newline-terminated block"
+    touched = "scripts/zorblat.sh, tests/zorblat/test_frob & nitz.sh"
+    reason_text = "REJECT: the case asserts on zorblat()'s log line, not its return value — & {tricky}\\chars."
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(reason_text.encode() + b"\n")
+    s, r = str(spec), str(reason)
+    absent = str(tmp_path / "absent.md")
+
+    def answer(module, argv):
+        code = module.main(argv)
+        return (code, *capsysbinary.readouterr())
+
+    def rendered(argv):
+        code, out, _ = answer(build_develop_prompt, argv)
+        return out if code == 0 else None
+
+    def refused(argv):
+        code, out, err = answer(build_develop_prompt, argv)
+        return code == 2 and out == b"" and err != b""
+
+    def folded(prompt):
+        return prompt.replace(b"\n", b" ")
+
+    def says(prompt, pattern, flags=re.I):
+        return prompt is not None and re.search(pattern, folded(prompt), flags) is not None
+
+    def any_line(prompt, pattern, flags=0):
+        return prompt is not None and any(re.search(pattern, line, flags) for line in prompt.split(b"\n"))
+
+    def both_ways(prompt, gap, a, b):
+        return says(prompt, rb"%s[^.]{0,%d}%s|%s[^.]{0,%d}%s" % (a, gap, b, b, gap, a))
+
+    def offers(prompt, token, cls):
+        return any_line(prompt, rb"^%s:.*%s[^|]{0,40}\|" % (token, cls))
+
+    def carries(prompt, *parts):
+        return prompt is not None and all(
+            (part.encode() if isinstance(part, str) else part) in prompt for part in parts)
+
+    red = rendered(["red", s, step, cmd])
+    green = rendered(["green", s, step, cmd, test_path, target, "make unit"])
+    refactor = rendered(["refactor", s, step, cmd, touched])
+    revise = rendered(["revise", "red", s, step, cmd, r])
+    prompts = (red, green, refactor, revise)
+
+    monkeypatch.setenv("VERI_REFACTOR_BUDGET", "37")
+    budgeted = rendered(["refactor", s, step, cmd, touched])
+    monkeypatch.delenv("VERI_REFACTOR_BUDGET")
+
+    rc_branch, rc_sha = "tdd/232-zorblat-frob", "3f9a1c0b7e2d4a6f8c1b3e5d7f9a0c2e4b6d8f01"
+    reconcile = rendered(["reconcile", s, step, cmd, rc_branch, rc_sha])
+    rc_tpl = (SCRIPTS / "prompts" / "develop-reconcile.md").read_bytes()
+
+    fast_cmd = 'make unit ZORBLAT=fast -- --only "frob & nitz/quux"'
+    fast_green = rendered(["green", s, step, cmd, test_path, target, fast_cmd])
+    revise_green = rendered(["revise", "green", s, step, cmd, r])
+
+    replaces_step = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz" moves to '
+                     'tests/py/test_zorblat.py ⟦criterion 1⟧')
+    licence = rb"(may|permitted|allowed|licen[cs]ed?)[^.]{0,60}delet|delet[^.]{0,60}(permitted|allowed|licen[cs]ed)"
+    replaces_green = rendered(["green", s, replaces_step, cmd, "tests/py/test_zorblat.py",
+                               "test_zorblat_frobs_a_nitz", "make unit"])
+
+    repair_step = ("fix the full-suite failure: skills/tdd/scripts/tests/zorblat.test.sh — FAIL - zorblat frobs a nitz; "
+                   "skills/tdd/scripts/tests/quux.test.sh — FAIL - quux & {nitz} round-trips ⟦suite-repair⟧")
+    repair_named = ("skills/tdd/scripts/tests/zorblat.test.sh", "zorblat frobs a nitz",
+                    "skills/tdd/scripts/tests/quux.test.sh", "quux & {nitz} round-trips")
+    every_listed = rb"(every|each|all)( of the)? (listed|red|named) suites?"
+    repair_green = rendered(["green", s, repair_step, "make test", repair_named[0], repair_named[1], "make unit"])
+    repair_revise = rendered(["revise", "green", s, repair_step, "make test", r])
+    single_step = ("fix the full-suite failure: skills/tdd/scripts/tests/zorblat.test.sh — FAIL - zorblat frobs a nitz "
+                   "⟦suite-repair⟧")
+    single_green = rendered(["green", s, single_step, "make test", repair_named[0], repair_named[1], "make unit"])
+    verify_code, single_verify, _ = answer(build_verify_prompt, [
+        "--step", single_step, "--fast-cmd", "make unit", "green", s, repair_named[0], repair_named[1]])
+
+    unmodified = tmp_path / "unmodified"
+    (unmodified / "veri").mkdir(parents=True)
+    for source in (SCRIPTS / "veri").glob("*.py"):
+        (unmodified / "veri" / source.name).write_bytes(source.read_bytes())
+    (unmodified / "prompts").mkdir()
+    for tpl in (SCRIPTS / "prompts").glob("*.md"):
+        if tpl.name not in ("_develop-green-suite-repair.md", "_verify-green-suite-repair.md"):
+            (unmodified / "prompts" / tpl.name).write_bytes(tpl.read_bytes().replace(b"{{SUITE_REPAIR}}", b""))
+
+    def load(name):
+        loader = importlib.util.spec_from_file_location(f"{name}_unmodified", unmodified / "veri" / f"{name}.py")
+        module = importlib.util.module_from_spec(loader)
+        loader.loader.exec_module(module)
+        return module
+
+    scripts_dir = os.fsencode(os.path.dirname(os.path.dirname(os.path.abspath(build_develop_prompt.__file__))))
+
+    def as_built_here(result):
+        code, out, err = result
+        return (code, out.replace(os.fsencode(str(unmodified)), scripts_dir),
+                err.replace(os.fsencode(str(unmodified)), scripts_dir))
+
+    plain = ["green", s, step, cmd, test_path, target, "make unit"]
+    verify_plain = ["--step", step, "--fast-cmd", "make unit", "green", s, test_path, target]
+
+    exhausted = rendered(["exhausted", s, step, cmd, r])
+
+    bug_spec = tmp_path / "bug-spec.md"
+    bug_spec.write_bytes(spec_bytes + b"\n## Bug\n\n### What happened\n\nzorblat returned \"FROB_NITZ\" on the quuxed seed."
+                         b"\n\n### Expected\n\nzorblat returns \"frob-nitz-quux\".\n\n### Steps to reproduce\n\n"
+                         b"Run zorblat --seed \"Frob & Nitz/Quux\".\n\n### Environment\n\nveri on bash 5.2, macOS 15.\n")
+    bug_red = rendered(["red", str(bug_spec), step, cmd])
+    names_with_number = rb"(name|naming)[^.]{0,60}#<n>|#<n>[^.]{0,60}(name|naming)"
+
+    over_budget = rendered(["over-budget", s, step, cmd, "3.47", "2.50"])
+    over_budget_flat = re.sub(rb"\s+", b" ", over_budget or b"")
+    _, mark, over_budget_report = over_budget_flat.partition(b"### Report")
+    over_budget_extra = rendered(["over-budget", s, step, cmd, "3.47", "2.50", r])
+
+    checks = {
+        "refactor defines the out-of-scope class, reported instead of structural": (
+            offers(refactor, b"CANDIDATES", b"out-of-scope")
+            and both_ways(refactor, 160, rb"out-of-scope",
+                          rb"outside the issue.s bounds[^.]{0,80}ruled out by (its|the) spec")
+            and both_ways(refactor, 160, rb"out-of-scope",
+                          rb"(instead of|rather than|never|not)( on| as)? an? `?(CANDIDATES: )?structural")),
+        "refactor applies structural candidates up to its budget, one refactor: commit each, reverting red": (
+            both_ways(refactor, 80, rb"budget", rb"structural")
+            and both_ways(refactor, 80, rb"commit", rb"refactor:")
+            and both_ways(refactor, 60, rb"(each|every|own|per)", rb"refactor:")
+            and both_ways(refactor, 80, rb"suites?", rb"after each")
+            and both_ways(refactor, 80, rb"revert", rb"red")
+            and both_ways(refactor, 80, rb"applied", rb"(transforms|one per|each|every)")),
+        "refactor carries VERI_REFACTOR_BUDGET as the budget": both_ways(budgeted, 80, rb"budget", rb"37"),
+        "red predicts before the run and carries the prediction footer": (
+            both_ways(red, 60, rb"predict", rb"before (you|issuing|any command)")
+            and carries(red, b"PREDICTED_FAILURE:", b"PREDICTION_NOTE:")
+            and says(red, rb"PREDICTION:[^.]{0,20}MATCHED", 0) and says(red, rb"PREDICTION:[^.]{0,20}DIVERGED", 0)),
+        "red's pin path predicts what the break prints and checks it before restoring": (
+            both_ways(red, 80, rb"break", rb"predict")
+            and both_ways(red, 80, rb"break", rb"(check|compar|match)")
+            and says(red, rb"before[^.]{0,40}restor|restor[^.]{0,40}(only after|not until)")),
+        "revise asks for a new prediction before the re-run": (
+            both_ways(revise, 80, rb"(rewrit|rewrote|new test)", rb"predict")
+            and both_ways(revise, 60, rb"predict", rb"before (you|issuing|any command)")),
+        "reconcile carries sha, branch and a pinned --force-with-lease, no bare --force, refusing a missing sha": (
+            carries(reconcile, rc_sha, rc_branch, f"--force-with-lease={rc_branch}:{rc_sha}")
+            and not any_line(rc_tpl, rb"--force($|[^-]|-($|[^w]))")
+            and all(m.startswith(b"--force-with-lease=") for m in re.findall(rb"--force-with-lease[^\s`]*", rc_tpl))
+            and refused(["reconcile", s, step, cmd, rc_branch, ""])),
+        "every prompt forbids global config, naming environment variables and throwaway directories": all(
+            says(p, rb"(never|do not|don't|not)[^.]{0,80}(global|user-level)[^.]{0,60}config")
+            and says(p, rb"environment variables?") and says(p, rb"(throwaway|temporary|scratch)[^.]{0,20}director(y|ies)")
+            for p in prompts),
+        "red states behaviour over mechanism with the spy carve-out, make profile and UNTESTABLE": (
+            says(red, rb"(process|fork)[^.]{0,20}count|timing") and says(red, rb"make profile")
+            and says(red, rb"in-process spy") and says(red, rb"PATH[^.]{0,60}shim|shim[^.]{0,60}(count|real process)")
+            and says(red, rb"UNTESTABLE")),
+        "green carries <fast-cmd> verbatim and refuses an empty one": (
+            carries(fast_green, fast_cmd) and refused(["green", s, step, cmd, test_path, target, ""])),
+        "red names the missing name on PREDICTED_FAILURE:": both_ways(red, 60, rb"PREDICTED_FAILURE",
+                                                                     rb"(missing|absent) name"),
+        "revise ends with PREDICTED_FAILURE: and PREDICTION: MATCHED | DIVERGED": (
+            carries(revise, b"PREDICTED_FAILURE:") and says(revise, rb"PREDICTION:[^.]{0,20}MATCHED", 0)
+            and says(revise, rb"PREDICTION:[^.]{0,20}DIVERGED", 0)),
+        "refactor leaves the touched-files list only to remove duplication": (
+            both_ways(refactor, 60, rb"outside", rb"duplication") and both_ways(refactor, 60, rb"outside", rb"only")),
+        "refactor runs the suites covering an out-of-list file": both_ways(refactor, 80, rb"outside", rb"suites?"),
+        "green offers one to three SPLIT: lines changing no production code": (
+            any_line(green, rb"^SPLIT:") and says(green, rb"one to three|1 to 3|(at most|no more than) three")
+            and both_ways(green, 80, rb"SPLIT", rb"(no|any|without changing) production code")),
+        "revise green offers the same SPLIT: lines": (
+            any_line(revise_green, rb"^SPLIT:")
+            and says(revise_green, rb"one to three|1 to 3|(at most|no more than) three")
+            and both_ways(revise_green, 80, rb"SPLIT", rb"(no|any|without changing) production code")),
+        "green for a replaces-case step permits deleting that case and no other": (
+            says(replaces_green, licence) and not says(green, licence)
+            and both_ways(replaces_green, 60, rb"(never|not|forbid|forbidden|must not|rejected)",
+                          rb"(any|every) other (bash )?case")),
+        "#690 green for a two-suite repair names both suites and cases and asks every listed suite green": (
+            carries(repair_green, *repair_named) and both_ways(repair_green, 60, every_listed, rb"green")),
+        "#690 revise green for a two-suite repair does the same": (
+            carries(repair_revise, *repair_named) and both_ways(repair_revise, 60, every_listed, rb"green")),
+        "#690 a one-suite repair names that suite and case in develop-green and verify-green": (
+            carries(single_green, *repair_named[:2]) and verify_code == 0
+            and carries(single_verify, *repair_named[:2])),
+        "#690 develop-green without suite repair is byte-identical to the builder without it": (
+            answer(build_develop_prompt, plain) == as_built_here(answer(load("build_develop_prompt"), plain))),
+        "#690 verify-green without suite repair is byte-identical to the builder without it": (
+            answer(build_verify_prompt, verify_plain) == as_built_here(answer(load("build_verify_prompt"), verify_plain))),
+        "exhausted carries the step, the reason and the spec, refusing a missing reason": (
+            carries(exhausted, step, reason_text, b'zorblat("Frob & Nitz/Quux")')
+            and refused(["exhausted", s, step, cmd, absent])),
+        "red names a bug's case with #<n>, and a spec with no Bug section is not told to": (
+            says(bug_red, names_with_number) and not says(red, names_with_number)),
+        "refactor reports FLAGS: lines in the three classes or none, no NEW_STEP:, defining each class": (
+            any_line(refactor, rb"^FLAGS:") and any_line(refactor, rb"^FLAGS:.*none")
+            and not any_line(refactor, rb"^NEW_STEP:")
+            and all(offers(refactor, b"FLAGS", c) for c in (b"overfit", b"uncovered-spec", b"beyond-spec"))
+            and both_ways(refactor, 120, rb"overfit", rb"(without|rather than|instead of) implementing")
+            and both_ways(refactor, 120, rb"uncovered-spec", rb"(spec (requires|asks)|required by the spec)")
+            and both_ways(refactor, 120, rb"beyond-spec", rb"(does not|doesn.t|never) (ask|require)")),
+        "over-budget carries the step, both figures and the spec": carries(
+            over_budget, step, b"3.47", b"2.50", b'zorblat("Frob & Nitz/Quux")'),
+        "over-budget asks for SPLIT: or NEEDS_USER:": (
+            any_line(over_budget, rb"^SPLIT:") and any_line(over_budget, rb"^NEEDS_USER:")),
+        "over-budget says a crossing is not a verdict and one behaviour, simply expensive, answers": (
+            says(over_budget_flat, rb"not a verdict") and says(over_budget_flat, rb"one behaviour[^.]*simply expensive")),
+        "over-budget gives the simply-expensive answer its own report shape": (
+            mark == b"### Report"
+            and says(over_budget_report, rb"simply expensive[^.]*(no|neither)[^.]*SPLIT:[^.]*NEEDS_USER:")),
+        "over-budget with fewer than five arguments after the phase refuses": all(
+            refused(["over-budget", *args]) for args in ([], [s], [s, step], [s, step, cmd], [s, step, cmd, "3.47"])),
+        "over-budget ignores a reason file past <budget> and names no rejection reason or verdict": (
+            over_budget is not None and over_budget_extra == over_budget
+            and reason_text.encode() not in over_budget_extra
+            and not says(over_budget_flat, rb"rejection reason")
+            and not says(over_budget, rb"REJECT|VERDICT", 0)),
+    }
+
+    assert checks == dict.fromkeys(checks, True)
