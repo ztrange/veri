@@ -13,7 +13,11 @@ def main(argv):
     if covered == "no":
         return 1
     if covered in ("unreachable", "type-only"):
-        print("%s: %s" % (covered, fields.get("PROOF", "")))
+        proof = fields.get("PROOF", "")
+        if proof in ("", "NONE"):
+            print("cover-outcome: COVERED: %s without a PROOF: line" % covered, file=sys.stderr)
+            return 2
+        print("%s: %s" % (covered, proof))
         return 3
     print("cover-outcome: no COVERED: line found", file=sys.stderr)
     return 2
