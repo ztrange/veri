@@ -664,6 +664,44 @@ def test_main_returns_2_without_raising_keeping_the_backup_with_the_old_bytes_an
         1, True, True)
 
 
+def test_main_returns_2_without_raising_writing_back_exactly_the_old_bytes_and_nothing_beside_the_ledger_when_a_failed_write_leaves_it_longer_than_before_1125(
+        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
+    seed = "".join(f"- [x] step {n} ⟂ refactor pending\n" for n in range(8)).encode()
+    led = tmp_path / "ledger.md"
+    led.write_bytes(seed)
+    real_open = builtins.open
+
+    class FullDisk:
+        def __init__(self, file):
+            self.file = file
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            self.file.close()
+
+        def write(self, data):
+            self.file.write(data + data)
+            self.file.flush()
+            raise OSError(errno.ENOSPC, os.strerror(errno.ENOSPC), str(led))
+
+    def overlong_full_disk_open(file, mode="r", *args, **kwargs):
+        opened = real_open(file, mode, *args, **kwargs)
+        return FullDisk(opened) if os.fspath(file) == str(led) and "w" in mode else opened
+
+    monkeypatch.setattr(builtins, "open", overlong_full_disk_open)
+    try:
+        code = clear_refactor_pending.main([str(led), "step 3"])
+    except OSError as error:
+        code = type(error).__name__
+    monkeypatch.undo()
+    err = capsysbinary.readouterr().err
+    beside = [p.name for p in tmp_path.iterdir() if p.name != "ledger.md"]
+
+    assert (code, b"Traceback" in err, beside, led.read_bytes()) == (2, False, [], seed)
+
+
 def test_main_returns_2_on_a_missing_ledger_with_one_stderr_line_naming_it(
         tmp_path, capsysbinary, clear_refactor_pending):
     code = clear_refactor_pending.main([str(tmp_path / "missing.md"), "a"])

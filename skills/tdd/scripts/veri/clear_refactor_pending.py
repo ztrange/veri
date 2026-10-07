@@ -67,6 +67,7 @@ def main(argv):
             try:
                 with os.fdopen(os.open(argv[0], os.O_WRONLY), "wb") as file:
                     file.write(raw)
+                    file.truncate()
             except OSError:
                 try:
                     os.replace(backup, path)
