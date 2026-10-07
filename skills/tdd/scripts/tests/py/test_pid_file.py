@@ -139,3 +139,31 @@ def test_live_conductor_answers_the_digits_as_read_and_never_signals_for_no_pid_
         {"no-pid-file": None, "live": "004242", "zero": None, "double-zero": None},
         {"no-pid-file": [], "live": [(4242, 0)], "zero": [], "double-zero": []},
     )
+
+
+def test_live_conductor_answers_no_pid_and_raises_nothing_when_os_kill_raises(tmp_path, monkeypatch):
+    import os
+
+    pid_file = importlib.import_module("veri.pid_file")
+    raised = {}
+
+    def fake_kill(pid, signal):
+        raise raised["error"]
+
+    monkeypatch.setattr(os, "kill", fake_kill)
+    answers = {}
+    for name, error in [
+        ("permission", PermissionError(1, "Operation not permitted")),
+        ("lookup", ProcessLookupError(3, "No such process")),
+        ("overflow", OverflowError("signed integer is greater than maximum")),
+    ]:
+        run_dir = tmp_path / name
+        (run_dir / ".tdd").mkdir(parents=True)
+        (run_dir / ".tdd" / "conductor.pid").write_bytes(b"4242\n")
+        raised["error"] = error
+        try:
+            answers[name] = pid_file.live_conductor(str(run_dir))
+        except Exception as error:
+            answers[name] = type(error).__name__
+
+    assert answers == {"permission": None, "lookup": None, "overflow": None}
