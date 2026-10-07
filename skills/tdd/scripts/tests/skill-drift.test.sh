@@ -138,4 +138,19 @@ out="$(env -u VERI_SKILL_UNPINNED VERI_SKILL_COMMIT="$absent" VERI_SKILL_CLONE="
 [[ "$out" == "$want" ]] || problems+=("want stdout '$want', got $(printf '%q' "$out")")
 report "$name"
 
+name="with VERI_SKILL_REF naming a ref that does not resolve in the clone, the output is 'Skill drift: unavailable — <ref> does not resolve in <clone>', exit 0"
+problems=()
+tmp="$(scratch_dir)"
+upstream="$tmp/upstream" clone="$tmp/clone"
+new_repo -b main "$upstream"
+touch_commit "$upstream" skills/tdd/scripts/run-leaf.sh "feat: the pinned skill (#9)"
+pinned="$(git -C "$upstream" rev-parse HEAD)"
+git clone -q "$upstream" "$clone"
+want="Skill drift: unavailable — refs/remotes/origin/absent does not resolve in $clone"
+out="$(env -u VERI_SKILL_UNPINNED VERI_SKILL_COMMIT="$pinned" VERI_SKILL_CLONE="$clone" \
+  VERI_SKILL_REF=refs/remotes/origin/absent "$SKILL_DRIFT" 2>/dev/null)" && code=0 || code=$?
+[[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
+[[ "$out" == "$want" ]] || problems+=("want stdout '$want', got $(printf '%q' "$out")")
+report "$name"
+
 finish
