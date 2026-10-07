@@ -1,0 +1,2 @@
+### tests/py/test_pid_file.py: veri/pid_file.py's number_in, called directly on a file under tmp_path, answers the first line's digits as read — 12 for "12\n", " 12 \t\n", "12" with no final newline and "12\nx", and 0012 for "0012\n" ⟦criterion 3⟧
+- out-of-scope | remove veri/issue_worktree.py's own number_in (:15-23) in favour of an import from veri/pid_file.py — the move is plan step 10, not a refactor of this step
