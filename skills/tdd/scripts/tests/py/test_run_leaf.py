@@ -396,6 +396,35 @@ def test_main_when_copying_the_gitconfig_into_the_leafs_temp_git_config_raises_o
         2, [], [], f"run-leaf.sh: {made[1]}: No space left on device\n")
 
 
+def test_main_when_the_stream_temp_file_vanishes_during_the_leafs_run_returns_2_and_names_it_on_stderr(
+        tmp_path, monkeypatch, capfd):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, tmp = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("do the step\n")
+    made = []
+    real_mkstemp = tempfile.mkstemp
+
+    def recording_mkstemp(*args, **kwargs):
+        fd, path = real_mkstemp(*args, **kwargs)
+        made.append(path)
+        return fd, path
+
+    def launch_then_lose_the_stream(argv, *args, **kwargs):
+        os.remove(made[0])
+        return _FakeLeaf([], argv, **kwargs)
+
+    monkeypatch.setattr(tempfile, "mkstemp", recording_mkstemp)
+    monkeypatch.setattr(subprocess, "Popen", launch_then_lose_the_stream)
+
+    try:
+        code = run_leaf.main(["prompt.txt"])
+    except Exception as error:
+        code = type(error).__name__
+    err = capfd.readouterr().err
+
+    assert (code, err) == (2, f"run-leaf.sh: {made[0]}: No such file or directory\n")
+
+
 def test_main_makes_the_stream_then_the_git_config_temp_file_in_tmpdir_copies_the_gitconfig_into_it_launches_with_git_config_global_on_it_and_removes_both(
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
@@ -463,7 +492,7 @@ def test_main_makes_the_stream_then_the_git_config_temp_file_in_tmpdir_copies_th
         (0, ["/tmp"] * 2, [(True, [True, True], "")], [False, False]),
         (0, ["/tmp"] * 2, [(True, [True, True], "")], [False, False]),
         (2, [str(tmp)] * 2, [], [False, False]),
-        (1, [str(tmp)] * 2, [(True, [True, True], "")], [False, False]),
+        (2, [str(tmp)] * 2, [(True, [True, True], "")], [False, False]),
     ]
 
 
