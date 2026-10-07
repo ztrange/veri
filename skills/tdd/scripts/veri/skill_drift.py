@@ -30,6 +30,7 @@ def main(argv):
     if not resolves(clone, commit):
         return unavailable("pinned commit %s is not in %s" % (commit, clone))
     ref = os.environ["VERI_SKILL_REF"]
+    fetched = subprocess.run(["git", "-C", clone, "fetch", "-q", "origin"], capture_output=True).returncode == 0
     if not resolves(clone, ref):
         return unavailable("%s does not resolve in %s" % (ref, clone))
     log = git(clone, "log", "--format=%h %s", "%s..%s" % (commit, ref),
@@ -47,6 +48,8 @@ def main(argv):
         lines += ["- #%s — %s (%d commits)" % (k, s[0][1], len(s)) if s[0][0] else "- %s %s" % (k, s[0][1])
                   for k, s in groups.items()]
         lines.append("Resume with VERI_NEW_SKILL=1 to run on these.")
+    if not fetched:
+        lines.append("origin could not be fetched — list is as of the last fetch of %s" % ref)
     sys.stdout.write("\n".join(lines) + "\n")
     return 0
 
