@@ -129,4 +129,25 @@ rm -f "$err_file"
 [[ "$err" == "cover-outcome: no COVERED: line found" ]] || problems+=("want stderr 'cover-outcome: no COVERED: line found', got '$(printf '%s' "$err" | tr '\n' '|')'")
 verdict "$name"
 
+name="run through a symlink to the skill directory and from another working directory, it answers as in place"
+problems=()
+scratch="$(mktemp -d)"
+ln -s "$(cd "$HERE/../../.." && pwd)" "$scratch/skill"
+mkdir "$scratch/elsewhere"
+answer() {
+  local report="$1" bin="$2" dir="$3" o c
+  o="$(cd "$dir" && printf '%s' "$report" | "$bin" 2>"$scratch/err")" && c=0 || c=$?
+  printf 'exit=%s|stdout=%s|stderr=%s' "$c" "$o" "$(cat "$scratch/err")"
+}
+for report in "some narration
+COVERED: yes
+CAUGHT_BY: $caught_by
+MUTATION: $mutation" "some narration with no report lines at all"; do
+  in_place="$(answer "$report" "$COVER_OUTCOME" "$HERE")"
+  linked="$(answer "$report" "$scratch/skill/scripts/cover-outcome.sh" "$scratch/elsewhere")"
+  [[ "$linked" == "$in_place" ]] || problems+=("want '$in_place', got '$linked'")
+done
+rm -rf "$scratch"
+verdict "$name"
+
 finish
