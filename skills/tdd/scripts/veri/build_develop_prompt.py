@@ -13,6 +13,11 @@ WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "transform": 4, "diff":
 WANT_PHASES = "|".join(PHASES)
 WANT_REVISE_PHASES = "|".join(REVISE_PHASES)
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ARGUMENT_PLACEHOLDERS = {"<test-path>": "TEST_PATH", "<target-test>": "TARGET_TEST", "<fast-cmd>": "FAST_CMD",
+                         "<touched-files>": "TOUCHED_FILES", "<issue-touched-files>": "TOUCHED_FILES",
+                         "<branch>": "BRANCH", "<remote-sha>": "REMOTE_SHA", "<spent>": "SPENT", "<budget>": "BUDGET",
+                         "<onto-sha>": "ONTO_SHA", "<pre-rebase-sha>": "PRE_REBASE_SHA",
+                         "<conflicting-files>": "CONFLICTING_FILES"}
 USAGE = f"build-develop-prompt.sh: usage: {WANT_PHASES} <issue-spec-file> <step-text> <test-cmd> ..."
 
 
@@ -88,7 +93,15 @@ def main(argv):
             return 2
     prompts_b = os.fsencode(prompts)
     values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "REPLACES_CASE", "SUITE_REPAIR", "STEP",
-                            "TEST_CMD", "TIMED_TEST_RUN", "REJECTION_REASON"), b"")
+                            "TEST_CMD", "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES",
+                            "REFACTOR_BUDGET", "REVISE_PHASE", "REJECTION_REASON", "BRANCH", "REMOTE_SHA", "SPENT",
+                            "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES"), b"")
+    for name, value in zip(names[3:], args[3:]):
+        if name in ARGUMENT_PLACEHOLDERS:
+            values[ARGUMENT_PLACEHOLDERS[name]] = os.fsencode(value)
+    if phase == "refactor":
+        values["REFACTOR_BUDGET"] = os.fsencode(os.environ.get("VERI_REFACTOR_BUDGET") or "5")
+    values["REVISE_PHASE"] = os.fsencode(revised_phase)
     try:
         text = _expand(_read(paths[0]), prompts_b)
         values["SHARED"] = _expand(_read(paths[1]), prompts_b)
