@@ -1194,6 +1194,42 @@ missing="$(comm -23 <(seq 2 129 | sort) <(printf '%s\n' "$out" | sort) | sort -n
   && grep -F 'issues?state=all&sort=created&direction=asc&per_page=100' "$wide/calls" > /dev/null; } \
   && ok || no "against a fake gh api holding more than 100 open issues whose pages shift between calls, solvable-issues.sh reads the grow-only issue listing at per_page=100 and still prints every solvable issue (#1064) (130 open issues, #2–#129 opted in; exit=$code want 0; missing='$missing' want ''; gh calls='$(tr '\n' '|' < "$wide/calls" 2>/dev/null)' want one naming issues?state=all&sort=created&direction=asc&per_page=100; stderr='$(tr '\n' '|' < "$wide/stderr")')"
 
+onepage="$work/open-issues-one-page"
+mkdir -p "$onepage/bin"
+python3 -c '
+import json, sys
+def labels(n):
+    names = [] if n % 10 == 0 else ["ready-for-agent"]
+    names += ["bug"] if n == 7 else ["priority"] if n == 33 else []
+    return [{"name": name} for name in names]
+def issue(n, labelled):
+    return {"number": n, "title": "issue %d" % n, "state": "open", "body": "## Blocked by\n\nNone.\n",
+            "labels": labelled}
+json.dump([issue(n, labels(n)) for n in range(1, 41)], open(sys.argv[1], "w"))
+json.dump([issue(n, [] if n in (1, 100) else [{"name": "ready-for-agent"}]) for n in range(1, 101)],
+          open(sys.argv[2], "w"))
+' "$onepage/issues.json" "$onepage/issues100.json"
+cp "$wide/bin/gh" "$onepage/bin/gh"
+
+out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_GH_DRIVER PATH="$onepage/bin:$PATH" \
+       GH_CALLS="$onepage/calls" GH_SHIFT_STUB="$shiftdir/bin/gh" \
+       GH_SHIFT_ISSUES="$onepage/issues.json" GH_SHIFT_CLOSED="$onepage/closed" \
+       "$SOLVABLE" 2>"$onepage/stderr")" && code=0 || code=$?
+issue_calls="$(grep -F '/issues?' "$onepage/calls" || true)"
+want="$(printf '%s\n' 33 7; seq 1 40 | grep -v -x -e 7 -e 33 -e 10 -e 20 -e 30 -e 40)"
+
+out100="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_GH_DRIVER PATH="$onepage/bin:$PATH" \
+          GH_CALLS="$onepage/calls100" GH_SHIFT_STUB="$shiftdir/bin/gh" \
+          GH_SHIFT_ISSUES="$onepage/issues100.json" GH_SHIFT_CLOSED="$onepage/closed100" \
+          "$SOLVABLE" 2>"$onepage/stderr100")" && code100=0 || code100=$?
+
+{ [[ "$code" == 0 && "$out" == "$want" ]] \
+  && [[ "$(grep -c . <<<"$issue_calls")" == 1 ]] \
+  && grep -F 'issues?state=open&per_page=100' <<<"$issue_calls" > /dev/null \
+  && [[ "$code100" == 0 && "$out100" == "$(seq 2 99)" ]] \
+  && grep -F 'issues?state=all&sort=created&direction=asc&per_page=100' "$onepage/calls100" > /dev/null; } \
+  && ok || no "against a fake gh api holding fewer than 100 open issues, solvable-issues.sh makes exactly one issue listing request, issues?state=open&per_page=100, and prints the same output as before; an open issue page of 100 items falls back to the grow-only issue listing (#1064) (40 open issues: exit=$code want 0; stdout='$(tr '\n' '|' <<<"$out")' want '$(tr '\n' '|' <<<"$want")'; issue listing calls='$(tr '\n' '|' <<<"$issue_calls")' want exactly one naming issues?state=open&per_page=100; 100 open issues: exit=$code100 want 0; stdout lines=$(grep -c . <<<"$out100") want #2–#99; gh calls='$(tr '\n' '|' < "$onepage/calls100" 2>/dev/null)' want one naming issues?state=all&sort=created&direction=asc&per_page=100; stderr='$(tr '\n' '|' < "$onepage/stderr")|$(tr '\n' '|' < "$onepage/stderr100")')"
+
 
 prshift="$work/shifting-pr-pages"
 mkdir -p "$prshift/bin"
@@ -1468,6 +1504,9 @@ case "$path" in
   "repos/{owner}/{repo}/issues"*) list=issues ;;
   "repos/{owner}/{repo}/pulls"*) list=pulls ;;
   *) echo "gh stub: unexpected path $path" >&2; exit 1 ;;
+esac
+case "$path" in
+  *state=open*) sed -n 's/^\[\(.*\)\]$/\1/p' "$GH_FX/$list"-*.json | paste -sd, - | sed 's/.*/[&]/'; exit 0 ;;
 esac
 page="$(printf '%s\n' "$path" | sed -n 's/.*[?&]page=\([0-9][0-9]*\).*/\1/p')"
 [ -n "$page" ] || page=1

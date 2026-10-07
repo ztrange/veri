@@ -116,6 +116,12 @@ class RestOnlyAdapter:
             return self.list(path, *args)
         return self.rest_list(path)
 
+    def page(self, fixture, path, *args):
+        run = _gh_api(path)
+        if run.returncode != 0:
+            raise NoAnswer("")
+        return run.stdout
+
 
 class GraphQLOnlyAdapter(RestOnlyAdapter):
     def __init__(self):
@@ -123,6 +129,9 @@ class GraphQLOnlyAdapter(RestOnlyAdapter):
         self.graphql = GraphQLAdapter()
 
     def list(self, path, *args):
+        return self.graphql.list(*args)
+
+    def page(self, fixture, path, *args):
         return self.graphql.list(*args)
 
     def issue_view(self, number, field):
@@ -135,6 +144,12 @@ class FallbackAdapter(GraphQLOnlyAdapter):
             return super().list(path, *args)
         except NoAnswer:
             return RestOnlyAdapter.list(self, path)
+
+    def page(self, fixture, path, *args):
+        try:
+            return super().page(fixture, path, *args)
+        except NoAnswer:
+            return RestOnlyAdapter.page(self, fixture, path, *args)
 
     def issue_view(self, number, field):
         try:
@@ -150,6 +165,9 @@ class FixtureAdapter:
     def json(self, fixture, path, *args):
         with open(os.path.join(self.directory, fixture)) as f:
             return f.read()
+
+    def page(self, fixture, path, *args):
+        return self.json(fixture, path, *args)
 
 
 def _select(operation):
@@ -177,6 +195,10 @@ def gh_list(path, *args):
 
 def gh_json(fixture, path, *args):
     return _select("json").json(fixture, path, *args)
+
+
+def gh_json_page(fixture, path, *args):
+    return _select("json").page(fixture, path, *args)
 
 
 def gh_issue_view(number, field):
