@@ -13,10 +13,10 @@ from session_env import strip_session_env
 USAGE = "usage: run-leaf.sh <prompt-file|-> [claude args...]"
 
 
-def leaf_argv(prompt, extra):
-    argv = [os.environ.get("CLAUDE_BIN") or "claude", "-p", prompt,
+def leaf_argv(env, prompt, extra):
+    argv = [env.get("CLAUDE_BIN") or "claude", "-p", prompt,
             "--output-format", "stream-json", "--verbose"]
-    model = os.environ.get("VERI_LEAF_MODEL", "")
+    model = env.get("VERI_LEAF_MODEL", "")
     if model:
         argv += ["--model", model]
     return argv + extra
@@ -60,14 +60,15 @@ def main(argv):
         except OSError as error:
             complain(git_path, error)
             return 1
-        os.environ["GIT_CONFIG_GLOBAL"] = git_path
-        strip_session_env(os.environ)
-        if os.environ.get("VERI_SHIM_SET_COERCE") == "1":
-            del os.environ["VERI_SHIM_SET_COERCE"]
-            os.environ.pop("PYTHONCOERCECLOCALE", None)
-        command = leaf_argv(prompt, argv[1:])
+        env = dict(os.environ)
+        env["GIT_CONFIG_GLOBAL"] = git_path
+        strip_session_env(env)
+        if env.get("VERI_SHIM_SET_COERCE") == "1":
+            del env["VERI_SHIM_SET_COERCE"]
+            env.pop("PYTHONCOERCECLOCALE", None)
+        command = leaf_argv(env, prompt, argv[1:])
         try:
-            leaf = subprocess.Popen(command, stdout=subprocess.PIPE, env=dict(os.environ),
+            leaf = subprocess.Popen(command, stdout=subprocess.PIPE, env=env,
                                     restore_signals=False)
         except OSError as error:
             complain(command[0], error)
