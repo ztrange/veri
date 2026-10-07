@@ -9,9 +9,9 @@ from github import NoAnswer, gh_json, gh_json_page
 from json_documents import items
 
 USAGE = "usage: solvable-issues.sh [--repo owner/name]"
-OLDEST_FIRST = "?state=all&sort=created&direction=asc&per_page=100"
-OPEN_PAGE = "?state=open&per_page=100"
 PAGE_SIZE = 100
+OLDEST_FIRST = "?state=all&sort=created&direction=asc&per_page=%d" % PAGE_SIZE
+OPEN_PAGE = "?state=open&per_page=%d" % PAGE_SIZE
 
 
 def main_working_tree():
