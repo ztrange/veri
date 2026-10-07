@@ -32,11 +32,28 @@ def main(argv):
         return _refuse(f"build-develop-prompt.sh: unknown phase '{phase}' (want {WANT_PHASES})")
     if len(argv) < WANT[phase]:
         return _refuse(f"build-develop-prompt: {phase} needs {WANT[phase]} arguments, got {len(argv)}")
+    args = argv[1:]
+    revised_phase = ""
     if phase == "revise":
-        revised_phase = argv[1]
+        revised_phase = args.pop(0)
+        if not revised_phase:
+            return _refuse("build-develop-prompt: missing <phase> being revised")
         if not re.fullmatch(f"({WANT_REVISE_PHASES})", revised_phase):
             return _refuse(f"build-develop-prompt.sh: unknown phase to revise '{revised_phase}' "
                            f"(want {WANT_REVISE_PHASES})")
-        if revised_phase == "diff" and not (argv[6] if len(argv) > 6 else ""):
-            return _refuse("build-develop-prompt: missing <fast-cmd>")
+    names = ["<issue-spec-file>", "<step-text>", "<test-cmd>"] + {
+        "diff": ["<fast-cmd>"],
+        "green": ["<test-path>", "<target-test>", "<fast-cmd>"],
+        "structural": ["<issue-touched-files>"],
+        "predicate": ["<issue-touched-files>"],
+        "refactor": ["<touched-files>"],
+        "revise": ["<reason-file>"] + (["<fast-cmd>"] if revised_phase == "diff" else []),
+        "exhausted": ["<reason-file>"],
+        "reconcile": ["<branch>", "<remote-sha>"],
+        "rebase": ["<onto-sha>", "<pre-rebase-sha>", "<conflicting-files>"],
+        "over-budget": ["<spent>", "<budget>"],
+    }.get(phase, [])
+    for index, name in enumerate(names):
+        if not (args[index] if index < len(args) else ""):
+            return _refuse(f"build-develop-prompt: missing {name}")
     return 0
