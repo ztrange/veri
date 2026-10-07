@@ -32,6 +32,7 @@ def main(argv):
             continue
         for _ in conductor.stdout:
             pass
+        _stop(conductor.pid)
         if _parked(issue):
             sys.stdout.write("parked %s\n" % issue)
             sys.stdout.flush()
@@ -46,6 +47,18 @@ def _launch(issue):
     finally:
         for sig, handler in saved.items():
             signal.signal(sig, handler)
+
+
+def _stop(pid):
+    try:
+        os.killpg(pid, signal.SIGTERM)
+    except ProcessLookupError:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except (ProcessLookupError, PermissionError):
+            pass
+    except PermissionError:
+        pass
 
 
 def _parked(issue):
