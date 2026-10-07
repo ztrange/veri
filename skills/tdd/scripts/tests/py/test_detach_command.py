@@ -57,3 +57,33 @@ def test_main_refuses_bad_arguments_starts_once_writing_the_pid_and_waits_with_0
     monkeypatch.setattr(os, "kill", lambda pid, signum: None)
     code = detach_command.main(["wait", "x", "0"])
     assert code == 3
+
+
+def test_start_removes_a_stale_exit_truncates_out_overwrites_pid_in_place_and_prints_nothing(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    at_launch = []
+
+    class FakePopen:
+        pid = 4242
+
+        def __init__(self, args, **kwargs):
+            at_launch.append(((tdd / "x.exit").exists(), (tdd / "x.out").read_text()))
+
+    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+
+    (tdd / "x.exit").write_text("7\n")
+    (tdd / "x.out").write_text("old output\n")
+    (tdd / "x.pid").write_text("99999999\n")
+    inodes = ((tdd / "x.out").stat().st_ino, (tdd / "x.pid").stat().st_ino)
+
+    code = detach_command.main(["start", "x", "true"])
+    assert (code, capsys.readouterr()) == (0, ("", ""))
+    assert at_launch == [(False, "")]
+    assert ((tdd / "x.out").stat().st_ino, (tdd / "x.pid").stat().st_ino) == inodes
+    assert ((tdd / "x.pid").read_text(), (tdd / "x.exit").exists()) == ("4242\n", False)
+
+    code = detach_command.main(["start", "x", "true"])
+    assert (code, capsys.readouterr(), at_launch[1:]) == (0, ("", ""), [(False, "")])
