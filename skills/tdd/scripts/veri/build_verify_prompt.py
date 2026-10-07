@@ -28,7 +28,7 @@ def main(argv):
         return _refuse()
     phase = argv[0]
     if phase not in PHASES:
-        return _refuse(f"build-verify-prompt: unknown phase '{phase}' (want {'|'.join(PHASES)})")
+        return _refuse(f"build-verify-prompt: unknown phase '{phase}' (want red|green|refactor|pin|plan|rebase|transform|diff)")
     if phase in ("green", "diff") and not options["--fast-cmd"]:
         return _refuse(f"build-verify-prompt: {phase} needs --fast-cmd '<fast-tier test command>'")
     return 0
