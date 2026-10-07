@@ -597,6 +597,19 @@ base=main head=HEAD
 expect_suites "#1138: a suite the base added or deleted after the branch point does not make affected-suites.sh <base>..HEAD print claude-md-counts.test.sh" \
   skills/tdd/scripts/tests/foo.test.sh
 
+make_repo branch-deletes-suite
+foo_bar_tree
+counts_suite
+commit_base
+git_q "$repo" checkout -q -b topic
+printf 'foo 2\n' > "$s/foo.sh"
+rm "$s/tests/bar.test.sh"
+commit_head
+base=main head=HEAD
+expect_suites "#1138: a suite the branch itself deleted is not printed by affected-suites.sh <base>..HEAD" \
+  skills/tdd/scripts/tests/claude-md-counts.test.sh \
+  skills/tdd/scripts/tests/foo.test.sh
+
 git_state() { git -C "$repo" stash list; git -C "$repo" worktree list; git -C "$repo" rev-parse HEAD; }
 
 make_repo working-tree
