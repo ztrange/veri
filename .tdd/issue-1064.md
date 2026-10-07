@@ -1,6 +1,6 @@
 # Plan for #1064 — solvable-issues.sh takes 65 s since #1051: read open-only in one page of 100, fall back to the grow-only listing only past one page
 
 - [x] With a fake gh api holding more than 100 open issues whose pages shift between calls, solvable-issues.sh reads the grow-only issue listing at per_page=100 (issues?state=all&sort=created&direction=asc&per_page=100) and still prints every solvable issue ⟦criterion 2⟧
-- [ ] With a fake gh api holding more than 100 open PRs whose pages shift between calls, solvable-issues.sh reads the grow-only PR listing at per_page=100 (pulls?state=all&sort=created&direction=asc&per_page=100) and still leaves out every issue an open PR claims ⟦criterion 2⟧
+- [x] With a fake gh api holding more than 100 open PRs whose pages shift between calls, solvable-issues.sh reads the grow-only PR listing at per_page=100 (pulls?state=all&sort=created&direction=asc&per_page=100) and still leaves out every issue an open PR claims ⟦criterion 2⟧
 - [ ] With a fake gh api holding fewer than 100 open issues, solvable-issues.sh makes exactly one issue listing request, issues?state=open&per_page=100, and prints the same output as before; an open issue page of 100 items falls back to the grow-only issue listing ⟦criterion 1⟧
 - [ ] With a fake gh api holding fewer than 100 open PRs, solvable-issues.sh makes exactly one PR listing request, pulls?state=open&per_page=100, and prints the same output as before; an open PR page of 100 items falls back to the grow-only PR listing ⟦criterion 1⟧
