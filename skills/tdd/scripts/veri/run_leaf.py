@@ -1,4 +1,5 @@
 """run-leaf.sh's logic, run in-process."""
+import contextlib
 import os
 import shutil
 import subprocess
@@ -70,7 +71,8 @@ def main(argv):
     finally:
         os.close(stream_fd)
         os.remove(stream_path)
-    os.remove(git_path)
+        with contextlib.suppress(OSError):
+            os.remove(git_path)
     os.write(1, b"\n")
     text = stream.decode(sys.__stdin__.encoding, sys.__stdin__.errors)
     os.write(1, extract(text).encode(sys.__stdout__.encoding, sys.__stdout__.errors))
