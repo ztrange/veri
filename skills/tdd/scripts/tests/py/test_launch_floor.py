@@ -102,3 +102,57 @@ def test_bash_refusal_with_veri_bash_major_set_starts_no_probe_and_names_that_va
         ("09", 0, 0, "", ""),
         ("", 1, 2, "", refusal("3.2.57(1)-release")),
     ]
+
+
+def test_bash_refusal_with_no_bash_on_path_or_a_probe_that_fails_or_prints_no_number_refuses_naming_what_it_got(
+        capsys, monkeypatch, launch_floor):
+    monkeypatch.delenv("VERI_BASH_MAJOR", raising=False)
+
+    def refusal(version, path):
+        return ("some-prefix: veri needs bash 5 or newer; this is bash %s (%s). "
+                "Install it with `brew install bash` (it lands ahead of /bin/bash on PATH), "
+                "or your package manager on Linux.\n" % (version, path))
+
+    def fake(path, status, out):
+        def fake_which(cmd, mode=None, path_=None, **kwargs):
+            return path if cmd == "bash" else None
+
+        def output(kwargs):
+            if path is None:
+                raise AssertionError("unexpected process: no bash on PATH")
+            if kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding"):
+                return out
+            return out.encode()
+
+        def fake_run(args, **kwargs):
+            return subprocess.CompletedProcess(args, status, output(kwargs), "" if kwargs.get("text") else b"")
+
+        def fake_check_output(args, **kwargs):
+            got = output(kwargs)
+            if status:
+                raise subprocess.CalledProcessError(status, args, output=got)
+            return got
+
+        def no_popen(args, **kwargs):
+            raise AssertionError("unexpected process: %r" % (args,))
+
+        monkeypatch.setattr(shutil, "which", fake_which)
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        monkeypatch.setattr(subprocess, "check_output", fake_check_output)
+        monkeypatch.setattr(subprocess, "Popen", no_popen)
+
+    answers = []
+    for path, status, out in ((None, 0, ""),
+                              ("/opt/bin/bash", 1, "5\n5.2.37(1)-release\n"),
+                              ("/opt/bin/bash", 0, "\nfive-ish\n"),
+                              ("/opt/bin/bash", 0, "")):
+        fake(path, status, out)
+        code = launch_floor.bash_refusal("some-prefix")
+        captured = capsys.readouterr()
+        answers.append((code, captured.out, captured.err))
+    assert answers == [
+        (2, "", refusal("", "")),
+        (2, "", refusal("5.2.37(1)-release", "/opt/bin/bash")),
+        (2, "", refusal("five-ish", "/opt/bin/bash")),
+        (2, "", refusal("", "/opt/bin/bash")),
+    ]
