@@ -1,0 +1,3 @@
+### tick-ledger.sh, when writing the ticked ledger fails, leaves the ledger file byte-identical to what it was and exits 2 ⟦criterion 1⟧
+- test-only | skills/tdd/scripts/tests/py/test_tick_ledger.py — the two failure-path cases (byte-identical ledger, no leftover temp file) repeat the same 8-line seed and setrlimit/try/finally block; it could become one fixture or helper that returns `(code, seed)`
+- out-of-scope | moving tick_ledger.py's atomic write (mkstemp beside the file → write → copymode → os.replace → unlink on OSError) into a shared helper (e.g. in `ledger`). No reason to yet: the clear-refactor-pending step, still to come in this plan, is the only other place that would use it, and pulling it out now would be generality no test asks for.
