@@ -127,6 +127,11 @@ def main(argv):
                                *((placeholder.encode(), value) for placeholder, value in values.items()),
                                (b"TEST_PATH", os.fsencode(argv[2])),
                                (b"TARGET_TEST", os.fsencode(fourth or "the target test")),
+                               (b"BASE_SHA", os.fsencode(argv[2] if phase == "diff" else fourth)),
+                               (b"STEP_BASE_SHA", os.fsencode(fourth if phase == "diff" else "")),
+                               (b"FAST_CMD", os.fsencode(options["--fast-cmd"])),
+                               (b"ONTO_SHA", os.fsencode(argv[2] if phase == "rebase" else "")),
+                               (b"PRE_REBASE_SHA", os.fsencode(fourth if phase == "rebase" else "")),
                                (b"TIMED_TEST_RUN", os.fsencode(f"{HERE}/timed-test-run.sh"))):
         out = out.replace(b"{{" + placeholder + b"}}", value)
     sys.stdout.buffer.write(out + b"\n")
