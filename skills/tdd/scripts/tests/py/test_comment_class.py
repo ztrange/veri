@@ -252,6 +252,10 @@ no-awk-v-patterns:#!/usr/bin/env bash
 no-awk-v-patterns:#!/usr/bin/env bash
 no-awk-v-patterns:#!/usr/bin/env bash
 no-awk-v-patterns:#!/usr/bin/env bash
+no-awk-v-patterns:#!/usr/bin/env bash
+no-awk-v-patterns:#!/usr/bin/env bash
+no-awk-v-patterns:# an unrelated line inserted above the exempt site
+no-awk-v-patterns:# and another
 orchestrate:# A stopped conductor must be stopped by a signal, not by its writes failing, so this stub
 orchestrate:# IGNORES SIGPIPE — the state CI's Linux was observed in, where a write to the closed stream
 orchestrate:# came back as plain \\`echo: I/O error\\` and the conductor ran on. On this Mac SIGPIPE is fatal
