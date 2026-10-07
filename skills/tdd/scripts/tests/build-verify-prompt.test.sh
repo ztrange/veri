@@ -924,4 +924,25 @@ rendered="$(ulimit -t 2; "$cycle/build-verify-prompt.sh" red "$work/spec.md" "$t
 named=""; grep -F "_probe-cycle-a.md" "$cycle/err" > /dev/null && named=named
 expect_eq "$name" "2:named:" "$code:$named:$rendered"
 
+name="run through a symlink to the scripts directory from another working directory, red, green and diff calls answer as in place, but the timed-test-run.sh path names the symlink as called"
+linked="$(scratch_dir)"
+ln -s "$scripts_dir" "$linked/veri-scripts"
+problems=""
+same_through_link() {  # <label> <args...> — records a call whose answer through the link differs from in place
+  local label="$1"; shift
+  local want_out want_err want_code got_out got_err got_code
+  want_out="$("$BUILD" "$@" 2>"$linked/want-err")"; want_code=$?
+  got_out="$(cd "$linked" && ./veri-scripts/build-verify-prompt.sh "$@" 2>"$linked/got-err")"; got_code=$?
+  want_err="$(cat "$linked/want-err")"; got_err="$(cat "$linked/got-err")"
+  [[ "$want_out" == *"$scripts_dir/timed-test-run.sh"* ]] || problems="$problems; $label in place names no $scripts_dir/timed-test-run.sh"
+  want_out="${want_out//"$scripts_dir/timed-test-run.sh"/"$linked/veri-scripts/timed-test-run.sh"}"
+  [[ "$got_code" == "$want_code" ]] || problems="$problems; $label exited $got_code through the link, $want_code in place"
+  [[ "$got_out" == "$want_out" ]] || problems="$problems; $label stdout differs through the link"
+  [[ "$got_err" == "$want_err" ]] || problems="$problems; $label stderr differs through the link"
+}
+same_through_link red red "$work/spec.md" "$testpath" test_slugify_lowercases
+same_through_link green --fast-cmd 'make unit' green "$work/spec.md" "$testpath" test_slugify_lowercases
+same_through_link diff --step 's' --fast-cmd 'make unit' diff "$work/spec.md" 0123abc 4567def
+[[ -z "$problems" ]] && ok || no "$name (${problems#; })"
+
 finish
