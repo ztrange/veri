@@ -34,10 +34,10 @@ Decisions the issue left to the plan:
 - [x] no assertion of tests/unit/emitted-text.test.sh, tests/unit/missing-argument-exit.test.sh (but for the slice-1 line), tests/prompt-test-tiers.test.sh, tests/run-conductor.test.sh, tests/skill-refactor-footer.test.sh or tests/skill-refactor-kind.test.sh changes on the branch — their diffs touch only copy lines, if anything ⟦diff-checked⟧ ⟦criterion 3⟧
 - [x] SKILL.md, CLAUDE.md, lib/exit-contract.sh, tests/py/test_comment_class.py, tests/unit/exit-contract.test.sh, tests/unit/scratch-copy-libs.test.sh, tests/no-python-in-ported-scripts.test.sh, tests/no-nested-suites.test.sh, tests/skill-leaf-env.test.sh, every tests/skill-*.test.sh and everything under docs/ and projects/docs/ are unchanged by the branch ⟦diff-checked⟧ ⟦criterion 8⟧
 - [x] every branch listed under the issue's "Order matters (#797)" is pinned by a pytest case in tests/py/test_build_develop_prompt.py added in the shim's commit or an earlier one ⟦diff-checked⟧ ⟦criterion 9⟧
-- [ ] make test is green against the shim, the contract cases criterion 3 names among its suites ⟦full-suite⟧ ⟦criterion 3⟧
-- [ ] make test is green with lib/include.sh and lib/bug-section.sh deleted ⟦full-suite⟧ ⟦criterion 6⟧
-- [ ] make test is green, tests/py/test_build_develop_prompt.py and the survivors of tests/build-develop-prompt.test.sh among its suites ⟦full-suite⟧ ⟦criterion 7⟧
-- [ ] make test is green, the suites criterion 8 names as unchanged among them ⟦full-suite⟧ ⟦criterion 8⟧
+- [x] make test is green against the shim, the contract cases criterion 3 names among its suites ⟦full-suite⟧ ⟦criterion 3⟧
+- [x] make test is green with lib/include.sh and lib/bug-section.sh deleted ⟦full-suite⟧ ⟦criterion 6⟧
+- [x] make test is green, tests/py/test_build_develop_prompt.py and the survivors of tests/build-develop-prompt.test.sh among its suites ⟦full-suite⟧ ⟦criterion 7⟧
+- [x] make test is green, the suites criterion 8 names as unchanged among them ⟦full-suite⟧ ⟦criterion 8⟧
 - [ ] the PR body lists the slice-1 line beside the pytest case that replaced it ⟦human-owed⟧ ⟦criterion 1⟧
 - [ ] the PR body lists the cut #487 case beside the synthetic continuation case that still pins its rule ⟦human-owed⟧ ⟦criterion 2⟧
 - [ ] the PR body lists each cut bash case of tests/build-develop-prompt.test.sh beside the pytest case that replaced it, and quotes make profile for tests/build-develop-prompt.test.sh, tests/unit/emitted-text.test.sh and tests/prompt-test-tiers.test.sh and the wall time of tests/py/test_build_develop_prompt.py, before and after, with the commit beside each figure ⟦human-owed⟧ ⟦criterion 7⟧
