@@ -195,3 +195,25 @@ def test_supervising_runs_ps_for_the_pids_args_and_is_true_only_when_they_name_t
         {"supervisor": True, "ps-exits-1": False, "ps-answers-empty": False},
         [["ps", "-p", "4242", "-o", "args="]] * 3,
     )
+
+
+def test_supervising_matches_the_literal_text_supervise_sh_name_with_its_trailing_space(monkeypatch):
+    import subprocess
+
+    pid_file = importlib.import_module("veri.pid_file")
+    answered = {}
+
+    def fake_run(argv, *args, **kwargs):
+        return subprocess.CompletedProcess(argv, 0, stdout=answered["ps"], stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    answers = {}
+    for case, name, ps in [
+        ("nothing-after-the-name", "develop-red-3", "supervise.sh develop-red-3\n"),
+        ("name-is-a-prefix", "develop-red", "supervise.sh develop-red-3 x\n"),
+        ("glob-in-the-name", "a*", "supervise.sh abc x\n"),
+    ]:
+        answered["ps"] = ps
+        answers[case] = pid_file.supervising("4242", name)
+
+    assert answers == {"nothing-after-the-name": False, "name-is-a-prefix": False, "glob-in-the-name": False}
