@@ -149,4 +149,13 @@ for mark in ',' ';' ':' '.'; do
 done
 verdict "$name"
 
+name="report with no PREDICTION: line exits 2 with nothing on stdout and nothing on stderr"
+problems=()
+streams="$(scratch_dir)"
+as_predicted_report | "$DIVERGENCE" > "$streams/stdout" 2> "$streams/stderr" && code=0 || code=$?
+[[ "$code" == 2 ]] || problems+=("want exit 2, got $code")
+[[ ! -s "$streams/stdout" ]] || problems+=("want nothing on stdout, got '$(tr '\n' '|' < "$streams/stdout")'")
+[[ ! -s "$streams/stderr" ]] || problems+=("want nothing on stderr, got '$(tr '\n' '|' < "$streams/stderr")'")
+verdict "$name"
+
 finish
