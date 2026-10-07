@@ -1175,6 +1175,25 @@ extra="$(comm -13 <(seq 2 129 | sort) <(printf '%s\n' "$out" | sort) | sort -n |
 { [[ "$code" == 0 && "$out" == "$(seq 2 129)" ]]; } \
   && ok || no "against a fake gh api whose open-only issue listing shifts between calls — the first issue it serves is closed once page 1 has gone out — solvable-issues.sh still prints every solvable issue the fake holds (#1051) (130 open issues, #2–#129 opted in, closed after page 1: #$(cat "$shiftdir/closed" 2>/dev/null | tr -d '\n'); exit=$code want 0; missing='$missing' want ''; unexpected='$extra' want ''; stderr='$(tr '\n' '|' < "$shiftdir/stderr")')"
 
+wide="$work/shifting-pages-per-page"
+mkdir -p "$wide/bin"
+cat > "$wide/bin/gh" <<'STUB'
+#!/bin/sh
+printf '%s\n' "$*" >> "$GH_CALLS"
+exec "$GH_SHIFT_STUB" "$@"
+STUB
+chmod +x "$wide/bin/gh"
+
+out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_GH_DRIVER PATH="$wide/bin:$PATH" \
+       GH_CALLS="$wide/calls" GH_SHIFT_STUB="$shiftdir/bin/gh" \
+       GH_SHIFT_ISSUES="$shiftdir/issues.json" GH_SHIFT_CLOSED="$wide/closed" \
+       "$SOLVABLE" 2>"$wide/stderr")" && code=0 || code=$?
+missing="$(comm -23 <(seq 2 129 | sort) <(printf '%s\n' "$out" | sort) | sort -n | tr '\n' ' ')"
+
+{ [[ "$code" == 0 && "$out" == "$(seq 2 129)" ]] \
+  && grep -F 'issues?state=all&sort=created&direction=asc&per_page=100' "$wide/calls" > /dev/null; } \
+  && ok || no "against a fake gh api holding more than 100 open issues whose pages shift between calls, solvable-issues.sh reads the grow-only issue listing at per_page=100 and still prints every solvable issue (#1064) (130 open issues, #2–#129 opted in; exit=$code want 0; missing='$missing' want ''; gh calls='$(tr '\n' '|' < "$wide/calls" 2>/dev/null)' want one naming issues?state=all&sort=created&direction=asc&per_page=100; stderr='$(tr '\n' '|' < "$wide/stderr")')"
+
 
 prshift="$work/shifting-pr-pages"
 mkdir -p "$prshift/bin"
