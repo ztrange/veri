@@ -119,7 +119,8 @@ def render(file):
     sections = test_only or out_of_scope or done
     if not (kept or sections or os.path.isdir(file)):
         return 0
-    out = "## Refactor owed\n" + ("" if not kept and sections else "\n") + joined(kept)
+    lead = "" if not kept and sections else "\n"
+    out = "## Refactor owed\n" + lead + joined(kept)
     if test_only:
         out += ("\n### Test-only\n\n"
                 "These change only files under tests/; the structural pass does not work them.\n\n"
