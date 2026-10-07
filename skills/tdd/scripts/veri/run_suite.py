@@ -59,9 +59,12 @@ def venv_python():
 
 def run_pytest(suite, env):
     py = venv_python()
-    version = subprocess.run([py, "-m", "pytest", "--version"], stdout=subprocess.DEVNULL,
-                             stderr=subprocess.DEVNULL, env=env)
-    if version.returncode != 0:
+    try:
+        importable = subprocess.run([py, "-m", "pytest", "--version"], stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.DEVNULL, env=env).returncode == 0
+    except OSError:
+        importable = False
+    if not importable:
         sys.stderr.write("run-suite.sh: pytest cannot be imported by %s; run make install-dev\n" % py)
         return 2
     code = subprocess.run([py, "-m", "pytest", suite], stdin=subprocess.DEVNULL, env=env).returncode
