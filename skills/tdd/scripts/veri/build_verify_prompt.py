@@ -139,3 +139,7 @@ def main(argv):
         out = out.replace(b"{{" + placeholder + b"}}", value)
     sys.stdout.buffer.write(out + b"\n")
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
