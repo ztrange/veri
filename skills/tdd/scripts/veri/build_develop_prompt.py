@@ -3,6 +3,8 @@ import os
 import re
 import sys
 
+from build_verify_prompt import _has_heading, _read, _spec_text
+
 PHASES = ("red", "green", "refactor", "cover", "transform", "diff", "structural", "predicate", "revise",
           "reconcile", "exhausted", "over-budget", "rebase")
 REVISE_PHASES = ("red", "green", "refactor", "diff")
@@ -10,6 +12,7 @@ WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "transform": 4, "diff":
         "predicate": 5, "revise": 6, "reconcile": 6, "exhausted": 5, "over-budget": 6, "rebase": 7}
 WANT_PHASES = "|".join(PHASES)
 WANT_REVISE_PHASES = "|".join(REVISE_PHASES)
+HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 USAGE = f"build-develop-prompt.sh: usage: {WANT_PHASES} <issue-spec-file> <step-text> <test-cmd> ..."
 
 
@@ -60,4 +63,21 @@ def main(argv):
         for name, value in zip(names[3:], args[3:]):
             if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", value):
                 return _refuse(f"build-develop-prompt: {name} '{value}' is not a non-negative decimal number")
+    prompts = f"{HERE}/prompts"
+    template = "revise-diff" if revised_phase == "diff" else phase
+    spec, step = args[0], args[1]
+    paths = [f"{prompts}/develop-{template}.md", f"{prompts}/_develop-shared.md", spec]
+    if phase in ("revise", "exhausted"):
+        paths.append(args[3])
+    if _has_heading(_spec_text(spec), b"Bug"):
+        paths.append(f"{prompts}/_develop-red-bug.md")
+    if "green" in (phase, revised_phase):
+        for mark in ("replaces-case", "suite-repair"):
+            if f"⟦{mark}⟧" in step:
+                paths.append(f"{prompts}/_develop-green-{mark}.md")
+    for path in paths:
+        if not os.access(path, os.R_OK):
+            _write(sys.stderr, f"build-develop-prompt: cannot read '{path}'")
+            return 2
+    _read(spec)
     return 0

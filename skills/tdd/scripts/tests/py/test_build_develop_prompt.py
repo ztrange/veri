@@ -156,3 +156,95 @@ def test_main_refuses_a_spent_then_a_budget_that_is_not_a_whole_string_non_negat
         results[argv] = (code, *capsysbinary.readouterr())
 
     assert results == expected
+
+
+def test_main_refuses_the_first_unreadable_file_in_the_bash_order_with_no_usage_line_and_reads_only_the_files_the_phase_spec_and_step_select(
+        tmp_path, capsysbinary):
+    templates = ("develop-red.md", "develop-green.md", "develop-revise.md", "develop-revise-diff.md")
+    partials = ("_develop-shared.md", "_develop-red-bug.md", "_develop-green-replaces-case.md",
+                "_develop-green-suite-repair.md")
+
+    def scripts_with(name, present):
+        scripts = tmp_path / name / "scripts"
+        (scripts / "veri").mkdir(parents=True)
+        for source in (SCRIPTS / "veri").glob("*.py"):
+            (scripts / "veri" / source.name).write_bytes(source.read_bytes())
+        (scripts / "prompts").mkdir()
+        for prompt in present:
+            (scripts / "prompts" / prompt).write_bytes(prompt.encode() + b"\n")
+        loader = importlib.util.spec_from_file_location(f"build_develop_prompt_{name}",
+                                                        scripts / "veri" / "build_develop_prompt.py")
+        module = importlib.util.module_from_spec(loader)
+        loader.loader.exec_module(module)
+        return module, scripts / "prompts"
+
+    def answer(module, argv):
+        code = module.main(argv)
+        return (code, *capsysbinary.readouterr())
+
+    def cannot_read(path):
+        return (2, b"", f"build-develop-prompt: cannot read '{path}'\n".encode())
+
+    spec = tmp_path / "bug-spec.md"
+    reason = tmp_path / "reason.md"
+    step = "pin it ⟦replaces-case⟧ ⟦suite-repair⟧"
+    argv = ["revise", "green", str(spec), step, "make test", str(reason)]
+    order = ("develop-revise.md", "_develop-shared.md", str(spec), str(reason), "_develop-red-bug.md",
+             "_develop-green-replaces-case.md", "_develop-green-suite-repair.md")
+    results, expected = {}, {}
+    for count, missing in enumerate(order):
+        present = [name for name in order[:count] if not name.startswith(str(tmp_path))]
+        module, prompts = scripts_with(f"order-{count}", present)
+        if count == 3:
+            spec.write_bytes(b"# spec\n\n## Bug \t\nit breaks\n")
+        if count == 4:
+            reason.write_bytes(b"rejected\n")
+        results[("order", missing)] = answer(module, list(argv))
+        expected[("order", missing)] = cannot_read(missing if missing.startswith(str(tmp_path))
+                                                   else prompts / missing)
+
+    module, prompts = scripts_with("no-bug-partial", (*templates, "_develop-shared.md",
+                                                      "_develop-green-replaces-case.md",
+                                                      "_develop-green-suite-repair.md"))
+    green = ["green", str(spec), "pin it", "make test", "t.sh", "case", "make unit"]
+    results[("bug", "green")] = answer(module, green)
+    expected[("bug", "green")] = cannot_read(prompts / "_develop-red-bug.md")
+    for heading in (b"## Bugs\n", b" ## Bug\n", b"## Bug report\n"):
+        other = tmp_path / "other-spec.md"
+        other.write_bytes(b"# spec\n\n" + heading + b"text\n")
+        code, out, err = answer(module, ["green", str(other)] + green[2:])
+        results[("not-bug", heading)] = (code, err)
+        expected[("not-bug", heading)] = (0, b"")
+
+    plain = tmp_path / "plain-spec.md"
+    plain.write_bytes(b"# spec\n")
+    module, prompts = scripts_with("no-green-partials", (*templates, *partials[:2]))
+    for marker, partial in (("⟦replaces-case⟧", "_develop-green-replaces-case.md"),
+                            ("⟦suite-repair⟧", "_develop-green-suite-repair.md")):
+        for call in (["green", str(plain), f"x{marker}y", "make test", "t.sh", "case", "make unit"],
+                     ["revise", "green", str(plain), f"x{marker}y", "make test", str(reason)]):
+            results[("needs", marker, call[1])] = answer(module, call)
+            expected[("needs", marker, call[1])] = cannot_read(prompts / partial)
+        for call in (["red", str(plain), f"x{marker}y", "make test"],
+                     ["revise", "red", str(plain), f"x{marker}y", "make test", str(reason)]):
+            code, out, err = answer(module, call)
+            results[("ignores", marker, call[1])] = (code, err)
+            expected[("ignores", marker, call[1])] = (0, b"")
+
+    for revised in ("red", "green", "refactor", "diff"):
+        wanted = "develop-revise-diff.md" if revised == "diff" else "develop-revise.md"
+        module, prompts = scripts_with(f"template-{revised}",
+                                       [name for name in templates if name != wanted] + list(partials))
+        call = ["revise", revised, str(plain), "s", "make test", str(reason), "make unit"]
+        results[("template", revised)] = answer(module, call)
+        expected[("template", revised)] = cannot_read(prompts / wanted)
+
+    module, prompts = scripts_with("exhausted", ("develop-exhausted.md", "_develop-shared.md"))
+    unread = tmp_path / "no-reason.md"
+    results[("exhausted", "reason")] = answer(module, ["exhausted", str(plain), "s", "make test", str(unread)])
+    expected[("exhausted", "reason")] = cannot_read(unread)
+
+    assert results == expected
+    module, prompts = scripts_with("directory-spec", (*templates, *partials))
+    with pytest.raises(IsADirectoryError):
+        module.main(["red", str(tmp_path), "s", "make test"])
