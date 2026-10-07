@@ -194,8 +194,10 @@ report "$name"
 if [[ -x /bin/bash ]] && [[ "$(/bin/bash -c 'echo "${BASH_VERSINFO[0]}"')" -lt 5 ]]; then
   name="on a real bash older than 5 (/bin/bash), leaf-launchable.sh refuses with exit 2"
   problems=()
-  real_err="$(env -u VERI_BASH_MAJOR CLAUDE_BIN="$work/claude" LAUNCHED="$work/real-launched" \
-      /bin/bash "$SCRIPTS/leaf-launchable.sh" 2>&1 >/dev/null)" && real_code=0 || real_code=$?
+  mkdir -p "$work/old-bash"
+  ln -sf /bin/bash "$work/old-bash/bash"
+  real_err="$(env -u VERI_BASH_MAJOR PATH="$work/old-bash:$PATH" CLAUDE_BIN="$work/claude" LAUNCHED="$work/real-launched" \
+      "$SCRIPTS/leaf-launchable.sh" 2>&1 >/dev/null)" && real_code=0 || real_code=$?
   [[ "$real_code" == 2 && "$real_err" == *"$REQUIREMENT"* ]] ||
     problems+=("want exit 2 and '$REQUIREMENT' from /bin/bash $(/bin/bash -c 'echo $BASH_VERSION'), got exit $real_code: $(flat "$real_err")")
   report "$name"
