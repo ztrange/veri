@@ -1,3 +1,4 @@
 ### For an owed file whose every step entry was applied or is test-only, refactor-owed.sh render prints `## Refactor owed`, one blank line, then the first `###` subsection, with no second blank line between them ⟦criterion 1⟧
 - in render(), name the leading blank line, which is dropped when kept is empty but test_only, out_of_scope or done is not, rather than inlining it in the `out = ` expression (this is an extraction, not duplication removal)
 - test-only | add a module-level `render(owed)` helper returning `(code, out)` from main(["render", …]) + capsys, in place of the repeated invoke-then-readouterr pair across the render tests
+applied | cae18fa3aa3fdf8be7d9d42e6c6491cc6a518251 | in render(), name the leading blank line, which is dropped when kept is empty but test_only, out_of_scope or done is not, rather than inlining it in the `out = ` expression (this is an extraction, not duplication removal)
