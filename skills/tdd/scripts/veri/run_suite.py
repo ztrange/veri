@@ -18,6 +18,9 @@ def read_guard(path):
 
 
 def main(argv):
+    if not argv:
+        sys.stderr.write("usage: run-suite.sh <suite>\n")
+        return 2
     suite = argv[0]
     guard = read_guard(os.path.join(SCRIPTS, "lib", "count-line-guard.sh"))
     out = bytearray()
