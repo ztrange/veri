@@ -129,6 +129,8 @@ def main(argv):
             return refuse("affected-suites: cannot resolve revision '%s'" % rev)
 
     working_tree = ".." not in revisions
+    if not working_tree:
+        revisions = revisions.replace("..", "...", 1)
     code, files = changed(revisions)
     if code != 0:
         return code if code in (1, 2, 3) else 2
