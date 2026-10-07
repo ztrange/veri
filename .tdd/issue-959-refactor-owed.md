@@ -16,3 +16,5 @@
 - test-only | hoist the three per-test fakes for `os.kill` that raise ProcessLookupError (`dead` ×2, `esrch`) into one module-level fake in tests/py/test_detach_command.py
 ### veri.detach_command.main parses the pid file as bash's `kill` does: surrounding blanks, a leading `+` and leading zeros are accepted, and `0` or a negative number is passed to os.kill as is, naming a process group (tests/py/test_detach_command.py, os.kill faked) ⟦criterion 8⟧
 - test-only | pull the `monkeypatch.chdir(tmp_path)` + `.tdd` mkdir + no-op `time.sleep` setup, repeated in 9 cases of skills/tdd/scripts/tests/py/test_detach_command.py (lines 26, 64, 94, 130, 150, 169, 196, 229, 262), into one fixture
+### veri.detach_command.main takes an absent or empty max-seconds as 60, makes one full round before returning 3 for `0`, and ignores arguments past max-seconds (tests/py/test_detach_command.py, time.time and time.sleep faked) ⟦criterion 8⟧
+- test-only | the `monkeypatch.chdir(tmp_path)` + `.tdd` mkdir + pid-file write setup repeated across the wait cases in tests/py/test_detach_command.py could become one fixture
