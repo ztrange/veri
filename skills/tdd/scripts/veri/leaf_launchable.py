@@ -16,12 +16,12 @@ def main(argv):
         try:
             status = subprocess.call([leaf_bin, "--version"], stdout=subprocess.DEVNULL, stderr=probe_err)
         except OSError as error:
-            sys.stderr.write("    %s\n" % error)
-            return 2
-        if status == 0:
-            return 0
-        probe_err.seek(0)
-        said = probe_err.read()
+            said = os.fsencode("%s\n" % error)
+        else:
+            if status == 0:
+                return 0
+            probe_err.seek(0)
+            said = probe_err.read()
     sys.stderr.flush()
     sys.stderr.buffer.write(diagnostic(leaf_bin, said))
     sys.stderr.buffer.flush()
