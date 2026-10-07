@@ -270,3 +270,18 @@ def test_main_ticks_the_target_of_a_symlinked_ledger_leaving_the_link_a_link_and
     assert (code, link.is_symlink(), target.read_bytes(),
             sorted(p.name for p in target.parent.iterdir()), sorted(p.name for p in link.parent.iterdir())) == (
         0, True, b"- [ ] alpha\n- [x] beta\n", ["ledger.md"], ["ledger.md"])
+
+
+def test_main_returns_2_without_raising_on_a_dangling_symlinked_ledger_leaving_the_link_a_link_and_nothing_beside_it_1110(
+        tmp_path, capsysbinary, tick_ledger):
+    link = tmp_path / "ledger.md"
+    link.symlink_to(tmp_path / "gone" / "ledger.md")
+
+    try:
+        code = tick_ledger.main([str(link), "beta"])
+    except OSError as error:
+        code = type(error).__name__
+    err = capsysbinary.readouterr().err
+
+    assert (code, b"Traceback" in err, link.is_symlink(), sorted(p.name for p in tmp_path.iterdir())) == (
+        2, False, True, ["ledger.md"])
