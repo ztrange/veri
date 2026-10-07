@@ -260,6 +260,28 @@ probe_a_planted_awk_v_with_a_quote_in_a_double_quoted_string
 
 expect_eq "$name" "named" "$planted_dq_quote_named"
 
+probe_a_planted_awk_v_non_offender_with_a_quote_in_a_double_quoted_string() {
+  local planted
+  IFS= read -r -d '' planted <<'EOF'
+#!/usr/bin/env bash
+numbered() {
+  awk -v q="'" -v n="$1" '$0 ~ other { print q }' "$2"
+}
+later() {
+  awk '$0 ~ n { print }' "$2"
+}
+EOF
+  scan_planted "${planted%$'\n'}"
+  planted_dq_quote_non_offender_named="$(problem_naming "planted.test.sh:3")"
+}
+
+name="a planted awk whose -v line carries a ' inside a double-quoted string before a single-quoted program that never matches its -v variable leaves the guard green, even when a later awk line uses that name on the right of ~ (#1050)"
+planted_dq_quote_non_offender_named=""
+
+probe_a_planted_awk_v_non_offender_with_a_quote_in_a_double_quoted_string
+
+expect_eq "$name" "not named" "$planted_dq_quote_non_offender_named"
+
 name="no suite under skills/tdd/scripts/tests/ passes awk a pattern through -v but where the exemption table says why its value can hold no backslash (#1037)"
 problems=()
 
