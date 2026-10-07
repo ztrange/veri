@@ -3,3 +3,5 @@
 ### tick-ledger.sh given a ledger path that does not exist exits 2, with one stderr line naming the path and no traceback ⟦criterion 2⟧
 - test-only | fold tick-ledger.test.sh's directory-ledger and absent-ledger cases (L34–46), which repeat the same run / one-stderr-line / names-path / no-Traceback assertion, into one helper that takes the path and an extra stderr pattern
 - test-only | parametrize test_tick_ledger.py's missing-ledger and directory-ledger tests (L125–138) over (path, strerror), since they differ only in those two values
+### clear-refactor-pending.sh given a directory as its ledger exits 2, with one stderr line naming the path and the reason and no traceback ⟦criterion 3⟧
+- out-of-scope | extract the shared "open ledger, on IsADirectoryError/FileNotFoundError print `<script>: <path>: <strerror>` and return 2" block in veri/clear_refactor_pending.py and veri/tick_ledger.py into one helper in veri/ledger.py — this phase may not extract or move behaviour, and the two copies differ in read mode and in which exceptions they catch
