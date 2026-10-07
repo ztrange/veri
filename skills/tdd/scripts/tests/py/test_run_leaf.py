@@ -440,3 +440,44 @@ def test_main_strips_the_launched_environment_through_veri_session_env_so_a_name
     capfd.readouterr()
 
     assert (code, seen) == (0, [(None, "kept")])
+
+
+def test_main_strips_after_git_config_global_is_set_and_before_claude_bin_and_veri_leaf_model_are_read_and_drops_the_shims_locale_guard_only_when_its_marker_is_set(
+        tmp_path, monkeypatch, capfd):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, tmp = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("do the step\n")
+    session_id = "sess-1071-id"
+    session_tmp = tmp_path / f"tmp-{session_id}"
+    session_tmp.mkdir()
+    monkeypatch.delenv("GIT_CONFIG_GLOBAL", raising=False)
+    monkeypatch.delenv("PYTHONCOERCECLOCALE", raising=False)
+    monkeypatch.delenv("VERI_SHIM_SET_COERCE", raising=False)
+    seen = []
+
+    def launch(argv, *args, **kwargs):
+        env = kwargs.get("env") or dict(os.environ)
+        seen.append((argv[0], "--model" in argv, env.get("GIT_CONFIG_GLOBAL") is not None,
+                     env.get("PYTHONCOERCECLOCALE"), env.get("VERI_SHIM_SET_COERCE")))
+        return _FakeLeaf([], argv, **kwargs)
+
+    monkeypatch.setattr(subprocess, "Popen", launch)
+    answers = []
+    for settings in (
+            {"CLAUDE_CODE_SESSION_ID": session_id, "TMPDIR": str(session_tmp),
+             "CLAUDE_BIN": f"/stub/{session_id}/claude", "VERI_LEAF_MODEL": f"model-{session_id}"},
+            {"PYTHONCOERCECLOCALE": "0", "VERI_SHIM_SET_COERCE": "1"},
+            {"PYTHONCOERCECLOCALE": "1"}):
+        with monkeypatch.context() as run:
+            for name, value in settings.items():
+                run.setenv(name, value)
+            seen.clear()
+            code = run_leaf.main(["prompt.txt"])
+            capfd.readouterr()
+            answers.append((code, list(seen)))
+
+    assert answers == [
+        (0, [("claude", False, False, None, None)]),
+        (0, [("claude", False, True, None, None)]),
+        (0, [("claude", False, True, "1", None)]),
+    ]
