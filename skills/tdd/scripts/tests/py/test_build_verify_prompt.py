@@ -376,3 +376,30 @@ def test_main_substitutes_sequentially_globally_and_literally_in_order_filling_e
             b"       " + real_timed + b" fast '' make unit && a/b\n"
             b"       " + real_timed + b" affected '<the suites affected-suites.sh printed>' <the command that runs them>\n"
             in out) == (0, b"", True, True, True)
+
+
+def test_main_passes_a_non_utf8_byte_in_the_spec_and_in_the_step_value_through_to_stdout_unchanged(
+        tmp_path, capsysbinary):
+    scripts = tmp_path / "scripts"
+    (scripts / "veri").mkdir(parents=True)
+    module_path = scripts / "veri" / "build_verify_prompt.py"
+    module_path.write_bytes((SCRIPTS / "veri" / "build_verify_prompt.py").read_bytes())
+    loader = importlib.util.spec_from_file_location("bytes_build_verify_prompt", module_path)
+    module = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(module)
+    (scripts / "prompts").mkdir()
+    (scripts / "prompts" / "verify-red.md").write_bytes(b"{{STEP}}spec:{{ISSUE_SPEC}}\n")
+    (scripts / "prompts" / "_shared.md").write_bytes(b"")
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"spec \xff\xfe end\n")
+
+    code = module.main(["--step", "step \udcff end", "red", str(spec), "tp"])
+
+    assert (code, *capsysbinary.readouterr()) == (
+        0,
+        b"### The step under judgement\n\nstep \xff end\n\n"
+        b"Your verdict is about this criterion only: the spec below is the whole issue, and its other\n"
+        b"criteria belong to other steps of the plan.\n\n"
+        b"spec:spec \xff\xfe end\n",
+        b"",
+    )
