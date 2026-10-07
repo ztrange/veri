@@ -555,6 +555,61 @@ def test_main_returns_2_without_raising_and_nothing_beside_the_ledger_when_remov
     assert results == {name: (2, False, seed, ["ledger.md"]) for name in scenarios}
 
 
+def test_main_returns_2_without_raising_and_nothing_beside_the_ledger_when_removing_its_backup_fails_after_a_clear_or_a_write_back_1110(
+        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
+    seed = "".join(f"- [x] step {n} ⟂ refactor pending\n" for n in range(8)).encode()
+    real_open = builtins.open
+    real_unlink = os.unlink
+
+    class FullDisk:
+        def __init__(self, file):
+            self.file = file
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            self.file.close()
+
+        def write(self, data):
+            raise OSError(errno.ENOSPC, os.strerror(errno.ENOSPC), "ledger.md")
+
+    def full_disk_open(led):
+        def fake(file, mode="r", *args, **kwargs):
+            if os.fspath(file) == str(led) and "w" in mode:
+                return FullDisk(real_open(file, "rb"))
+            return real_open(file, mode, *args, **kwargs)
+        return fake
+
+    def failing_unlink(led):
+        def fake(path, *args, **kwargs):
+            real_unlink(path, *args, **kwargs)
+            if os.path.dirname(os.path.abspath(path)) == str(led.parent):
+                raise OSError(errno.EIO, os.strerror(errno.EIO), path)
+        return fake
+
+    scenarios = {
+        "cleared": lambda led: [],
+        "written-back": lambda led: [(builtins, "open", full_disk_open(led))],
+    }
+    results = {}
+    for name, fakes in scenarios.items():
+        (tmp_path / name).mkdir()
+        led = tmp_path / name / "ledger.md"
+        led.write_bytes(seed)
+        for target, attr, fake in fakes(led) + [(os, "unlink", failing_unlink(led))]:
+            monkeypatch.setattr(target, attr, fake)
+        try:
+            code = clear_refactor_pending.main([str(led), "step 3"])
+        except OSError as error:
+            code = type(error).__name__
+        monkeypatch.undo()
+        err = capsysbinary.readouterr().err
+        results[name] = (code, b"Traceback" in err, sorted(p.name for p in led.parent.iterdir()))
+
+    assert results == {name: (2, False, ["ledger.md"]) for name in scenarios}
+
+
 def test_main_returns_2_on_a_missing_ledger_with_one_stderr_line_naming_it(
         tmp_path, capsysbinary, clear_refactor_pending):
     code = clear_refactor_pending.main([str(tmp_path / "missing.md"), "a"])
