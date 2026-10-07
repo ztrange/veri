@@ -139,23 +139,23 @@ class GraphQLOnlyAdapter(RestOnlyAdapter):
 
 
 class FallbackAdapter(GraphQLOnlyAdapter):
-    def list(self, path, *args):
+    def _fallback(self, graphql, rest):
         try:
-            return super().list(path, *args)
+            return graphql()
         except NoAnswer:
-            return RestOnlyAdapter.list(self, path)
+            return rest()
+
+    def list(self, path, *args):
+        return self._fallback(lambda: GraphQLOnlyAdapter.list(self, path, *args),
+                              lambda: RestOnlyAdapter.list(self, path))
 
     def page(self, fixture, path, *args):
-        try:
-            return super().page(fixture, path, *args)
-        except NoAnswer:
-            return RestOnlyAdapter.page(self, fixture, path, *args)
+        return self._fallback(lambda: GraphQLOnlyAdapter.page(self, fixture, path, *args),
+                              lambda: RestOnlyAdapter.page(self, fixture, path, *args))
 
     def issue_view(self, number, field):
-        try:
-            return super().issue_view(number, field)
-        except NoAnswer:
-            return RestOnlyAdapter.issue_view(self, number, field)
+        return self._fallback(lambda: GraphQLOnlyAdapter.issue_view(self, number, field),
+                              lambda: RestOnlyAdapter.issue_view(self, number, field))
 
 
 class FixtureAdapter:
