@@ -62,6 +62,17 @@ else
   printf '    stdout: %s\n' "$(cat "$work/out")"
 fi
 
+mkdir "$work/dir-ledger.md"
+"$CLEAR" "$work/dir-ledger.md" "collapse to single hyphen" > "$work/out" 2> "$work/err" && code=0 || code=$?
+dir_err="$(cat "$work/err")"
+if [[ "$code" == 2 && ! -s "$work/out" ]] && [[ "$(wc -l < "$work/err")" -eq 1 ]] \
+  && [[ "$dir_err" == *"$work/dir-ledger.md"* && "$dir_err" == *[Dd]irectory* && "$dir_err" != *Traceback* ]]; then
+  ok
+else
+  no "#1083: a directory as the ledger exits 2 with one stderr line naming the path and the reason, no traceback (want exit 2, got $code)"
+  printf '    stdout: %s\n    stderr: %s\n' "$(cat "$work/out")" "$dir_err"
+fi
+
 ln -s "$(cd "$HERE/../../.." && pwd)" "$work/skill-link"
 mkdir -p "$work/caller" "$work/inplace"
 printf '%s\n' "$ledger" > "$work/caller/issue-42.md"
