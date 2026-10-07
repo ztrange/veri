@@ -2,6 +2,7 @@
 import importlib
 import importlib.util
 import pathlib
+import re
 import sys
 
 import pytest
@@ -403,3 +404,74 @@ def test_main_passes_a_non_utf8_byte_in_the_spec_and_in_the_step_value_through_t
         b"spec:spec \xff\xfe end\n",
         b"",
     )
+
+
+def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_the_blindness_contract_the_verdict_format_their_audits_and_the_foreground_and_git_stash_rules_reading_no_ambient_variable_and_refuses_an_extra_or_fifth_positional(
+        tmp_path, capsysbinary, monkeypatch, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'slugify("Hello & World/Foo") must return "hello-world-foo" \xe2\x80\x94 see {ref}\\n done.\n')
+    s, testpath = str(spec), "tests/test_slugify.py"
+    prediction = 'the second assert fires: want "hello-world-foo", got "Hello & World/Foo"'
+    calls = {
+        "red": ["red", s, testpath, "test_slugify_lowercases"],
+        "green": ["--fast-cmd", "make unit", "green", s, testpath, "test_slugify_lowercases"],
+        "refactor": ["--fast-cmd", "make unit", "refactor", s, testpath, "0123abc"],
+        "pin": ["pin", s, testpath, "test_slugify_lowercases"],
+    }
+
+    def run(argv):
+        code = build_verify_prompt.main(argv)
+        return (code, *capsysbinary.readouterr())
+
+    monkeypatch.delenv("VERI_TEST_CMD", raising=False)
+    monkeypatch.delenv("VERI_PREDICTED_FAILURE", raising=False)
+    plain = {phase: run(argv) for phase, argv in calls.items()}
+    monkeypatch.setenv("VERI_TEST_CMD", "pytest -k leaked_channel")
+    monkeypatch.setenv("VERI_PREDICTED_FAILURE", prediction)
+    ambient = {phase: run(argv) for phase, argv in calls.items()}
+    fifth = {phase: run(argv + [prediction]) for phase, argv in calls.items()}
+    bogus = run(["bogus", s, testpath])
+    prompts = {phase: out.decode("utf-8", "surrogateescape") for phase, (_, out, _) in plain.items()}
+    folded = {phase: " ".join(text.split("\n")) for phase, text in prompts.items()}
+
+    def has(phase, pattern, flags=re.I):
+        return re.search(pattern, folded[phase], flags) is not None
+
+    every = ("red", "green", "refactor", "pin")
+    assert {
+        "exits": {phase: (code, err) for phase, (code, _, err) in plain.items()},
+        "ambient reaches nothing": ambient == plain,
+        "test path": all(testpath in prompts[p] for p in every),
+        "blindness contract": has("red", r"have not (been told|received).*(reason|rationale)|never.*(reason|rationale)"),
+        "verdict format": has("red", r"VERDICT:", 0) and has("red", "pass") and has("red", "reject"),
+        "red audit": has("red", "right reason") and has("red", "trivial|coupled|complex"),
+        "green full suite": has("green", "full") and has("green", "suite")
+                            and has("green", r"full[^0-9A-Za-z]*test[^0-9A-Za-z]*suite"),
+        "refactor standard and green": has("refactor", "standard|convention|typing|robust") and has("refactor", "green"),
+        "pin checks": "slugify(\"Hello & World/Foo\")" in prompts["pin"]
+                      and has("pin", r"pass(es)? (now|today|already|against|on the (current|unmodified))")
+                      and has("pin", "mutation") and has("pin", r"behaviou?r-level|trivial"),
+        "foreground": all(has(p, "foreground") and has(p, r"end(ing)?[^0-9A-Za-z]+(your|the|its)[^0-9A-Za-z]+turn")
+                          for p in every),
+        "git stash": all(has(p, r"(never|do not|don't|no)[^.]{0,60}stash") and has(p, r"git show HEAD:|git worktree add", 0)
+                         for p in every),
+        "no prediction": all(prediction not in prompts[p] and not has(p, "PREDICTED_FAILURE|PREDICTION")
+                             for p in every),
+        "fifth positional": {phase: (code, out) for phase, (code, out, _) in fifth.items()},
+        "unknown phase": bogus[0] != 0,
+    } == {
+        "exits": {p: (0, b"") for p in every},
+        "ambient reaches nothing": True,
+        "test path": True,
+        "blindness contract": True,
+        "verdict format": True,
+        "red audit": True,
+        "green full suite": True,
+        "refactor standard and green": True,
+        "pin checks": True,
+        "foreground": True,
+        "git stash": True,
+        "no prediction": True,
+        "fifth positional": {p: (2, b"") for p in every},
+        "unknown phase": True,
+    }
