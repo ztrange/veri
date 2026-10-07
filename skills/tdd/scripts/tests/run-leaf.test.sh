@@ -172,4 +172,14 @@ leaf_env_lacks CLAUDE_CODE_REMOTE_SESSION_ID -- CLAUDE_CODE_SESSION_ID=sess-966-
   CLAUDE_CODE_REMOTE_SESSION_ID=remote-unrelated-value
 report "starts claude without CLAUDE_CODE_REMOTE_SESSION_ID, whose value need not contain the session id (#966)"
 
+problems=()
+noarg="$(scratch_dir)"
+printf 'usage: run-leaf.sh <prompt-file|-> [claude args...]\n' > "$noarg/want-err"
+( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$noarg/argv" "$LEAF" \
+    > "$noarg/out" 2> "$noarg/err" ); code=$?
+[[ "$code" == 2 ]] || problems+=("exited $code, wanted 2")
+[[ -s "$noarg/out" ]] && problems+=("stdout was not empty: $(cat "$noarg/out")")
+cmp -s "$noarg/want-err" "$noarg/err" || problems+=("stderr was not exactly the usage line: $(cat "$noarg/err")")
+report "with no argument, prints exactly the usage line and one newline on stderr, nothing on stdout, and exits 2"
+
 finish
