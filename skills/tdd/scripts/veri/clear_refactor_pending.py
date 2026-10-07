@@ -41,8 +41,14 @@ def main(argv):
         with file:
             file.write(data)
     except OSError:
-        with os.fdopen(os.open(argv[0], os.O_WRONLY), "wb") as file:
-            file.write(raw)
+        try:
+            with os.fdopen(os.open(argv[0], os.O_WRONLY), "wb") as file:
+                file.write(raw)
+        except OSError:
+            fd, tmp = tempfile.mkstemp(dir=os.path.dirname(os.path.realpath(argv[0])))
+            with os.fdopen(fd, "wb") as file:
+                file.write(raw)
+            os.replace(tmp, os.path.realpath(argv[0]))
         return 2
     return 0
 

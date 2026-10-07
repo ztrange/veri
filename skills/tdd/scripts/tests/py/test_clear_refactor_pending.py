@@ -336,3 +336,47 @@ def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_the_temporary_
     capsysbinary.readouterr()
 
     assert (code, led.read_bytes()) == (2, seed)
+
+
+def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_writing_the_cleared_ledger_and_writing_its_old_contents_back_both_fail_817(
+        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
+    seed = "".join(f"- [x] step {n} ⟂ refactor pending\n" for n in range(8)).encode()
+    led = tmp_path / "ledger.md"
+    led.write_bytes(seed)
+    real_open = builtins.open
+    real_os_open = os.open
+
+    class FullDisk:
+        def __init__(self, file):
+            self.file = file
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            self.file.close()
+
+        def write(self, data):
+            self.file.write(data[:len(data) // 2])
+            self.file.flush()
+            raise OSError(errno.ENOSPC, os.strerror(errno.ENOSPC), str(led))
+
+    def full_disk_open(file, mode="r", *args, **kwargs):
+        opened = real_open(file, mode, *args, **kwargs)
+        return FullDisk(opened) if os.fspath(file) == str(led) and "w" in mode else opened
+
+    def refusing_os_open(path, *args, **kwargs):
+        if os.path.abspath(path) == str(led):
+            raise OSError(errno.EIO, os.strerror(errno.EIO), path)
+        return real_os_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", full_disk_open)
+    monkeypatch.setattr(os, "open", refusing_os_open)
+    try:
+        code = clear_refactor_pending.main([str(led), "step 3"])
+    except OSError as error:
+        code = type(error).__name__
+    monkeypatch.undo()
+    capsysbinary.readouterr()
+
+    assert (code, led.read_bytes()) == (2, seed)
