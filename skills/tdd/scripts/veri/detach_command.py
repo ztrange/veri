@@ -38,7 +38,7 @@ def _alive(pid_file):
 
 
 def _wait(exit_file, pid_file, limit):
-    start = time.time()
+    start = int(time.time())
     while True:
         code = _recorded(exit_file)
         if code is not None:
@@ -46,7 +46,7 @@ def _wait(exit_file, pid_file, limit):
         if not _alive(pid_file):
             code = _recorded(exit_file)
             return 2 if code is None else code
-        if time.time() - start >= limit:
+        if int(time.time()) - start >= limit:
             return 3
         time.sleep(1)
 

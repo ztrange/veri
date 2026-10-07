@@ -297,3 +297,20 @@ def test_wait_takes_an_absent_or_empty_max_as_60_makes_one_round_for_0_and_ignor
         code = detach_command.main(["wait", "x", *rest])
         assert (label, code, capsys.readouterr(), len(kills), sleeps) == (
             label, 3, ("", ""), rounds, [1.0] * (rounds - 1))
+
+
+def test_wait_counts_whole_wall_clock_seconds_as_bash_seconds_does_so_10_9_to_11_0_is_1(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "x.pid").write_text("4242\n")
+    monkeypatch.delenv("VERI_POLL", raising=False)
+    clock = iter([10.9, 11.0, 12.0, 13.0])
+    sleeps, kills = [], []
+    monkeypatch.setattr(time, "time", lambda: next(clock))
+    monkeypatch.setattr(time, "sleep", lambda seconds: sleeps.append(float(seconds)))
+    monkeypatch.setattr(os, "kill", lambda pid, signum: kills.append((pid, signum)))
+
+    code = detach_command.main(["wait", "x", "1"])
+    assert (code, capsys.readouterr(), kills, sleeps) == (3, ("", ""), [(4242, 0)], [])
