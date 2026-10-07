@@ -73,3 +73,33 @@ def test_main_reads_its_report_through_report_read_and_answers_each_covered_bran
         "yes with a carriage return": no_line,
         "unterminated no": (1, "", ""),
     }
+
+
+def test_main_answers_each_proof_branch_of_unreachable_and_type_only(monkeypatch, capsys, cover_outcome):
+    def without(kind):
+        return (2, "", "cover-outcome: COVERED: %s without a PROOF: line\n" % kind)
+
+    reports = {
+        "unreachable without PROOF": "COVERED: unreachable\n",
+        "type-only without PROOF": "COVERED: type-only\n",
+        "empty PROOF": "COVERED: type-only\nPROOF: \n",
+        "PROOF:NONE with no space": "COVERED: type-only\nPROOF:NONE\n",
+        "PROOF: NONE": "COVERED: type-only\nPROOF: NONE\n",
+        "PROOF: none": "COVERED: type-only\nPROOF: none\n",
+        "PROOF: NONE with a trailing space": "COVERED: type-only\nPROOF: NONE \n",
+        "PROOF: NONE — no caller": "COVERED: type-only\nPROOF: NONE — no caller\n",
+        "unreachable with PROOF": "COVERED: unreachable\nPROOF: no caller reaches the branch\n",
+    }
+    results = {name: run(monkeypatch, capsys, cover_outcome, report, []) for name, report in reports.items()}
+
+    assert results == {
+        "unreachable without PROOF": without("unreachable"),
+        "type-only without PROOF": without("type-only"),
+        "empty PROOF": without("type-only"),
+        "PROOF:NONE with no space": without("type-only"),
+        "PROOF: NONE": without("type-only"),
+        "PROOF: none": (3, "type-only: none\n", ""),
+        "PROOF: NONE with a trailing space": (3, "type-only: NONE \n", ""),
+        "PROOF: NONE — no caller": (3, "type-only: NONE — no caller\n", ""),
+        "unreachable with PROOF": (3, "unreachable: no caller reaches the branch\n", ""),
+    }
