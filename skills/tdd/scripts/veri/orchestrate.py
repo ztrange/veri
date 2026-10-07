@@ -1,6 +1,7 @@
 """orchestrate.sh's loop, run in-process."""
 import os
 import re
+import signal
 import subprocess
 import sys
 
@@ -23,12 +24,23 @@ def main(argv):
         issue = next((n for n in os.fsdecode(answer.stdout).rstrip("\n").split("\n") if not _parked(n)), "")
         if not issue:
             return 0
-        conductor = subprocess.Popen([os.path.join(SCRIPTS, "run-conductor.sh"), issue], stdout=subprocess.PIPE)
+        conductor = _launch(issue)
         for _ in conductor.stdout:
             pass
         if _parked(issue):
             sys.stdout.write("parked %s\n" % issue)
             sys.stdout.flush()
+
+
+def _launch(issue):
+    ignored = (signal.SIGINT, signal.SIGQUIT, signal.SIGPIPE, signal.SIGXFSZ)
+    saved = {sig: signal.signal(sig, signal.SIG_IGN) for sig in ignored}
+    try:
+        return subprocess.Popen([os.path.join(SCRIPTS, "run-conductor.sh"), issue], start_new_session=True,
+                                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, restore_signals=False)
+    finally:
+        for sig, handler in saved.items():
+            signal.signal(sig, handler)
 
 
 def _parked(issue):
