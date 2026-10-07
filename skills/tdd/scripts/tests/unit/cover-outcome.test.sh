@@ -131,7 +131,7 @@ verdict "$name"
 
 name="run through a symlink to the skill directory and from another working directory, it answers as in place"
 problems=()
-scratch="$(mktemp -d)"
+scratch="$(scratch_dir)"
 ln -s "$(cd "$HERE/../../.." && pwd)" "$scratch/skill"
 mkdir "$scratch/elsewhere"
 answer() {
@@ -147,7 +147,6 @@ MUTATION: $mutation" "some narration with no report lines at all"; do
   linked="$(answer "$report" "$scratch/skill/scripts/cover-outcome.sh" "$scratch/elsewhere")"
   [[ "$linked" == "$in_place" ]] || problems+=("want '$in_place', got '$linked'")
 done
-rm -rf "$scratch"
 verdict "$name"
 
 finish
