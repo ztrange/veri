@@ -83,6 +83,8 @@ def main(argv):
     elif added + sum(not is_repair(text) for text in texts) > cap:
         headings = [line for line in terminated if line.startswith("## ")]
         owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
+        if not owed and lines is not terminated:
+            owed = "\n"
         owed += "".join(f"- {text}\n" for text in texts)
         write_ledger(path, "ab", owed)
         return 1

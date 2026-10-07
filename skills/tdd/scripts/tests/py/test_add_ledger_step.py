@@ -201,7 +201,7 @@ def test_main_over_budget_returns_1_silently_and_owes_every_text_under_the_last_
             text + "\n## Owed steps\n\n- t\n- fix x.test.sh ⟦suite-repair⟧\n- u\n",
         ),
         "notes after owed": ([(1, "", "")], notes + "\n## Owed steps\n\n- t\n"),
-        "unterminated last line": ([(1, "", "")], unterminated + "- t\n"),
+        "unterminated last line": ([(1, "", "")], unterminated + "\n- t\n"),
         "unterminated owed heading": ([(1, "", "")], unseen_heading + "\n## Owed steps\n\n- t\n"),
     }
 
@@ -508,3 +508,16 @@ def test_main_starts_the_owed_steps_heading_on_its_own_line_after_a_last_line_wi
     assert "- [ ] c three ⟦criterion 3⟧" in lines
     assert "## Owed steps" in lines
     assert after.endswith(b"## Owed steps\n\n- t\n")
+
+
+def test_main_owes_each_bullet_on_its_own_line_after_an_unterminated_last_owed_bullet_1109(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    ledger = tmp_path / "issue-42.md"
+    seed = LEDGER + b"\n## Owed steps\n\n- old"
+    ledger.write_bytes(seed)
+
+    code = add_ledger_step.main([str(ledger), "after", "b two", "t", "u"])
+    captured = capsys.readouterr()
+
+    assert (code, captured.out, captured.err) == (1, "", "")
+    assert ledger.read_bytes() == seed + b"\n- t\n- u\n"
