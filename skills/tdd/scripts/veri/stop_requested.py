@@ -32,3 +32,7 @@ def main(argv):
         return 2
     sys.stdout.buffer.write(mode + b"\n")
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
