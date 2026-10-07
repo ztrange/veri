@@ -26,6 +26,8 @@ def main(argv):
     if not git(clone, "rev-parse", "--verify", "--quiet", commit + "^{commit}").strip():
         return unavailable("pinned commit %s is not in %s" % (commit, clone))
     ref = os.environ["VERI_SKILL_REF"]
+    if not git(clone, "rev-parse", "--verify", "--quiet", ref + "^{commit}").strip():
+        return unavailable("%s does not resolve in %s" % (ref, clone))
     log = git(clone, "log", "--format=%h %s", "%s..%s" % (commit, ref),
               "--", "skills/tdd", ":(exclude)skills/tdd/scripts/tests")
     groups = {}
