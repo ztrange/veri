@@ -1,5 +1,8 @@
 """tick-ledger.sh's tick, run in-process."""
+import os
+import shutil
 import sys
+import tempfile
 
 import ledger
 
@@ -17,8 +20,15 @@ def main(argv):
         ticked, new = ledger.ledger_tick(file.read().replace("\0", ""), (argv[1:] or [""])[0], pending)
     if not ticked:
         return 3
-    with open(argv[0], "w") as file:
-        file.write(new.rstrip("\n") + "\n")
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(argv[0])))
+    try:
+        with os.fdopen(fd, "w") as file:
+            file.write(new.rstrip("\n") + "\n")
+        shutil.copymode(argv[0], tmp)
+        os.replace(tmp, argv[0])
+    except OSError:
+        os.unlink(tmp)
+        return 2
     return 0
 
 
