@@ -24,7 +24,10 @@ def _recorded(exit_file):
 def _alive(pid_file):
     try:
         with open(pid_file) as handle:
-            os.kill(int(handle.read()), 0)
+            pid = handle.read().rstrip("\n")
+        if not re.fullmatch("-?[0-9]+", pid):
+            return False
+        os.kill(int(pid), 0)
     except OSError:
         return False
     return True
