@@ -359,3 +359,16 @@ def test_main_reads_the_issue_through_gh_issue_view_only_when_veri_gh_driver_is_
     assert (code, captured.out, calls) == (2, "", [
         ["gh", "issue", "view", "7", "--json", "labels", "-q", ".labels[].name"],
     ])
+
+
+def test_main_refuses_an_empty_or_unknown_veri_gh_driver_with_exit_2_nothing_on_stdout_a_stderr_line_naming_it_and_no_gh_process_1114(monkeypatch, capsys, capture_spec):
+    for driver in ("", "bogus"):
+        monkeypatch.setenv("VERI_GH_DRIVER", driver)
+        calls = fake_gh(monkeypatch, "bug\n", BUG_BODY)
+
+        code = capture_spec.main(["7"])
+        captured = capsys.readouterr()
+
+        lines = captured.err.splitlines()
+        assert (driver, code, captured.out, calls, len(lines)) == (driver, 2, "", [], 1)
+        assert "VERI_GH_DRIVER" in lines[0] and "'%s'" % driver in lines[0]
