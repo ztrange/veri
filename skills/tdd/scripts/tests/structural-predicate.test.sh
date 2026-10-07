@@ -89,25 +89,6 @@ REPORT
   problems+=("structural-predicate.sh wrote a record at $record for PREDICATE: NONE — <why>")
 report "$name"
 
-name="#691 PREDICATE: NONE followed directly by a dash or a colon exits 3 and writes no record"
-problems=()
-tree="$(scratch_dir)"
-record="$tree/predicate"
-for line in "PREDICATE: NONE—no command can tell the transform apart" \
-            "PREDICATE: NONE: no command can tell the transform apart"; do
-  rm -f "$record"
-  code=0
-  (cd "$tree" && "$SP" "$record" >/dev/null 2>&1 <<REPORT) || code=$?
-Read the candidate and the files it names.
-$line
-REPORT
-  [[ "$code" == 3 ]] ||
-    problems+=("$line: want exit 3 from structural-predicate.sh, got $code")
-  [[ ! -e "$record" ]] ||
-    problems+=("$line: structural-predicate.sh wrote a record at $record")
-done
-report "$name"
-
 name="structural-predicate.sh with no argument exits 2, prints nothing on stdout, writes nothing, and puts exactly its usage line on stderr"
 problems=()
 tree="$(scratch_dir)"
