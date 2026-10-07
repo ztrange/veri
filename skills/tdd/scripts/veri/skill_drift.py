@@ -45,14 +45,16 @@ def main(argv):
     for line in log.splitlines():
         sha, subject = line.split(" ", 1)
         match = SUFFIX.search(subject)
-        groups.setdefault(match.group(1) if match else sha, []).append((match, subject))
+        key = match.group(1) if match else sha
+        suffixed, newest, count = groups.get(key, (bool(match), subject, 0))
+        groups[key] = (suffixed, newest, count + 1)
     short = git(clone, "rev-parse", "--short", commit).strip()
     lines = ["#### Skill drift since the pinned commit",
              "Pinned skill commit: %s." % short,
              "Conductor-path changes on %s since then:%s" % (ref, "" if groups else " none.")]
     if groups:
-        lines += ["- #%s — %s (%d commits)" % (k, s[0][1], len(s)) if s[0][0] else "- %s %s" % (k, s[0][1])
-                  for k, s in groups.items()]
+        for key, (suffixed, newest, count) in groups.items():
+            lines.append("- #%s — %s (%d commits)" % (key, newest, count) if suffixed else "- %s %s" % (key, newest))
         lines.append("Resume with VERI_NEW_SKILL=1 to run on these.")
     if not fetched:
         lines.append("origin could not be fetched — list is as of the last fetch of %s" % ref)
