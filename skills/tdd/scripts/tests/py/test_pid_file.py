@@ -89,3 +89,21 @@ def test_number_in_answers_no_number_for_a_path_it_cannot_read_as_a_file(tmp_pat
             answers[name] = type(error).__name__
 
     assert answers == {"missing": None, "directory": None, "unreadable": None, "fifo": None}
+
+
+def test_number_in_follows_a_symlink_to_a_regular_file_and_answers_no_number_for_a_dangling_one(tmp_path):
+    pid_file = importlib.import_module("veri.pid_file")
+    target = tmp_path / "target"
+    target.write_bytes(b"12\n")
+    to_file = tmp_path / "to-file"
+    to_file.symlink_to(target)
+    dangling = tmp_path / "dangling"
+    dangling.symlink_to(tmp_path / "nowhere")
+    answers = {}
+    for name, path in [("to-file", to_file), ("dangling", dangling)]:
+        try:
+            answers[name] = pid_file.number_in(str(path))
+        except Exception as error:
+            answers[name] = type(error).__name__
+
+    assert answers == {"to-file": "12", "dangling": None}
