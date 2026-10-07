@@ -1,2 +1,4 @@
 ### tests/py/test_pid_file.py: veri/pid_file.py's number_in, called directly on a file under tmp_path, answers the first line's digits as read — 12 for "12\n", " 12 \t\n", "12" with no final newline and "12\nx", and 0012 for "0012\n" ⟦criterion 3⟧
 - out-of-scope | remove veri/issue_worktree.py's own number_in (:15-23) in favour of an import from veri/pid_file.py — the move is plan step 10, not a refactor of this step
+### tests/py/test_pid_file.py: number_in answers no number (None) for a first line that is not ASCII digits after trimming spaces and tabs — an empty file, "-1", "+5", "1 2", "12\r", "١", "x\n12" and the bytes "\xff\xfe\n" — never raising ⟦criterion 3⟧
+- test-only | the two `number_in` cases in `tests/py/test_pid_file.py` (lines 12-24 and 37-50) repeat the same loop: write each content under `tmp_path`, then call `number_in`. A shared helper taking `(name, content)` pairs and returning the answers would remove that repetition.
