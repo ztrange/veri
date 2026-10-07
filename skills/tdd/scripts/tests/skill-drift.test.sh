@@ -175,4 +175,23 @@ linefetch="$(grep -n -x -F "origin could not be fetched — list is as of the la
 ((${#problems[@]} == 0)) || problems+=("stdout was: $(printf '%q' "$out")")
 report "$name"
 
+name="with VERI_SKILL_CLONE naming the skills/tdd directory inside the clone, as run-conductor.sh hands it, the conductor-path commits after the pin are still listed and a commit touching only skills/tdd/scripts/tests/ is still left out"
+problems=()
+tmp="$(scratch_dir)"
+upstream="$tmp/upstream" clone="$tmp/clone"
+new_repo -b main "$upstream"
+touch_commit "$upstream" skills/tdd/scripts/run-leaf.sh "feat: the pinned skill (#9)"
+pinned="$(git -C "$upstream" rev-parse HEAD)"
+touch_commit "$upstream" skills/tdd/scripts/supervise.sh "fix: the supervisor's window (#12)"
+touch_commit "$upstream" skills/tdd/scripts/tests/run-leaf.test.sh "test: a leaf's case (#20)"
+git clone -q "$upstream" "$clone"
+out="$(env -u VERI_SKILL_UNPINNED VERI_SKILL_COMMIT="$pinned" VERI_SKILL_CLONE="$clone/skills/tdd" \
+  VERI_SKILL_REF=refs/remotes/origin/main "$SKILL_DRIFT" 2>/dev/null)" && code=0 || code=$?
+[[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
+grep -E "^- #12 — fix: the supervisor's window( \(#12\))? \(1 commits\)$" <<<"$out" > /dev/null ||
+  problems+=("want a '- #12 — <subject> (1 commits)' line")
+! grep -E '^- #20 ' <<<"$out" > /dev/null || problems+=("want no '- #20' line for the tests-only commit")
+((${#problems[@]} == 0)) || problems+=("stdout was: $(printf '%q' "$out")")
+report "$name"
+
 finish
