@@ -535,3 +535,68 @@ def test_main_launches_the_leaf_in_its_callers_process_group_with_sigpipe_and_si
 
     assert (first, lines, sorted(path.name for path in tmp.iterdir())) == (
         b"{}\n", ["trap -- '' SIGXFSZ", f"pgid {runner.pid} pid {leaf_pid}"], [])
+
+
+_RESULT_STREAM = (b'{"type":"system","subtype":"init","session_id":"x"}\n'
+                  b'{"type":"assistant","message":{"content":[{"type":"text","text":"VERDICT: PASS"}]}}\n'
+                  b'{"type":"result","subtype":"success","is_error":false,"result":"VERDICT: PASS"}\n')
+
+
+def _run_over(run_leaf, monkeypatch, capfdbinary, stream=_RESULT_STREAM, returncode=0):
+    def launch(argv, *args, **kwargs):
+        leaf = _FakeLeaf([], argv, stream=stream, **kwargs)
+        leaf.returncode = returncode
+        return leaf
+    monkeypatch.setattr(subprocess, "Popen", launch)
+    code = run_leaf.main(["prompt.txt"])
+    return code, capfdbinary.readouterr().out
+
+
+def test_main_returns_extracted_result_text(tmp_path, monkeypatch, capfdbinary):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, tmp = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("Verify the test for issue 3.")
+
+    code, out = _run_over(run_leaf, monkeypatch, capfdbinary)
+
+    assert (code, out.endswith(b"\nVERDICT: PASS\n")) == (0, True)
+
+
+def test_main_streams_raw_events_for_heartbeat(tmp_path, monkeypatch, capfdbinary):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, tmp = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("Verify the test for issue 3.")
+
+    code, out = _run_over(run_leaf, monkeypatch, capfdbinary)
+
+    assert (code, out.startswith(_RESULT_STREAM)) == (0, True)
+
+
+def test_main_propagates_leaf_exit_status(tmp_path, monkeypatch, capfdbinary):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, tmp = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("Verify the test for issue 3.")
+
+    code, _ = _run_over(run_leaf, monkeypatch, capfdbinary, returncode=1)
+
+    assert code == 1
+
+
+def test_main_maps_a_foreign_leaf_exit_status_to_2(tmp_path, monkeypatch, capfdbinary):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, tmp = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("Verify the test for issue 3.")
+
+    code, _ = _run_over(run_leaf, monkeypatch, capfdbinary, returncode=7)
+
+    assert code == 2
+
+
+def test_main_does_not_own_a_tdd_log(tmp_path, monkeypatch, capfdbinary):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, tmp = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("Verify the test for issue 3.")
+
+    code, _ = _run_over(run_leaf, monkeypatch, capfdbinary)
+
+    assert (code, (work / ".tdd").exists()) == (0, False)
