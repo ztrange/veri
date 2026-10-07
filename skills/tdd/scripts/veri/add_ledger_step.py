@@ -81,7 +81,7 @@ def main(argv):
     if cap is None:
         warn(f'add-ledger-step.sh: {budget}: value too great for base (error token is "{budget}")')
     elif added + sum(not is_repair(text) for text in texts) > cap:
-        headings = [line for line in terminated if line.startswith("## ")]
+        headings = [line for line in lines if line.startswith("## ")]
         owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
         if not owed and lines is not terminated:
             owed = "\n"
