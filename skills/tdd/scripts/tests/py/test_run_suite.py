@@ -1,6 +1,8 @@
 """In-process cases for veri/run_suite.py, the module run-suite.sh is a shim over."""
 import importlib
+import importlib.util
 import pathlib
+import shutil
 import sys
 
 import pytest
@@ -14,6 +16,17 @@ for path in (SCRIPTS, SCRIPTS / "veri"):
 @pytest.fixture
 def run_suite():
     return importlib.import_module("veri.run_suite")
+
+
+def staged_module(scripts):
+    (scripts / "veri").mkdir(parents=True)
+    (scripts / "lib").mkdir()
+    copy = scripts / "veri" / "run_suite.py"
+    shutil.copy(SCRIPTS / "veri" / "run_suite.py", copy)
+    spec = importlib.util.spec_from_file_location("staged_run_suite", copy)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def fake_suite(tmp_path, name, body):
@@ -71,3 +84,31 @@ def test_main_passes_a_counted_suite_code_through_raw_and_quotes_a_blank_last_li
         (1, "blank.test.sh: its last line was: "),
         (1, "blanks.test.sh: its output was empty"),
     ]
+
+
+def test_main_reads_the_count_line_guard_from_lib_count_line_guard_sh_beside_it(tmp_path, capfd, monkeypatch):
+    scripts = tmp_path / "scripts"
+    run_suite = staged_module(scripts)
+    guard = scripts / "lib" / "count-line-guard.sh"
+    guard.write_text(
+        "COUNT_LINE='^[0-9]+ passed, [0-9]+ failed$'\n"
+        "COUNTLESS='%s: reworded, no tally\\nsecond line of the refusal\\n'\n"
+    )
+    code = run_suite.main([fake_suite(tmp_path, "partial.test.sh", "echo partial\nexit 0\n")])
+    out, _ = capfd.readouterr()
+    answers = [(code, out.splitlines()[-3:])]
+    started = []
+    monkeypatch.setattr(run_suite.subprocess, "Popen", lambda *a, **k: started.append(a))
+    guard.unlink()
+    for state in ("missing", "unreadable"):
+        if state == "unreadable":
+            guard.mkdir()
+        code = run_suite.main([fake_suite(tmp_path, "green.test.sh", "echo '1 passed, 0 failed'\n")])
+        out, err = capfd.readouterr()
+        answers.append((code, out, len(err.splitlines()), "lib/count-line-guard.sh" in err))
+    assert (answers, started) == ([
+        (1, ["partial.test.sh: reworded, no tally", "second line of the refusal",
+             "partial.test.sh: its last line was: partial"]),
+        (2, "", 1, True),
+        (2, "", 1, True),
+    ], [])
