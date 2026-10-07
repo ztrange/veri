@@ -13,7 +13,7 @@ REASON_KEYS = ("PREDICTED_FAILURE", "FAIL_OUTPUT", "PREDICTION_NOTE")
 
 
 def main(argv):
-    report = sys.stdin.buffer.read().decode()
+    report = sys.stdin.buffer.read().decode(errors="surrogateescape")
     fields = report_read(report, ("PREDICTION", *REASON_KEYS))
     prediction = fields.get("PREDICTION", "").partition(" ")[0]
     if prediction[-1:] in (",", ";", ":", "."):
@@ -23,7 +23,7 @@ def main(argv):
     if prediction != "DIVERGED":
         return 2
     reason = REASON % tuple(fields.get(key, "") for key in REASON_KEYS)
-    sys.stdout.buffer.write(reason.encode())
+    sys.stdout.buffer.write(reason.encode(errors="surrogateescape"))
     return 0
 
 

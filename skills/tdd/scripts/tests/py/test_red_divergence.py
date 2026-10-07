@@ -118,3 +118,19 @@ def test_main_cuts_the_verdict_word_at_the_first_space_only_matches_it_case_sens
         "capitalised": (2, "", ""),
         "carriage return": (2, "", ""),
     }
+
+
+def test_main_reads_stdin_and_writes_stdout_as_bytes_passing_a_non_utf8_byte_in_fail_output_through_unchanged(monkeypatch, capsysbinary, red_divergence):
+    report = b"PREDICTED_FAILURE: p\nFAIL_OUTPUT: f\xff\nPREDICTION_NOTE: n\nPREDICTION: DIVERGED"
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(report), newline="\n"))
+    code = red_divergence.main([])
+
+    assert (code, *capsysbinary.readouterr()) == (
+        0,
+        b"The red leaf's prediction diverged from the failure it saw, so the test is the suspect.\n"
+        b"\n"
+        b"PREDICTED_FAILURE: p\n"
+        b"FAIL_OUTPUT: f\xff\n"
+        b"PREDICTION_NOTE: n\n",
+        b"",
+    )
