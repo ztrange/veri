@@ -82,6 +82,7 @@ revise="$("$BUILD" revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/re
 mkdir -p "$work/no-prompts/lib"
 cp "$BUILD" "$work/no-prompts/build-develop-prompt.sh"
 cp "$(dirname "$BUILD")"/lib/*.sh "$work/no-prompts/lib/"
+cp -R "$(dirname "$BUILD")/veri" "$work/no-prompts/"
 
 refusal_bad=""
 refuses() {  # <label> <script> <args...> — records why, if this was not a clean refusal
@@ -1034,7 +1035,7 @@ prompt_lacks "$revise_diff" "asks for a PREDICTED_FAILURE: report line" -F -e 'P
 
 name="#703 a {{INCLUDE:<file>}} token is replaced by that partial under prompts/, trailing newlines stripped, before the other placeholders, so one inside the partial is filled"
 included="$(scratch_dir)"
-cp -R "$HERE/../build-develop-prompt.sh" "$HERE/../lib" "$HERE/../prompts" "$included/"
+cp -R "$HERE/../build-develop-prompt.sh" "$HERE/../lib" "$HERE/../prompts" "$HERE/../veri" "$included/"
 printf 'before {{INCLUDE:_probe-partial.md}} after\n' > "$included/prompts/develop-red.md"
 printf 'partial runs {{TEST_CMD}}\n\n\n' > "$included/prompts/_probe-partial.md"
 rendered="$("$included/build-develop-prompt.sh" red "$work/spec.md" "$step_text" "$test_cmd" 2>&1)"; code=$?
@@ -1042,7 +1043,7 @@ expect_eq "$name" "0:before partial runs $test_cmd after" "$code:$rendered"
 
 name="#703 a {{INCLUDE:<file>}} token inside an included partial is itself resolved, recursively"
 nested="$(scratch_dir)"
-cp -R "$HERE/../build-develop-prompt.sh" "$HERE/../lib" "$HERE/../prompts" "$nested/"
+cp -R "$HERE/../build-develop-prompt.sh" "$HERE/../lib" "$HERE/../prompts" "$HERE/../veri" "$nested/"
 printf 'before {{INCLUDE:_probe-outer.md}} after\n' > "$nested/prompts/develop-red.md"
 printf 'outer {{INCLUDE:_probe-inner.md}} end\n' > "$nested/prompts/_probe-outer.md"
 printf 'inner runs {{TEST_CMD}}\n' > "$nested/prompts/_probe-inner.md"
@@ -1051,7 +1052,7 @@ expect_eq "$name" "0:before outer inner runs $test_cmd end after" "$code:$render
 
 name="#703 a {{INCLUDE:<file>}} naming a partial that does not exist exits 2 with that partial's path on stderr and nothing on stdout"
 dangling="$(scratch_dir)"
-cp -R "$HERE/../build-develop-prompt.sh" "$HERE/../lib" "$HERE/../prompts" "$dangling/"
+cp -R "$HERE/../build-develop-prompt.sh" "$HERE/../lib" "$HERE/../prompts" "$HERE/../veri" "$dangling/"
 printf 'before {{INCLUDE:_probe-absent.md}} after\n' > "$dangling/prompts/develop-red.md"
 rendered="$("$dangling/build-develop-prompt.sh" red "$work/spec.md" "$step_text" "$test_cmd" 2>"$dangling/err")"; code=$?
 named=""; grep -F "$dangling/prompts/_probe-absent.md" "$dangling/err" > /dev/null && named=named
@@ -1059,7 +1060,7 @@ expect_eq "$name" "2:named:" "$code:$named:$rendered"
 
 name="#703 a partial that includes itself through another partial exits 2 naming that partial on stderr, with nothing on stdout, rather than looping"
 cycle="$(scratch_dir)"
-cp -R "$HERE/../build-develop-prompt.sh" "$HERE/../lib" "$HERE/../prompts" "$cycle/"
+cp -R "$HERE/../build-develop-prompt.sh" "$HERE/../lib" "$HERE/../prompts" "$HERE/../veri" "$cycle/"
 printf 'before {{INCLUDE:_probe-cycle-a.md}} after\n' > "$cycle/prompts/develop-red.md"
 printf 'a {{INCLUDE:_probe-cycle-b.md}}\n' > "$cycle/prompts/_probe-cycle-a.md"
 printf 'b {{INCLUDE:_probe-cycle-a.md}}\n' > "$cycle/prompts/_probe-cycle-b.md"
