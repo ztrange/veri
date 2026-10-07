@@ -19,3 +19,5 @@
 - test-only | the new ref-does-not-resolve case in skill-drift.test.sh repeats the scratch upstream + touch_commit + git clone setup the commit-not-in-clone case uses; a shared fixture helper would remove it
 ### skill-drift.sh over a clone whose origin cannot be fetched still prints the list from the ref as it stands, followed by `origin could not be fetched — list is as of the last fetch of <ref>`, and exits 0 ⟦criterion 7⟧
 - test-only | extract a helper in skill-drift.test.sh for the repeated `env -u VERI_SKILL_UNPINNED VERI_SKILL_COMMIT=… VERI_SKILL_CLONE=… VERI_SKILL_REF=… "$SKILL_DRIFT"` invocation and the upstream/pinned/clone setup repeated across five cases
+### run-conductor.sh on a pinned launch hands the conductor VERI_SKILL_CLONE set to the clone it archived from and VERI_SKILL_REF set to the ref it pinned against; on an unpinned launch it sets neither ⟦criterion 8⟧
+- test-only | in the new #1016 case of run-conductor.test.sh, the two `if [[ ! -f "$env…" ]]; then problems+=("… never reached the conductor: …")` guards repeat the same shape and could go through one helper
