@@ -42,3 +42,11 @@ def test_main_reads_a_suite_output_over_one_mebibyte_to_its_count_line(tmp_path,
     code = run_suite.main([fake_suite(tmp_path, "big.test.sh", 'cat "%s"\nexit 0\n' % output)])
     out, _ = capfd.readouterr()
     assert (code, "never reached its count line" in out) == (0, False)
+
+
+def test_main_refuses_a_missing_suite_argument_with_its_usage_line(capfd, monkeypatch, run_suite):
+    started = []
+    monkeypatch.setattr(run_suite.subprocess, "Popen", lambda *a, **k: started.append(a))
+    code = run_suite.main([])
+    out, err = capfd.readouterr()
+    assert (code, out, err, started) == (2, "", "usage: run-suite.sh <suite>\n", [])
