@@ -254,3 +254,101 @@ def test_python_refusal_parses_the_version_as_the_lib_does_major_before_the_firs
         ("3.08", 0, "", ""),
         ("", 0, "", ""),
     ]
+
+
+def test_python_refusal_hint_asks_the_venv_interpreter_with_version_info_and_names_the_venv_only_when_it_exits_0(
+        capsys, monkeypatch, tmp_path, launch_floor):
+    import os
+    import platform
+
+    calls = []
+    statuses = {}
+
+    def answer(args, kwargs):
+        calls.append((list(args), kwargs))
+        if not os.path.exists(args[0]):
+            raise FileNotFoundError(2, "No such file or directory", args[0])
+        if not os.access(args[0], os.X_OK):
+            raise PermissionError(13, "Permission denied", args[0])
+        return statuses[args[0]]
+
+    def fake_run(args, **kwargs):
+        return subprocess.CompletedProcess(args, answer(args, kwargs), None, None)
+
+    def fake_call(args, **kwargs):
+        return answer(args, kwargs)
+
+    class FakePopen:
+        def __init__(self, args, **kwargs):
+            self.returncode = answer(args, kwargs)
+
+        def wait(self, timeout=None):
+            return self.returncode
+
+        def communicate(self, input=None, timeout=None):
+            return None, None
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "call", fake_call)
+    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+    monkeypatch.setattr(platform, "python_version", lambda: "3.13.0")
+
+    def interpreter(venv, status=None, executable=True):
+        python = venv / "bin" / "python3"
+        python.parent.mkdir(parents=True)
+        python.write_text("#!/bin/sh\n")
+        if executable:
+            python.chmod(0o755)
+        statuses[str(python)] = status
+        return str(python)
+
+    meets = tmp_path / "meets"
+    interpreter(meets, 0)
+    below = tmp_path / "below"
+    interpreter(below, 1)
+    inert = tmp_path / "inert"
+    interpreter(inert, executable=False)
+    home = tmp_path / "home"
+    default = home / ".veri-tools" / "venv"
+    interpreter(default, 0)
+    monkeypatch.setenv("HOME", str(home))
+
+    refusal = "some-prefix: veri needs Python 3.12 or newer; the python3 on PATH is version 3.11.9.\n"
+
+    def hint(venv):
+        return "some-prefix: the environment at %s meets it; put %s/bin first on PATH.\n" % (venv, venv)
+
+    answers = []
+    for venv, version in ((str(meets), "3.11.9"),
+                          (str(below), "3.11.9"),
+                          (str(tmp_path / "missing"), "3.11.9"),
+                          (str(inert), "3.11.9"),
+                          ("", "3.11.9"),
+                          (str(meets), "3.12.0")):
+        monkeypatch.setenv("VERI_VENV", venv)
+        monkeypatch.setenv("VERI_PYTHON_VERSION", version)
+        del calls[:]
+        code = launch_floor.python_refusal("some-prefix")
+        captured = capsys.readouterr()
+        asked = []
+        for args, kwargs in calls:
+            assert any("version_info" in arg for arg in args[1:])
+            assert kwargs.get("stderr") == subprocess.DEVNULL
+            assert kwargs.get("stdout") is None and not kwargs.get("capture_output")
+            asked.append(args[0])
+        answers.append((venv, version, code, asked, captured.out, captured.err))
+
+    def python3(venv):
+        return [os.path.join(str(venv), "bin", "python3")]
+
+    unrunnable = [answers[2][3], answers[3][3]]
+    assert unrunnable[0] in ([], python3(tmp_path / "missing"))
+    assert unrunnable[1] in ([], python3(inert))
+    assert answers == [
+        (str(meets), "3.11.9", 2, python3(meets), "", refusal + hint(meets)),
+        (str(below), "3.11.9", 2, python3(below), "", refusal),
+        (str(tmp_path / "missing"), "3.11.9", 2, unrunnable[0], "", refusal),
+        (str(inert), "3.11.9", 2, unrunnable[1], "", refusal),
+        ("", "3.11.9", 2, python3(default), "", refusal + hint(default)),
+        (str(meets), "3.12.0", 0, [], "", ""),
+    ]
