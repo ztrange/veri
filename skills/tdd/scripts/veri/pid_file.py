@@ -2,6 +2,7 @@
 
 import os
 import re
+import subprocess
 
 
 def number_in(file):
@@ -24,3 +25,8 @@ def live_conductor(path):
     except (OSError, OverflowError):
         return None
     return pid
+
+
+def supervising(pid, name):
+    ps = subprocess.run(["ps", "-p", pid, "-o", "args="], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    return ps.returncode == 0 and f"supervise.sh {name} " in ps.stdout
