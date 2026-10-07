@@ -512,3 +512,12 @@ def test_render_prints_one_blank_line_between_refactor_owed_and_the_first_subsec
     code = refactor_owed.main(["render", str(owed)])
     out = capsys.readouterr().out
     assert (code, out[:out.index("###")] if "###" in out else out) == (0, "## Refactor owed\n\n")
+
+
+def test_render_prints_nothing_and_returns_0_when_no_step_entry_test_only_or_applied_transform_is_left_1018(
+        capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    owed.write_text("### S1\n### S2\n")
+
+    code = refactor_owed.main(["render", str(owed)])
+    assert (code, capsys.readouterr().out) == (0, "")
