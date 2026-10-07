@@ -113,6 +113,27 @@ rm -f "$work/.tdd/stop"
 verdict "#683: stop-requested.sh accepts the modes lib/stop-modes.sh lists, and still refuses one outside it with today's message"
 
 problems=""
+home="$work/home"; run="$work/run"
+mkdir -p "$home/.tdd" "$run/.tdd"
+ln -s "$(cd "$HERE/../.." && pwd)" "$home/scripts"
+printf '%s\n' "at-leaf" > "$home/.tdd/stop"
+printf '%s\n' "now" > "$run/.tdd/stop"
+out="$(cd "$run" && "$home/scripts/stop-requested.sh" 2>"$work/stderr")" && code=0 || code=$?
+if [[ "$code" != 0 || "$out" != "now" ]]; then
+  problems+="    read: want exit 0 and stdout 'now', got exit $code and stdout '$out'"$'\n'
+fi
+out="$(cd "$run" && "$home/scripts/stop-requested.sh" --clear 2>"$work/stderr")" && code=0 || code=$?
+if [[ "$code" != 0 || -e "$run/.tdd/stop" ]]; then
+  exists="gone"; [[ -e "$run/.tdd/stop" ]] && exists="still there"
+  problems+="    --clear: want exit 0 and the working directory's .tdd/stop gone, got exit $code and the file $exists"$'\n'
+fi
+beside="$(cat "$home/.tdd/stop" 2>/dev/null || echo "<gone>")"
+if [[ "$beside" != "at-leaf" ]]; then
+  problems+="    the .tdd/stop beside the skill: want it still 'at-leaf', got '$beside'"$'\n'
+fi
+verdict "run through a symlink to the scripts directory, stop-requested.sh reads and clears the working directory's .tdd/stop, never one beside the skill"
+
+problems=""
 tier_dir="skills/tdd/scripts/tests/unit"
 self="$HERE/$(basename "$0")"
 case "$HERE" in
