@@ -27,6 +27,10 @@ def read_prompt(path):
     return os.fsdecode(data.replace(b"\0", b"").rstrip(b"\n"))
 
 
+def complain(name, error):
+    print(f"run-leaf.sh: {name}: {error.strerror}", file=sys.stderr)
+
+
 def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
@@ -34,7 +38,7 @@ def main(argv):
     try:
         prompt = read_prompt(argv[0])
     except OSError as error:
-        print(f"run-leaf.sh: {argv[0]}: {error.strerror}", file=sys.stderr)
+        complain(argv[0], error)
         return 1
     stream_fd, stream_path = tempfile.mkstemp(dir=os.environ.get("TMPDIR") or "/tmp")
     command = leaf_argv(prompt, argv[1:])
@@ -42,7 +46,7 @@ def main(argv):
     try:
         leaf = subprocess.Popen(command, stdout=subprocess.PIPE)
     except OSError as error:
-        print(f"run-leaf.sh: {command[0]}: {error.strerror}", file=sys.stderr)
+        complain(command[0], error)
         status = 2
     else:
         with leaf:
