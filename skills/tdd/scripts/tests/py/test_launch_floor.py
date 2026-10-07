@@ -70,3 +70,35 @@ def test_bash_refusal_asks_the_bash_on_path_once_without_bash_env_or_env_and_ref
                 "Install it with `brew install bash` (it lands ahead of /bin/bash on PATH), "
                 "or your package manager on Linux.\n"),
     ]
+
+
+def test_bash_refusal_with_veri_bash_major_set_starts_no_probe_and_names_that_value_in_place_of_the_version(
+        capsys, monkeypatch, launch_floor):
+    monkeypatch.delenv("BASH_ENV", raising=False)
+    monkeypatch.delenv("ENV", raising=False)
+
+    def refusal(value):
+        return ("some-prefix: veri needs bash 5 or newer; this is bash %s (/opt/bin/bash). "
+                "Install it with `brew install bash` (it lands ahead of /bin/bash on PATH), "
+                "or your package manager on Linux.\n" % value)
+
+    answers = []
+    for value in ("abc", "5.1", " 5", "3", "05", "08", "09", ""):
+        monkeypatch.setenv("VERI_BASH_MAJOR", value)
+        if value:
+            calls = fake_bash(monkeypatch, "/opt/bin/bash", "5", "5.2.37(1)-release")
+        else:
+            calls = fake_bash(monkeypatch, "/opt/bin/bash", "3", "3.2.57(1)-release")
+        code = launch_floor.bash_refusal("some-prefix")
+        captured = capsys.readouterr()
+        answers.append((value, len(calls), code, captured.out, captured.err))
+    assert answers == [
+        ("abc", 0, 2, "", refusal("abc")),
+        ("5.1", 0, 2, "", refusal("5.1")),
+        (" 5", 0, 2, "", refusal(" 5")),
+        ("3", 0, 2, "", refusal("3")),
+        ("05", 0, 0, "", ""),
+        ("08", 0, 0, "", ""),
+        ("09", 0, 0, "", ""),
+        ("", 1, 2, "", refusal("3.2.57(1)-release")),
+    ]
