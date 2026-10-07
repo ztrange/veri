@@ -255,3 +255,40 @@ def test_main_raises_rather_than_returning_a_code_on_a_missing_ledger_a_director
         "refused": PermissionError,
     }
     assert refused.read_bytes() == seed
+
+
+def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_writing_the_cleared_ledger_fails_817(
+        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
+    seed = "".join(f"- [x] step {n} ⟂ refactor pending\n" for n in range(8)).encode()
+    led = tmp_path / "ledger.md"
+    led.write_bytes(seed)
+    real_open = builtins.open
+
+    class FullDisk:
+        def __init__(self, file):
+            self.file = file
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            self.file.close()
+
+        def write(self, data):
+            self.file.write(data[:len(data) // 2])
+            self.file.flush()
+            raise OSError(28, "No space left on device", str(led))
+
+    def full_disk_open(file, mode="r", *args, **kwargs):
+        opened = real_open(file, mode, *args, **kwargs)
+        return FullDisk(opened) if os.fspath(file) == str(led) and "w" in mode else opened
+
+    monkeypatch.setattr(builtins, "open", full_disk_open)
+    try:
+        code = clear_refactor_pending.main([str(led), "step 3"])
+    except OSError as error:
+        code = type(error).__name__
+    monkeypatch.undo()
+    capsysbinary.readouterr()
+
+    assert (code, led.read_bytes()) == (2, seed)
