@@ -56,4 +56,8 @@ def main(argv):
     for index, name in enumerate(names):
         if not (args[index] if index < len(args) else ""):
             return _refuse(f"build-develop-prompt: missing {name}")
+    if phase == "over-budget":
+        for name, value in zip(("spent", "budget"), args[3:5]):
+            if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", value):
+                return _refuse(f"build-develop-prompt: <{name}> '{value}' is not a non-negative decimal number")
     return 0
