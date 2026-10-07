@@ -15,3 +15,4 @@
 ### veri.stop_requested.main passes non-UTF-8 bytes in `.tdd/stop`'s first line through to stderr unchanged in the refusal, nothing on stdout, return 2 ⟦criterion 8⟧
 - test-only | move the `refusal(mode)` helper out of `test_main_reads_only_the_first_line_whole_as_stop_requested_sh_does` to module level in `tests/py/test_stop_requested.py`, then use it in this cycle's `test_main_passes_non_utf8_bytes_in_the_first_line_through_to_stderr_unchanged`, which spells the same refusal bytes out by hand
 - test-only | turn the setup every case repeats (`monkeypatch.chdir(tmp_path)`, `stop = tmp_path / ".tdd" / "stop"`, `stop.parent.mkdir()`) into one shared pytest fixture
+applied | 8bcc2847937000cf1c6cac2f85481f39d51be8b7 | `stop_mode_known` in `skills/tdd/scripts/veri/stop_modes.py:7` could be `mode in STOP_MODES` instead of the `any(...)` loop. This simplifies the code but removes no duplication, so this phase does not apply it.
