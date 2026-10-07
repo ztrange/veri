@@ -360,3 +360,78 @@ def test_main_resolves_includes_in_the_template_the_shared_rules_and_the_green_p
     expected["loop"] = (2, b"", b"partial includes itself: " + p + b"/_loop.md\n")
 
     assert results == expected
+
+
+def test_main_substitutes_every_placeholder_sequentially_globally_and_literally_in_the_bash_order_for_every_phase(
+        tmp_path, capsysbinary, monkeypatch, build_develop_prompt):
+    monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
+    names = ("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "REPLACES_CASE", "SUITE_REPAIR", "STEP", "TEST_CMD",
+             "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES", "REFACTOR_BUDGET",
+             "REVISE_PHASE", "REJECTION_REASON", "BRANCH", "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA",
+             "PRE_REBASE_SHA", "CONFLICTING_FILES")
+    template = b"".join(b"%s=[{{%s}}]\n" % (name.encode(), name.encode()) for name in names) + b"again {{STEP}}\n"
+    scripts = tmp_path / "scripts"
+    (scripts / "veri").mkdir(parents=True)
+    for source in (SCRIPTS / "veri").glob("*.py"):
+        (scripts / "veri" / source.name).write_bytes(source.read_bytes())
+    (scripts / "prompts").mkdir()
+    for phase in ("red", "green", "refactor", "cover", "transform", "diff", "structural", "predicate", "revise",
+                  "revise-diff", "reconcile", "exhausted", "over-budget", "rebase"):
+        (scripts / "prompts" / f"develop-{phase}.md").write_bytes(template)
+    (scripts / "prompts" / "_develop-shared.md").write_bytes(b"shared & \\1\n")
+    loader = importlib.util.spec_from_file_location("build_develop_prompt_cascade",
+                                                    scripts / "veri" / "build_develop_prompt.py")
+    module = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(module)
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"spec {{STEP}} & \\1\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"why {{STEP}} {{BRANCH}} & \\1\n")
+    s, r = str(spec), str(reason)
+    step, cmd, fast = "step & \\1", "make test A=1&2 \\x", "make unit F=a&b/c \\y"
+
+    common = {"SHARED": b"shared & \\1", "ISSUE_SPEC": b"spec step & \\1 & \\1", "STEP": step.encode(),
+              "TEST_CMD": cmd.encode(), "TIMED_TEST_RUN": os.fsencode(str(scripts / "timed-test-run.sh"))}
+    cases = {
+        "red": (["red", s, step, cmd], {}),
+        "cover": (["cover", s, step, cmd], {}),
+        "transform": (["transform", s, step, cmd], {}),
+        "diff": (["diff", s, step, cmd, fast], {"FAST_CMD": fast.encode()}),
+        "green": (["green", s, step, cmd, "t/p&\\", "tt&\\", fast],
+                  {"TEST_PATH": b"t/p&\\", "TARGET_TEST": b"tt&\\", "FAST_CMD": fast.encode()}),
+        "refactor": (["refactor", s, step, cmd, "a.sh&\\"], {"TOUCHED_FILES": b"a.sh&\\", "REFACTOR_BUDGET": b"5"}),
+        "structural": (["structural", s, step, cmd, "b.sh&\\"], {"TOUCHED_FILES": b"b.sh&\\"}),
+        "predicate": (["predicate", s, step, cmd, "c.sh&\\"], {"TOUCHED_FILES": b"c.sh&\\"}),
+        "revise green": (["revise", "green", s, step, cmd, r],
+                         {"REVISE_PHASE": b"green", "REJECTION_REASON": b"why {{STEP}}  & \\1"}),
+        "revise diff": (["revise", "diff", s, step, cmd, r, fast],
+                        {"REVISE_PHASE": b"diff", "REJECTION_REASON": b"why {{STEP}}  & \\1",
+                         "FAST_CMD": fast.encode()}),
+        "exhausted": (["exhausted", s, step, cmd, r], {"REJECTION_REASON": b"why {{STEP}}  & \\1"}),
+        "reconcile": (["reconcile", s, step, cmd, "tdd/1&\\", "abc&\\"],
+                      {"BRANCH": b"tdd/1&\\", "REMOTE_SHA": b"abc&\\"}),
+        "over-budget": (["over-budget", s, step, cmd, "1.5", "2"], {"SPENT": b"1.5", "BUDGET": b"2"}),
+        "rebase": (["rebase", s, step, cmd, "onto&\\", "pre&\\", "x.sh&\\"],
+                   {"ONTO_SHA": b"onto&\\", "PRE_REBASE_SHA": b"pre&\\", "CONFLICTING_FILES": b"x.sh&\\"}),
+    }
+    results, expected = {}, {}
+    for key, (argv, values) in cases.items():
+        code = module.main(argv)
+        results[key] = (code, *capsysbinary.readouterr())
+        values = {**common, **values}
+        expected[key] = (0, b"".join(b"%s=[%s]\n" % (name.encode(), values.get(name, b"")) for name in names)
+                         + b"again " + step.encode() + b"\n", b"")
+
+    here = os.fsencode(str(SCRIPTS))
+    for key, argv in (("real diff", ["diff", s, step, cmd, fast]),
+                      ("real revise diff", ["revise", "diff", s, step, cmd, r, fast])):
+        code = build_develop_prompt.main(argv)
+        out, err = capsysbinary.readouterr()
+        lines = out.split(b"\n")
+        at = next((i for i, line in enumerate(lines) if b"timed-test-run.sh fast" in line), len(lines))
+        results[key] = (code, lines[at:at + 2], err)
+        expected[key] = (0, [b"       " + here + b"/timed-test-run.sh fast '' " + fast.encode(),
+                             b"       " + here + b"/timed-test-run.sh affected '<the suites affected-suites.sh "
+                             b"printed>' <the command that runs them>"], b"")
+
+    assert results == expected
