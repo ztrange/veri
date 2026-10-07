@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-# leaf-launchable.sh — preflight's check that a leaf can actually be LAUNCHED.
+#!/bin/sh
+# leaf-launchable.sh — preflight's check that a leaf can actually be LAUNCHED: a shim over veri/leaf_launchable.py.
 #
 # It sits beside the `claude auth status` check SKILL.md preflight 0.2 already makes, and is
 # there for the same reason that one gives: every leaf is a `claude -p` subprocess, so a fault
@@ -20,30 +20,4 @@
 # Exit 2, with a diagnostic on stderr, when the probe launch failed — "no answer could be
 # obtained", the plumbing speaking, not a clean negative a caller could act on. Nothing is
 # printed on stdout, so a conductor reading this in a command substitution captures nothing.
-set -uo pipefail
-
-# hazard: written in bash 3.2's own syntax, so it can speak on the bash it refuses.
-bash_major="${VERI_BASH_MAJOR:-${BASH_VERSINFO[0]}}"
-if ! [[ "$bash_major" =~ ^[0-9]+$ ]] || [[ "$bash_major" -lt 5 ]]; then
-  echo "leaf-launchable: veri needs bash 5 or newer; this is bash ${VERI_BASH_MAJOR:-$BASH_VERSION} ($BASH). Install it with \`brew install bash\` (it lands ahead of /bin/bash on PATH), or your package manager on Linux." >&2
-  exit 2
-fi
-
-source "$(dirname "$0")/lib/venv-python.sh"
-venv_path_python_floor leaf-launchable || exit 2
-
-source "$(cd "$(dirname "$0")" && pwd)/lib/exit-contract.sh"
-
-leaf_bin="${CLAUDE_BIN:-claude}"
-probe_err="$(mktemp)"
-at_exit 'rm -f "$probe_err"'
-"$leaf_bin" --version >/dev/null 2>"$probe_err" && exit 0
-
-{
-  echo "leaf-launchable: the leaf binary ($leaf_bin) could not be launched, so every leaf of this run would die at launch. It said:"
-  sed 's/^/    /' "$probe_err"
-  echo "Run the conductor from a plain shell instead — the supported invocation is:"
-  echo '    claude -p "/tdd <issue-number>"'
-  echo "veri does not work around this itself: a guard of this kind names a risk the binary is refusing to take, and taking it silently on the operator's behalf would put that risk on them without their knowledge."
-} >&2
-exit 2
+exec python3 "$(dirname "$0")/veri/leaf_launchable.py" "$@"
