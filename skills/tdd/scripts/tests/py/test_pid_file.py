@@ -167,3 +167,31 @@ def test_live_conductor_answers_no_pid_and_raises_nothing_when_os_kill_raises(tm
             answers[name] = type(error).__name__
 
     assert answers == {"permission": None, "lookup": None, "overflow": None}
+
+
+def test_supervising_runs_ps_for_the_pids_args_and_is_true_only_when_they_name_the_leafs_supervisor(monkeypatch):
+    import subprocess
+
+    pid_file = importlib.import_module("veri.pid_file")
+    answered = {}
+    argvs = []
+
+    def fake_run(argv, *args, **kwargs):
+        argvs.append(list(argv))
+        returncode, stdout = answered["ps"]
+        return subprocess.CompletedProcess(argv, returncode, stdout=stdout, stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    answers = {}
+    for name, ps in [
+        ("supervisor", (0, "bash /x/supervise.sh develop-red-3 claude -p\n")),
+        ("ps-exits-1", (1, "bash /x/supervise.sh develop-red-3 claude -p\n")),
+        ("ps-answers-empty", (0, "")),
+    ]:
+        answered["ps"] = ps
+        answers[name] = pid_file.supervising("4242", "develop-red-3")
+
+    assert (answers, argvs) == (
+        {"supervisor": True, "ps-exits-1": False, "ps-answers-empty": False},
+        [["ps", "-p", "4242", "-o", "args="]] * 3,
+    )
