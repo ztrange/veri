@@ -6,6 +6,6 @@
 - [x] clear-refactor-pending.sh exits 2 with no traceback and leaves no backup beside the ledger when removing its backup fails after the cleared ledger was written, or after a failed write whose old contents were written back ⟦added⟧ ⟦criterion 1⟧
 - [x] tick-ledger.sh exits 2 with no traceback, leaving the ledger byte-identical and no temp file beside it, when putting the ticked ledger in place fails and removing its temporary file beside the ledger fails too ⟦criterion 1⟧
 - [x] tick-ledger.sh, given a ledger path that is a symlink, ticks the step in the link's target and leaves the link a symlink, with no temp file left beside either ⟦criterion 1⟧
-- [ ] tick-ledger.sh, given a ledger path that is a dangling symlink, exits 2 with no traceback, leaving the link a link and no temp file beside it ⟦added⟧ ⟦criterion 1⟧
+- [x] tick-ledger.sh, given a ledger path that is a dangling symlink, exits 2 with no traceback, leaving the link a link and no temp file beside it ⟦added⟧ ⟦criterion 1⟧
 - [ ] no case this branch adds forces a ledger write failure with permission bits or a system path: each forces it by the path's type or shape inside its scratch tree, or by faking the call at the process boundary in tests/py/ ⟦diff-checked⟧ ⟦criterion 2⟧
 - [ ] the Exit lines of tick-ledger.sh and clear-refactor-pending.sh name a ledger that could not be written under exit 2, not exit 1 ⟦diff-checked⟧
