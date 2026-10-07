@@ -58,7 +58,7 @@ def _wait(exit_file, pid_file, text):
         limit = _limit(text)
         if limit is not None and int(time.time()) - start >= limit:
             return 3
-        time.sleep(1)
+        time.sleep(float(os.environ.get("VERI_POLL") or "1"))
 
 
 def _refused(argv):
