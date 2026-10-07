@@ -108,4 +108,20 @@ REPORT
 done
 report "$name"
 
+name="structural-predicate.sh with no argument exits 2, prints nothing on stdout, writes nothing, and puts exactly its usage line on stderr"
+problems=()
+tree="$(scratch_dir)"
+out="$(scratch_dir)"
+code=0
+(cd "$tree" && "$SP" >"$out/stdout" 2>"$out/stderr" </dev/null) || code=$?
+[[ "$code" == 2 ]] ||
+  problems+=("want exit 2 from structural-predicate.sh with no argument, got $code")
+[[ ! -s "$out/stdout" ]] ||
+  problems+=("want nothing on stdout, got '$(cat "$out/stdout")'")
+[[ "$(cat "$out/stderr")" == "usage: structural-predicate.sh <record>" && "$(wc -l < "$out/stderr")" -eq 1 ]] ||
+  problems+=("want exactly 'usage: structural-predicate.sh <record>' on stderr, got '$(cat "$out/stderr")'")
+[[ -z "$(ls -A "$tree")" ]] ||
+  problems+=("structural-predicate.sh wrote into its working directory: $(ls -A "$tree")")
+report "$name"
+
 finish
