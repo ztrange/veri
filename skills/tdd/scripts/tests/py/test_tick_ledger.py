@@ -1,4 +1,5 @@
 """In-process cases for veri/tick_ledger.py, the module tick-ledger.sh is a shim over."""
+import errno
 import importlib
 import os
 import pathlib
@@ -190,3 +191,26 @@ def test_main_leaves_no_file_but_the_ledger_beside_it_when_writing_the_ticked_le
     capsysbinary.readouterr()
 
     assert (code, sorted(path.name for path in tmp_path.iterdir())) == (2, ["ledger.md"])
+
+
+def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_the_temporary_file_beside_it_cannot_be_created_817(
+        tmp_path, capsysbinary, tick_ledger, monkeypatch):
+    seed = b"- [ ] alpha\n- [ ] beta\n"
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(seed)
+    real_open = os.open
+
+    def refusing_open(path, *args, **kwargs):
+        if os.path.dirname(os.path.abspath(path)) == str(tmp_path) and os.path.abspath(path) != str(ledger):
+            raise OSError(errno.ENOSPC, os.strerror(errno.ENOSPC), path)
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(os, "open", refusing_open)
+    try:
+        code = tick_ledger.main([str(ledger), "beta"])
+    except OSError as error:
+        code = type(error).__name__
+    monkeypatch.undo()
+    capsysbinary.readouterr()
+
+    assert (code, ledger.read_bytes()) == (2, seed)
