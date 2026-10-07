@@ -298,3 +298,65 @@ def test_main_drops_nul_bytes_from_the_template_the_shared_rules_and_the_spec_it
     code = module.main(["red", str(spec), "s", "make test"])
 
     assert (code, *capsysbinary.readouterr()) == (0, b"template\nshared\n[# spec]\n", b"")
+
+
+def test_main_resolves_includes_in_the_template_the_shared_rules_and_the_green_paragraphs_before_substituting_and_leaves_them_literal_in_the_spec_step_reason_and_bug_paragraph(
+        tmp_path, capsysbinary):
+    def scripts_with(name, prompts):
+        scripts = tmp_path / name / "scripts"
+        (scripts / "veri").mkdir(parents=True)
+        for source in (SCRIPTS / "veri").glob("*.py"):
+            (scripts / "veri" / source.name).write_bytes(source.read_bytes())
+        (scripts / "prompts").mkdir()
+        for file, content in prompts.items():
+            (scripts / "prompts" / file).write_bytes(content)
+        loader = importlib.util.spec_from_file_location(f"build_develop_prompt_{name}",
+                                                        scripts / "veri" / "build_develop_prompt.py")
+        module = importlib.util.module_from_spec(loader)
+        loader.loader.exec_module(module)
+        return module, os.fsencode(str(scripts / "prompts"))
+
+    literal = b"{{INCLUDE:_s.md}}"
+    prompts = {
+        "develop-green.md": b"{{INCLUDE:_t.md}}\n{{SHARED}}\n[{{ISSUE_SPEC}}]\n[{{BUG_REPRODUCTION}}]\n"
+                            b"[{{REPLACES_CASE}}]\n[{{SUITE_REPAIR}}]\n[{{STEP}}]\n",
+        "develop-revise.md": b"[{{REJECTION_REASON}}]\n",
+        "_t.md": b"tpl {{STEP}}\n",
+        "_s.md": b"S\n",
+        "_develop-shared.md": b"shared " + literal + b"\n",
+        "_develop-red-bug.md": b"bug " + literal + b"\n",
+        "_develop-green-replaces-case.md": b"rc " + literal + b"\n",
+        "_develop-green-suite-repair.md": b"sr " + literal + b"\n",
+    }
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"## Bug\nspec " + literal + b"\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"why " + literal + b"\n")
+    step = "x ⟦replaces-case⟧ ⟦suite-repair⟧ {{INCLUDE:_s.md}}"
+    step_b = step.encode()
+    results, expected = {}, {}
+
+    def answer(key, module, argv):
+        code = module.main(argv)
+        results[key] = (code, *capsysbinary.readouterr())
+
+    module, _ = scripts_with("render", prompts)
+    answer("green", module, ["green", str(spec), step, "make test", "tp", "tt", "make unit"])
+    expected["green"] = (0, b"tpl " + step_b + b"\nshared S\n[## Bug\nspec " + literal + b"]\n[bug " + literal
+                         + b"]\n[\n\nrc S]\n[\n\nsr S]\n[" + step_b + b"]\n", b"")
+    answer("plain green", module, ["green", str(spec), "plain", "make test", "tp", "tt", "make unit"])
+    expected["plain green"] = (0, b"tpl plain\nshared S\n[## Bug\nspec " + literal + b"]\n[bug " + literal
+                               + b"]\n[]\n[]\n[plain]\n", b"")
+    answer("revise", module, ["revise", "red", str(spec), "s", "make test", str(reason)])
+    expected["revise"] = (0, b"[why " + literal + b"]\n", b"")
+
+    module, p = scripts_with("missing", {**prompts, "_develop-shared.md": b"shared {{INCLUDE:_gone.md}}\n"})
+    answer("missing", module, ["green", str(spec), "plain", "make test", "tp", "tt", "make unit"])
+    expected["missing"] = (2, b"", b"missing partial: " + p + b"/_gone.md\n")
+
+    module, p = scripts_with("loop", {**prompts, "_develop-green-suite-repair.md": b"sr {{INCLUDE:_loop.md}}\n",
+                                      "_loop.md": b"{{INCLUDE:_loop.md}}\n"})
+    answer("loop", module, ["green", str(spec), step, "make test", "tp", "tt", "make unit"])
+    expected["loop"] = (2, b"", b"partial includes itself: " + p + b"/_loop.md\n")
+
+    assert results == expected

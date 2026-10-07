@@ -3,7 +3,7 @@ import os
 import re
 import sys
 
-from build_verify_prompt import _has_heading, _spec_text
+from build_verify_prompt import _IncludeRefused, _expand, _has_heading, _spec_text
 
 PHASES = ("red", "green", "refactor", "cover", "transform", "diff", "structural", "predicate", "revise",
           "reconcile", "exhausted", "over-budget", "rebase")
@@ -72,22 +72,38 @@ def main(argv):
     template = "revise-diff" if revised_phase == "diff" else phase
     spec, step = args[0], args[1]
     paths = [f"{prompts}/develop-{template}.md", f"{prompts}/_develop-shared.md", spec]
+    optional = {}
     if phase in ("revise", "exhausted"):
-        paths.append(args[3])
+        optional["REJECTION_REASON"] = args[3]
     if _has_heading(_spec_text(spec), b"Bug"):
-        paths.append(f"{prompts}/_develop-red-bug.md")
+        optional["BUG_REPRODUCTION"] = f"{prompts}/_develop-red-bug.md"
     if "green" in (phase, revised_phase):
-        for mark in ("replaces-case", "suite-repair"):
+        for placeholder, mark in (("REPLACES_CASE", "replaces-case"), ("SUITE_REPAIR", "suite-repair")):
             if f"⟦{mark}⟧" in step:
-                paths.append(f"{prompts}/_develop-green-{mark}.md")
+                optional[placeholder] = f"{prompts}/_develop-green-{mark}.md"
+    paths += optional.values()
     for path in paths:
         if not os.access(path, os.R_OK):
             _write(sys.stderr, f"build-develop-prompt: cannot read '{path}'")
             return 2
-    text = _read(paths[0])
-    for name, value in (("SHARED", _read(paths[1])), ("ISSUE_SPEC", _read(spec)), ("STEP", os.fsencode(step)),
-                        ("TEST_CMD", os.fsencode(args[2])),
-                        ("TIMED_TEST_RUN", os.fsencode(f"{HERE}/timed-test-run.sh"))):
+    prompts_b = os.fsencode(prompts)
+    values = dict.fromkeys(("BUG_REPRODUCTION", "REPLACES_CASE", "SUITE_REPAIR", "REJECTION_REASON"), b"")
+    try:
+        text = _expand(_read(paths[0]), prompts_b)
+        shared = _expand(_read(paths[1]), prompts_b)
+        for placeholder, path in optional.items():
+            values[placeholder] = _read(path)
+            if placeholder in ("REPLACES_CASE", "SUITE_REPAIR"):
+                values[placeholder] = _expand(b"\n\n" + values[placeholder], prompts_b)
+    except _IncludeRefused as refusal:
+        sys.stderr.buffer.write(refusal.args[0] + b"\n")
+        return 2
+    for name, value in (("SHARED", shared), ("ISSUE_SPEC", _read(spec)),
+                        ("BUG_REPRODUCTION", values["BUG_REPRODUCTION"]),
+                        ("REPLACES_CASE", values["REPLACES_CASE"]), ("SUITE_REPAIR", values["SUITE_REPAIR"]),
+                        ("STEP", os.fsencode(step)), ("TEST_CMD", os.fsencode(args[2])),
+                        ("TIMED_TEST_RUN", os.fsencode(f"{HERE}/timed-test-run.sh")),
+                        ("REJECTION_REASON", values["REJECTION_REASON"])):
         text = text.replace(b"{{" + name.encode() + b"}}", value)
     sys.stdout.buffer.write(text + b"\n")
     return 0
