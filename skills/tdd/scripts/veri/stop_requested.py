@@ -17,13 +17,16 @@ def main(argv):
         return 2
     if not os.path.isfile(FILE):
         return 3
-    with open(FILE, "rb") as stop:
-        line = stop.readline()
-    mode = line.removesuffix(b"\n")
+    try:
+        with open(FILE, "rb") as stop:
+            line = stop.readline().replace(b"\0", b"")
+    except OSError:
+        line = b""
+    mode = line[:-1] if line.endswith(b"\n") else b""
     if not stop_modes.stop_mode_known(mode.decode()):
         sys.stderr.buffer.write(
             f"stop-requested: {FILE} must name a mode — {stop_modes.modes_named()}: '".encode()
             + mode + b"'\n")
         return 2
-    sys.stdout.buffer.write(line)
+    sys.stdout.buffer.write(mode + b"\n")
     return 0
