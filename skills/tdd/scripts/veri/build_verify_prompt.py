@@ -19,18 +19,17 @@ def _refuse(message=None):
     return 2
 
 
-def _has_heading(path, heading):
-    try:
-        with open(path, "rb") as f:
-            text = f.read()
-    except OSError:
-        return False
-    return re.search(rb"^## " + heading + rb"[ \t\r\v\f]*$", text, re.M) is not None
-
-
 def _read(path):
     with open(path, "rb") as f:
         return f.read().rstrip(b"\n")
+
+
+def _has_heading(path, heading):
+    try:
+        text = _read(path)
+    except OSError:
+        return False
+    return re.search(rb"^## " + heading + rb"[ \t\r\v\f]*$", text, re.M) is not None
 
 
 def main(argv):
