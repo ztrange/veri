@@ -72,7 +72,10 @@ def main(argv):
             except OSError:
                 discard(backup)
             return 2
-    os.unlink(backup)
+    try:
+        os.unlink(backup)
+    except OSError:
+        return 2
     return code
 
 
