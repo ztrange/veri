@@ -3,7 +3,7 @@
 - [x] skill-drift.sh, given VERI_SKILL_COMMIT, VERI_SKILL_CLONE and VERI_SKILL_REF over a clone where two commits touching skills/tdd/scripts/ suffixed (#12) and one suffixed (#15) land on the ref after the pinned commit, prints the `#### Skill drift since the pinned commit` block with `- #15 — <subject> (1 commits)` before `- #12 — <newest #12 subject> (2 commits)`, then `Resume with VERI_NEW_SKILL=1 to run on these.`, and exits 0 ⟦criterion 1⟧
 - [x] skill-drift.sh leaves out a commit after the pinned one that touches only skills/tdd/scripts/tests/, docs/ or Makefile; with only such commits in the range it prints `Conductor-path changes on <ref> since then: none.` with no resume line and exits 0 ⟦criterion 2⟧
 - [x] skill-drift.sh lists a commit in the range with no trailing (#N) as `- <short-sha> <subject>` ⟦criterion 3⟧
-- [ ] skill-drift.sh with VERI_SKILL_UNPINNED=1, or with VERI_SKILL_COMMIT unset or empty, prints `Skill drift: unavailable — run was not pinned to a skill commit` and exits 0 ⟦criterion 4⟧
+- [x] skill-drift.sh with VERI_SKILL_UNPINNED=1, or with VERI_SKILL_COMMIT unset or empty, prints `Skill drift: unavailable — run was not pinned to a skill commit` and exits 0 ⟦criterion 4⟧ ⟂ refactor pending
 - [ ] skill-drift.sh with VERI_SKILL_CLONE unset, or naming a directory that is not a git work tree, prints `Skill drift: unavailable — skill clone not known` and exits 0 ⟦criterion 5⟧
 - [ ] skill-drift.sh with VERI_SKILL_COMMIT naming a sha the clone does not have prints `Skill drift: unavailable — pinned commit <sha> is not in <clone>` and exits 0 ⟦criterion 6⟧
 - [ ] skill-drift.sh with VERI_SKILL_REF naming a ref that does not resolve in the clone prints `Skill drift: unavailable — <ref> does not resolve in <clone>` and exits 0
