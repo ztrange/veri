@@ -22,7 +22,14 @@ def main(argv):
         sys.stderr.write("usage: run-suite.sh <suite>\n")
         return 2
     suite = argv[0]
-    guard = read_guard(os.path.join(SCRIPTS, "lib", "count-line-guard.sh"))
+    guard_path = os.path.join(SCRIPTS, "lib", "count-line-guard.sh")
+    try:
+        guard = read_guard(guard_path)
+    except OSError:
+        guard = {}
+    if not guard.get("COUNT_LINE") or not guard.get("COUNTLESS"):
+        sys.stderr.write("run-suite.sh: could not read the count-line guard from %s\n" % guard_path)
+        return 2
     out = bytearray()
     with subprocess.Popen([suite], stdout=subprocess.PIPE) as proc:
         for chunk in iter(lambda: proc.stdout.read1(65536), b""):
