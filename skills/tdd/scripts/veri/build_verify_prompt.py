@@ -28,6 +28,11 @@ def _has_heading(path, heading):
     return re.search(rb"^## " + heading + rb"[ \t\r\v\f]*$", text, re.M) is not None
 
 
+def _read(path):
+    with open(path, "rb") as f:
+        return f.read().rstrip(b"\n")
+
+
 def main(argv):
     options = {"--step": "", "--fast-cmd": ""}
     while argv[:1] and argv[0] in options:
@@ -74,7 +79,19 @@ def main(argv):
         if not os.access(path, os.R_OK):
             _write(sys.stderr, f"build-verify-prompt: cannot read '{path}'")
             return 2
-    with open(spec, "rb") as f:
-        f.read()
+    template, shared, spec_text = (_read(path) for path in paths[:3])
+    step = os.fsencode(options["--step"])
+    step_block = b""
+    if step:
+        step_block = (b"### The step under judgement\n\n" + step + b"\n\n"
+                      b"Your verdict is about this criterion only: the spec below is the whole issue, and its other\n"
+                      b"criteria belong to other steps of the plan.\n\n")
+    out = template
+    for placeholder, value in ((b"SHARED", shared), (b"STEP", step_block), (b"ISSUE_SPEC", spec_text),
+                               (b"TEST_PATH", os.fsencode(argv[2])),
+                               (b"TARGET_TEST", os.fsencode(fourth or "the target test")),
+                               (b"TIMED_TEST_RUN", os.fsencode(f"{HERE}/timed-test-run.sh"))):
+        out = out.replace(b"{{" + placeholder + b"}}", value)
+    sys.stdout.buffer.write(out + b"\n")
     return 0
 

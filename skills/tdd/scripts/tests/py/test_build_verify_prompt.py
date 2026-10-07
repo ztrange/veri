@@ -197,3 +197,42 @@ def test_main_checks_readability_before_any_output_in_the_order_template_shared_
 
     with pytest.raises(IsADirectoryError):
         module.main(["red", str(tmp_path), "t"])
+
+
+def test_main_renders_a_red_prompt_with_shared_the_spec_the_test_path_the_target_or_its_default_and_the_step_block_naming_timed_test_run_through_the_scripts_directory_as_reached_and_reading_no_environment(
+        tmp_path, capsysbinary, monkeypatch):
+    scripts = tmp_path / "scripts"
+    (scripts / "veri").mkdir(parents=True)
+    (scripts / "veri" / "build_verify_prompt.py").write_bytes(
+        (SCRIPTS / "veri" / "build_verify_prompt.py").read_bytes())
+    (scripts / "prompts").mkdir()
+    (scripts / "prompts" / "verify-red.md").write_bytes(
+        b"{{SHARED}}\n{{STEP}}spec:\n{{ISSUE_SPEC}}\npath {{TEST_PATH}} target {{TARGET_TEST}}\n"
+        b"run {{TIMED_TEST_RUN}} affected\n\n\n")
+    (scripts / "prompts" / "_shared.md").write_bytes(b"shared rules\n\n")
+    linked = tmp_path / "linked"
+    linked.symlink_to(scripts, target_is_directory=True)
+    loader = importlib.util.spec_from_file_location(
+        "linked_build_verify_prompt", linked / "veri" / "build_verify_prompt.py")
+    module = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(module)
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n\nthe criteria\n\n")
+    for name in ("VERI_STEP", "VERI_TEST_CMD", "VERI_PREDICTED_FAILURE", "VERI_RATIONALE"):
+        monkeypatch.setenv(name, "ambient " + name)
+
+    def run(argv):
+        code = module.main(argv)
+        return (code, *capsysbinary.readouterr())
+
+    timed = str(linked / "timed-test-run.sh").encode()
+    step_block = (b"### The step under judgement\n\nthe step\n\n"
+                  b"Your verdict is about this criterion only: the spec below is the whole issue, and its other\n"
+                  b"criteria belong to other steps of the plan.\n\n")
+    assert [run(["red", str(spec), "tests/a.test.sh"]),
+            run(["--step", "the step", "red", str(spec), "tests/a.test.sh", "case one"])] == [
+        (0, b"shared rules\nspec:\n# spec\n\nthe criteria\npath tests/a.test.sh target the target test\n"
+            b"run " + timed + b" affected\n", b""),
+        (0, b"shared rules\n" + step_block + b"spec:\n# spec\n\nthe criteria\npath tests/a.test.sh target case one\n"
+            b"run " + timed + b" affected\n", b""),
+    ]
