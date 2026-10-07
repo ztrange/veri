@@ -1,9 +1,11 @@
 """detach-command.sh's start and wait, run in-process."""
 import os
+import subprocess
 import sys
 
 import detach
 
+WRAPPER = '"$@"; rc=$?; echo "$rc" > "$0.tmp"; mv "$0.tmp" "$0"'
 USAGE = "usage: detach-command.sh start <name> <cmd> [args…] | wait <name> [max-seconds]"
 
 
@@ -45,8 +47,8 @@ def main(argv):
         os.unlink(exit_file)
     except FileNotFoundError:
         pass
-    open(f".tdd/{name}.out", "w").close()
-    pid = detach.start(rest, None, None, None)
+    with open(f".tdd/{name}.out", "w") as out:
+        pid = detach.start(["sh", "-c", WRAPPER, exit_file, *rest], subprocess.DEVNULL, out, out)
     with open(pid_file, "w") as handle:
         handle.write(f"{pid}\n")
     return 0

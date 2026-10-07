@@ -87,3 +87,27 @@ def test_start_removes_a_stale_exit_truncates_out_overwrites_pid_in_place_and_pr
 
     code = detach_command.main(["start", "x", "true"])
     assert (code, capsys.readouterr(), at_launch[1:]) == (0, ("", ""), [(False, "")])
+
+
+def test_start_launches_the_exit_recording_wrapper_through_detach_with_dev_null_in_and_out_for_both_streams(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    launches = []
+
+    def fake_start(argv, stdin, stdout, stderr):
+        null = stdin == subprocess.DEVNULL or (
+            hasattr(stdin, "fileno") and os.fstat(stdin.fileno()).st_rdev == os.stat(os.devnull).st_rdev)
+        for stream, text in ((stdout, b"out "), (stderr, b"err")):
+            if hasattr(stream, "fileno"):
+                os.write(stream.fileno(), text)
+        launches.append((argv, null))
+        return 4242
+
+    monkeypatch.setattr(importlib.import_module("detach"), "start", fake_start)
+
+    code = detach_command.main(["start", "x", "printf", "%s", "a b"])
+    wrapper = '"$@"; rc=$?; echo "$rc" > "$0.tmp"; mv "$0.tmp" "$0"'
+    assert launches == [(["sh", "-c", wrapper, ".tdd/x.exit", "printf", "%s", "a b"], True)]
+    assert ((tdd / "x.out").read_text(), code, capsys.readouterr()) == ("out err", 0, ("", ""))
