@@ -6,3 +6,6 @@
 - test-only | pull the `chdir` + `.tdd` mkdir + `FakePopen` setup that both cases in skills/tdd/scripts/tests/py/test_detach_command.py repeat (lines 26-35 and 63-75) into one shared fixture
 ### veri.detach_command.main launches exactly `["sh", "-c", '"$@"; rc=$?; echo "$rc" > "$0.tmp"; mv "$0.tmp" "$0"', ".tdd/<name>.exit", <cmd>, <args>…]` through veri.detach, with stdin `/dev/null` and `.tdd/<name>.out` as both stdout and stderr (tests/py/test_detach_command.py) ⟦criterion 8⟧
 - test-only | the three cases in `tests/py/test_detach_command.py` each repeat `monkeypatch.chdir(tmp_path)` plus making `.tdd`; a `tdd` fixture would hold that once
+### veri.detach_command.main pins wait's round order: a recorded exit file wins over a dead pid, and after a dead pid the exit file is checked once more, so a code recorded between the two checks is still answered (tests/py/test_detach_command.py, os.kill faked) ⟦criterion 8⟧
+- test-only | the `monkeypatch.chdir(tmp_path)` + `.tdd` mkdir setup is repeated in 7 cases in tests/py/test_detach_command.py (lines 26, 64, 94, 118, 130, 150, 169); it could be one fixture
+- test-only | test_wait_answers_a_recorded_code_over_a_dead_pid_and_rechecks_the_exit_file_after_a_dead_pid tests two scenarios in one case; it could be split into two cases
