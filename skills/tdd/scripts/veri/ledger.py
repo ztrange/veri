@@ -52,6 +52,14 @@ def ledger_steps(text):
     return records
 
 
+def multi_tag_refusal(steps):
+    """The refusal for the first of steps carrying more than one criterion tag, or ""."""
+    for step in steps:
+        if step[6].count(CRITERION_TAG) > 1:
+            return f"step '{step[6]}' carries more than one criterion tag; one step serves one criterion"
+    return ""
+
+
 def _rewrite_first_step(text, selects, rewrite):
     """(True, text with the first step line selects accepts rewritten), or (False, text)."""
     lines = text.split("\n")

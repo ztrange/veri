@@ -4,9 +4,9 @@ import re
 import sys
 
 try:
-    from .ledger import ADDED_MARK, CRITERION_TAG, ledger_steps, new_step
+    from .ledger import ADDED_MARK, CRITERION_TAG, ledger_steps, multi_tag_refusal, new_step
 except ImportError:
-    from ledger import ADDED_MARK, CRITERION_TAG, ledger_steps, new_step
+    from ledger import ADDED_MARK, CRITERION_TAG, ledger_steps, multi_tag_refusal, new_step
 
 REPAIR_MARKS = ("⟦ci-repair⟧", "⟦suite-repair⟧")
 BYTES = "surrogateescape"
@@ -71,9 +71,9 @@ def main(argv):
     terminated = lines[:-1]
     if lines[-1] == "":
         lines = terminated
-    for step in ledger_steps("\n".join(lines)):
-        if step[6].count(CRITERION_TAG) > 1:
-            return refuse(f"add-ledger-step.sh: step '{step[6]}' carries more than one criterion tag; one step serves one criterion")
+    refusal = multi_tag_refusal(ledger_steps("\n".join(lines)))
+    if refusal:
+        return refuse("add-ledger-step.sh: " + refusal)
     if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:
         return refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
     budget = os.environ.get("VERI_STEP_GROWTH", "5")
