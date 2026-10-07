@@ -80,7 +80,9 @@ def main(argv):
         if backup is not None:
             try:
                 os.unlink(backup)
-            except OSError:
+            except OSError as error:
+                print(f"clear-refactor-pending.sh: {argv[0]}: could not remove backup {backup}: {error.strerror}",
+                      file=sys.stderr)
                 code = 2
     return code
 
