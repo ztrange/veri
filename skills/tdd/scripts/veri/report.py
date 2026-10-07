@@ -3,7 +3,7 @@
 
 def report_read(text, keys):
     fields = {}
-    for line in text.split("\n"):
+    for line in text.replace("\0", "").split("\n"):
         for key in keys:
             if line.startswith(key + ": "):
                 fields[key] = line[len(key) + 2:]

@@ -56,3 +56,9 @@ def test_report_read_splits_on_newline_only_keeps_a_carriage_return_reads_an_unt
         "unterminated": {"COVERED": "yes"},
         "empty": {},
     }
+
+
+def test_report_read_drops_nul_bytes_before_parsing_so_a_nul_in_a_value_or_a_key_reads_as_if_absent_issue_1089(report):
+    answers = report.report_read("CAUGHT_BY: a\0b\nCOV\0ERED: y\0es\n", ("COVERED", "CAUGHT_BY"))
+
+    assert answers == {"CAUGHT_BY": "ab", "COVERED": "yes"}
