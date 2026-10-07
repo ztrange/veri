@@ -32,7 +32,8 @@ def _wait(exit_file, pid_file):
     if code is not None:
         return code
     if not _alive(pid_file):
-        return 2
+        code = _recorded(exit_file)
+        return 2 if code is None else code
     return 3
 
 
