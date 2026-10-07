@@ -314,3 +314,38 @@ def test_wait_counts_whole_wall_clock_seconds_as_bash_seconds_does_so_10_9_to_11
 
     code = detach_command.main(["wait", "x", "1"])
     assert (code, capsys.readouterr(), kills, sleeps) == (3, ("", ""), [(4242, 0)], [])
+
+
+def test_wait_reads_a_leading_zero_max_as_bash_octal_so_010_is_8_and_08_09_never_time_out_writing_stderr_each_round(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    monkeypatch.delenv("VERI_POLL", raising=False)
+    now = [1000.0]
+    sleeps, kills = [], []
+
+    def fake_sleep(seconds):
+        sleeps.append(float(seconds))
+        now[0] += float(seconds)
+
+    def alive_until_100th(pid, signum):
+        kills.append(pid)
+        if len(kills) == 100:
+            (tdd / "x.exit").write_text("0\n")
+
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "sleep", fake_sleep)
+    monkeypatch.setattr(os, "kill", alive_until_100th)
+
+    for max_seconds, code_wanted, rounds, err_lines in (("010", 3, 9, 0), ("08", 0, 100, 100),
+                                                        ("09", 0, 100, 100)):
+        (tdd / "x.pid").write_text("4242\n")
+        (tdd / "x.exit").unlink(missing_ok=True)
+        sleeps.clear()
+        kills.clear()
+        code = detach_command.main(["wait", "x", max_seconds])
+        out, err = capsys.readouterr()
+        lines = err.splitlines()
+        assert (max_seconds, code, out, len(lines), all(lines), len(kills), sleeps) == (
+            max_seconds, code_wanted, "", err_lines, True, rounds, [1.0] * (rounds if code_wanted == 0 else rounds - 1))

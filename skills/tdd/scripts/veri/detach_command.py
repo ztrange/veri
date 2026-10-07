@@ -37,7 +37,16 @@ def _alive(pid_file):
     return True
 
 
-def _wait(exit_file, pid_file, limit):
+def _limit(text):
+    try:
+        return int(text, 8 if text.startswith("0") else 10)
+    except ValueError:
+        print(f'detach-command.sh: {text}: value too great for base (error token is "{text}")',
+              file=sys.stderr)
+        return None
+
+
+def _wait(exit_file, pid_file, text):
     start = int(time.time())
     while True:
         code = _recorded(exit_file)
@@ -46,7 +55,8 @@ def _wait(exit_file, pid_file, limit):
         if not _alive(pid_file):
             code = _recorded(exit_file)
             return 2 if code is None else code
-        if int(time.time()) - start >= limit:
+        limit = _limit(text)
+        if limit is not None and int(time.time()) - start >= limit:
             return 3
         time.sleep(1)
 
@@ -66,7 +76,7 @@ def main(argv):
     mode, name, rest = argv[0], argv[1], argv[2:]
     exit_file, pid_file = f".tdd/{name}.exit", f".tdd/{name}.pid"
     if mode == "wait":
-        return _wait(exit_file, pid_file, int(rest[0]) if rest and rest[0] else 60)
+        return _wait(exit_file, pid_file, rest[0] if rest and rest[0] else "60")
     try:
         os.unlink(exit_file)
     except FileNotFoundError:
