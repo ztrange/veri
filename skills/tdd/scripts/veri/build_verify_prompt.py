@@ -1,5 +1,6 @@
 """build-verify-prompt.sh's argument checks and rendering, run in-process."""
 import os
+import re
 import sys
 
 PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff")
@@ -33,5 +34,19 @@ def main(argv):
         return _refuse(f"build-verify-prompt: unknown phase '{phase}' (want red|green|refactor|pin|plan|rebase|transform|diff)")
     if phase in ("green", "refactor", "diff") and not options["--fast-cmd"]:
         return _refuse(f"build-verify-prompt: {phase} needs --fast-cmd '<fast-tier test command>'")
+    fourth = argv[3] if len(argv) > 3 else ""
+    if phase == "diff":
+        if not options["--step"]:
+            return _refuse("build-verify-prompt: diff needs --step '<STEP>'")
+        shas = (("<step-base-sha>", fourth), ("<base-sha>", argv[2]))
+    elif phase in ("refactor", "transform"):
+        shas = (("<base-sha>", fourth),)
+    elif phase == "rebase":
+        shas = (("<onto-sha> <pre-rebase-sha>", argv[2]), ("<onto-sha> <pre-rebase-sha>", fourth))
+    else:
+        shas = ()
+    for label, value in shas:
+        if not re.fullmatch(r"[0-9a-f]{7,40}", value):
+            return _refuse(f"build-verify-prompt: {phase} needs {label} as 7-40 lowercase hex characters, got '{value}'")
     return 0
 

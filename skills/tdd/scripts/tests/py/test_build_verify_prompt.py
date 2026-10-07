@@ -87,3 +87,59 @@ def test_main_parses_only_leading_options_in_either_order_the_last_winning_and_r
     assert repeated == step_first
     assert build_verify_prompt.PHASES == (
         "red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff")
+
+
+def test_main_admits_every_sha_slot_only_as_a_whole_string_lowercase_hex_match_and_refuses_diff_without_step_ahead_of_its_shas(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    s = str(spec)
+
+    def run(argv):
+        code = build_verify_prompt.main(argv)
+        return (code, *capsysbinary.readouterr())
+
+    def refusal(message):
+        return (2, b"", message + b"\n" + USAGE)
+
+    def bad_sha(phase, label, value):
+        return refusal(b"build-verify-prompt: " + phase + b" needs " + label
+                       + b" as 7-40 lowercase hex characters, got '" + value + b"'")
+
+    refused = {tuple(argv): run(argv) for argv in (
+        ["--fast-cmd", "m", "refactor", s, "t", "0123ABC"],
+        ["--fast-cmd", "m", "refactor", s, "t", "0123abc\n"],
+        ["transform", s, "t", "012345"],
+        ["--fast-cmd", "m", "diff", s, "zz", "zz"],
+        ["--step", "s", "--fast-cmd", "m", "diff", s, "xyz", "0123abG"],
+        ["--step", "s", "--fast-cmd", "m", "diff", s, "xyz", "0123abc"],
+        ["rebase", s, "nothex", "0123abc"],
+        ["rebase", s, "0123abc", "bad"],
+        ["rebase", s, "0123abc"],
+        ["--step", "s", "diff", s, "bad", "bad"],
+        ["diff", s, "bad", "bad"],
+    )}
+    assert refused == {
+        ("--fast-cmd", "m", "refactor", s, "t", "0123ABC"): bad_sha(b"refactor", b"<base-sha>", b"0123ABC"),
+        ("--fast-cmd", "m", "refactor", s, "t", "0123abc\n"): bad_sha(b"refactor", b"<base-sha>", b"0123abc\n"),
+        ("transform", s, "t", "012345"): bad_sha(b"transform", b"<base-sha>", b"012345"),
+        ("--fast-cmd", "m", "diff", s, "zz", "zz"): refusal(b"build-verify-prompt: diff needs --step '<STEP>'"),
+        ("--step", "s", "--fast-cmd", "m", "diff", s, "xyz", "0123abG"): bad_sha(
+            b"diff", b"<step-base-sha>", b"0123abG"),
+        ("--step", "s", "--fast-cmd", "m", "diff", s, "xyz", "0123abc"): bad_sha(b"diff", b"<base-sha>", b"xyz"),
+        ("rebase", s, "nothex", "0123abc"): bad_sha(b"rebase", b"<onto-sha> <pre-rebase-sha>", b"nothex"),
+        ("rebase", s, "0123abc", "bad"): bad_sha(b"rebase", b"<onto-sha> <pre-rebase-sha>", b"bad"),
+        ("rebase", s, "0123abc"): bad_sha(b"rebase", b"<onto-sha> <pre-rebase-sha>", b""),
+        ("--step", "s", "diff", s, "bad", "bad"): refusal(
+            b"build-verify-prompt: diff needs --fast-cmd '<fast-tier test command>'"),
+        ("diff", s, "bad", "bad"): refusal(
+            b"build-verify-prompt: diff needs --fast-cmd '<fast-tier test command>'"),
+    }
+
+    admitted = [run(argv)[::2] for argv in (
+        ["--fast-cmd", "m", "refactor", s, "t", "0123456789abcdef0123456789abcdef01234567"],
+        ["transform", s, "t", "0123abc"],
+        ["rebase", s, "0123abc", "0123abd"],
+        ["--step", "s", "--fast-cmd", "m", "diff", s, "0123abc", "0123abd"],
+    )]
+    assert admitted == [(0, b"")] * 4
