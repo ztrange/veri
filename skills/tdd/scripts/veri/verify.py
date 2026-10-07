@@ -11,6 +11,10 @@ USAGE = ("usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue
 def main(argv):
     args = list(argv)
     while args and takes_a_value(args[0]):
+        if len(args) < 2 or not args[1]:
+            _write(sys.stderr, "verify: %s needs a value" % args[0])
+            _write(sys.stderr, USAGE)
+            return 2
         args = args[2:]
     if len(args) < 3:
         _write(sys.stderr, USAGE)
