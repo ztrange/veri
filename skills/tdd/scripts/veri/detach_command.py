@@ -41,6 +41,11 @@ def main(argv):
     exit_file, pid_file = f".tdd/{name}.exit", f".tdd/{name}.pid"
     if mode == "wait":
         return _wait(exit_file, pid_file)
+    try:
+        os.unlink(exit_file)
+    except FileNotFoundError:
+        pass
+    open(f".tdd/{name}.out", "w").close()
     pid = detach.start(rest, None, None, None)
     with open(pid_file, "w") as handle:
         handle.write(f"{pid}\n")
