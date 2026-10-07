@@ -475,3 +475,18 @@ def test_main_keeps_a_last_line_without_a_trailing_newline_after_inserting_besid
         "- [ ] b two ⟦criterion 2⟧",
         "- [ ] c three ⟦criterion 3⟧",
     ]
+
+
+def test_main_counts_a_last_added_step_without_a_trailing_newline_against_the_budget_and_owes_the_batch_817(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.setenv("VERI_STEP_GROWTH", "1")
+    ledger = tmp_path / "issue-42.md"
+    seed = LEDGER.decode().removesuffix(" ⟦criterion 3⟧\n") + " ⟦added⟧ ⟦criterion 3⟧"
+    ledger.write_bytes(seed.encode())
+
+    code = add_ledger_step.main([str(ledger), "after", "b two", "t"])
+    captured = capsys.readouterr()
+
+    after = ledger.read_bytes().decode()
+    assert (code, captured.out, captured.err) == (1, "", "")
+    assert "- [ ] t" not in after
+    assert after.endswith("## Owed steps\n\n- t\n")
