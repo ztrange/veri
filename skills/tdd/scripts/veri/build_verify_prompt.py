@@ -65,10 +65,9 @@ def main(argv):
         paths.append(f"{prompts}/_verify-red-bug.md")
     if phase == "plan" and _has_heading(spec, b"Refactor"):
         paths.append(f"{prompts}/_verify-plan-refactor.md")
-    if phase == "green" and "⟦replaces-case⟧" in options["--step"]:
-        paths.append(f"{prompts}/_verify-green-replaces-case.md")
-    if phase == "green" and "⟦suite-repair⟧" in options["--step"]:
-        paths.append(f"{prompts}/_verify-green-suite-repair.md")
+    for mark in ("replaces-case", "suite-repair"):
+        if phase == "green" and f"⟦{mark}⟧" in options["--step"]:
+            paths.append(f"{prompts}/_verify-green-{mark}.md")
     if phase == "plan":
         paths.append(argv[2])
     for path in paths:
