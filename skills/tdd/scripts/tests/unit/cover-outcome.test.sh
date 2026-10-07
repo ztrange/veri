@@ -118,4 +118,15 @@ PROOF: $proof"
 [[ "$code" == 2 ]] || problems+=("no COVERED: line with a PROOF: line: want exit 2, got $code")
 verdict "$name"
 
+name="a report with no COVERED: line exits 2, stdout empty, stderr exactly 'cover-outcome: no COVERED: line found'"
+problems=()
+err_file="$(mktemp)"
+out="$(printf '%s' "some narration with no report lines at all" | "$COVER_OUTCOME" 2>"$err_file")" && code=0 || code=$?
+err="$(cat "$err_file")"
+rm -f "$err_file"
+[[ "$code" == 2 ]] || problems+=("want exit 2, got $code")
+[[ -z "$out" ]] || problems+=("want empty stdout, got '$(printf '%s' "$out" | tr '\n' '|')'")
+[[ "$err" == "cover-outcome: no COVERED: line found" ]] || problems+=("want stderr 'cover-outcome: no COVERED: line found', got '$(printf '%s' "$err" | tr '\n' '|')'")
+verdict "$name"
+
 finish
