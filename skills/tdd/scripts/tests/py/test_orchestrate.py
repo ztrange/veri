@@ -337,3 +337,40 @@ def test_the_watch_prints_each_assistant_lines_cache_read_plus_creation_and_stop
     assert snapshots[1] == "context 7 15\n"
     assert stops == [(4001, signal.SIGTERM), (4002, signal.SIGTERM)]
     assert len(asks) == 3
+
+
+def test_the_budget_reads_as_bash_does_unset_or_empty_120000_a_leading_zero_octal_and_08_or_09_never_stopping_with_an_error_per_comparison(
+        capsys, monkeypatch, tmp_path, orchestrate):
+    monkeypatch.chdir(tmp_path)
+
+    def step_done(read):
+        return (b'{"type":"assistant","input":"bash event.sh step-done 1",'
+                b'"usage":{"cache_read_input_tokens":%d,"cache_creation_input_tokens":0}}\n' % read)
+
+    stream = b"".join(step_done(n) + b'{"type":"user","content":"ok"}\n' for n in (32768, 50000, 120000, 120001))
+    stream += b'{"type":"assistant","usage":{"cache_read_input_tokens":1,"cache_creation_input_tokens":1}}\n'
+    every = "".join("context 7 %d\n" % n for n in (32768, 50000, 120000, 120001, 2))
+
+    def run(budget):
+        if budget is None:
+            monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+        else:
+            monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", budget)
+        _passes(monkeypatch, [(0, "7\n"), (3, "")], lambda n, issue: None)
+
+        def fake_popen(args, *rest, **kwargs):
+            conductor = _FakeConductor(4001)
+            conductor.stdout = io.BytesIO(stream)
+            return conductor
+
+        monkeypatch.setattr(subprocess, "Popen", fake_popen)
+        code = orchestrate.main([])
+        out, err = capsys.readouterr()
+        return code, out, err
+
+    assert run(None) == (0, "context 7 32768\ncontext 7 50000\ncontext 7 120000\ncontext 7 120001\n", "")
+    assert run("") == (0, "context 7 32768\ncontext 7 50000\ncontext 7 120000\ncontext 7 120001\n", "")
+    assert run("0100000") == (0, "context 7 32768\ncontext 7 50000\n", "")
+    for budget in ("08", "09"):
+        error = 'orchestrate.sh: %s: value too great for base (error token is "%s")\n' % (budget, budget)
+        assert run(budget) == (0, every, error * 4)
