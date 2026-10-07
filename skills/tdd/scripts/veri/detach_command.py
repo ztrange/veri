@@ -1,5 +1,6 @@
 """detach-command.sh's start and wait, run in-process."""
 import os
+import re
 import subprocess
 import sys
 
@@ -42,6 +43,9 @@ def main(argv):
     mode, name, rest = argv[0], argv[1], argv[2:]
     exit_file, pid_file = f".tdd/{name}.exit", f".tdd/{name}.pid"
     if mode == "wait":
+        if rest and rest[0] and not re.fullmatch("[0-9]+", rest[0]):
+            print(USAGE, file=sys.stderr)
+            return 2
         return _wait(exit_file, pid_file)
     try:
         os.unlink(exit_file)

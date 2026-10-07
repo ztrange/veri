@@ -143,3 +143,22 @@ def test_main_refuses_start_alone_and_an_empty_mode_like_no_arguments_touching_n
         assert (argv, code, capsys.readouterr(), launches) == (argv, 2, ("", USAGE), [])
     after = {path.name: (path.read_text(), path.stat().st_mtime_ns) for path in tdd.iterdir()}
     assert (after, sorted(p.name for p in tmp_path.iterdir())) == (before, [".tdd"])
+
+
+def test_wait_refuses_a_max_seconds_not_all_ascii_digits_before_reading_any_file_but_not_an_empty_one(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "x.exit").write_text("0\n")
+    (tdd / "x.pid").write_text("4242\n")
+    kills = []
+    monkeypatch.setattr(os, "kill", lambda pid, signum: kills.append(pid))
+    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+
+    for max_seconds in ("abc", "1.5", "10+5", "-1", " 5"):
+        code = detach_command.main(["wait", "x", max_seconds])
+        assert (max_seconds, code, capsys.readouterr(), kills) == (max_seconds, 2, ("", USAGE), [])
+
+    code = detach_command.main(["wait", "x", ""])
+    assert (code != 2, capsys.readouterr().err) == (True, "")
