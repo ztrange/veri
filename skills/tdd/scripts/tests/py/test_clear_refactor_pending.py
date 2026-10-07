@@ -746,6 +746,30 @@ def test_main_returns_2_without_raising_restoring_the_old_bytes_and_nothing_besi
     assert (code, b"Traceback" in err, led.read_bytes(), beside) == (2, False, seed, [])
 
 
+def test_main_returns_2_without_raising_and_names_the_leftover_backup_in_one_stderr_line_when_removing_it_raises_without_deleting_it_1125(
+        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
+    seed = "".join(f"- [x] step {n} ⟂ refactor pending\n" for n in range(8)).encode()
+    led = tmp_path / "ledger.md"
+    led.write_bytes(seed)
+
+    def refusing_unlink(path, *args, **kwargs):
+        raise OSError(errno.EIO, os.strerror(errno.EIO), path)
+
+    monkeypatch.setattr(os, "unlink", refusing_unlink)
+    try:
+        code = clear_refactor_pending.main([str(led), "step 3"])
+    except OSError as error:
+        code = type(error).__name__
+    monkeypatch.undo()
+    err = capsysbinary.readouterr().err
+    beside = [p for p in tmp_path.iterdir() if p.name != "ledger.md"]
+
+    assert (code, b"Traceback" in err, len(beside)) == (2, False, 1)
+    lines = err.decode().splitlines()
+    assert (len(lines), all(line.startswith("clear-refactor-pending.sh: ") and str(beside[0]) in line
+                            for line in lines)) == (1, True)
+
+
 def test_main_returns_2_on_a_missing_ledger_with_one_stderr_line_naming_it(
         tmp_path, capsysbinary, clear_refactor_pending):
     code = clear_refactor_pending.main([str(tmp_path / "missing.md"), "a"])
