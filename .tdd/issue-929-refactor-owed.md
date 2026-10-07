@@ -17,3 +17,4 @@
 - the step-block scoping sentence exists as a bytes literal in the module and again in two pytest cases; a module constant the tests import would remove the duplication, but that is a cross-file change, so I only report it
 - test-only | test_build_verify_prompt.py copies the module into a scratch `scripts/veri/` and loads it with `importlib.util.spec_from_file_location` in four tests (`:155`, `:215`, `:247`, `:323`) — one helper or fixture would hold it
 - test-only | the per-test `run(argv)` helper that returns `(code, *capsysbinary.readouterr())` is defined six times, and the step-block bytes are spelled at `:229` and again in `block()` at `:345`
+applied | 16e6aec1c33be6a95152d7d75b353752e8c5d12a | read the spec once and test both the Bug and Refactor headings on those bytes, instead of `_has_heading` opening the spec twice
