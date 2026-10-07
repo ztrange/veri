@@ -158,4 +158,25 @@ as_predicted_report | "$DIVERGENCE" > "$streams/stdout" 2> "$streams/stderr" && 
 [[ ! -s "$streams/stderr" ]] || problems+=("want nothing on stderr, got '$(tr '\n' '|' < "$streams/stderr")'")
 verdict "$name"
 
+name="run through a symlink to the skill directory and from another working directory, it answers as in place"
+problems=()
+scratch="$(scratch_dir)"
+ln -s "$(cd "$HERE/../../.." && pwd)" "$scratch/skill"
+mkdir "$scratch/elsewhere"
+answer() {
+  local report="$1" bin="$2" dir="$3" o c
+  o="$(cd "$dir" && printf '%s' "$report" | "$bin" 2>"$scratch/err")" && c=0 || c=$?
+  printf 'exit=%s|stdout=%s|stderr=%s' "$c" "$o" "$(cat "$scratch/err")"
+}
+for pair in "0:$(surprise_report 'PREDICTION: DIVERGED' "PREDICTION_NOTE: $note")" \
+            "3:$(as_predicted_report 'PREDICTION: MATCHED')" \
+            "2:$(as_predicted_report)"; do
+  want_code="${pair%%:*}" report="${pair#*:}"
+  in_place="$(answer "$report" "$DIVERGENCE" "$HERE")"
+  linked="$(answer "$report" "$scratch/skill/scripts/red-divergence.sh" "$scratch/elsewhere")"
+  [[ "$in_place" == "exit=$want_code|"* ]] || problems+=("in place: want exit $want_code, got '$in_place'")
+  [[ "$linked" == "$in_place" ]] || problems+=("exit $want_code report: want '$in_place', got '$linked'")
+done
+verdict "$name"
+
 finish
