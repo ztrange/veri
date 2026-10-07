@@ -1,0 +1,6 @@
+# Plan for #1125 — clear-refactor-pending.sh keeps the ledger's backup when restoring it fails, instead of deleting the last good copy
+
+- [ ] clear-refactor-pending.sh: when the in-place open really truncates the ledger, the write fails, the write-back fails and restoring the backup fails, the run exits 2 with no traceback, keeps the backup beside the ledger holding the ledger's old bytes, and names that backup in exactly one `clear-refactor-pending.sh: …` stderr line ⟦criterion 1⟧
+- [ ] clear-refactor-pending.sh: when the in-place open really truncates the ledger, the write fails, the write-back fails and restoring the backup succeeds, the run exits 2 with no traceback, the ledger holds its old bytes and nothing is left beside it ⟦criterion 1⟧
+- [ ] clear-refactor-pending.sh: when removing the backup raises without deleting it, the run exits 2 with no traceback and names the leftover backup in exactly one `clear-refactor-pending.sh: …` stderr line, so nothing is left beside the ledger unannounced ⟦criterion 2⟧
+- [ ] tick-ledger.sh: when putting the ticked ledger in place fails and removing its temporary file raises without deleting it, the run exits 2 with no traceback, the ledger is byte-identical, and the leftover temporary file is named in exactly one `tick-ledger.sh: …` stderr line ⟦criterion 2⟧
