@@ -62,3 +62,21 @@ def test_report_read_drops_nul_bytes_before_parsing_so_a_nul_in_a_value_or_a_key
     answers = report.report_read("CAUGHT_BY: a\0b\nCOV\0ERED: y\0es\n", ("COVERED", "CAUGHT_BY"))
 
     assert answers == {"CAUGHT_BY": "ab", "COVERED": "yes"}
+
+
+def test_report_read_with_optional_space_matches_key_colon_with_or_without_a_space_and_removes_at_most_one_and_the_option_is_keyword_only_and_off_by_default(report):
+    answers = {
+        "no space": report.report_read("PREDICATE:x\n", ("PREDICATE",), optional_space=True),
+        "one space": report.report_read("PREDICATE: x\n", ("PREDICATE",), optional_space=True),
+        "two spaces": report.report_read("PREDICATE:  x\n", ("PREDICATE",), optional_space=True),
+        "default, no space": report.report_read("PREDICATE:x\n", ("PREDICATE",)),
+    }
+
+    assert answers == {
+        "no space": {"PREDICATE": "x"},
+        "one space": {"PREDICATE": "x"},
+        "two spaces": {"PREDICATE": " x"},
+        "default, no space": {},
+    }
+    with pytest.raises(TypeError):
+        report.report_read("PREDICATE:x\n", ("PREDICATE",), True)
