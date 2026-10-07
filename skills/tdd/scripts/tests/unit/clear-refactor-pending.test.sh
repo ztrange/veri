@@ -54,14 +54,6 @@ else
   printf '    stdout: %s\n    stderr: %s\n' "$(cat "$work/out")" "$(cat "$work/err")"
 fi
 
-"$CLEAR" "$work/absent.md" "collapse to single hyphen" > "$work/out" 2>/dev/null && code=0 || code=$?
-if [[ "$code" == 1 && ! -s "$work/out" ]]; then
-  ok
-else
-  no "a ledger path that does not exist exits 1 with nothing on stdout (want exit 1, got $code)"
-  printf '    stdout: %s\n' "$(cat "$work/out")"
-fi
-
 mkdir "$work/dir-ledger.md"
 "$CLEAR" "$work/dir-ledger.md" "collapse to single hyphen" > "$work/out" 2> "$work/err" && code=0 || code=$?
 dir_err="$(cat "$work/err")"
@@ -71,6 +63,16 @@ if [[ "$code" == 2 && ! -s "$work/out" ]] && [[ "$(wc -l < "$work/err")" -eq 1 ]
 else
   no "#1083: a directory as the ledger exits 2 with one stderr line naming the path and the reason, no traceback (want exit 2, got $code)"
   printf '    stdout: %s\n    stderr: %s\n' "$(cat "$work/out")" "$dir_err"
+fi
+
+"$CLEAR" "$work/missing-ledger.md" "collapse to single hyphen" > "$work/out" 2> "$work/err" && code=0 || code=$?
+missing_err="$(cat "$work/err")"
+if [[ "$code" == 2 && ! -s "$work/out" ]] && [[ "$(wc -l < "$work/err")" -eq 1 ]] \
+  && [[ "$missing_err" == *"$work/missing-ledger.md"* && "$missing_err" != *Traceback* ]]; then
+  ok
+else
+  no "#1083: a ledger path that does not exist exits 2 with one stderr line naming the path, no traceback (want exit 2, got $code)"
+  printf '    stdout: %s\n    stderr: %s\n' "$(cat "$work/out")" "$missing_err"
 fi
 
 ln -s "$(cd "$HERE/../../.." && pwd)" "$work/skill-link"
