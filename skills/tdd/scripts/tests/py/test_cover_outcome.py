@@ -103,3 +103,20 @@ def test_main_answers_each_proof_branch_of_unreachable_and_type_only(monkeypatch
         "PROOF: NONE — no caller": (3, "type-only: NONE — no caller\n", ""),
         "unreachable with PROOF": (3, "unreachable: no caller reaches the branch\n", ""),
     }
+
+
+def test_main_passes_a_byte_that_is_not_utf_8_through_unchanged_from_caught_by_and_from_proof(monkeypatch, capsysbinary, cover_outcome):
+    def run_bytes(report):
+        monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(report), encoding="utf-8", newline="\n"))
+        code = cover_outcome.main([])
+        return (code, *capsysbinary.readouterr())
+
+    results = {
+        "CAUGHT_BY": run_bytes(b"COVERED: yes\nCAUGHT_BY: widget\xff.test.sh\n"),
+        "PROOF": run_bytes(b"COVERED: type-only\nPROOF: npx tsc \xff--noEmit\n"),
+    }
+
+    assert results == {
+        "CAUGHT_BY": (0, b"widget\xff.test.sh\n", b""),
+        "PROOF": (3, b"type-only: npx tsc \xff--noEmit\n", b""),
+    }

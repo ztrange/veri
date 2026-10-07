@@ -4,22 +4,27 @@ import sys
 from report import report_read
 
 
+def write(stream, text):
+    stream.buffer.write((text + "\n").encode("utf-8", "surrogateescape"))
+
+
 def main(argv):
-    fields = report_read(sys.stdin.read(), ("COVERED", "CAUGHT_BY", "PROOF"))
+    report = sys.stdin.buffer.read().decode("utf-8", "surrogateescape")
+    fields = report_read(report, ("COVERED", "CAUGHT_BY", "PROOF"))
     covered = fields.get("COVERED", "")
     if covered == "yes":
-        print(fields.get("CAUGHT_BY", ""))
+        write(sys.stdout, fields.get("CAUGHT_BY", ""))
         return 0
     if covered == "no":
         return 1
     if covered in ("unreachable", "type-only"):
         proof = fields.get("PROOF", "")
         if proof in ("", "NONE"):
-            print("cover-outcome: COVERED: %s without a PROOF: line" % covered, file=sys.stderr)
+            write(sys.stderr, "cover-outcome: COVERED: %s without a PROOF: line" % covered)
             return 2
-        print("%s: %s" % (covered, proof))
+        write(sys.stdout, "%s: %s" % (covered, proof))
         return 3
-    print("cover-outcome: no COVERED: line found", file=sys.stderr)
+    write(sys.stderr, "cover-outcome: no COVERED: line found")
     return 2
 
 
