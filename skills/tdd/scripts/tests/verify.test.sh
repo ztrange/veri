@@ -860,4 +860,19 @@ done
 [[ -z "$empty_step_problems" ]] && ok \
   || no "#753: verify.sh given --step \"\" or a trailing --step with no value exits 2, names --step on stderr and launches no verifier leaf (${empty_step_problems#; })"
 
+linked_skill="$stubdir/linked-skill"
+ln -s "$HERE/../.." "$linked_skill"
+caller="$work/linked-caller"
+mkdir -p "$caller"
+out="$( cd "$caller" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$caller/argv" FAKE_OUT_TEXT='VERDICT: PASS
+REASON: run through the link' "$linked_skill/scripts/verify.sh" red "$work/spec.md" tests/test_slugify.py test_lowercases 2>"$caller/err" )"
+code=$?
+linked_verdict="$(verdict_field_in "$caller" verdict)"
+{ [[ "$code" == 0 ]] \
+  && [[ "$out" == 'run through the link' ]] \
+  && grep -F 'slugify must lowercase' "$caller/argv" >/dev/null \
+  && grep -F 'slugify must lowercase' "$caller/.tdd/verify-red.prompt" >/dev/null \
+  && [[ "$linked_verdict" == PASS ]]; } && ok \
+  || no "verify.sh run through a symlink to the skill directory from another working directory finds its siblings and writes .tdd/ under the caller's directory (code=$code want 0; stdout='$out'; verdict event=$linked_verdict; prompt file $( [[ -e "$caller/.tdd/verify-red.prompt" ]] && echo present || echo missing ); stderr: $(head -3 "$caller/err"))"
+
 finish
