@@ -1,14 +1,11 @@
 """cover-outcome.sh's answer, read off a cover leaf's report on stdin."""
 import sys
 
+from report import report_read
+
 
 def main(argv):
-    fields = {}
-    for line in sys.stdin.read().split("\n"):
-        for key in ("COVERED", "CAUGHT_BY", "PROOF"):
-            if line.startswith(key + ": "):
-                fields[key] = line[len(key) + 2:]
-                break
+    fields = report_read(sys.stdin.read(), ("COVERED", "CAUGHT_BY", "PROOF"))
     covered = fields.get("COVERED", "")
     if covered == "yes":
         print(fields.get("CAUGHT_BY", ""))
