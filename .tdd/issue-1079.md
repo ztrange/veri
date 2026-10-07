@@ -1,0 +1,4 @@
+# Plan for #1079 — skill-structural-pass.test.sh's #1058 case reads SKILL.md to its end, because its excerpt bound "The transform leaf" no longer exists
+
+- [ ] The #1058 structural-pass case in skills/tdd/scripts/tests/skill-structural-pass.test.sh bounds its excerpt at a phrase SKILL.md contains and that ends the structural pass's predicate handling (after the exit-1 "recorded the same way, at the current HEAD" instruction and before the Draft PR step's out-of-scope re-check); when that bound phrase is missing from SKILL.md the case fails naming the phrase instead of reading to the end of the file; the suite stays green on the current SKILL.md ⟦diff-checked⟧ ⟦criterion 1⟧
+- [ ] Deleting the structural pass's "record it applied" instruction from SKILL.md, while the Draft PR step's refactor-owed.sh applied stays, turns the case red — watched red once, then the line put back ⟦human-owed⟧ ⟦criterion 2⟧
