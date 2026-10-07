@@ -18,7 +18,7 @@ def read_guard(path):
 
 
 def render_printf(fmt, arg):
-    escapes = {"n": "\n", "t": "\t", "\\": "\\"}
+    escapes = {"n": "\n", "t": "\t", "r": "\r", "a": "\a", "\\": "\\"}
     args = [arg]
     out = []
     i = 0
@@ -31,6 +31,13 @@ def render_printf(fmt, arg):
         elif c == "%" and nxt == "s":
             out.append(args.pop(0) if args else "")
             i += 2
+        elif c == "%" and nxt == "d":
+            out.append("0")
+            i += 2
+        elif c == "\\" and re.match(r"[0-7]", nxt):
+            digits = re.match(r"[0-7]{1,3}", fmt[i + 1:]).group(0)
+            out.append(chr(int(digits, 8)))
+            i += 1 + len(digits)
         elif c == "\\" and nxt in escapes:
             out.append(escapes[nxt])
             i += 2

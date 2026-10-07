@@ -126,3 +126,17 @@ def test_main_renders_the_countless_refusal_as_bash_printf_does_with_the_suite_n
     assert (code, out.splitlines()[-2:]) == (
         1, ["partial.test.sh: 100% sure\ttab\\back  end", "partial.test.sh: its last line was: partial"]
     )
+
+
+def test_main_renders_the_countless_refusal_escapes_and_an_argless_conversion_as_bash_printf_does(tmp_path, capfdbinary):
+    scripts = tmp_path / "scripts"
+    run_suite = staged_module(scripts)
+    (scripts / "lib" / "count-line-guard.sh").write_text(
+        "COUNT_LINE='^[0-9]+ passed, [0-9]+ failed$'\n"
+        "COUNTLESS='%s: cr\\rbell\\a\\0101oct %d end\\n'\n"
+    )
+    code = run_suite.main([fake_suite(tmp_path, "partial.test.sh", "echo partial\nexit 0\n")])
+    out, _ = capfdbinary.readouterr()
+    assert (code, out.split(b"\n")[-3:]) == (
+        1, [b"partial.test.sh: cr\rbell\a\b1oct 0 end", b"partial.test.sh: its last line was: partial", b""]
+    )
