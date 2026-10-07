@@ -55,3 +55,38 @@ def test_main_accepts_a_mode_added_to_stop_modes_and_refuses_one_outside_it_nami
     assert capsysbinary.readouterr() == (
         b"",
         "stop-requested: .tdd/stop must name a mode — at-ledger, at-leaf, now or at-step: 'bogus'\n".encode())
+
+
+def test_main_reads_its_arguments_as_stop_requested_sh_does(
+        monkeypatch, tmp_path, capsysbinary, stop_requested):
+    monkeypatch.chdir(tmp_path)
+    stop = tmp_path / ".tdd" / "stop"
+    stop.parent.mkdir()
+    usage = (b"", b"usage: stop-requested.sh [--clear]\n")
+
+    stop.write_bytes(b"now\n")
+    assert stop_requested.main(["--clear", "--bogus"]) == 2
+    assert capsysbinary.readouterr() == usage
+    assert stop.read_bytes() == b"now\n"
+
+    stop.write_bytes(b"bogus\n")
+    assert stop_requested.main(["--bogus", "--clear"]) == 2
+    assert capsysbinary.readouterr() == usage
+    assert stop.read_bytes() == b"bogus\n"
+
+    for word in ("clear", "--CLEAR", "--clear=1", "--bogus"):
+        stop.write_bytes(b"at-leaf\n")
+        assert stop_requested.main([word]) == 2, word
+        assert capsysbinary.readouterr() == usage, word
+        assert stop.read_bytes() == b"at-leaf\n", word
+
+    for mode in (b"at-ledger", b"at-leaf", b"now"):
+        stop.write_bytes(mode + b"\n")
+        assert stop_requested.main([""]) == 0, mode
+        assert capsysbinary.readouterr() == (mode + b"\n", b""), mode
+        assert stop_requested.main([]) == 0, mode
+        assert capsysbinary.readouterr() == (mode + b"\n", b""), mode
+
+    stop.unlink()
+    assert stop_requested.main([""]) == 3
+    assert capsysbinary.readouterr() == (b"", b"")
