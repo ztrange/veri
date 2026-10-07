@@ -123,3 +123,23 @@ def test_start_with_no_tdd_directory_raises_naming_the_out_file_launching_nothin
     with pytest.raises(FileNotFoundError) as raised:
         detach_command.main(["start", "x", "true"])
     assert (raised.value.filename, launches, list(tmp_path.iterdir())) == (".tdd/x.out", [], [])
+
+
+def test_main_refuses_start_alone_and_an_empty_mode_like_no_arguments_touching_nothing(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    for name, text in (("x.exit", "7\n"), ("x.out", "old\n"), ("x.pid", "99\n"), (".exit", "5\n")):
+        (tdd / name).write_text(text)
+    before = {path.name: (path.read_text(), path.stat().st_mtime_ns) for path in tdd.iterdir()}
+    launches = []
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: launches.append(args))
+    monkeypatch.setattr(importlib.import_module("detach"), "start",
+                        lambda *args: launches.append(args) or 4242)
+
+    for argv in ([], ["start"], ["", "x"]):
+        code = detach_command.main(argv)
+        assert (argv, code, capsys.readouterr(), launches) == (argv, 2, ("", USAGE), [])
+    after = {path.name: (path.read_text(), path.stat().st_mtime_ns) for path in tdd.iterdir()}
+    assert (after, sorted(p.name for p in tmp_path.iterdir())) == (before, [".tdd"])
