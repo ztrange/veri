@@ -85,7 +85,7 @@ def main(argv):
                 stream = f.read()
         except OSError as error:
             complain(stream_path, error)
-            return 1
+            return 2
     finally:
         os.close(stream_fd)
         for path in (stream_path, git_path):
