@@ -64,10 +64,13 @@ def main(argv):
         return refuse("add-ledger-step.sh: position must be after, before or instead-of: " + where)
     try:
         with open(path, "rb") as f:
-            lines = f.read().decode(errors=BYTES).split("\n")[:-1]
+            lines = f.read().decode(errors=BYTES).split("\n")
     except OSError as error:
         warn(f"add-ledger-step.sh: {path}: {error.strerror}")
-        lines = []
+        lines = [""]
+    terminated = lines[:-1]
+    if lines[-1] == "":
+        lines = terminated
     if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:
         return refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
     budget = os.environ.get("VERI_STEP_GROWTH", "5")
@@ -78,7 +81,7 @@ def main(argv):
     if cap is None:
         warn(f'add-ledger-step.sh: {budget}: value too great for base (error token is "{budget}")')
     elif added + sum(not is_repair(text) for text in texts) > cap:
-        headings = [line for line in lines if line.startswith("## ")]
+        headings = [line for line in terminated if line.startswith("## ")]
         owed = "" if headings[-1:] == ["## Owed steps"] else "\n## Owed steps\n\n"
         owed += "".join(f"- {text}\n" for text in texts)
         write_ledger(path, "ab", owed)
