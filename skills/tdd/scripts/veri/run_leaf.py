@@ -37,18 +37,26 @@ def main(argv):
         print(f"run-leaf.sh: {argv[0]}: {error.strerror}", file=sys.stderr)
         return 1
     stream_fd, stream_path = tempfile.mkstemp(dir=os.environ.get("TMPDIR") or "/tmp")
-    with subprocess.Popen(leaf_argv(prompt, argv[1:]), stdout=subprocess.PIPE) as leaf:
-        stream = b""
-        while chunk := os.read(leaf.stdout.fileno(), 65536):
-            os.write(1, chunk)
-            os.write(stream_fd, chunk)
-            stream += chunk
+    command = leaf_argv(prompt, argv[1:])
+    stream = b""
+    try:
+        leaf = subprocess.Popen(command, stdout=subprocess.PIPE)
+    except OSError as error:
+        print(f"run-leaf.sh: {command[0]}: {error.strerror}", file=sys.stderr)
+        status = 2
+    else:
+        with leaf:
+            while chunk := os.read(leaf.stdout.fileno(), 65536):
+                os.write(1, chunk)
+                os.write(stream_fd, chunk)
+                stream += chunk
+        status = leaf.returncode
     os.close(stream_fd)
     os.remove(stream_path)
     os.write(1, b"\n")
     text = stream.decode(sys.__stdin__.encoding, sys.__stdin__.errors)
     os.write(1, extract(text).encode(sys.__stdout__.encoding, sys.__stdout__.errors))
-    return leaf.returncode
+    return status if 0 <= status <= 3 else 2
 
 
 if __name__ == "__main__":
