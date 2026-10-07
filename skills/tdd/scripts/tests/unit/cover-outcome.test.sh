@@ -111,4 +111,10 @@ printf 'ab\n' >"$scratch/want"
 cmp -s "$scratch/want" "$scratch/out" || problems+=("want stdout 'ab', got '$(tr '\0\n' '@|' <"$scratch/out")' (@ is a NUL)")
 verdict "$name"
 
+name="#1089: a COVERED: line of y NUL es exits 0, as COVERED: yes does"
+problems=()
+printf 'COVERED: y\0es\nCAUGHT_BY: t\n' | "$COVER_OUTCOME" >/dev/null 2>&1 && code=0 || code=$?
+[[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
+verdict "$name"
+
 finish
