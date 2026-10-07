@@ -171,4 +171,33 @@ cmp -s "$tmp/in-place.err" "$tmp/linked.err" ||
 
 report "$name"
 
+name='with VERI_GH_DRIVER unset capture-spec.sh reads the issue through gh api only, prints the spec and runs no gh issue view (#1114)'
+problems=()
+restdir="$tmp/rest"
+mkdir -p "$restdir/bin"
+cat > "$restdir/issue.json" <<'JSON'
+{"labels":[],"body":"## What to build\n\ntick-ledger.sh grows a flag.\n"}
+JSON
+cat > "$restdir/bin/gh" <<'STUB'
+#!/bin/sh
+echo "gh $*" >> "$FIXTURES/calls"
+case "$*" in
+  'api repos/{owner}/{repo}/issues/7') cat "$FIXTURES/issue.json" ;;
+  *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
+esac
+STUB
+chmod +x "$restdir/bin/gh"
+: > "$restdir/calls"
+code=0
+env -u VERI_GH_DRIVER PATH="$restdir/bin:$PATH" FIXTURES="$restdir" "$SCRIPT" 7 \
+  > "$tmp/rest.out" 2> "$tmp/rest.err" || code=$?
+[[ "$code" == 0 ]] || problems+=("exit want 0 got $code; stderr: $(head -2 "$tmp/rest.err")")
+want_out=$'## What to build\n\ntick-ledger.sh grows a flag.'
+[[ "$(cat "$tmp/rest.out")" == "$want_out" ]] ||
+  problems+=("stdout want the issue body got: $(cat "$tmp/rest.out")")
+! grep -F 'gh issue view' "$restdir/calls" > /dev/null ||
+  problems+=("gh issue view was called: $(grep -F 'gh issue view' "$restdir/calls")")
+
+report "$name"
+
 finish
