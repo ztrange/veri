@@ -23,6 +23,14 @@ def write_beside(path, data):
     return tmp
 
 
+def holds(path, raw):
+    try:
+        with open(path, "rb") as file:
+            return file.read() == raw
+    except OSError:
+        return False
+
+
 def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
@@ -63,12 +71,16 @@ def main(argv):
                 try:
                     os.replace(backup, path)
                 except OSError:
-                    pass
+                    if not holds(argv[0], raw):
+                        print(f"clear-refactor-pending.sh: {argv[0]}: write failed; old ledger kept at {backup}",
+                              file=sys.stderr)
+                        backup = None
     finally:
-        try:
-            os.unlink(backup)
-        except OSError:
-            code = 2
+        if backup is not None:
+            try:
+                os.unlink(backup)
+            except OSError:
+                code = 2
     return code
 
 
