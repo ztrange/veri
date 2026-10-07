@@ -1,30 +1,11 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # structural-predicate.sh <record> — read a predicate leaf's report on stdin and write its
-# `PREDICATE:` command to <record>.
+# `PREDICATE:` command to <record>: a shim over veri/structural_predicate.py.
 #
-# Exit codes: 0 the command was written; 1 the command already succeeds on the current tree,
-# nothing written; 2 bad arguments, or no `PREDICATE:` line; 3 `PREDICATE: NONE [— <why>]`,
-# `NONE—<why>` or `NONE: <why>`, nothing written.
+# usage: structural-predicate.sh <record>
+#        structural-predicate.sh .tdd/issue-<n>-predicate < <leaf-report>
 #
-# Usage:   structural-predicate.sh .tdd/issue-<n>-predicate < <leaf-report>
-set -euo pipefail
-
-HERE="$(cd "$(dirname "$0")" && pwd)"
-source "$HERE/lib/exit-contract.sh"
-source "$HERE/lib/report.sh"
-USAGE="usage: structural-predicate.sh <record>"
-require_args 1 "$@"
-record="$1"
-
-unset predicate
-report_read --optional-space --terminated-only PREDICATE predicate
-
-if [[ ! -v predicate ]]; then
-  echo "structural-predicate.sh: the report carries no PREDICATE: line" >&2
-  exit 2
-fi
-case "$predicate" in NONE | "NONE "* | "NONE—"* | "NONE:"*) exit 3 ;; esac
-if bash -c "$predicate" </dev/null >/dev/null 2>&1; then
-  exit 1
-fi
-printf '%s\n' "$predicate" > "$record"
+# exit:  0 the command was written; 1 the command already succeeds on the current tree,
+#        nothing written; 2 bad arguments, or no `PREDICATE:` line; 3 `PREDICATE: NONE [— <why>]`,
+#        `NONE—<why>` or `NONE: <why>`, nothing written.
+exec python3 "$(dirname "$0")/veri/structural_predicate.py" "$@"
