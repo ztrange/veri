@@ -32,6 +32,10 @@ def _has_heading(path, heading):
     return re.search(rb"^## " + heading + rb"[ \t\r\v\f]*$", text, re.M) is not None
 
 
+class _IncludeRefused(Exception):
+    pass
+
+
 def _expand(text, prompts, chain=()):
     out = b""
     while (match := re.search(rb"\{\{INCLUDE:([^}]*)\}\}", text)):
@@ -39,20 +43,15 @@ def _expand(text, prompts, chain=()):
         out += text[:match.start()]
         text = text[match.end():]
         if not os.access(part, os.R_OK):
-            sys.stderr.buffer.write(b"missing partial: " + part + b"\n")
-            return None
+            raise _IncludeRefused(b"missing partial: " + part)
         if part in chain:
-            sys.stderr.buffer.write(b"partial includes itself: " + part + b"\n")
-            return None
+            raise _IncludeRefused(b"partial includes itself: " + part)
         try:
             content = _read(part)
         except IsADirectoryError:
             sys.stderr.buffer.write(b"cat: " + part + b": Is a directory\n")
             content = b""
-        content = _expand(content, prompts, chain + (part,))
-        if content is None:
-            return None
-        out += content
+        out += _expand(content, prompts, chain + (part,))
     return out + text
 
 
@@ -105,19 +104,17 @@ def main(argv):
             _write(sys.stderr, f"build-verify-prompt: cannot read '{path}'")
             return 2
     prompts_b = os.fsencode(prompts)
-    template = _expand(_read(paths[0]), prompts_b)
-    if template is None:
-        return 2
-    shared = _expand(_read(paths[1]), prompts_b)
-    if shared is None:
-        return 2
     values = dict.fromkeys(("BUG_REPRODUCTION", "REFACTOR_PLAN", "REPLACES_CASE", "SUITE_REPAIR", "LEDGER"), b"")
-    for placeholder, path in optional.items():
-        values[placeholder] = _read(path)
-        if placeholder in ("REPLACES_CASE", "SUITE_REPAIR"):
-            values[placeholder] = _expand(b"\n\n" + values[placeholder], prompts_b)
-            if values[placeholder] is None:
-                return 2
+    try:
+        template = _expand(_read(paths[0]), prompts_b)
+        shared = _expand(_read(paths[1]), prompts_b)
+        for placeholder, path in optional.items():
+            values[placeholder] = _read(path)
+            if placeholder in ("REPLACES_CASE", "SUITE_REPAIR"):
+                values[placeholder] = _expand(b"\n\n" + values[placeholder], prompts_b)
+    except _IncludeRefused as refusal:
+        sys.stderr.buffer.write(refusal.args[0] + b"\n")
+        return 2
     step = os.fsencode(options["--step"])
     step_block = b""
     if step:
