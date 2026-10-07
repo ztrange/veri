@@ -6,3 +6,5 @@
 ### skill-drift.sh lists a commit in the range with no trailing (#N) as `- <short-sha> <subject>` ⟦criterion 3⟧
 - skill_drift.py keeps a `(match, subject)` pair for every commit in a group but only reads the first pair and the group's length; storing `(is_suffixed, newest_subject, count)` per key would remove the `s[0][0]`/`s[0][1]` indexing and the long conditional comprehension. Not applied: it is a reshaping, not duplication removal
 - test-only | three cases in skill-drift.test.sh repeat the same setup (scratch_dir, new_repo, the pinned `(#9)` commit, git clone) and the same `env -u VERI_SKILL_UNPINNED … "$SKILL_DRIFT"` invocation; both could become helpers next to `touch_commit`
+### skill-drift.sh with VERI_SKILL_UNPINNED=1, or with VERI_SKILL_COMMIT unset or empty, prints `Skill drift: unavailable — run was not pinned to a skill commit` and exits 0 ⟦criterion 4⟧
+- test-only | skill-drift.test.sh: the three `case` arms of the not-pinned test repeat the same tail (`VERI_SKILL_CLONE="$tmp" VERI_SKILL_REF=refs/remotes/origin/main "$SKILL_DRIFT" 2>/dev/null)" && code=0 || code=$?`); each arm could set only its own env prefix and share a single invocation
