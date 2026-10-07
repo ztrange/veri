@@ -9,7 +9,7 @@ from github import NoAnswer, gh_json
 from json_documents import items
 
 USAGE = "usage: solvable-issues.sh [--repo owner/name]"
-OLDEST_FIRST = "?state=all&sort=created&direction=asc"
+OLDEST_FIRST = "?state=all&sort=created&direction=asc&per_page=100"
 
 
 def main_working_tree():
