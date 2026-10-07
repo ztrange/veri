@@ -16,17 +16,18 @@ PLANTED_FIXTURE="fixture text this suite writes into a scratch tree as the plant
 CASE_NAME="a case name, a string this suite prints and never runs, so no value ever reaches a -v binding"
 BRACKET_CLASSES="wait_ci_run and push_run spell every literal character as a bracket class, [$] [.], never with a backslash, so the -v value holds none to drop"
 declare -A EXEMPT=(
-  [no-awk-v-patterns.test.sh:101]="$PLANTED_FIXTURE"
   [no-awk-v-patterns.test.sh:102]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:116]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:187]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:191]="$CASE_NAME"
-  [no-awk-v-patterns.test.sh:200]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:204]="$CASE_NAME"
-  [no-awk-v-patterns.test.sh:213]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:217]="$CASE_NAME"
-  [no-awk-v-patterns.test.sh:225]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:238]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:103]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:117]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:188]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:192]="$CASE_NAME"
+  [no-awk-v-patterns.test.sh:201]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:205]="$CASE_NAME"
+  [no-awk-v-patterns.test.sh:214]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:218]="$CASE_NAME"
+  [no-awk-v-patterns.test.sh:226]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:239]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:251]="$PLANTED_FIXTURE"
   [parallel-conductors.test.sh:950]="record is handed only '^3[.] [*][*]Parallel[*][*]' and '^[*][*]In flight[*][*]:', literal characters spelled as bracket classes, so the -v value holds no backslash to drop"
   [skill-draft-pr.test.sh:762]="$BRACKET_CLASSES"
   [skill-draft-pr.test.sh:778]="$BRACKET_CLASSES"
@@ -55,7 +56,7 @@ probe_no_suite_passes_a_pattern_through_awk_v() {
       [[ -n "${EXEMPT[$name:$lineno]:-}" ]] && continue
       [[ "$text" == *"'"* ]] || continue
       prog="$text"
-      quotes="${text//[!\']/}"
+      quotes="$(sed "s/\"[^\"]*\"//g; s/[^']//g" <<< "$text")"
       i="$lineno"
       while (( ${#quotes} % 2 == 1 && i < ${#lines[@]} )); do
         prog+=$'\n'"${lines[i]}"
@@ -245,6 +246,19 @@ planted_open_at_eof_named=""
 probe_a_planted_awk_v_program_left_open_at_eof
 
 expect_eq "$name" "named" "$planted_open_at_eof_named"
+
+probe_a_planted_awk_v_with_a_quote_in_a_double_quoted_string() {
+  scan_planted '#!/usr/bin/env bash' 'numbered() {' "  awk -v q=\"'\" -v re=\"\$1\" '" \
+    '    $0 ~ re { print q }' "  ' \"\$2\"" '}'
+  planted_dq_quote_named="$(problem_naming "planted.test.sh:3")"
+}
+
+name="a planted awk -v q=\"'\" -v re=\"\$1\" whose ' inside a double-quoted string comes before the single-quoted program, and whose program uses re on the right of ~, turns the guard red, naming <suite>:<line> (#1050)"
+planted_dq_quote_named=""
+
+probe_a_planted_awk_v_with_a_quote_in_a_double_quoted_string
+
+expect_eq "$name" "named" "$planted_dq_quote_named"
 
 name="no suite under skills/tdd/scripts/tests/ passes awk a pattern through -v but where the exemption table says why its value can hold no backslash (#1037)"
 problems=()
