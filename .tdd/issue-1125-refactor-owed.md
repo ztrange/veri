@@ -1,0 +1,3 @@
+### clear-refactor-pending.sh: when the in-place open really truncates the ledger, the write fails, the write-back fails and restoring the backup fails, the run exits 2 with no traceback, keeps the backup beside the ledger holding the ledger's old bytes, and names that backup in exactly one `clear-refactor-pending.sh: …` stderr line ⟦criterion 1⟧
+- test-only | hoist the `FullDisk` fake (copied at test_clear_refactor_pending.py:259, :339, :385, :437, :487, :564, :622) into one module-level class taking the file and the ledger path, used by every case
+- out-of-scope | move the clear onto tick_ledger.py's temp-file + os.replace write at the realpath, removing the truncation window (issue's rejected option (b), owned by #1092)
