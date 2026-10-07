@@ -38,11 +38,15 @@ def python_refusal(prefix):
     if None not in numbers and numbers < [int(part) for part in floor.split(".")[:2]]:
         sys.stderr.write("%s: veri needs Python %s or newer; the python3 on PATH is version %s.\n"
                          % (prefix, floor, version))
-        venv = os.environ.get("VERI_VENV", "") or os.path.join(os.environ.get("HOME", ""), ".veri-tools", "venv")
+        venv = venv_dir()
         if _meets_floor(os.path.join(venv, "bin", "python3"), floor):
             sys.stderr.write("%s: the environment at %s meets it; put %s/bin first on PATH.\n" % (prefix, venv, venv))
         return 2
     return 0
+
+
+def venv_dir():
+    return os.environ.get("VERI_VENV", "") or os.path.join(os.environ.get("HOME", ""), ".veri-tools", "venv")
 
 
 def _meets_floor(python, floor):
