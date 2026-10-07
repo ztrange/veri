@@ -415,3 +415,28 @@ def test_main_makes_the_stream_then_the_git_config_temp_file_in_tmpdir_copies_th
         (2, [str(tmp)] * 2, [], [False, False]),
         (1, [str(tmp)] * 2, [(True, [True, True], "")], [False, False]),
     ]
+
+
+def test_main_strips_the_launched_environment_through_veri_session_env_so_a_name_added_to_its_session_vars_is_absent_from_the_leafs_environment(
+        tmp_path, monkeypatch, capfd):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, tmp = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("do the step\n")
+    monkeypatch.delenv("GIT_CONFIG_GLOBAL", raising=False)
+    monkeypatch.setenv("VERI_PLANTED_621", "from-the-conductor")
+    monkeypatch.setenv("VERI_KEPT_621", "kept")
+    for name in ("veri.session_env", "session_env"):
+        session_env = importlib.import_module(name)
+        monkeypatch.setattr(session_env, "SESSION_VARS", (*session_env.SESSION_VARS, "VERI_PLANTED_621"))
+    seen = []
+
+    def launch(argv, *args, **kwargs):
+        env = kwargs.get("env") or dict(os.environ)
+        seen.append((env.get("VERI_PLANTED_621"), env.get("VERI_KEPT_621")))
+        return _FakeLeaf([], argv, **kwargs)
+
+    monkeypatch.setattr(subprocess, "Popen", launch)
+    code = run_leaf.main(["prompt.txt"])
+    capfd.readouterr()
+
+    assert (code, seen) == (0, [(None, "kept")])
