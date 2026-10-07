@@ -289,3 +289,48 @@ def test_main_asks_labels_before_the_body_of_its_first_argument_and_fails_both_r
         ["gh", "issue", "view", "7", "--json", "body", "-q", ".body"],
         ["gh", "api", "repos/{owner}/{repo}/issues/7"],
     ])
+
+
+def test_main_reads_the_issue_through_gh_api_only_when_veri_gh_driver_is_unset_or_rest_1114(monkeypatch, capsys, capture_spec):
+    for driver in (None, "rest"):
+        if driver is None:
+            monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+        else:
+            monkeypatch.setenv("VERI_GH_DRIVER", driver)
+        calls = []
+
+        def fake_run(args, **kwargs):
+            calls.append(list(args))
+            if list(args[:3]) == ["gh", "issue", "view"] and "labels" in args:
+                return subprocess.CompletedProcess(args, 0, "bug\n", "")
+            if list(args[:3]) == ["gh", "issue", "view"] and "body" in args:
+                return subprocess.CompletedProcess(args, 0, BUG_BODY, "")
+            if list(args) == ["gh", "api", "repos/{owner}/{repo}/issues/7"]:
+                issue = {"number": 7, "body": BUG_BODY, "labels": [{"name": "bug"}]}
+                return subprocess.CompletedProcess(args, 0, json.dumps(issue), None)
+            raise AssertionError("unexpected command: %r" % (args,))
+
+        def fake_popen(args, *rest, **kwargs):
+            calls.append(list(args))
+            raise AssertionError("unexpected Popen: %r" % (args,))
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        monkeypatch.setattr(subprocess, "Popen", fake_popen)
+
+        code = capture_spec.main(["7"])
+        captured = capsys.readouterr()
+
+        assert (driver, code, captured.out, captured.err, calls) == (driver, 0, BUG_BODY + (
+            "\n## Bug\n"
+            "\n### What happened\n\n"
+            "tick-ledger.sh ticked the same step twice.\n\n"
+            "\n### Expected\n\n"
+            "tick-ledger.sh ticks a step once.\n\n"
+            "\n### Steps to reproduce\n\n"
+            "Run tick-ledger.sh twice against the same step text.\n\n"
+            "\n### Environment\n\n"
+            "bash 5.2 on macOS 15.6.\n\n"
+        ), "", [
+            ["gh", "api", "repos/{owner}/{repo}/issues/7"],
+            ["gh", "api", "repos/{owner}/{repo}/issues/7"],
+        ])

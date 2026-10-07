@@ -2,9 +2,9 @@
 import sys
 
 try:
-    from github import NoAnswer, FallbackAdapter
+    from github import NoAnswer, gh_issue_view
 except ImportError:
-    from .github import NoAnswer, FallbackAdapter
+    from .github import NoAnswer, gh_issue_view
 
 USAGE = "capture-spec: usage: capture-spec.sh <issue-number>"
 BUG_HEADINGS = ("What happened", "Expected", "Steps to reproduce", "Environment")
@@ -28,8 +28,8 @@ def main(argv):
         return 2
     n = argv[0]
     try:
-        labels = FallbackAdapter().issue_view(n, "labels").rstrip("\n").split("\n")
-        body = FallbackAdapter().issue_view(n, "body").rstrip("\n")
+        labels = gh_issue_view(n, "labels").rstrip("\n").split("\n")
+        body = gh_issue_view(n, "body").rstrip("\n")
     except NoAnswer:
         return 2
     out = body + "\n"
