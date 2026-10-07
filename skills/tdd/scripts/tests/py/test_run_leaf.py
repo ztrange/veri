@@ -536,7 +536,8 @@ def test_main_strips_after_git_config_global_is_set_and_before_claude_bin_and_ve
 
     def launch(argv, *args, **kwargs):
         env = kwargs.get("env") or dict(os.environ)
-        seen.append((argv[0], "--model" in argv, env.get("GIT_CONFIG_GLOBAL") is not None,
+        seen.append((argv[0], argv[argv.index("--model") + 1] if "--model" in argv else None,
+                     env.get("GIT_CONFIG_GLOBAL") is not None,
                      env.get("PYTHONCOERCECLOCALE"), env.get("VERI_SHIM_SET_COERCE")))
         return _FakeLeaf([], argv, **kwargs)
 
@@ -556,9 +557,9 @@ def test_main_strips_after_git_config_global_is_set_and_before_claude_bin_and_ve
             answers.append((code, list(seen)))
 
     assert answers == [
-        (0, [(f"/stub/{session_id}/claude", False, True, None, None)]),
-        (0, [("claude", False, True, None, None)]),
-        (0, [("claude", False, True, "1", None)]),
+        (0, [(f"/stub/{session_id}/claude", f"model-{session_id}", True, None, None)]),
+        (0, [("claude", None, True, None, None)]),
+        (0, [("claude", None, True, "1", None)]),
     ]
 
 
