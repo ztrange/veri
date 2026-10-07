@@ -44,3 +44,18 @@ def test_main_with_fewer_than_three_positionals_returns_2_with_the_usage_line_al
     captured = capfdbinary.readouterr()
     assert len(USAGE) == 112
     assert (code, captured.out, captured.err, calls) == (2, b"", USAGE + b"\n", [])
+
+
+@pytest.mark.parametrize("argv, flag", [(["--step"], b"--step"), (["--step", ""], b"--step"),
+                                        (["--fast-cmd", "", "green", "s", "t"], b"--fast-cmd")])
+def test_main_with_a_flag_missing_its_value_returns_2_naming_the_flag_then_the_usage_line_and_starts_no_process(
+        argv, flag, tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.chdir(tmp_path)
+    calls = fake_processes(monkeypatch)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(list(argv))
+
+    captured = capfdbinary.readouterr()
+    assert (code, captured.out, captured.err, calls) == (
+        2, b"", b"verify: " + flag + b" needs a value\n" + USAGE + b"\n", [])
