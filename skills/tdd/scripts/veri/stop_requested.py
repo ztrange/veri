@@ -25,7 +25,7 @@ def main(argv):
     except OSError:
         line = b""
     mode = line[:-1] if line.endswith(b"\n") else b""
-    if not stop_modes.stop_mode_known(mode.decode()):
+    if not stop_modes.stop_mode_known(mode.decode(errors="surrogateescape")):
         sys.stderr.buffer.write(
             f"stop-requested: {FILE} must name a mode — {stop_modes.modes_named()}: '".encode()
             + mode + b"'\n")

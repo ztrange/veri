@@ -177,3 +177,17 @@ def test_main_clear_removes_whatever_is_at_tdd_stop_without_reading_it_as_rm_f_d
     with pytest.raises(OSError):
         stop_requested.main(["--clear"])
     assert stop.is_dir()
+
+
+def test_main_passes_non_utf8_bytes_in_the_first_line_through_to_stderr_unchanged(
+        monkeypatch, tmp_path, capsysbinary, stop_requested):
+    monkeypatch.chdir(tmp_path)
+    stop = tmp_path / ".tdd" / "stop"
+    stop.parent.mkdir()
+
+    stop.write_bytes(b"n\xffow\n")
+    assert stop_requested.main([]) == 2
+    assert capsysbinary.readouterr() == (
+        b"",
+        "stop-requested: .tdd/stop must name a mode — at-ledger, at-leaf or now: '".encode()
+        + b"n\xffow'\n")
