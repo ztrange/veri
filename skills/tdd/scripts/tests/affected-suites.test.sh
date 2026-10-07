@@ -561,6 +561,26 @@ base=main head=HEAD
 expect_suites "#1138: a suite the base gained after the branch point is not printed by affected-suites.sh <base>..HEAD, only the branch's own" \
   skills/tdd/scripts/tests/py/test_a.py
 
+make_repo base-changes-non-suite
+foo_tree
+mkdir -p "$s/prompts"
+printf 'bar\n' > "$s/bar.sh"
+printf '# bar suite\n' > "$s/tests/bar.test.sh"
+printf 'a prompt\n' > "$s/prompts/p.md"
+printf '# reads prompts/p.md\n' > "$s/tests/baz.test.sh"
+commit_base
+git_q "$repo" checkout -q -b topic
+printf 'foo 2\n' > "$s/foo.sh"
+commit_head
+git_q "$repo" checkout -q main
+printf 'bar 2\n' > "$s/bar.sh"
+rm "$s/prompts/p.md"
+commit_all "$repo" "main changes a script and deletes a prompt"
+git_q "$repo" checkout -q topic
+base=main head=HEAD
+expect_suites "#1138: a non-suite file the base changed or deleted after the branch point contributes no suite to affected-suites.sh <base>..HEAD" \
+  skills/tdd/scripts/tests/foo.test.sh
+
 git_state() { git -C "$repo" stash list; git -C "$repo" worktree list; git -C "$repo" rev-parse HEAD; }
 
 make_repo working-tree
