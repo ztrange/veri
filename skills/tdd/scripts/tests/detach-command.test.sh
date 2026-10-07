@@ -173,4 +173,19 @@ beside_after="$(ls -d "$SKILL_DIR/.tdd" "$SKILL_DIR/scripts/.tdd" 2>/dev/null)"
 
 report "detach-command: run through a symlink to the skill directory from another working directory, start and wait use that directory's .tdd/ and create none beside the skill"
 
+problems=()
+
+helper start sigs bash -c 'trap -p > .tdd/sigs.traps; python3 -c "import signal as s; print(s.getsignal(s.SIGINT), s.getsignal(s.SIGQUIT))" > .tdd/sigs.py'
+helper wait sigs 30
+traps="$(sort "$work/.tdd/sigs.traps" 2>&1)"
+want_traps="$(printf '%s\n' "trap -- '' SIGINT" "trap -- '' SIGQUIT" "trap -- '' SIGXFSZ" | sort)"
+[[ "$traps" == "$want_traps" ]] ||
+  problems+=("want the started command's trap -p to list exactly SIGINT, SIGQUIT and SIGXFSZ ignored, got: '$traps'")
+grep -F SIGPIPE "$work/.tdd/sigs.traps" > /dev/null 2>&1 &&
+  problems+=("want SIGPIPE at its default in the started command, got a trap line for it")
+[[ "$(cat "$work/.tdd/sigs.py" 2>&1)" == "1 1" ]] ||
+  problems+=("want python3's getsignal for SIGINT and SIGQUIT to print '1 1' in the started command, got: '$(cat "$work/.tdd/sigs.py" 2>&1)'")
+
+report "detach-command: a command started by start sees SIGINT, SIGQUIT and SIGXFSZ ignored and SIGPIPE at its default"
+
 finish
