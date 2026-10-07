@@ -25,7 +25,10 @@ def main(argv):
     if not cleared:
         return 3
     data = (new.rstrip("\n") + "\n").encode(errors="surrogateescape")
-    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(argv[0])))
+    try:
+        fd, tmp = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(argv[0])))
+    except OSError:
+        return 2
     try:
         with os.fdopen(fd, "wb") as file:
             file.write(data)

@@ -1,5 +1,6 @@
 """In-process cases for veri/clear_refactor_pending.py, the module clear-refactor-pending.sh is a shim over."""
 import builtins
+import errno
 import importlib
 import os
 import pathlib
@@ -309,6 +310,29 @@ def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_every_write_to
         code = type(error).__name__
     finally:
         resource.setrlimit(resource.RLIMIT_FSIZE, (soft, hard))
+    capsysbinary.readouterr()
+
+    assert (code, led.read_bytes()) == (2, seed)
+
+
+def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_the_temporary_file_beside_it_cannot_be_created_817(
+        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
+    seed = "- [x] alpha ⟂ refactor pending\n- [x] beta ⟂ refactor pending\n".encode()
+    led = tmp_path / "ledger.md"
+    led.write_bytes(seed)
+    real_open = os.open
+
+    def refusing_open(path, *args, **kwargs):
+        if os.path.dirname(os.path.abspath(path)) == str(tmp_path) and os.path.abspath(path) != str(led):
+            raise OSError(errno.ENOSPC, os.strerror(errno.ENOSPC), path)
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(os, "open", refusing_open)
+    try:
+        code = clear_refactor_pending.main([str(led), "beta"])
+    except OSError as error:
+        code = type(error).__name__
+    monkeypatch.undo()
     capsysbinary.readouterr()
 
     assert (code, led.read_bytes()) == (2, seed)
