@@ -1,6 +1,7 @@
 """In-process cases for veri/build_develop_prompt.py, the module build-develop-prompt.sh is a shim over."""
 import importlib
 import importlib.util
+import io
 import os
 import pathlib
 import re
@@ -849,6 +850,266 @@ def test_main_answers_what_the_bash_contract_cases_from_the_out_of_scope_class_t
             and reason_text.encode() not in over_budget_extra
             and not says(over_budget_flat, rb"rejection reason")
             and not says(over_budget, rb"REJECT|VERDICT", 0)),
+    }
+
+    assert checks == dict.fromkeys(checks, True)
+
+
+def test_main_answers_what_the_bash_contract_cases_from_the_rebase_prompt_to_the_end_asserted(
+        tmp_path, capsysbinary, monkeypatch, build_develop_prompt):
+    monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
+    build_verify_prompt = importlib.import_module("veri.build_verify_prompt")
+    refactor_owed = importlib.import_module("veri.refactor_owed")
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux" \xe2\x80\x94 see {ref}\\n done.\n')
+    step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
+    cmd = 'make test ZORBLAT=1 -- --only "frob & nitz/quux"'
+    test_path, target = "tests/zorblat/test_frob & nitz.sh", "qwixtle seeds a newline-terminated block"
+    touched = "scripts/zorblat.sh, tests/zorblat/test_frob & nitz.sh"
+    reason_text = "REJECT: the case asserts on zorblat()'s log line, not its return value — & {tricky}\\chars."
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(reason_text.encode() + b"\n")
+    s, r = str(spec), str(reason)
+
+    def answer(module, argv):
+        code = module.main(argv)
+        return (code, *capsysbinary.readouterr())
+
+    def rendered(argv):
+        code, out, _ = answer(build_develop_prompt, argv)
+        return out if code == 0 else None
+
+    def refused(argv):
+        code, out, err = answer(build_develop_prompt, argv)
+        return code == 2 and out == b"" and err != b""
+
+    def folded(prompt):
+        return prompt.replace(b"\n", b" ")
+
+    def says(prompt, pattern, flags=re.I):
+        return prompt is not None and re.search(pattern, folded(prompt), flags) is not None
+
+    def lacks(prompt, pattern, flags=re.I):
+        return prompt is not None and re.search(pattern, folded(prompt), flags) is None
+
+    def any_line(prompt, pattern, flags=0):
+        return prompt is not None and any(re.search(pattern, line, flags) for line in prompt.split(b"\n"))
+
+    def both_ways(prompt, gap, a, b):
+        return says(prompt, rb"%s[^.]{0,%d}%s|%s[^.]{0,%d}%s" % (a, gap, b, b, gap, a))
+
+    def carries(prompt, *parts):
+        return prompt is not None and all(
+            (part.encode() if isinstance(part, str) else part) in prompt for part in parts)
+
+    def scripts_with(name, prompts):
+        scripts = tmp_path / name / "scripts"
+        (scripts / "veri").mkdir(parents=True)
+        for source in (SCRIPTS / "veri").glob("*.py"):
+            (scripts / "veri" / source.name).write_bytes(source.read_bytes())
+        (scripts / "prompts").mkdir()
+        for tpl in (SCRIPTS / "prompts").glob("*.md"):
+            (scripts / "prompts" / tpl.name).write_bytes(tpl.read_bytes())
+        for file, content in prompts.items():
+            (scripts / "prompts" / file).write_bytes(content)
+        loader = importlib.util.spec_from_file_location(f"build_develop_prompt_{name}",
+                                                        scripts / "veri" / "build_develop_prompt.py")
+        module = importlib.util.module_from_spec(loader)
+        loader.loader.exec_module(module)
+        return module, os.fsencode(str(scripts / "prompts"))
+
+    red = rendered(["red", s, step, cmd])
+    green = rendered(["green", s, step, cmd, test_path, target, "make unit"])
+    refactor = rendered(["refactor", s, step, cmd, touched])
+    revise = rendered(["revise", "red", s, step, cmd, r])
+    every_phase = (red, green, refactor, revise)
+
+    rb_onto, rb_pre = "7c1e9a3f5b2d4e6a8c0f1b3d5e7a9c2e4f6b8d0a", "e2b4d6f8a0c1e3b5d7f9a1c3e5b7d9f0a2c4e6b8"
+    rb_files = "skills/tdd/SKILL.md\nscripts/zorblat frob & nitz.sh"
+    rebase = rendered(["rebase", s, step, cmd, rb_onto, rb_pre, rb_files])
+    rb_lines = [line for line in (rebase or b"").split(b"\n") if line.strip()]
+
+    cover = rendered(["cover", s, step, cmd])
+    transform = rendered(["transform", s, step, cmd])
+
+    structural_candidate = "extract the zorblat parser into its own module & {rename} it"
+    issue_touched = "scripts/zorblat.sh, scripts/lib/frob & nitz.sh"
+    structural = rendered(["structural", s, structural_candidate, cmd, issue_touched])
+    predicate = rendered(["predicate", s, structural_candidate, cmd, issue_touched])
+
+    owed = tmp_path / "owed.md"
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(
+        b"RESULT: nothing left to tidy\nCANDIDATES: structural | extract the zorblat parser into its own module\n"
+        b"FLAGS: none\n")))
+    owed_code = refactor_owed.main(["append", str(owed), step])
+    capsysbinary.readouterr()
+    owed_lines = owed.read_text().split("\n") if owed.exists() else []
+    step_at = owed_lines.index(f"### {step}") if f"### {step}" in owed_lines else None
+    candidate_line = "- extract the zorblat parser into its own module"
+    candidate_at = owed_lines.index(candidate_line) if candidate_line in owed_lines else None
+
+    rk_step = 'grep -q "zorblat_parse" scripts/lib/zorblat-parser.sh'
+    rk_predicate = tmp_path / "rk-predicate.md"
+    rk_predicate.write_bytes(rk_step.encode() + b"\n")
+    rk_dev = rendered(["transform", s, rk_step, cmd])
+    rk_ver_code, rk_ver, _ = answer(build_verify_prompt, ["--step", rk_step, "transform", s, str(rk_predicate),
+                                                          "0123abcdef"])
+    rk_ver = rk_ver if rk_ver_code == 0 else None
+
+    dd_step = "the dead counted line in the status suite is gone ⟦diff-checked⟧ ⟦criterion 5⟧"
+    dd = rendered(["diff", s, dd_step, cmd, "make unit"])
+    dd_empty_cmd = answer(build_develop_prompt, ["diff", s, dd_step, "", "make unit"])
+    bogus_revise = answer(build_develop_prompt, ["revise", "bogus", s, step, cmd, r])
+    revise_diff = rendered(["revise", "diff", s, dd_step, cmd, r, "make unit"])
+
+    includes = {}
+    module, _ = scripts_with("included", {"develop-red.md": b"before {{INCLUDE:_probe-partial.md}} after\n",
+                                          "_probe-partial.md": b"partial runs {{TEST_CMD}}\n\n\n"})
+    includes["included"] = answer(module, ["red", s, step, cmd])
+    module, _ = scripts_with("nested", {"develop-red.md": b"before {{INCLUDE:_probe-outer.md}} after\n",
+                                        "_probe-outer.md": b"outer {{INCLUDE:_probe-inner.md}} end\n",
+                                        "_probe-inner.md": b"inner runs {{TEST_CMD}}\n"})
+    includes["nested"] = answer(module, ["red", s, step, cmd])
+    module, dangling = scripts_with("dangling", {"develop-red.md": b"before {{INCLUDE:_probe-absent.md}} after\n"})
+    includes["dangling"] = answer(module, ["red", s, step, cmd])
+    module, _ = scripts_with("cycle", {"develop-red.md": b"before {{INCLUDE:_probe-cycle-a.md}} after\n",
+                                       "_probe-cycle-a.md": b"a {{INCLUDE:_probe-cycle-b.md}}\n",
+                                       "_probe-cycle-b.md": b"b {{INCLUDE:_probe-cycle-a.md}}\n"})
+    includes["cycle"] = answer(module, ["red", s, step, cmd])
+
+    def commit_suffix(prompt):
+        return prompt is not None and any(
+            b"(#<issue>)" in line and b"commit" in line.lower() for line in prompt.split(b"\n"))
+
+    dd_fast = 'make unit ZORBLAT=fast -- --only "frob & nitz/quux"'
+    scripts_dir = os.path.dirname(os.path.dirname(os.path.abspath(build_develop_prompt.__file__)))
+    timed = os.fsencode(os.path.join(scripts_dir, "timed-test-run.sh"))
+    fast_line = timed + b" fast '' " + dd_fast.encode()
+
+    def runs_fast_then_affected(prompt):
+        return (prompt is not None and fast_line in prompt
+                and timed + b" affected " in prompt[prompt.index(fast_line) + len(fast_line):]
+                and any_line(prompt, rb"both( runs)?( are| stay)? green", re.I))
+
+    ddf = rendered(["diff", s, dd_step, cmd, dd_fast])
+    rdf = rendered(["revise", "diff", s, dd_step, cmd, r, dd_fast])
+
+    checks = {
+        "develop-rebase names both shas, every conflicting file and the test command, resolves by git rebase "
+        "<onto-sha>, leaves the ledger's ticks and marks untouched, ends with REBASE: RESOLVED | FAILED, "
+        "and refuses a missing argument": (
+            carries(rebase, rb_onto, rb_pre, *rb_files.split("\n"), cmd, f"git rebase {rb_onto}",
+                    "ledger", "[x]", "⟂ refactor pending")
+            and rb_lines[-1].startswith(b"REBASE: RESOLVED | FAILED")
+            and refused(["rebase", s, step, cmd, rb_onto, rb_pre, ""])
+            and refused(["rebase", s, step, cmd, rb_onto, "", rb_files])),
+        "cover and transform each print their own prompt carrying the step, and an unknown phase is refused": (
+            carries(cover, step) and carries(transform, step) and cover not in (red, transform)
+            and transform != red and refused(["covers", s, step, cmd])),
+        "#679 develop-cover allows COVERED: unreachable only for a step that only deletes code no caller reaches": (
+            any_line(cover, rb"^COVERED:.*unreachable")
+            and both_ways(cover, 120, rb"unreachable", rb"only delet")
+            and both_ways(cover, 60, rb"no caller", rb"reach")
+            and both_ways(cover, 120, rb"PROOF:", rb"every caller")
+            and says(cover, rb"none exists") and says(cover, rb"every caller passes a no-op")
+            and says(cover, rb"never read")),
+        "#679 develop-cover allows COVERED: type-only only for a step that changes only types": (
+            any_line(cover, rb"^COVERED:.*type-only")
+            and both_ways(cover, 120, rb"type-only", rb"changes only types")
+            and both_ways(cover, 120, rb"PROOF:", rb"type-check command")
+            and says(cover, rb"type-check command[^.]{0,60}(ran|run) green")
+            and carries(cover, "npx tsc --noEmit", "mypy")),
+        "#679 develop-cover says reshaped runtime code is never unreachable or type-only, and carries PROOF:": (
+            both_ways(cover, 40, rb"reshap", rb"runtime code")
+            and both_ways(cover, 80, rb"runtime code", rb"never `?unreachable`? or `?type-only")
+            and says(cover, rb"(^|[^a-z])reachable code[^.]{0,40}no test watches")
+            and says(cover, rb"no test watches[^.]{0,60}COVERED: no")
+            and any_line(cover, rb"^PROOF:")),
+        "every built developer prompt states the comment rule": all(
+            says(p, rb"contract header") and says(p, rb"usage line[^.]{0,40}exit[- ]code table")
+            and says(p, rb"warning[^.]{0,60}shell itself is the hazard") and says(p, rb"succinct")
+            and says(p, rb"no rationale") and says(p, rb"no issue archaeology")
+            and says(p, rb"no restatement of the next line")
+            for p in every_phase),
+        "every built developer prompt states where rationale goes: a test first, an ADR second, nowhere third": all(
+            says(p, rb"rationale[^.]{0,80}test first") and says(p, rb"ADR second") and says(p, rb"nowhere third")
+            for p in every_phase),
+        "develop-refactor applies only duplication removal against code this cycle wrote": (
+            both_ways(refactor, 30, rb"only", rb"duplication removal")
+            and says(refactor, rb"duplication[^.]{0,80}(this|the) cycle wrote")
+            and says(refactor, rb"(no|never|not)[^.]{0,30}other structural transform")
+            and says(refactor, rb"extract(ing)? a module") and says(refactor, rb"mov(e|ing) behaviou?r")
+            and says(refactor, rb"renam(e|ing)[^.]{0,20}across files")),
+        "develop-refactor reports every other structural candidate on CANDIDATES: structural, which "
+        "refactor-owed append records under the step's name": (
+            both_ways(refactor, 120, rb"every other structural candidate", rb"CANDIDATES: structural")
+            and both_ways(refactor, 120, rb"structural candidate", rb"(rather than|instead of) apply(ing)?")
+            and owed_code == 0 and step_at is not None and candidate_at is not None and step_at < candidate_at),
+        "develop-structural is bounded to the issue's touched files, one refactor: commit, no test file": (
+            carries(structural, structural_candidate, issue_touched)
+            and both_ways(structural, 80, rb"(bound|limit|confine|only)", rb"(touched|files)")
+            and both_ways(structural, 80, rb"commit", rb"refactor:")
+            and both_ways(structural, 40, rb"(no|never|not|must not)", rb"test file")),
+        "#691 develop-predicate asks for one shell predicate, false now and true once applied, and refuses "
+        "a missing argument": (
+            carries(predicate, structural_candidate, issue_touched, cmd,
+                    "PREDICATE: <command>", "PREDICATE: NONE — <why>")
+            and both_ways(predicate, 40, rb"(one|a single)", rb"(shell )?predicate")
+            and both_ways(predicate, 60, rb"(fail|false|non-?zero)", rb"(current|unmodified|before)")
+            and both_ways(predicate, 80, rb"(succeed|true|exit(s)? 0)", rb"(applied|after)")
+            and refused(["predicate", s, structural_candidate, cmd, ""])),
+        "#1058 develop-predicate reports an already-applied candidate by its end state, never PREDICATE: NONE": (
+            both_ways(predicate, 120, rb"already applied", rb"(report|PREDICATE: <command>)[^.]{0,60}end state")
+            and both_ways(predicate, 120, rb"already applied", rb"(succeed|exits? 0)")
+            and both_ways(predicate, 120, rb"already applied", rb"(never|not)[^.]{0,30}PREDICATE: NONE")
+            and both_ways(predicate, 120, rb"PREDICATE: NONE", rb"no single command can observe")),
+        "#691 a refactor-kind step's transform prompts build from the step and its predicate record alone": (
+            carries(rk_dev, rk_step) and carries(rk_ver, rk_step, str(rk_predicate))
+            and all(lacks(p, rb"structural-predicate", 0) and lacks(p, rb"predicate leaf")
+                    and lacks(p, rb"PREDICATE: NONE", 0) and lacks(p, rb"structural[* ]+pass")
+                    for p in (rk_dev, rk_ver))),
+        "develop-diff makes and commits the change, no commit when unchanged, and adds no test": (
+            carries(dd, dd_step, 'zorblat("Frob & Nitz/Quux")') and dd != red
+            and both_ways(dd, 80, rb"make", rb"change") and both_ways(dd, 120, rb"change", rb"commit")
+            and both_ways(dd, 160, rb"(no|not|never)[^.]{0,20}commit", rb"unchanged")
+            and says(dd, rb"(add|write)[^.]{0,20}(no|not a single) (new )?(test|case)"
+                         rb"|(do not|don.t|never) (add|write)[^.]{0,20}(test|case)")),
+        "#995 develop-diff with an empty <test-cmd> exits 2 with 'missing <test-cmd>' first on stderr": (
+            dd_empty_cmd[0] == 2 and dd_empty_cmd[1] == b""
+            and dd_empty_cmd[2].split(b"\n")[0] == b"build-develop-prompt: missing <test-cmd>"),
+        "#880 a revise of an unknown phase names red|green|refactor|diff": (
+            bogus_revise[0] == 2 and bogus_revise[1] == b"" and b"red|green|refactor|diff" in bogus_revise[2]),
+        "#880 a revise of a diff-checked step carries the step and the rejection reason": carries(
+            revise_diff, dd_step, reason_text),
+        "#880 a revise of a diff-checked step asks for no test": (
+            lacks(revise_diff, rb"rewritten test|rewrite (a|the) test")
+            and not carries(revise_diff, "AGAINST_UNMODIFIED:") and revise_diff is not None
+            and b"PREDICTED_FAILURE:" not in revise_diff),
+        "#703 an include is replaced by its partial, trailing newlines stripped, before the placeholders": (
+            includes["included"][:2] == (0, f"before partial runs {cmd} after\n".encode())),
+        "#703 an include inside an included partial is resolved recursively": (
+            includes["nested"][:2] == (0, f"before outer inner runs {cmd} end after\n".encode())),
+        "#703 an include naming an absent partial exits 2 naming its path, nothing on stdout": (
+            includes["dangling"][:2] == (2, b"") and dangling + b"/_probe-absent.md" in includes["dangling"][2]),
+        "#703 a partial including itself through another exits 2 naming it, nothing on stdout": (
+            includes["cycle"][:2] == (2, b"") and b"_probe-cycle-a.md" in includes["cycle"][2]),
+        "#935 the transform prompt states the (#<issue>) commit suffix": commit_suffix(transform),
+        "#935 the structural prompt states the (#<issue>) commit suffix": commit_suffix(
+            rendered(["structural", s, "a candidate", cmd, "a.sh b.sh"])),
+        "#935 the diff prompt states the (#<issue>) commit suffix": commit_suffix(
+            rendered(["diff", s, step, cmd, "make unit"])),
+        "#935 the revise-diff prompt states the (#<issue>) commit suffix": commit_suffix(revise_diff),
+        "#974 the diff prompt runs the fast command through timed-test-run.sh fast, then the affected suites, "
+        "both green": runs_fast_then_affected(ddf),
+        "#974 diff with the fast command left out exits 2 with a diagnostic and no prompt": refused(
+            ["diff", s, dd_step, cmd, ""]),
+        "#974 the revise-diff prompt runs the fast command, then the affected suites, both green": (
+            runs_fast_then_affected(rdf)),
+        "#974 revise diff with the fast command left out exits 2 with a diagnostic and no prompt": refused(
+            ["revise", "diff", s, dd_step, cmd, r]),
+        "#990 the red prompt spells affected-suites.sh HEAD": carries(red, "affected-suites.sh HEAD"),
+        "#990 the green prompt spells affected-suites.sh HEAD": carries(green, "affected-suites.sh HEAD"),
+        "#990 the revise prompt spells affected-suites.sh HEAD": carries(revise, "affected-suites.sh HEAD"),
     }
 
     assert checks == dict.fromkeys(checks, True)
