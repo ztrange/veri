@@ -1,6 +1,6 @@
 # Plan for #1110 — tick-ledger.sh and clear-refactor-pending.sh exit 2, not 1 with a traceback, on every ledger write failure, and write through a symlinked ledger
 
-- [x] clear-refactor-pending.sh exits 2 with no traceback, leaving the ledger byte-identical and no backup or temp file beside it, when opening the ledger for writing fails — replacing the existing pytest case test_main_raises_rather_than_returning_a_code_on_a_refused_write_back_leaving_the_ledger_byte_identical, which pins the traceback this issue removes ⟦criterion 1⟧ ⟂ refactor pending
+- [x] clear-refactor-pending.sh exits 2 with no traceback, leaving the ledger byte-identical and no backup or temp file beside it, when opening the ledger for writing fails — replacing the existing pytest case test_main_raises_rather_than_returning_a_code_on_a_refused_write_back_leaving_the_ledger_byte_identical, which pins the traceback this issue removes ⟦criterion 1⟧
 - [ ] clear-refactor-pending.sh exits 2 with no traceback, leaving the ledger byte-identical and no backup or temp file beside it, when every write it attempts fails, the restore of its backup over the ledger included ⟦criterion 1⟧
 - [ ] tick-ledger.sh exits 2 with no traceback, leaving the ledger byte-identical and no temp file beside it, when putting the ticked ledger in place fails and removing its temporary file beside the ledger fails too ⟦criterion 1⟧
 - [ ] tick-ledger.sh, given a ledger path that is a symlink, ticks the step in the link's target and leaves the link a symlink, with no temp file left beside either ⟦criterion 1⟧
