@@ -101,7 +101,7 @@ def test_main_launches_one_leaf_with_the_prompt_the_model_only_when_non_empty_an
     assert [got for got, _ in launched] == [want for _, want in launched]
 
 
-def test_main_reads_the_prompt_from_a_relative_file_or_stdin_as_bytes_and_refuses_a_missing_file_or_a_directory_with_1(
+def test_main_reads_the_prompt_from_a_relative_file_or_stdin_as_bytes_and_refuses_a_missing_file_or_a_directory_with_2(
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch, "sub", "adir")
@@ -137,9 +137,23 @@ def test_main_reads_the_prompt_from_a_relative_file_or_stdin_as_bytes_and_refuse
         ("sub/p.txt", 0, [b"line one\nline two"]),
         ("raw.txt", 0, [b"ab\xff\xfec"]),
         ("-", 0, [b"from stdin"]),
-        ("nope.txt", 1, "", []),
-        ("adir", 1, "", []),
+        ("nope.txt", 2, "", []),
+        ("adir", 2, "", []),
     ]
+
+
+def test_main_when_the_prompt_file_is_a_directory_returns_2_launches_nothing_and_names_it_on_stderr(
+        tmp_path, monkeypatch, capfd):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, tmp = _workspace(tmp_path, monkeypatch, "adir")
+    launches = []
+    monkeypatch.setattr(subprocess, "Popen",
+                        lambda argv, *args, **kwargs: _FakeLeaf(launches, argv, **kwargs))
+
+    code = run_leaf.main(["adir"])
+    err = capfd.readouterr().err
+
+    assert (code, launches, err) == (2, [], "run-leaf.sh: adir: Is a directory\n")
 
 
 def _as_extract_result_sh_prints(stream):
