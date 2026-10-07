@@ -2,6 +2,7 @@
 import importlib
 import os
 import pathlib
+import resource
 import sys
 
 import pytest
@@ -142,3 +143,50 @@ def test_main_ticks_a_criterion_notation_step_by_a_matcher_carrying_its_criterio
 
     assert (code, out, ledger.read_bytes().decode().split("\n")[1]) == (
         0, b"", "- [x] collapse to single hyphen ⟦criterion 1⟧ ⟂ refactor pending")
+
+
+def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_writing_the_ticked_ledger_fails_817(
+        tmp_path, capsysbinary, tick_ledger):
+    seed = "".join(f"- [ ] step {n} of a ledger long enough to outgrow the file size limit\n" for n in range(8)).encode()
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(seed)
+    soft, hard = resource.getrlimit(resource.RLIMIT_FSIZE)
+    resource.setrlimit(resource.RLIMIT_FSIZE, (64, hard))
+    try:
+        code = tick_ledger.main([str(ledger), "step 3"])
+    except OSError as error:
+        code = type(error).__name__
+    finally:
+        resource.setrlimit(resource.RLIMIT_FSIZE, (soft, hard))
+    capsysbinary.readouterr()
+
+    assert (code, ledger.read_bytes()) == (2, seed)
+
+
+def test_main_keeps_the_ledger_file_permissions_when_it_ticks_a_step_817(tmp_path, capsysbinary, tick_ledger):
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(b"- [ ] alpha\n")
+    ledger.chmod(0o640)
+
+    code = tick_ledger.main([str(ledger), "alpha"])
+    capsysbinary.readouterr()
+
+    assert (code, oct(ledger.stat().st_mode & 0o777)) == (0, oct(0o640))
+
+
+def test_main_leaves_no_file_but_the_ledger_beside_it_when_writing_the_ticked_ledger_fails_817(
+        tmp_path, capsysbinary, tick_ledger):
+    seed = "".join(f"- [ ] step {n} of a ledger long enough to outgrow the file size limit\n" for n in range(8)).encode()
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(seed)
+    soft, hard = resource.getrlimit(resource.RLIMIT_FSIZE)
+    resource.setrlimit(resource.RLIMIT_FSIZE, (64, hard))
+    try:
+        code = tick_ledger.main([str(ledger), "step 3"])
+    except OSError as error:
+        code = type(error).__name__
+    finally:
+        resource.setrlimit(resource.RLIMIT_FSIZE, (soft, hard))
+    capsysbinary.readouterr()
+
+    assert (code, sorted(path.name for path in tmp_path.iterdir())) == (2, ["ledger.md"])

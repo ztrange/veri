@@ -1,6 +1,6 @@
 # Plan for #817 — tick-ledger, clear-refactor-pending and add-ledger-step never shorten the ledger silently
 
-- [ ] tick-ledger.sh, when writing the ticked ledger fails, leaves the ledger file byte-identical to what it was and exits 2 ⟦criterion 1⟧
+- [x] tick-ledger.sh, when writing the ticked ledger fails, leaves the ledger file byte-identical to what it was and exits 2 ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] clear-refactor-pending.sh, when writing the cleared ledger fails, leaves the ledger file byte-identical to what it was and exits 2 ⟦criterion 1⟧
 - [ ] add-ledger-step.sh finds a last ledger step that has no trailing newline as its anchor, inserting after it and keeping it in the ledger, rather than exiting 2 with "anchor matches no single step" ⟦criterion 2⟧
 - [ ] add-ledger-step.sh keeps a last line that has no trailing newline in the ledger after an insertion anchored on an earlier step ⟦criterion 2⟧
