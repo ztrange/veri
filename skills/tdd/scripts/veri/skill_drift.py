@@ -38,7 +38,7 @@ def main(argv):
     if not resolves(clone, ref):
         return unavailable("%s does not resolve in %s" % (ref, clone))
     log = git(clone, "log", "--format=%h %s", "%s..%s" % (commit, ref),
-              "--", "skills/tdd", ":(exclude)skills/tdd/scripts/tests")
+              "--", ":(top)skills/tdd", ":(top,exclude)skills/tdd/scripts/tests")
     groups = {}
     for line in log.splitlines():
         sha, subject = line.split(" ", 1)
