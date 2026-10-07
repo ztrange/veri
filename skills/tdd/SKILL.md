@@ -2110,6 +2110,9 @@ To bail:
    `metrics could not be rendered: metrics.sh exited $metrics` in its place), carries the last reason
    (`.tdd/verify-<phase>.reason` on a `revise-exhausted` bail, the develop-red leaf's `WHY:`
    line on an `untestable-criterion` bail, the kill cause otherwise),
+   then, after the reason, the skill-drift block — the stdout of `drift="$($S/skill-drift.sh)";
+   drift_exit=$?`, or, when `$drift_exit` is not 0, the line `Skill drift: unavailable —
+   skill-drift.sh exited $drift_exit` in its place, and the bail goes on either way —
    and points at the progress log (`.tdd/<phase>.log` or
    `.tdd/revise-<phase>-*.log`) for forensics.
 7. **Leave the draft PR open, and put the bail diagnostic on it.** Step 2.3 opened it at the
@@ -2123,11 +2126,13 @@ To bail:
    gh api 'repos/{owner}/{repo}/pulls?head={owner}:{branch}' -q '.[0].html_url // empty'   # → <pr-url>, the PR step 2.3 opened; <pr-number> is its last path segment
    gh api repos/{owner}/{repo}/issues/<pr-number>/comments -f body="<the same ### ⛔ Bailed — <phase> (<classification> failure) comment, or a link to the issue comment sub-step 6 posted>"
    ```
+   Either way the PR carries sub-step 6's skill-drift block: a link-only comment quotes that
+   block alongside the link.
    It stays a **draft**: nobody is asked to review a run that stopped. The ledger's completed
    steps stay checked, so a re-run resumes from the failing step (see *Resume*) and edits this
    same PR rather than opening another.
 8. Report to the user: the phase, the **classification** (system vs process), the reason,
-   the branch name, and the **worktree path** — the logs named above are inside it, and it
+   sub-step 6's skill-drift block, the branch name, and the **worktree path** — the logs named above are inside it, and it
    is where a re-run will resume. Leave it in place; only a merged PR retires it.
 
 ## Stopping
