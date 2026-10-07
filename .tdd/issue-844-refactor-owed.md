@@ -12,3 +12,6 @@
 ### tests/py/test_pid_file.py: live_conductor answers None and raises nothing when the faked os.kill raises PermissionError, ProcessLookupError or OverflowError ⟦criterion 3⟧
 - test-only | extract a helper in tests/py/test_pid_file.py that makes `<tmp_path>/<name>/.tdd/` and optionally writes `conductor.pid`, shared by the two live_conductor cases (lines 112-139 and 144-169)
 - out-of-scope | remove the duplicate number_in/live_conductor from veri/issue_worktree.py by importing from veri/pid_file.py; this is the plan's move step, not this cycle's refactor
+### tests/py/test_pid_file.py: supervising(pid, name) runs ps as ["ps", "-p", pid, "-o", "args="] (faked subprocess.run) and is true when ps answers "bash /x/supervise.sh develop-red-3 claude -p" for develop-red-3; false when the faked ps exits 1 or answers empty ⟦criterion 3⟧
+- test-only | hoist the `importlib.import_module("veri.pid_file")` that each of the seven cases in tests/py/test_pid_file.py repeats into one module-level import
+- test-only | extract the `try: answers[name] = …; except Exception as error: answers[name] = type(error).__name__` loop body, repeated in four cases of tests/py/test_pid_file.py, into one helper
