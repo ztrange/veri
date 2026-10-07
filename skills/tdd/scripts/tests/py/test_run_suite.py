@@ -112,3 +112,17 @@ def test_main_reads_the_count_line_guard_from_lib_count_line_guard_sh_beside_it(
         (2, "", 1, True),
         (2, "", 1, True),
     ], [])
+
+
+def test_main_renders_the_countless_refusal_as_bash_printf_does_with_the_suite_name_its_one_argument(tmp_path, capfd):
+    scripts = tmp_path / "scripts"
+    run_suite = staged_module(scripts)
+    (scripts / "lib" / "count-line-guard.sh").write_text(
+        "COUNT_LINE='^[0-9]+ passed, [0-9]+ failed$'\n"
+        "COUNTLESS='%s: 100%% sure\\ttab\\\\back %s end\\n'\n"
+    )
+    code = run_suite.main([fake_suite(tmp_path, "partial.test.sh", "echo partial\nexit 0\n")])
+    out, _ = capfd.readouterr()
+    assert (code, out.splitlines()[-2:]) == (
+        1, ["partial.test.sh: 100% sure\ttab\\back  end", "partial.test.sh: its last line was: partial"]
+    )

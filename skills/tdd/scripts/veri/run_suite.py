@@ -17,6 +17,29 @@ def read_guard(path):
     return guard
 
 
+def render_printf(fmt, arg):
+    escapes = {"n": "\n", "t": "\t", "\\": "\\"}
+    args = [arg]
+    out = []
+    i = 0
+    while i < len(fmt):
+        c = fmt[i]
+        nxt = fmt[i + 1] if i + 1 < len(fmt) else ""
+        if c == "%" and nxt == "%":
+            out.append("%")
+            i += 2
+        elif c == "%" and nxt == "s":
+            out.append(args.pop(0) if args else "")
+            i += 2
+        elif c == "\\" and nxt in escapes:
+            out.append(escapes[nxt])
+            i += 2
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out)
+
+
 def main(argv):
     if not argv:
         sys.stderr.write("usage: run-suite.sh <suite>\n")
@@ -42,7 +65,7 @@ def main(argv):
     if re.search(guard["COUNT_LINE"], last_line):
         return proc.returncode
     name = os.path.basename(suite)
-    sys.stdout.write(guard["COUNTLESS"].replace("\\n", "\n").replace("%s", name))
+    sys.stdout.write(render_printf(guard["COUNTLESS"], name))
     if text.strip():
         sys.stdout.write("%s: its last line was: %s\n" % (name, last_line))
     else:
