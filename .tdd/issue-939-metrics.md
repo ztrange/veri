@@ -1,0 +1,98 @@
+### 📊 Metrics — issue 939
+
+Wall time for the issue: 7552 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 0 s, excluded from it.
+Steps done: 19 of 23 planned.
+Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/1147.
+Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
+Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER unset; models that answered: claude-opus-5-5.
+
+#### By phase
+
+| phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| plan | 1 | 1 | 0 | 0 | 53 | 48 | 3 | 6 | 4369 | 146516 | 58408 | 0.58 |
+| red | 18 | 7 | 0 | 0 | 637 | 499 | 104 | 206 | 44239 | 5878431 | 1034694 | 10.34 |
+| pin | 4 | 4 | 0 | 0 | 106 | 76 | 16 | 32 | 6697 | 791055 | 210078 | 1.97 |
+| green | 18 | 7 | 2 | 0 | 1773 | 537 | 125 | 246 | 48068 | 7059596 | 886544 | 9.47 |
+| refactor | 14 | 7 | 0 | 0 | 701 | 251 | 63 | 124 | 22512 | 3203381 | 763853 | 7.20 |
+| diff | 12 | 5 | 1 | 0 | 1094 | 340 | 78 | 152 | 30929 | 4344212 | 684254 | 6.96 |
+| predicate | 1 | 0 | 0 | 0 | 13 | 7 | 3 | 6 | 543 | 134453 | 49598 | 0.43 |
+| structural | 1 | 0 | 0 | 0 | 85 | 15 | 5 | 10 | 1301 | 260826 | 51777 | 0.49 |
+| transform | 1 | 1 | 0 | 0 | 29 | 18 | 5 | 10 | 1613 | 256144 | 50904 | 0.49 |
+
+#### By model
+
+| role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| verifier | claude-opus-5-5 | 35 | 32 | 3 | 0 | 2543 | 970 | 211 | 418 | 86274 | 11579620 | 1805957 | 18.49 |
+| developer | claude-opus-5-5 | 35 | 0 | 0 | 0 | 1948 | 821 | 191 | 374 | 73997 | 10494994 | 1984153 | 19.45 |
+
+#### Rework and waste, by phase
+
+| phase | rework wall s | rework $ | waste wall s | waste $ |
+| --- | ---: | ---: | ---: | ---: |
+| plan | 0 | 0.00 | 0 | 0.00 |
+| red | 0 | 0.00 | 0 | 0.00 |
+| pin | 0 | 0.00 | 0 | 0.00 |
+| green | 1242 | 4.44 | 0 | 0.00 |
+| refactor | 0 | 0.00 | 0 | 0.00 |
+| diff | 315 | 2.15 | 0 | 0.00 |
+| predicate | 0 | 0.00 | 0 | 0.00 |
+| structural | 0 | 0.00 | 0 | 0.00 |
+| transform | 0 | 0.00 | 0 | 0.00 |
+
+#### By step
+
+| step | attempts | PASS | REJECT | kills | retries | no-verdict | API s | turns | input | output | cache read | cache creation | $ | wall s | revise | refactor | stopped | crossed at | split | kind |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |
+| stop-requested.sh, run through a symlink to the skill's scripts directory from a scratch working directory, reads and clears that working directory's `.tdd/stop` — a mode comes back on stdout with exit 0, `--clear` removes it with exit 0, and a `.tdd/stop` beside the skill is never read or removed — a case in tests/unit/stop-requested.test.sh written against the bash script ⟦criterion 4⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 66 | 11 | 22 | 6438 | 614994 | 111745 | 1.15 | unknown | unknown | unknown | unknown |  |  | pin |
+| stop-requested.sh --bogus, run through its entry point, exits 2 with stderr exactly `usage: stop-requested.sh [--clear]` and nothing on stdout — a case in tests/unit/stop-requested.test.sh written against the bash script ⟦criterion 6⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 39 | 10 | 20 | 3725 | 538665 | 109566 | 1.06 | unknown | unknown | unknown | unknown |  |  | pin |
+| the in-place half of tests/unit/stop-requested.test.sh's `#683` case (`.tdd/stop` holding `bogus`: exit 2, empty stdout, stderr exactly `stop-requested: .tdd/stop must name a mode — at-ledger, at-leaf or now: 'bogus'`) is a case of its own named "a malformed stop request is refused on stderr with today's message, naming the modes", its assertion copied unmodified and passing against the bash script, the `#683` case keeping its first half and its name ⟦criterion 2⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 52 | 10 | 20 | 4640 | 539655 | 110293 | 1.08 | unknown | unknown | unknown | unknown |  |  | pin |
+| veri.stop_modes is importable in-process and starts no process: `STOP_MODES` is `("at-ledger", "at-leaf", "now")`; `stop_mode_known` is true for each of the three and false for `Now`, `now `, ` now`, `now\r`, `` and `at-step`, raising nothing for any str; `modes_named()` is `at-ledger, at-leaf or now`, is ` or now` for a one-mode list, and follows a changed `STOP_MODES` when called after the change, as `stop_mode_known` does — cases in tests/py/test_stop_modes.py ⟦criterion 5⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 164 | 36 | 72 | 13299 | 1983209 | 323951 | 3.25 | 450 | unknown | 0/5 | structural-owed |  |  | full |
+| veri.stop_requested.main, called with the working directory a tmp_path, returns 0 with stdout `now\n` for `.tdd/stop` holding `now\n`; returns 3 with nothing on stdout or stderr when there is no `.tdd/stop`; returns 2 with nothing on stdout and stderr `usage: stop-requested.sh [--clear]\n` for ["--bogus"], `.tdd/stop` still holding `at-ledger\n`; and returns 0 with `.tdd/stop` gone for ["--clear"] — cases in tests/py/test_stop_requested.py — and stop-requested.sh leaves slice 8's list, stop-run.sh and solvable-issues.sh (less any a sibling port already removed) staying on it and the case staying for them: replaces 'migration slice 8 sources lib/exit-contract.sh and refuses through it, with no hand-built usage-and-exit idiom left' in skills/tdd/scripts/tests/unit/missing-argument-exit.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧ | 10 | 3 | 2 | 0 | 0 | 0 | 312 | 68 | 134 | 28139 | 4012076 | 468665 | 5.12 | 1007 | 2/2 | 0/5 | nothing-structural |  |  | full |
+| with `stop_modes.STOP_MODES` set to `("at-ledger", "at-leaf", "now", "at-step")`, veri.stop_requested.main([]) returns 0 with stdout `at-step\n` for `.tdd/stop` holding `at-step\n`, and returns 2 with nothing on stdout and stderr `stop-requested: .tdd/stop must name a mode — at-ledger, at-leaf, now or at-step: 'bogus'\n` for `bogus\n`: replaces '#683: stop-requested.sh accepts the modes lib/stop-modes.sh lists, and still refuses one outside it with today's message' in skills/tdd/scripts/tests/unit/stop-requested.test.sh ⟦replaces-case⟧ ⟦criterion 2⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 154 | 37 | 74 | 14191 | 2083917 | 333011 | 3.36 | 436 | unknown | 0/5 | nothing-structural |  |  | full |
+| veri.stop_requested.main reads its arguments as stop-requested.sh does: more than one argument returns 2 with stderr exactly `usage: stop-requested.sh [--clear]\n` and nothing on stdout before `--clear` acts or `.tdd/stop` is read, so ["--clear", "--bogus"] leaves `.tdd/stop` in place and a malformed `.tdd/stop` still gets the usage line; [""] reads `.tdd/stop` as [] does; ["clear"], ["--CLEAR"] and ["--clear=1"] are refused like ["--bogus"]; every mode printed on exit 0 ends in exactly one `\n`, and exit 0 and exit 3 leave stderr empty ⟦criterion 8⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 155 | 32 | 62 | 13132 | 1704666 | 344423 | 3.36 | 413 | unknown | 0/5 | nothing-structural |  |  | full |
+| veri.stop_requested.main reads only `.tdd/stop`'s first line, whole: `now\nbogus\n` answers `now`; ` now\n`, `now \n`, `now\t\n` and `now\r\n` are refused with the line verbatim between the quotes; `now` with no trailing newline and a zero-byte file are refused as `''`; NUL bytes in the line are dropped (`no\0w\n` answers `now`); a directory and a dangling symlink at `.tdd/stop` return 3 with nothing on stdout or stderr; an unreadable `.tdd/stop` (an OSError forced at the open, not by permission bits) returns 2 with stderr exactly the refusal naming `''` and nothing else ⟦criterion 8⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 140 | 32 | 64 | 12199 | 1726782 | 333861 | 3.26 | 395 | unknown | 0/5 | nothing-structural |  |  | full |
+| veri.stop_requested.main(["--clear"]) returns 0 with no `.tdd` directory at all; removes a malformed `.tdd/stop` without reading it; removes a dangling symlink at `.tdd/stop`; and with a directory at `.tdd/stop` raises the OSError `unlink` raises, uncaught, leaving the directory in place ⟦criterion 8⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 120 | 30 | 60 | 10325 | 1594303 | 324350 | 3.12 | 366 | unknown | 0/5 | nothing-structural |  |  | full |
+| veri.stop_requested.main passes non-UTF-8 bytes in `.tdd/stop`'s first line through to stderr unchanged in the refusal, nothing on stdout, return 2 ⟦criterion 8⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 116 | 33 | 62 | 10748 | 1649769 | 324583 | 3.14 | 371 | unknown | 0/5 | nothing-structural |  |  | full |
+| stop-requested.sh becomes a /bin/sh shim that execs python3 on "$(dirname "$0")/veri/stop_requested.py" once per invocation, as status.sh does, holding no Python source, its header's first lowercase `usage: ` line being `usage: stop-requested.sh [--clear]` and carrying no issue number; veri/stop_requested.py gains its `if __name__ == "__main__"` block, imports stop_modes by bare name, has no wrapper turning an uncaught exception into exit 2, and starts no process; the commit touches no test suite, and tests/unit/stop-requested.test.sh's contract cases and tests/unit/missing-argument-exit.test.sh's `rejects stop-requested.sh --bogus` pass unmodified against it ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 3⟧ | 4 | 1 | 1 | 0 | 0 | 0 | 95 | 23 | 46 | 9127 | 1249761 | 215123 | 2.15 | 353 | 1/2 | unknown | unknown |  |  | full |
+| tests/py/test_stop_requested.py asserts in-process what tests/unit/stop-requested.test.sh's cases at :65-77 (--clear with and without a request, exit 0, the file gone), :79-90 (--bogus: exit 2, `.tdd/stop` still `at-ledger`) and :92-94 (--clear --bogus: exit 2, `.tdd/stop` still `at-ledger`) assert, asserting main's return code where the bash case asserted the exit code ⟦criterion 6⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 45 | 9 | 18 | 4680 | 484427 | 110721 | 1.08 | unknown | unknown | unknown | unknown |  |  | pin |
+| tests/unit/stop-requested.test.sh keeps only the floor the plan names — :32-40, :42-48, :50-63, the bad-argument stderr case, the split-off malformed-text case, the symlink case and :115-127 unmodified — the cases at :65-77, :79-90 and :92-94 cut, no assertion of a kept case changed ⟦diff-checked⟧ ⟦criterion 6⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 30 | 9 | 18 | 2787 | 470835 | 108098 | 1.01 | 168 | n/a | n/a | n/a |  |  | full |
+| no assertion of a contract case of tests/unit/stop-requested.test.sh (:32-40, :42-48, :50-63, :65-77, :79-90, :92-94, the split-off half of :106-112) or of tests/unit/missing-argument-exit.test.sh's `rejects stop-requested.sh --bogus` changes anywhere on the branch, and the shim's commit precedes every cut of one ⟦diff-checked⟧ ⟦criterion 3⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 68 | 13 | 26 | 4932 | 742056 | 113771 | 1.16 | 216 | n/a | n/a | n/a |  |  | full |
+| lib/stop-modes.sh, lib/exit-contract.sh, stop-run.sh, tests/stop-run.test.sh, tests/skill-stopping.test.sh, tests/py/test_comment_class.py, tests/unit/exit-contract.test.sh, tests/unit/scratch-copy-libs.test.sh, tests/no-python-in-ported-scripts.test.sh, SKILL.md, CLAUDE.md and everything under docs/ are unchanged by the branch; tests/unit/missing-argument-exit.test.sh changes only slice 8's line; and no suite but tests/unit/stop-requested.test.sh and tests/unit/missing-argument-exit.test.sh runs stop-requested.sh through its entry point ⟦diff-checked⟧ ⟦criterion 7⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 64 | 17 | 32 | 6182 | 927406 | 112425 | 1.21 | 251 | n/a | n/a | n/a |  |  | full |
+| every branch listed under the issue's "Order matters (#797)" is pinned by a pytest case in tests/py/test_stop_requested.py or tests/py/test_stop_modes.py added in the shim's commit or an earlier one ⟦diff-checked⟧ ⟦criterion 8⟧ | 5 | 2 | 0 | 0 | 0 | 0 | 123 | 29 | 56 | 11358 | 1605577 | 287116 | 2.85 | 215 | unknown | unknown | unknown |  |  | full |
+
+The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER.
+
+#### By refactor pass
+
+| step | pass | refactor | stopped | verdict | revise | wall s | $ |
+| --- | ---: | ---: | --- | --- | ---: | ---: | ---: |
+| veri.stop_modes is importable in-process and starts no process: `STOP_MODES` is `("at-ledger", "at-leaf", "now")`; `stop_mode_known` is true for each of the three and false for `Now`, `now `, ` now`, `now\r`, `` and `at-step`, raising nothing for any str; `modes_named()` is `at-ledger, at-leaf or now`, is ` or now` for a one-mode list, and follows a changed `STOP_MODES` when called after the change, as `stop_mode_known` does — cases in tests/py/test_stop_modes.py ⟦criterion 5⟧ | 1 | 0/5 | structural-owed | PASS | 0 | 105 | 1.00 |
+| veri.stop_requested.main, called with the working directory a tmp_path, returns 0 with stdout `now\n` for `.tdd/stop` holding `now\n`; returns 3 with nothing on stdout or stderr when there is no `.tdd/stop`; returns 2 with nothing on stdout and stderr `usage: stop-requested.sh [--clear]\n` for ["--bogus"], `.tdd/stop` still holding `at-ledger\n`; and returns 0 with `.tdd/stop` gone for ["--clear"] — cases in tests/py/test_stop_requested.py — and stop-requested.sh leaves slice 8's list, stop-run.sh and solvable-issues.sh (less any a sibling port already removed) staying on it and the case staying for them: replaces 'migration slice 8 sources lib/exit-contract.sh and refuses through it, with no hand-built usage-and-exit idiom left' in skills/tdd/scripts/tests/unit/missing-argument-exit.test.sh ⟦replaces-case⟧ ⟦criterion 1⟧ | 1 | 0/5 | nothing-structural | PASS | 0 | 115 | 1.04 |
+| with `stop_modes.STOP_MODES` set to `("at-ledger", "at-leaf", "now", "at-step")`, veri.stop_requested.main([]) returns 0 with stdout `at-step\n` for `.tdd/stop` holding `at-step\n`, and returns 2 with nothing on stdout and stderr `stop-requested: .tdd/stop must name a mode — at-ledger, at-leaf, now or at-step: 'bogus'\n` for `bogus\n`: replaces '#683: stop-requested.sh accepts the modes lib/stop-modes.sh lists, and still refuses one outside it with today's message' in skills/tdd/scripts/tests/unit/stop-requested.test.sh ⟦replaces-case⟧ ⟦criterion 2⟧ | 1 | 0/5 | nothing-structural | PASS | 0 | 94 | 1.01 |
+| veri.stop_requested.main reads its arguments as stop-requested.sh does: more than one argument returns 2 with stderr exactly `usage: stop-requested.sh [--clear]\n` and nothing on stdout before `--clear` acts or `.tdd/stop` is read, so ["--clear", "--bogus"] leaves `.tdd/stop` in place and a malformed `.tdd/stop` still gets the usage line; [""] reads `.tdd/stop` as [] does; ["clear"], ["--CLEAR"] and ["--clear=1"] are refused like ["--bogus"]; every mode printed on exit 0 ends in exactly one `\n`, and exit 0 and exit 3 leave stderr empty ⟦criterion 8⟧ | 1 | 0/5 | nothing-structural | PASS | 0 | 101 | 1.06 |
+| veri.stop_requested.main reads only `.tdd/stop`'s first line, whole: `now\nbogus\n` answers `now`; ` now\n`, `now \n`, `now\t\n` and `now\r\n` are refused with the line verbatim between the quotes; `now` with no trailing newline and a zero-byte file are refused as `''`; NUL bytes in the line are dropped (`no\0w\n` answers `now`); a directory and a dangling symlink at `.tdd/stop` return 3 with nothing on stdout or stderr; an unreadable `.tdd/stop` (an OSError forced at the open, not by permission bits) returns 2 with stderr exactly the refusal naming `''` and nothing else ⟦criterion 8⟧ | 1 | 0/5 | nothing-structural | PASS | 0 | 101 | 1.07 |
+| veri.stop_requested.main(["--clear"]) returns 0 with no `.tdd` directory at all; removes a malformed `.tdd/stop` without reading it; removes a dangling symlink at `.tdd/stop`; and with a directory at `.tdd/stop` raises the OSError `unlink` raises, uncaught, leaving the directory in place ⟦criterion 8⟧ | 1 | 0/5 | nothing-structural | PASS | 0 | 90 | 1.01 |
+| veri.stop_requested.main passes non-UTF-8 bytes in `.tdd/stop`'s first line through to stderr unchanged in the refusal, nothing on stdout, return 2 ⟦criterion 8⟧ | 1 | 0/5 | nothing-structural | PASS | 0 | 95 | 1.02 |
+
+#### Structural pass
+
+| pass | refactor | stopped |
+| --- | ---: | --- |
+| issue | 1/3 | candidates-done |
+
+#### Test-command seconds, by tier
+
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s | run 94 s | run 95 s | run 96 s | run 97 s | run 98 s | run 99 s | run 100 s | run 101 s | run 102 s | run 103 s | run 104 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 0 | 1 | 1 | 0 | 1 | 3 | 1 | 1 | 3 | 1 | 3 | 4 | 0 | 4 | 1 | 10 | 19 | 3 | 3 | 1 | 5 | 1 | 11 | 9 | 0 | 6 | 0 | 0 | 0 | 3 | 0 | 13 | 1 | 3 | 1 | 0 | 10 | 1 | 0 | 2 | 0 | 1 | 1 | 2 | 1 | 6 | 3 | 1 | 3 | 0 | 0 | 1 | 2 | 1 | 0 | 1 | 1 | 0 | 2 | 1 | 1 | 1 | 1 | 2 | 1 | 1 | 1 | 2 | 1 | 2 | 1 | 0 | 1 | 1 | 0 | 2 | 2 | 1 | 7 | 1 | 1 | 1 | 1 | 0 | 0 | 14 | 3 | 1 | 1 | 5 | 0 | 11 | 0 | 0 | 2 | 5 | 1 | 3 | 0 | 1 | 6 | 1 | 63 | 3 |
+| target | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 1 | 1 | 2 | 1 | 0 | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 0 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| fast | 51 | 52 | 50 | 49 | 49 | 48 | 49 | 49 | 51 | 51 | 54 | 53 | 48 | 52 | 48 | 48 | 50 | 50 | 49 | 47 | 48 | 50 | 50 | 49 | 51 | 50 | 52 | 50 | 48 | 50 | 46 | 49 | 47 | 47 | 48 | 46 | 49 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+
+#### Total
+
+| run | turns | input | output | cache read | cache creation | $ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| total | 402 | 792 | 160271 | 22074614 | 3790110 | 37.94 |
