@@ -349,3 +349,30 @@ def test_wait_reads_a_leading_zero_max_as_bash_octal_so_010_is_8_and_08_09_never
         lines = err.splitlines()
         assert (max_seconds, code, out, len(lines), all(lines), len(kills), sleeps) == (
             max_seconds, code_wanted, "", err_lines, True, rounds, [1.0] * (rounds if code_wanted == 0 else rounds - 1))
+
+
+def test_wait_sleeps_veri_poll_seconds_between_rounds_1_when_unset_or_empty_and_0_05_or_0_as_given(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "x.pid").write_text("4242\n")
+    now = [1000.0]
+    sleeps = []
+
+    def fake_sleep(seconds):
+        sleeps.append(float(seconds))
+        now[0] += 1
+
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "sleep", fake_sleep)
+    monkeypatch.setattr(os, "kill", lambda pid, signum: None)
+
+    for poll, slept in ((None, 1.0), ("", 1.0), ("0.05", 0.05), ("0", 0.0)):
+        if poll is None:
+            monkeypatch.delenv("VERI_POLL", raising=False)
+        else:
+            monkeypatch.setenv("VERI_POLL", poll)
+        sleeps.clear()
+        code = detach_command.main(["wait", "x", "2"])
+        assert (poll, code, capsys.readouterr(), sleeps) == (poll, 3, ("", ""), [slept, slept])
