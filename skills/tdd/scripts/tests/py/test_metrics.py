@@ -820,10 +820,15 @@ def test_main_renders_per_phase_revise_cells_the_by_step_kind_and_the_note_namin
             events += leaf(step, t + 20 + 30 * i, "verifier", phase, 1, 10, verdict="PASS")
         return events + conductor(step, t + 100, "step-done")
 
-    def satisfied_red(step, t, rejects=0):
+    def satisfied_red(step, t, rejects=0, launches=False):
         events = conductor(step, t, "step-start")
         for attempt in range(1, rejects + 1):
+            if launches:
+                events += leaf(step, t + 30 * attempt - 20, "developer", "red", attempt, 0)[:1]
+                events += leaf(step, t + 30 * attempt - 10, "verifier", "red", attempt, 0)[:1]
             events += leaf(step, t + 30 * attempt, "verifier", "red", attempt, 0, verdict="REJECT")[-1:]
+        if launches:
+            events += leaf(step, t + 60, "verifier", "pin", 1, 0)[:1]
         events += leaf(step, t + 70, "verifier", "pin", 1, 0, verdict="PASS")[-1:]
         return events
 
@@ -837,9 +842,9 @@ def test_main_renders_per_phase_revise_cells_the_by_step_kind_and_the_note_namin
     satisfied = report("satisfied", full_step("full", 19000) + satisfied_red("satisfied", 19200))
     assert kinds(satisfied) == {"full": "full", "satisfied": "already-satisfied"}
 
-    leafcount = report("leafcount", satisfied_red("many-pin", 20000, rejects=2)
+    leafcount = report("leafcount", satisfied_red("many-pin", 20000, rejects=2, launches=True)
                        + conductor("many-pin", 20090, "pin", "pin")
-                       + satisfied_red("many-sat", 20100, rejects=2)
+                       + satisfied_red("many-sat", 20100, rejects=2, launches=True)
                        + conductor("two-leaf", 20200, "step-start")
                        + leaf("two-leaf", 20210, "developer", "green", 1, 5)[:1]
                        + leaf("two-leaf", 20220, "verifier", "green", 1, 10, verdict="PASS")
