@@ -101,4 +101,14 @@ MUTATION: $mutation" "some narration with no report lines at all"; do
 done
 verdict "$name"
 
+name="#1089: a CAUGHT_BY: line of a NUL b under COVERED: yes prints ab and exits 0"
+problems=()
+scratch="$(scratch_dir)"
+# Bash's $(...) drops NUL bytes itself, so stdout is compared as a file, not a variable.
+printf 'COVERED: yes\nCAUGHT_BY: a\0b\n' | "$COVER_OUTCOME" >"$scratch/out" 2>/dev/null && code=0 || code=$?
+printf 'ab\n' >"$scratch/want"
+[[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
+cmp -s "$scratch/want" "$scratch/out" || problems+=("want stdout 'ab', got '$(tr '\0\n' '@|' <"$scratch/out")' (@ is a NUL)")
+verdict "$name"
+
 finish
