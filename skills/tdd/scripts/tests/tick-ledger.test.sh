@@ -53,6 +53,15 @@ notdir_err="$(cat "$work/notdir.err")"
   && [[ "$(cat "$work/plain-file")" == 'not a directory' ]]; } \
   && ok || no "#1118: a ledger path running through a regular file → exit 2, one 'tick-ledger.sh: <path>: <reason>' stderr line, no traceback, nothing written (code=$code err='$notdir_err')"
 
+printf '\377\376- [ ] collapse to single hyphen\n' > "$work/undecodable.md"
+cp "$work/undecodable.md" "$work/undecodable.orig"
+LC_ALL=C.UTF-8 "$TICK" "$work/undecodable.md" "collapse to single hyphen" > "$work/undecodable.out" 2> "$work/undecodable.err"; code=$?
+undecodable_err="$(cat "$work/undecodable.err")"
+{ [[ "$code" == 2 ]] && [[ ! -s "$work/undecodable.out" ]] && [[ "$(wc -l < "$work/undecodable.err")" -eq 1 ]] \
+  && [[ "$undecodable_err" == "tick-ledger.sh: $work/undecodable.md: "?* ]] && [[ "$undecodable_err" != *Traceback* ]] \
+  && cmp -s "$work/undecodable.md" "$work/undecodable.orig"; } \
+  && ok || no "#1118: a ledger holding bytes that do not decode under a UTF-8 locale → exit 2, one 'tick-ledger.sh: <path>: <reason>' stderr line, no traceback, ledger byte-identical (code=$code err='$undecodable_err')"
+
 CLEAR="$HERE/../clear-refactor-pending.sh"
 seed
 "$TICK" "$led" "nonexistent step" 2>/dev/null; tick_miss=$?

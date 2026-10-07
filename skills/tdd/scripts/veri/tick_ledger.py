@@ -22,6 +22,9 @@ def main(argv):
     except OSError as error:
         print(f"tick-ledger.sh: {argv[0]}: {error.strerror}", file=sys.stderr)
         return 2
+    except UnicodeDecodeError as error:
+        print(f"tick-ledger.sh: {argv[0]}: {error.reason}", file=sys.stderr)
+        return 2
     ticked, new = ledger.ledger_tick(text.replace("\0", ""), (argv[1:] or [""])[0], pending)
     if not ticked:
         return 3
