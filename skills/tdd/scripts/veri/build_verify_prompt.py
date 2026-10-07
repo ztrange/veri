@@ -76,16 +76,19 @@ def main(argv):
     if phase == "diff":
         if not options["--step"]:
             return _refuse("build-verify-prompt: diff needs --step '<STEP>'")
-        shas = (("<step-base-sha>", fourth), ("<base-sha>", argv[2]))
+        shas = (("<step-base-sha>", "STEP_BASE_SHA", fourth), ("<base-sha>", "BASE_SHA", argv[2]))
     elif phase in ("refactor", "transform"):
-        shas = (("<base-sha>", fourth),)
+        shas = (("<base-sha>", "BASE_SHA", fourth),)
     elif phase == "rebase":
-        shas = tuple(("<onto-sha> <pre-rebase-sha>", value) for value in (argv[2], fourth))
+        shas = (("<onto-sha> <pre-rebase-sha>", "ONTO_SHA", argv[2]),
+                ("<onto-sha> <pre-rebase-sha>", "PRE_REBASE_SHA", fourth))
     else:
         shas = ()
-    for label, value in shas:
+    slots = {"BASE_SHA": fourth, "STEP_BASE_SHA": "", "ONTO_SHA": "", "PRE_REBASE_SHA": ""}
+    for label, slot, value in shas:
         if not re.fullmatch(r"[0-9a-f]{7,40}", value):
             return _refuse(f"build-verify-prompt: {phase} needs {label} as 7-40 lowercase hex characters, got '{value}'")
+        slots[slot] = value
     prompts = f"{HERE}/prompts"
     spec = argv[1]
     optional = {}
@@ -127,11 +130,11 @@ def main(argv):
                                *((placeholder.encode(), value) for placeholder, value in values.items()),
                                (b"TEST_PATH", os.fsencode(argv[2])),
                                (b"TARGET_TEST", os.fsencode(fourth or "the target test")),
-                               (b"BASE_SHA", os.fsencode(argv[2] if phase == "diff" else fourth)),
-                               (b"STEP_BASE_SHA", os.fsencode(fourth if phase == "diff" else "")),
+                               (b"BASE_SHA", os.fsencode(slots["BASE_SHA"])),
+                               (b"STEP_BASE_SHA", os.fsencode(slots["STEP_BASE_SHA"])),
                                (b"FAST_CMD", os.fsencode(options["--fast-cmd"])),
-                               (b"ONTO_SHA", os.fsencode(argv[2] if phase == "rebase" else "")),
-                               (b"PRE_REBASE_SHA", os.fsencode(fourth if phase == "rebase" else "")),
+                               (b"ONTO_SHA", os.fsencode(slots["ONTO_SHA"])),
+                               (b"PRE_REBASE_SHA", os.fsencode(slots["PRE_REBASE_SHA"])),
                                (b"TIMED_TEST_RUN", os.fsencode(f"{HERE}/timed-test-run.sh"))):
         out = out.replace(b"{{" + placeholder + b"}}", value)
     sys.stdout.buffer.write(out + b"\n")
