@@ -45,6 +45,7 @@ def fake_gh(monkeypatch, labels, body):
 
 
 def test_main_refuses_a_missing_or_empty_issue_number_with_exit_2_and_answers_0_for_one(monkeypatch, capsys, capture_spec):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     calls = fake_gh(monkeypatch, "enhancement\n", "lamps glow\n")
 
     for argv in ([], [""]):
@@ -80,6 +81,7 @@ bash 5.2 on macOS 15.6.
 
 
 def test_main_appends_a_bug_section_carrying_each_matching_body_section_for_a_bug_labelled_issue(monkeypatch, capsys, capture_spec):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     fake_gh(monkeypatch, "bug\n", BUG_BODY)
 
     code = capture_spec.main(["7"])
@@ -99,6 +101,7 @@ def test_main_appends_a_bug_section_carrying_each_matching_body_section_for_a_bu
 
 
 def test_main_returns_2_with_nothing_on_stdout_when_gh_api_exits_non_zero_with_a_json_error_body(monkeypatch, capsys, capture_spec):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     calls = []
 
     def fake_run(args, **kwargs):
@@ -132,6 +135,7 @@ tick-ledger.sh grows a `--dry-run` flag.
 
 
 def test_main_appends_no_bug_section_for_an_unlabelled_issue_and_a_refactor_section_for_a_refactor_labelled_one(monkeypatch, capsys, capture_spec):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     fake_gh(monkeypatch, "", PLAIN_BODY)
     code = capture_spec.main(["113"])
     captured = capsys.readouterr()
@@ -170,6 +174,7 @@ def refuse_graphql(monkeypatch, labels, body):
 
 
 def test_main_against_a_gh_refusing_graphql_answers_through_rest_as_a_working_gh_does_a_null_body_reading_as_empty(monkeypatch, capsys, capture_spec):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     for labels, body, rest_body in ((["bug", "refactor"], BUG_BODY, BUG_BODY), ([], "", None)):
         fake_gh(monkeypatch, "".join(label + "\n" for label in labels), body)
         working = (capture_spec.main(["112"]), capsys.readouterr())
@@ -185,6 +190,7 @@ REFACTOR_SECTION = "\n## Refactor\n\nRun kind: refactor. This issue changes stru
 
 
 def test_main_keeps_the_text_rules_of_body_echo_label_match_and_section_extraction(monkeypatch, capsys, capture_spec):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     def spec(labels, body):
         fake_gh(monkeypatch, labels, body)
         code = capture_spec.main(["7"])
@@ -234,6 +240,7 @@ def test_main_keeps_the_text_rules_of_body_echo_label_match_and_section_extracti
 
 
 def test_main_asks_labels_before_the_body_of_its_first_argument_and_fails_both_routes_with_exit_2_and_gh_apis_error_then_the_json_decode_line(monkeypatch, capsys, capture_spec):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     refusal = "HTTP 403: GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)\n"
     unreachable = "error connecting to api.github.com\ncheck your internet connection or https://githubstatus.com\n"
     decode_line = "json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\n"
