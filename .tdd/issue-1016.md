@@ -4,7 +4,7 @@
 - [x] skill-drift.sh leaves out a commit after the pinned one that touches only skills/tdd/scripts/tests/, docs/ or Makefile; with only such commits in the range it prints `Conductor-path changes on <ref> since then: none.` with no resume line and exits 0 ⟦criterion 2⟧
 - [x] skill-drift.sh lists a commit in the range with no trailing (#N) as `- <short-sha> <subject>` ⟦criterion 3⟧
 - [x] skill-drift.sh with VERI_SKILL_UNPINNED=1, or with VERI_SKILL_COMMIT unset or empty, prints `Skill drift: unavailable — run was not pinned to a skill commit` and exits 0 ⟦criterion 4⟧
-- [ ] skill-drift.sh with VERI_SKILL_CLONE unset, or naming a directory that is not a git work tree, prints `Skill drift: unavailable — skill clone not known` and exits 0 ⟦criterion 5⟧
+- [x] skill-drift.sh with VERI_SKILL_CLONE unset, or naming a directory that is not a git work tree, prints `Skill drift: unavailable — skill clone not known` and exits 0 ⟦criterion 5⟧ ⟂ refactor pending
 - [ ] skill-drift.sh with VERI_SKILL_COMMIT naming a sha the clone does not have prints `Skill drift: unavailable — pinned commit <sha> is not in <clone>` and exits 0 ⟦criterion 6⟧
 - [ ] skill-drift.sh with VERI_SKILL_REF naming a ref that does not resolve in the clone prints `Skill drift: unavailable — <ref> does not resolve in <clone>` and exits 0
 - [ ] skill-drift.sh over a clone whose origin cannot be fetched still prints the list from the ref as it stands, followed by `origin could not be fetched — list is as of the last fetch of <ref>`, and exits 0 ⟦criterion 7⟧
