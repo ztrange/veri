@@ -37,10 +37,9 @@ def main(argv):
         return 3
     data = (new.rstrip("\n") + "\n").encode(errors="surrogateescape")
     try:
-        tmp = write_beside(os.path.abspath(argv[0]), data)
+        backup = write_beside(os.path.realpath(argv[0]), raw)
     except OSError:
         return 2
-    os.unlink(tmp)
     file = open(argv[0], "wb")
     try:
         with file:
@@ -50,8 +49,11 @@ def main(argv):
             with os.fdopen(os.open(argv[0], os.O_WRONLY), "wb") as file:
                 file.write(raw)
         except OSError:
-            os.replace(write_beside(os.path.realpath(argv[0]), raw), os.path.realpath(argv[0]))
+            os.replace(backup, os.path.realpath(argv[0]))
+            return 2
+        os.unlink(backup)
         return 2
+    os.unlink(backup)
     return 0
 
 
