@@ -53,3 +53,23 @@ def test_main_reads_its_report_through_report_read_and_returns_each_exit_code_in
         "no PREDICTION": (2, "", ""),
     }
     assert all(code in range(4) for code, _, _ in results.values())
+
+
+def test_main_prints_an_absent_key_as_its_label_and_a_space_prints_dollar_backtick_and_backslash_verbatim_and_lets_the_last_occurrence_of_a_key_win(monkeypatch, capsys, red_divergence):
+    report = (
+        "PREDICTION: MATCHED\n"
+        "FAIL_OUTPUT: an earlier value\n"
+        "FAIL_OUTPUT: $x `id` C:\\path\\n\n"
+        "PREDICTION_NOTE: $HOME and \\$x\n"
+        "PREDICTION: DIVERGED"
+    )
+
+    assert run(monkeypatch, capsys, red_divergence, report, []) == (
+        0,
+        "The red leaf's prediction diverged from the failure it saw, so the test is the suspect.\n"
+        "\n"
+        "PREDICTED_FAILURE: \n"
+        "FAIL_OUTPUT: $x `id` C:\\path\\n\n"
+        "PREDICTION_NOTE: $HOME and \\$x\n",
+        "",
+    )

@@ -19,7 +19,7 @@ def main(argv):
         return 3
     if prediction != "DIVERGED":
         return 2
-    reason = REASON % (fields["PREDICTED_FAILURE"], fields["FAIL_OUTPUT"], fields["PREDICTION_NOTE"])
+    reason = REASON % tuple(fields.get(key, "") for key in ("PREDICTED_FAILURE", "FAIL_OUTPUT", "PREDICTION_NOTE"))
     sys.stdout.buffer.write(reason.encode())
     return 0
 
