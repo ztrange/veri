@@ -120,4 +120,32 @@ err_text="$(cat "$err")" out_text="$(cat "$out")"
 rm -rf "$tmp"
 report "$name"
 
+name='leaf-launchable.sh run through a symlink to the skill directory, from another working directory, gives the same exit code, stdout and stderr as run in place, for a launching stub binary and for a failing one'
+problems=()
+tmp="$(scratch_dir)"
+ln -s "$(cd "$HERE/../.." && pwd)" "$tmp/skill"
+mkdir -p "$tmp/elsewhere" "$tmp/launching" "$tmp/failing"
+claude_stub "$tmp/launching" "$(cat <<'STUB'
+printf '%s\n' '1.2.3 (Claude Code)'
+printf '%s\n' 'some chatter the probe did not ask for' >&2
+exit 0
+STUB
+)"
+failing_stub "$tmp/failing/claude"
+for stub in launching failing; do
+  env -u CLAUDECODE CLAUDE_BIN="$tmp/$stub/claude" "$LAUNCHABLE" \
+    >"$tmp/$stub.in-place.out" 2>"$tmp/$stub.in-place.err" && in_place=0 || in_place=$?
+  ( cd "$tmp/elsewhere" && env -u CLAUDECODE CLAUDE_BIN="$tmp/$stub/claude" \
+      "$tmp/skill/scripts/leaf-launchable.sh" ) \
+    >"$tmp/$stub.linked.out" 2>"$tmp/$stub.linked.err" && linked=0 || linked=$?
+  [[ "$linked" == "$in_place" ]] ||
+    problems+=("$stub stub: want exit $in_place as in place, got $linked through the symlink")
+  for stream in out err; do
+    cmp -s "$tmp/$stub.in-place.$stream" "$tmp/$stub.linked.$stream" ||
+      problems+=("$stub stub: want std$stream as in place — $(printf '%q' "$(cat "$tmp/$stub.in-place.$stream")") — got through the symlink: $(printf '%q' "$(cat "$tmp/$stub.linked.$stream")")")
+  done
+done
+rm -rf "$tmp"
+report "$name"
+
 finish
