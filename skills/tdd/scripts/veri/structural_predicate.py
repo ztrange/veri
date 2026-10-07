@@ -17,7 +17,10 @@ def main(argv):
     if "PREDICATE" not in fields:
         sys.stderr.write(MISSING + "\n")
         return 2
-    if subprocess.run(["bash", "-c", fields["PREDICATE"]]).returncode == 0:
+    predicate = fields["PREDICATE"]
+    if predicate == "NONE" or predicate.startswith(("NONE ", "NONE—", "NONE:")):
+        return 3
+    if subprocess.run(["bash", "-c", predicate]).returncode == 0:
         return 1
 
 

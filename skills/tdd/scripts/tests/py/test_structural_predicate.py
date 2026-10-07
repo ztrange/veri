@@ -83,3 +83,28 @@ def test_main_reads_the_last_terminated_predicate_line_and_refuses_a_report_with
     code = structural_predicate.main(["record"])
     assert (code, capsys.readouterr().out, ran) == (1, "", [["bash", "-c", "true\r"]])
     assert list(tmp_path.iterdir()) == []
+
+
+def test_main_skips_a_none_value_and_runs_its_near_misses_as_commands(
+    monkeypatch, capsys, tmp_path, structural_predicate
+):
+    monkeypatch.chdir(tmp_path)
+    ran = []
+
+    def run(args, *rest, **kwargs):
+        ran.append(args)
+        return subprocess.CompletedProcess(args, 0)
+
+    monkeypatch.setattr(subprocess, "run", run)
+    for value in ("NONE", "NONE no structural change", "NONE—why", "NONE: why"):
+        fake_stdin(monkeypatch, ("PREDICATE: %s\n" % value).encode())
+        code = structural_predicate.main(["record"])
+        assert (value, code, capsys.readouterr(), ran) == (value, 3, ("", ""), [])
+    assert list(tmp_path.iterdir()) == []
+
+    for value in ("NONE-x", "NONE\tx", "none", "NONEX"):
+        ran.clear()
+        fake_stdin(monkeypatch, ("PREDICATE: %s\n" % value).encode())
+        code = structural_predicate.main(["record"])
+        assert (value, code, ran) == (value, 1, [["bash", "-c", value]])
+    assert list(tmp_path.iterdir()) == []
