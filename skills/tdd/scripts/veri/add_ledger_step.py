@@ -71,7 +71,8 @@ def main(argv):
     terminated = lines[:-1]
     if lines[-1] == "":
         lines = terminated
-    refusal = multi_tag_refusal(ledger_steps("\n".join(lines)))
+    records = ledger_steps("\n".join(lines))
+    refusal = multi_tag_refusal(records)
     if refusal:
         return refuse("add-ledger-step.sh: " + refusal)
     if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:
@@ -79,7 +80,7 @@ def main(argv):
     budget = os.environ.get("VERI_STEP_GROWTH", "5")
     if not re.fullmatch("[0-9]+", budget):
         return refuse("add-ledger-step.sh: VERI_STEP_GROWTH must be a whole number >= 0: " + budget)
-    added = sum(record[4] == "1" for record in ledger_steps("\n".join(lines)))
+    added = sum(record[4] == "1" for record in records)
     cap = bash_integer(budget)
     if cap is None:
         warn(f'add-ledger-step.sh: {budget}: value too great for base (error token is "{budget}")')
