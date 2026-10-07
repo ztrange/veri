@@ -1,6 +1,7 @@
 """In-process cases for veri/build_develop_prompt.py, the module build-develop-prompt.sh is a shim over."""
 import importlib
 import importlib.util
+import os
 import pathlib
 import sys
 
@@ -248,3 +249,32 @@ def test_main_refuses_the_first_unreadable_file_in_the_bash_order_with_no_usage_
     module, prompts = scripts_with("directory-spec", (*templates, *partials))
     with pytest.raises(IsADirectoryError):
         module.main(["red", str(tmp_path), "s", "make test"])
+
+
+def test_main_renders_a_red_prompt_with_each_file_stripped_of_trailing_newlines_the_timed_test_run_path_as_reached_and_non_utf8_bytes_passed_through(
+        tmp_path, capsysbinary):
+    real = tmp_path / "real" / "scripts"
+    (real / "veri").mkdir(parents=True)
+    for source in (SCRIPTS / "veri").glob("*.py"):
+        (real / "veri" / source.name).write_bytes(source.read_bytes())
+    (real / "prompts").mkdir()
+    (real / "prompts" / "develop-red.md").write_bytes(
+        b"{{SHARED}}\n[{{STEP}}]\n[{{ISSUE_SPEC}}]\n[{{TEST_CMD}}]\n[{{TIMED_TEST_RUN}}]\n\n\n")
+    (real / "prompts" / "_develop-shared.md").write_bytes(b"shared rules\n\n")
+    link = tmp_path / "link"
+    link.symlink_to(tmp_path / "real")
+    loader = importlib.util.spec_from_file_location("build_develop_prompt_via_symlink",
+                                                    link / "scripts" / "veri" / "build_develop_prompt.py")
+    module = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(module)
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec \xff\n\nbody\n\n\n")
+    step = os.fsdecode(b"pin \xfe it")
+
+    code = module.main(["red", str(spec), step, "make test"])
+
+    assert (code, *capsysbinary.readouterr()) == (
+        0,
+        b"shared rules\n[pin \xfe it]\n[# spec \xff\n\nbody]\n[make test]\n["
+        + os.fsencode(str(link / "scripts" / "timed-test-run.sh")) + b"]\n",
+        b"")

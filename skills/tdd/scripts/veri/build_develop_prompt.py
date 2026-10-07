@@ -79,5 +79,10 @@ def main(argv):
         if not os.access(path, os.R_OK):
             _write(sys.stderr, f"build-develop-prompt: cannot read '{path}'")
             return 2
-    _read(spec)
+    text = _read(paths[0])
+    for name, value in (("SHARED", _read(paths[1])), ("ISSUE_SPEC", _read(spec)), ("STEP", os.fsencode(step)),
+                        ("TEST_CMD", os.fsencode(args[2])),
+                        ("TIMED_TEST_RUN", os.fsencode(f"{HERE}/timed-test-run.sh"))):
+        text = text.replace(b"{{" + name.encode() + b"}}", value)
+    sys.stdout.buffer.write(text + b"\n")
     return 0
