@@ -425,6 +425,13 @@ def test_main_sweeps_the_unit_fixture_guard_and_offline_suites_to_empty_sweepabl
     }
 
 
+def test_main_sweeps_cover_outcome_test_sh_and_its_1089_nul_cases_to_an_empty_sweepable_report(capsys):
+    comment_class = importlib.import_module("veri.comment_class")
+    suite = SCRIPTS / "tests" / "unit" / "cover-outcome.test.sh"
+    code = comment_class.main(["--sweepable", str(suite)])
+    assert (code, capsys.readouterr().out) == (0, "")
+
+
 def test_main_keeps_awks_argument_handling_for_a_late_sweepable_an_empty_or_unopenable_file_stdin_and_an_assignment(tmp_path, monkeypatch, capsys):
     comment_class = importlib.import_module("veri.comment_class")
     monkeypatch.chdir(tmp_path)
