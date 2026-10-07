@@ -114,3 +114,44 @@ def test_main_refuses_on_bash_before_the_python_floor_and_on_the_floor_before_th
         (2, "", ["leaf-launchable: veri needs bash 5 or newer"], []),
         (2, "", ["leaf-launchable: veri needs Python 3.12 or newer"], []),
     ]
+
+
+def test_main_probes_claude_bin_else_claude_once_with_stdin_inherited_stdout_discarded_stderr_to_a_removed_temp_file_and_returns_2_naming_an_oserror(
+        capsys, monkeypatch, tmp_path, leaf_launchable):
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+    calls = []
+    raised = []
+
+    def spy(args, **kwargs):
+        stderr = kwargs.get("stderr")
+        calls.append((list(args), kwargs.get("stdin"), kwargs.get("stdout") == subprocess.DEVNULL,
+                      stderr not in (None, subprocess.PIPE, subprocess.DEVNULL, subprocess.STDOUT)))
+        if raised:
+            raise raised[0]
+        return FakeProcess(0)
+
+    monkeypatch.setattr(subprocess, "run", lambda args, **kwargs: subprocess.CompletedProcess(
+        args, spy(args, **kwargs).returncode))
+    monkeypatch.setattr(subprocess, "call", lambda args, **kwargs: spy(args, **kwargs).returncode)
+    monkeypatch.setattr(subprocess, "Popen", spy)
+    answers = []
+    monkeypatch.delenv("CLAUDE_BIN")
+    answers.append(leaf_launchable.main([]))
+    monkeypatch.setenv("CLAUDE_BIN", "")
+    answers.append(leaf_launchable.main([]))
+    monkeypatch.setenv("CLAUDE_BIN", "stub-claude")
+    answers.append(leaf_launchable.main([]))
+    assert capsys.readouterr().err == ""
+    blocks = []
+    for error in (FileNotFoundError(2, "No such file or directory", "stub-claude"),
+                  PermissionError(13, "Permission denied", "stub-claude")):
+        raised[:] = [error]
+        code = leaf_launchable.main([])
+        captured = capsys.readouterr()
+        blocks.append((code, captured.out, "    " + str(error) in captured.err.splitlines()))
+    probe = (None, True, True)
+    assert calls == [(["claude", "--version"],) + probe, (["claude", "--version"],) + probe] + [
+        (["stub-claude", "--version"],) + probe] * 3
+    assert answers == [0, 0, 0]
+    assert blocks == [(2, "", True), (2, "", True)]
+    assert sorted(p.name for p in tmp_path.iterdir()) == []
