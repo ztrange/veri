@@ -4,6 +4,8 @@ import io
 import os
 import pathlib
 import select
+import shlex
+import signal
 import subprocess
 import sys
 import tempfile
@@ -481,3 +483,55 @@ def test_main_strips_after_git_config_global_is_set_and_before_claude_bin_and_ve
         (0, [("claude", False, True, None, None)]),
         (0, [("claude", False, True, "1", None)]),
     ]
+
+
+_RUN_MAIN = """
+import signal, sys
+sys.path[:0] = sys.argv[1:3]
+signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+signal.signal(signal.SIGXFSZ, signal.SIG_IGN)
+import veri.run_leaf
+sys.exit(veri.run_leaf.main(sys.argv[3:]))
+"""
+
+
+def test_main_launches_the_leaf_in_its_callers_process_group_with_sigpipe_and_sigxfsz_as_handed_and_on_sigterm_removes_both_temp_files(
+        tmp_path, monkeypatch):
+    work, tmp = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("do the step\n")
+    report = tmp_path / "report"
+    stub = tmp_path / "claude"
+    stub.write_text(
+        "#!/usr/bin/env bash\n"
+        f"trap -p PIPE XFSZ > {shlex.quote(str(report))}\n"
+        f"exec {shlex.quote(sys.executable)} -c "
+        "'import os, sys, time; open(sys.argv[1], \"a\").write(\"pgid %d pid %d\\n\" % (os.getpgid(0), os.getpid())); "
+        "print(\"{}\", flush=True); time.sleep(30)' "
+        f"{shlex.quote(str(report))}\n")
+    stub.chmod(0o755)
+    monkeypatch.setenv("CLAUDE_BIN", str(stub))
+
+    runner = subprocess.Popen(
+        [sys.executable, "-c", _RUN_MAIN, str(SCRIPTS), str(SCRIPTS / "veri"), "prompt.txt"],
+        stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        start_new_session=True)
+    leaf_pid = None
+    try:
+        ready, _, _ = select.select([runner.stdout], [], [], 10)
+        first = runner.stdout.readline() if ready else b""
+        lines = report.read_text().splitlines()
+        leaf_pid = int(lines[-1].split()[3])
+        os.killpg(runner.pid, signal.SIGTERM)
+        runner.wait(timeout=10)
+    finally:
+        for pid in (runner.pid if runner.poll() is None else None, leaf_pid):
+            if pid:
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+        runner.stdout.close()
+        runner.wait()
+
+    assert (first, lines, sorted(path.name for path in tmp.iterdir())) == (
+        b"{}\n", ["trap -- '' SIGXFSZ", f"pgid {runner.pid} pid {leaf_pid}"], [])
