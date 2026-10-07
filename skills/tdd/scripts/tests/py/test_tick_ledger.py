@@ -253,3 +253,20 @@ def test_main_returns_2_without_raising_leaving_the_ledger_byte_identical_and_no
 
     assert (code, b"Traceback" in err, ledger.read_bytes(), sorted(p.name for p in tmp_path.iterdir())) == (
         2, False, seed, ["ledger.md"])
+
+
+def test_main_ticks_the_target_of_a_symlinked_ledger_leaving_the_link_a_link_and_nothing_beside_either_1110(
+        tmp_path, capsysbinary, tick_ledger):
+    (tmp_path / "real").mkdir()
+    (tmp_path / "link").mkdir()
+    target = tmp_path / "real" / "ledger.md"
+    target.write_bytes(b"- [ ] alpha\n- [ ] beta\n")
+    link = tmp_path / "link" / "ledger.md"
+    link.symlink_to(target)
+
+    code = tick_ledger.main([str(link), "beta"])
+    capsysbinary.readouterr()
+
+    assert (code, link.is_symlink(), target.read_bytes(),
+            sorted(p.name for p in target.parent.iterdir()), sorted(p.name for p in link.parent.iterdir())) == (
+        0, True, b"- [ ] alpha\n- [x] beta\n", ["ledger.md"], ["ledger.md"])
