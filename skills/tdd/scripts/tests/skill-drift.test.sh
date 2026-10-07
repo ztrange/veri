@@ -49,7 +49,8 @@ line12="$(grep -n -E "^- #12 — fix: the supervisor's second window( \(#12\))? 
 ((${#problems[@]} == 0)) || problems+=("stdout was: $(printf '%q' "$out")")
 report "$name"
 
-name="commits after the pin touching only skills/tdd/scripts/tests/, docs/ or Makefile are not listed: the block says none., has no resume line, exit 0"
+doc_tree=docs
+name="commits after the pin touching only skills/tdd/scripts/tests/, $doc_tree/ or Makefile are not listed: the block says none., has no resume line, exit 0"
 problems=()
 tmp="$(scratch_dir)"
 upstream="$tmp/upstream" clone="$tmp/clone"
@@ -57,7 +58,7 @@ new_repo -b main "$upstream"
 touch_commit "$upstream" skills/tdd/scripts/run-leaf.sh "feat: the pinned skill (#9)"
 pinned="$(git -C "$upstream" rev-parse HEAD)"
 touch_commit "$upstream" skills/tdd/scripts/tests/run-leaf.test.sh "test: a leaf's case (#20)"
-touch_commit "$upstream" docs/notes.md "docs: a note (#21)"
+touch_commit "$upstream" "$doc_tree/notes.md" "docs: a note (#21)"
 touch_commit "$upstream" Makefile "build: a recipe (#22)"
 git clone -q "$upstream" "$clone"
 out="$(env -u VERI_SKILL_UNPINNED VERI_SKILL_COMMIT="$pinned" VERI_SKILL_CLONE="$clone" \
