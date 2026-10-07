@@ -25,11 +25,14 @@ def _read(path):
         return f.read().rstrip(b"\n")
 
 
-def _has_heading(path, heading):
+def _spec_text(path):
     try:
-        text = _read(path)
+        return _read(path)
     except OSError:
-        return False
+        return b""
+
+
+def _has_heading(text, heading):
     return re.search(rb"^## " + heading + rb"[ \t\r\v\f]*$", text, re.M) is not None
 
 
@@ -92,9 +95,10 @@ def main(argv):
     prompts = f"{HERE}/prompts"
     spec = argv[1]
     optional = {}
-    if _has_heading(spec, b"Bug"):
+    spec_text = _spec_text(spec)
+    if _has_heading(spec_text, b"Bug"):
         optional["BUG_REPRODUCTION"] = f"{prompts}/_verify-red-bug.md"
-    if phase == "plan" and _has_heading(spec, b"Refactor"):
+    if phase == "plan" and _has_heading(spec_text, b"Refactor"):
         optional["REFACTOR_PLAN"] = f"{prompts}/_verify-plan-refactor.md"
     for placeholder, mark in GREEN_PARAGRAPHS.items():
         if phase == "green" and f"⟦{mark}⟧" in options["--step"]:
