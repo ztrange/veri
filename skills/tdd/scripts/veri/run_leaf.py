@@ -2,6 +2,7 @@
 import os
 import subprocess
 import sys
+import tempfile
 
 from extract_result import extract
 
@@ -35,11 +36,15 @@ def main(argv):
     except OSError as error:
         print(f"run-leaf.sh: {argv[0]}: {error.strerror}", file=sys.stderr)
         return 1
+    stream_fd, stream_path = tempfile.mkstemp(dir=os.environ.get("TMPDIR") or "/tmp")
     with subprocess.Popen(leaf_argv(prompt, argv[1:]), stdout=subprocess.PIPE) as leaf:
         stream = b""
         while chunk := os.read(leaf.stdout.fileno(), 65536):
             os.write(1, chunk)
+            os.write(stream_fd, chunk)
             stream += chunk
+    os.close(stream_fd)
+    os.remove(stream_path)
     os.write(1, b"\n")
     text = stream.decode(sys.__stdin__.encoding, sys.__stdin__.errors)
     os.write(1, extract(text).encode(sys.__stdout__.encoding, sys.__stdout__.errors))
