@@ -59,17 +59,20 @@ def _watch(issue, stream, budget):
 
 def _say(text):
     if sys.stdout is None:
-        sys.stderr.write("orchestrate.sh: write error: %s\n" % os.strerror(errno.EBADF))
-        sys.stderr.flush()
+        _err("orchestrate.sh: write error: %s\n" % os.strerror(errno.EBADF))
         return
     sys.stdout.write(text)
     sys.stdout.flush()
 
 
+def _err(text):
+    sys.stderr.write(text)
+    sys.stderr.flush()
+
+
 def _greater(context, budget):
     if budget.startswith("0") and re.search("[89]", budget):
-        sys.stderr.write('orchestrate.sh: %s: value too great for base (error token is "%s")\n' % (budget, budget))
-        sys.stderr.flush()
+        _err('orchestrate.sh: %s: value too great for base (error token is "%s")\n' % (budget, budget))
         return False
     return context > int(budget, 8 if budget.startswith("0") else 10)
 
