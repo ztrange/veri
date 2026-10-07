@@ -562,7 +562,7 @@ done
   && ok || no "#690 a ⟦suite-repair⟧ step naming one red suite builds develop-green and verify-green prompts that name that one suite and its failing case (${problems#; })"
 
 unmodified="$(scratch_dir)"
-cp -R "$HERE/../build-develop-prompt.sh" "$HERE/../build-verify-prompt.sh" "$HERE/../lib" "$HERE/../prompts" "$unmodified/"
+cp -R "$HERE/../build-develop-prompt.sh" "$HERE/../build-verify-prompt.sh" "$HERE/../lib" "$HERE/../prompts" "$HERE/../veri" "$unmodified/"
 rm "$unmodified/prompts/_develop-green-suite-repair.md" "$unmodified/prompts/_verify-green-suite-repair.md"
 for tpl in "$unmodified"/prompts/*.md; do
   body="$(cat "$tpl"; printf x)"; body="${body%x}"
