@@ -148,3 +148,39 @@ def test_selection_takes_the_first_whole_unparked_line_per_pass_reports_and_skip
     assert (code, out, err) == (
         2, "", "orchestrate.sh: solvable-issues.sh exited 2; no answer about the solvable set\n")
     assert (len(asks), launches) == (2, [[conductor, "7"]])
+
+
+def test_a_conductor_launches_as_a_new_session_leader_with_signals_as_todays_launch_hands_them_and_nothing_else_starts(
+        capsys, monkeypatch, tmp_path, orchestrate):
+    import signal
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+    watched = (signal.SIGINT, signal.SIGQUIT, signal.SIGPIPE, signal.SIGXFSZ)
+    saved = {sig: signal.signal(sig, signal.SIG_DFL) for sig in watched}
+    asks, _ = _passes(monkeypatch, [(0, "7\n"), (3, "")], lambda n, issue: None)
+    calls = []
+
+    def spy_popen(args, *rest, **kwargs):
+        calls.append((list(args), rest, dict(kwargs), {sig: signal.getsignal(sig) for sig in watched}))
+        return _FakeConductor(4001)
+
+    monkeypatch.setattr(subprocess, "Popen", spy_popen)
+    try:
+        code = orchestrate.main([])
+        after = {sig: signal.getsignal(sig) for sig in watched}
+    finally:
+        for sig, handler in saved.items():
+            signal.signal(sig, handler)
+    out, err = capsys.readouterr()
+    assert (code, out, err) == (0, "", "")
+    conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
+    [(argv, rest, kwargs, dispositions)] = calls
+    unchanged = {key: kwargs.pop(key, None) for key in ("stderr", "cwd", "env")}
+    assert (argv, rest, kwargs, unchanged) == (
+        [conductor, "7"], (),
+        {"start_new_session": True, "stdin": subprocess.DEVNULL, "stdout": subprocess.PIPE,
+         "restore_signals": False},
+        {"stderr": None, "cwd": None, "env": None})
+    assert dispositions == {sig: signal.SIG_IGN for sig in watched}
+    assert after == {sig: signal.SIG_DFL for sig in watched}
+    assert asks == [[os.path.join(orchestrate.SCRIPTS, "solvable-issues.sh")]] * 2
