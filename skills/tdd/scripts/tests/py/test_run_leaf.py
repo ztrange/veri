@@ -240,3 +240,44 @@ def test_main_writes_each_chunk_of_the_leafs_stdout_to_stdout_and_the_stream_tem
 
     assert (observed, results, rest) == (
         [(first, True), (second, True)], [0], b"\n" + b"done\n")
+
+
+def test_main_returns_the_leafs_status_when_it_is_0_to_3_else_2_and_for_a_leaf_that_cannot_start_prints_its_own_line_then_the_newline_and_returns_2(
+        tmp_path, monkeypatch, capfdbinary):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, tmp = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("do the step\n")
+
+    def answer():
+        try:
+            code = run_leaf.main(["prompt.txt"])
+        except Exception as error:
+            code = type(error).__name__
+        captured = capfdbinary.readouterr()
+        return code, captured.out, captured.err
+
+    def ending_with(returncode):
+        def launch(argv, *args, **kwargs):
+            leaf = _FakeLeaf([], argv, **kwargs)
+            leaf.returncode = returncode
+            return leaf
+        return launch
+
+    statuses = []
+    for returncode in (0, 1, 2, 3, 7, -9):
+        monkeypatch.setattr(subprocess, "Popen", ending_with(returncode))
+        statuses.append(answer()[0])
+
+    unstartable = []
+    for error in (FileNotFoundError(2, "No such file or directory"),
+                  PermissionError(13, "Permission denied"),
+                  OSError(7, "Argument list too long")):
+        def refuse(argv, *args, error=error, **kwargs):
+            raise error
+        monkeypatch.setattr(subprocess, "Popen", refuse)
+        code, out, err = answer()
+        unstartable.append((code, out, err.count(b"\n"), err.endswith(b"\n"), len(err) > 1))
+
+    assert (statuses, unstartable) == (
+        [0, 1, 2, 3, 2, 2],
+        [(2, b"\n", 1, True, True)] * 3)
