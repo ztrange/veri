@@ -98,7 +98,7 @@ def test_main_compares_k_to_each_criterion_as_a_string_and_ignores_extra_argumen
     }
 
 
-def test_main_takes_a_steps_first_criterion_marker_and_reads_only_step_lines(
+def test_main_takes_a_steps_criterion_marker_and_reads_only_step_lines(
     monkeypatch, criterion_finished
 ):
     answers = {}
@@ -134,8 +134,8 @@ def test_main_takes_a_steps_first_criterion_marker_and_reads_only_step_lines(
         fake_stdin(monkeypatch, ledger.encode())
         answers[name] = criterion_finished.main([k])
     assert answers == {
-        "1 over a step tagged 1 then 2": 0,
-        "2 over a step tagged 1 then 2": 3,
+        "1 over a step tagged 1 then 2": 2,
+        "2 over a step tagged 1 then 2": 2,
         "1 over a tag followed by x": 0,
         "1 over a ticked then an open serving step": 3,
         "1 over a pending then a ticked serving step": 3,
@@ -225,3 +225,35 @@ def test_main_answers_3_for_an_unserved_criterion_an_open_added_step_and_an_unta
         "an unchecked ⟦added⟧ step serving criterion 1 keeps it unfinished": 3,
         "a ticked untagged step whose text is 3 does not finish criterion 3": 3,
     }
+
+
+def test_main_refuses_a_ledger_whose_step_carries_two_criterion_tags_naming_the_step_1116(
+    monkeypatch, capsys, criterion_finished
+):
+    two_tags = (
+        "# Plan for #42\n\n- [x] lowercase the slug ⟦criterion 1⟧\n"
+        "- [x] reject an empty title ⟦criterion 1⟧ ⟦criterion 2⟧\n"
+    )
+    answers = {}
+    for k in ("1", "2", "3"):
+        fake_stdin(monkeypatch, two_tags.encode())
+        code = criterion_finished.main([k])
+        out, err = capsys.readouterr()
+        lines = err.splitlines()
+        answers[k] = (
+            code,
+            out,
+            len(lines),
+            bool(lines) and "reject an empty title" in lines[0],
+            bool(lines) and "one step serves one criterion" in lines[0].lower(),
+        )
+    assert answers == {k: (2, "", 1, True, True) for k in ("1", "2", "3")}
+
+    one_tag = {}
+    for k, ledger in {
+        "1": "- [x] a ⟦criterion 1⟧\n- [ ] b ⟦criterion 2⟧\n",
+        "2": "- [x] a ⟦criterion 1⟧\n- [ ] b ⟦criterion 2⟧\n",
+    }.items():
+        fake_stdin(monkeypatch, ledger.encode())
+        one_tag[k] = criterion_finished.main([k])
+    assert one_tag == {"1": 0, "2": 3}
