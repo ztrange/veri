@@ -1,17 +1,11 @@
 """verify.sh's logic, run in-process."""
-import os
 import sys
 
+from leaf_role import _write
 from run_verdict import takes_a_value
 
 USAGE = ("usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file>"
          " <test-path> [<target-test-id>]")
-
-
-def _write(stream, line):
-    stream.flush()
-    stream.buffer.write(os.fsencode(line + "\n"))
-    stream.buffer.flush()
 
 
 def main(argv):
