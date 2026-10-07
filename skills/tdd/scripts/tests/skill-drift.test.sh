@@ -70,4 +70,22 @@ grep -x -F "Conductor-path changes on refs/remotes/origin/main since then: none.
 ((${#problems[@]} == 0)) || problems+=("stdout was: $(printf '%q' "$out")")
 report "$name"
 
+name="a commit after the pin with no trailing (#N) is listed as '- <short-sha> <subject>'"
+problems=()
+tmp="$(scratch_dir)"
+upstream="$tmp/upstream" clone="$tmp/clone"
+new_repo -b main "$upstream"
+touch_commit "$upstream" skills/tdd/scripts/run-leaf.sh "feat: the pinned skill (#9)"
+pinned="$(git -C "$upstream" rev-parse HEAD)"
+touch_commit "$upstream" skills/tdd/scripts/supervise.sh "fix: a hand-pushed supervisor fix"
+unsuffixed="$(git -C "$upstream" rev-parse --short HEAD)"
+git clone -q "$upstream" "$clone"
+out="$(env -u VERI_SKILL_UNPINNED VERI_SKILL_COMMIT="$pinned" VERI_SKILL_CLONE="$clone" \
+  VERI_SKILL_REF=refs/remotes/origin/main "$SKILL_DRIFT" 2>/dev/null)" && code=0 || code=$?
+[[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
+grep -x -F -- "- $unsuffixed fix: a hand-pushed supervisor fix" <<<"$out" > /dev/null ||
+  problems+=("want '- $unsuffixed fix: a hand-pushed supervisor fix'")
+((${#problems[@]} == 0)) || problems+=("stdout was: $(printf '%q' "$out")")
+report "$name"
+
 finish

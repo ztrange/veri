@@ -15,18 +15,20 @@ def main(argv):
     commit = os.environ["VERI_SKILL_COMMIT"]
     clone = os.environ["VERI_SKILL_CLONE"]
     ref = os.environ["VERI_SKILL_REF"]
-    log = git(clone, "log", "--format=%s", "%s..%s" % (commit, ref),
+    log = git(clone, "log", "--format=%h %s", "%s..%s" % (commit, ref),
               "--", "skills/tdd", ":(exclude)skills/tdd/scripts/tests")
     groups = {}
-    for subject in log.splitlines():
-        number = SUFFIX.search(subject).group(1)
-        groups.setdefault(number, []).append(subject)
+    for line in log.splitlines():
+        sha, subject = line.split(" ", 1)
+        match = SUFFIX.search(subject)
+        groups.setdefault(match.group(1) if match else sha, []).append((match, subject))
     short = git(clone, "rev-parse", "--short", commit).strip()
     lines = ["#### Skill drift since the pinned commit",
              "Pinned skill commit: %s." % short,
              "Conductor-path changes on %s since then:%s" % (ref, "" if groups else " none.")]
     if groups:
-        lines += ["- #%s — %s (%d commits)" % (n, s[0], len(s)) for n, s in groups.items()]
+        lines += ["- #%s — %s (%d commits)" % (k, s[0][1], len(s)) if s[0][0] else "- %s %s" % (k, s[0][1])
+                  for k, s in groups.items()]
         lines.append("Resume with VERI_NEW_SKILL=1 to run on these.")
     sys.stdout.write("\n".join(lines) + "\n")
     return 0
