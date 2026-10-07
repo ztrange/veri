@@ -191,3 +191,20 @@ def test_main_passes_non_utf8_bytes_in_the_first_line_through_to_stderr_unchange
         b"",
         "stop-requested: .tdd/stop must name a mode — at-ledger, at-leaf or now: '".encode()
         + b"n\xffow'\n")
+
+
+def test_main_clear_and_a_refused_argument_answer_as_the_bash_cases_did(
+        monkeypatch, tmp_path, capsysbinary, stop_requested):
+    monkeypatch.chdir(tmp_path)
+    stop = tmp_path / ".tdd" / "stop"
+    stop.parent.mkdir()
+
+    stop.write_bytes(b"at-ledger\n")
+    assert stop_requested.main(["--clear"]) == 0
+    assert not stop.exists()
+    assert stop_requested.main(["--clear"]) == 0
+
+    for argv in (["--bogus"], ["--clear", "--bogus"]):
+        stop.write_bytes(b"at-ledger\n")
+        assert stop_requested.main(argv) == 2, argv
+        assert stop.read_bytes() == b"at-ledger\n", argv
