@@ -55,6 +55,13 @@ def carries(issue, label):
     return any(entry["name"] == label for entry in issue.get("labels", []))
 
 
+def open_listing(fixture, path, *args):
+    listing = gh_json_page(fixture, path + OPEN_PAGE, *args)
+    if len(items(listing)) >= PAGE_SIZE:
+        listing = gh_json(fixture, path + OLDEST_FIRST, *args)
+    return listing
+
+
 def main(argv):
     repo = "".join(argv[1:2]) if argv[:1] == ["--repo"] else None
     if repo == "":
@@ -67,14 +74,9 @@ def main(argv):
     scope = ["--repo", repo] if repo else []
     prefix = "repos/%s" % (repo or "{owner}/{repo}")
     try:
-        issue_args = ("issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope)
-        issues = gh_json_page("issues.json", prefix + "/issues" + OPEN_PAGE, *issue_args)
-        if len(items(issues)) >= PAGE_SIZE:
-            issues = gh_json("issues.json", prefix + "/issues" + OLDEST_FIRST, *issue_args)
-        pr_args = ("pr", "list", "--limit", "10000", "--json", "body,state", *scope)
-        prs = gh_json_page("prs.json", prefix + "/pulls" + OPEN_PAGE, *pr_args)
-        if len(items(prs)) >= PAGE_SIZE:
-            prs = gh_json("prs.json", prefix + "/pulls" + OLDEST_FIRST, *pr_args)
+        issues = open_listing("issues.json", prefix + "/issues",
+                              "issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope)
+        prs = open_listing("prs.json", prefix + "/pulls", "pr", "list", "--limit", "10000", "--json", "body,state", *scope)
     except NoAnswer:
         return 2
     issues = [issue for issue in items(issues) if "pull_request" not in issue]
