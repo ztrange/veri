@@ -7,33 +7,13 @@ import subprocess
 import sys
 import tempfile
 
+from pid_file import live_conductor
+
 USAGE = "usage: issue-worktree.sh <n> <slug> | --remove <n>"
 
 
 def to_contract(code):
     return code if 0 <= code <= 3 else 2
-
-
-def number_in(file):
-    if not os.path.isfile(file):
-        return None
-    try:
-        with open(file, "rb") as f:
-            n = f.readline().rstrip(b"\n").strip(b" \t")
-    except OSError:
-        return None
-    return n.decode() if re.fullmatch(rb"[0-9]+", n) else None
-
-
-def live_conductor(path):
-    pid = number_in(path + "/.tdd/conductor.pid")
-    if pid is None or int(pid) == 0:
-        return None
-    try:
-        os.kill(int(pid), 0)
-    except (OSError, OverflowError):
-        return None
-    return pid
 
 
 def positive_whole(n):
