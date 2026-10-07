@@ -16,3 +16,4 @@
 ### clear-refactor-pending.sh never truncates the ledger before the cleared text is fully written: when the in-place write, the write-back and the fallback temp-file write all fail, the ledger file is byte-identical and it exits 2 ⟦added⟧ ⟦criterion 1⟧
 - fold the two `os.unlink(backup)` calls (after the write-back succeeds, and after the in-place write succeeds) into one cleanup with a result code — only a branch restructure, no new duplication is removed, so not applied
 - test-only | the `FullDisk` wrapper class written out separately in three `_817` cases of test_clear_refactor_pending.py (lines ~271, ~351, ~397) could become one module-level helper
+applied | d7b1753d1615f865bb315490a720853d616f333f | fold the two `os.unlink(backup)` calls (after the write-back succeeds, and after the in-place write succeeds) into one cleanup with a result code — only a branch restructure, no new duplication is removed, so not applied
