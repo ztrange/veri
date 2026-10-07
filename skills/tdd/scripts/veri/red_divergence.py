@@ -15,7 +15,7 @@ REASON_KEYS = ("PREDICTED_FAILURE", "FAIL_OUTPUT", "PREDICTION_NOTE")
 def main(argv):
     report = sys.stdin.buffer.read().decode()
     fields = report_read(report, ("PREDICTION", *REASON_KEYS))
-    prediction = fields.get("PREDICTION", "")
+    prediction = fields.get("PREDICTION", "").partition(" ")[0]
     if prediction[-1:] in (",", ";", ":", "."):
         prediction = prediction[:-1]
     if prediction == "MATCHED":

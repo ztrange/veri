@@ -97,3 +97,24 @@ def test_main_strips_exactly_one_trailing_comma_semicolon_colon_or_period_from_t
         "MATCHED,;": (2, "", ""),
         "DIVERGED—": (2, "", ""),
     }
+
+
+def test_main_cuts_the_verdict_word_at_the_first_space_only_matches_it_case_sensitively_keeps_a_carriage_return_and_answers_2_silently_otherwise(monkeypatch, capsys, red_divergence):
+    reports = {
+        "trailing clause": "FAIL_OUTPUT: f\nPREDICTION: MATCHED because the helper is missing",
+        "tab": "FAIL_OUTPUT: f\nPREDICTION: MATCHED\tyes",
+        "two spaces": "FAIL_OUTPUT: f\nPREDICTION:  MATCHED",
+        "lowercase": "FAIL_OUTPUT: f\nPREDICTION: diverged",
+        "capitalised": "FAIL_OUTPUT: f\nPREDICTION: Matched",
+        "carriage return": "FAIL_OUTPUT: f\nPREDICTION: MATCHED\r\n",
+    }
+    results = {name: run(monkeypatch, capsys, red_divergence, report, []) for name, report in reports.items()}
+
+    assert results == {
+        "trailing clause": (3, "", ""),
+        "tab": (2, "", ""),
+        "two spaces": (2, "", ""),
+        "lowercase": (2, "", ""),
+        "capitalised": (2, "", ""),
+        "carriage return": (2, "", ""),
+    }
