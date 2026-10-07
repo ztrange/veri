@@ -325,3 +325,10 @@ def test_main_refuses_a_pytest_suite_with_no_venv_python_and_no_python3_on_path_
     assert (code, out, err, ran_suite) == (
         2, "", "run-suite.sh: pytest cannot be imported by ; run make install-dev\n", []
     )
+
+
+def test_the_module_run_as_the_shim_hands_off_ends_with_exit_2_when_sigterm_reaches_it_mid_suite(tmp_path):
+    suite = fake_suite(tmp_path, "terminates-its-runner.test.sh", 'kill -TERM "$PPID"\necho "1 passed, 0 failed"\n')
+    code = subprocess.run([sys.executable, str(SCRIPTS / "veri" / "run_suite.py"), suite],
+                          stdin=subprocess.DEVNULL, capture_output=True, timeout=10).returncode
+    assert code == 2

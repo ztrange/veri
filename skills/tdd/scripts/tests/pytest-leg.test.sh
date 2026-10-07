@@ -152,7 +152,7 @@ mkdir -p "$work/no-pytest-bin"
 make_tree "$bare"
 : > "$bare/$PY_DIR/helper.py"
 stub_bash_suites "$bare"
-printf '#!/bin/sh\necho "No module named pytest" >&2\nexit 1\n' > "$work/no-pytest-bin/python3"
+printf '#!/bin/sh\ncase "$1" in */veri/*.py) exec "%s" "$@" ;; esac\necho "No module named pytest" >&2\nexit 1\n' "$(command -v python3)" > "$work/no-pytest-bin/python3"
 chmod +x "$work/no-pytest-bin/python3"
 
 name="with no test_*.py under $PY_DIR and no python3 that can import pytest, make unit and make test run only their bash suites, exit 0, print nothing on stderr and end all suites green"

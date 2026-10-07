@@ -3,6 +3,7 @@ import fnmatch
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 
@@ -113,4 +114,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGTERM, lambda signum, frame: sys.exit(2))
     sys.exit(main(sys.argv[1:]))
