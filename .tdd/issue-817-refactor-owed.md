@@ -13,3 +13,6 @@
 - test-only | in test_clear_refactor_pending.py, three tests (the ones at lines 262, 299 and 318) each repeat the same steps: write a seed ledger, call main, catch OSError as the type name, undo the monkeypatch, drain the captured output, assert (2, seed) — fold them into one shared fixture or helper
 ### clear-refactor-pending.sh, when a trial write of the cleared ledger succeeds but the write to the ledger itself fails and so does writing its old contents back, leaves the ledger file byte-identical and exits 2 ⟦added⟧ ⟦criterion 1⟧
 - out-of-scope | `tick_ledger.py:24-31` repeats the same write-a-temp-file-beside-the-ledger pattern, so it could share `write_beside`, but this cycle did not write that code.
+### clear-refactor-pending.sh never truncates the ledger before the cleared text is fully written: when the in-place write, the write-back and the fallback temp-file write all fail, the ledger file is byte-identical and it exits 2 ⟦added⟧ ⟦criterion 1⟧
+- fold the two `os.unlink(backup)` calls (after the write-back succeeds, and after the in-place write succeeds) into one cleanup with a result code — only a branch restructure, no new duplication is removed, so not applied
+- test-only | the `FullDisk` wrapper class written out separately in three `_817` cases of test_clear_refactor_pending.py (lines ~271, ~351, ~397) could become one module-level helper
