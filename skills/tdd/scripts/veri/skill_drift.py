@@ -7,8 +7,12 @@ import sys
 SUFFIX = re.compile(r"\(#(\d+)\)\s*$")
 
 
+def run(clone, *args):
+    return subprocess.run(["git", "-C", clone, *args], capture_output=True, text=True)
+
+
 def git(clone, *args):
-    return subprocess.run(["git", "-C", clone, *args], capture_output=True, text=True).stdout
+    return run(clone, *args).stdout
 
 
 def resolves(clone, rev):
@@ -30,7 +34,7 @@ def main(argv):
     if not resolves(clone, commit):
         return unavailable("pinned commit %s is not in %s" % (commit, clone))
     ref = os.environ["VERI_SKILL_REF"]
-    fetched = subprocess.run(["git", "-C", clone, "fetch", "-q", "origin"], capture_output=True).returncode == 0
+    fetched = run(clone, "fetch", "-q", "origin").returncode == 0
     if not resolves(clone, ref):
         return unavailable("%s does not resolve in %s" % (ref, clone))
     log = git(clone, "log", "--format=%h %s", "%s..%s" % (commit, ref),
