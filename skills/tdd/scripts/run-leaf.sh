@@ -8,4 +8,12 @@ if [ -z "${PYTHONCOERCECLOCALE+set}" ]; then
   PYTHONCOERCECLOCALE=0 VERI_SHIM_SET_COERCE=1
   export PYTHONCOERCECLOCALE VERI_SHIM_SET_COERCE
 fi
+# hazard: a signal ignored on entry cannot be trapped, so only a default one fires its trap.
+VERI_SHIM_DEFAULT_SIGNALS=
+for sig in PIPE XFSZ; do
+  trap 'VERI_SHIM_DEFAULT_SIGNALS="$VERI_SHIM_DEFAULT_SIGNALS $sig"' "$sig"
+  kill -s "$sig" $$
+  trap - "$sig"
+done
+export VERI_SHIM_DEFAULT_SIGNALS
 exec python3 "$(dirname "$0")/veri/run_leaf.py" "$@"

@@ -39,6 +39,8 @@ def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
         return 2
+    for name in os.environ.pop("VERI_SHIM_DEFAULT_SIGNALS", "").split():
+        signal.signal(getattr(signal, "SIG" + name), signal.SIG_DFL)
     try:
         prompt = read_prompt(argv[0])
     except OSError as error:
