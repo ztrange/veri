@@ -1,6 +1,6 @@
 # Plan for #844 — lib/pid-file.sh's live_conductor and supervising run as a Python module, as veri/pid_file.py
 
-- [ ] tests/py/test_pid_file.py: veri/pid_file.py's number_in, called directly on a file under tmp_path, answers the first line's digits as read — 12 for "12\n", " 12 \t\n", "12" with no final newline and "12\nx", and 0012 for "0012\n" ⟦criterion 3⟧
+- [x] tests/py/test_pid_file.py: veri/pid_file.py's number_in, called directly on a file under tmp_path, answers the first line's digits as read — 12 for "12\n", " 12 \t\n", "12" with no final newline and "12\nx", and 0012 for "0012\n" ⟦criterion 3⟧ ⟂ refactor pending
 - [ ] tests/py/test_pid_file.py: number_in answers no number (None) for a first line that is not ASCII digits after trimming spaces and tabs — an empty file, "-1", "+5", "1 2", "12\r", "١", "x\n12" and the bytes "\xff\xfe\n" — never raising ⟦criterion 3⟧
 - [ ] tests/py/test_pid_file.py: number_in answers no number for a missing path, a directory, and a regular file whose builtins.open (faked, looked up at call time) raises PermissionError ⟦criterion 3⟧
 - [ ] tests/py/test_pid_file.py: live_conductor(run_dir) reads run_dir + "/.tdd/conductor.pid" and answers the digits as read when a faked os.kill(pid, 0) succeeds; answers None with os.kill never called when there is no pid file, and for "0" and "00" even when the fake would succeed ⟦criterion 3⟧
