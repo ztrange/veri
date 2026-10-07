@@ -47,29 +47,29 @@ def main(argv):
     os.close(git_fd)
     gitconfig = os.path.join(os.environ["HOME"], ".gitconfig")
     try:
-        if os.path.isfile(gitconfig):
-            shutil.copyfile(gitconfig, git_path)
-    except OSError as error:
-        complain(git_path, error)
+        try:
+            if os.path.isfile(gitconfig):
+                shutil.copyfile(gitconfig, git_path)
+        except OSError as error:
+            complain(git_path, error)
+            return 1
+        command = leaf_argv(prompt, argv[1:])
+        stream = b""
+        try:
+            leaf = subprocess.Popen(command, stdout=subprocess.PIPE)
+        except OSError as error:
+            complain(command[0], error)
+            status = 2
+        else:
+            with leaf:
+                while chunk := os.read(leaf.stdout.fileno(), 65536):
+                    os.write(1, chunk)
+                    os.write(stream_fd, chunk)
+                    stream += chunk
+            status = leaf.returncode
+    finally:
         os.close(stream_fd)
         os.remove(stream_path)
-        return 1
-    command = leaf_argv(prompt, argv[1:])
-    stream = b""
-    try:
-        leaf = subprocess.Popen(command, stdout=subprocess.PIPE)
-    except OSError as error:
-        complain(command[0], error)
-        status = 2
-    else:
-        with leaf:
-            while chunk := os.read(leaf.stdout.fileno(), 65536):
-                os.write(1, chunk)
-                os.write(stream_fd, chunk)
-                stream += chunk
-        status = leaf.returncode
-    os.close(stream_fd)
-    os.remove(stream_path)
     os.remove(git_path)
     os.write(1, b"\n")
     text = stream.decode(sys.__stdin__.encoding, sys.__stdin__.errors)
