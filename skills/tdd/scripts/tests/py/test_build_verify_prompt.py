@@ -1,5 +1,6 @@
 """In-process cases for veri/build_verify_prompt.py, the module build-verify-prompt.sh is a shim over."""
 import importlib
+import importlib.util
 import pathlib
 import sys
 
@@ -143,3 +144,56 @@ def test_main_admits_every_sha_slot_only_as_a_whole_string_lowercase_hex_match_a
         ["--step", "s", "--fast-cmd", "m", "diff", s, "0123abc", "0123abd"],
     )]
     assert admitted == [(0, b"")] * 4
+
+
+def test_main_checks_readability_before_any_output_in_the_order_template_shared_spec_chosen_paragraphs_then_the_plan_ledger_never_reads_the_transform_record_and_raises_on_a_directory_spec(
+        tmp_path, capsysbinary):
+    scripts = tmp_path / "scripts"
+    (scripts / "veri").mkdir(parents=True)
+    module_path = scripts / "veri" / "build_verify_prompt.py"
+    module_path.write_bytes((SCRIPTS / "veri" / "build_verify_prompt.py").read_bytes())
+    loader = importlib.util.spec_from_file_location("scratch_build_verify_prompt", module_path)
+    module = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(module)
+    prompts = scripts / "prompts"
+    prompts.mkdir()
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    bug_spec = tmp_path / "bug.md"
+    bug_spec.write_bytes(b"# spec\n\n## Bug\n\nit broke\n")
+    refactor_spec = tmp_path / "refactor.md"
+    refactor_spec.write_bytes(b"# spec\n\n## Refactor\n\ntidy it\n")
+    ledger = tmp_path / "ledger.md"
+    missing = tmp_path / "missing.md"
+
+    def run(argv):
+        code = module.main(argv)
+        return (code, *capsysbinary.readouterr())
+
+    def unreadable(path):
+        return (2, b"", b"build-verify-prompt: cannot read '" + str(path).encode() + b"'\n")
+
+    red = ["red", str(spec), "t"]
+    assert run(red) == unreadable(prompts / "verify-red.md")
+    (prompts / "verify-red.md").write_bytes(b"red\n")
+    assert run(red) == unreadable(prompts / "_shared.md")
+    (prompts / "_shared.md").write_bytes(b"shared\n")
+    assert run(["red", str(missing), "t"]) == unreadable(missing)
+
+    for name in ("verify-green.md", "verify-plan.md", "verify-transform.md"):
+        (prompts / name).write_bytes(name.encode() + b"\n")
+    assert run(["--fast-cmd", "m", "green", str(bug_spec), "t"]) == unreadable(prompts / "_verify-red-bug.md")
+    replaces = ["--step", "s ⟦replaces-case⟧", "--fast-cmd", "m", "green", str(spec), "t"]
+    assert run(replaces) == unreadable(prompts / "_verify-green-replaces-case.md")
+    repair = ["--step", "s ⟦suite-repair⟧", "--fast-cmd", "m", "green", str(spec), "t"]
+    assert run(repair) == unreadable(prompts / "_verify-green-suite-repair.md")
+    plan = ["plan", str(refactor_spec), str(ledger)]
+    assert run(plan) == unreadable(prompts / "_verify-plan-refactor.md")
+    (prompts / "_verify-plan-refactor.md").write_bytes(b"refactor plan\n")
+    assert run(plan) == unreadable(ledger)
+
+    transform = run(["transform", str(spec), str(missing), "0123abc"])
+    assert (transform[0], transform[2]) == (0, b"")
+
+    with pytest.raises(IsADirectoryError):
+        module.main(["red", str(tmp_path), "t"])
