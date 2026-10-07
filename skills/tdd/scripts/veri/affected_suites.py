@@ -79,7 +79,7 @@ def suite_of(f):
     if match("CLAUDE.md", "Makefile", "skills/*/SKILL.md"):
         return suites_naming('"%s"' % f, '/%s"' % f)
     if match(SCRIPTS + "/tests/*.test.sh", SCRIPTS + "/tests/py/test_*.py"):
-        return [f]
+        return existing(f)
     if f == SCRIPTS + "/tests/lib/harness.sh":
         return [s for s in every_suite() if has_line(s, sourcing(rb"harness\.sh"))]
     if match(SCRIPTS + "/tests/fixtures/*"):
