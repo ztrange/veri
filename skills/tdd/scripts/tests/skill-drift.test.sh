@@ -194,4 +194,26 @@ grep -E "^- #12 — fix: the supervisor's window( \(#12\))? \(1 commits\)$" <<<"
 ((${#problems[@]} == 0)) || problems+=("stdout was: $(printf '%q' "$out")")
 report "$name"
 
+name="with VERI_SKILL_REF unset or empty, on a pinned run with a known clone, the output is one 'Skill drift: unavailable — <reason>' line and no traceback, exit 0"
+problems=()
+tmp="$(scratch_dir)"
+upstream="$tmp/upstream" clone="$tmp/clone"
+new_repo -b main "$upstream"
+touch_commit "$upstream" skills/tdd/scripts/run-leaf.sh "feat: the pinned skill (#9)"
+pinned="$(git -C "$upstream" rev-parse HEAD)"
+git clone -q "$upstream" "$clone"
+for variant in unset empty; do
+  case "$variant" in
+    unset) out="$(env -u VERI_SKILL_UNPINNED -u VERI_SKILL_REF VERI_SKILL_COMMIT="$pinned" VERI_SKILL_CLONE="$clone" \
+      "$SKILL_DRIFT" 2>"$tmp/stderr")" && code=0 || code=$? ;;
+    empty) out="$(env -u VERI_SKILL_UNPINNED VERI_SKILL_REF= VERI_SKILL_COMMIT="$pinned" VERI_SKILL_CLONE="$clone" \
+      "$SKILL_DRIFT" 2>"$tmp/stderr")" && code=0 || code=$? ;;
+  esac
+  [[ "$code" == 0 ]] || problems+=("$variant: want exit 0, got $code")
+  [[ "$out" =~ ^"Skill drift: unavailable — ".+$ && "$out" != *$'\n'* ]] ||
+    problems+=("$variant: want one 'Skill drift: unavailable — <reason>' line, got $(printf '%q' "$out")")
+  ! grep -F "Traceback" "$tmp/stderr" > /dev/null || problems+=("$variant: want no traceback, stderr was: $(cat "$tmp/stderr")")
+done
+report "$name"
+
 finish
