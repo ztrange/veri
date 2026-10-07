@@ -344,3 +344,74 @@ def test_main_when_a_gitconfig_that_was_a_regular_file_cannot_be_read_as_one_ret
     capfd.readouterr()
 
     assert (code, launches, sorted(tmp.iterdir())) == (1, [], [])
+
+
+def test_main_makes_the_stream_then_the_git_config_temp_file_in_tmpdir_copies_the_gitconfig_into_it_launches_with_git_config_global_on_it_and_removes_both(
+        tmp_path, monkeypatch, capfd):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, tmp = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("do the step\n")
+    home = tmp_path / "home"
+    operator_config = tmp_path / "operator.gitconfig"
+    operator_config.write_text("[user]\n\tname = operator\n")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(tmp_path / "caller.gitconfig"))
+    made = []
+    real_mkstemp = tempfile.mkstemp
+
+    def recording_mkstemp(*args, **kwargs):
+        fd, path = real_mkstemp(*args, **kwargs)
+        made.append(path)
+        return fd, path
+
+    monkeypatch.setattr(tempfile, "mkstemp", recording_mkstemp)
+    seen = []
+
+    def launch(argv, *args, remove_stream=False, **kwargs):
+        env = kwargs.get("env") or dict(os.environ)
+        config = env.get("GIT_CONFIG_GLOBAL")
+        seen.append((config == (made[1] if len(made) == 2 else None),
+                     [os.path.exists(path) for path in made],
+                     pathlib.Path(config).read_text() if config and os.path.isfile(config) else None))
+        if remove_stream:
+            os.remove(made[0])
+        return _FakeLeaf([], argv, **kwargs)
+
+    def refuse(argv, *args, **kwargs):
+        raise FileNotFoundError(2, "No such file or directory")
+
+    answers = []
+    for tmpdir, gitconfig, launcher in (
+            (str(tmp), "symlink", launch),
+            (str(tmp), None, launch),
+            (None, None, launch),
+            ("", None, launch),
+            (str(tmp), None, refuse),
+            (str(tmp), None, lambda argv, *a, **k: launch(argv, *a, remove_stream=True, **k))):
+        made.clear()
+        seen.clear()
+        if tmpdir is None:
+            monkeypatch.delenv("TMPDIR", raising=False)
+        else:
+            monkeypatch.setenv("TMPDIR", tmpdir)
+        if (home / ".gitconfig").is_symlink():
+            (home / ".gitconfig").unlink()
+        if gitconfig:
+            (home / ".gitconfig").symlink_to(operator_config)
+        monkeypatch.setattr(subprocess, "Popen", launcher)
+        try:
+            code = run_leaf.main(["prompt.txt"])
+        except Exception as error:
+            code = type(error).__name__
+        capfd.readouterr()
+        answers.append((code, [os.path.dirname(path) for path in made], list(seen),
+                        [os.path.exists(path) for path in made]))
+
+    copied = "[user]\n\tname = operator\n"
+    assert answers == [
+        (0, [str(tmp)] * 2, [(True, [True, True], copied)], [False, False]),
+        (0, [str(tmp)] * 2, [(True, [True, True], "")], [False, False]),
+        (0, ["/tmp"] * 2, [(True, [True, True], "")], [False, False]),
+        (0, ["/tmp"] * 2, [(True, [True, True], "")], [False, False]),
+        (2, [str(tmp)] * 2, [], [False, False]),
+        (1, [str(tmp)] * 2, [(True, [True, True], "")], [False, False]),
+    ]
