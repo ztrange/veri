@@ -7,8 +7,7 @@ from leaf_log import result_records
 REPORT_RE = re.compile(r"^[ \t]*(verdict|impl_path|split|test_path|suite):", re.I | re.M)
 
 
-def main(argv):
-    data = sys.stdin.read()
+def extract(data):
     result = None
     report = None
     for obj in result_records(data.splitlines()):
@@ -19,9 +18,12 @@ def main(argv):
     if report is not None:
         result = report
     if result is None:
-        sys.stdout.write(data)
-    else:
-        sys.stdout.write(result if result.endswith("\n") else result + "\n")
+        return data
+    return result if result.endswith("\n") else result + "\n"
+
+
+def main(argv):
+    sys.stdout.write(extract(sys.stdin.read()))
     return 0
 
 

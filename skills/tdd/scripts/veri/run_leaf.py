@@ -3,6 +3,8 @@ import os
 import subprocess
 import sys
 
+from extract_result import extract
+
 USAGE = "usage: run-leaf.sh <prompt-file|-> [claude args...]"
 
 
@@ -34,7 +36,13 @@ def main(argv):
         print(f"run-leaf.sh: {argv[0]}: {error.strerror}", file=sys.stderr)
         return 1
     with subprocess.Popen(leaf_argv(prompt, argv[1:]), stdout=subprocess.PIPE) as leaf:
-        leaf.stdout.read()
+        stream = b""
+        while chunk := os.read(leaf.stdout.fileno(), 65536):
+            os.write(1, chunk)
+            stream += chunk
+    os.write(1, b"\n")
+    text = stream.decode(sys.__stdin__.encoding, sys.__stdin__.errors)
+    os.write(1, extract(text).encode(sys.__stdout__.encoding, sys.__stdout__.errors))
     return leaf.returncode
 
 
