@@ -124,4 +124,38 @@ code=0
   problems+=("structural-predicate.sh wrote into its working directory: $(ls -A "$tree")")
 report "$name"
 
+name="structural-predicate.sh run through a symlink to the skill directory and from another working directory answers as it does when run in place, the record and the predicate relative to the caller's working directory"
+problems=()
+work="$(scratch_dir)"
+skill="$(cd "$HERE/../.." && pwd)"
+ln -s "$skill" "$work/linked-skill"
+mkdir "$work/caller"
+record="sp-linked-record-$$"
+code=0
+(cd "$work/caller" && "$work/linked-skill/scripts/structural-predicate.sh" "$record" >/dev/null 2>&1 <<REPORT) || code=$?
+Read the candidate and the files it names.
+PREDICATE: test -e marker
+REPORT
+[[ "$code" == 0 ]] ||
+  problems+=("failing predicate: want exit 0 from structural-predicate.sh through the symlink, got $code")
+[[ -f "$work/caller/$record" && "$(cat "$work/caller/$record" 2>/dev/null)" == "test -e marker" ]] ||
+  problems+=("failing predicate: want 'test -e marker' in $work/caller/$record, got '$(cat "$work/caller/$record" 2>/dev/null)'")
+touch "$work/caller/marker"
+rm -f "$work/caller/$record"
+code=0
+(cd "$work/caller" && "$work/linked-skill/scripts/structural-predicate.sh" "$record" >/dev/null 2>&1 <<REPORT) || code=$?
+Read the candidate and the files it names.
+PREDICATE: test -e marker
+REPORT
+[[ "$code" == 1 ]] ||
+  problems+=("already-true predicate: want exit 1 from structural-predicate.sh through the symlink, got $code")
+[[ ! -e "$work/caller/$record" ]] ||
+  problems+=("already-true predicate: structural-predicate.sh wrote a record at $work/caller/$record")
+for dir in "$skill" "$skill/scripts"; do
+  [[ ! -e "$dir/$record" ]] ||
+    problems+=("structural-predicate.sh wrote its record into the skill at $dir/$record")
+  rm -f "$dir/$record"
+done
+report "$name"
+
 finish
