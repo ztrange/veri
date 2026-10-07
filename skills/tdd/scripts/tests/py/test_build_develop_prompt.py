@@ -3,6 +3,7 @@ import importlib
 import importlib.util
 import os
 import pathlib
+import re
 import sys
 
 import pytest
@@ -492,3 +493,134 @@ def test_main_reads_veri_refactor_budget_for_the_refactor_phase_only_rendering_5
         "lots & \\1": (0, b"budget=[lots & \\1]\n", b""),
         **{key: (0, b"budget=[]\n", b"") for key in others},
     }
+
+
+def test_main_answers_what_the_bash_contract_cases_before_the_out_of_scope_class_asserted(
+        tmp_path, capsysbinary, monkeypatch, build_develop_prompt):
+    monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux" \xe2\x80\x94 see {ref}\\n done.\n')
+    step = "QWIXTLE: a seed ending in a newline gains the block and reports added"
+    cmd = 'make test ZORBLAT=1 -- --only "frob & nitz/quux"'
+    test_path, target = "tests/zorblat/test_frob & nitz.sh", "qwixtle seeds a newline-terminated block"
+    touched = "scripts/zorblat.sh, tests/zorblat/test_frob & nitz.sh"
+    reason_text = "REJECT: the case asserts on zorblat()'s log line, not its return value — & {tricky}\\chars."
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(reason_text.encode() + b"\n")
+    s, r = str(spec), str(reason)
+
+    def answer(module, argv):
+        code = module.main(argv)
+        return (code, *capsysbinary.readouterr())
+
+    prompts = {}
+    for phase, argv in (("red", ["red", s, step, cmd]),
+                        ("green", ["green", s, step, cmd, test_path, target, "make unit"]),
+                        ("refactor", ["refactor", s, step, cmd, touched]),
+                        ("revise", ["revise", "red", s, step, cmd, r])):
+        code, out, err = answer(build_develop_prompt, argv)
+        assert (phase, code) == (phase, 0)
+        prompts[phase] = out
+    red, green, refactor, revise = (prompts[p] for p in ("red", "green", "refactor", "revise"))
+
+    def folded(prompt):
+        return prompt.replace(b"\n", b" ")
+
+    def says(prompt, pattern, flags=re.I):
+        return re.search(pattern, folded(prompt), flags) is not None
+
+    def any_line(prompt, pattern, flags=re.I):
+        return any(re.search(pattern, line, flags) for line in prompt.split(b"\n"))
+
+    def both_ways(prompt, gap, a, b):
+        return says(prompt, rb"%s[^.]{0,%d}%s|%s[^.]{0,%d}%s" % (a, gap, b, b, gap, a))
+
+    def offers(token, cls):
+        return any_line(refactor, rb"^%s:.*%s[^|]{0,40}\|" % (token, cls), 0)
+
+    checks = {
+        "red carries spec, step, test command and AGAINST_UNMODIFIED": all(
+            part in red for part in (b'zorblat("Frob & Nitz/Quux")', step.encode(), cmd.encode(),
+                                     b"AGAINST_UNMODIFIED")),
+        "green names the test path and target and forbids modifying the test": (
+            test_path.encode() in green and target.encode() in green and any_line(
+                green, rb"(do not|don't|never) (modify|change|edit|touch|weaken).{0,40}test"
+                       rb"|test.{0,40}(must not|may not) be (modified|changed|edited|touched)")),
+        "refactor carries touched files, the no-generality rule and RESULT:": (
+            touched.encode() in refactor
+            and any_line(refactor, rb"(no|not|never|without)[^.]{0,80}(generality|generali[sz]ation|abstraction)")
+            and b"RESULT:" in refactor),
+        "revise carries the reason verbatim and IMPOSSIBLE": reason_text.encode() in revise and b"IMPOSSIBLE" in revise,
+        "refactor requires a CANDIDATES: line, one per line, or none": (
+            any_line(refactor, rb"^CANDIDATES:", 0) and says(refactor, rb"one[^.]{0,20}per line")
+            and any_line(refactor, rb"^CANDIDATES:.*none")),
+        "red runs the suite holding the new case, not the full suite, falling back and saying so": (
+            says(red, rb"suite (that |which )?(holds|contains|holding|containing)[^.]{0,40}case")
+            and says(red, rb"(not|rather than|instead of|no need to|never|don't|do not)[^.]{0,40}(full|whole|entire) suite")
+            and says(red, rb"(cannot|can.t|no way to|unable to|has no way)[^.]{0,60}(suite|file)")
+            and says(red, rb"(say|says|saying|state|states|note|report) (so|it|this|that)[^.]{0,30}report")),
+        "green iterates on the target suite and runs the full suite once before SUITE:": (
+            says(green, rb"iterat[^.]{0,60}suite|suite[^.]{0,60}iterat")
+            and says(green, rb"(full|whole|entire) suite[^.]{0,40}once|once[^.]{0,40}(full|whole|entire) suite")
+            and says(green, rb"before[^.]{0,60}SUITE:")),
+        "refactor runs the covering suites, not the full suite, naming the PR's full run and the trade-off": (
+            says(refactor, rb"suites?[^.]{0,40}cover|cover[^.]{0,40}suites?")
+            and says(refactor, rb"(not|rather than|instead of|no need to|never|don't|do not)[^.]{0,40}(full|whole|entire) suite")
+            and not says(refactor, rb"verify-refactor[^.]{0,60}(full|whole|entire) suite"
+                                   rb"|(full|whole|entire) suite[^.]{0,60}verify-refactor")
+            and says(refactor, rb"(full|whole|entire) +suite +runs +once +per +PR")
+            and says(refactor, rb"outside +the affected set +surfaces[^.]{0,80}repair step")),
+        "every prompt runs tests in the foreground and reports only after they exit": all(
+            says(p, rb"foreground") and says(p, rb"(only after|not until|never before)[^.]{0,60}(exit|exits|exited|finish)")
+            for p in prompts.values()),
+        "every prompt forbids ending the turn mid-run": all(
+            says(p, rb"end(ing)?[^A-Za-z0-9]+(your|the|its)[^A-Za-z0-9]+turn") for p in prompts.values()),
+        "every prompt forbids git stash and names a safe alternative": all(
+            says(p, rb"(never|do not|don't|no)[^.]{0,60}stash") and says(p, rb"git show HEAD:|git worktree add", 0)
+            for p in prompts.values()),
+        "every prompt forbids git checkout -- <file> and git restore for a probe, naming cp/mv .orig": all(
+            says(p, rb"(never|do not|don't|not)[^.]{0,120}git checkout -- <file>")
+            and says(p, rb"(never|do not|don't|not)[^.]{0,160}git restore")
+            and says(p, rb"(undo|restor)[^.]{0,60}(probe|mutat)")
+            and b"cp <file> <file>.orig" in folded(p) and b"mv <file>.orig <file>" in folded(p)
+            for p in prompts.values()),
+        "refactor defines structural and cosmetic by what the transform changes": (
+            both_ways(refactor, 160, rb"structural", rb"(duplication|extract|inline|dead code|rename|scope)")
+            and both_ways(refactor, 160, rb"cosmetic", rb"(reword|re-word|re-cite|recite|reflow|re-flow|re-comment)")
+            and says(refactor, rb" (without|not|never|leaves) [^.]{0,30}(duplication|identifier|structure)")),
+        "refactor applies only structural and reports nothing left to tidy over cosmetic": (
+            says(refactor, rb"only[^.]{0,60}structural|structural[^.]{0,60}only")
+            and says(refactor, rb"nothing left to tidy[^.]{0,120}cosmetic|cosmetic[^.]{0,120}nothing left to tidy")),
+        "every CANDIDATES: line carries its class": offers(b"CANDIDATES", b"structural") and offers(
+            b"CANDIDATES", b"cosmetic"),
+        "a tests/-only transform is a CANDIDATES: test-only line, never structural": (
+            offers(b"CANDIDATES", b"test-only")
+            and both_ways(refactor, 160, rb"test-only", rb"only (files|paths) under an? `?tests/")
+            and both_ways(refactor, 160, rb"test-only", rb"(never|not)( on| as)? an? `?CANDIDATES: structural")),
+    }
+
+    no_prompts = tmp_path / "no-prompts" / "veri"
+    no_prompts.mkdir(parents=True)
+    for source in (SCRIPTS / "veri").glob("*.py"):
+        (no_prompts / source.name).write_bytes(source.read_bytes())
+    loader = importlib.util.spec_from_file_location("build_develop_prompt_no_prompts",
+                                                    no_prompts / "build_develop_prompt.py")
+    without = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(without)
+    absent = str(tmp_path / "absent.md")
+    refusals = {
+        "unknown phase": answer(build_develop_prompt, ["bogus", s, step, cmd]),
+        "missing spec": answer(build_develop_prompt, ["red", absent, step, cmd]),
+        "missing reason": answer(build_develop_prompt, ["revise", "red", s, step, cmd, absent]),
+        "missing template": answer(without, ["red", s, step, cmd]),
+        "unknown phase to revise": answer(build_develop_prompt, ["revise", "bogus", s, step, cmd, r]),
+        "missing positionals": answer(build_develop_prompt, ["red", s]),
+        "no arguments": answer(build_develop_prompt, []),
+    }
+    for label, (code, out, err) in refusals.items():
+        checks[f"{label} exits 2 with a diagnostic and no prompt"] = code == 2 and out == b"" and err != b""
+    checks["no arguments names build-develop-prompt.sh on a usage line"] = any(
+        b"usage" in line.lower() and b"build-develop-prompt.sh" in line
+        for line in refusals["no arguments"][2].split(b"\n"))
+
+    assert checks == dict.fromkeys(checks, True)
