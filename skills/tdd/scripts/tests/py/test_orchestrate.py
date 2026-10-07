@@ -211,3 +211,45 @@ def test_a_conductor_that_cannot_start_prints_one_line_sends_no_stop_and_asks_ag
     assert stops == []
     assert launches == [[conductor, "7"]] * 2
     assert asks == [[os.path.join(orchestrate.SCRIPTS, "solvable-issues.sh")]] * 3
+
+
+def test_every_conductor_is_stopped_by_sigterm_to_its_group_else_its_pid_silently_and_never_waited_for(
+        capsys, monkeypatch, tmp_path, orchestrate):
+    import signal
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+    asks, _ = _passes(monkeypatch, [(0, "7\n")] * 4 + [(3, "")], lambda n, issue: None)
+    stops = []
+    pids = iter(range(4001, 4005))
+
+    class Running(_FakeConductor):
+        def poll(self):
+            return None
+
+        def wait(self, timeout=None):
+            raise AssertionError("waited for conductor %d" % self.pid)
+
+    killpg_raises = {4002: ProcessLookupError, 4003: ProcessLookupError, 4004: PermissionError}
+    kill_raises = {4002: ProcessLookupError, 4003: PermissionError, 4004: PermissionError}
+
+    def fake_killpg(pid, sig):
+        stops.append(("killpg", pid, sig))
+        if pid in killpg_raises:
+            raise killpg_raises[pid]()
+
+    def fake_kill(pid, sig):
+        stops.append(("kill", pid, sig))
+        if pid in kill_raises:
+            raise kill_raises[pid]()
+
+    monkeypatch.setattr(subprocess, "Popen", lambda args, *rest, **kwargs: Running(next(pids)))
+    monkeypatch.setattr(os, "killpg", fake_killpg)
+    monkeypatch.setattr(os, "kill", fake_kill)
+    code = orchestrate.main([])
+    out, err = capsys.readouterr()
+    assert (code, out, err) == (0, "", "")
+    term = signal.SIGTERM
+    assert stops[:6] == [("killpg", 4001, term), ("killpg", 4002, term), ("kill", 4002, term),
+                         ("killpg", 4003, term), ("kill", 4003, term), ("killpg", 4004, term)]
+    assert stops[6:] in ([], [("kill", 4004, term)])
+    assert len(asks) == 5
