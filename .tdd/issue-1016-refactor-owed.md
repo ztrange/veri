@@ -11,3 +11,7 @@
 ### skill-drift.sh with VERI_SKILL_CLONE unset, or naming a directory that is not a git work tree, prints `Skill drift: unavailable — skill clone not known` and exits 0 ⟦criterion 5⟧
 - `os.environ["VERI_SKILL_REF"]` raises a KeyError when the variable is unset. It belongs with the unresolvable-ref check that a later criterion owes, not with this step.
 - test-only | the "not pinned" and "clone not known" cases in skill-drift.test.sh each repeat the same `env … "$SKILL_DRIFT" 2>/dev/null)" && code=0 || code=$?` call and the same exit/stdout checks; one helper that runs the script with given environment overrides and checks the result against a wanted line would cover both.
+### skill-drift.sh with VERI_SKILL_COMMIT naming a sha the clone does not have prints `Skill drift: unavailable — pinned commit <sha> is not in <clone>` and exits 0 ⟦criterion 6⟧
+- test-only | extract a `drift <commit> <clone>` helper in skill-drift.test.sh for the `env -u VERI_SKILL_UNPINNED VERI_SKILL_COMMIT=… VERI_SKILL_CLONE=… VERI_SKILL_REF=refs/remotes/origin/main "$SKILL_DRIFT"` invocation that criteria 1, 2, 3 and 6 each repeat
+- test-only | extract the shared fixture in skill-drift.test.sh (scratch dir, a `new_repo` upstream, its first `touch_commit`, then `git clone`), which four cases now repeat
+- test-only | name the absent sha `0123456789abcdef0123456789abcdef01234567` once in skill-drift.test.sh instead of repeating it in the criterion 4, 5 and 6 cases
