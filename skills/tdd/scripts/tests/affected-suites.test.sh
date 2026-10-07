@@ -581,6 +581,22 @@ base=main head=HEAD
 expect_suites "#1138: a non-suite file the base changed or deleted after the branch point contributes no suite to affected-suites.sh <base>..HEAD" \
   skills/tdd/scripts/tests/foo.test.sh
 
+make_repo base-adds-deletes-suite
+foo_bar_tree
+counts_suite
+commit_base
+git_q "$repo" checkout -q -b topic
+printf 'foo 2\n' > "$s/foo.sh"
+commit_head
+git_q "$repo" checkout -q main
+printf '# baz suite\n' > "$s/tests/baz.test.sh"
+rm "$s/tests/bar.test.sh"
+commit_all "$repo" "main adds one suite and deletes another"
+git_q "$repo" checkout -q topic
+base=main head=HEAD
+expect_suites "#1138: a suite the base added or deleted after the branch point does not make affected-suites.sh <base>..HEAD print claude-md-counts.test.sh" \
+  skills/tdd/scripts/tests/foo.test.sh
+
 git_state() { git -C "$repo" stash list; git -C "$repo" worktree list; git -C "$repo" rev-parse HEAD; }
 
 make_repo working-tree
