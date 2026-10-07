@@ -16,19 +16,19 @@ PLANTED_FIXTURE="fixture text this suite writes into a scratch tree as the plant
 CASE_NAME="a case name, a string this suite prints and never runs, so no value ever reaches a -v binding"
 BRACKET_CLASSES="wait_ci_run and push_run spell every literal character as a bracket class, [$] [.], never with a backslash, so the -v value holds none to drop"
 declare -A EXEMPT=(
-  [no-awk-v-patterns.test.sh:103]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:104]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:118]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:189]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:193]="$CASE_NAME"
-  [no-awk-v-patterns.test.sh:202]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:206]="$CASE_NAME"
-  [no-awk-v-patterns.test.sh:215]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:219]="$CASE_NAME"
-  [no-awk-v-patterns.test.sh:227]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:240]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:252]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:291]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:109]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:110]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:124]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:195]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:199]="$CASE_NAME"
+  [no-awk-v-patterns.test.sh:208]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:212]="$CASE_NAME"
+  [no-awk-v-patterns.test.sh:221]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:225]="$CASE_NAME"
+  [no-awk-v-patterns.test.sh:233]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:246]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:258]="$PLANTED_FIXTURE"
+  [no-awk-v-patterns.test.sh:294]="$PLANTED_FIXTURE"
   [parallel-conductors.test.sh:950]="record is handed only '^3[.] [*][*]Parallel[*][*]' and '^[*][*]In flight[*][*]:', literal characters spelled as bracket classes, so the -v value holds no backslash to drop"
   [skill-draft-pr.test.sh:762]="$BRACKET_CLASSES"
   [skill-draft-pr.test.sh:778]="$BRACKET_CLASSES"
@@ -97,6 +97,12 @@ scan_planted() {
   problems=()
   probe_every_exemption_carries_a_reason
   probe_no_suite_passes_a_pattern_through_awk_v
+}
+
+scan_planted_text() {
+  local planted
+  IFS= read -r -d '' planted
+  scan_planted "${planted%$'\n'}"
 }
 
 probe_a_planted_awk_v_pattern() {
@@ -262,8 +268,7 @@ probe_a_planted_awk_v_with_a_quote_in_a_double_quoted_string
 expect_eq "$name" "named" "$planted_dq_quote_named"
 
 probe_a_planted_awk_v_non_offender_with_a_quote_in_a_double_quoted_string() {
-  local planted
-  IFS= read -r -d '' planted <<'EOF'
+  scan_planted_text <<'EOF'
 #!/usr/bin/env bash
 numbered() {
   awk -v q="'" -v n="$1" '$0 ~ other { print q }' "$2"
@@ -272,7 +277,6 @@ later() {
   awk '$0 ~ n { print }' "$2"
 }
 EOF
-  scan_planted "${planted%$'\n'}"
   planted_dq_quote_non_offender_named="$(problem_naming "planted.test.sh:3")"
 }
 
@@ -284,8 +288,7 @@ probe_a_planted_awk_v_non_offender_with_a_quote_in_a_double_quoted_string
 expect_eq "$name" "not named" "$planted_dq_quote_non_offender_named"
 
 probe_a_planted_multi_line_awk_v_with_an_escaped_quote() {
-  local planted
-  IFS= read -r -d '' planted <<'EOF'
+  scan_planted_text <<'EOF'
 #!/usr/bin/env bash
 numbered() {
   awk -v re="$1" '
@@ -294,7 +297,6 @@ numbered() {
   ' "$2"
 }
 EOF
-  scan_planted "${planted%$'\n'}"
   planted_escaped_quote_named="$(problem_naming "planted.test.sh:3")"
 }
 
