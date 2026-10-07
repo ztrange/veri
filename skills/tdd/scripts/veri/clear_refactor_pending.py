@@ -1,4 +1,5 @@
 """clear-refactor-pending.sh's clear, run in-process."""
+import os
 import sys
 
 import ledger
@@ -15,14 +16,21 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     with open(argv[0], "rb") as file:
-        text = file.read().replace(b"\0", b"").decode(errors="surrogateescape")
+        raw = file.read()
+    text = raw.replace(b"\0", b"").decode(errors="surrogateescape")
     cleared, new = ledger.ledger_clear_pending(text, argv[1] if len(argv) > 1 else "")
     if not isinstance(cleared, bool):
         return to_contract(cleared)
     if not cleared:
         return 3
-    with open(argv[0], "wb") as file:
-        file.write((new.rstrip("\n") + "\n").encode(errors="surrogateescape"))
+    file = open(argv[0], "wb")
+    try:
+        with file:
+            file.write((new.rstrip("\n") + "\n").encode(errors="surrogateescape"))
+    except OSError:
+        with os.fdopen(os.open(argv[0], os.O_WRONLY), "wb") as file:
+            file.write(raw)
+        return 2
     return 0
 
 
