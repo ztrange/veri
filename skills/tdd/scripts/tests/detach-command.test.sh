@@ -150,4 +150,27 @@ rc=$?
 
 report "detach-command: a mode other than start or wait exits 2 with exactly the usage line on stderr and nothing on stdout"
 
+problems=()
+
+SKILL_DIR="$(cd "$HERE/../.." && pwd)"
+ln -s "$SKILL_DIR" "$work/skill-link"
+mkdir -p "$work/elsewhere/.tdd"
+beside_before="$(ls -d "$SKILL_DIR/.tdd" "$SKILL_DIR/scripts/.tdd" 2>/dev/null)"
+( cd "$work/elsewhere" && VERI_POLL=0.05 "$work/skill-link/scripts/detach-command.sh" start linked sh -c 'echo linked-line' >/dev/null 2>&1 )
+rc=$?
+[[ "$rc" == 0 ]] || problems+=("start through the skill-directory symlink returned $rc; want 0")
+( cd "$work/elsewhere" && VERI_POLL=0.05 "$work/skill-link/scripts/detach-command.sh" wait linked 30 >/dev/null 2>&1 )
+rc=$?
+[[ "$rc" == 0 ]] || problems+=("wait through the skill-directory symlink returned $rc; want 0")
+for f in out exit pid; do
+  [[ -f "$work/elsewhere/.tdd/linked.$f" ]] || problems+=("want $work/elsewhere/.tdd/linked.$f, the working directory's, to exist")
+done
+grep -Fx linked-line "$work/elsewhere/.tdd/linked.out" > /dev/null ||
+  problems+=("want the command's output in the working directory's .tdd/linked.out, got: $(cat "$work/elsewhere/.tdd/linked.out" 2>&1)")
+beside_after="$(ls -d "$SKILL_DIR/.tdd" "$SKILL_DIR/scripts/.tdd" 2>/dev/null)"
+[[ "$beside_after" == "$beside_before" ]] ||
+  problems+=("want no .tdd/ created beside the skill, got: '$beside_after' (was '$beside_before')")
+
+report "detach-command: run through a symlink to the skill directory from another working directory, start and wait use that directory's .tdd/ and create none beside the skill"
+
 finish
