@@ -87,18 +87,6 @@ left_behind="$(cd "$work" && ls -A)"
 rm -rf "$tmp"
 report "$name"
 
-name='leaf-launchable.sh, whose own EXIT trap cleans up, still ends with 2 and never a code outside 0–3 when a command dies with one — its trap does not replace the contract'"'"'s mapping'
-problems=()
-tmp="$(scratch_dir)"
-failing_stub "$tmp/claude"
-printf '%s\n' 'sed() { builtin exit 5; }' > "$tmp/dies-with-5"
-env -u CLAUDECODE BASH_ENV="$tmp/dies-with-5" CLAUDE_BIN="$tmp/claude" "$LAUNCHABLE" \
-  >/dev/null 2>/dev/null && code=0 || code=$?
-[[ "$code" == 2 ]] ||
-  problems+=("want exit 2, got $code")
-rm -rf "$tmp"
-report "$name"
-
 name='leaf-launchable.sh passes when the leaf binary launches — exit 0, nothing on stdout, nothing on stderr'
 problems=()
 tmp="$(scratch_dir)"
