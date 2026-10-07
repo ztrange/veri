@@ -73,3 +73,27 @@ def test_main_prints_an_absent_key_as_its_label_and_a_space_prints_dollar_backti
         "PREDICTION_NOTE: $HOME and \\$x\n",
         "",
     )
+
+
+def test_main_strips_exactly_one_trailing_comma_semicolon_colon_or_period_from_the_verdict_word_and_no_em_dash_answering_2_silently_otherwise(monkeypatch, capsys, red_divergence):
+    values = "PREDICTED_FAILURE: p\nFAIL_OUTPUT: f\nPREDICTION_NOTE: n\n"
+    reason = (
+        "The red leaf's prediction diverged from the failure it saw, so the test is the suspect.\n"
+        "\n"
+        "PREDICTED_FAILURE: p\n"
+        "FAIL_OUTPUT: f\n"
+        "PREDICTION_NOTE: n\n"
+    )
+    words = ["DIVERGED,", "DIVERGED;", "DIVERGED:", "DIVERGED.", "MATCHED.", "DIVERGED..", "MATCHED,;", "DIVERGED—"]
+    results = {word: run(monkeypatch, capsys, red_divergence, values + "PREDICTION: " + word, []) for word in words}
+
+    assert results == {
+        "DIVERGED,": (0, reason, ""),
+        "DIVERGED;": (0, reason, ""),
+        "DIVERGED:": (0, reason, ""),
+        "DIVERGED.": (0, reason, ""),
+        "MATCHED.": (3, "", ""),
+        "DIVERGED..": (2, "", ""),
+        "MATCHED,;": (2, "", ""),
+        "DIVERGED—": (2, "", ""),
+    }

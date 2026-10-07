@@ -16,6 +16,8 @@ def main(argv):
     report = sys.stdin.buffer.read().decode()
     fields = report_read(report, ("PREDICTION", *REASON_KEYS))
     prediction = fields.get("PREDICTION", "")
+    if prediction[-1:] in (",", ";", ":", "."):
+        prediction = prediction[:-1]
     if prediction == "MATCHED":
         return 3
     if prediction != "DIVERGED":
