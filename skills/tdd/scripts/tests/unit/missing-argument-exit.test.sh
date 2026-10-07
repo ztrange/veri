@@ -137,7 +137,7 @@ migration_slice 2 detach-leaf.sh
 migration_slice 3 event.sh
 migration_slice 7 run-conductor.sh
 migration_slice 9 supervise.sh
-migration_slice 10 verify.sh wait-leaf.sh
+migration_slice 10 wait-leaf.sh
 
 name="no script guards a required positional argument with a bare \${N:?…} expansion"
 mapfile -t offenders < <(bare_expansion_offenders "$SCRIPTS")
