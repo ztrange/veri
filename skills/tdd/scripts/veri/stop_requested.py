@@ -1,4 +1,5 @@
 """stop-requested.sh's answer, run in-process."""
+import contextlib
 import os
 import sys
 
@@ -10,7 +11,8 @@ USAGE = b"usage: stop-requested.sh [--clear]\n"
 
 def main(argv):
     if argv == ["--clear"]:
-        os.unlink(FILE)
+        with contextlib.suppress(FileNotFoundError):
+            os.unlink(FILE)
         return 0
     if argv and argv != [""]:
         sys.stderr.buffer.write(USAGE)
