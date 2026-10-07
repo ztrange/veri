@@ -142,3 +142,38 @@ def test_main_reads_only_the_first_line_whole_as_stop_requested_sh_does(
     monkeypatch.setattr("builtins.open", unreadable)
     assert stop_requested.main([]) == 2
     assert capsysbinary.readouterr() == refusal(b"")
+
+
+def test_main_clear_removes_whatever_is_at_tdd_stop_without_reading_it_as_rm_f_does(
+        monkeypatch, tmp_path, capsysbinary, stop_requested):
+    monkeypatch.chdir(tmp_path)
+    stop = tmp_path / ".tdd" / "stop"
+
+    assert stop_requested.main(["--clear"]) == 0
+    assert capsysbinary.readouterr() == (b"", b"")
+    assert not (tmp_path / ".tdd").exists()
+
+    stop.parent.mkdir()
+    stop.write_bytes(b"bogus\n")
+    real_open = open
+
+    def unreadable(path, *args, **kwargs):
+        if str(path).endswith(".tdd/stop"):
+            raise AssertionError(f"--clear read {path}")
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.open", unreadable)
+    assert stop_requested.main(["--clear"]) == 0
+    assert capsysbinary.readouterr() == (b"", b"")
+    assert not stop.exists()
+    monkeypatch.setattr("builtins.open", real_open)
+
+    stop.symlink_to(tmp_path / "nowhere")
+    assert stop_requested.main(["--clear"]) == 0
+    assert capsysbinary.readouterr() == (b"", b"")
+    assert not stop.is_symlink()
+
+    stop.mkdir()
+    with pytest.raises(OSError):
+        stop_requested.main(["--clear"])
+    assert stop.is_dir()
