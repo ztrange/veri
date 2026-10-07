@@ -3,8 +3,11 @@ import importlib
 import io
 import os
 import pathlib
+import select
 import subprocess
 import sys
+import threading
+import time
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 for path in (SCRIPTS, SCRIPTS / "veri"):
@@ -195,3 +198,80 @@ def test_main_writes_after_the_leaf_ends_a_newline_then_the_extraction_the_strea
         without_result + b"\n" + without_result,
         non_utf8 + b"\n" + printed,
     ]
+
+
+def test_main_writes_each_chunk_of_the_leafs_stdout_to_stdout_and_the_stream_temp_file_before_the_next_chunk_is_read(
+        tmp_path, monkeypatch):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, home, tmp = (tmp_path / name for name in ("work", "home", "tmp"))
+    for path in (work, home, tmp):
+        path.mkdir()
+    (work / "prompt.txt").write_text("do the step\n")
+    monkeypatch.chdir(work)
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("TMPDIR", str(tmp))
+    monkeypatch.delenv("CLAUDE_CODE_SESSION_ID", raising=False)
+    monkeypatch.delenv("CLAUDE_BIN", raising=False)
+    monkeypatch.delenv("VERI_LEAF_MODEL", raising=False)
+    first = b'{"type":"system","subtype":"init"}\n'
+    second = b'{"type":"result","subtype":"success","result":"done"}\n'
+    leaf_read, leaf_write = os.pipe()
+
+    class _ChunkedLeaf:
+        def __init__(self, argv, *args, **kwargs):
+            self.stdout = open(leaf_read, "rb", buffering=0)
+            self.returncode = 0
+            self.pid = 0
+
+        def poll(self):
+            return self.returncode
+
+        def wait(self, timeout=None):
+            return self.returncode
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            self.stdout.close()
+            return False
+
+    monkeypatch.setattr(subprocess, "Popen", _ChunkedLeaf)
+
+    def next_stdout_chunk():
+        ready, _, _ = select.select([out_read], [], [], 5)
+        return os.read(out_read, 65536) if ready else b"<nothing on stdout>"
+
+    def a_stream_file_holds(expected):
+        deadline = time.monotonic() + 5
+        while expected not in [path.read_bytes() for path in sorted(tmp.iterdir())]:
+            if time.monotonic() > deadline:
+                return False
+            time.sleep(0.01)
+        return True
+
+    out_read, out_write = os.pipe()
+    saved_stdout = os.dup(1)
+    os.dup2(out_write, 1)
+    results = []
+    leaf = threading.Thread(target=lambda: results.append(run_leaf.main(["prompt.txt"])))
+    observed = []
+    try:
+        leaf.start()
+        os.write(leaf_write, first)
+        observed.append((next_stdout_chunk(), a_stream_file_holds(first)))
+        os.write(leaf_write, second)
+        observed.append((next_stdout_chunk(), a_stream_file_holds(first + second)))
+    finally:
+        os.close(leaf_write)
+        leaf.join()
+        os.dup2(saved_stdout, 1)
+        os.close(saved_stdout)
+        os.close(out_write)
+    rest = b""
+    while chunk := os.read(out_read, 65536):
+        rest += chunk
+    os.close(out_read)
+
+    assert (observed, results, rest) == (
+        [(first, True), (second, True)], [0], b"\n" + b"done\n")
