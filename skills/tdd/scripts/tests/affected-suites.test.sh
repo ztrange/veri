@@ -546,6 +546,21 @@ if [[ "$linked" == "$in_place" && "$linked_code" -eq "$in_place_code" && "$in_pl
   diff <(printf '%s\nexit %s\n' "$in_place" "$in_place_code") <(printf '%s\nexit %s\n' "$linked" "$linked_code")
 fi
 
+make_repo base-gains-suite
+mkdir -p "$s/tests/py"
+printf '# a suite\n' > "$s/tests/py/test_a.py"
+commit_base
+git_q "$repo" checkout -q -b topic
+printf '# a suite 2\n' > "$s/tests/py/test_a.py"
+commit_head
+git_q "$repo" checkout -q main
+printf '# orchestrate suite\n' > "$s/tests/py/test_orchestrate.py"
+commit_all "$repo" "main gains a suite"
+git_q "$repo" checkout -q topic
+base=main head=HEAD
+expect_suites "#1138: a suite the base gained after the branch point is not printed by affected-suites.sh <base>..HEAD, only the branch's own" \
+  skills/tdd/scripts/tests/py/test_a.py
+
 git_state() { git -C "$repo" stash list; git -C "$repo" worktree list; git -C "$repo" rev-parse HEAD; }
 
 make_repo working-tree
