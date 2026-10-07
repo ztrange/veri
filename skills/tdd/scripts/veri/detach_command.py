@@ -10,11 +10,15 @@ WRAPPER = '"$@"; rc=$?; echo "$rc" > "$0.tmp"; mv "$0.tmp" "$0"'
 USAGE = "usage: detach-command.sh start <name> <cmd> [args…] | wait <name> [max-seconds]"
 
 
+def _read(path):
+    with open(path) as handle:
+        return handle.read().rstrip("\n")
+
+
 def _recorded(exit_file):
     if not os.path.isfile(exit_file):
         return None
-    with open(exit_file) as handle:
-        code = handle.read().rstrip("\n")
+    code = _read(exit_file)
     if code == "0":
         return 0
     print(code)
@@ -23,8 +27,7 @@ def _recorded(exit_file):
 
 def _alive(pid_file):
     try:
-        with open(pid_file) as handle:
-            pid = handle.read().rstrip("\n")
+        pid = _read(pid_file)
         if not re.fullmatch("-?[0-9]+", pid):
             return False
         os.kill(int(pid), 0)
