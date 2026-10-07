@@ -42,7 +42,7 @@ def main(argv):
         try:
             os.unlink(tmp)
         except OSError:
-            pass
+            print(f"tick-ledger.sh: left {tmp} behind", file=sys.stderr)
         return 2
     return 0
 
