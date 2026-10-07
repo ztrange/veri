@@ -375,12 +375,12 @@ def test_main_reads_and_rewrites_the_ledger_as_bytes_line_by_line_in_place(tmp_p
     step = "- [ ] t ⟦added⟧ ⟦criterion 1⟧\n".encode()
     assert got == {
         "anchor on an unterminated last line": (
-            2, "", "add-ledger-step.sh: anchor matches no single step: b two\n", unterminated, True
+            0, "", "", unterminated + b"\n" + "- [ ] t ⟦added⟧ ⟦criterion 2⟧\n".encode(), True
         ),
         "insert before an unterminated last line": (
-            0, "", "", unterminated.removesuffix("- [ ] b two ⟦criterion 2⟧".encode()).replace(
+            0, "", "", unterminated.replace(
                 "a one ⟦criterion 1⟧\n".encode(), "a one ⟦criterion 1⟧\n".encode() + step
-            ), True,
+            ) + b"\n", True,
         ),
         "crlf": (
             0, "", "", crlf.replace("a one ⟦criterion 1⟧\r\n".encode(), "a one ⟦criterion 1⟧\r\n".encode() + step), True
@@ -443,3 +443,18 @@ def test_main_returns_2_naming_the_anchor_for_a_missing_or_directory_ledger_and_
             add_ledger_step.main([str(ledger), "after", "b two", "t"])
         monkeypatch.setattr("builtins.open", real_open)
         assert ledger.read_bytes() == LEDGER
+
+
+def test_main_finds_a_last_step_without_a_trailing_newline_as_the_anchor_and_keeps_it_after_inserting_817(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER.removesuffix(b"\n"))
+
+    code = add_ledger_step.main([str(ledger), "after", "c three", "t"])
+    captured = capsys.readouterr()
+
+    assert (code, captured.err) == (0, "")
+    assert ledger.read_bytes().decode().split("\n")[4:6] == [
+        "- [ ] c three ⟦criterion 3⟧",
+        "- [ ] t ⟦added⟧ ⟦criterion 3⟧",
+    ]
