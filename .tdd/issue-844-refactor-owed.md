@@ -2,3 +2,6 @@
 - out-of-scope | remove veri/issue_worktree.py's own number_in (:15-23) in favour of an import from veri/pid_file.py — the move is plan step 10, not a refactor of this step
 ### tests/py/test_pid_file.py: number_in answers no number (None) for a first line that is not ASCII digits after trimming spaces and tabs — an empty file, "-1", "+5", "1 2", "12\r", "١", "x\n12" and the bytes "\xff\xfe\n" — never raising ⟦criterion 3⟧
 - test-only | the two `number_in` cases in `tests/py/test_pid_file.py` (lines 12-24 and 37-50) repeat the same loop: write each content under `tmp_path`, then call `number_in`. A shared helper taking `(name, content)` pairs and returning the answers would remove that repetition.
+### tests/py/test_pid_file.py: number_in answers no number for a missing path, a directory, and a regular file whose builtins.open (faked, looked up at call time) raises PermissionError ⟦criterion 3⟧
+- test-only | tests/py/test_pid_file.py: the second and third tests repeat the same loop (call `number_in`, record the answer, or record the exception's type name if it raises). Both could call one shared helper.
+- test-only | tests/py/test_pid_file.py: every test repeats `importlib.import_module("veri.pid_file")`. A single module-level import would replace the three copies.
