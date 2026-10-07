@@ -107,3 +107,35 @@ def test_number_in_follows_a_symlink_to_a_regular_file_and_answers_no_number_for
             answers[name] = type(error).__name__
 
     assert answers == {"to-file": "12", "dangling": None}
+
+
+def test_live_conductor_answers_the_digits_as_read_and_never_signals_for_no_pid_file_or_0_or_00(tmp_path, monkeypatch):
+    import os
+
+    pid_file = importlib.import_module("veri.pid_file")
+    kills = []
+
+    def fake_kill(pid, signal):
+        kills.append((pid, signal))
+
+    monkeypatch.setattr(os, "kill", fake_kill)
+    answers = {}
+    calls = {}
+    for name, content in [
+        ("no-pid-file", None),
+        ("live", b"004242\n"),
+        ("zero", b"0\n"),
+        ("double-zero", b"00\n"),
+    ]:
+        run_dir = tmp_path / name
+        (run_dir / ".tdd").mkdir(parents=True)
+        if content is not None:
+            (run_dir / ".tdd" / "conductor.pid").write_bytes(content)
+        kills.clear()
+        answers[name] = pid_file.live_conductor(str(run_dir))
+        calls[name] = list(kills)
+
+    assert (answers, calls) == (
+        {"no-pid-file": None, "live": "004242", "zero": None, "double-zero": None},
+        {"no-pid-file": [], "live": [(4242, 0)], "zero": [], "double-zero": []},
+    )

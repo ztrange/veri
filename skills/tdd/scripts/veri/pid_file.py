@@ -13,3 +13,11 @@ def number_in(file):
     except OSError:
         return None
     return n.decode() if re.fullmatch(rb"[0-9]+", n) else None
+
+
+def live_conductor(path):
+    pid = number_in(path + "/.tdd/conductor.pid")
+    if pid is None or int(pid) == 0:
+        return None
+    os.kill(int(pid), 0)
+    return pid
