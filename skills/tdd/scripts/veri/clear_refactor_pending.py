@@ -42,20 +42,20 @@ def main(argv):
     except OSError:
         return 2
     file = open(argv[0], "wb")
+    code = 0
     try:
         with file:
             file.write(data)
     except OSError:
+        code = 2
         try:
             with os.fdopen(os.open(argv[0], os.O_WRONLY), "wb") as file:
                 file.write(raw)
         except OSError:
             os.replace(backup, path)
             return 2
-        os.unlink(backup)
-        return 2
     os.unlink(backup)
-    return 0
+    return code
 
 
 if __name__ == "__main__":
