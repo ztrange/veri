@@ -1925,4 +1925,53 @@ fi
 
 report "$name"
 
+name="a pinned launch hands the conductor VERI_SKILL_CLONE and VERI_SKILL_REF naming the clone and ref it pinned from; an unpinned launch sets neither (#1016)"
+problems=()
+
+remote1016="$work/remote1016"
+clone1016="$work/clone1016"
+cloned_skill "$remote1016" "$clone1016"
+caller1016="$work/caller1016"
+caller_repo "$caller1016"
+env1016="$work/env1016"
+rm -f "$env1016"
+
+( unset VERI_SKILL_UNPINNED VERI_SKILL_CLONE VERI_SKILL_REF
+  launch_from "$caller1016" "$clone1016" ENV_OUT="$env1016" )
+
+if [[ ! -f "$env1016" ]]; then
+  problems+=("the pinned launch never reached the conductor: $(cat "$launch_err")")
+else
+  clone_seen1016="$(sed -n 's/^VERI_SKILL_CLONE=//p' "$env1016")"
+  ref_seen1016="$(sed -n 's/^VERI_SKILL_REF=//p' "$env1016")"
+  if [[ -z "$clone_seen1016" ]]; then
+    problems+=("the pinned launch handed the conductor no VERI_SKILL_CLONE")
+  elif [[ "$(cd "$clone_seen1016" 2>/dev/null && pwd -P)" != "$(cd "$clone1016/skills/tdd" && pwd -P)" ]]; then
+    problems+=("VERI_SKILL_CLONE is '$clone_seen1016', not the clone archived from, $clone1016/skills/tdd")
+  fi
+  [[ "$ref_seen1016" == refs/remotes/origin/HEAD ]] ||
+    problems+=("VERI_SKILL_REF is '$ref_seen1016', not the ref pinned against, refs/remotes/origin/HEAD")
+fi
+
+loose1016="$work/loose1016"
+loose_skill "$loose1016"
+envu1016="$work/envu1016"
+rm -f "$envu1016"
+
+( unset VERI_SKILL_UNPINNED VERI_SKILL_CLONE VERI_SKILL_REF
+  launch_from "$caller" "$loose1016" GIT_CEILING_DIRECTORIES="$work" ENV_OUT="$envu1016" )
+
+if [[ ! -f "$envu1016" ]]; then
+  problems+=("the unpinned launch never reached the conductor: $(cat "$launch_err")")
+elif ! grep -qx 'VERI_SKILL_UNPINNED=1' "$envu1016"; then
+  problems+=("the second launch was not unpinned, so it says nothing about an unpinned launch")
+else
+  for var in VERI_SKILL_CLONE VERI_SKILL_REF; do
+    ! grep "^${var}=" "$envu1016" > /dev/null ||
+      problems+=("the unpinned launch set $(grep "^${var}=" "$envu1016")")
+  done
+fi
+
+report "$name"
+
 finish
