@@ -9,17 +9,18 @@ PREDICTED_FAILURE: %s
 FAIL_OUTPUT: %s
 PREDICTION_NOTE: %s
 """
+REASON_KEYS = ("PREDICTED_FAILURE", "FAIL_OUTPUT", "PREDICTION_NOTE")
 
 
 def main(argv):
     report = sys.stdin.buffer.read().decode()
-    fields = report_read(report, ("PREDICTION", "PREDICTED_FAILURE", "FAIL_OUTPUT", "PREDICTION_NOTE"))
+    fields = report_read(report, ("PREDICTION", *REASON_KEYS))
     prediction = fields.get("PREDICTION", "")
     if prediction == "MATCHED":
         return 3
     if prediction != "DIVERGED":
         return 2
-    reason = REASON % tuple(fields.get(key, "") for key in ("PREDICTED_FAILURE", "FAIL_OUTPUT", "PREDICTION_NOTE"))
+    reason = REASON % tuple(fields.get(key, "") for key in REASON_KEYS)
     sys.stdout.buffer.write(reason.encode())
     return 0
 
