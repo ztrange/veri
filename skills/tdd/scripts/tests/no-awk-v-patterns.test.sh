@@ -16,29 +16,30 @@ PLANTED_FIXTURE="fixture text this suite writes into a scratch tree as the plant
 CASE_NAME="a case name, a string this suite prints and never runs, so no value ever reaches a -v binding"
 BRACKET_CLASSES="wait_ci_run and push_run spell every literal character as a bracket class, [$] [.], never with a backslash, so the -v value holds none to drop"
 declare -A EXEMPT=(
-  [no-awk-v-patterns.test.sh:110]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:111]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:125]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:196]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:200]="$CASE_NAME"
-  [no-awk-v-patterns.test.sh:209]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:213]="$CASE_NAME"
-  [no-awk-v-patterns.test.sh:222]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:226]="$CASE_NAME"
-  [no-awk-v-patterns.test.sh:234]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:247]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:259]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:295]="$PLANTED_FIXTURE"
-  [no-awk-v-patterns.test.sh:339]="$PLANTED_FIXTURE" [no-awk-v-patterns.test.sh:357]="$PLANTED_FIXTURE"
-  [parallel-conductors.test.sh:950]="record is handed only '^3[.] [*][*]Parallel[*][*]' and '^[*][*]In flight[*][*]:', literal characters spelled as bracket classes, so the -v value holds no backslash to drop"
-  [skill-draft-pr.test.sh:762]="$BRACKET_CLASSES"
-  [skill-draft-pr.test.sh:778]="$BRACKET_CLASSES"
-  [skill-draft-pr.test.sh:807]="$BRACKET_CLASSES"
-  [skill-draft-pr.test.sh:853]="$BRACKET_CLASSES"
-  [skill-plan-verify.test.sh:34]="every pattern its line_of is handed spells a literal character as a bracket class, [.] [(] [$] [<], never with a backslash, so the -v value holds none to drop"
-  [skill-plan-verify.test.sh:48]="bullet_text is handed only exit2_re, '[(]exit 2[)]', a literal parenthesis spelled as a bracket class, so the -v value holds no backslash to drop"
-  [skill-red-prediction.test.sh:25]="doc_text's from is handed only '### 🔴 Red' and 'red-divergence', plain text with no backslash to drop"
-  [solvable-issues.test.sh:379]="loop_bullet is handed only '^- [*][*]Exit 3:', '^- [*][*]Exit 0:' and '^### ', literal characters spelled as bracket classes, so the -v value holds no backslash to drop"
+  ['no-awk-v-patterns.test.sh:  scan_planted '\''#!/usr/bin/env bash'\'' '\''numbered() {'\'' "  awk -''v re=\"\$1\" '\''\$0 ~ re { print }'\'' \"\$2\"" '\''}'\'' \']="$PLANTED_FIXTURE"
+  ['no-awk-v-patterns.test.sh:    '\''starts() {'\'' "  awk -''v at=\"\$1\" '\''match(\$0, at) { print NR }'\'' \"\$2\"" '\''}'\''']="$PLANTED_FIXTURE"
+  ['no-awk-v-patterns.test.sh:  scan_planted '\''#!/usr/bin/env bash'\'' "# awk -''v re=\"\$1\" … \$0 ~ re"']="$PLANTED_FIXTURE"
+  ['no-awk-v-patterns.test.sh:    "  awk -''v a=\"\$x\" -''v re=\"\$1\" '\''\$0 ~ re { print }'\'' \"\$2\"" '\''}'\''']="$PLANTED_FIXTURE"
+  ['no-awk-v-patterns.test.sh:name="a planted awk -''v a=\"\$x\" -''v re=\"\$1\" '\''\$0 ~ re'\'', whose second -''v variable is the pattern, turns the guard red, naming <suite>:<line> (#1037)"']="$CASE_NAME"
+  ['no-awk-v-patterns.test.sh:  scan_planted '\''#!/usr/bin/env bash'\'' '\''numbered() {'\'' "  awk -''v re=\"\$1\" '\''\$0 ~ re { print }'\'' \"\$2\"" '\''}'\''']="$PLANTED_FIXTURE"
+  ['no-awk-v-patterns.test.sh:name="a planted awk -''v re=\"\$1\" '\''\$0 ~ re'\'' that the exemption table lists with a reason leaves the guard green (#1037)"']="$CASE_NAME"
+  ['no-awk-v-patterns.test.sh:name="an exemption-table entry for a planted awk -''v re=\"\$1\" '\''\$0 ~ re'\'' that carries no reason turns the guard red, naming the entry (#1037)"']="$CASE_NAME"
+  ['no-awk-v-patterns.test.sh:  scan_planted '\''#!/usr/bin/env bash'\'' '\''numbered() {'\'' "  awk -''v re=\"\$1\" '\''" \']="$PLANTED_FIXTURE"
+  ['no-awk-v-patterns.test.sh:  scan_planted '\''#!/usr/bin/env bash'\'' '\''numbered() {'\'' "  awk -''v re=\"\$1\" '\''" '\''    $0 ~ re { print }'\''']="$PLANTED_FIXTURE"
+  ['no-awk-v-patterns.test.sh:  scan_planted '\''#!/usr/bin/env bash'\'' '\''numbered() {'\'' "  awk -''v q=\"'\''\" -''v re=\"\$1\" '\''" \']="$PLANTED_FIXTURE"
+  ['no-awk-v-patterns.test.sh:  awk -''v re="$1" '\''']="$PLANTED_FIXTURE"
+  ['no-awk-v-patterns.test.sh:  awk -''v re="$1" '\''$0 ~ re { print }'\'' "$2"']="$PLANTED_FIXTURE"
+  ['no-awk-v-patterns.test.sh:  local -A EXEMPT=(['\''planted.test.sh:  awk -''v re="$1" '\''\'\'''\''$0 ~ re { print }'\''\'\'''\'' "$2"'\'']="the planted site'\''s pattern carries no backslash")']="$PLANTED_FIXTURE"
+  ['no-awk-v-patterns.test.sh:name="an exemption-table entry keyed by file and the exempt line'\''s content still exempts its planted awk -''v re=\"\$1\" '\''\$0 ~ re'\'' after unrelated lines are inserted above it, and the table carries no entry keyed by a line number (#1050)"']="$CASE_NAME"
+  ['parallel-conductors.test.sh:  awk -''v open="$1" '\''']="record is handed only '^3[.] [*][*]Parallel[*][*]' and '^[*][*]In flight[*][*]:', literal characters spelled as bracket classes, so the -v value holds no backslash to drop"
+  ['skill-draft-pr.test.sh:    unread="$(awk -''v from="$read_at" -''v wait_re="^$wait_ci_run" -''v push_re="^$push_run" '\''']="$BRACKET_CLASSES"
+  ['skill-draft-pr.test.sh:  unpinned="$(awk -''v wait_re="^$wait_ci_run" -''v push_re="^$push_run" '\''']="$BRACKET_CLASSES"
+  ['skill-draft-pr.test.sh:    bails="$(awk -''v from="$metrics_at" -''v wait_re="^$wait_ci_run" '\''']="$BRACKET_CLASSES"
+  ['skill-draft-pr.test.sh:  fixed="$(awk -''v wait_re="^$wait_ci_run" '\''']="$BRACKET_CLASSES"
+  ['skill-plan-verify.test.sh:  awk -''v re="$1" '\''n == 0 && match($0, re) { n = NR } END { print n + 0 }'\'' "$skill_path"']="every pattern its line_of is handed spells a literal character as a bracket class, [.] [(] [$] [<], never with a backslash, so the -v value holds none to drop"
+  ['skill-plan-verify.test.sh:  awk -''v a="$1" -''v b="$2" -''v re="$3" '\''']="bullet_text is handed only exit2_re, '[(]exit 2[)]', a literal parenthesis spelled as a bracket class, so the -v value holds no backslash to drop"
+  ['skill-red-prediction.test.sh:  awk -''v h="$1" -''v from="$2" '\''']="doc_text's from is handed only '### 🔴 Red' and 'red-divergence', plain text with no backslash to drop"
+  ['solvable-issues.test.sh:  awk -''v opens="$1" -''v ends="$2" '\''']="loop_bullet is handed only '^- [*][*]Exit 3:', '^- [*][*]Exit 0:' and '^### ', literal characters spelled as bracket classes, so the -v value holds no backslash to drop"
 )
 
 source "$HERE/lib/harness.sh"
@@ -55,7 +56,7 @@ probe_no_suite_passes_a_pattern_through_awk_v() {
       lineno="${hit%%:*}"
       text="${hit#*:}"
       [[ "$text" =~ ^[[:space:]]*# ]] && continue
-      [[ -n "${EXEMPT[$name:$lineno]:-}" ]] && continue
+      [[ -n "${EXEMPT[$name:$text]:-}" ]] && continue
       [[ "$text" == *"'"* ]] || continue
       prog="$text"
       quotes="$(sed "s/\"[^\"]*\"//g; s/[^']//g" <<< "$text")"
@@ -205,7 +206,7 @@ probe_a_planted_awk_binding_two_v_variables
 expect_eq "$name" "named" "$planted_second_v_named"
 
 probe_a_planted_awk_v_pattern_exempted_with_a_reason() {
-  local -A EXEMPT=([planted.test.sh:3]="the planted site's pattern carries no backslash")
+  local -A EXEMPT=(['planted.test.sh:  awk -''v re="$1" '\''$0 ~ re { print }'\'' "$2"']="the planted site's pattern carries no backslash")
   scan_planted '#!/usr/bin/env bash' 'numbered() {' "  awk -v re=\"\$1\" '\$0 ~ re { print }' \"\$2\"" '}'
   planted_exempted_named="$(problem_naming "planted.test.sh:3")"
 }
@@ -384,6 +385,30 @@ planted_helper_compared_named=""
 probe_a_planted_sourced_helper_awk_v_compared
 
 expect_eq "$name" "not named" "$planted_helper_compared_named"
+
+line_number_keys=0
+for key in "${!EXEMPT[@]}"; do [[ "$key" =~ :[0-9]+$ ]] && (( line_number_keys++ )); done
+
+probe_a_planted_awk_v_pattern_exempted_by_content_after_lines_inserted_above() {
+  local -A EXEMPT=(['planted.test.sh:  awk -v re="$1" '\''$0 ~ re { print }'\'' "$2"']="the planted site's pattern carries no backslash")
+  scan_planted_text <<'EOF'
+#!/usr/bin/env bash
+# an unrelated line inserted above the exempt site
+# and another
+numbered() {
+  local unrelated=1
+  awk -v re="$1" '$0 ~ re { print }' "$2"
+}
+EOF
+  planted_content_exempted_named="$(problem_naming "planted.test.sh:6")"
+}
+
+name="an exemption-table entry keyed by file and the exempt line's content still exempts its planted awk -v re=\"\$1\" '\$0 ~ re' after unrelated lines are inserted above it, and the table carries no entry keyed by a line number (#1050)"
+planted_content_exempted_named=""
+
+probe_a_planted_awk_v_pattern_exempted_by_content_after_lines_inserted_above
+
+expect_eq "$name" "not named, 0 line-number keys" "$planted_content_exempted_named, $line_number_keys line-number keys"
 
 name="no suite under skills/tdd/scripts/tests/ passes awk a pattern through -v but where the exemption table says why its value can hold no backslash (#1037)"
 problems=()
