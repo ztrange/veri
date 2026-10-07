@@ -1,4 +1,5 @@
 """orchestrate.sh's loop, run in-process."""
+import errno
 import os
 import re
 import signal
@@ -33,8 +34,7 @@ def main(argv):
         _watch(issue, conductor.stdout, budget)
         _stop(conductor.pid)
         if _parked(issue):
-            sys.stdout.write("parked %s\n" % issue)
-            sys.stdout.flush()
+            _say("parked %s\n" % issue)
 
 
 def _watch(issue, stream, budget):
@@ -54,8 +54,16 @@ def _watch(issue, stream, budget):
         creation = re.search(rb'"cache_creation_input_tokens":([0-9]+)', line)
         if read and creation:
             context = int(read.group(1)) + int(creation.group(1))
-            sys.stdout.write("context %s %d\n" % (issue, context))
-            sys.stdout.flush()
+            _say("context %s %d\n" % (issue, context))
+
+
+def _say(text):
+    if sys.stdout is None:
+        sys.stderr.write("orchestrate.sh: write error: %s\n" % os.strerror(errno.EBADF))
+        sys.stderr.flush()
+        return
+    sys.stdout.write(text)
+    sys.stdout.flush()
 
 
 def _greater(context, budget):
