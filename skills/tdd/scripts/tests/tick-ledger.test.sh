@@ -45,6 +45,16 @@ absent_err="$(cat "$work/absent.err")"
   && [[ "$absent_err" == *"$work/absent-ledger.md"* ]] && [[ "$absent_err" != *Traceback* ]]; } \
   && ok || no "#1083: a ledger path that does not exist → exit 2, one stderr line naming the path, no traceback (code=$code err='$absent_err')"
 
+CLEAR="$HERE/../clear-refactor-pending.sh"
+seed
+"$TICK" "$led" "nonexistent step" 2>/dev/null; tick_miss=$?
+"$TICK" --refactor-pending "$led" "collapse to single hyphen" 2>/dev/null; tick_hit=$?
+"$CLEAR" "$led" "nonexistent step" 2>/dev/null; clear_miss=$?
+"$CLEAR" "$led" "collapse to single hyphen" 2>/dev/null; clear_hit=$?
+{ [[ "$tick_miss" == 3 && "$tick_hit" == 0 && "$clear_miss" == 3 && "$clear_hit" == 0 ]] \
+  && grep -q '^- \[x\] collapse to single hyphen$' "$led"; } \
+  && ok || no "#1083: on a readable ledger tick-ledger.sh and clear-refactor-pending.sh exit 3 on no match and 0 on a tick or clear (tick miss=$tick_miss hit=$tick_hit, clear miss=$clear_miss hit=$clear_hit)"
+
 ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
 mkdir -p "$work/in-place" "$work/caller"
 seed_in() { printf '# Plan for #42\n\n- [ ] add lowercasing\n- [ ] collapse to single hyphen\n' > "$1/issue-42.md"; }
