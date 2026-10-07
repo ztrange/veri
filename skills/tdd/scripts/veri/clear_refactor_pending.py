@@ -45,7 +45,11 @@ def main(argv):
         backup = write_beside(path, raw)
     except OSError:
         return 2
-    file = open(argv[0], "wb")
+    try:
+        file = open(argv[0], "wb")
+    except OSError:
+        os.unlink(backup)
+        return 2
     code = 0
     try:
         with file:
