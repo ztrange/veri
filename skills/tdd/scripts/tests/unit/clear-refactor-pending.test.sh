@@ -75,6 +75,18 @@ else
   printf '    stdout: %s\n    stderr: %s\n' "$(cat "$work/out")" "$missing_err"
 fi
 
+printf 'not a directory\n' > "$work/plain-file"
+"$CLEAR" "$work/plain-file/issue-42.md" "collapse to single hyphen" > "$work/out" 2> "$work/err" && code=0 || code=$?
+notdir_err="$(cat "$work/err")"
+if [[ "$code" == 2 && ! -s "$work/out" ]] && [[ "$(wc -l < "$work/err")" -eq 1 ]] \
+  && [[ "$notdir_err" == "clear-refactor-pending.sh: $work/plain-file/issue-42.md: "?* && "$notdir_err" != *Traceback* ]] \
+  && [[ "$(cat "$work/plain-file")" == 'not a directory' ]]; then
+  ok
+else
+  no "#1118: a ledger path running through a regular file exits 2 with one 'clear-refactor-pending.sh: <path>: <reason>' stderr line, no traceback, nothing written (want exit 2, got $code)"
+  printf '    stdout: %s\n    stderr: %s\n' "$(cat "$work/out")" "$notdir_err"
+fi
+
 ln -s "$(cd "$HERE/../../.." && pwd)" "$work/skill-link"
 mkdir -p "$work/caller" "$work/inplace"
 printf '%s\n' "$ledger" > "$work/caller/issue-42.md"

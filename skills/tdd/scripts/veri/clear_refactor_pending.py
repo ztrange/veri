@@ -30,7 +30,7 @@ def main(argv):
     try:
         with open(argv[0], "rb") as file:
             raw = file.read()
-    except (IsADirectoryError, FileNotFoundError) as error:
+    except OSError as error:
         print(f"clear-refactor-pending.sh: {argv[0]}: {error.strerror}", file=sys.stderr)
         return 2
     text = raw.replace(b"\0", b"").decode(errors="surrogateescape")
