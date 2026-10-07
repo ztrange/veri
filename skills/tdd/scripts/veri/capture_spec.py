@@ -1,34 +1,17 @@
 """capture-spec.sh's spec, built in-process."""
-import json
-import subprocess
 import sys
+
+try:
+    from github import NoAnswer, FallbackAdapter
+except ImportError:
+    from .github import NoAnswer, FallbackAdapter
 
 USAGE = "capture-spec: usage: capture-spec.sh <issue-number>"
 BUG_HEADINGS = ("What happened", "Expected", "Steps to reproduce", "Environment")
 
 
-class NoAnswer(Exception):
-    pass
-
-
 def gh_issue_view(n, field):
-    query = ".labels[].name" if field == "labels" else ".body"
-    view = subprocess.run(["gh", "issue", "view", n, "--json", field, "-q", query],
-                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-    if view.returncode == 0:
-        return view.stdout.rstrip("\n")
-    rest = subprocess.run(["gh", "api", "repos/{owner}/{repo}/issues/%s" % n],
-                          stdout=subprocess.PIPE, text=True)
-    try:
-        issue = json.loads(rest.stdout)
-    except json.JSONDecodeError as error:
-        print("json.decoder.JSONDecodeError: %s" % error, file=sys.stderr)
-        raise NoAnswer
-    if rest.returncode != 0:
-        raise NoAnswer
-    if field == "labels":
-        return "\n".join(label["name"] for label in issue["labels"])
-    return (issue["body"] or "").rstrip("\n")
+    return FallbackAdapter().issue_view(n, field).rstrip("\n")
 
 
 def part(body, heading):
