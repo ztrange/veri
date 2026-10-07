@@ -35,6 +35,14 @@ want_err='usage: tick-ledger.sh [--refactor-pending] <ledger-file> <matcher>'
 { [[ "$code" == 1 ]] && [[ ! -s "$work/missing.out" ]]; } \
   && ok || no "a missing ledger → exit 1, nothing on stdout (code=$code out='$(cat "$work/missing.out")')"
 
+mkdir "$work/dir-ledger.md"
+"$TICK" "$work/dir-ledger.md" "collapse to single hyphen" > "$work/dir.out" 2> "$work/dir.err"; code=$?
+dir_err="$(cat "$work/dir.err")"
+{ [[ "$code" == 2 ]] && [[ ! -s "$work/dir.out" ]] && [[ "$(wc -l < "$work/dir.err")" -eq 1 ]] \
+  && [[ "$dir_err" == *"$work/dir-ledger.md"* ]] && [[ "$dir_err" == *[Dd]irectory* ]] \
+  && [[ "$dir_err" != *Traceback* ]]; } \
+  && ok || no "#1083: a directory as the ledger → exit 2, one stderr line naming the path and the reason, no traceback (code=$code err='$dir_err')"
+
 ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
 mkdir -p "$work/in-place" "$work/caller"
 seed_in() { printf '# Plan for #42\n\n- [ ] add lowercasing\n- [ ] collapse to single hyphen\n' > "$1/issue-42.md"; }

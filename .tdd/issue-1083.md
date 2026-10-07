@@ -1,6 +1,6 @@
 # Plan for #1083 — tick-ledger.sh and clear-refactor-pending.sh exit 1, not 2, when their ledger cannot be read
 
-- [ ] tick-ledger.sh given a directory as its ledger exits 2, with one stderr line naming the path and the reason and no traceback ⟦criterion 1⟧
+- [x] tick-ledger.sh given a directory as its ledger exits 2, with one stderr line naming the path and the reason and no traceback ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] tick-ledger.sh given a ledger path that does not exist exits 2, with one stderr line naming the path and no traceback ⟦criterion 2⟧
 - [ ] clear-refactor-pending.sh given a directory as its ledger exits 2, with one stderr line naming the path and the reason and no traceback ⟦criterion 3⟧
 - [ ] clear-refactor-pending.sh given a ledger path that does not exist exits 2, with one stderr line naming the path and no traceback ⟦criterion 3⟧

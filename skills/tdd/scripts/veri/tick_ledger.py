@@ -16,8 +16,13 @@ def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
         return 2
-    with open(argv[0], newline="") as file:
-        ticked, new = ledger.ledger_tick(file.read().replace("\0", ""), (argv[1:] or [""])[0], pending)
+    try:
+        with open(argv[0], newline="") as file:
+            text = file.read()
+    except IsADirectoryError as error:
+        print(f"tick-ledger.sh: {argv[0]}: {error.strerror}", file=sys.stderr)
+        return 2
+    ticked, new = ledger.ledger_tick(text.replace("\0", ""), (argv[1:] or [""])[0], pending)
     if not ticked:
         return 3
     try:
