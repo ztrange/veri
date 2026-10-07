@@ -171,7 +171,7 @@ venv="$work/venv"
 path_py="$work/path-py"
 mkdir -p "$venv/bin" "$path_py"
 printf '#!/bin/sh\necho "venv python3 $*"\n' > "$venv/bin/python3"
-printf '#!/bin/sh\necho "path python3 $*"\n' > "$path_py/python3"
+printf '#!/bin/sh\ncase "$1" in */veri/*.py) exec "%s" "$@" ;; esac\necho "path python3 $*"\n' "$(command -v python3)" > "$path_py/python3"
 chmod +x "$venv/bin/python3" "$path_py/python3"
 py_tests=("$ROOT"/skills/tdd/scripts/tests/py/test_*.py)
 make_args=(PY_TESTS="${py_tests[0]#"$ROOT/"}")

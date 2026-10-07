@@ -1016,7 +1016,7 @@ name="run-suite.sh runs a pytest file with \$VERI_VENV's python3, and with the p
 problems=()
 
 python3_stub() {
-  printf '#!/bin/sh\n%s\n' "$2" > "$1/python3"
+  printf '#!/bin/sh\ncase "$1" in */veri/*.py) exec "%s" "$@" ;; esac\n%s\n' "$(command -v python3)" "$2" > "$1/python3"
   chmod +x "$1/python3"
 }
 
