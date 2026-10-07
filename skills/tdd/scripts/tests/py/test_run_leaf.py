@@ -521,7 +521,7 @@ def test_main_strips_the_launched_environment_through_veri_session_env_so_a_name
     assert (code, seen) == (0, [(None, "kept")])
 
 
-def test_main_strips_after_git_config_global_is_set_and_before_claude_bin_and_veri_leaf_model_are_read_and_drops_the_shims_locale_guard_only_when_its_marker_is_set(
+def test_main_reads_claude_bin_and_veri_leaf_model_before_the_strip_sets_git_config_global_after_it_and_drops_the_shims_locale_guard_only_when_its_marker_is_set(
         tmp_path, monkeypatch, capfd):
     run_leaf = importlib.import_module("veri.run_leaf")
     work, tmp = _workspace(tmp_path, monkeypatch)
