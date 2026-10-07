@@ -139,4 +139,15 @@ rc=$?
 
 report "detach-command: #964 wait refuses a max-seconds that is a word with exit 2 and the usage line when the exit file already holds 0"
 
+problems=()
+
+out="$(cd "$work" && "$HELPER" bogus x 2>"$work/bogus.err")"
+rc=$?
+[[ "$rc" == 2 ]] || problems+=("bogus x returned $rc; want 2")
+[[ -z "$out" ]] || problems+=("bogus x printed '$out' on stdout; want nothing")
+[[ "$(cat "$work/bogus.err")" == "usage: detach-command.sh start <name> <cmd> [args…] | wait <name> [max-seconds]" ]] ||
+  problems+=("bogus x printed '$(cat "$work/bogus.err")' on stderr; want exactly the usage line")
+
+report "detach-command: a mode other than start or wait exits 2 with exactly the usage line on stderr and nothing on stdout"
+
 finish
