@@ -80,3 +80,23 @@ def test_report_read_with_optional_space_matches_key_colon_with_or_without_a_spa
     }
     with pytest.raises(TypeError):
         report.report_read("PREDICATE:x\n", ("PREDICATE",), True)
+
+
+def test_report_read_with_terminated_only_leaves_an_unterminated_last_line_unread_reads_it_by_default_is_keyword_only_and_combines_with_optional_space(report):
+    answers = {
+        "unterminated last": report.report_read("PREDICATE: a\nPREDICATE: b", ("PREDICATE",), terminated_only=True),
+        "only line unterminated": report.report_read("PREDICATE: a", ("PREDICATE",), terminated_only=True),
+        "default, unterminated last": report.report_read("PREDICATE: a\nPREDICATE: b", ("PREDICATE",)),
+        "both options": report.report_read(
+            "PREDICATE:a\nPREDICATE:  b\nPREDICATE:c", ("PREDICATE",), optional_space=True, terminated_only=True
+        ),
+    }
+
+    assert answers == {
+        "unterminated last": {"PREDICATE": "a"},
+        "only line unterminated": {},
+        "default, unterminated last": {"PREDICATE": "b"},
+        "both options": {"PREDICATE": " b"},
+    }
+    with pytest.raises(TypeError):
+        report.report_read("PREDICATE: a", ("PREDICATE",), False, True)

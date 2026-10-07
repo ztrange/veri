@@ -1,9 +1,12 @@
 """The reader of KEY: value lines off a leaf report."""
 
 
-def report_read(text, keys, *, optional_space=False):
+def report_read(text, keys, *, optional_space=False, terminated_only=False):
     fields = {}
-    for line in text.replace("\0", "").split("\n"):
+    lines = text.replace("\0", "").split("\n")
+    if terminated_only:
+        lines.pop()
+    for line in lines:
         for key in keys:
             if not line.startswith(key + ":"):
                 continue
