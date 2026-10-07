@@ -307,6 +307,29 @@ probe_a_planted_multi_line_awk_v_with_an_escaped_quote
 
 expect_eq "$name" "named" "$planted_escaped_quote_named"
 
+probe_a_planted_multi_line_awk_v_non_offender_with_an_escaped_quote() {
+  scan_planted_text <<'EOF'
+#!/usr/bin/env bash
+numbered() {
+  awk -v n="$1" '
+    { s = "it'\''s" }
+    $0 ~ other { print s }
+  ' "$2"
+}
+later() {
+  awk '$0 ~ n { print }' "$2"
+}
+EOF
+  planted_escaped_quote_non_offender_named="$(problem_naming "planted.test.sh:3")"
+}
+
+name="a planted multi-line awk -v n=\"\$1\" program with a '\\'' escape on a continuation line that closes without matching n leaves the guard green, even when a later line outside that program uses n on the right of ~ (#1050)"
+planted_escaped_quote_non_offender_named=""
+
+probe_a_planted_multi_line_awk_v_non_offender_with_an_escaped_quote
+
+expect_eq "$name" "not named" "$planted_escaped_quote_non_offender_named"
+
 name="no suite under skills/tdd/scripts/tests/ passes awk a pattern through -v but where the exemption table says why its value can hold no backslash (#1037)"
 problems=()
 
