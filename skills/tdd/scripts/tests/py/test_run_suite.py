@@ -1,4 +1,5 @@
 """In-process cases for veri/run_suite.py, the module run-suite.sh is a shim over."""
+import errno
 import importlib
 import importlib.util
 import os
@@ -296,3 +297,31 @@ def test_main_runs_a_pytest_suite_under_the_venv_python_and_maps_its_exit_code_w
         ran(venv_py, 2),
         ran(venv_py, 2),
     ]
+
+
+def test_main_refuses_a_pytest_suite_with_no_venv_python_and_no_python3_on_path_naming_an_empty_interpreter(tmp_path, capfd, monkeypatch, run_suite):
+    suite = tmp_path / "tests" / "py" / "test_fake.py"
+    suite.parent.mkdir(parents=True)
+    suite.write_text("def test_nothing():\n    pass\n")
+    (tmp_path / "emptybin").mkdir()
+    monkeypatch.setenv("VERI_VENV", str(tmp_path / "novenv"))
+    monkeypatch.setenv("HOME", str(tmp_path / "nohome"))
+    monkeypatch.setenv("PATH", str(tmp_path / "emptybin"))
+    started = []
+
+    def start(real):
+        def fake(args, *a, **k):
+            started.append(list(args))
+            if args[0] == "":
+                raise FileNotFoundError(errno.ENOENT, "No such file or directory", "")
+            return real(args, *a, **k)
+        return fake
+
+    monkeypatch.setattr(run_suite.subprocess, "run", start(run_suite.subprocess.run))
+    monkeypatch.setattr(run_suite.subprocess, "Popen", start(run_suite.subprocess.Popen))
+    code = run_suite.main([str(suite)])
+    out, err = capfd.readouterr()
+    ran_suite = [args for args in started if str(suite) in args]
+    assert (code, out, err, ran_suite) == (
+        2, "", "run-suite.sh: pytest cannot be imported by ; run make install-dev\n", []
+    )
