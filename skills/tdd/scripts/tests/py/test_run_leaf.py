@@ -314,3 +314,33 @@ def test_main_when_copying_a_regular_gitconfig_into_the_leafs_temp_file_fails_re
 
     left = sorted(path for path in tmp.rglob("*") if not path.is_dir())
     assert (code, launches, left) == (1, [], [])
+
+
+def test_main_when_a_gitconfig_that_was_a_regular_file_cannot_be_read_as_one_returns_1_launches_nothing_and_leaves_neither_temp_file(
+        tmp_path, monkeypatch, capfd):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, tmp = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("do the step\n")
+    gitconfig = tmp_path / "home" / ".gitconfig"
+    gitconfig.write_text("[user]\n\tname = operator\n")
+    real_isfile = os.path.isfile
+
+    def isfile_then_the_gitconfig_becomes_a_directory(path):
+        answer = real_isfile(path)
+        if os.fspath(path) == str(gitconfig) and answer:
+            gitconfig.unlink()
+            gitconfig.mkdir()
+        return answer
+
+    monkeypatch.setattr(os.path, "isfile", isfile_then_the_gitconfig_becomes_a_directory)
+    launches = []
+    monkeypatch.setattr(subprocess, "Popen",
+                        lambda argv, *args, **kwargs: _FakeLeaf(launches, argv, **kwargs))
+
+    try:
+        code = run_leaf.main(["prompt.txt"])
+    except Exception as error:
+        code = type(error).__name__
+    capfd.readouterr()
+
+    assert (code, launches, sorted(tmp.iterdir())) == (1, [], [])
