@@ -222,3 +222,34 @@ def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_the_temporary_
     capsysbinary.readouterr()
 
     assert (code, ledger.read_bytes()) == (2, seed)
+
+
+def test_main_returns_2_without_raising_leaving_the_ledger_byte_identical_and_nothing_beside_it_when_putting_the_ticked_ledger_in_place_and_removing_its_temporary_file_both_fail_1110(
+        tmp_path, monkeypatch, capsysbinary, tick_ledger):
+    seed = b"- [ ] alpha\n- [ ] beta\n"
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(seed)
+    real_replace = os.replace
+    real_unlink = os.unlink
+
+    def refusing_replace(src, dst, *args, **kwargs):
+        if os.path.abspath(dst) == str(ledger):
+            raise OSError(errno.EIO, os.strerror(errno.EIO), dst)
+        return real_replace(src, dst, *args, **kwargs)
+
+    def failing_unlink(path, *args, **kwargs):
+        real_unlink(path, *args, **kwargs)
+        if os.path.dirname(os.path.abspath(path)) == str(tmp_path):
+            raise OSError(errno.EIO, os.strerror(errno.EIO), path)
+
+    monkeypatch.setattr(os, "replace", refusing_replace)
+    monkeypatch.setattr(os, "unlink", failing_unlink)
+    try:
+        code = tick_ledger.main([str(ledger), "beta"])
+    except OSError as error:
+        code = type(error).__name__
+    monkeypatch.undo()
+    err = capsysbinary.readouterr().err
+
+    assert (code, b"Traceback" in err, ledger.read_bytes(), sorted(p.name for p in tmp_path.iterdir())) == (
+        2, False, seed, ["ledger.md"])
