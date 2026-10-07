@@ -3,6 +3,7 @@ import importlib
 import importlib.util
 import pathlib
 import re
+import shutil
 import sys
 
 import pytest
@@ -743,4 +744,153 @@ def test_main_scopes_refactor_to_the_cycles_files_with_flags_lines_checks_plan_r
         "diff adds a test": True,
         "diff step base": (0, True, True),
         "diff fast-cmd": (0, True, True, True),
+    }
+
+
+def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_case_and_suite_repair_paragraphs_for_their_phase_alone_renders_the_comment_rules_byte_identical_unmarked_green_and_resolves_or_refuses_includes(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'slugify("Hello & World/Foo") must return "hello-world-foo" \xe2\x80\x94 see {ref}\\n done.\n')
+    refactor_spec = tmp_path / "refactor-spec.md"
+    refactor_spec.write_bytes(spec.read_bytes() + b"\n## Refactor\n\nRun kind: refactor. This issue changes structure, not behaviour.\n")
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes("# Plan for #426\n\n- [ ] A verdict launcher script runs verify.sh with the step title"
+                       " as an argument ⟦criterion 1⟧\n".encode())
+    s, rs, testpath = str(spec), str(refactor_spec), "tests/test_slugify.py"
+    replaces_step = '⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz" moves to tests/py/test_zorblat.py ⟦criterion 1⟧'
+    repair_step = ("fix the full-suite failure: skills/tdd/scripts/tests/zorblat.test.sh — FAIL - zorblat frobs a nitz; "
+                   "skills/tdd/scripts/tests/quux.test.sh — FAIL - quux & {nitz} round-trips ⟦suite-repair⟧")
+    unmarked_step = 'tests/zorblat.test.sh: "zorblat frobs a nitz" replaces-case moves to tests/py ⟦added⟧ ⟦criterion 4⟧'
+    green_args = ["--fast-cmd", "make unit", "green", s, testpath, "test_slugify_lowercases"]
+
+    def scratch(name, drop=(), templates=None):
+        scripts = tmp_path / name
+        (scripts / "veri").mkdir(parents=True)
+        module_path = scripts / "veri" / "build_verify_prompt.py"
+        module_path.write_bytes((SCRIPTS / "veri" / "build_verify_prompt.py").read_bytes())
+        shutil.copytree(SCRIPTS / "prompts", scripts / "prompts")
+        for gone in drop:
+            (scripts / "prompts" / gone).unlink()
+        for template, text in (templates or {}).items():
+            (scripts / "prompts" / template).write_bytes(text)
+        loader = importlib.util.spec_from_file_location(f"{name}_build_verify_prompt", module_path)
+        module = importlib.util.module_from_spec(loader)
+        loader.loader.exec_module(module)
+        return module, scripts / "prompts"
+
+    def run(main, argv):
+        code = main(argv)
+        return (code, *capsysbinary.readouterr())
+
+    def has(out, pattern, flags=re.I):
+        return re.search(pattern.encode(), out.replace(b"\n", b" "), flags) is not None
+
+    def cksum(data):
+        crc = 0
+        tail, n = b"", len(data)
+        while n:
+            tail, n = tail + bytes([n & 0xFF]), n >> 8
+        for byte in data + tail:
+            crc ^= byte << 24
+            for _ in range(8):
+                crc = ((crc << 1) ^ 0x04C11DB7 if crc & 0x80000000 else crc << 1) & 0xFFFFFFFF
+        return f"{~crc & 0xFFFFFFFF} {len(data)}"
+
+    def green_sum(step_args):
+        code, out, _ = run(build_verify_prompt.main, [*step_args, *green_args])
+        body = out.rstrip(b"\n").replace(build_verify_prompt.HERE.encode(), b"@SCRIPTS@") + b"\n"
+        return code, cksum(body)
+
+    def unreadable_paragraph(name, paragraph, marked, unmarked):
+        module, _ = scratch(name, drop=[paragraph])
+        refused = run(module.main, marked)
+        return (refused[0], refused[1], paragraph.encode() in refused[2],
+                [run(module.main, argv)[0] for argv in unmarked])
+
+    diff_no_fast = run(build_verify_prompt.main, ["--step", "s", "diff", s, "0123abcdef", "4567abcdef"])
+    plan = run(build_verify_prompt.main, ["plan", s, str(ledger)])[1]
+    rf_plan = run(build_verify_prompt.main, ["plan", rs, str(ledger)])
+    green = run(build_verify_prompt.main, green_args)[1]
+    refactor = run(build_verify_prompt.main, ["--fast-cmd", "make unit", "refactor", s, testpath, "0123abc"])[1]
+    replaces_green = run(build_verify_prompt.main, ["--step", replaces_step, "--fast-cmd", "make unit", "green", s,
+                                                    "tests/py/test_zorblat.py", "test_zorblat_frobs_a_nitz"])
+    repair_green = run(build_verify_prompt.main, ["--step", repair_step, "--fast-cmd", "make unit", "green", s,
+                                                  "skills/tdd/scripts/tests/zorblat.test.sh", "zorblat frobs a nitz"])
+    one_refactoring = r"REJECT[^.]{0,200}(one|a single|named) refactoring|(one|a single|named) refactoring[^.]{0,200}REJECT"
+    runnable = r"REJECT[^.]{0,200}(runnable|shell)[^.]{0,40}predicate|(runnable|shell)[^.]{0,40}predicate[^.]{0,200}REJECT"
+    gone = r"(gone|deleted|removed|no longer)"
+    every_suite = r"(every|each|all)( of the)? (listed|red|named) suites?"
+    not_reject = r"\b(not|never)\b[^.]{0,40}REJECT"
+    hazard = r"shell[^.]{0,40}hazard"
+    included, _ = scratch("included", templates={
+        "verify-red.md": b"before {{INCLUDE:_probe-outer.md}} after\n",
+        "_probe-outer.md": b"outer {{INCLUDE:_probe-inner.md}} end\n",
+        "_probe-inner.md": b"inner judges {{TEST_PATH}}\n"})
+    dangling, dangling_prompts = scratch("dangling", templates={
+        "verify-red.md": b"before {{INCLUDE:_probe-absent.md}} after\n"})
+    cycle, _ = scratch("cycle", templates={
+        "verify-red.md": b"before {{INCLUDE:_probe-cycle-a.md}} after\n",
+        "_probe-cycle-a.md": b"a {{INCLUDE:_probe-cycle-b.md}}\n",
+        "_probe-cycle-b.md": b"b {{INCLUDE:_probe-cycle-a.md}}\n"})
+    red_args = ["red", s, testpath, "test_slugify_lowercases"]
+    dangling_run = run(dangling.main, red_args)
+    cycle_run = run(cycle.main, red_args)
+
+    assert {
+        "diff without fast-cmd": (diff_no_fast[0], diff_no_fast[1], diff_no_fast[2] != b""),
+        "refactor plan": (rf_plan[0], has(rf_plan[1], one_refactoring), has(rf_plan[1], runnable),
+                          has(plan, one_refactoring), has(plan, runnable)),
+        "refactor plan unreadable": unreadable_paragraph(
+            "no-refactor-plan", "_verify-plan-refactor.md", ["plan", rs, str(ledger)],
+            [["red", rs, testpath, "test_slugify_lowercases"]]),
+        "#679 no-op": has(rf_plan[1], r"REJECT[^.]{0,200}no-op[^.]{0,200}later step|no-op[^.]{0,200}later step[^.]{0,200}REJECT"),
+        "rationale comment": {phase: [has(out, r"REJECT[^.]{0,200}rationale comment|rationale comment[^.]{0,200}REJECT"),
+                                      has(out, r"contract header"), has(out, hazard)]
+                              for phase, out in (("green", green), ("refactor", refactor))},
+        "contract header not grounds": {
+            phase: [has(out, rf"contract header[^.]{{0,200}}{not_reject}|{not_reject}[^.]{{0,200}}contract header"),
+                    has(out, rf"{hazard}[^.]{{0,200}}{not_reject}|{not_reject}[^.]{{0,200}}{hazard}")]
+            for phase, out in (("green", green), ("refactor", refactor))},
+        "replaces-case": (replaces_green[0],
+                          has(replaces_green[1], r"PASS[^.]{0,250}pytest[^.]{0,120}same behaviou?r"),
+                          has(replaces_green[1], rf"PASS[^.]{{0,250}}named (bash )?case[^.]{{0,60}}{gone}"),
+                          has(replaces_green[1], r"REJECT[^.]{0,200}(delet|modif)[^.]{0,80}(any|every) other (bash )?case"
+                                                 r"|(delet|modif)[^.]{0,80}(any|every) other (bash )?case[^.]{0,200}REJECT"),
+                          has(green, r"PASS[^.]{0,250}pytest")),
+        "suite-repair": (repair_green[0],
+                         has(repair_green[1], rf"PASS[^.]{{0,250}}{every_suite}[^.]{{0,80}}green"),
+                         has(repair_green[1], r"run[^.]{0,120}full test command|full test command[^.]{0,120}(run|judge)"),
+                         has(repair_green[1], r"(not|rather than|instead of)[^.]{0,60}fast (test )?command"),
+                         has(green, r"run[^.]{0,120}full test command")),
+        "replaces-case unreadable": unreadable_paragraph(
+            "no-replaces-case", "_verify-green-replaces-case.md",
+            ["--step", replaces_step, "--fast-cmd", "make unit", "green", s, "tests/py/test_zorblat.py",
+             "test_zorblat_frobs_a_nitz"],
+            [green_args]),
+        "suite-repair unreadable": unreadable_paragraph(
+            "no-suite-repair", "_verify-green-suite-repair.md",
+            ["--step", repair_step, "--fast-cmd", "make unit", "green", s, "skills/tdd/scripts/tests/zorblat.test.sh",
+             "zorblat frobs a nitz"],
+            [green_args, ["--step", repair_step, "red", s, "skills/tdd/scripts/tests/zorblat.test.sh",
+                          "zorblat frobs a nitz"]]),
+        "#671 byte-identity": [green_sum(["--step", unmarked_step]), green_sum([])],
+        "#703 include": run(included.main, red_args),
+        "#703 missing partial": (dangling_run[0], dangling_run[1],
+                                 str(dangling_prompts / "_probe-absent.md").encode() in dangling_run[2]),
+        "#703 self-including partial": (cycle_run[0], cycle_run[1], b"_probe-cycle-a.md" in cycle_run[2]),
+    } == {
+        "diff without fast-cmd": (2, b"", True),
+        "refactor plan": (0, True, True, False, False),
+        "refactor plan unreadable": (2, b"", True, [0]),
+        "#679 no-op": True,
+        "rationale comment": {"green": [True] * 3, "refactor": [True] * 3},
+        "contract header not grounds": {"green": [True] * 2, "refactor": [True] * 2},
+        "replaces-case": (0, True, True, True, False),
+        "suite-repair": (0, True, True, True, False),
+        "replaces-case unreadable": (2, b"", True, [0]),
+        "suite-repair unreadable": (2, b"", True, [0, 0]),
+        "#671 byte-identity": [(0, "1447155214 6914"), (0, "4188760161 6638")],
+        "#703 include": (0, f"before outer inner judges {testpath} end after\n".encode(), b""),
+        "#703 missing partial": (2, b"", True),
+        "#703 self-including partial": (2, b"", True),
     }
