@@ -359,5 +359,23 @@ expected="$(printf '%s\n' 'argv 1: [1301]' "trap -- '' SIGINT" "trap -- '' SIGQU
 actual="$(cat "$MARKS" "$work/err")"
 expect_exit0_output
 
+name="run through a symlink to its scripts directory from another working directory, launches that directory's run-conductor.sh, asks its solvable-issues.sh and reads .tdd/parked/ in the working directory"
+realskill="$work/realskill"
+mkdir -p "$realskill/.tdd/parked" "$work/elsewhere/.tdd/parked"
+cp "$scripts/orchestrate.sh" "$realskill/"
+cp -R "$scripts/lib" "$realskill/"
+{ printf '#!/bin/sh\necho "solvable-issues.sh linked" >> "$MARKS"\n'; tail -n +2 "$scripts/solvable-issues.sh"; } > "$realskill/solvable-issues.sh"
+{ printf '#!/bin/sh\necho "run-conductor.sh linked $1" >> "$MARKS"\n'; tail -n +2 "$scripts/run-conductor.sh"; } > "$realskill/run-conductor.sh"
+chmod +x "$realskill"/*.sh
+ln -s "$realskill" "$work/link"
+: > "$work/elsewhere/.tdd/parked/1401.md"
+: > "$realskill/.tdd/parked/1402.md"
+seed symlinked 1401 1402
+(cd "$work/elsewhere" && "$work/link/orchestrate.sh") < /dev/null > "$work/out" 2> "$work/err"
+rc=$?
+expected="$(printf '%s\n' 'solvable-issues.sh linked' 'run-conductor.sh linked 1402' 'solvable-issues.sh linked' 1402)"
+actual="$(cat "$MARKS" "$LAUNCHES" "$work/out")"
+expect_exit0_output
+
 echo
 finish
