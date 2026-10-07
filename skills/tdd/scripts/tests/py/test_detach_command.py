@@ -222,3 +222,36 @@ def test_wait_reads_the_exit_file_as_test_f_and_cat_do_stripping_trailing_newlin
     (tdd / "x.exit").mkdir()
     code = detach_command.main(["wait", "x", "0"])
     assert (code, capsys.readouterr()) == (2, ("", ""))
+
+
+def test_wait_reads_a_missing_empty_unparsable_esrch_or_eperm_pid_file_as_dead_answering_2_silently(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+
+    def alive(pid, signum):
+        return None
+
+    def esrch(pid, signum):
+        raise ProcessLookupError
+
+    def eperm(pid, signum):
+        raise PermissionError
+
+    for label, pid_text, kill in (("missing", None, alive), ("empty", "", alive),
+                                  ("abc", "abc\n", alive), ("1_2", "1_2\n", alive),
+                                  ("ESRCH", "4242\n", esrch), ("EPERM", "4242\n", eperm)):
+        if pid_text is not None:
+            (tdd / "x.pid").write_text(pid_text)
+        monkeypatch.setattr(os, "kill", kill)
+        code = detach_command.main(["wait", "x", "0"])
+        assert (label, code, capsys.readouterr(), (tdd / "x.exit").exists()) == (
+            label, 2, ("", ""), False)
+
+    kills = []
+    (tdd / "x.pid").write_text("-4242\n")
+    monkeypatch.setattr(os, "kill", lambda pid, signum: kills.append((pid, signum)))
+    code = detach_command.main(["wait", "x", "0"])
+    assert (code, capsys.readouterr(), kills) == (3, ("", ""), [(-4242, 0)])
