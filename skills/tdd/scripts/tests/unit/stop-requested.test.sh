@@ -111,6 +111,10 @@ out="$(cd "$work" && "$listed/stop-requested.sh" 2>"$work/stderr")" && code=0 ||
 if [[ "$code" != 0 || "$out" != "at-step" ]]; then
   problems+="    at-step, added to lib/stop-modes.sh: want exit 0 and stdout 'at-step', got exit $code and stdout '$out'"$'\n'
 fi
+rm -f "$work/.tdd/stop"
+verdict "#683: stop-requested.sh accepts the modes lib/stop-modes.sh lists, and still refuses one outside it with today's message"
+
+problems=""
 printf '%s\n' "bogus" > "$work/.tdd/stop"
 run_stop
 want="stop-requested: .tdd/stop must name a mode — at-ledger, at-leaf or now: 'bogus'"
@@ -118,7 +122,7 @@ if [[ "$code" != 2 || -n "$out" || "$err" != "$want" ]]; then
   problems+="    bogus: want exit 2, empty stdout and stderr '$want', got exit $code, stdout '$out' and stderr '$err'"$'\n'
 fi
 rm -f "$work/.tdd/stop"
-verdict "#683: stop-requested.sh accepts the modes lib/stop-modes.sh lists, and still refuses one outside it with today's message"
+verdict "a malformed stop request is refused on stderr with today's message, naming the modes"
 
 problems=""
 home="$work/home"; run="$work/run"
