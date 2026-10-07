@@ -213,6 +213,7 @@ mkdir -p "$tree/skills/tdd/scripts/lib" "$tree/skills/tdd/scripts/tests"
 cp "$ROOT/Makefile" "$tree/Makefile"
 cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tree/skills/tdd/scripts/lib/"
 cp "$ROOT/skills/tdd/scripts/run-suite.sh" "$tree/skills/tdd/scripts/"
+cp -R "$ROOT/skills/tdd/scripts/veri" "$tree/skills/tdd/scripts/"
 cp -R "$ROOT/skills/tdd/scripts/tests/offline" "$ROOT/skills/tdd/scripts/tests/unit-guard" "$tree/skills/tdd/scripts/tests/"
 cat > "$tree/skills/tdd/scripts/tests/reenters.test.sh" <<'SH'
 #!/usr/bin/env bash

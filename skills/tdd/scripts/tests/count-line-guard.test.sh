@@ -142,6 +142,7 @@ probe_added_suite_gets_the_check() {
   mkdir -p "$tree/$TESTS_DIR" "$tree/skills/tdd/scripts/lib"
   cp "$MAKEFILE" "$tree/Makefile"
   cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
+  cp -R "$ROOT/skills/tdd/scripts/veri" "$tree/skills/tdd/scripts/"
   cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tree/skills/tdd/scripts/lib/"
   cp "$FIXTURE_PATH" "$tree/$TESTS_DIR/$ADDED_NAME"
   cmp -s "$MAKEFILE" "$tree/Makefile" ||
@@ -571,6 +572,7 @@ scratch_suite_run() {
   mkdir -p "$tree/$TESTS_DIR" "$tree/skills/tdd/scripts/lib"
   cp "$MAKEFILE" "$tree/Makefile"
   cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
+  cp -R "$ROOT/skills/tdd/scripts/veri" "$tree/skills/tdd/scripts/"
   cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tree/skills/tdd/scripts/lib/"
   rm "$tree/skills/tdd/scripts/lib/count-line-guard.sh"
   if [[ $# -lt 3 ]]; then
@@ -936,6 +938,7 @@ probe_one_lib_rewords_both() {
   mkdir -p "$tree/$TESTS_DIR" "$tree/skills/tdd/scripts/lib"
   cp "$MAKEFILE" "$tree/Makefile"
   cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
+  cp -R "$ROOT/skills/tdd/scripts/veri" "$tree/skills/tdd/scripts/"
   cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tree/skills/tdd/scripts/lib/"
   sed "s/${GUARD_MESSAGE#: }/${REWORDED#: }/" "$ROOT/$GUARD_LIB" > "$tree/$GUARD_LIB"
   probe="$tree/$TESTS_DIR/countless-under-shared-guard.test.sh"
@@ -970,6 +973,7 @@ probe_all_green_suites_pass() {
   mkdir -p "$tree/$TESTS_DIR" "$tree/skills/tdd/scripts/lib"
   cp "$MAKEFILE" "$tree/Makefile"
   cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
+  cp -R "$ROOT/skills/tdd/scripts/veri" "$tree/skills/tdd/scripts/"
   cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tree/skills/tdd/scripts/lib/"
   for suite in first-green.test.sh second-green.test.sh; do
     printf '#!/bin/sh\necho "a case ran"\necho "2 passed, 0 failed"\nexit 0\n' > "$tree/$TESTS_DIR/$suite"
@@ -1111,6 +1115,7 @@ probe_runner_without_guard_lib_refuses_without_make() {
   probe="$tree/$GUARDLESS_SUITE_NAME"
   mkdir -p "$tree/skills/tdd/scripts/lib" "$tree/bin"
   cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
+  cp -R "$ROOT/skills/tdd/scripts/veri" "$tree/skills/tdd/scripts/"
   cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$tree/skills/tdd/scripts/lib/"
   rm "$tree/$GUARD_LIB"
   printf '#!/bin/sh\necho "1 passed, 0 failed"\n' > "$probe"

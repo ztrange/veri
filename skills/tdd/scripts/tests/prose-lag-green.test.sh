@@ -36,6 +36,7 @@ tree_grown_past_its_prose() {
   mkdir -p "$planted/skills/tdd/scripts/lib"
   cp "$ROOT"/skills/tdd/scripts/lib/*.sh "$planted/skills/tdd/scripts/lib/"
   cp "$ROOT/skills/tdd/scripts/run-suite.sh" "$planted/skills/tdd/scripts/"
+  cp -R "$ROOT/skills/tdd/scripts/veri" "$planted/skills/tdd/scripts/"
 
   {
     printf '#!/usr/bin/env bash\n'
