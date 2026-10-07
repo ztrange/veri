@@ -1,6 +1,7 @@
 """The bash and Python floors a launch refuses on, each taking its message prefix."""
 # hazard: runs on the python3 it may refuse, so nothing here may need more than Python 3.9.
 import os
+import platform
 import re
 import shutil
 import subprocess
@@ -24,3 +25,15 @@ def bash_refusal(prefix):
         "%s: veri needs bash 5 or newer; this is bash %s (%s). Install it with `brew install bash` "
         "(it lands ahead of /bin/bash on PATH), or your package manager on Linux.\n" % (prefix, version, path or ""))
     return 2
+
+
+def python_refusal(prefix):
+    lib = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib", "venv-python.sh")
+    with open(lib) as f:
+        floor = re.search("^VENV_FLOOR=(.*)$", f.read(), re.M).group(1)
+    version = os.environ.get("VERI_PYTHON_VERSION", "") or platform.python_version()
+    if [int(part) for part in version.split(".")] < [int(part) for part in floor.split(".")]:
+        sys.stderr.write("%s: veri needs Python %s or newer; the python3 on PATH is version %s.\n"
+                         % (prefix, floor, version))
+        return 2
+    return 0

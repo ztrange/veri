@@ -156,3 +156,68 @@ def test_bash_refusal_with_no_bash_on_path_or_a_probe_that_fails_or_prints_no_nu
         (2, "", refusal("five-ish", "/opt/bin/bash")),
         (2, "", refusal("", "/opt/bin/bash")),
     ]
+
+
+def test_python_refusal_reads_the_floor_from_the_lib_beside_the_module_and_refuses_below_it_the_veri_python_version_else_the_running_interpreters(
+        capsys, monkeypatch, tmp_path):
+    import importlib.util
+    import platform
+
+    source = (SCRIPTS / "veri" / "launch_floor.py").read_text()
+
+    plants = []
+
+    def planted(floor):
+        plants.append(floor)
+        root = tmp_path / ("plant-%d" % len(plants))
+        (root / "veri").mkdir(parents=True)
+        (root / "lib").mkdir()
+        (root / "veri" / "launch_floor.py").write_text(source)
+        (root / "lib" / "venv-python.sh").write_text(
+            "#!/usr/bin/env bash\n# planted\nVENV_FLOOR=%s\n\nvenv_dir() {\n  :\n}\n" % floor)
+        spec = importlib.util.spec_from_file_location("planted_launch_floor_%d" % len(plants),
+                                                      str(root / "veri" / "launch_floor.py"))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def no_venv(args, **kwargs):
+        return subprocess.CompletedProcess(args, 1, "" if kwargs.get("text") else b"", "")
+
+    def no_popen(args, **kwargs):
+        raise FileNotFoundError(2, "No such file or directory", args[0])
+
+    monkeypatch.setenv("VERI_VENV", str(tmp_path / "no-venv"))
+    monkeypatch.setattr(subprocess, "run", no_venv)
+    monkeypatch.setattr(subprocess, "call", lambda args, **kwargs: 1)
+    monkeypatch.setattr(subprocess, "Popen", no_popen)
+
+    def refusal(floor, version):
+        return "some-prefix: veri needs Python %s or newer; the python3 on PATH is version %s.\n" % (floor, version)
+
+    answers = []
+    for floor, env_version, running in (("3.12", "3.11.9", "3.13.0"),
+                                        ("3.12", "3.12.0", "3.9.6"),
+                                        ("3.13", "3.12.5", "3.13.0"),
+                                        ("3.13", "3.13.0", "3.9.6"),
+                                        ("3.12", None, "3.11.2"),
+                                        ("3.12", None, "3.12.1"),
+                                        ("3.13", None, "3.12.1")):
+        module = planted(floor)
+        if env_version is None:
+            monkeypatch.delenv("VERI_PYTHON_VERSION", raising=False)
+        else:
+            monkeypatch.setenv("VERI_PYTHON_VERSION", env_version)
+        monkeypatch.setattr(platform, "python_version", lambda running=running: running)
+        code = module.python_refusal("some-prefix")
+        captured = capsys.readouterr()
+        answers.append((floor, env_version, running, code, captured.out, captured.err))
+    assert answers == [
+        ("3.12", "3.11.9", "3.13.0", 2, "", refusal("3.12", "3.11.9")),
+        ("3.12", "3.12.0", "3.9.6", 0, "", ""),
+        ("3.13", "3.12.5", "3.13.0", 2, "", refusal("3.13", "3.12.5")),
+        ("3.13", "3.13.0", "3.9.6", 0, "", ""),
+        ("3.12", None, "3.11.2", 2, "", refusal("3.12", "3.11.2")),
+        ("3.12", None, "3.12.1", 0, "", ""),
+        ("3.13", None, "3.12.1", 2, "", refusal("3.13", "3.12.1")),
+    ]
