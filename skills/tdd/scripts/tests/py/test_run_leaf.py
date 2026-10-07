@@ -217,24 +217,11 @@ def test_main_writes_each_chunk_of_the_leafs_stdout_to_stdout_and_the_stream_tem
     second = b'{"type":"result","subtype":"success","result":"done"}\n'
     leaf_read, leaf_write = os.pipe()
 
-    class _ChunkedLeaf:
+    class _ChunkedLeaf(_FakeLeaf):
         def __init__(self, argv, *args, **kwargs):
             self.stdout = open(leaf_read, "rb", buffering=0)
             self.returncode = 0
             self.pid = 0
-
-        def poll(self):
-            return self.returncode
-
-        def wait(self, timeout=None):
-            return self.returncode
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *exc):
-            self.stdout.close()
-            return False
 
     monkeypatch.setattr(subprocess, "Popen", _ChunkedLeaf)
 
