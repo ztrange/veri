@@ -594,7 +594,7 @@ rm "$s/tests/bar.test.sh"
 commit_all "$repo" "main adds one suite and deletes another"
 git_q "$repo" checkout -q topic
 base=main head=HEAD
-expect_suites "#1138: a suite the base added or deleted after the branch point does not make affected-suites.sh <base>..HEAD print claude-md-counts.test.sh" \
+expect_suites "#1138: a suite the base added or deleted after the branch point does not make affected-suites.sh <base>..HEAD print skills/tdd/scripts/tests/claude-md-counts.test.sh" \
   skills/tdd/scripts/tests/foo.test.sh
 
 make_repo branch-deletes-suite
