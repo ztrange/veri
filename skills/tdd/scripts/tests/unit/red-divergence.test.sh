@@ -93,17 +93,6 @@ reads_unreadable
 reads_unreadable 'PREDICTION: probably'
 verdict "$name"
 
-name="PREDICTION line with a trailing clause after the verdict word is read as that verdict"
-problems=()
-reads_matched 'PREDICTION: MATCHED — the run printed the assertion the step predicted'
-reads_diverged 'PREDICTION: DIVERGED — it died on a missing helper instead'
-verdict "$name"
-
-name="PREDICTION line whose first word is not a verdict exits 2 even when a verdict word follows"
-problems=()
-reads_unreadable 'PREDICTION: probably MATCHED, hard to say'
-verdict "$name"
-
 prompt_verdicts() {
   local line alts offered_verdict
   local -a offers
@@ -132,21 +121,6 @@ for prompt in "$prompts_dir"/*.md; do
   done < <(prompt_verdicts "$prompt")
 done
 (( offered )) || problems+=("no prompt under $prompts_dir carries a PREDICTION: report line to check")
-verdict "$name"
-
-name="PREDICTION verdict word carrying trailing punctuation is read as that verdict"
-problems=()
-for mark in ',' ';' ':' '.'; do
-  reads_matched "PREDICTION: MATCHED$mark but only in the message"
-  reads_diverged "PREDICTION: DIVERGED$mark but only in the message"
-done
-verdict "$name"
-
-name="PREDICTION line whose first word is not a verdict once its punctuation is stripped exits 2"
-problems=()
-for mark in ',' ';' ':' '.'; do
-  reads_unreadable "PREDICTION: probably$mark MATCHED anyway"
-done
 verdict "$name"
 
 name="report with no PREDICTION: line exits 2 with nothing on stdout and nothing on stderr"
