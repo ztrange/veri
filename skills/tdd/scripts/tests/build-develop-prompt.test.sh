@@ -1155,4 +1155,11 @@ same_through_link green green "$work/spec.md" "$step_text" "$test_cmd" "$test_pa
 same_through_link diff  diff "$work/spec.md" "$dd_step" "$test_cmd" "$dd_fast"
 [[ -z "$problems" ]] && ok || no "$name (${problems#; })"
 
+name="build-develop-prompt.sh given a directory as the issue-spec file for a red call exits 1 with nothing on stdout and a non-empty stderr"
+mkdir -p "$work/spec-dir"
+dir_err="$work/spec-dir.err"
+dir_out="$("$BUILD" red "$work/spec-dir" "$step_text" "$test_cmd" 2>"$dir_err")"; code=$?
+diag=""; [[ -s "$dir_err" ]] && diag=diagnostic
+expect_eq "$name" "1::diagnostic" "$code:${dir_out:+prompt}:$diag"
+
 finish
