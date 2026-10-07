@@ -425,6 +425,57 @@ def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_the_in_place_w
     assert (code, led.read_bytes()) == (2, seed)
 
 
+def test_main_returns_2_without_raising_leaving_the_ledger_byte_identical_and_nothing_beside_it_when_every_write_and_the_restore_of_its_backup_fail_1110(
+        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
+    seed = "".join(f"- [x] step {n} ⟂ refactor pending\n" for n in range(8)).encode()
+    led = tmp_path / "ledger.md"
+    led.write_bytes(seed)
+    real_open = builtins.open
+    real_os_open = os.open
+    real_replace = os.replace
+
+    class FullDisk:
+        def __init__(self, file):
+            self.file = file
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            self.file.close()
+
+        def write(self, data):
+            raise OSError(errno.ENOSPC, os.strerror(errno.ENOSPC), str(led))
+
+    def full_disk_open(file, mode="r", *args, **kwargs):
+        if os.fspath(file) == str(led) and "w" in mode:
+            return FullDisk(real_open(file, "rb"))
+        return real_open(file, mode, *args, **kwargs)
+
+    def refusing_os_open(path, *args, **kwargs):
+        if os.path.abspath(path) == str(led):
+            raise OSError(errno.EIO, os.strerror(errno.EIO), path)
+        return real_os_open(path, *args, **kwargs)
+
+    def refusing_replace(src, dst, *args, **kwargs):
+        if os.path.abspath(dst) == str(led):
+            raise OSError(errno.EIO, os.strerror(errno.EIO), dst)
+        return real_replace(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "open", full_disk_open)
+    monkeypatch.setattr(os, "open", refusing_os_open)
+    monkeypatch.setattr(os, "replace", refusing_replace)
+    try:
+        code = clear_refactor_pending.main([str(led), "step 3"])
+    except OSError as error:
+        code = type(error).__name__
+    monkeypatch.undo()
+    err = capsysbinary.readouterr().err
+
+    assert (code, b"Traceback" in err, led.read_bytes(), sorted(p.name for p in tmp_path.iterdir())) == (
+        2, False, seed, ["ledger.md"])
+
+
 def test_main_returns_2_on_a_missing_ledger_with_one_stderr_line_naming_it(
         tmp_path, capsysbinary, clear_refactor_pending):
     code = clear_refactor_pending.main([str(tmp_path / "missing.md"), "a"])

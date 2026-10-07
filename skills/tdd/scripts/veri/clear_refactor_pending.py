@@ -60,7 +60,10 @@ def main(argv):
             with os.fdopen(os.open(argv[0], os.O_WRONLY), "wb") as file:
                 file.write(raw)
         except OSError:
-            os.replace(backup, path)
+            try:
+                os.replace(backup, path)
+            except OSError:
+                os.unlink(backup)
             return 2
     os.unlink(backup)
     return code
