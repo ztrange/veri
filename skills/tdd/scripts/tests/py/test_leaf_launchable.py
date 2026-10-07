@@ -3,6 +3,7 @@ import importlib
 import pathlib
 import subprocess
 import sys
+import tempfile
 
 import pytest
 
@@ -72,3 +73,15 @@ def test_main_returns_0_silently_for_a_launching_probe_with_or_without_an_argume
     answers.append((code, captured.out))
     assert answers == [(0, "", ""), (0, "", ""), (2, "")]
     assert all(0 <= answer[0] <= 3 for answer in answers)
+
+
+def test_main_returns_2_with_no_stdout_and_no_temp_file_left_over_a_probe_exiting_5_127_or_killed_by_a_signal(
+        capsys, monkeypatch, tmp_path, leaf_launchable):
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+    answers = []
+    for returncode in (5, 127, -9):
+        fake_probe(monkeypatch, returncode)
+        code = leaf_launchable.main([])
+        captured = capsys.readouterr()
+        answers.append((returncode, code, captured.out, sorted(p.name for p in tmp_path.iterdir())))
+    assert answers == [(5, 2, "", []), (127, 2, "", []), (-9, 2, "", [])]
