@@ -30,7 +30,7 @@ def main(argv):
         except OSError as e:
             sys.stderr.write("orchestrate.sh: cannot start %s: %s\n" % (CONDUCTOR, e.strerror))
             continue
-        _watch(issue, conductor.stdout, int(budget))
+        _watch(issue, conductor.stdout, budget)
         _stop(conductor.pid)
         if _parked(issue):
             sys.stdout.write("parked %s\n" % issue)
@@ -43,7 +43,7 @@ def _watch(issue, stream, budget):
         if not line.endswith(b"\n"):
             return
         if step_done and b'"type":"user"' in line:
-            if context > budget:
+            if _greater(context, budget):
                 return
             step_done = False
         if b'"type":"assistant"' not in line:
@@ -56,6 +56,14 @@ def _watch(issue, stream, budget):
             context = int(read.group(1)) + int(creation.group(1))
             sys.stdout.write("context %s %d\n" % (issue, context))
             sys.stdout.flush()
+
+
+def _greater(context, budget):
+    if budget.startswith("0") and re.search("[89]", budget):
+        sys.stderr.write('orchestrate.sh: %s: value too great for base (error token is "%s")\n' % (budget, budget))
+        sys.stderr.flush()
+        return False
+    return context > int(budget, 8 if budget.startswith("0") else 10)
 
 
 def _launch(issue):
