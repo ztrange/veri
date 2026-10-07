@@ -189,3 +189,36 @@ def test_wait_answers_a_recorded_code_over_a_dead_pid_and_rechecks_the_exit_file
     monkeypatch.setattr(os, "kill", records_then_dies)
     code = detach_command.main(["wait", "x", "0"])
     assert (code, capsys.readouterr()) == (1, ("4\n", ""))
+
+
+def test_wait_reads_the_exit_file_as_test_f_and_cat_do_stripping_trailing_newlines_and_following_a_symlink(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "x.pid").write_text("4242\n")
+
+    def dead(pid, signum):
+        raise ProcessLookupError
+
+    monkeypatch.setattr(os, "kill", dead)
+    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+
+    (tdd / "x.exit").write_text(" 7 \n\n")
+    code = detach_command.main(["wait", "x", "0"])
+    assert (code, capsys.readouterr()) == (1, (" 7 \n", ""))
+
+    (tdd / "x.exit").write_text("0\n\n")
+    code = detach_command.main(["wait", "x", "0"])
+    assert (code, capsys.readouterr()) == (0, ("", ""))
+
+    (tdd / "x.exit").unlink()
+    (tmp_path / "recorded").write_text("3\n")
+    (tdd / "x.exit").symlink_to(tmp_path / "recorded")
+    code = detach_command.main(["wait", "x", "0"])
+    assert (code, capsys.readouterr()) == (1, ("3\n", ""))
+
+    (tdd / "x.exit").unlink()
+    (tdd / "x.exit").mkdir()
+    code = detach_command.main(["wait", "x", "0"])
+    assert (code, capsys.readouterr()) == (2, ("", ""))
