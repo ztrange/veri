@@ -45,6 +45,14 @@ absent_err="$(cat "$work/absent.err")"
   && [[ "$absent_err" == *"$work/absent-ledger.md"* ]] && [[ "$absent_err" != *Traceback* ]]; } \
   && ok || no "#1083: a ledger path that does not exist → exit 2, one stderr line naming the path, no traceback (code=$code err='$absent_err')"
 
+printf 'not a directory\n' > "$work/plain-file"
+"$TICK" "$work/plain-file/issue-42.md" "collapse to single hyphen" > "$work/notdir.out" 2> "$work/notdir.err"; code=$?
+notdir_err="$(cat "$work/notdir.err")"
+{ [[ "$code" == 2 ]] && [[ ! -s "$work/notdir.out" ]] && [[ "$(wc -l < "$work/notdir.err")" -eq 1 ]] \
+  && [[ "$notdir_err" == "tick-ledger.sh: $work/plain-file/issue-42.md: "?* ]] && [[ "$notdir_err" != *Traceback* ]] \
+  && [[ "$(cat "$work/plain-file")" == 'not a directory' ]]; } \
+  && ok || no "#1118: a ledger path running through a regular file → exit 2, one 'tick-ledger.sh: <path>: <reason>' stderr line, no traceback, nothing written (code=$code err='$notdir_err')"
+
 CLEAR="$HERE/../clear-refactor-pending.sh"
 seed
 "$TICK" "$led" "nonexistent step" 2>/dev/null; tick_miss=$?
