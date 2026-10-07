@@ -111,3 +111,15 @@ def test_start_launches_the_exit_recording_wrapper_through_detach_with_dev_null_
     wrapper = '"$@"; rc=$?; echo "$rc" > "$0.tmp"; mv "$0.tmp" "$0"'
     assert launches == [(["sh", "-c", wrapper, ".tdd/x.exit", "printf", "%s", "a b"], True)]
     assert ((tdd / "x.out").read_text(), code, capsys.readouterr()) == ("out err", 0, ("", ""))
+
+
+def test_start_with_no_tdd_directory_raises_naming_the_out_file_launching_nothing_and_creating_no_file(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    launches = []
+    monkeypatch.setattr(importlib.import_module("detach"), "start",
+                        lambda *args: launches.append(args) or 4242)
+
+    with pytest.raises(FileNotFoundError) as raised:
+        detach_command.main(["start", "x", "true"])
+    assert (raised.value.filename, launches, list(tmp_path.iterdir())) == (".tdd/x.out", [], [])
