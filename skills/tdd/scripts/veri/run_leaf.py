@@ -45,7 +45,7 @@ def main(argv):
         prompt = read_prompt(argv[0])
     except OSError as error:
         complain(argv[0], error)
-        return 1
+        return 2
     with contextlib.suppress(ValueError):
         signal.signal(signal.SIGTERM, lambda *_: sys.exit(2))
     tmpdir = os.environ.get("TMPDIR") or "/tmp"
