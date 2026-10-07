@@ -1,5 +1,6 @@
 """In-process cases for veri/leaf_launchable.py, the module leaf-launchable.sh is a shim over."""
 import importlib
+import os
 import pathlib
 import subprocess
 import sys
@@ -155,3 +156,35 @@ def test_main_probes_claude_bin_else_claude_once_with_stdin_inherited_stdout_dis
     assert answers == [0, 0, 0]
     assert blocks == [(2, "", True), (2, "", True)]
     assert sorted(p.name for p in tmp_path.iterdir()) == []
+
+
+def test_main_prints_the_failed_probe_diagnostic_byte_identical_to_the_bash_script_indenting_its_stderr_as_bytes_split_on_newline_only(
+        capfdbinary, monkeypatch, leaf_launchable):
+    def answering(said):
+        def fake_call(args, **kwargs):
+            stderr = kwargs["stderr"]
+            os.write(stderr if isinstance(stderr, int) else stderr.fileno(), said)
+            return 1
+
+        monkeypatch.setattr(subprocess, "call", fake_call)
+        monkeypatch.setattr(subprocess, "run", lambda args, **kwargs: subprocess.CompletedProcess(
+            args, fake_call(args, **kwargs)))
+
+    header = (b"leaf-launchable: the leaf binary (stub-claude) could not be launched, so every leaf of this run"
+              b" would die at launch. It said:\n")
+    closing = ("Run the conductor from a plain shell instead — the supported invocation is:\n"
+               "    claude -p \"/tdd <issue-number>\"\n"
+               "veri does not work around this itself: a guard of this kind names a risk the binary is refusing"
+               " to take, and taking it silently on the operator's behalf would put that risk on them without"
+               " their knowledge.\n").encode("utf-8")
+    answers = []
+    for said in (b"", b"one\r\ntwo\n\n\xff three\n", b"last line\nno newline"):
+        answering(said)
+        code = leaf_launchable.main([])
+        captured = capfdbinary.readouterr()
+        answers.append((code, captured.out, captured.err))
+    assert answers == [
+        (2, b"", header + closing),
+        (2, b"", header + b"    one\r\n    two\n    \n    \xff three\n" + closing),
+        (2, b"", header + b"    last line\n    no newline" + closing),
+    ]
