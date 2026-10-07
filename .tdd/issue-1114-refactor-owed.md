@@ -1,0 +1,2 @@
+### with VERI_GH_DRIVER unset or set to rest, capture_spec.main reads the issue's labels and body through `gh api` only, starting no `gh issue view`, and prints the same spec ⟦criterion 1⟧
+- test-only | the new case's inline `fake_run`/`fake_popen` repeat `fake_gh`'s `gh issue view` branches and its Popen refusal; teaching `fake_gh` to answer `gh api repos/{owner}/{repo}/issues/<n>` as well would remove that repetition, but it adds a route that no existing case besides this one needs

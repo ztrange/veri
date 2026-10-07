@@ -1,7 +1,7 @@
 # Plan for #1114 — capture-spec.sh ignores VERI_GH_DRIVER: it reads the issue GraphQL-first instead of through gh_issue_view's route
 
 - [x] the existing cases that pin GraphQL-first set VERI_GH_DRIVER=auto themselves: every case in tests/py/test_capture_spec.py whose fake answers `gh issue view` or whose asserted call list starts with it sets the variable to auto with monkeypatch, and capture-spec.test.sh runs capture-spec.sh under VERI_GH_DRIVER=auto, with no other assertion changed, so today's GraphQL-then-REST behaviour stays pinned byte-identical under auto ⟦diff-checked⟧ ⟦criterion 1⟧
-- [x] with VERI_GH_DRIVER unset or set to rest, capture_spec.main reads the issue's labels and body through `gh api` only, starting no `gh issue view`, and prints the same spec ⟦criterion 1⟧ ⟂ refactor pending
+- [x] with VERI_GH_DRIVER unset or set to rest, capture_spec.main reads the issue's labels and body through `gh api` only, starting no `gh issue view`, and prints the same spec ⟦criterion 1⟧
 - [ ] with VERI_GH_DRIVER=graphql, capture_spec.main reads the issue through `gh issue view` only, and a GraphQL failure is exit 2 with nothing on stdout and no `gh api` call ⟦criterion 1⟧
 - [ ] with VERI_GH_DRIVER empty or any value other than auto, rest or graphql, capture_spec.main exits 2 with nothing on stdout, a stderr line naming VERI_GH_DRIVER and the value, and no gh process started ⟦criterion 1⟧
 - [ ] capture-spec.test.sh has a case running capture-spec.sh with VERI_GH_DRIVER unset against a stub gh answering `gh api repos/{owner}/{repo}/issues/<n>`, getting the spec on stdout and recording no `gh issue view` call ⟦criterion 1⟧
