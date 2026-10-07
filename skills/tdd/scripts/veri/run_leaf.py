@@ -2,6 +2,7 @@
 import contextlib
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -43,6 +44,8 @@ def main(argv):
     except OSError as error:
         complain(argv[0], error)
         return 1
+    with contextlib.suppress(ValueError):
+        signal.signal(signal.SIGTERM, lambda *_: sys.exit(2))
     tmpdir = os.environ.get("TMPDIR") or "/tmp"
     stream_fd, stream_path = tempfile.mkstemp(dir=tmpdir)
     git_fd, git_path = tempfile.mkstemp(dir=tmpdir)
@@ -62,7 +65,8 @@ def main(argv):
             os.environ.pop("PYTHONCOERCECLOCALE", None)
         command = leaf_argv(prompt, argv[1:])
         try:
-            leaf = subprocess.Popen(command, stdout=subprocess.PIPE, env=dict(os.environ))
+            leaf = subprocess.Popen(command, stdout=subprocess.PIPE, env=dict(os.environ),
+                                    restore_signals=False)
         except OSError as error:
             complain(command[0], error)
             status = 2
