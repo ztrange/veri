@@ -32,6 +32,30 @@ def _has_heading(path, heading):
     return re.search(rb"^## " + heading + rb"[ \t\r\v\f]*$", text, re.M) is not None
 
 
+def _expand(text, prompts, chain=()):
+    out = b""
+    while (match := re.search(rb"\{\{INCLUDE:([^}]*)\}\}", text)):
+        part = prompts + b"/" + match[1]
+        out += text[:match.start()]
+        text = text[match.end():]
+        if not os.access(part, os.R_OK):
+            sys.stderr.buffer.write(b"missing partial: " + part + b"\n")
+            return None
+        if part in chain:
+            sys.stderr.buffer.write(b"partial includes itself: " + part + b"\n")
+            return None
+        try:
+            content = _read(part)
+        except IsADirectoryError:
+            sys.stderr.buffer.write(b"cat: " + part + b": Is a directory\n")
+            content = b""
+        content = _expand(content, prompts, chain + (part,))
+        if content is None:
+            return None
+        out += content
+    return out + text
+
+
 def main(argv):
     options = {"--step": "", "--fast-cmd": ""}
     while argv[:1] and argv[0] in options:
@@ -64,21 +88,36 @@ def main(argv):
             return _refuse(f"build-verify-prompt: {phase} needs {label} as 7-40 lowercase hex characters, got '{value}'")
     prompts = f"{HERE}/prompts"
     spec = argv[1]
-    paths = [f"{prompts}/verify-{phase}.md", f"{prompts}/_shared.md", spec]
+    optional = {}
     if _has_heading(spec, b"Bug"):
-        paths.append(f"{prompts}/_verify-red-bug.md")
+        optional["BUG_REPRODUCTION"] = f"{prompts}/_verify-red-bug.md"
     if phase == "plan" and _has_heading(spec, b"Refactor"):
-        paths.append(f"{prompts}/_verify-plan-refactor.md")
-    for mark in ("replaces-case", "suite-repair"):
+        optional["REFACTOR_PLAN"] = f"{prompts}/_verify-plan-refactor.md"
+    for placeholder, mark in (("REPLACES_CASE", "replaces-case"), ("SUITE_REPAIR", "suite-repair")):
         if phase == "green" and f"⟦{mark}⟧" in options["--step"]:
-            paths.append(f"{prompts}/_verify-green-{mark}.md")
+            optional[placeholder] = f"{prompts}/_verify-green-{mark}.md"
+    paths = [f"{prompts}/verify-{phase}.md", f"{prompts}/_shared.md", spec, *optional.values()]
     if phase == "plan":
+        optional["LEDGER"] = argv[2]
         paths.append(argv[2])
     for path in paths:
         if not os.access(path, os.R_OK):
             _write(sys.stderr, f"build-verify-prompt: cannot read '{path}'")
             return 2
-    template, shared, spec_text = (_read(path) for path in paths[:3])
+    prompts_b = os.fsencode(prompts)
+    template = _expand(_read(paths[0]), prompts_b)
+    if template is None:
+        return 2
+    shared = _expand(_read(paths[1]), prompts_b)
+    if shared is None:
+        return 2
+    values = dict.fromkeys(("BUG_REPRODUCTION", "REFACTOR_PLAN", "REPLACES_CASE", "SUITE_REPAIR", "LEDGER"), b"")
+    for placeholder, path in optional.items():
+        values[placeholder] = _read(path)
+        if placeholder in ("REPLACES_CASE", "SUITE_REPAIR"):
+            values[placeholder] = _expand(b"\n\n" + values[placeholder], prompts_b)
+            if values[placeholder] is None:
+                return 2
     step = os.fsencode(options["--step"])
     step_block = b""
     if step:
@@ -86,11 +125,11 @@ def main(argv):
                       b"Your verdict is about this criterion only: the spec below is the whole issue, and its other\n"
                       b"criteria belong to other steps of the plan.\n\n")
     out = template
-    for placeholder, value in ((b"SHARED", shared), (b"STEP", step_block), (b"ISSUE_SPEC", spec_text),
+    for placeholder, value in ((b"SHARED", shared), (b"STEP", step_block), (b"ISSUE_SPEC", _read(spec)),
+                               *((placeholder.encode(), value) for placeholder, value in values.items()),
                                (b"TEST_PATH", os.fsencode(argv[2])),
                                (b"TARGET_TEST", os.fsencode(fourth or "the target test")),
                                (b"TIMED_TEST_RUN", os.fsencode(f"{HERE}/timed-test-run.sh"))):
         out = out.replace(b"{{" + placeholder + b"}}", value)
     sys.stdout.buffer.write(out + b"\n")
     return 0
-
