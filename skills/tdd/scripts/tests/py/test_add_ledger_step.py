@@ -458,3 +458,20 @@ def test_main_finds_a_last_step_without_a_trailing_newline_as_the_anchor_and_kee
         "- [ ] c three ⟦criterion 3⟧",
         "- [ ] t ⟦added⟧ ⟦criterion 3⟧",
     ]
+
+
+def test_main_keeps_a_last_line_without_a_trailing_newline_after_inserting_beside_an_earlier_step_817(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER.removesuffix(b"\n"))
+
+    code = add_ledger_step.main([str(ledger), "after", "a one", "t"])
+    captured = capsys.readouterr()
+
+    assert (code, captured.err) == (0, "")
+    assert ledger.read_bytes().decode().split("\n")[2:6] == [
+        "- [x] a one ⟦criterion 1⟧",
+        "- [ ] t ⟦added⟧ ⟦criterion 1⟧",
+        "- [ ] b two ⟦criterion 2⟧",
+        "- [ ] c three ⟦criterion 3⟧",
+    ]
