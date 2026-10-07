@@ -30,9 +30,7 @@ def main(argv):
 
 def diagnostic(leaf_bin, said):
     lines = said.split(b"\n")
-    block = b"\n".join(b"    " + line for line in lines[:-1])
-    if lines[:-1]:
-        block += b"\n"
+    block = b"".join(b"    " + line + b"\n" for line in lines[:-1])
     if lines[-1]:
         block += b"    " + lines[-1]
     return (b"leaf-launchable: the leaf binary (" + os.fsencode(leaf_bin)
