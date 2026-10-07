@@ -20,7 +20,10 @@ def main(argv):
         ticked, new = ledger.ledger_tick(file.read().replace("\0", ""), (argv[1:] or [""])[0], pending)
     if not ticked:
         return 3
-    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(argv[0])))
+    try:
+        fd, tmp = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(argv[0])))
+    except OSError:
+        return 2
     try:
         with os.fdopen(fd, "w") as file:
             file.write(new.rstrip("\n") + "\n")
