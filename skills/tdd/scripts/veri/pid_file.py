@@ -19,5 +19,8 @@ def live_conductor(path):
     pid = number_in(path + "/.tdd/conductor.pid")
     if pid is None or int(pid) == 0:
         return None
-    os.kill(int(pid), 0)
+    try:
+        os.kill(int(pid), 0)
+    except (OSError, OverflowError):
+        return None
     return pid
