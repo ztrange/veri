@@ -23,6 +23,10 @@ def write_beside(path, data):
     return tmp
 
 
+def complain(path, message):
+    print(f"clear-refactor-pending.sh: {path}: {message}", file=sys.stderr)
+
+
 def holds(path, raw):
     try:
         with open(path, "rb") as file:
@@ -39,7 +43,7 @@ def main(argv):
         with open(argv[0], "rb") as file:
             raw = file.read()
     except OSError as error:
-        print(f"clear-refactor-pending.sh: {argv[0]}: {error.strerror}", file=sys.stderr)
+        complain(argv[0], error.strerror)
         return 2
     text = raw.replace(b"\0", b"").decode(errors="surrogateescape")
     cleared, new = ledger.ledger_clear_pending(text, argv[1] if len(argv) > 1 else "")
@@ -73,16 +77,14 @@ def main(argv):
                     os.replace(backup, path)
                 except OSError:
                     if not holds(argv[0], raw):
-                        print(f"clear-refactor-pending.sh: {argv[0]}: write failed; old ledger kept at {backup}",
-                              file=sys.stderr)
+                        complain(argv[0], f"write failed; old ledger kept at {backup}")
                         backup = None
     finally:
         if backup is not None:
             try:
                 os.unlink(backup)
             except OSError as error:
-                print(f"clear-refactor-pending.sh: {argv[0]}: could not remove backup {backup}: {error.strerror}",
-                      file=sys.stderr)
+                complain(argv[0], f"could not remove backup {backup}: {error.strerror}")
                 code = 2
     return code
 
