@@ -15,12 +15,24 @@ def leaf_argv(prompt, extra):
     return argv + extra
 
 
+def read_prompt(path):
+    if path == "-":
+        data = sys.stdin.buffer.read()
+    else:
+        with open(path, "rb") as f:
+            data = f.read()
+    return os.fsdecode(data.replace(b"\0", b"").rstrip(b"\n"))
+
+
 def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
         return 2
-    with open(argv[0]) as f:
-        prompt = f.read().rstrip("\n")
+    try:
+        prompt = read_prompt(argv[0])
+    except OSError as error:
+        print(f"run-leaf.sh: {argv[0]}: {error.strerror}", file=sys.stderr)
+        return 1
     with subprocess.Popen(leaf_argv(prompt, argv[1:]), stdout=subprocess.PIPE) as leaf:
         leaf.stdout.read()
     return leaf.returncode
