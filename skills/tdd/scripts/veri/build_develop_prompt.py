@@ -118,3 +118,7 @@ def main(argv):
         text = text.replace(b"{{" + name.encode() + b"}}", value)
     sys.stdout.buffer.write(text + b"\n")
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
