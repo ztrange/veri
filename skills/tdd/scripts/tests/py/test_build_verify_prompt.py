@@ -312,3 +312,67 @@ def test_main_resolves_includes_recursively_before_substitution_in_the_template_
         (2, b"", b"partial includes itself: " + p + b"/_verify-green-suite-repair.md\n"),
         (2, b"", b"missing partial: " + p + b"/_gone.md\n"),
     ]
+
+
+def test_main_substitutes_sequentially_globally_and_literally_in_order_filling_each_slot_from_its_phases_argument_and_a_diff_render_runs_fast_cmd_then_the_affected_suites(
+        tmp_path, capsysbinary, build_verify_prompt):
+    scripts = tmp_path / "scripts"
+    (scripts / "veri").mkdir(parents=True)
+    module_path = scripts / "veri" / "build_verify_prompt.py"
+    module_path.write_bytes((SCRIPTS / "veri" / "build_verify_prompt.py").read_bytes())
+    loader = importlib.util.spec_from_file_location("substitution_build_verify_prompt", module_path)
+    module = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(module)
+    prompts = scripts / "prompts"
+    prompts.mkdir()
+    template = (b"{{SHARED}}|{{STEP}}|{{ISSUE_SPEC}}|{{BUG_REPRODUCTION}}|{{REFACTOR_PLAN}}|{{REPLACES_CASE}}|"
+                b"{{SUITE_REPAIR}}|{{LEDGER}}|{{TEST_PATH}}|{{TARGET_TEST}}|{{BASE_SHA}}|{{STEP_BASE_SHA}}|"
+                b"{{FAST_CMD}}|{{ONTO_SHA}}|{{PRE_REBASE_SHA}}|{{TIMED_TEST_RUN}}\n")
+    for phase in ("red", "green", "plan", "rebase", "diff"):
+        (prompts / f"verify-{phase}.md").write_bytes(template)
+    (prompts / "_shared.md").write_bytes(b"sh\n")
+    (prompts / "_verify-green-replaces-case.md").write_bytes(b"rc\n")
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"spec {{TEST_PATH}} {{STEP}} {{SHARED}} {{BASE_SHA}} & \\1\n")
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(b"ledger & \\1 {{STEP}}\n\n")
+    timed = str(scripts / "timed-test-run.sh").encode()
+
+    def run(main, argv):
+        code = main(argv)
+        return (code, *capsysbinary.readouterr())
+
+    def block(step):
+        return (b"### The step under judgement\n\n" + step + b"\n\n"
+                b"Your verdict is about this criterion only: the spec below is the whole issue, and its other\n"
+                b"criteria belong to other steps of the plan.\n\n")
+
+    def rendered(*fields):
+        return b"|".join(fields) + b"|" + timed + b"\n"
+
+    assert [
+        run(module.main, ["--step", "st & \\0", "--fast-cmd", "a & b \\1 /x", "diff", str(spec), "0123abc", "4567def"]),
+        run(module.main, ["rebase", str(spec), "89abcde", "fedcba9"]),
+        run(module.main, ["plan", str(spec), str(ledger)]),
+        run(module.main, ["red", str(spec), "tp"]),
+        run(module.main, ["--step", "⟦replaces-case⟧", "--fast-cmd", "m", "green", str(spec), "tp", "tid"]),
+    ] == [
+        (0, rendered(b"sh", block(b"st & \\0"), b"spec 0123abc {{STEP}} {{SHARED}} 0123abc & \\1", b"", b"", b"", b"",
+                     b"", b"0123abc", b"4567def", b"0123abc", b"4567def", b"a & b \\1 /x", b"", b""), b""),
+        (0, rendered(b"sh", b"", b"spec 89abcde {{STEP}} {{SHARED}} fedcba9 & \\1", b"", b"", b"", b"",
+                     b"", b"89abcde", b"fedcba9", b"fedcba9", b"", b"", b"89abcde", b"fedcba9"), b""),
+        (0, rendered(b"sh", b"", b"spec " + str(ledger).encode() + b" {{STEP}} {{SHARED}}  & \\1", b"", b"", b"", b"",
+                     b"ledger & \\1 {{STEP}}", str(ledger).encode(), b"the target test", b"", b"", b"", b"", b""), b""),
+        (0, rendered(b"sh", b"", b"spec tp {{STEP}} {{SHARED}}  & \\1", b"", b"", b"", b"",
+                     b"", b"tp", b"the target test", b"", b"", b"", b"", b""), b""),
+        (0, rendered(b"sh", block("⟦replaces-case⟧".encode()), b"spec tp {{STEP}} {{SHARED}} tid & \\1", b"", b"",
+                     b"\n\nrc", b"", b"", b"tp", b"tid", b"tid", b"", b"m", b"", b""), b""),
+    ]
+
+    code, out, err = run(build_verify_prompt.main, ["--step", "s", "--fast-cmd", "make unit && a/b", "diff",
+                                                    str(spec), "0123abc", "4567def"])
+    real_timed = f"{build_verify_prompt.HERE}/timed-test-run.sh".encode()
+    assert (code, err, b"git diff 0123abc..HEAD" in out, b"git diff 4567def..HEAD" in out,
+            b"       " + real_timed + b" fast '' make unit && a/b\n"
+            b"       " + real_timed + b" affected '<the suites affected-suites.sh printed>' <the command that runs them>\n"
+            in out) == (0, b"", True, True, True)
