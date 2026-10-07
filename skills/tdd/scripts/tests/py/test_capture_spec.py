@@ -79,6 +79,18 @@ bash 5.2 on macOS 15.6.
 - [ ] a step is ticked once
 """
 
+BUG_SPEC = BUG_BODY + (
+    "\n## Bug\n"
+    "\n### What happened\n\n"
+    "tick-ledger.sh ticked the same step twice.\n\n"
+    "\n### Expected\n\n"
+    "tick-ledger.sh ticks a step once.\n\n"
+    "\n### Steps to reproduce\n\n"
+    "Run tick-ledger.sh twice against the same step text.\n\n"
+    "\n### Environment\n\n"
+    "bash 5.2 on macOS 15.6.\n\n"
+)
+
 
 def test_main_appends_a_bug_section_carrying_each_matching_body_section_for_a_bug_labelled_issue(monkeypatch, capsys, capture_spec):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
@@ -87,17 +99,7 @@ def test_main_appends_a_bug_section_carrying_each_matching_body_section_for_a_bu
     code = capture_spec.main(["7"])
     captured = capsys.readouterr()
 
-    assert (code, captured.out, captured.err) == (0, BUG_BODY + (
-        "\n## Bug\n"
-        "\n### What happened\n\n"
-        "tick-ledger.sh ticked the same step twice.\n\n"
-        "\n### Expected\n\n"
-        "tick-ledger.sh ticks a step once.\n\n"
-        "\n### Steps to reproduce\n\n"
-        "Run tick-ledger.sh twice against the same step text.\n\n"
-        "\n### Environment\n\n"
-        "bash 5.2 on macOS 15.6.\n\n"
-    ), "")
+    assert (code, captured.out, captured.err) == (0, BUG_SPEC, "")
 
 
 def test_main_returns_2_with_nothing_on_stdout_when_gh_api_exits_non_zero_with_a_json_error_body(monkeypatch, capsys, capture_spec):
@@ -320,17 +322,7 @@ def test_main_reads_the_issue_through_gh_api_only_when_veri_gh_driver_is_unset_o
         code = capture_spec.main(["7"])
         captured = capsys.readouterr()
 
-        assert (driver, code, captured.out, captured.err, calls) == (driver, 0, BUG_BODY + (
-            "\n## Bug\n"
-            "\n### What happened\n\n"
-            "tick-ledger.sh ticked the same step twice.\n\n"
-            "\n### Expected\n\n"
-            "tick-ledger.sh ticks a step once.\n\n"
-            "\n### Steps to reproduce\n\n"
-            "Run tick-ledger.sh twice against the same step text.\n\n"
-            "\n### Environment\n\n"
-            "bash 5.2 on macOS 15.6.\n\n"
-        ), "", [
+        assert (driver, code, captured.out, captured.err, calls) == (driver, 0, BUG_SPEC, "", [
             ["gh", "api", "repos/{owner}/{repo}/issues/7"],
             ["gh", "api", "repos/{owner}/{repo}/issues/7"],
         ])
