@@ -1,5 +1,6 @@
 """run-leaf.sh's logic, run in-process."""
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -40,7 +41,19 @@ def main(argv):
     except OSError as error:
         complain(argv[0], error)
         return 1
-    stream_fd, stream_path = tempfile.mkstemp(dir=os.environ.get("TMPDIR") or "/tmp")
+    tmpdir = os.environ.get("TMPDIR") or "/tmp"
+    stream_fd, stream_path = tempfile.mkstemp(dir=tmpdir)
+    git_fd, git_path = tempfile.mkstemp(dir=tmpdir)
+    os.close(git_fd)
+    gitconfig = os.path.join(os.environ["HOME"], ".gitconfig")
+    try:
+        if os.path.isfile(gitconfig):
+            shutil.copyfile(gitconfig, git_path)
+    except OSError as error:
+        complain(git_path, error)
+        os.close(stream_fd)
+        os.remove(stream_path)
+        return 1
     command = leaf_argv(prompt, argv[1:])
     stream = b""
     try:
@@ -57,6 +70,7 @@ def main(argv):
         status = leaf.returncode
     os.close(stream_fd)
     os.remove(stream_path)
+    os.remove(git_path)
     os.write(1, b"\n")
     text = stream.decode(sys.__stdin__.encoding, sys.__stdin__.errors)
     os.write(1, extract(text).encode(sys.__stdout__.encoding, sys.__stdout__.errors))
