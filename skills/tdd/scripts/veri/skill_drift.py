@@ -11,15 +11,18 @@ def git(clone, *args):
     return subprocess.run(["git", "-C", clone, *args], capture_output=True, text=True).stdout
 
 
+def unavailable(reason):
+    sys.stdout.write("Skill drift: unavailable — %s\n" % reason)
+    return 0
+
+
 def main(argv):
     commit = os.environ.get("VERI_SKILL_COMMIT", "")
     if os.environ.get("VERI_SKILL_UNPINNED") == "1" or not commit:
-        sys.stdout.write("Skill drift: unavailable — run was not pinned to a skill commit\n")
-        return 0
+        return unavailable("run was not pinned to a skill commit")
     clone = os.environ.get("VERI_SKILL_CLONE", "")
     if not clone or git(clone, "rev-parse", "--is-inside-work-tree").strip() != "true":
-        sys.stdout.write("Skill drift: unavailable — skill clone not known\n")
-        return 0
+        return unavailable("skill clone not known")
     ref = os.environ["VERI_SKILL_REF"]
     log = git(clone, "log", "--format=%h %s", "%s..%s" % (commit, ref),
               "--", "skills/tdd", ":(exclude)skills/tdd/scripts/tests")
