@@ -12,7 +12,7 @@ def main(argv):
     if argv == ["--clear"]:
         os.unlink(FILE)
         return 0
-    if argv:
+    if argv and argv != [""]:
         sys.stderr.buffer.write(USAGE)
         return 2
     if not os.path.isfile(FILE):
