@@ -31,10 +31,6 @@ want_err='usage: tick-ledger.sh [--refactor-pending] <ledger-file> <matcher>'
 { [[ "$code" == 2 ]] && [[ ! -s "$work/usage.out" ]] && [[ "$(cat "$work/usage.err")" == "$want_err" ]]; } \
   && ok || no "no argument → exit 2, nothing on stdout, the usage line on stderr (code=$code out='$(cat "$work/usage.out")' err='$(cat "$work/usage.err")')"
 
-"$TICK" "$work/no-such-ledger.md" "collapse to single hyphen" > "$work/missing.out" 2> /dev/null; code=$?
-{ [[ "$code" == 1 ]] && [[ ! -s "$work/missing.out" ]]; } \
-  && ok || no "a missing ledger → exit 1, nothing on stdout (code=$code out='$(cat "$work/missing.out")')"
-
 mkdir "$work/dir-ledger.md"
 "$TICK" "$work/dir-ledger.md" "collapse to single hyphen" > "$work/dir.out" 2> "$work/dir.err"; code=$?
 dir_err="$(cat "$work/dir.err")"
@@ -42,6 +38,12 @@ dir_err="$(cat "$work/dir.err")"
   && [[ "$dir_err" == *"$work/dir-ledger.md"* ]] && [[ "$dir_err" == *[Dd]irectory* ]] \
   && [[ "$dir_err" != *Traceback* ]]; } \
   && ok || no "#1083: a directory as the ledger → exit 2, one stderr line naming the path and the reason, no traceback (code=$code err='$dir_err')"
+
+"$TICK" "$work/absent-ledger.md" "collapse to single hyphen" > "$work/absent.out" 2> "$work/absent.err"; code=$?
+absent_err="$(cat "$work/absent.err")"
+{ [[ "$code" == 2 ]] && [[ ! -s "$work/absent.out" ]] && [[ "$(wc -l < "$work/absent.err")" -eq 1 ]] \
+  && [[ "$absent_err" == *"$work/absent-ledger.md"* ]] && [[ "$absent_err" != *Traceback* ]]; } \
+  && ok || no "#1083: a ledger path that does not exist → exit 2, one stderr line naming the path, no traceback (code=$code err='$absent_err')"
 
 ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
 mkdir -p "$work/in-place" "$work/caller"

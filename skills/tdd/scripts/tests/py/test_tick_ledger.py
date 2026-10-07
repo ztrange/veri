@@ -126,10 +126,12 @@ def test_main_leaves_an_empty_ledger_unwritten_with_exit_3_marks_a_crlf_step_aft
     }
 
 
-def test_main_raises_out_of_main_on_a_missing_ledger_rather_than_returning_a_code(
+def test_main_returns_2_on_a_missing_ledger_with_one_stderr_line_naming_it(
         tmp_path, capsysbinary, tick_ledger):
-    with pytest.raises(FileNotFoundError):
-        tick_ledger.main([str(tmp_path / "missing.md"), "a"])
+    code = tick_ledger.main([str(tmp_path / "missing.md"), "a"])
+    out, err = capsysbinary.readouterr()
+    assert (code, out) == (2, b"")
+    assert err.decode() == f"tick-ledger.sh: {tmp_path / 'missing.md'}: No such file or directory\n"
 
 
 def test_main_returns_2_on_a_directory_as_the_ledger_with_one_stderr_line_naming_it(
