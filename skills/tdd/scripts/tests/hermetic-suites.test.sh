@@ -171,6 +171,19 @@ fi
 rm -f "$driver_solvable" "$driver_parallel" "$driver_invisible"
 report "$name"
 
+name="capture-spec.test.sh: an ambient VERI_GH_DRIVER of auto, rest or graphql gives the same exit and the same stdout as a cleared run (#1114)"
+driver_findings=()
+cleared_driver_out="$(env -u VERI_GH_DRIVER "$HERE/capture-spec.test.sh" 2>/dev/null)" && cleared_driver_code=0 || cleared_driver_code=$?
+for driver in auto rest graphql; do
+  ambient_driver_out="$(env VERI_GH_DRIVER="$driver" "$HERE/capture-spec.test.sh" 2>/dev/null)" && ambient_driver_code=0 || ambient_driver_code=$?
+  same_answer cleared "$cleared_driver_code" "$cleared_driver_out" "$ambient_driver_code" "$ambient_driver_out"
+  for problem in ${problems[@]+"${problems[@]}"}; do
+    driver_findings+=("capture-spec.test.sh under VERI_GH_DRIVER=$driver: $problem")
+  done
+done
+problems=(${driver_findings[@]+"${driver_findings[@]}"})
+report "$name"
+
 name="every suite that invokes push-branch.sh sets VERI_PUSH_BACKOFF in its environment"
 problems=()
 push_invocations=0
