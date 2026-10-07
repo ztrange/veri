@@ -1,0 +1,14 @@
+# Plan for #1016 — feat: a bail report names the conductor-path changes merged since the run's pinned skill commit
+
+- [ ] skill-drift.sh, given VERI_SKILL_COMMIT, VERI_SKILL_CLONE and VERI_SKILL_REF over a clone where two commits touching skills/tdd/scripts/ suffixed (#12) and one suffixed (#15) land on the ref after the pinned commit, prints the `#### Skill drift since the pinned commit` block with `- #15 — <subject> (1 commits)` before `- #12 — <newest #12 subject> (2 commits)`, then `Resume with VERI_NEW_SKILL=1 to run on these.`, and exits 0 ⟦criterion 1⟧
+- [ ] skill-drift.sh leaves out a commit after the pinned one that touches only skills/tdd/scripts/tests/, docs/ or Makefile; with only such commits in the range it prints `Conductor-path changes on <ref> since then: none.` with no resume line and exits 0 ⟦criterion 2⟧
+- [ ] skill-drift.sh lists a commit in the range with no trailing (#N) as `- <short-sha> <subject>` ⟦criterion 3⟧
+- [ ] skill-drift.sh with VERI_SKILL_UNPINNED=1, or with VERI_SKILL_COMMIT unset or empty, prints `Skill drift: unavailable — run was not pinned to a skill commit` and exits 0 ⟦criterion 4⟧
+- [ ] skill-drift.sh with VERI_SKILL_CLONE unset, or naming a directory that is not a git work tree, prints `Skill drift: unavailable — skill clone not known` and exits 0 ⟦criterion 5⟧
+- [ ] skill-drift.sh with VERI_SKILL_COMMIT naming a sha the clone does not have prints `Skill drift: unavailable — pinned commit <sha> is not in <clone>` and exits 0 ⟦criterion 6⟧
+- [ ] skill-drift.sh with VERI_SKILL_REF naming a ref that does not resolve in the clone prints `Skill drift: unavailable — <ref> does not resolve in <clone>` and exits 0
+- [ ] skill-drift.sh over a clone whose origin cannot be fetched still prints the list from the ref as it stands, followed by `origin could not be fetched — list is as of the last fetch of <ref>`, and exits 0 ⟦criterion 7⟧
+- [ ] run-conductor.sh on a pinned launch hands the conductor VERI_SKILL_CLONE set to the clone it archived from and VERI_SKILL_REF set to the ref it pinned against; on an unpinned launch it sets neither ⟦criterion 8⟧
+- [ ] skills/tdd/SKILL.md Bailing sub-step 6 runs $S/skill-drift.sh and puts its output in the ### ⛔ Bailed comment after the reason, with `Skill drift: unavailable — skill-drift.sh exited <code>` there instead on a non-zero exit, and sub-steps 7 and 8 carry the same block to the PR and to the user ⟦diff-checked⟧ ⟦criterion 9⟧
+- [ ] skills/tdd/scripts/skill-drift.sh is a /bin/sh shim that execs python3 on veri/skill_drift.py, with no Python source in the shim ⟦diff-checked⟧ ⟦criterion 10⟧
+- [ ] CLAUDE.md's script count ("seventy-one bash scripts", its "sixty-nine" and its test-file tallies) counts skill-drift.sh and any suite added for it ⟦diff-checked⟧ ⟦criterion 11⟧
