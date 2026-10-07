@@ -521,3 +521,20 @@ def test_render_prints_nothing_and_returns_0_when_no_step_entry_test_only_or_app
 
     code = refactor_owed.main(["render", str(owed)])
     assert (code, capsys.readouterr().out) == (0, "")
+
+
+def test_render_prints_the_same_bytes_as_before_1018_for_an_owed_file_with_a_step_entry_left_1018(
+        capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    owed.write_text("### S1\n- a\n- test-only | t\n- out-of-scope | o\n### S2\n- x\n")
+    assert refactor_owed.main(["applied", str(owed), "x", "abc1234"]) == 0
+    capsys.readouterr()
+
+    code = refactor_owed.main(["render", str(owed)])
+    assert (code, capsys.readouterr().out) == (
+        0, "## Refactor owed\n\n### S1\n- a\n"
+           "\n### Test-only\n\n"
+           "These change only files under tests/; the structural pass does not work them.\n\n"
+           "- t\n"
+           "\n### Out-of-scope\n\n- o\n"
+           "\n### Applied\n\n- x — abc1234\n")
