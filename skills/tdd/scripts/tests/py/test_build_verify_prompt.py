@@ -236,3 +236,79 @@ def test_main_renders_a_red_prompt_with_shared_the_spec_the_test_path_the_target
         (0, b"shared rules\n" + step_block + b"spec:\n# spec\n\nthe criteria\npath tests/a.test.sh target case one\n"
             b"run " + timed + b" affected\n", b""),
     ]
+
+
+def test_main_resolves_includes_recursively_before_substitution_in_the_template_shared_and_the_replaces_case_and_suite_repair_paragraphs_leaves_them_literal_elsewhere_and_refuses_a_missing_or_self_including_partial(
+        tmp_path, capsysbinary):
+    scripts = tmp_path / "scripts"
+    (scripts / "veri").mkdir(parents=True)
+    module_path = scripts / "veri" / "build_verify_prompt.py"
+    module_path.write_bytes((SCRIPTS / "veri" / "build_verify_prompt.py").read_bytes())
+    loader = importlib.util.spec_from_file_location("include_build_verify_prompt", module_path)
+    module = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(module)
+    prompts = scripts / "prompts"
+    prompts.mkdir()
+    for name, text in {
+        "verify-red.md": b"{{SHARED}}\n{{STEP}}spec: {{ISSUE_SPEC}}\nbug: {{BUG_REPRODUCTION}}\n{{INCLUDE:_a.md}}\n",
+        "_a.md": b"a[{{INCLUDE:_b.md}}{{INCLUDE:_b.md}}] {{TEST_PATH}}\n",
+        "_b.md": b"b={{TARGET_TEST}}\n",
+        "_shared.md": b"shared {{INCLUDE:_b.md}}\n",
+        "_verify-red-bug.md": b"repro {{INCLUDE:_b.md}}\n",
+        "verify-green.md": b"g{{REPLACES_CASE}}{{SUITE_REPAIR}}\n",
+        "_verify-green-replaces-case.md": b"rc {{INCLUDE:_b.md}}\n",
+        "_verify-green-suite-repair.md": b"sr {{INCLUDE:_b.md}}\n",
+        "verify-plan.md": b"{{ISSUE_SPEC}}|{{REFACTOR_PLAN}}|{{LEDGER}}\n",
+        "_verify-plan-refactor.md": b"plan {{INCLUDE:_b.md}}\n",
+        "verify-pin.md": b"{{INCLUDE:_nope.md}}\n",
+        "verify-rebase.md": b"{{INCLUDE:_loop1.md}}\n",
+        "_loop1.md": b"{{INCLUDE:_loop2.md}}\n",
+        "_loop2.md": b"{{INCLUDE:_loop1.md}}\n",
+        "verify-transform.md": b"x{{INCLUDE:}}y\n",
+    }.items():
+        (prompts / name).write_bytes(text)
+    bug_spec = tmp_path / "bug.md"
+    bug_spec.write_bytes(b"## Bug\nspec {{INCLUDE:_b.md}}\n")
+    refactor_spec = tmp_path / "refactor.md"
+    refactor_spec.write_bytes(b"## Refactor\nspec {{INCLUDE:_b.md}}\n")
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"spec\n")
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(b"ledger {{INCLUDE:_b.md}}\n")
+    p = str(prompts).encode()
+
+    def run(argv):
+        code = module.main(argv)
+        return (code, *capsysbinary.readouterr())
+
+    assert [
+        run(["--step", "step {{INCLUDE:_b.md}}", "red", str(bug_spec), "tp", "tid"]),
+        run(["--step", "⟦replaces-case⟧ ⟦suite-repair⟧", "--fast-cmd", "m", "green", str(spec), "tp", "tid"]),
+        run(["--fast-cmd", "m", "green", str(spec), "tp", "tid"]),
+        run(["plan", str(refactor_spec), str(ledger)]),
+        run(["pin", str(spec), "t"]),
+        run(["rebase", str(spec), "0123abc", "0123abd"]),
+        run(["transform", str(spec), "rec", "0123abc"]),
+    ] == [
+        (0, b"shared b=tid\n### The step under judgement\n\nstep {{INCLUDE:_b.md}}\n\n"
+            b"Your verdict is about this criterion only: the spec below is the whole issue, and its other\n"
+            b"criteria belong to other steps of the plan.\n\n"
+            b"spec: ## Bug\nspec {{INCLUDE:_b.md}}\nbug: repro {{INCLUDE:_b.md}}\na[b=tidb=tid] tp\n", b""),
+        (0, b"g\n\nrc b=tid\n\nsr b=tid\n", b""),
+        (0, b"g\n", b""),
+        (0, b"## Refactor\nspec {{INCLUDE:_b.md}}|plan {{INCLUDE:_b.md}}|ledger {{INCLUDE:_b.md}}\n", b""),
+        (2, b"", b"missing partial: " + p + b"/_nope.md\n"),
+        (2, b"", b"partial includes itself: " + p + b"/_loop1.md\n"),
+        (0, b"xy\n", b"cat: " + p + b"/: Is a directory\n"),
+    ]
+
+    (prompts / "_verify-green-replaces-case.md").write_bytes(b"rc {{INCLUDE:_gone.md}}\n")
+    (prompts / "_verify-green-suite-repair.md").write_bytes(b"sr {{INCLUDE:_verify-green-suite-repair.md}}\n")
+    replaces_case = run(["--step", "⟦replaces-case⟧", "--fast-cmd", "m", "green", str(spec), "tp", "tid"])
+    suite_repair = run(["--step", "⟦suite-repair⟧", "--fast-cmd", "m", "green", str(spec), "tp", "tid"])
+    (prompts / "_shared.md").write_bytes(b"shared {{INCLUDE:_gone.md}}\n")
+    assert [replaces_case, suite_repair, run(["red", str(spec), "tp", "tid"])] == [
+        (2, b"", b"missing partial: " + p + b"/_gone.md\n"),
+        (2, b"", b"partial includes itself: " + p + b"/_verify-green-suite-repair.md\n"),
+        (2, b"", b"missing partial: " + p + b"/_gone.md\n"),
+    ]
