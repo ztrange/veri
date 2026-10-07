@@ -486,7 +486,7 @@ done
 commit_base
 printf '# changed\n' >> "$s/lib/bug-section.sh"
 commit_head
-expect_suites "#487: in the real repo, a change to lib/bug-section.sh selects build-develop-prompt.test.sh, whose script sources it across a continued line" \
+expect_suites "#487: in the real repo, a change to lib/bug-section.sh selects build-develop-prompt's suite, whose script sources it across a continued line" \
   skills/tdd/scripts/tests/build-develop-prompt.test.sh
 
 make_repo harness-adopters
