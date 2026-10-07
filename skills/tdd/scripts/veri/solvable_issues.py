@@ -5,11 +5,13 @@ import subprocess
 import sys
 
 import blocked_by
-from github import NoAnswer, gh_json
+from github import NoAnswer, gh_json, gh_json_page
 from json_documents import items
 
 USAGE = "usage: solvable-issues.sh [--repo owner/name]"
 OLDEST_FIRST = "?state=all&sort=created&direction=asc&per_page=100"
+OPEN_PAGE = "?state=open&per_page=100"
+PAGE_SIZE = 100
 
 
 def main_working_tree():
@@ -65,8 +67,10 @@ def main(argv):
     scope = ["--repo", repo] if repo else []
     prefix = "repos/%s" % (repo or "{owner}/{repo}")
     try:
-        issues = gh_json("issues.json", prefix + "/issues" + OLDEST_FIRST,
-                         "issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope)
+        issue_args = ("issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope)
+        issues = gh_json_page("issues.json", prefix + "/issues" + OPEN_PAGE, *issue_args)
+        if len(items(issues)) >= PAGE_SIZE:
+            issues = gh_json("issues.json", prefix + "/issues" + OLDEST_FIRST, *issue_args)
         prs = gh_json("prs.json", prefix + "/pulls" + OLDEST_FIRST,
                       "pr", "list", "--limit", "10000", "--json", "body,state", *scope)
     except NoAnswer:
