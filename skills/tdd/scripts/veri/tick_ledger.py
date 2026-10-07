@@ -19,7 +19,7 @@ def main(argv):
     try:
         with open(argv[0], newline="") as file:
             text = file.read()
-    except (IsADirectoryError, FileNotFoundError) as error:
+    except OSError as error:
         print(f"tick-ledger.sh: {argv[0]}: {error.strerror}", file=sys.stderr)
         return 2
     ticked, new = ledger.ledger_tick(text.replace("\0", ""), (argv[1:] or [""])[0], pending)
