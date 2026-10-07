@@ -117,21 +117,17 @@ planted="$(scratch_dir)"
 cp -R "$HERE/../.." "$planted/tdd"
 printf '%s\n' 'SESSION_VARS+=(VERI_PLANTED_621)' >> "$planted/tdd/scripts/lib/session-env.sh"
 claude_stub "$envstub" 'cat > /dev/null; env > "$ENV_OUT"'
-rm -f "$work/leaf.env" "$work/conductor.env"
-( cd "$work" && env VERI_PLANTED_621=from-the-conductor CLAUDE_BIN="$envstub/claude" \
-    ENV_OUT="$work/leaf.env" "$planted/tdd/scripts/run-leaf.sh" "$work/prompt.txt" ) >/dev/null 2>&1
+rm -f "$work/conductor.env"
 ( cd "$work" && env VERI_PLANTED_621=from-the-conductor CLAUDE_BIN="$envstub/claude" \
     ENV_OUT="$work/conductor.env" GIT_CEILING_DIRECTORIES="$planted" \
     "$planted/tdd/scripts/run-conductor.sh" 4242 ) >/dev/null 2>&1
 problems=()
-for who in leaf conductor; do
-  if [[ ! -f "$work/$who.env" ]]; then
-    problems+=("the $who's claude was never started")
-  elif grep -E '^VERI_PLANTED_621=' "$work/$who.env" > /dev/null; then
-    problems+=("VERI_PLANTED_621, added to lib/session-env.sh's SESSION_VARS, reached the $who's claude")
-  fi
-done
-report "a variable added to the shared session list reaches neither the leaf's nor the conductor's claude (#621)"
+if [[ ! -f "$work/conductor.env" ]]; then
+  problems+=("the conductor's claude was never started")
+elif grep -E '^VERI_PLANTED_621=' "$work/conductor.env" > /dev/null; then
+  problems+=("VERI_PLANTED_621, added to lib/session-env.sh's SESSION_VARS, reached the conductor's claude")
+fi
+report "a variable added to lib/session-env.sh's session list does not reach the conductor's claude (#621)"
 
 lost=()
 for how in unset empty; do

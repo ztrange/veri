@@ -7,6 +7,7 @@ import sys
 import tempfile
 
 from extract_result import extract
+from session_env import strip_session_env
 
 USAGE = "usage: run-leaf.sh <prompt-file|-> [claude args...]"
 
@@ -55,9 +56,11 @@ def main(argv):
             complain(git_path, error)
             return 1
         os.environ["GIT_CONFIG_GLOBAL"] = git_path
+        env = dict(os.environ)
+        strip_session_env(env)
         command = leaf_argv(prompt, argv[1:])
         try:
-            leaf = subprocess.Popen(command, stdout=subprocess.PIPE)
+            leaf = subprocess.Popen(command, stdout=subprocess.PIPE, env=env)
         except OSError as error:
             complain(command[0], error)
             status = 2
