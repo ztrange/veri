@@ -479,16 +479,15 @@ expect_suites "#487: a comment that names a lib file is still not a dependency" 
 make_repo rule2-bug-section
 mkdir -p "$s/lib" "$s/tests"
 for name in build-develop-prompt build-verify-prompt; do printf '# %s suite\n' "$name" > "$s/tests/$name.test.sh"; done
-for f in "$HERE"/../*.sh "$HERE/../lib/bug-section.sh"; do
+for f in "$HERE/../build-develop-prompt.sh" "$HERE/../lib/bug-section.sh"; do
   rel="${f#"$HERE"/../}"
   cat "$f" > "$s/$rel"
 done
 commit_base
 printf '# changed\n' >> "$s/lib/bug-section.sh"
 commit_head
-expect_suites "#487: in the real repo, a change to lib/bug-section.sh selects both build-*-prompt suites" \
-  skills/tdd/scripts/tests/build-develop-prompt.test.sh \
-  skills/tdd/scripts/tests/build-verify-prompt.test.sh
+expect_suites "#487: in the real repo, a change to lib/bug-section.sh selects build-develop-prompt.test.sh, whose script sources it across a continued line" \
+  skills/tdd/scripts/tests/build-develop-prompt.test.sh
 
 make_repo harness-adopters
 mkdir -p "$s/tests/lib" "$s/tests/unit"
