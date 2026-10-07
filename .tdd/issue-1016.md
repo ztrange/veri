@@ -12,5 +12,5 @@
 - [x] skill-drift.sh given VERI_SKILL_CLONE naming the skills/tdd directory inside the clone, as run-conductor.sh hands it, still lists the conductor-path commits after the pinned one and still leaves out a commit touching only skills/tdd/scripts/tests/ ⟦added⟧ ⟦criterion 8⟧
 - [x] skill-drift.sh with VERI_SKILL_REF unset or empty, on an otherwise pinned run with a known clone, prints a `Skill drift: unavailable — <reason>` line and exits 0, never a traceback ⟦added⟧ ⟦criterion 8⟧
 - [x] skills/tdd/SKILL.md Bailing sub-step 6 runs $S/skill-drift.sh and puts its output in the ### ⛔ Bailed comment after the reason, with `Skill drift: unavailable — skill-drift.sh exited <code>` there instead on a non-zero exit, and sub-steps 7 and 8 carry the same block to the PR and to the user ⟦diff-checked⟧ ⟦criterion 9⟧
-- [ ] skills/tdd/scripts/skill-drift.sh is a /bin/sh shim that execs python3 on veri/skill_drift.py, with no Python source in the shim ⟦diff-checked⟧ ⟦criterion 10⟧
+- [x] skills/tdd/scripts/skill-drift.sh is a /bin/sh shim that execs python3 on veri/skill_drift.py, with no Python source in the shim ⟦diff-checked⟧ ⟦criterion 10⟧
 - [ ] CLAUDE.md's script count ("seventy-one bash scripts", its "sixty-nine" and its test-file tallies) counts skill-drift.sh and any suite added for it ⟦diff-checked⟧ ⟦criterion 11⟧
