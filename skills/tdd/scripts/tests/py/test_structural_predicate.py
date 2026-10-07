@@ -1,6 +1,7 @@
 """In-process cases for veri/structural_predicate.py, the module structural-predicate.sh is a shim over."""
 import importlib
 import io
+import os
 import pathlib
 import subprocess
 import sys
@@ -108,3 +109,81 @@ def test_main_skips_a_none_value_and_runs_its_near_misses_as_commands(
         code = structural_predicate.main(["record"])
         assert (value, code, ran) == (value, 1, [["bash", "-c", value]])
     assert list(tmp_path.iterdir()) == []
+
+
+def test_main_runs_the_predicate_through_bash_and_writes_the_record_only_on_a_non_zero_run(
+    monkeypatch, capsys, tmp_path, structural_predicate
+):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("predicate", "leaked")
+    monkeypatch.setenv("VERI_KEPT", "kept")
+    record = tmp_path / "record"
+    runs = []
+    answer = []
+
+    def run(args, *rest, **kwargs):
+        env = kwargs.get("env")
+        env = dict(os.environ if env is None else env)
+        runs.append(
+            (
+                args,
+                rest,
+                kwargs.get("stdin"),
+                kwargs.get("stdout"),
+                kwargs.get("stderr"),
+                kwargs.get("cwd"),
+                os.path.realpath(os.getcwd()),
+                "predicate" in env,
+                env.get("VERI_KEPT"),
+                kwargs.get("timeout"),
+            )
+        )
+        if isinstance(answer[0], BaseException):
+            raise answer[0]
+        return subprocess.CompletedProcess(args, answer[0])
+
+    def call(value):
+        return (
+            ["bash", "-c", value],
+            (),
+            subprocess.DEVNULL,
+            subprocess.DEVNULL,
+            subprocess.DEVNULL,
+            None,
+            os.path.realpath(tmp_path),
+            False,
+            "kept",
+            None,
+        )
+
+    monkeypatch.setattr(subprocess, "run", run)
+    for report, value in (
+        (b"PREDICATE: true\n", "true"),
+        (b"PREDICATE:\n", ""),
+        (b"PREDICATE: \n", ""),
+    ):
+        runs.clear()
+        answer[:] = [0]
+        fake_stdin(monkeypatch, report)
+        code = structural_predicate.main(["record"])
+        assert (report, code, capsys.readouterr().out, runs, record.exists()) == (
+            report, 1, "", [call(value)], False
+        )
+
+    for status in (1, 127, FileNotFoundError("bash"), PermissionError("bash")):
+        runs.clear()
+        answer[:] = [status]
+        record.write_bytes(b"an older and much longer record\n")
+        fake_stdin(monkeypatch, b"PREDICATE: test -e caf\xc3\xa9\n")
+        code = structural_predicate.main(["record"])
+        value = b"test -e caf\xc3\xa9".decode("utf-8", "surrogateescape")
+        assert (repr(status), code, capsys.readouterr().out, runs, record.read_bytes()) == (
+            repr(status), 0, "", [call(value)], b"test -e caf\xc3\xa9\n"
+        )
+
+    answer[:] = [1]
+    fake_stdin(monkeypatch, b"PREDICATE: false\n")
+    code = structural_predicate.main(["missing/record"])
+    captured = capsys.readouterr()
+    assert (code, captured.out, "missing/record" in captured.err) == (1, "", True)
+    assert not (tmp_path / "missing").exists()
