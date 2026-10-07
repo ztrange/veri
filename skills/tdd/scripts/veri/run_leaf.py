@@ -13,10 +13,9 @@ from session_env import strip_session_env
 USAGE = "usage: run-leaf.sh <prompt-file|-> [claude args...]"
 
 
-def leaf_argv(env, binary, prompt, extra):
+def leaf_argv(binary, model, prompt, extra):
     argv = [binary or "claude", "-p", prompt,
             "--output-format", "stream-json", "--verbose"]
-    model = env.get("VERI_LEAF_MODEL", "")
     if model:
         argv += ["--model", model]
     return argv + extra
@@ -62,12 +61,13 @@ def main(argv):
             return 2
         env = dict(os.environ)
         binary = env.get("CLAUDE_BIN")
+        model = env.get("VERI_LEAF_MODEL", "")
         strip_session_env(env)
         env["GIT_CONFIG_GLOBAL"] = git_path
         if env.get("VERI_SHIM_SET_COERCE") == "1":
             del env["VERI_SHIM_SET_COERCE"]
             env.pop("PYTHONCOERCECLOCALE", None)
-        command = leaf_argv(env, binary, prompt, argv[1:])
+        command = leaf_argv(binary, model, prompt, argv[1:])
         try:
             leaf = subprocess.Popen(command, stdout=subprocess.PIPE, env=env,
                                     restore_signals=False)
