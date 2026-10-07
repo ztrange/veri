@@ -42,7 +42,7 @@ def main(argv):
     elif phase in ("refactor", "transform"):
         shas = (("<base-sha>", fourth),)
     elif phase == "rebase":
-        shas = (("<onto-sha> <pre-rebase-sha>", argv[2]), ("<onto-sha> <pre-rebase-sha>", fourth))
+        shas = tuple(("<onto-sha> <pre-rebase-sha>", value) for value in (argv[2], fourth))
     else:
         shas = ()
     for label, value in shas:
