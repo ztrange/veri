@@ -44,3 +44,82 @@ def test_main_refuses_no_argument_an_unknown_phase_a_short_count_an_unknown_revi
         ("diff", s, "s", "c"): (2, b"", b"build-develop-prompt: diff needs 5 arguments, got 4\n" + USAGE),
         ("revise", "diff", s, "s", "c", r): (2, b"", b"build-develop-prompt: missing <fast-cmd>\n" + USAGE),
     }
+
+
+def test_main_refuses_in_the_check_order_each_missing_argument_by_its_own_name_and_ignores_arguments_past_the_count(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+    s, r = str(spec), str(reason)
+
+    def refused(message):
+        return (2, b"", b"build-develop-prompt" + message + b"\n" + USAGE)
+
+    expected = {
+        ("", s, "s", "c"): refused(b".sh: unknown phase '' (want " + PHASES + b")"),
+        ("revise", "bogus", "a", "b", "c"): refused(b": revise needs 6 arguments, got 5"),
+        ("red", s, "s"): refused(b": red needs 4 arguments, got 3"),
+        ("cover", s, "s"): refused(b": cover needs 4 arguments, got 3"),
+        ("transform", s, "s"): refused(b": transform needs 4 arguments, got 3"),
+        ("diff", s, "s", "c"): refused(b": diff needs 5 arguments, got 4"),
+        ("refactor", s, "s", "c"): refused(b": refactor needs 5 arguments, got 4"),
+        ("structural", s, "s", "c"): refused(b": structural needs 5 arguments, got 4"),
+        ("predicate", s, "s", "c"): refused(b": predicate needs 5 arguments, got 4"),
+        ("exhausted", s, "s", "c"): refused(b": exhausted needs 5 arguments, got 4"),
+        ("revise", "red", s, "s", "c"): refused(b": revise needs 6 arguments, got 5"),
+        ("reconcile", s, "s", "c", "b"): refused(b": reconcile needs 6 arguments, got 5"),
+        ("over-budget", s, "s", "c", "1"): refused(b": over-budget needs 6 arguments, got 5"),
+        ("green", s, "s", "c", "tp", "tt"): refused(b": green needs 7 arguments, got 6"),
+        ("rebase", s, "s", "c", "a", "b"): refused(b": rebase needs 7 arguments, got 6"),
+        ("revise", "", s, "s", "c", r): refused(b": missing <phase> being revised"),
+        ("red", "", "", ""): refused(b": missing <issue-spec-file>"),
+        ("red", s, "", ""): refused(b": missing <step-text>"),
+        ("red", s, "s", ""): refused(b": missing <test-cmd>"),
+        ("revise", "red", "", "s", "c", r): refused(b": missing <issue-spec-file>"),
+        ("revise", "diff", s, "s", "", "", ""): refused(b": missing <test-cmd>"),
+        ("green", s, "s", "c", "", "", ""): refused(b": missing <test-path>"),
+        ("green", s, "s", "c", "tp", "", ""): refused(b": missing <target-test>"),
+        ("green", s, "s", "c", "tp", "tt", ""): refused(b": missing <fast-cmd>"),
+        ("diff", s, "s", "c", ""): refused(b": missing <fast-cmd>"),
+        ("structural", s, "s", "c", ""): refused(b": missing <issue-touched-files>"),
+        ("predicate", s, "s", "c", ""): refused(b": missing <issue-touched-files>"),
+        ("refactor", s, "s", "c", ""): refused(b": missing <touched-files>"),
+        ("revise", "red", s, "s", "c", ""): refused(b": missing <reason-file>"),
+        ("exhausted", s, "s", "c", ""): refused(b": missing <reason-file>"),
+        ("revise", "diff", s, "s", "c", "", ""): refused(b": missing <reason-file>"),
+        ("revise", "diff", s, "s", "c", r, ""): refused(b": missing <fast-cmd>"),
+        ("reconcile", s, "s", "c", "", ""): refused(b": missing <branch>"),
+        ("reconcile", s, "s", "c", "b", ""): refused(b": missing <remote-sha>"),
+        ("rebase", s, "s", "c", "", "", ""): refused(b": missing <onto-sha>"),
+        ("rebase", s, "s", "c", "a", "", ""): refused(b": missing <pre-rebase-sha>"),
+        ("rebase", s, "s", "c", "a", "b", ""): refused(b": missing <conflicting-files>"),
+        ("over-budget", s, "s", "c", "", ""): refused(b": missing <spent>"),
+        ("over-budget", s, "s", "c", "1", ""): refused(b": missing <budget>"),
+    }
+    results = {}
+    for argv in expected:
+        code = build_develop_prompt.main(list(argv))
+        results[argv] = (code, *capsysbinary.readouterr())
+
+    complete = [("red", s, "s", "c"), ("cover", s, "s", "c"), ("transform", s, "s", "c"),
+                ("diff", s, "s", "c", "f"), ("refactor", s, "s", "c", "t"), ("structural", s, "s", "c", "t"),
+                ("predicate", s, "s", "c", "t"), ("exhausted", s, "s", "c", r),
+                ("revise", "red", s, "s", "c", r), ("revise", "green", s, "s", "c", r),
+                ("revise", "refactor", s, "s", "c", r), ("revise", "diff", s, "s", "c", r, "f"),
+                ("reconcile", s, "s", "c", "b", "sha"), ("over-budget", s, "s", "c", "1", "2"),
+                ("green", s, "s", "c", "tp", "tt", "f"), ("rebase", s, "s", "c", "a", "b", "x")]
+    ignored = {}
+    for argv in complete:
+        answers = []
+        for extra in ((), ("",), ("past", "the", "count")):
+            code = build_develop_prompt.main(list(argv + extra))
+            answers.append((code, *capsysbinary.readouterr()))
+        ignored[argv] = (answers[0][0], answers[1] == answers[0], answers[2] == answers[0])
+
+    assert results == expected
+    assert ignored == {argv: (0, True, True) for argv in complete}
+    assert type(build_develop_prompt.PHASES) is tuple
+    assert "|".join(build_develop_prompt.PHASES).encode() == PHASES
+    assert build_develop_prompt.REVISE_PHASES == ("red", "green", "refactor", "diff")
