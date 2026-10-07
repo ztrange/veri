@@ -6,3 +6,5 @@
 ### clear-refactor-pending.sh: when removing the backup raises without deleting it, the run exits 2 with no traceback and names the leftover backup in exactly one `clear-refactor-pending.sh: …` stderr line, so nothing is left beside the ledger unannounced ⟦criterion 2⟧
 - flatten main()'s nested try/except write path into a helper that returns whether the ledger holds good bytes (moves behaviour; the issue leaves it to #1092's rewrite)
 - test-only | hoist the `FullDisk` fake (copied into about eight cases, including the new #1125 case) and the full-disk/refusing `os.open` fakes to module-level helpers in test_clear_refactor_pending.py
+### tick-ledger.sh: when putting the ticked ledger in place fails and removing its temporary file raises without deleting it, the run exits 2 with no traceback, the ledger is byte-identical, and the leftover temporary file is named in exactly one `tick-ledger.sh: …` stderr line ⟦criterion 2⟧
+- test-only | extract the `refusing_replace` fake shared by the 1110 and 1125 cases in test_tick_ledger.py into one helper
