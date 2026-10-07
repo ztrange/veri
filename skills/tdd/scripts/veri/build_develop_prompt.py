@@ -3,7 +3,7 @@ import os
 import re
 import sys
 
-from build_verify_prompt import _IncludeRefused, _expand, _has_heading, _spec_text
+from build_verify_prompt import _IncludeRefused, _expand, _has_heading, _spec_text, _write
 
 PHASES = ("red", "green", "refactor", "cover", "transform", "diff", "structural", "predicate", "revise",
           "reconcile", "exhausted", "over-budget", "rebase")
@@ -19,10 +19,6 @@ ARGUMENT_PLACEHOLDERS = {"<test-path>": "TEST_PATH", "<target-test>": "TARGET_TE
                          "<onto-sha>": "ONTO_SHA", "<pre-rebase-sha>": "PRE_REBASE_SHA",
                          "<conflicting-files>": "CONFLICTING_FILES"}
 USAGE = f"build-develop-prompt.sh: usage: {WANT_PHASES} <issue-spec-file> <step-text> <test-cmd> ..."
-
-
-def _write(stream, text):
-    stream.buffer.write(os.fsencode(text + "\n"))
 
 
 def _read(path):
