@@ -242,4 +242,25 @@ elif grep -E '^VERI_PLANTED_621=' "$work/planted-conductor.env" > /dev/null; the
 fi
 report "a name planted in lib/session-env.sh's SESSION_VARS stays out of run-conductor.sh's claude's environment"
 
+problems=()
+dispositions="$(scratch_dir)"
+printf '%s\n' '#!/usr/bin/env bash' 'trap -p PIPE XFSZ > "$DISP_OUT"' \
+  "printf '%s\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"ok\"}'" \
+  > "$dispositions/claude"
+chmod +x "$dispositions/claude"
+for handed in SIG_DFL SIG_IGN; do
+  ( cd "$work" && env CLAUDE_BIN="$dispositions/claude" DISP_OUT="$dispositions/$handed" python3 -c '
+import os, signal, sys
+for name in ("SIGPIPE", "SIGXFSZ"):
+    signal.signal(getattr(signal, name), getattr(signal, sys.argv[1]))
+os.execv(sys.argv[2], sys.argv[2:])
+' "$handed" "$LEAF" "$work/prompt.txt" > /dev/null 2>&1 )
+done
+[[ -f "$dispositions/SIG_DFL" && ! -s "$dispositions/SIG_DFL" ]] \
+  || problems+=("with the caller's SIGPIPE and SIGXFSZ at their default, claude had: '$(cat "$dispositions/SIG_DFL" 2>&1)'")
+printf "trap -- '' SIGPIPE\ntrap -- '' SIGXFSZ\n" > "$dispositions/want-ignored"
+cmp -s "$dispositions/want-ignored" "$dispositions/SIG_IGN" \
+  || problems+=("with the caller's SIGPIPE and SIGXFSZ ignored, claude had: '$(cat "$dispositions/SIG_IGN" 2>&1)'")
+report "hands claude SIGPIPE and SIGXFSZ as its caller had them: at their default when the caller left them default, ignored when the caller ignored them"
+
 finish
