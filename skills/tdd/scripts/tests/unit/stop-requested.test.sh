@@ -94,6 +94,14 @@ check_refused "--clear --bogus" --clear --bogus
 verdict "--clear with a trailing argument exits 2 and leaves .tdd/stop as it was"
 
 problems=""
+run_stop --bogus
+want="usage: stop-requested.sh [--clear]"
+if [[ "$code" != 2 || -n "$out" || "$err" != "$want" ]]; then
+  problems+="    --bogus: want exit 2, empty stdout and stderr '$want', got exit $code, stdout '$out' and stderr '$err'"$'\n'
+fi
+verdict "--bogus exits 2 with exactly the usage line on stderr and nothing on stdout"
+
+problems=""
 listed="$work/listed"; mkdir -p "$listed/lib"
 cp "$STOP" "$listed/stop-requested.sh"
 cp "$HERE/../.."/lib/*.sh "$listed/lib/"
