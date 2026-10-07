@@ -226,3 +226,73 @@ def test_main_starts_the_suite_alone_on_dev_null_with_maintenance_auto_off_and_s
         }, [])], True)
         for count in ("2", None)
     ]
+
+
+def stub_python(path):
+    path.parent.mkdir(parents=True)
+    path.write_text(
+        "#!/bin/sh\n"
+        "printf '%s %s\\n' \"$0\" \"$*\" >> \"$STUB_LOG\"\n"
+        "[ \"$3\" = --version ] && exit \"$STUB_VERSION_CODE\"\n"
+        "cat >> \"$STUB_LOG\"\n"
+        "echo 'no tally here'\n"
+        "exit \"$STUB_RUN_CODE\"\n"
+    )
+    path.chmod(0o755)
+    return str(path)
+
+
+def test_main_runs_a_pytest_suite_under_the_venv_python_and_maps_its_exit_code_without_a_count_line_check(tmp_path, capfd, monkeypatch, run_suite):
+    suite = tmp_path / "tests" / "py" / "test_fake.py"
+    suite.parent.mkdir(parents=True)
+    suite.write_text("def test_nothing():\n    pass\n")
+    venv_py = stub_python(tmp_path / "venv" / "bin" / "python3")
+    home_py = stub_python(tmp_path / "home" / ".veri-tools" / "venv" / "bin" / "python3")
+    path_py = stub_python(tmp_path / "pathbin" / "python3")
+    log = tmp_path / "stub.log"
+    monkeypatch.setenv("STUB_LOG", str(log))
+    monkeypatch.setenv("PATH", str(tmp_path / "pathbin") + os.pathsep + os.environ["PATH"])
+    leaked = tmp_path / "stdin.txt"
+    leaked.write_text("leaked stdin\n")
+    saved_stdin = os.dup(0)
+    answers = []
+    try:
+        with open(leaked) as f:
+            os.dup2(f.fileno(), 0)
+        for venv, home, version_code, run_code in (
+            (str(tmp_path / "venv"), str(tmp_path / "home"), "0", "0"),
+            (None, str(tmp_path / "home"), "0", "0"),
+            (None, str(tmp_path / "nohome"), "0", "0"),
+            (str(tmp_path / "venv"), str(tmp_path / "home"), "1", "0"),
+            *((str(tmp_path / "venv"), str(tmp_path / "home"), "0", code) for code in "12345"),
+        ):
+            if venv is None:
+                monkeypatch.delenv("VERI_VENV", raising=False)
+            else:
+                monkeypatch.setenv("VERI_VENV", venv)
+            monkeypatch.setenv("HOME", home)
+            monkeypatch.setenv("STUB_VERSION_CODE", version_code)
+            monkeypatch.setenv("STUB_RUN_CODE", run_code)
+            log.write_text("")
+            code = run_suite.main([str(suite)])
+            out, err = capfd.readouterr()
+            answers.append((code, log.read_text().splitlines(), err, "never reached its count line" in out))
+    finally:
+        os.dup2(saved_stdin, 0)
+        os.close(saved_stdin)
+
+    def ran(py, code):
+        return (code, ["%s -m pytest --version" % py, "%s -m pytest %s" % (py, suite)], "", False)
+
+    assert answers == [
+        ran(venv_py, 0),
+        ran(home_py, 0),
+        ran(path_py, 0),
+        (2, ["%s -m pytest --version" % venv_py],
+         "run-suite.sh: pytest cannot be imported by %s; run make install-dev\n" % venv_py, False),
+        ran(venv_py, 1),
+        ran(venv_py, 2),
+        ran(venv_py, 3),
+        ran(venv_py, 2),
+        ran(venv_py, 2),
+    ]
