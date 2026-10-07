@@ -230,8 +230,8 @@ def test_main_writes_the_ledger_in_place_keeping_a_symlink_a_symlink_and_reading
     assert (tmp_path / "relative.md").read_bytes() == seed
 
 
-def test_main_raises_rather_than_returning_a_code_on_a_refused_write_back_leaving_the_ledger_byte_identical(
-        tmp_path, monkeypatch, clear_refactor_pending):
+def test_main_returns_2_without_raising_leaving_the_ledger_byte_identical_and_nothing_beside_it_when_opening_the_ledger_for_writing_fails_1110(
+        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
     seed = "- [x] a ⟂ refactor pending\n".encode()
     refused = tmp_path / "refused.md"
     refused.write_bytes(seed)
@@ -243,9 +243,10 @@ def test_main_raises_rather_than_returning_a_code_on_a_refused_write_back_leavin
         return real_open(file, mode, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "open", refusing_open)
-    with pytest.raises(PermissionError):
-        clear_refactor_pending.main([str(refused), "a"])
+    assert clear_refactor_pending.main([str(refused), "a"]) == 2
+    assert b"Traceback" not in capsysbinary.readouterr().err
     assert refused.read_bytes() == seed
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["refused.md"]
 
 
 def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_writing_the_cleared_ledger_fails_817(
