@@ -61,8 +61,8 @@ def main(argv):
             complain(git_path, error)
             return 2
         env = dict(os.environ)
-        env["GIT_CONFIG_GLOBAL"] = git_path
         strip_session_env(env)
+        env["GIT_CONFIG_GLOBAL"] = git_path
         if env.get("VERI_SHIM_SET_COERCE") == "1":
             del env["VERI_SHIM_SET_COERCE"]
             env.pop("PYTHONCOERCECLOCALE", None)

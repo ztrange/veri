@@ -556,7 +556,7 @@ def test_main_strips_after_git_config_global_is_set_and_before_claude_bin_and_ve
             answers.append((code, list(seen)))
 
     assert answers == [
-        (0, [("claude", False, False, None, None)]),
+        (0, [("claude", False, True, None, None)]),
         (0, [("claude", False, True, None, None)]),
         (0, [("claude", False, True, "1", None)]),
     ]
