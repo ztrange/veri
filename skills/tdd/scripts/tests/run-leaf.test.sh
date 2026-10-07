@@ -240,4 +240,19 @@ VERDICT: PASS'
 [[ "$(cat "$streamed/out")" == "$expected" ]] || problems+=("stdout after the release differed: '$(cat "$streamed/out")'")
 report "streams claude's stdout as it arrives: the first line is out while claude waits, the result record only after, then the full stdout and exit 0"
 
+problems=()
+conductor_tree="$(scratch_dir)"
+cp -R "$HERE/../.." "$conductor_tree/tdd"
+printf '%s\n' 'SESSION_VARS+=(VERI_PLANTED_621)' >> "$conductor_tree/tdd/scripts/lib/session-env.sh"
+rm -f "$work/planted-conductor.env"
+( cd "$work" && env VERI_PLANTED_621=from-the-conductor CLAUDE_BIN="$envstub/claude" \
+    ENV_OUT="$work/planted-conductor.env" GIT_CEILING_DIRECTORIES="$conductor_tree" \
+    "$conductor_tree/tdd/scripts/run-conductor.sh" 4242 ) >/dev/null 2>&1
+if [[ ! -f "$work/planted-conductor.env" ]]; then
+  problems+=("the conductor's claude was never started")
+elif grep -E '^VERI_PLANTED_621=' "$work/planted-conductor.env" > /dev/null; then
+  problems+=("VERI_PLANTED_621, added to lib/session-env.sh's SESSION_VARS, reached the conductor's claude")
+fi
+report "a name planted in lib/session-env.sh's SESSION_VARS stays out of run-conductor.sh's claude's environment"
+
 finish
