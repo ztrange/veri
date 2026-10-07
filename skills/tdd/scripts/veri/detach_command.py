@@ -28,7 +28,7 @@ def _recorded(exit_file):
 def _alive(pid_file):
     try:
         pid = _read(pid_file)
-        if not re.fullmatch("-?[0-9]+", pid):
+        if not re.fullmatch(r"\s*[-+]?[0-9]+\s*", pid):
             return False
         os.kill(int(pid), 0)
     except OSError:
