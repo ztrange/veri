@@ -8,7 +8,9 @@ PHASES = ("red", "green", "refactor", "cover", "transform", "diff", "structural"
 REVISE_PHASES = ("red", "green", "refactor", "diff")
 WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "transform": 4, "diff": 5, "structural": 5,
         "predicate": 5, "revise": 6, "reconcile": 6, "exhausted": 5, "over-budget": 6, "rebase": 7}
-USAGE = f"build-develop-prompt.sh: usage: {'|'.join(PHASES)} <issue-spec-file> <step-text> <test-cmd> ..."
+WANT_PHASES = "|".join(PHASES)
+WANT_REVISE_PHASES = "|".join(REVISE_PHASES)
+USAGE = f"build-develop-prompt.sh: usage: {WANT_PHASES} <issue-spec-file> <step-text> <test-cmd> ..."
 
 
 def _write(stream, text):
@@ -27,14 +29,14 @@ def main(argv):
         return _refuse()
     phase = argv[0]
     if phase not in PHASES:
-        return _refuse(f"build-develop-prompt.sh: unknown phase '{phase}' (want {'|'.join(PHASES)})")
+        return _refuse(f"build-develop-prompt.sh: unknown phase '{phase}' (want {WANT_PHASES})")
     if len(argv) < WANT[phase]:
         return _refuse(f"build-develop-prompt: {phase} needs {WANT[phase]} arguments, got {len(argv)}")
     if phase == "revise":
         revised_phase = argv[1]
-        if not re.fullmatch(f"({'|'.join(REVISE_PHASES)})", revised_phase):
+        if not re.fullmatch(f"({WANT_REVISE_PHASES})", revised_phase):
             return _refuse(f"build-develop-prompt.sh: unknown phase to revise '{revised_phase}' "
-                           f"(want {'|'.join(REVISE_PHASES)})")
+                           f"(want {WANT_REVISE_PHASES})")
         if revised_phase == "diff" and not (argv[6] if len(argv) > 6 else ""):
             return _refuse("build-develop-prompt: missing <fast-cmd>")
     return 0
