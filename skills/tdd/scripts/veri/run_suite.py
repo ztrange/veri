@@ -60,8 +60,13 @@ def main(argv):
     if not guard.get("COUNT_LINE") or not guard.get("COUNTLESS"):
         sys.stderr.write("run-suite.sh: could not read the count-line guard from %s\n" % guard_path)
         return 2
+    env = dict(os.environ)
+    n = int(env.get("GIT_CONFIG_COUNT") or 0)
+    env["GIT_CONFIG_KEY_%d" % n] = "maintenance.auto"
+    env["GIT_CONFIG_VALUE_%d" % n] = "false"
+    env["GIT_CONFIG_COUNT"] = str(n + 1)
     out = bytearray()
-    with subprocess.Popen([suite], stdout=subprocess.PIPE) as proc:
+    with subprocess.Popen([suite], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, env=env) as proc:
         for chunk in iter(lambda: proc.stdout.read1(65536), b""):
             sys.stdout.buffer.write(chunk)
             sys.stdout.buffer.flush()

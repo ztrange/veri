@@ -1,8 +1,10 @@
 """In-process cases for veri/run_suite.py, the module run-suite.sh is a shim over."""
 import importlib
 import importlib.util
+import os
 import pathlib
 import shutil
+import subprocess
 import sys
 
 import pytest
@@ -140,3 +142,87 @@ def test_main_renders_the_countless_refusal_escapes_and_an_argless_conversion_as
     assert (code, out.split(b"\n")[-3:]) == (
         1, [b"partial.test.sh: cr\rbell\a\b1oct 0 end", b"partial.test.sh: its last line was: partial", b""]
     )
+
+
+class FakeSuite:
+    def __init__(self, lines, capfd, seen):
+        self._lines = list(lines)
+        self._capfd = capfd
+        self._seen = seen
+        self._shown = ""
+        self.returncode = None
+        self.stdout = self
+
+    def _next(self, *_):
+        self._shown += self._capfd.readouterr().out
+        self._seen.append(self._shown)
+        return self._lines.pop(0) if self._lines else b""
+
+    read = read1 = readline = _next
+
+    def __iter__(self):
+        return iter(self._next, b"")
+
+    def close(self):
+        pass
+
+    def poll(self):
+        return self.wait() if not self._lines else None
+
+    def wait(self, *_):
+        self.returncode = 0
+        return 0
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        self.wait()
+
+
+def test_main_starts_the_suite_alone_on_dev_null_with_maintenance_auto_off_and_streams_its_lines(tmp_path, capfd, monkeypatch, run_suite):
+    lines = [b"one\n", b"two\n", b"3 passed, 0 failed\n"]
+    answers = []
+    for count in ("2", None):
+        for n in range(4):
+            monkeypatch.delenv("GIT_CONFIG_KEY_%d" % n, raising=False)
+            monkeypatch.delenv("GIT_CONFIG_VALUE_%d" % n, raising=False)
+        monkeypatch.delenv("TESTS", raising=False)
+        if count is None:
+            monkeypatch.delenv("GIT_CONFIG_COUNT", raising=False)
+        else:
+            monkeypatch.setenv("GIT_CONFIG_COUNT", count)
+            monkeypatch.setenv("GIT_CONFIG_KEY_0", "user.name")
+            monkeypatch.setenv("GIT_CONFIG_VALUE_0", "caller")
+            monkeypatch.setenv("GIT_CONFIG_KEY_1", "http.proxy")
+            monkeypatch.setenv("GIT_CONFIG_VALUE_1", "")
+        caller = dict(os.environ)
+        suite = fake_suite(tmp_path, "streamed.test.sh", "exit 0\n")
+        started = []
+        seen = []
+
+        def popen(args, **kwargs):
+            env = dict(kwargs["env"]) if kwargs.get("env") is not None else dict(os.environ)
+            stdin = kwargs.get("stdin")
+            started.append((
+                list(args) if not isinstance(args, str) else args,
+                kwargs.get("shell", False),
+                stdin is subprocess.DEVNULL or getattr(stdin, "name", None) == os.devnull,
+                {k: v for k, v in env.items() if caller.get(k) != v},
+                sorted(set(caller) - set(env)),
+            ))
+            return FakeSuite(lines, capfd, seen)
+
+        monkeypatch.setattr(run_suite.subprocess, "Popen", popen)
+        code = run_suite.main([suite])
+        streamed = all(b.decode() in seen[i + 1] for i, b in enumerate(lines))
+        answers.append((code, started, streamed))
+    n_of = {"2": 2, None: 0}
+    assert answers == [
+        (0, [([suite], False, True, {
+            "GIT_CONFIG_KEY_%d" % n_of[count]: "maintenance.auto",
+            "GIT_CONFIG_VALUE_%d" % n_of[count]: "false",
+            "GIT_CONFIG_COUNT": str(n_of[count] + 1),
+        }, [])], True)
+        for count in ("2", None)
+    ]
