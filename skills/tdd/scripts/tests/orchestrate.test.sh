@@ -330,7 +330,7 @@ name="launches run-conductor.sh <issue> as the leader of its own session, stdin 
 launchstate="$work/launchstate"
 mkdir -p "$launchstate"
 cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$launchstate/"
-cp -R "$scripts/lib" "$launchstate/"
+cp -R "$scripts/lib" "$scripts/veri" "$launchstate/"
 cat > "$launchstate/run-conductor.sh" <<'STUB'
 #!/usr/bin/env bash
 echo $$ >> "$MARKS.pid"
@@ -363,7 +363,7 @@ name="run through a symlink to its scripts directory from another working direct
 realskill="$work/realskill"
 mkdir -p "$realskill/.tdd/parked" "$work/elsewhere/.tdd/parked"
 cp "$scripts/orchestrate.sh" "$realskill/"
-cp -R "$scripts/lib" "$realskill/"
+cp -R "$scripts/lib" "$scripts/veri" "$realskill/"
 { printf '#!/bin/sh\necho "solvable-issues.sh linked" >> "$MARKS"\n'; tail -n +2 "$scripts/solvable-issues.sh"; } > "$realskill/solvable-issues.sh"
 { printf '#!/bin/sh\necho "run-conductor.sh linked $1" >> "$MARKS"\n'; tail -n +2 "$scripts/run-conductor.sh"; } > "$realskill/run-conductor.sh"
 chmod +x "$realskill"/*.sh
