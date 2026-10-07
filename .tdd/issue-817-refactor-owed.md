@@ -11,3 +11,5 @@
 ### clear-refactor-pending.sh, when the temporary file for the cleared ledger cannot be created beside it, leaves the ledger file byte-identical and exits 2 ⟦added⟧ ⟦criterion 1⟧
 - move the "make a temporary file beside the ledger, return 2 on OSError" block shared by veri/clear_refactor_pending.py:28-31 and veri/tick_ledger.py:23-26 into one helper in veri/ledger.py (an extract across files, not applied in this phase)
 - test-only | in test_clear_refactor_pending.py, three tests (the ones at lines 262, 299 and 318) each repeat the same steps: write a seed ledger, call main, catch OSError as the type name, undo the monkeypatch, drain the captured output, assert (2, seed) — fold them into one shared fixture or helper
+### clear-refactor-pending.sh, when a trial write of the cleared ledger succeeds but the write to the ledger itself fails and so does writing its old contents back, leaves the ledger file byte-identical and exits 2 ⟦added⟧ ⟦criterion 1⟧
+- out-of-scope | `tick_ledger.py:24-31` repeats the same write-a-temp-file-beside-the-ledger pattern, so it could share `write_beside`, but this cycle did not write that code.
