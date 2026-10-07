@@ -18,7 +18,7 @@ def cover_outcome():
 
 
 def run(monkeypatch, capsys, cover_outcome, report, argv):
-    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(report.encode())))
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(report.encode()), newline="\n"))
     code = cover_outcome.main(argv)
     return (code, *capsys.readouterr())
 
@@ -41,3 +41,35 @@ def test_main_returns_each_exit_code_inside_0_to_3_with_its_stdout_and_stderr_ig
         "type-only": (3, "type-only: npx tsc --noEmit\n", ""),
     }
     assert all(code in range(4) for code, _, _ in results.values())
+
+
+def test_main_reads_its_report_through_report_read_and_answers_each_covered_branch_the_contract_cases_leave_open(monkeypatch, capsys, cover_outcome):
+    no_line = (2, "", "cover-outcome: no COVERED: line found\n")
+    reports = {
+        "yes without CAUGHT_BY": "COVERED: yes\n",
+        "yes with PROOF": "COVERED: yes\nCAUGHT_BY: widget.test.sh: blue\nPROOF: npx tsc --noEmit\n",
+        "Yes": "COVERED: Yes\nCAUGHT_BY: widget.test.sh: blue\n",
+        "YES": "COVERED: YES\nCAUGHT_BY: widget.test.sh: blue\n",
+        "yes with a trailing space": "COVERED: yes \nCAUGHT_BY: widget.test.sh: blue\n",
+        "maybe": "COVERED: maybe\n",
+        "empty": "COVERED: \n",
+        "no with CAUGHT_BY and PROOF": "COVERED: no\nCAUGHT_BY: widget.test.sh: blue\nPROOF: npx tsc --noEmit\n",
+        "no then yes": "COVERED: no\nCAUGHT_BY: widget.test.sh: blue\nCOVERED: yes\n",
+        "yes with a carriage return": "COVERED: yes\r\nCAUGHT_BY: widget.test.sh: blue\n",
+        "unterminated no": "MUTATION: flip the colour\nCOVERED: no",
+    }
+    results = {name: run(monkeypatch, capsys, cover_outcome, report, []) for name, report in reports.items()}
+
+    assert results == {
+        "yes without CAUGHT_BY": (0, "\n", ""),
+        "yes with PROOF": (0, "widget.test.sh: blue\n", ""),
+        "Yes": no_line,
+        "YES": no_line,
+        "yes with a trailing space": no_line,
+        "maybe": no_line,
+        "empty": no_line,
+        "no with CAUGHT_BY and PROOF": (1, "", ""),
+        "no then yes": (0, "widget.test.sh: blue\n", ""),
+        "yes with a carriage return": no_line,
+        "unterminated no": (1, "", ""),
+    }
