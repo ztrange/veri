@@ -278,3 +278,23 @@ def test_main_renders_a_red_prompt_with_each_file_stripped_of_trailing_newlines_
         b"shared rules\n[pin \xfe it]\n[# spec \xff\n\nbody]\n[make test]\n["
         + os.fsencode(str(link / "scripts" / "timed-test-run.sh")) + b"]\n",
         b"")
+
+
+def test_main_drops_nul_bytes_from_the_template_the_shared_rules_and_the_spec_it_renders(tmp_path, capsysbinary):
+    scripts = tmp_path / "scripts"
+    (scripts / "veri").mkdir(parents=True)
+    for source in (SCRIPTS / "veri").glob("*.py"):
+        (scripts / "veri" / source.name).write_bytes(source.read_bytes())
+    (scripts / "prompts").mkdir()
+    (scripts / "prompts" / "develop-red.md").write_bytes(b"te\x00mplate\n{{SHARED}}\n[{{ISSUE_SPEC}}]\n")
+    (scripts / "prompts" / "_develop-shared.md").write_bytes(b"sha\x00red\n")
+    loader = importlib.util.spec_from_file_location("build_develop_prompt_nul",
+                                                    scripts / "veri" / "build_develop_prompt.py")
+    module = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(module)
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# sp\x00ec\x00\n")
+
+    code = module.main(["red", str(spec), "s", "make test"])
+
+    assert (code, *capsysbinary.readouterr()) == (0, b"template\nshared\n[# spec]\n", b"")
