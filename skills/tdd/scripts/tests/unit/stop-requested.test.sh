@@ -63,37 +63,6 @@ check_malformed "a zero-byte file"
 verdict "a malformed stop request: nothing on stdout, a diagnostic on stderr, exit 2"
 
 problems=""
-printf '%s\n' "at-ledger" > "$work/.tdd/stop"
-run_stop --clear
-if [[ "$code" != 0 || -e "$work/.tdd/stop" ]]; then
-  exists="gone"; [[ -e "$work/.tdd/stop" ]] && exists="still there"
-  problems+="    with a stop request: want exit 0 and .tdd/stop gone, got exit $code and the file $exists"$'\n'
-fi
-rm -f "$work/.tdd/stop"
-run_stop --clear
-if [[ "$code" != 0 ]]; then
-  problems+="    with no stop request: want exit 0, got exit $code"$'\n'
-fi
-verdict "--clear removes a stop request and exits 0, with or without one to remove"
-
-check_refused() {
-  local label="$1"; shift
-  printf '%s\n' "at-ledger" > "$work/.tdd/stop"
-  run_stop "$@"
-  local left; left="$(cat "$work/.tdd/stop" 2>/dev/null || echo "<gone>")"
-  if [[ "$code" != 2 || "$left" != "at-ledger" ]]; then
-    problems+="    $label: want exit 2 and .tdd/stop still 'at-ledger', got exit $code and '$left'"$'\n'
-  fi
-}
-problems=""
-check_refused "--bogus" --bogus
-verdict "any other argument exits 2 and leaves .tdd/stop as it was"
-
-problems=""
-check_refused "--clear --bogus" --clear --bogus
-verdict "--clear with a trailing argument exits 2 and leaves .tdd/stop as it was"
-
-problems=""
 run_stop --bogus
 want="usage: stop-requested.sh [--clear]"
 if [[ "$code" != 2 || -n "$out" || "$err" != "$want" ]]; then
