@@ -326,5 +326,38 @@ expected="$(printf '%s\n' 'parked 1201' 1201 1202 '# Plan' '- [x] first step' '-
 actual="$(grep '^parked ' "$work/out"; cat "$LAUNCHES" "$work/.tdd/issue-1201.md")"
 expect_exit0_output
 
+name="launches run-conductor.sh <issue> as the leader of its own session, stdin /dev/null, stderr orchestrate's, SIGINT, SIGQUIT, SIGPIPE and SIGXFSZ ignored, and SIGTERMs that pid at the stop"
+launchstate="$work/launchstate"
+mkdir -p "$launchstate"
+cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$launchstate/"
+cp -R "$scripts/lib" "$launchstate/"
+cat > "$launchstate/run-conductor.sh" <<'STUB'
+#!/usr/bin/env bash
+echo $$ >> "$MARKS.pid"
+{ printf 'argv %s:' "$#"; printf ' [%s]' "$@"; echo; } >> "$MARKS"
+trap -p >> "$MARKS"
+python3 -c 'import os, sys
+print("session leader" if os.getsid(0) == int(sys.argv[1]) else "session %d, not %s" % (os.getsid(0), sys.argv[1]))
+print("stdin /dev/null" if os.path.samestat(os.fstat(0), os.stat("/dev/null")) else "stdin not /dev/null")' $$ >> "$MARKS"
+echo "conductor $1 on stderr" >&2
+echo "$1" >> "$LAUNCHES"
+grep -vx -- "$1" "$SOLVABLE" > "$SOLVABLE.next"
+mv "$SOLVABLE.next" "$SOLVABLE"
+trap 'echo "TERM to $$" >> "$MARKS"; exit 0' TERM
+exec > /dev/null
+i=0
+while [ $i -lt 400 ]; do sleep 0.01; i=$((i + 1)); done
+echo "never stopped" >> "$MARKS"
+STUB
+chmod +x "$launchstate"/*.sh
+seed launchstate 1301
+orchestrate "$launchstate"
+await_gone
+pid="$(cat "$MARKS.pid" 2>/dev/null)"
+expected="$(printf '%s\n' 'argv 1: [1301]' "trap -- '' SIGINT" "trap -- '' SIGQUIT" "trap -- '' SIGPIPE" "trap -- '' SIGXFSZ" \
+  'session leader' 'stdin /dev/null' "TERM to $pid" 'conductor 1301 on stderr')"
+actual="$(cat "$MARKS" "$work/err")"
+expect_exit0_output
+
 echo
 finish
