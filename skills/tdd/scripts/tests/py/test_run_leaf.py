@@ -6,6 +6,7 @@ import pathlib
 import select
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 
@@ -281,3 +282,35 @@ def test_main_returns_the_leafs_status_when_it_is_0_to_3_else_2_and_for_a_leaf_t
     assert (statuses, unstartable) == (
         [0, 1, 2, 3, 2, 2],
         [(2, b"\n", 1, True, True)] * 3)
+
+
+def test_main_when_copying_a_regular_gitconfig_into_the_leafs_temp_file_fails_returns_1_launches_nothing_and_leaves_no_temp_file(
+        tmp_path, monkeypatch, capfd):
+    run_leaf = importlib.import_module("veri.run_leaf")
+    work, tmp = _workspace(tmp_path, monkeypatch)
+    (work / "prompt.txt").write_text("do the step\n")
+    (tmp_path / "home" / ".gitconfig").write_text("[user]\n\tname = operator\n")
+    made = []
+    real_mkstemp = tempfile.mkstemp
+
+    def mkstemp_with_a_directory_at_the_second_path(*args, **kwargs):
+        fd, path = real_mkstemp(*args, **kwargs)
+        made.append(path)
+        if len(made) == 2:
+            os.remove(path)
+            os.mkdir(path)
+        return fd, path
+
+    monkeypatch.setattr(tempfile, "mkstemp", mkstemp_with_a_directory_at_the_second_path)
+    launches = []
+    monkeypatch.setattr(subprocess, "Popen",
+                        lambda argv, *args, **kwargs: _FakeLeaf(launches, argv, **kwargs))
+
+    try:
+        code = run_leaf.main(["prompt.txt"])
+    except Exception as error:
+        code = type(error).__name__
+    capfd.readouterr()
+
+    left = sorted(path for path in tmp.rglob("*") if not path.is_dir())
+    assert (code, launches, left) == (1, [], [])

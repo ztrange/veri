@@ -58,15 +58,6 @@ grep -q 'piped prompt body' "$work/argv" && ok || no "reads prompt from stdin on
 run "$work/prompt.txt" ok 0 >/dev/null
 [[ ! -e "$work/.tdd" ]] && ok || no "does not own a .tdd log"
 
-failing_cp="$(scratch_dir)"
-printf '#!/bin/sh\nexit 5\n' > "$failing_cp/cp"
-chmod +x "$failing_cp/cp"
-home="$(scratch_dir)"
-: > "$home/.gitconfig"
-PATH="$failing_cp:$PATH" HOME="$home" run "$work/prompt.txt" ok 0 >/dev/null 2>&1; code=$?
-[[ "$code" == 2 ]] \
-  && ok || no "ends with exit 2 when it fails inside its own EXIT trap's lifetime (code=$code)"
-
 session_vars=(CLAUDECODE CLAUDE_CODE_SESSION_ID CLAUDE_CODE_HOST_SESSION_ID
   CLAUDE_CODE_MESSAGING_SOCKET CLAUDE_CODE_MESSAGING_TOKEN CLAUDE_PID
   CLAUDE_CODE_CHILD_SESSION CLAUDE_CODE_ENTRYPOINT)
