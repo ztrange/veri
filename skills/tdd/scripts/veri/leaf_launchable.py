@@ -4,8 +4,12 @@ import os
 import subprocess
 import sys
 
+import launch_floor
+
 
 def main(argv):
+    if launch_floor.bash_refusal("leaf-launchable") or launch_floor.python_refusal("leaf-launchable"):
+        return 2
     leaf_bin = os.environ.get("CLAUDE_BIN")
     if subprocess.call([leaf_bin, "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
         return 0

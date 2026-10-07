@@ -85,3 +85,32 @@ def test_main_returns_2_with_no_stdout_and_no_temp_file_left_over_a_probe_exitin
         captured = capsys.readouterr()
         answers.append((returncode, code, captured.out, sorted(p.name for p in tmp_path.iterdir())))
     assert answers == [(5, 2, "", []), (127, 2, "", []), (-9, 2, "", [])]
+
+
+def test_main_refuses_on_bash_before_the_python_floor_and_on_the_floor_before_the_probe_with_the_leaf_launchable_prefix(
+        capsys, monkeypatch, tmp_path, leaf_launchable):
+    monkeypatch.setenv("VERI_VENV", str(tmp_path / "no-venv"))
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.11.9")
+    commands = []
+
+    def record(args, **kwargs):
+        commands.append(list(args))
+        if list(args)[0] == "stub-claude":
+            return subprocess.CompletedProcess(args, 0)
+        raise FileNotFoundError(2, "No such file or directory", list(args)[0])
+
+    monkeypatch.setattr(subprocess, "run", record)
+    monkeypatch.setattr(subprocess, "call", lambda args, **kwargs: record(args, **kwargs).returncode)
+    monkeypatch.setattr(subprocess, "Popen", record)
+    answers = []
+    for major in ("3", "5"):
+        monkeypatch.setenv("VERI_BASH_MAJOR", major)
+        del commands[:]
+        code = leaf_launchable.main([])
+        captured = capsys.readouterr()
+        answers.append((code, captured.out, [line.split(";")[0] for line in captured.err.splitlines()],
+                        [command for command in commands if command[0] == "stub-claude"]))
+    assert answers == [
+        (2, "", ["leaf-launchable: veri needs bash 5 or newer"], []),
+        (2, "", ["leaf-launchable: veri needs Python 3.12 or newer"], []),
+    ]
