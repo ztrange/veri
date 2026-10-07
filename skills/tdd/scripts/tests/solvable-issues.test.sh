@@ -1318,6 +1318,35 @@ out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_GH_DRIVE
   && grep -F 'pulls?state=all&sort=created&direction=asc&per_page=100' "$widepr/calls" > /dev/null; } \
   && ok || no "against a fake gh api holding more than 100 open PRs whose pages shift between calls, solvable-issues.sh reads the grow-only PR listing at per_page=100 and still leaves out every issue an open PR claims (#1064) (issues #1–#10 opted in, 130 open PRs #201–#330, #320 says 'Closes #5'; exit=$code want 0; stdout='$(tr '\n' '|' <<<"$out")' want '1|2|3|4|6|7|8|9|10'; gh calls='$(tr '\n' '|' < "$widepr/calls" 2>/dev/null)' want one naming pulls?state=all&sort=created&direction=asc&per_page=100; stderr='$(tr '\n' '|' < "$widepr/stderr")')"
 
+onepr="$work/open-prs-one-page"
+mkdir -p "$onepr/bin"
+python3 -c '
+import json, sys
+def pr(n, claim):
+    return {"number": n, "state": "open", "body": "Closes #5" if n == claim else "Tidies something."}
+json.dump([pr(n, 230) for n in range(201, 241)], open(sys.argv[1], "w"))
+json.dump([pr(n, 250) for n in range(201, 301)], open(sys.argv[2], "w"))
+' "$onepr/prs.json" "$onepr/prs100.json"
+cp "$widepr/bin/gh" "$onepr/bin/gh"
+
+out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_GH_DRIVER PATH="$onepr/bin:$PATH" \
+       GH_CALLS="$onepr/calls" GH_SHIFT_STUB="$prshift/bin/gh" \
+       GH_SHIFT_ISSUES="$prshift/issues.json" GH_SHIFT_PRS="$onepr/prs.json" GH_SHIFT_CLOSED="$onepr/closed" \
+       "$SOLVABLE" 2>"$onepr/stderr")" && code=0 || code=$?
+pr_calls="$(grep -F '/pulls?' "$onepr/calls" || true)"
+
+out100="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_GH_DRIVER PATH="$onepr/bin:$PATH" \
+          GH_CALLS="$onepr/calls100" GH_SHIFT_STUB="$prshift/bin/gh" \
+          GH_SHIFT_ISSUES="$prshift/issues.json" GH_SHIFT_PRS="$onepr/prs100.json" GH_SHIFT_CLOSED="$onepr/closed100" \
+          "$SOLVABLE" 2>"$onepr/stderr100")" && code100=0 || code100=$?
+
+{ [[ "$code" == 0 && "$out" == "$(printf '%s\n' 1 2 3 4 6 7 8 9 10)" ]] \
+  && [[ "$(grep -c . <<<"$pr_calls")" == 1 ]] \
+  && grep -F 'pulls?state=open&per_page=100' <<<"$pr_calls" > /dev/null \
+  && [[ "$code100" == 0 && "$out100" == "$(printf '%s\n' 1 2 3 4 6 7 8 9 10)" ]] \
+  && grep -F 'pulls?state=all&sort=created&direction=asc&per_page=100' "$onepr/calls100" > /dev/null; } \
+  && ok || no "against a fake gh api holding fewer than 100 open PRs, solvable-issues.sh makes exactly one PR listing request, pulls?state=open&per_page=100, and prints the same output as before; an open PR page of 100 items falls back to the grow-only PR listing (#1064) (issues #1–#10 opted in; 40 open PRs, #230 says 'Closes #5': exit=$code want 0; stdout='$(tr '\n' '|' <<<"$out")' want '1|2|3|4|6|7|8|9|10'; PR listing calls='$(tr '\n' '|' <<<"$pr_calls")' want exactly one naming pulls?state=open&per_page=100; 100 open PRs, #250 says 'Closes #5': exit=$code100 want 0; stdout='$(tr '\n' '|' <<<"$out100")' want '1|2|3|4|6|7|8|9|10'; gh calls='$(tr '\n' '|' < "$onepr/calls100" 2>/dev/null)' want one naming pulls?state=all&sort=created&direction=asc&per_page=100; stderr='$(tr '\n' '|' < "$onepr/stderr")|$(tr '\n' '|' < "$onepr/stderr100")')"
+
 fx="$(fixture graphql-refused)"
 cat > "$fx/issues.json" <<'JSON'
 [

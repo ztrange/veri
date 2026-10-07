@@ -71,8 +71,10 @@ def main(argv):
         issues = gh_json_page("issues.json", prefix + "/issues" + OPEN_PAGE, *issue_args)
         if len(items(issues)) >= PAGE_SIZE:
             issues = gh_json("issues.json", prefix + "/issues" + OLDEST_FIRST, *issue_args)
-        prs = gh_json("prs.json", prefix + "/pulls" + OLDEST_FIRST,
-                      "pr", "list", "--limit", "10000", "--json", "body,state", *scope)
+        pr_args = ("pr", "list", "--limit", "10000", "--json", "body,state", *scope)
+        prs = gh_json_page("prs.json", prefix + "/pulls" + OPEN_PAGE, *pr_args)
+        if len(items(prs)) >= PAGE_SIZE:
+            prs = gh_json("prs.json", prefix + "/pulls" + OLDEST_FIRST, *pr_args)
     except NoAnswer:
         return 2
     issues = [issue for issue in items(issues) if "pull_request" not in issue]
