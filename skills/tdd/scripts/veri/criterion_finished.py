@@ -14,10 +14,10 @@ def main(argv):
         return 3
     text = sys.stdin.buffer.read().replace(b"\0", b"").decode("utf-8", "surrogateescape")
     steps = ledger.ledger_steps(text)
-    for step in steps:
-        if step[6].count(ledger.CRITERION_TAG) > 1:
-            print(f"criterion-finished.sh: step '{step[6]}' carries more than one criterion tag; one step serves one criterion", file=sys.stderr)
-            return 2
+    refusal = ledger.multi_tag_refusal(steps)
+    if refusal:
+        print("criterion-finished.sh: " + refusal, file=sys.stderr)
+        return 2
     served = False
     for _, state, _, pending, _, criterion, _ in steps:
         if criterion != argv[0]:
