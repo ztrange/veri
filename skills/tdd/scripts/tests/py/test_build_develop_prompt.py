@@ -1,5 +1,6 @@
 """In-process cases for veri/build_develop_prompt.py, the module build-develop-prompt.sh is a shim over."""
 import importlib
+import importlib.util
 import pathlib
 import sys
 
@@ -123,3 +124,35 @@ def test_main_refuses_in_the_check_order_each_missing_argument_by_its_own_name_a
     assert type(build_develop_prompt.PHASES) is tuple
     assert "|".join(build_develop_prompt.PHASES).encode() == PHASES
     assert build_develop_prompt.REVISE_PHASES == ("red", "green", "refactor", "diff")
+
+
+def test_main_refuses_a_spent_then_a_budget_that_is_not_a_whole_string_non_negative_decimal_before_any_file_is_read_and_a_revised_phase_with_a_trailing_newline(
+        tmp_path, capsysbinary):
+    module = tmp_path / "scripts" / "veri" / "build_develop_prompt.py"
+    module.parent.mkdir(parents=True)
+    module.write_bytes((SCRIPTS / "veri" / "build_develop_prompt.py").read_bytes())
+    loader = importlib.util.spec_from_file_location("build_develop_prompt_without_prompts", module)
+    no_prompts = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(no_prompts)
+    s = str(tmp_path / "no-such-spec.md")
+    r = str(tmp_path / "no-such-reason.md")
+
+    def refused(message):
+        return (2, b"", message.encode() + b"\n" + USAGE)
+
+    def not_decimal(name, value):
+        return refused(f"build-develop-prompt: <{name}> '{value}' is not a non-negative decimal number")
+
+    expected = {}
+    for bad in ("-1", "3,", "qwixnum", "1e3", ".5", "3.47 because", "3\n", "3.47\n", "٣", "3.٤"):
+        expected[("over-budget", s, "s", "c", bad, "2.50")] = not_decimal("spent", bad)
+        expected[("over-budget", s, "s", "c", "3.47", bad)] = not_decimal("budget", bad)
+    expected[("over-budget", s, "s", "c", "qwixnum", "zork")] = not_decimal("spent", "qwixnum")
+    expected[("revise", "red\n", s, "s", "c", r)] = refused(
+        "build-develop-prompt.sh: unknown phase to revise 'red\n' (want red|green|refactor|diff)")
+    results = {}
+    for argv in expected:
+        code = no_prompts.main(list(argv))
+        results[argv] = (code, *capsysbinary.readouterr())
+
+    assert results == expected
