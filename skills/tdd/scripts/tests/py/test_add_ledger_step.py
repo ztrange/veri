@@ -155,7 +155,6 @@ def test_main_inherits_the_last_criterion_unvalidated_and_writes_empty_multiline
     head = "# Plan for #42\n\n"
     cases = {
         "unvalidated": ("- [ ] b two ⟦criterion abc⟧\n", "t"),
-        "last tag": ("- [ ] b two ⟦criterion 1⟧ ⟦criterion 2⟧ x\n", "t"),
         "empty text": ("- [ ] b two ⟦criterion 2⟧\n", ""),
         "newline": ("- [ ] b two ⟦criterion 2⟧\n", "x\ny"),
         "indented": ("  - [ ] b two ⟦criterion 4⟧\n", "t"),
@@ -167,7 +166,6 @@ def test_main_inherits_the_last_criterion_unvalidated_and_writes_empty_multiline
         got[name] = (code, capsys.readouterr().err, ledger.read_bytes().decode())
     assert got == {
         "unvalidated": (0, "", head + "- [ ] b two ⟦criterion abc⟧\n- [ ] t ⟦added⟧ ⟦criterion abc⟧\n"),
-        "last tag": (0, "", head + "- [ ] b two ⟦criterion 1⟧ ⟦criterion 2⟧ x\n- [ ] t ⟦added⟧ ⟦criterion 2⟧\n"),
         "empty text": (0, "", head + "- [ ] b two ⟦criterion 2⟧\n- [ ]  ⟦added⟧ ⟦criterion 2⟧\n"),
         "newline": (0, "", head + "- [ ] b two ⟦criterion 2⟧\n- [ ] x\ny ⟦added⟧ ⟦criterion 2⟧\n"),
         "indented": (0, "", head + "  - [ ] b two ⟦criterion 4⟧\n- [ ] t ⟦added⟧ ⟦criterion 4⟧\n"),
@@ -538,3 +536,34 @@ def test_main_owes_each_bullet_under_an_unterminated_last_owed_steps_heading_wit
     lines = after.decode().split("\n")
     assert lines.count("## Owed steps") == 1
     assert lines[-3:] == ["- t", "- u", ""]
+
+
+def test_main_refuses_a_ledger_whose_step_carries_two_criterion_tags_naming_the_step_and_writing_nothing_1116(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
+    ledger = tmp_path / "issue-42.md"
+    seeds = {
+        "the anchor": (
+            "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n"
+            "- [ ] reject an empty title ⟦criterion 1⟧ ⟦criterion 2⟧\n"
+        ).encode(),
+        "another step": (
+            "# Plan for #42\n\n- [x] reject an empty title ⟦criterion 1⟧ ⟦criterion 2⟧\n"
+            "- [ ] b two ⟦criterion 2⟧\n"
+        ).encode(),
+    }
+    anchors = {"the anchor": "reject an empty title", "another step": "b two"}
+    got = {}
+    for name, seed in seeds.items():
+        ledger.write_bytes(seed)
+        code = add_ledger_step.main([str(ledger), "after", anchors[name], "t"])
+        out, err = capsys.readouterr()
+        lines = err.splitlines()
+        got[name] = (
+            code,
+            out,
+            len(lines),
+            bool(lines) and "reject an empty title" in lines[0],
+            bool(lines) and "one step serves one criterion" in lines[0].lower(),
+            ledger.read_bytes() == seed,
+        )
+    assert got == {name: (2, "", 1, True, True, True) for name in seeds}
