@@ -331,10 +331,13 @@ problems=()
 
 if ! missing_pass 'what an already-applied candidate becomes'; then
   predicate_text="${squeezed#*structural-predicate.sh .tdd/issue-<n>-predicate}"
-  predicate_text="${predicate_text%%The transform leaf*}"
+  predicate_bound='Once the pass ends'
   if [[ "$predicate_text" == "$squeezed" ]]; then
     problems+=("$skill_md's structural pass never runs structural-predicate.sh .tdd/issue-<n>-predicate — what its exit 1 leads to could not be established")
+  elif [[ "$predicate_text" != *"$predicate_bound"* ]]; then
+    problems+=("$skill_md's structural pass never says '$predicate_bound' after structural-predicate.sh .tdd/issue-<n>-predicate — where its predicate handling ends could not be established")
   else
+    predicate_text="${predicate_text%%"$predicate_bound"*}"
     require 'refactor-owed.sh applied .tdd/issue-<n>-refactor-owed.md' "$predicate_text" \
       "$skill_md's structural pass never records a candidate structural-predicate.sh exits 1 for with refactor-owed.sh applied, so refactor-overflow.sh files an already-applied candidate as owed"
     require 'git rev-parse HEAD' "$predicate_text" \
