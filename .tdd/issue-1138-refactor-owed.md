@@ -1,0 +1,2 @@
+### on a branch whose base gains a test suite after the branch point, `affected-suites.sh <base>..HEAD` does not print the base's new suite, only the suites for the branch's own changes ⟦criterion 2⟧
+- test-only | `affected-suites.test.sh:550-563`: the new case builds the branch with `checkout -b topic`, `checkout main` and `checkout topic` written inline, and no other case does that yet. It becomes worth pulling into a helper only if a later step of this plan builds a branch the same way.
