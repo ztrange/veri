@@ -36,16 +36,21 @@ def _wait(exit_file, pid_file):
     return 3
 
 
+def _refused(argv):
+    if len(argv) < 2 or argv[0] not in ("start", "wait"):
+        return True
+    if argv[0] == "start":
+        return len(argv) < 3
+    return len(argv) > 2 and argv[2] != "" and not re.fullmatch("[0-9]+", argv[2])
+
+
 def main(argv):
-    if len(argv) < 2 or argv[0] not in ("start", "wait") or (argv[0] == "start" and len(argv) < 3):
+    if _refused(argv):
         print(USAGE, file=sys.stderr)
         return 2
     mode, name, rest = argv[0], argv[1], argv[2:]
     exit_file, pid_file = f".tdd/{name}.exit", f".tdd/{name}.pid"
     if mode == "wait":
-        if rest and rest[0] and not re.fullmatch("[0-9]+", rest[0]):
-            print(USAGE, file=sys.stderr)
-            return 2
         return _wait(exit_file, pid_file)
     try:
         os.unlink(exit_file)
