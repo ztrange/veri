@@ -128,6 +128,16 @@ for phase in red green refactor pin; do
 done
 [[ -z "$problems" ]] && ok || no "#1081: no verifier prompt carries the prediction (${problems#; })"
 
+problems=""
+for phase in red green refactor pin; do
+  slot4=test_slugify_lowercases; [[ "$phase" == refactor ]] && slot4=0123abc  # a base sha (#151)
+  fast_for "$phase"
+  fifth="$("$BUILD" "${fast[@]+"${fast[@]}"}" "$phase" "$work/spec.md" "$testpath" "$slot4" "$prediction" 2>/dev/null)"; code=$?
+  [[ "$code" -eq 2 ]] || problems="$problems; verify-$phase exits $code"
+  [[ -z "$fifth" ]] || problems="$problems; verify-$phase prints ${#fifth} bytes on stdout"
+done
+[[ -z "$problems" ]] && ok || no "#1081: a fifth positional argument is refused with exit 2 and nothing on stdout (${problems#; })"
+
 base_sha='3f9a1c07e2b4'
 with_base="$("$BUILD" --fast-cmd 'make unit' refactor "$work/spec.md" "$testpath" "$base_sha")"; code=$?
 [[ "$code" -eq 0 ]] && [[ "$with_base" == *"$base_sha"* ]] \
