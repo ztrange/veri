@@ -12,7 +12,10 @@ def git(clone, *args):
 
 
 def main(argv):
-    commit = os.environ["VERI_SKILL_COMMIT"]
+    commit = os.environ.get("VERI_SKILL_COMMIT", "")
+    if os.environ.get("VERI_SKILL_UNPINNED") == "1" or not commit:
+        sys.stdout.write("Skill drift: unavailable — run was not pinned to a skill commit\n")
+        return 0
     clone = os.environ["VERI_SKILL_CLONE"]
     ref = os.environ["VERI_SKILL_REF"]
     log = git(clone, "log", "--format=%h %s", "%s..%s" % (commit, ref),

@@ -88,4 +88,22 @@ grep -x -F -- "- $unsuffixed fix: a hand-pushed supervisor fix" <<<"$out" > /dev
 ((${#problems[@]} == 0)) || problems+=("stdout was: $(printf '%q' "$out")")
 report "$name"
 
+name="with VERI_SKILL_UNPINNED=1, or VERI_SKILL_COMMIT unset or empty, the output is 'Skill drift: unavailable — run was not pinned to a skill commit', exit 0"
+problems=()
+tmp="$(scratch_dir)"
+want="Skill drift: unavailable — run was not pinned to a skill commit"
+for variant in unpinned unset empty; do
+  case "$variant" in
+    unpinned) out="$(VERI_SKILL_UNPINNED=1 VERI_SKILL_COMMIT=0123456789abcdef0123456789abcdef01234567 \
+      VERI_SKILL_CLONE="$tmp" VERI_SKILL_REF=refs/remotes/origin/main "$SKILL_DRIFT" 2>/dev/null)" && code=0 || code=$? ;;
+    unset) out="$(env -u VERI_SKILL_UNPINNED -u VERI_SKILL_COMMIT VERI_SKILL_CLONE="$tmp" \
+      VERI_SKILL_REF=refs/remotes/origin/main "$SKILL_DRIFT" 2>/dev/null)" && code=0 || code=$? ;;
+    empty) out="$(env -u VERI_SKILL_UNPINNED VERI_SKILL_COMMIT= VERI_SKILL_CLONE="$tmp" \
+      VERI_SKILL_REF=refs/remotes/origin/main "$SKILL_DRIFT" 2>/dev/null)" && code=0 || code=$? ;;
+  esac
+  [[ "$code" == 0 ]] || problems+=("$variant: want exit 0, got $code")
+  [[ "$out" == "$want" ]] || problems+=("$variant: want stdout '$want', got $(printf '%q' "$out")")
+done
+report "$name"
+
 finish
