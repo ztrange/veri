@@ -367,6 +367,24 @@ probe_a_planted_lib_helper_awk_v_pattern
 
 expect_eq "$name" "named" "$planted_lib_helper_named"
 
+probe_a_planted_sourced_helper_awk_v_compared() {
+  local PLANT_REL='skills/tdd/scripts/tests/planted-helpers.sh'
+  scan_planted_text <<'EOF'
+#!/usr/bin/env bash
+equal() {
+  awk -v want="$1" '$0 == want { print }' "$2"
+}
+EOF
+  planted_helper_compared_named="$(problem_naming "planted-helpers.sh:3")"
+}
+
+name="a planted sourced helper beside the suites, planted-helpers.sh, not a *.test.sh, whose awk -v want=\"\$1\" is only compared with == leaves the guard green (#1050)"
+planted_helper_compared_named=""
+
+probe_a_planted_sourced_helper_awk_v_compared
+
+expect_eq "$name" "not named" "$planted_helper_compared_named"
+
 name="no suite under skills/tdd/scripts/tests/ passes awk a pattern through -v but where the exemption table says why its value can hold no backslash (#1037)"
 problems=()
 
