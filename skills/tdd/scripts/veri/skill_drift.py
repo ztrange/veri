@@ -23,9 +23,11 @@ def main(argv):
         groups.setdefault(number, []).append(subject)
     short = git(clone, "rev-parse", "--short", commit).strip()
     lines = ["#### Skill drift since the pinned commit",
-             "Pinned skill commit: %s. Conductor-path changes on %s since then:" % (short, ref)]
-    lines += ["- #%s — %s (%d commits)" % (n, s[0], len(s)) for n, s in groups.items()]
-    lines.append("Resume with VERI_NEW_SKILL=1 to run on these.")
+             "Pinned skill commit: %s." % short,
+             "Conductor-path changes on %s since then:%s" % (ref, "" if groups else " none.")]
+    if groups:
+        lines += ["- #%s — %s (%d commits)" % (n, s[0], len(s)) for n, s in groups.items()]
+        lines.append("Resume with VERI_NEW_SKILL=1 to run on these.")
     sys.stdout.write("\n".join(lines) + "\n")
     return 0
 

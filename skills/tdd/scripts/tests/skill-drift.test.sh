@@ -49,4 +49,25 @@ line12="$(grep -n -E "^- #12 — fix: the supervisor's second window( \(#12\))? 
 ((${#problems[@]} == 0)) || problems+=("stdout was: $(printf '%q' "$out")")
 report "$name"
 
+name="commits after the pin touching only skills/tdd/scripts/tests/, docs/ or Makefile are not listed: the block says none., has no resume line, exit 0"
+problems=()
+tmp="$(scratch_dir)"
+upstream="$tmp/upstream" clone="$tmp/clone"
+new_repo -b main "$upstream"
+touch_commit "$upstream" skills/tdd/scripts/run-leaf.sh "feat: the pinned skill (#9)"
+pinned="$(git -C "$upstream" rev-parse HEAD)"
+touch_commit "$upstream" skills/tdd/scripts/tests/run-leaf.test.sh "test: a leaf's case (#20)"
+touch_commit "$upstream" docs/notes.md "docs: a note (#21)"
+touch_commit "$upstream" Makefile "build: a recipe (#22)"
+git clone -q "$upstream" "$clone"
+out="$(env -u VERI_SKILL_UNPINNED VERI_SKILL_COMMIT="$pinned" VERI_SKILL_CLONE="$clone" \
+  VERI_SKILL_REF=refs/remotes/origin/main "$SKILL_DRIFT" 2>/dev/null)" && code=0 || code=$?
+[[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
+grep -x -F "Conductor-path changes on refs/remotes/origin/main since then: none." <<<"$out" > /dev/null ||
+  problems+=("want 'Conductor-path changes on refs/remotes/origin/main since then: none.'")
+! grep -E '^- ' <<<"$out" > /dev/null || problems+=("want no listed change")
+! grep -F "Resume with VERI_NEW_SKILL=1" <<<"$out" > /dev/null || problems+=("want no resume line")
+((${#problems[@]} == 0)) || problems+=("stdout was: $(printf '%q' "$out")")
+report "$name"
+
 finish
