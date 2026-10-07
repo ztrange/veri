@@ -16,7 +16,10 @@ def main(argv):
     if os.environ.get("VERI_SKILL_UNPINNED") == "1" or not commit:
         sys.stdout.write("Skill drift: unavailable — run was not pinned to a skill commit\n")
         return 0
-    clone = os.environ["VERI_SKILL_CLONE"]
+    clone = os.environ.get("VERI_SKILL_CLONE", "")
+    if not clone or git(clone, "rev-parse", "--is-inside-work-tree").strip() != "true":
+        sys.stdout.write("Skill drift: unavailable — skill clone not known\n")
+        return 0
     ref = os.environ["VERI_SKILL_REF"]
     log = git(clone, "log", "--format=%h %s", "%s..%s" % (commit, ref),
               "--", "skills/tdd", ":(exclude)skills/tdd/scripts/tests")

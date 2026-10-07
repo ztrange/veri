@@ -106,4 +106,21 @@ for variant in unpinned unset empty; do
 done
 report "$name"
 
+name="with VERI_SKILL_CLONE unset, or naming a directory that is not a git work tree, the output is 'Skill drift: unavailable — skill clone not known', exit 0"
+problems=()
+tmp="$(scratch_dir)"
+mkdir -p "$tmp/not-a-clone"
+want="Skill drift: unavailable — skill clone not known"
+for variant in unset not-a-work-tree; do
+  case "$variant" in
+    unset) out="$(env -u VERI_SKILL_UNPINNED -u VERI_SKILL_CLONE VERI_SKILL_COMMIT=0123456789abcdef0123456789abcdef01234567 \
+      VERI_SKILL_REF=refs/remotes/origin/main "$SKILL_DRIFT" 2>/dev/null)" && code=0 || code=$? ;;
+    not-a-work-tree) out="$(env -u VERI_SKILL_UNPINNED VERI_SKILL_COMMIT=0123456789abcdef0123456789abcdef01234567 \
+      VERI_SKILL_CLONE="$tmp/not-a-clone" VERI_SKILL_REF=refs/remotes/origin/main "$SKILL_DRIFT" 2>/dev/null)" && code=0 || code=$? ;;
+  esac
+  [[ "$code" == 0 ]] || problems+=("$variant: want exit 0, got $code")
+  [[ "$out" == "$want" ]] || problems+=("$variant: want stdout '$want', got $(printf '%q' "$out")")
+done
+report "$name"
+
 finish
