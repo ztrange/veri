@@ -240,6 +240,21 @@ seed badbudget 801
 VERI_CONDUCTOR_CTX_BUDGET=120k orchestrate "$scripts"
 expect_exit2_no_launch VERI_CONDUCTOR_CTX_BUDGET
 
+name="refuses VERI_CONDUCTOR_CTX_BUDGET=120k with exit 2, no launch, nothing on stdout and exactly one line naming it on stderr"
+seed exactbudget 802
+VERI_CONDUCTOR_CTX_BUDGET=120k orchestrate "$scripts"
+printf 'orchestrate.sh: VERI_CONDUCTOR_CTX_BUDGET must be a whole number of tokens: 120k\n' > "$work/err.expected"
+launched="$(wc -l < "$LAUNCHES" | tr -d ' ')"
+if [[ "$rc" -eq 2 && "$launched" -eq 0 && ! -s "$work/out" ]] && cmp -s "$work/err.expected" "$work/err"; then
+  ok
+else
+  no "$name"
+  echo "    exit: $rc (expected 2)"
+  echo "    launches: $launched (expected 0)"
+  sed 's/^/    stdout: /' "$work/out"
+  diff "$work/err.expected" "$work/err" | sed 's/^/    /'
+fi
+
 name="with VERI_CONDUCTOR_CTX_BUDGET unset, a conductor crossing 120000 is stopped after its next step-done"
 defaultbudget="$work/defaultbudget"
 conductor_stub "$defaultbudget" <<STUB
