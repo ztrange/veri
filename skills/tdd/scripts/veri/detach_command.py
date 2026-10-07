@@ -3,6 +3,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 import detach
 
@@ -36,14 +37,18 @@ def _alive(pid_file):
     return True
 
 
-def _wait(exit_file, pid_file):
-    code = _recorded(exit_file)
-    if code is not None:
-        return code
-    if not _alive(pid_file):
+def _wait(exit_file, pid_file, limit):
+    start = time.time()
+    while True:
         code = _recorded(exit_file)
-        return 2 if code is None else code
-    return 3
+        if code is not None:
+            return code
+        if not _alive(pid_file):
+            code = _recorded(exit_file)
+            return 2 if code is None else code
+        if time.time() - start >= limit:
+            return 3
+        time.sleep(1)
 
 
 def _refused(argv):
@@ -61,7 +66,7 @@ def main(argv):
     mode, name, rest = argv[0], argv[1], argv[2:]
     exit_file, pid_file = f".tdd/{name}.exit", f".tdd/{name}.pid"
     if mode == "wait":
-        return _wait(exit_file, pid_file)
+        return _wait(exit_file, pid_file, int(rest[0]) if rest and rest[0] else 60)
     try:
         os.unlink(exit_file)
     except FileNotFoundError:
