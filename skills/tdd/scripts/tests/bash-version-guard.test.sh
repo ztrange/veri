@@ -25,6 +25,8 @@
 #      names no venv path.
 #  12. run-conductor.sh's and leaf-launchable.sh's Python-floor refusals, with a venv at $VERI_VENV
 #      whose own interpreter is also below the floor, are today's one line and name no venv path.
+#  13. On a real python3 below the floor first on PATH, leaf-launchable.sh refuses with exit 2,
+#      naming the floor and that interpreter's version.
 #
 # Run: skills/tdd/scripts/tests/bash-version-guard.test.sh
 set -uo pipefail
@@ -200,6 +202,23 @@ if [[ -x /bin/bash ]] && [[ "$(/bin/bash -c 'echo "${BASH_VERSINFO[0]}"')" -lt 5
       "$SCRIPTS/leaf-launchable.sh" 2>&1 >/dev/null)" && real_code=0 || real_code=$?
   [[ "$real_code" == 2 && "$real_err" == *"$REQUIREMENT"* ]] ||
     problems+=("want exit 2 and '$REQUIREMENT' from /bin/bash $(/bin/bash -c 'echo $BASH_VERSION'), got exit $real_code: $(flat "$real_err")")
+  report "$name"
+fi
+
+floor="$(sed -n 's/^VENV_FLOOR=//p' "$SCRIPTS/lib/venv-python.sh")"
+if [[ -x /usr/bin/python3 ]] &&
+  ! /usr/bin/python3 -c "import sys; sys.exit(sys.version_info < (${floor%%.*}, ${floor#*.}))" 2>/dev/null; then
+  old_py="$(/usr/bin/python3 -c 'import platform; print(platform.python_version())')"
+  name="on a real python3 below the floor first on PATH (/usr/bin/python3), leaf-launchable.sh refuses with exit 2, naming the floor and its version"
+  problems=()
+  mkdir -p "$work/old-python"
+  ln -sf /usr/bin/python3 "$work/old-python/python3"
+  rpy_err="$(env -u VERI_PYTHON_VERSION VERI_BASH_MAJOR=5 VERI_VENV="$work/no-venv" PATH="$work/old-python:$PATH" \
+      CLAUDE_BIN="$work/claude" LAUNCHED="$work/rpy-launched" "$SCRIPTS/leaf-launchable.sh" 2>&1 >/dev/null)" &&
+    rpy_code=0 || rpy_code=$?
+  want="veri needs Python $floor or newer; the python3 on PATH is version $old_py."
+  [[ "$rpy_code" == 2 && "$rpy_err" == *"$want"* ]] ||
+    problems+=("want exit 2 and '$want' from /usr/bin/python3, got exit $rpy_code: $(flat "$rpy_err")")
   report "$name"
 fi
 
