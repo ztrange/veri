@@ -1258,6 +1258,30 @@ out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_GH_DRIVE
 { [[ "$code" == 0 && "$out" == "$(printf '%s\n' 1 2 3 4 6 7 8 9 10)" ]]; } \
   && ok || no "against a fake gh api whose open-only PR listing shifts between calls — the first PR it serves is closed once page 1 has gone out — an issue claimed by an open PR on a later page is still left out of solvable-issues.sh's output (#1051) (issues #1–#10 opted in, 60 open PRs #201–#260, #230 says 'Closes #5', closed after page 1: PR #$(cat "$prshift/closed" 2>/dev/null | tr -d '\n'); exit=$code want 0; stdout='$(tr '\n' '|' <<<"$out")' want '1|2|3|4|6|7|8|9|10'; stderr='$(tr '\n' '|' < "$prshift/stderr")')"
 
+widepr="$work/shifting-pr-pages-per-page"
+mkdir -p "$widepr/bin"
+python3 -c '
+import json, sys
+prs = [{"number": n, "state": "open", "body": "Closes #5" if n == 320 else "Tidies something."}
+       for n in range(201, 331)]
+json.dump(prs, open(sys.argv[1], "w"))
+' "$widepr/prs.json"
+cat > "$widepr/bin/gh" <<'STUB'
+#!/bin/sh
+printf '%s\n' "$*" >> "$GH_CALLS"
+exec "$GH_SHIFT_STUB" "$@"
+STUB
+chmod +x "$widepr/bin/gh"
+
+out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_GH_DRIVER PATH="$widepr/bin:$PATH" \
+       GH_CALLS="$widepr/calls" GH_SHIFT_STUB="$prshift/bin/gh" \
+       GH_SHIFT_ISSUES="$prshift/issues.json" GH_SHIFT_PRS="$widepr/prs.json" GH_SHIFT_CLOSED="$widepr/closed" \
+       "$SOLVABLE" 2>"$widepr/stderr")" && code=0 || code=$?
+
+{ [[ "$code" == 0 && "$out" == "$(printf '%s\n' 1 2 3 4 6 7 8 9 10)" ]] \
+  && grep -F 'pulls?state=all&sort=created&direction=asc&per_page=100' "$widepr/calls" > /dev/null; } \
+  && ok || no "against a fake gh api holding more than 100 open PRs whose pages shift between calls, solvable-issues.sh reads the grow-only PR listing at per_page=100 and still leaves out every issue an open PR claims (#1064) (issues #1–#10 opted in, 130 open PRs #201–#330, #320 says 'Closes #5'; exit=$code want 0; stdout='$(tr '\n' '|' <<<"$out")' want '1|2|3|4|6|7|8|9|10'; gh calls='$(tr '\n' '|' < "$widepr/calls" 2>/dev/null)' want one naming pulls?state=all&sort=created&direction=asc&per_page=100; stderr='$(tr '\n' '|' < "$widepr/stderr")')"
+
 fx="$(fixture graphql-refused)"
 cat > "$fx/issues.json" <<'JSON'
 [
