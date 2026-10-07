@@ -202,7 +202,7 @@ def test_main_over_budget_returns_1_silently_and_owes_every_text_under_the_last_
         ),
         "notes after owed": ([(1, "", "")], notes + "\n## Owed steps\n\n- t\n"),
         "unterminated last line": ([(1, "", "")], unterminated + "\n- t\n"),
-        "unterminated owed heading": ([(1, "", "")], unseen_heading + "\n## Owed steps\n\n- t\n"),
+        "unterminated owed heading": ([(1, "", "")], unseen_heading + "\n- t\n"),
     }
 
 
@@ -521,3 +521,20 @@ def test_main_owes_each_bullet_on_its_own_line_after_an_unterminated_last_owed_b
 
     assert (code, captured.out, captured.err) == (1, "", "")
     assert ledger.read_bytes() == seed + b"\n- t\n- u\n"
+
+
+def test_main_owes_each_bullet_under_an_unterminated_last_owed_steps_heading_without_a_second_heading_1109(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.setenv("VERI_STEP_GROWTH", "0")
+    ledger = tmp_path / "issue-42.md"
+    seed = LEDGER + b"\n## Owed steps"
+    ledger.write_bytes(seed)
+
+    code = add_ledger_step.main([str(ledger), "after", "b two", "t", "u"])
+    captured = capsys.readouterr()
+
+    assert (code, captured.out, captured.err) == (1, "", "")
+    after = ledger.read_bytes()
+    assert after.startswith(seed + b"\n")
+    lines = after.decode().split("\n")
+    assert lines.count("## Owed steps") == 1
+    assert lines[-3:] == ["- t", "- u", ""]
