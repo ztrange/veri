@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 
+from git import git
 from ledger import CRITERION_RE, ledger_steps
 
 USAGE = "usage: preserve-attempt.sh <issue> <step> <phase> <attempt> [<mark>]"
@@ -89,9 +90,9 @@ def sanitised(step_ref):
 
 
 def run_git(*args, env=None, capture=True, quiet=False):
-    return subprocess.run(["git", *args], env=env, text=True,
-                          stdout=subprocess.PIPE if capture else None,
-                          stderr=subprocess.DEVNULL if quiet else None)
+    return git(*args, env=env, text=True,
+               stdout=subprocess.PIPE if capture else None,
+               stderr=subprocess.DEVNULL if quiet else None)
 
 
 def mapped(code):
