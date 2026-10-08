@@ -727,4 +727,30 @@ heads="$(grep '^== ' <<< "$out" | tr '\n' '/')"
 check_failed "make unit" unit
 report "$name"
 
+stale="$work/stale"
+make_tree "$stale"
+printf 'BUDGET = "130000"\n' > "$stale/$PY_DIR/stale_probe.py"
+python3 -m py_compile "$stale/$PY_DIR/stale_probe.py"
+touch -r "$stale/$PY_DIR/stale_probe.py" "$work/stale.mtime"
+printf 'BUDGET = "120000"\n' > "$stale/$PY_DIR/stale_probe.py"
+touch -r "$work/stale.mtime" "$stale/$PY_DIR/stale_probe.py"
+cat > "$stale/$PY_DIR/test_leg_probe.py" <<'PY'
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import stale_probe
+
+
+def test_veri_probe_reads_the_source():
+    assert stale_probe.BUDGET == "120000", stale_probe.BUDGET
+PY
+
+name="#1127: make test's pytest leg runs a module's source as it is on disk, never a __pycache__ .pyc left from an edit of the same size within the same second"
+problems=()
+env VERI_VENV="$work/no-venv" PYTHONPATH="$fake_pytest" \
+  make --no-print-directory -C "$stale" test > "$work/out" 2> "$work/err" < /dev/null && code=0 || code=$?
+check_green "make test"
+report "$name"
+
 finish

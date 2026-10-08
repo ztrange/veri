@@ -146,7 +146,9 @@ test unit:
 	if [ -n "$(PY_TESTS)" ]; then \
 	  printf '== pytest\n'; \
 	  : > "$$reach_log"; \
-	  UNIT_GUARD_LOG="$$reach_log" $(OFFLINE_ENV) "$$py_bin" -m pytest $(PY_TESTS) < /dev/null || fail=1; \
+	  pycache="$$(mktemp -d)"; \
+	  UNIT_GUARD_LOG="$$reach_log" PYTHONPYCACHEPREFIX="$$pycache" $(OFFLINE_ENV) "$$py_bin" -m pytest $(PY_TESTS) < /dev/null || fail=1; \
+	  rm -rf "$$pycache"; \
 	  $(call NAME_REACHED,pytest: tried to start); \
 	fi; \
 	echo "----"; \
