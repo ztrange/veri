@@ -619,6 +619,25 @@ fi
 { [[ "$term_code" == 2 ]] && [[ "$term_exit" == 2 ]] && [[ "$term_alive" == no ]]; } && ok \
   || no "supervise.sh sent TERM writes 2 to its completion file, exits 2 and leaves no leaf process behind (code=$term_code want 2, exit file=$term_exit want 2, leaf alive=$term_alive want no)"
 
+waitlive_work="$work/wait-live-supervisor"
+mkdir -p "$waitlive_work"
+( cd "$waitlive_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-term-sleep" ) >/dev/null 2>&1 &
+waitlive_sup=$!
+for _ in $(seq 1 50); do [[ -s "$waitlive_work/leaf-pid" ]] && break; sleep 0.1; done
+waitlive_leaf="$(tr -d '[:space:]' < "$waitlive_work/leaf-pid" 2>/dev/null)"
+( cd "$waitlive_work" && env VERI_POLL=0.02 "$SCRIPTS/wait-leaf.sh" develop-red 0 ) >/dev/null 2>"$waitlive_work/wait-err"
+waitlive_code=$?
+waitlive_err="$(cat "$waitlive_work/wait-err")"
+kill -TERM "$waitlive_sup" 2>/dev/null
+wait "$waitlive_sup"
+if [[ -n "$waitlive_leaf" ]]; then
+  for _ in $(seq 1 20); do kill -0 "$waitlive_leaf" 2>/dev/null || break; sleep 0.1; done
+  kill -0 "$waitlive_leaf" 2>/dev/null && kill -KILL "$waitlive_leaf" 2>/dev/null
+fi
+{ [[ -n "$waitlive_leaf" ]] && [[ "$waitlive_code" == 3 ]] && [[ -z "$waitlive_err" ]]; } && ok \
+  || no "wait-leaf.sh <name> 0 against a live supervisor of that leaf exits 3, not 2, with nothing on stderr (leaf pid=${waitlive_leaf:-<never started>}; code=$waitlive_code want 3; stderr='$waitlive_err' want empty)"
+
 name_work="$work/unknown-name"
 sup_run "$name_work" "$SUP" frobnicate-red "$stub/leaf-ok"
 name_code=$?
