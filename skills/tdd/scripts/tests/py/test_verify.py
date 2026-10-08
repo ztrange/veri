@@ -479,3 +479,34 @@ def test_main_reads_an_empty_no_verdict_budget_as_1_and_a_leading_zero_as_octal_
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
 
     assert (code, len(supervised)) == (2, launches)
+
+
+def test_main_copies_parse_verdicts_stderr_to_its_own_stderr_after_every_launch_relaunched_ones_included(
+        tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERIFY_LEAF_ARGS", "VERI_ISSUE", "VERI_STEP", "VERI_MODEL", "VERI_MODEL_VERIFIER"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "2")
+    leaf_outs = [NO_VERDICT, NO_VERDICT, b"VERDICT: MAYBE\nundecided\n"]
+    supervised = []
+
+    def fake(args, *_, **__):
+        name = os.path.basename(str(args[0]))
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            supervised.append(args)
+            os.write(2, b"launch %d\n" % len(supervised))
+            return subprocess.CompletedProcess(args, 0, leaf_outs[len(supervised) - 1], None)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    assert (code, capfdbinary.readouterr().err) == (
+        2, b"launch 1\n" + NO_LINE + b"launch 2\n" + NO_LINE
+        + b"launch 3\nparse-verdict: unrecognised verdict word 'MAYBE'\n")
