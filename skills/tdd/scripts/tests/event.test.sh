@@ -316,6 +316,31 @@ fi
 rm -rf "$tf_work"
 report "$name"
 
+name="event.sh run through a symlink to the skill's scripts directory from another working directory appends its line to that working directory's .tdd/events.jsonl and creates nothing beside the scripts"
+problems=()
+sl_work="$(scratch_dir)"
+sl_scripts="$(cd "$HERE/.." && pwd)"
+ln -s "$sl_scripts" "$sl_work/linked-scripts"
+mkdir "$sl_work/run"
+printf '#!/bin/sh\necho 7\n' > "$sl_work/awake-clock"
+chmod +x "$sl_work/awake-clock"
+sl_before="$(ls -A "$sl_scripts")"
+( cd "$sl_work/run" && env VERI_AWAKE_CLOCK="$sl_work/awake-clock" "$sl_work/linked-scripts/event.sh" symlinked-mark ) >/dev/null 2>&1
+sl_code=$?
+sl_after="$(ls -A "$sl_scripts")"
+[[ "$sl_code" == 0 ]] || problems+=("want exit 0, got $sl_code")
+if [[ -f "$sl_work/run/.tdd/events.jsonl" ]]; then
+  sl_events="$(jevents "$sl_work/run/.tdd/events.jsonl")"
+  [[ "$sl_events" == symlinked-mark ]] ||
+    problems+=("want one line, event symlinked-mark, got $(printf '%q' "$sl_events")")
+else
+  problems+=("want a line in the working directory's .tdd/events.jsonl, found none")
+fi
+[[ "$sl_after" == "$sl_before" ]] ||
+  problems+=("want nothing created beside the scripts, got $(diff <(printf '%s\n' "$sl_before") <(printf '%s\n' "$sl_after") | tr '\n' ' ')")
+rm -rf "$sl_work"
+report "$name"
+
 name="#563: event.sh's awake reading is the system-wide awake clock, so it advances across processes under a python3 whose time.monotonic() restarts per process"
 problems=()
 rs_work="$(scratch_dir)"
