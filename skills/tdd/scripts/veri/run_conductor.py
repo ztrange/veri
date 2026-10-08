@@ -45,8 +45,29 @@ def main(argv):
             head_rev = "refs/remotes/origin/" + default
             if not verifies(base, head_rev):
                 return refuse_unpinned(base, "origin's default branch '%s' has no %s" % (default, head_rev))
-    git(base, "rev-parse", head_rev,
-        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    resolved = git(base, "rev-parse", head_rev,
+                   stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    if resolved.returncode == 0:
+        commit = resolved.stdout.strip()
+        os.makedirs(".tdd", exist_ok=True)
+        if not os.path.exists(".tdd/.gitignore"):
+            with open(".tdd/.gitignore", "w") as seed:
+                seed.write(".gitignore\nissue-*-skill-commit\n")
+        record = ".tdd/issue-%s-skill-commit" % argv[0]
+        if not os.access(record, os.R_OK):
+            with open(record, "w") as out:
+                out.write(commit + "\n")
+        else:
+            try:
+                with open(record) as recorded_file:
+                    recorded = recorded_file.read().rstrip("\n")
+            except OSError:
+                recorded = ""
+            if git(base, "cat-file", "-e", recorded + "^{commit}",
+                   stderr=subprocess.DEVNULL).returncode != 0:
+                sys.stderr.write("run-conductor: recorded skill commit '%s' is not in '%s' — refusing to re-pin; "
+                                 "set VERI_NEW_SKILL=1 to take the new skill\n" % (recorded, base))
+                return 2
     return 0
 
 
