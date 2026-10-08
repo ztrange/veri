@@ -137,3 +137,41 @@ def test_main_reads_the_clock_once_then_per_round_checks_the_pid_rechecks_after_
     ])
     captured = capsys.readouterr()
     assert (captured.out, captured.err) == ("", "")
+
+
+def test_main_reads_max_as_bash_arithmetic_defaulting_to_540_and_ignores_arguments_past_it(
+        monkeypatch, capsys, tmp_path, wait_leaf):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "x.pid").write_text("42\n")
+    readings = []
+
+    def answer(line):
+        if line == "date +%s":
+            if len(readings) > 600:
+                raise RuntimeError("runaway wait: more than 600 clock readings")
+            readings.append(1000 + len(readings))
+            return (0, f"{readings[-1]}\n", "")
+        if line == "ps -p 42 -o args=":
+            return (0, "bash supervise.sh x develop-red\n", "")
+        return (0, "", "")
+
+    calls = fake_processes(monkeypatch, answer)
+
+    rounds = {}
+    for argv in (["x"], ["x", ""], ["x", "0"], ["x", "-5"], ["x", "010"], ["x", "0x10"], ["x", "3", "9"]):
+        calls.clear()
+        readings.clear()
+        code = wait_leaf.main(argv)
+        rounds[tuple(argv[1:])] = (code, calls.count("ps -p 42 -o args="), readings[-1] - readings[0])
+    assert rounds == {
+        (): (3, 540, 540),
+        ("",): (3, 540, 540),
+        ("0",): (3, 1, 1),
+        ("-5",): (3, 1, 1),
+        ("010",): (3, 8, 8),
+        ("0x10",): (3, 16, 16),
+        ("3", "9"): (3, 3, 3),
+    }
+    captured = capsys.readouterr()
+    assert (captured.out, captured.err) == ("", "")
