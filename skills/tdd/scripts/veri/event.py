@@ -45,9 +45,7 @@ def escape(value):
         byte = value[i]
         if byte in ESCAPES:
             out += ESCAPES[byte]
-        elif byte < 0x20 or byte == 0x7f:
-            out += b"\\u%04x" % byte
-        elif byte < 0x80:
+        elif 0x20 <= byte < 0x7f:
             out.append(byte)
         else:
             nbytes, cp = next(((n, byte & m) for mask, lead, n, m in LEADS if byte & mask == lead), (1, byte))
