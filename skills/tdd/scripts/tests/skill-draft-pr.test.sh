@@ -112,6 +112,9 @@
 #      `git reset --hard <pre-rebase-sha>` before *Bailing*'s push.
 #  42. SKILL.md's Guardrails invariant about opening the PR says neither "exactly once" nor
 #      "the only full-suite gate".
+#  43. SKILL.md's Guardrails invariant about opening the PR names both runs at the Draft PR
+#      step: the branch's own full run, again after each `⟦suite-repair⟧` step, and the extra
+#      run on the rebased tip when sub-step 1 rebased the branch.
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -1046,6 +1049,22 @@ else
     grep -F "$phrase" > /dev/null <<< "$invariant" &&
       problems+=("$skill_md's Guardrails invariant still says \"$phrase\", so a conductor reading it as its checklist skips the rebased tip's run: $(printf '%.160s' "$invariant")")
   done
+fi
+report "$name"
+
+name="$skill_md's Guardrails invariant about opening the PR names the branch's own full run, again after each suite-repair step, and the extra run on the rebased tip when sub-step 1 rebased the branch (#1026)"
+problems=()
+
+invariant="$(first_record "$(section_records '## Guardrails' '^## ')" -F 'before you open the pr')"
+if [[ -z "$invariant" ]]; then
+  problems+=("$skill_md's Guardrails has no invariant about opening the PR to read — which runs it names could not be checked")
+else
+  [[ -n "$(first_record "$invariant" -E 'own full(-suite)? (run|gate)')" ]] ||
+    problems+=("$skill_md's Guardrails invariant never names the branch's own full run: $(printf '%.160s' "$invariant")")
+  [[ -n "$(first_record "$invariant" -F "$suite_repair_mark")" ]] ||
+    problems+=("$skill_md's Guardrails invariant never says the branch's own full run runs again after each $suite_repair_mark step: $(printf '%.160s' "$invariant")")
+  [[ -n "$(first_record "$invariant" -F 'rebased tip' -wF 'rebased the branch')" ]] ||
+    problems+=("$skill_md's Guardrails invariant never names the extra run on the rebased tip when sub-step 1 rebased the branch: $(printf '%.160s' "$invariant")")
 fi
 report "$name"
 
