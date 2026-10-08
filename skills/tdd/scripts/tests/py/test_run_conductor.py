@@ -131,3 +131,62 @@ def test_main_fetches_origin_once_drops_a_successful_fetchs_stderr_and_refuses_a
         b"fatal: unable to access 'origin': no route\n"
         + ("run-conductor: fetch of origin failed in '%s' — refusing to run a skill that may be stale\n" % base).encode(),
         [fetch], [], []))
+
+
+def fake_locked_fetch(monkeypatch, sleep_code):
+    """git faked as a process whose every fetch fails on a ref lock; sleep a process exiting as given."""
+    calls = []
+    lock = "error: cannot lock ref 'refs/remotes/origin/main': is at 1111111 but expected 2222222\n"
+
+    def answer(args, *_, **kwargs):
+        args = list(args)
+        calls.append(args)
+        code, out, err = 1, "", ""
+        if args[:1] == ["git"] and args[3:] == ["remote", "get-url", "origin"]:
+            code, out = 0, "https://example.invalid/skill.git\n"
+        elif args[:1] == ["git"] and args[3:] == ["fetch", "-q", "origin"]:
+            err = lock
+        elif args[:1] == ["sleep"]:
+            code = sleep_code
+        if not (kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")):
+            out, err = out.encode(), err.encode()
+        return subprocess.CompletedProcess(args, code, out, err)
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, answer)
+    for name in ("system", "fork", "posix_spawn", "posix_spawnp", "execv", "execvp", "execve"):
+        if hasattr(os, name):
+            monkeypatch.setattr(os, name, answer)
+    import time
+    monkeypatch.setattr(time, "sleep", lambda *args: calls.append(["time.sleep", *args]))
+    return calls, lock
+
+
+def test_main_retries_a_cannot_lock_ref_fetch_through_a_sleep_process_at_most_60_fetches_and_59_sleeps_then_refuses_and_returns_1_when_sleep_fails(
+        tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
+    base = str(SCRIPTS.parent)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    refusal = "run-conductor: fetch of origin failed in '%s' — refusing to run a skill that may be stale\n" % base
+    answers = []
+    for retry_sleep, sleep_code in (("7", 0), (None, 0), ("", 1), (None, 1)):
+        cwd = tmp_path / ("%s-%d" % (retry_sleep, sleep_code))
+        cwd.mkdir()
+        monkeypatch.chdir(cwd)
+        if retry_sleep is None:
+            monkeypatch.delenv("VERI_FETCH_RETRY_SLEEP", raising=False)
+        else:
+            monkeypatch.setenv("VERI_FETCH_RETRY_SLEEP", retry_sleep)
+        calls, lock = fake_locked_fetch(monkeypatch, sleep_code)
+        code = run_conductor.main(["4242"])
+        captured = capfdbinary.readouterr()
+        fetches = [call for call in calls if call[:1] == ["git"] and call[3:4] == ["fetch"]]
+        sleeps = [call for call in calls if call[:1] in (["sleep"], ["time.sleep"])]
+        answers.append((code, captured.out, captured.err, len(fetches), sleeps, list(cwd.iterdir())))
+    assert answers == [
+        (2, b"", (lock * 60 + refusal).encode(), 60, [["sleep", "7"]] * 59, []),
+        (2, b"", (lock * 60 + refusal).encode(), 60, [["sleep", "1"]] * 59, []),
+        (1, b"", lock.encode(), 1, [["sleep", "1"]], []),
+        (1, b"", lock.encode(), 1, [["sleep", "1"]], []),
+    ]
