@@ -6,6 +6,8 @@ import sys
 from leaf_role import _write
 from run_verdict import SCRIPTS, takes_a_value
 
+LEAF_ARGS = ["--permission-mode", "bypassPermissions",
+             "--disallowedTools", "Write", "Edit", "MultiEdit", "NotebookEdit"]
 USAGE = ("usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file>"
          " <test-path> [<target-test-id>]")
 
@@ -36,7 +38,12 @@ def main(argv):
         return 2
     if built.returncode:
         return to_contract(built.returncode)
+    phase = args[0]
+    prompt_path = ".tdd/verify-%s.prompt" % phase
     os.makedirs(".tdd", exist_ok=True)
-    with open(os.path.join(".tdd", "verify-%s.prompt" % args[0]), "wb") as prompt:
+    with open(prompt_path, "wb") as prompt:
         prompt.write(built.stdout.rstrip(b"\n"))
+    subprocess.run(
+        [os.path.join(SCRIPTS, "supervise.sh"), "verify-%s" % phase,
+         os.path.join(SCRIPTS, "run-leaf.sh"), prompt_path, *LEAF_ARGS])
     return 0
