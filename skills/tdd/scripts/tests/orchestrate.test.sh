@@ -396,5 +396,27 @@ expected="$(printf '%s\n' "TERM to $(cat "$MARKS.pid" 2>/dev/null)" 1501 'write 
 actual="$(cat "$MARKS" "$LAUNCHES"; grep -F 'Bad file descriptor' "$work/err" > /dev/null && echo 'write error on stderr')"
 expect_exit0_output
 
+name="#1130 with stdout a pipe whose reader has exited, exits 2 with one stderr line saying its stdout is gone and no traceback"
+brokenpipe="$work/brokenpipe"
+conductor_stub "$brokenpipe" <<STUB
+[ "\$(wc -l < "\$LAUNCHES")" -eq 1 ] || exit 0
+i=0
+while [ \$i -lt 400 ] && { [ ! -s "\$MARKS.reader" ] || kill -0 "\$(cat "\$MARKS.reader")" 2>/dev/null; }; do i=\$((i + 1)); sleep 0.01; done
+echo '{"type":"assistant","message":{"role":"assistant","usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":1000,"output_tokens":40}}}'
+STUB
+seed brokenpipe 1601
+(cd "$work" && "$brokenpipe/orchestrate.sh") < /dev/null 2> "$work/err" | sh -c 'echo $$ > "$1"' sh "$MARKS.reader"
+rc=${PIPESTATUS[0]}
+await_gone
+lines="$(wc -l < "$work/err" | tr -d ' ')"
+if [[ "$rc" -eq 2 && "$lines" -eq 1 ]] && grep -F stdout "$work/err" > /dev/null && ! grep -F Traceback "$work/err" > /dev/null; then
+  ok
+else
+  no "$name"
+  echo "    exit: $rc (expected 2)"
+  echo "    stderr lines: $lines (expected 1, naming stdout, no Traceback)"
+  sed 's/^/    stderr: /' "$work/err"
+fi
+
 echo
 finish

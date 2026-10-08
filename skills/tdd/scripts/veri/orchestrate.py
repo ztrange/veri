@@ -105,4 +105,9 @@ def _parked(issue):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except BrokenPipeError:
+        os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        _err("orchestrate.sh: stdout is gone: its reader has exited\n")
+        sys.exit(2)
