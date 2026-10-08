@@ -159,3 +159,56 @@ def test_main_refuses_each_bad_argument_list_in_stop_run_sh_order_with_its_messa
 
     assert stop_run.main(["ten", "5"]) == 3
     assert capsysbinary.readouterr() == (b"", b"stop-run: no live run for issue 5\n")
+
+
+def test_main_prints_each_stopped_run_exactly_answers_3_byte_for_byte_and_lists_all_runs_sorted_skipping_files_and_dot_names(
+        monkeypatch, tmp_path, capsysbinary, stop_run):
+    main_tree = tmp_path / "m[a]i*n?"
+    decoy = tmp_path / "maiXnY"
+    elsewhere = tmp_path / "elsewhere"
+    monkeypatch.chdir(tmp_path)
+    fake_processes(monkeypatch, main_tree_at(main_tree))
+    live = set()
+
+    def fake_kill(pid, sig):
+        if pid not in live:
+            raise ProcessLookupError(3, "No such process")
+
+    monkeypatch.setattr(os, "kill", fake_kill)
+
+    def run_at(path, pid):
+        (path / ".tdd").mkdir(parents=True)
+        (path / ".tdd" / "conductor.pid").write_bytes(b"%d\n" % pid)
+        return path
+
+    wt = main_tree / ".tdd" / "wt"
+    run_at(wt / "3", 3003)
+    run_at(wt / ".8", 8008)
+    (wt / "4").write_bytes(b"not a run\n")
+    run_at(decoy / ".tdd" / "wt" / "6", 6006)
+    live.update({8008, 6006})
+
+    assert stop_run.main(["9"]) == 3
+    assert capsysbinary.readouterr() == (b"", b"stop-run: no live run for issue 9\n")
+    assert stop_run.main(["3"]) == 3
+    assert capsysbinary.readouterr() == (b"", b"stop-run: no live run for issue 3\n")
+    assert stop_run.main(["--all"]) == 3
+    assert capsysbinary.readouterr() == (b"", b"stop-run: no live run to stop\n")
+    assert not (wt / ".8" / ".tdd" / "stop").exists()
+
+    run_at(wt / "12", 1212)
+    run_at(wt / "7", 7007)
+    run_at(elsewhere, 2020)
+    (wt / "20").symlink_to(elsewhere)
+    live.update({1212, 7007, 2020})
+
+    assert stop_run.main(["12"]) == 0
+    assert capsysbinary.readouterr() == (os.fsencode(wt / "12") + b"\n", b"")
+
+    assert stop_run.main(["--all"]) == 0
+    assert capsysbinary.readouterr() == (
+        b"".join(os.fsencode(wt / name) + b"\n" for name in ("12", "20", "7")), b"")
+    for name in ("12", "20", "7"):
+        assert (wt / name / ".tdd" / "stop").read_bytes() == b"at-ledger\n"
+    for path in (wt / "3", wt / ".8", decoy / ".tdd" / "wt" / "6"):
+        assert not (path / ".tdd" / "stop").exists()
