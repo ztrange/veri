@@ -2041,4 +2041,51 @@ grep -q -- "$tip_ln" "$prompt" 2>/dev/null ||
 
 report "$name"
 
+name="run-conductor.sh sent SIGTERM while its claude runs keeps the snapshot until claude exits, then removes it and exits 143"
+problems=()
+source "$HERE/../lib/background.sh"
+
+termstub="$(scratch_dir)"
+termwork="$(scratch_dir)"
+claude_stub "$termstub" "$(cat <<'STUB'
+cat > "$PROMPT_OUT"
+echo started > "$STARTED"
+read -r _ < "$RELEASE"
+exit 0
+STUB
+)"
+mkdir -p "$termwork/caller"
+mkfifo "$termwork/started" "$termwork/release"
+exec {term_started}<>"$termwork/started" {term_release}<>"$termwork/release"
+on_exit bg_kill "$termwork/record"
+bg_start "$termwork/record" env CLAUDE_BIN="$termstub/claude" PROMPT_OUT="$termwork/prompt" \
+  STARTED="$termwork/started" RELEASE="$termwork/release" \
+  sh -c 'cd "$1" && exec "$2" "$3"' sh "$termwork/caller" "$CONDUCTOR" "$issue" \
+  >/dev/null 2>"$termwork/err"
+read -r term_pid _ < "$termwork/record"
+
+if ! read -t 60 -r _ <&"$term_started"; then
+  problems+=("claude never started: $(cat "$termwork/err")")
+else
+  term_snap="$(head -n 1 < <(sed -n 's/^Base directory for this skill: //p' "$termwork/prompt"))"
+  kill -TERM "$term_pid"
+  if [[ -z "$term_snap" ]]; then
+    problems+=("the prompt names no 'Base directory for this skill: <dir>' line")
+  elif [[ ! -d "$term_snap" ]]; then
+    problems+=("the snapshot $term_snap was gone after SIGTERM while claude still ran")
+  fi
+fi
+echo go >&"$term_release"
+wait "$term_pid"
+term_status=$?
+bg_kill "$termwork/record"
+exec {term_started}>&- {term_release}>&-
+
+[[ "$term_status" -eq 143 ]] ||
+  problems+=("the script exited $term_status, not 143: $(cat "$termwork/err")")
+[[ -z "${term_snap:-}" || ! -e "$term_snap" ]] ||
+  problems+=("the snapshot $term_snap was left behind after the script exited")
+
+report "$name"
+
 finish
