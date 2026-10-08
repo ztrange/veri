@@ -448,10 +448,10 @@ echo $$ >> "$MARKS.pid"
 echo "$1" >> "$LAUNCHES"
 grep -vx -- "$1" "$SOLVABLE" > "$SOLVABLE.next"
 mv "$SOLVABLE.next" "$SOLVABLE"
-(while :; do echo '{"type":"system","subtype":"heartbeat"}'; done) &
+(trap : TERM; sh -c 'while :; do echo '\''{"type":"system","subtype":"heartbeat"}'\''; done'; echo "writer $?" >> "$MARKS") &
 writer=$!
 echo $writer >> "$MARKS.pid"
-trap 'wait $writer; echo "writer $?" >> "$MARKS"; exit 0' TERM
+trap 'exit 0' TERM
 echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=1354 VERI_ACTOR=conductor $S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
 echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
 wait $writer
