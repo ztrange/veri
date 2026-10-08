@@ -1228,3 +1228,78 @@ def test_main_reports_a_killed_leaf_whose_log_ends_in_a_result_record_with_the_l
         (2, stuck, b"", True, 1, []),
         (0, recovered("success"), b"", True, 1, []),
     ]
+
+
+def test_main_keeps_a_killed_leaf_whose_log_cannot_be_opened_killed_stuck_writing_2_to_its_exit_file_and_never_raising(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    monkeypatch.chdir(tmp_path)
+    clean_env(monkeypatch, VERI_TIMEOUT="5000", VERI_STUCK_RETRIES="0", VERI_HEARTBEAT="3",
+              VERI_KILL_POLL="0.25")
+    clock = {"wall": 1000, "dates": 0}
+
+    class Leaf:
+        pid = 4242
+        returncode = None
+        args = []
+
+        def poll(self):
+            return self.returncode
+
+        def wait(self, timeout=None):
+            return self.returncode
+
+    leaf = Leaf()
+
+    def signalled(*_):
+        leaf.returncode = -signal.SIGTERM
+
+    monkeypatch.setattr(os, "killpg", signalled)
+    monkeypatch.setattr(os, "kill", signalled)
+    monkeypatch.setattr(time, "sleep", lambda secs: None)
+    monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
+
+    def answer(args):
+        args = [str(a) for a in args]
+        if args[:1] == ["git"]:
+            return "0123456789abcdef0123456789abcdef01234567\n"
+        if args[:1] == ["date"]:
+            clock["dates"] += 1
+            if clock["dates"] > 2000:
+                raise Runaway()
+            clock["wall"] += 1
+            return f"{clock['wall']}\n"
+        if args[:1] == ["stat"]:
+            return "1000\n"
+        return ""
+
+    def run(args, *_, **kwargs):
+        out = as_asked(answer(args), kwargs)
+        return subprocess.CompletedProcess(args, 0, out, "" if isinstance(out, str) else b"")
+
+    def popen(args, *_, **kwargs):
+        if list(args[:2]) == ["/bin/sh", "-c"]:
+            log = pathlib.Path(args[4])
+            log.unlink()
+            log.mkdir()
+            return leaf
+        raise AssertionError(f"unexpected Popen: {args}")
+
+    monkeypatch.setattr(subprocess, "run", run)
+    monkeypatch.setattr(subprocess, "check_output", lambda args, *a, **k: as_asked(answer(args), k))
+    monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: 0)
+    monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: 0)
+    monkeypatch.setattr(subprocess, "Popen", popen)
+
+    try:
+        code = supervise.main(["develop-red", "leaf-hang"])
+    except Runaway:
+        code = "<never ended>"
+    except Exception as error:
+        code = repr(error)
+    _, err = capsysbinary.readouterr()
+    exitfile = tmp_path / ".tdd" / "develop-red.exit"
+
+    assert (code, exitfile.read_bytes() if exitfile.exists() else None, b"Traceback" in err) == (2, b"2\n", False)
