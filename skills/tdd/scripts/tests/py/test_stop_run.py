@@ -316,3 +316,85 @@ def test_main_passes_non_utf8_bytes_in_an_argument_through_to_the_refusal_unchan
     assert capsysbinary.readouterr() == (
         b"", b"stop-run: <issue> must be a positive integer: '" + raw + b"'\n" + USAGE)
     assert calls == []
+
+
+def test_main_answers_as_stop_run_test_sh_s_refusal_write_overwrite_all_no_main_tree_and_pid_0_cases_do(
+        monkeypatch, tmp_path, capsysbinary, stop_run):
+    repo = tmp_path / "repo"
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    run = repo / ".tdd" / "wt" / "5"
+    trees = {str(repo): b"worktree %s\nHEAD abc\n" % os.fsencode(repo), str(outside): b""}
+
+    def fake_run(args, **kwargs):
+        if list(args[:2]) == ["ps", "-p"]:
+            return subprocess.CompletedProcess(args, 1, "", None)
+        if list(args) != ["git", "worktree", "list", "--porcelain"]:
+            raise AssertionError("unexpected command: %r" % (args,))
+        return subprocess.CompletedProcess(args, 0 if trees[os.getcwd()] else 128, trees[os.getcwd()], None)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    live = {4242, 7007}
+    signals = []
+
+    def fake_kill(pid, sig):
+        if sig != 0:
+            signals.append((pid, sig))
+        if pid not in live:
+            raise ProcessLookupError(3, "No such process")
+
+    monkeypatch.setattr(os, "kill", fake_kill)
+
+    def conductor(path, content):
+        (path / ".tdd").mkdir(parents=True, exist_ok=True)
+        (path / ".tdd" / "conductor.pid").write_bytes(content + b"\n")
+
+    conductor(run, b"4242")
+    (run / ".tdd" / "develop-red.pid").write_bytes(b"4343\n")
+    monkeypatch.chdir(repo)
+
+    for argv in (["--mode", "bogus", "5"], ["--mode", "now", "5", "--all"], [], ["--mode", "now", "five"], ["--mode"]):
+        assert (argv, stop_run.main(argv)) == (argv, 2)
+        out, err = capsysbinary.readouterr()
+        assert (argv, out, err.startswith(b"stop-run: ")) == (argv, b"", True)
+        assert not (run / ".tdd" / "stop").exists()
+        assert signals == []
+
+    assert stop_run.main(["5"]) == 0
+    assert (run / ".tdd" / "stop").read_bytes() == b"at-ledger\n"
+    capsysbinary.readouterr()
+
+    (run / ".tdd" / "stop").write_bytes(b"at-leaf\n")
+    assert stop_run.main(["--mode", "now", "5"]) == 0
+    assert (run / ".tdd" / "stop").read_bytes() == b"now\n"
+    capsysbinary.readouterr()
+
+    (run / ".tdd" / "stop").unlink()
+    conductor(repo / ".tdd" / "wt" / "7", b"7007")
+    conductor(repo / ".tdd" / "wt" / "9", b"9009")
+    signals.clear()
+    assert stop_run.main(["--mode", "at-leaf", "--all"]) == 0
+    out, err = capsysbinary.readouterr()
+    assert sorted(os.path.basename(line) for line in out.decode().splitlines()) == ["5", "7"]
+    for name in ("5", "7"):
+        assert (repo / ".tdd" / "wt" / name / ".tdd" / "stop").read_bytes() == b"at-leaf\n"
+    assert not (repo / ".tdd" / "wt" / "9" / ".tdd" / "stop").exists()
+    assert signals == []
+
+    (run / ".tdd" / "stop").unlink()
+    monkeypatch.chdir(outside)
+    assert stop_run.main(["--mode", "now", "5"]) == 2
+    out, err = capsysbinary.readouterr()
+    assert (out, err.startswith(b"stop-run: ")) == (b"", True)
+    assert not (run / ".tdd" / "stop").exists()
+    assert signals == []
+
+    monkeypatch.chdir(repo)
+    live.add(0)
+    for zero in ("0", "00"):
+        zero_run = repo / ".tdd" / "wt" / ("1" + zero)
+        conductor(zero_run, zero.encode())
+        assert (zero, stop_run.main(["1" + zero])) == (zero, 3)
+        assert not (zero_run / ".tdd" / "stop").exists()
+        capsysbinary.readouterr()
+    assert signals == []
