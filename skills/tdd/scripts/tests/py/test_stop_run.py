@@ -115,3 +115,16 @@ def test_main_refuses_a_mode_stop_modes_does_not_list_naming_every_mode_it_lists
     assert out == b""
     assert err.split(b"\n")[0] == "stop-run: unknown mode — want at-ledger, at-leaf, now or at-step: 'bogus'".encode()
     assert not (run / ".tdd" / "stop").exists()
+
+
+def test_main_builds_its_usage_line_from_the_modes_stop_modes_lists_when_it_runs(
+        monkeypatch, tmp_path, capsysbinary, stop_run):
+    import stop_modes
+    monkeypatch.setattr(stop_modes, "STOP_MODES", ("at-ledger", "at-leaf", "now", "at-step"))
+    monkeypatch.chdir(tmp_path)
+    fake_processes(monkeypatch, main_tree_at(tmp_path))
+
+    assert stop_run.main([]) == 2
+    out, err = capsysbinary.readouterr()
+    assert out == b""
+    assert err.rstrip(b"\n").split(b"\n")[-1] == b"usage: stop-run.sh [--mode at-ledger|at-leaf|now|at-step] <issue> | --all"
