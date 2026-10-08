@@ -62,12 +62,7 @@ class _Conductor:
                 return
             if self.armed and b'"type":"user"' in line:
                 self.armed = False
-                try:
-                    _bash_arithmetic(_ctx_budget())
-                    budget = int(_ctx_budget())
-                except ValueError:
-                    continue
-                if self.context > budget:
+                if self.context > int(_ctx_budget()):
                     os.kill(self.sup.pid, signal.SIGTERM)
                     self.stopped = True
                 continue

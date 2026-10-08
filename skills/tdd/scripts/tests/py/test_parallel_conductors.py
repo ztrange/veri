@@ -553,14 +553,11 @@ def test_veri_max_issues_with_a_leading_zero_is_read_as_bash_s_bare_arithmetic_r
 
 
 # Observed running parallel-conductors.sh at 79a9520bf with a conductor at context 50000 after its
-# step-done call: VERI_CONDUCTOR_CTX_BUDGET=0100000 stops and relaunches it; 08 and 09 print
-# "line 122: ((: 08: value too great for base" on stderr, never stop it, and keep printing its
-# context lines; every run exits 0.
+# step-done call: VERI_CONDUCTOR_CTX_BUDGET=0100000 stops and relaunches it; every run exits 0.
 @pytest.mark.parametrize("budget, kills, launched, restarted, contexts", [
     ("0100000", [], ["7"], [], ["context 7 50000", "context 7 500"]),
-    ("08", [], ["7"], [], ["context 7 50000", "context 7 500"]),
-    ("09", [], ["7"], [], ["context 7 50000", "context 7 500"]),
-], ids=["0100000-is-decimal-#1127", "08-never-stops", "09-never-stops"])
+    ("08", [(FakeSupervisor.pid, signal.SIGTERM)], ["7", "7"], ["restarted 7"], ["context 7 50000"]),
+], ids=["0100000-is-decimal-#1127", "08-stops-over-8-tokens-with-no-base-error-#1127"])
 def test_veri_conductor_ctx_budget_with_a_leading_zero_is_read_as_bash_s_bare_arithmetic_reads_it(
         budget, kills, launched, restarted, contexts, capsys, monkeypatch, tmp_path, parallel_conductors):
     for name in TUNABLES:
@@ -618,12 +615,13 @@ def test_veri_conductor_ctx_budget_with_a_leading_zero_is_read_as_bash_s_bare_ar
     monkeypatch.setattr(os, "kill", recording_kill)
 
     code = parallel_conductors.main([])
-    out, _ = capsys.readouterr()
+    out, err = capsys.readouterr()
 
     assert ([s for s in sent if s[1] == signal.SIGTERM], launches,
             [line for line in out.splitlines() if line.startswith("restarted ")],
-            [line for line in out.splitlines() if line.startswith("context ")], code) == (
-        kills, launched, restarted, contexts, 0)
+            [line for line in out.splitlines() if line.startswith("context ")], code,
+            [line for line in err.splitlines() if "value too great for base" in line]) == (
+        kills, launched, restarted, contexts, 0, [])
 
 
 def test_the_report_prints_one_line_per_issue_in_launch_order_killed_ahead_of_any_pr_parked_never_then_the_first_open_pr_closing_it_done_or_bailed(
