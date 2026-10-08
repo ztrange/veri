@@ -300,6 +300,22 @@ na_got="$(od -c < "$na_work/err")"
 rm -rf "$na_work"
 report "$name"
 
+name="event.sh with .tdd a regular file in the working directory exits 1 and leaves that file byte-identical"
+problems=()
+tf_work="$(scratch_dir)"
+printf 'not a directory\n' > "$tf_work/.tdd"
+cp "$tf_work/.tdd" "$tf_work/tdd.before"
+( cd "$tf_work" && env VERI_AWAKE_CLOCK=/usr/bin/true "$EVENT" step-start ) >/dev/null 2>&1
+tf_code=$?
+[[ "$tf_code" == 1 ]] || problems+=("want exit 1, got $tf_code")
+if [[ -f "$tf_work/.tdd" ]] && cmp -s "$tf_work/.tdd" "$tf_work/tdd.before"; then
+  :
+else
+  problems+=(".tdd: want the regular file left byte-identical, got $(ls -ld "$tf_work/.tdd" 2>&1)")
+fi
+rm -rf "$tf_work"
+report "$name"
+
 name="#563: event.sh's awake reading is the system-wide awake clock, so it advances across processes under a python3 whose time.monotonic() restarts per process"
 problems=()
 rs_work="$(scratch_dir)"
