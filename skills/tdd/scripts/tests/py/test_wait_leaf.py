@@ -215,3 +215,38 @@ def test_main_answers_a_max_that_is_not_an_integer_form_with_1_as_bash_did(
     assert (wait_leaf.main(["x", "08"]), calls) == (0, ["date +%s"])
     captured = capsys.readouterr()
     assert captured.out == ""
+
+
+def test_main_hands_veri_poll_to_sleep_as_text_defaulting_to_1_and_a_failing_sleep_does_not_end_the_wait(
+        monkeypatch, capsys, tmp_path, wait_leaf):
+    monkeypatch.chdir(tmp_path)
+    readings = []
+
+    def answer(line):
+        if line == "date +%s":
+            if len(readings) > 20:
+                raise RuntimeError("runaway wait: more than 20 clock readings")
+            readings.append(1000 + len(readings))
+            return (0, f"{readings[-1]}\n", "")
+        if line.startswith("sleep"):
+            return (1, "", "sleep: invalid time interval\n")
+        return (0, "", "")
+
+    calls = fake_processes(monkeypatch, answer)
+
+    waits = {}
+    for poll in (None, "", "0.02"):
+        if poll is None:
+            monkeypatch.delenv("VERI_POLL", raising=False)
+        else:
+            monkeypatch.setenv("VERI_POLL", poll)
+        calls.clear()
+        readings.clear()
+        waits[poll] = (wait_leaf.main(["x", "2"]), list(calls))
+    assert waits == {
+        None: (3, ["date +%s", "date +%s", "sleep 1", "date +%s"]),
+        "": (3, ["date +%s", "date +%s", "sleep 1", "date +%s"]),
+        "0.02": (3, ["date +%s", "date +%s", "sleep 0.02", "date +%s"]),
+    }
+    captured = capsys.readouterr()
+    assert captured.out == ""
