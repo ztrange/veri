@@ -45,24 +45,24 @@ def mark(role, *words):
     subprocess.run([sibling("event.sh"), *words], env=role)
 
 
+def git(*args, env=None):
+    return start(["git", *args], env=env, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+
+
 def in_temp_index(*args):
     folder = tempfile.mkdtemp()
     env = {**os.environ, "GIT_INDEX_FILE": os.path.join(folder, "index")}
     try:
-        added = start(["git", "add", "-A"], env=env,
-                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        if added.returncode:
+        if git("add", "-A", env=env).returncode:
             return ""
-        out = start(["git", *args], env=env, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        out = git(*args, env=env)
         return out.stdout.decode().rstrip("\n") if out.returncode == 0 else ""
     finally:
         shutil.rmtree(folder, ignore_errors=True)
 
 
 def head_snapshot():
-    head = start(["git", "rev-parse", "--verify", "HEAD"],
-                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-    return head.stdout.decode().rstrip("\n")
+    return git("rev-parse", "--verify", "HEAD").stdout.decode().rstrip("\n")
 
 
 def changed_paths(tree_before, head_before):
@@ -70,8 +70,7 @@ def changed_paths(tree_before, head_before):
         return []
     tree_after = in_temp_index("write-tree")
     head_after = head_snapshot()
-    diff = start(["git", "diff-tree", "-r", "--name-only", "--no-commit-id", tree_before, tree_after],
-                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    diff = git("diff-tree", "-r", "--name-only", "--no-commit-id", tree_before, tree_after)
     paths = diff.stdout.decode().splitlines() if diff.returncode == 0 else []
     if head_after != head_before:
         paths.append("HEAD")
