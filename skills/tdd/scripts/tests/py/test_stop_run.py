@@ -99,3 +99,19 @@ def test_main_accepts_a_mode_stop_modes_lists_and_writes_it_to_the_runs_stop_fil
 
     assert stop_run.main(["--mode", "at-step", "5"]) == 0
     assert (run / ".tdd" / "stop").read_bytes() == b"at-step\n"
+
+
+def test_main_refuses_a_mode_stop_modes_does_not_list_naming_every_mode_it_lists(
+        monkeypatch, tmp_path, capsysbinary, stop_run):
+    import stop_modes
+    monkeypatch.setattr(stop_modes, "STOP_MODES", ("at-ledger", "at-leaf", "now", "at-step"))
+    monkeypatch.chdir(tmp_path)
+    fake_processes(monkeypatch, main_tree_at(tmp_path))
+    monkeypatch.setattr(os, "kill", lambda pid, sig: None)
+    run = run_with_conductor(tmp_path)
+
+    assert stop_run.main(["--mode", "bogus", "5"]) == 2
+    out, err = capsysbinary.readouterr()
+    assert out == b""
+    assert err.split(b"\n")[0] == "stop-run: unknown mode — want at-ledger, at-leaf, now or at-step: 'bogus'".encode()
+    assert not (run / ".tdd" / "stop").exists()

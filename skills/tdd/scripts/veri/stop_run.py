@@ -38,6 +38,8 @@ def main(argv):
             mode = next(args)
         else:
             issue = arg
+    if not stop_modes.stop_mode_known(mode):
+        return refuse(f"unknown mode — want {stop_modes.modes_named()}: '{mode}'")
     if not issue:
         return refuse("name an issue, or --all")
     if not re.fullmatch(r"[1-9][0-9]*", issue):
