@@ -310,4 +310,28 @@ index_after="$(git_q "$repo" ls-files -s 2>&1)"
   && ok || no "preserving a worktree holding a tracked file .gitignore matches leaves the caller's index, HEAD and branch untouched (#1033) (code=$code head=$head_before/$head_after branch=$branch_before/$branch_after index_changed=$([[ "$index_after" == "$index_before" ]] && echo no || echo yes))"
 
 
+repo="$work/pinned-scratch"
+dirty_repo "$repo"
+leaf_output "$repo" 'scratch progress' 'scratch result'
+decoy="$work/decoy"
+make_repo "$decoy"
+write_ledger "$decoy" "The first step, already done" "A step the decoy is on"
+leaf_output "$decoy" 'decoy progress' 'decoy result'
+ledger_before="$(cat "$decoy/.tdd/issue-409.md")"
+mutant="$decoy/skills/tdd/scripts"
+mkdir -p "$mutant"
+cp -R "$HERE/../veri" "$mutant/veri"
+awk '/^exec python3/ { print "cd \"$(dirname \"$0\")\"" } { print }' "$PRESERVE" > "$mutant/preserve-attempt.sh"
+chmod +x "$mutant/preserve-attempt.sh"
+( cd "$repo" && env "${ident[@]}" "$mutant/preserve-attempt.sh" 409 3 develop-green 1 reject ) >/dev/null 2>"$work/pinned-scratch.err"; code=$?
+problems=""
+decoy_refs="$(git_q "$decoy" for-each-ref --format='%(refname)' refs/veri 2>&1)"
+[[ -z "$decoy_refs" ]] || problems+="; the decoy repository gained refs: $decoy_refs"
+[[ ! -e "$(attempts_dir "$decoy")" ]] || problems+="; $(attempts_dir "$decoy") was written: $(copies_in "$decoy")"
+[[ "$(cat "$decoy/.tdd/issue-409.md")" == "$ledger_before" ]] || problems+="; the decoy ledger changed"
+[[ "$code" != 0 ]] || problems+="; exit=0, want the case to fail on a subject that resolved the decoy repository"
+{ [[ -z "$problems" ]]; } \
+  && ok || no "#1158: a preserve-attempt.sh that resolves its toplevel from its own directory, not the suite's scratch repository, writes no .tdd/attempts entry, ref or ledger change outside that repository (${problems#; }; stderr='$(cat "$work/pinned-scratch.err")')"
+
+
 finish
