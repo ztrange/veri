@@ -366,7 +366,7 @@ def test_the_watch_prints_each_assistant_lines_cache_read_plus_creation_and_stop
     assert len(asks) == 3
 
 
-def test_the_budget_reads_as_bash_does_unset_or_empty_120000_a_leading_zero_octal_and_08_or_09_never_stopping_with_an_error_per_comparison(
+def test_the_budget_reads_as_bash_does_unset_or_empty_120000(
         capsys, monkeypatch, tmp_path, orchestrate):
     monkeypatch.chdir(tmp_path)
 
@@ -376,7 +376,6 @@ def test_the_budget_reads_as_bash_does_unset_or_empty_120000_a_leading_zero_octa
 
     stream = b"".join(step_done(n) + b'{"type":"user","content":"ok"}\n' for n in (32768, 50000, 120000, 120001))
     stream += b'{"type":"assistant","usage":{"cache_read_input_tokens":1,"cache_creation_input_tokens":1}}\n'
-    every = "".join("context 7 %d\n" % n for n in (32768, 50000, 120000, 120001, 2))
 
     def run(budget):
         if budget is None:
@@ -397,9 +396,6 @@ def test_the_budget_reads_as_bash_does_unset_or_empty_120000_a_leading_zero_octa
 
     assert run(None) == (0, "context 7 32768\ncontext 7 50000\ncontext 7 120000\ncontext 7 120001\n", "")
     assert run("") == (0, "context 7 32768\ncontext 7 50000\ncontext 7 120000\ncontext 7 120001\n", "")
-    for budget in ("08", "09"):
-        error = 'orchestrate.sh: %s: value too great for base (error token is "%s")\n' % (budget, budget)
-        assert run(budget) == (0, every, error * 4)
 
 
 def test_a_leading_zero_budget_reads_as_decimal_so_0100000_stops_a_conductor_over_100000_not_over_32768_1127(
@@ -421,6 +417,27 @@ def test_a_leading_zero_budget_reads_as_decimal_so_0100000_stops_a_conductor_ove
     code = orchestrate.main([])
     out, err = capsys.readouterr()
     assert (code, out, err) == (0, "context 7 50000\ncontext 7 100001\n", "")
+
+
+def test_a_08_budget_stops_a_conductor_over_8_tokens_with_no_value_too_great_for_base_line_1127(
+        capsys, monkeypatch, tmp_path, orchestrate):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", "08")
+    _passes(monkeypatch, [(0, "7\n"), (3, "")], lambda n, issue: None)
+    stream = b"".join(
+        b'{"type":"assistant","input":"bash event.sh step-done 1",'
+        b'"usage":{"cache_read_input_tokens":%d,"cache_creation_input_tokens":0}}\n'
+        b'{"type":"user","content":"ok"}\n' % read for read in (8, 9, 20))
+
+    def fake_popen(args, *rest, **kwargs):
+        conductor = _FakeConductor(4001)
+        conductor.stdout = io.BytesIO(stream)
+        return conductor
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+    code = orchestrate.main([])
+    out, err = capsys.readouterr()
+    assert (code, out, err) == (0, "context 7 8\ncontext 7 9\n", "")
 
 
 def test_stdout_carries_only_context_and_parked_lines_and_a_closed_stdout_raises_broken_pipe_out_of_the_next_context_write(
