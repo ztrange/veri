@@ -60,7 +60,11 @@ def main(argv):
     runs = os.fsdecode(main_working_tree()) + "/.tdd/wt/"
     if every:
         stopped = 0
-        for name in sorted(os.listdir(runs)):
+        try:
+            names = os.listdir(runs)
+        except FileNotFoundError:
+            names = []
+        for name in sorted(names):
             run = runs + name
             if not name.startswith(".") and pid_file.live_conductor(run) is not None:
                 stop_run(run, mode)

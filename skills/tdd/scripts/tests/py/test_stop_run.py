@@ -212,3 +212,12 @@ def test_main_prints_each_stopped_run_exactly_answers_3_byte_for_byte_and_lists_
         assert (wt / name / ".tdd" / "stop").read_bytes() == b"at-ledger\n"
     for path in (wt / "3", wt / ".8", decoy / ".tdd" / "wt" / "6"):
         assert not (path / ".tdd" / "stop").exists()
+
+
+def test_main_all_with_no_tdd_wt_directory_answers_3_no_live_run_to_stop_as_the_unmatched_glob_does(
+        monkeypatch, tmp_path, capsysbinary, stop_run):
+    monkeypatch.chdir(tmp_path)
+    fake_processes(monkeypatch, main_tree_at(tmp_path))
+
+    assert stop_run.main(["--all"]) == 3
+    assert capsysbinary.readouterr() == (b"", b"stop-run: no live run to stop\n")
