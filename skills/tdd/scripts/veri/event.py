@@ -1,5 +1,8 @@
 """event.sh's mark, run in-process."""
+import errno
 import os
+import shutil
+import subprocess
 import sys
 import time
 
@@ -62,11 +65,24 @@ def escape(value):
     return bytes(out)
 
 
-def line(args):
+def run_clock(clock):
+    path = shutil.which(clock) or clock
+    try:
+        try:
+            return subprocess.run([path], stdout=subprocess.PIPE)
+        except OSError as error:
+            # hazard: a shell runs an executable with no #! line as a script; exec refuses it with ENOEXEC.
+            if error.errno != errno.ENOEXEC:
+                raise
+            return subprocess.run(["/bin/sh", path], stdout=subprocess.PIPE)
+    except (FileNotFoundError, PermissionError):
+        return None
+
+
+def line(args, ts, awake):
     fields = [(key, os.environb.get(name, b"") if name else args[0]) for key, name in CONTEXT]
     fields += [arg.partition(b"=")[::2] for arg in args[1:]]
-    clock = getattr(time, "CLOCK_UPTIME_RAW", time.CLOCK_MONOTONIC)
-    text = b'{"ts": %d, "awake": %d' % (int(time.time()), int(time.clock_gettime(clock)))
+    text = b'{"ts": %d, "awake": ' % ts + awake
     for key, value in fields:
         text += b', "' + escape(key) + b'": "' + escape(value) + b'"'
     return text + b"}\n"
@@ -83,9 +99,20 @@ def main(argv):
             sys.stderr.buffer.write(refusal + b"\n")
             return 2
     os.makedirs(".tdd", exist_ok=True)
+    ts = int(time.time())
+    clock = os.environb.get(b"VERI_AWAKE_CLOCK", b"")
+    if clock:
+        result = run_clock(os.fsdecode(clock))
+        if result is None:
+            return 2
+        if result.returncode != 0:
+            return result.returncode if 0 < result.returncode <= 3 else 2
+        awake = result.stdout.rstrip(b"\n")
+    else:
+        awake = b"%d" % time.clock_gettime(getattr(time, "CLOCK_UPTIME_RAW", time.CLOCK_MONOTONIC))
     fd = os.open(".tdd/events.jsonl", os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
     try:
-        os.write(fd, line(args))
+        os.write(fd, line(args, ts, awake))
     finally:
         os.close(fd)
     return 0
