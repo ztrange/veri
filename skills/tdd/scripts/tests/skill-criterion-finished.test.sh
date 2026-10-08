@@ -170,6 +170,22 @@ else
 fi
 report "$name"
 
+name="#976: $skill_md takes a ⟦diff-checked⟧ step's step base sha, on a fresh run and on a resume alike, as the last commit that changed the ledger, never a HEAD taken after a killed attempt's commit"
+problems=()
+base_idiom='git log -1 --format=%h -- .tdd/issue-<n>.md'
+base_rec="$(records_of < "$skill_path" | grep -F '⟦diff-checked⟧' | grep -F -- "$base_idiom" | tr '\n' ' ')"
+if [[ -z "$base_rec" ]]; then
+  problems+=("no instruction of $skill_md takes a ⟦diff-checked⟧ step's base sha with '$base_idiom'")
+else
+  [[ "$base_rec" =~ step\ base\ sha[^.]*last\ commit\ that\ changed\ the\ ledger|last\ commit\ that\ changed\ the\ ledger[^.]*step\ base\ sha ]] ||
+    problems+=("the ⟦diff-checked⟧ base sha instruction never says the step base sha is the last commit that changed the ledger")
+  [[ "$base_rec" =~ fresh && "$base_rec" =~ resum ]] ||
+    problems+=("the ⟦diff-checked⟧ base sha instruction never says the rule holds on a fresh run and on a resume alike")
+  [[ "$base_rec" =~ (never|not)\ [^.]*head[^.]*killed ]] ||
+    problems+=("the ⟦diff-checked⟧ base sha instruction never rules out a HEAD taken after a killed attempt's commit")
+fi
+report "$name"
+
 name="#671: $skill_md's step 2 plans a criterion replacing an implementation case under ADR 0027 as one ⟦replaces-case⟧ step naming the suite path and the case's exact name, whose Red is the pytest case failing against the code before the change"
 problems=()
 rc_rec="$(first_record "$plan_recs" -F '⟦replaces-case⟧' -F 'implementation case')"
