@@ -261,3 +261,37 @@ def test_main_calls_event_sh_once_with_the_verdict_word_and_the_reasons_first_li
     assert [words for words, _ in events] == [
         [os.path.join(scripts, "event.sh"), "verdict", "verdict=" + word, "reason=" + reason_line]]
     assert events[0][1] == expected_env
+
+
+def test_main_launches_the_leaf_with_verify_leaf_args_words_split_on_whitespace_and_glob_expanded_in_the_working_directory(
+        tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_MODEL_DEVELOPER",
+                 "VERI_ISSUE", "VERI_STEP", "VERI_NO_VERDICT_RETRIES"):
+        monkeypatch.delenv(name, raising=False)
+    for name in ("b.flag", "a.flag", "c.other"):
+        (tmp_path / name).write_text("")
+    monkeypatch.setenv("VERIFY_LEAF_ARGS", "--one two\t*.flag\n nomatch-*.zz  --three")
+    supervised = []
+
+    def fake(args, *_, **__):
+        words = [str(a) for a in args]
+        name = os.path.basename(words[0])
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            supervised.append(words)
+            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine", None)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+    scripts = os.path.dirname(os.path.dirname(os.path.abspath(verify.__file__)))
+
+    verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    assert supervised == [[os.path.join(scripts, "supervise.sh"), "verify-green",
+                           os.path.join(scripts, "run-leaf.sh"), ".tdd/verify-green.prompt",
+                           "--one", "two", "a.flag", "b.flag", "nomatch-*.zz", "--three"]]

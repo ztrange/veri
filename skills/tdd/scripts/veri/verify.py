@@ -1,4 +1,5 @@
 """verify.sh's logic, run in-process."""
+import glob
 import io
 import os
 import subprocess
@@ -29,6 +30,14 @@ def to_contract(code):
     return code if code in (0, 1, 2, 3) else 2
 
 
+def leaf_args():
+    words = os.environ.get("VERIFY_LEAF_ARGS")
+    if not words:
+        return LEAF_ARGS
+    return [path for word in words.split()
+            for path in (sorted(glob.glob(word)) or [word])]
+
+
 def main(argv):
     args = list(argv)
     while args and takes_a_value(args[0]):
@@ -52,7 +61,7 @@ def main(argv):
         prompt.write(built.stdout.rstrip(b"\n"))
     launched = subprocess.run(
         [sibling("supervise.sh"), leaf,
-         sibling("run-leaf.sh"), prompt_path, *LEAF_ARGS],
+         sibling("run-leaf.sh"), prompt_path, *leaf_args()],
         stdout=subprocess.PIPE)
     code, reason = parse(launched.stdout)
     word = {0: "PASS", 1: "REJECT"}.get(code, "malformed")
