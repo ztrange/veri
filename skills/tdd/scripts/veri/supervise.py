@@ -5,7 +5,7 @@ import subprocess
 import sys
 import time
 
-from leaf_model import resolve
+from leaf_model import leaf_model
 from leaf_role import leaf_role
 from pid_file import number_in
 
@@ -65,7 +65,12 @@ def main(argv):
         found = leaf_role(name)
         if found is not None:
             role = " ".join(f"{k}={v}" for k, v in found.items())
-        model = resolve(name) or ""
+        model = leaf_model(name)
+    commit = subprocess.run(["git", "-C", HERE, "rev-parse", "HEAD"], stdout=subprocess.PIPE,
+                            stderr=subprocess.DEVNULL, text=True)
+    skill_commit = commit.stdout.rstrip("\n") if commit.returncode == 0 else ""
+    skill_commit = skill_commit or os.environ.get("VERI_SKILL_COMMIT") or "unknown"
+    leaf_env = {**os.environ, "VERI_LEAF_MODEL": model, "VERI_SKILL_COMMIT": skill_commit}
     mark(role, "launch", f"name={name}", f"cmd={' '.join(argv[1:])}", f"model={model}")
     write_line(f".tdd/{name}.pid", os.getpid())
     for stale in (exitfile, rcfile):
@@ -76,7 +81,7 @@ def main(argv):
     open(log, "wb").close()
     a0 = awake_seconds()
     subprocess.Popen(["/bin/sh", "-c", 'log=$1 rc=$2; shift 2; "$@" >"$log" 2>&1; echo $? >"$rc"',
-                      "sh", log, rcfile, *argv[1:]], process_group=0)
+                      "sh", log, rcfile, *argv[1:]], process_group=0, env=leaf_env)
     while not os.path.isfile(rcfile):
         time.sleep(0.1)
     with open(rcfile) as f:

@@ -366,3 +366,102 @@ def test_main_marks_a_watched_names_launch_and_exit_through_event_sh_under_its_r
     code, out, exit_record, events, role_lines = run_one("bogus", "bogus-x", 0, "printf 'leaf out\\n'", **env)
     diagnostic = b"leaf-role: leaf name 'bogus-x' has an unknown leading word (want develop-*|revise-*|verify-*|conductor-*)"
     assert (code, out, exit_record, events, role_lines) == (0, b"leaf out\n", b"0\n", [], [diagnostic, diagnostic])
+
+
+def test_main_resolves_the_model_in_process_marks_it_on_the_launch_and_hands_the_leaf_its_own_environment_plus_veri_leaf_model_and_veri_skill_commit(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    monkeypatch.setattr(time, "sleep", lambda *_: None)
+    monkeypatch.setattr(time, "clock_gettime", lambda *_: 5000.0)
+    monkeypatch.setenv("VERI_LEAF_MODEL", "ambient")
+    monkeypatch.setenv("VERI_SKILL_COMMIT", "ambient")
+    here = os.path.dirname(os.path.dirname(os.path.abspath(supervise.__file__)))
+    event_sh = os.path.join(here, "event.sh")
+    sha = "0123456789abcdef0123456789abcdef01234567"
+    whitespace = b"leaf-model: model 'opus x' contains whitespace (a model id or alias is one word)"
+
+    def run_one(label, git_ok, **env):
+        work = tmp_path / label
+        work.mkdir()
+        monkeypatch.chdir(work)
+        clean_env(monkeypatch, VERI_TIMEOUT="900", **env)
+        fake_leaf_launch(monkeypatch)
+        launching = subprocess.Popen
+        launch_models, leaf_envs = [], []
+
+        def git(args, kwargs):
+            if list(args) == ["git", "-C", here, "rev-parse", "HEAD"] and git_ok:
+                return 0, as_asked(f"{sha}\n", kwargs)
+            return 128, as_asked("", kwargs)
+
+        def run(args, *a, **kwargs):
+            args = [str(x) for x in args]
+            if event_sh in args:
+                if "launch" in args:
+                    launch_models.append([f for f in args if f.startswith("model=")])
+                return subprocess.CompletedProcess(args, 0, "", "")
+            if args[:1] == ["git"]:
+                code, out = git(args, kwargs)
+                if code and kwargs.get("check"):
+                    raise subprocess.CalledProcessError(code, args, out)
+                return subprocess.CompletedProcess(args, code, out, "" if isinstance(out, str) else b"")
+            out = as_asked("1000\n", kwargs)
+            return subprocess.CompletedProcess(args, 0, out, "" if isinstance(out, str) else b"")
+
+        def check_output(args, *a, **kwargs):
+            if [str(x) for x in args][:1] == ["git"]:
+                code, out = git([str(x) for x in args], kwargs)
+                if code:
+                    raise subprocess.CalledProcessError(code, args, out)
+                return out
+            return run(args, *a, **kwargs).stdout
+
+        def popen(args, *a, **kwargs):
+            if list(args[:2]) == ["/bin/sh", "-c"]:
+                given = kwargs.get("env")
+                leaf_envs.append(dict(os.environ if given is None else given))
+            return launching(args, *a, **kwargs)
+
+        monkeypatch.setattr(subprocess, "run", run)
+        monkeypatch.setattr(subprocess, "check_output", check_output)
+        monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, *a, **k).returncode)
+        monkeypatch.setattr(subprocess, "Popen", popen)
+        before = dict(os.environ)
+        code = supervise.main(["develop-red", "sh", "-c", "exit 0"])
+        _, err = capsysbinary.readouterr()
+        handed = ("VERI_LEAF_MODEL", "VERI_SKILL_COMMIT")
+        added = [{**{k: v for k, v in e.items() if k not in before or before[k] != v},
+                  **{k: e.get(k) for k in handed}} for e in leaf_envs]
+        dropped = [sorted(k for k in before if k not in e) for e in leaf_envs]
+        return code, launch_models, added, dropped, err.splitlines().count(whitespace)
+
+    def leaf(model, commit):
+        return [{"VERI_LEAF_MODEL": model, "VERI_SKILL_COMMIT": commit}]
+
+    answers = {
+        "chosen": run_one("chosen", True, VERI_MODEL="opus-x"),
+        "none": run_one("none", True),
+        "whitespace": run_one("whitespace", True, VERI_MODEL="opus x"),
+        "dash-n": run_one("dash-n", True, VERI_MODEL="-n"),
+        "dash-e": run_one("dash-e", True, VERI_MODEL="-e"),
+        "dash-E": run_one("dash-upper-e", True, VERI_MODEL="-E"),
+        "git-beats-inherited": run_one("git-beats-inherited", True, VERI_SKILL_COMMIT="inherited"),
+        "inherited": run_one("inherited", False, VERI_SKILL_COMMIT="inherited"),
+        "inherited-empty": run_one("inherited-empty", False, VERI_SKILL_COMMIT=""),
+        "unknown": run_one("unknown", False),
+    }
+
+    assert answers == {
+        "chosen": (0, [["model=opus-x"]], leaf("opus-x", sha), [[]], 0),
+        "none": (0, [["model="]], leaf("", sha), [[]], 0),
+        "whitespace": (0, [["model="]], leaf("", sha), [[]], 1),
+        "dash-n": (0, [["model="]], leaf("", sha), [[]], 0),
+        "dash-e": (0, [["model="]], leaf("", sha), [[]], 0),
+        "dash-E": (0, [["model="]], leaf("", sha), [[]], 0),
+        "git-beats-inherited": (0, [["model="]], leaf("", sha), [[]], 0),
+        "inherited": (0, [["model="]], leaf("", "inherited"), [[]], 0),
+        "inherited-empty": (0, [["model="]], leaf("", "unknown"), [[]], 0),
+        "unknown": (0, [["model="]], leaf("", "unknown"), [[]], 0),
+    }
