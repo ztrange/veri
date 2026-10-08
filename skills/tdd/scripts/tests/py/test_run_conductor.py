@@ -190,3 +190,118 @@ def test_main_retries_a_cannot_lock_ref_fetch_through_a_sleep_process_at_most_60
         (1, b"", lock.encode(), 1, [["sleep", "1"]], []),
         (1, b"", lock.encode(), 1, [["sleep", "1"]], []),
     ]
+
+
+class FakeProcess:
+    """A started process that has already exited 0, for whatever the module launches past resolution."""
+
+    def __init__(self, args):
+        self.args, self.returncode, self.pid = args, 0, 0
+        self.stdin = self.stdout = self.stderr = None
+
+    def communicate(self, *_, **__):
+        return b"", b""
+
+    def wait(self, *_, **__):
+        return 0
+
+    def poll(self):
+        return 0
+
+
+def fake_resolution(monkeypatch, origin, verifies, ls_remote):
+    """git faked as a process: fetch succeeds, `rev-parse -q --verify` finds only `verifies`,
+    `ls-remote` answers (code, out, err), a plain `rev-parse` resolves nothing."""
+    calls = []
+
+    def answer(args, *_, **kwargs):
+        args = list(args)
+        calls.append(args)
+        code, out, err = 1, "", ""
+        if args[:1] == ["git"] and args[3:] == ["remote", "get-url", "origin"]:
+            code = 0 if origin else 2
+            out = "https://example.invalid/skill.git\n" if origin else ""
+            err = "" if origin else "error: No such remote 'origin'\n"
+        elif args[:1] == ["git"] and args[3:] == ["fetch", "-q", "origin"]:
+            code = 0
+        elif args[:1] == ["git"] and args[3:6] == ["rev-parse", "-q", "--verify"]:
+            code = 0 if args[6:] and args[6] in verifies else 1
+        elif args[:1] == ["git"] and args[3:4] == ["ls-remote"]:
+            code, out, err = ls_remote
+        elif args[:1] == ["git"] and args[3:4] == ["rev-parse"]:
+            code, err = 128, "fatal: ambiguous argument\n"
+        elif args[:1] == ["fake-claude"]:
+            code = 0
+        if kwargs.get("stderr") is None and not kwargs.get("capture_output") and err:
+            os.write(2, err.encode())
+            err = ""
+        if not (kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")):
+            out, err = out.encode(), err.encode()
+        return subprocess.CompletedProcess(args, code, out, err)
+
+    def check_output(args, *a, **kwargs):
+        done = answer(args, *a, **kwargs)
+        if done.returncode:
+            raise subprocess.CalledProcessError(done.returncode, done.args, done.stdout, done.stderr)
+        return done.stdout
+
+    def popen(args, *_, **__):
+        calls.append(list(args))
+        return FakeProcess(list(args))
+
+    monkeypatch.setattr(subprocess, "run", answer)
+    monkeypatch.setattr(subprocess, "call", lambda *a, **k: answer(*a, **k).returncode)
+    monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: answer(*a, **k).returncode)
+    monkeypatch.setattr(subprocess, "check_output", check_output)
+    monkeypatch.setattr(subprocess, "Popen", popen)
+    for name in ("system", "fork", "posix_spawn", "posix_spawnp", "execv", "execvp", "execve"):
+        if hasattr(os, name):
+            monkeypatch.setattr(os, name, lambda *args, **__: calls.append(list(args)))
+    return calls
+
+
+def test_main_resolves_the_pin_ref_through_origin_head_else_origins_default_from_ls_remote_symref_refusing_unpinned_with_two_exact_lines_silently_on_a_failed_ls_remote_and_as_head_with_no_origin(
+        tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
+    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    base = str(SCRIPTS.parent)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    symref = (0, "ref: refs/heads/trunk\tHEAD\n1111111111111111111111111111111111111111\tHEAD\n", "warning: ls-remote noise\n")
+    scenarios = {
+        "origin-head": (True, {"refs/remotes/origin/HEAD"}, symref),
+        "default": (True, {"refs/remotes/origin/trunk"}, symref),
+        "no-default": (True, set(), (0, "1111111111111111111111111111111111111111\tHEAD\n", "warning: ls-remote noise\n")),
+        "no-local-default": (True, set(), symref),
+        "ls-remote-fails": (True, set(), (128, "", "fatal: unable to access 'origin'\n")),
+        "no-origin": (False, set(), symref),
+    }
+    answers = {}
+    for name, (origin, verifies, ls_remote) in scenarios.items():
+        cwd = tmp_path / name
+        cwd.mkdir()
+        monkeypatch.chdir(cwd)
+        calls = fake_resolution(monkeypatch, origin, verifies, ls_remote)
+        code = run_conductor.main(["4242"])
+        captured = capfdbinary.readouterr()
+        ls_remotes = [call for call in calls if call[:1] == ["git"] and call[3:4] == ["ls-remote"]]
+        resolved = [call[4] for call in calls
+                    if call[:1] == ["git"] and call[3:4] == ["rev-parse"] and call[4:5] != ["-q"]][:1]
+        if name in ("origin-head", "default", "no-origin"):
+            answers[name] = (resolved, len(ls_remotes),
+                             b"refusing to run unpinned" in captured.err, b"ls-remote noise" in captured.err)
+        else:
+            answers[name] = (code, captured.out, captured.err, ls_remotes, resolved)
+    ls_remote = [["git", "-C", base, "ls-remote", "--symref", "origin", "HEAD"]]
+    assert answers == {
+        "origin-head": (["refs/remotes/origin/HEAD"], 0, False, False),
+        "default": (["refs/remotes/origin/trunk"], 1, False, False),
+        "no-default": (2, b"", (
+            "run-conductor: refs/remotes/origin/HEAD is not set in '%s' and origin names no default branch"
+            " — refusing to run unpinned\n" % base).encode(), ls_remote, []),
+        "no-local-default": (2, b"", (
+            "run-conductor: refs/remotes/origin/HEAD is not set in '%s' and origin's default branch 'trunk'"
+            " has no refs/remotes/origin/trunk — refusing to run unpinned\n" % base).encode(), ls_remote, []),
+        "ls-remote-fails": (2, b"", b"", ls_remote, []),
+        "no-origin": (["HEAD"], 0, False, False),
+    }

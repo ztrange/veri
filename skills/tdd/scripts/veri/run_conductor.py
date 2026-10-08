@@ -4,6 +4,7 @@ import subprocess
 import sys
 
 import launch_floor
+from git import symref_default
 
 USAGE = "usage: run-conductor.sh <issue>"
 
@@ -15,6 +16,7 @@ def main(argv):
         sys.stderr.write(USAGE + "\n")
         return 2
     base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    head_rev = "HEAD"
     if subprocess.run(["git", "-C", base, "remote", "get-url", "origin"],
                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
         fetches = 0
@@ -31,7 +33,31 @@ def main(argv):
                 continue
             sys.stderr.write("run-conductor: fetch of origin failed in '%s' — refusing to run a skill that may be stale\n" % base)
             return 2
+        head_rev = "refs/remotes/origin/HEAD"
+        if not verifies(base, head_rev):
+            answer = subprocess.run(["git", "-C", base, "ls-remote", "--symref", "origin", "HEAD"],
+                                    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+            if answer.returncode != 0:
+                return 2
+            default = symref_default(answer.stdout)
+            if not default:
+                return refuse_unpinned(base, "origin names no default branch")
+            head_rev = "refs/remotes/origin/" + default
+            if not verifies(base, head_rev):
+                return refuse_unpinned(base, "origin's default branch '%s' has no %s" % (default, head_rev))
+    subprocess.run(["git", "-C", base, "rev-parse", head_rev],
+                   stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     return 0
+
+
+def verifies(base, ref):
+    return subprocess.run(["git", "-C", base, "rev-parse", "-q", "--verify", ref],
+                          stdout=subprocess.DEVNULL).returncode == 0
+
+
+def refuse_unpinned(base, why):
+    sys.stderr.write("run-conductor: refs/remotes/origin/HEAD is not set in '%s' and %s — refusing to run unpinned\n" % (base, why))
+    return 2
 
 
 if __name__ == "__main__":
