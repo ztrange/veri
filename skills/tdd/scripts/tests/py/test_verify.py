@@ -1004,3 +1004,45 @@ def test_main_reports_a_leaf_that_changed_both_the_repository_and_home_gitconfig
     assert (code, captured.out) == (
         2, "verifier leaf modified the repository — verdict not accepted"
            " (see .tdd/verify-green.log); changed:\nsrc.txt\n".encode())
+
+
+def test_main_returns_1_before_any_leaf_launches_when_reading_home_gitconfig_a_regular_file_raises_oserror(
+        tmp_path, monkeypatch, capfdbinary):
+    work = tmp_path / "work"
+    work.mkdir()
+    monkeypatch.chdir(work)
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    gitconfig = home / ".gitconfig"
+    gitconfig.write_bytes(b"[user]\n\tname = op\n")
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
+                 "VERI_ISSUE", "VERI_STEP"):
+        monkeypatch.delenv(name, raising=False)
+    launched = []
+
+    def fake(args, *_, **__):
+        name = os.path.basename(str(args[0]))
+        launched.append(name)
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine\n", None)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    real_open = open
+
+    def unreadable(path, *args, **kwargs):
+        if os.fspath(path) == str(gitconfig):
+            raise PermissionError(13, "Permission denied", os.fspath(path))
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.open", unreadable)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    captured = capfdbinary.readouterr()
+    assert (code, captured.out, "supervise.sh" in launched) == (1, b"", False)

@@ -136,7 +136,10 @@ def main(argv):
     tree_before = in_temp_index("write-tree")
     head_before = head_snapshot()
     gitconfig = os.environ["HOME"] + "/.gitconfig"
-    gitconfig_before = gitconfig_snapshot(gitconfig)
+    try:
+        gitconfig_before = gitconfig_snapshot(gitconfig)
+    except OSError:
+        return 1
     retries = os.environ.get("VERI_NO_VERDICT_RETRIES") or "1"
     if not re.fullmatch("[0-9]+", retries):
         _write(sys.stderr, "verify: VERI_NO_VERDICT_RETRIES must be a non-negative integer,"
