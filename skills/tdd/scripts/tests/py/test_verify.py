@@ -215,6 +215,31 @@ def test_main_reads_the_verdict_from_supervises_stdout_and_prints_the_whole_reas
     assert (code, capfdbinary.readouterr().out) == expected
 
 
+def test_main_drops_nul_bytes_from_the_leafs_output_so_a_verdict_carrying_them_is_read_as_the_same_verdict_without_them(
+        tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERIFY_LEAF_ARGS", "VERI_ISSUE", "VERI_STEP", "VERI_NO_VERDICT_RETRIES"):
+        monkeypatch.delenv(name, raising=False)
+
+    def fake(args, *_, **__):
+        name = os.path.basename(str(args[0]))
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            return subprocess.CompletedProcess(
+                args, 0, b"VER\x00DICT: REJ\x00ECT\nthe \x00whole\nreason\x00\n", None)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    assert (code, capfdbinary.readouterr().out) == (1, b"the whole\nreason\n")
+
+
 @pytest.mark.parametrize("phase", ["green", "refactor"])
 @pytest.mark.parametrize("leaf_out, word, reason_line", [
     (b"VERDICT: PASS\nfirst line\nsecond line\n", "PASS", "first line"),
