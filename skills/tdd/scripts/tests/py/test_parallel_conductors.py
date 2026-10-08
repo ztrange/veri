@@ -626,6 +626,78 @@ def test_veri_conductor_ctx_budget_with_a_leading_zero_is_read_as_bash_s_bare_ar
         kills, launched, restarted, contexts, 0, [])
 
 
+@pytest.mark.parametrize("budget, read, kills, launched, restarted, contexts", [
+    ("100000", 100000, [], ["7"], [], ["context 7 100000", "context 7 500"]),
+    ("100000", 100001, [(FakeSupervisor.pid, signal.SIGTERM)], ["7", "7"], ["restarted 7"], ["context 7 100001"]),
+    (None, 120000, [], ["7"], [], ["context 7 120000", "context 7 500"]),
+    (None, 120001, [(FakeSupervisor.pid, signal.SIGTERM)], ["7", "7"], ["restarted 7"], ["context 7 120001"]),
+], ids=["100000-at-budget-#1127", "100000-over-budget-#1127", "unset-at-120000-#1127", "unset-over-120000-#1127"])
+def test_veri_conductor_ctx_budget_of_100000_or_unset_stops_a_conductor_exactly_when_its_context_is_over_it_1127(
+        budget, read, kills, launched, restarted, contexts, capsys, monkeypatch, tmp_path, parallel_conductors):
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    if budget is not None:
+        monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", budget)
+    monkeypatch.setenv("VERI_MAX_ISSUES", "1")
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(gh))
+    work = tmp_path / "repo"
+    (work / ".tdd").mkdir(parents=True)
+    monkeypatch.chdir(work)
+    log = work / ".tdd" / "conductor-7.log"
+    step_done = (b'{"type":"assistant","message":{"content":[{"type":"tool_use","input":{"command":'
+                 b'"skills/tdd/scripts/event.sh step-done 3"}}],"usage":{"cache_creation_input_tokens":0,'
+                 b'"cache_read_input_tokens":%d}}}\n' % read)
+    later = b'{"type":"assistant","message":{"usage":{"cache_creation_input_tokens":0,"cache_read_input_tokens":500}}}\n'
+    user = b'{"type":"user","message":{"content":[{"type":"tool_result","content":"ok"}]}}\n'
+    launches, sleeps = [], [0]
+
+    def on_launch(sup):
+        launches.append(sup.args[-1])
+        if len(launches) == 1:
+            log.write_bytes(step_done)
+        else:
+            log.write_bytes(b"")
+            sup.exit(0)
+
+    def on_sleep(supervisors):
+        first = supervisors[0]
+        if first.returncode is not None:
+            return
+        sleeps[0] += 1
+        if sleeps[0] == 1:
+            with open(log, "ab") as f:
+                f.write(user)
+        elif sleeps[0] == 2:
+            with open(log, "ab") as f:
+                f.write(later + user)
+        elif sleeps[0] >= 5:
+            first.exit(0)
+
+    supervisors = _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7 8\n"))
+    sent = []
+
+    def recording_kill(pid, sig):
+        sent.append((pid, sig))
+        live = [s for s in supervisors if s.pid == pid and s.returncode is None]
+        if not live:
+            raise ProcessLookupError(pid)
+        if sig == signal.SIGTERM:
+            live[0].exit(143)
+
+    monkeypatch.setattr(os, "kill", recording_kill)
+
+    code = parallel_conductors.main([])
+    out, err = capsys.readouterr()
+
+    assert ([s for s in sent if s[1] == signal.SIGTERM], launches,
+            [line for line in out.splitlines() if line.startswith("restarted ")],
+            [line for line in out.splitlines() if line.startswith("context ")], code, err) == (
+        kills, launched, restarted, contexts, 0, "")
+
+
 def test_the_report_prints_one_line_per_issue_in_launch_order_killed_ahead_of_any_pr_parked_never_then_the_first_open_pr_closing_it_done_or_bailed(
         capsys, monkeypatch, tmp_path, parallel_conductors):
     for name in TUNABLES:
