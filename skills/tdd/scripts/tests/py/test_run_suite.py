@@ -349,3 +349,14 @@ def test_the_module_run_as_the_shim_hands_off_names_a_missing_suite_on_stderr_wi
     assert (run.returncode, "Traceback" in err, err.splitlines()[-2:]) == (
         1, False, ["missing.test.sh: never reached its count line", "missing.test.sh: its output was empty"]
     )
+
+
+def test_the_module_run_as_the_shim_hands_off_names_a_non_executable_suite_on_stderr_without_a_traceback_and_exits_1_1167(tmp_path):
+    suite = tmp_path / "not-executable.test.sh"
+    suite.write_text('#!/bin/sh\necho "1 passed, 0 failed"\n')
+    run = subprocess.run([sys.executable, str(SCRIPTS / "veri" / "run_suite.py"), str(suite)],
+                         stdin=subprocess.DEVNULL, capture_output=True, timeout=10)
+    err = run.stderr.decode()
+    assert (run.returncode, "Traceback" in err, err.splitlines()[-2:]) == (
+        1, False, ["not-executable.test.sh: never reached its count line", "not-executable.test.sh: its output was empty"]
+    )
