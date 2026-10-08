@@ -5,9 +5,9 @@ import subprocess
 import sys
 
 try:
-    from git import git
+    from git import git, symref_default
 except ImportError:
-    from .git import git
+    from .git import git, symref_default
 
 
 def output(*args, **kwargs):
@@ -21,7 +21,7 @@ def default_branch():
         return local.stdout.rstrip("\n").removeprefix("origin/")
     answer = git("ls-remote", "--symref", "origin", "HEAD", text=True,
                  stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
-    return "\n".join(re.findall(r"^ref: refs/heads/(\S*)[^\S\n]*HEAD$", answer, re.MULTILINE))
+    return symref_default(answer) or ""
 
 
 def rebase_in_progress():
