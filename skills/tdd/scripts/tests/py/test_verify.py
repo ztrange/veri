@@ -711,3 +711,54 @@ def test_main_restores_a_modified_tree_through_a_fresh_temporary_index_and_a_mov
     read_tree_index = [index for verb, index in indexes if verb == "read-tree"][0]
     assert read_tree_index and read_tree_index not in snapshot_indexes
     assert not pathlib.Path(read_tree_index).is_relative_to(tmp_path)
+
+
+def test_main_runs_the_tamper_check_after_a_relaunchs_launch_and_refuses_a_relaunched_leaf_that_modified_the_repository(
+        tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
+                 "VERI_ISSUE", "VERI_STEP"):
+        monkeypatch.delenv(name, raising=False)
+    trees = [b"a" * 40 + b"\n", b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
+    leaf_outs = [b"no verdict here\n", b"VERDICT: PASS\nfine\n"]
+    supervised = []
+    marked = []
+    writes = []
+
+    def fake(args, *_, **__):
+        words = [str(a) for a in args]
+        if os.path.basename(words[0]) == "env":
+            words = [w for w in words[1:] if "=" not in w]
+        name = os.path.basename(words[0])
+        if name == "git":
+            verb = words[1]
+            if verb == "write-tree":
+                writes.append(verb)
+                return subprocess.CompletedProcess(args, 0, trees[min(len(writes), 3) - 1], b"")
+            if verb == "rev-parse":
+                return subprocess.CompletedProcess(args, 0, b"1" * 40 + b"\n", b"")
+            if verb == "diff-tree":
+                out = b"src.txt\n" if words[-2] != words[-1] else b""
+                return subprocess.CompletedProcess(args, 0, out, b"")
+            return subprocess.CompletedProcess(args, 0, b"", b"")
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            supervised.append(words)
+            return subprocess.CompletedProcess(args, 0, leaf_outs[len(supervised) - 1], None)
+        if name == "event.sh":
+            marked.append(words[1:])
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    captured = capfdbinary.readouterr()
+    assert (code, len(supervised), captured.out, marked) == (
+        2, 2, "verifier leaf modified the repository — verdict not accepted"
+              " (see .tdd/verify-green.log); changed:\nsrc.txt\n".encode(),
+        [["relaunch", "cause=no-verdict"]])
