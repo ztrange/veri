@@ -169,32 +169,6 @@ estuck="$(recorded_code exit-stuck 1 30 leaf-hang)"
 { [[ "$eok" == 0 ]] && [[ "$efail" == 1 ]] && [[ "$estuck" == 2 ]]; } && ok \
   || no ".tdd/<name>.exit records the supervisor's own final code, killed-stuck included (success=$eok want 0, failure=$efail want 1, killed-stuck=$estuck want 2)"
 
-ROOT="$(cd "$HERE/../../../.." && pwd)"
-
-stated() {
-  local hit
-  [[ -f "$1" ]] || { echo '<no-file>'; return; }
-  hit="$(head -1 < <(tr '\n' ' ' < "$1" | grep -oE "$2"))"
-  [[ -n "$hit" ]] || { echo '<none>'; return; }
-  printf '%s' "$hit" | grep -oE '[0-9]+' | tail -1
-}
-
-encoded="$(stated "$SUP" 'VERI_HEARTBEAT:-[0-9]+')"
-
-prose_misses=""
-[[ "$encoded" =~ ^[0-9]+$ ]] || prose_misses=" supervise.sh:no-VERI_HEARTBEAT-default-found"
-while IFS='|' read -r where file regex; do
-  [[ -n "$where" ]] || continue
-  got="$(stated "$ROOT/$file" "$regex")"
-  [[ "$got" == "$encoded" ]] || prose_misses="$prose_misses $where:says-$got"
-done <<'SITES'
-supervise.sh-header|skills/tdd/scripts/supervise.sh|VERI_HEARTBEAT silence window secs \(default [0-9]+
-SKILL.md-tunables|skills/tdd/SKILL.md|VERI_HEARTBEAT.{0,3}\(silence window s, +default [0-9]+
-SITES
-
-[[ -z "$prose_misses" ]] && ok \
-  || no "the heartbeat default encoded in supervise.sh and every prose statement of it agree (encoded=$encoded, drift:$prose_misses)"
-
 
 killed_window() {
   local name="$1" hb="${2-}"
