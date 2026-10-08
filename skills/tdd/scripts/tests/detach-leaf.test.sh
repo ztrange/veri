@@ -238,4 +238,27 @@ fi
 
 report "$name"
 
+name="detach-leaf.sh run through a symlink to the skill directory from another working directory launches its argv in that working directory and exits 0, as it does in place"
+problems=()
+
+SKILL_DIR="$(cd "$HERE/../.." && pwd)"
+ln -s "$SKILL_DIR" "$work/linked-skill"
+ELSEWHERE="$work/elsewhere"
+mkdir -p "$ELSEWHERE"
+WROTE="detach-leaf-symlink-cwd.$$"
+
+( cd "$ELSEWHERE" && "$work/linked-skill/scripts/detach-leaf.sh" sh -c 'printf ran > "$1"' sh "$WROTE" ) > "$work/symlink.out" 2> "$work/symlink.err"
+status=$?
+[[ "$status" == 0 ]] ||
+  problems+=("want exit 0, got: $status (stderr: $(printf '%q' "$(cat "$work/symlink.err")"))")
+appeared "$ELSEWHERE/$WROTE" "$PATIENCE" ||
+  problems+=("the command handed to detach-leaf.sh through the symlink never wrote $WROTE in the working directory it was called from, $ELSEWHERE")
+for beside in "$SKILL_DIR" "$SKILL_DIR/scripts"; do
+  [[ ! -e "$beside/$WROTE" ]] ||
+    problems+=("the command wrote $WROTE beside the skill, in $beside, not in the caller's working directory")
+  rm -f "$beside/$WROTE"
+done
+
+report "$name"
+
 finish
