@@ -7,7 +7,7 @@ import subprocess
 import sys
 import tempfile
 
-from git import git
+from git import git, symref_default
 from pid_file import live_conductor
 
 USAGE = "usage: issue-worktree.sh <n> <slug> | --remove <n>"
@@ -49,7 +49,7 @@ def default_branch_name(origin):
     if origin:
         answer = git("ls-remote", "--symref", "origin", "HEAD",
                      stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-        name = "\n".join(re.findall(r"^ref: refs/heads/(\S*)\s*HEAD$", answer.stdout, re.MULTILINE))
+        name = symref_default(answer.stdout) or ""
         return name, ("cannot determine origin's default branch"
                       " (no refs/remotes/origin/HEAD, and the remote did not name one)")
     for name in ("main", "master"):
