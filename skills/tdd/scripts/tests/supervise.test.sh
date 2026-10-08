@@ -434,7 +434,7 @@ skill_got="$(event_field "$skill_work" launch skill_commit)"
 
 nogit_skill="$work/nogit-skill"
 mkdir -p "$nogit_skill/lib"
-cp "$SCRIPTS"/*.sh "$nogit_skill/"
+cp -R "$SCRIPTS"/*.sh "$SCRIPTS"/veri "$nogit_skill/"
 cp "$SCRIPTS"/lib/*.sh "$nogit_skill/lib/"
 nogit_resolves="$(git -C "$nogit_skill" rev-parse HEAD 2>/dev/null || echo '<none>')"
 nogit_work="$work/nogit-run"
