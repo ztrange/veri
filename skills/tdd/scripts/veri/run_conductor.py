@@ -113,6 +113,7 @@ def launch(base, issue, commit, **exports):
         return 2
     env = dict(os.environ, **exports)
     strip_session_env(env)
+    env.pop("VERI_NEW_SKILL", None)
     return subprocess.run([os.environ.get("CLAUDE_BIN") or "claude", "-p", "--output-format", "stream-json",
                            "--verbose", "--permission-mode", "bypassPermissions"],
                           input=text, env=env).returncode
