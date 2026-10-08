@@ -204,4 +204,38 @@ appeared "$RAN" "$PATIENCE" ||
 
 report "$name"
 
+name="a command started by detach-leaf.sh sees SIGINT and SIGQUIT ignored, SIGXFSZ ignored, SIGPIPE at its default, end-of-file on stdin though the caller's stdin is a pipe with data in it, and the caller's own stdout and stderr"
+problems=()
+
+SEEN="$work/dispositions.seen"
+PROBE="$work/dispositions-probe.sh"
+cat > "$PROBE" <<'L'
+int_quit="$(python3 -c 'import signal; print(*[int(h) if isinstance(h, int) else "handler" for h in map(signal.getsignal, (signal.SIGINT, signal.SIGQUIT))])')"
+( ulimit -f 1; head -c 8192 /dev/zero > "$2" ) 2> /dev/null
+xfsz=$?
+yes | head -n 1 > /dev/null
+pipe="${PIPESTATUS[0]}"
+if IFS= read -r line; then stdin="read:$line"; else stdin="eof"; fi
+printf 'probe-stdout\n'
+printf 'probe-stderr\n' >&2
+printf '%s\n' "int-quit=$int_quit" "xfsz-status=$xfsz" "pipe-status=$pipe" "stdin=$stdin" > "$1.tmp"
+mv "$1.tmp" "$1"
+L
+
+printf 'caller-data\n' | "$DETACH" bash "$PROBE" "$SEEN" "$work/xfsz.big" > "$work/dispositions.out" 2> "$work/dispositions.err"
+if appeared "$SEEN" "$PATIENCE"; then
+  seen="$(cat "$SEEN")"
+  want=$'int-quit=1 1\nxfsz-status=1\npipe-status=141\nstdin=eof'
+  [[ "$seen" == "$want" ]] ||
+    problems+=("want the started command to see $(printf '%q' "$want") (xfsz-status 1: the oversized write failed and the writer lived, so SIGXFSZ is ignored; 153 would be death by SIGXFSZ), got: $(printf '%q' "$seen")")
+else
+  problems+=("the command started through detach-leaf.sh never wrote $SEEN")
+fi
+[[ "$(cat "$work/dispositions.out"; printf x)" == $'probe-stdout\nx' ]] ||
+  problems+=("want the started command's stdout in the file the caller redirected stdout to, exactly 'probe-stdout', got: $(printf '%q' "$(cat "$work/dispositions.out")")")
+[[ "$(cat "$work/dispositions.err"; printf x)" == $'probe-stderr\nx' ]] ||
+  problems+=("want the started command's stderr in the file the caller redirected stderr to, exactly 'probe-stderr', got: $(printf '%q' "$(cat "$work/dispositions.err")")")
+
+report "$name"
+
 finish
