@@ -2,6 +2,7 @@
 import glob
 import io
 import os
+import re
 import subprocess
 import sys
 
@@ -83,7 +84,12 @@ def main(argv):
     os.makedirs(".tdd", exist_ok=True)
     with open(prompt_path, "wb") as prompt:
         prompt.write(built.stdout.rstrip(b"\n"))
-    retries = no_verdict_budget(os.environ.get("VERI_NO_VERDICT_RETRIES") or "1")
+    retries = os.environ.get("VERI_NO_VERDICT_RETRIES") or "1"
+    if not re.fullmatch("[0-9]+", retries):
+        _write(sys.stderr, "verify: VERI_NO_VERDICT_RETRIES must be a non-negative integer,"
+               " got '%s'" % retries)
+        return 2
+    retries = no_verdict_budget(retries)
     role = {**os.environ, **leaf_role(leaf)}
     relaunches = 0
     while True:
