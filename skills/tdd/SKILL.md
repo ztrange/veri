@@ -2336,8 +2336,8 @@ hatch.
 - Every phase is **blind-verified** before you proceed, and **every verdict is mirrored**
   to the issue thread.
 - The full suite must be green before you commit and before you open the PR: that is
-  `detect-test-command.sh --tier all`'s command, run through `detach-command.sh` exactly once at the Draft PR step — the
-  only full-suite gate left in the cycle.
+  `detect-test-command.sh --tier all`'s command, run through `detach-command.sh` at the Draft PR step — the
+  branch's own full-suite gate.
 - The PR is opened as a **draft** at the plan commit and readied for review at the Draft PR
   step, always carries `Closes #<n>`, and is **never merged** by you.
 - On a `REJECT`, run the **bounded revise loop** (default 2 attempts, fresh leaf carrying
