@@ -16,6 +16,11 @@ def refuse(*lines):
     return 2
 
 
+def write_line(path, value):
+    with open(path, "w") as f:
+        f.write(f"{value}\n")
+
+
 def main(argv):
     if not argv or not argv[0]:
         return refuse(USAGE)
@@ -40,8 +45,7 @@ def main(argv):
     name = argv[0]
     os.makedirs(".tdd", exist_ok=True)
     log, rcfile, exitfile = f".tdd/{name}.log", f".tdd/{name}.rc", f".tdd/{name}.exit"
-    with open(f".tdd/{name}.pid", "w") as f:
-        f.write(f"{os.getpid()}\n")
+    write_line(f".tdd/{name}.pid", os.getpid())
     for stale in (exitfile, rcfile):
         try:
             os.remove(stale)
@@ -64,8 +68,7 @@ def main(argv):
         sys.stdout.buffer.write(f.read())
     sys.stdout.flush()
     if number_in(exitfile) is None:
-        with open(exitfile, "w") as f:
-            f.write(f"{ec}\n")
+        write_line(exitfile, ec)
     return ec
 
 
