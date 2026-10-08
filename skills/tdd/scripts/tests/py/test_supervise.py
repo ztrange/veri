@@ -1512,3 +1512,174 @@ def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_an
         "alive-verdict": (2, b"", [refusal.format("verdict-red", "develop-red", 4242)], "2\n", None,
                           "4242 develop-red\n", [(4242, 0)], True),
     }
+
+
+class NoHandler(BaseException):
+    """Raised by the fake signal delivery when main installed no handler for the signal sent."""
+
+
+def test_main_restores_sigint_then_traps_term_int_and_hup_after_the_stale_exit_goes_unless_ignored_at_start_and_the_trap_kills_the_last_leaf_writes_2_and_exits_2_silently(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import re
+    import signal
+    import time
+    term, sigint, hup = signal.SIGTERM, signal.SIGINT, signal.SIGHUP
+
+    def supervised(label, start, sent, deliver_at):
+        work = tmp_path / label
+        tdd = work / ".tdd"
+        tdd.mkdir(parents=True)
+        exitfile = tdd / "develop-red.exit"
+        exitfile.write_text("1\n")
+        monkeypatch.chdir(work)
+        clean_env(monkeypatch, VERI_TIMEOUT="5000", VERI_STUCK_RETRIES="1", VERI_HEARTBEAT="3",
+                  VERI_KILL_POLL="0.25")
+        dispositions = dict(start)
+        installs = []
+
+        def install(sig, handler):
+            installs.append((sig, handler, exitfile.exists()))
+            previous, dispositions[sig] = dispositions.get(sig, signal.SIG_DFL), handler
+            return previous
+
+        monkeypatch.setattr(signal, "signal", install)
+        monkeypatch.setattr(signal, "getsignal", lambda sig: dispositions.get(sig, signal.SIG_DFL))
+
+        def exit_now(code):
+            raise SystemExit(code)
+
+        monkeypatch.setattr(os, "_exit", exit_now)
+        clock = {"wall": 1000, "dates": 0}
+        events = []
+        leaves = []
+
+        class Leaf:
+            returncode = None
+            args = []
+
+            def __init__(self, pid):
+                self.pid = pid
+
+            def poll(self):
+                return self.returncode
+
+            def wait(self, timeout=None):
+                return self.returncode
+
+        def signalled(how, target, sig):
+            events.append((how, target, sig))
+            for leaf in leaves:
+                if leaf.pid == target and sig in (term, signal.SIGKILL):
+                    leaf.returncode = -sig
+
+        monkeypatch.setattr(os, "killpg", lambda pgid, sig: signalled("group", pgid, sig))
+        monkeypatch.setattr(os, "kill", lambda pid, sig: signalled("group", -pid, sig) if pid < 0
+                            else signalled("pid", pid, sig))
+
+        def deliver():
+            handler = dispositions.get(sent, signal.SIG_DFL)
+            events.append(("delivered", sent))
+            if not callable(handler) or handler is signal.default_int_handler:
+                raise NoHandler(sent)
+            handler(sent, None)
+
+        def sleep(_):
+            if deliver_at == "second leaf" and len(leaves) == 2:
+                deliver()
+
+        monkeypatch.setattr(time, "sleep", sleep)
+        monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
+        runs = []
+
+        def answer(args):
+            args = [str(a) for a in args]
+            runs.append(args)
+            if args[:1] == ["git"]:
+                return "0123456789abcdef0123456789abcdef01234567\n"
+            if args[:1] == ["date"]:
+                if deliver_at == "first date":
+                    deliver()
+                clock["dates"] += 1
+                if clock["dates"] > 2000:
+                    raise Runaway()
+                clock["wall"] += 1
+                return f"{clock['wall']}\n"
+            if args[:1] == ["stat"]:
+                return "1000\n"
+            return ""
+
+        def run(args, *_, **kwargs):
+            out = as_asked(answer(args), kwargs)
+            return subprocess.CompletedProcess(args, 0, out, "" if isinstance(out, str) else b"")
+
+        def popen(args, *_, **kwargs):
+            if list(args[:2]) != ["/bin/sh", "-c"]:
+                raise AssertionError(f"unexpected Popen: {args}")
+            leaf = Leaf(4242 + len(leaves))
+            leaves.append(leaf)
+            if len(leaves) == 2:
+                exitfile.write_text("0\n")
+            return leaf
+
+        monkeypatch.setattr(subprocess, "run", run)
+        monkeypatch.setattr(subprocess, "check_output", lambda args, *a, **k: as_asked(answer(args), k))
+        monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: 0)
+        monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: 0)
+        monkeypatch.setattr(subprocess, "Popen", popen)
+
+        try:
+            code = supervise.main(["develop-red", "leaf-hang"])
+        except SystemExit as exited:
+            code = ("exited", exited.code)
+        except NoHandler as missing:
+            code = ("no handler", missing.args[0])
+        except Runaway:
+            code = "<never ended>"
+        out, err = capsysbinary.readouterr()
+        delivered = next((i for i, e in enumerate(events) if e[0] == "delivered"), len(events))
+        trapped = [(sig, present) for sig, handler, present in installs
+                   if callable(handler) and handler is not signal.default_int_handler]
+        return {
+            "code": code,
+            "first install": installs[0][::2] if installs else None,
+            "defaults set": [(sig, present) for sig, handler, present in installs if handler is signal.SIG_DFL],
+            "trapped": sorted(trapped),
+            "one handler": len({handler for _, handler, _ in installs if callable(handler)}) <= 1,
+            "kills after delivery": events[delivered + 1:],
+            "exit file": exitfile.read_text() if exitfile.exists() else None,
+            "stdout": out,
+            "status lines": [line for line in err.splitlines()
+                             if re.match(rb"supervise\[develop-red\]: (success|failure|killed-stuck)", line)],
+            "exit events": [r for r in runs if any(a.endswith("event.sh") for a in r) and "exit" in r],
+            "harvests": [r for r in runs if any(a.endswith("harvest-usage.sh") for a in r)],
+        }
+
+    default = {sigint: signal.default_int_handler, term: signal.SIG_DFL, hup: signal.SIG_DFL}
+    ignoring = {sigint: signal.SIG_IGN, term: signal.SIG_DFL, hup: signal.SIG_IGN}
+    answers = {
+        "term mid second leaf": supervised("term", default, term, "second leaf"),
+        "hup before any leaf": supervised("hup", default, hup, "first date"),
+        "int mid second leaf": supervised("int", default, sigint, "second leaf"),
+        "term with int and hup ignored": supervised("ignored", ignoring, term, "first date"),
+    }
+
+    silent = {"stdout": b"", "status lines": [], "exit events": [], "harvests": []}
+    trapped_all = [(hup, False), (sigint, False), (term, False)]
+    assert answers == {
+        "term mid second leaf": {
+            "code": ("exited", 2), "first install": (sigint, True),
+            "defaults set": [(sigint, True)], "trapped": trapped_all, "one handler": True,
+            "kills after delivery": [("group", 4243, term)], "exit file": "2\n", **silent},
+        "hup before any leaf": {
+            "code": ("exited", 2), "first install": (sigint, True),
+            "defaults set": [(sigint, True)], "trapped": trapped_all, "one handler": True,
+            "kills after delivery": [], "exit file": "2\n", **silent},
+        "int mid second leaf": {
+            "code": ("exited", 2), "first install": (sigint, True),
+            "defaults set": [(sigint, True)], "trapped": trapped_all, "one handler": True,
+            "kills after delivery": [("group", 4243, term)], "exit file": "2\n", **silent},
+        "term with int and hup ignored": {
+            "code": ("exited", 2), "first install": (term, False),
+            "defaults set": [], "trapped": [(term, False)], "one handler": True,
+            "kills after delivery": [], "exit file": "2\n", **silent},
+    }

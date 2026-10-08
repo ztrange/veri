@@ -182,7 +182,7 @@ def still_alive_owner(ownerfile):
     return owner_pid, owner_name
 
 
-def attempt_once(name, cmd, log, rcfile, leaf_env, watched, timeout, heartbeat, poll, kill_poll):
+def attempt_once(started, name, cmd, log, rcfile, leaf_env, watched, timeout, heartbeat, poll, kill_poll):
     discard(rcfile)
     open(log, "wb").close()
     t0 = now()
@@ -190,6 +190,7 @@ def attempt_once(name, cmd, log, rcfile, leaf_env, watched, timeout, heartbeat, 
     prev_t, prev_a = int(t0), a0
     leaf = subprocess.Popen(["/bin/sh", "-c", 'log=$1 rc=$2; shift 2; "$@" >"$log" 2>&1; echo $? >"$rc"',
                              "sh", log, rcfile, *cmd], process_group=0, env=leaf_env)
+    started.append(leaf)
     status = reason = ""
     rc = "0"
     seen_at = int(t0)
@@ -229,7 +230,21 @@ def attempt_once(name, cmd, log, rcfile, leaf_env, watched, timeout, heartbeat, 
     return status, reason, rc, a0
 
 
+def trap(started, exitfile, kill_poll):
+    def on_signal(*_):
+        if started:
+            kill_tree(started[-1], float(kill_poll))
+        write_line(exitfile, 2)
+        os._exit(2)
+
+    for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        if signal.getsignal(sig) is not signal.SIG_IGN:
+            signal.signal(sig, on_signal)
+
+
 def main(argv):
+    if signal.getsignal(signal.SIGINT) is not signal.SIG_IGN:
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
     if not argv or not argv[0]:
         return refuse(USAGE)
     if len(argv) < 2:
@@ -278,11 +293,13 @@ def main(argv):
     mark(role, "launch", f"name={name}", f"cmd={' '.join(argv[1:])}", f"model={model}")
     write_line(f".tdd/{name}.pid", os.getpid())
     discard(exitfile)
+    started = []
+    trap(started, exitfile, kill_poll)
     retries = os.environ.get("VERI_STUCK_RETRIES") or "1"
     tries = 0
     try:
         while True:
-            status, reason, rc, a0 = attempt_once(name, argv[1:], log, rcfile, leaf_env, watched, timeout,
+            status, reason, rc, a0 = attempt_once(started, name, argv[1:], log, rcfile, leaf_env, watched, timeout,
                                                   heartbeat, poll, kill_poll)
             if status != "killed-stuck":
                 break
