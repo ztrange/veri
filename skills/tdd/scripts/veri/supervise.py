@@ -264,13 +264,12 @@ def main(argv):
             break
         preserve_killed_attempt(name, tries + 1)
         try:
-            if tries >= arithmetic(retries):
-                break
+            budget = limit(retries)
         except Unbound as unbound:
             print(unbound, file=sys.stderr)
             return 1
-        except ValueError as error:
-            print(error, file=sys.stderr)
+        if budget is not None and tries >= budget:
+            break
         tries += 1
         mark(role, "retry", f"cause={reason}")
         print(f"supervise[{name}]: retry {tries}/{retries} after killed-stuck", file=sys.stderr)
