@@ -471,18 +471,19 @@ def test_main_with_veri_new_skill_exactly_1_rewrites_a_readable_record_then_runs
             path.write_text(record)
         calls = fake_pin(monkeypatch, commit, set())
         events = fake_event(monkeypatch, calls, event_code)
+        fake_snapshot(monkeypatch, calls, 0, 0)
         code = run_conductor.main(["4242"])
         capfdbinary.readouterr()
         answers[name] = (path.read_text() if path.is_file() else None,
                          (cwd / ".tdd" / "wt" / "4242").is_dir(), events,
-                         code if name in ("re-pin-event-fails", "other-value") else None)
+                         code)
     event = [str(SCRIPTS / "event.sh"), "skill-repin", "commit=" + commit]
     assert answers == {
         "re-pin": (commit + "\n", True,
-                   [(event, os.path.realpath(tmp_path / "re-pin" / ".tdd" / "wt" / "4242"), "4242")], None),
+                   [(event, os.path.realpath(tmp_path / "re-pin" / ".tdd" / "wt" / "4242"), "4242")], 0),
         "re-pin-event-fails": (commit + "\n", True,
                                [(event, os.path.realpath(tmp_path / "re-pin-event-fails" / ".tdd" / "wt" / "4242"), "4242")], 2),
-        "first-launch": (commit + "\n", False, [], None),
+        "first-launch": (commit + "\n", False, [], 0),
         "other-value": ("2222222\n", False, [], 2),
     }
 
@@ -555,11 +556,11 @@ def test_main_snapshots_the_pinned_commit_by_git_archive_into_tar_under_tmpdir_h
         snapshots, launches = fake_snapshot(monkeypatch, calls, archive_code, tar_code)
         code = run_conductor.main(["4242"])
         capfdbinary.readouterr()
-        answers[name] = (None if name == "pinned" else code, snapshots, launches, sorted(os.listdir(scratch)))
+        answers[name] = (code, snapshots, launches, sorted(os.listdir(scratch)))
     archive = ["git", "-C", base, "archive", commit, "."]
     tar = ["tar", "-x", "-C", (str(scratch), "tmp", True)]
     assert answers == {
-        "pinned": (None, [archive, tar],
+        "pinned": (0, [archive, tar],
                    [{"VERI_SKILL_COMMIT": commit, "VERI_SKILL_CLONE": base, "VERI_SKILL_REF": "HEAD",
                      "VERI_SKILL_UNPINNED": None}], []),
         "tar-5": (2, [archive, tar], [], []),
@@ -634,12 +635,12 @@ def test_main_with_no_resolvable_commit_warns_writes_no_record_or_gitignore_laun
         launches = fake_unresolvable(monkeypatch)
         code = run_conductor.main(["4242"])
         captured = capfdbinary.readouterr()
-        answers[name] = (code if name == "unreadable" else None, captured.out, captured.err, launches,
+        answers[name] = (code, captured.out, captured.err, launches,
                          sorted(str(p.relative_to(cwd)) for p in cwd.rglob("*")
                                 if p.name in (".gitignore", "issue-4242-skill-commit")))
     warning = "run-conductor: no skill commit resolvable from '%s' — running unpinned\n"
     assert answers == {
-        "readable": (None, b"", (warning % (tmp_path / "readable-link")).encode(),
+        "readable": (0, b"", (warning % (tmp_path / "readable-link")).encode(),
                      [{"VERI_SKILL_UNPINNED": "1", "VERI_SKILL_COMMIT": None,
                        "VERI_SKILL_CLONE": None, "VERI_SKILL_REF": None}], []),
         "unreadable": (2, b"", (warning % (tmp_path / "unreadable-link")
