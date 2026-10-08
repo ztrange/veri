@@ -377,25 +377,6 @@ expected="$(printf '%s\n' 'solvable-issues.sh linked' 'run-conductor.sh linked 1
 actual="$(cat "$MARKS" "$LAUNCHES" "$work/out")"
 expect_exit0_output
 
-name="with stdout closed, prints its write error on stderr, keeps running to exit 0 and SIGTERMs its conductor at the stop"
-closedout="$work/closedout"
-conductor_stub "$closedout" <<STUB
-[ "\$(wc -l < "\$LAUNCHES")" -eq 1 ] || exit 0
-trap 'echo "TERM to \$\$" >> "\$MARKS"; exit 0' TERM
-echo '{"type":"assistant","message":{"role":"assistant","usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":1000,"output_tokens":40}}}'
-exec > /dev/null
-i=0
-while [ \$i -lt 400 ]; do sleep 0.01; i=\$((i + 1)); done
-echo "never stopped" >> "\$MARKS"
-STUB
-seed closedout 1501
-(cd "$work" && "$closedout/orchestrate.sh") < /dev/null >&- 2> "$work/err"
-rc=$?
-await_gone
-expected="$(printf '%s\n' "TERM to $(cat "$MARKS.pid" 2>/dev/null)" 1501 'write error on stderr')"
-actual="$(cat "$MARKS" "$LAUNCHES"; grep -F 'Bad file descriptor' "$work/err" > /dev/null && echo 'write error on stderr')"
-expect_exit0_output
-
 name="#1130 with stdout a pipe whose reader has exited, exits 2 with one stderr line saying its stdout is gone and no traceback"
 brokenpipe="$work/brokenpipe"
 conductor_stub "$brokenpipe" <<STUB
@@ -415,6 +396,26 @@ else
   no "$name"
   echo "    exit: $rc (expected 2)"
   echo "    stderr lines: $lines (expected 1, naming stdout, no Traceback)"
+  sed 's/^/    stderr: /' "$work/err"
+fi
+
+name="#1130 with stdout closed, exits 2 with the same one stderr line saying its stdout is gone and no traceback"
+closedgone="$work/closedgone"
+conductor_stub "$closedgone" <<STUB
+[ "\$(wc -l < "\$LAUNCHES")" -eq 1 ] || exit 0
+echo '{"type":"assistant","message":{"role":"assistant","usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":1000,"output_tokens":40}}}'
+STUB
+seed closedgone 1701
+(cd "$work" && "$closedgone/orchestrate.sh") < /dev/null >&- 2> "$work/err"
+rc=$?
+await_gone
+lines="$(wc -l < "$work/err" | tr -d ' ')"
+if [[ "$rc" -eq 2 && "$lines" -eq 1 ]] && grep -F 'stdout is gone' "$work/err" > /dev/null && ! grep -F Traceback "$work/err" > /dev/null; then
+  ok
+else
+  no "$name"
+  echo "    exit: $rc (expected 2)"
+  echo "    stderr lines: $lines (expected 1, naming \"stdout is gone\", no Traceback)"
   sed 's/^/    stderr: /' "$work/err"
 fi
 

@@ -1,5 +1,4 @@
 """orchestrate.sh's loop, run in-process."""
-import errno
 import os
 import re
 import signal
@@ -59,8 +58,7 @@ def _watch(issue, stream, budget):
 
 def _say(text):
     if sys.stdout is None:
-        _err("orchestrate.sh: write error: %s\n" % os.strerror(errno.EBADF))
-        return
+        raise BrokenPipeError
     sys.stdout.write(text)
     sys.stdout.flush()
 
@@ -108,6 +106,7 @@ if __name__ == "__main__":
     try:
         sys.exit(main(sys.argv[1:]))
     except BrokenPipeError:
-        os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        if sys.stdout is not None:
+            os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
         _err("orchestrate.sh: stdout is gone: its reader has exited\n")
         sys.exit(2)
