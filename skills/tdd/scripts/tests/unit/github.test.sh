@@ -890,4 +890,32 @@ fi
 [[ -s "$err" ]] && problems+="    want nothing on stderr, got: $(printf '%q' "$(cat "$err")")"$'\n'
 record
 
+# 22. with VERI_GH_DRIVER=auto, the 403 a refused gh pr ready prints never reaches stderr once
+#     the REST ready route readies the PR
+name="#623: with VERI_GH_DRIVER=auto, gh_pr_ready 42 against a gh whose gh pr ready fails with GraphQL's HTTP 403 and whose REST ready route then succeeds returns 0 with no line of that 403 on stderr"
+calls="$scratch/calls22" err="$scratch/err22"
+: > "$calls"
+(
+  gh() {
+    echo "gh $*" >> "$calls"
+    if [[ "$1" == pr ]]; then echo "$refusal (HTTP 403)" >&2; return 1; fi
+    [[ "$1" == api ]] || return 1
+    case "$*" in
+      *ccr/ready_for_review*) echo '{"number":42,"draft":false}' ;;
+      *) return 1 ;;
+    esac
+  }
+  unset VERI_GH_JSON
+  VERI_GH_DRIVER=auto
+  source "$LIB"
+  gh_pr_ready 42
+) > /dev/null 2> "$err"
+rc=$?
+problems=""
+[[ "$rc" -eq 0 ]] || problems+="    want return 0, got $rc"$'\n'
+if grep -F 'HTTP 403' "$err" > /dev/null; then
+  problems+="    want no line of the 403 on stderr, got: $(printf '%q' "$(cat "$err")")"$'\n'
+fi
+record
+
 finish
