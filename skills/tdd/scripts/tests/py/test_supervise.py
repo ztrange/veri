@@ -1303,3 +1303,130 @@ def test_main_keeps_a_killed_leaf_whose_log_cannot_be_opened_killed_stuck_writin
     exitfile = tmp_path / ".tdd" / "develop-red.exit"
 
     assert (code, exitfile.read_bytes() if exitfile.exists() else None, b"Traceback" in err) == (2, b"2\n", False)
+
+
+def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_and_retries_a_killed_leaf_while_tries_are_below_veri_stuck_retries_read_as_bash_arithmetic(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    preserver = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(supervise.__file__))),
+                             "preserve-attempt.sh")
+
+    def stuck(label, ends_at=None, preserve_rc=0, head_ok=True, **env):
+        work = tmp_path / label
+        work.mkdir()
+        monkeypatch.chdir(work)
+        clean_env(monkeypatch, VERI_TIMEOUT="5000", VERI_HEARTBEAT="3", VERI_KILL_POLL="0.25", **env)
+        clock = {"wall": 1000, "dates": 0}
+        leaves, preserved, events = [], [], []
+
+        class Leaf:
+            pid = 4242
+            returncode = None
+            args = []
+
+            def poll(self):
+                return self.returncode
+
+            def wait(self, timeout=None):
+                return self.returncode
+
+        def signalled(*_):
+            leaves[-1].returncode = -signal.SIGTERM
+
+        monkeypatch.setattr(os, "killpg", signalled)
+        monkeypatch.setattr(os, "kill", signalled)
+        monkeypatch.setattr(time, "sleep", lambda secs: None)
+        monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
+
+        def run(args, *_, **kwargs):
+            words = [str(a) for a in args]
+            code, out = 0, ""
+            if words[:1] == ["git"]:
+                if words[1:] == ["rev-parse", "--verify", "-q", "HEAD"]:
+                    code = 0 if head_ok else 1
+                out = "0123456789abcdef0123456789abcdef01234567\n" if code == 0 else ""
+            elif words[:1] == ["date"]:
+                clock["dates"] += 1
+                if clock["dates"] > 2000:
+                    raise Runaway()
+                clock["wall"] += 1
+                out = f"{clock['wall']}\n"
+            elif words[:1] == ["stat"]:
+                out = "1000\n"
+            elif words and words[0] == preserver:
+                preserved.append(words[1:])
+                code = preserve_rc
+                said = f"kept attempt {words[4]}\n"
+                dest = kwargs.get("stdout")
+                if dest == subprocess.PIPE:
+                    out = said
+                elif dest is None:
+                    sys.stdout.write(said)
+                else:
+                    sys.stderr.write(said)
+            elif any(w.endswith("/event.sh") for w in words):
+                events.append(words[[w.endswith("/event.sh") for w in words].index(True) + 1:])
+            out = as_asked(out, kwargs) if kwargs.get("stdout") == subprocess.PIPE else None
+            return subprocess.CompletedProcess(args, code, out, None)
+
+        def popen(args, *_, **kwargs):
+            if list(args[:2]) != ["/bin/sh", "-c"]:
+                raise AssertionError(f"unexpected Popen: {args}")
+            leaf = Leaf()
+            leaves.append(leaf)
+            if len(leaves) == ends_at:
+                pathlib.Path(args[5]).write_text("0\n")
+                leaf.returncode = 0
+            return leaf
+
+        monkeypatch.setattr(subprocess, "run", run)
+        monkeypatch.setattr(subprocess, "check_output", lambda args, *a, **k: run(args, **k).stdout)
+        monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, **k).returncode)
+        monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: run(args, **k).returncode)
+        monkeypatch.setattr(subprocess, "Popen", popen)
+
+        try:
+            code = supervise.main(["develop-red", "leaf-hang"])
+        except Runaway:
+            code = "<never ended>"
+        except Exception as error:
+            code = repr(error)
+        out, err = capsysbinary.readouterr()
+        return {"code": code, "launches": len(leaves), "preserved": preserved,
+                "retries": [e for e in events if e[:1] == ["retry"]],
+                "out": out, "err": err.decode(errors="replace")}
+
+    def kept(*attempts):
+        return [["1073", "27", "develop-red", str(a), "stuck"] for a in attempts]
+
+    cause = "cause=no heartbeat for 4s (window 3s)"
+    issue_step = {"VERI_ISSUE": "1073", "VERI_STEP": "27"}
+
+    default = stuck("default", **issue_step)
+    assert (default["code"], default["launches"], default["preserved"], default["retries"], default["out"]) == (
+        2, 2, kept(1, 2), [["retry", cause]], b"")
+    assert "supervise[develop-red]: retry 1/1 after killed-stuck\n" in default["err"]
+    assert "kept attempt 1\n" in default["err"] and "kept attempt 2\n" in default["err"]
+
+    failing = stuck("failing", preserve_rc=1, VERI_STUCK_RETRIES="0", **issue_step)
+    assert (failing["code"], failing["preserved"]) == (2, kept(1))
+    assert ("supervise[develop-red]: could not preserve the stuck attempt"
+            " (issue 1073 step 27 develop-red attempt 1)\n") in failing["err"]
+
+    unpreserved = [stuck("no-step", VERI_STUCK_RETRIES="0", VERI_ISSUE="1073", VERI_STEP=""),
+                   stuck("no-issue", VERI_STUCK_RETRIES="0", VERI_ISSUE="", VERI_STEP="27"),
+                   stuck("no-head", head_ok=False, VERI_STUCK_RETRIES="0", **issue_step)]
+    assert [(r["code"], r["launches"], r["preserved"]) for r in unpreserved] == [(2, 1, [])] * 3
+
+    budgets = {retries: stuck(f"budget{retries}", VERI_STUCK_RETRIES=retries, **issue_step)
+               for retries in ("0", "-1", "010", "abc")}
+    budgets["08"] = stuck("budget08", ends_at=4, VERI_STUCK_RETRIES="08", **issue_step)
+    assert {k: (r["code"], r["launches"], r["preserved"], len(r["retries"])) for k, r in budgets.items()} == {
+        "0": (2, 1, kept(1), 0),
+        "-1": (2, 1, kept(1), 0),
+        "010": (2, 9, kept(*range(1, 10)), 8),
+        "abc": (1, 1, kept(1), 0),
+        "08": (0, 4, kept(1, 2, 3), 3),
+    }
