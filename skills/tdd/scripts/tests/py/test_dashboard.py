@@ -10,10 +10,7 @@ import sys
 
 import pytest
 
-SCRIPTS = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-for path in (SCRIPTS, os.path.join(SCRIPTS, "veri")):
-    if path not in sys.path:
-        sys.path.insert(0, path)
+from conftest import SCRIPTS
 
 
 @pytest.fixture(autouse=True)

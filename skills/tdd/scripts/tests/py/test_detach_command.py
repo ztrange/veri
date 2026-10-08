@@ -1,17 +1,10 @@
 """In-process cases for veri/detach_command.py, the module detach-command.sh is a shim over."""
 import importlib
 import os
-import pathlib
 import subprocess
-import sys
 import time
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
 
 USAGE = "usage: detach-command.sh start <name> <cmd> [args…] | wait <name> [max-seconds]\n"
 

@@ -2,14 +2,11 @@
 import importlib
 import io
 import os
-import pathlib
 import sys
 
 import pytest
 
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-if str(SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS))
+from conftest import SCRIPTS
 
 USAGE = "usage: classify-bail.sh <cause>\n"
 

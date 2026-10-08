@@ -1,15 +1,9 @@
 """In-process cases for veri/leaf_role.py, the module leaf-role.sh is a shim over."""
 import importlib
 import io
-import pathlib
 import sys
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
 
 
 @pytest.fixture

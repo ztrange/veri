@@ -1,17 +1,10 @@
 """In-process cases for veri/leaf_launchable.py, the module leaf-launchable.sh is a shim over."""
 import importlib
 import os
-import pathlib
 import subprocess
-import sys
 import tempfile
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
 
 
 @pytest.fixture

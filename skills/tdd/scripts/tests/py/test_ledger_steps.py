@@ -1,15 +1,9 @@
 """In-process cases for veri/ledger_steps.py, the module ledger-steps.sh is a shim over."""
 import importlib
 import io
-import pathlib
 import sys
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
 
 USAGE = b"usage: ledger-steps.sh [current|last-done|criterion <k>]\n"
 

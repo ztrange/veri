@@ -1,17 +1,12 @@
 """In-process cases for veri/build_verify_prompt.py, the module build-verify-prompt.sh is a shim over."""
 import importlib
 import importlib.util
-import pathlib
 import re
 import shutil
-import sys
 
 import pytest
 
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
+from conftest import SCRIPTS
 
 USAGE = b"usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]\n"
 

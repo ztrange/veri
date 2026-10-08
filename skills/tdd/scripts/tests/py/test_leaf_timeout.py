@@ -1,14 +1,7 @@
 """In-process cases for veri/leaf_timeout.py, the module leaf-timeout.sh is a shim over."""
 import importlib
-import pathlib
-import sys
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
 
 USAGE = "usage: leaf-timeout.sh <baseline-seconds> [refactor | --full <full-seconds>]"
 
