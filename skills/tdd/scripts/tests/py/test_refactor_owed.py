@@ -502,6 +502,17 @@ def test_append_records_only_the_other_structural_candidate_for_one_with_only_wh
     assert (code, written) == (0, b"### S\n- extract the parser\n")
 
 
+@pytest.mark.parametrize("cls", ["cosmetic", "test-only", "out-of-scope"])
+def test_append_records_only_the_other_structural_candidate_and_nothing_for_an_empty_candidate_of_another_class_1035(
+        cls, monkeypatch, tmp_path, refactor_owed):
+    owed = tmp_path / "owed.md"
+    monkeypatch.setattr(sys, "stdin", io.StringIO(f"CANDIDATES: {cls} |\n"
+                                                  "CANDIDATES: structural | extract the parser\n"))
+    code = refactor_owed.main(["append", str(owed), "S"])
+    written = owed.read_bytes() if owed.exists() else b""
+    assert (code, written) == (0, b"### S\n- extract the parser\n")
+
+
 def test_render_prints_one_blank_line_between_refactor_owed_and_the_first_subsection_when_no_step_entry_is_left_1018(
         capsys, tmp_path, refactor_owed):
     owed = tmp_path / "owed.md"

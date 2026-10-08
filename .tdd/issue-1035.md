@@ -9,4 +9,4 @@
 - [x] refactor-triage refuses an empty cosmetic candidate line with exit 2 and stderr naming the line ⟦criterion 6⟧
 - [x] refactor-triage refuses an empty test-only candidate line with exit 2 and stderr naming the line ⟦criterion 6⟧
 - [x] refactor-triage refuses an empty out-of-scope candidate line with exit 2 and stderr naming the line ⟦criterion 6⟧
-- [ ] refactor-owed.sh append records nothing for an empty cosmetic, test-only or out-of-scope candidate line, one case per class ⟦criterion 6⟧
+- [x] refactor-owed.sh append records nothing for an empty cosmetic, test-only or out-of-scope candidate line, one case per class ⟦criterion 6⟧
