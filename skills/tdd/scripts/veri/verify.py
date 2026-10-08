@@ -176,7 +176,12 @@ def main(argv):
                 if restored.returncode != 0:
                     return restored.returncode
             return refuse_modified("the repository", leaf, changed)
-        if gitconfig_snapshot(gitconfig) != gitconfig_before:
+        try:
+            gitconfig_after = gitconfig_snapshot(gitconfig)
+        except OSError as error:
+            _write(sys.stderr, "verify: cannot read the global git config %s: %s" % (gitconfig, error.strerror))
+            return 2
+        if gitconfig_after != gitconfig_before:
             return refuse_modified("the operator's global git config", leaf, [gitconfig])
         code, reason, err = parse(launched.stdout)
         if err:
