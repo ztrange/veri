@@ -190,6 +190,25 @@ def test_wait_answers_a_recorded_code_over_a_dead_pid_and_rechecks_the_exit_file
     assert (code, capsys.readouterr()) == (1, ("4\n", ""))
 
 
+def test_wait_answers_a_recorded_code_over_a_dead_pid_before_probing_the_pid(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "x.pid").write_text("4242\n")
+    (tdd / "x.exit").write_text("6\n")
+    kills = []
+
+    def dead(pid, signum):
+        kills.append((pid, signum))
+        raise ProcessLookupError
+
+    monkeypatch.setattr(os, "kill", dead)
+    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+    code = detach_command.main(["wait", "x", "0"])
+    assert (code, capsys.readouterr(), kills) == (1, ("6\n", ""), [])
+
+
 def test_wait_reads_the_exit_file_as_test_f_and_cat_do_stripping_trailing_newlines_and_following_a_symlink(
         tmp_path, monkeypatch, capsys, detach_command):
     monkeypatch.chdir(tmp_path)
