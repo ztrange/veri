@@ -96,6 +96,11 @@ def gitconfig_snapshot(path):
         return None
 
 
+def unreadable_gitconfig(path, error):
+    _write(sys.stderr, "verify: cannot read the global git config %s: %s" % (path, error.strerror))
+    return 2
+
+
 def refuse_modified(what, leaf, paths):
     _write(sys.stdout, "verifier leaf modified %s — verdict not accepted"
            " (see .tdd/%s.log); changed:" % (what, leaf))
@@ -150,8 +155,7 @@ def main(argv):
     try:
         gitconfig_before = gitconfig_snapshot(gitconfig)
     except OSError as error:
-        _write(sys.stderr, "verify: cannot read the global git config %s: %s" % (gitconfig, error.strerror))
-        return 2
+        return unreadable_gitconfig(gitconfig, error)
     retries = os.environ.get("VERI_NO_VERDICT_RETRIES") or "1"
     if not re.fullmatch("[0-9]+", retries):
         _write(sys.stderr, "verify: VERI_NO_VERDICT_RETRIES must be a non-negative integer,"
@@ -179,8 +183,7 @@ def main(argv):
         try:
             gitconfig_after = gitconfig_snapshot(gitconfig)
         except OSError as error:
-            _write(sys.stderr, "verify: cannot read the global git config %s: %s" % (gitconfig, error.strerror))
-            return 2
+            return unreadable_gitconfig(gitconfig, error)
         if gitconfig_after != gitconfig_before:
             return refuse_modified("the operator's global git config", leaf, [gitconfig])
         code, reason, err = parse(launched.stdout)
