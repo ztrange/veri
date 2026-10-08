@@ -52,6 +52,15 @@ def test_main_refuses_a_missing_or_empty_name_and_a_missing_cmd_with_its_usage_l
     assert sorted(os.listdir(tmp_path)) == []
 
 
+def clean_env(monkeypatch, **env):
+    """No VERI_* variable but the ones given."""
+    for key in list(os.environ):
+        if key.startswith("VERI_"):
+            monkeypatch.delenv(key)
+    for key, value in env.items():
+        monkeypatch.setenv(key, value)
+
+
 class Launched(BaseException):
     """Raised by the fake process boundary when main starts anything but git."""
 
@@ -102,13 +111,6 @@ def test_main_refuses_a_settled_timeout_not_a_whole_number_of_seconds_and_a_kill
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     argv = ["develop-red", "true"]
 
-    def clean_env(**env):
-        for key in list(os.environ):
-            if key.startswith("VERI_"):
-                monkeypatch.delenv(key)
-        for key, value in env.items():
-            monkeypatch.setenv(key, value)
-
     def settled(root, content):
         (root / ".tdd").mkdir(parents=True)
         (root / ".tdd" / "issue-954-timeout").write_text(content)
@@ -120,7 +122,7 @@ def test_main_refuses_a_settled_timeout_not_a_whole_number_of_seconds_and_a_kill
             work.mkdir(parents=True)
             settled(top, content)
             monkeypatch.chdir(work)
-            clean_env(**env)
+            clean_env(monkeypatch, **env)
             calls = fake_git_only(monkeypatch, top)
             code = supervise.main(argv)
             out, err = capsysbinary.readouterr()
@@ -145,7 +147,7 @@ def test_main_refuses_a_settled_timeout_not_a_whole_number_of_seconds_and_a_kill
         work = tmp_path / f"poll-{value}"
         settled(work, "abc")
         monkeypatch.chdir(work)
-        clean_env(VERI_ISSUE="", VERI_KILL_POLL=value)
+        clean_env(monkeypatch, VERI_ISSUE="", VERI_KILL_POLL=value)
         calls = fake_git_only(monkeypatch, work)
         code = supervise.main(argv)
         out, err = capsysbinary.readouterr()
@@ -156,7 +158,7 @@ def test_main_refuses_a_settled_timeout_not_a_whole_number_of_seconds_and_a_kill
     work = tmp_path / "poll-empty"
     work.mkdir()
     monkeypatch.chdir(work)
-    clean_env(VERI_KILL_POLL="")
+    clean_env(monkeypatch, VERI_KILL_POLL="")
     fake_git_only(monkeypatch, work)
     with pytest.raises(Launched):
         supervise.main(argv)
@@ -206,9 +208,7 @@ def test_main_launches_the_leaf_through_one_sh_wrapper_in_its_own_group_logging_
     import time
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     monkeypatch.setattr(time, "sleep", lambda *_: None)
-    for key in list(os.environ):
-        if key.startswith("VERI_"):
-            monkeypatch.delenv(key)
+    clean_env(monkeypatch)
 
     answers = []
     for rc in (0, 1):
