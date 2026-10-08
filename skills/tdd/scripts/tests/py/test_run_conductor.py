@@ -30,6 +30,13 @@ def fake_processes(monkeypatch):
     return calls
 
 
+def past_the_guards(monkeypatch):
+    """The bash and Python floors met, and claude named fake-claude."""
+    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
+    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+
+
 def scratch_tmpdir(tmp_path, monkeypatch):
     """A directory under tmp_path that TMPDIR and tempfile both name, for the snapshot."""
     import tempfile
@@ -273,9 +280,7 @@ def fake_resolution(monkeypatch, origin, verifies, ls_remote):
 
 def test_main_resolves_the_pin_ref_through_origin_head_else_origins_default_from_ls_remote_symref_refusing_unpinned_with_two_exact_lines_silently_on_a_failed_ls_remote_and_as_head_with_no_origin(
         tmp_path, monkeypatch, capfdbinary):
-    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
-    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
-    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    past_the_guards(monkeypatch)
     base = str(SCRIPTS.parent)
     run_conductor = importlib.import_module("veri.run_conductor")
     symref = (0, "ref: refs/heads/trunk\tHEAD\n1111111111111111111111111111111111111111\tHEAD\n", "warning: ls-remote noise\n")
@@ -362,9 +367,7 @@ def fake_pin(monkeypatch, commit, accepted):
 
 def test_main_on_a_pinned_launch_seeds_the_gitignore_only_when_absent_writes_an_unreadable_record_keeps_an_accepted_one_as_given_and_refuses_any_other_with_2(
         tmp_path, monkeypatch, capfdbinary):
-    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
-    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
-    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    past_the_guards(monkeypatch)
     monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
     scratch = scratch_tmpdir(tmp_path, monkeypatch)
     base = str(SCRIPTS.parent)
@@ -445,9 +448,7 @@ def fake_event(monkeypatch, calls, event_code):
 
 def test_main_with_veri_new_skill_exactly_1_rewrites_a_readable_record_then_runs_the_live_event_sh_in_the_run_worktree_returning_2_on_its_failure_and_logs_nothing_on_a_first_launch_or_any_other_value(
         tmp_path, monkeypatch, capfdbinary):
-    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
-    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
-    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    past_the_guards(monkeypatch)
     monkeypatch.delenv("VERI_ISSUE", raising=False)
     scratch = scratch_tmpdir(tmp_path, monkeypatch)
     commit = "1111111111111111111111111111111111111111"
@@ -531,9 +532,7 @@ def fake_snapshot(monkeypatch, calls, archive_code, tar_code):
 
 def test_main_snapshots_the_pinned_commit_by_git_archive_into_tar_under_tmpdir_hands_the_launch_the_commit_clone_and_ref_and_removes_the_snapshot_on_every_return_mapping_tar_5_to_2_1_to_1_3_to_3_and_a_failed_archive_to_2(
         tmp_path, monkeypatch, capfdbinary):
-    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
-    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
-    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    past_the_guards(monkeypatch)
     for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
         monkeypatch.delenv(name, raising=False)
     scratch = scratch_tmpdir(tmp_path, monkeypatch)
@@ -611,9 +610,7 @@ def fake_unresolvable(monkeypatch):
 def test_main_with_no_resolvable_commit_warns_writes_no_record_or_gitignore_launches_unpinned_from_the_unresolved_skill_directory_and_returns_2_when_its_skill_md_is_unreadable(
         tmp_path, monkeypatch, capfdbinary):
     import importlib.util
-    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
-    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
-    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    past_the_guards(monkeypatch)
     for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
         monkeypatch.delenv(name, raising=False)
     answers = {}
@@ -745,9 +742,7 @@ def test_main_launches_exactly_one_claude_with_the_fixed_print_mode_argv_and_no_
 
 def test_main_on_a_pinned_launch_whose_snapshot_holds_no_readable_skill_md_names_it_launches_no_claude_removes_the_snapshot_and_returns_2(
         tmp_path, monkeypatch, capfdbinary):
-    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
-    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
-    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    past_the_guards(monkeypatch)
     for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
         monkeypatch.delenv(name, raising=False)
     scratch = scratch_tmpdir(tmp_path, monkeypatch)
@@ -780,9 +775,7 @@ def test_main_on_a_pinned_launch_whose_snapshot_holds_no_readable_skill_md_names
 def test_main_hands_claude_the_snapshots_committed_skill_md_never_the_skill_clones_working_tree_skill_md_when_the_two_differ(
         tmp_path, monkeypatch, capfdbinary):
     import importlib.util
-    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
-    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
-    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    past_the_guards(monkeypatch)
     for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
         monkeypatch.delenv(name, raising=False)
     scratch = scratch_tmpdir(tmp_path, monkeypatch)
@@ -825,9 +818,7 @@ def test_main_hands_claude_the_snapshots_committed_skill_md_never_the_skill_clon
 def test_main_hands_claude_skill_md_stripped_of_trailing_newlines_then_the_base_line_the_pinned_line_only_when_pinned_and_the_solve_line_naming_the_unvalidated_issue_ignoring_further_arguments(
         tmp_path, monkeypatch, capfdbinary):
     import importlib.util
-    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
-    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
-    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    past_the_guards(monkeypatch)
     for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
         monkeypatch.delenv(name, raising=False)
     scratch = scratch_tmpdir(tmp_path, monkeypatch)
@@ -891,9 +882,7 @@ def test_main_hands_claude_skill_md_stripped_of_trailing_newlines_then_the_base_
 
 def test_main_strips_claudes_environment_through_veri_session_env_so_a_name_added_to_its_session_vars_is_absent_from_the_launch(
         tmp_path, monkeypatch, capfdbinary):
-    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
-    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
-    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    past_the_guards(monkeypatch)
     monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
     monkeypatch.setenv("VERI_PLANTED_621", "planted")
     monkeypatch.setenv("VERI_KEPT_621", "kept")
@@ -922,9 +911,7 @@ def test_main_strips_claudes_environment_through_veri_session_env_so_a_name_adde
 
 def test_main_runs_event_sh_before_the_session_strip_then_hands_claude_no_veri_new_skill_every_other_veri_variable_and_an_ambient_veri_skill_commit_unpinned_or_veri_skill_unpinned_pinned(
         tmp_path, monkeypatch, capfdbinary):
-    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
-    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
-    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    past_the_guards(monkeypatch)
     monkeypatch.setenv("VERI_NEW_SKILL", "1")
     monkeypatch.setenv("VERI_KEPT", "kept")
     monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "sess-1077")
