@@ -380,3 +380,34 @@ def test_main_answers_as_stop_run_test_sh_s_refusal_write_overwrite_all_no_main_
         assert not (zero_run / ".tdd" / "stop").exists()
         capsysbinary.readouterr()
     assert signals == []
+
+
+def test_main_that_resolves_a_main_working_tree_outside_the_fixture_tree_fails_writing_no_stop_and_signalling_nothing_1158(
+        monkeypatch, tmp_path, capsysbinary, stop_run):
+    import signal
+    fixture = tmp_path / "fixture"
+    repo = fixture / "repo"
+    run_with_conductor(repo)
+    decoy = tmp_path / "decoy"
+    decoy_run = run_with_conductor(decoy)
+    (decoy_run / ".tdd" / "develop-red.pid").write_bytes(b"4343\n")
+    monkeypatch.chdir(repo)
+    answers = {("ps", "-p", "4343", "-o", "args="): (0, b"bash supervise.sh develop-red 5\n")}
+    fake_processes(monkeypatch, answers)
+    monkeypatch.setattr(stop_run, "main_working_tree", lambda: os.fsencode(decoy))
+    terms = []
+
+    def fake_kill(pid, sig):
+        if sig == signal.SIGTERM:
+            terms.append(pid)
+        elif pid not in (4242, 4343):
+            raise ProcessLookupError(3, "No such process")
+
+    monkeypatch.setattr(os, "kill", fake_kill)
+
+    for argv in (["--mode", "now", "5"], ["--mode", "now", "--all"]):
+        code = stop_run.main(argv)
+        out, err = capsysbinary.readouterr()
+        assert (argv, code != 0, os.fsencode(decoy) in out) == (argv, True, False)
+        assert (argv, list(decoy.rglob("stop"))) == (argv, [])
+        assert (argv, terms) == (argv, [])
