@@ -213,8 +213,8 @@ cat > "$PROBE" <<'L'
 int_quit="$(python3 -c 'import signal; print(*[int(h) if isinstance(h, int) else "handler" for h in map(signal.getsignal, (signal.SIGINT, signal.SIGQUIT))])')"
 ( ulimit -f 1; head -c 8192 /dev/zero > "$2" ) 2> /dev/null
 xfsz=$?
-yes | head -n 1 > /dev/null
-pipe="${PIPESTATUS[0]}"
+yes > >(head -n 1 > /dev/null)
+pipe=$?
 if IFS= read -r line; then stdin="read:$line"; else stdin="eof"; fi
 printf 'probe-stdout\n'
 printf 'probe-stderr\n' >&2
