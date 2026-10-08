@@ -57,3 +57,41 @@ def test_main_refuses_a_missing_name_answers_a_recorded_code_and_times_out_with_
 
     (tmp_path / ".tdd" / "x.exit").unlink()
     assert wait_leaf.main(["x", "0"]) == 3
+
+
+def test_main_refusal_touches_no_file_maps_a_recorded_code_as_text_and_waits_out_a_code_that_is_not_one(
+        monkeypatch, capsys, tmp_path, wait_leaf):
+    monkeypatch.chdir(tmp_path)
+    readings = []
+
+    def answer(line):
+        if line == "date +%s":
+            readings.append(1000 + len(readings))
+            return (0, f"{readings[-1]}\n", "")
+        return (0, "", "")
+
+    fake_processes(monkeypatch, answer)
+
+    for argv in ([], [""]):
+        assert wait_leaf.main(argv) == 2
+    assert list(tmp_path.iterdir()) == []
+
+    (tmp_path / ".tdd").mkdir()
+    exit_file = tmp_path / ".tdd" / "x.exit"
+    mapped = []
+    for text in ("3\n", "4\n", "00\n", "01\n", "12345678901234567890\n"):
+        exit_file.write_text(text)
+        mapped.append(wait_leaf.main(["x"]))
+    assert mapped == [3, 2, 2, 2, 2]
+
+    waited = []
+    for text in ("-1\n", "7x\n", "", None):
+        exit_file.unlink(missing_ok=True)
+        if text is None:
+            exit_file.mkdir()
+        else:
+            exit_file.write_text(text)
+        readings.clear()
+        waited.append((wait_leaf.main(["x", "5"]), readings[-1] >= readings[0] + 5))
+    assert waited == [(3, True)] * 4
+    capsys.readouterr()
