@@ -173,4 +173,18 @@ fi
 
 report "$name"
 
+name="detach-leaf.sh with no argument exits 2 with nothing on stdout and the usage line alone on stderr"
+problems=()
+
+"$DETACH" > "$work/noarg.out" 2> "$work/noarg.err"
+status=$?
+[[ "$status" == 2 ]] ||
+  problems+=("want exit 2, got: $status")
+[[ ! -s "$work/noarg.out" ]] ||
+  problems+=("want nothing on stdout, got: $(cat "$work/noarg.out")")
+[[ "$(cat "$work/noarg.err"; printf x)" == "usage: detach-leaf.sh <cmd> [args…]"$'\n'x ]] ||
+  problems+=("want stderr exactly 'usage: detach-leaf.sh <cmd> [args…]', got: $(printf '%q' "$(cat "$work/noarg.err")")")
+
+report "$name"
+
 finish
