@@ -326,7 +326,7 @@ expected="$(printf '%s\n' 'parked 1201' 1201 1202 '# Plan' '- [x] first step' '-
 actual="$(grep '^parked ' "$work/out"; cat "$LAUNCHES" "$work/.tdd/issue-1201.md")"
 expect_exit0_output
 
-name="launches run-conductor.sh <issue> as the leader of its own session, stdin /dev/null, stderr orchestrate's, SIGINT, SIGQUIT and SIGXFSZ ignored, and SIGTERMs that pid at the stop"
+name="launches run-conductor.sh <issue> as the leader of its own session, stdin /dev/null, stderr orchestrate's, SIGINT and SIGQUIT ignored, and SIGTERMs that pid at the stop"
 launchstate="$work/launchstate"
 mkdir -p "$launchstate"
 cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$launchstate/"
@@ -354,7 +354,7 @@ seed launchstate 1301
 orchestrate "$launchstate"
 await_gone
 pid="$(cat "$MARKS.pid" 2>/dev/null)"
-expected="$(printf '%s\n' 'argv 1: [1301]' "trap -- '' SIGINT" "trap -- '' SIGQUIT" "trap -- '' SIGXFSZ" \
+expected="$(printf '%s\n' 'argv 1: [1301]' "trap -- '' SIGINT" "trap -- '' SIGQUIT" \
   'session leader' 'stdin /dev/null' "TERM to $pid" 'conductor 1301 on stderr')"
 actual="$(cat "$MARKS" "$work/err")"
 expect_exit0_output
@@ -376,6 +376,26 @@ chmod +x "$sigpipe"/*.sh
 seed sigpipe 1351
 orchestrate "$sigpipe"
 expected='yes 141'
+actual="$(cat "$MARKS")"
+expect_exit0_output
+
+name="#1126 a conductor's write past its file-size limit dies of SIGXFSZ, status 153, not of EFBIG"
+sigxfsz="$work/sigxfsz"
+mkdir -p "$sigxfsz"
+cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$sigxfsz/"
+cp -R "$scripts/lib" "$scripts/veri" "$sigxfsz/"
+cat > "$sigxfsz/run-conductor.sh" <<'STUB'
+#!/usr/bin/env bash
+bash -c 'ulimit -f 0; echo x > "$1"' _ "$MARKS.big" 2> /dev/null
+echo "xfsz $?" >> "$MARKS"
+echo "$1" >> "$LAUNCHES"
+grep -vx -- "$1" "$SOLVABLE" > "$SOLVABLE.next"
+mv "$SOLVABLE.next" "$SOLVABLE"
+STUB
+chmod +x "$sigxfsz"/*.sh
+seed sigxfsz 1352
+orchestrate "$sigxfsz"
+expected='xfsz 153'
 actual="$(cat "$MARKS")"
 expect_exit0_output
 

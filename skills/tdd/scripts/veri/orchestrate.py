@@ -72,7 +72,7 @@ def _err(text):
 
 def _launch(issue):
     dispositions = {signal.SIGINT: signal.SIG_IGN, signal.SIGQUIT: signal.SIG_IGN,
-                    signal.SIGPIPE: signal.SIG_DFL, signal.SIGXFSZ: signal.SIG_IGN}
+                    signal.SIGPIPE: signal.SIG_DFL, signal.SIGXFSZ: signal.SIG_DFL}
     saved = {sig: signal.signal(sig, handler) for sig, handler in dispositions.items()}
     try:
         return subprocess.Popen([CONDUCTOR, issue], start_new_session=True,
