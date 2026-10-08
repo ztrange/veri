@@ -38,6 +38,12 @@ def record(timeout):
         pass
 
 
+def inside_own_scripts():
+    scripts = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    here = os.path.realpath(os.getcwd())
+    return here == scripts or here.startswith(scripts + os.sep)
+
+
 def main(argv):
     override = os.environ.get("VERI_TIMEOUT", "")
     if override:
@@ -63,6 +69,10 @@ def main(argv):
             print(f"leaf-timeout: VERI_REFACTOR_BUDGET must be a whole number >= 0: {budget}", file=sys.stderr)
             return 2
         derived = derived * max(1, int(budget))
+    if os.environ.get("VERI_ISSUE") and inside_own_scripts():
+        print("leaf-timeout.sh: type this from the run's worktree,"
+              " not from the skill's own scripts directory", file=sys.stderr)
+        return 2
     record(derived)
     print(derived)
     return 0

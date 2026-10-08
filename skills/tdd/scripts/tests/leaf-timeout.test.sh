@@ -152,4 +152,31 @@ root_record="$(cat "$work/.tdd/issue-954-timeout" 2>/dev/null || echo '<no recor
   problems+=("want the worktree root's .tdd/issue-954-timeout holding 1200, got $(printf '%q' "$root_record") (stderr: $(cat "$work/err"))")
 report "$name"
 
+name="#1158: a leaf-timeout.sh run from the suite's scratch repository records its timeout there or refuses, never in the repository holding the script"
+problems=()
+work="$(scratch_dir)"
+new_repo -b main "$work/repo" >/dev/null 2>&1
+decoy="$work/decoy"
+new_repo -b main "$decoy" >/dev/null 2>&1
+mutant="$decoy/skills/tdd/scripts"
+mkdir -p "$mutant"
+cp -R "$HERE/../veri" "$mutant/veri"
+awk '/^exec python3/ { print "cd \"$(dirname \"$0\")\"" } { print }' "$LEAF_TIMEOUT" > "$mutant/leaf-timeout.sh"
+chmod +x "$mutant/leaf-timeout.sh"
+( cd "$work/repo" && env -u VERI_TIMEOUT VERI_ISSUE=954 "$mutant/leaf-timeout.sh" 10 --full 200 ) >/dev/null 2>"$work/err" && code=0 || code=$?
+decoy_records=("$decoy"/.tdd/issue-*timeout "$mutant"/.tdd/issue-*timeout)
+for found in "${decoy_records[@]}"; do
+  [[ ! -e "$found" ]] ||
+    problems+=("want no record outside the scratch repository, found ${found#"$work"/} holding $(cat "$found")")
+done
+pinned="$work/repo/.tdd/issue-954-timeout"
+if [[ "$code" == 0 ]]; then
+  [[ "$(cat "$pinned" 2>/dev/null)" == 1200 ]] ||
+    problems+=("exit 0: want the scratch repository's .tdd/issue-954-timeout holding 1200, got $(printf '%q' "$(cat "$pinned" 2>/dev/null || echo '<no record>')") (stderr: $(cat "$work/err"))")
+else
+  [[ ! -e "$pinned" ]] ||
+    problems+=("exit $code: want a refusal to record nothing, found repo/.tdd/issue-954-timeout holding $(cat "$pinned")")
+fi
+report "$name"
+
 finish
