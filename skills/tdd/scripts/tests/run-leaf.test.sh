@@ -290,4 +290,23 @@ for caller in unset 0 empty; do
 done
 report "hands the leaf PYTHONDONTWRITEBYTECODE=1 whether the caller left it unset, set it to 0 or set it empty (#873)"
 
+problems=()
+nopyc="$(scratch_dir)"
+mkdir -p "$nopyc/tree/pkg"
+printf 'ANSWER = 1\n' > "$nopyc/tree/mod.py"
+: > "$nopyc/tree/pkg/__init__.py"
+printf 'ANSWER = 2\n' > "$nopyc/tree/pkg/sub.py"
+claude_stub "$nopyc" "$(cat <<'STUB'
+cd "$MOD_DIR" || exit 2
+python3 -c 'import mod, pkg.sub; print(mod.ANSWER + pkg.sub.ANSWER)' > ../answer
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+STUB
+)"
+( cd "$work" && env -u PYTHONDONTWRITEBYTECODE -u PYTHONPYCACHEPREFIX CLAUDE_BIN="$nopyc/claude" \
+    MOD_DIR="$nopyc/tree" "$LEAF" "$work/prompt.txt" > /dev/null 2>&1 )
+[[ "$(cat "$nopyc/answer" 2>&1)" == 3 ]] || problems+=("the leaf's python3 answered '$(cat "$nopyc/answer" 2>&1)', wanted 3")
+written="$(cd "$nopyc/tree" && find . -name '*.pyc' | sort)"
+[[ -z "$written" ]] || problems+=("a Python process under the leaf wrote bytecode into the tree it imported from: $written")
+report "a Python process under a leaf writes no .pyc into the tree it imports from (#873)"
+
 finish
