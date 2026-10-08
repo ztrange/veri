@@ -1,5 +1,6 @@
 """In-process cases for veri/event.py, the module event.sh is a shim over."""
 import importlib
+import json
 import os
 import pathlib
 import sys
@@ -81,4 +82,31 @@ def test_main_appends_the_nine_fixed_keys_then_one_key_per_argument_in_argument_
         b' "event": "-h", "attempt": "", "skill_commit": ""}\n'
         b'{"ts": 1700000000, "awake": 4242, "issue": "", "actor": "", "phase": "", "step": "",'
         b' "event": "mark", "attempt": "", "skill_commit": ""}\n'
+    )
+
+
+def test_main_escapes_every_string_by_the_bash_table_over_the_argument_and_variable_bytes(
+        monkeypatch, tmp_path, event):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("VERI_AWAKE_CLOCK", raising=False)
+    monkeypatch.setattr("time.time", lambda: 1700000000.9)
+    monkeypatch.setattr("time.clock_gettime", lambda clock: 4242.7)
+    for name in CONTEXT:
+        monkeypatch.delenv(name, raising=False)
+
+    well = "\"\\\b\f\n\r\t\x01\x1f\x7fAé€\U0001F600"
+    well_escaped = b'\\"\\\\\\b\\f\\n\\r\\t\\u0001\\u001f\\u007fA\\u00e9\\u20ac\\ud83d\\ude00'
+    malformed = os.fsdecode(b"\x80|\xe2\x82Z")
+    malformed_escaped = b"\\u0080|\\u209a"
+    monkeypatch.setenv("VERI_ACTOR", well)
+    monkeypatch.setenv("VERI_PHASE", malformed)
+
+    assert well_escaped == json.dumps(well, ensure_ascii=True)[1:-1].encode()
+    assert event.main([well, "w=" + well, "m=" + malformed, 'q"k=v']) == 0
+
+    assert (tmp_path / ".tdd" / "events.jsonl").read_bytes() == (
+        b'{"ts": 1700000000, "awake": 4242, "issue": "", "actor": "' + well_escaped
+        + b'", "phase": "' + malformed_escaped + b'", "step": "", "event": "' + well_escaped
+        + b'", "attempt": "", "skill_commit": "", "w": "' + well_escaped
+        + b'", "m": "' + malformed_escaped + b'", "q\\"k": "v"}\n'
     )
