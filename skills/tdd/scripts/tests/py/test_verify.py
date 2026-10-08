@@ -1083,3 +1083,78 @@ def test_main_returning_1_because_reading_home_gitconfig_raised_oserror_names_th
 
     captured = capfdbinary.readouterr()
     assert (code, str(gitconfig).encode() in captured.err) == (1, True)
+
+
+PRESERVED = b"preserve-attempt: stdout sentinel\n"
+
+
+@pytest.mark.parametrize("leaf_out, issue, step, preserver, expected_code, expected_mark", [
+    (b"VERDICT: REJECT\nbad\n", "931", "7", 0, 1, "reject"),
+    (b"VERDICT: MAYBE\nundecided\n", "931", "7", 0, 2, "malformed"),
+    (NO_VERDICT, "931", "7", 0, 2, "no-verdict"),
+    (b"VERDICT: REJECT\nbad\n", "931", "7", 1, 1, "reject"),
+    (NO_VERDICT, "931", "7", FileNotFoundError, 2, "no-verdict"),
+    (b"VERDICT: PASS\nfine\n", "931", "7", 0, 0, None),
+    (b"VERDICT: REJECT\nbad\n", "", "7", 0, 1, None),
+    (b"VERDICT: REJECT\nbad\n", "931", "", 0, 1, None),
+])
+def test_main_preserves_a_reject_malformed_or_no_verdict_attempt_through_preserve_attempt_sh_with_its_stdout_on_stderr_naming_a_failed_preservation_and_still_returning_the_verdicts_code(
+        leaf_out, issue, step, preserver, expected_code, expected_mark, tmp_path, monkeypatch,
+        capfdbinary):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("VERI_ISSUE", issue)
+    monkeypatch.setenv("VERI_STEP", step)
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
+    builders = []
+    preserved = []
+
+    def fake(args, *_, **kwargs):
+        words = [str(a) for a in args]
+        if os.path.basename(words[0]) == "env":
+            words = words[1:]
+            while words and "=" in words[0]:
+                words.pop(0)
+        name = os.path.basename(words[0])
+        if name == "build-verify-prompt.sh":
+            builders.append(words[0])
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            return subprocess.CompletedProcess(args, 0, leaf_out, None)
+        if name == "git" and "write-tree" in words:
+            return subprocess.CompletedProcess(args, 0, b"a" * 40 + b"\n", b"")
+        if name == "git" and "rev-parse" in words:
+            return subprocess.CompletedProcess(args, 0, b"1" * 40 + b"\n", b"")
+        if name == "preserve-attempt.sh":
+            preserved.append(words)
+            if preserver is FileNotFoundError:
+                raise FileNotFoundError(2, "No such file or directory", words[0])
+            target = kwargs.get("stdout")
+            fd = 1 if target is None else target if isinstance(target, int) else target.fileno()
+            os.write(fd, PRESERVED)
+            return subprocess.CompletedProcess(args, preserver, None, None)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    captured = capfdbinary.readouterr()
+    assert code == expected_code
+    if expected_mark is None:
+        assert preserved == []
+        return
+    scripts = os.path.dirname(builders[0])
+    assert preserved == [[os.path.join(scripts, "preserve-attempt.sh"),
+                          issue, step, "verify-green", "1", expected_mark]]
+    assert PRESERVED not in captured.out
+    could_not = ("verify: could not preserve the %s attempt (issue %s step %s verify-green attempt 1)\n"
+                 % (expected_mark, issue, step)).encode()
+    if preserver == 0:
+        assert (PRESERVED in captured.err, could_not in captured.err) == (True, False)
+    else:
+        assert could_not in captured.err

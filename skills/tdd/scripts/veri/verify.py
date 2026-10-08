@@ -45,6 +45,13 @@ def mark(role, *words):
     subprocess.run([sibling("event.sh"), *words], env=role)
 
 
+def preserve(issue, step, leaf, attempt, outcome):
+    if start([sibling("preserve-attempt.sh"), issue, step, leaf, attempt, outcome],
+             stdout=sys.stderr.fileno()).returncode:
+        _write(sys.stderr, "verify: could not preserve the %s attempt (issue %s step %s %s attempt %s)"
+               % (outcome, issue, step, leaf, attempt))
+
+
 def git(*args, env=None):
     return start(["git", *args], env=env, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
@@ -178,6 +185,10 @@ def main(argv):
     word = {0: "PASS", 1: "REJECT"}.get(code, "malformed")
     cause = ["cause=no-verdict"] if no_verdict else []
     mark(role, "verdict", "verdict=" + word, "reason=" + reason.split("\n", 1)[0], *cause)
+    issue, step = os.environ.get("VERI_ISSUE"), os.environ.get("VERI_STEP")
+    if word != "PASS" and tree_before and issue and step:
+        preserve(issue, step, leaf, role["VERI_ATTEMPT"],
+                 "no-verdict" if no_verdict else word.lower())
     _write(sys.stdout, reason)
     return to_contract(code)
 
