@@ -167,7 +167,17 @@ def _exclude_tdd():
     return True
 
 
+def _inside_own_scripts():
+    scripts = os.path.realpath(SCRIPTS)
+    here = os.path.realpath(os.getcwd())
+    return here == scripts or here.startswith(scripts + os.sep)
+
+
 def main(argv):
+    if _inside_own_scripts():
+        print("parallel-conductors: type this from the target repo's primary checkout,"
+              " not from the skill's own scripts directory", file=sys.stderr)
+        return 2
     if not _exclude_tdd():
         return 2
     parallel = os.environ.get("VERI_PARALLEL", "1")
