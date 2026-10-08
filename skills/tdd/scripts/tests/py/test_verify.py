@@ -181,3 +181,35 @@ def test_main_launches_the_verifier_leaf_through_supervise_with_the_default_flag
     assert [words for words, _, _ in started
             if os.path.basename(words[0]) in forbidden
             or os.path.basename(words[0]).startswith("python")] == []
+
+
+@pytest.mark.parametrize("phase", ["green", "pin"])
+@pytest.mark.parametrize("leaf_out, expected", [
+    (b"VERDICT: PASS\nthe whole\nreason\n\n", (0, b"the whole\nreason\n")),
+    (b"VERDICT: REJECT\nthe whole\nreason", (1, b"the whole\nreason\n")),
+    (b"VERDICT: PASS\n", (0, b"\n")),
+    (b"VERDICT: REJECT\nnot \xff utf-8\n", (1, b"not \xff utf-8\n")),
+    (b"no verdict here\nat all\n", (2, b"\n")),
+])
+def test_main_reads_the_verdict_from_supervises_stdout_and_prints_the_whole_reason_with_one_newline(
+        phase, leaf_out, expected, tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERIFY_LEAF_ARGS", "VERI_ISSUE", "VERI_STEP", "VERI_NO_VERDICT_RETRIES"):
+        monkeypatch.delenv(name, raising=False)
+
+    def fake(args, *_, **__):
+        name = os.path.basename(str(args[0]))
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            return subprocess.CompletedProcess(args, 0, leaf_out, None)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main([phase, "spec.md", "tests/x.test.sh"])
+
+    assert (code, capfdbinary.readouterr().out) == expected
