@@ -212,7 +212,8 @@ def test_a_conductor_launches_as_a_new_session_leader_with_signals_as_todays_lau
         {"start_new_session": True, "stdin": subprocess.DEVNULL, "stdout": subprocess.PIPE,
          "restore_signals": False},
         {"stderr": None, "cwd": None, "env": None})
-    assert dispositions == {sig: signal.SIG_IGN for sig in watched}
+    assert dispositions == {signal.SIGINT: signal.SIG_IGN, signal.SIGQUIT: signal.SIG_IGN,
+                            signal.SIGPIPE: signal.SIG_DFL, signal.SIGXFSZ: signal.SIG_IGN}
     assert after == {sig: signal.SIG_DFL for sig in watched}
     assert asks == [[os.path.join(orchestrate.SCRIPTS, "solvable-issues.sh")]] * 2
 

@@ -71,8 +71,9 @@ def _err(text):
 
 
 def _launch(issue):
-    ignored = (signal.SIGINT, signal.SIGQUIT, signal.SIGPIPE, signal.SIGXFSZ)
-    saved = {sig: signal.signal(sig, signal.SIG_IGN) for sig in ignored}
+    dispositions = {signal.SIGINT: signal.SIG_IGN, signal.SIGQUIT: signal.SIG_IGN,
+                    signal.SIGPIPE: signal.SIG_DFL, signal.SIGXFSZ: signal.SIG_IGN}
+    saved = {sig: signal.signal(sig, handler) for sig, handler in dispositions.items()}
     try:
         return subprocess.Popen([CONDUCTOR, issue], start_new_session=True,
                                 stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, restore_signals=False)
