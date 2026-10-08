@@ -6,7 +6,7 @@ import sys
 
 import parse_verdict
 
-from leaf_role import _write
+from leaf_role import _write, leaf_role
 from run_verdict import SCRIPTS, takes_a_value
 
 LEAF_ARGS = ["--permission-mode", "bypassPermissions",
@@ -55,6 +55,11 @@ def main(argv):
          sibling("run-leaf.sh"), prompt_path, *LEAF_ARGS],
         stdout=subprocess.PIPE)
     code, reason = parse(launched.stdout)
+    word = {0: "PASS", 1: "REJECT"}.get(code, "malformed")
+    subprocess.run(
+        [sibling("event.sh"), "verdict", "verdict=" + word,
+         "reason=" + reason.split("\n", 1)[0]],
+        env={**os.environ, **leaf_role("verify-%s" % phase)})
     _write(sys.stdout, reason)
     return to_contract(code)
 

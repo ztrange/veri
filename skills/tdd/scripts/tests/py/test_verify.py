@@ -213,3 +213,51 @@ def test_main_reads_the_verdict_from_supervises_stdout_and_prints_the_whole_reas
     code = verify.main([phase, "spec.md", "tests/x.test.sh"])
 
     assert (code, capfdbinary.readouterr().out) == expected
+
+
+@pytest.mark.parametrize("phase", ["green", "refactor"])
+@pytest.mark.parametrize("leaf_out, word, reason_line", [
+    (b"VERDICT: PASS\nfirst line\nsecond line\n", "PASS", "first line"),
+    (b"VERDICT: REJECT\nwhy it fails\nmore\n", "REJECT", "why it fails"),
+    (b"VERDICT: MAYBE\nundecided\n", "malformed", ""),
+])
+def test_main_calls_event_sh_once_with_the_verdict_word_and_the_reasons_first_line_under_the_verifier_role(
+        phase, leaf_out, word, reason_line, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERIFY_LEAF_ARGS", "VERI_NO_VERDICT_RETRIES",
+                 "VERI_ACTOR", "VERI_PHASE", "VERI_ATTEMPT"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("VERI_ISSUE", "931")
+    monkeypatch.setenv("VERI_STEP", "5")
+    monkeypatch.setenv("VERI_INHERITED_SENTINEL", "kept")
+    events = []
+
+    def fake(args, *_, **kwargs):
+        words = [str(a) for a in args]
+        env = dict(os.environ if kwargs.get("env") is None else kwargs["env"])
+        if os.path.basename(words[0]) == "env":
+            words = words[1:]
+            while words and "=" in words[0]:
+                key, _, value = words.pop(0).partition("=")
+                env[key] = value
+        name = os.path.basename(words[0])
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            return subprocess.CompletedProcess(args, 0, leaf_out, None)
+        if name == "event.sh":
+            events.append((words, env))
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+    scripts = os.path.dirname(os.path.dirname(os.path.abspath(verify.__file__)))
+    expected_env = {**os.environ, "VERI_ACTOR": "verifier", "VERI_PHASE": phase, "VERI_ATTEMPT": "1"}
+
+    verify.main([phase, "spec.md", "tests/x.test.sh"])
+
+    assert [words for words, _ in events] == [
+        [os.path.join(scripts, "event.sh"), "verdict", "verdict=" + word, "reason=" + reason_line]]
+    assert events[0][1] == expected_env
