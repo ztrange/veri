@@ -17,12 +17,12 @@ def main(argv):
         return 2
     base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     head_rev = "HEAD"
-    if subprocess.run(["git", "-C", base, "remote", "get-url", "origin"],
-                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+    if git(base, "remote", "get-url", "origin",
+           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
         fetches = 0
         while True:
-            fetch = subprocess.run(["git", "-C", base, "fetch", "-q", "origin"],
-                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            fetch = git(base, "fetch", "-q", "origin",
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             fetches += 1
             if fetch.returncode == 0:
                 break
@@ -35,8 +35,8 @@ def main(argv):
             return 2
         head_rev = "refs/remotes/origin/HEAD"
         if not verifies(base, head_rev):
-            answer = subprocess.run(["git", "-C", base, "ls-remote", "--symref", "origin", "HEAD"],
-                                    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+            answer = git(base, "ls-remote", "--symref", "origin", "HEAD",
+                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
             if answer.returncode != 0:
                 return 2
             default = symref_default(answer.stdout)
@@ -45,14 +45,17 @@ def main(argv):
             head_rev = "refs/remotes/origin/" + default
             if not verifies(base, head_rev):
                 return refuse_unpinned(base, "origin's default branch '%s' has no %s" % (default, head_rev))
-    subprocess.run(["git", "-C", base, "rev-parse", head_rev],
-                   stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    git(base, "rev-parse", head_rev,
+        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     return 0
 
 
 def verifies(base, ref):
-    return subprocess.run(["git", "-C", base, "rev-parse", "-q", "--verify", ref],
-                          stdout=subprocess.DEVNULL).returncode == 0
+    return git(base, "rev-parse", "-q", "--verify", ref, stdout=subprocess.DEVNULL).returncode == 0
+
+
+def git(base, *args, **kwargs):
+    return subprocess.run(["git", "-C", base] + list(args), **kwargs)
 
 
 def refuse_unpinned(base, why):
