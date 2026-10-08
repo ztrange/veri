@@ -570,3 +570,84 @@ def test_main_snapshots_the_pinned_commit_by_git_archive_into_tar_under_tmpdir_h
         "tar-3": (3, [archive, tar], [], []),
         "archive-fails": (2, [archive, tar], [], []),
     }
+
+
+def fake_unresolvable(monkeypatch):
+    """git faked as a process with no origin and no commit to resolve; fake-claude's launch recorded
+    with the environment it was handed."""
+    launches = []
+
+    def answer(args, *_, **kwargs):
+        args = list(args)
+        code, out, err = 128, "", ""
+        if args[:1] == ["fake-claude"]:
+            env = kwargs.get("env") if kwargs.get("env") is not None else os.environ
+            launches.append({name: env.get(name) for name in
+                             ("VERI_SKILL_UNPINNED", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF")})
+            code = 0
+        elif args[:1] == ["git"] and args[3:] == ["remote", "get-url", "origin"]:
+            code, err = 2, "error: No such remote 'origin'\n"
+        if not (kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")):
+            out, err = out.encode(), err.encode()
+        return subprocess.CompletedProcess(args, code, out, err)
+
+    def popen(args, *a, **kwargs):
+        done = answer(args, *a, **kwargs)
+        process = FakeProcess(list(args))
+        process.returncode = done.returncode
+        process.stdout, process.stdin = io.BytesIO(b""), io.BytesIO()
+        process.wait = process.poll = lambda *_, **__: done.returncode
+        process.communicate = lambda *_, **__: (b"", b"")
+        return process
+
+    monkeypatch.setattr(subprocess, "run", answer)
+    monkeypatch.setattr(subprocess, "call", lambda *a, **k: answer(*a, **k).returncode)
+    monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: answer(*a, **k).returncode)
+    monkeypatch.setattr(subprocess, "Popen", popen)
+    for name in ("system", "fork", "posix_spawn", "posix_spawnp", "execv", "execvp", "execve"):
+        if hasattr(os, name):
+            monkeypatch.setattr(os, name, lambda *args, **__: launches.append(list(args)))
+    return launches
+
+
+def test_main_with_no_resolvable_commit_warns_writes_no_record_or_gitignore_launches_unpinned_from_the_unresolved_skill_directory_and_returns_2_when_its_skill_md_is_unreadable(
+        tmp_path, monkeypatch, capfdbinary):
+    import importlib.util
+    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
+    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
+        monkeypatch.delenv(name, raising=False)
+    answers = {}
+    for name in ("readable", "unreadable"):
+        real = tmp_path / (name + "-skill")
+        (real / "scripts" / "veri").mkdir(parents=True)
+        (real / "scripts" / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
+        if name == "readable":
+            (real / "SKILL.md").write_text("# skill\n")
+        else:
+            (real / "SKILL.md").mkdir()
+        link = tmp_path / (name + "-link")
+        link.symlink_to(real)
+        spec = importlib.util.spec_from_file_location(
+            "run_conductor_" + name, str(link / "scripts" / "veri" / "run_conductor.py"))
+        run_conductor = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(run_conductor)
+        cwd = tmp_path / name
+        cwd.mkdir()
+        monkeypatch.chdir(cwd)
+        launches = fake_unresolvable(monkeypatch)
+        code = run_conductor.main(["4242"])
+        captured = capfdbinary.readouterr()
+        answers[name] = (code if name == "unreadable" else None, captured.out, captured.err, launches,
+                         sorted(str(p.relative_to(cwd)) for p in cwd.rglob("*")
+                                if p.name in (".gitignore", "issue-4242-skill-commit")))
+    warning = "run-conductor: no skill commit resolvable from '%s' — running unpinned\n"
+    assert answers == {
+        "readable": (None, b"", (warning % (tmp_path / "readable-link")).encode(),
+                     [{"VERI_SKILL_UNPINNED": "1", "VERI_SKILL_COMMIT": None,
+                       "VERI_SKILL_CLONE": None, "VERI_SKILL_REF": None}], []),
+        "unreadable": (2, b"", (warning % (tmp_path / "unreadable-link")
+                                + "run-conductor: cannot read '%s/SKILL.md'\n" % (tmp_path / "unreadable-link")).encode(),
+                       [], []),
+    }
