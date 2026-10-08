@@ -124,12 +124,28 @@ def launch(base, issue, commit, **exports):
                               input=text, env=env).returncode
     except FileNotFoundError:
         sys.stderr.write("run-conductor: %s: command not found\n" % binary)
-        return 127
+        code = 127
     finally:
         signal.signal(signal.SIGPIPE, previous)
+    if not past_preflight(issue):
+        try:
+            os.remove(".tdd/issue-%s-skill-commit" % issue)
+        except FileNotFoundError:
+            pass
     if code < 0:
         return 128 - code
     return 141 if code == 0 and unread else code
+
+
+def past_preflight(issue):
+    run_wt = ".tdd/wt/" + issue
+    top = subprocess.run(["git", "-C", run_wt, "rev-parse", "--show-toplevel"],
+                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    if top.returncode == 0 and top.stdout.rstrip("\n") == os.path.realpath(run_wt):
+        return True
+    branches = subprocess.run(["git", "for-each-ref", "--format=%(refname)", "refs/heads/tdd/%s-*" % issue],
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    return bool(branches.stdout.rstrip("\n"))
 
 
 def extract(base, commit, snapshot):
