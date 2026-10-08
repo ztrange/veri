@@ -38,17 +38,19 @@ def main_working_tree():
     return first.removeprefix(b"worktree ")
 
 
+def holds(outer, inner):
+    return inner == outer or inner.startswith(outer.rstrip(os.sep) + os.sep)
+
+
 def inside_own_scripts():
     scripts = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    here = os.path.realpath(os.getcwd())
-    return here == scripts or here.startswith(scripts + os.sep)
+    return holds(scripts, os.path.realpath(os.getcwd()))
 
 
 def on_one_path(main_tree):
     tree = os.path.realpath(os.fsdecode(main_tree))
     here = os.path.realpath(os.getcwd())
-    return any(inner == outer or inner.startswith(outer.rstrip(os.sep) + os.sep)
-               for inner, outer in ((here, tree), (tree, here)))
+    return holds(tree, here) or holds(here, tree)
 
 
 def stop_run(run, mode):
