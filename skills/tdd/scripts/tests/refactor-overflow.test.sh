@@ -492,4 +492,30 @@ $body")
 
 report "$name"
 
+name="#1035 refactor-overflow with only unreached structural candidates files a body carrying only the structural heading"
+problems=()
+
+only_structural_owed="$work/issue-1035-only-structural-refactor-owed.md"
+"$OWED" append "$only_structural_owed" 'first step' <<'REPORT'
+CANDIDATES: structural | hoist the ledger path into one variable
+CANDIDATES: structural | split the verdict parser out of run-leaf.sh
+REPORT
+
+title_file="$work/title-only-structural" body_file="$work/body-only-structural"
+(cd "$work" && env PATH="$stubdir:$PATH" FAKE_TITLE="$title_file" FAKE_BODY="$body_file" \
+  "$OVERFLOW" 1035 "$only_structural_owed" 1 >"$out" 2>"$work/err") && code=0 || code=$?
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 with only unreached structural candidates owed, got $code: $(cat "$work/err")")
+body="$(cat "$body_file" 2>/dev/null)"
+want_body="Structural candidates #1035's closing pass could not reach:
+
+- split the verdict parser out of run-leaf.sh"
+[[ "$body" == "$want_body" ]] ||
+  problems+=("want the body as the structural heading and its list alone:
+$want_body
+got:
+$body")
+
+report "$name"
+
 finish
