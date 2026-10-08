@@ -120,4 +120,28 @@ cmp -s "$work/in-place/.gitignore" "$work/linked/.gitignore" && same=0 || same=$
 { [[ "$linked" == "$in_place" ]] && [[ "$linked_code" == "$in_place_code" ]] && [[ "$in_place" == "added" ]] && [[ "$same" == 0 ]]; } \
   && ok || no "run through a symlink to the skill directory and from another working directory with no argument, answers as it does when run in place, the caller's working directory the root (linked='$linked' exit=$linked_code, in place='$in_place' exit=$in_place_code want both 'added' exit 0, .gitignore cmp=$same want 0 identical)"
 
+repo="$work/pinned-scratch"
+make_repo "$repo"
+decoy="$work/decoy"
+make_repo "$decoy"
+decoy_exclude_before="$(cat "$decoy/.git/info/exclude" 2>/dev/null)"
+mutant="$decoy/skills/tdd/scripts"
+mkdir -p "$mutant"
+cp -R "$HERE/../veri" "$mutant/veri"
+awk '/^exec python3/ { print "cd \"$(dirname \"$0\")\""; sub(/ "\$@"/, "") } { print }' "$ENSURE" > "$mutant/ensure-run-state-ignored.sh"
+chmod +x "$mutant/ensure-run-state-ignored.sh"
+out="$("$mutant/ensure-run-state-ignored.sh" "$repo" 2>"$work/pinned-scratch.stderr")" && code=0 || code=$?
+problems=""
+for found in "$decoy/.gitignore" "$mutant/.gitignore"; do
+  [[ ! -e "$found" ]] || problems+="; ${found#"$work"/} was written"
+done
+[[ "$(cat "$decoy/.git/info/exclude" 2>/dev/null)" == "$decoy_exclude_before" ]] || problems+="; decoy/.git/info/exclude changed"
+if [[ "$code" == 0 ]]; then
+  ignored "$repo" .tdd/develop-red.log || problems+="; exit 0 (stdout='$out') but the scratch repository does not ignore .tdd/develop-red.log"
+else
+  [[ ! -e "$repo/.gitignore" ]] || problems+="; exit $code but the scratch repository's .gitignore was written"
+fi
+{ [[ -z "$problems" ]]; } \
+  && ok || no "#1158: an ensure-run-state-ignored.sh that drops its root argument and runs from its own directory writes no .gitignore or info/exclude outside the suite's scratch repository (${problems#; }; stderr='$(cat "$work/pinned-scratch.stderr")')"
+
 finish
