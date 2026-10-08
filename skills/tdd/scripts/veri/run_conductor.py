@@ -85,8 +85,7 @@ def main(argv):
             status = extract(base, commit, snapshot)
             if status != 0:
                 return status if status <= 3 else 2
-            env = dict(os.environ, VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
-            return subprocess.run([os.environ.get("CLAUDE_BIN") or "claude"], env=env).returncode
+            return launch(VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
         finally:
             shutil.rmtree(snapshot, ignore_errors=True)
     sys.stderr.write("run-conductor: no skill commit resolvable from '%s' — running unpinned\n" % base)
@@ -97,8 +96,11 @@ def main(argv):
     except OSError:
         sys.stderr.write("run-conductor: cannot read '%s'\n" % skill_file)
         return 2
-    return subprocess.run([os.environ.get("CLAUDE_BIN") or "claude"],
-                          env=dict(os.environ, VERI_SKILL_UNPINNED="1")).returncode
+    return launch(VERI_SKILL_UNPINNED="1")
+
+
+def launch(**exports):
+    return subprocess.run([os.environ.get("CLAUDE_BIN") or "claude"], env=dict(os.environ, **exports)).returncode
 
 
 def extract(base, commit, snapshot):
