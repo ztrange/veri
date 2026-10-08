@@ -1,5 +1,6 @@
 """In-process cases for veri/run_conductor.py, the module run-conductor.sh is a shim over."""
 import importlib
+import io
 import os
 import pathlib
 import subprocess
@@ -480,4 +481,92 @@ def test_main_with_veri_new_skill_exactly_1_rewrites_a_readable_record_then_runs
                                [(event, os.path.realpath(tmp_path / "re-pin-event-fails" / ".tdd" / "wt" / "4242"), "4242")], 2),
         "first-launch": (commit + "\n", False, [], None),
         "other-value": ("2222222\n", False, [], 2),
+    }
+
+
+def fake_snapshot(monkeypatch, calls, archive_code, tar_code):
+    """`git archive` and `tar` faked as processes exiting as given, tar dropping a SKILL.md into its
+    -C directory, and the launch of fake-claude recorded with the environment it was handed."""
+    snapshots, launches = [], []
+
+    def wrap(started):
+        def start(args, *a, **kwargs):
+            args = list(args)
+            if args[:1] == ["git"] and args[3:4] == ["archive"]:
+                code = archive_code
+                snapshots.append(args)
+            elif args[:1] == ["tar"]:
+                code = tar_code
+                target = args[-1]
+                snapshots.append(args[:-1] + [(os.path.dirname(target), os.path.basename(target)[:3],
+                                               os.path.isdir(target))])
+                if os.path.isdir(target):
+                    pathlib.Path(target, "SKILL.md").write_text("# skill\n")
+            elif args[:1] == ["fake-claude"]:
+                code = 0
+                env = kwargs.get("env") if kwargs.get("env") is not None else os.environ
+                launches.append({name: env.get(name) for name in
+                                 ("VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED")})
+            else:
+                return started(args, *a, **kwargs)
+            calls.append(args)
+            if started is popen:
+                process = FakeProcess(args)
+                process.returncode = code
+                process.stdout, process.stdin = io.BytesIO(b""), io.BytesIO()
+                process.wait = process.poll = lambda *_, **__: code
+                return process
+            if started in (call, check_call):
+                return code
+            return subprocess.CompletedProcess(args, code, b"", b"")
+        return start
+
+    run, call, check_call, popen = subprocess.run, subprocess.call, subprocess.check_call, subprocess.Popen
+    for name, started in (("run", run), ("call", call), ("check_call", check_call), ("Popen", popen)):
+        monkeypatch.setattr(subprocess, name, wrap(started))
+    return snapshots, launches
+
+
+def test_main_snapshots_the_pinned_commit_by_git_archive_into_tar_under_tmpdir_hands_the_launch_the_commit_clone_and_ref_and_removes_the_snapshot_on_every_return_mapping_tar_5_to_2_1_to_1_3_to_3_and_a_failed_archive_to_2(
+        tmp_path, monkeypatch, capfdbinary):
+    import tempfile
+    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
+    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
+        monkeypatch.delenv(name, raising=False)
+    scratch = tmp_path / "tmp"
+    scratch.mkdir()
+    monkeypatch.setenv("TMPDIR", str(scratch))
+    monkeypatch.setattr(tempfile, "tempdir", str(scratch))
+    base = str(SCRIPTS.parent)
+    commit = "1111111111111111111111111111111111111111"
+    run_conductor = importlib.import_module("veri.run_conductor")
+    scenarios = {
+        "pinned": (0, 0),
+        "tar-5": (0, 5),
+        "tar-1": (0, 1),
+        "tar-3": (0, 3),
+        "archive-fails": (128, 0),
+    }
+    answers = {}
+    for name, (archive_code, tar_code) in scenarios.items():
+        cwd = tmp_path / name
+        cwd.mkdir()
+        monkeypatch.chdir(cwd)
+        calls = fake_pin(monkeypatch, commit, set())
+        snapshots, launches = fake_snapshot(monkeypatch, calls, archive_code, tar_code)
+        code = run_conductor.main(["4242"])
+        capfdbinary.readouterr()
+        answers[name] = (None if name == "pinned" else code, snapshots, launches, sorted(os.listdir(scratch)))
+    archive = ["git", "-C", base, "archive", commit, "."]
+    tar = ["tar", "-x", "-C", (str(scratch), "tmp", True)]
+    assert answers == {
+        "pinned": (None, [archive, tar],
+                   [{"VERI_SKILL_COMMIT": commit, "VERI_SKILL_CLONE": base, "VERI_SKILL_REF": "HEAD",
+                     "VERI_SKILL_UNPINNED": None}], []),
+        "tar-5": (2, [archive, tar], [], []),
+        "tar-1": (1, [archive, tar], [], []),
+        "tar-3": (3, [archive, tar], [], []),
+        "archive-fails": (2, [archive, tar], [], []),
     }
