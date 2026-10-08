@@ -934,3 +934,118 @@ def test_main_fires_the_hard_timeout_on_the_awake_clock_slides_the_heartbeat_by_
 
     word = watch({**quiet, "VERI_TIMEOUT": "abc"}, 100)
     assert (word["code"], word["sleeps"], word["kills"], word["exit"]) == (1, 0, [], None)
+
+
+def test_main_kills_the_leaf_by_term_to_its_group_else_its_pid_then_five_reaping_polls_of_veri_kill_poll_then_kill_and_its_rounds_sleep_veri_poll_an_invalid_one_polling_without_pause(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+
+    def kill_once(env, group_raises=False, dies_on_term=False):
+        work = tmp_path / f"k{len(list(tmp_path.iterdir()))}"
+        work.mkdir()
+        monkeypatch.chdir(work)
+        clean_env(monkeypatch, VERI_TIMEOUT="5000", VERI_STUCK_RETRIES="0", VERI_HEARTBEAT="3",
+                  VERI_KILL_POLL="0.25", **env)
+        clock = {"wall": 1000, "dates": 0}
+        events = []
+
+        class Leaf:
+            pid = 4242
+            returncode = None
+            args = []
+
+            def poll(self):
+                events.append(("poll",))
+                return self.returncode
+
+            def wait(self, timeout=None):
+                return self.returncode
+
+        leaf = Leaf()
+
+        def signalled(how, target, sig):
+            events.append((how, target, sig))
+            if how == "group" and group_raises:
+                raise ProcessLookupError(3, "No such process")
+            if sig == signal.SIGKILL or (sig == signal.SIGTERM and dies_on_term):
+                leaf.returncode = -sig
+
+        def killpg(pgid, sig):
+            signalled("group", pgid, sig)
+
+        def kill(pid, sig):
+            if pid < 0:
+                return signalled("group", -pid, sig)
+            signalled("pid", pid, sig)
+
+        monkeypatch.setattr(os, "killpg", killpg)
+        monkeypatch.setattr(os, "kill", kill)
+        monkeypatch.setattr(time, "sleep", lambda secs: events.append(("sleep", float(secs))))
+        monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
+
+        def answer(args):
+            args = [str(a) for a in args]
+            if args[:1] == ["git"]:
+                return 0, "0123456789abcdef0123456789abcdef01234567\n"
+            if args[:1] == ["date"]:
+                clock["dates"] += 1
+                if clock["dates"] > 2000:
+                    raise Runaway()
+                clock["wall"] += 1
+                return 0, f"{clock['wall']}\n"
+            if args[:1] == ["stat"]:
+                return 0, "1000\n"
+            return 0, ""
+
+        def run(args, *_, **kwargs):
+            code, out = answer(args)
+            out = as_asked(out, kwargs)
+            return subprocess.CompletedProcess(args, code, out, "" if isinstance(out, str) else b"")
+
+        def popen(args, *_, **kwargs):
+            if list(args[:2]) == ["/bin/sh", "-c"]:
+                return leaf
+            raise AssertionError(f"unexpected Popen: {args}")
+
+        monkeypatch.setattr(subprocess, "run", run)
+        monkeypatch.setattr(subprocess, "check_output", lambda args, *a, **k: as_asked(answer(args)[1], k))
+        monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, *a, **k).returncode)
+        monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: run(args, *a, **k).returncode)
+        monkeypatch.setattr(subprocess, "Popen", popen)
+
+        try:
+            code = supervise.main(["develop-red", "leaf-hang"])
+        except Runaway:
+            code = "<never ended>"
+        except Exception as error:
+            code = repr(error)
+        _, err = capsysbinary.readouterr()
+        first = next((i for i, e in enumerate(events) if e[0] in ("group", "pid")), len(events))
+        return {
+            "code": code,
+            "kill": events[first:],
+            "round sleeps": sorted({e[1] for e in events[:first] if e[0] == "sleep"}),
+            "rounds slept": sum(1 for e in events[:first] if e[0] == "sleep"),
+            "invalid lines": sum(1 for line in err.splitlines() if b"abc" in line),
+            "zero signals": [e for e in events if e[0] in ("group", "pid") and e[2] == 0],
+        }
+
+    grace = [("poll",), ("sleep", 0.25)] * 5
+    term, kill = signal.SIGTERM, signal.SIGKILL
+    stubborn = kill_once({})
+    no_group = kill_once({}, group_raises=True)
+    obliging = kill_once({"VERI_POLL": "0.5"}, dies_on_term=True)
+    invalid = kill_once({"VERI_POLL": "abc"})
+
+    assert [(r["code"], r["kill"], r["round sleeps"], r["zero signals"])
+            for r in (stubborn, no_group, obliging)] == [
+        (2, [("group", 4242, term), *grace, ("group", 4242, kill)], [1.0], []),
+        (2, [("group", 4242, term), ("pid", 4242, term), *grace, ("group", 4242, kill), ("pid", 4242, kill)],
+         [1.0], []),
+        (2, [("group", 4242, term), ("poll",)], [0.5], []),
+    ]
+    assert stubborn["rounds slept"] > 0
+    assert (invalid["code"], invalid["kill"], invalid["round sleeps"], invalid["invalid lines"]) == (
+        2, [("group", 4242, term), *grace, ("group", 4242, kill)], [], stubborn["rounds slept"])
