@@ -460,5 +460,31 @@ else
   diff <(printf '%s\n' "$expected") <(printf '%s\n' "$closed") | sed 's/^/    closed: /'
 fi
 
+name="#1130 with stdout a pipe whose reader has exited, or closed, asks solvable-issues.sh no further time after the break"
+askedonce="$work/askedonce"
+conductor_stub "$askedonce" <<STUB
+[ "\$(wc -l < "\$LAUNCHES")" -eq 1 ] || exit 0
+if [ -n "\${READER_GONE:-}" ]; then
+  i=0
+  while [ \$i -lt 400 ] && { [ ! -s "\$MARKS.reader" ] || kill -0 "\$(cat "\$MARKS.reader")" 2>/dev/null; }; do i=\$((i + 1)); sleep 0.01; done
+fi
+echo '{"type":"assistant","message":{"role":"assistant","usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":1000,"output_tokens":40}}}'
+STUB
+seed askedbroken 1901 1902
+(cd "$work" && READER_GONE=1 "$askedonce/orchestrate.sh") < /dev/null 2> "$work/err" | sh -c 'echo $$ > "$1"' sh "$MARKS.reader"
+await_gone
+broken="$(cat "$SOLVABLE.calls" 2>/dev/null)"
+seed askedclosed 1903 1904
+(cd "$work" && "$askedonce/orchestrate.sh") < /dev/null >&- 2> "$work/err"
+await_gone
+closed="$(cat "$SOLVABLE.calls" 2>/dev/null)"
+if [[ "$broken" == 1 && "$closed" == 1 ]]; then
+  ok
+else
+  no "$name"
+  echo "    solvable-issues.sh asked with stdout a gone pipe: $broken (expected 1)"
+  echo "    solvable-issues.sh asked with stdout closed: $closed (expected 1)"
+fi
+
 echo
 finish
