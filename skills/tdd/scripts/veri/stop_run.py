@@ -38,6 +38,12 @@ def main_working_tree():
     return first.removeprefix(b"worktree ")
 
 
+def inside_own_scripts():
+    scripts = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    here = os.path.realpath(os.getcwd())
+    return here == scripts or here.startswith(scripts + os.sep)
+
+
 def stop_run(run, mode):
     with open(run + "/.tdd/stop", "w") as stop:
         stop.write(mode + "\n")
@@ -85,6 +91,8 @@ def main(argv):
         return refuse("name an issue, or --all")
     if not every and not re.fullmatch(r"[1-9][0-9]*", issue):
         return refuse(f"<issue> must be a positive integer: '{issue}'")
+    if inside_own_scripts():
+        return refuse("type this from the repository whose runs you mean, not from the skill's own scripts directory")
     main_tree = main_working_tree()
     if not main_tree:
         return refuse("no main working tree here — type this inside the repository")

@@ -310,4 +310,32 @@ check_still_answering "$decoy_sup" "the decoy repository's live supervisor"
 
 report "#1158: a stop-run.sh that resolves its main tree from its own directory, not the suite's scratch repository, writes no .tdd/stop and signals no supervisor outside that repository"
 
+problems=()
+label=""
+rm -f "$run/.tdd/stop"
+
+early="$work/early-decoy"
+new_repo -b main "$early" >/dev/null 2>&1
+early_run="$early/.tdd/wt/5"
+live_conductor "$early_run"
+live_supervisor "$early_run" develop-red
+early_sup="$supervisor_pid"
+early_mutant="$early/skills/tdd/scripts"
+mkdir -p "$early_mutant"
+cp -R "$HERE/../veri" "$early_mutant/veri"
+awk '/^export VERI_CALLER_DIR/ { print "cd \"$(dirname \"$0\")\"" } { print }' "$HERE/../stop-run.sh" > "$early_mutant/stop-run.sh"
+chmod +x "$early_mutant/stop-run.sh"
+
+real_stop="$STOP"
+STOP="$early_mutant/stop-run.sh"
+run_stop --mode now --all
+STOP="$real_stop"
+
+check_no_stop "$early_run"
+check_still_answering "$early_sup" "the early decoy repository's live supervisor"
+[[ "$code" != 0 || "$out" != *"$early"* ]] ||
+  note "want a subject that resolved the early decoy repository to fail the case, it exited 0 naming '$out'"
+
+report "#1158: a stop-run.sh that moves to its own directory before it records where it was called from writes no .tdd/stop and signals no supervisor outside the suite's scratch repository"
+
 finish

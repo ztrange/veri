@@ -5,7 +5,8 @@
 # stop takes effect: `at-ledger` (the default), `at-leaf` or `now`.
 #
 # usage: stop-run.sh [--mode <mode>] <issue> | --all
-# Exits:   0 the stopped runs printed | 2 arguments that name no run, or no mode this script
-#          knows | 3 nothing to do — no live run answered to what was named
+# Exits:   0 the stopped runs printed | 2 arguments that name no run, no mode this script
+#          knows, or typed from the skill's own scripts directory | 3 nothing to do — no live
+#          run answered to what was named
 export VERI_CALLER_DIR="$PWD"
 exec python3 "$(dirname "$0")/veri/stop_run.py" "$@"
