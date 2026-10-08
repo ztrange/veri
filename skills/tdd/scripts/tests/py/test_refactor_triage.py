@@ -42,7 +42,7 @@ def test_main_prints_structural_candidates_exits_3_with_none_left_and_refuses_a_
         b"": (2, b"", b"refactor-triage: the report has no CANDIDATES: line\n"),
         b"CANDIDATES: cosmic | x\n": (
             2, b"",
-            b"refactor-triage: candidate line has no class, or one that is neither structural nor cosmetic: "
+            b"refactor-triage: candidate line has no class, or one that is not structural, cosmetic, test-only or out-of-scope: "
             b"CANDIDATES: cosmic | x\n"),
     }
 
@@ -85,7 +85,7 @@ def test_main_reads_an_out_of_scope_candidate_and_never_prints_it_exiting_3_alon
         b"CANDIDATES: structural | y\nCANDIDATES: out-of-scope | x\n": (0, b"y\n", b""),
         b"CANDIDATES: Out-of-scope | x\n": (
             2, b"",
-            b"refactor-triage: candidate line has no class, or one that is neither structural nor cosmetic: "
+            b"refactor-triage: candidate line has no class, or one that is not structural, cosmetic, test-only or out-of-scope: "
             b"CANDIDATES: Out-of-scope | x\n"),
     }
 
@@ -188,7 +188,7 @@ def test_main_prints_the_transform_after_the_first_bar_keeping_trailing_whitespa
         b"CANDIDATES: none\nCANDIDATES: structural | x\n": (0, b"x\n", b""),
         b"CANDIDATES: structural | x\nCANDIDATES: cosmic | y\r\nCANDIDATES: structural | z\n": (
             2, b"",
-            b"refactor-triage: candidate line has no class, or one that is neither structural nor cosmetic: "
+            b"refactor-triage: candidate line has no class, or one that is not structural, cosmetic, test-only or out-of-scope: "
             b"CANDIDATES: cosmic | y\r\n"),
     }
 
@@ -279,3 +279,17 @@ def test_main_refuses_a_structural_candidate_with_only_whitespace_after_the_bar_
 
     assert (code, out) == (2, b"")
     assert err != b""
+
+
+def test_main_refuses_an_unknown_class_with_a_diagnostic_naming_all_four_accepted_classes_and_ending_with_the_line_1035(
+        monkeypatch, capsysbinary, refactor_triage):
+    line = b"CANDIDATES: cosmic | x"
+    fake_stdin(monkeypatch, line + b"\n")
+    code = refactor_triage.main([])
+    out, err = capsysbinary.readouterr()
+
+    assert (code, out) == (2, b"")
+    assert err.startswith(b"refactor-triage: ")
+    assert err.endswith(b": " + line + b"\n")
+    named = err[:-len(line + b"\n")]
+    assert [cls for cls in (b"structural", b"cosmetic", b"test-only", b"out-of-scope") if cls not in named] == []
