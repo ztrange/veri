@@ -37,14 +37,14 @@ def main(argv):
             structural.append(transform.group(1))
             continue
         classed = False
-        for cls, pattern in ((b"cosmetic", COSMETIC), (b"test-only", TEST_ONLY)):
+        for cls, pattern in ((b"cosmetic", COSMETIC), (b"test-only", TEST_ONLY),
+                             (b"out-of-scope", OUT_OF_SCOPE)):
             other = pattern.match(line)
             if other:
                 if not other.group(1):
                     return _refuse(cls + b" candidate line names no transform: " + line)
                 classed = True
-        if not (classed or OUT_OF_SCOPE.match(line)
-                or NONE.match(found.group(1))):
+        if not (classed or NONE.match(found.group(1))):
             return _refuse(b"candidate line has no class, or one that is not structural, cosmetic, test-only or out-of-scope: " + line)
     if not candidates_seen:
         return _refuse(b"the report has no CANDIDATES: line")
