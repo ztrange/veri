@@ -1036,6 +1036,50 @@ def test_main_returns_2_with_no_traceback_when_the_update_ref_restoring_head_fai
     assert ("update-ref" in verbs, code, b"Traceback" in captured.err) == (True, 2, False)
 
 
+def test_main_returns_2_not_1_when_the_update_ref_restoring_head_exits_1_1183(
+        tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
+                 "VERI_ISSUE", "VERI_STEP"):
+        monkeypatch.delenv(name, raising=False)
+    trees = [b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
+    heads = [b"1" * 40 + b"\n", b"2" * 40 + b"\n"]
+    verbs = []
+
+    def fake(args, *_, **__):
+        words = [str(a) for a in args]
+        if os.path.basename(words[0]) == "env":
+            words = [w for w in words[1:] if "=" not in w]
+        name = os.path.basename(words[0])
+        if name == "git":
+            verb = words[1]
+            verbs.append(verb)
+            if verb == "write-tree":
+                return subprocess.CompletedProcess(args, 0, trees[verbs.count("write-tree") - 1], b"")
+            if verb == "rev-parse":
+                return subprocess.CompletedProcess(args, 0, heads[verbs.count("rev-parse") - 1], b"")
+            if verb == "diff-tree":
+                return subprocess.CompletedProcess(args, 0, b"src.txt\n", b"")
+            if verb == "update-ref":
+                return subprocess.CompletedProcess(args, 1, None, None)
+            return subprocess.CompletedProcess(args, 0, b"", b"")
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine\n", None)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    captured = capfdbinary.readouterr()
+    assert ("update-ref" in verbs, code) == (True, 2)
+
+
 @pytest.mark.parametrize("before, after", [(b"[user]\n\tname = op\n", b"[user]\n\tname = leaf\n"),
                                            (None, b"[user]\n\tname = leaf\n"),
                                            (b"[user]\n\tname = op\n", None)])
