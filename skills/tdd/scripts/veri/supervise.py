@@ -41,11 +41,33 @@ def git_answer(*args):
 
 
 def now():
-    return captured("date", "+%s").stdout.strip()
+    return captured("date", "+%s").stdout.rstrip("\n")
 
 
 def mtime_of(path):
-    return captured("stat", "-c", "%Y", path).stdout.strip()
+    m = ""
+    for spelling in (("-c", "%Y"), ("-f", "%m")):
+        done = captured("stat", *spelling, path)
+        if done.returncode == 0:
+            m = done.stdout.rstrip("\n")
+            break
+    if not re.fullmatch(r"[0-9]+", m):
+        m = now()
+    return m
+
+
+class Unbound(Exception):
+    pass
+
+
+def arithmetic(value):
+    if re.fullmatch(r"0[0-7]*", value):
+        return int(value, 8)
+    if re.fullmatch(r"[1-9][0-9]*", value):
+        return int(value, 10)
+    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", value):
+        raise Unbound(f"supervise: {value}: unbound variable")
+    raise ValueError(f"supervise: {value}: arithmetic syntax error")
 
 
 def mark(role, *fields):
@@ -74,7 +96,7 @@ def main(argv):
     kill_poll = os.environ.get("VERI_KILL_POLL") or "0.1"
     if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", kill_poll):
         return refuse(f"supervise: VERI_KILL_POLL must be a non-negative number: {kill_poll}")
-    heartbeat = int(os.environ.get("VERI_HEARTBEAT") or "180")
+    heartbeat = os.environ.get("VERI_HEARTBEAT") or "180"
     poll = float(os.environ.get("VERI_POLL") or "1")
     name = argv[0]
     os.makedirs(".tdd", exist_ok=True)
@@ -116,7 +138,15 @@ def main(argv):
             if m != last_m:
                 last_m, seen_at = m, t
             silence = t - seen_at
-            if silence > heartbeat:
+            try:
+                silent = silence > arithmetic(heartbeat)
+            except Unbound as unbound:
+                print(unbound, file=sys.stderr)
+                return 1
+            except ValueError as error:
+                print(error, file=sys.stderr)
+                silent = False
+            if silent:
                 status, reason = "killed-stuck", f"no heartbeat for {silence}s (window {heartbeat}s)"
                 os.killpg(leaf.pid, signal.SIGTERM)
                 break
