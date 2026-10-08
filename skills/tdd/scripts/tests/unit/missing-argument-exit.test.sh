@@ -133,7 +133,6 @@ migration_slice() {  # migration_slice <n> <script> … — the slice's case, ov
   verdict "$name" "${offenders[@]}"
 }
 
-migration_slice 3 event.sh
 
 name="no script guards a required positional argument with a bare \${N:?…} expansion"
 mapfile -t offenders < <(bare_expansion_offenders "$SCRIPTS")
