@@ -813,3 +813,48 @@ def test_main_outside_a_repository_without_git_or_with_a_failing_add_takes_no_sn
     assert (code, captured.out) == (1, b"bad\n")
     assert [v for v in verbs if v in ("write-tree", "diff-tree", "read-tree", "update-ref")] == []
     assert ("preserve-attempt.sh" in names, names.count("event.sh")) == (False, 1)
+
+
+def test_main_in_a_repository_with_no_commit_reports_a_leaf_that_commits_as_head_and_makes_no_update_ref_call(
+        tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
+                 "VERI_ISSUE", "VERI_STEP"):
+        monkeypatch.delenv(name, raising=False)
+    heads = [subprocess.CompletedProcess([], 128, b"", b"fatal: Needed a single revision\n"),
+             subprocess.CompletedProcess([], 0, b"2" * 40 + b"\n", b"")]
+    reads = []
+    updated = []
+
+    def fake(args, *_, **__):
+        words = [str(a) for a in args]
+        if os.path.basename(words[0]) == "env":
+            words = [w for w in words[1:] if "=" not in w]
+        name = os.path.basename(words[0])
+        if name == "git":
+            verb = words[1]
+            if verb == "update-ref":
+                updated.append(words[1:])
+            if verb == "write-tree":
+                return subprocess.CompletedProcess(args, 0, b"a" * 40 + b"\n", b"")
+            if verb == "rev-parse":
+                reads.append(verb)
+                return heads[min(len(reads), 2) - 1]
+            return subprocess.CompletedProcess(args, 0, b"", b"")
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine\n", None)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    captured = capfdbinary.readouterr()
+    assert (code, captured.out, updated) == (
+        2, "verifier leaf modified the repository — verdict not accepted"
+           " (see .tdd/verify-green.log); changed:\nHEAD\n".encode(), [])
