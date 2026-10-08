@@ -166,3 +166,71 @@ def test_main_appends_the_whole_line_in_one_os_write_on_an_o_append_descriptor_r
     with pytest.raises(OSError):
         event.main(["four"])
     assert os.listdir(shadowed / ".tdd" / "events.jsonl") == []
+
+
+def test_main_runs_veri_awake_clock_as_one_argv_word_on_path_writing_its_stdout_raw_and_maps_its_status_after_creating_tdd(
+        monkeypatch, tmp_path, capfd, event):
+    monkeypatch.setattr("time.time", lambda: 1700000000.9)
+    monkeypatch.setattr("time.clock_gettime", lambda clock: 4242.7)
+    for name in CONTEXT:
+        monkeypatch.delenv(name, raising=False)
+
+    bin_dir, spaced = tmp_path / "bin", tmp_path / "a b"
+    bin_dir.mkdir()
+    spaced.mkdir()
+    (tmp_path / "notexec").mkdir()
+    log = tmp_path / "starts"
+    clocks = {
+        bin_dir / "myclock": '#!/bin/sh\nread line\necho "$line" >> "$LOG"\necho clock-err >&2\nprintf \'abc\\n\\n\'\n',
+        spaced / "empty": '#!/bin/sh\necho start >> "$LOG"\n',
+        bin_dir / "noshebang": "printf '9\\n'\n",
+        bin_dir / "fails": "#!/bin/sh\necho 5\nexit 1\n",
+        bin_dir / "nothing": "#!/bin/sh\necho 5\nexit 3\n",
+        bin_dir / "outofrange": "#!/bin/sh\necho 5\nexit 4\n",
+        bin_dir / "killed": "#!/bin/sh\necho 5\nkill -TERM $$\n",
+    }
+    for path, text in clocks.items():
+        path.write_text(text)
+        path.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{bin_dir}:{os.environ['PATH']}")
+    monkeypatch.setenv("LOG", str(log))
+
+    stdin = tmp_path / "stdin"
+    stdin.write_bytes(b"fed\n")
+    saved = os.dup(0)
+    results = []
+    try:
+        for clock in ("myclock", str(spaced / "empty"), "noshebang", "fails", "nothing", "outofrange", "killed", "nosuchclock",
+                      str(tmp_path / "notexec")):
+            work = tmp_path / ("work-" + pathlib.Path(clock).name)
+            work.mkdir()
+            (work / "noshebang").write_text("printf '7\\n'\n")
+            monkeypatch.chdir(work)
+            monkeypatch.setenv("VERI_AWAKE_CLOCK", clock)
+            log.write_bytes(b"")
+            with open(stdin, "rb") as feed:
+                os.dup2(feed.fileno(), 0)
+            code = event.main(["mark"])
+            out, err = capfd.readouterr()
+            logged = (work / ".tdd" / "events.jsonl").read_bytes() if (work / ".tdd" / "events.jsonl").exists() else None
+            results.append((pathlib.Path(clock).name, code, logged, sorted(os.listdir(work / ".tdd")),
+                            log.read_bytes(), out, "clock-err" in err))
+    finally:
+        os.dup2(saved, 0)
+        os.close(saved)
+
+    def line(awake):
+        return (b'{"ts": 1700000000, "awake": ' + awake + b', "issue": "", "actor": "", "phase": "",'
+                b' "step": "", "event": "mark", "attempt": "", "skill_commit": ""}\n')
+
+    assert results == [
+        ("myclock", 0, line(b"abc"), ["events.jsonl"], b"fed\n", "", True),
+        ("empty", 0, line(b""), ["events.jsonl"], b"start\n", "", False),
+        ("noshebang", 0, line(b"9"), ["events.jsonl"], b"", "", False),
+        ("fails", 1, None, [], b"", "", False),
+        ("nothing", 3, None, [], b"", "", False),
+        ("outofrange", 2, None, [], b"", "", False),
+        ("killed", 2, None, [], b"", "", False),
+        ("nosuchclock", 2, None, [], b"", "", False),
+        ("notexec", 2, None, [], b"", "", False),
+    ]
