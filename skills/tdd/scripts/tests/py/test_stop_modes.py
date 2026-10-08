@@ -1,16 +1,9 @@
 """In-process cases for veri/stop_modes.py, the mode list stop-requested.sh and stop-run.sh share."""
 import importlib
 import os
-import pathlib
 import subprocess
-import sys
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
 
 
 @pytest.fixture

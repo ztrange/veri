@@ -1,12 +1,8 @@
 """In-process cases for veri/session_env.py, the strip run-leaf.sh's module launches its leaf through."""
 import importlib
-import pathlib
 import re
-import sys
 
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-if str(SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS))
+from conftest import SCRIPTS
 
 
 def test_session_vars_equal_the_libs_list_and_the_strip_removes_them_and_only_with_an_id_every_value_carrying_it():

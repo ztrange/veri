@@ -1,16 +1,9 @@
 """In-process cases for veri/stop_run.py, the module stop-run.sh is a shim over."""
 import importlib
 import os
-import pathlib
 import subprocess
-import sys
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
 
 USAGE = b"usage: stop-run.sh [--mode at-ledger|at-leaf|now] <issue> | --all\n"
 

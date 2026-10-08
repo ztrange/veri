@@ -1,14 +1,9 @@
 """In-process cases for veri/parse_verdict.py, the module parse-verdict.sh is a shim over."""
 import importlib
 import io
-import pathlib
 import sys
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-if str(SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS))
 
 
 @pytest.fixture

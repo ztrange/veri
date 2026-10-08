@@ -1,17 +1,12 @@
 """In-process cases for veri/timed_test_run.py, the module timed-test-run.sh is a shim over."""
 import importlib
 import os
-import pathlib
 import re
 import subprocess
-import sys
 
 import pytest
 
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
+from conftest import SCRIPTS
 
 USAGE = "usage: timed-test-run.sh <tier> <suites> <cmd> [args …]\n"
 

@@ -2,16 +2,10 @@
 import importlib
 import io
 import os
-import pathlib
 import subprocess
 import sys
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
 
 USAGE = "usage: structural-predicate.sh <record>\n"
 
