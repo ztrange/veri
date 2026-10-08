@@ -640,3 +640,145 @@ def test_main_with_veri_heartbeat_unset_kills_a_silent_leaf_at_181s_of_silence_n
         [180, 180], 2, [0], [(1181, "group", 4242, signal.SIGTERM)],
         ["supervise[develop-red]: killed-stuck — no heartbeat for 181s (window 180s)".encode()],
         b"2\n")
+
+
+def test_main_reads_the_wall_clock_through_date_and_a_logs_mtime_through_stat_c_then_stat_f_falling_back_to_date_and_takes_veri_heartbeat_as_bash_arithmetic(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+
+    def watch(name, heartbeat, stat, step, rc_after=None):
+        work = tmp_path / f"w{len(list(tmp_path.iterdir()))}"
+        work.mkdir()
+        monkeypatch.chdir(work)
+        env = {"VERI_TIMEOUT": "100000", "VERI_STUCK_RETRIES": "0"}
+        if heartbeat is not None:
+            env["VERI_HEARTBEAT"] = heartbeat
+        clean_env(monkeypatch, **env)
+        clock = {"wall": 1000, "sleeps": 0}
+        calls, kills = [], []
+
+        class Leaf:
+            pid = 4242
+            returncode = None
+            args = []
+
+            def poll(self):
+                return self.returncode
+
+            def wait(self, timeout=None):
+                return self.returncode
+
+        leaf = Leaf()
+
+        def sleep(_):
+            clock["sleeps"] += 1
+            if clock["sleeps"] > 2000:
+                raise Runaway()
+            clock["wall"] += step
+            if clock["sleeps"] == rc_after:
+                (work / ".tdd" / f"{name}.rc").write_text("0\n")
+                leaf.returncode = 0
+
+        monkeypatch.setattr(time, "sleep", sleep)
+        monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
+
+        def killpg(pgid, sig):
+            kills.append((clock["wall"], "group", pgid, sig))
+            if pgid == leaf.pid and sig:
+                leaf.returncode = -sig
+
+        def kill(pid, sig):
+            if pid < 0:
+                return killpg(-pid, sig)
+            kills.append((clock["wall"], "pid", pid, sig))
+            if pid == leaf.pid and sig:
+                leaf.returncode = -sig
+
+        monkeypatch.setattr(os, "killpg", killpg)
+        monkeypatch.setattr(os, "kill", kill)
+
+        def answer(args):
+            args = [str(a) for a in args]
+            if args[:1] == ["git"]:
+                return 0, "0123456789abcdef0123456789abcdef01234567\n"
+            if args[:1] == ["date"]:
+                calls.append(" ".join(args))
+                return 0, f"{clock['wall']}\n"
+            if args[:1] == ["stat"]:
+                calls.append(" ".join(args))
+                return stat(args[1], clock["wall"])
+            return 0, ""
+
+        def run(args, *_, **kwargs):
+            code, out = answer(args)
+            out = as_asked(out, kwargs)
+            if code and kwargs.get("check"):
+                raise subprocess.CalledProcessError(code, args, out)
+            return subprocess.CompletedProcess(args, code, out, "" if isinstance(out, str) else b"")
+
+        def check_output(args, *_, **kwargs):
+            code, out = answer(args)
+            if code:
+                raise subprocess.CalledProcessError(code, args)
+            return as_asked(out, kwargs)
+
+        def popen(args, *_, **kwargs):
+            if list(args[:2]) == ["/bin/sh", "-c"]:
+                return leaf
+            raise AssertionError(f"unexpected Popen: {args}")
+
+        monkeypatch.setattr(subprocess, "run", run)
+        monkeypatch.setattr(subprocess, "check_output", check_output)
+        monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, *a, **k).returncode)
+        monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: run(args, *a, check=True, **k).returncode)
+        monkeypatch.setattr(subprocess, "Popen", popen)
+
+        try:
+            code = supervise.main([name, "leaf-hang"])
+        except Runaway:
+            code = "<never ended>"
+        except Exception as e:
+            code = f"<raised {type(e).__name__}>"
+        _, err = capsysbinary.readouterr()
+        exitfile = work / ".tdd" / f"{name}.exit"
+        return {"code": code, "calls": calls, "kills": kills[:1], "sleeps": clock["sleeps"],
+                "status": [l.decode() for l in err.splitlines() if l.startswith(b"supervise[")][-1:],
+                "err": err.splitlines(),
+                "exit": exitfile.read_bytes() if exitfile.exists() else None}
+
+    log = ".tdd/develop-red.log"
+    date, gnu, bsd = "date +%s", f"stat -c %Y {log}", f"stat -f %m {log}"
+    fails = (1, "")
+    term = signal.SIGTERM
+
+    spelled = [
+        watch("develop-red", None, lambda s, w: fails if s == "-c" else (0, "1000\n"), 1, rc_after=1)["calls"],
+        watch("develop-red", None, lambda s, w: (0, "1000\n") if s == "-c" else fails, 1, rc_after=1)["calls"],
+        watch("develop-red", None, lambda s, w: (0, "abc\n") if s == "-c" else (0, "1000\n"), 1, rc_after=1)["calls"],
+        watch("develop-red", None, lambda s, w: fails, 1, rc_after=1)["calls"],
+    ]
+    assert spelled == [[date, gnu, bsd] * 2, [date, gnu] * 2, [date, gnu, date] * 2, [date, gnu, bsd, date] * 2]
+
+    missing = watch("develop-red", "5", lambda s, w: fails, 10, rc_after=4)
+    changed = watch("develop-red", "5", lambda s, w: (0, f"{min(w, 1020)}\n") if s == "-c" else fails, 1)
+    verdict = watch("verdict-red", "5", lambda s, w: (0, "1000\n") if s == "-c" else fails, 10, rc_after=3)
+    octal = watch("develop-red", "010", lambda s, w: (0, "1000\n") if s == "-c" else fails, 1)
+    assert [(r["code"], r["kills"], r["status"]) for r in (missing, changed, verdict, octal)] + [
+        [c for c in verdict["calls"] if c.startswith("stat")]] == [
+        (0, [], ["supervise[develop-red]: success"]),
+        (2, [(1026, "group", 4242, term)], ["supervise[develop-red]: killed-stuck — no heartbeat for 6s (window 5s)"]),
+        (0, [], ["supervise[verdict-red]: success"]),
+        (2, [(1009, "group", 4242, term)], ["supervise[develop-red]: killed-stuck — no heartbeat for 9s (window 010s)"]),
+        []]
+
+    broken = {value: watch("develop-red", value, lambda s, w: (0, "1000\n") if s == "-c" else fails, 100, rc_after=3)
+              for value in ("08", "1.5")}
+    assert {value: (r["code"], r["kills"], r["status"], len([l for l in r["err"] if value.encode() in l]))
+            for value, r in broken.items()} == {
+        "08": (0, [], ["supervise[develop-red]: success"], 3),
+        "1.5": (0, [], ["supervise[develop-red]: success"], 3)}
+
+    word = watch("develop-red", "abc", lambda s, w: (0, "1000\n") if s == "-c" else fails, 100)
+    assert (word["code"], word["sleeps"], word["kills"], word["exit"]) == (1, 0, [], None)
