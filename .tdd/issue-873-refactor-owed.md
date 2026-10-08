@@ -1,0 +1,2 @@
+### Under a leaf launched by run-leaf.sh, a Python module mutated and reverted at the same whole-second mtime and the same byte size is re-read from source on its next import: the reverted module answers as it did before the mutation ⟦criterion 1⟧
+- test-only | in skills/tdd/scripts/tests/run-leaf.test.sh, the new case's three `[[ "$(cat "$pyc/<f>" 2>&1)" == N ]] || problems+=(…)` checks repeat the same read-and-compare; a local helper taking the file, the expected answer and the message would remove the duplication
