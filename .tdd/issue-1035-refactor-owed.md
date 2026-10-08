@@ -7,3 +7,5 @@
 - test-only | fold the repeated "run refactor-overflow with FAKE_TITLE/FAKE_BODY, assert exit 0 and the filed title" block shared by the #992, #1058 and #1035 cases in refactor-overflow.test.sh into one helper beside overflow_case
 ### refactor-triage refuses an empty cosmetic candidate line with exit 2 and stderr naming the line ⟦criterion 6⟧
 - fold the parallel empty-transform refusals for structural and cosmetic into one per-class check in refactor_triage.main, once the test-only and out-of-scope cases this criterion still owes demand it
+### refactor-triage refuses an empty test-only candidate line with exit 2 and stderr naming the line ⟦criterion 6⟧
+- test-only | the per-class empty-candidate refusal cases in test_refactor_triage.py (structural, cosmetic, test-only) are near-identical and could be one parametrized test over the class name
