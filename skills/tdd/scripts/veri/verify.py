@@ -42,7 +42,7 @@ def start(args, **kwargs):
 
 
 def mark(role, *words):
-    return subprocess.run([sibling("event.sh"), *words], env=role).returncode
+    return start([sibling("event.sh"), *words], env=role).returncode
 
 
 def preserve(issue, step, leaf, attempt, outcome):
