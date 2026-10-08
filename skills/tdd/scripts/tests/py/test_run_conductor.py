@@ -729,9 +729,10 @@ def test_main_launches_exactly_one_claude_with_the_fixed_print_mode_argv_and_no_
     monkeypatch.chdir(cwd)
     launches = fake_claude_launch(monkeypatch)
 
-    run_conductor.main(["4242"])
+    code = run_conductor.main(["4242"])
 
     capfdbinary.readouterr()
+    assert code == 0
     observed = [dict(launch, stdin=b"# the procedure, read from SKILL.md" in launch.get("stdin", b""))
                 for launch in launches]
     assert observed == [{"argv": [program, "-p", "--output-format", "stream-json", "--verbose",
@@ -808,9 +809,10 @@ def test_main_hands_claude_the_snapshots_committed_skill_md_never_the_skill_clon
     monkeypatch.setattr(subprocess, "Popen", tar_extracts_the_committed_skill_md)
     monkeypatch.setattr(subprocess, "run", claude_reads_stdin)
 
-    run_conductor.main(["4242"])
+    code = run_conductor.main(["4242"])
 
     capfdbinary.readouterr()
+    assert code == 0
     assert [(stdin.startswith(b"# the committed procedure"), b"uncommitted edit" in stdin) for stdin in stdins] == [
         (True, False)]
 
@@ -836,7 +838,7 @@ def test_main_hands_claude_skill_md_stripped_of_trailing_newlines_then_the_base_
     unpinned.mkdir()
     monkeypatch.chdir(unpinned)
     launches = fake_claude_launch(monkeypatch)
-    run_conductor.main(["abc", "extra", "more"])
+    codes = [run_conductor.main(["abc", "extra", "more"])]
     capfdbinary.readouterr()
     answers["unpinned"] = ([launch["stdin"] for launch in launches],
                            sorted(str(p.relative_to(unpinned)) for p in unpinned.rglob("*")))
@@ -863,11 +865,11 @@ def test_main_hands_claude_skill_md_stripped_of_trailing_newlines_then_the_base_
 
     monkeypatch.setattr(subprocess, "Popen", tar_extracts_a_skill_md_with_trailing_newlines)
     monkeypatch.setattr(subprocess, "run", claude_reads_stdin)
-    run_conductor.main(["abc", "extra"])
+    codes.append(run_conductor.main(["abc", "extra"]))
     capfdbinary.readouterr()
     answers["pinned"] = (stdins, (pinned / ".tdd" / "issue-abc-skill-commit").read_text())
 
-    assert len(snapshots) == 1
+    assert (len(snapshots), codes) == (1, [0, 0])
     assert answers == {
         "unpinned": ([("# the procedure\n\nlast line"
                        "\n\nBase directory for this skill: %s\n"
@@ -903,9 +905,10 @@ def test_main_strips_claudes_environment_through_veri_session_env_so_a_name_adde
 
     monkeypatch.setattr(subprocess, "run", claude_records_its_environment)
 
-    run_conductor.main(["4242"])
+    code = run_conductor.main(["4242"])
 
     capfdbinary.readouterr()
+    assert code == 0
     assert [("VERI_PLANTED_621" in env, env.get("VERI_KEPT_621")) for env in environments] == [(False, "kept")]
 
 
@@ -947,20 +950,20 @@ def test_main_runs_event_sh_before_the_session_strip_then_hands_claude_no_veri_n
             return run(args, *a, **kwargs)
 
         monkeypatch.setattr(subprocess, "run", records_each_environment)
-        run_conductor.main(["4242"])
+        code = run_conductor.main(["4242"])
         capfdbinary.readouterr()
-        answers[name] = started
+        answers[name] = (code, started)
     assert answers == {
-        "pinned": [
+        "pinned": (0, [
             ("event.sh", {"VERI_NEW_SKILL": "1", "CLAUDE_CODE_SESSION_ID": "sess-1077", "VERI_KEPT": "kept",
                           "VERI_SKILL_COMMIT": None, "VERI_SKILL_UNPINNED": "ambient"}),
             ("fake-claude", {"VERI_NEW_SKILL": None, "CLAUDE_CODE_SESSION_ID": None, "VERI_KEPT": "kept",
                              "VERI_SKILL_COMMIT": commit, "VERI_SKILL_UNPINNED": "ambient"}),
-        ],
-        "unpinned": [
+        ]),
+        "unpinned": (0, [
             ("fake-claude", {"VERI_NEW_SKILL": None, "CLAUDE_CODE_SESSION_ID": None, "VERI_KEPT": "kept",
                              "VERI_SKILL_COMMIT": "ambient", "VERI_SKILL_UNPINNED": "1"}),
-        ],
+        ]),
     }
 
 
