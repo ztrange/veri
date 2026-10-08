@@ -1,10 +1,13 @@
 """run-conductor.sh's launch of one conductor, run in-process."""
+# hazard: runs on the python3 it may refuse, so nothing here may need more than Python 3.9.
 import os
 import shutil
 import signal
 import subprocess
 import sys
 import tempfile
+
+sys.dont_write_bytecode = True
 
 import launch_floor
 from git import symref_default
@@ -117,7 +120,9 @@ def launch(base, issue, commit, **exports):
     env.pop("VERI_NEW_SKILL", None)
     binary = os.environ.get("CLAUDE_BIN") or "claude"
     unread = []
+    terminated = []
     previous = signal.signal(signal.SIGPIPE, lambda *_: unread.append(True))
+    previous_term = signal.signal(signal.SIGTERM, lambda *_: terminated.append(True))
     try:
         code = subprocess.run([binary, "-p", "--output-format", "stream-json",
                                "--verbose", "--permission-mode", "bypassPermissions"],
@@ -127,6 +132,9 @@ def launch(base, issue, commit, **exports):
         code = 127
     finally:
         signal.signal(signal.SIGPIPE, previous)
+        signal.signal(signal.SIGTERM, previous_term)
+    if terminated:
+        return 128 + signal.SIGTERM
     if not past_preflight(issue):
         try:
             os.remove(record_path(issue))
