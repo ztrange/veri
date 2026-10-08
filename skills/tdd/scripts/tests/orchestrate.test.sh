@@ -399,6 +399,42 @@ expected='xfsz 153'
 actual="$(cat "$MARKS")"
 expect_exit0_output
 
+name="#1126 with SIGPIPE and SIGXFSZ at their defaults, a conductor still leads a new session whose pid orchestrate SIGTERMs, stdin /dev/null, stderr orchestrate's, SIGINT and SIGQUIT ignored"
+stillsession="$work/stillsession"
+mkdir -p "$stillsession"
+cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$stillsession/"
+cp -R "$scripts/lib" "$scripts/veri" "$stillsession/"
+cat > "$stillsession/run-conductor.sh" <<'STUB'
+#!/usr/bin/env bash
+echo $$ >> "$MARKS.pid"
+trap -p INT QUIT >> "$MARKS"
+python3 -c 'import os, sys
+pid, outer = int(sys.argv[1]), int(sys.argv[2])
+print("new session led by its pid" if os.getsid(0) == pid != outer else "session %d, pid %d, outer %d" % (os.getsid(0), pid, outer))
+print("stdin /dev/null" if os.path.samestat(os.fstat(0), os.stat("/dev/null")) else "stdin not /dev/null")' $$ "$OUTER_SID" >> "$MARKS"
+echo "conductor $1 on stderr" >&2
+echo "$1" >> "$LAUNCHES"
+grep -vx -- "$1" "$SOLVABLE" > "$SOLVABLE.next"
+mv "$SOLVABLE.next" "$SOLVABLE"
+trap 'echo "TERM to $$" >> "$MARKS"; exit 0' TERM
+exec > /dev/null
+i=0
+while [ $i -lt 400 ]; do sleep 0.01; i=$((i + 1)); done
+echo "never stopped" >> "$MARKS"
+STUB
+chmod +x "$stillsession"/*.sh
+seed stillsession 1353
+echo "orchestrate's own stdin" > "$stillsession/stdin"
+(cd "$work" && OUTER_SID="$(python3 -c 'import os; print(os.getsid(0))')" "$stillsession/orchestrate.sh") \
+  < "$stillsession/stdin" > "$work/out" 2> "$work/err"
+rc=$?
+await_gone
+pid="$(cat "$MARKS.pid" 2>/dev/null)"
+expected="$(printf '%s\n' "trap -- '' SIGINT" "trap -- '' SIGQUIT" 'new session led by its pid' 'stdin /dev/null' \
+  "TERM to $pid" 'conductor 1353 on stderr')"
+actual="$(cat "$MARKS" "$work/err")"
+expect_exit0_output
+
 name="run through a symlink to its scripts directory from another working directory, launches that directory's run-conductor.sh, asks its solvable-issues.sh and reads .tdd/parked/ in the working directory"
 realskill="$work/realskill"
 mkdir -p "$realskill/.tdd/parked" "$work/elsewhere/.tdd/parked"
