@@ -566,3 +566,38 @@ def test_main_puts_a_seeded_log_back_when_it_refuses_for_the_origin_default_the_
         seeded.unlink()
         seeded.parent.rmdir()
         pathlib.Path(path).rmdir()
+
+
+def test_main_answers_each_ls_remote_shape_with_its_stdout_stderr_and_exit_code_when_origin_head_is_unset(
+        monkeypatch, capsys, issue_worktree):
+    main_tree = "/srv/repo"
+    path = f"{main_tree}/.tdd/wt/7"
+    registry = "worktree %s\nHEAD 1111111111111111111111111111111111111111\nbranch refs/heads/main\n\n" % main_tree
+    sha = "2222222222222222222222222222222222222222"
+    base = {
+        ("git", "worktree", "list", "--porcelain"): (0, registry, ""),
+        ("git", "show-ref", "--verify", "--quiet", "refs/heads/tdd/7-slug"): (1, "", ""),
+        ("git", "show-ref", "--verify", "--quiet", "refs/remotes/origin/tdd/7-slug"): (1, "", ""),
+        ("git", "symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"): (
+            1, "", "fatal: ref refs/remotes/origin/HEAD is not a symbolic ref\n"),
+        ("git", "remote", "get-url", "origin"): (0, "https://example.invalid/repo.git\n", ""),
+        ("git", "fetch", "-q", "origin", "trunk"): (0, "", ""),
+        ("git", "worktree", "add", "-q", "--no-track", "-b", "tdd/7-slug", path, "origin/trunk"): (0, "", ""),
+    }
+    ls_remote = ("git", "ls-remote", "--symref", "origin", "HEAD")
+
+    def run(answer):
+        routing_git(monkeypatch, {**base, ls_remote: answer})
+        code = issue_worktree.main(["7", "slug"])
+        out, err = capsys.readouterr()
+        return code, out, err
+
+    symref = run((0, "ref: refs/heads/trunk\tHEAD\n%s\tHEAD\n" % sha, ""))
+    no_symref = run((0, "%s\tHEAD\n" % sha, ""))
+    unreachable = run((128, "", "fatal: unable to access 'https://example.invalid/repo.git/': Could not resolve host\n"))
+
+    refusal = ("issue-worktree: cannot determine origin's default branch"
+               " (no refs/remotes/origin/HEAD, and the remote did not name one)\n")
+    assert symref == (0, path + "\n", "")
+    assert no_symref == (2, "", refusal)
+    assert unreachable == (2, "", refusal)
