@@ -1,7 +1,10 @@
 """verify.sh's logic, run in-process."""
+import io
 import os
 import subprocess
 import sys
+
+import parse_verdict
 
 from leaf_role import _write
 from run_verdict import SCRIPTS, takes_a_value
@@ -47,7 +50,21 @@ def main(argv):
     os.makedirs(".tdd", exist_ok=True)
     with open(prompt_path, "wb") as prompt:
         prompt.write(built.stdout.rstrip(b"\n"))
-    subprocess.run(
+    launched = subprocess.run(
         [sibling("supervise.sh"), "verify-%s" % phase,
-         sibling("run-leaf.sh"), prompt_path, *LEAF_ARGS])
-    return 0
+         sibling("run-leaf.sh"), prompt_path, *LEAF_ARGS],
+        stdout=subprocess.PIPE)
+    code, reason = parse(launched.stdout)
+    _write(sys.stdout, reason)
+    return to_contract(code)
+
+
+def parse(out):
+    stdin, stdout = sys.stdin, sys.stdout
+    sys.stdin = io.StringIO(out.decode("utf-8", "surrogateescape"))
+    sys.stdout = io.StringIO()
+    try:
+        code = parse_verdict.main([])
+        return code, sys.stdout.getvalue().rstrip("\n")
+    finally:
+        sys.stdin, sys.stdout = stdin, stdout
