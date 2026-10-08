@@ -64,6 +64,7 @@ def main(argv):
         model = env.get("VERI_LEAF_MODEL", "")
         strip_session_env(env)
         env["GIT_CONFIG_GLOBAL"] = git_path
+        env["PYTHONDONTWRITEBYTECODE"] = "1"
         if env.get("VERI_SHIM_SET_COERCE") == "1":
             del env["VERI_SHIM_SET_COERCE"]
             env.pop("PYTHONCOERCECLOCALE", None)

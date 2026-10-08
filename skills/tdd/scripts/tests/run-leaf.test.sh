@@ -250,4 +250,29 @@ cmp -s "$dispositions/want-ignored" "$dispositions/SIG_IGN" \
   || problems+=("with the caller's SIGPIPE and SIGXFSZ ignored, claude had: '$(cat "$dispositions/SIG_IGN" 2>&1)'")
 report "hands claude SIGPIPE and SIGXFSZ as its caller had them: at their default when the caller left them default, ignored when the caller ignored them"
 
+problems=()
+pyc="$(scratch_dir)"
+printf 'ANSWER = 1\n' > "$pyc/mod.py"
+touch -t 202301010000.00 "$pyc/mod.py"
+claude_stub "$pyc" "$(cat <<'STUB'
+cd "$MOD_DIR" || exit 2
+same_second='import os, sys; open("mod.py", "w").write(sys.argv[1]); os.utime("mod.py", (1700000100, 1700000100))'
+python3 -c 'import mod; print(mod.ANSWER)' > before
+python3 -c "$same_second" 'ANSWER = 2
+'
+python3 -c 'import mod; print(mod.ANSWER)' > mutated
+python3 -c "$same_second" 'ANSWER = 1
+'
+python3 -c 'import mod; print(mod.ANSWER)' > after
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+STUB
+)"
+( cd "$work" && env -u PYTHONDONTWRITEBYTECODE -u PYTHONPYCACHEPREFIX CLAUDE_BIN="$pyc/claude" \
+    MOD_DIR="$pyc" "$LEAF" "$work/prompt.txt" > /dev/null 2>&1 )
+[[ "$(cat "$pyc/before" 2>&1)" == 1 ]] || problems+=("before the mutation the module answered '$(cat "$pyc/before" 2>&1)', wanted 1")
+[[ "$(cat "$pyc/mutated" 2>&1)" == 2 ]] || problems+=("the mutated module answered '$(cat "$pyc/mutated" 2>&1)', wanted 2")
+[[ "$(cat "$pyc/after" 2>&1)" == 1 ]] \
+  || problems+=("the module reverted in the mutation's second at its size answered '$(cat "$pyc/after" 2>&1)' on its next import, wanted 1 as before the mutation")
+report "under a leaf, a Python module mutated and reverted at the same whole-second mtime and size is re-read from source on its next import (#873)"
+
 finish
