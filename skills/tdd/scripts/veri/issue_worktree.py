@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 
+from git import git
 from pid_file import live_conductor
 
 USAGE = "usage: issue-worktree.sh <n> <slug> | --remove <n>"
@@ -40,16 +41,14 @@ def has_origin():
                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
 
 
-def quiet_git(*args):
-    return subprocess.run(["git", *args], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-
-
 def default_branch_name(origin):
-    head = quiet_git("symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD")
+    head = git("symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD",
+               stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     if head.returncode == 0:
         return head.stdout.rstrip("\n").removeprefix("origin/"), None
     if origin:
-        answer = quiet_git("ls-remote", "--symref", "origin", "HEAD")
+        answer = git("ls-remote", "--symref", "origin", "HEAD",
+                     stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
         name = "\n".join(re.findall(r"^ref: refs/heads/(\S*)\s*HEAD$", answer.stdout, re.MULTILINE))
         return name, ("cannot determine origin's default branch"
                       " (no refs/remotes/origin/HEAD, and the remote did not name one)")
