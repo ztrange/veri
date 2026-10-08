@@ -102,7 +102,7 @@ def main(argv):
     lines = text.split("\n")
     last_line = lines[-2] if text.endswith("\n") else lines[-1]
     if re.search(guard["COUNT_LINE"], last_line):
-        return proc.returncode
+        return 128 - proc.returncode if proc.returncode < 0 else proc.returncode
     name = os.path.basename(suite)
     sys.stdout.write(render_printf(guard["COUNTLESS"], name))
     if text.strip():

@@ -332,3 +332,10 @@ def test_the_module_run_as_the_shim_hands_off_ends_with_exit_2_when_sigterm_reac
     code = subprocess.run([sys.executable, str(SCRIPTS / "veri" / "run_suite.py"), suite],
                           stdin=subprocess.DEVNULL, capture_output=True, timeout=10).returncode
     assert code == 2
+
+
+def test_the_module_run_as_the_shim_hands_off_exits_128_plus_n_for_a_suite_killed_by_signal_n_after_its_count_line_1167(tmp_path):
+    suite = fake_suite(tmp_path, "killed.test.sh", 'echo "1 passed, 0 failed"\nkill -KILL "$$"\n')
+    code = subprocess.run([sys.executable, str(SCRIPTS / "veri" / "run_suite.py"), suite],
+                          stdin=subprocess.DEVNULL, capture_output=True, timeout=10).returncode
+    assert code == 128 + 9
