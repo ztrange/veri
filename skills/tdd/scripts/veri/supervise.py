@@ -30,6 +30,11 @@ def awake_seconds():
     return int(time.clock_gettime(clock))
 
 
+def git_answer(*args):
+    done = subprocess.run(["git", *args], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    return done.stdout.rstrip("\n") if done.returncode == 0 else None
+
+
 def mark(role, *fields):
     if not role:
         return
@@ -45,10 +50,9 @@ def main(argv):
     issue = os.environ.get("VERI_ISSUE", "")
     if not timeout and issue:
         settled = f".tdd/issue-{issue}-timeout"
-        top = subprocess.run(["git", "rev-parse", "--show-toplevel"], stdout=subprocess.PIPE,
-                             stderr=subprocess.DEVNULL, text=True)
-        if top.returncode == 0:
-            settled = f"{top.stdout.rstrip("\n")}/{settled}"
+        top = git_answer("rev-parse", "--show-toplevel")
+        if top is not None:
+            settled = f"{top}/{settled}"
         if os.path.isfile(settled):
             with open(settled) as f:
                 timeout = f.read().rstrip("\n")
@@ -66,10 +70,7 @@ def main(argv):
         if found is not None:
             role = " ".join(f"{k}={v}" for k, v in found.items())
         model = leaf_model(name)
-    commit = subprocess.run(["git", "-C", HERE, "rev-parse", "HEAD"], stdout=subprocess.PIPE,
-                            stderr=subprocess.DEVNULL, text=True)
-    skill_commit = commit.stdout.rstrip("\n") if commit.returncode == 0 else ""
-    skill_commit = skill_commit or os.environ.get("VERI_SKILL_COMMIT") or "unknown"
+    skill_commit = git_answer("-C", HERE, "rev-parse", "HEAD") or os.environ.get("VERI_SKILL_COMMIT") or "unknown"
     leaf_env = {**os.environ, "VERI_LEAF_MODEL": model, "VERI_SKILL_COMMIT": skill_commit}
     mark(role, "launch", f"name={name}", f"cmd={' '.join(argv[1:])}", f"model={model}")
     write_line(f".tdd/{name}.pid", os.getpid())
