@@ -89,7 +89,16 @@ def main(argv):
             return subprocess.run([os.environ.get("CLAUDE_BIN") or "claude"], env=env).returncode
         finally:
             shutil.rmtree(snapshot, ignore_errors=True)
-    return 0
+    sys.stderr.write("run-conductor: no skill commit resolvable from '%s' — running unpinned\n" % base)
+    skill_file = os.path.join(base, "SKILL.md")
+    try:
+        with open(skill_file) as skill:
+            skill.read()
+    except OSError:
+        sys.stderr.write("run-conductor: cannot read '%s'\n" % skill_file)
+        return 2
+    return subprocess.run([os.environ.get("CLAUDE_BIN") or "claude"],
+                          env=dict(os.environ, VERI_SKILL_UNPINNED="1")).returncode
 
 
 def extract(base, commit, snapshot):
