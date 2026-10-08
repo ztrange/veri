@@ -44,7 +44,7 @@ def _watch(issue, stream, budget):
         if not line.endswith(b"\n"):
             return
         if step_done and b'"type":"user"' in line:
-            if _greater(context, budget):
+            if context > int(budget):
                 return
             step_done = False
         if b'"type":"assistant"' not in line:
@@ -68,10 +68,6 @@ def _say(text):
 def _err(text):
     sys.stderr.write(text)
     sys.stderr.flush()
-
-
-def _greater(context, budget):
-    return context > int(budget)
 
 
 def _launch(issue):
