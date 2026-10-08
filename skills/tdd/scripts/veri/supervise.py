@@ -28,6 +28,13 @@ def write_line(path, value):
         f.write(f"{value}\n")
 
 
+def discard(path):
+    try:
+        os.remove(path)
+    except FileNotFoundError:
+        pass
+
+
 def awake_seconds():
     command = os.environ.get("VERI_AWAKE_CLOCK", "")
     if command:
@@ -158,10 +165,7 @@ def preserve_killed_attempt(name, attempt):
 
 
 def attempt_once(name, cmd, log, rcfile, leaf_env, watched, timeout, heartbeat, poll, kill_poll):
-    try:
-        os.remove(rcfile)
-    except FileNotFoundError:
-        pass
+    discard(rcfile)
     open(log, "wb").close()
     t0 = now()
     a0 = awake_seconds()
@@ -244,10 +248,7 @@ def main(argv):
     leaf_env = {**os.environ, "VERI_LEAF_MODEL": model, "VERI_SKILL_COMMIT": skill_commit}
     mark(role, "launch", f"name={name}", f"cmd={' '.join(argv[1:])}", f"model={model}")
     write_line(f".tdd/{name}.pid", os.getpid())
-    try:
-        os.remove(exitfile)
-    except FileNotFoundError:
-        pass
+    discard(exitfile)
     retries = os.environ.get("VERI_STUCK_RETRIES") or "1"
     tries = 0
     try:
