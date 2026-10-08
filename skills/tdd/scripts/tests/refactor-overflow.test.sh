@@ -434,4 +434,37 @@ bullets="$(grep -E '^- ' "$body_file" 2>/dev/null)"
 
 report "$name"
 
+name="#1035 refactor-overflow with both unreached structural candidates and out-of-scope transforms files a body with two headed lists, structural under 'could not reach' and out-of-scope under 'did not attempt', under the unchanged title"
+problems=()
+
+both_owed="$work/issue-1035-refactor-owed.md"
+"$OWED" append "$both_owed" 'first step' <<'REPORT'
+CANDIDATES: structural | hoist the ledger path into one variable
+CANDIDATES: out-of-scope | extract the five copies of the mktemp dance across the skill
+REPORT
+
+title_file="$work/title-both" body_file="$work/body-both"
+(cd "$work" && env PATH="$stubdir:$PATH" FAKE_TITLE="$title_file" FAKE_BODY="$body_file" \
+  "$OVERFLOW" 1035 "$both_owed" 0 >"$out" 2>"$work/err") && code=0 || code=$?
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 with both kinds owed, got $code: $(cat "$work/err")")
+title="$(cat "$title_file" 2>/dev/null)"
+[[ "$title" == "Refactor owed by #1035" ]] ||
+  problems+=("want the filed title 'Refactor owed by #1035', got '$title'")
+body="$(cat "$body_file" 2>/dev/null)"
+want_body="Structural candidates #1035's closing pass could not reach:
+
+- hoist the ledger path into one variable
+
+Out-of-scope transforms #1035's closing pass did not attempt:
+
+- extract the five copies of the mktemp dance across the skill"
+[[ "$body" == "$want_body" ]] ||
+  problems+=("want the body as two headed lists:
+$want_body
+got:
+$body")
+
+report "$name"
+
 finish
