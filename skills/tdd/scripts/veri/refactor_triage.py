@@ -36,13 +36,14 @@ def main(argv):
                 return _refuse(b"structural candidate line names no transform: " + line)
             structural.append(transform.group(1))
             continue
-        cosmetic = COSMETIC.match(line)
-        if cosmetic and not cosmetic.group(1):
-            return _refuse(b"cosmetic candidate line names no transform: " + line)
-        test_only = TEST_ONLY.match(line)
-        if test_only and not test_only.group(1):
-            return _refuse(b"test-only candidate line names no transform: " + line)
-        if not (test_only or cosmetic or OUT_OF_SCOPE.match(line)
+        classed = False
+        for cls, pattern in ((b"cosmetic", COSMETIC), (b"test-only", TEST_ONLY)):
+            other = pattern.match(line)
+            if other:
+                if not other.group(1):
+                    return _refuse(cls + b" candidate line names no transform: " + line)
+                classed = True
+        if not (classed or OUT_OF_SCOPE.match(line)
                 or NONE.match(found.group(1))):
             return _refuse(b"candidate line has no class, or one that is not structural, cosmetic, test-only or out-of-scope: " + line)
     if not candidates_seen:
