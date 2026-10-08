@@ -1,0 +1,2 @@
+### detach-leaf.sh given a command path that does not exist exits 2, prints exactly one stderr line naming that command, and starts nothing ⟦criterion 1⟧
+- test-only | in skills/tdd/scripts/tests/detach-leaf.test.sh, the new #1188 case and the no-argument case both repeat the same "exit 2, nothing on stdout" check (`status == 2` plus `! -s` on the .out file). Once step 2 adds its directory case, that will be three copies worth moving into one helper.
