@@ -138,17 +138,24 @@ def test_main_reads_stdin_and_writes_stdout_as_bytes_passing_a_non_utf8_byte_in_
 
 def test_main_reads_a_prediction_line_with_a_trailing_clause_after_the_verdict_word_as_that_verdict(monkeypatch, capsys, red_divergence):
     values = "PREDICTED_FAILURE: p\nFAIL_OUTPUT: f\nPREDICTION_NOTE: n\n"
-    codes = {
-        line: run(monkeypatch, capsys, red_divergence, values + line, [])[0]
+    reason = (
+        "The red leaf's prediction diverged from the failure it saw, so the test is the suspect.\n"
+        "\n"
+        "PREDICTED_FAILURE: p\n"
+        "FAIL_OUTPUT: f\n"
+        "PREDICTION_NOTE: n\n"
+    )
+    results = {
+        line: run(monkeypatch, capsys, red_divergence, values + line, [])
         for line in (
             "PREDICTION: MATCHED — the run printed the assertion the step predicted",
             "PREDICTION: DIVERGED — it died on a missing helper instead",
         )
     }
 
-    assert codes == {
-        "PREDICTION: MATCHED — the run printed the assertion the step predicted": 3,
-        "PREDICTION: DIVERGED — it died on a missing helper instead": 0,
+    assert results == {
+        "PREDICTION: MATCHED — the run printed the assertion the step predicted": (3, "", ""),
+        "PREDICTION: DIVERGED — it died on a missing helper instead": (0, reason, ""),
     }
 
 
@@ -160,15 +167,22 @@ def test_main_returns_2_for_a_prediction_line_whose_first_word_is_not_a_verdict_
 
 def test_main_reads_a_verdict_word_carrying_trailing_punctuation_before_a_clause_as_that_verdict(monkeypatch, capsys, red_divergence):
     values = "PREDICTED_FAILURE: p\nFAIL_OUTPUT: f\nPREDICTION_NOTE: n\n"
-    codes = {
-        word + mark: run(monkeypatch, capsys, red_divergence, f"{values}PREDICTION: {word}{mark} but only in the message", [])[0]
+    reason = (
+        "The red leaf's prediction diverged from the failure it saw, so the test is the suspect.\n"
+        "\n"
+        "PREDICTED_FAILURE: p\n"
+        "FAIL_OUTPUT: f\n"
+        "PREDICTION_NOTE: n\n"
+    )
+    results = {
+        word + mark: run(monkeypatch, capsys, red_divergence, f"{values}PREDICTION: {word}{mark} but only in the message", [])
         for word in ("MATCHED", "DIVERGED")
         for mark in ",;:."
     }
 
-    assert codes == {
-        "MATCHED,": 3, "MATCHED;": 3, "MATCHED:": 3, "MATCHED.": 3,
-        "DIVERGED,": 0, "DIVERGED;": 0, "DIVERGED:": 0, "DIVERGED.": 0,
+    assert results == {
+        "MATCHED,": (3, "", ""), "MATCHED;": (3, "", ""), "MATCHED:": (3, "", ""), "MATCHED.": (3, "", ""),
+        "DIVERGED,": (0, reason, ""), "DIVERGED;": (0, reason, ""), "DIVERGED:": (0, reason, ""), "DIVERGED.": (0, reason, ""),
     }
 
 
