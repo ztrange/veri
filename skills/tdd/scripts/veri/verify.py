@@ -178,7 +178,7 @@ def main(argv):
             if head_before and head_before != head_after:
                 restored = subprocess.run(["git", "update-ref", "HEAD", head_before])
                 if restored.returncode != 0:
-                    return restored.returncode
+                    return to_contract(restored.returncode)
             return refuse_modified("the repository", leaf, changed)
         try:
             gitconfig_after = gitconfig_snapshot(gitconfig)

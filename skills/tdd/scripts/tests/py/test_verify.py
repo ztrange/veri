@@ -992,7 +992,7 @@ def test_main_in_a_repository_with_no_commit_reports_a_leaf_that_commits_as_head
            " (see .tdd/verify-green.log); changed:\nHEAD\n".encode(), [])
 
 
-def test_main_returns_gits_own_status_with_nothing_on_stdout_when_the_update_ref_restoring_head_fails(
+def test_main_returns_2_with_no_traceback_when_the_update_ref_restoring_head_fails_1183(
         tmp_path, monkeypatch, capfdbinary):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
@@ -1033,7 +1033,7 @@ def test_main_returns_gits_own_status_with_nothing_on_stdout_when_the_update_ref
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
 
     captured = capfdbinary.readouterr()
-    assert ("update-ref" in verbs, code, captured.out) == (True, 128, b"")
+    assert ("update-ref" in verbs, code, b"Traceback" in captured.err) == (True, 2, False)
 
 
 @pytest.mark.parametrize("before, after", [(b"[user]\n\tname = op\n", b"[user]\n\tname = leaf\n"),
