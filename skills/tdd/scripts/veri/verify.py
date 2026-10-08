@@ -10,7 +10,7 @@ import tempfile
 
 import parse_verdict
 
-from leaf_model import is_echo_flag, resolve
+from leaf_model import resolve
 from leaf_role import _write, leaf_role
 from run_verdict import SCRIPTS, takes_a_value
 
@@ -24,6 +24,10 @@ def refuse(*lines):
     for line in lines + (USAGE,):
         _write(sys.stderr, line)
     return 2
+
+
+def is_echo_flag(value):
+    return len(value) > 1 and value[0] == "-" and all(c in "neE" for c in value[1:])
 
 
 def sibling(name):
