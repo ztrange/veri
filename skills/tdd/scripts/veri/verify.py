@@ -50,6 +50,15 @@ def leaf_args():
             for path in (sorted(glob.glob(word)) or [word])]
 
 
+def no_verdict_budget(value):
+    if len(value) > 1 and value.startswith("0"):
+        try:
+            return int(value, 8)
+        except ValueError:
+            return 0
+    return int(value)
+
+
 def main(argv):
     args = list(argv)
     while args and takes_a_value(args[0]):
@@ -74,7 +83,7 @@ def main(argv):
     os.makedirs(".tdd", exist_ok=True)
     with open(prompt_path, "wb") as prompt:
         prompt.write(built.stdout.rstrip(b"\n"))
-    retries = int(os.environ.get("VERI_NO_VERDICT_RETRIES") or 1)
+    retries = no_verdict_budget(os.environ.get("VERI_NO_VERDICT_RETRIES") or "1")
     role = {**os.environ, **leaf_role(leaf)}
     relaunches = 0
     while True:
