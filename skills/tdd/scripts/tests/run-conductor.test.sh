@@ -801,31 +801,32 @@ assert_case4 "$clone21/skills/tdd/scripts/run-conductor.sh"
 
 report "$name"
 
-name="case 4 fails when what reaches the binary differs from the committed SKILL.md"
+name="a working-tree edit to SKILL.md never reaches the conductor; the committed SKILL.md does"
 problems=()
 
 clone22="$work/clone22"
 skill_clone "$clone22"
 skill22="$clone22/skills/tdd/SKILL.md"
-{ echo "uncommitted edit to the procedure"; cat "$skill22"; } > "$work/skill22.edited"
+committed22="$(git -C "$clone22" show HEAD:skills/tdd/SKILL.md)"
+marker22="uncommitted edit to the procedure, never to reach the conductor"
+{ echo "$marker22"; cat "$skill22"; } > "$work/skill22.edited"
 cat "$work/skill22.edited" > "$skill22"
 
-conductor22="$clone22/skills/tdd/scripts/run-conductor.sh"
-sed 's|^skill_file="\$base/SKILL.md"$|skill_file="$HERE/../SKILL.md"|' "$conductor22" \
-  > "$work/conductor22.edited"
-cat "$work/conductor22.edited" > "$conductor22"
+caller22="$work/caller22"
+caller_repo "$caller22"
+rm -f "$prompt"
 
-if ! grep -qx 'skill_file="$HERE/../SKILL.md"' "$conductor22"; then
-  problems+=("the clone's run-conductor.sh could not be made to read the working tree's SKILL.md")
-else
-  assert_case4 "$conductor22"
-  case4_problems=("${problems[@]}")
-  problems=()
-  if [[ "${#case4_problems[@]}" -eq 0 ]]; then
-    problems+=("case 4 did not fail when the binary got an edited SKILL.md")
-  elif [[ "${#case4_problems[@]}" -ne 1 || "${case4_problems[0]}" != *"does not begin with"*"SKILL.md verbatim"* ]]; then
-    problems+=("case 4 failed, but not on the comparison: ${case4_problems[*]}")
-  fi
+launch_from "$caller22" "$clone22"
+status=$?
+
+if [[ "$status" -ne 0 ]]; then
+  problems+=("the launch exited $status: $(cat "$launch_err")")
+elif [[ ! -f "$prompt" ]]; then
+  problems+=("the launch started but no procedure reached the binary")
+elif grep -F -- "$marker22" "$prompt" > /dev/null; then
+  problems+=("the working tree's edit to SKILL.md reached the conductor")
+elif [[ "$(cat "$prompt")" != "$committed22"* ]]; then
+  problems+=("what reached the binary does not begin with the committed SKILL.md verbatim")
 fi
 
 report "$name"
