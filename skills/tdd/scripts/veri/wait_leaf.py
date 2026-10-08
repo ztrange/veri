@@ -42,6 +42,20 @@ def clock():
     return int(reading) if reading.strip() else None
 
 
+def answered(name, exit_file, pid_file):
+    code = recorded(exit_file)
+    if code is not None:
+        return code
+    pid = number_in(pid_file)
+    if pid is not None and not supervising(pid, name):
+        code = recorded(exit_file)
+        if code is not None:
+            return code
+        sys.stderr.write(f"wait-leaf.sh: supervisor for leaf '{name}' (pid {pid}) exited without recording a status\n")
+        return 2
+    return None
+
+
 def main(argv):
     if not argv or argv[0] == "":
         sys.stderr.write(USAGE)
@@ -53,22 +67,19 @@ def main(argv):
     exit_file = f".tdd/{name}.exit"
     pid_file = f".tdd/{name}.pid"
     start = clock() or 0
-    if max_seconds is None and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", max_text):
-        return not_a_number(max_text)
-    while True:
-        code = recorded(exit_file)
+    if max_seconds is None:
+        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", max_text):
+            return not_a_number(max_text)
+        code = answered(name, exit_file, pid_file)
         if code is not None:
             return code
-        pid = number_in(pid_file)
-        if pid is not None and not supervising(pid, name):
-            code = recorded(exit_file)
-            if code is not None:
-                return code
-            sys.stderr.write(f"wait-leaf.sh: supervisor for leaf '{name}' (pid {pid}) exited without recording a status\n")
-            return 2
+        clock()
+        return not_a_number(max_text)
+    while True:
+        code = answered(name, exit_file, pid_file)
+        if code is not None:
+            return code
         now = clock()
-        if max_seconds is None:
-            return not_a_number(max_text)
         if now is not None and now >= start + max_seconds:
             return 3
         subprocess.run(["sleep", poll])
