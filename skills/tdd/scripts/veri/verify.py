@@ -48,9 +48,10 @@ def main(argv):
     if len(args) < 3:
         return refuse()
     leaf = "verify-" + args[0]
+    flags = leaf_args()
     if os.environ.get("VERIFY_LEAF_ARGS"):
         model = resolve(leaf) or ""
-        if model and not is_echo_flag(model) and "--model" in leaf_args():
+        if model and not is_echo_flag(model) and "--model" in flags:
             _write(sys.stderr, "verify: VERIFY_LEAF_ARGS carries its own --model and a role model"
                    " variable resolved '%s' — which one the leaf would run on is flag order;"
                    " unset one of them" % model)
@@ -69,7 +70,7 @@ def main(argv):
         prompt.write(built.stdout.rstrip(b"\n"))
     launched = subprocess.run(
         [sibling("supervise.sh"), leaf,
-         sibling("run-leaf.sh"), prompt_path, *leaf_args()],
+         sibling("run-leaf.sh"), prompt_path, *flags],
         stdout=subprocess.PIPE)
     code, reason = parse(launched.stdout)
     word = {0: "PASS", 1: "REJECT"}.get(code, "malformed")
