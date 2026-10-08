@@ -8,7 +8,10 @@ from pid_file import number_in, supervising
 USAGE = "usage: wait-leaf.sh <name> [max-seconds]\n"
 
 
-def to_contract(code):
+def recorded(exit_file):
+    code = number_in(exit_file)
+    if code is None:
+        return None
     return int(code) if code in ("0", "1", "2", "3") else 2
 
 
@@ -27,14 +30,14 @@ def main(argv):
     pid_file = f".tdd/{name}.pid"
     deadline = clock() + max_seconds
     while True:
-        code = number_in(exit_file)
+        code = recorded(exit_file)
         if code is not None:
-            return to_contract(code)
+            return code
         pid = number_in(pid_file)
         if pid is not None and not supervising(pid, name):
-            code = number_in(exit_file)
+            code = recorded(exit_file)
             if code is not None:
-                return to_contract(code)
+                return code
             sys.stderr.write(f"wait-leaf.sh: supervisor for leaf '{name}' (pid {pid}) exited without recording a status\n")
             return 2
         if clock() >= deadline:
