@@ -1,0 +1,12 @@
+# Plan for #1029 — Refactor owed by #928
+
+`def fake_processes` is defined in ten suites under `skills/tdd/scripts/tests/py/` on the branch base, not the six the issue lists: also `test_supervise.py`, `test_stop_run.py`, `test_verify.py` and `test_wait_leaf.py`, and `test_push_branch.py` has its `fake_processes_merging` variant. Criterion 1 covers every `test_*.py`, so all ten are planned.
+
+- [ ] One shared subprocess-recording fake under `skills/tdd/scripts/tests/py/` (a conftest fixture or a helper module), given no answer, replaces every subprocess entry point (`run`, `Popen`, `call`, `check_call`, `check_output`), records each command as one line with its program by basename, and returns exit 0 with empty output, starting no process ⟦criterion 1⟧
+- [ ] Given an answer callable, the shared fake's `subprocess.run` calls it with the recorded line and the call's keyword arguments and returns the `(exit code, stdout, stderr)` it answers, while every other subprocess entry point raises AssertionError naming the command ⟦criterion 1⟧
+- [ ] The shared fake hands output back in the call's mode — text (`text`, `encoding` or `universal_newlines`) as str, otherwise bytes, whichever the answer gave — merges answered stderr into stdout when the call passes `stderr=subprocess.STDOUT`, and raises CalledProcessError for a non-zero answer when the call passes `check=True` ⟦criterion 1⟧
+- [ ] `test_preserve_attempt.py`, `test_refactor_touched.py`, `test_supervise.py` and `test_verify.py` define no `fake_processes` of their own and record their commands through the shared fake, every case keeping its name ⟦diff-checked⟧ ⟦criterion 1⟧
+- [ ] `test_invisible_work.py`, `test_push_branch.py` (its `fake_processes_merging` included), `test_wait_leaf.py` and `test_wait_ci.py` define no `fake_processes` or `fake_processes_merging` of their own and answer their commands through the shared fake, every case keeping its name ⟦diff-checked⟧ ⟦criterion 1⟧
+- [ ] `test_profile.py` and `test_stop_run.py` define no `fake_processes` of their own and answer their commands through the shared fake, every case keeping its name, so no `test_*.py` under `tests/py/` defines `def fake_processes` ⟦diff-checked⟧ ⟦criterion 1⟧
+- [ ] No case in `test_invisible_work.py`, `test_preserve_attempt.py`, `test_profile.py`, `test_push_branch.py`, `test_refactor_touched.py` or `test_wait_ci.py` is renamed or removed by the branch ⟦diff-checked⟧ ⟦criterion 2⟧
+- [ ] Every existing case in the six suites still passes ⟦full-suite⟧ ⟦criterion 2⟧
