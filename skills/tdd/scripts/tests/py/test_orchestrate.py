@@ -487,3 +487,24 @@ def test_1128_a_missing_run_conductor_ends_the_run_with_exit_2_one_stderr_line_n
     lines = err.splitlines()
     assert (code, out, len(lines), launches) == (2, "", 1, [[conductor, "7"]])
     assert "run-conductor.sh" in lines[0] and os.strerror(errno.ENOENT) in lines[0]
+
+
+def test_1128_a_run_conductor_that_is_not_executable_ends_the_run_with_exit_2_one_stderr_line_naming_it_and_the_reason_and_no_further_launch(
+        capsys, monkeypatch, tmp_path, orchestrate):
+    import errno
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+    _passes(monkeypatch, [(0, "7\n"), (0, "7\n"), (3, "")], lambda n, issue: None)
+    launches = []
+
+    def unexecutable_popen(args, *rest, **kwargs):
+        launches.append(list(args))
+        raise PermissionError(errno.EACCES, os.strerror(errno.EACCES), args[0])
+
+    monkeypatch.setattr(subprocess, "Popen", unexecutable_popen)
+    code = orchestrate.main([])
+    out, err = capsys.readouterr()
+    conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
+    lines = err.splitlines()
+    assert (code, out, len(lines), launches) == (2, "", 1, [[conductor, "7"]])
+    assert "run-conductor.sh" in lines[0] and os.strerror(errno.EACCES) in lines[0]
