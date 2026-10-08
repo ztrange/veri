@@ -85,7 +85,10 @@ def main(argv):
             status = extract(base, commit, snapshot)
             if status != 0:
                 return status if status <= 3 else 2
-            return launch(prompt(snapshot), VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
+            text = prompt(snapshot)
+            if text is None:
+                return 2
+            return launch(text,VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
         finally:
             shutil.rmtree(snapshot, ignore_errors=True)
     sys.stderr.write("run-conductor: no skill commit resolvable from '%s' — running unpinned\n" % base)
