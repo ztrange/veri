@@ -10,12 +10,15 @@ REASONS = b", ".join(STOPPED)
 def structural_pass_refusal(args):
     transforms = budget = stopped = b""
     for arg in args:
-        if arg.startswith(b"transforms="):
-            transforms = arg[len(b"transforms="):]
-        elif arg.startswith(b"budget="):
-            budget = arg[len(b"budget="):]
-        elif arg.startswith(b"stopped="):
-            stopped = arg[len(b"stopped="):]
+        key, sep, value = arg.partition(b"=")
+        if not sep:
+            continue
+        if key == b"transforms":
+            transforms = value
+        elif key == b"budget":
+            budget = value
+        elif key == b"stopped":
+            stopped = value
             if stopped not in STOPPED:
                 return b"event.sh: structural-pass stopped=" + stopped + b" is not one of " + REASONS
     if not stopped:
