@@ -269,6 +269,23 @@ fi
 rm -rf "$aw_work"
 report "$name"
 
+name="event.sh run with VERI_AWAKE_CLOCK naming a clock with no #! line that exits 3 exits 3, with .tdd created and nothing appended to .tdd/events.jsonl"
+problems=()
+ac_work="$(scratch_dir)"
+cat > "$ac_work/awake-clock" <<'C'
+exit 3
+C
+chmod +x "$ac_work/awake-clock"
+mkdir "$ac_work/run"
+( cd "$ac_work/run" && env VERI_AWAKE_CLOCK="$ac_work/awake-clock" "$EVENT" step-start ) >/dev/null 2>&1
+ac_code=$?
+[[ "$ac_code" == 3 ]] || problems+=("want exit 3 (the clock's own status), got $ac_code")
+[[ -d "$ac_work/run/.tdd" ]] || problems+=("want .tdd created before the clock runs, found none")
+[[ ! -s "$ac_work/run/.tdd/events.jsonl" ]] ||
+  problems+=("want nothing appended to .tdd/events.jsonl, got $(printf '%q' "$(cat "$ac_work/run/.tdd/events.jsonl")")")
+rm -rf "$ac_work"
+report "$name"
+
 name="#563: event.sh's awake reading is the system-wide awake clock, so it advances across processes under a python3 whose time.monotonic() restarts per process"
 problems=()
 rs_work="$(scratch_dir)"
