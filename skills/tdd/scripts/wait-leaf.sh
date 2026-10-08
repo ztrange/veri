@@ -1,56 +1,14 @@
-#!/usr/bin/env bash
-# wait-leaf.sh — the foreground half of a detached leaf launch.
+#!/bin/sh
+# wait-leaf.sh — the foreground half of a detached leaf launch: a shim over veri/wait_leaf.py.
 #
-# `supervise.sh` is launched detached (nohup … &) so that a print-mode conductor, which
-# never receives background-task notifications, cannot end its turn with the leaf orphaned.
-# This script is what the conductor calls next: it blocks in the foreground, polling for the
-# completion file `.tdd/<name>.exit` that the supervisor writes with its own final code, and
-# exits with that code as soon as the file lands. The file is normally absent when the wait
-# begins, so this polls rather than looking once.
+# Blocks polling for the completion file `.tdd/<name>.exit` the supervisor writes, and exits
+# with its code as soon as it lands.
 #
-# Usage:
-#   wait-leaf.sh <name> [max-seconds]
+# usage: wait-leaf.sh <name> [max-seconds]
 #
 # Status: whatever the supervisor recorded — 0 success · 1 leaf-failure · 2 killed-stuck —
-# or 3 once <max-seconds> pass with no completion file, meaning nothing to report yet and
-# the conductor should simply call again.
+# 2 a supervisor that exited without recording, or bad arguments; 3 once <max-seconds>
+# (default 540) pass with no completion file.
 #
 # Tunables (env): VERI_POLL poll interval secs (default 1).
-set -uo pipefail
-
-USAGE="usage: wait-leaf.sh <name> [max-seconds]"
-
-source "$(dirname "$0")/lib/exit-contract.sh"
-
-require_args 1 "$@"
-name="$1"
-max="${2:-540}"
-poll="${VERI_POLL:-1}"
-
-exitfile=".tdd/$name.exit"
-pidfile=".tdd/$name.pid"
-deadline=$(( $(date +%s) + max ))
-
-HERE="$(cd "$(dirname "$0")" && pwd)"
-source "$HERE/lib/number-in.sh"
-source "$HERE/lib/pid-file.sh"
-
-recorded_code() { number_in "$exitfile"; }
-
-exit_if_recorded() {
-  local ec
-  ec="$(recorded_code)" && exit "$(to_contract "$ec")"
-}
-
-while :; do
-  exit_if_recorded
-  if pid="$(number_in "$pidfile")" && ! supervising "$pid" "$name"; then
-    exit_if_recorded
-    echo "wait-leaf.sh: supervisor for leaf '$name' (pid $pid) exited without recording a status" >&2
-    exit 2
-  fi
-  (( $(date +%s) >= deadline )) && break
-  sleep "$poll"
-done
-
-exit 3
+exec python3 "$(dirname "$0")/veri/wait_leaf.py" "$@"
