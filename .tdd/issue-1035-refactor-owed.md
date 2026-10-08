@@ -5,3 +5,5 @@
 - test-only | the new sub-step-1 case in build-develop-prompt.test.sh (lines 294–295) builds the refactor prompt with the same arguments as the `renders_as refactor` line (221); `renders_as` could keep its output so the case reuses it instead of building the prompt a second time
 ### refactor-overflow.sh with both unreached structural candidates and out-of-scope transforms files a body with two headed lists — the structural candidates the closing pass could not reach, and the out-of-scope transforms the pass did not attempt — under the unchanged title ⟦criterion 4⟧
 - test-only | fold the repeated "run refactor-overflow with FAKE_TITLE/FAKE_BODY, assert exit 0 and the filed title" block shared by the #992, #1058 and #1035 cases in refactor-overflow.test.sh into one helper beside overflow_case
+### refactor-triage refuses an empty cosmetic candidate line with exit 2 and stderr naming the line ⟦criterion 6⟧
+- fold the parallel empty-transform refusals for structural and cosmetic into one per-class check in refactor_triage.main, once the test-only and out-of-scope cases this criterion still owes demand it
