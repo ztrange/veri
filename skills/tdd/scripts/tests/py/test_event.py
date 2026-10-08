@@ -45,3 +45,40 @@ def test_main_refuses_a_missing_event_and_each_bad_structural_pass_with_exit_2_c
                b" got transforms=0 budget=10\n"), []),
     ]
     assert event.main(["x"]) == 0
+
+
+CONTEXT = ("VERI_ISSUE", "VERI_ACTOR", "VERI_PHASE", "VERI_STEP", "VERI_ATTEMPT", "VERI_SKILL_COMMIT")
+
+
+def test_main_appends_the_nine_fixed_keys_then_one_key_per_argument_in_argument_order(
+        monkeypatch, tmp_path, event):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("VERI_AWAKE_CLOCK", raising=False)
+    monkeypatch.setattr("time.time", lambda: 1700000000.9)
+    monkeypatch.setattr("time.clock_gettime", lambda clock: 4242.7)
+
+    def context(values):
+        for name, value in zip(CONTEXT, values):
+            if value is None:
+                monkeypatch.delenv(name, raising=False)
+            else:
+                monkeypatch.setenv(name, value)
+
+    for values, argv in (
+            (("12", "conductor", "red", "3", "2", "abc123"),
+             ["launch", "z=1", "a=2", "a=3", "issue=9", "bare", "a=b=c", "=x", "k="]),
+            ((None,) * 6, ["-h"]),
+            (("",) * 6, ["mark"]),
+    ):
+        context(values)
+        assert event.main(argv) == 0
+
+    assert (tmp_path / ".tdd" / "events.jsonl").read_bytes() == (
+        b'{"ts": 1700000000, "awake": 4242, "issue": "12", "actor": "conductor", "phase": "red",'
+        b' "step": "3", "event": "launch", "attempt": "2", "skill_commit": "abc123",'
+        b' "z": "1", "a": "2", "a": "3", "issue": "9", "bare": "", "a": "b=c", "": "x", "k": ""}\n'
+        b'{"ts": 1700000000, "awake": 4242, "issue": "", "actor": "", "phase": "", "step": "",'
+        b' "event": "-h", "attempt": "", "skill_commit": ""}\n'
+        b'{"ts": 1700000000, "awake": 4242, "issue": "", "actor": "", "phase": "", "step": "",'
+        b' "event": "mark", "attempt": "", "skill_commit": ""}\n'
+    )
