@@ -111,4 +111,52 @@ fi
 
 report "$name"
 
+class_clauses() {
+  local rest="$1" clause
+  while [[ "$rest" == *"$2"* ]]; do
+    rest="${rest#*"$2"}"
+    clause="${rest%%. *}"
+    [[ "$clause" =~ $3 ]] && clause="${clause%%"${BASH_REMATCH[0]}"*}"
+    printf '%s\n' "$clause"
+  done
+}
+
+name="#1163: $skill_md's refactor step-6 narration says where each class goes — structural narrated and owed by a follow-up, cosmetic narrated and owed by nobody, test-only and out-of-scope recorded through refactor-owed.sh and not narrated as a backlog"
+problems=()
+
+declare -A goes=(
+  [structural]='follow-up owes'
+  [cosmetic]='nobody owes'
+  [test-only]='refactor-owed.sh|not narrated as a backlog'
+  [out-of-scope]='refactor-owed.sh|not narrated as a backlog'
+)
+declare -A others=(
+  [structural]='cosmetic|test-only|out-of-scope'
+  [cosmetic]='structural|test-only|out-of-scope'
+  [test-only]='structural|cosmetic'
+  [out-of-scope]='structural|cosmetic'
+)
+
+if [[ "$narration" == "$section" ]]; then
+  problems+=("$skill_md's Refactor section has no '6. Narrate + branch.' sub-step — where each candidate class goes could not be established")
+else
+  for class in structural cosmetic test-only out-of-scope; do
+    IFS='|' read -ra phrases <<<"${goes[$class]}"
+    found=
+    while IFS= read -r clause; do
+      found=1
+      for phrase in "${phrases[@]}"; do
+        [[ "$clause" == *"$phrase"* ]] || found=
+      done
+      [[ -n "$found" ]] && break
+    done < <(class_clauses "$narration" "$class" "${others[$class]}")
+    wanted="'${phrases[0]}'"
+    ((${#phrases[@]} > 1)) && wanted+=" and '${phrases[1]}'"
+    [[ -n "$found" ]] ||
+      problems+=("$skill_md's step-6 narration never says, of the $class class, $wanted — so a conductor narrating a step's leftover CANDIDATES: lines is not told where a $class candidate goes")
+  done
+fi
+
+report "$name"
+
 finish
