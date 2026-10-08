@@ -29,6 +29,12 @@ def main_working_tree():
     return first.removeprefix(b"worktree ")
 
 
+def stop_run(run, mode):
+    with open(run + "/.tdd/stop", "w") as stop:
+        stop.write(mode + "\n")
+    sys.stdout.buffer.write(os.fsencode(run) + b"\n")
+
+
 def main(argv):
     mode = "at-ledger"
     issue = ""
@@ -47,16 +53,25 @@ def main(argv):
         return refuse(f"unknown mode — want {stop_modes.modes_named()}: '{mode}'")
     if issue and every:
         return refuse("name an issue or --all, not both")
-    if not issue:
+    if not issue and not every:
         return refuse("name an issue, or --all")
-    if not re.fullmatch(r"[1-9][0-9]*", issue):
+    if not every and not re.fullmatch(r"[1-9][0-9]*", issue):
         return refuse(f"<issue> must be a positive integer: '{issue}'")
-    target = os.fsdecode(main_working_tree()) + "/.tdd/wt/" + issue
+    runs = os.fsdecode(main_working_tree()) + "/.tdd/wt/"
+    if every:
+        stopped = 0
+        for name in sorted(os.listdir(runs)):
+            run = runs + name
+            if not name.startswith(".") and pid_file.live_conductor(run) is not None:
+                stop_run(run, mode)
+                stopped += 1
+        if not stopped:
+            return nothing_to_do("no live run to stop")
+        return 0
+    target = runs + issue
     if pid_file.live_conductor(target) is None:
         return nothing_to_do(f"no live run for issue {issue}")
-    with open(target + "/.tdd/stop", "w") as stop:
-        stop.write(mode + "\n")
-    sys.stdout.buffer.write(os.fsencode(target) + b"\n")
+    stop_run(target, mode)
     return 0
 
 
