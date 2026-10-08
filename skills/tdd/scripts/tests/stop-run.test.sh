@@ -282,4 +282,32 @@ check_stop "$far_run" at-ledger
 
 report "stop-run.sh, run through a symlink to the skill's scripts directory from a subdirectory of another repository, stops that repository's run and writes nothing under the skill's own"
 
+problems=()
+label=""
+rm -f "$run/.tdd/stop"
+
+decoy="$work/decoy"
+new_repo -b main "$decoy" >/dev/null 2>&1
+decoy_run="$decoy/.tdd/wt/5"
+live_conductor "$decoy_run"
+live_supervisor "$decoy_run" develop-red
+decoy_sup="$supervisor_pid"
+mutant="$decoy/skills/tdd/scripts"
+mkdir -p "$mutant"
+cp -R "$HERE/../veri" "$mutant/veri"
+awk '/^exec python3/ { print "cd \"$(dirname \"$0\")\"" } { print }' "$HERE/../stop-run.sh" > "$mutant/stop-run.sh"
+chmod +x "$mutant/stop-run.sh"
+
+real_stop="$STOP"
+STOP="$mutant/stop-run.sh"
+run_stop --mode now --all
+STOP="$real_stop"
+
+check_no_stop "$decoy_run"
+check_still_answering "$decoy_sup" "the decoy repository's live supervisor"
+[[ "$code" != 0 || "$out" != *"$decoy"* ]] ||
+  note "want a subject that resolved the decoy repository to fail the case, it exited 0 naming '$out'"
+
+report "#1158: a stop-run.sh that resolves its main tree from its own directory, not the suite's scratch repository, writes no .tdd/stop and signals no supervisor outside that repository"
+
 finish
