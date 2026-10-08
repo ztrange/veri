@@ -1,0 +1,2 @@
+### With VERI_GH_DRIVER=auto, gh_pr_ready 42 against a gh whose `gh pr ready` fails with GraphQL's HTTP 403 and whose REST ready route then succeeds returns 0 with no line of that 403 on stderr
+- test-only | cases 21 and 22 of skills/tdd/scripts/tests/unit/github.test.sh define the same `gh` mock (pr → 403 on stderr, api ccr/ready_for_review → success); one shared function defined once would remove the copy
