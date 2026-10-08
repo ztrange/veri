@@ -1,6 +1,7 @@
 """run-conductor.sh's launch of one conductor, run in-process."""
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -114,9 +115,21 @@ def launch(base, issue, commit, **exports):
     env = dict(os.environ, **exports)
     strip_session_env(env)
     env.pop("VERI_NEW_SKILL", None)
-    return subprocess.run([os.environ.get("CLAUDE_BIN") or "claude", "-p", "--output-format", "stream-json",
-                           "--verbose", "--permission-mode", "bypassPermissions"],
-                          input=text, env=env).returncode
+    binary = os.environ.get("CLAUDE_BIN") or "claude"
+    unread = []
+    previous = signal.signal(signal.SIGPIPE, lambda *_: unread.append(True))
+    try:
+        code = subprocess.run([binary, "-p", "--output-format", "stream-json",
+                               "--verbose", "--permission-mode", "bypassPermissions"],
+                              input=text, env=env).returncode
+    except FileNotFoundError:
+        sys.stderr.write("run-conductor: %s: command not found\n" % binary)
+        return 127
+    finally:
+        signal.signal(signal.SIGPIPE, previous)
+    if code < 0:
+        return 128 - code
+    return 141 if code == 0 and unread else code
 
 
 def extract(base, commit, snapshot):
