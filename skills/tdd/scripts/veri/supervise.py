@@ -1,6 +1,7 @@
 """supervise.sh's watchdog, run in-process."""
 import os
 import re
+import signal
 import subprocess
 import sys
 import time
@@ -35,6 +36,14 @@ def git_answer(*args):
     return done.stdout.rstrip("\n") if done.returncode == 0 else None
 
 
+def now():
+    return subprocess.run(["date", "+%s"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True).stdout.strip()
+
+
+def mtime_of(path):
+    return subprocess.run(["stat", "-c", "%Y", path], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True).stdout.strip()
+
+
 def mark(role, *fields):
     if not role:
         return
@@ -61,6 +70,8 @@ def main(argv):
     kill_poll = os.environ.get("VERI_KILL_POLL") or "0.1"
     if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", kill_poll):
         return refuse(f"supervise: VERI_KILL_POLL must be a non-negative number: {kill_poll}")
+    heartbeat = int(os.environ.get("VERI_HEARTBEAT") or "180")
+    poll = float(os.environ.get("VERI_POLL") or "1")
     name = argv[0]
     os.makedirs(".tdd", exist_ok=True)
     log, rcfile, exitfile = f".tdd/{name}.log", f".tdd/{name}.rc", f".tdd/{name}.exit"
@@ -81,24 +92,42 @@ def main(argv):
         except FileNotFoundError:
             pass
     open(log, "wb").close()
+    t0 = now()
     a0 = awake_seconds()
-    subprocess.Popen(["/bin/sh", "-c", 'log=$1 rc=$2; shift 2; "$@" >"$log" 2>&1; echo $? >"$rc"',
-                      "sh", log, rcfile, *argv[1:]], process_group=0, env=leaf_env)
-    while not os.path.isfile(rcfile):
-        time.sleep(0.1)
-    with open(rcfile) as f:
-        rc = f.read().rstrip("\n")
-    status = "success" if rc == "0" else "failure"
-    ec = 0 if status == "success" else 1
+    leaf = subprocess.Popen(["/bin/sh", "-c", 'log=$1 rc=$2; shift 2; "$@" >"$log" 2>&1; echo $? >"$rc"',
+                             "sh", log, rcfile, *argv[1:]], process_group=0, env=leaf_env)
+    status = reason = ""
+    rc = "0"
+    if watched:
+        last_m, seen_at = mtime_of(log), int(t0)
+    while True:
+        if os.path.isfile(rcfile):
+            with open(rcfile) as f:
+                rc = f.read().rstrip("\n")
+            status = "success" if rc == "0" else "failure"
+            break
+        t = int(now())
+        if watched:
+            m = mtime_of(log)
+            if m != last_m:
+                last_m, seen_at = m, t
+            silence = t - seen_at
+            if silence > heartbeat:
+                status, reason = "killed-stuck", f"no heartbeat for {silence}s (window {heartbeat}s)"
+                os.killpg(leaf.pid, signal.SIGTERM)
+                break
+        time.sleep(poll)
+    leaf.wait()
+    ec = {"success": 0, "failure": 1, "killed-stuck": 2}[status]
     if rc == "2":
         ec = 2
     secs = awake_seconds() - a0
     if watched:
         sys.stderr.flush()
         subprocess.run([os.path.join(HERE, "harvest-usage.sh"), name], stdout=2)
-    print(f"supervise[{name}]: {status}", file=sys.stderr)
+    print(f"supervise[{name}]: {status}" + (f" — {reason}" if reason else ""), file=sys.stderr)
     sys.stderr.flush()
-    mark(role, "exit", f"status={ec}", f"secs={secs}")
+    mark(role, "exit", f"status={ec}", *([f"cause={reason}"] if reason else []), f"secs={secs}")
     with open(log, "rb") as f:
         sys.stdout.buffer.write(f.read())
     sys.stdout.flush()

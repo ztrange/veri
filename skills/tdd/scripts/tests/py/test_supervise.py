@@ -527,3 +527,116 @@ def test_main_runs_harvest_usage_sh_once_for_a_watched_name_onto_its_stderr_befo
         [b"harvest out", b"harvest err", b"supervise[develop-red]: success"])
     assert run_one("verdict-red") == (
         0, b"leaf out\n", b"0\n", [], [b"supervise[verdict-red]: success"])
+
+
+class Runaway(BaseException):
+    """Raised by the fake sleep when main keeps polling a leaf it should long since have killed."""
+
+
+def test_main_with_veri_heartbeat_unset_kills_a_silent_leaf_at_181s_of_silence_not_180s_sending_term_to_its_group_and_its_default_is_the_one_the_header_and_skill_md_state(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import re
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    monkeypatch.chdir(tmp_path)
+    clean_env(monkeypatch, VERI_TIMEOUT="5000", VERI_STUCK_RETRIES="0")
+    here = pathlib.Path(supervise.__file__).resolve().parents[1]
+    header = (here / "supervise.sh").read_text()
+    skill = (here.parents[0] / "SKILL.md").read_text()
+    stated = [re.search(r"VERI_HEARTBEAT silence window secs \(default ([0-9]+)", header),
+              re.search(r"`VERI_HEARTBEAT` \(silence window s,\s+default ([0-9]+)", skill)]
+    stated = [int(m.group(1)) if m else None for m in stated]
+
+    clock = {"wall": 1000, "sleeps": 0}
+
+    def sleep(_):
+        clock["sleeps"] += 1
+        if clock["sleeps"] > 2000:
+            raise Runaway()
+        clock["wall"] += 1
+
+    monkeypatch.setattr(time, "sleep", sleep)
+    monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
+
+    class Leaf:
+        pid = 4242
+        returncode = None
+        args = []
+
+        def poll(self):
+            return self.returncode
+
+        def wait(self, timeout=None):
+            return self.returncode
+
+    leaf = Leaf()
+    kills = []
+
+    def killpg(pgid, sig):
+        kills.append((clock["wall"], "group", pgid, sig))
+        if pgid == leaf.pid:
+            leaf.returncode = -sig
+
+    def kill(pid, sig):
+        if pid < 0:
+            return killpg(-pid, sig)
+        kills.append((clock["wall"], "pid", pid, sig))
+        if pid == leaf.pid and sig:
+            leaf.returncode = -sig
+
+    monkeypatch.setattr(os, "killpg", killpg)
+    monkeypatch.setattr(os, "kill", kill)
+
+    def answer(args):
+        args = [str(a) for a in args]
+        if args[:1] == ["git"]:
+            return 0, "0123456789abcdef0123456789abcdef01234567\n"
+        if args[:1] == ["date"]:
+            return 0, f"{clock['wall']}\n"
+        if args[:3] == ["stat", "-c", "%Y"]:
+            return 0, "1000\n"
+        if args[:1] == ["stat"]:
+            return 1, ""
+        return 0, ""
+
+    def run(args, *_, **kwargs):
+        code, out = answer(args)
+        out = as_asked(out, kwargs)
+        if code and kwargs.get("check"):
+            raise subprocess.CalledProcessError(code, args, out)
+        return subprocess.CompletedProcess(args, code, out, "" if isinstance(out, str) else b"")
+
+    def check_output(args, *_, **kwargs):
+        code, out = answer(args)
+        if code:
+            raise subprocess.CalledProcessError(code, args)
+        return as_asked(out, kwargs)
+
+    launched = []
+
+    def popen(args, *_, **kwargs):
+        if list(args[:2]) == ["/bin/sh", "-c"]:
+            launched.append(kwargs.get("process_group"))
+            return leaf
+        raise AssertionError(f"unexpected Popen: {args}")
+
+    monkeypatch.setattr(subprocess, "run", run)
+    monkeypatch.setattr(subprocess, "check_output", check_output)
+    monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, *a, **k).returncode)
+    monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: run(args, *a, check=True, **k).returncode)
+    monkeypatch.setattr(subprocess, "Popen", popen)
+
+    try:
+        code = supervise.main(["develop-red", "leaf-hang"])
+    except Runaway:
+        code = "<never ended>"
+    _, err = capsysbinary.readouterr()
+    exitfile = tmp_path / ".tdd" / "develop-red.exit"
+
+    assert (stated, code, launched, kills[:1],
+            [line for line in err.splitlines() if line.startswith(b"supervise[")][-1:],
+            exitfile.read_bytes() if exitfile.exists() else None) == (
+        [180, 180], 2, [0], [(1181, "group", 4242, signal.SIGTERM)],
+        ["supervise[develop-red]: killed-stuck — no heartbeat for 181s (window 180s)".encode()],
+        b"2\n")
