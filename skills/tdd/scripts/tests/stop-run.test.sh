@@ -362,4 +362,28 @@ label=""
 
 report "#819: an issue whose .tdd/conductor.pid holds 0 or 00 exits 3 and writes no .tdd/stop"
 
+problems=()
+label=""
+
+linked="$work/linked-scripts"
+ln -s "$HERE/.." "$linked"
+elsewhere="$work/elsewhere"
+new_repo -b main "$elsewhere" >/dev/null 2>&1
+far_issue=31337
+far_run="$elsewhere/.tdd/wt/$far_issue"
+live_conductor "$far_run"
+deep="$elsewhere/some/sub/dir"; mkdir -p "$deep"
+skill_main="$(git -C "$HERE" worktree list --porcelain | sed -n '1s/^worktree //p')"
+
+out="$(cd "$deep" && "$linked/stop-run.sh" "$far_issue" 2>"$work/stderr")" && code=0 || code=$?
+err="$(cat "$work/stderr")"
+check_code 0
+check_stop "$far_run" at-ledger
+[[ "$out" != *$'\n'* && "$out" -ef "$far_run" ]] ||
+  note "want $far_run alone on stdout, got '$out'"
+[[ -n "$skill_main" && ! -e "$skill_main/.tdd/wt/$far_issue" ]] ||
+  note "want nothing written under the skill's own repository '$skill_main', found $skill_main/.tdd/wt/$far_issue"
+
+report "stop-run.sh, run through a symlink to the skill's scripts directory from a subdirectory of another repository, stops that repository's run and writes nothing under the skill's own"
+
 finish
