@@ -199,7 +199,7 @@ def main(argv):
 
 def parse(out):
     stdin, stdout, stderr = sys.stdin, sys.stdout, sys.stderr
-    sys.stdin = io.StringIO(out.decode("utf-8", "surrogateescape"))
+    sys.stdin = io.StringIO(out.replace(b"\0", b"").decode("utf-8", "surrogateescape"))
     sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
     try:
         code = parse_verdict.main([])
