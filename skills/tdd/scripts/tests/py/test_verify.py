@@ -902,3 +902,55 @@ def test_main_returns_gits_own_status_with_nothing_on_stdout_when_the_update_ref
 
     captured = capfdbinary.readouterr()
     assert ("update-ref" in verbs, code, captured.out) == (True, 128, b"")
+
+
+@pytest.mark.parametrize("before, after", [(b"[user]\n\tname = op\n", b"[user]\n\tname = leaf\n"),
+                                           (None, b"[user]\n\tname = leaf\n"),
+                                           (b"[user]\n\tname = op\n", None)])
+def test_main_returns_2_naming_home_gitconfig_when_the_leaf_changed_created_or_deleted_it_and_restores_nothing(
+        before, after, tmp_path, monkeypatch, capfdbinary):
+    work = tmp_path / "work"
+    work.mkdir()
+    monkeypatch.chdir(work)
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    gitconfig = home / ".gitconfig"
+    if before is not None:
+        gitconfig.write_bytes(before)
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("VERI_ISSUE", "931")
+    monkeypatch.setenv("VERI_STEP", "7")
+    started = []
+
+    def fake(args, *_, **__):
+        words = [str(a) for a in args]
+        if os.path.basename(words[0]) == "env":
+            words = [w for w in words[1:] if "=" not in w]
+        name = os.path.basename(words[0])
+        started.append(name)
+        if name == "git":
+            return subprocess.CompletedProcess(args, 128, b"", b"fatal: not a git repository\n")
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            if after is None:
+                gitconfig.unlink()
+            else:
+                gitconfig.write_bytes(after)
+            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine\n", None)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    captured = capfdbinary.readouterr()
+    left = gitconfig.read_bytes() if gitconfig.exists() else None
+    assert (code, captured.out) == (
+        2, ("verifier leaf modified the operator's global git config — verdict not accepted"
+            " (see .tdd/verify-green.log); changed:\n%s\n" % os.path.join(str(home), ".gitconfig")).encode())
+    assert (left, "event.sh" in started, "preserve-attempt.sh" in started) == (after, False, False)

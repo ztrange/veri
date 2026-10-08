@@ -77,6 +77,14 @@ def changed_paths(tree_before, head_before):
     return paths, head_after
 
 
+def gitconfig_snapshot(path):
+    try:
+        with open(path, "rb") as config:
+            return config.read()
+    except FileNotFoundError:
+        return None
+
+
 def leaf_args():
     words = os.environ.get("VERIFY_LEAF_ARGS")
     if not words:
@@ -120,6 +128,8 @@ def main(argv):
         prompt.write(built.stdout.rstrip(b"\n"))
     tree_before = in_temp_index("write-tree")
     head_before = head_snapshot()
+    gitconfig = os.environ["HOME"] + "/.gitconfig"
+    gitconfig_before = gitconfig_snapshot(gitconfig)
     retries = os.environ.get("VERI_NO_VERDICT_RETRIES") or "1"
     if not re.fullmatch("[0-9]+", retries):
         _write(sys.stderr, "verify: VERI_NO_VERDICT_RETRIES must be a non-negative integer,"
@@ -146,6 +156,11 @@ def main(argv):
             _write(sys.stdout, "verifier leaf modified the repository — verdict not accepted"
                    " (see .tdd/%s.log); changed:" % leaf)
             _write(sys.stdout, "\n".join(changed))
+            return 2
+        if gitconfig_snapshot(gitconfig) != gitconfig_before:
+            _write(sys.stdout, "verifier leaf modified the operator's global git config — verdict not"
+                   " accepted (see .tdd/%s.log); changed:" % leaf)
+            _write(sys.stdout, gitconfig)
             return 2
         code, reason, err = parse(launched.stdout)
         if err:
