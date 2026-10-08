@@ -364,3 +364,24 @@ def test_main_leaves_a_rebase_already_in_progress_alone_and_exits_2_however_it_a
     assert (code, capsys.readouterr().out) == (2, "")
     assert [c for c in calls if c.startswith("git rebase") and c != rebase] == []
     assert sorted(p.name for p in merge.iterdir()) == ["head-name"]
+
+
+def test_main_answers_each_ls_remote_shape_with_its_stdout_stderr_and_exit_code_when_origin_head_is_absent(
+        monkeypatch, capsys, rebase_onto_default):
+    refusal = ("rebase-onto-default: refs/remotes/origin/HEAD is not set — "
+               "no default branch to rebase onto\n")
+    local = "git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD"
+    symref = "git ls-remote --symref origin HEAD"
+
+    def run(answer, **overrides):
+        fake_git(monkeypatch, **{local: (1, ""), symref: answer}, **overrides)
+        code = rebase_onto_default.main([])
+        captured = capsys.readouterr()
+        return code, captured.out, captured.err
+
+    trunk = {"git ls-remote origin refs/heads/trunk": (0, f"{ONTO}\trefs/heads/trunk\n"),
+             "git rev-parse origin/trunk": (0, f"{ONTO}\n")}
+    assert run((0, f"ref: refs/heads/trunk\tHEAD\n{ONTO}\tHEAD\n"), **trunk) == (
+        0, f"{PRE}\n{ONTO}\n", "")
+    assert run((0, f"{ONTO}\tHEAD\n")) == (2, "", refusal)
+    assert run((128, "")) == (2, "", refusal)
