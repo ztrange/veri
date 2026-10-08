@@ -38,6 +38,10 @@ def start(args, **kwargs):
         return subprocess.CompletedProcess(args, 127, b"")
 
 
+def mark(role, *words):
+    subprocess.run([sibling("event.sh"), *words], env=role)
+
+
 def leaf_args():
     words = os.environ.get("VERIFY_LEAF_ARGS")
     if not words:
@@ -88,13 +92,10 @@ def main(argv):
         if not no_verdict or relaunches >= retries:
             break
         relaunches += 1
-        subprocess.run([sibling("event.sh"), "relaunch", "cause=no-verdict"], env=role)
+        mark(role, "relaunch", "cause=no-verdict")
     word = {0: "PASS", 1: "REJECT"}.get(code, "malformed")
     cause = ["cause=no-verdict"] if no_verdict else []
-    subprocess.run(
-        [sibling("event.sh"), "verdict", "verdict=" + word,
-         "reason=" + reason.split("\n", 1)[0], *cause],
-        env=role)
+    mark(role, "verdict", "verdict=" + word, "reason=" + reason.split("\n", 1)[0], *cause)
     _write(sys.stdout, reason)
     return to_contract(code)
 
