@@ -176,7 +176,7 @@ def main(argv):
         if changed:
             in_temp_index("read-tree", "-u", "--reset", tree_before)
             if head_before and head_before != head_after:
-                restored = subprocess.run(["git", "update-ref", "HEAD", head_before])
+                restored = start(["git", "update-ref", "HEAD", head_before])
                 if restored.returncode != 0:
                     return 2
             return refuse_modified("the repository", leaf, changed)
