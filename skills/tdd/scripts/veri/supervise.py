@@ -6,6 +6,8 @@ import subprocess
 import sys
 import time
 
+from extract_result import extract
+from leaf_log import result_records
 from leaf_model import leaf_model
 from leaf_role import leaf_role
 from pid_file import number_in
@@ -106,6 +108,28 @@ def pause(poll):
     time.sleep(secs)
 
 
+def recover_finished_leaf(name, log, reason):
+    with open(log, "rb") as f:
+        data = f.read()
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+    records = result_records(text.splitlines())
+    if not records:
+        return None
+    outcome = "failure" if records[-1].get("is_error") else "success"
+    print(f"supervise[{name}]: killed after the leaf had already written its result ({reason})"
+          f" — reporting the leaf's own {outcome}", file=sys.stderr)
+    try:
+        result = extract(text)
+    except Exception:
+        return outcome
+    with open(log, "ab") as f:
+        f.write(b"\n" + result.encode("utf-8"))
+    return outcome
+
+
 def mark(role, *fields):
     if not role:
         return
@@ -196,6 +220,10 @@ def main(argv):
             break
         pause(poll)
     leaf.wait()
+    if status == "killed-stuck":
+        outcome = recover_finished_leaf(name, log, reason)
+        if outcome is not None:
+            status, reason = outcome, ""
     ec = {"success": 0, "failure": 1, "killed-stuck": 2}[status]
     if rc == "2":
         ec = 2

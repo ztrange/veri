@@ -1119,3 +1119,112 @@ def test_main_ignores_a_kill_whose_group_and_pid_signals_both_raise_and_still_en
     exitfile = tmp_path / ".tdd" / "develop-red.exit"
 
     assert (code, exitfile.read_bytes() if exitfile.exists() else None, b"Traceback" in err) == (2, b"2\n", False)
+
+
+def test_main_reports_a_killed_leaf_whose_log_ends_in_a_result_record_with_the_leafs_own_outcome_appending_its_result_text_and_otherwise_stays_killed_stuck(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+
+    def killed(label, log_text, **env):
+        work = tmp_path / label
+        work.mkdir()
+        monkeypatch.chdir(work)
+        clean_env(monkeypatch, VERI_TIMEOUT="5000", VERI_HEARTBEAT="3", VERI_KILL_POLL="0.25", **env)
+        clock = {"wall": 1000, "dates": 0}
+        launched, ran = [], []
+
+        class Leaf:
+            pid = 4242
+            returncode = None
+            args = []
+
+            def poll(self):
+                return self.returncode
+
+            def wait(self, timeout=None):
+                return self.returncode
+
+        leaf = Leaf()
+
+        def signalled(*_):
+            leaf.returncode = -signal.SIGTERM
+
+        monkeypatch.setattr(os, "killpg", signalled)
+        monkeypatch.setattr(os, "kill", signalled)
+        monkeypatch.setattr(time, "sleep", lambda secs: None)
+        monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
+
+        def answer(args):
+            args = [str(a) for a in args]
+            ran.append(args)
+            if args[:1] == ["git"]:
+                return "0123456789abcdef0123456789abcdef01234567\n"
+            if args[:1] == ["date"]:
+                clock["dates"] += 1
+                if clock["dates"] > 2000:
+                    raise Runaway()
+                clock["wall"] += 1
+                return f"{clock['wall']}\n"
+            if args[:1] == ["stat"]:
+                return "1000\n"
+            return ""
+
+        def run(args, *_, **kwargs):
+            out = as_asked(answer(args), kwargs)
+            return subprocess.CompletedProcess(args, 0, out, "" if isinstance(out, str) else b"")
+
+        def popen(args, *_, **kwargs):
+            if list(args[:2]) == ["/bin/sh", "-c"]:
+                launched.append(list(args))
+                pathlib.Path(args[4]).write_bytes(log_text)
+                return leaf
+            raise AssertionError(f"unexpected Popen: {args}")
+
+        monkeypatch.setattr(subprocess, "run", run)
+        monkeypatch.setattr(subprocess, "check_output", lambda args, *a, **k: as_asked(answer(args), k))
+        monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args).returncode)
+        monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: run(args).returncode)
+        monkeypatch.setattr(subprocess, "Popen", popen)
+
+        try:
+            code = supervise.main(["develop-red", "leaf-hang"])
+        except Runaway:
+            code = "<never ended>"
+        except Exception as error:
+            code = repr(error)
+        out, err = capsysbinary.readouterr()
+        log = work / ".tdd" / "develop-red.log"
+        return {"code": code, "err": err.decode(errors="replace"),
+                "appended": log.read_bytes()[len(log_text):] if log.exists() else None,
+                "stdout is log": log.exists() and out == log.read_bytes(),
+                "launches": len(launched),
+                "preserved": [a for a in ran if any(w.endswith("preserve-attempt.sh") for w in a)]}
+
+    cause = "no heartbeat for 4s (window 3s)"
+
+    def recovered(outcome):
+        return (f"supervise[develop-red]: killed after the leaf had already written its result ({cause})"
+                f" — reporting the leaf's own {outcome}\nsupervise[develop-red]: {outcome}\n")
+
+    stuck = f"supervise[develop-red]: killed-stuck — {cause}\n"
+    may_retry_and_preserve = {"VERI_STUCK_RETRIES": "1", "VERI_ISSUE": "1073", "VERI_STEP": "24"}
+    erred = killed("erred", b'chatter\n{"type":"result","is_error":true,"result":"boom"}\n',
+                   **may_retry_and_preserve)
+    done = killed("done", b'{"type":"result","is_error":true,"result":"early"}\n'
+                          b'{"type":"result","is_error":0,"result":"VERDICT: PASS"}\n', **may_retry_and_preserve)
+    no_record = killed("none", b'{"type":"assistant"}\nstill going\n', VERI_STUCK_RETRIES="0")
+    undecodable = killed("undecodable", b'\xff\xfe\n{"type":"result","is_error":false,"result":"x"}\n',
+                         VERI_STUCK_RETRIES="0")
+    unextractable = killed("unextractable", b'{"type":"result","is_error":false,"result":5}\n',
+                           **may_retry_and_preserve)
+
+    assert [(r["code"], r["err"], r["appended"], r["stdout is log"], r["launches"], r["preserved"])
+            for r in (erred, done, no_record, undecodable, unextractable)] == [
+        (1, recovered("failure"), b"\nboom\n", True, 1, []),
+        (0, recovered("success"), b"\nVERDICT: PASS\n", True, 1, []),
+        (2, stuck, b"", True, 1, []),
+        (2, stuck, b"", True, 1, []),
+        (0, recovered("success"), b"", True, 1, []),
+    ]
