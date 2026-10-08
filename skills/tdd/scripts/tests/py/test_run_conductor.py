@@ -305,3 +305,107 @@ def test_main_resolves_the_pin_ref_through_origin_head_else_origins_default_from
         "ls-remote-fails": (2, b"", b"", ls_remote, []),
         "no-origin": (["HEAD"], 0, False, False),
     }
+
+
+def fake_pin(monkeypatch, commit, accepted):
+    """git faked as a process: no origin, `rev-parse HEAD` resolves to `commit`, `cat-file -e`
+    accepts only `accepted`, and `for-each-ref` names a run branch so a kept record stays."""
+    calls = []
+
+    def answer(args, *_, **kwargs):
+        args = list(args)
+        calls.append(args)
+        code, out, err = 0, "", ""
+        if args[:1] == ["git"] and args[3:] == ["remote", "get-url", "origin"]:
+            code, err = 2, "error: No such remote 'origin'\n"
+        elif args[:1] == ["git"] and args[3:4] == ["rev-parse"]:
+            code, out = (0, commit + "\n") if args[4:] == ["HEAD"] else (128, "")
+        elif args[:1] == ["git"] and args[3:5] == ["cat-file", "-e"]:
+            code = 0 if args[5:] and args[5] in accepted else 128
+        elif args[:1] == ["git"] and "for-each-ref" in args:
+            out = "refs/heads/tdd/4242-run\n"
+        if not (kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")):
+            out, err = out.encode(), err.encode()
+        return subprocess.CompletedProcess(args, code, out, err)
+
+    def check_output(args, *a, **kwargs):
+        done = answer(args, *a, **kwargs)
+        if done.returncode:
+            raise subprocess.CalledProcessError(done.returncode, done.args, done.stdout, done.stderr)
+        return done.stdout
+
+    def popen(args, *_, **__):
+        calls.append(list(args))
+        return FakeProcess(list(args))
+
+    monkeypatch.setattr(subprocess, "run", answer)
+    monkeypatch.setattr(subprocess, "call", lambda *a, **k: answer(*a, **k).returncode)
+    monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: answer(*a, **k).returncode)
+    monkeypatch.setattr(subprocess, "check_output", check_output)
+    monkeypatch.setattr(subprocess, "Popen", popen)
+    for name in ("system", "fork", "posix_spawn", "posix_spawnp", "execv", "execvp", "execve"):
+        if hasattr(os, name):
+            monkeypatch.setattr(os, name, lambda *args, **__: calls.append(list(args)))
+    return calls
+
+
+def test_main_on_a_pinned_launch_seeds_the_gitignore_only_when_absent_writes_an_unreadable_record_keeps_an_accepted_one_as_given_and_refuses_any_other_with_2(
+        tmp_path, monkeypatch, capfdbinary):
+    import tempfile
+    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
+    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    scratch = tmp_path / "tmp"
+    scratch.mkdir()
+    monkeypatch.setenv("TMPDIR", str(scratch))
+    monkeypatch.setattr(tempfile, "tempdir", str(scratch))
+    base = str(SCRIPTS.parent)
+    commit = "1111111111111111111111111111111111111111"
+    accepted = {"1111111^{commit}", "main^{commit}"}
+    run_conductor = importlib.import_module("veri.run_conductor")
+    refusal = ("run-conductor: recorded skill commit '%s' is not in '" + base
+               + "' — refusing to re-pin; set VERI_NEW_SKILL=1 to take the new skill\n")
+    scenarios = {
+        "fresh": (None, None),
+        "own-gitignore": ("mine\n", None),
+        "abbreviation": (None, "1111111\n\n"),
+        "ref-name": (None, "main\n"),
+        "foreign": (None, "2222222\n"),
+        "directory": (None, ""),
+    }
+    answers = {}
+    for name, (gitignore, record) in scenarios.items():
+        cwd = tmp_path / name
+        cwd.mkdir()
+        monkeypatch.chdir(cwd)
+        path = cwd / ".tdd" / "issue-4242-skill-commit"
+        if gitignore is not None or record is not None:
+            (cwd / ".tdd").mkdir()
+        if gitignore is not None:
+            (cwd / ".tdd" / ".gitignore").write_text(gitignore)
+        if record == "":
+            path.mkdir()
+        elif record is not None:
+            path.write_text(record)
+        calls = fake_pin(monkeypatch, commit, accepted)
+        code = run_conductor.main(["4242"])
+        captured = capfdbinary.readouterr()
+        seed = cwd / ".tdd" / ".gitignore"
+        seeded = seed.read_text() if seed.is_file() else None
+        kept = path.read_text() if path.is_file() else None
+        cat_files = [call[5] for call in calls if call[:1] == ["git"] and call[3:5] == ["cat-file", "-e"]]
+        expanded = [call for call in calls if commit in call and call[3:4] != ["rev-parse"]]
+        if name in ("foreign", "directory"):
+            answers[name] = (code, captured.out, captured.err.decode().splitlines(True)[-1:], kept)
+        else:
+            answers[name] = (seeded, kept, cat_files,
+                             expanded if record else None, b"refusing to re-pin" in captured.err)
+    assert answers == {
+        "fresh": (".gitignore\nissue-*-skill-commit\n", commit + "\n", [], None, False),
+        "own-gitignore": ("mine\n", commit + "\n", [], None, False),
+        "abbreviation": (".gitignore\nissue-*-skill-commit\n", "1111111\n\n", ["1111111^{commit}"], [], False),
+        "ref-name": (".gitignore\nissue-*-skill-commit\n", "main\n", ["main^{commit}"], [], False),
+        "foreign": (2, b"", [refusal % "2222222"], "2222222\n"),
+        "directory": (2, b"", [refusal % ""], None),
+    }
