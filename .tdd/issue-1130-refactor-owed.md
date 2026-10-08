@@ -1,3 +1,5 @@
 ### with its stdout a pipe whose reader has exited, orchestrate.sh exits 2 with one stderr line saying its stdout is gone and no traceback, where it now lets BrokenPipeError escape ⟦criterion 1⟧
 - test-only | the #1130 case in orchestrate.test.sh hand-rolls its own `if … ok else no …` block where the suite's other cases use shared `expect_*` helpers; a helper that checks exit code plus a one-line stderr pattern would remove that
 - out-of-scope | `main()` writes to stderr with `sys.stderr.write` at three call sites without flushing, next to the `_err` helper; this cycle did not write those lines
+### with its stdout closed (sys.stdout is None), orchestrate.sh exits 2 with the same one stderr line and no traceback, where it now carries on ⟦criterion 2⟧
+- test-only | fold the identical exit-2 / one-stderr-line / no-Traceback assertion block shared by the two #1130 cases in skills/tdd/scripts/tests/orchestrate.test.sh (lines 391–399 and 412–420) into one helper, which also makes the first case's `grep -F stdout` the same as the second's `grep -F 'stdout is gone'`
