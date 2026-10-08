@@ -1342,4 +1342,26 @@ explicit_code=$?
 { [[ "$explicit_code" == 2 ]] && grep -F 'hard timeout 5s exceeded' "$explicit_work/err" > /dev/null; } && ok \
   || no "#954: an explicit VERI_TIMEOUT=5 wins over .tdd/issue-954-timeout recording a settled 3s, so a leaf busy for 10s is killed-stuck on 'hard timeout 5s exceeded' (code=$explicit_code want 2, err=$(cat "$explicit_work/err"))"
 
+usage_line='usage: supervise.sh <name> <cmd> [args...]'
+refusal_problems=()
+for refusal_args in none empty name-only; do
+  refusal_work="$(scratch_dir)"
+  refusal_io="$(scratch_dir)"
+  case "$refusal_args" in
+    none) ( cd "$refusal_work" && "$SUP" ) >"$refusal_io/out" 2>"$refusal_io/err" ;;
+    empty) ( cd "$refusal_work" && "$SUP" "" ) >"$refusal_io/out" 2>"$refusal_io/err" ;;
+    name-only) ( cd "$refusal_work" && "$SUP" develop-red ) >"$refusal_io/out" 2>"$refusal_io/err" ;;
+  esac
+  refusal_code=$?
+  refusal_want_err="$usage_line"
+  [[ "$refusal_args" == name-only ]] && refusal_want_err="supervise: missing <cmd>"$'\n'"$usage_line"
+  [[ "$refusal_code" == 2 ]] || refusal_problems+=("$refusal_args: want exit 2, got $refusal_code")
+  [[ ! -s "$refusal_io/out" ]] || refusal_problems+=("$refusal_args: want no stdout, got '$(cat "$refusal_io/out")'")
+  [[ "$(cat "$refusal_io/err"; echo .)" == "$refusal_want_err"$'\n.' ]] \
+    || refusal_problems+=("$refusal_args: want stderr '$refusal_want_err', got '$(cat "$refusal_io/err")'")
+  [[ ! -e "$refusal_work/.tdd" ]] || refusal_problems+=("$refusal_args: want no .tdd, found one")
+done
+{ [[ "${#refusal_problems[@]}" -eq 0 ]]; } && ok \
+  || no "supervise.sh with no argument or an empty <name> exits 2 with stderr exactly the usage line, and with develop-red alone exits 2 with stderr exactly 'supervise: missing <cmd>' then the usage line, nothing on stdout and no .tdd created (${refusal_problems[*]})"
+
 finish
