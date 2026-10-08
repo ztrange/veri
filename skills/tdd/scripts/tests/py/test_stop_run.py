@@ -43,6 +43,11 @@ def fake_processes(monkeypatch, answers):
     return calls
 
 
+def main_tree_at(main_tree):
+    """The answers under which git worktree list --porcelain names <main_tree> first."""
+    return {("git", "worktree", "list", "--porcelain"): (0, b"worktree %s\nHEAD abc\n" % os.fsencode(main_tree))}
+
+
 def run_with_conductor(main_tree):
     """<main_tree>/.tdd/wt/5, its .tdd/conductor.pid holding 4242."""
     run = main_tree / ".tdd" / "wt" / "5"
@@ -54,9 +59,7 @@ def run_with_conductor(main_tree):
 def test_main_refuses_no_issue_and_a_non_integer_and_stops_a_live_run_or_answers_3_for_a_dead_one(
         monkeypatch, tmp_path, capsysbinary, stop_run):
     monkeypatch.chdir(tmp_path)
-    calls = fake_processes(monkeypatch, {
-        ("git", "worktree", "list", "--porcelain"): (0, b"worktree %s\nHEAD abc\n" % os.fsencode(tmp_path)),
-    })
+    calls = fake_processes(monkeypatch, main_tree_at(tmp_path))
     live = {"4242": True}
 
     def fake_kill(pid, sig):
@@ -90,9 +93,7 @@ def test_main_accepts_a_mode_stop_modes_lists_and_writes_it_to_the_runs_stop_fil
     import stop_modes
     monkeypatch.setattr(stop_modes, "STOP_MODES", ("at-ledger", "at-leaf", "now", "at-step"))
     monkeypatch.chdir(tmp_path)
-    fake_processes(monkeypatch, {
-        ("git", "worktree", "list", "--porcelain"): (0, b"worktree %s\nHEAD abc\n" % os.fsencode(tmp_path)),
-    })
+    fake_processes(monkeypatch, main_tree_at(tmp_path))
     monkeypatch.setattr(os, "kill", lambda pid, sig: None)
     run = run_with_conductor(tmp_path)
 
