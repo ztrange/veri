@@ -30,7 +30,7 @@ def main(argv):
             conductor = _launch(issue)
         except OSError as e:
             sys.stderr.write("orchestrate.sh: cannot start %s: %s\n" % (CONDUCTOR, e.strerror))
-            continue
+            return 2
         _watch(issue, conductor.stdout, budget)
         _stop(conductor.pid)
         if _parked(issue):

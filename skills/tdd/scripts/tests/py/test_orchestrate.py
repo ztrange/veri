@@ -217,19 +217,17 @@ def test_a_conductor_launches_as_a_new_session_leader_with_signals_as_todays_lau
     assert asks == [[os.path.join(orchestrate.SCRIPTS, "solvable-issues.sh")]] * 2
 
 
-def test_a_conductor_that_cannot_start_prints_one_line_sends_no_stop_and_asks_again(
+def test_a_conductor_that_cannot_start_prints_one_line_sends_no_stop_and_exits_2(
         capsys, monkeypatch, tmp_path, orchestrate):
     import errno
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
-    asks, _ = _passes(monkeypatch, [(0, "7\n"), (0, "7\n"), (3, "")], lambda n, issue: None)
-    failures = [errno.ENOENT, errno.EACCES]
+    _passes(monkeypatch, [(0, "7\n"), (0, "7\n"), (3, "")], lambda n, issue: None)
     launches, stops = [], []
 
     def failing_popen(args, *rest, **kwargs):
         launches.append(list(args))
-        code = failures.pop(0)
-        raise OSError(code, os.strerror(code), args[0])
+        raise OSError(errno.ENOENT, os.strerror(errno.ENOENT), args[0])
 
     monkeypatch.setattr(subprocess, "Popen", failing_popen)
     monkeypatch.setattr(os, "killpg", lambda pid, sig: stops.append(("killpg", pid, sig)))
@@ -237,11 +235,9 @@ def test_a_conductor_that_cannot_start_prints_one_line_sends_no_stop_and_asks_ag
     code = orchestrate.main([])
     out, err = capsys.readouterr()
     conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
-    assert (code, out, err) == (0, "", "orchestrate.sh: cannot start %s: %s\norchestrate.sh: cannot start %s: %s\n" % (
-        conductor, os.strerror(errno.ENOENT), conductor, os.strerror(errno.EACCES)))
+    assert (code, out, err) == (2, "", "orchestrate.sh: cannot start %s: %s\n" % (conductor, os.strerror(errno.ENOENT)))
     assert stops == []
-    assert launches == [[conductor, "7"]] * 2
-    assert asks == [[os.path.join(orchestrate.SCRIPTS, "solvable-issues.sh")]] * 3
+    assert launches == [[conductor, "7"]]
 
 
 def test_every_conductor_is_stopped_by_sigterm_to_its_group_else_its_pid_silently_and_never_waited_for(
@@ -470,3 +466,24 @@ def test_stdout_carries_only_context_and_parked_lines_and_a_closed_stdout_raises
             closed.close()
         except BrokenPipeError:
             pass
+
+
+def test_1128_a_missing_run_conductor_ends_the_run_with_exit_2_one_stderr_line_naming_it_and_the_reason_and_no_further_launch(
+        capsys, monkeypatch, tmp_path, orchestrate):
+    import errno
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+    _passes(monkeypatch, [(0, "7\n"), (0, "7\n"), (3, "")], lambda n, issue: None)
+    launches = []
+
+    def missing_popen(args, *rest, **kwargs):
+        launches.append(list(args))
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), args[0])
+
+    monkeypatch.setattr(subprocess, "Popen", missing_popen)
+    code = orchestrate.main([])
+    out, err = capsys.readouterr()
+    conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
+    lines = err.splitlines()
+    assert (code, out, len(lines), launches) == (2, "", 1, [[conductor, "7"]])
+    assert "run-conductor.sh" in lines[0] and os.strerror(errno.ENOENT) in lines[0]
