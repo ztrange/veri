@@ -250,3 +250,45 @@ def test_main_hands_veri_poll_to_sleep_as_text_defaulting_to_1_and_a_failing_sle
     }
     captured = capsys.readouterr()
     assert captured.out == ""
+
+
+def test_main_never_calls_a_pid_file_with_no_number_dead_and_names_a_dead_supervisor_by_the_pid_digits_as_read(
+        monkeypatch, capsys, tmp_path, wait_leaf):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    readings = []
+
+    def answer(line):
+        if line == "date +%s":
+            if len(readings) > 20:
+                raise RuntimeError("runaway wait: more than 20 clock readings")
+            readings.append(1000 + len(readings))
+            return (0, f"{readings[-1]}\n", "")
+        if line.startswith("ps "):
+            return (1, "", "")
+        return (0, "", "")
+
+    calls = fake_processes(monkeypatch, answer)
+
+    pid_file = tmp_path / ".tdd" / "x.pid"
+    no_verdict = {}
+    for text in (None, "", "abc\n", "-7\n"):
+        pid_file.unlink(missing_ok=True)
+        if text is not None:
+            pid_file.write_text(text)
+        calls.clear()
+        readings.clear()
+        code = wait_leaf.main(["x", "2"])
+        no_verdict[text] = (code, [c for c in calls if c.startswith("ps ")])
+    assert no_verdict == {None: (3, []), "": (3, []), "abc\n": (3, []), "-7\n": (3, [])}
+    capsys.readouterr()
+
+    pid_file.write_text("007\n")
+    calls.clear()
+    code = wait_leaf.main(["x"])
+    captured = capsys.readouterr()
+    assert (code, captured.out, captured.err, [c for c in calls if c.startswith("ps ")]) == (
+        2, "",
+        "wait-leaf.sh: supervisor for leaf 'x' (pid 007) exited without recording a status\n",
+        ["ps -p 007 -o args="],
+    )
