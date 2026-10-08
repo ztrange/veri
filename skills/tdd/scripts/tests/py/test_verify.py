@@ -391,3 +391,63 @@ def test_main_returns_2_on_a_killed_stuck_leaf_with_no_tamper_check_event_or_pre
         launch = [os.path.basename(words[0]) for words in started].index("supervise.sh")
         assert [words for words in started[launch + 1:]
                 if {os.path.basename(w) for w in words} & {"git", "event.sh", "preserve-attempt.sh"}] == []
+
+
+NO_VERDICT = b"I looked around and have no opinion\n"
+NO_LINE = b"parse-verdict: no VERDICT: line found\n"
+
+
+@pytest.mark.parametrize("retries, leaf_outs, launches, events, expected_code, expected_err", [
+    (None, [NO_VERDICT, b"VERDICT: PASS\nfine\n"], 2,
+     [["relaunch", "cause=no-verdict"], ["verdict", "verdict=PASS", "reason=fine"]], 0, NO_LINE),
+    ("", [NO_VERDICT, NO_VERDICT], 2,
+     [["relaunch", "cause=no-verdict"],
+      ["verdict", "verdict=malformed", "reason=", "cause=no-verdict"]], 2, NO_LINE * 2),
+    ("2", [NO_VERDICT, NO_VERDICT, NO_VERDICT], 3,
+     [["relaunch", "cause=no-verdict"], ["relaunch", "cause=no-verdict"],
+      ["verdict", "verdict=malformed", "reason=", "cause=no-verdict"]], 2, NO_LINE * 3),
+    ("0", [NO_VERDICT], 1,
+     [["verdict", "verdict=malformed", "reason=", "cause=no-verdict"]], 2, NO_LINE),
+    (None, [b"VERDICT: MAYBE\nundecided\n", b"VERDICT: PASS\nfine\n"], 1,
+     [["verdict", "verdict=malformed", "reason="]], 2,
+     b"parse-verdict: unrecognised verdict word 'MAYBE'\n"),
+])
+def test_main_relaunches_a_leaf_with_no_verdict_line_up_to_the_no_verdict_budget_marking_each_relaunch_and_the_last_verdict_while_an_unrecognised_word_is_malformed_and_not_relaunched(
+        retries, leaf_outs, launches, events, expected_code, expected_err, tmp_path, monkeypatch,
+        capfdbinary):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERIFY_LEAF_ARGS", "VERI_ISSUE", "VERI_STEP", "VERI_MODEL", "VERI_MODEL_VERIFIER"):
+        monkeypatch.delenv(name, raising=False)
+    if retries is None:
+        monkeypatch.delenv("VERI_NO_VERDICT_RETRIES", raising=False)
+    else:
+        monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", retries)
+    supervised = []
+    marked = []
+
+    def fake(args, *_, **__):
+        words = [str(a) for a in args]
+        if os.path.basename(words[0]) == "env":
+            words = words[1:]
+            while words and "=" in words[0]:
+                words.pop(0)
+        name = os.path.basename(words[0])
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            supervised.append(words)
+            out = leaf_outs[min(len(supervised), len(leaf_outs)) - 1]
+            return subprocess.CompletedProcess(args, 0, out, None)
+        if name == "event.sh":
+            marked.append(words[1:])
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    assert (code, len(supervised), marked, capfdbinary.readouterr().err) == (
+        expected_code, launches, events, expected_err)
