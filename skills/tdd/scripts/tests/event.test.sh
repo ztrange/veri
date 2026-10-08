@@ -286,6 +286,20 @@ ac_code=$?
 rm -rf "$ac_work"
 report "$name"
 
+name="event.sh with no argument exits 2 with nothing on stdout, stderr exactly the one line usage: event.sh <event> [key=value …], and no .tdd created"
+problems=()
+na_work="$(scratch_dir)"
+( cd "$na_work" && "$EVENT" ) > "$na_work/out" 2> "$na_work/err"
+na_code=$?
+[[ "$na_code" == 2 ]] || problems+=("want exit 2, got $na_code")
+[[ ! -s "$na_work/out" ]] || problems+=("stdout: want nothing, got $(printf '%q' "$(cat "$na_work/out")")")
+na_want="$(printf '%s\n' 'usage: event.sh <event> [key=value …]' | od -c)"
+na_got="$(od -c < "$na_work/err")"
+[[ "$na_got" == "$na_want" ]] || problems+=("stderr: want exactly the usage line, got $(printf '%q' "$(cat "$na_work/err")")")
+[[ ! -e "$na_work/.tdd" ]] || problems+=("want no .tdd created, found one")
+rm -rf "$na_work"
+report "$name"
+
 name="#563: event.sh's awake reading is the system-wide awake clock, so it advances across processes under a python3 whose time.monotonic() restarts per process"
 problems=()
 rs_work="$(scratch_dir)"
