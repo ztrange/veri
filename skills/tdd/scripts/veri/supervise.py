@@ -82,7 +82,10 @@ def signal_tree(pid, sig):
     try:
         os.killpg(pid, sig)
     except OSError:
-        os.kill(pid, sig)
+        try:
+            os.kill(pid, sig)
+        except OSError:
+            pass
 
 
 def kill_tree(leaf, kill_poll):

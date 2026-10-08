@@ -1049,3 +1049,73 @@ def test_main_kills_the_leaf_by_term_to_its_group_else_its_pid_then_five_reaping
     assert stubborn["rounds slept"] > 0
     assert (invalid["code"], invalid["kill"], invalid["round sleeps"], invalid["invalid lines"]) == (
         2, [("group", 4242, term), *grace, ("group", 4242, kill)], [], stubborn["rounds slept"])
+
+
+def test_main_ignores_a_kill_whose_group_and_pid_signals_both_raise_and_still_ends_killed_stuck_writing_2_to_its_exit_file(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    monkeypatch.chdir(tmp_path)
+    clean_env(monkeypatch, VERI_TIMEOUT="5000", VERI_STUCK_RETRIES="0", VERI_HEARTBEAT="3",
+              VERI_KILL_POLL="0.25")
+    clock = {"wall": 1000, "dates": 0}
+
+    class Leaf:
+        pid = 4242
+        returncode = None
+        args = []
+
+        def poll(self):
+            return self.returncode
+
+        def wait(self, timeout=None):
+            return self.returncode
+
+    def gone(*_):
+        raise ProcessLookupError(3, "No such process")
+
+    monkeypatch.setattr(os, "killpg", gone)
+    monkeypatch.setattr(os, "kill", gone)
+    monkeypatch.setattr(time, "sleep", lambda secs: None)
+    monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
+
+    def answer(args):
+        args = [str(a) for a in args]
+        if args[:1] == ["git"]:
+            return "0123456789abcdef0123456789abcdef01234567\n"
+        if args[:1] == ["date"]:
+            clock["dates"] += 1
+            if clock["dates"] > 2000:
+                raise Runaway()
+            clock["wall"] += 1
+            return f"{clock['wall']}\n"
+        if args[:1] == ["stat"]:
+            return "1000\n"
+        return ""
+
+    def run(args, *_, **kwargs):
+        out = as_asked(answer(args), kwargs)
+        return subprocess.CompletedProcess(args, 0, out, "" if isinstance(out, str) else b"")
+
+    def popen(args, *_, **kwargs):
+        if list(args[:2]) == ["/bin/sh", "-c"]:
+            return Leaf()
+        raise AssertionError(f"unexpected Popen: {args}")
+
+    monkeypatch.setattr(subprocess, "run", run)
+    monkeypatch.setattr(subprocess, "check_output", lambda args, *a, **k: as_asked(answer(args), k))
+    monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: 0)
+    monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: 0)
+    monkeypatch.setattr(subprocess, "Popen", popen)
+
+    try:
+        code = supervise.main(["develop-red", "leaf-hang"])
+    except Runaway:
+        code = "<never ended>"
+    except Exception as error:
+        code = repr(error)
+    _, err = capsysbinary.readouterr()
+    exitfile = tmp_path / ".tdd" / "develop-red.exit"
+
+    assert (code, exitfile.read_bytes() if exitfile.exists() else None, b"Traceback" in err) == (2, b"2\n", False)
