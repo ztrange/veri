@@ -78,6 +78,31 @@ def limit(value):
         return None
 
 
+def signal_tree(pid, sig):
+    try:
+        os.killpg(pid, sig)
+    except OSError:
+        os.kill(pid, sig)
+
+
+def kill_tree(leaf, kill_poll):
+    signal_tree(leaf.pid, signal.SIGTERM)
+    for _ in range(5):
+        if leaf.poll() is not None:
+            return
+        time.sleep(kill_poll)
+    signal_tree(leaf.pid, signal.SIGKILL)
+
+
+def pause(poll):
+    try:
+        secs = float(poll)
+    except ValueError:
+        print(f"sleep: invalid time interval '{poll}'", file=sys.stderr)
+        return
+    time.sleep(secs)
+
+
 def mark(role, *fields):
     if not role:
         return
@@ -106,7 +131,7 @@ def main(argv):
     if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", kill_poll):
         return refuse(f"supervise: VERI_KILL_POLL must be a non-negative number: {kill_poll}")
     heartbeat = os.environ.get("VERI_HEARTBEAT") or "180"
-    poll = float(os.environ.get("VERI_POLL") or "1")
+    poll = os.environ.get("VERI_POLL") or "1"
     name = argv[0]
     os.makedirs(".tdd", exist_ok=True)
     log, rcfile, exitfile = f".tdd/{name}.log", f".tdd/{name}.rc", f".tdd/{name}.exit"
@@ -164,9 +189,9 @@ def main(argv):
             return 1
         if reason:
             status = "killed-stuck"
-            os.killpg(leaf.pid, signal.SIGTERM)
+            kill_tree(leaf, float(kill_poll))
             break
-        time.sleep(poll)
+        pause(poll)
     leaf.wait()
     ec = {"success": 0, "failure": 1, "killed-stuck": 2}[status]
     if rc == "2":
