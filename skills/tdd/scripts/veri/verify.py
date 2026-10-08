@@ -85,6 +85,13 @@ def gitconfig_snapshot(path):
         return None
 
 
+def refuse_modified(what, leaf, paths):
+    _write(sys.stdout, "verifier leaf modified %s — verdict not accepted"
+           " (see .tdd/%s.log); changed:" % (what, leaf))
+    _write(sys.stdout, "\n".join(paths))
+    return 2
+
+
 def leaf_args():
     words = os.environ.get("VERIFY_LEAF_ARGS")
     if not words:
@@ -153,15 +160,9 @@ def main(argv):
                 restored = subprocess.run(["git", "update-ref", "HEAD", head_before])
                 if restored.returncode != 0:
                     return restored.returncode
-            _write(sys.stdout, "verifier leaf modified the repository — verdict not accepted"
-                   " (see .tdd/%s.log); changed:" % leaf)
-            _write(sys.stdout, "\n".join(changed))
-            return 2
+            return refuse_modified("the repository", leaf, changed)
         if gitconfig_snapshot(gitconfig) != gitconfig_before:
-            _write(sys.stdout, "verifier leaf modified the operator's global git config — verdict not"
-                   " accepted (see .tdd/%s.log); changed:" % leaf)
-            _write(sys.stdout, gitconfig)
-            return 2
+            return refuse_modified("the operator's global git config", leaf, [gitconfig])
         code, reason, err = parse(launched.stdout)
         if err:
             _write(sys.stderr, err.removesuffix("\n"))
