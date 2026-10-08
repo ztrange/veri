@@ -830,3 +830,74 @@ def test_main_hands_claude_the_snapshots_committed_skill_md_never_the_skill_clon
     capfdbinary.readouterr()
     assert [(stdin.startswith(b"# the committed procedure"), b"uncommitted edit" in stdin) for stdin in stdins] == [
         (True, False)]
+
+
+def test_main_hands_claude_skill_md_stripped_of_trailing_newlines_then_the_base_line_the_pinned_line_only_when_pinned_and_the_solve_line_naming_the_unvalidated_issue_ignoring_further_arguments(
+        tmp_path, monkeypatch, capfdbinary):
+    import importlib.util
+    import tempfile
+    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
+    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
+        monkeypatch.delenv(name, raising=False)
+    scratch = tmp_path / "tmp"
+    scratch.mkdir()
+    monkeypatch.setenv("TMPDIR", str(scratch))
+    monkeypatch.setattr(tempfile, "tempdir", str(scratch))
+    skill = tmp_path / "skill"
+    (skill / "scripts" / "veri").mkdir(parents=True)
+    (skill / "scripts" / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
+    (skill / "SKILL.md").write_text("# the procedure\n\nlast line\n\n\n")
+    spec = importlib.util.spec_from_file_location("run_conductor_prompt", str(skill / "scripts" / "veri" / "run_conductor.py"))
+    run_conductor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_conductor)
+    commit = "1111111111111111111111111111111111111111"
+    answers = {}
+
+    unpinned = tmp_path / "unpinned"
+    unpinned.mkdir()
+    monkeypatch.chdir(unpinned)
+    launches = fake_claude_launch(monkeypatch)
+    run_conductor.main(["abc", "extra", "more"])
+    capfdbinary.readouterr()
+    answers["unpinned"] = ([launch["stdin"] for launch in launches],
+                           sorted(str(p.relative_to(unpinned)) for p in unpinned.rglob("*")))
+
+    pinned = tmp_path / "pinned"
+    pinned.mkdir()
+    monkeypatch.chdir(pinned)
+    calls = fake_pin(monkeypatch, commit, set())
+    fake_snapshot(monkeypatch, calls, 0, 0)
+    popen, run, stdins, snapshots = subprocess.Popen, subprocess.run, [], []
+
+    def tar_extracts_a_skill_md_with_trailing_newlines(args, *a, **kwargs):
+        process = popen(args, *a, **kwargs)
+        if list(args)[:1] == ["tar"]:
+            snapshots.append(args[-1])
+            pathlib.Path(args[-1], "SKILL.md").write_text("# the committed procedure\n\n")
+        return process
+
+    def claude_reads_stdin(args, *a, **kwargs):
+        if list(args)[:1] == ["fake-claude"]:
+            data = kwargs.get("input")
+            stdins.append(data.encode() if isinstance(data, str) else (data or b""))
+        return run(args, *a, **kwargs)
+
+    monkeypatch.setattr(subprocess, "Popen", tar_extracts_a_skill_md_with_trailing_newlines)
+    monkeypatch.setattr(subprocess, "run", claude_reads_stdin)
+    run_conductor.main(["abc", "extra"])
+    capfdbinary.readouterr()
+    answers["pinned"] = (stdins, (pinned / ".tdd" / "issue-abc-skill-commit").read_text())
+
+    assert len(snapshots) == 1
+    assert answers == {
+        "unpinned": ([("# the procedure\n\nlast line"
+                       "\n\nBase directory for this skill: %s\n"
+                       "\nSolve issue #abc by the procedure above.\n" % skill).encode()], []),
+        "pinned": ([("# the committed procedure"
+                     "\n\nBase directory for this skill: %s\n"
+                     "\nPinned skill commit (name it in the plan comment): %s\n"
+                     "\nSolve issue #abc by the procedure above.\n" % (snapshots[0], commit)).encode()],
+                   commit + "\n"),
+    }
