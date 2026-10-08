@@ -1364,4 +1364,52 @@ done
 { [[ "${#refusal_problems[@]}" -eq 0 ]]; } && ok \
   || no "supervise.sh with no argument or an empty <name> exits 2 with stderr exactly the usage line, and with develop-red alone exits 2 with stderr exactly 'supervise: missing <cmd>' then the usage line, nothing on stdout and no .tdd created (${refusal_problems[*]})"
 
+linked_home="$(scratch_dir)"
+ln -s "$(cd "$SCRIPTS/.." && pwd)" "$linked_home/skill"
+linked_sup="$linked_home/skill/scripts/supervise.sh"
+linked_caller="$(scratch_dir)"
+new_repo -b main "$linked_caller" >/dev/null 2>&1
+printf '.tdd/\n.test-clock*\n' > "$linked_caller/.gitignore"
+git -C "$linked_caller" add -A >/dev/null 2>&1
+git -C "$linked_caller" commit -q -m initial >/dev/null 2>&1
+linked_issue=1073
+linked_step=5
+linked_want_commit="$(git -C "$SCRIPTS" rev-parse HEAD 2>/dev/null || echo '<no-sha>')"
+linked_beside_before="$(ls -d "$SCRIPTS/.tdd" "$SCRIPTS/../.tdd" "$linked_home/.tdd" 2>/dev/null)"
+linked_problems=()
+sup_run "$linked_caller" env -u VERI_SKILL_COMMIT "$linked_sup" develop-red "$stub/leaf-result"
+linked_ok_code=$?
+( cd "$linked_caller" && env -u VERI_SKILL_COMMIT VERI_STUCK_RETRIES=0 \
+    VERI_ISSUE="$linked_issue" VERI_STEP="$linked_step" VERI_HEARTBEAT=1 VERI_TIMEOUT=30 \
+    VERI_POLL=0.02 VERI_KILL_POLL=0.01 "$linked_sup" develop-green "$stub/leaf-hang" ) >/dev/null 2>&1
+linked_kill_code=$?
+[[ "$linked_ok_code" == 0 ]] || linked_problems+=("result leaf: want exit 0, got $linked_ok_code")
+[[ "$linked_kill_code" == 2 ]] || linked_problems+=("hung leaf: want exit 2, got $linked_kill_code")
+for linked_event in launch exit; do
+  linked_n="$(event_count "$linked_caller" "$linked_event")"
+  [[ "$linked_n" == 2 ]] || linked_problems+=("$linked_event events in the caller's .tdd/events.jsonl: want 2, got $linked_n")
+done
+linked_usage="$(event_field "$linked_caller" usage num_turns)"
+[[ "$linked_usage" == "$usage_turns" ]] || linked_problems+=("usage event num_turns: want $usage_turns, got $linked_usage")
+linked_commits="$(python3 -c '
+import sys, json
+for line in open(sys.argv[1]):
+    obj = json.loads(line)
+    if obj.get("event") == "launch":
+        print(obj.get("skill_commit", "<missing>"))
+' "$linked_caller/.tdd/events.jsonl" 2>/dev/null | sort -u | xargs)"
+[[ "$linked_want_commit" =~ ^[0-9a-f]{40}$ && "$linked_commits" == "$linked_want_commit" ]] \
+  || linked_problems+=("launch skill_commit: want $linked_want_commit, got '$linked_commits'")
+linked_refs="$(git -C "$linked_caller" for-each-ref --format='%(refname)' \
+  "refs/veri/attempts/$linked_issue/$linked_step/" 2>/dev/null | grep -c . || true)"
+[[ "$linked_refs" == 1 ]] || linked_problems+=("preserved attempts under refs/veri/attempts/$linked_issue/$linked_step/: want 1, got $linked_refs")
+for linked_file in develop-red.log develop-red.exit develop-red.pid develop-green.log develop-green.exit develop-green.pid; do
+  [[ -f "$linked_caller/.tdd/$linked_file" ]] || linked_problems+=("want .tdd/$linked_file under the caller, missing")
+done
+linked_beside_after="$(ls -d "$SCRIPTS/.tdd" "$SCRIPTS/../.tdd" "$linked_home/.tdd" 2>/dev/null)"
+[[ "$linked_beside_after" == "$linked_beside_before" ]] \
+  || linked_problems+=("want no .tdd beside the skill, found: $linked_beside_after")
+{ [[ "${#linked_problems[@]}" -eq 0 ]]; } && ok \
+  || no "supervise.sh run through a symlink to the skill directory from another working directory answers as in place: events, usage and the preserved attempt land in the caller's .tdd, skill_commit is the skill clone's HEAD, and no .tdd appears beside the skill (${linked_problems[*]})"
+
 finish
