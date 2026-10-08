@@ -71,7 +71,7 @@ def test_main_launches_with_stdin_devnull_inherited_stdout_stderr_and_fds_in_a_n
     kwargs["preexec_fn"]()
     assert dict(dispositions) == {
         signal.SIGPIPE: signal.SIG_DFL, signal.SIGINT: signal.SIG_IGN,
-        signal.SIGQUIT: signal.SIG_IGN, signal.SIGXFSZ: signal.SIG_IGN}
+        signal.SIGQUIT: signal.SIG_IGN, signal.SIGXFSZ: signal.SIG_DFL}
     assert calls == []
 
 

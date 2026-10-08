@@ -239,7 +239,7 @@ appeared "$RAN" "$PATIENCE" ||
 
 report "$name"
 
-name="a command started by detach-leaf.sh sees SIGINT and SIGQUIT ignored, SIGXFSZ ignored, SIGPIPE at its default, end-of-file on stdin though the caller's stdin is a pipe with data in it, and the caller's own stdout and stderr"
+name="a command started by detach-leaf.sh sees SIGINT and SIGQUIT ignored, SIGXFSZ at its default, SIGPIPE at its default, end-of-file on stdin though the caller's stdin is a pipe with data in it, and the caller's own stdout and stderr"
 problems=()
 
 SEEN="$work/dispositions.seen"
@@ -260,9 +260,9 @@ L
 printf 'caller-data\n' | "$DETACH" bash "$PROBE" "$SEEN" "$work/xfsz.big" > "$work/dispositions.out" 2> "$work/dispositions.err"
 if appeared "$SEEN" "$PATIENCE"; then
   seen="$(cat "$SEEN")"
-  want=$'int-quit=1 1\nxfsz-status=1\npipe-status=141\nstdin=eof'
+  want=$'int-quit=1 1\nxfsz-status=153\npipe-status=141\nstdin=eof'
   [[ "$seen" == "$want" ]] ||
-    problems+=("want the started command to see $(printf '%q' "$want") (xfsz-status 1: the oversized write failed and the writer lived, so SIGXFSZ is ignored; 153 would be death by SIGXFSZ), got: $(printf '%q' "$seen")")
+    problems+=("want the started command to see $(printf '%q' "$want") (xfsz-status 153: the writer died of SIGXFSZ, so SIGXFSZ is at its default; 1 would be the write failing with EFBIG), got: $(printf '%q' "$seen")")
 else
   problems+=("the command started through detach-leaf.sh never wrote $SEEN")
 fi
@@ -270,6 +270,27 @@ fi
   problems+=("want the started command's stdout in the file the caller redirected stdout to, exactly 'probe-stdout', got: $(printf '%q' "$(cat "$work/dispositions.out")")")
 [[ "$(cat "$work/dispositions.err"; printf x)" == $'probe-stderr\nx' ]] ||
   problems+=("want the started command's stderr in the file the caller redirected stderr to, exactly 'probe-stderr', got: $(printf '%q' "$(cat "$work/dispositions.err")")")
+
+report "$name"
+
+name="#1189: a command started by detach-leaf.sh that writes past its ulimit -f dies of SIGXFSZ (status 153), as it does outside a leaf, rather than getting EFBIG"
+problems=()
+
+XFSZ_STATUS="$work/xfsz-default.status"
+XFSZ_LEAF="$work/xfsz-default-leaf.sh"
+cat > "$XFSZ_LEAF" <<'L'
+( ulimit -f 1; head -c 8192 /dev/zero > "$2" ) 2> /dev/null
+printf '%s\n' "$?" > "$1.tmp"
+mv "$1.tmp" "$1"
+L
+
+"$DETACH" bash "$XFSZ_LEAF" "$XFSZ_STATUS" "$work/xfsz-default.big" > /dev/null 2>&1
+if appeared "$XFSZ_STATUS" "$PATIENCE"; then
+  [[ "$(cat "$XFSZ_STATUS")" == 153 ]] ||
+    problems+=("want status 153, the writer killed by SIGXFSZ, got status: $(cat "$XFSZ_STATUS") (1 is the oversized write failing with EFBIG and the writer living on)")
+else
+  problems+=("the command started through detach-leaf.sh never wrote $XFSZ_STATUS")
+fi
 
 report "$name"
 
