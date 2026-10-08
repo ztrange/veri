@@ -53,6 +53,15 @@ def render_printf(fmt, arg):
     return "".join(out)
 
 
+def report_countless(stream, fmt, name, text, last_line):
+    stream.write(render_printf(fmt, name))
+    if text.strip():
+        stream.write("%s: its last line was: %s\n" % (name, last_line))
+    else:
+        stream.write("%s: its output was empty\n" % name)
+    stream.flush()
+
+
 def venv_python():
     venv = os.environ.get("VERI_VENV") or os.path.join(os.environ.get("HOME", ""), ".veri-tools", "venv")
     py = os.path.join(venv, "bin", "python3")
@@ -97,8 +106,7 @@ def main(argv):
     try:
         proc = subprocess.Popen([suite], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, env=env)
     except OSError:
-        sys.stderr.write(render_printf(guard["COUNTLESS"], name))
-        sys.stderr.write("%s: its output was empty\n" % name)
+        report_countless(sys.stderr, guard["COUNTLESS"], name, "", "")
         return 1
     with proc:
         for chunk in iter(lambda: proc.stdout.read1(65536), b""):
@@ -110,12 +118,7 @@ def main(argv):
     last_line = lines[-2] if text.endswith("\n") else lines[-1]
     if re.search(guard["COUNT_LINE"], last_line):
         return 128 - proc.returncode if proc.returncode < 0 else proc.returncode
-    sys.stdout.write(render_printf(guard["COUNTLESS"], name))
-    if text.strip():
-        sys.stdout.write("%s: its last line was: %s\n" % (name, last_line))
-    else:
-        sys.stdout.write("%s: its output was empty\n" % name)
-    sys.stdout.flush()
+    report_countless(sys.stdout, guard["COUNTLESS"], name, text, last_line)
     return 1
 
 
