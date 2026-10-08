@@ -4,19 +4,17 @@ import subprocess
 import sys
 
 try:
+    from git import git
     from github import NoAnswer, gh_json
     from json_documents import items
 except ImportError:
+    from .git import git
     from .github import NoAnswer, gh_json
     from .json_documents import items
 
 
 class GitFailed(Exception):
     pass
-
-
-def git(*args, **kwargs):
-    return subprocess.run(["git", *args], **kwargs)
 
 
 def git_out(*args):
