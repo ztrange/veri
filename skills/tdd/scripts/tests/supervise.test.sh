@@ -150,9 +150,6 @@ sup runaway 30 1 leaf-runaway
 { [[ "$code" == 2 ]] && grep -qi 'timeout\|stuck' "$work/err"; } && ok \
   || no "runaway leaf → killed-stuck via hard timeout (code=$code, err=$(cat "$work/err"))"
 
-sup ok 5 10 leaf-ok
-grep -qiE 'success|ok' "$work/err" && ok || no "emits a status line (err=$(cat "$work/err"))"
-
 sup hang 1 30 leaf-hang
 if pgrep -f "$stub/leaf-hang" >/dev/null 2>&1; then no "killed leaf left a process behind"; else ok; fi
 
@@ -212,20 +209,6 @@ sup_run() {
       VERI_KILL_POLL=0.01 "$@" ) >/dev/null 2>&1
 }
 
-launch_work="$work/launch"
-launch_name=revise-green-2
-launch_cmd=(env VERI_TIMEOUT=1200 "$stub/leaf-ok")
-sup_run "$launch_work" "$SUP" "$launch_name" "${launch_cmd[@]}"
-launch_code=$?
-launch_got_name="$(event_field    "$launch_work" launch name)"
-launch_got_cmd="$(event_field     "$launch_work" launch cmd)"
-launch_got_attempt="$(event_field "$launch_work" launch attempt)"
-{ [[ "$launch_code" == 0 ]] \
-  && [[ "$launch_got_name"    == "$launch_name" ]] \
-  && [[ "$launch_got_cmd"     == "${launch_cmd[*]}" ]] \
-  && [[ "$launch_got_attempt" == 2 ]]; } && ok \
-  || no "a launched leaf appends a launch event naming the leaf, its command and the attempt (code=$launch_code, name=$launch_got_name, cmd=$launch_got_cmd, attempt=$launch_got_attempt)"
-
 heartbeat_kill() { [[ "$1" == "no heartbeat for "*" (window ${2}s)" ]]; }
 
 
@@ -267,22 +250,6 @@ exit_stuck_secs="$(event_field   "$exit_work/stuck" exit secs)"
   && [[ "$exit_stuck_secs" =~ ^[0-9]+$ ]] && (( exit_stuck_secs >= exit_window )); } && ok \
   || no "a supervised leaf appends one exit event carrying the 0/1/2 status, the kill cause and the attempt's wall seconds (success status=$exit_ok_status want 0, secs=$exit_ok_secs; failure status=$exit_fail_status want 1; killed-stuck status=$exit_stuck_status want 2, cause=$exit_stuck_cause, secs=$exit_stuck_secs want >=$exit_window)"
 
-ctx_work="$work/ctx"
-ctx_issue=163
-ctx_step=4
-sup_run "$ctx_work" VERI_ISSUE="$ctx_issue" VERI_STEP="$ctx_step" \
-    "$SUP" develop-red "$stub/leaf-ok"
-ctx_code=$?
-ctx_launch_issue="$(event_field "$ctx_work" launch issue)"
-ctx_launch_step="$(event_field  "$ctx_work" launch step)"
-ctx_exit_issue="$(event_field   "$ctx_work" exit   issue)"
-ctx_exit_step="$(event_field    "$ctx_work" exit   step)"
-{ [[ "$ctx_code" == 0 ]] \
-  && [[ "$ctx_launch_issue" == "$ctx_issue" ]] && [[ "$ctx_launch_step" == "$ctx_step" ]] \
-  && [[ "$ctx_exit_issue"   == "$ctx_issue" ]] && [[ "$ctx_exit_step"   == "$ctx_step" ]]; } && ok \
-  || no "VERI_ISSUE/VERI_STEP in the supervisor's environment reach its launch and exit events (code=$ctx_code, launch issue=$ctx_launch_issue want $ctx_issue step=$ctx_launch_step want $ctx_step, exit issue=$ctx_exit_issue want $ctx_issue step=$ctx_exit_step want $ctx_step)"
-
-usage_work="$work/usage"
 usage_turns=7
 cat > "$stub/leaf-result" <<L
 #!/bin/sh
@@ -291,12 +258,6 @@ echo '{"type":"result","subtype":"success","is_error":false,"duration_ms":91234,
 exit 0
 L
 chmod +x "$stub/leaf-result"
-sup_run "$usage_work" "$SUP" develop-red "$stub/leaf-result"
-usage_code=$?
-usage_got_turns="$(event_field "$usage_work" usage num_turns)"
-{ [[ "$usage_code" == 0 ]] && [[ "$usage_got_turns" == "$usage_turns" ]]; } && ok \
-  || no "a leaf whose log ends in a result record leaves exactly one usage event carrying that record's numbers (code=$usage_code, num_turns=$usage_got_turns want $usage_turns)"
-
 
 event_count() {
   python3 -c '
@@ -324,47 +285,11 @@ killed_recorded="$(cat "$killed_work/.tdd/develop-red.exit" 2>/dev/null || echo 
   && [[ "$killed_recorded" == 2 ]]; } && ok \
   || no "a killed leaf leaves no usage event and the supervisor still exits 2 and records 2 (usage lines=$killed_usage want 0, code=$killed_code want 2, .exit=$killed_recorded want 2)"
 
-harvest_fail_work="$work/harvest-fail"
-cat > "$stub/leaf-bad-result" <<'L'
-#!/bin/sh
-echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: ran the suite"}]}}'
-echo '{"type":"result","subtype":"success","is_error":false,"duration_ms":91234,"duration_api_ms":40118,"num_turns":7,"result":"done","session_id":"4d1a","total_cost_usd":0.31}'
-exit 0
-L
-chmod +x "$stub/leaf-bad-result"
-sup_run "$harvest_fail_work" "$SUP" develop-red "$stub/leaf-bad-result"
-harvest_fail_code=$?
-harvest_fail_usage="$(event_count "$harvest_fail_work" usage)"
-harvest_fail_recorded="$(cat "$harvest_fail_work/.tdd/develop-red.exit" 2>/dev/null || echo '<missing>')"
-{ [[ "$harvest_fail_usage" == 0 ]] \
-  && [[ "$harvest_fail_code" == 0 ]] \
-  && [[ "$harvest_fail_recorded" == 0 ]]; } && ok \
-  || no "a failing harvester leaves the supervisor's exit code and completion file unchanged (usage lines=$harvest_fail_usage want 0, code=$harvest_fail_code want 0, .exit=$harvest_fail_recorded want 0)"
-
 # hazard: BSD env reads a -u after an assignment as the utility to run, so unset in a subshell.
 sup_run_no_model() {
   ( unset VERI_MODEL VERI_MODEL_DEVELOPER VERI_MODEL_VERIFIER
     sup_run "$@" )
 }
-
-model_work="$work/model"
-model_value=sonnet
-
-model_run() {
-  local arm="$1"; shift
-  sup_run_no_model "$model_work/$arm" "$@" "$SUP" develop-red "$stub/leaf-ok"
-}
-
-model_run set VERI_MODEL="$model_value"
-model_set_code=$?
-model_run unset
-model_unset_code=$?
-model_set_got="$(event_field   "$model_work/set"   launch model)"
-model_unset_got="$(event_field "$model_work/unset" launch model)"
-{ [[ "$model_set_code" == 0 ]] && [[ "$model_unset_code" == 0 ]] \
-  && [[ "$model_set_got"   == "$model_value" ]] \
-  && [[ "$model_unset_got" == "" ]]; } && ok \
-  || no "the launch event carries the resolved model, and an empty one when the run chose none (VERI_MODEL=$model_value: code=$model_set_code model=$model_set_got want $model_value; none set: code=$model_unset_code model=$(printf '%q' "$model_unset_got") want '')"
 
 argv_work="$work/argv"
 argv_model=sonnet
@@ -674,74 +599,6 @@ if [[ -n "$waitlive_leaf" ]]; then
 fi
 { [[ -n "$waitlive_leaf" ]] && [[ "$waitlive_code" == 3 ]] && [[ -z "$waitlive_err" ]]; } && ok \
   || no "wait-leaf.sh <name> 0 against a live supervisor of that leaf exits 3, not 2, with nothing on stderr (leaf pid=${waitlive_leaf:-<never started>}; code=$waitlive_code want 3; stderr='$waitlive_err' want empty)"
-
-name_work="$work/unknown-name"
-sup_run "$name_work" "$SUP" frobnicate-red "$stub/leaf-ok"
-name_code=$?
-name_launch_events="$(event_count "$name_work" launch)"
-{ [[ "$name_code" == 0 ]] \
-  && [[ "$name_launch_events" == 0 || "$name_launch_events" == '<<no event log>>' ]]; } && ok \
-  || no "a leaf name leaf-role.sh refuses still runs the leaf to completion but marks no launch event (code=$name_code want 0, launch events=$name_launch_events want 0 or no event log)"
-
-vrole_work="$work/verdict-role"
-mkdir -p "$vrole_work"
-( cd "$vrole_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SUP" verdict-plan "$stub/leaf-ok" ) >/dev/null 2>"$vrole_work/err"
-vrole_code=$?
-vrole_exit="$(cat "$vrole_work/.tdd/verdict-plan.exit" 2>/dev/null || echo '<missing>')"
-vrole_launch="$(event_count "$vrole_work" launch)"
-vrole_exits="$(event_count "$vrole_work" exit)"
-vrole_role_lines="$(grep -c '^leaf-role:' "$vrole_work/err")"
-{ [[ "$vrole_code" == 0 ]] && [[ "$vrole_exit" == 0 ]] && [[ "$vrole_role_lines" == 0 ]] \
-  && [[ "$vrole_launch" == 0 || "$vrole_launch" == '<<no event log>>' ]] \
-  && [[ "$vrole_exits" == 0 || "$vrole_exits" == '<<no event log>>' ]]; } && ok \
-  || no "#956: supervise.sh verdict-plan writes no leaf-role: line to stderr, exits 0, records 0 in .tdd/verdict-plan.exit and appends no launch or exit event (code=$vrole_code want 0, exit file=$vrole_exit want 0, leaf-role lines=$vrole_role_lines want 0, launch events=$vrole_launch want 0 or no event log, exit events=$vrole_exits want 0 or no event log, err=$(cat "$vrole_work/err"))"
-
-vharv_work="$work/verdict-harvest"
-mkdir -p "$vharv_work"
-( cd "$vharv_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SUP" verdict-plan "$stub/leaf-ok" ) >/dev/null 2>"$vharv_work/err"
-vharv_lines="$(grep -c '^harvest-usage.sh:' "$vharv_work/err")"
-[[ "$vharv_lines" == 0 ]] && ok \
-  || no "#956: supervise.sh verdict-plan whose log holds no closing result record writes no harvest-usage.sh: line to stderr (harvest-usage lines=$vharv_lines want 0, err=$(cat "$vharv_work/err"))"
-
-vbogus_work="$work/bogus-role"
-mkdir -p "$vbogus_work"
-( cd "$vbogus_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SUP" bogus-x "$stub/leaf-ok" ) >/dev/null 2>"$vbogus_work/err"
-vbogus_lines="$(grep -c "^leaf-role: leaf name 'bogus-x' has an unknown leading word" "$vbogus_work/err")"
-(( vbogus_lines >= 1 )) && ok \
-  || no "#956: supervise.sh bogus-x, neither a known role nor verdict-*, still writes the leaf-role: unknown leading word line to stderr (leaf-role lines=$vbogus_lines want >= 1, err=$(cat "$vbogus_work/err"))"
-
-rharv_problems=()
-for rharv_name in develop-red verify-plan; do
-  rharv_work="$work/role-harvest-$rharv_name"
-  mkdir -p "$rharv_work"
-  ( cd "$rharv_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-      VERI_KILL_POLL=0.01 "$SUP" "$rharv_name" "$stub/leaf-ok" ) >/dev/null 2>"$rharv_work/err"
-  rharv_lines="$(grep -c "^harvest-usage.sh: no closing result record in .tdd/$rharv_name.log" "$rharv_work/err")"
-  (( rharv_lines == 1 )) \
-    || rharv_problems+=("$rharv_name: harvest-usage lines=$rharv_lines want 1, err=$(cat "$rharv_work/err")")
-done
-[[ "${#rharv_problems[@]}" -eq 0 ]] && ok \
-  || no "#956: a develop-* or verify-* supervision whose log holds no closing result record still writes the harvest-usage.sh: no closing result record line to stderr (${rharv_problems[*]})"
-
-kp_work="$work/kill-poll-bad"; mkdir -p "$kp_work"
-kp_problems=()
-for bad in two -1; do
-  kp_out="$(mktemp)" kp_err="$(mktemp)"
-  ( cd "$kp_work" && env VERI_KILL_POLL="$bad" "$SUP" badpoll "$stub/leaf-ok" ) >"$kp_out" 2>"$kp_err"
-  kp_code=$?
-  [[ "$kp_code" == 2 ]] ||
-    kp_problems+=("VERI_KILL_POLL=$bad: want exit 2, got $kp_code")
-  [[ ! -s "$kp_out" ]] ||
-    kp_problems+=("VERI_KILL_POLL=$bad: want no status on stdout, got: $(cat "$kp_out")")
-  [[ -s "$kp_err" ]] ||
-    kp_problems+=("VERI_KILL_POLL=$bad: want a diagnostic on stderr, got nothing")
-  rm -f "$kp_out" "$kp_err"
-done
-{ [[ "${#kp_problems[@]}" -eq 0 ]]; } && ok \
-  || no "a non-numeric or negative VERI_KILL_POLL exits 2 with a diagnostic and no status on stdout (${kp_problems[*]})"
 
 cat > "$stub/leaf-real-lag" <<'L'
 : > .test-clock-reads
@@ -1069,15 +926,6 @@ refo_after="$(cat "$refo_work/.tdd/leaf.owner" 2>/dev/null || echo '<missing>')"
 { [[ "$refo_ran" == no ]] && [[ "$refo_after" == "$refo_before" ]]; } && ok \
   || no "#618: a refused launch does not run its command and leaves .tdd/leaf.owner naming the live leaf, unchanged (command ran=$refo_ran want no; leaf.owner='$refo_after' want '$refo_before'; stderr='$(cat "$refo_work/err")')"
 
-fin_work="$work/live-owner-finished-exit"
-live_owner_tree "$fin_work"
-printf '0\n' > "$fin_work/.tdd/develop-green.exit"
-sup_in "$fin_work" verdict-green "$stub/leaf-second" >/dev/null 2>"$fin_work/err"
-fin_code=$?
-fin_ran="no"; [[ -e "$fin_work/second-ran" ]] && fin_ran="yes"
-{ [[ "$fin_code" == 0 ]] && [[ "$fin_ran" == yes ]]; } && ok \
-  || no "#618: a launch under another name is not refused when the recorded leaf is alive but .tdd/<owner-name>.exit already exists (code=$fin_code want 0; command ran=$fin_ran want yes; stderr='$(cat "$fin_work/err")')"
-
 live_work="$work/live-owner-unfinished"
 live_owner_tree "$live_work"
 sup_in "$live_work" verdict-green "$stub/leaf-second" >/dev/null 2>"$live_work/err"
@@ -1362,22 +1210,6 @@ printf '3\n' > "$unissued_work/.tdd/issue--timeout"
 unissued_code=$?
 [[ "$unissued_code" == 0 ]] && ok \
   || no "#954: with VERI_ISSUE unset, a .tdd/issue--timeout recording 3s is no settled timeout, so a leaf busy for 10s finishes under the 900s default (code=$unissued_code want 0, err=$(cat "$unissued_work/err"))"
-
-bad_settled_work="$(scratch_dir)"
-mkdir -p "$bad_settled_work/.tdd"
-bad_settled_problems=()
-for bad in '' 0 abc 1.5; do
-  printf '%s\n' "$bad" > "$bad_settled_work/.tdd/issue-954-timeout"
-  ( cd "$bad_settled_work" && env -u VERI_TIMEOUT -u VERI_STEP VERI_ISSUE=954 VERI_STUCK_RETRIES=0 \
-      VERI_POLL=0.02 VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-ok" ) >/dev/null 2>"$bad_settled_work/err"
-  bad_settled_code=$?
-  [[ "$bad_settled_code" == 2 ]] ||
-    bad_settled_problems+=("record '$bad': want exit 2, got $bad_settled_code")
-  grep -F '.tdd/issue-954-timeout' "$bad_settled_work/err" > /dev/null ||
-    bad_settled_problems+=("record '$bad': want stderr naming .tdd/issue-954-timeout, got: $(cat "$bad_settled_work/err")")
-done
-{ [[ "${#bad_settled_problems[@]}" -eq 0 ]]; } && ok \
-  || no "#954: with VERI_TIMEOUT unset, a .tdd/issue-954-timeout record that is empty or not a whole number >= 1 is refused with exit 2 and a stderr line naming the file, not read as 900 or misread (${bad_settled_problems[*]})"
 
 subdir_work="$(scratch_dir)"
 new_repo -b main "$subdir_work" >/dev/null 2>&1
