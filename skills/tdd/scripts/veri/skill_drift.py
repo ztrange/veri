@@ -1,14 +1,15 @@
 """skill-drift.sh's block, run in-process."""
 import os
 import re
-import subprocess
 import sys
+
+from git import git
 
 SUFFIX = re.compile(r"\(#(\d+)\)\s*$")
 
 
 def run(clone, *args):
-    return subprocess.run(["git", "-C", clone, *args], capture_output=True, text=True)
+    return git("-C", clone, *args, capture_output=True, text=True)
 
 
 def git_output(clone, *args):
