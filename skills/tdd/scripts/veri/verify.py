@@ -29,7 +29,14 @@ def main(argv):
     if len(args) < 3:
         return refuse()
     try:
-        built = subprocess.run([os.path.join(SCRIPTS, "build-verify-prompt.sh"), *args])
+        built = subprocess.run(
+            [os.path.join(SCRIPTS, "build-verify-prompt.sh"), *argv],
+            stdout=subprocess.PIPE)
     except OSError:
         return 2
-    return to_contract(built.returncode)
+    if built.returncode:
+        return to_contract(built.returncode)
+    os.makedirs(".tdd", exist_ok=True)
+    with open(os.path.join(".tdd", "verify-%s.prompt" % args[0]), "wb") as prompt:
+        prompt.write(built.stdout.rstrip(b"\n"))
+    return 0
