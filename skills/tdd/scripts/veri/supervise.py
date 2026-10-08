@@ -334,11 +334,10 @@ def main(argv):
     owner = still_alive_owner(ownerfile)
     if owner is not None:
         owner_pid, owner_name = owner
-        print(f"supervise: refusing to launch {name}: leaf {owner_name or '?'} (pid {owner_pid})"
-              " is still alive in this worktree", file=sys.stderr)
         if owner_name != name:
             write_line(exitfile, 2)
-        return 2
+        return refuse(f"supervise: refusing to launch {name}: leaf {owner_name or '?'} (pid {owner_pid})"
+                      " is still alive in this worktree")
     if watched and not name.startswith("conductor-"):
         tolerated(name, "write", ownerfile, write_line, ownerfile, f"{os.getpid()} {name}")
     mark(role, leaf_env, "launch", f"name={name}", f"cmd={' '.join(argv[1:])}", f"model={model}")
