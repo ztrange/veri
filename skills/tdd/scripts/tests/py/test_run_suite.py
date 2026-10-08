@@ -339,3 +339,13 @@ def test_the_module_run_as_the_shim_hands_off_exits_128_plus_n_for_a_suite_kille
     code = subprocess.run([sys.executable, str(SCRIPTS / "veri" / "run_suite.py"), suite],
                           stdin=subprocess.DEVNULL, capture_output=True, timeout=10).returncode
     assert code == 128 + 9
+
+
+def test_the_module_run_as_the_shim_hands_off_names_a_missing_suite_on_stderr_without_a_traceback_and_exits_1_1167(tmp_path):
+    suite = tmp_path / "missing.test.sh"
+    run = subprocess.run([sys.executable, str(SCRIPTS / "veri" / "run_suite.py"), str(suite)],
+                         stdin=subprocess.DEVNULL, capture_output=True, timeout=10)
+    err = run.stderr.decode()
+    assert (run.returncode, "Traceback" in err, err.splitlines()[-2:]) == (
+        1, False, ["missing.test.sh: never reached its count line", "missing.test.sh: its output was empty"]
+    )

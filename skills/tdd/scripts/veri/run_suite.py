@@ -93,7 +93,14 @@ def main(argv):
         sys.stderr.write("run-suite.sh: could not read the count-line guard from %s\n" % guard_path)
         return 2
     out = bytearray()
-    with subprocess.Popen([suite], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, env=env) as proc:
+    name = os.path.basename(suite)
+    try:
+        proc = subprocess.Popen([suite], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, env=env)
+    except OSError:
+        sys.stderr.write(render_printf(guard["COUNTLESS"], name))
+        sys.stderr.write("%s: its output was empty\n" % name)
+        return 1
+    with proc:
         for chunk in iter(lambda: proc.stdout.read1(65536), b""):
             sys.stdout.buffer.write(chunk)
             sys.stdout.buffer.flush()
@@ -103,7 +110,6 @@ def main(argv):
     last_line = lines[-2] if text.endswith("\n") else lines[-1]
     if re.search(guard["COUNT_LINE"], last_line):
         return 128 - proc.returncode if proc.returncode < 0 else proc.returncode
-    name = os.path.basename(suite)
     sys.stdout.write(render_printf(guard["COUNTLESS"], name))
     if text.strip():
         sys.stdout.write("%s: its last line was: %s\n" % (name, last_line))
