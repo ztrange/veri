@@ -2,4 +2,4 @@
 
 - [x] A suite killed by signal N after it printed its count line makes run-suite.sh exit 128+N ⟦criterion 1⟧
 - [x] A suite path that does not exist makes run-suite.sh print `<name>: never reached its count line` and `<name>: its output was empty` on stderr, with no traceback, and exit 1 ⟦criterion 2⟧
-- [ ] A suite path that exists but is not executable makes run-suite.sh print `<name>: never reached its count line` and `<name>: its output was empty` on stderr, with no traceback, and exit 1 ⟦criterion 2⟧
+- [x] A suite path that exists but is not executable makes run-suite.sh print `<name>: never reached its count line` and `<name>: its output was empty` on stderr, with no traceback, and exit 1 ⟦criterion 2⟧
