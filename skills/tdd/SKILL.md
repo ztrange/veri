@@ -1423,8 +1423,12 @@ result appends a repair step.
 
 A `⟦diff-checked⟧` step runs no Red leaf, and no Green or Refactor phase either: its
 criterion is a property of the branch's own diff, so there is no failing test to write and
-its step adds none. Record the step's base sha with `git rev-parse HEAD` before the
-`develop-diff` leaf runs. That leaf, built by `build-develop-prompt.sh diff <spec-file>
+its step adds none. On a fresh run and on a resume alike, the step base sha is the last
+commit that changed the ledger — the previous step's tick, ahead of anything a killed
+`develop-diff` attempt committed — never a `HEAD` taken after a killed attempt's commit:
+record it with `git log -1 --format=%H -- .tdd/issue-<n>.md` before the `develop-diff` leaf
+runs. On a fresh step, `git rev-parse HEAD` taken before the `develop-diff` leaf runs names
+that same commit, since every step ends in a ledger commit; on a resume it may not. That leaf, built by `build-develop-prompt.sh diff <spec-file>
 "<STEP>" '<test-cmd>' '<fast-cmd>'`, makes the change the criterion names — or makes no
 commit, when the criterion is that something stays unchanged — and keeps the fast tier and
 then the affected suites green before it reports. Then the blind `diff` verifier,
