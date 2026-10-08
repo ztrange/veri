@@ -13,13 +13,18 @@ def usage():
     return f"usage: stop-run.sh [--mode {'|'.join(stop_modes.STOP_MODES)}] <issue> | --all\n".encode()
 
 
+def complain(message):
+    sys.stderr.buffer.write(os.fsencode("stop-run: " + message) + b"\n")
+
+
 def refuse(message):
-    sys.stderr.buffer.write(os.fsencode("stop-run: " + message) + b"\n" + usage())
+    complain(message)
+    sys.stderr.buffer.write(usage())
     return 2
 
 
 def nothing_to_do(message):
-    sys.stderr.buffer.write(os.fsencode("stop-run: " + message) + b"\n")
+    complain(message)
     return 3
 
 
