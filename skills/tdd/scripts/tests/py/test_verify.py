@@ -1291,6 +1291,54 @@ def test_main_returns_2_naming_home_gitconfig_on_stderr_when_the_leaf_left_it_a_
     assert (code, str(gitconfig).encode() in captured.err, b"Traceback" in captured.err) == (2, True, False)
 
 
+def test_main_returns_2_naming_home_gitconfig_on_stderr_when_the_leaf_left_it_unreadable_1183(
+        tmp_path, monkeypatch, capfdbinary):
+    work = tmp_path / "work"
+    work.mkdir()
+    monkeypatch.chdir(work)
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    gitconfig = home / ".gitconfig"
+    gitconfig.write_bytes(b"[user]\n\tname = op\n")
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
+                 "VERI_ISSUE", "VERI_STEP"):
+        monkeypatch.delenv(name, raising=False)
+    leaf_ran = []
+
+    def fake(args, *_, **__):
+        words = [str(a) for a in args]
+        if os.path.basename(words[0]) == "env":
+            words = [w for w in words[1:] if "=" not in w]
+        name = os.path.basename(words[0])
+        if name == "git":
+            return subprocess.CompletedProcess(args, 128, b"", b"fatal: not a git repository\n")
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            leaf_ran.append(name)
+            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine\n", None)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    real_open = open
+
+    def unreadable_after_the_leaf(path, *args, **kwargs):
+        if leaf_ran and os.fspath(path) == str(gitconfig):
+            raise PermissionError(13, "Permission denied", os.fspath(path))
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.open", unreadable_after_the_leaf)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    captured = capfdbinary.readouterr()
+    assert (code, str(gitconfig).encode() in captured.err, b"Traceback" in captured.err,
+            leaf_ran) == (2, True, False, ["supervise.sh"])
+
+
 PRESERVED = b"preserve-attempt: stdout sentinel\n"
 
 
