@@ -141,6 +141,22 @@ report "detach-command: #964 wait refuses a max-seconds that is a word with exit
 
 problems=()
 
+for poll in abc -1; do
+  printf '%s\n' "$$" > "$work/.tdd/poll.pid"
+  rm -f "$work/.tdd/poll.exit"
+  out="$(cd "$work" && VERI_POLL="$poll" "$HELPER" wait poll 1 2>"$work/poll.err")"
+  rc=$?
+  err="$(cat "$work/poll.err")"
+  [[ "$rc" == 2 ]] || problems+=("wait poll with VERI_POLL=$poll on a live pid returned $rc; want 2")
+  [[ -z "$out" ]] || problems+=("wait poll with VERI_POLL=$poll printed '$out' on stdout; want nothing")
+  [[ "$(wc -l < "$work/poll.err" | tr -d ' ')" == 1 && "$err" == *VERI_POLL* && "$err" == *"$poll"* ]] ||
+    problems+=("wait poll with VERI_POLL=$poll wrote $(wc -l < "$work/poll.err" | tr -d ' ') stderr lines, first: '${err%%$'\n'*}'; want exactly one naming VERI_POLL and $poll")
+done
+
+report "detach-command: #1155 wait refuses a VERI_POLL of abc or -1 with exit 2 and one stderr line naming it, before any round"
+
+problems=()
+
 out="$(cd "$work" && "$HELPER" bogus x 2>"$work/bogus.err")"
 rc=$?
 [[ "$rc" == 2 ]] || problems+=("bogus x returned $rc; want 2")

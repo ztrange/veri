@@ -46,16 +46,12 @@ def _limit(text):
         return None
 
 
-def _pause(poll):
-    if re.fullmatch(r"[0-9]+(\.[0-9]*)?|\.[0-9]+", poll):
-        time.sleep(float(poll))
-    else:
-        print(f"sleep: invalid time interval '{poll}'", file=sys.stderr)
-
-
 def _wait(exit_file, pid_file, text):
     start = int(time.time())
     poll = os.environ.get("VERI_POLL") or "1"
+    if not re.fullmatch(r"[0-9]+(\.[0-9]*)?|\.[0-9]+", poll):
+        print(f"detach-command.sh: VERI_POLL must be a non-negative number: {poll}", file=sys.stderr)
+        return 2
     while True:
         code = _recorded(exit_file)
         if code is not None:
@@ -66,7 +62,7 @@ def _wait(exit_file, pid_file, text):
         limit = _limit(text)
         if limit is not None and int(time.time()) - start >= limit:
             return 3
-        _pause(poll)
+        time.sleep(float(poll))
 
 
 def _refused(argv):
