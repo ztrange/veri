@@ -526,6 +526,39 @@ def test_main_returns_event_sh_own_non_zero_status_when_the_verdict_mark_fails_w
     assert [words[0] for words in marked] == ["verdict"]
 
 
+@pytest.mark.parametrize("leaf_out, first_mark", [(NO_VERDICT, "relaunch"), (b"VERDICT: PASS\nfine\n", "verdict")])
+def test_main_returns_127_with_nothing_on_stdout_when_event_sh_cannot_be_started_at_either_mark(
+        tmp_path, monkeypatch, capfdbinary, leaf_out, first_mark):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERIFY_LEAF_ARGS", "VERI_ISSUE", "VERI_STEP", "VERI_MODEL", "VERI_MODEL_VERIFIER",
+                 "VERI_NO_VERDICT_RETRIES"):
+        monkeypatch.delenv(name, raising=False)
+    supervised = []
+    marked = []
+
+    def fake(args, *_, **__):
+        words = [str(a) for a in args]
+        name = os.path.basename(words[0])
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            supervised.append(words)
+            return subprocess.CompletedProcess(args, 0, leaf_out, None)
+        if name == "event.sh":
+            marked.append(words[1])
+            raise FileNotFoundError(2, "No such file or directory", words[0])
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    assert (code, len(supervised), marked, capfdbinary.readouterr().out) == (127, 1, [first_mark], b"")
+
+
 @pytest.mark.parametrize("retries, launches", [("", 2), ("010", 9), ("08", 1)])
 def test_main_reads_an_empty_no_verdict_budget_as_1_and_a_leading_zero_as_octal_so_010_allows_8_relaunches_and_08_none(
         retries, launches, tmp_path, monkeypatch):
