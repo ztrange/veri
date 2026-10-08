@@ -140,7 +140,9 @@ def main(argv):
         if changed:
             in_temp_index("read-tree", "-u", "--reset", tree_before)
             if head_before and head_before != head_after:
-                subprocess.run(["git", "update-ref", "HEAD", head_before])
+                restored = subprocess.run(["git", "update-ref", "HEAD", head_before])
+                if restored.returncode != 0:
+                    return restored.returncode
             _write(sys.stdout, "verifier leaf modified the repository — verdict not accepted"
                    " (see .tdd/%s.log); changed:" % leaf)
             _write(sys.stdout, "\n".join(changed))
