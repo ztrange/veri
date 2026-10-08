@@ -9,11 +9,6 @@ import time
 
 import pytest
 
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
-
 
 @pytest.fixture(autouse=True)
 def text_mode(monkeypatch):
@@ -125,7 +120,6 @@ def test_main_shows_a_runs_phase_actor_leaf_elapsed_seconds_and_attempts_in_the_
 
     assert (code, capsys.readouterr().out) == (0, "#8  gears turn  tdd/8-gears-turn  step 2 of 2  green  developer  "
                                                   "develop-green 100s  attempt 2  $0.00  0 tokens  running\n")
-
 
 
 def lamp_run(tmp_path, issue, ledgers=None):

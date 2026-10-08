@@ -2,16 +2,9 @@
 import errno
 import importlib
 import os
-import pathlib
 import resource
-import sys
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
 
 USAGE = b"usage: tick-ledger.sh [--refactor-pending] <ledger-file> <matcher>\n"
 

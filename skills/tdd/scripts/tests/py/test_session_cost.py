@@ -1,18 +1,11 @@
 """In-process cases for veri/session_cost.py, the module session-cost.sh is a shim over."""
 import importlib
 import json
-import pathlib
 import re
 import subprocess
-import sys
 import time
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
 
 USAGE = "usage: session-cost.sh --since <ISO date> [--json] [<transcript.jsonl> ...]\n"
 

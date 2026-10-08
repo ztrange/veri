@@ -1,16 +1,10 @@
 """In-process cases for veri/rebase_onto_default.py, the module rebase-onto-default.sh is a shim over."""
 import importlib
 import os
-import pathlib
 import subprocess
 import sys
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
 
 PRE = "1111111111111111111111111111111111111111"
 ONTO = "2222222222222222222222222222222222222222"

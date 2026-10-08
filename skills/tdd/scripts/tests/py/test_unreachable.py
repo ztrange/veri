@@ -1,12 +1,9 @@
 """In-process cases for veri/unreachable.py, the module unreachable.sh is a shim over."""
 import importlib
 import io
-import pathlib
 import sys
 
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-if str(SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS))
+from conftest import SCRIPTS
 
 
 def script(path, body):

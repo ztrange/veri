@@ -1,15 +1,9 @@
 """In-process cases for veri/next_pending_refactor.py, the module next-pending-refactor.sh is a shim over."""
 import importlib
 import io
-import pathlib
 import sys
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
 
 SLUGIFY = (
     "# Plan for #42\n"
