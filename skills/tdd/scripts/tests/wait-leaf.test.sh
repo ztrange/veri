@@ -169,4 +169,11 @@ verdict_para="$(awk 'BEGIN { RS = "" }
   [[ -n "$verdict_para" ]]; } && ok \
   || no "a verifier wait whose supervisor died exits 2 well before its budget, and SKILL.md reports that 2 the way it reports a killed developer leaf (got '<code> <secs>'=$v_dead want '2 <=10'; stderr='$v_stderr' want it to name verdict-red; SKILL.md paragraph naming verdict-<phase>, a supervisor that died without recording a status, killed-stuck and the bail: ${verdict_para:-<none>})"
 
+empty="$work/empty"; mkdir -p "$empty"
+( cd "$empty" && "$WAIT" "" >"$empty/out" 2>"$empty/err" )
+rc_empty=$?
+printf 'usage: wait-leaf.sh <name> [max-seconds]\n' > "$empty/want"
+{ [[ "$rc_empty" == 2 ]] && [[ ! -s "$empty/out" ]] && cmp -s "$empty/want" "$empty/err"; } && ok \
+  || no "refuses an empty first argument with exit 2, nothing on stdout and exactly the usage line on stderr (got exit $rc_empty want 2; stdout='$(cat "$empty/out")' want empty; stderr='$(cat "$empty/err")' want 'usage: wait-leaf.sh <name> [max-seconds]')"
+
 finish
