@@ -85,25 +85,29 @@ def main(argv):
             status = extract(base, commit, snapshot)
             if status != 0:
                 return status if status <= 3 else 2
-            return launch(snapshot, VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
+            return launch(snapshot, argv[0], commit, VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
         finally:
             shutil.rmtree(snapshot, ignore_errors=True)
     sys.stderr.write("run-conductor: no skill commit resolvable from '%s' — running unpinned\n" % base)
-    return launch(base, VERI_SKILL_UNPINNED="1")
+    return launch(base, argv[0], None, VERI_SKILL_UNPINNED="1")
 
 
-def prompt(base):
+def prompt(base, issue, commit):
     skill_file = os.path.join(base, "SKILL.md")
     try:
         with open(skill_file, "rb") as skill:
-            return skill.read()
+            text = skill.read().rstrip(b"\n")
     except OSError:
         sys.stderr.write("run-conductor: cannot read '%s'\n" % skill_file)
         return None
+    text += ("\n\nBase directory for this skill: %s\n" % base).encode()
+    if commit is not None:
+        text += ("\nPinned skill commit (name it in the plan comment): %s\n" % commit).encode()
+    return text + ("\nSolve issue #%s by the procedure above.\n" % issue).encode()
 
 
-def launch(base, **exports):
-    text = prompt(base)
+def launch(base, issue, commit, **exports):
+    text = prompt(base, issue, commit)
     if text is None:
         return 2
     return subprocess.run([os.environ.get("CLAUDE_BIN") or "claude", "-p", "--output-format", "stream-json",
