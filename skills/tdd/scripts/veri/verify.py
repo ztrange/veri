@@ -3,8 +3,10 @@ import glob
 import io
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 
 import parse_verdict
 
@@ -41,6 +43,39 @@ def start(args, **kwargs):
 
 def mark(role, *words):
     subprocess.run([sibling("event.sh"), *words], env=role)
+
+
+def in_temp_index(*args):
+    folder = tempfile.mkdtemp()
+    env = {**os.environ, "GIT_INDEX_FILE": os.path.join(folder, "index")}
+    try:
+        added = start(["git", "add", "-A"], env=env,
+                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if added.returncode:
+            return ""
+        out = start(["git", *args], env=env, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        return out.stdout.decode().rstrip("\n") if out.returncode == 0 else ""
+    finally:
+        shutil.rmtree(folder, ignore_errors=True)
+
+
+def head_snapshot():
+    head = start(["git", "rev-parse", "--verify", "HEAD"],
+                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    return head.stdout.decode().rstrip("\n")
+
+
+def changed_paths(tree_before, head_before):
+    if not tree_before:
+        return []
+    tree_after = in_temp_index("write-tree")
+    head_after = head_snapshot()
+    diff = start(["git", "diff-tree", "-r", "--name-only", "--no-commit-id", tree_before, tree_after],
+                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    paths = diff.stdout.decode().splitlines() if diff.returncode == 0 else []
+    if head_after != head_before:
+        paths.append("HEAD")
+    return paths
 
 
 def leaf_args():
@@ -84,6 +119,8 @@ def main(argv):
     os.makedirs(".tdd", exist_ok=True)
     with open(prompt_path, "wb") as prompt:
         prompt.write(built.stdout.rstrip(b"\n"))
+    tree_before = in_temp_index("write-tree")
+    head_before = head_snapshot()
     retries = os.environ.get("VERI_NO_VERDICT_RETRIES") or "1"
     if not re.fullmatch("[0-9]+", retries):
         _write(sys.stderr, "verify: VERI_NO_VERDICT_RETRIES must be a non-negative integer,"
@@ -99,6 +136,12 @@ def main(argv):
             stdout=subprocess.PIPE)
         if launched.returncode == 2:
             _write(sys.stdout, "verifier leaf killed-stuck — no verdict rendered (see .tdd/%s.log)" % leaf)
+            return 2
+        changed = changed_paths(tree_before, head_before)
+        if changed:
+            _write(sys.stdout, "verifier leaf modified the repository — verdict not accepted"
+                   " (see .tdd/%s.log); changed:" % leaf)
+            _write(sys.stdout, "\n".join(changed))
             return 2
         code, reason, err = parse(launched.stdout)
         if err:
