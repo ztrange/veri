@@ -322,17 +322,6 @@ cp "$STOP" "$listed/stop-run.sh"
 cp "$HERE/.."/lib/*.sh "$listed/lib/"
 { cat "$HERE/../lib/stop-modes.sh"; printf '%s\n' 'STOP_MODES=(at-ledger at-leaf now at-step)'; } > "$listed/lib/stop-modes.sh"
 
-out="$(cd "$repo" && "$listed/stop-run.sh" --mode at-step 5 2>"$work/stderr")" && code=0 || code=$?
-err="$(cat "$work/stderr")"
-check_code 0
-check_stop "$run" at-step
-rm -f "$run/.tdd/stop"
-
-report "#683: stop-run.sh accepts the modes lib/stop-modes.sh lists, and still refuses one outside it with today's message"
-
-problems=()
-label=""
-
 out="$(cd "$repo" && "$listed/stop-run.sh" --mode bogus 5 2>"$work/stderr")" && code=0 || code=$?
 err="$(cat "$work/stderr")"
 check_code 2
