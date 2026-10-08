@@ -110,3 +110,59 @@ def test_main_escapes_every_string_by_the_bash_table_over_the_argument_and_varia
         + b'", "attempt": "", "skill_commit": "", "w": "' + well_escaped
         + b'", "m": "' + malformed_escaped + b'", "q\\"k": "v"}\n'
     )
+
+
+def test_main_appends_the_whole_line_in_one_os_write_on_an_o_append_descriptor_relative_to_the_working_directory_and_raises_oserror_when_tdd_or_the_log_is_not_writable(
+        monkeypatch, tmp_path, event):
+    work = tmp_path / "work"
+    work.mkdir()
+    monkeypatch.chdir(work)
+    monkeypatch.delenv("VERI_AWAKE_CLOCK", raising=False)
+    monkeypatch.setattr("time.time", lambda: 1700000000.9)
+    monkeypatch.setattr("time.clock_gettime", lambda clock: 4242.7)
+    for name in CONTEXT:
+        monkeypatch.delenv(name, raising=False)
+
+    calls = []
+    real_open, real_write = os.open, os.write
+
+    def spy_open(path, flags, mode=0o777, **kwargs):
+        fd = real_open(path, flags, mode, **kwargs)
+        calls.append(("open", os.fspath(path), flags, mode, fd))
+        return fd
+
+    def spy_write(fd, data):
+        calls.append(("write", fd, bytes(data)))
+        return real_write(fd, data)
+
+    monkeypatch.setattr("os.open", spy_open)
+    monkeypatch.setattr("os.write", spy_write)
+
+    first = (b'{"ts": 1700000000, "awake": 4242, "issue": "", "actor": "", "phase": "", "step": "",'
+             b' "event": "one", "attempt": "", "skill_commit": "", "k": "' + b"v" * 9000 + b'"}\n')
+    second = (b'{"ts": 1700000000, "awake": 4242, "issue": "", "actor": "", "phase": "", "step": "",'
+              b' "event": "two", "attempt": "", "skill_commit": ""}\n')
+    flags = os.O_WRONLY | os.O_APPEND | os.O_CREAT
+    for argv, text in ((["one", "k=" + "v" * 9000], first), (["two"], second)):
+        calls.clear()
+        assert event.main(argv) == 0
+        fd = calls[0][-1] if calls else None
+        assert [call for call in calls if call[0] == "write"] == [("write", fd, text)]
+        assert [call[:4] for call in calls if call[0] == "open"] == [("open", ".tdd/events.jsonl", flags, 0o666)]
+    assert (work / ".tdd" / "events.jsonl").read_bytes() == first + second
+    assert sorted(os.listdir(tmp_path)) == ["work"]
+
+    blocked = tmp_path / "blocked"
+    blocked.mkdir()
+    (blocked / ".tdd").write_bytes(b"not a directory")
+    monkeypatch.chdir(blocked)
+    with pytest.raises(OSError):
+        event.main(["three"])
+    assert (blocked / ".tdd").read_bytes() == b"not a directory"
+
+    shadowed = tmp_path / "shadowed"
+    (shadowed / ".tdd" / "events.jsonl").mkdir(parents=True)
+    monkeypatch.chdir(shadowed)
+    with pytest.raises(OSError):
+        event.main(["four"])
+    assert os.listdir(shadowed / ".tdd" / "events.jsonl") == []
