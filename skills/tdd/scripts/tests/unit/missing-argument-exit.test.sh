@@ -137,7 +137,6 @@ migration_slice 2 detach-command.sh detach-leaf.sh
 migration_slice 3 event.sh
 migration_slice 7 run-conductor.sh \
   run-suite.sh
-migration_slice 8 stop-run.sh
 migration_slice 9 supervise.sh
 migration_slice 10 verify.sh wait-leaf.sh
 
