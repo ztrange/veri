@@ -435,6 +435,34 @@ expected="$(printf '%s\n' "trap -- '' SIGINT" "trap -- '' SIGQUIT" 'new session 
 actual="$(cat "$MARKS" "$work/err")"
 expect_exit0_output
 
+name="#1126 a conductor orchestrate.sh stops over VERI_CONDUCTOR_CTX_BUDGET is stopped by SIGTERM to its process group: a writer in it on the conductor's stdout ends 143, never 141 of SIGPIPE"
+termgroup="$work/termgroup"
+mkdir -p "$termgroup"
+cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$termgroup/"
+cp -R "$scripts/lib" "$scripts/veri" "$termgroup/"
+cat > "$termgroup/run-conductor.sh" <<'STUB'
+#!/usr/bin/env bash
+echo $$ >> "$MARKS.pid"
+echo "$1" >> "$LAUNCHES"
+grep -vx -- "$1" "$SOLVABLE" > "$SOLVABLE.next"
+mv "$SOLVABLE.next" "$SOLVABLE"
+(while :; do echo '{"type":"system","subtype":"heartbeat"}'; done) &
+writer=$!
+echo $writer >> "$MARKS.pid"
+trap 'wait $writer; echo "writer $?" >> "$MARKS"; exit 0' TERM
+echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=1354 VERI_ACTOR=conductor $S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
+echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
+wait $writer
+echo "writer $? before any TERM" >> "$MARKS"
+STUB
+chmod +x "$termgroup"/*.sh
+seed termgroup 1354
+VERI_CONDUCTOR_CTX_BUDGET=100000 orchestrate "$termgroup"
+await_gone
+expected='writer 143'
+actual="$(cat "$MARKS")"
+expect_exit0_output
+
 name="run through a symlink to its scripts directory from another working directory, launches that directory's run-conductor.sh, asks its solvable-issues.sh and reads .tdd/parked/ in the working directory"
 realskill="$work/realskill"
 mkdir -p "$realskill/.tdd/parked" "$work/elsewhere/.tdd/parked"
