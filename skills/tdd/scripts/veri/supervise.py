@@ -31,17 +31,21 @@ def awake_seconds():
     return int(time.clock_gettime(clock))
 
 
+def captured(*args):
+    return subprocess.run(list(args), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+
+
 def git_answer(*args):
-    done = subprocess.run(["git", *args], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    done = captured("git", *args)
     return done.stdout.rstrip("\n") if done.returncode == 0 else None
 
 
 def now():
-    return subprocess.run(["date", "+%s"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True).stdout.strip()
+    return captured("date", "+%s").stdout.strip()
 
 
 def mtime_of(path):
-    return subprocess.run(["stat", "-c", "%Y", path], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True).stdout.strip()
+    return captured("stat", "-c", "%Y", path).stdout.strip()
 
 
 def mark(role, *fields):
