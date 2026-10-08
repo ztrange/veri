@@ -954,3 +954,53 @@ def test_main_returns_2_naming_home_gitconfig_when_the_leaf_changed_created_or_d
         2, ("verifier leaf modified the operator's global git config — verdict not accepted"
             " (see .tdd/verify-green.log); changed:\n%s\n" % os.path.join(str(home), ".gitconfig")).encode())
     assert (left, "event.sh" in started, "preserve-attempt.sh" in started) == (after, False, False)
+
+
+def test_main_reports_a_leaf_that_changed_both_the_repository_and_home_gitconfig_for_the_repository_only(
+        tmp_path, monkeypatch, capfdbinary):
+    work = tmp_path / "work"
+    work.mkdir()
+    monkeypatch.chdir(work)
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    gitconfig = home / ".gitconfig"
+    gitconfig.write_bytes(b"[user]\n\tname = op\n")
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
+                 "VERI_ISSUE", "VERI_STEP"):
+        monkeypatch.delenv(name, raising=False)
+    trees = [b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
+    writes = []
+
+    def fake(args, *_, **__):
+        words = [str(a) for a in args]
+        if os.path.basename(words[0]) == "env":
+            words = [w for w in words[1:] if "=" not in w]
+        name = os.path.basename(words[0])
+        if name == "git":
+            verb = words[1]
+            if verb == "write-tree":
+                writes.append(verb)
+                return subprocess.CompletedProcess(args, 0, trees[min(len(writes), 2) - 1], b"")
+            if verb == "rev-parse":
+                return subprocess.CompletedProcess(args, 0, b"1" * 40 + b"\n", b"")
+            if verb == "diff-tree":
+                return subprocess.CompletedProcess(args, 0, b"src.txt\n", b"")
+            return subprocess.CompletedProcess(args, 0, b"", b"")
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            gitconfig.write_bytes(b"[user]\n\tname = leaf\n")
+            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine\n", None)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    captured = capfdbinary.readouterr()
+    assert (code, captured.out) == (
+        2, "verifier leaf modified the repository — verdict not accepted"
+           " (see .tdd/verify-green.log); changed:\nsrc.txt\n".encode())
