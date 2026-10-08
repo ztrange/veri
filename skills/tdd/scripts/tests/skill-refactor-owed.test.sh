@@ -144,11 +144,11 @@ else
     IFS='|' read -ra phrases <<<"${goes[$class]}"
     found=
     while IFS= read -r clause; do
-      found=1
+      hit=1
       for phrase in "${phrases[@]}"; do
-        [[ "$clause" == *"$phrase"* ]] || found=
+        [[ "$clause" == *"$phrase"* ]] || hit=
       done
-      [[ -n "$found" ]] && break
+      [[ -n "$hit" ]] && found=1
     done < <(class_clauses "$narration" "$class" "${others[$class]}")
     wanted="'${phrases[0]}'"
     ((${#phrases[@]} > 1)) && wanted+=" and '${phrases[1]}'"
