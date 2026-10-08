@@ -12,11 +12,14 @@ SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def read_guard(path):
     guard = {}
-    with open(path) as f:
-        for line in f:
-            match = re.match(r"^(COUNT_LINE|COUNTLESS)='(.*)'$", line.rstrip("\n"))
-            if match:
-                guard[match.group(1)] = match.group(2)
+    try:
+        with open(path) as f:
+            for line in f:
+                match = re.match(r"^(COUNT_LINE|COUNTLESS)='(.*)'$", line.rstrip("\n"))
+                if match:
+                    guard[match.group(1)] = match.group(2)
+    except OSError:
+        return {}
     return guard
 
 
@@ -85,10 +88,7 @@ def main(argv):
     if fnmatch.fnmatchcase(suite, "*/tests/py/test_*.py"):
         return run_pytest(suite, env)
     guard_path = os.path.join(SCRIPTS, "lib", "count-line-guard.sh")
-    try:
-        guard = read_guard(guard_path)
-    except OSError:
-        guard = {}
+    guard = read_guard(guard_path)
     if not guard.get("COUNT_LINE") or not guard.get("COUNTLESS"):
         sys.stderr.write("run-suite.sh: could not read the count-line guard from %s\n" % guard_path)
         return 2
