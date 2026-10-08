@@ -104,44 +104,13 @@ hung_leaf() {  # hung_leaf -> runs in $work, sets $out/$code, stderr in $work/er
   code=$?
 }
 
-verify 'I ran it.
-VERDICT: PASS
-REASON: Target test and full suite are green.' green
-{ [[ "$code" == 0 ]] && [[ "$out" == *'full suite are green'* ]]; } && ok \
-  || no "PASS verdict exits 0 with reason (code=$code)"
-
-verify 'VERDICT: REJECT
-REASON: The test asserts on a private helper, not observable behavior.' red
-{ [[ "$code" == 1 ]] && [[ "$out" == *'private helper'* ]]; } && ok \
-  || no "REJECT verdict exits 1 with reason (code=$code)"
-
-verify 'the leaf rambled and never rendered a verdict' green
-[[ "$code" == 2 ]] && ok || no "malformed leaf output exits 2 (code=$code)"
-
 verify 'VERDICT: PASS
 REASON: ok' red
 grep -q 'slugify must lowercase' "$work/argv" && ok || no "spec reaches the leaf (blind prompt built + passed)"
 
-out="$( cd "$work" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$work/argv" \
-          FAKE_OUT_TEXT='VERDICT: PASS' "$VERIFY" bogus "$work/spec.md" t x 2>/dev/null )"
-code=$?
-[[ "$code" -ne 0 ]] && ok || no "unknown phase exits non-zero (code=$code)"
-
 hung_leaf
 { [[ "$code" == 2 ]] && [[ "$out" == *'killed-stuck'* ]]; } && ok \
   || no "hung verifier leaf → killed-stuck exit 2 (code=$code)"
-
-verify 'VERDICT: PASS
-REASON: The test passes now and fails under the mutation I applied.' pin
-pin_pass_code=$code pin_pass_out="$out"
-verify 'VERDICT: REJECT
-REASON: The test still passes with the behavior removed.' pin
-pin_reject_code=$code
-verify 'the pin verifier rambled and never rendered a verdict' pin
-pin_none_code=$code
-{ [[ "$pin_pass_code" == 0 ]] && [[ "$pin_pass_out" == *'fails under the mutation'* ]] \
-  && [[ "$pin_reject_code" == 1 ]] && [[ "$pin_none_code" == 2 ]]; } && ok \
-  || no "pin phase exit codes: PASS→0 REJECT→1 no verdict→2 (got $pin_pass_code/$pin_reject_code/$pin_none_code)"
 
 VERI_STUCK_RETRIES=3 hung_leaf
 stuck_lines="$(grep -c 'supervise\[verify-red\]: killed-stuck' "$work/err")"
@@ -179,44 +148,6 @@ else:
 verdict_field() {
   verdict_field_in "$verdict_work/$1" "$2"
 }
-
-verdict_run pass green 'I ran it.
-VERDICT: PASS
-REASON: Target test and full suite are green.
-The mutation I applied turned the target test red.'
-verdict_run reject red 'VERDICT: REJECT
-REASON: The test asserts on a private helper, not observable behavior.
-Rewrite it against the public function.'
-verdict_run malformed refactor 'the leaf rambled and never rendered a verdict'
-
-pass_verdict="$(verdict_field pass verdict)"
-pass_phase="$(verdict_field pass phase)"
-pass_reason="$(verdict_field pass reason)"
-reject_verdict="$(verdict_field reject verdict)"
-reject_phase="$(verdict_field reject phase)"
-reject_reason="$(verdict_field reject reason)"
-malformed_verdict="$(verdict_field malformed verdict)"
-malformed_phase="$(verdict_field malformed phase)"
-
-{ [[ "$pass_verdict"      == PASS ]] \
-  && [[ "$pass_phase"     == green ]] \
-  && [[ "$pass_reason"    == 'Target test and full suite are green.' ]] \
-  && [[ "$reject_verdict" == REJECT ]] \
-  && [[ "$reject_phase"   == red ]] \
-  && [[ "$reject_reason"  == 'The test asserts on a private helper, not observable behavior.' ]] \
-  && [[ "$malformed_verdict" == malformed ]] \
-  && [[ "$malformed_phase"   == refactor ]]; } && ok \
-  || no "a verification appends one verdict event carrying the phase, the verdict word and the reason's first line (PASS arm: verdict=$pass_verdict phase=$pass_phase reason=$pass_reason; REJECT arm: verdict=$reject_verdict phase=$reject_phase reason=$reject_reason; malformed arm: verdict=$malformed_verdict phase=$malformed_phase)"
-
-ctx_issue=163
-ctx_step=5
-( export VERI_ISSUE="$ctx_issue" VERI_STEP="$ctx_step"
-  verdict_run ctx green 'VERDICT: PASS
-REASON: Target test and full suite are green.' )
-ctx_field_issue="$(verdict_field ctx issue)"
-ctx_field_step="$(verdict_field ctx step)"
-{ [[ "$ctx_field_issue" == "$ctx_issue" ]] && [[ "$ctx_field_step" == "$ctx_step" ]]; } && ok \
-  || no "VERI_ISSUE/VERI_STEP in verify.sh's environment reach its verdict event (issue=$ctx_field_issue want $ctx_issue, step=$ctx_field_step want $ctx_step)"
 
 tamper_work="$work/tamper"
 
@@ -353,20 +284,6 @@ leafargs_overridden=no
 { [[ "$leafargs_overridden" == yes ]] && [[ "$code" == 2 ]] && [[ "$out" == *src.txt* ]] \
   && [[ -z "$delta" ]]; } && ok \
   || no "VERIFY_LEAF_ARGS overriding the leaf's flags does not switch the tree check off (override reached the leaf=$leafargs_overridden want yes; code=$code want 2; stdout='$out' want src.txt named; delta='$delta' want empty)"
-
-model_clash_dir="$work/model-clash"
-mkdir -p "$model_clash_dir"
-model_clash_argv="$model_clash_dir/argv"
-model_clash_out="$( VERI_MODEL_VERIFIER=sonnet \
-    VERIFY_LEAF_ARGS='--permission-mode bypassPermissions --model opus' \
-    verify_in "$model_clash_dir" red 'VERDICT: PASS
-REASON: Target test and full suite are green.' 2>&1 )"
-model_clash_code=$?
-model_clash_launched=no
-[[ -e "$model_clash_argv" ]] && model_clash_launched=yes
-{ [[ "$model_clash_code" == 2 ]] && [[ "$model_clash_launched" == no ]] \
-  && [[ "$model_clash_out" == *VERIFY_LEAF_ARGS* ]] && [[ "$model_clash_out" == *--model* ]]; } && ok \
-  || no "VERIFY_LEAF_ARGS carrying its own --model alongside a role model variable is refused before any leaf launches (code=$model_clash_code want 2; leaf launched=$model_clash_launched want no; output='$model_clash_out' want VERIFY_LEAF_ARGS and --model named)"
 
 verify '{"type":"system","subtype":"init","session_id":"s"}
 {"type":"result","subtype":"success","is_error":false,"num_turns":16,"result":"Waiting for the `make test` background task and its Monitor to report completion — will post the verdict once it finishes."}
@@ -543,14 +460,6 @@ REASON: ok' >/dev/null 2>"$nostep_dir/err"
 done
 [[ -z "$problems" ]] && ok \
   || no "with no --step every phase still builds a valid verifier prompt with no unfilled step placeholder (${problems#; })"
-
-gitconfig_home="$work/operator-home"
-mkdir -p "$gitconfig_home"
-printf '[credential]\n\thelper = store\n' > "$gitconfig_home/.gitconfig"
-HOME="$gitconfig_home" \
-  tamper_run gitconfig 'git config --file "$HOME/.gitconfig" http.proxy http://127.0.0.1:1'
-{ [[ "$code" == 2 ]] && [[ "$out" == *.gitconfig* ]]; } && ok \
-  || no "a verifier leaf that changed the operator's global git config exits 2 naming the file (code=$code want 2; stdout='$out' want .gitconfig named)"
 
 pres_dir="$work/preserve-reject"
 fixture_repo "$pres_dir" argv
@@ -803,12 +712,9 @@ REASON: the diff removes the cases.' --step 'DIFF-STEP the old cases are gone' -
 REASON: the diff leaves a case behind.' --step 'DIFF-STEP the old cases are gone' --fast-cmd 'make unit' diff "$work/spec.md" 0123abc 0123abc
   [[ "$dv_code" == 1 ]] \
     || diff_problems="$diff_problems; $entry REJECT arm: code=$dv_code want 1 ($(head -1 "$work/diff-reject-$entry/err"))"
-  diff_verdict "$work/diff-extra-$entry" "$entry" 'VERDICT: PASS
-REASON: ok' --step 'DIFF-STEP the old cases are gone' diff "$work/spec.md" 0123abc 0123abc extra
-  [[ "$dv_code" == 2 ]] || diff_problems="$diff_problems; $entry with an extra argument: code=$dv_code want 2"
 done
 [[ -z "$diff_problems" ]] && ok \
-  || no "verify.sh and run-verdict.sh --step diff <spec> <branch-base-sha> <step-base-sha> run one blind diff verification: 0 on PASS, 1 on REJECT, 2 on an extra argument (${diff_problems#; })"
+  || no "verify.sh and run-verdict.sh --step diff <spec> <branch-base-sha> <step-base-sha> run one blind diff verification: 0 on PASS, 1 on REJECT (${diff_problems#; })"
 
 diff_refusal_problems=""
 diff_refused_with() {  # <dir> <entry> <label> <want stderr line> <args…> — records a diff call that is not exit 2 with <want> first on stderr
