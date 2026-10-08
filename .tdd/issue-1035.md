@@ -6,7 +6,7 @@
 - [x] refactor-overflow.sh with both unreached structural candidates and out-of-scope transforms files a body with two headed lists — the structural candidates the closing pass could not reach, and the out-of-scope transforms the pass did not attempt — under the unchanged title ⟦criterion 4⟧
 - [x] refactor-overflow.sh with only out-of-scope transforms files a body carrying only the out-of-scope heading ⟦criterion 5⟧
 - [x] refactor-overflow.sh with only unreached structural candidates files a body carrying only the structural heading ⟦criterion 5⟧
-- [x] refactor-triage refuses an empty cosmetic candidate line with exit 2 and stderr naming the line ⟦criterion 6⟧ ⟂ refactor pending
+- [x] refactor-triage refuses an empty cosmetic candidate line with exit 2 and stderr naming the line ⟦criterion 6⟧
 - [ ] refactor-triage refuses an empty test-only candidate line with exit 2 and stderr naming the line ⟦criterion 6⟧
 - [ ] refactor-triage refuses an empty out-of-scope candidate line with exit 2 and stderr naming the line ⟦criterion 6⟧
 - [ ] refactor-owed.sh append records nothing for an empty cosmetic, test-only or out-of-scope candidate line, one case per class ⟦criterion 6⟧
