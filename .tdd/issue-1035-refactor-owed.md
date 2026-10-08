@@ -9,3 +9,5 @@
 - fold the parallel empty-transform refusals for structural and cosmetic into one per-class check in refactor_triage.main, once the test-only and out-of-scope cases this criterion still owes demand it
 ### refactor-triage refuses an empty test-only candidate line with exit 2 and stderr naming the line ⟦criterion 6⟧
 - test-only | the per-class empty-candidate refusal cases in test_refactor_triage.py (structural, cosmetic, test-only) are near-identical and could be one parametrized test over the class name
+### refactor-triage refuses an empty out-of-scope candidate line with exit 2 and stderr naming the line ⟦criterion 6⟧
+- test-only | collapse the three near-identical empty cosmetic/test-only/out-of-scope refusal tests in test_refactor_triage.py into one pytest.mark.parametrize case over the class name
