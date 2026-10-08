@@ -254,3 +254,68 @@ def test_main_keeps_the_report_rules_of_the_embedded_program_and_raises_on_a_mal
         (tmp_path / "prs.json").write_text(prs)
         with pytest.raises(Exception):
             invisible_work.main([])
+
+
+def fake_git_passing_stderr(monkeypatch, answers):
+    """fake_git, with each answer also carrying git's stderr, written to sys.stderr unless the
+    caller redirected it: a list of (words the command line holds, exit code, stdout, stderr)."""
+    def fake_run(args, **kwargs):
+        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+        code, out, err = 0, "", ""
+        for words, answer_code, answer_out, answer_err in answers:
+            if all(word in line.split(" ") for word in words):
+                code, out, err = answer_code, answer_out, answer_err
+                break
+        if "stderr" not in kwargs:
+            sys.stderr.write(err)
+        text = kwargs.get("text") or kwargs.get("encoding") or kwargs.get("universal_newlines")
+        return subprocess.CompletedProcess(args, code, out if text else out.encode(), "" if text else b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+
+def test_main_resolves_the_default_branch_from_each_ls_remote_shape_when_origin_head_is_unset(
+        monkeypatch, tmp_path, capsys):
+    invisible_work = importlib.import_module("veri.invisible_work")
+    (tmp_path / "issues.json").write_text("[]")
+    (tmp_path / "prs.json").write_text("[]")
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+
+    def answers(symref_code, symref_out, symref_err):
+        return [
+            (["ls-remote", "--symref", "origin", "HEAD"], symref_code, symref_out, symref_err),
+            (["ls-remote", "--heads", "origin"], 0, "", ""),
+            (["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], 128, "",
+             "fatal: ref refs/remotes/origin/HEAD is not a symbolic ref\n"),
+            (["for-each-ref", "refs/remotes/origin/"], 0,
+             "refs/remotes/origin/trunk 1111\nrefs/remotes/origin/zeta bbbb\n", ""),
+            (["for-each-ref", "refs/heads/"], 0, "refs/heads/trunk 1111\n", ""),
+            (["rev-list", "--count", "origin/trunk..refs/remotes/origin/zeta"], 0, "1\n", ""),
+            (["show-ref", "refs/remotes/origin/trunk"], 0, "", ""),
+            (["show-ref"], 1, "", ""),
+        ]
+
+    fake_git_passing_stderr(monkeypatch, answers(
+        0, "ref: refs/heads/trunk\tHEAD\n1111111111111111111111111111111111111111\tHEAD\n", ""))
+    symref = invisible_work.main([])
+    symref_out = capsys.readouterr()
+
+    fake_git_passing_stderr(monkeypatch, answers(
+        0, "1111111111111111111111111111111111111111\tHEAD\n", ""))
+    no_symref = invisible_work.main([])
+    no_symref_out = capsys.readouterr()
+
+    fake_git_passing_stderr(monkeypatch, answers(
+        128, "", "fatal: unable to access 'https://example.invalid/repo.git/': Could not resolve host\n"))
+    unreachable = invisible_work.main([])
+    unreachable_out = capsys.readouterr()
+
+    assert (symref, symref_out.out, symref_out.err) == (
+        0, "invariant 2 (no PR): zeta tip bbbb 1 commits ahead\n", "")
+    assert (no_symref, no_symref_out.out, no_symref_out.err) == (
+        2, "",
+        "invisible-work.sh: no refs/remotes/origin/HEAD and origin names no default branch\n")
+    assert (unreachable, unreachable_out.out, unreachable_out.err) == (
+        2, "",
+        "fatal: unable to access 'https://example.invalid/repo.git/': Could not resolve host\n"
+        "invisible-work.sh: no refs/remotes/origin/HEAD and origin names no default branch\n")
