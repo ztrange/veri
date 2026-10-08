@@ -1,0 +1,3 @@
+### with its stdout a pipe whose reader has exited, orchestrate.sh exits 2 with one stderr line saying its stdout is gone and no traceback, where it now lets BrokenPipeError escape ⟦criterion 1⟧
+- test-only | the #1130 case in orchestrate.test.sh hand-rolls its own `if … ok else no …` block where the suite's other cases use shared `expect_*` helpers; a helper that checks exit code plus a one-line stderr pattern would remove that
+- out-of-scope | `main()` writes to stderr with `sys.stderr.write` at three call sites without flushing, next to the `_err` helper; this cycle did not write those lines
