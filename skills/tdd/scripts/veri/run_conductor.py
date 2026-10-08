@@ -57,6 +57,15 @@ def main(argv):
         if not os.access(record, os.R_OK):
             with open(record, "w") as out:
                 out.write(commit + "\n")
+        elif os.environ.get("VERI_NEW_SKILL") == "1":
+            with open(record, "w") as out:
+                out.write(commit + "\n")
+            os.makedirs(".tdd/wt/" + argv[0], exist_ok=True)
+            here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            if subprocess.run([os.path.join(here, "event.sh"), "skill-repin", "commit=" + commit],
+                              cwd=".tdd/wt/" + argv[0],
+                              env=dict(os.environ, VERI_ISSUE=argv[0])).returncode != 0:
+                return 2
         else:
             try:
                 with open(record) as recorded_file:

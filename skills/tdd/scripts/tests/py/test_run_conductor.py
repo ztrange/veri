@@ -409,3 +409,75 @@ def test_main_on_a_pinned_launch_seeds_the_gitignore_only_when_absent_writes_an_
         "foreign": (2, b"", [refusal % "2222222"], "2222222\n"),
         "directory": (2, b"", [refusal % ""], None),
     }
+
+
+def fake_event(monkeypatch, calls, event_code):
+    """event.sh faked as a process exiting as given, recording its argv, directory and VERI_ISSUE."""
+    events = []
+
+    def wrap(started):
+        def start(args, *a, **kwargs):
+            if list(args)[:1] and str(list(args)[0]).endswith("event.sh"):
+                env = kwargs.get("env") if kwargs.get("env") is not None else os.environ
+                events.append((list(args), os.path.realpath(kwargs.get("cwd") or os.getcwd()), env.get("VERI_ISSUE")))
+                done = subprocess.CompletedProcess(list(args), event_code, b"", b"")
+                if started is popen:
+                    process = FakeProcess(list(args))
+                    process.returncode = event_code
+                    process.wait = process.poll = lambda *_, **__: event_code
+                    return process
+                return done.returncode if started in (call, check_call) else done
+            return started(args, *a, **kwargs)
+        return start
+
+    run, call, check_call, popen = subprocess.run, subprocess.call, subprocess.check_call, subprocess.Popen
+    for name, started in (("run", run), ("call", call), ("check_call", check_call), ("Popen", popen)):
+        monkeypatch.setattr(subprocess, name, wrap(started))
+    return events
+
+
+def test_main_with_veri_new_skill_exactly_1_rewrites_a_readable_record_then_runs_the_live_event_sh_in_the_run_worktree_returning_2_on_its_failure_and_logs_nothing_on_a_first_launch_or_any_other_value(
+        tmp_path, monkeypatch, capfdbinary):
+    import tempfile
+    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
+    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    monkeypatch.delenv("VERI_ISSUE", raising=False)
+    scratch = tmp_path / "tmp"
+    scratch.mkdir()
+    monkeypatch.setenv("TMPDIR", str(scratch))
+    monkeypatch.setattr(tempfile, "tempdir", str(scratch))
+    commit = "1111111111111111111111111111111111111111"
+    run_conductor = importlib.import_module("veri.run_conductor")
+    scenarios = {
+        "re-pin": ("1", "2222222\n", 0),
+        "re-pin-event-fails": ("1", "2222222\n", 1),
+        "first-launch": ("1", None, 0),
+        "other-value": ("true", "2222222\n", 0),
+    }
+    answers = {}
+    for name, (new_skill, record, event_code) in scenarios.items():
+        cwd = tmp_path / name
+        cwd.mkdir()
+        monkeypatch.chdir(cwd)
+        monkeypatch.setenv("VERI_NEW_SKILL", new_skill)
+        path = cwd / ".tdd" / "issue-4242-skill-commit"
+        if record is not None:
+            (cwd / ".tdd").mkdir()
+            path.write_text(record)
+        calls = fake_pin(monkeypatch, commit, set())
+        events = fake_event(monkeypatch, calls, event_code)
+        code = run_conductor.main(["4242"])
+        capfdbinary.readouterr()
+        answers[name] = (path.read_text() if path.is_file() else None,
+                         (cwd / ".tdd" / "wt" / "4242").is_dir(), events,
+                         code if name in ("re-pin-event-fails", "other-value") else None)
+    event = [str(SCRIPTS / "event.sh"), "skill-repin", "commit=" + commit]
+    assert answers == {
+        "re-pin": (commit + "\n", True,
+                   [(event, os.path.realpath(tmp_path / "re-pin" / ".tdd" / "wt" / "4242"), "4242")], None),
+        "re-pin-event-fails": (commit + "\n", True,
+                               [(event, os.path.realpath(tmp_path / "re-pin-event-fails" / ".tdd" / "wt" / "4242"), "4242")], 2),
+        "first-launch": (commit + "\n", False, [], None),
+        "other-value": ("2222222\n", False, [], 2),
+    }
