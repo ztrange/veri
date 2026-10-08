@@ -13,7 +13,7 @@ def usage():
 
 
 def refuse(message):
-    sys.stderr.buffer.write(os.fsencode(message) + b"\n" + usage())
+    sys.stderr.buffer.write(os.fsencode("stop-run: " + message) + b"\n" + usage())
     return 2
 
 
@@ -34,9 +34,9 @@ def main(argv):
     for arg in argv:
         issue = arg
     if not issue:
-        return refuse("stop-run: name an issue, or --all")
+        return refuse("name an issue, or --all")
     if not re.fullmatch(r"[1-9][0-9]*", issue):
-        return refuse(f"stop-run: <issue> must be a positive integer: '{issue}'")
+        return refuse(f"<issue> must be a positive integer: '{issue}'")
     target = os.fsdecode(main_working_tree()) + "/.tdd/wt/" + issue
     if pid_file.live_conductor(target) is None:
         return nothing_to_do(f"no live run for issue {issue}")
