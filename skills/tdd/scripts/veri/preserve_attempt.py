@@ -17,7 +17,7 @@ def main(argv):
         return 2
     issue, step, phase, attempt = argv[:4]
     coords = f"issue {issue} step {step} {phase} attempt {attempt}"
-    top = git("rev-parse", "--show-toplevel", quiet=True)
+    top = run_git("rev-parse", "--show-toplevel", quiet=True)
     if top.returncode != 0:
         print("preserve-attempt.sh: not in a git work tree", file=sys.stderr)
         return 2
@@ -29,20 +29,20 @@ def main(argv):
     scratch = tempfile.mkdtemp()
     try:
         index = {**os.environ, "GIT_INDEX_FILE": os.path.join(scratch, "index")}
-        result = git("read-tree", "HEAD", env=index, capture=False)
+        result = run_git("read-tree", "HEAD", env=index, capture=False)
         if result.returncode == 0:
-            result = git("add", "-A", env=index, capture=False)
+            result = run_git("add", "-A", env=index, capture=False)
         if result.returncode == 0:
-            result = git("write-tree", env=index)
+            result = run_git("write-tree", env=index)
         if result.returncode == 0:
-            result = git("commit-tree", result.stdout.strip(), "-p", "HEAD", "-m", f"attempt: {coords}")
+            result = run_git("commit-tree", result.stdout.strip(), "-p", "HEAD", "-m", f"attempt: {coords}")
         if result.returncode != 0:
             return mapped(result.returncode)
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
     step_ref = sanitised(ledger_step_index(issue, os.fsencode(step).decode("utf-8", "surrogateescape")))
     ref = f"refs/veri/attempts/{issue}/{step_ref}/{phase}-{attempt}"
-    if git("update-ref", ref, result.stdout.strip(), capture=False).returncode != 0:
+    if run_git("update-ref", ref, result.stdout.strip(), capture=False).returncode != 0:
         print(f"preserve-attempt.sh: could not preserve {coords} to {ref}", file=sys.stderr)
         return 1
     mark = argv[4] if len(argv) > 4 else ""
@@ -88,7 +88,7 @@ def sanitised(step_ref):
     return re.sub(r"[^0-9A-Za-z-]", "-", step_ref)
 
 
-def git(*args, env=None, capture=True, quiet=False):
+def run_git(*args, env=None, capture=True, quiet=False):
     return subprocess.run(["git", *args], env=env, text=True,
                           stdout=subprocess.PIPE if capture else None,
                           stderr=subprocess.DEVNULL if quiet else None)
