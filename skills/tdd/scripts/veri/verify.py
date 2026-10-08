@@ -138,7 +138,8 @@ def main(argv):
     gitconfig = os.environ["HOME"] + "/.gitconfig"
     try:
         gitconfig_before = gitconfig_snapshot(gitconfig)
-    except OSError:
+    except OSError as error:
+        _write(sys.stderr, "cksum: %s: %s" % (gitconfig, error.strerror))
         return 1
     retries = os.environ.get("VERI_NO_VERDICT_RETRIES") or "1"
     if not re.fullmatch("[0-9]+", retries):

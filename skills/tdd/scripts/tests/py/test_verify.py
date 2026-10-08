@@ -1046,3 +1046,40 @@ def test_main_returns_1_before_any_leaf_launches_when_reading_home_gitconfig_a_r
 
     captured = capfdbinary.readouterr()
     assert (code, captured.out, "supervise.sh" in launched) == (1, b"", False)
+
+
+def test_main_returning_1_because_reading_home_gitconfig_raised_oserror_names_that_path_on_stderr(
+        tmp_path, monkeypatch, capfdbinary):
+    work = tmp_path / "work"
+    work.mkdir()
+    monkeypatch.chdir(work)
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    gitconfig = home / ".gitconfig"
+    gitconfig.write_bytes(b"[user]\n\tname = op\n")
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
+                 "VERI_ISSUE", "VERI_STEP"):
+        monkeypatch.delenv(name, raising=False)
+
+    def fake(args, *_, **__):
+        if os.path.basename(str(args[0])) == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    real_open = open
+
+    def unreadable(path, *args, **kwargs):
+        if os.fspath(path) == str(gitconfig):
+            raise PermissionError(13, "Permission denied", os.fspath(path))
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.open", unreadable)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    captured = capfdbinary.readouterr()
+    assert (code, str(gitconfig).encode() in captured.err) == (1, True)
