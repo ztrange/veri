@@ -962,3 +962,62 @@ def test_main_runs_event_sh_before_the_session_strip_then_hands_claude_no_veri_n
                              "VERI_SKILL_COMMIT": "ambient", "VERI_SKILL_UNPINNED": "1"}),
         ],
     }
+
+
+def test_main_returns_claudes_own_status_128_plus_n_for_a_signal_127_naming_a_claude_that_cannot_start_and_141_for_a_claude_exiting_0_unread_past_a_pipe_buffer(
+        tmp_path, monkeypatch, capfdbinary):
+    import importlib.util
+    past_the_guards(monkeypatch)
+    for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
+        monkeypatch.delenv(name, raising=False)
+    skill = tmp_path / "skill"
+    (skill / "scripts" / "veri").mkdir(parents=True)
+    (skill / "scripts" / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
+    (skill / "SKILL.md").write_text("# the procedure\n" + "x" * 99 + "\n" * 2000 + "y" * 200000 + "\n")
+    spec = importlib.util.spec_from_file_location("run_conductor_status", str(skill / "scripts" / "veri" / "run_conductor.py"))
+    run_conductor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_conductor)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    real_run, real_popen = subprocess.run, subprocess.Popen
+
+    def git_has_no_origin_and_no_commit(args, *a, **kwargs):
+        if list(args)[:1] == ["git"]:
+            empty = "" if kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding") else b""
+            return subprocess.CompletedProcess(list(args), 128, empty, empty)
+        return real_run(args, *a, **kwargs)
+
+    def popen_refuses_git(args, *a, **kwargs):
+        if list(args)[:1] == ["git"]:
+            raise AssertionError("git started through Popen: %r" % (args,))
+        return real_popen(args, *a, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", git_has_no_origin_and_no_commit)
+    monkeypatch.setattr(subprocess, "Popen", popen_refuses_git)
+    claudes = {"exit-%d" % n: "cat > /dev/null\nexit %d\n" % n for n in (0, 1, 2, 3, 17)}
+    claudes.update({"sigterm": "cat > /dev/null\nkill -TERM $$\n",
+                    "sigkill": "cat > /dev/null\nkill -KILL $$\n",
+                    "unread-exit-0": "exit 0\n"})
+    warning = ("run-conductor: no skill commit resolvable from '%s' — running unpinned\n" % skill).encode()
+    answers = {}
+    for name, body in list(claudes.items()) + [("missing", None)]:
+        claude = tmp_path / ("claude-" + name)
+        if body is not None:
+            claude.write_text("#!/bin/sh\n" + body)
+            claude.chmod(0o755)
+        monkeypatch.setenv("CLAUDE_BIN", str(claude))
+        try:
+            code = run_conductor.main(["4242"])
+        except Exception as error:
+            code = type(error).__name__
+        captured = capfdbinary.readouterr()
+        answers[name] = (code, captured.out, captured.err)
+    missing = ("run-conductor: %s: command not found\n" % (tmp_path / "claude-missing")).encode()
+    assert answers == {
+        "exit-0": (0, b"", warning), "exit-1": (1, b"", warning), "exit-2": (2, b"", warning),
+        "exit-3": (3, b"", warning), "exit-17": (17, b"", warning),
+        "sigterm": (143, b"", warning), "sigkill": (137, b"", warning),
+        "unread-exit-0": (141, b"", warning),
+        "missing": (127, b"", warning + missing),
+    }
