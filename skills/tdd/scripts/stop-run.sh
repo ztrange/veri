@@ -7,4 +7,5 @@
 # usage: stop-run.sh [--mode <mode>] <issue> | --all
 # Exits:   0 the stopped runs printed | 2 arguments that name no run, or no mode this script
 #          knows | 3 nothing to do — no live run answered to what was named
+export VERI_CALLER_DIR="$PWD"
 exec python3 "$(dirname "$0")/veri/stop_run.py" "$@"
