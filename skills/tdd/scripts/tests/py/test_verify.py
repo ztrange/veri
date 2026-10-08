@@ -139,3 +139,45 @@ def test_main_calls_the_builder_beside_the_shim_as_called_with_the_consumed_pair
     prompt = prompt_file.read_bytes() if prompt_file.exists() else None
     assert (first, prompt) == (b"an earlier, longer prompt that must not survive", b"blind\nprompt")
     assert b"AMBIENT-STEP-SENTINEL" not in prompt
+
+
+@pytest.mark.parametrize("leaf_args", [None, ""])
+def test_main_launches_the_verifier_leaf_through_supervise_with_the_default_flags_streams_inherited_and_starts_no_ported_helper_process(
+        leaf_args, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    if leaf_args is None:
+        monkeypatch.delenv("VERIFY_LEAF_ARGS", raising=False)
+    else:
+        monkeypatch.setenv("VERIFY_LEAF_ARGS", leaf_args)
+    started = []
+
+    def fake(args, *_, **kwargs):
+        words = [str(a) for a in (args if isinstance(args, (list, tuple)) else [args])]
+        started.append((words, kwargs.get("stdin"), kwargs.get("stderr")))
+        name = os.path.basename(words[0])
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine", None)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    for name in ("system", "fork", "posix_spawn", "posix_spawnp", "execv", "execvp", "execve"):
+        if hasattr(os, name):
+            monkeypatch.setattr(os, name, fake)
+    verify = importlib.import_module("veri.verify")
+    scripts = os.path.dirname(os.path.dirname(os.path.abspath(verify.__file__)))
+
+    verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    supervised = [call for call in started if os.path.basename(call[0][0]) == "supervise.sh"]
+    assert supervised == [([os.path.join(scripts, "supervise.sh"), "verify-green",
+                            os.path.join(scripts, "run-leaf.sh"), ".tdd/verify-green.prompt",
+                            "--permission-mode", "bypassPermissions",
+                            "--disallowedTools", "Write", "Edit", "MultiEdit", "NotebookEdit"],
+                           None, None)]
+    forbidden = {"parse-verdict.sh", "leaf-role.sh", "leaf-model.sh"}
+    assert [words for words, _, _ in started
+            if os.path.basename(words[0]) in forbidden
+            or os.path.basename(words[0]).startswith("python")] == []
