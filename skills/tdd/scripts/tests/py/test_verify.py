@@ -90,3 +90,52 @@ def test_main_returns_the_builders_refusal_mapped_into_the_contract_with_its_std
     passed_through = builder is FileNotFoundError or builder_err in captured.err
     assert (code, captured.out, passed_through, "build-verify-prompt.sh" in launched,
             "supervise.sh" in launched) == (expected, b"", True, True, False)
+
+
+def test_main_calls_the_builder_beside_the_shim_as_called_with_the_consumed_pairs_and_every_positional_and_writes_its_stdout_as_the_prompt_file(
+        tmp_path, monkeypatch):
+    link = tmp_path / "skill-link"
+    link.symlink_to(SCRIPTS, target_is_directory=True)
+    for name, module in list(sys.modules.items()):
+        where = getattr(module, "__file__", None) or ""
+        if name == "veri" or (where and pathlib.Path(where).resolve().is_relative_to(SCRIPTS)):
+            monkeypatch.delitem(sys.modules, name)
+    monkeypatch.syspath_prepend(str(link / "veri"))
+    monkeypatch.syspath_prepend(str(link))
+    work = tmp_path / "work"
+    work.mkdir()
+    monkeypatch.chdir(work)
+    monkeypatch.setenv("VERI_STEP", "AMBIENT-STEP-SENTINEL")
+    outputs = [b"an earlier, longer prompt that must not survive\n", b"blind\nprompt\n\n\n"]
+    built = []
+
+    def fake(args, *_, **__):
+        name = os.path.basename(str(args[0]))
+        if name == "build-verify-prompt.sh":
+            built.append([str(a) for a in args])
+            return subprocess.CompletedProcess(args, 0, outputs[len(built) - 1], b"")
+        if name == "supervise.sh":
+            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine", b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    before = set(sys.modules)
+    try:
+        verify = importlib.import_module("veri.verify")
+        argv = ["--step", "--fast-cmd", "--fast-cmd", "make unit",
+                "green", "spec.md", "tests/x.test.sh", "--step", "extra"]
+        verify.main(list(argv))
+        prompt_file = work / ".tdd" / "verify-green.prompt"
+        first = prompt_file.read_bytes() if prompt_file.exists() else None
+        verify.main(list(argv))
+    finally:
+        for name in set(sys.modules) - before:
+            del sys.modules[name]
+
+    expected = [str(link / "build-verify-prompt.sh"), *argv]
+    assert built == [expected, expected]
+    assert not any("AMBIENT-STEP-SENTINEL" in word for word in built[0])
+    prompt = prompt_file.read_bytes() if prompt_file.exists() else None
+    assert (first, prompt) == (b"an earlier, longer prompt that must not survive", b"blind\nprompt")
+    assert b"AMBIENT-STEP-SENTINEL" not in prompt
