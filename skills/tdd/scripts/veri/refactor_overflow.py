@@ -33,11 +33,17 @@ def main(argv):
         with open(skipped) as f:
             text = f.read()
     text += "\n".join(candidates.split("\n")[skip:])
-    unreached = "\n".join([l for l in [text.rstrip("\n")] if l] + out_of_scope_transforms(owed))
-    if not unreached:
+    text = text.rstrip("\n")
+    structural = text.split("\n") if text else []
+    out_of_scope = out_of_scope_transforms(owed)
+    if not structural and not out_of_scope:
         return 3
-    body = f"Structural candidates #{n}'s closing pass could not reach:\n\n" + "\n".join(
-        f"- {line}" for line in unreached.split("\n"))
+    body = "\n\n".join(
+        f"{heading}:\n\n" + "\n".join(f"- {line}" for line in lines)
+        for heading, lines in [
+            (f"Structural candidates #{n}'s closing pass could not reach", structural),
+            (f"Out-of-scope transforms #{n}'s closing pass did not attempt", out_of_scope)]
+        if lines)
     filed = subprocess.run(["gh", "api", "repos/{owner}/{repo}/issues",
                             "-f", f"title=Refactor owed by #{n}", "-f", f"body={body}",
                             "-q", ".html_url"], stdout=subprocess.PIPE, text=True)
