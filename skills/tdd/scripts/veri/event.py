@@ -83,8 +83,11 @@ def main(argv):
             sys.stderr.buffer.write(refusal + b"\n")
             return 2
     os.makedirs(".tdd", exist_ok=True)
-    with open(".tdd/events.jsonl", "ab") as log:
-        log.write(line(args))
+    fd = os.open(".tdd/events.jsonl", os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o666)
+    try:
+        os.write(fd, line(args))
+    finally:
+        os.close(fd)
     return 0
 
 
