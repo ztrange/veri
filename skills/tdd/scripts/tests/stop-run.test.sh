@@ -174,7 +174,11 @@ label=""
 rm -f "$run/.tdd/stop"
 
 pybin="$work/pybin"; mkdir -p "$pybin/veri"
-cp "$stubbin/supervise.sh" "$pybin/veri/supervise.py"
+cat > "$pybin/veri/supervise.py" <<'S'
+#!/bin/sh
+while :; do sleep 0.2; done
+S
+chmod +x "$pybin/veri/supervise.py"
 "$pybin/veri/supervise.py" develop-refactor 5 &
 py_sup=$!; alive+=("$py_sup")
 printf '%s\n' "$py_sup" > "$run/.tdd/develop-refactor.pid"
