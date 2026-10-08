@@ -239,3 +239,63 @@ def test_main_launches_the_leaf_through_one_sh_wrapper_in_its_own_group_logging_
         (1, b"leaf out\nleaf err\n", [b"supervise[verdict-red]: failure"],
          b"leaf out\nleaf err\n", b"1\n", b"1\n", [(["/bin/sh", "-c"], 0, None)]),
     ]
+
+
+def test_main_maps_the_leaf_rc_to_its_exit_code_records_its_own_pid_and_clears_a_stale_log_rc_and_exit_before_the_launch_leaving_a_leafs_own_exit_record(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    monkeypatch.setattr(time, "sleep", lambda *_: None)
+    clean_env(monkeypatch)
+
+    leaves = {
+        "rc-2": ("exit 2", False),
+        "rc-3": ("exit 3", False),
+        "rc-126": ("exit 126", False),
+        "rc-127": ("exit 127", False),
+        "rc-empty": ("exit 0", True),
+        "own-exit": ("printf '7\\n' > .tdd/verdict-red.exit; exit 1", False),
+    }
+    real_popen = subprocess.Popen
+    answers = {}
+    for label, (script, empty_rc) in leaves.items():
+        work = tmp_path / label
+        (work / ".tdd").mkdir(parents=True)
+        tdd = work / ".tdd"
+        (tdd / "verdict-red.log").write_bytes(b"stale log\n")
+        (tdd / "verdict-red.rc").write_bytes(b"0\n")
+        (tdd / "verdict-red.exit").write_bytes(b"5\n")
+        monkeypatch.chdir(work)
+        monkeypatch.setattr(subprocess, "Popen", real_popen)
+        fake_leaf_launch(monkeypatch)
+        launching = subprocess.Popen
+        seen = []
+
+        def popen(args, *a, _launching=launching, _tdd=tdd, _empty_rc=empty_rc, _seen=seen, **kwargs):
+            if list(args[:2]) == ["/bin/sh", "-c"]:
+                def read(name):
+                    path = _tdd / name
+                    return path.read_bytes() if path.exists() else None
+                _seen.append((read("verdict-red.pid"), read("verdict-red.log"),
+                              read("verdict-red.rc"), read("verdict-red.exit")))
+            leaf = _launching(args, *a, **kwargs)
+            if _empty_rc and list(args[:2]) == ["/bin/sh", "-c"]:
+                (_tdd / "verdict-red.rc").write_bytes(b"")
+            return leaf
+
+        monkeypatch.setattr(subprocess, "Popen", popen)
+        code = supervise.main(["verdict-red", "sh", "-c", script])
+        _, err = capsysbinary.readouterr()
+        answers[label] = (code, err.splitlines()[-1:], (tdd / "verdict-red.exit").read_bytes(), seen)
+
+    before = (f"{os.getpid()}\n".encode(), b"", None, None)
+    failure = [b"supervise[verdict-red]: failure"]
+    assert answers == {
+        "rc-2": (2, failure, b"2\n", [before]),
+        "rc-3": (1, failure, b"1\n", [before]),
+        "rc-126": (1, failure, b"1\n", [before]),
+        "rc-127": (1, failure, b"1\n", [before]),
+        "rc-empty": (1, failure, b"1\n", [before]),
+        "own-exit": (1, failure, b"7\n", [before]),
+    }
