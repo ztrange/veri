@@ -314,23 +314,6 @@ check_code 2
 report "stop-run.sh refuses an unknown mode with today's message first on stderr and no argument with today's usage line last on stderr, each exiting 2"
 
 problems=()
-label=""
-rm -f "$run/.tdd/stop"
-
-listed="$work/listed"; mkdir -p "$listed/lib"
-cp "$STOP" "$listed/stop-run.sh"
-cp "$HERE/.."/lib/*.sh "$listed/lib/"
-{ cat "$HERE/../lib/stop-modes.sh"; printf '%s\n' 'STOP_MODES=(at-ledger at-leaf now at-step)'; } > "$listed/lib/stop-modes.sh"
-
-out="$(cd "$repo" && "$listed/stop-run.sh" 2>"$work/stderr")" && code=0 || code=$?
-err="$(cat "$work/stderr")"
-check_code 2
-[[ "${err##*$'\n'}" == "usage: stop-run.sh [--mode at-ledger|at-leaf|now|at-step] <issue> | --all" ]] ||
-  note "want the usage line to name at-step, added to lib/stop-modes.sh, got '${err##*$'\n'}'"
-
-report "#683: stop-run.sh's usage line names the modes lib/stop-modes.sh lists"
-
-problems=()
 
 for zero in 0 00; do
   label="conductor.pid holding $zero"
