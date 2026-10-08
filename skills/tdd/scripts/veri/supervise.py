@@ -1,4 +1,5 @@
 """supervise.sh's watchdog, run in-process."""
+import errno
 import os
 import re
 import signal
@@ -62,7 +63,14 @@ def leaf_dispositions(ignored):
 def awake_seconds():
     command = os.environ.get("VERI_AWAKE_CLOCK", "")
     if command:
-        return int(captured(command).stdout.rstrip("\n"))
+        words = command.split()
+        try:
+            done = captured(*words)
+        except OSError as error:
+            if error.errno != errno.ENOEXEC:
+                raise
+            done = captured("/bin/sh", *words)
+        return int(done.stdout.rstrip("\n"))
     clock = getattr(time, "CLOCK_UPTIME_RAW", time.CLOCK_MONOTONIC)
     return int(time.clock_gettime(clock))
 
@@ -168,13 +176,13 @@ def recover_finished_leaf(name, log, reason):
     return outcome
 
 
-def mark(role, *fields):
+def mark(role, env, *fields):
     if not role:
         return
-    subprocess.run(["env", *role.split(), os.path.join(HERE, "event.sh"), *fields])
+    subprocess.run(["env", *role.split(), os.path.join(HERE, "event.sh"), *fields], env=env)
 
 
-def preserve_killed_attempt(name, attempt):
+def preserve_killed_attempt(name, attempt, env):
     issue, step = os.environ.get("VERI_ISSUE", ""), os.environ.get("VERI_STEP", "")
     if not issue or not step:
         return
@@ -182,7 +190,7 @@ def preserve_killed_attempt(name, attempt):
         return
     sys.stderr.flush()
     done = subprocess.run([os.path.join(HERE, "preserve-attempt.sh"), issue, step, name, str(attempt), "stuck"],
-                          stdout=2)
+                          stdout=2, env=env)
     if done.returncode != 0:
         print(f"supervise[{name}]: could not preserve the stuck attempt"
               f" (issue {issue} step {step} {name} attempt {attempt})", file=sys.stderr)
@@ -317,7 +325,7 @@ def main(argv):
         return 2
     if watched and not name.startswith("conductor-"):
         tolerated(name, "write", ownerfile, write_line, ownerfile, f"{os.getpid()} {name}")
-    mark(role, "launch", f"name={name}", f"cmd={' '.join(argv[1:])}", f"model={model}")
+    mark(role, leaf_env, "launch", f"name={name}", f"cmd={' '.join(argv[1:])}", f"model={model}")
     pidfile = f".tdd/{name}.pid"
     tolerated(name, "write", pidfile, write_line, pidfile, os.getpid())
     discard(exitfile)
@@ -332,12 +340,12 @@ def main(argv):
                                                   timeout, heartbeat, poll, kill_poll)
             if status != "killed-stuck":
                 break
-            preserve_killed_attempt(name, tries + 1)
+            preserve_killed_attempt(name, tries + 1, leaf_env)
             budget = limit(retries)
             if budget is not None and tries >= budget:
                 break
             tries += 1
-            mark(role, "retry", f"cause={reason}")
+            mark(role, leaf_env, "retry", f"cause={reason}")
             print(f"supervise[{name}]: retry {tries}/{retries} after killed-stuck", file=sys.stderr)
     except Unbound as unbound:
         print(unbound, file=sys.stderr)
@@ -348,10 +356,10 @@ def main(argv):
     secs = awake_seconds() - a0
     if watched:
         sys.stderr.flush()
-        subprocess.run([os.path.join(HERE, "harvest-usage.sh"), name], stdout=2)
+        subprocess.run([os.path.join(HERE, "harvest-usage.sh"), name], stdout=2, env=leaf_env)
     print(f"supervise[{name}]: {status}" + (f" — {reason}" if reason else ""), file=sys.stderr)
     sys.stderr.flush()
-    mark(role, "exit", f"status={ec}", *([f"cause={reason}"] if reason else []), f"secs={secs}")
+    mark(role, leaf_env, "exit", f"status={ec}", *([f"cause={reason}"] if reason else []), f"secs={secs}")
     try:
         with open(log, "rb") as f:
             data = f.read()
