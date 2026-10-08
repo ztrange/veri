@@ -30,19 +30,15 @@ def main(argv):
         if not found:
             continue
         candidates_seen = True
-        transform = STRUCTURAL.match(line)
-        if transform:
-            if not transform.group(1):
-                return _refuse(b"structural candidate line names no transform: " + line)
-            structural.append(transform.group(1))
-            continue
         classed = False
-        for cls, pattern in ((b"cosmetic", COSMETIC), (b"test-only", TEST_ONLY),
-                             (b"out-of-scope", OUT_OF_SCOPE)):
-            other = pattern.match(line)
-            if other:
-                if not other.group(1):
+        for cls, pattern in ((b"structural", STRUCTURAL), (b"cosmetic", COSMETIC),
+                             (b"test-only", TEST_ONLY), (b"out-of-scope", OUT_OF_SCOPE)):
+            transform = pattern.match(line)
+            if transform:
+                if not transform.group(1):
                     return _refuse(cls + b" candidate line names no transform: " + line)
+                if pattern is STRUCTURAL:
+                    structural.append(transform.group(1))
                 classed = True
         if not (classed or NONE.match(found.group(1))):
             return _refuse(b"candidate line has no class, or one that is not structural, cosmetic, test-only or out-of-scope: " + line)
