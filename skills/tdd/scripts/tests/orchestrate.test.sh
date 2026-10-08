@@ -326,7 +326,7 @@ expected="$(printf '%s\n' 'parked 1201' 1201 1202 '# Plan' '- [x] first step' '-
 actual="$(grep '^parked ' "$work/out"; cat "$LAUNCHES" "$work/.tdd/issue-1201.md")"
 expect_exit0_output
 
-name="launches run-conductor.sh <issue> as the leader of its own session, stdin /dev/null, stderr orchestrate's, SIGINT, SIGQUIT, SIGPIPE and SIGXFSZ ignored, and SIGTERMs that pid at the stop"
+name="launches run-conductor.sh <issue> as the leader of its own session, stdin /dev/null, stderr orchestrate's, SIGINT, SIGQUIT and SIGXFSZ ignored, and SIGTERMs that pid at the stop"
 launchstate="$work/launchstate"
 mkdir -p "$launchstate"
 cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$launchstate/"
@@ -354,9 +354,29 @@ seed launchstate 1301
 orchestrate "$launchstate"
 await_gone
 pid="$(cat "$MARKS.pid" 2>/dev/null)"
-expected="$(printf '%s\n' 'argv 1: [1301]' "trap -- '' SIGINT" "trap -- '' SIGQUIT" "trap -- '' SIGPIPE" "trap -- '' SIGXFSZ" \
+expected="$(printf '%s\n' 'argv 1: [1301]' "trap -- '' SIGINT" "trap -- '' SIGQUIT" "trap -- '' SIGXFSZ" \
   'session leader' 'stdin /dev/null' "TERM to $pid" 'conductor 1301 on stderr')"
 actual="$(cat "$MARKS" "$work/err")"
+expect_exit0_output
+
+name="#1126 a conductor's writer to a closed pipe dies of SIGPIPE, status 141, not of EPIPE"
+sigpipe="$work/sigpipe"
+mkdir -p "$sigpipe"
+cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$sigpipe/"
+cp -R "$scripts/lib" "$scripts/veri" "$sigpipe/"
+cat > "$sigpipe/run-conductor.sh" <<'STUB'
+#!/usr/bin/env bash
+yes | head -c1 > /dev/null
+echo "yes ${PIPESTATUS[0]}" >> "$MARKS"
+echo "$1" >> "$LAUNCHES"
+grep -vx -- "$1" "$SOLVABLE" > "$SOLVABLE.next"
+mv "$SOLVABLE.next" "$SOLVABLE"
+STUB
+chmod +x "$sigpipe"/*.sh
+seed sigpipe 1351
+orchestrate "$sigpipe"
+expected='yes 141'
+actual="$(cat "$MARKS")"
 expect_exit0_output
 
 name="run through a symlink to its scripts directory from another working directory, launches that directory's run-conductor.sh, asks its solvable-issues.sh and reads .tdd/parked/ in the working directory"
