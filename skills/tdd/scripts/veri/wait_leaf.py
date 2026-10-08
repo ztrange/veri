@@ -35,7 +35,11 @@ def not_a_number(max_text):
 
 
 def clock():
-    return int(subprocess.run(["date", "+%s"], stdout=subprocess.PIPE, text=True).stdout)
+    try:
+        reading = subprocess.run(["date", "+%s"], stdout=subprocess.PIPE, text=True).stdout
+    except FileNotFoundError:
+        return None
+    return int(reading) if reading.strip() else None
 
 
 def main(argv):
@@ -48,7 +52,7 @@ def main(argv):
     poll = os.environ.get("VERI_POLL") or "1"
     exit_file = f".tdd/{name}.exit"
     pid_file = f".tdd/{name}.pid"
-    start = clock()
+    start = clock() or 0
     if max_seconds is None and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", max_text):
         return not_a_number(max_text)
     while True:
@@ -65,7 +69,7 @@ def main(argv):
         now = clock()
         if max_seconds is None:
             return not_a_number(max_text)
-        if now >= start + max_seconds:
+        if now is not None and now >= start + max_seconds:
             return 3
         subprocess.run(["sleep", poll])
 
