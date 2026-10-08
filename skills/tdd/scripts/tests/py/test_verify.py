@@ -510,3 +510,35 @@ def test_main_copies_parse_verdicts_stderr_to_its_own_stderr_after_every_launch_
     assert (code, capfdbinary.readouterr().err) == (
         2, b"launch 1\n" + NO_LINE + b"launch 2\n" + NO_LINE
         + b"launch 3\nparse-verdict: unrecognised verdict word 'MAYBE'\n")
+
+
+@pytest.mark.parametrize("retries", ["x", "-1", " 1"])
+def test_main_refuses_a_no_verdict_budget_that_is_not_a_non_negative_integer_after_the_prompt_file_is_written_and_launches_no_leaf(
+        retries, tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERIFY_LEAF_ARGS", "VERI_ISSUE", "VERI_STEP", "VERI_MODEL", "VERI_MODEL_VERIFIER"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", retries)
+    launched = []
+
+    def fake(args, *_, **__):
+        name = os.path.basename(str(args[0]))
+        launched.append(name)
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt\n", b"")
+        return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine\n", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    captured = capfdbinary.readouterr()
+    prompt = tmp_path / ".tdd" / "verify-green.prompt"
+    assert (code, captured.out, captured.err, prompt.read_bytes(), "supervise.sh" in launched) == (
+        2, b"",
+        b"verify: VERI_NO_VERDICT_RETRIES must be a non-negative integer, got '"
+        + retries.encode() + b"'\n",
+        b"blind prompt", False)
