@@ -3,6 +3,7 @@ import importlib
 import json
 import os
 import pathlib
+import subprocess
 import sys
 
 import pytest
@@ -276,3 +277,50 @@ def test_main_reads_awake_in_process_from_clock_uptime_raw_where_time_has_it_and
         ("monotonic", None, 0, 222),
         ("monotonic", "", 0, 222),
     ], [])
+
+
+def test_main_checks_structural_pass_only_for_that_event_in_argument_order_comparing_transforms_and_budget_as_strings_before_tdd_or_the_clock(
+        monkeypatch, tmp_path, capsysbinary, event):
+    monkeypatch.setattr("time.time", lambda: 1700000000.9)
+    monkeypatch.setenv("VERI_AWAKE_CLOCK", "spyclock")
+    started = []
+
+    def clock(args, **kwargs):
+        started.append(args)
+        return subprocess.CompletedProcess(args, 0, b"5\n")
+
+    monkeypatch.setattr("subprocess.run", clock)
+
+    def refused(text):
+        return (2, b"event.sh: structural-pass " + text + b"\n", [], 0)
+
+    accepted = (0, b"", [".tdd"], 1)
+    cases = [
+        (["structural-passx", "stopped=bogus"], accepted),
+        (["x", "stopped=bogus", "transforms=1"], accepted),
+        (["structural-pass", "stopped=bogus", "stopped=candidates-done"],
+         refused(b"stopped=bogus is not one of " + REASONS)),
+        (["structural-pass", "stopped=candidates-done", "stopped=bogus"],
+         refused(b"stopped=bogus is not one of " + REASONS)),
+        (["structural-pass", "stopped=candidates-done", "stopped=budget-spent", "transforms=1", "budget=2"],
+         refused(b"stopped=budget-spent needs transforms equal to budget, got transforms=1 budget=2")),
+        (["structural-pass", "stopped=budget-spent", "stopped=nothing-structural", "transforms=1", "budget=2"], accepted),
+        (["structural-pass", "transforms=1", "budget=2", "transforms=2", "stopped=budget-spent"], accepted),
+        (["structural-pass", "transforms=3", "budget=3", "budget=4", "stopped=budget-spent"],
+         refused(b"stopped=budget-spent needs transforms equal to budget, got transforms=3 budget=4")),
+        (["structural-pass", "stopped="], refused(b"stopped= is not one of " + REASONS)),
+        (["structural-pass", "stopped=budget-spent", "transforms=10", "budget=010"],
+         refused(b"stopped=budget-spent needs transforms equal to budget, got transforms=10 budget=010")),
+        (["structural-pass", "stopped=budget-spent"], accepted),
+    ]
+
+    observed = []
+    for index, (argv, _) in enumerate(cases):
+        work = tmp_path / str(index)
+        work.mkdir()
+        monkeypatch.chdir(work)
+        del started[:]
+        code = event.main(argv)
+        observed.append((argv, (code, capsysbinary.readouterr().err, sorted(os.listdir(work)), len(started))))
+
+    assert observed == cases
