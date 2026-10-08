@@ -243,7 +243,7 @@ while IFS='|' read -r fixture want_err; do
     problems+=("$fixture report: want stderr $(printf '%q' "$(cat "$work/want")"), got $(printf '%q' "$(cat "$work/err")")")
 done <<'PROBES'
 empty|refactor-triage: the report has no CANDIDATES: line
-cosmic|refactor-triage: candidate line has no class, or one that is neither structural nor cosmetic: CANDIDATES: cosmic | x
+cosmic|refactor-triage: candidate line has no class, or one that is not structural, cosmetic, test-only or out-of-scope: CANDIDATES: cosmic | x
 PROBES
 report "$name"
 

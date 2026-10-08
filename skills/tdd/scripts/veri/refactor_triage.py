@@ -37,7 +37,7 @@ def main(argv):
             structural.append(transform.group(1))
         elif not (TEST_ONLY.match(line) or COSMETIC.match(line) or OUT_OF_SCOPE.match(line)
                      or NONE.match(found.group(1))):
-            return _refuse(b"candidate line has no class, or one that is neither structural nor cosmetic: " + line)
+            return _refuse(b"candidate line has no class, or one that is not structural, cosmetic, test-only or out-of-scope: " + line)
     if not candidates_seen:
         return _refuse(b"the report has no CANDIDATES: line")
     if not structural:
