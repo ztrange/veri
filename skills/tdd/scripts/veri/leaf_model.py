@@ -8,8 +8,12 @@ USAGE = "usage: leaf-model.sh <leaf-name>"
 WHITESPACE = " \t\n\v\f\r"
 
 
+def _is_echo_option(value):
+    return len(value) > 1 and value[0] == "-" and all(c in "neE" for c in value[1:])
+
+
 def _echo(value):
-    if len(value) > 1 and value[0] == "-" and all(c in "neE" for c in value[1:]):
+    if _is_echo_option(value):
         if "n" not in value:
             _write(sys.stdout, "")
     else:
@@ -25,6 +29,14 @@ def resolve(name):
     if any(c in WHITESPACE for c in model):
         _write(sys.stderr, f"leaf-model: model '{model}' contains whitespace (a model id or alias is one word)")
         return None
+    return model
+
+
+def leaf_model(name):
+    """The model a leaf runs with, as `$(leaf-model.sh <name>)` reads it: empty when none or refused."""
+    model = resolve(name)
+    if model is None or _is_echo_option(model):
+        return ""
     return model
 
 
