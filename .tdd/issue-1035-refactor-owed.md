@@ -12,3 +12,4 @@
 ### refactor-triage refuses an empty out-of-scope candidate line with exit 2 and stderr naming the line ⟦criterion 6⟧
 - test-only | collapse the three near-identical empty cosmetic/test-only/out-of-scope refusal tests in test_refactor_triage.py into one pytest.mark.parametrize case over the class name
 applied | 347926abf25e35c2c2a37ba10a27b01334c3a73e | build the class list in refactor_triage.py's refusal message and the four `_candidate(...)` patterns from one tuple of class names, so a fifth class cannot be added to one and missed in the other
+applied | 637f731f5ef958b5da6736b6a5185958ece7b0b2 | fold the parallel empty-transform refusals for structural and cosmetic into one per-class check in refactor_triage.main, once the test-only and out-of-scope cases this criterion still owes demand it
