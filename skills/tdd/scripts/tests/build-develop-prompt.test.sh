@@ -219,7 +219,7 @@ renders_as() {  # <label> <want-cksum> <args...> — records a prompt whose sum 
 }
 renders_as red            '981610769 10392'       red "$work/spec.md" "$step_text" "$test_cmd"
 renders_as green          '3453024810 7300'     green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit"
-renders_as refactor       '4038231874 9685'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
+renders_as refactor       '3071840568 9767'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
 renders_as 'revise red'   '2457909894 7787'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as 'revise green' '2359866403 7789'  revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as 'revise refactor' '3942894315 7792' revise refactor "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
@@ -290,5 +290,14 @@ dir_err="$work/spec-dir.err"
 dir_out="$("$BUILD" red "$work/spec-dir" "$step_text" "$test_cmd" 2>"$dir_err")"; code=$?
 diag=""; [[ -s "$dir_err" ]] && diag=diagnostic
 expect_eq "$name" "1::diagnostic" "$code:${dir_out:+prompt}:$diag"
+
+name="develop-refactor's sub-step 1 tells the leaf to report a structural transform it does not apply on a CANDIDATES: structural line and one outside the issue's bounds on a CANDIDATES: out-of-scope line"
+refactor_out="$(VERI_REFACTOR_BUDGET=5 "$BUILD" refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched" 2>/dev/null)"
+sub_step_1="$(awk '/^1\. Triage/ { inside = 1 } inside && /^2\. / { exit } inside' <<<"$refactor_out" | tr '\n' ' ')"
+problems=""
+[[ -n "$sub_step_1" ]] || problems="$problems; no sub-step 1 found"
+[[ "$sub_step_1" == *'`CANDIDATES: structural`'* ]] || problems="$problems; sub-step 1 names no CANDIDATES: structural line"
+[[ "$sub_step_1" == *'`CANDIDATES: out-of-scope`'* ]] || problems="$problems; sub-step 1 names no CANDIDATES: out-of-scope line"
+[[ -z "$problems" ]] && ok || no "$name (${problems#; })"
 
 finish
