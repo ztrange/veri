@@ -65,7 +65,8 @@ def main(argv):
     os.makedirs(".tdd", exist_ok=True)
     log, rcfile, exitfile = f".tdd/{name}.log", f".tdd/{name}.rc", f".tdd/{name}.exit"
     role = model = ""
-    if not name.startswith("verdict-"):
+    watched = not name.startswith("verdict-")
+    if watched:
         found = leaf_role(name)
         if found is not None:
             role = " ".join(f"{k}={v}" for k, v in found.items())
@@ -92,7 +93,7 @@ def main(argv):
     if rc == "2":
         ec = 2
     secs = awake_seconds() - a0
-    if not name.startswith("verdict-"):
+    if watched:
         sys.stderr.flush()
         subprocess.run([os.path.join(HERE, "harvest-usage.sh"), name], stdout=2)
     print(f"supervise[{name}]: {status}", file=sys.stderr)
