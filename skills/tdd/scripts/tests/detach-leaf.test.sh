@@ -187,6 +187,23 @@ status=$?
 
 report "$name"
 
+name="#1188: detach-leaf.sh given a command path that does not exist exits 2 with nothing on stdout and one stderr line naming that command"
+problems=()
+
+MISSING="$work/no-such-dir/no-such-command"
+"$DETACH" "$MISSING" > "$work/missing.out" 2> "$work/missing.err"
+status=$?
+[[ "$status" == 2 ]] ||
+  problems+=("want exit 2, got: $status")
+[[ ! -s "$work/missing.out" ]] ||
+  problems+=("want nothing on stdout, got: $(cat "$work/missing.out")")
+[[ "$(wc -l < "$work/missing.err" | tr -d ' ')" == 1 ]] ||
+  problems+=("want exactly one line on stderr, got: $(printf '%q' "$(cat "$work/missing.err")")")
+grep -F -- "$MISSING" "$work/missing.err" > /dev/null ||
+  problems+=("want stderr to name $MISSING, got: $(printf '%q' "$(cat "$work/missing.err")")")
+
+report "$name"
+
 name="detach-leaf.sh <cmd> exits 0 with nothing on its own stdout or stderr, and the command it was given runs"
 problems=()
 

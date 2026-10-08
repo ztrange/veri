@@ -18,6 +18,7 @@ def main(argv):
             detach.start(argv, subprocess.DEVNULL, None, None)
     except OSError as error:
         print(f"detach-leaf.sh: {argv[0]}: {error.strerror}", file=sys.stderr)
+        return 2
     return 0
 
 
