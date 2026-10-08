@@ -1,0 +1,3 @@
+### an answer whose first line is empty and whose later lines name issues launches a conductor for the first non-empty, unparked line ⟦criterion 1⟧
+- drop `.rstrip("\n")` in `skills/tdd/scripts/veri/orchestrate.py:26` — the new `n and` filter already skips the trailing empty lines it was there to remove, so it is now dead code (dead-code removal, not duplication, so not applied in this phase)
+- test-only | the new test `test_1129_…` in `skills/tdd/scripts/tests/py/test_orchestrate.py` repeats the `chdir`/`delenv`/`conductor` path setup of `test_selection_takes_the_first_whole_unparked_line_…`; it could move into a shared fixture
