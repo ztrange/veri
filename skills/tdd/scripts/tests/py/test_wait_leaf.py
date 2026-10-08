@@ -95,3 +95,45 @@ def test_main_refusal_touches_no_file_maps_a_recorded_code_as_text_and_waits_out
         waited.append((wait_leaf.main(["x", "5"]), readings[-1] >= readings[0] + 5))
     assert waited == [(3, True)] * 4
     capsys.readouterr()
+
+
+def test_main_reads_the_clock_once_then_per_round_checks_the_pid_rechecks_after_a_dead_supervisor_and_sleeps_between_rounds(
+        monkeypatch, capsys, tmp_path, wait_leaf):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_POLL", "0.5")
+    (tmp_path / ".tdd").mkdir()
+    readings = []
+
+    def answer(line):
+        if line == "date +%s":
+            if len(readings) > 20:
+                raise RuntimeError("runaway wait: more than 20 clock readings")
+            readings.append(next(clock))
+            return (0, f"{readings[-1]}\n", "")
+        if line == "ps -p 42 -o args=":
+            if len(calls) > 6:
+                (tmp_path / ".tdd" / "x.exit").write_text("1\n")
+                return (1, "", "")
+            return (0, "bash supervise.sh x develop-red\n", "")
+        return (0, "", "")
+
+    calls = fake_processes(monkeypatch, answer)
+
+    (tmp_path / ".tdd" / "y.pid").write_text("abc\n")
+    clock = iter([1000, 1000, 1001] + [1001] * 20)
+    timed_out = wait_leaf.main(["y", "1"])
+    assert (timed_out, calls) == (3, ["date +%s", "date +%s", "sleep 0.5", "date +%s"])
+
+    calls.clear()
+    readings.clear()
+    (tmp_path / ".tdd" / "x.pid").write_text("42\n")
+    clock = iter([1000] * 21)
+    answered = wait_leaf.main(["x"])
+    assert (answered, calls) == (1, [
+        "date +%s",
+        "ps -p 42 -o args=", "date +%s", "sleep 0.5",
+        "ps -p 42 -o args=", "date +%s", "sleep 0.5",
+        "ps -p 42 -o args=",
+    ])
+    captured = capsys.readouterr()
+    assert (captured.out, captured.err) == ("", "")
