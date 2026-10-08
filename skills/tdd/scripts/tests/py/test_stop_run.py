@@ -128,3 +128,34 @@ def test_main_builds_its_usage_line_from_the_modes_stop_modes_lists_when_it_runs
     out, err = capsysbinary.readouterr()
     assert out == b""
     assert err.rstrip(b"\n").split(b"\n")[-1] == b"usage: stop-run.sh [--mode at-ledger|at-leaf|now|at-step] <issue> | --all"
+
+
+REFUSALS = [
+    (["--mode"], "--mode needs a value — at-ledger, at-leaf or now"),
+    (["5", "--all", "--mode"], "--mode needs a value — at-ledger, at-leaf or now"),
+    (["--mode", "bogus", "5", "--all"], "unknown mode — want at-ledger, at-leaf or now: 'bogus'"),
+    (["--mode", "bogus"], "unknown mode — want at-ledger, at-leaf or now: 'bogus'"),
+    (["--mode", "--all", "5"], "unknown mode — want at-ledger, at-leaf or now: '--all'"),
+    (["5", "--all"], "name an issue or --all, not both"),
+    (["5", "ten"], "<issue> must be a positive integer: 'ten'"),
+    (["5", ""], "name an issue, or --all"),
+    (["0"], "<issue> must be a positive integer: '0'"),
+    (["05"], "<issue> must be a positive integer: '05'"),
+    (["+5"], "<issue> must be a positive integer: '+5'"),
+    (["5\n"], "<issue> must be a positive integer: '5\n'"),
+    (["-x"], "<issue> must be a positive integer: '-x'"),
+]
+
+
+def test_main_refuses_each_bad_argument_list_in_stop_run_sh_order_with_its_message_and_the_usage_line_starting_nothing(
+        monkeypatch, tmp_path, capsysbinary, stop_run):
+    monkeypatch.chdir(tmp_path)
+    calls = fake_processes(monkeypatch, main_tree_at(tmp_path))
+
+    for argv, message in REFUSALS:
+        assert (argv, stop_run.main(argv)) == (argv, 2)
+        assert (argv, capsysbinary.readouterr()) == (argv, (b"", ("stop-run: " + message + "\n").encode() + USAGE))
+        assert calls == []
+
+    assert stop_run.main(["ten", "5"]) == 3
+    assert capsysbinary.readouterr() == (b"", b"stop-run: no live run for issue 5\n")

@@ -32,14 +32,21 @@ def main_working_tree():
 def main(argv):
     mode = "at-ledger"
     issue = ""
+    every = False
     args = iter(argv)
     for arg in args:
         if arg == "--mode":
-            mode = next(args)
+            mode = next(args, None)
+            if mode is None:
+                return refuse(f"--mode needs a value — {stop_modes.modes_named()}")
+        elif arg == "--all":
+            every = True
         else:
             issue = arg
     if not stop_modes.stop_mode_known(mode):
         return refuse(f"unknown mode — want {stop_modes.modes_named()}: '{mode}'")
+    if issue and every:
+        return refuse("name an issue or --all, not both")
     if not issue:
         return refuse("name an issue, or --all")
     if not re.fullmatch(r"[1-9][0-9]*", issue):
