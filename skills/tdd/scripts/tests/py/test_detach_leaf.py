@@ -110,3 +110,34 @@ def test_main_returns_0_naming_the_command_and_strerror_on_stderr_when_the_launc
         code = detach_leaf.main(list(argv))
         assert (argv, code, capsys.readouterr()) == (
             argv, 0, ("", f"detach-leaf.sh: {argv[0]}: {error.strerror}\n"))
+
+
+def test_main_writes_and_raises_no_resource_warning_when_its_launch_outlives_it_and_the_launch_is_dropped(
+        monkeypatch, capsys, detach_leaf):
+    import gc
+    import os
+    import signal
+    import warnings
+
+    pids = []
+
+    class RecordingPopen(subprocess.Popen):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            pids.append(self.pid)
+
+    monkeypatch.setattr(subprocess, "Popen", RecordingPopen)
+
+    try:
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            code = detach_leaf.main(["sleep", "60"])
+            gc.collect()
+    finally:
+        for pid in pids:
+            os.kill(pid, signal.SIGKILL)
+            os.waitpid(pid, 0)
+
+    out, err = capsys.readouterr()
+    assert (code, len(pids), out, [line for line in err.splitlines() if "ResourceWarning" in line],
+            [str(w.message) for w in caught if issubclass(w.category, ResourceWarning)]) == (0, 1, "", [], [])
