@@ -155,6 +155,19 @@ def test_1129_an_answer_whose_first_line_is_empty_launches_a_conductor_for_the_f
     assert (code, out, err, len(asks), launches) == (0, "", "", 2, [[conductor, "7"]])
 
 
+def test_1129_an_empty_line_between_a_parked_issue_and_an_unparked_one_is_skipped_and_the_unparked_one_launched(
+        capsys, monkeypatch, tmp_path, orchestrate):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+    (tmp_path / ".tdd" / "parked").mkdir(parents=True)
+    (tmp_path / ".tdd" / "parked" / "5.md").write_text("")
+    conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
+    asks, launches = _passes(monkeypatch, [(0, "5\n\n7\n"), (3, "")], lambda n, issue: None)
+    code = orchestrate.main([])
+    out, err = capsys.readouterr()
+    assert (code, out, err, len(asks), launches) == (0, "", "", 2, [[conductor, "7"]])
+
+
 def test_a_conductor_launches_as_a_new_session_leader_with_signals_as_todays_launch_hands_them_and_nothing_else_starts(
         capsys, monkeypatch, tmp_path, orchestrate):
     import signal
