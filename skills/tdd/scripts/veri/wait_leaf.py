@@ -29,6 +29,11 @@ def arithmetic(text):
         return None
 
 
+def not_a_number(max_text):
+    sys.stderr.write(f"wait-leaf.sh: max-seconds '{max_text}' is not a number\n")
+    return 1
+
+
 def clock():
     return int(subprocess.run(["date", "+%s"], stdout=subprocess.PIPE, text=True).stdout)
 
@@ -45,8 +50,7 @@ def main(argv):
     pid_file = f".tdd/{name}.pid"
     start = clock()
     if max_seconds is None and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", max_text):
-        sys.stderr.write(f"wait-leaf.sh: max-seconds '{max_text}' is not a number\n")
-        return 1
+        return not_a_number(max_text)
     while True:
         code = recorded(exit_file)
         if code is not None:
@@ -60,8 +64,7 @@ def main(argv):
             return 2
         now = clock()
         if max_seconds is None:
-            sys.stderr.write(f"wait-leaf.sh: max-seconds '{max_text}' is not a number\n")
-            return 1
+            return not_a_number(max_text)
         if now >= start + max_seconds:
             return 3
         subprocess.run(["sleep", poll])
