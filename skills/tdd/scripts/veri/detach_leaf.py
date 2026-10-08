@@ -1,4 +1,5 @@
 """detach-leaf.sh's launch, run in-process."""
+import subprocess
 import sys
 
 import detach
@@ -10,7 +11,7 @@ def main(argv):
     if not argv:
         print(USAGE, file=sys.stderr)
         return 2
-    detach.start(argv, None, None, None)
+    detach.start(argv, subprocess.DEVNULL, None, None)
     return 0
 
 
