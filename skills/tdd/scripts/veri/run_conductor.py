@@ -71,9 +71,10 @@ def main(argv):
             with open(record, "w") as out:
                 out.write(commit + "\n")
             if readable:
-                os.makedirs(".tdd/wt/" + argv[0], exist_ok=True)
+                worktree = ".tdd/wt/" + argv[0]
+                os.makedirs(worktree, exist_ok=True)
                 if subprocess.run([os.path.join(here, "event.sh"), "skill-repin", "commit=" + commit],
-                                  cwd=".tdd/wt/" + argv[0],
+                                  cwd=worktree,
                                   env=dict(os.environ, VERI_ISSUE=argv[0])).returncode != 0:
                     return 2
     return 0
