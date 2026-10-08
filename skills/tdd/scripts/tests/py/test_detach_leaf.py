@@ -91,3 +91,22 @@ def test_main_launches_an_empty_command_an_option_and_awkward_arguments_as_given
         launches.clear()
         code = detach_leaf.main(list(argv))
         assert (argv, code, capsys.readouterr(), launches) == (argv, 0, ("", ""), [argv])
+
+
+def test_main_returns_0_naming_the_command_and_strerror_on_stderr_when_the_launch_raises_an_oserror(
+        monkeypatch, capsys, detach_leaf):
+    import errno
+    import os
+
+    for argv, error in (
+            (["no-such-command", "a"], FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), "no-such-command")),
+            (["./not-executable"], PermissionError(errno.EACCES, os.strerror(errno.EACCES), "./not-executable")),
+            (["/tmp"], PermissionError(errno.EACCES, os.strerror(errno.EACCES), "/tmp"))):
+
+        def raising_popen(args, raised=error, **kwargs):
+            raise raised
+
+        monkeypatch.setattr(subprocess, "Popen", raising_popen)
+        code = detach_leaf.main(list(argv))
+        assert (argv, code, capsys.readouterr()) == (
+            argv, 0, ("", f"detach-leaf.sh: {argv[0]}: {error.strerror}\n"))
