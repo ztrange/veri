@@ -150,12 +150,18 @@ def pause(poll):
     time.sleep(secs)
 
 
-def recover_finished_leaf(name, log, reason):
+def read_log(name, log):
     try:
         with open(log, "rb") as f:
-            data = f.read()
+            return f.read()
     except OSError as error:
         print(f"supervise[{name}]: {error}", file=sys.stderr)
+        return None
+
+
+def recover_finished_leaf(name, log, reason):
+    data = read_log(name, log)
+    if data is None:
         return None
     try:
         text = data.decode("utf-8")
@@ -360,12 +366,7 @@ def main(argv):
     print(f"supervise[{name}]: {status}" + (f" — {reason}" if reason else ""), file=sys.stderr)
     sys.stderr.flush()
     mark(role, leaf_env, "exit", f"status={ec}", *([f"cause={reason}"] if reason else []), f"secs={secs}")
-    try:
-        with open(log, "rb") as f:
-            data = f.read()
-    except OSError as error:
-        print(f"supervise[{name}]: {error}", file=sys.stderr)
-        data = b""
+    data = read_log(name, log) or b""
     try:
         sys.stdout.buffer.write(data)
         sys.stdout.flush()
