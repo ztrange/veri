@@ -1430,3 +1430,85 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
         "abc": (1, 1, kept(1), 0),
         "08": (0, 4, kept(1, 2, 3), 3),
     }
+
+
+def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_and_records_itself_there_only_for_a_watched_name_not_a_conductor(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    clean_env(monkeypatch)
+    me = os.getpid()
+
+    def supervised(label, name, owner=None, owner_exit=None, dead=()):
+        work = tmp_path / label
+        tdd = work / ".tdd"
+        tdd.mkdir(parents=True)
+        if owner is not None:
+            (tdd / "leaf.owner").write_text(owner)
+        if owner_exit is not None:
+            (tdd / f"{owner_exit}.exit").write_text("0\n")
+        monkeypatch.chdir(work)
+        calls = fake_git_only(monkeypatch, work)
+        probed = []
+
+        def kill(pid, sig):
+            probed.append((pid, sig))
+            if pid in dead:
+                raise ProcessLookupError(pid)
+
+        monkeypatch.setattr(os, "kill", kill)
+        try:
+            code = supervise.main([name, "true"])
+        except Launched as launched:
+            code = ("launched", launched.args[0][0])
+        out, err = capsysbinary.readouterr()
+
+        def read(path):
+            path = tdd / path
+            return path.read_text() if path.exists() else None
+
+        return (code, out, err.decode().splitlines()[-1:], read(f"{name}.exit"), read(f"{name}.pid"),
+                read("leaf.owner"), probed,
+                ["git", "-C", supervise.HERE, "rev-parse", "HEAD"] in calls)
+
+    refusal = "supervise: refusing to launch {}: leaf {} (pid {}) is still alive in this worktree"
+    answers = {
+        "alive": supervised("alive", "verify-red", "4242 develop-red\nignored line\n"),
+        "alive-same-name": supervised("alive-same-name", "develop-red", "4242 develop-red\n"),
+        "alive-no-owner-name": supervised("alive-no-owner-name", "verify-red", "4242\n"),
+        "alive-refused-role": supervised("alive-refused-role", "bogus-x", "4242 develop-red\n"),
+        "alive-zero": supervised("alive-zero", "verify-red", "0 develop-red\n"),
+        "alive-negative": supervised("alive-negative", "verify-red", "-7 develop-red\n"),
+        "owner-exit": supervised("owner-exit", "verify-red", "4242 develop-red\n", owner_exit="develop-red"),
+        "empty-pid": supervised("empty-pid", "verify-red", "\n"),
+        "word-pid": supervised("word-pid", "verify-red", "abc develop-red\n"),
+        "dead": supervised("dead", "verify-red", "4242 develop-red\n", dead=(4242,)),
+        "none-watched": supervised("none-watched", "develop-red"),
+        "none-verdict": supervised("none-verdict", "verdict-red"),
+        "none-conductor": supervised("none-conductor", "conductor-1"),
+        "alive-verdict": supervised("alive-verdict", "verdict-red", "4242 develop-red\n"),
+    }
+
+    assert answers == {
+        "alive": (2, b"", [refusal.format("verify-red", "develop-red", 4242)], "2\n", None,
+                  "4242 develop-red\nignored line\n", [(4242, 0)], True),
+        "alive-same-name": (2, b"", [refusal.format("develop-red", "develop-red", 4242)], None, None,
+                            "4242 develop-red\n", [(4242, 0)], True),
+        "alive-no-owner-name": (2, b"", [refusal.format("verify-red", "?", 4242)], "2\n", None,
+                                "4242\n", [(4242, 0)], True),
+        "alive-refused-role": (2, b"", [refusal.format("bogus-x", "develop-red", 4242)], "2\n", None,
+                               "4242 develop-red\n", [(4242, 0)], True),
+        "alive-zero": (2, b"", [refusal.format("verify-red", "develop-red", 0)], "2\n", None,
+                       "0 develop-red\n", [(0, 0)], True),
+        "alive-negative": (2, b"", [refusal.format("verify-red", "develop-red", -7)], "2\n", None,
+                           "-7 develop-red\n", [(-7, 0)], True),
+        "owner-exit": (("launched", "env"), b"", [], None, None, f"{me} verify-red\n", [], True),
+        "empty-pid": (("launched", "env"), b"", [], None, None, f"{me} verify-red\n", [], True),
+        "word-pid": (("launched", "env"), b"", [], None, None, f"{me} verify-red\n", [], True),
+        "dead": (("launched", "env"), b"", [], None, None, f"{me} verify-red\n", [(4242, 0)], True),
+        "none-watched": (("launched", "env"), b"", [], None, None, f"{me} develop-red\n", [], True),
+        "none-verdict": (("launched", "date"), b"", [], None, f"{me}\n", None, [], True),
+        "none-conductor": (("launched", "env"), b"", [], None, None, None, [], True),
+        "alive-verdict": (2, b"", [refusal.format("verdict-red", "develop-red", 4242)], "2\n", None,
+                          "4242 develop-red\n", [(4242, 0)], True),
+    }
