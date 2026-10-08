@@ -299,3 +299,70 @@ def test_main_maps_the_leaf_rc_to_its_exit_code_records_its_own_pid_and_clears_a
         "rc-empty": (1, failure, b"1\n", [before]),
         "own-exit": (1, failure, b"7\n", [before]),
     }
+
+
+def test_main_marks_a_watched_names_launch_and_exit_through_event_sh_under_its_role_and_none_for_a_verdict_or_refused_name_whose_failure_changes_nothing(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    monkeypatch.setattr(time, "sleep", lambda *_: None)
+    monkeypatch.setattr(time, "clock_gettime", lambda *_: 5000.0)
+    event_sh = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(supervise.__file__))), "event.sh")
+
+    def run_one(label, name, event_rc, script, **env):
+        work = tmp_path / label
+        work.mkdir()
+        monkeypatch.chdir(work)
+        clean_env(monkeypatch, **env)
+        fake_leaf_launch(monkeypatch)
+        launching, running = subprocess.Popen, subprocess.run
+        events = []
+
+        def is_event(args):
+            return event_sh in [str(a) for a in args]
+
+        def record(args, kwargs):
+            seen = kwargs.get("env")
+            seen = dict(os.environ if seen is None else seen)
+            events.append(([str(a) for a in args], seen.get("VERI_ISSUE"), seen.get("VERI_STEP")))
+
+        def popen(args, *a, **kwargs):
+            if is_event(args):
+                record(args, kwargs)
+                return launching(["sh", "-c", f"exit {event_rc}"])
+            return launching(args, *a, **kwargs)
+
+        def run(args, *a, **kwargs):
+            if is_event(args):
+                record(args, kwargs)
+                if kwargs.get("check") and event_rc:
+                    raise subprocess.CalledProcessError(event_rc, args)
+                return subprocess.CompletedProcess(args, event_rc, "", "")
+            return running(args, *a, **kwargs)
+
+        monkeypatch.setattr(subprocess, "Popen", popen)
+        monkeypatch.setattr(subprocess, "run", run)
+        monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, *a, **k).returncode)
+        code = supervise.main([name, "sh", "-c", script])
+        out, err = capsysbinary.readouterr()
+        exit_record = (work / ".tdd" / f"{name}.exit").read_bytes()
+        role_lines = [line for line in err.splitlines() if line.startswith(b"leaf-role:")]
+        return code, out, exit_record, events, role_lines
+
+    role = ["env", "VERI_ACTOR=developer", "VERI_PHASE=red", "VERI_ATTEMPT=1", event_sh]
+    marked = [
+        (role + ["launch", "name=develop-red", "cmd=sh -c printf 'leaf out\\n'; exit 1", "model=opus-x"],
+         "1073", "4"),
+        (role + ["exit", "status=1", "secs=0"], "1073", "4"),
+    ]
+    leaf = "printf 'leaf out\\n'; exit 1"
+    env = {"VERI_ISSUE": "1073", "VERI_STEP": "4", "VERI_MODEL": "opus-x", "VERI_TIMEOUT": "900"}
+    assert run_one("ok", "develop-red", 0, leaf, **env) == (1, b"leaf out\n", b"1\n", marked, [])
+    assert run_one("failing", "develop-red", 1, leaf, **env) == (1, b"leaf out\n", b"1\n", marked, [])
+
+    assert run_one("verdict", "verdict-plan", 0, leaf, **env) == (1, b"leaf out\n", b"1\n", [], [])
+
+    code, out, exit_record, events, role_lines = run_one("bogus", "bogus-x", 0, "printf 'leaf out\\n'", **env)
+    diagnostic = b"leaf-role: leaf name 'bogus-x' has an unknown leading word (want develop-*|revise-*|verify-*|conductor-*)"
+    assert (code, out, exit_record, events, role_lines) == (0, b"leaf out\n", b"0\n", [], [diagnostic, diagnostic])

@@ -5,7 +5,11 @@ import subprocess
 import sys
 import time
 
+from leaf_model import resolve
+from leaf_role import leaf_role
 from pid_file import number_in
+
+HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 USAGE = "usage: supervise.sh <name> <cmd> [args...]"
 
@@ -19,6 +23,17 @@ def refuse(*lines):
 def write_line(path, value):
     with open(path, "w") as f:
         f.write(f"{value}\n")
+
+
+def awake_seconds():
+    clock = getattr(time, "CLOCK_UPTIME_RAW", time.CLOCK_MONOTONIC)
+    return int(time.clock_gettime(clock))
+
+
+def mark(role, *fields):
+    if not role:
+        return
+    subprocess.run(["env", *role.split(), os.path.join(HERE, "event.sh"), *fields])
 
 
 def main(argv):
@@ -45,6 +60,13 @@ def main(argv):
     name = argv[0]
     os.makedirs(".tdd", exist_ok=True)
     log, rcfile, exitfile = f".tdd/{name}.log", f".tdd/{name}.rc", f".tdd/{name}.exit"
+    role = model = ""
+    if not name.startswith("verdict-"):
+        found = leaf_role(name)
+        if found is not None:
+            role = " ".join(f"{k}={v}" for k, v in found.items())
+        model = resolve(name) or ""
+    mark(role, "launch", f"name={name}", f"cmd={' '.join(argv[1:])}", f"model={model}")
     write_line(f".tdd/{name}.pid", os.getpid())
     for stale in (exitfile, rcfile):
         try:
@@ -52,6 +74,7 @@ def main(argv):
         except FileNotFoundError:
             pass
     open(log, "wb").close()
+    a0 = awake_seconds()
     subprocess.Popen(["/bin/sh", "-c", 'log=$1 rc=$2; shift 2; "$@" >"$log" 2>&1; echo $? >"$rc"',
                       "sh", log, rcfile, *argv[1:]], process_group=0)
     while not os.path.isfile(rcfile):
@@ -62,8 +85,10 @@ def main(argv):
     ec = 0 if status == "success" else 1
     if rc == "2":
         ec = 2
+    secs = awake_seconds() - a0
     print(f"supervise[{name}]: {status}", file=sys.stderr)
     sys.stderr.flush()
+    mark(role, "exit", f"status={ec}", f"secs={secs}")
     with open(log, "rb") as f:
         sys.stdout.buffer.write(f.read())
     sys.stdout.flush()
