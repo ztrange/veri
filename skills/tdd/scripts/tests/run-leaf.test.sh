@@ -275,4 +275,19 @@ STUB
   || problems+=("the module reverted in the mutation's second at its size answered '$(cat "$pyc/after" 2>&1)' on its next import, wanted 1 as before the mutation")
 report "under a leaf, a Python module mutated and reverted at the same whole-second mtime and size is re-read from source on its next import (#873)"
 
+problems=()
+for caller in unset 0 empty; do
+  case "$caller" in
+    unset) caller_env=(-u PYTHONDONTWRITEBYTECODE) ;;
+    0) caller_env=(PYTHONDONTWRITEBYTECODE=0) ;;
+    empty) caller_env=(PYTHONDONTWRITEBYTECODE=) ;;
+  esac
+  rm -f "$work/env"
+  ( cd "$work" && env "${caller_env[@]}" CLAUDE_BIN="$envstub/claude" \
+      ENV_OUT="$work/env" "$LEAF" "$work/prompt.txt" ) >/dev/null 2>&1
+  grep -Fx 'PYTHONDONTWRITEBYTECODE=1' "$work/env" > /dev/null 2>&1 \
+    || problems+=("with the caller's PYTHONDONTWRITEBYTECODE $caller, the leaf's claude had: '$(grep '^PYTHONDONTWRITEBYTECODE=' "$work/env" 2>&1)'")
+done
+report "hands the leaf PYTHONDONTWRITEBYTECODE=1 whether the caller left it unset, set it to 0 or set it empty (#873)"
+
 finish
