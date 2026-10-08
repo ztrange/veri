@@ -376,3 +376,54 @@ def test_wait_sleeps_veri_poll_seconds_between_rounds_1_when_unset_or_empty_and_
         sleeps.clear()
         code = detach_command.main(["wait", "x", "2"])
         assert (poll, code, capsys.readouterr(), sleeps) == (poll, 3, ("", ""), [slept, slept])
+
+
+def test_wait_polls_with_no_pause_for_a_veri_poll_not_a_non_negative_decimal_writing_one_stderr_line_each_round(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    sleeps, kills = [], []
+
+    def finish_on_5th(pid, signum):
+        kills.append(pid)
+        if len(kills) == 5:
+            (tdd / "x.exit").write_text("0\n")
+
+    monkeypatch.setattr(time, "time", lambda: 1000.0)
+    monkeypatch.setattr(time, "sleep", lambda seconds: sleeps.append(seconds))
+    monkeypatch.setattr(os, "kill", finish_on_5th)
+
+    for poll in ("abc", "-1"):
+        monkeypatch.setenv("VERI_POLL", poll)
+        (tdd / "x.pid").write_text("4242\n")
+        (tdd / "x.exit").unlink(missing_ok=True)
+        sleeps.clear()
+        kills.clear()
+        code = detach_command.main(["wait", "x"])
+        out, err = capsys.readouterr()
+        lines = err.splitlines()
+        assert (poll, code, out, len(lines), all(lines), len(kills), sleeps) == (
+            poll, 0, "", 5, True, 5, [])
+
+
+def test_wait_sleeps_a_leading_dot_veri_poll_as_sleep_reads_it_with_nothing_on_stderr(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "x.pid").write_text("4242\n")
+    now = [1000.0]
+    sleeps = []
+
+    def fake_time():
+        now[0] += 1
+        return now[0]
+
+    monkeypatch.setattr(time, "time", fake_time)
+    monkeypatch.setattr(time, "sleep", lambda seconds: sleeps.append(float(seconds)))
+    monkeypatch.setattr(os, "kill", lambda pid, signum: None)
+    monkeypatch.setenv("VERI_POLL", ".5")
+
+    code = detach_command.main(["wait", "x", "2"])
+    assert (code, capsys.readouterr(), sleeps) == (3, ("", ""), [0.5])

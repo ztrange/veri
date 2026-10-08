@@ -46,6 +46,13 @@ def _limit(text):
         return None
 
 
+def _pause(poll):
+    if re.fullmatch(r"[0-9]+(\.[0-9]*)?|\.[0-9]+", poll):
+        time.sleep(float(poll))
+    else:
+        print(f"sleep: invalid time interval '{poll}'", file=sys.stderr)
+
+
 def _wait(exit_file, pid_file, text):
     start = int(time.time())
     while True:
@@ -58,7 +65,7 @@ def _wait(exit_file, pid_file, text):
         limit = _limit(text)
         if limit is not None and int(time.time()) - start >= limit:
             return 3
-        time.sleep(float(os.environ.get("VERI_POLL") or "1"))
+        _pause(os.environ.get("VERI_POLL") or "1")
 
 
 def _refused(argv):
