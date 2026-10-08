@@ -54,19 +54,8 @@ def main(argv):
             with open(".tdd/.gitignore", "w") as seed:
                 seed.write(".gitignore\nissue-*-skill-commit\n")
         record = ".tdd/issue-%s-skill-commit" % argv[0]
-        if not os.access(record, os.R_OK):
-            with open(record, "w") as out:
-                out.write(commit + "\n")
-        elif os.environ.get("VERI_NEW_SKILL") == "1":
-            with open(record, "w") as out:
-                out.write(commit + "\n")
-            os.makedirs(".tdd/wt/" + argv[0], exist_ok=True)
-            here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            if subprocess.run([os.path.join(here, "event.sh"), "skill-repin", "commit=" + commit],
-                              cwd=".tdd/wt/" + argv[0],
-                              env=dict(os.environ, VERI_ISSUE=argv[0])).returncode != 0:
-                return 2
-        else:
+        readable = os.access(record, os.R_OK)
+        if readable and os.environ.get("VERI_NEW_SKILL") != "1":
             try:
                 with open(record) as recorded_file:
                     recorded = recorded_file.read().rstrip("\n")
@@ -77,6 +66,16 @@ def main(argv):
                 sys.stderr.write("run-conductor: recorded skill commit '%s' is not in '%s' — refusing to re-pin; "
                                  "set VERI_NEW_SKILL=1 to take the new skill\n" % (recorded, base))
                 return 2
+        else:
+            with open(record, "w") as out:
+                out.write(commit + "\n")
+            if readable:
+                os.makedirs(".tdd/wt/" + argv[0], exist_ok=True)
+                here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                if subprocess.run([os.path.join(here, "event.sh"), "skill-repin", "commit=" + commit],
+                                  cwd=".tdd/wt/" + argv[0],
+                                  env=dict(os.environ, VERI_ISSUE=argv[0])).returncode != 0:
+                    return 2
     return 0
 
 
