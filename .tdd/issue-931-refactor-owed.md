@@ -20,3 +20,5 @@
 - drop the redundant `or ""` after `resolve(leaf)` in verify.main (None already fails `if model`)
 - test-only | extract the repeated `for name in ("run", "Popen", "call", "check_call", "check_output"): monkeypatch.setattr(subprocess, name, fake)` loop and the build-verify-prompt/supervise fake into a shared helper in tests/py/test_verify.py
 - test-only | extract the repeated delenv loop over VERI_MODEL*/VERI_ISSUE/VERI_STEP/VERI_NO_VERDICT_RETRIES in tests/py/test_verify.py
+### veri.verify.main returns 2 with `verifier leaf killed-stuck — no verdict rendered (see .tdd/verify-<phase>.log)` on stdout when the faked supervise.sh exits 2, making no git tamper-check call after the launch, no event.sh call and no preserve-attempt.sh call; a supervise.sh that cannot be started reads as a leaf that answered nothing (malformed, exit 2) ⟦criterion 7⟧
+- test-only | the new killed-stuck case in `tests/py/test_verify.py` repeats the env setup (chdir, HOME, deleting VERIFY_LEAF_ARGS/VERI_MODEL*) and an inline name-dispatching `fake` that earlier cases also hand-roll; this could become one shared fixture beside `fake_processes`
