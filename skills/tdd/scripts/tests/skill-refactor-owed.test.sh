@@ -94,4 +94,21 @@ fi
 
 report "$name"
 
+narration="${section#*6. narrate + branch.}"
+narration="${narration%%mark the same three figures in the log*}"
+
+name="#1163: $skill_md's refactor step-6 'Narrate + branch' narration names all four candidate classes — structural, cosmetic, test-only and out-of-scope"
+problems=()
+
+if [[ "$narration" == "$section" ]]; then
+  problems+=("$skill_md's Refactor section has no '6. Narrate + branch.' sub-step — which candidate classes it narrates could not be established")
+else
+  for class in structural cosmetic test-only out-of-scope; do
+    grep -F -- "$class" > /dev/null <<<"$narration" ||
+      problems+=("$skill_md's step-6 narration never names the $class class, so a conductor narrating a step's leftover CANDIDATES: lines is told nothing about where such a candidate goes")
+  done
+fi
+
+report "$name"
+
 finish

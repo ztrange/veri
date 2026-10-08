@@ -1316,7 +1316,9 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    left, so the tidying **stops** owing nothing; exit **0**, structural candidates remain
    and a follow-up owes them. Then **list what the step did not do**, taken verbatim from
    the leaf's `CANDIDATES:` lines and filed in **two separate lists** — the **structural**
-   leftovers, which a follow-up owes, and the **cosmetic** ones, which nobody owes. Each
+   leftovers, which a follow-up owes, and the **cosmetic** ones, which nobody owes. A
+   **test-only** or **out-of-scope** candidate is in neither list: it is recorded through
+   `refactor-owed.sh`, below and at the Draft PR, and is not narrated as a backlog. Each
    list says **how many candidates** it holds and then **lists** them, one per line. A
    count with no items is not a backlog, and the two classes run together are a backlog
    nobody can size. Mark the same three figures in the log — the observed count, unclamped,
