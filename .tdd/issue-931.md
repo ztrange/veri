@@ -36,7 +36,7 @@ Decisions the issue left to the plan:
 - [x] veri.verify.main, returning 1 because reading `$HOME/.gitconfig` raised OSError, writes a diagnostic naming that path to stderr, as verify.sh's cksum does, rather than returning silently ⟦added⟧ ⟦criterion 7⟧
 - [x] veri.verify.main, on a REJECT, malformed or no-verdict result inside a repository with VERI_ISSUE and VERI_STEP both non-empty, calls `preserve-attempt.sh <issue> <step> verify-<phase> 1 <reject|malformed|no-verdict>` from the scripts directory with its stdout sent to stderr, prints `verify: could not preserve the <mark> attempt (issue <i> step <s> verify-<phase> attempt 1)` on stderr when it fails or cannot be started and still returns the verdict's code; makes no preserve-attempt.sh call on PASS or when either variable is empty ⟦criterion 7⟧
 - [x] veri.verify.main returns event.sh's own non-zero status when the relaunch mark fails, making no relaunch ⟦criterion 7⟧
-- [x] veri.verify.main returns event.sh's own non-zero status when the verdict mark fails, with no preservation and nothing on stdout ⟦criterion 7⟧ ⟂ refactor pending
+- [x] veri.verify.main returns event.sh's own non-zero status when the verdict mark fails, with no preservation and nothing on stdout ⟦criterion 7⟧
 - [ ] veri.verify.main returns 127 when event.sh cannot be started ⟦criterion 7⟧
 - [ ] veri.verify.main drops NUL bytes from the leaf's output before parsing it, so a verdict carrying NUL bytes is read as the same verdict without them ⟦criterion 7⟧
 - [ ] veri.verify.main writes every line it prints, the em dash in its refusals included, as UTF-8 bytes under LC_ALL=C ⟦criterion 7⟧
