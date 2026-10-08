@@ -255,7 +255,7 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watched, ti
     return status, reason, rc, a0
 
 
-def trap(started, exitfile, kill_poll):
+def trap(started, exitfile, kill_poll, ignored):
     def on_signal(*_):
         if started:
             kill_tree(started[-1], kill_poll)
@@ -263,13 +263,13 @@ def trap(started, exitfile, kill_poll):
         os._exit(2)
 
     for sig in TRAPPED:
-        if signal.getsignal(sig) is not signal.SIG_IGN:
+        if sig not in ignored:
             signal.signal(sig, on_signal)
 
 
 def main(argv):
     ignored = {sig for sig in TRAPPED if signal.getsignal(sig) is signal.SIG_IGN}
-    if signal.getsignal(signal.SIGINT) is not signal.SIG_IGN:
+    if signal.SIGINT not in ignored:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
     if not argv or not argv[0]:
         return refuse(USAGE)
@@ -323,7 +323,7 @@ def main(argv):
     discard(exitfile)
     started = []
     preexec = leaf_dispositions(ignored)
-    trap(started, exitfile, kill_poll)
+    trap(started, exitfile, kill_poll, ignored)
     retries = os.environ.get("VERI_STUCK_RETRIES") or "1"
     tries = 0
     try:
