@@ -42,7 +42,7 @@ def start(args, **kwargs):
 
 
 def mark(role, *words):
-    subprocess.run([sibling("event.sh"), *words], env=role)
+    return subprocess.run([sibling("event.sh"), *words], env=role).returncode
 
 
 def preserve(issue, step, leaf, attempt, outcome):
@@ -181,7 +181,9 @@ def main(argv):
         if not no_verdict or relaunches >= retries:
             break
         relaunches += 1
-        mark(role, "relaunch", "cause=no-verdict")
+        marked = mark(role, "relaunch", "cause=no-verdict")
+        if marked:
+            return marked
     word = {0: "PASS", 1: "REJECT"}.get(code, "malformed")
     cause = ["cause=no-verdict"] if no_verdict else []
     mark(role, "verdict", "verdict=" + word, "reason=" + reason.split("\n", 1)[0], *cause)
