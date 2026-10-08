@@ -183,21 +183,17 @@ def attempt_once(name, cmd, log, rcfile, leaf_env, watched, timeout, heartbeat, 
         a = awake_seconds()
         seen_at += (t - prev_t) - (a - prev_a)
         prev_t, prev_a = t, a
-        try:
-            span = limit(timeout)
-            if span is not None and a - a0 >= span:
-                reason = f"hard timeout {timeout}s exceeded"
-            elif watched:
-                m = mtime_of(log)
-                if m != last_m:
-                    last_m, seen_at = m, t
-                silence = t - seen_at
-                window = limit(heartbeat)
-                if window is not None and silence > window:
-                    reason = f"no heartbeat for {silence}s (window {heartbeat}s)"
-        except Unbound as unbound:
-            print(unbound, file=sys.stderr)
-            return None
+        span = limit(timeout)
+        if span is not None and a - a0 >= span:
+            reason = f"hard timeout {timeout}s exceeded"
+        elif watched:
+            m = mtime_of(log)
+            if m != last_m:
+                last_m, seen_at = m, t
+            silence = t - seen_at
+            window = limit(heartbeat)
+            if window is not None and silence > window:
+                reason = f"no heartbeat for {silence}s (window {heartbeat}s)"
         if reason:
             status = "killed-stuck"
             kill_tree(leaf, float(kill_poll))
@@ -254,25 +250,22 @@ def main(argv):
         pass
     retries = os.environ.get("VERI_STUCK_RETRIES") or "1"
     tries = 0
-    while True:
-        attempt = attempt_once(name, argv[1:], log, rcfile, leaf_env, watched, timeout, heartbeat, poll,
-                               kill_poll)
-        if attempt is None:
-            return 1
-        status, reason, rc, a0 = attempt
-        if status != "killed-stuck":
-            break
-        preserve_killed_attempt(name, tries + 1)
-        try:
+    try:
+        while True:
+            status, reason, rc, a0 = attempt_once(name, argv[1:], log, rcfile, leaf_env, watched, timeout,
+                                                  heartbeat, poll, kill_poll)
+            if status != "killed-stuck":
+                break
+            preserve_killed_attempt(name, tries + 1)
             budget = limit(retries)
-        except Unbound as unbound:
-            print(unbound, file=sys.stderr)
-            return 1
-        if budget is not None and tries >= budget:
-            break
-        tries += 1
-        mark(role, "retry", f"cause={reason}")
-        print(f"supervise[{name}]: retry {tries}/{retries} after killed-stuck", file=sys.stderr)
+            if budget is not None and tries >= budget:
+                break
+            tries += 1
+            mark(role, "retry", f"cause={reason}")
+            print(f"supervise[{name}]: retry {tries}/{retries} after killed-stuck", file=sys.stderr)
+    except Unbound as unbound:
+        print(unbound, file=sys.stderr)
+        return 1
     ec = {"success": 0, "failure": 1, "killed-stuck": 2}[status]
     if rc == "2":
         ec = 2
