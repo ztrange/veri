@@ -654,3 +654,60 @@ def test_main_takes_a_git_call_that_fails_as_no_snapshot_or_no_change_whatever_i
     no_snapshot = failing in ("add", "git-missing", "write-tree")
     assert (code, captured.out, "diff-tree" in verbs, "write-tree" in verbs) == (
         0, b"fine\n", not no_snapshot, failing in ("write-tree", "diff-tree"))
+
+
+@pytest.mark.parametrize("head_moved", [True, False])
+def test_main_restores_a_modified_tree_through_a_fresh_temporary_index_and_a_moved_head_with_update_ref(
+        head_moved, tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
+                 "VERI_ISSUE", "VERI_STEP"):
+        monkeypatch.delenv(name, raising=False)
+    trees = [b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
+    heads = [b"1" * 40 + b"\n", (b"2" if head_moved else b"1") * 40 + b"\n"]
+    verbs = []
+    indexes = []
+    restored = []
+
+    def fake(args, *_, **kwargs):
+        words = [str(a) for a in args]
+        env = dict(kwargs.get("env") or os.environ)
+        if os.path.basename(words[0]) == "env":
+            words = [w for w in words[1:] if "=" not in w]
+        name = os.path.basename(words[0])
+        if name == "git":
+            verb = words[1]
+            verbs.append(verb)
+            if verb in ("add", "write-tree", "read-tree"):
+                indexes.append((verb, env.get("GIT_INDEX_FILE")))
+            if verb in ("read-tree", "update-ref"):
+                restored.append(words[1:])
+            if verb == "write-tree":
+                return subprocess.CompletedProcess(args, 0, trees[verbs.count("write-tree") - 1], b"")
+            if verb == "rev-parse":
+                return subprocess.CompletedProcess(args, 0, heads[verbs.count("rev-parse") - 1], b"")
+            if verb == "diff-tree":
+                return subprocess.CompletedProcess(args, 0, b"src.txt\n", b"")
+            return subprocess.CompletedProcess(args, 0, b"", b"")
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine\n", None)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    capfdbinary.readouterr()
+    expected = [["read-tree", "-u", "--reset", "a" * 40]]
+    if head_moved:
+        expected.append(["update-ref", "HEAD", "1" * 40])
+    assert (code, restored) == (2, expected)
+    snapshot_indexes = {index for verb, index in indexes if verb == "write-tree"}
+    read_tree_index = [index for verb, index in indexes if verb == "read-tree"][0]
+    assert read_tree_index and read_tree_index not in snapshot_indexes
+    assert not pathlib.Path(read_tree_index).is_relative_to(tmp_path)

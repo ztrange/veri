@@ -67,14 +67,14 @@ def head_snapshot():
 
 def changed_paths(tree_before, head_before):
     if not tree_before:
-        return []
+        return [], head_before
     tree_after = in_temp_index("write-tree")
     head_after = head_snapshot()
     diff = git("diff-tree", "-r", "--name-only", "--no-commit-id", tree_before, tree_after)
     paths = diff.stdout.decode().splitlines() if diff.returncode == 0 else []
     if head_after != head_before:
         paths.append("HEAD")
-    return paths
+    return paths, head_after
 
 
 def leaf_args():
@@ -136,8 +136,11 @@ def main(argv):
         if launched.returncode == 2:
             _write(sys.stdout, "verifier leaf killed-stuck — no verdict rendered (see .tdd/%s.log)" % leaf)
             return 2
-        changed = changed_paths(tree_before, head_before)
+        changed, head_after = changed_paths(tree_before, head_before)
         if changed:
+            in_temp_index("read-tree", "-u", "--reset", tree_before)
+            if head_before != head_after:
+                subprocess.run(["git", "update-ref", "HEAD", head_before])
             _write(sys.stdout, "verifier leaf modified the repository — verdict not accepted"
                    " (see .tdd/%s.log); changed:" % leaf)
             _write(sys.stdout, "\n".join(changed))
