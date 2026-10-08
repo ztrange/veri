@@ -234,3 +234,45 @@ def test_main_runs_veri_awake_clock_as_one_argv_word_on_path_writing_its_stdout_
         ("nosuchclock", 2, None, [], b"", "", False),
         ("notexec", 2, None, [], b"", "", False),
     ]
+
+
+def test_main_reads_awake_in_process_from_clock_uptime_raw_where_time_has_it_and_clock_monotonic_where_it_does_not_starting_no_process(
+        monkeypatch, tmp_path, event):
+    monkeypatch.setattr("time.time", lambda: 1700000000.9)
+    monkeypatch.setattr("time.CLOCK_UPTIME_RAW", "uptime-raw", raising=False)
+    monkeypatch.setattr("time.CLOCK_MONOTONIC", "monotonic")
+    readings = {"uptime-raw": 111.9, "monotonic": 222.9}
+    monkeypatch.setattr("time.clock_gettime", lambda clock: readings[clock])
+    for name in CONTEXT:
+        monkeypatch.delenv(name, raising=False)
+
+    started = []
+
+    def refuse(*args, **kwargs):
+        started.append(args)
+        raise AssertionError("a default mark started a process")
+
+    for name in ("Popen", "run", "call", "check_call", "check_output"):
+        monkeypatch.setattr(f"subprocess.{name}", refuse)
+
+    awake = []
+    for platform in ("uptime-raw", "monotonic"):
+        if platform == "monotonic":
+            monkeypatch.delattr("time.CLOCK_UPTIME_RAW")
+        for clock in (None, ""):
+            work = tmp_path / f"{platform}-{clock is None}"
+            work.mkdir()
+            monkeypatch.chdir(work)
+            if clock is None:
+                monkeypatch.delenv("VERI_AWAKE_CLOCK", raising=False)
+            else:
+                monkeypatch.setenv("VERI_AWAKE_CLOCK", clock)
+            code = event.main(["mark"])
+            awake.append((platform, clock, code, json.loads((work / ".tdd" / "events.jsonl").read_bytes())["awake"]))
+
+    assert (awake, started) == ([
+        ("uptime-raw", None, 0, 111),
+        ("uptime-raw", "", 0, 111),
+        ("monotonic", None, 0, 222),
+        ("monotonic", "", 0, 222),
+    ], [])
