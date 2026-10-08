@@ -4,3 +4,4 @@
 - [x] a conductor started by orchestrate.sh has SIGXFSZ at its default disposition ⟦criterion 2⟧
 - [x] the conductor started by orchestrate.sh is still the leader of a new session whose pid orchestrate records, with stdin /dev/null and orchestrate's stderr, and SIGINT and SIGQUIT still ignored ⟦criterion 3⟧
 - [x] a conductor orchestrate.sh stops is stopped by SIGTERM to its process group, never by its writes failing ⟦criterion 4⟧
+- [ ] fix the full-suite failure: no-sigpipe-pipelines.test.sh — FAIL - no suite under skills/tdd/scripts/tests/ that declares pipefail ends a pipeline in a reader that leaves before EOF (orchestrate.test.sh:369, yes | head -c1 > /dev/null); FAIL - no suite `make test` runs that declares pipefail ends a pipeline in a reader that leaves before EOF ⟦suite-repair⟧ ⟦criterion 4⟧
