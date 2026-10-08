@@ -487,6 +487,45 @@ def test_main_returns_event_sh_own_non_zero_status_when_the_relaunch_mark_fails_
         5, 1, [["relaunch", "cause=no-verdict"]], b"")
 
 
+def test_main_returns_event_sh_own_non_zero_status_when_the_verdict_mark_fails_with_no_preservation_and_nothing_on_stdout(
+        tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("VERI_ISSUE", "931")
+    monkeypatch.setenv("VERI_STEP", "7")
+    marked = []
+    preserved = []
+
+    def fake(args, *_, **__):
+        words = [str(a) for a in args]
+        name = os.path.basename(words[0])
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            return subprocess.CompletedProcess(args, 0, b"VERDICT: REJECT\nnot pinned\n", None)
+        if name == "git" and "write-tree" in words:
+            return subprocess.CompletedProcess(args, 0, b"a" * 40 + b"\n", b"")
+        if name == "git" and "rev-parse" in words:
+            return subprocess.CompletedProcess(args, 0, b"1" * 40 + b"\n", b"")
+        if name == "event.sh":
+            marked.append(words[1:])
+            return subprocess.CompletedProcess(args, 6, None, None)
+        if name == "preserve-attempt.sh":
+            preserved.append(words)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    assert (code, preserved, capfdbinary.readouterr().out) == (6, [], b"")
+    assert [words[0] for words in marked] == ["verdict"]
+
+
 @pytest.mark.parametrize("retries, launches", [("", 2), ("010", 9), ("08", 1)])
 def test_main_reads_an_empty_no_verdict_budget_as_1_and_a_leading_zero_as_octal_so_010_allows_8_relaunches_and_08_none(
         retries, launches, tmp_path, monkeypatch):
