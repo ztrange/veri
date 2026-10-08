@@ -1974,4 +1974,22 @@ fi
 
 report "$name"
 
+name="run-conductor.sh with no argument prints exactly its usage line on stderr, nothing on stdout, and exits 2"
+problems=()
+
+out_noarg="$work/noarg.out"
+err_noarg="$work/noarg.err"
+( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" \
+    "$CONDUCTOR" ) > "$out_noarg" 2> "$err_noarg"
+status_noarg=$?
+
+[[ "$status_noarg" -eq 2 ]] ||
+  problems+=("the script exited $status_noarg, not 2")
+[[ ! -s "$out_noarg" ]] ||
+  problems+=("stdout was not empty: $(cat "$out_noarg")")
+printf 'usage: run-conductor.sh <issue>\n' | cmp -s - "$err_noarg" ||
+  problems+=("stderr was not exactly the usage line and one newline: $(od -c "$err_noarg")")
+
+report "$name"
+
 finish
