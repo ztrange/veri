@@ -1,5 +1,6 @@
 """In-process cases for veri/verify.py, the module verify.sh is a shim over."""
 import importlib
+import io
 import os
 import pathlib
 import subprocess
@@ -1289,3 +1290,52 @@ def test_main_preserves_a_reject_malformed_or_no_verdict_attempt_through_preserv
         assert (PRESERVED in captured.err, could_not in captured.err) == (True, False)
     else:
         assert could_not in captured.err
+
+
+def test_main_writes_every_line_it_prints_the_em_dash_in_its_refusals_included_as_utf8_bytes_under_lc_all_c(
+        tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("LC_ALL", "C")
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
+                 "VERI_NO_VERDICT_RETRIES"):
+        monkeypatch.delenv(name, raising=False)
+    answer = {}
+
+    def fake(args, *_, **__):
+        name = os.path.basename(str(args[0]))
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            return subprocess.CompletedProcess(args, answer["code"], answer["out"], None)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    def run(code, out, env):
+        answer.update(code=code, out=out)
+        for variable, value in env.items():
+            monkeypatch.setenv(variable, value)
+        stdout, stderr = io.BytesIO(), io.BytesIO()
+        monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(stdout, encoding="ascii", write_through=True))
+        monkeypatch.setattr(sys, "stderr", io.TextIOWrapper(stderr, encoding="ascii", write_through=True))
+        try:
+            status = verify.main(["green", "spec.md", "tests/x.test.sh"])
+        except Exception as error:
+            status = type(error).__name__
+        for variable in env:
+            monkeypatch.delenv(variable)
+        return status, stdout.getvalue(), stderr.getvalue()
+
+    seen = [run(2, b"", {}),
+            run(0, b"", {"VERIFY_LEAF_ARGS": "--model x", "VERI_MODEL_VERIFIER": "sonnet"}),
+            run(0, "VERDICT: PASS\nfine — ok\n".encode(), {})]
+
+    assert seen == [
+        (2, "verifier leaf killed-stuck — no verdict rendered (see .tdd/verify-green.log)\n".encode(), b""),
+        (2, b"", ("verify: VERIFY_LEAF_ARGS carries its own --model and a role model variable resolved"
+                  " 'sonnet' — which one the leaf would run on is flag order; unset one of them\n").encode()),
+        (0, "fine — ok\n".encode(), b""),
+    ]
