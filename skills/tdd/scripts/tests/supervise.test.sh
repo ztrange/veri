@@ -623,7 +623,6 @@ intr_problems=()
 for intr_sig in INT HUP; do
   intr_work="$work/signal-$intr_sig"
   mkdir -p "$intr_work"
-  # Without job control an async command starts with SIGINT ignored; set -m keeps it at its default.
   set -m
   ( cd "$intr_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
       VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-term-sleep" ) >/dev/null 2>&1 &
@@ -671,7 +670,6 @@ for _ in $(seq 1 200); do
   [[ -n "$ign_sup" ]] && kill -0 "$ign_sup" 2>/dev/null || break
   sleep 0.01
 done
-# O_RDWR never blocks on a FIFO, so a leaf already killed cannot hang the suite here.
 exec 9<>"$ign_work/release"
 echo go >&9
 for _ in $(seq 1 100); do [[ -s "$ign_work/.tdd/develop-red.exit" ]] && break; sleep 0.05; done
