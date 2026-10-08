@@ -1458,4 +1458,32 @@ done
 { [[ "$childtree_code" == 2 ]] && [[ "${#childtree_alive[@]}" -eq 0 ]]; } && ok \
   || no "a hung leaf that started a background child of its own and recorded its pid leaves neither the leaf nor the child alive after the heartbeat kill (code=$childtree_code want 2; ${childtree_alive[*]:-none alive})"
 
+
+termign_work="$work/term-ignored"
+mkdir -p "$termign_work"
+cat > "$stub/leaf-hang-pid" <<'L'
+#!/bin/sh
+echo $$ > leaf-pid
+echo "leaf: starting"; clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"; exec sleep 60
+L
+chmod +x "$stub/leaf-hang-pid"
+( trap '' TERM; cd "$termign_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=1 VERI_TIMEOUT=30 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-hang-pid" ) >/dev/null 2>&1 &
+termign_sup=$!
+for _ in $(seq 1 100); do kill -0 "$termign_sup" 2>/dev/null || break; sleep 0.1; done
+termign_code="<still running after 10s>"
+if ! kill -0 "$termign_sup" 2>/dev/null; then wait "$termign_sup"; termign_code=$?; fi
+termign_exit="$({ tr -d '[:space:]' < "$termign_work/.tdd/develop-red.exit"; } 2>/dev/null || echo '<missing>')"
+termign_leaf="$(tr -d '[:space:]' < "$termign_work/leaf-pid" 2>/dev/null)"
+termign_alive="no"
+if [[ -n "$termign_leaf" ]]; then
+  for _ in $(seq 1 20); do kill -0 "$termign_leaf" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$termign_leaf" 2>/dev/null; then termign_alive="yes"; kill -KILL "$termign_leaf" 2>/dev/null; fi
+else
+  termign_alive="<leaf never started>"
+fi
+if kill -0 "$termign_sup" 2>/dev/null; then wait "$termign_sup"; fi
+{ [[ "$termign_code" == 2 ]] && [[ "$termign_exit" == 2 ]] && [[ "$termign_alive" == no ]]; } && ok \
+  || no "a supervisor started with TERM ignored, whose silent leaf is killed for silence, leaves no leaf process alive after the KILL escalation and exits 2 with 2 in .tdd/<name>.exit (code=$termign_code want 2, exit file=$termign_exit want 2, leaf alive=$termign_alive want no)"
+
 finish
