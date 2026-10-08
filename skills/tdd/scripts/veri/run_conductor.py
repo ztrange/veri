@@ -95,7 +95,7 @@ def main(argv):
 def extract(base, commit, snapshot):
     read_end, write_end = os.pipe()
     try:
-        archive = subprocess.Popen(["git", "-C", base, "archive", commit, "."], stdout=write_end)
+        archive = subprocess.Popen(git_argv(base, "archive", commit, "."), stdout=write_end)
         tar = subprocess.Popen(["tar", "-x", "-C", snapshot], stdin=read_end)
     finally:
         os.close(read_end)
@@ -109,7 +109,11 @@ def verifies(base, ref):
 
 
 def git(base, *args, **kwargs):
-    return subprocess.run(["git", "-C", base] + list(args), **kwargs)
+    return subprocess.run(git_argv(base, *args), **kwargs)
+
+
+def git_argv(base, *args):
+    return ["git", "-C", base] + list(args)
 
 
 def refuse_unpinned(base, why):
