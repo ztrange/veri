@@ -12,9 +12,19 @@ from ledger import CRITERION_RE, ledger_steps
 USAGE = "usage: preserve-attempt.sh <issue> <step> <phase> <attempt> [<mark>]"
 
 
+def inside_own_scripts():
+    scripts = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    here = os.path.realpath(os.getcwd())
+    return here == scripts or here.startswith(scripts + os.sep)
+
+
 def main(argv):
     if len(argv) < 4 or not all(argv[:4]):
         print(USAGE, file=sys.stderr)
+        return 2
+    if inside_own_scripts():
+        print("preserve-attempt.sh: type this from the run's worktree,"
+              " not from the skill's own scripts directory", file=sys.stderr)
         return 2
     issue, step, phase, attempt = argv[:4]
     coords = f"issue {issue} step {step} {phase} attempt {attempt}"
