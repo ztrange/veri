@@ -1,0 +1,3 @@
+### refactor-triage's exit-2 diagnostic for a candidate line whose class is none of the four names all four accepted classes (structural, cosmetic, test-only, out-of-scope) and still ends with the offending line, with exit code 2 and empty stdout unchanged ⟦criterion 1⟧
+- build the class list in refactor_triage.py's refusal message and the four `_candidate(...)` patterns from one tuple of class names, so a fifth class cannot be added to one and missed in the other
+- test-only | extract the repeated unknown-class diagnostic prefix `b"refactor-triage: candidate line has no class, or one that is not structural, cosmetic, test-only or out-of-scope: "` in test_refactor_triage.py (three tests) into one module-level constant
