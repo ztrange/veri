@@ -27,6 +27,9 @@ def write_line(path, value):
 
 
 def awake_seconds():
+    command = os.environ.get("VERI_AWAKE_CLOCK", "")
+    if command:
+        return int(captured(command).stdout.rstrip("\n"))
     clock = getattr(time, "CLOCK_UPTIME_RAW", time.CLOCK_MONOTONIC)
     return int(time.clock_gettime(clock))
 
@@ -90,6 +93,7 @@ def main(argv):
                 timeout = f.read().rstrip("\n")
             if not re.fullmatch(r"[0-9]+", timeout) or int(timeout, 10) < 1:
                 return refuse(f"supervise: {settled} must hold a whole number of seconds >= 1: '{timeout}'")
+    timeout = timeout or "900"
     kill_poll = os.environ.get("VERI_KILL_POLL") or "0.1"
     if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", kill_poll):
         return refuse(f"supervise: VERI_KILL_POLL must be a non-negative number: {kill_poll}")
@@ -117,12 +121,14 @@ def main(argv):
     open(log, "wb").close()
     t0 = now()
     a0 = awake_seconds()
+    prev_t, prev_a = int(t0), a0
     leaf = subprocess.Popen(["/bin/sh", "-c", 'log=$1 rc=$2; shift 2; "$@" >"$log" 2>&1; echo $? >"$rc"',
                              "sh", log, rcfile, *argv[1:]], process_group=0, env=leaf_env)
     status = reason = ""
     rc = "0"
+    seen_at = int(t0)
     if watched:
-        last_m, seen_at = mtime_of(log), int(t0)
+        last_m = mtime_of(log)
     while True:
         if os.path.isfile(rcfile):
             with open(rcfile) as f:
@@ -130,6 +136,21 @@ def main(argv):
             status = "success" if rc == "0" else "failure"
             break
         t = int(now())
+        a = awake_seconds()
+        seen_at += (t - prev_t) - (a - prev_a)
+        prev_t, prev_a = t, a
+        try:
+            expired = a - a0 >= arithmetic(timeout)
+        except Unbound as unbound:
+            print(unbound, file=sys.stderr)
+            return 1
+        except ValueError as error:
+            print(error, file=sys.stderr)
+            expired = False
+        if expired:
+            status, reason = "killed-stuck", f"hard timeout {timeout}s exceeded"
+            os.killpg(leaf.pid, signal.SIGTERM)
+            break
         if watched:
             m = mtime_of(log)
             if m != last_m:
