@@ -860,4 +860,34 @@ grep -F '"documentation_url": "https://docs.github.com/rest",' "$err" > /dev/nul
   problems+="    want the ccr route's response body on stderr"$'\n'
 record
 
+# 21. with VERI_GH_DRIVER unset, a gh whose gh pr ready fails with GraphQL's 403 is never asked:
+#     the PR is readied over REST alone and nothing reaches stderr
+name="#623: with VERI_GH_DRIVER unset, gh_pr_ready 42 against a gh whose gh pr ready fails with GraphQL's HTTP 403 readies PR 42 over pulls/42/ccr/ready_for_review, never runs gh pr ready, returns 0 and prints nothing on stderr"
+calls="$scratch/calls21" err="$scratch/err21"
+: > "$calls"
+(
+  gh() {
+    echo "gh $*" >> "$calls"
+    if [[ "$1" == pr ]]; then echo "$refusal (HTTP 403)" >&2; return 1; fi
+    [[ "$1" == api ]] || return 1
+    case "$*" in
+      *ccr/ready_for_review*) echo '{"number":42,"draft":false}' ;;
+      *) return 1 ;;
+    esac
+  }
+  unset VERI_GH_DRIVER VERI_GH_JSON
+  source "$LIB"
+  gh_pr_ready 42
+) > /dev/null 2> "$err"
+rc=$?
+problems=""
+[[ "$rc" -eq 0 ]] || problems+="    want return 0, got $rc"$'\n'
+grep -E '^gh api -X POST .*pulls/42/ccr/ready_for_review' "$calls" > /dev/null ||
+  problems+="    want a POST to pulls/42/ccr/ready_for_review, got: $(printf '%q' "$(cat "$calls")")"$'\n'
+if grep -E '^gh pr ready' "$calls" > /dev/null; then
+  problems+="    want no gh pr ready call, got: $(printf '%q' "$(grep -E '^gh pr ready' "$calls")")"$'\n'
+fi
+[[ -s "$err" ]] && problems+="    want nothing on stderr, got: $(printf '%q' "$(cat "$err")")"$'\n'
+record
+
 finish
