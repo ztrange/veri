@@ -77,3 +77,20 @@ def test_main_refuses_no_issue_and_a_non_integer_and_stops_a_live_run_or_answers
     assert stop_run.main(["5"]) == 3
     assert capsysbinary.readouterr()[0] == b""
     assert not (run / ".tdd" / "stop").exists()
+
+
+def test_main_accepts_a_mode_stop_modes_lists_and_writes_it_to_the_runs_stop_file(
+        monkeypatch, tmp_path, capsysbinary, stop_run):
+    import stop_modes
+    monkeypatch.setattr(stop_modes, "STOP_MODES", ("at-ledger", "at-leaf", "now", "at-step"))
+    monkeypatch.chdir(tmp_path)
+    fake_processes(monkeypatch, {
+        ("git", "worktree", "list", "--porcelain"): (0, b"worktree %s\nHEAD abc\n" % os.fsencode(tmp_path)),
+    })
+    monkeypatch.setattr(os, "kill", lambda pid, sig: None)
+    run = tmp_path / ".tdd" / "wt" / "5"
+    (run / ".tdd").mkdir(parents=True)
+    (run / ".tdd" / "conductor.pid").write_bytes(b"4242\n")
+
+    assert stop_run.main(["--mode", "at-step", "5"]) == 0
+    assert (run / ".tdd" / "stop").read_bytes() == b"at-step\n"

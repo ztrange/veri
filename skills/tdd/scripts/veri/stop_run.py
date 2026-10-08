@@ -30,9 +30,14 @@ def main_working_tree():
 
 
 def main(argv):
+    mode = "at-ledger"
     issue = ""
-    for arg in argv:
-        issue = arg
+    args = iter(argv)
+    for arg in args:
+        if arg == "--mode":
+            mode = next(args)
+        else:
+            issue = arg
     if not issue:
         return refuse("name an issue, or --all")
     if not re.fullmatch(r"[1-9][0-9]*", issue):
@@ -41,7 +46,7 @@ def main(argv):
     if pid_file.live_conductor(target) is None:
         return nothing_to_do(f"no live run for issue {issue}")
     with open(target + "/.tdd/stop", "w") as stop:
-        stop.write("at-ledger\n")
+        stop.write(mode + "\n")
     sys.stdout.buffer.write(os.fsencode(target) + b"\n")
     return 0
 
