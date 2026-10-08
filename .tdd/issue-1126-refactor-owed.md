@@ -1,0 +1,3 @@
+### a conductor started by orchestrate.sh has SIGPIPE at its default disposition: a writer to a closed pipe inside it dies of SIGPIPE (status 141 in a bash pipeline), not of EPIPE ⟦criterion 1⟧
+- test-only | the #1126 case in orchestrate.test.sh (lines 365–366) repeats the two `cp` lines that copy `orchestrate.sh`, `solvable-issues.sh`, `lib` and `veri` into a scratch dir. `conductor_stub` (lines 53–54) and the launchstate case (lines 332–333) repeat the same two lines. They could be pulled into one shared scratch-dir helper.
+- test-only | the SIGINT/SIGQUIT/SIGPIPE/SIGXFSZ disposition table in test_orchestrate.py repeats `_launch`'s `dispositions` dict word for word. It is the test's expected value, so it stays a literal and is not duplication to remove.
