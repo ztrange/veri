@@ -397,10 +397,30 @@ def test_the_budget_reads_as_bash_does_unset_or_empty_120000_a_leading_zero_octa
 
     assert run(None) == (0, "context 7 32768\ncontext 7 50000\ncontext 7 120000\ncontext 7 120001\n", "")
     assert run("") == (0, "context 7 32768\ncontext 7 50000\ncontext 7 120000\ncontext 7 120001\n", "")
-    assert run("0100000") == (0, "context 7 32768\ncontext 7 50000\n", "")
     for budget in ("08", "09"):
         error = 'orchestrate.sh: %s: value too great for base (error token is "%s")\n' % (budget, budget)
         assert run(budget) == (0, every, error * 4)
+
+
+def test_a_leading_zero_budget_reads_as_decimal_so_0100000_stops_a_conductor_over_100000_not_over_32768_1127(
+        capsys, monkeypatch, tmp_path, orchestrate):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", "0100000")
+    _passes(monkeypatch, [(0, "7\n"), (3, "")], lambda n, issue: None)
+    stream = b"".join(
+        b'{"type":"assistant","input":"bash event.sh step-done 1",'
+        b'"usage":{"cache_read_input_tokens":%d,"cache_creation_input_tokens":0}}\n'
+        b'{"type":"user","content":"ok"}\n' % read for read in (50000, 100001, 120000))
+
+    def fake_popen(args, *rest, **kwargs):
+        conductor = _FakeConductor(4001)
+        conductor.stdout = io.BytesIO(stream)
+        return conductor
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+    code = orchestrate.main([])
+    out, err = capsys.readouterr()
+    assert (code, out, err) == (0, "context 7 50000\ncontext 7 100001\n", "")
 
 
 def test_stdout_carries_only_context_and_parked_lines_and_a_closed_stdout_raises_broken_pipe_out_of_the_next_context_write(
