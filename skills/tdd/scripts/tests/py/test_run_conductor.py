@@ -781,3 +781,52 @@ def test_main_on_a_pinned_launch_whose_snapshot_holds_no_readable_skill_md_names
     assert len(snapshots) == 1
     assert (code, captured.out, captured.err, launches, os.listdir(scratch)) == (
         2, b"", ("run-conductor: cannot read '%s/SKILL.md'\n" % snapshots[0]).encode(), [], [])
+
+
+def test_main_hands_claude_the_snapshots_committed_skill_md_never_the_skill_clones_working_tree_skill_md_when_the_two_differ(
+        tmp_path, monkeypatch, capfdbinary):
+    import importlib.util
+    import tempfile
+    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
+    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
+        monkeypatch.delenv(name, raising=False)
+    scratch = tmp_path / "tmp"
+    scratch.mkdir()
+    monkeypatch.setenv("TMPDIR", str(scratch))
+    monkeypatch.setattr(tempfile, "tempdir", str(scratch))
+    skill = tmp_path / "skill"
+    (skill / "scripts" / "veri").mkdir(parents=True)
+    (skill / "scripts" / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
+    (skill / "SKILL.md").write_text("# the working tree's uncommitted edit\n")
+    spec = importlib.util.spec_from_file_location("run_conductor_committed", str(skill / "scripts" / "veri" / "run_conductor.py"))
+    run_conductor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_conductor)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    calls = fake_pin(monkeypatch, "1111111111111111111111111111111111111111", set())
+    fake_snapshot(monkeypatch, calls, 0, 0)
+    popen, run, stdins = subprocess.Popen, subprocess.run, []
+
+    def tar_extracts_the_committed_skill_md(args, *a, **kwargs):
+        process = popen(args, *a, **kwargs)
+        if list(args)[:1] == ["tar"]:
+            pathlib.Path(args[-1], "SKILL.md").write_text("# the committed procedure\n")
+        return process
+
+    def claude_reads_stdin(args, *a, **kwargs):
+        if list(args)[:1] == ["fake-claude"]:
+            data = kwargs.get("input")
+            stdins.append(data.encode() if isinstance(data, str) else (data or b""))
+        return run(args, *a, **kwargs)
+
+    monkeypatch.setattr(subprocess, "Popen", tar_extracts_the_committed_skill_md)
+    monkeypatch.setattr(subprocess, "run", claude_reads_stdin)
+
+    run_conductor.main(["4242"])
+
+    capfdbinary.readouterr()
+    assert [(stdin.startswith(b"# the committed procedure"), b"uncommitted edit" in stdin) for stdin in stdins] == [
+        (True, False)]
