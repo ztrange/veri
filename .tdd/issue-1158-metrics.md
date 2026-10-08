@@ -1,9 +1,9 @@
 ### 📊 Metrics — issue 1158
 
-Wall time for the issue: 13039 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 90 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 1 s, excluded from it.
-Steps done: 8 of 9 planned.
-Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/1202.
+Steps done: 8 of 11 planned.
+Outcome: the run bailed — untestable-criterion, a process failure.
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
@@ -12,7 +12,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 14 | 9 | 2 | 4 | 921 | 65637 | 42330 | 0.19 |
-| red | 20 | 9 | 1 | 0 | 1260 | 679 | 115 | 224 | 63121 | 5796459 | 971089 | 8.41 |
+| red | 21 | 9 | 1 | 0 | 1324 | 735 | 123 | 238 | 68646 | 6199628 | 1037228 | 9.13 |
 | green | 18 | 9 | 0 | 0 | 4856 | 738 | 120 | 242 | 51046 | 6237061 | 833507 | 7.66 |
 | refactor | 17 | 8 | 0 | 0 | 1631 | 392 | 87 | 172 | 30557 | 4047369 | 789421 | 6.20 |
 | predicate | 6 | 0 | 0 | 0 | 150 | 111 | 24 | 48 | 9440 | 1050203 | 272466 | 2.58 |
@@ -23,18 +23,19 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | verifier | claude-sonnet-5-5 | 28 | 27 | 1 | 0 | 4771 | 628 | 131 | 262 | 46020 | 5981169 | 1159390 | 6.62 |
-| developer | claude-opus-5-5 | 39 | 0 | 0 | 0 | 3275 | 1370 | 230 | 454 | 114821 | 11703228 | 1965511 | 20.36 |
+| developer | claude-opus-5-5 | 40 | 0 | 0 | 0 | 3339 | 1426 | 238 | 468 | 120346 | 12106397 | 2031650 | 21.08 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 146 | 1.41 | 0 | 0.00 |
+| red | 146 | 1.41 | 64 | 0.72 |
 | green | 0 | 0.00 | 0 | 0.00 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | predicate | 0 | 0.00 | 0 | 0.00 |
 | structural | 0 | 0.00 | 0 | 0.00 |
+| develop-red | 0 | 0.00 | 0 | 0.00 |
 
 #### By step
 
@@ -48,6 +49,7 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | leaf-timeout.test.sh pins its subject to the scratch repository: a leaf_timeout that finds its repository root anywhere but the suite's scratch repository fails the case and creates no .tdd/issue-<n>-timeout outside the scratch directory ⟦criterion 1⟧ | 8 | 3 | 1 | 0 | 0 | 0 | 190 | 42 | 84 | 18738 | 2088597 | 343802 | 2.92 | 622 | 1/2 | 0/5 | structural-owed |  |  | full |
 | ensure-run-state-ignored.test.sh pins its subject to the scratch repository: an ensure_run_state_ignored that drops or ignores its root argument fails the case and writes no .gitignore or info/exclude outside the scratch directory ⟦criterion 1⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 142 | 30 | 58 | 12650 | 1389494 | 283429 | 2.23 | 563 | unknown | 0/5 | structural-owed |  |  | full |
 | fix the full-suite failure: hermetic-suites.test.sh — FAIL - solvable-issues.test.sh, tick-issue-criterion.test.sh, parallel-conductors.test.sh and invisible-work.test.sh: an ambient VERI_GH_DRIVER of auto, rest or graphql gives the same exit and the same stdout as a cleared run (the slice of parallel-conductors.test.sh held 5 assertions, want 4 — the markers may have moved) ⟦suite-repair⟧ ⟦criterion 1⟧ | 17 | 3 | 0 | 0 | 0 | 0 | 345 | 68 | 138 | 26653 | 3103273 | 731449 | 6.93 | 2731 | unknown | 0/5 | structural-owed |  |  | full |
+| stop-run.test.sh, issue-worktree.test.sh and preserve-attempt.test.sh each run a copy of their subject from inside the scratch tree the suite built (never the skill's own scripts directory), so a subject that resolves its tree relative to its own location resolves the scratch repository: with `cd "$(dirname "$0")/../.."` planted before the tree is resolved, in a scratch copy of the skill whose own repository is a throwaway holding a live-looking `.tdd/wt/<n>/.tdd/`, each suite fails and nothing is written outside its scratch tree (no `.tdd/stop`, no worktree or branch, no `refs/veri/attempts/*`) — watched red against that plant before the copy is introduced ⟦added⟧ ⟦criterion 1⟧ | 1 | 0 | 0 | 0 | 0 | 0 | 56 | 8 | 14 | 5525 | 403169 | 66139 | 0.72 | unknown | unknown | unknown | unknown |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER.
 
@@ -82,4 +84,4 @@ The figure comparable across runs is turns, the same measurement on any model; d
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 361 | 716 | 160841 | 17684397 | 3124901 | 26.98 |
+| total | 369 | 730 | 166366 | 18087566 | 3191040 | 27.70 |
