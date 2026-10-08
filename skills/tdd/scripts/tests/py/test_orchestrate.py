@@ -136,18 +136,23 @@ def test_selection_takes_the_first_whole_unparked_line_per_pass_reports_and_skip
     assert asks == [[solvable]] * 4
     assert launches == [[conductor, "6 x"], [conductor, "6 x"], [conductor, "9"]]
 
-    asks, launches = _passes(monkeypatch, [(0, "\n7\n")], park)
-    code = orchestrate.main([])
-    out, err = capsys.readouterr()
-    assert (code, out, err) == (0, "", "")
-    assert (len(asks), launches) == (1, [])
-
     asks, launches = _passes(monkeypatch, [(0, "7\n"), (2, "")], lambda n, issue: None)
     code = orchestrate.main([])
     out, err = capsys.readouterr()
     assert (code, out, err) == (
         2, "", "orchestrate.sh: solvable-issues.sh exited 2; no answer about the solvable set\n")
     assert (len(asks), launches) == (2, [[conductor, "7"]])
+
+
+def test_1129_an_answer_whose_first_line_is_empty_launches_a_conductor_for_the_first_non_empty_unparked_line(
+        capsys, monkeypatch, tmp_path, orchestrate):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+    conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
+    asks, launches = _passes(monkeypatch, [(0, "\n7\n8\n"), (3, "")], lambda n, issue: None)
+    code = orchestrate.main([])
+    out, err = capsys.readouterr()
+    assert (code, out, err, len(asks), launches) == (0, "", "", 2, [[conductor, "7"]])
 
 
 def test_a_conductor_launches_as_a_new_session_leader_with_signals_as_todays_launch_hands_them_and_nothing_else_starts(

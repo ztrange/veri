@@ -23,7 +23,7 @@ def main(argv):
             sys.stderr.write("orchestrate.sh: solvable-issues.sh exited %d; no answer about the solvable set\n"
                              % answer.returncode)
             return 2
-        issue = next((n for n in os.fsdecode(answer.stdout).rstrip("\n").split("\n") if not _parked(n)), "")
+        issue = next((n for n in os.fsdecode(answer.stdout).rstrip("\n").split("\n") if n and not _parked(n)), "")
         if not issue:
             return 0
         try:
