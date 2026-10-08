@@ -139,7 +139,7 @@ def main(argv):
         changed, head_after = changed_paths(tree_before, head_before)
         if changed:
             in_temp_index("read-tree", "-u", "--reset", tree_before)
-            if head_before != head_after:
+            if head_before and head_before != head_after:
                 subprocess.run(["git", "update-ref", "HEAD", head_before])
             _write(sys.stdout, "verifier leaf modified the repository — verdict not accepted"
                    " (see .tdd/%s.log); changed:" % leaf)

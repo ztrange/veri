@@ -28,7 +28,7 @@ Decisions the issue left to the plan:
 - [x] veri.verify.main, refusing a leaf that modified the repository, first restores the working tree with `read-tree -u --reset <tree>` through a fresh temporary index and, when HEAD moved, HEAD with `git update-ref HEAD <sha>` ⟦criterion 7⟧
 - [x] veri.verify.main runs the tamper check after a relaunch's launch as after the first one, refusing a relaunched leaf that modified the repository ⟦criterion 7⟧
 - [x] veri.verify.main outside a git repository, with git not on PATH, or with a failing `git add -A`, takes no snapshot, runs no tamper check and no preservation, and returns the leaf's verdict ⟦criterion 7⟧
-- [ ] veri.verify.main in a repository with no commit reports a leaf that commits as HEAD and makes no `git update-ref` call ⟦criterion 7⟧
+- [x] veri.verify.main in a repository with no commit reports a leaf that commits as HEAD and makes no `git update-ref` call ⟦criterion 7⟧ ⟂ refactor pending
 - [ ] veri.verify.main returns git's own status (128) with nothing printed on stdout when the `git update-ref` restoring HEAD fails ⟦criterion 7⟧
 - [ ] veri.verify.main returns 2 with `verifier leaf modified the operator's global git config — verdict not accepted (see .tdd/verify-<phase>.log); changed:` and `$HOME/.gitconfig` on stdout when the leaf changed, created or deleted that file, restoring nothing ⟦criterion 7⟧
 - [ ] veri.verify.main reports a leaf that changed both the repository and `$HOME/.gitconfig` for the repository only ⟦criterion 7⟧
