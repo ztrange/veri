@@ -23,8 +23,11 @@ def nothing_to_do(message):
 
 
 def main_working_tree():
-    git = subprocess.run(["git", "worktree", "list", "--porcelain"],
-                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    try:
+        git = subprocess.run(["git", "worktree", "list", "--porcelain"],
+                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    except FileNotFoundError:
+        return b""
     first = git.stdout.split(b"\n", 1)[0]
     return first.removeprefix(b"worktree ")
 
@@ -57,7 +60,10 @@ def main(argv):
         return refuse("name an issue, or --all")
     if not every and not re.fullmatch(r"[1-9][0-9]*", issue):
         return refuse(f"<issue> must be a positive integer: '{issue}'")
-    runs = os.fsdecode(main_working_tree()) + "/.tdd/wt/"
+    main_tree = main_working_tree()
+    if not main_tree:
+        return refuse("no main working tree here — type this inside the repository")
+    runs = os.fsdecode(main_tree) + "/.tdd/wt/"
     if every:
         stopped = 0
         try:

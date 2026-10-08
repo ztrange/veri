@@ -221,3 +221,33 @@ def test_main_all_with_no_tdd_wt_directory_answers_3_no_live_run_to_stop_as_the_
 
     assert stop_run.main(["--all"]) == 3
     assert capsysbinary.readouterr() == (b"", b"stop-run: no live run to stop\n")
+
+
+def test_main_takes_a_git_that_cannot_start_exits_non_zero_or_prints_nothing_as_no_main_working_tree(
+        monkeypatch, tmp_path, capsysbinary, stop_run):
+    caller = tmp_path / "caller"
+    caller.mkdir()
+    run_with_conductor(tmp_path)
+    monkeypatch.chdir(caller)
+    signalled = []
+    monkeypatch.setattr(os, "kill", lambda pid, sig: signalled.append((pid, sig)))
+    calls = []
+
+    def git_answering(answer):
+        def fake_run(args, **kwargs):
+            calls.append((list(args), kwargs.get("cwd"), kwargs.get("stderr"), os.getcwd()))
+            if isinstance(answer, BaseException):
+                raise answer
+            return subprocess.CompletedProcess(args, answer[0], answer[1], None)
+        return fake_run
+
+    for answer in ((0, b""), (128, b""), FileNotFoundError(2, "No such file or directory", "git")):
+        monkeypatch.setattr(subprocess, "run", git_answering(answer))
+        calls.clear()
+
+        assert (answer, stop_run.main(["5"])) == (answer, 2)
+        assert capsysbinary.readouterr() == (
+            b"", "stop-run: no main working tree here — type this inside the repository\n".encode() + USAGE)
+        assert calls == [(["git", "worktree", "list", "--porcelain"], None, subprocess.DEVNULL, str(caller))]
+        assert list(tmp_path.rglob("stop")) == []
+        assert signalled == []
