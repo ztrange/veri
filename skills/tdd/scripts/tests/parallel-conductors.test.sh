@@ -1038,6 +1038,37 @@ got24="$(cat "$capped24" 2>/dev/null)"
 [[ "$code" == 0 && "$got24" == "$want24" ]] \
   && ok || no "#505 VERI_MAX_ISSUES unset applies no cap and launches every solvable issue ( [exit=$code want 0, launched '$(printf '%s' "$got24" | tr '\n' ',')' want '$(printf '%s' "$want24" | tr '\n' ',')'] $(cat "$work/cap24.out") )"
 
+decoy="$work/decoy"
+fresh_repo "$decoy"
+mutant="$decoy/skills/tdd/scripts"
+mkdir -p "$mutant"
+cp -R "$skill/scripts/." "$mutant/"
+awk '/^exec python3/ { print "cd \"$(dirname \"$0\")\"" } { print }' "$skill/scripts/parallel-conductors.sh" > "$mutant/parallel-conductors.sh"
+chmod +x "$mutant/parallel-conductors.sh"
+pinned="$work/pinned-scratch"
+fresh_repo "$pinned"
+solvable_fixture "$work/gh-pinned" 7
+pinned_stub="$work/claude-pinned"
+conductor_stub "$pinned_stub" </dev/null
+exclude_before="$(cat "$decoy/.git/info/exclude" 2>/dev/null)"
+
+(cd "$pinned" && env -u VERI_PARALLEL -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES -u VERI_CONDUCTOR_CTX_BUDGET \
+  VERI_GH_JSON="$work/gh-pinned" CLAUDE_BIN="$pinned_stub" VERI_POLL=0.05 \
+  "$mutant/parallel-conductors.sh" > "$work/pinned.out" 2>&1) && code=0 || code=$?
+exclude_after="$(cat "$decoy/.git/info/exclude" 2>/dev/null)"
+escaped="$(cd "$decoy" && find . -path ./.git -prune -o \( -name parallel.exit -o -name 'conductor-*.log' \) -print)"
+
+problems=""
+[[ "$exclude_after" == "$exclude_before" ]] || problems+="; the decoy repository's info/exclude changed:
+--- before
+$exclude_before
+--- after
+$exclude_after"
+[[ -z "$escaped" ]] || problems+="; written under the decoy repository: $(printf '%s' "$escaped" | tr '\n' ' ')"
+[[ "$code" != 0 ]] || problems+="; exit=0, want the case to fail on a subject that resolved the decoy repository"
+{ [[ -z "$problems" ]]; } \
+  && ok || no "#1158: a parallel-conductors.sh that resolves its git common dir and working directory from its own directory, not the suite's scratch repository, appends to no info/exclude and writes no .tdd/parallel.exit or conductor log outside that repository (${problems#; }) $(tr '\n' '|' < "$work/pinned.out")"
+
 refusing_gh="$work/graphql-refusing-bin"
 mkdir -p "$refusing_gh"
 cat > "$refusing_gh/gh" <<'STUB'
@@ -1148,36 +1179,5 @@ paged_run three
 [[ "$one_code" == 1 && "$one_out" == "$(printf '#7 — bailed https://example.test/pull/7\nstopped: #7 bailed')" \
    && "$code" == "$one_code" && "$out" == "$one_out" ]] \
   && ok || no "#592 against a gh that serves open PRs over three pages on repos/{owner}/{repo}, the draft PR on the third, and refuses repositories/{id} with the proxy's 403, parallel-conductors.sh prints the same report and exit code as against a single-page fixture holding the same PRs ( [single page: exit=$one_code want 1, report '$(printf '%s' "$one_out" | tr '\n' '|')' want '#7 — bailed https://example.test/pull/7|stopped: #7 bailed'; three pages: exit=$code want $one_code, report '$(printf '%s' "$out" | tr '\n' '|')' want the same] $(tr '\n' '|' < "$work/gh26-three.out") )"
-
-decoy="$work/decoy"
-fresh_repo "$decoy"
-mutant="$decoy/skills/tdd/scripts"
-mkdir -p "$mutant"
-cp -R "$skill/scripts/." "$mutant/"
-awk '/^exec python3/ { print "cd \"$(dirname \"$0\")\"" } { print }' "$skill/scripts/parallel-conductors.sh" > "$mutant/parallel-conductors.sh"
-chmod +x "$mutant/parallel-conductors.sh"
-pinned="$work/pinned-scratch"
-fresh_repo "$pinned"
-solvable_fixture "$work/gh-pinned" 7
-pinned_stub="$work/claude-pinned"
-conductor_stub "$pinned_stub" </dev/null
-exclude_before="$(cat "$decoy/.git/info/exclude" 2>/dev/null)"
-
-(cd "$pinned" && env -u VERI_PARALLEL -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES -u VERI_CONDUCTOR_CTX_BUDGET \
-  VERI_GH_JSON="$work/gh-pinned" CLAUDE_BIN="$pinned_stub" VERI_POLL=0.05 \
-  "$mutant/parallel-conductors.sh" > "$work/pinned.out" 2>&1) && code=0 || code=$?
-exclude_after="$(cat "$decoy/.git/info/exclude" 2>/dev/null)"
-escaped="$(cd "$decoy" && find . -path ./.git -prune -o \( -name parallel.exit -o -name 'conductor-*.log' \) -print)"
-
-problems=""
-[[ "$exclude_after" == "$exclude_before" ]] || problems+="; the decoy repository's info/exclude changed:
---- before
-$exclude_before
---- after
-$exclude_after"
-[[ -z "$escaped" ]] || problems+="; written under the decoy repository: $(printf '%s' "$escaped" | tr '\n' ' ')"
-[[ "$code" != 0 ]] || problems+="; exit=0, want the case to fail on a subject that resolved the decoy repository"
-{ [[ -z "$problems" ]]; } \
-  && ok || no "#1158: a parallel-conductors.sh that resolves its git common dir and working directory from its own directory, not the suite's scratch repository, appends to no info/exclude and writes no .tdd/parallel.exit or conductor log outside that repository (${problems#; }) $(tr '\n' '|' < "$work/pinned.out")"
 
 finish
