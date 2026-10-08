@@ -39,7 +39,10 @@ def main(argv):
         cosmetic = COSMETIC.match(line)
         if cosmetic and not cosmetic.group(1):
             return _refuse(b"cosmetic candidate line names no transform: " + line)
-        if not (TEST_ONLY.match(line) or cosmetic or OUT_OF_SCOPE.match(line)
+        test_only = TEST_ONLY.match(line)
+        if test_only and not test_only.group(1):
+            return _refuse(b"test-only candidate line names no transform: " + line)
+        if not (test_only or cosmetic or OUT_OF_SCOPE.match(line)
                 or NONE.match(found.group(1))):
             return _refuse(b"candidate line has no class, or one that is not structural, cosmetic, test-only or out-of-scope: " + line)
     if not candidates_seen:
