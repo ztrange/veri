@@ -299,3 +299,20 @@ def test_main_now_terms_only_pids_whose_ps_runs_supervise_sh_of_their_name_ignor
         assert (mode, terms, [c for c in calls if c[0] == "ps"]) == (mode, [], [])
         assert (tdd / "stop").read_bytes() == mode.encode() + b"\n"
         capsysbinary.readouterr()
+
+
+def test_main_passes_non_utf8_bytes_in_an_argument_through_to_the_refusal_unchanged(
+        monkeypatch, tmp_path, capsysbinary, stop_run):
+    monkeypatch.chdir(tmp_path)
+    calls = fake_processes(monkeypatch, main_tree_at(tmp_path))
+    raw = b"\xff\xfeb\xe9"
+    arg = os.fsdecode(raw)
+
+    assert stop_run.main(["--mode", arg, "5"]) == 2
+    assert capsysbinary.readouterr() == (
+        b"", "stop-run: unknown mode — want at-ledger, at-leaf or now: '".encode() + raw + b"'\n" + USAGE)
+
+    assert stop_run.main([arg]) == 2
+    assert capsysbinary.readouterr() == (
+        b"", b"stop-run: <issue> must be a positive integer: '" + raw + b"'\n" + USAGE)
+    assert calls == []
