@@ -4,11 +4,11 @@ import subprocess
 import sys
 
 try:
-    from git import git
+    from git import git, symref_default
     from github import NoAnswer, gh_json
     from json_documents import items
 except ImportError:
-    from .git import git
+    from .git import git, symref_default
     from .github import NoAnswer, gh_json
     from .json_documents import items
 
@@ -40,10 +40,9 @@ def default_branch():
                          stderr=subprocess.DEVNULL).removeprefix("origin/")
     except GitFailed:
         pass
-    for line in git_out("ls-remote", "--symref", "origin", "HEAD").splitlines():
-        m = re.match(r"ref: refs/heads/(\S+)\s+HEAD$", line)
-        if m:
-            return m.group(1)
+    name = symref_default(git_out("ls-remote", "--symref", "origin", "HEAD"))
+    if name is not None:
+        return name
     print("invisible-work.sh: no refs/remotes/origin/HEAD and origin names no default branch",
           file=sys.stderr)
     raise GitFailed()
