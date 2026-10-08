@@ -74,7 +74,7 @@ def _greater(context, budget):
     if budget.startswith("0") and re.search("[89]", budget):
         _err('orchestrate.sh: %s: value too great for base (error token is "%s")\n' % (budget, budget))
         return False
-    return context > int(budget, 8 if budget.startswith("0") else 10)
+    return context > int(budget)
 
 
 def _launch(issue):
