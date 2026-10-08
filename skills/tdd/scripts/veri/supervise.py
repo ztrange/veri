@@ -150,22 +150,22 @@ def main(argv):
         try:
             span = limit(timeout)
             if span is not None and a - a0 >= span:
-                status, reason = "killed-stuck", f"hard timeout {timeout}s exceeded"
-                os.killpg(leaf.pid, signal.SIGTERM)
-                break
-            if watched:
+                reason = f"hard timeout {timeout}s exceeded"
+            elif watched:
                 m = mtime_of(log)
                 if m != last_m:
                     last_m, seen_at = m, t
                 silence = t - seen_at
                 window = limit(heartbeat)
                 if window is not None and silence > window:
-                    status, reason = "killed-stuck", f"no heartbeat for {silence}s (window {heartbeat}s)"
-                    os.killpg(leaf.pid, signal.SIGTERM)
-                    break
+                    reason = f"no heartbeat for {silence}s (window {heartbeat}s)"
         except Unbound as unbound:
             print(unbound, file=sys.stderr)
             return 1
+        if reason:
+            status = "killed-stuck"
+            os.killpg(leaf.pid, signal.SIGTERM)
+            break
         time.sleep(poll)
     leaf.wait()
     ec = {"success": 0, "failure": 1, "killed-stuck": 2}[status]
