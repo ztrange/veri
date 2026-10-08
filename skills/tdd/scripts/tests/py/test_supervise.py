@@ -465,3 +465,65 @@ def test_main_resolves_the_model_in_process_marks_it_on_the_launch_and_hands_the
         "inherited-empty": (0, [["model="]], leaf("", "unknown"), [[]], 0),
         "unknown": (0, [["model="]], leaf("", "unknown"), [[]], 0),
     }
+
+
+def test_main_runs_harvest_usage_sh_once_for_a_watched_name_onto_its_stderr_before_the_status_line_a_failing_one_changing_nothing_and_none_for_a_verdict_name(
+        monkeypatch, tmp_path, capfdbinary, supervise):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    monkeypatch.setattr(time, "sleep", lambda *_: None)
+    monkeypatch.setattr(time, "clock_gettime", lambda *_: 5000.0)
+    here = os.path.dirname(os.path.dirname(os.path.abspath(supervise.__file__)))
+    harvest_sh = os.path.join(here, "harvest-usage.sh")
+    harvester = "printf 'harvest out\\n'; printf 'harvest err\\n' >&2; exit 1"
+    real_popen = subprocess.Popen
+
+    def run_one(name):
+        work = tmp_path / name
+        work.mkdir()
+        monkeypatch.chdir(work)
+        clean_env(monkeypatch, VERI_TIMEOUT="900")
+        fake_leaf_launch(monkeypatch)
+        launching, running = subprocess.Popen, subprocess.run
+        harvests = []
+
+        def as_harvester(args, kwargs):
+            harvests.append([str(a) for a in args])
+            passed = {k: kwargs[k] for k in ("stdout", "stderr") if k in kwargs}
+            return ["sh", "-c", harvester], passed
+
+        def popen(args, *a, **kwargs):
+            if harvest_sh in [str(x) for x in args]:
+                cmd, passed = as_harvester(args, kwargs)
+                return real_popen(cmd, **passed)
+            if os.path.join(here, "event.sh") in [str(x) for x in args]:
+                return launching(["true"])
+            return launching(args, *a, **kwargs)
+
+        def run(args, *a, **kwargs):
+            if harvest_sh in [str(x) for x in args]:
+                cmd, passed = as_harvester(args, kwargs)
+                code = real_popen(cmd, **passed).wait()
+                if kwargs.get("check") and code:
+                    raise subprocess.CalledProcessError(code, args)
+                return subprocess.CompletedProcess(args, code, None, None)
+            if os.path.join(here, "event.sh") in [str(x) for x in args]:
+                return subprocess.CompletedProcess(args, 0, "", "")
+            return running(args, *a, **kwargs)
+
+        monkeypatch.setattr(subprocess, "Popen", popen)
+        monkeypatch.setattr(subprocess, "run", run)
+        monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, *a, **k).returncode)
+        monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: run(args, *a, check=True, **k).returncode)
+        code = supervise.main([name, "sh", "-c", "printf 'leaf out\\n'"])
+        out, err = capfdbinary.readouterr()
+        lines = [line for line in err.splitlines()
+                 if line.startswith((b"harvest ", b"harvest-usage.sh:", b"supervise["))]
+        return code, out, (work / ".tdd" / f"{name}.exit").read_bytes(), harvests, lines
+
+    assert run_one("develop-red") == (
+        0, b"leaf out\n", b"0\n", [[harvest_sh, "develop-red"]],
+        [b"harvest out", b"harvest err", b"supervise[develop-red]: success"])
+    assert run_one("verdict-red") == (
+        0, b"leaf out\n", b"0\n", [], [b"supervise[verdict-red]: success"])
