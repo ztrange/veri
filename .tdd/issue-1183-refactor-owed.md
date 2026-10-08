@@ -10,3 +10,4 @@
 - test-only | `captured = capfdbinary.readouterr()` in `test_main_returns_2_not_1_when_the_update_ref_restoring_head_exits_1_1183` is assigned and never read, so it is dead code.
 ### When the verifier leaf moved HEAD and git cannot be started to restore it, `verify.sh` exits 2 with no traceback ⟦criterion 2⟧
 - test-only | merge the two new `update-ref` restore tests in test_verify.py (git exits 1, git cannot be started) into one parametrized test over the fake's `update-ref` behaviour
+applied | 02e725fe2bdf8bf9eef0e4ca8c29edca6bc58283 | `verify.py:179` restores HEAD with a bare `subprocess.run(["git", "update-ref", "HEAD", head_before])` instead of going through the module's own `git()`/`start()` helpers, which catch an `OSError` when git cannot be started. Routing it through them is the next unchecked ledger step ("git cannot be started"), so I left it for that step's red test instead of adding the behaviour here.
