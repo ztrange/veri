@@ -416,3 +416,31 @@ def test_wait_sleeps_a_leading_dot_veri_poll_as_sleep_reads_it_with_nothing_on_s
 
     code = detach_command.main(["wait", "x", "2"])
     assert (code, capsys.readouterr(), sleeps) == (3, ("", ""), [0.5])
+
+
+def test_wait_pauses_1_second_for_an_unset_or_empty_veri_poll_and_0_or_0_05_as_given_between_rounds_with_nothing_on_stderr_1155(
+        tmp_path, monkeypatch, capsys, detach_command):
+    monkeypatch.chdir(tmp_path)
+    tdd = tmp_path / ".tdd"
+    tdd.mkdir()
+    (tdd / "x.pid").write_text("4242\n")
+    sleeps = []
+
+    def fake_sleep(seconds):
+        sleeps.append(float(seconds))
+        if len(sleeps) == 2:
+            (tdd / "x.exit").write_text("0\n")
+
+    monkeypatch.setattr(time, "time", lambda: 1000.0)
+    monkeypatch.setattr(time, "sleep", fake_sleep)
+    monkeypatch.setattr(os, "kill", lambda pid, signum: None)
+
+    for poll, paused in ((None, 1.0), ("", 1.0), ("0", 0.0), ("0.05", 0.05)):
+        if poll is None:
+            monkeypatch.delenv("VERI_POLL", raising=False)
+        else:
+            monkeypatch.setenv("VERI_POLL", poll)
+        (tdd / "x.exit").unlink(missing_ok=True)
+        sleeps.clear()
+        code = detach_command.main(["wait", "x", "60"])
+        assert (poll, code, capsys.readouterr(), sleeps) == (poll, 0, ("", ""), [paused, paused])
