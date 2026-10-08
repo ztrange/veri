@@ -300,6 +300,23 @@ problems=()
 label=""
 rm -f "$run/.tdd/stop"
 
+run_stop --mode bogus 5
+check_code 2
+[[ "${err%%$'\n'*}" == "stop-run: unknown mode — want at-ledger, at-leaf or now: 'bogus'" ]] ||
+  note "want today's unknown-mode refusal first on stderr, got '$err'"
+check_no_stop "$run"
+
+run_stop
+check_code 2
+[[ "${err##*$'\n'}" == "usage: stop-run.sh [--mode at-ledger|at-leaf|now] <issue> | --all" ]] ||
+  note "want today's usage line last on stderr, got '${err##*$'\n'}'"
+
+report "stop-run.sh refuses an unknown mode with today's message first on stderr and no argument with today's usage line last on stderr, each exiting 2"
+
+problems=()
+label=""
+rm -f "$run/.tdd/stop"
+
 listed="$work/listed"; mkdir -p "$listed/lib"
 cp "$STOP" "$listed/stop-run.sh"
 cp "$HERE/.."/lib/*.sh "$listed/lib/"
@@ -310,12 +327,6 @@ err="$(cat "$work/stderr")"
 check_code 0
 check_stop "$run" at-step
 rm -f "$run/.tdd/stop"
-
-run_stop --mode bogus 5
-check_code 2
-[[ "${err%%$'\n'*}" == "stop-run: unknown mode — want at-ledger, at-leaf or now: 'bogus'" ]] ||
-  note "want today's unknown-mode refusal first on stderr, got '$err'"
-check_no_stop "$run"
 
 report "#683: stop-run.sh accepts the modes lib/stop-modes.sh lists, and still refuses one outside it with today's message"
 
@@ -333,11 +344,6 @@ report "#683: stop-run.sh's unknown-mode refusal names the modes lib/stop-modes.
 
 problems=()
 label=""
-
-run_stop
-check_code 2
-[[ "${err##*$'\n'}" == "usage: stop-run.sh [--mode at-ledger|at-leaf|now] <issue> | --all" ]] ||
-  note "want today's usage line last on stderr, got '${err##*$'\n'}'"
 
 out="$(cd "$repo" && "$listed/stop-run.sh" 2>"$work/stderr")" && code=0 || code=$?
 err="$(cat "$work/stderr")"
