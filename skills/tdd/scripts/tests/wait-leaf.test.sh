@@ -176,4 +176,13 @@ printf 'usage: wait-leaf.sh <name> [max-seconds]\n' > "$empty/want"
 { [[ "$rc_empty" == 2 ]] && [[ ! -s "$empty/out" ]] && cmp -s "$empty/want" "$empty/err"; } && ok \
   || no "refuses an empty first argument with exit 2, nothing on stdout and exactly the usage line on stderr (got exit $rc_empty want 2; stdout='$(cat "$empty/out")' want empty; stderr='$(cat "$empty/err")' want 'usage: wait-leaf.sh <name> [max-seconds]')"
 
+linked="$work/linked"; mkdir -p "$linked"
+ln -s "$(cd "$HERE/.." && pwd)" "$linked/scripts"
+caller="$work/caller"; mkdir -p "$caller/.tdd"
+printf '1\n' > "$caller/.tdd/via-link.exit"
+( cd "$caller" && env VERI_POLL=0 "$linked/scripts/wait-leaf.sh" via-link 0 >/dev/null 2>"$caller/err" )
+rc_link=$?
+{ [[ ! -e "$linked/scripts/.tdd/via-link.exit" ]] && [[ "$rc_link" == 1 ]]; } && ok \
+  || no "wait-leaf.sh run through a symlink to the scripts directory reads the working directory's .tdd/<name>.exit, never one beside the skill, and answers a recorded 1 as 1 (got exit $rc_link want 1; stderr='$(cat "$caller/err")')"
+
 finish
