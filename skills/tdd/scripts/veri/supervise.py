@@ -70,6 +70,14 @@ def arithmetic(value):
     raise ValueError(f"supervise: {value}: arithmetic syntax error")
 
 
+def limit(value):
+    try:
+        return arithmetic(value)
+    except ValueError as error:
+        print(error, file=sys.stderr)
+        return None
+
+
 def mark(role, *fields):
     if not role:
         return
@@ -140,34 +148,24 @@ def main(argv):
         seen_at += (t - prev_t) - (a - prev_a)
         prev_t, prev_a = t, a
         try:
-            expired = a - a0 >= arithmetic(timeout)
+            span = limit(timeout)
+            if span is not None and a - a0 >= span:
+                status, reason = "killed-stuck", f"hard timeout {timeout}s exceeded"
+                os.killpg(leaf.pid, signal.SIGTERM)
+                break
+            if watched:
+                m = mtime_of(log)
+                if m != last_m:
+                    last_m, seen_at = m, t
+                silence = t - seen_at
+                window = limit(heartbeat)
+                if window is not None and silence > window:
+                    status, reason = "killed-stuck", f"no heartbeat for {silence}s (window {heartbeat}s)"
+                    os.killpg(leaf.pid, signal.SIGTERM)
+                    break
         except Unbound as unbound:
             print(unbound, file=sys.stderr)
             return 1
-        except ValueError as error:
-            print(error, file=sys.stderr)
-            expired = False
-        if expired:
-            status, reason = "killed-stuck", f"hard timeout {timeout}s exceeded"
-            os.killpg(leaf.pid, signal.SIGTERM)
-            break
-        if watched:
-            m = mtime_of(log)
-            if m != last_m:
-                last_m, seen_at = m, t
-            silence = t - seen_at
-            try:
-                silent = silence > arithmetic(heartbeat)
-            except Unbound as unbound:
-                print(unbound, file=sys.stderr)
-                return 1
-            except ValueError as error:
-                print(error, file=sys.stderr)
-                silent = False
-            if silent:
-                status, reason = "killed-stuck", f"no heartbeat for {silence}s (window {heartbeat}s)"
-                os.killpg(leaf.pid, signal.SIGTERM)
-                break
         time.sleep(poll)
     leaf.wait()
     ec = {"success": 0, "failure": 1, "killed-stuck": 2}[status]
