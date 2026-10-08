@@ -1138,7 +1138,7 @@ def test_main_reports_a_leaf_that_changed_both_the_repository_and_home_gitconfig
            " (see .tdd/verify-green.log); changed:\nsrc.txt\n".encode())
 
 
-def test_main_returns_1_before_any_leaf_launches_when_reading_home_gitconfig_a_regular_file_raises_oserror(
+def test_main_returns_2_before_any_leaf_launches_when_reading_home_gitconfig_a_regular_file_raises_oserror_1183(
         tmp_path, monkeypatch, capfdbinary):
     work = tmp_path / "work"
     work.mkdir()
@@ -1177,10 +1177,10 @@ def test_main_returns_1_before_any_leaf_launches_when_reading_home_gitconfig_a_r
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
 
     captured = capfdbinary.readouterr()
-    assert (code, captured.out, "supervise.sh" in launched) == (1, b"", False)
+    assert (code, captured.out, "supervise.sh" in launched) == (2, b"", False)
 
 
-def test_main_returning_1_because_reading_home_gitconfig_raised_oserror_names_that_path_on_stderr(
+def test_main_returning_2_because_reading_home_gitconfig_raised_oserror_names_that_path_on_stderr_1183(
         tmp_path, monkeypatch, capfdbinary):
     work = tmp_path / "work"
     work.mkdir()
@@ -1214,7 +1214,42 @@ def test_main_returning_1_because_reading_home_gitconfig_raised_oserror_names_th
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
 
     captured = capfdbinary.readouterr()
-    assert (code, str(gitconfig).encode() in captured.err) == (1, True)
+    assert (code, str(gitconfig).encode() in captured.err) == (2, True)
+
+
+def test_main_returns_2_naming_home_gitconfig_on_stderr_without_launching_a_leaf_when_it_is_a_directory_1183(
+        tmp_path, monkeypatch, capfdbinary):
+    work = tmp_path / "work"
+    work.mkdir()
+    monkeypatch.chdir(work)
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    gitconfig = home / ".gitconfig"
+    gitconfig.mkdir()
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
+                 "VERI_ISSUE", "VERI_STEP"):
+        monkeypatch.delenv(name, raising=False)
+    launched = []
+
+    def fake(args, *_, **__):
+        name = os.path.basename(str(args[0]))
+        launched.append(name)
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine\n", None)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    captured = capfdbinary.readouterr()
+    assert (code, str(gitconfig).encode() in captured.err, b"Traceback" in captured.err,
+            "supervise.sh" in launched) == (2, True, False, False)
 
 
 PRESERVED = b"preserve-attempt: stdout sentinel\n"

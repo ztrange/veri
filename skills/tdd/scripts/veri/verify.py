@@ -150,8 +150,8 @@ def main(argv):
     try:
         gitconfig_before = gitconfig_snapshot(gitconfig)
     except OSError as error:
-        _write(sys.stderr, "cksum: %s: %s" % (gitconfig, error.strerror))
-        return 1
+        _write(sys.stderr, "verify: cannot read the global git config %s: %s" % (gitconfig, error.strerror))
+        return 2
     retries = os.environ.get("VERI_NO_VERDICT_RETRIES") or "1"
     if not re.fullmatch("[0-9]+", retries):
         _write(sys.stderr, "verify: VERI_NO_VERDICT_RETRIES must be a non-negative integer,"
