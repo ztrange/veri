@@ -10,7 +10,7 @@
 supervising() {
   local args
   args="$(ps -p "$1" -o args= 2>/dev/null)" || return 1
-  [[ "$args" == *"supervise.sh $2 "* ]]
+  [[ "$args" == *"supervise.sh $2 "* || "$args" == *"veri/supervise.py $2 "* ]]
 }
 
 live_conductor() {

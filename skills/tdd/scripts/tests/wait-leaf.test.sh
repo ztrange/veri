@@ -137,6 +137,21 @@ l_nopid="$(timed no-pid-yet 2)"
   [[ "${l_nopid%% *}" == 3 ]] && [[ "${l_nopid#* }" -ge 2 ]]; } && ok \
   || no "still exits 3 once the budget is spent while the recorded supervise.sh for that leaf is alive, and when no pid file exists yet (got '<code> <secs>': live supervisor=$l_live want '3 >=2'; no pid file=$l_nopid want '3 >=2')"
 
+mkdir -p "$stubsup/veri"
+cat > "$stubsup/veri/supervise.py" <<'S'
+#!/bin/sh
+while :; do sleep 0.2; done
+S
+chmod +x "$stubsup/veri/supervise.py"
+"$stubsup/veri/supervise.py" live-py x &
+py_pid=$!
+printf '%s\n' "$py_pid" > "$work/.tdd/live-py.pid"
+p_live="$(timed live-py 0)"
+p_stderr="$(cat "$work/live-py.err")"
+kill "$py_pid" 2>/dev/null; wait "$py_pid" 2>/dev/null
+{ [[ "${p_live%% *}" == 3 ]] && [[ -z "$p_stderr" ]]; } && ok \
+  || no "exits 3 at budget 0 while the recorded supervisor for that leaf is alive and spelled veri/supervise.py <name>, with nothing on stderr (got '<code> <secs>'=$p_live want '3 …'; stderr='$p_stderr' want empty)"
+
 racebin="$work/racebin"; mkdir -p "$racebin"
 cat > "$racebin/ps" <<'P'
 #!/bin/sh
