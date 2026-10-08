@@ -524,3 +524,16 @@ def test_1128_after_a_failed_conductor_launch_solvable_issues_is_asked_no_furthe
     orchestrate.main([])
     capsys.readouterr()
     assert asks == [[os.path.join(orchestrate.SCRIPTS, "solvable-issues.sh")]]
+
+
+def test_1128_a_conductor_that_starts_and_exits_with_its_issue_still_listed_and_unparked_is_relaunched_after_a_new_ask(
+        capsys, monkeypatch, tmp_path, orchestrate):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+    asks, launches = _passes(monkeypatch, [(0, "7\n"), (0, "7\n"), (3, "")], lambda n, issue: None)
+    code = orchestrate.main([])
+    out, err = capsys.readouterr()
+    solvable = os.path.join(orchestrate.SCRIPTS, "solvable-issues.sh")
+    conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
+    assert (code, out, err, asks, launches) == (
+        0, "", "", [[solvable]] * 3, [[conductor, "7"], [conductor, "7"]])
