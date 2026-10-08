@@ -1,4 +1,4 @@
-"""lib/detach.sh's detach_exec, run in-process: one command started as the leader of a new session."""
+"""One command started as the leader of a new session."""
 import signal
 import subprocess
 
