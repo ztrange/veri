@@ -32,7 +32,8 @@ Decisions the issue left to the plan:
 - [x] veri.verify.main returns git's own status (128) with nothing printed on stdout when the `git update-ref` restoring HEAD fails ⟦criterion 7⟧
 - [x] veri.verify.main returns 2 with `verifier leaf modified the operator's global git config — verdict not accepted (see .tdd/verify-<phase>.log); changed:` and `$HOME/.gitconfig` on stdout when the leaf changed, created or deleted that file, restoring nothing ⟦criterion 7⟧
 - [x] veri.verify.main reports a leaf that changed both the repository and `$HOME/.gitconfig` for the repository only ⟦criterion 7⟧
-- [x] veri.verify.main returns 1 before any leaf launches when reading `$HOME/.gitconfig`, a regular file, raises OSError ⟦criterion 7⟧ ⟂ refactor pending
+- [x] veri.verify.main returns 1 before any leaf launches when reading `$HOME/.gitconfig`, a regular file, raises OSError ⟦criterion 7⟧
+- [ ] veri.verify.main, returning 1 because reading `$HOME/.gitconfig` raised OSError, writes a diagnostic naming that path to stderr, as verify.sh's cksum does, rather than returning silently ⟦added⟧ ⟦criterion 7⟧
 - [ ] veri.verify.main, on a REJECT, malformed or no-verdict result inside a repository with VERI_ISSUE and VERI_STEP both non-empty, calls `preserve-attempt.sh <issue> <step> verify-<phase> 1 <reject|malformed|no-verdict>` from the scripts directory with its stdout sent to stderr, prints `verify: could not preserve the <mark> attempt (issue <i> step <s> verify-<phase> attempt 1)` on stderr when it fails or cannot be started and still returns the verdict's code; makes no preserve-attempt.sh call on PASS or when either variable is empty ⟦criterion 7⟧
 - [ ] veri.verify.main returns event.sh's own non-zero status when the relaunch mark fails, making no relaunch ⟦criterion 7⟧
 - [ ] veri.verify.main returns event.sh's own non-zero status when the verdict mark fails, with no preservation and nothing on stdout ⟦criterion 7⟧
