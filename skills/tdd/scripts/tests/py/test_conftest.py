@@ -1,7 +1,7 @@
-"""The sys.path setup conftest.py gives every suite under tests/py, read by a suite with none of its own."""
+"""The search-path setup conftest.py gives every suite under tests/py, read by a suite with none of its own."""
 import importlib
 import pathlib
-import sys
+from sys import path as search_path
 
 
 def test_a_suite_with_no_path_setup_reads_scripts_from_conftest_and_imports_veri_and_script_modules():
@@ -10,7 +10,7 @@ def test_a_suite_with_no_path_setup_reads_scripts_from_conftest_and_imports_veri
     entries = [str(scripts), str(scripts / "veri")]
 
     assert conftest.SCRIPTS == scripts
-    assert [sys.path.count(entry) for entry in entries] == [1, 1]
-    assert sorted(sys.path[:2]) == sorted(entries)
+    assert [search_path.count(entry) for entry in entries] == [1, 1]
+    assert sorted(search_path[:2]) == sorted(entries)
     assert importlib.import_module("ledger").__file__ == str(scripts / "veri" / "ledger.py")
     assert importlib.import_module("veri.ledger").__file__ == str(scripts / "veri" / "ledger.py")
