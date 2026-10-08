@@ -18,6 +18,10 @@ def refuse(*lines):
     return 2
 
 
+def sibling(name):
+    return os.path.join(SCRIPTS, name)
+
+
 def to_contract(code):
     return code if code in (0, 1, 2, 3) else 2
 
@@ -32,7 +36,7 @@ def main(argv):
         return refuse()
     try:
         built = subprocess.run(
-            [os.path.join(SCRIPTS, "build-verify-prompt.sh"), *argv],
+            [sibling("build-verify-prompt.sh"), *argv],
             stdout=subprocess.PIPE)
     except OSError:
         return 2
@@ -44,6 +48,6 @@ def main(argv):
     with open(prompt_path, "wb") as prompt:
         prompt.write(built.stdout.rstrip(b"\n"))
     subprocess.run(
-        [os.path.join(SCRIPTS, "supervise.sh"), "verify-%s" % phase,
-         os.path.join(SCRIPTS, "run-leaf.sh"), prompt_path, *LEAF_ARGS])
+        [sibling("supervise.sh"), "verify-%s" % phase,
+         sibling("run-leaf.sh"), prompt_path, *LEAF_ARGS])
     return 0
