@@ -186,7 +186,9 @@ def main(argv):
             return marked
     word = {0: "PASS", 1: "REJECT"}.get(code, "malformed")
     cause = ["cause=no-verdict"] if no_verdict else []
-    mark(role, "verdict", "verdict=" + word, "reason=" + reason.split("\n", 1)[0], *cause)
+    marked = mark(role, "verdict", "verdict=" + word, "reason=" + reason.split("\n", 1)[0], *cause)
+    if marked:
+        return marked
     issue, step = os.environ.get("VERI_ISSUE"), os.environ.get("VERI_STEP")
     if word != "PASS" and tree_before and issue and step:
         preserve(issue, step, leaf, role["VERI_ATTEMPT"],
