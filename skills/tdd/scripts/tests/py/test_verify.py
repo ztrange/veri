@@ -59,3 +59,34 @@ def test_main_with_a_flag_missing_its_value_returns_2_naming_the_flag_then_the_u
     captured = capfdbinary.readouterr()
     assert (code, captured.out, captured.err, calls) == (
         2, b"", b"verify: " + flag + b" needs a value\n" + USAGE + b"\n", [])
+
+
+@pytest.mark.parametrize("builder, expected", [(1, 1), (5, 2), (FileNotFoundError, 2)])
+def test_main_returns_the_builders_refusal_mapped_into_the_contract_with_its_stderr_and_launches_no_leaf(
+        builder, expected, tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.chdir(tmp_path)
+    launched = []
+    builder_err = b"build-verify-prompt: unknown phase 'bogus'\n"
+
+    def fake(args, *_, **kwargs):
+        name = os.path.basename(str(args[0]))
+        launched.append(name)
+        if name != "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"", b"")
+        if builder is FileNotFoundError:
+            raise FileNotFoundError(2, "No such file or directory", str(args[0]))
+        if kwargs.get("stderr") is None:
+            os.write(2, builder_err)
+            return subprocess.CompletedProcess(args, builder, b"", None)
+        return subprocess.CompletedProcess(args, builder, b"", builder_err)
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["bogus", "spec.md", "tests/x.test.sh"])
+
+    captured = capfdbinary.readouterr()
+    passed_through = builder is FileNotFoundError or builder_err in captured.err
+    assert (code, captured.out, passed_through, "build-verify-prompt.sh" in launched,
+            "supervise.sh" in launched) == (expected, b"", True, True, False)
