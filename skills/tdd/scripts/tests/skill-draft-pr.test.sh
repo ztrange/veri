@@ -7,9 +7,8 @@
 #      whose branch is already on the remote. Which PR commands the step runs is case 10's.
 #   2. SKILL.md's Green PASS and verify-refactor PASS branches each run `push-branch.sh`,
 #      so the branch reaches the remote at both of the points that write the ledger.
-#   3. SKILL.md's Draft PR step and its Guardrails invariant about opening the PR both name
-#      `detect-test-command.sh --tier all`'s command, run exactly once, as the only
-#      full-suite gate left in the cycle.
+#   3. SKILL.md's Draft PR step names `detect-test-command.sh --tier all`'s command, run
+#      exactly once, as the branch's only full-suite gate.
 #   4. SKILL.md's Draft PR step answers a red result on that full run by adding a repair step
 #      to the ledger rather than bailing; the same step says a unit-tier test is added when
 #      the failure exposes a gap, and that the verifier judges the fix against the full
@@ -111,6 +110,8 @@
 #      *Bailing*'s push.
 #  41. SKILL.md's bail on a red rebased tip after a verified conflict resolution also runs
 #      `git reset --hard <pre-rebase-sha>` before *Bailing*'s push.
+#  42. SKILL.md's Guardrails invariant about opening the PR says neither "exactly once" nor
+#      "the only full-suite gate".
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -186,18 +187,12 @@ names_the_full_gate() {
     grep -qwF 'only' <<< "$1"
 }
 
-name="$skill_md's Draft PR step and its closing invariant both run detect-test-command.sh --tier all's command exactly once, as the only full-suite gate"
+name="$skill_md's Draft PR step runs detect-test-command.sh --tier all's command exactly once, as the only full-suite gate"
 problems=()
 
 if step_or_problem '### 4. Draft PR' "which command its full-suite gate runs"; then
   names_the_full_gate "$records" ||
     problems+=("$skill_md's Draft PR step never runs detect-test-command.sh --tier all's command exactly once as the only full-suite gate, so where the full command still runs is unstated")
-fi
-invariant="$(first_record "$(section_records '## Guardrails' '^## ')" -F 'before you open the pr')"
-if [[ -z "$invariant" ]]; then
-  problems+=("$skill_md's Guardrails has no invariant about opening the PR to read — which command it gates on could not be checked")
-elif ! names_the_full_gate "$invariant"; then
-  problems+=("$skill_md's closing invariant never names detect-test-command.sh --tier all's command, run exactly once, as the only full-suite gate: $(printf '%.120s' "$invariant")")
 fi
 report "$name"
 
@@ -1037,6 +1032,20 @@ if section_or_problem '## Bailing' '^## ' "whether its cause-token list names re
   elif ! grep -F '**process** failure' > /dev/null <<< "$token"; then
     problems+=("$skill_md's Bailing cause-token list names rebased-tip-red without classifying it as a **process** failure: $(printf '%.160s' "$token")")
   fi
+fi
+report "$name"
+
+name="$skill_md's Guardrails invariant about opening the PR says neither \"exactly once\" nor \"the only full-suite gate\" (#1026)"
+problems=()
+
+invariant="$(first_record "$(section_records '## Guardrails' '^## ')" -F 'before you open the pr')"
+if [[ -z "$invariant" ]]; then
+  problems+=("$skill_md's Guardrails has no invariant about opening the PR to read — what it says of the full suite could not be checked")
+else
+  for phrase in 'exactly once' 'the only full-suite gate'; do
+    grep -F "$phrase" > /dev/null <<< "$invariant" &&
+      problems+=("$skill_md's Guardrails invariant still says \"$phrase\", so a conductor reading it as its checklist skips the rebased tip's run: $(printf '%.160s' "$invariant")")
+  done
 fi
 report "$name"
 
