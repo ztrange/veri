@@ -762,3 +762,54 @@ def test_main_runs_the_tamper_check_after_a_relaunchs_launch_and_refuses_a_relau
         2, 2, "verifier leaf modified the repository — verdict not accepted"
               " (see .tdd/verify-green.log); changed:\nsrc.txt\n".encode(),
         [["relaunch", "cause=no-verdict"]])
+
+
+@pytest.mark.parametrize("where", ["not-a-repository", "git-missing", "add-fails"])
+def test_main_outside_a_repository_without_git_or_with_a_failing_add_takes_no_snapshot_runs_no_tamper_check_or_preservation_and_returns_the_verdict(
+        where, tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("VERI_ISSUE", "7")
+    monkeypatch.setenv("VERI_STEP", "2")
+    verbs = []
+    started = []
+
+    def fake(args, *_, **__):
+        words = [str(a) for a in args]
+        if os.path.basename(words[0]) == "env":
+            words = [w for w in words[1:] if "=" not in w]
+        name = os.path.basename(words[0])
+        if name == "git":
+            verb = words[1]
+            verbs.append(verb)
+            if where == "git-missing":
+                raise FileNotFoundError(2, "No such file or directory", "git")
+            if where == "not-a-repository" or verb == "add":
+                return subprocess.CompletedProcess(args, 128, b"", b"fatal: not a git repository\n")
+            if verb == "write-tree":
+                return subprocess.CompletedProcess(args, 0, b"a" * 40 + b"\n", b"")
+            if verb == "rev-parse":
+                return subprocess.CompletedProcess(args, 0, b"1" * 40 + b"\n", b"")
+            if verb == "diff-tree":
+                return subprocess.CompletedProcess(args, 0, b"src.txt\n", b"")
+            return subprocess.CompletedProcess(args, 0, b"", b"")
+        started.append(words)
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            return subprocess.CompletedProcess(args, 0, b"VERDICT: REJECT\nbad\n", None)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    captured = capfdbinary.readouterr()
+    names = [os.path.basename(words[0]) for words in started]
+    assert (code, captured.out) == (1, b"bad\n")
+    assert [v for v in verbs if v in ("write-tree", "diff-tree", "read-tree", "update-ref")] == []
+    assert ("preserve-attempt.sh" in names, names.count("event.sh")) == (False, 1)
