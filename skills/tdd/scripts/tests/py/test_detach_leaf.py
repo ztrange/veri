@@ -73,3 +73,21 @@ def test_main_launches_with_stdin_devnull_inherited_stdout_stderr_and_fds_in_a_n
         signal.SIGPIPE: signal.SIG_DFL, signal.SIGINT: signal.SIG_IGN,
         signal.SIGQUIT: signal.SIG_IGN, signal.SIGXFSZ: signal.SIG_IGN}
     assert calls == []
+
+
+def test_main_launches_an_empty_command_an_option_and_awkward_arguments_as_given_parsing_no_option(
+        monkeypatch, capsys, detach_leaf):
+    launches = []
+
+    class FakePopen:
+        pid = 4242
+
+        def __init__(self, args, **kwargs):
+            launches.append(args)
+
+    monkeypatch.setattr(subprocess, "Popen", FakePopen)
+
+    for argv in ([""], ["--help"], ["cmd", "--x", "a b", ""]):
+        launches.clear()
+        code = detach_leaf.main(list(argv))
+        assert (argv, code, capsys.readouterr(), launches) == (argv, 0, ("", ""), [argv])
