@@ -2,7 +2,7 @@
 
 - [x] refactor-triage's exit-2 diagnostic for a candidate line whose class is none of the four names all four accepted classes (structural, cosmetic, test-only, out-of-scope) and still ends with the offending line, with exit code 2 and empty stdout unchanged ⟦criterion 1⟧
 - [x] refactor-triage.sh's header comment lists the four candidate classes and says only structural reaches stdout ⟦diff-checked⟧ ⟦criterion 2⟧
-- [ ] develop-refactor.md's sub-step 1 tells the leaf to report a structural transform it does not apply on a CANDIDATES: structural line and one outside the issue's bounds on a CANDIDATES: out-of-scope line, pinned by a text case in the prompt's suite that goes red when the out-of-scope instruction is removed ⟦criterion 3⟧
+- [x] develop-refactor.md's sub-step 1 tells the leaf to report a structural transform it does not apply on a CANDIDATES: structural line and one outside the issue's bounds on a CANDIDATES: out-of-scope line, pinned by a text case in the prompt's suite that goes red when the out-of-scope instruction is removed ⟦criterion 3⟧ ⟂ refactor pending
 - [ ] refactor-overflow.sh with both unreached structural candidates and out-of-scope transforms files a body with two headed lists — the structural candidates the closing pass could not reach, and the out-of-scope transforms the pass did not attempt — under the unchanged title ⟦criterion 4⟧
 - [ ] refactor-overflow.sh with only out-of-scope transforms files a body carrying only the out-of-scope heading ⟦criterion 5⟧
 - [ ] refactor-overflow.sh with only unreached structural candidates files a body carrying only the structural heading ⟦criterion 5⟧
