@@ -92,6 +92,9 @@ def main(argv):
     if rc == "2":
         ec = 2
     secs = awake_seconds() - a0
+    if not name.startswith("verdict-"):
+        sys.stderr.flush()
+        subprocess.run([os.path.join(HERE, "harvest-usage.sh"), name], stdout=2)
     print(f"supervise[{name}]: {status}", file=sys.stderr)
     sys.stderr.flush()
     mark(role, "exit", f"status={ec}", f"secs={secs}")
