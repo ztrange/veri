@@ -103,8 +103,7 @@ def refuse_modified(what, leaf, paths):
     return 2
 
 
-def leaf_args():
-    words = os.environ.get("VERIFY_LEAF_ARGS")
+def leaf_args(words):
     if not words:
         return LEAF_ARGS
     return [path for word in words.split()
@@ -129,8 +128,9 @@ def main(argv):
     if len(args) < 3:
         return refuse()
     leaf = "verify-" + args[0]
-    flags = leaf_args()
-    if os.environ.get("VERIFY_LEAF_ARGS"):
+    words = os.environ.get("VERIFY_LEAF_ARGS")
+    flags = leaf_args(words)
+    if words:
         model = resolve(leaf)
         if model and not is_echo_flag(model) and "--model" in flags:
             _write(sys.stderr, "verify: VERIFY_LEAF_ARGS carries its own --model and a role model"
