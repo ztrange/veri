@@ -508,3 +508,19 @@ def test_1128_a_run_conductor_that_is_not_executable_ends_the_run_with_exit_2_on
     lines = err.splitlines()
     assert (code, out, len(lines), launches) == (2, "", 1, [[conductor, "7"]])
     assert "run-conductor.sh" in lines[0] and os.strerror(errno.EACCES) in lines[0]
+
+
+def test_1128_after_a_failed_conductor_launch_solvable_issues_is_asked_no_further_time(
+        capsys, monkeypatch, tmp_path, orchestrate):
+    import errno
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+    asks, _ = _passes(monkeypatch, [(0, "7\n"), (0, "7\n"), (3, "")], lambda n, issue: None)
+
+    def missing_popen(args, *rest, **kwargs):
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), args[0])
+
+    monkeypatch.setattr(subprocess, "Popen", missing_popen)
+    orchestrate.main([])
+    capsys.readouterr()
+    assert asks == [[os.path.join(orchestrate.SCRIPTS, "solvable-issues.sh")]]
