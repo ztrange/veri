@@ -31,6 +31,13 @@ def to_contract(code):
     return code if code in (0, 1, 2, 3) else 2
 
 
+def start(args, **kwargs):
+    try:
+        return subprocess.run(args, **kwargs)
+    except OSError:
+        return subprocess.CompletedProcess(args, 127, b"")
+
+
 def leaf_args():
     words = os.environ.get("VERIFY_LEAF_ARGS")
     if not words:
@@ -56,30 +63,21 @@ def main(argv):
                    " variable resolved '%s' — which one the leaf would run on is flag order;"
                    " unset one of them" % model)
             return 2
-    try:
-        built = subprocess.run(
-            [sibling("build-verify-prompt.sh"), *argv],
-            stdout=subprocess.PIPE)
-    except OSError:
-        return 2
+    built = start([sibling("build-verify-prompt.sh"), *argv], stdout=subprocess.PIPE)
     if built.returncode:
         return to_contract(built.returncode)
     prompt_path = ".tdd/%s.prompt" % leaf
     os.makedirs(".tdd", exist_ok=True)
     with open(prompt_path, "wb") as prompt:
         prompt.write(built.stdout.rstrip(b"\n"))
-    try:
-        launched = subprocess.run(
-            [sibling("supervise.sh"), leaf,
-             sibling("run-leaf.sh"), prompt_path, *flags],
-            stdout=subprocess.PIPE)
-        status, out = launched.returncode, launched.stdout
-    except OSError:
-        status, out = 127, b""
-    if status == 2:
+    launched = start(
+        [sibling("supervise.sh"), leaf,
+         sibling("run-leaf.sh"), prompt_path, *flags],
+        stdout=subprocess.PIPE)
+    if launched.returncode == 2:
         _write(sys.stdout, "verifier leaf killed-stuck — no verdict rendered (see .tdd/%s.log)" % leaf)
         return 2
-    code, reason = parse(out)
+    code, reason = parse(launched.stdout)
     word = {0: "PASS", 1: "REJECT"}.get(code, "malformed")
     subprocess.run(
         [sibling("event.sh"), "verdict", "verdict=" + word,
