@@ -35,6 +35,30 @@ def discard(path):
         pass
 
 
+def tolerated(name, action, path, op, *args):
+    try:
+        op(*args)
+    except OSError as error:
+        print(f"supervise[{name}]: could not {action} {path}: {error.strerror}", file=sys.stderr)
+
+
+def truncate(path):
+    open(path, "wb").close()
+
+
+TRAPPED = (signal.SIGTERM, signal.SIGINT, signal.SIGHUP)
+
+
+def leaf_dispositions(ignored):
+    def preexec():
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+        signal.signal(signal.SIGXFSZ, signal.SIG_IGN)
+        for sig in TRAPPED:
+            if sig not in ignored:
+                signal.signal(sig, signal.SIG_DFL)
+    return preexec
+
+
 def awake_seconds():
     command = os.environ.get("VERI_AWAKE_CLOCK", "")
     if command:
@@ -182,14 +206,15 @@ def still_alive_owner(ownerfile):
     return owner_pid, owner_name
 
 
-def attempt_once(started, name, cmd, log, rcfile, leaf_env, watched, timeout, heartbeat, poll, kill_poll):
-    discard(rcfile)
-    open(log, "wb").close()
+def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watched, timeout, heartbeat, poll, kill_poll):
+    tolerated(name, "remove", rcfile, discard, rcfile)
+    tolerated(name, "truncate", log, truncate, log)
     t0 = now()
     a0 = awake_seconds()
     prev_t, prev_a = int(t0), a0
     leaf = subprocess.Popen(["/bin/sh", "-c", 'log=$1 rc=$2; shift 2; "$@" >"$log" 2>&1; echo $? >"$rc"',
-                             "sh", log, rcfile, *cmd], process_group=0, env=leaf_env)
+                             "sh", log, rcfile, *cmd], process_group=0, env=leaf_env,
+                            restore_signals=False, preexec_fn=preexec)
     started.append(leaf)
     status = reason = ""
     rc = "0"
@@ -237,12 +262,13 @@ def trap(started, exitfile, kill_poll):
         write_line(exitfile, 2)
         os._exit(2)
 
-    for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+    for sig in TRAPPED:
         if signal.getsignal(sig) is not signal.SIG_IGN:
             signal.signal(sig, on_signal)
 
 
 def main(argv):
+    ignored = {sig for sig in TRAPPED if signal.getsignal(sig) is signal.SIG_IGN}
     if signal.getsignal(signal.SIGINT) is not signal.SIG_IGN:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
     if not argv or not argv[0]:
@@ -269,7 +295,7 @@ def main(argv):
     heartbeat = os.environ.get("VERI_HEARTBEAT") or "180"
     poll = os.environ.get("VERI_POLL") or "1"
     name = argv[0]
-    os.makedirs(".tdd", exist_ok=True)
+    tolerated(name, "create", ".tdd", lambda: os.makedirs(".tdd", exist_ok=True))
     log, rcfile, exitfile = f".tdd/{name}.log", f".tdd/{name}.rc", f".tdd/{name}.exit"
     role = model = ""
     watched = not name.startswith("verdict-")
@@ -290,18 +316,20 @@ def main(argv):
             write_line(exitfile, 2)
         return 2
     if watched and not name.startswith("conductor-"):
-        write_line(ownerfile, f"{os.getpid()} {name}")
+        tolerated(name, "write", ownerfile, write_line, ownerfile, f"{os.getpid()} {name}")
     mark(role, "launch", f"name={name}", f"cmd={' '.join(argv[1:])}", f"model={model}")
-    write_line(f".tdd/{name}.pid", os.getpid())
+    pidfile = f".tdd/{name}.pid"
+    tolerated(name, "write", pidfile, write_line, pidfile, os.getpid())
     discard(exitfile)
     started = []
+    preexec = leaf_dispositions(ignored)
     trap(started, exitfile, kill_poll)
     retries = os.environ.get("VERI_STUCK_RETRIES") or "1"
     tries = 0
     try:
         while True:
-            status, reason, rc, a0 = attempt_once(started, name, argv[1:], log, rcfile, leaf_env, watched, timeout,
-                                                  heartbeat, poll, kill_poll)
+            status, reason, rc, a0 = attempt_once(started, name, argv[1:], log, rcfile, leaf_env, preexec, watched,
+                                                  timeout, heartbeat, poll, kill_poll)
             if status != "killed-stuck":
                 break
             preserve_killed_attempt(name, tries + 1)
@@ -326,10 +354,18 @@ def main(argv):
     mark(role, "exit", f"status={ec}", *([f"cause={reason}"] if reason else []), f"secs={secs}")
     try:
         with open(log, "rb") as f:
-            sys.stdout.buffer.write(f.read())
+            data = f.read()
     except OSError as error:
         print(f"supervise[{name}]: {error}", file=sys.stderr)
-    sys.stdout.flush()
+        data = b""
+    try:
+        sys.stdout.buffer.write(data)
+        sys.stdout.flush()
+    except BrokenPipeError:
+        try:
+            os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        except (AttributeError, OSError, ValueError):
+            pass
     if number_in(exitfile) is None:
         write_line(exitfile, ec)
     return ec
