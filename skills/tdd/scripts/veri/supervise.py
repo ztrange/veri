@@ -35,8 +35,8 @@ def captured(*args):
     return subprocess.run(list(args), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
 
 
-def git_answer(*args):
-    done = captured("git", *args)
+def answered(*args):
+    done = captured(*args)
     return done.stdout.rstrip("\n") if done.returncode == 0 else None
 
 
@@ -45,13 +45,10 @@ def now():
 
 
 def mtime_of(path):
-    m = ""
-    for spelling in (("-c", "%Y"), ("-f", "%m")):
-        done = captured("stat", *spelling, path)
-        if done.returncode == 0:
-            m = done.stdout.rstrip("\n")
-            break
-    if not re.fullmatch(r"[0-9]+", m):
+    m = answered("stat", "-c", "%Y", path)
+    if m is None:
+        m = answered("stat", "-f", "%m", path)
+    if not re.fullmatch(r"[0-9]+", m or ""):
         m = now()
     return m
 
@@ -85,7 +82,7 @@ def main(argv):
     issue = os.environ.get("VERI_ISSUE", "")
     if not timeout and issue:
         settled = f".tdd/issue-{issue}-timeout"
-        top = git_answer("rev-parse", "--show-toplevel")
+        top = answered("git", "rev-parse", "--show-toplevel")
         if top is not None:
             settled = f"{top}/{settled}"
         if os.path.isfile(settled):
@@ -108,7 +105,7 @@ def main(argv):
         if found is not None:
             role = " ".join(f"{k}={v}" for k, v in found.items())
         model = leaf_model(name)
-    skill_commit = git_answer("-C", HERE, "rev-parse", "HEAD") or os.environ.get("VERI_SKILL_COMMIT") or "unknown"
+    skill_commit = answered("git", "-C", HERE, "rev-parse", "HEAD") or os.environ.get("VERI_SKILL_COMMIT") or "unknown"
     leaf_env = {**os.environ, "VERI_LEAF_MODEL": model, "VERI_SKILL_COMMIT": skill_commit}
     mark(role, "launch", f"name={name}", f"cmd={' '.join(argv[1:])}", f"model={model}")
     write_line(f".tdd/{name}.pid", os.getpid())
