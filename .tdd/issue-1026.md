@@ -1,5 +1,5 @@
 # Plan for #1026 — SKILL.md Guardrails still calls the Draft PR full run the only full-suite gate, after #975 added the rebased-tip run
 
 - [x] A skill-draft-pr.test.sh case fails when the Guardrails bullet about the full suite in skills/tdd/SKILL.md contains "exactly once" or "the only full-suite gate" (the existing case that demanded those words of the Guardrails invariant no longer does), and the bullet drops both phrases ⟦criterion 1⟧
-- [ ] A skill-draft-pr.test.sh case fails unless the Guardrails full-suite bullet names both runs at the Draft PR step: the branch's own full run (again after each suite-repair step), and the extra run on the rebased tip when sub-step 1 rebased the branch — and the bullet names both ⟦criterion 2⟧
+- [x] A skill-draft-pr.test.sh case fails unless the Guardrails full-suite bullet names both runs at the Draft PR step: the branch's own full run (again after each suite-repair step), and the extra run on the rebased tip when sub-step 1 rebased the branch — and the bullet names both ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] The branch's diff adds or rewrites a case in skills/tdd/scripts/tests/skill-draft-pr.test.sh that pins the Guardrails full-suite bullet's wording, and that case goes red when "the only full-suite gate" is restored to the bullet ⟦diff-checked⟧ ⟦criterion 3⟧
