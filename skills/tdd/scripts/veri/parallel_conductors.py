@@ -63,7 +63,8 @@ class _Conductor:
             if self.armed and b'"type":"user"' in line:
                 self.armed = False
                 try:
-                    budget = _bash_arithmetic(_ctx_budget())
+                    _bash_arithmetic(_ctx_budget())
+                    budget = int(_ctx_budget())
                 except ValueError:
                     continue
                 if self.context > budget:

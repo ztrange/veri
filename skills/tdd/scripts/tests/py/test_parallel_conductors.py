@@ -557,10 +557,10 @@ def test_veri_max_issues_with_a_leading_zero_is_read_as_bash_s_bare_arithmetic_r
 # "line 122: ((: 08: value too great for base" on stderr, never stop it, and keep printing its
 # context lines; every run exits 0.
 @pytest.mark.parametrize("budget, kills, launched, restarted, contexts", [
-    ("0100000", [(FakeSupervisor.pid, signal.SIGTERM)], ["7", "7"], ["restarted 7"], ["context 7 50000"]),
+    ("0100000", [], ["7"], [], ["context 7 50000", "context 7 500"]),
     ("08", [], ["7"], [], ["context 7 50000", "context 7 500"]),
     ("09", [], ["7"], [], ["context 7 50000", "context 7 500"]),
-], ids=["0100000-is-octal-32768", "08-never-stops", "09-never-stops"])
+], ids=["0100000-is-decimal-#1127", "08-never-stops", "09-never-stops"])
 def test_veri_conductor_ctx_budget_with_a_leading_zero_is_read_as_bash_s_bare_arithmetic_reads_it(
         budget, kills, launched, restarted, contexts, capsys, monkeypatch, tmp_path, parallel_conductors):
     for name in TUNABLES:
