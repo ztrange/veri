@@ -139,8 +139,8 @@ def launch(base, issue, commit, **exports):
 
 def past_preflight(issue):
     run_wt = ".tdd/wt/" + issue
-    top = subprocess.run(["git", "-C", run_wt, "rev-parse", "--show-toplevel"],
-                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    top = git(run_wt, "rev-parse", "--show-toplevel",
+              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
     if top.returncode == 0 and top.stdout.rstrip("\n") == os.path.realpath(run_wt):
         return True
     branches = subprocess.run(["git", "for-each-ref", "--format=%(refname)", "refs/heads/tdd/%s-*" % issue],
