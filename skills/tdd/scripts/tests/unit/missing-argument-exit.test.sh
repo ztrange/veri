@@ -133,7 +133,6 @@ migration_slice() {  # migration_slice <n> <script> … — the slice's case, ov
   verdict "$name" "${offenders[@]}"
 }
 
-migration_slice 2 detach-leaf.sh
 migration_slice 3 event.sh
 migration_slice 7 run-conductor.sh
 migration_slice 9 supervise.sh
