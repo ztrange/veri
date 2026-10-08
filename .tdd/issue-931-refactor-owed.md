@@ -44,3 +44,5 @@
 ### veri.verify.main returns git's own status (128) with nothing printed on stdout when the `git update-ref` restoring HEAD fails ⟦criterion 7⟧
 - test-only | extract the repeated env-clearing loop (`for name in ("VERIFY_LEAF_ARGS", …): monkeypatch.delenv`, 14 copies) and the repeated `subprocess` patching loop (`for name in ("run", "Popen", "call", "check_call", "check_output")`, 20 copies) in skills/tdd/scripts/tests/py/test_verify.py into shared fixtures alongside `fake_processes`
 - test-only | the git-dispatch body of the new test's `fake` (write-tree/rev-parse/diff-tree sequenced replies) repeats the one in the no-commit and relaunch tamper tests; a shared fake-git builder would remove it
+### veri.verify.main returns 2 with `verifier leaf modified the operator's global git config — verdict not accepted (see .tdd/verify-<phase>.log); changed:` and `$HOME/.gitconfig` on stdout when the leaf changed, created or deleted that file, restoring nothing ⟦criterion 7⟧
+- test-only | the fake `subprocess` dispatcher (env-unwrapping, per-name CompletedProcess) and the HOME/chdir/env-clearing setup repeated across test_verify.py cases could become one shared fixture
