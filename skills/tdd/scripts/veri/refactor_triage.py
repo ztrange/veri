@@ -9,10 +9,9 @@ def _candidate(cls):
     return re.compile(rb"^CANDIDATES:\s*" + cls + rb"\s*[|]\s*(.*)$")
 
 
-STRUCTURAL = _candidate(rb"structural")
-TEST_ONLY = _candidate(rb"test-only")
-COSMETIC = _candidate(rb"cosmetic")
-OUT_OF_SCOPE = _candidate(rb"out-of-scope")
+CLASSES = (b"structural", b"cosmetic", b"test-only", b"out-of-scope")
+PATTERNS = tuple((cls, _candidate(cls)) for cls in CLASSES)
+CLASS_LIST = b", ".join(CLASSES[:-1]) + b" or " + CLASSES[-1]
 NONE = re.compile(rb"^none\s*$")
 
 
@@ -31,17 +30,16 @@ def main(argv):
             continue
         candidates_seen = True
         classed = False
-        for cls, pattern in ((b"structural", STRUCTURAL), (b"cosmetic", COSMETIC),
-                             (b"test-only", TEST_ONLY), (b"out-of-scope", OUT_OF_SCOPE)):
+        for cls, pattern in PATTERNS:
             transform = pattern.match(line)
             if transform:
                 if not transform.group(1):
                     return _refuse(cls + b" candidate line names no transform: " + line)
-                if pattern is STRUCTURAL:
+                if cls == b"structural":
                     structural.append(transform.group(1))
                 classed = True
         if not (classed or NONE.match(found.group(1))):
-            return _refuse(b"candidate line has no class, or one that is not structural, cosmetic, test-only or out-of-scope: " + line)
+            return _refuse(b"candidate line has no class, or one that is not " + CLASS_LIST + b": " + line)
     if not candidates_seen:
         return _refuse(b"the report has no CANDIDATES: line")
     if not structural:
