@@ -305,3 +305,15 @@ def test_main_refuses_a_cosmetic_candidate_with_nothing_after_the_bar_with_exit_
     assert (code, out) == (2, b"")
     assert err.startswith(b"refactor-triage: ")
     assert err.endswith(b": " + line + b"\n")
+
+
+def test_main_refuses_a_test_only_candidate_with_nothing_after_the_bar_with_exit_2_and_a_diagnostic_naming_the_line_1035(
+        monkeypatch, capsysbinary, refactor_triage):
+    line = b"CANDIDATES: test-only |"
+    fake_stdin(monkeypatch, line + b"\n")
+    code = refactor_triage.main([])
+    out, err = capsysbinary.readouterr()
+
+    assert (code, out) == (2, b"")
+    assert err.startswith(b"refactor-triage: ")
+    assert err.endswith(b": " + line + b"\n")
