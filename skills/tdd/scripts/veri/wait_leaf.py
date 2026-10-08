@@ -1,5 +1,6 @@
 """wait-leaf.sh's wait for a detached leaf's completion file, run in-process."""
 import os
+import re
 import subprocess
 import sys
 
@@ -18,11 +19,14 @@ def recorded(exit_file):
 def arithmetic(text):
     digits = text.removeprefix("-")
     sign = -1 if digits != text else 1
-    if digits[:2] in ("0x", "0X"):
-        return sign * int(digits[2:], 16)
-    if digits.startswith("0"):
-        return sign * int(digits, 8)
-    return sign * int(digits)
+    try:
+        if digits[:2] in ("0x", "0X"):
+            return sign * int(digits[2:], 16)
+        if digits.startswith("0"):
+            return sign * int(digits, 8)
+        return sign * int(digits)
+    except ValueError:
+        return None
 
 
 def clock():
@@ -34,11 +38,15 @@ def main(argv):
         sys.stderr.write(USAGE)
         return 2
     name = argv[0]
-    max_seconds = arithmetic(argv[1]) if len(argv) > 1 and argv[1] else 540
+    max_text = argv[1] if len(argv) > 1 and argv[1] else "540"
+    max_seconds = arithmetic(max_text)
     poll = os.environ.get("VERI_POLL") or "1"
     exit_file = f".tdd/{name}.exit"
     pid_file = f".tdd/{name}.pid"
-    deadline = clock() + max_seconds
+    start = clock()
+    if max_seconds is None and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", max_text):
+        sys.stderr.write(f"wait-leaf.sh: max-seconds '{max_text}' is not a number\n")
+        return 1
     while True:
         code = recorded(exit_file)
         if code is not None:
@@ -50,7 +58,11 @@ def main(argv):
                 return code
             sys.stderr.write(f"wait-leaf.sh: supervisor for leaf '{name}' (pid {pid}) exited without recording a status\n")
             return 2
-        if clock() >= deadline:
+        now = clock()
+        if max_seconds is None:
+            sys.stderr.write(f"wait-leaf.sh: max-seconds '{max_text}' is not a number\n")
+            return 1
+        if now >= start + max_seconds:
             return 3
         subprocess.run(["sleep", poll])
 

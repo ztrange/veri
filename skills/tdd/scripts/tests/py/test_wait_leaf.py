@@ -175,3 +175,43 @@ def test_main_reads_max_as_bash_arithmetic_defaulting_to_540_and_ignores_argumen
     }
     captured = capsys.readouterr()
     assert (captured.out, captured.err) == ("", "")
+
+
+def test_main_answers_a_max_that_is_not_an_integer_form_with_1_as_bash_did(
+        monkeypatch, capsys, tmp_path, wait_leaf):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "x.pid").write_text("42\n")
+    readings = []
+
+    def answer(line):
+        if line == "date +%s":
+            if len(readings) > 20:
+                raise RuntimeError("runaway wait: more than 20 clock readings")
+            readings.append(1000 + len(readings))
+            return (0, f"{readings[-1]}\n", "")
+        if line == "ps -p 42 -o args=":
+            return (0, "bash supervise.sh x develop-red\n", "")
+        return (0, "", "")
+
+    calls = fake_processes(monkeypatch, answer)
+
+    answers = {}
+    for text in ("abc", "08", "1.5", "10+5"):
+        calls.clear()
+        readings.clear()
+        code = wait_leaf.main(["x", text])
+        captured = capsys.readouterr()
+        answers[text] = (code, list(calls), captured.out, captured.err.count("\n"), text in captured.err)
+    assert answers == {
+        "abc": (1, ["date +%s"], "", 1, True),
+        "08": (1, ["date +%s", "ps -p 42 -o args=", "date +%s"], "", 1, True),
+        "1.5": (1, ["date +%s", "ps -p 42 -o args=", "date +%s"], "", 1, True),
+        "10+5": (1, ["date +%s", "ps -p 42 -o args=", "date +%s"], "", 1, True),
+    }
+
+    (tmp_path / ".tdd" / "x.exit").write_text("0\n")
+    calls.clear()
+    assert (wait_leaf.main(["x", "08"]), calls) == (0, ["date +%s"])
+    captured = capsys.readouterr()
+    assert captured.out == ""
