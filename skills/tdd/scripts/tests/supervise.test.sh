@@ -648,6 +648,42 @@ done
 [[ "${#intr_problems[@]}" -eq 0 ]] && ok \
   || no "supervise.sh sent INT or HUP does what TERM does: writes 2 to its completion file, exits 2 and leaves no leaf process behind (${intr_problems[*]})"
 
+ign_work="$work/int-ignored"
+mkdir -p "$ign_work"
+mkfifo "$ign_work/release"
+cat > "$stub/leaf-int-held" <<'L'
+#!/bin/sh
+echo $$ > leaf-pid
+read -r _ < release
+echo "leaf: released"
+exit 0
+L
+chmod +x "$stub/leaf-int-held"
+( cd "$ign_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SCRIPTS/detach-leaf.sh" "$SUP" develop-red "$stub/leaf-int-held" ) >/dev/null 2>&1
+for _ in $(seq 1 50); do [[ -s "$ign_work/leaf-pid" && -s "$ign_work/.tdd/develop-red.pid" ]] && break; sleep 0.1; done
+ign_leaf="$(tr -d '[:space:]' < "$ign_work/leaf-pid" 2>/dev/null)"
+ign_sup="$(tr -d '[:space:]' < "$ign_work/.tdd/develop-red.pid" 2>/dev/null)"
+: > "$ign_work/.test-clock-reads"
+[[ -z "$ign_sup" ]] || kill -INT "$ign_sup" 2>/dev/null
+for _ in $(seq 1 200); do
+  [[ "$(wc -l < "$ign_work/.test-clock-reads")" -ge 2 ]] && break
+  [[ -n "$ign_sup" ]] && kill -0 "$ign_sup" 2>/dev/null || break
+  sleep 0.01
+done
+# O_RDWR never blocks on a FIFO, so a leaf already killed cannot hang the suite here.
+exec 9<>"$ign_work/release"
+echo go >&9
+for _ in $(seq 1 100); do [[ -s "$ign_work/.tdd/develop-red.exit" ]] && break; sleep 0.05; done
+exec 9>&-
+ign_exit="$({ tr -d '[:space:]' < "$ign_work/.tdd/develop-red.exit"; } 2>/dev/null || echo '<missing>')"
+ign_released="no"
+grep -F 'leaf: released' "$ign_work/.tdd/develop-red.log" >/dev/null 2>&1 && ign_released="yes"
+[[ -n "$ign_leaf" ]] && kill -0 "$ign_leaf" 2>/dev/null && kill -KILL "$ign_leaf" 2>/dev/null
+[[ -n "$ign_sup" ]] && kill -0 "$ign_sup" 2>/dev/null && kill -KILL "$ign_sup" 2>/dev/null
+{ [[ -n "$ign_leaf" ]] && [[ "$ign_exit" == 0 ]] && [[ "$ign_released" == yes ]]; } && ok \
+  || no "a supervisor started with SIGINT ignored, as detach-leaf.sh starts one, keeps running its leaf when sent INT: the leaf finishes and its own 0 lands in .exit (leaf pid=${ign_leaf:-<never started>}; supervisor pid=${ign_sup:-<no pid file>}; .exit='$ign_exit' want 0; leaf finished=$ign_released want yes)"
+
 waitlive_work="$work/wait-live-supervisor"
 mkdir -p "$waitlive_work"
 ( cd "$waitlive_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
