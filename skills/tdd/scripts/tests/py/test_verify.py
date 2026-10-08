@@ -348,3 +348,46 @@ def test_main_refuses_a_literal_model_word_in_verify_leaf_args_beside_a_resolved
         expected_code, expected_err, launches)
     if not launches:
         assert (captured.out, started) == (b"", [])
+
+
+@pytest.mark.parametrize("supervise, expected", [
+    (2, (2, "verifier leaf killed-stuck — no verdict rendered (see .tdd/verify-green.log)\n")),
+    (FileNotFoundError, (2, "\n")),
+])
+def test_main_returns_2_on_a_killed_stuck_leaf_with_no_tamper_check_event_or_preservation_and_reads_an_unstartable_supervise_as_no_answer(
+        supervise, expected, tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("VERI_ISSUE", "931")
+    monkeypatch.setenv("VERI_STEP", "7")
+    monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
+    started = []
+
+    def fake(args, *_, **__):
+        words = [str(a) for a in (args if isinstance(args, (list, tuple)) else [args])]
+        started.append(words)
+        name = os.path.basename(words[0])
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            if supervise is FileNotFoundError:
+                raise FileNotFoundError(2, "No such file or directory", words[0])
+            return subprocess.CompletedProcess(args, supervise, b"VERDICT: PASS\nfine\n", None)
+        if name == "git" and "write-tree" in words:
+            return subprocess.CompletedProcess(args, 0, b"0123456789abcdef0123456789abcdef01234567\n", b"")
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    captured = capfdbinary.readouterr()
+    assert (code, captured.out.decode("utf-8")) == expected
+    if supervise == 2:
+        launch = [os.path.basename(words[0]) for words in started].index("supervise.sh")
+        assert [words for words in started[launch + 1:]
+                if {os.path.basename(w) for w in words} & {"git", "event.sh", "preserve-attempt.sh"}] == []
