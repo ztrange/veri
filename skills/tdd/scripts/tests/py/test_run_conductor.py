@@ -743,3 +743,41 @@ def test_main_launches_exactly_one_claude_with_the_fixed_print_mode_argv_and_no_
                                   "--permission-mode", "bypassPermissions"],
                          "stdin": True, "stdout": None, "stderr": None, "capture_output": False,
                          "start_new_session": False, "process_group": None, "preexec_fn": None}]
+
+
+def test_main_on_a_pinned_launch_whose_snapshot_holds_no_readable_skill_md_names_it_launches_no_claude_removes_the_snapshot_and_returns_2(
+        tmp_path, monkeypatch, capfdbinary):
+    import tempfile
+    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
+    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
+        monkeypatch.delenv(name, raising=False)
+    scratch = tmp_path / "tmp"
+    scratch.mkdir()
+    monkeypatch.setenv("TMPDIR", str(scratch))
+    monkeypatch.setattr(tempfile, "tempdir", str(scratch))
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    calls = fake_pin(monkeypatch, "1111111111111111111111111111111111111111", set())
+    _, launches = fake_snapshot(monkeypatch, calls, 0, 0)
+    snapshots, popen = [], subprocess.Popen
+
+    def tar_leaves_a_directory(args, *a, **kwargs):
+        process = popen(args, *a, **kwargs)
+        if list(args)[:1] == ["tar"]:
+            snapshots.append(args[-1])
+            os.remove(os.path.join(args[-1], "SKILL.md"))
+            os.mkdir(os.path.join(args[-1], "SKILL.md"))
+        return process
+
+    monkeypatch.setattr(subprocess, "Popen", tar_leaves_a_directory)
+
+    code = run_conductor.main(["4242"])
+
+    captured = capfdbinary.readouterr()
+    assert len(snapshots) == 1
+    assert (code, captured.out, captured.err, launches, os.listdir(scratch)) == (
+        2, b"", ("run-conductor: cannot read '%s/SKILL.md'\n" % snapshots[0]).encode(), [], [])
