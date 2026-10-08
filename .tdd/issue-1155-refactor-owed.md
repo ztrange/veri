@@ -1,0 +1,2 @@
+### Through the entry point, `detach-command.sh wait <name>` with VERI_POLL set to `abc` or `-1` exits 2 before any polling round, writing exactly one stderr line that names VERI_POLL and the value and nothing on stdout, and never pauses or loops; the pytest case pinning the per-round busy poll for those values is retired with it ⟦criterion 1⟧
+- test-only | detach-command.test.sh #1155 case: the stderr line count `$(wc -l < "$work/poll.err" | tr -d ' ')` is computed twice, once in the check and once in the failure message; it could be read into a variable once
