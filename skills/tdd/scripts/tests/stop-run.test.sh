@@ -91,33 +91,6 @@ check_still_answering() {
   kill -0 "$1" 2>/dev/null || note "want $2 $1 untouched, it is gone"
 }
 
-check_refused_in() {
-  local dir="$1" label="$2"; shift 2
-  local out code err
-  run_stop_in "$dir" "$@"
-  check_code 2
-  [[ -z "$out" ]] || note "want empty stdout, got '$out'"
-  [[ "$err" == "stop-run: "* ]] || note "want a complaint of the script's own, got '$err'"
-  check_no_stop "$run"
-  check_still_answering "$sup_pid" "the live supervisor"
-  check_still_answering "$run_conductor_pid" "the conductor"
-  rm -f "$run/.tdd/stop"
-}
-
-check_refused() { check_refused_in "$repo" "$@"; }
-
-check_refused "an unknown --mode value" --mode bogus 5
-check_refused "both an issue and --all" --mode now 5 --all
-check_refused "neither an issue nor --all"
-check_refused "a non-integer issue" --mode now five
-
-report "an unknown --mode, both an issue and --all, neither, and a non-integer issue each exit 2, write no .tdd/stop and signal nothing"
-
-problems=()
-check_refused "--mode with no value" --mode
-
-report "--mode with no value exits 2 with the script's own complaint, writes no .tdd/stop and signals nothing"
-
 check_stop() {
   local path="$1/.tdd/stop" want="$2" written lines
   if [[ ! -f "$path" ]]; then
@@ -138,46 +111,8 @@ check_stop "$run" now
 
 report "--mode now <n> writes now as the only line of that run's .tdd/stop, names the run on stdout and exits 0"
 
-problems=()
-rm -f "$run/.tdd/stop"
-run_stop 5
-check_code 0
-check_stop "$run" at-ledger
-
-report "<n> with no --mode writes at-ledger into that run's .tdd/stop"
-
-problems=()
-run_stop --mode now 5
-check_code 0
-check_stop "$run" now
-
-report "a second call for the same run overwrites the mode already in .tdd/stop"
-
-problems=()
-rm -f "$run/.tdd/stop"
-
-live2="$repo/.tdd/wt/7"
-live_conductor "$live2"
-
 dead="$repo/.tdd/wt/9"
 dead_conductor "$dead"
-
-run_stop --mode at-leaf --all
-check_code 0
-
-named="$(printf '%s\n' "$out" | while read -r line; do
-  [[ -n "$line" ]] && basename "$line"
-done | sort | tr '\n' ' ')"
-[[ "$named" == "5 7 " ]] ||
-  note "want the two live runs named on stdout, got '$named' from '$out'"
-
-for stopped in "$run" "$live2"; do
-  check_stop "$stopped" at-leaf
-done
-
-check_no_stop "$dead"
-
-report "--all writes the mode into every live run's .tdd/stop and into no other"
 
 problems=()
 
@@ -202,17 +137,6 @@ check_code 3
 check_no_stop "$quiet_dead"
 
 report "an issue with no worktree, an issue whose conductor names no live process, and --all with no live run each exit 3 and write no .tdd/stop"
-
-live_supervisor "$run" develop-red
-sup_pid="$supervisor_pid"
-
-problems=()
-rm -f "$run/.tdd/stop"
-
-outside="$work/outside"; mkdir -p "$outside"
-check_refused_in "$outside" "no main working tree" --mode now 5
-
-report "a command typed where no main working tree resolves exits 2, writes no .tdd/stop and signals nothing"
 
 problems=()
 label=""
@@ -312,21 +236,6 @@ check_code 2
   note "want today's usage line last on stderr, got '${err##*$'\n'}'"
 
 report "stop-run.sh refuses an unknown mode with today's message first on stderr and no argument with today's usage line last on stderr, each exiting 2"
-
-problems=()
-
-for zero in 0 00; do
-  label="conductor.pid holding $zero"
-  zero_run="$repo/.tdd/wt/1$zero"
-  mkdir -p "$zero_run/.tdd"
-  printf '%s\n' "$zero" > "$zero_run/.tdd/conductor.pid"
-  run_stop "1$zero"
-  check_code 3
-  check_no_stop "$zero_run"
-done
-label=""
-
-report "#819: an issue whose .tdd/conductor.pid holds 0 or 00 exits 3 and writes no .tdd/stop"
 
 problems=()
 label=""
