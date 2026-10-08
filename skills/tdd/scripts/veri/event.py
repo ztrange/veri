@@ -33,13 +33,44 @@ def structural_pass_refusal(args):
     return None
 
 
+ESCAPES = {0x22: b'\\"', 0x5c: b"\\\\", 0x08: b"\\b", 0x0c: b"\\f", 0x0a: b"\\n", 0x0d: b"\\r",
+           0x09: b"\\t"}
+LEADS = ((0xE0, 0xC0, 2, 0x1F), (0xF0, 0xE0, 3, 0x0F), (0xF8, 0xF0, 4, 0x07))
+
+
+def escape(value):
+    out = bytearray()
+    i = 0
+    while i < len(value):
+        byte = value[i]
+        if byte in ESCAPES:
+            out += ESCAPES[byte]
+        elif byte < 0x20 or byte == 0x7f:
+            out += b"\\u%04x" % byte
+        elif byte < 0x80:
+            out.append(byte)
+        else:
+            nbytes, cp = next(((n, byte & m) for mask, lead, n, m in LEADS if byte & mask == lead), (1, byte))
+            for k in range(1, nbytes):
+                cont = value[i + k] if i + k < len(value) else 0
+                cp = (cp << 6) | (cont & 0x3F)
+            if cp <= 0xFFFF:
+                out += b"\\u%04x" % cp
+            else:
+                cp -= 0x10000
+                out += b"\\u%04x\\u%04x" % (0xD800 | (cp >> 10), 0xDC00 | (cp & 0x3FF))
+            i += nbytes - 1
+        i += 1
+    return bytes(out)
+
+
 def line(args):
     fields = [(key, os.environb.get(name, b"") if name else args[0]) for key, name in CONTEXT]
     fields += [arg.partition(b"=")[::2] for arg in args[1:]]
     clock = getattr(time, "CLOCK_UPTIME_RAW", time.CLOCK_MONOTONIC)
     text = b'{"ts": %d, "awake": %d' % (int(time.time()), int(time.clock_gettime(clock)))
     for key, value in fields:
-        text += b', "' + key + b'": "' + value + b'"'
+        text += b', "' + escape(key) + b'": "' + escape(value) + b'"'
     return text + b"}\n"
 
 
