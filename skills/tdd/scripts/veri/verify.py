@@ -7,6 +7,7 @@ import sys
 
 import parse_verdict
 
+from leaf_model import is_echo_flag, resolve
 from leaf_role import _write, leaf_role
 from run_verdict import SCRIPTS, takes_a_value
 
@@ -46,6 +47,14 @@ def main(argv):
         args = args[2:]
     if len(args) < 3:
         return refuse()
+    leaf = "verify-" + args[0]
+    if os.environ.get("VERIFY_LEAF_ARGS"):
+        model = resolve(leaf) or ""
+        if model and not is_echo_flag(model) and "--model" in leaf_args():
+            _write(sys.stderr, "verify: VERIFY_LEAF_ARGS carries its own --model and a role model"
+                   " variable resolved '%s' — which one the leaf would run on is flag order;"
+                   " unset one of them" % model)
+            return 2
     try:
         built = subprocess.run(
             [sibling("build-verify-prompt.sh"), *argv],
@@ -54,7 +63,6 @@ def main(argv):
         return 2
     if built.returncode:
         return to_contract(built.returncode)
-    leaf = "verify-" + args[0]
     prompt_path = ".tdd/%s.prompt" % leaf
     os.makedirs(".tdd", exist_ok=True)
     with open(prompt_path, "wb") as prompt:
