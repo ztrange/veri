@@ -70,29 +70,41 @@ def main(argv):
     os.makedirs(".tdd", exist_ok=True)
     with open(prompt_path, "wb") as prompt:
         prompt.write(built.stdout.rstrip(b"\n"))
-    launched = start(
-        [sibling("supervise.sh"), leaf,
-         sibling("run-leaf.sh"), prompt_path, *flags],
-        stdout=subprocess.PIPE)
-    if launched.returncode == 2:
-        _write(sys.stdout, "verifier leaf killed-stuck — no verdict rendered (see .tdd/%s.log)" % leaf)
-        return 2
-    code, reason = parse(launched.stdout)
+    retries = int(os.environ.get("VERI_NO_VERDICT_RETRIES") or 1)
+    role = {**os.environ, **leaf_role(leaf)}
+    relaunches = 0
+    while True:
+        launched = start(
+            [sibling("supervise.sh"), leaf,
+             sibling("run-leaf.sh"), prompt_path, *flags],
+            stdout=subprocess.PIPE)
+        if launched.returncode == 2:
+            _write(sys.stdout, "verifier leaf killed-stuck — no verdict rendered (see .tdd/%s.log)" % leaf)
+            return 2
+        code, reason, err = parse(launched.stdout)
+        if err:
+            _write(sys.stderr, err.removesuffix("\n"))
+        no_verdict = code == 2 and "no VERDICT: line found" in err
+        if not no_verdict or relaunches >= retries:
+            break
+        relaunches += 1
+        subprocess.run([sibling("event.sh"), "relaunch", "cause=no-verdict"], env=role)
     word = {0: "PASS", 1: "REJECT"}.get(code, "malformed")
+    cause = ["cause=no-verdict"] if no_verdict else []
     subprocess.run(
         [sibling("event.sh"), "verdict", "verdict=" + word,
-         "reason=" + reason.split("\n", 1)[0]],
-        env={**os.environ, **leaf_role(leaf)})
+         "reason=" + reason.split("\n", 1)[0], *cause],
+        env=role)
     _write(sys.stdout, reason)
     return to_contract(code)
 
 
 def parse(out):
-    stdin, stdout = sys.stdin, sys.stdout
+    stdin, stdout, stderr = sys.stdin, sys.stdout, sys.stderr
     sys.stdin = io.StringIO(out.decode("utf-8", "surrogateescape"))
-    sys.stdout = io.StringIO()
+    sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
     try:
         code = parse_verdict.main([])
-        return code, sys.stdout.getvalue().rstrip("\n")
+        return code, sys.stdout.getvalue().rstrip("\n"), sys.stderr.getvalue()
     finally:
-        sys.stdin, sys.stdout = stdin, stdout
+        sys.stdin, sys.stdout, sys.stderr = stdin, stdout, stderr
