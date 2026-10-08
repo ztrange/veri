@@ -96,16 +96,18 @@ def test_start_launches_the_exit_recording_wrapper_through_detach_with_dev_null_
     tdd.mkdir()
     launches = []
 
-    def fake_start(argv, stdin, stdout, stderr):
-        null = stdin == subprocess.DEVNULL or (
-            hasattr(stdin, "fileno") and os.fstat(stdin.fileno()).st_rdev == os.stat(os.devnull).st_rdev)
-        for stream, text in ((stdout, b"out "), (stderr, b"err")):
-            if hasattr(stream, "fileno"):
-                os.write(stream.fileno(), text)
-        launches.append((argv, null))
-        return 4242
+    class FakePopen:
+        pid = 4242
 
-    monkeypatch.setattr(importlib.import_module("detach"), "start", fake_start)
+        def __init__(self, args, stdin, stdout, stderr, **kwargs):
+            null = stdin == subprocess.DEVNULL or (
+                hasattr(stdin, "fileno") and os.fstat(stdin.fileno()).st_rdev == os.stat(os.devnull).st_rdev)
+            for stream, text in ((stdout, b"out "), (stderr, b"err")):
+                if hasattr(stream, "fileno"):
+                    os.write(stream.fileno(), text)
+            launches.append((args, null))
+
+    monkeypatch.setattr(subprocess, "Popen", FakePopen)
 
     code = detach_command.main(["start", "x", "printf", "%s", "a b"])
     wrapper = '"$@"; rc=$?; echo "$rc" > "$0.tmp"; mv "$0.tmp" "$0"'
@@ -117,8 +119,7 @@ def test_start_with_no_tdd_directory_raises_naming_the_out_file_launching_nothin
         tmp_path, monkeypatch, capsys, detach_command):
     monkeypatch.chdir(tmp_path)
     launches = []
-    monkeypatch.setattr(importlib.import_module("detach"), "start",
-                        lambda *args: launches.append(args) or 4242)
+    monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: launches.append(args))
 
     with pytest.raises(FileNotFoundError) as raised:
         detach_command.main(["start", "x", "true"])
@@ -135,8 +136,6 @@ def test_main_refuses_start_alone_and_an_empty_mode_like_no_arguments_touching_n
     before = {path.name: (path.read_text(), path.stat().st_mtime_ns) for path in tdd.iterdir()}
     launches = []
     monkeypatch.setattr(subprocess, "Popen", lambda *args, **kwargs: launches.append(args))
-    monkeypatch.setattr(importlib.import_module("detach"), "start",
-                        lambda *args: launches.append(args) or 4242)
 
     for argv in ([], ["start"], ["", "x"]):
         code = detach_command.main(argv)
