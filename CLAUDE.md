@@ -279,7 +279,8 @@ the new case, the ones covering the files a transform touched (#144) — and `de
 and the two blind verifiers (verify-green and verify-refactor) run the fast tier plus the
 affected suites; a revise leaf runs the tiers of the phase it redoes. `make test` is the
 **full suite**, and the conductor runs it once per PR,
-before the PR is readied, plus once per repair step a red result there appends (#539) — so a
+before the PR is readied, plus once per repair step a red result there appends (#539), plus once
+more on the rebased tip when the Draft PR step had to rebase the branch (#1026) — so a
 docs suite under `make test`'s glob still taxes every PR's full run, and every step whose
 affected set names it, with a tool that is not functional (ADR 0016). `docs-guard-filter.test.sh` and `docs-owed.test.sh` were moved out on
 2026-09-12 for that reason: together ~30 s of an 81 s `make test`. `docs-gap-adr.test.sh`
