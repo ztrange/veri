@@ -187,4 +187,21 @@ status=$?
 
 report "$name"
 
+name="detach-leaf.sh <cmd> exits 0 with nothing on its own stdout or stderr, and the command it was given runs"
+problems=()
+
+RAN="$work/launch-ran"
+"$DETACH" sh -c 'printf ran > "$1"' sh "$RAN" > "$work/launch.out" 2> "$work/launch.err"
+status=$?
+[[ "$status" == 0 ]] ||
+  problems+=("want exit 0, got: $status")
+appeared "$RAN" "$PATIENCE" ||
+  problems+=("the command handed to detach-leaf.sh never wrote $RAN")
+[[ ! -s "$work/launch.out" ]] ||
+  problems+=("want nothing on stdout, got: $(cat "$work/launch.out")")
+[[ ! -s "$work/launch.err" ]] ||
+  problems+=("want nothing on stderr, got: $(cat "$work/launch.err")")
+
+report "$name"
+
 finish
