@@ -63,6 +63,9 @@ class Unbound(Exception):
 
 
 def arithmetic(value):
+    if value[:1] in ("-", "+"):
+        number = arithmetic(value[1:])
+        return -number if value[0] == "-" else number
     if re.fullmatch(r"0[0-7]*", value):
         return int(value, 8)
     if re.fullmatch(r"[1-9][0-9]*", value):
@@ -140,6 +143,74 @@ def mark(role, *fields):
     subprocess.run(["env", *role.split(), os.path.join(HERE, "event.sh"), *fields])
 
 
+def preserve_killed_attempt(name, attempt):
+    issue, step = os.environ.get("VERI_ISSUE", ""), os.environ.get("VERI_STEP", "")
+    if not issue or not step:
+        return
+    if captured("git", "rev-parse", "--verify", "-q", "HEAD").returncode != 0:
+        return
+    sys.stderr.flush()
+    done = subprocess.run([os.path.join(HERE, "preserve-attempt.sh"), issue, step, name, str(attempt), "stuck"],
+                          stdout=2)
+    if done.returncode != 0:
+        print(f"supervise[{name}]: could not preserve the stuck attempt"
+              f" (issue {issue} step {step} {name} attempt {attempt})", file=sys.stderr)
+
+
+def attempt_once(name, cmd, log, rcfile, leaf_env, watched, timeout, heartbeat, poll, kill_poll):
+    try:
+        os.remove(rcfile)
+    except FileNotFoundError:
+        pass
+    open(log, "wb").close()
+    t0 = now()
+    a0 = awake_seconds()
+    prev_t, prev_a = int(t0), a0
+    leaf = subprocess.Popen(["/bin/sh", "-c", 'log=$1 rc=$2; shift 2; "$@" >"$log" 2>&1; echo $? >"$rc"',
+                             "sh", log, rcfile, *cmd], process_group=0, env=leaf_env)
+    status = reason = ""
+    rc = "0"
+    seen_at = int(t0)
+    if watched:
+        last_m = mtime_of(log)
+    while True:
+        if os.path.isfile(rcfile):
+            with open(rcfile) as f:
+                rc = f.read().rstrip("\n")
+            status = "success" if rc == "0" else "failure"
+            break
+        t = int(now())
+        a = awake_seconds()
+        seen_at += (t - prev_t) - (a - prev_a)
+        prev_t, prev_a = t, a
+        try:
+            span = limit(timeout)
+            if span is not None and a - a0 >= span:
+                reason = f"hard timeout {timeout}s exceeded"
+            elif watched:
+                m = mtime_of(log)
+                if m != last_m:
+                    last_m, seen_at = m, t
+                silence = t - seen_at
+                window = limit(heartbeat)
+                if window is not None and silence > window:
+                    reason = f"no heartbeat for {silence}s (window {heartbeat}s)"
+        except Unbound as unbound:
+            print(unbound, file=sys.stderr)
+            return None
+        if reason:
+            status = "killed-stuck"
+            kill_tree(leaf, float(kill_poll))
+            break
+        pause(poll)
+    leaf.wait()
+    if status == "killed-stuck":
+        outcome = recover_finished_leaf(name, log, reason)
+        if outcome is not None:
+            status, reason = outcome, ""
+    return status, reason, rc, a0
+
+
 def main(argv):
     if not argv or not argv[0]:
         return refuse(USAGE)
@@ -177,57 +248,32 @@ def main(argv):
     leaf_env = {**os.environ, "VERI_LEAF_MODEL": model, "VERI_SKILL_COMMIT": skill_commit}
     mark(role, "launch", f"name={name}", f"cmd={' '.join(argv[1:])}", f"model={model}")
     write_line(f".tdd/{name}.pid", os.getpid())
-    for stale in (exitfile, rcfile):
-        try:
-            os.remove(stale)
-        except FileNotFoundError:
-            pass
-    open(log, "wb").close()
-    t0 = now()
-    a0 = awake_seconds()
-    prev_t, prev_a = int(t0), a0
-    leaf = subprocess.Popen(["/bin/sh", "-c", 'log=$1 rc=$2; shift 2; "$@" >"$log" 2>&1; echo $? >"$rc"',
-                             "sh", log, rcfile, *argv[1:]], process_group=0, env=leaf_env)
-    status = reason = ""
-    rc = "0"
-    seen_at = int(t0)
-    if watched:
-        last_m = mtime_of(log)
+    try:
+        os.remove(exitfile)
+    except FileNotFoundError:
+        pass
+    retries = os.environ.get("VERI_STUCK_RETRIES") or "1"
+    tries = 0
     while True:
-        if os.path.isfile(rcfile):
-            with open(rcfile) as f:
-                rc = f.read().rstrip("\n")
-            status = "success" if rc == "0" else "failure"
+        attempt = attempt_once(name, argv[1:], log, rcfile, leaf_env, watched, timeout, heartbeat, poll,
+                               kill_poll)
+        if attempt is None:
+            return 1
+        status, reason, rc, a0 = attempt
+        if status != "killed-stuck":
             break
-        t = int(now())
-        a = awake_seconds()
-        seen_at += (t - prev_t) - (a - prev_a)
-        prev_t, prev_a = t, a
+        preserve_killed_attempt(name, tries + 1)
         try:
-            span = limit(timeout)
-            if span is not None and a - a0 >= span:
-                reason = f"hard timeout {timeout}s exceeded"
-            elif watched:
-                m = mtime_of(log)
-                if m != last_m:
-                    last_m, seen_at = m, t
-                silence = t - seen_at
-                window = limit(heartbeat)
-                if window is not None and silence > window:
-                    reason = f"no heartbeat for {silence}s (window {heartbeat}s)"
+            if tries >= arithmetic(retries):
+                break
         except Unbound as unbound:
             print(unbound, file=sys.stderr)
             return 1
-        if reason:
-            status = "killed-stuck"
-            kill_tree(leaf, float(kill_poll))
-            break
-        pause(poll)
-    leaf.wait()
-    if status == "killed-stuck":
-        outcome = recover_finished_leaf(name, log, reason)
-        if outcome is not None:
-            status, reason = outcome, ""
+        except ValueError as error:
+            print(error, file=sys.stderr)
+        tries += 1
+        mark(role, "retry", f"cause={reason}")
+        print(f"supervise[{name}]: retry {tries}/{retries} after killed-stuck", file=sys.stderr)
     ec = {"success": 0, "failure": 1, "killed-stuck": 2}[status]
     if rc == "2":
         ec = 2
