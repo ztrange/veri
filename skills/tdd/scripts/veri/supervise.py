@@ -164,6 +164,24 @@ def preserve_killed_attempt(name, attempt):
               f" (issue {issue} step {step} {name} attempt {attempt})", file=sys.stderr)
 
 
+def still_alive_owner(ownerfile):
+    try:
+        with open(ownerfile) as f:
+            line = f.readline()
+    except OSError:
+        return None
+    fields = line.split(None, 1)
+    owner_pid = fields[0] if fields else ""
+    owner_name = fields[1].strip() if len(fields) > 1 else ""
+    if os.path.exists(f".tdd/{owner_name}.exit") or not re.fullmatch(r"-?[0-9]+", owner_pid):
+        return None
+    try:
+        os.kill(int(owner_pid), 0)
+    except OSError:
+        return None
+    return owner_pid, owner_name
+
+
 def attempt_once(name, cmd, log, rcfile, leaf_env, watched, timeout, heartbeat, poll, kill_poll):
     discard(rcfile)
     open(log, "wb").close()
@@ -246,6 +264,17 @@ def main(argv):
         model = leaf_model(name)
     skill_commit = answered("git", "-C", HERE, "rev-parse", "HEAD") or os.environ.get("VERI_SKILL_COMMIT") or "unknown"
     leaf_env = {**os.environ, "VERI_LEAF_MODEL": model, "VERI_SKILL_COMMIT": skill_commit}
+    ownerfile = ".tdd/leaf.owner"
+    owner = still_alive_owner(ownerfile)
+    if owner is not None:
+        owner_pid, owner_name = owner
+        print(f"supervise: refusing to launch {name}: leaf {owner_name or '?'} (pid {owner_pid})"
+              " is still alive in this worktree", file=sys.stderr)
+        if owner_name != name:
+            write_line(exitfile, 2)
+        return 2
+    if watched and not name.startswith("conductor-"):
+        write_line(ownerfile, f"{os.getpid()} {name}")
     mark(role, "launch", f"name={name}", f"cmd={' '.join(argv[1:])}", f"model={model}")
     write_line(f".tdd/{name}.pid", os.getpid())
     discard(exitfile)
