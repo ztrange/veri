@@ -1683,3 +1683,164 @@ def test_main_restores_sigint_then_traps_term_int_and_hup_after_the_stale_exit_g
             "defaults set": [], "trapped": [(term, False)], "one handler": True,
             "kills after delivery": [], "exit file": "2\n", **silent},
     }
+
+
+def test_main_hands_the_leaf_its_dispositions_through_a_preexec_survives_a_closed_stdout_and_names_each_failing_tdd_write_then_goes_on_to_its_exit(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import errno
+    import pathlib
+    import re
+    import signal
+    import time
+    term, sigint, hup, pipe, xfsz = signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGPIPE, signal.SIGXFSZ
+    monkeypatch.setattr(time, "sleep", lambda *_: None)
+
+    def supervised(label, name, start, prepare=lambda work: None, stdout=None):
+        work = tmp_path / label
+        tdd = work / ".tdd"
+        tdd.mkdir(parents=True)
+        prepare(work)
+        monkeypatch.chdir(work)
+        clean_env(monkeypatch)
+        dispositions = dict(start)
+
+        def install(sig, handler):
+            previous, dispositions[sig] = dispositions.get(sig, signal.SIG_DFL), handler
+            return previous
+
+        monkeypatch.setattr(signal, "signal", install)
+        monkeypatch.setattr(signal, "getsignal", lambda sig: dispositions.get(sig, signal.SIG_DFL))
+        handed = []
+
+        class Leaf:
+            returncode = 0
+            args = []
+
+            def __init__(self, pid):
+                self.pid = pid
+
+            def poll(self):
+                return 0
+
+            def wait(self, timeout=None):
+                return 0
+
+        def popen(args, *_, **kwargs):
+            if list(args[:2]) != ["/bin/sh", "-c"]:
+                raise AssertionError(f"unexpected Popen: {args}")
+            parent = dict(dispositions)
+            preexec = kwargs.get("preexec_fn")
+            if preexec is None:
+                child = "no preexec"
+            else:
+                preexec()
+                child = {sig: dispositions.get(sig) for sig in (pipe, xfsz, term, sigint, hup)}
+            dispositions.clear()
+            dispositions.update(parent)
+            handed.append((kwargs.get("restore_signals", "absent"), kwargs.get("process_group"), child))
+            rc = pathlib.Path(f".tdd/{name}.rc")
+            if rc.is_dir():
+                rc.rmdir()
+            rc.write_text("0\n")
+            log = pathlib.Path(f".tdd/{name}.log")
+            if log.is_file():
+                log.write_bytes(b"leaf out\n")
+            return Leaf(4242)
+
+        def run(args, *_, **kwargs):
+            args = [str(a) for a in args]
+            out = "0123456789abcdef0123456789abcdef01234567\n" if args[:1] == ["git"] else (
+                "1000\n" if args[:1] in (["date"], ["stat"]) else "")
+            out = as_asked(out, kwargs)
+            return subprocess.CompletedProcess(args, 0, out, "" if isinstance(out, str) else b"")
+
+        monkeypatch.setattr(subprocess, "run", run)
+        monkeypatch.setattr(subprocess, "check_output", lambda args, *a, **k: run(args, *a, **k).stdout)
+        monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: 0)
+        monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: 0)
+        monkeypatch.setattr(subprocess, "Popen", popen)
+        if stdout is not None:
+            monkeypatch.setattr(sys, "stdout", stdout)
+        try:
+            code = supervise.main([name, "leaf"])
+        except Exception as error:
+            code = ("raised", type(error).__name__)
+        finally:
+            monkeypatch.undo()
+            monkeypatch.setattr(time, "sleep", lambda *_: None)
+        _, err = capsysbinary.readouterr()
+        exitfile = tdd / f"{name}.exit"
+        return code, err, exitfile.read_text() if exitfile.is_file() else None, handed
+
+    started = {sigint: signal.default_int_handler, term: signal.SIG_DFL, hup: signal.SIG_DFL,
+               pipe: signal.SIG_IGN, xfsz: signal.SIG_IGN}
+    detached = {**started, sigint: signal.SIG_IGN, hup: signal.SIG_IGN}
+
+    class Closed:
+        """A stdout whose reader has gone: every write and flush is a broken pipe."""
+
+        def write(self, *_):
+            raise BrokenPipeError(errno.EPIPE, "Broken pipe")
+
+        flush = write
+
+        @property
+        def buffer(self):
+            return self
+
+    probe = tmp_path / "probe"
+    probe.mkdir()
+    try:
+        open(probe, "w")
+    except OSError as error:
+        not_writable = error.strerror
+    try:
+        os.remove(probe)
+    except OSError as error:
+        not_removable = error.strerror
+
+    def unmakeable(work):
+        for path in ("develop-red.log", "develop-red.rc", "develop-red.pid", "leaf.owner"):
+            (work / ".tdd" / path).mkdir()
+
+        def refuse_tdd(path, *_, **__):
+            if os.path.basename(os.fspath(path)) == ".tdd":
+                raise PermissionError(errno.EACCES, "Permission denied", os.fspath(path))
+            return None
+
+        monkeypatch.setattr(os, "makedirs", refuse_tdd)
+        monkeypatch.setattr(os, "mkdir", refuse_tdd)
+        monkeypatch.setattr(pathlib.Path, "mkdir", lambda self, *a, **k: refuse_tdd(self))
+
+    preexec_plain = supervised("plain", "verdict-red", started)
+    preexec_detached = supervised("detached", "verdict-red", detached)
+    closed = supervised("closed", "verdict-red", started, stdout=Closed())
+    failing = supervised("failing", "develop-red", started, prepare=unmakeable)
+
+    def named(path, strerror):
+        pattern = rb"supervise\[develop-red\]: could not \S.* " + re.escape(path.encode()) + b": " + \
+            re.escape(strerror.encode())
+        return any(re.fullmatch(pattern, line) for line in failing[1].splitlines())
+
+    answers = {
+        "plain": (preexec_plain[0], preexec_plain[2], preexec_plain[3]),
+        "detached": (preexec_detached[0], preexec_detached[2], preexec_detached[3]),
+        "closed stdout": closed[:3],
+        "failing writes": (failing[0], failing[2], {
+            ".tdd": named(".tdd", "Permission denied"),
+            ".tdd/develop-red.log": named(".tdd/develop-red.log", not_writable),
+            ".tdd/develop-red.rc": named(".tdd/develop-red.rc", not_removable),
+            ".tdd/develop-red.pid": named(".tdd/develop-red.pid", not_writable),
+            ".tdd/leaf.owner": named(".tdd/leaf.owner", not_writable),
+        }),
+    }
+
+    assert answers == {
+        "plain": (0, "0\n", [(False, 0, {pipe: signal.SIG_DFL, xfsz: signal.SIG_IGN, term: signal.SIG_DFL,
+                                          sigint: signal.SIG_DFL, hup: signal.SIG_DFL})]),
+        "detached": (0, "0\n", [(False, 0, {pipe: signal.SIG_DFL, xfsz: signal.SIG_IGN, term: signal.SIG_DFL,
+                                             sigint: signal.SIG_IGN, hup: signal.SIG_IGN})]),
+        "closed stdout": (0, b"supervise[verdict-red]: success\n", "0\n"),
+        "failing writes": (0, "0\n", {".tdd": True, ".tdd/develop-red.log": True, ".tdd/develop-red.rc": True,
+                                      ".tdd/develop-red.pid": True, ".tdd/leaf.owner": True}),
+    }
