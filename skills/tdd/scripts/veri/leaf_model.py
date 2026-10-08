@@ -8,12 +8,8 @@ USAGE = "usage: leaf-model.sh <leaf-name>"
 WHITESPACE = " \t\n\v\f\r"
 
 
-def is_echo_flag(value):
-    return len(value) > 1 and value[0] == "-" and all(c in "neE" for c in value[1:])
-
-
 def _echo(value):
-    if is_echo_flag(value):
+    if len(value) > 1 and value[0] == "-" and all(c in "neE" for c in value[1:]):
         if "n" not in value:
             _write(sys.stdout, "")
     else:
