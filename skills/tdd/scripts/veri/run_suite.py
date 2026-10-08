@@ -25,7 +25,6 @@ def read_guard(path):
 
 def render_printf(fmt, arg):
     escapes = {"n": "\n", "t": "\t", "r": "\r", "a": "\a", "\\": "\\"}
-    args = [arg]
     out = []
     i = 0
     while i < len(fmt):
@@ -35,7 +34,8 @@ def render_printf(fmt, arg):
             out.append("%")
             i += 2
         elif c == "%" and nxt == "s":
-            out.append(args.pop(0) if args else "")
+            out.append(arg)
+            arg = ""
             i += 2
         elif c == "%" and nxt == "d":
             out.append("0")
