@@ -4,4 +4,4 @@
 - [x] When the verifier leaf leaves `~/.gitconfig` a directory after it ran, `verify.sh` exits 2 with a message naming the global git config and prints no traceback, never exit 1 ⟦criterion 1⟧
 - [x] When the verifier leaf leaves `~/.gitconfig` unreadable after it ran (reading it raises PermissionError or another OSError), `verify.sh` exits 2 with a message naming the global git config and prints no traceback ⟦criterion 1⟧
 - [x] When the verifier leaf moved HEAD and restoring it with `git update-ref HEAD <before>` exits non-zero, `verify.sh` exits 2, never the git status such as 128, with no traceback ⟦criterion 2⟧
-- [x] When the verifier leaf moved HEAD and git cannot be started to restore it, `verify.sh` exits 2 with no traceback ⟦criterion 2⟧ ⟂ refactor pending
+- [x] When the verifier leaf moved HEAD and git cannot be started to restore it, `verify.sh` exits 2 with no traceback ⟦criterion 2⟧
