@@ -901,3 +901,34 @@ def test_main_hands_claude_skill_md_stripped_of_trailing_newlines_then_the_base_
                      "\nSolve issue #abc by the procedure above.\n" % (snapshots[0], commit)).encode()],
                    commit + "\n"),
     }
+
+
+def test_main_strips_claudes_environment_through_veri_session_env_so_a_name_added_to_its_session_vars_is_absent_from_the_launch(
+        tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
+    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    monkeypatch.setenv("VERI_PLANTED_621", "planted")
+    monkeypatch.setenv("VERI_KEPT_621", "kept")
+    session_env = importlib.import_module("session_env")
+    monkeypatch.setattr(session_env, "SESSION_VARS", session_env.SESSION_VARS + ("VERI_PLANTED_621",))
+    if "veri.session_env" in sys.modules:
+        monkeypatch.setattr(sys.modules["veri.session_env"], "SESSION_VARS",
+                            sys.modules["veri.session_env"].SESSION_VARS + ("VERI_PLANTED_621",))
+    run_conductor = importlib.import_module("veri.run_conductor")
+    monkeypatch.chdir(tmp_path)
+    fake_claude_launch(monkeypatch)
+    run, environments = subprocess.run, []
+
+    def claude_records_its_environment(args, *a, **kwargs):
+        if list(args)[:1] == ["fake-claude"]:
+            environments.append(dict(kwargs.get("env") or os.environ))
+        return run(args, *a, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", claude_records_its_environment)
+
+    run_conductor.main(["4242"])
+
+    capfdbinary.readouterr()
+    assert [("VERI_PLANTED_621" in env, env.get("VERI_KEPT_621")) for env in environments] == [(False, "kept")]

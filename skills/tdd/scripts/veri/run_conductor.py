@@ -7,6 +7,7 @@ import tempfile
 
 import launch_floor
 from git import symref_default
+from session_env import strip_session_env
 
 USAGE = "usage: run-conductor.sh <issue>"
 
@@ -110,9 +111,11 @@ def launch(base, issue, commit, **exports):
     text = prompt(base, issue, commit)
     if text is None:
         return 2
+    env = dict(os.environ, **exports)
+    strip_session_env(env)
     return subprocess.run([os.environ.get("CLAUDE_BIN") or "claude", "-p", "--output-format", "stream-json",
                            "--verbose", "--permission-mode", "bypassPermissions"],
-                          input=text, env=dict(os.environ, **exports)).returncode
+                          input=text, env=env).returncode
 
 
 def extract(base, commit, snapshot):
