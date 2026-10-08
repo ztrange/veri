@@ -1,6 +1,7 @@
 """stop-run.sh's stop request, run in-process."""
 import os
 import re
+import signal
 import subprocess
 import sys
 
@@ -36,6 +37,25 @@ def stop_run(run, mode):
     with open(run + "/.tdd/stop", "w") as stop:
         stop.write(mode + "\n")
     sys.stdout.buffer.write(os.fsencode(run) + b"\n")
+    if mode == "now":
+        stop_leaves(run)
+
+
+def stop_leaves(run):
+    tdd = run + "/.tdd/"
+    for entry in sorted(os.listdir(tdd)):
+        if entry.startswith(".") or not entry.endswith(".pid"):
+            continue
+        name = entry.removesuffix(".pid")
+        if name == "conductor":
+            continue
+        pid = pid_file.number_in(tdd + entry)
+        if pid is None or not pid_file.supervising(pid, name):
+            continue
+        try:
+            os.kill(int(pid), signal.SIGTERM)
+        except (ProcessLookupError, PermissionError, OverflowError):
+            pass
 
 
 def main(argv):

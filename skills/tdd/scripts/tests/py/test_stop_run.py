@@ -251,3 +251,51 @@ def test_main_takes_a_git_that_cannot_start_exits_non_zero_or_prints_nothing_as_
         assert calls == [(["git", "worktree", "list", "--porcelain"], None, subprocess.DEVNULL, str(caller))]
         assert list(tmp_path.rglob("stop")) == []
         assert signalled == []
+
+
+def test_main_now_terms_only_pids_whose_ps_runs_supervise_sh_of_their_name_ignoring_kill_errors_and_other_modes_signal_nothing(
+        monkeypatch, tmp_path, capsysbinary, stop_run):
+    import signal
+    monkeypatch.chdir(tmp_path)
+    run = run_with_conductor(tmp_path)
+    tdd = run / ".tdd"
+    huge = "99999999999999999999"
+    files = {"a": "101", "b": "none", ".c": "103", "e": "105", "f": "106", "g": "107", "h": huge, "i": "108"}
+    for name, content in files.items():
+        (tdd / (name + ".pid")).write_bytes(content.encode() + b"\n")
+    (tdd / "d.pid").mkdir()
+    (tdd / "j").write_bytes(b"109\n")
+    answers = main_tree_at(tmp_path)
+    for pid, args in (("4242", b"bash supervise.sh conductor x\n"), ("101", b"bash supervise.sh a develop-red\n"),
+                      ("103", b"bash supervise.sh .c x\n"), ("105", b"sleep 60\n"),
+                      ("106", b"bash supervise.sh f x\n"), ("107", b"bash supervise.sh g x\n"),
+                      (huge, b"bash supervise.sh h x\n"), ("108", b""),
+                      ("109", b"bash supervise.sh j x\n")):
+        answers[("ps", "-p", pid, "-o", "args=")] = (1 if pid == "108" else 0, args)
+    calls = fake_processes(monkeypatch, answers)
+    raises = {106: ProcessLookupError(3, "No such process"), 107: PermissionError(1, "Operation not permitted"),
+              int(huge): OverflowError("signed integer is greater than maximum")}
+    terms = []
+
+    def fake_kill(pid, sig):
+        if sig == signal.SIGTERM:
+            terms.append(pid)
+            if pid in raises:
+                raise raises[pid]
+        elif pid != 4242:
+            raise ProcessLookupError(3, "No such process")
+
+    monkeypatch.setattr(os, "kill", fake_kill)
+
+    assert stop_run.main(["--mode", "now", "5"]) == 0
+    assert terms == [101, 106, 107, int(huge)]
+    assert capsysbinary.readouterr() == (os.fsencode(run) + b"\n", b"")
+    assert (tdd / "stop").read_bytes() == b"now\n"
+
+    for mode in ("at-ledger", "at-leaf"):
+        terms.clear()
+        calls.clear()
+        assert (mode, stop_run.main(["--mode", mode, "5"])) == (mode, 0)
+        assert (mode, terms, [c for c in calls if c[0] == "ps"]) == (mode, [], [])
+        assert (tdd / "stop").read_bytes() == mode.encode() + b"\n"
+        capsysbinary.readouterr()
