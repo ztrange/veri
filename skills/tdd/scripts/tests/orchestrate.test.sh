@@ -340,6 +340,7 @@ python3 -c 'import os, sys
 print("session leader" if os.getsid(0) == int(sys.argv[1]) else "session %d, not %s" % (os.getsid(0), sys.argv[1]))
 print("stdin /dev/null" if os.path.samestat(os.fstat(0), os.stat("/dev/null")) else "stdin not /dev/null")' $$ >> "$MARKS"
 echo "conductor $1 on stderr" >&2
+exec 2>/dev/null
 echo "$1" >> "$LAUNCHES"
 grep -vx -- "$1" "$SOLVABLE" > "$SOLVABLE.next"
 mv "$SOLVABLE.next" "$SOLVABLE"
@@ -413,6 +414,7 @@ pid, outer = int(sys.argv[1]), int(sys.argv[2])
 print("new session led by its pid" if os.getsid(0) == pid != outer else "session %d, pid %d, outer %d" % (os.getsid(0), pid, outer))
 print("stdin /dev/null" if os.path.samestat(os.fstat(0), os.stat("/dev/null")) else "stdin not /dev/null")' $$ "$OUTER_SID" >> "$MARKS"
 echo "conductor $1 on stderr" >&2
+exec 2>/dev/null
 echo "$1" >> "$LAUNCHES"
 grep -vx -- "$1" "$SOLVABLE" > "$SOLVABLE.next"
 mv "$SOLVABLE.next" "$SOLVABLE"
