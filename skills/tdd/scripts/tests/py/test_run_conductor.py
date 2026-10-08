@@ -651,3 +651,95 @@ def test_main_with_no_resolvable_commit_warns_writes_no_record_or_gitignore_laun
                                 + "run-conductor: cannot read '%s/SKILL.md'\n" % (tmp_path / "unreadable-link")).encode(),
                        [], []),
     }
+
+
+def fake_claude_launch(monkeypatch):
+    """git faked as a process with no origin and no commit to resolve; every other process recorded
+    with its argv, the bytes written to its stdin and the stdout, stderr and session options it was given."""
+    launches = []
+
+    def as_bytes(data):
+        return data.encode() if isinstance(data, str) else (data or b"")
+
+    def launched(args, kwargs):
+        launch = {"argv": list(args), "stdin": as_bytes(kwargs.get("input")),
+                  "stdout": kwargs.get("stdout"), "stderr": kwargs.get("stderr"),
+                  "capture_output": kwargs.get("capture_output", False),
+                  "start_new_session": kwargs.get("start_new_session", False),
+                  "process_group": kwargs.get("process_group"), "preexec_fn": kwargs.get("preexec_fn")}
+        launches.append(launch)
+        return launch
+
+    def answer(args, *_, **kwargs):
+        args = list(args)
+        if args[:1] == ["git"]:
+            code = 2 if args[3:] == ["remote", "get-url", "origin"] else 128
+            empty = "" if kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding") else b""
+            return subprocess.CompletedProcess(args, code, empty, empty)
+        launched(args, kwargs)
+        return subprocess.CompletedProcess(args, 0, None, None)
+
+    def popen(args, *_, **kwargs):
+        args = list(args)
+        if args[:1] == ["git"]:
+            raise AssertionError("git started through Popen: %r" % args)
+        launch = launched(args, kwargs)
+        process = FakeProcess(args)
+
+        class Stdin(io.BytesIO):
+            def write(self, data):
+                launch["stdin"] += as_bytes(data)
+                return len(data)
+
+        process.stdin = Stdin()
+
+        def communicate(input=None, *_, **__):
+            launch["stdin"] += as_bytes(input)
+            return None, None
+
+        process.communicate = communicate
+        process.poll = lambda *_, **__: 0
+        return process
+
+    monkeypatch.setattr(subprocess, "run", answer)
+    monkeypatch.setattr(subprocess, "call", lambda *a, **k: answer(*a, **k).returncode)
+    monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: answer(*a, **k).returncode)
+    monkeypatch.setattr(subprocess, "Popen", popen)
+    for name in ("system", "fork", "posix_spawn", "posix_spawnp", "execv", "execvp", "execve", "setsid", "setpgid"):
+        if hasattr(os, name):
+            monkeypatch.setattr(os, name, lambda *args, _name=name, **__: launches.append({"os": _name, "args": args}))
+    return launches
+
+
+@pytest.mark.parametrize("claude_bin,program", [(None, "claude"), ("", "claude"), ("fake-claude", "fake-claude")])
+def test_main_launches_exactly_one_claude_with_the_fixed_print_mode_argv_and_no_prompt_element_the_prompt_on_its_stdin_its_stdout_and_stderr_inherited_and_no_new_session(
+        claude_bin, program, tmp_path, monkeypatch, capfdbinary):
+    import importlib.util
+    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
+    if claude_bin is None:
+        monkeypatch.delenv("CLAUDE_BIN", raising=False)
+    else:
+        monkeypatch.setenv("CLAUDE_BIN", claude_bin)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    skill = tmp_path / "skill"
+    (skill / "scripts" / "veri").mkdir(parents=True)
+    (skill / "scripts" / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
+    (skill / "SKILL.md").write_text("# the procedure, read from SKILL.md\n")
+    spec = importlib.util.spec_from_file_location("run_conductor_launch", str(skill / "scripts" / "veri" / "run_conductor.py"))
+    run_conductor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_conductor)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    launches = fake_claude_launch(monkeypatch)
+
+    run_conductor.main(["4242"])
+
+    capfdbinary.readouterr()
+    observed = [dict(launch, stdin=b"# the procedure, read from SKILL.md" in launch.get("stdin", b""))
+                for launch in launches]
+    assert observed == [{"argv": [program, "-p", "--output-format", "stream-json", "--verbose",
+                                  "--permission-mode", "bypassPermissions"],
+                         "stdin": True, "stdout": None, "stderr": None, "capture_output": False,
+                         "start_new_session": False, "process_group": None, "preexec_fn": None}]
