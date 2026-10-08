@@ -932,3 +932,64 @@ def test_main_strips_claudes_environment_through_veri_session_env_so_a_name_adde
 
     capfdbinary.readouterr()
     assert [("VERI_PLANTED_621" in env, env.get("VERI_KEPT_621")) for env in environments] == [(False, "kept")]
+
+
+def test_main_runs_event_sh_before_the_session_strip_then_hands_claude_no_veri_new_skill_every_other_veri_variable_and_an_ambient_veri_skill_commit_unpinned_or_veri_skill_unpinned_pinned(
+        tmp_path, monkeypatch, capfdbinary):
+    import tempfile
+    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
+    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    monkeypatch.setenv("VERI_NEW_SKILL", "1")
+    monkeypatch.setenv("VERI_KEPT", "kept")
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "sess-1077")
+    for name in ("VERI_ISSUE", "VERI_SKILL_COMMIT", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED"):
+        monkeypatch.delenv(name, raising=False)
+    scratch = tmp_path / "tmp"
+    scratch.mkdir()
+    monkeypatch.setenv("TMPDIR", str(scratch))
+    monkeypatch.setattr(tempfile, "tempdir", str(scratch))
+    commit = "1111111111111111111111111111111111111111"
+    run_conductor = importlib.import_module("veri.run_conductor")
+    names = ("VERI_NEW_SKILL", "CLAUDE_CODE_SESSION_ID", "VERI_KEPT", "VERI_SKILL_COMMIT", "VERI_SKILL_UNPINNED")
+    answers = {}
+    for name in ("pinned", "unpinned"):
+        cwd = tmp_path / name
+        cwd.mkdir()
+        monkeypatch.chdir(cwd)
+        if name == "pinned":
+            monkeypatch.setenv("VERI_SKILL_UNPINNED", "ambient")
+            monkeypatch.delenv("VERI_SKILL_COMMIT", raising=False)
+            (cwd / ".tdd").mkdir()
+            (cwd / ".tdd" / "issue-4242-skill-commit").write_text("2222222\n")
+            calls = fake_pin(monkeypatch, commit, set())
+            fake_snapshot(monkeypatch, calls, 0, 0)
+        else:
+            monkeypatch.setenv("VERI_SKILL_COMMIT", "ambient")
+            monkeypatch.delenv("VERI_SKILL_UNPINNED", raising=False)
+            fake_claude_launch(monkeypatch)
+        run, started = subprocess.run, []
+
+        def records_each_environment(args, *a, **kwargs):
+            program = os.path.basename(str(list(args)[0]))
+            if program in ("event.sh", "fake-claude"):
+                env = kwargs.get("env") if kwargs.get("env") is not None else os.environ
+                started.append((program, {n: env.get(n) for n in names}))
+            return run(args, *a, **kwargs)
+
+        monkeypatch.setattr(subprocess, "run", records_each_environment)
+        run_conductor.main(["4242"])
+        capfdbinary.readouterr()
+        answers[name] = started
+    assert answers == {
+        "pinned": [
+            ("event.sh", {"VERI_NEW_SKILL": "1", "CLAUDE_CODE_SESSION_ID": "sess-1077", "VERI_KEPT": "kept",
+                          "VERI_SKILL_COMMIT": None, "VERI_SKILL_UNPINNED": "ambient"}),
+            ("fake-claude", {"VERI_NEW_SKILL": None, "CLAUDE_CODE_SESSION_ID": None, "VERI_KEPT": "kept",
+                             "VERI_SKILL_COMMIT": commit, "VERI_SKILL_UNPINNED": "ambient"}),
+        ],
+        "unpinned": [
+            ("fake-claude", {"VERI_NEW_SKILL": None, "CLAUDE_CODE_SESSION_ID": None, "VERI_KEPT": "kept",
+                             "VERI_SKILL_COMMIT": "ambient", "VERI_SKILL_UNPINNED": "1"}),
+        ],
+    }
