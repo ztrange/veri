@@ -1,7 +1,9 @@
 """run-conductor.sh's launch of one conductor, run in-process."""
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 
 import launch_floor
 from git import symref_default
@@ -67,6 +69,7 @@ def main(argv):
                 sys.stderr.write("run-conductor: recorded skill commit '%s' is not in '%s' — refusing to re-pin; "
                                  "set VERI_NEW_SKILL=1 to take the new skill\n" % (recorded, base))
                 return 2
+            commit = recorded
         else:
             with open(record, "w") as out:
                 out.write(commit + "\n")
@@ -77,7 +80,28 @@ def main(argv):
                                   cwd=worktree,
                                   env=dict(os.environ, VERI_ISSUE=argv[0])).returncode != 0:
                     return 2
+        snapshot = tempfile.mkdtemp()
+        try:
+            status = extract(base, commit, snapshot)
+            if status != 0:
+                return status if status <= 3 else 2
+            env = dict(os.environ, VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
+            return subprocess.run([os.environ.get("CLAUDE_BIN") or "claude"], env=env).returncode
+        finally:
+            shutil.rmtree(snapshot, ignore_errors=True)
     return 0
+
+
+def extract(base, commit, snapshot):
+    read_end, write_end = os.pipe()
+    try:
+        archive = subprocess.Popen(["git", "-C", base, "archive", commit, "."], stdout=write_end)
+        tar = subprocess.Popen(["tar", "-x", "-C", snapshot], stdin=read_end)
+    finally:
+        os.close(read_end)
+        os.close(write_end)
+    tar_code, archive_code = tar.wait(), archive.wait()
+    return tar_code or archive_code
 
 
 def verifies(base, ref):
