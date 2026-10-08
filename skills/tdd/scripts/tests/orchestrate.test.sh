@@ -366,7 +366,7 @@ cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$sigpipe/"
 cp -R "$scripts/lib" "$scripts/veri" "$sigpipe/"
 cat > "$sigpipe/run-conductor.sh" <<'STUB'
 #!/usr/bin/env bash
-yes | head -c1 > /dev/null
+yes | dd bs=1 count=1 of=/dev/null 2> /dev/null
 echo "yes ${PIPESTATUS[0]}" >> "$MARKS"
 echo "$1" >> "$LAUNCHES"
 grep -vx -- "$1" "$SOLVABLE" > "$SOLVABLE.next"
