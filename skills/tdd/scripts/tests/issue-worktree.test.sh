@@ -715,4 +715,30 @@ branch="$(git -C "$want" branch --show-current 2>/dev/null || true)"
 { [[ "$code" == 0 ]] && [[ "$out" == "$want" ]] && [[ "$top" == "$want" ]] && [[ "$branch" == "tdd/34-via-skill-link" ]]; } \
   && ok || no "run through a symlink to the skill directory from another repository: prints that repository's .tdd/wt/34 and creates the worktree there, as when run in place (exit=$code want 0, stdout='$out' want '$want', toplevel='$top' want '$want', branch='$branch' want 'tdd/34-via-skill-link', stderr='$(cat "$errfile")')"
 
+repo="$work/pinned-scratch"
+make_repo "$repo"
+decoy="$work/decoy"
+make_repo "$decoy"
+mutant="$decoy/skills/tdd/scripts"
+mkdir -p "$mutant"
+cp -R "$HERE/../veri" "$mutant/veri"
+awk '/^exec python3/ { print "cd \"$(dirname \"$0\")\"" } { print }' "$WT" > "$mutant/issue-worktree.sh"
+chmod +x "$mutant/issue-worktree.sh"
+before="$(registry "$decoy")"
+errfile="$work/pinned-scratch.err"
+
+out="$(cd "$repo" && "$mutant/issue-worktree.sh" 41 escaped 2>"$errfile")" && code=0 || code=$?
+after="$(registry "$decoy")"
+
+problems=""
+[[ "$after" == "$before" ]] || problems+="; the decoy repository's worktree+branch registry changed:
+--- before
+$before
+--- after
+$after"
+[[ ! -e "$decoy/.tdd/wt/41" ]] || problems+="; $decoy/.tdd/wt/41 was created"
+[[ "$code" != 0 || "$out" != *"$decoy"* ]] || problems+="; exit=0 naming '$out', want the case to fail on a subject that resolved the decoy repository"
+{ [[ -z "$problems" ]]; } \
+  && ok || no "#1158: an issue-worktree.sh that resolves its main tree from its own directory, not the suite's scratch repository, creates no worktree, branch or .tdd/wt entry outside that repository (${problems#; })"
+
 finish

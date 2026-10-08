@@ -66,9 +66,19 @@ def wt_path(main_tree, n):
     return main_tree + "/.tdd/wt/" + n
 
 
+def inside_own_scripts():
+    scripts = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    here = os.path.realpath(os.getcwd())
+    return here == scripts or here.startswith(scripts + os.sep)
+
+
 def main(argv):
     if len(argv) < 2 or not argv[0] or not argv[1] or not positive_whole(argv[1] if argv[0] == "--remove" else argv[0]):
         sys.stderr.write(USAGE + "\n")
+        return 2
+    if inside_own_scripts():
+        sys.stderr.write("issue-worktree: type this from the repository the issue belongs to,"
+                         " not from the skill's own scripts directory\n")
         return 2
     registry = subprocess.run(["git", "worktree", "list", "--porcelain"], stdout=subprocess.PIPE, text=True)
     if registry.returncode != 0:
