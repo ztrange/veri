@@ -1,16 +1,11 @@
 """In-process cases for veri/launch_floor.py, the bash and Python floors leaf-launchable.sh refuses on."""
 import importlib
-import pathlib
 import shutil
 import subprocess
-import sys
 
 import pytest
 
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
+from conftest import SCRIPTS
 
 
 @pytest.fixture

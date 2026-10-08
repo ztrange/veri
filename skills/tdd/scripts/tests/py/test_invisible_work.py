@@ -1,15 +1,10 @@
 """In-process cases for veri/invisible_work.py, the module invisible-work.sh is a shim over."""
 import importlib
 import os
-import pathlib
 import subprocess
 import sys
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-if str(SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS))
 
 
 def fake_processes(monkeypatch, answer):

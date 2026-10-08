@@ -1,11 +1,5 @@
 """In-process cases for veri/ledger.py, the ledger reader lib/ledger.sh's ledger_steps defines in bash."""
 import importlib
-import pathlib
-import sys
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-if str(SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS))
 
 
 def test_ledger_steps_returns_the_records_lib_ledger_sh_prints():

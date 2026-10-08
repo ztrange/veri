@@ -5,9 +5,7 @@ import pathlib
 import re
 import sys
 
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-if str(SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS))
+from conftest import SCRIPTS
 
 
 def test_main_with_no_argument_returns_2_naming_its_usage(capsys):

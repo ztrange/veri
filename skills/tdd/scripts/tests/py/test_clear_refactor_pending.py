@@ -3,17 +3,11 @@ import builtins
 import errno
 import importlib
 import os
-import pathlib
 import resource
 import sys
 import tempfile
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
 
 USAGE = b"usage: clear-refactor-pending.sh <ledger-file> <matcher>\n"
 

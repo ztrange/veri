@@ -8,11 +8,6 @@ import tempfile
 
 import pytest
 
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
-
 USAGE = "usage: issue-worktree.sh <n> <slug> | --remove <n>\n"
 
 

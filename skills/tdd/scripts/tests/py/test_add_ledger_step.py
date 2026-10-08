@@ -1,13 +1,7 @@
 """In-process cases for veri/add_ledger_step.py, the module add-ledger-step.sh is a shim over."""
 import importlib
-import pathlib
-import sys
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-if str(SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS))
 
 USAGE = (
     "usage: add-ledger-step.sh <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]\n"

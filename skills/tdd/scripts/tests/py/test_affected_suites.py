@@ -1,15 +1,8 @@
 """In-process cases for veri/affected_suites.py, the module affected-suites.sh is a shim over."""
 import importlib
-import pathlib
 import subprocess
-import sys
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
 
 USAGE = "usage: affected-suites.sh <base>..<head>\n"
 

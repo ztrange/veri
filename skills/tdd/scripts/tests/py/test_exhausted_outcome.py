@@ -1,15 +1,10 @@
 """In-process cases for veri/exhausted_outcome.py, the module exhausted-outcome.sh is a shim over."""
 import importlib
 import io
-import pathlib
 import re
 import sys
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-if str(SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS))
 
 
 @pytest.fixture

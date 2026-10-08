@@ -1,13 +1,7 @@
 """In-process cases for veri/git.py, the git runner and symref parser veri's modules share."""
 import importlib
-import pathlib
-import sys
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-if str(SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS))
 
 SHA = "1111111111111111111111111111111111111111"
 

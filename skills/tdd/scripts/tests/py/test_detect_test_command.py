@@ -1,13 +1,9 @@
 """In-process cases for veri/detect_test_command.py, the module detect-test-command.sh is a shim over."""
 import importlib
-import pathlib
-import sys
 
 import pytest
 
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-if str(SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SCRIPTS))
+from conftest import SCRIPTS
 
 
 @pytest.fixture

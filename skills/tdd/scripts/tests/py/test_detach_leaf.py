@@ -1,15 +1,8 @@
 """In-process cases for veri/detach_leaf.py, the module detach-leaf.sh is a shim over."""
 import importlib
-import pathlib
 import subprocess
-import sys
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
 
 USAGE = "usage: detach-leaf.sh <cmd> [args…]\n"
 

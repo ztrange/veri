@@ -1,16 +1,9 @@
 """In-process cases for veri/detach.py, the launcher detach-command.sh's module starts its command through."""
 import importlib
-import pathlib
 import signal
 import subprocess
-import sys
 
 import pytest
-
-SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
-for path in (SCRIPTS, SCRIPTS / "veri"):
-    if str(path) not in sys.path:
-        sys.path.insert(0, str(path))
 
 
 @pytest.fixture
