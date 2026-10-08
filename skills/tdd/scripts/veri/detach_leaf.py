@@ -11,7 +11,10 @@ def main(argv):
     if not argv:
         print(USAGE, file=sys.stderr)
         return 2
-    detach.start(argv, subprocess.DEVNULL, None, None)
+    try:
+        detach.start(argv, subprocess.DEVNULL, None, None)
+    except OSError as error:
+        print(f"detach-leaf.sh: {argv[0]}: {error.strerror}", file=sys.stderr)
     return 0
 
 
