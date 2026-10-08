@@ -204,6 +204,24 @@ grep -F -- "$MISSING" "$work/missing.err" > /dev/null ||
 
 report "$name"
 
+name="#1188: detach-leaf.sh given a command path that exists but cannot be executed (a directory) exits 2 with nothing on stdout and one stderr line naming that command"
+problems=()
+
+NOT_EXECUTABLE="$work/a-directory-command"
+mkdir -p "$NOT_EXECUTABLE"
+"$DETACH" "$NOT_EXECUTABLE" > "$work/not-executable.out" 2> "$work/not-executable.err"
+status=$?
+[[ "$status" == 2 ]] ||
+  problems+=("want exit 2, got: $status")
+[[ ! -s "$work/not-executable.out" ]] ||
+  problems+=("want nothing on stdout, got: $(cat "$work/not-executable.out")")
+[[ "$(wc -l < "$work/not-executable.err" | tr -d ' ')" == 1 ]] ||
+  problems+=("want exactly one line on stderr, got: $(printf '%q' "$(cat "$work/not-executable.err")")")
+grep -F -- "$NOT_EXECUTABLE" "$work/not-executable.err" > /dev/null ||
+  problems+=("want stderr to name $NOT_EXECUTABLE, got: $(printf '%q' "$(cat "$work/not-executable.err")")")
+
+report "$name"
+
 name="detach-leaf.sh <cmd> exits 0 with nothing on its own stdout or stderr, and the command it was given runs"
 problems=()
 
