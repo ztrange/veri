@@ -131,7 +131,7 @@ def main(argv):
     leaf = "verify-" + args[0]
     flags = leaf_args()
     if os.environ.get("VERIFY_LEAF_ARGS"):
-        model = resolve(leaf) or ""
+        model = resolve(leaf)
         if model and not is_echo_flag(model) and "--model" in flags:
             _write(sys.stderr, "verify: VERIFY_LEAF_ARGS carries its own --model and a role model"
                    " variable resolved '%s' — which one the leaf would run on is flag order;"
