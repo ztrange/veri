@@ -217,3 +217,31 @@ def test_supervising_matches_the_literal_text_supervise_sh_name_with_its_trailin
         answers[case] = pid_file.supervising("4242", name)
 
     assert answers == {"nothing-after-the-name": False, "name-is-a-prefix": False, "glob-in-the-name": False}
+
+
+def test_supervising_recognises_a_supervisor_spelled_veri_supervise_py_as_well_as_supervise_sh(monkeypatch):
+    import subprocess
+
+    pid_file = importlib.import_module("veri.pid_file")
+    answered = {}
+
+    def fake_run(argv, *args, **kwargs):
+        return subprocess.CompletedProcess(argv, 0, stdout=answered["ps"], stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    answers = {}
+    for case, name, ps in [
+        ("python-supervisor", "develop-red-3", "python3 /x/veri/supervise.py develop-red-3 claude -p\n"),
+        ("bash-supervisor", "develop-red-3", "bash /x/supervise.sh develop-red-3 claude -p\n"),
+        ("python-nothing-after-the-name", "develop-red-3", "python3 /x/veri/supervise.py develop-red-3\n"),
+        ("python-name-is-a-prefix", "develop-red", "python3 /x/veri/supervise.py develop-red-3 x\n"),
+    ]:
+        answered["ps"] = ps
+        answers[case] = pid_file.supervising("4242", name)
+
+    assert answers == {
+        "python-supervisor": True,
+        "bash-supervisor": True,
+        "python-nothing-after-the-name": False,
+        "python-name-is-a-prefix": False,
+    }

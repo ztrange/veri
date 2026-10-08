@@ -29,4 +29,4 @@ def live_conductor(path):
 
 def supervising(pid, name):
     ps = subprocess.run(["ps", "-p", pid, "-o", "args="], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-    return ps.returncode == 0 and f"supervise.sh {name} " in ps.stdout
+    return ps.returncode == 0 and (f"supervise.sh {name} " in ps.stdout or f"veri/supervise.py {name} " in ps.stdout)
