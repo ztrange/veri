@@ -419,5 +419,46 @@ else
   sed 's/^/    stderr: /' "$work/err"
 fi
 
+name="#1130 with stdout a pipe whose reader has exited, or closed, SIGTERMs its conductor's process group before it exits"
+stopgroup="$work/stopgroup"
+conductor_stub "$stopgroup" <<STUB
+[ "\$(wc -l < "\$LAUNCHES")" -eq 1 ] || exit 0
+(
+  trap 'echo "group TERM" >> "\$MARKS"; exit 0' TERM
+  : > "\$MARKS.ready"
+  i=0
+  while [ \$i -lt 400 ]; do sleep 0.01; i=\$((i + 1)); done
+  echo "group never stopped" >> "\$MARKS"
+) > /dev/null &
+echo \$! >> "\$MARKS.pid"
+trap 'echo "conductor TERM" >> "\$MARKS"; exit 0' TERM
+i=0
+while [ \$i -lt 400 ] && [ ! -e "\$MARKS.ready" ]; do i=\$((i + 1)); sleep 0.01; done
+if [ -n "\${READER_GONE:-}" ]; then
+  i=0
+  while [ \$i -lt 400 ] && { [ ! -s "\$MARKS.reader" ] || kill -0 "\$(cat "\$MARKS.reader")" 2>/dev/null; }; do i=\$((i + 1)); sleep 0.01; done
+fi
+echo '{"type":"assistant","message":{"role":"assistant","usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":1000,"output_tokens":40}}}'
+i=0
+while [ \$i -lt 400 ]; do sleep 0.01; i=\$((i + 1)); done
+echo "conductor never stopped" >> "\$MARKS"
+STUB
+seed stopbroken 1801
+(cd "$work" && READER_GONE=1 "$stopgroup/orchestrate.sh") < /dev/null 2> "$work/err" | sh -c 'echo $$ > "$1"' sh "$MARKS.reader"
+await_gone
+broken="$(sort "$MARKS")"
+seed stopclosed 1802
+(cd "$work" && "$stopgroup/orchestrate.sh") < /dev/null >&- 2> "$work/err"
+await_gone
+closed="$(sort "$MARKS")"
+expected="$(printf '%s\n' 'conductor TERM' 'group TERM')"
+if [[ "$broken" == "$expected" && "$closed" == "$expected" ]]; then
+  ok
+else
+  no "$name"
+  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$broken") | sed 's/^/    pipe: /'
+  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$closed") | sed 's/^/    closed: /'
+fi
+
 echo
 finish
