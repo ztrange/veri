@@ -1431,4 +1431,31 @@ linked_beside_after="$(ls -d "$SCRIPTS/.tdd" "$SCRIPTS/../.tdd" "$linked_home/.t
 { [[ "${#linked_problems[@]}" -eq 0 ]]; } && ok \
   || no "supervise.sh run through a symlink to the skill directory from another working directory answers as in place: events, usage and the preserved attempt land in the caller's .tdd, skill_commit is the skill clone's HEAD, and no .tdd appears beside the skill (${linked_problems[*]})"
 
+
+childtree_work="$work/hang-with-child"
+mkdir -p "$childtree_work"
+cat > "$stub/leaf-hang-child" <<'L'
+#!/bin/sh
+echo $$ > leaf-pid
+sleep 60 &
+echo $! > child-pid
+echo "leaf: starting"; clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"; sleep 60; echo "unreachable"
+L
+chmod +x "$stub/leaf-hang-child"
+( cd "$childtree_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=1 VERI_TIMEOUT=30 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-hang-child" ) >/dev/null 2>&1
+childtree_code=$?
+childtree_alive=()
+for childtree_file in leaf-pid child-pid; do
+  childtree_pid="$(tr -d '[:space:]' < "$childtree_work/$childtree_file" 2>/dev/null)"
+  if [[ -z "$childtree_pid" ]]; then childtree_alive+=("$childtree_file: never recorded"); continue; fi
+  for _ in $(seq 1 20); do kill -0 "$childtree_pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$childtree_pid" 2>/dev/null; then
+    childtree_alive+=("$childtree_file: pid $childtree_pid still alive")
+    kill -KILL "$childtree_pid" 2>/dev/null
+  fi
+done
+{ [[ "$childtree_code" == 2 ]] && [[ "${#childtree_alive[@]}" -eq 0 ]]; } && ok \
+  || no "a hung leaf that started a background child of its own and recorded its pid leaves neither the leaf nor the child alive after the heartbeat kill (code=$childtree_code want 2; ${childtree_alive[*]:-none alive})"
+
 finish
