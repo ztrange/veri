@@ -6,6 +6,7 @@ import signal
 import subprocess
 import sys
 import time
+from typing import NamedTuple
 
 from extract_result import extract
 from leaf_log import result_records
@@ -16,6 +17,14 @@ from pid_file import number_in
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 USAGE = "usage: supervise.sh <name> <cmd> [args...]"
+
+
+class Watch(NamedTuple):
+    watched: bool
+    timeout: str
+    heartbeat: str
+    poll: str
+    kill_poll: float
 
 
 def refuse(*lines):
@@ -220,7 +229,8 @@ def still_alive_owner(ownerfile):
     return owner_pid, owner_name
 
 
-def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watched, timeout, heartbeat, poll, kill_poll):
+def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
+    watched, timeout, heartbeat, poll, kill_poll = watch
     tolerated(name, "remove", rcfile, discard, rcfile)
     tolerated(name, "truncate", log, truncate, log)
     t0 = now()
@@ -338,12 +348,12 @@ def main(argv):
     started = []
     preexec = leaf_dispositions(ignored)
     trap(started, exitfile, kill_poll, ignored)
+    watch = Watch(watched, timeout, heartbeat, poll, kill_poll)
     retries = os.environ.get("VERI_STUCK_RETRIES") or "1"
     tries = 0
     try:
         while True:
-            status, reason, rc, a0 = attempt_once(started, name, argv[1:], log, rcfile, leaf_env, preexec, watched,
-                                                  timeout, heartbeat, poll, kill_poll)
+            status, reason, rc, a0 = attempt_once(started, name, argv[1:], log, rcfile, leaf_env, preexec, watch)
             if status != "killed-stuck":
                 break
             preserve_killed_attempt(name, tries + 1, leaf_env)
