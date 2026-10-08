@@ -1021,3 +1021,92 @@ def test_main_returns_claudes_own_status_128_plus_n_for_a_signal_127_naming_a_cl
         "unread-exit-0": (141, b"", warning),
         "missing": (127, b"", warning + missing),
     }
+
+
+def fake_after_conductor(monkeypatch, commit, branches, launches):
+    """git faked as a process with no origin: `rev-parse HEAD` resolves to `commit` (None: nothing),
+    `rev-parse --show-toplevel` answers a directory's physical path when it is a worktree of its own
+    (a `.git` file in it) and the working directory's otherwise, `for-each-ref` lists the `branches`
+    its patterns match; tar drops a SKILL.md, and each fake-claude launch records whether the
+    record was there."""
+    import fnmatch
+
+    def answer(args, *_, **kwargs):
+        args = list(args)
+        code, out = 0, ""
+        if args[:1] == ["git"]:
+            where = args[2] if args[1:2] == ["-C"] else "."
+            where = os.path.join(kwargs.get("cwd") or os.getcwd(), where)
+            rest = args[3:] if args[1:2] == ["-C"] else args[1:]
+            if rest == ["remote", "get-url", "origin"]:
+                code = 2
+            elif "--show-toplevel" in rest:
+                if not os.path.isdir(where):
+                    code = 128
+                elif os.path.exists(os.path.join(where, ".git")):
+                    out = os.path.realpath(where) + "\n"
+                else:
+                    out = os.path.realpath(os.getcwd()) + "\n"
+            elif "for-each-ref" in rest:
+                patterns = [word for word in rest if word.startswith("refs/")]
+                out = "".join(branch + "\n" for branch in branches
+                              if not patterns or any(fnmatch.fnmatchcase(branch, p) for p in patterns))
+            elif rest[:1] == ["rev-parse"]:
+                code, out = (0, commit + "\n") if commit and rest[1:] == ["HEAD"] else (128, "")
+        elif args[:1] == ["fake-claude"]:
+            launches.append(os.path.exists(".tdd/issue-4242-skill-commit"))
+        if not (kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")):
+            out = out.encode()
+        return subprocess.CompletedProcess(args, code, out, b"" if isinstance(out, bytes) else "")
+
+    def popen(args, *_, **__):
+        args = list(args)
+        if args[:1] == ["tar"]:
+            pathlib.Path(args[-1], "SKILL.md").write_text("# skill\n")
+        return FakeProcess(args)
+
+    monkeypatch.setattr(subprocess, "run", answer)
+    monkeypatch.setattr(subprocess, "call", lambda *a, **k: answer(*a, **k).returncode)
+    monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: answer(*a, **k).returncode)
+    monkeypatch.setattr(subprocess, "Popen", popen)
+
+
+def test_main_after_claude_exits_keeps_the_record_when_the_run_worktree_is_its_own_toplevel_or_a_tdd_n_branch_exists_and_removes_it_otherwise_pinned_or_unpinned(
+        tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    for name in ("VERI_NEW_SKILL", "VERI_SKILL_COMMIT", "VERI_SKILL_UNPINNED"):
+        monkeypatch.delenv(name, raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    scenarios = {
+        "own-worktree-through-a-symlink": ("own", []),
+        "plain-directory-with-a-run-branch": ("plain", ["refs/heads/tdd/4242-fix-it"]),
+        "plain-directory-with-only-other-issues-branches": (
+            "plain", ["refs/heads/tdd/42426-other", "refs/heads/tdd/4243-next", "refs/heads/main"]),
+        "no-run-worktree-and-no-branch": (None, []),
+    }
+    answers = {}
+    for launch in ("pinned", "unpinned"):
+        for name, (worktree, branches) in scenarios.items():
+            cwd = tmp_path / launch / name
+            (cwd / ".tdd" / "wt").mkdir(parents=True)
+            monkeypatch.chdir(cwd)
+            if worktree == "own":
+                real = tmp_path / launch / (name + "-real")
+                real.mkdir()
+                (real / ".git").write_text("gitdir: elsewhere\n")
+                (cwd / ".tdd" / "wt" / "4242").symlink_to(real)
+            elif worktree == "plain":
+                (cwd / ".tdd" / "wt" / "4242").mkdir()
+            if launch == "unpinned":
+                (cwd / ".tdd" / "issue-4242-skill-commit").write_text("2222222\n")
+            launches = []
+            fake_after_conductor(monkeypatch, "1111111111111111111111111111111111111111"
+                                 if launch == "pinned" else None, branches, launches)
+            code = run_conductor.main(["4242"])
+            capfdbinary.readouterr()
+            answers[(launch, name)] = (code, launches, (cwd / ".tdd" / "issue-4242-skill-commit").exists())
+    kept = {"own-worktree-through-a-symlink": True, "plain-directory-with-a-run-branch": True,
+            "plain-directory-with-only-other-issues-branches": False, "no-run-worktree-and-no-branch": False}
+    assert answers == {(launch, name): (0, [True], kept[name])
+                       for launch in ("pinned", "unpinned") for name in scenarios}
