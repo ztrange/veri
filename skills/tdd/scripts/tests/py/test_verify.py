@@ -295,3 +295,56 @@ def test_main_launches_the_leaf_with_verify_leaf_args_words_split_on_whitespace_
     assert supervised == [[os.path.join(scripts, "supervise.sh"), "verify-green",
                            os.path.join(scripts, "run-leaf.sh"), ".tdd/verify-green.prompt",
                            "--one", "two", "a.flag", "b.flag", "nomatch-*.zz", "--three"]]
+
+
+CLASH = ("verify: VERIFY_LEAF_ARGS carries its own --model and a role model variable resolved"
+         " '%s' — which one the leaf would run on is flag order; unset one of them\n")
+
+
+WITH_MODEL = "--permission-mode bypassPermissions --model sonnet"
+
+
+@pytest.mark.parametrize("leaf_args, models, expected_code, expected_err, launches", [
+    (WITH_MODEL, {"VERI_MODEL_VERIFIER": "opus", "VERI_MODEL": "haiku"}, 2, CLASH % "opus", False),
+    (WITH_MODEL, {"VERI_MODEL": "haiku"}, 2, CLASH % "haiku", False),
+    (WITH_MODEL, {"VERI_MODEL_VERIFIER": "two words"}, 0,
+     "leaf-model: model 'two words' contains whitespace (a model id or alias is one word)\n", True),
+    (WITH_MODEL, {"VERI_MODEL_VERIFIER": "-n"}, 0, "", True),
+    ("--permission-mode bypassPermissions", {"VERI_MODEL_VERIFIER": "opus"}, 0, "", True),
+    (None, {"VERI_MODEL": "two words"}, 0, "", True),
+])
+def test_main_refuses_a_literal_model_word_in_verify_leaf_args_beside_a_resolved_role_model_before_the_builder_runs(
+        leaf_args, models, expected_code, expected_err, launches, tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_MODEL_DEVELOPER",
+                 "VERI_ISSUE", "VERI_STEP", "VERI_NO_VERDICT_RETRIES"):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in models.items():
+        monkeypatch.setenv(name, value)
+    if leaf_args is None:
+        monkeypatch.delenv("VERIFY_LEAF_ARGS", raising=False)
+    else:
+        monkeypatch.setenv("VERIFY_LEAF_ARGS", leaf_args)
+    started = []
+
+    def fake(args, *_, **__):
+        name = os.path.basename(str(args[0]))
+        started.append(name)
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine", None)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    captured = capfdbinary.readouterr()
+    assert (code, captured.err.decode("utf-8"), "supervise.sh" in started) == (
+        expected_code, expected_err, launches)
+    if not launches:
+        assert (captured.out, started) == (b"", [])

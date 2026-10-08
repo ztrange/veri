@@ -8,25 +8,36 @@ USAGE = "usage: leaf-model.sh <leaf-name>"
 WHITESPACE = " \t\n\v\f\r"
 
 
+def is_echo_flag(value):
+    return len(value) > 1 and value[0] == "-" and all(c in "neE" for c in value[1:])
+
+
 def _echo(value):
-    if len(value) > 1 and value[0] == "-" and all(c in "neE" for c in value[1:]):
+    if is_echo_flag(value):
         if "n" not in value:
             _write(sys.stdout, "")
     else:
         _write(sys.stdout, value)
 
 
-def main(argv):
-    if not argv or not argv[0]:
-        _write(sys.stderr, USAGE)
-        return 2
-    role = leaf_role(argv[0])
+def resolve(name):
+    role = leaf_role(name)
     if role is None:
-        return 2
+        return None
     actor = role["VERI_ACTOR"]
     model = os.environ.get("VERI_MODEL_" + actor.upper()) or os.environ.get("VERI_MODEL", "")
     if any(c in WHITESPACE for c in model):
         _write(sys.stderr, f"leaf-model: model '{model}' contains whitespace (a model id or alias is one word)")
+        return None
+    return model
+
+
+def main(argv):
+    if not argv or not argv[0]:
+        _write(sys.stderr, USAGE)
+        return 2
+    model = resolve(argv[0])
+    if model is None:
         return 2
     if model:
         _echo(model)
