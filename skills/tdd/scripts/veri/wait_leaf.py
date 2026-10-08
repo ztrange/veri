@@ -15,6 +15,16 @@ def recorded(exit_file):
     return int(code) if code in ("0", "1", "2", "3") else 2
 
 
+def arithmetic(text):
+    digits = text.removeprefix("-")
+    sign = -1 if digits != text else 1
+    if digits[:2] in ("0x", "0X"):
+        return sign * int(digits[2:], 16)
+    if digits.startswith("0"):
+        return sign * int(digits, 8)
+    return sign * int(digits)
+
+
 def clock():
     return int(subprocess.run(["date", "+%s"], stdout=subprocess.PIPE, text=True).stdout)
 
@@ -24,7 +34,7 @@ def main(argv):
         sys.stderr.write(USAGE)
         return 2
     name = argv[0]
-    max_seconds = int(argv[1]) if len(argv) > 1 and argv[1] else 540
+    max_seconds = arithmetic(argv[1]) if len(argv) > 1 and argv[1] else 540
     poll = os.environ.get("VERI_POLL") or "1"
     exit_file = f".tdd/{name}.exit"
     pid_file = f".tdd/{name}.pid"
