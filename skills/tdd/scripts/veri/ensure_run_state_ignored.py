@@ -45,8 +45,18 @@ def write_failed(error):
     return 2
 
 
+def inside_own_scripts(root):
+    scripts = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    here = os.path.realpath(root)
+    return here == scripts or here.startswith(scripts + os.sep)
+
+
 def main(argv):
     root = argv[0] if argv and argv[0] else "."
+    if inside_own_scripts(root):
+        print("ensure-run-state-ignored: name the target repository,"
+              " not the skill's own scripts directory", file=sys.stderr)
+        return 2
     gitignore = root + "/.gitignore"
     found = subprocess.run(["git", "-C", root, "rev-parse", "--git-common-dir"],
                            stdout=subprocess.PIPE, text=True)
