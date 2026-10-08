@@ -68,11 +68,18 @@ def main(argv):
     os.makedirs(".tdd", exist_ok=True)
     with open(prompt_path, "wb") as prompt:
         prompt.write(built.stdout.rstrip(b"\n"))
-    launched = subprocess.run(
-        [sibling("supervise.sh"), leaf,
-         sibling("run-leaf.sh"), prompt_path, *flags],
-        stdout=subprocess.PIPE)
-    code, reason = parse(launched.stdout)
+    try:
+        launched = subprocess.run(
+            [sibling("supervise.sh"), leaf,
+             sibling("run-leaf.sh"), prompt_path, *flags],
+            stdout=subprocess.PIPE)
+        status, out = launched.returncode, launched.stdout
+    except OSError:
+        status, out = 127, b""
+    if status == 2:
+        _write(sys.stdout, "verifier leaf killed-stuck — no verdict rendered (see .tdd/%s.log)" % leaf)
+        return 2
+    code, reason = parse(out)
     word = {0: "PASS", 1: "REJECT"}.get(code, "malformed")
     subprocess.run(
         [sibling("event.sh"), "verdict", "verdict=" + word,
