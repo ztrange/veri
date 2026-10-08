@@ -3,6 +3,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 USAGE = "usage: supervise.sh <name> <cmd> [args...]"
 
@@ -34,7 +35,24 @@ def main(argv):
     kill_poll = os.environ.get("VERI_KILL_POLL") or "0.1"
     if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", kill_poll):
         return refuse(f"supervise: VERI_KILL_POLL must be a non-negative number: {kill_poll}")
-    subprocess.Popen(argv[1:])
+    name = argv[0]
+    os.makedirs(".tdd", exist_ok=True)
+    log, rcfile, exitfile = f".tdd/{name}.log", f".tdd/{name}.rc", f".tdd/{name}.exit"
+    subprocess.Popen(["/bin/sh", "-c", 'log=$1 rc=$2; shift 2; "$@" >"$log" 2>&1; echo $? >"$rc"',
+                      "sh", log, rcfile, *argv[1:]], process_group=0)
+    while not os.path.isfile(rcfile):
+        time.sleep(0.1)
+    with open(rcfile) as f:
+        status = "success" if f.read().rstrip("\n") == "0" else "failure"
+    ec = 0 if status == "success" else 1
+    print(f"supervise[{name}]: {status}", file=sys.stderr)
+    sys.stderr.flush()
+    with open(log, "rb") as f:
+        sys.stdout.buffer.write(f.read())
+    sys.stdout.flush()
+    with open(exitfile, "w") as f:
+        f.write(f"{ec}\n")
+    return ec
 
 
 if __name__ == "__main__":

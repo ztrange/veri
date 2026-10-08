@@ -161,3 +161,78 @@ def test_main_refuses_a_settled_timeout_not_a_whole_number_of_seconds_and_a_kill
     with pytest.raises(Launched):
         supervise.main(argv)
     assert b"VERI_KILL_POLL" not in capsysbinary.readouterr().err
+
+
+def fake_leaf_launch(monkeypatch):
+    """date, stat and git answered in-process; a Popen of a /bin/sh -c wrapper runs that wrapper for real, to its end."""
+    real_popen = subprocess.Popen
+    launches = []
+
+    def answer(args, kwargs):
+        args = list(args)
+        if args[:1] == ["git"]:
+            out = "0123456789abcdef0123456789abcdef01234567\n"
+        elif args[:1] in (["date"], ["stat"]):
+            out = "1000\n"
+        else:
+            out = ""
+        if not (kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")):
+            out = out.encode()
+        return out
+
+    def run(args, *_, **kwargs):
+        out = answer(args, kwargs)
+        return subprocess.CompletedProcess(args, 0, out, "" if isinstance(out, str) else b"")
+
+    def popen(args, *a, **kwargs):
+        launches.append((list(args), dict(kwargs)))
+        if list(args[:2]) != ["/bin/sh", "-c"]:
+            return real_popen(["true"])
+        leaf = real_popen(args, *a, **kwargs)
+        leaf.wait()
+        return leaf
+
+    monkeypatch.setattr(subprocess, "run", run)
+    monkeypatch.setattr(subprocess, "check_output", lambda args, *a, **k: answer(args, k))
+    monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: 0)
+    monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: 0)
+    monkeypatch.setattr(subprocess, "Popen", popen)
+    return launches
+
+
+def test_main_launches_the_leaf_through_one_sh_wrapper_in_its_own_group_logging_it_and_recording_its_rc_then_reports_success_or_failure(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    monkeypatch.setattr(time, "sleep", lambda *_: None)
+    for key in list(os.environ):
+        if key.startswith("VERI_"):
+            monkeypatch.delenv(key)
+
+    answers = []
+    for rc in (0, 1):
+        work = tmp_path / f"rc-{rc}"
+        work.mkdir()
+        monkeypatch.chdir(work)
+        launches = fake_leaf_launch(monkeypatch)
+        leaf = ["sh", "-c", f"printf 'leaf out\\n'; printf 'leaf err\\n' >&2; exit {rc}"]
+        code = supervise.main(["verdict-red", *leaf])
+        out, err = capsysbinary.readouterr()
+
+        def read(name):
+            path = work / ".tdd" / name
+            return path.read_bytes() if path.exists() else None
+
+        answers.append((
+            code, out, err.splitlines()[-1:],
+            read("verdict-red.log"), read("verdict-red.rc"), read("verdict-red.exit"),
+            [(args[:2], kwargs.get("process_group"), kwargs.get("stdin")) for args, kwargs in launches],
+        ))
+
+    assert answers == [
+        (0, b"leaf out\nleaf err\n", [b"supervise[verdict-red]: success"],
+         b"leaf out\nleaf err\n", b"0\n", b"0\n", [(["/bin/sh", "-c"], 0, None)]),
+        (1, b"leaf out\nleaf err\n", [b"supervise[verdict-red]: failure"],
+         b"leaf out\nleaf err\n", b"1\n", b"1\n", [(["/bin/sh", "-c"], 0, None)]),
+    ]
