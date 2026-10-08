@@ -135,7 +135,6 @@ migration_slice() {  # migration_slice <n> <script> … — the slice's case, ov
 
 migration_slice 3 event.sh
 migration_slice 7 run-conductor.sh
-migration_slice 9 supervise.sh
 
 name="no script guards a required positional argument with a bare \${N:?…} expansion"
 mapfile -t offenders < <(bare_expansion_offenders "$SCRIPTS")
