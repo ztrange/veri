@@ -170,6 +170,23 @@ check_still_answering "$impostor" "the pid running something other than a superv
 report "--mode now <n> sends TERM to the pid in <run>/.tdd/<name>.pid whose process runs supervise.sh <name>, and to no pid whose process is gone or runs something else"
 
 problems=()
+label=""
+rm -f "$run/.tdd/stop"
+
+pybin="$work/pybin"; mkdir -p "$pybin/veri"
+cp "$stubbin/supervise.sh" "$pybin/veri/supervise.py"
+"$pybin/veri/supervise.py" develop-refactor 5 &
+py_sup=$!; alive+=("$py_sup")
+printf '%s\n' "$py_sup" > "$run/.tdd/develop-refactor.pid"
+
+run_stop --mode now 5
+check_code 0
+gone "$py_sup" ||
+  note "want the develop-refactor supervisor $py_sup, spelled veri/supervise.py, signalled, it is still answering"
+
+report "--mode now <n> sends TERM to the pid in <run>/.tdd/<name>.pid whose process runs veri/supervise.py <name>"
+
+problems=()
 
 live_supervisor "$run" develop-red
 quiet_sup="$supervisor_pid"
