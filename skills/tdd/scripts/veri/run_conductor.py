@@ -58,7 +58,7 @@ def main(argv):
         if not os.path.exists(".tdd/.gitignore"):
             with open(".tdd/.gitignore", "w") as seed:
                 seed.write(".gitignore\nissue-*-skill-commit\n")
-        record = ".tdd/issue-%s-skill-commit" % argv[0]
+        record = record_path(argv[0])
         readable = os.access(record, os.R_OK)
         if readable and os.environ.get("VERI_NEW_SKILL") != "1":
             try:
@@ -129,12 +129,16 @@ def launch(base, issue, commit, **exports):
         signal.signal(signal.SIGPIPE, previous)
     if not past_preflight(issue):
         try:
-            os.remove(".tdd/issue-%s-skill-commit" % issue)
+            os.remove(record_path(issue))
         except FileNotFoundError:
             pass
     if code < 0:
         return 128 - code
     return 141 if code == 0 and unread else code
+
+
+def record_path(issue):
+    return ".tdd/issue-%s-skill-commit" % issue
 
 
 def past_preflight(issue):
