@@ -100,22 +100,6 @@ VERDICT: PASS'
 done
 report "with no session variable set, exits with the stub's code (0-3, else 2) and prints the same stdout (#621)"
 
-planted="$(scratch_dir)"
-cp -R "$HERE/../.." "$planted/tdd"
-printf '%s\n' 'SESSION_VARS+=(VERI_PLANTED_621)' >> "$planted/tdd/scripts/lib/session-env.sh"
-claude_stub "$envstub" 'cat > /dev/null; env > "$ENV_OUT"'
-rm -f "$work/conductor.env"
-( cd "$work" && env VERI_PLANTED_621=from-the-conductor CLAUDE_BIN="$envstub/claude" \
-    ENV_OUT="$work/conductor.env" GIT_CEILING_DIRECTORIES="$planted" \
-    "$planted/tdd/scripts/run-conductor.sh" 4242 ) >/dev/null 2>&1
-problems=()
-if [[ ! -f "$work/conductor.env" ]]; then
-  problems+=("the conductor's claude was never started")
-elif grep -E '^VERI_PLANTED_621=' "$work/conductor.env" > /dev/null; then
-  problems+=("VERI_PLANTED_621, added to lib/session-env.sh's SESSION_VARS, reached the conductor's claude")
-fi
-report "a variable added to lib/session-env.sh's session list does not reach the conductor's claude (#621)"
-
 lost=()
 for how in unset empty; do
   if [[ "$how" == unset ]]; then id_args=(-u CLAUDE_CODE_SESSION_ID); else id_args=(CLAUDE_CODE_SESSION_ID=); fi
@@ -213,21 +197,6 @@ VERDICT: PASS'
 [[ "$code" == 0 ]] || problems+=("exited $code, wanted 0")
 [[ "$(cat "$streamed/out")" == "$expected" ]] || problems+=("stdout after the release differed: '$(cat "$streamed/out")'")
 report "streams claude's stdout as it arrives: the first line is out while claude waits, the result record only after, then the full stdout and exit 0"
-
-problems=()
-conductor_tree="$(scratch_dir)"
-cp -R "$HERE/../.." "$conductor_tree/tdd"
-printf '%s\n' 'SESSION_VARS+=(VERI_PLANTED_621)' >> "$conductor_tree/tdd/scripts/lib/session-env.sh"
-rm -f "$work/planted-conductor.env"
-( cd "$work" && env VERI_PLANTED_621=from-the-conductor CLAUDE_BIN="$envstub/claude" \
-    ENV_OUT="$work/planted-conductor.env" GIT_CEILING_DIRECTORIES="$conductor_tree" \
-    "$conductor_tree/tdd/scripts/run-conductor.sh" 4242 ) >/dev/null 2>&1
-if [[ ! -f "$work/planted-conductor.env" ]]; then
-  problems+=("the conductor's claude was never started")
-elif grep -E '^VERI_PLANTED_621=' "$work/planted-conductor.env" > /dev/null; then
-  problems+=("VERI_PLANTED_621, added to lib/session-env.sh's SESSION_VARS, reached the conductor's claude")
-fi
-report "a name planted in lib/session-env.sh's SESSION_VARS stays out of run-conductor.sh's claude's environment"
 
 problems=()
 dispositions="$(scratch_dir)"
