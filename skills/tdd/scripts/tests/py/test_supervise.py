@@ -61,6 +61,13 @@ def clean_env(monkeypatch, **env):
         monkeypatch.setenv(key, value)
 
 
+def as_asked(out, kwargs):
+    """out as the str or bytes the subprocess call's kwargs ask for."""
+    if kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding"):
+        return out
+    return out.encode()
+
+
 class Launched(BaseException):
     """Raised by the fake process boundary when main starts anything but git."""
 
@@ -77,9 +84,7 @@ def fake_git_only(monkeypatch, toplevel):
             code, out = (128, "") if toplevel is None else (0, f"{toplevel}\n")
         else:
             code, out = 0, "0123456789abcdef0123456789abcdef01234567\n"
-        if not (kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")):
-            out = out.encode()
-        return code, out
+        return code, as_asked(out, kwargs)
 
     def run(args, *_, **kwargs):
         code, out = answer(args, kwargs)
@@ -178,9 +183,7 @@ def fake_leaf_launch(monkeypatch):
             out = "1000\n"
         else:
             out = ""
-        if not (kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")):
-            out = out.encode()
-        return out
+        return as_asked(out, kwargs)
 
     def run(args, *_, **kwargs):
         out = answer(args, kwargs)
