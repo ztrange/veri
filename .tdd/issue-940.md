@@ -33,7 +33,7 @@ Decisions the issue left to the plan:
 - [x] make test is green against the shim, the contract cases criterion 3 names among its suites ⟦full-suite⟧ ⟦criterion 3⟧
 - [x] make test is green, tests/py/test_stop_run.py and the survivors of tests/stop-run.test.sh among its suites ⟦full-suite⟧ ⟦criterion 5⟧
 - [x] make test is green, the suites criterion 7 names among them ⟦full-suite⟧ ⟦criterion 7⟧
-- [ ] the PR body lists the slice-8 call beside the pytest cases that replaced it ⟦human-owed⟧ ⟦criterion 1⟧
-- [ ] the PR body lists each `#683` case's planted half beside the pytest case that replaced it ⟦human-owed⟧ ⟦criterion 2⟧
-- [ ] the PR body lists each cut bash case of tests/stop-run.test.sh beside the pytest case that replaced it, and quotes make profile for tests/stop-run.test.sh and the wall time of tests/py/test_stop_run.py, before and after, with the commit beside each figure ⟦human-owed⟧ ⟦criterion 5⟧
-- [ ] the PR body names the pytest case beside each branch listed under "Order matters (#797)" ⟦human-owed⟧ ⟦criterion 8⟧
+- [x] the PR body lists the slice-8 call beside the pytest cases that replaced it ⟦human-owed⟧ ⟦criterion 1⟧ — checked 2026-10-07 (Mario-delegated review): see PR #1156 body, "Mario-delegated review (2026-10-07)"
+- [x] the PR body lists each `#683` case's planted half beside the pytest case that replaced it ⟦human-owed⟧ ⟦criterion 2⟧ — checked 2026-10-07 (Mario-delegated review): see PR #1156 body, "Mario-delegated review (2026-10-07)"
+- [x] the PR body lists each cut bash case of tests/stop-run.test.sh beside the pytest case that replaced it, and quotes make profile for tests/stop-run.test.sh and the wall time of tests/py/test_stop_run.py, before and after, with the commit beside each figure ⟦human-owed⟧ ⟦criterion 5⟧ — checked 2026-10-07 (Mario-delegated review): see PR #1156 body, "Mario-delegated review (2026-10-07)"
+- [x] the PR body names the pytest case beside each branch listed under "Order matters (#797)" ⟦human-owed⟧ ⟦criterion 8⟧ — checked 2026-10-07 (Mario-delegated review): see PR #1156 body, "Mario-delegated review (2026-10-07)"
