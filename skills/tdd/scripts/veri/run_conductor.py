@@ -85,17 +85,11 @@ def main(argv):
             status = extract(base, commit, snapshot)
             if status != 0:
                 return status if status <= 3 else 2
-            text = prompt(snapshot)
-            if text is None:
-                return 2
-            return launch(text,VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
+            return launch(snapshot, VERI_SKILL_COMMIT=commit, VERI_SKILL_CLONE=base, VERI_SKILL_REF=head_rev)
         finally:
             shutil.rmtree(snapshot, ignore_errors=True)
     sys.stderr.write("run-conductor: no skill commit resolvable from '%s' — running unpinned\n" % base)
-    text = prompt(base)
-    if text is None:
-        return 2
-    return launch(text, VERI_SKILL_UNPINNED="1")
+    return launch(base, VERI_SKILL_UNPINNED="1")
 
 
 def prompt(base):
@@ -108,7 +102,10 @@ def prompt(base):
         return None
 
 
-def launch(text, **exports):
+def launch(base, **exports):
+    text = prompt(base)
+    if text is None:
+        return 2
     return subprocess.run([os.environ.get("CLAUDE_BIN") or "claude", "-p", "--output-format", "stream-json",
                            "--verbose", "--permission-mode", "bypassPermissions"],
                           input=text, env=dict(os.environ, **exports)).returncode
