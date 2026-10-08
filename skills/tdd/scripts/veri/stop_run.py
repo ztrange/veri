@@ -44,6 +44,13 @@ def inside_own_scripts():
     return here == scripts or here.startswith(scripts + os.sep)
 
 
+def on_one_path(main_tree):
+    tree = os.path.realpath(os.fsdecode(main_tree))
+    here = os.path.realpath(os.getcwd())
+    return any(inner == outer or inner.startswith(outer.rstrip(os.sep) + os.sep)
+               for inner, outer in ((here, tree), (tree, here)))
+
+
 def stop_run(run, mode):
     with open(run + "/.tdd/stop", "w") as stop:
         stop.write(mode + "\n")
@@ -96,6 +103,8 @@ def main(argv):
     main_tree = main_working_tree()
     if not main_tree:
         return refuse("no main working tree here — type this inside the repository")
+    if not on_one_path(main_tree):
+        return refuse(f"the main working tree '{os.fsdecode(main_tree)}' does not hold the directory this was typed from")
     runs = os.fsdecode(main_tree) + "/.tdd/wt/"
     if every:
         stopped = 0
