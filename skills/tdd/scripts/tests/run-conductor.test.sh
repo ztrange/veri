@@ -1992,4 +1992,52 @@ printf 'usage: run-conductor.sh <issue>\n' | cmp -s - "$err_noarg" ||
 
 report "$name"
 
+name="run-conductor.sh run through a symlink to the skill directory, from another working directory, pins, snapshots and records exactly as run in place"
+problems=()
+
+remote_ln="$work/remote-ln"
+clone_ln="$work/clone-ln"
+cloned_skill "$remote_ln" "$clone_ln"
+tip_ln="$(git -C "$clone_ln" rev-parse HEAD)"
+echo "# uncommitted edit to the clone's SKILL.md" >> "$clone_ln/skills/tdd/SKILL.md"
+
+link_ln="$work/link-ln"
+ln -s "$clone_ln/skills/tdd" "$link_ln"
+
+caller_ln="$work/caller-ln"
+caller_repo "$caller_ln"
+seen_ln="$work/record-ln"
+rm -f "$seen_ln"
+cat > "$stubdir/record-ln-hook" <<HOOK
+#!/bin/sh
+cp "$caller_ln/.tdd/issue-$issue-skill-commit" "$seen_ln"
+HOOK
+chmod +x "$stubdir/record-ln-hook"
+
+base_ln="$work/base-ln"
+mkdir -p "$base_ln"
+rm -f "$prompt"
+( unset VERI_NEW_SKILL; cd "$caller_ln" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
+    BASE_OUT="$base_ln" CONDUCTOR_HOOK="$stubdir/record-ln-hook" \
+    "$link_ln/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>"$launch_err"
+
+if [[ ! -f "$seen_ln" ]]; then
+  problems+=("no record at $caller_ln/.tdd/issue-$issue-skill-commit while the conductor ran: $(cat "$launch_err")")
+elif [[ "$(cat "$seen_ln")" != "$tip_ln" ]]; then
+  problems+=("the record holds '$(cat "$seen_ln")', not the clone's tip $tip_ln")
+fi
+
+snap_ln="$(prompt_base)"
+if [[ -z "$snap_ln" ]]; then
+  problems+=("the prompt names no 'Base directory for this skill: <dir>' line: $(cat "$launch_err")")
+elif [[ "$(cd "$snap_ln" 2>/dev/null && pwd -P)" == "$(cd "$clone_ln/skills/tdd" && pwd -P)" ]]; then
+  problems+=("the base directory is the clone's own skills/tdd, not a snapshot: $snap_ln")
+elif ! cmp -s <(git -C "$clone_ln" show "$tip_ln:skills/tdd/SKILL.md") "$base_ln/SKILL.md"; then
+  problems+=("the snapshot's SKILL.md is not the one committed at $tip_ln")
+fi
+grep -q -- "$tip_ln" "$prompt" 2>/dev/null ||
+  problems+=("the prompt does not name the pinned commit $tip_ln")
+
+report "$name"
+
 finish
