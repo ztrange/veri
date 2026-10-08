@@ -467,4 +467,29 @@ $body")
 
 report "$name"
 
+name="#1035 refactor-overflow with only out-of-scope transforms files a body carrying only the out-of-scope heading"
+problems=()
+
+only_out_of_scope_owed="$work/issue-1035-only-out-of-scope-refactor-owed.md"
+"$OWED" append "$only_out_of_scope_owed" 'first step' <<'REPORT'
+CANDIDATES: out-of-scope | extract the five copies of the mktemp dance across the skill
+REPORT
+
+title_file="$work/title-only-out-of-scope" body_file="$work/body-only-out-of-scope"
+(cd "$work" && env PATH="$stubdir:$PATH" FAKE_TITLE="$title_file" FAKE_BODY="$body_file" \
+  "$OVERFLOW" 1035 "$only_out_of_scope_owed" 0 >"$out" 2>"$work/err") && code=0 || code=$?
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 with only out-of-scope transforms owed, got $code: $(cat "$work/err")")
+body="$(cat "$body_file" 2>/dev/null)"
+want_body="Out-of-scope transforms #1035's closing pass did not attempt:
+
+- extract the five copies of the mktemp dance across the skill"
+[[ "$body" == "$want_body" ]] ||
+  problems+=("want the body as the out-of-scope heading and its list alone:
+$want_body
+got:
+$body")
+
+report "$name"
+
 finish
