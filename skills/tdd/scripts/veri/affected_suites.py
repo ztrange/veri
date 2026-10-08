@@ -6,6 +6,11 @@ import re
 import subprocess
 import sys
 
+try:
+    from git import git
+except ImportError:
+    from .git import git
+
 USAGE = "usage: affected-suites.sh <base>..<head>"
 SCRIPTS = "skills/tdd/scripts"
 SPACE = rb"[ \t\n\v\f\r]"
@@ -20,10 +25,6 @@ def refuse(message=None):
         print(message, file=sys.stderr)
     print(USAGE, file=sys.stderr)
     return 2
-
-
-def git(*args, **kwargs):
-    return subprocess.run(["git", *args], **kwargs)
 
 
 def read(path):
