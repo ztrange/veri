@@ -55,6 +55,7 @@ def _pause(poll):
 
 def _wait(exit_file, pid_file, text):
     start = int(time.time())
+    poll = os.environ.get("VERI_POLL") or "1"
     while True:
         code = _recorded(exit_file)
         if code is not None:
@@ -65,7 +66,7 @@ def _wait(exit_file, pid_file, text):
         limit = _limit(text)
         if limit is not None and int(time.time()) - start >= limit:
             return 3
-        _pause(os.environ.get("VERI_POLL") or "1")
+        _pause(poll)
 
 
 def _refused(argv):
