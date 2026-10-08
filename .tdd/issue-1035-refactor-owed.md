@@ -11,3 +11,4 @@
 - test-only | the per-class empty-candidate refusal cases in test_refactor_triage.py (structural, cosmetic, test-only) are near-identical and could be one parametrized test over the class name
 ### refactor-triage refuses an empty out-of-scope candidate line with exit 2 and stderr naming the line ⟦criterion 6⟧
 - test-only | collapse the three near-identical empty cosmetic/test-only/out-of-scope refusal tests in test_refactor_triage.py into one pytest.mark.parametrize case over the class name
+applied | 347926abf25e35c2c2a37ba10a27b01334c3a73e | build the class list in refactor_triage.py's refusal message and the four `_candidate(...)` patterns from one tuple of class names, so a fifth class cannot be added to one and missed in the other
