@@ -45,13 +45,13 @@ def main(argv):
         return 2
     if built.returncode:
         return to_contract(built.returncode)
-    phase = args[0]
-    prompt_path = ".tdd/verify-%s.prompt" % phase
+    leaf = "verify-" + args[0]
+    prompt_path = ".tdd/%s.prompt" % leaf
     os.makedirs(".tdd", exist_ok=True)
     with open(prompt_path, "wb") as prompt:
         prompt.write(built.stdout.rstrip(b"\n"))
     launched = subprocess.run(
-        [sibling("supervise.sh"), "verify-%s" % phase,
+        [sibling("supervise.sh"), leaf,
          sibling("run-leaf.sh"), prompt_path, *LEAF_ARGS],
         stdout=subprocess.PIPE)
     code, reason = parse(launched.stdout)
@@ -59,7 +59,7 @@ def main(argv):
     subprocess.run(
         [sibling("event.sh"), "verdict", "verdict=" + word,
          "reason=" + reason.split("\n", 1)[0]],
-        env={**os.environ, **leaf_role("verify-%s" % phase)})
+        env={**os.environ, **leaf_role(leaf)})
     _write(sys.stdout, reason)
     return to_contract(code)
 
