@@ -619,6 +619,35 @@ fi
 { [[ "$term_code" == 2 ]] && [[ "$term_exit" == 2 ]] && [[ "$term_alive" == no ]]; } && ok \
   || no "supervise.sh sent TERM writes 2 to its completion file, exits 2 and leaves no leaf process behind (code=$term_code want 2, exit file=$term_exit want 2, leaf alive=$term_alive want no)"
 
+intr_problems=()
+for intr_sig in INT HUP; do
+  intr_work="$work/signal-$intr_sig"
+  mkdir -p "$intr_work"
+  # Without job control an async command starts with SIGINT ignored; set -m keeps it at its default.
+  set -m
+  ( cd "$intr_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+      VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-term-sleep" ) >/dev/null 2>&1 &
+  intr_sup=$!
+  set +m
+  for _ in $(seq 1 50); do [[ -s "$intr_work/leaf-pid" ]] && break; sleep 0.1; done
+  intr_leaf="$(tr -d '[:space:]' < "$intr_work/leaf-pid" 2>/dev/null)"
+  kill -"$intr_sig" "$intr_sup" 2>/dev/null
+  wait "$intr_sup"
+  intr_code=$?
+  intr_exit="$({ tr -d '[:space:]' < "$intr_work/.tdd/develop-red.exit"; } 2>/dev/null || echo '<missing>')"
+  intr_alive="no"
+  if [[ -n "$intr_leaf" ]]; then
+    for _ in $(seq 1 20); do kill -0 "$intr_leaf" 2>/dev/null || break; sleep 0.1; done
+    if kill -0 "$intr_leaf" 2>/dev/null; then intr_alive="yes"; kill -KILL "$intr_leaf" 2>/dev/null; fi
+  else
+    intr_alive="<leaf never started>"
+  fi
+  { [[ "$intr_code" == 2 ]] && [[ "$intr_exit" == 2 ]] && [[ "$intr_alive" == no ]]; } \
+    || intr_problems+=("$intr_sig: code=$intr_code want 2, exit file=$intr_exit want 2, leaf alive=$intr_alive want no")
+done
+[[ "${#intr_problems[@]}" -eq 0 ]] && ok \
+  || no "supervise.sh sent INT or HUP does what TERM does: writes 2 to its completion file, exits 2 and leaves no leaf process behind (${intr_problems[*]})"
+
 waitlive_work="$work/wait-live-supervisor"
 mkdir -p "$waitlive_work"
 ( cd "$waitlive_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
