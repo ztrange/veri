@@ -5,6 +5,8 @@ import subprocess
 import sys
 import time
 
+from pid_file import number_in
+
 USAGE = "usage: supervise.sh <name> <cmd> [args...]"
 
 
@@ -38,20 +40,32 @@ def main(argv):
     name = argv[0]
     os.makedirs(".tdd", exist_ok=True)
     log, rcfile, exitfile = f".tdd/{name}.log", f".tdd/{name}.rc", f".tdd/{name}.exit"
+    with open(f".tdd/{name}.pid", "w") as f:
+        f.write(f"{os.getpid()}\n")
+    for stale in (exitfile, rcfile):
+        try:
+            os.remove(stale)
+        except FileNotFoundError:
+            pass
+    open(log, "wb").close()
     subprocess.Popen(["/bin/sh", "-c", 'log=$1 rc=$2; shift 2; "$@" >"$log" 2>&1; echo $? >"$rc"',
                       "sh", log, rcfile, *argv[1:]], process_group=0)
     while not os.path.isfile(rcfile):
         time.sleep(0.1)
     with open(rcfile) as f:
-        status = "success" if f.read().rstrip("\n") == "0" else "failure"
+        rc = f.read().rstrip("\n")
+    status = "success" if rc == "0" else "failure"
     ec = 0 if status == "success" else 1
+    if rc == "2":
+        ec = 2
     print(f"supervise[{name}]: {status}", file=sys.stderr)
     sys.stderr.flush()
     with open(log, "rb") as f:
         sys.stdout.buffer.write(f.read())
     sys.stdout.flush()
-    with open(exitfile, "w") as f:
-        f.write(f"{ec}\n")
+    if number_in(exitfile) is None:
+        with open(exitfile, "w") as f:
+            f.write(f"{ec}\n")
     return ec
 
 
