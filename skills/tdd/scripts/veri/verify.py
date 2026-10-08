@@ -206,3 +206,7 @@ def parse(out):
         return code, sys.stdout.getvalue().rstrip("\n"), sys.stderr.getvalue()
     finally:
         sys.stdin, sys.stdout, sys.stderr = stdin, stdout, stderr
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
