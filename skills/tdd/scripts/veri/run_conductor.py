@@ -15,7 +15,8 @@ def main(argv):
     if not argv or not argv[0]:
         sys.stderr.write(USAGE + "\n")
         return 2
-    base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    base = os.path.dirname(here)
     head_rev = "HEAD"
     if git(base, "remote", "get-url", "origin",
            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
@@ -71,7 +72,6 @@ def main(argv):
                 out.write(commit + "\n")
             if readable:
                 os.makedirs(".tdd/wt/" + argv[0], exist_ok=True)
-                here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                 if subprocess.run([os.path.join(here, "event.sh"), "skill-repin", "commit=" + commit],
                                   cwd=".tdd/wt/" + argv[0],
                                   env=dict(os.environ, VERI_ISSUE=argv[0])).returncode != 0:
