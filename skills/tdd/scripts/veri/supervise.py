@@ -219,7 +219,7 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, watched, timeout, he
                 reason = f"no heartbeat for {silence}s (window {heartbeat}s)"
         if reason:
             status = "killed-stuck"
-            kill_tree(leaf, float(kill_poll))
+            kill_tree(leaf, kill_poll)
             break
         pause(poll)
     leaf.wait()
@@ -233,7 +233,7 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, watched, timeout, he
 def trap(started, exitfile, kill_poll):
     def on_signal(*_):
         if started:
-            kill_tree(started[-1], float(kill_poll))
+            kill_tree(started[-1], kill_poll)
         write_line(exitfile, 2)
         os._exit(2)
 
@@ -265,6 +265,7 @@ def main(argv):
     kill_poll = os.environ.get("VERI_KILL_POLL") or "0.1"
     if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", kill_poll):
         return refuse(f"supervise: VERI_KILL_POLL must be a non-negative number: {kill_poll}")
+    kill_poll = float(kill_poll)
     heartbeat = os.environ.get("VERI_HEARTBEAT") or "180"
     poll = os.environ.get("VERI_POLL") or "1"
     name = argv[0]
