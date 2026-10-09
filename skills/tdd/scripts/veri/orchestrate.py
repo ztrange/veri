@@ -21,7 +21,13 @@ def main(argv):
     if not re.fullmatch(r"[0-9]+", budget):
         sys.stderr.write("orchestrate.sh: VERI_CONDUCTOR_CTX_BUDGET must be a whole number of tokens: %s\n" % budget)
         return 2
-    stop_timeout = float(os.environ.get("VERI_CONDUCTOR_STOP_TIMEOUT") or "10")
+    raw_stop_timeout = os.environ.get("VERI_CONDUCTOR_STOP_TIMEOUT") or "10"
+    try:
+        stop_timeout = float(raw_stop_timeout)
+    except ValueError:
+        sys.stderr.write("orchestrate.sh: VERI_CONDUCTOR_STOP_TIMEOUT must be a positive number of seconds: %s\n"
+                         % raw_stop_timeout)
+        return 2
     while True:
         answer = subprocess.run([os.path.join(SCRIPTS, "solvable-issues.sh")], stdout=subprocess.PIPE)
         if answer.returncode == 3:

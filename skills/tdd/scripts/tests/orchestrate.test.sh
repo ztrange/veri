@@ -259,6 +259,24 @@ else
   diff "$work/err.expected" "$work/err" | sed 's/^/    /'
 fi
 
+name="#1250 refuses VERI_CONDUCTOR_STOP_TIMEOUT=abc with exit 2, no launch, and one stderr line naming the variable and the value, no traceback"
+seed badstoptimeout 803
+VERI_CONDUCTOR_STOP_TIMEOUT=abc orchestrate "$scripts"
+launched="$(wc -l < "$LAUNCHES" | tr -d ' ')"
+lines="$(wc -l < "$work/err" | tr -d ' ')"
+if [[ "$rc" -eq 2 && "$launched" -eq 0 && "$lines" -eq 1 ]] \
+  && grep -F VERI_CONDUCTOR_STOP_TIMEOUT "$work/err" > /dev/null \
+  && grep -F abc "$work/err" > /dev/null \
+  && ! grep -F Traceback "$work/err" > /dev/null; then
+  ok
+else
+  no "$name"
+  echo "    exit: $rc (expected 2)"
+  echo "    launches: $launched (expected 0)"
+  echo "    stderr lines: $lines (expected 1, naming VERI_CONDUCTOR_STOP_TIMEOUT and abc, no Traceback)"
+  sed 's/^/    stderr: /' "$work/err"
+fi
+
 name="with VERI_CONDUCTOR_CTX_BUDGET unset, a conductor crossing 120000 is stopped after its next step-done"
 defaultbudget="$work/defaultbudget"
 conductor_stub "$defaultbudget" <<STUB
