@@ -2160,4 +2160,47 @@ exec {int_started}>&- {int_release}>&-
 
 report "$name"
 
+name="run-conductor.sh sent SIGHUP alone while its claude runs waits for claude, removes the snapshot, prints no traceback and exits with claude's status (#1219)"
+problems=()
+
+hupstub="$(scratch_dir)"
+hupwork="$(scratch_dir)"
+claude_stub "$hupstub" "$(cat <<'STUB'
+cat > "$PROMPT_OUT"
+echo started > "$STARTED"
+read -r _ < "$RELEASE"
+exit 5
+STUB
+)"
+mkdir -p "$hupwork/caller"
+mkfifo "$hupwork/started" "$hupwork/release"
+exec {hup_started}<>"$hupwork/started" {hup_release}<>"$hupwork/release"
+on_exit bg_kill "$hupwork/record"
+bg_start "$hupwork/record" env CLAUDE_BIN="$hupstub/claude" PROMPT_OUT="$hupwork/prompt" \
+  STARTED="$hupwork/started" RELEASE="$hupwork/release" \
+  sh -c 'cd "$1" && exec "$2" "$3"' sh "$hupwork/caller" "$CONDUCTOR" "$issue" \
+  >/dev/null 2>"$hupwork/err"
+read -r hup_pid _ < "$hupwork/record"
+
+if ! read -t 60 -r _ <&"$hup_started"; then
+  problems+=("claude never started: $(cat "$hupwork/err")")
+else
+  hup_snap="$(head -n 1 < <(sed -n 's/^Base directory for this skill: //p' "$hupwork/prompt"))"
+  kill -HUP "$hup_pid"
+fi
+echo go >&"$hup_release"
+wait "$hup_pid"
+hup_status=$?
+bg_kill "$hupwork/record"
+exec {hup_started}>&- {hup_release}>&-
+
+[[ "$hup_status" -eq 5 ]] ||
+  problems+=("the script exited $hup_status, not claude's 5: $(cat "$hupwork/err")")
+! grep -F Traceback "$hupwork/err" > /dev/null ||
+  problems+=("stderr carries a traceback: $(cat "$hupwork/err")")
+[[ -n "${hup_snap:-}" && ! -e "$hup_snap" ]] ||
+  problems+=("the snapshot '${hup_snap:-}' was not named or was left behind after the script exited")
+
+report "$name"
+
 finish
