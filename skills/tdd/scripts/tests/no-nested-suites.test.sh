@@ -154,6 +154,9 @@ report "#1011: affected-suites.test.sh's no-same-named-suite fixture mentions of
 mentions_reported affected-suites.test.sh "#1138"
 report "#1138: affected-suites.test.sh's #1138 case names mentioning claude-md-counts.test.sh are not read as launching it"
 
+mentions_reported affected-suites.test.sh .test.sh
+report "#538: affected-suites.test.sh's cp of SKILL.md and of the suites naming it into a scratch repo does not make its fixture mentions of other suites read as launching them"
+
 mentions_reported no-awk-v-patterns.test.sh parallel-conductors.test.sh skill-draft-pr.test.sh skill-plan-verify.test.sh skill-red-prediction.test.sh solvable-issues.test.sh
 report "#1050: no-awk-v-patterns.test.sh's content-keyed exemption keys naming parallel-conductors.test.sh, skill-draft-pr.test.sh, skill-plan-verify.test.sh, skill-red-prediction.test.sh and solvable-issues.test.sh are not read as launching them"
 

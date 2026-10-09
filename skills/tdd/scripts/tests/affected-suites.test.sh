@@ -379,11 +379,11 @@ fi
 
 make_repo real_skill_sections
 mkdir -p "$s/tests/unit"
-cp "$HERE/../../SKILL.md" "$repo/skills/tdd/SKILL.md"
+cat "$HERE/../../SKILL.md" > "$repo/skills/tdd/SKILL.md"
 real_naming=()
 while IFS= read -r suite; do
   real_naming+=("${suite#"$HERE/../../../../"}")
-  cp "$suite" "$repo/${real_naming[${#real_naming[@]}-1]}"
+  cat "$suite" > "$repo/${real_naming[${#real_naming[@]}-1]}"
 done < <(grep -lE '"skills/tdd/SKILL\.md"|/skills/tdd/SKILL\.md"' "$HERE/../../../../skills/tdd/scripts/tests/"*.test.sh "$HERE/../../../../skills/tdd/scripts/tests/unit/"*.test.sh)
 commit_base
 heading_forms() {
@@ -404,7 +404,7 @@ for target in '## Stopping' '## Bailing' '## Resume' '### 4. Draft PR'; do
   enclosing="$(head -n "$at" "$repo/skills/tdd/SKILL.md" | grep -E '^## ' | tail -n 1)"
   expected="$( { readers_of "$target"; readers_of "$enclosing"
     printf '%s\n' "${real_naming[@]}" | grep -vxF -f <(printf '%s\n' "$slicers"); } | LC_ALL=C sort -u)"
-  cp "$repo/skills/tdd/SKILL.md" "$work/SKILL.md.orig"
+  cat "$repo/skills/tdd/SKILL.md" > "$work/SKILL.md.orig"
   awk -v at="$at" '{ print } NR == at + 1 { print "an edited line" }' "$work/SKILL.md.orig" > "$repo/skills/tdd/SKILL.md"
   commit_head
   out="$(run_affected 2>/dev/null)"; code=$?
