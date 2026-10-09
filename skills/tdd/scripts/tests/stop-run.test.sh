@@ -368,4 +368,21 @@ fi
 
 report "#1158: the suite runs a scratch copy of stop-run.sh, and a cd \"\$(dirname \"\$0\")/../..\" planted into it writes no .tdd/stop and signals no supervisor outside the scratch repository"
 
+problems=()
+label=""
+
+primary="$work/primary"
+new_repo -b main "$primary" >/dev/null 2>&1
+git -C "$primary" commit -q --allow-empty -m init
+outside="$work/outside-linked"
+git -C "$primary" worktree add -q "$outside" -b linked >/dev/null 2>&1
+primary_run="$primary/.tdd/wt/7"
+live_conductor "$primary_run"
+
+run_stop_in "$outside" 7
+check_code 0
+check_stop "$primary_run" at-ledger
+
+report "#1158: stop-run.sh typed from a linked worktree outside the primary clone exits 0 and writes at-ledger into the run's .tdd/stop"
+
 finish
