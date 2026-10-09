@@ -3,7 +3,7 @@ import os
 import sys
 
 from event_log import read_events
-from ledger import ledger_steps
+from ledger import decode_ledger, ledger_steps
 
 USAGE = "usage: metrics.sh <issue-number>"
 
@@ -75,13 +75,13 @@ def render(issue, path, ledger):
     def planned_steps(path):
         try:
             with open(path, "rb") as f:
-                text = f.read().replace(b"\0", b"").decode(errors="surrogateescape")
+                text = decode_ledger(f.read())
         except OSError:
             return None, 0
         steps = ledger_steps(text)
         records = "".join("\t".join(record) + "\n" for record in steps)
         full_suite = sum(1 for record in steps if record[1] == "done" and record[2] == "full-suite")
-        return counted(len(records.encode(errors="surrogateescape").decode().splitlines())), full_suite
+        return counted(len(records.splitlines())), full_suite
 
     counts = {}
     steps = {}

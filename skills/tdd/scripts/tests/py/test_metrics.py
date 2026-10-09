@@ -114,17 +114,12 @@ def test_a_non_utf8_byte_outside_a_step_line_still_renders_the_report(tmp_path, 
     assert "Steps done: 1 of 1 planned.\n" in render(metrics, capsys)
 
 
-def test_a_non_utf8_byte_in_a_step_line_raises_after_the_header_lines(tmp_path, monkeypatch, capsys, metrics):
+def test_a_non_utf8_byte_in_a_step_line_renders_the_report_with_the_ascii_planned_count_1002(tmp_path, monkeypatch, capsys, metrics):
     write_log(tmp_path, ONE_STEP)
     (tmp_path / ".tdd" / "issue-108.md").write_bytes(b"# Plan\n- [ ] a step \xff\n")
     monkeypatch.chdir(tmp_path)
 
-    with pytest.raises(UnicodeDecodeError):
-        metrics.main(["108"])
-
-    out = capsys.readouterr().out
-    assert out.startswith("### 📊 Metrics — issue 108\n")
-    assert "Steps done:" not in out
+    assert "Steps done: 1 of 1 planned.\n" in render(metrics, capsys)
 
 
 def test_the_planned_count_counts_every_line_break_splitlines_finds_in_a_step_text(tmp_path, monkeypatch, capsys, metrics):
