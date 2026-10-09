@@ -1,2 +1,4 @@
 ### A range whose changed lines of skills/tdd/SKILL.md all lie inside one ## section selects the suites naming SKILL.md that read that section, and not a suite naming SKILL.md that reads only a different section ⟦criterion 1⟧
 - test-only | the new `skill_section` case in affected-suites.test.sh writes SKILL.md's text twice with two nearly identical `printf` lines (only "alpha text" vs "alpha text 2" differ). A small helper taking the Alpha body would remove the repetition.
+### A range whose changed lines of skills/tdd/SKILL.md all lie inside one ## section still selects a suite that names SKILL.md and reads it without slicing it to any section ⟦criterion 1⟧
+- test-only | the two SKILL.md cases in affected-suites.test.sh repeat the same make_repo/SKILL.md/printf-suite setup and could share one fixture builder
