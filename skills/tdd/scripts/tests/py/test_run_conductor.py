@@ -14,22 +14,6 @@ for path in (SCRIPTS, SCRIPTS / "veri"):
         sys.path.insert(0, str(path))
 
 
-def fake_processes(monkeypatch):
-    """Every process entry point recording each command it is asked to start."""
-    calls = []
-
-    def record(args, *_, **__):
-        calls.append(args)
-        return subprocess.CompletedProcess(args, 0, b"", b"")
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, record)
-    for name in ("system", "fork", "posix_spawn", "posix_spawnp", "execv", "execvp", "execve"):
-        if hasattr(os, name):
-            monkeypatch.setattr(os, name, record)
-    return calls
-
-
 def past_the_guards(monkeypatch):
     """The bash and Python floors met, and claude named fake-claude."""
     monkeypatch.setenv("VERI_BASH_MAJOR", "5")
@@ -49,11 +33,11 @@ def scratch_tmpdir(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize("argv", [[], [""]])
 def test_main_with_no_or_an_empty_issue_returns_2_with_the_usage_line_alone_and_starts_no_process(
-        argv, tmp_path, monkeypatch, capfdbinary):
+        argv, tmp_path, monkeypatch, capfdbinary, fake_processes):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_BASH_MAJOR", "5")
     monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
-    calls = fake_processes(monkeypatch)
+    calls = fake_processes()
     run_conductor = importlib.import_module("veri.run_conductor")
 
     code = run_conductor.main(list(argv))
@@ -63,11 +47,11 @@ def test_main_with_no_or_an_empty_issue_returns_2_with_the_usage_line_alone_and_
 
 
 def test_main_refuses_on_bash_before_the_python_floor_and_on_the_floor_before_the_usage_line_with_the_run_conductor_prefix_on_a_module_parsing_as_python_3_9(
-        tmp_path, monkeypatch, capfdbinary):
+        tmp_path, monkeypatch, capfdbinary, fake_processes):
     import ast
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_VENV", str(tmp_path / "no-venv"))
-    fake_processes(monkeypatch)
+    fake_processes()
     run_conductor = importlib.import_module("veri.run_conductor")
     answers = []
     for major, python in (("3", "3.12.0"), ("3", "3.11.9"), ("5", "3.11.9")):
