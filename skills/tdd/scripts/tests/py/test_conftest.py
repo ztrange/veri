@@ -27,3 +27,29 @@ def test_fake_processes_given_no_answer_records_every_entry_point_by_basename_an
     assert calls == ["touch %s" % (tmp_path / entry) for entry in entries]
     assert [(answer.returncode, answer.stdout, answer.stderr) for answer in answers] == [(0, "", "")] * len(entries)
     assert sorted(tmp_path.iterdir()) == []
+
+
+def test_fake_processes_given_an_answer_hands_run_the_line_and_its_keyword_arguments_and_refuses_every_other_entry_point_naming_the_command(
+        fake_processes, tmp_path):
+    asked = []
+
+    def answer(line, **kwargs):
+        asked.append((line, kwargs))
+        return 3, "out", "err"
+
+    calls = fake_processes(answer)
+
+    ran = subprocess.run(["/usr/bin/touch", str(tmp_path / "run")], capture_output=True, text=True)
+
+    assert asked == [("touch %s" % (tmp_path / "run"), {"capture_output": True, "text": True})]
+    assert (ran.returncode, ran.stdout, ran.stderr) == (3, "out", "err")
+    for entry in ("Popen", "call", "check_call", "check_output"):
+        line = "touch %s" % (tmp_path / entry)
+        try:
+            getattr(subprocess, entry)(["/usr/bin/touch", str(tmp_path / entry)])
+        except AssertionError as refused:
+            assert line in str(refused), entry
+        else:
+            raise AssertionError("%s answered rather than refusing" % entry)
+    assert calls[0] == "touch %s" % (tmp_path / "run")
+    assert sorted(tmp_path.iterdir()) == []
