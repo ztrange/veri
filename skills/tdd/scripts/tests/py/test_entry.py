@@ -1,6 +1,9 @@
 """In-process cases for veri/entry.py, the one __main__ entry point every ported module calls."""
+import errno
 import importlib
 import importlib.util
+
+import sys
 
 import pytest
 
@@ -56,4 +59,30 @@ def test_run_turns_an_exception_escaping_main_into_exit_2_and_one_stderr_line_na
     assert len(lines) == 1, err
     assert lines[0].startswith("render-leaf-log.sh: ValueError: first line"), err
     assert "second line" in lines[0], err
+    assert "Traceback" not in err
+
+
+def test_run_flushes_stdout_inside_its_guard_so_a_failed_write_exits_2_with_one_stderr_line_1150(entry, monkeypatch, capsys):
+    class FullStdout:
+        def write(self, text):
+            return len(text)
+
+        def flush(self):
+            raise OSError(errno.ENOSPC, "No space left on device")
+
+    def main(argv):
+        sys.stdout.write("an answer\n")
+        return 0
+
+    monkeypatch.setattr(sys, "stdout", FullStdout())
+    with pytest.raises(SystemExit) as exited:
+        entry.run(main, [])
+    monkeypatch.undo()
+    out, err = capsys.readouterr()
+    lines = err.splitlines()
+
+    assert exited.value.code == 2
+    assert len(lines) == 1, err
+    assert lines[0].startswith("test-entry.sh: OSError: "), err
+    assert "No space left on device" in lines[0], err
     assert "Traceback" not in err
