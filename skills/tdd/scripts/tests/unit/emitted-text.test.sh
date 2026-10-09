@@ -126,16 +126,16 @@ pin '607171586 4226' prompt build-develop-prompt.sh exhausted "$spec" "$step" "$
 pin '2646991315 5689' prompt build-develop-prompt.sh reconcile "$spec" "$step" "$cmd" tdd/1-x 0123456789abcdef
 pin '2766503971 4998' prompt build-develop-prompt.sh over-budget "$spec" "$step" "$cmd" 12.5 10
 pin '977340099 5392' prompt build-develop-prompt.sh rebase "$spec" "$step" "$cmd" 0123456 89abcde "a.sh b.sh"
-pin '411659908 6456' prompt build-verify-prompt.sh red "$spec" t/x.test.sh "case one"
-pin '2875961081 7315' prompt build-verify-prompt.sh red "$work/bug.md" t/x.test.sh "case one"
-pin '669190476 6633' prompt build-verify-prompt.sh --step "$step" red "$spec" t/x.test.sh "case one"
-pin '764367636 6636' prompt build-verify-prompt.sh --fast-cmd "make unit" green "$spec" t/x.test.sh "case one"
-pin '1448695835 8005' prompt build-verify-prompt.sh --fast-cmd "make unit" refactor "$spec" t/x.test.sh 0123456
-pin '2503097466 6474' prompt build-verify-prompt.sh pin "$spec" t/x.test.sh "case one"
-pin '124988269 8448' prompt build-verify-prompt.sh plan "$spec" "$work/ledger.md"
-pin '3253950401 9233' prompt build-verify-prompt.sh plan "$work/refactor.md" "$work/ledger.md"
-pin '2726137615 5093' prompt build-verify-prompt.sh rebase "$spec" 0123456 89abcde
-pin '4037782086 4776' prompt build-verify-prompt.sh transform "$spec" "$work/reason.md" 0123456
+pin '2533840585 6808' prompt build-verify-prompt.sh red "$spec" t/x.test.sh "case one"
+pin '3306805175 7667' prompt build-verify-prompt.sh red "$work/bug.md" t/x.test.sh "case one"
+pin '3565109511 6985' prompt build-verify-prompt.sh --step "$step" red "$spec" t/x.test.sh "case one"
+pin '2390612712 6988' prompt build-verify-prompt.sh --fast-cmd "make unit" green "$spec" t/x.test.sh "case one"
+pin '755188465 8357' prompt build-verify-prompt.sh --fast-cmd "make unit" refactor "$spec" t/x.test.sh 0123456
+pin '806114926 6826' prompt build-verify-prompt.sh pin "$spec" t/x.test.sh "case one"
+pin '483859642 8800' prompt build-verify-prompt.sh plan "$spec" "$work/ledger.md"
+pin '2079499384 9585' prompt build-verify-prompt.sh plan "$work/refactor.md" "$work/ledger.md"
+pin '2678617091 5445' prompt build-verify-prompt.sh rebase "$spec" 0123456 89abcde
+pin '90385119 5128' prompt build-verify-prompt.sh transform "$spec" "$work/reason.md" 0123456
 verdict "$name"
 
 finish

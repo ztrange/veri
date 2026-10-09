@@ -35,6 +35,8 @@ process) leaves the change behind for all of them. To simulate a condition, use
 environment variables scoped to the one command, or a throwaway directory made with
 `mktemp -d` and removed afterwards.
 
+{{INCLUDE:_signal-own-processes.md}}
+
 End your output with EXACTLY these two lines and nothing after them — no surrounding code
 fence, no extra formatting:
 
