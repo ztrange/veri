@@ -102,6 +102,11 @@ OFFLINE_ENV = PATH="$(GUARD_PATH)$$git_bin:$(OFFLINE_BIN):$$PATH" MAKEFLAGS= OFF
 
 NAME_REACHED = while IFS= read -r reached; do printf '%s: %s\n' "$(1)" "$$reached"; fail=1; done < "$$reach_log"
 
+REFUSE_UNIMPORTABLE = if [ "$${$(1):-$$("$$py_bin" -c 'import $(2)' > /dev/null 2>&1 && echo 1 || echo 0)}" != 1 ]; then \
+	  printf 'veri needs $(3) for the suites under skills/tdd/scripts/tests/py/; %s cannot import $(2). Install it with `make install-dev`.\n' "$$py_bin" >&2; \
+	  exit 2; \
+	fi
+
 VENV_LIB := skills/tdd/scripts/lib/venv-python.sh
 VENV_DIR := $$(bash -c '. $(VENV_LIB) && venv_dir')
 
@@ -129,14 +134,8 @@ test unit:
 	trap 'rm -f "$$reach_log"; rm -rf "$$git_bin" "$$pycache"' EXIT; \
 	if [ -n "$(PY_TESTS)" ]; then \
 	  py_bin="$$(bash -c '. $(VENV_LIB) && py="$$(venv_python)" && venv_version_usable "$$py" "$${VERI_PYTHON_VERSION:-$$("$$py" -c "import platform; print(platform.python_version())" 2>/dev/null)}" && printf "%s\n" "$$py"')" || exit 2; \
-	  if [ "$${VERI_PYTEST_IMPORTABLE:-$$("$$py_bin" -c 'import pytest' > /dev/null 2>&1 && echo 1 || echo 0)}" != 1 ]; then \
-	    printf 'veri needs pytest for the suites under skills/tdd/scripts/tests/py/; %s cannot import it. Install it with `make install-dev`.\n' "$$py_bin" >&2; \
-	    exit 2; \
-	  fi; \
-	  if [ "$${VERI_PYTEST_TIMEOUT_IMPORTABLE:-$$("$$py_bin" -c 'import pytest_timeout' > /dev/null 2>&1 && echo 1 || echo 0)}" != 1 ]; then \
-	    printf 'veri needs pytest-timeout for the suites under skills/tdd/scripts/tests/py/; %s cannot import pytest_timeout. Install it with `make install-dev`.\n' "$$py_bin" >&2; \
-	    exit 2; \
-	  fi; \
+	  $(call REFUSE_UNIMPORTABLE,VERI_PYTEST_IMPORTABLE,pytest,pytest); \
+	  $(call REFUSE_UNIMPORTABLE,VERI_PYTEST_TIMEOUT_IMPORTABLE,pytest_timeout,pytest-timeout); \
 	fi; \
 	$(OFFLINE_GIT); \
 	for t in $(SUITES); do \
