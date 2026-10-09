@@ -574,3 +574,26 @@ def test_main_given_criterion_k_tags_every_inserted_line_with_k_whatever_the_anc
         "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
         "- [ ] t ⟦added⟧ ⟦criterion 3⟧\n- [ ] u ⟦added⟧ ⟦criterion 3⟧\n- [ ] c three ⟦criterion 3⟧\n",
     )
+
+
+def test_main_without_criterion_tags_inserted_lines_with_the_anchor_criterion_and_an_untagged_anchor_yields_untagged_lines_1224(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
+    ledger = tmp_path / "issue-42.md"
+    got = {}
+    for name, seed in (("tagged", LEDGER), ("untagged", "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two\n".encode())):
+        ledger.write_bytes(seed)
+        code = add_ledger_step.main([str(ledger), "after", "b two", "t", "u"])
+        got[name] = (code, capsys.readouterr().err, ledger.read_bytes().decode())
+    assert got == {
+        "tagged": (
+            0,
+            "",
+            "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+            "- [ ] t ⟦added⟧ ⟦criterion 2⟧\n- [ ] u ⟦added⟧ ⟦criterion 2⟧\n- [ ] c three ⟦criterion 3⟧\n",
+        ),
+        "untagged": (
+            0,
+            "",
+            "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two\n- [ ] t ⟦added⟧\n- [ ] u ⟦added⟧\n",
+        ),
+    }
