@@ -15,3 +15,5 @@
 - `seconds()` no longer reaches its `limit()`/`arithmetic()` fallback for timeout or heartbeat, only for retries; once the VERI_STUCK_RETRIES step lands, `arithmetic`, `limit` and `Unbound` are dead code and can go, with `seconds()` reduced to `int(value, 10)`
 - the settled-timeout file check and `seconds()` each repeat the `re.fullmatch(r"[0-9]+", …)` test that `not_a_number` now holds; the settled-file step could reuse the helper
 - test-only | the VERI_TIMEOUT and VERI_HEARTBEAT refusal tests in test_supervise.py are identical except for the variable name; parametrize them into one test over the variable name
+### A settled `.tdd/issue-<n>-timeout` holding a value that is not a non-negative decimal integer (`abc`, `1.5`) is refused with exit 2 before the leaf is launched, stderr `supervise: <settled file path> is not a number: '<value>'`, leaving no leaf running ⟦criterion 1⟧
+- test-only | fold the shared loop/collect scaffolding of the settled-timeout and VERI_TIMEOUT refusal tests in test_supervise.py into one helper
