@@ -131,6 +131,10 @@ def limit(value):
         return None
 
 
+def seconds(value):
+    return int(value, 10) if re.fullmatch(r"[0-9]+", value) else limit(value)
+
+
 def signal_tree(pid, sig):
     try:
         os.killpg(pid, sig)
@@ -255,7 +259,7 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
         a = awake_seconds()
         seen_at += (t - prev_t) - (a - prev_a)
         prev_t, prev_a = t, a
-        span = int(timeout, 10) if re.fullmatch(r"[0-9]+", timeout) else limit(timeout)
+        span = seconds(timeout)
         if span is not None and a - a0 >= span:
             reason = f"hard timeout {timeout}s exceeded"
         elif watched:
@@ -263,7 +267,7 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
             if m != last_m:
                 last_m, seen_at = m, t
             silence = t - seen_at
-            window = int(heartbeat, 10) if re.fullmatch(r"[0-9]+", heartbeat) else limit(heartbeat)
+            window = seconds(heartbeat)
             if window is not None and silence > window:
                 reason = f"no heartbeat for {silence}s (window {heartbeat}s)"
         if reason:
