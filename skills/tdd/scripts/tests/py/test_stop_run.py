@@ -13,27 +13,16 @@ def stop_run():
     return importlib.import_module("veri.stop_run")
 
 
-def fake_processes(monkeypatch, answers):
-    """subprocess.run answering each argv tuple in <answers> with (exit code, stdout bytes); every call recorded."""
-    calls = []
+def answering(answers):
+    """An answer for the shared fake: each argv tuple in <answers> answered with (exit code, stdout bytes)."""
+    lines = {" ".join(argv): answer for argv, answer in answers.items()}
 
-    def fake_run(args, **kwargs):
-        calls.append(list(args))
-        if tuple(args) not in answers:
-            raise AssertionError("unexpected command: %r" % (args,))
-        code, stdout = answers[tuple(args)]
-        if kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding"):
-            stdout = stdout.decode()
-        return subprocess.CompletedProcess(args, code, stdout, None)
-
-    def refused(*args, **kwargs):
-        calls.append(list(args[0]) if args else kwargs)
-        raise AssertionError("unexpected process: %r" % (args,))
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    for name in ("Popen", "call", "check_call", "check_output", "getoutput", "getstatusoutput"):
-        monkeypatch.setattr(subprocess, name, refused)
-    return calls
+    def answer(line, **_):
+        if line not in lines:
+            raise AssertionError("unexpected command: %s" % line)
+        code, stdout = lines[line]
+        return code, stdout, b""
+    return answer
 
 
 def main_tree_at(main_tree):
@@ -50,9 +39,9 @@ def run_with_conductor(main_tree):
 
 
 def test_main_refuses_no_issue_and_a_non_integer_and_stops_a_live_run_or_answers_3_for_a_dead_one(
-        monkeypatch, tmp_path, capsysbinary, stop_run):
+        monkeypatch, tmp_path, capsysbinary, stop_run, fake_processes):
     monkeypatch.chdir(tmp_path)
-    calls = fake_processes(monkeypatch, main_tree_at(tmp_path))
+    calls = fake_processes(answering(main_tree_at(tmp_path)))
     live = {"4242": True}
 
     def fake_kill(pid, sig):
@@ -82,11 +71,11 @@ def test_main_refuses_no_issue_and_a_non_integer_and_stops_a_live_run_or_answers
 
 
 def test_main_accepts_a_mode_stop_modes_lists_and_writes_it_to_the_runs_stop_file(
-        monkeypatch, tmp_path, capsysbinary, stop_run):
+        monkeypatch, tmp_path, capsysbinary, stop_run, fake_processes):
     import stop_modes
     monkeypatch.setattr(stop_modes, "STOP_MODES", ("at-ledger", "at-leaf", "now", "at-step"))
     monkeypatch.chdir(tmp_path)
-    fake_processes(monkeypatch, main_tree_at(tmp_path))
+    fake_processes(answering(main_tree_at(tmp_path)))
     monkeypatch.setattr(os, "kill", lambda pid, sig: None)
     run = run_with_conductor(tmp_path)
 
@@ -95,11 +84,11 @@ def test_main_accepts_a_mode_stop_modes_lists_and_writes_it_to_the_runs_stop_fil
 
 
 def test_main_refuses_a_mode_stop_modes_does_not_list_naming_every_mode_it_lists(
-        monkeypatch, tmp_path, capsysbinary, stop_run):
+        monkeypatch, tmp_path, capsysbinary, stop_run, fake_processes):
     import stop_modes
     monkeypatch.setattr(stop_modes, "STOP_MODES", ("at-ledger", "at-leaf", "now", "at-step"))
     monkeypatch.chdir(tmp_path)
-    fake_processes(monkeypatch, main_tree_at(tmp_path))
+    fake_processes(answering(main_tree_at(tmp_path)))
     monkeypatch.setattr(os, "kill", lambda pid, sig: None)
     run = run_with_conductor(tmp_path)
 
@@ -111,11 +100,11 @@ def test_main_refuses_a_mode_stop_modes_does_not_list_naming_every_mode_it_lists
 
 
 def test_main_builds_its_usage_line_from_the_modes_stop_modes_lists_when_it_runs(
-        monkeypatch, tmp_path, capsysbinary, stop_run):
+        monkeypatch, tmp_path, capsysbinary, stop_run, fake_processes):
     import stop_modes
     monkeypatch.setattr(stop_modes, "STOP_MODES", ("at-ledger", "at-leaf", "now", "at-step"))
     monkeypatch.chdir(tmp_path)
-    fake_processes(monkeypatch, main_tree_at(tmp_path))
+    fake_processes(answering(main_tree_at(tmp_path)))
 
     assert stop_run.main([]) == 2
     out, err = capsysbinary.readouterr()
@@ -141,9 +130,9 @@ REFUSALS = [
 
 
 def test_main_refuses_each_bad_argument_list_in_stop_run_sh_order_with_its_message_and_the_usage_line_starting_nothing(
-        monkeypatch, tmp_path, capsysbinary, stop_run):
+        monkeypatch, tmp_path, capsysbinary, stop_run, fake_processes):
     monkeypatch.chdir(tmp_path)
-    calls = fake_processes(monkeypatch, main_tree_at(tmp_path))
+    calls = fake_processes(answering(main_tree_at(tmp_path)))
 
     for argv, message in REFUSALS:
         assert (argv, stop_run.main(argv)) == (argv, 2)
@@ -155,12 +144,12 @@ def test_main_refuses_each_bad_argument_list_in_stop_run_sh_order_with_its_messa
 
 
 def test_main_prints_each_stopped_run_exactly_answers_3_byte_for_byte_and_lists_all_runs_sorted_skipping_files_and_dot_names(
-        monkeypatch, tmp_path, capsysbinary, stop_run):
+        monkeypatch, tmp_path, capsysbinary, stop_run, fake_processes):
     main_tree = tmp_path / "m[a]i*n?"
     decoy = tmp_path / "maiXnY"
     elsewhere = tmp_path / "elsewhere"
     monkeypatch.chdir(tmp_path)
-    fake_processes(monkeypatch, main_tree_at(main_tree))
+    fake_processes(answering(main_tree_at(main_tree)))
     live = set()
 
     def fake_kill(pid, sig):
@@ -208,9 +197,9 @@ def test_main_prints_each_stopped_run_exactly_answers_3_byte_for_byte_and_lists_
 
 
 def test_main_all_with_no_tdd_wt_directory_answers_3_no_live_run_to_stop_as_the_unmatched_glob_does(
-        monkeypatch, tmp_path, capsysbinary, stop_run):
+        monkeypatch, tmp_path, capsysbinary, stop_run, fake_processes):
     monkeypatch.chdir(tmp_path)
-    fake_processes(monkeypatch, main_tree_at(tmp_path))
+    fake_processes(answering(main_tree_at(tmp_path)))
 
     assert stop_run.main(["--all"]) == 3
     assert capsysbinary.readouterr() == (b"", b"stop-run: no live run to stop\n")
@@ -247,7 +236,7 @@ def test_main_takes_a_git_that_cannot_start_exits_non_zero_or_prints_nothing_as_
 
 
 def test_main_now_terms_only_pids_whose_ps_runs_supervise_sh_of_their_name_ignoring_kill_errors_and_other_modes_signal_nothing(
-        monkeypatch, tmp_path, capsysbinary, stop_run):
+        monkeypatch, tmp_path, capsysbinary, stop_run, fake_processes):
     import signal
     monkeypatch.chdir(tmp_path)
     run = run_with_conductor(tmp_path)
@@ -265,7 +254,7 @@ def test_main_now_terms_only_pids_whose_ps_runs_supervise_sh_of_their_name_ignor
                       (huge, b"bash supervise.sh h x\n"), ("108", b""),
                       ("109", b"bash supervise.sh j x\n")):
         answers[("ps", "-p", pid, "-o", "args=")] = (1 if pid == "108" else 0, args)
-    calls = fake_processes(monkeypatch, answers)
+    calls = fake_processes(answering(answers))
     raises = {106: ProcessLookupError(3, "No such process"), 107: PermissionError(1, "Operation not permitted"),
               int(huge): OverflowError("signed integer is greater than maximum")}
     terms = []
@@ -289,15 +278,15 @@ def test_main_now_terms_only_pids_whose_ps_runs_supervise_sh_of_their_name_ignor
         terms.clear()
         calls.clear()
         assert (mode, stop_run.main(["--mode", mode, "5"])) == (mode, 0)
-        assert (mode, terms, [c for c in calls if c[0] == "ps"]) == (mode, [], [])
+        assert (mode, terms, [c for c in calls if c.startswith("ps ")]) == (mode, [], [])
         assert (tdd / "stop").read_bytes() == mode.encode() + b"\n"
         capsysbinary.readouterr()
 
 
 def test_main_passes_non_utf8_bytes_in_an_argument_through_to_the_refusal_unchanged(
-        monkeypatch, tmp_path, capsysbinary, stop_run):
+        monkeypatch, tmp_path, capsysbinary, stop_run, fake_processes):
     monkeypatch.chdir(tmp_path)
-    calls = fake_processes(monkeypatch, main_tree_at(tmp_path))
+    calls = fake_processes(answering(main_tree_at(tmp_path)))
     raw = b"\xff\xfeb\xe9"
     arg = os.fsdecode(raw)
 
