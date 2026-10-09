@@ -73,12 +73,41 @@ def existing(path):
     return [path] if os.path.isfile(path) else []
 
 
-def suite_of(f):
+HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
+
+
+def edited_section(f, revisions):
+    code, diff = output("diff", "-U0", revisions, "--", f)
+    text = read(f)
+    if code != 0 or text is None:
+        return None
+    lines = text.decode(errors="replace").split("\n")
+    numbers = []
+    for line in diff.split("\n"):
+        hunk = HUNK.match(line)
+        if hunk:
+            start, count = int(hunk.group(1)), int(hunk.group(2) or "1")
+            numbers += range(start, start + count) if count else [start]
+    sections = set()
+    for n in numbers:
+        heading = next((l for l in reversed(lines[:n]) if l.startswith("## ")), None)
+        if heading is None:
+            return None
+        sections.add(heading[3:].strip())
+    return sections.pop() if len(sections) == 1 else None
+
+
+def suite_of(f, revisions=None):
     def match(*patterns):
         return any(fnmatch.fnmatchcase(f, p) for p in patterns)
 
     if match("CLAUDE.md", "Makefile", "skills/*/SKILL.md"):
-        return suites_naming('"%s"' % f, '/%s"' % f)
+        naming = suites_naming('"%s"' % f, '/%s"' % f)
+        section = match("skills/*/SKILL.md") and revisions and edited_section(f, revisions)
+        if section:
+            readers = suites_naming("'%s'" % section, '"%s"' % section)
+            return [s for s in naming if s in readers]
+        return naming
     if match(SCRIPTS + "/tests/*.test.sh", SCRIPTS + "/tests/py/test_*.py"):
         return existing(f)
     if f == SCRIPTS + "/tests/lib/harness.sh":
@@ -144,7 +173,7 @@ def main(argv):
     placed, unplaced = [], []
     for f in files.split("\n"):
         try:
-            placed += suite_of(f)
+            placed += suite_of(f, revisions)
         except Unplaced:
             unplaced.append(f)
 

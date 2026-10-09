@@ -245,6 +245,17 @@ expect_suites "rule 4: a change to SKILL.md, CLAUDE.md and Makefile prints their
   skills/tdd/scripts/tests/makefile-guard.test.sh \
   skills/tdd/scripts/tests/skill-md-guard.test.sh
 
+make_repo skill_section
+mkdir -p "$s/tests"
+printf '# tdd\n\n## Alpha\n\nalpha text\n\n## Beta\n\nbeta text\n' > "$repo/skills/tdd/SKILL.md"
+printf '#!/usr/bin/env bash\nskill_md="skills/tdd/SKILL.md"\nload_section '"'"'Alpha'"'"'\n' > "$s/tests/skill-alpha.test.sh"
+printf '#!/usr/bin/env bash\nskill_md="skills/tdd/SKILL.md"\nload_section '"'"'Beta'"'"'\n' > "$s/tests/skill-beta.test.sh"
+commit_base
+printf '# tdd\n\n## Alpha\n\nalpha text 2\n\n## Beta\n\nbeta text\n' > "$repo/skills/tdd/SKILL.md"
+commit_head
+expect_suites "an edit inside one ## section of SKILL.md prints the suites reading that section, not one reading only another" \
+  skills/tdd/scripts/tests/skill-alpha.test.sh
+
 make_repo rule5
 mkdir -p "$s/tests/unit" "$repo/docs"
 printf 'foo\n' > "$s/foo.sh"
