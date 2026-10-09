@@ -209,9 +209,9 @@ def test_main_aborts_a_conflicting_rebase_under_either_backend_and_returns_1_pri
     merge, apply = tmp_path / "rebase-merge", tmp_path / "rebase-apply"
 
     def run(present):
-        present.mkdir()
         calls = fake_git(monkeypatch, **{
             rebase: (1, ""),
+            "git rev-parse --git-path rebase-merge --git-path rebase-apply": (0, f"{merge}\n{apply}\n"),
             "git rev-parse --git-path rebase-merge": (0, f"{merge}\n"),
             "git rev-parse --git-path rebase-apply": (0, f"{apply}\n"),
             diff: (0, "a.txt\nsub/b.txt\n\n\n"),
@@ -220,6 +220,8 @@ def test_main_aborts_a_conflicting_rebase_under_either_backend_and_returns_1_pri
 
         def speaking_run(args, **kwargs):
             line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+            if line == rebase:
+                present.mkdir()
             if line == abort and kwargs.get("stdout") is None:
                 sys.stdout.write("abort out\n")
             return fake_run(args, **kwargs)
@@ -239,6 +241,8 @@ def test_main_returns_2_without_the_conflict_path_when_a_failed_rebase_leaves_ne
         monkeypatch, capsys, tmp_path, rebase_onto_default):
     calls = fake_git(monkeypatch, **{
         f"git rebase -q {ONTO}": (1, ""),
+        "git rev-parse --git-path rebase-merge --git-path rebase-apply":
+            (0, f"{tmp_path / 'rebase-merge'}\n{tmp_path / 'rebase-apply'}\n"),
         "git rev-parse --git-path rebase-merge": (0, f"{tmp_path / 'rebase-merge'}\n"),
         "git rev-parse --git-path rebase-apply": (0, f"{tmp_path / 'rebase-apply'}\n")})
     code = rebase_onto_default.main([])
@@ -246,7 +250,7 @@ def test_main_returns_2_without_the_conflict_path_when_a_failed_rebase_leaves_ne
     assert [c for c in calls if c.startswith(("git diff", "git rebase --abort"))] == []
 
 
-def test_main_returns_2_with_no_rebase_directory_prints_one_empty_line_for_no_unmerged_files_and_takes_a_rebase_already_in_progress_for_its_own_conflict(
+def test_main_returns_2_with_no_rebase_directory_prints_one_empty_line_for_no_unmerged_files_and_leaves_a_rebase_already_in_progress_alone(
         monkeypatch, capsys, tmp_path, rebase_onto_default):
     rebase = f"git rebase -q {ONTO}"
     diff = "git diff --name-only --diff-filter=U"
@@ -255,9 +259,10 @@ def test_main_returns_2_with_no_rebase_directory_prints_one_empty_line_for_no_un
     refusal = ("fatal: It seems that there is already a rebase-merge directory, and\n"
                "I wonder if you are in the middle of another rebase.\n")
 
-    def run(diff_answer, refuse=False):
+    def run(diff_answer, refuse=False, created=None):
         calls = fake_git(monkeypatch, **{
             rebase: (1, ""),
+            "git rev-parse --git-path rebase-merge --git-path rebase-apply": (0, f"{merge}\n{apply}\n"),
             "git rev-parse --git-path rebase-merge": (0, f"{merge}\n"),
             "git rev-parse --git-path rebase-apply": (0, f"{apply}\n"),
             diff: diff_answer})
@@ -265,6 +270,8 @@ def test_main_returns_2_with_no_rebase_directory_prints_one_empty_line_for_no_un
 
         def refusing_run(args, **kwargs):
             line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+            if created is not None and line == rebase:
+                created.mkdir()
             if refuse and line == rebase and kwargs.get("stderr") is None:
                 sys.stderr.write(refusal)
             return fake_run(args, **kwargs)
@@ -277,15 +284,14 @@ def test_main_returns_2_with_no_rebase_directory_prints_one_empty_line_for_no_un
     assert (code, captured.out) == (2, "")
     assert [c for c in calls if c.startswith(("git diff", abort))] == []
 
-    merge.mkdir()
-    code, captured, calls = run((0, ""))
+    code, captured, calls = run((0, ""), created=merge)
     assert (code, captured.out) == (1, "\n")
     assert calls.index(diff) < calls.index(abort)
 
     code, captured, calls = run((0, "earlier.txt\n"), refuse=True)
-    assert (code, captured.out) == (1, "earlier.txt\n")
+    assert (code, captured.out) == (2, "")
     assert refusal in captured.err
-    assert calls.index(diff) < calls.index(abort)
+    assert [c for c in calls if c in (diff, abort)] == []
 
 
 def test_main_exits_2_on_git_s_refusal_when_a_rebase_directory_exists_before_it_runs_without_diffing_or_aborting(
@@ -370,6 +376,8 @@ def test_main_answers_the_cut_contract_cases_a_dirty_tree_refusal_an_unfetchable
 
     def run(**overrides):
         calls = fake_git(monkeypatch, **{
+            "git rev-parse --git-path rebase-merge --git-path rebase-apply":
+                (0, f"{tmp_path / 'rebase-merge'}\n{tmp_path / 'rebase-apply'}\n"),
             "git rev-parse --git-path rebase-merge": (0, f"{tmp_path / 'rebase-merge'}\n"),
             "git rev-parse --git-path rebase-apply": (0, f"{tmp_path / 'rebase-apply'}\n")},
             **overrides)
