@@ -1,0 +1,2 @@
+### Every built developer prompt, through the shared develop-prompt text, tells the leaf it signals only processes it started, by the pid it recorded when it started them, never by name or pattern (`pkill`, `killall`, `kill $(pgrep …)`), and that an experiment's processes and leaf names carry the `exp-` prefix no live run uses ⟦criterion 1⟧
+- test-only | hoist the per-test `rendered`/`says` helpers repeated in skills/tdd/scripts/tests/py/test_build_develop_prompt.py (lines 647/658, 874/885, 1124/1137) into shared module-level helpers or fixtures
