@@ -10,6 +10,7 @@
 #   3. When no python3 they would use can import pytest, both refuse before any suite runs.
 #   4. When the python3 they would use is older than 3.12, both refuse before any suite runs.
 #   5. requirements-dev.txt pins pytest to one exact version the Makefile never restates.
+#   6. A case that runs past the per-case timeout fails, named as a timeout, and the leg runs the rest.
 #
 # Run: skills/tdd/scripts/tests/pytest-leg.test.sh
 set -uo pipefail
@@ -763,6 +764,36 @@ problems=()
 env VERI_VENV="$work/no-venv" PYTHONPATH="$fake_pytest" \
   make --no-print-directory -C "$stale" test > "$work/out" 2> "$work/err" < /dev/null && code=0 || code=$?
 check_green "make test"
+report "$name"
+
+hung="$work/hung"
+make_tree "$hung"
+cat > "$hung/$PY_DIR/test_leg_probe.py" <<'PY'
+import time
+
+
+def test_veri_probe_hangs():
+    time.sleep(3)
+
+
+def test_veri_probe_passes():
+    assert 1 == 1
+PY
+
+name="with a pytest case under $PY_DIR that sleeps past the leg's per-case timeout (VERI_PYTEST_TIMEOUT=1 standing in for it) beside a passing one, make unit and make test each fail the sleeper named as a timeout, still report the other passed, and stdout ends SUITES FAILED"
+problems=()
+for target in unit test; do
+  env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE VERI_PYTEST_TIMEOUT=1 \
+    make --no-print-directory -C "$hung" "$target" > "$work/out" 2> "$work/err" < /dev/null &&
+    code=0 || code=$?
+  out="$(cat "$work/out")"
+  err="$(cat "$work/err")"
+  check_failed "make $target" "$target"
+  grep -E '^FAILED .*test_veri_probe_hangs.*Timeout' <<< "$out" > /dev/null ||
+    problems+=("make $target: want a FAILED line naming test_veri_probe_hangs as a Timeout, got: $(flat "$out")")
+  [[ "$out" == *'1 failed, 1 passed'* ]] ||
+    problems+=("make $target: want the pytest leg to report 1 failed, 1 passed, got: $(flat "$out")")
+done
 report "$name"
 
 finish
