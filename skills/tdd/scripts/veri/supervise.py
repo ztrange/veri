@@ -39,6 +39,11 @@ def not_a_number(var, value):
     return None
 
 
+def numeric_env(var, default):
+    value = os.environ.get(var) or default
+    return value, not_a_number(var, value)
+
+
 def write_line(path, value):
     with open(path, "w") as f:
         f.write(f"{value}\n")
@@ -299,11 +304,11 @@ def main(argv):
     if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", kill_poll):
         return refuse(f"supervise: VERI_KILL_POLL must be a non-negative number: {kill_poll}")
     kill_poll = float(kill_poll)
-    heartbeat = os.environ.get("VERI_HEARTBEAT") or "180"
-    if refused := not_a_number("VERI_HEARTBEAT", heartbeat):
+    heartbeat, refused = numeric_env("VERI_HEARTBEAT", "180")
+    if refused:
         return refused
-    retries = os.environ.get("VERI_STUCK_RETRIES") or "1"
-    if refused := not_a_number("VERI_STUCK_RETRIES", retries):
+    retries, refused = numeric_env("VERI_STUCK_RETRIES", "1")
+    if refused:
         return refused
     poll = os.environ.get("VERI_POLL") or "1"
     name = argv[0]
