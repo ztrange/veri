@@ -1,3 +1,6 @@
 ### A `VERI_HEARTBEAT` with leading zeros is read as decimal: `010` is a 10-second silence window, not an 8-second one, and `08` is an 8-second window that fires rather than an arithmetic error that never kills ⟦criterion 1⟧
 - extract one shared decimal reader for the digits-only check plus `int(value, 10)` used at `supervise.py:266` (heartbeat) and `supervise.py:312` (settled timeout), once the later steps for `VERI_TIMEOUT` and `VERI_STUCK_RETRIES` fix how a bad value fails
 - test-only | move the fakes in `test_main_reads_a_veri_heartbeat_with_leading_zeros_as_decimal_…_1198` (fake leaf, `time.sleep`/`clock_gettime`, `killpg`/`kill`, `subprocess.run`/`check_output`/`Popen`) into a module-level fixture shared with the local `watch` helpers at `test_supervise.py:633` and `:874`
+### A `VERI_TIMEOUT` with leading zeros is read as decimal: `010` is a 10-second hard cap, not 8, and `08` is an 8-second cap that fires rather than an arithmetic error that never kills ⟦criterion 1⟧
+- once `VERI_STUCK_RETRIES` reads leading zeros as decimal (a later step), fold `seconds()` into `limit()`; doing it now would change retries behaviour
+- test-only | the two new 1198 tests in `test_supervise.py` (`silent_leaf` and `capped_leaf`) copy the same ~80-line fake-leaf, clock and subprocess harness; extract a shared fixture
