@@ -3,6 +3,7 @@
 - [x] A range whose changed lines of skills/tdd/SKILL.md all lie inside one ## section selects the suites naming SKILL.md that read that section, and not a suite naming SKILL.md that reads only a different section ⟦criterion 1⟧
 - [x] A range whose changed lines of skills/tdd/SKILL.md all lie inside one ## section still selects a suite that names SKILL.md and reads it without slicing it to any section ⟦criterion 1⟧
 - [x] A range whose changed lines of skills/tdd/SKILL.md all lie inside one ### subsection selects the suites reading that ### subsection and the suites reading the ## section enclosing it, and not a suite reading only a sibling section ⟦criterion 1⟧
+- [ ] A suite naming SKILL.md counts as reading a section when it quotes that heading with its prefix ('## <title>' / '### <title>') or a quoted prefix of the heading's title, as well as the bare title; so, on the real skills/tdd/SKILL.md and suite tree, a one-section edit inside each of '## Stopping', '## Bailing', '## Resume' and '### 4. Draft PR' selects strictly fewer suites than every suite naming SKILL.md (today 42, 42, 41, 42 of 43) ⟦added⟧ ⟦criterion 1⟧
 - [x] The working-tree form (no ".." in the argument) narrows an uncommitted edit lying inside one section of skills/tdd/SKILL.md the same way the range form does ⟦criterion 1⟧
 - [x] An edit to skills/tdd/SKILL.md that changes a ## or ### heading line selects every suite that names SKILL.md ⟦criterion 1⟧
 - [x] An edit to skills/tdd/SKILL.md whose changed lines span two sections selects every suite that names SKILL.md ⟦criterion 1⟧
