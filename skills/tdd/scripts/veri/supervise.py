@@ -323,7 +323,7 @@ def main(argv):
                 timeout = f.read().rstrip("\n")
             if timeout and (refused := not_a_number(settled, timeout)):
                 return refused
-            if not re.fullmatch(r"[0-9]+", timeout) or int(timeout, 10) < 1:
+            if not timeout or int(timeout, 10) < 1:
                 return refuse(f"supervise: {settled} must hold a whole number of seconds >= 1: '{timeout}'")
     timeout = timeout or "900"
     kill_poll = os.environ.get("VERI_KILL_POLL") or "0.1"
