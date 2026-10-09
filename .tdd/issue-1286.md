@@ -2,5 +2,5 @@
 
 - [x] The stash-rule case in build-verify-prompt.test.sh asserts on the built prompts: every prompt built from a template that includes `_shared.md` or `_develop-shared.md` carries the git stash rule verbatim, and the case no longer reads either partial's source ⟦criterion 1⟧
 - [x] The `git checkout --` case in build-verify-prompt.test.sh asserts on the built prompts: every prompt built from a template that includes `_shared.md` or `_develop-shared.md` carries the sentence forbidding `git checkout -- <file>`, no built prompt names `git checkout --` outside that sentence, and no built prompt contains `git stash push` ⟦criterion 2⟧
-- [ ] Neither rewritten case reads the source of `_shared.md` or `_develop-shared.md`, or of any file under `prompts/`, so both stay green when the stash rule and the forbidding sentence move from those two partials into one partial both include ⟦diff-checked⟧ ⟦criterion 3⟧
+- [x] Neither rewritten case reads the source of `_shared.md` or `_develop-shared.md`, or of any file under `prompts/`, so both stay green when the stash rule and the forbidding sentence move from those two partials into one partial both include ⟦diff-checked⟧ ⟦criterion 3⟧
 - [ ] Both cases watched red with the stash rule, then the forbidding sentence, removed from the text a leaf receives, and restored ⟦human-owed⟧ ⟦criterion 3⟧
