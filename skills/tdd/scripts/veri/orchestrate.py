@@ -5,6 +5,11 @@ import signal
 import subprocess
 import sys
 
+try:
+    from context_budget import START, watch
+except ImportError:
+    from .context_budget import START, watch
+
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONDUCTOR = os.path.join(SCRIPTS, "run-conductor.sh")
 
@@ -39,23 +44,15 @@ def main(argv):
 
 
 def _watch(issue, stream, budget):
-    context, step_done = 0, False
+    state = START
     for line in stream:
         if not line.endswith(b"\n"):
             return
-        if step_done and b'"type":"user"' in line:
-            if context > int(budget):
-                return
-            step_done = False
-        if b'"type":"assistant"' not in line:
-            continue
-        if b"event.sh step-done" in line:
-            step_done = True
-        read = re.search(rb'"cache_read_input_tokens":([0-9]+)', line)
-        creation = re.search(rb'"cache_creation_input_tokens":([0-9]+)', line)
-        if read and creation:
-            context = int(read.group(1)) + int(creation.group(1))
+        state, readings, exceeded = watch(state, [line], int(budget))
+        for context in readings:
             _say("context %s %d\n" % (issue, context))
+        if exceeded:
+            return
 
 
 def _say(text):
