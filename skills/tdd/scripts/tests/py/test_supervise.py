@@ -1702,10 +1702,79 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
     assert {k: (r["code"], r["launches"], r["preserved"], len(r["retries"])) for k, r in budgets.items()} == {
         "0": (2, 1, kept(1), 0),
         "-1": (2, 1, kept(1), 0),
-        "010": (2, 9, kept(*range(1, 10)), 8),
+        "010": (2, 11, kept(*range(1, 12)), 10),
         "abc": (1, 1, kept(1), 0),
         "08": (0, 4, kept(1, 2, 3), 3),
     }
+
+
+def test_main_reads_veri_stuck_retries_with_leading_zeros_as_decimal_08_eight_retries_then_killed_stuck_1198(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    monkeypatch.chdir(tmp_path)
+    clean_env(monkeypatch, VERI_TIMEOUT="5000", VERI_HEARTBEAT="3", VERI_KILL_POLL="0.25",
+              VERI_STUCK_RETRIES="08")
+    clock = {"wall": 1000, "dates": 0}
+    leaves, events = [], []
+
+    class Leaf:
+        pid = 4242
+        returncode = None
+        args = []
+
+        def poll(self):
+            return self.returncode
+
+        def wait(self, timeout=None):
+            return self.returncode
+
+    def signalled(*_):
+        leaves[-1].returncode = -signal.SIGTERM
+
+    monkeypatch.setattr(os, "killpg", signalled)
+    monkeypatch.setattr(os, "kill", signalled)
+    monkeypatch.setattr(time, "sleep", lambda secs: None)
+    monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
+
+    def run(args, *_, **kwargs):
+        words = [str(a) for a in args]
+        out = ""
+        if words[:1] == ["git"]:
+            out = "0123456789abcdef0123456789abcdef01234567\n"
+        elif words[:1] == ["date"]:
+            clock["dates"] += 1
+            if clock["dates"] > 2000:
+                raise Runaway()
+            clock["wall"] += 1
+            out = f"{clock['wall']}\n"
+        elif words[:1] == ["stat"]:
+            out = "1000\n"
+        elif any(w.endswith("/event.sh") for w in words):
+            events.append(words[[w.endswith("/event.sh") for w in words].index(True) + 1:])
+        out = as_asked(out, kwargs) if kwargs.get("stdout") == subprocess.PIPE else None
+        return subprocess.CompletedProcess(args, 0, out, None)
+
+    def popen(args, *_, **kwargs):
+        if list(args[:2]) != ["/bin/sh", "-c"]:
+            raise AssertionError(f"unexpected Popen: {args}")
+        leaves.append(Leaf())
+        return leaves[-1]
+
+    monkeypatch.setattr(subprocess, "run", run)
+    monkeypatch.setattr(subprocess, "check_output", lambda args, *a, **k: run(args, **k).stdout)
+    monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, **k).returncode)
+    monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: run(args, **k).returncode)
+    monkeypatch.setattr(subprocess, "Popen", popen)
+
+    try:
+        code = supervise.main(["develop-red", "leaf-hang"])
+    except Runaway:
+        code = "<never ended>"
+    capsysbinary.readouterr()
+
+    assert (code, len(leaves), len([e for e in events if e[:1] == ["retry"]])) == (2, 9, 8)
 
 
 def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_and_records_itself_there_only_for_a_watched_name_not_a_conductor(
