@@ -33,6 +33,8 @@
 #  10. SKILL.md grows the plan from the refactor leaf's FLAGS: classes alone: the one
 #      add-ledger-step.sh call is fed from flags' behaviours, and nowhere does the document
 #      read a NEW_STEP: or CANDIDATES: line of the leaf's into the plan.
+#  11. That section does not bail when no ledger step carries the uncovered-spec
+#      behaviour's criterion k yet, since add-ledger-step.sh --criterion accepts it.
 #
 # Run: scripts/tests/skill-refactor-leaf.test.sh
 set -uo pipefail
@@ -390,6 +392,19 @@ leaf_new_step="$(phrase "$(either_order "leaf's" 'new_step' '[^.]{0,30}')" "$who
 candidate_growth="$(phrase "$(either_order 'candidates:' "($amendment)" '[^.]{0,80}')" "$whole")"
 [[ -z "$candidate_growth" ]] ||
   problems+=("$skill_md grows the plan from the leaf's CANDIDATES: lines — it says '$candidate_growth' — so leftover tidying becomes ledger steps with refactor loops of their own")
+
+report "$name"
+
+name="$skill_md's Refactor section does not bail when no ledger step carries criterion k yet, since add-ledger-step.sh --criterion accepts it (#1292)"
+problems=()
+
+if unreadable_section; then
+  problems+=("$(unreadable_problem "what the conductor does with a criterion no ledger step carries could not be established")")
+else
+  uncarried_bail="$(phrase "$(either_order 'bail' 'carr[a-z]* criterion' '[^.]{0,200}')" "$section")"
+  [[ -z "$uncarried_bail" ]] ||
+    problems+=("$skill_md's Refactor section still bails on a criterion no ledger step carries — it says '$uncarried_bail' — so a behaviour serving a criterion the plan never covered ends the run, though add-ledger-step.sh --criterion now tags that step and no Bailing cause fits it")
+fi
 
 report "$name"
 

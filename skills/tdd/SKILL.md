@@ -1373,9 +1373,10 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      uncovered-spec behaviours, the leaf's and the verifier's, serving one criterion go in
      **one** call, under the script's own one-call rule — one call per criterion when they
      serve different ones — anchored `after "<STEP>"` so the triangulating step lands next to
-     the code it triangulates. **`add-ledger-step.sh` exit 2** here means no ledger step
-     carries criterion k yet: bail, naming that cause — the behaviour serves a criterion the
-     plan never covered. Neither reporting one — no `uncovered-spec` flag
+     the code it triangulates. **`add-ledger-step.sh` exit 2** here means the call itself was
+     malformed — a `<k>` that is not a whole number ≥ 1 — and is a **bail**. A criterion no
+     ledger step serves yet is no obstacle: the script tags the new step `⟦criterion k⟧` all
+     the same. Neither reporting one — no `uncovered-spec` flag
      from the leaf and none in the verdict — is no call and no mark at all.
      **exit 1** is that one call meeting the plan-growth budget: the values are filed as
      owed steps rather than planned — the script's own entry above says how — and
