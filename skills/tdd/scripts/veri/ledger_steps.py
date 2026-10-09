@@ -4,7 +4,7 @@ import sys
 
 from ledger import handed_out, ledger_steps, read_ledger_stdin
 
-USAGE = "usage: ledger-steps.sh [current|last-done|criterion <k>]"
+USAGE = "usage: ledger-steps.sh [current|last-done|current-or-last-done|criterion <k>]"
 
 
 def refuse():
@@ -34,6 +34,11 @@ def last_done(records):
     return answer(done[-1] if done else None)
 
 
+def current_or_last_done(records):
+    code = current(records)
+    return last_done(records) if code == 3 else code
+
+
 def criterion(text, k):
     kept, in_section = [], False
     for line in text.split("\n"):
@@ -47,7 +52,7 @@ def criterion(text, k):
 
 def main(argv):
     verb = argv[0] if argv else ""
-    if verb not in ("", "current", "last-done", "criterion"):
+    if verb not in ("", "current", "last-done", "current-or-last-done", "criterion"):
         return refuse()
     if verb == "criterion" and not re.fullmatch("[0-9]+", argv[1] if len(argv) > 1 else ""):
         return refuse()
@@ -59,6 +64,8 @@ def main(argv):
         return current(records)
     if verb == "last-done":
         return last_done(records)
+    if verb == "current-or-last-done":
+        return current_or_last_done(records)
     write_lines("\t".join(record) for record in records)
     return 0
 
