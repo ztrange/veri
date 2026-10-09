@@ -766,9 +766,11 @@ three times over branches its ledger pinned on later lines.
 
    A criterion replacing an implementation case under ADR 0027 with a pytest case asserting
    the same behaviour is planned as one step marked `⟦replaces-case⟧`, naming the suite path
-   and the case's exact name: `- [ ] <criterion>: replaces '<case name>' in <suite path>
-   ⟦replaces-case⟧ ⟦criterion k⟧`. That step's Red is the pytest case failing against the
-   code before the change; its Green deletes the named bash case and nothing else.
+   and a list of that suite's cases, each by its exact name: `- [ ] <criterion>: replaces
+   '<case name>', '<case name>' in <suite path> ⟦replaces-case⟧ ⟦criterion k⟧`. Group
+   related cases of one suite into one step, about a dozen at most; one case is a valid
+   group of one. That step's Red is the pytest cases failing against the code before the
+   change; its Green deletes the named bash cases and nothing else.
 
    A **refactor-kind** run — the spec carries the `## Refactor` section `capture-spec.sh`
    writes for the `refactor` label — changes no behaviour, so it has no failing test to plan
