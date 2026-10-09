@@ -1,7 +1,5 @@
 """In-process cases for veri/wait_leaf.py, the module wait-leaf.sh is a shim over."""
 import importlib
-import os
-import subprocess
 
 import pytest
 
@@ -13,25 +11,10 @@ def wait_leaf():
     return importlib.import_module("veri.wait_leaf")
 
 
-def fake_processes(monkeypatch, answer):
-    """subprocess.run recording each command as one line, its program by basename;
-    <answer>(line) -> (exit code, stdout, stderr)."""
-    calls = []
-
-    def fake_run(args, **kwargs):
-        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-        calls.append(line)
-        code, out, err = answer(line)
-        return subprocess.CompletedProcess(args, code, out, err)
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    return calls
-
-
 def test_main_refuses_a_missing_name_answers_a_recorded_code_and_times_out_with_3(
-        monkeypatch, capsys, tmp_path, wait_leaf):
+        monkeypatch, capsys, tmp_path, wait_leaf, fake_processes):
     monkeypatch.chdir(tmp_path)
-    calls = fake_processes(monkeypatch, lambda line: (0, "1000\n", "") if line == "date +%s" else (0, "", ""))
+    calls = fake_processes(lambda line, **_: (0, "1000\n", "") if line == "date +%s" else (0, "", ""))
 
     refusals = []
     for argv in ([], [""]):
@@ -53,17 +36,17 @@ def test_main_refuses_a_missing_name_answers_a_recorded_code_and_times_out_with_
 
 
 def test_main_refusal_touches_no_file_maps_a_recorded_code_as_text_and_waits_out_a_code_that_is_not_one(
-        monkeypatch, capsys, tmp_path, wait_leaf):
+        monkeypatch, capsys, tmp_path, wait_leaf, fake_processes):
     monkeypatch.chdir(tmp_path)
     readings = []
 
-    def answer(line):
+    def answer(line, **_):
         if line == "date +%s":
             readings.append(1000 + len(readings))
             return (0, f"{readings[-1]}\n", "")
         return (0, "", "")
 
-    fake_processes(monkeypatch, answer)
+    fake_processes(answer)
 
     for argv in ([], [""]):
         assert wait_leaf.main(argv) == 2
@@ -91,13 +74,13 @@ def test_main_refusal_touches_no_file_maps_a_recorded_code_as_text_and_waits_out
 
 
 def test_main_reads_the_clock_once_then_per_round_checks_the_pid_rechecks_after_a_dead_supervisor_and_sleeps_between_rounds(
-        monkeypatch, capsys, tmp_path, wait_leaf):
+        monkeypatch, capsys, tmp_path, wait_leaf, fake_processes):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_POLL", "0.5")
     (tmp_path / ".tdd").mkdir()
     readings = []
 
-    def answer(line):
+    def answer(line, **_):
         if line == "date +%s":
             if len(readings) > 20:
                 raise RuntimeError("runaway wait: more than 20 clock readings")
@@ -110,7 +93,7 @@ def test_main_reads_the_clock_once_then_per_round_checks_the_pid_rechecks_after_
             return (0, "bash supervise.sh x develop-red\n", "")
         return (0, "", "")
 
-    calls = fake_processes(monkeypatch, answer)
+    calls = fake_processes(answer)
 
     (tmp_path / ".tdd" / "y.pid").write_text("abc\n")
     clock = iter([1000, 1000, 1001] + [1001] * 20)
@@ -133,13 +116,13 @@ def test_main_reads_the_clock_once_then_per_round_checks_the_pid_rechecks_after_
 
 
 def test_main_reads_max_as_bash_arithmetic_defaulting_to_540_and_ignores_arguments_past_it(
-        monkeypatch, capsys, tmp_path, wait_leaf):
+        monkeypatch, capsys, tmp_path, wait_leaf, fake_processes):
     monkeypatch.chdir(tmp_path)
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "x.pid").write_text("42\n")
     readings = []
 
-    def answer(line):
+    def answer(line, **_):
         if line == "date +%s":
             if len(readings) > 600:
                 raise RuntimeError("runaway wait: more than 600 clock readings")
@@ -149,7 +132,7 @@ def test_main_reads_max_as_bash_arithmetic_defaulting_to_540_and_ignores_argumen
             return (0, "bash supervise.sh x develop-red\n", "")
         return (0, "", "")
 
-    calls = fake_processes(monkeypatch, answer)
+    calls = fake_processes(answer)
 
     rounds = {}
     for argv in (["x"], ["x", ""], ["x", "0"], ["x", "-5"], ["x", "010"], ["x", "0x10"], ["x", "3", "9"]):
@@ -171,13 +154,13 @@ def test_main_reads_max_as_bash_arithmetic_defaulting_to_540_and_ignores_argumen
 
 
 def test_main_answers_a_max_that_is_not_an_integer_form_with_1_as_bash_did(
-        monkeypatch, capsys, tmp_path, wait_leaf):
+        monkeypatch, capsys, tmp_path, wait_leaf, fake_processes):
     monkeypatch.chdir(tmp_path)
     (tmp_path / ".tdd").mkdir()
     (tmp_path / ".tdd" / "x.pid").write_text("42\n")
     readings = []
 
-    def answer(line):
+    def answer(line, **_):
         if line == "date +%s":
             if len(readings) > 20:
                 raise RuntimeError("runaway wait: more than 20 clock readings")
@@ -187,7 +170,7 @@ def test_main_answers_a_max_that_is_not_an_integer_form_with_1_as_bash_did(
             return (0, "bash supervise.sh x develop-red\n", "")
         return (0, "", "")
 
-    calls = fake_processes(monkeypatch, answer)
+    calls = fake_processes(answer)
 
     answers = {}
     for text in ("abc", "08", "1.5", "10+5"):
@@ -211,11 +194,11 @@ def test_main_answers_a_max_that_is_not_an_integer_form_with_1_as_bash_did(
 
 
 def test_main_hands_veri_poll_to_sleep_as_text_defaulting_to_1_and_a_failing_sleep_does_not_end_the_wait(
-        monkeypatch, capsys, tmp_path, wait_leaf):
+        monkeypatch, capsys, tmp_path, wait_leaf, fake_processes):
     monkeypatch.chdir(tmp_path)
     readings = []
 
-    def answer(line):
+    def answer(line, **_):
         if line == "date +%s":
             if len(readings) > 20:
                 raise RuntimeError("runaway wait: more than 20 clock readings")
@@ -225,7 +208,7 @@ def test_main_hands_veri_poll_to_sleep_as_text_defaulting_to_1_and_a_failing_sle
             return (1, "", "sleep: invalid time interval\n")
         return (0, "", "")
 
-    calls = fake_processes(monkeypatch, answer)
+    calls = fake_processes(answer)
 
     waits = {}
     for poll in (None, "", "0.02"):
@@ -246,12 +229,12 @@ def test_main_hands_veri_poll_to_sleep_as_text_defaulting_to_1_and_a_failing_sle
 
 
 def test_main_never_calls_a_pid_file_with_no_number_dead_and_names_a_dead_supervisor_by_the_pid_digits_as_read(
-        monkeypatch, capsys, tmp_path, wait_leaf):
+        monkeypatch, capsys, tmp_path, wait_leaf, fake_processes):
     monkeypatch.chdir(tmp_path)
     (tmp_path / ".tdd").mkdir()
     readings = []
 
-    def answer(line):
+    def answer(line, **_):
         if line == "date +%s":
             if len(readings) > 20:
                 raise RuntimeError("runaway wait: more than 20 clock readings")
@@ -261,7 +244,7 @@ def test_main_never_calls_a_pid_file_with_no_number_dead_and_names_a_dead_superv
             return (1, "", "")
         return (0, "", "")
 
-    calls = fake_processes(monkeypatch, answer)
+    calls = fake_processes(answer)
 
     pid_file = tmp_path / ".tdd" / "x.pid"
     no_verdict = {}
@@ -288,11 +271,11 @@ def test_main_never_calls_a_pid_file_with_no_number_dead_and_names_a_dead_superv
 
 
 def test_main_counts_an_empty_date_reading_as_0_before_the_loop_and_never_as_the_deadline_in_a_round(
-        monkeypatch, capsys, tmp_path, wait_leaf):
+        monkeypatch, capsys, tmp_path, wait_leaf, fake_processes):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_POLL", "0")
 
-    def answer(line):
+    def answer(line, **_):
         if line == "date +%s":
             if not readings:
                 raise RuntimeError("runaway wait: no clock reading left")
@@ -302,7 +285,7 @@ def test_main_counts_an_empty_date_reading_as_0_before_the_loop_and_never_as_the
             return (0, f"{reading}\n", "")
         return (0, "", "")
 
-    calls = fake_processes(monkeypatch, answer)
+    calls = fake_processes(answer)
 
     def missing():
         raise FileNotFoundError(2, "No such file or directory", "date")

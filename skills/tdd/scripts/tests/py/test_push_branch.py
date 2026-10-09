@@ -1,7 +1,5 @@
 """In-process cases for veri/push_branch.py, the module push-branch.sh is a shim over."""
 import importlib
-import os
-import subprocess
 
 import pytest
 
@@ -11,28 +9,18 @@ def push_branch():
     return importlib.import_module("veri.push_branch")
 
 
-def fake_processes(monkeypatch, answer):
-    """subprocess.run recording each command as one line, its program by basename;
-    <answer>(line) -> (exit code, merged output)."""
-    calls = []
-
-    def fake_run(args, **kwargs):
-        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-        calls.append(line)
-        code, out = answer(line)
-        return subprocess.CompletedProcess(args, code, out, "")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    return calls
+def merged(answer):
+    """<answer>(line) -> (exit code, merged output), as the shared fake's answer."""
+    return lambda line, **_: (*answer(line), "")
 
 
-def test_main_with_one_retry_runs_a_failed_push_to_its_push_failed_event(monkeypatch, capsys, push_branch):
+def test_main_with_one_retry_runs_a_failed_push_to_its_push_failed_event(monkeypatch, capsys, push_branch, fake_processes):
     def answer(line):
         if line == "git push --set-upstream origin HEAD":
             return 128, "fatal: unable to access origin\n"
         return 0, ""
 
-    calls = fake_processes(monkeypatch, answer)
+    calls = fake_processes(merged(answer))
     monkeypatch.setenv("VERI_PUSH_RETRIES", "1")
     monkeypatch.delenv("VERI_PUSH_BACKOFF", raising=False)
 
@@ -49,8 +37,8 @@ def test_main_with_one_retry_runs_a_failed_push_to_its_push_failed_event(monkeyp
         0, "", "push-branch.sh: push failed after 2 attempts; the branch is not on the remote\n")
 
 
-def test_main_refuses_a_bogus_argument_with_its_usage_and_no_process(monkeypatch, capsys, push_branch):
-    calls = fake_processes(monkeypatch, lambda line: (0, ""))
+def test_main_refuses_a_bogus_argument_with_its_usage_and_no_process(monkeypatch, capsys, push_branch, fake_processes):
+    calls = fake_processes(lambda line, **_: (0, "", ""))
     monkeypatch.delenv("VERI_PUSH_RETRIES", raising=False)
     monkeypatch.delenv("VERI_PUSH_BACKOFF", raising=False)
 
@@ -64,8 +52,8 @@ def test_main_refuses_a_bogus_argument_with_its_usage_and_no_process(monkeypatch
         "usage: push-branch.sh [--force-with-lease=<branch>:<sha>]\n")
 
 
-def test_main_pushes_a_valid_lease_ahead_of_set_upstream(monkeypatch, capsys, push_branch):
-    calls = fake_processes(monkeypatch, lambda line: (0, ""))
+def test_main_pushes_a_valid_lease_ahead_of_set_upstream(monkeypatch, capsys, push_branch, fake_processes):
+    calls = fake_processes(lambda line, **_: (0, "", ""))
     monkeypatch.setenv("VERI_PUSH_RETRIES", "0")
     monkeypatch.delenv("VERI_PUSH_BACKOFF", raising=False)
 
@@ -74,7 +62,7 @@ def test_main_pushes_a_valid_lease_ahead_of_set_upstream(monkeypatch, capsys, pu
     assert calls[:1] == ["git push --force-with-lease=b:abc1234 --set-upstream origin HEAD"]
 
 
-def test_main_reports_a_non_fast_forward_rejection_once_and_records_push_rejected(monkeypatch, capsys, push_branch):
+def test_main_reports_a_non_fast_forward_rejection_once_and_records_push_rejected(monkeypatch, capsys, push_branch, fake_processes):
     rejected = " ! [rejected]        HEAD -> feature (non-fast-forward)"
     stderr_at_event = []
 
@@ -89,7 +77,7 @@ def test_main_reports_a_non_fast_forward_rejection_once_and_records_push_rejecte
             stderr_at_event.append(capsys.readouterr().err)
         return 0, ""
 
-    calls = fake_processes(monkeypatch, answer)
+    calls = fake_processes(merged(answer))
     monkeypatch.delenv("VERI_PUSH_RETRIES", raising=False)
     monkeypatch.delenv("VERI_PUSH_BACKOFF", raising=False)
 
@@ -106,7 +94,7 @@ def test_main_reports_a_non_fast_forward_rejection_once_and_records_push_rejecte
         1, "", ["push rejected (non-fast-forward): origin/feature is at abc1234def\n"], "")
 
 
-def test_main_reads_retries_and_backoff_with_leading_zeros_as_decimal_and_records_push_failed_issue_776(monkeypatch, capsys, push_branch):
+def test_main_reads_retries_and_backoff_with_leading_zeros_as_decimal_and_records_push_failed_issue_776(monkeypatch, capsys, push_branch, fake_processes):
     push = "git push --set-upstream origin HEAD"
     event = "event.sh push-failed error=fatal: unable to access origin attempts="
 
@@ -114,7 +102,7 @@ def test_main_reads_retries_and_backoff_with_leading_zeros_as_decimal_and_record
         return (128, "fatal: unable to access origin\n") if line == push else (0, "")
 
     def run_with(retries, backoff):
-        calls = fake_processes(monkeypatch, failing)
+        calls = fake_processes(merged(failing))
         monkeypatch.setenv("VERI_PUSH_RETRIES", retries)
         monkeypatch.setenv("VERI_PUSH_BACKOFF", backoff)
         code = push_branch.main([])
@@ -131,25 +119,9 @@ def test_main_reads_retries_and_backoff_with_leading_zeros_as_decimal_and_record
     )
 
 
-def test_main_lands_a_lease_push_silently_and_records_the_last_attempts_merged_output(monkeypatch, capsys, push_branch):
-    def fake_processes_merging(answers):
-        """subprocess.run answering each line from <answers>[line], a list popped per call of
-        (exit code, stdout, stderr), merging stderr into stdout when the caller asks for 2>&1."""
-        calls = []
-
-        def fake_run(args, **kwargs):
-            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-            calls.append(line)
-            code, out, err = answers[line].pop(0) if line in answers else (0, "", "")
-            if kwargs.get("stderr") == subprocess.STDOUT:
-                out, err = out + err, None
-            return subprocess.CompletedProcess(args, code, out, err)
-
-        monkeypatch.setattr(subprocess, "run", fake_run)
-        return calls
-
+def test_main_lands_a_lease_push_silently_and_records_the_last_attempts_merged_output(monkeypatch, capsys, push_branch, fake_processes):
     def run_with(argv, answers, retries="0"):
-        calls = fake_processes_merging(answers)
+        calls = fake_processes(lambda line, **_: answers[line].pop(0) if line in answers else (0, "", ""))
         monkeypatch.setenv("VERI_PUSH_RETRIES", retries)
         monkeypatch.setenv("VERI_PUSH_BACKOFF", "0")
         code = push_branch.main(argv)
@@ -184,7 +156,7 @@ def test_main_lands_a_lease_push_silently_and_records_the_last_attempts_merged_o
     )
 
 
-def test_main_returns_2_on_a_failed_event_write_bad_tunable_or_bad_argument_and_1_with_an_empty_remote_sha(monkeypatch, capsys, push_branch):
+def test_main_returns_2_on_a_failed_event_write_bad_tunable_or_bad_argument_and_1_with_an_empty_remote_sha(monkeypatch, capsys, push_branch, fake_processes):
     push = "git push --set-upstream origin HEAD"
     rejected = " ! [rejected]        HEAD -> feature (non-fast-forward)"
     bad_argument = "push-branch.sh: the only argument is --force-with-lease=<branch>:<sha>, got '{}'\n" \
@@ -205,7 +177,7 @@ def test_main_returns_2_on_a_failed_event_write_bad_tunable_or_bad_argument_and_
                 return event_code, ""
             return 0, ""
 
-        calls = fake_processes(monkeypatch, answer)
+        calls = fake_processes(merged(answer))
         monkeypatch.setenv("VERI_PUSH_RETRIES", retries)
         monkeypatch.setenv("VERI_PUSH_BACKOFF", backoff)
         code = push_branch.main(argv)
@@ -235,7 +207,7 @@ def test_main_returns_2_on_a_failed_event_write_bad_tunable_or_bad_argument_and_
     )
 
 
-def test_main_retries_an_unreachable_origin_doubling_its_backoff_and_returns_2_on_a_bad_tunable_or_failed_event_write(monkeypatch, capsys, push_branch):
+def test_main_retries_an_unreachable_origin_doubling_its_backoff_and_returns_2_on_a_bad_tunable_or_failed_event_write(monkeypatch, capsys, push_branch, fake_processes):
     push = "git push --set-upstream origin HEAD"
     rejected = " ! [rejected]        HEAD -> feature (non-fast-forward)"
     unreachable = (128, "fatal: unable to access origin\n")
@@ -254,7 +226,7 @@ def test_main_retries_an_unreachable_origin_doubling_its_backoff_and_returns_2_o
                 return event_code, ""
             return 0, ""
 
-        calls = fake_processes(monkeypatch, answer)
+        calls = fake_processes(merged(answer))
         for name in ("VERI_PUSH_RETRIES", "VERI_PUSH_BACKOFF"):
             if name in env:
                 monkeypatch.setenv(name, env[name])
@@ -294,9 +266,9 @@ def test_main_retries_an_unreachable_origin_doubling_its_backoff_and_returns_2_o
     )
 
 
-def test_main_refuses_a_retries_or_backoff_that_is_not_a_non_negative_whole_number_naming_it_issue_776(monkeypatch, capsys, push_branch):
+def test_main_refuses_a_retries_or_backoff_that_is_not_a_non_negative_whole_number_naming_it_issue_776(monkeypatch, capsys, push_branch, fake_processes):
     def run_with(name, value):
-        calls = fake_processes(monkeypatch, lambda line: (128, "fatal: unable to access origin\n"))
+        calls = fake_processes(lambda line, **_: (128, "fatal: unable to access origin\n", ""))
         monkeypatch.setenv("VERI_PUSH_RETRIES", "0")
         monkeypatch.setenv("VERI_PUSH_BACKOFF", "0")
         monkeypatch.setenv(name, value)
