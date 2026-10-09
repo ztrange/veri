@@ -97,4 +97,17 @@ detect --tier all --issue "$body" "$repo"
 [[ "$fast" == 'make unit' ]] && matched \
   && ok || no "--tier all, no veri: all tests: line: an issue whose Test command: equals the fast tier's command prints what detection finds with no issue line (fast='$fast' want 'make unit', exit=$code want 0, stdout='$out' want '$want')"
 
+repo="$work/issue-differs-from-fast-tier"
+body="$work/issue-differs-from-fast-tier-body.md"
+mkdir -p "$repo"
+printf '# notes\n\nveri: fast tests: `make unit`\nveri: all tests: `make test`\n' > "$repo/CLAUDE.md"
+printf '## Notes\n\nTest command: make integration\n' > "$body"
+fast="$("$DETECT" --tier fast --issue "$body" "$repo" 2>/dev/null)"
+want='make integration'
+
+detect --tier all --issue "$body" "$repo"
+
+[[ "$fast" == 'make unit' ]] && matched \
+  && ok || no "--tier all: an issue whose Test command: differs from the fast tier's command prints the issue's command (fast='$fast' want 'make unit', exit=$code want 0, stdout='$out' want '$want')"
+
 finish
