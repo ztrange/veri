@@ -360,7 +360,7 @@ def main(argv):
             if status != "killed-stuck":
                 break
             preserve_killed_attempt(name, tries + 1, leaf_env)
-            budget = limit(retries)
+            budget = seconds(retries)
             if budget is not None and tries >= budget:
                 break
             tries += 1
