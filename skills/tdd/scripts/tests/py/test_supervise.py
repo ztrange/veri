@@ -1115,6 +1115,103 @@ def test_main_reads_a_veri_timeout_with_leading_zeros_as_decimal_010_a_10s_cap_a
         "08": (2, [(8, signal.SIGTERM)])}
 
 
+def test_main_reads_a_settled_timeout_with_leading_zeros_as_decimal_010_a_10s_cap_1198(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-1198-timeout").write_text("010\n")
+    clean_env(monkeypatch, VERI_HEARTBEAT="100000", VERI_STUCK_RETRIES="0", VERI_ISSUE="1198")
+    clock = {"wall": 1000, "awake": 5000, "sleeps": 0}
+    kills = []
+
+    class Leaf:
+        pid = 4242
+        returncode = None
+        args = []
+
+        def poll(self):
+            return self.returncode
+
+        def wait(self, timeout=None):
+            return self.returncode
+
+    leaf = Leaf()
+
+    def sleep(_):
+        clock["sleeps"] += 1
+        if clock["sleeps"] > 2000:
+            raise Runaway()
+        clock["wall"] += 1
+        clock["awake"] += 1
+
+    monkeypatch.setattr(time, "sleep", sleep)
+    monkeypatch.setattr(time, "clock_gettime", lambda *_: clock["awake"] + 0.5)
+
+    def killpg(pgid, sig):
+        kills.append((clock["awake"] - 5000, sig))
+        if pgid == leaf.pid and sig:
+            leaf.returncode = -sig
+
+    def kill(pid, sig):
+        if pid < 0:
+            return killpg(-pid, sig)
+        if pid == leaf.pid and sig:
+            kills.append((clock["awake"] - 5000, sig))
+            leaf.returncode = -sig
+
+    monkeypatch.setattr(os, "killpg", killpg)
+    monkeypatch.setattr(os, "kill", kill)
+
+    def answer(args):
+        args = [str(a) for a in args]
+        if args[:3] == ["git", "rev-parse", "--show-toplevel"]:
+            return 0, f"{tmp_path}\n"
+        if args[:1] == ["git"]:
+            return 0, "0123456789abcdef0123456789abcdef01234567\n"
+        if args[:1] == ["date"]:
+            return 0, f"{clock['wall']}\n"
+        if args[:3] == ["stat", "-c", "%Y"]:
+            return 0, "1000\n"
+        if args[:1] == ["stat"]:
+            return 1, ""
+        return 0, ""
+
+    def run(args, *_, **kwargs):
+        code, out = answer(args)
+        out = as_asked(out, kwargs)
+        if code and kwargs.get("check"):
+            raise subprocess.CalledProcessError(code, args, out)
+        return subprocess.CompletedProcess(args, code, out, "" if isinstance(out, str) else b"")
+
+    def check_output(args, *_, **kwargs):
+        code, out = answer(args)
+        if code:
+            raise subprocess.CalledProcessError(code, args)
+        return as_asked(out, kwargs)
+
+    def popen(args, *_, **kwargs):
+        if list(args[:2]) == ["/bin/sh", "-c"]:
+            return leaf
+        raise AssertionError(f"unexpected Popen: {args}")
+
+    monkeypatch.setattr(subprocess, "run", run)
+    monkeypatch.setattr(subprocess, "check_output", check_output)
+    monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, *a, **k).returncode)
+    monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: run(args, *a, check=True, **k).returncode)
+    monkeypatch.setattr(subprocess, "Popen", popen)
+
+    try:
+        code = supervise.main(["develop-red", "leaf-hang"])
+    except Runaway:
+        code = "<never ended>"
+    capsysbinary.readouterr()
+
+    assert (code, kills[:1]) == (2, [(10, signal.SIGTERM)])
+
+
 def test_main_kills_the_leaf_by_term_to_its_group_else_its_pid_then_five_reaping_polls_of_veri_kill_poll_then_kill_and_its_rounds_sleep_veri_poll_an_invalid_one_polling_without_pause(
         monkeypatch, tmp_path, capsysbinary, supervise):
     import signal
