@@ -12,6 +12,12 @@ def run(main, argv):
     try:
         code = main(argv)
         sys.stdout.flush()
+    except BrokenPipeError:
+        try:
+            os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        except (AttributeError, OSError, ValueError):
+            pass
+        sys.exit(141)
     except Exception as exc:
         reason = " ".join(str(exc).split())
         sys.stderr.write(f"{_shim_name(main)}: {type(exc).__name__}: {reason}\n")
