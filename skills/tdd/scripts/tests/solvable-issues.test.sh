@@ -35,12 +35,12 @@ fixture() {  # fixture <name> -> path
 
 run() {  # run <fixture-dir> [script args…]; sets $out and $code
   local fixture="$1"; shift
-  out="$(VERI_GH_JSON="$fixture" "$SOLVABLE" "$@" 2>/dev/null)" && code=0 || code=$?
+  out="$(cd "$no_claims" && VERI_GH_JSON="$fixture" "$SOLVABLE" "$@" 2>/dev/null)" && code=0 || code=$?
 }
 
 label_run() {  # label_run <fixture-dir> <env setting…>; sets $out and $code
   local fixture="$1"; shift
-  out="$(env "$@" VERI_GH_JSON="$fixture" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+  out="$(cd "$no_claims" && env "$@" VERI_GH_JSON="$fixture" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
 }
 
 refused_run() {  # refused_run <fixture-dir> <env setting…>; sets $refused_out/$refused_err/$refused_code
@@ -1554,5 +1554,48 @@ three_page_run three
 { [[ "$one_code" == 0 && "$one_out" == $'75\n73' ]] \
   && [[ "$code" == "$one_code" && "$out" == "$one_out" ]]; } \
   && ok || no "against a gh that serves issues and PRs over three pages on repos/{owner}/{repo} and refuses repositories/{id} with the proxy's 403, prints the same issue numbers and exit code as against a single-page fixture holding the same issues and PRs (#592) (single page: exit=$one_code stdout='$(tr '\n' '|' <<<"$one_out")' want 0 and '75|73'; three pages: exit=$code stdout='$(tr '\n' '|' <<<"$out")' want the same; three pages stderr='$(tr '\n' '|' < "$work/three-pages/three.err")')"
+
+name="a live conductor lock under the surrounding repository's .tdd/wt/<n>/.tdd/conductor.pid, for unrelated numbers and for every number this suite's fixtures name, leaves run's and label_run's answer unchanged"
+unrelated_numbers=(108 117 120 124)
+fixture_numbers=($(sed -n 's/.*"number"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$HERE/solvable-issues.test.sh" | sort -un))
+fx="$(fixture surrounding-locks)"
+{
+  printf '['; sep=
+  for n in $(printf '%s\n' "${unrelated_numbers[@]}" "${fixture_numbers[@]}" | sort -un); do
+    printf '%s{"number": %s, "title": "t", "labels": [{"name": "ready-for-agent"}], "state": "OPEN", "body": "## Blocked by\\n\\nNone.\\n"}' "$sep" "$n"
+    sep=,
+  done
+  printf ']\n'
+} > "$fx/issues.json"
+
+surrounding_repo() {  # surrounding_repo <dir> <n…>
+  local dir="$1" n; shift
+  new_repo -b main "$dir" >/dev/null 2>&1
+  for n in "$@"; do
+    mkdir -p "$dir/.tdd/wt/$n/.tdd"
+    printf '%s\n' "$$" > "$dir/.tdd/wt/$n/.tdd/conductor.pid"
+  done
+}
+surrounding_repo "$work/surrounding-unrelated" "${unrelated_numbers[@]}"
+surrounding_repo "$work/surrounding-every" "${fixture_numbers[@]+"${fixture_numbers[@]}"}"
+
+problems=()
+run "$fx"; no_lock_out="$out" no_lock_code="$code"
+label_run "$fx" -u VERI_PRIORITY_LABEL; no_lock_label_out="$out" no_lock_label_code="$code"
+[[ "$no_lock_code" == 0 && -n "$no_lock_out" ]] ||
+  problems+=("the run with no lock is not green, so there is nothing to compare against: exit $no_lock_code, stdout: $(tr '\n' '|' <<<"$no_lock_out")")
+[[ "${#fixture_numbers[@]}" -gt 0 ]] ||
+  problems+=("no \"number\": <n> fixture was found in solvable-issues.test.sh, so no lock was written and the arms cannot differ")
+for surrounding in surrounding-unrelated surrounding-every; do
+  cd "$work/$surrounding" || exit 2
+  run "$fx"
+  [[ "$code" == "$no_lock_code" && "$out" == "$no_lock_out" ]] ||
+    problems+=("run under $surrounding: want exit $no_lock_code and stdout '$(tr '\n' '|' <<<"$no_lock_out")', got exit $code and stdout '$(tr '\n' '|' <<<"$out")'")
+  label_run "$fx" -u VERI_PRIORITY_LABEL
+  [[ "$code" == "$no_lock_label_code" && "$out" == "$no_lock_label_out" ]] ||
+    problems+=("label_run under $surrounding: want exit $no_lock_label_code and stdout '$(tr '\n' '|' <<<"$no_lock_label_out")', got exit $code and stdout '$(tr '\n' '|' <<<"$out")'")
+  cd "$no_claims" || exit 2
+done
+report "$name"
 
 finish
