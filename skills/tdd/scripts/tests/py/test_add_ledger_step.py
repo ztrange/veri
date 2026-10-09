@@ -561,3 +561,16 @@ def test_main_refuses_a_ledger_whose_step_carries_two_criterion_tags_naming_the_
             ledger.read_bytes() == seed,
         )
     assert got == {name: (2, "", 1, True, True, True) for name in seeds}
+
+
+def test_main_given_criterion_k_tags_every_inserted_line_with_k_whatever_the_anchor_carries_1224(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    code = add_ledger_step.main(["--criterion", "3", str(ledger), "after", "b two", "t", "u"])
+    assert (code, capsys.readouterr().err, ledger.read_bytes().decode()) == (
+        0,
+        "",
+        "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+        "- [ ] t ⟦added⟧ ⟦criterion 3⟧\n- [ ] u ⟦added⟧ ⟦criterion 3⟧\n- [ ] c three ⟦criterion 3⟧\n",
+    )

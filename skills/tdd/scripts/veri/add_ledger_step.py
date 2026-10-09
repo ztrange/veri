@@ -57,6 +57,9 @@ def write_ledger(path, mode, text):
 
 
 def main(argv):
+    criterion = None
+    if argv[:1] == ["--criterion"]:
+        criterion, argv = "".join(argv[1:2]), argv[2:]
     if len(argv) < 4 or "" in argv[:3]:
         return refuse(USAGE)
     path, where, anchor, *texts = argv
@@ -97,7 +100,7 @@ def main(argv):
         if not is_anchor_step(line, anchor):
             out.append(line)
             continue
-        steps = [added_step(text, criterion_of(line)) for text in texts]
+        steps = [added_step(text, criterion or criterion_of(line)) for text in texts]
         if where == "after":
             out.append(line)
         out.extend(steps)
