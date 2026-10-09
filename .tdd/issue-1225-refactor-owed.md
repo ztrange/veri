@@ -1,0 +1,2 @@
+### Run as `detect-test-command.sh --tier all --issue <body> <root>`, an issue whose `Test command:` equals the command `--tier fast` resolves to for that root (CLAUDE.md's `veri: fast tests:`) prints CLAUDE.md's `veri: all tests:` command, exit 0 ⟦criterion 1⟧
+- test-only | the criterion-1 case runs `"$DETECT" --tier fast …` by hand to get `$fast` instead of calling the suite's `detect` helper and reading `$out`
