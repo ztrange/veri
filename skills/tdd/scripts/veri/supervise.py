@@ -255,7 +255,7 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
         a = awake_seconds()
         seen_at += (t - prev_t) - (a - prev_a)
         prev_t, prev_a = t, a
-        span = limit(timeout)
+        span = int(timeout, 10) if re.fullmatch(r"[0-9]+", timeout) else limit(timeout)
         if span is not None and a - a0 >= span:
             reason = f"hard timeout {timeout}s exceeded"
         elif watched:
