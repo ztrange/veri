@@ -2,10 +2,13 @@
 import errno
 import importlib
 import importlib.util
-
+import os
+import subprocess
 import sys
 
 import pytest
+
+from conftest import SCRIPTS
 
 
 @pytest.fixture
@@ -86,3 +89,46 @@ def test_run_flushes_stdout_inside_its_guard_so_a_failed_write_exits_2_with_one_
     assert lines[0].startswith("test-entry.sh: OSError: "), err
     assert "No space left on device" in lines[0], err
     assert "Traceback" not in err
+
+
+def test_run_turns_a_broken_pipe_on_stdout_into_exit_141_with_nothing_on_stdout_or_stderr_1150(entry, monkeypatch, capsys):
+    class ClosedPipe:
+        def write(self, text):
+            return len(text)
+
+        def flush(self):
+            raise BrokenPipeError(errno.EPIPE, "Broken pipe")
+
+    def main(argv):
+        sys.stdout.write("an answer\n")
+        return 0
+
+    monkeypatch.setattr(sys, "stdout", ClosedPipe())
+    with pytest.raises(SystemExit) as exited:
+        entry.run(main, [])
+    monkeypatch.undo()
+    out, err = capsys.readouterr()
+
+    assert exited.value.code == 141
+    assert (out, err) == ("", "")
+
+
+def test_run_leaves_nothing_for_shutdown_to_flush_so_a_real_closed_pipe_still_exits_141_with_an_empty_stderr_1150():
+    program = (
+        "import sys\n"
+        f"sys.path.insert(0, {str(SCRIPTS)!r})\n"
+        "from veri import entry\n"
+        "def main(argv):\n"
+        "    sys.stdout.write('an answer\\n')\n"
+        "    return 0\n"
+        "entry.run(main, [])\n"
+    )
+    read_end, write_end = os.pipe()
+    os.close(read_end)
+    try:
+        run = subprocess.run([sys.executable, "-c", program], stdin=subprocess.DEVNULL, stdout=write_end,
+                             stderr=subprocess.PIPE, timeout=10)
+    finally:
+        os.close(write_end)
+
+    assert (run.returncode, run.stderr.decode()) == (141, "")
