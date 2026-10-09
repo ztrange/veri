@@ -313,6 +313,20 @@ expect_suites "an edit only deleting a ## heading line of SKILL.md prints every 
   skills/tdd/scripts/tests/skill-beta.test.sh \
   skills/tdd/scripts/tests/skill-gamma.test.sh
 
+make_repo skill_two_sections
+mkdir -p "$s/tests"
+printf '# tdd\n\n## Alpha\n\nalpha text\n\n## Beta\n\nbeta text\n\n## Gamma\n\ngamma text\n' > "$repo/skills/tdd/SKILL.md"
+for name in Alpha Beta Gamma; do
+  printf '#!/usr/bin/env bash\nskill_md="skills/tdd/SKILL.md"\nload_section '"'"'%s'"'"'\n' "$name" > "$s/tests/skill-$(printf '%s' "$name" | tr 'A-Z' 'a-z').test.sh"
+done
+commit_base
+printf '# tdd\n\n## Alpha\n\nalpha text 2\n\n## Beta\n\nbeta text 2\n\n## Gamma\n\ngamma text\n' > "$repo/skills/tdd/SKILL.md"
+commit_head
+expect_suites "an edit whose changed lines of SKILL.md span two sections prints every suite naming SKILL.md" \
+  skills/tdd/scripts/tests/skill-alpha.test.sh \
+  skills/tdd/scripts/tests/skill-beta.test.sh \
+  skills/tdd/scripts/tests/skill-gamma.test.sh
+
 make_repo rule5
 mkdir -p "$s/tests/unit" "$repo/docs"
 printf 'foo\n' > "$s/foo.sh"
