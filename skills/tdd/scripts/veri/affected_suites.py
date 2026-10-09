@@ -76,11 +76,19 @@ def existing(path):
 HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 
 
+LEVELS = {"##": 2, "###": 3}
+
+
+def split_heading(line):
+    prefix, space, title = line.partition(" ")
+    return (prefix, title) if space else (line, None)
+
+
 def heading(line):
-    for level, prefix in ((2, "## "), (3, "### ")):
-        if line.startswith(prefix):
-            return level, line[len(prefix):].strip()
-    return None
+    prefix, title = split_heading(line)
+    if title is None or prefix not in LEVELS:
+        return None
+    return LEVELS[prefix], title.strip()
 
 
 def enclosing(lines):
@@ -126,7 +134,7 @@ def quoted(*names):
 def forms(*lines):
     found = []
     for line in lines:
-        prefix, title = line.split(" ", 1)
+        prefix, title = split_heading(line)
         words = title.split()
         for k in range(1, len(words) + 1):
             form = " ".join(words[:k])
