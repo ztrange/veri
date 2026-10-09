@@ -10,7 +10,7 @@ except ImportError:
 
 REPAIR_MARKS = ("⟦ci-repair⟧", "⟦suite-repair⟧")
 BYTES = "surrogateescape"
-USAGE = "usage: add-ledger-step.sh <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]"
+USAGE = "usage: add-ledger-step.sh [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]"
 
 
 def warn(message):
