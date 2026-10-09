@@ -55,7 +55,7 @@ want="$seeded"'
 check_code "over budget: inserts no checkbox, exits 1, and owes both texts as plain bullets" \
   "$code" 1 "$want"
 
-usage='usage: add-ledger-step.sh <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]'
+usage='usage: add-ledger-step.sh [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]'
 name="no argument, and three arguments, each exit 2 with nothing on stdout and stderr exactly the usage line"
 "$ADD" > "$work/usage0.out" 2> "$work/usage0.err"; code0=$?
 "$ADD" l.md after anchor > "$work/usage3.out" 2> "$work/usage3.err"; code3=$?

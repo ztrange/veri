@@ -9,7 +9,7 @@
 # plain bullet under `## Owed steps`. A <text> carrying ⟦ci-repair⟧ or ⟦suite-repair⟧ is inserted
 # without ⟦added⟧ and never counts against the cap. The added step inherits the anchor's criterion.
 #
-# usage: add-ledger-step.sh <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]
+# usage: add-ledger-step.sh [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]
 # Exit:    0 inserted; 1 the batch would exceed VERI_STEP_GROWTH, owed instead;
 #          2 a missing argument, an unknown position, an anchor matching no single step, or a bad VERI_STEP_GROWTH
 exec python3 "$(dirname "$0")/veri/add_ledger_step.py" "$@"

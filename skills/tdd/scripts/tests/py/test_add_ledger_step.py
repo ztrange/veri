@@ -4,7 +4,7 @@ import importlib
 import pytest
 
 USAGE = (
-    "usage: add-ledger-step.sh <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]\n"
+    "usage: add-ledger-step.sh [--criterion <k>] <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]\n"
 )
 
 LEDGER = (
@@ -612,3 +612,10 @@ def test_main_refuses_a_criterion_no_step_carries_with_2_and_one_stderr_line_nam
         err.startswith("add-ledger-step.sh: ") and err.endswith(" 7\n"),
         ledger.read_bytes() == LEDGER,
     ) == (2, "", 1, True, True)
+
+
+def test_main_refusing_too_few_arguments_prints_a_usage_line_naming_the_optional_leading_criterion_1224(capsys, add_ledger_step):
+    for argv in ([], ["l.md", "after", "anchor"], ["--criterion", "2", "l.md", "after", "anchor"]):
+        code = add_ledger_step.main(argv)
+        out, err = capsys.readouterr()
+        assert (argv, code, out, err.count("\n"), err.startswith("usage: add-ledger-step.sh [--criterion <k>] <ledger-file> ")) == (argv, 2, "", 1, True)
