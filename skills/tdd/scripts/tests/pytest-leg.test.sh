@@ -11,6 +11,7 @@
 #   4. When the python3 they would use is older than 3.12, both refuse before any suite runs.
 #   5. requirements-dev.txt pins pytest to one exact version the Makefile never restates.
 #   6. A case that runs past the per-case timeout fails, named as a timeout, and the leg runs the rest.
+#   7. With no override, that per-case timeout is 30 s.
 #
 # Run: skills/tdd/scripts/tests/pytest-leg.test.sh
 set -uo pipefail
@@ -793,6 +794,25 @@ for target in unit test; do
     problems+=("make $target: want a FAILED line naming test_veri_probe_hangs as a Timeout, got: $(flat "$out")")
   [[ "$out" == *'1 failed, 1 passed'* ]] ||
     problems+=("make $target: want the pytest leg to report 1 failed, 1 passed, got: $(flat "$out")")
+done
+report "$name"
+
+default="$work/default-timeout"
+make_tree "$default"
+cat > "$default/$PY_DIR/test_leg_probe.py" <<'PY'
+def test_veri_probe_passes():
+    assert 1 == 1
+PY
+
+name="with no VERI_PYTEST_TIMEOUT override, make unit and make test each run the pytest leg under a per-case timeout of 30 s, as pytest-timeout's own header reports it"
+problems=()
+for target in unit test; do
+  env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE -u VERI_PYTEST_TIMEOUT \
+    make --no-print-directory -C "$default" "$target" > "$work/out" 2> "$work/err" < /dev/null &&
+    code=0 || code=$?
+  check_green "make $target"
+  grep -Fx 'timeout: 30.0s' "$work/out" > /dev/null ||
+    problems+=("make $target: want pytest-timeout's header line timeout: 30.0s, got: $(flat "$(cat "$work/out")")")
 done
 report "$name"
 
