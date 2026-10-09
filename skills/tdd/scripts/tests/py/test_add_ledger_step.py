@@ -599,19 +599,17 @@ def test_main_without_criterion_tags_inserted_lines_with_the_anchor_criterion_an
     }
 
 
-def test_main_refuses_a_criterion_no_step_carries_with_2_and_one_stderr_line_naming_it_writing_nothing_1224(tmp_path, monkeypatch, capsys, add_ledger_step):
+def test_main_given_a_criterion_no_step_carries_tags_every_inserted_line_with_it_and_returns_0_1292(tmp_path, monkeypatch, capsys, add_ledger_step):
     monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
     ledger = tmp_path / "issue-42.md"
     ledger.write_bytes(LEDGER)
-    code = add_ledger_step.main(["--criterion", "7", str(ledger), "after", "b two", "t"])
-    out, err = capsys.readouterr()
-    assert (
-        code,
-        out,
-        err.count("\n"),
-        err.startswith("add-ledger-step.sh: ") and err.endswith(" 7\n"),
-        ledger.read_bytes() == LEDGER,
-    ) == (2, "", 1, True, True)
+    code = add_ledger_step.main(["--criterion", "7", str(ledger), "after", "b two", "t", "u"])
+    assert (code, capsys.readouterr().err, ledger.read_bytes().decode()) == (
+        0,
+        "",
+        "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two ⟦criterion 2⟧\n"
+        "- [ ] t ⟦added⟧ ⟦criterion 7⟧\n- [ ] u ⟦added⟧ ⟦criterion 7⟧\n- [ ] c three ⟦criterion 3⟧\n",
+    )
 
 
 def test_main_refusing_too_few_arguments_prints_a_usage_line_naming_the_optional_leading_criterion_1224(capsys, add_ledger_step):
