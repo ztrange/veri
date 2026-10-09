@@ -383,7 +383,7 @@ def test_main_answers_as_stop_run_test_sh_s_refusal_write_overwrite_all_no_main_
 
 
 def test_main_that_resolves_a_main_working_tree_outside_the_fixture_tree_fails_writing_no_stop_and_signalling_nothing_1158(
-        monkeypatch, tmp_path, capsysbinary, stop_run):
+        monkeypatch, tmp_path, capsysbinary, stop_run, fake_processes):
     import signal
     fixture = tmp_path / "fixture"
     repo = fixture / "repo"
@@ -393,7 +393,7 @@ def test_main_that_resolves_a_main_working_tree_outside_the_fixture_tree_fails_w
     (decoy_run / ".tdd" / "develop-red.pid").write_bytes(b"4343\n")
     monkeypatch.chdir(repo)
     answers = {("ps", "-p", "4343", "-o", "args="): (0, b"bash supervise.sh develop-red 5\n")}
-    fake_processes(monkeypatch, answers)
+    fake_processes(answering(answers))
     monkeypatch.setattr(stop_run, "main_working_tree", lambda: os.fsencode(decoy))
     terms = []
 
