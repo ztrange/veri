@@ -4,5 +4,5 @@
 - [x] add-ledger-step.sh --criterion <k> refuses a k that is not a whole number ≥ 1 (0, a word, a negative, an empty value) with exit 2 and one stderr line naming that value, leaving the ledger byte-identical ⟦criterion 1⟧
 - [x] SKILL.md beside the uncovered-spec add-ledger-step.sh call no longer tells the conductor to bail when no ledger step carries criterion k, since the script now accepts it ⟦criterion 2⟧
 - [x] SKILL.md's add-ledger-step.sh entry under The scripts says --criterion <k> tags the added steps with criterion k for any whole number k ≥ 1, carried or not, and lists the real exit-2 cases including a k that is not a whole number ≥ 1 ⟦criterion 2⟧
-- [ ] SKILL.md's Refactor-loop sub-step 4 (an uncovered-spec flag) sends each behaviour into the add-ledger-step.sh call for the criterion it serves, one call per criterion, instead of into one shared call ⟦criterion 2⟧
+- [x] SKILL.md's Refactor-loop sub-step 4 (an uncovered-spec flag) sends each behaviour into the add-ledger-step.sh call for the criterion it serves, one call per criterion, instead of into one shared call ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] SKILL.md beside the uncovered-spec add-ledger-step.sh calls says each per-criterion call emits its own step-added event, anchored on the step and carrying added=<that call's count> ⟦criterion 2⟧
