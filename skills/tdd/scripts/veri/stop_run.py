@@ -50,7 +50,21 @@ def inside_own_scripts():
 def on_one_path(main_tree):
     tree = os.path.realpath(os.fsdecode(main_tree))
     here = os.path.realpath(os.getcwd())
-    return holds(tree, here) or holds(here, tree)
+    return holds(tree, here) or holds(here, tree) or holds(tree + os.sep + ".git", linked_git_dir(here))
+
+
+def linked_git_dir(here):
+    while True:
+        marker = os.path.join(here, ".git")
+        if os.path.isfile(marker):
+            with open(marker, "rb") as git_file:
+                line = git_file.readline().strip()
+            if not line.startswith(b"gitdir: "):
+                return ""
+            return os.path.realpath(os.path.join(here, os.fsdecode(line.removeprefix(b"gitdir: "))))
+        if os.path.exists(marker) or os.path.dirname(here) == here:
+            return ""
+        here = os.path.dirname(here)
 
 
 def stop_run(run, mode):
