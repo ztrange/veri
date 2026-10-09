@@ -53,3 +53,30 @@ def test_fake_processes_given_an_answer_hands_run_the_line_and_its_keyword_argum
             raise AssertionError("%s answered rather than refusing" % entry)
     assert calls[0] == "touch %s" % (tmp_path / "run")
     assert sorted(tmp_path.iterdir()) == []
+
+
+def test_fake_processes_hands_output_back_in_the_calls_mode_merges_stderr_on_request_and_raises_on_check(
+        fake_processes):
+    answers = {"text": (0, b"out", b"err"), "bytes": (0, "out", "err"), "merge": (0, "out", "err"),
+               "check": (3, "out", "err")}
+    fake_processes(lambda line, **_: answers[line.split()[1]])
+
+    def output(args, **kwargs):
+        ran = subprocess.run(args, **kwargs)
+        return ran.stdout, ran.stderr
+
+    observed = [
+        output(["tool", "text"], text=True),
+        output(["tool", "text"], encoding="utf-8"),
+        output(["tool", "text"], universal_newlines=True),
+        output(["tool", "bytes"]),
+        output(["tool", "merge"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True),
+    ]
+
+    assert observed == [("out", "err")] * 3 + [(b"out", b"err"), ("outerr", None)]
+    try:
+        subprocess.run(["tool", "check"], check=True, text=True)
+    except subprocess.CalledProcessError as raised:
+        assert (raised.returncode, raised.cmd, raised.output, raised.stderr) == (3, ["tool", "check"], "out", "err")
+    else:
+        raise AssertionError("a non-zero answer under check=True returned rather than raising")

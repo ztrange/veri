@@ -30,7 +30,23 @@ def fake_processes(monkeypatch):
             return subprocess.CompletedProcess(args, 0, "", "")
 
         def run(args, *_, **kwargs):
-            return subprocess.CompletedProcess(args, *answer(line_of(args), **kwargs))
+            code, out, err = answer(line_of(args), **kwargs)
+            encoding = kwargs.get("encoding") or "utf-8"
+            text = kwargs.get("text") or kwargs.get("encoding") or kwargs.get("universal_newlines")
+
+            def in_mode(value):
+                if text and isinstance(value, bytes):
+                    return value.decode(encoding)
+                if not text and isinstance(value, str):
+                    return value.encode(encoding)
+                return value
+
+            out, err = in_mode(out), in_mode(err)
+            if kwargs.get("stderr") == subprocess.STDOUT:
+                out, err = out + err, None
+            if kwargs.get("check") and code:
+                raise subprocess.CalledProcessError(code, args, out, err)
+            return subprocess.CompletedProcess(args, code, out, err)
 
         def refuse(args, *_, **__):
             raise AssertionError("unexpected process: %s" % line_of(args))
