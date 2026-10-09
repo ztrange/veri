@@ -352,6 +352,31 @@ if [[ -z "$unplaced_wrong" ]]; then ok; else
   no "an edit to SKILL.md that cannot be placed in a section (above the first ##, file added or deleted) prints every suite naming SKILL.md:$unplaced_wrong"
 fi
 
+make_repo file_wide_paths
+mkdir -p "$s/tests" "$s/prompts" "$repo/skills/merge"
+file_wide_text() { printf '# doc\n\n## Alpha\n\nalpha text%s\n\n## Beta\n\nbeta text\n' "$1"; }
+for path in CLAUDE.md Makefile skills/merge/SKILL.md skills/tdd/scripts/prompts/develop.md; do
+  file_wide_text "" > "$repo/$path"
+  for name in Alpha Beta; do
+    printf '#!/usr/bin/env bash\ndoc="%s"\nload_section '"'"'%s'"'"'\n' "$path" "$name" \
+      > "$s/tests/$(basename "$path" | tr 'A-Z.' 'a-z-')-$(printf '%s' "$name" | tr 'A-Z' 'a-z').test.sh"
+  done
+done
+commit_base
+file_wide_wrong=""
+for path in CLAUDE.md Makefile skills/merge/SKILL.md skills/tdd/scripts/prompts/develop.md; do
+  file_wide_text " 2" > "$repo/$path"
+  commit_head
+  stem="skills/tdd/scripts/tests/$(basename "$path" | tr 'A-Z.' 'a-z-')"
+  expected="$(printf '%s\n' "$stem-alpha.test.sh" "$stem-beta.test.sh")"
+  out="$(run_affected 2>/dev/null)"; code=$?
+  [[ "$code" == 0 && "$out" == "$expected" ]] || file_wide_wrong+=" $path(code=$code, stdout=${out//$'\n'/,})"
+  base="$head"
+done
+if [[ -z "$file_wide_wrong" ]]; then ok; else
+  no "an edit inside one ## section of CLAUDE.md, Makefile, a SKILL.md other than skills/tdd/SKILL.md or a prompt prints every suite naming it, file-wide:$file_wide_wrong"
+fi
+
 make_repo rule5
 mkdir -p "$s/tests/unit" "$repo/docs"
 printf 'foo\n' > "$s/foo.sh"
