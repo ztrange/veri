@@ -15,31 +15,8 @@ def wait_ci():
     return importlib.import_module("veri.wait_ci")
 
 
-def fake_processes(monkeypatch, answer):
-    """subprocess.run and subprocess.Popen recording each command as one line, its program
-    by basename; <answer>(line) -> (exit code, stdout, stderr)."""
-    calls = []
-
-    def line_of(args):
-        return " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
-
-    def fake_run(args, **kwargs):
-        line = line_of(args)
-        calls.append(line)
-        code, out, err = answer(line)
-        return subprocess.CompletedProcess(args, code, out, err)
-
-    def fake_popen(args, *rest, **kwargs):
-        calls.append(line_of(args))
-        raise AssertionError(f"unexpected Popen: {line_of(args)}")
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.setattr(subprocess, "Popen", fake_popen)
-    return calls
-
-
-def test_main_refuses_a_missing_or_empty_pr_url_with_its_usage_and_no_process(monkeypatch, capsys, wait_ci):
-    calls = fake_processes(monkeypatch, lambda line: (0, "", ""))
+def test_main_refuses_a_missing_or_empty_pr_url_with_its_usage_and_no_process(monkeypatch, capsys, wait_ci, fake_processes):
+    calls = fake_processes(lambda line, **_: (0, "", ""))
 
     observed = []
     for argv in ([], ["", "60"]):
@@ -60,7 +37,7 @@ STATUS = f"gh api repos/o/r/commits/{SHA}/status"
 UNREADABLE = f"wait-ci.sh: could not read the checks of {PR}\n"
 
 
-def one_poll(monkeypatch, capsys, wait_ci, pull, conclusions, states):
+def one_poll(fake_processes, capsys, wait_ci, pull, conclusions, states):
     """main([PR, 60, 120, SHA]) over <pull> (None: gh fails), one check-run page of completed
     runs concluding <conclusions>, and a /status of <states>; (code, stdout, stderr, calls)."""
     runs = [{"status": "completed", "conclusion": c} for c in conclusions]
@@ -70,20 +47,20 @@ def one_poll(monkeypatch, capsys, wait_ci, pull, conclusions, states):
         STATUS: json.dumps({"state": "x", "statuses": [{"state": s} for s in states]}),
     }
 
-    def answer(line):
+    def answer(line, **_):
         if line == PULL:
             return (1, "", "") if pull is None else (0, json.dumps(pull), "")
         if line in bodies:
             return 0, bodies[line], ""
         return 0, "", ""
 
-    calls = fake_processes(monkeypatch, answer)
+    calls = fake_processes(answer)
     code = wait_ci.main([PR, "60", "120", SHA])
     captured = capsys.readouterr()
     return code, captured.out, captured.err, calls
 
 
-def test_main_folds_one_poll_of_completed_runs_to_green_red_or_headless(monkeypatch, capsys, wait_ci):
+def test_main_folds_one_poll_of_completed_runs_to_green_red_or_headless(monkeypatch, capsys, wait_ci, fake_processes):
     head = {"mergeable": True, "head": {"sha": SHA}}
     read_all = [PULL, PAGE_1, PAGE_2, STATUS]
     cases = [
@@ -97,19 +74,19 @@ def test_main_folds_one_poll_of_completed_runs_to_green_red_or_headless(monkeypa
         ({"mergeable": True, "head": {"sha": ""}}, ["success"], [], (2, "", UNREADABLE, [PULL])),
     ]
 
-    observed = [one_poll(monkeypatch, capsys, wait_ci, pull, conclusions, states)
+    observed = [one_poll(fake_processes, capsys, wait_ci, pull, conclusions, states)
                 for pull, conclusions, states, _ in cases]
 
     assert observed == [expected for *_, expected in cases]
 
 
-def test_main_ends_its_stderr_with_the_unreadable_line_when_gh_cannot_read_the_pull(monkeypatch, capsys, wait_ci):
-    code, out, err, calls = one_poll(monkeypatch, capsys, wait_ci, None, ["success"], [])
+def test_main_ends_its_stderr_with_the_unreadable_line_when_gh_cannot_read_the_pull(monkeypatch, capsys, wait_ci, fake_processes):
+    code, out, err, calls = one_poll(fake_processes, capsys, wait_ci, None, ["success"], [])
 
     assert (code, out, err.endswith(UNREADABLE), calls) == (2, "", True, [PULL])
 
 
-def test_main_folds_an_absent_or_null_statuses_or_check_runs_key_as_empty(monkeypatch, capsys, wait_ci):
+def test_main_folds_an_absent_or_null_statuses_or_check_runs_key_as_empty(monkeypatch, capsys, wait_ci, fake_processes):
     head = json.dumps({"mergeable": True, "head": {"sha": SHA}})
     run = {"status": "completed", "conclusion": "success"}
     page_3 = f"gh api repos/o/r/commits/{SHA}/check-runs?page=3"
@@ -125,7 +102,7 @@ def test_main_folds_an_absent_or_null_statuses_or_check_runs_key_as_empty(monkey
     observed = []
     for bodies in scenarios:
         bodies = {PULL: head, **bodies}
-        fake_processes(monkeypatch, lambda line: (0, bodies.get(line, ""), ""))
+        fake_processes(lambda line, **_: (0, bodies.get(line, ""), ""))
         code = wait_ci.main([PR, "60", "120", SHA])
         captured = capsys.readouterr()
         observed.append((code, captured.out, captured.err))
@@ -134,7 +111,7 @@ def test_main_folds_an_absent_or_null_statuses_or_check_runs_key_as_empty(monkey
 
 
 def test_main_folds_null_unfinished_skipped_absent_conflicting_or_foreign_checks_to_a_verdict(
-        monkeypatch, capsys, tmp_path, wait_ci):
+        monkeypatch, capsys, tmp_path, wait_ci, fake_processes):
     other = "def456"
     done = lambda c: {"status": "completed", "conclusion": c}
     conflict = f"wait-ci.sh: {PR} conflicts with its base branch; no workflow will start until it is rebased\n"
@@ -166,7 +143,7 @@ def test_main_folds_null_unfinished_skipped_absent_conflicting_or_foreign_checks
             f"gh api repos/o/r/commits/{head}/status": json.dumps({"statuses": [{"state": s} for s in states]}),
             "date +%s": "1000\n",
         }
-        calls = fake_processes(monkeypatch, lambda line, bodies=bodies: (0, bodies.get(line, ""), ""))
+        calls = fake_processes(lambda line, bodies=bodies, **_: (0, bodies.get(line, ""), ""))
         code = wait_ci.main([PR, "0", "120", SHA])
         captured = capsys.readouterr()
         observed.append((code, captured.out, captured.err, "date +%s" in calls))
@@ -475,7 +452,7 @@ def test_main_bounds_an_omitted_or_empty_total_by_the_mean_of_the_last_five_ci_r
 
 
 def test_main_splits_the_pr_url_at_its_last_pull_and_keys_the_deadline_by_a_head_holding_a_space(
-        monkeypatch, capsys, tmp_path, wait_ci):
+        monkeypatch, capsys, tmp_path, wait_ci, fake_processes):
     pr = "https://github.com/o/r/pull/9/pull/7"
     head = "abc 123"
     commits = f"gh api repos/o/r/pull/9/commits/{head}"
@@ -488,7 +465,7 @@ def test_main_splits_the_pr_url_at_its_last_pull_and_keys_the_deadline_by_a_head
     }
     (tmp_path / ".tdd").mkdir()
     monkeypatch.chdir(tmp_path)
-    calls = fake_processes(monkeypatch, lambda line: (0, bodies.get(line, ""), ""))
+    calls = fake_processes(lambda line, **_: (0, bodies.get(line, ""), ""))
 
     code = wait_ci.main([pr, "0", "100"])
     captured = capsys.readouterr()
