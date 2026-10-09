@@ -941,8 +941,53 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
         "suite-repair": (0, True, True, True, False),
         "replaces-case unreadable": (2, b"", True, [0]),
         "suite-repair unreadable": (2, b"", True, [0, 0]),
-        "#671 byte-identity": [(0, "1447155214 6914"), (0, "4188760161 6638")],
+        "#671 byte-identity": [(0, "2531591317 7266"), (0, "1151496330 6990")],
         "#703 include": (0, f"before outer inner judges {testpath} end after\n".encode(), b""),
         "#703 missing partial": (2, b"", True),
         "#703 self-including partial": (2, b"", True),
+    }
+
+
+def test_main_states_the_signal_only_processes_you_started_rule_in_every_phase_from_one_partial_the_develop_prompts_include_too_1223(
+        tmp_path, capsysbinary, monkeypatch, build_verify_prompt):
+    monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
+    build_develop_prompt = importlib.import_module("veri.build_develop_prompt")
+    spec, ledger = tmp_path / "spec.md", tmp_path / "ledger.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    ledger.write_bytes("# Plan for #1223\n\n- [ ] zorblat frobs a nitz ⟦criterion 1⟧\n".encode())
+    s, sha, fast = str(spec), "0123abc", ["--fast-cmd", "make unit"]
+    argvs = {
+        "red": ["red", s, "tests/zorblat.test.sh", "zorblat frobs a nitz"],
+        "green": [*fast, "green", s, "tests/zorblat.test.sh", "zorblat frobs a nitz"],
+        "refactor": [*fast, "refactor", s, "tests/zorblat.test.sh", sha],
+        "pin": ["pin", s, "tests/zorblat.test.sh", "zorblat frobs a nitz"],
+        "plan": ["plan", s, str(ledger)],
+        "rebase": ["rebase", s, sha, "4567def"],
+        "transform": ["transform", s, str(tmp_path / "predicate.md"), sha],
+        "diff": ["--step", "zorblat frobs a nitz", *fast, "diff", s, sha, "4567def"],
+    }
+
+    def flat(data):
+        return re.sub(rb"\s+", b" ", data).strip()
+
+    def rendered(main, argv):
+        code = main(argv)
+        out, _ = capsysbinary.readouterr()
+        return code, flat(out)
+
+    spelled = sorted(p.name for p in (SCRIPTS / "prompts").glob("*.md") if b"`pkill`" in p.read_bytes())
+    partial = (spelled[0] if len(spelled) == 1 and spelled[0].startswith("_")
+               and spelled[0] not in ("_shared.md", "_develop-shared.md") else None)
+    rule = flat((SCRIPTS / "prompts" / partial).read_bytes()) if partial else None
+    prompts = {phase: rendered(build_verify_prompt.main, argv) for phase, argv in argvs.items()}
+    prompts["develop red"] = rendered(build_develop_prompt.main, ["red", s, "zorblat frobs a nitz", "make test"])
+
+    assert {
+        "spelled in one partial of its own": partial is not None,
+        "rule names pkill": rule is not None and b"`pkill`" in rule,
+        "carried": {phase: (code, rule is not None and rule in out) for phase, (code, out) in prompts.items()},
+    } == {
+        "spelled in one partial of its own": True,
+        "rule names pkill": True,
+        "carried": dict.fromkeys(prompts, (0, True)),
     }
