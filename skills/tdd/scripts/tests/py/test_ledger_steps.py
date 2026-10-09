@@ -5,7 +5,7 @@ import sys
 
 import pytest
 
-USAGE = b"usage: ledger-steps.sh [current|last-done|criterion <k>]\n"
+USAGE = b"usage: ledger-steps.sh [current|last-done|current-or-last-done|criterion <k>]\n"
 
 
 @pytest.fixture
@@ -123,6 +123,35 @@ def test_last_done_prints_the_last_done_step_x_or_X_with_the_mark_cut_an_empty_l
         "lowercase x": (0, "the cog turns ⟦criterion 2⟧\n".encode(), b""),
         "empty text": (0, b"\n", b""),
         "none done": (3, b"", b""),
+    }
+
+
+def test_current_or_last_done_prints_currents_answer_else_last_dones_else_exits_3_with_nothing(
+        monkeypatch, capsysbinary, ledger_steps):
+    ledgers = {
+        "open": (
+            "- [x] a cog exists ⟦criterion 1⟧\n"
+            "- [ ] the cog turns ⟦criterion 2⟧\n"
+        ),
+        "all ticked": (
+            "- [x] a cog exists ⟦criterion 1⟧\n"
+            "- [x] the cog turns ⟦criterion 2⟧\n"
+        ),
+        "no step": "# Plan\n\nprose\n",
+    }
+    results = {}
+    for name, ledger in ledgers.items():
+        for verb in ("current", "last-done", "current-or-last-done"):
+            fake_stdin(monkeypatch, ledger.encode())
+            code = ledger_steps.main([verb])
+            results[name, verb] = (code, *capsysbinary.readouterr())
+
+    assert results["open", "current-or-last-done"] == results["open", "current"]
+    assert results["all ticked", "current-or-last-done"] == results["all ticked", "last-done"]
+    assert {name: results[name, "current-or-last-done"] for name in ledgers} == {
+        "open": (0, "the cog turns ⟦criterion 2⟧\n".encode(), b""),
+        "all ticked": (0, "the cog turns ⟦criterion 2⟧\n".encode(), b""),
+        "no step": (3, b"", b""),
     }
 
 

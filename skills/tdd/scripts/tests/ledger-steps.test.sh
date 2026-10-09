@@ -35,9 +35,22 @@ none="$("$STEPS" current < "$work/none.md" 2>> "$work/err")"; none_code=$?
   && [[ "$none_code" == 3 ]] && [[ -z "$none" ]] && [[ ! -s "$work/err" ]]; } \
   && ok || no "current prints the first refactor-pending step, else the first open step-kind step, else exits 3 with no output (pending_code=$pending_code pending='$pending' open_code=$open_code open='$open' none_code=$none_code none='$none' stderr='$(cat "$work/err")')"
 
+printf '# Plan for #42\n\n- [x] add lowercasing ⟦criterion 1⟧\n- [x] strip edge hyphens ⟦criterion 2⟧\n' > "$work/ticked.md"
+printf '# Plan for #42\n\nprose\n' > "$work/empty.md"
+: > "$work/err"
+want_open="$("$STEPS" current < "$work/open.md" 2>> "$work/err")"
+want_ticked="$("$STEPS" last-done < "$work/ticked.md" 2>> "$work/err")"
+either_open="$("$STEPS" current-or-last-done < "$work/open.md" 2>> "$work/err")"; either_open_code=$?
+either_ticked="$("$STEPS" current-or-last-done < "$work/ticked.md" 2>> "$work/err")"; either_ticked_code=$?
+either_empty="$("$STEPS" current-or-last-done < "$work/empty.md" 2>> "$work/err")"; either_empty_code=$?
+{ [[ "$either_open_code" == 0 ]] && [[ "$either_open" == "$want_open" ]] && [[ "$either_open" == 'strip edge hyphens ⟦criterion 4⟧' ]] \
+  && [[ "$either_ticked_code" == 0 ]] && [[ "$either_ticked" == "$want_ticked" ]] && [[ "$either_ticked" == 'strip edge hyphens ⟦criterion 2⟧' ]] \
+  && [[ "$either_empty_code" == 3 ]] && [[ -z "$either_empty" ]] && [[ ! -s "$work/err" ]]; } \
+  && ok || no "current-or-last-done prints what current prints with a step open, what last-done prints with every step ticked, and exits 3 with nothing for a ledger with no step (open=$either_open_code '$either_open' ticked=$either_ticked_code '$either_ticked' empty=$either_empty_code '$either_empty' stderr='$(cat "$work/err")')"
+
 "$STEPS" bogus < "$work/kinds.md" > "$work/out" 2> "$work/err"; code=$?
 { [[ "$code" == 2 ]] && [[ ! -s "$work/out" ]] \
-  && cmp -s <(printf 'usage: ledger-steps.sh [current|last-done|criterion <k>]\n') "$work/err"; } \
+  && cmp -s <(printf 'usage: ledger-steps.sh [current|last-done|current-or-last-done|criterion <k>]\n') "$work/err"; } \
   && ok || no "bogus exits 2 with nothing on stdout and stderr exactly the one usage line (code=$code out='$(cat "$work/out")' stderr='$(cat "$work/err")')"
 
 ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
