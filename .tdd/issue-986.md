@@ -4,4 +4,4 @@
 - [x] The own-conflict cases of tests/py/test_rebase_onto_default.py (the no-unmerged-files call of the in-progress test and the conflicting-rebase-under-either-backend test) answer the two-name --git-path call with both paths and create their rebase directory only when the fake's `git rebase -q <onto>` runs, and still expect exit 1 with the conflict output ⟦criterion 3⟧
 - [x] Every fake in tests/py/test_rebase_onto_default.py that answers `git rev-parse --git-path` also answers the two-name form `--git-path rebase-merge --git-path rebase-apply` with both paths, one per line ⟦diff-checked⟧ ⟦criterion 2⟧
 - [ ] With the in-progress check removed or inverted in a scratch copy of veri/rebase_onto_default.py, the corrected in-progress case goes red; restored, it is green again (veri/__pycache__ cleared first) ⟦human-owed⟧ ⟦criterion 4⟧
-- [ ] skills/tdd/scripts/veri/rebase_onto_default.py is unchanged on the branch ⟦diff-checked⟧ ⟦criterion 5⟧
+- [x] skills/tdd/scripts/veri/rebase_onto_default.py is unchanged on the branch ⟦diff-checked⟧ ⟦criterion 5⟧
