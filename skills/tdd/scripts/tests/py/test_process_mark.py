@@ -25,3 +25,29 @@ def test_a_process_mark_with_no_boundary_or_an_empty_one_fails_collection_naming
     assert result.ret not in (pytest.ExitCode.OK, pytest.ExitCode.TESTS_FAILED), output
     assert "passed" not in result.parseoutcomes(), output
     assert [name for name in ("test_bare_process_mark", "test_empty_process_mark") if name not in output] == [], output
+
+
+def test_an_unregistered_mark_fails_collection_naming_the_test_and_the_mark_while_process_is_registered(pytester):
+    pytester.makepyfile(
+        test_unregistered="""
+            import pytest
+
+            @pytest.mark.unregistered_size
+            def test_with_unregistered_mark():
+                pass
+        """,
+        test_registered="""
+            import pytest
+
+            @pytest.mark.process("git rebase conflict text")
+            def test_with_process_mark():
+                pass
+        """,
+    )
+
+    result = pytester.runpytest_inprocess(plugins=[importlib.import_module("conftest")])
+    output = result.stdout.str() + result.stderr.str()
+
+    assert result.ret not in (pytest.ExitCode.OK, pytest.ExitCode.TESTS_FAILED), output
+    assert [name for name in ("test_with_unregistered_mark", "unregistered_size") if name not in output] == [], output
+    assert "'process' not found" not in output, output
