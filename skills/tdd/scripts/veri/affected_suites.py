@@ -84,9 +84,11 @@ def enclosing(lines):
     names = []
     for line in reversed(lines):
         name = heading(line)
-        if name is not None and line.startswith("## "):
+        if name is None:
+            continue
+        if line.startswith("## "):
             return tuple(names + [name])
-        if name is not None and not names:
+        if not names:
             names.append(name)
     return None
 
