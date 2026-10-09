@@ -1,0 +1,2 @@
+### run-conductor.test.sh's skill copy (loose_skill) carries only the files git tracks under skills/tdd, so an untracked or ignored file there — a pytest cache, a __pycache__ — never reaches the scratch skill repo and the suite's result does not depend on whether make unit ran first ⟦criterion 1⟧
+- test-only | in `loose_skill`, name `"$HERE/../.."` once in a local variable instead of spelling it three times (the file is under `tests/`, so this is not a structural transform)
