@@ -9,3 +9,6 @@
 ### A suite make test runs, other than hermetic-suites.test.sh, fails naming <suite>:<line> when a suite under make test's glob invokes push-branch.sh without VERI_PUSH_BACKOFF in its environment, and its header says it dies under C7 ⟦criterion 2⟧
 - test-only | push-backoff-guard.test.sh redefines probe_guard_is_there, which lib/guard-plant.sh also defines; sharing it would need the library's $SKILL-specific messages parameterised
 - test-only | push-backoff-guard.test.sh's flat() is one of 33 per-suite copies; hoisting it into lib/harness.sh would remove them all
+### make hermetic, a target outside make test and make unit, runs the ambient re-runs from a file outside make test's glob and fails, naming the suite, when a suite's answer changes under an ambient VERI_* value; make test runs no ambient re-run of another suite, and the moved file carries no live-conductor-lock or push-backoff case ⟦criterion 2⟧
+- test-only | hermetic/hermetic-suites.test.sh copies itself and lib/harness.sh into a scratch tree, then chmods it, in 4 probe cases (rerun, leak, new-skill, skill-commit); fold into one helper taking the work dir
+- test-only | no-nested-suites.test.sh's #1258 case repeats the `grep -o '[^ ]*\.test\.sh' | sort -u` roster extraction in target_suites and in the hermetic_out loop; route both through one function
