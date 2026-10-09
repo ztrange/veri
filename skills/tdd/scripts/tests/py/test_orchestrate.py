@@ -396,6 +396,30 @@ def test_the_budget_reads_as_bash_does_unset_or_empty_120000(
     assert run("") == (0, "context 7 32768\ncontext 7 50000\ncontext 7 120000\ncontext 7 120001\n", "")
 
 
+def test_1250_an_unset_or_empty_stop_timeout_bounds_the_drain_at_10_seconds_and_a_positive_one_as_given(
+        capsys, monkeypatch, tmp_path, orchestrate):
+    import signal
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+
+    def run(timeout):
+        if timeout is None:
+            monkeypatch.delenv("VERI_CONDUCTOR_STOP_TIMEOUT", raising=False)
+        else:
+            monkeypatch.setenv("VERI_CONDUCTOR_STOP_TIMEOUT", timeout)
+        _passes(monkeypatch, [(0, "7\n"), (3, "")], lambda n, issue: None)
+        timers = []
+        monkeypatch.setattr(signal, "setitimer", lambda which, seconds: timers.append((which, seconds)))
+        code = orchestrate.main([])
+        out, err = capsys.readouterr()
+        assert (code, out, err) == (0, "", "")
+        return timers
+
+    assert run(None) == [(signal.ITIMER_REAL, 10.0), (signal.ITIMER_REAL, 0)]
+    assert run("") == [(signal.ITIMER_REAL, 10.0), (signal.ITIMER_REAL, 0)]
+    assert run("0.5") == [(signal.ITIMER_REAL, 0.5), (signal.ITIMER_REAL, 0)]
+
+
 def test_a_leading_zero_budget_reads_as_decimal_so_0100000_stops_a_conductor_over_100000_not_over_32768_1127(
         capsys, monkeypatch, tmp_path, orchestrate):
     monkeypatch.chdir(tmp_path)
