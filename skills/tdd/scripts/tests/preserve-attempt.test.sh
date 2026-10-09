@@ -10,9 +10,11 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-PRESERVE="$HERE/../preserve-attempt.sh"
 source "$HERE/lib/harness.sh"
 work="$(scratch_dir)"
+mkdir -p "$work/skill/scripts"
+cp -R "$HERE/../preserve-attempt.sh" "$HERE/../veri" "$work/skill/scripts/"
+PRESERVE="$work/skill/scripts/preserve-attempt.sh"
 
 ident=(GIT_AUTHOR_NAME=veri GIT_AUTHOR_EMAIL=veri@example.test
        GIT_COMMITTER_NAME=veri GIT_COMMITTER_EMAIL=veri@example.test)
@@ -333,5 +335,38 @@ decoy_refs="$(git_q "$decoy" for-each-ref --format='%(refname)' refs/veri 2>&1)"
 { [[ -z "$problems" ]]; } \
   && ok || no "#1158: a preserve-attempt.sh that resolves its toplevel from its own directory, not the suite's scratch repository, writes no .tdd/attempts entry, ref or ledger change outside that repository (${problems#; }; stderr='$(cat "$work/pinned-scratch.err")')"
 
+
+repo="$work/scratch-copy"
+dirty_repo "$repo"
+leaf_output "$repo" 'scratch progress' 'scratch result'
+scratch="$(cd "$work" && pwd -P)"
+subject_dir="$(cd "$(dirname "$PRESERVE")" && pwd -P)"
+problems=""
+if [[ "$subject_dir/" != "$scratch/"* ]]; then
+  problems+="; want the suite to run a copy of preserve-attempt.sh under its scratch directory $scratch, it runs $subject_dir/preserve-attempt.sh"
+else
+  landing="$(cd "$subject_dir/../.." && pwd -P)"
+  if [[ "$landing/" != "$scratch/"* || "$landing/" == "$(cd "$repo" && pwd -P)/"* ]]; then
+    problems+="; want the copy's ../.. inside $scratch and outside the scratch repository, it is $landing"
+  else
+    live="$landing/.tdd/wt/5"
+    mkdir -p "$live/.tdd"
+    printf '%s\n' "$$" > "$live/.tdd/conductor.pid"
+    write_ledger "$live" "The first step, already done" "A step the live run is on" 2>/dev/null
+    ledger_before="$(cat "$live/.tdd/issue-409.md")"
+    cp "$PRESERVE" "$PRESERVE.orig"
+    awk '/^exec python3/ { print "cd \"$(dirname \"$0\")/../..\"" } { print }' "$PRESERVE.orig" > "$PRESERVE"
+    chmod +x "$PRESERVE"
+    preserve "$repo" 409 3 develop-green 1 reject >/dev/null 2>"$work/scratch-copy.err"
+    mv "$PRESERVE.orig" "$PRESERVE"
+    landing_refs="$(git -C "$landing" for-each-ref --format='%(refname)' refs/veri/attempts 2>/dev/null)"
+    [[ -z "$landing_refs" ]] || problems+="; refs written beside the scratch repository: $landing_refs"
+    [[ ! -e "$(attempts_dir "$landing")" ]] || problems+="; $(attempts_dir "$landing") was written: $(copies_in "$landing")"
+    [[ ! -e "$(attempts_dir "$live")" ]] || problems+="; $(attempts_dir "$live") was written: $(copies_in "$live")"
+    [[ "$(cat "$live/.tdd/issue-409.md")" == "$ledger_before" ]] || problems+="; the live-looking run's ledger changed"
+  fi
+fi
+{ [[ -z "$problems" ]]; } \
+  && ok || no "#1158: the suite runs a scratch copy of preserve-attempt.sh, and a cd \"\$(dirname \"\$0\")/../..\" planted into it writes no .tdd/attempts entry, ref or ledger change outside the scratch repository (${problems#; })"
 
 finish

@@ -12,9 +12,10 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/harness.sh"
-STOP="$HERE/../stop-run.sh"
-
 work="$(scratch_dir)"
+mkdir -p "$work/skill/scripts"
+cp -R "$HERE/../stop-run.sh" "$HERE/../veri" "$work/skill/scripts/"
+STOP="$work/skill/scripts/stop-run.sh"
 alive=()
 cleanup() {
   local pid
@@ -337,5 +338,34 @@ check_still_answering "$early_sup" "the early decoy repository's live supervisor
   note "want a subject that resolved the early decoy repository to fail the case, it exited 0 naming '$out'"
 
 report "#1158: a stop-run.sh that moves to its own directory before it records where it was called from writes no .tdd/stop and signals no supervisor outside the suite's scratch repository"
+
+problems=()
+label=""
+rm -f "$run/.tdd/stop"
+
+scratch="$(cd "$work" && pwd -P)"
+subject_dir="$(cd "$(dirname "$STOP")" && pwd -P)"
+if [[ "$subject_dir/" != "$scratch/"* ]]; then
+  note "want the suite to run a copy of stop-run.sh under its scratch directory $scratch, it runs $subject_dir/stop-run.sh"
+else
+  landing="$(cd "$subject_dir/../.." && pwd -P)"
+  if [[ "$landing/" != "$scratch/"* || "$landing/" == "$(cd "$repo" && pwd -P)/"* ]]; then
+    note "want the copy's ../.. inside $scratch and outside the scratch repository, it is $landing"
+  else
+    landing_run="$landing/.tdd/wt/5"
+    live_conductor "$landing_run"
+    live_supervisor "$landing_run" develop-red
+    landing_sup="$supervisor_pid"
+    cp "$STOP" "$STOP.orig"
+    awk '/^export VERI_CALLER_DIR/ { print "cd \"$(dirname \"$0\")/../..\"" } { print }' "$STOP.orig" > "$STOP"
+    chmod +x "$STOP"
+    run_stop --mode now --all
+    mv "$STOP.orig" "$STOP"
+    check_no_stop "$landing_run"
+    check_still_answering "$landing_sup" "the live-looking run's supervisor beside the scratch repository"
+  fi
+fi
+
+report "#1158: the suite runs a scratch copy of stop-run.sh, and a cd \"\$(dirname \"\$0\")/../..\" planted into it writes no .tdd/stop and signals no supervisor outside the scratch repository"
 
 finish
