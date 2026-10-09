@@ -4,3 +4,6 @@
 ### A `VERI_TIMEOUT` with leading zeros is read as decimal: `010` is a 10-second hard cap, not 8, and `08` is an 8-second cap that fires rather than an arithmetic error that never kills ⟦criterion 1⟧
 - once `VERI_STUCK_RETRIES` reads leading zeros as decimal (a later step), fold `seconds()` into `limit()`; doing it now would change retries behaviour
 - test-only | the two new 1198 tests in `test_supervise.py` (`silent_leaf` and `capped_leaf`) copy the same ~80-line fake-leaf, clock and subprocess harness; extract a shared fixture
+### A `VERI_STUCK_RETRIES` with leading zeros is read as decimal: `08` allows exactly 8 retries after killed-stuck and then reports killed-stuck (exit 2), never retrying without end ⟦criterion 1⟧
+- rename `seconds()` (supervise.py:134) to a name that does not claim a unit, since it now also reads the `VERI_STUCK_RETRIES` count at supervise.py:363
+- test-only | pull out the fake `Leaf`, `run`/`check_output`/`call`/`check_call` and `Popen` monkeypatch scaffolding that `test_main_reads_veri_stuck_retries_with_leading_zeros_as_decimal_08_eight_retries_then_killed_stuck_1198` repeats from its neighbouring `main` tests into one shared fixture
