@@ -162,8 +162,10 @@ add_ledger_step_entry() {
   awk '
     inside && (/^- / || /^$/) { exit }
     /^- `\$S\/add-ledger-step\.sh/ { inside = 1 }
-    inside' "$skill_path"
+    inside' "$skill_path" | plain --join
 }
+entry="$(add_ledger_step_entry)"
+no_entry="$skill_md has no '- \`\$S/add-ledger-step.sh' entry under The scripts"
 
 name="#1281: $skill_md's three split add-ledger-step.sh calls pass no --criterion and say a split keeps its anchor's criterion; the uncovered-spec call passes --criterion <k> read from the issue's numbered acceptance criteria, one call per criterion, bailing on exit 2"
 problems=()
@@ -198,9 +200,8 @@ else
     problems+=("$skill_md never says beside its uncovered-spec call that add-ledger-step.sh exit 2 — no step carries k — bails naming that cause")
 fi
 
-entry="$(add_ledger_step_entry)"
 if [[ -z "${entry// /}" ]]; then
-  problems+=("$skill_md has no '- \`\$S/add-ledger-step.sh' entry under The scripts")
+  problems+=("$no_entry")
 else
   grep -F -- '--criterion' <<<"$entry" > /dev/null ||
     problems+=("$skill_md's add-ledger-step.sh entry under The scripts never documents --criterion")
@@ -236,9 +237,8 @@ report "$name"
 name="#1292: $skill_md's add-ledger-step.sh entry under The scripts says --criterion <k> tags the added steps with criterion k for any whole number k ≥ 1, carried or not, and lists a k that is not a whole number ≥ 1 among its exit 2 cases"
 problems=()
 
-entry="$(add_ledger_step_entry | plain --join)"
 if [[ -z "${entry// /}" ]]; then
-  problems+=("$skill_md has no '- \`\$S/add-ledger-step.sh' entry under The scripts")
+  problems+=("$no_entry")
 else
   grep -E 'whole number[^.]{0,20}(≥|>=|at least) ?1' <<<"$entry" > /dev/null ||
     problems+=("$skill_md's add-ledger-step.sh entry never says --criterion <k> takes any whole number k ≥ 1")
