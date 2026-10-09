@@ -92,8 +92,9 @@ PY
 }
 
 loose_skill() {
-  mkdir -p "$1/skills"
-  cp -R "$HERE/../.." "$1/skills/tdd"
+  mkdir -p "$1/skills/tdd"
+  git -C "$HERE/../.." ls-files -z |
+    tar -C "$HERE/../.." --null -T - -cf - | tar -C "$1/skills/tdd" -xf -
 }
 
 base_clone=""
@@ -2085,6 +2086,32 @@ exec {term_started}>&- {term_release}>&-
   problems+=("the script exited $term_status, not 143: $(cat "$termwork/err")")
 [[ -z "${term_snap:-}" || ! -e "$term_snap" ]] ||
   problems+=("the snapshot $term_snap was left behind after the script exited")
+
+report "$name"
+
+name="loose_skill copies only the files git tracks under skills/tdd: an untracked or ignored cache never reaches the copy (#1169)"
+problems=()
+
+src44="$work/src44"
+new_repo "$src44"
+mkdir -p "$src44/skills/tdd/scripts/tests" "$src44/skills/tdd/scripts/veri/__pycache__"
+echo skill > "$src44/skills/tdd/SKILL.md"
+echo '__pycache__/' > "$src44/.gitignore"
+git -C "$src44" add -A
+git -C "$src44" commit -qm skill
+echo stray > "$src44/skills/tdd/untracked.txt"
+echo cache > "$src44/skills/tdd/scripts/veri/__pycache__/mod.pyc"
+
+dest44="$work/dest44"
+( HERE="$src44/skills/tdd/scripts/tests"; loose_skill "$dest44" )
+
+if [[ ! -f "$dest44/skills/tdd/SKILL.md" ]]; then
+  problems+=("the copy is missing the tracked SKILL.md")
+fi
+for stray44 in untracked.txt scripts/veri/__pycache__; do
+  [[ ! -e "$dest44/skills/tdd/$stray44" ]] ||
+    problems+=("the copy carries $stray44, which git does not track")
+done
 
 report "$name"
 
