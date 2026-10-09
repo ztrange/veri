@@ -333,6 +333,9 @@ def main(argv):
     heartbeat = os.environ.get("VERI_HEARTBEAT") or "180"
     if refused := not_a_number("VERI_HEARTBEAT", heartbeat):
         return refused
+    retries = os.environ.get("VERI_STUCK_RETRIES") or "1"
+    if refused := not_a_number("VERI_STUCK_RETRIES", retries):
+        return refused
     poll = os.environ.get("VERI_POLL") or "1"
     name = argv[0]
     tolerated(name, "create", ".tdd", lambda: os.makedirs(".tdd", exist_ok=True))
@@ -364,7 +367,6 @@ def main(argv):
     preexec = leaf_dispositions(ignored)
     trap(started, exitfile, kill_poll, ignored)
     watch = Watch(watched, timeout, heartbeat, poll, kill_poll)
-    retries = os.environ.get("VERI_STUCK_RETRIES") or "1"
     tries = 0
     try:
         while True:

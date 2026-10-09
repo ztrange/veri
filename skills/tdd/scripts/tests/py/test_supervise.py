@@ -1701,9 +1701,9 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
     budgets["08"] = stuck("budget08", ends_at=4, VERI_STUCK_RETRIES="08", **issue_step)
     assert {k: (r["code"], r["launches"], r["preserved"], len(r["retries"])) for k, r in budgets.items()} == {
         "0": (2, 1, kept(1), 0),
-        "-1": (2, 1, kept(1), 0),
+        "-1": (2, 0, [], 0),
         "010": (2, 11, kept(*range(1, 12)), 10),
-        "abc": (1, 1, kept(1), 0),
+        "abc": (2, 0, [], 0),
         "08": (0, 4, kept(1, 2, 3), 3),
     }
 
@@ -1852,6 +1852,31 @@ def test_main_refuses_a_settled_timeout_not_a_non_negative_decimal_integer_with_
                 f"supervise: {tmp_path}/settled-{n}/.tdd/issue-1198-timeout is not a number: '{value}'\n".encode(),
                 True)
         for n, value in enumerate(("abc", "1.5"))
+    }
+
+
+def test_main_refuses_a_veri_stuck_retries_not_a_non_negative_decimal_integer_with_exit_2_naming_it_starting_nothing_but_git_1198(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+
+    answers = {}
+    for n, value in enumerate(("abc", "1.5", "-1")):
+        work = tmp_path / f"retries-{n}"
+        work.mkdir()
+        monkeypatch.chdir(work)
+        clean_env(monkeypatch, VERI_STUCK_RETRIES=value)
+        calls = fake_git_only(monkeypatch, work)
+        try:
+            code = supervise.main(["develop-red", "leaf-hang"])
+        except Launched:
+            code = "<launched>"
+        out, err = capsysbinary.readouterr()
+        answers[value] = (code, out, err, all(c[0] == "git" for c in calls))
+
+    assert answers == {
+        value: (2, b"", f"supervise: VERI_STUCK_RETRIES is not a number: '{value}'\n".encode(), True)
+        for value in ("abc", "1.5", "-1")
     }
 
 
