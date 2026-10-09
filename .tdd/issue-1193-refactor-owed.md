@@ -1,0 +1,3 @@
+### requirements-dev.txt pins pytest-timeout to one exact version (`pytest-timeout==<x.y.z>`), as it pins pytest, and the Makefile never restates that version ⟦criterion 1⟧
+- test-only | fold the pytest and pytest-timeout pin cases in pytest-leg.test.sh (lines 229–255) into one loop over the package names, sharing the `^<pkg>==X.Y.Z$` match and the "Makefile must not restate the version" check
+- test-only | in the pytest-timeout pin case, anchor the line grep `^[[:space:]]*pytest-timeout` the way the pytest case anchors its own (`([^-[:alnum:]_]|$)`), so a line naming a longer package, such as `pytest-timeouts`, cannot match
