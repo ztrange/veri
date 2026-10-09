@@ -1068,4 +1068,20 @@ else
 fi
 report "$name"
 
+name="$skill_md's Draft PR step says a conductor never re-runs a failed CI job: a red check goes to the repair step or the ci-red bail, and re-running a flake is the operator's decision (#1282)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "whether a conductor may re-run a failed CI job"; then
+  rule="$(first_record "$records" -F 'gh run rerun' -E 'never re-?runs?')"
+  if [[ -z "$rule" ]]; then
+    problems+=("$skill_md's Draft PR step never says a conductor does not re-run a failed CI job with gh run rerun, so a red check can be retried until a real failure reads as a flake")
+  else
+    [[ -n "$(first_record "$rule" -F 'repair step')" && -n "$(first_record "$rule" -F 'ci-red')" ]] ||
+      problems+=("$skill_md's rule against re-running a failed CI job does not name the repair step and the ci-red bail as the only answer to a red check: $(printf '%.160s' "$rule")")
+    [[ -n "$(first_record "$rule" -F 'operator')" ]] ||
+      problems+=("$skill_md's rule against re-running a failed CI job does not leave re-running a known flake to the operator, outside a run: $(printf '%.160s' "$rule")")
+  fi
+fi
+report "$name"
+
 finish
