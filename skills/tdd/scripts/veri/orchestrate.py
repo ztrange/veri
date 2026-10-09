@@ -21,6 +21,7 @@ def main(argv):
     if not re.fullmatch(r"[0-9]+", budget):
         sys.stderr.write("orchestrate.sh: VERI_CONDUCTOR_CTX_BUDGET must be a whole number of tokens: %s\n" % budget)
         return 2
+    stop_timeout = float(os.environ.get("VERI_CONDUCTOR_STOP_TIMEOUT") or "10")
     while True:
         answer = subprocess.run([os.path.join(SCRIPTS, "solvable-issues.sh")], stdout=subprocess.PIPE)
         if answer.returncode == 3:
@@ -41,8 +42,7 @@ def main(argv):
             _watch(issue, conductor.stdout, budget)
         finally:
             _stop(conductor.pid)
-        for _ in conductor.stdout:
-            pass
+        _drain(conductor.stdout, stop_timeout)
         if _parked(issue):
             _say("parked %s\n" % issue)
 
@@ -57,6 +57,27 @@ def _watch(issue, stream, budget):
             _say("context %s %d\n" % (issue, context))
         if exceeded:
             return
+
+
+class _StopTimeout(Exception):
+    pass
+
+
+def _drain(stream, timeout):
+    def expire(signum, frame):
+        raise _StopTimeout
+    previous = signal.signal(signal.SIGALRM, expire)
+    try:
+        signal.setitimer(signal.ITIMER_REAL, timeout)
+        try:
+            for _ in stream:
+                pass
+        finally:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+    except _StopTimeout:
+        pass
+    signal.signal(signal.SIGALRM, previous)
+    stream.close()
 
 
 def _say(text):
