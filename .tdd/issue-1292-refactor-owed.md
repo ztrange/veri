@@ -1,2 +1,5 @@
 ### add-ledger-step.sh --criterion <k>, given a whole number k ≥ 1 that no ledger step carries yet, inserts every new step tagged ⟦criterion k⟧ and exits 0 — replacing #1224's case that expected exit 2 for an uncarried criterion ⟦criterion 1⟧
 - test-only | merge `test_main_given_a_criterion_no_step_carries_tags_every_inserted_line_with_it_and_returns_0_1292` and `test_main_given_criterion_k_tags_every_inserted_line_with_k_whatever_the_anchor_carries_1224` into one table-driven case over k ∈ {3, 7}. The two are identical except for k and the expected tag.
+### add-ledger-step.sh --criterion <k> refuses a k that is not a whole number ≥ 1 (0, a word, a negative, an empty value) with exit 2 and one stderr line naming that value, leaving the ledger byte-identical ⟦criterion 1⟧
+- test-only | test_add_ledger_step.py: the refusal case spells the tuple ("0", "two", "-1", "") twice, once in the loop and once in the expected dict; one module-level name could hold it
+- out-of-scope | add_ledger_step.py: every refusal message starts with the literal "add-ledger-step.sh: " prefix; it could move into refuse() (pre-existing code, not written this cycle)
