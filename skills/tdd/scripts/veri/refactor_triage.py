@@ -2,16 +2,16 @@
 import re
 import sys
 
-CANDIDATE = re.compile(rb"^CANDIDATES:\s*(.*)$")
+import candidates
 
 
-def _candidate(cls):
-    return re.compile(rb"^CANDIDATES:\s*" + cls + rb"\s*[|]\s*(.*)$")
+def _encoded(pattern):
+    return re.compile(pattern.pattern.encode())
 
 
-CLASSES = (b"structural", b"cosmetic", b"test-only", b"out-of-scope")
-PATTERNS = tuple((cls, _candidate(cls)) for cls in CLASSES)
-CLASS_LIST = b", ".join(CLASSES[:-1]) + b" or " + CLASSES[-1]
+CANDIDATE = _encoded(candidates.LINE)
+PATTERNS = tuple((cls.encode(), _encoded(candidates.candidate(cls))) for cls in candidates.CLASSES)
+CLASS_LIST = ", ".join(candidates.CLASSES[:-1]).encode() + b" or " + candidates.CLASSES[-1].encode()
 NONE = re.compile(rb"^none\s*$")
 
 
@@ -41,7 +41,7 @@ def main(argv):
         if not (classed or NONE.match(found.group(1))):
             return _refuse(b"candidate line has no class, or one that is not " + CLASS_LIST + b": " + line)
     if not candidates_seen:
-        return _refuse(b"the report has no CANDIDATES: line")
+        return _refuse(b"the report has no " + candidates.KEY.encode() + b" line")
     if not structural:
         return 3
     sys.stdout.buffer.write(b"".join(t + b"\n" for t in structural))
