@@ -124,7 +124,8 @@ def launch(base, issue, commit, **exports):
     previous = {sig: signal.signal(sig, handler) for sig, handler in (
         (signal.SIGPIPE, lambda *_: unread.append(True)),
         (signal.SIGTERM, lambda *_: terminated.append(True)),
-        (signal.SIGINT, lambda *_: None))}
+        (signal.SIGINT, lambda *_: None),
+        (signal.SIGHUP, lambda *_: None))}
     try:
         code = subprocess.run([binary, "-p", "--output-format", "stream-json",
                                "--verbose", "--permission-mode", "bypassPermissions"],
