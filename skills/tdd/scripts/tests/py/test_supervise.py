@@ -102,7 +102,7 @@ def test_main_refuses_a_settled_timeout_not_a_whole_number_of_seconds_and_a_kill
         (root / ".tdd").mkdir(parents=True)
         (root / ".tdd" / "issue-954-timeout").write_text(content)
 
-    for n, (content, shown) in enumerate((("", ""), ("abc\n\n", "abc"), ("0\n", "0"), ("00", "00"))):
+    for n, (content, shown) in enumerate((("", ""), ("0\n\n", "0"), ("00", "00"))):
         for env in ({"VERI_ISSUE": "954"}, {"VERI_ISSUE": "954", "VERI_TIMEOUT": ""}):
             top = tmp_path / f"top-{n}-{len(env)}"
             work = top / "sub"
@@ -1824,6 +1824,34 @@ def test_main_refuses_a_veri_timeout_not_a_non_negative_decimal_integer_with_exi
     assert answers == {
         value: (2, b"", f"supervise: VERI_TIMEOUT is not a number: '{value}'\n".encode(), True)
         for value in ("abc", "1.5", "-1")
+    }
+
+
+def test_main_refuses_a_settled_timeout_not_a_non_negative_decimal_integer_with_exit_2_naming_its_path_starting_nothing_but_git_1198(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+
+    answers = {}
+    for n, value in enumerate(("abc", "1.5")):
+        work = tmp_path / f"settled-{n}"
+        (work / ".tdd").mkdir(parents=True)
+        (work / ".tdd" / "issue-1198-timeout").write_text(f"{value}\n")
+        monkeypatch.chdir(work)
+        clean_env(monkeypatch, VERI_ISSUE="1198")
+        calls = fake_git_only(monkeypatch, work)
+        try:
+            code = supervise.main(["develop-red", "leaf-hang"])
+        except Launched:
+            code = "<launched>"
+        out, err = capsysbinary.readouterr()
+        answers[value] = (code, out, err, all(c[0] == "git" for c in calls))
+
+    assert answers == {
+        value: (2, b"",
+                f"supervise: {tmp_path}/settled-{n}/.tdd/issue-1198-timeout is not a number: '{value}'\n".encode(),
+                True)
+        for n, value in enumerate(("abc", "1.5"))
     }
 
 

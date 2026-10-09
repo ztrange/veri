@@ -321,6 +321,8 @@ def main(argv):
         if os.path.isfile(settled):
             with open(settled) as f:
                 timeout = f.read().rstrip("\n")
+            if timeout and (refused := not_a_number(settled, timeout)):
+                return refused
             if not re.fullmatch(r"[0-9]+", timeout) or int(timeout, 10) < 1:
                 return refuse(f"supervise: {settled} must hold a whole number of seconds >= 1: '{timeout}'")
     timeout = timeout or "900"
