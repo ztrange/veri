@@ -612,6 +612,24 @@ def test_main_given_a_criterion_no_step_carries_tags_every_inserted_line_with_it
     )
 
 
+def test_main_refuses_a_criterion_that_is_not_a_whole_number_of_at_least_1_with_2_and_one_stderr_line_naming_it_writing_nothing_1292(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
+    ledger = tmp_path / "issue-42.md"
+    got = {}
+    for value in ("0", "two", "-1", ""):
+        ledger.write_bytes(LEDGER)
+        code = add_ledger_step.main(["--criterion", value, str(ledger), "after", "b two", "t"])
+        out, err = capsys.readouterr()
+        got[value] = (
+            code,
+            out,
+            err.count("\n"),
+            err.startswith("add-ledger-step.sh: ") and err.endswith(f" {value}\n"),
+            ledger.read_bytes() == LEDGER,
+        )
+    assert got == {value: (2, "", 1, True, True) for value in ("0", "two", "-1", "")}
+
+
 def test_main_refusing_too_few_arguments_prints_a_usage_line_naming_the_optional_leading_criterion_1224(capsys, add_ledger_step):
     for argv in ([], ["l.md", "after", "anchor"], ["--criterion", "2", "l.md", "after", "anchor"]):
         code = add_ledger_step.main(argv)

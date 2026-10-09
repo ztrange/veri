@@ -62,6 +62,8 @@ def main(argv):
         criterion, argv = "".join(argv[1:2]), argv[2:]
     if len(argv) < 4 or "" in argv[:3]:
         return refuse(USAGE)
+    if criterion is not None and not re.fullmatch("[1-9][0-9]*", criterion):
+        return refuse("add-ledger-step.sh: --criterion must be a whole number >= 1: " + criterion)
     path, where, anchor, *texts = argv
     if where not in ("after", "before", "instead-of"):
         return refuse("add-ledger-step.sh: position must be after, before or instead-of: " + where)
