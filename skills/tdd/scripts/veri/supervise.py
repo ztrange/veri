@@ -8,6 +8,7 @@ import sys
 import time
 from typing import NamedTuple
 
+import entry
 from extract_result import extract
 from leaf_log import result_records
 from leaf_model import leaf_model
@@ -371,15 +372,11 @@ def main(argv):
         sys.stdout.buffer.write(data)
         sys.stdout.flush()
     except BrokenPipeError:
-        try:
-            os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
-        except (AttributeError, OSError, ValueError):
-            pass
+        entry.silence_stdout()
     if number_in(exitfile) is None:
         write_line(exitfile, ec)
     return ec
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])
