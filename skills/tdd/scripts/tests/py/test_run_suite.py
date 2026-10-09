@@ -180,6 +180,8 @@ class FakeSuite:
 def test_main_starts_the_suite_alone_on_dev_null_with_maintenance_auto_off_and_streams_its_lines(tmp_path, capfd, monkeypatch, run_suite):
     lines = [b"one\n", b"two\n", b"3 passed, 0 failed\n"]
     answers = []
+    for name in [k for k in os.environ if k.startswith(("VERI_", "CLAUDE_")) and k != "VERI_VENV"]:
+        monkeypatch.delenv(name)
     for count in ("2", None):
         for n in range(4):
             monkeypatch.delenv("GIT_CONFIG_KEY_%d" % n, raising=False)
@@ -356,3 +358,37 @@ def test_the_module_run_as_the_shim_hands_off_names_a_non_executable_suite_on_st
     assert (run.returncode, "Traceback" in err, err.splitlines()[-2:]) == (
         1, False, ["not-executable.test.sh: never reached its count line", "not-executable.test.sh: its output was empty"]
     )
+
+
+def test_main_hands_a_bash_suite_no_ambient_veri_or_claude_variable_but_veri_venv_and_lets_the_suite_set_one_on_a_command_1258(tmp_path, capfd, monkeypatch, run_suite):
+    for name in [k for k in os.environ if k.startswith(("VERI_", "CLAUDE_", "GIT_CONFIG_"))]:
+        monkeypatch.delenv(name)
+    monkeypatch.setenv("VERI_MODEL", "ambient-model")
+    monkeypatch.setenv("VERI_ISSUE", "954")
+    monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
+    monkeypatch.setenv("CLAUDE_BIN", "/ambient/claude")
+    monkeypatch.setenv("VERI_VENV", "/caller/venv")
+    monkeypatch.setenv("PATH", "/caller/bin:" + os.environ["PATH"])
+    monkeypatch.setenv("OFFLINE_REACH_LOG", "/caller/reach.log")
+    monkeypatch.setenv("HTTPS_PROXY", "http://127.0.0.1:1")
+    seen_env = tmp_path / "suite.env"
+    seen_child = tmp_path / "child.out"
+    suite = fake_suite(tmp_path, "ambient.test.sh",
+                       'env > "%s"\n'
+                       'VERI_MODEL=set-by-suite sh -c \'printf %%s "$VERI_MODEL"\' > "%s"\n'
+                       'echo "1 passed, 0 failed"\n' % (seen_env, seen_child))
+    code = run_suite.main([suite])
+    capfd.readouterr()
+    env = dict(line.split("=", 1) for line in seen_env.read_text().splitlines() if "=" in line)
+    leaked = sorted(k for k in env if k.startswith(("VERI_", "CLAUDE_")) and k != "VERI_VENV")
+    kept = {k: env.get(k) for k in ("VERI_VENV", "PATH", "OFFLINE_REACH_LOG", "HTTPS_PROXY",
+                                    "GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0")}
+    assert (code, leaked, kept, seen_child.read_text()) == (0, [], {
+        "VERI_VENV": "/caller/venv",
+        "PATH": os.environ["PATH"],
+        "OFFLINE_REACH_LOG": "/caller/reach.log",
+        "HTTPS_PROXY": "http://127.0.0.1:1",
+        "GIT_CONFIG_COUNT": "1",
+        "GIT_CONFIG_KEY_0": "maintenance.auto",
+        "GIT_CONFIG_VALUE_0": "false",
+    }, "set-by-suite")
