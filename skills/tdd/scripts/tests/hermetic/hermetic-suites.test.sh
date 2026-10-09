@@ -8,10 +8,11 @@
 #   VERI_MODEL=<x> leaf-model.test.sh → the same exit and the same stdout as a run with
 #   the three model variables cleared.
 #
-# Run: scripts/tests/hermetic-suites.test.sh
+# Run: make hermetic
 set -uo pipefail
 
-HERE="$(cd "$(dirname "$0")" && pwd)"
+HERE="$(cd "$(dirname "$0")/.." && pwd)"
+SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 
 source "$HERE/lib/harness.sh"
 
@@ -25,20 +26,6 @@ same_answer() {
     problems+=("want the $baseline run's exit $base_code, got $other_code")
   [[ "$other_out" == "$base_out" ]] ||
     problems+=("want the $baseline run's stdout $(printf '%q' "$base_out"), got: $(printf '%q' "$other_out")")
-}
-
-solvable_in() {
-  local dir="$1"; shift
-  (cd "$dir" && env "$@" "$label_cut" 2>/dev/null)
-}
-
-locked_repo() {
-  local dir="$1" n; shift
-  new_repo -b main "$dir" >/dev/null 2>&1
-  for n in "$@"; do
-    mkdir -p "$dir/.tdd/wt/$n/.tdd"
-    printf '%s\n' "$$" > "$dir/.tdd/wt/$n/.tdd/conductor.pid"
-  done
 }
 
 slice_run_conductor() {
@@ -86,29 +73,6 @@ else
   ambient_label_out="$(env VERI_PRIORITY_LABEL=ready-for-agent "$label_cut" 2>/dev/null)" && ambient_label_code=0 || ambient_label_code=$?
   same_answer cleared "$cleared_label_code" "$cleared_label_out" "$ambient_label_code" "$ambient_label_out"
 fi
-report "$name"
-
-lock_work="$(scratch_dir)"
-new_repo -b main "$lock_work/no-lock" >/dev/null 2>&1
-unlocked_out="$(solvable_in "$lock_work/no-lock" -u VERI_PRIORITY_LABEL)" && unlocked_code=0 || unlocked_code=$?
-
-name="solvable-issues.test.sh: a live conductor lock in the surrounding repository gives the same exit and the same stdout as a run with none"
-locked_repo "$lock_work/locked" 108 117 120 124
-
-locked_out="$(solvable_in "$lock_work/locked" -u VERI_PRIORITY_LABEL)" && locked_code=0 || locked_code=$?
-
-same_answer no-lock "$unlocked_code" "$unlocked_out" "$locked_code" "$locked_out"
-report "$name"
-
-name="solvable-issues.test.sh: a live conductor lock for every number its own fixtures name gives the same exit and the same stdout as a run with none"
-fixture_numbers=($(sed -n 's/.*"number"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$HERE/solvable-issues.test.sh" | sort -u))
-locked_repo "$lock_work/every-locked" "${fixture_numbers[@]+"${fixture_numbers[@]}"}"
-
-every_locked_out="$(solvable_in "$lock_work/every-locked" -u VERI_PRIORITY_LABEL)" && every_locked_code=0 || every_locked_code=$?
-
-same_answer no-lock "$unlocked_code" "$unlocked_out" "$every_locked_code" "$every_locked_out"
-[[ "${#fixture_numbers[@]}" -gt 0 ]] ||
-  problems+=("no \"number\": <n> fixture was found in solvable-issues.test.sh, so no lock was written and the two arms cannot differ")
 report "$name"
 
 rm -f "$label_cut"
@@ -200,10 +164,10 @@ if [[ -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
     printf 'printf "%%s\\n" ran >> %q\n' "$rerun_log"
     printf 'echo "1 passed, 0 failed"\n'
   } > "$rerun_work/scripts/tests/probe.test.sh"
-  cp "$HERE/$(basename "$0")" "$rerun_work/scripts/tests/"
+  mkdir -p "$rerun_work/scripts/tests/hermetic" && cp "$SELF" "$rerun_work/scripts/tests/hermetic/"
   mkdir -p "$rerun_work/scripts/tests/lib" && cp "$HERE/lib/harness.sh" "$rerun_work/scripts/tests/lib/"
   chmod +x "$rerun_work/scripts/"*.sh "$rerun_work/scripts/tests/"*.test.sh
-  HERMETIC_RERUN_PROBE=1 "$rerun_work/scripts/tests/$(basename "$0")" >/dev/null 2>&1
+  HERMETIC_RERUN_PROBE=1 "$rerun_work/scripts/tests/hermetic/$(basename "$0")" >/dev/null 2>&1
   reruns="$(wc -l < "$rerun_log" | tr -d ' ')"
   [[ "$reruns" == 0 ]] ||
     problems+=("$(basename "$0") ran probe.test.sh $reruns time(s), want 0: a suite that names a network-capable script was re-run")
@@ -237,7 +201,7 @@ fi
 rm -f "$newskill_cut"
 report "$name"
 
-name="a suite whose answer changes with an ambient VERI_* value or a live conductor lock fails hermetic-suites.test.sh, named"
+name="a suite whose answer changes with an ambient VERI_* value fails hermetic-suites.test.sh, named"
 if [[ -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
   problems=()
   leak_work="$(scratch_dir)"
@@ -245,19 +209,18 @@ if [[ -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
   for stand_in in \
     'supervise-retry:[ -z "${VERI_STUCK_RETRIES:-}" ]' \
     'leaf-model:[ -z "${VERI_MODEL:-}" ]' \
-    'solvable-issues:[ -z "${VERI_PRIORITY_LABEL:-}" ] && ! ls .tdd/wt/*/.tdd/conductor.pid' \
+    'solvable-issues:[ -z "${VERI_PRIORITY_LABEL:-}" ]' \
     'run-conductor:[ -z "${VERI_NEW_SKILL:-}" ]'; do
     {
       printf '#!/bin/sh\n'
-      printf '# Fixture numbers, read as text by case 5: {"number": 108} {"number": 117}\n'
       printf 'if %s >/dev/null 2>&1; then echo "1 passed, 0 failed"; exit 0; fi\n' "${stand_in#*:}"
       printf 'echo "0 passed, 1 failed"; exit 1\n'
     } > "$leak_work/scripts/tests/${stand_in%%:*}.test.sh"
   done
-  cp "$HERE/$(basename "$0")" "$leak_work/scripts/tests/"
+  mkdir -p "$leak_work/scripts/tests/hermetic" && cp "$SELF" "$leak_work/scripts/tests/hermetic/"
   mkdir -p "$leak_work/scripts/tests/lib" && cp "$HERE/lib/harness.sh" "$leak_work/scripts/tests/lib/"
   chmod +x "$leak_work/scripts/tests/"*.test.sh
-  leak_out="$(HERMETIC_LEAK_PROBE=1 HERMETIC_RERUN_PROBE=1 "$leak_work/scripts/tests/$(basename "$0")" 2>/dev/null)" &&
+  leak_out="$(HERMETIC_LEAK_PROBE=1 HERMETIC_RERUN_PROBE=1 "$leak_work/scripts/tests/hermetic/$(basename "$0")" 2>/dev/null)" &&
     leak_code=0 || leak_code=$?
   [[ "$leak_code" != 0 ]] ||
     problems+=("want the copy to exit non-zero with every stand-in leaking, got 0: $(printf '%q' "$leak_out")")
@@ -265,66 +228,12 @@ if [[ -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
     "supervise-retry.test.sh: ambient VERI_STUCK_RETRIES=0" \
     "leaf-model.test.sh: an ambient VERI_MODEL" \
     "solvable-issues.test.sh: an ambient VERI_PRIORITY_LABEL" \
-    "solvable-issues.test.sh: a live conductor lock in the surrounding repository" \
-    "solvable-issues.test.sh: a live conductor lock for every number" \
     "run-conductor.test.sh: an ambient VERI_NEW_SKILL=1"; do
     [[ "$leak_out" == *"FAIL - $leaked"* ]] ||
       problems+=("want a FAIL line naming '$leaked', got: $(printf '%q' "$leak_out")")
   done
   [[ "$leak_out" == *"from run-conductor.test.sh under VERI_NEW_SKILL=1"* ]] ||
-    problems+=("want case 9 to fail on its own finding, run-conductor.test.sh red under VERI_NEW_SKILL=1, not on problems an earlier case left; got: $(printf '%q' "$leak_out")")
-  report "$name"
-fi
-
-name="hermetic-suites.test.sh runs solvable-issues.test.sh's reference arm once, shared by its ambient and lock cases"
-if [[ -z "${HERMETIC_SHARE_PROBE:-}" && -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
-  problems=()
-  share_work="$(scratch_dir)"
-  share_log="$share_work/reference-runs"
-  mkdir -p "$share_work/scripts/tests" "$share_work/cwd"
-  : > "$share_log"
-  {
-    printf '#!/bin/sh\n'
-    printf '# Fixture numbers, read as text by case 5: {"number": 108} {"number": 117}\n'
-    printf 'if [ -z "${VERI_PRIORITY_LABEL:-}" ] && ! ls .tdd/wt/*/.tdd/conductor.pid >/dev/null 2>&1; then\n'
-    printf '  printf "%%s\\n" reference >> %q\n' "$share_log"
-    printf 'fi\n'
-    printf 'echo "1 passed, 0 failed"\n'
-  } > "$share_work/scripts/tests/solvable-issues.test.sh"
-  cp "$HERE/$(basename "$0")" "$share_work/scripts/tests/"
-  mkdir -p "$share_work/scripts/tests/lib" && cp "$HERE/lib/harness.sh" "$share_work/scripts/tests/lib/"
-  chmod +x "$share_work/scripts/tests/"*.test.sh
-  (cd "$share_work/cwd" &&
-    HERMETIC_SHARE_PROBE=1 HERMETIC_LEAK_PROBE=1 HERMETIC_RERUN_PROBE=1 \
-      "$share_work/scripts/tests/$(basename "$0")" >/dev/null 2>&1)
-  reference_runs="$(wc -l < "$share_log" | tr -d ' ')"
-  [[ "$reference_runs" == 1 ]] ||
-    problems+=("$(basename "$0") ran solvable-issues.test.sh's reference arm $reference_runs time(s), want 1: cases 3, 4 and 5 each paid for their own")
-  report "$name"
-fi
-
-name="hermetic-suites.test.sh runs no whole copy of solvable-issues.test.sh for its lock cases"
-if [[ -z "${HERMETIC_WHOLE_PROBE:-}" && -z "${HERMETIC_SHARE_PROBE:-}" && -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" && -z "${HERMETIC_SKILLCOMMIT_PROBE:-}" ]]; then
-  problems=()
-  whole_work="$(scratch_dir)"
-  whole_log="$whole_work/runs"
-  mkdir -p "$whole_work/scripts/tests" "$whole_work/cwd"
-  : > "$whole_log"
-  {
-    printf '#!/bin/sh\n'
-    printf '# Fixture numbers, read as text by case 5: {"number": 108} {"number": 117}\n'
-    printf 'printf "%%s\\n" "$(basename "$0")" >> %q\n' "$whole_log"
-    printf 'echo "1 passed, 0 failed"\n'
-  } > "$whole_work/scripts/tests/solvable-issues.test.sh"
-  cp "$HERE/$(basename "$0")" "$whole_work/scripts/tests/"
-  mkdir -p "$whole_work/scripts/tests/lib" && cp "$HERE/lib/harness.sh" "$whole_work/scripts/tests/lib/"
-  chmod +x "$whole_work/scripts/tests/"*.test.sh
-  (cd "$whole_work/cwd" &&
-    HERMETIC_WHOLE_PROBE=1 HERMETIC_SHARE_PROBE=1 HERMETIC_LEAK_PROBE=1 HERMETIC_RERUN_PROBE=1 HERMETIC_SKILLCOMMIT_PROBE=1 \
-      "$whole_work/scripts/tests/$(basename "$0")" >/dev/null 2>&1)
-  whole_runs="$(grep -cx 'solvable-issues.test.sh' "$whole_log")"
-  [[ "$whole_runs" == 0 ]] ||
-    problems+=("$(basename "$0") ran a whole copy of solvable-issues.test.sh $whole_runs time(s), want 0: each lock case runs a slice")
+    problems+=("want case 7 to fail on its own finding, run-conductor.test.sh red under VERI_NEW_SKILL=1, not on problems an earlier case left; got: $(printf '%q' "$leak_out")")
   report "$name"
 fi
 
@@ -365,17 +274,17 @@ if [[ -z "${HERMETIC_SKILLCOMMIT_PROBE:-}" ]]; then
       'name="past the cut"' \
       'exit 9'
   } > "$sha_work/scripts/tests/run-conductor.test.sh"
-  cp "$HERE/$(basename "$0")" "$sha_work/scripts/tests/"
+  mkdir -p "$sha_work/scripts/tests/hermetic" && cp "$SELF" "$sha_work/scripts/tests/hermetic/"
   mkdir -p "$sha_work/scripts/tests/lib" && cp "$HERE/lib/harness.sh" "$sha_work/scripts/tests/lib/"
   chmod +x "$sha_work/scripts/tests/"*.test.sh
-  sha_out="$(HERMETIC_SKILLCOMMIT_PROBE=1 HERMETIC_SHARE_PROBE=1 HERMETIC_LEAK_PROBE=1 HERMETIC_RERUN_PROBE=1 \
-    "$sha_work/scripts/tests/$(basename "$0")" 2>/dev/null)" && sha_code=0 || sha_code=$?
+  sha_out="$(HERMETIC_SKILLCOMMIT_PROBE=1 HERMETIC_LEAK_PROBE=1 HERMETIC_RERUN_PROBE=1 \
+    "$sha_work/scripts/tests/hermetic/$(basename "$0")" 2>/dev/null)" && sha_code=0 || sha_code=$?
   [[ "$sha_code" != 0 ]] ||
     problems+=("want the copy to exit non-zero with the stand-in leaking VERI_SKILL_COMMIT, got 0: $(printf '%q' "$sha_out")")
   [[ "$sha_out" == *"FAIL - run-conductor.test.sh: an ambient VERI_NEW_SKILL=1 with a VERI_SKILL_COMMIT"* ]] ||
     problems+=("want a FAIL line naming 'run-conductor.test.sh: an ambient VERI_NEW_SKILL=1 with a VERI_SKILL_COMMIT', got: $(printf '%q' "$sha_out")")
   [[ "$sha_out" == *"(the one case that can observe the sha), got"* ]] ||
-    problems+=("want case 12 to fail on its own finding, the sliced case red under the ambient sha, not on a slice it could not cut; got: $(printf '%q' "$sha_out")")
+    problems+=("want case 9 to fail on its own finding, the sliced case red under the ambient sha, not on a slice it could not cut; got: $(printf '%q' "$sha_out")")
   report "$name"
 fi
 
