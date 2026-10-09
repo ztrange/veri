@@ -34,7 +34,7 @@ not contain. Your job is to make the push land without losing anyone's commits.
 
          {{TIMED_TEST_RUN}} all '' {{TEST_CMD}}
 
-     The wrapper hands the command's own exit status straight back, so a red run stays red.
+     {{INCLUDE:_exit-status-back.md}} so a red run stays red.
    - **Only the run's own pre-rebase history** (the same commits, rewritten locally): push
      with the lease pinned to the sha above, and nothing looser:
      `git push --force-with-lease={{BRANCH}}:{{REMOTE_SHA}} origin HEAD:{{BRANCH}}`.

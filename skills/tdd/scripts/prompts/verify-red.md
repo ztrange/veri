@@ -19,7 +19,7 @@ test is `{{TARGET_TEST}}`). Confirm the Red step is sound.
 
        {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>
 
-   The wrapper hands the command's own exit status straight back, so a red run stays red —
+   {{INCLUDE:_exit-status-back.md}} so a red run stays red —
    and red is what this check is after.
 2. **It fails for the right reason.** The failure must be the *missing behavior from the
    spec*: an absent function, script, file, route or field, or a wrong returned value. An

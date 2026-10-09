@@ -52,7 +52,7 @@ exactly as you found it.
 
 {{INCLUDE:_timed-test-run-fast-affected.md}}
 
-   The wrapper hands the command's own exit status straight back, so a red run stays red.
+   {{INCLUDE:_exit-status-back.md}} so a red run stays red.
    That pair
    replaces the full suite, and runs exactly once: the conductor runs the full command
    itself, before it readies the PR. A new pass bought with a broken sibling test is not a

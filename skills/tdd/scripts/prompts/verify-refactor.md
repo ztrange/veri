@@ -23,7 +23,7 @@ Render one verdict on the settled result.
 
 {{INCLUDE:_timed-test-run-fast-affected.md}}
 
-   The wrapper hands the command's own exit status straight back, so a red run stays red.
+   {{INCLUDE:_exit-status-back.md}} so a red run stays red.
 2. **Up to standard.** The settled code should be code you would approve: it follows the
    repository's **conventions**, uses sensible **typing**/structure where the project
    does, names things clearly, and is reasonably **robust**. It must not have smuggled in

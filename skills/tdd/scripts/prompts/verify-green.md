@@ -17,7 +17,7 @@ A developer agent has written the implementation intended to make the target tes
 
        {{TIMED_TEST_RUN}} target '{{TEST_PATH}}' <the command that runs the target test>
 
-   The wrapper hands the command's own exit status straight back, so a red run stays red.
+   {{INCLUDE:_exit-status-back.md}} so a red run stays red.
 2. **The fast command and the affected suites are green.** Run the fast command,
    `{{FAST_CMD}}` (`detect-test-command.sh --tier fast` prints it), then run the suites `affected-suites.sh`
    prints for the change yourself, not just the target test. There must be **no

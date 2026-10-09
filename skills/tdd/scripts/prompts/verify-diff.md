@@ -17,7 +17,7 @@ files the diff touched, each through the wrapper {{INCLUDE:_timed-test-run-tier.
 
 {{INCLUDE:_timed-test-run-fast-affected.md}}
 
-The wrapper hands the command's own exit status straight back, so a red run stays red.
+{{INCLUDE:_exit-status-back.md}} so a red run stays red.
 
 PASS if the diff satisfies the step's criterion. REJECT, naming where the diff falls short,
 otherwise. REJECT, too, if the fast command or the affected suites are red. REJECT, too,

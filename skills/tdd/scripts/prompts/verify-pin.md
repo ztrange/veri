@@ -26,7 +26,7 @@ make fail. Confirm the test is a genuine **regression pin** worth committing.
 
        {{TIMED_TEST_RUN}} target '{{TEST_PATH}}' <the command that runs the target test>
 
-   The wrapper hands the command's own exit status straight back, so the mutated run stays
+   {{INCLUDE:_exit-status-back.md}} so the mutated run stays
    red — and red is what check 2 is after.
 3. **Quality of the test.** REJECT if the test is:
    - **trivial** — it asserts a constant or something no plausible change could break, or
