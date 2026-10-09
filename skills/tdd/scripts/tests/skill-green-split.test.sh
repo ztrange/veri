@@ -10,6 +10,8 @@
 #   2. When `add-ledger-step.sh` exits 1 on that branch, the run bails with cause
 #      `step-too-big`, which SKILL.md's Bailing causes list classifies as a **process**
 #      failure.
+#   3. Every add-ledger-step.sh call that may add a step serving a criterion other than its
+#      anchor's passes --criterion, and the script's entry under The scripts documents it.
 #
 # Run: scripts/tests/skill-green-split.test.sh
 set -uo pipefail
@@ -133,6 +135,44 @@ else
     problems+=("$skill_md's step-too-big entry does not name the revise-exhausted split")
   grep -E 'over-budget' <<<"$bullet" > /dev/null ||
     problems+=("$skill_md's step-too-big entry does not name the over-budget split")
+fi
+
+report "$name"
+
+calls_that_may_change_criterion() {
+  grep -E '\$S/add-ledger-step\.sh (--criterion |\.tdd/)' "$skill_path" |
+    grep -vE '⟦(suite|ci)-repair⟧'
+}
+
+add_ledger_step_entry() {
+  awk '
+    inside && (/^- / || /^$/) { exit }
+    /^- `\$S\/add-ledger-step\.sh/ { inside = 1 }
+    inside' "$skill_path"
+}
+
+name="#1281: every $skill_md add-ledger-step.sh call that may add a step serving another criterion passes --criterion, and the script's entry under The scripts documents it"
+problems=()
+
+calls="$(calls_that_may_change_criterion)"
+for site in 'instead-of' "before \"\$(\$S/next-unchecked.sh" "after \"\$(\$S/next-pending-refactor.sh"; do
+  grep -F -- "$site" <<<"$calls" > /dev/null ||
+    problems+=("$skill_md has no add-ledger-step.sh call anchored '$site' — the call site could not be read")
+done
+[[ "$(grep -cF 'instead-of' <<<"$calls")" -ge 2 ]] ||
+  problems+=("$skill_md has fewer than two instead-of add-ledger-step.sh calls — the over-budget and revise-exhausted splits could not both be read")
+while IFS= read -r call; do
+  [[ -n "$call" ]] || continue
+  grep -F -- '--criterion ' <<<"$call" > /dev/null ||
+    problems+=("$skill_md calls add-ledger-step.sh without --criterion, so the added step inherits its anchor's criterion: ${call#"${call%%[![:space:]]*}"}")
+done <<<"$calls"
+
+entry="$(add_ledger_step_entry)"
+if [[ -z "${entry// /}" ]]; then
+  problems+=("$skill_md has no '- \`\$S/add-ledger-step.sh' entry under The scripts")
+else
+  grep -F -- '--criterion' <<<"$entry" > /dev/null ||
+    problems+=("$skill_md's add-ledger-step.sh entry under The scripts never documents --criterion")
 fi
 
 report "$name"
