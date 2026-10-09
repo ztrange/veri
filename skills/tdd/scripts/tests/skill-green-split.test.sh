@@ -16,6 +16,9 @@
 #   4. The ⟦suite-repair⟧ and ⟦ci-repair⟧ add-ledger-step.sh calls, which keep the anchor's
 #      criterion on purpose, say beside them that they pass no --criterion because the repair
 #      step serves its anchor's criterion.
+#   5. The add-ledger-step.sh entry under The scripts says --criterion <k> tags the added steps
+#      with criterion k for any whole number k ≥ 1, carried by a step or not, and its exit 2
+#      cases include a k that is not a whole number ≥ 1.
 #
 # Run: scripts/tests/skill-green-split.test.sh
 set -uo pipefail
@@ -227,6 +230,24 @@ for tag in '⟦suite-repair⟧' '⟦ci-repair⟧'; do
   grep -F -- "anchor's criterion" <<<"$around" > /dev/null ||
     problems+=("$skill_md never says beside its $tag add-ledger-step.sh call that the repair step serves its anchor's criterion")
 done
+
+report "$name"
+
+name="#1292: $skill_md's add-ledger-step.sh entry under The scripts says --criterion <k> tags the added steps with criterion k for any whole number k ≥ 1, carried or not, and lists a k that is not a whole number ≥ 1 among its exit 2 cases"
+problems=()
+
+entry="$(add_ledger_step_entry | plain --join)"
+if [[ -z "${entry// /}" ]]; then
+  problems+=("$skill_md has no '- \`\$S/add-ledger-step.sh' entry under The scripts")
+else
+  grep -E 'whole number[^.]{0,20}(≥|>=|at least) ?1' <<<"$entry" > /dev/null ||
+    problems+=("$skill_md's add-ledger-step.sh entry never says --criterion <k> takes any whole number k ≥ 1")
+  grep -E 'whether or not[^.]{0,80}carr|carried or not|(no|not yet)[^.]{0,30}step[^.]{0,20}carr' <<<"$entry" > /dev/null ||
+    problems+=("$skill_md's add-ledger-step.sh entry never says --criterion <k> tags the steps whether or not a ledger step already carries criterion k")
+  exit2="$(grep -oE 'exit 2[^.]*' <<<"$entry")"
+  grep -E 'not a whole number' <<<"$exit2" > /dev/null ||
+    problems+=("$skill_md's add-ledger-step.sh entry never lists a --criterion k that is not a whole number ≥ 1 among its exit 2 cases: '$exit2'")
+fi
 
 report "$name"
 
