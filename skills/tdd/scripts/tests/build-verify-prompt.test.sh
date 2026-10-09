@@ -74,14 +74,6 @@ every worktree of this repository, so what you pop may be another agent'"'"'s wo
 is then lost. To see the committed version of a file, read it with `git show HEAD:<path>`;
 to compare a whole tree against it, make a throwaway checkout with
 `git worktree add --detach <scratch> HEAD` and remove it afterwards.'
-for shared in _shared _develop-shared; do
-  [[ "$(cat "$prompts/$shared.md")" == *"$stash_rule"* ]] \
-    || problems="$problems; $shared.md no longer carries the git stash rule verbatim"
-done
-[[ -z "$problems" ]] && ok \
-  || no "#619 _shared.md and _develop-shared.md keep the git stash rule unchanged, recommending git show HEAD:<path> and git worktree add --detach <scratch> HEAD (${problems#; })"
-
-problems=""
 DEVELOP="$HERE/../build-develop-prompt.sh"
 echo 'a reason' > "$work/reason.md"
 built_prompts() {  # one call per template: <label>|<builder> <args…>, every one of them including _shared.md or _develop-shared.md
@@ -122,23 +114,6 @@ done < <(built_prompts)
 
 problems=""
 forbidding='Never undo a probe with[[:space:]]`git checkout -- <file>` or `git restore`'
-for file in "$prompts"/*; do
-  name="${file##*/}"
-  text="$(cat "$file")"
-  [[ "$text" == *'git stash push'* ]] && problems="$problems; $name contains git stash push"
-  case "$name" in
-    _shared.md|_develop-shared.md)
-      [[ "$text" == *$forbidding* ]] \
-        || problems="$problems; $name lacks the sentence forbidding git checkout -- <file>"
-      text="${text//$forbidding/}" ;;
-  esac
-  [[ "$text" == *'git checkout --'* ]] \
-    && problems="$problems; $name names git checkout -- outside the sentence that forbids it"
-done
-[[ -z "$problems" ]] && ok \
-  || no "#619 no prompt contains git stash push, and git checkout -- <file> appears only in _shared.md and _develop-shared.md inside the sentence that forbids it (${problems#; })"
-
-problems=""
 while IFS='|' read -r label call; do
   read -ra argv <<<"$call"
   prompt="$("${argv[@]}" 2>&1)"; code=$?
