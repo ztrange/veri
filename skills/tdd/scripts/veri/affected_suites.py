@@ -131,7 +131,7 @@ def suite_of(f, revisions=None):
 
     if match("CLAUDE.md", "Makefile", "skills/*/SKILL.md"):
         naming = suites_naming('"%s"' % f, '/%s"' % f)
-        section = match("skills/*/SKILL.md") and revisions and edited_section(f, revisions)
+        section = f == "skills/tdd/SKILL.md" and revisions and edited_section(f, revisions)
         if section:
             readers = suites_naming(*quoted(*section))
             slicers = suites_naming(*quoted(*headings(f)))
