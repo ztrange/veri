@@ -127,10 +127,14 @@ def signal_tree(pid, sig):
             pass
 
 
+def group_alive(pgid):
+    return bool(answered("pgrep", "-g", str(pgid)))
+
+
 def kill_tree(leaf, kill_poll):
     signal_tree(leaf.pid, signal.SIGTERM)
     for _ in range(5):
-        if leaf.poll() is not None:
+        if leaf.poll() is not None and not group_alive(leaf.pid):
             return
         time.sleep(kill_poll)
     signal_tree(leaf.pid, signal.SIGKILL)
