@@ -8,4 +8,4 @@
 - [x] An edit to skills/tdd/SKILL.md whose changed lines span two sections selects every suite that names SKILL.md ⟦criterion 1⟧
 - [x] An edit to skills/tdd/SKILL.md that cannot be placed in a section (a changed line above the first ## heading, or a file added or deleted whole) selects every suite that names SKILL.md ⟦criterion 1⟧
 - [x] A change to CLAUDE.md, Makefile, a SKILL.md other than skills/tdd/SKILL.md, or a prompt under prompts/*.md selects the same suites it selected before this issue, file-wide ⟦criterion 2⟧
-- [ ] The branch's diff deletes no suite naming skills/tdd/SKILL.md and leaves the Makefile's test recipe unchanged, so make test still runs every SKILL.md suite ⟦diff-checked⟧ ⟦criterion 2⟧
+- [x] The branch's diff deletes no suite naming skills/tdd/SKILL.md and leaves the Makefile's test recipe unchanged, so make test still runs every SKILL.md suite ⟦diff-checked⟧ ⟦criterion 2⟧
