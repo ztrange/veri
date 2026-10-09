@@ -597,3 +597,18 @@ def test_main_without_criterion_tags_inserted_lines_with_the_anchor_criterion_an
             "# Plan for #42\n\n- [x] a one ⟦criterion 1⟧\n- [ ] b two\n- [ ] t ⟦added⟧\n- [ ] u ⟦added⟧\n",
         ),
     }
+
+
+def test_main_refuses_a_criterion_no_step_carries_with_2_and_one_stderr_line_naming_it_writing_nothing_1224(tmp_path, monkeypatch, capsys, add_ledger_step):
+    monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)
+    ledger = tmp_path / "issue-42.md"
+    ledger.write_bytes(LEDGER)
+    code = add_ledger_step.main(["--criterion", "7", str(ledger), "after", "b two", "t"])
+    out, err = capsys.readouterr()
+    assert (
+        code,
+        out,
+        err.count("\n"),
+        err.startswith("add-ledger-step.sh: ") and err.endswith(" 7\n"),
+        ledger.read_bytes() == LEDGER,
+    ) == (2, "", 1, True, True)
