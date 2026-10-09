@@ -1383,4 +1383,32 @@ done
 { [[ "$leaderdies_code" == 2 ]] && [[ "${#leaderdies_alive[@]}" -eq 0 ]]; } && ok \
   || no "#1199: a leaf killed for silence whose group leader dies on TERM while the rest of its group ignores TERM leaves no process of that group alive after the grace period (code=$leaderdies_code want 2; ${leaderdies_alive[*]:-none alive})"
 
+timeoutdies_work="$work/timeout-leader-dies"
+mkdir -p "$timeoutdies_work"
+cat > "$stub/leaf-runaway-ignore-term" <<'L'
+#!/bin/sh
+trap '' TERM
+echo $$ > leaf-pid
+sleep 60 &
+echo $! > child-pid
+echo "leaf: starting"; clock-jump "$(( ${VERI_TIMEOUT:-999} + 1 ))"; wait
+L
+chmod +x "$stub/leaf-runaway-ignore-term"
+( cd "$timeoutdies_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=1 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-runaway-ignore-term" ) >/dev/null 2>"$timeoutdies_work/err"
+timeoutdies_code=$?
+timeoutdies_alive=()
+for timeoutdies_file in leaf-pid child-pid; do
+  timeoutdies_pid="$(tr -d '[:space:]' < "$timeoutdies_work/$timeoutdies_file" 2>/dev/null)"
+  if [[ -z "$timeoutdies_pid" ]]; then timeoutdies_alive+=("$timeoutdies_file: never recorded"); continue; fi
+  for _ in $(seq 1 20); do kill -0 "$timeoutdies_pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$timeoutdies_pid" 2>/dev/null; then
+    timeoutdies_alive+=("$timeoutdies_file: pid $timeoutdies_pid still alive")
+    kill -KILL "$timeoutdies_pid" 2>/dev/null
+  fi
+done
+{ [[ "$timeoutdies_code" == 2 ]] && grep -F 'hard timeout 1s exceeded' "$timeoutdies_work/err" > /dev/null \
+  && [[ "${#timeoutdies_alive[@]}" -eq 0 ]]; } && ok \
+  || no "#1199: a leaf killed for its hard timeout whose group leader dies on TERM while the rest of its group ignores TERM leaves no process of that group alive after the grace period (code=$timeoutdies_code want 2; ${timeoutdies_alive[*]:-none alive}; err=$(cat "$timeoutdies_work/err"))"
+
 finish
