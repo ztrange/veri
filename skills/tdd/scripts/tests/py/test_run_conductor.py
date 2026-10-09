@@ -897,6 +897,31 @@ def test_main_strips_claudes_environment_through_veri_session_env_so_a_name_adde
     assert [("VERI_PLANTED_621" in env, env.get("VERI_KEPT_621")) for env in environments] == [(False, "kept")]
 
 
+def test_main_given_a_claude_bin_whose_path_carries_the_session_id_runs_that_binary_and_hands_it_on_in_claudes_environment_1244(
+        tmp_path, monkeypatch, capfdbinary):
+    past_the_guards(monkeypatch)
+    monkeypatch.delenv("VERI_NEW_SKILL", raising=False)
+    stub = "/private/tmp/claude-501/veri/sess-1244/scratchpad/claude"
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "sess-1244")
+    monkeypatch.setenv("CLAUDE_BIN", stub)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    monkeypatch.chdir(tmp_path)
+    launches = fake_claude_launch(monkeypatch)
+    run, environments = subprocess.run, []
+
+    def claude_records_its_environment(args, *a, **kwargs):
+        if list(args)[:1] != ["git"]:
+            environments.append((kwargs.get("env") or os.environ).get("CLAUDE_BIN"))
+        return run(args, *a, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", claude_records_its_environment)
+
+    code = run_conductor.main(["4242"])
+
+    capfdbinary.readouterr()
+    assert (code, [launch["argv"][0] for launch in launches], environments) == (0, [stub], [stub])
+
+
 def test_main_runs_event_sh_before_the_session_strip_then_hands_claude_no_veri_new_skill_every_other_veri_variable_and_an_ambient_veri_skill_commit_unpinned_or_veri_skill_unpinned_pinned(
         tmp_path, monkeypatch, capfdbinary):
     past_the_guards(monkeypatch)
