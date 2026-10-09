@@ -991,3 +991,40 @@ def test_main_states_the_signal_only_processes_you_started_rule_in_every_phase_f
         "rule names pkill": True,
         "carried": dict.fromkeys(prompts, (0, True)),
     }
+
+
+def test_main_passes_a_replaces_case_green_only_when_every_case_its_step_names_is_gone_and_has_a_pytest_case_and_rejects_touching_any_case_it_does_not_name_one_or_several(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    several = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob", '
+               '"zorblat refuses an empty nitz" move to tests/py/test_zorblat.py ⟦criterion 1⟧')
+    one = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz" moves to '
+           'tests/py/test_zorblat.py ⟦criterion 1⟧')
+
+    def rendered(step):
+        code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit", "green", str(spec),
+                                         "tests/py/test_zorblat.py", "test_zorblat_frobs_a_nitz"])
+        out, _ = capsysbinary.readouterr()
+        return re.sub(rb"\s+", b" ", out) if code == 0 else None
+
+    prompts = {"several": rendered(several), "one": rendered(one)}
+
+    def says(prompt, pattern):
+        return prompt is not None and re.search(pattern, prompt, re.I) is not None
+
+    rules = {
+        "passes only when every named case is gone from its suite": (
+            rb"PASS[^.]{0,250}(every|each|all)[^.]{0,30}(named|cases? (it|the step|its text) names)[^.]{0,60}"
+            rb"(gone|deleted|removed|no longer)"),
+        "and each has a pytest case asserting its behaviour": (
+            rb"(each|every)[^.]{0,80}pytest case[^.]{0,40}assert[^.]{0,30}(its|their) behaviou?r"),
+        "rejects deleting or modifying any case the step does not name": (
+            rb"REJECT[^.]{0,200}(delet|modif)[^.]{0,80}(any|a) case (it|the step|its text) does not name"),
+    }
+    one_only = rb"^(?!.*(names one bash case|the named case is gone))"
+
+    assert {key: [rule for rule, pattern in rules.items() if not says(prompt, pattern)]
+            + (["never confines a several-case step to one case"]
+               if key == "several" and not says(prompt, one_only) else [])
+            for key, prompt in prompts.items()} == dict.fromkeys(prompts, [])
