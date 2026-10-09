@@ -27,7 +27,13 @@ def test_main_refuses_bad_arguments_starts_once_writing_the_pid_and_waits_with_0
             launches.append(args)
 
     monkeypatch.setattr(subprocess, "Popen", FakePopen)
-    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+    now = [1000.0]
+
+    def fake_sleep(seconds):
+        now[0] += float(seconds)
+
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "sleep", fake_sleep)
 
     for argv in ([], ["start", "x"], ["bogus", "x"]):
         code = detach_command.main(argv)
@@ -146,7 +152,13 @@ def test_wait_refuses_a_max_seconds_not_all_ascii_digits_before_reading_any_file
     (tdd / "x.pid").write_text("4242\n")
     kills = []
     monkeypatch.setattr(os, "kill", lambda pid, signum: kills.append(pid))
-    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+    now = [1000.0]
+
+    def fake_sleep(seconds):
+        now[0] += float(seconds)
+
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "sleep", fake_sleep)
 
     for max_seconds in ("abc", "1.5", "10+5", "-1", " 5"):
         code = detach_command.main(["wait", "x", max_seconds])
@@ -168,7 +180,13 @@ def test_wait_answers_a_recorded_code_over_a_dead_pid_and_rechecks_the_exit_file
         raise ProcessLookupError
 
     monkeypatch.setattr(os, "kill", dead)
-    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+    now = [1000.0]
+
+    def fake_sleep(seconds):
+        now[0] += float(seconds)
+
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "sleep", fake_sleep)
     code = detach_command.main(["wait", "x", "0"])
     assert (code, capsys.readouterr()) == (1, ("5\n", ""))
 
@@ -197,7 +215,13 @@ def test_wait_answers_a_recorded_code_over_a_dead_pid_before_probing_the_pid(
         raise ProcessLookupError
 
     monkeypatch.setattr(os, "kill", dead)
-    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+    now = [1000.0]
+
+    def fake_sleep(seconds):
+        now[0] += float(seconds)
+
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "sleep", fake_sleep)
     code = detach_command.main(["wait", "x", "0"])
     assert (code, capsys.readouterr(), kills) == (1, ("6\n", ""), [])
 
@@ -213,7 +237,13 @@ def test_wait_reads_the_exit_file_as_test_f_and_cat_do_stripping_trailing_newlin
         raise ProcessLookupError
 
     monkeypatch.setattr(os, "kill", dead)
-    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+    now = [1000.0]
+
+    def fake_sleep(seconds):
+        now[0] += float(seconds)
+
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "sleep", fake_sleep)
 
     (tdd / "x.exit").write_text(" 7 \n\n")
     code = detach_command.main(["wait", "x", "0"])
@@ -240,7 +270,13 @@ def test_wait_reads_a_missing_empty_unparsable_esrch_or_eperm_pid_file_as_dead_a
     monkeypatch.chdir(tmp_path)
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+    now = [1000.0]
+
+    def fake_sleep(seconds):
+        now[0] += float(seconds)
+
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "sleep", fake_sleep)
 
     def alive(pid, signum):
         return None
@@ -273,7 +309,13 @@ def test_wait_parses_the_pid_file_as_bash_kill_does_blanks_a_plus_and_leading_ze
     monkeypatch.chdir(tmp_path)
     tdd = tmp_path / ".tdd"
     tdd.mkdir()
-    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+    now = [1000.0]
+
+    def fake_sleep(seconds):
+        now[0] += float(seconds)
+
+    monkeypatch.setattr(time, "time", lambda: now[0])
+    monkeypatch.setattr(time, "sleep", fake_sleep)
 
     for pid_text, pid in ((" +007 \t\n", 7), ("\t 0 \n", 0), (" -0012\n", -12)):
         kills = []
