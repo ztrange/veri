@@ -1,3 +1,4 @@
+import io
 import os
 import pathlib
 import subprocess
@@ -26,6 +27,21 @@ def pytest_collection_modifyitems(config, items):
                if any(not mark.args or not mark.args[0] for mark in item.iter_markers("process"))]
     if unnamed:
         raise pytest.UsageError("process mark without a boundary: %s" % ", ".join(unnamed))
+
+
+@pytest.fixture
+def run_cli(monkeypatch, capfd):
+    def run(module, argv, stdin="", env=None, cwd=None):
+        for name, value in (env or {}).items():
+            monkeypatch.setenv(name, value)
+        if cwd is not None:
+            monkeypatch.chdir(cwd)
+        monkeypatch.setattr(sys, "stdin", io.StringIO(stdin))
+        code = module.main(argv)
+        out, err = capfd.readouterr()
+        return code, out, err
+
+    return run
 
 
 @pytest.fixture
