@@ -8,5 +8,5 @@
 - [x] `test_preserve_attempt.py`, `test_refactor_touched.py`, `test_supervise.py` and `test_verify.py` define no `fake_processes` of their own and record their commands through the shared fake, every case keeping its name ⟦diff-checked⟧ ⟦criterion 1⟧
 - [x] `test_invisible_work.py`, `test_push_branch.py` (its `fake_processes_merging` included), `test_wait_leaf.py` and `test_wait_ci.py` define no `fake_processes` or `fake_processes_merging` of their own and answer their commands through the shared fake, every case keeping its name ⟦diff-checked⟧ ⟦criterion 1⟧
 - [x] `test_profile.py` and `test_stop_run.py` define no `fake_processes` of their own and answer their commands through the shared fake, every case keeping its name, so no `test_*.py` under `tests/py/` defines `def fake_processes` ⟦diff-checked⟧ ⟦criterion 1⟧
-- [ ] No case in `test_invisible_work.py`, `test_preserve_attempt.py`, `test_profile.py`, `test_push_branch.py`, `test_refactor_touched.py` or `test_wait_ci.py` is renamed or removed by the branch ⟦diff-checked⟧ ⟦criterion 2⟧
+- [x] No case in `test_invisible_work.py`, `test_preserve_attempt.py`, `test_profile.py`, `test_push_branch.py`, `test_refactor_touched.py` or `test_wait_ci.py` is renamed or removed by the branch ⟦diff-checked⟧ ⟦criterion 2⟧
 - [ ] Every existing case in the six suites still passes ⟦full-suite⟧ ⟦criterion 2⟧
