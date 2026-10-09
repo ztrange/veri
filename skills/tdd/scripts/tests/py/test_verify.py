@@ -14,27 +14,11 @@ USAGE = (b"usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issu
          b" <test-path> [<target-test-id>]")
 
 
-def fake_processes(monkeypatch):
-    """Every process entry point recording each command it is asked to start."""
-    calls = []
-
-    def record(args, *_, **__):
-        calls.append(args)
-        return subprocess.CompletedProcess(args, 0, b"", b"")
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, record)
-    for name in ("system", "fork", "posix_spawn", "posix_spawnp", "execv", "execvp", "execve"):
-        if hasattr(os, name):
-            monkeypatch.setattr(os, name, record)
-    return calls
-
-
 @pytest.mark.parametrize("argv", [[], ["green", "spec"], ["--step", "x", "green"]])
 def test_main_with_fewer_than_three_positionals_returns_2_with_the_usage_line_alone_and_starts_no_process(
-        argv, tmp_path, monkeypatch, capfdbinary):
+        argv, tmp_path, monkeypatch, capfdbinary, fake_processes):
     monkeypatch.chdir(tmp_path)
-    calls = fake_processes(monkeypatch)
+    calls = fake_processes()
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(list(argv))
@@ -47,9 +31,9 @@ def test_main_with_fewer_than_three_positionals_returns_2_with_the_usage_line_al
 @pytest.mark.parametrize("argv, flag", [(["--step"], b"--step"), (["--step", ""], b"--step"),
                                         (["--fast-cmd", "", "green", "s", "t"], b"--fast-cmd")])
 def test_main_with_a_flag_missing_its_value_returns_2_naming_the_flag_then_the_usage_line_and_starts_no_process(
-        argv, flag, tmp_path, monkeypatch, capfdbinary):
+        argv, flag, tmp_path, monkeypatch, capfdbinary, fake_processes):
     monkeypatch.chdir(tmp_path)
-    calls = fake_processes(monkeypatch)
+    calls = fake_processes()
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(list(argv))

@@ -13,22 +13,9 @@ def refactor_touched():
     return importlib.import_module("veri.refactor_touched")
 
 
-def fake_processes(monkeypatch):
-    """Every subprocess entry point recording its command; none starts a process."""
-    calls = []
-
-    def fake(args, *rest, **kwargs):
-        calls.append(args)
-        return subprocess.CompletedProcess(args, 0, "", "")
-
-    for entry in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, entry, fake)
-    return calls
-
-
 def test_main_with_no_commit_or_no_base_returns_2_with_the_usage_line_alone_and_no_process(
-        monkeypatch, capsys, refactor_touched):
-    calls = fake_processes(monkeypatch)
+        monkeypatch, capsys, refactor_touched, fake_processes):
+    calls = fake_processes()
 
     for argv in ([], ["--issue"]):
         code = refactor_touched.main(argv)
@@ -138,9 +125,9 @@ def test_main_with_issue_diffs_base_against_head_and_ignores_trailing_and_non_fi
 
 
 def test_main_refuses_an_empty_commit_or_base_and_filters_only_paths_starting_tdd_printed_as_git_prints_them(
-        monkeypatch, capsys, refactor_touched):
+        monkeypatch, capsys, refactor_touched, fake_processes):
     sha = "0123456789abcdef0123456789abcdef01234567"
-    calls = fake_processes(monkeypatch)
+    calls = fake_processes()
 
     for argv in ([""], ["--issue", ""]):
         code = refactor_touched.main(argv)

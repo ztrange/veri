@@ -15,23 +15,10 @@ def supervise():
     return importlib.import_module("veri.supervise")
 
 
-def fake_processes(monkeypatch):
-    """Every subprocess entry point recording each command it was asked to start."""
-    calls = []
-
-    def record(args, *_, **__):
-        calls.append(args)
-        return subprocess.CompletedProcess(args, 0, "", "")
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, record)
-    return calls
-
-
 def test_main_refuses_a_missing_or_empty_name_and_a_missing_cmd_with_its_usage_line_starting_nothing_and_writing_nothing(
-        monkeypatch, tmp_path, capsysbinary, supervise):
+        monkeypatch, tmp_path, capsysbinary, supervise, fake_processes):
     monkeypatch.chdir(tmp_path)
-    calls = fake_processes(monkeypatch)
+    calls = fake_processes()
 
     answers = []
     for argv in ([], [""], ["develop-red"]):
