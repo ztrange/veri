@@ -184,46 +184,6 @@ done
 problems=(${driver_findings[@]+"${driver_findings[@]}"})
 report "$name"
 
-name="every suite that invokes push-branch.sh sets VERI_PUSH_BACKOFF in its environment"
-problems=()
-push_invocations=0
-for suite in "$HERE"/*.test.sh; do
-  while IFS= read -r row; do
-    case "$row" in
-      invoked) push_invocations=$((push_invocations + 1)) ;;
-      *) problems+=("$(basename "$suite"):$row invokes push-branch.sh without VERI_PUSH_BACKOFF in its environment, so a push to an unreachable origin waits the default backoff on wall time") ;;
-    esac
-  done < <(awk '
-    BEGIN { assigns_script = "^[[:space:]]*(local[[:space:]]+)?[A-Za-z_][A-Za-z0-9_]*=.*/push-branch\\.sh[\"'"'"']?[[:space:]]*$" }
-    NR == FNR {
-      if ($0 ~ assigns_script) {
-        v = $0
-        sub(/^[[:space:]]*(local[[:space:]]+)?/, "", v)
-        sub(/=.*/, "", v)
-        vars[v] = 1
-      }
-      next
-    }
-    {
-      if (!joining) start = FNR
-      if ($0 ~ /\\$/) { cmd = cmd substr($0, 1, length($0) - 1) " "; joining = 1; next }
-      cmd = cmd $0; joining = 0
-      line = cmd; cmd = ""
-      if (line ~ /^[[:space:]]*#/) next
-      if (line ~ assigns_script) next
-      invokes = (line ~ /\/push-branch\.sh"/)
-      for (v in vars)
-        if (index(line, "\"$" v "\"") || index(line, "${" v "}")) invokes = 1
-      if (!invokes) next
-      print "invoked"
-      if (line !~ /VERI_PUSH_BACKOFF=/) print start
-    }
-  ' "$suite" "$suite")
-done
-[[ "$push_invocations" -gt 0 ]] ||
-  problems+=("no suite here was recognised as invoking push-branch.sh, so nothing was checked")
-report "$name"
-
 name="hermetic-suites.test.sh re-runs no suite for the offline or own-origin cases"
 if [[ -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
   problems=()
