@@ -169,9 +169,10 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   Nothing on stdout. **Exit 0** when it cleared the mark; **exit 3** when no ticked step both
   matched and carried it — the file is left byte-identical, because nothing is written unless
   the transform found its line.
-- `$S/add-ledger-step.sh <ledger> after|before "<anchor substring>" '<text>' […]` — **grow
+- `$S/add-ledger-step.sh [--criterion <k>] <ledger> after|before|instead-of "<anchor substring>" '<text>' […]` — **grow
   the plan mid-run**: insert each text as `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` directly after
-  the anchor step, or directly before it, inheriting the anchor's criterion. `VERI_STEP_GROWTH`
+  the anchor step, directly before it, or in its place, inheriting the anchor's criterion
+  unless `--criterion <k>` names the criterion the added steps serve. `VERI_STEP_GROWTH`
   (default 5) bounds how many `⟦added⟧` steps one ledger may hold, on a **fifth axis** of its
   own — plan growth, never merged with the other four. **Exit 0** = inserted; **exit 1** = the
   budget cannot hold them, so nothing is inserted and every text is appended as a plain bullet
@@ -956,7 +957,7 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   git clean -f -- <test-path>   # a test file Red created is untracked, so the reset leaves it
   step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$step" added=<count>
   step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-split at=over-budget anchor="$step" added=<count>
-  $S/add-ledger-step.sh .tdd/issue-<n>.md instead-of "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<criterion>' …   # every line of the answer in ONE call
+  $S/add-ledger-step.sh --criterion <k> .tdd/issue-<n>.md instead-of "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<criterion>' …   # every line of the answer in ONE call
   git add -A && git commit -m "plan: replace <STEP summary> with <count> smaller steps (#<n>)"
   ```
   The `at=over-budget` is what tells this split apart from the other two causes that grow a
@@ -1125,7 +1126,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    git clean -f -- <test-path>   # a test file Red created is untracked, so the reset leaves it; one git already tracked the reset restored
    step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$step" added=<count>
    step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-split anchor="$step" added=<count>
-   $S/add-ledger-step.sh .tdd/issue-<n>.md before "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<SPLIT: value>' …   # every SPLIT: value in ONE call
+   $S/add-ledger-step.sh --criterion <k> .tdd/issue-<n>.md before "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<SPLIT: value>' …   # every SPLIT: value in ONE call
    git add -A && git commit -m "plan: split <STEP summary> into <count> smaller steps (#<n>)"
    ```
    The two marks go first because they read the step's title out of the ledger, and the
@@ -1355,7 +1356,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      loop has already closed and no triangulation reopens it:
      ```
      step="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$step" added=<count>
-     $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" '<leaf or verdict uncovered-spec behaviour>' …   # every one in ONE call
+     $S/add-ledger-step.sh --criterion <k> .tdd/issue-<n>.md after "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" '<leaf or verdict uncovered-spec behaviour>' …   # every one in ONE call
      $S/clear-refactor-pending.sh .tdd/issue-<n>.md "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)"
      git add -A && git commit -m "chore: refactor verified for <STEP summary> (#<n>)"
      $S/push-branch.sh
@@ -1970,7 +1971,7 @@ answer. Each is a branch of its own:
   git clean -f -- <test-path>   # a test file Red created is untracked, so the reset leaves it
   step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$step" added=<count>
   step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-split at=exhausted anchor="$step" added=<count>
-  $S/add-ledger-step.sh .tdd/issue-<n>.md instead-of "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<criterion>' …   # every line of the answer in ONE call
+  $S/add-ledger-step.sh --criterion <k> .tdd/issue-<n>.md instead-of "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<criterion>' …   # every line of the answer in ONE call
   git add -A && git commit -m "plan: replace <STEP summary> with <count> smaller steps (#<n>)"
   ```
   The marks go first for the reason the Green split's do: they read the title out of the
