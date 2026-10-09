@@ -112,33 +112,6 @@ def mtime_of(path):
     return m
 
 
-class Unbound(Exception):
-    pass
-
-
-def arithmetic(value):
-    if value[:1] in ("-", "+"):
-        number = arithmetic(value[1:])
-        return -number if value[0] == "-" else number
-    if re.fullmatch(r"0[0-7]*", value):
-        return int(value, 8)
-    if re.fullmatch(r"[1-9][0-9]*", value):
-        return int(value, 10)
-    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", value):
-        raise Unbound(f"supervise: {value}: unbound variable")
-    raise ValueError(f"supervise: {value}: arithmetic syntax error")
-
-
-def limit(value):
-    if re.fullmatch(r"[0-9]+", value):
-        return int(value, 10)
-    try:
-        return arithmetic(value)
-    except ValueError as error:
-        print(error, file=sys.stderr)
-        return None
-
-
 def signal_tree(pid, sig):
     try:
         os.killpg(pid, sig)
@@ -263,16 +236,14 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
         a = awake_seconds()
         seen_at += (t - prev_t) - (a - prev_a)
         prev_t, prev_a = t, a
-        span = limit(timeout)
-        if span is not None and a - a0 >= span:
+        if a - a0 >= int(timeout, 10):
             reason = f"hard timeout {timeout}s exceeded"
         elif watched:
             m = mtime_of(log)
             if m != last_m:
                 last_m, seen_at = m, t
             silence = t - seen_at
-            window = limit(heartbeat)
-            if window is not None and silence > window:
+            if silence > int(heartbeat, 10):
                 reason = f"no heartbeat for {silence}s (window {heartbeat}s)"
         if reason:
             status = "killed-stuck"
@@ -366,20 +337,16 @@ def main(argv):
     trap(started, exitfile, kill_poll, ignored)
     watch = Watch(watched, timeout, heartbeat, poll, kill_poll)
     tries = 0
-    try:
-        while True:
-            status, reason, rc, a0 = attempt_once(started, name, argv[1:], log, rcfile, leaf_env, preexec, watch)
-            if status != "killed-stuck":
-                break
-            preserve_killed_attempt(name, tries + 1, leaf_env)
-            if tries >= int(retries, 10):
-                break
-            tries += 1
-            mark(role, leaf_env, "retry", f"cause={reason}")
-            print(f"supervise[{name}]: retry {tries}/{retries} after killed-stuck", file=sys.stderr)
-    except Unbound as unbound:
-        print(unbound, file=sys.stderr)
-        return 1
+    while True:
+        status, reason, rc, a0 = attempt_once(started, name, argv[1:], log, rcfile, leaf_env, preexec, watch)
+        if status != "killed-stuck":
+            break
+        preserve_killed_attempt(name, tries + 1, leaf_env)
+        if tries >= int(retries, 10):
+            break
+        tries += 1
+        mark(role, leaf_env, "retry", f"cause={reason}")
+        print(f"supervise[{name}]: retry {tries}/{retries} after killed-stuck", file=sys.stderr)
     ec = {"success": 0, "failure": 1, "killed-stuck": 2}[status]
     if rc == "2":
         ec = 2
