@@ -38,6 +38,8 @@ declare -A EXEMPT=(
   [flag-class-amendment-guard.test.sh]="plants a SKILL.md whose Refactor section grants the plan amendment to a flag class other than uncovered-spec and runs skill-refactor-leaf.test.sh over it to pin that its case 7 still fails and still names that class; the document routes the amendment correctly today, so that case passes over this tree whether it checks anything or not, and only running it over the plant says otherwise"
   [beyond-spec-narration-guard.test.sh]="plants a SKILL.md whose Refactor section says a beyond-spec flag is planned and built in this run and runs skill-refactor-leaf.test.sh over it to pin that its case 8 still fails and still names that class; the document denies the planning correctly today, so that case passes over this tree whether it checks the denial or not — and running it over the plant is what said it does not, since case 8 answers on the bullet's rationale rather than on the denial"
   [verifier-launch-guard.test.sh]="plants the #297 bypass back into a copy of SKILL.md — a verifier launch line with the supervisor cut out of it — and runs skill-leaf-launch.test.sh over it to pin that its case 5 still fails and still names that line; every launch in the document is correct today, so that guard passes over this tree whether it checks anything or not, and only running it over the plant says otherwise"
+  [no-unbacked-pushes.test.sh]="its exemption table is keyed by suite basename, so its one key names push-backoff-guard.test.sh, the suite whose planted push-branch.sh lines it exempts; a table key, not a launch of that suite"
+  [push-backoff-guard.test.sh]="plants a suite that invokes push-branch.sh without VERI_PUSH_BACKOFF, beside one that sets it, into a scratch tree and runs a copy of no-unbacked-pushes.test.sh (the guard the push-backoff check moved into, #1258) over it; every real suite sets VERI_PUSH_BACKOFF today, so the guard answers the same way over this tree whether it still checks anything or not, and only running it over the plant says otherwise"
   [prose-drift-red.test.sh]="its subject is the verdict \`make test\`'s own runner reaches over a tree — \`make -C \$planted test TESTS= UNIT_TESTS= PY_TESTS=test_refactor_budget.py\` — not the product; only the real recipe over the real suite produces that verdict"
 )
 
@@ -156,6 +158,12 @@ report "#1138: affected-suites.test.sh's #1138 case names mentioning claude-md-c
 
 mentions_reported no-awk-v-patterns.test.sh parallel-conductors.test.sh skill-draft-pr.test.sh skill-plan-verify.test.sh skill-red-prediction.test.sh solvable-issues.test.sh
 report "#1050: no-awk-v-patterns.test.sh's content-keyed exemption keys naming parallel-conductors.test.sh, skill-draft-pr.test.sh, skill-plan-verify.test.sh, skill-red-prediction.test.sh and solvable-issues.test.sh are not read as launching them"
+
+mentions_reported no-unbacked-pushes.test.sh push-backoff-guard.test.sh
+from_guard=("${problems[@]}")
+mentions_reported push-backoff-guard.test.sh no-unbacked-pushes.test.sh
+problems=(${from_guard[@]+"${from_guard[@]}"} ${problems[@]+"${problems[@]}"})
+report "#1258: no-unbacked-pushes.test.sh and push-backoff-guard.test.sh, naming each other, are each exempted with a reason or not read as launching the other"
 
 name="#1258: make hermetic runs the ambient re-runs from a file neither make test nor make unit runs, holding their fails-named case and no live-conductor-lock or push-backoff case, and make test runs no ambient re-run of another suite"
 problems=()
