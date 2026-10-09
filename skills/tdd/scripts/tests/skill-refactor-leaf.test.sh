@@ -35,6 +35,9 @@
 #      read a NEW_STEP: or CANDIDATES: line of the leaf's into the plan.
 #  11. That section does not bail when no ledger step carries the uncovered-spec
 #      behaviour's criterion k yet, since add-ledger-step.sh --criterion accepts it.
+#  12. That section's sub-step 4 sends each uncovered-spec behaviour into the
+#      add-ledger-step.sh call for the criterion it serves, one call per criterion, rather
+#      than into one shared call.
 #
 # Run: scripts/tests/skill-refactor-leaf.test.sh
 set -uo pipefail
@@ -404,6 +407,28 @@ else
   uncarried_bail="$(phrase "$(either_order 'bail' 'carr[a-z]* criterion' '[^.]{0,200}')" "$section")"
   [[ -z "$uncarried_bail" ]] ||
     problems+=("$skill_md's Refactor section still bails on a criterion no ledger step carries — it says '$uncarried_bail' — so a behaviour serving a criterion the plan never covered ends the run, though add-ledger-step.sh --criterion now tags that step and no Bailing cause fits it")
+fi
+
+report "$name"
+
+name="$skill_md's Refactor sub-step 4 sends each uncovered-spec behaviour into the add-ledger-step.sh call for the criterion it serves, one call per criterion, not into one shared call (#1292)"
+problems=()
+
+if unreadable_section; then
+  problems+=("$(unreadable_problem "which add-ledger-step.sh call an uncovered-spec flag's behaviour goes into could not be established")")
+else
+  opening='an uncovered-spec flag is the one class that grows the plan'
+  substep=""
+  [[ "$section" == *"$opening"* ]] && substep="$opening${section#*"$opening"}" && substep="${substep%%a beyond-spec flag is narrated*}"
+  if [[ -z "$substep" ]]; then
+    problems+=("$skill_md's Refactor section has no sub-step 4 opening 'an uncovered-spec flag is the one class that grows the plan', so where its behaviours go could not be established")
+  else
+    shared="$(phrase "the same[^.]{0,80}add-ledger-step\\.sh[^.]{0,80}call" "$substep")"
+    [[ -z "$shared" ]] ||
+      problems+=("$skill_md's Refactor sub-step 4 still sends every uncovered-spec behaviour into one shared call — it says '$shared' — so behaviours serving different criteria are tagged with one --criterion and the plan is mis-tagged")
+    grep -E 'one call per criterion|call for the criterion (it|the behaviour) serves' >/dev/null <<<"$substep" ||
+      problems+=("$skill_md's Refactor sub-step 4 never says a behaviour goes into the add-ledger-step.sh call for the criterion it serves, one call per criterion, so it disagrees with the one-call-per-criterion rule beside the PASS branch's calls")
+  fi
 fi
 
 report "$name"

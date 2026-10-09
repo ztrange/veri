@@ -1289,9 +1289,10 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    whose class is **uncovered-spec** names a behaviour the issue's spec requires that **no
    ledger step covers** — the gap *Scope & plan* above asks the planner to
    catch, found late by a leaf reading the code. That is the **only** flag class a plan
-   amendment is made from: its behaviour is carried, verbatim as a criterion, into the same
-   `add-ledger-step.sh … after "<STEP>"` call the verdict's own `uncovered-spec` flags go in at
-   6's PASS branch, so the missing step is planned and built like any other. No other class amends
+   amendment is made from: its behaviour is carried, verbatim as a criterion, into the
+   `add-ledger-step.sh --criterion <k> … after "<STEP>"` call for the criterion it serves at
+   6's PASS branch, one call per criterion, beside the verdict's own `uncovered-spec` flags, so
+   the missing step is planned and built like any other. No other class amends
    the plan — an **overfit** flag is answered inside the step at 3, and the plan never grows
    for what the spec did not ask for. A flag class turned into a step of its own is what
    #175 measured: six `plan: amend` commits on `origin/main`, each buying a whole cycle and
