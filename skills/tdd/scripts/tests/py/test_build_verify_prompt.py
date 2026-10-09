@@ -11,6 +11,11 @@ from conftest import SCRIPTS
 USAGE = b"usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]\n"
 
 
+def states_blindness_contract(prompt):
+    return re.search(r"have not (been told|received).*(reason|rationale)|never.*(reason|rationale)",
+                     prompt, re.I) is not None
+
+
 @pytest.fixture
 def build_verify_prompt():
     return importlib.import_module("veri.build_verify_prompt")
@@ -438,7 +443,7 @@ def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_
         "exits": {phase: (code, err) for phase, (code, _, err) in plain.items()},
         "ambient reaches nothing": ambient == plain,
         "test path": all(testpath in prompts[p] for p in every),
-        "blindness contract": has("red", r"have not (been told|received).*(reason|rationale)|never.*(reason|rationale)"),
+        "blindness contract": states_blindness_contract(prompts["red"]),
         "verdict format": has("red", r"VERDICT:", 0) and has("red", "pass") and has("red", "reject"),
         "red audit": has("red", "right reason") and has("red", "trivial|coupled|complex"),
         "green full suite": has("green", "full") and has("green", "suite")
@@ -471,6 +476,38 @@ def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_
         "fifth positional": {p: (2, b"") for p in every},
         "unknown phase": True,
     }
+
+
+def test_the_blindness_contract_assertion_needs_its_whole_match_on_one_line_of_the_rendered_red_prompt(
+        tmp_path, capsysbinary):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    sentence = b"You have NOT been told the author's reasoning or rationale"
+    shared = (SCRIPTS / "prompts" / "_shared.md").read_bytes()
+
+    def red_prompt(name, contract):
+        scripts = tmp_path / name
+        (scripts / "veri").mkdir(parents=True)
+        module_path = scripts / "veri" / "build_verify_prompt.py"
+        module_path.write_bytes((SCRIPTS / "veri" / "build_verify_prompt.py").read_bytes())
+        shutil.copytree(SCRIPTS / "prompts", scripts / "prompts")
+        (scripts / "prompts" / "_shared.md").write_bytes(shared.replace(sentence, contract))
+        loader = importlib.util.spec_from_file_location(f"{name}_build_verify_prompt", module_path)
+        module = importlib.util.module_from_spec(loader)
+        loader.loader.exec_module(module)
+        code = module.main(["red", str(spec), "tests/test_slugify.py", "test_slugify_lowercases"])
+        out, _ = capsysbinary.readouterr()
+        assert code == 0
+        return out.decode("utf-8", "surrogateescape")
+
+    assert sentence in shared
+    assert {
+        "intact": states_blindness_contract(red_prompt("intact", sentence)),
+        "split sentence": states_blindness_contract(
+            red_prompt("split", b"You have NOT been told\n   the author's reasoning or rationale")),
+        "never and reason apart": states_blindness_contract(
+            red_prompt("apart", b"You will never\n   learn the author's reasoning or rationale")),
+    } == {"intact": True, "split sentence": False, "never and reason apart": False}
 
 
 def test_main_carries_and_checks_refactors_base_sha_scopes_every_prompt_to_its_step_ignoring_veri_step_and_renders_the_configuration_mechanism_fast_cmd_name_error_unrequired_code_restore_and_checkout_rules(
