@@ -119,6 +119,28 @@ for suite in "$TESTS"/*.test.sh "$TESTS"/unit/*.test.sh; do
 done
 verdict "$name"
 
+name="#1150: a suite that copies a veri/ module importing entry into a scratch tree copies veri/entry.py beside it, or is named <suite>:<line>"
+problems=""
+for suite in "$TESTS"/*.test.sh "$TESTS"/unit/*.test.sh; do
+  declare -A vars=()
+  read_vars "$suite"
+  sites="" has_entry=""
+  n=0
+  while IFS= read -r line; do
+    n=$((n + 1))
+    [[ "$line" =~ (^|[[:space:]])(cp|ln)[[:space:]] ]] || continue
+    rest="$(expand "$line")"
+    [[ "$rest" =~ scripts/veri/?\*?[\"\']?[[:space:]] || "$rest" == *veri/entry.py* || "$rest" == *veri/\*.py* ]] && has_entry=1
+    [[ "$rest" =~ veri/([A-Za-z0-9_]+\.py) ]] || continue
+    module="${BASH_REMATCH[1]}"
+    [[ -f "$SCRIPTS/veri/$module" ]] && grep -E '^[[:space:]]*import entry' "$SCRIPTS/veri/$module" > /dev/null \
+      && sites+="    ${suite#"$TESTS"/}:$n copies veri/$module without veri/entry.py"$'\n'
+  done < "$suite"
+  [[ -n "$has_entry" ]] || problems+="$sites"
+  unset vars
+done
+verdict "$name"
+
 name="a suite that plants a suite into a scratch tree copies every tests/lib file that suite sources"
 problems=""
 for suite in "$TESTS"/*.test.sh "$TESTS"/unit/*.test.sh; do
