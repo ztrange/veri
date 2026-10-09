@@ -1355,4 +1355,32 @@ if kill -0 "$termign_sup" 2>/dev/null; then wait "$termign_sup"; fi
 { [[ "$termign_code" == 2 ]] && [[ "$termign_exit" == 2 ]] && [[ "$termign_alive" == no ]]; } && ok \
   || no "a supervisor started with TERM ignored, whose silent leaf is killed for silence, leaves no leaf process alive after the KILL escalation and exits 2 with 2 in .tdd/<name>.exit (code=$termign_code want 2, exit file=$termign_exit want 2, leaf alive=$termign_alive want no)"
 
+
+leaderdies_work="$work/leader-dies"
+mkdir -p "$leaderdies_work"
+cat > "$stub/leaf-hang-ignore-term" <<'L'
+#!/bin/sh
+trap '' TERM
+echo $$ > leaf-pid
+sleep 60 &
+echo $! > child-pid
+echo "leaf: starting"; clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"; wait
+L
+chmod +x "$stub/leaf-hang-ignore-term"
+( cd "$leaderdies_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=1 VERI_TIMEOUT=30 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-hang-ignore-term" ) >/dev/null 2>&1
+leaderdies_code=$?
+leaderdies_alive=()
+for leaderdies_file in leaf-pid child-pid; do
+  leaderdies_pid="$(tr -d '[:space:]' < "$leaderdies_work/$leaderdies_file" 2>/dev/null)"
+  if [[ -z "$leaderdies_pid" ]]; then leaderdies_alive+=("$leaderdies_file: never recorded"); continue; fi
+  for _ in $(seq 1 20); do kill -0 "$leaderdies_pid" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$leaderdies_pid" 2>/dev/null; then
+    leaderdies_alive+=("$leaderdies_file: pid $leaderdies_pid still alive")
+    kill -KILL "$leaderdies_pid" 2>/dev/null
+  fi
+done
+{ [[ "$leaderdies_code" == 2 ]] && [[ "${#leaderdies_alive[@]}" -eq 0 ]]; } && ok \
+  || no "#1199: a leaf killed for silence whose group leader dies on TERM while the rest of its group ignores TERM leaves no process of that group alive after the grace period (code=$leaderdies_code want 2; ${leaderdies_alive[*]:-none alive})"
+
 finish
