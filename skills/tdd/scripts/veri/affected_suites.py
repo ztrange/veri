@@ -77,16 +77,19 @@ HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 
 
 def heading(line):
-    return line.split(" ", 1)[1].strip() if line.startswith(("## ", "### ")) else None
+    for level, prefix in ((2, "## "), (3, "### ")):
+        if line.startswith(prefix):
+            return level, line[len(prefix):].strip()
+    return None
 
 
 def enclosing(lines):
     names = []
     for line in reversed(lines):
-        name = heading(line)
-        if name is None:
+        parsed = heading(line)
+        if parsed is None:
             continue
-        if line.startswith("## "):
+        if parsed[0] == 2:
             return tuple(names + [line])
         if not names:
             names.append(line)
