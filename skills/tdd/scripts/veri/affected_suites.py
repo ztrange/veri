@@ -76,6 +76,10 @@ def existing(path):
 HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 
 
+def heading(line):
+    return line[3:].strip() if line.startswith("## ") else None
+
+
 def edited_section(f, revisions):
     code, diff = output("diff", "-U0", revisions, "--", f)
     text = read(f)
@@ -90,10 +94,10 @@ def edited_section(f, revisions):
             numbers += range(start, start + count) if count else [start]
     sections = set()
     for n in numbers:
-        heading = next((l for l in reversed(lines[:n]) if l.startswith("## ")), None)
-        if heading is None:
+        section = next((h for h in map(heading, reversed(lines[:n])) if h is not None), None)
+        if section is None:
             return None
-        sections.add(heading[3:].strip())
+        sections.add(section)
     return sections.pop() if len(sections) == 1 else None
 
 
@@ -103,7 +107,7 @@ def quoted(*names):
 
 def headings(f):
     text = (read(f) or b"").decode(errors="replace")
-    return [l[3:].strip() for l in text.split("\n") if l.startswith("## ")]
+    return [h for h in map(heading, text.split("\n")) if h is not None]
 
 
 def suite_of(f, revisions=None):
