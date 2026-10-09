@@ -272,7 +272,8 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
 - `$S/detect-test-command.sh [--issue <body-file>] [repo-root]` — print the one command that
   runs the **target repo's** full suite on stdout; **exit 3** — the repo-wide *nothing to do*
   code — when no marker it trusts matched, which is your cue to ask the user. First match
-  wins: the issue body's own `Test command:` line, then the repo's `.veri/test-command`,
+  wins: the issue body's own `Test command:` line (for `--tier all`, unless it equals the fast
+  tier's command — #1225), then the repo's `.veri/test-command`,
   then every inference (see *Detecting the test command*).
 - `$S/solvable-issues.sh [--repo <owner/name>]` — the **selection layer**: prints the
   numbers of the issues veri may take right now — open, labelled `ready-for-agent`, every
@@ -2303,7 +2304,10 @@ the one the baseline proved green.
 
 A `Test command: <cmd>` line in the issue body wins over everything else, for that issue's
 run only: an issue that named its suite in words has already answered the question, and
-that is what `--issue` puts in front of the rest. That is the per-issue escape hatch.
+that is what `--issue` puts in front of the rest. That is the per-issue escape hatch. One
+exception (#1225): for `--tier all`, a line equal to the command the fast tier resolves to
+is dropped, and the full tier falls through to CLAUDE.md's `veri: all tests:` line and then
+the usual detection, so an issue naming the fast tier never stops the full suite running.
 
 When the inference guesses wrong for a particular repo rather than for one issue, the fix
 is that repo's, not this skill's: a human writes `.veri/test-command` there, and its first
