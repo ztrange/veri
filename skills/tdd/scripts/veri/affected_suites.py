@@ -101,6 +101,8 @@ def edited_section(f, revisions):
     lines = text.decode(errors="replace").split("\n")
     numbers = []
     for line in diff.split("\n"):
+        if line.startswith("-") and not line.startswith("--- ") and heading(line[1:]) is not None:
+            return None
         hunk = HUNK.match(line)
         if hunk:
             start, count = int(hunk.group(1)), int(hunk.group(2) or "1")
