@@ -4,3 +4,4 @@
 - [x] add-ledger-step.sh called without `--criterion` still tags inserted lines with the anchor's criterion, and an anchor with no criterion still yields untagged lines ⟦criterion 2⟧
 - [x] add-ledger-step.sh given `--criterion <k>` for a k no ledger step carries exits 2 with one stderr line naming k and leaves the ledger byte-identical ⟦criterion 3⟧
 - [x] add-ledger-step.sh refusing a call with too few arguments prints a usage line that names the optional leading `--criterion <k>` ⟦added⟧ ⟦criterion 3⟧
+- [ ] the contract header of `skills/tdd/scripts/add-ledger-step.sh` says a leading `--criterion <k>` overrides the inherited criterion and lists the refusal of a criterion no ledger step carries among its exit-2 causes; nothing else in the branch changes ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 3⟧
