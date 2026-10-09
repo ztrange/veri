@@ -1,5 +1,6 @@
 """lib/ledger.sh's ledger_steps and ledger_tick, run in-process."""
 import re
+import sys
 
 OPEN_STEP = "- [ ]"
 PENDING_MARK = " ⟂ refactor pending"
@@ -9,6 +10,16 @@ SPACE = r"[ \t\n\v\f\r]"
 STEP_RE = re.compile(rf"({SPACE}*-{SPACE})\[([ xX])\]( (.*))?")
 CRITERION_RE = CRITERION_TAG + "([0-9]+)⟧"
 KIND_RE = re.compile(r"⟦(full-suite|human-owed|diff-checked)⟧ " + CRITERION_RE)
+
+
+def decode_ledger(data):
+    """data with every NUL dropped, decoded as UTF-8 with surrogateescape."""
+    return data.replace(b"\0", b"").decode(errors="surrogateescape")
+
+
+def read_ledger_stdin():
+    """decode_ledger over all of stdin's bytes."""
+    return decode_ledger(sys.stdin.buffer.read())
 
 
 def is_added(step):

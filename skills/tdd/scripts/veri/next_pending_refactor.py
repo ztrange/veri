@@ -1,7 +1,7 @@
 """next-pending-refactor.sh's computation, run in-process."""
 import sys
 
-from ledger import ledger_steps
+from ledger import ledger_steps, read_ledger_stdin
 
 
 def refactor_pending(record):
@@ -9,7 +9,7 @@ def refactor_pending(record):
 
 
 def main(argv):
-    for record in ledger_steps(sys.stdin.buffer.read().replace(b"\0", b"").decode(errors="surrogateescape")):
+    for record in ledger_steps(read_ledger_stdin()):
         if refactor_pending(record):
             sys.stdout.buffer.write((record[6] + "\n").encode(errors="surrogateescape"))
             return 0

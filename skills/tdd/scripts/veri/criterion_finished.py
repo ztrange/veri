@@ -12,7 +12,7 @@ def main(argv):
         return 2
     if sys.stdin is None:
         return 3
-    text = sys.stdin.buffer.read().replace(b"\0", b"").decode("utf-8", "surrogateescape")
+    text = ledger.read_ledger_stdin()
     steps = ledger.ledger_steps(text)
     refusal = ledger.multi_tag_refusal(steps)
     if refusal:
