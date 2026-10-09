@@ -1,8 +1,8 @@
 ### 📊 Metrics — issue 538
 
-Wall time for the issue: 8111 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 4751 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
-Steps done: 10 of 11 planned.
+Steps done: 10 of 12 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/1253.
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet; models that answered: claude-opus-5-5, claude-sonnet-5-5.
@@ -12,30 +12,30 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 16 | 11 | 1 | 2 | 1347 | 11966 | 40886 | 0.18 |
-| red | 21 | 8 | 0 | 0 | 1828 | 838 | 157 | 298 | 73945 | 8394425 | 1112048 | 10.57 |
-| green | 20 | 8 | 2 | 0 | 5509 | 629 | 129 | 246 | 47496 | 6183767 | 870821 | 7.49 |
-| refactor | 16 | 7 | 0 | 0 | 1522 | 316 | 78 | 152 | 25255 | 3499682 | 727829 | 5.75 |
+| red | 23 | 9 | 0 | 0 | 2082 | 975 | 178 | 338 | 87400 | 9918695 | 1252854 | 12.06 |
+| green | 24 | 9 | 3 | 0 | 6515 | 865 | 165 | 318 | 68255 | 8484592 | 1059212 | 9.55 |
+| refactor | 18 | 8 | 0 | 0 | 1814 | 370 | 93 | 182 | 31002 | 4286515 | 824721 | 6.58 |
 | pin | 5 | 4 | 1 | 0 | 502 | 117 | 28 | 56 | 11944 | 1325523 | 226272 | 1.29 |
 | diff | 2 | 1 | 0 | 0 | 305 | 35 | 10 | 16 | 2627 | 334922 | 81641 | 0.60 |
-| predicate | 8 | 0 | 0 | 0 | 160 | 100 | 30 | 60 | 8634 | 1238209 | 328697 | 3.05 |
-| structural | 6 | 0 | 0 | 0 | 528 | 111 | 29 | 58 | 8536 | 1283533 | 250817 | 2.43 |
+| predicate | 11 | 0 | 0 | 0 | 219 | 136 | 39 | 78 | 11770 | 1582069 | 449428 | 4.15 |
+| structural | 8 | 0 | 0 | 0 | 646 | 145 | 36 | 72 | 10942 | 1559023 | 331774 | 3.19 |
 | transform | 6 | 2 | 4 | 0 | 275 | 81 | 24 | 48 | 5888 | 1046670 | 204924 | 1.09 |
 
 #### By model
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 38 | 31 | 7 | 0 | 5932 | 793 | 182 | 354 | 61160 | 8018621 | 1517237 | 8.28 |
-| developer | claude-opus-5-5 | 47 | 0 | 0 | 0 | 4713 | 1445 | 304 | 582 | 124512 | 15300076 | 2326698 | 24.17 |
+| verifier | claude-sonnet-5-5 | 42 | 34 | 8 | 0 | 6579 | 860 | 205 | 400 | 68306 | 9165360 | 1657986 | 9.03 |
+| developer | claude-opus-5-5 | 56 | 0 | 0 | 0 | 5795 | 1875 | 369 | 710 | 162869 | 19384615 | 2813726 | 29.65 |
 
 #### Rework and waste, by phase
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
 | plan | 0 | 0.00 | 0 | 0.00 |
-| red | 0 | 0.00 | 238 | 1.32 |
-| green | 1677 | 3.02 | 412 | 0.73 |
-| refactor | 0 | 0.00 | 222 | 0.73 |
+| red | 0 | 0.00 | 492 | 2.81 |
+| green | 1677 | 3.02 | 1418 | 2.79 |
+| refactor | 0 | 0.00 | 514 | 1.56 |
 | pin | 128 | 0.36 | 0 | 0.00 |
 | diff | 0 | 0.00 | 0 | 0.00 |
 | predicate | 0 | 0.00 | 0 | 0.00 |
@@ -56,7 +56,8 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | A change to CLAUDE.md, Makefile, a SKILL.md other than skills/tdd/SKILL.md, or a prompt under prompts/*.md selects the same suites it selected before this issue, file-wide ⟦criterion 2⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 140 | 34 | 66 | 12171 | 1598863 | 283128 | 2.27 | 910 | unknown | 0/5 | nothing-structural |  |  | full |
 | The branch's diff deletes no suite naming skills/tdd/SKILL.md and leaves the Makefile's test recipe unchanged, so make test still runs every SKILL.md suite ⟦diff-checked⟧ ⟦criterion 2⟧ | 9 | 1 | 2 | 0 | 0 | 0 | 138 | 39 | 74 | 10264 | 1566355 | 369982 | 2.96 | 7803 | unknown | unknown | unknown |  |  | full |
 | A suite naming SKILL.md counts as reading a section when it quotes that heading's bare title, the heading with its prefix ('## <title>' / '### <title>'), or a quoted prefix of the heading's title; so, on the real skills/tdd/SKILL.md and suite tree, a one-section edit inside each of '## Stopping', '## Bailing', '## Resume' and '### 4. Draft PR' selects exactly the suites that quote that heading in one of those three forms (for a ### heading, also the enclosing ## heading) plus the suites naming SKILL.md that quote no heading, an expected set the test computes from the tree itself and that today's selector misses (it selects 42, 42, 41, 42 of 43) ⟦added⟧ ⟦criterion 1⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 223 | 43 | 80 | 21261 | 2270657 | 308636 | 2.78 | unknown | unknown | 1/5 | structural-owed |  |  | full |
-| fix the full-suite failure: no-nested-suites.test.sh — FAIL - no suite under skills/tdd/scripts/tests/ (or its unit/ tier) launches another real suite outside the exemptions recorded here (affected-suites.test.sh:88, :186, :579 and others now read as launching claude-md-counts.test.sh and run-suite-venv.test.sh; 4 of 12 cases fail) ⟦suite-repair⟧ ⟦criterion 2⟧ | 22 | 6 | 2 | 0 | 0 | 0 | 420 | 108 | 212 | 37191 | 4959699 | 938633 | 7.92 | 2167 | unknown | 0/5 | nothing-left |  |  | already-satisfied |
+| fix the full-suite failure: no-nested-suites.test.sh — FAIL - no suite under skills/tdd/scripts/tests/ (or its unit/ tier) launches another real suite outside the exemptions recorded here (affected-suites.test.sh:88, :186, :579 and others now read as launching claude-md-counts.test.sh and run-suite-venv.test.sh; 4 of 12 cases fail) ⟦suite-repair⟧ ⟦criterion 2⟧ | 27 | 6 | 2 | 0 | 0 | 0 | 490 | 124 | 244 | 42733 | 5579049 | 1140321 | 9.77 | 19668 | unknown | 0/5 | nothing-left |  |  | already-satisfied |
+| A suite naming SKILL.md counts as sliced only when every read of SKILL.md in it goes through the slicing helpers (section / section_records '<heading>'); any other read — a regex such as /^## The scripts/, a grep, a cat, a whole-file read — makes it unsliced, so it is selected for every SKILL.md edit (superseding the step above's rule that any quoted heading slices a suite). Pinned red-first on the real tree: an edit inside '## The scripts' (renaming stop-requested.sh in its SKILL.md entry) selects skill-stopping.test.sh, and skill-plan-verify, skill-draft-pr, skill-criterion-finished, skill-leaf-launch and skill-revise-exhausted are each selected for an edit inside a section they read without a slicing helper; affected-suites.test.sh's four-heading case no longer computes its expected set with a bash copy of the rule under test (its :384-400), but names the expected suites, or checks them against what each suite actually reads ⟦added⟧ ⟦criterion 1⟧ | 8 | 3 | 1 | 0 | 0 | 0 | 427 | 72 | 142 | 39961 | 4611928 | 426089 | 4.38 | unknown | 1/2 | 2/5 | structural-owed |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER.
 
@@ -71,23 +72,24 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | A change to CLAUDE.md, Makefile, a SKILL.md other than skills/tdd/SKILL.md, or a prompt under prompts/*.md selects the same suites it selected before this issue, file-wide ⟦criterion 2⟧ | 1 | 0/5 | nothing-structural | PASS | 0 | 173 | 0.65 |
 | A suite naming SKILL.md counts as reading a section when it quotes that heading's bare title, the heading with its prefix ('## <title>' / '### <title>'), or a quoted prefix of the heading's title; so, on the real skills/tdd/SKILL.md and suite tree, a one-section edit inside each of '## Stopping', '## Bailing', '## Resume' and '### 4. Draft PR' selects exactly the suites that quote that heading in one of those three forms (for a ### heading, also the enclosing ## heading) plus the suites naming SKILL.md that quote no heading, an expected set the test computes from the tree itself and that today's selector misses (it selects 42, 42, 41, 42 of 43) ⟦added⟧ ⟦criterion 1⟧ | 1 | 1/5 | structural-owed | PASS | 0 | 222 | 0.73 |
 | fix the full-suite failure: no-nested-suites.test.sh — FAIL - no suite under skills/tdd/scripts/tests/ (or its unit/ tier) launches another real suite outside the exemptions recorded here (affected-suites.test.sh:88, :186, :579 and others now read as launching claude-md-counts.test.sh and run-suite-venv.test.sh; 4 of 12 cases fail) ⟦suite-repair⟧ ⟦criterion 2⟧ | 2 | 0/5 | nothing-left | PASS | 0 | 182 | 1.06 |
+| A suite naming SKILL.md counts as sliced only when every read of SKILL.md in it goes through the slicing helpers (section / section_records '<heading>'); any other read — a regex such as /^## The scripts/, a grep, a cat, a whole-file read — makes it unsliced, so it is selected for every SKILL.md edit (superseding the step above's rule that any quoted heading slices a suite). Pinned red-first on the real tree: an edit inside '## The scripts' (renaming stop-requested.sh in its SKILL.md entry) selects skill-stopping.test.sh, and skill-plan-verify, skill-draft-pr, skill-criterion-finished, skill-leaf-launch and skill-revise-exhausted are each selected for an edit inside a section they read without a slicing helper; affected-suites.test.sh's four-heading case no longer computes its expected set with a bash copy of the rule under test (its :384-400), but names the expected suites, or checks them against what each suite actually reads ⟦added⟧ ⟦criterion 1⟧ | 1 | 2/5 | structural-owed | PASS | 0 | 292 | 0.83 |
 
 #### Structural pass
 
 | pass | refactor | stopped |
 | --- | ---: | --- |
-| issue | 2/3 | candidates-done |
+| issue | 0/3 | candidates-done |
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 28 | 30 | 19 | 2 | 28 | 0 | 1 | 27 | 32 | 29 | 20 | 3 | 26 | 32 | 0 | 30 | 29 | 28 | 27 | 29 | 2 | 34 | 31 | 31 | 32 | 33 | 31 | 30 | 0 | 1 | 1 | 23 | 31 | 33 | 17 | 33 | 46 | 34 | 0 | 34 | 32 | 36 | 38 | 1 | 26 | 24 | 36 | 0 | 37 | 22 | 3 | 100 | 23 | 42 | 42 | 49 | 3 | 1 | 40 | 1 | 44 | 1 | 0 | 48 | 50 | 1 | 139 | 50 | 51 | 54 |
-| fast | 93 | 98 | 95 | 100 | 101 | 96 | 110 | 95 | 98 | 94 | 95 | 103 | 104 | 97 | 109 | 102 | 109 | 102 | 102 | 96 | 95 | 99 | 96 | 75 | 89 | 77 | 84 | 87 | 79 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 26 | 27 | 31 | 30 | 30 | 30 | 32 | 39 | 33 | 39 | 36 | 33 | 35 | 41 | 35 | 35 | 34 | 42 | 45 | 0 | 1 | 0 | 0 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 28 | 30 | 19 | 2 | 28 | 0 | 1 | 27 | 32 | 29 | 20 | 3 | 26 | 32 | 0 | 30 | 29 | 28 | 27 | 29 | 2 | 34 | 31 | 31 | 32 | 33 | 31 | 30 | 0 | 1 | 1 | 23 | 31 | 33 | 17 | 33 | 46 | 34 | 0 | 34 | 32 | 36 | 38 | 1 | 26 | 24 | 36 | 0 | 37 | 22 | 3 | 100 | 23 | 42 | 42 | 49 | 3 | 1 | 40 | 1 | 44 | 1 | 0 | 48 | 50 | 1 | 139 | 50 | 51 | 54 | 43 | 43 | 29 | 2 | 51 | 30 | 2 | 1 | 44 | 1 | 43 | 3 | 1 | 45 | 25 |
+| fast | 93 | 98 | 95 | 100 | 101 | 96 | 110 | 95 | 98 | 94 | 95 | 103 | 104 | 97 | 109 | 102 | 109 | 102 | 102 | 96 | 95 | 99 | 96 | 75 | 89 | 77 | 84 | 87 | 79 | 76 | 75 | 79 | 81 | 72 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 26 | 27 | 31 | 30 | 30 | 30 | 32 | 39 | 33 | 39 | 36 | 33 | 35 | 41 | 35 | 35 | 34 | 42 | 45 | 0 | 1 | 0 | 0 | 42 | 41 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 486 | 936 | 185672 | 23318697 | 3843935 | 32.45 |
+| total | 574 | 1110 | 231175 | 28549975 | 4471712 | 38.68 |
