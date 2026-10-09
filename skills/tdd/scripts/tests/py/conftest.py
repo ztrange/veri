@@ -13,9 +13,15 @@ for path in (SCRIPTS, SCRIPTS / "veri"):
 
 def pytest_configure(config):
     config.option.importmode = "append"
+    config.addinivalue_line("markers", "process(boundary): a medium case, naming the process boundary it observes")
 
 
-def pytest_collection_modifyitems(items):
+def pytest_collection_modifyitems(config, items):
+    registered = {line.split(":")[0].split("(")[0].strip() for line in config.getini("markers")}
+    unregistered = ["%s (%s)" % (item.nodeid, mark.name) for item in items
+                    for mark in item.iter_markers() if mark.name not in registered]
+    if unregistered:
+        raise pytest.UsageError("unregistered mark: %s" % ", ".join(unregistered))
     unnamed = [item.nodeid for item in items
                if any(not mark.args or not mark.args[0] for mark in item.iter_markers("process"))]
     if unnamed:
