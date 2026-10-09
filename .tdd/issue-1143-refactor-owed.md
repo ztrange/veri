@@ -1,0 +1,4 @@
+### test_build_verify_prompt.py's blindness-contract assertion on the red prompt needs its whole match on one line of the rendered prompt: a red prompt whose contract sentence is split across two lines, or whose `never` and `reason` sit on different lines, makes the case fail ⟦criterion 1⟧
+- test-only | three pre-existing tests (around lines 532, 647, 817) each define the same nested `has(out, pattern, flags)` that folds newlines and searches bytes; this cycle didn't write them
+- test-only | four pre-existing tests (around lines 151, 243, 319, 383) repeat the inline copy-module-and-load sequence that `scratch` now covers, minus the prompts copy; this cycle didn't write them
+- test-only | the full-suite assertion (`green full suite`, the `has("green", r"full[^0-9A-Za-z]*test[^0-9A-Za-z]*suite")` call on the newline-joined `folded` prompt) can still match across lines; that is plan step 2's criterion, not a refactor
