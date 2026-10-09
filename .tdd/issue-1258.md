@@ -1,6 +1,6 @@
 # Plan for #1258 — PRD 009 C1: run-suite.sh strips ambient VERI_* and CLAUDE_*, and hermetic-suites.test.sh's re-runs leave make test for make hermetic
 
-- [ ] A bash suite run by run-suite.sh sees no VERI_* or CLAUDE_* variable from run-suite.sh's caller except VERI_VENV, while it still sees the caller's PATH and offline settings and the GIT_CONFIG_* entries run-suite.sh adds, and a value the suite sets on a command it starts reaches that command ⟦criterion 1⟧
+- [x] A bash suite run by run-suite.sh sees no VERI_* or CLAUDE_* variable from run-suite.sh's caller except VERI_VENV, while it still sees the caller's PATH and offline settings and the GIT_CONFIG_* entries run-suite.sh adds, and a value the suite sets on a command it starts reaches that command ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] A pytest suite run by run-suite.sh sees no VERI_* or CLAUDE_* variable from run-suite.sh's caller except VERI_VENV, and run-suite.sh's own venv lookup still honours the caller's VERI_VENV ⟦criterion 1⟧
 - [ ] bash-version-guard.test.sh, pytest-leg.test.sh and make-test-env.test.sh are left unchanged by the branch, so the recipe's stand-ins VERI_BASH_MAJOR, VERI_PYTHON_VERSION and VERI_PYTEST_IMPORTABLE are still pinned by the same assertions ⟦diff-checked⟧ ⟦criterion 1⟧
 - [ ] make test and make unit still refuse with exit 2 and their message under VERI_BASH_MAJOR=4, VERI_PYTHON_VERSION=3.11 and VERI_PYTEST_IMPORTABLE=0 set on make, as the unchanged cases in those three suites show ⟦full-suite⟧ ⟦criterion 1⟧

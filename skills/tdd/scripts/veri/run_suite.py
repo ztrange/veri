@@ -101,6 +101,7 @@ def main(argv):
     if not guard.get("COUNT_LINE") or not guard.get("COUNTLESS"):
         sys.stderr.write("run-suite.sh: could not read the count-line guard from %s\n" % guard_path)
         return 2
+    env = {k: v for k, v in env.items() if k == "VERI_VENV" or not k.startswith(("VERI_", "CLAUDE_"))}
     out = bytearray()
     name = os.path.basename(suite)
     try:
