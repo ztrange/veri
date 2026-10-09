@@ -7,7 +7,7 @@ import sys
 import tempfile
 
 from git import git
-from ledger import CRITERION_RE, ledger_steps
+from ledger import CRITERION_RE, decode_ledger, ledger_steps
 
 USAGE = "usage: preserve-attempt.sh <issue> <step> <phase> <attempt> [<mark>]"
 
@@ -81,7 +81,7 @@ def ledger_step_index(issue, step):
         return step
     try:
         with open(ledger, "rb") as f:
-            text = f.read().replace(b"\0", b"").decode(errors="surrogateescape")
+            text = decode_ledger(f.read())
     except OSError as error:
         print(f"preserve-attempt.sh: {ledger}: {error.strerror}", file=sys.stderr)
         return step
