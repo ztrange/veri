@@ -16,6 +16,22 @@ def states_blindness_contract(prompt):
                      prompt, re.I) is not None
 
 
+def scratch(tmp_path, name, drop=(), templates=None):
+    scripts = tmp_path / name
+    (scripts / "veri").mkdir(parents=True)
+    module_path = scripts / "veri" / "build_verify_prompt.py"
+    module_path.write_bytes((SCRIPTS / "veri" / "build_verify_prompt.py").read_bytes())
+    shutil.copytree(SCRIPTS / "prompts", scripts / "prompts")
+    for gone in drop:
+        (scripts / "prompts" / gone).unlink()
+    for template, text in (templates or {}).items():
+        (scripts / "prompts" / template).write_bytes(text)
+    loader = importlib.util.spec_from_file_location(f"{name}_build_verify_prompt", module_path)
+    module = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(module)
+    return module, scripts / "prompts"
+
+
 @pytest.fixture
 def build_verify_prompt():
     return importlib.import_module("veri.build_verify_prompt")
@@ -486,15 +502,7 @@ def test_the_blindness_contract_assertion_needs_its_whole_match_on_one_line_of_t
     shared = (SCRIPTS / "prompts" / "_shared.md").read_bytes()
 
     def red_prompt(name, contract):
-        scripts = tmp_path / name
-        (scripts / "veri").mkdir(parents=True)
-        module_path = scripts / "veri" / "build_verify_prompt.py"
-        module_path.write_bytes((SCRIPTS / "veri" / "build_verify_prompt.py").read_bytes())
-        shutil.copytree(SCRIPTS / "prompts", scripts / "prompts")
-        (scripts / "prompts" / "_shared.md").write_bytes(shared.replace(sentence, contract))
-        loader = importlib.util.spec_from_file_location(f"{name}_build_verify_prompt", module_path)
-        module = importlib.util.module_from_spec(loader)
-        loader.loader.exec_module(module)
+        module, _ = scratch(tmp_path, name, templates={"_shared.md": shared.replace(sentence, contract)})
         code = module.main(["red", str(spec), "tests/test_slugify.py", "test_slugify_lowercases"])
         out, _ = capsysbinary.readouterr()
         assert code == 0
@@ -795,21 +803,6 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
     unmarked_step = 'tests/zorblat.test.sh: "zorblat frobs a nitz" replaces-case moves to tests/py ⟦added⟧ ⟦criterion 4⟧'
     green_args = ["--fast-cmd", "make unit", "green", s, testpath, "test_slugify_lowercases"]
 
-    def scratch(name, drop=(), templates=None):
-        scripts = tmp_path / name
-        (scripts / "veri").mkdir(parents=True)
-        module_path = scripts / "veri" / "build_verify_prompt.py"
-        module_path.write_bytes((SCRIPTS / "veri" / "build_verify_prompt.py").read_bytes())
-        shutil.copytree(SCRIPTS / "prompts", scripts / "prompts")
-        for gone in drop:
-            (scripts / "prompts" / gone).unlink()
-        for template, text in (templates or {}).items():
-            (scripts / "prompts" / template).write_bytes(text)
-        loader = importlib.util.spec_from_file_location(f"{name}_build_verify_prompt", module_path)
-        module = importlib.util.module_from_spec(loader)
-        loader.loader.exec_module(module)
-        return module, scripts / "prompts"
-
     def run(main, argv):
         code = main(argv)
         return (code, *capsysbinary.readouterr())
@@ -834,7 +827,7 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
         return code, cksum(body)
 
     def unreadable_paragraph(name, paragraph, marked, unmarked):
-        module, _ = scratch(name, drop=[paragraph])
+        module, _ = scratch(tmp_path, name, drop=[paragraph])
         refused = run(module.main, marked)
         return (refused[0], refused[1], paragraph.encode() in refused[2],
                 [run(module.main, argv)[0] for argv in unmarked])
@@ -854,13 +847,13 @@ def test_main_refuses_diff_without_fast_cmd_reads_the_refactor_plan_replaces_cas
     every_suite = r"(every|each|all)( of the)? (listed|red|named) suites?"
     not_reject = r"\b(not|never)\b[^.]{0,40}REJECT"
     hazard = r"shell[^.]{0,40}hazard"
-    included, _ = scratch("included", templates={
+    included, _ = scratch(tmp_path, "included", templates={
         "verify-red.md": b"before {{INCLUDE:_probe-outer.md}} after\n",
         "_probe-outer.md": b"outer {{INCLUDE:_probe-inner.md}} end\n",
         "_probe-inner.md": b"inner judges {{TEST_PATH}}\n"})
-    dangling, dangling_prompts = scratch("dangling", templates={
+    dangling, dangling_prompts = scratch(tmp_path, "dangling", templates={
         "verify-red.md": b"before {{INCLUDE:_probe-absent.md}} after\n"})
-    cycle, _ = scratch("cycle", templates={
+    cycle, _ = scratch(tmp_path, "cycle", templates={
         "verify-red.md": b"before {{INCLUDE:_probe-cycle-a.md}} after\n",
         "_probe-cycle-a.md": b"a {{INCLUDE:_probe-cycle-b.md}}\n",
         "_probe-cycle-b.md": b"b {{INCLUDE:_probe-cycle-a.md}}\n"})
