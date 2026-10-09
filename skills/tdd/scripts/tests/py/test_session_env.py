@@ -24,3 +24,25 @@ def test_session_vars_equal_the_libs_list_and_the_strip_removes_them_and_only_wi
         {"PATTERN_ONLY": "aXb_c", "KEPT": "v"},
         {"CARRIES": "pre-a.b*c-post", "KEPT": "v"},
     )
+
+
+def test_1244_the_strip_keeps_claude_bin_and_every_veri_variable_carrying_the_id_and_removes_every_other():
+    session_env = importlib.import_module("veri.session_env")
+    scratch = "/private/tmp/claude-501/proj/sid-1244/scratchpad"
+    env = {
+        "CLAUDE_CODE_SESSION_ID": "sid-1244",
+        "CLAUDE_BIN": scratch + "/claude",
+        "VERI_TEST_CMD": scratch + "/run.sh",
+        "VERI_LOG_DIR": scratch,
+        "OTHER": scratch,
+        "NOT_VERI_X": scratch,
+        "KEPT": "v",
+    }
+    session_env.strip_session_env(env)
+
+    assert env == {
+        "CLAUDE_BIN": scratch + "/claude",
+        "VERI_TEST_CMD": scratch + "/run.sh",
+        "VERI_LOG_DIR": scratch,
+        "KEPT": "v",
+    }
