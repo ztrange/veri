@@ -231,7 +231,7 @@ problems=()
 if [[ ! -f "$ROOT/requirements-dev.txt" ]]; then
   problems+=("want $ROOT/requirements-dev.txt to exist")
 else
-  pins="$(grep -E '^[[:space:]]*pytest' "$ROOT/requirements-dev.txt" || true)"
+  pins="$(grep -E '^[[:space:]]*pytest([^-[:alnum:]_]|$)' "$ROOT/requirements-dev.txt" || true)"
   if [[ "$pins" =~ ^pytest==([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
     version="${BASH_REMATCH[1]}"
     ! grep -nF "$version" "$ROOT/Makefile" > "$work/restated" ||
@@ -239,6 +239,18 @@ else
   else
     problems+=("want one line pytest==X.Y.Z, got: $(flat "$pins")")
   fi
+fi
+report "$name"
+
+name="requirements-dev.txt at the repository root pins pytest-timeout to one exact version, and that version appears nowhere in the Makefile"
+problems=()
+pins="$(grep -E '^[[:space:]]*pytest-timeout' "$ROOT/requirements-dev.txt" || true)"
+if [[ "$pins" =~ ^pytest-timeout==([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+  version="${BASH_REMATCH[1]}"
+  ! grep -nF "$version" "$ROOT/Makefile" > "$work/restated" ||
+    problems+=("want the Makefile not to restate $version, got: $(flat "$(cat "$work/restated")")")
+else
+  problems+=("want one line pytest-timeout==X.Y.Z, got: $(flat "$pins")")
 fi
 report "$name"
 
