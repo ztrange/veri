@@ -223,6 +223,14 @@ diff_refused_as 'diff with an extra positional' "build-verify-prompt: too many a
 [[ -z "$problems" ]] \
   && ok || no "#1041 diff with --fast-cmd refuses an extra positional argument with exit 2, nothing on stdout and the extra-argument check's message on stderr (${problems#; })"
 
+problems=""
+diff_prompt="$("$BUILD" --step "$diff_step" "${fc[@]}" diff "$work/spec.md" "$branch_base" "$step_base")"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
+prompt_says "$diff_prompt" "never says the wrapper hands the exit status straight back" \
+  -F -e "The wrapper hands the command's own exit status straight back, so a red run stays red."
+[[ -z "$problems" ]] \
+  && ok || no "a diff prompt tells the verifier the wrapper hands the test command's own exit status straight back, so a red run stays red (${problems#; })"
+
 scripts_dir="$(cd "$HERE/.." && pwd)"
 
 name="run through a symlink to the scripts directory from another working directory, red, green and diff calls answer as in place, but the timed-test-run.sh path names the symlink as called"
