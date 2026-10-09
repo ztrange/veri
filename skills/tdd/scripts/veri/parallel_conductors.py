@@ -10,16 +10,16 @@ import time
 import traceback
 
 try:
+    from context_budget import START, watch
     from github import NoAnswer, gh_json
     from json_documents import items
 except ImportError:
+    from .context_budget import START, watch
     from .github import NoAnswer, gh_json
     from .json_documents import items
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PASSED_THROUGH = ("VERI_HEARTBEAT", "VERI_TIMEOUT", "VERI_STUCK_RETRIES", "VERI_POLL")
-CACHE_READ = re.compile(rb'"cache_read_input_tokens":([0-9]+)')
-CACHE_CREATION = re.compile(rb'"cache_creation_input_tokens":([0-9]+)')
 
 
 class _Conductor:
@@ -39,8 +39,7 @@ class _Conductor:
                                     stdout=subprocess.DEVNULL, env=env)
         self.read = 0
         self.part = b""
-        self.context = 0
-        self.armed = False
+        self.budget = START
         self.stopped = False
 
     def follow(self):
@@ -60,21 +59,12 @@ class _Conductor:
         for line in lines:
             if self.stopped:
                 return
-            if self.armed and b'"type":"user"' in line:
-                self.armed = False
-                if self.context > int(_ctx_budget()):
-                    os.kill(self.sup.pid, signal.SIGTERM)
-                    self.stopped = True
-                continue
-            if b'"type":"assistant"' not in line:
-                continue
-            cache_read = CACHE_READ.search(line)
-            cache_creation = CACHE_CREATION.search(line) if cache_read else None
-            if cache_creation:
-                self.context = int(cache_read.group(1)) + int(cache_creation.group(1))
-                print("context %s %d" % (self.n, self.context), flush=True)
-            if b"event.sh step-done" in line:
-                self.armed = True
+            self.budget, readings, exceeded = watch(self.budget, [line], int(_ctx_budget()))
+            for context in readings:
+                print("context %s %d" % (self.n, context), flush=True)
+            if exceeded:
+                os.kill(self.sup.pid, signal.SIGTERM)
+                self.stopped = True
 
 
 def _prs_json():
