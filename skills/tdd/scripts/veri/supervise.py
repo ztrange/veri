@@ -210,7 +210,7 @@ def still_alive_owner(ownerfile):
     fields = line.split(None, 1)
     owner_pid = fields[0] if fields else ""
     owner_name = fields[1].strip() if len(fields) > 1 else ""
-    if os.path.exists(f".tdd/{owner_name}.exit") or not re.fullmatch(r"-?[0-9]+", owner_pid):
+    if os.path.exists(f".tdd/{owner_name}.exit") or not re.fullmatch(r"0*[1-9][0-9]*", owner_pid):
         return None
     try:
         os.kill(int(owner_pid), 0)

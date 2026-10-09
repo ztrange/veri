@@ -1946,10 +1946,8 @@ def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_an
                                 "4242\n", [(4242, 0)], True),
         "alive-refused-role": (2, b"", [refusal.format("bogus-x", "develop-red", 4242)], "2\n", None,
                                "4242 develop-red\n", [(4242, 0)], True),
-        "alive-zero": (2, b"", [refusal.format("verify-red", "develop-red", 0)], "2\n", None,
-                       "0 develop-red\n", [(0, 0)], True),
-        "alive-negative": (2, b"", [refusal.format("verify-red", "develop-red", -7)], "2\n", None,
-                           "-7 develop-red\n", [(-7, 0)], True),
+        "alive-zero": (("launched", "env"), b"", [], None, None, f"{me} verify-red\n", [], True),
+        "alive-negative": (("launched", "env"), b"", [], None, None, f"{me} verify-red\n", [], True),
         "owner-exit": (("launched", "env"), b"", [], None, None, f"{me} verify-red\n", [], True),
         "empty-pid": (("launched", "env"), b"", [], None, None, f"{me} verify-red\n", [], True),
         "word-pid": (("launched", "env"), b"", [], None, None, f"{me} verify-red\n", [], True),
@@ -1959,6 +1957,34 @@ def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_an
         "none-conductor": (("launched", "env"), b"", [], None, None, None, [], True),
         "alive-verdict": (2, b"", [refusal.format("verdict-red", "develop-red", 4242)], "2\n", None,
                           "4242 develop-red\n", [(4242, 0)], True),
+    }
+
+
+def test_main_treats_a_leaf_owner_pid_below_1_as_stale_and_launches_1200(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    clean_env(monkeypatch)
+    me = os.getpid()
+    monkeypatch.setattr(os, "kill", lambda pid, sig: None)
+
+    def supervised(owner_pid):
+        work = tmp_path / owner_pid
+        tdd = work / ".tdd"
+        tdd.mkdir(parents=True)
+        (tdd / "leaf.owner").write_text(f"{owner_pid} develop-red\n")
+        monkeypatch.chdir(work)
+        fake_git_only(monkeypatch, work)
+        try:
+            code = supervise.main(["verify-red", "true"])
+        except Launched as launched:
+            code = ("launched", launched.args[0][0])
+        _, err = capsysbinary.readouterr()
+        exitfile = tdd / "verify-red.exit"
+        return (code, err, exitfile.exists(), (tdd / "leaf.owner").read_text())
+
+    assert {pid: supervised(pid) for pid in ("0", "-7")} == {
+        pid: (("launched", "env"), b"", False, f"{me} verify-red\n") for pid in ("0", "-7")
     }
 
 
