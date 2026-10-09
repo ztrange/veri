@@ -181,8 +181,9 @@ def reads_only_through_slicers(suite, f):
             names.append(assigned.group(1))
     if not names:
         return True
-    assignment = re.compile(r"^\s*(?:local\s+)?(?:%s)=" % "|".join(names))
-    reading = re.compile(r"\"(?:\$\{?\w+\}?/)*\$\{?(?:%s)\}?\"" % "|".join(names))
+    either = "|".join(names)
+    assignment = re.compile(r"^\s*(?:local\s+)?(?:%s)=" % either)
+    reading = re.compile(r"\"(?:\$\{?\w+\}?/)*\$\{?(?:%s)\}?\"" % either)
     sliced = sliced_lines(lines)
     return all(i in sliced
                for i, line in enumerate(lines)
