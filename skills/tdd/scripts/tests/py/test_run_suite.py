@@ -392,3 +392,33 @@ def test_main_hands_a_bash_suite_no_ambient_veri_or_claude_variable_but_veri_ven
         "GIT_CONFIG_KEY_0": "maintenance.auto",
         "GIT_CONFIG_VALUE_0": "false",
     }, "set-by-suite")
+
+
+def test_main_hands_a_pytest_suite_no_ambient_veri_or_claude_variable_but_veri_venv_and_still_finds_the_caller_venv_1258(tmp_path, capfd, monkeypatch, run_suite):
+    for name in [k for k in os.environ if k.startswith(("VERI_", "CLAUDE_"))]:
+        monkeypatch.delenv(name)
+    suite = tmp_path / "tests" / "py" / "test_fake.py"
+    suite.parent.mkdir(parents=True)
+    suite.write_text("def test_nothing():\n    pass\n")
+    venv = tmp_path / "venv"
+    (venv / "bin").mkdir(parents=True)
+    venv_py = venv / "bin" / "python3"
+    seen_env = tmp_path / "suite.env"
+    venv_py.write_text(
+        "#!/bin/sh\n"
+        "[ \"$3\" = --version ] && exit 0\n"
+        "printf '%%s\\n' \"$0\" > \"%s\"\n"
+        "env >> \"%s\"\n" % (seen_env, seen_env)
+    )
+    venv_py.chmod(0o755)
+    monkeypatch.setenv("VERI_MODEL", "ambient-model")
+    monkeypatch.setenv("VERI_ISSUE", "954")
+    monkeypatch.setenv("VERI_GH_DRIVER", "graphql")
+    monkeypatch.setenv("CLAUDE_BIN", "/ambient/claude")
+    monkeypatch.setenv("VERI_VENV", str(venv))
+    code = run_suite.main([str(suite)])
+    capfd.readouterr()
+    ran_by, *lines = seen_env.read_text().splitlines()
+    env = dict(line.split("=", 1) for line in lines if "=" in line)
+    leaked = sorted(k for k in env if k.startswith(("VERI_", "CLAUDE_")) and k != "VERI_VENV")
+    assert (code, ran_by, leaked, env.get("VERI_VENV")) == (0, str(venv_py), [], str(venv))
