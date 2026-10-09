@@ -380,41 +380,50 @@ fi
 make_repo real_skill_sections
 mkdir -p "$s/tests/unit"
 cat "$HERE/../../SKILL.md" > "$repo/skills/tdd/SKILL.md"
-real_naming=()
 while IFS= read -r suite; do
-  real_naming+=("${suite#"$HERE/../../../../"}")
-  cat "$suite" > "$repo/${real_naming[${#real_naming[@]}-1]}"
+  cat "$suite" > "$repo/${suite#"$HERE/../../../../"}"
 done < <(grep -lE '"skills/tdd/SKILL\.md"|/skills/tdd/SKILL\.md"' "$HERE/../../../../skills/tdd/scripts/tests/"*.test.sh "$HERE/../../../../skills/tdd/scripts/tests/unit/"*.test.sh)
 commit_base
-heading_forms() {
-  local prefix="${1%% *}" title words=() w k form q
-  title="${1#* }"
-  read -r -a words <<< "$title"
-  form=""
-  for (( k = 0; k < ${#words[@]}; k++ )); do
-    form+="${form:+ }${words[k]}"
-    for q in "'" '"'; do printf '%s\n' "$q$form$q" "$q$prefix $form$q"; done
-  done
-}
-readers_of() { (cd "$repo" && heading_forms "$1" > "$work/forms" && grep -lF -f "$work/forms" "${real_naming[@]}"); }
-slicers="$(while IFS= read -r line; do readers_of "$line"; done < <(grep -E '^###? ' "$repo/skills/tdd/SKILL.md") | LC_ALL=C sort -u)"
 real_wrong=""
-for target in '## Stopping' '## Bailing' '## Resume' '### 4. Draft PR'; do
-  at="$(grep -nxF "$target" "$repo/skills/tdd/SKILL.md" | cut -d: -f1)"
-  enclosing="$(head -n "$at" "$repo/skills/tdd/SKILL.md" | grep -E '^## ' | tail -n 1)"
-  expected="$( { readers_of "$target"; readers_of "$enclosing"
-    printf '%s\n' "${real_naming[@]}" | grep -vxF -f <(printf '%s\n' "$slicers"); } | LC_ALL=C sort -u)"
-  cat "$repo/skills/tdd/SKILL.md" > "$work/SKILL.md.orig"
-  awk -v at="$at" '{ print } NR == at + 1 { print "an edited line" }' "$work/SKILL.md.orig" > "$repo/skills/tdd/SKILL.md"
+real_edit() {
+  local label="$1" want="$2" unwanted="$3" out code suite
   commit_head
   out="$(run_affected 2>/dev/null)"; code=$?
-  [[ "$code" == 0 && "$out" == "$expected" ]] ||
-    real_wrong+=" $target(code=$code, selected $(grep -c . <<< "$out") of ${#real_naming[@]}, want $(grep -c . <<< "$expected")): $(diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | grep '^[<>]' | tr '\n' ' ')"
+  [[ "$code" == 0 ]] || real_wrong+=" $label(code=$code)"
+  for suite in $want; do
+    grep -qxF "skills/tdd/scripts/tests/$suite.test.sh" <<< "$out" || real_wrong+=" $label: $suite not selected;"
+  done
+  for suite in $unwanted; do
+    grep -qxF "skills/tdd/scripts/tests/$suite.test.sh" <<< "$out" && real_wrong+=" $label: $suite selected;"
+  done
   mv "$work/SKILL.md.orig" "$repo/skills/tdd/SKILL.md"
   commit_base
-done
+}
+edit_below() {
+  local at
+  at="$(grep -nxF "$1" "$repo/skills/tdd/SKILL.md" | cut -d: -f1)"
+  cat "$repo/skills/tdd/SKILL.md" > "$work/SKILL.md.orig"
+  awk -v at="$at" '{ print } NR == at + 1 { print "an edited line" }' "$work/SKILL.md.orig" > "$repo/skills/tdd/SKILL.md"
+}
+cat "$repo/skills/tdd/SKILL.md" > "$work/SKILL.md.orig"
+sed '/^- `\$S\/stop-requested\.sh/s/stop-requested\.sh/stop-asked.sh/' "$work/SKILL.md.orig" > "$repo/skills/tdd/SKILL.md"
+real_edit "stop-requested.sh renamed in ## The scripts" skill-stopping ""
+edit_below '### 2c. Verify the plan (blind)'
+real_edit "### 2c. Verify the plan (blind)" skill-plan-verify ""
+edit_below '### 3. The cycle loop'
+real_edit "### 3. The cycle loop" "skill-draft-pr skill-leaf-launch skill-revise-exhausted" ""
+edit_below '## Revising on a REJECT'
+real_edit "## Revising on a REJECT" skill-criterion-finished ""
+edit_below '## Stopping'
+real_edit "## Stopping" skill-stopping skill-test-command
+edit_below '## Bailing'
+real_edit "## Bailing" skill-metrics skill-test-command
+edit_below '## Resume'
+real_edit "## Resume" skill-criterion-finished skill-test-command
+edit_below '### 4. Draft PR'
+real_edit "### 4. Draft PR" "skill-criterion-finished skill-metrics" skill-test-command
 if [[ -z "$real_wrong" ]]; then ok; else
-  no "on the real SKILL.md and suites, a one-section edit selects the suites quoting that heading (bare, prefixed or by a quoted prefix of its title, plus the enclosing ## for a ###) and the ones quoting no heading:$real_wrong"
+  no "on the real SKILL.md and suites, a one-section edit selects the suites reading that section through a slicing helper and every suite reading SKILL.md any other way, and not a suite slicing only other sections:$real_wrong"
 fi
 
 make_repo rule5

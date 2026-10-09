@@ -147,6 +147,45 @@ def headings(f):
     return [line for line in text.split("\n") if heading(line) is not None]
 
 
+SLICERS = ("section", "section_records")
+FUNCTION = re.compile(r"^(\w+)\(\)\s*\{")
+BOUNDED = re.compile(r"NR >= s && NR <= e|NR < s \|\| NR > e|sed -n \"\$\{\w+\}(,\$\{\w+\})?p\"")
+
+
+def sliced_lines(lines):
+    found, body, name = set(), [], None
+    for i, line in enumerate(lines):
+        start = FUNCTION.match(line) if name is None else None
+        if start:
+            name, body = start.group(1), []
+        if name is None:
+            continue
+        body.append(i)
+        if line.startswith("}") or (start and line.rstrip().endswith("}")):
+            if name in SLICERS or any(BOUNDED.search(lines[k]) for k in body):
+                found.update(body)
+            name = None
+    return found
+
+
+def reads_only_through_slicers(suite, f):
+    lines = (read(suite) or b"").decode(errors="replace").split("\n")
+    names = []
+    for line in lines:
+        alternatives = "|".join([re.escape(f)] + [r"\$\{?%s\}?" % n for n in names])
+        assigned = re.match(r"^\s*(?:local\s+)?(\w+)=\"?.*?(?:%s)\"?$" % alternatives, line)
+        if assigned:
+            names.append(assigned.group(1))
+    if not names:
+        return True
+    assignment = re.compile(r"^\s*(?:local\s+)?(?:%s)=" % "|".join(names))
+    reading = re.compile(r"\"(?:\$\{?\w+\}?/)*\$\{?(?:%s)\}?\"" % "|".join(names))
+    sliced = sliced_lines(lines)
+    return all(i in sliced
+               for i, line in enumerate(lines)
+               if reading.search(line) and not assignment.match(line))
+
+
 def suite_of(f, revisions=None):
     def match(*patterns):
         return any(fnmatch.fnmatchcase(f, p) for p in patterns)
@@ -156,7 +195,7 @@ def suite_of(f, revisions=None):
         section = f == "skills/tdd/SKILL.md" and revisions and edited_section(f, revisions)
         if section:
             readers = suites_naming(*forms(*section))
-            slicers = suites_naming(*forms(*headings(f)))
+            slicers = [s for s in suites_naming(*forms(*headings(f))) if reads_only_through_slicers(s, f)]
             return [s for s in naming if s in readers or s not in slicers]
         return naming
     if match(SCRIPTS + "/tests/*.test.sh", SCRIPTS + "/tests/py/test_*.py"):
