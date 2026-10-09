@@ -142,9 +142,12 @@ def forms(*lines):
     return found
 
 
+def lines_of(path):
+    return (read(path) or b"").decode(errors="replace").split("\n")
+
+
 def headings(f):
-    text = (read(f) or b"").decode(errors="replace")
-    return [line for line in text.split("\n") if heading(line) is not None]
+    return [line for line in lines_of(f) if heading(line) is not None]
 
 
 SLICERS = ("section", "section_records")
@@ -169,7 +172,7 @@ def sliced_lines(lines):
 
 
 def reads_only_through_slicers(suite, f):
-    lines = (read(suite) or b"").decode(errors="replace").split("\n")
+    lines = lines_of(suite)
     names = []
     for line in lines:
         alternatives = "|".join([re.escape(f)] + [r"\$\{?%s\}?" % n for n in names])
