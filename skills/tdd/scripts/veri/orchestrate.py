@@ -25,7 +25,7 @@ def main(argv):
     raw_stop_timeout = os.environ.get("VERI_CONDUCTOR_STOP_TIMEOUT") or "10"
     try:
         stop_timeout = float(raw_stop_timeout)
-        if not math.isfinite(stop_timeout):
+        if not math.isfinite(stop_timeout) or stop_timeout <= 0:
             raise ValueError
     except ValueError:
         sys.stderr.write("orchestrate.sh: VERI_CONDUCTOR_STOP_TIMEOUT must be a positive number of seconds: %s\n"

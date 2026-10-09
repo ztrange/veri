@@ -300,6 +300,29 @@ else
   echo "    refused:${refused:- none} (expected nan inf)"
 fi
 
+name="#1250 refuses a zero or negative VERI_CONDUCTOR_STOP_TIMEOUT (0, -1) with exit 2, no launch, and one stderr line naming the variable and the value"
+refused=""
+for value in 0 -1; do
+  seed "nonpositive-$value" 805
+  VERI_CONDUCTOR_STOP_TIMEOUT="$value" orchestrate "$scripts"
+  launched="$(wc -l < "$LAUNCHES" | tr -d ' ')"
+  lines="$(wc -l < "$work/err" | tr -d ' ')"
+  if [[ "$rc" -eq 2 && "$launched" -eq 0 && "$lines" -eq 1 ]] \
+    && grep -F VERI_CONDUCTOR_STOP_TIMEOUT "$work/err" > /dev/null \
+    && grep -F -- "$value" "$work/err" > /dev/null; then
+    refused="$refused $value"
+  else
+    echo "    $value: exit $rc (expected 2), launches $launched (expected 0), stderr lines $lines (expected 1)"
+    sed 's/^/    stderr: /' "$work/err"
+  fi
+done
+if [[ "$refused" == " 0 -1" ]]; then
+  ok
+else
+  no "$name"
+  echo "    refused:${refused:- none} (expected 0 -1)"
+fi
+
 name="with VERI_CONDUCTOR_CTX_BUDGET unset, a conductor crossing 120000 is stopped after its next step-done"
 defaultbudget="$work/defaultbudget"
 conductor_stub "$defaultbudget" <<STUB
