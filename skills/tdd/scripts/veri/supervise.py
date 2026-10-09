@@ -33,6 +33,12 @@ def refuse(*lines):
     return 2
 
 
+def not_a_number(var, value):
+    if not re.fullmatch(r"[0-9]+", value):
+        return refuse(f"supervise: {var} is not a number: '{value}'")
+    return None
+
+
 def write_line(path, value):
     with open(path, "w") as f:
         f.write(f"{value}\n")
@@ -304,8 +310,8 @@ def main(argv):
     if len(argv) < 2:
         return refuse("supervise: missing <cmd>", USAGE)
     timeout = os.environ.get("VERI_TIMEOUT", "")
-    if timeout and not re.fullmatch(r"[0-9]+", timeout):
-        return refuse(f"supervise: VERI_TIMEOUT is not a number: '{timeout}'")
+    if timeout and (refused := not_a_number("VERI_TIMEOUT", timeout)):
+        return refused
     issue = os.environ.get("VERI_ISSUE", "")
     if not timeout and issue:
         settled = f".tdd/issue-{issue}-timeout"
@@ -323,8 +329,8 @@ def main(argv):
         return refuse(f"supervise: VERI_KILL_POLL must be a non-negative number: {kill_poll}")
     kill_poll = float(kill_poll)
     heartbeat = os.environ.get("VERI_HEARTBEAT") or "180"
-    if not re.fullmatch(r"[0-9]+", heartbeat):
-        return refuse(f"supervise: VERI_HEARTBEAT is not a number: '{heartbeat}'")
+    if refused := not_a_number("VERI_HEARTBEAT", heartbeat):
+        return refused
     poll = os.environ.get("VERI_POLL") or "1"
     name = argv[0]
     tolerated(name, "create", ".tdd", lambda: os.makedirs(".tdd", exist_ok=True))
