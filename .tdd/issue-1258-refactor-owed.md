@@ -1,2 +1,5 @@
 ### A bash suite run by run-suite.sh sees no VERI_* or CLAUDE_* variable from run-suite.sh's caller except VERI_VENV, while it still sees the caller's PATH and offline settings and the GIT_CONFIG_* entries run-suite.sh adds, and a value the suite sets on a command it starts reaches that command ⟦criterion 1⟧
 - test-only | extract the repeated "delenv every ambient VERI_*/CLAUDE_* name" loop in test_run_suite.py (lines 183–184 and 364–365) into one helper
+### A pytest suite run by run-suite.sh sees no VERI_* or CLAUDE_* variable from run-suite.sh's caller except VERI_VENV, and run-suite.sh's own venv lookup still honours the caller's VERI_VENV ⟦criterion 1⟧
+- test-only | extract the four ambient `monkeypatch.setenv` lines (`VERI_MODEL`, `VERI_ISSUE`, `VERI_GH_DRIVER`, `CLAUDE_BIN`) and the `leaked = sorted(...)` expression, both repeated in the two `_1258` cases of `test_run_suite.py`, into one helper
+- test-only | extract the "clear every ambient `VERI_*`/`CLAUDE_*` variable" loop, repeated in `test_run_suite.py` in `test_main_starts_the_suite_alone_…` and both `_1258` cases, into one helper
