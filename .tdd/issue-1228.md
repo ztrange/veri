@@ -1,0 +1,5 @@
+# Plan for #1228 — unit/scratch-copy-libs.test.sh takes 16–20 s per case in the fast tier: it re-reads every suite line by line in each case
+
+- [ ] scratch-copy-libs.test.sh no longer walks every suite under tests/ and tests/unit/ line by line in a bash `while read` loop with regex matches once per case (the walks at :56 on the real tree, :81, :105 and :124): the suite tree is read in one pass shared by the cases, or each case selects only its candidate lines with a single external text tool before any per-line bash work, and the suite stays in tests/unit/ using no git, python3, server, sleep or nested suite ⟦diff-checked⟧ ⟦criterion 1⟧
+- [ ] scratch-copy-libs.test.sh reports the same verdicts as before the branch: every case's name and expected hits are unchanged, the planted offenders (a.test.sh:3, unit/b.test.sh:2 and the #749 plants d–i) are still named, and the real tree's four audits stay clean ⟦diff-checked⟧ ⟦criterion 1⟧
+- [ ] the before/after `make profile` figures for scratch-copy-libs.test.sh are in the PR body, not in a test ⟦human-owed⟧ ⟦criterion 1⟧
