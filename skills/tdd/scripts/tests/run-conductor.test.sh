@@ -2115,4 +2115,49 @@ done
 
 report "$name"
 
+name="run-conductor.sh sent SIGINT alone while its claude runs waits for claude, removes the snapshot, prints no traceback and exits with claude's status (#1219)"
+problems=()
+
+intstub="$(scratch_dir)"
+intwork="$(scratch_dir)"
+claude_stub "$intstub" "$(cat <<'STUB'
+cat > "$PROMPT_OUT"
+echo started > "$STARTED"
+read -r _ < "$RELEASE"
+exit 5
+STUB
+)"
+mkdir -p "$intwork/caller"
+mkfifo "$intwork/started" "$intwork/release"
+exec {int_started}<>"$intwork/started" {int_release}<>"$intwork/release"
+on_exit bg_kill "$intwork/record"
+# hazard: a non-interactive shell starts `&` children with SIGINT ignored, and an ignored-on-entry signal cannot be reset from sh.
+bg_start "$intwork/record" env CLAUDE_BIN="$intstub/claude" PROMPT_OUT="$intwork/prompt" \
+  STARTED="$intwork/started" RELEASE="$intwork/release" \
+  python3 -c 'import os, signal, sys; signal.signal(signal.SIGINT, signal.SIG_DFL); os.execvp(sys.argv[1], sys.argv[1:])' \
+  sh -c 'cd "$1" && exec "$2" "$3"' sh "$intwork/caller" "$CONDUCTOR" "$issue" \
+  >/dev/null 2>"$intwork/err"
+read -r int_pid _ < "$intwork/record"
+
+if ! read -t 60 -r _ <&"$int_started"; then
+  problems+=("claude never started: $(cat "$intwork/err")")
+else
+  int_snap="$(head -n 1 < <(sed -n 's/^Base directory for this skill: //p' "$intwork/prompt"))"
+  kill -INT "$int_pid"
+fi
+echo go >&"$int_release"
+wait "$int_pid"
+int_status=$?
+bg_kill "$intwork/record"
+exec {int_started}>&- {int_release}>&-
+
+[[ "$int_status" -eq 5 ]] ||
+  problems+=("the script exited $int_status, not claude's 5: $(cat "$intwork/err")")
+! grep -F Traceback "$intwork/err" > /dev/null ||
+  problems+=("stderr carries a traceback: $(cat "$intwork/err")")
+[[ -n "${int_snap:-}" && ! -e "$int_snap" ]] ||
+  problems+=("the snapshot '${int_snap:-}' was not named or was left behind after the script exited")
+
+report "$name"
+
 finish

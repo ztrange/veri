@@ -123,6 +123,7 @@ def launch(base, issue, commit, **exports):
     terminated = []
     previous = signal.signal(signal.SIGPIPE, lambda *_: unread.append(True))
     previous_term = signal.signal(signal.SIGTERM, lambda *_: terminated.append(True))
+    previous_int = signal.signal(signal.SIGINT, lambda *_: None)
     try:
         code = subprocess.run([binary, "-p", "--output-format", "stream-json",
                                "--verbose", "--permission-mode", "bypassPermissions"],
@@ -133,6 +134,7 @@ def launch(base, issue, commit, **exports):
     finally:
         signal.signal(signal.SIGPIPE, previous)
         signal.signal(signal.SIGTERM, previous_term)
+        signal.signal(signal.SIGINT, previous_int)
     if terminated:
         return 128 + signal.SIGTERM
     if not past_preflight(issue):
