@@ -11,6 +11,7 @@ def _shim_name(main):
 def run(main, argv):
     try:
         code = main(argv)
+        sys.stdout.flush()
     except Exception as exc:
         reason = " ".join(str(exc).split())
         sys.stderr.write(f"{_shim_name(main)}: {type(exc).__name__}: {reason}\n")
