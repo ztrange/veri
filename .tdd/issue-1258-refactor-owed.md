@@ -6,3 +6,6 @@
 ### solvable-issues.test.sh itself fails, named, when a live conductor lock under the surrounding repository's .tdd/wt/<n>/.tdd/conductor.pid — for unrelated numbers, and for every number its own fixtures name — changes solvable-issues.sh's answer, without running a copy of that suite ⟦criterion 2⟧
 - test-only | the lock case guards `fixture_numbers` with `${arr[@]+…}` in the `surrounding_repo` call but not in the issues.json loop; use one form for both
 - out-of-scope | `surrounding_repo` and the older `claim()` both plant a `conductor.pid` under `.tdd/wt/<n>/.tdd`; `claim()` also adds a git worktree, and it is code this cycle did not write
+### A suite make test runs, other than hermetic-suites.test.sh, fails naming <suite>:<line> when a suite under make test's glob invokes push-branch.sh without VERI_PUSH_BACKOFF in its environment, and its header says it dies under C7 ⟦criterion 2⟧
+- test-only | push-backoff-guard.test.sh redefines probe_guard_is_there, which lib/guard-plant.sh also defines; sharing it would need the library's $SKILL-specific messages parameterised
+- test-only | push-backoff-guard.test.sh's flat() is one of 33 per-suite copies; hoisting it into lib/harness.sh would remove them all
