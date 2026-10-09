@@ -2,3 +2,5 @@
 - test-only | extract the suite-wide `monkeypatch.delenv("VERI_STEP_GROWTH", raising=False)` + `ledger.write_bytes(LEDGER)` setup in `test_add_ledger_step.py` into a fixture
 ### add-ledger-step.sh given `--criterion <k>` for a k no ledger step carries exits 2 with one stderr line naming k and leaves the ledger byte-identical ⟦criterion 3⟧
 - test-only | `test_add_ledger_step.py` — the new refusal test repeats the `delenv("VERI_STEP_GROWTH")` + `ledger = tmp_path / "issue-42.md"` + `write_bytes(LEDGER)` setup the earlier `--criterion` tests in this file also use; it could become a fixture
+### add-ledger-step.sh refusing a call with too few arguments prints a usage line that names the optional leading `--criterion <k>` ⟦added⟧ ⟦criterion 3⟧
+- test-only | the new pytest case `test_main_refusing_too_few_arguments_prints_a_usage_line_naming_the_optional_leading_criterion_1224` (skills/tdd/scripts/tests/py/test_add_ledger_step.py) checks a prefix of the usage text by hand when it could compare `err` against the module's existing `USAGE` constant, so the usage text would be spelled in one place
