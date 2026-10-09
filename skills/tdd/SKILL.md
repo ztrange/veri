@@ -957,11 +957,13 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   git clean -f -- <test-path>   # a test file Red created is untracked, so the reset leaves it
   step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$step" added=<count>
   step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-split at=over-budget anchor="$step" added=<count>
-  $S/add-ledger-step.sh --criterion <k> .tdd/issue-<n>.md instead-of "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<criterion>' …   # every line of the answer in ONE call
+  $S/add-ledger-step.sh .tdd/issue-<n>.md instead-of "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<criterion>' …   # every line of the answer in ONE call
   git add -A && git commit -m "plan: replace <STEP summary> with <count> smaller steps (#<n>)"
   ```
   The `at=over-budget` is what tells this split apart from the other two causes that grow a
   plan: a Green leaf volunteering one (no `at=`) and a spent revise budget (`at=exhausted`).
+  The call passes no `--criterion`: a split keeps its anchor's criterion, because it is the
+  same behaviour broken smaller.
   Then loop back to `next-unchecked.sh`, which now hands over the first of them.
   **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`**, as it already is on the
   other two paths that grow a plan — see *Bailing*. The split shares `VERI_STEP_GROWTH` with
@@ -1126,11 +1128,13 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    git clean -f -- <test-path>   # a test file Red created is untracked, so the reset leaves it; one git already tracked the reset restored
    step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$step" added=<count>
    step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-split anchor="$step" added=<count>
-   $S/add-ledger-step.sh --criterion <k> .tdd/issue-<n>.md before "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<SPLIT: value>' …   # every SPLIT: value in ONE call
+   $S/add-ledger-step.sh .tdd/issue-<n>.md before "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<SPLIT: value>' …   # every SPLIT: value in ONE call
    git add -A && git commit -m "plan: split <STEP summary> into <count> smaller steps (#<n>)"
    ```
    The two marks go first because they read the step's title out of the ledger, and the
-   insertion puts the first split step ahead of it there (#437). One call and not one per criterion, under the script's own one-call rule above. A split is
+   insertion puts the first split step ahead of it there (#437). One call and not one per criterion, under the script's own one-call rule above. It passes no
+   `--criterion`: a split keeps its anchor's criterion, because it is the same behaviour broken
+   smaller. A split is
    the one thing that changes a step's plan without a green commit of its own, so `step-split`
    is what tells the run log the step was split rather than silently restarted — beside the
    `step-added` mark the insertion owes as any other does, which says the plan grew but not
@@ -1356,7 +1360,7 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      loop has already closed and no triangulation reopens it:
      ```
      step="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$step" added=<count>
-     $S/add-ledger-step.sh --criterion <k> .tdd/issue-<n>.md after "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" '<leaf or verdict uncovered-spec behaviour>' …   # every one in ONE call
+     $S/add-ledger-step.sh --criterion <k> .tdd/issue-<n>.md after "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" '<leaf or verdict uncovered-spec behaviour>' …   # one call per criterion
      $S/clear-refactor-pending.sh .tdd/issue-<n>.md "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)"
      git add -A && git commit -m "chore: refactor verified for <STEP summary> (#<n>)"
      $S/push-branch.sh
@@ -1364,9 +1368,14 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      `git add -A` is what carries `.tdd/issue-<n>-refactor-owed.md` into that same commit:
      what `append` wrote is untracked until then, and a file left beside the worktree is
      lost with it.
-     Every uncovered-spec behaviour, the leaf's and the verifier's, goes in **one**
-     call, under the script's own one-call rule, anchored `after "<STEP>"` so the
-     triangulating step lands next to the code it triangulates. Neither reporting one — no `uncovered-spec` flag
+     `<k>` is the number of the issue's numbered acceptance criterion the behaviour serves,
+     read from the issue's `## Acceptance criteria`, not inherited from the anchor. The
+     uncovered-spec behaviours, the leaf's and the verifier's, serving one criterion go in
+     **one** call, under the script's own one-call rule — one call per criterion when they
+     serve different ones — anchored `after "<STEP>"` so the triangulating step lands next to
+     the code it triangulates. **`add-ledger-step.sh` exit 2** here means no ledger step
+     carries criterion k yet: bail, naming that cause — the behaviour serves a criterion the
+     plan never covered. Neither reporting one — no `uncovered-spec` flag
      from the leaf and none in the verdict — is no call and no mark at all.
      **exit 1** is that one call meeting the plan-growth budget: the values are filed as
      owed steps rather than planned — the script's own entry above says how — and
@@ -1973,11 +1982,13 @@ answer. Each is a branch of its own:
   git clean -f -- <test-path>   # a test file Red created is untracked, so the reset leaves it
   step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$step" added=<count>
   step="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-split at=exhausted anchor="$step" added=<count>
-  $S/add-ledger-step.sh --criterion <k> .tdd/issue-<n>.md instead-of "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<criterion>' …   # every line of the answer in ONE call
+  $S/add-ledger-step.sh .tdd/issue-<n>.md instead-of "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<criterion>' …   # every line of the answer in ONE call
   git add -A && git commit -m "plan: replace <STEP summary> with <count> smaller steps (#<n>)"
   ```
   The marks go first for the reason the Green split's do: they read the title out of the
-  ledger, and `instead-of` takes the step out of it (#437). The `at=exhausted` is what tells this split apart from a Green leaf's volunteered
+  ledger, and `instead-of` takes the step out of it (#437). Like every split, the call passes
+  no `--criterion`: a split keeps its anchor's criterion, because it is the same behaviour
+  broken smaller. The `at=exhausted` is what tells this split apart from a Green leaf's volunteered
   one: both grow the plan through `add-ledger-step.sh` and both write `step-added` and
   `step-split`, so without it a log reader cannot say whether the plan grew because a leaf
   asked or because the budget ran out — and those are different facts about the run.
