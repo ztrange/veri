@@ -12,6 +12,9 @@
 #      failure.
 #   3. Every add-ledger-step.sh call that may add a step serving a criterion other than its
 #      anchor's passes --criterion, and the script's entry under The scripts documents it.
+#   4. The ⟦suite-repair⟧ and ⟦ci-repair⟧ add-ledger-step.sh calls, which keep the anchor's
+#      criterion on purpose, say beside them that they pass no --criterion because the repair
+#      step serves its anchor's criterion.
 #
 # Run: scripts/tests/skill-green-split.test.sh
 set -uo pipefail
@@ -174,6 +177,31 @@ else
   grep -F -- '--criterion' <<<"$entry" > /dev/null ||
     problems+=("$skill_md's add-ledger-step.sh entry under The scripts never documents --criterion")
 fi
+
+report "$name"
+
+repair_call_neighbourhood() {
+  awk -v tag="$1" '
+    { text[NR] = $0 }
+    index($0, "$S/add-ledger-step.sh") && index($0, tag) { at = NR }
+    END { if (at) for (i = at - 20; i <= at + 20; i++) if (i in text) print text[i] }
+  ' "$skill_path" | plain --join
+}
+
+name="#1281: the ⟦suite-repair⟧ and ⟦ci-repair⟧ add-ledger-step.sh calls say they pass no --criterion because the repair step serves its anchor's criterion"
+problems=()
+
+for tag in '⟦suite-repair⟧' '⟦ci-repair⟧'; do
+  around="$(repair_call_neighbourhood "$tag")"
+  if [[ -z "${around// /}" ]]; then
+    problems+=("$skill_md has no add-ledger-step.sh call adding a $tag step")
+    continue
+  fi
+  grep -F -- '--criterion' <<<"$around" > /dev/null ||
+    problems+=("$skill_md never says beside its $tag add-ledger-step.sh call that it passes no --criterion")
+  grep -F -- "anchor's criterion" <<<"$around" > /dev/null ||
+    problems+=("$skill_md never says beside its $tag add-ledger-step.sh call that the repair step serves its anchor's criterion")
+done
 
 report "$name"
 

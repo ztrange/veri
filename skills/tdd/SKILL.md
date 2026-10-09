@@ -1481,6 +1481,7 @@ $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < 
 git add .tdd/issue-<n>.md
 git commit -m "plan: repair the red full suite (#<n>)"
 ```
+That call passes no `--criterion` on purpose: the repair step serves its anchor's criterion.
 
 A second red result on the full run after a repair step does **bail** — the repair step is
 one more cycle, not a loop — and the bail names every suite still red, not only the first.
@@ -1712,6 +1713,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    git add .tdd/issue-<n>.md
    git commit -m "plan: repair the red CI check (#<n>)"
    ```
+   That call passes no `--criterion` on purpose: the repair step serves its anchor's criterion.
    A `ci-timeout` or `ci-red` bail ends the step there and goes to *Bailing*: neither the
    `done` mark nor the `metrics:` commit below follows it. Otherwise:
    ```
