@@ -121,9 +121,10 @@ def launch(base, issue, commit, **exports):
     binary = os.environ.get("CLAUDE_BIN") or "claude"
     unread = []
     terminated = []
-    previous = signal.signal(signal.SIGPIPE, lambda *_: unread.append(True))
-    previous_term = signal.signal(signal.SIGTERM, lambda *_: terminated.append(True))
-    previous_int = signal.signal(signal.SIGINT, lambda *_: None)
+    previous = {sig: signal.signal(sig, handler) for sig, handler in (
+        (signal.SIGPIPE, lambda *_: unread.append(True)),
+        (signal.SIGTERM, lambda *_: terminated.append(True)),
+        (signal.SIGINT, lambda *_: None))}
     try:
         code = subprocess.run([binary, "-p", "--output-format", "stream-json",
                                "--verbose", "--permission-mode", "bypassPermissions"],
@@ -132,9 +133,8 @@ def launch(base, issue, commit, **exports):
         sys.stderr.write("run-conductor: %s: command not found\n" % binary)
         code = 127
     finally:
-        signal.signal(signal.SIGPIPE, previous)
-        signal.signal(signal.SIGTERM, previous_term)
-        signal.signal(signal.SIGINT, previous_int)
+        for sig, handler in previous.items():
+            signal.signal(sig, handler)
     if terminated:
         return 128 + signal.SIGTERM
     if not past_preflight(issue):
