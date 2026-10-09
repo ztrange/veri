@@ -48,10 +48,14 @@ orchestrate() {
   rc=$?
 }
 
-conductor_stub() {
+scratch_skill() {
   mkdir -p "$1"
   cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$1/"
   cp -R "$scripts/lib" "$scripts/veri" "$1/"
+}
+
+conductor_stub() {
+  scratch_skill "$1"
   {
     printf '#!/bin/sh\n"%s/run-conductor.sh" "$1"\n' "$scripts"
     cat <<PRELUDE
@@ -328,9 +332,7 @@ expect_exit0_output
 
 name="launches run-conductor.sh <issue> as the leader of its own session, stdin /dev/null, stderr orchestrate's, SIGINT and SIGQUIT ignored, and SIGTERMs that pid at the stop"
 launchstate="$work/launchstate"
-mkdir -p "$launchstate"
-cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$launchstate/"
-cp -R "$scripts/lib" "$scripts/veri" "$launchstate/"
+scratch_skill "$launchstate"
 cat > "$launchstate/run-conductor.sh" <<'STUB'
 #!/usr/bin/env bash
 echo $$ >> "$MARKS.pid"
@@ -362,9 +364,7 @@ expect_exit0_output
 
 name="#1126 a conductor's writer to a closed pipe dies of SIGPIPE, status 141, not of EPIPE"
 sigpipe="$work/sigpipe"
-mkdir -p "$sigpipe"
-cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$sigpipe/"
-cp -R "$scripts/lib" "$scripts/veri" "$sigpipe/"
+scratch_skill "$sigpipe"
 cat > "$sigpipe/run-conductor.sh" <<'STUB'
 #!/usr/bin/env bash
 yes | dd bs=1 count=1 of=/dev/null 2> /dev/null
@@ -382,9 +382,7 @@ expect_exit0_output
 
 name="#1126 a conductor's write past its file-size limit dies of SIGXFSZ, status 153, not of EFBIG"
 sigxfsz="$work/sigxfsz"
-mkdir -p "$sigxfsz"
-cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$sigxfsz/"
-cp -R "$scripts/lib" "$scripts/veri" "$sigxfsz/"
+scratch_skill "$sigxfsz"
 cat > "$sigxfsz/run-conductor.sh" <<'STUB'
 #!/usr/bin/env bash
 bash -c 'ulimit -f 0; echo x > "$1"' _ "$MARKS.big" 2> /dev/null
@@ -402,9 +400,7 @@ expect_exit0_output
 
 name="#1126 with SIGPIPE and SIGXFSZ at their defaults, a conductor still leads a new session whose pid orchestrate SIGTERMs, stdin /dev/null, stderr orchestrate's, SIGINT and SIGQUIT ignored"
 stillsession="$work/stillsession"
-mkdir -p "$stillsession"
-cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$stillsession/"
-cp -R "$scripts/lib" "$scripts/veri" "$stillsession/"
+scratch_skill "$stillsession"
 cat > "$stillsession/run-conductor.sh" <<'STUB'
 #!/usr/bin/env bash
 echo $$ >> "$MARKS.pid"
@@ -439,9 +435,7 @@ expect_exit0_output
 
 name="#1126 a conductor orchestrate.sh stops over VERI_CONDUCTOR_CTX_BUDGET is stopped by SIGTERM to its process group: a writer in it on the conductor's stdout ends 143, never 141 of SIGPIPE"
 termgroup="$work/termgroup"
-mkdir -p "$termgroup"
-cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$termgroup/"
-cp -R "$scripts/lib" "$scripts/veri" "$termgroup/"
+scratch_skill "$termgroup"
 cat > "$termgroup/run-conductor.sh" <<'STUB'
 #!/usr/bin/env bash
 echo $$ >> "$MARKS.pid"
@@ -467,9 +461,7 @@ expect_exit0_output
 
 name="#1246 a writer in a conductor's group that writes after orchestrate.sh's SIGTERM to the group, once orchestrate.sh has had every chance to drop its read end, ends 143, never 141 of SIGPIPE, and orchestrate.sh exits 0 with the conductor never waited on"
 lateterm="$work/lateterm"
-mkdir -p "$lateterm"
-cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$lateterm/"
-cp -R "$scripts/lib" "$scripts/veri" "$lateterm/"
+scratch_skill "$lateterm"
 cat > "$lateterm/run-conductor.sh" <<'STUB'
 #!/usr/bin/env bash
 echo $$ >> "$MARKS.pid"
@@ -509,9 +501,7 @@ expect_exit0_output
 
 name="#1246 a conductor group still holding its stdout open when VERI_CONDUCTOR_STOP_TIMEOUT runs out after orchestrate.sh's SIGTERM does not hang orchestrate.sh: it asks solvable-issues.sh again while the group still holds it, and exits 0"
 heldopen="$work/heldopen"
-mkdir -p "$heldopen"
-cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$heldopen/"
-cp -R "$scripts/lib" "$scripts/veri" "$heldopen/"
+scratch_skill "$heldopen"
 cat > "$heldopen/run-conductor.sh" <<'STUB'
 #!/usr/bin/env bash
 echo $$ >> "$MARKS.pid"
