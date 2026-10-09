@@ -263,7 +263,7 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
             if m != last_m:
                 last_m, seen_at = m, t
             silence = t - seen_at
-            window = limit(heartbeat)
+            window = int(heartbeat, 10) if re.fullmatch(r"[0-9]+", heartbeat) else limit(heartbeat)
             if window is not None and silence > window:
                 reason = f"no heartbeat for {silence}s (window {heartbeat}s)"
         if reason:

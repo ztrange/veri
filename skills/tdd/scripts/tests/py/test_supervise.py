@@ -752,18 +752,116 @@ def test_main_reads_the_wall_clock_through_date_and_a_logs_mtime_through_stat_c_
         (0, [], ["supervise[develop-red]: success"]),
         (2, [(1026, "group", 4242, term)], ["supervise[develop-red]: killed-stuck — no heartbeat for 6s (window 5s)"]),
         (0, [], ["supervise[verdict-red]: success"]),
-        (2, [(1009, "group", 4242, term)], ["supervise[develop-red]: killed-stuck — no heartbeat for 9s (window 010s)"]),
+        (2, [(1011, "group", 4242, term)], ["supervise[develop-red]: killed-stuck — no heartbeat for 11s (window 010s)"]),
         []]
 
     broken = {value: watch("develop-red", value, lambda s, w: (0, "1000\n") if s == "-c" else fails, 100, rc_after=3)
-              for value in ("08", "1.5")}
+              for value in ("1.5",)}
     assert {value: (r["code"], r["kills"], r["status"], len([l for l in r["err"] if value.encode() in l]))
             for value, r in broken.items()} == {
-        "08": (0, [], ["supervise[develop-red]: success"], 3),
         "1.5": (0, [], ["supervise[develop-red]: success"], 3)}
 
     word = watch("develop-red", "abc", lambda s, w: (0, "1000\n") if s == "-c" else fails, 100)
     assert (word["code"], word["sleeps"], word["kills"], word["exit"]) == (1, 0, [], None)
+
+
+def test_main_reads_a_veri_heartbeat_with_leading_zeros_as_decimal_010_a_10s_window_and_08_an_8s_window_that_fires_1198(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+
+    def silent_leaf(heartbeat):
+        work = tmp_path / heartbeat
+        work.mkdir()
+        monkeypatch.chdir(work)
+        clean_env(monkeypatch, VERI_TIMEOUT="100000", VERI_STUCK_RETRIES="0", VERI_HEARTBEAT=heartbeat)
+        clock = {"wall": 1000, "sleeps": 0}
+        kills = []
+
+        class Leaf:
+            pid = 4242
+            returncode = None
+            args = []
+
+            def poll(self):
+                return self.returncode
+
+            def wait(self, timeout=None):
+                return self.returncode
+
+        leaf = Leaf()
+
+        def sleep(_):
+            clock["sleeps"] += 1
+            if clock["sleeps"] > 2000:
+                raise Runaway()
+            clock["wall"] += 1
+
+        monkeypatch.setattr(time, "sleep", sleep)
+        monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
+
+        def killpg(pgid, sig):
+            kills.append((clock["wall"] - 1000, sig))
+            if pgid == leaf.pid and sig:
+                leaf.returncode = -sig
+
+        def kill(pid, sig):
+            if pid < 0:
+                return killpg(-pid, sig)
+            if pid == leaf.pid and sig:
+                kills.append((clock["wall"] - 1000, sig))
+                leaf.returncode = -sig
+
+        monkeypatch.setattr(os, "killpg", killpg)
+        monkeypatch.setattr(os, "kill", kill)
+
+        def answer(args):
+            args = [str(a) for a in args]
+            if args[:1] == ["git"]:
+                return 0, "0123456789abcdef0123456789abcdef01234567\n"
+            if args[:1] == ["date"]:
+                return 0, f"{clock['wall']}\n"
+            if args[:3] == ["stat", "-c", "%Y"]:
+                return 0, "1000\n"
+            if args[:1] == ["stat"]:
+                return 1, ""
+            return 0, ""
+
+        def run(args, *_, **kwargs):
+            code, out = answer(args)
+            out = as_asked(out, kwargs)
+            if code and kwargs.get("check"):
+                raise subprocess.CalledProcessError(code, args, out)
+            return subprocess.CompletedProcess(args, code, out, "" if isinstance(out, str) else b"")
+
+        def check_output(args, *_, **kwargs):
+            code, out = answer(args)
+            if code:
+                raise subprocess.CalledProcessError(code, args)
+            return as_asked(out, kwargs)
+
+        def popen(args, *_, **kwargs):
+            if list(args[:2]) == ["/bin/sh", "-c"]:
+                return leaf
+            raise AssertionError(f"unexpected Popen: {args}")
+
+        monkeypatch.setattr(subprocess, "run", run)
+        monkeypatch.setattr(subprocess, "check_output", check_output)
+        monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, *a, **k).returncode)
+        monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: run(args, *a, check=True, **k).returncode)
+        monkeypatch.setattr(subprocess, "Popen", popen)
+
+        try:
+            code = supervise.main(["develop-red", "leaf-hang"])
+        except Runaway:
+            code = "<never ended>"
+        capsysbinary.readouterr()
+        return code, kills[:1]
+
+    assert {value: silent_leaf(value) for value in ("010", "08")} == {
+        "010": (2, [(11, signal.SIGTERM)]),
+        "08": (2, [(9, signal.SIGTERM)])}
 
 
 def test_main_fires_the_hard_timeout_on_the_awake_clock_slides_the_heartbeat_by_a_suspend_and_settles_the_timeout_from_veri_timeout_the_issue_file_or_900(
