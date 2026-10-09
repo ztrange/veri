@@ -15,6 +15,13 @@ def pytest_configure(config):
     config.option.importmode = "append"
 
 
+def pytest_collection_modifyitems(items):
+    unnamed = [item.nodeid for item in items
+               if any(not mark.args or not mark.args[0] for mark in item.iter_markers("process"))]
+    if unnamed:
+        raise pytest.UsageError("process mark without a boundary: %s" % ", ".join(unnamed))
+
+
 @pytest.fixture
 def fake_processes(monkeypatch):
     def install(answer=None):
