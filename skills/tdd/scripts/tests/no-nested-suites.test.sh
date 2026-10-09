@@ -157,4 +157,37 @@ report "#1138: affected-suites.test.sh's #1138 case names mentioning claude-md-c
 mentions_reported no-awk-v-patterns.test.sh parallel-conductors.test.sh skill-draft-pr.test.sh skill-plan-verify.test.sh skill-red-prediction.test.sh solvable-issues.test.sh
 report "#1050: no-awk-v-patterns.test.sh's content-keyed exemption keys naming parallel-conductors.test.sh, skill-draft-pr.test.sh, skill-plan-verify.test.sh, skill-red-prediction.test.sh and solvable-issues.test.sh are not read as launching them"
 
+name="#1258: make hermetic runs the ambient re-runs from a file neither make test nor make unit runs, holding their fails-named case and no live-conductor-lock or push-backoff case, and make test runs no ambient re-run of another suite"
+problems=()
+ambient_rerun='^name="[^"]*\.test\.sh[^"]*(: (an )?ambient VERI_| with VERI_[A-Z_]+=[^ ]* in its environment)'
+fails_named='^name="a suite whose answer changes with an ambient VERI_[^"]* fails [^"]*, named"'
+target_suites() { make -C "$ROOT" -n "$1" 2>/dev/null | grep -o '[^ ]*\.test\.sh' | sort -u; }
+mapfile -t test_roster < <(target_suites test)
+mapfile -t unit_roster < <(target_suites unit)
+(( ${#test_roster[@]} )) || problems+=("\`make -n test\` named no suite, so its roster could not be read")
+hermetic_out="$(make -C "$ROOT" -n hermetic 2>&1)" && hermetic_code=0 || hermetic_code=$?
+[[ "$hermetic_code" == 0 ]] || problems+=("make -n hermetic: want exit 0, got $hermetic_code: $(flat "$hermetic_out")")
+rerun_files=()
+while IFS= read -r f; do
+  [[ "$f" == /* ]] || f="$ROOT/$f"
+  [[ -f "$f" ]] && grep -Eq "$ambient_rerun" "$f" && rerun_files+=("${f#"$ROOT"/}")
+done < <(grep -o '[^ ]*\.test\.sh' <<< "$hermetic_out" | sort -u)
+(( ${#rerun_files[@]} )) || problems+=("make -n hermetic named no file holding an ambient re-run case")
+for rel in ${rerun_files[@]+"${rerun_files[@]}"}; do
+  for r in ${test_roster[@]+"${test_roster[@]}"} ${unit_roster[@]+"${unit_roster[@]}"}; do
+    [[ "$r" == "$rel" ]] && problems+=("$rel: make hermetic's re-run file is also in make test's or make unit's roster")
+  done
+  grep -Eq "$fails_named" "$ROOT/$rel" ||
+    problems+=("$rel holds no case that fails, named, when a suite's answer changes under an ambient VERI_* value")
+  while IFS= read -r hit; do
+    problems+=("$rel:$hit is a live-conductor-lock or push-backoff case")
+  done < <(grep -nE '^name="[^"]*(conductor lock|VERI_PUSH_BACKOFF)' "$ROOT/$rel" | cut -d: -f1)
+done
+for r in ${test_roster[@]+"${test_roster[@]}"}; do
+  while IFS= read -r hit; do
+    problems+=("$r:$hit is an ambient re-run of another suite, and make test runs it")
+  done < <(grep -nE "$ambient_rerun" "$ROOT/$r" | cut -d: -f1)
+done
+report "$name"
+
 finish
