@@ -89,7 +89,7 @@ def main(argv):
         sys.stderr.write("usage: run-suite.sh <suite>\n")
         return 2
     suite = argv[0]
-    env = dict(os.environ)
+    env = {k: v for k, v in os.environ.items() if k == "VERI_VENV" or not k.startswith(("VERI_", "CLAUDE_"))}
     n = int(env.get("GIT_CONFIG_COUNT") or 0)
     env["GIT_CONFIG_KEY_%d" % n] = "maintenance.auto"
     env["GIT_CONFIG_VALUE_%d" % n] = "false"
@@ -101,7 +101,6 @@ def main(argv):
     if not guard.get("COUNT_LINE") or not guard.get("COUNTLESS"):
         sys.stderr.write("run-suite.sh: could not read the count-line guard from %s\n" % guard_path)
         return 2
-    env = {k: v for k, v in env.items() if k == "VERI_VENV" or not k.startswith(("VERI_", "CLAUDE_"))}
     out = bytearray()
     name = os.path.basename(suite)
     try:
