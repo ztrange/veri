@@ -77,7 +77,18 @@ HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
 
 
 def heading(line):
-    return line[3:].strip() if line.startswith("## ") else None
+    return line.split(" ", 1)[1].strip() if line.startswith(("## ", "### ")) else None
+
+
+def enclosing(lines):
+    names = []
+    for line in reversed(lines):
+        name = heading(line)
+        if name is not None and line.startswith("## "):
+            return tuple(names + [name])
+        if name is not None and not names:
+            names.append(name)
+    return None
 
 
 def edited_section(f, revisions):
@@ -94,7 +105,7 @@ def edited_section(f, revisions):
             numbers += range(start, start + count) if count else [start]
     sections = set()
     for n in numbers:
-        section = next((h for h in map(heading, reversed(lines[:n])) if h is not None), None)
+        section = enclosing(lines[:n])
         if section is None:
             return None
         sections.add(section)
@@ -118,7 +129,7 @@ def suite_of(f, revisions=None):
         naming = suites_naming('"%s"' % f, '/%s"' % f)
         section = match("skills/*/SKILL.md") and revisions and edited_section(f, revisions)
         if section:
-            readers = suites_naming(*quoted(section))
+            readers = suites_naming(*quoted(*section))
             slicers = suites_naming(*quoted(*headings(f)))
             return [s for s in naming if s in readers or s not in slicers]
         return naming
