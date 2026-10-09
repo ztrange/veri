@@ -1,0 +1,2 @@
+### A range whose changed lines of skills/tdd/SKILL.md all lie inside one ## section selects the suites naming SKILL.md that read that section, and not a suite naming SKILL.md that reads only a different section ⟦criterion 1⟧
+- test-only | the new `skill_section` case in affected-suites.test.sh writes SKILL.md's text twice with two nearly identical `printf` lines (only "alpha text" vs "alpha text 2" differ). A small helper taking the Alpha body would remove the repetition.
