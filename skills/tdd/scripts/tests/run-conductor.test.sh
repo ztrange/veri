@@ -1897,13 +1897,13 @@ problems=()
 env933="$work/env933"
 
 ( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" ENV_OUT="$env933" \
-    CLAUDE_CODE_SESSION_ID=sess-933-fake VERI_FAKE_CARRIER=x-sess-933-fake-y \
+    CLAUDE_CODE_SESSION_ID=sess-933-fake FAKE_CARRIER=x-sess-933-fake-y \
     "$CONDUCTOR" "$issue" ) >/dev/null 2>&1
 
 if [[ ! -f "$env933" ]]; then
   problems+=("the conductor binary was never launched — $CONDUCTOR recorded no environment")
 else
-  for var in CLAUDE_CODE_SESSION_ID VERI_FAKE_CARRIER; do
+  for var in CLAUDE_CODE_SESSION_ID FAKE_CARRIER; do
     ! grep "^${var}=" "$env933" > /dev/null ||
       problems+=("$var is still in the child's environment: $(grep "^${var}=" "$env933")")
   done
