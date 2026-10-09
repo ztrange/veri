@@ -1,7 +1,7 @@
 """next-unchecked.sh's computation, run in-process."""
 import sys
 
-from ledger import ledger_steps
+from ledger import ledger_steps, read_ledger_stdin
 
 
 def handed_out(record):
@@ -9,7 +9,7 @@ def handed_out(record):
 
 
 def main(argv):
-    text = sys.stdin.buffer.read().replace(b"\0", b"").decode(errors="surrogateescape")
+    text = read_ledger_stdin()
     for record in ledger_steps(text):
         if handed_out(record):
             sys.stdout.buffer.write((record[6] + "\n").encode(errors="surrogateescape"))

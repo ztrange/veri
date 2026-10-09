@@ -2,7 +2,7 @@
 import re
 import sys
 
-from ledger import ledger_steps
+from ledger import ledger_steps, read_ledger_stdin
 
 USAGE = "usage: ledger-steps.sh [current|last-done|criterion <k>]"
 
@@ -51,7 +51,7 @@ def main(argv):
         return refuse()
     if verb == "criterion" and not re.fullmatch("[0-9]+", argv[1] if len(argv) > 1 else ""):
         return refuse()
-    text = sys.stdin.buffer.read().replace(b"\0", b"").decode(errors="surrogateescape")
+    text = read_ledger_stdin()
     if verb == "criterion":
         return criterion(text, int(argv[1]) % 2**64)
     records = ledger_steps(text)
