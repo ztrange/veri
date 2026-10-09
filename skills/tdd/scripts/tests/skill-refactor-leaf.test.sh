@@ -38,6 +38,8 @@
 #  12. That section's sub-step 4 sends each uncovered-spec behaviour into the
 #      add-ledger-step.sh call for the criterion it serves, one call per criterion, rather
 #      than into one shared call.
+#  13. That section says each per-criterion add-ledger-step.sh call emits its own step-added
+#      event, anchored on the step and carrying added=<that call's count>.
 #
 # Run: scripts/tests/skill-refactor-leaf.test.sh
 set -uo pipefail
@@ -428,6 +430,26 @@ else
       problems+=("$skill_md's Refactor sub-step 4 still sends every uncovered-spec behaviour into one shared call — it says '$shared' — so behaviours serving different criteria are tagged with one --criterion and the plan is mis-tagged")
     grep -E 'one call per criterion|call for the criterion (it|the behaviour) serves' >/dev/null <<<"$substep" ||
       problems+=("$skill_md's Refactor sub-step 4 never says a behaviour goes into the add-ledger-step.sh call for the criterion it serves, one call per criterion, so it disagrees with the one-call-per-criterion rule beside the PASS branch's calls")
+  fi
+fi
+
+report "$name"
+
+name="$skill_md's Refactor section says each per-criterion add-ledger-step.sh call emits its own step-added event, anchored on the step and carrying added=<that call's count> (#1292)"
+problems=()
+
+if unreadable_section; then
+  problems+=("$(unreadable_problem "which step-added event each per-criterion add-ledger-step.sh call emits could not be established")")
+else
+  per_call='(each|every)( per-criterion)? (add-ledger-step\.sh )?call[^.]{0,120}(its own|a|one) step-added|one step-added[^.]{0,80}(per|for each|for every) (add-ledger-step\.sh )?(call|criterion)'
+  if [[ -z "$(phrase "$per_call" "$section")" ]]; then
+    problems+=("$skill_md's Refactor section never says each per-criterion add-ledger-step.sh call emits its own step-added event, so a run that grows the plan for two criteria logs one step-added for both and the run log undercounts the growth")
+  else
+    emitted="$(window "$section" "$per_call")"
+    grep -E 'anchor(ed)?( on|=)[^.]{0,40}step' >/dev/null <<<"$emitted" ||
+      problems+=("$skill_md's Refactor section says each per-criterion call emits its own step-added event without saying it is anchored on the step — it says '$emitted'")
+    grep -E 'added=<[^>]*call[^>]*>' >/dev/null <<<"$emitted" ||
+      problems+=("$skill_md's Refactor section says each per-criterion call emits its own step-added event without saying it carries added=<that call's count> — it says '$emitted'")
   fi
 fi
 
