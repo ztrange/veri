@@ -2317,6 +2317,10 @@ hatch.
   the verifier**.
 - **Every leaf is launched through `supervise.sh`** — never `run-leaf.sh` or `claude`
   directly. The supervisor is the one place stuck-detection lives.
+- **Signal only processes you started**, by the pid you recorded when you started them —
+  never by name or pattern (`pkill`, `killall`, `kill $(pgrep …)`), which matches every
+  process on the machine whose command line fits, another live run's supervisor included.
+  An experiment's processes and leaf names carry the `exp-` prefix, which no live run uses.
 - **The run lives in its own worktree, made by `$S/issue-worktree.sh`** — never `git switch`
   or `git checkout` the caller's checkout onto the issue branch. Enter the worktree once in
   step 1.2 and stay there for the whole run; and never take over a branch another worktree

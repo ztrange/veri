@@ -15,6 +15,10 @@
 #      not bail.
 #   4. *Launching a leaf* runs `stop-requested.sh` before the launch; exit 3 and `at-ledger`
 #      launch the leaf, and `at-leaf` and `now` launch nothing and go to *Stopping*.
+#   5. SKILL.md says the conductor signals only processes it started, by the pid it recorded
+#      when it started them, never by name or pattern (`pkill`, `killall`, `kill $(pgrep …)`),
+#      and that an experiment's processes and leaf names carry the `exp-` prefix no live run
+#      uses.
 #
 # Run: scripts/tests/skill-stopping.test.sh
 set -uo pipefail
@@ -521,6 +525,23 @@ if load_scope_stop; then
   require 'resum[^.;]*(carr(y|ies|ying) on|continu(e|es|ing)|keep(s|ing)? going)[^.;]*(drain|scope)' \
     "the stopped-issue condition never says the resumed run then carries on draining the scope"
 fi
+report "$name"
+
+name="#1174: $skill_md tells the conductor it signals only processes it started, by the pid it recorded when it started them, never by name or pattern (pkill, killall, kill \$(pgrep …)), and that experiments carry the exp- prefix no live run uses"
+problems=()
+section="$(plain --join < "$skill_path" | tr -s ' ')"
+require '(signal|kill)s? only (the )?processes (it|you) (started|start)' \
+  "$skill_md never says the conductor signals only processes it started"
+require 'pid (it|you) recorded when (it|you) started' \
+  "$skill_md never says it signals by the pid it recorded when it started them"
+require 'never by name or (by )?pattern' \
+  "$skill_md never says it never signals by name or pattern"
+require "$(word pkill)" "$skill_md never names pkill"
+require "$(word killall)" "$skill_md never names killall"
+require 'kill \$\(pgrep' "$skill_md never names kill \$(pgrep …)"
+require "$(either_order "$(word exp-)" 'prefix')" \
+  "$skill_md never says an experiment's processes and leaf names carry the exp- prefix"
+require 'no live run uses' "$skill_md never says no live run uses that prefix"
 report "$name"
 
 finish
