@@ -18,18 +18,11 @@ CONDUCTOR = os.path.join(SCRIPTS, "run-conductor.sh")
 
 
 def main(argv):
-    budget = os.environ.get("VERI_CONDUCTOR_CTX_BUDGET") or "120000"
-    if not re.fullmatch(r"[0-9]+", budget):
-        sys.stderr.write("orchestrate.sh: VERI_CONDUCTOR_CTX_BUDGET must be a whole number of tokens: %s\n" % budget)
+    budget = _tunable("VERI_CONDUCTOR_CTX_BUDGET", "120000", _tokens, "a whole number of tokens")
+    if budget is None:
         return 2
-    raw_stop_timeout = os.environ.get("VERI_CONDUCTOR_STOP_TIMEOUT") or "10"
-    try:
-        stop_timeout = float(raw_stop_timeout)
-        if not math.isfinite(stop_timeout) or stop_timeout <= 0:
-            raise ValueError
-    except ValueError:
-        sys.stderr.write("orchestrate.sh: VERI_CONDUCTOR_STOP_TIMEOUT must be a positive number of seconds: %s\n"
-                         % raw_stop_timeout)
+    stop_timeout = _tunable("VERI_CONDUCTOR_STOP_TIMEOUT", "10", _seconds, "a positive number of seconds")
+    if stop_timeout is None:
         return 2
     while True:
         answer = subprocess.run([os.path.join(SCRIPTS, "solvable-issues.sh")], stdout=subprocess.PIPE)
@@ -56,12 +49,34 @@ def main(argv):
             _say("parked %s\n" % issue)
 
 
+def _tunable(name, default, parse, must_be):
+    raw = os.environ.get(name) or default
+    try:
+        return parse(raw)
+    except ValueError:
+        sys.stderr.write("orchestrate.sh: %s must be %s: %s\n" % (name, must_be, raw))
+        return None
+
+
+def _tokens(raw):
+    if not re.fullmatch(r"[0-9]+", raw):
+        raise ValueError
+    return int(raw)
+
+
+def _seconds(raw):
+    value = float(raw)
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError
+    return value
+
+
 def _watch(issue, stream, budget):
     state = START
     for line in stream:
         if not line.endswith(b"\n"):
             return
-        state, readings, exceeded = watch(state, [line], int(budget))
+        state, readings, exceeded = watch(state, [line], budget)
         for context in readings:
             _say("context %s %d\n" % (issue, context))
         if exceeded:
