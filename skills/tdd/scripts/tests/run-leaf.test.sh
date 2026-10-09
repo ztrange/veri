@@ -122,8 +122,8 @@ gcg="$(grep -E '^GIT_CONFIG_GLOBAL=' "$work/env" 2>/dev/null)"
   || problems+=("GIT_CONFIG_GLOBAL in the leaf's claude was not the one run-leaf.sh set: '${gcg}'")
 report "with the session id set, still passes VERI_TEST_CMD and run-leaf.sh's GIT_CONFIG_GLOBAL through (#933)"
 
-leaf_env_lacks CLAUDE_CODE_SESSION_ID VERI_FAKE_CARRIER -- CLAUDE_CODE_SESSION_ID=sess-933-fake \
-  VERI_FAKE_CARRIER=x-sess-933-fake-y
+leaf_env_lacks CLAUDE_CODE_SESSION_ID FAKE_CARRIER -- CLAUDE_CODE_SESSION_ID=sess-933-fake \
+  FAKE_CARRIER=x-sess-933-fake-y
 report "strips a variable whose value contains the session id, and the id itself (#933)"
 
 leaf_env_lacks CLAUDE_CODE_REMOTE_SESSION_ID -- CLAUDE_CODE_SESSION_ID=sess-966-fake \
