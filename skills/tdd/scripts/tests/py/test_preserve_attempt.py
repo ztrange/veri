@@ -13,22 +13,9 @@ def preserve_attempt():
     return importlib.import_module("veri.preserve_attempt")
 
 
-def fake_processes(monkeypatch):
-    """Every subprocess entry point recording each command as one line, its program by basename."""
-    calls = []
-
-    def record(args, *_, **__):
-        calls.append(" ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]]))
-        return subprocess.CompletedProcess(args, 0, "", "")
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, record)
-    return calls
-
-
 def test_main_refuses_missing_or_empty_arguments_with_its_usage_line_and_no_git_call(
-        monkeypatch, capsys, preserve_attempt):
-    calls = fake_processes(monkeypatch)
+        monkeypatch, capsys, preserve_attempt, fake_processes):
+    calls = fake_processes()
 
     answers = []
     for argv in ([], ["409", "3", "develop-green"], ["409", "3", "develop-green", ""]):
