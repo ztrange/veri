@@ -139,4 +139,21 @@ for dir in "$skill" "$skill/scripts"; do
 done
 report "$name"
 
+name="#1150 structural-predicate.sh with stdin closed exits 2 with one stderr line naming the shim and no Traceback"
+problems=()
+tree="$(scratch_dir)"
+code=0
+"$SP" "$tree/predicate" <&- >/dev/null 2>"$tree/stderr" || code=$?
+[[ "$code" == 2 ]] ||
+  problems+=("want exit 2 from structural-predicate.sh, got $code")
+lines="$(wc -l < "$tree/stderr" | tr -d ' ')"
+[[ "$lines" == 1 ]] ||
+  problems+=("want exactly one stderr line, got $lines: $(cat "$tree/stderr")")
+[[ "$(head -n 1 "$tree/stderr")" == "structural-predicate.sh: "* ]] ||
+  problems+=("want stderr to begin 'structural-predicate.sh: ', got '$(head -n 1 "$tree/stderr")'")
+if grep -F Traceback "$tree/stderr" > /dev/null; then
+  problems+=("stderr carries a Traceback")
+fi
+report "$name"
+
 finish

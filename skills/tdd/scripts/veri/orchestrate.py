@@ -95,11 +95,16 @@ def _parked(issue):
     return os.path.exists(os.path.join(".tdd", "parked", issue + ".md"))
 
 
-if __name__ == "__main__":
+def _main_stdout_gone_exits_2(argv):
     try:
-        sys.exit(main(sys.argv[1:]))
+        return main(argv)
     except BrokenPipeError:
         if sys.stdout is not None:
             os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
         _err("orchestrate.sh: stdout is gone: its reader has exited\n")
         sys.exit(2)
+
+
+if __name__ == "__main__":
+    import entry
+    entry.run(_main_stdout_gone_exits_2, sys.argv[1:])

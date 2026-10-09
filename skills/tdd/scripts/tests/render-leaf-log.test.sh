@@ -51,14 +51,14 @@ if [[ "$rc" -eq 2 ]]; then ok; else
   echo "    expected exit 2, got $rc"
 fi
 
-name="a JSON line that is not an object exits 1, and an extra argument is ignored with the stdin still rendered and exit 0"
+name="a JSON line that is not an object exits 2, and an extra argument is ignored with the stdin still rendered and exit 0"
 printf '%s\n' '[1, 2]' | "$RENDER" >/dev/null 2>&1
 array_code=$?
 extra="$("$RENDER" extra-arg < "$FIXTURES/leaf.out" 2>&1)"; extra_code=$?
 plain="$("$RENDER" < "$FIXTURES/leaf.out" 2>&1)"
-if [[ "$array_code" -eq 1 && "$extra_code" -eq 0 && "$extra" == "$plain" && "$extra" == *"> Bash: make test"* ]]; then ok; else
+if [[ "$array_code" -eq 2 && "$extra_code" -eq 0 && "$extra" == "$plain" && "$extra" == *"> Bash: make test"* ]]; then ok; else
   no "$name"
-  echo "    non-object exit: expected 1, got $array_code; extra-argument exit: expected 0, got $extra_code"
+  echo "    non-object exit: expected 2, got $array_code; extra-argument exit: expected 0, got $extra_code"
   diff <(printf '%s\n' "$plain") <(printf '%s\n' "$extra") | sed 's/^/    /'
 fi
 

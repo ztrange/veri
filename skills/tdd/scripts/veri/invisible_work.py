@@ -148,4 +148,5 @@ def report(branches, locals_, issues_text, prs_text):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    import entry
+    entry.run(main, sys.argv[1:])
