@@ -288,6 +288,37 @@ def test_main_returns_2_with_no_rebase_directory_prints_one_empty_line_for_no_un
     assert calls.index(diff) < calls.index(abort)
 
 
+def test_main_exits_2_on_git_s_refusal_when_a_rebase_directory_exists_before_it_runs_without_diffing_or_aborting(
+        monkeypatch, capsys, tmp_path, rebase_onto_default):
+    rebase = f"git rebase -q {ONTO}"
+    diff = "git diff --name-only --diff-filter=U"
+    abort = "git rebase --abort"
+    merge, apply = tmp_path / "rebase-merge", tmp_path / "rebase-apply"
+    refusal = ("fatal: It seems that there is already a rebase-merge directory, and\n"
+               "I wonder if you are in the middle of another rebase.\n")
+    merge.mkdir()
+    calls = fake_git(monkeypatch, **{
+        rebase: (1, ""),
+        "git rev-parse --git-path rebase-merge --git-path rebase-apply": (0, f"{merge}\n{apply}\n"),
+        "git rev-parse --git-path rebase-merge": (0, f"{merge}\n"),
+        "git rev-parse --git-path rebase-apply": (0, f"{apply}\n"),
+        diff: (0, "earlier.txt\n")})
+    fake_run = subprocess.run
+
+    def refusing_run(args, **kwargs):
+        line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+        if line == rebase and kwargs.get("stderr") is None:
+            sys.stderr.write(refusal)
+        return fake_run(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", refusing_run)
+    code = rebase_onto_default.main([])
+    captured = capsys.readouterr()
+    assert (code, captured.out) == (2, "")
+    assert refusal in captured.err
+    assert [c for c in calls if c in (diff, abort)] == []
+
+
 def test_main_answers_the_cut_contract_cases_a_dirty_tree_refusal_an_unfetchable_origin_a_fallback_rebase_and_an_unreachable_fallback(
         monkeypatch, capsys, tmp_path, rebase_onto_default):
     local = "git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD"
