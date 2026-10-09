@@ -24,7 +24,7 @@ def _gh(*args, stderr=None):
     return subprocess.run(["gh", *args], stdout=subprocess.PIPE, stderr=stderr, text=True)
 
 
-def _gh_api(path):
+def gh_api(path):
     return _gh("api", path)
 
 
@@ -57,7 +57,7 @@ class RestAdapter:
         sep = "&" if "?" in path else "?"
         page = 1
         while True:
-            run = _gh_api("%s%spage=%d" % (path, sep, page))
+            run = gh_api("%s%spage=%d" % (path, sep, page))
             if run.returncode != 0:
                 raise NoAnswer(answer)
             body = run.stdout.rstrip("\n")
@@ -67,7 +67,7 @@ class RestAdapter:
             page += 1
 
     def issue_view(self, number, field):
-        rest = _gh_api(_issue(number))
+        rest = gh_api(_issue(number))
         try:
             issue = json.loads(rest.stdout)
         except json.JSONDecodeError as error:
@@ -117,7 +117,7 @@ class RestOnlyAdapter:
         return self.rest_list(path)
 
     def page(self, fixture, path, *args):
-        run = _gh_api(path)
+        run = gh_api(path)
         if run.returncode != 0:
             raise NoAnswer("")
         return run.stdout

@@ -8,10 +8,10 @@ import traceback
 from datetime import datetime
 
 try:
-    from github import NoAnswer, _gh, _gh_api, gh_rest_list
+    from github import NoAnswer, _gh, gh_api, gh_rest_list
     from json_documents import documents
 except ImportError:
-    from .github import NoAnswer, _gh, _gh_api, gh_rest_list
+    from .github import NoAnswer, _gh, gh_api, gh_rest_list
     from .json_documents import documents
 
 USAGE = "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]"
@@ -81,7 +81,7 @@ def ci_bound(repo, n=5):
 
 
 def pr_head(repo, pr):
-    run = _gh_api("repos/%s/pulls/%s" % (repo, pr.rsplit("/pull/", 1)[-1]))
+    run = gh_api("repos/%s/pulls/%s" % (repo, pr.rsplit("/pull/", 1)[-1]))
     if run.returncode != 0:
         return None, "", False
     pull = json.loads(run.stdout)
@@ -90,7 +90,7 @@ def pr_head(repo, pr):
 
 def sha_state(repo, sha):
     runs = gh_rest_list("repos/%s/commits/%s/check-runs" % (repo, sha), r'"check_runs": *\[ *\]')
-    status = _gh_api("repos/%s/commits/%s/status" % (repo, sha))
+    status = gh_api("repos/%s/commits/%s/status" % (repo, sha))
     if status.returncode != 0:
         raise NoAnswer("")
     statuses = status.stdout
