@@ -1,6 +1,6 @@
 # Plan for #1150 — every ported module exits 2, not 1 with a traceback, on an uncaught exception
 
-- [ ] The shared entry point `veri/entry.py` exits with the code a faked `main` returns, for each of 0, 1, 2 and 3, and lets a `SystemExit` raised inside `main` through with its own code unchanged (in-process pytest in `tests/py/test_entry.py`) ⟦criterion 1⟧
+- [x] The shared entry point `veri/entry.py` exits with the code a faked `main` returns, for each of 0, 1, 2 and 3, and lets a `SystemExit` raised inside `main` through with its own code unchanged (in-process pytest in `tests/py/test_entry.py`) ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] The shared entry point turns an `Exception` escaping a faked `main` into exit 2 with exactly one stderr line, `<script>.sh: <ExceptionType>: <message folded to one line>`, where `<script>.sh` is derived from the calling module's file name (`render_leaf_log.py` → `render-leaf-log.sh`), and prints no `Traceback` ⟦criterion 1⟧
 - [ ] The shared entry point flushes stdout inside its guard, so a stdout write failure that would otherwise surface only at interpreter shutdown (Python's exit 120) exits 2 with the same one stderr line instead
 - [ ] The shared entry point turns a `BrokenPipeError` on stdout into exit 141 with nothing on stdout or stderr, the one exception it does not map to 2 ⟦criterion 3⟧
