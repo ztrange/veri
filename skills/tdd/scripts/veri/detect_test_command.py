@@ -116,13 +116,12 @@ def main(argv):
     if issue is None:
         return 1
     root = args[0] if args and args[0] else "."
-    try:
-        decide(tier, issue, root)
-    except Answer as found:
-        sys.stdout.buffer.write(found.command + b"\n")
-        sys.stdout.buffer.flush()
-        return 0
-    return 3
+    command = resolved(tier, issue, root)
+    if command is None:
+        return 3
+    sys.stdout.buffer.write(command + b"\n")
+    sys.stdout.buffer.flush()
+    return 0
 
 
 if __name__ == "__main__":
