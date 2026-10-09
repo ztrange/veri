@@ -205,6 +205,22 @@ else
 fi
 report "$name"
 
+name="#1260: $skill_md's ⟦replaces-case⟧ planning paragraph lets one step name one suite path and a list of its cases each by exact name, grouping related cases of one suite into one step, about a dozen at most, one case a valid group of one"
+problems=()
+if [[ -z "$rc_rec" ]]; then
+  problems+=("plan guidance: no instruction in step 2 names ⟦replaces-case⟧ for a criterion replacing an implementation case — the rule could not be checked")
+else
+  [[ "$rc_rec" =~ list\ of\ [^.]*cases[^.]*each\ by\ (its\ )?exact\ name ]] ||
+    problems+=("plan guidance: the ⟦replaces-case⟧ instruction never lets the step name a list of the suite's cases, each by its exact name")
+  [[ "$rc_rec" =~ group[^.]*related\ cases\ of\ one\ suite[^.]*one\ step ]] ||
+    problems+=("plan guidance: the ⟦replaces-case⟧ instruction never tells the planner to group related cases of one suite into one step")
+  [[ "$rc_rec" =~ about\ a\ dozen ]] ||
+    problems+=("plan guidance: the ⟦replaces-case⟧ instruction never caps a group at about a dozen cases")
+  [[ "$rc_rec" =~ group\ of\ one ]] ||
+    problems+=("plan guidance: the ⟦replaces-case⟧ instruction never says one case remains a valid group of one")
+fi
+report "$name"
+
 name="#671: CONTEXT.md defines contract case, implementation case and the ⟦replaces-case⟧ mark"
 problems=()
 context_path="$ROOT/CONTEXT.md"
