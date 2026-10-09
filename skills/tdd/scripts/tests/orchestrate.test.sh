@@ -506,10 +506,15 @@ echo $$ >> "$MARKS.pid"
 echo "$1" >> "$LAUNCHES"
 grep -vx -- "$1" "$SOLVABLE" > "$SOLVABLE.next"
 mv "$SOLVABLE.next" "$SOLVABLE"
-trap '' TERM
-(trap - TERM; while :; do echo '{"type":"system","subtype":"heartbeat"}'; sleep 0.01; done) &
+(trap 'trap - TERM; echo '"'"'{"type":"system","subtype":"heartbeat"}'"'"'; kill -TERM $BASHPID' TERM
+ echo '{"type":"system","subtype":"heartbeat"}'
+ : > "$MARKS.armed"
+ while :; do sleep 0.01; done) &
 writer=$!
 echo $writer >> "$MARKS.pid"
+trap '' TERM
+i=0
+while [ $i -lt 400 ] && [ ! -e "$MARKS.armed" ]; do sleep 0.01; i=$((i + 1)); done
 echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=1354 VERI_ACTOR=conductor $S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
 echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
 wait $writer
