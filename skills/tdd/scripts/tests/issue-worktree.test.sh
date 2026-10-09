@@ -10,9 +10,11 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-WT="$HERE/../issue-worktree.sh"
 source "$HERE/lib/harness.sh"
 work="$(scratch_dir)"
+mkdir -p "$work/skill/scripts"
+cp -R "$HERE/../issue-worktree.sh" "$HERE/../veri" "$work/skill/scripts/"
+WT="$work/skill/scripts/issue-worktree.sh"
 
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
@@ -740,5 +742,34 @@ $after"
 [[ "$code" != 0 || "$out" != *"$decoy"* ]] || problems+="; exit=0 naming '$out', want the case to fail on a subject that resolved the decoy repository"
 { [[ -z "$problems" ]]; } \
   && ok || no "#1158: an issue-worktree.sh that resolves its main tree from its own directory, not the suite's scratch repository, creates no worktree, branch or .tdd/wt entry outside that repository (${problems#; })"
+
+repo="$work/scratch-copy"
+make_repo "$repo"
+scratch="$(cd "$work" && pwd -P)"
+subject_dir="$(cd "$(dirname "$WT")" && pwd -P)"
+errfile="$work/scratch-copy.err"
+problems=""
+if [[ "$subject_dir/" != "$scratch/"* ]]; then
+  problems+="; want the suite to run a copy of issue-worktree.sh under its scratch directory $scratch, it runs $subject_dir/issue-worktree.sh"
+else
+  landing="$(cd "$subject_dir/../.." && pwd -P)"
+  if [[ "$landing/" != "$scratch/"* || "$landing/" == "$(cd "$repo" && pwd -P)/"* ]]; then
+    problems+="; want the copy's ../.. inside $scratch and outside the scratch repository, it is $landing"
+  else
+    mkdir -p "$landing/.tdd/wt/5/.tdd"
+    printf '%s\n' "$$" > "$landing/.tdd/wt/5/.tdd/conductor.pid"
+    cp "$WT" "$WT.orig"
+    awk '/^exec python3/ { print "cd \"$(dirname \"$0\")/../..\"" } { print }' "$WT.orig" > "$WT"
+    chmod +x "$WT"
+    out="$(cd "$repo" && "$WT" 42 planted 2>"$errfile")" && code=0 || code=$?
+    mv "$WT.orig" "$WT"
+    [[ ! -e "$landing/.tdd/wt/42" ]] || problems+="; $landing/.tdd/wt/42 was created"
+    landing_branches="$(git -C "$landing" for-each-ref --format='%(refname)' refs/heads/tdd 2>/dev/null)"
+    [[ -z "$landing_branches" ]] || problems+="; branches created beside the scratch repository: $landing_branches"
+    [[ "$code" != 0 || "$out" == "$(wt_path "$repo" 42)" ]] || problems+="; exit=0 naming '$out', want the scratch repository's .tdd/wt/42 or a failure"
+  fi
+fi
+{ [[ -z "$problems" ]]; } \
+  && ok || no "#1158: the suite runs a scratch copy of issue-worktree.sh, and a cd \"\$(dirname \"\$0\")/../..\" planted into it creates no worktree, branch or .tdd/wt entry outside the scratch repository (${problems#; })"
 
 finish
