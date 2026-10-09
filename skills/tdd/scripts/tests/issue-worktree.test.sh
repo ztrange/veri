@@ -706,7 +706,7 @@ $after"
 repo="$work/skill-link-caller"
 make_repo "$repo"
 skill_link="$work/skill-link"
-ln -s "$(cd "$HERE/../.." && pwd -P)" "$skill_link"
+ln -s "$work/skill" "$skill_link"
 want="$(wt_path "$repo" 34)"
 errfile="$work/skill-link.err"
 
