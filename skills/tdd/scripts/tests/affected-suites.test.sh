@@ -287,6 +287,18 @@ expect_suites "an edit inside a ### subsection after a sibling ### prints the su
   skills/tdd/scripts/tests/skill-alpha.test.sh \
   skills/tdd/scripts/tests/skill-sib.test.sh
 
+make_repo skill_heading
+mkdir -p "$s/tests"
+printf '# tdd\n\n## Alpha\n\nalpha text\n\n## Beta\n\nbeta text\n' > "$repo/skills/tdd/SKILL.md"
+printf '#!/usr/bin/env bash\nskill_md="skills/tdd/SKILL.md"\nload_section '"'"'Alpha'"'"'\n' > "$s/tests/skill-alpha.test.sh"
+printf '#!/usr/bin/env bash\nskill_md="skills/tdd/SKILL.md"\nload_section '"'"'Beta'"'"'\n' > "$s/tests/skill-beta.test.sh"
+commit_base
+printf '# tdd\n\n## Alpha\n\nalpha text\n\n## Gamma\n\nbeta text\n' > "$repo/skills/tdd/SKILL.md"
+commit_head
+expect_suites "an edit changing a ## heading line of SKILL.md prints every suite naming SKILL.md" \
+  skills/tdd/scripts/tests/skill-alpha.test.sh \
+  skills/tdd/scripts/tests/skill-beta.test.sh
+
 make_repo rule5
 mkdir -p "$s/tests/unit" "$repo/docs"
 printf 'foo\n' > "$s/foo.sh"

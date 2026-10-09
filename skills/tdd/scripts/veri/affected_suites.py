@@ -108,7 +108,7 @@ def edited_section(f, revisions):
     sections = set()
     for n in numbers:
         section = enclosing(lines[:n])
-        if section is None:
+        if section is None or heading(lines[n - 1]) is not None:
             return None
         sections.add(section)
     return sections.pop() if len(sections) == 1 else None
