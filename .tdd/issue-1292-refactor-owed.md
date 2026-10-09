@@ -1,0 +1,2 @@
+### add-ledger-step.sh --criterion <k>, given a whole number k ≥ 1 that no ledger step carries yet, inserts every new step tagged ⟦criterion k⟧ and exits 0 — replacing #1224's case that expected exit 2 for an uncarried criterion ⟦criterion 1⟧
+- test-only | merge `test_main_given_a_criterion_no_step_carries_tags_every_inserted_line_with_it_and_returns_0_1292` and `test_main_given_criterion_k_tags_every_inserted_line_with_k_whatever_the_anchor_carries_1224` into one table-driven case over k ∈ {3, 7}. The two are identical except for k and the expected tag.
