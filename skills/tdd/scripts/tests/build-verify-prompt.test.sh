@@ -139,6 +139,21 @@ done
   || no "#619 no prompt contains git stash push, and git checkout -- <file> appears only in _shared.md and _develop-shared.md inside the sentence that forbids it (${problems#; })"
 
 problems=""
+while IFS='|' read -r label call; do
+  read -ra argv <<<"$call"
+  prompt="$("${argv[@]}" 2>&1)"; code=$?
+  [[ "$code" -eq 0 ]] || { problems="$problems; $label did not build (exit $code)"; continue; }
+  [[ "$prompt" == *'git stash push'* ]] && problems="$problems; the built $label prompt contains git stash push"
+  [[ "$prompt" == *$forbidding* ]] \
+    || problems="$problems; the built $label prompt lacks the sentence forbidding git checkout -- <file>"
+  prompt="${prompt//$forbidding/}"
+  [[ "$prompt" == *'git checkout --'* ]] \
+    && problems="$problems; the built $label prompt names git checkout -- outside the sentence that forbids it"
+done < <(built_prompts)
+[[ -z "$problems" ]] && ok \
+  || no "#1286 every prompt built from a template including _shared.md or _develop-shared.md carries the sentence forbidding git checkout -- <file>, names git checkout -- nowhere else, and contains no git stash push (${problems#; })"
+
+problems=""
 numbered_item() {  # numbered_item <prompt file> <n> — the text of list item <n>., up to item <n+1>.
   awk -v n="$2" '$0 ~ "^" n "\\. " { on = 1 } $0 ~ "^" (n + 1) "\\. " { on = 0 } on' "$1"
 }
