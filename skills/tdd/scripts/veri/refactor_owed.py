@@ -4,18 +4,14 @@ import re
 import sys
 from collections import Counter
 
+from candidates import CLASSES, candidate
+
 USAGE = ("refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' < leaf-report.txt\n"
          "                      refactor-owed.sh render <file>\n"
          "                      refactor-owed.sh list <file>")
 
 
-def candidate(cls):
-    return re.compile(rf"^CANDIDATES:[ \t\n\r\f\v]*{cls}[ \t\n\r\f\v]*[|][ \t\n\r\f\v]*(.*)$")
-
-
-STRUCTURAL = candidate("structural")
-TEST_ONLY = candidate("test-only")
-OUT_OF_SCOPE = candidate("out-of-scope")
+STRUCTURAL, _, TEST_ONLY, OUT_OF_SCOPE = (candidate(cls) for cls in CLASSES)
 TEST_ONLY_PREFIX = "test-only | "
 OUT_OF_SCOPE_PREFIX = "out-of-scope | "
 TEST_ONLY_MARK = "- " + TEST_ONLY_PREFIX
