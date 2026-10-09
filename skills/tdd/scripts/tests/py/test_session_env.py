@@ -1,6 +1,7 @@
 """In-process cases for veri/session_env.py, the strip run-leaf.sh's module launches its leaf through."""
 import importlib
 import re
+import shutil
 
 from conftest import SCRIPTS
 
@@ -48,13 +49,16 @@ def test_1244_the_strip_keeps_claude_bin_and_every_veri_variable_carrying_the_id
     }
 
 
-def test_1252_the_strip_keeps_path_and_drops_only_its_entries_carrying_the_id_keeping_the_rest_in_order():
+def test_1252_the_strip_leaves_path_untouched_so_a_stub_claude_under_the_session_id_runs_ahead_of_a_later_one(tmp_path):
     session_env = importlib.import_module("veri.session_env")
-    scratch = "/private/tmp/claude-501/proj/sid-1252/scratchpad"
-    env = {
-        "CLAUDE_CODE_SESSION_ID": "sid-1252",
-        "PATH": f"{scratch}/stubs:/usr/bin:{scratch}/more:/bin:/opt/x/bin",
-    }
+    stubs = tmp_path / "claude-501" / "proj" / "sid-1252" / "scratchpad" / "stubs"
+    later = tmp_path / "later"
+    for directory in (stubs, later):
+        directory.mkdir(parents=True)
+        (directory / "claude").write_text("#!/bin/sh\n")
+        (directory / "claude").chmod(0o755)
+    path = f"{stubs}:{later}"
+    env = {"CLAUDE_CODE_SESSION_ID": "sid-1252", "PATH": path}
     session_env.strip_session_env(env)
 
-    assert env == {"PATH": "/usr/bin:/bin:/opt/x/bin"}
+    assert (shutil.which("claude", path=env.get("PATH")), env.get("PATH")) == (str(stubs / "claude"), path)
