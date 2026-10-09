@@ -377,6 +377,46 @@ if [[ -z "$file_wide_wrong" ]]; then ok; else
   no "an edit inside one ## section of CLAUDE.md, Makefile, a SKILL.md other than skills/tdd/SKILL.md or a prompt prints every suite naming it, file-wide:$file_wide_wrong"
 fi
 
+make_repo real_skill_sections
+mkdir -p "$s/tests/unit"
+cp "$HERE/../../SKILL.md" "$repo/skills/tdd/SKILL.md"
+real_naming=()
+while IFS= read -r suite; do
+  real_naming+=("${suite#"$HERE/../../../../"}")
+  cp "$suite" "$repo/${real_naming[${#real_naming[@]}-1]}"
+done < <(grep -lE '"skills/tdd/SKILL\.md"|/skills/tdd/SKILL\.md"' "$HERE/../../../../skills/tdd/scripts/tests/"*.test.sh "$HERE/../../../../skills/tdd/scripts/tests/unit/"*.test.sh)
+commit_base
+heading_forms() {
+  local prefix="${1%% *}" title words=() w k form q
+  title="${1#* }"
+  read -r -a words <<< "$title"
+  form=""
+  for (( k = 0; k < ${#words[@]}; k++ )); do
+    form+="${form:+ }${words[k]}"
+    for q in "'" '"'; do printf '%s\n' "$q$form$q" "$q$prefix $form$q"; done
+  done
+}
+readers_of() { (cd "$repo" && heading_forms "$1" > "$work/forms" && grep -lF -f "$work/forms" "${real_naming[@]}"); }
+slicers="$(while IFS= read -r line; do readers_of "$line"; done < <(grep -E '^###? ' "$repo/skills/tdd/SKILL.md") | LC_ALL=C sort -u)"
+real_wrong=""
+for target in '## Stopping' '## Bailing' '## Resume' '### 4. Draft PR'; do
+  at="$(grep -nxF "$target" "$repo/skills/tdd/SKILL.md" | cut -d: -f1)"
+  enclosing="$(head -n "$at" "$repo/skills/tdd/SKILL.md" | grep -E '^## ' | tail -n 1)"
+  expected="$( { readers_of "$target"; readers_of "$enclosing"
+    printf '%s\n' "${real_naming[@]}" | grep -vxF -f <(printf '%s\n' "$slicers"); } | LC_ALL=C sort -u)"
+  cp "$repo/skills/tdd/SKILL.md" "$work/SKILL.md.orig"
+  awk -v at="$at" '{ print } NR == at + 1 { print "an edited line" }' "$work/SKILL.md.orig" > "$repo/skills/tdd/SKILL.md"
+  commit_head
+  out="$(run_affected 2>/dev/null)"; code=$?
+  [[ "$code" == 0 && "$out" == "$expected" ]] ||
+    real_wrong+=" $target(code=$code, selected $(grep -c . <<< "$out") of ${#real_naming[@]}, want $(grep -c . <<< "$expected")): $(diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | grep '^[<>]' | tr '\n' ' ')"
+  mv "$work/SKILL.md.orig" "$repo/skills/tdd/SKILL.md"
+  commit_base
+done
+if [[ -z "$real_wrong" ]]; then ok; else
+  no "on the real SKILL.md and suites, a one-section edit selects the suites quoting that heading (bare, prefixed or by a quoted prefix of its title, plus the enclosing ## for a ###) and the ones quoting no heading:$real_wrong"
+fi
+
 make_repo rule5
 mkdir -p "$s/tests/unit" "$repo/docs"
 printf 'foo\n' > "$s/foo.sh"

@@ -87,9 +87,9 @@ def enclosing(lines):
         if name is None:
             continue
         if line.startswith("## "):
-            return tuple(names + [name])
+            return tuple(names + [line])
         if not names:
-            names.append(name)
+            names.append(line)
     return None
 
 
@@ -120,9 +120,19 @@ def quoted(*names):
     return ["%s%s%s" % (q, n, q) for n in names for q in "'\""]
 
 
+def forms(*lines):
+    found = []
+    for line in lines:
+        prefix, title = line.split(" ", 1)
+        words = title.split()
+        for k in range(1, len(words) + 1):
+            found += quoted(" ".join(words[:k]), prefix + " " + " ".join(words[:k]))
+    return found
+
+
 def headings(f):
     text = (read(f) or b"").decode(errors="replace")
-    return [h for h in map(heading, text.split("\n")) if h is not None]
+    return [line for line in text.split("\n") if heading(line) is not None]
 
 
 def suite_of(f, revisions=None):
@@ -133,8 +143,8 @@ def suite_of(f, revisions=None):
         naming = suites_naming('"%s"' % f, '/%s"' % f)
         section = f == "skills/tdd/SKILL.md" and revisions and edited_section(f, revisions)
         if section:
-            readers = suites_naming(*quoted(*section))
-            slicers = suites_naming(*quoted(*headings(f)))
+            readers = suites_naming(*forms(*section))
+            slicers = suites_naming(*forms(*headings(f)))
             return [s for s in naming if s in readers or s not in slicers]
         return naming
     if match(SCRIPTS + "/tests/*.test.sh", SCRIPTS + "/tests/py/test_*.py"):
