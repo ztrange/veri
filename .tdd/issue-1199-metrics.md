@@ -1,9 +1,9 @@
 ### 📊 Metrics — issue 1199
 
-Wall time for the issue: 2098 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Wall time for the issue: 2393 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
 Seconds the machine was not running inside that span: 0 s, excluded from it.
 Steps done: 2 of 2 planned.
-Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/1230.
+Outcome: the run bailed — ci-red, a process failure.
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
 Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
