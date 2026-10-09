@@ -82,6 +82,45 @@ done
   || no "#619 _shared.md and _develop-shared.md keep the git stash rule unchanged, recommending git show HEAD:<path> and git worktree add --detach <scratch> HEAD (${problems#; })"
 
 problems=""
+DEVELOP="$HERE/../build-develop-prompt.sh"
+echo 'a reason' > "$work/reason.md"
+built_prompts() {  # one call per template: <label>|<builder> <args…>, every one of them including _shared.md or _develop-shared.md
+  local v="$BUILD" d="$DEVELOP" s="$work/spec.md" r="$work/reason.md"
+  printf '%s\n' \
+    "verify-red|$v red $s $testpath t" \
+    "verify-green|$v --fast-cmd unit green $s $testpath t" \
+    "verify-refactor|$v --fast-cmd unit refactor $s $testpath 0123abc" \
+    "verify-pin|$v pin $s $testpath t" \
+    "verify-plan|$v plan $s $work/ledger-stash.md" \
+    "verify-rebase|$v rebase $s 0123abc 4567def" \
+    "verify-transform|$v transform $s $testpath 0123abc" \
+    "verify-diff|$v --step s --fast-cmd unit diff $s 0123abc 4567def" \
+    "develop-red|$d red $s step cmd" \
+    "develop-green|$d green $s step cmd $testpath t unit" \
+    "develop-refactor|$d refactor $s step cmd f" \
+    "develop-cover|$d cover $s step cmd" \
+    "develop-transform|$d transform $s step cmd" \
+    "develop-diff|$d diff $s step cmd unit" \
+    "develop-structural|$d structural $s step cmd f" \
+    "develop-predicate|$d predicate $s step cmd f" \
+    "develop-revise|$d revise red $s step cmd $r" \
+    "develop-revise-diff|$d revise diff $s step cmd $r unit" \
+    "develop-reconcile|$d reconcile $s step cmd b 0123abc" \
+    "develop-exhausted|$d exhausted $s step cmd $r" \
+    "develop-over-budget|$d over-budget $s step cmd 1 2" \
+    "develop-rebase|$d rebase $s step cmd 0123abc 4567def f"
+}
+printf '%s\n' '- [ ] a step ⟦criterion 1⟧' > "$work/ledger-stash.md"
+while IFS='|' read -r label call; do
+  read -ra argv <<<"$call"
+  prompt="$("${argv[@]}" 2>&1)"; code=$?
+  [[ "$code" -eq 0 ]] || { problems="$problems; $label did not build (exit $code)"; continue; }
+  [[ "$prompt" == *"$stash_rule"* ]] || problems="$problems; the built $label prompt lacks the git stash rule verbatim"
+done < <(built_prompts)
+[[ -z "$problems" ]] && ok \
+  || no "#1286 every prompt built from a template including _shared.md or _develop-shared.md carries the git stash rule verbatim (${problems#; })"
+
+problems=""
 forbidding='Never undo a probe with[[:space:]]`git checkout -- <file>` or `git restore`'
 for file in "$prompts"/*; do
   name="${file##*/}"
