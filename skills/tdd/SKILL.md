@@ -1376,9 +1376,8 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      uncovered-spec behaviours, the leaf's and the verifier's, serving one criterion go in
      **one** call, under the script's own one-call rule — one call per criterion when they
      serve different ones — anchored `after "<STEP>"` so the triangulating step lands next to
-     the code it triangulates. The `step-added` line above runs once per call:
-     each per-criterion call emits its own step-added event, anchored on the step and
-     carrying `added=<that call's count>`. **`add-ledger-step.sh` exit 2** here means the call itself was
+     the code it triangulates. Each per-criterion call emits its own step-added event, the
+     line above run once per call, anchored on the step and carrying `added=<that call's count>`. **`add-ledger-step.sh` exit 2** here means the call itself was
      malformed — a `<k>` that is not a whole number ≥ 1 — and is a **bail**. A criterion no
      ledger step serves yet is no obstacle: the script tags the new step `⟦criterion k⟧` all
      the same. Neither reporting one — no `uncovered-spec` flag
