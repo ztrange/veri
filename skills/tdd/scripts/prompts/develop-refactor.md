@@ -76,7 +76,7 @@ your words rather than its own judgement:
 
        {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>
 
-   The wrapper hands the command's own exit status straight back, so a suite a transform
+   {{INCLUDE:_exit-status-back.md}} so a suite a transform
    turned red still reads as red. When a transform reached the one file outside that list
    the exception above allows, its suites run too: the suites follow every file the
    transform touched, so the one suite that could catch the break it did cause is never the

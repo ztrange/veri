@@ -76,7 +76,7 @@ implementation-pinning test anyway to force a pass.
 
        {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>
 
-   The wrapper hands the command's own exit status straight back, so a red run stays red —
+   {{INCLUDE:_exit-status-back.md}} so a red run stays red —
    and red is the answer this phase is after.
 4. **Compare what it printed against what you predicted**, and report which it was.
    *Matched* — carry on. *Diverged* — the test is the suspect, not the prediction: the case

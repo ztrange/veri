@@ -37,7 +37,7 @@ both sides' intent survives.
 
        {{TIMED_TEST_RUN}} all '' {{TEST_CMD}}
 
-   The wrapper hands the command's own exit status straight back, so a red run stays red.
+   {{INCLUDE:_exit-status-back.md}} so a red run stays red.
 4. Do not push. The conductor pushes and re-verifies the resolution.
 5. Do not edit the ledger `.tdd/issue-<n>.md` beyond what the rebase itself carries: every
    {{INCLUDE:_develop-ledger-tick.md}} {{INCLUDE:_develop-ledger-mark.md}}

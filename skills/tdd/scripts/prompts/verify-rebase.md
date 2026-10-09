@@ -21,7 +21,7 @@ branch at `HEAD`.
 
        {{TIMED_TEST_RUN}} all '' <the full test command>
 
-   The wrapper hands the command's own exit status straight back, so a red run stays red.
+   {{INCLUDE:_exit-status-back.md}} so a red run stays red.
    A red run is a REJECT.
 2. **Both sides survive.** The branch's own changes — `git diff {{ONTO_SHA}}...{{PRE_REBASE_SHA}}`
    shows them — and the default branch's changes — `git diff {{PRE_REBASE_SHA}}...{{ONTO_SHA}}`
