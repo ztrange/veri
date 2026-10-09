@@ -16,6 +16,10 @@ def states_blindness_contract(prompt):
                      prompt, re.I) is not None
 
 
+def states_full_suite(prompt):
+    return re.search(r"full[^0-9A-Za-z\n]*test[^0-9A-Za-z\n]*suite", prompt, re.I) is not None
+
+
 def scratch(tmp_path, name, drop=(), templates=None):
     scripts = tmp_path / name
     (scripts / "veri").mkdir(parents=True)
@@ -462,8 +466,7 @@ def test_main_renders_red_green_refactor_and_pin_prompts_carrying_the_test_path_
         "blindness contract": states_blindness_contract(prompts["red"]),
         "verdict format": has("red", r"VERDICT:", 0) and has("red", "pass") and has("red", "reject"),
         "red audit": has("red", "right reason") and has("red", "trivial|coupled|complex"),
-        "green full suite": has("green", "full") and has("green", "suite")
-                            and has("green", r"full[^0-9A-Za-z]*test[^0-9A-Za-z]*suite"),
+        "green full suite": has("green", "full") and has("green", "suite") and states_full_suite(prompts["green"]),
         "refactor standard and green": has("refactor", "standard|convention|typing|robust") and has("refactor", "green"),
         "pin checks": "slugify(\"Hello & World/Foo\")" in prompts["pin"]
                       and has("pin", r"pass(es)? (now|today|already|against|on the (current|unmodified))")
@@ -517,6 +520,28 @@ def test_the_blindness_contract_assertion_needs_its_whole_match_on_one_line_of_t
             red_prompt("apart", b"You will never\n   learn the author's reasoning or rationale")),
     } == {"intact": True, "split sentence": False, "never and reason apart": False}
 
+
+
+def test_the_full_suite_assertion_needs_its_whole_match_on_one_line_of_the_rendered_green_prompt(
+        tmp_path, capsysbinary):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    phrase = b"full test suite"
+    template = (SCRIPTS / "prompts" / "verify-green.md").read_bytes()
+
+    def green_prompt(name, text):
+        module, _ = scratch(tmp_path, name, templates={"verify-green.md": template.replace(phrase, text)})
+        code = module.main(["--fast-cmd", "make unit", "green", str(spec), "tests/test_slugify.py",
+                            "test_slugify_lowercases"])
+        out, _ = capsysbinary.readouterr()
+        assert code == 0
+        return out.decode("utf-8", "surrogateescape")
+
+    assert template.count(phrase) == 1
+    assert {
+        "intact": states_full_suite(green_prompt("intact", phrase)),
+        "suite on the next line": states_full_suite(green_prompt("split", b"full test\n   suite")),
+    } == {"intact": True, "suite on the next line": False}
 
 def test_main_carries_and_checks_refactors_base_sha_scopes_every_prompt_to_its_step_ignoring_veri_step_and_renders_the_configuration_mechanism_fast_cmd_name_error_unrequired_code_restore_and_checkout_rules(
         tmp_path, capsysbinary, monkeypatch, build_verify_prompt):
