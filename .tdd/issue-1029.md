@@ -10,4 +10,4 @@
 - [x] `test_profile.py` and `test_stop_run.py` define no `fake_processes` of their own and answer their commands through the shared fake, every case keeping its name, so no `test_*.py` under `tests/py/` defines `def fake_processes` ⟦diff-checked⟧ ⟦criterion 1⟧
 - [x] No case in `test_invisible_work.py`, `test_preserve_attempt.py`, `test_profile.py`, `test_push_branch.py`, `test_refactor_touched.py` or `test_wait_ci.py` is renamed or removed by the branch ⟦diff-checked⟧ ⟦criterion 2⟧
 - [x] `test_run_conductor.py`, which `main` added after the branch was cut, defines no `fake_processes` of its own and records its commands through the shared fake, every case keeping its name, so no `test_*.py` under `tests/py/` defines `def fake_processes` on the rebased tip ⟦diff-checked⟧ ⟦added⟧ ⟦criterion 2⟧
-- [ ] Every existing case in the six suites still passes ⟦full-suite⟧ ⟦criterion 2⟧
+- [x] Every existing case in the six suites still passes ⟦full-suite⟧ ⟦criterion 2⟧
