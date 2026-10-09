@@ -327,6 +327,31 @@ expect_suites "an edit whose changed lines of SKILL.md span two sections prints 
   skills/tdd/scripts/tests/skill-beta.test.sh \
   skills/tdd/scripts/tests/skill-gamma.test.sh
 
+make_repo skill_unplaced
+mkdir -p "$s/tests"
+for name in Alpha Beta; do
+  printf '#!/usr/bin/env bash\nskill_md="skills/tdd/SKILL.md"\nload_section '"'"'%s'"'"'\n' "$name" > "$s/tests/skill-$(printf '%s' "$name" | tr 'A-Z' 'a-z').test.sh"
+done
+commit_base
+unplaced_expected="$(printf '%s\n' skills/tdd/scripts/tests/skill-alpha.test.sh skills/tdd/scripts/tests/skill-beta.test.sh)"
+unplaced_wrong=""
+check_unplaced() {
+  local out code
+  commit_head
+  out="$(run_affected 2>/dev/null)"; code=$?
+  [[ "$code" == 0 && "$out" == "$unplaced_expected" ]] || unplaced_wrong+=" $1(code=$code, stdout=${out//$'\n'/,})"
+  base="$head"
+}
+printf '# tdd\n\nintro\n\n## Alpha\n\nalpha text\n\n## Beta\n\nbeta text\n' > "$repo/skills/tdd/SKILL.md"
+check_unplaced added
+printf '# tdd\n\nintro 2\n\n## Alpha\n\nalpha text\n\n## Beta\n\nbeta text\n' > "$repo/skills/tdd/SKILL.md"
+check_unplaced "above the first ##"
+rm "$repo/skills/tdd/SKILL.md"
+check_unplaced deleted
+if [[ -z "$unplaced_wrong" ]]; then ok; else
+  no "an edit to SKILL.md that cannot be placed in a section (above the first ##, file added or deleted) prints every suite naming SKILL.md:$unplaced_wrong"
+fi
+
 make_repo rule5
 mkdir -p "$s/tests/unit" "$repo/docs"
 printf 'foo\n' > "$s/foo.sh"
