@@ -8,15 +8,19 @@ def _shim_name(main):
     return module.replace("_", "-") + ".sh"
 
 
+def silence_stdout():
+    try:
+        os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+    except (AttributeError, OSError, ValueError):
+        pass
+
+
 def run(main, argv):
     try:
         code = main(argv)
         sys.stdout.flush()
     except BrokenPipeError:
-        try:
-            os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
-        except (AttributeError, OSError, ValueError):
-            pass
+        silence_stdout()
         sys.exit(141)
     except Exception as exc:
         reason = " ".join(str(exc).split())
