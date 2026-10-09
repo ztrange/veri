@@ -41,6 +41,8 @@ def main(argv):
             _watch(issue, conductor.stdout, budget)
         finally:
             _stop(conductor.pid)
+        for _ in conductor.stdout:
+            pass
         if _parked(issue):
             _say("parked %s\n" % issue)
 
