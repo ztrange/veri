@@ -560,7 +560,7 @@ scan_current_step_title() {
   fi
   cat > "$RECORDERS/ledger-steps.sh" <<'STUB'
 #!/bin/sh
-[ "$1" = current ] || exit 2
+case "$1" in current|current-or-last-done) ;; *) exit 2 ;; esac
 cat "$SEEN.current"
 STUB
   chmod +x "$RECORDERS/ledger-steps.sh"
