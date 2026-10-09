@@ -5,6 +5,8 @@ import signal
 import subprocess
 import sys
 
+import entry
+
 try:
     from context_budget import START, watch
 except ImportError:
@@ -99,12 +101,10 @@ def _main_stdout_gone_exits_2(argv):
     try:
         return main(argv)
     except BrokenPipeError:
-        if sys.stdout is not None:
-            os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+        entry.silence_stdout()
         _err("orchestrate.sh: stdout is gone: its reader has exited\n")
         sys.exit(2)
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(_main_stdout_gone_exits_2, sys.argv[1:])
