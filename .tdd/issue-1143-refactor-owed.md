@@ -2,3 +2,5 @@
 - test-only | three pre-existing tests (around lines 532, 647, 817) each define the same nested `has(out, pattern, flags)` that folds newlines and searches bytes; this cycle didn't write them
 - test-only | four pre-existing tests (around lines 151, 243, 319, 383) repeat the inline copy-module-and-load sequence that `scratch` now covers, minus the prompts copy; this cycle didn't write them
 - test-only | the full-suite assertion (`green full suite`, the `has("green", r"full[^0-9A-Za-z]*test[^0-9A-Za-z]*suite")` call on the newline-joined `folded` prompt) can still match across lines; that is plan step 2's criterion, not a refactor
+### test_build_verify_prompt.py's full-suite assertion on the green prompt needs its whole `full … test … suite` match on one line of the rendered prompt: a green prompt with `full test` on one line and `suite` on the next makes the case fail ⟦criterion 1⟧
+- out-of-scope | drop the redundant has("green", "full") and has("green", "suite") conjuncts beside states_full_suite in the "green full suite" check (pre-existing code, not this cycle's)
