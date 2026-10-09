@@ -507,6 +507,35 @@ expected="$(printf '%s\n' 'writer 143' "conductor running at orchestrate.sh's ex
 actual="$(cat "$MARKS"; echo "$waited")"
 expect_exit0_output
 
+name="#1246 a conductor group still holding its stdout open when VERI_CONDUCTOR_STOP_TIMEOUT runs out after orchestrate.sh's SIGTERM does not hang orchestrate.sh: it asks solvable-issues.sh again while the group still holds it, and exits 0"
+heldopen="$work/heldopen"
+mkdir -p "$heldopen"
+cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$heldopen/"
+cp -R "$scripts/lib" "$scripts/veri" "$heldopen/"
+cat > "$heldopen/run-conductor.sh" <<'STUB'
+#!/usr/bin/env bash
+echo $$ >> "$MARKS.pid"
+echo "$1" >> "$LAUNCHES"
+grep -vx -- "$1" "$SOLVABLE" > "$SOLVABLE.next"
+mv "$SOLVABLE.next" "$SOLVABLE"
+trap '' TERM
+(i=0
+ while [ $i -lt 400 ] && ! grep -x 2 "$SOLVABLE.calls" > /dev/null 2>&1; do sleep 0.01; i=$((i + 1)); done
+ if [ $i -lt 400 ]; then echo "asked again while the group held its stdout"; else echo "not asked again while the group held its stdout"; fi >> "$MARKS") &
+holder=$!
+echo $holder >> "$MARKS.pid"
+echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=1356 VERI_ACTOR=conductor $S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
+echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
+wait $holder
+STUB
+chmod +x "$heldopen"/*.sh
+seed heldopen 1356
+VERI_CONDUCTOR_CTX_BUDGET=100000 VERI_CONDUCTOR_STOP_TIMEOUT=0.1 orchestrate "$heldopen"
+await_gone
+expected='asked again while the group held its stdout'
+actual="$(cat "$MARKS")"
+expect_exit0_output
+
 name="run through a symlink to its scripts directory from another working directory, launches that directory's run-conductor.sh, asks its solvable-issues.sh and reads .tdd/parked/ in the working directory"
 realskill="$work/realskill"
 mkdir -p "$realskill/.tdd/parked" "$work/elsewhere/.tdd/parked"
