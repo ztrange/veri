@@ -448,20 +448,14 @@ echo $$ >> "$MARKS.pid"
 echo "$1" >> "$LAUNCHES"
 grep -vx -- "$1" "$SOLVABLE" > "$SOLVABLE.next"
 mv "$SOLVABLE.next" "$SOLVABLE"
-(while :; do echo '{"type":"system","subtype":"heartbeat"}'; done) &
+trap '' TERM
+(trap - TERM; while :; do echo '{"type":"system","subtype":"heartbeat"}'; sleep 0.01; done) &
 writer=$!
 echo $writer >> "$MARKS.pid"
-trap 'termed=1' TERM
 echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=1354 VERI_ACTOR=conductor $S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
 echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
 wait $writer
-rc=$?
-if [ -n "${termed:-}" ]; then
-  wait $writer
-  echo "writer $?" >> "$MARKS"
-  exit 0
-fi
-echo "writer $rc before any TERM" >> "$MARKS"
+echo "writer $?" >> "$MARKS"
 STUB
 chmod +x "$termgroup"/*.sh
 seed termgroup 1354
