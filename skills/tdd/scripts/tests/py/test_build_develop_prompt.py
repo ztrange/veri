@@ -1109,3 +1109,44 @@ def test_main_answers_what_the_bash_contract_cases_from_the_rebase_prompt_to_the
     }
 
     assert checks == dict.fromkeys(checks, True)
+
+
+def test_main_tells_every_developer_prompt_to_signal_only_processes_it_started_by_recorded_pid_never_by_pattern_and_to_prefix_experiments_exp_1174(
+        tmp_path, capsysbinary, monkeypatch, build_develop_prompt):
+    monkeypatch.delenv("VERI_REFACTOR_BUDGET", raising=False)
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"REJECT: the case asserts on zorblat()'s log line.\n")
+    s, r = str(spec), str(reason)
+    step, cmd = "QWIXTLE: a seed ending in a newline gains the block", "make test"
+
+    def rendered(argv):
+        code = build_develop_prompt.main(argv)
+        out, _ = capsysbinary.readouterr()
+        return re.sub(rb"\s+", b" ", out) if code == 0 else None
+
+    prompts = {
+        "red": rendered(["red", s, step, cmd]),
+        "green": rendered(["green", s, step, cmd, "tests/zorblat.test.sh", "qwixtle seeds", "make unit"]),
+        "refactor": rendered(["refactor", s, step, cmd, "scripts/zorblat.sh"]),
+        "revise": rendered(["revise", "red", s, step, cmd, r]),
+        "exhausted": rendered(["exhausted", s, step, cmd, r]),
+    }
+
+    def says(prompt, pattern):
+        return prompt is not None and re.search(pattern, prompt, re.I) is not None
+
+    rules = {
+        "signals only processes it started": rb"(signal|kill)s? only (the )?processes (it|you) (started|start)",
+        "by the pid recorded when it started them": rb"pid (it|you) recorded when (it|you) started",
+        "never by name or pattern": rb"never by name or (by )?pattern",
+        "names pkill": rb"`pkill`",
+        "names killall": rb"`killall`",
+        "names kill $(pgrep": rb"`kill \$\(pgrep",
+        "experiments carry the exp- prefix": rb"`exp-`[^.]{0,80}(prefix|no live run)|prefix[^.]{0,80}`exp-`",
+        "no live run uses that prefix": rb"no live run uses",
+    }
+
+    assert {phase: [name for name, pattern in rules.items() if not says(prompt, pattern)]
+            for phase, prompt in prompts.items()} == dict.fromkeys(prompts, [])
