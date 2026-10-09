@@ -21,13 +21,34 @@ needs_contract() {
   [[ -f "$SCRIPTS/$1" ]] && grep -E '^(source|\.)[[:space:]].*lib/exit-contract\.sh' "$SCRIPTS/$1" > /dev/null
 }
 
+candidates() {
+  local f files=()
+  for f in "$@"; do [[ -f "$f" ]] && files+=("$f"); done
+  (( ${#files[@]} )) || return 0
+  grep -naHE '^[[:space:]]*[A-Za-z_][A-Za-z0-9_]*=|(cp|ln)[[:space:]]|exit-contract\.sh|GUARD=|lib/guard-plant\.sh' "${files[@]}"
+}
+
+each_suite() {
+  local callback="$1" entry suite=""
+  local -a lines=()
+  while IFS= read -r entry; do
+    if [[ "${entry%%:*}" != "$suite" ]]; then
+      [[ -n "$suite" ]] && "$callback" "$suite"
+      suite="${entry%%:*}" lines=()
+    fi
+    lines+=("${entry#*:}")
+  done <<< "$2"
+  [[ -z "$suite" ]] || "$callback" "$suite"
+}
+
 read_vars() {
-  local line cd_pwd='^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)="\$\(cd "(.*)" && pwd\)([^"]*)"[[:space:]]*$'
-  while IFS= read -r line; do
+  local entry line cd_pwd='^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)="\$\(cd "(.*)" && pwd\)([^"]*)"[[:space:]]*$'
+  for entry in "${lines[@]}"; do
+    line="${entry#*:}"
     [[ "$line" =~ $cd_pwd ]] && vars["${BASH_REMATCH[1]}"]="${BASH_REMATCH[2]}${BASH_REMATCH[3]}" && continue
     [[ "$line" =~ ^[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=[\'\"]?([^\'\"]*)[\'\"]?[[:space:]]*$ ]] \
       && vars["${BASH_REMATCH[1]}"]="${BASH_REMATCH[2]}"
-  done < "$1"
+  done
 }
 
 expand() {
@@ -38,7 +59,7 @@ expand() {
       text="${text//\$$var/${vars[$var]}}"
     done
   done
-  printf '%s' "$text"
+  expanded="$text"
 }
 
 names_script_lib() {
@@ -51,23 +72,25 @@ names_script_lib() {
   return 1
 }
 
-lib_copy_hits() {
-  local dir="$1" suite line n before quotes copy='(^|[[:space:];&|(`{])(cp|ln)[[:space:]]'
-  for suite in "$dir"/*.test.sh "$dir"/unit/*.test.sh "$dir"/lib/*.sh; do
-    [[ -f "$suite" ]] || continue
-    local -A vars=()
-    read_vars "$suite"
-    n=0
-    while IFS= read -r line; do
-      n=$((n + 1))
-      [[ "$line" =~ $copy ]] || continue
-      before="${line%%"${BASH_REMATCH[0]}"*}"
-      quotes="${before//[^\']/}"
-      (( ${#quotes} % 2 == 0 )) || continue
-      names_script_lib "$(expand "${line#"$before"}")" || continue
-      printf '    %s:%s copies an individual lib file\n' "${suite#"$dir"/}" "$n"
-    done < "$suite"
+lib_copy_line() {
+  local suite="$1" entry line n before quotes copy='(^|[[:space:];&|(`{])(cp|ln)[[:space:]]'
+  local -A vars=()
+  read_vars
+  for entry in "${lines[@]}"; do
+    n="${entry%%:*}" line="${entry#*:}"
+    [[ "$line" =~ $copy ]] || continue
+    before="${line%%"${BASH_REMATCH[0]}"*}"
+    quotes="${before//[^\']/}"
+    (( ${#quotes} % 2 == 0 )) || continue
+    expand "${line#"$before"}"
+    names_script_lib "$expanded" || continue
+    printf '    %s:%s copies an individual lib file\n' "${suite#"$dir"/}" "$n"
   done
+}
+
+lib_copy_hits() {
+  local dir="$1"
+  each_suite lib_copy_line "$(candidates "$dir"/*.test.sh "$dir"/unit/*.test.sh "$dir"/lib/*.sh)"
 }
 
 expect_hits() {
@@ -76,87 +99,109 @@ expect_hits() {
   expect_eq "$name" "$(printf '    %s copies an individual lib file\n' "$@")" "$(lib_copy_hits "$plant" 2>&1)"
 }
 
-name="a suite that copies a script sourcing lib/exit-contract.sh into a scratch tree puts that lib there too"
-problems=""
-for suite in "$TESTS"/*.test.sh "$TESTS"/unit/*.test.sh; do
-  grep -F 'exit-contract.sh' "$suite" > /dev/null && continue
-  grep -E '(^|[[:space:]])cp[[:space:]]+-[A-Za-z]*R' "$suite" > /dev/null && continue
-  grep -E '(^|[[:space:]])cp[[:space:]].*lib/\*\.sh' "$suite" > /dev/null && continue
-  declare -A vars=()
-  read_vars "$suite"
-  n=0
-  while IFS= read -r line; do
-    n=$((n + 1))
+tree="$(candidates "$TESTS"/*.test.sh "$TESTS"/unit/*.test.sh)"
+
+contract_line() {
+  local suite="$1" entry n line rest hit
+  for entry in "${lines[@]}"; do
+    line="${entry#*:}"
+    [[ "$line" == *exit-contract.sh* ]] && return
+    [[ "$line" =~ (^|[[:space:]])cp[[:space:]]+-[A-Za-z]*R ]] && return
+    [[ "$line" =~ (^|[[:space:]])cp[[:space:]].*lib/\*\.sh ]] && return
+  done
+  local -A vars=()
+  read_vars
+  for entry in "${lines[@]}"; do
+    n="${entry%%:*}" line="${entry#*:}"
     [[ "$line" =~ (^|[[:space:]])cp[[:space:]] ]] || continue
-    rest="$(expand "$line")"
+    expand "$line"
+    rest="$expanded"
     while [[ "$rest" =~ (^|[/\"\' ])([A-Za-z0-9_.-]+\.sh)(.*)$ ]]; do
       rest="${BASH_REMATCH[3]}"
       hit="    ${suite#"$TESTS"/}:$n copies ${BASH_REMATCH[2]} without lib/exit-contract.sh"$'\n'
       [[ "$problems" == *"$hit"* ]] && continue
       needs_contract "${BASH_REMATCH[2]}" && problems+="$hit"
     done
-  done < "$suite"
-  unset vars
-done
+  done
+}
+
+name="a suite that copies a script sourcing lib/exit-contract.sh into a scratch tree puts that lib there too"
+problems=""
+each_suite contract_line "$tree"
 verdict "$name"
+
+veri_line() {
+  local suite="$1" entry n line rest sites="" has_veri=""
+  local -A vars=()
+  read_vars
+  for entry in "${lines[@]}"; do
+    n="${entry%%:*}" line="${entry#*:}"
+    [[ "$line" =~ (^|[[:space:]])(cp|ln)[[:space:]] ]] || continue
+    expand "$line"
+    rest="$expanded"
+    [[ "$rest" =~ scripts/veri/?\*?[\"\']?[[:space:]] ]] && has_veri=1
+    [[ "$rest" == *run-suite.sh* ]] && sites+="    ${suite#"$TESTS"/}:$n copies run-suite.sh without veri/"$'\n'
+  done
+  [[ -n "$has_veri" ]] || problems+="$sites"
+}
 
 name="a suite that copies run-suite.sh into a scratch tree copies skills/tdd/scripts/veri/ beside it, or is named <suite>:<line>"
 problems=""
-for suite in "$TESTS"/*.test.sh "$TESTS"/unit/*.test.sh; do
-  declare -A vars=()
-  read_vars "$suite"
-  sites="" has_veri=""
-  n=0
-  while IFS= read -r line; do
-    n=$((n + 1))
-    [[ "$line" =~ (^|[[:space:]])(cp|ln)[[:space:]] ]] || continue
-    rest="$(expand "$line")"
-    [[ "$rest" =~ scripts/veri/?\*?[\"\']?[[:space:]] ]] && has_veri=1
-    [[ "$rest" == *run-suite.sh* ]] && sites+="    ${suite#"$TESTS"/}:$n copies run-suite.sh without veri/"$'\n'
-  done < "$suite"
-  [[ -n "$has_veri" ]] || problems+="$sites"
-  unset vars
-done
+each_suite veri_line "$tree"
 verdict "$name"
 
-name="#1150: a suite that copies a veri/ module importing entry into a scratch tree copies veri/entry.py beside it, or is named <suite>:<line>"
-problems=""
-for suite in "$TESTS"/*.test.sh "$TESTS"/unit/*.test.sh; do
-  declare -A vars=()
-  read_vars "$suite"
-  sites="" has_entry=""
-  n=0
-  while IFS= read -r line; do
-    n=$((n + 1))
+entry_line() {
+  local suite="$1" entry n line rest module sites="" has_entry=""
+  local -A vars=()
+  read_vars
+  for entry in "${lines[@]}"; do
+    n="${entry%%:*}" line="${entry#*:}"
     [[ "$line" =~ (^|[[:space:]])(cp|ln)[[:space:]] ]] || continue
-    rest="$(expand "$line")"
+    expand "$line"
+    rest="$expanded"
     [[ "$rest" =~ scripts/veri/?\*?[\"\']?[[:space:]] || "$rest" == *veri/entry.py* || "$rest" == *veri/\*.py* ]] && has_entry=1
     [[ "$rest" =~ veri/([A-Za-z0-9_]+\.py) ]] || continue
     module="${BASH_REMATCH[1]}"
     [[ -f "$SCRIPTS/veri/$module" ]] && grep -E '^[[:space:]]*import entry' "$SCRIPTS/veri/$module" > /dev/null \
       && sites+="    ${suite#"$TESTS"/}:$n copies veri/$module without veri/entry.py"$'\n'
-  done < "$suite"
+  done
   [[ -n "$has_entry" ]] || problems+="$sites"
-  unset vars
-done
+}
+
+name="#1150: a suite that copies a veri/ module importing entry into a scratch tree copies veri/entry.py beside it, or is named <suite>:<line>"
+problems=""
+each_suite entry_line "$tree"
 verdict "$name"
 
-name="a suite that plants a suite into a scratch tree copies every tests/lib file that suite sources"
-problems=""
-for suite in "$TESTS"/*.test.sh "$TESTS"/unit/*.test.sh; do
-  [[ "$(< "$suite")" =~ GUARD=\'skills/tdd/scripts/tests/([A-Za-z0-9_.-]+\.test\.sh)\' ]] || continue
-  planted="${BASH_REMATCH[1]}"
-  [[ -f "$TESTS/$planted" ]] || continue
-  copies="$(grep -E '(^|[[:space:]])cp[[:space:]]' "$suite")"
-  grep -E '^(source|\.)[[:space:]].*lib/guard-plant\.sh' "$suite" > /dev/null \
-    && copies+=$'\n'"$(grep -E '(^|[[:space:]])cp[[:space:]]' "$TESTS/lib/guard-plant.sh")"
-  grep -E '(lib|LIB)"?/\*\.sh' <<< "$copies" > /dev/null && continue
-  grep -E '(lib|LIB)"?/harness\.sh' <<< "$copies" > /dev/null || continue
+plant_line() {
+  local suite="$1" entry line planted="" copies="" lib
+  for entry in "${lines[@]}"; do
+    line="${entry#*:}"
+    [[ -z "$planted" && "$line" =~ GUARD=\'skills/tdd/scripts/tests/([A-Za-z0-9_.-]+\.test\.sh)\' ]] \
+      && planted="${BASH_REMATCH[1]}"
+  done
+  [[ -n "$planted" && -f "$TESTS/$planted" ]] || return
+  for entry in "${lines[@]}"; do
+    line="${entry#*:}"
+    [[ "$line" =~ (^|[[:space:]])cp[[:space:]] ]] && copies+="$line"$'\n'
+  done
+  copies="${copies%$'\n'}"
+  for entry in "${lines[@]}"; do
+    [[ "${entry#*:}" =~ ^(source|\.)[[:space:]].*lib/guard-plant\.sh ]] || continue
+    copies+=$'\n'"$(grep -E '(^|[[:space:]])cp[[:space:]]' "$TESTS/lib/guard-plant.sh")"
+    break
+  done
+  grep -E '(lib|LIB)"?/\*\.sh' <<< "$copies" > /dev/null && return
+  grep -E '(lib|LIB)"?/harness\.sh' <<< "$copies" > /dev/null || return
   while IFS= read -r lib; do
     grep -E "(lib|LIB)\"?/$lib" <<< "$copies" > /dev/null \
       || problems+="    ${suite#"$TESTS"/} plants $planted without lib/$lib"$'\n'
   done < <(sed -nE 's#^(source|\.)[[:space:]]+"\$HERE/lib/([A-Za-z0-9_.-]+\.sh)".*#\2#p' "$TESTS/$planted")
-done
+}
+
+name="a suite that plants a suite into a scratch tree copies every tests/lib file that suite sources"
+problems=""
+each_suite plant_line "$tree"
 verdict "$name"
 
 name="#749: the lib-copy guard names <suite>:<line> for a cp or ln of an individual lib file, never for lib/*.sh or the lib dir"
