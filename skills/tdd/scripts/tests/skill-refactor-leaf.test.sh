@@ -419,11 +419,11 @@ problems=()
 if unreadable_section; then
   problems+=("$(unreadable_problem "which add-ledger-step.sh call an uncovered-spec flag's behaviour goes into could not be established")")
 else
-  opening='an uncovered-spec flag is the one class that grows the plan'
+  opening='flag is the one class that grows the plan'
   substep=""
   [[ "$section" == *"$opening"* ]] && substep="$opening${section#*"$opening"}" && substep="${substep%%a beyond-spec flag is narrated*}"
   if [[ -z "$substep" ]]; then
-    problems+=("$skill_md's Refactor section has no sub-step 4 opening 'an uncovered-spec flag is the one class that grows the plan', so where its behaviours go could not be established")
+    problems+=("$skill_md's Refactor section has no sub-step 4 opening '<class> flag is the one class that grows the plan', so where its behaviours go could not be established")
   else
     shared="$(phrase "the same[^.]{0,80}add-ledger-step\\.sh[^.]{0,80}call" "$substep")"
     [[ -z "$shared" ]] ||
