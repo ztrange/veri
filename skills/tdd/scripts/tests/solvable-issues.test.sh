@@ -1579,6 +1579,11 @@ surrounding_repo() {  # surrounding_repo <dir> <n…>
 surrounding_repo "$work/surrounding-unrelated" "${unrelated_numbers[@]}"
 surrounding_repo "$work/surrounding-every" "${fixture_numbers[@]+"${fixture_numbers[@]}"}"
 
+same_answer() {  # same_answer <what> <want-code> <want-out>; appends to $problems unless $code and $out match
+  [[ "$code" == "$2" && "$out" == "$3" ]] ||
+    problems+=("$1: want exit $2 and stdout '$(tr '\n' '|' <<<"$3")', got exit $code and stdout '$(tr '\n' '|' <<<"$out")'")
+}
+
 problems=()
 run "$fx"; no_lock_out="$out" no_lock_code="$code"
 label_run "$fx" -u VERI_PRIORITY_LABEL; no_lock_label_out="$out" no_lock_label_code="$code"
@@ -1589,11 +1594,9 @@ label_run "$fx" -u VERI_PRIORITY_LABEL; no_lock_label_out="$out" no_lock_label_c
 for surrounding in surrounding-unrelated surrounding-every; do
   cd "$work/$surrounding" || exit 2
   run "$fx"
-  [[ "$code" == "$no_lock_code" && "$out" == "$no_lock_out" ]] ||
-    problems+=("run under $surrounding: want exit $no_lock_code and stdout '$(tr '\n' '|' <<<"$no_lock_out")', got exit $code and stdout '$(tr '\n' '|' <<<"$out")'")
+  same_answer "run under $surrounding" "$no_lock_code" "$no_lock_out"
   label_run "$fx" -u VERI_PRIORITY_LABEL
-  [[ "$code" == "$no_lock_label_code" && "$out" == "$no_lock_label_out" ]] ||
-    problems+=("label_run under $surrounding: want exit $no_lock_label_code and stdout '$(tr '\n' '|' <<<"$no_lock_label_out")', got exit $code and stdout '$(tr '\n' '|' <<<"$out")'")
+  same_answer "label_run under $surrounding" "$no_lock_label_code" "$no_lock_label_out"
   cd "$no_claims" || exit 2
 done
 report "$name"
