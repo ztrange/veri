@@ -1150,3 +1150,45 @@ def test_main_tells_every_developer_prompt_to_signal_only_processes_it_started_b
 
     assert {phase: [name for name, pattern in rules.items() if not says(prompt, pattern)]
             for phase, prompt in prompts.items()} == dict.fromkeys(prompts, [])
+
+
+def test_main_permits_a_replaces_case_green_to_delete_exactly_the_cases_its_step_names_one_or_several_and_forbids_any_case_it_does_not_name(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"REJECT: the case asserts on zorblat()'s log line.\n")
+    s, r = str(spec), str(reason)
+    several = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob", '
+               '"zorblat refuses an empty nitz" move to tests/py/test_zorblat.py ⟦criterion 1⟧')
+    one = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz" moves to '
+           'tests/py/test_zorblat.py ⟦criterion 1⟧')
+
+    def rendered(argv):
+        code = build_develop_prompt.main(argv)
+        out, _ = capsysbinary.readouterr()
+        return re.sub(rb"\s+", b" ", out) if code == 0 else None
+
+    prompts = {}
+    for name, step in (("several", several), ("one", one)):
+        prompts[(name, "green")] = rendered(["green", s, step, "make test", "tests/py/test_zorblat.py",
+                                             "test_zorblat_frobs_a_nitz", "make unit"])
+        prompts[(name, "revise green")] = rendered(["revise", "green", s, step, "make test", r])
+
+    def says(prompt, pattern):
+        return prompt is not None and re.search(pattern, prompt, re.I) is not None
+
+    rules = {
+        "permits deleting exactly the cases the step names": (
+            rb"(may|permitted|allowed|licen[cs]ed?)[^.]{0,60}delet[^.]{0,60}"
+            rb"(exactly|every|each|all)[^.]{0,30}cases?[^.]{0,30}(it|the step|its text) names"),
+        "forbids modifying or deleting any case the step does not name": (
+            rb"(never|not|forbid|forbidden|must not)[^.]{0,40}modify or delet[^.]{0,40}"
+            rb"(any|a) case (it|the step|its text) does not name"),
+    }
+    one_only = rb"^(?!.*(names one bash case|that one case))"
+
+    assert {key: [rule for rule, pattern in rules.items() if not says(prompt, pattern)]
+            + (["never confines a several-case step to one case"]
+               if key[0] == "several" and not says(prompt, one_only) else [])
+            for key, prompt in prompts.items()} == dict.fromkeys(prompts, [])

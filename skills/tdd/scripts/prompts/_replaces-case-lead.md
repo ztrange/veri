@@ -1,2 +1,2 @@
-**This step replaces a case.** Its text names one bash case, by suite path and exact name,
-whose behaviour a pytest case
+**This step replaces cases.** Its text names one suite path and one or more of that suite's bash
+cases, each by its exact name, whose behaviour a pytest case
