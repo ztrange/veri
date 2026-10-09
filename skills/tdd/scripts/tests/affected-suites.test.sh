@@ -267,6 +267,26 @@ commit_head
 expect_suites "an edit inside one ## section of SKILL.md still prints a suite reading SKILL.md unsliced" \
   skills/tdd/scripts/tests/skill-whole.test.sh
 
+make_repo skill_subsection
+mkdir -p "$s/tests"
+printf '# tdd\n\n## Alpha\n\nalpha text\n\n### Sub\n\nsub text\n\n### Sib\n\nsib text\n\n## Beta\n\nbeta text\n' > "$repo/skills/tdd/SKILL.md"
+for name in Alpha Sub Sib Beta; do
+  printf '#!/usr/bin/env bash\nskill_md="skills/tdd/SKILL.md"\nload_section '"'"'%s'"'"'\n' "$name" > "$s/tests/skill-$(printf '%s' "$name" | tr 'A-Z' 'a-z').test.sh"
+done
+commit_base
+printf '# tdd\n\n## Alpha\n\nalpha text\n\n### Sub\n\nsub text 2\n\n### Sib\n\nsib text\n\n## Beta\n\nbeta text\n' > "$repo/skills/tdd/SKILL.md"
+commit_head
+expect_suites "an edit inside one ### subsection of SKILL.md prints the suites reading it and its enclosing ## section, not one reading only a sibling" \
+  skills/tdd/scripts/tests/skill-alpha.test.sh \
+  skills/tdd/scripts/tests/skill-sub.test.sh
+
+base="$head"
+printf '# tdd\n\n## Alpha\n\nalpha text\n\n### Sub\n\nsub text 2\n\n### Sib\n\nsib text 2\n\n## Beta\n\nbeta text\n' > "$repo/skills/tdd/SKILL.md"
+commit_head
+expect_suites "an edit inside a ### subsection after a sibling ### prints the suites reading it and its enclosing ## section, not one reading the earlier sibling" \
+  skills/tdd/scripts/tests/skill-alpha.test.sh \
+  skills/tdd/scripts/tests/skill-sib.test.sh
+
 make_repo rule5
 mkdir -p "$s/tests/unit" "$repo/docs"
 printf 'foo\n' > "$s/foo.sh"
