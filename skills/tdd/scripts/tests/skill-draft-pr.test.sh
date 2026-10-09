@@ -115,6 +115,9 @@
 #  43. SKILL.md's Guardrails invariant about opening the PR names both runs at the Draft PR
 #      step: the branch's own full run, again after each `⟦suite-repair⟧` step, and the extra
 #      run on the rebased tip when sub-step 1 rebased the branch.
+#  44. SKILL.md's `ci-red` bail names each failed CI check: every `cause=ci-red` bail line in the
+#      Draft PR step carries a field read from the head's check runs, and `## Bailing`'s
+#      `### ⛔ Bailed` comment says a `ci-red` bail names each check that failed.
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -1081,6 +1084,26 @@ if step_or_problem '### 4. Draft PR' "whether a conductor may re-run a failed CI
     [[ -n "$(first_record "$rule" -F 'operator')" ]] ||
       problems+=("$skill_md's rule against re-running a failed CI job does not leave re-running a known flake to the operator, outside a run: $(printf '%.160s' "$rule")")
   fi
+fi
+report "$name"
+
+name="$skill_md's ci-red bail names each failed CI check: every ci-red bail mark in the Draft PR step carries the failed checks' names read from the head's check runs, and Bailing's ### ⛔ Bailed comment names them (#1282)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "whether its ci-red bail names the failed checks"; then
+  bails="$(section_lines '### 4. Draft PR' '^## |^### ' | grep -F 'cause=ci-red')"
+  [[ -n "$bails" ]] || problems+=("$skill_md's Draft PR step runs no ci-red bail at all")
+  while IFS= read -r bail; do
+    [[ -z "$bail" ]] && continue
+    fields="$(printf '%s\n' "$bail" | grep -oE ' [a-z_]+=' | grep -vE '^ (cause|classification)=$')"
+    [[ -n "$fields" && "$bail" == *check-runs* ]] ||
+      problems+=("$skill_md's ci-red bail mark carries no field naming the failed checks read from the head's check runs: $(printf '%.200s' "$bail")")
+  done <<< "$bails"
+fi
+if section_or_problem '## Bailing' '^## ' "whether its Bailed comment names the failed checks of a ci-red bail"; then
+  comment="$(first_record "$records" -F '### ⛔ bailed' -F 'ci-red')"
+  [[ -n "$comment" && -n "$(first_record "$comment" -F 'check')" ]] ||
+    problems+=("$skill_md's ### ⛔ Bailed comment never says that a ci-red bail names each CI check that failed")
 fi
 report "$name"
 
