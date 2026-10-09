@@ -3,3 +3,6 @@
 ### A pytest suite run by run-suite.sh sees no VERI_* or CLAUDE_* variable from run-suite.sh's caller except VERI_VENV, and run-suite.sh's own venv lookup still honours the caller's VERI_VENV ⟦criterion 1⟧
 - test-only | extract the four ambient `monkeypatch.setenv` lines (`VERI_MODEL`, `VERI_ISSUE`, `VERI_GH_DRIVER`, `CLAUDE_BIN`) and the `leaked = sorted(...)` expression, both repeated in the two `_1258` cases of `test_run_suite.py`, into one helper
 - test-only | extract the "clear every ambient `VERI_*`/`CLAUDE_*` variable" loop, repeated in `test_run_suite.py` in `test_main_starts_the_suite_alone_…` and both `_1258` cases, into one helper
+### solvable-issues.test.sh itself fails, named, when a live conductor lock under the surrounding repository's .tdd/wt/<n>/.tdd/conductor.pid — for unrelated numbers, and for every number its own fixtures name — changes solvable-issues.sh's answer, without running a copy of that suite ⟦criterion 2⟧
+- test-only | the lock case guards `fixture_numbers` with `${arr[@]+…}` in the `surrounding_repo` call but not in the issues.json loop; use one form for both
+- out-of-scope | `surrounding_repo` and the older `claim()` both plant a `conductor.pid` under `.tdd/wt/<n>/.tdd`; `claim()` also adds a git worktree, and it is code this cycle did not write
