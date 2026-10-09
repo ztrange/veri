@@ -57,8 +57,8 @@ def test_main_refusal_touches_no_file_maps_a_recorded_code_as_text_and_waits_out
     mapped = []
     for text in ("3\n", "4\n", "00\n", "01\n", "12345678901234567890\n"):
         exit_file.write_text(text)
-        mapped.append(wait_leaf.main(["x"]))
-    assert mapped == [3, 2, 2, 2, 2]
+        mapped.append((wait_leaf.main(["x"]), capsys.readouterr().out))
+    assert mapped == [(3, ""), (2, ""), (2, ""), (2, ""), (2, "")]
 
     waited = []
     for text in ("-1\n", "7x\n", "", None):
@@ -70,7 +70,6 @@ def test_main_refusal_touches_no_file_maps_a_recorded_code_as_text_and_waits_out
         readings.clear()
         waited.append((wait_leaf.main(["x", "5"]), readings[-1] >= readings[0] + 5))
     assert waited == [(3, True)] * 4
-    capsys.readouterr()
 
 
 def test_main_reads_the_clock_once_then_per_round_checks_the_pid_rechecks_after_a_dead_supervisor_and_sleeps_between_rounds(
