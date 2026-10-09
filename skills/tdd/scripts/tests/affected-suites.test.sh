@@ -653,6 +653,21 @@ if [[ "$code" == 0 && "$out" == "skills/tdd/scripts/tests/foo.test.sh" && "$afte
   diff <(printf '%s\n' "$before") <(printf '%s\n' "$after") | sed 's/^/    /'
 fi
 
+make_repo working-tree-skill-section
+mkdir -p "$s/tests"
+printf '# tdd\n\n## Alpha\n\nalpha text\n\n## Beta\n\nbeta text\n' > "$repo/skills/tdd/SKILL.md"
+printf '#!/usr/bin/env bash\nskill_md="skills/tdd/SKILL.md"\nload_section '"'"'Alpha'"'"'\n' > "$s/tests/skill-alpha.test.sh"
+printf '#!/usr/bin/env bash\nskill_md="skills/tdd/SKILL.md"\nload_section '"'"'Beta'"'"'\n' > "$s/tests/skill-beta.test.sh"
+printf '#!/usr/bin/env bash\nskill_md="skills/tdd/SKILL.md"\ngrep -F text "$skill_md"\n' > "$s/tests/skill-whole.test.sh"
+commit_base
+printf '# tdd\n\n## Alpha\n\nalpha text 2\n\n## Beta\n\nbeta text\n' > "$repo/skills/tdd/SKILL.md"
+out="$(run_affected "$base" 2>/dev/null)"; code=$?
+expected=$'skills/tdd/scripts/tests/skill-alpha.test.sh\nskills/tdd/scripts/tests/skill-whole.test.sh'
+if [[ "$code" == 0 && "$out" == "$expected" ]]; then ok; else
+  no "affected-suites.sh <base> with an uncommitted edit inside one ## section of SKILL.md prints the suites reading that section or SKILL.md unsliced, not one reading only another (code=$code)"
+  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
+fi
+
 make_repo working-tree-untracked
 foo_tree
 commit_base
