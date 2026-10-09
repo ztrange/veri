@@ -139,7 +139,8 @@ What a caller must know:
   `tests/` suites only.
 - **Primitives only.** A suite's bespoke `check()` stays in the suite, rebuilt on these.
 - **The harness reads and sets no `VERI_*` variable**; each suite's isolation from ambient
-  tunables stays where it is, and `hermetic-suites.test.sh` still pins it.
+  tunables stays where it is: `run-suite.sh` strips them before a suite starts, and `make hermetic`
+  re-checks it on demand.
 
 `tests/record-helpers.sh` is split: its `report` goes into the harness; `plain`, `says`,
 `bullet` and `records` stay there, for the docs-record suites only, and it sources the harness.
