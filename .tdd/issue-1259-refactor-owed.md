@@ -1,0 +1,3 @@
+### An unregistered mark on a pytest case under tests/py/ fails collection, naming the test and the mark (`process` registered under `--strict-markers`) ⟦criterion 5⟧
+- test-only | test_process_mark.py: both cases repeat the same three lines — `runpytest_inprocess(plugins=[importlib.import_module("conftest")])`, joining stdout and stderr, and the check that the exit code is neither OK nor TESTS_FAILED. These could become one helper, e.g. `collect_refused(pytester)`, that returns `(result, output)`.
+- test-only | conftest.py `pytest_collection_modifyitems`: the unregistered-mark check and the empty-boundary check share one shape: gather node ids, then raise `pytest.UsageError("<label>: " + ", ".join(...))`. That shape could become one small `refuse(label, names)` helper.
