@@ -1762,6 +1762,10 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    step's red evidence, the same way a red full run's repair step is.
    A second red CI result after a CI repair step does **bail**, with cause `ci-red`, the way
    a second red full run does — the repair step is one more cycle, not a loop.
+   A conductor never re-runs a failed CI job — no `gh run rerun`, no re-run of a failed
+   check: a red check is answered only by the repair step or the `ci-red` bail above, since
+   a re-run can turn a real failure into one that reads as a flake. Re-running a known flake
+   is the operator's decision, made outside a run.
    That bail greps for `⟦ci-repair⟧` only: a ledger holding a `⟦suite-repair⟧` step and no
    `⟦ci-repair⟧` step still gets its one CI repair attempt.
    A `wait-ci.sh` exit 2 whose stderr names a conflict — the PR conflicts with its base
