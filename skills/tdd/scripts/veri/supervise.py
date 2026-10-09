@@ -304,6 +304,8 @@ def main(argv):
     if len(argv) < 2:
         return refuse("supervise: missing <cmd>", USAGE)
     timeout = os.environ.get("VERI_TIMEOUT", "")
+    if timeout and not re.fullmatch(r"[0-9]+", timeout):
+        return refuse(f"supervise: VERI_TIMEOUT is not a number: '{timeout}'")
     issue = os.environ.get("VERI_ISSUE", "")
     if not timeout and issue:
         settled = f".tdd/issue-{issue}-timeout"
