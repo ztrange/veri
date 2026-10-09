@@ -97,6 +97,10 @@ def edited_section(f, revisions):
     return sections.pop() if len(sections) == 1 else None
 
 
+def quoted(*names):
+    return ["%s%s%s" % (q, n, q) for n in names for q in "'\""]
+
+
 def headings(f):
     text = (read(f) or b"").decode(errors="replace")
     return [l[3:].strip() for l in text.split("\n") if l.startswith("## ")]
@@ -110,8 +114,8 @@ def suite_of(f, revisions=None):
         naming = suites_naming('"%s"' % f, '/%s"' % f)
         section = match("skills/*/SKILL.md") and revisions and edited_section(f, revisions)
         if section:
-            readers = suites_naming("'%s'" % section, '"%s"' % section)
-            slicers = suites_naming(*("%s%s%s" % (q, h, q) for h in headings(f) for q in "'\""))
+            readers = suites_naming(*quoted(section))
+            slicers = suites_naming(*quoted(*headings(f)))
             return [s for s in naming if s in readers or s not in slicers]
         return naming
     if match(SCRIPTS + "/tests/*.test.sh", SCRIPTS + "/tests/py/test_*.py"):
