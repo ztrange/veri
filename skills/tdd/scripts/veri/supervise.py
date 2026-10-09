@@ -130,15 +130,13 @@ def arithmetic(value):
 
 
 def limit(value):
+    if re.fullmatch(r"[0-9]+", value):
+        return int(value, 10)
     try:
         return arithmetic(value)
     except ValueError as error:
         print(error, file=sys.stderr)
         return None
-
-
-def seconds(value):
-    return int(value, 10) if re.fullmatch(r"[0-9]+", value) else limit(value)
 
 
 def signal_tree(pid, sig):
@@ -265,7 +263,7 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
         a = awake_seconds()
         seen_at += (t - prev_t) - (a - prev_a)
         prev_t, prev_a = t, a
-        span = seconds(timeout)
+        span = limit(timeout)
         if span is not None and a - a0 >= span:
             reason = f"hard timeout {timeout}s exceeded"
         elif watched:
@@ -273,7 +271,7 @@ def attempt_once(started, name, cmd, log, rcfile, leaf_env, preexec, watch):
             if m != last_m:
                 last_m, seen_at = m, t
             silence = t - seen_at
-            window = seconds(heartbeat)
+            window = limit(heartbeat)
             if window is not None and silence > window:
                 reason = f"no heartbeat for {silence}s (window {heartbeat}s)"
         if reason:
