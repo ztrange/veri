@@ -420,6 +420,7 @@ def test_wait_pauses_1_second_for_an_unset_or_empty_veri_poll_and_0_or_0_05_as_g
     tdd.mkdir()
     (tdd / "x.pid").write_text("4242\n")
     sleeps = []
+    kills = []
 
     def fake_sleep(seconds):
         sleeps.append(float(seconds))
@@ -428,7 +429,13 @@ def test_wait_pauses_1_second_for_an_unset_or_empty_veri_poll_and_0_or_0_05_as_g
 
     monkeypatch.setattr(time, "time", lambda: 1000.0)
     monkeypatch.setattr(time, "sleep", fake_sleep)
-    monkeypatch.setattr(os, "kill", lambda pid, signum: None)
+
+    def alive_for_100_probes(pid, signum):
+        kills.append(pid)
+        if len(kills) > 100:
+            raise ProcessLookupError
+
+    monkeypatch.setattr(os, "kill", alive_for_100_probes)
 
     for poll, paused in ((None, 1.0), ("", 1.0), ("0", 0.0), ("0.05", 0.05)):
         if poll is None:
@@ -437,5 +444,6 @@ def test_wait_pauses_1_second_for_an_unset_or_empty_veri_poll_and_0_or_0_05_as_g
             monkeypatch.setenv("VERI_POLL", poll)
         (tdd / "x.exit").unlink(missing_ok=True)
         sleeps.clear()
+        kills.clear()
         code = detach_command.main(["wait", "x", "60"])
         assert (poll, code, capsys.readouterr(), sleeps) == (poll, 0, ("", ""), [paused, paused])
