@@ -80,8 +80,6 @@ def main(argv):
         return refuse("add-ledger-step.sh: " + refusal)
     if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:
         return refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
-    if criterion is not None and criterion not in {criterion_of(line) for line in lines if ledger_steps(line)}:
-        return refuse("add-ledger-step.sh: no ledger step carries criterion " + criterion)
     budget = os.environ.get("VERI_STEP_GROWTH", "5")
     if not re.fullmatch("[0-9]+", budget):
         return refuse("add-ledger-step.sh: VERI_STEP_GROWTH must be a whole number >= 0: " + budget)
