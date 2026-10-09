@@ -92,6 +92,7 @@ back to REST, with the two routes interleaved inside every function. From here o
   utilities make one.
 - The suites that pin the old fallback order set `VERI_GH_DRIVER=auto` themselves, and every
   suite gives the same result whatever value the caller's shell holds;
-  `hermetic-suites.test.sh` pins that, as it does for `VERI_PRIORITY_LABEL`.
+  `run-suite.sh` strips the caller's `VERI_*` before a suite starts, and `make hermetic` re-checks
+  that on demand, as it does for `VERI_PRIORITY_LABEL`.
 - Switching the default back is a one-line change at the selection point, not an edit in every
   function.
