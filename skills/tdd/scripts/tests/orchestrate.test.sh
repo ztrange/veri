@@ -465,6 +465,48 @@ expected='writer 143'
 actual="$(cat "$MARKS")"
 expect_exit0_output
 
+name="#1246 a writer in a conductor's group that writes after orchestrate.sh's SIGTERM to the group, once orchestrate.sh has had every chance to drop its read end, ends 143, never 141 of SIGPIPE, and orchestrate.sh exits 0 with the conductor never waited on"
+lateterm="$work/lateterm"
+mkdir -p "$lateterm"
+cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$lateterm/"
+cp -R "$scripts/lib" "$scripts/veri" "$lateterm/"
+cat > "$lateterm/run-conductor.sh" <<'STUB'
+#!/usr/bin/env bash
+echo $$ >> "$MARKS.pid"
+echo "$1" >> "$LAUNCHES"
+grep -vx -- "$1" "$SOLVABLE" > "$SOLVABLE.next"
+mv "$SOLVABLE.next" "$SOLVABLE"
+orchestrate=$PPID
+(stopped=0
+ trap 'stopped=1' TERM
+ while [ $stopped -eq 0 ]; do echo '{"type":"system","subtype":"heartbeat"}'; sleep 0.01; done
+ i=0
+ while [ $i -lt 100 ] && kill -0 $orchestrate 2>/dev/null; do sleep 0.01; i=$((i + 1)); done
+ echo '{"type":"system","subtype":"heartbeat"}'
+ trap - TERM
+ kill -TERM $BASHPID) &
+writer=$!
+echo $writer >> "$MARKS.pid"
+trap '' TERM
+echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=1355 VERI_ACTOR=conductor $S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
+echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
+wait $writer
+echo "writer $?" >> "$MARKS"
+exec > /dev/null
+i=0
+while [ $i -lt 400 ] && [ ! -e "$MARKS.release" ]; do sleep 0.01; i=$((i + 1)); done
+STUB
+chmod +x "$lateterm"/*.sh
+seed lateterm 1355
+VERI_CONDUCTOR_CTX_BUDGET=100000 orchestrate "$lateterm"
+conductor="$(head -n 1 "$MARKS.pid" 2>/dev/null)"
+if kill -0 "$conductor" 2>/dev/null; then waited="conductor running at orchestrate.sh's exit"; else waited="conductor gone at orchestrate.sh's exit"; fi
+: > "$MARKS.release"
+await_gone
+expected="$(printf '%s\n' 'writer 143' "conductor running at orchestrate.sh's exit")"
+actual="$(cat "$MARKS"; echo "$waited")"
+expect_exit0_output
+
 name="run through a symlink to its scripts directory from another working directory, launches that directory's run-conductor.sh, asks its solvable-issues.sh and reads .tdd/parked/ in the working directory"
 realskill="$work/realskill"
 mkdir -p "$realskill/.tdd/parked" "$work/elsewhere/.tdd/parked"
