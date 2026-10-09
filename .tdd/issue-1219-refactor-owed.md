@@ -1,0 +1,2 @@
+### With SIGINT sent to the run-conductor.sh launcher alone while its claude runs, the launcher waits for claude to finish, removes the skill snapshot directory, prints no traceback on stderr, and exits with claude's own status ⟦criterion 1⟧
+- test-only | extract the shared setup in run-conductor.test.sh's SIGTERM and SIGINT cases (claude stub, started/release fifos, bg_start launch, snapshot-name read, release/wait/bg_kill teardown) into one helper taking the signal and claude's exit code
