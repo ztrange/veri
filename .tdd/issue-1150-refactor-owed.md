@@ -1,0 +1,2 @@
+### The shared entry point `veri/entry.py` exits with the code a faked `main` returns, for each of 0, 1, 2 and 3, and lets a `SystemExit` raised inside `main` through with its own code unchanged (in-process pytest in `tests/py/test_entry.py`) ⟦criterion 1⟧
+- test-only | split `test_run_exits_with_the_code_main_returns_and_lets_a_raised_system_exit_through_unchanged_1150` in `tests/py/test_entry.py` into a `pytest.mark.parametrize` over 0–3 plus a separate `SystemExit(7)` case, so a failure names the one code that broke
