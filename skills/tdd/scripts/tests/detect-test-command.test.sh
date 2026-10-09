@@ -70,4 +70,17 @@ if [[ "$linked" == "$in_place" && "$linked_code" -eq "$in_place_code" && "$in_pl
   diff <(printf '%s\nexit %s\n' "$in_place" "$in_place_code") <(printf '%s\nexit %s\n' "$linked" "$linked_code")
 fi
 
+repo="$work/issue-names-fast-tier"
+body="$work/issue-names-fast-tier-body.md"
+mkdir -p "$repo"
+printf '# notes\n\nveri: fast tests: `make unit`\nveri: all tests: `make test`\n' > "$repo/CLAUDE.md"
+printf '## Notes\n\nTest command: make unit\n' > "$body"
+fast="$("$DETECT" --tier fast --issue "$body" "$repo" 2>/dev/null)"
+want='make test'
+
+detect --tier all --issue "$body" "$repo"
+
+[[ "$fast" == 'make unit' ]] && matched \
+  && ok || no "--tier all: an issue whose Test command: equals the fast tier's command prints CLAUDE.md's veri: all tests: command (fast='$fast' want 'make unit', exit=$code want 0, stdout='$out' want '$want')"
+
 finish

@@ -61,7 +61,11 @@ def decide(tier, issue, root):
         return os.path.isfile(at(name))
 
     if tier != "fast" and issue and os.path.isfile(issue):
-        answer_from_file(issue, b"Test command:")
+        try:
+            answer_from_file(issue, b"Test command:")
+        except Answer as found:
+            if found.command != resolved("fast", issue, root):
+                raise
     if tier and has("CLAUDE.md"):
         answer_from_file(at("CLAUDE.md"), b"veri: " + os.fsencode(tier) + b" tests:")
     if has(".veri/test-command"):
@@ -86,6 +90,14 @@ def decide(tier, issue, root):
         raise Answer(b"cargo test")
     if any(os.path.isfile(f) for f in glob.glob(glob.escape(root) + "/tests/test_*.py")):
         raise Answer(b"python3 -m unittest discover -q")
+
+
+def resolved(tier, issue, root):
+    try:
+        decide(tier, issue, root)
+    except Answer as found:
+        return found.command
+    return None
 
 
 def option(args, flag):
