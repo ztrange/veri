@@ -1,4 +1,4 @@
 # Plan for #1281 — SKILL.md never passes add-ledger-step.sh --criterion, so an added step can still be tagged to the wrong criterion
 
 - [x] Every SKILL.md add-ledger-step.sh call that may add a step serving a criterion other than its anchor's — the over-budget split, the Green leaf's SPLIT: values, the uncovered-spec growth at verify-refactor PASS and the revise-exhausted split — passes --criterion <k> naming the criterion the added step serves, and the script's entry under The scripts documents --criterion ⟦criterion 1⟧
-- [x] The SKILL.md add-ledger-step.sh calls that keep the anchor's criterion on purpose — the ⟦suite-repair⟧ step after a red full run and the ⟦ci-repair⟧ step after a red CI check — say they pass no --criterion because the repair step serves its anchor's criterion ⟦criterion 1⟧ ⟂ refactor pending
+- [x] The SKILL.md add-ledger-step.sh calls that keep the anchor's criterion on purpose — the ⟦suite-repair⟧ step after a red full run and the ⟦ci-repair⟧ step after a red CI check — say they pass no --criterion because the repair step serves its anchor's criterion ⟦criterion 1⟧
