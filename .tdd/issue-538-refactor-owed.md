@@ -2,3 +2,6 @@
 - test-only | the new `skill_section` case in affected-suites.test.sh writes SKILL.md's text twice with two nearly identical `printf` lines (only "alpha text" vs "alpha text 2" differ). A small helper taking the Alpha body would remove the repetition.
 ### A range whose changed lines of skills/tdd/SKILL.md all lie inside one ## section still selects a suite that names SKILL.md and reads it without slicing it to any section ⟦criterion 1⟧
 - test-only | the two SKILL.md cases in affected-suites.test.sh repeat the same make_repo/SKILL.md/printf-suite setup and could share one fixture builder
+### A range whose changed lines of skills/tdd/SKILL.md all lie inside one ### subsection selects the suites reading that ### subsection and the suites reading the ## section enclosing it, and not a suite reading only a sibling section ⟦criterion 1⟧
+- `enclosing` re-checks `line.startswith("## ")` to learn a heading's level, which `heading` already parsed. Having `heading` return `(level, name)` would put the prefix check in one place, but it also changes `headings`, so it is not a duplication-only transform within this cycle's code.
+- test-only | the three nearly identical `printf` bodies that write the fixture SKILL.md in the `skill_subsection` cases of `affected-suites.test.sh` could be built by one helper that takes the subsection texts as arguments
