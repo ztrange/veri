@@ -342,6 +342,8 @@ def test_wait_reads_a_leading_zero_max_as_bash_octal_so_010_is_8_and_08_09_never
 
     def alive_until_100th(pid, signum):
         kills.append(pid)
+        if len(kills) > 100:
+            raise ProcessLookupError
         if len(kills) == 100:
             (tdd / "x.exit").write_text("0\n")
 
