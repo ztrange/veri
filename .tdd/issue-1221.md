@@ -1,0 +1,3 @@
+# Plan for #1221 — ADR: close the language decision — the scripts are Python behind sh shims (PRD 008)
+
+- [ ] A new ADR docs/adr/0029 records that the scripts are Python 3 (standard library, floor 3.12) behind two-line /bin/sh shims keeping every entry point's name, arguments, stdout, stderr and exit codes; what #537's Rejected list rejected (Go, a permanent bash core, a long-lived Python process, and the rest); and the shim survival rule — a .sh entry point stays because SKILL.md, the Makefile and the hooks call it by name, and holds no logic and no Python source — linking #537, #473, #474 and ADR 0027 for the test-deletion rule without restating it ⟦diff-checked⟧ ⟦criterion 1⟧
