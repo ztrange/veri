@@ -59,12 +59,8 @@ for suite in "${SUITES[@]}"; do
   FILES+=("$f")
 done
 
-problems=()
-
-while IFS=$'\t' read -r suite lineno other text; do
-  [[ -n "$lineno" ]] || continue
-  problems+=("$suite:$lineno names $other outside a comment, in a shape this file treats as launching it, with no exemption recorded: $(flat "$text")")
-done < <(awk -v suites="$SUITE_LIST" -v dir="$suites_dir" '
+scan_launches() {
+  awk -v suites="$SUITE_LIST" -v dir="$suites_dir" '
   function flush_pending() {
     if (gate) {
       for (i = 1; i <= pending_n; i++)
@@ -105,7 +101,15 @@ done < <(awk -v suites="$SUITE_LIST" -v dir="$suites_dir" '
     }
   }
   END { flush_pending() }
-' "${FILES[@]}")
+' "$@"
+}
+
+problems=()
+
+while IFS=$'\t' read -r suite lineno other text; do
+  [[ -n "$lineno" ]] || continue
+  problems+=("$suite:$lineno names $other outside a comment, in a shape this file treats as launching it, with no exemption recorded: $(flat "$text")")
+done < <(scan_launches "${FILES[@]}")
 
 scanned=("${problems[@]}")
 report "no suite under skills/tdd/scripts/tests/ (or its unit/ tier) launches another real suite outside the exemptions recorded here"
@@ -156,6 +160,15 @@ report "#1138: affected-suites.test.sh's #1138 case names mentioning claude-md-c
 
 mentions_reported affected-suites.test.sh .test.sh
 report "#538: affected-suites.test.sh's cp of SKILL.md and of the suites naming it into a scratch repo does not make its fixture mentions of other suites read as launching them"
+
+plant="$(scratch_dir)"
+cat "$ROOT/$suites_dir/affected-suites.test.sh" > "$plant/affected-suites.test.sh"
+printf '%s\n' 'bash "$HERE/claude-md-counts.test.sh"' >> "$plant/affected-suites.test.sh"
+planted_line="$(wc -l < "$plant/affected-suites.test.sh" | tr -d ' ')"
+problems=()
+scan_launches "$plant/affected-suites.test.sh" | grep -F "$(printf 'affected-suites.test.sh\t%s\tclaude-md-counts.test.sh\t' "$planted_line")" > /dev/null \
+  || problems+=("a planted 'bash \"\$HERE/claude-md-counts.test.sh\"' at affected-suites.test.sh:$planted_line was not reported")
+report "#538: a real launch of another suite planted in affected-suites.test.sh is still read as launching it"
 
 mentions_reported no-awk-v-patterns.test.sh parallel-conductors.test.sh skill-draft-pr.test.sh skill-plan-verify.test.sh skill-red-prediction.test.sh solvable-issues.test.sh
 report "#1050: no-awk-v-patterns.test.sh's content-keyed exemption keys naming parallel-conductors.test.sh, skill-draft-pr.test.sh, skill-plan-verify.test.sh, skill-red-prediction.test.sh and solvable-issues.test.sh are not read as launching them"
