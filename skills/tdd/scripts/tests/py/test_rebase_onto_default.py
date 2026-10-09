@@ -319,6 +319,47 @@ def test_main_exits_2_on_git_s_refusal_when_a_rebase_directory_exists_before_it_
     assert [c for c in calls if c in (diff, abort)] == []
 
 
+def test_main_returns_1_with_the_conflict_output_when_its_own_rebase_leaves_the_directory_the_two_name_git_path_call_did_not_see(
+        monkeypatch, capsys, tmp_path, rebase_onto_default):
+    rebase = f"git rebase -q {ONTO}"
+    two_names = "git rev-parse --git-path rebase-merge --git-path rebase-apply"
+    diff = "git diff --name-only --diff-filter=U"
+    abort = "git rebase --abort"
+    merge, apply = tmp_path / "rebase-merge", tmp_path / "rebase-apply"
+
+    def run(present, diff_answer):
+        calls = fake_git(monkeypatch, **{
+            rebase: (1, ""),
+            two_names: (0, f"{merge}\n{apply}\n"),
+            "git rev-parse --git-path rebase-merge": (0, f"{merge}\n"),
+            "git rev-parse --git-path rebase-apply": (0, f"{apply}\n"),
+            diff: diff_answer,
+            abort: (1, "")})
+        fake_run = subprocess.run
+
+        def conflicting_run(args, **kwargs):
+            line = " ".join([os.path.basename(str(args[0]))] + [str(a) for a in args[1:]])
+            if line == rebase:
+                present.mkdir()
+            if line == abort and kwargs.get("stdout") is None:
+                sys.stdout.write("abort out\n")
+            return fake_run(args, **kwargs)
+
+        monkeypatch.setattr(subprocess, "run", conflicting_run)
+        code = rebase_onto_default.main([])
+        present.rmdir()
+        return code, capsys.readouterr().out, calls
+
+    code, out, calls = run(merge, (0, ""))
+    assert (code, out) == (1, "abort out\n\n")
+    assert calls.index(two_names) < calls.index(rebase) < calls.index(diff) < calls.index(abort)
+
+    for present in (merge, apply):
+        code, out, calls = run(present, (0, "a.txt\nsub/b.txt\n\n\n"))
+        assert (code, out) == (1, "abort out\na.txt\nsub/b.txt\n")
+        assert calls.index(two_names) < calls.index(rebase) < calls.index(diff) < calls.index(abort)
+
+
 def test_main_answers_the_cut_contract_cases_a_dirty_tree_refusal_an_unfetchable_origin_a_fallback_rebase_and_an_unreachable_fallback(
         monkeypatch, capsys, tmp_path, rebase_onto_default):
     local = "git rev-parse -q --verify --abbrev-ref refs/remotes/origin/HEAD"
