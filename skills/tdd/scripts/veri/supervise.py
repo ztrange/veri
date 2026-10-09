@@ -321,6 +321,8 @@ def main(argv):
         return refuse(f"supervise: VERI_KILL_POLL must be a non-negative number: {kill_poll}")
     kill_poll = float(kill_poll)
     heartbeat = os.environ.get("VERI_HEARTBEAT") or "180"
+    if not re.fullmatch(r"[0-9]+", heartbeat):
+        return refuse(f"supervise: VERI_HEARTBEAT is not a number: '{heartbeat}'")
     poll = os.environ.get("VERI_POLL") or "1"
     name = argv[0]
     tolerated(name, "create", ".tdd", lambda: os.makedirs(".tdd", exist_ok=True))
