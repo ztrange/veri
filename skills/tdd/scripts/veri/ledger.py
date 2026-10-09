@@ -22,6 +22,11 @@ def read_ledger_stdin():
     return decode_ledger(sys.stdin.buffer.read())
 
 
+def handed_out(record):
+    """True when record is an open step or diff-checked step."""
+    return record[1] == "open" and record[2] in ("step", "diff-checked")
+
+
 def is_added(step):
     """True when the added marker ends the text, the pending mark and one criterion marker cut."""
     untagged = step.removesuffix(PENDING_MARK)

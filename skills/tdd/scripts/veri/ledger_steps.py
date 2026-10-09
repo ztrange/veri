@@ -2,7 +2,7 @@
 import re
 import sys
 
-from ledger import ledger_steps, read_ledger_stdin
+from ledger import handed_out, ledger_steps, read_ledger_stdin
 
 USAGE = "usage: ledger-steps.sh [current|last-done|criterion <k>]"
 
@@ -25,7 +25,7 @@ def answer(record):
 
 def current(records):
     pending = [r for r in records if r[1] == "done" and r[3] == "1"]
-    open_steps = [r for r in records if r[1] == "open" and r[2] in ("step", "diff-checked")]
+    open_steps = [r for r in records if handed_out(r)]
     return answer(next(iter(pending + open_steps), None))
 
 

@@ -1,11 +1,7 @@
 """next-unchecked.sh's computation, run in-process."""
 import sys
 
-from ledger import ledger_steps, read_ledger_stdin
-
-
-def handed_out(record):
-    return record[1] == "open" and record[2] in ("step", "diff-checked")
+from ledger import handed_out, ledger_steps, read_ledger_stdin
 
 
 def main(argv):
