@@ -256,6 +256,17 @@ commit_head
 expect_suites "an edit inside one ## section of SKILL.md prints the suites reading that section, not one reading only another" \
   skills/tdd/scripts/tests/skill-alpha.test.sh
 
+make_repo skill_whole
+mkdir -p "$s/tests"
+printf '# tdd\n\n## Alpha\n\nalpha text\n\n## Beta\n\nbeta text\n' > "$repo/skills/tdd/SKILL.md"
+printf '#!/usr/bin/env bash\nskill_md="skills/tdd/SKILL.md"\nload_section '"'"'Beta'"'"'\n' > "$s/tests/skill-beta.test.sh"
+printf '#!/usr/bin/env bash\nskill_md="skills/tdd/SKILL.md"\ngrep -F text "$skill_md"\n' > "$s/tests/skill-whole.test.sh"
+commit_base
+printf '# tdd\n\n## Alpha\n\nalpha text 2\n\n## Beta\n\nbeta text\n' > "$repo/skills/tdd/SKILL.md"
+commit_head
+expect_suites "an edit inside one ## section of SKILL.md still prints a suite reading SKILL.md unsliced" \
+  skills/tdd/scripts/tests/skill-whole.test.sh
+
 make_repo rule5
 mkdir -p "$s/tests/unit" "$repo/docs"
 printf 'foo\n' > "$s/foo.sh"

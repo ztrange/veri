@@ -97,6 +97,11 @@ def edited_section(f, revisions):
     return sections.pop() if len(sections) == 1 else None
 
 
+def headings(f):
+    text = (read(f) or b"").decode(errors="replace")
+    return [l[3:].strip() for l in text.split("\n") if l.startswith("## ")]
+
+
 def suite_of(f, revisions=None):
     def match(*patterns):
         return any(fnmatch.fnmatchcase(f, p) for p in patterns)
@@ -106,7 +111,8 @@ def suite_of(f, revisions=None):
         section = match("skills/*/SKILL.md") and revisions and edited_section(f, revisions)
         if section:
             readers = suites_naming("'%s'" % section, '"%s"' % section)
-            return [s for s in naming if s in readers]
+            slicers = suites_naming(*("%s%s%s" % (q, h, q) for h in headings(f) for q in "'\""))
+            return [s for s in naming if s in readers or s not in slicers]
         return naming
     if match(SCRIPTS + "/tests/*.test.sh", SCRIPTS + "/tests/py/test_*.py"):
         return existing(f)
