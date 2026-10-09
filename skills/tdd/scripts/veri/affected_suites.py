@@ -126,7 +126,8 @@ def forms(*lines):
         prefix, title = line.split(" ", 1)
         words = title.split()
         for k in range(1, len(words) + 1):
-            found += quoted(" ".join(words[:k]), prefix + " " + " ".join(words[:k]))
+            form = " ".join(words[:k])
+            found += quoted(form, prefix + " " + form)
     return found
 
 
