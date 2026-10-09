@@ -228,7 +228,7 @@ for repo in "$inplace" "$linked"; do
   mkdir -p "$repo/sub"
   printf 'nested\n' > "$repo/sub/nested.txt"
 done
-ln -s "$(cd "$HERE/../.." && pwd)" "$work/skill-link"
+ln -s "$work/skill" "$work/skill-link"
 preserve "$inplace" 409 3 develop-green 1 >/dev/null 2>&1; code_inplace=$?
 ( cd "$linked/sub" && env "${ident[@]}" "$work/skill-link/scripts/preserve-attempt.sh" 409 3 develop-green 1 ) >/dev/null 2>&1; code_linked=$?
 tree_inplace="$(git_q "$inplace" rev-parse --verify --quiet "$REF^{tree}" 2>&1)"
