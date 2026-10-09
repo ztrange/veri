@@ -36,6 +36,14 @@ def scratch(tmp_path, name, drop=(), templates=None):
     return module, scripts / "prompts"
 
 
+def rendered(tmp_path, capsysbinary, name, templates, argv):
+    module, _ = scratch(tmp_path, name, templates=templates)
+    code = module.main(argv)
+    out, _ = capsysbinary.readouterr()
+    assert code == 0
+    return out.decode("utf-8", "surrogateescape")
+
+
 @pytest.fixture
 def build_verify_prompt():
     return importlib.import_module("veri.build_verify_prompt")
@@ -505,11 +513,8 @@ def test_the_blindness_contract_assertion_needs_its_whole_match_on_one_line_of_t
     shared = (SCRIPTS / "prompts" / "_shared.md").read_bytes()
 
     def red_prompt(name, contract):
-        module, _ = scratch(tmp_path, name, templates={"_shared.md": shared.replace(sentence, contract)})
-        code = module.main(["red", str(spec), "tests/test_slugify.py", "test_slugify_lowercases"])
-        out, _ = capsysbinary.readouterr()
-        assert code == 0
-        return out.decode("utf-8", "surrogateescape")
+        return rendered(tmp_path, capsysbinary, name, {"_shared.md": shared.replace(sentence, contract)},
+                        ["red", str(spec), "tests/test_slugify.py", "test_slugify_lowercases"])
 
     assert sentence in shared
     assert {
@@ -530,12 +535,9 @@ def test_the_full_suite_assertion_needs_its_whole_match_on_one_line_of_the_rende
     template = (SCRIPTS / "prompts" / "verify-green.md").read_bytes()
 
     def green_prompt(name, text):
-        module, _ = scratch(tmp_path, name, templates={"verify-green.md": template.replace(phrase, text)})
-        code = module.main(["--fast-cmd", "make unit", "green", str(spec), "tests/test_slugify.py",
-                            "test_slugify_lowercases"])
-        out, _ = capsysbinary.readouterr()
-        assert code == 0
-        return out.decode("utf-8", "surrogateescape")
+        return rendered(tmp_path, capsysbinary, name, {"verify-green.md": template.replace(phrase, text)},
+                        ["--fast-cmd", "make unit", "green", str(spec), "tests/test_slugify.py",
+                         "test_slugify_lowercases"])
 
     assert template.count(phrase) == 1
     assert {
