@@ -1,0 +1,2 @@
+### When supervise.sh kills a leaf for being stuck (heartbeat silence), no process of that leaf's process group is left running afterwards, even when the group leader dies on SIGTERM and another member of the group ignores SIGTERM: the group gets SIGKILL once the grace period ends, judged by the group, not by the group leader alone ⟦criterion 1⟧
+- test-only | extract the liveness loop that the leader-dies case (supervise.test.sh:1371-1380) and the child-tree case (supervise.test.sh:1317-1326) both run over the leaf-pid/child-pid files into one shared helper
