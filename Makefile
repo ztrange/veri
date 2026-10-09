@@ -133,6 +133,10 @@ test unit:
 	    printf 'veri needs pytest for the suites under skills/tdd/scripts/tests/py/; %s cannot import it. Install it with `make install-dev`.\n' "$$py_bin" >&2; \
 	    exit 2; \
 	  fi; \
+	  if [ "$${VERI_PYTEST_TIMEOUT_IMPORTABLE:-$$("$$py_bin" -c 'import pytest_timeout' > /dev/null 2>&1 && echo 1 || echo 0)}" != 1 ]; then \
+	    printf 'veri needs pytest-timeout for the suites under skills/tdd/scripts/tests/py/; %s cannot import pytest_timeout. Install it with `make install-dev`.\n' "$$py_bin" >&2; \
+	    exit 2; \
+	  fi; \
 	fi; \
 	$(OFFLINE_GIT); \
 	for t in $(SUITES); do \

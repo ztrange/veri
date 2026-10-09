@@ -12,6 +12,7 @@
 #   5. requirements-dev.txt pins pytest to one exact version the Makefile never restates.
 #   6. A case that runs past the per-case timeout fails, named as a timeout, and the leg runs the rest.
 #   7. With no override, that per-case timeout is 30 s.
+#   8. When the python3 they would use cannot import pytest_timeout, both refuse before any suite runs.
 #
 # Run: skills/tdd/scripts/tests/pytest-leg.test.sh
 set -uo pipefail
@@ -78,8 +79,9 @@ stub_bash_suites() {
 work="$(scratch_dir)"
 
 fake_pytest="$work/fake-pytest"
-mkdir -p "$fake_pytest/pytest"
+mkdir -p "$fake_pytest/pytest" "$fake_pytest/pytest_timeout"
 : > "$fake_pytest/pytest/__init__.py"
+: > "$fake_pytest/pytest_timeout/__init__.py"
 cat > "$fake_pytest/pytest/__main__.py" <<'PY'
 import importlib.util
 import os
@@ -214,6 +216,16 @@ problems=()
 for target in unit test; do
   check_refused "$target" VERI_PYTEST_IMPORTABLE=0 VERI_VENV="$work/no-venv"
   [[ "$err" == *pytest* ]] || problems+=("make $target: want stderr to name pytest, got: $(flat "$err")")
+  [[ "$err" == *'make install-dev'* ]] ||
+    problems+=("make $target: want stderr to name make install-dev, got: $(flat "$err")")
+done
+report "$name"
+
+name="when the pytest leg's python3 can import pytest but not pytest_timeout (VERI_PYTEST_TIMEOUT_IMPORTABLE=0 standing in for the import), make unit and make test exit 2 before any suite runs, stderr naming pytest-timeout and make install-dev"
+problems=()
+for target in unit test; do
+  check_refused "$target" VERI_PYTEST_IMPORTABLE=1 VERI_PYTEST_TIMEOUT_IMPORTABLE=0 VERI_VENV="$work/venv"
+  [[ "$err" == *pytest-timeout* ]] || problems+=("make $target: want stderr to name pytest-timeout, got: $(flat "$err")")
   [[ "$err" == *'make install-dev'* ]] ||
     problems+=("make $target: want stderr to name make install-dev, got: $(flat "$err")")
 done
