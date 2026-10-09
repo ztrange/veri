@@ -12,6 +12,8 @@
 #   the comment beside it names the same 6-hour ceiling, cites the 11–23 s the job
 #   observably takes, and says why its number is larger than the gates job's.
 #   Every job in every workflow file declares a job-level `timeout-minutes`.
+#   ci.yml's workflow-level `concurrency` cancels a PR's in-progress run on a newer push to
+#   it, and never a push to main.
 #
 # Run: scripts/tests/workflow-timeouts.test.sh
 set -uo pipefail
@@ -195,6 +197,17 @@ if [[ -z "$install_at" ]]; then
 elif [[ -z "$test_at" ]] || [[ "$install_at" -ge "$test_at" ]]; then
   problems+=("make install-dev does not run before make test (install at line ${install_at}, test at line ${test_at:-none})")
 fi
+report "$name"
+
+name="ci.yml cancels a PR's in-progress run on a newer push to that PR, and never cancels a push to main"
+problems=()
+top="$(awk '/^jobs:[[:space:]]*$/ { exit } { print }' "$CI_YML")"
+grep -E '^concurrency:[[:space:]]*$' > /dev/null <<< "$top" ||
+  problems+=("ci.yml declares no workflow-level concurrency")
+grep -E '^  group:.*github\.event\.pull_request\.number[[:space:]]*\|\|[[:space:]]*github\.ref' > /dev/null <<< "$top" ||
+  problems+=("concurrency group is not keyed on the PR number, falling back to the ref")
+grep -E "^  cancel-in-progress:[[:space:]]*\\$\\{\\{[[:space:]]*github\\.event_name[[:space:]]*==[[:space:]]*'pull_request'[[:space:]]*\\}\\}[[:space:]]*$" > /dev/null <<< "$top" ||
+  problems+=("cancel-in-progress is not limited to pull_request events, so a push to main could be cancelled")
 report "$name"
 
 finish

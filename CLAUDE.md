@@ -34,7 +34,9 @@ Linux only — the BSD-tools half of the portability promise is covered by the d
 machine being a Mac, not by a runner (macOS minutes bill at 10× Linux). And never on a
 draft PR (since 2026-09-27): a veri run pushes its draft 20–40 times per issue, each push
 ran the job, and none of those runs gated anything — so CI runs when the PR is marked
-ready, on each push after that, and on `main`.
+ready, on each push after that, and on `main`. A newer push to a PR cancels that PR's run still
+in progress (since 2026-10-09; superseded runs drove ~3,900 minutes in nine days); a push to
+`main` is never cancelled.
 
 **veri needs bash 5 or newer** (since 2026-09-18; it promised bash 3.2 before). On a Mac,
 `brew install bash` — it lands ahead of `/bin/bash`, macOS's 3.2, on PATH. Nothing tests veri

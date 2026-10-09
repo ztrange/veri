@@ -26,6 +26,17 @@ on:
   push:
     branches: [main]
 
+# A newer push to the same PR cancels that PR's run still in progress. A ready PR takes
+# several pushes within minutes — the run's metrics commit, criterion ticks, a repair
+# step, the rebase before merge — and only the run on the head that gets merged gates
+# anything (the merge skill reads CI on that head alone). At ~5 min a run after PRD 008,
+# with two machines landing 20-30 PRs a day, superseded runs were a large share of the
+# ~3,900 Linux minutes billed 2026-10-01..09, which exhausted the allowance a third time.
+# Pushes to main are never cancelled: each merge keeps its own green check on main.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   gates:
     runs-on: ubuntu-latest
