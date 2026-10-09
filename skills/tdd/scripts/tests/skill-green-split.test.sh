@@ -10,8 +10,9 @@
 #   2. When `add-ledger-step.sh` exits 1 on that branch, the run bails with cause
 #      `step-too-big`, which SKILL.md's Bailing causes list classifies as a **process**
 #      failure.
-#   3. Every add-ledger-step.sh call that may add a step serving a criterion other than its
-#      anchor's passes --criterion, and the script's entry under The scripts documents it.
+#   3. The three split calls pass no --criterion and say a split keeps its anchor's criterion;
+#      the uncovered-spec call passes --criterion <k>, read from the issue's numbered
+#      acceptance criteria, one call per criterion, bailing naming the cause on exit 2.
 #   4. The ⟦suite-repair⟧ and ⟦ci-repair⟧ add-ledger-step.sh calls, which keep the anchor's
 #      criterion on purpose, say beside them that they pass no --criterion because the repair
 #      step serves its anchor's criterion.
@@ -142,9 +143,16 @@ fi
 
 report "$name"
 
-calls_that_may_change_criterion() {
-  grep -E '\$S/add-ledger-step\.sh (--criterion |\.tdd/)' "$skill_path" |
-    grep -vE '⟦(suite|ci)-repair⟧'
+split_calls() {
+  grep -nE '\$S/add-ledger-step\.sh (--criterion [^ ]+ )?\.tdd/.*(instead-of|before "\$\(\$S/next-unchecked\.sh)' "$skill_path"
+}
+
+uncovered_spec_call() {
+  grep -nE '\$S/add-ledger-step\.sh (--criterion [^ ]+ )?\.tdd/.*after "\$\(\$S/next-pending-refactor\.sh' "$skill_path"
+}
+
+call_neighbourhood() {
+  awk -v at="${1%%:*}" 'NR >= at - 20 && NR <= at + 20' "$skill_path" | plain --join
 }
 
 add_ledger_step_entry() {
@@ -154,21 +162,38 @@ add_ledger_step_entry() {
     inside' "$skill_path"
 }
 
-name="#1281: every $skill_md add-ledger-step.sh call that may add a step serving another criterion passes --criterion, and the script's entry under The scripts documents it"
+name="#1281: $skill_md's three split add-ledger-step.sh calls pass no --criterion and say a split keeps its anchor's criterion; the uncovered-spec call passes --criterion <k> read from the issue's numbered acceptance criteria, one call per criterion, bailing on exit 2"
 problems=()
 
-calls="$(calls_that_may_change_criterion)"
-for site in 'instead-of' "before \"\$(\$S/next-unchecked.sh" "after \"\$(\$S/next-pending-refactor.sh"; do
-  grep -F -- "$site" <<<"$calls" > /dev/null ||
-    problems+=("$skill_md has no add-ledger-step.sh call anchored '$site' — the call site could not be read")
-done
-[[ "$(grep -cF 'instead-of' <<<"$calls")" -ge 2 ]] ||
+splits="$(split_calls)"
+[[ "$(grep -cF 'instead-of' <<<"$splits")" -ge 2 ]] ||
   problems+=("$skill_md has fewer than two instead-of add-ledger-step.sh calls — the over-budget and revise-exhausted splits could not both be read")
+grep -F 'before "$($S/next-unchecked.sh' <<<"$splits" > /dev/null ||
+  problems+=("$skill_md has no add-ledger-step.sh call anchored before \"\$(\$S/next-unchecked.sh — the Green SPLIT: call could not be read")
 while IFS= read -r call; do
   [[ -n "$call" ]] || continue
-  grep -F -- '--criterion ' <<<"$call" > /dev/null ||
-    problems+=("$skill_md calls add-ledger-step.sh without --criterion, so the added step inherits its anchor's criterion: ${call#"${call%%[![:space:]]*}"}")
-done <<<"$calls"
+  trimmed="${call#*:}"
+  trimmed="${trimmed#"${trimmed%%[![:space:]]*}"}"
+  grep -F -- '--criterion' <<<"$trimmed" > /dev/null &&
+    problems+=("$skill_md's split call passes --criterion, though a split is the same behaviour broken smaller and keeps its anchor's criterion: $trimmed")
+  grep -F -- "anchor's criterion" <<<"$(call_neighbourhood "$call")" > /dev/null ||
+    problems+=("$skill_md never says beside this split call that the split keeps its anchor's criterion: $trimmed")
+done <<<"$splits"
+
+uncovered="$(uncovered_spec_call)"
+if [[ -z "$uncovered" ]]; then
+  problems+=("$skill_md has no add-ledger-step.sh call anchored after \"\$(\$S/next-pending-refactor.sh — the uncovered-spec call could not be read")
+else
+  grep -F -- '--criterion <k>' <<<"$uncovered" > /dev/null ||
+    problems+=("$skill_md's uncovered-spec add-ledger-step.sh call passes no --criterion <k>, so a behaviour serving another criterion inherits its anchor's")
+  around="$(call_neighbourhood "$(head -n 1 <<<"$uncovered")")"
+  grep -E 'numbered acceptance criteri' <<<"$around" > /dev/null ||
+    problems+=("$skill_md never says beside its uncovered-spec call that k is read from the issue's numbered acceptance criteria")
+  grep -E 'one (add-ledger-step\.sh )?call per criterion' <<<"$around" > /dev/null ||
+    problems+=("$skill_md never says beside its uncovered-spec call that behaviours serving different criteria are added in one call per criterion")
+  grep -E 'exits? 2[^.]{0,200}bail' <<<"$around" > /dev/null ||
+    problems+=("$skill_md never says beside its uncovered-spec call that add-ledger-step.sh exit 2 — no step carries k — bails naming that cause")
+fi
 
 entry="$(add_ledger_step_entry)"
 if [[ -z "${entry// /}" ]]; then
