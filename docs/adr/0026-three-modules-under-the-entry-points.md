@@ -1,5 +1,9 @@
 # Three modules under the entry points: the ledger grammar, the test harness, the exit contract
 
+**Superseded in part by [ADR-0030](0030-tests-change-by-parallel-change-and-mutation-parity.md)**: the deletion rule in *When a refactor may delete
+a test* no longer forbids deleting a redundant test. A test is redundant when that is
+measured, by mutation parity, never when it "looks redundant".
+
 veri's target structure is its 64 scripts kept as **entry points** over a small number of
 deep modules. This record names the first three: the **ledger grammar**, the **test harness**
 and the **exit contract**. For each it gives the one-line responsibility, the interface a caller

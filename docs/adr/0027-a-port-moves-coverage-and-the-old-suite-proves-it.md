@@ -1,5 +1,11 @@
 # A port moves coverage, and the old suite is the proof it moved
 
+**Superseded in part by [ADR-0030](0030-tests-change-by-parallel-change-and-mutation-parity.md)**: the floor's "the `.sh` shim resolves" item is
+replaced by one test over every shim. Its exit-code and bad-argument-stderr items stay per
+script, as small in-process cases through `run_cli`, and are no longer bash cases. The
+one-case-per-step `⟦replaces-case⟧` wording is replaced by the group step: one step may
+replace a group of related cases of one suite.
+
 PRD 008 (#537) ports every veri script from bash to Python 3 behind its `.sh` entry point.
 A ported script's cases move from its bash suite into `tests/py/test_<script>.py`, where they
 run in-process. This record fixes which bash cases survive a port, the floor every ported
