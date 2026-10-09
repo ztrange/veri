@@ -180,7 +180,7 @@ def reads_only_through_slicers(suite, f):
         if assigned:
             names.append(assigned.group(1))
     if not names:
-        return True
+        return False
     either = "|".join(names)
     assignment = re.compile(r"^\s*(?:local\s+)?(?:%s)=" % either)
     reading = re.compile(r"\"(?:\$\{?\w+\}?/)*\$\{?(?:%s)\}?\"" % either)

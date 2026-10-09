@@ -407,7 +407,7 @@ edit_below() {
 }
 cat "$repo/skills/tdd/SKILL.md" > "$work/SKILL.md.orig"
 sed '/^- `\$S\/stop-requested\.sh/s/stop-requested\.sh/stop-asked.sh/' "$work/SKILL.md.orig" > "$repo/skills/tdd/SKILL.md"
-real_edit "stop-requested.sh renamed in ## The scripts" skill-stopping ""
+real_edit "stop-requested.sh renamed in ## The scripts" "skill-stopping affected-suites" ""
 edit_below '### 2c. Verify the plan (blind)'
 real_edit "### 2c. Verify the plan (blind)" skill-plan-verify ""
 edit_below '### 3. The cycle loop'
