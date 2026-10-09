@@ -1009,10 +1009,10 @@ def test_main_fires_the_hard_timeout_on_the_awake_clock_slides_the_heartbeat_by_
     broken = {value: watch({**quiet, "VERI_TIMEOUT": value}, 100, rc_after=3) for value in ("1.5",)}
     assert {value: (r["code"], r["kills"], r["status"], len([l for l in r["err"] if value.encode() in l]))
             for value, r in broken.items()} == {
-        "1.5": (0, [], ["supervise[develop-red]: success"], 3)}
+        "1.5": (2, [], [], 1)}
 
     word = watch({**quiet, "VERI_TIMEOUT": "abc"}, 100)
-    assert (word["code"], word["sleeps"], word["kills"], word["exit"]) == (1, 0, [], None)
+    assert (word["code"], word["sleeps"], word["kills"], word["exit"]) == (2, 0, [], None)
 
 
 def test_main_reads_a_veri_timeout_with_leading_zeros_as_decimal_010_a_10s_cap_and_08_an_8s_cap_that_fires_1198(
@@ -1798,6 +1798,31 @@ def test_main_refuses_a_veri_heartbeat_not_a_non_negative_decimal_integer_with_e
 
     assert answers == {
         value: (2, b"", f"supervise: VERI_HEARTBEAT is not a number: '{value}'\n".encode(), True)
+        for value in ("abc", "1.5", "-1")
+    }
+
+
+def test_main_refuses_a_veri_timeout_not_a_non_negative_decimal_integer_with_exit_2_naming_it_starting_nothing_but_git_1198(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+
+    answers = {}
+    for n, value in enumerate(("abc", "1.5", "-1")):
+        work = tmp_path / f"timeout-{n}"
+        work.mkdir()
+        monkeypatch.chdir(work)
+        clean_env(monkeypatch, VERI_TIMEOUT=value)
+        calls = fake_git_only(monkeypatch, work)
+        try:
+            code = supervise.main(["develop-red", "leaf-hang"])
+        except Launched:
+            code = "<launched>"
+        out, err = capsysbinary.readouterr()
+        answers[value] = (code, out, err, all(c[0] == "git" for c in calls))
+
+    assert answers == {
+        value: (2, b"", f"supervise: VERI_TIMEOUT is not a number: '{value}'\n".encode(), True)
         for value in ("abc", "1.5", "-1")
     }
 
