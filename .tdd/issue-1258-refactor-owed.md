@@ -1,0 +1,2 @@
+### A bash suite run by run-suite.sh sees no VERI_* or CLAUDE_* variable from run-suite.sh's caller except VERI_VENV, while it still sees the caller's PATH and offline settings and the GIT_CONFIG_* entries run-suite.sh adds, and a value the suite sets on a command it starts reaches that command ⟦criterion 1⟧
+- test-only | extract the repeated "delenv every ambient VERI_*/CLAUDE_* name" loop in test_run_suite.py (lines 183–184 and 364–365) into one helper
