@@ -1721,7 +1721,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    [ "$ci" != 2 ] || [ "$conflict" != 0 ] || [ ! -e .tdd/ci-conflict-rebased ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-conflict classification="$($S/classify-bail.sh ci-conflict)"
    gh api "repos/{owner}/{repo}/commits/$(git rev-parse HEAD)/check-runs" -q '.check_runs[] | {name, status, conclusion}'
    gh run view <run-id> --log-failed          # a failed check only → its suite and FAIL - line
-   grep -F '⟦ci-repair⟧' .tdd/issue-<n>.md > /dev/null && VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)"
+   grep -F '⟦ci-repair⟧' .tdd/issue-<n>.md > /dev/null && VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(gh api "repos/{owner}/{repo}/commits/$(git rev-parse HEAD)/check-runs" -q '[.check_runs[] | select(.conclusion != null and (.conclusion | ascii_upcase | IN("SUCCESS", "NEUTRAL", "SKIPPED") | not)) | .name] | join(",")')"
    step="$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)"; VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$step" $S/event.sh step-added anchor="$(printf %s "$step")" added=1
    $S/add-ledger-step.sh .tdd/issue-<n>.md after "$($S/ledger-steps.sh last-done < .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>> ⟦ci-repair⟧'
    git add .tdd/issue-<n>.md
@@ -1739,7 +1739,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    fi
    $S/push-branch.sh
    $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)"; ci=$?    # exit 3 → run this line again, in a new Bash call
-   [ "$ci" != 1 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)"
+   [ "$ci" != 1 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(gh api "repos/{owner}/{repo}/commits/$(git rev-parse HEAD)/check-runs" -q '[.check_runs[] | select(.conclusion != null and (.conclusion | ascii_upcase | IN("SUCCESS", "NEUTRAL", "SKIPPED") | not)) | .name] | join(",")')"
    [ "$ci" != 2 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)" -f body="<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by its ⟦human-owed⟧ lines under ## Owed by a human, followed by <overflow-url>, the issue refactor-overflow.sh filed, when the pass filed one>"
@@ -2140,7 +2140,9 @@ To bail:
    carries the `### 📊 Metrics` block just committed (or, when `$metrics` is not 0, the line
    `metrics could not be rendered: metrics.sh exited $metrics` in its place), carries the last reason
    (`.tdd/verify-<phase>.reason` on a `revise-exhausted` bail, the develop-red leaf's `WHY:`
-   line on an `untestable-criterion` bail, the kill cause otherwise),
+   line on an `untestable-criterion` bail, the kill cause otherwise; a `ci-red` bail's reason
+   names each CI check that failed, the `failed=` field its bail mark read from the head's
+   check runs),
    then, after the reason, the skill-drift block — the stdout of `drift="$($S/skill-drift.sh)";
    drift_exit=$?`, or, when `$drift_exit` is not 0, the line `Skill drift: unavailable —
    skill-drift.sh exited $drift_exit` in its place, and the bail goes on either way —
