@@ -239,4 +239,5 @@ def _run(continue_on_bail, parallel, max_issues):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    import entry
+    entry.run(main, sys.argv[1:])

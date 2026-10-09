@@ -145,4 +145,5 @@ def main(argv):
 
 if __name__ == "__main__":
     os.chdir(os.environ.get("VERI_CALLER_DIR") or ".")
-    sys.exit(main(sys.argv[1:]))
+    import entry
+    entry.run(main, sys.argv[1:])

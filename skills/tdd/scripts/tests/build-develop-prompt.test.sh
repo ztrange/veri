@@ -284,12 +284,12 @@ same_through_link green green "$work/spec.md" "$step_text" "$test_cmd" "$test_pa
 same_through_link diff  diff "$work/spec.md" "$dd_step" "$test_cmd" "$dd_fast"
 [[ -z "$problems" ]] && ok || no "$name (${problems#; })"
 
-name="build-develop-prompt.sh given a directory as the issue-spec file for a red call exits 1 with nothing on stdout and a non-empty stderr"
+name="build-develop-prompt.sh given a directory as the issue-spec file for a red call exits 2 with nothing on stdout and a non-empty stderr"
 mkdir -p "$work/spec-dir"
 dir_err="$work/spec-dir.err"
 dir_out="$("$BUILD" red "$work/spec-dir" "$step_text" "$test_cmd" 2>"$dir_err")"; code=$?
 diag=""; [[ -s "$dir_err" ]] && diag=diagnostic
-expect_eq "$name" "1::diagnostic" "$code:${dir_out:+prompt}:$diag"
+expect_eq "$name" "2::diagnostic" "$code:${dir_out:+prompt}:$diag"
 
 name="develop-refactor's sub-step 1 tells the leaf to report a structural transform it does not apply on a CANDIDATES: structural line and one outside the issue's bounds on a CANDIDATES: out-of-scope line"
 refactor_out="$(VERI_REFACTOR_BUDGET=5 "$BUILD" refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched" 2>/dev/null)"

@@ -72,7 +72,7 @@ err="$(cat "$work/err")"
 rm -rf "$work"
 report "$name"
 
-name="tier-usual.sh <tier> with no test-run event for that tier: exit 1, nothing on stdout"
+name="tier-usual.sh <tier> with no test-run event for that tier: exit 2, nothing on stdout"
 problems=()
 work="$(scratch_dir)"
 mkdir -p "$work/.tdd"
@@ -83,8 +83,8 @@ mkdir -p "$work/.tdd"
 
 out="$( cd "$work" && "$USUAL" fast 2>/dev/null )" && code=0 || code=$?
 
-[[ "$code" == 1 ]] ||
-  problems+=("want tier-usual.sh to exit 1, it exited $code")
+[[ "$code" == 2 ]] ||
+  problems+=("want tier-usual.sh to exit 2, it exited $code")
 
 [[ -z "$out" ]] ||
   problems+=("stdout: want nothing, got $(printf '%q' "$out")")

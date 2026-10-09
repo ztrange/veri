@@ -8,7 +8,6 @@ import re
 import subprocess
 import sys
 import time
-import traceback
 
 from event_log import read_events, usage_totals
 from ledger import ledger_steps
@@ -214,9 +213,5 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    try:
-        code = main(sys.argv[1:])
-    except Exception:
-        traceback.print_exc()
-        code = 2
-    sys.exit(code)
+    import entry
+    entry.run(main, sys.argv[1:])

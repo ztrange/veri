@@ -98,4 +98,5 @@ def main(argv):
     return status if 0 <= status <= 3 else 2
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    import entry
+    entry.run(main, sys.argv[1:])

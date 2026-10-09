@@ -160,4 +160,5 @@ def cut(path, branch):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1:]))
+    import entry
+    entry.run(main, sys.argv[1:])

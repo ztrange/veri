@@ -398,7 +398,7 @@ outcome_says "$linked_out" pr
 
 report_on "$name" "$linked_out"
 
-name="metrics.sh run in a working directory with no .tdd/events.jsonl exits 1 and prints nothing on stdout"
+name="metrics.sh run in a working directory with no .tdd/events.jsonl exits 2 and prints nothing on stdout"
 problems=()
 
 logless_work="$(scratch_dir)"
@@ -407,8 +407,8 @@ logless_out="$(scratch_dir)/report.md"
 ( cd "$logless_work" && "$METRICS" 108 ) > "$logless_out" 2>/dev/null
 logless_status=$?
 
-[[ "$logless_status" -eq 1 ]] ||
-  problems+=("want metrics.sh to exit 1 with no .tdd/events.jsonl, it exited $logless_status")
+[[ "$logless_status" -eq 2 ]] ||
+  problems+=("want metrics.sh to exit 2 with no .tdd/events.jsonl, it exited $logless_status")
 [[ ! -s "$logless_out" ]] ||
   problems+=("want nothing on stdout with no .tdd/events.jsonl, it printed $(printf '%q' "$(cat "$logless_out")")")
 
