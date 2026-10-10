@@ -1312,6 +1312,63 @@ def test_a_conductor_stopped_over_veri_conductor_ctx_budget_is_launched_again_fo
         ["7", "7", "8"], ["restarted 7"])
 
 
+def test_with_veri_parallel_1_a_conductor_over_the_context_budget_is_stopped_only_after_its_step_done_result_and_relaunched_for_the_same_issue_while_each_launch_carries_the_caller_s_tunables_as_they_were_and_the_outer_supervisor_the_run_timeout_and_no_retries(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    gh, work = _gh_and_work(tmp_path)
+    logs = {n: work / ".tdd" / ("conductor-%s.log" % n) for n in ("7", "8")}
+    usage = '"usage":{"cache_creation_input_tokens":0,"cache_read_input_tokens":%d}'
+    step_done = ('{"type":"assistant","message":{"content":[{"type":"tool_use","input":{"command":'
+                 '"skills/tdd/scripts/event.sh step-done"}}],%s}}\n')
+    user = b'{"type":"user","message":{"content":[{"type":"tool_result","content":""}]}}\n'
+    launches, launched_with, events, kills_before_result, ticks = [], [], [], [], [0]
+    alive_ticks = [0]
+
+    def on_launch(sup):
+        n = sup.args[-1]
+        launches.append(n)
+        sup.pid = 1000 + int(n) + 100 * (launches.count(n) - 1)
+        if launches == ["7"]:
+            logs[n].write_bytes((step_done % (usage % 150000)).encode())
+        elif n == "8" and launches.count("8") <= 2:
+            logs[n].write_bytes((step_done % (usage % 50000)).encode() + user)
+        else:
+            logs[n].write_bytes(b"")
+            sup.exit(0)
+
+    def on_sleep(live):
+        ticks[0] += 1
+        if ticks[0] == 1:
+            kills_before_result.extend(events)
+            with open(logs["7"], "ab") as f:
+                f.write(user)
+        eight = [s for s in live if s.args[-1] == "8" and s.returncode is None]
+        if eight:
+            alive_ticks[0] += 1
+            if alive_ticks[0] > 3:
+                eight[0].exit(0)
+
+    supervisors = _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n8\n"))
+    _sigterm_ends_the_live_conductor(monkeypatch, supervisors, events)
+    faked_popen = subprocess.Popen
+
+    def recording_popen(args, *rest, **kwargs):
+        launched_with.append((list(args), dict(kwargs.get("env") or os.environ)))
+        return faked_popen(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "Popen", recording_popen)
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    code, out, err = run_cli(parallel_conductors, [], env={
+        "VERI_PARALLEL": "1", "VERI_CONDUCTOR_CTX_BUDGET": "100000", "VERI_RUN_TIMEOUT": "60",
+        "VERI_HEARTBEAT": "111", "VERI_POLL": "0.05", "VERI_STUCK_RETRIES": "3", "VERI_GH_JSON": str(gh)}, cwd=work)
+    assert (launches, kills_before_result, events) == (["7", "7", "8"], [], ["kill 1007"])
+    assert [line for line in out.splitlines() if line.startswith("restarted ")] == ["restarted 7"]
+    for args, env in launched_with:
+        assert args[3:11] == ["-u", "VERI_HEARTBEAT", "-u", "VERI_TIMEOUT", "-u", "VERI_STUCK_RETRIES", "-u", "VERI_POLL"]
+        assert args[11:-2] == ["VERI_HEARTBEAT=111", "VERI_STUCK_RETRIES=3", "VERI_POLL=0.05"]
+        assert (env["VERI_HEARTBEAT"], env["VERI_TIMEOUT"], env["VERI_STUCK_RETRIES"]) == ("60", "60", "0")
+
+
 def test_the_cli_prints_parked_for_a_conductor_that_halts_writing_its_parked_file_and_never_stops_launches_or_reports_a_bail_for_it_the_first_bail_stops_launches_while_running_conductors_finish_continue_on_bail_keeps_launching_and_the_first_kill_stops_launches(
         monkeypatch, tmp_path, parallel_conductors, run_cli):
     def run(name, argv, env, solvable, prs, bailed, parked, exits, slow=()):
