@@ -2318,3 +2318,89 @@ def test_main_hands_the_leaf_its_dispositions_through_a_preexec_survives_a_close
         "failing writes": (0, "0\n", {".tdd": True, ".tdd/develop-red.log": True, ".tdd/develop-red.rc": True,
                                       ".tdd/develop-red.pid": True, ".tdd/leaf.owner": True}),
     }
+
+
+def test_cli_reports_a_leafs_outcome_through_run_cli_success_and_failure_with_its_output_a_slow_but_alive_leaf_surviving_the_heartbeat_and_the_exit_record_of_0_1_and_2(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    clean_env(monkeypatch)
+
+    def real_leaf(name, script):
+        work = tmp_path / name
+        work.mkdir()
+        monkeypatch.setattr(time, "sleep", lambda *_: None)
+        fake_leaf_launch(monkeypatch)
+        code, out, err = run_cli(supervise, [name, "sh", "-c", script], cwd=work,
+                                 env={"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "5", "VERI_TIMEOUT": "10"})
+        return code, out, err.splitlines()[-1:], (work / ".tdd" / f"{name}.exit").read_bytes()
+
+    clock = {"wall": 1000}
+
+    def clocked_leaf(name, silent, ends_at):
+        work = tmp_path / name
+        work.mkdir()
+        clock["wall"] = 1000
+
+        def sleep(_):
+            clock["wall"] += 1
+            if clock["wall"] > 5000:
+                raise AssertionError("never ended")
+            if clock["wall"] >= ends_at:
+                (work / ".tdd" / f"{name}.rc").write_text("0\n")
+
+        class Leaf:
+            pid = 4242
+            returncode = None
+            args = []
+
+            def poll(self):
+                if self.returncode is None and clock["wall"] >= ends_at:
+                    self.returncode = 0
+                return self.returncode
+
+            def wait(self, timeout=None):
+                return self.poll()
+
+        leaf = Leaf()
+
+        def stop(_pid, sig):
+            if sig:
+                leaf.returncode = -sig
+
+        def answer(args):
+            args = [str(a) for a in args]
+            if args[:1] == ["git"]:
+                return "0123456789abcdef0123456789abcdef01234567\n"
+            if args[:1] == ["date"]:
+                return f"{clock['wall']}\n"
+            if args[:1] == ["stat"]:
+                return "1000\n" if silent else f"{clock['wall']}\n"
+            return ""
+
+        monkeypatch.setattr(time, "sleep", sleep)
+        monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
+        monkeypatch.setattr(os, "killpg", stop)
+        monkeypatch.setattr(os, "kill", stop)
+        monkeypatch.setattr(subprocess, "run", lambda args, *_, **k: subprocess.CompletedProcess(
+            args, 0, as_asked(answer(args), k), as_asked("", k)))
+        monkeypatch.setattr(subprocess, "check_output", lambda args, *_, **k: as_asked(answer(args), k))
+        monkeypatch.setattr(subprocess, "call", lambda *a, **k: 0)
+        monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: 0)
+        monkeypatch.setattr(subprocess, "Popen", lambda args, *_, **k: leaf)
+        code, _, err = run_cli(supervise, [name, "leaf"], cwd=work,
+                               env={"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "5", "VERI_TIMEOUT": "5000"})
+        return code, err.splitlines()[-1:], (work / ".tdd" / f"{name}.exit").read_bytes()
+
+    assert [
+        real_leaf("ok", "echo 'leaf: did the work'; exit 0"),
+        real_leaf("fail", "echo 'leaf: blew up'; exit 3"),
+        clocked_leaf("develop-slow", silent=False, ends_at=1030),
+        clocked_leaf("develop-hang", silent=True, ends_at=10 ** 9),
+    ] == [
+        (0, "leaf: did the work\n", [b"supervise[ok]: success".decode()], b"0\n"),
+        (1, "leaf: blew up\n", [b"supervise[fail]: failure".decode()], b"1\n"),
+        (0, [b"supervise[develop-slow]: success".decode()], b"0\n"),
+        (2, [b"supervise[develop-hang]: killed-stuck \xe2\x80\x94 no heartbeat for 6s (window 5s)".decode()], b"2\n"),
+    ]

@@ -130,21 +130,9 @@ sup() {
   code=$?
 }
 
-sup ok 5 10 leaf-ok
-{ [[ "$code" == 0 ]] && [[ "$out" == *'did the work'* ]]; } && ok \
-  || no "exit-0 leaf → success + captured output (code=$code)"
-
-sup fail 5 10 leaf-fail
-{ [[ "$code" == 1 ]] && [[ "$out" == *'blew up'* ]]; } && ok \
-  || no "exit-nonzero leaf → failure + output (code=$code)"
-
 sup hang 1 30 leaf-hang
 { [[ "$code" == 2 ]] && grep -qi 'heartbeat\|stuck\|silent' "$work/err"; } && ok \
   || no "hung leaf → killed-stuck via heartbeat (code=$code, err=$(cat "$work/err"))"
-
-sup slow 2 30 leaf-slow
-{ [[ "$code" == 0 ]] && [[ "$out" == *'done'* ]]; } && ok \
-  || no "slow-but-alive leaf survives heartbeat → success (code=$code)"
 
 sup runaway 30 1 leaf-runaway
 { [[ "$code" == 2 ]] && grep -qi 'timeout\|stuck' "$work/err"; } && ok \
@@ -158,13 +146,6 @@ stuck_lines="$(grep -c 'supervise\[hang\]: killed-stuck' "$work/err")"
 retry_lines="$(grep -c 'retry [0-9][0-9]*/[0-9][0-9]*' "$work/err")"
 { [[ "$code" == 2 ]] && [[ "$stuck_lines" -eq 1 ]] && [[ "$retry_lines" -eq 0 ]]; } && ok \
   || no "ambient VERI_STUCK_RETRIES=3 → hung leaf still runs exactly once (code=$code, killed-stuck lines=$stuck_lines, retry lines=$retry_lines)"
-
-recorded_code() { sup "$@"; cat "$work/.tdd/$1.exit" 2>/dev/null || echo '<missing>'; }
-eok="$(recorded_code    exit-ok    5 10 leaf-ok)"
-efail="$(recorded_code  exit-fail  5 10 leaf-fail)"
-estuck="$(recorded_code exit-stuck 1 30 leaf-hang)"
-{ [[ "$eok" == 0 ]] && [[ "$efail" == 1 ]] && [[ "$estuck" == 2 ]]; } && ok \
-  || no ".tdd/<name>.exit records the supervisor's own final code, killed-stuck included (success=$eok want 0, failure=$efail want 1, killed-stuck=$estuck want 2)"
 
 
 killed_window() {
