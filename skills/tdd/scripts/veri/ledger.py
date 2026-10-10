@@ -25,7 +25,7 @@ def replace_ledger(path, data):
     path = os.path.realpath(path)
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path))
     try:
-        with os.fdopen(fd, "w") as file:
+        with os.fdopen(fd, "wb" if isinstance(data, bytes) else "w") as file:
             file.write(data)
         shutil.copymode(path, tmp)
         os.replace(tmp, path)
