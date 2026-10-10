@@ -126,7 +126,7 @@ def ledger_steps(text):
 def multi_tag_refusal(steps):
     """The refusal for the first of steps carrying more than one criterion tag, or ""."""
     for *_, text in steps:
-        if text.count(CRITERION_TAG) > 1:
+        if trailing_markers(text).count(CRITERION_TAG) > 1:
             return f"step '{text}' carries more than one criterion tag; one step serves one criterion"
     return ""
 

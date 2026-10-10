@@ -251,3 +251,17 @@ def test_main_refuses_a_ledger_whose_step_carries_two_criterion_tags_naming_the_
         fake_stdin(monkeypatch, ledger.encode())
         one_tag[k] = criterion_finished.main([k])
     assert one_tag == {"1": 0, "2": 3}
+
+
+def test_main_counts_a_step_whose_prose_quotes_a_criterion_marker_only_toward_its_trailing_criterion_1450(
+    monkeypatch, capsys, criterion_finished
+):
+    quoting = (
+        "# Plan for #42\n\n- [x] lowercase the slug ⟦criterion 1⟧\n"
+        "- [ ] criterion-finished.sh reads ⟦criterion 1⟧ from the prose ⟦criterion 2⟧\n"
+    )
+    answers = {}
+    for k in ("1", "2"):
+        fake_stdin(monkeypatch, quoting.encode())
+        answers[k] = (criterion_finished.main([k]), *capsys.readouterr())
+    assert answers == {"1": (0, "", ""), "2": (3, "", "")}
