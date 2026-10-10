@@ -1302,3 +1302,21 @@ def test_main_renders_an_exhausted_prompt_requiring_a_claim_the_criterion_alread
                         if all(re.search(pattern, s, re.I) for pattern in words.values())]
 
     assert (code, len(stating_the_rule) > 0) == (0, True)
+
+
+def test_main_renders_a_revise_prompt_for_each_interface_phase_naming_it_and_carrying_the_rejection_reason_verbatim_1448(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    reason_text = b"REJECT: the migrate phase left a caller on the old name & {tricky}\\chars."
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(reason_text + b"\n")
+
+    results = {}
+    for phase in ("expand", "migrate", "contract-a", "contract-b"):
+        code = build_develop_prompt.main(
+            ["revise", phase, str(spec), "QWIXTLE: zorblat quuxes", "make test", str(reason), "make unit"])
+        out, err = capsysbinary.readouterr()
+        results[phase] = (code, f"(redoing {phase})".encode() in out, reason_text in out, err)
+
+    assert results == {phase: (0, True, True, b"") for phase in ("expand", "migrate", "contract-a", "contract-b")}

@@ -3,7 +3,7 @@ import os
 import re
 import sys
 
-from build_verify_prompt import _IncludeRefused, _expand, _has_heading, _spec_text, _write
+from build_verify_prompt import INTERFACE_PHASES, _IncludeRefused, _expand, _has_heading, _spec_text, _write
 
 PHASES = ("red", "green", "refactor", "cover", "transform", "diff", "structural", "predicate", "revise",
           "reconcile", "exhausted", "over-budget", "rebase", "expand", "migrate", "contract-a",
@@ -49,7 +49,7 @@ def main(argv):
         revised_phase = args.pop(0)
         if not revised_phase:
             return _refuse("build-develop-prompt: missing <phase> being revised")
-        if not re.fullmatch(f"({WANT_REVISE_PHASES})", revised_phase):
+        if revised_phase not in INTERFACE_PHASES and not re.fullmatch(f"({WANT_REVISE_PHASES})", revised_phase):
             return _refuse(f"build-develop-prompt.sh: unknown phase to revise '{revised_phase}' "
                            f"(want {WANT_REVISE_PHASES})")
     names = ["<issue-spec-file>", "<step-text>", "<test-cmd>"] + {
