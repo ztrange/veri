@@ -15,10 +15,12 @@ export LC_ALL=C
 source "$TESTS/lib/harness.sh"
 
 sfx=.test.sh
-counter_re='^[[:space:]]*(pass=0;?[[:space:]]+fail=0|pass="\$\{pass:-0\}")'
+counter_re='^[[:space:]]*(pass=0;?[[:space:]]+fail=0|pass="\$\{pass:-0\}"|(echo|printf)[[:space:]].*\$(\{pass\}|pass)[^"]* passed, .*failed)'
 declare -A COUNTER_EXEMPT=(
   ["docs-read-guard$sfx:pass=0; fail=0"]="a planted suite's own counters, inside a heredoc"
   ["profile$sfx:pass=0; fail=0"]="a planted suite's own counters, inside a heredoc"
+  ["mutation-parity$sfx:pass=0; fail=0"]="a planted suite's own counters, inside a heredoc"
+  ["mutation-parity$sfx:echo \"\$pass passed, \$fail failed\""]="a planted suite's own count line, inside a heredoc"
   ["skill-leaf-env$sfx:    pass=0; fail=0"]="a subshell reset around a probe"
 )
 
@@ -56,8 +58,7 @@ name_hits() {
 
 scaffolding_hits() {
   name_hits "$(tree_grep "$1" \
-    -e '^[[:space:]]*(function[[:space:]]+)?(ok|no)[[:space:]]*\(\)' \
-    -e '^[[:space:]]*(echo|printf)[[:space:]].*\$(\{pass\}|pass)[^"]* passed, .*failed')" \
+    -e '^[[:space:]]*(function[[:space:]]+)?(ok|no)[[:space:]]*\(\)')" \
     'carries its own harness scaffolding'
   counter_hits "$1"
 }
