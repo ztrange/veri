@@ -24,3 +24,5 @@
 ### `SKILL.md` accepts a `⟦replaces-case⟧` group step's Green only once the conductor's own run of `mutation-parity.sh` on that step's pairs table exits 0 ⟦criterion 3⟧
 - test-only | skills/tdd/scripts/tests/skill-refactor-kind.test.sh case 15's "exit(s)? 0 … only once|until|before" assertion repeats case 12's (no-product-caller.sh) word for word; one helper taking the script name could serve both
 - test-only | skills/tdd/scripts/tests/skill-refactor-kind.test.sh cases 11–14 each repeat the `phased_text="$(section '#### A \`⟦phases')"` read and the "no subsection" guard; it could be read once and shared (earlier cycles' code)
+### `SKILL.md` accepts a contract (a) phase only once the conductor's own run of `mutation-parity.sh` on that phase's pairs table exits 0 ⟦criterion 3⟧
+- test-only | fold skill-refactor-kind.test.sh cases 15 and 16 (identical mutation-parity window checks differing only in section heading, the tie-word `replaces-case`/`contract-a`, and the noun `step`/`phase`) into one helper called twice
