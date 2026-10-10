@@ -10,5 +10,5 @@
 - [x] The shim test's exemption table lists the six non-canonical shims with one reason each, and a stale row (a script now canonical, or gone) fails naming the script ⟦criterion 2⟧
 - [x] `make unit` runs only the small (unmarked) pytest cases; a case marked `process("<boundary>")` is not run by it ⟦criterion 4⟧
 - [x] `make test` runs the small and the medium pytest cases, and a medium case may start real `git`, a real child process or send a signal without the PATH guard refusing it ⟦criterion 4⟧
-- [x] Under both `make unit` and `make test`, an unmarked pytest case that starts `git`, `gh` or `curl` fails, naming the command ⟦criterion 4⟧ ⟂ refactor pending
+- [x] Under both `make unit` and `make test`, an unmarked pytest case that starts `git`, `gh` or `curl` fails, naming the command ⟦criterion 4⟧
 - [ ] One medium pytest case runs one shim through a symlink to the skills directory, from another working directory, and gets the exit code and stdout `run_cli` gives for that module ⟦criterion 3⟧
