@@ -733,3 +733,66 @@ def test_main_reads_the_shas_legacy_statuses_and_with_no_head_sha_the_rest_pull_
            for want, answer in (("green", (0, "", "")), ("red", (1, "", "")),
                                 ("pending", (3, "", "")), ("unread", (2, "", by_sha)))},
     }
+
+
+def test_main_reads_the_rest_head_large_documents_and_every_check_run_page_and_names_the_sha_on_a_failed_later_page(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    run = lambda name, conclusion: check_run(name, FULL_SHA, "completed", conclusion)
+    other = "fedcba9876543210fedcba9876543210fedcba98"
+    proxy = ("gh: Numeric-ID repository paths (repositories/{id}/...) are not supported through this proxy. "
+             "Use repos/{owner}/{repo}/... endpoints instead. (HTTP 403)\n")
+    bad_gateway = (1, "", "HTTP 502: Bad Gateway\n")
+    sizes = {}
+
+    def waited(name, pages, statuses=(), broken=None):
+        work = tmp_path / name
+        (work / ".tdd").mkdir(parents=True)
+        total = sum(len(page) for page in pages)
+        bodies = {
+            PULL: json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": FULL_SHA}}),
+            f"{COMMITS}/status": json.dumps(
+                {"state": "success", "sha": FULL_SHA, "total_count": len(statuses), "statuses": list(statuses)}),
+        }
+        for n, page in enumerate(list(pages) + [[]], start=1):
+            bodies[f"{COMMITS}/check-runs?page={n}"] = bad_gateway if n == broken else json.dumps(
+                {"total_count": total, "check_runs": page})
+        sizes[name] = [len(bodies[f"{COMMITS}/check-runs?page=1"]), len(bodies[f"{COMMITS}/status"])]
+        served(fake_processes, bodies, lambda line: (
+            (1, "", proxy) if "repositories/" in line else
+            (0, json.dumps({"headRefOid": other, "statusCheckRollup": []}), "") if line.startswith("gh pr view")
+            else None))
+        return run_cli(wait_ci, [PR, "60", "60", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
+
+    def padded(pad):
+        return ([dict(run(f"gates-{n}", "success"), output={"summary": pad}) for n in range(40)],
+                [{"context": f"legacy-{n}", "state": "success", "description": pad} for n in range(40)])
+
+    short_runs, short_statuses = padded("short")
+    long_runs, long_statuses = padded("x" * 8192)
+    paged = [[run("gates-1", "success"), run("gates-2", "neutral")],
+             [run("gates-3", "success"), run("gates-4", "skipped")],
+             [run("gates-5", "failure")]]
+    by_sha = "HTTP 502: Bad Gateway\n" + f"wait-ci.sh: could not read the checks of {FULL_SHA}\n"
+
+    observed = {
+        "REST head while pr view reports another": waited("rest-only", [[run("gates", "success")]],
+                                                          [legacy("success")]),
+        "small documents": waited("large-short", [short_runs], short_statuses),
+        "documents over 256 KiB": waited("large-long", [long_runs], long_statuses),
+        "both large documents over 256 KiB": all(size > 262144 for size in sizes["large-long"]),
+        "five runs on one page": waited("proxy-one", [[r for page in paged for r in page]]),
+        "the same runs over three pages": waited("proxy-three", paged),
+        "first and only page fails": waited("flaky-1", paged, broken=1),
+        "a later page fails": waited("flaky-2", paged, broken=2),
+    }
+
+    assert observed == {
+        "REST head while pr view reports another": (0, "", ""),
+        "small documents": (0, "", ""),
+        "documents over 256 KiB": (0, "", ""),
+        "both large documents over 256 KiB": True,
+        "five runs on one page": (1, "", ""),
+        "the same runs over three pages": (1, "", ""),
+        "first and only page fails": (2, "", by_sha),
+        "a later page fails": (2, "", by_sha),
+    }
