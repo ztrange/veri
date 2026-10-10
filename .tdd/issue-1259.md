@@ -5,7 +5,7 @@
 - [x] The shared `run_cli` fixture calls a module's `main(argv)` in the test process with the given argv, stdin text, environment additions and cwd, and returns the exit code, stdout and stderr that running that module's `.sh` gives ⟦criterion 1⟧
 - [x] `run_cli` answers `n` for a `main` that raises `SystemExit(n)` ⟦criterion 1⟧
 - [x] `run_cli` includes, in order with the module's own output, what a child process the module starts writes to the inherited stdout and stderr descriptors ⟦criterion 1⟧
-- [x] No environment change and no cwd change made through `run_cli` or by the `main` it drives outlives the case ⟦criterion 1⟧ ⟂ refactor pending
+- [x] No environment change and no cwd change made through `run_cli` or by the `main` it drives outlives the case ⟦criterion 1⟧
 - [ ] One small pytest case checks every top-level `skills/tdd/scripts/*.sh` is the canonical two-line shim naming a module that exists under `veri/`, and fails naming the script and what is wrong for a script with logic in it or a missing module ⟦criterion 2⟧
 - [ ] The shim test's exemption table lists the six non-canonical shims with one reason each, and a stale row (a script now canonical, or gone) fails naming the script ⟦criterion 2⟧
 - [ ] `make unit` runs only the small (unmarked) pytest cases; a case marked `process("<boundary>")` is not run by it ⟦criterion 4⟧
