@@ -831,3 +831,102 @@ echo "never stopped" >> "$MARKS"
         "argv 1: [1301]", "trap -- '' SIGINT", "trap -- '' SIGQUIT", "new session led by its pid",
         "stdin /dev/null", "yes 141", "xfsz 153", "TERM to %d" % conductor.pid]
     assert answers == []
+
+
+@pytest.mark.process("SIGTERM to a conductor's process group and the drain of its stdout until EOF or VERI_CONDUCTOR_STOP_TIMEOUT")
+def test_1126_1246_a_conductor_stopped_over_budget_gets_sigterm_to_its_group_whose_writer_after_it_ends_143_not_141_and_a_group_holding_its_stdout_past_the_stop_timeout_does_not_hang_the_run(
+        tmp_path, monkeypatch, orchestrate, fake_processes, run_cli):
+    import signal
+    marks = tmp_path / "marks"
+    step_done = ('{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1",'
+                 '"name":"Bash","input":{"command":"VERI_ISSUE=%s VERI_ACTOR=conductor $S/event.sh step-done"}}],'
+                 '"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,'
+                 '"output_tokens":30}}}')
+    user = '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
+    heartbeat = '{"type":"system","subtype":"heartbeat"}'
+    stubs = {
+        "1355": """#!/usr/bin/env bash
+(stopped=0
+ trap 'stopped=1' TERM
+ i=0
+ while [ $stopped -eq 0 ] && [ $i -lt 400 ]; do echo '%(heartbeat)s'; sleep 0.01; i=$((i + 1)); done
+ [ $stopped -eq 1 ] || { echo "writer never sent SIGTERM" >> "$MARKS"; exit 0; }
+ i=0
+ while [ $i -lt 1000 ] && [ ! -e "$MARKS.release" ]; do sleep 0.01; i=$((i + 1)); done
+ echo '%(heartbeat)s'
+ trap - TERM
+ kill -TERM $BASHPID) &
+writer=$!
+trap '' TERM
+echo '%(step_done)s'
+echo '%(user)s'
+wait $writer
+echo "writer $?" >> "$MARKS"
+exec > /dev/null
+i=0
+while [ $i -lt 1000 ] && [ ! -e "$MARKS.done" ]; do sleep 0.01; i=$((i + 1)); done
+""" % {"heartbeat": heartbeat, "step_done": step_done % "1355", "user": user},
+        "1356": """#!/usr/bin/env bash
+trap '' TERM
+(i=0
+ while [ $i -lt 1000 ] && [ ! -e "$MARKS.asked" ]; do sleep 0.01; i=$((i + 1)); done
+ if [ $i -lt 1000 ]; then echo "asked again while the group held its stdout"; else echo "not asked again while the group held its stdout"; fi >> "$MARKS") &
+echo '%(step_done)s'
+echo '%(user)s'
+wait $!
+exec > /dev/null
+i=0
+while [ $i -lt 1000 ] && [ ! -e "$MARKS.done" ]; do sleep 0.01; i=$((i + 1)); done
+""" % {"step_done": step_done % "1356", "user": user},
+    }
+    for issue, text in stubs.items():
+        stub = tmp_path / ("conductor-%s.sh" % issue)
+        stub.write_text(text)
+        stub.chmod(0o755)
+    real_popen, real_setitimer, real_killpg = subprocess.Popen, signal.setitimer, os.killpg
+
+    def orchestrated(issue, stop_timeout):
+        answers, launched, stops = [(0, issue + "\n"), (3, "")], [], []
+
+        def answer(line, **kwargs):
+            if not answers[1:]:
+                (tmp_path / "marks.release").touch()
+                (tmp_path / "marks.asked").touch()
+            return answers.pop(0) + ("",)
+
+        def popen(args, *rest, **kwargs):
+            launched.append(real_popen([str(tmp_path / ("conductor-%s.sh" % args[1]))], *rest, **kwargs))
+            return launched[-1]
+
+        def setitimer(which, seconds):
+            real_setitimer(which, seconds)
+            (tmp_path / "marks.release").touch()
+
+        def killpg(pid, sig):
+            stops.append((pid, sig))
+            real_killpg(pid, sig)
+
+        for mark in ("marks", "marks.release", "marks.asked", "marks.done"):
+            (tmp_path / mark).unlink(missing_ok=True)
+        fake_processes(answer)
+        monkeypatch.setattr(subprocess, "Popen", popen)
+        monkeypatch.setattr(signal, "setitimer", setitimer)
+        monkeypatch.setattr(os, "killpg", killpg)
+        monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", "100000")
+        if stop_timeout is None:
+            monkeypatch.delenv("VERI_CONDUCTOR_STOP_TIMEOUT", raising=False)
+        else:
+            monkeypatch.setenv("VERI_CONDUCTOR_STOP_TIMEOUT", stop_timeout)
+        code, out, err = run_cli(orchestrate, [], env={"MARKS": str(marks)}, cwd=tmp_path)
+        conductor = launched[0]
+        running = "conductor running at exit" if conductor.poll() is None else "conductor gone at exit"
+        (tmp_path / "marks.done").touch()
+        conductor.wait(timeout=20)
+        return (code, out, err, running, stops == [(conductor.pid, signal.SIGTERM)], answers,
+                marks.read_text().splitlines())
+
+    assert orchestrated("1355", None) == (
+        0, "context 1355 150100\n", "", "conductor running at exit", True, [], ["writer 143"])
+    assert orchestrated("1356", "0.1") == (
+        0, "context 1356 150100\n", "", "conductor running at exit", True, [],
+        ["asked again while the group held its stdout"])
