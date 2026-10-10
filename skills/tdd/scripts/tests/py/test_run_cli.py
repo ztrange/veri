@@ -84,6 +84,16 @@ def test_run_cli_answers_1_and_writes_the_text_to_stderr_when_a_main_raises_syst
     assert [(code, err) for code, _, err in answers] == [(1, "2.5\n"), (1, "(4, 'planted')\n")]
 
 
+def test_run_cli_answers_2_and_the_one_line_entry_run_writes_when_a_main_raises_an_uncaught_exception_1401(run_cli):
+    module = types.ModuleType("exp_refusing")
+    exec(compile("def main(argv):\n    raise ValueError('planted   refusal\\n  here')\n",
+                 "/exp/exp_refusing.py", "exec"), module.__dict__)
+
+    code, _, err = run_cli(module, [])
+
+    assert (code, err) == (2, "exp-refusing.sh: ValueError: planted refusal here\n")
+
+
 @pytest.mark.process("a child writing to the inherited stdout and stderr")
 def test_run_cli_includes_in_order_what_a_child_the_module_starts_writes_to_the_inherited_stdout_and_stderr(run_cli):
     module = module_of(
