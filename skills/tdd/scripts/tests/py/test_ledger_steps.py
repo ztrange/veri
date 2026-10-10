@@ -427,3 +427,16 @@ def test_main_reports_an_empty_criterion_for_a_step_whose_prose_quotes_one_and_w
     code = ledger_steps.main([])
 
     assert (code, *capsysbinary.readouterr()) == (0, f"1\topen\tstep\t0\t0\t\t{quoted}\n".encode(), b"")
+
+
+def test_main_reports_a_kind_only_from_a_steps_trailing_marker_run_not_from_a_kind_its_prose_quotes_1450(
+        monkeypatch, capsysbinary, ledger_steps):
+    quoted = "a step tagged ⟦human-owed⟧ ⟦criterion 2⟧ needs a human ⟦criterion 1⟧"
+    trailing = "the diff is read by hand ⟦diff-checked⟧ ⟦criterion 3⟧"
+    fake_stdin(monkeypatch, f"# Plan for #42\n\n- [ ] {quoted}\n- [ ] {trailing}\n".encode())
+    code = ledger_steps.main([])
+
+    assert (code, *capsysbinary.readouterr()) == (0, (
+        f"1\topen\tstep\t0\t0\t1\t{quoted}\n"
+        f"2\topen\tdiff-checked\t0\t0\t3\t{trailing}\n"
+    ).encode(), b"")

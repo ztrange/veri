@@ -104,7 +104,7 @@ def ledger_steps(text):
         step = match.group(4) or ""
         phased_done = listed_phases(step) and next_phase(step) is None
         state = "open" if match.group(2) == " " and not phased_done else "done"
-        kind = KIND_RE.search(step)
+        kind = KIND_RE.search(trailing_markers(step))
         criterion = (re.findall(CRITERION_RE, trailing_markers(step)) or [""])[-1]
         added = is_added(step)
         pending = state == "done" and step.endswith(PENDING_MARK)
