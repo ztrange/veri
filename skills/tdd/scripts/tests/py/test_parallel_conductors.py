@@ -1016,3 +1016,34 @@ def test_a_stopped_conductor_s_context_is_no_longer_watched_and_the_conductor_be
             [line for line in out.splitlines() if line.startswith(("context ", "restarted "))]) == (
         [(1007, signal.SIGTERM)], ["context 7 101", "context 8 900", "context 8 900", "restarted 7"])
     assert code in (0, 1, 2, 3)
+
+
+def test_a_bad_veri_parallel_veri_max_issues_or_veri_conductor_ctx_budget_is_exit_2_naming_it_and_the_value_with_no_conductor_launched(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    work = tmp_path / "repo"
+    work.mkdir()
+    launched = []
+
+    def on_launch(sup):
+        launched.append(sup.args)
+
+    _boundaries(monkeypatch, tmp_path, on_launch, lambda supervisors: None)
+    bad = [("VERI_PARALLEL", "0", 1), ("VERI_PARALLEL", "two", 1), ("VERI_PARALLEL", "", 1),
+           ("VERI_MAX_ISSUES", "abc", 1), ("VERI_MAX_ISSUES", "0", 1), ("VERI_MAX_ISSUES", "-1", 1),
+           ("VERI_MAX_ISSUES", "1.5", 1), ("VERI_MAX_ISSUES", "", 1),
+           ("VERI_CONDUCTOR_CTX_BUDGET", "abc", 0), ("VERI_CONDUCTOR_CTX_BUDGET", "1.5", 0),
+           ("VERI_CONDUCTOR_CTX_BUDGET", "-1", 0)]
+    seen = []
+    for name, value, floor in bad:
+        for tunable in TUNABLES:
+            monkeypatch.delenv(tunable, raising=False)
+        env = {"VERI_GH_JSON": str(gh), name: value}
+        code, out, err = run_cli(parallel_conductors, [], env=env, cwd=work)
+        seen.append((name, value, code, out, err.splitlines(), list(launched)))
+    want = [(name, value, 2, "",
+             ["parallel-conductors: %s must be a whole number >= %d: '%s'" % (name, floor, value)], [])
+            for name, value, floor in bad]
+    assert seen == want
