@@ -1601,6 +1601,29 @@ def git_state(repo):
         "%s %s" % (f, git("hash-object", "--", f).strip()) for f in files]
 
 
+def tamper_scratch(tmp_path, monkeypatch, gitignore, tracked):
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
+                 "VERI_NO_VERDICT_RETRIES", "VERI_HEARTBEAT", "VERI_AWAKE_CLOCK", "VERI_STUCK_RETRIES",
+                 "VERI_TIMEOUT"):
+        monkeypatch.delenv(name, raising=False)
+    repo = tmp_path / "repo"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
+        subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
+    (repo / "src.txt").write_text("the developer committed this\n")
+    (repo / ".gitignore").write_bytes(gitignore)
+    for path, text in tracked.items():
+        (repo / path).parent.mkdir(parents=True, exist_ok=True)
+        (repo / path).write_text(text)
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "initial"], check=True)
+    (tmp_path / "spec.md").write_text(SPEC)
+    claude = tmp_path / "claude-mutate"
+    claude.write_text('#!/bin/sh\neval "${FAKE_MUTATE:-}" >/dev/null 2>&1\nprintf \'%s\' "${FAKE_OUT_TEXT:-}"\nexit 0\n')
+    claude.chmod(0o755)
+    return repo, claude
+
+
 @pytest.mark.process("a real git scratch repository whose state the verifier leaf changes")
 @pytest.mark.parametrize("mutation, leaf_args, expected_code, named", [
     ('printf "the verifier rewrote this\\n" > src.txt', None, 2, "src.txt"),
@@ -1613,24 +1636,9 @@ def git_state(repo):
 ])
 def test_verify_sh_refuses_a_verifier_leaf_that_changed_the_tree_or_head_with_exit_2_naming_it_and_restores_what_it_was_handed(
         mutation, leaf_args, expected_code, named, run_cli, tmp_path, monkeypatch):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
-                 "VERI_NO_VERDICT_RETRIES", "VERI_HEARTBEAT", "VERI_AWAKE_CLOCK", "VERI_STUCK_RETRIES",
-                 "VERI_TIMEOUT"):
-        monkeypatch.delenv(name, raising=False)
-    repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
-    for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
-        subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
-    (repo / "src.txt").write_text("the developer committed this\n")
-    (repo / ".gitignore").write_text(".tdd/\n")
-    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
-    subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "initial"], check=True)
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
     (repo / "src.txt").write_text("the developer is still editing this\n")
     (repo / "new.txt").write_text("the developer has not committed this yet\n")
-    (tmp_path / "spec.md").write_text(SPEC)
-    claude = tmp_path / "claude-mutate"
-    claude.write_text('#!/bin/sh\neval "${FAKE_MUTATE:-}" >/dev/null 2>&1\nprintf \'%s\' "${FAKE_OUT_TEXT:-}"\nexit 0\n')
-    claude.chmod(0o755)
     leafargs_out = tmp_path / "leafargs"
     env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
            "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
@@ -1669,27 +1677,9 @@ def test_verify_sh_refuses_a_verifier_leaf_that_changed_the_tree_or_head_with_ex
 ])
 def test_verify_sh_under_the_repos_own_gitignore_accepts_nested_run_state_and_refuses_an_edited_root_ledger_or_tracked_path_naming_each_569(
         tracked, mutation, verdict, expected_code, named, run_cli, tmp_path, monkeypatch):
-    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
-                 "VERI_NO_VERDICT_RETRIES", "VERI_HEARTBEAT", "VERI_AWAKE_CLOCK", "VERI_STUCK_RETRIES",
-                 "VERI_TIMEOUT"):
-        monkeypatch.delenv(name, raising=False)
-    repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
-    for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
-        subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
-    (repo / "src.txt").write_text("the developer committed this\n")
-    (repo / ".gitignore").write_bytes((SCRIPTS.parents[2] / ".gitignore").read_bytes())
-    for path, text in tracked.items():
-        (repo / path).parent.mkdir(parents=True, exist_ok=True)
-        (repo / path).write_text(text)
-    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
-    subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "the repo's own ignore rules"], check=True)
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, (SCRIPTS.parents[2] / ".gitignore").read_bytes(), tracked)
     ignored = [subprocess.run(["git", "-C", str(repo), "check-ignore", "--no-index", "-q", path]).returncode == 0
                for path in (".tdd/issue-569.md", ".tdd/issue-569-spec.md")]
-    (tmp_path / "spec.md").write_text(SPEC)
-    claude = tmp_path / "claude-mutate"
-    claude.write_text('#!/bin/sh\neval "${FAKE_MUTATE:-}" >/dev/null 2>&1\nprintf \'%s\' "${FAKE_OUT_TEXT:-}"\nexit 0\n')
-    claude.chmod(0o755)
     env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation, "FAKE_OUT_TEXT": verdict,
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
     verify = importlib.import_module("veri.verify")
