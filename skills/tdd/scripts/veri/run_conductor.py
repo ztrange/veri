@@ -35,11 +35,12 @@ def main(argv):
             if fetch.returncode == 0:
                 break
             sys.stderr.write(fetch.stderr.rstrip("\n") + "\n")
-            if ("cannot lock ref" in fetch.stderr or "reference already exists" in fetch.stderr) and fetches < 60:
+            already_exists = "reference already exists" in fetch.stderr
+            if ("cannot lock ref" in fetch.stderr or already_exists) and fetches < 60:
                 if subprocess.run(["sleep", os.environ.get("VERI_FETCH_RETRY_SLEEP") or "1"]).returncode != 0:
                     return 1
                 continue
-            if "reference already exists" in fetch.stderr:
+            if already_exists:
                 sys.stderr.write("run-conductor: another process holds the ref lock\n")
             sys.stderr.write("run-conductor: fetch of origin failed in '%s' — refusing to run a skill that may be stale\n" % base)
             return 2
