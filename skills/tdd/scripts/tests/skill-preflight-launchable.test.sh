@@ -320,27 +320,31 @@ elsewhere="$(sentences < "$md" | grep -iE 'step 1\.2 (takes|writes|locks)|(taken
 
 report "$name"
 
-name="#1297 $skill_md has a resumed run, one whose worktree and ledger already exist, run $rebase_call before its preflight baseline, and a new branch's run not rebase there"
-problems=()
-
-enter_at="$(awk -v w="$worktree_call" -v c="$enter_call" 'index($0, w) && index($0, c) { print NR; exit }' "$md")"
-
-if [[ -z "$enter_at" ]]; then
-  problems+=("$skill_md has no line that runs $worktree_call and then $enter_call, so where the run enters the issue's worktree could not be read")
-else
+rebase_span() {
+  enter_at="$(awk -v w="$worktree_call" -v c="$enter_call" 'index($0, w) && index($0, c) { print NR; exit }' "$md")"
+  if [[ -z "$enter_at" ]]; then
+    problems+=("$skill_md has no line that runs $worktree_call and then $enter_call, so where the run enters the issue's worktree could not be read")
+    return 1
+  fi
   base_at="$(awk -v s="$((enter_at + 1))" -v f="$fast_call" -v d="$detach_start" \
     'NR >= s && (index($0, f) || index($0, d)) { print NR; exit }' "$md")"
   if [[ -z "$base_at" ]]; then
     problems+=("$skill_md names neither $fast_call nor $detach_start after line $enter_at enters the worktree, so where the baseline starts could not be read")
-  else
-    between="$(sed -n "${enter_at},${base_at}p" "$md" | sentences)"
-    resumed="$(grep -F -- "$rebase_call" <<< "$between" | grep -iF 'resum' | grep -iF 'ledger')"
-    [[ -n "$resumed" ]] ||
-      problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying a resumed run, whose worktree and ledger already exist, runs $rebase_call, so a resumed run's baseline runs on its old base")
-    fresh="$(grep -iF 'new branch' <<< "$between" | grep -iF 'rebase' | grep -iE '(^|[^[:alpha:]])(not|never|no)([^[:alpha:]]|$)')"
-    [[ -n "$fresh" ]] ||
-      problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying a new branch's run does not rebase there")
+    return 1
   fi
+  between="$(sed -n "${enter_at},${base_at}p" "$md" | sentences)"
+}
+
+name="#1297 $skill_md has a resumed run, one whose worktree and ledger already exist, run $rebase_call before its preflight baseline, and a new branch's run not rebase there"
+problems=()
+
+if rebase_span; then
+  resumed="$(grep -F -- "$rebase_call" <<< "$between" | grep -iF 'resum' | grep -iF 'ledger')"
+  [[ -n "$resumed" ]] ||
+    problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying a resumed run, whose worktree and ledger already exist, runs $rebase_call, so a resumed run's baseline runs on its old base")
+  fresh="$(grep -iF 'new branch' <<< "$between" | grep -iF 'rebase' | grep -iE '(^|[^[:alpha:]])(not|never|no)([^[:alpha:]]|$)')"
+  [[ -n "$fresh" ]] ||
+    problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying a new branch's run does not rebase there")
 fi
 
 report "$name"
@@ -348,27 +352,16 @@ report "$name"
 name="#1297 $skill_md says the resume $rebase_call's exit 3 goes on unchanged, its exit 1 goes on from the old base and leaves the conflict to the Draft PR step, and its exit 2 bails no-verdict"
 problems=()
 
-enter_at="$(awk -v w="$worktree_call" -v c="$enter_call" 'index($0, w) && index($0, c) { print NR; exit }' "$md")"
-
-if [[ -z "$enter_at" ]]; then
-  problems+=("$skill_md has no line that runs $worktree_call and then $enter_call, so where the run enters the issue's worktree could not be read")
-else
-  base_at="$(awk -v s="$((enter_at + 1))" -v f="$fast_call" -v d="$detach_start" \
-    'NR >= s && (index($0, f) || index($0, d)) { print NR; exit }' "$md")"
-  if [[ -z "$base_at" ]]; then
-    problems+=("$skill_md names neither $fast_call nor $detach_start after line $enter_at enters the worktree, so where the baseline starts could not be read")
-  else
-    between="$(sed -n "${enter_at},${base_at}p" "$md" | sentences)"
-    nothing="$(grep -iE 'exits? 3' <<< "$between" | grep -iF 'unchanged')"
-    [[ -n "$nothing" ]] ||
-      problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying the resume rebase's exit 3 goes on unchanged")
-    conflict="$(grep -iE 'exits? 1' <<< "$between" | grep -iF 'old base' | grep -iF 'Draft PR')"
-    [[ -n "$conflict" ]] ||
-      problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying the resume rebase's exit 1 goes on from the old base and leaves the conflict to the Draft PR step")
-    noanswer="$(grep -iE 'exits? 2' <<< "$between" | grep -iF 'bail' | grep -F 'no-verdict')"
-    [[ -n "$noanswer" ]] ||
-      problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying the resume rebase's exit 2 bails no-verdict")
-  fi
+if rebase_span; then
+  nothing="$(grep -iE 'exits? 3' <<< "$between" | grep -iF 'unchanged')"
+  [[ -n "$nothing" ]] ||
+    problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying the resume rebase's exit 3 goes on unchanged")
+  conflict="$(grep -iE 'exits? 1' <<< "$between" | grep -iF 'old base' | grep -iF 'Draft PR')"
+  [[ -n "$conflict" ]] ||
+    problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying the resume rebase's exit 1 goes on from the old base and leaves the conflict to the Draft PR step")
+  noanswer="$(grep -iE 'exits? 2' <<< "$between" | grep -iF 'bail' | grep -F 'no-verdict')"
+  [[ -n "$noanswer" ]] ||
+    problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying the resume rebase's exit 2 bails no-verdict")
 fi
 
 report "$name"
