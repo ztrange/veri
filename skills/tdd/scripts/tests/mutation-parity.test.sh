@@ -217,4 +217,18 @@ else
     mixed stdout: $out"
 fi
 
+printf 'mul() { echo $(( $1 * $2 )); }\n' > "$work/mul.sh"
+sed 's/\*/\//' "$work/mul.sh" > "$work/mul.mutated"
+diff -u --label a/calc.sh --label b/calc.sh "$work/mul.sh" "$work/mul.mutated" > "$work/does-not-apply.patch"
+table="$work/does-not-apply.tsv"
+printf 'tests/calc.test.sh\tadds two numbers\tredundant\tadds a negative\t%s\n' "$work/does-not-apply.patch" > "$table"
+out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/does-not-apply.err")" && code=0 || code=$?
+if [[ "$code" == 2 ]]; then
+  ok
+else
+  no "a row whose mutation does not apply to the tree exits 2 (exit=$code want 2)
+    stdout: $out
+    stderr: $(cat "$work/does-not-apply.err")"
+fi
+
 finish
