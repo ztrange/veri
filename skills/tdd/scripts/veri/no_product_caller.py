@@ -17,8 +17,12 @@ def product_paths():
     paths = [path for path in PRODUCT_FILES if os.path.isfile(path)]
     for top in PRODUCT_DIRS:
         for root, dirs, files in os.walk(top):
-            dirs[:] = sorted(d for d in dirs if d != "tests")
-            paths.extend(os.path.join(root, name) for name in sorted(files))
+            dirs[:] = sorted(d for d in dirs if d not in ("tests", "__pycache__"))
+            paths.extend(
+                os.path.join(root, name)
+                for name in sorted(files)
+                if not name.endswith(".pyc")
+            )
     return paths
 
 
