@@ -8,10 +8,7 @@ names_a_pattern() {
   shift $((OPTIND - 1))
   [ $# -gt 0 ]
 }
-if names_a_pattern "$@"; then
-  printf '%s: refused: signal only processes you started, by the pid you recorded when you started them — never by name or pattern\n' "$(basename "$0")" >&2
-  exit 2
-fi
+names_a_pattern "$@" && . "$(dirname "$0")/pkill"
 guard=$(cd "$(dirname "$0")" && pwd -P)
 IFS=:
 for d in $PATH; do
