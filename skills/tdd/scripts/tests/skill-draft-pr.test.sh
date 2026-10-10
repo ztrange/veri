@@ -80,7 +80,7 @@
 #  29. SKILL.md's Draft PR step passes every `wait-ci.sh` call the sha it just pushed, read
 #      with `git rev-parse HEAD` after its last push, as the head it waits for.
 #  30. SKILL.md's Draft PR step bails on the `metrics:` push's CI wait with a command in its
-#      block — `ci-red` on exit 1, `ci-timeout` on exit 2 — not only in prose.
+#      block — `ci-timeout` on exit 2 — not only in prose. Its red is case 47's.
 #  31. SKILL.md reads the default branch, reads and comments on the issue, and creates, views,
 #      edits, readies and comments on the PR without `gh repo view`, `gh issue view|comment`
 #      or `gh pr create|view|edit|ready|comment`: it readies the PR through lib/github.sh's
@@ -123,6 +123,9 @@
 #      has returned, and never in the same message as the rebase.
 #  46. SKILL.md's Draft PR sub-step 1 alone carries that sentence: the CI conflict-rebase copy
 #      later in the same step does not stand in for it.
+#  47. SKILL.md's Draft PR step says a red CI on the `metrics:` cost-report push appends one
+#      `⟦ci-repair⟧` step with the `step-added` event a conductor-added step gets and returns
+#      to the cycle loop, and bails `ci-red` only when the ledger already holds one.
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -801,7 +804,7 @@ if step_or_problem '### 4. Draft PR' "which head sha the step's CI waits are giv
 fi
 report "$name"
 
-name="$skill_md's Draft PR step bails on the metrics: push's CI wait with a command in its block, ci-red on exit 1 and ci-timeout on exit 2 (#550)"
+name="$skill_md's Draft PR step bails on the metrics: push's CI wait with a command in its block, ci-timeout on exit 2 (#550)"
 problems=()
 
 if step_or_problem '### 4. Draft PR' "whether the metrics: push's CI wait bails"; then
@@ -817,12 +820,31 @@ if step_or_problem '### 4. Draft PR' "whether the metrics: push's CI wait bails"
         waited && match($0, /[$]s\/event[.]sh bail cause=ci-(red|timeout)/) {
           cause = substr($0, RSTART + 23, RLENGTH - 23)
           print cause " " substr($0, 1, RSTART - 1) }' <<< "$commands")"
-    for want in 'ci-red 1' 'ci-timeout 2'; do
+    for want in 'ci-timeout 2'; do
       cause="${want% *}" code="${want#* }"
       keyed="$(awk -v c="$cause" -v k="$code" '$1 == c && (" " $0 " ") ~ ("[^0-9]" k "[^0-9]")' <<< "$bails")"
       [[ -n "$keyed" ]] ||
         problems+=("no command line of $skill_md's Draft PR step bails with cause $cause on the metrics: push's wait-ci.sh exit $code, in the block after that wait")
     done
+  fi
+fi
+report "$name"
+
+name="#1431 $skill_md's Draft PR step says a red CI on the metrics: cost-report push appends one ⟦ci-repair⟧ step with the step-added event and returns to the cycle loop, bailing ci-red only when the ledger already holds a ⟦ci-repair⟧ step"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "what a red CI on the metrics: push does"; then
+  plain="$(unmarked_records)"
+  said="$(grep -oE 'the metrics: push .*' <<< "$plain")"
+  if [[ -z "$said" ]]; then
+    problems+=("no instruction of $skill_md's Draft PR step describes the metrics: push's CI wait, so what its red does could not be checked")
+  else
+    repairs="$(first_record "$said" -E 'exit 1|red' -F '⟦ci-repair⟧' -F 'step-added' -F 'cycle loop' -E 'bails?[^.]*ci-red[^.]*only[^.]*already[^.]*⟦ci-repair⟧|only[^.]*already[^.]*⟦ci-repair⟧[^.]*bails?[^.]*ci-red')"
+    [[ -n "$repairs" ]] ||
+      problems+=("$skill_md's Draft PR step does not say a red CI on the metrics: push appends one ⟦ci-repair⟧ step with the step-added event and returns to the cycle loop, bailing ci-red only when the ledger already holds a ⟦ci-repair⟧ step, so a CI-only flake on the cost-report push still sends a finished run to a human: $(printf '%.160s' "$said")")
+    reversed="$(first_record "$said" -F 'not a repair step')"
+    [[ -z "$reversed" ]] ||
+      problems+=("$skill_md's Draft PR step still says the metrics: push's red is not a repair step: $(printf '%.160s' "$reversed")")
   fi
 fi
 report "$name"

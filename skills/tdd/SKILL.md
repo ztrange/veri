@@ -1839,7 +1839,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    fi
    $S/push-branch.sh
    $S/wait-ci.sh <pr-url> 540 "" "$(git rev-parse HEAD)"; ci=$?    # exit 3 → run this line again, in a new Bash call
-   [ "$ci" != 1 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(gh api "repos/{owner}/{repo}/commits/$(git rev-parse HEAD)/check-runs" -q '[.check_runs[] | select(.conclusion != null and (.conclusion | ascii_upcase | IN("SUCCESS", "NEUTRAL", "SKIPPED") | not)) | .name] | join(",")')"
+   [ "$ci" != 1 ] || ! grep -F '⟦ci-repair⟧' .tdd/issue-<n>.md > /dev/null || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(gh api "repos/{owner}/{repo}/commits/$(git rev-parse HEAD)/check-runs" -q '[.check_runs[] | select(.conclusion != null and (.conclusion | ascii_upcase | IN("SUCCESS", "NEUTRAL", "SKIPPED") | not)) | .name] | join(",")')"
    [ "$ci" != 2 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)" -f body="<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human, followed by <overflow-url>, the issue refactor-overflow.sh filed, when the pass filed one>"
@@ -1879,8 +1879,12 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    started until it has returned, and never in the same message as the rebase. A second conflict, with `.tdd/ci-conflict-rebased`
    already present, does **bail**, with cause `ci-conflict`, rather than rebasing again.
    The `metrics:` push starts a CI run of its own on the readied PR, so it is read the same
-   way, by `wait-ci.sh` after the push; the commit carries no code, so its red is not a
-   repair step: exit 1 bails with cause `ci-red` and exit 2 with cause `ci-timeout`.
+   way, by `wait-ci.sh` after the push; a red there (exit 1) is a CI-only failure on code
+   that was already green, so it appends one `⟦ci-repair⟧` step to the ledger with the same
+   `step-added` event a conductor-added step gets, through the same three lines and ledger
+   commit as a failed check above, and returns to step 3, *The cycle loop*, to repair it as a
+   red full suite is repaired; it bails with cause `ci-red` only when the ledger already holds
+   a `⟦ci-repair⟧` step, and exit 2 bails with cause `ci-timeout`.
    The `done` mark comes before the render because `metrics.sh` reads it for both the Outcome
    and the issue's wall time: a report rendered before it exists says `unknown` for both. The
    body is rewritten only after the `metrics:` commit is pushed, so it never quotes a file the
