@@ -65,6 +65,14 @@ def test_run_cli_answers_0_when_a_main_returns_none_or_raises_system_exit_with_n
     assert tuple(run_cli(module, [])[0] for module in modules) == (0, 0, 0)
 
 
+def test_run_cli_answers_1_and_writes_the_text_to_stderr_when_a_main_raises_system_exit_with_a_message_1389(run_cli):
+    module = module_of("def main(argv):\n    raise SystemExit('planted: refused')\n")
+
+    code, _, err = run_cli(module, [])
+
+    assert (code, err) == (1, "planted: refused\n")
+
+
 @pytest.mark.process("a child writing to the inherited stdout and stderr")
 def test_run_cli_includes_in_order_what_a_child_the_module_starts_writes_to_the_inherited_stdout_and_stderr(run_cli):
     module = module_of(
