@@ -1604,6 +1604,7 @@ def stream(*results):
     return "\n".join(records)
 
 
+FAST = ["--fast-cmd", "make unit"]
 WAITING = "Waiting for the background `make test` run to complete before rendering a verdict."
 GREEN_REASON = "Target test and full suite are green."
 GREEN = "VERDICT: PASS\nREASON: " + GREEN_REASON
@@ -1671,14 +1672,13 @@ def test_verify_sh_reads_the_newest_verdict_across_result_records_and_relaunches
         monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
-    code, out, err = run_cli(verify, ["--fast-cmd", "make unit", "green", "spec.md", "tests/test_slugify.py",
-                                      "test_lowercases"], env={"HOME": str(tmp_path), **env}, cwd=tmp_path)
+    code, out, err = run_cli(verify, [*FAST, "green", "spec.md", "tests/test_slugify.py", "test_lowercases"],
+                             env={"HOME": str(tmp_path), **env}, cwd=tmp_path)
 
     assert (code, out, err, len(stuck_seen), marked) == expected
     assert stuck_seen == [env.get("VERI_STUCK_RETRIES")] * len(stuck_seen)
 
 
-FAST = ["--fast-cmd", "make unit"]
 FLAG_STEP = "FLAG-STEP slugify joins words with hyphens"
 AMBIENT_STEP = "AMBIENT-STEP-must-not-appear"
 
