@@ -6,3 +6,5 @@
 - test-only | extract the repeated sed/diff/printf patch-and-table construction in mutation-parity.test.sh (proven case, not_proven helper, kept-stays-green case) into one helper that the cases share
 ### A row whose old case is replaced by a named pytest case (a node id) runs that pytest case under the mutation: proven when it goes red, unproven naming it when it stays green ⟦criterion 1⟧
 - test-only | in `mutation-parity.test.sh`, the `replaced` helper repeats the steps that the kept-stays-green case and the two owed cases each write out inline: run `$PARITY` on a table, capture the exit code, then grep the output row for a case name and a result word. One helper shared by all four would remove the copies, but the change touches only files under `tests/`.
+### A row whose old case is itself a pytest node id judges validity against the other cases of that pytest file: valid when the node goes red and another case of the file stays green, owed otherwise ⟦criterion 1⟧
+- test-only | merge the `old_pytest` and `replaced` helpers in mutation-parity.test.sh into one helper taking the suite and old case, since they differ only in those two and the file prefix
