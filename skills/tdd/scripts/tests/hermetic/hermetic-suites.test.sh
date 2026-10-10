@@ -90,7 +90,7 @@ awk '
   !skip
 ' "$HERE/solvable-issues.test.sh" > "$driver_solvable"
 awk '
-  /^gh_ctx="\$work\/gh-ctx"$/ {skip=1}
+  /^gh_again="\$work\/gh-again"$/ {skip=1}
   /^refusing_gh="\$work\/graphql-refusing-bin"$/ {skip=0}
   /^failing_cat="\$work\/failing-cat-bin"$/ {skip=1}
   /^finish$/ {skip=0}
