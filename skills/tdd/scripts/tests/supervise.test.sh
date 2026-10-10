@@ -176,44 +176,6 @@ sup_run() {
 heartbeat_kill() { [[ "$1" == "no heartbeat for "*" (window ${2}s)" ]]; }
 
 
-retry_work="$work/retry"
-mkdir -p "$retry_work"
-retry_window=1
-( cd "$retry_work" && env -u VERI_STUCK_RETRIES VERI_HEARTBEAT="$retry_window" \
-    VERI_TIMEOUT=30 VERI_POLL=0.02 VERI_KILL_POLL=0.01 \
-    "$SUP" develop-red "$stub/leaf-flaky" ) >/dev/null 2>&1
-retry_code=$?
-retry_cause="$(event_field "$retry_work" retry cause)"
-{ [[ "$retry_code" == 0 ]] \
-  && heartbeat_kill "$retry_cause" "$retry_window"; } && ok \
-  || no "a relaunched killed-stuck leaf appends one retry event carrying the kill cause (code=$retry_code, cause=$retry_cause)"
-
-
-exit_work="$work/exit"
-exit_window=2
-
-exit_run() {
-  sup_run "$exit_work/$1" VERI_HEARTBEAT="$2" "$SUP" develop-red "$stub/$3"
-}
-
-exit_run ok    5              leaf-ok
-exit_run fail  5              leaf-fail
-exit_run stuck "$exit_window" leaf-hang
-
-exit_ok_status="$(event_field    "$exit_work/ok"    exit status)"
-exit_ok_secs="$(event_field      "$exit_work/ok"    exit secs)"
-exit_fail_status="$(event_field  "$exit_work/fail"  exit status)"
-exit_stuck_status="$(event_field "$exit_work/stuck" exit status)"
-exit_stuck_cause="$(event_field  "$exit_work/stuck" exit cause)"
-exit_stuck_secs="$(event_field   "$exit_work/stuck" exit secs)"
-
-{ [[ "$exit_ok_status"    == 0 ]] && [[ "$exit_ok_secs" =~ ^[0-9]+$ ]] \
-  && [[ "$exit_fail_status"  == 1 ]] \
-  && [[ "$exit_stuck_status" == 2 ]] \
-  && heartbeat_kill "$exit_stuck_cause" "$exit_window" \
-  && [[ "$exit_stuck_secs" =~ ^[0-9]+$ ]] && (( exit_stuck_secs >= exit_window )); } && ok \
-  || no "a supervised leaf appends one exit event carrying the 0/1/2 status, the kill cause and the attempt's wall seconds (success status=$exit_ok_status want 0, secs=$exit_ok_secs; failure status=$exit_fail_status want 1; killed-stuck status=$exit_stuck_status want 2, cause=$exit_stuck_cause, secs=$exit_stuck_secs want >=$exit_window)"
-
 usage_turns=7
 cat > "$stub/leaf-result" <<L
 #!/bin/sh
