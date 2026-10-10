@@ -7,6 +7,7 @@ import sys
 
 import pytest
 
+SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 USAGE = b"usage: supervise.sh <name> <cmd> [args...]\n"
 
 
@@ -2798,3 +2799,111 @@ def test_cli_records_its_own_pid_before_the_leaf_launches_and_preserves_the_rela
     logged = sorted(c.read_text().split("leaf: attempt ")[1].split()[0] for c in copies)
     assert (code, seen_pids, len(refs), trees, len(copies), logged) == (
         2, [str(os.getpid()), str(os.getpid())], 2, [1, 2], 2, ["1", "2"])
+
+
+@pytest.mark.process("a real TERM, INT and HUP delivered to the supervising process, a real leaf, and wait-leaf.sh run against a live supervisor.sh")
+def test_cli_on_term_int_or_hup_writes_2_exits_2_and_leaves_no_leaf_while_an_ignored_int_lets_the_leaf_finish_with_its_own_0_and_wait_leaf_against_a_live_supervisor_exits_3_silently(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import signal
+    import threading
+    import time
+    clean_env(monkeypatch)
+    sigs = (signal.SIGTERM, signal.SIGINT, signal.SIGHUP)
+    saved = {sig: signal.getsignal(sig) for sig in sigs}
+    window = {"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "30", "VERI_TIMEOUT": "60", "VERI_POLL": "0.02",
+              "VERI_KILL_POLL": "0.01"}
+    held = "echo $$ > leaf-pid; exec sleep 60"
+
+    def exit_now(code):
+        raise SystemExit(code)
+
+    monkeypatch.setattr(os, "_exit", exit_now)
+
+    def alive(pid):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        return True
+
+    def leaf_pid(work):
+        for _ in range(500):
+            text = (work / "leaf-pid").read_text() if (work / "leaf-pid").exists() else ""
+            if text.strip():
+                return int(text)
+            time.sleep(0.02)
+        raise AssertionError("the leaf never started")
+
+    def sent(work, sig, then=None):
+        def deliver():
+            leaf_pid(work)
+            os.kill(os.getpid(), sig)
+            if then:
+                time.sleep(0.2)
+                then()
+
+        threading.Thread(target=deliver, daemon=True).start()
+
+    def killed_by(label, sig):
+        work = tmp_path / label
+        work.mkdir()
+        sent(work, sig)
+        code, _, _ = run_cli(supervise, ["develop-red", "sh", "-c", held], cwd=work, env=window)
+        pid = int((work / "leaf-pid").read_text())
+        for _ in range(20):
+            if not alive(pid):
+                break
+            time.sleep(0.1)
+        left = alive(pid)
+        if left:
+            os.kill(pid, signal.SIGKILL)
+        return code, (work / ".tdd" / "develop-red.exit").read_text(), left
+
+    def ignored_int():
+        work = tmp_path / "ignored-int"
+        work.mkdir()
+        release = work / "release"
+        os.mkfifo(release)
+
+        def let_go():
+            fd = os.open(release, os.O_RDWR | os.O_NONBLOCK)
+            os.write(fd, b"go\n")
+            os.close(fd)
+
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        sent(work, signal.SIGINT, then=let_go)
+        code, _, _ = run_cli(supervise, ["develop-red", "sh", "-c",
+                                         "echo $$ > leaf-pid; read _ < release; echo leaf-released"],
+                             cwd=work, env=window)
+        return code, (work / ".tdd" / "develop-red.exit").read_text(), "leaf-released" in (
+            work / ".tdd" / "develop-red.log").read_text()
+
+    def waited_on_live():
+        work = tmp_path / "wait-live"
+        work.mkdir()
+        sup = subprocess.Popen([str(SCRIPTS / "supervise.sh"), "develop-red", "sh", "-c", held], cwd=work,
+                               env={**os.environ, **window}, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        pid = None
+        try:
+            pid = leaf_pid(work)
+            waited = subprocess.run([str(SCRIPTS / "wait-leaf.sh"), "develop-red", "0"], cwd=work,
+                                    env={**os.environ, "VERI_POLL": "0.02"}, stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.PIPE, text=True)
+        finally:
+            sup.send_signal(signal.SIGTERM)
+            sup.wait()
+            if pid and alive(pid):
+                os.kill(pid, signal.SIGKILL)
+        return waited.returncode, waited.stderr
+
+    try:
+        answers = [killed_by(f"signal-{sig.name}", sig) for sig in sigs]
+        for sig in sigs:
+            signal.signal(sig, saved[sig])
+        answers.append(ignored_int())
+        answers.append(waited_on_live())
+    finally:
+        for sig in sigs:
+            signal.signal(sig, saved[sig])
+
+    assert answers == [(2, "2\n", False), (2, "2\n", False), (2, "2\n", False), (0, "0\n", True), (3, "")]
