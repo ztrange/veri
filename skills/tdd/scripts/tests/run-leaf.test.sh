@@ -278,4 +278,29 @@ written="$(cd "$nopyc/tree" && find . -name '*.pyc' | sort)"
 [[ -z "$written" ]] || problems+=("a Python process under the leaf wrote bytecode into the tree it imported from: $written")
 report "a Python process under a leaf writes no .pyc into the tree it imports from (#873)"
 
+problems=()
+sig="$(scratch_dir)"
+mkdir -p "$sig/tools"
+for tool in pkill killall; do
+  printf '#!/bin/sh\nprintf "%%s\\n" "$*" > "%s/%s-ran"\n' "$sig" "$tool" > "$sig/tools/$tool"
+  chmod +x "$sig/tools/$tool"
+done
+claude_stub "$sig" "$(cat <<'STUB'
+pkill -n -f 'exp-sleep 60' > "$SIG_DIR/pkill-out" 2>&1
+killall exp-sleep > "$SIG_DIR/killall-out" 2>&1
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+STUB
+)"
+( cd "$work" && env PATH="$sig/tools:$PATH" CLAUDE_BIN="$sig/claude" SIG_DIR="$sig" \
+    "$LEAF" "$work/prompt.txt" > /dev/null 2>&1 )
+for tool in pkill killall; do
+  [[ ! -e "$sig/$tool-ran" ]] \
+    || problems+=("the leaf's $tool reached the signalling tool, with arguments '$(cat "$sig/$tool-ran")'")
+  for phrase in 'signal only processes you started' 'by the pid you recorded'; do
+    grep -iF "$phrase" "$sig/$tool-out" > /dev/null 2>&1 \
+      || problems+=("the leaf's $tool printed no '$phrase': '$(cat "$sig/$tool-out" 2>&1)'")
+  done
+done
+report "refuses a leaf's pkill and killall before they signal anything, naming the rule: signal only processes you started, by the pid you recorded (#1427)"
+
 finish

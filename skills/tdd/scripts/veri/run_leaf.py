@@ -10,6 +10,7 @@ import tempfile
 from extract_result import extract
 from session_env import strip_session_env
 
+GUARD = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "leaf-guard")
 USAGE = "usage: run-leaf.sh <prompt-file|-> [claude args...]"
 
 
@@ -65,6 +66,7 @@ def main(argv):
         strip_session_env(env)
         env["GIT_CONFIG_GLOBAL"] = git_path
         env["PYTHONDONTWRITEBYTECODE"] = "1"
+        env["PATH"] = GUARD + os.pathsep + env.get("PATH", "")
         if env.get("VERI_SHIM_SET_COERCE") == "1":
             del env["VERI_SHIM_SET_COERCE"]
             env.pop("PYTHONCOERCECLOCALE", None)
