@@ -258,4 +258,30 @@ else
   no "a row whose case cannot be run — a suite path that does not exist, a bash suite that never reaches its count line, a pytest node id that is not collected — exits 2 (missing suite exit=$missing_code, no count line exit=$no_count_code, uncollected node exit=$uncollected_code, want 2 each)$unrunnable_out"
 fi
 
+snapshot() {
+  local files
+  files="$(cd "$repo" && find . -path ./.git -prune -o -type f -print | LC_ALL=C sort)"
+  (cd "$repo" && git ls-files -s && paste <(printf '%s\n' "$files") \
+    <(printf '%s\n' "$files" | git hash-object --stdin-paths))
+}
+printf 'staged\n' > "$repo/staged.txt"
+git -C "$repo" add staged.txt
+printf 'sub() { echo $(( $1 - $2 )); }\n' >> "$repo/calc.sh"
+printf 'untracked\n' > "$repo/untracked.txt"
+sed 's/\$1 + \$2/$1 - $2/' "$repo/calc.sh" > "$work/dirty.mutated"
+diff -u --label a/calc.sh --label b/calc.sh "$repo/calc.sh" "$work/dirty.mutated" > "$work/dirty.patch"
+table="$work/dirty.tsv"
+printf 'tests/calc.test.sh\tadds two numbers\tredundant\tadds a negative\t%s\n' "$work/dirty.patch" > "$table"
+before="$(snapshot)"
+out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/dirty.err")" && code=0 || code=$?
+after="$(snapshot)"
+if [[ ( "$code" == 0 || "$code" == 1 ) && "$before" == "$after" ]]; then
+  ok
+else
+  no "after the pairs check exits 0 or 1 the working tree and the index are byte-identical to before it, a staged change, an unstaged change to a file the mutation patches and an untracked file included (exit=$code want 0 or 1)
+$(diff <(printf '%s\n' "$before") <(printf '%s\n' "$after"))
+    stdout: $out
+    stderr: $(cat "$work/dirty.err")"
+fi
+
 finish
