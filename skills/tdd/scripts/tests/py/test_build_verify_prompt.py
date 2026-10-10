@@ -1028,3 +1028,53 @@ def test_main_passes_a_replaces_case_green_only_when_every_case_its_step_names_i
             + (["never confines a several-case step to one case"]
                if key == "several" and not says(prompt, one_only) else [])
             for key, prompt in prompts.items()} == dict.fromkeys(prompts, [])
+
+
+def test_main_renders_an_expand_and_a_migrate_verify_prompt_stating_what_each_phase_changes_and_that_test_files_stay_frozen(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"zorblat(nitz) replaces frob(nitz, quux).\n")
+    step = ("Interface change: frob(nitz, quux) becomes zorblat(nitz) "
+            "⟦phases: expand, migrate, contract-a, contract-b⟧ ⟦criterion 1⟧")
+
+    def rendered(phase):
+        code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit", phase, str(spec),
+                                         "tests/py/test_zorblat.py", "0123abc"])
+        out, _ = capsysbinary.readouterr()
+        return code, re.sub(rb"\s+", b" ", out)
+
+    frozen = (rb"(test files?[^.]{0,40}(stay|stays|remain|remains|are|is|left) frozen"
+              rb"|(never|not|no)[^.]{0,30}(touch|modify|edit)[^.]{0,20}(a |any )?test file)")
+    rules = {
+        "expand": {
+            "production gains the new interface": rb"(add|gains?|introduce)[^.]{0,60}the new interface",
+            "the old interface becomes a proxy": rb"old (one|interface)[^.]{0,60}(becomes?|turns? into|as) a proxy",
+            "test files stay frozen": frozen,
+        },
+        "migrate": {
+            "callers move to the new interface": rb"callers?[^.]{0,60}(move|moved|migrate)[^.]{0,30}the new interface",
+            "test files stay frozen": frozen,
+        },
+    }
+
+    results = {}
+    for phase, phase_rules in rules.items():
+        code, prompt = rendered(phase)
+        results[phase] = (code, [rule for rule, pattern in phase_rules.items()
+                                 if re.search(pattern, prompt, re.I) is None])
+
+    assert results == {"expand": (0, []), "migrate": (0, [])}
+
+
+def test_main_refuses_an_expand_or_a_migrate_call_without_fast_cmd_with_exit_2_and_its_message_then_the_usage_line(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    results = {}
+    for phase in ("expand", "migrate"):
+        code = build_verify_prompt.main([phase, str(spec), "t", "0123abc"])
+        results[phase] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        phase: (2, b"", f"build-verify-prompt: {phase} needs --fast-cmd '<fast-tier test command>'\n".encode() + USAGE)
+        for phase in ("expand", "migrate")}
