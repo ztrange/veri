@@ -12,7 +12,7 @@ WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "transform": 4, "diff":
         "predicate": 5, "revise": 6, "reconcile": 6, "exhausted": 5, "over-budget": 6, "rebase": 7,
         **dict.fromkeys(INTERFACE_PHASES, 4)}
 WANT_PHASES = "|".join(PHASES)
-WANT_REVISE_PHASES = "|".join(REVISE_PHASES)
+WANT_REVISE_PHASES = "|".join(REVISE_PHASES + INTERFACE_PHASES)
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ARGUMENT_PLACEHOLDERS = {"<test-path>": "TEST_PATH", "<target-test>": "TARGET_TEST", "<fast-cmd>": "FAST_CMD",
                          "<touched-files>": "TOUCHED_FILES", "<issue-touched-files>": "TOUCHED_FILES",
