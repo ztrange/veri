@@ -597,3 +597,65 @@ def test_main_reads_the_rollup_and_legacy_status_contexts_to_pending_green_red_o
         "all skipped": (3, 2, True),
         "legacy with no state": (2, 1),
     }
+
+
+def test_main_reads_the_given_shas_own_check_runs_to_pending_unreadable_red_green_or_never_green_on_all_skipped(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    sha = "89abcdef0123456789abcdef0123456789abcdef"
+    commits = f"gh api repos/o/r/commits/{sha}"
+    run = lambda name, status, conclusion=None: {
+        "name": name, "head_sha": sha, "status": status, "conclusion": conclusion}
+    legacy = lambda state: {"context": "legacy", "state": state}
+    not_found = (1, '{"message":"Not Found"}\n', "gh: Not Found (HTTP 404)\n")
+    by_sha = f"wait-ci.sh: could not read the checks of {sha}\n"
+
+    def waited(name, pages, statuses=(), state="pending"):
+        work = tmp_path / name
+        (work / ".tdd").mkdir(parents=True)
+        bodies = {
+            PULL: json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": sha}}),
+            f"{commits}/status": json.dumps(
+                {"state": state, "sha": sha, "total_count": len(statuses), "statuses": list(statuses)}),
+        }
+        for n, page in enumerate(list(pages) + [[]], start=1):
+            bodies[f"{commits}/check-runs?page={n}"] = page if isinstance(page, tuple) else json.dumps(
+                {"total_count": sum(len(p) for p in pages if isinstance(p, list)), "check_runs": page})
+        clock = iter(range(0, 6000, 60))
+
+        def answer(line, **kwargs):
+            if line == "date +%s":
+                return 0, f"{next(clock)}\n", ""
+            if line.startswith("sleep "):
+                return 0, "", ""
+            body = bodies.get(line, (1, "", f"unexpected: {line}\n"))
+            code, out, err = (0, body, "") if isinstance(body, str) else body
+            if kwargs.get("stderr") is None:
+                sys.stderr.write(err)
+            return code, out, err
+
+        fake_processes(answer)
+        return run_cli(wait_ci, [PR, "60", "60", sha], env={"VERI_POLL": "0"}, cwd=work)
+
+    success = run("gates", "completed", "success")
+    observed = {
+        "in progress": waited("race", [[run("gates", "in_progress")]]),
+        "unreadable": waited("unread", [not_found]),
+        "failure": waited("redsha", [[run("gates", "completed", "failure")]]),
+        "neutral and skipped beside in progress": waited("quietsha", [[
+            run("lint", "completed", "neutral"), run("docs", "completed", "skipped"), run("gates", "in_progress")]]),
+        "failure beyond the first page": waited("pagedsha", [
+            [run(f"gates-{i}", "completed", "success") for i in range(1, 101)],
+            [run("gates-101", "completed", "failure")]]),
+        "runs and statuses all succeeded": waited("greensha", [[success]], [legacy("success")], "success"),
+        "all skipped": waited("skippedsha", [[run("gates", "completed", "skipped"), run("docs", "completed", "skipped")]]),
+    }
+
+    assert observed == {
+        "in progress": (3, "", ""),
+        "unreadable": (2, "", "gh: Not Found (HTTP 404)\n" + by_sha),
+        "failure": (1, "", ""),
+        "neutral and skipped beside in progress": (3, "", ""),
+        "failure beyond the first page": (1, "", ""),
+        "runs and statuses all succeeded": (0, "", ""),
+        "all skipped": (3, "", ""),
+    }
