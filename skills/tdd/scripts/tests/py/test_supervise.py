@@ -11,6 +11,14 @@ SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 USAGE = b"usage: supervise.sh <name> <cmd> [args...]\n"
 
 
+def alive(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
 @pytest.fixture
 def supervise():
     return importlib.import_module("veri.supervise")
@@ -2554,13 +2562,6 @@ def test_cli_kills_a_real_hung_leaf_by_heartbeat_and_a_real_runaway_leaf_by_hard
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     clean_env(monkeypatch)
 
-    def alive(pid):
-        try:
-            os.kill(pid, 0)
-        except ProcessLookupError:
-            return False
-        return True
-
     def real_kill(name, script, **env):
         work = tmp_path / name
         work.mkdir()
@@ -2591,7 +2592,6 @@ def test_cli_launches_a_supervised_run_leaf_with_model_in_claudes_argv_only_when
     import signal
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     clean_env(monkeypatch)
-    scripts = pathlib.Path(__file__).resolve().parents[2]
     stub = tmp_path / "claude-stub"
     stub.write_text('#!/bin/sh\nprintf \'%s\\n\' "$@" > "$OUT.argv"\nenv > "$OUT.env"\n'
                     "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"ok\"}'\n")
@@ -2605,7 +2605,7 @@ def test_cli_launches_a_supervised_run_leaf_with_model_in_claudes_argv_only_when
         out = tmp_path / f"{arm}-claude"
         env = {**{v: "from-the-conductor" for v in SESSION_VARS},
                "CLAUDE_BIN": str(stub), "OUT": str(out), **REAL_LEAF_ENV, **env}
-        code, _, _ = run_cli(supervise, ["develop-red", str(scripts / "run-leaf.sh"), str(prompt)], cwd=work, env=env)
+        code, _, _ = run_cli(supervise, ["develop-red", str(SCRIPTS / "run-leaf.sh"), str(prompt)], cwd=work, env=env)
         argv = out.with_name(out.name + ".argv")
         leaked = [line.split("=")[0] for line in out.with_name(out.name + ".env").read_text().splitlines()
                   if line.split("=")[0] in SESSION_VARS] if argv.exists() else ["<claude never started>"]
@@ -2818,13 +2818,6 @@ def test_cli_on_term_int_or_hup_writes_2_exits_2_and_leaves_no_leaf_while_an_ign
         raise SystemExit(code)
 
     monkeypatch.setattr(os, "_exit", exit_now)
-
-    def alive(pid):
-        try:
-            os.kill(pid, 0)
-        except ProcessLookupError:
-            return False
-        return True
 
     def leaf_pid(work):
         for _ in range(500):
