@@ -893,4 +893,32 @@ out="$(cat "$work/out")"
   problems+=("make test: want stdout's last line all suites green, got: $(tail -n 1 <<< "$out")")
 report "$name"
 
+unmarked="$work/unmarked"
+make_tree "$unmarked"
+stub_bash_suites "$unmarked"
+cp "$HERE/py/conftest.py" "$unmarked/$PY_DIR/conftest.py"
+
+name="under both make unit and make test, after a bash suite under tests/unit/, an unmarked pytest case that starts git, gh or curl fails: the recipe exits 1, stdout ends SUITES FAILED and the output names the command it tried"
+problems=()
+for cmd in git gh curl; do
+  cat > "$unmarked/$PY_DIR/test_leg_probe.py" <<PY
+import subprocess
+
+
+def test_veri_probe_reaches():
+    subprocess.run(["$cmd", "--version"], capture_output=True)
+PY
+  for target in unit test; do
+    env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE \
+      make --no-print-directory -C "$unmarked" "$target" > "$work/out" 2> "$work/err" < /dev/null &&
+      code=0 || code=$?
+    out="$(cat "$work/out")"
+    err="$(cat "$work/err")"
+    check_failed "make $target, $cmd" "$target"
+    [[ "$out$err" =~ (^|[^[:alnum:]_.-])$cmd([^[:alnum:]_.-]|$) ]] ||
+      problems+=("make $target, $cmd: want the output to name $cmd, got: $(flat "$out") $(flat "$err")")
+  done
+done
+report "$name"
+
 finish
