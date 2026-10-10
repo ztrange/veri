@@ -48,6 +48,9 @@
 #      words before `bare force`, so another negative word elsewhere in it does not count.
 #  17. Preflight step 3's item has a sentence in which `not`, `never` or `no` comes at most three
 #      words before `bare force`, so another negative word elsewhere in it does not count.
+#  18. Preflight step 3's fenced capture-and-discard block, run in a resumed worktree holding an
+#      untracked file at a path the default branch has since added, leaves a tree that
+#      `rebase-onto-default.sh` rebases with exit 0.
 #
 # Run: scripts/tests/skill-preflight-launchable.test.sh
 set -uo pipefail
@@ -500,6 +503,49 @@ if preflight_or_problem "the leaf-model item"; then
       problems+=("$skill_md:$at: no sentence of the leaf-model item says an empty or whitespace-only variable is treated as unset")
     grep -iF 'internal whitespace' <<< "$model_item" | grep -iE 'exit 2|stops?' > /dev/null ||
       problems+=("$skill_md:$at: no sentence of the leaf-model item says a value with internal whitespace is what stops the run")
+  fi
+fi
+
+report "$name"
+
+name="#1420 $skill_md's preflight discard removes a killed leaf's untracked file at a path the default branch has since added, so the resume $rebase_call exits 0, not 2"
+problems=()
+
+if resume_step3 "the resume discard's untracked files"; then
+  capture_at="$(awk -v s="$enter_at" -v e="$item_end" 'NR >= s && NR <= e && /="\$\(git status --porcelain\)"/ { print NR; exit }' "$md")"
+  if [[ -z "$capture_at" ]]; then
+    problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) has no line capturing git status --porcelain, so its discard block could not be found")
+  else
+    discard="$(awk -v c="$capture_at" '
+      NR < c && /^[[:space:]]*```/ { body = ""; next }
+      NR < c { body = body $0 "\n"; next }
+      /^[[:space:]]*```/ { printf "%s", body; exit }
+      { body = body $0 "\n" }' "$md")"
+    dir="$(scratch_dir)"
+    new_repo --bare -b main "$dir/origin.git" >/dev/null 2>&1
+    new_repo -b main "$dir/seed" >/dev/null 2>&1
+    echo "base" > "$dir/seed/file.txt"
+    git -C "$dir/seed" add -A >/dev/null 2>&1
+    git -C "$dir/seed" commit -q -m "initial" >/dev/null 2>&1
+    git -C "$dir/seed" push -q "$dir/origin.git" main >/dev/null 2>&1
+    git clone -q "$dir/origin.git" "$dir/wt" >/dev/null 2>&1
+    git -C "$dir/wt" config user.name veri
+    git -C "$dir/wt" config user.email veri@example.test
+    git -C "$dir/wt" checkout -q -b tdd/1-a-run >/dev/null 2>&1
+    echo "the run's work" > "$dir/wt/work.txt"
+    git -C "$dir/wt" add -A >/dev/null 2>&1
+    git -C "$dir/wt" commit -q -m "feat: a step's green commit (#1)" >/dev/null 2>&1
+    echo "another run's work" > "$dir/seed/other.txt"
+    git -C "$dir/seed" add -A >/dev/null 2>&1
+    git -C "$dir/seed" commit -q -m "feat: another run merged (#2)" >/dev/null 2>&1
+    git -C "$dir/seed" push -q "$dir/origin.git" main >/dev/null 2>&1
+    git -C "$dir/wt" fetch -q origin >/dev/null 2>&1
+    echo "a killed leaf's half-written file" > "$dir/wt/other.txt"
+    (cd "$dir/wt" && bash -c "$discard") >/dev/null 2>&1
+    (cd "$dir/wt" && bash "$HERE/../$rebase_call") > "$dir/rebase.out" 2> "$dir/rebase.err"
+    rc=$?
+    [[ "$rc" -eq 0 ]] ||
+      problems+=("$rebase_call after preflight step 3's discard block, exit: want 0, got $rc — stderr: $(cat "$dir/rebase.err")")
   fi
 fi
 
