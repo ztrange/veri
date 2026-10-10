@@ -1,0 +1,21 @@
+#!/bin/sh
+# pgrep on a leaf's PATH: a lookup by name or pattern is refused; one by
+# selection options alone (pgrep -g <pgid>) runs the next pgrep on PATH.
+#
+# Exit: 2 when refused, otherwise pgrep's own.
+names_a_pattern() {
+  while getopts ':ac:d:fF:g:G:ilLnoP:s:t:u:U:vxJ:T:' _; do :; done
+  shift $((OPTIND - 1))
+  [ $# -gt 0 ]
+}
+if names_a_pattern "$@"; then
+  printf '%s: refused: signal only processes you started, by the pid you recorded when you started them — never by name or pattern\n' "$(basename "$0")" >&2
+  exit 2
+fi
+guard=$(cd "$(dirname "$0")" && pwd -P)
+IFS=:
+for d in $PATH; do
+  [ "$(cd "$d" 2>/dev/null && pwd -P)" = "$guard" ] && continue
+  [ -x "$d/pgrep" ] && exec "$d/pgrep" "$@"
+done
+exit 2

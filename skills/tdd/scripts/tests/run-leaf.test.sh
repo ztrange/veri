@@ -303,4 +303,31 @@ for tool in pkill killall; do
 done
 report "refuses a leaf's pkill and killall before they signal anything, naming the rule: signal only processes you started, by the pid you recorded (#1427)"
 
+problems=()
+pg="$(scratch_dir)"
+mkdir -p "$pg/tools"
+printf '#!/bin/sh\nprintf "%%s\\n" "$*" >> "%s/pgrep-ran"\n' "$pg" > "$pg/tools/pgrep"
+printf '#!/bin/sh\npgrep -g 0\nprintf "%%s\\n" "$?" > "%s/suite-exit"\n' "$pg" > "$pg/suite.sh"
+chmod +x "$pg/tools/pgrep" "$pg/suite.sh"
+claude_stub "$pg" "$(cat <<'STUB'
+{ kill $(pgrep -f 'exp-sleep 60'); } > "$PG_DIR/kill-out" 2>&1
+"$PG_DIR/suite.sh"
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+STUB
+)"
+( cd "$work" && env PATH="$pg/tools:$PATH" CLAUDE_BIN="$pg/claude" PG_DIR="$pg" \
+    "$LEAF" "$work/prompt.txt" > /dev/null 2>&1 )
+leaf_lookup="$(grep -F -- '-f exp-sleep 60' "$pg/pgrep-ran" 2>/dev/null)"
+[[ -z "$leaf_lookup" ]] \
+  || problems+=("the leaf's kill \$(pgrep …) reached the process lookup, with arguments '$leaf_lookup'")
+for phrase in 'signal only processes you started' 'by the pid you recorded'; do
+  grep -iF "$phrase" "$pg/kill-out" > /dev/null 2>&1 \
+    || problems+=("the leaf's kill \$(pgrep …) printed no '$phrase': '$(cat "$pg/kill-out" 2>&1)'")
+done
+grep -Fx -- '-g 0' "$pg/pgrep-ran" > /dev/null 2>&1 \
+  || problems+=("a script the leaf ran had its pgrep -g refused: calls seen '$(cat "$pg/pgrep-ran" 2>&1)'")
+[[ "$(cat "$pg/suite-exit" 2>&1)" == 0 ]] \
+  || problems+=("a script the leaf ran saw its pgrep -g exit '$(cat "$pg/suite-exit" 2>&1)', not 0")
+report "refuses a leaf's kill \$(pgrep …) naming the rule, while a script the leaf runs still reaches pgrep -g (#1427)"
+
 finish
