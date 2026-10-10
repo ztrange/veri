@@ -14,8 +14,7 @@ CHECK="$HERE/../no-product-caller.sh"
 source "$HERE/lib/harness.sh"
 
 work="$(scratch_dir)"
-hooks="docs"
-hooks+=/hooks
+hooks=docs/hooks
 
 repo="$work/callers"
 new_repo -b main "$repo" >/dev/null 2>&1

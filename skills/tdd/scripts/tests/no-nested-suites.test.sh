@@ -25,6 +25,7 @@ flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
 declare -A EXEMPT=(
   [no-nested-suites.test.sh]="its own exemption table and header name every suite below by basename outside a comment; that is the policy this file states, not a launch of any of them"
+  [no-docs-reads.test.sh]="its exemption table is keyed by <suite>:<line text>, so its one key names no-product-caller.test.sh, the suite whose scratch-tree hooks path it exempts; a table key, not a launch of that suite"
   [no-awk-v-patterns.test.sh]="its exemption table is keyed by <suite>:<line text>, so each key names the suite whose awk -v line it exempts; a table key, not a launch of that suite"
   [claude-md-guards-green.test.sh]="its subject is whether the four suites that hold CLAUDE.md to its own rules — claude-md-counts.test.sh, lane-rule-recorded.test.sh, count-line-guard.test.sh, docs-targets-refuse.test.sh — are still green against the document as committed; there is no product script to run in their place"
   [docs-read-guard.test.sh]="copies no-docs-reads.test.sh (the guard #143 added) into a planted tree with a genuine documentation-tree read and asserts the guard still catches it; the guard's whole job is to catch that read, so only running it proves it still can"
