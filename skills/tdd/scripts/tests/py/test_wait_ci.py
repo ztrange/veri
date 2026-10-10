@@ -510,6 +510,10 @@ def world(fake_processes, heads, runs, statuses=(), tick=60):
     return state
 
 
+def check_run(name, sha, status, conclusion=None):
+    return {"name": name, "head_sha": sha, "status": status, "conclusion": conclusion}
+
+
 def legacy(state):
     return {"context": "legacy", "state": state}
 
@@ -561,7 +565,7 @@ def test_main_keeps_its_bound_across_reads_calls_and_the_head_sha_it_was_given_a
 
 def test_main_reads_the_rollup_and_legacy_status_contexts_to_pending_green_red_or_unreadable(
         tmp_path, wait_ci, fake_processes, run_cli):
-    run = lambda status, conclusion=None: {"name": "gates", "head_sha": SHA, "status": status, "conclusion": conclusion}
+    run = lambda status, conclusion=None: check_run("gates", SHA, status, conclusion)
     success, in_progress = run("completed", "success"), run("in_progress")
 
     def waited(name, runs, statuses=()):
@@ -606,8 +610,7 @@ def test_main_reads_the_given_shas_own_check_runs_to_pending_unreadable_red_gree
         tmp_path, wait_ci, fake_processes, run_cli):
     sha = "89abcdef0123456789abcdef0123456789abcdef"
     commits = f"gh api repos/o/r/commits/{sha}"
-    run = lambda name, status, conclusion=None: {
-        "name": name, "head_sha": sha, "status": status, "conclusion": conclusion}
+    run = lambda name, status, conclusion=None: check_run(name, sha, status, conclusion)
     not_found = (1, '{"message":"Not Found"}\n', "gh: Not Found (HTTP 404)\n")
     by_sha = f"wait-ci.sh: could not read the checks of {sha}\n"
 
