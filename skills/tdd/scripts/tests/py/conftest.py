@@ -16,15 +16,20 @@ for path in (SCRIPTS, SCRIPTS / "veri"):
 CANONICAL_SHIM = re.compile(r'exec python3 "\$\(dirname "\$0"\)/(veri/[\w-]+\.py)" "\$@"')
 
 
-def shim_problems(scripts):
+def shim_problems(scripts, exempt=()):
     problems = []
+    seen = set()
     for script in sorted(pathlib.Path(scripts).glob("*.sh")):
+        seen.add(script.name)
         code = [line for line in script.read_text().splitlines() if line.strip() and not line.startswith("#")]
         match = CANONICAL_SHIM.fullmatch(code[0]) if len(code) == 1 else None
-        if match is None:
+        if match is not None and script.name in exempt:
+            problems.append("%s: stale exemption, the script is now the canonical shim" % script.name)
+        elif match is None and script.name not in exempt:
             problems.append("%s: not the canonical shim" % script.name)
-        elif not (script.parent / match.group(1)).is_file():
+        elif match is not None and not (script.parent / match.group(1)).is_file():
             problems.append("%s: %s does not exist" % (script.name, match.group(1)))
+    problems += ["%s: stale exemption, the script is gone" % name for name in sorted(set(exempt) - seen)]
     return problems
 
 
