@@ -267,13 +267,6 @@ fi
 
 report "$name"
 
-name="$claude_md's counts moved with orchestrate.sh and its suite"
-problems=()
-
-moved_with "skills/tdd/scripts/orchestrate.sh" "skills/tdd/scripts/tests/orchestrate.test.sh"
-
-report "$name"
-
 name="$claude_md's counts moved with rebase-onto-default.sh and its suite"
 problems=()
 

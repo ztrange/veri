@@ -254,12 +254,6 @@ no-awk-v-patterns:#!/usr/bin/env bash
 no-awk-v-patterns:#!/usr/bin/env bash
 no-awk-v-patterns:# an unrelated line inserted above the exempt site
 no-awk-v-patterns:# and another
-orchestrate:# A stopped conductor must be stopped by a signal, not by its writes failing, so this stub
-orchestrate:# IGNORES SIGPIPE — the state CI's Linux was observed in, where a write to the closed stream
-orchestrate:# came back as plain \\`echo: I/O error\\` and the conductor ran on. On this Mac SIGPIPE is fatal
-orchestrate:# and would end the stub whatever orchestrate.sh did, so without this line the cases below
-orchestrate:# cannot go red here at all, and the regression they exist for is only visible on CI. This is
-orchestrate:# a stub imitating a platform, not a suite repairing its own pipeline (#422).
 parallel-conductors:#!/bin/sh
 refactor-owed:### step 2
 refactor-owed:### step 2
