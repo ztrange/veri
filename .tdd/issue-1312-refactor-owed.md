@@ -2,3 +2,7 @@
 - test-only | the `frozen` regex in test_build_develop_prompt.py could become a module-level constant if the contract phases' cases reuse it
 ### `build-develop-prompt.sh` accepts a contract (a) phase and a contract (b) phase, the contract (a) prompt stating that tests are rewritten or deleted while production stays frozen, the contract (b) prompt stating that the old interface's proxy is deleted while test files stay frozen ⟦criterion 1⟧
 - the "Behaviour does not change: every test that was green stays green, and test files stay frozen" sentence is repeated in develop-expand.md, develop-migrate.md and develop-contract-b.md, but sits mid-paragraph after phase-specific prose
+### `build-verify-prompt.sh` accepts an expand phase and a migrate phase, each printing a prompt that states what that phase changes and that test files must be left frozen ⟦criterion 1⟧
+- the identical check 4 "Test files stay frozen" line in verify-expand.md and verify-migrate.md could join the partial once contract-b's prompt shares it; it sits after the phase-specific checks, so it can't be extracted cleanly yet
+- `("green", "refactor", "diff", *INTERFACE_PHASES)` and `("refactor", "transform", *INTERFACE_PHASES)` in build_verify_prompt.py add more ad-hoc phase tuples; a single table of each phase's needs would remove them, but nothing this cycle wrote duplicates it yet
+- test-only | the expand and migrate cases in test_build_verify_prompt.py each repeat the same `rendered` and frozen-regex setup that the contract cases will need
