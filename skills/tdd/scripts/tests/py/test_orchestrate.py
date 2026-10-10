@@ -596,3 +596,122 @@ def test_1128_a_conductor_that_starts_and_exits_with_its_issue_still_listed_and_
     conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
     assert (code, out, err, asks, launches) == (
         0, "", "", [[solvable]] * 3, [[conductor, "7"], [conductor, "7"]])
+
+
+def test_main_launches_per_solvable_issue_reports_context_and_stops_over_budget_only_after_the_next_step_done_result_then_relaunches(
+        tmp_path, monkeypatch, orchestrate, fake_processes, run_cli):
+    heartbeat = '{"type":"system","subtype":"heartbeat"}'
+    user = '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
+
+    def assistant(read, creation, command=None):
+        content = ('"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"%s"}}],' % command
+                   if command else "")
+        return ('{"type":"assistant","message":{"role":"assistant",%s"usage":{"input_tokens":5,'
+                '"cache_creation_input_tokens":%d,"cache_read_input_tokens":%d,"output_tokens":30}}}'
+                % (content, creation, read))
+
+    def step_done(issue, read, creation):
+        return assistant(read, creation, "VERI_ISSUE=%s VERI_ACTOR=conductor $S/event.sh step-done" % issue)
+
+    def orchestrated(name, answers, streams, budget=None):
+        work = tmp_path / name
+        work.mkdir()
+        answers, streams = list(answers), [list(s) for s in streams]
+        launches, stops, conductors = [], [], {}
+
+        def answer(line, **kwargs):
+            assert line == "solvable-issues.sh", line
+            code, out = answers.pop(0)
+            return code, out, ""
+
+        class Conductor:
+            def __init__(self, pid, lines):
+                self.pid, self.lines, self.read = pid, [(l + "\n").encode() for l in lines], 0
+                self.stdout = self
+                self.returncode = 0
+
+            def __iter__(self):
+                return self
+
+            def __next__(self):
+                if self.read == len(self.lines):
+                    raise StopIteration
+                self.read += 1
+                return self.lines[self.read - 1]
+
+            def close(self):
+                pass
+
+            def poll(self):
+                return 0
+
+            def wait(self, timeout=None):
+                return 0
+
+        def popen(args, *rest, **kwargs):
+            launches.append([os.path.basename(args[0])] + list(args[1:]))
+            conductor = Conductor(4000 + len(launches), streams.pop(0))
+            conductors[conductor.pid] = conductor
+            return conductor
+
+        def killpg(pid, sig):
+            stops.append((conductors[pid].read, len(conductors[pid].lines)))
+
+        fake_processes(answer)
+        monkeypatch.setattr(subprocess, "Popen", popen)
+        monkeypatch.setattr(os, "killpg", killpg)
+        monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+        env = {} if budget is None else {"VERI_CONDUCTOR_CTX_BUDGET": budget}
+        code, out, err = run_cli(orchestrate, [], env=env, cwd=work)
+        return code, out, err, launches, stops
+
+    observed = {
+        "launches per solvable issue": orchestrated(
+            "basic", [(0, "101\n102\n"), (0, "102\n"), (3, "")], [[], []]),
+        "solvable-issues.sh exits 2": orchestrated("broken", [(2, "")], []),
+        "context per assistant event, none from the result": orchestrated("streaming", [(0, "301\n"), (3, "")], [[
+            '{"type":"system","subtype":"init","session_id":"s1"}',
+            assistant(50000, 3438),
+            user,
+            assistant(60000, 2000),
+            '{"type":"result","subtype":"success","is_error":false,"usage":{"input_tokens":10,'
+            '"cache_creation_input_tokens":5438,"cache_read_input_tokens":110000,"output_tokens":165}}',
+        ]]),
+        "over budget mid-step": orchestrated("budget", [(0, "401\n"), (3, "")], [[
+            assistant(150000, 0), step_done(401, 150000, 100), user, heartbeat, heartbeat,
+        ]], "100000"),
+        "step-done under the default, later crossing": orchestrated("underbudget", [(0, "501\n"), (3, "")], [[
+            step_done(501, 110000, 0), user, assistant(150000, 0, "true"), user, heartbeat,
+        ]]),
+        "over budget at the step-done call": orchestrated("atresult", [(0, "601\n"), (3, "")], [[
+            step_done(601, 150000, 100), heartbeat, user, heartbeat,
+        ]], "100000"),
+        "never crosses": orchestrated("never", [(0, "701\n"), (3, "")], [[
+            step_done(701, 60000, 0), user, step_done(701, 99000, 100), user, heartbeat,
+        ]], "100000"),
+        "unset budget crossing 120000": orchestrated("defaultbudget", [(0, "901\n"), (3, "")], [[
+            assistant(120000, 1), step_done(901, 120000, 1), user, heartbeat,
+        ]]),
+        "relaunched after a stop": orchestrated("relaunch", [(0, "1001\n"), (0, "1001\n"), (3, "")], [[
+            step_done(1001, 150000, 100), user, heartbeat,
+        ], []], "100000"),
+    }
+
+    conductor = "run-conductor.sh"
+    assert observed == {
+        "launches per solvable issue": (0, "", "", [[conductor, "101"], [conductor, "102"]], [(0, 0), (0, 0)]),
+        "solvable-issues.sh exits 2": (
+            2, "", "orchestrate.sh: solvable-issues.sh exited 2; no answer about the solvable set\n", [], []),
+        "context per assistant event, none from the result": (
+            0, "context 301 53438\ncontext 301 62000\n", "", [[conductor, "301"]], [(5, 5)]),
+        "over budget mid-step": (
+            0, "context 401 150000\ncontext 401 150100\n", "", [[conductor, "401"]], [(3, 5)]),
+        "step-done under the default, later crossing": (
+            0, "context 501 110000\ncontext 501 150000\n", "", [[conductor, "501"]], [(5, 5)]),
+        "over budget at the step-done call": (0, "context 601 150100\n", "", [[conductor, "601"]], [(3, 4)]),
+        "never crosses": (0, "context 701 60000\ncontext 701 99100\n", "", [[conductor, "701"]], [(5, 5)]),
+        "unset budget crossing 120000": (
+            0, "context 901 120001\ncontext 901 120001\n", "", [[conductor, "901"]], [(3, 4)]),
+        "relaunched after a stop": (
+            0, "context 1001 150100\n", "", [[conductor, "1001"], [conductor, "1001"]], [(2, 3), (0, 0)]),
+    }
