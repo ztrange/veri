@@ -1,6 +1,6 @@
 # Plan for #1312 — PRD 009 C3-4: the conductor runs an interface change as one phased step, and proves group steps by its own mutation run
 
-- [ ] `build-develop-prompt.sh` accepts an expand phase and a migrate phase, each printing a prompt that states what that phase changes (expand: production gains the new interface and the old one becomes a proxy; migrate: callers move to the new interface) and that test files stay frozen ⟦criterion 1⟧
+- [x] `build-develop-prompt.sh` accepts an expand phase and a migrate phase, each printing a prompt that states what that phase changes (expand: production gains the new interface and the old one becomes a proxy; migrate: callers move to the new interface) and that test files stay frozen ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] `build-develop-prompt.sh` accepts a contract (a) phase and a contract (b) phase, the contract (a) prompt stating that tests are rewritten or deleted while production stays frozen, the contract (b) prompt stating that the old interface's proxy is deleted while test files stay frozen ⟦criterion 1⟧
 - [ ] `build-verify-prompt.sh` accepts an expand phase and a migrate phase, each printing a prompt that states what that phase changes and that test files must be left frozen ⟦criterion 1⟧
 - [ ] `build-verify-prompt.sh` accepts a contract (a) phase and a contract (b) phase, the contract (a) prompt stating that production must be left frozen, the contract (b) prompt stating that the proxy is deleted and test files must be left frozen ⟦criterion 1⟧

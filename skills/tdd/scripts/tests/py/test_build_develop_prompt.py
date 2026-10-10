@@ -10,7 +10,7 @@ import pytest
 
 from conftest import SCRIPTS
 
-PHASES = b"red|green|refactor|cover|transform|diff|structural|predicate|revise|reconcile|exhausted|over-budget|rebase"
+PHASES = b"red|green|refactor|cover|transform|diff|structural|predicate|revise|reconcile|exhausted|over-budget|rebase|expand|migrate"
 USAGE = b"build-develop-prompt.sh: usage: " + PHASES + b" <issue-spec-file> <step-text> <test-cmd> ...\n"
 
 
@@ -1192,3 +1192,38 @@ def test_main_permits_a_replaces_case_green_to_delete_exactly_the_cases_its_step
             + (["never confines a several-case step to one case"]
                if key[0] == "several" and not says(prompt, one_only) else [])
             for key, prompt in prompts.items()} == dict.fromkeys(prompts, [])
+
+
+def test_main_renders_an_expand_and_a_migrate_prompt_stating_what_each_phase_changes_and_that_test_files_stay_frozen(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"zorblat(nitz) replaces frob(nitz, quux).\n")
+    step = ("Interface change: frob(nitz, quux) becomes zorblat(nitz) "
+            "⟦phases: expand, migrate, contract-a, contract-b⟧ ⟦criterion 1⟧")
+
+    def rendered(phase):
+        code = build_develop_prompt.main([phase, str(spec), step, "make test"])
+        out, _ = capsysbinary.readouterr()
+        return code, re.sub(rb"\s+", b" ", out)
+
+    frozen = (rb"(test files?[^.]{0,40}(stay|stays|remain|remains|are|is|left) frozen"
+              rb"|(never|not|no)[^.]{0,30}(touch|modify|edit)[^.]{0,20}(a |any )?test file)")
+    rules = {
+        "expand": {
+            "production gains the new interface": rb"(add|gains?|introduce)[^.]{0,60}the new interface",
+            "the old interface becomes a proxy": rb"old (one|interface)[^.]{0,60}(becomes?|turns? into|as) a proxy",
+            "test files stay frozen": frozen,
+        },
+        "migrate": {
+            "callers move to the new interface": rb"callers?[^.]{0,60}(move|moved|migrate)[^.]{0,30}the new interface",
+            "test files stay frozen": frozen,
+        },
+    }
+
+    results = {}
+    for phase, phase_rules in rules.items():
+        code, prompt = rendered(phase)
+        results[phase] = (code, [rule for rule, pattern in phase_rules.items()
+                                 if re.search(pattern, prompt, re.I) is None])
+
+    assert results == {"expand": (0, []), "migrate": (0, [])}
