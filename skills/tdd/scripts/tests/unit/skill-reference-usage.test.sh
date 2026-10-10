@@ -16,6 +16,7 @@ source "$HERE/../lib/harness.sh"
 source "$HERE/../lib/verdict.sh"
 export LC_ALL=C
 
+synopses() { grep -E '^ *- `\$S/' "$SKILL" | sed -E 's/^ *- `\$S\/([^`]*).*/\1/'; }
 flags_of() { grep -oE -e '--[a-z][a-z0-9-]*' <<< "$1" | sort -u; }
 
 problems=""
@@ -29,7 +30,7 @@ while IFS= read -r synopsis; do
     grep -xF -e "$flag" <<< "$entry_flags" > /dev/null ||
       problems+="    $script: $flag is in its usage line, not in SKILL.md's entry"$'\n'
   done <<< "$(flags_of "$usage")"
-done <<< "$(grep -E '^ *- `\$S/' "$SKILL" | sed -E 's/^ *- `\$S\/([^`]*).*/\1/')"
+done <<< "$(synopses)"
 verdict "every --flag a script's usage line names is in its SKILL.md script-reference synopsis (#1432)"
 
 usage_invocations() {
@@ -59,7 +60,7 @@ while IFS= read -r synopsis; do
   done <<< "$(while IFS= read -r line; do
                 [[ -n "$line" ]] && verbs_of "$line"
               done <<< "$(usage_invocations "$script")" | sort -u)"
-done <<< "$(grep -E '^ *- `\$S/' "$SKILL" | sed -E 's/^ *- `\$S\/([^`]*).*/\1/')"
+done <<< "$(synopses)"
 verdict "every verb a script's usage line names is in its SKILL.md script-reference synopsis (#1432)"
 
 finish
