@@ -37,13 +37,18 @@ def is_added(step):
     return untagged.endswith(" " + ADDED_MARK)
 
 
+def phase_mark(phase):
+    """The mark a phase's commit appends to its step."""
+    return f" ⟂ {phase} done"
+
+
 def next_phase(step):
     """The first phase step lists and has not marked done, or None."""
     listed = PHASES_RE.search(step)
     if not listed:
         return None
     phases = [phase.strip() for phase in listed.group(1).split(",")]
-    return next((phase for phase in phases if f" ⟂ {phase} done" not in step), None)
+    return next((phase for phase in phases if phase_mark(phase) not in step), None)
 
 
 def new_step(text, criterion):
@@ -116,7 +121,7 @@ def ledger_mark_phase(text, matcher, phase):
     return _rewrite_first_step(
         text,
         _open_holding(matcher),
-        lambda match, line: f"{line} ⟂ {phase} done",
+        lambda match, line: line + phase_mark(phase),
     )
 
 
