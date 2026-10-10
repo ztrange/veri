@@ -1,4 +1,9 @@
 """The one check that every top-level skills/tdd/scripts/*.sh is the canonical shim over a module under veri/."""
+import importlib
+import subprocess
+
+import pytest
+
 from conftest import SCRIPTS, shim_problems
 
 EXEMPT = {
@@ -42,3 +47,16 @@ def test_the_exemption_table_lists_the_six_non_canonical_shims_with_a_reason_eac
 
     assert sorted(line.split(":")[0] for line in problems) == ["canonical.sh", "gone.sh"]
     assert all("stale exemption" in line for line in problems)
+
+
+@pytest.mark.process("leaf-role.sh run through a symlink to the skills directory")
+def test_a_shim_run_through_a_symlink_to_the_skills_directory_from_another_cwd_gives_its_modules_exit_code_and_stdout(
+        run_cli, tmp_path):
+    (tmp_path / "skills").symlink_to(SCRIPTS.parents[1], target_is_directory=True)
+    (tmp_path / "elsewhere").mkdir()
+
+    ran = subprocess.run([str(tmp_path / "skills" / "tdd" / "scripts" / "leaf-role.sh"), "verify-green-2"],
+                         cwd=tmp_path / "elsewhere", stdin=subprocess.DEVNULL, capture_output=True, text=True)
+    code, out, _ = run_cli(importlib.import_module("veri.leaf_role"), ["verify-green-2"])
+
+    assert (ran.returncode, ran.stdout) == (code, out) == (0, "VERI_ACTOR=verifier VERI_PHASE=green VERI_ATTEMPT=2\n")
