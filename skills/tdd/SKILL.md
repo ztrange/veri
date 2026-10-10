@@ -1168,6 +1168,9 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    $S/wait-leaf.sh verdict-green    # foreground; on exit 3 call it again
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — see *The step's cost check*
    ```
+   On a `⟦replaces-case⟧` step, a PASS is accepted only once the conductor's own run of
+   `$S/mutation-parity.sh <pairs-table>` on that step's pairs table exits 0; exit 1 is a
+   REJECT, exit 2 a bail.
 3. **Narrate + branch.** Post `### 🟢 Green` (implementation + green suite output) and
    `### 🔎 verify-green — PASS|REJECT` (the reason).
    - **PASS — check off the ledger step and commit atomically.** Tick STEP in the ledger,
