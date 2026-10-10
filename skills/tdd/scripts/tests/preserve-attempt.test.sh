@@ -369,4 +369,17 @@ fi
 { [[ -z "$problems" ]]; } \
   && ok || no "#1158: the suite runs a scratch copy of preserve-attempt.sh, and a cd \"\$(dirname \"\$0\")/../..\" planted into it writes no .tdd/attempts entry, ref or ledger change outside the scratch repository (${problems#; })"
 
+
+repo="$work/noidentity"
+dirty_repo "$repo"
+git -C "$repo" config --unset user.name
+git -C "$repo" config --unset user.email
+printf '[user]\n\tuseConfigOnly = true\n' > "$work/noidentity.gitconfig"
+( cd "$repo" && env -u GIT_AUTHOR_NAME -u GIT_AUTHOR_EMAIL -u GIT_COMMITTER_NAME -u GIT_COMMITTER_EMAIL -u EMAIL \
+    GIT_CONFIG_GLOBAL="$work/noidentity.gitconfig" GIT_CONFIG_NOSYSTEM=1 \
+    "$PRESERVE" 409 3 develop-green 1 ) >/dev/null 2>"$work/noidentity.err"; code=$?
+ref_resolves "$repo"; resolved=$?
+{ [[ "$code" == 0 ]] && [[ "$resolved" == 0 ]]; } \
+  && ok || no "#1438: with no user.name or user.email in any git config, writes $REF and exits 0 (code=$code resolved=$resolved stderr='$(cat "$work/noidentity.err")')"
+
 finish
