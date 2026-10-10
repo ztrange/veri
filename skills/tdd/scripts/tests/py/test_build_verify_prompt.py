@@ -1114,3 +1114,28 @@ def test_main_renders_a_contract_a_and_a_contract_b_verify_prompt_stating_produc
                                  if re.search(pattern, prompt, re.I) is None])
 
     assert results == {"contract-a": (0, []), "contract-b": (0, [])}
+
+
+def test_main_admits_an_expand_migrate_contract_a_or_contract_b_base_sha_only_as_7_to_40_lowercase_hex_and_refuses_any_other_with_exit_2_as_refactor_does(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    s = str(spec)
+    phases = ("refactor", "expand", "migrate", "contract-a", "contract-b")
+
+    def run(argv):
+        code = build_verify_prompt.main(argv)
+        return (code, *capsysbinary.readouterr())
+
+    def bad_sha(phase, value):
+        return (2, b"", b"build-verify-prompt: " + phase.encode() + b" needs <base-sha>"
+                b" as 7-40 lowercase hex characters, got '" + value + b"'\n" + USAGE)
+
+    refused = {(phase, value): run(["--fast-cmd", "m", phase, s, "t", *([value.decode()] if value else [])])
+               for phase in phases for value in (b"0123ABC", b"012345", b"0123abc\n", b"")}
+    assert refused == {(phase, value): bad_sha(phase, value)
+                       for phase in phases for value in (b"0123ABC", b"012345", b"0123abc\n", b"")}
+
+    admitted = {phase: run(["--fast-cmd", "m", phase, s, "t", "0123456789abcdef0123456789abcdef01234567"])[::2]
+                for phase in phases}
+    assert admitted == dict.fromkeys(phases, (0, b""))
