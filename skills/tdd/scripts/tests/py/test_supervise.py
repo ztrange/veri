@@ -2543,3 +2543,37 @@ def test_cli_ends_a_killed_stuck_leaf_that_succeeds_on_its_retry_in_success_with
                              env={"VERI_STUCK_RETRIES": "1", "VERI_HEARTBEAT": "5", "VERI_TIMEOUT": "5000"})
     assert (code, out, err.splitlines()[-1:], (work / ".tdd" / "flaky.exit").read_bytes()) == (
         0, "leaf: recovered on retry\n", ["supervise[flaky]: success"], b"0\n")
+
+
+@pytest.mark.process("a real hung and a real runaway leaf, killed by supervise.py's signal to their process group")
+def test_cli_kills_a_real_hung_leaf_by_heartbeat_and_a_real_runaway_leaf_by_hard_timeout_leaving_no_process_behind(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import re
+    import signal
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    clean_env(monkeypatch)
+
+    def alive(pid):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        return True
+
+    def real_kill(name, script, **env):
+        work = tmp_path / name
+        work.mkdir()
+        code, _, err = run_cli(supervise, [name, "sh", "-c", script], cwd=work,
+                               env={"VERI_STUCK_RETRIES": "0", "VERI_POLL": "0.05", "VERI_KILL_POLL": "0.05", **env})
+        child = int((work / "child.pid").read_text())
+        return (code, [re.sub(r"for \d+s \(window", "for Ns (window", line) for line in err.splitlines() if line.startswith(f"supervise[{name}]")],
+                (work / ".tdd" / f"{name}.exit").read_bytes(), alive(child))
+
+    assert [
+        real_kill("hung", "echo started; sleep 60 & echo $! > child.pid; wait", VERI_HEARTBEAT="1", VERI_TIMEOUT="60"),
+        real_kill("runaway", "sleep 60 & echo $! > child.pid; while true; do echo busy; sleep 0.1; done",
+                  VERI_HEARTBEAT="60", VERI_TIMEOUT="1"),
+    ] == [
+        (2, ["supervise[hung]: killed-stuck — no heartbeat for Ns (window 1s)"], b"2\n", False),
+        (2, ["supervise[runaway]: killed-stuck — hard timeout 1s exceeded"], b"2\n", False),
+    ]
