@@ -6,3 +6,5 @@
 - test-only | drop the `git add`/`git commit` pairs from the `callers` and `other-callers` cases in no-product-caller.test.sh — the scan reads the working tree, not git, as the uncommitted `binary-caller` case already shows
 ### The no-product-caller check does not report a line under any `tests/` directory that names the interface ⟦criterion 2⟧
 - test-only | extract the repeated "new_repo, add -A, commit, run $CHECK in it" fixture steps in skills/tdd/scripts/tests/no-product-caller.test.sh (five cases, the tests/-directory case among them) into one helper
+### fix the full-suite failure: skills/tdd/scripts/tests/no-docs-reads.test.sh — FAIL - no suite under skills/tdd/scripts/tests/ names a path in the generated-documentation tree outside a comment or fixture text (no-product-caller.test.sh:31, :45, :62, :75 name docs/hooks paths) ⟦suite-repair⟧ ⟦criterion 2⟧
+- test-only | extract a helper for the `new_repo … ; git add -A ; git commit` setup that six cases in no-product-caller.test.sh repeat (lines 20–25, 31–41, 52–56, 62–69, 75–85, 91–98); earlier cycles wrote that code, not this repair step
