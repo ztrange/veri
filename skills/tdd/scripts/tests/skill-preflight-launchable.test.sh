@@ -97,13 +97,17 @@ call_at() {
     'NR >= s && NR <= e && index($0, want) { print NR; exit }' "$md"
 }
 
+item_last_line() {
+  local next
+  next="$(awk -v s="$(($1 + 1))" -v e="$sec_end" 'NR >= s && NR <= e && /^[0-9]+\./ { print NR; exit }' "$md")"
+  if [[ -n "$next" ]]; then echo "$((next - 1))"; else echo "$sec_end"; fi
+}
+
 item_around() {
-  local at="$1" start end next
+  local at="$1" start
   start="$(awk -v s="$sec_start" -v at="$at" 'NR >= s && NR <= at && /^[0-9]+\./ { n = NR } END { print n + 0 }' "$md")"
   [[ "$start" -gt 0 ]] || start="$sec_start"
-  next="$(awk -v s="$((at + 1))" -v e="$sec_end" 'NR >= s && NR <= e && /^[0-9]+\./ { print NR; exit }' "$md")"
-  if [[ -n "$next" ]]; then end=$((next - 1)); else end="$sec_end"; fi
-  sed -n "${start},${end}p" "$md"
+  sed -n "${start},$(item_last_line "$at")p" "$md"
 }
 
 paragraph_around() {
@@ -375,8 +379,7 @@ problems=()
 
 if rebase_span && preflight_or_problem "the resume rebase's push"; then
   step3="$(item_around "$enter_at")"
-  item_end="$(awk -v s="$((enter_at + 1))" -v e="$sec_end" 'NR >= s && NR <= e && /^[0-9]+\./ { print NR - 1; exit }' "$md")"
-  item_end="${item_end:-$sec_end}"
+  item_end="$(item_last_line "$enter_at")"
   push_at="$(awk -v s="$enter_at" -v e="$item_end" -v p="$lease_push" 'NR >= s && NR <= e && index($0, p) { print NR; exit }' "$md")"
   if [[ -z "$push_at" ]]; then
     problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) never names $lease_push, so a resume rebase that moved the branch is left unpublished or pushed without a pinned lease")
