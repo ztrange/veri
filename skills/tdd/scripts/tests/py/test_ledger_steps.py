@@ -375,6 +375,23 @@ def test_next_phase_answers_contract_b_after_expand_on_a_step_listing_only_expan
     }
 
 
+def test_next_phase_exits_3_with_no_phase_when_the_only_open_phased_step_has_its_contract_owed_1410(
+        monkeypatch, capsysbinary, ledger_steps):
+    phased = (
+        "- [ ] rename the slug helper ⟦phases: expand, migrate, contract (a), contract (b)⟧ ⟦criterion 1⟧"
+        " ⟂ expand done ⟂ migrate done ⟂ contract (a) owed"
+    )
+    ledger = (
+        f"# Plan for #42\n\n- [x] add lowercasing\n{phased}\n\n"
+        "## Owed steps\n\n- rename the slug helper: contract (a)\n"
+    )
+    fake_stdin(monkeypatch, ledger.encode())
+
+    code = ledger_steps.main(["next-phase"])
+
+    assert (code, *capsysbinary.readouterr()) == (3, b"", b"")
+
+
 def test_main_prints_a_usage_line_naming_next_phase_on_a_bad_argument_1385(capsysbinary, ledger_steps):
     code = ledger_steps.main(["bogus"])
     out, err = capsysbinary.readouterr()
