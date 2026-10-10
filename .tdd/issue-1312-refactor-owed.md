@@ -17,3 +17,5 @@
 - test-only | case 11's transform-touches-tests.sh and production-frozen.sh branches run the same window/exit 1/reject checks and could be one loop over (script, phases) pairs
 ### `SKILL.md` starts a phased step's contract only once `no-product-caller.sh` on the old interface exits 0 ⟦criterion 2⟧
 - test-only | hoist the repeated `section '#### A \`⟦phases'` read and its "no '#### A \`⟦phases: …⟧\` step' subsection" empty check, shared by cases 11 and 12 of skills/tdd/scripts/tests/skill-refactor-kind.test.sh, into one helper
+### `SKILL.md` spends one refactor of the budget for a whole phased step, not one per phase ⟦criterion 2⟧
+- test-only | skill-refactor-kind.test.sh cases 11, 12 and 13 each open with the same `phased_text="$(section '#### A \`⟦phases')"` read and the same "has no '#### A \`⟦phases: …⟧\` step' subsection" empty-guard; both could be pulled into one shared helper
