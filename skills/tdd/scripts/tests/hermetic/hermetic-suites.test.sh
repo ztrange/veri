@@ -90,7 +90,7 @@ awk '
   !skip
 ' "$HERE/solvable-issues.test.sh" > "$driver_solvable"
 awk '
-  /^timeline="\$work\/timeline"$/ {skip=1}
+  /^gh_ctx="\$work\/gh-ctx"$/ {skip=1}
   /^refusing_gh="\$work\/graphql-refusing-bin"$/ {skip=0}
   /^failing_cat="\$work\/failing-cat-bin"$/ {skip=1}
   /^finish$/ {skip=0}
@@ -108,7 +108,7 @@ awk '
 chmod +x "$driver_solvable" "$driver_parallel" "$driver_invisible"
 slice_problems=()
 for slice in "solvable-issues.test.sh:$driver_solvable:ok || no :11" \
-  "parallel-conductors.test.sh:$driver_parallel:ok || no :4" \
+  "parallel-conductors.test.sh:$driver_parallel:ok || no :3" \
   "invisible-work.test.sh:$driver_invisible:^report :5"; do
   IFS=: read -r slice_suite slice_path slice_pattern slice_want <<< "$slice"
   slice_got="$(grep -c -- "$slice_pattern" "$slice_path")"
