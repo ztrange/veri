@@ -1823,3 +1823,86 @@ def test_verify_sh_under_the_repos_own_gitignore_accepts_nested_run_state_and_re
 
     assert (ignored, code, [n for n in named if n not in out], "modified the repository" in out) == (
         [False, True], expected_code, [], expected_code == 2)
+
+
+
+def attempts_trace(repo, phase):
+    refs = subprocess.run(["git", "-C", str(repo), "for-each-ref", "--format=%(refname)", "refs/veri/attempts/"],
+                          capture_output=True, check=True).stdout.decode().splitlines()
+    shown = [subprocess.run(["git", "-C", str(repo), "show", ref + ":src.txt"],
+                            capture_output=True).stdout.decode() for ref in refs]
+    attempts = repo / ".tdd" / "attempts"
+    copies = sorted(attempts.iterdir()) if attempts.is_dir() else []
+    log = (repo / ".tdd" / ("verify-%s.log" % phase)).read_bytes()
+    log_events = repo / ".tdd" / "events.jsonl"
+    events = [json.loads(line) for line in log_events.read_text().splitlines()] if log_events.is_file() else []
+    return refs, shown, [c.name for c in copies], [c.read_bytes() == log for c in copies], events
+
+
+PRIVATE = "The test asserts on a private helper, not observable behavior."
+REJECT_PRIVATE = "VERDICT: REJECT\nREASON: " + PRIVATE
+RAMBLE = "the leaf rambled and never rendered a verdict"
+JUDGED = "the work the verifier judged\n"
+BLOCKER = "refs/veri/attempts/625/6"
+
+
+@pytest.mark.process("a real git scratch repository whose rejected attempts land under refs/veri/attempts/,"
+                     " behind the real supervise.sh and event.sh")
+@pytest.mark.parametrize("phase, leaf, text, env, expected", [
+    pytest.param("green", "answers", "VERDICT: REJECT\nREASON: the helper it asserts on is still private.",
+                 {"VERI_ISSUE": "409", "VERI_STEP": "4"},
+                 (1, "the helper it asserts on is still private.\n", [("REJECT", "409", "4", None)],
+                  ["refs/veri/attempts/409/4/verify-green-{attempt}"], ["4-verify-green-{attempt}-reject.log"], False),
+                 id="reject-preserved"),
+    pytest.param("green", "answers", RAMBLE, {"VERI_ISSUE": "409", "VERI_STEP": "5", "VERI_NO_VERDICT_RETRIES": "0"},
+                 (2, "\n", [("malformed", "409", "5", "no-verdict")],
+                  ["refs/veri/attempts/409/5/verify-green-{attempt}"], ["5-verify-green-{attempt}-no-verdict.log"],
+                  False), id="no-verdict-preserved"),
+    pytest.param("green", "answers", GREEN, {"VERI_ISSUE": "409", "VERI_STEP": "7"},
+                 (0, GREEN_REASON + "\n", [("PASS", "409", "7", None)], [], [], False), id="pass-nothing"),
+    pytest.param("green", "fails", GREEN, {"VERI_ISSUE": "409", "VERI_STEP": "7"},
+                 (0, GREEN_REASON + "\n", [("PASS", "409", "7", None)], [], [], False), id="clean-failure-nothing"),
+    pytest.param("red", "answers", REJECT_PRIVATE, {"VERI_ISSUE": "625", "VERI_STEP": "6"},
+                 (1, PRIVATE + "\n", [("REJECT", "625", "6", None)], [BLOCKER], [], True),
+                 id="unpreservable-reason-alone"),
+    pytest.param("red", "answers", RAMBLE, {},
+                 (2, "\n", [("malformed", "", "", "no-verdict")], [], [], False), id="malformed-code-2"),
+    pytest.param("red", "answers", REJECT_PRIVATE, {},
+                 (1, PRIVATE + "\n", [("REJECT", "", "", None)], [], [], False), id="answering-leaves-its-verdict"),
+    pytest.param("red", "hangs", REJECT_PRIVATE, {},
+                 (2, "verifier leaf killed-stuck — no verdict rendered (see .tdd/verify-red.log)\n", [], [], [], False),
+                 id="killed-leaves-no-verdict"),
+])
+def test_verify_sh_preserves_a_rejected_or_no_verdict_attempt_under_its_ref_and_a_copy_its_verdict_event_names_and_answers_the_verdicts_reason_and_code_alone(
+        phase, leaf, text, env, expected, run_cli, tmp_path, monkeypatch):
+    repo, _ = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
+    (repo / "src.txt").write_text(JUDGED)
+    if BLOCKER in expected[3]:
+        subprocess.run(["git", "-C", str(repo), "update-ref", BLOCKER, "HEAD"], check=True)
+    claude = tmp_path / ("claude-" + leaf)
+    claude.write_text({"answers": "#!/bin/sh\nprintf '%s' \"$FAKE_OUT_TEXT\"\nexit 0\n",
+                       "fails": "#!/bin/sh\nprintf '%s' \"$FAKE_OUT_TEXT\"\nexit 1\n",
+                       "hangs": "#!/bin/sh\necho thinking...\nexec sleep 60\n"}[leaf])
+    claude.chmod(0o755)
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_OUT_TEXT": text,
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **env}
+    if leaf == "hangs":
+        env.update(VERI_STUCK_RETRIES="0", VERI_TIMEOUT="0")
+    verify = importlib.import_module("veri.verify")
+
+    code, out, err = run_cli(verify, [*(FAST if phase == "green" else []), phase, str(tmp_path / "spec.md"),
+                                      "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+
+    refs, shown, copies, paired, events = attempts_trace(repo, phase)
+    verdicts = [e for e in events if e.get("event") == "verdict"]
+    attempt = verdicts[0].get("attempt") if verdicts else None
+    want_code, want_out, want_verdicts, want_refs, want_copies, unpreserved = expected
+    assert (code, out, [(e.get("verdict"), e.get("issue"), e.get("step"), e.get("cause")) for e in verdicts],
+            refs, copies, "verify: could not preserve the reject attempt" in err) == (
+        want_code, want_out, want_verdicts, [r.format(attempt=attempt) for r in want_refs],
+        [c.format(attempt=attempt) for c in want_copies], unpreserved)
+    assert (shown, paired) == ([JUDGED if r != BLOCKER else "the developer committed this\n" for r in refs],
+                               [True] * len(copies))
+    assert [e.get("event") for e in events if e.get("event") == "exit"] != []
+    if leaf == "fails":
+        assert (repo / ".tdd" / "verify-green.rc").read_text().strip() == "1"
