@@ -41,6 +41,9 @@
 #  15. Preflight step 3's item, after its `rebase-onto-default.sh` call, has an `event.sh <name>`
 #      line whose arguments carry `<pre-rebase-sha>` and the rebased sha (`rebased` or
 #      `rev-parse HEAD`), and the Draft PR section has no `event.sh <name>` of that name.
+#  16. Preflight step 3's item captures `git status --porcelain` into a variable, then runs
+#      `git reset --hard HEAD`, both before its first line naming `rebase-onto-default.sh`; and
+#      its first sentence naming `<pre-rebase-sha>` says it is that script's first stdout line.
 #
 # Run: scripts/tests/skill-preflight-launchable.test.sh
 set -uo pipefail
@@ -81,6 +84,7 @@ slug_item='**Derive the slug'
 rebase_call='rebase-onto-default.sh'
 lease_push='push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>'
 draft_heading='### 4. Draft PR'
+reset_head='git reset --hard HEAD'
 
 
 source "$HERE/lib/harness.sh"
@@ -445,6 +449,25 @@ if resume_step3 "the resume rebase's event"; then
       problems+=("$skill_md has no '$draft_heading' section, so whether its rebase records the same event could not be read")
     fi
   fi
+fi
+
+report "$name"
+
+name="#1297 $skill_md captures and resets a dirty resume worktree before the resume $rebase_call, and says <pre-rebase-sha> is its first stdout line before first using it"
+problems=()
+
+if resume_step3 "the resume rebase's capture-and-reset"; then
+  rebase_at="$(step3_line_of "$rebase_call")"
+  capture_at="$(awk -v s="$enter_at" -v e="$item_end" 'NR >= s && NR <= e && /="\$\(git status --porcelain\)"/ { print NR; exit }' "$md")"
+  reset_at="$(step3_line_of "$reset_head")"
+  if [[ -z "$capture_at" || -z "$reset_at" ]]; then
+    problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) does not capture git status --porcelain into a variable and then run $reset_head, so a killed leaf's stray edit meets the resume rebase on a dirty tree")
+  elif [[ -n "$rebase_at" ]] && ! [[ "$capture_at" -lt "$reset_at" && "$reset_at" -lt "$rebase_at" ]]; then
+    problems+=("$skill_md's preflight step 3 has the capture at line $capture_at, $reset_head at line $reset_at and $rebase_call at line $rebase_at: the rebase must come after the capture-and-reset")
+  fi
+  first_use="$(sed -n "${enter_at},${item_end}p" "$md" | sentences | grep -F '<pre-rebase-sha>' | sed -n 1p)"
+  grep -F -- "$rebase_call" <<< "$first_use" | grep -iE 'first (stdout )?line' > /dev/null ||
+    problems+=("$skill_md's preflight step 3 first uses <pre-rebase-sha> without saying it is $rebase_call's first stdout line: $first_use")
 fi
 
 report "$name"
