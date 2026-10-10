@@ -96,6 +96,15 @@ def ledger_tick(text, matcher, pending=False):
     )
 
 
+def ledger_mark_phase(text, matcher, phase):
+    """(True, text with the first open step holding matcher marked phase done), or (False, text)."""
+    return _rewrite_first_step(
+        text,
+        lambda match, line: match.group(2) == " " and matcher in line,
+        lambda match, line: f"{line} ⟂ {phase} done",
+    )
+
+
 def ledger_clear_pending(text, matcher):
     """(True, text with the first line holding matcher cleared of the mark), or (False, text)."""
     return _rewrite_first_step(

@@ -309,3 +309,18 @@ def test_main_returns_2_without_raising_leaving_the_ledger_byte_identical_and_na
     lines = err.decode().splitlines()
     assert (len(lines), all(line.startswith("tick-ledger.sh: ") and str(beside[0]) in line
                             for line in lines)) == (1, True)
+
+
+def test_main_with_phase_expand_marks_expand_done_on_the_phased_step_in_place_leaving_it_unchecked_and_every_other_line_unchanged(
+        tmp_path, capsysbinary, tick_ledger):
+    phased = "- [ ] rename the slug helper ⟦phases: expand, migrate, contract (a), contract (b)⟧ ⟦criterion 1⟧"
+    seed = ("# Plan for #42\n\n- [ ] add lowercasing\n" + phased + "\n- [ ] strip edge hyphens\n").encode()
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(seed)
+
+    code = tick_ledger.main(["--phase", "expand", str(ledger), "rename the slug helper"])
+    out, _ = capsysbinary.readouterr()
+
+    assert (code, out, ledger.read_bytes()) == (
+        0, b"", ("# Plan for #42\n\n- [ ] add lowercasing\n" + phased + " ⟂ expand done\n"
+                 "- [ ] strip edge hyphens\n").encode())
