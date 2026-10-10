@@ -48,7 +48,7 @@ def check(row):
         caught = node_fails(kept) if fate == "replaced" else kept in failed
     finally:
         subprocess.run(["git", "apply", "-R", patch], check=True)
-    if old in failed and passed > 0:
+    if any(line == old or line.startswith(old + " (") for line in failed) and passed > 0:
         return "proven" if caught else "unproven"
     return "owed"
 
