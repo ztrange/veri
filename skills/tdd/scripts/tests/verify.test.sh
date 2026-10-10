@@ -136,64 +136,6 @@ fixture_repo() {
   git -C "$dir" commit -q -m "initial" >/dev/null 2>&1
 }
 
-cat > "$stubdir/claude-prompt-recording" <<'STUB'
-#!/bin/sh
-n=$(( $(cat "$LAUNCH_COUNT" 2>/dev/null || echo 0) + 1 ))
-echo "$n" > "$LAUNCH_COUNT"
-printf '%s' "$2" > "$PROMPT_DIR/prompt.$n"
-printf '%s' 'Waiting for the background `make test` run to complete before rendering a verdict.'
-exit 0
-STUB
-chmod +x "$stubdir/claude-prompt-recording"
-prompt_dir="$work/no-verdict-prompt"
-mkdir -p "$prompt_dir"
-( unset VERI_NO_VERDICT_RETRIES
-  LAUNCH_COUNT="$prompt_dir/launches" PROMPT_DIR="$prompt_dir" \
-    verify_in "$prompt_dir" green '' "$stubdir/claude-prompt-recording" >/dev/null 2>&1 )
-printf '%s' "$("$HERE/../build-verify-prompt.sh" --fast-cmd "make unit" green "$work/spec.md" tests/test_slugify.py test_lowercases)" \
-  > "$prompt_dir/expected"
-prompt_launches="$(cat "$prompt_dir/launches" 2>/dev/null || echo 0)"
-{ [[ "$prompt_launches" == 2 ]] && cmp -s "$prompt_dir/prompt.1" "$prompt_dir/prompt.2" \
-  && cmp -s "$prompt_dir/expected" "$prompt_dir/prompt.1"; } && ok \
-  || no "a relaunched verifier's prompt is byte-identical to the first attempt's and to build-verify-prompt.sh's four-argument output (launches=$prompt_launches want 2; diff first→relaunch: $(head -5 < <(diff "$prompt_dir/prompt.1" "$prompt_dir/prompt.2" 2>&1) | tr '\n' '|'); diff builder→first: $(head -5 < <(diff "$prompt_dir/expected" "$prompt_dir/prompt.1" 2>&1) | tr '\n' '|'))"
-
-sha_dir="$(scratch_dir)"
-verify_in "$sha_dir" refactor 'VERDICT: PASS
-REASON: behaviour preserved.' >/dev/null 2>"$sha_dir/err"
-sha_code=$?
-{ [[ "$sha_code" == 0 ]] && grep -qF 'git diff 0123abc..HEAD' "$sha_dir/argv" 2>/dev/null; } && ok \
-  || no "verify.sh refactor passes the base sha through to the verifier prompt (code=$sha_code; prompt lines naming a sha: $(head -1 < <(grep -o 'git diff [^ ]*' "$sha_dir/argv" 2>/dev/null)); stderr: $(head -1 "$sha_dir/err"))"
-rm -rf "$sha_dir"
-
-step_dir="$(scratch_dir)"
-( export VERI_STEP='AMBIENT-STEP-must-not-appear'
-  verify_in "$step_dir" green 'VERDICT: PASS
-REASON: ok' '' 'FLAG-STEP slugify joins words with hyphens' >/dev/null 2>"$step_dir/err" )
-step_code=$?
-step_seen="$(grep -c 'FLAG-STEP slugify joins words with hyphens' "$step_dir/argv" 2>/dev/null)"
-ambient_seen="$(grep -c 'AMBIENT-STEP-must-not-appear' "$step_dir/argv" 2>/dev/null)"
-{ [[ "$step_code" == 0 ]] && [[ "${step_seen:-0}" -ge 1 ]] && [[ "${ambient_seen:-0}" -eq 0 ]]; } && ok \
-  || no "verify.sh --step '<STEP>' reaches the verifier prompt and ambient VERI_STEP does not (code=$step_code; step in prompt: ${step_seen:-0}; ambient in prompt: ${ambient_seen:-0}; stderr: $(head -1 "$step_dir/err"))"
-rm -rf "$step_dir"
-
-problems=""
-for phase in red green refactor pin; do
-  nostep_dir="$work/nostep-$phase"
-  mkdir -p "$nostep_dir"
-  verify_in "$nostep_dir" "$phase" 'VERDICT: PASS
-REASON: ok' >/dev/null 2>"$nostep_dir/err"
-  nostep_code=$?
-  [[ "$nostep_code" == 0 ]] \
-    || problems="$problems; verify-$phase exits $nostep_code ($(head -1 "$nostep_dir/err"))"
-  unfilled="$(grep -o '{{[A-Z_]*}}' "$nostep_dir/argv" 2>/dev/null | sort -u | tr '\n' ' ')"
-  [[ -z "$unfilled" ]] || problems="$problems; verify-$phase leaves ${unfilled% } unfilled"
-  { grep -q 'slugify must lowercase' "$nostep_dir/argv" 2>/dev/null \
-    && grep -q 'VERDICT:' "$nostep_dir/argv" 2>/dev/null; } \
-    || problems="$problems; verify-$phase carries no spec or no VERDICT: contract"
-done
-[[ -z "$problems" ]] && ok \
-  || no "with no --step every phase still builds a valid verifier prompt with no unfilled step placeholder (${problems#; })"
-
 pres_dir="$work/preserve-reject"
 fixture_repo "$pres_dir" argv
 printf 'the work the verifier rejected\n' > "$pres_dir/src.txt"

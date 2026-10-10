@@ -4,6 +4,7 @@ import io
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -1672,6 +1673,63 @@ def test_verify_sh_reads_the_newest_verdict_across_result_records_and_relaunches
 
     assert (code, out, err, len(stuck_seen), marked) == expected
     assert stuck_seen == [env.get("VERI_STUCK_RETRIES")] * len(stuck_seen)
+
+
+FAST = ["--fast-cmd", "make unit"]
+FLAG_STEP = "FLAG-STEP slugify joins words with hyphens"
+AMBIENT_STEP = "AMBIENT-STEP-must-not-appear"
+
+
+@pytest.mark.parametrize("flags, phase, fourth, leaf_out, expected_code, launches, present, absent", [
+    pytest.param(FAST, "green", "test_lowercases", WAITING, 2, 2, [SPEC], [], id="relaunch-byte-identical"),
+    pytest.param(FAST, "refactor", "0123abc", GREEN, 0, 1, ["git diff 0123abc..HEAD"], [], id="refactor-base-sha"),
+    pytest.param(["--step", FLAG_STEP, *FAST], "green", "test_lowercases", GREEN, 0, 1, [FLAG_STEP],
+                 [AMBIENT_STEP], id="step-flag-not-ambient"),
+    *[pytest.param(FAST if phase in ("green", "refactor") else [], phase,
+                   "0123abc" if phase == "refactor" else "test_lowercases", GREEN, 0, 1, [SPEC, "VERDICT:"], [],
+                   id="no-step-" + phase) for phase in ("red", "green", "refactor", "pin")],
+])
+def test_verify_sh_hands_every_launch_the_builders_own_prompt_for_its_arguments_carrying_base_sha_and_step_flag_not_ambient_veri_step_with_no_unfilled_placeholder(
+        flags, phase, fourth, leaf_out, expected_code, launches, present, absent, run_cli, tmp_path, monkeypatch):
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE",
+                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("VERI_STEP", AMBIENT_STEP)
+    (tmp_path / "spec.md").write_text(SPEC)
+    argv = [*flags, phase, str(tmp_path / "spec.md"), "tests/test_slugify.py", fourth]
+    builder = importlib.import_module("veri.build_verify_prompt")
+
+    def build(words):
+        built, captured = io.BytesIO(), sys.stdout
+        monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(built, write_through=True))
+        code = builder.main(words)
+        monkeypatch.setattr(sys, "stdout", captured)
+        return code, built.getvalue()
+
+    prompts = []
+
+    def fake(args, *_, **__):
+        words = [str(a) for a in args]
+        name = os.path.basename(words[0])
+        if name == "build-verify-prompt.sh":
+            code, built = build(words[1:])
+            return subprocess.CompletedProcess(args, code, built, None)
+        if name == "supervise.sh":
+            prompts.append(pathlib.Path(words[3]).read_text())
+            return subprocess.CompletedProcess(args, 0, (leaf_out + "\n").encode(), None)
+        return subprocess.CompletedProcess(args, 128 if name == "git" else 0, b"", None)
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code, _, _ = run_cli(verify, argv, env={"HOME": str(tmp_path)}, cwd=tmp_path)
+
+    expected = build(argv)[1].decode().rstrip("\n")
+    assert (code, prompts) == (expected_code, [expected] * launches)
+    assert [text for text in present if text not in expected] == []
+    assert [text for text in absent if text in expected] == []
+    assert re.findall(r"\{\{[A-Z_]*\}\}", expected) == []
 
 
 def git_state(repo):
