@@ -2,3 +2,5 @@
 - out-of-scope | route run_cli through entry.run(module.main, argv) and map the SystemExit it raises, removing run_cli's own SystemExit/Exception branches — changes returned-string and BrokenPipeError behaviour that later steps of this plan own
 ### run_cli over a throwaway module whose main returns a string gives exit 1 and that string on stderr, as entry.run(main, argv) does ⟦criterion 1⟧
 - test-only | `module_of` could take an optional filename so the uncaught-exception case (`test_run_cli.py:89-91`) stops hand-building its `types.ModuleType` + `exec(compile(...))`; that case was written in the previous cycle of this issue
+### run_cli over a throwaway module whose main raises BrokenPipeError gives exit 141, as entry.run(main, argv) does ⟦criterion 1⟧
+- test-only | run_cli's try/except (conftest.py) duplicates entry.run's handling of main's outcome (exception → exit 2 with the refusal line, BrokenPipeError → 141, return → exit); folding it into one shared function in entry.py is a move of behaviour, and entry.run's silence_stdout would point the capture's stdout fd at /dev/null
