@@ -73,8 +73,13 @@ def listed_phases(step):
 
 
 def next_phase(step):
-    """The first phase step lists and has not marked done, or None."""
-    return next((phase for phase in listed_phases(step) if phase_mark(phase) not in step), None)
+    """The first phase step lists and has not marked done, or None once a phase is marked owed."""
+    for phase in listed_phases(step):
+        if f" ⟂ {phase} owed" in step:
+            return None
+        if phase_mark(phase) not in step:
+            return phase
+    return None
 
 
 def new_step(text, criterion):
