@@ -2917,3 +2917,65 @@ def test_cli_on_term_int_or_hup_writes_2_exits_2_and_leaves_no_leaf_while_an_ign
             signal.signal(sig, saved[sig])
 
     assert answers == [(2, "2\n", False), (2, "2\n", False), (2, "2\n", False), (0, "0\n", True), (3, "")]
+
+
+@pytest.mark.process("supervise.sh run for real through a symlink to the skill directory from another cwd, with real event.sh, harvest-usage.sh, preserve-attempt.sh and git")
+def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_cwd_answers_as_in_place_with_events_usage_and_the_preserved_attempt_in_the_callers_tdd_the_skill_clones_head_and_no_tdd_beside_the_skill(
+        monkeypatch, tmp_path):
+    import json
+    clean_env(monkeypatch)
+    for key in ("VERI_SKILL_COMMIT", "VERI_ISSUE", "VERI_STEP"):
+        monkeypatch.delenv(key, raising=False)
+    skill = SCRIPTS.parent
+    home = tmp_path / "home"
+    home.mkdir()
+    (home / "skill").symlink_to(skill, target_is_directory=True)
+    link = home / "skill" / "scripts" / "supervise.sh"
+    caller = tmp_path / "caller"
+    caller.mkdir()
+    identity = {"GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@example.test",
+                "GIT_COMMITTER_NAME": "veri", "GIT_COMMITTER_EMAIL": "veri@example.test",
+                "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
+    git = ["git", "-C", str(caller)]
+    subprocess.run([*git, "init", "-q", "-b", "main"], check=True, env={**os.environ, **identity})
+    (caller / ".gitignore").write_text(".tdd/\n")
+    subprocess.run([*git, "add", "-A"], check=True, env={**os.environ, **identity})
+    subprocess.run([*git, "commit", "-q", "-m", "initial"], check=True, env={**os.environ, **identity})
+    result = tmp_path / "leaf-result"
+    result.write_text("#!/bin/sh\n" + "echo '" + json.dumps(
+        {"type": "result", "subtype": "success", "is_error": False, "duration_ms": 91234, "duration_api_ms": 40118,
+         "num_turns": 7, "result": "done", "session_id": "4d1a", "total_cost_usd": 0.31,
+         "usage": {"input_tokens": 37, "cache_creation_input_tokens": 41002, "cache_read_input_tokens": 903117,
+                   "output_tokens": 5140}}) + "'\n")
+    result.chmod(0o755)
+    hang = tmp_path / "leaf-hang"
+    hang.write_text("#!/bin/sh\necho started\nexec sleep 60\n")
+    hang.chmod(0o755)
+    head = subprocess.run(["git", "-C", str(skill), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    beside = [SCRIPTS / ".tdd", skill / ".tdd", home / ".tdd"]
+    beside_before = [p for p in beside if p.exists()]
+    env = {**os.environ, **identity, "VERI_STUCK_RETRIES": "0", "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
+
+    def supervise_run(name, leaf, extra):
+        return subprocess.run([str(link), name, str(leaf)], cwd=caller, env={**env, **extra}, stdin=subprocess.DEVNULL,
+                              capture_output=True, text=True).returncode
+
+    ok_code = supervise_run("develop-red", result, {"VERI_HEARTBEAT": "30", "VERI_TIMEOUT": "60"})
+    kill_code = supervise_run("develop-green", hang, {"VERI_ISSUE": "1073", "VERI_STEP": "5", "VERI_HEARTBEAT": "1",
+                                                      "VERI_TIMEOUT": "30"})
+
+    events = [json.loads(line) for line in (caller / ".tdd" / "events.jsonl").read_text().splitlines()]
+    refs = subprocess.run([*git, "for-each-ref", "--format=%(refname)", "refs/veri/attempts/1073/5/"],
+                          capture_output=True, text=True, env={**os.environ, **identity}).stdout.split()
+    assert len(head) == 40
+    assert (ok_code, kill_code,
+            [e["event"] for e in events if e["event"] in ("launch", "exit")].count("launch"),
+            [e["event"] for e in events].count("exit"),
+            [e.get("num_turns") for e in events if e["event"] == "usage"],
+            {e.get("skill_commit") for e in events if e["event"] == "launch"},
+            len(refs),
+            sorted(p.name for p in (caller / ".tdd").iterdir() if p.suffix in (".log", ".exit", ".pid")),
+            [p for p in beside if p.exists()] == beside_before) == (
+        0, 2, 2, 2, ["7"], {head}, 1,
+        ["develop-green.exit", "develop-green.log", "develop-green.pid",
+         "develop-red.exit", "develop-red.log", "develop-red.pid"], True)
