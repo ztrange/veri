@@ -112,4 +112,37 @@ else
     stderr: $(cat "$work/none-stays-green-owed.err")"
 fi
 
+cat > "$repo/tests/test_calc.py" <<'PYTEST'
+import os
+import subprocess
+
+CALC = os.path.join(os.path.dirname(__file__), "..", "calc.sh")
+
+
+def test_adds_a_negative():
+    run = subprocess.run(["sh", "-c", '. "$0"; add 2 -3', CALC], capture_output=True, text=True)
+    assert run.stdout.strip() == "-1"
+PYTEST
+git -C "$repo" add -A && git -C "$repo" commit -qm 'pytest replacement'
+
+node="tests/test_calc.py::test_adds_a_negative"
+replaced() {
+  local table="$work/replaced-$1.tsv"
+  printf 'tests/calc.test.sh\tadds two numbers\treplaced\t%s\t%s\n' "$node" "$work/$1.patch" > "$table"
+  out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/replaced-$1.err")" && code=0 || code=$?
+  row="$(grep -F "$node" <<<"$out" | grep -wF "$2" || true)"
+}
+replaced add-subtracts proven
+proven_code="$code" proven_row="$row" proven_out="$out"
+replaced kept-stays-green unproven
+if [[ "$proven_code" == 0 && -n "$proven_row" && "$code" == 1 && -n "$row" ]]; then
+  ok
+else
+  no "a row replaced by a pytest node id is proven when the node goes red and unproven, naming it, when it stays green (proven exit=$proven_code want 0, unproven exit=$code want 1)
+    proven stdout: $proven_out
+    proven stderr: $(cat "$work/replaced-add-subtracts.err")
+    unproven stdout: $out
+    unproven stderr: $(cat "$work/replaced-kept-stays-green.err")"
+fi
+
 finish
