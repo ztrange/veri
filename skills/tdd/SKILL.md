@@ -555,6 +555,10 @@ unauthenticated baseline never gets a cycle.
    ```
    The `--clear` beside it drops a stale stop request a killed run never got to clear, so a
    `.tdd/stop` left behind cannot stop the run that resumes it at its first checkpoint.
+   A resumed run — one whose worktree and ledger `.tdd/issue-<n>.md` already exist — then runs
+   `$S/rebase-onto-default.sh` before its baseline, so the baseline runs on the rebased tip.
+   A new branch's run does not rebase here: its branch is already cut from the freshly
+   fetched `origin/<default>`.
    Every run below happens in it, so the baseline proves the commit the branch is cut from —
    the freshly fetched `origin/<default>` for a new branch, the branch head on a resume — not
    whatever the caller's checkout has checked out.
