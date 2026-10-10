@@ -1603,7 +1603,7 @@ def stream(*results):
 WAITING = "Waiting for the background `make test` run to complete before rendering a verdict."
 GREEN = "VERDICT: PASS\nREASON: Target test and full suite are green."
 DELIVERED = "No action needed — verdict already delivered for this verification."
-NO_LINE_TEXT = "parse-verdict: no VERDICT: line found\n"
+NO_LINE_TEXT = NO_LINE.decode()
 RELAUNCH = ["relaunch", "cause=no-verdict"]
 NO_VERDICT_MARK = ["verdict", "verdict=malformed", "reason=", "cause=no-verdict"]
 GREEN_MARK = ["verdict", "verdict=PASS", "reason=Target test and full suite are green."]
