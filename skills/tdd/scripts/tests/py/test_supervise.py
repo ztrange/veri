@@ -43,6 +43,23 @@ def test_main_refuses_a_missing_or_empty_name_and_a_missing_cmd_with_its_usage_l
     assert sorted(os.listdir(tmp_path)) == []
 
 
+def test_cli_refuses_no_argument_an_empty_name_and_a_name_alone_through_run_cli_with_exit_2_its_usage_line_nothing_on_stdout_and_no_tdd(
+        monkeypatch, tmp_path, supervise, run_cli, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    calls = fake_processes()
+    usage = USAGE.decode()
+
+    answers = [(argv, run_cli(supervise, argv, cwd=tmp_path)) for argv in ([], [""], ["develop-red"])]
+
+    assert answers == [
+        ([], (2, "", usage)),
+        ([""], (2, "", usage)),
+        (["develop-red"], (2, "", "supervise: missing <cmd>\n" + usage)),
+    ]
+    assert calls == []
+    assert sorted(os.listdir(tmp_path)) == []
+
+
 def clean_env(monkeypatch, **env):
     """No VERI_* variable but the ones given."""
     for key in list(os.environ):
