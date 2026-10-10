@@ -8,6 +8,8 @@ reason below is the whole of what you have to reason from. {{INCLUDE:_develop-no
 the step again.
 Do not modify, revert or remove anything in the working tree: what is there is
 the attempts' work, and the run keeps it.
+A statement that the criterion already holds must cite a run of the test command
+you were given, not a run of one case alone.
 
 ### The step (the criterion nothing could satisfy)
 
