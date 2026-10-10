@@ -1078,6 +1078,10 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    If the wait exits **2 (killed-stuck)**, the leaf hung or ran away — **bail**
    cleanly (see *Bailing*), after the stop check in *Launching a leaf*; do not retry.
 2. **Verify (blind).** Branch on the leaf's `AGAINST_UNMODIFIED` line.
+   A `⟦ci-repair⟧` step is the one exception to `PASSES`: its test failed on CI and may pass
+   here, so on `AGAINST_UNMODIFIED: PASSES` it goes on to Green with the failing CI job's log
+   (test id and assertion diff) as its red evidence, never to verify-pin and never to the
+   `test: pin` tick-and-commit.
    On **`UNTESTABLE`** there is no test on disk for a blind verifier to judge — sending
    nothing to verify-red would only get a malformed-verdict `REJECT` for the wrong reason —
    so skip verify-red and verify-pin entirely and **bail** immediately with cause
