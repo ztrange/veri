@@ -284,4 +284,34 @@ $(diff <(printf '%s\n' "$before") <(printf '%s\n' "$after"))
     stderr: $(cat "$work/dirty.err")"
 fi
 
+
+exit_two_out=""
+exit_two_codes=""
+for scenario in does-not-apply:does-not-apply no-count:dirty uncollected:dirty; do
+  name="${scenario%%:*}" patch="$work/${scenario#*:}.patch"
+  case "$name" in
+    does-not-apply) row="tests/calc.test.sh"$'\t'"adds two numbers"$'\t'"redundant"$'\t'"adds a negative" ;;
+    no-count) row="tests/no-count.test.sh"$'\t'"adds two numbers"$'\t'"redundant"$'\t'"adds a negative" ;;
+    uncollected) row="tests/calc.test.sh"$'\t'"adds two numbers"$'\t'"replaced"$'\t'"tests/test_calc.py::test_not_there" ;;
+  esac
+  table="$work/exit-two-$name.tsv"
+  printf '%s\t%s\n' "$row" "$patch" > "$table"
+  before="$(snapshot)"
+  out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/exit-two-$name.err")" && code=0 || code=$?
+  after="$(snapshot)"
+  exit_two_codes+=" $name=$code"
+  if [[ "$code" != 2 || "$before" != "$after" ]]; then
+    exit_two_out+="
+    $name (exit=$code want 2):
+$(diff <(printf '%s\n' "$before") <(printf '%s\n' "$after"))
+    $name stdout: $out
+    $name stderr: $(cat "$work/exit-two-$name.err")"
+  fi
+done
+if [[ -z "$exit_two_out" ]]; then
+  ok
+else
+  no "after the pairs check exits 2 — a mutation that does not apply, a bash suite that never reaches its count line or a pytest node id that is not collected while the mutation is in place — the working tree and the index are byte-identical to before it, a staged change, an unstaged change and an untracked file included (exits:$exit_two_codes)$exit_two_out"
+fi
+
 finish
