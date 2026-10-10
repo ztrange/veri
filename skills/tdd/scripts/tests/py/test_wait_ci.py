@@ -664,3 +664,80 @@ def test_main_reads_the_given_shas_own_check_runs_to_pending_unreadable_red_gree
         "runs and statuses all succeeded": (0, "", ""),
         "all skipped": (3, "", ""),
     }
+
+
+def test_main_reads_the_shas_legacy_statuses_and_with_no_head_sha_the_rest_pull_head_whether_graphql_works_or_is_refused(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    sha = "89abcdef0123456789abcdef0123456789abcdef"
+    commits = f"gh api repos/o/r/commits/{sha}"
+    run = lambda status, conclusion=None: check_run("gates", sha, status, conclusion)
+    not_found = (1, '{"message":"Not Found"}\n', "gh: Not Found (HTTP 404)\n")
+    by_sha = "gh: Not Found (HTTP 404)\n" + f"wait-ci.sh: could not read the checks of {sha}\n"
+    refusal = ("HTTP 403: GitHub GraphQL is not available from Claude Code sessions; "
+               "use the REST API (gh api repos/{owner}/{repo}/...)\n")
+
+    def waited(name, runs, status=None, given=sha, graphql="working"):
+        work = tmp_path / name
+        (work / ".tdd").mkdir(parents=True)
+        bodies = {
+            PULL: json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": sha}}),
+            f"{commits}/check-runs?page=1": runs if isinstance(runs, tuple) else json.dumps(
+                {"total_count": len(runs), "check_runs": runs}),
+            f"{commits}/check-runs?page=2": json.dumps({"total_count": 0, "check_runs": []}),
+            f"{commits}/status": status if status is not None else json.dumps(
+                {"state": "pending", "sha": sha, "total_count": 0, "statuses": []}),
+        }
+        clock = iter(range(0, 6000, 60))
+
+        def answer(line, **kwargs):
+            if line == "date +%s":
+                return 0, f"{next(clock)}\n", ""
+            if line.startswith("sleep "):
+                return 0, "", ""
+            refused = graphql == "refused" and (
+                line.split(" ")[1] in ("issue", "pr", "repo") or line.startswith("gh api graphql"))
+            body = (1, "", refusal) if refused else bodies.get(line, (1, "", f"unexpected: {line}\n"))
+            code, out, err = (0, body, "") if isinstance(body, str) else body
+            if kwargs.get("stderr") is None:
+                sys.stderr.write(err)
+            return code, out, err
+
+        fake_processes(answer)
+        return run_cli(wait_ci, [PR, "60", "60"] + ([given] if given else []), env={"VERI_POLL": "0"}, cwd=work)
+
+    def statuses(state, *contexts):
+        return json.dumps({"state": state, "sha": sha, "total_count": len(contexts), "statuses": list(contexts)})
+
+    success = run("completed", "success")
+    observed = {
+        "legacy failure": waited("statussha-failure", [success], statuses("failure", legacy("failure"))),
+        "legacy error": waited("statussha-error", [success], statuses("error", legacy("error"))),
+        "status unreadable": waited("unstatus", [success], not_found),
+        "status with no statuses key": waited(
+            "nostatuses", [success], json.dumps({"state": "pending", "sha": sha, "total_count": 0})),
+        "legacy pending": waited("pendingstatus", [success], statuses("pending", legacy("pending"))),
+        "no runs and no statuses": waited("nonesha", []),
+        "no head-sha, own run in progress": waited("nohead", [run("in_progress")], given=None),
+    }
+    for route in ("working", "refused"):
+        for want, runs, status in (
+                ("green", [success], statuses("success")),
+                ("red", [run("completed", "failure")], None),
+                ("pending", [run("in_progress")], None),
+                ("unread", not_found, None)):
+            observed[f"no head-sha, {route} GraphQL, {want}"] = waited(
+                f"gql-{route}-{want}", runs, status, given=None, graphql=route)
+
+    assert observed == {
+        "legacy failure": (1, "", ""),
+        "legacy error": (1, "", ""),
+        "status unreadable": (2, "", by_sha),
+        "status with no statuses key": (0, "", ""),
+        "legacy pending": (3, "", ""),
+        "no runs and no statuses": (3, "", ""),
+        "no head-sha, own run in progress": (3, "", ""),
+        **{f"no head-sha, {route} GraphQL, {want}": answer
+           for route in ("working", "refused")
+           for want, answer in (("green", (0, "", "")), ("red", (1, "", "")),
+                                ("pending", (3, "", "")), ("unread", (2, "", by_sha)))},
+    }
