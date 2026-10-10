@@ -11,6 +11,9 @@
 #      `untestable-criterion`.
 #   3. SKILL.md's Bailing section lists `untestable-criterion` as a **process** failure
 #      cause, alongside `revise-exhausted`.
+#   4. SKILL.md's Red section's verify sub-step sends a `⟦ci-repair⟧` step reporting `PASSES`
+#      on to Green with the CI log as its red evidence, and never to verify-pin or to the
+#      `test: pin` tick-and-commit.
 #
 # Run: scripts/tests/skill-red-untestable.test.sh
 set -uo pipefail
@@ -81,6 +84,27 @@ if [[ -z "${text// /}" ]]; then
 else
   says 'untestable-criterion[^.]{0,220}process' \
     "$skill_md's Bailing causes list never classifies untestable-criterion as a process failure"
+fi
+report "$name"
+
+name="#1431 $skill_md's Red section routes a ⟦ci-repair⟧ step reporting PASSES to Green with the CI log as its red evidence, never to verify-pin or the test: pin commit"
+problems=()
+text="$(doc_text '#### Red' 'Branch on the leaf')"
+if [[ "$text" != *'⟦ci-repair⟧'* ]]; then
+  problems+=("$skill_md's Red verify sub-step never names a ⟦ci-repair⟧ step, so a ⟦ci-repair⟧ step reporting PASSES reaches the pin path")
+else
+  text="${text#*⟦ci-repair⟧}"
+  text="${text:0:700}"
+  says 'passes' \
+    "$skill_md's ⟦ci-repair⟧ rule never says what it does on AGAINST_UNMODIFIED: PASSES"
+  says 'green' \
+    "$skill_md's ⟦ci-repair⟧ rule never sends the step on to Green"
+  says 'ci[^.]{0,40}log' \
+    "$skill_md's ⟦ci-repair⟧ rule never names the CI log as the step's red evidence"
+  says '(never|not)[^.]{0,120}verify-pin' \
+    "$skill_md's ⟦ci-repair⟧ rule never keeps the step from verify-pin"
+  says '(never|not)[^.]{0,160}test: pin' \
+    "$skill_md's ⟦ci-repair⟧ rule never keeps the step from the test: pin tick-and-commit"
 fi
 report "$name"
 
