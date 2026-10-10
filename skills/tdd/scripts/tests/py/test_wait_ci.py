@@ -477,42 +477,49 @@ def test_main_splits_the_pr_url_at_its_last_pull_and_keys_the_deadline_by_a_head
         3, "", "", list(bodies), {f"ci-deadline-{head}": "1100\n"})
 
 
+PAGE = re.compile(r"gh api repos/o/r/commits/(.+)/check-runs\?page=(\d+)")
+
+
+def world(fake_processes, heads, runs, statuses=(), tick=60):
+    """Fakes gh and the clock: the n-th read of the pull answers heads[n] (None: gh fails),
+    its check-run page runs[n], /status <statuses>, and each `date +%s` <tick> more seconds;
+    answers the {"reads", "clock"} counts."""
+    state = {"reads": 0, "clock": 0}
+
+    def answer(line, **_):
+        if line == "date +%s":
+            state["clock"] += 1
+            return 0, f"{(state['clock'] - 1) * tick}\n", ""
+        if line.startswith("sleep "):
+            return 0, "", ""
+        if line == PULL:
+            if heads is None:
+                return 1, "", "gh: HTTP 502: Bad Gateway\n"
+            head = heads[min(state["reads"], len(heads) - 1)]
+            state["reads"] += 1
+            return 0, json.dumps({"mergeable": True, "head": {"sha": head}}), ""
+        found = PAGE.fullmatch(line)
+        if found:
+            rows = [] if found.group(2) != "1" else runs[min(state["reads"] - 1, len(runs) - 1)]
+            return 0, json.dumps({"check_runs": rows}), ""
+        if line.endswith("/status"):
+            return 0, json.dumps({"statuses": list(statuses)}), ""
+        return 1, "", f"unexpected: {line}\n"
+
+    fake_processes(answer)
+    return state
+
+
 def test_main_keeps_its_bound_across_reads_calls_and_the_head_sha_it_was_given_and_names_a_pr_it_cannot_read(
         tmp_path, wait_ci, fake_processes, run_cli):
     pending, done = {"status": "in_progress", "conclusion": None}, {"status": "completed", "conclusion": "success"}
     old, new, given = "0123456789abcdef" * 2 + "01234567", "76543210fedcba98" * 2 + "76543210", "89abcdef" * 5
-    page = re.compile(r"gh api repos/o/r/commits/(.+)/check-runs\?page=(\d+)")
     past = "still pending past the deadline recorded for"
-
-    def world(heads, runs):
-        state = {"reads": 0, "clock": 0}
-
-        def answer(line, **_):
-            if line == "date +%s":
-                state["clock"] += 1
-                return 0, f"{(state['clock'] - 1) * 60}\n", ""
-            if line.startswith("sleep "):
-                return 0, "", ""
-            if line == PULL:
-                if heads is None:
-                    return 1, "", "gh: HTTP 502: Bad Gateway\n"
-                head = heads[min(state["reads"], len(heads) - 1)]
-                state["reads"] += 1
-                return 0, json.dumps({"mergeable": True, "head": {"sha": head}}), ""
-            found = page.fullmatch(line)
-            if found:
-                rows = [] if found.group(2) != "1" else runs[min(state["reads"] - 1, len(runs) - 1)]
-                return 0, json.dumps({"check_runs": rows}), ""
-            if line.endswith("/status"):
-                return 0, json.dumps({"statuses": []}), ""
-            return 1, "", f"unexpected: {line}\n"
-
-        fake_processes(answer)
 
     def calls(name, heads, runs, *argvs):
         work = tmp_path / name
         (work / ".tdd").mkdir(parents=True)
-        world(heads, runs)
+        world(fake_processes, heads, runs)
         answers = []
         for argv in argvs:
             code, out, err = run_cli(wait_ci, [PR, *argv], env={"VERI_POLL": "0"}, cwd=work)
@@ -554,34 +561,11 @@ def test_main_reads_the_rollup_and_legacy_status_contexts_to_pending_green_red_o
     success, in_progress = run("completed", "success"), run("in_progress")
     legacy = lambda state: {"context": "legacy", "state": state}
 
-    def world(runs, statuses):
-        state = {"reads": 0, "clock": 0}
-
-        def answer(line, **_):
-            if line == "date +%s":
-                state["clock"] += 1
-                return 0, f"{(state['clock'] - 1) * 900}\n", ""
-            if line.startswith("sleep "):
-                return 0, "", ""
-            if line == PULL:
-                state["reads"] += 1
-                return 0, json.dumps({"mergeable": True, "head": {"sha": SHA}}), ""
-            if line == PAGE_1:
-                return 0, json.dumps({"total_count": len(runs), "check_runs": runs}), ""
-            if line == PAGE_2:
-                return 0, json.dumps({"total_count": len(runs), "check_runs": []}), ""
-            if line == STATUS:
-                return 0, json.dumps({"state": "pending", "sha": SHA, "statuses": statuses}), ""
-            return 1, "", f"unexpected: {line}\n"
-
-        fake_processes(answer)
-        return state
-
     def waited(name, runs, statuses=()):
         work = tmp_path / name
         (work / ".tdd").mkdir(parents=True)
-        state = world(runs, list(statuses))
-        code, out, err = run_cli(wait_ci, [PR, "1800", "1800"], env={"VERI_POLL": "0"}, cwd=work)
+        state = world(fake_processes, [SHA], [runs], statuses, tick=900)
+        code, _, _ = run_cli(wait_ci, [PR, "1800", "1800"], env={"VERI_POLL": "0"}, cwd=work)
         return code, state["reads"], state["clock"] <= 3
 
     observed = {
