@@ -22,6 +22,8 @@
 #  12. SKILL.md holds a phased step's contract back until no product caller remains — see case
 #      12's name.
 #  13. SKILL.md spends one refactor of the budget for a whole phased step — see case 13's name.
+#  14. SKILL.md resets a contract phase that exhausts REVISE_BUDGET and files it as owed — see
+#      case 14's name.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -324,6 +326,27 @@ else
     problems+=("$skill_md names the refactor budget in the phased step without saying the step spends one refactor of it")
   grep -E 'whole step|not one per phase' <<<"$near" > /dev/null ||
     problems+=("$skill_md never says the one refactor is for the whole phased step rather than one per phase")
+fi
+report "$name"
+
+name="$skill_md resets a phased step's contract phase that exhausts REVISE_BUDGET to its own base sha, keeps the expand and migrate commits, and files the contract under ## Owed steps"
+problems=()
+
+phased_text="$(section '#### A `⟦phases')"
+if [[ -z "${phased_text// /}" ]]; then
+  problems+=("$skill_md has no '#### A \`⟦phases: …⟧\` step' subsection to read")
+elif ! grep -F 'revise_budget' <<<"$phased_text" > /dev/null || ! grep -E 'exhaust' <<<"$phased_text" > /dev/null; then
+  problems+=("$skill_md's phased step never says what happens when a contract phase exhausts REVISE_BUDGET, so the whole step is abandoned with it")
+else
+  near="$(window "$phased_text" 'exhaust')"
+  grep -F 'contract' <<<"$near" > /dev/null ||
+    problems+=("$skill_md says what an exhausted REVISE_BUDGET does in the phased step without tying it to the contract phase")
+  grep -E 'reset' <<<"$near" > /dev/null && grep -E '(its own|that phase.s|the contract.s) base' <<<"$near" > /dev/null ||
+    problems+=("$skill_md never says the exhausted contract phase is reset to its own base sha")
+  grep -F 'expand' <<<"$near" > /dev/null && grep -F 'migrate' <<<"$near" > /dev/null && grep -E 'kept|keep' <<<"$near" > /dev/null ||
+    problems+=("$skill_md never says the expand and migrate commits are kept when the contract is reset")
+  grep -F '## owed steps' <<<"$near" > /dev/null ||
+    problems+=("$skill_md never says the exhausted contract is filed under the ledger's ## Owed steps")
 fi
 report "$name"
 
