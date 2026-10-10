@@ -330,4 +330,24 @@ grep -Fx -- '-g 0' "$pg/pgrep-ran" > /dev/null 2>&1 \
   || problems+=("a script the leaf ran saw its pgrep -g exit '$(cat "$pg/suite-exit" 2>&1)', not 0")
 report "refuses a leaf's kill \$(pgrep …) naming the rule, while a script the leaf runs still reaches pgrep -g (#1427)"
 
+problems=()
+own="$(scratch_dir)"
+# env: bash's builtin kill never searches PATH, so no leaf-guard could reach it.
+claude_stub "$own" "$(cat <<'STUB'
+bash -c 'sleep 30 & pid=$!
+env kill "$pid" 2> "$OWN_DIR/kill-err"; status=$?
+printf "%s\n" "$status" > "$OWN_DIR/kill-exit"
+[ "$status" = 0 ] || /bin/kill "$pid"
+wait "$pid"; printf "%s\n" "$?" > "$OWN_DIR/wait-exit"'
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+STUB
+)"
+( cd "$work" && env CLAUDE_BIN="$own/claude" OWN_DIR="$own" \
+    "$LEAF" "$work/prompt.txt" > /dev/null 2>&1 )
+[[ "$(cat "$own/kill-exit" 2>&1)" == 0 ]] \
+  || problems+=("the leaf's kill of a pid it recorded exited '$(cat "$own/kill-exit" 2>&1)', not 0: '$(cat "$own/kill-err" 2>&1)'")
+[[ "$(cat "$own/wait-exit" 2>&1)" == 143 ]] \
+  || problems+=("the process the leaf started ended with '$(cat "$own/wait-exit" 2>&1)', not 143 (SIGTERM)")
+report "a leaf can still kill <pid> a process it started and recorded the pid of (#1427)"
+
 finish
