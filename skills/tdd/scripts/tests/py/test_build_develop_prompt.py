@@ -1260,3 +1260,23 @@ def test_main_renders_a_contract_a_prompt_freezing_production_while_tests_are_re
                                  if re.search(pattern, prompt, re.I) is None])
 
     assert results == {"contract-a": (0, []), "contract-b": (0, [])}
+
+
+def test_main_renders_an_exhausted_prompt_forbidding_the_leaf_to_modify_revert_or_remove_anything_in_the_working_tree_1421(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"REJECT: the case asserts on zorblat()'s log line.\n")
+
+    code = build_develop_prompt.main(["exhausted", str(spec), "QWIXTLE: zorblat quuxes", "make unit", str(reason)])
+    out, _ = capsysbinary.readouterr()
+    prompt = re.sub(rb"\s+", b" ", out)
+
+    rules = {
+        "forbids modifying the working tree": rb"\b(never|not|no)\b[^.]{0,80}\bmodif[^.]{0,80}working tree",
+        "forbids reverting the working tree": rb"\b(never|not|no)\b[^.]{0,80}\brevert[^.]{0,80}working tree",
+        "forbids removing from the working tree": rb"\b(never|not|no)\b[^.]{0,80}\bremov[^.]{0,80}working tree",
+    }
+
+    assert (code, [rule for rule, pattern in rules.items() if re.search(pattern, prompt, re.I) is None]) == (0, [])
