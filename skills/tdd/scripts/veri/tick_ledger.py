@@ -32,11 +32,11 @@ def main(argv):
     except UnicodeDecodeError as error:
         complain(f"{argv[0]}: {error.reason}")
         return 2
-    matcher = (argv[1:] or [""])[0]
+    text, matcher = text.replace("\0", ""), (argv[1:] or [""])[0]
     if phase:
-        ticked, new = ledger.ledger_mark_phase(text.replace("\0", ""), matcher, phase)
+        ticked, new = ledger.ledger_mark_phase(text, matcher, phase)
     else:
-        ticked, new = ledger.ledger_tick(text.replace("\0", ""), matcher, pending)
+        ticked, new = ledger.ledger_tick(text, matcher, pending)
     if not ticked:
         return 3
     path = os.path.realpath(argv[0])
