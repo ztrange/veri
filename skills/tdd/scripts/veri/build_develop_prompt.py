@@ -6,8 +6,7 @@ import sys
 from build_verify_prompt import INTERFACE_PHASES, _IncludeRefused, _expand, _has_heading, _spec_text, _write
 
 PHASES = ("red", "green", "refactor", "cover", "transform", "diff", "structural", "predicate", "revise",
-          "reconcile", "exhausted", "over-budget", "rebase", "expand", "migrate", "contract-a",
-          "contract-b")
+          "reconcile", "exhausted", "over-budget", "rebase") + INTERFACE_PHASES
 REVISE_PHASES = ("red", "green", "refactor", "diff")
 WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "transform": 4, "diff": 5, "structural": 5,
         "predicate": 5, "revise": 6, "reconcile": 6, "exhausted": 5, "over-budget": 6, "rebase": 7,
