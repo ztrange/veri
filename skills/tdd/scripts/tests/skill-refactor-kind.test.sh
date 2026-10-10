@@ -28,6 +28,8 @@
 #      case 15's name.
 #  16. SKILL.md accepts a contract-a phase only once mutation-parity.sh exits 0 — see case 16's
 #      name.
+#  17. SKILL.md puts mutation-parity.sh's report into the PR body, its owed rows under
+#      ## Owed by a human — see case 17's name.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -389,6 +391,21 @@ else
     problems+=("$skill_md runs mutation-parity.sh in the phased step without saying it is run on the phase's pairs table")
   grep -E 'exit(s)? 0' <<<"$near" > /dev/null && grep -E 'only once|until|before' <<<"$near" > /dev/null ||
     problems+=("$skill_md never says the contract-a phase is accepted only once mutation-parity.sh exits 0")
+fi
+report "$name"
+
+name="$skill_md puts mutation-parity.sh's report into the PR body as the pairs table, and each row it reports owed under ## Owed by a human"
+problems=()
+
+parity_near="$(windows "$skill_text" 'mutation-parity\.sh' 400 | grep -F 'pr body')"
+if [[ -z "$parity_near" ]]; then
+  problems+=("$skill_md never puts mutation-parity.sh's report into the PR body, so the pairs table a reviewer reads is the developer leaf's own")
+else
+  grep -F 'pairs table' <<<"$parity_near" > /dev/null ||
+    problems+=("$skill_md puts mutation-parity.sh's report into the PR body without saying it is the pairs table")
+  grep -E 'rows? (it|mutation-parity\.sh) reports? owed' <<<"$parity_near" > /dev/null &&
+    grep -F '## owed by a human' <<<"$parity_near" > /dev/null ||
+    problems+=("$skill_md never puts a row mutation-parity.sh reports owed into the PR body under ## Owed by a human")
 fi
 report "$name"
 

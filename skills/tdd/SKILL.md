@@ -1513,7 +1513,8 @@ rejects it, production being frozen there. Either rejection is revised as a REJE
 
 A contract-a phase's PASS is accepted only once the conductor's own run of
 `$S/mutation-parity.sh <pairs-table>` on that phase's pairs table exits 0; exit 1 is a
-REJECT, exit 2 a bail.
+REJECT, exit 2 a bail. The PR body's pairs table is that run's report, and each row it reports
+owed goes into the PR body under `## Owed by a human`.
 
 A contract phase starts only once `$S/no-product-caller.sh <old-interface>` on the old
 interface exits 0. Before it launches contract-a or contract-b, run it: exit 1 names each
