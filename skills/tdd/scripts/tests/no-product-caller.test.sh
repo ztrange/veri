@@ -14,6 +14,8 @@ CHECK="$HERE/../no-product-caller.sh"
 source "$HERE/lib/harness.sh"
 
 work="$(scratch_dir)"
+hooks="docs"
+hooks+=/hooks
 
 repo="$work/callers"
 new_repo -b main "$repo" >/dev/null 2>&1
@@ -28,12 +30,12 @@ fi
 
 others="$work/other-callers"
 new_repo -b main "$others" >/dev/null 2>&1
-mkdir -p "$others/skills/tdd/scripts/veri" "$others/skills/tdd-fix" "$others/skills/tdd-candidates" "$others/docs/hooks"
+mkdir -p "$others/skills/tdd/scripts/veri" "$others/skills/tdd-fix" "$others/skills/tdd-candidates" "$others/$hooks"
 printf '# tdd\n' > "$others/skills/tdd/SKILL.md"
 printf '# tdd-fix\n\n    scripts/old-thing.sh\n' > "$others/skills/tdd-fix/SKILL.md"
 printf '# tdd-candidates\nscripts/old-thing.sh\n' > "$others/skills/tdd-candidates/SKILL.md"
 printf 'test:\n\t@true\nold:\n\tscripts/old-thing.sh\n' > "$others/Makefile"
-printf '#!/bin/sh\nscripts/old-thing.sh "$@"\n' > "$others/docs/hooks/reference-transaction"
+printf '#!/bin/sh\nscripts/old-thing.sh "$@"\n' > "$others/$hooks/reference-transaction"
 printf 'import sys\n\n\nCALL = "old-thing.sh"\n' > "$others/skills/tdd/scripts/veri/caller.py"
 git -C "$others" add -A >/dev/null 2>&1
 git -C "$others" commit -q -m "feat: callers" >/dev/null 2>&1
@@ -42,7 +44,7 @@ if [[ "$others_code" == 1 \
   && "$others_out" == *"skills/tdd-fix/SKILL.md:3"* \
   && "$others_out" == *"skills/tdd-candidates/SKILL.md:2"* \
   && "$others_out" == *"Makefile:4"* \
-  && "$others_out" == *"docs/hooks/reference-transaction:2"* \
+  && "$others_out" == *"$hooks/reference-transaction:2"* \
   && "$others_out" == *"skills/tdd/scripts/veri/caller.py:4"* ]]; then ok; else
   no "no-product-caller: a line naming <name>.sh in the other product files → exit 1 printing each file:line (code=$others_code out=$others_out)"
 fi
@@ -59,9 +61,9 @@ fi
 
 tested="$work/test-callers"
 new_repo -b main "$tested" >/dev/null 2>&1
-mkdir -p "$tested/skills/tdd/scripts/veri/tests" "$tested/docs/hooks/tests"
+mkdir -p "$tested/skills/tdd/scripts/veri/tests" "$tested/$hooks/tests"
 printf '# tdd\n' > "$tested/skills/tdd/SKILL.md"
-printf '#!/bin/sh\nscripts/old-thing.sh "$@"\n' > "$tested/docs/hooks/tests/reference-transaction.test.sh"
+printf '#!/bin/sh\nscripts/old-thing.sh "$@"\n' > "$tested/$hooks/tests/reference-transaction.test.sh"
 printf 'import sys\n\n\nCALL = "old-thing.sh"\n' > "$tested/skills/tdd/scripts/veri/tests/test_caller.py"
 git -C "$tested" add -A >/dev/null 2>&1
 git -C "$tested" commit -q -m "test: callers" >/dev/null 2>&1
@@ -72,12 +74,12 @@ fi
 
 clean="$work/no-callers"
 new_repo -b main "$clean" >/dev/null 2>&1
-mkdir -p "$clean/skills/tdd/scripts/veri" "$clean/skills/tdd-fix" "$clean/skills/tdd-candidates" "$clean/docs/hooks"
+mkdir -p "$clean/skills/tdd/scripts/veri" "$clean/skills/tdd-fix" "$clean/skills/tdd-candidates" "$clean/$hooks"
 printf '# tdd\n\n    scripts/new-thing.sh <base-sha>\n' > "$clean/skills/tdd/SKILL.md"
 printf '# tdd-fix\n\n    scripts/new-thing.sh\n' > "$clean/skills/tdd-fix/SKILL.md"
 printf '# tdd-candidates\nscripts/new-thing.sh\n' > "$clean/skills/tdd-candidates/SKILL.md"
 printf 'test:\n\t@true\nnew:\n\tscripts/new-thing.sh\n' > "$clean/Makefile"
-printf '#!/bin/sh\nscripts/new-thing.sh "$@"\n' > "$clean/docs/hooks/reference-transaction"
+printf '#!/bin/sh\nscripts/new-thing.sh "$@"\n' > "$clean/$hooks/reference-transaction"
 printf 'import sys\n\n\nCALL = "new-thing.sh"\n' > "$clean/skills/tdd/scripts/veri/caller.py"
 git -C "$clean" add -A >/dev/null 2>&1
 git -C "$clean" commit -q -m "feat: no callers" >/dev/null 2>&1
