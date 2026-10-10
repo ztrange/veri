@@ -138,16 +138,6 @@ exit 0
 STUB
 chmod +x "$stubdir/claude-mutate"
 
-repo_state() {
-  printf 'HEAD %s\n' "$(git -C "$1" rev-parse HEAD)"
-  ( cd "$1" && git ls-files -co --exclude-standard | LC_ALL=C sort \
-      | while read -r f; do printf '%s %s\n' "$f" "$(git hash-object "$f")"; done )
-}
-
-state_delta() {
-  diff <(printf '%s\n' "$1") <(printf '%s\n' "$2") | tr '\n' ';'
-}
-
 fixture_repo() {
   local dir="$1" extra
   shift
@@ -160,38 +150,6 @@ fixture_repo() {
   git -C "$dir" add -A >/dev/null 2>&1
   git -C "$dir" commit -q -m "initial" >/dev/null 2>&1
 }
-
-tamper_run() {
-  local dir="$tamper_work/$1" before after
-  fixture_repo "$dir"
-  printf 'the developer is still editing this\n' > "$dir/src.txt"
-  printf 'the developer has not committed this yet\n' > "$dir/new.txt"
-  before="$(repo_state "$dir")"
-  out="$( FAKE_MUTATE="$2" verify_in "$dir" green 'VERDICT: PASS
-REASON: Target test and full suite are green.' "$stubdir/claude-mutate" 2>/dev/null )"
-  code=$?
-  after="$(repo_state "$dir")"
-  delta="$(state_delta "$before" "$after")"
-}
-
-tamper_run tracked 'printf "the verifier rewrote this\n" > src.txt'
-tracked_code=$code tracked_out="$out" tracked_delta="$delta"
-tamper_run untracked 'printf "the verifier left this behind\n" > leftover.txt'
-untracked_code=$code untracked_out="$out" untracked_delta="$delta"
-tamper_run head 'git commit -q -a -m "the verifier committed the developer'"'"'s work"'
-head_code=$code head_out="$out" head_delta="$delta"
-
-{ [[ "$tracked_code" == 2 ]] && [[ "$tracked_out" == *src.txt* ]] \
-  && [[ "$untracked_code" == 2 ]] && [[ "$untracked_out" == *leftover.txt* ]] \
-  && [[ "$head_code" == 2 ]] && [[ "$head_out" == *HEAD* ]]; } && ok \
-  || no "a verifier leaf that left the tree changed exits 2 naming what changed (tracked file: code=$tracked_code want 2, stdout='$tracked_out' want src.txt named; untracked file: code=$untracked_code want 2, stdout='$untracked_out' want leftover.txt named; moved HEAD: code=$head_code want 2, stdout='$head_out' want HEAD named)"
-
-{ [[ -z "$tracked_delta" ]] && [[ -z "$untracked_delta" ]] && [[ -z "$head_delta" ]]; } && ok \
-  || no "after the exit 2 the tree and HEAD are back to what the verifier was handed, uncommitted work included (rewritten tracked file: delta='$tracked_delta' code=$tracked_code; created untracked file: delta='$untracked_delta' code=$untracked_code; verifier commit: delta='$head_delta' code=$head_code)"
-
-tamper_run reverted 'b="$(mktemp)"; cp src.txt "$b"; printf "the verifier broke this\n" > src.txt; cp "$b" src.txt; rm -f "$b"'
-{ [[ "$code" == 0 ]] && [[ "$out" == *'full suite are green'* ]]; } && ok \
-  || no "a verifier that restored its own mutation gets its verdict's normal exit code (code=$code want 0, stdout='$out' want the verdict's reason)"
 
 subdir_state_dir="$tamper_work/subdir-run-state"
 fixture_repo "$subdir_state_dir"
@@ -253,16 +211,6 @@ git -C "$subdir_state_dir" check-ignore --no-index -q "$ledger" && ledger_ignore
 git -C "$subdir_state_dir" check-ignore --no-index -q "$root_spec" && spec_ignored=yes
 { [[ "$ledger_ignored" == no ]] && [[ "$spec_ignored" == yes ]]; } && ok \
   || no "#569: under the repo's own .gitignore the root ledger $ledger is not ignored and the root blind spec $root_spec is (ledger ignored=$ledger_ignored want no; spec ignored=$spec_ignored want yes)"
-
-leafargs_out="$work/leafargs"
-LEAFARGS_OUT="$leafargs_out" VERIFY_LEAF_ARGS='--permission-mode bypassPermissions --disallowedTools Write' \
-  tamper_run leafargs 'printf "%s\n" "$@" > "$LEAFARGS_OUT"; printf "the verifier rewrote this\n" > src.txt'
-leafargs_overridden=no
-{ grep -qx -- '--disallowedTools' "$leafargs_out" && ! grep -qx -- 'MultiEdit' "$leafargs_out"; } \
-  && leafargs_overridden=yes
-{ [[ "$leafargs_overridden" == yes ]] && [[ "$code" == 2 ]] && [[ "$out" == *src.txt* ]] \
-  && [[ -z "$delta" ]]; } && ok \
-  || no "VERIFY_LEAF_ARGS overriding the leaf's flags does not switch the tree check off (override reached the leaf=$leafargs_overridden want yes; code=$code want 2; stdout='$out' want src.txt named; delta='$delta' want empty)"
 
 verify '{"type":"system","subtype":"init","session_id":"s"}
 {"type":"result","subtype":"success","is_error":false,"num_turns":16,"result":"Waiting for the `make test` background task and its Monitor to report completion — will post the verdict once it finishes."}

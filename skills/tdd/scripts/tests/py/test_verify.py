@@ -1590,3 +1590,60 @@ def test_verify_sh_passes_the_blind_prompt_carrying_the_spec_to_the_leaf_and_a_h
     else:
         assert (code, "killed-stuck" in out,
                 err.count("supervise[verify-red]: killed-stuck"), "retry " in err) == (2, True, 1, False)
+
+
+def git_state(repo):
+    def git(*args):
+        return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, check=True).stdout.decode()
+
+    files = sorted(git("ls-files", "-co", "--exclude-standard").splitlines())
+    return ["HEAD " + git("rev-parse", "HEAD").strip()] + [
+        "%s %s" % (f, git("hash-object", "--", f).strip()) for f in files]
+
+
+@pytest.mark.process("a real git scratch repository whose state the verifier leaf changes")
+@pytest.mark.parametrize("mutation, leaf_args, expected_code, named", [
+    ('printf "the verifier rewrote this\\n" > src.txt', None, 2, "src.txt"),
+    ('printf "the verifier left this behind\\n" > leftover.txt', None, 2, "leftover.txt"),
+    ('git commit -q -a -m "the verifier committed the developer\'s work"', None, 2, "HEAD"),
+    ('b="$(mktemp)"; cp src.txt "$b"; printf "the verifier broke this\\n" > src.txt; cp "$b" src.txt; rm -f "$b"',
+     None, 0, "full suite are green"),
+    ('printf "%s\\n" "$@" > "$LEAFARGS_OUT"; printf "the verifier rewrote this\\n" > src.txt',
+     "--permission-mode bypassPermissions --disallowedTools Write", 2, "src.txt"),
+])
+def test_verify_sh_refuses_a_verifier_leaf_that_changed_the_tree_or_head_with_exit_2_naming_it_and_restores_what_it_was_handed(
+        mutation, leaf_args, expected_code, named, run_cli, tmp_path, monkeypatch):
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
+                 "VERI_NO_VERDICT_RETRIES", "VERI_HEARTBEAT", "VERI_AWAKE_CLOCK", "VERI_STUCK_RETRIES",
+                 "VERI_TIMEOUT"):
+        monkeypatch.delenv(name, raising=False)
+    repo = tmp_path / "repo"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
+        subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
+    (repo / "src.txt").write_text("the developer committed this\n")
+    (repo / ".gitignore").write_text(".tdd/\n")
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "initial"], check=True)
+    (repo / "src.txt").write_text("the developer is still editing this\n")
+    (repo / "new.txt").write_text("the developer has not committed this yet\n")
+    (tmp_path / "spec.md").write_text(SPEC)
+    claude = tmp_path / "claude-mutate"
+    claude.write_text('#!/bin/sh\neval "${FAKE_MUTATE:-}" >/dev/null 2>&1\nprintf \'%s\' "${FAKE_OUT_TEXT:-}"\nexit 0\n')
+    claude.chmod(0o755)
+    leafargs_out = tmp_path / "leafargs"
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation,
+           "FAKE_OUT_TEXT": "VERDICT: PASS\nREASON: Target test and full suite are green.",
+           "LEAFARGS_OUT": str(leafargs_out), "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
+    if leaf_args is not None:
+        env["VERIFY_LEAF_ARGS"] = leaf_args
+    verify = importlib.import_module("veri.verify")
+    before = git_state(repo)
+
+    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+                                    "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+
+    assert (code, named in out, git_state(repo)) == (expected_code, True, before)
+    if leaf_args is not None:
+        reached = leafargs_out.read_text().splitlines()
+        assert ("--disallowedTools" in reached, "MultiEdit" in reached) == (True, False)
