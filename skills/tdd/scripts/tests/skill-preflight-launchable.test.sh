@@ -53,6 +53,8 @@
 #      `rebase-onto-default.sh` rebases with exit 0.
 #  19. Preflight step 3's fenced capture-and-discard block, run in a resumed worktree holding a
 #      killed leaf's untracked file, leaves that file listed in `$stray`.
+#  20. Preflight step 3's fenced capture-and-discard block, run in a resumed worktree whose
+#      `.gitignore` names `.tdd/`, leaves a `.tdd/` leaf log in place.
 #
 # Run: scripts/tests/skill-preflight-launchable.test.sh
 set -uo pipefail
@@ -575,6 +577,34 @@ if resume_step3 "the resume discard's stray capture"; then
     (cd "$dir/wt" && STRAY_OUT="$dir/stray.out" bash -c "$discard"$'\nprintf \'%s\\n\' "$stray" > "$STRAY_OUT"') >/dev/null 2>&1
     grep -Fx -- '?? other.txt' "$dir/stray.out" > /dev/null 2>&1 ||
       problems+=("\$stray after preflight step 3's discard block does not list the untracked file: want a line '?? other.txt', got: $(cat "$dir/stray.out" 2>/dev/null)")
+  fi
+fi
+
+report "$name"
+
+name="#1420 $skill_md's preflight discard never removes a file .gitignore ignores, so a .tdd/ leaf log survives it"
+problems=()
+
+if resume_step3 "the resume discard's ignored files"; then
+  capture_at="$(awk -v s="$enter_at" -v e="$item_end" 'NR >= s && NR <= e && /="\$\(git status --porcelain\)"/ { print NR; exit }' "$md")"
+  if [[ -z "$capture_at" ]]; then
+    problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) has no line capturing git status --porcelain, so its discard block could not be found")
+  else
+    discard="$(awk -v c="$capture_at" '
+      NR < c && /^[[:space:]]*```/ { body = ""; next }
+      NR < c { body = body $0 "\n"; next }
+      /^[[:space:]]*```/ { printf "%s", body; exit }
+      { body = body $0 "\n" }' "$md")"
+    dir="$(scratch_dir)"
+    new_repo -b main "$dir/wt" >/dev/null 2>&1
+    echo ".tdd/" > "$dir/wt/.gitignore"
+    git -C "$dir/wt" add -A >/dev/null 2>&1
+    git -C "$dir/wt" commit -q -m "initial" >/dev/null 2>&1
+    mkdir -p "$dir/wt/.tdd"
+    echo "a leaf's log" > "$dir/wt/.tdd/issue-1-leaf.log"
+    (cd "$dir/wt" && bash -c "$discard") >/dev/null 2>&1
+    [[ -f "$dir/wt/.tdd/issue-1-leaf.log" ]] ||
+      problems+=("preflight step 3's discard block removed the ignored run-state file .tdd/issue-1-leaf.log: want it kept, got: $(ls -A "$dir/wt" 2>&1 | tr '\n' ' ')")
   fi
 fi
 
