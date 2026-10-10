@@ -2444,3 +2444,73 @@ def test_cli_kills_a_hung_or_runaway_leaf_stuck_on_the_default_180s_or_an_explic
         (2, ["supervise[runaway]: killed-stuck — hard timeout 7s exceeded"], [], 1, [], b"2\n"),
         (2, ["supervise[unset]: killed-stuck — no heartbeat for 181s (window 180s)"], [], 1, [], b"2\n"),
     ]
+
+
+def test_cli_appends_one_retry_event_carrying_the_kill_cause_per_relaunch_and_one_exit_event_carrying_the_0_1_2_status_the_kill_cause_and_the_attempts_wall_seconds(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    clean_env(monkeypatch)
+    event_sh = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(supervise.__file__))), "event.sh")
+
+    def marked(monkeypatch_events):
+        running = subprocess.run
+
+        def run(args, *a, **kwargs):
+            args = [str(x) for x in args]
+            if event_sh in args:
+                monkeypatch_events.append(args[args.index(event_sh) + 1:])
+                return subprocess.CompletedProcess(args, 0, "", "")
+            return running(args, *a, **kwargs)
+
+        monkeypatch.setattr(subprocess, "run", run)
+
+    def kept(events):
+        return [f for f in events if f[0] in ("retry", "exit")]
+
+    def real_leaf(name, script):
+        work = tmp_path / name
+        work.mkdir()
+        monkeypatch.setattr(time, "sleep", lambda *_: None)
+        fake_leaf_launch(monkeypatch)
+        events = []
+        marked(events)
+        run_cli(supervise, [name, "sh", "-c", script], cwd=work,
+                env={"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "5", "VERI_TIMEOUT": "10"})
+        return kept(events)
+
+    def hung_leaf(name, retries):
+        work = tmp_path / name
+        work.mkdir()
+        fake_clocked_leaf(monkeypatch, work, name, True, 10 ** 9)
+        launching = subprocess.Popen
+
+        def popen(*a, **k):
+            leaf = launching(*a, **k)
+            leaf.returncode = None
+            return leaf
+
+        monkeypatch.setattr(subprocess, "Popen", popen)
+        events = []
+        marked(events)
+        run_cli(supervise, [name, "leaf"], cwd=work,
+                env={"VERI_STUCK_RETRIES": retries, "VERI_HEARTBEAT": "5", "VERI_TIMEOUT": "5000"})
+        return kept(events)
+
+    def shape(events):
+        return [[f if not f.startswith("secs=") else "secs=" + ("n" if f[5:].isdigit() else f[5:]) for f in e]
+                for e in events]
+
+    cause = "no heartbeat for 6s (window 5s)"
+    ok = real_leaf("develop-ok", "exit 0")
+    failed = real_leaf("develop-fail", "exit 3")
+    hung = hung_leaf("develop-hung", "0")
+    retried = hung_leaf("develop-retried", "1")
+    assert shape(ok) == [["exit", "status=0", "secs=n"]]
+    assert shape(failed) == [["exit", "status=1", "secs=n"]]
+    assert shape(hung) == [["exit", "status=2", f"cause={cause}", "secs=n"]]
+    assert int(hung[0][-1][5:]) >= 5
+    assert shape(retried)[:1] == [["retry", f"cause={cause}"]]
+    assert [e[0] for e in retried].count("retry") == 1
+    assert retried[-1][:3] == ["exit", "status=2", f"cause={cause}"]
