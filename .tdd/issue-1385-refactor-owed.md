@@ -4,3 +4,5 @@
 - test-only | the new case's expected tuple `(2, b"", 1, True, True, seed)` is written out once per flag order in `test_tick_ledger.py`; it could be one value checked against both orders
 ### the usage line tick-ledger.sh prints on a bad argument names --phase <phase> ⟦criterion 3⟧
 - test-only | drop `test_main_prints_a_usage_line_naming_phase_on_a_bad_argument_1385` (`skills/tdd/scripts/tests/py/test_tick_ledger.py:424`): the `()` case at line 29 already pins `main([])` to exit 2, empty stdout and exactly `USAGE`, which now contains `--phase <phase>`
+### the usage line ledger-steps.sh prints on a bad argument names next-phase ⟦criterion 3⟧
+- test-only | the usage string is spelled out in full in both `tests/ledger-steps.test.sh:53` and `tests/py/test_ledger_steps.py:8`, and the new pytest case `test_main_prints_a_usage_line_naming_next_phase_on_a_bad_argument_1385` checks less than the existing `USAGE` constant already pins exactly
