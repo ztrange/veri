@@ -598,6 +598,28 @@ def test_1128_a_conductor_that_starts_and_exits_with_its_issue_still_listed_and_
         0, "", "", [[solvable]] * 3, [[conductor, "7"], [conductor, "7"]])
 
 
+def _orchestrated(work, monkeypatch, orchestrate, fake_processes, run_cli, answers, conductor, env,
+                  killpg=lambda pid, sig: None):
+    answers, launches = list(answers), []
+
+    def answer(line, **kwargs):
+        assert line == "solvable-issues.sh", line
+        code, out = answers.pop(0)
+        return code, out, ""
+
+    def popen(args, *rest, **kwargs):
+        launches.append([os.path.basename(args[0])] + list(args[1:]))
+        return conductor(4000 + len(launches), args[1])
+
+    fake_processes(answer)
+    monkeypatch.setattr(subprocess, "Popen", popen)
+    monkeypatch.setattr(os, "killpg", killpg)
+    monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+    monkeypatch.delenv("VERI_CONDUCTOR_STOP_TIMEOUT", raising=False)
+    code, out, err = run_cli(orchestrate, [], env=env, cwd=work)
+    return code, out, err, launches
+
+
 def test_main_launches_per_solvable_issue_reports_context_and_stops_over_budget_only_after_the_next_step_done_result_then_relaunches(
         tmp_path, monkeypatch, orchestrate, fake_processes, run_cli):
     heartbeat = '{"type":"system","subtype":"heartbeat"}'
@@ -616,13 +638,8 @@ def test_main_launches_per_solvable_issue_reports_context_and_stops_over_budget_
     def orchestrated(name, answers, streams, budget=None):
         work = tmp_path / name
         work.mkdir()
-        answers, streams = list(answers), [list(s) for s in streams]
-        launches, stops, conductors = [], [], {}
-
-        def answer(line, **kwargs):
-            assert line == "solvable-issues.sh", line
-            code, out = answers.pop(0)
-            return code, out, ""
+        streams = [list(s) for s in streams]
+        stops, conductors = [], {}
 
         class Conductor:
             def __init__(self, pid, lines):
@@ -648,22 +665,16 @@ def test_main_launches_per_solvable_issue_reports_context_and_stops_over_budget_
             def wait(self, timeout=None):
                 return 0
 
-        def popen(args, *rest, **kwargs):
-            launches.append([os.path.basename(args[0])] + list(args[1:]))
-            conductor = Conductor(4000 + len(launches), streams.pop(0))
-            conductors[conductor.pid] = conductor
-            return conductor
+        def launch(pid, issue):
+            conductors[pid] = Conductor(pid, streams.pop(0))
+            return conductors[pid]
 
         def killpg(pid, sig):
             stops.append((conductors[pid].read, len(conductors[pid].lines)))
 
-        fake_processes(answer)
-        monkeypatch.setattr(subprocess, "Popen", popen)
-        monkeypatch.setattr(os, "killpg", killpg)
-        monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
         env = {} if budget is None else {"VERI_CONDUCTOR_CTX_BUDGET": budget}
-        code, out, err = run_cli(orchestrate, [], env=env, cwd=work)
-        return code, out, err, launches, stops
+        return _orchestrated(work, monkeypatch, orchestrate, fake_processes, run_cli, answers, launch, env,
+                             killpg) + (stops,)
 
     observed = {
         "launches per solvable issue": orchestrated(
@@ -727,24 +738,13 @@ def test_main_refuses_a_bad_budget_or_stop_timeout_relaunches_an_unfinished_cond
         if issue_ledger:
             (work / ".tdd").mkdir()
             (work / ".tdd" / ("issue-%s.md" % issue_ledger)).write_text(ledger)
-        answers, launches = list(answers), []
 
-        def answer(line, **kwargs):
-            assert line == "solvable-issues.sh", line
-            code, out = answers.pop(0)
-            return code, out, ""
+        def launch(pid, issue):
+            on_launch(work, issue)
+            return _FakeConductor(pid)
 
-        def popen(args, *rest, **kwargs):
-            launches.append([os.path.basename(args[0])] + list(args[1:]))
-            on_launch(work, args[1])
-            return _FakeConductor(4000 + len(launches))
-
-        fake_processes(answer)
-        monkeypatch.setattr(subprocess, "Popen", popen)
-        monkeypatch.setattr(os, "killpg", lambda pid, sig: None)
-        monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
-        monkeypatch.delenv("VERI_CONDUCTOR_STOP_TIMEOUT", raising=False)
-        code, out, err = run_cli(orchestrate, [], env=env, cwd=work)
+        code, out, err, launches = _orchestrated(
+            work, monkeypatch, orchestrate, fake_processes, run_cli, answers, launch, env)
         kept = (work / ".tdd" / ("issue-%s.md" % issue_ledger)).read_text() if issue_ledger else None
         return code, out, err, launches, kept
 
