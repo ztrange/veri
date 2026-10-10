@@ -87,7 +87,7 @@ pin '134802541 39' usage run-conductor.sh
 pin '1042169812 59' usage run-leaf.sh
 pin '4252593059 50' usage supervise.sh
 pin '3650033748 63' usage tick-issue-criterion.sh
-pin '3063314140 92' usage tick-ledger.sh
+pin '2629435625 115' usage tick-ledger.sh
 pin '3568418922 35' usage tier-usual.sh
 pin '1826447128 65' usage timed-test-run.sh
 pin '2203537502 52' usage transform-touches-tests.sh

@@ -27,7 +27,7 @@ before="$(cat "$led")"
 { [[ "$code" == 3 ]] && [[ "$(cat "$led")" == "$before" ]]; } && ok || no "no match → exit 3, file unchanged (code=$code)"
 
 "$TICK" > "$work/usage.out" 2> "$work/usage.err"; code=$?
-want_err='usage: tick-ledger.sh [--refactor-pending | --phase <phase>] <ledger-file> <matcher>'
+want_err='usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase>] <ledger-file> <matcher>'
 { [[ "$code" == 2 ]] && [[ ! -s "$work/usage.out" ]] && [[ "$(cat "$work/usage.err")" == "$want_err" ]]; } \
   && ok || no "no argument → exit 2, nothing on stdout, the usage line on stderr (code=$code out='$(cat "$work/usage.out")' err='$(cat "$work/usage.err")')"
 
