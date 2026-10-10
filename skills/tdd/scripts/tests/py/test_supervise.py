@@ -2404,3 +2404,84 @@ def test_cli_reports_a_leafs_outcome_through_run_cli_success_and_failure_with_it
         (0, [b"supervise[develop-slow]: success".decode()], b"0\n"),
         (2, [b"supervise[develop-hang]: killed-stuck \xe2\x80\x94 no heartbeat for 6s (window 5s)".decode()], b"2\n"),
     ]
+
+
+def test_cli_kills_a_hung_or_runaway_leaf_stuck_on_the_default_180s_or_an_explicit_window_once_under_an_ambient_veri_stuck_retries_leaving_no_usage_event_and_exiting_and_recording_2(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import json
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    clean_env(monkeypatch, VERI_STUCK_RETRIES="3")
+    clock = {"wall": 1000}
+    launches = []
+
+    def killed_leaf(name, silent, **env):
+        work = tmp_path / name
+        work.mkdir()
+        clock["wall"] = 1000
+
+        def sleep(_):
+            clock["wall"] += 1
+            if clock["wall"] > 5000:
+                raise AssertionError("never killed")
+
+        class Leaf:
+            pid = 4242
+            returncode = None
+            args = []
+
+            def poll(self):
+                return self.returncode
+
+            def wait(self, timeout=None):
+                return self.returncode
+
+        leaf = Leaf()
+
+        def stop(_pid, sig):
+            if sig:
+                leaf.returncode = -sig
+
+        def answer(args):
+            args = [str(a) for a in args]
+            if args[:1] == ["git"]:
+                return "0123456789abcdef0123456789abcdef01234567\n"
+            if args[:1] == ["date"]:
+                return f"{clock['wall']}\n"
+            if args[:1] == ["stat"]:
+                return "1000\n" if silent else f"{clock['wall']}\n"
+            return ""
+
+        def popen(args, *_, **k):
+            launches.append(name)
+            return leaf
+
+        monkeypatch.setattr(time, "sleep", sleep)
+        monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
+        monkeypatch.setattr(os, "killpg", stop)
+        monkeypatch.setattr(os, "kill", stop)
+        monkeypatch.setattr(subprocess, "run", lambda args, *_, **k: subprocess.CompletedProcess(
+            args, 0, as_asked(answer(args), k), as_asked("", k)))
+        monkeypatch.setattr(subprocess, "check_output", lambda args, *_, **k: as_asked(answer(args), k))
+        monkeypatch.setattr(subprocess, "call", lambda *a, **k: 0)
+        monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: 0)
+        monkeypatch.setattr(subprocess, "Popen", popen)
+        monkeypatch.delenv("VERI_HEARTBEAT", raising=False)
+        code, _, err = run_cli(supervise, [name, "leaf"], cwd=work, env={"VERI_STUCK_RETRIES": "0", **env})
+        events = work / ".tdd" / "events.jsonl"
+        usage = [line for line in (events.read_text().splitlines() if events.exists() else [])
+                 if json.loads(line).get("event") == "usage"]
+        lines = err.splitlines()
+        return (code, [line for line in lines if line.startswith(f"supervise[{name}]")],
+                [line for line in lines if "retry" in line], launches.count(name), usage,
+                (work / ".tdd" / f"{name}.exit").read_bytes())
+
+    hung = killed_leaf("hung", True, VERI_HEARTBEAT="5", VERI_TIMEOUT="5000")
+    runaway = killed_leaf("runaway", False, VERI_HEARTBEAT="5000", VERI_TIMEOUT="7")
+    unset = killed_leaf("unset", True, VERI_TIMEOUT="5000")
+    assert [hung, runaway, unset] == [
+        (2, ["supervise[hung]: killed-stuck — no heartbeat for 6s (window 5s)"], [], 1, [], b"2\n"),
+        (2, ["supervise[runaway]: killed-stuck — hard timeout 7s exceeded"], [], 1, [], b"2\n"),
+        (2, ["supervise[unset]: killed-stuck — no heartbeat for 181s (window 180s)"], [], 1, [], b"2\n"),
+    ]
