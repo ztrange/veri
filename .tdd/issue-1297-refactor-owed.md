@@ -1,2 +1,5 @@
 ### SKILL.md says a resumed run — one whose worktree and ledger already exist — runs `rebase-onto-default.sh` before its preflight baseline, so the baseline runs on the rebased tip, and that a new branch's run does not rebase there ⟦criterion 1⟧
 - test-only | extract the enter_at/base_at locator (awk for `issue-worktree.sh … && cd`, then the first fast-tier/detach-start line after it) duplicated between the #1297 case and the earlier pid-lock case in skill-preflight-launchable.test.sh into one helper function
+### SKILL.md says a resume rebase that moved the branch is published, once the baseline is green, with `push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>`, never a bare force ⟦criterion 2⟧
+- `rebase_span`'s `enter_at`/`base_at` lookups repeat the #987 pid-lock case's lookups line for line; that case could call `rebase_span` (both blocks were written before this cycle)
+- test-only | tighten the bare-force sentence match so the negation has to sit next to "bare force", not anywhere in the sentence
