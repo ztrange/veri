@@ -120,9 +120,11 @@ def ledger_tick(text, matcher, pending=False):
 
 
 def _with_phase_mark(line, phase):
-    """line with phase's mark appended; ValueError when line does not list phase."""
+    """line with phase's mark appended; ValueError when line does not list phase or phase is not next."""
     if phase not in listed_phases(line):
         raise ValueError(f"step does not list phase '{phase}'")
+    if next_phase(line) != phase:
+        raise ValueError(f"phase '{phase}' is not the step's next phase")
     return line + phase_mark(phase)
 
 
