@@ -1,2 +1,5 @@
 ### run_cli answers exit code 0 when a throwaway module's main returns None, raises SystemExit with no code, or raises SystemExit(None) ⟦criterion 1⟧
 - test-only | the pytester plant in test_run_cli.py keeps its own `planted(source)` copy of the module_of shape inside a source string; it cannot import the outer helper without changing what the plant proves
+### run_cli answers exit code 1 when a throwaway module's main raises SystemExit carrying a non-integer object such as a message string, and the captured stderr ends with that object's text followed by a newline ⟦criterion 1⟧
+- test-only | fold the SystemExit non-integer branch and the return line's `0 if code is None else code` in conftest.py's run_cli into one function mapping main's result or SystemExit.code to the shim's exit status
+- test-only | drop test_run_cli_answers_the_code_a_main_that_raises_system_exit_carries, whose SystemExit(3) case the SystemExit(5) half of test_run_cli_answers_the_integer_a_main_returns_or_raises_as_system_exit_as_the_exit_code_1389 already covers
