@@ -69,6 +69,10 @@ def run_cli(monkeypatch, capfd):
             code = module.main(argv)
         except SystemExit as exit:
             code = exit.code
+            if code is not None and not isinstance(code, int):
+                sys.stderr.write("%s\n" % code)
+                sys.stderr.flush()
+                code = 1
         finally:
             os.environ.clear()
             os.environ.update(environ)
