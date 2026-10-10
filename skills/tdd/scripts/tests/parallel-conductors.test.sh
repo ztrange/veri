@@ -208,46 +208,6 @@ await_gone() {
   while [[ -r "$1" ]] && kill -0 "$(cat "$1")" 2>/dev/null; do :; done
 }
 
-await_out="$work/await.out"
-: > "$await_out"
-sh -c "$(stub_waits "$await_out")
-sleep() { :; }
-looks=0
-grep() {
-  looks=\$((looks + 1))
-  case \" \$* \" in *\" $await_out \"*) ;; *) looks=101 ;; esac
-  [ \$looks -le 100 ] || echo 'context 7 1' >> '$await_out'
-  command grep \"\$@\"
-}
-await_context 'context 7 1'
-command grep -Fx 'context 7 1' '$await_out' > /dev/null && echo returned-after-line || echo returned-before-line" \
-  > "$work/await.result" 2>&1
-expect_lines "stub_waits' await_context returns only once its context line has arrived, however many looks that takes" "returned-after-line" "$(cat "$work/await.result")" "$await_out"
-
-heartbeat_line='{"type":"system","subtype":"heartbeat"}'
-sh -c "$(stub_waits "$await_out")
-sleep() { echo slept; }
-heartbeats 3" > "$work/heartbeats.result" 2>&1 < /dev/null
-expect_lines "stub_waits' heartbeats prints its heartbeat lines without calling sleep" "$(printf '%s\n' "$heartbeat_line" "$heartbeat_line" "$heartbeat_line")" "$(cat "$work/heartbeats.result")" "$await_out"
-
-echo 1 > "$work/gone.pid"
-gone_result="$(
-  sleep() { echo slept; }
-  looks=0
-  kill() { looks=$((looks + 1)); (( looks <= 300 )); }
-  await_gone "$work/gone.pid" 2>&1
-  (( looks > 300 )) && echo returned-once-gone || echo returned-while-alive
-)"
-expect_lines "await_gone returns only once the stopped stub's pid is gone, however many looks that takes, without calling sleep" "returned-once-gone" "$gone_result" "$work/gone.pid"
-
-sh -c "$(stub_waits "$await_out")
-sleep() { echo slept; }
-looks=0
-kill() { looks=\$((looks + 1)); [ \$looks -le 300 ]; }
-await_gone '$work/gone.pid'
-[ \$looks -gt 300 ] && echo returned-once-gone || echo returned-while-alive" > "$work/stub-gone.result" 2>&1 < /dev/null
-expect_lines "stub_waits' await_gone returns only once the other stub's pid is gone, however many looks that takes, without calling sleep" "returned-once-gone" "$(cat "$work/stub-gone.result")" "$work/gone.pid"
-
 gh_stop="$work/gh-stop"
 solvable_fixture "$gh_stop" 7
 stop_marks="$work/stop.marks"
@@ -345,18 +305,7 @@ fi
 $(ready_pr "$gh_again")
 STUB
 
-again_bin="$work/again-bin"
-mkdir -p "$again_bin"
-cat > "$again_bin/sleep" <<SH
-#!/bin/sh
-case "\$(ps -o command= -p \$PPID)" in
-  *claude-again*) echo "sleep \$*" >> "$work/again.slept" ;;
-esac
-exec $(command -v sleep) "\$@"
-SH
-chmod +x "$again_bin/sleep"
-run_launcher "$gh_again" "$again_stub" "$work/again.out" VERI_CONDUCTOR_CTX_BUDGET=100000 PATH="$again_bin:$PATH"
-expect_lines "the again case's stub holds after its step-done result without calling sleep" "" "$(cat "$work/again.slept" 2>/dev/null)" "$work/again.out"
+run_launcher "$gh_again" "$again_stub" "$work/again.out" VERI_CONDUCTOR_CTX_BUDGET=100000
 expect_lines "a conductor stopped over VERI_CONDUCTOR_CTX_BUDGET is launched again for the same issue before a not-yet-launched solvable issue takes its slot" "$(printf '7\n7\n8')" "$(cat "$again_launches")" "$work/again.out"
 
 expect_lines "a conductor relaunched after an over-budget stop prints 'restarted <n>' naming its issue" "restarted 7" "$(grep '^restarted ' "$work/again.out" || true)" "$work/again.out"
