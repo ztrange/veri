@@ -38,6 +38,9 @@
 #      saying never a bare force.
 #  14. Preflight step 3's item has a sentence saying a red baseline on the rebased tip resets
 #      to `<pre-rebase-sha>` before the run bails.
+#  15. Preflight step 3's item, after its `rebase-onto-default.sh` call, has an `event.sh <name>`
+#      line whose arguments carry `<pre-rebase-sha>` and the rebased sha (`rebased` or
+#      `rev-parse HEAD`), and the Draft PR section has no `event.sh <name>` of that name.
 #
 # Run: scripts/tests/skill-preflight-launchable.test.sh
 set -uo pipefail
@@ -77,6 +80,7 @@ step1_heading='### 1. Read the issue'
 slug_item='**Derive the slug'
 rebase_call='rebase-onto-default.sh'
 lease_push='push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>'
+draft_heading='### 4. Draft PR'
 
 
 source "$HERE/lib/harness.sh"
@@ -414,6 +418,29 @@ if resume_step3 "the resume rebase's reset"; then
   reset="$(sentences <<< "$step3" | grep -iwF 'red' | grep -iF 'reset' | grep -F '<pre-rebase-sha>' | grep -iF 'bail')"
   [[ -n "$reset" ]] ||
     problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) has no sentence saying a red baseline on the rebased tip resets to <pre-rebase-sha> before the run bails, so a bailed resume leaves the branch on a rebased tip no suite proved green")
+fi
+
+report "$name"
+
+name="#1297 $skill_md marks a resume rebase that moved the branch in the run log as its own event, carrying the pre-rebase and rebased shas, named apart from the Draft PR step's rebase"
+problems=()
+
+if resume_step3 "the resume rebase's event"; then
+  rebase_at="$(awk -v s="$enter_at" -v e="$item_end" -v r="$rebase_call" 'NR >= s && NR <= e && index($0, r) { print NR; exit }' "$md")"
+  mark="$(sed -n "${rebase_at:-$enter_at},${item_end}p" "$md" | grep -oE 'event\.sh [a-z][a-z-]*( [^`]*)?' | grep -F '<pre-rebase-sha>' | head -n 1)"
+  event_name="$(awk '{ print $2 }' <<< "$mark")"
+  if [[ -z "$event_name" ]]; then
+    problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) has no event.sh mark after $rebase_call whose arguments carry <pre-rebase-sha>, so a resume rebase that moved the branch leaves nothing in the run log")
+  else
+    grep -E 'rebased|rev-parse HEAD' <<< "${mark#event.sh "$event_name"}" > /dev/null ||
+      problems+=("$skill_md's event.sh $event_name mark carries <pre-rebase-sha> but not the rebased sha: $mark")
+    if section "$draft_heading"; then
+      sed -n "${sec_start},${sec_end}p" "$md" | grep -E "event\.sh $event_name( |\$|\`)" > /dev/null &&
+        problems+=("$skill_md's $draft_heading section also writes event.sh $event_name, so a metrics reading cannot tell the resume rebase from the Draft PR step's")
+    else
+      problems+=("$skill_md has no '$draft_heading' section, so whether its rebase records the same event could not be read")
+    fi
+  fi
 fi
 
 report "$name"

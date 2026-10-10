@@ -561,6 +561,9 @@ unauthenticated baseline never gets a cycle.
    the rebase conflicted and was aborted, HEAD untouched — goes on from the old base and
    leaves the conflict to the Draft PR step's `develop-rebase` path. An exit 2 bails as the
    Draft PR step's does, a **system** failure (`no-verdict`).
+   An exit 0 moved the branch, and is marked in the run log as its own event,
+   `VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh resume-rebase from=<pre-rebase-sha> rebased="$(git rev-parse HEAD)"`,
+   a name nothing the Draft PR step's rebase records shares.
    A new branch's run does not rebase here.
    Every run below happens in it, so the baseline proves the commit the branch is cut from —
    the freshly fetched `origin/<default>` for a new branch, the branch head on a resume — not
