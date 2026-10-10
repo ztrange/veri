@@ -297,6 +297,31 @@ def test_main_resolves_the_default_branch_from_each_ls_remote_shape_when_origin_
         "invisible-work.sh: no refs/remotes/origin/HEAD and origin names no default branch\n")
 
 
+def origin_answer(remote, ahead, local, worktrees=""):
+    """A fake_processes answer for a repository whose origin/main is the default branch:
+    <remote> maps origin's branches to tips, <ahead> each to its count ahead of origin/main,
+    <local> each local branch to (tip, count origin lacks); <worktrees> is the porcelain list."""
+    def answer(line, **_):
+        words = line.split(" ")
+        if words[:2] == ["git", "symbolic-ref"]:
+            return 0, "origin/main\n", ""
+        if words[:2] == ["git", "for-each-ref"] and words[-1] == "refs/remotes/origin/":
+            return 0, "".join(f"refs/remotes/origin/{n} {t}\n" for n, t in sorted(remote.items())), ""
+        if words[:2] == ["git", "for-each-ref"] and words[-1] == "refs/heads/":
+            return 0, "".join(f"refs/heads/{n} {t}\n" for n, (t, _) in sorted(local.items())), ""
+        if words[:3] == ["git", "worktree", "list"]:
+            return 0, worktrees, ""
+        if words[:3] == ["git", "rev-list", "--count"] and words[3].startswith("origin/main.."):
+            return 0, f"{ahead[words[3].removeprefix('origin/main..refs/remotes/origin/')]}\n", ""
+        if words[:3] == ["git", "rev-list", "--count"]:
+            return 0, f"{local[words[3].removeprefix('refs/heads/')][1]}\n", ""
+        if words[:2] == ["git", "show-ref"]:
+            return (0 if words[-1].removeprefix("refs/remotes/origin/") in remote else 1), "", ""
+        return 0, "", ""
+
+    return answer
+
+
 def test_main_reports_the_branches_on_origin_with_no_pr_and_the_local_branches_origin_lacks_and_leaves_out_the_rest(
         monkeypatch, tmp_path, run_cli, fake_processes):
     invisible_work = importlib.import_module("veri.invisible_work")
@@ -328,26 +353,10 @@ def test_main_reports_the_branches_on_origin_with_no_pr_and_the_local_branches_o
         "tdd/150-a-run-whose-pr-is-still-open": ("f150", 1),
     }
 
-    def answer(line, **_):
-        words = line.split(" ")
-        if words[:2] == ["git", "symbolic-ref"]:
-            return 0, "origin/main\n", ""
-        if words[:2] == ["git", "for-each-ref"] and words[-1] == "refs/remotes/origin/":
-            return 0, "".join(f"refs/remotes/origin/{n} {t}\n" for n, t in sorted(remote.items())), ""
-        if words[:2] == ["git", "for-each-ref"] and words[-1] == "refs/heads/":
-            return 0, "".join(f"refs/heads/{n} {t}\n" for n, (t, _) in sorted(local.items())), ""
-        if words[:3] == ["git", "worktree", "list"]:
-            return 0, ("worktree /repo\nHEAD 1111\nbranch refs/heads/main\n\n"
-                       "worktree /wt/wt-150\nHEAD e150\nbranch refs/heads/tdd/150-a-run-that-never-reached-origin\n\n"), ""
-        if words[:3] == ["git", "rev-list", "--count"] and words[3].startswith("origin/main.."):
-            return 0, f"{ahead[words[3].removeprefix('origin/main..refs/remotes/origin/')]}\n", ""
-        if words[:3] == ["git", "rev-list", "--count"]:
-            return 0, f"{local[words[3].removeprefix('refs/heads/')][1]}\n", ""
-        if words[:2] == ["git", "show-ref"]:
-            return (0 if words[-1].removeprefix("refs/remotes/origin/") in remote else 1), "", ""
-        return 0, "", ""
-
-    calls = fake_processes(answer)
+    calls = fake_processes(origin_answer(
+        remote, ahead, local,
+        "worktree /repo\nHEAD 1111\nbranch refs/heads/main\n\n"
+        "worktree /wt/wt-150\nHEAD e150\nbranch refs/heads/tdd/150-a-run-that-never-reached-origin\n\n"))
     code, out, err = run_cli(invisible_work, [], env={"VERI_GH_JSON": str(tmp_path)})
 
     assert (code, out, err) == (
@@ -371,20 +380,9 @@ def test_main_exits_2_with_empty_stdout_when_the_veri_gh_json_issues_json_is_not
     (tmp_path / "issues.json").write_text("this is not JSON\n")
     (tmp_path / "prs.json").write_text("[]\n")
 
-    def answer(line, **_):
-        words = line.split(" ")
-        if words[:2] == ["git", "symbolic-ref"]:
-            return 0, "origin/main\n", ""
-        if words[:2] == ["git", "for-each-ref"] and words[-1] == "refs/remotes/origin/":
-            return 0, ("refs/remotes/origin/HEAD 1111\nrefs/remotes/origin/main 1111\n"
-                       "refs/remotes/origin/chore/nobody-opened-a-pr bbbb\n"), ""
-        if words[:2] == ["git", "for-each-ref"] and words[-1] == "refs/heads/":
-            return 0, "refs/heads/main 1111\n", ""
-        if words[:3] == ["git", "rev-list", "--count"]:
-            return 0, "1\n", ""
-        return 0, "", ""
-
-    fake_processes(answer)
+    fake_processes(origin_answer(
+        {"HEAD": "1111", "main": "1111", "chore/nobody-opened-a-pr": "bbbb"},
+        {"chore/nobody-opened-a-pr": 1}, {"main": ("1111", 0)}))
     code, out, _ = run_cli(invisible_work, [], env={"VERI_GH_JSON": str(tmp_path)})
 
     assert (code, out) == (2, "")
