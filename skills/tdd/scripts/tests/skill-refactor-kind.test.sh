@@ -37,7 +37,9 @@ source "$HERE/lib/window.sh"
 
 section() {
   awk -v h="$1" \
-    'index($0, h) == 1 { inside = 1; next } inside && /^###? / { exit } inside' "$skill_path" |
+    'index($0, h) == 1 { level = index(h, " ") - 1; inside = 1; next }
+     inside && match($0, /^##+ /) && RLENGTH - 1 <= level { exit }
+     inside' "$skill_path" |
     plain --join
 }
 
@@ -259,7 +261,7 @@ report "$name"
 name="$skill_md rejects an expand, migrate or contract-b phase's commit that transform-touches-tests.sh exits 1 on, and a contract-a phase's commit that production-frozen.sh exits 1 on"
 problems=()
 
-phased_text="$(awk 'index($0, "#### A `⟦phases") == 1 { inside = 1; next } inside && /^####? / { exit } inside' "$skill_path" | plain --join)"
+phased_text="$(section '#### A `⟦phases')"
 if [[ -z "${phased_text// /}" ]]; then
   problems+=("$skill_md has no '#### A \`⟦phases: …⟧\` step' subsection to read")
 else
