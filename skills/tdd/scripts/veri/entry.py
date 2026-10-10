@@ -8,6 +8,11 @@ def _shim_name(main):
     return module.replace("_", "-") + ".sh"
 
 
+def refusal(main, exc):
+    reason = " ".join(str(exc).split())
+    return f"{_shim_name(main)}: {type(exc).__name__}: {reason}\n"
+
+
 def silence_stdout():
     try:
         os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
@@ -23,7 +28,6 @@ def run(main, argv):
         silence_stdout()
         sys.exit(141)
     except Exception as exc:
-        reason = " ".join(str(exc).split())
-        sys.stderr.write(f"{_shim_name(main)}: {type(exc).__name__}: {reason}\n")
+        sys.stderr.write(refusal(main, exc))
         sys.exit(2)
     sys.exit(code)
