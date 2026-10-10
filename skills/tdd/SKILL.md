@@ -1511,6 +1511,10 @@ being frozen there. A contract-a commit runs `$S/production-frozen.sh <base-sha>
 rejects it, production being frozen there. Either rejection is revised as a REJECT is; exit 2
 **bails** as a system failure.
 
+A contract-a phase's PASS is accepted only once the conductor's own run of
+`$S/mutation-parity.sh <pairs-table>` on that phase's pairs table exits 0; exit 1 is a
+REJECT, exit 2 a bail.
+
 A contract phase starts only once `$S/no-product-caller.sh <old-interface>` on the old
 interface exits 0. Before it launches contract-a or contract-b, run it: exit 1 names each
 product file still calling the old interface, so the contract does not start and the step
