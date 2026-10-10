@@ -145,4 +145,45 @@ else
     unproven stderr: $(cat "$work/replaced-kept-stays-green.err")"
 fi
 
+cat > "$repo/tests/test_sums.py" <<'PYTEST'
+import os
+import subprocess
+
+CALC = os.path.join(os.path.dirname(__file__), "..", "calc.sh")
+
+
+def run(call):
+    return subprocess.run(["sh", "-c", '. "$0"; ' + call, CALC], capture_output=True,
+                          text=True).stdout.strip()
+
+
+def test_adds_two_numbers():
+    assert run("add 2 3") == "5"
+
+
+def test_greets_by_name():
+    assert run("greet ann") == "hello ann"
+PYTEST
+git -C "$repo" add -A && git -C "$repo" commit -qm 'pytest old case'
+
+old_node="tests/test_sums.py::test_adds_two_numbers"
+old_pytest() {
+  local table="$work/old-pytest-$1.tsv"
+  printf 'tests/test_sums.py\t%s\treplaced\t%s\t%s\n' "$old_node" "$node" "$work/$1.patch" > "$table"
+  out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/old-pytest-$1.err")" && code=0 || code=$?
+  row="$(grep -F "$old_node" <<<"$out" | grep -wF "$2" || true)"
+}
+old_pytest add-subtracts proven
+valid_code="$code" valid_row="$row" valid_out="$out"
+old_pytest none-stays-green owed
+if [[ "$valid_code" == 0 && -n "$valid_row" && "$code" == 1 && -n "$row" ]]; then
+  ok
+else
+  no "a row whose old case is a pytest node id is valid when the node goes red and another case of its file stays green, and owed when none stays green (valid exit=$valid_code want 0, owed exit=$code want 1)
+    valid stdout: $valid_out
+    valid stderr: $(cat "$work/old-pytest-add-subtracts.err")
+    owed stdout: $out
+    owed stderr: $(cat "$work/old-pytest-none-stays-green.err")"
+fi
+
 finish
