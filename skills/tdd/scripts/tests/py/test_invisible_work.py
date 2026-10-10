@@ -295,3 +295,70 @@ def test_main_resolves_the_default_branch_from_each_ls_remote_shape_when_origin_
         2, "",
         "fatal: unable to access 'https://example.invalid/repo.git/': Could not resolve host\n"
         "invisible-work.sh: no refs/remotes/origin/HEAD and origin names no default branch\n")
+
+
+def test_main_reports_the_branches_on_origin_with_no_pr_and_the_local_branches_origin_lacks_and_leaves_out_the_rest(
+        monkeypatch, tmp_path, run_cli, fake_processes):
+    invisible_work = importlib.import_module("veri.invisible_work")
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    (tmp_path / "issues.json").write_text(
+        '[{"number": 71, "title": "walkthrough: version the commentary too", "labels": [],'
+        ' "body": "", "state": "OPEN"}]')
+    (tmp_path / "prs.json").write_text(
+        '[{"headRefName": "tdd/72-a-run-whose-pr-is-open", "state": "OPEN", "body": "Closes #72"},'
+        ' {"headRefName": "chore/pushed-already", "state": "OPEN", "body": ""},'
+        ' {"headRefName": "tdd/4-supervised-leaves", "state": "MERGED", "body": "Closes #4"},'
+        ' {"headRefName": "chore/test-runner", "state": "CLOSED", "body": ""},'
+        ' {"headRefName": "tdd/5-merged-and-pruned", "state": "MERGED", "body": "Closes #5"},'
+        ' {"headRefName": "chore/closed-and-pruned", "state": "CLOSED", "body": ""},'
+        ' {"headRefName": "tdd/150-a-run-whose-pr-is-still-open", "state": "OPEN", "body": "Closes #150"}]')
+    remote = {
+        "HEAD": "1111", "main": "1111",
+        "tdd/71-walkthrough-version-the-commentary-too": "a71a", "tdd/999-an-issue-nobody-filed": "a999",
+        "chore/nobody-opened-a-pr": "bbbb", "tdd/72-a-run-whose-pr-is-open": "a72a",
+        "chore/pushed-already": "cccc", "tdd/4-supervised-leaves": "a4a4", "chore/test-runner": "dddd",
+    }
+    ahead = {"tdd/71-walkthrough-version-the-commentary-too": 3, "tdd/999-an-issue-nobody-filed": 3,
+             "chore/nobody-opened-a-pr": 1, "tdd/72-a-run-whose-pr-is-open": 2,
+             "chore/pushed-already": 1, "tdd/4-supervised-leaves": 2, "chore/test-runner": 1}
+    local = {
+        "main": ("1111", 0), "chore/pushed-already": ("cccc", 0),
+        "tdd/150-a-run-that-never-reached-origin": ("e150", 4), "tdd/170-a-run-checked-out-nowhere": ("e170", 1),
+        "tdd/5-merged-and-pruned": ("e005", 2), "chore/closed-and-pruned": ("eeee", 1),
+        "tdd/150-a-run-whose-pr-is-still-open": ("f150", 1),
+    }
+
+    def answer(line, **_):
+        words = line.split(" ")
+        if words[:2] == ["git", "symbolic-ref"]:
+            return 0, "origin/main\n", ""
+        if words[:2] == ["git", "for-each-ref"] and words[-1] == "refs/remotes/origin/":
+            return 0, "".join(f"refs/remotes/origin/{n} {t}\n" for n, t in sorted(remote.items())), ""
+        if words[:2] == ["git", "for-each-ref"] and words[-1] == "refs/heads/":
+            return 0, "".join(f"refs/heads/{n} {t}\n" for n, (t, _) in sorted(local.items())), ""
+        if words[:3] == ["git", "worktree", "list"]:
+            return 0, ("worktree /repo\nHEAD 1111\nbranch refs/heads/main\n\n"
+                       "worktree /wt/wt-150\nHEAD e150\nbranch refs/heads/tdd/150-a-run-that-never-reached-origin\n\n"), ""
+        if words[:3] == ["git", "rev-list", "--count"] and words[3].startswith("origin/main.."):
+            return 0, f"{ahead[words[3].removeprefix('origin/main..refs/remotes/origin/')]}\n", ""
+        if words[:3] == ["git", "rev-list", "--count"]:
+            return 0, f"{local[words[3].removeprefix('refs/heads/')][1]}\n", ""
+        if words[:2] == ["git", "show-ref"]:
+            return (0 if words[-1].removeprefix("refs/remotes/origin/") in remote else 1), "", ""
+        return 0, "", ""
+
+    calls = fake_processes(answer)
+    code, out, err = run_cli(invisible_work, [], env={"VERI_GH_JSON": str(tmp_path)})
+
+    assert (code, out, err) == (
+        0,
+        "invariant 2 (no PR): chore/nobody-opened-a-pr tip bbbb 1 commits ahead\n"
+        "invariant 2 (no PR): tdd/71-walkthrough-version-the-commentary-too tip a71a 3 commits ahead,"
+        " issue #71 OPEN\n"
+        "invariant 2 (no PR): tdd/999-an-issue-nobody-filed tip a999 3 commits ahead, issue #999 unknown\n"
+        "invariant 1 (not on origin): tdd/150-a-run-that-never-reached-origin tip e150"
+        " 4 commits origin lacks, worktree /wt/wt-150\n"
+        "invariant 1 (not on origin): tdd/150-a-run-whose-pr-is-still-open tip f150 1 commits origin lacks\n"
+        "invariant 1 (not on origin): tdd/170-a-run-checked-out-nowhere tip e170 1 commits origin lacks\n",
+        "")
+    assert [line for line in calls if line.startswith("gh")] == []
