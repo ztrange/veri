@@ -1,2 +1,4 @@
 ### `build-develop-prompt.sh exhausted` prints a prompt that tells the leaf not to modify, revert or remove anything in the working tree ⟦criterion 1⟧
 - test-only | the new case in `tests/py/test_build_develop_prompt.py:1265` repeats the render → whitespace-flatten (`re.sub(rb"\s+", b" ", out)`) → regex-rules check used by the cases at lines 1127, 1170, 1207 and 1242; a shared helper would remove that repetition, but it would only change files under `tests/`
+### the `exhausted` prompt tells the leaf that any statement that the criterion already holds must cite a run of the test command it was given ⟦criterion 2⟧
+- test-only | extract the shared exhausted-prompt setup (spec.md and reason.md fixtures plus the `build_develop_prompt.main(["exhausted", …])` call and the capture) that the two #1421 cases in `tests/py/test_build_develop_prompt.py` repeat, into one helper both cases call
