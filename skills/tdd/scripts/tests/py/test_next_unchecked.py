@@ -216,3 +216,13 @@ def test_main_skips_a_phased_step_whose_contract_is_owed_and_ledger_steps_reads_
     assert (steps_code, steps_out.decode().split("\n")[1].split("\t")[:2]) == (0, ["2", "done"])
     assert (code, *capsysbinary.readouterr()) == (
         0, "strip leading and trailing hyphens ⟦criterion 2⟧\n".encode(), b"")
+
+
+def test_main_hands_out_an_open_step_whose_prose_quotes_a_phases_marker_as_an_ordinary_step_1450(
+        monkeypatch, capsysbinary, next_unchecked):
+    quoting = "next-phase.sh answers nothing for `⟦phases: expand⟧ ⟂ expand owed` ⟦criterion 2⟧"
+    fake_stdin(monkeypatch, f"# Plan for #42\n\n- [x] add lowercasing\n- [ ] {quoting}\n- [ ] later\n".encode())
+
+    code = next_unchecked.main([])
+
+    assert (code, *capsysbinary.readouterr()) == (0, (quoting + "\n").encode(), b"")
