@@ -8,3 +8,4 @@
 - [x] The no-product-caller check exits 0, printing nothing, when no line of those product files names the interface ⟦criterion 2⟧
 - [x] The no-product-caller check does not report a line under any `tests/` directory that names the interface ⟦criterion 2⟧
 - [x] Given an old module-function interface `<module>.<function>`, the no-product-caller check reports a product line naming it and does not report its own definition (`def <function>` in `skills/tdd/scripts/veri/<module>.py`) ⟦criterion 2⟧
+- [ ] fix the full-suite failure: skills/tdd/scripts/tests/no-docs-reads.test.sh — FAIL - no suite under skills/tdd/scripts/tests/ names a path in the generated-documentation tree outside a comment or fixture text (no-product-caller.test.sh:31, :45, :62, :75 name docs/hooks paths) ⟦suite-repair⟧ ⟦criterion 2⟧
