@@ -74,7 +74,7 @@ def run_cli(monkeypatch, capfd):
             os.environ.update(environ)
             os.chdir(start)
         out, err = capfd.readouterr()
-        return code, out, err
+        return 0 if code is None else code, out, err
 
     return run
 
