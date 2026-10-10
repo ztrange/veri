@@ -1,0 +1,3 @@
+### `build-develop-prompt.sh revise <phase> <spec> "<step>" '<test-cmd>' <reason-file> '<fast-cmd>'` exits 0 for each of expand, migrate, contract-a and contract-b, printing a revise prompt that names the phase being redone and carries the rejection reason verbatim, where it exited 2 with "unknown phase to revise"
+- the revise-phase check `revised_phase not in INTERFACE_PHASES and not re.fullmatch(f"({WANT_REVISE_PHASES})", revised_phase)` tests membership two ways; `revised_phase not in REVISE_PHASES + INTERFACE_PHASES` says the same thing (a simplification, not duplication removal, so not applied)
+- test-only | the four-phase tuple is written out twice in test_main_renders_a_revise_prompt_for_each_interface_phase_..._1448; bind it once, or use INTERFACE_PHASES
