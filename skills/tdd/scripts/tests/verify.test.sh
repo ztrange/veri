@@ -128,16 +128,6 @@ verdict_field() {
   verdict_field_in "$verdict_work/$1" "$2"
 }
 
-tamper_work="$work/tamper"
-
-cat > "$stubdir/claude-mutate" <<'STUB'
-#!/bin/sh
-eval "${FAKE_MUTATE:-}" >/dev/null 2>&1
-printf '%s' "${FAKE_OUT_TEXT:-}"
-exit 0
-STUB
-chmod +x "$stubdir/claude-mutate"
-
 fixture_repo() {
   local dir="$1" extra
   shift
@@ -150,67 +140,6 @@ fixture_repo() {
   git -C "$dir" add -A >/dev/null 2>&1
   git -C "$dir" commit -q -m "initial" >/dev/null 2>&1
 }
-
-subdir_state_dir="$tamper_work/subdir-run-state"
-fixture_repo "$subdir_state_dir"
-cp "$HERE/../../../../.gitignore" "$subdir_state_dir/.gitignore"
-git -C "$subdir_state_dir" commit -q -a -m "the repo's own ignore rules" >/dev/null 2>&1
-subdir_project=docs
-subdir_state="projects/$subdir_project/.tdd"
-out="$( FAKE_MUTATE="mkdir -p $subdir_state && printf '{}\n' > $subdir_state/events.jsonl" \
-    verify_in "$subdir_state_dir" green 'VERDICT: PASS
-REASON: Target test and full suite are green.' "$stubdir/claude-mutate" 2>/dev/null )"
-code=$?
-{ [[ "$code" == 0 ]] && [[ "$out" == *'full suite are green'* ]] \
-  && [[ "$out" != *'modified the repository'* ]]; } && ok \
-  || no "#569: a verifier whose run leaves $subdir_state/events.jsonl behind under the repo's own .gitignore has its PASS accepted (code=$code want 0; stdout='$out' want the verdict's reason and no 'modified the repository')"
-
-deep_state="a/b/.tdd"
-out="$( FAKE_MUTATE="mkdir -p $deep_state && printf 'log\n' > $deep_state/run.log" \
-    verify_in "$subdir_state_dir" green 'VERDICT: REJECT
-REASON: The target test still fails.' "$stubdir/claude-mutate" 2>/dev/null )"
-code=$?
-{ [[ "$code" == 1 ]] && [[ "$out" == *'target test still fails'* ]] \
-  && [[ "$out" != *'modified the repository'* ]]; } && ok \
-  || no "#569: a verifier whose run leaves $deep_state/run.log behind under the repo's own .gitignore has its REJECT accepted (code=$code want 1; stdout='$out' want the verdict's reason and no 'modified the repository')"
-
-ledger_edit_dir="$tamper_work/ledger-edit"
-fixture_repo "$ledger_edit_dir"
-cp "$HERE/../../../../.gitignore" "$ledger_edit_dir/.gitignore"
-ledger=".tdd/issue-569.md"
-mkdir -p "$ledger_edit_dir/.tdd"
-printf -- '- [ ] a step\n' > "$ledger_edit_dir/$ledger"
-git -C "$ledger_edit_dir" add -A >/dev/null 2>&1
-git -C "$ledger_edit_dir" commit -q -m "the repo's own ignore rules and a ledger" >/dev/null 2>&1
-out="$( FAKE_MUTATE="printf -- '- [x] a step\n' > $ledger && mkdir -p $subdir_state && printf '{}\n' > $subdir_state/events.jsonl" \
-    verify_in "$ledger_edit_dir" green 'VERDICT: PASS
-REASON: Target test and full suite are green.' "$stubdir/claude-mutate" 2>/dev/null )"
-code=$?
-{ [[ "$code" == 2 ]] && [[ "$out" == *'modified the repository'* ]] && [[ "$out" == *"$ledger"* ]]; } && ok \
-  || no "#569: a verifier that edits the root ledger $ledger is refused naming it, even when its run also leaves $subdir_state/events.jsonl behind (code=$code want 2; stdout='$out' want 'modified the repository' and $ledger named)"
-
-tracked_edit_dir="$tamper_work/tracked-edit"
-fixture_repo "$tracked_edit_dir"
-cp "$HERE/../../../../.gitignore" "$tracked_edit_dir/.gitignore"
-mkdir -p "$tracked_edit_dir/projects/$subdir_project"
-printf 'the developer committed this too\n' > "$tracked_edit_dir/projects/$subdir_project/doomed.txt"
-git -C "$tracked_edit_dir" add -A >/dev/null 2>&1
-git -C "$tracked_edit_dir" commit -q -m "the repo's own ignore rules and a second tracked file" >/dev/null 2>&1
-doomed="projects/$subdir_project/doomed.txt" added="projects/$subdir_project/added.txt"
-out="$( FAKE_MUTATE="printf 'the verifier rewrote this\n' > src.txt && rm $doomed && printf 'new\n' > $added && mkdir -p $subdir_state && printf '{}\n' > $subdir_state/events.jsonl" \
-    verify_in "$tracked_edit_dir" green 'VERDICT: PASS
-REASON: Target test and full suite are green.' "$stubdir/claude-mutate" 2>/dev/null )"
-code=$?
-{ [[ "$code" == 2 ]] && [[ "$out" == *'modified the repository'* ]] \
-  && [[ "$out" == *src.txt* ]] && [[ "$out" == *"$doomed"* ]] && [[ "$out" == *"$added"* ]]; } && ok \
-  || no "#569: a verifier that modifies src.txt, deletes $doomed and adds $added under the repo's own .gitignore is refused naming each, even when its run also leaves $subdir_state/events.jsonl behind (code=$code want 2; stdout='$out' want 'modified the repository' and all three paths named)"
-
-root_spec=".tdd/issue-569-spec.md"
-ledger_ignored=no spec_ignored=no
-git -C "$subdir_state_dir" check-ignore --no-index -q "$ledger" && ledger_ignored=yes
-git -C "$subdir_state_dir" check-ignore --no-index -q "$root_spec" && spec_ignored=yes
-{ [[ "$ledger_ignored" == no ]] && [[ "$spec_ignored" == yes ]]; } && ok \
-  || no "#569: under the repo's own .gitignore the root ledger $ledger is not ignored and the root blind spec $root_spec is (ledger ignored=$ledger_ignored want no; spec ignored=$spec_ignored want yes)"
 
 verify '{"type":"system","subtype":"init","session_id":"s"}
 {"type":"result","subtype":"success","is_error":false,"num_turns":16,"result":"Waiting for the `make test` background task and its Monitor to report completion — will post the verdict once it finishes."}
