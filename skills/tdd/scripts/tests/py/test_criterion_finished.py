@@ -130,7 +130,7 @@ def test_main_takes_a_steps_criterion_marker_and_reads_only_step_lines(
     assert answers == {
         "1 over a step tagged 1 then 2": 2,
         "2 over a step tagged 1 then 2": 2,
-        "1 over a tag followed by x": 0,
+        "1 over a tag followed by x": 3,
         "1 over a ticked then an open serving step": 3,
         "1 over a pending then a ticked serving step": 3,
         "1 over an upper-case X": 0,

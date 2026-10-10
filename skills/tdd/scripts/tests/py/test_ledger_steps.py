@@ -418,3 +418,12 @@ def test_main_reads_a_steps_markers_from_its_trailing_marker_run_not_from_marker
         ).encode(), b""),
         "next-phase": (3, b"", b""),
     }
+
+
+def test_main_reports_an_empty_criterion_for_a_step_whose_prose_quotes_one_and_whose_trailing_run_has_none_1450(
+        monkeypatch, capsysbinary, ledger_steps):
+    quoted = "a step tagged ⟦criterion 2⟧ is refused twice"
+    fake_stdin(monkeypatch, f"# Plan for #42\n\n- [ ] {quoted}\n".encode())
+    code = ledger_steps.main([])
+
+    assert (code, *capsysbinary.readouterr()) == (0, f"1\topen\tstep\t0\t0\t\t{quoted}\n".encode(), b"")

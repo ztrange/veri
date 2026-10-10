@@ -50,7 +50,7 @@ def test_ledger_steps_marks_added_only_by_lib_ledger_sh_s_suffix_rule():
         ("1", "open", "step", "0", "0", "2", "a ⟦added⟧ b ⟦criterion 2⟧"),
         ("2", "open", "step", "0", "0", "", "⟦added⟧"),
         ("3", "open", "step", "0", "1", "2", "t ⟦added⟧ ⟦criterion 2⟧ ⟂ refactor pending"),
-        ("4", "open", "step", "0", "0", "2", "x ⟦added⟧ ⟦criterion 2⟧ y"),
+        ("4", "open", "step", "0", "0", "", "x ⟦added⟧ ⟦criterion 2⟧ y"),
         ("5", "open", "step", "0", "1", "", "x ⟦added⟧"),
     ]
 
