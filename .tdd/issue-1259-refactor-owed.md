@@ -19,3 +19,5 @@
 ### `make unit` runs only the small (unmarked) pytest cases; a case marked `process("<boundary>")` is not run by it ⟦criterion 4⟧
 - test-only | pytest-leg.test.sh:849-851 repeats the `env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE … make --no-print-directory -C <tree> <target> > out 2> err < /dev/null && code=0 || code=$?` invocation already used at :799 and :822; one `run_make <tree> <target> [env…]` helper would cover all three
 - test-only | pytest-leg.test.sh:846 — the case name says the leg "reports 1 passed", but nothing asserts `1 passed` in the output (the case at :806 does assert its count); either add `[[ "$out" == *'1 passed'* ]]` or drop the clause from the name
+### `make test` runs the small and the medium pytest cases, and a medium case may start real `git`, a real child process or send a signal without the PATH guard refusing it ⟦criterion 4⟧
+- test-only | the `sized` and `medium` fixtures in skills/tdd/scripts/tests/pytest-leg.test.sh each repeat `make_tree` + `cp "$HERE/py/conftest.py" …/$PY_DIR/conftest.py`; this could be pulled into one helper that builds a tree with the conftest in it
