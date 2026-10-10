@@ -2615,3 +2615,35 @@ def test_cli_launches_a_supervised_run_leaf_with_model_in_claudes_argv_only_when
         (0, today + ["--model", "sonnet"], []),
         (0, today, []),
     ]
+
+
+@pytest.mark.process("event.sh and git run for real: a launch event's skill_commit is the skill clone's own HEAD, or unknown outside a clone")
+def test_cli_records_the_skill_clones_own_head_in_a_launch_events_skill_commit_and_the_literal_unknown_for_a_skill_outside_a_git_clone(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import json
+    import shutil
+    import signal
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    skill = pathlib.Path(__file__).resolve().parents[2]
+    outside = tmp_path / "nogit-skill"
+    outside.mkdir()
+    for script in skill.glob("*.sh"):
+        shutil.copy(script, outside / script.name)
+    shutil.copytree(skill / "veri", outside / "veri")
+    shutil.copytree(skill / "lib", outside / "lib")
+    head = subprocess.run(["git", "-C", str(skill), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+
+    def launch_commit(arm, here):
+        clean_env(monkeypatch)
+        monkeypatch.setattr(supervise, "HERE", str(here))
+        work = tmp_path / arm
+        work.mkdir()
+        code, _, _ = run_cli(supervise, ["develop-red", "sh", "-c", "echo leaf"], cwd=work, env=REAL_LEAF_ENV)
+        launches = [json.loads(line) for line in (work / ".tdd" / "events.jsonl").read_text().splitlines()]
+        return code, [e.get("skill_commit") for e in launches if e.get("event") == "launch"]
+
+    assert len(head) == 40
+    assert [launch_commit("clone", skill), launch_commit("outside", outside)] == [
+        (0, [head]),
+        (0, ["unknown"]),
+    ]

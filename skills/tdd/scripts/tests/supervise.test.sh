@@ -201,31 +201,6 @@ print(n)
 }
 
 
-skill_work="$work/skill"
-skill_want="$(git -C "$SCRIPTS" rev-parse HEAD 2>/dev/null || echo '<no-sha>')"
-sup_run "$skill_work" env -u VERI_SKILL_COMMIT "$SUP" develop-red "$stub/leaf-ok"
-skill_code=$?
-skill_got="$(event_field "$skill_work" launch skill_commit)"
-{ [[ "$skill_code" == 0 ]] \
-  && [[ "$skill_want" =~ ^[0-9a-f]{40}$ ]] \
-  && [[ "$skill_got" == "$skill_want" ]]; } && ok \
-  || no "a launch event carries the skill's own commit in skill_commit (code=$skill_code, skill_commit=$skill_got want $skill_want)"
-
-nogit_skill="$work/nogit-skill"
-mkdir -p "$nogit_skill/lib"
-cp -R "$SCRIPTS"/*.sh "$SCRIPTS"/veri "$nogit_skill/"
-cp "$SCRIPTS"/lib/*.sh "$nogit_skill/lib/"
-nogit_resolves="$(git -C "$nogit_skill" rev-parse HEAD 2>/dev/null || echo '<none>')"
-nogit_work="$work/nogit-run"
-sup_run "$nogit_work" env -u VERI_SKILL_COMMIT "$nogit_skill/supervise.sh" develop-red "$stub/leaf-ok"
-nogit_code=$?
-nogit_got="$(event_field "$nogit_work" launch skill_commit)"
-{ [[ "$nogit_code" == 0 ]] \
-  && [[ "$nogit_resolves" == '<none>' ]] \
-  && [[ "$nogit_got" == unknown ]]; } && ok \
-  || no "a skill outside a git clone records skill_commit as the literal unknown (code=$nogit_code, git says=$nogit_resolves want <none>, skill_commit=$nogit_got want unknown)"
-
-
 result_hang_stub() {
   local name="$1" subtype="$2" is_error="$3" text="$4" prelude="${5:-}"
   cat > "$stub/$name" <<L
