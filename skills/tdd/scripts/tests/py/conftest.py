@@ -72,7 +72,7 @@ def run_cli(monkeypatch, capfd):
         except SystemExit as exit:
             code = exit.code
         except BrokenPipeError:
-            code = 141
+            code = entry.BROKEN_PIPE
         except Exception as exc:
             sys.stderr.write(entry.refusal(module.main, exc))
             sys.stderr.flush()

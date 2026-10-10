@@ -2,6 +2,8 @@
 import os
 import sys
 
+BROKEN_PIPE = 141
+
 
 def _shim_name(main):
     module = os.path.splitext(os.path.basename(main.__code__.co_filename))[0]
@@ -26,7 +28,7 @@ def run(main, argv):
         sys.stdout.flush()
     except BrokenPipeError:
         silence_stdout()
-        sys.exit(141)
+        sys.exit(BROKEN_PIPE)
     except Exception as exc:
         sys.stderr.write(refusal(main, exc))
         sys.exit(2)
