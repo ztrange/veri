@@ -4,6 +4,7 @@ import re
 import sys
 
 PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff")
+INTERFACE_PHASES = ("expand", "migrate")
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 USAGE = "usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]"
 GREEN_PARAGRAPHS = {"REPLACES_CASE": "replaces-case", "SUITE_REPAIR": "suite-repair"}
@@ -71,16 +72,16 @@ def main(argv):
     if len(argv) > 4:
         return _refuse("build-verify-prompt: too many arguments")
     phase = argv[0]
-    if phase not in PHASES:
+    if phase not in PHASES + INTERFACE_PHASES:
         return _refuse(f"build-verify-prompt: unknown phase '{phase}' (want red|green|refactor|pin|plan|rebase|transform|diff)")
-    if phase in ("green", "refactor", "diff") and not options["--fast-cmd"]:
+    if phase in ("green", "refactor", "diff", *INTERFACE_PHASES) and not options["--fast-cmd"]:
         return _refuse(f"build-verify-prompt: {phase} needs --fast-cmd '<fast-tier test command>'")
     fourth = argv[3] if len(argv) > 3 else ""
     if phase == "diff":
         if not options["--step"]:
             return _refuse("build-verify-prompt: diff needs --step '<STEP>'")
         shas = (("<step-base-sha>", "STEP_BASE_SHA", fourth), ("<base-sha>", "BASE_SHA", argv[2]))
-    elif phase in ("refactor", "transform"):
+    elif phase in ("refactor", "transform", *INTERFACE_PHASES):
         shas = (("<base-sha>", "BASE_SHA", fourth),)
     elif phase == "rebase":
         shas = (("<onto-sha> <pre-rebase-sha>", "ONTO_SHA", argv[2]),
