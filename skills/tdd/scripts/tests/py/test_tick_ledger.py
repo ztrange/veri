@@ -8,7 +8,7 @@ import sys
 
 import pytest
 
-USAGE = b"usage: tick-ledger.sh [--refactor-pending | --phase <phase>] <ledger-file> <matcher>\n"
+USAGE = b"usage: tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase>] <ledger-file> <matcher>\n"
 
 
 @pytest.fixture
@@ -448,3 +448,11 @@ def test_main_with_phase_owed_marks_the_next_unmarked_phase_owed_leaving_the_ste
         "contract (b)": (2, b"", seed),
         "contract (a)": (0, b"", seed.replace(phased.encode(), (phased + " ⟂ contract (a) owed").encode())),
     }
+
+
+def test_main_prints_a_usage_line_naming_phase_owed_beside_phase_on_a_bad_argument_1410(capsysbinary, tick_ledger):
+    code = tick_ledger.main([])
+    out, err = capsysbinary.readouterr()
+
+    assert (code, out, err.count(b"\n"), b"--phase <phase>" in err, b"--phase-owed <phase>" in err) == (
+        2, b"", 1, True, True)
