@@ -1,0 +1,2 @@
+### run_cli over a throwaway module whose main raises an uncaught exception (not SystemExit) gives exit 2 and exactly the one stderr line `<script>.sh: <Type>: <reason>` that entry.run(main, argv) gives a shell caller ⟦criterion 1⟧
+- out-of-scope | route run_cli through entry.run(module.main, argv) and map the SystemExit it raises, removing run_cli's own SystemExit/Exception branches — changes returned-string and BrokenPipeError behaviour that later steps of this plan own
