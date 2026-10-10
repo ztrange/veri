@@ -1504,6 +1504,12 @@ being frozen there. A contract-a commit runs `$S/production-frozen.sh <base-sha>
 rejects it, production being frozen there. Either rejection is revised as a REJECT is; exit 2
 **bails** as a system failure.
 
+A contract phase starts only once `$S/no-product-caller.sh <old-interface>` on the old
+interface exits 0. Before it launches contract-a or contract-b, run it: exit 1 names each
+product file still calling the old interface, so the contract does not start and the step
+**bails** as a process failure, the migrate phase having left a caller behind; exit 2 **bails**
+as a system failure.
+
 ### 4. Draft PR
 
 Reached when `next-unchecked.sh` exits 3 — every ledger step is checked off but the

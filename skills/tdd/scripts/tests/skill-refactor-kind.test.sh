@@ -19,6 +19,8 @@
 #  10. SKILL.md plans an interface change as one phased step and runs its phases — see case 10's
 #      name.
 #  11. SKILL.md rejects a phase's commit that breaks that phase's freeze — see case 11's name.
+#  12. SKILL.md holds a phased step's contract back until no product caller remains — see case
+#      12's name.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -285,6 +287,25 @@ else
     grep -E 'exit 1' <<<"$near" > /dev/null && grep -E 'reject' <<<"$near" > /dev/null ||
       problems+=("$skill_md never says production-frozen.sh exit 1 rejects the contract-a commit")
   fi
+fi
+report "$name"
+
+name="$skill_md starts a phased step's contract only once no-product-caller.sh on the old interface exits 0"
+problems=()
+
+phased_text="$(section '#### A `⟦phases')"
+if [[ -z "${phased_text// /}" ]]; then
+  problems+=("$skill_md has no '#### A \`⟦phases: …⟧\` step' subsection to read")
+elif ! grep -F 'no-product-caller.sh' <<<"$phased_text" > /dev/null; then
+  problems+=("$skill_md's phased step never runs no-product-caller.sh, so a contract phase starts while a product caller of the old interface remains")
+else
+  near="$(window "$phased_text" 'no-product-caller\.sh')"
+  grep -F 'contract' <<<"$near" > /dev/null ||
+    problems+=("$skill_md runs no-product-caller.sh in the phased step without tying it to the contract phase")
+  grep -E 'old interface' <<<"$near" > /dev/null ||
+    problems+=("$skill_md runs no-product-caller.sh in the phased step without saying it is run on the old interface")
+  grep -E 'exit(s)? 0' <<<"$near" > /dev/null && grep -E 'only once|until|before' <<<"$near" > /dev/null ||
+    problems+=("$skill_md never says the contract starts only once no-product-caller.sh exits 0")
 fi
 report "$name"
 
