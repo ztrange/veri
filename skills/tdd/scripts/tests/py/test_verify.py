@@ -1647,3 +1647,55 @@ def test_verify_sh_refuses_a_verifier_leaf_that_changed_the_tree_or_head_with_ex
     if leaf_args is not None:
         reached = leafargs_out.read_text().splitlines()
         assert ("--disallowedTools" in reached, "MultiEdit" in reached) == (True, False)
+
+
+@pytest.mark.process("a real git scratch repository under the repo's own .gitignore that the verifier leaf writes into")
+@pytest.mark.parametrize("tracked, mutation, verdict, expected_code, named", [
+    ({}, 'mkdir -p projects/docs/.tdd && printf "{}\\n" > projects/docs/.tdd/events.jsonl',
+     "VERDICT: PASS\nREASON: Target test and full suite are green.", 0, ["full suite are green"]),
+    ({}, 'mkdir -p a/b/.tdd && printf "log\\n" > a/b/.tdd/run.log',
+     "VERDICT: REJECT\nREASON: The target test still fails.", 1, ["target test still fails"]),
+    ({".tdd/issue-569.md": "- [ ] a step\n"},
+     'printf -- "- [x] a step\\n" > .tdd/issue-569.md && mkdir -p projects/docs/.tdd'
+     ' && printf "{}\\n" > projects/docs/.tdd/events.jsonl',
+     "VERDICT: PASS\nREASON: Target test and full suite are green.", 2,
+     ["modified the repository", ".tdd/issue-569.md"]),
+    ({"projects/docs/doomed.txt": "the developer committed this too\n"},
+     'printf "the verifier rewrote this\\n" > src.txt && rm projects/docs/doomed.txt'
+     ' && printf "new\\n" > projects/docs/added.txt && mkdir -p projects/docs/.tdd'
+     ' && printf "{}\\n" > projects/docs/.tdd/events.jsonl',
+     "VERDICT: PASS\nREASON: Target test and full suite are green.", 2,
+     ["modified the repository", "src.txt", "projects/docs/doomed.txt", "projects/docs/added.txt"]),
+])
+def test_verify_sh_under_the_repos_own_gitignore_accepts_nested_run_state_and_refuses_an_edited_root_ledger_or_tracked_path_naming_each_569(
+        tracked, mutation, verdict, expected_code, named, run_cli, tmp_path, monkeypatch):
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
+                 "VERI_NO_VERDICT_RETRIES", "VERI_HEARTBEAT", "VERI_AWAKE_CLOCK", "VERI_STUCK_RETRIES",
+                 "VERI_TIMEOUT"):
+        monkeypatch.delenv(name, raising=False)
+    repo = tmp_path / "repo"
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    for key, value in (("user.name", "veri"), ("user.email", "veri@example.test")):
+        subprocess.run(["git", "-C", str(repo), "config", key, value], check=True)
+    (repo / "src.txt").write_text("the developer committed this\n")
+    (repo / ".gitignore").write_bytes((SCRIPTS.parents[2] / ".gitignore").read_bytes())
+    for path, text in tracked.items():
+        (repo / path).parent.mkdir(parents=True, exist_ok=True)
+        (repo / path).write_text(text)
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "the repo's own ignore rules"], check=True)
+    ignored = [subprocess.run(["git", "-C", str(repo), "check-ignore", "--no-index", "-q", path]).returncode == 0
+               for path in (".tdd/issue-569.md", ".tdd/issue-569-spec.md")]
+    (tmp_path / "spec.md").write_text(SPEC)
+    claude = tmp_path / "claude-mutate"
+    claude.write_text('#!/bin/sh\neval "${FAKE_MUTATE:-}" >/dev/null 2>&1\nprintf \'%s\' "${FAKE_OUT_TEXT:-}"\nexit 0\n')
+    claude.chmod(0o755)
+    env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_MUTATE": mutation, "FAKE_OUT_TEXT": verdict,
+           "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
+    verify = importlib.import_module("veri.verify")
+
+    code, out, _ = run_cli(verify, ["--fast-cmd", "make unit", "green", str(tmp_path / "spec.md"),
+                                    "tests/test_slugify.py", "test_lowercases"], env=env, cwd=repo)
+
+    assert (ignored, code, [n for n in named if n not in out], "modified the repository" in out) == (
+        [False, True], expected_code, [], expected_code == 2)
