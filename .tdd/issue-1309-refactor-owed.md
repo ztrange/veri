@@ -1,0 +1,2 @@
+### `ledger-steps.sh next-phase` prints, for the first phased step not yet finished, which of its phases is next — expand on a step with no phase marked, migrate once expand is marked — and exits 3 when no phased step is unfinished ⟦criterion 1⟧
+- test-only | the next-phase case in tests/py/test_ledger_steps.py builds its three ledgers from the same "# Plan for #42" header and surrounding steps; a shared frame would remove that repetition
