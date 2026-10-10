@@ -1,6 +1,9 @@
 """lib/ledger.sh's ledger_steps and ledger_tick, run in-process."""
+import os
 import re
+import shutil
 import sys
+import tempfile
 
 OPEN_STEP = "- [ ]"
 PENDING_MARK = " ⟂ refactor pending"
@@ -11,6 +14,27 @@ STEP_RE = re.compile(rf"({SPACE}*-{SPACE})\[([ xX])\]( (.*))?")
 CRITERION_RE = CRITERION_TAG + "([0-9]+)⟧"
 KIND_RE = re.compile(r"⟦(full-suite|human-owed|diff-checked)⟧ " + CRITERION_RE)
 PHASES_RE = re.compile(r"⟦phases: ([^⟧]*)⟧")
+
+
+class LeftBehind(OSError):
+    """A failed replace_ledger whose temp file, its filename, could not be removed."""
+
+
+def replace_ledger(path, data):
+    """Write data to a temp file beside path's real file and swap it in; OSError on failure."""
+    path = os.path.realpath(path)
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path))
+    try:
+        with os.fdopen(fd, "w") as file:
+            file.write(data)
+        shutil.copymode(path, tmp)
+        os.replace(tmp, path)
+    except OSError:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            raise LeftBehind(None, None, tmp) from None
+        raise
 
 
 def decode_ledger(data):
