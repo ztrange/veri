@@ -1513,7 +1513,7 @@ grep -F -- "$tip1012" "$prompt" > /dev/null 2>&1 ||
 
 report "$name"
 
-name="a ref lock that is never released makes the launch refuse with exit 2 once the retry bound, past today's five fetches, is reached, launching no conductor and naming the ref lock (#1012)"
+name="a ref lock that is never released makes the launch refuse with exit 2 once the retry bound, past today's five fetches, is reached, launching no conductor and naming the ref lock in the conductor's own line, whichever wording git used (#1012, #1306)"
 problems=()
 
 src1012b="$work/src1012b"
@@ -1552,8 +1552,8 @@ count1012b="$(wc -l < "$fetches1012b" | tr -d ' ')"
   problems+=("the launch exited $status, not 2, although the ref lock was never released")
 [[ ! -f "$argv" ]] ||
   problems+=("a conductor was launched although the ref lock was never released")
-grep -F 'cannot lock ref' "$launch_err" > /dev/null 2>&1 ||
-  problems+=("stderr does not name the ref lock ('cannot lock ref') — stderr was: '$(tr '\n' ' ' < "$launch_err")'")
+grep -F 'run-conductor: another process holds the ref lock' "$launch_err" > /dev/null 2>&1 ||
+  problems+=("stderr does not carry the conductor's line naming the ref lock ('another process holds the ref lock') — stderr was: '$(tr '\n' ' ' < "$launch_err")'")
 (( count1012b > 5 )) ||
   problems+=("origin was fetched $count1012b times before the refusal, not more than today's 5")
 

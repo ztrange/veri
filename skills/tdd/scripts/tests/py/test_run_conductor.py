@@ -187,8 +187,8 @@ def test_main_retries_a_cannot_lock_ref_fetch_through_a_sleep_process_at_most_60
         sleeps = [call for call in calls if call[:1] in (["sleep"], ["time.sleep"])]
         answers.append((code, captured.out, captured.err, len(fetches), sleeps, list(cwd.iterdir())))
     assert answers == [
-        (2, b"", (lock * 60 + refusal).encode(), 60, [["sleep", "7"]] * 59, []),
-        (2, b"", (lock * 60 + refusal).encode(), 60, [["sleep", "1"]] * 59, []),
+        (2, b"", (lock * 60 + "run-conductor: another process holds the ref lock\n" + refusal).encode(), 60, [["sleep", "7"]] * 59, []),
+        (2, b"", (lock * 60 + "run-conductor: another process holds the ref lock\n" + refusal).encode(), 60, [["sleep", "1"]] * 59, []),
         (1, b"", lock.encode(), 1, [["sleep", "1"]], []),
         (1, b"", lock.encode(), 1, [["sleep", "1"]], []),
     ]
