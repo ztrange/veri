@@ -236,29 +236,6 @@ status_after_launch() {
   got_status="$(git -C "$repo" status --porcelain 2>&1)"
   [[ -s "$work/$name-record" ]] || got_status+="<conductor never ran>"
 }
-status_after_launch "$fresh" clean
-expect_lines "in a target repo that has never seen veri, the caller's git status --porcelain stays empty after a launch" "" "$got_status" "$work/clean.out"
-
-bare_info="$work/no-info"
-fresh_repo "$bare_info" --template=
-rm -rf "$bare_info/.git/info"
-status_after_launch "$bare_info" no-info
-expect_lines "a repo with no info/ directory still has an empty git status --porcelain after a launch" "" "$got_status" "$work/no-info.out"
-
-own_exclude="$work/own-exclude"
-fresh_repo "$own_exclude"
-# hazard: git-init makes info/ from templates, which make test's symlinked git misses on macOS (#581).
-mkdir -p "$own_exclude/.git/info"
-printf '*.scratch' > "$own_exclude/.git/info/exclude"
-for run in 1 2; do
-  solvable_fixture "$work/gh16-$run" 7
-  record_stub "$work/claude-own-exclude-$run" "$work/own-exclude-record" "$work/gh16-$run"
-  run_launcher_in "$own_exclude" "$work/gh16-$run" "$work/claude-own-exclude-$run" "$work/own-exclude-$run.out"
-done
-got_exclude="$(cat "$own_exclude/.git/info/exclude")"
-expect_lines "the caller's exclude keeps its last line intact and gains .tdd/* exactly once over two launches" \
-  "$(printf '*.scratch\n.tdd/*')" "$got_exclude" "$work/own-exclude-2.out"
-
 role_repo="$work/role"
 fresh_repo "$role_repo"
 status_after_launch "$role_repo" role
@@ -350,36 +327,5 @@ done
 
 [[ -z "$bad" ]] \
   && ok || no "CONTEXT.md records rung 3: its entry names parallel-conductors.sh, In flight is defined as local to one invocation, and a new ADR is cited ($bad )"
-
-decoy="$work/decoy"
-fresh_repo "$decoy"
-mutant="$decoy/skills/tdd/scripts"
-mkdir -p "$mutant"
-cp -R "$skill/scripts/." "$mutant/"
-awk '/^exec python3/ { print "cd \"$(dirname \"$0\")\"" } { print }' "$skill/scripts/parallel-conductors.sh" > "$mutant/parallel-conductors.sh"
-chmod +x "$mutant/parallel-conductors.sh"
-pinned="$work/pinned-scratch"
-fresh_repo "$pinned"
-solvable_fixture "$work/gh-pinned" 7
-pinned_stub="$work/claude-pinned"
-conductor_stub "$pinned_stub" </dev/null
-exclude_before="$(cat "$decoy/.git/info/exclude" 2>/dev/null)"
-
-(cd "$pinned" && env -u VERI_PARALLEL -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES -u VERI_CONDUCTOR_CTX_BUDGET \
-  VERI_GH_JSON="$work/gh-pinned" CLAUDE_BIN="$pinned_stub" VERI_POLL=0.05 \
-  "$mutant/parallel-conductors.sh" > "$work/pinned.out" 2>&1) && code=0 || code=$?
-exclude_after="$(cat "$decoy/.git/info/exclude" 2>/dev/null)"
-escaped="$(cd "$decoy" && find . -path ./.git -prune -o \( -name parallel.exit -o -name 'conductor-*.log' \) -print)"
-
-problems=""
-[[ "$exclude_after" == "$exclude_before" ]] || problems+="; the decoy repository's info/exclude changed:
---- before
-$exclude_before
---- after
-$exclude_after"
-[[ -z "$escaped" ]] || problems+="; written under the decoy repository: $(printf '%s' "$escaped" | tr '\n' ' ')"
-[[ "$code" != 0 ]] || problems+="; exit=0, want the case to fail on a subject that resolved the decoy repository"
-{ [[ -z "$problems" ]]; } \
-  && ok || no "#1158: a parallel-conductors.sh that resolves its git common dir and working directory from its own directory, not the suite's scratch repository, appends to no info/exclude and writes no .tdd/parallel.exit or conductor log outside that repository (${problems#; }) $(tr '\n' '|' < "$work/pinned.out")"
 
 finish

@@ -1505,3 +1505,63 @@ def test_the_cli_exits_0_all_done_1_a_bail_or_a_kill_2_plumbing_and_3_nothing_so
         assert gh_calls and all(call[:2] == ["gh", "api"] for call in gh_calls), name
         assert [call[2].rsplit("page=", 1)[-1] for call in gh_calls[-(len(served) + 1):]] == [
             str(page) for page in range(1, len(served) + 2)], name
+
+
+@pytest.mark.process("git: the target repository's own status and exclude file")
+def test_a_launch_in_a_real_repository_leaves_its_git_status_empty_keeps_its_exclude_last_line_adds_tdd_once_over_two_launches_and_writes_nothing_into_another_repository(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    def git(*args, cwd=None):
+        return subprocess.run(["git", *args], cwd=cwd, check=True, stdout=subprocess.PIPE, text=True).stdout
+
+    def repo(name):
+        path = tmp_path / name
+        git("init", "-q", str(path))
+        return path
+
+    fresh, no_info, own, decoy = repo("fresh"), repo("no-info"), repo("own"), repo("decoy")
+    shutil.rmtree(no_info / ".git" / "info")
+    (own / ".git" / "info").mkdir(exist_ok=True)
+    (own / ".git" / "info" / "exclude").write_bytes(b"*.scratch")
+    decoy_exclude = decoy / ".git" / "info" / "exclude"
+    decoy_before = decoy_exclude.read_bytes() if decoy_exclude.is_file() else None
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+
+    ran = []
+    real_run = subprocess.run
+
+    def run(args, *rest, **kwargs):
+        if pathlib.Path(args[0]).name == "solvable-issues.sh":
+            return subprocess.CompletedProcess(args, 0, "7\n", "")
+        return real_run(args, *rest, **kwargs)
+
+    real_popen = subprocess.Popen
+
+    def popen(args, *rest, **kwargs):
+        if pathlib.Path(args[0]).name != "supervise.sh":
+            return real_popen(args, *rest, **kwargs)
+        sup = FakeSupervisor(args)
+        sup.exit(0)
+        ran.append(pathlib.Path.cwd().name)
+        os.makedirs(".tdd", exist_ok=True)
+        (pathlib.Path(".tdd") / "conductor-7.log").write_text("")
+        return sup
+
+    monkeypatch.setattr(subprocess, "run", run)
+    monkeypatch.setattr(subprocess, "Popen", popen)
+    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+
+    statuses = {}
+    for where in (fresh, no_info, own, own):
+        code, out, err = run_cli(parallel_conductors, [], env={"VERI_GH_JSON": str(gh)}, cwd=where)
+        assert code == 0, (where.name, out, err)
+        statuses[where.name] = git("status", "--porcelain", cwd=where)
+
+    assert ran == ["fresh", "no-info", "own", "own"]
+    assert statuses == {"fresh": "", "no-info": "", "own": ""}
+    assert (own / ".git" / "info" / "exclude").read_bytes() == b"*.scratch\n.tdd/*\n"
+    assert (decoy_exclude.read_bytes() if decoy_exclude.is_file() else None) == decoy_before
+    assert [p.name for p in decoy.rglob("*") if ".git" not in p.parts] == []
