@@ -6,6 +6,8 @@ This step's revise budget is spent: every attempt at it was rejected by the blin
 verifier. {{INCLUDE:_develop-fresh-leaf.md}} those attempts, so the last rejection
 reason below is the whole of what you have to reason from. {{INCLUDE:_develop-not-here.md}}
 the step again.
+Do not modify, revert or remove anything in the working tree: what is there is
+the attempts' work, and the run keeps it.
 
 ### The step (the criterion nothing could satisfy)
 
