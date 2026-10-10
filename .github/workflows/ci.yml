@@ -53,7 +53,7 @@ jobs:
     # claimed until 2026-09-17 was stale by a factor of four (#273): the last six runs on
     # `main` took 160, 161, 162, 162, 168 and 175 s, because the suites spend most of
     # their time asleep — `supervise.sh` polls and measures heartbeats in whole seconds,
-    # and `verify.test.sh` plus `supervise.test.sh` alone are ~87 s of the 155 s the 71
+    # and two suites (`supervise.test.sh` among them) alone were ~87 s of the 155 s the 71
     # suites take (#282). At 3 minutes `main` had 5 s of headroom and two finished PRs
     # (#272, #286) were cancelled mid-run rather than failed.
     #
