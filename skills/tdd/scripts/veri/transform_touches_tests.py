@@ -15,8 +15,11 @@ def refuse(message=None, usage=None):
 
 
 def changed_paths(base):
-    return subprocess.run(["git", "log", "--format=", "--name-only", f"{base}..HEAD"],
-                          stdout=subprocess.PIPE)
+    log = subprocess.run(["git", "log", "--format=", "--name-only", f"{base}..HEAD"],
+                         stdout=subprocess.PIPE)
+    if log.returncode != 0:
+        return None
+    return log.stdout.split(b"\n")
 
 
 def main(argv):
@@ -27,10 +30,10 @@ def main(argv):
                            stdout=subprocess.DEVNULL)
     if check.returncode != 0:
         return refuse(f"transform-touches-tests.sh: base-sha does not resolve to a commit: {base}")
-    log = changed_paths(base)
-    if log.returncode != 0:
+    paths = changed_paths(base)
+    if paths is None:
         return 2
-    matched = b"".join(line + b"\n" for line in log.stdout.split(b"\n") if TEST_FILE.search(line))
+    matched = b"".join(line + b"\n" for line in paths if TEST_FILE.search(line))
     touched = subprocess.run(["sort", "-u"], input=matched, stdout=subprocess.PIPE).stdout.rstrip(b"\n")
     if not touched:
         return 0
