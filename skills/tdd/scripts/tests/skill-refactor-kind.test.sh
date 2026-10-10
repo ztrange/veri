@@ -24,6 +24,8 @@
 #  13. SKILL.md spends one refactor of the budget for a whole phased step — see case 13's name.
 #  14. SKILL.md resets a contract phase that exhausts REVISE_BUDGET and files it as owed — see
 #      case 14's name.
+#  15. SKILL.md accepts a ⟦replaces-case⟧ step's Green only once mutation-parity.sh exits 0 — see
+#      case 15's name.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -347,6 +349,25 @@ else
     problems+=("$skill_md never says the expand and migrate commits are kept when the contract is reset")
   grep -F '## owed steps' <<<"$near" > /dev/null ||
     problems+=("$skill_md never says the exhausted contract is filed under the ledger's ## Owed steps")
+fi
+report "$name"
+
+name="$skill_md accepts a ⟦replaces-case⟧ group step's Green only once the conductor's own run of mutation-parity.sh on that step's pairs table exits 0"
+problems=()
+
+green_text="$(section '#### Green')"
+if [[ -z "${green_text// /}" ]]; then
+  problems+=("$skill_md has no '#### Green' subsection to read")
+elif ! grep -F 'mutation-parity.sh' <<<"$green_text" > /dev/null; then
+  problems+=("$skill_md's Green step never runs mutation-parity.sh, so a ⟦replaces-case⟧ step's Green is accepted on the developer leaf's own pairs table")
+else
+  near="$(window "$green_text" 'mutation-parity\.sh')"
+  grep -F 'replaces-case' <<<"$near" > /dev/null ||
+    problems+=("$skill_md runs mutation-parity.sh in the Green step without tying it to a ⟦replaces-case⟧ step")
+  grep -F 'pairs table' <<<"$near" > /dev/null ||
+    problems+=("$skill_md runs mutation-parity.sh in the Green step without saying it is run on the step's pairs table")
+  grep -E 'exit(s)? 0' <<<"$near" > /dev/null && grep -E 'only once|until|before' <<<"$near" > /dev/null ||
+    problems+=("$skill_md never says the Green is accepted only once mutation-parity.sh exits 0")
 fi
 report "$name"
 
