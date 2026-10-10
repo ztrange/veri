@@ -1,5 +1,5 @@
 # Plan for #1446 — Contract phases are spelled two ways: SKILL.md says contract-a, ledger code says contract (a), so --phase-owed refuses SKILL.md's spelling
 
-- [x] `tick-ledger.sh --phase-owed contract-a` and `--phase-owed contract-b` write the owed mark on a step listing that phase; any other phase, `contract (a)` and `contract (b)` included, exits 2 with the ledger byte-identical ⟦criterion 2⟧ ⟂ refactor pending
+- [x] `tick-ledger.sh --phase-owed contract-a` and `--phase-owed contract-b` write the owed mark on a step listing that phase; any other phase, `contract (a)` and `contract (b)` included, exits 2 with the ledger byte-identical ⟦criterion 2⟧
 - [ ] A ledger whose phased step is written to SKILL.md's phase line `⟦phases: expand, migrate, contract-a, contract-b⟧` is accepted end to end: once expand and migrate are marked, `ledger-steps.sh next-phase` prints `contract-a`, and both `tick-ledger.sh --phase contract-a` and `tick-ledger.sh --phase-owed contract-a` accept it ⟦criterion 3⟧
 - [ ] No file under `skills/` — SKILL.md, the prompt builders and their templates, `veri/ledger.py`, `veri/tick_ledger.py` and the suites testing them — spells a contract phase `contract (a)` or `contract (b)`; every one uses `contract-a` / `contract-b` ⟦diff-checked⟧ ⟦criterion 1⟧
