@@ -2602,6 +2602,54 @@ def test_cli_kills_a_real_hung_leaf_by_heartbeat_and_a_real_runaway_leaf_by_hard
     ]
 
 
+@pytest.mark.process("a real leaf tree and a supervisor with TERM ignored, killed by supervise.py's TERM then KILL to the process group (#1199)")
+def test_cli_leaves_no_process_of_a_killed_leafs_group_alive_when_the_supervisor_ignores_term_or_the_leader_dies_on_term_while_the_rest_ignore_it_for_silence_or_hard_timeout(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import re
+    import signal
+    import time
+    real_signal = signal.signal
+    clean_env(monkeypatch)
+
+    def settle(pid):
+        for _ in range(30):
+            if not alive(pid):
+                return False
+            time.sleep(0.1)
+        os.kill(pid, signal.SIGKILL)
+        return True
+
+    def run(name, script, pids, **env):
+        work = tmp_path / name
+        work.mkdir()
+        code, _, err = run_cli(supervise, ["develop-red", "sh", "-c", script], cwd=work,
+                               env={"VERI_STUCK_RETRIES": "0", "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **env})
+        left = {}
+        for file in pids:
+            text = (work / file).read_text().strip() if (work / file).exists() else ""
+            left[file] = settle(int(text)) if text else "never recorded"
+        why = re.search(r"killed-stuck — (no heartbeat|hard timeout)", err)
+        return code, (work / ".tdd" / "develop-red.exit").read_bytes(), why and why.group(1), left
+
+    ignoring_child = "(trap '' TERM; exec sleep 60) & echo $! > child-pid; wait"
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    real_signal(signal.SIGTERM, signal.SIG_IGN)
+    try:
+        ignored = run("term-ignored", "echo $$ > leaf-pid; exec sleep 60", ["leaf-pid"], VERI_HEARTBEAT="1", VERI_TIMEOUT="60")
+    finally:
+        real_signal(signal.SIGTERM, signal.SIG_DFL)
+    answers = [
+        ignored,
+        run("silence", f"echo $$ > leaf-pid; {ignoring_child}", ["leaf-pid", "child-pid"], VERI_HEARTBEAT="1", VERI_TIMEOUT="60"),
+        run("timeout", f"echo $$ > leaf-pid; {ignoring_child}", ["leaf-pid", "child-pid"], VERI_HEARTBEAT="60", VERI_TIMEOUT="1"),
+    ]
+    assert answers == [
+        (2, b"2\n", "no heartbeat", {"leaf-pid": False}),
+        (2, b"2\n", "no heartbeat", {"leaf-pid": False, "child-pid": False}),
+        (2, b"2\n", "hard timeout", {"leaf-pid": False, "child-pid": False}),
+    ]
+
+
 SESSION_VARS = ("CLAUDECODE", "CLAUDE_CODE_SESSION_ID", "CLAUDE_CODE_HOST_SESSION_ID",
                 "CLAUDE_CODE_MESSAGING_SOCKET", "CLAUDE_CODE_MESSAGING_TOKEN", "CLAUDE_PID",
                 "CLAUDE_CODE_CHILD_SESSION", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_AUTO_BACKGROUND_TASKS")
