@@ -40,7 +40,7 @@ def main(argv):
                 if subprocess.run(["sleep", os.environ.get("VERI_FETCH_RETRY_SLEEP") or "1"]).returncode != 0:
                     return 1
                 continue
-            if HELD_REF_LOCK[1] in fetch.stderr:
+            if any(wording in fetch.stderr for wording in HELD_REF_LOCK):
                 sys.stderr.write("run-conductor: another process holds the ref lock\n")
             sys.stderr.write("run-conductor: fetch of origin failed in '%s' — refusing to run a skill that may be stale\n" % base)
             return 2
