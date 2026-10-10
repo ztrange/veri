@@ -256,6 +256,19 @@ else
 fi
 report "$name"
 
+name="#1397: $skill_md's Guardrails line on a test that passes against unmodified code carves out the ⟦replaces-case⟧ deletion green"
+problems=()
+guard_rec="$(first_record "$(section_records '## Guardrails')" -F 'passes against unmodified code')"
+if [[ -z "$guard_rec" ]]; then
+  problems+=("guardrails: no line under '## Guardrails' names a test that passes against unmodified code — the carve-out could not be checked")
+else
+  [[ "$guard_rec" == *⟦replaces-case⟧* ]] ||
+    problems+=("guardrails: the line never carves out a ⟦replaces-case⟧ step")
+  [[ "$guard_rec" =~ green && "$guard_rec" =~ delet ]] ||
+    problems+=("guardrails: the line never names the green that deletes the named cases")
+fi
+report "$name"
+
 name="#671: CONTEXT.md defines contract case, implementation case and the ⟦replaces-case⟧ mark"
 problems=()
 context_path="$ROOT/CONTEXT.md"

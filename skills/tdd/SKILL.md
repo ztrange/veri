@@ -2468,7 +2468,8 @@ hatch.
 - One failing test, then minimum code, then the refactor loop — in that order, per step.
   Never production code before its failing test.
 - **A test that passes against unmodified code is never sent to verify-red**; it is either
-  a blind-verified pin or a bail — never a Green.
+  a blind-verified pin or a bail — never a Green, save on a `⟦replaces-case⟧` step, whose
+  pin is followed by the green that deletes exactly the named cases.
 - **The committed ledger is the source of truth.** Loop the cycle over its steps until none
   remain; check each step off **atomically with its green commit**; the issue thread only
   **mirrors** the ledger. Never hand-edit the ledger — use `tick-ledger.sh`.
