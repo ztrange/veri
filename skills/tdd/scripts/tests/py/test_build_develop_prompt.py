@@ -1280,3 +1280,25 @@ def test_main_renders_an_exhausted_prompt_forbidding_the_leaf_to_modify_revert_o
     }
 
     assert (code, [rule for rule, pattern in rules.items() if re.search(pattern, prompt, re.I) is None]) == (0, [])
+
+
+def test_main_renders_an_exhausted_prompt_requiring_a_claim_the_criterion_already_holds_to_cite_a_run_of_the_test_command_1421(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"REJECT: the case asserts on zorblat()'s log line.\n")
+
+    code = build_develop_prompt.main(["exhausted", str(spec), "QWIXTLE: zorblat quuxes", "make unit", str(reason)])
+    out, _ = capsysbinary.readouterr()
+    sentences = re.split(rb"(?<=[.:;])\s", re.sub(rb"\s+", b" ", out))
+
+    words = {
+        "already holds": rb"\balready\b[^.]{0,40}\b(holds?|satisf|pass)",
+        "must cite": rb"\bmust\b[^.]{0,40}\bcite",
+        "a run of the test command": rb"\brun\b[^.]{0,40}\btest command",
+    }
+    stating_the_rule = [s for s in sentences
+                        if all(re.search(pattern, s, re.I) for pattern in words.values())]
+
+    assert (code, len(stating_the_rule) > 0) == (0, True)

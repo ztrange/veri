@@ -223,7 +223,7 @@ renders_as refactor       '318574677 10119'  refactor "$work/spec.md" "$step_tex
 renders_as 'revise red'   '2428172548 8139'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as 'revise green' '2136585480 8141'  revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as 'revise refactor' '790277781 8144' revise refactor "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as exhausted      '174900687 4468'       exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+renders_as exhausted      '521391996 4594'       exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as reconcile      '1325593251 5950'       reconcile "$work/spec.md" "$step_text" "$test_cmd" "$rc_branch" "$rc_sha"
 [[ -z "$problems" ]] \
   && ok || no "every phase other than over-budget renders byte-identically to before #450 (${problems#; })"
