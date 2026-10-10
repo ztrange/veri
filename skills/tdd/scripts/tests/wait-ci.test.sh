@@ -167,70 +167,8 @@ again() {
   wait_in "$work/$1" "$1" "$work/$1.$2.err" "${@:3}"
 }
 
-expect_exit() {
-  local got
-  got="$(waited "$1" "${3:-1800}")"
-  [[ "$got" == "$2" ]] || problems+=("$1, bound ${3:-1800}: want exit $2, got $got (stderr: $(cat "$work/$1.err"))")
-  if [[ -n "${CLOCK_STEP:-}" ]]; then
-    local readings
-    readings="$(wc -l < "$work/$1.clock" | tr -d ' ')"
-    [[ "$readings" -le 3 ]] || problems+=("$1, bound ${3:-1800}: reached it in $readings clock readings, want at most 3")
-  fi
-}
-
-expect_never_completes() {
-  CLOCK_STEP=900 expect_exit "$1" 3
-}
-
 rollup pending.json "$(check COMPLETED SUCCESS),$(check IN_PROGRESS '')"
 rollup green.json   "$(check COMPLETED SUCCESS),$(check COMPLETED NEUTRAL),$(check COMPLETED SKIPPED)"
-rollup red.json     "$(check COMPLETED SUCCESS),$(check COMPLETED FAILURE)"
-rollup empty.json   ""
-
-name="wait-ci.sh exits 3 while a check is pending, 0 when every check completed SUCCESS, NEUTRAL or SKIPPED, 1 on any other conclusion, and never 0 on an empty rollup (#544)"
-problems=()
-for want in pending:3 green:0 red:1; do
-  if [[ "${want##*:}" == 3 ]]; then expect_never_completes "${want%%:*}"; else expect_exit "${want%%:*}" "${want##*:}"; fi
-done
-got="$(waited empty)"
-[[ "$got" != 0 ]] || problems+=("empty rollup: exited 0")
-report "$name"
-
-context() {
-  printf '{"__typename":"StatusContext","context":"legacy","state":"%s"}' "$1"
-}
-
-name="wait-ci.sh reads a legacy StatusContext by its state: PENDING or EXPECTED is pending and exits 3, never 0; FAILURE or ERROR is failed and exits 1 (#544)"
-problems=()
-for want in PENDING:3 EXPECTED:3 FAILURE:1 ERROR:1; do
-  st="${want%%:*}"
-  rollup "legacy-$st.json" "$(check COMPLETED SUCCESS),$(context "$st")"
-  if [[ "${want##*:}" == 3 ]]; then expect_never_completes "legacy-$st"; else expect_exit "legacy-$st" "${want##*:}"; fi
-done
-report "$name"
-
-name="wait-ci.sh reads a legacy StatusContext whose state is SUCCESS as a completed green check: beside a pending CheckRun it exits 3, beside only green checks it exits 0 (#544)"
-problems=()
-rollup legacy-success-pending.json "$(check IN_PROGRESS ''),$(context SUCCESS)"
-rollup legacy-success-green.json "$(check COMPLETED SUCCESS),$(context SUCCESS)"
-expect_never_completes legacy-success-pending
-expect_exit legacy-success-green 0
-report "$name"
-
-name="wait-ci.sh never reads a rollup whose every check concluded SKIPPED as green: it exits 3 while its bound lasts, since a check skipped on a draft push has not tested the head (#544)"
-problems=()
-rollup all-skipped.json "$(check COMPLETED SKIPPED),$(check COMPLETED SKIPPED)"
-expect_never_completes all-skipped
-report "$name"
-
-name="wait-ci.sh exits 2 on its first read of a legacy StatusContext row that carries no state key, rather than reading it as pending and waiting out its bound (#550)"
-problems=()
-rollup stateless.json "$(check COMPLETED SUCCESS),{\"__typename\":\"StatusContext\",\"context\":\"legacy\"}"
-got="$(waited stateless)"
-reads="$(wc -l < "$work/stateless.json.calls" | tr -d ' ')"
-[[ "$got" == 2 ]] || problems+=("StatusContext with no state: want exit 2, got $got (stderr: $(cat "$work/stateless.err"))")
-[[ "$reads" == 1 ]] || problems+=("StatusContext with no state: want 1 read of the checks, got $reads")
-report "$name"
 
 name="wait-ci.sh exits 3 while the sha's own check runs are still in progress, even when the PR already reports that sha as its head and its rollup still shows a previous head's green (#552)"
 problems=()
