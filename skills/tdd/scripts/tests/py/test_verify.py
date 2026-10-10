@@ -1875,15 +1875,15 @@ BLOCKER = "refs/veri/attempts/625/6"
 ])
 def test_verify_sh_preserves_a_rejected_or_no_verdict_attempt_under_its_ref_and_a_copy_its_verdict_event_names_and_answers_the_verdicts_reason_and_code_alone(
         phase, leaf, text, env, expected, run_cli, tmp_path, monkeypatch):
-    repo, _ = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
+    repo, claude = tamper_scratch(tmp_path, monkeypatch, b".tdd/\n", {})
     (repo / "src.txt").write_text(JUDGED)
     if BLOCKER in expected[3]:
         subprocess.run(["git", "-C", str(repo), "update-ref", BLOCKER, "HEAD"], check=True)
-    claude = tmp_path / ("claude-" + leaf)
-    claude.write_text({"answers": "#!/bin/sh\nprintf '%s' \"$FAKE_OUT_TEXT\"\nexit 0\n",
-                       "fails": "#!/bin/sh\nprintf '%s' \"$FAKE_OUT_TEXT\"\nexit 1\n",
-                       "hangs": "#!/bin/sh\necho thinking...\nexec sleep 60\n"}[leaf])
-    claude.chmod(0o755)
+    if leaf != "answers":
+        claude = tmp_path / ("claude-" + leaf)
+        claude.write_text({"fails": "#!/bin/sh\nprintf '%s' \"$FAKE_OUT_TEXT\"\nexit 1\n",
+                           "hangs": "#!/bin/sh\necho thinking...\nexec sleep 60\n"}[leaf])
+        claude.chmod(0o755)
     env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_OUT_TEXT": text,
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **env}
     if leaf == "hangs":
