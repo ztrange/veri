@@ -1,0 +1,2 @@
+### SKILL.md says a resumed run — one whose worktree and ledger already exist — runs `rebase-onto-default.sh` before its preflight baseline, so the baseline runs on the rebased tip, and that a new branch's run does not rebase there ⟦criterion 1⟧
+- test-only | extract the enter_at/base_at locator (awk for `issue-worktree.sh … && cd`, then the first fast-tier/detach-start line after it) duplicated between the #1297 case and the earlier pid-lock case in skill-preflight-launchable.test.sh into one helper function
