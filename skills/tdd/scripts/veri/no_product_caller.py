@@ -16,7 +16,7 @@ def product_paths():
     paths = [path for path in PRODUCT_FILES if os.path.isfile(path)]
     for top in PRODUCT_DIRS:
         for root, dirs, files in os.walk(top):
-            dirs.sort()
+            dirs[:] = sorted(d for d in dirs if d != "tests")
             paths.extend(os.path.join(root, name) for name in sorted(files))
     return paths
 
