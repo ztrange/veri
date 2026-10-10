@@ -573,3 +573,16 @@ def test_main_accepts_a_ledger_written_to_skill_md_phase_line_end_to_end_next_ph
             "--phase": (0, b"", b"", ready.replace(line.encode(), (line + " ⟂ contract-a done").encode())),
             "--phase-owed": (0, b"", b"", ready.replace(line.encode(), (line + " ⟂ contract-a owed").encode())),
         })
+
+
+def test_main_ticks_a_step_whose_prose_quotes_a_phases_marker_with_a_plain_tick_and_no_phase_refusal_1450(
+        tmp_path, capsysbinary, tick_ledger):
+    quoting = "- [ ] tick-ledger.sh refuses a step carrying ⟦phases: expand⟧ a plain tick ⟦criterion 2⟧"
+    seed = ("# Plan for #42\n\n- [x] add lowercasing\n" + quoting + "\n- [ ] later\n").encode()
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(seed)
+
+    code = tick_ledger.main(["--refactor-pending", str(ledger), "tick-ledger.sh refuses"])
+
+    assert (code, *capsysbinary.readouterr(), ledger.read_bytes()) == (
+        0, b"", b"", seed.replace(quoting.encode(), (quoting.replace("[ ]", "[x]") + " ⟂ refactor pending").encode()))
