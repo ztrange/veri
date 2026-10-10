@@ -2,6 +2,8 @@
 import os
 import types
 
+import pytest
+
 
 def planted_module():
     module = types.ModuleType("exp_planted")
@@ -40,3 +42,27 @@ def test_run_cli_answers_the_code_a_main_that_raises_system_exit_carries(run_cli
     code, _, _ = run_cli(module, [])
 
     assert code == 3
+
+
+@pytest.mark.process("a child writing to the inherited stdout and stderr")
+def test_run_cli_includes_in_order_what_a_child_the_module_starts_writes_to_the_inherited_stdout_and_stderr(run_cli):
+    module = types.ModuleType("exp_parent")
+    exec(
+        "import subprocess, sys\n"
+        "def main(argv):\n"
+        "    sys.stdout.write('parent out before\\n')\n"
+        "    sys.stderr.write('parent err before\\n')\n"
+        "    subprocess.run(['/bin/sh', '-c', 'echo child out; echo child err >&2'])\n"
+        "    sys.stdout.write('parent out after\\n')\n"
+        "    sys.stderr.write('parent err after\\n')\n"
+        "    return 0\n",
+        module.__dict__,
+    )
+
+    code, out, err = run_cli(module, [])
+
+    assert (code, out, err) == (
+        0,
+        "parent out before\nchild out\nparent out after\n",
+        "parent err before\nchild err\nparent err after\n",
+    )
