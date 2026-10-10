@@ -72,8 +72,9 @@ def main(argv):
     if len(argv) > 4:
         return _refuse("build-verify-prompt: too many arguments")
     phase = argv[0]
-    if phase not in PHASES + INTERFACE_PHASES:
-        return _refuse(f"build-verify-prompt: unknown phase '{phase}' (want {'|'.join(PHASES + INTERFACE_PHASES)})")
+    accepted = PHASES + INTERFACE_PHASES
+    if phase not in accepted:
+        return _refuse(f"build-verify-prompt: unknown phase '{phase}' (want {'|'.join(accepted)})")
     if phase in ("green", "refactor", "diff", *INTERFACE_PHASES) and not options["--fast-cmd"]:
         return _refuse(f"build-verify-prompt: {phase} needs --fast-cmd '<fast-tier test command>'")
     fourth = argv[3] if len(argv) > 3 else ""
