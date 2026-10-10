@@ -26,7 +26,7 @@ def test_main_returns_2_with_empty_stdout_when_origin_is_unreachable_or_origin_h
     unset_head_out = capsys.readouterr()
 
     assert (unreachable, unreachable_out.out, unset_head, unset_head_out.out) == (2, "", 2, "")
-    assert unreachable_out.err.endswith("invisible-work.sh: cannot reach origin\n")
+    assert unreachable_out.err.splitlines()[-1] == "invisible-work.sh: cannot reach origin"
     assert [line for line in unreachable_calls if line.startswith("gh")] == []
 
 
