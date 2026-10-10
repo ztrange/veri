@@ -1570,7 +1570,9 @@ def test_a_launch_in_a_real_repository_leaves_its_git_status_empty_keeps_its_exc
 @pytest.mark.process("parallel-conductors.sh supervising a real conductor, run through a symlink to the skills directory")
 def test_a_launch_run_through_a_symlink_to_the_skills_directory_from_another_cwd_answers_as_it_does_in_place_and_prints_no_leaf_role_refusal(
         tmp_path):
-    (tmp_path / "skills").symlink_to(SCRIPTS.parents[1], target_is_directory=True)
+    copy = tmp_path / "copy" / "skills"
+    shutil.copytree(SCRIPTS.parent, copy / "tdd", symlinks=True, ignore=shutil.ignore_patterns("tests", "__pycache__"))
+    (tmp_path / "skills").symlink_to(copy, target_is_directory=True)
     gh, _ = _gh_and_work(tmp_path)
     (gh / "issues.json").write_text(json.dumps([{
         "number": 7, "title": "issue 7", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
@@ -1587,7 +1589,7 @@ printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"
     env = {name: value for name, value in os.environ.items() if not name.startswith(("VERI_", "CLAUDE_"))}
 
     answers = {}
-    for shape, launcher in (("in-place", SCRIPTS / "parallel-conductors.sh"),
+    for shape, launcher in (("in-place", copy / "tdd" / "scripts" / "parallel-conductors.sh"),
                             ("symlink", tmp_path / "skills" / "tdd" / "scripts" / "parallel-conductors.sh")):
         repo = tmp_path / shape
         subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
