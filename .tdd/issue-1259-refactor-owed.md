@@ -16,3 +16,6 @@
 - test-only | in test_shims.py, pull the scratch setup that both cases repeat (the `veri/kept.py` module plus a canonical `canonical.sh` shim) into one helper next to `shim()`
 - test-only | in conftest.py `shim_problems`, branch once on `match is None` instead of testing `match is not None` / `match is None` in each of the three conditions
 - test-only | in conftest.py `shim_problems`, build `seen` as the set of globbed names instead of adding to it inside the loop
+### `make unit` runs only the small (unmarked) pytest cases; a case marked `process("<boundary>")` is not run by it ⟦criterion 4⟧
+- test-only | pytest-leg.test.sh:849-851 repeats the `env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE … make --no-print-directory -C <tree> <target> > out 2> err < /dev/null && code=0 || code=$?` invocation already used at :799 and :822; one `run_make <tree> <target> [env…]` helper would cover all three
+- test-only | pytest-leg.test.sh:846 — the case name says the leg "reports 1 passed", but nothing asserts `1 passed` in the output (the case at :806 does assert its count); either add `[[ "$out" == *'1 passed'* ]]` or drop the clause from the name
