@@ -1,7 +1,7 @@
 # Plan for #1311 — PRD 009 C3-3: the conductor proves a pairs table by running each mutation against the old case and its replacement
 
 - [x] Given a pairs table with one row naming an old bash case, a kept bash case of the same suite it is redundant with, and a mutation patch to a production file, the pairs check (`mutation-parity.sh <pairs-table>`) applies the mutation, runs both cases, and — when the old case goes red, another case of its suite stays green and the kept case goes red — prints a report row naming the old case, the kept case, the mutation and the result `proven`, and exits 0 ⟦criterion 1⟧
-- [ ] A row whose valid mutation leaves its kept case green is reported `unproven`, the report naming that kept case, and the pairs check exits 1 ⟦criterion 1⟧
+- [x] A row whose valid mutation leaves its kept case green is reported `unproven`, the report naming that kept case, and the pairs check exits 1 ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] A row whose mutation leaves its old case green is reported `owed` (the mutation is not valid), and the pairs check exits 1 ⟦criterion 1⟧
 - [ ] A row whose mutation turns its old case red but leaves no other case of that suite green (the suite's count line says 0 passed, as a syntax error would) is reported `owed`, not proven or unproven, and the pairs check exits 1 ⟦criterion 1⟧
 - [ ] A row whose old case is replaced by a named pytest case (a node id) runs that pytest case under the mutation: proven when it goes red, unproven naming it when it stays green ⟦criterion 1⟧
