@@ -431,22 +431,22 @@ def test_main_prints_a_usage_line_naming_phase_on_a_bad_argument_1385(capsysbina
 
 def test_main_with_phase_owed_marks_the_next_unmarked_phase_owed_leaving_the_step_unchecked_and_refuses_an_unlisted_or_later_phase_with_exit_2_leaving_the_ledger_byte_identical_1410(
         tmp_path, capsysbinary, tick_ledger):
-    phased = ("- [ ] rename the slug helper ⟦phases: expand, migrate, contract (a), contract (b)⟧ ⟦criterion 1⟧"
+    phased = ("- [ ] rename the slug helper ⟦phases: expand, migrate, contract-a, contract-b⟧ ⟦criterion 1⟧"
               " ⟂ expand done ⟂ migrate done")
     seed = ("# Plan for #42\n\n- [x] add lowercasing\n" + phased + "\n- [ ] strip edge hyphens\n\n"
-            "## Owed steps\n\n- rename the slug helper: contract (a)\n").encode()
+            "## Owed steps\n\n- rename the slug helper: contract-a\n").encode()
     ledger = tmp_path / "ledger.md"
     results = {}
-    for phase in ("contract (c)", "contract (b)", "contract (a)"):
+    for phase in ("contract-c", "contract-b", "contract-a"):
         ledger.write_bytes(seed)
         code = tick_ledger.main(["--phase-owed", phase, str(ledger), "rename the slug helper"])
         out, _ = capsysbinary.readouterr()
         results[phase] = (code, out, ledger.read_bytes())
 
     assert results == {
-        "contract (c)": (2, b"", seed),
-        "contract (b)": (2, b"", seed),
-        "contract (a)": (0, b"", seed.replace(phased.encode(), (phased + " ⟂ contract (a) owed").encode())),
+        "contract-c": (2, b"", seed),
+        "contract-b": (2, b"", seed),
+        "contract-a": (0, b"", seed.replace(phased.encode(), (phased + " ⟂ contract-a owed").encode())),
     }
 
 
@@ -460,17 +460,17 @@ def test_main_prints_a_usage_line_naming_phase_owed_beside_phase_on_a_bad_argume
 
 def test_main_after_phase_owed_keeps_the_contract_owed_refusing_to_mark_it_done_or_tick_the_step_with_exit_2_and_leaves_its_owed_bullet_unchanged_1410(
         tmp_path, capsysbinary, tick_ledger):
-    phased = ("- [ ] rename the slug helper ⟦phases: expand, migrate, contract (a)⟧ ⟦criterion 1⟧"
+    phased = ("- [ ] rename the slug helper ⟦phases: expand, migrate, contract-a⟧ ⟦criterion 1⟧"
               " ⟂ expand done ⟂ migrate done")
-    bullet = "- rename the slug helper: contract (a)"
+    bullet = "- rename the slug helper: contract-a"
     seed = ("# Plan for #42\n\n" + phased + "\n- [ ] strip edge hyphens\n\n## Owed steps\n\n" + bullet + "\n").encode()
-    owed = seed.replace(phased.encode(), (phased + " ⟂ contract (a) owed").encode())
+    owed = seed.replace(phased.encode(), (phased + " ⟂ contract-a owed").encode())
     ledger = tmp_path / "ledger.md"
     ledger.write_bytes(seed)
 
     codes = [tick_ledger.main(argv) for argv in (
-        ["--phase-owed", "contract (a)", str(ledger), "rename the slug helper"],
-        ["--phase", "contract (a)", str(ledger), "rename the slug helper"],
+        ["--phase-owed", "contract-a", str(ledger), "rename the slug helper"],
+        ["--phase", "contract-a", str(ledger), "rename the slug helper"],
         [str(ledger), "rename the slug helper"],
     )]
     capsysbinary.readouterr()
@@ -478,18 +478,18 @@ def test_main_after_phase_owed_keeps_the_contract_owed_refusing_to_mark_it_done_
     step = next(line for line in text.split("\n") if "rename the slug helper ⟦" in line)
 
     assert (codes, ledger.read_bytes()) == ([0, 2, 2], owed)
-    assert (step.startswith("- [ ] "), step.endswith(" ⟂ contract (a) owed"), " ⟂ contract (a) done" in step,
+    assert (step.startswith("- [ ] "), step.endswith(" ⟂ contract-a owed"), " ⟂ contract-a done" in step,
             text.split("## Owed steps\n\n")[1]) == (True, True, False, bullet + "\n")
 
 
 def test_main_with_phase_owed_refuses_a_phase_other_than_a_contract_with_exit_2_naming_it_and_leaving_the_ledger_byte_identical_1430(
         tmp_path, capsysbinary, tick_ledger):
-    listed = "- [ ] rename the slug helper ⟦phases: expand, migrate, contract (a), contract (b)⟧ ⟦criterion 1⟧"
+    listed = "- [ ] rename the slug helper ⟦phases: expand, migrate, contract-a, contract-b⟧ ⟦criterion 1⟧"
     marks = {
         "expand": "",
         "migrate": " ⟂ expand done",
-        "contract (a)": " ⟂ expand done ⟂ migrate done",
-        "contract (b)": " ⟂ expand done ⟂ migrate done ⟂ contract (a) done",
+        "contract-a": " ⟂ expand done ⟂ migrate done",
+        "contract-b": " ⟂ expand done ⟂ migrate done ⟂ contract-a done",
     }
     ledger = tmp_path / "ledger.md"
     seeds, results = {}, {}
@@ -507,6 +507,41 @@ def test_main_with_phase_owed_refuses_a_phase_other_than_a_contract_with_exit_2_
     assert results == {
         "expand": (2, b"", True, seeds["expand"]),
         "migrate": (2, b"", True, seeds["migrate"]),
-        "contract (a)": (0, b"", False, owed("contract (a)")),
-        "contract (b)": (0, b"", False, owed("contract (b)")),
+        "contract-a": (0, b"", False, owed("contract-a")),
+        "contract-b": (0, b"", False, owed("contract-b")),
+    }
+
+
+def test_main_with_phase_owed_marks_only_skill_md_contract_a_and_contract_b_owed_refusing_any_other_spelling_with_exit_2_leaving_the_ledger_byte_identical_1446(
+        tmp_path, capsysbinary, tick_ledger):
+    listed = {
+        "contract-a": "- [ ] rename the slug helper ⟦phases: expand, migrate, contract-a, contract-b⟧ ⟦criterion 1⟧",
+        "contract (a)": "- [ ] rename the slug helper ⟦phases: expand, migrate, contract (a), contract (b)⟧ ⟦criterion 1⟧",
+    }
+    cases = {
+        "expand": (listed["contract-a"], ""),
+        "contract-a": (listed["contract-a"], " ⟂ expand done ⟂ migrate done"),
+        "contract-b": (listed["contract-a"], " ⟂ expand done ⟂ migrate done ⟂ contract-a done"),
+        "contract (a)": (listed["contract (a)"], " ⟂ expand done ⟂ migrate done"),
+        "contract (b)": (listed["contract (a)"], " ⟂ expand done ⟂ migrate done ⟂ contract (a) done"),
+    }
+    ledger = tmp_path / "ledger.md"
+    seeds, results = {}, {}
+    for phase, (step, done) in cases.items():
+        seeds[phase] = ("# Plan for #42\n\n" + step + done + "\n- [ ] strip edge hyphens\n").encode()
+        ledger.write_bytes(seeds[phase])
+        code = tick_ledger.main(["--phase-owed", phase, str(ledger), "rename the slug helper"])
+        out, err = capsysbinary.readouterr()
+        results[phase] = (code, out, ledger.read_bytes())
+
+    def owed(phase):
+        line = "".join(cases[phase])
+        return seeds[phase].replace(line.encode(), (line + f" ⟂ {phase} owed").encode())
+
+    assert results == {
+        "expand": (2, b"", seeds["expand"]),
+        "contract-a": (0, b"", owed("contract-a")),
+        "contract-b": (0, b"", owed("contract-b")),
+        "contract (a)": (2, b"", seeds["contract (a)"]),
+        "contract (b)": (2, b"", seeds["contract (b)"]),
     }
