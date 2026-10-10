@@ -2577,3 +2577,41 @@ def test_cli_kills_a_real_hung_leaf_by_heartbeat_and_a_real_runaway_leaf_by_hard
         (2, ["supervise[hung]: killed-stuck — no heartbeat for Ns (window 1s)"], b"2\n", False),
         (2, ["supervise[runaway]: killed-stuck — hard timeout 1s exceeded"], b"2\n", False),
     ]
+
+
+SESSION_VARS = ("CLAUDECODE", "CLAUDE_CODE_SESSION_ID", "CLAUDE_CODE_HOST_SESSION_ID",
+                "CLAUDE_CODE_MESSAGING_SOCKET", "CLAUDE_CODE_MESSAGING_TOKEN", "CLAUDE_PID",
+                "CLAUDE_CODE_CHILD_SESSION", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_AUTO_BACKGROUND_TASKS")
+
+
+@pytest.mark.process("run-leaf.sh run for real as the supervised command, starting a stub claude")
+def test_cli_launches_a_supervised_run_leaf_with_model_in_claudes_argv_only_when_the_run_chose_one_and_without_the_callers_session_variables(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import signal
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    clean_env(monkeypatch)
+    scripts = pathlib.Path(__file__).resolve().parents[2]
+    stub = tmp_path / "claude-stub"
+    stub.write_text('#!/bin/sh\nprintf \'%s\\n\' "$@" > "$OUT.argv"\nenv > "$OUT.env"\n'
+                    "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"ok\"}'\n")
+    stub.chmod(0o755)
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("pin the argv")
+
+    def launched(arm, **env):
+        clean_env(monkeypatch)
+        work = prepare_real_leaf(monkeypatch, tmp_path, arm)
+        out = tmp_path / f"{arm}-claude"
+        env = {**{v: "from-the-conductor" for v in SESSION_VARS},
+               "CLAUDE_BIN": str(stub), "OUT": str(out), **REAL_LEAF_ENV, **env}
+        code, _, _ = run_cli(supervise, ["develop-red", str(scripts / "run-leaf.sh"), str(prompt)], cwd=work, env=env)
+        argv = out.with_name(out.name + ".argv")
+        leaked = [line.split("=")[0] for line in out.with_name(out.name + ".env").read_text().splitlines()
+                  if line.split("=")[0] in SESSION_VARS] if argv.exists() else ["<claude never started>"]
+        return code, argv.read_text().splitlines() if argv.exists() else None, leaked
+
+    today = ["-p", "pin the argv", "--output-format", "stream-json", "--verbose"]
+    assert [launched("set", VERI_MODEL="sonnet"), launched("unset")] == [
+        (0, today + ["--model", "sonnet"], []),
+        (0, today, []),
+    ]
