@@ -545,3 +545,31 @@ def test_main_with_phase_owed_marks_only_skill_md_contract_a_and_contract_b_owed
         "contract (a)": (2, b"", seeds["contract (a)"]),
         "contract (b)": (2, b"", seeds["contract (b)"]),
     }
+
+
+def test_main_accepts_a_ledger_written_to_skill_md_phase_line_end_to_end_next_phase_printing_contract_a_and_phase_and_phase_owed_both_marking_it_1446(
+        tmp_path, monkeypatch, capsysbinary, tick_ledger):
+    ledger_steps = importlib.import_module("veri.ledger_steps")
+    phased = "- [ ] rename the slug helper ⟦phases: expand, migrate, contract-a, contract-b⟧ ⟦criterion 1⟧"
+    seed = ("# Plan for #42\n\n- [x] add lowercasing\n" + phased + "\n- [ ] strip edge hyphens\n").encode()
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(seed)
+
+    marked = [tick_ledger.main(["--phase", phase, str(ledger), "rename the slug helper"]) for phase in ("expand", "migrate")]
+    capsysbinary.readouterr()
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(ledger.read_bytes())))
+    next_code = ledger_steps.main(["next-phase"])
+    next_out, _ = capsysbinary.readouterr()
+    ready = ledger.read_bytes()
+    results = {}
+    for flag in ("--phase", "--phase-owed"):
+        ledger.write_bytes(ready)
+        code = tick_ledger.main([flag, "contract-a", str(ledger), "rename the slug helper"])
+        results[flag] = (code, *capsysbinary.readouterr(), ledger.read_bytes())
+
+    line = phased + " ⟂ expand done ⟂ migrate done"
+    assert (marked, next_code, next_out, ready, results) == (
+        [0, 0], 0, b"contract-a\n", seed.replace(phased.encode(), line.encode()), {
+            "--phase": (0, b"", b"", ready.replace(line.encode(), (line + " ⟂ contract-a done").encode())),
+            "--phase-owed": (0, b"", b"", ready.replace(line.encode(), (line + " ⟂ contract-a owed").encode())),
+        })
