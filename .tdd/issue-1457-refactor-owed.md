@@ -1,0 +1,2 @@
+### build-develop-prompt.sh revise with an unknown phase to revise exits 2 and its refusal names every phase it accepts to revise, the interface phases expand, migrate, contract-a and contract-b included ⟦criterion 1⟧
+- test-only | delete the new test, which repeats the ("revise", "bogus", …) entry in the refusal table (test_build_develop_prompt.py:41-43) with the same argv and the same expected exit, stdout and stderr; or drop that table entry and keep the named test
