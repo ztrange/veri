@@ -196,43 +196,6 @@ got="$(waited empty)"
 [[ "$got" != 0 ]] || problems+=("empty rollup: exited 0")
 report "$name"
 
-rollup late.json "$(check COMPLETED SUCCESS)"
-rollup late.json.1 "$(check IN_PROGRESS '')"
-rollup late.json.2 "$(check IN_PROGRESS '')"
-
-name="wait-ci.sh polls a pending check until its bound runs out: a check that completes on the third read exits 0 within 1800 s and 3 within 60 s (#544)"
-problems=()
-expect_exit late 0 1800
-expect_exit late 3 60
-report "$name"
-
-name="wait-ci.sh exits 2 and names the PR when gh cannot read its checks, rather than waiting its bound out as if they were pending (#544)"
-problems=()
-got="$(GH_FAIL=1 waited pending)"
-[[ "$got" == 2 ]] || problems+=("failing gh: want exit 2, got $got")
-grep -F "could not read the checks of $PR" "$work/pending.err" > /dev/null \
-  || problems+=("failing gh: stderr does not name the PR: $(cat "$work/pending.err")")
-report "$name"
-
-name="wait-ci.sh enforces its bound across calls: a second call for the same head commit that still finds a check pending past the deadline the first call recorded exits 2, not 3 with a fresh bound (#544)"
-problems=()
-rollup across.json "$(check IN_PROGRESS '')" fedcba9876543210fedcba9876543210fedcba98
-shared across
-got_first="$(again across first 120 120)"
-got_second="$(again across second 120 120)"
-[[ "$got_first" == 3 ]] || problems+=("first call: want exit 3, got $got_first (stderr: $(cat "$work/across.first.err"))")
-[[ "$got_second" == 2 ]] || problems+=("second call past the recorded deadline: want exit 2, got $got_second (stderr: $(cat "$work/across.second.err"))")
-report "$name"
-
-name="wait-ci.sh exits 2 and names the PR when the rollup carries no head commit, rather than recording a deadline no later call can find (#544)"
-problems=()
-printf '{"statusCheckRollup":[%s]}\n' "$(check IN_PROGRESS '')" > "$work/headless.json"
-got="$(waited headless)"
-[[ "$got" == 2 ]] || problems+=("no headRefOid: want exit 2, got $got (stderr: $(cat "$work/headless.err"))")
-grep -F "could not read the checks of $PR" "$work/headless.err" > /dev/null \
-  || problems+=("no headRefOid: stderr does not name the PR: $(cat "$work/headless.err")")
-report "$name"
-
 context() {
   printf '{"__typename":"StatusContext","context":"legacy","state":"%s"}' "$1"
 }
@@ -254,46 +217,10 @@ expect_never_completes legacy-success-pending
 expect_exit legacy-success-green 0
 report "$name"
 
-name="wait-ci.sh keeps its total bound separate from one call's slice: with a total of 600 s and a slice of 240 s, a call made 240 s after the first that still finds a check pending exits 3, not 2, and SKILL.md's Draft PR step passes a slice and an empty total, leaving the total bound to wait-ci.sh (#544, #549)"
-problems=()
-rollup total.json "$(check IN_PROGRESS '')" 00112233445566778899aabbccddeeff00112233
-shared total
-for call in first second; do
-  got="$(again total "$call" 240 600)"
-  [[ "$got" == 3 ]] || problems+=("$call call, slice 240, total 600: want exit 3, got $got (stderr: $(cat "$work/total.$call.err"))")
-done
-calls="$(grep -F 'wait-ci.sh <pr-url>' "$HERE/../../SKILL.md")"
-[[ -n "$calls" ]] || problems+=("SKILL.md: no wait-ci.sh <pr-url> call found")
-while IFS= read -r line; do
-  [[ "$line" =~ wait-ci\.sh\ \<pr-url\>\ [0-9]+\ \"\"\  ]] \
-    || problems+=("SKILL.md does not pass wait-ci.sh a slice and an empty total: $line")
-done <<< "$calls"
-report "$name"
-
 name="wait-ci.sh never reads a rollup whose every check concluded SKIPPED as green: it exits 3 while its bound lasts, since a check skipped on a draft push has not tested the head (#544)"
 problems=()
 rollup all-skipped.json "$(check COMPLETED SKIPPED),$(check COMPLETED SKIPPED)"
 expect_never_completes all-skipped
-report "$name"
-
-name="wait-ci.sh takes the head sha it waits for, and exits 3 at the end of its slice while the PR still reports a different head, even one whose checks all completed SUCCESS (#550)"
-problems=()
-rollup stale-head.json "$(check COMPLETED SUCCESS)" 0123456789abcdef0123456789abcdef01234567
-got="$(waited stale-head 60 60 89abcdef0123456789abcdef0123456789abcdef)"
-[[ "$got" == 3 ]] || problems+=("PR reports a green previous head, waiting for 89abcdef…: want exit 3, got $got (stderr: $(cat "$work/stale-head.err"))")
-report "$name"
-
-name="wait-ci.sh records its total bound against the head sha it was given, not the PR's reported head: a later call for the same sha that still finds the PR reporting a different head past that recorded deadline exits 2 (#550)"
-problems=()
-rollup stale-across.json.1 "$(check COMPLETED SUCCESS)" 0123456789abcdef0123456789abcdef01234567
-cp "$work/stale-across.json.1" "$work/stale-across.json.2"
-rollup stale-across.json "$(check COMPLETED SUCCESS)" 76543210fedcba9876543210fedcba9876543210
-shared stale-across
-sha=89abcdef0123456789abcdef0123456789abcdef
-got_first="$(again stale-across first 60 60 "$sha")"
-got_second="$(again stale-across second 60 60 "$sha")"
-[[ "$got_first" == 3 ]] || problems+=("first call: want exit 3, got $got_first (stderr: $(cat "$work/stale-across.first.err"))")
-[[ "$got_second" == 2 ]] || problems+=("second call for $sha past the recorded deadline, PR reporting another head: want exit 2, got $got_second (stderr: $(cat "$work/stale-across.second.err"))")
 report "$name"
 
 name="wait-ci.sh exits 2 on its first read of a legacy StatusContext row that carries no state key, rather than reading it as pending and waiting out its bound (#550)"

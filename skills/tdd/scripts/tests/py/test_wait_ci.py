@@ -2,6 +2,8 @@
 import importlib
 import json
 import os
+import pathlib
+import re
 import subprocess
 import sys
 
@@ -473,3 +475,75 @@ def test_main_splits_the_pr_url_at_its_last_pull_and_keys_the_deadline_by_a_head
     assert (code, captured.out, captured.err, calls,
             {p.name: p.read_text() for p in (tmp_path / ".tdd").iterdir()}) == (
         3, "", "", list(bodies), {f"ci-deadline-{head}": "1100\n"})
+
+
+def test_main_keeps_its_bound_across_reads_calls_and_the_head_sha_it_was_given_and_names_a_pr_it_cannot_read(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    pending, done = {"status": "in_progress", "conclusion": None}, {"status": "completed", "conclusion": "success"}
+    old, new, given = "0123456789abcdef" * 2 + "01234567", "76543210fedcba98" * 2 + "76543210", "89abcdef" * 5
+    page = re.compile(r"gh api repos/o/r/commits/(.+)/check-runs\?page=(\d+)")
+    unreadable = f"could not read the checks of {PR}"
+    past = "still pending past the deadline recorded for"
+
+    def world(heads, runs):
+        state = {"reads": 0, "clock": 0}
+
+        def answer(line, **_):
+            if line == "date +%s":
+                state["clock"] += 1
+                return 0, f"{(state['clock'] - 1) * 60}\n", ""
+            if line.startswith("sleep "):
+                return 0, "", ""
+            if line == PULL:
+                if heads is None:
+                    return 1, "", "gh: HTTP 502: Bad Gateway\n"
+                head = heads[min(state["reads"], len(heads) - 1)]
+                state["reads"] += 1
+                return 0, json.dumps({"mergeable": True, "head": {"sha": head}}), ""
+            found = page.fullmatch(line)
+            if found:
+                rows = [] if found.group(2) != "1" else runs[min(state["reads"] - 1, len(runs) - 1)]
+                return 0, json.dumps({"check_runs": rows}), ""
+            if line.endswith("/status"):
+                return 0, json.dumps({"statuses": []}), ""
+            return 1, "", f"unexpected: {line}\n"
+
+        fake_processes(answer)
+
+    def calls(name, heads, runs, *argvs):
+        work = tmp_path / name
+        (work / ".tdd").mkdir(parents=True)
+        world(heads, runs)
+        answers = []
+        for argv in argvs:
+            code, out, err = run_cli(wait_ci, [PR, *argv], env={"VERI_POLL": "0"}, cwd=work)
+            answers.append((code, unreadable in err, past in err))
+        return answers
+
+    skill = (pathlib.Path(__file__).resolve().parents[3] / "SKILL.md").read_text()
+    draft_pr_calls = [line for line in skill.splitlines() if "wait-ci.sh <pr-url>" in line]
+
+    observed = {
+        "late": calls("late-1800", [SHA], [[pending], [pending], [done]], ["1800"])
+                + calls("late-60", [SHA], [[pending], [pending], [done]], ["60"]),
+        "gh fails": calls("gh-fails", None, [[pending]], ["1800"]),
+        "headless": calls("headless", [None], [[pending]], ["1800"]),
+        "across": calls("across", ["fedcba9876543210" * 2 + "fedcba98"], [[pending]], ["120", "120"], ["120", "120"]),
+        "total": calls("total", ["00112233445566778899aabbccddeeff00112233"], [[pending]],
+                       ["240", "600"], ["240", "600"]),
+        "skill passes a slice and an empty total": bool(draft_pr_calls) and all(
+            re.search(r'wait-ci\.sh <pr-url> [0-9]+ "" ', line) for line in draft_pr_calls),
+        "stale head": calls("stale-head", [old], [[done]], ["60", "60", given]),
+        "stale across": calls("stale-across", [old, old, new], [[done]], ["60", "60", given], ["60", "60", given]),
+    }
+
+    assert observed == {
+        "late": [(0, False, False), (3, False, False)],
+        "gh fails": [(2, True, False)],
+        "headless": [(2, True, False)],
+        "across": [(3, False, False), (2, False, True)],
+        "total": [(3, False, False), (3, False, False)],
+        "skill passes a slice and an empty total": True,
+        "stale head": [(3, False, False)],
+        "stale across": [(3, False, False), (2, False, True)],
+    }
