@@ -37,7 +37,10 @@ def run_cli(monkeypatch, capfd):
         if cwd is not None:
             monkeypatch.chdir(cwd)
         monkeypatch.setattr(sys, "stdin", io.StringIO(stdin))
-        code = module.main(argv)
+        try:
+            code = module.main(argv)
+        except SystemExit as exit:
+            code = exit.code
         out, err = capfd.readouterr()
         return code, out, err
 
