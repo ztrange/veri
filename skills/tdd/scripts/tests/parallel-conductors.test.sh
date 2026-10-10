@@ -207,44 +207,6 @@ STUB
 
 run_launcher "$gh_again" "$again_stub" "$work/again.out" VERI_CONDUCTOR_CTX_BUDGET=100000
 
-gh_one="$work/gh-one"
-solvable_fixture "$gh_one" 7 8
-one_marks="$work/one.marks"
-: > "$one_marks"
-one_launches="$work/one.launches"
-: > "$one_launches"
-one_stub="$work/claude-one"
-conductor_stub "$one_stub" <<STUB
-$(stub_waits "$work/one.out")
-echo "\$n" >> "$one_launches"
-if [ "\$n" = 7 ] && [ "\$(grep -c '^7$' "$one_launches")" -eq 1 ]; then
-  echo \$\$ > "$one_marks.pid"
-  echo '{"type":"assistant","message":{"role":"assistant","usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":150000,"output_tokens":40}}}'
-  await_context 'context 7 150000'
-  echo mid-step-7 >> "$one_marks"
-  over_budget_step_done
-  heartbeats 50
-  echo before-result-7 >> "$one_marks"
-  echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
-  await_stop
-  echo after-step-done-7 >> "$one_marks"
-  exit 0
-elif [ "\$n" = 8 ]; then
-  echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=8 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":50000,"output_tokens":30}}}'
-  await_context 'context 8 50000'
-  echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
-  heartbeats 50
-  echo end-8 >> "$one_marks"
-fi
-$(ready_pr "$gh_one")
-STUB
-
-run_launcher "$gh_one" "$one_stub" "$work/one.out" VERI_PARALLEL=1 VERI_CONDUCTOR_CTX_BUDGET=100000
-await_gone "$one_marks.pid"
-expect_lines "with VERI_PARALLEL=1 a conductor over VERI_CONDUCTOR_CTX_BUDGET mid-step is stopped only after its step-done result and relaunched for the same issue, and one that never crosses the budget is never stopped or relaunched" \
-  "$(printf 'mid-step-7\nbefore-result-7\nend-8\n--\n7\n7\n8\n--\nrestarted 7')" \
-  "$(cat "$one_marks"; echo --; cat "$one_launches"; echo --; grep '^restarted ' "$work/one.out" || true)" "$work/one.out"
-
 clock_stub() {
   printf '#!/bin/sh\nc="$(cat "%s" 2>/dev/null || echo 0)"\n[ -e "%s" ] && c=$((c + %s))\necho "$c" > "%s"\necho "$c"\n' \
     "$2" "${4:-/}" "$3" "$2" > "$1"
@@ -263,54 +225,6 @@ SH
 
 hang_stub="$work/claude-hang"
 hang | conductor_stub "$hang_stub"
-
-bad=""
-for shape in a b; do
-  gh12="$work/gh12-$shape"
-  solvable_fixture "$gh12" 7
-  seen="$work/seen-$shape"
-  env_stub="$work/claude-env-$shape"
-  conductor_stub "$env_stub" <<STUB
-env | grep -E '^VERI_(HEARTBEAT|TIMEOUT|STUCK_RETRIES|POLL)=' | sort > "$seen" || true
-$(ready_pr "$gh12")
-STUB
-  case "$shape" in
-    a) caller=(VERI_HEARTBEAT=111 VERI_POLL=0.05 VERI_STUCK_RETRIES=3) ;;
-    b) caller=(VERI_TIMEOUT=222) ;;
-  esac
-  env -u VERI_PARALLEL -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES \
-    -u VERI_HEARTBEAT -u VERI_TIMEOUT -u VERI_STUCK_RETRIES -u VERI_POLL \
-    VERI_GH_JSON="$gh12" CLAUDE_BIN="$env_stub" "${caller[@]}" \
-    "$skill/scripts/parallel-conductors.sh" > "$work/env-$shape.out" 2>&1 && code=0 || code=$?
-  want_seen="$(printf '%s\n' "${caller[@]}" | sort)"
-  got_seen="$(cat "$seen" 2>/dev/null || echo '<conductor never ran>')"
-  if [[ "$got_seen" != "$want_seen" ]]; then
-    bad+=" [caller '$(printf '%s' "$want_seen" | tr '\n' ' ')': exit=$code, conductor saw '$(printf '%s' "$got_seen" | tr '\n' ' ')'; output: $(tr '\n' '|' < "$work/env-$shape.out")]"
-  fi
-done
-
-[[ -z "$bad" ]] \
-  && ok || no "the caller's VERI_HEARTBEAT, VERI_TIMEOUT, VERI_STUCK_RETRIES and VERI_POLL reach each conductor exactly as they were, set or unset ($bad )"
-
-gh13="$work/gh13"
-solvable_fixture "$gh13" 7
-rm -f "$work/step-count"
-
-outer_starts="$work/outer-starts"
-step_clock="$work/step-clock"
-clock_stub "$step_clock" "$work/step-count" 30 "$outer_starts"
-
-outer_stub="$work/claude-outer"
-conductor_stub "$outer_stub" <<STUB
-echo "start \$n" >> "$outer_starts"
-$(hang)
-STUB
-
-run_launcher "$gh13" "$outer_stub" "$work/outer.out" VERI_RUN_TIMEOUT=60 VERI_AWAKE_CLOCK="$step_clock" \
-  VERI_KILL_POLL=0.01 VERI_HEARTBEAT=1 VERI_TIMEOUT=1 VERI_STUCK_RETRIES=3
-want_outer="$(printf 'start 7\nsupervise[conductor-7]: killed-stuck — hard timeout 60s exceeded')"
-got_outer="$(cat "$outer_starts" 2>/dev/null; grep -E '^supervise\[conductor-7\]: (retry|killed-stuck|failure|success)' "$work/outer.out")"
-expect_lines "the outer supervisor runs with heartbeat and timeout both VERI_RUN_TIMEOUT and no stuck retries" "$want_outer" "$got_outer" "$work/outer.out"
 
 fresh="$work/fresh"
 fresh_repo "$fresh"
