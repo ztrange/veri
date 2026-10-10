@@ -11,12 +11,14 @@ def complain(message):
 
 
 def main(argv):
-    pending, phase = False, None
+    pending, phase, owed = False, None, False
     while True:
         if argv[:1] == ["--refactor-pending"]:
             pending, argv = True, argv[1:]
         elif argv[:1] == ["--phase"] and len(argv) > 1:
             phase, argv = argv[1], argv[2:]
+        elif argv[:1] == ["--phase-owed"] and len(argv) > 1:
+            phase, owed, argv = argv[1], True, argv[2:]
         else:
             break
     if pending and phase:
@@ -37,7 +39,7 @@ def main(argv):
     text, matcher = text.replace("\0", ""), (argv[1:] or [""])[0]
     if phase:
         try:
-            ticked, new = ledger.ledger_mark_phase(text, matcher, phase)
+            ticked, new = ledger.ledger_mark_phase(text, matcher, phase, owed)
         except ValueError as error:
             complain(str(error))
             return 2

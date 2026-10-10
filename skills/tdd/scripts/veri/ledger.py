@@ -66,6 +66,11 @@ def phase_mark(phase):
     return f" ⟂ {phase} done"
 
 
+def owed_mark(phase):
+    """The mark a contract phase filed as owed appends to its step."""
+    return f" ⟂ {phase} owed"
+
+
 def listed_phases(step):
     """The phases step lists, in order; [] for a step that lists none."""
     listed = PHASES_RE.search(step)
@@ -75,7 +80,7 @@ def listed_phases(step):
 def next_phase(step):
     """The first phase step lists and has not marked done, or None once a phase is marked owed."""
     for phase in listed_phases(step):
-        if f" ⟂ {phase} owed" in step:
+        if owed_mark(phase) in step:
             return None
         if phase_mark(phase) not in step:
             return phase
@@ -148,24 +153,24 @@ def ledger_tick(text, matcher, pending=False):
     )
 
 
-def _with_phase_mark(line, phase):
-    """line with phase's mark appended; ValueError when line does not list phase or phase is not next."""
+def _with_phase_mark(line, phase, mark):
+    """line with mark(phase) appended; ValueError when line does not list phase or phase is not next."""
     if phase not in listed_phases(line):
         raise ValueError(f"step does not list phase '{phase}'")
     if next_phase(line) != phase:
         raise ValueError(f"phase '{phase}' is not the step's next phase")
-    return line + phase_mark(phase)
+    return line + mark(phase)
 
 
-def ledger_mark_phase(text, matcher, phase):
-    """(True, text with the first open step holding matcher marked phase done), or (False, text).
+def ledger_mark_phase(text, matcher, phase, owed=False):
+    """(True, text with the first open step holding matcher marked phase done, or owed), or (False, text).
 
     ValueError when that step does not list phase.
     """
     return _rewrite_first_step(
         text,
         _open_holding(matcher),
-        lambda match, line: _with_phase_mark(line, phase),
+        lambda match, line: _with_phase_mark(line, phase, owed_mark if owed else phase_mark),
     )
 
 

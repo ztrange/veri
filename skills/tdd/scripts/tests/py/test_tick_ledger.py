@@ -427,3 +427,24 @@ def test_main_prints_a_usage_line_naming_phase_on_a_bad_argument_1385(capsysbina
 
     assert (code, out, err.count(b"\n"), err.startswith(b"usage: tick-ledger.sh "), b"--phase <phase>" in err) == (
         2, b"", 1, True, True)
+
+
+def test_main_with_phase_owed_marks_the_next_unmarked_phase_owed_leaving_the_step_unchecked_and_refuses_an_unlisted_or_later_phase_with_exit_2_leaving_the_ledger_byte_identical_1410(
+        tmp_path, capsysbinary, tick_ledger):
+    phased = ("- [ ] rename the slug helper ⟦phases: expand, migrate, contract (a), contract (b)⟧ ⟦criterion 1⟧"
+              " ⟂ expand done ⟂ migrate done")
+    seed = ("# Plan for #42\n\n- [x] add lowercasing\n" + phased + "\n- [ ] strip edge hyphens\n\n"
+            "## Owed steps\n\n- rename the slug helper: contract (a)\n").encode()
+    ledger = tmp_path / "ledger.md"
+    results = {}
+    for phase in ("contract (c)", "contract (b)", "contract (a)"):
+        ledger.write_bytes(seed)
+        code = tick_ledger.main(["--phase-owed", phase, str(ledger), "rename the slug helper"])
+        out, _ = capsysbinary.readouterr()
+        results[phase] = (code, out, ledger.read_bytes())
+
+    assert results == {
+        "contract (c)": (2, b"", seed),
+        "contract (b)": (2, b"", seed),
+        "contract (a)": (0, b"", seed.replace(phased.encode(), (phased + " ⟂ contract (a) owed").encode())),
+    }
