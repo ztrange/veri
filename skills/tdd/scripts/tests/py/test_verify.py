@@ -1538,6 +1538,14 @@ def test_main_writes_every_line_it_prints_the_em_dash_in_its_refusals_included_a
     ]
 
 
+def build_prompt(words, monkeypatch):
+    built, captured = io.BytesIO(), sys.stdout
+    monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(built, write_through=True))
+    code = importlib.import_module("veri.build_verify_prompt").main(words)
+    monkeypatch.setattr(sys, "stdout", captured)
+    return code, built.getvalue()
+
+
 SPEC = "slugify must lowercase the title and join words with hyphens."
 HUNG = pytest.mark.process("a hung verifier leaf killed by the real supervise.sh")
 
@@ -1560,17 +1568,12 @@ def test_verify_sh_passes_the_blind_prompt_carrying_the_spec_to_the_leaf_and_a_h
     env = {"HOME": str(tmp_path)}
     prompts = []
     if leaf == "answers":
-        builder = importlib.import_module("veri.build_verify_prompt")
-
         def fake(args, *_, **__):
             words = [str(a) for a in args]
             name = os.path.basename(words[0])
             if name == "build-verify-prompt.sh":
-                built, captured = io.BytesIO(), sys.stdout
-                monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(built, write_through=True))
-                code = builder.main(words[1:])
-                monkeypatch.setattr(sys, "stdout", captured)
-                return subprocess.CompletedProcess(args, code, built.getvalue(), None)
+                code, built = build_prompt(words[1:], monkeypatch)
+                return subprocess.CompletedProcess(args, code, built, None)
             if name == "supervise.sh":
                 prompts.append(pathlib.Path(words[3]).read_text())
                 return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nREASON: ok\n", None)
@@ -1697,22 +1700,13 @@ def test_verify_sh_hands_every_launch_the_builders_own_prompt_for_its_arguments_
     monkeypatch.setenv("VERI_STEP", AMBIENT_STEP)
     (tmp_path / "spec.md").write_text(SPEC)
     argv = [*flags, phase, str(tmp_path / "spec.md"), "tests/test_slugify.py", fourth]
-    builder = importlib.import_module("veri.build_verify_prompt")
-
-    def build(words):
-        built, captured = io.BytesIO(), sys.stdout
-        monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(built, write_through=True))
-        code = builder.main(words)
-        monkeypatch.setattr(sys, "stdout", captured)
-        return code, built.getvalue()
-
     prompts = []
 
     def fake(args, *_, **__):
         words = [str(a) for a in args]
         name = os.path.basename(words[0])
         if name == "build-verify-prompt.sh":
-            code, built = build(words[1:])
+            code, built = build_prompt(words[1:], monkeypatch)
             return subprocess.CompletedProcess(args, code, built, None)
         if name == "supervise.sh":
             prompts.append(pathlib.Path(words[3]).read_text())
@@ -1725,7 +1719,7 @@ def test_verify_sh_hands_every_launch_the_builders_own_prompt_for_its_arguments_
 
     code, _, _ = run_cli(verify, argv, env={"HOME": str(tmp_path)}, cwd=tmp_path)
 
-    expected = build(argv)[1].decode().rstrip("\n")
+    expected = build_prompt(argv, monkeypatch)[1].decode().rstrip("\n")
     assert (code, prompts) == (expected_code, [expected] * launches)
     assert [text for text in present if text not in expected] == []
     assert [text for text in absent if text in expected] == []
