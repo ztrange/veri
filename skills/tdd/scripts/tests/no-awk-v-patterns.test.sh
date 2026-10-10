@@ -31,7 +31,6 @@ declare -A EXEMPT=(
   ['no-awk-v-patterns.test.sh:  awk -''v re="$1" '\''$0 ~ re { print }'\'' "$2"']="$PLANTED_FIXTURE"
   ['no-awk-v-patterns.test.sh:  local -A EXEMPT=(['\''planted.test.sh:  awk -''v re="$1" '\''\'\'''\''$0 ~ re { print }'\''\'\'''\'' "$2"'\'']="the planted site'\''s pattern carries no backslash")']="$PLANTED_FIXTURE"
   ['no-awk-v-patterns.test.sh:name="an exemption-table entry keyed by file and the exempt line'\''s content still exempts its planted awk -''v re=\"\$1\" '\''\$0 ~ re'\'' after unrelated lines are inserted above it, and the table carries no entry keyed by a line number (#1050)"']="$CASE_NAME"
-  ['parallel-conductors.test.sh:  awk -''v open="$1" '\''']="record is handed only '^3[.] [*][*]Parallel[*][*]' and '^[*][*]In flight[*][*]:', literal characters spelled as bracket classes, so the -v value holds no backslash to drop"
   ['skill-draft-pr.test.sh:    unread="$(awk -''v from="$read_at" -''v wait_re="^$wait_ci_run" -''v push_re="^$push_run" '\''']="$BRACKET_CLASSES"
   ['skill-draft-pr.test.sh:  unpinned="$(awk -''v wait_re="^$wait_ci_run" -''v push_re="^$push_run" '\''']="$BRACKET_CLASSES"
   ['skill-draft-pr.test.sh:    bails="$(awk -''v from="$metrics_at" -''v wait_re="^$wait_ci_run" '\''']="$BRACKET_CLASSES"
