@@ -1355,3 +1355,33 @@ def test_main_states_each_interface_phases_freeze_rule_in_its_revise_prompt_1448
 
     assert frozen == {"expand": (0, {b"test"}), "migrate": (0, {b"test"}),
                       "contract-a": (0, {b"production"}), "contract-b": (0, {b"test"})}
+
+
+def test_main_renders_a_red_prompt_taking_a_ci_repair_steps_quoted_ci_log_as_its_evidence_of_failure_and_a_local_pass_as_no_pin_only_for_the_mark_1431(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    marked = ("CI job gates is red on a1b2c3d: tests/zorblat.test.sh — FAIL - zorblat frobs a nitz "
+              "-frob-nitz +frob_nitz ⟦ci-repair⟧")
+    plain = "zorblat frobs a nitz ⟦criterion 1⟧"
+
+    def rendered(step):
+        code = build_develop_prompt.main(["red", str(spec), step, "make test"])
+        out, _ = capsysbinary.readouterr()
+        return code, re.sub(rb"\s+", b" ", out)
+
+    rules = {
+        "the quoted CI job log is the evidence of failure": (
+            rb"CI job'?s? log[^.]{0,120}evidence of[^.]{0,20}failure"),
+        "the log carries the test id and the assertion diff": rb"test id[^.]{0,20}assertion diff",
+        "a local pass is reported as such and is not a pin": (
+            rb"pass\w* locally[^.]{0,160}\b(not|never|no|without)\b[^.]{0,80}\bpin"),
+    }
+
+    results = {}
+    for name, step in (("marked", marked), ("plain", plain)):
+        code, prompt = rendered(step)
+        results[name] = (code, sorted(rule for rule, pattern in rules.items()
+                                      if re.search(pattern, prompt, re.I) is not None))
+
+    assert results == {"marked": (0, sorted(rules)), "plain": (0, [])}
