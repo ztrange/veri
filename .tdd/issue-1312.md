@@ -7,7 +7,7 @@
 - [x] `build-verify-prompt.sh`'s expand, migrate, contract (a) and contract (b) phases take only a phase, the spec file, the test path and a base sha, and exit 2 when that base sha does not match `^[0-9a-f]{7,40}$`, as the `refactor` phase does ⟦criterion 1⟧
 - [x] An unknown phase given to `build-develop-prompt.sh` or to `build-verify-prompt.sh` exits 2 with a message naming the expand, migrate, contract (a) and contract (b) phases among the phases it accepts ⟦criterion 1⟧
 - [x] `SKILL.md` plans an interface change as one ledger step listing its phases (`⟦phases: …⟧`) and runs the phases it lists in order, each as a developer leaf then a blind verifier, ticking that phase's mark (`tick-ledger.sh --phase`) with that phase's commit ⟦criterion 2⟧
-- [ ] `SKILL.md` rejects an expand, migrate or contract (b) phase's commit that `transform-touches-tests.sh` exits 1 on, and a contract (a) phase's commit that `production-frozen.sh` exits 1 on ⟦criterion 2⟧
+- [x] `SKILL.md` rejects an expand, migrate or contract (b) phase's commit that `transform-touches-tests.sh` exits 1 on, and a contract (a) phase's commit that `production-frozen.sh` exits 1 on ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] `SKILL.md` starts a phased step's contract only once `no-product-caller.sh` on the old interface exits 0 ⟦criterion 2⟧
 - [ ] `SKILL.md` spends one refactor of the budget for a whole phased step, not one per phase ⟦criterion 2⟧
 - [ ] `SKILL.md`: a contract phase that exhausts `REVISE_BUDGET` is reset to its own base sha, the expand and migrate commits are kept, and the contract is filed under the ledger's `## Owed steps` ⟦criterion 2⟧

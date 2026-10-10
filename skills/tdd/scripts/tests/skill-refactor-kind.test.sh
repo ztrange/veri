@@ -18,6 +18,7 @@
 #      case 9's name.
 #  10. SKILL.md plans an interface change as one phased step and runs its phases — see case 10's
 #      name.
+#  11. SKILL.md rejects a phase's commit that breaks that phase's freeze — see case 11's name.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -253,6 +254,36 @@ fi
 
 grep -F 'the run loop calls neither yet' <<<"$skill_text" > /dev/null &&
   problems+=("$skill_md still says the run loop calls neither tick-ledger.sh --phase nor ledger-steps.sh next-phase")
+report "$name"
+
+name="$skill_md rejects an expand, migrate or contract-b phase's commit that transform-touches-tests.sh exits 1 on, and a contract-a phase's commit that production-frozen.sh exits 1 on"
+problems=()
+
+phased_text="$(awk 'index($0, "#### A `⟦phases") == 1 { inside = 1; next } inside && /^####? / { exit } inside' "$skill_path" | plain --join)"
+if [[ -z "${phased_text// /}" ]]; then
+  problems+=("$skill_md has no '#### A \`⟦phases: …⟧\` step' subsection to read")
+else
+  if ! grep -F 'transform-touches-tests.sh' <<<"$phased_text" > /dev/null; then
+    problems+=("$skill_md's phased step never runs transform-touches-tests.sh, so an expand, migrate or contract-b commit that edits a test file is accepted")
+  else
+    near="$(window "$phased_text" 'transform-touches-tests\.sh')"
+    for phase in expand migrate contract-b; do
+      grep -F "$phase" <<<"$near" > /dev/null ||
+        problems+=("$skill_md runs transform-touches-tests.sh in the phased step without naming the $phase phase")
+    done
+    grep -E 'exit 1' <<<"$near" > /dev/null && grep -E 'reject' <<<"$near" > /dev/null ||
+      problems+=("$skill_md never says transform-touches-tests.sh exit 1 rejects the phase's commit")
+  fi
+  if ! grep -F 'production-frozen.sh' <<<"$phased_text" > /dev/null; then
+    problems+=("$skill_md's phased step never runs production-frozen.sh, so a contract-a commit that edits production code is accepted")
+  else
+    near="$(window "$phased_text" 'production-frozen\.sh')"
+    grep -F 'contract-a' <<<"$near" > /dev/null ||
+      problems+=("$skill_md runs production-frozen.sh in the phased step without naming the contract-a phase")
+    grep -E 'exit 1' <<<"$near" > /dev/null && grep -E 'reject' <<<"$near" > /dev/null ||
+      problems+=("$skill_md never says production-frozen.sh exit 1 rejects the contract-a commit")
+  fi
+fi
 report "$name"
 
 finish

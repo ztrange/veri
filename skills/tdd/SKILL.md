@@ -1488,7 +1488,7 @@ A step listing `⟦phases: …⟧` runs no Red, Green or Refactor phase: it runs
 lists, in order, one at a time. `$S/ledger-steps.sh next-phase < .tdd/issue-<n>.md` names the
 next one, <phase>; record `git rev-parse HEAD` as that phase's base sha. Its developer leaf,
 built by `build-develop-prompt.sh <phase> <spec-file> "<STEP>" '<test-cmd>'`, makes that
-phase's change and commits it; then the blind verifier, `run-verdict.sh --step "<STEP>"
+phase's change and commits it, which the phase's freeze check below must accept; then the blind verifier, `run-verdict.sh --step "<STEP>"
 --fast-cmd '<fast-cmd>' <phase> <spec-file> <test-path> <base-sha>`, judges the diff from
 that base sha. Both are launched through the supervisor and waited on as *Launching a leaf*
 sets out, the leaf as `develop-<phase>` and the verifier as `verdict-<phase>`. On PASS, mark
@@ -1497,6 +1497,12 @@ ledger with that phase's commit, then push, and go back to `next-phase` for the 
 phase. On REJECT, revise under `REVISE_BUDGET` as *Revising on a REJECT* sets out; on exit 2,
 **bail** as a system failure (`no-verdict`). Once `next-phase` exits 3 every listed phase is
 marked, the step reads as done, and the loop goes back to `next-unchecked.sh`.
+
+The freeze check runs on the developer leaf's commit, before the verifier. An expand, migrate
+or contract-b commit runs `$S/transform-touches-tests.sh <base-sha>`: exit 1 rejects it, tests
+being frozen there. A contract-a commit runs `$S/production-frozen.sh <base-sha>`: exit 1
+rejects it, production being frozen there. Either rejection is revised as a REJECT is; exit 2
+**bails** as a system failure.
 
 ### 4. Draft PR
 
