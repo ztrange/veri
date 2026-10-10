@@ -34,7 +34,11 @@ def main(argv):
         return 2
     text, matcher = text.replace("\0", ""), (argv[1:] or [""])[0]
     if phase:
-        ticked, new = ledger.ledger_mark_phase(text, matcher, phase)
+        try:
+            ticked, new = ledger.ledger_mark_phase(text, matcher, phase)
+        except ValueError as error:
+            complain(str(error))
+            return 2
     else:
         ticked, new = ledger.ledger_tick(text, matcher, pending)
     if not ticked:

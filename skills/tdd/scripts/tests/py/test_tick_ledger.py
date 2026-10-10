@@ -353,3 +353,17 @@ def test_main_with_phase_marking_every_listed_phase_in_order_finishes_the_step_f
     assert (codes, answers["ledger-steps"][0], states, answers["next-unchecked"], answers["next-phase"]) == (
         (0, 0, 0, 0), 0, [b"done", b"done", b"open", b"open"],
         (0, b"strip edge hyphens\n"), (0, b"expand\n"))
+
+
+def test_main_with_phase_naming_a_phase_the_step_does_not_list_exits_2_leaving_the_ledger_byte_identical(
+        tmp_path, capsysbinary, tick_ledger):
+    seed = ("# Plan for #42\n\n- [ ] add lowercasing\n"
+            "- [ ] split the slug module ⟦phases: expand, migrate⟧ ⟦criterion 2⟧\n"
+            "- [ ] strip edge hyphens\n").encode()
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(seed)
+
+    code = tick_ledger.main(["--phase", "contract (a)", str(ledger), "split the slug module"])
+    capsysbinary.readouterr()
+
+    assert (code, ledger.read_bytes()) == (2, seed)
