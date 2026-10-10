@@ -33,6 +33,9 @@
 #  12. In that same span, a sentence says the resume rebase's exit 3 goes on unchanged, one
 #      says its exit 1 goes on from the old base and leaves the conflict to the Draft PR step,
 #      and one says its exit 2 bails `no-verdict`.
+#  13. Preflight step 3's item names `push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>`
+#      after the fast-tier baseline command, in a sentence that says `green`, and has a sentence
+#      saying never a bare force.
 #
 # Run: scripts/tests/skill-preflight-launchable.test.sh
 set -uo pipefail
@@ -71,6 +74,7 @@ guard_name='**worktree guard**'
 step1_heading='### 1. Read the issue'
 slug_item='**Derive the slug'
 rebase_call='rebase-onto-default.sh'
+lease_push='push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>'
 
 
 source "$HERE/lib/harness.sh"
@@ -362,6 +366,30 @@ if rebase_span; then
   noanswer="$(grep -iE 'exits? 2' <<< "$between" | grep -iF 'bail' | grep -F 'no-verdict')"
   [[ -n "$noanswer" ]] ||
     problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying the resume rebase's exit 2 bails no-verdict")
+fi
+
+report "$name"
+
+name="#1297 $skill_md publishes a resume rebase that moved the branch, once the baseline is green, with $lease_push, never a bare force"
+problems=()
+
+if rebase_span && preflight_or_problem "the resume rebase's push"; then
+  step3="$(item_around "$enter_at")"
+  item_end="$(awk -v s="$((enter_at + 1))" -v e="$sec_end" 'NR >= s && NR <= e && /^[0-9]+\./ { print NR - 1; exit }' "$md")"
+  item_end="${item_end:-$sec_end}"
+  push_at="$(awk -v s="$enter_at" -v e="$item_end" -v p="$lease_push" 'NR >= s && NR <= e && index($0, p) { print NR; exit }' "$md")"
+  if [[ -z "$push_at" ]]; then
+    problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) never names $lease_push, so a resume rebase that moved the branch is left unpublished or pushed without a pinned lease")
+  else
+    [[ "$push_at" -gt "$base_at" ]] ||
+      problems+=("$skill_md:$push_at names $lease_push before line $base_at starts the fast-tier baseline, so the rebased tip is published before any suite proved it green")
+    green="$(sentences <<< "$step3" | grep -F -- "$lease_push" | grep -iF 'green')"
+    [[ -n "$green" ]] ||
+      problems+=("$skill_md:$push_at's sentence naming $lease_push does not say it runs once the baseline is green")
+  fi
+  bare="$(sentences <<< "$step3" | grep -iF 'bare force' | grep -iE '(^|[^[:alpha:]])(not|never|no)([^[:alpha:]]|$)')"
+  [[ -n "$bare" ]] ||
+    problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) has no sentence saying the resume rebase is never published with a bare force")
 fi
 
 report "$name"

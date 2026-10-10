@@ -579,6 +579,11 @@ unauthenticated baseline never gets a cycle.
    long the run took and keep it as `baseline`, the elapsed wall time in whole seconds
    (round up). This measurement is free — the run happens anyway — and it is taken once, so
    a suite that gets slower mid-run does not move the timeout under a leaf.
+   Once that baseline is green, a resume rebase that moved the branch is published with
+   `$S/push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>`, where `<pre-rebase-sha>`
+   is the HEAD recorded before `rebase-onto-default.sh` ran. It is never a bare force: the
+   pinned lease refuses the push when the remote branch is no longer the commit this run
+   rebased from.
 
    **Then time the full tier too.** Get its command from
    `$S/detect-test-command.sh --tier all --issue "$body"`, run it once through `detach-command.sh` in the same start-then-wait shape as the preflight baseline,
