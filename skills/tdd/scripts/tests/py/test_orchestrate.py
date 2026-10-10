@@ -927,3 +927,76 @@ while [ $i -lt 1000 ] && [ ! -e "$MARKS.done" ]; do sleep 0.01; i=$((i + 1)); do
     assert orchestrated("1356", "0.1") == (
         0, "context 1356 150100\n", "", "conductor running at exit", True, [],
         ["asked again while the group held its stdout"])
+
+
+def test_1130_a_run_from_a_symlinked_scripts_directory_asks_and_launches_through_it_and_reads_parked_in_the_working_directory_and_a_closed_or_gone_stdout_sigterms_the_group_asks_no_more_and_exits_2_with_one_line(
+        tmp_path, monkeypatch, orchestrate, run_cli):
+    import importlib.util
+    import signal
+    import types
+    realskill = tmp_path / "realskill"
+    (realskill / ".tdd" / "parked").mkdir(parents=True)
+    (realskill / ".tdd" / "parked" / "1402.md").write_text("")
+    (realskill / "veri").symlink_to(SCRIPTS / "veri")
+    link = tmp_path / "link"
+    link.symlink_to(realskill)
+    elsewhere = tmp_path / "elsewhere"
+    (elsewhere / ".tdd" / "parked").mkdir(parents=True)
+    (elsewhere / ".tdd" / "parked" / "1401.md").write_text("")
+    spec = importlib.util.spec_from_file_location("linked_orchestrate", link / "veri" / "orchestrate.py")
+    linked = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(linked)
+
+    def orchestrated(module, answers, stream, cwd, stdout):
+        answers, events = list(answers), []
+
+        def run(args, *rest, **kwargs):
+            events.append(("ask", args[0]))
+            code, out = answers.pop(0) if answers else (3, "")
+            return subprocess.CompletedProcess(args, code, out.encode(), None)
+
+        def popen(args, *rest, **kwargs):
+            events.append(("launch",) + tuple(args))
+            conductor = _FakeConductor(4000 + len(events))
+            conductor.stdout = io.BytesIO(stream)
+            return conductor
+
+        monkeypatch.setattr(subprocess, "run", run)
+        monkeypatch.setattr(subprocess, "Popen", popen)
+        monkeypatch.setattr(os, "killpg", lambda pid, sig: events.append(("killpg", pid, sig)))
+        monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+        monkeypatch.delenv("VERI_CONDUCTOR_STOP_TIMEOUT", raising=False)
+        monkeypatch.setattr(sys, "stdout", stdout)
+        try:
+            code, out, err = run_cli(types.SimpleNamespace(main=module._main_stdout_gone_exits_2), [], cwd=cwd)
+        finally:
+            monkeypatch.setattr(sys, "stdout", sys.__stdout__)
+        return code, out, err, events
+
+    assert orchestrated(linked, [(0, "1401\n1402\n"), (0, "1401\n")], b"", elsewhere, sys.stdout) == (
+        0, "", "", [("ask", str(link / "solvable-issues.sh")), ("launch", str(link / "run-conductor.sh"), "1402"),
+                    ("killpg", 4002, signal.SIGTERM), ("ask", str(link / "solvable-issues.sh"))])
+
+    gone = "orchestrate.sh: stdout is gone: its reader has exited\n"
+    line = (_assistant(1000, 0) + "\n").encode()
+    read_end, write_end = os.pipe()
+    os.close(read_end)
+    broken = os.fdopen(write_end, "w")
+    try:
+        observed = {
+            "a pipe whose reader has exited": orchestrated(
+                orchestrate, [(0, "1601\n1602\n"), (0, "1602\n")], line, tmp_path, broken),
+            "closed": orchestrated(orchestrate, [(0, "1701\n1702\n"), (0, "1702\n")], line, tmp_path, None),
+        }
+    finally:
+        try:
+            broken.close()
+        except BrokenPipeError:
+            pass
+    asks = str(SCRIPTS / "solvable-issues.sh")
+    launch = str(SCRIPTS / "run-conductor.sh")
+    assert observed == {
+        "a pipe whose reader has exited": (
+            2, "", gone, [("ask", asks), ("launch", launch, "1601"), ("killpg", 4002, signal.SIGTERM)]),
+        "closed": (2, "", gone, [("ask", asks), ("launch", launch, "1701"), ("killpg", 4002, signal.SIGTERM)]),
+    }
