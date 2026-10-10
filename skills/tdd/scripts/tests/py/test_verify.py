@@ -1601,18 +1601,19 @@ def stream(*results):
 
 
 WAITING = "Waiting for the background `make test` run to complete before rendering a verdict."
-GREEN = "VERDICT: PASS\nREASON: Target test and full suite are green."
+GREEN_REASON = "Target test and full suite are green."
+GREEN = "VERDICT: PASS\nREASON: " + GREEN_REASON
 DELIVERED = "No action needed — verdict already delivered for this verification."
 NO_LINE_TEXT = NO_LINE.decode()
 RELAUNCH = ["relaunch", "cause=no-verdict"]
 NO_VERDICT_MARK = ["verdict", "verdict=malformed", "reason=", "cause=no-verdict"]
-GREEN_MARK = ["verdict", "verdict=PASS", "reason=Target test and full suite are green."]
+GREEN_MARK = ["verdict", "verdict=PASS", "reason=" + GREEN_REASON]
 KILLED_OUT = "verifier leaf killed-stuck — no verdict rendered (see .tdd/verify-green.log)\n"
 
 
 @pytest.mark.parametrize("env, leaf_outs, supervise_code, expected", [
     pytest.param({}, [stream(WAITING, GREEN, DELIVERED)], 0,
-                 (0, "Target test and full suite are green.\n", "", 1, [GREEN_MARK]), id="earlier-record"),
+                 (0, GREEN_REASON + "\n", "", 1, [GREEN_MARK]), id="earlier-record"),
     pytest.param({}, [stream(WAITING, DELIVERED)], 0,
                  (2, "\n", NO_LINE_TEXT * 2, 2, [RELAUNCH, NO_VERDICT_MARK]), id="no-record-verdict"),
     pytest.param({}, [stream("VERDICT: REJECT\nREASON: Missing edge case.",
@@ -1620,7 +1621,7 @@ KILLED_OUT = "verifier leaf killed-stuck — no verdict rendered (see .tdd/verif
                  (0, "Revised: target and full suite green.\n", "", 1,
                   [["verdict", "verdict=PASS", "reason=Revised: target and full suite green."]]), id="newest-wins"),
     pytest.param({}, [WAITING, GREEN], 0,
-                 (0, "Target test and full suite are green.\n", NO_LINE_TEXT, 2, [RELAUNCH, GREEN_MARK]),
+                 (0, GREEN_REASON + "\n", NO_LINE_TEXT, 2, [RELAUNCH, GREEN_MARK]),
                  id="relaunched-second-verdict"),
     pytest.param({}, [WAITING], 0,
                  (2, "\n", NO_LINE_TEXT * 2, 2, [RELAUNCH, NO_VERDICT_MARK]), id="budget-default"),
