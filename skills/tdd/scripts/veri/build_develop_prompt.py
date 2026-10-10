@@ -80,15 +80,17 @@ def main(argv):
         optional["REJECTION_REASON"] = args[3]
     if _has_heading(_spec_text(spec), b"Bug"):
         optional["BUG_REPRODUCTION"] = f"{prompts}/_develop-red-bug.md"
+    marked = {}
     if phase == "red" and "⟦ci-repair⟧" in step:
-        optional["CI_REPAIR"] = f"{prompts}/_develop-red-ci-repair.md"
+        marked["CI_REPAIR"] = f"{prompts}/_develop-red-ci-repair.md"
     if "green" in (phase, revised_phase):
         for placeholder, mark in (("REPLACES_CASE", "replaces-case"), ("SUITE_REPAIR", "suite-repair")):
             if f"⟦{mark}⟧" in step:
-                optional[placeholder] = f"{prompts}/_develop-green-{mark}.md"
+                marked[placeholder] = f"{prompts}/_develop-green-{mark}.md"
     if revised_phase in INTERFACE_PHASES:
         frozen = "production" if revised_phase == "contract-a" else "test"
-        optional["FREEZE_RULE"] = f"{prompts}/_develop-revise-freeze-{frozen}.md"
+        marked["FREEZE_RULE"] = f"{prompts}/_develop-revise-freeze-{frozen}.md"
+    optional.update(marked)
     paths += optional.values()
     for path in paths:
         if not os.access(path, os.R_OK):
@@ -110,7 +112,7 @@ def main(argv):
         values["SHARED"] = _expand(_read(paths[1]), prompts_b)
         for placeholder, path in optional.items():
             values[placeholder] = _read(path)
-            if placeholder in ("REPLACES_CASE", "SUITE_REPAIR", "FREEZE_RULE", "CI_REPAIR"):
+            if placeholder in marked:
                 values[placeholder] = _expand(b"\n\n" + values[placeholder], prompts_b)
     except _IncludeRefused as refusal:
         sys.stderr.buffer.write(refusal.args[0] + b"\n")
