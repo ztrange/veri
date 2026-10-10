@@ -1,0 +1,2 @@
+### `build-develop-prompt.sh` accepts an expand phase and a migrate phase, each printing a prompt that states what that phase changes (expand: production gains the new interface and the old one becomes a proxy; migrate: callers move to the new interface) and that test files stay frozen ⟦criterion 1⟧
+- test-only | the `frozen` regex in test_build_develop_prompt.py could become a module-level constant if the contract phases' cases reuse it
