@@ -456,3 +456,27 @@ def test_main_prints_a_usage_line_naming_phase_owed_beside_phase_on_a_bad_argume
 
     assert (code, out, err.count(b"\n"), b"--phase <phase>" in err, b"--phase-owed <phase>" in err) == (
         2, b"", 1, True, True)
+
+
+def test_main_after_phase_owed_keeps_the_contract_owed_refusing_to_mark_it_done_or_tick_the_step_with_exit_2_and_leaves_its_owed_bullet_unchanged_1410(
+        tmp_path, capsysbinary, tick_ledger):
+    phased = ("- [ ] rename the slug helper ⟦phases: expand, migrate, contract (a)⟧ ⟦criterion 1⟧"
+              " ⟂ expand done ⟂ migrate done")
+    bullet = "- rename the slug helper: contract (a)"
+    seed = ("# Plan for #42\n\n" + phased + "\n- [ ] strip edge hyphens\n\n## Owed steps\n\n" + bullet + "\n").encode()
+    owed = seed.replace(phased.encode(), (phased + " ⟂ contract (a) owed").encode())
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(seed)
+
+    codes = [tick_ledger.main(argv) for argv in (
+        ["--phase-owed", "contract (a)", str(ledger), "rename the slug helper"],
+        ["--phase", "contract (a)", str(ledger), "rename the slug helper"],
+        [str(ledger), "rename the slug helper"],
+    )]
+    capsysbinary.readouterr()
+    text = ledger.read_bytes().decode()
+    step = next(line for line in text.split("\n") if "rename the slug helper ⟦" in line)
+
+    assert (codes, ledger.read_bytes()) == ([0, 2, 2], owed)
+    assert (step.startswith("- [ ] "), step.endswith(" ⟂ contract (a) owed"), " ⟂ contract (a) done" in step,
+            text.split("## Owed steps\n\n")[1]) == (True, True, False, bullet + "\n")
