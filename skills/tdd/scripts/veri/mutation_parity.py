@@ -40,15 +40,19 @@ def node_fails(node):
     return pytest(node).returncode != 0
 
 
+def named(name, failed):
+    return any(line == name or line.startswith(name + " (") for line in failed)
+
+
 def check(row):
     suite, old, fate, kept, patch = row
     subprocess.run(["git", "apply", patch], check=True)
     try:
         failed, passed = failed_nodes(suite) if "::" in old else failed_cases(suite)
-        caught = node_fails(kept) if fate == "replaced" else kept in failed
+        caught = node_fails(kept) if fate == "replaced" else named(kept, failed)
     finally:
         subprocess.run(["git", "apply", "-R", patch], check=True)
-    if any(line == old or line.startswith(old + " (") for line in failed) and passed > 0:
+    if named(old, failed) and passed > 0:
         return "proven" if caught else "unproven"
     return "owed"
 
