@@ -3,7 +3,7 @@ import sys
 
 import ledger
 
-USAGE = "usage: tick-ledger.sh [--refactor-pending] <ledger-file> <matcher>"
+USAGE = "usage: tick-ledger.sh [--refactor-pending | --phase <phase>] <ledger-file> <matcher>"
 
 
 def complain(message):
