@@ -1125,3 +1125,22 @@ def test_with_veri_parallel_1_it_exits_0_once_nothing_is_left_to_take_after_laun
         0, ["7", "8"],
         (["parked 7", "parked 8"] if parks else []) + ["stopped: nothing solvable"])
     assert (work / ".tdd" / "parallel.exit").read_text() == "0\n"
+
+
+def test_veri_parallel_2_starts_two_solvable_issues_conductors_before_either_ends(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    work = tmp_path / "repo"
+    (work / ".tdd").mkdir(parents=True)
+    starts = []
+
+    def on_launch(sup):
+        starts.append((sup.args[-1], sorted(s.args[-1] for s in supervisors if s is not sup and s.returncode is None)))
+
+    supervisors = _boundaries(monkeypatch, tmp_path, on_launch, _exit_every_live_conductor, solvable=(0, "7\n8\n"))
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    code, out, err = run_cli(parallel_conductors, [], env={"VERI_PARALLEL": "2", "VERI_GH_JSON": str(gh)}, cwd=work)
+    assert (code, starts) == (0, [("7", []), ("8", ["7"])])

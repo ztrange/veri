@@ -162,25 +162,6 @@ STUB
 }
 
 
-gh3="$work/gh3"
-solvable_fixture "$gh3" 7 8
-
-timeline3="$work/timeline3"
-par_stub="$work/claude-par"
-timeline_stub "$par_stub" "$timeline3" "$gh3"
-
-run_launcher "$gh3" "$par_stub" "$work/par.out" VERI_PARALLEL=2
-got_timeline="$(cat "$timeline3" 2>/dev/null)"
-first_two="$(head -n 2 "$timeline3" 2>/dev/null | sort)"
-all_four="$(sort "$timeline3" 2>/dev/null)"
-[[ "$first_two" == "$(printf 'start 7\nstart 8')" \
-   && "$all_four" == "$(printf 'end 7\nend 8\nstart 7\nstart 8')" ]] \
-  && ok || no "VERI_PARALLEL=2 runs two solvable issues' conductors at once — both start before either ends (exit=$code)
-timeline:
-$got_timeline
-launcher output:
-$(cat "$work/par.out")"
-
 gh_ctx="$work/gh-ctx"
 solvable_fixture "$gh_ctx" 7 8
 
