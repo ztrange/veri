@@ -31,3 +31,12 @@ def test_run_cli_calls_main_with_the_argv_stdin_environment_and_cwd_given_and_an
         "argv=one two words\nstdin=piped text\nenv=added\ncwd=%s\n" % cwd,
         "planted: said its piece\n",
     )
+
+
+def test_run_cli_answers_the_code_a_main_that_raises_system_exit_carries(run_cli):
+    module = types.ModuleType("exp_exiting")
+    exec("def main(argv):\n    raise SystemExit(3)\n", module.__dict__)
+
+    code, _, _ = run_cli(module, [])
+
+    assert code == 3
