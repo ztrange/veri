@@ -569,6 +569,7 @@ unauthenticated baseline never gets a cycle.
    ```
    stray="$(git status --porcelain)"
    git reset --hard HEAD
+   git clean -fd
    ```
    Keep this `$stray` for *Resume* sub-step 4 to name. Then the resumed run, its worktree
    clean and its ledger untouched, runs
