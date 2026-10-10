@@ -546,3 +546,70 @@ def test_main_keeps_its_bound_across_reads_calls_and_the_head_sha_it_was_given_a
         "stale head": [(3, False, False)],
         "stale across": [(3, False, False), (2, False, True)],
     }
+
+
+def test_main_reads_the_rollup_and_legacy_status_contexts_to_pending_green_red_or_unreadable(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    run = lambda status, conclusion=None: {"name": "gates", "head_sha": SHA, "status": status, "conclusion": conclusion}
+    success, in_progress = run("completed", "success"), run("in_progress")
+    legacy = lambda state: {"context": "legacy", "state": state}
+
+    def world(runs, statuses):
+        state = {"reads": 0, "clock": 0}
+
+        def answer(line, **_):
+            if line == "date +%s":
+                state["clock"] += 1
+                return 0, f"{(state['clock'] - 1) * 900}\n", ""
+            if line.startswith("sleep "):
+                return 0, "", ""
+            if line == PULL:
+                state["reads"] += 1
+                return 0, json.dumps({"mergeable": True, "head": {"sha": SHA}}), ""
+            if line == PAGE_1:
+                return 0, json.dumps({"total_count": len(runs), "check_runs": runs}), ""
+            if line == PAGE_2:
+                return 0, json.dumps({"total_count": len(runs), "check_runs": []}), ""
+            if line == STATUS:
+                return 0, json.dumps({"state": "pending", "sha": SHA, "statuses": statuses}), ""
+            return 1, "", f"unexpected: {line}\n"
+
+        fake_processes(answer)
+        return state
+
+    def waited(name, runs, statuses=()):
+        work = tmp_path / name
+        (work / ".tdd").mkdir(parents=True)
+        state = world(runs, list(statuses))
+        code, out, err = run_cli(wait_ci, [PR, "1800", "1800"], env={"VERI_POLL": "0"}, cwd=work)
+        return code, state["reads"], state["clock"] <= 3
+
+    observed = {
+        "pending": waited("pending", [success, in_progress]),
+        "green": waited("green", [success, run("completed", "neutral"), run("completed", "skipped")]),
+        "red": waited("red", [success, run("completed", "failure")]),
+        "empty is never 0": waited("empty", [])[0] != 0,
+        "legacy PENDING": waited("legacy-pending", [success], [legacy("pending")]),
+        "legacy EXPECTED": waited("legacy-expected", [success], [legacy("pending")]),
+        "legacy FAILURE": waited("legacy-failure", [success], [legacy("failure")]),
+        "legacy ERROR": waited("legacy-error", [success], [legacy("error")]),
+        "legacy SUCCESS beside a pending run": waited("legacy-success-pending", [in_progress], [legacy("success")]),
+        "legacy SUCCESS beside a green run": waited("legacy-success-green", [success], [legacy("success")]),
+        "all skipped": waited("all-skipped", [run("completed", "skipped"), run("completed", "skipped")]),
+        "legacy with no state": waited("stateless", [success], [{"context": "legacy"}])[:2],
+    }
+
+    assert observed == {
+        "pending": (3, 2, True),
+        "green": (0, 1, True),
+        "red": (1, 1, True),
+        "empty is never 0": True,
+        "legacy PENDING": (3, 2, True),
+        "legacy EXPECTED": (3, 2, True),
+        "legacy FAILURE": (1, 1, True),
+        "legacy ERROR": (1, 1, True),
+        "legacy SUCCESS beside a pending run": (3, 2, True),
+        "legacy SUCCESS beside a green run": (0, 1, True),
+        "all skipped": (3, 2, True),
+        "legacy with no state": (2, 1),
+    }
