@@ -8,5 +8,5 @@
 # usage: production-frozen.sh <base-sha>
 #
 # Exit: 1 naming each production file the range <base-sha>..HEAD changed, 2 when <base-sha>
-# is missing.
+# is missing or does not resolve to a commit.
 exec python3 "$(dirname "$0")/veri/production_frozen.py" "$@"
