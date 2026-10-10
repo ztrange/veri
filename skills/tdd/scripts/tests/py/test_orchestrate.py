@@ -620,21 +620,24 @@ def _orchestrated(work, monkeypatch, orchestrate, fake_processes, run_cli, answe
     return code, out, err, launches
 
 
+_HEARTBEAT = '{"type":"system","subtype":"heartbeat"}'
+_USER = '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
+
+
+def _assistant(read, creation, command=None):
+    content = ('"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"%s"}}],' % command
+               if command else "")
+    return ('{"type":"assistant","message":{"role":"assistant",%s"usage":{"input_tokens":5,'
+            '"cache_creation_input_tokens":%d,"cache_read_input_tokens":%d,"output_tokens":30}}}'
+            % (content, creation, read))
+
+
+def _step_done(issue, read, creation):
+    return _assistant(read, creation, "VERI_ISSUE=%s VERI_ACTOR=conductor $S/event.sh step-done" % issue)
+
+
 def test_main_launches_per_solvable_issue_reports_context_and_stops_over_budget_only_after_the_next_step_done_result_then_relaunches(
         tmp_path, monkeypatch, orchestrate, fake_processes, run_cli):
-    heartbeat = '{"type":"system","subtype":"heartbeat"}'
-    user = '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
-
-    def assistant(read, creation, command=None):
-        content = ('"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"%s"}}],' % command
-                   if command else "")
-        return ('{"type":"assistant","message":{"role":"assistant",%s"usage":{"input_tokens":5,'
-                '"cache_creation_input_tokens":%d,"cache_read_input_tokens":%d,"output_tokens":30}}}'
-                % (content, creation, read))
-
-    def step_done(issue, read, creation):
-        return assistant(read, creation, "VERI_ISSUE=%s VERI_ACTOR=conductor $S/event.sh step-done" % issue)
-
     def orchestrated(name, answers, streams, budget=None):
         work = tmp_path / name
         work.mkdir()
@@ -682,29 +685,29 @@ def test_main_launches_per_solvable_issue_reports_context_and_stops_over_budget_
         "solvable-issues.sh exits 2": orchestrated("broken", [(2, "")], []),
         "context per assistant event, none from the result": orchestrated("streaming", [(0, "301\n"), (3, "")], [[
             '{"type":"system","subtype":"init","session_id":"s1"}',
-            assistant(50000, 3438),
-            user,
-            assistant(60000, 2000),
+            _assistant(50000, 3438),
+            _USER,
+            _assistant(60000, 2000),
             '{"type":"result","subtype":"success","is_error":false,"usage":{"input_tokens":10,'
             '"cache_creation_input_tokens":5438,"cache_read_input_tokens":110000,"output_tokens":165}}',
         ]]),
         "over budget mid-step": orchestrated("budget", [(0, "401\n"), (3, "")], [[
-            assistant(150000, 0), step_done(401, 150000, 100), user, heartbeat, heartbeat,
+            _assistant(150000, 0), _step_done(401, 150000, 100), _USER, _HEARTBEAT, _HEARTBEAT,
         ]], "100000"),
         "step-done under the default, later crossing": orchestrated("underbudget", [(0, "501\n"), (3, "")], [[
-            step_done(501, 110000, 0), user, assistant(150000, 0, "true"), user, heartbeat,
+            _step_done(501, 110000, 0), _USER, _assistant(150000, 0, "true"), _USER, _HEARTBEAT,
         ]]),
         "over budget at the step-done call": orchestrated("atresult", [(0, "601\n"), (3, "")], [[
-            step_done(601, 150000, 100), heartbeat, user, heartbeat,
+            _step_done(601, 150000, 100), _HEARTBEAT, _USER, _HEARTBEAT,
         ]], "100000"),
         "never crosses": orchestrated("never", [(0, "701\n"), (3, "")], [[
-            step_done(701, 60000, 0), user, step_done(701, 99000, 100), user, heartbeat,
+            _step_done(701, 60000, 0), _USER, _step_done(701, 99000, 100), _USER, _HEARTBEAT,
         ]], "100000"),
         "unset budget crossing 120000": orchestrated("defaultbudget", [(0, "901\n"), (3, "")], [[
-            assistant(120000, 1), step_done(901, 120000, 1), user, heartbeat,
+            _assistant(120000, 1), _step_done(901, 120000, 1), _USER, _HEARTBEAT,
         ]]),
         "relaunched after a stop": orchestrated("relaunch", [(0, "1001\n"), (0, "1001\n"), (3, "")], [[
-            step_done(1001, 150000, 100), user, heartbeat,
+            _step_done(1001, 150000, 100), _USER, _HEARTBEAT,
         ], []], "100000"),
     }
 
@@ -838,12 +841,6 @@ def test_1126_1246_a_conductor_stopped_over_budget_gets_sigterm_to_its_group_who
         tmp_path, monkeypatch, orchestrate, fake_processes, run_cli):
     import signal
     marks = tmp_path / "marks"
-    step_done = ('{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1",'
-                 '"name":"Bash","input":{"command":"VERI_ISSUE=%s VERI_ACTOR=conductor $S/event.sh step-done"}}],'
-                 '"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,'
-                 '"output_tokens":30}}}')
-    user = '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
-    heartbeat = '{"type":"system","subtype":"heartbeat"}'
     stubs = {
         "1355": """#!/usr/bin/env bash
 (stopped=0
@@ -865,7 +862,7 @@ echo "writer $?" >> "$MARKS"
 exec > /dev/null
 i=0
 while [ $i -lt 1000 ] && [ ! -e "$MARKS.done" ]; do sleep 0.01; i=$((i + 1)); done
-""" % {"heartbeat": heartbeat, "step_done": step_done % "1355", "user": user},
+""" % {"heartbeat": _HEARTBEAT, "step_done": _step_done("1355", 150000, 100), "user": _USER},
         "1356": """#!/usr/bin/env bash
 trap '' TERM
 (i=0
@@ -877,7 +874,7 @@ wait $!
 exec > /dev/null
 i=0
 while [ $i -lt 1000 ] && [ ! -e "$MARKS.done" ]; do sleep 0.01; i=$((i + 1)); done
-""" % {"step_done": step_done % "1356", "user": user},
+""" % {"step_done": _step_done("1356", 150000, 100), "user": _USER},
     }
     for issue, text in stubs.items():
         stub = tmp_path / ("conductor-%s.sh" % issue)
