@@ -71,10 +71,6 @@ def run_cli(monkeypatch, capfd):
             code = module.main(argv)
         except SystemExit as exit:
             code = exit.code
-            if code is not None and not isinstance(code, int):
-                sys.stderr.write("%s\n" % (code,))
-                sys.stderr.flush()
-                code = 1
         except Exception as exc:
             sys.stderr.write(entry.refusal(module.main, exc))
             sys.stderr.flush()
@@ -83,6 +79,10 @@ def run_cli(monkeypatch, capfd):
             os.environ.clear()
             os.environ.update(environ)
             os.chdir(start)
+        if code is not None and not isinstance(code, int):
+            sys.stderr.write("%s\n" % (code,))
+            sys.stderr.flush()
+            code = 1
         out, err = capfd.readouterr()
         return 0 if code is None else code, out, err
 
