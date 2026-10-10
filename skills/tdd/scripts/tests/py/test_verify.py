@@ -1,6 +1,7 @@
 """In-process cases for veri/verify.py, the module verify.sh is a shim over."""
 import importlib
 import io
+import json
 import os
 import pathlib
 import subprocess
@@ -1590,6 +1591,84 @@ def test_verify_sh_passes_the_blind_prompt_carrying_the_spec_to_the_leaf_and_a_h
     else:
         assert (code, "killed-stuck" in out,
                 err.count("supervise[verify-red]: killed-stuck"), "retry " in err) == (2, True, 1, False)
+
+
+def stream(*results):
+    records = ['{"type":"system","subtype":"init","session_id":"s"}']
+    records += ['{"type":"result","subtype":"success","is_error":false,"result":%s}' % json.dumps(r)
+                for r in results]
+    return "\n".join(records)
+
+
+WAITING = "Waiting for the background `make test` run to complete before rendering a verdict."
+GREEN = "VERDICT: PASS\nREASON: Target test and full suite are green."
+DELIVERED = "No action needed — verdict already delivered for this verification."
+NO_LINE_TEXT = "parse-verdict: no VERDICT: line found\n"
+RELAUNCH = ["relaunch", "cause=no-verdict"]
+NO_VERDICT_MARK = ["verdict", "verdict=malformed", "reason=", "cause=no-verdict"]
+GREEN_MARK = ["verdict", "verdict=PASS", "reason=Target test and full suite are green."]
+KILLED_OUT = "verifier leaf killed-stuck — no verdict rendered (see .tdd/verify-green.log)\n"
+
+
+@pytest.mark.parametrize("env, leaf_outs, supervise_code, expected", [
+    pytest.param({}, [stream(WAITING, GREEN, DELIVERED)], 0,
+                 (0, "Target test and full suite are green.\n", "", 1, [GREEN_MARK]), id="earlier-record"),
+    pytest.param({}, [stream(WAITING, DELIVERED)], 0,
+                 (2, "\n", NO_LINE_TEXT * 2, 2, [RELAUNCH, NO_VERDICT_MARK]), id="no-record-verdict"),
+    pytest.param({}, [stream("VERDICT: REJECT\nREASON: Missing edge case.",
+                             "VERDICT: PASS\nREASON: Revised: target and full suite green.", DELIVERED)], 0,
+                 (0, "Revised: target and full suite green.\n", "", 1,
+                  [["verdict", "verdict=PASS", "reason=Revised: target and full suite green."]]), id="newest-wins"),
+    pytest.param({}, [WAITING, GREEN], 0,
+                 (0, "Target test and full suite are green.\n", NO_LINE_TEXT, 2, [RELAUNCH, GREEN_MARK]),
+                 id="relaunched-second-verdict"),
+    pytest.param({}, [WAITING], 0,
+                 (2, "\n", NO_LINE_TEXT * 2, 2, [RELAUNCH, NO_VERDICT_MARK]), id="budget-default"),
+    pytest.param({"VERI_NO_VERDICT_RETRIES": "0"}, [WAITING], 0,
+                 (2, "\n", NO_LINE_TEXT, 1, [NO_VERDICT_MARK]), id="budget-0"),
+    pytest.param({"VERI_NO_VERDICT_RETRIES": "2"}, [WAITING], 0,
+                 (2, "\n", NO_LINE_TEXT * 3, 3, [RELAUNCH, RELAUNCH, NO_VERDICT_MARK]), id="budget-2"),
+    pytest.param({"VERI_NO_VERDICT_RETRIES": "many"}, [WAITING], 0,
+                 (2, "", "verify: VERI_NO_VERDICT_RETRIES must be a non-negative integer, got 'many'\n", 0, []),
+                 id="budget-not-an-integer"),
+    pytest.param({"VERI_NO_VERDICT_RETRIES": "3", "VERI_STUCK_RETRIES": "1"}, [GREEN], 2,
+                 (2, KILLED_OUT, "", 1, []), id="killed-not-relaunched"),
+    pytest.param({"VERI_STUCK_RETRIES": "3"}, [WAITING], 0,
+                 (2, "\n", NO_LINE_TEXT * 2, 2, [RELAUNCH, NO_VERDICT_MARK]), id="stuck-retries-leave-no-verdict-count"),
+    pytest.param({"VERI_NO_VERDICT_RETRIES": "3", "VERI_STUCK_RETRIES": "0"}, [GREEN], 2,
+                 (2, KILLED_OUT, "", 1, []), id="no-verdict-retries-leave-stuck-count"),
+])
+def test_verify_sh_reads_the_newest_verdict_across_result_records_and_relaunches_only_a_clean_no_verdict_exit_within_its_own_budget_marking_it_no_verdict(
+        env, leaf_outs, supervise_code, expected, run_cli, tmp_path, monkeypatch):
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
+                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES"):
+        monkeypatch.delenv(name, raising=False)
+    extract = importlib.import_module("veri.extract_result").extract
+    stuck_seen = []
+    marked = []
+
+    def fake(args, *_, **__):
+        words = [str(a) for a in args]
+        name = os.path.basename(words[0])
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", None)
+        if name == "supervise.sh":
+            stuck_seen.append(os.environ.get("VERI_STUCK_RETRIES"))
+            leaf = leaf_outs[min(len(stuck_seen), len(leaf_outs)) - 1]
+            return subprocess.CompletedProcess(args, supervise_code, (leaf + "\n" + extract(leaf)).encode(), None)
+        if name == "event.sh":
+            marked.append(words[1:])
+        return subprocess.CompletedProcess(args, 128 if name == "git" else 0, b"", None)
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code, out, err = run_cli(verify, ["--fast-cmd", "make unit", "green", "spec.md", "tests/test_slugify.py",
+                                      "test_lowercases"], env={"HOME": str(tmp_path), **env}, cwd=tmp_path)
+
+    assert (code, out, err, len(stuck_seen), marked) == expected
+    assert stuck_seen == [env.get("VERI_STUCK_RETRIES")] * len(stuck_seen)
 
 
 def git_state(repo):

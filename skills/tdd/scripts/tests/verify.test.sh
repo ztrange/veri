@@ -86,11 +86,6 @@ verify_in() {
       "$VERIFY" "${flag_args[@]+"${flag_args[@]}"}" "$2" "$work/spec.md" tests/test_slugify.py "$slot4" )
 }
 
-verify() {  # verify <fake-out-text> <phase> -> runs in $work, sets $out/$code
-  out="$(verify_in "$work" "$2" "$1")"
-  code=$?
-}
-
 cat > "$stubdir/claude-hang" <<'STUB'
 #!/bin/sh
 echo "thinking..."; clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"; sleep 60
@@ -140,124 +135,6 @@ fixture_repo() {
   git -C "$dir" add -A >/dev/null 2>&1
   git -C "$dir" commit -q -m "initial" >/dev/null 2>&1
 }
-
-verify '{"type":"system","subtype":"init","session_id":"s"}
-{"type":"result","subtype":"success","is_error":false,"num_turns":16,"result":"Waiting for the `make test` background task and its Monitor to report completion — will post the verdict once it finishes."}
-{"type":"result","subtype":"success","is_error":false,"num_turns":2,"result":"VERDICT: PASS\nREASON: Target test and full suite are green."}
-{"type":"result","subtype":"success","is_error":false,"num_turns":1,"duration_ms":1500,"duration_api_ms":1400,"total_cost_usd":0.01,"usage":{"input_tokens":1,"output_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"origin":{"kind":"task-notification"},"result":"No action needed — verdict already delivered for this verification."}' green
-{ [[ "$code" == 0 ]] && [[ "$out" == 'Target test and full suite are green.' ]]; } && ok \
-  || no "a verdict in an earlier result record is read when the last result record carries none (code=$code want 0; output='$out' want 'Target test and full suite are green.')"
-
-out="$(verify_in "$work" green '{"type":"system","subtype":"init","session_id":"s"}
-{"type":"result","subtype":"success","is_error":false,"num_turns":16,"result":"Waiting for the `make test` background task and its Monitor to report completion — will post the verdict once it finishes."}
-{"type":"result","subtype":"success","is_error":false,"num_turns":1,"duration_ms":1500,"duration_api_ms":1400,"total_cost_usd":0.01,"usage":{"input_tokens":1,"output_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"origin":{"kind":"task-notification"},"result":"No action needed — verdict already delivered for this verification."}' 2>"$work/err17")"
-code=$?
-err17="$(cat "$work/err17")"
-{ [[ "$code" == 2 ]] && [[ -z "$out" ]] && [[ "$err17" == *'parse-verdict: no VERDICT: line found'* ]]; } && ok \
-  || no "a log with no VERDICT: line in any result record still exits 2 with the same diagnostic (code=$code want 2; output='$out' want empty; stderr='$err17' want 'parse-verdict: no VERDICT: line found')"
-
-verify '{"type":"system","subtype":"init","session_id":"s"}
-{"type":"result","subtype":"success","is_error":false,"num_turns":4,"result":"VERDICT: REJECT\nREASON: Missing edge case."}
-{"type":"result","subtype":"success","is_error":false,"num_turns":2,"result":"VERDICT: PASS\nREASON: Revised: target and full suite green."}
-{"type":"result","subtype":"success","is_error":false,"num_turns":1,"duration_ms":1500,"duration_api_ms":1400,"total_cost_usd":0.01,"usage":{"input_tokens":1,"output_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"origin":{"kind":"task-notification"},"result":"No action needed — verdict already delivered for this verification."}' green
-{ [[ "$code" == 0 ]] && [[ "$out" == 'Revised: target and full suite green.' ]]; } && ok \
-  || no "the newest VERDICT: wins when more than one result record carries one (code=$code want 0; output='$out' want 'Revised: target and full suite green.')"
-
-cat > "$stubdir/claude-counting" <<'STUB'
-#!/bin/sh
-n=$(( $(cat "$LAUNCH_COUNT" 2>/dev/null || echo 0) + 1 ))
-echo "$n" > "$LAUNCH_COUNT"
-if [ "$n" -eq "${VERDICT_ON_LAUNCH:-0}" ]; then
-  printf '%s' 'VERDICT: PASS
-REASON: Target test and full suite are green.'
-else
-  printf '%s' 'Waiting for the background `make test` run to complete before rendering a verdict.'
-fi
-exit 0
-STUB
-chmod +x "$stubdir/claude-counting"
-no_verdict_dir="$work/no-verdict-relaunch"
-mkdir -p "$no_verdict_dir"
-no_verdict_out="$( LAUNCH_COUNT="$no_verdict_dir/launches" VERDICT_ON_LAUNCH=2 \
-    verify_in "$no_verdict_dir" green '' "$stubdir/claude-counting" 2>/dev/null )"
-no_verdict_code=$?
-no_verdict_launches="$(cat "$no_verdict_dir/launches" 2>/dev/null || echo 0)"
-{ [[ "$no_verdict_code" == 0 ]] && [[ "$no_verdict_launches" == 2 ]] \
-  && [[ "$no_verdict_out" == *'full suite are green'* ]]; } && ok \
-  || no "a verifier leaf that exited cleanly with no VERDICT: line is relaunched and its second verdict returned (code=$no_verdict_code want 0; launches=$no_verdict_launches want 2; output='$no_verdict_out' want the PASS reason)"
-
-never_verdict() {  # never_verdict <label> [<retries>] -> prints "<code> <launches>"
-  local dir="$work/never-verdict-$1"
-  mkdir -p "$dir"
-  ( if [[ $# -ge 2 ]]; then export VERI_NO_VERDICT_RETRIES="$2"; else unset VERI_NO_VERDICT_RETRIES; fi
-    LAUNCH_COUNT="$dir/launches" verify_in "$dir" green '' "$stubdir/claude-counting" >/dev/null 2>&1
-    echo "$? $(cat "$dir/launches" 2>/dev/null || echo 0)" )
-}
-budget_default="$(never_verdict default)"
-budget_zero="$(never_verdict zero 0)"
-budget_two="$(never_verdict two 2)"
-{ [[ "$budget_default" == '2 2' ]] && [[ "$budget_zero" == '2 1' ]] && [[ "$budget_two" == '2 3' ]]; } && ok \
-  || no "no-verdict relaunches stop after VERI_NO_VERDICT_RETRIES (default 1): exit 2 after 1 + retries launches (code launches — default: '$budget_default' want '2 2'; =0: '$budget_zero' want '2 1'; =2: '$budget_two' want '2 3')"
-
-budget_bad="$(never_verdict bad many)"
-[[ "$budget_bad" == '2 0' ]] && ok \
-  || no "a non-integer VERI_NO_VERDICT_RETRIES makes verify.sh exit 2 without launching any verifier leaf (code launches: '$budget_bad' want '2 0')"
-
-cat > "$stubdir/claude-counting-hang" <<'STUB'
-#!/bin/sh
-echo $(( $(cat "$LAUNCH_COUNT" 2>/dev/null || echo 0) + 1 )) > "$LAUNCH_COUNT"
-echo "thinking..."; clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"; sleep 60
-STUB
-chmod +x "$stubdir/claude-counting-hang"
-killed_dir="$work/killed-no-relaunch"
-mkdir -p "$killed_dir"
-( cd "$killed_dir" && env CLAUDE_BIN="$stubdir/claude-counting-hang" LAUNCH_COUNT="$killed_dir/launches" \
-    VERI_STUCK_RETRIES=1 VERI_NO_VERDICT_RETRIES=3 VERI_HEARTBEAT=1 VERI_POLL=0.02 \
-    "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
-killed_code=$?
-killed_launches="$(cat "$killed_dir/launches" 2>/dev/null || echo 0)"
-{ [[ "$killed_code" == 2 ]] && [[ "$killed_launches" == 2 ]]; } && ok \
-  || no "a verifier killed by supervise.sh is not relaunched by verify.sh, whatever VERI_NO_VERDICT_RETRIES is (code=$killed_code want 2; launches=$killed_launches want 2 — supervise.sh's own attempts only)"
-
-axes_dir="$work/budget-axes"
-mkdir -p "$axes_dir/no-verdict" "$axes_dir/stuck"
-( cd "$axes_dir/no-verdict" && unset VERI_NO_VERDICT_RETRIES \
-  && env CLAUDE_BIN="$stubdir/claude-counting" LAUNCH_COUNT="$axes_dir/no-verdict/launches" ARGV_OUT="$axes_dir/argv" \
-      VERI_STUCK_RETRIES=3 "$VERIFY" --fast-cmd "make unit" green "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
-axes_no_verdict="$? $(cat "$axes_dir/no-verdict/launches" 2>/dev/null || echo 0)"
-( cd "$axes_dir/stuck" && env CLAUDE_BIN="$stubdir/claude-counting-hang" LAUNCH_COUNT="$axes_dir/stuck/launches" \
-    VERI_STUCK_RETRIES=0 VERI_NO_VERDICT_RETRIES=3 VERI_HEARTBEAT=1 VERI_POLL=0.02 \
-    "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
-axes_stuck="$? $(cat "$axes_dir/stuck/launches" 2>/dev/null || echo 0)"
-{ [[ "$axes_no_verdict" == '2 2' ]] && [[ "$axes_stuck" == '2 1' ]]; } && ok \
-  || no "VERI_STUCK_RETRIES does not change the no-verdict relaunch count and VERI_NO_VERDICT_RETRIES does not change supervise.sh's stuck retry count (code launches — never-verdict leaf, VERI_STUCK_RETRIES=3: '$axes_no_verdict' want '2 2'; hung leaf, VERI_STUCK_RETRIES=0 VERI_NO_VERDICT_RETRIES=3: '$axes_stuck' want '2 1')"
-
-causes_in() {  # causes_in <dir> -> every non-empty `cause` in <dir>'s event log, one per line
-  python3 -c '
-import sys, json
-for line in open(sys.argv[1]).read().splitlines():
-    try:
-        obj = json.loads(line)
-    except Exception:
-        continue
-    if isinstance(obj, dict) and obj.get("cause"):
-        print(obj["cause"])
-' "$1/.tdd/events.jsonl" 2>/dev/null
-}
-cause_dir="$work/no-verdict-cause"
-mkdir -p "$cause_dir/no-verdict" "$cause_dir/killed"
-( cd "$cause_dir/no-verdict" && unset VERI_NO_VERDICT_RETRIES \
-  && env CLAUDE_BIN="$stubdir/claude-counting" LAUNCH_COUNT="$cause_dir/no-verdict/launches" ARGV_OUT="$cause_dir/argv" \
-      "$VERIFY" --fast-cmd "make unit" green "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
-( cd "$cause_dir/killed" && env CLAUDE_BIN="$stubdir/claude-hang" VERI_STUCK_RETRIES=0 \
-    VERI_HEARTBEAT=1 VERI_POLL=0.02 "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
-no_verdict_causes="$(causes_in "$cause_dir/no-verdict")"
-killed_causes="$(causes_in "$cause_dir/killed")"
-no_verdict_cause_count="$(printf '%s' "$no_verdict_causes" | grep -c '^' || true)"
-no_verdict_distinct="$(printf '%s\n' "$no_verdict_causes" | sort -u)"
-{ [[ "$no_verdict_cause_count" -eq 2 ]] && [[ "$(printf '%s\n' "$no_verdict_distinct" | grep -c '^')" -eq 1 ]] \
-  && [[ -n "$killed_causes" ]] && ! grep -qxF "$no_verdict_distinct" <<< "$killed_causes"; } && ok \
-  || no "a clean exit with no VERDICT: line is logged under a cause distinct from a killed verifier's, on the relaunch and on the final exit 2 (no-verdict causes: $no_verdict_cause_count lines '${no_verdict_causes//$'\n'/|}' want 2 lines of one cause; killed causes: '${killed_causes//$'\n'/|}' must be non-empty and not contain it)"
 
 cat > "$stubdir/claude-prompt-recording" <<'STUB'
 #!/bin/sh
