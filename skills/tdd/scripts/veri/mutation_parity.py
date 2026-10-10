@@ -27,6 +27,7 @@ def check(row):
         subprocess.run(["git", "apply", "-R", patch], check=True)
     if old in failed and passed > 0:
         return "proven" if kept in failed else "unproven"
+    return "owed"
 
 
 def main(argv):
@@ -40,7 +41,7 @@ def main(argv):
         result = check(row)
         results.append(result)
         print("\t".join([row[1], row[3], row[4], result]))
-    return 1 if "unproven" in results else 0
+    return 0 if all(result == "proven" for result in results) else 1
 
 
 if __name__ == "__main__":
