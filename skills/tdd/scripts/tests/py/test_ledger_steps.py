@@ -5,7 +5,7 @@ import sys
 
 import pytest
 
-USAGE = b"usage: ledger-steps.sh [current|last-done|current-or-last-done|criterion <k>]\n"
+USAGE = b"usage: ledger-steps.sh [current|last-done|current-or-last-done|next-phase|criterion <k>]\n"
 
 
 @pytest.fixture
@@ -373,3 +373,11 @@ def test_next_phase_answers_contract_b_after_expand_on_a_step_listing_only_expan
         "nothing marked": (0, b"expand\n", b""),
         "expand marked": (0, b"contract (b)\n", b""),
     }
+
+
+def test_main_prints_a_usage_line_naming_next_phase_on_a_bad_argument_1385(capsysbinary, ledger_steps):
+    code = ledger_steps.main(["bogus"])
+    out, err = capsysbinary.readouterr()
+
+    assert (code, out, err.count(b"\n"), err.startswith(b"usage: ledger-steps.sh "), b"next-phase" in err) == (
+        2, b"", 1, True, True)
