@@ -101,4 +101,15 @@ else
     stderr: $(cat "$work/old-stays-green-owed.err")"
 fi
 
+table="$work/none-stays-green.tsv"
+out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/none-stays-green-owed.err")" && code=0 || code=$?
+row="$(grep -F 'adds two numbers' <<<"$out" | grep -wF owed || true)"
+if [[ "$code" == 1 && -n "$row" ]]; then
+  ok
+else
+  no "a mutation that leaves no other case of the suite green is reported owed and exits 1 (exit=$code want 1)
+    stdout: $out
+    stderr: $(cat "$work/none-stays-green-owed.err")"
+fi
+
 finish
