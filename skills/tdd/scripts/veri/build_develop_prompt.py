@@ -80,6 +80,8 @@ def main(argv):
         optional["REJECTION_REASON"] = args[3]
     if _has_heading(_spec_text(spec), b"Bug"):
         optional["BUG_REPRODUCTION"] = f"{prompts}/_develop-red-bug.md"
+    if phase == "red" and "⟦ci-repair⟧" in step:
+        optional["CI_REPAIR"] = f"{prompts}/_develop-red-ci-repair.md"
     if "green" in (phase, revised_phase):
         for placeholder, mark in (("REPLACES_CASE", "replaces-case"), ("SUITE_REPAIR", "suite-repair")):
             if f"⟦{mark}⟧" in step:
@@ -93,7 +95,7 @@ def main(argv):
             _write(sys.stderr, f"build-develop-prompt: cannot read '{path}'")
             return 2
     prompts_b = os.fsencode(prompts)
-    values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "REPLACES_CASE", "SUITE_REPAIR", "STEP",
+    values = dict.fromkeys(("SHARED", "ISSUE_SPEC", "BUG_REPRODUCTION", "REPLACES_CASE", "SUITE_REPAIR", "CI_REPAIR", "STEP",
                             "TEST_CMD", "TEST_PATH", "TARGET_TEST", "FAST_CMD", "TIMED_TEST_RUN", "TOUCHED_FILES",
                             "REFACTOR_BUDGET", "REVISE_PHASE", "FREEZE_RULE", "REJECTION_REASON", "BRANCH",
                             "REMOTE_SHA", "SPENT", "BUDGET", "ONTO_SHA", "PRE_REBASE_SHA", "CONFLICTING_FILES"), b"")
@@ -108,7 +110,7 @@ def main(argv):
         values["SHARED"] = _expand(_read(paths[1]), prompts_b)
         for placeholder, path in optional.items():
             values[placeholder] = _read(path)
-            if placeholder in ("REPLACES_CASE", "SUITE_REPAIR", "FREEZE_RULE"):
+            if placeholder in ("REPLACES_CASE", "SUITE_REPAIR", "FREEZE_RULE", "CI_REPAIR"):
                 values[placeholder] = _expand(b"\n\n" + values[placeholder], prompts_b)
     except _IncludeRefused as refusal:
         sys.stderr.buffer.write(refusal.args[0] + b"\n")
