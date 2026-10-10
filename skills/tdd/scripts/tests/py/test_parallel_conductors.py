@@ -1571,10 +1571,7 @@ def test_a_launch_in_a_real_repository_leaves_its_git_status_empty_keeps_its_exc
 def test_a_launch_run_through_a_symlink_to_the_skills_directory_from_another_cwd_answers_as_it_does_in_place_and_prints_no_leaf_role_refusal(
         tmp_path):
     (tmp_path / "skills").symlink_to(SCRIPTS.parents[1], target_is_directory=True)
-    gh = tmp_path / "gh"
-    gh.mkdir()
-    (gh / "prs.lines").write_text("")
-    (gh / "prs.json").write_text("[]\n")
+    gh, _ = _gh_and_work(tmp_path)
     (gh / "issues.json").write_text(json.dumps([{
         "number": 7, "title": "issue 7", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
         "body": "## Blocked by\n\nNone.\n"}]))
