@@ -10,7 +10,7 @@ files stay frozen.
 2. **The new interface exists.** Production gains the new interface the step names.
 3. **The old interface is a proxy.** The old interface delegates to the new one; no caller
    has moved yet.
-4. **Test files stay frozen.** A range that touches a test file is a REJECT.
+4. {{INCLUDE:_verify-tests-frozen.md}}
 
 PASS if the suites are green, the new interface exists, the old one is a proxy over it and
 no test file changed. REJECT, naming the specific problem, otherwise.
