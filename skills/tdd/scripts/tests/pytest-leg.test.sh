@@ -828,4 +828,31 @@ for target in unit test; do
 done
 report "$name"
 
+sized="$work/sized"
+make_tree "$sized"
+cp "$HERE/py/conftest.py" "$sized/$PY_DIR/conftest.py"
+cat > "$sized/$PY_DIR/test_leg_probe.py" <<'PY'
+import pytest
+
+
+def test_veri_probe_small():
+    assert 1 == 1
+
+
+@pytest.mark.process("a medium probe")
+def test_veri_probe_medium():
+    assert False, "make unit ran a medium case"
+PY
+
+name="make unit runs only the small (unmarked) pytest cases: beside an unmarked passing case, a case marked process(\"<boundary>\") that would fail is not run, so the leg reports 1 passed, never names the medium case, and stdout ends all suites green"
+problems=()
+env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE \
+  make --no-print-directory -C "$sized" unit > "$work/out" 2> "$work/err" < /dev/null &&
+  code=0 || code=$?
+check_green "make unit"
+out="$(cat "$work/out")"
+[[ "$out" != *test_veri_probe_medium* ]] ||
+  problems+=("make unit: want the medium case test_veri_probe_medium not run, got: $(flat "$out")")
+report "$name"
+
 finish
