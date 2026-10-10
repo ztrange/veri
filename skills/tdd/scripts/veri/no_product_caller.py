@@ -9,7 +9,8 @@ PRODUCT_FILES = [
     "skills/tdd-candidates/SKILL.md",
     "Makefile",
 ]
-PRODUCT_DIRS = ["docs/hooks", "skills/tdd/scripts/veri"]
+VERI_DIR = "skills/tdd/scripts/veri"
+PRODUCT_DIRS = ["docs/hooks", VERI_DIR]
 
 
 def product_paths():
@@ -26,7 +27,7 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     name = argv[0]
-    own = os.path.join("skills/tdd/scripts/veri", name[:-3].replace("-", "_") + ".py")
+    own = os.path.join(VERI_DIR, name[:-3].replace("-", "_") + ".py")
     callers = []
     for path in product_paths():
         if name.endswith(".sh") and path == own:
