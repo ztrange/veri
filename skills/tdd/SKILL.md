@@ -570,8 +570,7 @@ unauthenticated baseline never gets a cycle.
    stray="$(git status --porcelain)"
    git reset --hard HEAD
    ```
-   *Resume* sub-step 2's own capture then finds a clean tree, so keep this `$stray` for
-   sub-step 4 to name. Then the resumed run, its worktree clean and its ledger untouched, runs
+   *Resume* sub-step 2 captures nothing itself; keep this `$stray` for sub-step 4 to name. Then the resumed run, its worktree clean and its ledger untouched, runs
    `$S/rebase-onto-default.sh` before its baseline, so the baseline runs on the rebased tip.
    On an exit 0 the first stdout line of `rebase-onto-default.sh` is `<pre-rebase-sha>`, the HEAD
    the branch held before the rebase. An exit 3 — the branch already contains `origin/<default>` — goes on unchanged. An exit 1 —
@@ -2398,17 +2397,15 @@ any cycle of the resumed run starts. The **resume check** then finds an existing
 
 1. Do **not** re-plan — the ledger is the source of truth. Re-write only the blind spec
    file (`.tdd/issue-<n>-spec.md`) since it is run scratch, not committed.
-2. **Reset the worktree, then ask for a pending refactor.** Whatever killed the previous
-   run killed its leaf too, at whatever point the run had reached — a usage limit takes the
-   conductor and every leaf together — so a resumed worktree may carry uncommitted work from
-   a killed **Red** or **Green** leaf just as readily as from a killed refactor one. No
-   verifier has seen any of it and none of it may reach the PR, so throw it away **before**
-   the ask, not under one of its answers — and capture what it is about to discard first,
-   because after the reset `git status --porcelain` has nothing left to report:
-   ```
-   stray="$(git status --porcelain)"
-   git reset --hard HEAD
-   ```
+2. **Use the reset preflight already made, then ask for a pending refactor.** Whatever killed
+   the previous run killed its leaf too, at whatever point the run had reached — a usage
+   limit takes the conductor and every leaf together — so a resumed worktree may carry
+   uncommitted work from a killed **Red** or **Green** leaf just as readily as from a killed
+   refactor one. No verifier has seen any of it and none of it may reach the PR, so it is
+   thrown away **before** the ask, not under one of its answers: preflight step 3 already
+   captured `git status --porcelain` into `$stray` and ran `git reset --hard HEAD`, ahead of
+   the resume rebase. Do not capture again here — the tree is clean, so a second capture
+   would empty `$stray`.
    `$stray` holds the paths that reset discarded, and sub-step 4 is what does the naming:
    a killed leaf's stray work is real work — the run that prompted this left a 235-line
    untracked test file behind — and it has to go loudly, not in silence.
