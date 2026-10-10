@@ -510,6 +510,11 @@ def world(fake_processes, heads, runs, statuses=(), tick=60):
     return state
 
 
+FULL_SHA = "89abcdef0123456789abcdef0123456789abcdef"
+COMMITS = f"gh api repos/o/r/commits/{FULL_SHA}"
+NOT_FOUND = (1, '{"message":"Not Found"}\n', "gh: Not Found (HTTP 404)\n")
+
+
 def served(fake_processes, bodies, refused=lambda line: None):
     """Fakes `date +%s` as a clock 60 s on per read, `sleep` as instant, and every other line by
     <refused>'s answer or else <bodies>: a string is stdout of a 0 exit, a tuple (code, stdout,
@@ -628,30 +633,27 @@ def test_main_reads_the_rollup_and_legacy_status_contexts_to_pending_green_red_o
 
 def test_main_reads_the_given_shas_own_check_runs_to_pending_unreadable_red_green_or_never_green_on_all_skipped(
         tmp_path, wait_ci, fake_processes, run_cli):
-    sha = "89abcdef0123456789abcdef0123456789abcdef"
-    commits = f"gh api repos/o/r/commits/{sha}"
-    run = lambda name, status, conclusion=None: check_run(name, sha, status, conclusion)
-    not_found = (1, '{"message":"Not Found"}\n', "gh: Not Found (HTTP 404)\n")
-    by_sha = f"wait-ci.sh: could not read the checks of {sha}\n"
+    run = lambda name, status, conclusion=None: check_run(name, FULL_SHA, status, conclusion)
+    by_sha = f"wait-ci.sh: could not read the checks of {FULL_SHA}\n"
 
     def waited(name, pages, statuses=(), state="pending"):
         work = tmp_path / name
         (work / ".tdd").mkdir(parents=True)
         bodies = {
-            PULL: json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": sha}}),
-            f"{commits}/status": json.dumps(
-                {"state": state, "sha": sha, "total_count": len(statuses), "statuses": list(statuses)}),
+            PULL: json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": FULL_SHA}}),
+            f"{COMMITS}/status": json.dumps(
+                {"state": state, "sha": FULL_SHA, "total_count": len(statuses), "statuses": list(statuses)}),
         }
         for n, page in enumerate(list(pages) + [[]], start=1):
-            bodies[f"{commits}/check-runs?page={n}"] = page if isinstance(page, tuple) else json.dumps(
+            bodies[f"{COMMITS}/check-runs?page={n}"] = page if isinstance(page, tuple) else json.dumps(
                 {"total_count": sum(len(p) for p in pages if isinstance(p, list)), "check_runs": page})
         served(fake_processes, bodies)
-        return run_cli(wait_ci, [PR, "60", "60", sha], env={"VERI_POLL": "0"}, cwd=work)
+        return run_cli(wait_ci, [PR, "60", "60", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
 
     success = run("gates", "completed", "success")
     observed = {
         "in progress": waited("race", [[run("gates", "in_progress")]]),
-        "unreadable": waited("unread", [not_found]),
+        "unreadable": waited("unread", [NOT_FOUND]),
         "failure": waited("redsha", [[run("gates", "completed", "failure")]]),
         "neutral and skipped beside in progress": waited("quietsha", [[
             run("lint", "completed", "neutral"), run("docs", "completed", "skipped"), run("gates", "in_progress")]]),
@@ -675,39 +677,36 @@ def test_main_reads_the_given_shas_own_check_runs_to_pending_unreadable_red_gree
 
 def test_main_reads_the_shas_legacy_statuses_and_with_no_head_sha_the_rest_pull_head_whether_graphql_works_or_is_refused(
         tmp_path, wait_ci, fake_processes, run_cli):
-    sha = "89abcdef0123456789abcdef0123456789abcdef"
-    commits = f"gh api repos/o/r/commits/{sha}"
-    run = lambda status, conclusion=None: check_run("gates", sha, status, conclusion)
-    not_found = (1, '{"message":"Not Found"}\n', "gh: Not Found (HTTP 404)\n")
-    by_sha = "gh: Not Found (HTTP 404)\n" + f"wait-ci.sh: could not read the checks of {sha}\n"
+    run = lambda status, conclusion=None: check_run("gates", FULL_SHA, status, conclusion)
+    by_sha = "gh: Not Found (HTTP 404)\n" + f"wait-ci.sh: could not read the checks of {FULL_SHA}\n"
     refusal = ("HTTP 403: GitHub GraphQL is not available from Claude Code sessions; "
                "use the REST API (gh api repos/{owner}/{repo}/...)\n")
 
-    def waited(name, runs, status=None, given=sha, graphql="working"):
+    def waited(name, runs, status=None, given=FULL_SHA, graphql="working"):
         work = tmp_path / name
         (work / ".tdd").mkdir(parents=True)
         bodies = {
-            PULL: json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": sha}}),
-            f"{commits}/check-runs?page=1": runs if isinstance(runs, tuple) else json.dumps(
+            PULL: json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": FULL_SHA}}),
+            f"{COMMITS}/check-runs?page=1": runs if isinstance(runs, tuple) else json.dumps(
                 {"total_count": len(runs), "check_runs": runs}),
-            f"{commits}/check-runs?page=2": json.dumps({"total_count": 0, "check_runs": []}),
-            f"{commits}/status": status if status is not None else json.dumps(
-                {"state": "pending", "sha": sha, "total_count": 0, "statuses": []}),
+            f"{COMMITS}/check-runs?page=2": json.dumps({"total_count": 0, "check_runs": []}),
+            f"{COMMITS}/status": status if status is not None else json.dumps(
+                {"state": "pending", "sha": FULL_SHA, "total_count": 0, "statuses": []}),
         }
         served(fake_processes, bodies, lambda line: graphql == "refused" and (
             line.split(" ")[1] in ("issue", "pr", "repo") or line.startswith("gh api graphql")) and (1, "", refusal))
         return run_cli(wait_ci, [PR, "60", "60"] + ([given] if given else []), env={"VERI_POLL": "0"}, cwd=work)
 
     def statuses(state, *contexts):
-        return json.dumps({"state": state, "sha": sha, "total_count": len(contexts), "statuses": list(contexts)})
+        return json.dumps({"state": state, "sha": FULL_SHA, "total_count": len(contexts), "statuses": list(contexts)})
 
     success = run("completed", "success")
     observed = {
         "legacy failure": waited("statussha-failure", [success], statuses("failure", legacy("failure"))),
         "legacy error": waited("statussha-error", [success], statuses("error", legacy("error"))),
-        "status unreadable": waited("unstatus", [success], not_found),
+        "status unreadable": waited("unstatus", [success], NOT_FOUND),
         "status with no statuses key": waited(
-            "nostatuses", [success], json.dumps({"state": "pending", "sha": sha, "total_count": 0})),
+            "nostatuses", [success], json.dumps({"state": "pending", "sha": FULL_SHA, "total_count": 0})),
         "legacy pending": waited("pendingstatus", [success], statuses("pending", legacy("pending"))),
         "no runs and no statuses": waited("nonesha", []),
         "no head-sha, own run in progress": waited("nohead", [run("in_progress")], given=None),
@@ -717,7 +716,7 @@ def test_main_reads_the_shas_legacy_statuses_and_with_no_head_sha_the_rest_pull_
                 ("green", [success], statuses("success")),
                 ("red", [run("completed", "failure")], None),
                 ("pending", [run("in_progress")], None),
-                ("unread", not_found, None)):
+                ("unread", NOT_FOUND, None)):
             observed[f"no head-sha, {route} GraphQL, {want}"] = waited(
                 f"gql-{route}-{want}", runs, status, given=None, graphql=route)
 
