@@ -362,3 +362,29 @@ def test_main_reports_the_branches_on_origin_with_no_pr_and_the_local_branches_o
         "invariant 1 (not on origin): tdd/170-a-run-checked-out-nowhere tip e170 1 commits origin lacks\n",
         "")
     assert [line for line in calls if line.startswith("gh")] == []
+
+
+def test_main_exits_2_with_empty_stdout_when_the_veri_gh_json_issues_json_is_not_json(
+        monkeypatch, tmp_path, run_cli, fake_processes):
+    invisible_work = importlib.import_module("veri.invisible_work")
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    (tmp_path / "issues.json").write_text("this is not JSON\n")
+    (tmp_path / "prs.json").write_text("[]\n")
+
+    def answer(line, **_):
+        words = line.split(" ")
+        if words[:2] == ["git", "symbolic-ref"]:
+            return 0, "origin/main\n", ""
+        if words[:2] == ["git", "for-each-ref"] and words[-1] == "refs/remotes/origin/":
+            return 0, ("refs/remotes/origin/HEAD 1111\nrefs/remotes/origin/main 1111\n"
+                       "refs/remotes/origin/chore/nobody-opened-a-pr bbbb\n"), ""
+        if words[:2] == ["git", "for-each-ref"] and words[-1] == "refs/heads/":
+            return 0, "refs/heads/main 1111\n", ""
+        if words[:3] == ["git", "rev-list", "--count"]:
+            return 0, "1\n", ""
+        return 0, "", ""
+
+    fake_processes(answer)
+    code, out, _ = run_cli(invisible_work, [], env={"VERI_GH_JSON": str(tmp_path)})
+
+    assert (code, out) == (2, "")
