@@ -102,6 +102,14 @@ def test_run_cli_answers_1_and_writes_the_string_to_stderr_when_a_main_returns_a
     assert (code, err) == (1, "planted: refused\n")
 
 
+def test_run_cli_answers_141_when_a_main_raises_broken_pipe_error_1401(run_cli):
+    module = module_of("def main(argv):\n    raise BrokenPipeError('planted pipe')\n")
+
+    code, _, err = run_cli(module, [])
+
+    assert (code, err) == (141, "")
+
+
 @pytest.mark.process("a child writing to the inherited stdout and stderr")
 def test_run_cli_includes_in_order_what_a_child_the_module_starts_writes_to_the_inherited_stdout_and_stderr(run_cli):
     module = module_of(
