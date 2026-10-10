@@ -65,7 +65,8 @@ def test_main_refuses_a_missing_argument_an_option_with_no_value_an_unknown_phas
         ("red", "", "t"): (2, b"", USAGE),
         ("--fast-cmd",): (2, b"", b"build-verify-prompt: --fast-cmd needs a value\n" + USAGE),
         ("bogus", str(spec), "t"): (2, b"", b"build-verify-prompt: unknown phase 'bogus' "
-                                    b"(want red|green|refactor|pin|plan|rebase|transform|diff)\n" + USAGE),
+                                    b"(want red|green|refactor|pin|plan|rebase|transform|diff|expand|migrate|contract-a|contract-b)\n"
+                                    + USAGE),
         ("green", str(spec), "t", "x"): (
             2, b"", b"build-verify-prompt: green needs --fast-cmd '<fast-tier test command>'\n" + USAGE),
         ("--step", "s", "diff", str(spec), "0123abc", "0123abc"): (
@@ -1139,3 +1140,23 @@ def test_main_admits_an_expand_migrate_contract_a_or_contract_b_base_sha_only_as
     admitted = {phase: run(["--fast-cmd", "m", phase, s, "t", "0123456789abcdef0123456789abcdef01234567"])[::2]
                 for phase in phases}
     assert admitted == dict.fromkeys(phases, (0, b""))
+
+
+def test_main_of_both_prompt_builders_refuses_an_unknown_phase_with_exit_2_naming_expand_migrate_contract_a_and_contract_b_among_the_phases_it_accepts(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    builders = {"build-develop-prompt": (importlib.import_module("veri.build_develop_prompt"),
+                                         ["bogus", str(spec), "step", "make test"]),
+                "build-verify-prompt": (build_verify_prompt, ["bogus", str(spec), "t"])}
+
+    def answer(module, argv):
+        code = module.main(argv)
+        _, err = capsysbinary.readouterr()
+        accepted = re.search(rb"unknown phase 'bogus' \(want ([^)]*)\)", err)
+        named = accepted.group(1).split(b"|") if accepted else []
+        return code, [phase for phase in ("expand", "migrate", "contract-a", "contract-b")
+                      if phase.encode() not in named]
+
+    assert {name: answer(*call) for name, call in builders.items()} == {
+        "build-develop-prompt": (2, []), "build-verify-prompt": (2, [])}
