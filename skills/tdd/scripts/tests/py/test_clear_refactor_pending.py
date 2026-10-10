@@ -4,6 +4,7 @@ import errno
 import importlib
 import os
 import resource
+import signal
 import sys
 import tempfile
 
@@ -297,6 +298,34 @@ def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_every_write_to
     capsysbinary.readouterr()
 
     assert (code, led.read_bytes()) == (2, seed)
+
+
+def test_main_returns_2_keeping_a_symlinked_ledger_a_symlink_its_target_byte_identical_and_nothing_beside_either_when_the_file_size_limit_refuses_the_write_1396(
+        tmp_path, capsysbinary, clear_refactor_pending):
+    seed = "".join(f"- [x] step {n} of a ledger long enough to outgrow the file size limit ⟂ refactor pending\n"
+                   for n in range(8)).encode()
+    (tmp_path / "links").mkdir()
+    (tmp_path / "targets").mkdir()
+    target = tmp_path / "targets" / "ledger.md"
+    target.write_bytes(seed)
+    link = tmp_path / "links" / "ledger.md"
+    link.symlink_to(target)
+    soft, hard = resource.getrlimit(resource.RLIMIT_FSIZE)
+    previous = signal.signal(signal.SIGXFSZ, signal.SIG_IGN)
+    resource.setrlimit(resource.RLIMIT_FSIZE, (64, hard))
+    try:
+        code = clear_refactor_pending.main([str(link), "step 3"])
+    except OSError as error:
+        code = type(error).__name__
+    finally:
+        resource.setrlimit(resource.RLIMIT_FSIZE, (soft, hard))
+        signal.signal(signal.SIGXFSZ, previous)
+    capsysbinary.readouterr()
+
+    assert (code, link.is_symlink(), target.read_bytes(),
+            sorted(p.name for p in (tmp_path / "links").iterdir()),
+            sorted(p.name for p in (tmp_path / "targets").iterdir())) == (
+        2, True, seed, ["ledger.md"], ["ledger.md"])
 
 
 def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_the_temporary_file_beside_it_cannot_be_created_817(
