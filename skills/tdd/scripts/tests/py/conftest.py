@@ -76,8 +76,7 @@ def run_cli(monkeypatch, capfd):
                 sys.stderr.flush()
                 code = 1
         except Exception as exc:
-            reason = " ".join(str(exc).split())
-            sys.stderr.write("%s: %s: %s\n" % (entry._shim_name(module.main), type(exc).__name__, reason))
+            sys.stderr.write(entry.refusal(module.main, exc))
             sys.stderr.flush()
             code = 2
         finally:
