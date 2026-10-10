@@ -2320,6 +2320,63 @@ def test_main_hands_the_leaf_its_dispositions_through_a_preexec_survives_a_close
     }
 
 
+def fake_clocked_leaf(monkeypatch, work, name, silent, ends_at, launches=None):
+    import time
+    clock = {"wall": 1000}
+
+    def sleep(_):
+        clock["wall"] += 1
+        if clock["wall"] > 5000:
+            raise AssertionError("never ended")
+        if clock["wall"] >= ends_at:
+            (work / ".tdd" / f"{name}.rc").write_text("0\n")
+
+    class Leaf:
+        pid = 4242
+        returncode = None
+        args = []
+
+        def poll(self):
+            if self.returncode is None and clock["wall"] >= ends_at:
+                self.returncode = 0
+            return self.returncode
+
+        def wait(self, timeout=None):
+            return self.poll()
+
+    leaf = Leaf()
+
+    def stop(_pid, sig):
+        if sig:
+            leaf.returncode = -sig
+
+    def answer(args):
+        args = [str(a) for a in args]
+        if args[:1] == ["git"]:
+            return "0123456789abcdef0123456789abcdef01234567\n"
+        if args[:1] == ["date"]:
+            return f"{clock['wall']}\n"
+        if args[:1] == ["stat"]:
+            return "1000\n" if silent else f"{clock['wall']}\n"
+        return ""
+
+    def popen(args, *_, **k):
+        if launches is not None:
+            launches.append(name)
+        return leaf
+
+    monkeypatch.setattr(time, "sleep", sleep)
+    monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
+    monkeypatch.setattr(os, "killpg", stop)
+    monkeypatch.setattr(os, "kill", stop)
+    monkeypatch.setattr(subprocess, "run", lambda args, *_, **k: subprocess.CompletedProcess(
+        args, 0, as_asked(answer(args), k), as_asked("", k)))
+    monkeypatch.setattr(subprocess, "check_output", lambda args, *_, **k: as_asked(answer(args), k))
+    monkeypatch.setattr(subprocess, "call", lambda *a, **k: 0)
+    monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: 0)
+    monkeypatch.setattr(subprocess, "Popen", popen)
+
+
 def test_cli_reports_a_leafs_outcome_through_run_cli_success_and_failure_with_its_output_a_slow_but_alive_leaf_surviving_the_heartbeat_and_the_exit_record_of_0_1_and_2(
         monkeypatch, tmp_path, supervise, run_cli):
     import signal
@@ -2336,59 +2393,10 @@ def test_cli_reports_a_leafs_outcome_through_run_cli_success_and_failure_with_it
                                  env={"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "5", "VERI_TIMEOUT": "10"})
         return code, out, err.splitlines()[-1:], (work / ".tdd" / f"{name}.exit").read_bytes()
 
-    clock = {"wall": 1000}
-
     def clocked_leaf(name, silent, ends_at):
         work = tmp_path / name
         work.mkdir()
-        clock["wall"] = 1000
-
-        def sleep(_):
-            clock["wall"] += 1
-            if clock["wall"] > 5000:
-                raise AssertionError("never ended")
-            if clock["wall"] >= ends_at:
-                (work / ".tdd" / f"{name}.rc").write_text("0\n")
-
-        class Leaf:
-            pid = 4242
-            returncode = None
-            args = []
-
-            def poll(self):
-                if self.returncode is None and clock["wall"] >= ends_at:
-                    self.returncode = 0
-                return self.returncode
-
-            def wait(self, timeout=None):
-                return self.poll()
-
-        leaf = Leaf()
-
-        def stop(_pid, sig):
-            if sig:
-                leaf.returncode = -sig
-
-        def answer(args):
-            args = [str(a) for a in args]
-            if args[:1] == ["git"]:
-                return "0123456789abcdef0123456789abcdef01234567\n"
-            if args[:1] == ["date"]:
-                return f"{clock['wall']}\n"
-            if args[:1] == ["stat"]:
-                return "1000\n" if silent else f"{clock['wall']}\n"
-            return ""
-
-        monkeypatch.setattr(time, "sleep", sleep)
-        monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
-        monkeypatch.setattr(os, "killpg", stop)
-        monkeypatch.setattr(os, "kill", stop)
-        monkeypatch.setattr(subprocess, "run", lambda args, *_, **k: subprocess.CompletedProcess(
-            args, 0, as_asked(answer(args), k), as_asked("", k)))
-        monkeypatch.setattr(subprocess, "check_output", lambda args, *_, **k: as_asked(answer(args), k))
-        monkeypatch.setattr(subprocess, "call", lambda *a, **k: 0)
-        monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: 0)
-        monkeypatch.setattr(subprocess, "Popen", lambda args, *_, **k: leaf)
+        fake_clocked_leaf(monkeypatch, work, name, silent, ends_at)
         code, _, err = run_cli(supervise, [name, "leaf"], cwd=work,
                                env={"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "5", "VERI_TIMEOUT": "5000"})
         return code, err.splitlines()[-1:], (work / ".tdd" / f"{name}.exit").read_bytes()
@@ -2410,63 +2418,14 @@ def test_cli_kills_a_hung_or_runaway_leaf_stuck_on_the_default_180s_or_an_explic
         monkeypatch, tmp_path, supervise, run_cli):
     import json
     import signal
-    import time
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     clean_env(monkeypatch, VERI_STUCK_RETRIES="3")
-    clock = {"wall": 1000}
     launches = []
 
     def killed_leaf(name, silent, **env):
         work = tmp_path / name
         work.mkdir()
-        clock["wall"] = 1000
-
-        def sleep(_):
-            clock["wall"] += 1
-            if clock["wall"] > 5000:
-                raise AssertionError("never killed")
-
-        class Leaf:
-            pid = 4242
-            returncode = None
-            args = []
-
-            def poll(self):
-                return self.returncode
-
-            def wait(self, timeout=None):
-                return self.returncode
-
-        leaf = Leaf()
-
-        def stop(_pid, sig):
-            if sig:
-                leaf.returncode = -sig
-
-        def answer(args):
-            args = [str(a) for a in args]
-            if args[:1] == ["git"]:
-                return "0123456789abcdef0123456789abcdef01234567\n"
-            if args[:1] == ["date"]:
-                return f"{clock['wall']}\n"
-            if args[:1] == ["stat"]:
-                return "1000\n" if silent else f"{clock['wall']}\n"
-            return ""
-
-        def popen(args, *_, **k):
-            launches.append(name)
-            return leaf
-
-        monkeypatch.setattr(time, "sleep", sleep)
-        monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
-        monkeypatch.setattr(os, "killpg", stop)
-        monkeypatch.setattr(os, "kill", stop)
-        monkeypatch.setattr(subprocess, "run", lambda args, *_, **k: subprocess.CompletedProcess(
-            args, 0, as_asked(answer(args), k), as_asked("", k)))
-        monkeypatch.setattr(subprocess, "check_output", lambda args, *_, **k: as_asked(answer(args), k))
-        monkeypatch.setattr(subprocess, "call", lambda *a, **k: 0)
-        monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: 0)
-        monkeypatch.setattr(subprocess, "Popen", popen)
+        fake_clocked_leaf(monkeypatch, work, name, silent, 10 ** 9, launches)
         monkeypatch.delenv("VERI_HEARTBEAT", raising=False)
         code, _, err = run_cli(supervise, [name, "leaf"], cwd=work, env={"VERI_STUCK_RETRIES": "0", **env})
         events = work / ".tdd" / "events.jsonl"
