@@ -2377,20 +2377,27 @@ def fake_clocked_leaf(monkeypatch, work, name, silent, ends_at, launches=None):
     monkeypatch.setattr(subprocess, "Popen", popen)
 
 
+REAL_LEAF_ENV = {"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "5", "VERI_TIMEOUT": "10"}
+
+
+def prepare_real_leaf(monkeypatch, tmp_path, name):
+    import time
+    work = tmp_path / name
+    work.mkdir()
+    monkeypatch.setattr(time, "sleep", lambda *_: None)
+    fake_leaf_launch(monkeypatch)
+    return work
+
+
 def test_cli_reports_a_leafs_outcome_through_run_cli_success_and_failure_with_its_output_a_slow_but_alive_leaf_surviving_the_heartbeat_and_the_exit_record_of_0_1_and_2(
         monkeypatch, tmp_path, supervise, run_cli):
     import signal
-    import time
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     clean_env(monkeypatch)
 
     def real_leaf(name, script):
-        work = tmp_path / name
-        work.mkdir()
-        monkeypatch.setattr(time, "sleep", lambda *_: None)
-        fake_leaf_launch(monkeypatch)
-        code, out, err = run_cli(supervise, [name, "sh", "-c", script], cwd=work,
-                                 env={"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "5", "VERI_TIMEOUT": "10"})
+        work = prepare_real_leaf(monkeypatch, tmp_path, name)
+        code, out, err = run_cli(supervise, [name, "sh", "-c", script], cwd=work, env=REAL_LEAF_ENV)
         return code, out, err.splitlines()[-1:], (work / ".tdd" / f"{name}.exit").read_bytes()
 
     def clocked_leaf(name, silent, ends_at):
@@ -2449,7 +2456,6 @@ def test_cli_kills_a_hung_or_runaway_leaf_stuck_on_the_default_180s_or_an_explic
 def test_cli_appends_one_retry_event_carrying_the_kill_cause_per_relaunch_and_one_exit_event_carrying_the_0_1_2_status_the_kill_cause_and_the_attempts_wall_seconds(
         monkeypatch, tmp_path, supervise, run_cli):
     import signal
-    import time
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     clean_env(monkeypatch)
     event_sh = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(supervise.__file__))), "event.sh")
@@ -2470,14 +2476,10 @@ def test_cli_appends_one_retry_event_carrying_the_kill_cause_per_relaunch_and_on
         return [f for f in events if f[0] in ("retry", "exit")]
 
     def real_leaf(name, script):
-        work = tmp_path / name
-        work.mkdir()
-        monkeypatch.setattr(time, "sleep", lambda *_: None)
-        fake_leaf_launch(monkeypatch)
+        work = prepare_real_leaf(monkeypatch, tmp_path, name)
         events = []
         marked(events)
-        run_cli(supervise, [name, "sh", "-c", script], cwd=work,
-                env={"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "5", "VERI_TIMEOUT": "10"})
+        run_cli(supervise, [name, "sh", "-c", script], cwd=work, env=REAL_LEAF_ENV)
         return kept(events)
 
     def hung_leaf(name, retries):
