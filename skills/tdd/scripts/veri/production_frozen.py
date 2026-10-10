@@ -1,15 +1,14 @@
 """production-frozen.sh's range check, run in-process."""
 import sys
 
-from transform_touches_tests import TEST_FILE, changed_paths
+from transform_touches_tests import TEST_FILE, changed_paths, refuse
 
 USAGE = "usage: production-frozen.sh <base-sha>"
 
 
 def main(argv):
     if not argv:
-        print(USAGE, file=sys.stderr)
-        return 2
+        return refuse(usage=USAGE)
     base = argv[0]
     log = changed_paths(base)
     if log.returncode != 0:

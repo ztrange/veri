@@ -7,10 +7,10 @@ USAGE = "usage: transform-touches-tests.sh <base-sha>"
 TEST_FILE = re.compile(rb"(^|/)tests/|\.test\.")
 
 
-def refuse(message=None):
+def refuse(message=None, usage=None):
     if message:
         print(message, file=sys.stderr)
-    print(USAGE, file=sys.stderr)
+    print(usage or USAGE, file=sys.stderr)
     return 2
 
 
