@@ -519,12 +519,13 @@ OPEN_PULL = json.dumps({"number": 1, "state": "open", "draft": False, "head": {"
 def served(fake_processes, bodies, refused=lambda line: None):
     """Fakes `date +%s` as a clock 60 s on per read, `sleep` as instant, and every other line by
     <refused>'s answer or else <bodies>: a string is stdout of a 0 exit, a tuple (code, stdout,
-    stderr); stderr reaches sys.stderr unless the caller captures it."""
-    clock = iter(range(0, 6000, 60))
+    stderr); stderr reaches sys.stderr unless the caller captures it. Answers the clock readings it gave."""
+    readings = []
 
     def answer(line, **kwargs):
         if line == "date +%s":
-            return 0, f"{next(clock)}\n", ""
+            readings.append(60 * len(readings))
+            return 0, f"{readings[-1]}\n", ""
         if line.startswith("sleep "):
             return 0, "", ""
         body = refused(line) or bodies.get(line, (1, "", f"unexpected: {line}\n"))
@@ -534,6 +535,7 @@ def served(fake_processes, bodies, refused=lambda line: None):
         return code, out, err
 
     fake_processes(answer)
+    return readings
 
 
 def check_run(name, sha, status, conclusion=None):
@@ -820,23 +822,15 @@ def test_main_records_a_deadline_from_the_ci_workflows_recent_runs_or_its_capped
         work = tmp_path / name
         (work / ".tdd").mkdir(parents=True)
         bodies = sha_bodies([[check_run("gates", FULL_SHA, "in_progress")]], [], "pending")
-        readings, listings = [], []
+        listings = []
 
-        def answer(line, **kwargs):
-            if line == "date +%s":
-                readings.append(60 * len(readings))
-                return 0, f"{readings[-1]}\n", ""
-            if line.startswith("sleep "):
-                return 0, "", ""
-            if line.startswith("gh run list "):
-                listings.append(line)
-                if fails:
-                    sys.stderr.write("HTTP 502: Bad Gateway\n")
-                    return 1, "", "HTTP 502: Bad Gateway\n"
-                return 0, json.dumps(listed(line, ci_runs(runs))), ""
-            return (0, bodies[line], "") if line in bodies else (1, "", f"unexpected: {line}\n")
+        def run_list(line):
+            if not line.startswith("gh run list "):
+                return None
+            listings.append(line)
+            return (1, "", "HTTP 502: Bad Gateway\n") if fails else (0, json.dumps(listed(line, ci_runs(runs))), "")
 
-        fake_processes(answer)
+        readings = served(fake_processes, bodies, run_list)
         code, out, err = run_cli(wait_ci, [PR] + argv, env={"VERI_POLL": "0"}, cwd=work)
         mark = work / ".tdd" / f"ci-deadline-{FULL_SHA}"
         recorded = int(mark.read_text()) - readings[0] if mark.exists() else None
