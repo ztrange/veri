@@ -1,0 +1,6 @@
+#!/bin/sh
+# pkill and killall on a leaf's PATH: refused before anything is signalled.
+#
+# Exit: 2, always.
+printf '%s: refused: signal only processes you started, by the pid you recorded when you started them — never by name or pattern\n' "$(basename "$0")" >&2
+exit 2
