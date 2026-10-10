@@ -482,7 +482,6 @@ def test_main_keeps_its_bound_across_reads_calls_and_the_head_sha_it_was_given_a
     pending, done = {"status": "in_progress", "conclusion": None}, {"status": "completed", "conclusion": "success"}
     old, new, given = "0123456789abcdef" * 2 + "01234567", "76543210fedcba98" * 2 + "76543210", "89abcdef" * 5
     page = re.compile(r"gh api repos/o/r/commits/(.+)/check-runs\?page=(\d+)")
-    unreadable = f"could not read the checks of {PR}"
     past = "still pending past the deadline recorded for"
 
     def world(heads, runs):
@@ -517,7 +516,7 @@ def test_main_keeps_its_bound_across_reads_calls_and_the_head_sha_it_was_given_a
         answers = []
         for argv in argvs:
             code, out, err = run_cli(wait_ci, [PR, *argv], env={"VERI_POLL": "0"}, cwd=work)
-            answers.append((code, unreadable in err, past in err))
+            answers.append((code, UNREADABLE in err, past in err))
         return answers
 
     skill = (pathlib.Path(__file__).resolve().parents[3] / "SKILL.md").read_text()
