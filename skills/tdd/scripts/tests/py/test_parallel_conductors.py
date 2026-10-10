@@ -12,6 +12,8 @@ import traceback
 
 import pytest
 
+from conftest import SCRIPTS
+
 TUNABLES = ("VERI_PARALLEL", "VERI_MAX_ISSUES", "VERI_CONDUCTOR_CTX_BUDGET", "VERI_RUN_TIMEOUT",
             "VERI_POLL", "VERI_HEARTBEAT", "VERI_TIMEOUT", "VERI_STUCK_RETRIES", "VERI_GH_JSON")
 
@@ -1563,3 +1565,49 @@ def test_a_launch_in_a_real_repository_leaves_its_git_status_empty_keeps_its_exc
     assert (own / ".git" / "info" / "exclude").read_bytes() == b"*.scratch\n.tdd/*\n"
     assert (decoy_exclude.read_bytes() if decoy_exclude.is_file() else None) == decoy_before
     assert [p.name for p in decoy.rglob("*") if ".git" not in p.parts] == []
+
+
+@pytest.mark.process("parallel-conductors.sh supervising a real conductor, run through a symlink to the skills directory")
+def test_a_launch_run_through_a_symlink_to_the_skills_directory_from_another_cwd_answers_as_it_does_in_place_and_prints_no_leaf_role_refusal(
+        tmp_path):
+    (tmp_path / "skills").symlink_to(SCRIPTS.parents[1], target_is_directory=True)
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.lines").write_text("")
+    (gh / "prs.json").write_text("[]\n")
+    (gh / "issues.json").write_text(json.dumps([{
+        "number": 7, "title": "issue 7", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
+        "body": "## Blocked by\n\nNone.\n"}]))
+    claude = tmp_path / "claude"
+    claude.write_text("""#!/bin/sh
+n="$(sed -n 's/^Solve issue #\\([0-9]*\\) .*/\\1/p')"
+echo "start $n" >> "$VERI_STUB_RECORD"
+printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\\n' "$n" "$n" >> "GH/prs.lines"
+printf '[%s]\\n' "$(paste -sd, "GH/prs.lines")" > "GH/prs.json"
+printf '%s\\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+""".replace("GH", str(gh)))
+    claude.chmod(0o755)
+    env = {name: value for name, value in os.environ.items() if not name.startswith(("VERI_", "CLAUDE_"))}
+
+    answers = {}
+    for shape, launcher in (("in-place", SCRIPTS / "parallel-conductors.sh"),
+                            ("symlink", tmp_path / "skills" / "tdd" / "scripts" / "parallel-conductors.sh")):
+        repo = tmp_path / shape
+        subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+        subprocess.run(["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q",
+                        "--allow-empty", "-m", "init"], check=True)
+        (gh / "prs.lines").write_text("")
+        (gh / "prs.json").write_text("[]\n")
+        record = tmp_path / ("record-" + shape)
+        ran = subprocess.run([str(launcher)], cwd=repo, stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                             env={**env, "VERI_GH_JSON": str(gh), "CLAUDE_BIN": str(claude), "VERI_POLL": "0.05",
+                                  "VERI_STUB_RECORD": str(record)})
+        output = ran.stdout + ran.stderr
+        report = [line for line in output.splitlines() if line.startswith(("#", "stopped: "))]
+        answers[shape] = (ran.returncode, report, (repo / ".tdd" / "parallel.exit").read_text().strip(),
+                          record.read_text() if record.exists() else None,
+                          [line for line in output.splitlines() if "leaf-role:" in line])
+
+    assert answers["in-place"] == (0, ["#7 \u2014 done https://example.test/pull/7", "stopped: nothing solvable"],
+                                   "0", "start 7\n", [])
+    assert answers["symlink"] == answers["in-place"]
