@@ -1047,3 +1047,85 @@ def test_a_bad_veri_parallel_veri_max_issues_or_veri_conductor_ctx_budget_is_exi
              ["parallel-conductors: %s must be a whole number >= %d: '%s'" % (name, floor, value)], [])
             for name, value, floor in bad]
     assert seen == want
+
+
+def test_the_schedule_launches_one_conductor_at_a_time_in_the_queue_s_printed_order_never_relaunches_a_finished_issue_takes_a_newly_solvable_one_next_and_caps_launches_only_under_veri_max_issues(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    work = tmp_path / "repo"
+    (work / ".tdd").mkdir(parents=True)
+    in_flight_at_launch = []
+    numbers = []
+
+    def on_launch(sup):
+        in_flight_at_launch.append(1 + sum(1 for s in supervisors if s is not sup and s.returncode is None))
+        numbers.append(sup.args[-1])
+
+    def on_sleep(live):
+        for sup in live:
+            if sup.returncode is None:
+                sup.exit(0)
+
+    supervisors = _boundaries(monkeypatch, tmp_path, on_launch, on_sleep)
+    faked_run = subprocess.run
+    queue = ["8\n7\n", "8\n7\n", "8\n7\n9\n", "8\n7\n9\n10\n"]
+    asked = []
+
+    def answering_run(args, *rest, **kwargs):
+        if pathlib.Path(args[0]).name != "solvable-issues.sh":
+            return faked_run(args, *rest, **kwargs)
+        out = queue[min(len(asked), len(queue) - 1)]
+        asked.append(args)
+        return subprocess.CompletedProcess(args, 0, out if kwargs.get("text") else out.encode(), None)
+
+    seen = []
+    for cap in ("3", None):
+        for name in TUNABLES:
+            monkeypatch.delenv(name, raising=False)
+        env = {"VERI_GH_JSON": str(gh)}
+        if cap:
+            env["VERI_MAX_ISSUES"] = cap
+        monkeypatch.setattr(subprocess, "run", answering_run)
+        del numbers[:], in_flight_at_launch[:], asked[:]
+        code, out, err = run_cli(parallel_conductors, [], env=env, cwd=work)
+        seen.append((cap, code, list(numbers), set(in_flight_at_launch),
+                     [line for line in out.splitlines() if line.startswith("stopped: ")]))
+        monkeypatch.delenv("VERI_MAX_ISSUES", raising=False)
+    assert seen == [
+        ("3", 0, ["8", "7", "9"], {1}, ["stopped: VERI_MAX_ISSUES reached"]),
+        (None, 0, ["8", "7", "9", "10"], {1}, ["stopped: nothing solvable"]),
+    ]
+
+
+@pytest.mark.parametrize("parks", [False, True], ids=["done", "parked"])
+def test_with_veri_parallel_1_it_exits_0_once_nothing_is_left_to_take_after_launching_conductors_and_when_every_issue_still_solvable_is_parked(
+        parks, monkeypatch, tmp_path, parallel_conductors, run_cli):
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    work = tmp_path / "repo"
+    (work / ".tdd").mkdir(parents=True)
+    numbers = []
+
+    def on_launch(sup):
+        n = sup.args[-1]
+        numbers.append(n)
+        if parks:
+            (work / ".tdd" / "parked").mkdir(exist_ok=True)
+            (work / ".tdd" / "parked" / ("%s.md" % n)).write_text("Which test command should this run use?\n")
+
+    def on_sleep(live):
+        for sup in live:
+            if sup.returncode is None:
+                sup.exit(0)
+
+    _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n8\n"))
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    code, out, err = run_cli(parallel_conductors, [], env={"VERI_PARALLEL": "1", "VERI_GH_JSON": str(gh)}, cwd=work)
+    assert (code, numbers, [line for line in out.splitlines() if line.startswith(("parked ", "stopped: "))]) == (
+        0, ["7", "8"],
+        (["parked 7", "parked 8"] if parks else []) + ["stopped: nothing solvable"])
+    assert (work / ".tdd" / "parallel.exit").read_text() == "0\n"
