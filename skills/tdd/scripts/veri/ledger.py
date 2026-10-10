@@ -63,8 +63,9 @@ def ledger_steps(text):
         match = STEP_RE.fullmatch(line)
         if not match:
             continue
-        state = "open" if match.group(2) == " " else "done"
         step = match.group(4) or ""
+        phased_done = PHASES_RE.search(step) and next_phase(step) is None
+        state = "open" if match.group(2) == " " and not phased_done else "done"
         kind = KIND_RE.search(step)
         criterion = re.search(CRITERION_RE, step)
         added = is_added(step)

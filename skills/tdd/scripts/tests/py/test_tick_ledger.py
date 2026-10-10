@@ -1,8 +1,10 @@
 """In-process cases for veri/tick_ledger.py, the module tick-ledger.sh is a shim over."""
 import errno
 import importlib
+import io
 import os
 import resource
+import sys
 
 import pytest
 
@@ -324,3 +326,30 @@ def test_main_with_phase_expand_marks_expand_done_on_the_phased_step_in_place_le
     assert (code, out, ledger.read_bytes()) == (
         0, b"", ("# Plan for #42\n\n- [ ] add lowercasing\n" + phased + " ⟂ expand done\n"
                  "- [ ] strip edge hyphens\n").encode())
+
+
+def test_main_with_phase_marking_every_listed_phase_in_order_finishes_the_step_for_ledger_steps_next_unchecked_and_next_phase(
+        tmp_path, monkeypatch, capsysbinary, tick_ledger):
+    ledger_steps = importlib.import_module("veri.ledger_steps")
+    next_unchecked = importlib.import_module("veri.next_unchecked")
+    phases = ("expand", "migrate", "contract (a)", "contract (b)")
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes((
+        "# Plan for #42\n\n- [x] add lowercasing\n"
+        "- [ ] rename the slug helper ⟦phases: expand, migrate, contract (a), contract (b)⟧ ⟦criterion 1⟧\n"
+        "- [ ] strip edge hyphens\n"
+        "- [ ] split the slug module ⟦phases: expand, migrate⟧ ⟦criterion 2⟧\n").encode())
+
+    codes = tuple(tick_ledger.main(["--phase", phase, str(ledger), "rename the slug helper"]) for phase in phases)
+    capsysbinary.readouterr()
+    answers = {}
+    for name, module, argv in (("ledger-steps", ledger_steps, []), ("next-unchecked", next_unchecked, []),
+                               ("next-phase", ledger_steps, ["next-phase"])):
+        monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(ledger.read_bytes())))
+        code = module.main(argv)
+        answers[name] = (code, capsysbinary.readouterr()[0])
+    states = [line.split(b"\t")[1] for line in answers["ledger-steps"][1].splitlines()]
+
+    assert (codes, answers["ledger-steps"][0], states, answers["next-unchecked"], answers["next-phase"]) == (
+        (0, 0, 0, 0), 0, [b"done", b"done", b"open", b"open"],
+        (0, b"strip edge hyphens\n"), (0, b"expand\n"))
