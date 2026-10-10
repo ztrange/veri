@@ -382,4 +382,18 @@ ref_resolves "$repo"; resolved=$?
 { [[ "$code" == 0 ]] && [[ "$resolved" == 0 ]]; } \
   && ok || no "#1438: with no user.name or user.email in any git config, writes $REF and exits 0 (code=$code resolved=$resolved stderr='$(cat "$work/noidentity.err")')"
 
+repo="$work/noidentity-copies"
+dirty_repo "$repo"
+git -C "$repo" config --unset user.name
+git -C "$repo" config --unset user.email
+leaf_output "$repo" 'streamed progress' 'final result text'
+printf '[user]\n\tuseConfigOnly = true\n' > "$work/noidentity-copies.gitconfig"
+( cd "$repo" && env -u GIT_AUTHOR_NAME -u GIT_AUTHOR_EMAIL -u GIT_COMMITTER_NAME -u GIT_COMMITTER_EMAIL -u EMAIL \
+    GIT_CONFIG_GLOBAL="$work/noidentity-copies.gitconfig" GIT_CONFIG_NOSYSTEM=1 \
+    "$PRESERVE" 409 3 develop-green 1 reject ) >/dev/null 2>"$work/noidentity-copies.err"; code=$?
+log_text="$(copy_text "$(copy_path "$repo" 3 reject log)")"
+out_text="$(copy_text "$(copy_path "$repo" 3 reject out)")"
+{ [[ "$log_text" == "streamed progress" ]] && [[ "$out_text" == "final result text" ]]; } \
+  && ok || no "#1438: with no user.name or user.email in any git config, a mark still copies .tdd/develop-green.log and .tdd/develop-green.out under .tdd/attempts/ (code=$code log='$log_text' out='$out_text' stderr='$(cat "$work/noidentity-copies.err")')"
+
 finish
