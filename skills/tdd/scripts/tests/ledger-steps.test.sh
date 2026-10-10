@@ -53,6 +53,12 @@ either_empty="$("$STEPS" current-or-last-done < "$work/empty.md" 2>> "$work/err"
   && cmp -s <(printf 'usage: ledger-steps.sh [current|last-done|current-or-last-done|next-phase|criterion <k>]\n') "$work/err"; } \
   && ok || no "bogus exits 2 with nothing on stdout and stderr exactly the one usage line (code=$code out='$(cat "$work/out")' stderr='$(cat "$work/err")')"
 
+printf '# Plan for #42\n\n- [x] add lowercasing ⟦criterion 1⟧\n- [ ] rename the slug helper ⟦phases: expand, migrate, contract (a), contract (b)⟧ ⟦criterion 1⟧ ⟂ expand done ⟂ migrate done ⟂ contract (a) owed\n\n## Owed steps\n\n- rename the slug helper: contract (a)\n' > "$work/owed.md"
+phase="$("$STEPS" next-phase < "$work/owed.md" 2> "$work/err")"; phase_code=$?
+step="$("$HERE/../next-unchecked.sh" < "$work/owed.md" 2>> "$work/err")"; step_code=$?
+{ [[ "$phase_code" == 3 ]] && [[ -z "$phase" ]] && [[ "$step_code" == 3 ]] && [[ -z "$step" ]] && [[ ! -s "$work/err" ]]; } \
+  && ok || no "next-phase and next-unchecked.sh both exit 3 with nothing on a ledger whose phased step has its contract filed under ## Owed steps and marked owed (#1410) (phase_code=$phase_code phase='$phase' step_code=$step_code step='$step' stderr='$(cat "$work/err")')"
+
 ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
 mkdir -p "$work/elsewhere"
 answer() {
