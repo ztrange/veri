@@ -431,7 +431,7 @@ problems=()
 
 if resume_step3 "the resume rebase's event"; then
   rebase_at="$(step3_line_of "$rebase_call")"
-  mark="$(sed -n "${rebase_at:-$enter_at},${item_end}p" "$md" | grep -oE 'event\.sh [a-z][a-z-]*( [^`]*)?' | grep -F '<pre-rebase-sha>' | head -n 1)"
+  mark="$(sed -n "${rebase_at:-$enter_at},${item_end}p" "$md" | grep -oE 'event\.sh [a-z][a-z-]*( [^`]*)?' | grep -F '<pre-rebase-sha>' | sed -n 1p)"
   event_name="$(awk '{ print $2 }' <<< "$mark")"
   if [[ -z "$event_name" ]]; then
     problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) has no event.sh mark after $rebase_call whose arguments carry <pre-rebase-sha>, so a resume rebase that moved the branch leaves nothing in the run log")
