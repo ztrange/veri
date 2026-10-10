@@ -1,0 +1,13 @@
+# Plan for #1311 — PRD 009 C3-3: the conductor proves a pairs table by running each mutation against the old case and its replacement
+
+- [ ] Given a pairs table with one row naming an old bash case, a kept bash case of the same suite it is redundant with, and a mutation patch to a production file, the pairs check (`mutation-parity.sh <pairs-table>`) applies the mutation, runs both cases, and — when the old case goes red, another case of its suite stays green and the kept case goes red — prints a report row naming the old case, the kept case, the mutation and the result `proven`, and exits 0 ⟦criterion 1⟧
+- [ ] A row whose valid mutation leaves its kept case green is reported `unproven`, the report naming that kept case, and the pairs check exits 1 ⟦criterion 1⟧
+- [ ] A row whose mutation leaves its old case green is reported `owed` (the mutation is not valid), and the pairs check exits 1 ⟦criterion 1⟧
+- [ ] A row whose mutation turns its old case red but leaves no other case of that suite green (the suite's count line says 0 passed, as a syntax error would) is reported `owed`, not proven or unproven, and the pairs check exits 1 ⟦criterion 1⟧
+- [ ] A row whose old case is replaced by a named pytest case (a node id) runs that pytest case under the mutation: proven when it goes red, unproven naming it when it stays green ⟦criterion 1⟧
+- [ ] A row whose old case is itself a pytest node id judges validity against the other cases of that pytest file: valid when the node goes red and another case of the file stays green, owed otherwise ⟦criterion 1⟧
+- [ ] Given a pairs table of several rows, the pairs check reports every row, restores the tree before applying the next row's mutation (so a later row's case runs without an earlier row's mutation in place), and exits 0 only when every row is proven and 1 when any row is unproven or owed ⟦criterion 1⟧
+- [ ] The pairs check exits 2 when a row's mutation does not apply to the tree ⟦criterion 1⟧
+- [ ] The pairs check exits 2 when a row's case cannot be run: its suite path does not exist, its bash suite never reaches its count line, or its pytest node id is not collected ⟦criterion 1⟧
+- [ ] After the pairs check exits 0 or 1, the working tree and the index are byte-identical to what they were before it, including a staged change, an unstaged change to a file a mutation patches, and an untracked file present beforehand ⟦criterion 2⟧
+- [ ] After the pairs check exits 2 — a mutation that does not apply, or a case that cannot be run while a mutation is in place — the working tree and the index are byte-identical to what they were before it ⟦criterion 2⟧
