@@ -808,7 +808,10 @@ three times over branches its ledger pinned on later lines.
    '<case name>', '<case name>' in <suite path> ⟦replaces-case⟧ ⟦criterion k⟧`. Group
    related cases of one suite into one step, about a dozen at most; one case is a valid
    group of one. That step's Red is the pytest cases failing against the code before the
-   change; its Green deletes the named bash cases and nothing else.
+   change; its Green deletes the named bash cases and nothing else. A replacement that drives
+   unchanged code passes against it by design: when that Red reports `AGAINST_UNMODIFIED:
+   PASSES`, the step takes the pin path under **Already satisfied — the pin**, verify-pin and
+   then a green leaf that deletes exactly the named cases.
 
    An **interface change** — a production interface replaced by a new one, its callers moved
    across, the old one removed (ADR 0030) — is planned as one step listing the phases it
