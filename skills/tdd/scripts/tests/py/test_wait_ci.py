@@ -871,3 +871,49 @@ def test_main_records_a_deadline_from_the_ci_workflows_recent_runs_or_its_capped
         "explicit total 300": (3, "", "", 300, 60, False),
         "explicit total 1200": (3, "", "", 600, 60, False),
     }
+
+
+def test_main_names_a_conflicting_pr_at_its_first_read_only_while_its_head_has_no_check_and_otherwise_decides_by_its_checks_issue_688(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    run = lambda status, conclusion=None: check_run("gates", FULL_SHA, status, conclusion)
+    other = "0123456789abcdef" * 2 + "01234567"
+    conflict = f"wait-ci.sh: {PR} conflicts with its base branch; no workflow will start until it is rebased\n"
+    past = f"wait-ci.sh: checks of {PR} still pending past the deadline recorded for {FULL_SHA}\n"
+
+    def waited(name, mergeable, runs, *argvs):
+        work = tmp_path / name
+        (work / ".tdd").mkdir(parents=True)
+        bodies = sha_bodies([runs] if runs else [], [], "pending")
+        bodies[PULL] = json.dumps({"number": 1, "state": "open", "draft": False, "mergeable": mergeable,
+                                   "head": {"sha": FULL_SHA}})
+        reads = []
+        served(fake_processes, bodies, lambda line: reads.append(line) if line == PULL else None)
+        answers = []
+        for argv in argvs:
+            code, out, err = run_cli(wait_ci, [PR, *argv], env={"VERI_POLL": "0"}, cwd=work)
+            answers.append((code, out, err))
+        return answers, len(reads)
+
+    observed = {
+        "conflicting, no check": waited("conflict", False, [], ["540", "600", FULL_SHA]),
+        "conflicting, no check, another head given": waited("conflict-stale", False, [], ["540", "600", other]),
+        "unknown, no check": waited("unknown", None, [], ["540", "600", FULL_SHA]),
+        "conflicting, green": waited("conflict-green", False, [run("completed", "success")],
+                                     ["540", "600", FULL_SHA])[0],
+        "conflicting, red": waited("conflict-red", False,
+                                   [run("completed", "success"), run("completed", "failure")],
+                                   ["540", "600", FULL_SHA])[0],
+        "conflicting, pending": waited("conflict-pending", False, [run("in_progress")], ["540", "600", FULL_SHA])[0],
+        "conflicting, pending across the deadline": waited("conflict-across", False, [run("in_progress")],
+                                                           ["120", "120", FULL_SHA], ["120", "120", FULL_SHA])[0],
+    }
+
+    assert observed == {
+        "conflicting, no check": ([(2, "", conflict)], 1),
+        "conflicting, no check, another head given": ([(2, "", conflict)], 1),
+        "unknown, no check": ([(3, "", "")], 10),
+        "conflicting, green": [(0, "", "")],
+        "conflicting, red": [(1, "", "")],
+        "conflicting, pending": [(3, "", "")],
+        "conflicting, pending across the deadline": [(3, "", ""), (2, "", past)],
+    }
