@@ -121,6 +121,8 @@
 #  45. SKILL.md's Draft PR step says `rebase-onto-default.sh`'s exit code decides the next
 #      action, so nothing after it — the rebased tip's full run in particular — starts until it
 #      has returned, and never in the same message as the rebase.
+#  46. SKILL.md's Draft PR sub-step 1 alone carries that sentence: the CI conflict-rebase copy
+#      later in the same step does not stand in for it.
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -1117,6 +1119,21 @@ if step_or_problem '### 4. Draft PR' "whether the rebase's exit code gates the n
   gate="$(first_record "$(unmarked_records)" -F 'rebase-onto-default.sh' -F 'exit code' -E 'decides?[^.]*next action' -F 'full' -E 'until[^.]*returned' -F 'same message')"
   [[ -n "$gate" ]] ||
     problems+=("no instruction of $skill_md's Draft PR step says rebase-onto-default.sh's exit code decides the next action, so nothing after it — the rebased tip's full run in particular — is started until it has returned, and never in the same message as the rebase; a conductor batching tool calls starts the full run beside a rebase that exits 3")
+fi
+report "$name"
+
+name="#1287 $skill_md's Draft PR sub-step 1, the one that asks the two questions, says on its own that rebase-onto-default.sh's exit code decides the next action, so nothing after it, the rebased tip's full run included, starts until it has returned, and never in the same message"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "whether sub-step 1's rebase exit code gates the next action"; then
+  sub_step_1="$(section_lines '### 4. Draft PR' '^## |^### ' | awk '/^ *1\. \*\*/ { inside = 1 } /^ *2\. \*\*/ { inside = 0 } inside' | records_of | tr -d '*`')"
+  if [[ -z "$sub_step_1" ]]; then
+    problems+=("$skill_md's Draft PR step has no sub-step 1 (1. **Ask the two questions …) to read — nothing could be checked")
+  else
+    gate="$(first_record "$sub_step_1" -F 'rebase-onto-default.sh' -F 'exit code' -E 'decides?[^.]*next action' -F 'full' -E 'until[^.]*returned' -F 'same message')"
+    [[ -n "$gate" ]] ||
+      problems+=("no instruction of $skill_md's Draft PR sub-step 1 says rebase-onto-default.sh's exit code decides the next action, so nothing after it — the rebased tip's full run in particular — is started until it has returned, and never in the same message as the rebase; the CI conflict-rebase copy later in the step does not stand in for it")
+  fi
 fi
 report "$name"
 
