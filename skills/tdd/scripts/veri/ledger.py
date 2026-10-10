@@ -87,11 +87,16 @@ def _rewrite_first_step(text, selects, rewrite):
     return False, text
 
 
+def _open_holding(matcher):
+    """A selector accepting an open step line that holds matcher."""
+    return lambda match, line: match.group(2) == " " and matcher in line
+
+
 def ledger_tick(text, matcher, pending=False):
     """(True, text with the first open step holding matcher ticked), or (False, text)."""
     return _rewrite_first_step(
         text,
-        lambda match, line: match.group(2) == " " and matcher in line,
+        _open_holding(matcher),
         lambda match, line: f"{match.group(1)}[x]{match.group(3) or ''}{PENDING_MARK if pending else ''}",
     )
 
@@ -100,7 +105,7 @@ def ledger_mark_phase(text, matcher, phase):
     """(True, text with the first open step holding matcher marked phase done), or (False, text)."""
     return _rewrite_first_step(
         text,
-        lambda match, line: match.group(2) == " " and matcher in line,
+        _open_holding(matcher),
         lambda match, line: f"{line} ⟂ {phase} done",
     )
 
