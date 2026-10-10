@@ -1,0 +1,2 @@
+### `build-develop-prompt.sh exhausted` prints a prompt that tells the leaf not to modify, revert or remove anything in the working tree ⟦criterion 1⟧
+- test-only | the new case in `tests/py/test_build_develop_prompt.py:1265` repeats the render → whitespace-flatten (`re.sub(rb"\s+", b" ", out)`) → regex-rules check used by the cases at lines 1127, 1170, 1207 and 1242; a shared helper would remove that repetition, but it would only change files under `tests/`
