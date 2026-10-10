@@ -233,6 +233,23 @@ def test_main_refusal_after_git_2_53_reference_already_exists_retries_names_the_
     assert (code, len(fetches), b"lock" in err) == (2, 60, True), err[-300:]
 
 
+def test_main_refuses_a_fetch_failing_with_neither_ref_lock_wording_at_once_without_naming_the_ref_lock_issue_1306(
+        tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
+    monkeypatch.delenv("VERI_FETCH_RETRY_SLEEP", raising=False)
+    monkeypatch.chdir(tmp_path)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    calls = fake_git(monkeypatch, 128, "fatal: couldn't find remote ref refs/heads/main\n")
+
+    code = run_conductor.main(["4242"])
+
+    err = capfdbinary.readouterr().err
+    fetches = [call for call in calls if call[:1] == ["git"] and call[3:4] == ["fetch"]]
+    sleeps = [call for call in calls if call[:1] in (["sleep"], ["time.sleep"])]
+    assert (code, len(fetches), sleeps, b"lock" in err) == (2, 1, [], False), err
+
+
 class FakeProcess:
     """A started process that has already exited 0, for whatever the module launches past resolution."""
 
