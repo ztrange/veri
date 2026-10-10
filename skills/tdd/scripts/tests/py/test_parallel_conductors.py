@@ -779,6 +779,42 @@ def test_the_report_prints_one_line_per_issue_in_launch_order_killed_ahead_of_an
     ]
 
 
+def test_the_cli_reports_a_ready_pr_done_a_draft_ending_in_a_bail_bailed_a_draft_not_ending_in_one_never_bailed_and_a_supervisor_exit_2_killed_one_line_each_in_launch_order_then_what_stopped_the_loop(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text(json.dumps([
+        {"body": "Closes #7", "isDraft": False, "url": "https://example.test/pull/7"},
+        {"body": "Closes #8", "isDraft": True, "url": "https://example.test/pull/8"},
+        {"body": "Closes #9", "isDraft": True, "url": "https://example.test/pull/9"},
+    ]))
+    work = tmp_path / "repo"
+    (work / ".tdd").mkdir(parents=True)
+    events = {"8": '{"event": "launch"}\n{"event": "bail"}\n',
+              "9": '{"event": "bail"}\n{"event": "launch"}\n'}
+    for n, text in events.items():
+        (work / ".tdd" / "wt" / n / ".tdd").mkdir(parents=True)
+        (work / ".tdd" / "wt" / n / ".tdd" / "events.jsonl").write_text(text)
+
+    def on_launch(sup):
+        sup.exit(2 if sup.args[-1] == "10" else 0)
+
+    _boundaries(monkeypatch, tmp_path, on_launch, lambda supervisors: None, solvable=(0, "7 8 9 10\n"))
+
+    code, out, err = run_cli(parallel_conductors, ["--continue-on-bail"], cwd=work,
+                             env={"VERI_RUN_TIMEOUT": "60", "VERI_GH_JSON": str(gh)})
+
+    assert out.splitlines() == [
+        "#7 — done https://example.test/pull/7",
+        "#8 — bailed https://example.test/pull/8",
+        "#10 — killed after 60s",
+        "stopped: nothing solvable",
+    ]
+    assert code == 1
+
+
 def test_the_open_pr_list_is_read_through_gh_json_a_no_answer_at_the_report_returns_2_unwritten_at_a_finish_it_decides_over_the_pages_read_and_a_missing_or_non_json_list_is_survived_as_bash_survives_it(
         capsys, monkeypatch, tmp_path, parallel_conductors):
     graphql = ["gh", "pr", "list", "--state", "open", "--limit", "10000", "--json", "body,isDraft,url"]
