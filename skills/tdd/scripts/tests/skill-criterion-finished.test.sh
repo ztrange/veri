@@ -221,6 +221,20 @@ else
 fi
 report "$name"
 
+name="#1397: $skill_md's ⟦replaces-case⟧ planning paragraph names the step whose Red reports PASSES and points it to the pin-then-delete path"
+problems=()
+if [[ -z "$rc_rec" ]]; then
+  problems+=("plan guidance: no instruction in step 2 names ⟦replaces-case⟧ for a criterion replacing an implementation case — the PASSES case could not be checked")
+else
+  [[ "$rc_rec" =~ (^|[^a-z])red([^a-z]|$) && "$rc_rec" =~ passes ]] ||
+    problems+=("plan guidance: the ⟦replaces-case⟧ instruction never names a Red that reports PASSES")
+  [[ "$rc_rec" =~ already\ satisfied|verify-pin|the\ pin ]] ||
+    problems+=("plan guidance: the ⟦replaces-case⟧ instruction never points a passing Red to the pin path")
+  [[ "$rc_rec" =~ pin[^.]*delet ]] ||
+    problems+=("plan guidance: the ⟦replaces-case⟧ instruction never says the pin path still deletes the named cases")
+fi
+report "$name"
+
 name="#1397: $skill_md's pin section sends a ⟦replaces-case⟧ step whose Red reports PASSES through verify-pin, then a green leaf deleting exactly the named cases, judged by the replaces-case verify-green and accepted only once mutation-parity.sh exits 0, then one tick"
 problems=()
 pin_rc_rec="$(first_record "$(section_records '## Already satisfied — the pin')" -F '⟦replaces-case⟧')"
