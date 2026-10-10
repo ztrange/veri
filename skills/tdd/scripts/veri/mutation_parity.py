@@ -4,6 +4,8 @@ import re
 import subprocess
 import sys
 
+from run_suite import venv_python
+
 USAGE = "usage: mutation-parity.sh <pairs-table>"
 COUNT_LINE = re.compile(r"^(\d+) passed, (\d+) failed$")
 
@@ -18,15 +20,22 @@ def failed_cases(suite):
     return failed, passed
 
 
+def node_fails(node):
+    run = subprocess.run([venv_python(), "-m", "pytest", "-q", node], capture_output=True,
+                         stdin=subprocess.DEVNULL)
+    return run.returncode != 0
+
+
 def check(row):
-    suite, old, _, kept, patch = row
+    suite, old, fate, kept, patch = row
     subprocess.run(["git", "apply", patch], check=True)
     try:
         failed, passed = failed_cases(suite)
+        caught = node_fails(kept) if fate == "replaced" else kept in failed
     finally:
         subprocess.run(["git", "apply", "-R", patch], check=True)
     if old in failed and passed > 0:
-        return "proven" if kept in failed else "unproven"
+        return "proven" if caught else "unproven"
     return "owed"
 
 
