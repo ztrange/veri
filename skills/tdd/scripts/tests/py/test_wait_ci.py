@@ -510,6 +510,26 @@ def world(fake_processes, heads, runs, statuses=(), tick=60):
     return state
 
 
+def served(fake_processes, bodies, refused=lambda line: None):
+    """Fakes `date +%s` as a clock 60 s on per read, `sleep` as instant, and every other line by
+    <refused>'s answer or else <bodies>: a string is stdout of a 0 exit, a tuple (code, stdout,
+    stderr); stderr reaches sys.stderr unless the caller captures it."""
+    clock = iter(range(0, 6000, 60))
+
+    def answer(line, **kwargs):
+        if line == "date +%s":
+            return 0, f"{next(clock)}\n", ""
+        if line.startswith("sleep "):
+            return 0, "", ""
+        body = refused(line) or bodies.get(line, (1, "", f"unexpected: {line}\n"))
+        code, out, err = (0, body, "") if isinstance(body, str) else body
+        if kwargs.get("stderr") is None:
+            sys.stderr.write(err)
+        return code, out, err
+
+    fake_processes(answer)
+
+
 def check_run(name, sha, status, conclusion=None):
     return {"name": name, "head_sha": sha, "status": status, "conclusion": conclusion}
 
@@ -625,20 +645,7 @@ def test_main_reads_the_given_shas_own_check_runs_to_pending_unreadable_red_gree
         for n, page in enumerate(list(pages) + [[]], start=1):
             bodies[f"{commits}/check-runs?page={n}"] = page if isinstance(page, tuple) else json.dumps(
                 {"total_count": sum(len(p) for p in pages if isinstance(p, list)), "check_runs": page})
-        clock = iter(range(0, 6000, 60))
-
-        def answer(line, **kwargs):
-            if line == "date +%s":
-                return 0, f"{next(clock)}\n", ""
-            if line.startswith("sleep "):
-                return 0, "", ""
-            body = bodies.get(line, (1, "", f"unexpected: {line}\n"))
-            code, out, err = (0, body, "") if isinstance(body, str) else body
-            if kwargs.get("stderr") is None:
-                sys.stderr.write(err)
-            return code, out, err
-
-        fake_processes(answer)
+        served(fake_processes, bodies)
         return run_cli(wait_ci, [PR, "60", "60", sha], env={"VERI_POLL": "0"}, cwd=work)
 
     success = run("gates", "completed", "success")
@@ -687,22 +694,8 @@ def test_main_reads_the_shas_legacy_statuses_and_with_no_head_sha_the_rest_pull_
             f"{commits}/status": status if status is not None else json.dumps(
                 {"state": "pending", "sha": sha, "total_count": 0, "statuses": []}),
         }
-        clock = iter(range(0, 6000, 60))
-
-        def answer(line, **kwargs):
-            if line == "date +%s":
-                return 0, f"{next(clock)}\n", ""
-            if line.startswith("sleep "):
-                return 0, "", ""
-            refused = graphql == "refused" and (
-                line.split(" ")[1] in ("issue", "pr", "repo") or line.startswith("gh api graphql"))
-            body = (1, "", refusal) if refused else bodies.get(line, (1, "", f"unexpected: {line}\n"))
-            code, out, err = (0, body, "") if isinstance(body, str) else body
-            if kwargs.get("stderr") is None:
-                sys.stderr.write(err)
-            return code, out, err
-
-        fake_processes(answer)
+        served(fake_processes, bodies, lambda line: graphql == "refused" and (
+            line.split(" ")[1] in ("issue", "pr", "repo") or line.startswith("gh api graphql")) and (1, "", refusal))
         return run_cli(wait_ci, [PR, "60", "60"] + ([given] if given else []), env={"VERI_POLL": "0"}, cwd=work)
 
     def statuses(state, *contexts):
