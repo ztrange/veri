@@ -1144,3 +1144,29 @@ def test_veri_parallel_2_starts_two_solvable_issues_conductors_before_either_end
         monkeypatch.delenv(name, raising=False)
     code, out, err = run_cli(parallel_conductors, [], env={"VERI_PARALLEL": "2", "VERI_GH_JSON": str(gh)}, cwd=work)
     assert (code, starts) == (0, [("7", []), ("8", ["7"])])
+
+
+def test_veri_parallel_2_prints_each_conductor_s_assistant_events_as_context_issue_cache_read_plus_cache_creation_attributed_to_its_own_issue_and_a_non_assistant_event_carrying_cache_usage_prints_none(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    work = tmp_path / "repo"
+    (work / ".tdd").mkdir(parents=True)
+    usage = '"usage":{"input_tokens":7,"cache_creation_input_tokens":%d,"cache_read_input_tokens":%d,"output_tokens":120}'
+    events = {
+        "7": ('{"type":"assistant","message":{"role":"assistant",%s}}\n' % (usage % (3438, 50000))),
+        "8": ('{"type":"assistant","message":{"role":"assistant",%s}}\n' % (usage % (2000, 60000))),
+    }
+    user = '{"type":"user","message":{"role":"user",%s}}\n' % (usage % (9, 900))
+
+    def on_launch(sup):
+        n = sup.args[-1]
+        (work / ".tdd" / ("conductor-%s.log" % n)).write_text(events[n] + user)
+
+    _boundaries(monkeypatch, tmp_path, on_launch, _exit_every_live_conductor, solvable=(0, "7\n8\n"))
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    code, out, err = run_cli(parallel_conductors, [], env={"VERI_PARALLEL": "2", "VERI_GH_JSON": str(gh)}, cwd=work)
+    assert sorted(line for line in out.splitlines() if line.startswith("context ")) == [
+        "context 7 53438", "context 8 62000"]
