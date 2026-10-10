@@ -1375,3 +1375,76 @@ def test_the_cli_prints_parked_for_a_conductor_that_halts_writing_its_parked_fil
             "#7 — killed after 60s",
             "stopped: #7 killed",
         ])
+
+
+def test_the_cli_exits_0_all_done_1_a_bail_or_a_kill_2_plumbing_and_3_nothing_solvable_with_parallel_exit_holding_the_code_and_prints_the_same_report_over_rest_in_two_or_three_pages_as_over_one_fixture(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    def prepare(name, solvable, exits=(), prs=(), bailed=()):
+        for var in TUNABLES + ("VERI_GH_DRIVER",):
+            monkeypatch.delenv(var, raising=False)
+        root = tmp_path / name
+        work = root / "repo"
+        (work / ".tdd").mkdir(parents=True)
+        for n in bailed:
+            _event_log(work, n, '{"event": "red"}\n{"event": "bail"}\n')
+        launches = []
+
+        def on_launch(sup):
+            launches.append(sup.args[-1])
+            sup.exit(2 if sup.args[-1] in exits else 0)
+
+        _boundaries(monkeypatch, root, on_launch, lambda supervisors: None, solvable=solvable)
+        gh = root / "gh"
+        gh.mkdir()
+        (gh / "prs.json").write_text(json.dumps([
+            {"body": "Closes #7", "isDraft": draft, "url": "https://example.test/pull/7"} for draft in prs]))
+        return work, gh, launches
+
+    def report(code, out, work):
+        lines = [line for line in out.splitlines() if line.startswith(("#", "stopped: "))]
+        return code, lines, (work / ".tdd" / "parallel.exit").read_text()
+
+    bailed_report = (1, ["#7 — bailed https://example.test/pull/7", "stopped: #7 bailed"], "1\n")
+    shapes = [
+        ("done", (0, "7\n"), {}, dict(prs=[False]), (0, ["#7 — done https://example.test/pull/7",
+                                                        "stopped: nothing solvable"], "0\n")),
+        ("bailed", (0, "7\n"), {}, dict(prs=[True], bailed=["7"]), bailed_report),
+        ("killed", (0, "7\n"), {"VERI_RUN_TIMEOUT": "60"}, dict(exits=["7"]),
+         (1, ["#7 — killed after 60s", "stopped: #7 killed"], "1\n")),
+        ("plumbing", (2, ""), {}, {}, (2, ["stopped: solvable-issues.sh could not answer"], "2\n")),
+        ("nothing", (0, ""), {}, {}, (3, ["stopped: nothing solvable"], "3\n")),
+        ("bad-parallel", (0, "7\n"), {"VERI_PARALLEL": "0"}, {}, (2, [], "2\n")),
+    ]
+    for name, solvable, env, setup, want in shapes:
+        work, gh, launches = prepare(name, solvable, **setup)
+        code, out, err = run_cli(parallel_conductors, [], cwd=work, env=dict(env, VERI_GH_JSON=str(gh)))
+        assert report(code, out, work) == want, name
+
+    def pull(number, draft, url="https://example.test/pull/%s"):
+        return {"number": number, "body": "Closes #%s" % number if number == 7 else "", "state": "open",
+                "draft": draft, "html_url": url % number}
+
+    pages = {
+        "two": [[pull(901, False), pull(902, False)], [pull(7, True)]],
+        "three": [[pull(901, True), pull(902, False)], [pull(903, False), pull(904, True)], [pull(7, True)]],
+    }
+    for name, served in pages.items():
+        work, gh, launches = prepare("rest-" + name, (0, "7\n"), bailed=["7"])
+        faked_run, gh_calls = subprocess.run, []
+
+        def gh_run(args, *rest, **kwargs):
+            if args[0] != "gh":
+                return faked_run(args, *rest, **kwargs)
+            gh_calls.append(list(args))
+            path = args[2] if args[1:2] == ["api"] and len(args) == 3 else ""
+            page = int(path.rsplit("page=", 1)[-1]) if "repos/{owner}/{repo}/pulls" in path else 0
+            if not page:
+                return subprocess.CompletedProcess(args, 1, "", "HTTP 403: GraphQL is not available")
+            return subprocess.CompletedProcess(args, 0, json.dumps(served[page - 1] if page <= len(served) else []) + "\n", "")
+
+        monkeypatch.setattr(subprocess, "run", gh_run)
+        code, out, err = run_cli(parallel_conductors, [], cwd=work, env={})
+        assert report(code, out, work) == bailed_report, name
+        assert gh_calls and all(call[:2] == ["gh", "api"] for call in gh_calls), name
+        assert [call[2].rsplit("page=", 1)[-1] for call in gh_calls[-(len(served) + 1):]] == [
+            str(page) for page in range(1, len(served) + 2)], name
