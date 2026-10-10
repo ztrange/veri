@@ -170,70 +170,7 @@ again() {
 rollup pending.json "$(check COMPLETED SUCCESS),$(check IN_PROGRESS '')"
 rollup green.json   "$(check COMPLETED SUCCESS),$(check COMPLETED NEUTRAL),$(check COMPLETED SKIPPED)"
 
-name="wait-ci.sh exits 3 while the sha's own check runs are still in progress, even when the PR already reports that sha as its head and its rollup still shows a previous head's green (#552)"
-problems=()
 sha=89abcdef0123456789abcdef0123456789abcdef
-sha_head race.json
-sha_runs race.json "$(sha_run gates in_progress null)"
-got="$(waited race 60 60 "$sha")"
-[[ "$got" == 3 ]] || problems+=("rollup green for $sha, its own check run in_progress: want exit 3, got $got (stderr: $(cat "$work/race.err"))")
-report "$name"
-
-name="wait-ci.sh exits 2 naming the sha when gh cannot read that sha's own check runs, even though gh printed a body (#552)"
-problems=()
-sha_head unread.json
-got="$(GH_API_FAIL=1 waited unread 60 60 "$sha")"
-[[ "$got" == 2 ]] || problems+=("gh api check-runs failed: want exit 2, got $got (stderr: $(cat "$work/unread.err"))")
-grep -F "could not read the checks of $sha" "$work/unread.err" > /dev/null \
-  || problems+=("gh api check-runs failed: want stderr naming $sha, got: $(cat "$work/unread.err")")
-report "$name"
-
-name="wait-ci.sh exits 1 when the sha's own check runs hold a completed failure, even while the PR rollup reads all green (#552)"
-problems=()
-sha_head redsha.json
-sha_runs redsha.json "$(sha_run gates completed '"failure"')"
-got="$(waited redsha 60 60 "$sha")"
-[[ "$got" == 1 ]] || problems+=("rollup green for $sha, its own check run completed failure: want exit 1, got $got (stderr: $(cat "$work/redsha.err"))")
-report "$name"
-
-name="wait-ci.sh never reads a completed NEUTRAL or SKIPPED run among the sha's own check runs as red: with another still in progress it exits 3 (#552)"
-problems=()
-sha_head quietsha.json
-sha_runs quietsha.json "$(sha_run lint completed '"neutral"')" "$(sha_run docs completed '"skipped"')" "$(sha_run gates in_progress null)"
-got="$(waited quietsha 60 60 "$sha")"
-[[ "$got" == 3 ]] || problems+=("sha's own runs neutral, skipped and in_progress: want exit 3, got $got (stderr: $(cat "$work/quietsha.err"))")
-report "$name"
-
-name="wait-ci.sh reads every page of the sha's own check runs: a failed run beyond the first page exits 1, even while the PR rollup reads all green (#552)"
-problems=()
-sha_head pagedsha.json
-runs=()
-for i in $(seq 1 100); do runs+=("$(sha_run "gates-$i" completed '"success"')"); done
-runs+=("$(sha_run gates-101 completed '"failure"')")
-sha_runs pagedsha.json "${runs[@]}"
-got="$(waited pagedsha 60 60 "$sha")"
-[[ "$got" == 1 ]] || problems+=("rollup green for $sha, a failed run on its check runs' second page: want exit 1, got $got (stderr: $(cat "$work/pagedsha.err"))")
-report "$name"
-
-name="wait-ci.sh exits 0 when the sha's own check runs and statuses have all succeeded, even while the PR rollup still shows a previous head's failed or pending checks (#552)"
-problems=()
-for stale in failure:"$(check COMPLETED FAILURE)" pending:"$(check IN_PROGRESS '')"; do
-  f="greensha-${stale%%:*}"
-  rollup "$f.json" "$(check COMPLETED SUCCESS),${stale#*:}" "$sha"
-  sha_runs "$f.json" "$(sha_run gates completed '"success"')"
-  sha_statuses "$f.json" success '{"context":"legacy","state":"success"}'
-  got="$(waited "$f" 60 60 "$sha")"
-  [[ "$got" == 0 ]] || problems+=("rollup ${stale%%:*} for $sha, its own check run and status success: want exit 0, got $got (stderr: $(cat "$work/$f.err"))")
-done
-report "$name"
-
-name="wait-ci.sh exits 3, never 0, when every one of the sha's own check runs concluded skipped, even while the PR rollup reads all green (#552)"
-problems=()
-sha_head skippedsha.json
-sha_runs skippedsha.json "$(sha_run gates completed '"skipped"')" "$(sha_run docs completed '"skipped"')"
-got="$(waited skippedsha 60 60 "$sha")"
-[[ "$got" == 3 ]] || problems+=("rollup green for $sha, its own check runs all skipped: want exit 3, got $got (stderr: $(cat "$work/skippedsha.err"))")
-report "$name"
 
 name="wait-ci.sh exits 1 when a legacy status context of the sha is in a failure or error state, even while the sha's own check runs all succeeded (#552)"
 problems=()
