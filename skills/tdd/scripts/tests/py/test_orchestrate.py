@@ -715,3 +715,62 @@ def test_main_launches_per_solvable_issue_reports_context_and_stops_over_budget_
         "relaunched after a stop": (
             0, "context 1001 150100\n", "", [[conductor, "1001"], [conductor, "1001"]], [(2, 3), (0, 0)]),
     }
+
+
+def test_main_refuses_a_bad_budget_or_stop_timeout_relaunches_an_unfinished_conductor_and_skips_a_parked_one(
+        tmp_path, monkeypatch, orchestrate, fake_processes, run_cli):
+    ledger = "# Plan\n- [x] first step\n- [ ] second step\n"
+
+    def orchestrated(name, answers, env, on_launch=lambda work, issue: None, issue_ledger=None):
+        work = tmp_path / name
+        work.mkdir()
+        if issue_ledger:
+            (work / ".tdd").mkdir()
+            (work / ".tdd" / ("issue-%s.md" % issue_ledger)).write_text(ledger)
+        answers, launches = list(answers), []
+
+        def answer(line, **kwargs):
+            assert line == "solvable-issues.sh", line
+            code, out = answers.pop(0)
+            return code, out, ""
+
+        def popen(args, *rest, **kwargs):
+            launches.append([os.path.basename(args[0])] + list(args[1:]))
+            on_launch(work, args[1])
+            return _FakeConductor(4000 + len(launches))
+
+        fake_processes(answer)
+        monkeypatch.setattr(subprocess, "Popen", popen)
+        monkeypatch.setattr(os, "killpg", lambda pid, sig: None)
+        monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+        monkeypatch.delenv("VERI_CONDUCTOR_STOP_TIMEOUT", raising=False)
+        code, out, err = run_cli(orchestrate, [], env=env, cwd=work)
+        kept = (work / ".tdd" / ("issue-%s.md" % issue_ledger)).read_text() if issue_ledger else None
+        return code, out, err, launches, kept
+
+    code, out, err, launches, _ = orchestrated("budget", [(0, "801\n")], {"VERI_CONDUCTOR_CTX_BUDGET": "120k"})
+    assert (code, out, err, launches) == (
+        2, "", "orchestrate.sh: VERI_CONDUCTOR_CTX_BUDGET must be a whole number of tokens: 120k\n", [])
+
+    refusals = {}
+    for value in ("abc", "nan", "inf", "0", "-1"):
+        code, out, err, launches, _ = orchestrated(
+            "stop-timeout" + value, [(0, "803\n")], {"VERI_CONDUCTOR_STOP_TIMEOUT": value})
+        lines = err.splitlines()
+        refusals[value] = (code, out, launches, len(lines),
+                           "VERI_CONDUCTOR_STOP_TIMEOUT" in err, value in err, "Traceback" in err)
+    assert refusals == {value: (2, "", [], 1, True, True, False) for value in ("abc", "nan", "inf", "0", "-1")}
+
+    conductor = "run-conductor.sh"
+    assert orchestrated("exitzero", [(0, "1101\n1102\n"), (0, "1101\n1102\n"), (0, "1102\n"), (3, "")], {},
+                        issue_ledger="1101") == (
+        0, "", "", [[conductor, "1101"], [conductor, "1101"], [conductor, "1102"]], ledger)
+
+    def park(work, issue):
+        if issue == "1201":
+            (work / ".tdd" / "parked").mkdir()
+            (work / ".tdd" / "parked" / "1201.md").write_text("Which test command should this run use?\n")
+
+    assert orchestrated("parked", [(0, "1201\n1202\n"), (0, "1201\n1202\n"), (3, "")], {},
+                        on_launch=park, issue_ledger="1201") == (
+        0, "parked 1201\n", "", [[conductor, "1201"], [conductor, "1202"]], ledger)
