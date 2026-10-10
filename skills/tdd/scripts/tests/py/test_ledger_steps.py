@@ -354,3 +354,22 @@ def test_next_phase_prints_expand_on_an_unmarked_phased_step_migrate_once_expand
         "expand marked": (0, b"migrate\n", b""),
         "no phased step": (3, b"", b""),
     }
+
+
+def test_next_phase_answers_contract_b_after_expand_on_a_step_listing_only_expand_and_contract_b(
+        monkeypatch, capsysbinary, ledger_steps):
+    phased = "- [ ] rename the slug helper ⟦phases: expand, contract (b)⟧ ⟦criterion 1⟧"
+    ledgers = {
+        "nothing marked": f"# Plan for #42\n\n- [x] add lowercasing\n{phased}\n",
+        "expand marked": f"# Plan for #42\n\n- [x] add lowercasing\n{phased} ⟂ expand done\n",
+    }
+    results = {}
+    for name, ledger in ledgers.items():
+        fake_stdin(monkeypatch, ledger.encode())
+        code = ledger_steps.main(["next-phase"])
+        results[name] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        "nothing marked": (0, b"expand\n", b""),
+        "expand marked": (0, b"contract (b)\n", b""),
+    }
