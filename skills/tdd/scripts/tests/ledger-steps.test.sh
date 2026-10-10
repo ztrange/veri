@@ -50,7 +50,7 @@ either_empty="$("$STEPS" current-or-last-done < "$work/empty.md" 2>> "$work/err"
 
 "$STEPS" bogus < "$work/kinds.md" > "$work/out" 2> "$work/err"; code=$?
 { [[ "$code" == 2 ]] && [[ ! -s "$work/out" ]] \
-  && cmp -s <(printf 'usage: ledger-steps.sh [current|last-done|current-or-last-done|criterion <k>]\n') "$work/err"; } \
+  && cmp -s <(printf 'usage: ledger-steps.sh [current|last-done|current-or-last-done|next-phase|criterion <k>]\n') "$work/err"; } \
   && ok || no "bogus exits 2 with nothing on stdout and stderr exactly the one usage line (code=$code out='$(cat "$work/out")' stderr='$(cat "$work/err")')"
 
 ln -s "$(cd "$HERE/../.." && pwd)" "$work/linked-skill"
