@@ -1552,8 +1552,9 @@ as a system failure.
 A contract phase that exhausts `REVISE_BUDGET` does not abandon the step: reset the contract
 to its own base sha with `git reset --hard <base-sha>`, so the expand and migrate commits are
 kept, and file the contract under the ledger's `## Owed steps`: append it as a plain bullet
-under that trailing heading, adding the heading when the ledger has none, then commit the
-ledger and go back to `next-unchecked.sh`.
+under that trailing heading, adding the heading when the ledger has none, and mark the
+contract phase owed with `tick-ledger.sh --phase-owed <phase> .tdd/issue-<n>.md "<STEP>"`, so
+`next-phase` never hands it back; then commit the ledger and go back to `next-unchecked.sh`.
 
 ### 4. Draft PR
 
