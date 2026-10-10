@@ -1,0 +1,2 @@
+### For every script with a `$S/<script>` entry in SKILL.md's script reference, a suite fails naming the script and the flag when that script's usage line names a `--` flag the entry's synopsis does not, and the entries stale today are brought in line ⟦criterion 1⟧
+- test-only | skill-reference-usage.test.sh's inner `while … done <<< "$(flags_of "$usage")"` loop could become one `comm -23` between the usage line's flags and the entry's flags. That would change the shape of the loop, not remove any duplication, so it does not qualify as a transform.
