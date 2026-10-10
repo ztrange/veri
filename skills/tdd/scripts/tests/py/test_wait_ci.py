@@ -544,6 +544,20 @@ def legacy(state):
     return {"context": "legacy", "state": state}
 
 
+def sha_bodies(pages, statuses, state):
+    """The open pull, the sha's status document and its check-run pages, a tuple page standing for gh's
+    answer, then the empty page that ends them."""
+    bodies = {
+        PULL: OPEN_PULL,
+        f"{COMMITS}/status": json.dumps(
+            {"state": state, "sha": FULL_SHA, "total_count": len(statuses), "statuses": list(statuses)}),
+    }
+    for n, page in enumerate(list(pages) + [[]], start=1):
+        bodies[f"{COMMITS}/check-runs?page={n}"] = page if isinstance(page, tuple) else json.dumps(
+            {"total_count": sum(len(p) for p in pages if isinstance(p, list)), "check_runs": page})
+    return bodies
+
+
 def test_main_keeps_its_bound_across_reads_calls_and_the_head_sha_it_was_given_and_names_a_pr_it_cannot_read(
         tmp_path, wait_ci, fake_processes, run_cli):
     pending, done = {"status": "in_progress", "conclusion": None}, {"status": "completed", "conclusion": "success"}
@@ -640,15 +654,7 @@ def test_main_reads_the_given_shas_own_check_runs_to_pending_unreadable_red_gree
     def waited(name, pages, statuses=(), state="pending"):
         work = tmp_path / name
         (work / ".tdd").mkdir(parents=True)
-        bodies = {
-            PULL: OPEN_PULL,
-            f"{COMMITS}/status": json.dumps(
-                {"state": state, "sha": FULL_SHA, "total_count": len(statuses), "statuses": list(statuses)}),
-        }
-        for n, page in enumerate(list(pages) + [[]], start=1):
-            bodies[f"{COMMITS}/check-runs?page={n}"] = page if isinstance(page, tuple) else json.dumps(
-                {"total_count": sum(len(p) for p in pages if isinstance(p, list)), "check_runs": page})
-        served(fake_processes, bodies)
+        served(fake_processes, sha_bodies(pages, statuses, state))
         return run_cli(wait_ci, [PR, "60", "60", FULL_SHA], env={"VERI_POLL": "0"}, cwd=work)
 
     success = run("gates", "completed", "success")
@@ -748,15 +754,8 @@ def test_main_reads_the_rest_head_large_documents_and_every_check_run_page_and_n
     def waited(name, pages, statuses=(), broken=None):
         work = tmp_path / name
         (work / ".tdd").mkdir(parents=True)
-        total = sum(len(page) for page in pages)
-        bodies = {
-            PULL: OPEN_PULL,
-            f"{COMMITS}/status": json.dumps(
-                {"state": "success", "sha": FULL_SHA, "total_count": len(statuses), "statuses": list(statuses)}),
-        }
-        for n, page in enumerate(list(pages) + [[]], start=1):
-            bodies[f"{COMMITS}/check-runs?page={n}"] = bad_gateway if n == broken else json.dumps(
-                {"total_count": total, "check_runs": page})
+        bodies = sha_bodies([bad_gateway if n == broken else page for n, page in enumerate(pages, start=1)],
+                            statuses, "success")
         sizes[name] = [len(bodies[f"{COMMITS}/check-runs?page=1"]), len(bodies[f"{COMMITS}/status"])]
         served(fake_processes, bodies, lambda line: (
             (1, "", proxy) if "repositories/" in line else
