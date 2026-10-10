@@ -2,10 +2,10 @@
 
 A Claude Code skill suite that solves one GitHub issue under strict TDD. The whole
 product is `skills/tdd/`: a procedure in English (`SKILL.md`) that Claude
-follows, plus seventy-five bash scripts it calls — seventy, strictly: `invisible-work.sh` and
+follows, plus seventy-five bash scripts it calls — seventy-three, strictly: `invisible-work.sh` and
 `unreachable.sh` are counted with them but the procedure never calls them; they are maintenance
 utilities a human or a loop runs, the first to report a branch no PR was opened for, or one not
-on `origin` (#197), the second to list the scripts no declared entry point reaches (#498). `production-frozen.sh`, `no-product-caller.sh` and `mutation-parity.sh` are three more the procedure does not call yet. Read
+on `origin` (#197), the second to list the scripts no declared entry point reaches (#498). Read
 `CONTEXT.md` for the glossary — the terms there (conductor, leaf, supervisor, verdict, ledger, bail) are used precisely everywhere.
 
 ## Commands
