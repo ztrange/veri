@@ -1609,13 +1609,15 @@ RELAUNCH = ["relaunch", "cause=no-verdict"]
 NO_VERDICT_MARK = ["verdict", "verdict=malformed", "reason=", "cause=no-verdict"]
 GREEN_MARK = ["verdict", "verdict=PASS", "reason=" + GREEN_REASON]
 KILLED_OUT = "verifier leaf killed-stuck — no verdict rendered (see .tdd/verify-green.log)\n"
+EXHAUSTED = (2, "\n", NO_LINE_TEXT * 2, 2, [RELAUNCH, NO_VERDICT_MARK])
+KILLED = (2, KILLED_OUT, "", 1, [])
 
 
 @pytest.mark.parametrize("env, leaf_outs, supervise_code, expected", [
     pytest.param({}, [stream(WAITING, GREEN, DELIVERED)], 0,
                  (0, GREEN_REASON + "\n", "", 1, [GREEN_MARK]), id="earlier-record"),
     pytest.param({}, [stream(WAITING, DELIVERED)], 0,
-                 (2, "\n", NO_LINE_TEXT * 2, 2, [RELAUNCH, NO_VERDICT_MARK]), id="no-record-verdict"),
+                 EXHAUSTED, id="no-record-verdict"),
     pytest.param({}, [stream("VERDICT: REJECT\nREASON: Missing edge case.",
                              "VERDICT: PASS\nREASON: Revised: target and full suite green.", DELIVERED)], 0,
                  (0, "Revised: target and full suite green.\n", "", 1,
@@ -1624,7 +1626,7 @@ KILLED_OUT = "verifier leaf killed-stuck — no verdict rendered (see .tdd/verif
                  (0, GREEN_REASON + "\n", NO_LINE_TEXT, 2, [RELAUNCH, GREEN_MARK]),
                  id="relaunched-second-verdict"),
     pytest.param({}, [WAITING], 0,
-                 (2, "\n", NO_LINE_TEXT * 2, 2, [RELAUNCH, NO_VERDICT_MARK]), id="budget-default"),
+                 EXHAUSTED, id="budget-default"),
     pytest.param({"VERI_NO_VERDICT_RETRIES": "0"}, [WAITING], 0,
                  (2, "\n", NO_LINE_TEXT, 1, [NO_VERDICT_MARK]), id="budget-0"),
     pytest.param({"VERI_NO_VERDICT_RETRIES": "2"}, [WAITING], 0,
@@ -1633,11 +1635,11 @@ KILLED_OUT = "verifier leaf killed-stuck — no verdict rendered (see .tdd/verif
                  (2, "", "verify: VERI_NO_VERDICT_RETRIES must be a non-negative integer, got 'many'\n", 0, []),
                  id="budget-not-an-integer"),
     pytest.param({"VERI_NO_VERDICT_RETRIES": "3", "VERI_STUCK_RETRIES": "1"}, [GREEN], 2,
-                 (2, KILLED_OUT, "", 1, []), id="killed-not-relaunched"),
+                 KILLED, id="killed-not-relaunched"),
     pytest.param({"VERI_STUCK_RETRIES": "3"}, [WAITING], 0,
-                 (2, "\n", NO_LINE_TEXT * 2, 2, [RELAUNCH, NO_VERDICT_MARK]), id="stuck-retries-leave-no-verdict-count"),
+                 EXHAUSTED, id="stuck-retries-leave-no-verdict-count"),
     pytest.param({"VERI_NO_VERDICT_RETRIES": "3", "VERI_STUCK_RETRIES": "0"}, [GREEN], 2,
-                 (2, KILLED_OUT, "", 1, []), id="no-verdict-retries-leave-stuck-count"),
+                 KILLED, id="no-verdict-retries-leave-stuck-count"),
 ])
 def test_verify_sh_reads_the_newest_verdict_across_result_records_and_relaunches_only_a_clean_no_verdict_exit_within_its_own_budget_marking_it_no_verdict(
         env, leaf_outs, supervise_code, expected, run_cli, tmp_path, monkeypatch):
