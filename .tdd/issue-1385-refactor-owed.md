@@ -1,2 +1,4 @@
 ### tick-ledger.sh without --phase, whose matcher hits a step carrying ⟦phases: …⟧, exits 2 with a stderr line naming --phase and leaves the ledger byte-identical, while a step without phases still ticks [x] exactly as before ⟦criterion 1⟧
 - have tick_ledger.py find the phased step through ledger.py's own step selection (a rewrite that raises ValueError, the way _with_phase_mark does) rather than reconstructing the matched line by zipping old and new text — moves logic across files, and must not change ledger_tick's behaviour for tick_criterion.py
+### tick-ledger.sh given both --phase <p> and --refactor-pending, in either order, is refused with exit 2 and a stderr line naming both flags, leaving the ledger byte-identical ⟦criterion 2⟧
+- test-only | the new case's expected tuple `(2, b"", 1, True, True, seed)` is written out once per flag order in `test_tick_ledger.py`; it could be one value checked against both orders
