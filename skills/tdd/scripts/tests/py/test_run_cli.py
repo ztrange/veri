@@ -47,6 +47,15 @@ def test_run_cli_answers_the_code_a_main_that_raises_system_exit_carries(run_cli
     assert code == 3
 
 
+def test_run_cli_answers_the_integer_a_main_returns_or_raises_as_system_exit_as_the_exit_code_1389(run_cli):
+    returning = types.ModuleType("exp_returning")
+    exec("def main(argv):\n    return 7\n", returning.__dict__)
+    raising = types.ModuleType("exp_raising")
+    exec("def main(argv):\n    raise SystemExit(5)\n", raising.__dict__)
+
+    assert (run_cli(returning, [])[0], run_cli(raising, [])[0]) == (7, 5)
+
+
 @pytest.mark.process("a child writing to the inherited stdout and stderr")
 def test_run_cli_includes_in_order_what_a_child_the_module_starts_writes_to_the_inherited_stdout_and_stderr(run_cli):
     module = types.ModuleType("exp_parent")
