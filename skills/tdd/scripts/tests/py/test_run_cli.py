@@ -8,9 +8,14 @@ import pytest
 pytest_plugins = ("pytester",)
 
 
-def planted_module():
+def module_of(source):
     module = types.ModuleType("exp_planted")
-    exec(
+    exec(source, module.__dict__)
+    return module
+
+
+def planted_module():
+    return module_of(
         "import os, sys\n"
         "def main(argv):\n"
         "    sys.stdout.write('argv=%s\\n' % ' '.join(argv))\n"
@@ -18,10 +23,8 @@ def planted_module():
         "    sys.stdout.write('env=%s\\n' % os.environ.get('EXP_RUN_CLI_WORD', '<unset>'))\n"
         "    sys.stdout.write('cwd=%s\\n' % os.getcwd())\n"
         "    sys.stderr.write('planted: said its piece\\n')\n"
-        "    return 4\n",
-        module.__dict__,
+        "    return 4\n"
     )
-    return module
 
 
 def test_run_cli_calls_main_with_the_argv_stdin_environment_and_cwd_given_and_answers_its_exit_code_stdout_and_stderr(
@@ -39,8 +42,7 @@ def test_run_cli_calls_main_with_the_argv_stdin_environment_and_cwd_given_and_an
 
 
 def test_run_cli_answers_the_code_a_main_that_raises_system_exit_carries(run_cli):
-    module = types.ModuleType("exp_exiting")
-    exec("def main(argv):\n    raise SystemExit(3)\n", module.__dict__)
+    module = module_of("def main(argv):\n    raise SystemExit(3)\n")
 
     code, _, _ = run_cli(module, [])
 
@@ -48,10 +50,8 @@ def test_run_cli_answers_the_code_a_main_that_raises_system_exit_carries(run_cli
 
 
 def test_run_cli_answers_the_integer_a_main_returns_or_raises_as_system_exit_as_the_exit_code_1389(run_cli):
-    returning = types.ModuleType("exp_returning")
-    exec("def main(argv):\n    return 7\n", returning.__dict__)
-    raising = types.ModuleType("exp_raising")
-    exec("def main(argv):\n    raise SystemExit(5)\n", raising.__dict__)
+    returning = module_of("def main(argv):\n    return 7\n")
+    raising = module_of("def main(argv):\n    raise SystemExit(5)\n")
 
     assert (run_cli(returning, [])[0], run_cli(raising, [])[0]) == (7, 5)
 
@@ -60,17 +60,14 @@ def test_run_cli_answers_0_when_a_main_returns_none_or_raises_system_exit_with_n
     sources = ("def main(argv):\n    return None\n",
                "def main(argv):\n    raise SystemExit()\n",
                "def main(argv):\n    raise SystemExit(None)\n")
-    modules = [types.ModuleType("exp_silent") for _ in sources]
-    for module, source in zip(modules, sources):
-        exec(source, module.__dict__)
+    modules = [module_of(source) for source in sources]
 
     assert tuple(run_cli(module, [])[0] for module in modules) == (0, 0, 0)
 
 
 @pytest.mark.process("a child writing to the inherited stdout and stderr")
 def test_run_cli_includes_in_order_what_a_child_the_module_starts_writes_to_the_inherited_stdout_and_stderr(run_cli):
-    module = types.ModuleType("exp_parent")
-    exec(
+    module = module_of(
         "import subprocess, sys\n"
         "def main(argv):\n"
         "    sys.stdout.write('parent out before\\n')\n"
@@ -78,8 +75,7 @@ def test_run_cli_includes_in_order_what_a_child_the_module_starts_writes_to_the_
         "    subprocess.run(['/bin/sh', '-c', 'echo child out; echo child err >&2'])\n"
         "    sys.stdout.write('parent out after\\n')\n"
         "    sys.stderr.write('parent err after\\n')\n"
-        "    return 0\n",
-        module.__dict__,
+        "    return 0\n"
     )
 
     code, out, err = run_cli(module, [])
