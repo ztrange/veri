@@ -128,7 +128,7 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   phase's instructions live in its template, not in prose you improvise per cycle.
 - `$S/build-verify-prompt.sh <red|green|refactor|pin|plan> <spec-file> <test-path> [target]` —
   assemble the blind verifier prompt. Used by `verify.sh`; you rarely call it directly.
-- `$S/verify.sh <red|green|refactor|pin|plan> <spec-file> <test-path> [target]` — the **verify
+- `$S/verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <red|green|refactor|pin|plan> <spec-file> <test-path> [target]` — the **verify
   verb**: build the blind prompt → launch the verifier leaf **through the supervisor** →
   parse the verdict. Prints the verifier's **reason** on stdout; **exit 0 = PASS, 1 =
   REJECT, 2 = malformed or killed-stuck**. The `pin` phase is the *already satisfied*
@@ -207,7 +207,7 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   the file's first line is not one of the three modes, or an argument the script does not
   take: nothing on stdout, the complaint on stderr, `.tdd/stop` left as it was. `--clear`
   removes `.tdd/stop` and exits 0 whether or not it was there — the last act of *Stopping*.
-- `$S/refactor-budget.sh <count>` — **bound the refactor loop**, so a step costs the same on
+- `$S/refactor-budget.sh [--issue] <count>` — **bound the refactor loop**, so a step costs the same on
   every run. Given the number of transforms applied so far this step, it decides whether
   another one may run: **exit 0** = still under budget (launch the next transform leaf),
   **exit 3** = budget spent (stop the loop, go to verify-refactor), **exit 2** =
@@ -256,7 +256,7 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   untracked). Idempotent in both files; the word on stdout reports the `.gitignore` only,
   `added` when it wrote the rule there, `already present` when it was there — the exclude
   file is ensured either way. Run once per issue right after entering the worktree (step 1).
-- `$S/issue-worktree.sh <n> <slug>` — the **linked worktree the issue branch lives in**.
+- `$S/issue-worktree.sh <n> <slug> | --remove <n>` — the **linked worktree the issue branch lives in**.
   Creates (or hands back) `<repo-root>/.tdd/wt/<n>` on branch `tdd/<n>-<slug>`, cut from
   **`origin/<default>` as just fetched** — never from the caller's `HEAD`, and never from the
   **local** branch of that name: that one **lags the remote by design**, since a run executes the skill pinned from
@@ -282,7 +282,7 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   uncommitted work away. A **dead** pid is a bailed or killed run, still a resume, still the path.
   `$S/issue-worktree.sh --remove <n>` removes the worktree once the PR has landed, and
   **refuses** (exit 2) one holding uncommitted changes.
-- `$S/detect-test-command.sh [--issue <body-file>] [repo-root]` — print the one command that
+- `$S/detect-test-command.sh [--tier fast|all] [--issue <body-file>] [repo-root]` — print the one command that
   runs the **target repo's** full suite on stdout; **exit 3** — the repo-wide *nothing to do*
   code — when no marker it trusts matched, which is your cue to ask the user. First match
   wins: the issue body's own `Test command:` line (for `--tier all`, unless it equals the fast
