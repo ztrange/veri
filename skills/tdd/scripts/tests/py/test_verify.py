@@ -1538,6 +1538,9 @@ def test_main_writes_every_line_it_prints_the_em_dash_in_its_refusals_included_a
     ]
 
 
+HUNG_LEAF = "#!/bin/sh\necho thinking...\nexec sleep 60\n"
+
+
 def build_prompt(words, monkeypatch):
     built, captured = io.BytesIO(), sys.stdout
     monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(built, write_through=True))
@@ -1583,7 +1586,7 @@ def test_verify_sh_passes_the_blind_prompt_carrying_the_spec_to_the_leaf_and_a_h
             monkeypatch.setattr(subprocess, name, fake)
     else:
         claude = tmp_path / "claude-hang"
-        claude.write_text("#!/bin/sh\necho thinking...\nexec sleep 60\n")
+        claude.write_text(HUNG_LEAF)
         claude.chmod(0o755)
         env.update(CLAUDE_BIN=str(claude), VERI_STUCK_RETRIES="0", VERI_TIMEOUT="0",
                    VERI_POLL="0.02", VERI_KILL_POLL="0.01")
@@ -1882,7 +1885,7 @@ def test_verify_sh_preserves_a_rejected_or_no_verdict_attempt_under_its_ref_and_
     if leaf != "answers":
         claude = tmp_path / ("claude-" + leaf)
         claude.write_text({"fails": "#!/bin/sh\nprintf '%s' \"$FAKE_OUT_TEXT\"\nexit 1\n",
-                           "hangs": "#!/bin/sh\necho thinking...\nexec sleep 60\n"}[leaf])
+                           "hangs": HUNG_LEAF}[leaf])
         claude.chmod(0o755)
     env = {"HOME": str(tmp_path), "CLAUDE_BIN": str(claude), "FAKE_OUT_TEXT": text,
            "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01", **env}
