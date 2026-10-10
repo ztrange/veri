@@ -4,3 +4,5 @@
 - fold the `returncode != 0 → None` check and the `split(b"\n")` into `changed_paths` in `veri/transform_touches_tests.py`, so the two callers (`production_frozen.main` and `transform_touches_tests.main`) stop repeating the same two lines. Not applied: each caller would still need its own `None` check, so it saves about one line per caller.
 ### The no-product-caller check also reports `file:line` for a line naming the interface in `skills/tdd-fix/SKILL.md`, `skills/tdd-candidates/SKILL.md`, the `Makefile`, a file under `docs/hooks/` and a file under `skills/tdd/scripts/veri/` ⟦criterion 2⟧
 - test-only | drop the `git add`/`git commit` pairs from the `callers` and `other-callers` cases in no-product-caller.test.sh — the scan reads the working tree, not git, as the uncommitted `binary-caller` case already shows
+### The no-product-caller check does not report a line under any `tests/` directory that names the interface ⟦criterion 2⟧
+- test-only | extract the repeated "new_repo, add -A, commit, run $CHECK in it" fixture steps in skills/tdd/scripts/tests/no-product-caller.test.sh (five cases, the tests/-directory case among them) into one helper
