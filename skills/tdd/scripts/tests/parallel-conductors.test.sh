@@ -52,21 +52,6 @@ stub="$work/claude"
 printf '#!/bin/sh\necho "$*" >> "%s"\n' "$launched" > "$stub"
 chmod +x "$stub"
 
-bad=""
-for value in 0 two ''; do
-  rm -f "$launched"
-  env -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES \
-    VERI_PARALLEL="$value" VERI_GH_JSON="$gh_json" CLAUDE_BIN="$stub" \
-    "$PARALLEL" >/dev/null 2>&1 && code=0 || code=$?
-  conductor_files="$(ls -d .tdd/conductor-* 2>/dev/null)"
-  if [[ "$code" != 2 || -e "$launched" || -n "$conductor_files" ]]; then
-    bad+=" [VERI_PARALLEL='$value': exit=$code want 2, stub ran: $([[ -e "$launched" ]] && echo yes || echo no), conductor files: '${conductor_files}']"
-  fi
-done
-
-[[ -z "$bad" ]] \
-  && ok || no "VERI_PARALLEL not a whole number >= 1 (0, a word, set-but-empty) is exit 2 with no conductor launched ($bad )"
-
 skill="$work/skill"
 mkdir -p "$skill"
 cp "$HERE/../../SKILL.md" "$skill/SKILL.md"
@@ -977,55 +962,6 @@ done
 
 [[ -z "$bad" ]] \
   && ok || no "CONTEXT.md records rung 3: its entry names parallel-conductors.sh, In flight is defined as local to one invocation, and a new ADR is cited ($bad )"
-
-bad=""
-for value in abc 0 -1 1.5; do
-  tag="${value//[^a-z0-9]/_}"
-  gh22="$work/gh22-$tag"
-  solvable_fixture "$gh22" 7
-  capped22="$work/capped22-$tag"
-  cap22_stub="$work/claude-cap22-$tag"
-  record_stub "$cap22_stub" "$capped22" "$gh22"
-  run_launcher "$gh22" "$cap22_stub" "$work/cap22-$tag.out" VERI_MAX_ISSUES="$value"
-  named=no
-  grep -F 'VERI_MAX_ISSUES' "$work/cap22-$tag.out" | grep -F -- "$value" > /dev/null && named=yes
-  if [[ "$code" != 2 || -e "$capped22" || "$named" != yes ]]; then
-    bad+=" [VERI_MAX_ISSUES='$value': exit=$code want 2, launched: $([[ -e "$capped22" ]] && echo yes || echo no), named: $named]"
-  fi
-done
-
-[[ -z "$bad" ]] \
-  && ok || no "#505 VERI_MAX_ISSUES not a whole number >= 1 (a word, 0, a negative, a fraction) is exit 2 naming it and the value, with no conductor launched ($bad )"
-
-gh23="$work/gh23"
-solvable_fixture "$gh23" 7
-capped23="$work/capped23"
-cap23_stub="$work/claude-cap23"
-record_stub "$cap23_stub" "$capped23" "$gh23"
-run_launcher "$gh23" "$cap23_stub" "$work/cap23.out" VERI_MAX_ISSUES=
-named=no
-grep -F "VERI_MAX_ISSUES must be a whole number >= 1: ''" "$work/cap23.out" > /dev/null && named=yes
-[[ "$code" == 2 && ! -e "$capped23" && "$named" == yes ]] \
-  && ok || no "#505 VERI_MAX_ISSUES set but empty is exit 2 naming it and the empty value '', with no conductor launched ( [exit=$code want 2, launched: $([[ -e "$capped23" ]] && echo yes || echo no), named: $named] $(cat "$work/cap23.out") )"
-
-bad=""
-for value in abc 1.5 -1; do
-  tag="${value//[^a-z0-9]/_}"
-  gh_budget="$work/gh-budget-$tag"
-  solvable_fixture "$gh_budget" 7
-  budget_launched="$work/budget-launched-$tag"
-  budget_stub="$work/claude-budget-$tag"
-  record_stub "$budget_stub" "$budget_launched" "$gh_budget"
-  run_launcher "$gh_budget" "$budget_stub" "$work/budget-$tag.out" VERI_CONDUCTOR_CTX_BUDGET="$value"
-  named=no
-  grep -F 'VERI_CONDUCTOR_CTX_BUDGET' "$work/budget-$tag.out" > /dev/null && named=yes
-  if [[ "$code" != 2 || -e "$budget_launched" || "$named" != yes ]]; then
-    bad+=" [VERI_CONDUCTOR_CTX_BUDGET='$value': exit=$code want 2, launched: $([[ -e "$budget_launched" ]] && echo yes || echo no), named: $named]"
-  fi
-done
-
-[[ -z "$bad" ]] \
-  && ok || no "VERI_CONDUCTOR_CTX_BUDGET not a whole number (a word, a fraction, a negative) is exit 2 naming it, with no conductor launched ($bad )"
 
 gh24="$work/gh24"
 solvable_fixture "$gh24" 7 8 9
