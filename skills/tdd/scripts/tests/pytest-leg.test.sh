@@ -855,4 +855,42 @@ out="$(cat "$work/out")"
   problems+=("make unit: want the medium case test_veri_probe_medium not run, got: $(flat "$out")")
 report "$name"
 
+medium="$work/medium"
+make_tree "$medium"
+stub_bash_suites "$medium"
+cp "$HERE/py/conftest.py" "$medium/$PY_DIR/conftest.py"
+cat > "$medium/$PY_DIR/test_leg_probe.py" <<'PY'
+import signal
+import subprocess
+
+import pytest
+
+
+def test_veri_probe_small():
+    assert 1 == 1
+
+
+@pytest.mark.process("real git, a real child and SIGTERM to it")
+def test_veri_probe_medium():
+    git = subprocess.run(["git", "--version"], capture_output=True, text=True)
+    assert git.returncode == 0 and git.stdout.startswith("git version"), git.stderr
+    child = subprocess.Popen(["python3", "-c", "import time; time.sleep(30)"])
+    child.send_signal(signal.SIGTERM)
+    assert child.wait(timeout=10) == -signal.SIGTERM
+PY
+
+name="make test runs the small and the medium pytest cases, after a bash suite under tests/unit/: a case marked process(\"<boundary>\") that starts real git and a real python3 child and sends that child SIGTERM passes beside an unmarked case, the PATH guard names no command, the leg reports 2 passed and stdout ends all suites green"
+problems=()
+env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE \
+  make --no-print-directory -C "$medium" test > "$work/out" 2> "$work/err" < /dev/null &&
+  code=0 || code=$?
+out="$(cat "$work/out")"
+[[ "$code" == 0 ]] || problems+=("make test: want exit 0, got $code: $(flat "$out") $(flat "$(cat "$work/err")")")
+[[ "$out" == *"2 passed"* ]] || problems+=("make test: want the pytest leg to report 2 passed, got: $(flat "$out")")
+[[ "$out" != *'pytest: tried to start'* ]] ||
+  problems+=("make test: want the PATH guard to refuse nothing, got: $(grep 'pytest: tried to start' <<< "$out" | tr '\n' '/')")
+[[ "$(tail -n 1 <<< "$out")" == 'all suites green' ]] ||
+  problems+=("make test: want stdout's last line all suites green, got: $(tail -n 1 <<< "$out")")
+report "$name"
+
 finish

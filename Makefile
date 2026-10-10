@@ -152,7 +152,7 @@ test unit:
 	done; \
 	if [ -n "$(PY_TESTS)" ]; then \
 	  printf '== pytest\n'; \
-	  : > "$$reach_log"; \
+	  : > "$$reach_log"; suite_guard=; \
 	  UNIT_GUARD_LOG="$$reach_log" PYTHONPYCACHEPREFIX="$$pycache" COLUMNS=200 $(OFFLINE_ENV) "$$py_bin" -m pytest --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || fail=1; \
 	  $(call NAME_REACHED,pytest: tried to start); \
 	fi; \
