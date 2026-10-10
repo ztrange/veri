@@ -373,7 +373,7 @@ $err" ))"
 SKILL="$HERE/../../SKILL.md"
 
 entry="$(awk '
-  !in_e && index($0, "- `$S/issue-worktree.sh <n> <slug>`") == 1 { in_e = 1; print; next }
+  !in_e && index($0, "- `$S/issue-worktree.sh <n> <slug>") == 1 { in_e = 1; print; next }
   in_e && /^([-#]|[0-9]+\.)/ { exit }
   in_e { print }' "$SKILL" | tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' ')"
 

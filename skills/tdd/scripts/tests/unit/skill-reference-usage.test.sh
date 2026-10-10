@@ -18,28 +18,51 @@ export LC_ALL=C
 
 synopses() { grep -E '^ *- `\$S/' "$SKILL" | sed -E 's/^ *- `\$S\/([^`]*).*/\1/'; }
 flags_of() { grep -oE -e '--[a-z][a-z0-9-]*' <<< "$1" | sort -u; }
+usage_block() {
+  awk 'found && (/^#[[:space:]]*$/ || !/^#/) { exit }
+       tolower($0) ~ /^# *usage:/ { found = 1 }
+       found { print }' "$1"
+}
 
-problems=""
-while IFS= read -r synopsis; do
-  script="${synopsis%% *}"
-  [[ -f "$SCRIPTS/$script" ]] || continue
-  usage="$(grep -m1 -iE '^# *usage:' "$SCRIPTS/$script")"
-  entry_flags="$(flags_of "$synopsis")"
-  while IFS= read -r flag; do
-    [[ -z "$flag" ]] && continue
-    grep -xF -e "$flag" <<< "$entry_flags" > /dev/null ||
-      problems+="    $script: $flag is in its usage line, not in SKILL.md's entry"$'\n'
-  done <<< "$(flags_of "$usage")"
-done <<< "$(synopses)"
+flag_problems() {
+  local synopsis script usage entry_flags flag
+  while IFS= read -r synopsis; do
+    script="${synopsis%% *}"
+    [[ -f "$SCRIPTS/$script" ]] || continue
+    usage="$(usage_block "$SCRIPTS/$script")"
+    entry_flags="$(flags_of "$synopsis")"
+    while IFS= read -r flag; do
+      [[ -z "$flag" ]] && continue
+      grep -xF -e "$flag" <<< "$entry_flags" > /dev/null ||
+        printf '    %s\n' "$script: $flag is in its usage line, not in SKILL.md's entry"
+    done <<< "$(flags_of "$usage")"
+  done <<< "$(synopses)"
+}
+
+problems="$(flag_problems)"
+[[ -n "$problems" ]] && problems+=$'\n'
 verdict "every --flag a script's usage line names is in its SKILL.md script-reference synopsis (#1432)"
+
+scratch="$(scratch_dir)"
+mkdir -p "$scratch/skill/scripts"
+cat > "$scratch/skill/scripts/exp-two-line.sh" <<'STUB'
+#!/bin/sh
+# usage: exp-two-line.sh <n>
+#        exp-two-line.sh --drop <n>
+STUB
+printf '%s\n' '- `$S/exp-two-line.sh <n>` — a fixture entry.' > "$scratch/skill/SKILL.md"
+planted="$(SCRIPTS="$scratch/skill/scripts" SKILL="$scratch/skill/SKILL.md"; flag_problems)"
+want="    exp-two-line.sh: --drop is in its usage line, not in SKILL.md's entry"
+problems=""
+grep -xF -e "$want" <<< "$planted" > /dev/null ||
+  problems+="    want the line '$want', got: $(printf '%q' "$planted")"$'\n'
+verdict "#1432: a --flag only on a later line of a script's usage block, missing from its SKILL.md entry, is named with its script"
 
 usage_invocations() {
   local script="$1" line
   while IFS= read -r line; do
     [[ "$line" == "$script" || "$line" == "$script "* ]] && printf '%s\n' "$line"
-  done <<< "$(awk 'found && (/^#[[:space:]]*$/ || !/^#/) { exit }
-                   tolower($0) ~ /^# *usage:/ { found = 1 }
-                   found { print }' "$SCRIPTS/$script" |
+  done <<< "$(usage_block "$SCRIPTS/$script" |
               sed -E -e 's/^# *([Uu]sage:)? *//' -e 's/^([A-Z_]+=[^ ]* +)*//')"
 }
 verbs_of() {
