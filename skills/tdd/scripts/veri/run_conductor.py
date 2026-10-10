@@ -39,6 +39,8 @@ def main(argv):
                 if subprocess.run(["sleep", os.environ.get("VERI_FETCH_RETRY_SLEEP") or "1"]).returncode != 0:
                     return 1
                 continue
+            if "reference already exists" in fetch.stderr:
+                sys.stderr.write("run-conductor: another process holds the ref lock\n")
             sys.stderr.write("run-conductor: fetch of origin failed in '%s' — refusing to run a skill that may be stale\n" % base)
             return 2
         head_rev = "refs/remotes/origin/HEAD"

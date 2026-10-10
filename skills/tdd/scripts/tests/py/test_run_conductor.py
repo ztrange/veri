@@ -212,7 +212,25 @@ def test_main_retries_git_2_53_reference_already_exists_fetch_as_a_held_ref_lock
     fetches = [call for call in calls if call[:1] == ["git"] and call[3:4] == ["fetch"]]
     sleeps = [call for call in calls if call[:1] in (["sleep"], ["time.sleep"])]
     assert (code, captured.out, captured.err, len(fetches), sleeps, list(tmp_path.iterdir())) == (
-        2, b"", (lock * 60 + refusal).encode(), 60, [["sleep", "1"]] * 59, [])
+        2, b"", (lock * 60 + "run-conductor: another process holds the ref lock\n" + refusal).encode(),
+        60, [["sleep", "1"]] * 59, [])
+
+
+def test_main_refusal_after_git_2_53_reference_already_exists_retries_names_the_ref_lock_as_the_cause_issue_1306(
+        tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
+    monkeypatch.delenv("VERI_FETCH_RETRY_SLEEP", raising=False)
+    monkeypatch.chdir(tmp_path)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    calls, lock = fake_locked_fetch(
+        monkeypatch, 0, "error: fetching ref refs/remotes/origin/master failed: reference already exists\n")
+
+    code = run_conductor.main(["4242"])
+
+    err = capfdbinary.readouterr().err
+    fetches = [call for call in calls if call[:1] == ["git"] and call[3:4] == ["fetch"]]
+    assert (code, len(fetches), b"lock" in err) == (2, 60, True), err[-300:]
 
 
 class FakeProcess:
