@@ -12,6 +12,8 @@ for path in (SCRIPTS, SCRIPTS / "veri"):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
+from veri import entry
+
 
 CANONICAL_SHIM = re.compile(r'exec python3 "\$\(dirname "\$0"\)/(veri/[\w-]+\.py)" "\$@"')
 
@@ -73,6 +75,11 @@ def run_cli(monkeypatch, capfd):
                 sys.stderr.write("%s\n" % (code,))
                 sys.stderr.flush()
                 code = 1
+        except Exception as exc:
+            reason = " ".join(str(exc).split())
+            sys.stderr.write("%s: %s: %s\n" % (entry._shim_name(module.main), type(exc).__name__, reason))
+            sys.stderr.flush()
+            code = 2
         finally:
             os.environ.clear()
             os.environ.update(environ)
