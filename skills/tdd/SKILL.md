@@ -557,6 +557,10 @@ unauthenticated baseline never gets a cycle.
    `.tdd/stop` left behind cannot stop the run that resumes it at its first checkpoint.
    A resumed run — one whose worktree and ledger `.tdd/issue-<n>.md` already exist — then runs
    `$S/rebase-onto-default.sh` before its baseline, so the baseline runs on the rebased tip.
+   An exit 3 — the branch already contains `origin/<default>` — goes on unchanged. An exit 1 —
+   the rebase conflicted and was aborted, HEAD untouched — goes on from the old base and
+   leaves the conflict to the Draft PR step's `develop-rebase` path. An exit 2 bails as the
+   Draft PR step's does, a **system** failure (`no-verdict`).
    A new branch's run does not rebase here.
    Every run below happens in it, so the baseline proves the commit the branch is cut from —
    the freshly fetched `origin/<default>` for a new branch, the branch head on a resume — not
