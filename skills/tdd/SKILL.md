@@ -1968,7 +1968,7 @@ path after verify-pin, because deleting the named bash cases is still owed: on a
 PASS commit nothing yet, and launch a green leaf exactly as *Green* does, whose only change
 is deleting exactly the named cases. Judge it by the replaces-case verify-green, whose PASS
 is accepted only once `$S/mutation-parity.sh <pairs-table>` on that step's pairs table
-exits **0** (exit 1 is a REJECT, exit 2 a bail), then commit the pytest cases, the deletion
+exits **0**, as on *Green*'s verify, then commit the pytest cases, the deletion
 and the ticked ledger in one tick-and-commit, as *Green*'s PASS does.
 
 ## Revising on a REJECT
