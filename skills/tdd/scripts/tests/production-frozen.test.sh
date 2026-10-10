@@ -6,6 +6,7 @@
 #   production-frozen.sh <base-sha>, run inside the repository
 #       → exit 1, naming each changed path that is not a test file by
 #         transform-touches-tests.sh's rule, when any commit in <base-sha>..HEAD changes one
+#       → exit 0, printing no path, when every changed path is a test file by that rule
 #
 # Run: scripts/tests/production-frozen.test.sh
 set -uo pipefail
@@ -40,6 +41,16 @@ dirty_out="$(cd "$repo" && "$FROZEN" "$base" 2>&1)"; dirty_code=$?
 if [[ "$dirty_code" == 1 && "$dirty_out" == *"src/widget.sh"* && "$dirty_out" == *"pkg/contests/entry.sh"* \
       && "$dirty_out" != *"tests/widget.test.sh"* ]]; then ok; else
   no "production-frozen range: production paths changed → exit 1 naming each, and not the test file (code=$dirty_code out=$dirty_out)"
+fi
+
+tests_only_base="$(git -C "$repo" rev-parse HEAD)"
+mkdir -p "$repo/lib"
+printf 'widget | grep -Fx 1\n' > "$repo/tests/widget.test.sh"
+printf 'entry | grep two\n' > "$repo/lib/entry.test.sh"
+commit_all "$repo" "test: tighten the widget test, and test entry"
+clean_out="$(cd "$repo" && "$FROZEN" "$tests_only_base" 2>&1)"; clean_code=$?
+if [[ "$clean_code" == 0 && -z "$clean_out" ]]; then ok; else
+  no "production-frozen range: only test files changed → exit 0 printing no path (code=$clean_code out=$clean_out)"
 fi
 
 finish
