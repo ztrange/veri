@@ -6,3 +6,4 @@
 - [x] SKILL.md says a resume rebase that moved the branch is published, once the baseline is green, with `push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>`, never a bare force ⟦criterion 2⟧
 - [x] SKILL.md says a red baseline on the resume-rebased tip resets to `<pre-rebase-sha>` before the run bails ⟦criterion 2⟧
 - [x] SKILL.md says a resume rebase that moved the branch is marked in the run log as its own event carrying the pre-rebase and rebased shas, under a name distinct from anything the Draft PR step's rebase records ⟦criterion 3⟧
+- [ ] fix the full-suite failure: no-sigpipe-pipelines.test.sh — FAIL - no suite under skills/tdd/scripts/tests/ that declares pipefail ends a pipeline in a reader that leaves before EOF (skill-preflight-launchable.test.sh:434 ends its pipeline in head -n 1) ⟦suite-repair⟧ ⟦criterion 3⟧
