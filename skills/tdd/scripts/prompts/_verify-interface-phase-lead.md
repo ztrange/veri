@@ -1,3 +1,6 @@
+A developer agent has finished this phase of an interface change (the code around
+`{{TEST_PATH}}`). Behaviour does not change.
+
 The phase started at `{{BASE_SHA}}`. Review what it changed with
 `git diff {{BASE_SHA}}..HEAD`, and do not read the range's commit messages: `git log` and
 `git show` on the range carry the author's rationale. Render one verdict on the settled

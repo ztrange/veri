@@ -2,10 +2,8 @@
 
 ## Phase: verify-migrate
 
-A developer agent has finished the **migrate** phase of an interface change (the code
-around `{{TEST_PATH}}`). In the migrate phase the product callers of the old interface move
-to the new interface, and the old interface stays in place. Behaviour does not change, and
-test files stay frozen.
+This is the **migrate** phase: the product callers of the old interface move to the new
+interface, and the old interface stays in place. Test files stay frozen.
 {{INCLUDE:_verify-interface-phase-lead.md}}
 2. **The callers moved.** Every product caller of the old interface now calls the new
    interface.
