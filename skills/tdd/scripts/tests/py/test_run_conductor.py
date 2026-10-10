@@ -135,10 +135,10 @@ def test_main_fetches_origin_once_drops_a_successful_fetchs_stderr_and_refuses_a
         [fetch], [], []))
 
 
-def fake_locked_fetch(monkeypatch, sleep_code):
+def fake_locked_fetch(monkeypatch, sleep_code,
+                      lock="error: cannot lock ref 'refs/remotes/origin/main': is at 1111111 but expected 2222222\n"):
     """git faked as a process whose every fetch fails on a ref lock; sleep a process exiting as given."""
     calls = []
-    lock = "error: cannot lock ref 'refs/remotes/origin/main': is at 1111111 but expected 2222222\n"
 
     def answer(args, *_, **kwargs):
         args = list(args)
@@ -192,6 +192,27 @@ def test_main_retries_a_cannot_lock_ref_fetch_through_a_sleep_process_at_most_60
         (1, b"", lock.encode(), 1, [["sleep", "1"]], []),
         (1, b"", lock.encode(), 1, [["sleep", "1"]], []),
     ]
+
+
+def test_main_retries_git_2_53_reference_already_exists_fetch_as_a_held_ref_lock_at_most_60_fetches_and_59_sleeps_then_refuses_issue_1306(
+        tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
+    monkeypatch.delenv("VERI_FETCH_RETRY_SLEEP", raising=False)
+    monkeypatch.chdir(tmp_path)
+    base = str(SCRIPTS.parent)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    refusal = "run-conductor: fetch of origin failed in '%s' — refusing to run a skill that may be stale\n" % base
+    calls, lock = fake_locked_fetch(
+        monkeypatch, 0, "error: fetching ref refs/remotes/origin/master failed: reference already exists\n")
+
+    code = run_conductor.main(["4242"])
+
+    captured = capfdbinary.readouterr()
+    fetches = [call for call in calls if call[:1] == ["git"] and call[3:4] == ["fetch"]]
+    sleeps = [call for call in calls if call[:1] in (["sleep"], ["time.sleep"])]
+    assert (code, captured.out, captured.err, len(fetches), sleeps, list(tmp_path.iterdir())) == (
+        2, b"", (lock * 60 + refusal).encode(), 60, [["sleep", "1"]] * 59, [])
 
 
 class FakeProcess:
