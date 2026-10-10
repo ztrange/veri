@@ -13,3 +13,5 @@
 ### An unknown phase given to `build-develop-prompt.sh` or to `build-verify-prompt.sh` exits 2 with a message naming the expand, migrate, contract (a) and contract (b) phases among the phases it accepts ⟦criterion 1⟧
 - build_verify_prompt.py could join the accepted phases once at module level, as build_develop_prompt.py does with `WANT_PHASES`, instead of inside `main`; not applied because it is not duplication removal
 - test-only | test_build_verify_prompt.py spells the tuple ("expand", "migrate", "contract-a", "contract-b") literally in several cases (~L1075, L1081, L1125, L1158); it could be one module-level constant
+### `SKILL.md` rejects an expand, migrate or contract (b) phase's commit that `transform-touches-tests.sh` exits 1 on, and a contract (a) phase's commit that `production-frozen.sh` exits 1 on ⟦criterion 2⟧
+- test-only | case 11's transform-touches-tests.sh and production-frozen.sh branches run the same window/exit 1/reject checks and could be one loop over (script, phases) pairs
