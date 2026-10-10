@@ -207,44 +207,6 @@ STUB
 
 run_launcher "$gh_again" "$again_stub" "$work/again.out" VERI_CONDUCTOR_CTX_BUDGET=100000
 
-park_run() {
-  local name="$1" gh="$work/gh-$1"
-  shift
-  fresh_repo "$work/$name"
-  solvable_fixture "$gh" 7 8
-  : > "$work/$name.launches"
-  conductor_stub "$work/claude-$name" <<STUB
-echo "\$n" >> "$work/$name.launches"
-if [ "\$n" = 7 ]; then
-  mkdir -p .tdd/parked
-  echo 'Which test command should this run use?' > .tdd/parked/7.md
-$(bailed_pr "$gh")
-  exit 0
-fi
-$(ready_pr "$gh")
-STUB
-  run_launcher_in "$work/$name" "$gh" "$work/claude-$name" "$work/$name.out" "$@"
-}
-
-park_run park
-expect_lines "a conductor that halts writing .tdd/parked/<n>.md prints 'parked <n>', its slot takes the next solvable issue even without --continue-on-bail and with its draft PR's log ending in a bail, and <n> is not launched again while still solvable" \
-  "$(printf 'parked 7\n7\n8')" "$(grep '^parked ' "$work/park.out"; cat "$work/park.launches")" "$work/park.out"
-
-bad=""
-for mode in stop continue; do
-  flag=()
-  [[ "$mode" == continue ]] && flag=(-- --continue-on-bail)
-  park_run "park-$mode" "${flag[@]+"${flag[@]}"}"
-  got_launches="$(tr '\n' ',' < "$work/park-$mode.launches")"
-  as_bail="$(grep -E '^#7 — bailed|^stopped: #7' "$work/park-$mode.out" | tr '\n' '|')"
-  if [[ "$got_launches" != "7,8," || -n "$as_bail" ]]; then
-    bad+=" [$mode: exit=$code, launches '$got_launches' want '7,8,', #7 reported as a bail: '$as_bail' want none; output: $(tr '\n' '|' < "$work/park-$mode.out")]"
-  fi
-done
-
-[[ -z "$bad" ]] \
-  && ok || no "a parked conductor does not stop new launches, with or without --continue-on-bail, and is never reported as a bail even when its draft PR's log ends in one ($bad )"
-
 gh_one="$work/gh-one"
 solvable_fixture "$gh_one" 7 8
 one_marks="$work/one.marks"
@@ -301,61 +263,6 @@ SH
 
 hang_stub="$work/claude-hang"
 hang | conductor_stub "$hang_stub"
-
-bad=""
-for mode in stop continue; do
-  gh10="$work/gh10-$mode"
-  solvable_fixture "$gh10" 11 12 13
-  rm -rf .tdd/wt/11
-  bail_record="$work/bail-$mode"
-  bail_stub="$work/claude-bail-$mode"
-  conductor_stub "$bail_stub" <<STUB
-echo "start \$n" >> "$bail_record"
-case "\$n" in
-  11)
-    mkdir -p ".tdd/wt/11/.tdd"
-    printf '%s\n' '{"ts": 1, "issue": "11", "actor": "conductor", "phase": "develop-red", "step": "1", "event": "bail", "attempt": "1", "skill_commit": "", "cause": "revise-budget"}' \
-      >> ".tdd/wt/11/.tdd/events.jsonl"
-    $(open_pr "$gh10" true)
-    ;;
-  12)
-    i=0
-    while [ "\$i" -lt \$(( ${PATIENCE:-1} * 50 )) ] && ! grep -x 'start 13' "$bail_record" > /dev/null 2>&1; do
-      sleep 0.02; i=\$((i + 1))
-    done
-    echo "end 12" >> "$bail_record"
-    $(ready_pr "$gh10")
-    ;;
-  *)
-    $(ready_pr "$gh10")
-    ;;
-esac
-STUB
-  flag=()
-  [[ "$mode" == continue ]] && flag=(-- --continue-on-bail)
-  run_launcher "$gh10" "$bail_stub" "$work/bail-$mode.out" VERI_PARALLEL=2 "${flag[@]+"${flag[@]}"}"
-  got_bail="$(sort "$bail_record" 2>/dev/null | tr '\n' ',')"
-  case "$mode" in
-    stop)     want_bail="end 12,start 11,start 12," ;;
-    continue) want_bail="end 12,start 11,start 12,start 13," ;;
-  esac
-  twelve_done="$(grep -xF '#12 — done https://example.test/pull/12' "$work/bail-$mode.out")"
-  if [[ "$got_bail" != "$want_bail" || -z "$twelve_done" ]]; then
-    bad+=" [$mode: exit=$code, record '$got_bail' want '$want_bail', #12 reported done: $([[ -n "$twelve_done" ]] && echo yes || echo no); output: $(tr '\n' '|' < "$work/bail-$mode.out")]"
-  fi
-done
-
-[[ -z "$bad" ]] \
-  && ok || no "the first bail stops new launches while running conductors finish, and --continue-on-bail keeps launching and skips the bailed number ($bad )"
-
-gh11="$work/gh11"
-solvable_fixture "$gh11" 7 8
-rm -f "$work/awake-count"
-
-run_launcher "$gh11" "$hang_stub" "$work/kill-stop.out" VERI_RUN_TIMEOUT=60 VERI_AWAKE_CLOCK="$jump_clock" VERI_KILL_POLL=0.01
-want_kill_stop="#7 — killed after 60s"
-got_kill_stop="$(grep -E '^#[0-9]+ — ' "$work/kill-stop.out")"
-expect_lines "the first kill stops new launches: #8 is never launched after #7 is killed" "$want_kill_stop" "$got_kill_stop" "$work/kill-stop.out"
 
 bad=""
 for shape in a b; do

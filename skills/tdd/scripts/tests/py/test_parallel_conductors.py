@@ -1305,3 +1305,69 @@ def test_a_conductor_stopped_over_veri_conductor_ctx_budget_is_launched_again_fo
                              env={"VERI_CONDUCTOR_CTX_BUDGET": "100000", "VERI_GH_JSON": str(gh)}, cwd=work)
     assert (launches, [line for line in out.splitlines() if line.startswith("restarted ")]) == (
         ["7", "7", "8"], ["restarted 7"])
+
+
+def test_the_cli_prints_parked_for_a_conductor_that_halts_writing_its_parked_file_and_never_stops_launches_or_reports_a_bail_for_it_the_first_bail_stops_launches_while_running_conductors_finish_continue_on_bail_keeps_launching_and_the_first_kill_stops_launches(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    def run(name, argv, env, solvable, prs, bailed, parked, exits, slow=()):
+        for var in TUNABLES:
+            monkeypatch.delenv(var, raising=False)
+        root = tmp_path / name
+        gh = root / "gh"
+        gh.mkdir(parents=True)
+        (gh / "prs.json").write_text(json.dumps([
+            {"body": "Closes #%s" % n, "isDraft": n in bailed, "url": "https://example.test/pull/%s" % n}
+            for n in prs]))
+        work = root / "repo"
+        (work / ".tdd" / "parked").mkdir(parents=True)
+        for n in bailed:
+            (work / ".tdd" / "wt" / n / ".tdd").mkdir(parents=True)
+            (work / ".tdd" / "wt" / n / ".tdd" / "events.jsonl").write_text('{"event": "red"}\n{"event": "bail"}\n')
+        launches = []
+
+        def on_launch(sup):
+            n = sup.args[-1]
+            launches.append(n)
+            sup.pid = 5000 + len(launches)
+            if n in parked:
+                (work / ".tdd" / "parked" / ("%s.md" % n)).write_text("Which test command?\n")
+            if n not in slow:
+                sup.exit(exits.get(n, 0))
+
+        def on_sleep(supervisors):
+            for sup in supervisors:
+                if sup.returncode is None:
+                    sup.exit(exits.get(sup.args[-1], 0))
+
+        _boundaries(monkeypatch, root, on_launch, on_sleep, solvable=(0, solvable))
+        code, out, err = run_cli(parallel_conductors, argv, cwd=work, env=dict(env, VERI_GH_JSON=str(gh)))
+        return code, launches, [line for line in out.splitlines() if line.startswith(("parked ", "#", "stopped: "))]
+
+    for flag in ([], ["--continue-on-bail"]):
+        name = "park" + "".join(flag)
+        assert run(name, flag, {}, "7 8\n", ["7", "8"], {"7"}, {"7"}, {}) == (0, ["7", "8"], [
+            "parked 7",
+            "#8 — done https://example.test/pull/8",
+            "stopped: nothing solvable",
+        ])
+
+    bail_prs = ["11", "12", "13"]
+    assert run("bail-stop", [], {"VERI_PARALLEL": "2"}, "11 12 13\n", bail_prs, {"11"}, set(), {}, slow={"12"}) == (
+        1, ["11", "12"], [
+            "#11 — bailed https://example.test/pull/11",
+            "#12 — done https://example.test/pull/12",
+            "stopped: #11 bailed",
+        ])
+    assert run("bail-continue", ["--continue-on-bail"], {"VERI_PARALLEL": "2"}, "11 12 13\n", bail_prs, {"11"},
+               set(), {}, slow={"12"}) == (1, ["11", "12", "13"], [
+        "#11 — bailed https://example.test/pull/11",
+        "#12 — done https://example.test/pull/12",
+        "#13 — done https://example.test/pull/13",
+        "stopped: nothing solvable",
+    ])
+
+    assert run("kill-stop", [], {"VERI_RUN_TIMEOUT": "60"}, "7 8\n", ["8"], set(), set(), {"7": 2}) == (
+        1, ["7"], [
+            "#7 — killed after 60s",
+            "stopped: #7 killed",
+        ])
