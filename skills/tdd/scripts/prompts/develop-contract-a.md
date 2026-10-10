@@ -15,5 +15,4 @@ deleted, and production stays frozen.
 3. Commit the change, as `refactor: <what changed> (#<issue>)`. Never modify a
    production file: a contract (a) commit that touches one is rejected.
 
-{{INCLUDE:_develop-transform-report.md}}
-SUITE: GREEN | RED — <the final summary line of that run>
+{{INCLUDE:_develop-transform-suite-report.md}}
