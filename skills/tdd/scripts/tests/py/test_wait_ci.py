@@ -917,3 +917,44 @@ def test_main_names_a_conflicting_pr_at_its_first_read_only_while_its_head_has_n
         "conflicting, pending": [(3, "", "")],
         "conflicting, pending across the deadline": [(3, "", ""), (2, "", past)],
     }
+
+
+def test_main_refuses_a_missing_pr_url_or_a_bad_number_and_records_the_deadline_in_its_own_working_directory_issue_775_776(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    bad = lambda which, value: f"wait-ci.sh: {which} '{value}' is not a non-negative whole number\n"
+    mark = f"ci-deadline-{FULL_SHA}"
+
+    def waited(name, argv, status="in_progress", conclusion=None):
+        work = tmp_path / name
+        (work / ".tdd").mkdir(parents=True)
+        bodies = sha_bodies([[check_run("gates", FULL_SHA, status, conclusion)]], [], "pending")
+        reads = []
+        served(fake_processes, bodies, lambda line: reads.append(line) if line.startswith("gh ") else None)
+        code, out, err = run_cli(wait_ci, argv, env={"VERI_POLL": "0"}, cwd=work)
+        recorded = {p.name: p.read_text() for p in (work / ".tdd").iterdir()}
+        return code, out, err, recorded, bool(reads)
+
+    observed = {
+        "no argument": waited("none", []),
+        "empty pr-url, slice 60": waited("empty", ["", "60"]),
+        "slice abc": waited("slice-abc", [PR, "abc", "100"]),
+        "total xyz": waited("total-xyz", [PR, "60", "xyz"]),
+        "slice 1.5": waited("slice-fraction", [PR, "1.5", "100"]),
+        "total 1.5": waited("total-fraction", [PR, "60", "1.5"]),
+        "total abc": waited("total-abc", [PR, "60", "abc"]),
+        "pending, from another working directory": waited("elsewhere-pending", [PR, "540", "600"]),
+        "green, from another working directory": waited("elsewhere-green", [PR, "540", "600"],
+                                                        "completed", "success"),
+    }
+
+    assert observed == {
+        "no argument": (2, "", USAGE, {}, False),
+        "empty pr-url, slice 60": (2, "", USAGE, {}, False),
+        "slice abc": (2, "", bad("slice-seconds", "abc"), {}, False),
+        "total xyz": (2, "", bad("total-seconds", "xyz"), {}, False),
+        "slice 1.5": (2, "", bad("slice-seconds", "1.5"), {}, False),
+        "total 1.5": (2, "", bad("total-seconds", "1.5"), {}, False),
+        "total abc": (2, "", bad("total-seconds", "abc"), {}, False),
+        "pending, from another working directory": (3, "", "", {mark: "600\n"}, True),
+        "green, from another working directory": (0, "", "", {}, True),
+    }
