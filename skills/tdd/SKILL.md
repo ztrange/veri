@@ -256,7 +256,7 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   untracked). Idempotent in both files; the word on stdout reports the `.gitignore` only,
   `added` when it wrote the rule there, `already present` when it was there — the exclude
   file is ensured either way. Run once per issue right after entering the worktree (step 1).
-- `$S/issue-worktree.sh <n> <slug> | --remove <n>` — the **linked worktree the issue branch lives in**.
+- `$S/issue-worktree.sh <n> <slug>` — the **linked worktree the issue branch lives in**.
   Creates (or hands back) `<repo-root>/.tdd/wt/<n>` on branch `tdd/<n>-<slug>`, cut from
   **`origin/<default>` as just fetched** — never from the caller's `HEAD`, and never from the
   **local** branch of that name: that one **lags the remote by design**, since a run executes the skill pinned from

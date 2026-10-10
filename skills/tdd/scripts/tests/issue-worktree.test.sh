@@ -377,6 +377,10 @@ entry="$(awk '
   in_e && /^([-#]|[0-9]+\.)/ { exit }
   in_e { print }' "$SKILL" | tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' ')"
 
+synopsis="$(grep -m1 -F -- '- `$S/issue-worktree.sh <n> <slug>' "$SKILL" || true)"
+[[ -n "${entry// /}" ]] \
+  && ok || no "#1432: the issue-worktree.sh entry is read out of SKILL.md whatever alternatives its synopsis names after '<n> <slug>' (synopsis line in SKILL.md: '$synopsis', entry read: '$entry')"
+
 says() {
   local complaint="$1" re="$2"
   [[ "$entry" =~ $re ]] || problems="$problems; $complaint"
