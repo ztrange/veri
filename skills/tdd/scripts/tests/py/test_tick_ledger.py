@@ -367,3 +367,17 @@ def test_main_with_phase_naming_a_phase_the_step_does_not_list_exits_2_leaving_t
     capsysbinary.readouterr()
 
     assert (code, ledger.read_bytes()) == (2, seed)
+
+
+def test_main_with_phase_naming_a_listed_phase_before_an_earlier_unmarked_one_exits_2_leaving_the_ledger_byte_identical(
+        tmp_path, capsysbinary, tick_ledger):
+    seed = ("# Plan for #42\n\n- [ ] add lowercasing\n"
+            "- [ ] split the slug module ⟦phases: expand, migrate⟧ ⟦criterion 2⟧\n"
+            "- [ ] strip edge hyphens\n").encode()
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(seed)
+
+    code = tick_ledger.main(["--phase", "migrate", str(ledger), "split the slug module"])
+    capsysbinary.readouterr()
+
+    assert (code, ledger.read_bytes()) == (2, seed)
