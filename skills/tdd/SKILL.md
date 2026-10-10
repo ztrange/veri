@@ -126,7 +126,7 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   structural), this one by what it **must** carry — the same instructions on every run of a
   phase, with only the variables changing. **Build every developer prompt with it**; a
   phase's instructions live in its template, not in prose you improvise per cycle.
-- `$S/build-verify-prompt.sh <red|green|refactor|pin|plan|rebase|transform|diff> <spec-file> <test-path> [target]` —
+- `$S/build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <red|green|refactor|pin|plan|rebase|transform|diff> <spec-file> <test-path> [target]` —
   assemble the blind verifier prompt. Used by `verify.sh`; you rarely call it directly.
 - `$S/verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <red|green|refactor|pin|plan> <spec-file> <test-path> [target] | diff <spec-file> <branch-base-sha> <step-base-sha>` — the **verify
   verb**: build the blind prompt → launch the verifier leaf **through the supervisor** →
@@ -256,7 +256,7 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   untracked). Idempotent in both files; the word on stdout reports the `.gitignore` only,
   `added` when it wrote the rule there, `already present` when it was there — the exclude
   file is ensured either way. Run once per issue right after entering the worktree (step 1).
-- `$S/issue-worktree.sh <n> <slug>` — the **linked worktree the issue branch lives in**.
+- `$S/issue-worktree.sh <n> <slug> | --remove <n>` — the **linked worktree the issue branch lives in**.
   Creates (or hands back) `<repo-root>/.tdd/wt/<n>` on branch `tdd/<n>-<slug>`, cut from
   **`origin/<default>` as just fetched** — never from the caller's `HEAD`, and never from the
   **local** branch of that name: that one **lags the remote by design**, since a run executes the skill pinned from
