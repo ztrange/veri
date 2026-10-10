@@ -102,4 +102,19 @@ if [[ "$module_code" == 1 \
   no "no-product-caller: <module>.<function> named by a product line → exit 1 printing that file:line, never its own def in veri/<module>.py (code=$module_code out=$module_out)"
 fi
 
+own="$work/own-module"
+new_repo -b main "$own" >/dev/null 2>&1
+mkdir -p "$own/skills/tdd/scripts/veri"
+printf '# tdd\n' > "$own/skills/tdd/SKILL.md"
+printf '"""old-thing.sh, run in-process."""\nimport sys\n\nUSAGE = "usage: old-thing.sh <base-sha>"\n' > "$own/skills/tdd/scripts/veri/old_thing.py"
+printf 'import sys\n\n\nCALL = "old-thing.sh"\n' > "$own/skills/tdd/scripts/veri/caller.py"
+git -C "$own" add -A >/dev/null 2>&1
+git -C "$own" commit -q -m "feat: own module" >/dev/null 2>&1
+own_out="$(cd "$own" && "$CHECK" old-thing.sh 2>&1)"; own_code=$?
+if [[ "$own_code" == 1 \
+  && "$own_out" == *"skills/tdd/scripts/veri/caller.py:4"* \
+  && "$own_out" != *"skills/tdd/scripts/veri/old_thing.py"* ]]; then ok; else
+  no "no-product-caller: <name>.sh named in its own veri/<name_with_underscores>.py and in another product file → exit 1 printing only the other file:line (#1387) (code=$own_code out=$own_out)"
+fi
+
 finish
