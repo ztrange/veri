@@ -39,11 +39,25 @@ def test_main_refuses_no_argument_an_unknown_phase_a_short_count_an_unknown_revi
             2, b"", b"build-develop-prompt.sh: unknown phase 'bogus' (want " + PHASES + b")\n" + USAGE),
         ("green", s, "s", "c"): (2, b"", b"build-develop-prompt: green needs 7 arguments, got 4\n" + USAGE),
         ("revise", "bogus", s, "s", "c", r): (
-            2, b"", b"build-develop-prompt.sh: unknown phase to revise 'bogus' (want red|green|refactor|diff)\n"
+            2, b"", b"build-develop-prompt.sh: unknown phase to revise 'bogus' (want red|green|refactor|diff|expand|migrate|contract-a|contract-b)\n"
             + USAGE),
         ("diff", s, "s", "c"): (2, b"", b"build-develop-prompt: diff needs 5 arguments, got 4\n" + USAGE),
         ("revise", "diff", s, "s", "c", r): (2, b"", b"build-develop-prompt: missing <fast-cmd>\n" + USAGE),
     }
+
+
+def test_main_refuses_an_unknown_phase_to_revise_with_exit_2_naming_every_phase_it_accepts_interface_phases_included_1457(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"# spec\n")
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"rejected\n")
+
+    code = build_develop_prompt.main(["revise", "bogus", str(spec), "s", "c", str(reason)])
+
+    assert (code, *capsysbinary.readouterr()) == (
+        2, b"", b"build-develop-prompt.sh: unknown phase to revise 'bogus' "
+        b"(want red|green|refactor|diff|expand|migrate|contract-a|contract-b)\n" + USAGE)
 
 
 def test_main_refuses_in_the_check_order_each_missing_argument_by_its_own_name_and_ignores_arguments_past_the_count(
@@ -148,7 +162,7 @@ def test_main_refuses_a_spent_then_a_budget_that_is_not_a_whole_string_non_negat
         expected[("over-budget", s, "s", "c", "3.47", bad)] = not_decimal("budget", bad)
     expected[("over-budget", s, "s", "c", "qwixnum", "zork")] = not_decimal("spent", "qwixnum")
     expected[("revise", "red\n", s, "s", "c", r)] = refused(
-        "build-develop-prompt.sh: unknown phase to revise 'red\n' (want red|green|refactor|diff)")
+        "build-develop-prompt.sh: unknown phase to revise 'red\n' (want red|green|refactor|diff|expand|migrate|contract-a|contract-b)")
     results = {}
     for argv in expected:
         code = no_prompts.main(list(argv))
