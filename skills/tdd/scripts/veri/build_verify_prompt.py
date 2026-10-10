@@ -5,6 +5,8 @@ import sys
 
 PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff")
 INTERFACE_PHASES = ("expand", "migrate", "contract-a", "contract-b")
+NEEDS = {"green": {"fast-cmd"}, "refactor": {"fast-cmd", "base-sha"}, "diff": {"fast-cmd"},
+         "transform": {"base-sha"}, **dict.fromkeys(INTERFACE_PHASES, {"fast-cmd", "base-sha"})}
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 USAGE = "usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]"
 GREEN_PARAGRAPHS = {"REPLACES_CASE": "replaces-case", "SUITE_REPAIR": "suite-repair"}
@@ -75,14 +77,14 @@ def main(argv):
     accepted = PHASES + INTERFACE_PHASES
     if phase not in accepted:
         return _refuse(f"build-verify-prompt: unknown phase '{phase}' (want {'|'.join(accepted)})")
-    if phase in ("green", "refactor", "diff", *INTERFACE_PHASES) and not options["--fast-cmd"]:
+    if "fast-cmd" in NEEDS.get(phase, ()) and not options["--fast-cmd"]:
         return _refuse(f"build-verify-prompt: {phase} needs --fast-cmd '<fast-tier test command>'")
     fourth = argv[3] if len(argv) > 3 else ""
     if phase == "diff":
         if not options["--step"]:
             return _refuse("build-verify-prompt: diff needs --step '<STEP>'")
         shas = (("<step-base-sha>", "STEP_BASE_SHA", fourth), ("<base-sha>", "BASE_SHA", argv[2]))
-    elif phase in ("refactor", "transform", *INTERFACE_PHASES):
+    elif "base-sha" in NEEDS.get(phase, ()):
         shas = (("<base-sha>", "BASE_SHA", fourth),)
     elif phase == "rebase":
         shas = (("<onto-sha> <pre-rebase-sha>", "ONTO_SHA", argv[2]),
