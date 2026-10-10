@@ -1,0 +1,2 @@
+### `ledger-steps.sh next-phase` answers exit 3, printing no phase, on a ledger whose only open phased step carries ` ⟂ <phase> owed` on its contract phase — neither the owed contract phase nor any phase listed after it is handed back ⟦criterion 1⟧
+- test-only | hoist the `- [ ] rename the slug helper ⟦phases: expand, migrate, contract (a), contract (b)⟧ ⟦criterion 1⟧` literal, now repeated in test_next_phase_prints_expand_… and test_next_phase_exits_3_…_1410, into one module-level constant in test_ledger_steps.py
