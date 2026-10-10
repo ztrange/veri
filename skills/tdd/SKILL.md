@@ -1783,7 +1783,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    .tdd/ci-conflict-rebased`, then `$S/rebase-onto-default.sh`, its `develop-rebase` leaf and
    rebase verifier (`verify-rebase`) when it conflicts, the full suite once on the rebased
    tip, and the push under the lease pinned to `<pre-rebase-sha>` — then wait for CI again
-   with the same `wait-ci.sh` line. A second conflict, with `.tdd/ci-conflict-rebased`
+   with the same `wait-ci.sh` line. There too `rebase-onto-default.sh`'s exit code decides the
+   next action, so nothing after it — the rebased tip's full test run in particular — is
+   started until it has returned, and never in the same message as the rebase. A second conflict, with `.tdd/ci-conflict-rebased`
    already present, does **bail**, with cause `ci-conflict`, rather than rebasing again.
    The `metrics:` push starts a CI run of its own on the readied PR, so it is read the same
    way, by `wait-ci.sh` after the push; the commit carries no code, so its red is not a

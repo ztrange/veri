@@ -6,6 +6,9 @@
 #      names a conflict rebases onto origin/<default> through the existing rebase path —
 #      the rebase verifier, the full suite, the push under a pinned lease — and waits for
 #      CI again, once; a second conflict bails with cause ci-conflict.
+#   2. That conflict rebase says rebase-onto-default.sh's exit code decides the next action, so
+#      nothing after it — the rebased tip's full run in particular — starts until it has
+#      returned, and never in the same message as the rebase.
 #
 # Run: scripts/tests/skill-ci-conflict.test.sh
 set -uo pipefail
@@ -54,6 +57,18 @@ else
   fi
   grep -E 'event\.sh bail cause=ci-conflict' > /dev/null <<<"$step" \
     || problems+=("the CI step's commands carry no event.sh bail cause=ci-conflict")
+fi
+report "$name"
+
+name="#1287 the CI step's conflict rebase says rebase-onto-default.sh's exit code decides the next action, so nothing after it, the rebased tip's full run included, starts until it has returned, and never in the same message"
+problems=()
+if [[ -z "$step" ]]; then
+  problems+=("$skill_md has no CI step (2. **Mark the PR ready …) to read — nothing could be checked")
+else
+  gate="$(conflict_paragraphs <<<"$step" | awk '{ gsub(/\. /, ".\n"); print }' | grep -i 'rebase-onto-default\.sh' | grep -i 'exit code' |
+    grep -iE 'decides?[^.]*next action' | grep -i 'full' | grep -iE 'until[^.]*returned' | grep -i 'same message')"
+  [[ -n "$gate" ]] ||
+    problems+=("no sentence of the CI step's conflict instructions says rebase-onto-default.sh's exit code decides the next action, so nothing after it — the rebased tip's full run in particular — is started until it has returned, and never in the same message as the rebase; a conductor batching tool calls starts the full run beside a rebase that exits 3")
 fi
 report "$name"
 
