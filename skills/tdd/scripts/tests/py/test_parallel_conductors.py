@@ -107,6 +107,19 @@ def _gh_and_work(tmp_path):
     return gh, work
 
 
+def _sigterm_ends_the_live_conductor(monkeypatch, supervisors, events=None):
+    def recording_kill(pid, sig):
+        live = [s for s in supervisors if s.pid == pid and s.returncode is None]
+        if not live:
+            raise ProcessLookupError(pid)
+        if events is not None:
+            events.append("kill %d" % pid)
+        if sig == signal.SIGTERM:
+            live[0].exit(143)
+
+    monkeypatch.setattr(os, "kill", recording_kill)
+
+
 def _exit_every_live_conductor(live):
     for sup in live:
         if sup.returncode is None:
@@ -1216,15 +1229,7 @@ def test_a_conductor_over_veri_conductor_ctx_budget_is_stopped_only_once_its_ste
 
     supervisors = _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n8\n"))
 
-    def recording_kill(pid, sig):
-        live = [s for s in supervisors if s.pid == pid and s.returncode is None]
-        if not live:
-            raise ProcessLookupError(pid)
-        events_seen.append("kill %d" % pid)
-        if sig == signal.SIGTERM:
-            live[0].exit(143)
-
-    monkeypatch.setattr(os, "kill", recording_kill)
+    _sigterm_ends_the_live_conductor(monkeypatch, supervisors, events_seen)
     for name in TUNABLES:
         monkeypatch.delenv(name, raising=False)
     code, out, err = run_cli(parallel_conductors, [],
@@ -1257,14 +1262,7 @@ def test_a_conductor_stopped_over_veri_conductor_ctx_budget_is_launched_again_fo
 
     supervisors = _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n8\n"))
 
-    def recording_kill(pid, sig):
-        live = [s for s in supervisors if s.pid == pid and s.returncode is None]
-        if not live:
-            raise ProcessLookupError(pid)
-        if sig == signal.SIGTERM:
-            live[0].exit(143)
-
-    monkeypatch.setattr(os, "kill", recording_kill)
+    _sigterm_ends_the_live_conductor(monkeypatch, supervisors)
     for name in TUNABLES:
         monkeypatch.delenv(name, raising=False)
     code, out, err = run_cli(parallel_conductors, [],
