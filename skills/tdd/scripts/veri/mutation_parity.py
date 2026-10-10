@@ -15,14 +15,18 @@ def failed_cases(suite):
                          stdin=subprocess.DEVNULL)
     lines = run.stdout.splitlines()
     failed = {line[len("FAIL - "):] for line in lines if line.startswith("FAIL - ")}
-    counts = [COUNT_LINE.match(line) for line in lines]
-    passed = next((int(m.group(1)) for m in reversed(counts) if m), 0)
-    return failed, passed
+    count = COUNT_LINE.match(lines[-1]) if lines else None
+    if not count:
+        raise RuntimeError(f"{suite} never reached its count line")
+    return failed, int(count.group(1))
 
 
 def pytest(*args):
-    return subprocess.run([venv_python(), "-m", "pytest", "-q", *args], capture_output=True,
-                          text=True, stdin=subprocess.DEVNULL)
+    run = subprocess.run([venv_python(), "-m", "pytest", "-q", *args], capture_output=True,
+                         text=True, stdin=subprocess.DEVNULL)
+    if run.returncode not in (0, 1):
+        raise RuntimeError(f"pytest could not run {' '.join(args)}: exit {run.returncode}")
+    return run
 
 
 def failed_nodes(suite):
