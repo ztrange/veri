@@ -1963,6 +1963,14 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
 - **Malformed / killed-stuck (exit 2):** **bail** as a **system** failure (`no-verdict`) —
   see *Bailing*.
 
+A `⟦replaces-case⟧` step whose Red reports `AGAINST_UNMODIFIED: PASSES` takes a different
+path after verify-pin, because deleting the named bash cases is still owed: on a verify-pin
+PASS commit nothing yet, and launch a green leaf exactly as *Green* does, whose only change
+is deleting exactly the named cases. Judge it by the replaces-case verify-green, whose PASS
+is accepted only once `$S/mutation-parity.sh <pairs-table>` on that step's pairs table
+exits **0** (exit 1 is a REJECT, exit 2 a bail), then commit the pytest cases, the deletion
+and the ticked ledger in one tick-and-commit, as *Green*'s PASS does.
+
 ## Revising on a REJECT
 
 A `REJECT` (verify.sh exit **1**) does **not** stop the run. The conductor gets a bounded

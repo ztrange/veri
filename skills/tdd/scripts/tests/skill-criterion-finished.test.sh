@@ -221,6 +221,27 @@ else
 fi
 report "$name"
 
+name="#1397: $skill_md's pin section sends a ⟦replaces-case⟧ step whose Red reports PASSES through verify-pin, then a green leaf deleting exactly the named cases, judged by the replaces-case verify-green and accepted only once mutation-parity.sh exits 0, then one tick"
+problems=()
+pin_rc_rec="$(first_record "$(section_records '## Already satisfied — the pin')" -F '⟦replaces-case⟧')"
+if [[ -z "$pin_rc_rec" ]]; then
+  problems+=("pin path: no instruction under '## Already satisfied — the pin' states the path for a ⟦replaces-case⟧ step whose Red reports PASSES — the path could not be checked")
+else
+  [[ "$pin_rc_rec" == *passes* ]] ||
+    problems+=("pin path: the ⟦replaces-case⟧ instruction never names a Red that reports PASSES")
+  [[ "$pin_rc_rec" =~ verify-pin|verify\.sh\ pin ]] ||
+    problems+=("pin path: the ⟦replaces-case⟧ instruction never runs verify-pin first")
+  [[ "$pin_rc_rec" =~ green\ leaf && "$pin_rc_rec" =~ delet && "$pin_rc_rec" == *"exactly the named"* ]] ||
+    problems+=("pin path: the ⟦replaces-case⟧ instruction never launches a green leaf that deletes exactly the named cases")
+  [[ "$pin_rc_rec" == *verify-green* ]] ||
+    problems+=("pin path: the ⟦replaces-case⟧ instruction never judges the deletion by the replaces-case verify-green")
+  [[ "$pin_rc_rec" == *mutation-parity.sh* && "$pin_rc_rec" =~ exits?\ \*{0,2}0 ]] ||
+    problems+=("pin path: the ⟦replaces-case⟧ instruction never accepts the deletion only once mutation-parity.sh exits 0")
+  [[ "$pin_rc_rec" =~ one\ tick|tick[^.]*once|single\ tick ]] ||
+    problems+=("pin path: the ⟦replaces-case⟧ instruction never ends the step in one tick")
+fi
+report "$name"
+
 name="#671: CONTEXT.md defines contract case, implementation case and the ⟦replaces-case⟧ mark"
 problems=()
 context_path="$ROOT/CONTEXT.md"
