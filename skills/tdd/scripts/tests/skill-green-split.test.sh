@@ -19,6 +19,9 @@
 #   5. The add-ledger-step.sh entry under The scripts says --criterion <k> tags the added steps
 #      with criterion k for any whole number k ≥ 1, carried by a step or not, and its exit 2
 #      cases include a k that is not a whole number ≥ 1.
+#   6. The Green section judges a `⟦ci-repair⟧` step's green against a fresh CI run on the
+#      pushed fix — `wait-ci.sh` on the pushed sha — not only a local `make test`, and a red
+#      CI there is the second red that bails `ci-red`.
 #
 # Run: scripts/tests/skill-green-split.test.sh
 set -uo pipefail
@@ -247,6 +250,28 @@ else
   exit2="$(grep -oE 'exit 2[^.]*' <<<"$entry")"
   grep -E 'not a whole number' <<<"$exit2" > /dev/null ||
     problems+=("$skill_md's add-ledger-step.sh entry never lists a --criterion k that is not a whole number ≥ 1 among its exit 2 cases: '$exit2'")
+fi
+
+report "$name"
+
+name="#1431 $skill_md's Green section judges a ⟦ci-repair⟧ step's green against a fresh CI run on the pushed fix (wait-ci.sh on the pushed sha), not only a local make test, and a red CI there bails ci-red"
+problems=()
+
+if [[ -n "$unreadable" ]]; then
+  problems+=("$unreadable how a ⟦ci-repair⟧ step's green is judged could not be established")
+elif [[ "$section" != *'⟦ci-repair⟧'* ]]; then
+  problems+=("$skill_md's Green section never names a ⟦ci-repair⟧ step, so its green is judged by a local make test alone")
+else
+  rule="${section#*⟦ci-repair⟧}"
+  rule="${rule:0:700}"
+  grep -F 'wait-ci.sh' <<<"$rule" > /dev/null ||
+    problems+=("$skill_md's ⟦ci-repair⟧ green rule never runs wait-ci.sh on the fix")
+  grep -E 'push[^.]{0,60}sha|sha[^.]{0,60}push' <<<"$rule" > /dev/null ||
+    problems+=("$skill_md's ⟦ci-repair⟧ green rule never waits on the pushed sha")
+  grep -E 'not only[^.]{0,60}make test' <<<"$rule" > /dev/null ||
+    problems+=("$skill_md's ⟦ci-repair⟧ green rule never says a local make test alone does not judge it")
+  grep -F 'ci-red' <<<"$rule" > /dev/null ||
+    problems+=("$skill_md's ⟦ci-repair⟧ green rule never bails ci-red on a red CI there")
 fi
 
 report "$name"

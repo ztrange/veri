@@ -1252,6 +1252,10 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      abandon, so on exit 0 any mode it printed goes to *Stopping* here. On exit 2 go to
      *Stopping* in mode `at-ledger`, narrating that the request was unreadable. On exit 3
      continue to the Refactor loop.
+     A `⟦ci-repair⟧` step's green is judged against a fresh CI run on the pushed fix,
+     not only a local `make test`: after the push above, *4. Draft PR*'s `wait-ci.sh` line
+     is called on the pushed sha, and read the way that step reads it. A red
+     CI there is the second red, and **bails** with cause `ci-red`.
    - **REJECT (exit 1):** enter the **revise loop** — see *Revising on a REJECT*. On a
      recovered PASS, do the same atomic tick-and-commit and continue; on budget-exhausted,
      **bail**.
