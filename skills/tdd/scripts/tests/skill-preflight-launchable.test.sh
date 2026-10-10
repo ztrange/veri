@@ -51,6 +51,8 @@
 #  18. Preflight step 3's fenced capture-and-discard block, run in a resumed worktree holding an
 #      untracked file at a path the default branch has since added, leaves a tree that
 #      `rebase-onto-default.sh` rebases with exit 0.
+#  19. Preflight step 3's fenced capture-and-discard block, run in a resumed worktree holding a
+#      killed leaf's untracked file, leaves that file listed in `$stray`.
 #
 # Run: scripts/tests/skill-preflight-launchable.test.sh
 set -uo pipefail
@@ -546,6 +548,33 @@ if resume_step3 "the resume discard's untracked files"; then
     rc=$?
     [[ "$rc" -eq 0 ]] ||
       problems+=("$rebase_call after preflight step 3's discard block, exit: want 0, got $rc — stderr: $(cat "$dir/rebase.err")")
+  fi
+fi
+
+report "$name"
+
+name="#1420 $skill_md's preflight discard captures a killed leaf's untracked file in \$stray before removing it, so the ▶️ Resuming comment names it"
+problems=()
+
+if resume_step3 "the resume discard's stray capture"; then
+  capture_at="$(awk -v s="$enter_at" -v e="$item_end" 'NR >= s && NR <= e && /="\$\(git status --porcelain\)"/ { print NR; exit }' "$md")"
+  if [[ -z "$capture_at" ]]; then
+    problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) has no line capturing git status --porcelain, so its discard block could not be found")
+  else
+    discard="$(awk -v c="$capture_at" '
+      NR < c && /^[[:space:]]*```/ { body = ""; next }
+      NR < c { body = body $0 "\n"; next }
+      /^[[:space:]]*```/ { printf "%s", body; exit }
+      { body = body $0 "\n" }' "$md")"
+    dir="$(scratch_dir)"
+    new_repo -b main "$dir/wt" >/dev/null 2>&1
+    echo "base" > "$dir/wt/file.txt"
+    git -C "$dir/wt" add -A >/dev/null 2>&1
+    git -C "$dir/wt" commit -q -m "initial" >/dev/null 2>&1
+    echo "a killed leaf's half-written file" > "$dir/wt/other.txt"
+    (cd "$dir/wt" && STRAY_OUT="$dir/stray.out" bash -c "$discard"$'\nprintf \'%s\\n\' "$stray" > "$STRAY_OUT"') >/dev/null 2>&1
+    grep -Fx -- '?? other.txt' "$dir/stray.out" > /dev/null 2>&1 ||
+      problems+=("\$stray after preflight step 3's discard block does not list the untracked file: want a line '?? other.txt', got: $(cat "$dir/stray.out" 2>/dev/null)")
   fi
 fi
 
