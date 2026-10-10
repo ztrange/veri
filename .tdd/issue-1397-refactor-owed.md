@@ -1,0 +1,2 @@
+### SKILL.md's ⟦replaces-case⟧ planning paragraph no longer says only that the step's Red is the pytest cases failing against the code before the change: it names the PASSES case and points to the pin-then-delete path, pinned by a prose case that goes red when that sentence is removed ⟦criterion 1⟧
+- test-only | skill-criterion-finished.test.sh: the `if [[ -z "$rc_rec" ]]` missing-record guard is now written three times, in the #671, #1260 and #1397 planning cases, each with its own problem text. Folding them into one helper would change only files under `tests/`.
