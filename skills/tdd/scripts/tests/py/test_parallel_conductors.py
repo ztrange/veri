@@ -1170,3 +1170,67 @@ def test_veri_parallel_2_prints_each_conductor_s_assistant_events_as_context_iss
     code, out, err = run_cli(parallel_conductors, [], env={"VERI_PARALLEL": "2", "VERI_GH_JSON": str(gh)}, cwd=work)
     assert sorted(line for line in out.splitlines() if line.startswith("context ")) == [
         "context 7 53438", "context 8 62000"]
+
+
+@pytest.mark.parametrize("env, step_done_tokens, events, launched", [
+    ({"VERI_CONDUCTOR_CTX_BUDGET": "100000"}, 150000, ["kill 1007", "end 8"], ["7", "8", "7"]),
+    ({}, 110000, ["end 7", "end 8"], ["7", "8"]),
+], ids=["over-budget", "default-budget"])
+def test_a_conductor_over_veri_conductor_ctx_budget_is_stopped_only_once_its_step_done_call_s_result_appears_a_default_budget_of_120000_stops_none_and_the_conductor_beside_it_runs_to_its_own_end(
+        env, step_done_tokens, events, launched, monkeypatch, tmp_path, parallel_conductors, run_cli):
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    work = tmp_path / "repo"
+    (work / ".tdd").mkdir(parents=True)
+    logs = {n: work / ".tdd" / ("conductor-%s.log" % n) for n in ("7", "8")}
+    usage = '"usage":{"cache_creation_input_tokens":0,"cache_read_input_tokens":%d}'
+    step_done = ('{"type":"assistant","message":{"content":[{"type":"tool_use","input":{"command":'
+                 '"skills/tdd/scripts/event.sh step-done"}}],%s}}\n' % (usage % step_done_tokens)).encode()
+    later = ('{"type":"assistant","message":{"content":[{"type":"tool_use","input":{"command":"make test"}}],%s}}\n'
+             % (usage % 150000)).encode()
+    user = b'{"type":"user","message":{"content":[{"type":"tool_result","content":""}]}}\n'
+    launches, events_seen, kills_before_result, ticks = [], [], [], [0]
+
+    def on_launch(sup):
+        n = sup.args[-1]
+        launches.append(n)
+        sup.pid = 1000 + int(n) + 100 * (launches.count(n) - 1)
+        if launches.count(n) > 1:
+            logs[n].write_bytes(b"")
+            sup.exit(0)
+        else:
+            logs[n].write_bytes(step_done if n == "7" else b"")
+
+    def on_sleep(live):
+        ticks[0] += 1
+        if ticks[0] == 1:
+            kills_before_result.extend(events_seen)
+            with open(logs["7"], "ab") as f:
+                f.write(user)
+        elif ticks[0] == 2:
+            with open(logs["7"], "ab") as f:
+                f.write(later + user)
+        else:
+            for sup in live:
+                if sup.returncode is None:
+                    events_seen.append("end %s" % sup.args[-1])
+                    sup.exit(0)
+
+    supervisors = _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n8\n"))
+
+    def recording_kill(pid, sig):
+        live = [s for s in supervisors if s.pid == pid and s.returncode is None]
+        if not live:
+            raise ProcessLookupError(pid)
+        events_seen.append("kill %d" % pid)
+        if sig == signal.SIGTERM:
+            live[0].exit(143)
+
+    monkeypatch.setattr(os, "kill", recording_kill)
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    code, out, err = run_cli(parallel_conductors, [],
+                             env=dict(env, VERI_PARALLEL="2", VERI_GH_JSON=str(gh)), cwd=work)
+    assert (kills_before_result, events_seen, launches) == ([], events, launched)
+    assert code in (0, 1, 2, 3)
