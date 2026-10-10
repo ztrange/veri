@@ -5,6 +5,7 @@ import json
 import os
 import pathlib
 import re
+import signal
 import subprocess
 import sys
 
@@ -1909,3 +1910,74 @@ def test_verify_sh_preserves_a_rejected_or_no_verdict_attempt_under_its_ref_and_
     assert [e.get("event") for e in events if e.get("event") == "exit"] != []
     if leaf == "fails":
         assert (repo / ".tdd" / "verify-green.rc").read_text().strip() == "1"
+
+
+DIFF_STEP = "DIFF-STEP the old cases are gone"
+DIFF = ["--step", DIFF_STEP, *FAST, "diff", "{spec}", "0123abc", "0123abc"]
+REBASE = ["rebase", "{spec}", "0123abc", "4567def"]
+NO_STEP = "build-verify-prompt: diff needs --step '<STEP>'"
+NON_HEX = "build-verify-prompt: diff needs <base-sha> as 7-40 lowercase hex characters, got 'not-a-sha'"
+TOO_MANY = "build-verify-prompt: too many arguments"
+STEP_VALUE = "verify: --step needs a value"
+
+
+@pytest.mark.parametrize("entry, argv, leaf_out, expected", [
+    pytest.param("run_verdict", REBASE, "VERDICT: PASS\nREASON: both sides kept.",
+                 (0, None, ["verify-rebase"], []), id="rebase-pass"),
+    pytest.param("run_verdict", REBASE, "VERDICT: REJECT\nREASON: the onto side is dropped.",
+                 (1, None, ["verify-rebase"], []), id="rebase-reject"),
+    pytest.param("run_verdict", REBASE, "VERDICT: MAYBE\nREASON: might be fine.",
+                 (2, None, ["verify-rebase"], []), id="rebase-malformed"),
+    *[pytest.param(entry, DIFF, text, (code, None, ["verify-diff"], ["git diff 0123abc..HEAD", DIFF_STEP, SPEC]),
+                   id="diff-%s-%s" % (word, entry))
+      for entry in ("verify", "run_verdict")
+      for word, text, code in (("pass", "VERDICT: PASS\nREASON: the diff removes the cases.", 0),
+                               ("reject", "VERDICT: REJECT\nREASON: the diff leaves a case behind.", 1))],
+    *[pytest.param(entry, argv, GREEN, (2, message, [], []), id="%s-%s" % (label, entry))
+      for entry in ("verify", "run_verdict")
+      for label, argv, message in (
+          ("no-step", [*FAST, "diff", "{spec}", "0123abc", "0123abc"], NO_STEP),
+          ("non-hex", ["--step", DIFF_STEP, *FAST, "diff", "{spec}", "not-a-sha", "0123abc"], NON_HEX),
+          ("extra", [*DIFF, "extra"], TOO_MANY))],
+    pytest.param("verify", ["--step", "", "red", "{spec}", "tests/test_slugify.py", "test_lowercases"], GREEN,
+                 (2, STEP_VALUE, [], []), id="empty-step"),
+    pytest.param("verify", ["--step"], GREEN, (2, STEP_VALUE, [], []), id="trailing-step"),
+])
+def test_verify_sh_and_run_verdict_sh_answer_a_rebase_or_diff_verdict_from_one_leaf_named_for_the_phase_and_refuse_a_bad_step_sha_or_extra_argument_with_exit_2_the_named_checks_message_first_and_no_leaf(
+        entry, argv, leaf_out, expected, run_cli, tmp_path, monkeypatch):
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
+                 "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES"):
+        monkeypatch.delenv(name, raising=False)
+    (tmp_path / "spec.md").write_text(SPEC)
+    argv = [word.format(spec=tmp_path / "spec.md") for word in argv]
+    verify = importlib.import_module("veri.verify")
+    leaves, prompts = [], []
+
+    def fake(args, *_, **__):
+        words = [str(a) for a in args]
+        name = os.path.basename(words[0])
+        if name == "build-verify-prompt.sh":
+            code, built = build_prompt(words[1:], monkeypatch)
+            return subprocess.CompletedProcess(args, code, built, None)
+        if name == "supervise.sh":
+            leaves.append(words[1])
+            prompts.append(pathlib.Path(words[3]).read_text())
+            return subprocess.CompletedProcess(args, 0, (leaf_out + "\n").encode(), None)
+        return subprocess.CompletedProcess(args, 128 if name == "git" else 0, b"", None)
+
+    def exec_verify(path, words):
+        assert os.path.basename(path) == "verify.sh"
+        raise SystemExit(verify.main(list(words[1:])))
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    monkeypatch.setattr(os, "execv", exec_verify)
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+
+    code, _, err = run_cli(importlib.import_module("veri." + entry), argv,
+                           env={"HOME": str(tmp_path)}, cwd=tmp_path)
+
+    want_code, want_first, want_leaves, present = expected
+    first = err.splitlines()[0] if err else ""
+    assert (code, first if want_first is not None else None, leaves) == (want_code, want_first, want_leaves)
+    assert [text for text in present for prompt in prompts if text not in prompt] == []
