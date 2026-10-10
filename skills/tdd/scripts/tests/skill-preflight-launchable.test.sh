@@ -44,6 +44,10 @@
 #  16. Preflight step 3's item captures `git status --porcelain` into a variable, then runs
 #      `git reset --hard HEAD`, both before its first line naming `rebase-onto-default.sh`; and
 #      its first sentence naming `<pre-rebase-sha>` says it is that script's first stdout line.
+#  17. Preflight step 3's item has a sentence in which `not`, `never` or `no` comes at most three
+#      words before `bare force`, so another negative word elsewhere in it does not count.
+#  17. Preflight step 3's item has a sentence in which `not`, `never` or `no` comes at most three
+#      words before `bare force`, so another negative word elsewhere in it does not count.
 #
 # Run: scripts/tests/skill-preflight-launchable.test.sh
 set -uo pipefail
@@ -468,6 +472,17 @@ if resume_step3 "the resume rebase's capture-and-reset"; then
   first_use="$(sed -n "${enter_at},${item_end}p" "$md" | sentences | grep -F '<pre-rebase-sha>' | sed -n 1p)"
   grep -F -- "$rebase_call" <<< "$first_use" | grep -iE 'first (stdout )?line' > /dev/null ||
     problems+=("$skill_md's preflight step 3 first uses <pre-rebase-sha> without saying it is $rebase_call's first stdout line: $first_use")
+fi
+
+report "$name"
+
+name="#1297 $skill_md's preflight step 3 says never a bare force with the negation on the bare force itself, not on another word of the sentence"
+problems=()
+
+if resume_step3 "the resume rebase's bare-force sentence"; then
+  governed="$(sentences <<< "$step3" | grep -iE '(^|[^[:alpha:]])(not|never|no)([[:space:]]+[[:alpha:]]+){0,3}[[:space:]]+bare force')"
+  [[ -n "$governed" ]] ||
+    problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) has no sentence whose not, never or no governs 'bare force': $(sentences <<< "$step3" | grep -iF 'bare force' | sed -n 1p)")
 fi
 
 report "$name"
