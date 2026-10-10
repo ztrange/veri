@@ -26,6 +26,8 @@
 #      case 14's name.
 #  15. SKILL.md accepts a ⟦replaces-case⟧ step's Green only once mutation-parity.sh exits 0 — see
 #      case 15's name.
+#  16. SKILL.md accepts a contract-a phase only once mutation-parity.sh exits 0 — see case 16's
+#      name.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -368,6 +370,25 @@ else
     problems+=("$skill_md runs mutation-parity.sh in the Green step without saying it is run on the step's pairs table")
   grep -E 'exit(s)? 0' <<<"$near" > /dev/null && grep -E 'only once|until|before' <<<"$near" > /dev/null ||
     problems+=("$skill_md never says the Green is accepted only once mutation-parity.sh exits 0")
+fi
+report "$name"
+
+name="$skill_md accepts a phased step's contract-a phase only once the conductor's own run of mutation-parity.sh on that phase's pairs table exits 0"
+problems=()
+
+phased_text="$(section '#### A `⟦phases')"
+if [[ -z "${phased_text// /}" ]]; then
+  problems+=("$skill_md has no '#### A \`⟦phases: …⟧\` step' subsection to read")
+elif ! grep -F 'mutation-parity.sh' <<<"$phased_text" > /dev/null; then
+  problems+=("$skill_md's phased step never runs mutation-parity.sh, so a contract-a phase is accepted on the developer leaf's own pairs table")
+else
+  near="$(window "$phased_text" 'mutation-parity\.sh')"
+  grep -F 'contract-a' <<<"$near" > /dev/null ||
+    problems+=("$skill_md runs mutation-parity.sh in the phased step without tying it to the contract-a phase")
+  grep -F 'pairs table' <<<"$near" > /dev/null ||
+    problems+=("$skill_md runs mutation-parity.sh in the phased step without saying it is run on the phase's pairs table")
+  grep -E 'exit(s)? 0' <<<"$near" > /dev/null && grep -E 'only once|until|before' <<<"$near" > /dev/null ||
+    problems+=("$skill_md never says the contract-a phase is accepted only once mutation-parity.sh exits 0")
 fi
 report "$name"
 
