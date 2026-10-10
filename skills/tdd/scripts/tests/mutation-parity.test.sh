@@ -55,6 +55,32 @@ else
     stderr: $(cat "$work/parity.err")"
 fi
 
+cat > "$repo/tests/diag.test.sh" <<'SUITE'
+#!/bin/sh
+. "$(dirname "$0")/../calc.sh"
+pass=0; fail=0
+check() { if [ "$2" = "$3" ]; then pass=$((pass + 1)); else fail=$((fail + 1)); echo "FAIL - $1$4"; fi; }
+check "adds two numbers" 5 "$(add 2 3)" " (got $(add 2 3) want 5)"
+check "adds a negative" -1 "$(add 2 -3)"
+check "greets by name" "hello ann" "$(greet ann)"
+echo "----"
+echo "$pass passed, $fail failed"
+[ "$fail" -eq 0 ]
+SUITE
+chmod +x "$repo/tests/diag.test.sh"
+git -C "$repo" add -A && git -C "$repo" commit -qm diag
+table="$work/diag-old.tsv"
+printf 'tests/diag.test.sh\tadds two numbers\tredundant\tadds a negative\t%s\n' "$work/add-subtracts.patch" > "$table"
+out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/diag-old.err")" && code=0 || code=$?
+row="$(grep -F 'adds two numbers' <<<"$out" | grep -wF proven || true)"
+if [[ "$code" == 0 && -n "$row" ]]; then
+  ok
+else
+  no "#1436: a row whose old bash case fails with a FAIL line '<old name> (<diagnostic>)' reads proven when the kept case catches the mutation, not owed (exit=$code want 0)
+    stdout: $out
+    stderr: $(cat "$work/diag-old.err")"
+fi
+
 not_proven() {
   local name="$1" sed_expr="$2" patch="$work/$1.patch" table="$work/$1.tsv" out
   sed "$sed_expr" "$repo/calc.sh" > "$work/$name.mutated"
