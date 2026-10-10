@@ -118,6 +118,9 @@
 #  44. SKILL.md's `ci-red` bail names each failed CI check: every `cause=ci-red` bail line in the
 #      Draft PR step carries a field read from the head's check runs, and `## Bailing`'s
 #      `### ⛔ Bailed` comment says a `ci-red` bail names each check that failed.
+#  45. SKILL.md's Draft PR step says `rebase-onto-default.sh`'s exit code decides the next
+#      action, so nothing after it — the rebased tip's full run in particular — starts until it
+#      has returned, and never in the same message as the rebase.
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -1104,6 +1107,16 @@ if section_or_problem '## Bailing' '^## ' "whether its Bailed comment names the 
   comment="$(first_record "$records" -F '### ⛔ bailed' -F 'ci-red')"
   [[ -n "$comment" && -n "$(first_record "$comment" -F 'check')" ]] ||
     problems+=("$skill_md's ### ⛔ Bailed comment never says that a ci-red bail names each CI check that failed")
+fi
+report "$name"
+
+name="$skill_md's Draft PR step says rebase-onto-default.sh's exit code decides the next action, so nothing after it, the rebased tip's full run included, starts until it has returned, and never in the same message (#1287)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "whether the rebase's exit code gates the next action"; then
+  gate="$(first_record "$(unmarked_records)" -F 'rebase-onto-default.sh' -F 'exit code' -E 'decides?[^.]*next action' -F 'full' -E 'until[^.]*returned' -F 'same message')"
+  [[ -n "$gate" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step says rebase-onto-default.sh's exit code decides the next action, so nothing after it — the rebased tip's full run in particular — is started until it has returned, and never in the same message as the rebase; a conductor batching tool calls starts the full run beside a rebase that exits 3")
 fi
 report "$name"
 
