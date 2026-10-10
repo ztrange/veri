@@ -287,6 +287,21 @@ else
 fi
 report "$name"
 
+name="#1397: $skill_md's ⟦replaces-case⟧ pin-then-delete path keeps its meaning: the Guardrails exception is not negated, nothing is committed or ticked before the deletion green, and the deletion is accepted only once mutation-parity.sh exits 0"
+problems=()
+guard_after="${guard_rec#*⟦replaces-case⟧}"
+[[ "$guard_rec" =~ (save|except|unless|but)\ (on\ )?(a\ )?\`?⟦replaces-case⟧ ]] ||
+  problems+=("guardrails: the ⟦replaces-case⟧ clause is not introduced as an exception (save/except/unless/but)")
+[[ ! "$guard_after" =~ (^|[^a-z])(never|not|no)([^a-z]|$) ]] ||
+  problems+=("guardrails: the ⟦replaces-case⟧ clause negates the deletion green: $guard_after")
+pin_before_green="${pin_rc_rec%%green leaf*}"
+pin_before_green="${pin_before_green//commit nothing/}"
+[[ "$pin_rc_rec" == *"green leaf"* && ! "$pin_before_green" =~ commit|tick ]] ||
+  problems+=("pin path: a commit or tick comes before the deletion green: $pin_before_green")
+[[ "$pin_rc_rec" == *"accepted only once"* && ! "$pin_rc_rec" =~ whether\ or\ not|regardless|even\ if ]] ||
+  problems+=("pin path: the deletion is not accepted only once mutation-parity.sh exits 0")
+report "$name"
+
 name="#671: CONTEXT.md defines contract case, implementation case and the ⟦replaces-case⟧ mark"
 problems=()
 context_path="$ROOT/CONTEXT.md"
