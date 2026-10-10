@@ -333,3 +333,24 @@ def test_main_prints_every_record_of_a_replaces_case_ledger_and_current_hands_ou
         "replaces-case current": (0, f"{step}\n".encode(), b""),
         "criterion 08 past the count": (3, b"", b""),
     }
+
+
+def test_next_phase_prints_expand_on_an_unmarked_phased_step_migrate_once_expand_is_marked_and_exits_3_with_no_unfinished_phased_step(
+        monkeypatch, capsysbinary, ledger_steps):
+    phased = "- [ ] rename the slug helper ⟦phases: expand, migrate, contract (a), contract (b)⟧ ⟦criterion 1⟧"
+    ledgers = {
+        "nothing marked": f"# Plan for #42\n\n- [x] add lowercasing\n{phased}\n- [ ] strip edge hyphens\n",
+        "expand marked": f"# Plan for #42\n\n- [x] add lowercasing\n{phased} ⟂ expand done\n- [ ] strip edge hyphens\n",
+        "no phased step": "# Plan for #42\n\n- [x] add lowercasing\n- [ ] strip edge hyphens\n",
+    }
+    results = {}
+    for name, ledger in ledgers.items():
+        fake_stdin(monkeypatch, ledger.encode())
+        code = ledger_steps.main(["next-phase"])
+        results[name] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        "nothing marked": (0, b"expand\n", b""),
+        "expand marked": (0, b"migrate\n", b""),
+        "no phased step": (3, b"", b""),
+    }

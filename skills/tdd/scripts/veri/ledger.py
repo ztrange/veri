@@ -10,6 +10,7 @@ SPACE = r"[ \t\n\v\f\r]"
 STEP_RE = re.compile(rf"({SPACE}*-{SPACE})\[([ xX])\]( (.*))?")
 CRITERION_RE = CRITERION_TAG + "([0-9]+)⟧"
 KIND_RE = re.compile(r"⟦(full-suite|human-owed|diff-checked)⟧ " + CRITERION_RE)
+PHASES_RE = re.compile(r"⟦phases: ([^⟧]*)⟧")
 
 
 def decode_ledger(data):
@@ -34,6 +35,15 @@ def is_added(step):
     if tag != -1 and untagged.endswith("⟧"):
         untagged = untagged[:tag]
     return untagged.endswith(" " + ADDED_MARK)
+
+
+def next_phase(step):
+    """The first phase step lists and has not marked done, or None."""
+    listed = PHASES_RE.search(step)
+    if not listed:
+        return None
+    phases = [phase.strip() for phase in listed.group(1).split(",")]
+    return next((phase for phase in phases if f" ⟂ {phase} done" not in step), None)
 
 
 def new_step(text, criterion):

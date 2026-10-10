@@ -2,7 +2,7 @@
 import re
 import sys
 
-from ledger import handed_out, ledger_steps, read_ledger_stdin
+from ledger import handed_out, ledger_steps, next_phase, read_ledger_stdin
 
 USAGE = "usage: ledger-steps.sh [current|last-done|current-or-last-done|criterion <k>]"
 
@@ -39,6 +39,15 @@ def current_or_last_done(records):
     return last_done(records) if code == 3 else code
 
 
+def phase_next(records):
+    phases = (next_phase(r[6]) for r in records)
+    found = next((phase for phase in phases if phase), None)
+    if found is None:
+        return 3
+    write_lines([found])
+    return 0
+
+
 def criterion(text, k):
     kept, in_section = [], False
     for line in text.split("\n"):
@@ -52,7 +61,7 @@ def criterion(text, k):
 
 def main(argv):
     verb = argv[0] if argv else ""
-    if verb not in ("", "current", "last-done", "current-or-last-done", "criterion"):
+    if verb not in ("", "current", "last-done", "current-or-last-done", "next-phase", "criterion"):
         return refuse()
     if verb == "criterion" and not re.fullmatch("[0-9]+", argv[1] if len(argv) > 1 else ""):
         return refuse()
@@ -66,6 +75,8 @@ def main(argv):
         return last_done(records)
     if verb == "current-or-last-done":
         return current_or_last_done(records)
+    if verb == "next-phase":
+        return phase_next(records)
     write_lines("\t".join(record) for record in records)
     return 0
 
