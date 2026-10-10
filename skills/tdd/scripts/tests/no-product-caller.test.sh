@@ -50,11 +50,11 @@ fi
 
 binary="$work/binary-caller"
 new_repo -b main "$binary" >/dev/null 2>&1
-mkdir -p "$binary/skills/tdd/scripts/veri/__pycache__"
+mkdir -p "$binary/skills/tdd/scripts/veri"
 printf '# tdd\n' > "$binary/skills/tdd/SKILL.md"
-printf '\377\376\nold-thing.sh\n' > "$binary/skills/tdd/scripts/veri/__pycache__/caller.cpython-312.pyc"
+printf '\377\376\nold-thing.sh\n' > "$binary/skills/tdd/scripts/veri/caller.dat"
 binary_out="$(cd "$binary" && "$CHECK" old-thing.sh 2>&1)"; binary_code=$?
-if [[ "$binary_code" == 1 && "$binary_out" == *"skills/tdd/scripts/veri/__pycache__/caller.cpython-312.pyc:2"* ]]; then ok; else
+if [[ "$binary_code" == 1 && "$binary_out" == *"skills/tdd/scripts/veri/caller.dat:2"* ]]; then ok; else
   no "no-product-caller: a non-UTF-8 file under veri/ naming <name>.sh → exit 1 printing its file:line (code=$binary_code out=$binary_out)"
 fi
 
@@ -115,6 +115,18 @@ if [[ "$own_code" == 1 \
   && "$own_out" == *"skills/tdd/scripts/veri/caller.py:4"* \
   && "$own_out" != *"skills/tdd/scripts/veri/old_thing.py"* ]]; then ok; else
   no "no-product-caller: <name>.sh named in its own veri/<name_with_underscores>.py and in another product file → exit 1 printing only the other file:line (#1387) (code=$own_code out=$own_out)"
+fi
+
+stale="$work/stale-compiled"
+new_repo -b main "$stale" >/dev/null 2>&1
+mkdir -p "$stale/skills/tdd/scripts/veri/__pycache__"
+printf '# tdd\n' > "$stale/skills/tdd/SKILL.md"
+printf '\377\376\nold-thing.sh\n' > "$stale/skills/tdd/scripts/veri/__pycache__/caller.cpython-312.pyc"
+printf '\377\376\nold-thing.sh\n' > "$stale/skills/tdd/scripts/veri/stale.pyc"
+printf 'old-thing.sh\n' > "$stale/skills/tdd/scripts/veri/__pycache__/caller.txt"
+stale_out="$(cd "$stale" && "$CHECK" old-thing.sh 2>&1)"; stale_code=$?
+if [[ "$stale_code" == 0 && -z "$stale_out" ]]; then ok; else
+  no "no-product-caller: <name>.sh named only by __pycache__/ files (.pyc and not) and a *.pyc file → exit 0 printing nothing (#1387) (code=$stale_code out=$stale_out)"
 fi
 
 finish
