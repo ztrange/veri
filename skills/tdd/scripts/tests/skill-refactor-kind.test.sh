@@ -21,6 +21,7 @@
 #  11. SKILL.md rejects a phase's commit that breaks that phase's freeze — see case 11's name.
 #  12. SKILL.md holds a phased step's contract back until no product caller remains — see case
 #      12's name.
+#  13. SKILL.md spends one refactor of the budget for a whole phased step — see case 13's name.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -306,6 +307,23 @@ else
     problems+=("$skill_md runs no-product-caller.sh in the phased step without saying it is run on the old interface")
   grep -E 'exit(s)? 0' <<<"$near" > /dev/null && grep -E 'only once|until|before' <<<"$near" > /dev/null ||
     problems+=("$skill_md never says the contract starts only once no-product-caller.sh exits 0")
+fi
+report "$name"
+
+name="$skill_md spends one refactor of the budget for a whole phased step, not one per phase"
+problems=()
+
+phased_text="$(section '#### A `⟦phases')"
+if [[ -z "${phased_text// /}" ]]; then
+  problems+=("$skill_md has no '#### A \`⟦phases: …⟧\` step' subsection to read")
+elif ! grep -E 'refactor-budget\.sh|VERI_(ISSUE_)?REFACTOR_BUDGET|refactor budget' <<<"$phased_text" > /dev/null; then
+  problems+=("$skill_md's phased step never says what it spends of the refactor budget, so each phase may be counted as a refactor of its own")
+else
+  near="$(window "$phased_text" 'refactor-budget\.sh|VERI_(ISSUE_)?REFACTOR_BUDGET|refactor budget')"
+  grep -E 'one refactor' <<<"$near" > /dev/null ||
+    problems+=("$skill_md names the refactor budget in the phased step without saying the step spends one refactor of it")
+  grep -E 'whole step|not one per phase' <<<"$near" > /dev/null ||
+    problems+=("$skill_md never says the one refactor is for the whole phased step rather than one per phase")
 fi
 report "$name"
 
