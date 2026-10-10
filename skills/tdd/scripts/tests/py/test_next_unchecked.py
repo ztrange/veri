@@ -198,13 +198,13 @@ def test_main_skips_a_phased_step_whose_contract_is_owed_and_ledger_steps_reads_
         monkeypatch, capsysbinary, next_unchecked):
     ledger_steps = importlib.import_module("veri.ledger_steps")
     phased = (
-        "rename the slug helper ⟦phases: expand, migrate, contract (a), contract (b)⟧ ⟦criterion 1⟧"
-        " ⟂ expand done ⟂ migrate done ⟂ contract (a) owed"
+        "rename the slug helper ⟦phases: expand, migrate, contract-a, contract-b⟧ ⟦criterion 1⟧"
+        " ⟂ expand done ⟂ migrate done ⟂ contract-a owed"
     )
     ledger = (
         f"# Plan for #42\n\n- [x] add lowercasing\n- [ ] {phased}\n"
         "- [ ] strip leading and trailing hyphens ⟦criterion 2⟧\n\n"
-        "## Owed steps\n\n- rename the slug helper: contract (a)\n"
+        "## Owed steps\n\n- rename the slug helper: contract-a\n"
     ).encode()
 
     fake_stdin(monkeypatch, ledger)

@@ -2,7 +2,7 @@
 
 ## Phase: verify-contract-a
 
-This is **contract (a)**: it moves the tests off the old interface onto the new one.
+This is **contract-a**: it moves the tests off the old interface onto the new one.
 Production stays frozen.
 {{INCLUDE:_verify-interface-phase-lead.md}}
 2. **The tests moved.** No test calls the old interface any more.

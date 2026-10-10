@@ -337,7 +337,7 @@ def test_main_prints_every_record_of_a_replaces_case_ledger_and_current_hands_ou
 
 def test_next_phase_prints_expand_on_an_unmarked_phased_step_migrate_once_expand_is_marked_and_exits_3_with_no_unfinished_phased_step(
         monkeypatch, capsysbinary, ledger_steps):
-    phased = "- [ ] rename the slug helper ⟦phases: expand, migrate, contract (a), contract (b)⟧ ⟦criterion 1⟧"
+    phased = "- [ ] rename the slug helper ⟦phases: expand, migrate, contract-a, contract-b⟧ ⟦criterion 1⟧"
     ledgers = {
         "nothing marked": f"# Plan for #42\n\n- [x] add lowercasing\n{phased}\n- [ ] strip edge hyphens\n",
         "expand marked": f"# Plan for #42\n\n- [x] add lowercasing\n{phased} ⟂ expand done\n- [ ] strip edge hyphens\n",
@@ -358,7 +358,7 @@ def test_next_phase_prints_expand_on_an_unmarked_phased_step_migrate_once_expand
 
 def test_next_phase_answers_contract_b_after_expand_on_a_step_listing_only_expand_and_contract_b(
         monkeypatch, capsysbinary, ledger_steps):
-    phased = "- [ ] rename the slug helper ⟦phases: expand, contract (b)⟧ ⟦criterion 1⟧"
+    phased = "- [ ] rename the slug helper ⟦phases: expand, contract-b⟧ ⟦criterion 1⟧"
     ledgers = {
         "nothing marked": f"# Plan for #42\n\n- [x] add lowercasing\n{phased}\n",
         "expand marked": f"# Plan for #42\n\n- [x] add lowercasing\n{phased} ⟂ expand done\n",
@@ -371,19 +371,19 @@ def test_next_phase_answers_contract_b_after_expand_on_a_step_listing_only_expan
 
     assert results == {
         "nothing marked": (0, b"expand\n", b""),
-        "expand marked": (0, b"contract (b)\n", b""),
+        "expand marked": (0, b"contract-b\n", b""),
     }
 
 
 def test_next_phase_exits_3_with_no_phase_when_the_only_open_phased_step_has_its_contract_owed_1410(
         monkeypatch, capsysbinary, ledger_steps):
     phased = (
-        "- [ ] rename the slug helper ⟦phases: expand, migrate, contract (a), contract (b)⟧ ⟦criterion 1⟧"
-        " ⟂ expand done ⟂ migrate done ⟂ contract (a) owed"
+        "- [ ] rename the slug helper ⟦phases: expand, migrate, contract-a, contract-b⟧ ⟦criterion 1⟧"
+        " ⟂ expand done ⟂ migrate done ⟂ contract-a owed"
     )
     ledger = (
         f"# Plan for #42\n\n- [x] add lowercasing\n{phased}\n\n"
-        "## Owed steps\n\n- rename the slug helper: contract (a)\n"
+        "## Owed steps\n\n- rename the slug helper: contract-a\n"
     )
     fake_stdin(monkeypatch, ledger.encode())
 

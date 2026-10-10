@@ -315,7 +315,7 @@ def test_main_returns_2_without_raising_leaving_the_ledger_byte_identical_and_na
 
 def test_main_with_phase_expand_marks_expand_done_on_the_phased_step_in_place_leaving_it_unchecked_and_every_other_line_unchanged(
         tmp_path, capsysbinary, tick_ledger):
-    phased = "- [ ] rename the slug helper ⟦phases: expand, migrate, contract (a), contract (b)⟧ ⟦criterion 1⟧"
+    phased = "- [ ] rename the slug helper ⟦phases: expand, migrate, contract-a, contract-b⟧ ⟦criterion 1⟧"
     seed = ("# Plan for #42\n\n- [ ] add lowercasing\n" + phased + "\n- [ ] strip edge hyphens\n").encode()
     ledger = tmp_path / "ledger.md"
     ledger.write_bytes(seed)
@@ -332,11 +332,11 @@ def test_main_with_phase_marking_every_listed_phase_in_order_finishes_the_step_f
         tmp_path, monkeypatch, capsysbinary, tick_ledger):
     ledger_steps = importlib.import_module("veri.ledger_steps")
     next_unchecked = importlib.import_module("veri.next_unchecked")
-    phases = ("expand", "migrate", "contract (a)", "contract (b)")
+    phases = ("expand", "migrate", "contract-a", "contract-b")
     ledger = tmp_path / "ledger.md"
     ledger.write_bytes((
         "# Plan for #42\n\n- [x] add lowercasing\n"
-        "- [ ] rename the slug helper ⟦phases: expand, migrate, contract (a), contract (b)⟧ ⟦criterion 1⟧\n"
+        "- [ ] rename the slug helper ⟦phases: expand, migrate, contract-a, contract-b⟧ ⟦criterion 1⟧\n"
         "- [ ] strip edge hyphens\n"
         "- [ ] split the slug module ⟦phases: expand, migrate⟧ ⟦criterion 2⟧\n").encode())
 
@@ -363,7 +363,7 @@ def test_main_with_phase_naming_a_phase_the_step_does_not_list_exits_2_leaving_t
     ledger = tmp_path / "ledger.md"
     ledger.write_bytes(seed)
 
-    code = tick_ledger.main(["--phase", "contract (a)", str(ledger), "split the slug module"])
+    code = tick_ledger.main(["--phase", "contract-a", str(ledger), "split the slug module"])
     capsysbinary.readouterr()
 
     assert (code, ledger.read_bytes()) == (2, seed)
