@@ -796,3 +796,84 @@ def test_main_reads_the_rest_head_large_documents_and_every_check_run_page_and_n
         "first and only page fails": (2, "", by_sha),
         "a later page fails": (2, "", by_sha),
     }
+
+
+def test_main_records_a_deadline_from_the_ci_workflows_recent_runs_or_its_capped_total_and_caps_its_slice(
+        tmp_path, wait_ci, fake_processes, run_cli):
+    paths = {"CI": ".github/workflows/ci.yml", "Pages": ".github/workflows/pages.yml"}
+
+    def ci_runs(rows):
+        return [{"databaseId": 1000 - n, "workflowName": wf, "path": paths[wf], "status": status,
+                 "conclusion": conclusion, "startedAt": "2026-09-28T10:00:00Z",
+                 "updatedAt": "2026-09-28T10:%02d:%02dZ" % divmod(seconds, 60)}
+                for n, (wf, status, conclusion, seconds) in enumerate(rows)]
+
+    def listed(line, runs):
+        args = line.split(" ")[3:]
+        opt = lambda *names: next((args[i + 1] for i, a in enumerate(args[:-1]) if a in names), None)
+        workflow, status = opt("--workflow", "-w"), opt("--status", "-s")
+        runs = [r for r in runs if workflow is None or workflow in (r["workflowName"], r["path"])]
+        runs = [r for r in runs if status is None or status in (r["status"], r["conclusion"])]
+        return runs[:int(opt("--limit", "-L") or 20)]
+
+    def waited(name, argv, runs=(), fails=False):
+        work = tmp_path / name
+        (work / ".tdd").mkdir(parents=True)
+        bodies = sha_bodies([[check_run("gates", FULL_SHA, "in_progress")]], [], "pending")
+        readings, listings = [], []
+
+        def answer(line, **kwargs):
+            if line == "date +%s":
+                readings.append(60 * len(readings))
+                return 0, f"{readings[-1]}\n", ""
+            if line.startswith("sleep "):
+                return 0, "", ""
+            if line.startswith("gh run list "):
+                listings.append(line)
+                if fails:
+                    sys.stderr.write("HTTP 502: Bad Gateway\n")
+                    return 1, "", "HTTP 502: Bad Gateway\n"
+                return 0, json.dumps(listed(line, ci_runs(runs))), ""
+            return (0, bodies[line], "") if line in bodies else (1, "", f"unexpected: {line}\n")
+
+        fake_processes(answer)
+        code, out, err = run_cli(wait_ci, [PR] + argv, env={"VERI_POLL": "0"}, cwd=work)
+        mark = work / ".tdd" / f"ci-deadline-{FULL_SHA}"
+        recorded = int(mark.read_text()) - readings[0] if mark.exists() else None
+        return code, out, err, recorded, readings[-1] - readings[0], bool(listings)
+
+    done = lambda conclusion, seconds: ("CI", "completed", conclusion, seconds)
+    mixed = [("CI", "in_progress", "", 3000), ("Pages", "completed", "success", 3000), done("success", 200),
+             done("cancelled", 3000), done("failure", 220), done("skipped", 3000), done("success", 160),
+             done("success", 230), done("failure", 190), done("success", 3000)]
+    five = lambda *seconds: [done(c, s) for c, s in zip(("success", "failure", "success", "success", "failure"), seconds)]
+    few = [done("success", 100), done("cancelled", 3000), done("failure", 120), done("skipped", 3000),
+           done("success", 80)]
+    fewer = "wait-ci.sh: fewer than 5 success or failure CI runs found; bounding the wait at 540 s\n"
+    silent = "HTTP 502: Bad Gateway\nwait-ci.sh: gh run list could not answer; bounding the wait at 540 s\n"
+
+    observed = {
+        "omitted total, 2 × mean of 5": waited("computed-omitted", ["60"], mixed),
+        "empty total, 2 × mean of 5": waited("computed-empty", ["60", "", FULL_SHA], mixed),
+        "25 skipped runs first": waited("computed-deep", ["60"], [done("skipped", 3000)] * 25 + five(100, 120, 80, 110, 90)),
+        "60 skipped runs first": waited("computed-deeper", ["60"], [done("skipped", 3000)] * 60 + five(150, 130, 170, 140, 160)),
+        "slow runs, capped at 600": waited("computed-slow", ["60"], five(400, 420, 380, 450, 350)),
+        "fewer than 5 runs": waited("computed-few", ["60"], few),
+        "gh run list fails": waited("computed-gh-fail", ["60"], mixed, fails=True),
+        "slice 900, total 600": waited("slice-cap", ["900", "600", FULL_SHA], mixed),
+        "explicit total 300": waited("explicit-low", ["60", "300", FULL_SHA], mixed, fails=True),
+        "explicit total 1200": waited("explicit-high", ["60", "1200", FULL_SHA], mixed, fails=True),
+    }
+
+    assert observed == {
+        "omitted total, 2 × mean of 5": (3, "", "", 400, 60, True),
+        "empty total, 2 × mean of 5": (3, "", "", 400, 60, True),
+        "25 skipped runs first": (3, "", "", 200, 60, True),
+        "60 skipped runs first": (3, "", "", 300, 60, True),
+        "slow runs, capped at 600": (3, "", "", 600, 60, True),
+        "fewer than 5 runs": (3, "", fewer, 540, 60, True),
+        "gh run list fails": (3, "", silent, 540, 60, True),
+        "slice 900, total 600": (3, "", "", 600, 540, False),
+        "explicit total 300": (3, "", "", 300, 60, False),
+        "explicit total 1200": (3, "", "", 600, 60, False),
+    }
