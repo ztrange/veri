@@ -8,7 +8,7 @@ import sys
 
 import pytest
 
-USAGE = b"usage: tick-ledger.sh [--refactor-pending] <ledger-file> <matcher>\n"
+USAGE = b"usage: tick-ledger.sh [--refactor-pending | --phase <phase>] <ledger-file> <matcher>\n"
 
 
 @pytest.fixture
@@ -419,3 +419,11 @@ def test_main_refuses_phase_with_refactor_pending_in_either_order_with_exit_2_na
         ("--refactor-pending", "--phase", "expand"): (2, b"", 1, True, True, seed),
         ("--phase", "expand", "--refactor-pending"): (2, b"", 1, True, True, seed),
     }
+
+
+def test_main_prints_a_usage_line_naming_phase_on_a_bad_argument_1385(capsysbinary, tick_ledger):
+    code = tick_ledger.main([])
+    out, err = capsysbinary.readouterr()
+
+    assert (code, out, err.count(b"\n"), err.startswith(b"usage: tick-ledger.sh "), b"--phase <phase>" in err) == (
+        2, b"", 1, True, True)
