@@ -1,6 +1,7 @@
 import io
 import os
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -10,6 +11,21 @@ SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 for path in (SCRIPTS, SCRIPTS / "veri"):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
+
+
+CANONICAL_SHIM = re.compile(r'exec python3 "\$\(dirname "\$0"\)/(veri/[\w-]+\.py)" "\$@"')
+
+
+def shim_problems(scripts):
+    problems = []
+    for script in sorted(pathlib.Path(scripts).glob("*.sh")):
+        code = [line for line in script.read_text().splitlines() if line.strip() and not line.startswith("#")]
+        match = CANONICAL_SHIM.fullmatch(code[0]) if len(code) == 1 else None
+        if match is None:
+            problems.append("%s: not the canonical shim" % script.name)
+        elif not (script.parent / match.group(1)).is_file():
+            problems.append("%s: %s does not exist" % (script.name, match.group(1)))
+    return problems
 
 
 def pytest_configure(config):
