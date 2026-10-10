@@ -380,12 +380,16 @@ fi
 
 report "$name"
 
+resume_step3() {
+  rebase_span && preflight_or_problem "$1" || return 1
+  step3="$(item_around "$enter_at")"
+  item_end="$(item_last_line "$enter_at")"
+}
+
 name="#1297 $skill_md publishes a resume rebase that moved the branch, once the baseline is green, with $lease_push, never a bare force"
 problems=()
 
-if rebase_span && preflight_or_problem "the resume rebase's push"; then
-  step3="$(item_around "$enter_at")"
-  item_end="$(item_last_line "$enter_at")"
+if resume_step3 "the resume rebase's push"; then
   push_at="$(awk -v s="$enter_at" -v e="$item_end" -v p="$lease_push" 'NR >= s && NR <= e && index($0, p) { print NR; exit }' "$md")"
   if [[ -z "$push_at" ]]; then
     problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) never names $lease_push, so a resume rebase that moved the branch is left unpublished or pushed without a pinned lease")
@@ -406,11 +410,10 @@ report "$name"
 name="#1297 $skill_md resets a red baseline on the resume-rebased tip to <pre-rebase-sha> before the run bails"
 problems=()
 
-if rebase_span && preflight_or_problem "the resume rebase's reset"; then
-  step3="$(item_around "$enter_at")"
+if resume_step3 "the resume rebase's reset"; then
   reset="$(sentences <<< "$step3" | grep -iwF 'red' | grep -iF 'reset' | grep -F '<pre-rebase-sha>' | grep -iF 'bail')"
   [[ -n "$reset" ]] ||
-    problems+=("$skill_md's preflight step 3 (lines $enter_at-$(item_last_line "$enter_at")) has no sentence saying a red baseline on the rebased tip resets to <pre-rebase-sha> before the run bails, so a bailed resume leaves the branch on a rebased tip no suite proved green")
+    problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) has no sentence saying a red baseline on the rebased tip resets to <pre-rebase-sha> before the run bails, so a bailed resume leaves the branch on a rebased tip no suite proved green")
 fi
 
 report "$name"
