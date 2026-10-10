@@ -1551,6 +1551,25 @@ def build_prompt(words, monkeypatch):
 
 
 SPEC = "slugify must lowercase the title and join words with hyphens."
+
+
+def answering_leaf(monkeypatch, leaf_out):
+    launches = []
+
+    def fake(args, *_, **__):
+        words = [str(a) for a in args]
+        name = os.path.basename(words[0])
+        if name == "build-verify-prompt.sh":
+            code, built = build_prompt(words[1:], monkeypatch)
+            return subprocess.CompletedProcess(args, code, built, None)
+        if name == "supervise.sh":
+            launches.append((words[1], pathlib.Path(words[3]).read_text()))
+            return subprocess.CompletedProcess(args, 0, (leaf_out + "\n").encode(), None)
+        return subprocess.CompletedProcess(args, 128 if name == "git" else 0, b"", None)
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    return launches
 HUNG = pytest.mark.process("a hung verifier leaf killed by the real supervise.sh")
 
 
@@ -1570,21 +1589,8 @@ def test_verify_sh_passes_the_blind_prompt_carrying_the_spec_to_the_leaf_and_a_h
     verify = importlib.import_module("veri.verify")
     argv = ["red", str(tmp_path / "spec.md"), "tests/test_slugify.py", "test_lowercases"]
     env = {"HOME": str(tmp_path)}
-    prompts = []
     if leaf == "answers":
-        def fake(args, *_, **__):
-            words = [str(a) for a in args]
-            name = os.path.basename(words[0])
-            if name == "build-verify-prompt.sh":
-                code, built = build_prompt(words[1:], monkeypatch)
-                return subprocess.CompletedProcess(args, code, built, None)
-            if name == "supervise.sh":
-                prompts.append(pathlib.Path(words[3]).read_text())
-                return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nREASON: ok\n", None)
-            return subprocess.CompletedProcess(args, 128 if name == "git" else 0, b"", None)
-
-        for name in ("run", "Popen", "call", "check_call", "check_output"):
-            monkeypatch.setattr(subprocess, name, fake)
+        launches = answering_leaf(monkeypatch, "VERDICT: PASS\nREASON: ok")
     else:
         claude = tmp_path / "claude-hang"
         claude.write_text(HUNG_LEAF)
@@ -1595,7 +1601,7 @@ def test_verify_sh_passes_the_blind_prompt_carrying_the_spec_to_the_leaf_and_a_h
     code, out, err = run_cli(verify, argv, env=env, cwd=tmp_path)
 
     if leaf == "answers":
-        assert (code, len(prompts), SPEC in prompts[0]) == (0, 1, True)
+        assert (code, len(launches), SPEC in launches[0][1]) == (0, 1, True)
     else:
         assert (code, "killed-stuck" in out,
                 err.count("supervise[verify-red]: killed-stuck"), "retry " in err) == (2, True, 1, False)
@@ -1704,27 +1710,13 @@ def test_verify_sh_hands_every_launch_the_builders_own_prompt_for_its_arguments_
     monkeypatch.setenv("VERI_STEP", AMBIENT_STEP)
     (tmp_path / "spec.md").write_text(SPEC)
     argv = [*flags, phase, str(tmp_path / "spec.md"), "tests/test_slugify.py", fourth]
-    prompts = []
-
-    def fake(args, *_, **__):
-        words = [str(a) for a in args]
-        name = os.path.basename(words[0])
-        if name == "build-verify-prompt.sh":
-            code, built = build_prompt(words[1:], monkeypatch)
-            return subprocess.CompletedProcess(args, code, built, None)
-        if name == "supervise.sh":
-            prompts.append(pathlib.Path(words[3]).read_text())
-            return subprocess.CompletedProcess(args, 0, (leaf_out + "\n").encode(), None)
-        return subprocess.CompletedProcess(args, 128 if name == "git" else 0, b"", None)
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, fake)
+    launched = answering_leaf(monkeypatch, leaf_out)
     verify = importlib.import_module("veri.verify")
 
     code, _, _ = run_cli(verify, argv, env={"HOME": str(tmp_path)}, cwd=tmp_path)
 
     expected = build_prompt(argv, monkeypatch)[1].decode().rstrip("\n")
-    assert (code, prompts) == (expected_code, [expected] * launches)
+    assert (code, [prompt for _, prompt in launched]) == (expected_code, [expected] * launches)
     assert [text for text in present if text not in expected] == []
     assert [text for text in absent if text in expected] == []
     assert re.findall(r"\{\{[A-Z_]*\}\}", expected) == []
@@ -1951,26 +1943,12 @@ def test_verify_sh_and_run_verdict_sh_answer_a_rebase_or_diff_verdict_from_one_l
     (tmp_path / "spec.md").write_text(SPEC)
     argv = [word.format(spec=tmp_path / "spec.md") for word in argv]
     verify = importlib.import_module("veri.verify")
-    leaves, prompts = [], []
-
-    def fake(args, *_, **__):
-        words = [str(a) for a in args]
-        name = os.path.basename(words[0])
-        if name == "build-verify-prompt.sh":
-            code, built = build_prompt(words[1:], monkeypatch)
-            return subprocess.CompletedProcess(args, code, built, None)
-        if name == "supervise.sh":
-            leaves.append(words[1])
-            prompts.append(pathlib.Path(words[3]).read_text())
-            return subprocess.CompletedProcess(args, 0, (leaf_out + "\n").encode(), None)
-        return subprocess.CompletedProcess(args, 128 if name == "git" else 0, b"", None)
+    launches = answering_leaf(monkeypatch, leaf_out)
 
     def exec_verify(path, words):
         assert os.path.basename(path) == "verify.sh"
         raise SystemExit(verify.main(list(words[1:])))
 
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, fake)
     monkeypatch.setattr(os, "execv", exec_verify)
     monkeypatch.setattr(signal, "signal", lambda *_: None)
 
@@ -1979,5 +1957,6 @@ def test_verify_sh_and_run_verdict_sh_answer_a_rebase_or_diff_verdict_from_one_l
 
     want_code, want_first, want_leaves, present = expected
     first = err.splitlines()[0] if err else ""
-    assert (code, first if want_first is not None else None, leaves) == (want_code, want_first, want_leaves)
-    assert [text for text in present for prompt in prompts if text not in prompt] == []
+    assert (code, first if want_first is not None else None, [leaf for leaf, _ in launches]) == (
+        want_code, want_first, want_leaves)
+    assert [text for text in present for _, prompt in launches if text not in prompt] == []
