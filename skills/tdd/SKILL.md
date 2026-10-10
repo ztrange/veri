@@ -555,9 +555,18 @@ unauthenticated baseline never gets a cycle.
    ```
    The `--clear` beside it drops a stale stop request a killed run never got to clear, so a
    `.tdd/stop` left behind cannot stop the run that resumes it at its first checkpoint.
-   A resumed run — one whose worktree and ledger `.tdd/issue-<n>.md` already exist — then runs
+   A resumed run — one whose worktree and ledger `.tdd/issue-<n>.md` already exist — first
+   captures and discards whatever a killed leaf left uncommitted, since a rebase refuses a
+   dirty tree:
+   ```
+   stray="$(git status --porcelain)"
+   git reset --hard HEAD
+   ```
+   *Resume* sub-step 2's own capture then finds a clean tree, so keep this `$stray` for
+   sub-step 4 to name. Then the resumed run, its worktree clean and its ledger untouched, runs
    `$S/rebase-onto-default.sh` before its baseline, so the baseline runs on the rebased tip.
-   An exit 3 — the branch already contains `origin/<default>` — goes on unchanged. An exit 1 —
+   On an exit 0 the first stdout line of `rebase-onto-default.sh` is `<pre-rebase-sha>`, the HEAD
+   the branch held before the rebase. An exit 3 — the branch already contains `origin/<default>` — goes on unchanged. An exit 1 —
    the rebase conflicted and was aborted, HEAD untouched — goes on from the old base and
    leaves the conflict to the Draft PR step's `develop-rebase` path. An exit 2 bails as the
    Draft PR step's does, a **system** failure (`no-verdict`).
