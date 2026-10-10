@@ -5,4 +5,4 @@
 - [x] The Draft PR step's rebase text in SKILL.md is unchanged by this branch ⟦diff-checked⟧ ⟦criterion 1⟧
 - [x] SKILL.md says a resume rebase that moved the branch is published, once the baseline is green, with `push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>`, never a bare force ⟦criterion 2⟧
 - [x] SKILL.md says a red baseline on the resume-rebased tip resets to `<pre-rebase-sha>` before the run bails ⟦criterion 2⟧
-- [x] SKILL.md says a resume rebase that moved the branch is marked in the run log as its own event carrying the pre-rebase and rebased shas, under a name distinct from anything the Draft PR step's rebase records ⟦criterion 3⟧ ⟂ refactor pending
+- [x] SKILL.md says a resume rebase that moved the branch is marked in the run log as its own event carrying the pre-rebase and rebased shas, under a name distinct from anything the Draft PR step's rebase records ⟦criterion 3⟧
