@@ -98,6 +98,12 @@ def _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n"))
     return supervisors
 
 
+def _exit_every_live_conductor(live):
+    for sup in live:
+        if sup.returncode is None:
+            sup.exit(0)
+
+
 def test_an_assistant_event_the_conductor_writes_in_two_pieces_still_prints_one_context_line_for_the_whole_event(
         capsys, monkeypatch, tmp_path, parallel_conductors):
     for name in TUNABLES:
@@ -1063,12 +1069,7 @@ def test_the_schedule_launches_one_conductor_at_a_time_in_the_queue_s_printed_or
         in_flight_at_launch.append(1 + sum(1 for s in supervisors if s is not sup and s.returncode is None))
         numbers.append(sup.args[-1])
 
-    def on_sleep(live):
-        for sup in live:
-            if sup.returncode is None:
-                sup.exit(0)
-
-    supervisors = _boundaries(monkeypatch, tmp_path, on_launch, on_sleep)
+    supervisors = _boundaries(monkeypatch, tmp_path, on_launch, _exit_every_live_conductor)
     faked_run = subprocess.run
     queue = ["8\n7\n", "8\n7\n", "8\n7\n9\n", "8\n7\n9\n10\n"]
     asked = []
@@ -1116,12 +1117,7 @@ def test_with_veri_parallel_1_it_exits_0_once_nothing_is_left_to_take_after_laun
             (work / ".tdd" / "parked").mkdir(exist_ok=True)
             (work / ".tdd" / "parked" / ("%s.md" % n)).write_text("Which test command should this run use?\n")
 
-    def on_sleep(live):
-        for sup in live:
-            if sup.returncode is None:
-                sup.exit(0)
-
-    _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n8\n"))
+    _boundaries(monkeypatch, tmp_path, on_launch, _exit_every_live_conductor, solvable=(0, "7\n8\n"))
     for name in TUNABLES:
         monkeypatch.delenv(name, raising=False)
     code, out, err = run_cli(parallel_conductors, [], env={"VERI_PARALLEL": "1", "VERI_GH_JSON": str(gh)}, cwd=work)
