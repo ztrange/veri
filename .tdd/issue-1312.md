@@ -9,7 +9,7 @@
 - [x] `SKILL.md` plans an interface change as one ledger step listing its phases (`⟦phases: …⟧`) and runs the phases it lists in order, each as a developer leaf then a blind verifier, ticking that phase's mark (`tick-ledger.sh --phase`) with that phase's commit ⟦criterion 2⟧
 - [x] `SKILL.md` rejects an expand, migrate or contract (b) phase's commit that `transform-touches-tests.sh` exits 1 on, and a contract (a) phase's commit that `production-frozen.sh` exits 1 on ⟦criterion 2⟧
 - [x] `SKILL.md` starts a phased step's contract only once `no-product-caller.sh` on the old interface exits 0 ⟦criterion 2⟧
-- [ ] `SKILL.md` spends one refactor of the budget for a whole phased step, not one per phase ⟦criterion 2⟧
+- [x] `SKILL.md` spends one refactor of the budget for a whole phased step, not one per phase ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] `SKILL.md`: a contract phase that exhausts `REVISE_BUDGET` is reset to its own base sha, the expand and migrate commits are kept, and the contract is filed under the ledger's `## Owed steps` ⟦criterion 2⟧
 - [ ] `SKILL.md` accepts a `⟦replaces-case⟧` group step's Green only once the conductor's own run of `mutation-parity.sh` on that step's pairs table exits 0 ⟦criterion 3⟧
 - [ ] `SKILL.md` accepts a contract (a) phase only once the conductor's own run of `mutation-parity.sh` on that phase's pairs table exits 0 ⟦criterion 3⟧

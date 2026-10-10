@@ -1498,6 +1498,10 @@ phase. On REJECT, revise under `REVISE_BUDGET` as *Revising on a REJECT* sets ou
 **bail** as a system failure (`no-verdict`). Once `next-phase` exits 3 every listed phase is
 marked, the step reads as done, and the loop goes back to `next-unchecked.sh`.
 
+The whole step spends one refactor of the budget, not one per phase: wherever
+`refactor-budget.sh <count>` counts the transforms already landed, a phased step adds one to
+`<count>` once its last phase is marked, however many phases it listed.
+
 The freeze check runs on the developer leaf's commit, before the verifier. An expand, migrate
 or contract-b commit runs `$S/transform-touches-tests.sh <base-sha>`: exit 1 rejects it, tests
 being frozen there. A contract-a commit runs `$S/production-frozen.sh <base-sha>`: exit 1
