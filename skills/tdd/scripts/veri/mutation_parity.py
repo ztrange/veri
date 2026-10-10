@@ -25,8 +25,8 @@ def check(row):
         failed, passed = failed_cases(suite)
     finally:
         subprocess.run(["git", "apply", "-R", patch], check=True)
-    if old in failed and passed > 0 and kept in failed:
-        return "proven"
+    if old in failed and passed > 0:
+        return "proven" if kept in failed else "unproven"
 
 
 def main(argv):
@@ -35,10 +35,12 @@ def main(argv):
         return 2
     with open(argv[0], encoding="utf-8") as table:
         rows = [line.rstrip("\n").split("\t") for line in table if line.strip()]
+    results = []
     for row in rows:
         result = check(row)
+        results.append(result)
         print("\t".join([row[1], row[3], row[4], result]))
-    return 0
+    return 1 if "unproven" in results else 0
 
 
 if __name__ == "__main__":

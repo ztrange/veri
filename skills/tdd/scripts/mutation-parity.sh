@@ -7,5 +7,5 @@
 # usage: mutation-parity.sh <pairs-table>
 #
 # stdout:  one row per pairs-table row: <old case> <kept case> <mutation> <result>
-# exit:    0 every row proven · 2 no <pairs-table>
+# exit:    0 every row proven · 1 a row unproven · 2 no <pairs-table>
 exec python3 "$(dirname "$0")/veri/mutation_parity.py" "$@"

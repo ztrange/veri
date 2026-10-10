@@ -75,4 +75,19 @@ not_proven old-stays-green 's/\$1 + \$2/$1 + ${2#-}/' \
 not_proven none-stays-green 's/\$1 + \$2/$1 - $2/; s/hello/bye/' \
   "a mutation that leaves no other case of the suite green is not reported proven, though the old and kept cases go red"
 
+patch="$work/kept-stays-green.patch"
+sed 's/\$1 + \$2/$1 + $2 + ($2 > 0)/' "$repo/calc.sh" > "$work/kept-stays-green.mutated"
+diff -u --label a/calc.sh --label b/calc.sh "$repo/calc.sh" "$work/kept-stays-green.mutated" > "$patch"
+table="$work/kept-stays-green.tsv"
+printf 'tests/calc.test.sh\tadds two numbers\tredundant\tadds a negative\t%s\n' "$patch" > "$table"
+out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/kept-stays-green.err")" && code=0 || code=$?
+row="$(grep -F 'adds a negative' <<<"$out" | grep -wF unproven || true)"
+if [[ "$code" == 1 && -n "$row" ]]; then
+  ok
+else
+  no "a valid mutation that leaves the kept case green is reported unproven, naming the kept case, and exits 1 (exit=$code want 1)
+    stdout: $out
+    stderr: $(cat "$work/kept-stays-green.err")"
+fi
+
 finish
