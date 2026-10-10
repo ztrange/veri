@@ -36,6 +36,8 @@
 #  13. Preflight step 3's item names `push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>`
 #      after the fast-tier baseline command, in a sentence that says `green`, and has a sentence
 #      saying never a bare force.
+#  14. Preflight step 3's item has a sentence saying a red baseline on the rebased tip resets
+#      to `<pre-rebase-sha>` before the run bails.
 #
 # Run: scripts/tests/skill-preflight-launchable.test.sh
 set -uo pipefail
@@ -397,6 +399,18 @@ if rebase_span && preflight_or_problem "the resume rebase's push"; then
   bare="$(sentences <<< "$step3" | grep -iF 'bare force' | negated)"
   [[ -n "$bare" ]] ||
     problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) has no sentence saying the resume rebase is never published with a bare force")
+fi
+
+report "$name"
+
+name="#1297 $skill_md resets a red baseline on the resume-rebased tip to <pre-rebase-sha> before the run bails"
+problems=()
+
+if rebase_span && preflight_or_problem "the resume rebase's reset"; then
+  step3="$(item_around "$enter_at")"
+  reset="$(sentences <<< "$step3" | grep -iwF 'red' | grep -iF 'reset' | grep -F '<pre-rebase-sha>' | grep -iF 'bail')"
+  [[ -n "$reset" ]] ||
+    problems+=("$skill_md's preflight step 3 (lines $enter_at-$(item_last_line "$enter_at")) has no sentence saying a red baseline on the rebased tip resets to <pre-rebase-sha> before the run bails, so a bailed resume leaves the branch on a rebased tip no suite proved green")
 fi
 
 report "$name"

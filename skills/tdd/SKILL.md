@@ -583,7 +583,8 @@ unauthenticated baseline never gets a cycle.
    `$S/push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>`, where `<pre-rebase-sha>`
    is the HEAD recorded before `rebase-onto-default.sh` ran. It is never a bare force: the
    pinned lease refuses the push when the remote branch is no longer the commit this run
-   rebased from.
+   rebased from. A red baseline on the rebased tip resets the branch to `<pre-rebase-sha>`
+   before the run bails, so a bailed resume leaves the branch on the commit it resumed from, not on a rebased tip no suite proved green.
 
    **Then time the full tier too.** Get its command from
    `$S/detect-test-command.sh --tier all --issue "$body"`, run it once through `detach-command.sh` in the same start-then-wait shape as the preflight baseline,
