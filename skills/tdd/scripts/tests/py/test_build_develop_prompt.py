@@ -10,7 +10,7 @@ import pytest
 
 from conftest import SCRIPTS
 
-PHASES = b"red|green|refactor|cover|transform|diff|structural|predicate|revise|reconcile|exhausted|over-budget|rebase|expand|migrate"
+PHASES = b"red|green|refactor|cover|transform|diff|structural|predicate|revise|reconcile|exhausted|over-budget|rebase|expand|migrate|contract-a|contract-b"
 USAGE = b"build-develop-prompt.sh: usage: " + PHASES + b" <issue-spec-file> <step-text> <test-cmd> ...\n"
 
 
@@ -1227,3 +1227,36 @@ def test_main_renders_an_expand_and_a_migrate_prompt_stating_what_each_phase_cha
                                  if re.search(pattern, prompt, re.I) is None])
 
     assert results == {"expand": (0, []), "migrate": (0, [])}
+
+
+def test_main_renders_a_contract_a_prompt_freezing_production_while_tests_are_rewritten_or_deleted_and_a_contract_b_prompt_deleting_the_proxy_while_test_files_stay_frozen(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b"zorblat(nitz) replaces frob(nitz, quux).\n")
+    step = ("Interface change: frob(nitz, quux) becomes zorblat(nitz) "
+            "⟦phases: expand, migrate, contract-a, contract-b⟧ ⟦criterion 1⟧")
+
+    def rendered(phase):
+        code = build_develop_prompt.main([phase, str(spec), step, "make test"])
+        out, _ = capsysbinary.readouterr()
+        return code, re.sub(rb"\s+", b" ", out)
+
+    rules = {
+        "contract-a": {
+            "tests are rewritten or deleted": rb"tests?[^.]{0,60}(rewritten|rewrite)[^.]{0,60}(or|and)[^.]{0,20}delet",
+            "production stays frozen": rb"production[^.]{0,40}(stay|stays|remain|remains|is|left) frozen",
+        },
+        "contract-b": {
+            "the old interface's proxy is deleted": rb"(delete|remove)[^.]{0,40}proxy|proxy[^.]{0,40}(is |gets )?deleted",
+            "test files stay frozen": (rb"(test files?[^.]{0,40}(stay|stays|remain|remains|are|is|left) frozen"
+                                       rb"|(never|not|no)[^.]{0,30}(touch|modify|edit)[^.]{0,20}(a |any )?test file)"),
+        },
+    }
+
+    results = {}
+    for phase, phase_rules in rules.items():
+        code, prompt = rendered(phase)
+        results[phase] = (code, [rule for rule, pattern in phase_rules.items()
+                                 if re.search(pattern, prompt, re.I) is None])
+
+    assert results == {"contract-a": (0, []), "contract-b": (0, [])}

@@ -6,11 +6,12 @@ import sys
 from build_verify_prompt import _IncludeRefused, _expand, _has_heading, _spec_text, _write
 
 PHASES = ("red", "green", "refactor", "cover", "transform", "diff", "structural", "predicate", "revise",
-          "reconcile", "exhausted", "over-budget", "rebase", "expand", "migrate")
+          "reconcile", "exhausted", "over-budget", "rebase", "expand", "migrate", "contract-a",
+          "contract-b")
 REVISE_PHASES = ("red", "green", "refactor", "diff")
 WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "transform": 4, "diff": 5, "structural": 5,
         "predicate": 5, "revise": 6, "reconcile": 6, "exhausted": 5, "over-budget": 6, "rebase": 7,
-        "expand": 4, "migrate": 4}
+        "expand": 4, "migrate": 4, "contract-a": 4, "contract-b": 4}
 WANT_PHASES = "|".join(PHASES)
 WANT_REVISE_PHASES = "|".join(REVISE_PHASES)
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
