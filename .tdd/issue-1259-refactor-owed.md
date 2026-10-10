@@ -12,3 +12,7 @@
 ### One small pytest case checks every top-level `skills/tdd/scripts/*.sh` is the canonical two-line shim naming a module that exists under `veri/`, and fails naming the script and what is wrong for a script with logic in it or a missing module ⟦criterion 2⟧
 - test-only | move `shim_problems` and `CANONICAL_SHIM` from `conftest.py` into `test_shims.py`. They have one caller, and `conftest.py` is where shared fixtures live. Not applied: it is a move, not removal of duplication.
 - test-only | the same move. Both files sit under `tests/py/`, so the change touches only test files.
+### The shim test's exemption table lists the six non-canonical shims with one reason each, and a stale row (a script now canonical, or gone) fails naming the script ⟦criterion 2⟧
+- test-only | in test_shims.py, pull the scratch setup that both cases repeat (the `veri/kept.py` module plus a canonical `canonical.sh` shim) into one helper next to `shim()`
+- test-only | in conftest.py `shim_problems`, branch once on `match is None` instead of testing `match is not None` / `match is None` in each of the three conditions
+- test-only | in conftest.py `shim_problems`, build `seen` as the set of globbed names instead of adding to it inside the loop
