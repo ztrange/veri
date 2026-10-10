@@ -2698,3 +2698,96 @@ def test_cli_recovers_a_killed_leaf_from_a_terminal_result_record_in_its_log_wit
     text = " ".join(head)
     assert re.search(r"(finish|complete)[a-z]* .{0,120}before .{0,80}(rc file|rcfile|\.rc)", text)
     assert re.search(r"kill.{0,160}not proof", text)
+
+
+@pytest.mark.process("git and preserve-attempt.sh run for real: a killed-stuck leaf's attempts are written as git refs")
+def test_cli_records_its_own_pid_before_the_leaf_launches_and_preserves_the_relaunched_attempt_and_the_final_one_each_as_its_own_tree_and_log(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    clean_env(monkeypatch)
+    real_run, real_check_output, real_popen = subprocess.run, subprocess.check_output, subprocess.Popen
+    work = tmp_path / "preserve"
+    work.mkdir()
+    git = ["git", "-C", str(work), "-c", "user.name=veri", "-c", "user.email=veri@example.test"]
+    real_run([*git, "init", "-q", "-b", "main"], check=True)
+    (work / ".gitignore").write_text(".tdd/\n")
+    (work / "src.txt").write_text("the step this leaf never finished\n")
+    real_run([*git, "add", "-A"], check=True)
+    real_run([*git, "commit", "-q", "-m", "initial"], check=True)
+
+    clock = {"wall": 1000}
+    seen_pids, leaf_box = [], []
+
+    class Leaf:
+        pid = 4242
+        returncode = None
+        args = []
+
+        def poll(self):
+            return self.returncode
+
+        def wait(self, timeout=None):
+            return self.returncode
+
+    def sleep(_):
+        clock["wall"] += 1
+        if clock["wall"] > 5000:
+            raise AssertionError("never ended")
+
+    def fake(args):
+        words = [str(a) for a in args]
+        if words[:1] == ["date"]:
+            return f"{clock['wall']}\n"
+        if words[:1] == ["stat"]:
+            return "1000\n"
+        return None
+
+    def run(args, *a, **kwargs):
+        out = fake(args)
+        if out is None:
+            return real_run(args, *a, **kwargs)
+        return subprocess.CompletedProcess(args, 0, as_asked(out, kwargs), "" if kwargs.get("text") else b"")
+
+    def check_output(args, *a, **kwargs):
+        out = fake(args)
+        return real_check_output(args, *a, **kwargs) if out is None else as_asked(out, kwargs)
+
+    def popen(args, *a, **kwargs):
+        if list(args[:2]) != ["/bin/sh", "-c"]:
+            return real_popen(args, *a, **kwargs)
+        pidfile = work / ".tdd" / "develop-red.pid"
+        seen_pids.append(pidfile.read_text().strip() if pidfile.exists() else "<missing>")
+        attempts = work / "attempts.txt"
+        with attempts.open("a") as f:
+            f.write("run\n")
+        number = len(attempts.read_text().splitlines())
+        pathlib.Path(args[4]).write_text(f"leaf: attempt {number}\n")
+        leaf = Leaf()
+        leaf_box.append(leaf)
+        return leaf
+
+    def stop(_pid, sig):
+        if sig:
+            leaf_box[-1].returncode = -sig
+
+    monkeypatch.setattr(time, "sleep", sleep)
+    monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
+    monkeypatch.setattr(os, "killpg", stop)
+    monkeypatch.setattr(os, "kill", stop)
+    monkeypatch.setattr(subprocess, "run", run)
+    monkeypatch.setattr(subprocess, "check_output", check_output)
+    monkeypatch.setattr(subprocess, "Popen", popen)
+
+    code, _, _ = run_cli(supervise, ["develop-red", "leaf"], cwd=work, env={
+        "VERI_ISSUE": "409", "VERI_STEP": "6", "VERI_HEARTBEAT": "1", "VERI_TIMEOUT": "5000"})
+
+    refs = real_run([*git, "for-each-ref", "--format=%(refname)", "refs/veri/attempts/409/6/"],
+                    capture_output=True, text=True).stdout.split()
+    trees = sorted(len(real_run([*git, "show", f"{ref}:attempts.txt"], capture_output=True, text=True)
+                       .stdout.splitlines()) for ref in refs)
+    copies = sorted((work / ".tdd" / "attempts").glob("6-develop-red-*.log"))
+    logged = sorted(c.read_text().split("leaf: attempt ")[1].split()[0] for c in copies)
+    assert (code, seen_pids, len(refs), trees, len(copies), logged) == (
+        2, [str(os.getpid()), str(os.getpid())], 2, [1, 2], 2, ["1", "2"])

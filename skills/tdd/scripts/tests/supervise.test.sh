@@ -234,21 +234,6 @@ header_unstated() {
   done
 }
 
-pid_work="$work/pid-record"
-mkdir -p "$pid_work"
-cat > "$stub/leaf-pid-seen" <<'L'
-cat .tdd/develop-red.pid 2>/dev/null > pid-seen || echo '<missing>' > pid-seen
-exit 0
-L
-chmod +x "$stub/leaf-pid-seen"
-( cd "$pid_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-pid-seen" ) >/dev/null 2>&1 &
-pid_sup=$!
-wait "$pid_sup"
-pid_seen="$(tr -d '[:space:]' < "$pid_work/pid-seen" 2>/dev/null || echo '<no leaf run>')"
-[[ "$pid_seen" == "$pid_sup" ]] && ok \
-  || no "supervise.sh records its own pid in .tdd/<name>.pid before it launches the leaf (leaf saw=$pid_seen want $pid_sup)"
-
 
 term_work="$work/term-handler"
 mkdir -p "$term_work"
@@ -421,50 +406,6 @@ else
 fi
 { [[ "${#audit_problems[@]}" -eq 0 ]]; } && ok \
   || no "a stub leaf whose silence is real waiting is named by the clock audit, a deliberate real-clock dependence recorded with a reason is not (${audit_problems[*]})"
-
-preserve_work="$work/preserve"
-preserve_issue=409
-preserve_step=6
-preserve_window=1
-mkdir -p "$preserve_work"
-new_repo -b main "$preserve_work" >/dev/null 2>&1
-git -C "$preserve_work" config user.name veri
-git -C "$preserve_work" config user.email veri@example.test
-printf '.tdd/\n.test-clock*\n' > "$preserve_work/.gitignore"
-printf 'the step this leaf never finished\n' > "$preserve_work/src.txt"
-git -C "$preserve_work" add -A >/dev/null 2>&1
-git -C "$preserve_work" commit -q -m "initial" >/dev/null 2>&1
-
-cat > "$stub/leaf-hang-counting" <<'L'
-echo run >> attempts.txt
-echo "leaf: attempt $(wc -l < attempts.txt | tr -d ' ')"
-clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"; sleep 60
-L
-chmod +x "$stub/leaf-hang-counting"
-
-( cd "$preserve_work" && env -u VERI_STUCK_RETRIES \
-    VERI_ISSUE="$preserve_issue" VERI_STEP="$preserve_step" \
-    VERI_HEARTBEAT="$preserve_window" VERI_TIMEOUT=30 VERI_POLL=0.02 VERI_KILL_POLL=0.01 \
-    "$SUP" develop-red "$stub/leaf-hang-counting" ) >/dev/null 2>&1
-preserve_code=$?
-
-preserve_refs="$(git -C "$preserve_work" for-each-ref --format='%(refname)' \
-  "refs/veri/attempts/$preserve_issue/$preserve_step/" 2>/dev/null)"
-preserve_ref_count="$(printf '%s\n' "$preserve_refs" | grep -c . || true)"
-preserve_trees="$(while read -r ref; do
-    [[ -n "$ref" ]] || continue
-    git -C "$preserve_work" show "$ref:attempts.txt" 2>/dev/null | grep -c . || true
-  done <<< "$preserve_refs" | sort | xargs)"
-preserve_copies="$(ls "$preserve_work/.tdd/attempts/$preserve_step-develop-red-"*.log 2>/dev/null || true)"
-preserve_copy_count="$(printf '%s\n' "$preserve_copies" | grep -c . || true)"
-preserve_logged="$(while read -r f; do
-    [[ -n "$f" ]] || continue
-    head -1 < <(grep -oE 'leaf: attempt [0-9]+' "$f") | grep -oE '[0-9]+' || true
-  done <<< "$preserve_copies" | sort | xargs)"
-{ [[ "$preserve_code" == 2 ]] \
-  && [[ "$preserve_ref_count" == 2 ]] && [[ "$preserve_trees" == "1 2" ]] \
-  && [[ "$preserve_copy_count" == 2 ]] && [[ "$preserve_logged" == "1 2" ]]; } && ok \
-  || no "a killed-stuck leaf preserves the relaunched attempt and the final one, each as its own tree and log (code=$preserve_code want 2; refs=$preserve_ref_count want 2 under refs/veri/attempts/$preserve_issue/$preserve_step/, attempts per tree='$preserve_trees' want '1 2'; log copies=$preserve_copy_count want 2, attempt each logged='$preserve_logged' want '1 2')"
 
 
 cat > "$stub/leaf-quiet-wrapper" <<'L'
