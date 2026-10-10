@@ -98,6 +98,15 @@ def _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n"))
     return supervisors
 
 
+def _gh_and_work(tmp_path):
+    gh = tmp_path / "gh"
+    gh.mkdir()
+    (gh / "prs.json").write_text("[]")
+    work = tmp_path / "repo"
+    (work / ".tdd").mkdir(parents=True)
+    return gh, work
+
+
 def _exit_every_live_conductor(live):
     for sup in live:
         if sup.returncode is None:
@@ -1129,11 +1138,7 @@ def test_with_veri_parallel_1_it_exits_0_once_nothing_is_left_to_take_after_laun
 
 def test_veri_parallel_2_starts_two_solvable_issues_conductors_before_either_ends(
         monkeypatch, tmp_path, parallel_conductors, run_cli):
-    gh = tmp_path / "gh"
-    gh.mkdir()
-    (gh / "prs.json").write_text("[]")
-    work = tmp_path / "repo"
-    (work / ".tdd").mkdir(parents=True)
+    gh, work = _gh_and_work(tmp_path)
     starts = []
 
     def on_launch(sup):
@@ -1148,11 +1153,7 @@ def test_veri_parallel_2_starts_two_solvable_issues_conductors_before_either_end
 
 def test_veri_parallel_2_prints_each_conductor_s_assistant_events_as_context_issue_cache_read_plus_cache_creation_attributed_to_its_own_issue_and_a_non_assistant_event_carrying_cache_usage_prints_none(
         monkeypatch, tmp_path, parallel_conductors, run_cli):
-    gh = tmp_path / "gh"
-    gh.mkdir()
-    (gh / "prs.json").write_text("[]")
-    work = tmp_path / "repo"
-    (work / ".tdd").mkdir(parents=True)
+    gh, work = _gh_and_work(tmp_path)
     usage = '"usage":{"input_tokens":7,"cache_creation_input_tokens":%d,"cache_read_input_tokens":%d,"output_tokens":120}'
     events = {
         "7": ('{"type":"assistant","message":{"role":"assistant",%s}}\n' % (usage % (3438, 50000))),
@@ -1178,11 +1179,7 @@ def test_veri_parallel_2_prints_each_conductor_s_assistant_events_as_context_iss
 ], ids=["over-budget", "default-budget"])
 def test_a_conductor_over_veri_conductor_ctx_budget_is_stopped_only_once_its_step_done_call_s_result_appears_a_default_budget_of_120000_stops_none_and_the_conductor_beside_it_runs_to_its_own_end(
         env, step_done_tokens, events, launched, monkeypatch, tmp_path, parallel_conductors, run_cli):
-    gh = tmp_path / "gh"
-    gh.mkdir()
-    (gh / "prs.json").write_text("[]")
-    work = tmp_path / "repo"
-    (work / ".tdd").mkdir(parents=True)
+    gh, work = _gh_and_work(tmp_path)
     logs = {n: work / ".tdd" / ("conductor-%s.log" % n) for n in ("7", "8")}
     usage = '"usage":{"cache_creation_input_tokens":0,"cache_read_input_tokens":%d}'
     step_done = ('{"type":"assistant","message":{"content":[{"type":"tool_use","input":{"command":'
