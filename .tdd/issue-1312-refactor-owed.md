@@ -19,3 +19,5 @@
 - test-only | hoist the repeated `section '#### A \`⟦phases'` read and its "no '#### A \`⟦phases: …⟧\` step' subsection" empty check, shared by cases 11 and 12 of skills/tdd/scripts/tests/skill-refactor-kind.test.sh, into one helper
 ### `SKILL.md` spends one refactor of the budget for a whole phased step, not one per phase ⟦criterion 2⟧
 - test-only | skill-refactor-kind.test.sh cases 11, 12 and 13 each open with the same `phased_text="$(section '#### A \`⟦phases')"` read and the same "has no '#### A \`⟦phases: …⟧\` step' subsection" empty-guard; both could be pulled into one shared helper
+### `SKILL.md`: a contract phase that exhausts `REVISE_BUDGET` is reset to its own base sha, the expand and migrate commits are kept, and the contract is filed under the ledger's `## Owed steps` ⟦criterion 2⟧
+- test-only | `skill-refactor-kind.test.sh` cases 11–14 each re-read `phased_text="$(section '#### A \`⟦phases')"` and repeat the same empty-subsection guard and problem message; they could share one helper
