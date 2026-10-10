@@ -149,7 +149,7 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   issue body (the human-facing mirror).
 - `$S/next-unchecked.sh < .tdd/issue-<n>.md` — print the **first unchecked ledger step**'s
   description; **exit 3** when none remain (the loop-done / nothing-to-resume signal).
-- `$S/tick-ledger.sh [--refactor-pending | --phase <phase>] .tdd/issue-<n>.md "<substring>"` — check a step off
+- `$S/tick-ledger.sh [--refactor-pending | --phase <phase> | --phase-owed <phase>] .tdd/issue-<n>.md "<substring>"` — check a step off
   in the **committed ledger**, in place (staged + committed together with that step's green
   code). **Exit 3** if no unchecked step matched the substring — the file is left untouched,
   so a green commit that ticked nothing says so instead of reading as done.
@@ -162,7 +162,9 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   the step reads as `done` to `ledger-steps.sh` and `next-unchecked.sh` skips it. **Exit 2**,
   ledger byte-identical, for a phase the step does not list or one that is not its next unmarked
   phase; also for a step listing `⟦phases: …⟧` ticked without `--phase`, and for `--phase` given
-  with `--refactor-pending`. `$S/ledger-steps.sh next-phase < .tdd/issue-<n>.md` prints the first phased step's next
+  with `--refactor-pending`. `--phase-owed <phase>` appends ` ⟂ <phase> owed` instead, under the
+  same refusals; an owed phase ends the step, so it and every phase after it are never handed out
+  again (see the exhausted-contract paragraph under *A `⟦phases: …⟧` step*). `$S/ledger-steps.sh next-phase < .tdd/issue-<n>.md` prints the first phased step's next
   unmarked phase, **exit 3** when none is left. The cycle loop runs a phased step through
   both — see *A `⟦phases: …⟧` step* under *3. The cycle loop*.
 - `$S/next-pending-refactor.sh < .tdd/issue-<n>.md` — print the **first ticked step whose
