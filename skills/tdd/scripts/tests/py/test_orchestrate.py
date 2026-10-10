@@ -843,6 +843,7 @@ def test_1126_1246_a_conductor_stopped_over_budget_gets_sigterm_to_its_group_who
     marks = tmp_path / "marks"
     stubs = {
         "1355": """#!/usr/bin/env bash
+exec 2> /dev/null
 (stopped=0
  trap 'stopped=1' TERM
  i=0
