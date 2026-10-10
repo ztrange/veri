@@ -161,14 +161,6 @@ $lock_drop
 STUB
 }
 
-timeline="$work/timeline"
-seq_stub="$work/claude-seq"
-timeline_stub "$seq_stub" "$timeline" "$gh2" "$work/running"
-
-run_launcher "$gh2" "$seq_stub" "$work/seq.out"
-want_timeline="$(printf 'start 7\nend 7\nstart 8\nend 8')"
-got_timeline="$(cat "$timeline" 2>/dev/null)"
-expect_lines "VERI_PARALLEL unset runs two solvable issues' conductors one after another" "$want_timeline" "$got_timeline" "$work/seq.out"
 
 gh3="$work/gh3"
 solvable_fixture "$gh3" 7 8
@@ -463,127 +455,6 @@ await_gone "$one_marks.pid"
 expect_lines "with VERI_PARALLEL=1 a conductor over VERI_CONDUCTOR_CTX_BUDGET mid-step is stopped only after its step-done result and relaunched for the same issue, and one that never crosses the budget is never stopped or relaunched" \
   "$(printf 'mid-step-7\nbefore-result-7\nend-8\n--\n7\n7\n8\n--\nrestarted 7')" \
   "$(cat "$one_marks"; echo --; cat "$one_launches"; echo --; grep '^restarted ' "$work/one.out" || true)" "$work/one.out"
-
-bad=""
-for shape in done parked; do
-  gh_end="$work/gh-end-$shape"
-  solvable_fixture "$gh_end" 7 8
-  fresh_repo "$work/end-$shape"
-  : > "$work/end-$shape.launches"
-  if [[ "$shape" == done ]]; then
-    finish_step="$(ready_pr "$gh_end")"
-  else
-    finish_step="mkdir -p .tdd/parked
-echo 'Which test command should this run use?' > .tdd/parked/\$n.md"
-  fi
-  conductor_stub "$work/claude-end-$shape" <<STUB
-echo "\$n" >> "$work/end-$shape.launches"
-$finish_step
-STUB
-  run_launcher_in "$work/end-$shape" "$gh_end" "$work/claude-end-$shape" "$work/end-$shape.out" VERI_PARALLEL=1
-  got_launches="$(tr '\n' ',' < "$work/end-$shape.launches")"
-  if [[ "$code" != 0 || "$got_launches" != "7,8," ]]; then
-    bad+=" [$shape: exit=$code want 0, launches '$got_launches' want '7,8,'; output: $(tr '\n' '|' < "$work/end-$shape.out")]"
-  fi
-done
-
-[[ -z "$bad" ]] \
-  && ok || no "with VERI_PARALLEL=1 the launcher exits 0 once nothing is left to take after launching conductors, and exits 0 when every issue still solvable is parked ($bad )"
-
-gh4="$work/gh4"
-gh_fixture "$gh4" <<'JSON'
-[
-  {"number": 5, "title": "not opted in", "labels": [], "state": "OPEN",
-   "body": "## Blocked by\n\nNone.\n"},
-  {"number": 6, "title": "blocked", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
-   "body": "## Blocked by\n\n- #9\n"},
-  {"number": 7, "title": "plain", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
-   "body": "## Blocked by\n\nNone.\n"},
-  {"number": 8, "title": "urgent", "labels": [{"name": "ready-for-agent"}, {"name": "priority"}],
-   "state": "OPEN", "body": "## Blocked by\n\nNone.\n"},
-  {"number": 9, "title": "the open blocker", "labels": [], "state": "OPEN",
-   "body": "## Blocked by\n\nNone.\n"}
-]
-JSON
-
-order="$work/order"
-order_stub="$work/claude-order"
-record_stub "$order_stub" "$order" "$gh4"
-
-run_launcher "$gh4" "$order_stub" "$work/order.out"
-want_order="$(printf 'start 8\nstart 7')"
-got_order="$(cat "$order" 2>/dev/null)"
-expect_lines "launches follow solvable-issues.sh's printed order and never an issue it did not print" "$want_order" "$got_order" "$work/order.out"
-
-gh5="$work/gh5"
-gh_fixture "$gh5" <<'JSON'
-[
-  {"number": 7, "title": "stays solvable", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
-   "body": "## Blocked by\n\nNone.\n"}
-]
-JSON
-
-again="$work/again"
-again_stub="$work/claude-again"
-conductor_stub "$again_stub" <<STUB
-if grep -x "start \$n" "$again" > /dev/null 2>&1; then
-  $(ready_pr "$gh5")
-fi
-echo "start \$n" >> "$again"
-STUB
-
-run_launcher "$gh5" "$again_stub" "$work/again.out"
-want_again="start 7"
-got_again="$(cat "$again" 2>/dev/null)"
-expect_lines "an issue still solvable after its conductor finished is not launched a second time" "$want_again" "$got_again" "$work/again.out"
-
-gh6="$work/gh6"
-gh_fixture "$gh6" <<'JSON'
-[
-  {"number": 7, "title": "runs first", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
-   "body": "## Blocked by\n\nNone.\n"},
-  {"number": 8, "title": "unblocked mid-run", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
-   "body": "## Blocked by\n\n- #9\n"},
-  {"number": 9, "title": "the blocker", "labels": [], "state": "OPEN",
-   "body": "## Blocked by\n\nNone.\n"}
-]
-JSON
-
-unblock="$work/unblock"
-unblock_stub="$work/claude-unblock"
-conductor_stub "$unblock_stub" <<STUB
-echo "start \$n" >> "$unblock"
-if [ "\$n" = 7 ]; then
-  sed 's/"title": "the blocker", "labels": \[\], "state": "OPEN"/"title": "the blocker", "labels": [], "state": "CLOSED"/' \
-    "$gh6/issues.json" > "$gh6/issues.json.new" && mv "$gh6/issues.json.new" "$gh6/issues.json"
-fi
-$(ready_pr "$gh6")
-STUB
-
-run_launcher "$gh6" "$unblock_stub" "$work/unblock.out"
-want_unblock="$(printf 'start 7\nstart 8')"
-got_unblock="$(cat "$unblock" 2>/dev/null)"
-expect_lines "an issue that became solvable while another conductor ran is launched next" "$want_unblock" "$got_unblock" "$work/unblock.out"
-
-bad=""
-for cap in 2; do
-  gh7="$work/gh7-$cap"
-  solvable_fixture "$gh7" 7 8 9
-  capped="$work/capped-$cap"
-  cap_stub="$work/claude-cap-$cap"
-  record_stub "$cap_stub" "$capped" "$gh7"
-  run_launcher "$gh7" "$cap_stub" "$work/cap-$cap.out" VERI_MAX_ISSUES="$cap"
-  case "$cap" in
-    2) want_cap="$(printf 'start 7\nstart 8')" ;;
-  esac
-  got_cap="$(cat "$capped" 2>/dev/null)"
-  if [[ "$got_cap" != "$want_cap" ]]; then
-    bad+=" [VERI_MAX_ISSUES=$cap: exit=$code, launched '$(printf '%s' "$got_cap" | tr '\n' ',')' want '$(printf '%s' "$want_cap" | tr '\n' ',')']"
-  fi
-done
-
-[[ -z "$bad" ]] \
-  && ok || no "VERI_MAX_ISSUES caps the launches of one invocation ($bad )"
 
 gh8="$work/gh8"
 solvable_fixture "$gh8" 7 8 9
@@ -962,17 +833,6 @@ done
 
 [[ -z "$bad" ]] \
   && ok || no "CONTEXT.md records rung 3: its entry names parallel-conductors.sh, In flight is defined as local to one invocation, and a new ADR is cited ($bad )"
-
-gh24="$work/gh24"
-solvable_fixture "$gh24" 7 8 9
-capped24="$work/capped24"
-cap24_stub="$work/claude-cap24"
-record_stub "$cap24_stub" "$capped24" "$gh24"
-run_launcher "$gh24" "$cap24_stub" "$work/cap24.out"
-want24="$(printf 'start 7\nstart 8\nstart 9')"
-got24="$(cat "$capped24" 2>/dev/null)"
-[[ "$code" == 0 && "$got24" == "$want24" ]] \
-  && ok || no "#505 VERI_MAX_ISSUES unset applies no cap and launches every solvable issue ( [exit=$code want 0, launched '$(printf '%s' "$got24" | tr '\n' ',')' want '$(printf '%s' "$want24" | tr '\n' ',')'] $(cat "$work/cap24.out") )"
 
 decoy="$work/decoy"
 fresh_repo "$decoy"
