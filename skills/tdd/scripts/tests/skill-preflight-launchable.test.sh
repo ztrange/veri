@@ -27,6 +27,9 @@
 #      `preflight step 3` and `before the baseline`; no sentence of step 1.2's item pairs a
 #      take/write verb with the word `here`, and no sentence anywhere says `step 1.2 takes`
 #      (or writes, locks) or `taken in step 1.2` (or written, took, wrote).
+#  11. Between the line that `cd`s into the worktree and the first fast-tier baseline command
+#      after it, a sentence names `rebase-onto-default.sh` for a resumed run whose ledger
+#      exists, and a sentence says a new branch's run does not rebase there.
 #
 # Run: scripts/tests/skill-preflight-launchable.test.sh
 set -uo pipefail
@@ -64,6 +67,7 @@ detach_start='detach-command.sh start'
 guard_name='**worktree guard**'
 step1_heading='### 1. Read the issue'
 slug_item='**Derive the slug'
+rebase_call='rebase-onto-default.sh'
 
 
 source "$HERE/lib/harness.sh"
@@ -310,6 +314,31 @@ fi
 elsewhere="$(sentences < "$md" | grep -iE 'step 1\.2 (takes|writes|locks)|(taken|written|took|wrote) in step 1\.2')"
 [[ -z "$elsewhere" ]] ||
   problems+=("$skill_md says the lock is taken in step 1.2: $elsewhere")
+
+report "$name"
+
+name="#1297 $skill_md has a resumed run, one whose worktree and ledger already exist, run $rebase_call before its preflight baseline, and a new branch's run not rebase there"
+problems=()
+
+enter_at="$(awk -v w="$worktree_call" -v c="$enter_call" 'index($0, w) && index($0, c) { print NR; exit }' "$md")"
+
+if [[ -z "$enter_at" ]]; then
+  problems+=("$skill_md has no line that runs $worktree_call and then $enter_call, so where the run enters the issue's worktree could not be read")
+else
+  base_at="$(awk -v s="$((enter_at + 1))" -v f="$fast_call" -v d="$detach_start" \
+    'NR >= s && (index($0, f) || index($0, d)) { print NR; exit }' "$md")"
+  if [[ -z "$base_at" ]]; then
+    problems+=("$skill_md names neither $fast_call nor $detach_start after line $enter_at enters the worktree, so where the baseline starts could not be read")
+  else
+    between="$(sed -n "${enter_at},${base_at}p" "$md" | sentences)"
+    resumed="$(grep -F -- "$rebase_call" <<< "$between" | grep -iF 'resum' | grep -iF 'ledger')"
+    [[ -n "$resumed" ]] ||
+      problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying a resumed run, whose worktree and ledger already exist, runs $rebase_call, so a resumed run's baseline runs on its old base")
+    fresh="$(grep -iF 'new branch' <<< "$between" | grep -iF 'rebase' | grep -iE '(^|[^[:alpha:]])(not|never|no)([^[:alpha:]]|$)')"
+    [[ -n "$fresh" ]] ||
+      problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying a new branch's run does not rebase there")
+  fi
+fi
 
 report "$name"
 
