@@ -1554,6 +1554,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    $S/rebase-onto-default.sh
    ```
+   `rebase-onto-default.sh`'s exit code decides the next action, so nothing after it — the
+   rebased tip's full test run in particular — is started until it has returned, and never in
+   the same message as the rebase.
    An exit 3 from `rebase-onto-default.sh` — the branch already contains `origin/<default>` —
    continues unchanged to sub-step 2. An exit 2 from `rebase-onto-default.sh` — no answer
    could be obtained, such as an origin that cannot be fetched — does **bail**, as a
