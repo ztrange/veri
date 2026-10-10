@@ -231,4 +231,31 @@ else
     stderr: $(cat "$work/does-not-apply.err")"
 fi
 
+sed '/^echo "\$pass passed/d' "$repo/tests/calc.test.sh" > "$repo/tests/no-count.test.sh"
+chmod +x "$repo/tests/no-count.test.sh"
+git -C "$repo" add -A && git -C "$repo" commit -qm 'suite without a count line'
+unrunnable() {
+  local table="$work/unrunnable-$1.tsv"
+  printf '%s\n' "$2" > "$table"
+  out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/unrunnable-$1.err")" && code=0 || code=$?
+  unrunnable_out+="
+    $1 (exit=$code) stdout: $out
+    $1 stderr: $(cat "$work/unrunnable-$1.err")"
+}
+unrunnable_out=""
+unrunnable missing-suite \
+  "tests/absent.test.sh"$'\t'"adds two numbers"$'\t'"redundant"$'\t'"adds a negative"$'\t'"$work/add-subtracts.patch"
+missing_code="$code"
+unrunnable no-count \
+  "tests/no-count.test.sh"$'\t'"adds two numbers"$'\t'"redundant"$'\t'"adds a negative"$'\t'"$work/add-subtracts.patch"
+no_count_code="$code"
+unrunnable uncollected \
+  "tests/calc.test.sh"$'\t'"adds two numbers"$'\t'"replaced"$'\t'"tests/test_calc.py::test_not_there"$'\t'"$work/add-subtracts.patch"
+uncollected_code="$code"
+if [[ "$missing_code" == 2 && "$no_count_code" == 2 && "$uncollected_code" == 2 ]]; then
+  ok
+else
+  no "a row whose case cannot be run — a suite path that does not exist, a bash suite that never reaches its count line, a pytest node id that is not collected — exits 2 (missing suite exit=$missing_code, no count line exit=$no_count_code, uncollected node exit=$uncollected_code, want 2 each)$unrunnable_out"
+fi
+
 finish
