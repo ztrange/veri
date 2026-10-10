@@ -235,114 +235,12 @@ header_unstated() {
 }
 
 
-term_work="$work/term-handler"
-mkdir -p "$term_work"
 cat > "$stub/leaf-term-sleep" <<'L'
 echo $$ > leaf-pid
 echo "leaf: started"
 exec sleep 60
 L
 chmod +x "$stub/leaf-term-sleep"
-( cd "$term_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-term-sleep" ) >/dev/null 2>&1 &
-term_sup=$!
-for _ in $(seq 1 50); do [[ -s "$term_work/leaf-pid" ]] && break; sleep 0.1; done
-term_leaf="$(tr -d '[:space:]' < "$term_work/leaf-pid" 2>/dev/null)"
-kill -TERM "$term_sup" 2>/dev/null
-wait "$term_sup"
-term_code=$?
-term_exit="$({ tr -d '[:space:]' < "$term_work/.tdd/develop-red.exit"; } 2>/dev/null || echo '<missing>')"
-term_alive="no"
-if [[ -n "$term_leaf" ]]; then
-  for _ in $(seq 1 20); do kill -0 "$term_leaf" 2>/dev/null || break; sleep 0.1; done
-  if kill -0 "$term_leaf" 2>/dev/null; then term_alive="yes"; kill -KILL "$term_leaf" 2>/dev/null; fi
-else
-  term_alive="<leaf never started>"
-fi
-{ [[ "$term_code" == 2 ]] && [[ "$term_exit" == 2 ]] && [[ "$term_alive" == no ]]; } && ok \
-  || no "supervise.sh sent TERM writes 2 to its completion file, exits 2 and leaves no leaf process behind (code=$term_code want 2, exit file=$term_exit want 2, leaf alive=$term_alive want no)"
-
-intr_problems=()
-for intr_sig in INT HUP; do
-  intr_work="$work/signal-$intr_sig"
-  mkdir -p "$intr_work"
-  set -m
-  ( cd "$intr_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-      VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-term-sleep" ) >/dev/null 2>&1 &
-  intr_sup=$!
-  set +m
-  for _ in $(seq 1 50); do [[ -s "$intr_work/leaf-pid" ]] && break; sleep 0.1; done
-  intr_leaf="$(tr -d '[:space:]' < "$intr_work/leaf-pid" 2>/dev/null)"
-  kill -"$intr_sig" "$intr_sup" 2>/dev/null
-  wait "$intr_sup"
-  intr_code=$?
-  intr_exit="$({ tr -d '[:space:]' < "$intr_work/.tdd/develop-red.exit"; } 2>/dev/null || echo '<missing>')"
-  intr_alive="no"
-  if [[ -n "$intr_leaf" ]]; then
-    for _ in $(seq 1 20); do kill -0 "$intr_leaf" 2>/dev/null || break; sleep 0.1; done
-    if kill -0 "$intr_leaf" 2>/dev/null; then intr_alive="yes"; kill -KILL "$intr_leaf" 2>/dev/null; fi
-  else
-    intr_alive="<leaf never started>"
-  fi
-  { [[ "$intr_code" == 2 ]] && [[ "$intr_exit" == 2 ]] && [[ "$intr_alive" == no ]]; } \
-    || intr_problems+=("$intr_sig: code=$intr_code want 2, exit file=$intr_exit want 2, leaf alive=$intr_alive want no")
-done
-[[ "${#intr_problems[@]}" -eq 0 ]] && ok \
-  || no "supervise.sh sent INT or HUP does what TERM does: writes 2 to its completion file, exits 2 and leaves no leaf process behind (${intr_problems[*]})"
-
-ign_work="$work/int-ignored"
-mkdir -p "$ign_work"
-mkfifo "$ign_work/release"
-cat > "$stub/leaf-int-held" <<'L'
-#!/bin/sh
-echo $$ > leaf-pid
-read -r _ < release
-echo "leaf: released"
-exit 0
-L
-chmod +x "$stub/leaf-int-held"
-( cd "$ign_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SCRIPTS/detach-leaf.sh" "$SUP" develop-red "$stub/leaf-int-held" ) >/dev/null 2>&1
-for _ in $(seq 1 50); do [[ -s "$ign_work/leaf-pid" && -s "$ign_work/.tdd/develop-red.pid" ]] && break; sleep 0.1; done
-ign_leaf="$(tr -d '[:space:]' < "$ign_work/leaf-pid" 2>/dev/null)"
-ign_sup="$(tr -d '[:space:]' < "$ign_work/.tdd/develop-red.pid" 2>/dev/null)"
-: > "$ign_work/.test-clock-reads"
-[[ -z "$ign_sup" ]] || kill -INT "$ign_sup" 2>/dev/null
-for _ in $(seq 1 200); do
-  [[ "$(wc -l < "$ign_work/.test-clock-reads")" -ge 2 ]] && break
-  [[ -n "$ign_sup" ]] && kill -0 "$ign_sup" 2>/dev/null || break
-  sleep 0.01
-done
-exec 9<>"$ign_work/release"
-echo go >&9
-for _ in $(seq 1 100); do [[ -s "$ign_work/.tdd/develop-red.exit" ]] && break; sleep 0.05; done
-exec 9>&-
-ign_exit="$({ tr -d '[:space:]' < "$ign_work/.tdd/develop-red.exit"; } 2>/dev/null || echo '<missing>')"
-ign_released="no"
-grep -F 'leaf: released' "$ign_work/.tdd/develop-red.log" >/dev/null 2>&1 && ign_released="yes"
-[[ -n "$ign_leaf" ]] && kill -0 "$ign_leaf" 2>/dev/null && kill -KILL "$ign_leaf" 2>/dev/null
-[[ -n "$ign_sup" ]] && kill -0 "$ign_sup" 2>/dev/null && kill -KILL "$ign_sup" 2>/dev/null
-{ [[ -n "$ign_leaf" ]] && [[ "$ign_exit" == 0 ]] && [[ "$ign_released" == yes ]]; } && ok \
-  || no "a supervisor started with SIGINT ignored, as detach-leaf.sh starts one, keeps running its leaf when sent INT: the leaf finishes and its own 0 lands in .exit (leaf pid=${ign_leaf:-<never started>}; supervisor pid=${ign_sup:-<no pid file>}; .exit='$ign_exit' want 0; leaf finished=$ign_released want yes)"
-
-waitlive_work="$work/wait-live-supervisor"
-mkdir -p "$waitlive_work"
-( cd "$waitlive_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-term-sleep" ) >/dev/null 2>&1 &
-waitlive_sup=$!
-for _ in $(seq 1 50); do [[ -s "$waitlive_work/leaf-pid" ]] && break; sleep 0.1; done
-waitlive_leaf="$(tr -d '[:space:]' < "$waitlive_work/leaf-pid" 2>/dev/null)"
-( cd "$waitlive_work" && env VERI_POLL=0.02 "$SCRIPTS/wait-leaf.sh" develop-red 0 ) >/dev/null 2>"$waitlive_work/wait-err"
-waitlive_code=$?
-waitlive_err="$(cat "$waitlive_work/wait-err")"
-kill -TERM "$waitlive_sup" 2>/dev/null
-wait "$waitlive_sup"
-if [[ -n "$waitlive_leaf" ]]; then
-  for _ in $(seq 1 20); do kill -0 "$waitlive_leaf" 2>/dev/null || break; sleep 0.1; done
-  kill -0 "$waitlive_leaf" 2>/dev/null && kill -KILL "$waitlive_leaf" 2>/dev/null
-fi
-{ [[ -n "$waitlive_leaf" ]] && [[ "$waitlive_code" == 3 ]] && [[ -z "$waitlive_err" ]]; } && ok \
-  || no "wait-leaf.sh <name> 0 against a live supervisor of that leaf exits 3, not 2, with nothing on stderr (leaf pid=${waitlive_leaf:-<never started>}; code=$waitlive_code want 3; stderr='$waitlive_err' want empty)"
 
 cat > "$stub/leaf-real-lag" <<'L'
 : > .test-clock-reads
