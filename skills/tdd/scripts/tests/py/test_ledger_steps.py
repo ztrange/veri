@@ -398,3 +398,23 @@ def test_main_prints_a_usage_line_naming_next_phase_on_a_bad_argument_1385(capsy
 
     assert (code, out, err.count(b"\n"), err.startswith(b"usage: ledger-steps.sh "), b"next-phase" in err) == (
         2, b"", 1, True, True)
+
+
+def test_main_reads_a_steps_markers_from_its_trailing_marker_run_not_from_markers_its_prose_quotes_1450(
+        monkeypatch, capsysbinary, ledger_steps):
+    criterion_quoted = "a step tagged ⟦criterion 2⟧ is refused twice ⟦criterion 1⟧"
+    phases_quoted = "explain the ⟦phases: expand⟧ notation ⟦criterion 3⟧"
+    ledger = f"# Plan for #42\n\n- [ ] {criterion_quoted}\n- [ ] {phases_quoted}\n".encode()
+    results = {}
+    for verb in ("", "next-phase"):
+        fake_stdin(monkeypatch, ledger)
+        code = ledger_steps.main([verb] if verb else [])
+        results[verb] = (code, *capsysbinary.readouterr())
+
+    assert results == {
+        "": (0, (
+            f"1\topen\tstep\t0\t0\t1\t{criterion_quoted}\n"
+            f"2\topen\tstep\t0\t0\t3\t{phases_quoted}\n"
+        ).encode(), b""),
+        "next-phase": (3, b"", b""),
+    }
