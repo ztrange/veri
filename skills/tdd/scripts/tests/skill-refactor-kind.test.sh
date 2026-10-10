@@ -16,6 +16,8 @@
 #      case 8's name.
 #   9. SKILL.md's Scope & plan folds a deletion into the step that makes the code dead — see
 #      case 9's name.
+#  10. SKILL.md plans an interface change as one phased step and runs its phases — see case 10's
+#      name.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -35,6 +37,12 @@ source "$HERE/lib/window.sh"
 section() {
   awk -v h="$1" \
     'index($0, h) == 1 { inside = 1; next } inside && /^###? / { exit } inside' "$skill_path" |
+    plain --join
+}
+
+between() {
+  awk -v from="$1" -v to="$2" \
+    'index($0, from) == 1 { inside = 1; next } inside && index($0, to) == 1 { exit } inside' "$skill_path" |
     plain --join
 }
 
@@ -218,6 +226,39 @@ else
   grep -E '(never|not|no)[^.]{0,80}no-op[^.]{0,80}later step|later step[^.]{0,80}delet' <<<"$noop_near" > /dev/null ||
     problems+=("$skill_md never forbids leaving a no-op in place for a later step to delete")
 fi
+report "$name"
+
+name="$skill_md plans an interface change as one step listing its phases and runs them in order, each as a developer leaf then a blind verifier, ticking the phase's mark with tick-ledger.sh --phase in its commit"
+problems=()
+
+plan_text="$(section "$plan_heading")"
+if ! grep -E 'interface change' <<<"$plan_text" > /dev/null; then
+  problems+=("$skill_md's '$plan_heading' section never names an interface change, so one is planned as ordinary Red/Green steps")
+else
+  grep -F '⟦phases:' <<<"$(window "$plan_text" 'interface change' 400)" > /dev/null ||
+    problems+=("$skill_md's '$plan_heading' section names an interface change without planning it as one step listing ⟦phases: …⟧")
+fi
+
+loop_heading='### 3. The cycle loop'
+loop_text="$(between "$loop_heading" '### 4. Draft PR')"
+if ! grep -F 'tick-ledger.sh --phase' <<<"$loop_text" > /dev/null; then
+  problems+=("$skill_md's '$loop_heading' section never ticks a phase with tick-ledger.sh --phase, so a phased step's phases are never run")
+else
+  near="$(window "$loop_text" 'tick-ledger\.sh --phase' 900)"
+  grep -F '⟦phases' <<<"$near" > /dev/null ||
+    problems+=("$skill_md ticks tick-ledger.sh --phase without naming the ⟦phases: …⟧ step it runs")
+  grep -E 'in order|ledger-steps\.sh next-phase' <<<"$near" > /dev/null ||
+    problems+=("$skill_md never runs a phased step's listed phases in order")
+  grep -F 'build-develop-prompt.sh' <<<"$near" > /dev/null ||
+    problems+=("$skill_md never runs a phase as a developer leaf built by build-develop-prompt.sh")
+  grep -F 'run-verdict.sh' <<<"$near" > /dev/null ||
+    problems+=("$skill_md never follows a phase's developer leaf with a blind verifier through run-verdict.sh")
+  grep -E 'commit' <<<"$near" > /dev/null ||
+    problems+=("$skill_md never ties a phase's tick to that phase's commit")
+fi
+
+grep -F 'the run loop calls neither yet' <<<"$skill_text" > /dev/null &&
+  problems+=("$skill_md still says the run loop calls neither tick-ledger.sh --phase nor ledger-steps.sh next-phase")
 report "$name"
 
 finish

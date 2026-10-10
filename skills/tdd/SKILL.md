@@ -162,7 +162,8 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   the step reads as `done` to `ledger-steps.sh` and `next-unchecked.sh` skips it. **Exit 2**,
   ledger byte-identical, for a phase the step does not list or one that is not its next unmarked
   phase. `$S/ledger-steps.sh next-phase < .tdd/issue-<n>.md` prints the first phased step's next
-  unmarked phase, **exit 3** when none is left. The run loop calls neither yet (#1312).
+  unmarked phase, **exit 3** when none is left. The cycle loop runs a phased step through
+  both — see *A `⟦phases: …⟧` step* under *3. The cycle loop*.
 - `$S/next-pending-refactor.sh < .tdd/issue-<n>.md` — print the **first ticked step whose
   refactor is unverified**: the description of the first `- [x]` step carrying the
   ` ⟂ refactor pending` mark, with the mark stripped, so what comes back is the same text
@@ -780,6 +781,11 @@ three times over branches its ledger pinned on later lines.
    related cases of one suite into one step, about a dozen at most; one case is a valid
    group of one. That step's Red is the pytest cases failing against the code before the
    change; its Green deletes the named bash cases and nothing else.
+
+   An **interface change** — a production interface replaced by a new one, its callers moved
+   across, the old one removed (ADR 0030) — is planned as one step listing the phases it
+   needs, in the order they run: `- [ ] <criterion> ⟦phases: expand, migrate, contract-a,
+   contract-b⟧ ⟦criterion k⟧`. A phase with nothing to do is left out of the list.
 
    A **refactor-kind** run — the spec carries the `## Refactor` section `capture-spec.sh`
    writes for the `refactor` label — changes no behaviour, so it has no failing test to plan
@@ -1475,6 +1481,22 @@ leaf. The verifier's verdict closes the `⟦diff-checked⟧` step:
   budget-exhausted **bail**.
 - **Malformed / killed-stuck (exit 2):** no verdict on the `⟦diff-checked⟧` step could be
   obtained, so **bail** as a system failure (`no-verdict`) — see *Bailing*.
+
+#### A `⟦phases: …⟧` step — each listed phase, a developer leaf then a blind verifier
+
+A step listing `⟦phases: …⟧` runs no Red, Green or Refactor phase: it runs the phases it
+lists, in order, one at a time. `$S/ledger-steps.sh next-phase < .tdd/issue-<n>.md` names the
+next one, <phase>; record `git rev-parse HEAD` as that phase's base sha. Its developer leaf,
+built by `build-develop-prompt.sh <phase> <spec-file> "<STEP>" '<test-cmd>'`, makes that
+phase's change and commits it; then the blind verifier, `run-verdict.sh --step "<STEP>"
+--fast-cmd '<fast-cmd>' <phase> <spec-file> <test-path> <base-sha>`, judges the diff from
+that base sha. Both are launched through the supervisor and waited on as *Launching a leaf*
+sets out, the leaf as `develop-<phase>` and the verifier as `verdict-<phase>`. On PASS, mark
+the phase with `tick-ledger.sh --phase <phase> .tdd/issue-<n>.md "<STEP>"` and commit the
+ledger with that phase's commit, then push, and go back to `next-phase` for the step's next
+phase. On REJECT, revise under `REVISE_BUDGET` as *Revising on a REJECT* sets out; on exit 2,
+**bail** as a system failure (`no-verdict`). Once `next-phase` exits 3 every listed phase is
+marked, the step reads as done, and the loop goes back to `next-unchecked.sh`.
 
 ### 4. Draft PR
 
