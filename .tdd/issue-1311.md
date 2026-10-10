@@ -9,5 +9,5 @@
 - [x] Given a pairs table of several rows, the pairs check reports every row, restores the tree before applying the next row's mutation (so a later row's case runs without an earlier row's mutation in place), and exits 0 only when every row is proven and 1 when any row is unproven or owed ⟦criterion 1⟧
 - [x] The pairs check exits 2 when a row's mutation does not apply to the tree ⟦criterion 1⟧
 - [x] The pairs check exits 2 when a row's case cannot be run: its suite path does not exist, its bash suite never reaches its count line, or its pytest node id is not collected ⟦criterion 1⟧
-- [ ] After the pairs check exits 0 or 1, the working tree and the index are byte-identical to what they were before it, including a staged change, an unstaged change to a file a mutation patches, and an untracked file present beforehand ⟦criterion 2⟧
+- [x] After the pairs check exits 0 or 1, the working tree and the index are byte-identical to what they were before it, including a staged change, an unstaged change to a file a mutation patches, and an untracked file present beforehand ⟦criterion 2⟧
 - [ ] After the pairs check exits 2 — a mutation that does not apply, or a case that cannot be run while a mutation is in place — the working tree and the index are byte-identical to what they were before it ⟦criterion 2⟧
