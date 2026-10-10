@@ -1,0 +1,2 @@
+### On a resume whose worktree holds an untracked file a killed leaf left at a path the default branch has since added, preflight's discard removes it after capturing `$stray`, so `rebase-onto-default.sh` then exits 0 instead of 2, pinned by a case that goes red without the removal ⟦criterion 2⟧
+- test-only | skill-preflight-launchable.test.sh's #1420 case repeats `git -C <repo> add -A` + `git -C <repo> commit -q -m …` three times; could become one local helper (`commit_all <repo> <msg>`)
