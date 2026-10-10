@@ -1524,9 +1524,7 @@ def test_a_launch_in_a_real_repository_leaves_its_git_status_empty_keeps_its_exc
     (own / ".git" / "info" / "exclude").write_bytes(b"*.scratch")
     decoy_exclude = decoy / ".git" / "info" / "exclude"
     decoy_before = decoy_exclude.read_bytes() if decoy_exclude.is_file() else None
-    gh = tmp_path / "gh"
-    gh.mkdir()
-    (gh / "prs.json").write_text("[]")
+    gh, _ = _gh_and_work(tmp_path)
     for name in TUNABLES:
         monkeypatch.delenv(name, raising=False)
 
