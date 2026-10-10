@@ -332,7 +332,6 @@ report "refuses a leaf's kill \$(pgrep …) naming the rule, while a script the 
 
 problems=()
 own="$(scratch_dir)"
-# env: bash's builtin kill never searches PATH, so no leaf-guard could reach it.
 claude_stub "$own" "$(cat <<'STUB'
 bash -c 'sleep 30 & pid=$!
 env kill "$pid" 2> "$OWN_DIR/kill-err"; status=$?
