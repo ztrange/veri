@@ -399,3 +399,23 @@ def test_main_without_phase_refuses_a_phased_step_with_exit_2_naming_phase_leavi
     assert (phased_code, phased_err.count(b"\n"), b"--phase" in phased_err, phased_ledger) == (2, 1, True, seed)
     assert (plain_code, *capsysbinary.readouterr(), ledger.read_bytes()) == (
         0, b"", b"", seed.replace(b"- [ ] strip", b"- [x] strip"))
+
+
+def test_main_refuses_phase_with_refactor_pending_in_either_order_with_exit_2_naming_both_flags_leaving_the_ledger_byte_identical_1385(
+        tmp_path, capsysbinary, tick_ledger):
+    seed = ("# Plan for #42\n\n"
+            "- [ ] split the slug module ⟦phases: expand, migrate⟧ ⟦criterion 2⟧\n"
+            "- [ ] strip edge hyphens\n").encode()
+    ledger = tmp_path / "ledger.md"
+    results = {}
+    for flags in (["--refactor-pending", "--phase", "expand"], ["--phase", "expand", "--refactor-pending"]):
+        ledger.write_bytes(seed)
+        code = tick_ledger.main([*flags, str(ledger), "split the slug module"])
+        out, err = capsysbinary.readouterr()
+        results[tuple(flags)] = (code, out, err.count(b"\n"), b"--phase" in err, b"--refactor-pending" in err,
+                                 ledger.read_bytes())
+
+    assert results == {
+        ("--refactor-pending", "--phase", "expand"): (2, b"", 1, True, True, seed),
+        ("--phase", "expand", "--refactor-pending"): (2, b"", 1, True, True, seed),
+    }
