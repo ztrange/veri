@@ -192,3 +192,27 @@ def test_main_answers_each_contract_case_of_the_bash_suite(monkeypatch, capsysbi
 
     assert len(CONTRACT_CASES) == 13
     assert results == want
+
+
+def test_main_skips_a_phased_step_whose_contract_is_owed_and_ledger_steps_reads_it_done_1410(
+        monkeypatch, capsysbinary, next_unchecked):
+    ledger_steps = importlib.import_module("veri.ledger_steps")
+    phased = (
+        "rename the slug helper ⟦phases: expand, migrate, contract (a), contract (b)⟧ ⟦criterion 1⟧"
+        " ⟂ expand done ⟂ migrate done ⟂ contract (a) owed"
+    )
+    ledger = (
+        f"# Plan for #42\n\n- [x] add lowercasing\n- [ ] {phased}\n"
+        "- [ ] strip leading and trailing hyphens ⟦criterion 2⟧\n\n"
+        "## Owed steps\n\n- rename the slug helper: contract (a)\n"
+    ).encode()
+
+    fake_stdin(monkeypatch, ledger)
+    steps_code = ledger_steps.main([])
+    steps_out, _ = capsysbinary.readouterr()
+    fake_stdin(monkeypatch, ledger)
+    code = next_unchecked.main([])
+
+    assert (steps_code, steps_out.decode().split("\n")[1].split("\t")[:2]) == (0, ["2", "done"])
+    assert (code, *capsysbinary.readouterr()) == (
+        0, "strip leading and trailing hyphens ⟦criterion 2⟧\n".encode(), b"")
