@@ -3,3 +3,6 @@
 - test-only | conftest.py `pytest_collection_modifyitems`: the unregistered-mark check and the empty-boundary check share one shape: gather node ids, then raise `pytest.UsageError("<label>: " + ", ".join(...))`. That shape could become one small `refuse(label, names)` helper.
 ### The shared `run_cli` fixture calls a module's `main(argv)` in the test process with the given argv, stdin text, environment additions and cwd, and returns the exit code, stdout and stderr that running that module's `.sh` gives ⟦criterion 1⟧
 - test-only | replace the hand-rolled `<module>.main(argv)` drivers in existing `tests/py/test_*.py` suites (e.g. `test_classify_bail.py:22,41,53,68,87`, with their own capsys/capfd capture) with the shared `run_cli` fixture
+### `run_cli` answers `n` for a `main` that raises `SystemExit(n)` ⟦criterion 1⟧
+- test-only | extract a `module_of(name, source)` helper in test_run_cli.py so `planted_module()` and the SystemExit case share the `types.ModuleType` + `exec` construction they both repeat
+- test-only | rename the `except SystemExit as exit` binding in conftest.py's `run_cli`, which shadows the builtin `exit`
