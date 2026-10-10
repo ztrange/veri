@@ -1514,6 +1514,12 @@ product file still calling the old interface, so the contract does not start and
 **bails** as a process failure, the migrate phase having left a caller behind; exit 2 **bails**
 as a system failure.
 
+A contract phase that exhausts `REVISE_BUDGET` does not abandon the step: reset the contract
+to its own base sha with `git reset --hard <base-sha>`, so the expand and migrate commits are
+kept, and file the contract under the ledger's `## Owed steps`: append it as a plain bullet
+under that trailing heading, adding the heading when the ledger has none, then commit the
+ledger and go back to `next-unchecked.sh`.
+
 ### 4. Draft PR
 
 Reached when `next-unchecked.sh` exits 3 — every ledger step is checked off but the
