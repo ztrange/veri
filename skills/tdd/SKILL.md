@@ -156,7 +156,8 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   `--refactor-pending` appends ` ⟂ refactor pending` to that same line in the same write, so
   the green commit records the step as **green but not yet tidied**; that is the flag the
   green PASS ticks with, and the one the pin path must tick without — a pinned step runs no
-  refactor loop, so a mark left there would never be cleared.
+  refactor loop, so a mark left there would never be cleared. A `⟦replaces-case⟧` step's
+  deletion green after a pin PASS is a Green: it ticks with the flag and runs Refactor.
   `--phase <phase>` instead appends ` ⟂ <phase> done` to the first open step listing
   `⟦phases: …⟧` that matches, and leaves its checkbox `[ ]`; once every listed phase is marked
   the step reads as `done` to `ledger-steps.sh` and `next-unchecked.sh` skips it. **Exit 2**,
@@ -811,7 +812,8 @@ three times over branches its ledger pinned on later lines.
    change; its Green deletes the named bash cases and nothing else. A replacement that drives
    unchanged code passes against it by design: when that Red reports `AGAINST_UNMODIFIED:
    PASSES`, the step takes the pin path under **Already satisfied — the pin**, verify-pin and
-   then a green leaf that deletes exactly the named cases.
+   then a green leaf that deletes exactly the named cases. Refactor and the ` ⟂ refactor pending`
+   mark follow that deletion green as they follow any Green.
 
    An **interface change** — a production interface replaced by a new one, its callers moved
    across, the old one removed (ADR 0030) — is planned as one step listing the phases it
@@ -1930,9 +1932,21 @@ honest test passes against the unmodified code. That is an **outcome** of the st
 failure of it — the behaviour exists and what it wants is a **regression pin**. You reach
 this section from Red when the developer leaf reported `AGAINST_UNMODIFIED: PASSES` and you
 ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
-`### 🔴 Red` / `### 🔎 verify-red` pair:
+`### 🔴 Red` / `### 🔎 verify-red` pair.
 
-- **PASS (exit 0) — commit the test as the pin, ticking the ledger atomically.** Same
+A `⟦replaces-case⟧` step whose Red reports `AGAINST_UNMODIFIED: PASSES` takes a different
+path after verify-pin, because deleting the named bash cases is still owed: on a verify-pin
+PASS commit nothing yet, and launch a green leaf exactly as *Green* does, whose only change
+is deleting exactly the named cases. Judge it by the replaces-case verify-green, whose PASS
+is accepted only once `$S/mutation-parity.sh <pairs-table>` on that step's pairs table
+exits **0**, as on *Green*'s verify, then commit the pytest cases, the deletion
+and the ticked ledger in one tick-and-commit, as *Green*'s PASS does.
+That tick carries `--refactor-pending`, so the ` ⟂ refactor pending` mark follows the
+deletion green and the Refactor phase runs on the step as after any Green.
+Every other step takes the verdict as follows:
+
+- **PASS (exit 0) — on a `⟦replaces-case⟧` step, take the deletion path above instead;
+  on any other step, commit the test as the pin, ticking the ledger atomically.** Same
   tick-and-commit shape as Green, but the commit carries the **test alone** and the `test:`
   type, because no production code was written (the verifier reverted its own mutation, so
   the tree holds only the new test and the ticked ledger):
@@ -1961,18 +1975,11 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
   the mutation) or a genuinely failing test exists after all. Re-verify with the phase the
   revise leaf's own `AGAINST_UNMODIFIED` line selects — `pin` on `PASSES`, `red` on `FAILS`.
   (That line's third value, `N/A`, cannot arise here: a revise of red always touches a
-  test.) On a recovered `PASS` from `pin`, do the tick-and-commit above; from `red`,
+  test.) On a recovered `PASS` from `pin`, do the tick-and-commit above, or the deletion path
+  on a `⟦replaces-case⟧` step; from `red`,
   continue to Green. On budget-exhausted, **bail** as a **process** failure.
 - **Malformed / killed-stuck (exit 2):** **bail** as a **system** failure (`no-verdict`) —
   see *Bailing*.
-
-A `⟦replaces-case⟧` step whose Red reports `AGAINST_UNMODIFIED: PASSES` takes a different
-path after verify-pin, because deleting the named bash cases is still owed: on a verify-pin
-PASS commit nothing yet, and launch a green leaf exactly as *Green* does, whose only change
-is deleting exactly the named cases. Judge it by the replaces-case verify-green, whose PASS
-is accepted only once `$S/mutation-parity.sh <pairs-table>` on that step's pairs table
-exits **0**, as on *Green*'s verify, then commit the pytest cases, the deletion
-and the ticked ledger in one tick-and-commit, as *Green*'s PASS does.
 
 ## Revising on a REJECT
 
