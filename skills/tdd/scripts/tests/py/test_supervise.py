@@ -2516,3 +2516,30 @@ def test_cli_appends_one_retry_event_carrying_the_kill_cause_per_relaunch_and_on
     assert shape(retried)[:1] == [["retry", f"cause={cause}"]]
     assert [e[0] for e in retried].count("retry") == 1
     assert retried[-1][:3] == ["exit", "status=2", f"cause={cause}"]
+
+
+def test_cli_ends_a_killed_stuck_leaf_that_succeeds_on_its_retry_in_success_with_the_retrys_output(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import signal
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    clean_env(monkeypatch)
+    work = tmp_path / "flaky"
+    work.mkdir()
+    real_popen = subprocess.Popen
+    fake_clocked_leaf(monkeypatch, work, "flaky", True, 10 ** 9)
+    hanging = subprocess.Popen
+    launches = []
+
+    def popen(args, *a, **kwargs):
+        launches.append(list(args))
+        if len(launches) == 1:
+            return hanging(args, *a, **kwargs)
+        leaf = real_popen(args, *a, **kwargs)
+        leaf.wait()
+        return leaf
+
+    monkeypatch.setattr(subprocess, "Popen", popen)
+    code, out, err = run_cli(supervise, ["flaky", "sh", "-c", "echo 'leaf: recovered on retry'"], cwd=work,
+                             env={"VERI_STUCK_RETRIES": "1", "VERI_HEARTBEAT": "5", "VERI_TIMEOUT": "5000"})
+    assert (code, out, err.splitlines()[-1:], (work / ".tdd" / "flaky.exit").read_bytes()) == (
+        0, "leaf: recovered on retry\n", ["supervise[flaky]: success"], b"0\n")

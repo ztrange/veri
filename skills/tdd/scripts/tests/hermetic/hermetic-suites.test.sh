@@ -3,8 +3,6 @@
 # inherit an override for that default from the shell that ran it.
 #
 # Contract under test:
-#   VERI_STUCK_RETRIES=0 supervise-retry.test.sh → exit 0, "1 passed, 0 failed",
-#   exactly as with the variable unset.
 #   VERI_MODEL=<x> leaf-model.test.sh → the same exit and the same stdout as a run with
 #   the three model variables cleared.
 #
@@ -38,15 +36,6 @@ slice_run_conductor() {
   printf '%s\n' 'echo "----"' 'echo "${pass:-0} passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$cut"
   chmod +x "$cut"
 }
-
-name="supervise-retry.test.sh: ambient VERI_STUCK_RETRIES=0 still gives 1 passed, 0 failed"
-problems=()
-out="$(VERI_STUCK_RETRIES=0 "$HERE/supervise-retry.test.sh" 2>/dev/null)" && code=0 || code=$?
-[[ "$code" == 0 ]] ||
-  problems+=("want exit 0, got $code")
-[[ "$out" == *'1 passed, 0 failed'* ]] ||
-  problems+=("want '1 passed, 0 failed' on stdout, got: $(printf '%q' "$out")")
-report "$name"
 
 name="leaf-model.test.sh: an ambient VERI_MODEL gives the same exit and the same stdout as a cleared run"
 cleared_out="$(env -u VERI_MODEL -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER "$HERE/leaf-model.test.sh" 2>/dev/null)" && cleared_code=0 || cleared_code=$?
@@ -205,7 +194,6 @@ if [[ -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
   leak_work="$(scratch_dir)"
   mkdir -p "$leak_work/scripts/tests"
   for stand_in in \
-    'supervise-retry:[ -z "${VERI_STUCK_RETRIES:-}" ]' \
     'leaf-model:[ -z "${VERI_MODEL:-}" ]' \
     'solvable-issues:[ -z "${VERI_PRIORITY_LABEL:-}" ]' \
     'run-conductor:[ -z "${VERI_NEW_SKILL:-}" ]'; do
@@ -223,7 +211,6 @@ if [[ -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
   [[ "$leak_code" != 0 ]] ||
     problems+=("want the copy to exit non-zero with every stand-in leaking, got 0: $(printf '%q' "$leak_out")")
   for leaked in \
-    "supervise-retry.test.sh: ambient VERI_STUCK_RETRIES=0" \
     "leaf-model.test.sh: an ambient VERI_MODEL" \
     "solvable-issues.test.sh: an ambient VERI_PRIORITY_LABEL" \
     "run-conductor.test.sh: an ambient VERI_NEW_SKILL=1"; do
