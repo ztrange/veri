@@ -186,4 +186,35 @@ else
     owed stderr: $(cat "$work/old-pytest-none-stays-green.err")"
 fi
 
+sed 's/hello/bye/' "$repo/calc.sh" > "$work/greet-byes.mutated"
+diff -u --label a/calc.sh --label b/calc.sh "$repo/calc.sh" "$work/greet-byes.mutated" > "$work/greet-byes.patch"
+several() {
+  local table="$work/several-$1.tsv" err="$work/several-$1.err"
+  shift
+  printf '%s\n' "$@" > "$table"
+  out="$(cd "$repo" && "$PARITY" "$table" 2>"$err")" && code=0 || code=$?
+  out="$out
+    stderr: $(cat "$err")"
+}
+several proven \
+  "tests/calc.test.sh"$'\t'"adds two numbers"$'\t'"redundant"$'\t'"adds a negative"$'\t'"$work/add-subtracts.patch" \
+  "tests/calc.test.sh"$'\t'"greets by name"$'\t'"replaced"$'\t'"tests/test_sums.py::test_greets_by_name"$'\t'"$work/greet-byes.patch"
+all_code="$code" all_out="$out"
+all_rows="$(grep -wF proven <<<"$all_out" | grep -cF -e 'adds two numbers' -e 'greets by name' || true)"
+several mixed \
+  "tests/calc.test.sh"$'\t'"greets by name"$'\t'"replaced"$'\t'"tests/test_sums.py::test_greets_by_name"$'\t'"$work/greet-byes.patch" \
+  "tests/calc.test.sh"$'\t'"adds two numbers"$'\t'"redundant"$'\t'"adds a negative"$'\t'"$work/old-stays-green.patch" \
+  "tests/calc.test.sh"$'\t'"adds two numbers"$'\t'"redundant"$'\t'"adds a negative"$'\t'"$work/kept-stays-green.patch"
+mixed_rows="$(grep -cE $'\t(proven|owed|unproven)$' <<<"$out" || true)"
+if [[ "$all_code" == 0 && "$all_rows" == 2 && "$code" == 1 && "$mixed_rows" == 3 ]] \
+  && grep -F 'greets by name' <<<"$out" | grep -wF proven > /dev/null \
+  && grep -F "$work/old-stays-green.patch" <<<"$out" | grep -wF owed > /dev/null \
+  && grep -F "$work/kept-stays-green.patch" <<<"$out" | grep -wF unproven > /dev/null; then
+  ok
+else
+  no "a table of several rows reports every row, each row's case run with only its own mutation in place, and exits 0 only when every row is proven, 1 when any is unproven or owed (all-proven exit=$all_code want 0, rows=$all_rows want 2; mixed exit=$code want 1, rows=$mixed_rows want 3)
+    all-proven stdout: $all_out
+    mixed stdout: $out"
+fi
+
 finish
