@@ -84,7 +84,7 @@ awk '
   !skip
 ' "$HERE/parallel-conductors.test.sh" > "$driver_parallel"
 awk '
-  /^name="invisible-work\.sh: a branch on origin with no PR / {skip=1}
+  /^name="invisible-work\.sh: reads gh.s issues and PRs as JSON / {skip=1}
   /^run_both_ghs\(\) / {skip=0}
   /^name="invisible-work\.sh reads issues and PR documents larger / {skip=1}
   /^name="invisible-work\.sh: against a gh that serves issues and PRs over three pages / {skip=0}
