@@ -513,6 +513,7 @@ def world(fake_processes, heads, runs, statuses=(), tick=60):
 FULL_SHA = "89abcdef0123456789abcdef0123456789abcdef"
 COMMITS = f"gh api repos/o/r/commits/{FULL_SHA}"
 NOT_FOUND = (1, '{"message":"Not Found"}\n', "gh: Not Found (HTTP 404)\n")
+OPEN_PULL = json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": FULL_SHA}})
 
 
 def served(fake_processes, bodies, refused=lambda line: None):
@@ -640,7 +641,7 @@ def test_main_reads_the_given_shas_own_check_runs_to_pending_unreadable_red_gree
         work = tmp_path / name
         (work / ".tdd").mkdir(parents=True)
         bodies = {
-            PULL: json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": FULL_SHA}}),
+            PULL: OPEN_PULL,
             f"{COMMITS}/status": json.dumps(
                 {"state": state, "sha": FULL_SHA, "total_count": len(statuses), "statuses": list(statuses)}),
         }
@@ -686,7 +687,7 @@ def test_main_reads_the_shas_legacy_statuses_and_with_no_head_sha_the_rest_pull_
         work = tmp_path / name
         (work / ".tdd").mkdir(parents=True)
         bodies = {
-            PULL: json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": FULL_SHA}}),
+            PULL: OPEN_PULL,
             f"{COMMITS}/check-runs?page=1": runs if isinstance(runs, tuple) else json.dumps(
                 {"total_count": len(runs), "check_runs": runs}),
             f"{COMMITS}/check-runs?page=2": json.dumps({"total_count": 0, "check_runs": []}),
@@ -749,7 +750,7 @@ def test_main_reads_the_rest_head_large_documents_and_every_check_run_page_and_n
         (work / ".tdd").mkdir(parents=True)
         total = sum(len(page) for page in pages)
         bodies = {
-            PULL: json.dumps({"number": 1, "state": "open", "draft": False, "head": {"sha": FULL_SHA}}),
+            PULL: OPEN_PULL,
             f"{COMMITS}/status": json.dumps(
                 {"state": "success", "sha": FULL_SHA, "total_count": len(statuses), "statuses": list(statuses)}),
         }
