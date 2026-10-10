@@ -115,7 +115,7 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   *via* `supervise.sh`, not on its own.
 - `$S/extract-result.sh` — pulls the final result text out of a leaf's stream-json (used
   by `run-leaf.sh`; passes plain text through unchanged).
-- `$S/build-develop-prompt.sh <phase> …` — assemble a **developer** leaf's prompt from a
+- `$S/build-develop-prompt.sh <red|green|refactor|cover|transform|diff|structural|predicate|revise|exhausted|reconcile|over-budget|rebase> …` — assemble a **developer** leaf's prompt from a
   versioned template: `red <spec-file> <step-text> <test-cmd>`, `green <spec-file>
   <step-text> <test-cmd> <test-path> <target>`, `refactor <spec-file> <step-text>
   <test-cmd> <touched-files>`, `revise <phase> <spec-file> <step-text> <test-cmd>
@@ -126,9 +126,9 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   structural), this one by what it **must** carry — the same instructions on every run of a
   phase, with only the variables changing. **Build every developer prompt with it**; a
   phase's instructions live in its template, not in prose you improvise per cycle.
-- `$S/build-verify-prompt.sh <red|green|refactor|pin|plan> <spec-file> <test-path> [target]` —
+- `$S/build-verify-prompt.sh <red|green|refactor|pin|plan|rebase|transform|diff> <spec-file> <test-path> [target]` —
   assemble the blind verifier prompt. Used by `verify.sh`; you rarely call it directly.
-- `$S/verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <red|green|refactor|pin|plan> <spec-file> <test-path> [target]` — the **verify
+- `$S/verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <red|green|refactor|pin|plan> <spec-file> <test-path> [target] | diff <spec-file> <branch-base-sha> <step-base-sha>` — the **verify
   verb**: build the blind prompt → launch the verifier leaf **through the supervisor** →
   parse the verdict. Prints the verifier's **reason** on stdout; **exit 0 = PASS, 1 =
   REJECT, 2 = malformed or killed-stuck**. The `pin` phase is the *already satisfied*
