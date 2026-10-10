@@ -97,27 +97,6 @@ echo "thinking..."; clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"; sleep 60
 STUB
 chmod +x "$stubdir/claude-hang"
 
-hung_leaf() {  # hung_leaf -> runs in $work, sets $out/$code, stderr in $work/err
-  out="$( cd "$work" && env CLAUDE_BIN="$stubdir/claude-hang" VERI_STUCK_RETRIES=0 \
-            VERI_HEARTBEAT=1 VERI_POLL=0.02 "$VERIFY" red "$work/spec.md" \
-            tests/test_slugify.py test_lowercases 2>"$work/err" )"
-  code=$?
-}
-
-verify 'VERDICT: PASS
-REASON: ok' red
-grep -q 'slugify must lowercase' "$work/argv" && ok || no "spec reaches the leaf (blind prompt built + passed)"
-
-hung_leaf
-{ [[ "$code" == 2 ]] && [[ "$out" == *'killed-stuck'* ]]; } && ok \
-  || no "hung verifier leaf → killed-stuck exit 2 (code=$code)"
-
-VERI_STUCK_RETRIES=3 hung_leaf
-stuck_lines="$(grep -c 'supervise\[verify-red\]: killed-stuck' "$work/err")"
-retry_lines="$(grep -c 'retry [0-9][0-9]*/[0-9][0-9]*' "$work/err")"
-{ [[ "$code" == 2 ]] && [[ "$stuck_lines" -eq 1 ]] && [[ "$retry_lines" -eq 0 ]]; } && ok \
-  || no "ambient VERI_STUCK_RETRIES=3 → hung verifier leaf still runs exactly once (code=$code, killed-stuck lines=$stuck_lines, retry lines=$retry_lines)"
-
 
 verdict_work="$work/verdict"
 

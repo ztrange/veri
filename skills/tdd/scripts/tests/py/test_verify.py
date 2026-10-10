@@ -1534,3 +1534,59 @@ def test_main_writes_every_line_it_prints_the_em_dash_in_its_refusals_included_a
                   " 'sonnet' — which one the leaf would run on is flag order; unset one of them\n").encode()),
         (0, "fine — ok\n".encode(), b""),
     ]
+
+
+SPEC = "slugify must lowercase the title and join words with hyphens."
+HUNG = pytest.mark.process("a hung verifier leaf killed by the real supervise.sh")
+
+
+@pytest.mark.parametrize("leaf, ambient", [
+    ("answers", None),
+    pytest.param("hangs", None, marks=HUNG),
+    pytest.param("hangs", "3", marks=HUNG),
+])
+def test_verify_sh_passes_the_blind_prompt_carrying_the_spec_to_the_leaf_and_a_hung_leaf_runs_once_killed_stuck_with_exit_2(
+        leaf, ambient, run_cli, tmp_path, monkeypatch):
+    for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
+                 "VERI_NO_VERDICT_RETRIES", "VERI_HEARTBEAT", "VERI_AWAKE_CLOCK"):
+        monkeypatch.delenv(name, raising=False)
+    if ambient is not None:
+        monkeypatch.setenv("VERI_STUCK_RETRIES", ambient)
+    (tmp_path / "spec.md").write_text(SPEC)
+    verify = importlib.import_module("veri.verify")
+    argv = ["red", str(tmp_path / "spec.md"), "tests/test_slugify.py", "test_lowercases"]
+    env = {"HOME": str(tmp_path)}
+    prompts = []
+    if leaf == "answers":
+        builder = importlib.import_module("veri.build_verify_prompt")
+
+        def fake(args, *_, **__):
+            words = [str(a) for a in args]
+            name = os.path.basename(words[0])
+            if name == "build-verify-prompt.sh":
+                built, captured = io.BytesIO(), sys.stdout
+                monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(built, write_through=True))
+                code = builder.main(words[1:])
+                monkeypatch.setattr(sys, "stdout", captured)
+                return subprocess.CompletedProcess(args, code, built.getvalue(), None)
+            if name == "supervise.sh":
+                prompts.append(pathlib.Path(words[3]).read_text())
+                return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nREASON: ok\n", None)
+            return subprocess.CompletedProcess(args, 128 if name == "git" else 0, b"", None)
+
+        for name in ("run", "Popen", "call", "check_call", "check_output"):
+            monkeypatch.setattr(subprocess, name, fake)
+    else:
+        claude = tmp_path / "claude-hang"
+        claude.write_text("#!/bin/sh\necho thinking...\nexec sleep 60\n")
+        claude.chmod(0o755)
+        env.update(CLAUDE_BIN=str(claude), VERI_STUCK_RETRIES="0", VERI_TIMEOUT="0",
+                   VERI_POLL="0.02", VERI_KILL_POLL="0.01")
+
+    code, out, err = run_cli(verify, argv, env=env, cwd=tmp_path)
+
+    if leaf == "answers":
+        assert (code, len(prompts), SPEC in prompts[0]) == (0, 1, True)
+    else:
+        assert (code, "killed-stuck" in out,
+                err.count("supervise[verify-red]: killed-stuck"), "retry " in err) == (2, True, 1, False)
