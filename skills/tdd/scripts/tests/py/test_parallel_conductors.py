@@ -107,6 +107,12 @@ def _gh_and_work(tmp_path):
     return gh, work
 
 
+def _event_log(work, n, text):
+    log = work / ".tdd" / "wt" / n / ".tdd"
+    log.mkdir(parents=True)
+    (log / "events.jsonl").write_text(text)
+
+
 def _sigterm_ends_the_live_conductor(monkeypatch, supervisors, events=None):
     def recording_kill(pid, sig):
         live = [s for s in supervisors if s.pid == pid and s.returncode is None]
@@ -795,8 +801,7 @@ def test_the_cli_reports_a_ready_pr_done_a_draft_ending_in_a_bail_bailed_a_draft
     events = {"8": '{"event": "launch"}\n{"event": "bail"}\n',
               "9": '{"event": "bail"}\n{"event": "launch"}\n'}
     for n, text in events.items():
-        (work / ".tdd" / "wt" / n / ".tdd").mkdir(parents=True)
-        (work / ".tdd" / "wt" / n / ".tdd" / "events.jsonl").write_text(text)
+        _event_log(work, n, text)
 
     def on_launch(sup):
         sup.exit(2 if sup.args[-1] == "10" else 0)
@@ -1321,8 +1326,7 @@ def test_the_cli_prints_parked_for_a_conductor_that_halts_writing_its_parked_fil
         work = root / "repo"
         (work / ".tdd" / "parked").mkdir(parents=True)
         for n in bailed:
-            (work / ".tdd" / "wt" / n / ".tdd").mkdir(parents=True)
-            (work / ".tdd" / "wt" / n / ".tdd" / "events.jsonl").write_text('{"event": "red"}\n{"event": "bail"}\n')
+            _event_log(work, n, '{"event": "red"}\n{"event": "bail"}\n')
         launches = []
 
         def on_launch(sup):
