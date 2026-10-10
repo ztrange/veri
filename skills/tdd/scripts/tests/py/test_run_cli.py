@@ -73,6 +73,17 @@ def test_run_cli_answers_1_and_writes_the_text_to_stderr_when_a_main_raises_syst
     assert (code, err) == (1, "planted: refused\n")
 
 
+def test_run_cli_answers_1_and_writes_the_text_to_stderr_when_a_main_raises_system_exit_with_a_float_or_a_tuple_1389(
+        run_cli):
+    sources = ("def main(argv):\n    raise SystemExit(2.5)\n",
+               "def main(argv):\n    raise SystemExit((4, 'planted'))\n")
+    modules = [module_of(source) for source in sources]
+
+    answers = [run_cli(module, []) for module in modules]
+
+    assert [(code, err) for code, _, err in answers] == [(1, "2.5\n"), (1, "(4, 'planted')\n")]
+
+
 @pytest.mark.process("a child writing to the inherited stdout and stderr")
 def test_run_cli_includes_in_order_what_a_child_the_module_starts_writes_to_the_inherited_stdout_and_stderr(run_cli):
     module = module_of(
