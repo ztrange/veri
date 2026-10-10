@@ -16,11 +16,15 @@ def write_lines(lines):
     sys.stdout.buffer.write("".join(line + "\n" for line in lines).encode(errors="surrogateescape"))
 
 
-def answer(record):
-    if record is None:
+def say(text):
+    if text is None:
         return 3
-    write_lines([record[6]])
+    write_lines([text])
     return 0
+
+
+def answer(record):
+    return say(None if record is None else record[6])
 
 
 def current(records):
@@ -41,11 +45,7 @@ def current_or_last_done(records):
 
 def phase_next(records):
     phases = (next_phase(r[6]) for r in records)
-    found = next((phase for phase in phases if phase), None)
-    if found is None:
-        return 3
-    write_lines([found])
-    return 0
+    return say(next((phase for phase in phases if phase), None))
 
 
 def criterion(text, k):
