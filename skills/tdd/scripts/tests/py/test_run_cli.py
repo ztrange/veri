@@ -56,6 +56,17 @@ def test_run_cli_answers_the_integer_a_main_returns_or_raises_as_system_exit_as_
     assert (run_cli(returning, [])[0], run_cli(raising, [])[0]) == (7, 5)
 
 
+def test_run_cli_answers_0_when_a_main_returns_none_or_raises_system_exit_with_no_code_or_none_1389(run_cli):
+    sources = ("def main(argv):\n    return None\n",
+               "def main(argv):\n    raise SystemExit()\n",
+               "def main(argv):\n    raise SystemExit(None)\n")
+    modules = [types.ModuleType("exp_silent") for _ in sources]
+    for module, source in zip(modules, sources):
+        exec(source, module.__dict__)
+
+    assert tuple(run_cli(module, [])[0] for module in modules) == (0, 0, 0)
+
+
 @pytest.mark.process("a child writing to the inherited stdout and stderr")
 def test_run_cli_includes_in_order_what_a_child_the_module_starts_writes_to_the_inherited_stdout_and_stderr(run_cli):
     module = types.ModuleType("exp_parent")
