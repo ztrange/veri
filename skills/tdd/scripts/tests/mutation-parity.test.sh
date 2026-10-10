@@ -81,6 +81,18 @@ else
     stderr: $(cat "$work/diag-old.err")"
 fi
 
+table="$work/diag-kept.tsv"
+printf 'tests/diag.test.sh\tadds a negative\tredundant\tadds two numbers\t%s\n' "$work/add-subtracts.patch" > "$table"
+out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/diag-kept.err")" && code=0 || code=$?
+row="$(grep -F 'adds two numbers' <<<"$out" | grep -wF proven || true)"
+if [[ "$code" == 0 && -n "$row" ]]; then
+  ok
+else
+  no "#1436: a row whose kept bash case fails with a FAIL line '<kept name> (<diagnostic>)' counts as catching the mutation and reads proven, not unproven (exit=$code want 0)
+    stdout: $out
+    stderr: $(cat "$work/diag-kept.err")"
+fi
+
 not_proven() {
   local name="$1" sed_expr="$2" patch="$work/$1.patch" table="$work/$1.tsv" out
   sed "$sed_expr" "$repo/calc.sh" > "$work/$name.mutated"
