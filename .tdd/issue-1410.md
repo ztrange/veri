@@ -6,4 +6,4 @@
 - [x] tick-ledger.sh's usage line, printed with exit 2 on a bad argument, names the `--phase-owed <phase>` flag beside `--phase <phase>` ⟦added⟧ ⟦criterion 1⟧
 - [x] Marking a contract phase owed leaves it visible as owed: the bullet under `## Owed steps` is unchanged, the step's line says `owed` and never ` ⟂ <phase> done`, and its checkbox stays `[ ]` ⟦criterion 2⟧
 - [x] On a ledger whose phased step has its contract filed under `## Owed steps` and marked owed, `ledger-steps.sh next-phase` and `next-unchecked.sh` run through their entry points both exit 3 ⟦criterion 3⟧
-- [ ] `SKILL.md`'s exhausted-contract paragraph says to mark the contract phase owed with `tick-ledger.sh --phase-owed <phase>` before committing the ledger, pinned by a prose case ⟦criterion 3⟧
+- [x] `SKILL.md`'s exhausted-contract paragraph says to mark the contract phase owed with `tick-ledger.sh --phase-owed <phase>` before committing the ledger, pinned by a prose case ⟦criterion 3⟧ ⟂ refactor pending

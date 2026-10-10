@@ -32,6 +32,8 @@
 #      ## Owed by a human — see case 17's name.
 #  18. SKILL.md's Draft PR body template and its Green gate both carry mutation-parity.sh's
 #      report — see case 18's name.
+#  19. SKILL.md marks an exhausted contract phase owed with tick-ledger.sh --phase-owed before
+#      committing the ledger — see case 19's name.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -437,6 +439,22 @@ else
     problems+=("$skill_md's ⟦replaces-case⟧ Green gate puts mutation-parity.sh's report into the PR body without saying it is the pairs table")
   grep -E 'owed' <<<"$green_near" > /dev/null && grep -F '## owed by a human' <<<"$green_near" > /dev/null ||
     problems+=("$skill_md's ⟦replaces-case⟧ Green gate never puts a row its report owes under ## Owed by a human")
+fi
+report "$name"
+
+name="$skill_md marks an exhausted contract phase owed with tick-ledger.sh --phase-owed <phase> before committing the ledger, so next-phase never hands the owed contract back (#1410)"
+problems=()
+
+phased_text="$(section '#### A `⟦phases')"
+near="$(window "$phased_text" 'exhaust' 700)"
+if [[ -z "${near// /}" ]]; then
+  problems+=("$skill_md's phased step has no exhausted-contract paragraph to read")
+elif ! grep -F 'tick-ledger.sh --phase-owed <phase>' <<<"$near" > /dev/null; then
+  problems+=("$skill_md's exhausted-contract paragraph never marks the contract phase owed with tick-ledger.sh --phase-owed <phase>, so next-phase hands the owed contract back")
+else
+  before_commit="${near%%commit the ledger*}"
+  [[ "$before_commit" != "$near" ]] && grep -F 'tick-ledger.sh --phase-owed' <<<"$before_commit" > /dev/null ||
+    problems+=("$skill_md's exhausted-contract paragraph marks the contract phase owed only after committing the ledger, so the commit carries no mark")
 fi
 report "$name"
 
