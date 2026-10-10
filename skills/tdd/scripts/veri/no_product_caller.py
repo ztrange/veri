@@ -31,10 +31,14 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     name = argv[0]
-    own = os.path.join(VERI_DIR, name[:-3].replace("-", "_") + ".py")
+    own = (
+        os.path.join(VERI_DIR, name[:-3].replace("-", "_") + ".py")
+        if name.endswith(".sh")
+        else None
+    )
     callers = []
     for path in product_paths():
-        if name.endswith(".sh") and path == own:
+        if path == own:
             continue
         with open(path, encoding="utf-8", errors="replace") as product:
             for number, line in enumerate(product, 1):
