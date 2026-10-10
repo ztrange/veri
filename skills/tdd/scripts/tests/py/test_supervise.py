@@ -2707,11 +2707,18 @@ def test_cli_records_its_own_pid_before_the_leaf_launches_and_preserves_the_rela
     import time
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     clean_env(monkeypatch)
+    for key in ("GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL", "EMAIL"):
+        monkeypatch.delenv(key, raising=False)
+    for key, value in {"GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_COUNT": "1",
+                       "GIT_CONFIG_KEY_0": "user.useConfigOnly", "GIT_CONFIG_VALUE_0": "true"}.items():
+        monkeypatch.setenv(key, value)
     real_run, real_check_output, real_popen = subprocess.run, subprocess.check_output, subprocess.Popen
     work = tmp_path / "preserve"
     work.mkdir()
     git = ["git", "-C", str(work), "-c", "user.name=veri", "-c", "user.email=veri@example.test"]
     real_run([*git, "init", "-q", "-b", "main"], check=True)
+    real_run([*git, "config", "user.name", "veri"], check=True)
+    real_run([*git, "config", "user.email", "veri@example.test"], check=True)
     (work / ".gitignore").write_text(".tdd/\n")
     (work / "src.txt").write_text("the step this leaf never finished\n")
     real_run([*git, "add", "-A"], check=True)
