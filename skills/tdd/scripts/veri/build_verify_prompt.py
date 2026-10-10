@@ -5,6 +5,7 @@ import sys
 
 PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff")
 INTERFACE_PHASES = ("expand", "migrate", "contract-a", "contract-b")
+WANT_PHASES = "|".join(PHASES + INTERFACE_PHASES)
 NEEDS = {"green": {"fast-cmd"}, "refactor": {"fast-cmd", "base-sha"}, "diff": {"fast-cmd"},
          "transform": {"base-sha"}, **dict.fromkeys(INTERFACE_PHASES, {"fast-cmd", "base-sha"})}
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -74,9 +75,8 @@ def main(argv):
     if len(argv) > 4:
         return _refuse("build-verify-prompt: too many arguments")
     phase = argv[0]
-    accepted = PHASES + INTERFACE_PHASES
-    if phase not in accepted:
-        return _refuse(f"build-verify-prompt: unknown phase '{phase}' (want {'|'.join(accepted)})")
+    if phase not in PHASES + INTERFACE_PHASES:
+        return _refuse(f"build-verify-prompt: unknown phase '{phase}' (want {WANT_PHASES})")
     if "fast-cmd" in NEEDS.get(phase, ()) and not options["--fast-cmd"]:
         return _refuse(f"build-verify-prompt: {phase} needs --fast-cmd '<fast-tier test command>'")
     fourth = argv[3] if len(argv) > 3 else ""
