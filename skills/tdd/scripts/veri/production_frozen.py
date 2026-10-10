@@ -12,6 +12,8 @@ def main(argv):
         return 2
     base = argv[0]
     log = changed_paths(base)
+    if log.returncode != 0:
+        return 2
     changed = sorted({line for line in log.stdout.split(b"\n") if line and not TEST_FILE.search(line)})
     if not changed:
         return 0

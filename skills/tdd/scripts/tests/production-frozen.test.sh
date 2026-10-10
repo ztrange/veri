@@ -7,6 +7,7 @@
 #       → exit 1, naming each changed path that is not a test file by
 #         transform-touches-tests.sh's rule, when any commit in <base-sha>..HEAD changes one
 #       → exit 0, printing no path, when every changed path is a test file by that rule
+#       → exit 2 when <base-sha> does not resolve to a commit
 #
 # Run: scripts/tests/production-frozen.test.sh
 set -uo pipefail
@@ -51,6 +52,12 @@ commit_all "$repo" "test: tighten the widget test, and test entry"
 clean_out="$(cd "$repo" && "$FROZEN" "$tests_only_base" 2>&1)"; clean_code=$?
 if [[ "$clean_code" == 0 && -z "$clean_out" ]]; then ok; else
   no "production-frozen range: only test files changed → exit 0 printing no path (code=$clean_code out=$clean_out)"
+fi
+
+bogus="0123456789abcdef0123456789abcdef01234567"
+bad_out="$(cd "$repo" && "$FROZEN" "$bogus" 2>&1)"; bad_code=$?
+if [[ "$bad_code" == 2 ]]; then ok; else
+  no "production-frozen range: base-sha does not resolve to a commit → exit 2 (code=$bad_code out=$bad_out)"
 fi
 
 finish
