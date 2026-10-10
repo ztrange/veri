@@ -254,7 +254,6 @@ no-awk-v-patterns:#!/usr/bin/env bash
 no-awk-v-patterns:#!/usr/bin/env bash
 no-awk-v-patterns:# an unrelated line inserted above the exempt site
 no-awk-v-patterns:# and another
-parallel-conductors:#!/bin/sh
 refactor-owed:### step 2
 refactor-owed:### step 2
 run-verdict:#!/bin/sh
