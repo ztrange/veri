@@ -3,3 +3,5 @@
 ### SKILL.md says a resume rebase that moved the branch is published, once the baseline is green, with `push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>`, never a bare force ⟦criterion 2⟧
 - `rebase_span`'s `enter_at`/`base_at` lookups repeat the #987 pid-lock case's lookups line for line; that case could call `rebase_span` (both blocks were written before this cycle)
 - test-only | tighten the bare-force sentence match so the negation has to sit next to "bare force", not anywhere in the sentence
+### SKILL.md captures and resets a dirty resume worktree (a killed leaf's stray edit) before the resume rebase runs, and says `<pre-rebase-sha>` is `rebase-onto-default.sh`'s first stdout line before first using it; a case pins that order and goes red when the rebase is placed ahead of the capture-and-reset ⟦added⟧ ⟦criterion 4⟧
+- test-only | in skills/tdd/scripts/tests/skill-preflight-launchable.test.sh:461, replace the inline awk that computes `capture_at` with `step3_line_of '="$(git status --porcelain)"'`. The regex in that awk matches only that literal string, so the existing `step3_line_of` helper (`:397`) already does the same search.
