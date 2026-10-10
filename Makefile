@@ -21,6 +21,7 @@ PY_ALL := $(sort $(wildcard skills/tdd/scripts/tests/py/test_*.py))
 py_tests = $(if $(1),$(filter %.py,$(2)),$(PY_ALL))
 unit: PY_TESTS = $(call py_tests,$(UNIT_TESTS_NAMED),$(UNIT_TESTS))
 PY_TESTS := $(call py_tests,$(TESTS_NAMED),$(TESTS))
+unit: PY_SELECT = -m "not process"
 
 # The fast tier's admission-bar guard: `unit` puts UNIT_GUARD_BIN first on a suite's PATH,
 # where git and python3 refuse, naming themselves; gh and curl fall through to OFFLINE_BIN's shims,
@@ -152,7 +153,7 @@ test unit:
 	if [ -n "$(PY_TESTS)" ]; then \
 	  printf '== pytest\n'; \
 	  : > "$$reach_log"; \
-	  UNIT_GUARD_LOG="$$reach_log" PYTHONPYCACHEPREFIX="$$pycache" COLUMNS=200 $(OFFLINE_ENV) "$$py_bin" -m pytest --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_TESTS) < /dev/null || fail=1; \
+	  UNIT_GUARD_LOG="$$reach_log" PYTHONPYCACHEPREFIX="$$pycache" COLUMNS=200 $(OFFLINE_ENV) "$$py_bin" -m pytest --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || fail=1; \
 	  $(call NAME_REACHED,pytest: tried to start); \
 	fi; \
 	echo "----"; \
