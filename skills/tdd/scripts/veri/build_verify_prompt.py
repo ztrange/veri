@@ -4,7 +4,7 @@ import re
 import sys
 
 PHASES = ("red", "green", "refactor", "pin", "plan", "rebase", "transform", "diff")
-INTERFACE_PHASES = ("expand", "migrate")
+INTERFACE_PHASES = ("expand", "migrate", "contract-a", "contract-b")
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 USAGE = "usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]"
 GREEN_PARAGRAPHS = {"REPLACES_CASE": "replaces-case", "SUITE_REPAIR": "suite-repair"}
