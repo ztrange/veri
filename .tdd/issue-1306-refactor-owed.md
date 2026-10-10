@@ -4,3 +4,4 @@
 ### When a fetch refused after spending its retries failed on git 2.53's `reference already exists` wording, the refusal on stderr names the ref lock as the cause, as the `cannot lock ref` wording already does ⟦criterion 1⟧
 - test-only | in test_run_conductor.py, the issue-1306 refusal test only checks for `b"lock" in err`, and the 60-fetch test before it already asserts the full stderr including the ref-lock line, so the refusal test could be dropped or merged into it
 - test-only | the two issue-1306 tests repeat the same five setup lines (env vars, chdir, import) as the existing cannot-lock-ref tests; that setup could move into a shared fixture
+applied | 3b013f5ae4fa437863751210291957ddba75c6a8 | name the two held-ref-lock wordings once in `skills/tdd/scripts/veri/run_conductor.py:38` (a module-level tuple tested with `any(...)`), not as two inline `in` tests. Defer this until step 2's refusal needs the same check, so that a second use earns the extraction.
