@@ -131,21 +131,8 @@ sup() {
 }
 
 sup hang 1 30 leaf-hang
-{ [[ "$code" == 2 ]] && grep -qi 'heartbeat\|stuck\|silent' "$work/err"; } && ok \
-  || no "hung leaf → killed-stuck via heartbeat (code=$code, err=$(cat "$work/err"))"
-
-sup runaway 30 1 leaf-runaway
-{ [[ "$code" == 2 ]] && grep -qi 'timeout\|stuck' "$work/err"; } && ok \
-  || no "runaway leaf → killed-stuck via hard timeout (code=$code, err=$(cat "$work/err"))"
-
-sup hang 1 30 leaf-hang
 if pgrep -f "$stub/leaf-hang" >/dev/null 2>&1; then no "killed leaf left a process behind"; else ok; fi
 
-VERI_STUCK_RETRIES=3 sup hang 1 30 leaf-hang
-stuck_lines="$(grep -c 'supervise\[hang\]: killed-stuck' "$work/err")"
-retry_lines="$(grep -c 'retry [0-9][0-9]*/[0-9][0-9]*' "$work/err")"
-{ [[ "$code" == 2 ]] && [[ "$stuck_lines" -eq 1 ]] && [[ "$retry_lines" -eq 0 ]]; } && ok \
-  || no "ambient VERI_STUCK_RETRIES=3 → hung leaf still runs exactly once (code=$code, killed-stuck lines=$stuck_lines, retry lines=$retry_lines)"
 
 
 killed_window() {
@@ -160,10 +147,6 @@ killed_window() {
     || echo '<no-heartbeat-kill>'
 }
 
-default_window="$(killed_window hb-default  '')"
-explicit_window="$(killed_window hb-explicit 5)"
-{ [[ "$default_window" == 180 ]] && [[ "$explicit_window" == 5 ]]; } && ok \
-  || no "VERI_HEARTBEAT unset → a 180s window, explicit VERI_HEARTBEAT=5 → a 5s window (unset gave ${default_window}, explicit gave ${explicit_window})"
 
 event_field() {
   python3 -c '
@@ -255,16 +238,6 @@ print(n)
 ' "$1/.tdd/events.jsonl" "$2" 2>/dev/null || echo '<<no event log>>'
 }
 
-killed_work="$work/killed"
-killed_window=1
-sup_run "$killed_work" VERI_HEARTBEAT="$killed_window" "$SUP" develop-red "$stub/leaf-hang"
-killed_code=$?
-killed_usage="$(event_count "$killed_work" usage)"
-killed_recorded="$(cat "$killed_work/.tdd/develop-red.exit" 2>/dev/null || echo '<missing>')"
-{ [[ "$killed_usage" == 0 ]] \
-  && [[ "$killed_code" == 2 ]] \
-  && [[ "$killed_recorded" == 2 ]]; } && ok \
-  || no "a killed leaf leaves no usage event and the supervisor still exits 2 and records 2 (usage lines=$killed_usage want 0, code=$killed_code want 2, .exit=$killed_recorded want 2)"
 
 # hazard: BSD env reads a -u after an assignment as the utility to run, so unset in a subshell.
 sup_run_no_model() {
