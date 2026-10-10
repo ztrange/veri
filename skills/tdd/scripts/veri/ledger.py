@@ -14,6 +14,7 @@ STEP_RE = re.compile(rf"({SPACE}*-{SPACE})\[([ xX])\]( (.*))?")
 CRITERION_RE = CRITERION_TAG + "([0-9]+)⟧"
 KIND_RE = re.compile(r"⟦(full-suite|human-owed|diff-checked)⟧ " + CRITERION_RE)
 PHASES_RE = re.compile(r"⟦phases: ([^⟧]*)⟧")
+TRAILING_RUN_RE = re.compile(r"((?:(?:^| )⟦[^⟦⟧]*⟧)+)(?: ⟂ [^⟦⟧⟂]*)*$")
 
 
 class LeftBehind(OSError):
@@ -66,9 +67,15 @@ def mark(phase, state):
     return f" ⟂ {phase} {state}"
 
 
+def trailing_markers(step):
+    """The run of ⟦…⟧ markers ending step's text, before any ⟂ marks; "" for none."""
+    run = TRAILING_RUN_RE.search(step)
+    return run.group(1) if run else ""
+
+
 def listed_phases(step):
     """The phases step lists, in order; [] for a step that lists none."""
-    listed = PHASES_RE.search(step)
+    listed = PHASES_RE.search(trailing_markers(step))
     return [phase.strip() for phase in listed.group(1).split(",")] if listed else []
 
 
@@ -95,10 +102,10 @@ def ledger_steps(text):
         if not match:
             continue
         step = match.group(4) or ""
-        phased_done = PHASES_RE.search(step) and next_phase(step) is None
+        phased_done = listed_phases(step) and next_phase(step) is None
         state = "open" if match.group(2) == " " and not phased_done else "done"
         kind = KIND_RE.search(step)
-        criterion = re.search(CRITERION_RE, step)
+        criterion = (re.findall(CRITERION_RE, step) or [""])[-1]
         added = is_added(step)
         pending = state == "done" and step.endswith(PENDING_MARK)
         if pending:
@@ -109,7 +116,7 @@ def ledger_steps(text):
             kind.group(1) if kind else "step",
             "1" if pending else "0",
             "1" if added else "0",
-            criterion.group(1) if criterion else "",
+            criterion,
             step,
         ))
     return records
