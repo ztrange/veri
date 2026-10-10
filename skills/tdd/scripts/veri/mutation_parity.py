@@ -20,6 +20,15 @@ def failed_cases(suite):
     return failed, passed
 
 
+def failed_nodes(suite):
+    run = subprocess.run([venv_python(), "-m", "pytest", "-q", "-rA", suite], capture_output=True,
+                         text=True, stdin=subprocess.DEVNULL)
+    lines = run.stdout.splitlines()
+    failed = {line.split()[1] for line in lines if line.startswith(("FAILED ", "ERROR "))}
+    passed = sum(1 for line in lines if line.startswith("PASSED "))
+    return failed, passed
+
+
 def node_fails(node):
     run = subprocess.run([venv_python(), "-m", "pytest", "-q", node], capture_output=True,
                          stdin=subprocess.DEVNULL)
@@ -30,7 +39,7 @@ def check(row):
     suite, old, fate, kept, patch = row
     subprocess.run(["git", "apply", patch], check=True)
     try:
-        failed, passed = failed_cases(suite)
+        failed, passed = failed_nodes(suite) if "::" in old else failed_cases(suite)
         caught = node_fails(kept) if fate == "replaced" else kept in failed
     finally:
         subprocess.run(["git", "apply", "-R", patch], check=True)
