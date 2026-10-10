@@ -431,8 +431,9 @@ def test_main_runs_git_from_the_top_level_with_a_fresh_index_for_the_snapshot_an
     assert by_verb["read-tree"]["env"] == {**inherited, "GIT_INDEX_FILE": index}
     assert by_verb["add"]["env"] == {**inherited, "GIT_INDEX_FILE": index}
     assert by_verb["write-tree"]["env"] == {**inherited, "GIT_INDEX_FILE": index}
-    for verb in ("rev-parse", "commit-tree", "update-ref"):
+    for verb in ("rev-parse", "update-ref"):
         assert by_verb[verb]["env"] == inherited, verb
+    assert by_verb["commit-tree"]["env"] == preserve_attempt.IDENTITY | inherited
     assert by_verb["commit-tree"]["argv"] == [
         "git", "commit-tree", "4b825dc642cb6eb9a060e54bf8d69288fbee4904", "-p", "HEAD",
         "-m", f"attempt: issue 409 step {step} develop-green attempt 1"]

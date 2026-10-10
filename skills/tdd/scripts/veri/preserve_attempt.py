@@ -10,6 +10,8 @@ from git import git
 from ledger import CRITERION_RE, decode_ledger, ledger_steps
 
 USAGE = "usage: preserve-attempt.sh <issue> <step> <phase> <attempt> [<mark>]"
+IDENTITY = {"GIT_AUTHOR_NAME": "veri", "GIT_AUTHOR_EMAIL": "veri@localhost",
+            "GIT_COMMITTER_NAME": "veri", "GIT_COMMITTER_EMAIL": "veri@localhost"}
 
 
 def inside_own_scripts():
@@ -46,7 +48,7 @@ def main(argv):
         if result.returncode == 0:
             result = run_git("write-tree", env=index)
         if result.returncode == 0:
-            result = run_git("commit-tree", result.stdout.strip(), "-p", "HEAD", "-m", f"attempt: {coords}")
+            result = run_git("commit-tree", result.stdout.strip(), "-p", "HEAD", "-m", f"attempt: {coords}", env=IDENTITY | os.environ)
         if result.returncode != 0:
             return mapped(result.returncode)
     finally:
