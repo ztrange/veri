@@ -2647,3 +2647,54 @@ def test_cli_records_the_skill_clones_own_head_in_a_launch_events_skill_commit_a
         (0, [head]),
         (0, ["unknown"]),
     ]
+
+
+def test_cli_recovers_a_killed_leaf_from_a_terminal_result_record_in_its_log_with_the_leafs_own_outcome_launched_once_its_stdout_ending_in_the_result_text_and_stays_killed_stuck_without_one(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import re
+    import signal
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    clean_env(monkeypatch)
+    launches = []
+
+    def killed_leaf(name, log_text, retries):
+        work = tmp_path / name
+        work.mkdir()
+        fake_clocked_leaf(monkeypatch, work, name, True, 10 ** 9)
+        hanging = subprocess.Popen
+
+        def popen(args, *a, **kwargs):
+            launches.append(name)
+            pathlib.Path(args[4]).write_bytes(log_text)
+            return hanging(args, *a, **kwargs)
+
+        monkeypatch.setattr(subprocess, "Popen", popen)
+        env = {"VERI_HEARTBEAT": "5", "VERI_TIMEOUT": "5000"}
+        if retries is not None:
+            env["VERI_STUCK_RETRIES"] = retries
+        code, out, err = run_cli(supervise, [name, "leaf"], cwd=work, env=env)
+        return code, out, err.splitlines()[-1:], launches.count(name), (work / ".tdd" / f"{name}.rc").exists()
+
+    verdict = (b'{"type":"assistant","message":{"content":[]}}\n'
+               b'{"type":"result","subtype":"success","is_error":false,'
+               b'"result":"VERDICT: PASS\\nREASON: the new case fails on the eight checks"}\n')
+    failed = b'{"type":"result","subtype":"error_during_execution","is_error":true,"result":"the suite did not finish"}\n'
+    unfinished = b'{"type":"system","subtype":"init"}\n{"type":"assistant","message":{"content":[]}}\n'
+
+    ok = killed_leaf("verify-ok", verdict, None)
+    erred = killed_leaf("verify-err", failed, None)
+    none = killed_leaf("verify-none", unfinished, "0")
+    assert [ok[0], ok[2], ok[3], ok[4]] == [0, ["supervise[verify-ok]: success"], 1, False]
+    assert [erred[0], erred[2], erred[3], erred[4]] == [1, ["supervise[verify-err]: failure"], 1, False]
+    assert none[:1] == (2,) and none[2] == [
+        "supervise[verify-none]: killed-stuck — no heartbeat for 6s (window 5s)"]
+    assert ok[1].endswith("\nVERDICT: PASS\nREASON: the new case fails on the eight checks\n")
+    assert erred[1].endswith("\nthe suite did not finish\n")
+    head = []
+    for line in (pathlib.Path(supervise.__file__).parents[1] / "supervise.sh").read_text().splitlines()[1:]:
+        if not line.startswith("#"):
+            break
+        head.append(re.sub(r"^# ?", "", line))
+    text = " ".join(head)
+    assert re.search(r"(finish|complete)[a-z]* .{0,120}before .{0,80}(rc file|rcfile|\.rc)", text)
+    assert re.search(r"kill.{0,160}not proof", text)

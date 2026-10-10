@@ -225,68 +225,6 @@ sup_direct() {
 leaf_rc() { cat "$1/.tdd/verify-red.rc" 2>/dev/null || echo '<missing>'; }
 
 
-result_kill_work="$work/result-kill"
-result_hang_stub leaf-result-hang success false 'VERDICT: PASS'
-sup_run "$result_kill_work" VERI_HEARTBEAT=1 "$SUP" verify-red "$stub/leaf-result-hang"
-result_kill_code=$?
-result_kill_rc="$(leaf_rc "$result_kill_work")"
-{ [[ "$result_kill_code" == 0 ]] \
-  && [[ "$result_kill_rc" == '<missing>' ]]; } && ok \
-  || no "a killed leaf whose log holds a terminal result record is reported with the leaf's own outcome, not killed-stuck (code=$result_kill_code want 0, .rc=$result_kill_rc want <missing>)"
-
-
-error_kill_work="$work/error-kill"
-result_hang_stub leaf-error-hang error_during_execution true 'the suite did not finish'
-sup_run "$error_kill_work" VERI_HEARTBEAT=1 "$SUP" verify-red "$stub/leaf-error-hang"
-error_kill_code=$?
-error_kill_rc="$(leaf_rc "$error_kill_work")"
-{ [[ "$error_kill_code" == 1 ]] \
-  && [[ "$error_kill_rc" == '<missing>' ]]; } && ok \
-  || no "a killed leaf whose terminal result record is an error is reported exit 1, not exit 0 (code=$error_kill_code want 1, .rc=$error_kill_rc want <missing>)"
-
-
-result_once_work="$work/result-once"
-result_hang_stub leaf-result-hang-counted success false 'VERDICT: PASS' 'echo attempt >> .attempts'
-sup_direct "$result_once_work" leaf-result-hang-counted 1 -u VERI_STUCK_RETRIES >/dev/null 2>&1
-result_once_code=$?
-result_once_attempts="$(wc -l < "$result_once_work/.attempts" 2>/dev/null | tr -d ' ')"
-result_once_retry="$(event_field "$result_once_work" retry cause)"
-{ [[ "$result_once_code" == 0 ]] \
-  && [[ "$result_once_attempts" == 1 ]] \
-  && [[ "$result_once_retry" == '<<0 retry lines>>' ]]; } && ok \
-  || no "a leaf recovered from its terminal result record is launched exactly once, with no stuck-retry (code=$result_once_code want 0, attempts=$result_once_attempts want 1, retry=$result_once_retry want <<0 retry lines>>)"
-
-
-result_text_work="$work/result-text"
-result_hang_stub leaf-verdict-hang success false 'VERDICT: PASS\nREASON: the new case fails on the eight session-handle checks'
-result_text_out="$(sup_direct "$result_text_work" leaf-verdict-hang 1 VERI_STUCK_RETRIES=0 2>/dev/null)"
-result_text_reason="$(printf '%s\n' "$result_text_out" | "$SCRIPTS/parse-verdict.sh" 2>&1)"
-result_text_code=$?
-{ [[ "$result_text_code" == 0 ]] \
-  && [[ "$result_text_reason" == *'eight session-handle checks'* ]]; } && ok \
-  || no "a recovered leaf's captured stdout ends with the clean result text, so parse-verdict.sh reads its verdict (verdict code=$result_text_code want 0, reason=$result_text_reason want the leaf's REASON text)"
-
-
-
-nores_work="$work/no-result"
-mkdir -p "$nores_work"
-cat > "$stub/leaf-noresult-hang" <<'L'
-echo '{"type":"system","subtype":"init","session_id":"4d1a","model":"claude-opus-5"}'
-echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: reading the suite"}]}}'
-clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"
-sleep 60
-L
-chmod +x "$stub/leaf-noresult-hang"
-nores_window=1
-sup_direct "$nores_work" leaf-noresult-hang "$nores_window" VERI_STUCK_RETRIES=0 \
-  >/dev/null 2>"$nores_work/err"
-nores_code=$?
-nores_status="$(grep '^supervise\[verify-red\]: killed-stuck' "$nores_work/err" || echo '<no status line>')"
-nores_cause="${nores_status#supervise\[verify-red\]: killed-stuck — }"
-{ [[ "$nores_code" == 2 ]] \
-  && heartbeat_kill "$nores_cause" "$nores_window"; } && ok \
-  || no "a killed leaf whose log holds no terminal result record is still exit 2 with its kill cause on stderr (code=$nores_code want 2, status line=$nores_status want a killed-stuck line whose cause reads 'no heartbeat for Ns (window ${nores_window}s)')"
-
 header_text="$(awk 'NR > 1 { if ($0 !~ /^#/) exit; sub(/^# ?/, ""); print }' "$SUP" | tr '\n' ' ')"
 header_unstated() {
   local where regex
@@ -295,14 +233,6 @@ header_unstated() {
     grep -qE "$regex" <<< "$header_text" || printf ' %s' "$where"
   done
 }
-header_misses="$(header_unstated <<'CLAIMS'
-stream-finishes-before-rc|(finish|complete)[a-z]* .{0,120}before .{0,80}(rc file|rcfile|\.rc)
-kill-is-not-proof|kill.{0,160}not proof
-CLAIMS
-)"
-
-[[ -z "$header_misses" ]] && ok \
-  || no "supervise.sh's header records that a leaf's stream can finish before its rc file is written, so a kill is not proof that no answer was obtained (unstated:$header_misses)"
 
 pid_work="$work/pid-record"
 mkdir -p "$pid_work"
