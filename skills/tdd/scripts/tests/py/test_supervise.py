@@ -19,6 +19,10 @@ def alive(pid):
     return True
 
 
+def skill_head():
+    return subprocess.run(["git", "-C", str(SCRIPTS), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+
+
 @pytest.fixture
 def supervise():
     return importlib.import_module("veri.supervise")
@@ -2649,7 +2653,7 @@ def test_cli_records_the_skill_clones_own_head_in_a_launch_events_skill_commit_a
         shutil.copy(script, outside / script.name)
     shutil.copytree(skill / "veri", outside / "veri")
     shutil.copytree(skill / "lib", outside / "lib")
-    head = subprocess.run(["git", "-C", str(skill), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    head = skill_head()
 
     def launch_commit(arm, here):
         clean_env(monkeypatch)
@@ -2951,7 +2955,7 @@ def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_cwd_answe
     hang = tmp_path / "leaf-hang"
     hang.write_text("#!/bin/sh\necho started\nexec sleep 60\n")
     hang.chmod(0o755)
-    head = subprocess.run(["git", "-C", str(skill), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    head = skill_head()
     beside = [SCRIPTS / ".tdd", skill / ".tdd", home / ".tdd"]
     beside_before = [p for p in beside if p.exists()]
     env = {**os.environ, **identity, "VERI_STUCK_RETRIES": "0", "VERI_POLL": "0.02", "VERI_KILL_POLL": "0.01"}
