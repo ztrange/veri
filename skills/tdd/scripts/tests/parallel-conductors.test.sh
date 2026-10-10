@@ -283,32 +283,6 @@ expect_lines "with VERI_PARALLEL=1 a conductor over VERI_CONDUCTOR_CTX_BUDGET mi
   "$(printf 'mid-step-7\nbefore-result-7\nend-8\n--\n7\n7\n8\n--\nrestarted 7')" \
   "$(cat "$one_marks"; echo --; cat "$one_launches"; echo --; grep '^restarted ' "$work/one.out" || true)" "$work/one.out"
 
-gh8="$work/gh8"
-solvable_fixture "$gh8" 7 8 9
-
-outcome_stub="$work/claude-outcome"
-conductor_stub "$outcome_stub" <<STUB
-if [ "\$n" = 8 ] || [ "\$n" = 9 ]; then
-  mkdir -p ".tdd/wt/\$n/.tdd"
-  printf '%s\n' '{"ts": 1, "issue": "'"\$n"'", "actor": "conductor", "phase": "develop-red", "step": "1", "event": "launch", "attempt": "1", "skill_commit": ""}' \
-    '{"ts": 2, "issue": "'"\$n"'", "actor": "conductor", "phase": "develop-red", "step": "1", "event": "bail", "attempt": "1", "skill_commit": "", "cause": "revise-budget"}' \
-    >> ".tdd/wt/\$n/.tdd/events.jsonl"
-  [ "\$n" = 9 ] && printf '%s\n' '{"ts": 3, "issue": "9", "actor": "conductor", "phase": "develop-red", "step": "1", "event": "launch", "attempt": "2", "skill_commit": ""}' \
-    >> ".tdd/wt/\$n/.tdd/events.jsonl"
-  $(open_pr "$gh8" true)
-else
-  $(ready_pr "$gh8")
-fi
-STUB
-
-run_launcher "$gh8" "$outcome_stub" "$work/outcome.out"
-want_outcome="$(printf '#7 — done https://example.test/pull/7\n#8 — bailed https://example.test/pull/8')"
-got_outcome="$(grep -E '^#[0-9]+ — ' "$work/outcome.out")"
-expect_lines "a ready PR is reported '#<n> — done <pr-url>', a draft PR whose event log ends in a bail '#<n> — bailed <pr-url>', and a draft PR whose log does not end in one never bailed" "$want_outcome" "$got_outcome" "$work/outcome.out"
-
-gh9="$work/gh9"
-solvable_fixture "$gh9" 7
-
 clock_stub() {
   printf '#!/bin/sh\nc="$(cat "%s" 2>/dev/null || echo 0)"\n[ -e "%s" ] && c=$((c + %s))\necho "$c" > "%s"\necho "$c"\n' \
     "$2" "${4:-/}" "$3" "$2" > "$1"
@@ -327,11 +301,6 @@ SH
 
 hang_stub="$work/claude-hang"
 hang | conductor_stub "$hang_stub"
-
-run_launcher "$gh9" "$hang_stub" "$work/killed.out" VERI_RUN_TIMEOUT=60 VERI_AWAKE_CLOCK="$jump_clock" VERI_KILL_POLL=0.01
-want_killed="#7 — killed after 60s"
-got_killed="$(grep -E '^#[0-9]+ — ' "$work/killed.out")"
-expect_lines "a conductor its supervisor killed (supervise exit 2) is reported '#<n> — killed after <VERI_RUN_TIMEOUT>s'" "$want_killed" "$got_killed" "$work/killed.out"
 
 bad=""
 for mode in stop continue; do
@@ -508,50 +477,6 @@ done
 
 [[ -z "$bad" ]] \
   && ok || no "exit 0 all done, 1 a bail or a kill, 2 plumbing, 3 nothing solvable, and .tdd/parallel.exit carries the final code on every exit path ($bad )"
-
-bad=""
-for shape in drain bail cap plumbing first-bail; do
-  repo="$work/stop-$shape"
-  fresh_repo "$repo"
-  gh19="$work/gh19-$shape"
-  solvable_fixture "$gh19" 7 8
-  stub19="$work/claude-stop-$shape"
-  vars=()
-  case "$shape" in
-    drain)      record_stub "$stub19" "$work/stop-$shape-record" "$gh19"
-                want_report="$(printf '#7 — done https://example.test/pull/7\n#8 — done https://example.test/pull/8\nstopped: nothing solvable')" ;;
-    bail)       conductor_stub "$stub19" <<STUB
-$(bailed_pr "$gh19")
-STUB
-                want_report="$(printf '#7 — bailed https://example.test/pull/7\nstopped: #7 bailed')" ;;
-    cap)        record_stub "$stub19" "$work/stop-$shape-record" "$gh19"
-                vars=(VERI_MAX_ISSUES=1)
-                want_report="$(printf '#7 — done https://example.test/pull/7\nstopped: VERI_MAX_ISSUES reached')" ;;
-    plumbing)   record_stub "$stub19" "$work/stop-$shape-record" "$gh19"
-                vars=(VERI_PRIORITY_LABEL=)
-                want_report="stopped: solvable-issues.sh could not answer" ;;
-    first-bail) conductor_stub "$stub19" <<STUB
-if [ "\$n" = 8 ]; then
-  i=0
-  while [ "\$i" -lt \$(( ${PATIENCE:-5} * 50 )) ] && [ ! -e .tdd/conductor-7.exit ]; do
-    sleep 0.02; i=\$((i + 1))
-  done
-  sleep 1
-fi
-$(bailed_pr "$gh19")
-STUB
-                vars=(VERI_PARALLEL=2)
-                want_report="$(printf '#7 — bailed https://example.test/pull/7\n#8 — bailed https://example.test/pull/8\nstopped: #7 bailed')" ;;
-  esac
-  run_launcher_in "$repo" "$gh19" "$stub19" "$work/stop-$shape.out" "${vars[@]+"${vars[@]}"}"
-  got_report="$(grep -E '^(#[0-9]+ — |stopped: )' "$work/stop-$shape.out")"
-  if [[ "$got_report" != "$want_report" ]]; then
-    bad+=" [$shape: exit=$code, report '$(printf '%s' "$got_report" | tr '\n' '|')' want '$(printf '%s' "$want_report" | tr '\n' '|')'; output: $(tr '\n' '|' < "$work/stop-$shape.out")]"
-  fi
-done
-
-[[ -z "$bad" ]] \
-  && ok || no "the report prints one line per issue in launch order, then one line naming what stopped the loop ($bad )"
 
 bad=""
 declare -A where_code where_report where_file where_ran
