@@ -61,14 +61,9 @@ def is_added(step):
     return untagged.endswith(" " + ADDED_MARK)
 
 
-def phase_mark(phase):
-    """The mark a phase's commit appends to its step."""
-    return f" ⟂ {phase} done"
-
-
-def owed_mark(phase):
-    """The mark a contract phase filed as owed appends to its step."""
-    return f" ⟂ {phase} owed"
+def mark(phase, state):
+    """The mark a phase appends to its step: state is "done" for its commit, "owed" for a contract filed as owed."""
+    return f" ⟂ {phase} {state}"
 
 
 def listed_phases(step):
@@ -80,9 +75,9 @@ def listed_phases(step):
 def next_phase(step):
     """The first phase step lists and has not marked done, or None once a phase is marked owed."""
     for phase in listed_phases(step):
-        if owed_mark(phase) in step:
+        if mark(phase, "owed") in step:
             return None
-        if phase_mark(phase) not in step:
+        if mark(phase, "done") not in step:
             return phase
     return None
 
@@ -153,13 +148,13 @@ def ledger_tick(text, matcher, pending=False):
     )
 
 
-def _with_phase_mark(line, phase, mark):
-    """line with mark(phase) appended; ValueError when line does not list phase or phase is not next."""
+def _with_phase_mark(line, phase, state):
+    """line with mark(phase, state) appended; ValueError when line does not list phase or phase is not next."""
     if phase not in listed_phases(line):
         raise ValueError(f"step does not list phase '{phase}'")
     if next_phase(line) != phase:
         raise ValueError(f"phase '{phase}' is not the step's next phase")
-    return line + mark(phase)
+    return line + mark(phase, state)
 
 
 def ledger_mark_phase(text, matcher, phase, owed=False):
@@ -170,7 +165,7 @@ def ledger_mark_phase(text, matcher, phase, owed=False):
     return _rewrite_first_step(
         text,
         _open_holding(matcher),
-        lambda match, line: _with_phase_mark(line, phase, owed_mark if owed else phase_mark),
+        lambda match, line: _with_phase_mark(line, phase, "owed" if owed else "done"),
     )
 
 
