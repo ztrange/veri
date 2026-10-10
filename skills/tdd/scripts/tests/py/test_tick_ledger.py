@@ -381,3 +381,21 @@ def test_main_with_phase_naming_a_listed_phase_before_an_earlier_unmarked_one_ex
     capsysbinary.readouterr()
 
     assert (code, ledger.read_bytes()) == (2, seed)
+
+
+def test_main_without_phase_refuses_a_phased_step_with_exit_2_naming_phase_leaving_the_ledger_byte_identical_while_a_plain_step_still_ticks_1385(
+        tmp_path, capsysbinary, tick_ledger):
+    seed = ("# Plan for #42\n\n"
+            "- [ ] split the slug module ⟦phases: expand, migrate⟧ ⟦criterion 2⟧\n"
+            "- [ ] strip edge hyphens\n").encode()
+    ledger = tmp_path / "ledger.md"
+    ledger.write_bytes(seed)
+
+    phased_code = tick_ledger.main([str(ledger), "split the slug module"])
+    _, phased_err = capsysbinary.readouterr()
+    phased_ledger = ledger.read_bytes()
+    plain_code = tick_ledger.main([str(ledger), "strip edge hyphens"])
+
+    assert (phased_code, phased_err.count(b"\n"), b"--phase" in phased_err, phased_ledger) == (2, 1, True, seed)
+    assert (plain_code, *capsysbinary.readouterr(), ledger.read_bytes()) == (
+        0, b"", b"", seed.replace(b"- [ ] strip", b"- [x] strip"))

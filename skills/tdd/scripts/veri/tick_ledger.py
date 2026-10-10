@@ -38,6 +38,10 @@ def main(argv):
             return 2
     else:
         ticked, new = ledger.ledger_tick(text, matcher, pending)
+        if ticked and ledger.listed_phases(next(
+                old for old, line in zip(text.split("\n"), new.split("\n")) if old != line)):
+            complain("step lists phases; mark one with --phase <phase>")
+            return 2
     if not ticked:
         return 3
     try:
