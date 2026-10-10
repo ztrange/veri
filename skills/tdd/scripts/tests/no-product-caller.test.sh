@@ -57,6 +57,19 @@ if [[ "$binary_code" == 1 && "$binary_out" == *"skills/tdd/scripts/veri/__pycach
   no "no-product-caller: a non-UTF-8 file under veri/ naming <name>.sh → exit 1 printing its file:line (code=$binary_code out=$binary_out)"
 fi
 
+tested="$work/test-callers"
+new_repo -b main "$tested" >/dev/null 2>&1
+mkdir -p "$tested/skills/tdd/scripts/veri/tests" "$tested/docs/hooks/tests"
+printf '# tdd\n' > "$tested/skills/tdd/SKILL.md"
+printf '#!/bin/sh\nscripts/old-thing.sh "$@"\n' > "$tested/docs/hooks/tests/reference-transaction.test.sh"
+printf 'import sys\n\n\nCALL = "old-thing.sh"\n' > "$tested/skills/tdd/scripts/veri/tests/test_caller.py"
+git -C "$tested" add -A >/dev/null 2>&1
+git -C "$tested" commit -q -m "test: callers" >/dev/null 2>&1
+tested_out="$(cd "$tested" && "$CHECK" old-thing.sh 2>&1)"; tested_code=$?
+if [[ "$tested_code" == 0 && -z "$tested_out" ]]; then ok; else
+  no "no-product-caller: a line naming <name>.sh only under a tests/ directory → exit 0 printing nothing (code=$tested_code out=$tested_out)"
+fi
+
 clean="$work/no-callers"
 new_repo -b main "$clean" >/dev/null 2>&1
 mkdir -p "$clean/skills/tdd/scripts/veri" "$clean/skills/tdd-fix" "$clean/skills/tdd-candidates" "$clean/docs/hooks"
