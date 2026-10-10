@@ -206,9 +206,6 @@ $(ready_pr "$gh_again")
 STUB
 
 run_launcher "$gh_again" "$again_stub" "$work/again.out" VERI_CONDUCTOR_CTX_BUDGET=100000
-expect_lines "a conductor stopped over VERI_CONDUCTOR_CTX_BUDGET is launched again for the same issue before a not-yet-launched solvable issue takes its slot" "$(printf '7\n7\n8')" "$(cat "$again_launches")" "$work/again.out"
-
-expect_lines "a conductor relaunched after an over-budget stop prints 'restarted <n>' naming its issue" "restarted 7" "$(grep '^restarted ' "$work/again.out" || true)" "$work/again.out"
 
 park_run() {
   local name="$1" gh="$work/gh-$1"

@@ -1231,3 +1231,43 @@ def test_a_conductor_over_veri_conductor_ctx_budget_is_stopped_only_once_its_ste
                              env=dict(env, VERI_PARALLEL="2", VERI_GH_JSON=str(gh)), cwd=work)
     assert (kills_before_result, events_seen, launches) == ([], events, launched)
     assert code in (0, 1, 2, 3)
+
+
+def test_a_conductor_stopped_over_veri_conductor_ctx_budget_is_launched_again_for_the_same_issue_before_a_not_yet_launched_solvable_issue_takes_its_slot_and_prints_restarted_naming_its_issue(
+        monkeypatch, tmp_path, parallel_conductors, run_cli):
+    gh, work = _gh_and_work(tmp_path)
+    log = work / ".tdd" / "conductor-7.log"
+    step_done = (b'{"type":"assistant","message":{"content":[{"type":"tool_use","input":{"command":'
+                 b'"skills/tdd/scripts/event.sh step-done"}}],"usage":{"cache_creation_input_tokens":0,'
+                 b'"cache_read_input_tokens":150000}}}\n')
+    user = b'{"type":"user","message":{"content":[{"type":"tool_result","content":""}]}}\n'
+    launches = []
+
+    def on_launch(sup):
+        launches.append(sup.args[-1])
+        if launches == ["7"]:
+            log.write_bytes(step_done)
+        else:
+            sup.exit(0)
+
+    def on_sleep(live):
+        if live[0].returncode is None:
+            with open(log, "ab") as f:
+                f.write(user)
+
+    supervisors = _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n8\n"))
+
+    def recording_kill(pid, sig):
+        live = [s for s in supervisors if s.pid == pid and s.returncode is None]
+        if not live:
+            raise ProcessLookupError(pid)
+        if sig == signal.SIGTERM:
+            live[0].exit(143)
+
+    monkeypatch.setattr(os, "kill", recording_kill)
+    for name in TUNABLES:
+        monkeypatch.delenv(name, raising=False)
+    code, out, err = run_cli(parallel_conductors, [],
+                             env={"VERI_CONDUCTOR_CTX_BUDGET": "100000", "VERI_GH_JSON": str(gh)}, cwd=work)
+    assert (launches, [line for line in out.splitlines() if line.startswith("restarted ")]) == (
+        ["7", "7", "8"], ["restarted 7"])
