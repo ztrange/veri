@@ -149,7 +149,7 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   issue body (the human-facing mirror).
 - `$S/next-unchecked.sh < .tdd/issue-<n>.md` — print the **first unchecked ledger step**'s
   description; **exit 3** when none remain (the loop-done / nothing-to-resume signal).
-- `$S/tick-ledger.sh [--refactor-pending] .tdd/issue-<n>.md "<substring>"` — check a step off
+- `$S/tick-ledger.sh [--refactor-pending] [--phase <phase>] .tdd/issue-<n>.md "<substring>"` — check a step off
   in the **committed ledger**, in place (staged + committed together with that step's green
   code). **Exit 3** if no unchecked step matched the substring — the file is left untouched,
   so a green commit that ticked nothing says so instead of reading as done.
@@ -157,6 +157,12 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   the green commit records the step as **green but not yet tidied**; that is the flag the
   green PASS ticks with, and the one the pin path must tick without — a pinned step runs no
   refactor loop, so a mark left there would never be cleared.
+  `--phase <phase>` instead appends ` ⟂ <phase> done` to the first open step listing
+  `⟦phases: …⟧` that matches, and leaves its checkbox `[ ]`; once every listed phase is marked
+  the step reads as `done` to `ledger-steps.sh` and `next-unchecked.sh` skips it. **Exit 2**,
+  ledger byte-identical, for a phase the step does not list or one that is not its next unmarked
+  phase. `$S/ledger-steps.sh next-phase < .tdd/issue-<n>.md` prints the first phased step's next
+  unmarked phase, **exit 3** when none is left. The run loop calls neither yet (#1312).
 - `$S/next-pending-refactor.sh < .tdd/issue-<n>.md` — print the **first ticked step whose
   refactor is unverified**: the description of the first `- [x]` step carrying the
   ` ⟂ refactor pending` mark, with the mark stripped, so what comes back is the same text
