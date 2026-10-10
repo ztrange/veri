@@ -15,3 +15,5 @@
 - test-only | test_build_verify_prompt.py spells the tuple ("expand", "migrate", "contract-a", "contract-b") literally in several cases (~L1075, L1081, L1125, L1158); it could be one module-level constant
 ### `SKILL.md` rejects an expand, migrate or contract (b) phase's commit that `transform-touches-tests.sh` exits 1 on, and a contract (a) phase's commit that `production-frozen.sh` exits 1 on ⟦criterion 2⟧
 - test-only | case 11's transform-touches-tests.sh and production-frozen.sh branches run the same window/exit 1/reject checks and could be one loop over (script, phases) pairs
+### `SKILL.md` starts a phased step's contract only once `no-product-caller.sh` on the old interface exits 0 ⟦criterion 2⟧
+- test-only | hoist the repeated `section '#### A \`⟦phases'` read and its "no '#### A \`⟦phases: …⟧\` step' subsection" empty check, shared by cases 11 and 12 of skills/tdd/scripts/tests/skill-refactor-kind.test.sh, into one helper
