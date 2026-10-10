@@ -328,6 +328,10 @@ elsewhere="$(sentences < "$md" | grep -iE 'step 1\.2 (takes|writes|locks)|(taken
 
 report "$name"
 
+negated() {
+  grep -iE '(^|[^[:alpha:]])(not|never|no)([^[:alpha:]]|$)'
+}
+
 rebase_span() {
   enter_at="$(awk -v w="$worktree_call" -v c="$enter_call" 'index($0, w) && index($0, c) { print NR; exit }' "$md")"
   if [[ -z "$enter_at" ]]; then
@@ -350,7 +354,7 @@ if rebase_span; then
   resumed="$(grep -F -- "$rebase_call" <<< "$between" | grep -iF 'resum' | grep -iF 'ledger')"
   [[ -n "$resumed" ]] ||
     problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying a resumed run, whose worktree and ledger already exist, runs $rebase_call, so a resumed run's baseline runs on its old base")
-  fresh="$(grep -iF 'new branch' <<< "$between" | grep -iF 'rebase' | grep -iE '(^|[^[:alpha:]])(not|never|no)([^[:alpha:]]|$)')"
+  fresh="$(grep -iF 'new branch' <<< "$between" | grep -iF 'rebase' | negated)"
   [[ -n "$fresh" ]] ||
     problems+=("$skill_md between line $enter_at ($enter_call) and line $base_at (the fast-tier baseline) has no sentence saying a new branch's run does not rebase there")
 fi
@@ -390,7 +394,7 @@ if rebase_span && preflight_or_problem "the resume rebase's push"; then
     [[ -n "$green" ]] ||
       problems+=("$skill_md:$push_at's sentence naming $lease_push does not say it runs once the baseline is green")
   fi
-  bare="$(sentences <<< "$step3" | grep -iF 'bare force' | grep -iE '(^|[^[:alpha:]])(not|never|no)([^[:alpha:]]|$)')"
+  bare="$(sentences <<< "$step3" | grep -iF 'bare force' | negated)"
   [[ -n "$bare" ]] ||
     problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) has no sentence saying the resume rebase is never published with a bare force")
 fi
