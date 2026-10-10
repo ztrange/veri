@@ -40,12 +40,6 @@ section() {
     plain --join
 }
 
-between() {
-  awk -v from="$1" -v to="$2" \
-    'index($0, from) == 1 { inside = 1; next } inside && index($0, to) == 1 { exit } inside' "$skill_path" |
-    plain --join
-}
-
 plan_heading='### 2. Scope & plan'
 
 skill_text="$(plain --join < "$skill_path")"
@@ -240,7 +234,7 @@ else
 fi
 
 loop_heading='### 3. The cycle loop'
-loop_text="$(between "$loop_heading" '### 4. Draft PR')"
+loop_text="$(section "$loop_heading")"
 if ! grep -F 'tick-ledger.sh --phase' <<<"$loop_text" > /dev/null; then
   problems+=("$skill_md's '$loop_heading' section never ticks a phase with tick-ledger.sh --phase, so a phased step's phases are never run")
 else
