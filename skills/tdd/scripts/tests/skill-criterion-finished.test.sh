@@ -256,6 +256,24 @@ else
 fi
 report "$name"
 
+name="#1397: $skill_md's pin PASS bullet names the ⟦replaces-case⟧ exception before its tick-and-commit, and the pin path and step 2 say whether Refactor and ⟂ refactor pending follow the deletion green"
+problems=()
+pin_recs="$(section_records '## Already satisfied — the pin')"
+pass_rec="$(first_record "$pin_recs" -F 'pass (exit 0)')"
+if [[ -z "$pass_rec" ]]; then
+  problems+=("pin PASS: no PASS (exit 0) bullet under '## Already satisfied — the pin' — the exception could not be checked")
+else
+  pass_before_tick="${pass_rec%%tick-ledger.sh*}"
+  [[ "$pass_before_tick" == *⟦replaces-case⟧* ]] ||
+    problems+=("pin PASS: the bullet never names the ⟦replaces-case⟧ exception before its tick-ledger.sh commit")
+fi
+pin_refactor_rec="$(first_record "$pin_recs" -F '⟦replaces-case⟧' -F 'refactor pending')"
+[[ -n "$pin_refactor_rec" && "$pin_refactor_rec" =~ delet && "$pin_refactor_rec" =~ refactor[^\ ]*\ (phase|leaf|follows|runs|does|is) ]] ||
+  problems+=("pin path: no ⟦replaces-case⟧ instruction says whether Refactor and ⟂ refactor pending follow the deletion green")
+[[ "$rc_rec" =~ refactor ]] ||
+  problems+=("plan guidance: the ⟦replaces-case⟧ step-kind paragraph never says whether Refactor follows the deletion green")
+report "$name"
+
 name="#1397: $skill_md's Guardrails line on a test that passes against unmodified code carves out the ⟦replaces-case⟧ deletion green"
 problems=()
 guard_rec="$(first_record "$(section_records '## Guardrails')" -F 'passes against unmodified code')"
