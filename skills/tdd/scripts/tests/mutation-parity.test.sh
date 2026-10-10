@@ -139,6 +139,33 @@ else
     stderr: $(cat "$work/old-stays-green-owed.err")"
 fi
 
+cat > "$repo/tests/extends.test.sh" <<'SUITE'
+#!/bin/sh
+. "$(dirname "$0")/../calc.sh"
+pass=0; fail=0
+check() { if [ "$2" = "$3" ]; then pass=$((pass + 1)); else fail=$((fail + 1)); echo "FAIL - $1"; fi; }
+check "adds two numbers" 5 "$(add 2 3)"
+check "adds two numbers, one negative" -1 "$(add 2 -3)"
+check "adds a negative" -1 "$(add 2 -3)"
+check "greets by name" "hello ann" "$(greet ann)"
+echo "----"
+echo "$pass passed, $fail failed"
+[ "$fail" -eq 0 ]
+SUITE
+chmod +x "$repo/tests/extends.test.sh"
+git -C "$repo" add -A && git -C "$repo" commit -qm extends
+table="$work/extends.tsv"
+printf 'tests/extends.test.sh\tadds two numbers\tredundant\tadds a negative\t%s\n' "$work/old-stays-green.patch" > "$table"
+out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/extends.err")" && code=0 || code=$?
+row="$(grep -F 'adds two numbers' <<<"$out" | grep -wF owed || true)"
+if [[ "$code" == 1 && -n "$row" ]]; then
+  ok
+else
+  no "#1436: a FAIL line that starts with the old case's name but goes on with neither end of line nor ' (' — another case whose name extends it — does not count as the old case failing, so the row reads owed (exit=$code want 1)
+    stdout: $out
+    stderr: $(cat "$work/extends.err")"
+fi
+
 table="$work/none-stays-green.tsv"
 out="$(cd "$repo" && "$PARITY" "$table" 2>"$work/none-stays-green-owed.err")" && code=0 || code=$?
 row="$(grep -F 'adds two numbers' <<<"$out" | grep -wF owed || true)"
