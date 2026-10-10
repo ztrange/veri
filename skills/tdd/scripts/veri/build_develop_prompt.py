@@ -12,7 +12,8 @@ WANT = {"red": 4, "green": 7, "refactor": 5, "cover": 4, "transform": 4, "diff":
         "predicate": 5, "revise": 6, "reconcile": 6, "exhausted": 5, "over-budget": 6, "rebase": 7,
         **dict.fromkeys(INTERFACE_PHASES, 4)}
 WANT_PHASES = "|".join(PHASES)
-WANT_REVISE_PHASES = "|".join(REVISE_PHASES + INTERFACE_PHASES)
+REVISABLE_PHASES = REVISE_PHASES + INTERFACE_PHASES
+WANT_REVISE_PHASES = "|".join(REVISABLE_PHASES)
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ARGUMENT_PLACEHOLDERS = {"<test-path>": "TEST_PATH", "<target-test>": "TARGET_TEST", "<fast-cmd>": "FAST_CMD",
                          "<touched-files>": "TOUCHED_FILES", "<issue-touched-files>": "TOUCHED_FILES",
@@ -48,7 +49,7 @@ def main(argv):
         revised_phase = args.pop(0)
         if not revised_phase:
             return _refuse("build-develop-prompt: missing <phase> being revised")
-        if revised_phase not in REVISE_PHASES + INTERFACE_PHASES:
+        if revised_phase not in REVISABLE_PHASES:
             return _refuse(f"build-develop-prompt.sh: unknown phase to revise '{revised_phase}' "
                            f"(want {WANT_REVISE_PHASES})")
     names = ["<issue-spec-file>", "<step-text>", "<test-cmd>"] + {
