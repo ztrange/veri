@@ -32,6 +32,8 @@
 #      step pending and none unchecked, and says the run reaches the PR after it.
 #  11. SKILL.md's Resume says a leaf killed in Red or Green leaves the same stray work a
 #      killed refactor leaf does.
+#  12. SKILL.md's Resume sub-step 2 uses the `$stray` preflight step 3 captured and never
+#      runs `stray="$(git status --porcelain)"` again after that reset.
 #
 # Run: scripts/tests/skill-refactor-pending.test.sh
 set -uo pipefail
@@ -472,6 +474,19 @@ if records_from resume_instructions \
       "$skill_md's Resume never names Red and Green together as phases a kill leaves stray work from, so the unconditional reset reads as being about the refactor leaf alone and the next rewording puts it back under the pending branch"
     says '[^a-z](red|green)[^.]{0,30}[^a-z](or|and)[^a-z][^.]{0,30}(green|red)[^a-z][^.]{0,80}refactor' \
       "$skill_md's Resume names Red and Green without saying their killed leaf leaves the same stray work a killed refactor one does, so nothing says the two paths are one kill mode and a reader is left thinking only the pending step's tree is dirty"
+  fi
+fi
+report "$name"
+
+name="#1420: $skill_md's Resume sub-step 2 uses the \$stray preflight step 3 captured and never re-captures git status --porcelain after that reset"
+problems=()
+if records_from resume_instructions \
+    "$skill_md has no ## Resume section to read — where sub-step 2 gets \$stray from could not be checked"; then
+  if reads 'is Resume sub-step 2' '^2\. '; then
+    denies 'stray="?\$\(git status --porcelain' \
+      "$skill_md's Resume sub-step 2 tells the conductor to run stray=\"\$(git status --porcelain)\" itself, but preflight step 3 has already reset the tree, so the capture overwrites \$stray with nothing and the ### ▶️ Resuming comment names no stray files"
+    says 'preflight' \
+      "$skill_md's Resume sub-step 2 never says the stray capture already happened in preflight step 3, so nothing tells the conductor which \$stray sub-step 4 names"
   fi
 fi
 report "$name"
