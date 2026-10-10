@@ -50,6 +50,12 @@ def pytest_collection_modifyitems(config, items):
         raise pytest.UsageError("process mark without a boundary: %s" % ", ".join(unnamed))
 
 
+@pytest.fixture(autouse=True)
+def small_case_guard(request, monkeypatch):
+    if request.node.get_closest_marker("process") is None:
+        monkeypatch.setenv("PATH", str(SCRIPTS / "tests" / "unit-guard") + os.pathsep + os.environ.get("PATH", ""))
+
+
 @pytest.fixture
 def run_cli(monkeypatch, capfd):
     def run(module, argv, stdin="", env=None, cwd=None):
