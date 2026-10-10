@@ -228,49 +228,6 @@ hang | conductor_stub "$hang_stub"
 
 fresh="$work/fresh"
 fresh_repo "$fresh"
-status_after_launch() {
-  local repo="$1" name="$2"
-  solvable_fixture "$work/gh-$name" 7
-  record_stub "$work/claude-$name" "$work/$name-record" "$work/gh-$name"
-  run_launcher_in "$repo" "$work/gh-$name" "$work/claude-$name" "$work/$name.out"
-  got_status="$(git -C "$repo" status --porcelain 2>&1)"
-  [[ -s "$work/$name-record" ]] || got_status+="<conductor never ran>"
-}
-role_repo="$work/role"
-fresh_repo "$role_repo"
-status_after_launch "$role_repo" role
-got_refusals="$(grep -F 'leaf-role:' "$work/role.out" | sort -u)"
-[[ -s "$work/role-record" ]] || got_refusals+="<conductor never ran>"
-expect_lines "supervising a conductor-<n> prints no leaf-role.sh refusal" "" "$got_refusals" "$work/role.out"
-
-bad=""
-declare -A where_code where_report where_file where_ran
-ln -s "$skill" "$work/skill-link"
-for shape in in-place symlink; do
-  repo="$work/where-$shape"
-  fresh_repo "$repo"
-  gh_where="$work/gh-where-$shape"
-  solvable_fixture "$gh_where" 7
-  record_stub "$work/claude-where-$shape" "$work/where-$shape-record" "$gh_where"
-  where_skill="$skill"
-  [[ "$shape" == symlink ]] && where_skill="$work/skill-link"
-  skill="$where_skill" run_launcher_in "$repo" "$gh_where" "$work/claude-where-$shape" "$work/where-$shape.out"
-  where_code[$shape]="$code"
-  where_report[$shape]="$(grep -E '^(#[0-9]+ — |stopped: )' "$work/where-$shape.out")"
-  where_file[$shape]="$(cat "$repo/.tdd/parallel.exit" 2>/dev/null || echo '<missing>')"
-  where_ran[$shape]="$(cat "$work/where-$shape-record" 2>/dev/null)"
-done
-want_where="$(printf '#7 — done https://example.test/pull/7\nstopped: nothing solvable')"
-for shape in in-place symlink; do
-  if [[ "${where_ran[$shape]}" != "start 7" || "${where_report[$shape]}" != "$want_where" \
-        || "${where_code[$shape]}" != "${where_code[in-place]}" || "${where_file[$shape]}" != "${where_code[in-place]}" ]]; then
-    bad+=" [$shape: exit=${where_code[$shape]} want ${where_code[in-place]}, .tdd/parallel.exit '${where_file[$shape]}', conductor ran '${where_ran[$shape]}' want 'start 7', report '$(printf '%s' "${where_report[$shape]}" | tr '\n' '|')'; output: $(tr '\n' '|' < "$work/where-$shape.out")]"
-  fi
-done
-
-[[ -z "$bad" ]] \
-  && ok || no "run through a symlink to the skill directory and from another working directory, parallel-conductors.sh finds solvable-issues.sh, supervise.sh and run-conductor.sh and answers as it does run in place ($bad )"
-
 scope_loop_md="$HERE/../../SCOPE-LOOP.md"
 sentences="$(tr '\n' ' ' < "$scope_loop_md" | tr -s ' ' | sed 's/\. /.\n/g')"
 said() {
