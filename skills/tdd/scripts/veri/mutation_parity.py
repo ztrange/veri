@@ -20,19 +20,20 @@ def failed_cases(suite):
     return failed, passed
 
 
+def pytest(*args):
+    return subprocess.run([venv_python(), "-m", "pytest", "-q", *args], capture_output=True,
+                          text=True, stdin=subprocess.DEVNULL)
+
+
 def failed_nodes(suite):
-    run = subprocess.run([venv_python(), "-m", "pytest", "-q", "-rA", suite], capture_output=True,
-                         text=True, stdin=subprocess.DEVNULL)
-    lines = run.stdout.splitlines()
+    lines = pytest("-rA", suite).stdout.splitlines()
     failed = {line.split()[1] for line in lines if line.startswith(("FAILED ", "ERROR "))}
     passed = sum(1 for line in lines if line.startswith("PASSED "))
     return failed, passed
 
 
 def node_fails(node):
-    run = subprocess.run([venv_python(), "-m", "pytest", "-q", node], capture_output=True,
-                         stdin=subprocess.DEVNULL)
-    return run.returncode != 0
+    return pytest(node).returncode != 0
 
 
 def check(row):
