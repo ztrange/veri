@@ -390,11 +390,15 @@ resume_step3() {
   item_end="$(item_last_line "$enter_at")"
 }
 
+step3_line_of() {
+  awk -v s="$enter_at" -v e="$item_end" -v n="$1" 'NR >= s && NR <= e && index($0, n) { print NR; exit }' "$md"
+}
+
 name="#1297 $skill_md publishes a resume rebase that moved the branch, once the baseline is green, with $lease_push, never a bare force"
 problems=()
 
 if resume_step3 "the resume rebase's push"; then
-  push_at="$(awk -v s="$enter_at" -v e="$item_end" -v p="$lease_push" 'NR >= s && NR <= e && index($0, p) { print NR; exit }' "$md")"
+  push_at="$(step3_line_of "$lease_push")"
   if [[ -z "$push_at" ]]; then
     problems+=("$skill_md's preflight step 3 (lines $enter_at-$item_end) never names $lease_push, so a resume rebase that moved the branch is left unpublished or pushed without a pinned lease")
   else
@@ -426,7 +430,7 @@ name="#1297 $skill_md marks a resume rebase that moved the branch in the run log
 problems=()
 
 if resume_step3 "the resume rebase's event"; then
-  rebase_at="$(awk -v s="$enter_at" -v e="$item_end" -v r="$rebase_call" 'NR >= s && NR <= e && index($0, r) { print NR; exit }' "$md")"
+  rebase_at="$(step3_line_of "$rebase_call")"
   mark="$(sed -n "${rebase_at:-$enter_at},${item_end}p" "$md" | grep -oE 'event\.sh [a-z][a-z-]*( [^`]*)?' | grep -F '<pre-rebase-sha>' | head -n 1)"
   event_name="$(awk '{ print $2 }' <<< "$mark")"
   if [[ -z "$event_name" ]]; then
