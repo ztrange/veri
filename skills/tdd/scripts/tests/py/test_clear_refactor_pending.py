@@ -351,6 +351,26 @@ def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_the_temporary_
     assert (code, led.read_bytes()) == (2, seed)
 
 
+def test_main_returns_2_leaving_the_ledger_byte_identical_and_nothing_beside_it_when_tempfile_mkstemp_fails_1396(
+        tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
+    seed = "- [x] alpha ⟂ refactor pending\n- [x] beta ⟂ refactor pending\n".encode()
+    led = tmp_path / "ledger.md"
+    led.write_bytes(seed)
+
+    def refusing_mkstemp(*args, **kwargs):
+        raise OSError(errno.ENOSPC, os.strerror(errno.ENOSPC))
+
+    monkeypatch.setattr(tempfile, "mkstemp", refusing_mkstemp)
+    try:
+        code = clear_refactor_pending.main([str(led), "beta"])
+    except OSError as error:
+        code = type(error).__name__
+    monkeypatch.undo()
+    capsysbinary.readouterr()
+
+    assert (code, led.read_bytes(), sorted(p.name for p in tmp_path.iterdir())) == (2, seed, ["ledger.md"])
+
+
 def test_main_leaves_the_ledger_byte_identical_and_returns_2_when_writing_the_cleared_ledger_and_writing_its_old_contents_back_both_fail_817(
         tmp_path, monkeypatch, capsysbinary, clear_refactor_pending):
     seed = "".join(f"- [x] step {n} ⟂ refactor pending\n" for n in range(8)).encode()
