@@ -57,4 +57,20 @@ if [[ "$binary_code" == 1 && "$binary_out" == *"skills/tdd/scripts/veri/__pycach
   no "no-product-caller: a non-UTF-8 file under veri/ naming <name>.sh → exit 1 printing its file:line (code=$binary_code out=$binary_out)"
 fi
 
+clean="$work/no-callers"
+new_repo -b main "$clean" >/dev/null 2>&1
+mkdir -p "$clean/skills/tdd/scripts/veri" "$clean/skills/tdd-fix" "$clean/skills/tdd-candidates" "$clean/docs/hooks"
+printf '# tdd\n\n    scripts/new-thing.sh <base-sha>\n' > "$clean/skills/tdd/SKILL.md"
+printf '# tdd-fix\n\n    scripts/new-thing.sh\n' > "$clean/skills/tdd-fix/SKILL.md"
+printf '# tdd-candidates\nscripts/new-thing.sh\n' > "$clean/skills/tdd-candidates/SKILL.md"
+printf 'test:\n\t@true\nnew:\n\tscripts/new-thing.sh\n' > "$clean/Makefile"
+printf '#!/bin/sh\nscripts/new-thing.sh "$@"\n' > "$clean/docs/hooks/reference-transaction"
+printf 'import sys\n\n\nCALL = "new-thing.sh"\n' > "$clean/skills/tdd/scripts/veri/caller.py"
+git -C "$clean" add -A >/dev/null 2>&1
+git -C "$clean" commit -q -m "feat: no callers" >/dev/null 2>&1
+clean_out="$(cd "$clean" && "$CHECK" old-thing.sh 2>&1)"; clean_code=$?
+if [[ "$clean_code" == 0 && -z "$clean_out" ]]; then ok; else
+  no "no-product-caller: no product file line names <name>.sh → exit 0 printing nothing (code=$clean_code out=$clean_out)"
+fi
+
 finish
