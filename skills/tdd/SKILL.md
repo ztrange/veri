@@ -1170,7 +1170,8 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    ```
    On a `⟦replaces-case⟧` step, a PASS is accepted only once the conductor's own run of
    `$S/mutation-parity.sh <pairs-table>` on that step's pairs table exits 0; exit 1 is a
-   REJECT, exit 2 a bail.
+   REJECT, exit 2 a bail. The PR body's pairs table is that run's report, and each row it
+   reports owed goes into the PR body under `## Owed by a human`.
 3. **Narrate + branch.** Post `### 🟢 Green` (implementation + green suite output) and
    `### 🔎 verify-green — PASS|REJECT` (the reason).
    - **PASS — check off the ledger step and commit atomically.** Tick STEP in the ledger,
@@ -1803,7 +1804,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    [ "$ci" != 1 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-red classification="$($S/classify-bail.sh ci-red)" failed="$(gh api "repos/{owner}/{repo}/commits/$(git rev-parse HEAD)/check-runs" -q '[.check_runs[] | select(.conclusion != null and (.conclusion | ascii_upcase | IN("SUCCESS", "NEUTRAL", "SKIPPED") | not)) | .name] | join(",")')"
    [ "$ci" != 2 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
-   gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)" -f body="<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by its ⟦human-owed⟧ lines under ## Owed by a human, followed by <overflow-url>, the issue refactor-overflow.sh filed, when the pass filed one>"
+   gh api -X PATCH repos/{owner}/{repo}/pulls/<pr-number> -f title="<type>: <criterion summary> (#<n>)" -f body="<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md (or, when $metrics is not 0, the line 'metrics could not be rendered: metrics.sh exited $metrics' in its place), followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by the conductor's mutation-parity.sh report as the pairs table, followed by its ⟦human-owed⟧ lines and each row that report owes under ## Owed by a human, followed by <overflow-url>, the issue refactor-overflow.sh filed, when the pass filed one>"
    ```
    The readied PR's CI is read fail-closed, the way the `merge` skill reads it: an empty
    rollup is never a pass, and a completed check whose conclusion is anything other than

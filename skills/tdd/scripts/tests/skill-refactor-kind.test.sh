@@ -30,6 +30,8 @@
 #      name.
 #  17. SKILL.md puts mutation-parity.sh's report into the PR body, its owed rows under
 #      ## Owed by a human — see case 17's name.
+#  18. SKILL.md's Draft PR body template and its Green gate both carry mutation-parity.sh's
+#      report — see case 18's name.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -406,6 +408,35 @@ else
   grep -E 'rows? (it|mutation-parity\.sh) reports? owed' <<<"$parity_near" > /dev/null &&
     grep -F '## owed by a human' <<<"$parity_near" > /dev/null ||
     problems+=("$skill_md never puts a row mutation-parity.sh reports owed into the PR body under ## Owed by a human")
+fi
+report "$name"
+
+name="$skill_md's Draft PR step puts the conductor's mutation-parity.sh report into the PR body template as the pairs table and its owed rows under ## Owed by a human, and the ⟦replaces-case⟧ Green gate says the same of its run's report"
+problems=()
+
+pr_text="$(section '### 4. Draft PR')"
+body_template="$(grep -oE 'gh api -x patch [^"]*-f title="[^"]*" -f body="[^"]*"' <<<"$pr_text")"
+if [[ -z "$body_template" ]]; then
+  problems+=("$skill_md's Draft PR step has no gh api -X PATCH … -f body= template to read")
+elif ! grep -F 'mutation-parity.sh' <<<"$body_template" > /dev/null; then
+  problems+=("$skill_md's Draft PR body template never includes mutation-parity.sh's report, so the PR body a reviewer reads carries no pairs table the conductor checked")
+else
+  near="$(window "$body_template" 'mutation-parity\.sh')"
+  grep -F 'pairs table' <<<"$near" > /dev/null ||
+    problems+=("$skill_md's Draft PR body template includes mutation-parity.sh's report without saying it is the pairs table")
+  grep -E 'owed' <<<"$near" > /dev/null && grep -F '## owed by a human' <<<"$near" > /dev/null ||
+    problems+=("$skill_md's Draft PR body template never puts mutation-parity.sh's owed rows under ## Owed by a human")
+fi
+
+green_text="$(section '#### Green')"
+green_near="$(windows "$green_text" 'mutation-parity\.sh' 400 | grep -F 'pr body')"
+if [[ -z "$green_near" ]]; then
+  problems+=("$skill_md's ⟦replaces-case⟧ Green gate never says its mutation-parity.sh report goes into the PR body")
+else
+  grep -F 'pairs table' <<<"$green_near" > /dev/null ||
+    problems+=("$skill_md's ⟦replaces-case⟧ Green gate puts mutation-parity.sh's report into the PR body without saying it is the pairs table")
+  grep -E 'owed' <<<"$green_near" > /dev/null && grep -F '## owed by a human' <<<"$green_near" > /dev/null ||
+    problems+=("$skill_md's ⟦replaces-case⟧ Green gate never puts a row its report owes under ## Owed by a human")
 fi
 report "$name"
 
