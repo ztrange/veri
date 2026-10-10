@@ -967,25 +967,19 @@ def test_main_records_no_deadline_on_a_draft_pr_and_counts_one_from_its_first_re
     past = f"wait-ci.sh: checks of {PR} still pending past the deadline recorded for {FULL_SHA}\n"
 
     def waited(name, reads, *argvs):
-        """<reads>[n] is (draft, runs) for the n-th read of the pull, its last repeating; the clock
-        runs 60 s on per reading across every call."""
+        """<reads>[n] is (draft, runs) for the n-th read of the pull, its last repeating."""
         work = tmp_path / name
         (work / ".tdd").mkdir(parents=True)
-        state = {"reads": 0, "clock": 0}
+        state = {"reads": 0}
 
-        def answer(line, **_):
-            if line == "date +%s":
-                state["clock"] += 1
-                return 0, f"{(state['clock'] - 1) * 60}\n", ""
-            if line.startswith("sleep "):
-                return 0, "", ""
+        def answer(line):
             draft, runs = reads[min(state["reads"] - (line != PULL), len(reads) - 1)]
             if line == PULL:
                 state["reads"] += 1
-                return 0, json.dumps({"number": 1, "state": "open", "draft": draft, "head": {"sha": FULL_SHA}}), ""
-            return 0, sha_bodies([runs] if runs else [], [], "pending").get(line, ""), ""
+                return json.dumps({"number": 1, "state": "open", "draft": draft, "head": {"sha": FULL_SHA}})
+            return sha_bodies([runs] if runs else [], [], "pending").get(line)
 
-        fake_processes(answer)
+        served(fake_processes, {}, answer)
         answers = [run_cli(wait_ci, [PR, *argv], env={"VERI_POLL": "0"}, cwd=work) for argv in argvs]
         return answers, {p.name: p.read_text() for p in (work / ".tdd").iterdir()}
 
