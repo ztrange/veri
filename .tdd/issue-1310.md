@@ -1,6 +1,6 @@
 # Plan for #1310 — PRD 009 C3-2: a production-frozen check for contract (a), and a no-product-caller check that gates contract
 
-- [ ] Given a base sha, the production-frozen check exits 1 and names each path changed in `<base>..HEAD` that is not a test file by `transform-touches-tests.sh`'s rule ⟦criterion 1⟧
+- [x] Given a base sha, the production-frozen check exits 1 and names each path changed in `<base>..HEAD` that is not a test file by `transform-touches-tests.sh`'s rule ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] The production-frozen check exits 0, printing no path, when every path changed in `<base>..HEAD` is a test file by that same rule (under a `tests/` directory or named `*.test.*`) ⟦criterion 1⟧
 - [ ] The production-frozen check exits 2 when the base does not resolve to a commit ⟦criterion 1⟧
 - [ ] Given an old script interface `<name>.sh`, the no-product-caller check exits 1 printing `file:line` for a line in `skills/tdd/SKILL.md` that names it ⟦criterion 2⟧
