@@ -1320,3 +1320,24 @@ def test_main_renders_a_revise_prompt_for_each_interface_phase_naming_it_and_car
         results[phase] = (code, f"(redoing {phase})".encode() in out, reason_text in out, err)
 
     assert results == {phase: (0, True, True, b"") for phase in ("expand", "migrate", "contract-a", "contract-b")}
+
+
+def test_main_states_each_interface_phases_freeze_rule_in_its_revise_prompt_1448(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    reason = tmp_path / "reason.md"
+    reason.write_bytes(b"REJECT: the phase left a caller on the old name.\n")
+
+    frozen = {}
+    for phase in ("expand", "migrate", "contract-a", "contract-b"):
+        code = build_develop_prompt.main(
+            ["revise", phase, str(spec), "QWIXTLE: zorblat quuxes", "make test", str(reason), "make unit"])
+        out, _ = capsysbinary.readouterr()
+        text = re.sub(rb"\s+", b" ", out)
+        kinds = {kind.lower() for kind in
+                 re.findall(rb"\bnever modify\b[^.]{0,20}?\b(test|production) files?\b", text, re.I)}
+        frozen[phase] = (code, kinds)
+
+    assert frozen == {"expand": (0, {b"test"}), "migrate": (0, {b"test"}),
+                      "contract-a": (0, {b"production"}), "contract-b": (0, {b"test"})}
