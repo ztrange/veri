@@ -86,4 +86,19 @@ if [[ "$clean_code" == 0 && -z "$clean_out" ]]; then ok; else
   no "no-product-caller: no product file line names <name>.sh → exit 0 printing nothing (code=$clean_code out=$clean_out)"
 fi
 
+module="$work/module-caller"
+new_repo -b main "$module" >/dev/null 2>&1
+mkdir -p "$module/skills/tdd/scripts/veri"
+printf '# tdd\n' > "$module/skills/tdd/SKILL.md"
+printf 'import sys\n\n\ndef old_func(argv):\n    return 0\n' > "$module/skills/tdd/scripts/veri/old_mod.py"
+printf 'import old_mod\n\n\ndef main(argv):\n    return old_mod.old_func(argv)\n' > "$module/skills/tdd/scripts/veri/caller.py"
+git -C "$module" add -A >/dev/null 2>&1
+git -C "$module" commit -q -m "feat: module caller" >/dev/null 2>&1
+module_out="$(cd "$module" && "$CHECK" old_mod.old_func 2>&1)"; module_code=$?
+if [[ "$module_code" == 1 \
+  && "$module_out" == *"skills/tdd/scripts/veri/caller.py:5"* \
+  && "$module_out" != *"skills/tdd/scripts/veri/old_mod.py"* ]]; then ok; else
+  no "no-product-caller: <module>.<function> named by a product line → exit 1 printing that file:line, never its own def in veri/<module>.py (code=$module_code out=$module_out)"
+fi
+
 finish
