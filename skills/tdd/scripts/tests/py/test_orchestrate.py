@@ -774,3 +774,60 @@ def test_main_refuses_a_bad_budget_or_stop_timeout_relaunches_an_unfinished_cond
     assert orchestrated("parked", [(0, "1201\n1202\n"), (0, "1201\n1202\n"), (3, "")], {},
                         on_launch=park, issue_ledger="1201") == (
         0, "parked 1201\n", "", [[conductor, "1201"], [conductor, "1202"]], ledger)
+
+
+@pytest.mark.process("a conductor's own session, signal dispositions, stdin, stderr and the SIGTERM it receives")
+def test_a_conductor_leads_a_new_session_with_stdin_dev_null_orchestrates_stderr_sigint_and_sigquit_ignored_sigpipe_and_sigxfsz_fatal_and_is_sigtermed_at_the_stop(
+        tmp_path, monkeypatch, orchestrate, fake_processes, run_cli):
+    marks = tmp_path / "marks"
+    stub = tmp_path / "run-conductor.sh"
+    stub.write_text("""#!/usr/bin/env bash
+{ printf 'argv %s:' "$#"; printf ' [%s]' "$@"; echo; } >> "$MARKS"
+trap -p >> "$MARKS"
+python3 -c 'import os, sys
+pid, outer = int(sys.argv[1]), int(sys.argv[2])
+print("new session led by its pid" if os.getsid(0) == pid != outer else "session %d, pid %d, outer %d" % (os.getsid(0), pid, outer))
+print("stdin /dev/null" if os.path.samestat(os.fstat(0), os.stat("/dev/null")) else "stdin not /dev/null")' $$ "$OUTER_SID" >> "$MARKS"
+echo "conductor $1 on stderr" >&2
+exec 2> /dev/null
+yes | dd bs=1 count=1 of=/dev/null
+echo "yes ${PIPESTATUS[0]}" >> "$MARKS"
+bash -c 'ulimit -f 0; echo x > "$1"' _ "$MARKS.big"
+echo "xfsz $?" >> "$MARKS"
+trap 'echo "TERM to $$" >> "$MARKS"; exit 0' TERM
+exec > /dev/null
+i=0
+while [ $i -lt 400 ]; do sleep 0.01; i=$((i + 1)); done
+echo "never stopped" >> "$MARKS"
+""")
+    stub.chmod(0o755)
+    real_popen, launched = subprocess.Popen, []
+    answers = [(0, "1301\n"), (3, "")]
+    fake_processes(lambda line, **kwargs: answers.pop(0) + ("",))
+
+    def popen(args, *rest, **kwargs):
+        launched.append(real_popen([str(stub)] + list(args[1:]), *rest, **kwargs))
+        launched.append(os.path.basename(args[0]))
+        return launched[0]
+
+    monkeypatch.setattr(subprocess, "Popen", popen)
+    monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+    monkeypatch.delenv("VERI_CONDUCTOR_STOP_TIMEOUT", raising=False)
+    own_stdin = tmp_path / "stdin"
+    own_stdin.write_text("orchestrate's own stdin\n")
+    saved_stdin = os.dup(0)
+    try:
+        with open(own_stdin) as f:
+            os.dup2(f.fileno(), 0)
+        code, out, err = run_cli(orchestrate, [], env={"MARKS": str(marks), "OUTER_SID": str(os.getsid(0))},
+                                 cwd=tmp_path)
+    finally:
+        os.dup2(saved_stdin, 0)
+        os.close(saved_stdin)
+    conductor, name = launched
+    conductor.wait(timeout=10)
+    assert (code, out, err, name) == (0, "", "conductor 1301 on stderr\n", "run-conductor.sh")
+    assert marks.read_text().splitlines() == [
+        "argv 1: [1301]", "trap -- '' SIGINT", "trap -- '' SIGQUIT", "new session led by its pid",
+        "stdin /dev/null", "yes 141", "xfsz 153", "TERM to %d" % conductor.pid]
+    assert answers == []
