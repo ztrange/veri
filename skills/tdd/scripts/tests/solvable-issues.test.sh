@@ -65,7 +65,7 @@ chmod +x "$stubdir/gh"
 gh_run() {  # gh_run <argv-log> [script args...]; sets $out and $code
   local log="$1"; shift
   : > "$log"
-  out="$(env -u VERI_GH_JSON VERI_GH_DRIVER=auto PATH="$stubdir:$PATH" ARGV_OUT="$log" \
+  out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL VERI_GH_DRIVER=auto PATH="$stubdir:$PATH" ARGV_OUT="$log" \
          GH_ISSUES="$fx/issues.json" GH_PRS="$fx/prs.json" \
          "$SOLVABLE" "$@" 2>/dev/null)" && code=0 || code=$?
 }
