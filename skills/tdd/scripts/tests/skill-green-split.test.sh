@@ -324,4 +324,33 @@ fi
 
 report "$name"
 
+require() {
+  grep -F -- "$1" > /dev/null <<<"$2" || problems+=("$3")
+}
+
+green_paragraph() {
+  awk 'index($0, "On a `⟦replaces-case⟧` step, a PASS is accepted") { inside = 1 }
+       inside && /^3\. / { exit }
+       inside' "$skill_path" | tr -d '*`' | tr '\n' ' ' | tr -s ' '
+}
+section="$(green_paragraph)"
+
+name="$skill_md's replaces-case green paragraph runs replaces-case-survivors.sh before verify-green and, on survivors, relaunches the green leaf naming them, records an event and launches no verifier"
+problems=()
+
+if [[ -z "${section// /}" ]]; then
+  problems+=("$skill_md has no replaces-case paragraph in the Green step's Verify (blind) to read — the survivors check could not be established")
+else
+  require 'replaces-case-survivors.sh' "$section" \
+    "$skill_md's replaces-case Green paragraph never runs replaces-case-survivors.sh, so a green that kept a named case reaches a verifier"
+  require 'relaunch' "$section" \
+    "$skill_md's replaces-case Green paragraph never relaunches the green leaf on survivors"
+  require 'event' "$section" \
+    "$skill_md's replaces-case Green paragraph never records the relaunch as an event"
+  require 'no verifier' "$section" \
+    "$skill_md's replaces-case Green paragraph never says no verifier is launched while a named case survives"
+fi
+
+report "$name"
+
 finish

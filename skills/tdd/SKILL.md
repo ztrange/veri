@@ -1222,7 +1222,11 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    On a `⟦replaces-case⟧` step, a PASS is accepted only once the conductor's own run of
    `$S/mutation-parity.sh <pairs-table>` on that step's pairs table exits 0; exit 1 is a
    REJECT, exit 2 a bail. The PR body's pairs table is that run's report, and each row it
-   reports owed goes into the PR body under `## Owed by a human`.
+   reports owed goes into the PR body under `## Owed by a human`. Before that verify-green
+   launches, the conductor runs `$S/replaces-case-survivors.sh "<step text>"`; exit 1 prints
+   the named cases the suite still holds, and the conductor then relaunches the green leaf
+   naming those survivors, records the relaunch as an event (`$S/event.sh`), and launches no
+   verifier on that green.
 3. **Narrate + branch.** Post `### 🟢 Green` (implementation + green suite output) and
    `### 🔎 verify-green — PASS|REJECT` (the reason).
    - **PASS — check off the ledger step and commit atomically.** Tick STEP in the ledger,
