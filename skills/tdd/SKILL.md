@@ -80,11 +80,13 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   default 180), `VERI_TIMEOUT` (hard cap s, default 900), `VERI_STUCK_RETRIES` (extra
   attempts after a killed-stuck, default 1 — the **liveness** axis, independent of both the
   conductor's verdict-axis `REVISE_BUDGET` and its cost-axis `VERI_REFACTOR_BUDGET`).
-  Three more choose the **model** each leaf runs on, resolved here through
+  Four more choose the **model** each leaf runs on, resolved here through
   `$S/leaf-model.sh` and passed to `claude --model`: `VERI_MODEL` (every leaf),
-  `VERI_MODEL_DEVELOPER` (developer leaves only — `develop-*`, `revise-*`) and
+  `VERI_MODEL_DEVELOPER` (developer leaves only — `develop-*`, `revise-*`),
+  `VERI_MODEL_REVISE` (only the developer leaves that redo rejected work — `revise-*` and
+  `develop-exhausted` — beating `VERI_MODEL_DEVELOPER` for them) and
   `VERI_MODEL_VERIFIER` (verifier leaves only — `verify-*`, `verify-pin` included). A role
-  variable beats `VERI_MODEL`; all three unset means no `--model` flag at all, which is the
+  variable beats `VERI_MODEL`; all four unset means no `--model` flag at all, which is the
   default. The value goes through verbatim, so an alias (`sonnet`, `opus[1m]`) or a full id
   (`claude-sonnet-5`) both work.
   Because leaves **stream** (below), the default
@@ -643,11 +645,12 @@ unauthenticated baseline never gets a cycle.
    same preflight-class stop as a bad `VERI_REFACTOR_BUDGET`: report its stderr diagnostic
    verbatim and do not start, before any leaf is launched. Exit 0 prints the step budget,
    then the run budget, one per line.
-6. **Leaf models parse.** Run `$S/leaf-model.sh develop-red` and
-   `$S/leaf-model.sh verify-green` once each. Both roles, because the three variables do not
-   all reach both: `VERI_MODEL_DEVELOPER` is only ever read for a developer name and
-   `VERI_MODEL_VERIFIER` only for a verifier one, so a preflight that asked a single name
-   would let the other role's bad value through and kill every leaf of that half at launch.
+6. **Leaf models parse.** Run `$S/leaf-model.sh develop-red`,
+   `$S/leaf-model.sh revise-green` and `$S/leaf-model.sh verify-green` once each. All three,
+   because the four variables do not all reach every name: `VERI_MODEL_DEVELOPER` is only
+   ever read for a developer name, `VERI_MODEL_REVISE` only for a revise one and
+   `VERI_MODEL_VERIFIER` only for a verifier one, so a preflight that skipped a name would
+   let that name's bad value through and kill every leaf it governs at launch.
    **Exit 2** means the value cannot be a model name — whitespace in it, so `sonnet 5` is two
    words where the CLI takes one — and is a preflight-class stop like step 5: report its
    stderr diagnostic verbatim and do not start. The resolver is otherwise first called at

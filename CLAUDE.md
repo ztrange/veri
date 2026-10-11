@@ -150,11 +150,13 @@ Two traps, both already cost something once:
   budgets above are never merged: the two roles fail differently. `VERI_MODEL` sets every
   leaf's model, `VERI_MODEL_DEVELOPER` only a developer leaf's (`develop-*`, `revise-*`)
   and `VERI_MODEL_VERIFIER` only a verifier's (`verify-*`), a role variable beating the
-  general one. A cheaper **verifier** is legible in the run log as a changed verdict
+  general one. `VERI_MODEL_REVISE` sets only the developer leaves that redo rejected work —
+  every `revise-*` and the `develop-exhausted` leaf a spent revise budget runs — beating
+  `VERI_MODEL_DEVELOPER` for those, so a first attempt and a redo can run on different models. A cheaper **verifier** is legible in the run log as a changed verdict
   distribution; a cheaper **developer** shows up as more revise cycles and worse code, which
   costs the saving back. One knob over both would make "cheaper developer" and "weaker
   verifier" the same decision, and no run log could tell them apart afterwards. The measured
-  first experiment is `VERI_MODEL_VERIFIER`; all three ship unset, so a default run's
+  first experiment is `VERI_MODEL_VERIFIER`; all four ship unset, so a default run's
   `claude` command line carries no `--model` at all.
 - **Selection is three bands, one sort key.** `solvable-issues.sh` prints its scope as the
   issues labelled `priority` first, then the `bug`s, then the rest, each band ascending by
