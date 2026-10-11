@@ -2,7 +2,6 @@
 import glob
 import io
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -170,7 +169,9 @@ def main(argv):
     except OSError as error:
         return unreadable_gitconfig(gitconfig, error)
     retries = tunables.read("VERI_NO_VERDICT_RETRIES", unless_empty="1")
-    if not re.fullmatch("[0-9]+", retries):
+    try:
+        tunables.tokens(retries)
+    except ValueError:
         _write(sys.stderr, "verify: VERI_NO_VERDICT_RETRIES must be a non-negative integer,"
                " got '%s'" % retries)
         return 2
