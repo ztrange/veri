@@ -1,0 +1,2 @@
+### With VERI_MODEL_REVISE and VERI_MODEL_DEVELOPER set to different models, leaf-model.sh prints VERI_MODEL_REVISE's model for a revise-* leaf name and for develop-exhausted, and VERI_MODEL_DEVELOPER's for a develop-* first-attempt name such as develop-red ⟦criterion 1⟧
+- out-of-scope | move the revise predicate (`name.startswith("revise-") or name == "develop-exhausted"`) into `leaf_role.py`'s role table as a role field, so the name→role mapping lives in one module; this moves logic across files, which this phase does not apply
