@@ -564,6 +564,18 @@ def test_main_gives_the_same_exit_stdout_stderr_and_usage_record_with_any_start_
     assert refused == []
 
 
+class StubLeaf:
+    pid = 4242
+    returncode = None
+    args = []
+
+    def poll(self):
+        return self.returncode
+
+    def wait(self, timeout=None):
+        return self.returncode
+
+
 class Runaway(BaseException):
     """Raised by the fake sleep when main keeps polling a leaf it should long since have killed."""
 
@@ -3431,18 +3443,7 @@ def test_run_cli_reports_a_leaf_awake_2s_and_suspended_100s_as_exit_status_0_wit
     clock = {"wall": 1000, "awake": 5000, "sleeps": 0}
     suspended_polls, kills = [], []
 
-    class Leaf:
-        pid = 4242
-        returncode = None
-        args = []
-
-        def poll(self):
-            return self.returncode
-
-        def wait(self, timeout=None):
-            return self.returncode
-
-    leaf = Leaf()
+    leaf = StubLeaf()
 
     def sleep(_):
         clock["sleeps"] += 1
@@ -3511,18 +3512,7 @@ def test_main_still_kills_a_4s_quiet_leaf_by_a_1s_hard_timeout_and_by_a_1s_heart
         clean_env(monkeypatch, VERI_STUCK_RETRIES="0", VERI_POLL="0.02", VERI_KILL_POLL="0.01", **window)
         clock = {"wall": 1000, "awake": 5000, "sleeps": 0}
 
-        class Leaf:
-            pid = 4242
-            returncode = None
-            args = []
-
-            def poll(self):
-                return self.returncode
-
-            def wait(self, timeout=None):
-                return self.returncode
-
-        leaf = Leaf()
+        leaf = StubLeaf()
 
         def sleep(_):
             clock["sleeps"] += 1
