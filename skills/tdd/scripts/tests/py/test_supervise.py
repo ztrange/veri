@@ -3417,3 +3417,83 @@ def test_header_names_the_watchdogs_clock_source_and_why_it_pauses_while_the_mac
         "pauses-in-suspend": r"(not advance|stop[a-z]* advancing|pause[a-z]*|stand[a-z]* still|stop[a-z]*).{0,160}(suspend|asleep|sleep)",
     }
     assert [name for name, pattern in claims.items() if not re.search(pattern, text)] == []
+
+
+def test_run_cli_reports_a_leaf_awake_2s_and_suspended_100s_as_exit_status_0_with_the_awake_seconds_as_secs_not_the_wall_seconds_neither_killed_nor_reported_early_across_the_suspended_polls(
+        monkeypatch, tmp_path, supervise, run_cli, events):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    work = tmp_path / "slept"
+    (work / ".tdd").mkdir(parents=True)
+    clean_env(monkeypatch)
+    events.refuse_event_sh()
+    clock = {"wall": 1000, "awake": 5000, "sleeps": 0}
+    suspended_polls, kills = [], []
+
+    class Leaf:
+        pid = 4242
+        returncode = None
+        args = []
+
+        def poll(self):
+            return self.returncode
+
+        def wait(self, timeout=None):
+            return self.returncode
+
+    leaf = Leaf()
+
+    def sleep(_):
+        clock["sleeps"] += 1
+        if clock["sleeps"] > 50:
+            raise AssertionError("the supervisor never saw the leaf finish")
+        if clock["sleeps"] == 1:
+            clock["wall"] += 2
+            clock["awake"] += 2
+        elif clock["sleeps"] == 2:
+            clock["wall"] += 100
+        if clock["sleeps"] >= 2:
+            suspended_polls.append(clock["sleeps"])
+        if clock["sleeps"] == 4:
+            (work / ".tdd" / "develop-red.rc").write_text("0\n")
+            leaf.returncode = 0
+
+    def answer(args):
+        args = [str(a) for a in args]
+        if "--show-toplevel" in args:
+            return f"{work}\n"
+        if args[:1] == ["git"]:
+            return "0123456789abcdef0123456789abcdef01234567\n"
+        if args[:1] == ["date"]:
+            return f"{clock['wall']}\n"
+        if args[:1] == ["stat"]:
+            return "1000\n"
+        return ""
+
+    def run(args, *_, **kwargs):
+        out = as_asked(answer(args), kwargs)
+        return subprocess.CompletedProcess(args, 0, out, "" if isinstance(out, str) else b"")
+
+    def popen(args, *_, **kwargs):
+        if list(args[:2]) == ["/bin/sh", "-c"]:
+            return leaf
+        raise AssertionError(f"unexpected Popen: {args}")
+
+    monkeypatch.setattr(time, "sleep", sleep)
+    monkeypatch.setattr(time, "clock_gettime", lambda *_: clock["awake"] + 0.5)
+    monkeypatch.setattr(os, "killpg", lambda pgid, sig: kills.append(sig))
+    monkeypatch.setattr(os, "kill", lambda pid, sig: kills.append(sig))
+    monkeypatch.setattr(subprocess, "run", run)
+    monkeypatch.setattr(subprocess, "check_output", lambda args, *a, **k: as_asked(answer(args), k))
+    monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, *a, **k).returncode)
+    monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: run(args, *a, **k).returncode)
+    monkeypatch.setattr(subprocess, "Popen", popen)
+
+    code, _, err = run_cli(supervise, ["develop-red", "leaf-slept-through"], cwd=work,
+                           env={"VERI_ISSUE": "486", "VERI_STEP": "1", "VERI_HEARTBEAT": "30",
+                                "VERI_TIMEOUT": "30", "VERI_STUCK_RETRIES": "0"})
+
+    exits = [r for r in events.records(work) if r["event"] == "exit"]
+    assert (code, kills, [r["status"] for r in exits], [r["secs"] for r in exits],
+            len(suspended_polls) >= 2, "killed-stuck" in err) == (0, [], ["0"], ["2"], True, False)
