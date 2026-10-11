@@ -1,11 +1,13 @@
 """In-process cases for veri/refactor_overflow.py, the module refactor-overflow.sh is a shim over."""
 import importlib
 import os
+import pathlib
 import subprocess
 import sys
 
 import pytest
 
+SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 USAGE = "refactor-overflow: usage: refactor-overflow.sh <n> <owed-file> <reached>\n"
 
 
@@ -334,3 +336,130 @@ def test_cli_files_the_skipped_file_s_candidates_beside_the_unreached_and_even_w
 
     assert result == (0, URL, "")
     assert calls == filing(504, f"Structural candidates #504's closing pass could not reach:\n\n{listed}")
+
+
+MKTEMP = "extract the five copies of the mktemp dance across the skill"
+REMOVE = "remove gh(), issue() and the subprocess import from coverage_blocker.py"
+HTTP_422 = "gh: HTTP 422: Validation Failed\n"
+
+
+@pytest.mark.parametrize("gh_code", [1, 3, 5])
+def test_cli_exits_2_with_nothing_on_stdout_and_lets_gh_s_stderr_through_when_gh_fails_while_filing_issue_775(
+        tmp_path, refactor_overflow, run_cli, fake_processes, gh_code):
+    owed = owed_504(tmp_path)
+
+    def gh_fails(line, **kwargs):
+        os.write(2, HTTP_422.encode())
+        return gh_code, "", None
+
+    calls = fake_processes(gh_fails)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    assert result == (2, "", HTTP_422)
+    assert calls == filing(504, f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}")
+
+
+def test_cli_run_from_another_working_directory_runs_gh_in_the_caller_s_working_directory(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    cwds = []
+
+    def gh_records_its_cwd(line, **kwargs):
+        cwds.append(kwargs.get("cwd") or os.getcwd())
+        return gh_files(line, **kwargs)
+
+    calls = fake_processes(gh_records_its_cwd)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=elsewhere)
+
+    assert result == (0, URL, "")
+    assert calls == filing(504, f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}")
+    assert cwds == [str(elsewhere)]
+
+
+@pytest.mark.process("refactor-overflow.sh run through a symlink to the skill directory")
+def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_working_directory_files_through_gh_there(
+        tmp_path):
+    owed = owed_504(tmp_path)
+    (tmp_path / "linked-skill").symlink_to(SCRIPTS.parent, target_is_directory=True)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text('#!/bin/sh\npwd -P > "$EXP_GH_PWD"\nprintf \'%s\\n\' "$@" > "$EXP_GH_ARGS"\n'
+                  f'echo "{URL.rstrip()}"\n')
+    gh.chmod(0o755)
+    env = dict(os.environ, PATH=f"{bin_dir}:{os.environ['PATH']}",
+               EXP_GH_PWD=str(tmp_path / "gh-pwd"), EXP_GH_ARGS=str(tmp_path / "gh-args"))
+
+    ran = subprocess.run([str(tmp_path / "linked-skill" / "scripts" / "refactor-overflow.sh"), "504", str(owed), "1"],
+                         cwd=elsewhere, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    assert (ran.returncode, ran.stdout, ran.stderr) == (0, URL, "")
+    assert (tmp_path / "gh-args").read_text() == "\n".join(issue(
+        504, f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}")) + "\n"
+    assert (tmp_path / "gh-pwd").read_text() == f"{elsewhere.resolve()}\n"
+
+
+def test_cli_files_one_refactor_owed_issue_whose_body_lists_the_transform_over_an_owed_file_holding_only_an_out_of_scope_candidate_issue_992(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = tmp_path / "issue-992-refactor-owed.md"
+    owed.write_text(f"### first step\n- out-of-scope | {MKTEMP}\n")
+    calls = fake_processes(gh_files)
+
+    result = run_cli(refactor_overflow, ["992", str(owed), "0"], cwd=tmp_path)
+
+    assert result == (0, URL, "")
+    assert calls == filing(992, f"Out-of-scope transforms #992's closing pass did not attempt:\n\n- {MKTEMP}")
+
+
+def test_cli_files_a_body_carrying_only_the_out_of_scope_heading_when_only_out_of_scope_transforms_are_owed_issue_1035(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = tmp_path / "issue-1035-refactor-owed.md"
+    owed.write_text(f"### first step\n- out-of-scope | {MKTEMP}\n")
+    calls = fake_processes(gh_files)
+
+    result = run_cli(refactor_overflow, ["1035", str(owed), "0"], cwd=tmp_path)
+
+    assert result == (0, URL, "")
+    assert calls == filing(1035, f"Out-of-scope transforms #1035's closing pass did not attempt:\n\n- {MKTEMP}")
+
+
+def test_cli_files_no_out_of_scope_candidate_the_owed_file_records_as_applied_and_still_files_an_unapplied_one_issue_1058(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = tmp_path / "issue-1058-refactor-owed.md"
+    owed.write_text(f"### fourth step\n- out-of-scope | {REMOVE}\napplied | 1b4ed26 | out-of-scope | {REMOVE}\n")
+    calls = fake_processes(gh_files)
+
+    assert (run_cli(refactor_overflow, ["1058", str(owed), "0"], cwd=tmp_path), calls) == ((3, "", ""), [])
+
+    with owed.open("a") as f:
+        f.write(f"### fifth step\n- out-of-scope | {MKTEMP}\n")
+
+    result = run_cli(refactor_overflow, ["1058", str(owed), "0"], cwd=tmp_path)
+
+    assert result == (0, URL, "")
+    assert calls == filing(1058, f"Out-of-scope transforms #1058's closing pass did not attempt:\n\n- {MKTEMP}")
+
+
+@pytest.mark.parametrize("owed_text, reached, body", [
+    (f"### first step\n- {HOIST}\n- out-of-scope | {MKTEMP}\n", "0",
+     f"Structural candidates #1035's closing pass could not reach:\n\n- {HOIST}\n\n"
+     f"Out-of-scope transforms #1035's closing pass did not attempt:\n\n- {MKTEMP}"),
+    (f"### first step\n- {HOIST}\n- {SPLIT}\n", "1",
+     f"Structural candidates #1035's closing pass could not reach:\n\n- {SPLIT}"),
+])
+def test_cli_files_a_headed_list_per_kind_owed_under_the_unchanged_title_issue_1035(
+        tmp_path, refactor_overflow, run_cli, fake_processes, owed_text, reached, body):
+    owed = tmp_path / "issue-1035-refactor-owed.md"
+    owed.write_text(owed_text)
+    calls = fake_processes(gh_files)
+
+    result = run_cli(refactor_overflow, ["1035", str(owed), reached], cwd=tmp_path)
+
+    assert result == (0, URL, "")
+    assert calls == filing(1035, body)
