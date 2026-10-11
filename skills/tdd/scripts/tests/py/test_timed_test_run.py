@@ -56,7 +56,7 @@ def calls(monkeypatch):
 
 def test_main_refuses_every_short_or_empty_argument_shape_and_passes_a_7_through_with_one_event(tmp_path, monkeypatch, capfd, calls, events, timed_test_run):
     monkeypatch.chdir(tmp_path)
-    events.through()
+    events.refuse_event_sh()
     refusals = []
     for argv in ([], ["all"], ["all", ""], ["all", "", ""], ["", "", "true"]):
         code = timed_test_run.main(argv)
@@ -122,7 +122,7 @@ def test_main_runs_the_command_inheriting_everything_then_records_whole_second_s
     monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.setattr(subprocess, "Popen", FakePopen)
     monkeypatch.setattr(timed_test_run.time, "time", clock)
-    events.through()
+    events.refuse_event_sh()
 
     inherited = {"stdin", "stdout", "stderr", "env", "cwd", "shell", "executable", "close_fds", "pass_fds"}
     for tier, suites in (("a=b", "x\ny"), ("fast", "")):
@@ -193,7 +193,7 @@ def test_main_returns_the_command_status_unmapped_and_records_it_127_not_found_1
     monkeypatch.setattr(subprocess, "call", fake_call)
     monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.setattr(subprocess, "Popen", FakePopen)
-    events.through()
+    events.refuse_event_sh()
 
     observed = []
     for command in outcomes:
@@ -229,7 +229,7 @@ def test_main_returns_the_command_status_when_event_sh_exits_non_zero(tmp_path, 
 
     monkeypatch.setattr(subprocess, "call", fake_call)
     monkeypatch.setattr(subprocess, "run", fake_run)
-    events.through()
+    events.refuse_event_sh()
 
     try:
         code = timed_test_run.main(["fast", "", "sh", "-c", "exit 3"])

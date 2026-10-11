@@ -1,3 +1,4 @@
+import errno
 import io
 import json
 import os
@@ -16,7 +17,6 @@ for path in (SCRIPTS, SCRIPTS / "veri"):
 from veri import entry
 
 
-REAL_POPEN = subprocess.Popen
 EVENT_CONTEXT = ("VERI_ISSUE", "VERI_ACTOR", "VERI_PHASE", "VERI_STEP", "VERI_ATTEMPT", "VERI_SKILL_COMMIT",
                  "VERI_AWAKE_CLOCK")
 
@@ -144,23 +144,11 @@ def _starts_event_sh(args):
     return isinstance(args, (list, tuple)) and any(os.path.basename(str(a)) == "event.sh" for a in args)
 
 
-def _run_for_real(args, *_, **kwargs):
-    check = kwargs.pop("check", False)
-    kwargs.pop("timeout", None)
-    with REAL_POPEN(args, **kwargs) as process:
-        out, err = process.communicate()
-    if check and process.returncode:
-        raise subprocess.CalledProcessError(process.returncode, args, out, err)
-    return subprocess.CompletedProcess(args, process.returncode, out, err)
-
-
 class Events:
     """The records a caller appends to <directory>/.tdd/events.jsonl, ts and awake dropped."""
 
     def __init__(self, monkeypatch):
         self.monkeypatch = monkeypatch
-
-    run = staticmethod(_run_for_real)
 
     def records(self, directory="."):
         path = pathlib.Path(directory) / ".tdd" / "events.jsonl"
@@ -172,24 +160,19 @@ class Events:
     def unappendable(self, directory="."):
         (pathlib.Path(directory) / ".tdd" / "events.jsonl").mkdir(parents=True)
 
-    def through(self):
-        """Over the fakes subprocess carries now, every start naming event.sh runs for real."""
+    def refuse_event_sh(self):
+        """Over the fakes subprocess carries now, every start naming event.sh is refused as the OS would."""
         faked = {name: getattr(subprocess, name) for name in ("run", "call", "Popen")}
 
-        def run(args, *rest, **kwargs):
-            return _run_for_real(args, **kwargs) if _starts_event_sh(args) else faked["run"](args, *rest, **kwargs)
+        def guarded(name):
+            def start(args, *rest, **kwargs):
+                if _starts_event_sh(args):
+                    raise PermissionError(errno.EACCES, "the case refuses starting event.sh", str(args[0]))
+                return faked[name](args, *rest, **kwargs)
+            return start
 
-        def call(args, *rest, **kwargs):
-            if _starts_event_sh(args):
-                return _run_for_real(args, **kwargs).returncode
-            return faked["call"](args, *rest, **kwargs)
-
-        def popen(args, *rest, **kwargs):
-            return REAL_POPEN(args, *rest, **kwargs) if _starts_event_sh(args) else faked["Popen"](args, *rest, **kwargs)
-
-        self.monkeypatch.setattr(subprocess, "run", run)
-        self.monkeypatch.setattr(subprocess, "call", call)
-        self.monkeypatch.setattr(subprocess, "Popen", popen)
+        for name in faked:
+            self.monkeypatch.setattr(subprocess, name, guarded(name))
 
 
 @pytest.fixture

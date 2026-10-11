@@ -255,7 +255,7 @@ def test_main_appends_one_verdict_record_with_the_verdict_word_and_the_reasons_f
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
-    events.through()
+    events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
     verify.main([phase, "spec.md", "tests/x.test.sh"])
@@ -382,7 +382,7 @@ def test_main_returns_2_on_a_killed_stuck_leaf_with_no_tamper_check_event_or_pre
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
-    events.through()
+    events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
@@ -441,7 +441,7 @@ def test_main_relaunches_a_leaf_with_no_verdict_line_up_to_the_no_verdict_budget
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
-    events.through()
+    events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
@@ -473,7 +473,7 @@ def test_main_returns_2_when_the_relaunch_record_cannot_be_appended_and_makes_no
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
-    events.through()
+    events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
@@ -509,7 +509,7 @@ def test_main_returns_2_when_the_verdict_record_cannot_be_appended_with_no_prese
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
-    events.through()
+    events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
@@ -653,7 +653,7 @@ def test_main_snapshots_the_tree_through_a_temporary_index_and_head_around_the_l
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
-    events.through()
+    events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
@@ -815,7 +815,7 @@ def test_main_runs_the_tamper_check_after_a_relaunchs_launch_and_refuses_a_relau
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
-    events.through()
+    events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
@@ -867,7 +867,7 @@ def test_main_outside_a_repository_without_git_or_with_a_failing_add_takes_no_sn
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
-    events.through()
+    events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
@@ -1101,7 +1101,7 @@ def test_main_returns_2_naming_home_gitconfig_when_the_leaf_changed_created_or_d
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
-    events.through()
+    events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
@@ -1627,7 +1627,7 @@ def test_verify_sh_reads_the_newest_verdict_across_result_records_and_relaunches
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
-    events.through()
+    events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
     code, out, err = run_cli(verify, [*FAST, "green", "spec.md", "tests/test_slugify.py", "test_lowercases"],

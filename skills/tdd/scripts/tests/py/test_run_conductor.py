@@ -487,7 +487,7 @@ def test_main_with_veri_new_skill_exactly_1_rewrites_a_readable_record_then_runs
         if not appendable:
             events.unappendable(worktree)
         calls = fake_pin(monkeypatch, commit, set())
-        events.through()
+        events.refuse_event_sh()
         fake_snapshot(monkeypatch, calls, 0, 0)
         code = run_conductor.main(["4242"])
         capfdbinary.readouterr()
@@ -982,7 +982,7 @@ def test_main_runs_event_sh_before_the_session_strip_then_hands_claude_no_veri_n
             monkeypatch.setenv("VERI_SKILL_COMMIT", "ambient")
             monkeypatch.delenv("VERI_SKILL_UNPINNED", raising=False)
             fake_claude_launch(monkeypatch)
-        events.through()
+        events.refuse_event_sh()
         run, started = subprocess.run, []
 
         def records_each_environment(args, *a, **kwargs):
