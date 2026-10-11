@@ -8,7 +8,7 @@
 - [x] SKILL.md's preflight step 6 says an empty or whitespace-only model variable is treated as unset and that only a value with internal whitespace stops the run ⟦criterion 3⟧
 - [x] With VERIFY_LEAF_ARGS carrying --model x and no model variable set, verify.sh does not exit 2 and the verifier leaf's command line names model x ⟦criterion 4⟧
 - [x] With VERIFY_LEAF_ARGS carrying --model x and VERI_MODEL_VERIFIER also set, verify.sh still exits 2 ⟦criterion 4⟧
-- [x] model-knobs-recorded.test.sh goes red, naming the document, when SKILL.md's supervise.sh bullet or CLAUDE.md's model-knob invariant stops naming VERI_MODEL_REVISE ⟦criterion 5⟧ ⟂ refactor pending
+- [x] model-knobs-recorded.test.sh goes red, naming the document, when SKILL.md's supervise.sh bullet or CLAUDE.md's model-knob invariant stops naming VERI_MODEL_REVISE ⟦criterion 5⟧
 - [ ] CLAUDE.md's model-knob invariant and SKILL.md's supervise.sh bullet state the shipped defaults (sonnet for first tries and verifiers, opus for redo leaves and the conductor) instead of no --model ⟦criterion 5⟧
 - [ ] supervise.sh's Tunables (env) header names all four model knobs and the shipped defaults instead of no --model ⟦criterion 5⟧
 - [ ] The metrics footer's sentence on when dollars are comparable names VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE ⟦criterion 5⟧
