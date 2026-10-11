@@ -126,6 +126,9 @@
 #  47. SKILL.md's Draft PR step says a red CI on the `metrics:` cost-report push appends one
 #      `⟦ci-repair⟧` step with the `step-added` event a conductor-added step gets and returns
 #      to the cycle loop, and bails `ci-red` only when the ledger already holds one.
+#  48. SKILL.md's Draft PR step's `metrics:` push block bails `ci-red` behind a
+#      `! grep -F '⟦ci-repair⟧'` guard, then itself records the `step-added` event and runs
+#      `add-ledger-step.sh` with a `⟦ci-repair⟧` step and commits the ledger.
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -845,6 +848,37 @@ if step_or_problem '### 4. Draft PR' "what a red CI on the metrics: push does"; 
     reversed="$(first_record "$said" -F 'not a repair step')"
     [[ -z "$reversed" ]] ||
       problems+=("$skill_md's Draft PR step still says the metrics: push's red is not a repair step: $(printf '%.160s' "$reversed")")
+  fi
+fi
+report "$name"
+
+name="#1431 $skill_md's Draft PR step's metrics: push block bails ci-red on a red CI only when the ledger already holds a ⟦ci-repair⟧ step, then itself appends the ⟦ci-repair⟧ step and records its step-added event"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "what the metrics: push's command block does on a red CI"; then
+  commands="$(section_commands)"
+  metrics_at="$(line_of "$metrics_commit")"
+  if [[ -z "$metrics_at" ]]; then
+    problems+=("$skill_md's Draft PR step makes no metrics: commit, so what its push's command block does on a red CI could not be checked")
+  else
+    after_wait="$(awk -v from="$metrics_at" -v wait_re="^$wait_ci_run" '
+        NR <= from { next }
+        /^```/ { if (waited) exit; next }
+        $0 ~ wait_re { waited = 1; next }
+        waited' <<< "$commands")"
+    guard_at="$(awk '/[$]s\/event[.]sh bail cause=ci-red/ && /! grep -f .⟦ci-repair⟧. [^|]*[|][|] [^|]*[$]s\/event[.]sh bail cause=ci-red/ { print NR; exit }' <<< "$after_wait")"
+    if [[ -z "$guard_at" ]]; then
+      problems+=("no command line after the metrics: push's wait-ci.sh bails ci-red behind a ! grep -F '⟦ci-repair⟧' guard, so a red CI there either bails on its first red with no repair step or appends a second ⟦ci-repair⟧ step instead of bailing: $(printf '%.200s' "$(grep -F 'cause=ci-red' <<< "$after_wait")")")
+    else
+      added="$(awk -v from="$guard_at" 'NR > from && /[$]s\/event[.]sh step-added/' <<< "$after_wait")"
+      [[ -n "$added" ]] ||
+        problems+=("no command line after the metrics: push's ci-red guard records a step-added event, so the ⟦ci-repair⟧ step a red CI there appends is missing from the run's metrics")
+      appended="$(awk -v from="$guard_at" 'NR > from && /[$]s\/add-ledger-step[.]sh/ && /⟦ci-repair⟧/' <<< "$after_wait")"
+      [[ -n "$appended" ]] ||
+        problems+=("no command line after the metrics: push's ci-red guard runs add-ledger-step.sh with a ⟦ci-repair⟧ step, so a conductor running the block top to bottom never reaches the repair")
+      awk -v from="$guard_at" 'NR > from && /[$]s\/add-ledger-step[.]sh/ && /⟦ci-repair⟧/ { added = 1; next } added && /git add [.]tdd\/issue-<n>[.]md/ && /git commit / { found = 1; exit } END { exit !found }' <<< "$after_wait" ||
+        problems+=("no command line after the metrics: push's add-ledger-step.sh commits .tdd/issue-<n>.md, so the ⟦ci-repair⟧ step it appends is left out of the committed ledger a resumed run reads")
+    fi
   fi
 fi
 report "$name"
