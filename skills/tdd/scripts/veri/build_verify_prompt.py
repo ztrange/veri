@@ -74,30 +74,39 @@ def main(argv):
         return _refuse()
     if len(argv) > 4:
         return _refuse("build-verify-prompt: too many arguments")
-    phase = argv[0]
+    code, out = build(options["--step"], options["--fast-cmd"], *argv)
+    sys.stdout.buffer.write(out)
+    return code
+
+
+def _refused(message=None):
+    return _refuse(message), b""
+
+
+def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
     if phase not in PHASES + INTERFACE_PHASES:
-        return _refuse(f"build-verify-prompt: unknown phase '{phase}' (want {WANT_PHASES})")
-    if "fast-cmd" in NEEDS.get(phase, ()) and not options["--fast-cmd"]:
-        return _refuse(f"build-verify-prompt: {phase} needs --fast-cmd '<fast-tier test command>'")
-    fourth = argv[3] if len(argv) > 3 else ""
+        return _refused(f"build-verify-prompt: unknown phase '{phase}' (want {WANT_PHASES})")
+    if "fast-cmd" in NEEDS.get(phase, ()) and not fast_cmd:
+        return _refused(f"build-verify-prompt: {phase} needs --fast-cmd '<fast-tier test command>'")
+    fourth = test_id
     if phase == "diff":
-        if not options["--step"]:
-            return _refuse("build-verify-prompt: diff needs --step '<STEP>'")
-        shas = (("<step-base-sha>", "STEP_BASE_SHA", fourth), ("<base-sha>", "BASE_SHA", argv[2]))
+        if not step_arg:
+            return _refused("build-verify-prompt: diff needs --step '<STEP>'")
+        shas = (("<step-base-sha>", "STEP_BASE_SHA", fourth), ("<base-sha>", "BASE_SHA", test_path))
     elif "base-sha" in NEEDS.get(phase, ()):
         shas = (("<base-sha>", "BASE_SHA", fourth),)
     elif phase == "rebase":
-        shas = (("<onto-sha> <pre-rebase-sha>", "ONTO_SHA", argv[2]),
+        shas = (("<onto-sha> <pre-rebase-sha>", "ONTO_SHA", test_path),
                 ("<onto-sha> <pre-rebase-sha>", "PRE_REBASE_SHA", fourth))
     else:
         shas = ()
     slots = {"BASE_SHA": fourth, "STEP_BASE_SHA": "", "ONTO_SHA": "", "PRE_REBASE_SHA": ""}
     for label, slot, value in shas:
         if not re.fullmatch(r"[0-9a-f]{7,40}", value):
-            return _refuse(f"build-verify-prompt: {phase} needs {label} as 7-40 lowercase hex characters, got '{value}'")
+            return _refused(f"build-verify-prompt: {phase} needs {label} as 7-40 lowercase hex characters, got '{value}'")
         slots[slot] = value
     prompts = f"{HERE}/prompts"
-    spec = argv[1]
+    spec = spec_arg
     optional = {}
     spec_text = _spec_text(spec)
     if _has_heading(spec_text, b"Bug"):
@@ -105,16 +114,16 @@ def main(argv):
     if phase == "plan" and _has_heading(spec_text, b"Refactor"):
         optional["REFACTOR_PLAN"] = f"{prompts}/_verify-plan-refactor.md"
     for placeholder, mark in GREEN_PARAGRAPHS.items():
-        if phase == "green" and f"⟦{mark}⟧" in options["--step"]:
+        if phase == "green" and f"⟦{mark}⟧" in step_arg:
             optional[placeholder] = f"{prompts}/_verify-green-{mark}.md"
     paths = [f"{prompts}/verify-{phase}.md", f"{prompts}/_shared.md", spec, *optional.values()]
     if phase == "plan":
-        optional["LEDGER"] = argv[2]
-        paths.append(argv[2])
+        optional["LEDGER"] = test_path
+        paths.append(test_path)
     for path in paths:
         if not os.access(path, os.R_OK):
             _write(sys.stderr, f"build-verify-prompt: cannot read '{path}'")
-            return 2
+            return 2, b""
     prompts_b = os.fsencode(prompts)
     values = dict.fromkeys(("BUG_REPRODUCTION", "REFACTOR_PLAN", "REPLACES_CASE", "SUITE_REPAIR", "LEDGER"), b"")
     try:
@@ -126,8 +135,8 @@ def main(argv):
                 values[placeholder] = _expand(b"\n\n" + values[placeholder], prompts_b)
     except _IncludeRefused as refusal:
         sys.stderr.buffer.write(refusal.args[0] + b"\n")
-        return 2
-    step = os.fsencode(options["--step"])
+        return 2, b""
+    step = os.fsencode(step_arg)
     step_block = b""
     if step:
         step_block = (b"### The step under judgement\n\n" + step + b"\n\n"
@@ -136,17 +145,16 @@ def main(argv):
     out = template
     for placeholder, value in ((b"SHARED", shared), (b"STEP", step_block), (b"ISSUE_SPEC", _read(spec)),
                                *((placeholder.encode(), value) for placeholder, value in values.items()),
-                               (b"TEST_PATH", os.fsencode(argv[2])),
+                               (b"TEST_PATH", os.fsencode(test_path)),
                                (b"TARGET_TEST", os.fsencode(fourth or "the target test")),
                                (b"BASE_SHA", os.fsencode(slots["BASE_SHA"])),
                                (b"STEP_BASE_SHA", os.fsencode(slots["STEP_BASE_SHA"])),
-                               (b"FAST_CMD", os.fsencode(options["--fast-cmd"])),
+                               (b"FAST_CMD", os.fsencode(fast_cmd)),
                                (b"ONTO_SHA", os.fsencode(slots["ONTO_SHA"])),
                                (b"PRE_REBASE_SHA", os.fsencode(slots["PRE_REBASE_SHA"])),
                                (b"TIMED_TEST_RUN", os.fsencode(f"{HERE}/timed-test-run.sh"))):
         out = out.replace(b"{{" + placeholder + b"}}", value)
-    sys.stdout.buffer.write(out + b"\n")
-    return 0
+    return 0, out + b"\n"
 
 
 if __name__ == "__main__":
