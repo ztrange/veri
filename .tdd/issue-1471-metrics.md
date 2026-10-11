@@ -1,21 +1,21 @@
 ### 📊 Metrics — issue 1471
 
-Wall time for the issue: 6557 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
-Seconds the machine was not running inside that span: 1 s, excluded from it.
-Steps done: 10 of 10 planned.
+Wall time for the issue: 6754 s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Seconds the machine was not running inside that span: 0 s, excluded from it.
+Steps done: 13 of 13 planned.
 Outcome: the run landed — its draft PR is https://github.com/ztrange/veri/pull/1479.
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
-Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIFIER sonnet; models that answered: claude-opus-5-5, claude-sonnet-5-5.
+Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER sonnet, VERI_MODEL_VERIFIER sonnet; models that answered: claude-opus-5-5, claude-sonnet-5-5.
 
 #### By phase
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | plan | 1 | 1 | 0 | 0 | 10 | 8 | 1 | 2 | 954 | 12193 | 36934 | 0.16 |
-| red | 22 | 9 | 1 | 0 | 2138 | 778 | 143 | 282 | 76598 | 7926385 | 1198963 | 10.57 |
-| green | 18 | 9 | 0 | 0 | 5391 | 667 | 145 | 286 | 64679 | 7756855 | 922985 | 8.01 |
-| refactor | 17 | 8 | 0 | 0 | 1842 | 327 | 91 | 180 | 30574 | 4476326 | 829086 | 6.45 |
-| pin | 1 | 1 | 0 | 0 | 87 | 13 | 4 | 8 | 1456 | 173401 | 46565 | 0.22 |
+| red | 28 | 11 | 1 | 0 | 3431 | 1047 | 185 | 366 | 110090 | 10485662 | 1535117 | 12.50 |
+| green | 22 | 11 | 0 | 0 | 7820 | 817 | 179 | 352 | 82015 | 9628132 | 1132880 | 9.21 |
+| refactor | 21 | 10 | 0 | 0 | 2221 | 365 | 109 | 212 | 34129 | 5193214 | 1014028 | 7.30 |
+| pin | 2 | 2 | 0 | 0 | 318 | 30 | 9 | 18 | 3138 | 418349 | 98061 | 0.47 |
 | diff | 2 | 1 | 0 | 0 | 295 | 47 | 18 | 34 | 5086 | 883728 | 96308 | 0.78 |
 | predicate | 1 | 0 | 0 | 0 | 11 | 6 | 2 | 4 | 480 | 65434 | 41314 | 0.35 |
 | structural | 1 | 0 | 0 | 0 | 74 | 18 | 7 | 14 | 1974 | 343190 | 45285 | 0.47 |
@@ -25,8 +25,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 
 | role | model | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| verifier | claude-sonnet-5-5 | 31 | 30 | 1 | 0 | 4455 | 469 | 153 | 298 | 50831 | 6953574 | 1424061 | 6.90 |
+| verifier | claude-sonnet-5-5 | 38 | 37 | 1 | 0 | 6384 | 578 | 191 | 370 | 62467 | 8691031 | 1755969 | 8.52 |
 | developer | claude-opus-5-5 | 33 | 0 | 0 | 0 | 5474 | 1407 | 264 | 522 | 132210 | 14907635 | 1836724 | 20.32 |
+| developer | claude-sonnet-5-5 | 8 | 0 | 0 | 0 | 2403 | 365 | 61 | 120 | 44429 | 3654933 | 450579 | 2.61 |
 
 #### Rework and waste, by phase
 
@@ -56,6 +57,9 @@ Models requested: VERI_MODEL unset, VERI_MODEL_DEVELOPER unset, VERI_MODEL_VERIF
 | After `make unit` or `make test` the worktree holds no `.pyc` the run did not find there, and a fresh `python3` started afterwards outside the leg under `PYTHONDONTWRITEBYTECODE=1` runs a module's current source; pinned by a case that makes a same-size mutation of a `veri/` module with its mtime pinned, runs `make unit`, reverts with the same mtime and reads the reverted value from a fresh `python3`, red against PR #1479's head bfadedcd7 ⟦added⟧ ⟦criterion 5⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 187 | 42 | 84 | 17772 | 2299702 | 314892 | 2.66 | 1163 | unknown | 1/5 | nothing-structural |  |  | full |
 | A cache entry never holds bytecode for source other than the content its key names: a `.py` under test changed during the leg and then restored leaves the next two runs on the unchanged tree passing as on `main`, and a truncated or empty entry is not reused (the run passes and the entry is replaced); pinned by a case red against PR #1479's head bfadedcd7 ⟦added⟧ ⟦criterion 6⟧ | 11 | 5 | 0 | 0 | 0 | 0 | 405 | 78 | 156 | 40689 | 4309694 | 608586 | 5.32 | 2481 | unknown | 1/5 | nothing-structural |  |  | full |
 | The suites that exercise the cache never read, write or evict entries under the real cache root (`~/.veri-tools/pycache`, or `$VERI_PYCACHE_ROOT` as the caller set it) — its listing is the same before and after `make test` apart from the run's own entry — and CLAUDE.md's description of the cache claims only what these cases pin ⟦added⟧ ⟦criterion 7⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 276 | 47 | 94 | 24863 | 2784118 | 332270 | 3.03 | 1306 | unknown | 0/5 | nothing-left |  |  | full |
+| A pytest leg killed partway (SIGINT, SIGTERM or SIGKILL to the leg's process group) leaves no `.pyc` in the worktree, and a fresh `python3` under `PYTHONDONTWRITEBYTECODE=1` after a same-size, same-mtime revert runs the reverted source; pinned by a case red against PR #1479's head 02fb31a0a (which left 144 `.pyc` after a kill) ⟦added⟧ ⟦criterion 8⟧ | 7 | 3 | 0 | 0 | 0 | 0 | 242 | 47 | 92 | 28827 | 2567612 | 376141 | 2.05 | 2075 | 1/2 | 0/5 | nothing-left |  |  | full |
+| A `tests/py` file mutated before collection and restored during a leg (same size, same mtime) leaves the next two runs on the unchanged tree passing, its assertion-rewrite bytecode included; and dropping the re-hash check before the copy-back turns a case red ⟦added⟧ ⟦criterion 9⟧ | 2 | 1 | 0 | 0 | 0 | 0 | 156 | 23 | 46 | 19589 | 1578829 | 130494 | 0.88 | unknown | unknown | unknown | unknown |  |  | pin |
+| fix the full-suite failure: no-sigpipe-pipelines.test.sh — FAIL - no suite under skills/tdd/scripts/tests/ that declares pipefail ends a pipeline in a reader that leaves before EOF (pytest-leg.test.sh:1177 pipes printf into head -n 1) ⟦suite-repair⟧ ⟦criterion 9⟧ | 6 | 3 | 0 | 0 | 0 | 0 | 76 | 29 | 54 | 7649 | 1245949 | 275852 | 1.30 | 1288 | unknown | 0/5 | nothing-left |  |  | full |
 
 The figure comparable across runs is turns, the same measurement on any model; dollars are not comparable, the same measurement only at the same VERI_MODEL, VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER.
 
@@ -71,6 +75,8 @@ The figure comparable across runs is turns, the same measurement on any model; d
 | After `make unit` or `make test` the worktree holds no `.pyc` the run did not find there, and a fresh `python3` started afterwards outside the leg under `PYTHONDONTWRITEBYTECODE=1` runs a module's current source; pinned by a case that makes a same-size mutation of a `veri/` module with its mtime pinned, runs `make unit`, reverts with the same mtime and reads the reverted value from a fresh `python3`, red against PR #1479's head bfadedcd7 ⟦added⟧ ⟦criterion 5⟧ | 1 | 1/5 | nothing-structural | PASS | 0 | 296 | 0.79 |
 | A cache entry never holds bytecode for source other than the content its key names: a `.py` under test changed during the leg and then restored leaves the next two runs on the unchanged tree passing as on `main`, and a truncated or empty entry is not reused (the run passes and the entry is replaced); pinned by a case red against PR #1479's head bfadedcd7 ⟦added⟧ ⟦criterion 6⟧ | 2 | 1/5 | nothing-structural | PASS | 0 | 392 | 1.46 |
 | The suites that exercise the cache never read, write or evict entries under the real cache root (`~/.veri-tools/pycache`, or `$VERI_PYCACHE_ROOT` as the caller set it) — its listing is the same before and after `make test` apart from the run's own entry — and CLAUDE.md's description of the cache claims only what these cases pin ⟦added⟧ ⟦criterion 7⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 180 | 0.71 |
+| A pytest leg killed partway (SIGINT, SIGTERM or SIGKILL to the leg's process group) leaves no `.pyc` in the worktree, and a fresh `python3` under `PYTHONDONTWRITEBYTECODE=1` after a same-size, same-mtime revert runs the reverted source; pinned by a case red against PR #1479's head 02fb31a0a (which left 144 `.pyc` after a kill) ⟦added⟧ ⟦criterion 8⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 186 | 0.42 |
+| fix the full-suite failure: no-sigpipe-pipelines.test.sh — FAIL - no suite under skills/tdd/scripts/tests/ that declares pipefail ends a pipeline in a reader that leaves before EOF (pytest-leg.test.sh:1177 pipes printf into head -n 1) ⟦suite-repair⟧ ⟦criterion 9⟧ | 1 | 0/5 | nothing-left | PASS | 0 | 193 | 0.42 |
 
 #### Structural pass
 
@@ -78,14 +84,14 @@ Stopped: nothing-structural
 
 #### Test-command seconds, by tier
 
-| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| affected | 49 | 117 | 0 | 0 | 98 | 0 | 31 | 34 | 35 | 150 | 36 | 38 | 41 | 42 | 42 | 0 | 147 | 43 | 46 | 111 | 0 | 139 | 0 | 0 | 46 | 46 | 125 | 41 | 43 | 42 | 10 | 67 | 45 | 49 | 0 | 118 | 38 | 0 | 36 | 1 | 18 | 1 | 1 | 2 | 11 | 2 | 11 | 2 | 1 | 44 | 5 | 2 | 4 | 0 | 2 | 43 | 49 | 47 | 0 | 142 | 0 | 15 | 10 | 4 | 9 | 0 | 2 | 1 | 59 | 58 | 141 | 0 | 156 | 0 | 165 | 69 | 69 | 76 | 141 | 136 | 0 | 0 | 1 |
-| fast | 66 | 63 | 61 | 60 | 61 | 62 | 71 | 65 | 65 | 62 | 71 | 71 | 70 | 64 | 57 | 58 | 55 | 66 | 78 | 61 | 59 | 61 | 63 | 63 | 61 | 65 | 62 | 60 | 63 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| target | 33 | 36 | 36 | 35 | 42 | 43 | 46 | 50 | 50 | 69 | 73 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| tier | run 1 s | run 2 s | run 3 s | run 4 s | run 5 s | run 6 s | run 7 s | run 8 s | run 9 s | run 10 s | run 11 s | run 12 s | run 13 s | run 14 s | run 15 s | run 16 s | run 17 s | run 18 s | run 19 s | run 20 s | run 21 s | run 22 s | run 23 s | run 24 s | run 25 s | run 26 s | run 27 s | run 28 s | run 29 s | run 30 s | run 31 s | run 32 s | run 33 s | run 34 s | run 35 s | run 36 s | run 37 s | run 38 s | run 39 s | run 40 s | run 41 s | run 42 s | run 43 s | run 44 s | run 45 s | run 46 s | run 47 s | run 48 s | run 49 s | run 50 s | run 51 s | run 52 s | run 53 s | run 54 s | run 55 s | run 56 s | run 57 s | run 58 s | run 59 s | run 60 s | run 61 s | run 62 s | run 63 s | run 64 s | run 65 s | run 66 s | run 67 s | run 68 s | run 69 s | run 70 s | run 71 s | run 72 s | run 73 s | run 74 s | run 75 s | run 76 s | run 77 s | run 78 s | run 79 s | run 80 s | run 81 s | run 82 s | run 83 s | run 84 s | run 85 s | run 86 s | run 87 s | run 88 s | run 89 s | run 90 s | run 91 s | run 92 s | run 93 s |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| affected | 49 | 117 | 0 | 0 | 98 | 0 | 31 | 34 | 35 | 150 | 36 | 38 | 41 | 42 | 42 | 0 | 147 | 43 | 46 | 111 | 0 | 139 | 0 | 0 | 46 | 46 | 125 | 41 | 43 | 42 | 10 | 67 | 45 | 49 | 0 | 118 | 38 | 0 | 36 | 1 | 18 | 1 | 1 | 2 | 11 | 2 | 11 | 2 | 1 | 44 | 5 | 2 | 4 | 0 | 2 | 43 | 49 | 47 | 0 | 142 | 0 | 15 | 10 | 4 | 9 | 0 | 2 | 1 | 59 | 58 | 141 | 0 | 156 | 0 | 165 | 69 | 69 | 76 | 141 | 136 | 0 | 0 | 1 | 82 | 76 | 165 | 101 | 103 | 105 | 105 | 105 | 8 | 104 |
+| fast | 66 | 63 | 61 | 60 | 61 | 62 | 71 | 65 | 65 | 62 | 71 | 71 | 70 | 64 | 57 | 58 | 55 | 66 | 78 | 61 | 59 | 61 | 63 | 63 | 61 | 65 | 62 | 60 | 63 | 66 | 56 | 56 | 55 | 56 | 55 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| target | 33 | 36 | 36 | 35 | 42 | 43 | 46 | 50 | 50 | 69 | 73 | 100 | 105 | 104 | 8 |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 417 | 820 | 183041 | 21861209 | 3260785 | 27.22 |
+| total | 516 | 1012 | 239106 | 27253599 | 4043272 | 31.45 |
