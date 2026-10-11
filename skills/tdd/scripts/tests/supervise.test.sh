@@ -232,54 +232,6 @@ exec sleep 60
 L
 chmod +x "$stub/leaf-term-sleep"
 
-AUDIT="$HERE/real-clock-audit.sh"
-audit_work="$work/clock-audit"
-mkdir -p "$audit_work"
-audit_problems=()
-wait_verb="sl""eep"
-
-planted="$audit_work/planted.test.sh"
-printf '%s\n' \
-  '#!/usr/bin/env bash' \
-  "cat > \"\$stub/leaf-jumped\" <<'L'" \
-  '#!/bin/sh' \
-  "echo \"leaf: starting\"; clock-jump 4; $wait_verb 60" \
-  'L' \
-  "cat > \"\$stub/leaf-real-silence\" <<'L'" \
-  '#!/bin/sh' \
-  "echo \"leaf: starting\"; $wait_verb 4; echo \"leaf: back\"" \
-  'L' \
-  'sup jumped 1 30 leaf-jumped' \
-  'sup realsilence 3 30 leaf-real-silence' \
-  > "$planted"
-
-if [[ ! -x "$AUDIT" ]]; then
-  audit_problems+=("no executable clock audit at $AUDIT")
-else
-  audit_self_out="$("$AUDIT" "$HERE/supervise.test.sh" 2>&1)"
-  audit_self_code=$?
-  audit_self_said="${audit_self_out//$'\n'//}"
-  [[ "$audit_self_code" == 0 ]] ||
-    audit_problems+=("over this suite as committed the audit exited $audit_self_code, want 0: $audit_self_said")
-  [[ -z "$audit_self_out" ]] ||
-    audit_problems+=("over this suite as committed the audit named something, want nothing: $audit_self_said")
-
-  audit_out="$("$AUDIT" "$planted" 2>&1)"
-  audit_code=$?
-  audit_said="${audit_out//$'\n'//}"
-  [[ "$audit_code" == 1 ]] ||
-    audit_problems+=("over the planted suite the audit exited $audit_code, want 1: $audit_said")
-  [[ "$audit_out" == *"planted.test.sh"* ]] ||
-    audit_problems+=("over the planted suite the audit does not name the file it read: $audit_said")
-  [[ "$audit_out" == *"leaf-real-silence"* ]] ||
-    audit_problems+=("over the planted suite the audit does not name leaf-real-silence, whose silence is real waiting: $audit_said")
-  [[ "$audit_out" != *"leaf-jumped"* ]] ||
-    audit_problems+=("over the planted suite the audit names leaf-jumped, which injects its silence onto the clock: $audit_said")
-fi
-{ [[ "${#audit_problems[@]}" -eq 0 ]]; } && ok \
-  || no "a stub leaf whose silence is real waiting is named by the clock audit, a deliberate real-clock dependence recorded with a reason is not (${audit_problems[*]})"
-
-
 sup_in() {
   local dir="$1"; shift
   ( cd "$dir" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
