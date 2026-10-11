@@ -4,8 +4,9 @@ import subprocess
 import sys
 import time
 
+import event
+
 USAGE = "usage: timed-test-run.sh <tier> <suites> <cmd> [args …]\n"
-EVENT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "event.sh")
 
 
 def main(argv):
@@ -24,11 +25,8 @@ def main(argv):
     if code < 0:
         code = 128 - code
     ended = int(time.time())
-    try:
-        subprocess.call([EVENT, "test-run", f"tier={tier}", f"suites={suites}",
-                         f"seconds={ended - started}", f"status={code}"])
-    except OSError:
-        pass
+    event.mark("", event.context(os.environ), "test-run", [f"tier={tier}", f"suites={suites}",
+                                                           f"seconds={ended - started}", f"status={code}"], ended)
     return code
 
 
