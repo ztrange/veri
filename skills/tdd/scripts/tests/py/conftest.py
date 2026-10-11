@@ -59,6 +59,9 @@ def hermetic_environment(monkeypatch):
     for name in list(os.environ):
         if name.startswith(("VERI_", "CLAUDE_", "GH_", "GIT_")) and name != "VERI_VENV":
             monkeypatch.delenv(name)
+        elif name == "LANG" or name.startswith("LC_"):
+            monkeypatch.delenv(name)
+    monkeypatch.setenv("LC_ALL", "C")
 
 
 @pytest.fixture(autouse=True)
