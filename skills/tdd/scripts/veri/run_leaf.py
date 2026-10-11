@@ -17,7 +17,7 @@ USAGE = "usage: run-leaf.sh <prompt-file|-> [claude args...]"
 def leaf_argv(binary, model, prompt, extra):
     argv = [binary or "claude", "-p", prompt,
             "--output-format", "stream-json", "--verbose"]
-    if model:
+    if model and "--model" not in extra:
         argv += ["--model", model]
     return argv + extra
 
