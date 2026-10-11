@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Unit tests for the line between the repository's two test targets — like
-# hermetic-suites.test.sh and workflow-timeouts.test.sh this suite has no script as its
+# workflow-timeouts.test.sh this suite has no script as its
 # subject: its subject is which suite each target runs. Zero-dependency plain-shell
 # asserts, same idiom as the other suites under docs/tests/.
 #
