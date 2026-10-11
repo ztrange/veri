@@ -56,12 +56,16 @@ def pytest_collection_modifyitems(config, items):
 
 @pytest.fixture(autouse=True)
 def hermetic_environment(monkeypatch):
+    offline = {name: value for name, value in os.environ.items()
+               if name == "GIT_CONFIG_COUNT" or name.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))}
     for name in list(os.environ):
         if name.startswith(("VERI_", "CLAUDE_", "GH_", "GIT_")) and name != "VERI_VENV":
             monkeypatch.delenv(name)
         elif name == "LANG" or name.startswith("LC_"):
             monkeypatch.delenv(name)
     monkeypatch.setenv("LC_ALL", "C")
+    for name, value in offline.items():
+        monkeypatch.setenv(name, value)
 
 
 @pytest.fixture(autouse=True)
