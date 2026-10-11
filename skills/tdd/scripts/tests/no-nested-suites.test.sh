@@ -168,8 +168,8 @@ scan_launches "$plant/affected-suites.test.sh" | grep -F "$(printf 'affected-sui
   || problems+=("a planted 'bash \"\$HERE/claude-md-counts.test.sh\"' at affected-suites.test.sh:$planted_line was not reported")
 report "#538: a real launch of another suite planted in affected-suites.test.sh is still read as launching it"
 
-mentions_reported no-awk-v-patterns.test.sh skill-draft-pr.test.sh skill-plan-verify.test.sh skill-red-prediction.test.sh solvable-issues.test.sh
-report "#1050: no-awk-v-patterns.test.sh's content-keyed exemption keys naming skill-draft-pr.test.sh, skill-plan-verify.test.sh, skill-red-prediction.test.sh and solvable-issues.test.sh are not read as launching them"
+mentions_reported no-awk-v-patterns.test.sh skill-draft-pr.test.sh skill-plan-verify.test.sh skill-red-prediction.test.sh
+report "#1050: no-awk-v-patterns.test.sh's content-keyed exemption keys naming skill-draft-pr.test.sh, skill-plan-verify.test.sh and skill-red-prediction.test.sh are not read as launching them"
 
 mentions_reported no-unbacked-pushes.test.sh push-backoff-guard.test.sh
 from_guard=("${problems[@]}")

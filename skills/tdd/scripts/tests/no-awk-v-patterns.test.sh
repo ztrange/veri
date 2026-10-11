@@ -38,7 +38,6 @@ declare -A EXEMPT=(
   ['skill-plan-verify.test.sh:  awk -''v re="$1" '\''n == 0 && match($0, re) { n = NR } END { print n + 0 }'\'' "$skill_path"']="every pattern its line_of is handed spells a literal character as a bracket class, [.] [(] [$] [<], never with a backslash, so the -v value holds none to drop"
   ['skill-plan-verify.test.sh:  awk -''v a="$1" -''v b="$2" -''v re="$3" '\''']="bullet_text is handed only exit2_re, '[(]exit 2[)]', a literal parenthesis spelled as a bracket class, so the -v value holds no backslash to drop"
   ['skill-red-prediction.test.sh:  awk -''v h="$1" -''v from="$2" '\''']="doc_text's from is handed only '### 🔴 Red' and 'red-divergence', plain text with no backslash to drop"
-  ['solvable-issues.test.sh:  awk -''v opens="$1" -''v ends="$2" '\''']="loop_bullet is handed only '^- [*][*]Exit 3:', '^- [*][*]Exit 0:' and '^### ', literal characters spelled as bracket classes, so the -v value holds no backslash to drop"
 )
 
 source "$HERE/lib/harness.sh"
