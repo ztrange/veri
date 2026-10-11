@@ -9,10 +9,10 @@ import tunables
 
 try:
     from context_budget import START, watch
-    from solvable_issues import priority_label, refused_if_empty, solvable
+    from solvable_issues import priority_label, scope_label, solvable
 except ImportError:
     from .context_budget import START, watch
-    from .solvable_issues import priority_label, refused_if_empty, solvable
+    from .solvable_issues import priority_label, scope_label, solvable
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONDUCTOR = os.path.join(SCRIPTS, "run-conductor.sh")
@@ -51,12 +51,11 @@ def main(argv):
 
 
 def _solvable():
-    if refused_if_empty("VERI_LABEL"):
+    label = scope_label()
+    priority = label and priority_label()
+    if label is None or priority is None:
         return 2, []
-    priority = priority_label()
-    if priority is None:
-        return 2, []
-    return solvable(os.environ.get("VERI_LABEL", "ready-for-agent"), priority)
+    return solvable(label, priority)
 
 
 def _tunable(name):
