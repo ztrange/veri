@@ -45,7 +45,7 @@ def not_a_number(var, value):
 
 
 def numeric_env(var, default):
-    value = tunables.read(var) or default
+    value = tunables.read(var, unless_empty=default)
     return value, not_a_number(var, value)
 
 
@@ -316,7 +316,7 @@ def main(argv):
     retries, refused = numeric_env("VERI_STUCK_RETRIES", "1")
     if refused:
         return refused
-    poll = tunables.read("VERI_POLL") or "1"
+    poll = tunables.read("VERI_POLL", unless_empty="1")
     name = argv[0]
     tolerated(name, "create", ".tdd", lambda: os.makedirs(".tdd", exist_ok=True))
     log, rcfile, exitfile = f".tdd/{name}.log", f".tdd/{name}.rc", f".tdd/{name}.exit"
