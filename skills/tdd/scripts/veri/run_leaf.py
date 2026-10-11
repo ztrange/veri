@@ -9,6 +9,7 @@ import tempfile
 
 from extract_result import extract
 from session_env import strip_session_env
+import tunables
 
 GUARD = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "leaf-guard")
 USAGE = "usage: run-leaf.sh <prompt-file|-> [claude args...]"
@@ -39,7 +40,7 @@ def main(argv):
     if not argv or not argv[0]:
         print(USAGE, file=sys.stderr)
         return 2
-    for name in os.environ.pop("VERI_SHIM_DEFAULT_SIGNALS", "").split():
+    for name in tunables.pop("VERI_SHIM_DEFAULT_SIGNALS").split():
         signal.signal(getattr(signal, "SIG" + name), signal.SIG_DFL)
     try:
         prompt = read_prompt(argv[0])

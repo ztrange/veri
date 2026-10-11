@@ -7,6 +7,7 @@ import sys
 
 import pid_file
 import stop_modes
+import tunables
 
 
 def usage():
@@ -144,6 +145,6 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    os.chdir(os.environ.get("VERI_CALLER_DIR") or ".")
+    os.chdir(tunables.read("VERI_CALLER_DIR") or ".")
     import entry
     entry.run(main, sys.argv[1:])
