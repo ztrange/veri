@@ -2576,7 +2576,7 @@ def test_cli_ends_a_killed_stuck_leaf_that_succeeds_on_its_retry_in_success_with
 
 
 @pytest.mark.process("a real hung and a real runaway leaf, killed by supervise.py's signal to their process group")
-def test_cli_kills_a_real_hung_leaf_by_heartbeat_and_a_real_runaway_leaf_by_hard_timeout_leaving_no_process_behind(
+def test_cli_kills_a_real_hung_leaf_by_heartbeat_and_a_real_runaway_leaf_by_hard_timeout_leaving_none_of_their_recorded_stub_or_child_pids_alive_1461(
         monkeypatch, tmp_path, supervise, run_cli):
     import re
     import signal
@@ -2588,17 +2588,17 @@ def test_cli_kills_a_real_hung_leaf_by_heartbeat_and_a_real_runaway_leaf_by_hard
         work.mkdir()
         code, _, err = run_cli(supervise, [name, "sh", "-c", script], cwd=work,
                                env={"VERI_STUCK_RETRIES": "0", "VERI_POLL": "0.05", "VERI_KILL_POLL": "0.05", **env})
-        child = int((work / "child.pid").read_text())
+        pids = {file: int((work / file).read_text()) for file in ("stub.pid", "child.pid")}
         return (code, [re.sub(r"for \d+s \(window", "for Ns (window", line) for line in err.splitlines() if line.startswith(f"supervise[{name}]")],
-                (work / ".tdd" / f"{name}.exit").read_bytes(), alive(child))
+                (work / ".tdd" / f"{name}.exit").read_bytes(), {file: alive(pid) for file, pid in pids.items()})
 
     assert [
-        real_kill("hung", "echo started; sleep 60 & echo $! > child.pid; wait", VERI_HEARTBEAT="1", VERI_TIMEOUT="60"),
-        real_kill("runaway", "sleep 60 & echo $! > child.pid; while true; do echo busy; sleep 0.1; done",
+        real_kill("hung", "echo $$ > stub.pid; echo started; sleep 60 & echo $! > child.pid; wait", VERI_HEARTBEAT="1", VERI_TIMEOUT="60"),
+        real_kill("runaway", "echo $$ > stub.pid; sleep 60 & echo $! > child.pid; while true; do echo busy; sleep 0.1; done",
                   VERI_HEARTBEAT="60", VERI_TIMEOUT="1"),
     ] == [
-        (2, ["supervise[hung]: killed-stuck — no heartbeat for Ns (window 1s)"], b"2\n", False),
-        (2, ["supervise[runaway]: killed-stuck — hard timeout 1s exceeded"], b"2\n", False),
+        (2, ["supervise[hung]: killed-stuck — no heartbeat for Ns (window 1s)"], b"2\n", {"stub.pid": False, "child.pid": False}),
+        (2, ["supervise[runaway]: killed-stuck — hard timeout 1s exceeded"], b"2\n", {"stub.pid": False, "child.pid": False}),
     ]
 
 
