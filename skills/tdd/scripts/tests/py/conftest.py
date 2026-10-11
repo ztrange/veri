@@ -181,14 +181,3 @@ def events(monkeypatch):
         monkeypatch.delenv(name, raising=False)
     return Events(monkeypatch)
 
-
-_STARTS = {name: getattr(subprocess, name) for name in ("run", "Popen", "call", "check_call", "check_output")}
-
-
-def real_builder(name, fake):
-    """A subprocess entry point that answers with fake, except that the prompt builder is started for real."""
-    def start(args, *rest, **kwargs):
-        if isinstance(args, (list, tuple)) and os.path.basename(str(args[0])) == "build-verify-prompt.sh":
-            return _STARTS[name](args, *rest, **kwargs)
-        return fake(args, *rest, **kwargs)
-    return start

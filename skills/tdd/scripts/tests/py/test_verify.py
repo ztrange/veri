@@ -12,7 +12,7 @@ import sys
 import pytest
 
 
-from conftest import SCRIPTS, real_builder
+from conftest import SCRIPTS
 
 USAGE = (b"usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file>"
          b" <test-path> [<target-test-id>]")
@@ -80,7 +80,7 @@ def test_main_returns_the_builders_refusal_mapped_into_the_contract_with_its_std
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", *argv])
@@ -113,7 +113,7 @@ def test_main_calls_the_builder_beside_the_shim_as_called_with_the_consumed_pair
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     before = set(sys.modules)
     try:
         verify = importlib.import_module("veri.verify")
@@ -160,7 +160,7 @@ def test_main_launches_the_verifier_leaf_through_supervise_with_the_default_flag
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     for name in ("system", "fork", "posix_spawn", "posix_spawnp", "execv", "execvp", "execve"):
         if hasattr(os, name):
             monkeypatch.setattr(os, name, fake)
@@ -206,7 +206,7 @@ def test_main_reads_the_verdict_from_supervises_stdout_and_prints_the_whole_reas
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", phase, "spec.md", "tests/x.test.sh",
@@ -232,7 +232,7 @@ def test_main_drops_nul_bytes_from_the_leafs_output_so_a_verdict_carrying_them_i
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
@@ -265,7 +265,7 @@ def test_main_appends_one_verdict_record_with_the_verdict_word_and_the_reasons_f
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
@@ -299,7 +299,7 @@ def test_main_launches_the_leaf_with_verify_leaf_args_words_split_on_whitespace_
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
     scripts = os.path.dirname(os.path.dirname(os.path.abspath(verify.__file__)))
 
@@ -352,7 +352,7 @@ def test_main_refuses_a_literal_model_word_in_verify_leaf_args_beside_a_resolved
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
@@ -398,7 +398,7 @@ def test_main_returns_2_on_a_killed_stuck_leaf_with_no_tamper_check_event_or_pre
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
@@ -457,7 +457,7 @@ def test_main_relaunches_a_leaf_with_no_verdict_line_up_to_the_no_verdict_budget
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
@@ -490,7 +490,7 @@ def test_main_returns_2_when_the_relaunch_record_cannot_be_appended_and_makes_no
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
@@ -527,7 +527,7 @@ def test_main_returns_2_when_the_verdict_record_cannot_be_appended_with_no_prese
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
@@ -557,7 +557,7 @@ def test_main_reads_an_empty_no_verdict_budget_as_1_and_a_leading_zero_as_octal_
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
@@ -587,7 +587,7 @@ def test_main_copies_parse_verdicts_stderr_to_its_own_stderr_after_every_launch_
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
@@ -616,7 +616,7 @@ def test_main_refuses_a_no_verdict_budget_that_is_not_a_non_negative_integer_aft
         return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine\n", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
@@ -679,7 +679,7 @@ def test_main_snapshots_the_tree_through_a_temporary_index_and_head_around_the_l
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
@@ -738,7 +738,7 @@ def test_main_takes_a_git_call_that_fails_as_no_snapshot_or_no_change_whatever_i
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
@@ -791,7 +791,7 @@ def test_main_restores_a_modified_tree_through_a_fresh_temporary_index_and_a_mov
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
@@ -844,7 +844,7 @@ def test_main_runs_the_tamper_check_after_a_relaunchs_launch_and_refuses_a_relau
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
@@ -897,7 +897,7 @@ def test_main_outside_a_repository_without_git_or_with_a_failing_add_takes_no_sn
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
@@ -945,7 +945,7 @@ def test_main_in_a_repository_with_no_commit_reports_a_leaf_that_commits_as_head
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
@@ -992,7 +992,7 @@ def test_main_returns_2_with_no_traceback_when_the_update_ref_restoring_head_fai
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
@@ -1037,7 +1037,7 @@ def test_main_returns_2_not_1_when_the_update_ref_restoring_head_exits_1_1183(
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
@@ -1082,7 +1082,7 @@ def test_main_returns_2_with_no_traceback_when_git_cannot_be_started_to_restore_
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
     raised = None
@@ -1134,7 +1134,7 @@ def test_main_returns_2_naming_home_gitconfig_when_the_leaf_changed_created_or_d
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
@@ -1188,7 +1188,7 @@ def test_main_reports_a_leaf_that_changed_both_the_repository_and_home_gitconfig
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
@@ -1225,7 +1225,7 @@ def test_main_returns_2_before_any_leaf_launches_when_reading_home_gitconfig_a_r
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     real_open = open
 
     def unreadable(path, *args, **kwargs):
@@ -1263,7 +1263,7 @@ def test_main_returning_2_because_reading_home_gitconfig_raised_oserror_names_th
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     real_open = open
 
     def unreadable(path, *args, **kwargs):
@@ -1306,7 +1306,7 @@ def test_main_returns_2_naming_home_gitconfig_on_stderr_without_launching_a_leaf
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
@@ -1347,7 +1347,7 @@ def test_main_returns_2_naming_home_gitconfig_on_stderr_when_the_leaf_left_it_a_
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
@@ -1387,7 +1387,7 @@ def test_main_returns_2_naming_home_gitconfig_on_stderr_when_the_leaf_left_it_un
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     real_open = open
 
     def unreadable_after_the_leaf(path, *args, **kwargs):
@@ -1455,7 +1455,7 @@ def test_main_preserves_a_reject_malformed_or_no_verdict_attempt_under_its_attem
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
@@ -1491,7 +1491,7 @@ def test_main_writes_every_line_it_prints_the_em_dash_in_its_refusals_included_a
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
     def run(code, out, env):
@@ -1547,7 +1547,7 @@ def answering_leaf(monkeypatch, leaf_out):
         return subprocess.CompletedProcess(args, 128 if name == "git" else 0, b"", None)
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     return launches
 HUNG = pytest.mark.process("a hung verifier leaf killed by the real supervise.sh")
 
@@ -1655,7 +1655,7 @@ def test_verify_sh_reads_the_newest_verdict_across_result_records_and_relaunches
         return subprocess.CompletedProcess(args, 128 if name == "git" else 0, b"", None)
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, real_builder(name, fake))
+        monkeypatch.setattr(subprocess, name, fake)
     events.refuse_event_sh()
     verify = importlib.import_module("veri.verify")
 
