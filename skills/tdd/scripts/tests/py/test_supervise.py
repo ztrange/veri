@@ -2606,6 +2606,63 @@ def test_cli_counts_awake_time_a_leaf_silent_1s_then_3s_against_a_2s_heartbeat_a
     ]
 
 
+def test_cli_settles_the_hard_timeout_from_veri_timeout_else_the_issue_file_from_the_worktree_root_else_900_a_leaf_busy_10s_is_killed_at_3s_or_5s_or_finishes_exit_0_954(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import signal
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+
+    def busy_ten(name, issue, explicit, subdir=None, record="3\n"):
+        work = tmp_path / name
+        (work / ".tdd").mkdir(parents=True)
+        (work / ".tdd" / f"issue-{'954' if issue else ''}-timeout").write_text(record)
+        (work / "src" / "deep").mkdir(parents=True)
+        env = {"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "30"}
+        env.update({"VERI_ISSUE": "954"} if issue else {})
+        env.update({"VERI_TIMEOUT": "5"} if explicit else {})
+        clean_env(monkeypatch)
+        clock = {"wall": 1000, "awake": 5000, "sleeps": 0}
+        leaf = AwakeLeaf()
+
+        def sleep(_):
+            clock["sleeps"] += 1
+            if clock["sleeps"] > 50:
+                raise AssertionError("never ended")
+            clock["wall"] += 1
+            clock["awake"] += 1
+            if clock["sleeps"] == 10:
+                (work / ".tdd" / "busy.log").write_text("leaf: finished on its own\n")
+                (work / ".tdd" / "busy.rc").write_text("0\n")
+                leaf.returncode = 0
+
+        def stop(_pid, sig):
+            if sig:
+                leaf.returncode = -sig
+
+        def answer(args):
+            args = [str(a) for a in args]
+            if "--show-toplevel" in args:
+                return f"{work}\n"
+            if args[:1] == ["git"]:
+                return "0123456789abcdef0123456789abcdef01234567\n"
+            if args[:1] == ["date"]:
+                return f"{clock['wall']}\n"
+            if args[:3] == ["stat", "-c", "%Y"]:
+                return f"{clock['wall']}\n"
+            return ""
+
+        install_awake_fakes(monkeypatch, clock, leaf, sleep, stop, answer)
+        code, _, err = run_cli(supervise, ["busy", "leaf"], env=env, cwd=work / (subdir or ""))
+        return code, [line for line in err.splitlines() if "hard timeout" in line]
+
+    assert [busy_ten("settled", True, False), busy_ten("unissued", False, False),
+            busy_ten("subdir", True, False, subdir="src/deep"), busy_ten("explicit", True, True)] == [
+        (2, ["supervise[busy]: killed-stuck — hard timeout 3s exceeded"]),
+        (0, []),
+        (2, ["supervise[busy]: killed-stuck — hard timeout 3s exceeded"]),
+        (2, ["supervise[busy]: killed-stuck — hard timeout 5s exceeded"]),
+    ]
+
+
 REAL_LEAF_ENV = {"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "5", "VERI_TIMEOUT": "10"}
 
 
