@@ -1,7 +1,11 @@
 """In-process cases for veri/wait_leaf.py, the module wait-leaf.sh is a shim over."""
 import importlib
+import re
+import subprocess
 
 import pytest
+
+from conftest import SCRIPTS
 
 USAGE = "usage: wait-leaf.sh <name> [max-seconds]\n"
 
@@ -300,3 +304,107 @@ def test_main_counts_an_empty_date_reading_as_0_before_the_loop_and_never_as_the
               "date +%s", "sleep 0", "date +%s"]
     assert waits == {"prints nothing": (3, rounds), "fails": (3, rounds), "missing": (3, rounds)}
     assert capsys.readouterr().out == ""
+
+
+@pytest.mark.process("wait-leaf.sh run through a symlink to the skills directory")
+def test_a_run_through_a_symlink_to_the_skills_directory_reads_the_working_directorys_exit_file_and_answers_a_recorded_1(
+        tmp_path):
+    (tmp_path / "linked").symlink_to(SCRIPTS.parents[1], target_is_directory=True)
+    (tmp_path / "caller" / ".tdd").mkdir(parents=True)
+    (tmp_path / "caller" / ".tdd" / "via-link.exit").write_text("1\n")
+
+    ran = subprocess.run([str(tmp_path / "linked" / "tdd" / "scripts" / "wait-leaf.sh"), "via-link", "0"],
+                         cwd=tmp_path / "caller", stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                         env={"PATH": "/usr/bin:/bin", "VERI_POLL": "0"})
+
+    assert (ran.returncode, ran.stdout, ran.stderr) == (1, "", "")
+    assert not (SCRIPTS / ".tdd" / "via-link.exit").exists()
+
+
+def stepping_clock(fake_processes, ps=None, land=None):
+    readings = []
+
+    def answer(line, **_):
+        if line == "date +%s":
+            if len(readings) > 600:
+                raise RuntimeError("runaway wait: more than 600 clock readings")
+            readings.append(len(readings))
+            if land is not None and readings[-1] >= land[0] and not land[1].exists():
+                land[1].write_text(land[2])
+            return (0, f"{readings[-1]}\n", "")
+        if line.startswith("ps ") and ps is not None:
+            return ps
+        return (0, "", "")
+
+    fake_processes(answer)
+    return readings
+
+
+def test_cli_answers_a_code_recorded_a_couple_of_seconds_into_the_wait_as_soon_as_it_lands(
+        tmp_path, run_cli, wait_leaf, fake_processes):
+    (tmp_path / ".tdd").mkdir()
+    answers = {}
+    for code in ("0", "1", "2"):
+        exit_file = tmp_path / ".tdd" / f"late-{code}.exit"
+        readings = stepping_clock(fake_processes, land=(2, exit_file, f"{code}\n"))
+        answer = run_cli(wait_leaf, [f"late-{code}", "20"], env={"VERI_POLL": "0"}, cwd=tmp_path)
+        answers[code] = (answer, 2 <= readings[-1] - readings[0] <= 10)
+    assert answers == {"0": ((0, "", ""), True), "1": ((1, "", ""), True), "2": ((2, "", ""), True)}
+
+
+def test_cli_exits_2_promptly_naming_the_leaf_and_the_pid_when_the_recorded_pid_runs_something_other_than_its_supervisor(
+        tmp_path, run_cli, wait_leaf, fake_processes):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "reused-sup.pid").write_text("4242\n")
+    readings = stepping_clock(fake_processes, ps=(0, "sleep 60\n", ""))
+
+    answer = run_cli(wait_leaf, ["reused-sup", "20"], env={"VERI_POLL": "0"}, cwd=tmp_path)
+
+    assert answer == (2, "", "wait-leaf.sh: supervisor for leaf 'reused-sup' (pid 4242) exited without recording a status\n")
+    assert readings[-1] - readings[0] <= 10
+
+
+def test_cli_exits_3_at_budget_0_with_nothing_on_stderr_while_a_supervisor_spelled_veri_supervise_py_is_alive(
+        tmp_path, run_cli, wait_leaf, fake_processes):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "live-py.pid").write_text("4242\n")
+    stepping_clock(fake_processes, ps=(0, "python3 /x/veri/supervise.py live-py develop-red\n", ""))
+
+    assert run_cli(wait_leaf, ["live-py", "0"], env={"VERI_POLL": "0"}, cwd=tmp_path) == (3, "", "")
+
+
+def test_cli_exits_2_promptly_naming_a_verifier_leaf_whose_supervisor_died(
+        tmp_path, run_cli, wait_leaf, fake_processes):
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "verdict-red.pid").write_text("4242\n")
+    readings = stepping_clock(fake_processes, ps=(1, "", ""))
+
+    code, out, err = run_cli(wait_leaf, ["verdict-red", "20"], env={"VERI_POLL": "0"}, cwd=tmp_path)
+
+    assert (code, out, "'verdict-red'" in err, "4242" in err) == (2, "", True, True)
+    assert readings[-1] - readings[0] <= 10
+
+
+def skill_paragraphs():
+    return re.split(r"\n[ \t]*\n", (SCRIPTS.parent / "SKILL.md").read_text())
+
+
+def test_skill_md_launches_every_leaf_detached_and_waits_for_it_with_wait_leaf_sh_in_the_foreground():
+    lines = (SCRIPTS.parent / "SKILL.md").read_text().split("\n")
+    sites = [i for i, line in enumerate(lines)
+             if ("$S/supervise.sh" in line or "$S/verify.sh" in line) and ".tdd/" in line]
+    misses = [i + 1 for i in sites
+              if "detach-leaf.sh" not in lines[i] or "wait-leaf.sh" not in "\n".join(lines[i:i + 7])]
+    assert (len(sites) >= 5, misses) == (True, [])
+
+
+def test_skill_md_warns_that_a_background_call_awaiting_a_notification_never_completes_in_print_mode():
+    assert [p for p in skill_paragraphs()
+            if "background" in p.lower() and "notification" in p.lower() and re.search(r"print[ -]mode", p.lower())]
+
+
+def test_skill_md_reports_a_verifier_whose_supervisor_died_the_way_it_reports_a_killed_developer_leaf():
+    assert [p for p in skill_paragraphs()
+            if "verdict-<phase>" in p and "killed-stuck" in p.lower() and "bail" in p.lower()
+            and ("without recording a status" in p.lower()
+                 or re.search(r"supervisor[^.]*(died|dies|exited|is gone)", p.lower()))]
