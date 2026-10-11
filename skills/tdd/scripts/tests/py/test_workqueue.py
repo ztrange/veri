@@ -769,3 +769,79 @@ def test_every_argument_refusal_through_the_cli_exits_2_with_its_usage_text_and_
     assert queue.read_bytes() == before
     assert sorted(path.name for path in (queued / ".tdd").iterdir()) == ["workqueue"]
     assert list((bare / ".tdd").iterdir()) == []
+
+
+def test_next_against_a_gh_that_serves_issues_over_three_pages_and_refuses_repositories_id_with_the_proxys_403_prints_the_same_issue_as_a_single_page(tmp_path, monkeypatch, run_cli, workqueue):
+    queue = tmp_path / ".tdd" / "workqueue"
+    queue.parent.mkdir()
+    queue.write_bytes(b"alpha\t71\tqueued\t\nalpha\t73\tqueued\t\n")
+    issues = [
+        {"number": 70, "state": "closed", "body": ""},
+        {"number": 71, "state": "open", "body": "Work.\n\n## Blocked by\n\n- #74\n"},
+        {"number": 72, "state": "closed", "body": ""},
+        {"number": 73, "state": "open", "body": "Work.\n\n## Blocked by\n\n- #72\n"},
+        {"number": 74, "state": "open", "body": ""},
+        {"number": 75, "state": "closed", "body": ""},
+    ]
+    proxy = "gh: Numeric-ID repository paths (repositories/{id}/...) are not supported through this proxy. (HTTP 403)\n"
+
+    def serve(per_page):
+        def fake_run(args, **kwargs):
+            if list(args[:3]) == ["git", "worktree", "list"]:
+                return subprocess.CompletedProcess(args, 0, "worktree %s\n" % tmp_path, "")
+            if list(args[:3]) == ["git", "remote", "get-url"]:
+                return subprocess.CompletedProcess(args, 2, "", "error: No such remote 'origin'\n")
+            if list(args[:2]) == ["gh", "api"]:
+                path = args[2]
+                if "repositories/" in path:
+                    sys.stderr.write(proxy)
+                    return subprocess.CompletedProcess(args, 1, "", None)
+                assert path.startswith("repos/{owner}/{repo}/issues"), path
+                page = int(path.rsplit("page=", 1)[1])
+                chunk = issues[(page - 1) * per_page:page * per_page]
+                return subprocess.CompletedProcess(args, 0, json.dumps(chunk) + "\n", None)
+            raise AssertionError("unexpected command: %r" % (args,))
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+
+    serve(len(issues))
+    one = run_cli(workqueue, ["next", "alpha"])
+    serve(2)
+    three = run_cli(workqueue, ["next", "alpha"])
+    assert one == (0, "73\n", "")
+    assert three == one
+
+
+def test_assign_through_the_cli_takes_an_issue_held_only_as_merged_parked_or_skipped(tmp_path, monkeypatch, run_cli, workqueue):
+    fake_git(monkeypatch, tmp_path)
+    queue = tmp_path / ".tdd" / "workqueue"
+    queue.parent.mkdir()
+    before = b"beta\t4\tmerged\tabc1234\ngamma\t9\tparked\tsecond bail\nbeta\t11\tskipped\t\n"
+    queue.write_bytes(before)
+
+    assert run_cli(workqueue, ["assign", "alpha", "4", "9", "11"]) == (0, "", "")
+    assert queue.read_bytes() == before + b"alpha\t4\tqueued\t\nalpha\t9\tqueued\t\nalpha\t11\tqueued\t\n"
+
+
+def test_next_through_the_cli_reads_an_issues_document_over_256_kib_as_it_reads_a_small_one(tmp_path, monkeypatch, run_cli, workqueue):
+    fake_git(monkeypatch, tmp_path)
+    queue = tmp_path / ".tdd" / "workqueue"
+    queue.parent.mkdir()
+    queue.write_bytes(b"alpha\t2\tqueued\t\nalpha\t3\tqueued\t\n")
+
+    def fixture(name, pad):
+        directory = tmp_path / name
+        directory.mkdir()
+        (directory / "issues.json").write_text(json.dumps([
+            {"number": n, "title": "issue %d" % n, "labels": [], "state": "OPEN",
+             "body": "## What to build\n\n" + pad + "\n\n## Blocked by\n\n" + ("- #1\n" if n == 2 else "None.\n")}
+            for n in range(1, 41)]))
+        return directory
+
+    short, long = fixture("short", "short"), fixture("long", "x" * 8192)
+    assert (long / "issues.json").stat().st_size > 262144
+
+    small = run_cli(workqueue, ["next", "alpha"], env={"VERI_GH_JSON": str(short)})
+    large = run_cli(workqueue, ["next", "alpha"], env={"VERI_GH_JSON": str(long)})
+    assert small == (0, "3\n", "")
+    assert large == small
