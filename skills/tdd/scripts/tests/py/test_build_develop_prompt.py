@@ -1208,6 +1208,23 @@ def test_main_permits_a_replaces_case_green_to_delete_exactly_the_cases_its_step
             for key, prompt in prompts.items()} == dict.fromkeys(prompts, [])
 
 
+def test_main_requires_a_replaces_case_green_to_delete_exactly_the_cases_its_step_names_issue_1406(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    step = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz" moves to '
+            'tests/py/test_zorblat.py ⟦criterion 1⟧')
+    build_develop_prompt.main(["green", str(spec), step, "make test", "tests/py/test_zorblat.py",
+                               "test_zorblat_frobs_a_nitz", "make unit"])
+    out, _ = capsysbinary.readouterr()
+    prompt = re.sub(rb"\s+", b" ", out)
+
+    assert re.search(
+        rb"(must|required? to|is required|are required|requires?)[^.]{0,60}delet[^.]{0,60}"
+        rb"(exactly|every|each|all)[^.]{0,30}cases?[^.]{0,30}(it|the step|its text) names"
+        rb"|delet[^.]{0,60}(is|are) required", prompt, re.I), prompt
+
+
 def test_main_renders_an_expand_and_a_migrate_prompt_stating_what_each_phase_changes_and_that_test_files_stay_frozen(
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
