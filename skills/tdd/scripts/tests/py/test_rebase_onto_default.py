@@ -496,3 +496,61 @@ def test_main_rebases_a_real_branch_behind_origin_main_exits_0_prints_the_pre_re
     assert git(clone, "rev-parse", "HEAD~1") == onto
     assert git(clone, "log", "-1", "--format=%s") == "feat: a step's green commit (#1)"
     assert git(clone, "status", "--porcelain=v1", "--untracked-files=all") == ""
+
+
+@pytest.mark.process("git: real clones left untouched by an up-to-date run and by an aborted conflicting rebase")
+def test_main_leaves_head_the_tree_and_the_rebase_state_untouched_when_up_to_date_with_3_and_when_a_rebase_conflicts_with_1_under_either_backend(
+        monkeypatch, tmp_path, rebase_onto_default, run_cli):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    def commit(repo, files, message, *flags):
+        for name, body in files.items():
+            (repo / name).write_text(body)
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", *flags, "-m", message)
+
+    def fixture(name, backend=None):
+        root = tmp_path / name
+        origin, seed, clone = root / "origin.git", root / "seed", root / "clone"
+        root.mkdir()
+        subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+        subprocess.run(["git", "init", "-q", "-b", "main", str(seed)], check=True)
+        commit(seed, {"file.txt": "base\n"}, "initial")
+        git(seed, "push", "-q", str(origin), "main")
+        subprocess.run(["git", "clone", "-q", str(origin), str(clone)], check=True,
+                       stderr=subprocess.DEVNULL)
+        if backend:
+            git(clone, "config", "rebase.backend", backend)
+        git(clone, "checkout", "-q", "-b", "tdd/1-a-run")
+        return seed, origin, clone
+
+    def untouched(clone, pre, code, out, err, want_code, want_out):
+        assert code == want_code
+        assert (err == "") == (want_code == 3)
+        assert sorted(out.split()) == want_out
+        assert git(clone, "rev-parse", "HEAD") == pre
+        assert git(clone, "status", "--porcelain=v1", "--untracked-files=all") == ""
+        for d in ("rebase-merge", "rebase-apply"):
+            assert not os.path.exists(git(clone, "rev-parse", "--path-format=absolute", "--git-path", d))
+
+    seed, origin, clone = fixture("up-to-date")
+    commit(clone, {"work.txt": "the run's work\n"}, "feat: a step's green commit (#1)")
+    git(clone, "fetch", "-q", "origin")
+    pre = git(clone, "rev-parse", "HEAD")
+    untouched(clone, pre, *run_cli(rebase_onto_default, [], cwd=clone), 3, [])
+
+    for backend in (None, "apply"):
+        seed, origin, clone = fixture(f"conflict-{backend}", backend)
+        commit(clone, {"work.txt": "the run's work\n", "file.txt": "the run's edit\n"},
+               "feat: a step's green commit (#1)")
+        commit(seed, {"file.txt": "another run's edit\n", "work.txt": "another run's work\n"},
+               "feat: another run merged (#2)")
+        git(seed, "push", "-q", str(origin), "main")
+        pre = git(clone, "rev-parse", "HEAD")
+        untouched(clone, pre, *run_cli(rebase_onto_default, [], cwd=clone), 1, ["file.txt", "work.txt"])
