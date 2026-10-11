@@ -3065,6 +3065,32 @@ def test_cli_launches_revise_green_1_on_opus_after_a_verify_green_reject_then_th
         ("develop-red", 0, "sonnet"), ("develop-refactor", 0, "sonnet")]
 
 
+@pytest.mark.process("run-leaf.sh run for real under a first-try verifier and a redo leaf whose own arguments carry --model, starting a stub claude")
+def test_cli_launches_a_leaf_whose_own_arguments_carry_model_with_exactly_that_one_model_and_no_default_for_a_verifier_and_a_redo_leaf(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import signal
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    clean_env(monkeypatch)
+    stub = tmp_path / "claude-stub"
+    stub.write_text('#!/bin/sh\nprintf \'%s\\n\' "$@" > "$OUT"\n'
+                    "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"ok\"}'\n")
+    stub.chmod(0o755)
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("pick the model")
+
+    def model_flags(name):
+        work = tmp_path / name
+        work.mkdir()
+        out = tmp_path / f"{name}-claude.argv"
+        env = {"CLAUDE_BIN": str(stub), "OUT": str(out), **REAL_LEAF_ENV}
+        code, _, _ = run_cli(supervise, [name, str(SCRIPTS / "run-leaf.sh"), str(prompt), "--model", "x"], cwd=work, env=env)
+        argv = out.read_text().splitlines() if out.exists() else []
+        return code, [argv[i + 1] for i, a in enumerate(argv) if a == "--model"]
+
+    names = ["verify-green", "revise-green-2", "develop-exhausted"]
+    assert {n: model_flags(n) for n in names} == {n: (0, ["x"]) for n in names}
+
+
 @pytest.mark.process("git runs for real, and the launch event is appended in-process: a launch event's skill_commit is the skill clone's own HEAD, or unknown outside a clone")
 def test_cli_records_the_skill_clones_own_head_in_a_launch_events_skill_commit_and_the_literal_unknown_for_a_skill_outside_a_git_clone(
         monkeypatch, tmp_path, supervise, run_cli):
