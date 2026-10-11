@@ -243,7 +243,7 @@ def test_main_reads_a_run_whose_done_mark_is_followed_by_a_ci_repair_step_added_
         lamp_ev(9980, "18", "step-added", actor="conductor", phase="", attempt="",
                 anchor="a lamp glows", added="1"),
     ])
-    lamp_git(monkeypatch, tmp_path, [run], lambda scope: (3, ""))
+    lamp_git(monkeypatch, tmp_path, [run], (3, ""))
     at_ten_thousand(monkeypatch)
 
     code = status.main(["--scope", "lamps-label"])
