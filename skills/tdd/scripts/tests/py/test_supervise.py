@@ -11,6 +11,7 @@ SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 USAGE = b"usage: supervise.sh <name> <cmd> [args...]\n"
 
 
+REFUSAL = "supervise: refusing to launch {}: leaf {} (pid {}) is still alive in this worktree"
 LIVE_LEAF_WINDOW = {"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "30", "VERI_TIMEOUT": "60", "VERI_POLL": "0.02",
                     "VERI_KILL_POLL": "0.01"}
 
@@ -1935,7 +1936,6 @@ def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_an
                 ["git", "-C", supervise.HERE, "rev-parse", "HEAD"] in calls,
                 [(r["event"], r["actor"], r["name"]) for r in events.records(work)])
 
-    refusal = "supervise: refusing to launch {}: leaf {} (pid {}) is still alive in this worktree"
     answers = {
         "alive": supervised("alive", "verify-red", "4242 develop-red\nignored line\n"),
         "alive-same-name": supervised("alive-same-name", "develop-red", "4242 develop-red\n"),
@@ -1955,13 +1955,13 @@ def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_an
 
     launched, mine, verifier = ("launched", "date"), f"{me}\n", [("launch", "verifier", "verify-red")]
     assert answers == {
-        "alive": (2, b"", [refusal.format("verify-red", "develop-red", 4242)], "2\n", None,
+        "alive": (2, b"", [REFUSAL.format("verify-red", "develop-red", 4242)], "2\n", None,
                   "4242 develop-red\nignored line\n", [(4242, 0)], True, []),
-        "alive-same-name": (2, b"", [refusal.format("develop-red", "develop-red", 4242)], None, None,
+        "alive-same-name": (2, b"", [REFUSAL.format("develop-red", "develop-red", 4242)], None, None,
                             "4242 develop-red\n", [(4242, 0)], True, []),
-        "alive-no-owner-name": (2, b"", [refusal.format("verify-red", "?", 4242)], "2\n", None,
+        "alive-no-owner-name": (2, b"", [REFUSAL.format("verify-red", "?", 4242)], "2\n", None,
                                 "4242\n", [(4242, 0)], True, []),
-        "alive-refused-role": (2, b"", [refusal.format("bogus-x", "develop-red", 4242)], "2\n", None,
+        "alive-refused-role": (2, b"", [REFUSAL.format("bogus-x", "develop-red", 4242)], "2\n", None,
                                "4242 develop-red\n", [(4242, 0)], True, []),
         "alive-zero": (launched, b"", [], None, mine, f"{me} verify-red\n", [], True, verifier),
         "alive-negative": (launched, b"", [], None, mine, f"{me} verify-red\n", [], True, verifier),
@@ -1973,7 +1973,7 @@ def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_an
                          [("launch", "developer", "develop-red")]),
         "none-verdict": (launched, b"", [], None, mine, None, [], True, []),
         "none-conductor": (launched, b"", [], None, mine, None, [], True, [("launch", "conductor", "conductor-1")]),
-        "alive-verdict": (2, b"", [refusal.format("verdict-red", "develop-red", 4242)], "2\n", None,
+        "alive-verdict": (2, b"", [REFUSAL.format("verdict-red", "develop-red", 4242)], "2\n", None,
                           "4242 develop-red\n", [(4242, 0)], True, []),
     }
 
@@ -3095,15 +3095,14 @@ def test_cli_refuses_a_launch_under_another_name_or_the_same_name_even_after_the
             code, out, err = run_cli(supervise, [name, "sh", "-c", "echo ran > ran"], cwd=work, env=window)
             return code, out, err.strip().splitlines()[-1:], (work / "ran").exists()
 
-        refusal = f"supervise: refusing to launch {{}}: leaf develop-red (pid {sup.pid}) is still alive in this worktree"
         answers = [second("verify-red"), second("develop-red")]
         for suffix in ("exit", "pid"):
             (work / ".tdd" / f"develop-red.{suffix}").unlink(missing_ok=True)
         answers.append(second("develop-red"))
         assert answers == [
-            (2, "", [refusal.format("verify-red")], False),
-            (2, "", [refusal.format("develop-red")], False),
-            (2, "", [refusal.format("develop-red")], False),
+            (2, "", [REFUSAL.format("verify-red", "develop-red", sup.pid)], False),
+            (2, "", [REFUSAL.format("develop-red", "develop-red", sup.pid)], False),
+            (2, "", [REFUSAL.format("develop-red", "develop-red", sup.pid)], False),
         ]
     finally:
         sup.send_signal(signal.SIGTERM)
@@ -3167,7 +3166,6 @@ def test_cli_refuses_a_launch_while_a_recorded_leaf_is_alive_writing_2_for_anoth
     monkeypatch.setattr(wait_leaf, "clock", lambda: 1000)
     clean_env(monkeypatch)
     live = f"{os.getpid()} develop-green\n"
-    refusal = f"supervise: refusing to launch {{}}: leaf develop-green (pid {os.getpid()}) is still alive in this worktree"
 
     def refused(name):
         work = tmp_path / name
@@ -3181,6 +3179,6 @@ def test_cli_refuses_a_launch_while_a_recorded_leaf_is_alive_writing_2_for_anoth
                 run_cli(wait_leaf, [name, "0"], cwd=work)[0])
 
     assert [refused("verdict-green"), refused("develop-green")] == [
-        (2, "", [refusal.format("verdict-green")], "2\n", live, False, 2),
-        (2, "", [refusal.format("develop-green")], None, live, False, 3),
+        (2, "", [REFUSAL.format("verdict-green", "develop-green", os.getpid())], "2\n", live, False, 2),
+        (2, "", [REFUSAL.format("develop-green", "develop-green", os.getpid())], None, live, False, 3),
     ]
