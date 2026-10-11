@@ -945,3 +945,84 @@ def test_assign_and_start_run_as_parallel_processes_leave_a_well_formed_queue_ho
     assert torn == []
     want = {"w%d\t%d\tqueued\t" % (i, i) for i in range(1, 21)} | {"alpha\t%d\trunning\t" % (100 + i) for i in range(1, 21)}
     assert want - set(lines) == set()
+
+
+@pytest.mark.process("a real linked git worktree whose `git worktree list` names the main working tree")
+def test_called_from_a_linked_worktree_through_the_cli_assign_and_show_act_on_the_main_working_tree_queue(tmp_path, run_cli, workqueue):
+    main = tmp_path / "main"
+    linked = tmp_path / "linked"
+    git = ["git", "-c", "user.name=veri", "-c", "user.email=veri@example.test"]
+    subprocess.run(git + ["init", "-q", "-b", "main", str(main)], check=True)
+    subprocess.run(git + ["-C", str(main), "commit", "-q", "--allow-empty", "-m", "initial"], check=True)
+    subprocess.run(["git", "-C", str(main), "worktree", "add", "-q", "-b", "side", str(linked)], check=True)
+    (main / ".tdd").mkdir()
+    (main / ".tdd" / "workqueue").write_bytes(b"beta\t4\tqueued\t\n")
+
+    assert run_cli(workqueue, ["assign", "alpha", "7"], cwd=str(linked)) == (0, "", "")
+    assert run_cli(workqueue, ["show"], cwd=str(linked)) == (0, "beta\n\t4\tqueued\nalpha\n\t7\tqueued\n", "")
+    assert (main / ".tdd" / "workqueue").read_bytes() == b"beta\t4\tqueued\t\nalpha\t7\tqueued\t\n"
+    assert not (linked / ".tdd" / "workqueue").exists()
+
+
+def test_show_through_the_cli_groups_every_item_by_worker_and_show_worker_prints_one_group_or_nothing_with_exit_0(tmp_path, fake_processes, run_cli, workqueue):
+    queue = queue_tree(tmp_path, fake_processes)
+    before = b"alpha\t12\trunning\t\nbeta\t4\tqueued\t\nalpha\t7\tqueued\t\n"
+    queue.write_bytes(before)
+    assert run_cli(workqueue, ["show"]) == (0, "alpha\n\t12\trunning\n\t7\tqueued\nbeta\n\t4\tqueued\n", "")
+    assert run_cli(workqueue, ["show", "alpha"]) == (0, "alpha\n\t12\trunning\n\t7\tqueued\n", "")
+    assert run_cli(workqueue, ["show", "beta"]) == (0, "beta\n\t4\tqueued\n", "")
+    assert run_cli(workqueue, ["show", "gamma"]) == (0, "", "")
+    assert queue.read_bytes() == before
+
+
+SKILL_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+
+@pytest.mark.process("workqueue.sh run through a symlink to the skill directory from a subdirectory of a real linked git worktree")
+def test_run_through_a_symlinked_skill_from_a_linked_worktree_subdirectory_assign_start_and_show_act_as_in_place_on_the_main_working_tree_queue(tmp_path):
+    git = ["git", "-c", "user.name=veri", "-c", "user.email=veri@example.test"]
+    in_place, main, linked = tmp_path / "in-place", tmp_path / "main", tmp_path / "linked"
+    for repo in (in_place, main):
+        subprocess.run(git + ["init", "-q", "-b", "main", str(repo)], check=True)
+        subprocess.run(git + ["-C", str(repo), "commit", "-q", "--allow-empty", "-m", "initial"], check=True)
+        (repo / ".tdd").mkdir()
+        (repo / ".tdd" / "workqueue").write_bytes(b"beta\t4\tqueued\t\n")
+    subprocess.run(["git", "-C", str(main), "worktree", "add", "-q", "-b", "side", str(linked)], check=True)
+    (linked / "sub" / "dir").mkdir(parents=True)
+    (tmp_path / "skill-link").symlink_to(SKILL_DIR, target_is_directory=True)
+
+    def sequence(script, cwd):
+        out = []
+        for argv in (["assign", "alpha", "7", "8"], ["start", "alpha", "7"], ["show"]):
+            done = subprocess.run([script] + argv, cwd=cwd, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+            out.append((done.returncode, done.stdout, done.stderr))
+        return out
+
+    want = [(0, "", ""), (0, "", ""), (0, "beta\n\t4\tqueued\nalpha\n\t7\trunning\n\t8\tqueued\n", "")]
+    assert sequence(os.path.join(SKILL_DIR, "scripts", "workqueue.sh"), in_place) == want
+    assert sequence(str(tmp_path / "skill-link" / "scripts" / "workqueue.sh"), linked / "sub" / "dir") == want
+    queue = b"beta\t4\tqueued\t\nalpha\t7\trunning\t\nalpha\t8\tqueued\t\n"
+    assert (in_place / ".tdd" / "workqueue").read_bytes() == queue
+    assert (main / ".tdd" / "workqueue").read_bytes() == queue
+    assert not (linked / ".tdd" / "workqueue").exists()
+    assert not (linked / "sub" / "dir" / ".tdd" / "workqueue").exists()
+
+
+def test_worker_md_beside_skill_md_documents_the_worker_loop_naming_each_workqueue_call():
+    with open(os.path.join(SKILL_DIR, "WORKER.md")) as doc:
+        text = doc.read()
+    missing = [call for call in ("next", "start", "done", "park")
+               if not re.search(r"workqueue\.sh\s+%s([^A-Za-z0-9_-]|$)" % call, text, re.M)]
+    assert missing == []
+
+
+def test_skill_md_tells_a_session_born_as_a_worker_to_read_worker_md():
+    with open(os.path.join(SKILL_DIR, "SKILL.md")) as doc:
+        assert re.search(r"`Read`.*`WORKER\.md`", doc.read())
+
+
+def test_context_md_defines_worker_and_work_queue():
+    with open(os.path.join(SKILL_DIR, "..", "..", "CONTEXT.md")) as doc:
+        text = doc.read()
+    assert [term for term in ("Worker", "Work queue")
+            if not re.search(r"^\*\*%s\*\*:" % term, text, re.M | re.I)] == []
