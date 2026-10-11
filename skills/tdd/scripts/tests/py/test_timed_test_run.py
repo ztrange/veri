@@ -79,7 +79,7 @@ def test_main_refuses_every_short_or_empty_argument_shape_and_passes_a_7_through
                         "skill_commit": "", "tier": "fast", "suites": "", "status": "7"}]
 
 
-def test_main_runs_the_command_inheriting_everything_then_records_whole_second_seconds_and_status_through_the_sibling_event_sh(tmp_path, monkeypatch, events, timed_test_run):
+def test_main_runs_the_command_inheriting_everything_then_records_whole_second_seconds_and_status_in_a_test_run_event(tmp_path, monkeypatch, events, timed_test_run):
     log = []
     readings = [100.9, 102.1]
 
@@ -217,7 +217,7 @@ def test_main_returns_the_command_status_unmapped_and_records_it_127_not_found_1
     ]
 
 
-def test_main_returns_the_command_status_when_event_sh_exits_non_zero(tmp_path, monkeypatch, capfd, events, timed_test_run):
+def test_main_returns_the_command_status_when_the_event_cannot_be_appended(tmp_path, monkeypatch, capfd, events, timed_test_run):
     monkeypatch.chdir(tmp_path)
     events.unappendable()
 
