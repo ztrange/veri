@@ -63,15 +63,8 @@ def open_listing(fixture, path, *args):
     return listing
 
 
-def main(argv):
-    repo = "".join(argv[1:2]) if argv[:1] == ["--repo"] else None
-    if repo == "":
-        print(USAGE, file=sys.stderr)
-        return 2
-    if refused_if_empty("VERI_LABEL") or refused_if_empty("VERI_PRIORITY_LABEL"):
-        return 2
-    label = tunables.read("VERI_LABEL", "ready-for-agent")
-    priority = tunables.read("VERI_PRIORITY_LABEL", "priority")
+def solvable(label, priority="priority", repo=None):
+    """(exit code, the solvable issue numbers in selection order) for the opt-in <label>."""
     scope = ["--repo", repo] if repo else []
     prefix = "repos/%s" % (repo or "{owner}/{repo}")
     try:
@@ -79,7 +72,7 @@ def main(argv):
                               "issue", "list", "--limit", "10000", "--json", "number,title,labels,body,state", *scope)
         prs = open_listing("prs.json", prefix + "/pulls", "pr", "list", "--limit", "10000", "--json", "body,state", *scope)
     except NoAnswer:
-        return 2
+        return 2, []
     issues = [issue for issue in items(issues) if "pull_request" not in issue]
     claimed = {int(n) for pr in items(prs) if is_open(pr) for n in re.findall(r"\bCloses #(\d+)", pr["body"] or "")}
     open_issues = {issue["number"] for issue in issues if is_open(issue)}
@@ -89,11 +82,23 @@ def main(argv):
                  and not in_flight(main_tree, issue["number"])
                  and all(n not in open_issues for n in blocked_by.blockers(issue.get("body") or "", repo or ""))]
     if not survivors:
-        return 3
-    for issue in sorted(survivors, key=lambda issue: (0 if carries(issue, priority) else 1 if carries(issue, "bug") else 2,
-                                                       issue["number"])):
-        print(issue["number"])
-    return 0
+        return 3, []
+    return 0, [issue["number"] for issue in sorted(
+        survivors, key=lambda issue: (0 if carries(issue, priority) else 1 if carries(issue, "bug") else 2, issue["number"]))]
+
+
+def main(argv):
+    repo = "".join(argv[1:2]) if argv[:1] == ["--repo"] else None
+    if repo == "":
+        print(USAGE, file=sys.stderr)
+        return 2
+    if refused_if_empty("VERI_LABEL") or refused_if_empty("VERI_PRIORITY_LABEL"):
+        return 2
+    code, numbers = solvable(tunables.read("VERI_LABEL", "ready-for-agent"),
+                             tunables.read("VERI_PRIORITY_LABEL", "priority"), repo)
+    for number in numbers:
+        print(number)
+    return code
 
 
 if __name__ == "__main__":
