@@ -1,7 +1,10 @@
 """In-process cases for veri/solvable_issues.py, the module solvable-issues.sh is a shim over."""
 import importlib
+import itertools
 import json
 import os
+import pathlib
+import re
 import subprocess
 
 import pytest
@@ -423,3 +426,85 @@ def test_cli_prints_issues_fetched_out_of_order_one_per_line_ascending(tmp_path,
     answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
 
     assert answer == (0, "3\n7\n12\n", "")
+
+
+def test_cli_lists_an_issue_carrying_both_labels_under_the_default_label_and_under_the_docs_label(tmp_path, monkeypatch, run_cli, solvable_issues):
+    fixtures, cwd = tmp_path / "fixtures", tmp_path / "cwd"
+    fixtures.mkdir()
+    cwd.mkdir()
+    (fixtures / "issues.json").write_text(json.dumps([labelled(66, "ready-for-agent", "ready-for-agent:docs")]))
+    (fixtures / "prs.json").write_text("[]")
+    fake_git_answering_nothing(monkeypatch)
+
+    under_default = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+    under_docs = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures), "VERI_LABEL": "ready-for-agent:docs"}, cwd=cwd)
+
+    assert (under_default, under_docs) == ((0, "66\n", ""), (0, "66\n", ""))
+
+
+def test_cli_refuses_an_empty_label_tunable_with_2_nothing_on_stdout_and_a_diagnostic_on_stderr(tmp_path, monkeypatch, run_cli, solvable_issues):
+    fixtures, cwd = tmp_path / "fixtures", tmp_path / "cwd"
+    fixtures.mkdir()
+    cwd.mkdir()
+    (fixtures / "issues.json").write_text(json.dumps([opted_in(67), labelled(68, "ready-for-agent:docs")]))
+    (fixtures / "prs.json").write_text("[]")
+    fake_git_answering_nothing(monkeypatch)
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures), "VERI_LABEL": ""}, cwd=cwd)
+
+    assert answer == (2, "", "solvable-issues: VERI_LABEL is set but empty: name a label or leave it unset\n")
+
+
+@pytest.mark.parametrize("state, listed", [("OPEN", "120\n"), ("CLOSED", "125\n")])
+def test_cli_withholds_an_issue_blocked_by_a_github_issue_url_exactly_while_that_issue_is_open(state, listed, tmp_path, monkeypatch, run_cli, solvable_issues):
+    fixtures, cwd = tmp_path / "fixtures", tmp_path / "cwd"
+    fixtures.mkdir()
+    cwd.mkdir()
+    (fixtures / "issues.json").write_text(json.dumps([
+        blocked_by(125, "https://github.com/ztrange/veri/issues/120"), dict(opted_in(120), state=state)]))
+    (fixtures / "prs.json").write_text("[]")
+    fake_git_answering_nothing(monkeypatch)
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (0, listed, "")
+
+
+def test_cli_under_repo_never_reads_a_url_naming_another_repositorys_issue_as_a_blocker(tmp_path, monkeypatch, run_cli, solvable_issues):
+    fixtures, cwd = tmp_path / "fixtures", tmp_path / "cwd"
+    fixtures.mkdir()
+    cwd.mkdir()
+    (fixtures / "issues.json").write_text(json.dumps([
+        blocked_by(131, "https://github.com/ztrange/veri-demo-node/issues/120"), opted_in(120)]))
+    (fixtures / "prs.json").write_text("[]")
+    fake_git_answering_nothing(monkeypatch)
+
+    answer = run_cli(solvable_issues, ["--repo", "ztrange/veri"], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (0, "120\n131\n", "")
+
+
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[5]
+SCOPE_LOOP = REPO_ROOT / "skills" / "tdd" / "SCOPE-LOOP.md"
+
+
+@pytest.mark.parametrize("doc", [SCOPE_LOOP, REPO_ROOT / "README.md", REPO_ROOT / "CONTEXT.md"], ids=lambda doc: doc.name)
+def test_doc_names_the_label_tunable_and_the_one_label_per_loop_use(doc):
+    text = doc.read_text()
+
+    assert ("VERI_LABEL" in text, bool(re.search(r"one[ -]label[ -]per[ -]loop", text, re.IGNORECASE))) == (True, True)
+
+
+def test_scope_loop_exit_3_bullet_names_the_label_it_drained():
+    lines = SCOPE_LOOP.read_text().splitlines()
+    start = next(i for i, line in enumerate(lines) if re.match(r"- \*\*Exit 3:", line))
+    end = next(i for i, line in enumerate(lines) if i > start and re.match(r"- \*\*Exit 0:", line))
+
+    assert "VERI_LABEL" in "\n".join(lines[start:end])
+
+
+def test_shim_header_comment_names_both_blocker_spellings():
+    shim = (REPO_ROOT / "skills" / "tdd" / "scripts" / "solvable-issues.sh").read_text().splitlines()[1:]
+    header = "\n".join(itertools.takewhile(lambda line: line.startswith("#"), shim))
+
+    assert ("#<n>" in header, bool(re.search(r"https://github\.com/\S*/issues/", header))) == (True, True)
