@@ -432,6 +432,20 @@ def test_1313_a_stop_timeout_too_great_for_setitimer_refuses_with_exit_2_one_lin
             "Traceback" in err, asks, launches) == (2, "", 1, True, True, False, [], [])
 
 
+def test_1313_a_budget_that_is_not_a_whole_number_refuses_with_exit_2_one_line_naming_it_and_its_value_before_any_ask(
+        capsys, monkeypatch, tmp_path, orchestrate):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("VERI_CONDUCTOR_STOP_TIMEOUT", raising=False)
+    for value in ("-1", "1.5", "1_0", " 7", "1e5"):
+        monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", value)
+        asks, launches = _boundaries(monkeypatch, (3, ""))
+        code = orchestrate.main([])
+        out, err = capsys.readouterr()
+        assert (value, code, out, err.splitlines(), asks, launches) == (
+            value, 2, "",
+            ["orchestrate.sh: VERI_CONDUCTOR_CTX_BUDGET must be a whole number of tokens: " + value], [], [])
+
+
 def test_a_leading_zero_budget_reads_as_decimal_so_0100000_stops_a_conductor_over_100000_not_over_32768_1127(
         capsys, monkeypatch, tmp_path, orchestrate):
     monkeypatch.chdir(tmp_path)
