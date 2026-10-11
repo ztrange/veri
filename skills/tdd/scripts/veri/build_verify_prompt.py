@@ -10,7 +10,8 @@ NEEDS = {"green": {"fast-cmd"}, "refactor": {"fast-cmd", "base-sha"}, "diff": {"
          "transform": {"base-sha"}, **dict.fromkeys(INTERFACE_PHASES, {"fast-cmd", "base-sha"})}
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 USAGE = "usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]"
-GREEN_PARAGRAPHS = {"REPLACES_CASE": "replaces-case", "SUITE_REPAIR": "suite-repair"}
+GREEN_PARAGRAPHS = {"REPLACES_CASE": "replaces-case", "SUITE_REPAIR": "suite-repair",
+                    "CI_REPAIR": "ci-repair"}
 
 
 def _write(stream, text):
@@ -125,7 +126,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
             _write(sys.stderr, f"build-verify-prompt: cannot read '{path}'")
             return 2, b""
     prompts_b = os.fsencode(prompts)
-    values = dict.fromkeys(("BUG_REPRODUCTION", "REFACTOR_PLAN", "REPLACES_CASE", "SUITE_REPAIR", "LEDGER"), b"")
+    values = dict.fromkeys(("BUG_REPRODUCTION", "REFACTOR_PLAN", "REPLACES_CASE", "SUITE_REPAIR", "CI_REPAIR", "LEDGER"), b"")
     try:
         template = _expand(_read(paths[0]), prompts_b)
         shared = _expand(_read(paths[1]), prompts_b)
