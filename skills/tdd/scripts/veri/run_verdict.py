@@ -4,6 +4,8 @@ import os
 import signal
 import sys
 
+import tunables
+
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -44,8 +46,8 @@ def main(argv):
             else:
                 os.dup2(fd, 2)
                 os.close(fd)
-    if os.environ.get("VERI_SHIM_SET_COERCE") == "1":
-        del os.environ["VERI_SHIM_SET_COERCE"]
+    if tunables.read("VERI_SHIM_SET_COERCE") == "1":
+        tunables.pop("VERI_SHIM_SET_COERCE")
         os.environ.pop("PYTHONCOERCECLOCALE", None)
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)
     signal.signal(signal.SIGXFSZ, signal.SIG_DFL)

@@ -49,3 +49,9 @@ def test_github_solvable_issues_skill_drift_launch_floor_run_suite_and_event_tak
     modules = [VERI / ("%s.py" % name) for name in names]
 
     assert [read for path in modules for read in direct_reads(path)] == []
+
+
+def test_run_leaf_run_verdict_and_stop_run_take_their_veri_values_from_the_one_reader_and_no_module_is_exempt():
+    modules = sorted(path for path in VERI.glob("*.py") if path.stem != "tunables")
+
+    assert [read for path in modules for read in direct_reads(path)] == []

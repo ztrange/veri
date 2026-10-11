@@ -10,6 +10,10 @@ def read(name, default=""):
     return os.environ.get(name, default)
 
 
+def pop(name, default=""):
+    return os.environ.pop(name, default)
+
+
 def environment():
     return dict(os.environ)
 
