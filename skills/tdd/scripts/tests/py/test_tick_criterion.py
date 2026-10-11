@@ -6,6 +6,8 @@ import sys
 
 import pytest
 
+from conftest import SCRIPTS
+
 BODY = b"- [ ] alpha\n- [ ] beta\n"
 
 
@@ -209,3 +211,20 @@ def test_main_raises_rather_than_returning_when_stdout_is_none_on_a_match_and_on
             outcomes[matcher] = ("raised", None)
 
     assert outcomes == {"beta": ("raised", None), "zeta": ("raised", None)}
+
+
+@pytest.mark.process("tick-criterion.sh run through a symlink to the skills directory")
+def test_the_shim_run_through_a_symlink_to_the_skills_directory_from_another_cwd_answers_as_run_in_place(tmp_path):
+    (tmp_path / "skills").symlink_to(SCRIPTS.parents[1], target_is_directory=True)
+    (tmp_path / "elsewhere").mkdir()
+    linked = tmp_path / "skills" / "tdd" / "scripts" / "tick-criterion.sh"
+
+    results = {}
+    for matcher in ("beta", "zeta"):
+        ran = subprocess.run([str(linked), matcher], input=BODY, cwd=tmp_path / "elsewhere", capture_output=True)
+        results[matcher] = (ran.returncode, ran.stdout, ran.stderr)
+
+    assert results == {
+        "beta": (0, b"- [ ] alpha\n- [x] beta\n", b""),
+        "zeta": (3, BODY, b""),
+    }
