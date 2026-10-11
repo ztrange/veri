@@ -1,4 +1,5 @@
 """In-process cases for veri/solvable_issues.py, the module solvable-issues.sh is a shim over."""
+import errno
 import importlib
 import itertools
 import json
@@ -717,3 +718,115 @@ def test_passage_says_the_open_pr_is_the_claim_and_the_pid_lock_one_machines_wor
                if not any(all(re.search(pattern, text) for pattern in patterns) for text in texts)]
 
     assert missing == []
+
+
+@pytest.mark.parametrize("driver", ["", "REST", "gql"])
+def test_cli_with_an_unknown_gh_driver_starts_no_process_prints_nothing_and_returns_2_with_one_stderr_line_naming_the_variable_and_value(driver, tmp_path, run_cli, monkeypatch, solvable_issues):
+    started = no_process(monkeypatch)
+
+    code, out, err = run_cli(solvable_issues, [], env={"VERI_GH_DRIVER": driver}, cwd=tmp_path)
+
+    assert (code, started, out, len(err.splitlines()), "VERI_GH_DRIVER" in err, "'%s'" % driver in err) == (2, [], "", 1, True, True)
+
+
+def test_cli_refuses_repo_with_no_value_with_2_nothing_on_stdout_and_stderr_exactly_the_usage_line(tmp_path, monkeypatch, run_cli, solvable_issues):
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [])
+
+    answer = run_cli(solvable_issues, ["--repo"], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (2, "", USAGE)
+
+
+def git_in(*args):
+    return subprocess.run(["git", "-c", "user.name=veri", "-c", "user.email=veri@example.test", *args],
+                          check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
+
+
+@pytest.mark.process("git and solvable-issues.sh: a linked worktree's run through a symlink to the skill directory")
+def test_cli_run_through_a_symlink_to_the_skill_directory_from_a_linked_worktree_answers_as_in_place_withholding_the_issue_locked_under_the_main_tree(tmp_path, run_cli, plant_claim, solvable_issues):
+    fixtures, repo, linked, link = tmp_path / "fixtures", tmp_path / "repo", tmp_path / "linked", tmp_path / "skill-link"
+    fixtures.mkdir()
+    (fixtures / "issues.json").write_text(json.dumps([opted_in(5), opted_in(6)]))
+    (fixtures / "prs.json").write_text("[]")
+    git_in("init", "-q", "-b", "main", str(repo))
+    git_in("-C", str(repo), "commit", "-q", "--allow-empty", "-m", "initial")
+    git_in("-C", str(repo), "worktree", "add", "-q", "-b", "linked", str(linked), "main")
+    plant_claim(repo, 5, os.getpid())
+    link.symlink_to(REPO_ROOT / "skills" / "tdd", target_is_directory=True)
+
+    in_place = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=linked)
+    through_link = subprocess.run([str(link / "scripts" / "solvable-issues.sh")], cwd=linked, text=True,
+                                  env=dict(os.environ, VERI_GH_JSON=str(fixtures)),
+                                  stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    assert (in_place, (through_link.returncode, through_link.stdout, through_link.stderr)) == ((0, "6\n", ""), (0, "6\n", ""))
+
+
+ARG_MAX_STRLEN = 131072
+
+
+def fake_git_refusing_long_arguments(monkeypatch):
+    """subprocess.run refusing any argument over 128 KiB the way Linux does, answering `git worktree list --porcelain` with nothing."""
+    def fake_run(args, *rest, **kwargs):
+        if any(len(str(arg)) > ARG_MAX_STRLEN for arg in args):
+            raise OSError(errno.E2BIG, "Argument list too long")
+        if list(args[:4]) != ["git", "worktree", "list", "--porcelain"]:
+            raise AssertionError("unexpected command: %r" % (args,))
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", fake_run)
+
+
+def test_cli_reads_an_issues_document_over_256_kib_to_the_same_answer_as_short_bodies_under_a_128_kib_argument_limit(tmp_path, monkeypatch, run_cli, solvable_issues):
+    def issues(pad):
+        return [dict(opted_in(n), labels=[{"name": "ready-for-agent"}] if n % 2 == 0 else [],
+                     body="## What to build\n\n" + pad + "\n\n## Blocked by\n\nNone.\n") for n in range(1, 41)]
+
+    short, long, cwd = tmp_path / "short", tmp_path / "long", tmp_path / "cwd"
+    for fixtures, pad in ((short, "short"), (long, "x" * 8192)):
+        fixtures.mkdir()
+        (fixtures / "issues.json").write_text(json.dumps(issues(pad)))
+        (fixtures / "prs.json").write_text("[]")
+    cwd.mkdir()
+    fake_git_refusing_long_arguments(monkeypatch)
+    want = (0, "".join("%d\n" % n for n in range(2, 41, 2)), "")
+
+    answers = [run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd) for fixtures in (short, long)]
+
+    assert ((long / "issues.json").stat().st_size > 262144, answers) == (True, [want, want])
+
+
+def numbers_this_files_fixtures_name():
+    text = pathlib.Path(__file__).read_text()
+    return sorted({int(a or b) for a, b in re.findall(r'(?:opted_in|labelled|blocked_by)\((\d+)|"number": (\d+)', text)})
+
+
+@pytest.mark.process("git: a surrounding repository whose main tree holds live conductor locks")
+def test_cli_answer_is_unchanged_by_live_conductor_locks_under_the_surrounding_repository_for_unrelated_numbers_and_every_number_this_file_names(tmp_path, monkeypatch, run_cli, plant_claim, solvable_issues):
+    unrelated, named = [108, 117, 120, 124], numbers_this_files_fixtures_name()
+    fixtures, cwd = tmp_path / "fixtures", tmp_path / "no-claims"
+    fixtures.mkdir()
+    (fixtures / "issues.json").write_text(json.dumps([opted_in(n) for n in sorted(set(unrelated + named))]))
+    (fixtures / "prs.json").write_text("[]")
+    git_in("init", "-q", "-b", "main", str(cwd))
+    surroundings = {"surrounding-unrelated": unrelated, "surrounding-every": named}
+    for name, numbers in surroundings.items():
+        git_in("init", "-q", "-b", "main", str(tmp_path / name))
+        for n in numbers:
+            plant_claim(tmp_path / name, n, os.getpid())
+
+    def answers():
+        run = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+        monkeypatch.delenv("VERI_PRIORITY_LABEL", raising=False)
+        label_run = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+        return {"run": run, "label_run": label_run}
+
+    no_lock = answers()
+    under = {}
+    for name in surroundings:
+        monkeypatch.chdir(tmp_path / name)
+        under[name] = answers()
+
+    assert (bool(named), no_lock["run"][0], bool(no_lock["run"][1]), under) == (
+        True, 0, True, {name: no_lock for name in surroundings})
