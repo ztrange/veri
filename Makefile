@@ -132,6 +132,9 @@ MAX_MAKE_DEPTH := 4
 PYCACHE_KEEP_DEFAULT := 8
 PYCACHE_DIRS := find skills/tdd/scripts -type d -name __pycache__ -prune
 PYCACHE_CLEAR := $(PYCACHE_DIRS) -exec rm -rf {} +
+HASH_LISTED = { printf '%s\n' "$$files"; printf '%s\n' "$$files" | xargs "$$real_git" hash-object; } | "$$real_git" hash-object --stdin
+PY_KEY = files="$$(find skills/tdd/scripts -type f -name '*.py' | LC_ALL=C sort)"; $(HASH_LISTED)
+ENTRY_DIGEST = cd "$$pycache" && files="$$(find skills -type f | LC_ALL=C sort)" && $(HASH_LISTED)
 
 test unit:
 	@if [ "$(MAKELEVEL)" -gt $(MAX_MAKE_DEPTH) ]; then printf 'make: refusing a make %s nested at depth %s, deeper than %s\n' "$@" "$(MAKELEVEL)" "$(MAX_MAKE_DEPTH)" >&2; exit 2; fi
@@ -158,12 +161,14 @@ test unit:
 	  printf '== pytest\n'; \
 	  : > "$$reach_log"; suite_guard=; \
 	  $(PYCACHE_CLEAR); \
-	  py_sources="$$(find skills/tdd/scripts -type f -name '*.py' | LC_ALL=C sort)"; \
 	  pycache_root="$${VERI_PYCACHE_ROOT:-$$HOME/.veri-tools/pycache}"; \
-	  pycache="$$pycache_root/$$({ printf '%s\n' "$$py_sources"; printf '%s\n' "$$py_sources" | xargs "$$real_git" hash-object; } | "$$real_git" hash-object --stdin)"; \
-	  if [ -d "$$pycache/skills" ]; then cp -R "$$pycache/skills" .; fi; \
+	  py_key="$$($(PY_KEY))"; pycache="$$pycache_root/$$py_key"; \
+	  if [ -d "$$pycache/skills" ] && [ -f "$$pycache/digest" ] && [ "$$(cat "$$pycache/digest")" = "$$($(ENTRY_DIGEST))" ]; then cp -R "$$pycache/skills" .; else rm -rf "$$pycache/skills" "$$pycache/digest"; fi; \
 	  UNIT_GUARD_LOG="$$reach_log" COLUMNS=200 $(OFFLINE_ENV) env -u PYTHONDONTWRITEBYTECODE "$$py_bin" -m pytest --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || fail=1; \
-	  $(PYCACHE_DIRS) | while IFS= read -r d; do mkdir -p "$$pycache/$$d" && cp -R "$$d/." "$$pycache/$$d/"; done; \
+	  if [ "$$($(PY_KEY))" = "$$py_key" ]; then \
+	    $(PYCACHE_DIRS) | while IFS= read -r d; do mkdir -p "$$pycache/$$d" && cp -R "$$d/." "$$pycache/$$d/"; done; \
+	    if [ -d "$$pycache/skills" ]; then digest="$$($(ENTRY_DIGEST))"; printf '%s\n' "$$digest" > "$$pycache/digest"; fi; \
+	  fi; \
 	  $(PYCACHE_CLEAR); \
 	  if [ -d "$$pycache" ]; then touch "$$pycache"; ls -1t "$$pycache_root" | tail -n +$$(( $${VERI_PYCACHE_KEEP:-$(PYCACHE_KEEP_DEFAULT)} + 1 )) | while IFS= read -r d; do rm -rf "$$pycache_root/$$d"; done; fi; \
 	  $(call NAME_REACHED,pytest: tried to start); \

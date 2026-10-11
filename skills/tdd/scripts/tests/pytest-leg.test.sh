@@ -1139,4 +1139,63 @@ read_back="$(cd "$fresh/skills/tdd/scripts" && env -u PYTHONPYCACHEPREFIX PYTHON
   problems+=("want a fresh python3 to read the reverted BUDGET 130000, got: $read_back")
 report "$name"
 
+poisoned="$work/poisoned"
+make_tree "$poisoned"
+poisoned_probe="$poisoned/skills/tdd/scripts/veri/exp_leg_probe.py"
+printf 'BUDGET = "130000"\n' > "$poisoned_probe"
+cat > "$poisoned/$PY_DIR/test_leg_probe.py" <<'PY'
+import os
+import pathlib
+import sys
+
+scripts = pathlib.Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(scripts))
+flag = pathlib.Path(__file__).resolve().parent / "exp-mutate-during-leg"
+if flag.exists():
+    flag.unlink()
+    probe = scripts / "veri" / "exp_leg_probe.py"
+    st = probe.stat()
+    probe.write_text('BUDGET = "120000"\n')
+    os.utime(probe, ns=(st.st_atime_ns, st.st_mtime_ns))
+
+from veri import exp_leg_probe
+
+
+def test_veri_probe_runs_the_source_on_disk():
+    on_disk = pathlib.Path(exp_leg_probe.__file__).read_text().split('"')[1]
+    assert exp_leg_probe.BUDGET == on_disk, exp_leg_probe.BUDGET
+PY
+poisoned_root="$work/poisoned-cache-root"
+
+run_poisoned() {
+  env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE -u PYTHONPYCACHEPREFIX -u PYTHONDONTWRITEBYTECODE \
+    VERI_PYCACHE_ROOT="$poisoned_root" \
+    make --no-print-directory -C "$poisoned" unit > "$work/out" 2> "$work/err" < /dev/null &&
+    code=0 || code=$?
+  check_green "make unit, $1"
+}
+
+name="#1471: a cache entry never holds bytecode for source other than the content its key names: a veri/ module changed during the leg and restored leaves the next two runs green, and a truncated entry is not reused, the run green and the entry replaced"
+problems=()
+touch -r "$poisoned_probe" "$work/poisoned.mtime"
+: > "$poisoned/$PY_DIR/exp-mutate-during-leg"
+run_poisoned "the run that changes the module"
+printf 'BUDGET = "130000"\n' > "$poisoned_probe"
+touch -r "$work/poisoned.mtime" "$poisoned_probe"
+run_poisoned "first run after the restore"
+run_poisoned "second run after the restore"
+entry_pyc="$(find "$poisoned_root" -path '*/veri/__pycache__/exp_leg_probe*.pyc' -print -quit 2> /dev/null)"
+if [[ -f "$entry_pyc" ]]; then
+  head -c "$(( $(wc -c < "$entry_pyc") / 2 ))" "$entry_pyc" > "$work/poisoned-truncated.pyc"
+  cp "$work/poisoned-truncated.pyc" "$entry_pyc"
+  run_poisoned "over a truncated entry"
+  while IFS= read -r kept_pyc; do
+    ! cmp -s "$kept_pyc" "$work/poisoned-truncated.pyc" ||
+      problems+=("over a truncated entry: want the entry replaced, $kept_pyc still holds the truncated bytes")
+  done < <(find "$poisoned_root" -path '*/veri/__pycache__/exp_leg_probe*.pyc')
+else
+  problems+=("want exp_leg_probe bytecode in a cache entry under $poisoned_root, got none")
+fi
+report "$name"
+
 finish
