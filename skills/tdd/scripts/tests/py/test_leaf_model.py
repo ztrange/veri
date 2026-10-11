@@ -335,3 +335,36 @@ def test_main_treats_an_empty_or_whitespace_only_model_variable_as_unset_with_0_
         code = leaf_model.main([name])
         refused.append((name, code, capsys.readouterr().out))
     assert refused == [(name, 2, "") for name in defaults]
+
+
+def test_main_takes_every_model_variable_from_the_one_reader_and_still_applies_the_shipped_defaults_and_the_blank_as_unset_rule(
+        capsys, monkeypatch, leaf_model):
+    served = {}
+    asked = []
+
+    def reader(name, default="", unless_empty=None):
+        asked.append(name)
+        return served.get(name, default)
+
+    monkeypatch.setattr(leaf_model.tunables, "read", reader)
+    for variable in MODEL_VARIABLES + ("VERI_MODEL_REVISE",):
+        monkeypatch.setenv(variable, "from-os-environ")
+    answers = []
+    for name, wanted in (("develop-red", "sonnet\n"), ("verify-green", "sonnet\n"), ("revise-green", "opus\n")):
+        for blank in (None, "", " \t "):
+            served.clear()
+            if blank is not None:
+                served.update({variable: blank for variable in MODEL_VARIABLES + ("VERI_MODEL_REVISE",)})
+            code = leaf_model.main([name])
+            answers.append((name, blank, code, capsys.readouterr().out, wanted))
+    served.update({"VERI_MODEL_VERIFIER": "haiku", "VERI_MODEL_REVISE": "fable"})
+    served_answers = []
+    for name in ("verify-green", "revise-green"):
+        code = leaf_model.main([name])
+        served_answers.append((name, code, capsys.readouterr().out))
+    verify = importlib.import_module("veri.verify")
+    monkeypatch.setattr(verify.tunables, "read", reader)
+    assert [(n, b, c, out) for n, b, c, out, _ in answers] == [(n, b, 0, w) for n, b, _, _, w in answers]
+    assert served_answers == [("verify-green", 0, "haiku\n"), ("revise-green", 0, "fable\n")]
+    assert verify._env("VERI_MODEL_VERIFIER") == "haiku"
+    assert "from-os-environ" not in capsys.readouterr().out
