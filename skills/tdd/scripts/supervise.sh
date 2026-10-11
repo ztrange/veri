@@ -57,7 +57,8 @@
 # attempts after the first when a leaf is killed-stuck (default 1) · VERI_KILL_POLL the grace
 # loop's poll interval secs when a kill is sent, before escalating to KILL (default 0.1, an
 # internal knob like VERI_POLL rather than one SKILL.md documents) · VERI_MODEL /
-# VERI_MODEL_DEVELOPER / VERI_MODEL_VERIFIER the model this leaf's role runs on, resolved
-# through leaf-model.sh and exported to the leaf as VERI_LEAF_MODEL (all unset by default,
-# which is no `--model` flag at all).
+# VERI_MODEL_DEVELOPER / VERI_MODEL_VERIFIER / VERI_MODEL_REVISE the model this leaf's role
+# runs on, resolved through leaf-model.sh and exported to the leaf as VERI_LEAF_MODEL (all
+# unset by default: a first-try developer and every verifier run on sonnet, a redo leaf on
+# opus).
 exec python3 "$(dirname "$0")/veri/supervise.py" "$@"

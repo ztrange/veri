@@ -441,4 +441,14 @@ for probe in need_supervise_bullet need_claude_md_records; do
 done
 expect_eq "$name" "0 problems:" "${#problems[@]} problems:${problems[*]/#/ | }"
 
+name="#1485: supervise.sh's Tunables (env) header names all four model knobs and the shipped defaults, sonnet and opus, and no longer says a default run carries no --model"
+header="$(awk '/^# Tunables \(env\)/ {on=1} on && /^#/ {print; next} on {exit}' "$ROOT/skills/tdd/scripts/supervise.sh" | tr '[:upper:]' '[:lower:]' | tr '\n' ' ')"
+problems=()
+for want in veri_model_developer veri_model_verifier veri_model_revise sonnet opus; do
+  [[ "$header" == *"$want"* ]] || problems+=("supervise.sh's Tunables header does not name $want")
+done
+[[ "$header" =~ no\ \`?--model ]] &&
+  problems+=("supervise.sh's Tunables header still says a default run carries no --model")
+expect_eq "$name" "0 problems:" "${#problems[@]} problems:${problems[*]/#/ | }"
+
 finish
