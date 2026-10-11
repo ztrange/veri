@@ -200,3 +200,137 @@ def test_main_answers_in_full_under_the_tunables_when_any_start_of_time_budget_s
     code = over_budget.main(["unit", "12", "100"])
     out, err = capsys.readouterr()
     assert (code, out, err) == (2, "", "time-budget: VERI_TIME_WARN_RATIO must be a number: x\n")
+
+
+def test_cli_prints_one_clock_line_for_an_over_budget_run_and_nothing_for_one_that_is_not_and_skill_md_says_to_paste_it_and_branch_on_nothing(run_cli, over_budget):
+    import pathlib
+    import re
+
+    env = {"VERI_UNIT_BUDGET": "10", "VERI_TIME_WARN_RATIO": "1.5"}
+    code, out, err = run_cli(over_budget, ["unit", "12", "100"], env=env)
+    assert (code, out.count("\n"), "⏱" in out, err) == (0, 1, True, "")
+    assert run_cli(over_budget, ["unit", "4", "100"], env=env) == (1, "", "")
+
+    skill = pathlib.Path(__file__).resolve().parents[3] / "SKILL.md"
+    blocks, block = [], ""
+    for line in skill.read_text(encoding="utf-8").split("\n") + [""]:
+        if re.match(r"[-*] ", line) or not line.strip():
+            blocks.append(block)
+            block = ""
+        block += " " + line
+    instruction = " ".join(b for b in blocks if "over-budget.sh" in b).replace("*", "").replace("`", "").lower()
+    assert instruction.strip(), "SKILL.md never names over-budget.sh"
+    assert "⏱" in instruction
+    assert re.search(r"narrat|issue thread|comment", instruction)
+    assert re.search(r"(never|not|nothing|no)[^.]{0,80}(branch|gate|verdict|outcome|bail|retr)", instruction)
+
+
+def _unset_tunables(monkeypatch):
+    for name in ("VERI_UNIT_BUDGET", "VERI_TIME_WARN_RATIO"):
+        monkeypatch.delenv(name, raising=False)
+
+
+def _exit_codes(monkeypatch, run_cli, over_budget, runs):
+    codes = []
+    for argv, env in runs:
+        _unset_tunables(monkeypatch)
+        codes.append((argv, env, run_cli(over_budget, argv, env=env)[0]))
+    return codes
+
+
+def test_cli_reads_a_unit_tier_run_over_veri_unit_budget_as_over_budget_and_at_or_under_it_as_not(
+        monkeypatch, run_cli, over_budget, fake_processes):
+    calls = fake_processes()
+    answers = _exit_codes(monkeypatch, run_cli, over_budget, (
+        (["unit", "12", "100"], {}), (["unit", "10", "100"], {}), (["unit", "4", "100"], {}),
+        (["unit", "4", "100"], {"VERI_UNIT_BUDGET": "3"})))
+    assert answers == [(["unit", "12", "100"], {}, 0), (["unit", "10", "100"], {}, 1),
+                       (["unit", "4", "100"], {}, 1), (["unit", "4", "100"], {"VERI_UNIT_BUDGET": "3"}, 0)]
+    assert calls == []
+
+
+def test_cli_reads_a_run_over_veri_time_warn_ratio_times_its_usual_as_over_budget_and_at_or_under_it_as_not(
+        monkeypatch, run_cli, over_budget, fake_processes):
+    calls = fake_processes()
+    answers = _exit_codes(monkeypatch, run_cli, over_budget, (
+        (["all", "160", "100"], {}), (["all", "150", "100"], {}), (["all", "100", "100"], {}),
+        (["all", "160", "100"], {"VERI_TIME_WARN_RATIO": "2"}), (["unit", "8", "4"], {})))
+    assert answers == [(["all", "160", "100"], {}, 0), (["all", "150", "100"], {}, 1),
+                       (["all", "100", "100"], {}, 1), (["all", "160", "100"], {"VERI_TIME_WARN_RATIO": "2"}, 1),
+                       (["unit", "8", "4"], {}, 0)]
+    assert calls == []
+
+
+def test_cli_ends_an_over_budget_run_on_its_leafs_own_verdict_with_no_retry_and_no_bail(
+        monkeypatch, tmp_path, run_cli, over_budget, fake_processes, events):
+    import json
+
+    tier_usual = importlib.import_module("veri.tier_usual")
+    verify = importlib.import_module("veri.verify")
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "events.jsonl").write_text("".join(
+        json.dumps({"ts": 1, "issue": "342", "actor": "", "phase": "", "step": "", "event": "test-run",
+                    "attempt": "1", "skill_commit": "", "tier": "unit", "suites": "make unit",
+                    "seconds": seconds}) + "\n" for seconds in ["1"] * 10 + ["40"]))
+    (tmp_path / "spec.md").write_text("slugify must lowercase the title and join words with hyphens.\n")
+    for name in ("VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_MODEL_DEVELOPER", "VERIFY_LEAF_ARGS"):
+        monkeypatch.delenv(name, raising=False)
+    _unset_tunables(monkeypatch)
+
+    def answer(line, **_):
+        if line.startswith("supervise.sh "):
+            return 0, b"VERDICT: PASS\nREASON: the new case fails for the reason the step names.\n", b""
+        return 0, b"", b""
+
+    calls = fake_processes(answer)
+    code, usual, _ = run_cli(tier_usual, ["unit"], cwd=tmp_path)
+    assert code == 0
+    assert run_cli(over_budget, ["unit", "40", usual.strip()], cwd=tmp_path)[0] == 0
+    before = len(events.records(tmp_path))
+
+    env = {"HOME": str(tmp_path), "VERI_NO_VERDICT_RETRIES": "0"}
+    code, out, _ = run_cli(verify, ["red", str(tmp_path / "spec.md"), "tests/test_slugify.py", "test_lowercases"],
+                           env=env, cwd=tmp_path)
+    after = events.records(tmp_path)[before:]
+
+    assert (code, "the reason the step names" in out) == (0, True)
+    assert [(e["event"], e.get("verdict")) for e in after if e["event"] in ("verdict", "relaunch", "bail")] == [
+        ("verdict", "PASS")]
+    assert len([line for line in calls if line.startswith("supervise.sh ")]) == 1
+
+
+def test_cli_refuses_a_missing_argument_with_the_usage_line_and_a_refused_tunable_with_2_and_nothing_on_stdout(
+        monkeypatch, run_cli, over_budget, fake_processes):
+    calls = fake_processes()
+    _unset_tunables(monkeypatch)
+    usage = "usage: over-budget.sh <tier> <seconds> <usual>\n"
+    assert run_cli(over_budget, []) == (2, "", usage)
+    assert run_cli(over_budget, ["unit", "10"]) == (2, "", usage)
+    assert run_cli(over_budget, ["unit", "12", "100"], env={"VERI_UNIT_BUDGET": "x"}) == (
+        2, "", "time-budget: VERI_UNIT_BUDGET must be a number of seconds: x\n")
+    assert calls == []
+
+
+@pytest.mark.process("over-budget.sh's shim run through a symlink to the skill directory from another working directory")
+def test_shim_run_through_a_symlink_to_the_skill_directory_from_another_cwd_answers_as_in_place(tmp_path):
+    import os
+    import pathlib
+    import subprocess
+
+    skill = pathlib.Path(__file__).resolve().parents[3]
+    (tmp_path / "link").mkdir()
+    (tmp_path / "link" / "skill").symlink_to(skill, target_is_directory=True)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    env = {k: v for k, v in os.environ.items() if k not in ("VERI_UNIT_BUDGET", "VERI_TIME_WARN_RATIO")}
+
+    def answer(script, cwd, argv):
+        ran = subprocess.run([str(script), *argv], cwd=cwd, env=env, capture_output=True, text=True)
+        return ran.returncode, ran.stdout
+
+    for argv, want in ((["unit", "12", "100"], 0), (["unit", "4", "100"], 1)):
+        in_place = answer(skill / "scripts" / "over-budget.sh", None, argv)
+        via_link = answer(tmp_path / "link" / "skill" / "scripts" / "over-budget.sh", elsewhere, argv)
+        assert (argv, via_link) == (argv, in_place)
+        assert (argv, via_link[0], ("⏱" in via_link[1]) if want == 0 else via_link[1]) == (
+            argv, want, True if want == 0 else "")
