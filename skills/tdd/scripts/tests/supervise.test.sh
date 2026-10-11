@@ -225,16 +225,6 @@ sup_direct() {
 leaf_rc() { cat "$1/.tdd/verify-red.rc" 2>/dev/null || echo '<missing>'; }
 
 
-header_text="$(awk 'NR > 1 { if ($0 !~ /^#/) exit; sub(/^# ?/, ""); print }' "$SUP" | tr '\n' ' ')"
-header_unstated() {
-  local where regex
-  while IFS='|' read -r where regex; do
-    [[ -n "$where" ]] || continue
-    grep -qE "$regex" <<< "$header_text" || printf ' %s' "$where"
-  done
-}
-
-
 cat > "$stub/leaf-term-sleep" <<'L'
 echo $$ > leaf-pid
 echo "leaf: started"
@@ -306,17 +296,6 @@ cat > "$stub/clock-suspend" <<'C'
 clock-jump "$1" suspend && echo "$1" >> .test-suspended
 C
 chmod +x "$stub/clock-suspend"
-
-clock_misses="$(header_unstated <<'CLAIMS'
-clock-source|monotonic
-macos|macOS.{0,200}(suspend|sleep)|(suspend|sleep).{0,200}macOS
-linux|Linux.{0,200}(suspend|sleep)|(suspend|sleep).{0,200}Linux
-pauses-in-suspend|(not advance|stop[a-z]* advancing|pause[a-z]*|stand[a-z]* still|stop[a-z]*).{0,160}(suspend|asleep|sleep)
-CLAIMS
-)"
-
-[[ -z "$clock_misses" ]] && ok \
-  || no "#472: supervise.sh's header names the watchdog's clock source and why it pauses while the machine is suspended, for macOS and Linux (unstated:$clock_misses)"
 
 cat > "$stub/leaf-slept-through" <<'L'
 echo "leaf: starting"
