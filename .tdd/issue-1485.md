@@ -1,6 +1,6 @@
 # Plan for #1485 — Model defaults ship in the code: Sonnet for first tries and verifiers, Opus for redos and the conductor; an empty model variable never fails a run
 
-- [ ] With no model variable set, leaf-model.sh prints sonnet and exits 0 for develop-red, develop-rebase, develop-reconcile, develop-over-budget and verify-green, and opus for revise-green-2 and develop-exhausted; a role variable still beats VERI_MODEL, VERI_MODEL_REVISE still beats VERI_MODEL_DEVELOPER for the redo leaves, and VERI_MODEL beats every default ⟦criterion 1⟧
+- [x] With no model variable set, leaf-model.sh prints sonnet and exits 0 for develop-red, develop-rebase, develop-reconcile, develop-over-budget and verify-green, and opus for revise-green-2 and develop-exhausted; a role variable still beats VERI_MODEL, VERI_MODEL_REVISE still beats VERI_MODEL_DEVELOPER for the redo leaves, and VERI_MODEL beats every default ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] With no model variable set, the claude command line of a supervised leaf carries --model sonnet for develop-red and verify-green, and --model opus for revise-green-2 and develop-exhausted ⟦criterion 1⟧
 - [ ] With no model variable set, run-conductor.sh <issue> launches claude with --model opus ⟦criterion 1⟧
 - [ ] With no model variable set, in the same .tdd/ directory, a verify-green REJECT is followed by revise-green-1 carrying --model opus, then the next step's develop-red and the same step's develop-refactor each carry --model sonnet ⟦criterion 2⟧

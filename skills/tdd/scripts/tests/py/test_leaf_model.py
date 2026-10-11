@@ -34,7 +34,7 @@ def test_main_refuses_no_or_an_empty_leaf_name_with_the_usage_line_and_prints_ve
         (2, "", "usage: leaf-model.sh <leaf-name>\n"),
         (2, "", "usage: leaf-model.sh <leaf-name>\n"),
         (0, "sonnet\n", ""),
-        (0, ""),
+        (0, "sonnet\n"),
     ]
     assert all(0 <= answer[0] <= 3 for answer in answers)
 
@@ -75,8 +75,8 @@ def test_main_resolves_the_role_variable_before_veri_model_for_its_own_role_only
     assert answers == [
         ("develop-red", 0, "sonnet\n", ""),
         ("verify-green", 0, "sonnet\n", ""),
-        ("develop-red", 0, "", ""),
-        ("verify-green", 0, "", ""),
+        ("develop-red", 0, "sonnet\n", ""),
+        ("verify-green", 0, "sonnet\n", ""),
         ("develop-red", 0, "opus\n", ""),
         ("revise-green-2", 0, "opus\n", ""),
         ("verify-green", 0, "sonnet\n", ""),
@@ -86,10 +86,10 @@ def test_main_resolves_the_role_variable_before_veri_model_for_its_own_role_only
         ("develop-red", 0, "sonnet\n", ""),
         ("develop-red", 0, "sonnet\n", ""),
         ("verify-green", 0, "sonnet\n", ""),
-        ("develop-red", 0, "", ""),
-        ("verify-green", 0, "", ""),
-        ("verify-green", 0, "", ""),
-        ("develop-red", 0, "", ""),
+        ("develop-red", 0, "sonnet\n", ""),
+        ("verify-green", 0, "sonnet\n", ""),
+        ("verify-green", 0, "sonnet\n", ""),
+        ("develop-red", 0, "sonnet\n", ""),
         ("develop-red", 0, "opus[1m]\n", ""),
         ("verify-green", 0, "back\\slash\n", ""),
         ("develop-red", 0, "opus\n", ""),
@@ -136,7 +136,7 @@ def test_main_refuses_a_resolved_value_holding_ascii_whitespace_and_passes_other
         (0, "a\x85b\n", ""),
         (0, "a b\n", ""),
         (0, "opus\n", ""),
-        (0, "", ""),
+        (0, "sonnet\n", ""),
         (0, "sonnet\n", ""),
     ]
 
@@ -251,9 +251,9 @@ def test_main_with_veri_model_revise_unset_gives_revise_and_develop_leaves_veri_
         ("revise-green-2", 0, "sonnet\n", ""),
         ("develop-exhausted", 0, "sonnet\n", ""),
         ("develop-red", 0, "sonnet\n", ""),
-        ("revise-green-2", 0, "", ""),
-        ("develop-exhausted", 0, "", ""),
-        ("develop-red", 0, "", ""),
+        ("revise-green-2", 0, "opus\n", ""),
+        ("develop-exhausted", 0, "opus\n", ""),
+        ("develop-red", 0, "sonnet\n", ""),
     ]
 
 
@@ -285,3 +285,33 @@ def test_main_refuses_a_veri_model_revise_holding_whitespace_for_revise_and_deve
         ("revise-green-2", 2, ""),
         ("develop-exhausted", 2, ""),
     ]
+
+
+def test_main_with_no_model_variable_set_prints_sonnet_for_first_try_and_verifier_leaves_and_opus_for_redo_leaves_and_every_variable_beats_the_default(
+        capsys, monkeypatch, leaf_model):
+    runs = [
+        ({}, "develop-red", "sonnet\n"),
+        ({}, "develop-rebase", "sonnet\n"),
+        ({}, "develop-reconcile", "sonnet\n"),
+        ({}, "develop-over-budget", "sonnet\n"),
+        ({}, "verify-green", "sonnet\n"),
+        ({}, "revise-green-2", "opus\n"),
+        ({}, "develop-exhausted", "opus\n"),
+        ({"VERI_MODEL_DEVELOPER": "haiku"}, "develop-red", "haiku\n"),
+        ({"VERI_MODEL": "haiku", "VERI_MODEL_VERIFIER": "opus"}, "verify-green", "opus\n"),
+        ({"VERI_MODEL_DEVELOPER": "haiku", "VERI_MODEL_REVISE": "sonnet"}, "revise-green-2", "sonnet\n"),
+        ({"VERI_MODEL": "haiku"}, "develop-red", "haiku\n"),
+        ({"VERI_MODEL": "haiku"}, "verify-green", "haiku\n"),
+        ({"VERI_MODEL": "haiku"}, "revise-green-2", "haiku\n"),
+        ({"VERI_MODEL": "haiku"}, "develop-exhausted", "haiku\n"),
+    ]
+    answers = []
+    for environment, name, _ in runs:
+        for variable in MODEL_VARIABLES + ("VERI_MODEL_REVISE",):
+            monkeypatch.delenv(variable, raising=False)
+        for variable, value in environment.items():
+            monkeypatch.setenv(variable, value)
+        code = leaf_model.main([name])
+        captured = capsys.readouterr()
+        answers.append((name, code, captured.out))
+    assert answers == [(name, 0, out) for _, name, out in runs]
