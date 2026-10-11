@@ -162,3 +162,29 @@ def test_main_gives_its_full_answer_when_every_process_start_but_gh_is_refused(m
 
     assert run_case("beta") == (0, "", "", ["- [ ] alpha\n- [x] beta"])
     assert run_case("zeta") == (3, "", "tick-issue-criterion: no unchecked criterion matched 'zeta' on #7\n", [])
+
+
+def test_main_returns_2_after_reaching_the_body_patch_when_graphql_is_refused_and_the_rest_read_answers_but_the_patch_fails_with_a_5xx(monkeypatch, run_cli, tick_issue_criterion):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    real_run = subprocess.run
+    refusal = "HTTP 403: GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)\n"
+    calls = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:2] == ["gh", "issue"]:
+            return subprocess.CompletedProcess(args, 1, "", refusal)
+        if args[:4] == ["gh", "api", "-X", "PATCH"]:
+            calls.append("patch")
+            return subprocess.CompletedProcess(args, 1, "", "HTTP 502: Bad Gateway\n")
+        if args == ["gh", "api", "repos/{owner}/{repo}/issues/7"]:
+            return subprocess.CompletedProcess(args, 0, json.dumps({"number": 7, "labels": [], "body": "- [ ] the criterion\n\n## Blocked by\n\nNone\n"}), "")
+        if args[0] == "gh":
+            raise AssertionError("unexpected gh call: %r" % (args,))
+        return real_run(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, _ = run_cli(tick_issue_criterion, ["7", "criterion"])
+
+    assert (code, out, calls) == (2, "", ["patch"])

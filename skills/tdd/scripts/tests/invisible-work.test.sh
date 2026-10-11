@@ -113,31 +113,4 @@ STUB
   chmod +x "$1"
 }
 
-exits_2_after_gh() {  # exits_2_after_gh <dir> <cwd> <run> <label> [VAR=value…] -> adds to problems unless <run>, under <dir>/bin/gh, logged a call to $GH_LOG and exited 2
-  local dir="$1" cwd="$2" run="$3" label="$4" argv rc
-  shift 4
-  read -r -a argv <<< "$run"
-  : > "$dir/gh.log"
-  (cd "$cwd" && env -u GH_REPO -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_PARALLEL \
-    -u VERI_MAX_ISSUES PATH="$dir/bin:$PATH" GH_GRAPHQL=refused GH_LOG="$dir/gh.log" "$@" \
-    "$HERE/../${argv[0]}" "${argv[@]:1}" > /dev/null 2>&1); rc=$?
-  [[ -s "$dir/gh.log" ]] || problems+=("$label: never reached the gh call it fails on")
-  [[ "$rc" -eq 2 ]] || problems+=("$label: want exit 2, got $rc")
-}
-
-name="coverage-blocker.sh and tick-issue-criterion.sh exit 2, never 1, when a gh that refuses GraphQL answers the issue GET and POST over REST but fails the body PATCH with a 5xx (#568)"
-problems=()
-refusing_gh_stub "$work/case568-patch/bin/gh" <<'STUB'
-case "$*" in
-  "api -X PATCH "*) echo "$*" >> "$GH_LOG"; echo "HTTP 502: Bad Gateway" >&2; exit 1 ;;
-  "api repos/{owner}/{repo}/issues -f "*) echo "https://github.com/o/r/issues/8" ;;
-  "api repos/{owner}/{repo}/issues/7") printf '%s\n' '{"number": 7, "labels": [], "body": "- [ ] the criterion\n\n## Blocked by\n\nNone\n"}' ;;
-  *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
-esac
-STUB
-for run in "coverage-blocker.sh 7" "tick-issue-criterion.sh 7 criterion"; do
-  exits_2_after_gh "$work/case568-patch" "$work/case568-patch" "$run" "$run"
-done
-report "$name"
-
 finish

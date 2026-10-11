@@ -543,3 +543,35 @@ def test_main_files_the_issue_as_when_no_match_is_found_when_a_later_lookup_page
     assert (lookups, len(creates)) == ([["gh", "api", lookup + "1"], ["gh", "api", lookup + "2"]], 1)
     assert (code, capsys.readouterr().out, seen.get("body")) == (
         0, "https://github.com/owner/name/issues/99\n", "## Blocked by\n\n- #99\n")
+
+
+def test_main_returns_2_after_reaching_the_body_patch_when_graphql_is_refused_and_the_rest_get_and_post_answer_but_the_patch_fails_with_a_5xx(tmpdir_env, monkeypatch, run_cli, coverage_blocker):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+    real_run = subprocess.run
+    refusal = "HTTP 403: GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)\n"
+    calls = []
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[:2] == ["gh", "issue"]:
+            return subprocess.CompletedProcess(args, 1, "", refusal)
+        if args[:4] == ["gh", "api", "-X", "PATCH"]:
+            calls.append("patch")
+            return subprocess.CompletedProcess(args, 1, "", "HTTP 502: Bad Gateway\n")
+        if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"] and any(arg.startswith("title=") for arg in args):
+            calls.append("post")
+            return subprocess.CompletedProcess(args, 0, "https://github.com/o/r/issues/8\n", "")
+        if args == ["gh", "api", "repos/{owner}/{repo}/issues/7"]:
+            calls.append("get")
+            return subprocess.CompletedProcess(args, 0, json.dumps({"number": 7, "labels": [], "body": "- [ ] the criterion\n\n## Blocked by\n\nNone\n"}), "")
+        if args[:2] == ["gh", "api"] and args[2].startswith("repos/{owner}/{repo}/issues?"):
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        if args[0] == "gh":
+            raise AssertionError("unexpected gh call: %r" % (args,))
+        return real_run(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, _ = run_cli(coverage_blocker, ["7"])
+
+    assert (code, out, calls) == (2, "", ["post", "get", "patch"])
