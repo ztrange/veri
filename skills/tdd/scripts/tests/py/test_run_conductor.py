@@ -1180,3 +1180,78 @@ def test_main_after_claude_exits_keeps_the_record_when_the_run_worktree_is_its_o
             "plain-directory-with-only-other-issues-branches": False, "no-run-worktree-and-no-branch": False}
     assert answers == {(launch, name): (0, [True], kept[name])
                        for launch in ("pinned", "unpinned") for name in scenarios}
+
+
+def fake_claude_exiting(monkeypatch, child_code, tar_code):
+    """git faked as a process with no origin whose HEAD resolves; tar exiting `tar_code` after dropping
+    the real SKILL.md into its -C directory; fake-claude recorded with its argv and stdin, exiting `child_code`."""
+    launches = []
+
+    def answer(args, *_, **kwargs):
+        args = list(args)
+        code, out = 128, ""
+        if args[:1] == ["fake-claude"]:
+            launches.append((args, kwargs.get("input")))
+            return subprocess.CompletedProcess(args, child_code, None, None)
+        if args[3:] == ["rev-parse", "HEAD"]:
+            code, out = 0, "1111111111111111111111111111111111111111\n"
+        elif args[3:] == ["remote", "get-url", "origin"]:
+            code = 2
+        if not (kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")):
+            out = out.encode()
+        return subprocess.CompletedProcess(args, code, out, out[:0])
+
+    def popen(args, *_, **__):
+        args = list(args)
+        process = FakeProcess(args)
+        if args[:1] == ["tar"]:
+            pathlib.Path(args[-1], "SKILL.md").write_bytes((SCRIPTS.parent / "SKILL.md").read_bytes())
+            process.returncode = tar_code
+            process.wait = process.poll = lambda *_, **__: tar_code
+        return process
+
+    monkeypatch.setattr(subprocess, "run", answer)
+    monkeypatch.setattr(subprocess, "Popen", popen)
+    return launches
+
+
+def test_cli_launches_claude_p_for_the_issue_in_stream_json_with_bypass_permissions_exits_with_the_childs_code_hands_a_direct_launch_a_procedure_naming_nothing_orchestrate_sh_adds_ends_a_failed_snapshot_with_2_and_without_an_issue_prints_only_its_usage_line_and_exits_2(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    for name in ("VERI_NEW_SKILL", "VERI_CONDUCTOR_CTX_BUDGET"):
+        monkeypatch.delenv(name, raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    scenarios = {
+        "direct": (["4242"], 0, 0),
+        "child-exits-17": (["4242"], 17, 0),
+        "snapshot-tar-fails": (["4242"], 0, 5),
+        "no-argument": ([], 0, 0),
+    }
+    answers = {}
+    for name, (argv, child_code, tar_code) in scenarios.items():
+        cwd = tmp_path / name
+        cwd.mkdir()
+        launches = fake_claude_exiting(monkeypatch, child_code, tar_code)
+        code, out, err = run_cli(run_conductor, argv, cwd=cwd)
+        answers[name] = {
+            "code": code, "stdout": out, "stderr": err if name == "no-argument" else None,
+            "argvs": [args for args, _ in launches],
+            "issue in prompt": [b"Solve issue #4242 by the procedure above." in stdin for _, stdin in launches],
+            "orchestrate.sh adds": sorted({added for _, stdin in launches
+                                           for added in ("orchestrate.sh", "VERI_CONDUCTOR_CTX_BUDGET", ".tdd/parked/")
+                                           if added.encode() in stdin}),
+            "parked": (cwd / ".tdd" / "parked").exists(),
+        }
+    claude = ["fake-claude", "-p", "--output-format", "stream-json", "--verbose",
+              "--permission-mode", "bypassPermissions"]
+    launched = {"stdout": "", "stderr": None, "argvs": [claude], "issue in prompt": [True],
+                "orchestrate.sh adds": [], "parked": False}
+    assert answers == {
+        "direct": dict(launched, code=0),
+        "child-exits-17": dict(launched, code=17),
+        "snapshot-tar-fails": {"code": 2, "stdout": "", "stderr": None, "argvs": [], "issue in prompt": [],
+                               "orchestrate.sh adds": [], "parked": False},
+        "no-argument": {"code": 2, "stdout": "", "stderr": "usage: run-conductor.sh <issue>\n", "argvs": [],
+                        "issue in prompt": [], "orchestrate.sh adds": [], "parked": False},
+    }

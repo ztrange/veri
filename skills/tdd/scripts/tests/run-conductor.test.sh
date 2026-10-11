@@ -167,23 +167,6 @@ handles=(
 envfile="$work/env"
 
 
-assert_case1() {
-  local conductor="$1"
-
-  ( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
-      "$conductor" "$issue" ) >/dev/null 2>&1
-
-  if [[ ! -f "$argv" ]]; then
-    problems+=("the conductor binary was never launched — $conductor recorded no argv")
-  else
-    flag -p
-    valued --output-format stream-json
-    flag --verbose
-    grep -q -- "$issue" "$prompt" 2>/dev/null ||
-      problems+=("issue $issue does not reach the prompt the launch carries")
-  fi
-}
-
 assert_case2() {
   local conductor="$1"
 
@@ -202,17 +185,6 @@ assert_case2() {
     grep -qx -- 'VERI_MODEL_VERIFIER=probe-verifier-model' "$envfile" ||
       problems+=("VERI_MODEL_VERIFIER did not reach the child's environment")
   fi
-}
-
-assert_case3() {
-  local conductor="$1" status
-
-  ( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" STUB_EXIT=17 \
-      "$conductor" "$issue" ) >/dev/null 2>&1
-  status=$?
-
-  [[ "$status" -eq 17 ]] ||
-    problems+=("the script exited $status, not the child's 17")
 }
 
 assert_case4() {
@@ -240,42 +212,14 @@ assert_case4() {
   fi
 }
 
-assert_case5() {
-  local conductor="$1"
-
-  ( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" \
-      "$conductor" "$issue" ) >/dev/null 2>&1
-
-  if [[ ! -f "$argv" ]]; then
-    problems+=("the conductor binary was never launched — $conductor recorded no argv")
-  else
-    valued --permission-mode bypassPermissions
-  fi
-}
-
-name="run-conductor.sh <issue> launches claude -p for that issue in stream-json"
-problems=()
-assert_case1 "$CONDUCTOR"
-report "$name"
-
 name="the launch severs the eight session handles and passes VERI_* through"
 problems=()
 assert_case2 "$CONDUCTOR"
 report "$name"
 
-name="a non-zero child exit is the script's exit"
-problems=()
-assert_case3 "$CONDUCTOR"
-report "$name"
-
 name="a frontmatter-fenced procedure launches and reaches the binary whole"
 problems=()
 assert_case4 "$CONDUCTOR"
-report "$name"
-
-name="the launch carries --permission-mode bypassPermissions"
-problems=()
-assert_case5 "$CONDUCTOR"
 report "$name"
 
 name="the conductor's base directory is a snapshot of the skill commit, not the clone"
@@ -1089,50 +1033,6 @@ repin_in "$wt_log26" "$head26" ||
 if repin_in "$caller_log26" "$head26"; then
   problems+=("the skill-repin event landed in the caller's $caller_log26")
 fi
-
-report "$name"
-
-name="run-conductor.sh launched directly, with no orchestrator, exits 0 and hands the conductor a procedure naming nothing orchestrate.sh adds"
-problems=()
-
-caller27="$work/caller27"
-caller_repo "$caller27"
-rm -f "$argv" "$prompt"
-
-( unset VERI_CONDUCTOR_CTX_BUDGET; launch_from "$caller27" "$work/tree" )
-status=$?
-
-if [[ "$status" -ne 0 ]]; then
-  problems+=("the direct launch exited $status, not 0: $(cat "$launch_err")")
-elif [[ ! -s "$argv" ]]; then
-  problems+=("the direct launch never reached the conductor binary")
-else
-  for added in orchestrate.sh VERI_CONDUCTOR_CTX_BUDGET .tdd/parked/; do
-    ! grep -F -- "$added" "$prompt" > /dev/null ||
-      problems+=("the procedure a direct launch hands the conductor names '$added'")
-  done
-  [[ ! -e "$caller27/.tdd/parked" ]] ||
-    problems+=("a direct launch created $caller27/.tdd/parked")
-fi
-
-report "$name"
-
-name="run-conductor.sh, failing inside its own EXIT trap's lifetime, ends with exit 2"
-problems=()
-
-clone28="$work/clone28"
-skill_clone "$clone28"
-caller28="$work/caller28"
-caller_repo "$caller28"
-failing_tar="$(scratch_dir)"
-printf '#!/bin/sh\nexit 5\n' > "$failing_tar/tar"
-chmod +x "$failing_tar/tar"
-
-launch_from "$caller28" "$clone28" PATH="$failing_tar:$PATH"
-status=$?
-
-[[ "$status" -eq 2 ]] ||
-  problems+=("the launch exited $status, not 2: $(cat "$launch_err")")
 
 report "$name"
 
@@ -1973,24 +1873,6 @@ else
       problems+=("the unpinned launch set $(grep "^${var}=" "$envu1016")")
   done
 fi
-
-report "$name"
-
-name="run-conductor.sh with no argument prints exactly its usage line on stderr, nothing on stdout, and exits 2"
-problems=()
-
-out_noarg="$work/noarg.out"
-err_noarg="$work/noarg.err"
-( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" \
-    "$CONDUCTOR" ) > "$out_noarg" 2> "$err_noarg"
-status_noarg=$?
-
-[[ "$status_noarg" -eq 2 ]] ||
-  problems+=("the script exited $status_noarg, not 2")
-[[ ! -s "$out_noarg" ]] ||
-  problems+=("stdout was not empty: $(cat "$out_noarg")")
-printf 'usage: run-conductor.sh <issue>\n' | cmp -s - "$err_noarg" ||
-  problems+=("stderr was not exactly the usage line and one newline: $(od -c "$err_noarg")")
 
 report "$name"
 

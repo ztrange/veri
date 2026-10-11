@@ -164,13 +164,13 @@ newskill_cases=(
   "a re-pinning launch with VERI_NEW_SKILL=1 hands the conductor no VERI_NEW_SKILL"
 )
 newskill_cut="$(mktemp "$HERE/.hermetic-newskill-slice.XXXXXX")"
-slice_run_conductor "9 17 18 19 24" "$newskill_cut"
+slice_run_conductor "6 14 15 16 21" "$newskill_cut"
 newskill_missing=()
 for newskill_case in "${newskill_cases[@]}"; do
   grep -qF "name=\"$newskill_case\"" "$newskill_cut" || newskill_missing+=("$newskill_case")
 done
 if [[ "${#newskill_missing[@]}" -gt 0 ]]; then
-  problems+=("no case could be asked from run-conductor.test.sh under VERI_NEW_SKILL=1 — the slice is missing case(s): $(printf '%s | ' "${newskill_missing[@]}") — cases 9, 17, 18, 19 and 24, counted by name= line, may have moved")
+  problems+=("no case could be asked from run-conductor.test.sh under VERI_NEW_SKILL=1 — the slice is missing case(s): $(printf '%s | ' "${newskill_missing[@]}") — cases 6, 14, 15, 16 and 21, counted by name= line, may have moved")
 else
   out="$(VERI_NEW_SKILL=1 "$newskill_cut" 2>/dev/null)" && code=0 || code=$?
   [[ "$code" == 0 ]] ||
@@ -219,9 +219,9 @@ name="run-conductor.test.sh: an ambient VERI_NEW_SKILL=1 with a VERI_SKILL_COMMI
 problems=()
 skillcommit_case="every event a launched run writes carries origin's tip as skill_commit, and the prompt names it"
 skillcommit_cut="$(mktemp "$HERE/.hermetic-skillcommit-slice.XXXXXX")"
-slice_run_conductor 15 "$skillcommit_cut"
+slice_run_conductor 12 "$skillcommit_cut"
 if ! grep -qF "name=\"$skillcommit_case\"" "$skillcommit_cut"; then
-  problems+=("no case could be asked from run-conductor.test.sh under VERI_NEW_SKILL=1 and VERI_SKILL_COMMIT — the slice is missing the case: $skillcommit_case — case 15, counted by name= line, may have moved")
+  problems+=("no case could be asked from run-conductor.test.sh under VERI_NEW_SKILL=1 and VERI_SKILL_COMMIT — the slice is missing the case: $skillcommit_case — case 12, counted by name= line, may have moved")
 else
   out="$(VERI_NEW_SKILL=1 VERI_SKILL_COMMIT=deadbeefdeadbeefdeadbeefdeadbeefdeadbeef "$skillcommit_cut" 2>/dev/null)" && code=0 || code=$?
   [[ "$code" == 0 ]] ||
@@ -243,7 +243,7 @@ if [[ -z "${HERMETIC_SKILLCOMMIT_PROBE:-}" ]]; then
       'set -uo pipefail' \
       'pass=0 fail=0' \
       'tree_clone "$work/tree"'
-    for filler in $(seq 1 14); do
+    for filler in $(seq 1 11); do
       printf '%s\n' "name=\"filler $filler\"" 'exit 9'
     done
     printf '%s\n' \
