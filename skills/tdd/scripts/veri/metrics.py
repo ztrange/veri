@@ -378,7 +378,7 @@ def render(issue, path, ledger):
     if models:
         print("Models requested: %s; models that answered: %s."
               % (", ".join("%s %s" % (knob, os.environ.get(knob) or "unset")
-                           for knob in ["VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER"]),
+                           for knob in ["VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE"]),
                  ", ".join(sorted({m for answered in models.values() for m in answered.split(",") if m}))))
     section("#### By phase", "phase", PHASE_COLUMNS, counts)
     if models or any(mark.get("event") == "launch" and "model" in mark for mark in marks):
