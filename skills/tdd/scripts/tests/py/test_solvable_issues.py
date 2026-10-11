@@ -384,3 +384,42 @@ def test_main_sorts_survivors_by_priority_then_bug_band_then_number_never_wideni
     observed.append((code, out))
 
     assert observed == [(0, "3\n8\n2\n1\n9\n"), (0, "9\n2\n8\n1\n3\n"), (3, "")]
+
+
+def test_cli_lists_an_open_opted_in_unblocked_issue_run_from_its_own_cwd_returning_0_with_empty_stderr(tmp_path, monkeypatch, run_cli, solvable_issues):
+    fixtures, cwd = tmp_path / "fixtures", tmp_path / "cwd"
+    fixtures.mkdir()
+    cwd.mkdir()
+    (fixtures / "issues.json").write_text(json.dumps([opted_in(41)]))
+    (fixtures / "prs.json").write_text("[]")
+    fake_git_answering_nothing(monkeypatch)
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (0, "41\n", "")
+
+
+def test_cli_with_the_label_tunable_unset_never_lists_an_issue_whose_only_label_extends_ready_for_agent(tmp_path, monkeypatch, run_cli, solvable_issues):
+    fixtures, cwd = tmp_path / "fixtures", tmp_path / "cwd"
+    fixtures.mkdir()
+    cwd.mkdir()
+    (fixtures / "issues.json").write_text(json.dumps([opted_in(62), labelled(63, "ready-for-agent:docs")]))
+    (fixtures / "prs.json").write_text("[]")
+    fake_git_answering_nothing(monkeypatch)
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (0, "62\n", "")
+
+
+def test_cli_prints_issues_fetched_out_of_order_one_per_line_ascending(tmp_path, monkeypatch, run_cli, solvable_issues):
+    fixtures, cwd = tmp_path / "fixtures", tmp_path / "cwd"
+    fixtures.mkdir()
+    cwd.mkdir()
+    (fixtures / "issues.json").write_text(json.dumps([opted_in(12), opted_in(3), opted_in(7)]))
+    (fixtures / "prs.json").write_text("[]")
+    fake_git_answering_nothing(monkeypatch)
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (0, "3\n7\n12\n", "")
