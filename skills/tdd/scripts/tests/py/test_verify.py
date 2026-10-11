@@ -64,7 +64,6 @@ def test_main_with_a_flag_missing_its_value_returns_2_naming_the_flag_then_the_u
         2, b"", b"verify: " + flag + b" needs a value\n" + USAGE + b"\n", [])
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 @pytest.mark.parametrize("argv, stderr", [
     (["green", "missing-spec.md", "tests/x.test.sh"], b"build-verify-prompt: cannot read 'missing-spec.md'\n"),
     (["bogus", "spec.md", "tests/x.test.sh"], b"build-verify-prompt: unknown phase 'bogus'"),
@@ -90,7 +89,6 @@ def test_main_returns_the_builders_refusal_mapped_into_the_contract_with_its_std
             (tmp_path / ".tdd" / "verify-green.prompt").exists()) == (2, b"", True, [], False)
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_calls_the_builder_beside_the_shim_as_called_with_the_consumed_pairs_and_every_positional_and_writes_its_stdout_as_the_prompt_file(
         tmp_path, monkeypatch):
     link = tmp_path / "skill-link"
@@ -140,7 +138,6 @@ def test_main_calls_the_builder_beside_the_shim_as_called_with_the_consumed_pair
 
 
 @pytest.mark.parametrize("leaf_args", [None, ""])
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_launches_the_verifier_leaf_through_supervise_with_the_default_flags_streams_inherited_and_starts_no_ported_helper_process(
         leaf_args, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
@@ -190,7 +187,6 @@ def test_main_launches_the_verifier_leaf_through_supervise_with_the_default_flag
     (b"VERDICT: REJECT\nnot \xff utf-8\n", (1, b"not \xff utf-8\n")),
     (b"no verdict here\nat all\n", (2, b"\n")),
 ])
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_reads_the_verdict_from_supervises_stdout_and_prints_the_whole_reason_with_one_newline(
         phase, leaf_out, expected, tmp_path, monkeypatch, capfdbinary):
     monkeypatch.chdir(tmp_path)
@@ -215,7 +211,6 @@ def test_main_reads_the_verdict_from_supervises_stdout_and_prints_the_whole_reas
     assert (code, capfdbinary.readouterr().out) == expected
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_drops_nul_bytes_from_the_leafs_output_so_a_verdict_carrying_them_is_read_as_the_same_verdict_without_them(
         tmp_path, monkeypatch, capfdbinary):
     monkeypatch.chdir(tmp_path)
@@ -247,7 +242,6 @@ def test_main_drops_nul_bytes_from_the_leafs_output_so_a_verdict_carrying_them_i
     (b"VERDICT: REJECT\nwhy it fails\nmore\n", "REJECT", "why it fails"),
     (b"VERDICT: MAYBE\nundecided\n", "malformed", ""),
 ])
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_appends_one_verdict_record_with_the_verdict_word_and_the_reasons_first_line_under_the_verifier_role(
         phase, leaf_out, word, reason_line, tmp_path, monkeypatch, events):
     monkeypatch.chdir(tmp_path)
@@ -276,7 +270,6 @@ def test_main_appends_one_verdict_record_with_the_verdict_word_and_the_reasons_f
         record("verdict", "verdict=" + word, "reason=" + reason_line, issue="931", step="5", phase=phase)]
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_launches_the_leaf_with_verify_leaf_args_words_split_on_whitespace_and_glob_expanded_in_the_working_directory(
         tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
@@ -327,7 +320,6 @@ WITH_MODEL = "--permission-mode bypassPermissions --model sonnet"
     ("--permission-mode bypassPermissions", {"VERI_MODEL_VERIFIER": "opus"}, 0, "", True),
     (None, {"VERI_MODEL": "two words"}, 0, "", True),
 ])
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_refuses_a_literal_model_word_in_verify_leaf_args_beside_a_resolved_role_model_before_the_builder_runs(
         leaf_args, models, expected_code, expected_err, launches, tmp_path, monkeypatch, capfdbinary):
     monkeypatch.chdir(tmp_path)
@@ -372,7 +364,6 @@ def test_main_refuses_a_literal_model_word_in_verify_leaf_args_beside_a_resolved
     (2, (2, "verifier leaf killed-stuck — no verdict rendered (see .tdd/verify-green.log)\n")),
     (FileNotFoundError, (2, "\n")),
 ])
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_returns_2_on_a_killed_stuck_leaf_with_no_tamper_check_event_or_preservation_and_reads_an_unstartable_supervise_as_no_answer(
         supervise, expected, tmp_path, monkeypatch, capfdbinary, events):
     monkeypatch.chdir(tmp_path)
@@ -432,7 +423,6 @@ NO_LINE = b"parse-verdict: no VERDICT: line found\n"
      [["verdict", "verdict=malformed", "reason="]], 2,
      b"parse-verdict: unrecognised verdict word 'MAYBE'\n"),
 ])
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_relaunches_a_leaf_with_no_verdict_line_up_to_the_no_verdict_budget_marking_each_relaunch_and_the_last_verdict_while_an_unrecognised_word_is_malformed_and_not_relaunched(
         retries, leaf_outs, launches, marks, expected_code, expected_err, tmp_path, monkeypatch,
         capfdbinary, events):
@@ -468,7 +458,6 @@ def test_main_relaunches_a_leaf_with_no_verdict_line_up_to_the_no_verdict_budget
         expected_code, launches, [record(*mark) for mark in marks], expected_err)
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_returns_2_when_the_relaunch_record_cannot_be_appended_and_makes_no_relaunch(
         tmp_path, monkeypatch, capfdbinary, events):
     monkeypatch.chdir(tmp_path)
@@ -500,7 +489,6 @@ def test_main_returns_2_when_the_relaunch_record_cannot_be_appended_and_makes_no
     assert (code, len(supervised), capfdbinary.readouterr().out) == (2, 1, b"")
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_returns_2_when_the_verdict_record_cannot_be_appended_with_no_preservation_and_nothing_on_stdout(
         tmp_path, monkeypatch, capfdbinary, events):
     monkeypatch.chdir(tmp_path)
@@ -538,7 +526,6 @@ def test_main_returns_2_when_the_verdict_record_cannot_be_appended_with_no_prese
 
 
 @pytest.mark.parametrize("retries, launches", [("", 2), ("010", 9), ("08", 1)])
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_reads_an_empty_no_verdict_budget_as_1_and_a_leading_zero_as_octal_so_010_allows_8_relaunches_and_08_none(
         retries, launches, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
@@ -566,7 +553,6 @@ def test_main_reads_an_empty_no_verdict_budget_as_1_and_a_leading_zero_as_octal_
     assert (code, len(supervised)) == (2, launches)
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_copies_parse_verdicts_stderr_to_its_own_stderr_after_every_launch_relaunched_ones_included(
         tmp_path, monkeypatch, capfdbinary):
     monkeypatch.chdir(tmp_path)
@@ -599,7 +585,6 @@ def test_main_copies_parse_verdicts_stderr_to_its_own_stderr_after_every_launch_
 
 
 @pytest.mark.parametrize("retries", ["x", "-1", " 1"])
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_refuses_a_no_verdict_budget_that_is_not_a_non_negative_integer_after_the_prompt_file_is_written_and_launches_no_leaf(
         retries, tmp_path, monkeypatch, capfdbinary):
     monkeypatch.chdir(tmp_path)
@@ -632,7 +617,6 @@ def test_main_refuses_a_no_verdict_budget_that_is_not_a_non_negative_integer_aft
         True, False)
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_snapshots_the_tree_through_a_temporary_index_and_head_around_the_launch_and_returns_2_naming_the_changed_paths_then_head_with_no_verdict_event_or_preservation(
         tmp_path, monkeypatch, capfdbinary, events):
     monkeypatch.chdir(tmp_path)
@@ -703,7 +687,6 @@ def test_main_snapshots_the_tree_through_a_temporary_index_and_head_around_the_l
 
 
 @pytest.mark.parametrize("failing", ["add", "git-missing", "write-tree", "diff-tree"])
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_takes_a_git_call_that_fails_as_no_snapshot_or_no_change_whatever_it_printed_and_returns_the_verdict(
         failing, tmp_path, monkeypatch, capfdbinary):
     monkeypatch.chdir(tmp_path)
@@ -751,7 +734,6 @@ def test_main_takes_a_git_call_that_fails_as_no_snapshot_or_no_change_whatever_i
 
 
 @pytest.mark.parametrize("head_moved", [True, False])
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_restores_a_modified_tree_through_a_fresh_temporary_index_and_a_moved_head_with_update_ref(
         head_moved, tmp_path, monkeypatch, capfdbinary):
     monkeypatch.chdir(tmp_path)
@@ -808,7 +790,6 @@ def test_main_restores_a_modified_tree_through_a_fresh_temporary_index_and_a_mov
     assert not pathlib.Path(read_tree_index).is_relative_to(tmp_path)
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_runs_the_tamper_check_after_a_relaunchs_launch_and_refuses_a_relaunched_leaf_that_modified_the_repository(
         tmp_path, monkeypatch, capfdbinary, events):
     monkeypatch.chdir(tmp_path)
@@ -859,7 +840,6 @@ def test_main_runs_the_tamper_check_after_a_relaunchs_launch_and_refuses_a_relau
 
 
 @pytest.mark.parametrize("where", ["not-a-repository", "git-missing", "add-fails"])
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_outside_a_repository_without_git_or_with_a_failing_add_takes_no_snapshot_runs_no_tamper_check_or_preservation_and_returns_the_verdict(
         where, tmp_path, monkeypatch, capfdbinary, events):
     monkeypatch.chdir(tmp_path)
@@ -911,7 +891,6 @@ def test_main_outside_a_repository_without_git_or_with_a_failing_add_takes_no_sn
     assert events.records() == [record("verdict", "verdict=REJECT", "reason=bad", issue="7", step="2")]
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_in_a_repository_with_no_commit_reports_a_leaf_that_commits_as_head_and_makes_no_update_ref_call(
         tmp_path, monkeypatch, capfdbinary):
     monkeypatch.chdir(tmp_path)
@@ -957,7 +936,6 @@ def test_main_in_a_repository_with_no_commit_reports_a_leaf_that_commits_as_head
            " (see .tdd/verify-green.log); changed:\nHEAD\n".encode(), [])
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_returns_2_with_no_traceback_when_the_update_ref_restoring_head_fails_1183(
         tmp_path, monkeypatch, capfdbinary):
     monkeypatch.chdir(tmp_path)
@@ -1002,7 +980,6 @@ def test_main_returns_2_with_no_traceback_when_the_update_ref_restoring_head_fai
     assert ("update-ref" in verbs, code, b"Traceback" in captured.err) == (True, 2, False)
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_returns_2_not_1_when_the_update_ref_restoring_head_exits_1_1183(
         tmp_path, monkeypatch, capfdbinary):
     monkeypatch.chdir(tmp_path)
@@ -1047,7 +1024,6 @@ def test_main_returns_2_not_1_when_the_update_ref_restoring_head_exits_1_1183(
     assert ("update-ref" in verbs, code) == (True, 2)
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_returns_2_with_no_traceback_when_git_cannot_be_started_to_restore_head_1183(
         tmp_path, monkeypatch, capfdbinary):
     monkeypatch.chdir(tmp_path)
@@ -1098,7 +1074,6 @@ def test_main_returns_2_with_no_traceback_when_git_cannot_be_started_to_restore_
 @pytest.mark.parametrize("before, after", [(b"[user]\n\tname = op\n", b"[user]\n\tname = leaf\n"),
                                            (None, b"[user]\n\tname = leaf\n"),
                                            (b"[user]\n\tname = op\n", None)])
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_returns_2_naming_home_gitconfig_when_the_leaf_changed_created_or_deleted_it_and_restores_nothing(
         before, after, tmp_path, monkeypatch, capfdbinary, events):
     work = tmp_path / "work"
@@ -1149,7 +1124,6 @@ def test_main_returns_2_naming_home_gitconfig_when_the_leaf_changed_created_or_d
     assert (left, events.records(), any(" update-ref refs/veri/attempts/" in w for w in started)) == (after, [], False)
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_reports_a_leaf_that_changed_both_the_repository_and_home_gitconfig_for_the_repository_only(
         tmp_path, monkeypatch, capfdbinary):
     work = tmp_path / "work"
@@ -1200,7 +1174,6 @@ def test_main_reports_a_leaf_that_changed_both_the_repository_and_home_gitconfig
            " (see .tdd/verify-green.log); changed:\nsrc.txt\n".encode())
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_returns_2_before_any_leaf_launches_when_reading_home_gitconfig_a_regular_file_raises_oserror_1183(
         tmp_path, monkeypatch, capfdbinary):
     work = tmp_path / "work"
@@ -1243,7 +1216,6 @@ def test_main_returns_2_before_any_leaf_launches_when_reading_home_gitconfig_a_r
     assert (code, captured.out, "supervise.sh" in launched) == (2, b"", False)
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_returning_2_because_reading_home_gitconfig_raised_oserror_names_that_path_on_stderr_1183(
         tmp_path, monkeypatch, capfdbinary):
     work = tmp_path / "work"
@@ -1281,7 +1253,6 @@ def test_main_returning_2_because_reading_home_gitconfig_raised_oserror_names_th
     assert (code, str(gitconfig).encode() in captured.err) == (2, True)
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_returns_2_naming_home_gitconfig_on_stderr_without_launching_a_leaf_when_it_is_a_directory_1183(
         tmp_path, monkeypatch, capfdbinary):
     work = tmp_path / "work"
@@ -1317,7 +1288,6 @@ def test_main_returns_2_naming_home_gitconfig_on_stderr_without_launching_a_leaf
             "supervise.sh" in launched) == (2, True, False, False)
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_returns_2_naming_home_gitconfig_on_stderr_when_the_leaf_left_it_a_directory_1183(
         tmp_path, monkeypatch, capfdbinary):
     work = tmp_path / "work"
@@ -1357,7 +1327,6 @@ def test_main_returns_2_naming_home_gitconfig_on_stderr_when_the_leaf_left_it_a_
     assert (code, str(gitconfig).encode() in captured.err, b"Traceback" in captured.err) == (2, True, False)
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_returns_2_naming_home_gitconfig_on_stderr_when_the_leaf_left_it_unreadable_1183(
         tmp_path, monkeypatch, capfdbinary):
     work = tmp_path / "work"
@@ -1416,7 +1385,6 @@ def test_main_returns_2_naming_home_gitconfig_on_stderr_when_the_leaf_left_it_un
     (b"VERDICT: REJECT\nbad\n", "", "7", 0, 1, None),
     (b"VERDICT: REJECT\nbad\n", "931", "", 0, 1, None),
 ])
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_preserves_a_reject_malformed_or_no_verdict_attempt_under_its_attempts_ref_naming_a_failed_update_ref_and_still_returning_the_verdicts_code(
         leaf_out, issue, step, preserver, expected_code, expected_mark, tmp_path, monkeypatch,
         capfdbinary):
@@ -1472,7 +1440,6 @@ def test_main_preserves_a_reject_malformed_or_no_verdict_attempt_under_its_attem
     assert (could_not in captured.err) == (preserver != 0)
 
 
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_main_writes_every_line_it_prints_the_em_dash_in_its_refusals_included_as_utf8_bytes_under_lc_all_c(
         tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
@@ -1635,7 +1602,6 @@ KILLED = (2, KILLED_OUT, "", 1, [])
     pytest.param({"VERI_NO_VERDICT_RETRIES": "3", "VERI_STUCK_RETRIES": "0"}, [GREEN], 2,
                  KILLED, id="no-verdict-retries-leave-stuck-count"),
 ])
-@pytest.mark.process("the real prompt builder, started through its shim")
 def test_verify_sh_reads_the_newest_verdict_across_result_records_and_relaunches_only_a_clean_no_verdict_exit_within_its_own_budget_marking_it_no_verdict(
         env, leaf_outs, supervise_code, expected, run_cli, tmp_path, monkeypatch, events):
     for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
