@@ -134,8 +134,8 @@ test unit:
 	@if [ "$(MAKELEVEL)" -gt $(MAX_MAKE_DEPTH) ]; then printf 'make: refusing a make %s nested at depth %s, deeper than %s\n' "$@" "$(MAKELEVEL)" "$(MAX_MAKE_DEPTH)" >&2; exit 2; fi
 	@$(BASH_GUARD)
 	@[ -f "$(COUNT_LINE_GUARD)" ] || { printf 'make: %s is missing, so no suite can be held to its count line\n' "$(COUNT_LINE_GUARD)" >&2; exit 2; }
-	@unset BASH_ENV ENV; fail=0; reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; pycache="$$(mktemp -d)"; \
-	trap 'rm -f "$$reach_log"; rm -rf "$$git_bin" "$$pycache"' EXIT; \
+	@unset BASH_ENV ENV; fail=0; reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
+	trap 'rm -f "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
 	if [ -n "$(PY_TESTS)" ]; then \
 	  py_bin="$$(bash -c '. $(VENV_LIB) && py="$$(venv_python)" && venv_version_usable "$$py" "$${VERI_PYTHON_VERSION:-$$("$$py" -c "import platform; print(platform.python_version())" 2>/dev/null)}" && printf "%s\n" "$$py"')" || exit 2; \
 	  $(call REFUSE_UNIMPORTABLE,VERI_PYTEST_IMPORTABLE,pytest,pytest); \
@@ -153,7 +153,8 @@ test unit:
 	if [ -n "$(PY_TESTS)" ]; then \
 	  printf '== pytest\n'; \
 	  : > "$$reach_log"; suite_guard=; \
-	  UNIT_GUARD_LOG="$$reach_log" PYTHONPYCACHEPREFIX="$$pycache" COLUMNS=200 $(OFFLINE_ENV) "$$py_bin" -m pytest --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || fail=1; \
+	  find skills/tdd/scripts -type d -name __pycache__ -prune -exec rm -rf {} +; \
+	  UNIT_GUARD_LOG="$$reach_log" COLUMNS=200 $(OFFLINE_ENV) "$$py_bin" -m pytest --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || fail=1; \
 	  $(call NAME_REACHED,pytest: tried to start); \
 	fi; \
 	echo "----"; \

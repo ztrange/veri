@@ -921,4 +921,29 @@ PY
 done
 report "$name"
 
+shared="$work/shared-bytecode"
+make_tree "$shared"
+cat > "$shared/$PY_DIR/test_leg_probe.py" <<'PY'
+import importlib.util
+import os
+
+import pytest
+
+
+def test_veri_probe_shared_bytecode():
+    for source in (os.__file__, pytest.__file__):
+        cached = importlib.util.cache_from_source(source)
+        assert os.path.dirname(cached) == os.path.join(os.path.dirname(source), "__pycache__"), (source, cached)
+PY
+
+name="#1471: under make unit and make test, the pytest leg resolves the stdlib's and pytest's own bytecode beside their source, in their own __pycache__, never in a per-run empty cache directory"
+problems=()
+for target in unit test; do
+  env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE -u PYTHONPYCACHEPREFIX \
+    make --no-print-directory -C "$shared" "$target" > "$work/out" 2> "$work/err" < /dev/null &&
+    code=0 || code=$?
+  check_green "make $target"
+done
+report "$name"
+
 finish
