@@ -7,6 +7,7 @@ import sys
 import time
 
 import blocked_by
+import tunables
 from github import NoAnswer, gh_json
 from json_documents import items
 from status import main_working_tree
@@ -36,7 +37,7 @@ def queue_path():
 
 
 def lock_tries():
-    wait = os.environ.get("VERI_WORKQUEUE_LOCK_WAIT") or "30"
+    wait = tunables.read("VERI_WORKQUEUE_LOCK_WAIT") or "30"
     if re.fullmatch(r"[0-9]+", wait):
         return int(wait) * 20
     sys.stderr.write("workqueue.sh: VERI_WORKQUEUE_LOCK_WAIT must be a whole number >= 0: %s\n" % wait)

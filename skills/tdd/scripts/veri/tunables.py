@@ -10,6 +10,10 @@ def read(name, default=""):
     return os.environ.get(name, default)
 
 
+def with_values(**values):
+    return dict(os.environ, **values)
+
+
 def read_bytes(name, default=b""):
     return os.environb.get(os.fsencode(name), default)
 

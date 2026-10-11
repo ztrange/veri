@@ -7,6 +7,8 @@ import subprocess
 import sys
 import tempfile
 import time
+
+import tunables
 import traceback
 
 try:
@@ -32,7 +34,7 @@ class _Conductor:
             pass
         words = ["%s=%s" % (name, os.environ[name]) for name in PASSED_THROUGH if name in os.environ]
         run_timeout = _run_timeout()
-        env = dict(os.environ, VERI_HEARTBEAT=run_timeout, VERI_TIMEOUT=run_timeout, VERI_STUCK_RETRIES="0")
+        env = tunables.with_values(VERI_HEARTBEAT=run_timeout, VERI_TIMEOUT=run_timeout, VERI_STUCK_RETRIES="0")
         self.sup = subprocess.Popen([os.path.join(SCRIPTS, "supervise.sh"), "conductor-%s" % n, "env",
                                      *[w for name in PASSED_THROUGH for w in ("-u", name)], *words,
                                      os.path.join(SCRIPTS, "run-conductor.sh"), n],
@@ -114,7 +116,7 @@ def _is_failure(got):
 
 
 def _ctx_budget():
-    return os.environ.get("VERI_CONDUCTOR_CTX_BUDGET") or "120000"
+    return tunables.read("VERI_CONDUCTOR_CTX_BUDGET") or "120000"
 
 
 def _bash_arithmetic(value):
@@ -122,7 +124,7 @@ def _bash_arithmetic(value):
 
 
 def _run_timeout():
-    return os.environ.get("VERI_RUN_TIMEOUT") or "14400"
+    return tunables.read("VERI_RUN_TIMEOUT") or "14400"
 
 
 def _finish(code):
@@ -170,8 +172,8 @@ def main(argv):
         return 2
     if not _exclude_tdd():
         return 2
-    parallel = os.environ.get("VERI_PARALLEL", "1")
-    max_issues = os.environ.get("VERI_MAX_ISSUES")
+    parallel = tunables.read("VERI_PARALLEL", "1")
+    max_issues = tunables.read("VERI_MAX_ISSUES", None)
     if not (_whole_number("VERI_CONDUCTOR_CTX_BUDGET", _ctx_budget(), 0)
             and _whole_number("VERI_PARALLEL", parallel, 1)
             and (max_issues is None or _whole_number("VERI_MAX_ISSUES", max_issues, 1))):
@@ -235,7 +237,7 @@ def _run(continue_on_bail, parallel, max_issues):
                 if _is_failure(got):
                     stopped = "#%s %s" % (c.n, got.split()[0])
         if not done:
-            time.sleep(float(os.environ.get("VERI_POLL") or "1"))
+            time.sleep(float(tunables.read("VERI_POLL") or "1"))
 
 
 if __name__ == "__main__":

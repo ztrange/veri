@@ -11,6 +11,7 @@ sys.dont_write_bytecode = True
 
 import event
 import launch_floor
+import tunables
 from git import symref_default
 from session_env import strip_session_env
 
@@ -39,7 +40,7 @@ def main(argv):
             sys.stderr.write(fetch.stderr.rstrip("\n") + "\n")
             held = any(wording in fetch.stderr for wording in HELD_REF_LOCK)
             if held and fetches < 60:
-                if subprocess.run(["sleep", os.environ.get("VERI_FETCH_RETRY_SLEEP") or "1"]).returncode != 0:
+                if subprocess.run(["sleep", tunables.read("VERI_FETCH_RETRY_SLEEP") or "1"]).returncode != 0:
                     return 1
                 continue
             if held:
@@ -68,7 +69,7 @@ def main(argv):
                 seed.write(".gitignore\nissue-*-skill-commit\n")
         record = record_path(argv[0])
         readable = os.access(record, os.R_OK)
-        if readable and os.environ.get("VERI_NEW_SKILL") != "1":
+        if readable and tunables.read("VERI_NEW_SKILL", None) != "1":
             try:
                 with open(record) as recorded_file:
                     recorded = recorded_file.read().rstrip("\n")
@@ -86,7 +87,7 @@ def main(argv):
             if readable:
                 worktree = ".tdd/wt/" + argv[0]
                 os.makedirs(worktree, exist_ok=True)
-                if event.mark(worktree, event.context(dict(os.environ, VERI_ISSUE=argv[0])),
+                if event.mark(worktree, event.context(tunables.with_values(VERI_ISSUE=argv[0])),
                               "skill-repin", ["commit=" + commit]) != 0:
                     return 2
         snapshot = tempfile.mkdtemp()

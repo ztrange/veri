@@ -12,6 +12,7 @@ import time
 from event_log import read_events, usage_totals
 from ledger import ledger_steps
 from run_dir import run_file
+import tunables
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -128,7 +129,7 @@ def branch_of(run):
 def solvable_count(name):
     """"<count>" solvable-issues.sh lists for scope <name>, or "?" when it gave no answer."""
     listed = subprocess.run([os.path.join(SCRIPTS, "solvable-issues.sh")], stdout=subprocess.PIPE,
-                            text=True, env=dict(os.environ, VERI_LABEL=name))
+                            text=True, env=tunables.with_values(VERI_LABEL=name))
     if listed.returncode == 0:
         return str(sum(1 for line in listed.stdout.split("\n") if line))
     if listed.returncode == 3:
@@ -138,7 +139,7 @@ def solvable_count(name):
 
 def parse_args(argv):
     """(json, scope, watch seconds or None), or None for an unknown option."""
-    scope, as_json, watch = os.environ.get("VERI_LABEL", ""), False, None
+    scope, as_json, watch = tunables.read("VERI_LABEL"), False, None
     args = list(argv)
     while args:
         arg = args.pop(0)
@@ -157,7 +158,7 @@ def parse_args(argv):
 
 
 def render(as_json, scope):
-    timeout = os.environ.get("VERI_TIMEOUT") or "900"
+    timeout = tunables.read("VERI_TIMEOUT") or "900"
     main_tree = main_working_tree()
     runs = sorted(glob.glob(os.path.join(main_tree, ".tdd", "wt", "*", ""))) if main_tree else []
     if not runs:

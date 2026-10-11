@@ -5,6 +5,8 @@ import subprocess
 import sys
 import tempfile
 
+import tunables
+
 TRACED = 'PS4=\'+${EPOCHREALTIME} ${LINENO} \'; set -x; . "$0"'
 
 
@@ -66,7 +68,7 @@ def sort_lines(lines):
 
 
 def main(argv):
-    threshold = os.environ.get("VERI_PROFILE_THRESHOLD") or "1"
+    threshold = tunables.read("VERI_PROFILE_THRESHOLD") or "1"
     if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", threshold):
         print("profile.sh: VERI_PROFILE_THRESHOLD must be a number of seconds, got '%s'" % threshold,
               file=sys.stderr)
