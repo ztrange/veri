@@ -1,10 +1,14 @@
 """In-process cases for veri/refactor_owed.py, the module refactor-owed.sh is a shim over."""
 import importlib
 import io
+import os
+import pathlib
+import subprocess
 import sys
 
 import pytest
 
+SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 USAGE = (
     "refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' < leaf-report.txt\n"
     "                      refactor-owed.sh render <file>\n"
@@ -575,3 +579,50 @@ def test_append_list_and_render_answer_a_structural_and_cosmetic_report_as_befor
 
     code = refactor_owed.main(["render", str(owed)])
     assert (code, *capsys.readouterr()) == (0, "## Refactor owed\n\n" + want_owed, "")
+
+
+@pytest.mark.process("refactor-owed.sh run through a symlink to the skill directory")
+def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_working_directory_answers_append_render_and_list_as_in_place_reading_the_owed_file_there(
+        tmp_path):
+    (tmp_path / "linked-skill").symlink_to(SCRIPTS.parent, target_is_directory=True)
+    report = ("CANDIDATES: structural | extract the parser\n"
+              "CANDIDATES: cosmetic | rename a local\n"
+              "CANDIDATES: test-only | fold the fixtures\n")
+    answers = {}
+    for where, script in (("in-place", SCRIPTS / "refactor-owed.sh"),
+                          ("elsewhere", tmp_path / "linked-skill" / "scripts" / "refactor-owed.sh")):
+        cwd = tmp_path / where
+        cwd.mkdir()
+        answers[where] = [
+            (ran.returncode, ran.stdout, ran.stderr)
+            for ran in (subprocess.run([str(script), *argv], cwd=cwd, input=stdin, capture_output=True, text=True)
+                        for argv, stdin in ((["append", "owed.md", "the step"], report),
+                                            (["render", "owed.md"], ""), (["list", "owed.md"], "")))]
+
+    elsewhere = tmp_path / "elsewhere" / "owed.md"
+    assert elsewhere.read_text() == (tmp_path / "in-place" / "owed.md").read_text() != ""
+    assert answers["elsewhere"] == answers["in-place"]
+    assert [code for code, _, _ in answers["in-place"]] == [0, 0, 0]
+    assert answers["in-place"][2][1] == "extract the parser\n"
+
+
+def test_out_of_scope_prints_the_unapplied_out_of_scope_candidates_one_per_line_and_exits_3_printing_nothing_when_none_is_left_or_the_file_is_missing(
+        tmp_path, run_cli, refactor_owed):
+    owed = tmp_path / "owed.md"
+    owed.write_text("### step 2\n"
+                    "- extract the parser\n"
+                    "- out-of-scope | remove gh() from coverage_blocker.py\n"
+                    "- out-of-scope | drop the subprocess import\n"
+                    "- out-of-scope | fold the two loaders\n"
+                    "applied | 1b4ed26e6 | out-of-scope | remove gh() from coverage_blocker.py\n")
+    all_applied = tmp_path / "all-applied.md"
+    all_applied.write_text("### step 2\n"
+                           "- extract the parser\n"
+                           "- out-of-scope | remove gh() from coverage_blocker.py\n"
+                           "applied | 1b4ed26e6 | out-of-scope | remove gh() from coverage_blocker.py\n")
+
+    assert run_cli(refactor_owed, ["out-of-scope", str(owed)]) == (
+        0, "drop the subprocess import\nfold the two loaders\n", "")
+    for none_left in (all_applied, tmp_path / "missing.md"):
+        code, out, _ = run_cli(refactor_owed, ["out-of-scope", str(none_left)])
+        assert (none_left.name, code, out) == (none_left.name, 3, "")
