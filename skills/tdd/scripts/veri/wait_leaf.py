@@ -1,9 +1,9 @@
 """wait-leaf.sh's wait for a detached leaf's completion file, run in-process."""
-import os
 import re
 import subprocess
 import sys
 
+import tunables
 from pid_file import number_in, supervising
 
 USAGE = "usage: wait-leaf.sh <name> [max-seconds]\n"
@@ -63,7 +63,7 @@ def main(argv):
     name = argv[0]
     max_text = argv[1] if len(argv) > 1 and argv[1] else "540"
     max_seconds = arithmetic(max_text)
-    poll = os.environ.get("VERI_POLL") or "1"
+    poll = tunables.read("VERI_POLL") or "1"
     exit_file = f".tdd/{name}.exit"
     pid_file = f".tdd/{name}.pid"
     start = clock() or 0

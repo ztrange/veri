@@ -1,8 +1,13 @@
 """The one reader of VERI_* tunables."""
 import math
+import os
 import re
 
 STOP_TIMEOUT_MAX = 2 ** 31 - 1
+
+
+def read(name):
+    return os.environ.get(name, "")
 
 
 def stop_timeout(raw):

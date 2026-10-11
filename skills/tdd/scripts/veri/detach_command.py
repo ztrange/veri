@@ -6,6 +6,7 @@ import sys
 import time
 
 import detach
+import tunables
 
 WRAPPER = '"$@"; rc=$?; echo "$rc" > "$0.tmp"; mv "$0.tmp" "$0"'
 USAGE = "usage: detach-command.sh start <name> <cmd> [args…] | wait <name> [max-seconds]"
@@ -48,7 +49,7 @@ def _limit(text):
 
 def _wait(exit_file, pid_file, text):
     start = int(time.time())
-    poll = os.environ.get("VERI_POLL") or "1"
+    poll = tunables.read("VERI_POLL") or "1"
     if not re.fullmatch(r"[0-9]+(\.[0-9]*)?|\.[0-9]+", poll):
         print(f"detach-command.sh: VERI_POLL must be a non-negative number: {poll}", file=sys.stderr)
         return 2
