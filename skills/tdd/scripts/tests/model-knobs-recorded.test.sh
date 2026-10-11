@@ -3,9 +3,9 @@
 # variable a leaf reads, and why the developer's and the verifier's are two knobs.
 #
 # Contract under test:
-#   SKILL.md's `supervise.sh` bullet lists all three tunables — `VERI_MODEL`,
-#   `VERI_MODEL_DEVELOPER`, `VERI_MODEL_VERIFIER` — beside the tunables it already lists;
-#   and CLAUDE.md names all three and says why the developer's and the verifier's are
+#   SKILL.md's `supervise.sh` bullet lists all four tunables — `VERI_MODEL`,
+#   `VERI_MODEL_DEVELOPER`, `VERI_MODEL_REVISE`, `VERI_MODEL_VERIFIER` — beside the tunables it already lists;
+#   and CLAUDE.md names all four and says why the developer's and the verifier's are
 #   separate knobs: the verdict distribution on one side, revise cycles on the other.
 #   Each fact is matched by a regex, not a fixed string.
 #
@@ -40,7 +40,7 @@ need_supervise_bullet() {
   return 1
 }
 
-names_all_three() {
+names_all_four() {
   local what="$1"
   says "$what — it names no single passage carrying VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_REVISE and VERI_MODEL_VERIFIER" \
     "$MODEL_ANY" "$MODEL_DEV" "$MODEL_REV" "$MODEL_VER"
@@ -49,13 +49,13 @@ names_all_three() {
 probe_skill_bullet_lists_the_tunables() {
   need_supervise_bullet || return
 
-  names_all_three "lists the three model tunables beside the ones it already lists"
+  names_all_four "lists the four model tunables beside the ones it already lists"
 }
 
 probe_claude_md_names_them_and_why() {
   need_claude_md_records || return
 
-  names_all_three "names the three model tunables"
+  names_all_four "names the four model tunables"
 
   says "why the developer's and the verifier's models are separate knobs — the two roles named, that the knobs are not one, and how each one's regression shows up: a changed verdict distribution against more revise cycles" \
     'developer' \
@@ -65,7 +65,7 @@ probe_claude_md_names_them_and_why() {
     'revise'
 }
 
-name="$skill_md's supervise.sh bullet and $claude_md name VERI_MODEL, VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER, and $claude_md says why developer and verifier are separate knobs"
+name="$skill_md's supervise.sh bullet and $claude_md name VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_REVISE and VERI_MODEL_VERIFIER, and $claude_md says why developer and verifier are separate knobs"
 problems=()
 
 probe_skill_bullet_lists_the_tunables
