@@ -261,6 +261,17 @@ def test_main_reads_both_documents_returning_2_on_no_answer_raising_on_a_missing
     assert (code, out) == (0, "5\n5\n6\n")
 
 
+@pytest.mark.parametrize("unreadable", ["issues.json", "prs.json"])
+def test_solvable_returns_2_and_no_numbers_when_the_issue_or_pr_listing_is_not_readable_json(unreadable, tmp_path, monkeypatch, solvable_issues):
+    fake_git_answering_nothing(monkeypatch)
+    monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
+    (tmp_path / "issues.json").write_text(json.dumps([opted_in(5)]))
+    (tmp_path / "prs.json").write_text("[]")
+    (tmp_path / unreadable).write_text("not json")
+
+    assert solvable_issues.solvable("ready-for-agent") == (2, [])
+
+
 def test_main_counts_an_issue_open_by_its_upper_cased_state_and_withholds_one_an_open_pr_closes(tmp_path, monkeypatch, capsys, solvable_issues):
     monkeypatch.setenv("VERI_GH_JSON", str(tmp_path))
     fake_git_answering_nothing(monkeypatch)
