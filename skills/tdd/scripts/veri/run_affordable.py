@@ -1,22 +1,16 @@
 """run-affordable.sh's projection, run in-process."""
 import os
 import re
-import subprocess
 import sys
 
 import step_budget
+import step_cost
 
-SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 USAGE = "usage: run-affordable.sh <steps-remaining> (a whole number)"
 
 
 def _passed(status):
     return status if 0 <= status <= 3 else 2
-
-
-def _sibling(*args):
-    answer = subprocess.run([os.path.join(SCRIPTS, args[0]), *args[1:]], stdout=subprocess.PIPE, text=True)
-    return _passed(answer.returncode), answer.stdout
 
 
 def main(argv):
@@ -29,7 +23,8 @@ def main(argv):
     if status:
         return _passed(status)
     ceiling = float(run_budget)
-    status, steps = _sibling("step-cost.sh", "--steps")
+    status, steps = step_cost.step_costs("--steps", step_cost.logical_cwd())
+    status = _passed(status)
     if status:
         return status if status == 3 else 2
     spent = 0.0
