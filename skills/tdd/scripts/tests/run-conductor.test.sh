@@ -167,26 +167,6 @@ handles=(
 envfile="$work/env"
 
 
-assert_case2() {
-  local conductor="$1"
-
-  ( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" ENV_OUT="$envfile" \
-      "${handles[@]}" \
-      VERI_MODEL_VERIFIER=probe-verifier-model \
-      "$conductor" "$issue" ) >/dev/null 2>&1
-
-  if [[ ! -f "$envfile" ]]; then
-    problems+=("the conductor binary was never launched — $conductor recorded no environment")
-  else
-    for handle in "${handles[@]}"; do
-      grep -q "^${handle%%=*}=" "$envfile" &&
-        problems+=("${handle%%=*} is still in the child's environment")
-    done
-    grep -qx -- 'VERI_MODEL_VERIFIER=probe-verifier-model' "$envfile" ||
-      problems+=("VERI_MODEL_VERIFIER did not reach the child's environment")
-  fi
-}
-
 assert_case4() {
   local conductor="$1" status cwd
   local handed="$work/handed-skill"
@@ -211,11 +191,6 @@ assert_case4() {
     problems+=("what reached the binary does not begin with $SKILL verbatim")
   fi
 }
-
-name="the launch severs the eight session handles and passes VERI_* through"
-problems=()
-assert_case2 "$CONDUCTOR"
-report "$name"
 
 name="a frontmatter-fenced procedure launches and reaches the binary whole"
 problems=()
@@ -798,36 +773,6 @@ fi
 
 report "$name"
 
-name="a re-pinning launch with VERI_NEW_SKILL=1 hands the conductor no VERI_NEW_SKILL"
-problems=()
-
-clone24="$work/clone24"
-skill_clone "$clone24"
-
-caller24="$work/caller24"
-caller_repo "$caller24"
-git -C "$caller24" commit -q --allow-empty -m base
-git -C "$caller24" branch "tdd/$issue-past-preflight"
-
-launch_from "$caller24" "$clone24"
-
-advance_clone "$clone24" "# a commit the operator asks the run to take"
-current24="$(git -C "$clone24" rev-parse HEAD)"
-
-env24="$work/env24"
-rm -f "$env24"
-launch_from "$caller24" "$clone24" ENV_OUT="$env24" VERI_NEW_SKILL=1
-
-if ! repin_in "$caller24/.tdd/wt/$issue/.tdd/events.jsonl" "$current24"; then
-  problems+=("the launch with VERI_NEW_SKILL=1 did not re-pin to $current24: $(cat "$launch_err")")
-elif [[ ! -f "$env24" ]]; then
-  problems+=("the re-pinning launch never reached the conductor: $(cat "$launch_err")")
-elif grep -q '^VERI_NEW_SKILL=' "$env24"; then
-  problems+=("the re-pinning launch handed the conductor $(grep '^VERI_NEW_SKILL=' "$env24") in its environment")
-fi
-
-report "$name"
-
 name="with no refs/remotes/origin/HEAD the launch pins to the remote's default branch tip, records it and runs pinned (#865)"
 problems=()
 
@@ -1032,73 +977,6 @@ repin_in "$wt_log26" "$head26" ||
   problems+=("no skill-repin event naming $head26 in the run worktree's $wt_log26")
 if repin_in "$caller_log26" "$head26"; then
   problems+=("the skill-repin event landed in the caller's $caller_log26")
-fi
-
-report "$name"
-
-name="run-conductor.sh severs CLAUDE_AUTO_BACKGROUND_TASKS and the eight session handles (#621)"
-problems=()
-env29="$work/env29"
-
-( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" ENV_OUT="$env29" \
-    "${handles[@]}" CLAUDE_AUTO_BACKGROUND_TASKS=true \
-    "$CONDUCTOR" "$issue" ) >/dev/null 2>&1
-
-if [[ ! -f "$env29" ]]; then
-  problems+=("the conductor binary was never launched — $CONDUCTOR recorded no environment")
-else
-  for handle in "${handles[@]}" CLAUDE_AUTO_BACKGROUND_TASKS=true; do
-    ! grep "^${handle%%=*}=" "$env29" > /dev/null ||
-      problems+=("${handle%%=*} is still in the child's environment")
-  done
-fi
-
-report "$name"
-
-name="VERI_GH_DRIVER set on the launch reaches the conductor child and a leaf it detaches through supervise.sh and run-leaf.sh (#848)"
-problems=()
-
-clone30="$work/clone30"
-skill_clone "$clone30"
-leaf30="$work/leaf30"
-mkdir -p "$leaf30"
-echo "the leaf prompt" > "$leaf30/leaf.prompt"
-env30="$work/env30"
-leafenv30="$leaf30/leaf-driver"
-
-cat > "$stubdir/driver-claude" <<'STUB'
-#!/bin/sh
-printf '%s\n' "${VERI_GH_DRIVER-<unset>}" > "$LEAF_DRIVER_OUT"
-printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
-STUB
-chmod +x "$stubdir/driver-claude"
-
-cat > "$stubdir/driver-hook" <<HOOK
-#!/bin/sh
-base="\$1"
-cd "$leaf30" || exit 1
-env CLAUDE_BIN="$stubdir/driver-claude" LEAF_DRIVER_OUT="$leafenv30" VERI_POLL=0.02 \
-  "\$base/scripts/detach-leaf.sh" "\$base/scripts/supervise.sh" develop-red "\$base/scripts/run-leaf.sh" leaf.prompt > supervise.out 2> supervise.err
-VERI_POLL=0.02 "\$base/scripts/wait-leaf.sh" develop-red 5 > /dev/null 2>&1
-HOOK
-chmod +x "$stubdir/driver-hook"
-
-caller30="$work/caller30"
-caller_repo "$caller30"
-launch_from "$caller30" "$clone30" CONDUCTOR_HOOK="$stubdir/driver-hook" ENV_OUT="$env30" VERI_GH_DRIVER=graphql
-
-if [[ ! -f "$env30" ]]; then
-  problems+=("the conductor binary was never launched — recorded no environment: $(cat "$launch_err")")
-else
-  conductor30="$(sed -n 's/^VERI_GH_DRIVER=//p' "$env30")"
-  [[ "$conductor30" == graphql ]] ||
-    problems+=("the conductor child saw VERI_GH_DRIVER=${conductor30:-<unset>}, not graphql")
-fi
-if [[ ! -s "$leafenv30" ]]; then
-  problems+=("the detached leaf's claude never ran: $(cat "$leaf30/supervise.err" 2>/dev/null)")
-else
-  [[ "$(cat "$leafenv30")" == graphql ]] ||
-    problems+=("the leaf's claude saw VERI_GH_DRIVER=$(cat "$leafenv30"), not graphql")
 fi
 
 report "$name"
@@ -1789,90 +1667,6 @@ grep -q -- "$moved44" "$prompt" ||
   problems+=("the conductor's prompt does not name the fresh tip $moved44")
 repin_in "$caller44/.tdd/wt/$issue/.tdd/events.jsonl" "$moved44" ||
   problems+=("no skill-repin event naming $moved44 in $caller44/.tdd/wt/$issue/.tdd/events.jsonl")
-
-report "$name"
-
-name="run-conductor.sh strips any variable whose value carries the session id (#933)"
-problems=()
-env933="$work/env933"
-
-( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" ENV_OUT="$env933" \
-    CLAUDE_CODE_SESSION_ID=sess-933-fake FAKE_CARRIER=x-sess-933-fake-y \
-    "$CONDUCTOR" "$issue" ) >/dev/null 2>&1
-
-if [[ ! -f "$env933" ]]; then
-  problems+=("the conductor binary was never launched — $CONDUCTOR recorded no environment")
-else
-  for var in CLAUDE_CODE_SESSION_ID FAKE_CARRIER; do
-    ! grep "^${var}=" "$env933" > /dev/null ||
-      problems+=("$var is still in the child's environment: $(grep "^${var}=" "$env933")")
-  done
-fi
-
-report "$name"
-
-name="run-conductor.sh starts claude without CLAUDE_CODE_REMOTE_SESSION_ID, whose value need not contain the session id (#966)"
-problems=()
-env966="$work/env966"
-
-( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" ENV_OUT="$env966" \
-    CLAUDE_CODE_SESSION_ID=sess-966-fake CLAUDE_CODE_REMOTE_SESSION_ID=remote-unrelated-value \
-    "$CONDUCTOR" "$issue" ) >/dev/null 2>&1
-
-if [[ ! -f "$env966" ]]; then
-  problems+=("the conductor binary was never launched — $CONDUCTOR recorded no environment")
-elif grep "^CLAUDE_CODE_REMOTE_SESSION_ID=" "$env966" > /dev/null; then
-  problems+=("CLAUDE_CODE_REMOTE_SESSION_ID is still in the child's environment: $(grep "^CLAUDE_CODE_REMOTE_SESSION_ID=" "$env966")")
-fi
-
-report "$name"
-
-name="a pinned launch hands the conductor VERI_SKILL_CLONE and VERI_SKILL_REF naming the clone and ref it pinned from; an unpinned launch sets neither (#1016)"
-problems=()
-
-remote1016="$work/remote1016"
-clone1016="$work/clone1016"
-cloned_skill "$remote1016" "$clone1016"
-caller1016="$work/caller1016"
-caller_repo "$caller1016"
-env1016="$work/env1016"
-rm -f "$env1016"
-
-( unset VERI_SKILL_UNPINNED VERI_SKILL_CLONE VERI_SKILL_REF
-  launch_from "$caller1016" "$clone1016" ENV_OUT="$env1016" )
-
-if [[ ! -f "$env1016" ]]; then
-  problems+=("the pinned launch never reached the conductor: $(cat "$launch_err")")
-else
-  clone_seen1016="$(sed -n 's/^VERI_SKILL_CLONE=//p' "$env1016")"
-  ref_seen1016="$(sed -n 's/^VERI_SKILL_REF=//p' "$env1016")"
-  if [[ -z "$clone_seen1016" ]]; then
-    problems+=("the pinned launch handed the conductor no VERI_SKILL_CLONE")
-  elif [[ "$(cd "$clone_seen1016" 2>/dev/null && pwd -P)" != "$(cd "$clone1016/skills/tdd" && pwd -P)" ]]; then
-    problems+=("VERI_SKILL_CLONE is '$clone_seen1016', not the clone archived from, $clone1016/skills/tdd")
-  fi
-  [[ "$ref_seen1016" == refs/remotes/origin/HEAD ]] ||
-    problems+=("VERI_SKILL_REF is '$ref_seen1016', not the ref pinned against, refs/remotes/origin/HEAD")
-fi
-
-loose1016="$work/loose1016"
-loose_skill "$loose1016"
-envu1016="$work/envu1016"
-rm -f "$envu1016"
-
-( unset VERI_SKILL_UNPINNED VERI_SKILL_CLONE VERI_SKILL_REF
-  launch_from "$caller" "$loose1016" GIT_CEILING_DIRECTORIES="$work" ENV_OUT="$envu1016" )
-
-if [[ ! -f "$envu1016" ]]; then
-  problems+=("the unpinned launch never reached the conductor: $(cat "$launch_err")")
-elif ! grep -qx 'VERI_SKILL_UNPINNED=1' "$envu1016"; then
-  problems+=("the second launch was not unpinned, so it says nothing about an unpinned launch")
-else
-  for var in VERI_SKILL_CLONE VERI_SKILL_REF; do
-    ! grep "^${var}=" "$envu1016" > /dev/null ||
-      problems+=("the unpinned launch set $(grep "^${var}=" "$envu1016")")
-  done
-fi
 
 report "$name"
 

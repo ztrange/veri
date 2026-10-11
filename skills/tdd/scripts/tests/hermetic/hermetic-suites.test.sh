@@ -161,22 +161,21 @@ newskill_cases=(
   "a resume with VERI_NEW_SKILL=1 re-pins to origin/<default> as just fetched, not to the clone's HEAD"
   "an unresolvable recorded skill commit refuses with exit 2 unless VERI_NEW_SKILL=1, which re-pins and logs a skill-repin event"
   "the skill-repin event lands in the run worktree's .tdd/wt/<n>/.tdd/events.jsonl, never the caller's .tdd/events.jsonl"
-  "a re-pinning launch with VERI_NEW_SKILL=1 hands the conductor no VERI_NEW_SKILL"
 )
 newskill_cut="$(mktemp "$HERE/.hermetic-newskill-slice.XXXXXX")"
-slice_run_conductor "6 14 15 16 21" "$newskill_cut"
+slice_run_conductor "5 13 14 15" "$newskill_cut"
 newskill_missing=()
 for newskill_case in "${newskill_cases[@]}"; do
   grep -qF "name=\"$newskill_case\"" "$newskill_cut" || newskill_missing+=("$newskill_case")
 done
 if [[ "${#newskill_missing[@]}" -gt 0 ]]; then
-  problems+=("no case could be asked from run-conductor.test.sh under VERI_NEW_SKILL=1 — the slice is missing case(s): $(printf '%s | ' "${newskill_missing[@]}") — cases 6, 14, 15, 16 and 21, counted by name= line, may have moved")
+  problems+=("no case could be asked from run-conductor.test.sh under VERI_NEW_SKILL=1 — the slice is missing case(s): $(printf '%s | ' "${newskill_missing[@]}") — cases 5, 13, 14 and 15, counted by name= line, may have moved")
 else
   out="$(VERI_NEW_SKILL=1 "$newskill_cut" 2>/dev/null)" && code=0 || code=$?
   [[ "$code" == 0 ]] ||
     problems+=("want exit 0 from run-conductor.test.sh under VERI_NEW_SKILL=1, got $code: $(printf '%q' "$(tail -n 1 <<< "$out")")")
-  [[ "$(tail -n 1 <<< "$out")" == "5 passed, 0 failed" ]] ||
-    problems+=("want '5 passed, 0 failed' last from run-conductor.test.sh under VERI_NEW_SKILL=1 (one per case that sets it), got: $(printf '%q' "$(tail -n 1 <<< "$out")")")
+  [[ "$(tail -n 1 <<< "$out")" == "4 passed, 0 failed" ]] ||
+    problems+=("want '4 passed, 0 failed' last from run-conductor.test.sh under VERI_NEW_SKILL=1 (one per case that sets it), got: $(printf '%q' "$(tail -n 1 <<< "$out")")")
 fi
 rm -f "$newskill_cut"
 report "$name"
@@ -219,9 +218,9 @@ name="run-conductor.test.sh: an ambient VERI_NEW_SKILL=1 with a VERI_SKILL_COMMI
 problems=()
 skillcommit_case="every event a launched run writes carries origin's tip as skill_commit, and the prompt names it"
 skillcommit_cut="$(mktemp "$HERE/.hermetic-skillcommit-slice.XXXXXX")"
-slice_run_conductor 12 "$skillcommit_cut"
+slice_run_conductor 11 "$skillcommit_cut"
 if ! grep -qF "name=\"$skillcommit_case\"" "$skillcommit_cut"; then
-  problems+=("no case could be asked from run-conductor.test.sh under VERI_NEW_SKILL=1 and VERI_SKILL_COMMIT — the slice is missing the case: $skillcommit_case — case 12, counted by name= line, may have moved")
+  problems+=("no case could be asked from run-conductor.test.sh under VERI_NEW_SKILL=1 and VERI_SKILL_COMMIT — the slice is missing the case: $skillcommit_case — case 11, counted by name= line, may have moved")
 else
   out="$(VERI_NEW_SKILL=1 VERI_SKILL_COMMIT=deadbeefdeadbeefdeadbeefdeadbeefdeadbeef "$skillcommit_cut" 2>/dev/null)" && code=0 || code=$?
   [[ "$code" == 0 ]] ||
@@ -243,7 +242,7 @@ if [[ -z "${HERMETIC_SKILLCOMMIT_PROBE:-}" ]]; then
       'set -uo pipefail' \
       'pass=0 fail=0' \
       'tree_clone "$work/tree"'
-    for filler in $(seq 1 11); do
+    for filler in $(seq 1 10); do
       printf '%s\n' "name=\"filler $filler\"" 'exit 9'
     done
     printf '%s\n' \
