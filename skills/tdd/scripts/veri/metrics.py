@@ -391,7 +391,7 @@ def render(issue, path, ledger):
     print()
     print("The figure comparable across runs is turns, the same measurement on any model; dollars "
           "are not comparable, the same measurement only at the same VERI_MODEL, "
-          "VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER.")
+          "VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE.")
     if passes:
         table_head("#### By refactor pass", "step", ["pass", "refactor", "stopped", "verdict", "revise", WALL, DOLLARS],
                    ["---:", "---:", "---", "---", "---:", "---:", "---:"])
