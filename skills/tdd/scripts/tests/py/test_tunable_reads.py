@@ -35,3 +35,10 @@ def test_leaf_timeout_leaf_model_build_develop_prompt_add_ledger_step_step_budge
     modules = [VERI / ("%s.py" % name) for name in names]
 
     assert [read for path in modules for read in direct_reads(path)] == []
+
+
+def test_parallel_conductors_orchestrate_run_conductor_workqueue_profile_and_status_take_their_veri_values_from_the_one_reader():
+    names = ("parallel_conductors", "orchestrate", "run_conductor", "workqueue", "profile", "status")
+    modules = [VERI / ("%s.py" % name) for name in names]
+
+    assert [read for path in modules for read in direct_reads(path)] == []

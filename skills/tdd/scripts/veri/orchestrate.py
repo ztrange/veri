@@ -5,6 +5,7 @@ import subprocess
 import sys
 
 import entry
+import tunables
 
 try:
     from context_budget import START, watch
@@ -50,7 +51,7 @@ def main(argv):
 
 
 def _tunable(name, default, parse, must_be):
-    raw = os.environ.get(name) or default
+    raw = tunables.read(name) or default
     try:
         return parse(raw)
     except ValueError:
