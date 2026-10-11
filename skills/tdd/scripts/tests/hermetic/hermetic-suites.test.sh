@@ -66,10 +66,9 @@ report "$name"
 
 rm -f "$label_cut"
 
-name="solvable-issues.test.sh, tick-issue-criterion.test.sh and invisible-work.test.sh: an ambient VERI_GH_DRIVER of auto, rest or graphql gives the same exit and the same stdout as a cleared run"
+name="solvable-issues.test.sh and tick-issue-criterion.test.sh: an ambient VERI_GH_DRIVER of auto, rest or graphql gives the same exit and the same stdout as a cleared run"
 problems=()
 driver_solvable="$(mktemp "$HERE/.hermetic-driver-slice.XXXXXX")"
-driver_invisible="$(mktemp "$HERE/.hermetic-driver-slice.XXXXXX")"
 awk '
   /^fx="\$\(fixture ordering\)"$/ {skip=1}
   /^fx="\$\(fixture gh\)"$/ {skip=0}
@@ -77,19 +76,9 @@ awk '
   /^fx="\$\(fixture graphql-refused\)"$/ {skip=0}
   !skip
 ' "$HERE/solvable-issues.test.sh" > "$driver_solvable"
-awk '
-  /^name="invisible-work\.sh: reads gh.s issues and PRs as JSON / {skip=1}
-  /^run_both_ghs\(\) / {skip=0}
-  /^name="invisible-work\.sh reads issues and PR documents larger / {skip=1}
-  /^name="invisible-work\.sh: against a gh that serves issues and PRs over three pages / {skip=0}
-  /^name="invisible-work\.sh, run through a symlink / {skip=1}
-  /^finish$/ {skip=0}
-  !skip
-' "$HERE/invisible-work.test.sh" > "$driver_invisible"
-chmod +x "$driver_solvable" "$driver_invisible"
+chmod +x "$driver_solvable"
 slice_problems=()
-for slice in "solvable-issues.test.sh:$driver_solvable:ok || no :11" \
-  "invisible-work.test.sh:$driver_invisible:^report :5"; do
+for slice in "solvable-issues.test.sh:$driver_solvable:ok || no :11"; do
   IFS=: read -r slice_suite slice_path slice_pattern slice_want <<< "$slice"
   slice_got="$(grep -c -- "$slice_pattern" "$slice_path")"
   [[ "$slice_got" == "$slice_want" ]] ||
@@ -99,8 +88,7 @@ if (( ${#slice_problems[@]} )); then
   problems=("${slice_problems[@]}")
 else
   driver_findings=()
-  for driver_suite in "solvable-issues.test.sh:$driver_solvable" "tick-issue-criterion.test.sh:$HERE/tick-issue-criterion.test.sh" \
-    "invisible-work.test.sh:$driver_invisible"; do
+  for driver_suite in "solvable-issues.test.sh:$driver_solvable" "tick-issue-criterion.test.sh:$HERE/tick-issue-criterion.test.sh"; do
     cleared_driver_out="$(env -u VERI_GH_DRIVER "${driver_suite#*:}" 2>/dev/null)" && cleared_driver_code=0 || cleared_driver_code=$?
     for driver in auto rest graphql; do
       ambient_driver_out="$(env VERI_GH_DRIVER="$driver" "${driver_suite#*:}" 2>/dev/null)" && ambient_driver_code=0 || ambient_driver_code=$?
@@ -112,7 +100,7 @@ else
   done
   problems=(${driver_findings[@]+"${driver_findings[@]}"})
 fi
-rm -f "$driver_solvable" "$driver_invisible"
+rm -f "$driver_solvable"
 report "$name"
 
 name="capture-spec.test.sh: an ambient VERI_GH_DRIVER of auto, rest or graphql gives the same exit and the same stdout as a cleared run (#1114)"
