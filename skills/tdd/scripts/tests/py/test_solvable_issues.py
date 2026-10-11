@@ -460,6 +460,99 @@ def test_cli_under_repo_never_reads_a_url_naming_another_repositorys_issue_as_a_
     assert answer == (0, "120\n131\n", "")
 
 
+def test_cli_prints_a_bug_labelled_issue_ahead_of_a_lower_numbered_plain_one_each_band_ascending(tmp_path, monkeypatch, run_cli, solvable_issues):
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [
+        opted_in(201), labelled(205, "ready-for-agent", "bug"), opted_in(202), labelled(203, "ready-for-agent", "bug")])
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (0, "203\n205\n201\n202\n", "")
+
+
+def test_cli_prints_a_priority_labelled_issue_ahead_of_a_lower_numbered_bug_and_one_carrying_both_in_the_priority_band(tmp_path, monkeypatch, run_cli, solvable_issues):
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [
+        labelled(120, "ready-for-agent", "bug"), labelled(160, "bug", "ready-for-agent", "priority"),
+        labelled(150, "priority", "ready-for-agent")])
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (0, "150\n160\n120\n", "")
+
+
+def test_cli_never_opts_in_an_issue_by_the_priority_label_alone(tmp_path, monkeypatch, run_cli, solvable_issues):
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [labelled(170, "priority"), opted_in(180)])
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (0, "180\n", "")
+
+
+def test_cli_still_withholds_a_priority_or_bug_issue_that_is_blocked_claimed_or_closed(tmp_path, monkeypatch, run_cli, solvable_issues):
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [
+        labelled(189), dict(blocked_by(190, "#189"), labels=[{"name": "ready-for-agent"}, {"name": "priority"}]),
+        labelled(191, "ready-for-agent", "bug"), dict(labelled(192, "ready-for-agent", "priority"), state="CLOSED"),
+        opted_in(195)])
+    (fixtures / "prs.json").write_text(json.dumps([{"state": "OPEN", "body": "Closes #191\n"}]))
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (0, "195\n", "")
+
+
+def test_cli_refuses_an_empty_priority_label_tunable_with_2_and_a_diagnostic_and_unset_defaults_to_priority(tmp_path, monkeypatch, run_cli, solvable_issues):
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [opted_in(100), labelled(200, "ready-for-agent", "priority")])
+
+    unset = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+    refused = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures), "VERI_PRIORITY_LABEL": ""}, cwd=cwd)
+
+    assert (refused, unset) == (
+        (2, "", "solvable-issues: VERI_PRIORITY_LABEL is set but empty: name a label or leave it unset\n"),
+        (0, "200\n100\n", ""))
+
+
+def test_cli_with_no_issue_carrying_a_band_label_prints_the_solvable_issues_ascending(tmp_path, monkeypatch, run_cli, solvable_issues):
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [
+        opted_in(210), opted_in(208), opted_in(207), blocked_by(209, "#212"), labelled(211), labelled(212),
+        dict(opted_in(213), state="CLOSED")])
+    (fixtures / "prs.json").write_text(json.dumps([{"state": "OPEN", "body": "Closes #207\n"}]))
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (0, "208\n210\n", "")
+
+
+def fake_gh_paging(monkeypatch, issues, prs):
+    """subprocess.run answering `gh issue list`/`gh pr list` with the first --limit items, 30 when none is given, and git with nothing."""
+    def fake_run(args, *rest, **kwargs):
+        args = list(args)
+        if args[:4] == ["git", "worktree", "list", "--porcelain"]:
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[:1] != ["gh"] or args[2:3] != ["list"] or args[1] not in ("issue", "pr"):
+            raise AssertionError("unexpected command: %r" % (args,))
+        limit = int(args[args.index("--limit") + 1]) if "--limit" in args else 30
+        listing = issues if args[1] == "issue" else prs
+        return subprocess.CompletedProcess(args, 0, json.dumps(listing[:limit]) + "\n", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", fake_run)
+
+
+def newest_first(numbers, overrides):
+    return [overrides.get(n, labelled(n)) for n in numbers]
+
+
+@pytest.mark.parametrize("issues, prs, answer", [
+    (newest_first(range(140, 100, -1), {101: opted_in(101)}), [], (0, "101\n", "")),
+    (newest_first(range(140, 100, -1), {140: blocked_by(140, "#101")}), [], (3, "", "")),
+    ([opted_in(7)], [{"state": "OPEN", "body": "Closes #7" if i == 39 else "Closes #%d" % (1000 + i)} for i in range(40)],
+     (3, "", "")),
+], ids=["opted-in-issue", "open-blocker", "closes-pr"])
+def test_cli_honours_an_item_older_than_ghs_default_page_of_30(issues, prs, answer, tmp_path, monkeypatch, run_cli, solvable_issues):
+    fake_gh_paging(monkeypatch, issues, prs)
+
+    assert run_cli(solvable_issues, [], env={"VERI_GH_DRIVER": "auto"}, cwd=tmp_path) == answer
+
+
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[5]
 SCOPE_LOOP = REPO_ROOT / "skills" / "tdd" / "SCOPE-LOOP.md"
 
@@ -477,6 +570,15 @@ def test_scope_loop_exit_3_bullet_names_the_label_it_drained():
     end = next(i for i, line in enumerate(lines) if i > start and re.match(r"- \*\*Exit 0:", line))
 
     assert "VERI_LABEL" in "\n".join(lines[start:end])
+
+
+def test_scope_loop_exit_0_bullet_names_a_lower_numbered_issue_and_both_bands():
+    lines = SCOPE_LOOP.read_text().splitlines()
+    start = next(i for i, line in enumerate(lines) if re.match(r"- \*\*Exit 0:", line))
+    end = next((i for i, line in enumerate(lines) if i > start and line.startswith("### ")), len(lines))
+    bullet = "\n".join(lines[start:end])
+
+    assert (bool(re.search(r"lower[ -]numbered", bullet, re.IGNORECASE)), "priority" in bullet, "bug" in bullet) == (True, True, True)
 
 
 def test_shim_header_comment_names_both_blocker_spellings():

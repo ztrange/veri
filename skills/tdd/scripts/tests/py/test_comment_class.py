@@ -255,7 +255,6 @@ no-awk-v-patterns:# an unrelated line inserted above the exempt site
 no-awk-v-patterns:# and another
 skill-refactor-pending:## The scripts (this skill's `scripts/` directory)
 skill-refactor-pending:## The scripts (this skill's `scripts/` directory)
-solvable-issues:#!/bin/sh
 status:# Plan for #7 — widgets spin when clicked
 unit/emitted-text:## What to build
 unit/emitted-text:## Acceptance criteria
