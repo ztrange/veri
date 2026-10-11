@@ -5,9 +5,8 @@ import pathlib
 VERI = pathlib.Path(__file__).resolve().parents[2] / "veri"
 
 READS_DIRECTLY = frozenset((
-    "add_ledger_step", "build_develop_prompt", "event", "github", "launch_floor", "leaf_model", "leaf_timeout",
-    "parallel_conductors", "profile", "run_conductor", "run_leaf", "run_suite", "run_verdict", "skill_drift",
-    "solvable_issues", "status", "step_budget", "stop_run", "time_budget", "workqueue",
+    "event", "github", "launch_floor", "parallel_conductors", "profile", "run_conductor", "run_leaf", "run_suite",
+    "run_verdict", "skill_drift", "solvable_issues", "status", "stop_run", "workqueue",
 ))
 
 
@@ -27,5 +26,12 @@ def test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the
 
 def test_supervise_verify_wait_leaf_wait_ci_and_detach_command_take_their_veri_values_from_the_one_reader():
     modules = [VERI / ("%s.py" % name) for name in ("supervise", "verify", "wait_leaf", "wait_ci", "detach_command")]
+
+    assert [read for path in modules for read in direct_reads(path)] == []
+
+
+def test_leaf_timeout_leaf_model_build_develop_prompt_add_ledger_step_step_budget_and_time_budget_take_their_veri_values_from_the_one_reader():
+    names = ("leaf_timeout", "leaf_model", "build_develop_prompt", "add_ledger_step", "step_budget", "time_budget")
+    modules = [VERI / ("%s.py" % name) for name in names]
 
     assert [read for path in modules for read in direct_reads(path)] == []

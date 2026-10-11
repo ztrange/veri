@@ -3,6 +3,7 @@ import os
 import re
 import sys
 
+import tunables
 from build_verify_prompt import INTERFACE_PHASES, _IncludeRefused, _expand, _has_heading, _spec_text, _write
 
 PHASES = ("red", "green", "refactor", "cover", "transform", "diff", "structural", "predicate", "revise",
@@ -105,7 +106,7 @@ def main(argv):
         if name in ARGUMENT_PLACEHOLDERS:
             values[ARGUMENT_PLACEHOLDERS[name]] = os.fsencode(value)
     if phase == "refactor":
-        values["REFACTOR_BUDGET"] = os.fsencode(os.environ.get("VERI_REFACTOR_BUDGET") or "5")
+        values["REFACTOR_BUDGET"] = os.fsencode(tunables.read("VERI_REFACTOR_BUDGET") or "5")
     values["REVISE_PHASE"] = os.fsencode(revised_phase)
     try:
         text = _expand(_read(paths[0]), prompts_b)

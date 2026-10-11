@@ -1,7 +1,8 @@
 """time-budget.sh's two tunables, run in-process."""
-import os
 import re
 import sys
+
+import tunables
 
 NUMBER = re.compile(rb"[0-9]+(\.[0-9]+)?")
 
@@ -12,8 +13,8 @@ def write(stream, data):
 
 
 def limits():
-    budget = os.environb.get(b"VERI_UNIT_BUDGET") or b"10"
-    ratio = os.environb.get(b"VERI_TIME_WARN_RATIO") or b"1.5"
+    budget = tunables.read_bytes("VERI_UNIT_BUDGET") or b"10"
+    ratio = tunables.read_bytes("VERI_TIME_WARN_RATIO") or b"1.5"
     for value, what in (
         (budget, b"VERI_UNIT_BUDGET must be a number of seconds"),
         (ratio, b"VERI_TIME_WARN_RATIO must be a number"),

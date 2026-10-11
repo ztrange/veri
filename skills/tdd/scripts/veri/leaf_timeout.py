@@ -4,6 +4,8 @@ import pathlib
 import re
 import sys
 
+import tunables
+
 USAGE = "usage: leaf-timeout.sh <baseline-seconds> [refactor | --full <full-seconds>]"
 
 
@@ -24,7 +26,7 @@ def require_seconds(name, value):
 
 
 def record(timeout):
-    issue = os.environ.get("VERI_ISSUE", "")
+    issue = tunables.read("VERI_ISSUE")
     if not issue:
         return
     here = pathlib.Path.cwd()
@@ -45,7 +47,7 @@ def inside_own_scripts():
 
 
 def main(argv):
-    override = os.environ.get("VERI_TIMEOUT", "")
+    override = tunables.read("VERI_TIMEOUT")
     if override:
         if not is_whole(override) or int(override) < 1:
             print(f"leaf-timeout: VERI_TIMEOUT must be a whole number >= 1: {override}", file=sys.stderr)
@@ -64,12 +66,12 @@ def main(argv):
         baseline = full
     derived = max(900, int(baseline) * 6)
     if argv[1:2] == ["refactor"]:
-        budget = os.environ.get("VERI_REFACTOR_BUDGET") or "5"
+        budget = tunables.read("VERI_REFACTOR_BUDGET") or "5"
         if not is_whole(budget):
             print(f"leaf-timeout: VERI_REFACTOR_BUDGET must be a whole number >= 0: {budget}", file=sys.stderr)
             return 2
         derived = derived * max(1, int(budget))
-    if os.environ.get("VERI_ISSUE") and inside_own_scripts():
+    if tunables.read("VERI_ISSUE") and inside_own_scripts():
         print("leaf-timeout.sh: type this from the run's worktree,"
               " not from the skill's own scripts directory", file=sys.stderr)
         return 2
