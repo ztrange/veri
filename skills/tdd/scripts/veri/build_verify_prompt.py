@@ -126,7 +126,7 @@ def build(step_arg, fast_cmd, phase, spec_arg, test_path, test_id=""):
             _write(sys.stderr, f"build-verify-prompt: cannot read '{path}'")
             return 2, b""
     prompts_b = os.fsencode(prompts)
-    values = dict.fromkeys(("BUG_REPRODUCTION", "REFACTOR_PLAN", "REPLACES_CASE", "SUITE_REPAIR", "CI_REPAIR", "LEDGER"), b"")
+    values = dict.fromkeys(("BUG_REPRODUCTION", "REFACTOR_PLAN", *GREEN_PARAGRAPHS, "LEDGER"), b"")
     try:
         template = _expand(_read(paths[0]), prompts_b)
         shared = _expand(_read(paths[1]), prompts_b)
