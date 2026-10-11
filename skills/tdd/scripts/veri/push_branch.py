@@ -6,6 +6,8 @@ import shutil
 import subprocess
 import sys
 
+import event
+
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 USAGE = "usage: push-branch.sh [--force-with-lease=<branch>:<sha>]"
 LEASE = re.compile(r"--force-with-lease=[^:]+:[0-9a-f]{7,40}")
@@ -24,7 +26,7 @@ def run(args, **kwargs):
 
 
 def record(*fields):
-    if run([os.path.join(SCRIPTS, "event.sh"), *fields]).returncode != 0:
+    if event.mark("", event.context(os.environ), fields[0], fields[1:]) != 0:
         return 2
     return 0
 
