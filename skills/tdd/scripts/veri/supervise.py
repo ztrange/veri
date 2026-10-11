@@ -9,6 +9,7 @@ import time
 from typing import NamedTuple
 
 import entry
+import event
 from extract_result import extract
 from leaf_log import result_records
 from leaf_model import leaf_model
@@ -185,7 +186,7 @@ def recover_finished_leaf(name, log, reason):
 def mark(role, env, *fields):
     if not role:
         return
-    subprocess.run(["env", *role.split(), os.path.join(HERE, "event.sh"), *fields], env=env)
+    event.mark("", event.context(dict(env, **dict(pair.split("=", 1) for pair in role.split()))), fields[0], fields[1:])
 
 
 def preserve_killed_attempt(name, attempt, env):
