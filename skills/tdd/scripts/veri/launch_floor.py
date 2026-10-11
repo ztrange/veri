@@ -40,16 +40,11 @@ def python_refusal(prefix):
     if None not in numbers and numbers < [int(part) for part in floor.split(".")[:2]]:
         sys.stderr.write("%s: veri needs Python %s or newer; the python3 on PATH is version %s.\n"
                          % (prefix, floor, version))
-        venv = venv_dir()
+        venv = tunables.venv_dir()
         if _meets_floor(os.path.join(venv, "bin", "python3"), floor):
             sys.stderr.write("%s: the environment at %s meets it; put %s/bin first on PATH.\n" % (prefix, venv, venv))
         return 2
     return 0
-
-
-def venv_dir():
-    home = os.environ.get("HOME", "")
-    return tunables.read("VERI_VENV") or os.path.join(home, ".veri-tools", "venv")
 
 
 def _meets_floor(python, floor):

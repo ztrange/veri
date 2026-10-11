@@ -65,9 +65,7 @@ def report_countless(stream, fmt, name, text, last_line):
 
 
 def venv_python():
-    home = os.environ.get("HOME", "")
-    venv = tunables.read("VERI_VENV") or os.path.join(home, ".veri-tools", "venv")
-    py = os.path.join(venv, "bin", "python3")
+    py = os.path.join(tunables.venv_dir(), "bin", "python3")
     if os.access(py, os.X_OK):
         return py
     return shutil.which("python3") or ""
