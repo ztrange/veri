@@ -14,3 +14,5 @@
 - The `tunables.read(NAME) or "<default>"` idiom repeats across `parallel_conductors`, `profile`, `run_conductor`, `status` and `workqueue`. The idiom predates this cycle and folding it into the reader would add an option no test demands, so I left it.
 ### The guard's exemption list no longer names github.py, solvable_issues.py, skill_drift.py, launch_floor.py, run_suite.py or event.py: each takes its VERI_* values from the one reader, with its defaults and its refusals unchanged ⟦criterion 1⟧
 - out-of-scope | `solvable_issues.py:45` reads `os.environ.get(name)` for the set-but-empty check; it belongs in `tunables`, but the guard may not flag it because `name` is a variable
+### An autouse fixture in `tests/py/conftest.py` starts every pytest case with no VERI_* variable but VERI_VENV, and no CLAUDE_*, GH_* or GIT_* variable, set — whatever the shell that ran pytest had set; a case that wants one sets it with `monkeypatch` ⟦criterion 3⟧
+- test-only | `test_conftest.py:97` and `:99` repeat the four-prefix list and the ambient variable names that `conftest.py:63` also spells; a shared constant would remove that
