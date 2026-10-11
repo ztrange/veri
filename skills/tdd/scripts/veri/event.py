@@ -6,6 +6,8 @@ import subprocess
 import sys
 import time
 
+import entry
+
 USAGE = "usage: event.sh <event> [key=value …]\n".encode()
 CONTEXT = ((b"issue", b"VERI_ISSUE"), (b"actor", b"VERI_ACTOR"), (b"phase", b"VERI_PHASE"),
            (b"step", b"VERI_STEP"), (b"event", None), (b"attempt", b"VERI_ATTEMPT"),
@@ -88,7 +90,7 @@ def line(args, context, ts, awake):
     return text + b"}\n"
 
 
-def append(directory, context, event, fields=()):
+def append(directory, context, event, fields=(), ts=None):
     args = [os.fsencode(event)] + [os.fsencode(field) for field in fields]
     context = {os.fsencode(key): os.fsencode(value) for key, value in context.items()}
     if not args[0]:
@@ -101,7 +103,7 @@ def append(directory, context, event, fields=()):
             return 2
     tdd = os.path.join(os.fspath(directory), ".tdd")
     os.makedirs(tdd, exist_ok=True)
-    ts = int(time.time())
+    ts = int(time.time()) if ts is None else ts
     clock = os.environb.get(b"VERI_AWAKE_CLOCK", b"")
     if clock:
         result = run_clock(os.fsdecode(clock))
@@ -120,6 +122,21 @@ def append(directory, context, event, fields=()):
     return 0
 
 
+def context(environ):
+    return {os.fsdecode(key): environ.get(os.fsdecode(name), "") for key, name in CONTEXT if name}
+
+
+def mark(directory, context, event, fields=(), ts=None):
+    try:
+        return append(directory, context, event, fields, ts)
+    except Exception as exc:
+        sys.stderr.flush()
+        os.write(2, entry.refusal(main, exc).encode())
+        return 2
+    finally:
+        sys.stderr.flush()
+
+
 def main(argv):
     if not argv:
         sys.stderr.buffer.write(USAGE)
@@ -129,5 +146,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    import entry
     entry.run(main, sys.argv[1:])
