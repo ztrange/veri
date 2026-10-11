@@ -477,7 +477,6 @@ def test_main_appends_one_usage_record_for_a_watched_leaf_with_its_role_and_skil
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     monkeypatch.setattr(time, "sleep", lambda *_: None)
     monkeypatch.setattr(time, "clock_gettime", lambda *_: 5000.0)
-    real_popen = subprocess.Popen
     sha = "0123456789abcdef0123456789abcdef01234567"
     closing = json.dumps(
         {"type": "result", "subtype": "success", "is_error": False, "duration_ms": 91234, "duration_api_ms": 40118,
@@ -491,14 +490,6 @@ def test_main_appends_one_usage_record_for_a_watched_leaf_with_its_role_and_skil
         monkeypatch.chdir(work)
         clean_env(monkeypatch, VERI_TIMEOUT="900")
         fake_leaf_launch(monkeypatch)
-        faked_run = subprocess.run
-
-        def run(args, *a, **k):
-            if str(args[0]).endswith("harvest-usage.sh"):
-                return subprocess.CompletedProcess(args, real_popen(args, *a, **k).wait())
-            return faked_run(args, *a, **k)
-
-        monkeypatch.setattr(subprocess, "run", run)
         code = supervise.main([name, "sh", "-c", f"printf '%s\\n' '{leaf_says}'"])
         out, err = capfdbinary.readouterr()
         lines = [line for line in err.splitlines()
@@ -1411,7 +1402,6 @@ def test_main_reports_a_killed_leaf_whose_log_ends_in_a_result_record_with_the_l
     import signal
     import time
     monkeypatch.setattr(signal, "signal", lambda *_: None)
-    real_popen = subprocess.Popen
 
     def killed(label, log_text, **env):
         work = tmp_path / label
@@ -1458,8 +1448,6 @@ def test_main_reports_a_killed_leaf_whose_log_ends_in_a_result_record_with_the_l
             return ""
 
         def run(args, *_, **kwargs):
-            if str(args[0]).endswith("harvest-usage.sh"):
-                return subprocess.CompletedProcess(args, real_popen(args, **kwargs).wait())
             out = as_asked(answer(args), kwargs)
             return subprocess.CompletedProcess(args, 0, out, "" if isinstance(out, str) else b"")
 
@@ -1527,7 +1515,6 @@ def test_main_keeps_a_killed_leaf_whose_log_cannot_be_opened_killed_stuck_writin
     import re
     import signal
     import time
-    real_popen = subprocess.Popen
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     monkeypatch.chdir(tmp_path)
     clean_env(monkeypatch, VERI_TIMEOUT="5000", VERI_STUCK_RETRIES="0", VERI_HEARTBEAT="3",
@@ -1570,8 +1557,6 @@ def test_main_keeps_a_killed_leaf_whose_log_cannot_be_opened_killed_stuck_writin
         return ""
 
     def run(args, *_, **kwargs):
-        if str(args[0]).endswith("harvest-usage.sh"):
-            return subprocess.CompletedProcess(args, real_popen(args, **kwargs).wait())
         out = as_asked(answer(args), kwargs)
         return subprocess.CompletedProcess(args, 0, out, "" if isinstance(out, str) else b"")
 
@@ -3184,7 +3169,7 @@ def test_cli_on_term_int_or_hup_writes_2_exits_2_and_leaves_no_leaf_while_an_ign
     assert answers == [(2, "2\n", False), (2, "2\n", False), (2, "2\n", False), (0, "0\n", True), (3, "")]
 
 
-@pytest.mark.process("supervise.sh run for real through a symlink to the skill directory from another cwd, with real harvest-usage.sh, preserve-attempt.sh and git; every event is appended in-process")
+@pytest.mark.process("supervise.sh run for real through a symlink to the skill directory from another cwd, with real preserve-attempt.sh and git; every event is appended in-process")
 def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_cwd_answers_as_in_place_with_events_usage_and_the_preserved_attempt_in_the_callers_tdd_the_skill_clones_head_and_no_tdd_beside_the_skill(
         monkeypatch, tmp_path):
     import json
