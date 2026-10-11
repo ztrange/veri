@@ -130,6 +130,7 @@ BASH_GUARD := bash_major="$${VERI_BASH_MAJOR:-$$(bash -c 'echo "$${BASH_VERSINFO
 
 MAX_MAKE_DEPTH := 4
 PYCACHE_KEEP_DEFAULT := 8
+PYCACHE_DIRS := find skills/tdd/scripts -type d -name __pycache__ -prune
 
 test unit:
 	@if [ "$(MAKELEVEL)" -gt $(MAX_MAKE_DEPTH) ]; then printf 'make: refusing a make %s nested at depth %s, deeper than %s\n' "$@" "$(MAKELEVEL)" "$(MAX_MAKE_DEPTH)" >&2; exit 2; fi
@@ -155,13 +156,13 @@ test unit:
 	if [ -n "$(PY_TESTS)" ]; then \
 	  printf '== pytest\n'; \
 	  : > "$$reach_log"; suite_guard=; \
-	  find skills/tdd/scripts -type d -name __pycache__ -prune -exec rm -rf {} +; \
+	  $(PYCACHE_DIRS) -exec rm -rf {} +; \
 	  py_sources="$$(find skills/tdd/scripts -type f -name '*.py' | LC_ALL=C sort)"; \
 	  pycache_root="$${VERI_PYCACHE_ROOT:-$$HOME/.veri-tools/pycache}"; \
 	  pycache="$$pycache_root/$$({ printf '%s\n' "$$py_sources"; printf '%s\n' "$$py_sources" | xargs "$$real_git" hash-object; } | "$$real_git" hash-object --stdin)"; \
 	  if [ -d "$$pycache/skills" ]; then cp -R "$$pycache/skills" .; fi; \
 	  UNIT_GUARD_LOG="$$reach_log" COLUMNS=200 $(OFFLINE_ENV) env -u PYTHONDONTWRITEBYTECODE "$$py_bin" -m pytest --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || fail=1; \
-	  find skills/tdd/scripts -type d -name __pycache__ -prune | while IFS= read -r d; do mkdir -p "$$pycache/$$d" && cp -R "$$d/." "$$pycache/$$d/"; done; \
+	  $(PYCACHE_DIRS) | while IFS= read -r d; do mkdir -p "$$pycache/$$d" && cp -R "$$d/." "$$pycache/$$d/"; done; \
 	  if [ -d "$$pycache" ]; then touch "$$pycache"; ls -1t "$$pycache_root" | tail -n +$$(( $${VERI_PYCACHE_KEEP:-$(PYCACHE_KEEP_DEFAULT)} + 1 )) | while IFS= read -r d; do rm -rf "$$pycache_root/$$d"; done; fi; \
 	  $(call NAME_REACHED,pytest: tried to start); \
 	fi; \
