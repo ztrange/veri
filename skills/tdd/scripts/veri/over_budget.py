@@ -1,11 +1,10 @@
 """over-budget.sh's verdict, run in-process."""
 import math
-import os
 import re
-import subprocess
 import sys
 
-SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+import time_budget
+
 USAGE = "usage: over-budget.sh <tier> <seconds> <usual>"
 NUMBER = re.compile(r"[+-]?(?:(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?|0[xX][0-9a-fA-F]+|inf(?:inity)?|nan)", re.IGNORECASE)
 
@@ -40,11 +39,10 @@ def main(argv):
         print(USAGE, file=sys.stderr)
         return 2
     tier, seconds, usual = (_unescape(value) for value in argv[:3])
-    limits = subprocess.run([os.path.join(SCRIPTS, "time-budget.sh")], stdout=subprocess.PIPE, text=True)
-    if limits.returncode != 0:
+    code, budget, ratio = time_budget.limits()
+    if code != 0:
         return 2
-    lines = limits.stdout.splitlines()
-    budget, ratio = lines[0], lines[-1]
+    budget, ratio = budget.decode(), ratio.decode()
     s = _number(seconds)
     product = _number(ratio) * (_number(usual) or 0)
     if s is None:
