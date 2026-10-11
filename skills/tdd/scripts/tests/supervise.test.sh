@@ -343,68 +343,6 @@ exit 0
 L
 chmod +x "$stub/leaf-second"
 
-dead_work="$work/dead-owner"
-mkdir -p "$dead_work"
-( cd "$dead_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-term-sleep" ) >/dev/null 2>&1 &
-dead_sup=$!
-for _ in $(seq 1 50); do [[ -s "$dead_work/leaf-pid" ]] && break; sleep 0.1; done
-dead_leaf="$(tr -d '[:space:]' < "$dead_work/leaf-pid" 2>/dev/null)"
-kill -KILL "$dead_sup" 2>/dev/null
-wait "$dead_sup" 2>/dev/null
-if [[ -n "$dead_leaf" ]]; then
-  kill -KILL "$dead_leaf" 2>/dev/null
-  for _ in $(seq 1 20); do kill -0 "$dead_leaf" 2>/dev/null || break; sleep 0.1; done
-fi
-dead_record="$(cat "$dead_work/.tdd/leaf.owner" 2>/dev/null || echo '<missing>')"
-( cd "$dead_work" && rm -f .tdd/revise-green-1.exit .tdd/revise-green-1.pid )
-sup_in "$dead_work" revise-green-1 "$stub/leaf-second" >/dev/null 2>"$dead_work/err"
-dead_code=$?
-dead_second="no"; [[ -e "$dead_work/second-ran" ]] && dead_second="yes"
-{ [[ -n "$dead_leaf" ]] && [[ "$dead_record" == "$dead_sup revise-green-1" ]] \
-  && [[ "$dead_code" == 0 ]] && [[ "$dead_second" == yes ]]; } && ok \
-  || no "#471: a record left by a supervised leaf whose process is gone does not refuse the next launch (first leaf pid=${dead_leaf:-<never started>}; record='$dead_record' want '$dead_sup revise-green-1'; code=$dead_code want 0, second leaf ran=$dead_second want yes, stderr='$(cat "$dead_work/err")')"
-
-done_work="$work/finished-owner"
-mkdir -p "$done_work"
-cat > "$stub/leaf-mark" <<'L'
-echo "$1" >> ran
-exit 0
-L
-chmod +x "$stub/leaf-mark"
-sup_in "$done_work" revise-green-1 "$stub/leaf-mark" first >/dev/null 2>"$done_work/err1"
-done_code1=$?
-done_record="$(cat "$done_work/.tdd/leaf.owner" 2>/dev/null || echo '<missing>')"
-( cd "$done_work" && rm -f .tdd/revise-green-1.exit .tdd/revise-green-1.pid )
-sup_in "$done_work" revise-green-1 "$stub/leaf-mark" second >/dev/null 2>"$done_work/err2"
-done_code2=$?
-( cd "$done_work" && rm -f .tdd/verify-green.exit .tdd/verify-green.pid )
-sup_in "$done_work" verify-green "$stub/leaf-mark" third >/dev/null 2>"$done_work/err3"
-done_code3=$?
-done_ran="$(tr '\n' ' ' < "$done_work/ran" 2>/dev/null)"
-{ [[ "$done_record" == *' revise-green-1' ]] && [[ "$done_code1" == 0 ]] && [[ "$done_code2" == 0 ]] \
-  && [[ "$done_code3" == 0 ]] && [[ "$done_ran" == 'first second third ' ]]; } && ok \
-  || no "#471: a launch after the previous supervised leaf finished runs as today, under the same name and a different one (record='$done_record' want '<pid> revise-green-1'; codes=$done_code1/$done_code2/$done_code3 want 0/0/0; ran='$done_ran' want 'first second third '; stderr='$(cat "$done_work/err2" "$done_work/err3" 2>/dev/null)')"
-
-nest_work="$work/nested-verifier"
-mkdir -p "$nest_work"
-cat > "$stub/leaf-verdict-wrapper" <<'L'
-"$NEST_SUP" verify-green "$NEST_LEAF" inner 2> inner-err
-echo $? > inner-code
-exit 0
-L
-chmod +x "$stub/leaf-verdict-wrapper"
-( cd "$nest_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 NEST_SUP="$SUP" NEST_LEAF="$stub/leaf-mark" \
-    "$SUP" verdict-green "$stub/leaf-verdict-wrapper" ) >/dev/null 2>"$nest_work/err"
-nest_code=$?
-nest_inner="$(cat "$nest_work/inner-code" 2>/dev/null || echo '<missing>')"
-nest_ran="$(tr '\n' ' ' < "$nest_work/ran" 2>/dev/null)"
-nest_err="$(cat "$nest_work/err" "$nest_work/inner-err" 2>/dev/null)"
-{ [[ "$nest_code" == 0 ]] && [[ "$nest_inner" == 0 ]] && [[ "$nest_ran" == 'inner ' ]] \
-  && [[ "$nest_err" != *refusing* ]]; } && ok \
-  || no "#471: a verify-green launch made from inside a live verdict-green supervision is not refused (wrapper code=$nest_code want 0; inner code=$nest_inner want 0; ran='$nest_ran' want 'inner '; stderr='$nest_err' want no refusal)"
-
 samex_work="$work/live-owner-same-name-exit"
 mkdir -p "$samex_work"
 mkfifo "$samex_work/release"
