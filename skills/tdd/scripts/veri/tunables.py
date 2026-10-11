@@ -3,7 +3,7 @@ import math
 import os
 import re
 
-STOP_TIMEOUT_MAX = 2 ** 31 - 1
+STOP_TIMEOUT_MAX = 100000000
 
 
 def read(name, default="", unless_empty=None):
