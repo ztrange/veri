@@ -1031,6 +1031,36 @@ def test_main_passes_a_replaces_case_green_only_when_every_case_its_step_names_i
             for key, prompt in prompts.items()} == dict.fromkeys(prompts, [])
 
 
+def test_main_renders_a_ci_repair_green_prompt_judged_by_ci_evidence_and_not_by_the_revert_goes_red_check_and_an_unmarked_green_prompt_carries_no_such_paragraph_1473(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+
+    def rendered(step):
+        code = build_verify_prompt.main(["--step", step, "--fast-cmd", "make unit", "green", str(spec),
+                                         "tests/py/test_zorblat.py", "test_zorblat_frobs_a_nitz"])
+        out, _ = capsysbinary.readouterr()
+        assert code == 0
+        return re.sub(rb"\s+", b" ", out)
+
+    marked = rendered("zorblat sorts on CI only ⟦ci-repair⟧ ⟦criterion 1⟧")
+    unmarked = rendered("zorblat sorts ⟦criterion 1⟧")
+
+    rules = {
+        "evidence is the failing CI job's log before the fix": (
+            rb"CI job'?s? log[^.]{0,80}before the fix|before the fix[^.]{0,80}CI job'?s? log"),
+        "and a green CI run on the pushed fix": rb"green CI run[^.]{0,40}(pushed )?fix",
+        "not judged by the local revert-goes-red check": (
+            rb"not judged by[^.]{0,120}(local|revert|goes red|removed)"),
+    }
+
+    def says(prompt, pattern):
+        return re.search(pattern, prompt, re.I) is not None
+
+    assert ([rule for rule, pattern in rules.items() if not says(marked, pattern)],
+            [rule for rule, pattern in rules.items() if says(unmarked, pattern)]) == ([], list(rules)[:0])
+
+
 def test_main_renders_an_expand_and_a_migrate_verify_prompt_stating_what_each_phase_changes_and_that_test_files_stay_frozen(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
