@@ -24,7 +24,9 @@ def main(argv):
     step = argv[0]
     if step.startswith("-") and step not in ("--run", "--steps"):
         return refuse("step-cost.sh: unknown option '%s'" % step)
-    return report(step)
+    code, out = step_costs(step, logical_cwd())
+    sys.stdout.write(out)
+    return code
 
 
 def value(line, key):
@@ -49,30 +51,27 @@ def logical_cwd():
     return os.getcwd()
 
 
-def report(step):
-    if not os.access(LOG, os.R_OK):
-        sys.stderr.write("step-cost.sh: cannot read %s in %s — run from the run's worktree\n"
-                         % (LOG, logical_cwd()))
-        return 2
-    with open(LOG, encoding="utf-8") as log:
+def step_costs(step, cwd):
+    log_path = os.path.join(cwd, LOG)
+    if not os.access(log_path, os.R_OK):
+        sys.stderr.write("step-cost.sh: cannot read %s in %s — run from the run's worktree\n" % (LOG, cwd))
+        return 2, ""
+    with open(log_path, encoding="utf-8") as log:
         lines = [line.rstrip("\n") for line in log]
     usage = [line for line in lines if value(line, "event") == "usage"]
     if step not in ("--run", "--steps"):
         escaped = json.dumps(step)[1:-1]
         usage = [line for line in usage if value(line, "step") == escaped]
     if not usage:
-        return 3
+        return 3, ""
     if step == "--steps":
         dollars, leaves = {}, {}
         for line in usage:
             s = value(line, "step")
             dollars[s] = dollars.get(s, 0.0) + cost(line)
             leaves[s] = leaves.get(s, 0) + 1
-        for s in leaves:
-            sys.stdout.write("%.2f %d\n" % (dollars[s], leaves[s]))
-        return 0
-    sys.stdout.write("%.2f\n" % sum(cost(line) for line in usage))
-    return 0
+        return 0, "".join("%.2f %d\n" % (dollars[s], leaves[s]) for s in leaves)
+    return 0, "%.2f\n" % sum(cost(line) for line in usage)
 
 
 if __name__ == "__main__":
