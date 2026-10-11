@@ -38,7 +38,7 @@ def fake_git(monkeypatch, main_tree, branches=None, solvable=None, linked=None):
     """subprocess.run answering `git worktree list` with <main_tree>, then <linked> when given,
     `symbolic-ref` from <branches>, and starting any other command for real over the open-issue listing
     <solvable> = (exit code, stdout) selects to, its issues carrying the lamps-label label."""
-    listing = serve_listing(main_tree / "solvable-listing")
+    listing = serve_listing(main_tree / "solvable-listing", monkeypatch)
     if solvable is not None:
         listing(listed(*solvable), label="lamps-label")
         monkeypatch.chdir(main_tree)

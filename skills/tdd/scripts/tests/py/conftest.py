@@ -193,30 +193,35 @@ def events(monkeypatch):
     return Events(monkeypatch)
 
 
-def serve_listing(directory):
+def serve_listing(directory, monkeypatch=None, mirror=None):
     """serve(answer): the open-issue and PR listings the real solvable-issues.sh selects from, written to
     <directory>. <answer> is the numbers of the open ready-for-agent issues (a list, each a number or a
     string), [] for no labelled open issue, or None for a listing the selection cannot read; <priority>
-    names those carrying the priority label."""
+    names those carrying the priority label. With <monkeypatch>, VERI_GH_JSON names <directory> in the test
+    process too; <mirror> is a directory that also receives issues.json when it exists."""
     directory.mkdir(exist_ok=True)
 
     def serve(answer, priority=(), label="ready-for-agent"):
+        if monkeypatch is not None:
+            monkeypatch.setenv("VERI_GH_JSON", str(directory))
         (directory / "prs.json").write_text("[]")
         if answer is None:
-            (directory / "issues.json").write_text("not json")
-            return
-        issues = [{"number": n, "title": "an issue", "state": "OPEN", "body": "",
-                   "labels": [{"name": label}] + ([{"name": "priority"}] if n in priority else [])}
-                  for n in answer]
-        (directory / "issues.json").write_text(json.dumps(issues))
+            text = "not json"
+        else:
+            text = json.dumps([{"number": n, "title": "an issue", "state": "OPEN", "body": "",
+                                "labels": [{"name": label}] + ([{"name": "priority"}] if n in priority else [])}
+                               for n in answer])
+        (directory / "issues.json").write_text(text)
+        if mirror is not None and os.path.isdir(mirror):
+            (pathlib.Path(mirror) / "issues.json").write_text(text)
 
     serve.directory = directory
     return serve
 
 
 @pytest.fixture
-def listing(tmp_path):
-    return serve_listing(tmp_path / "solvable-listing")
+def listing(tmp_path, monkeypatch):
+    return serve_listing(tmp_path / "solvable-listing", monkeypatch)
 
 
 def listed(code, stdout):
