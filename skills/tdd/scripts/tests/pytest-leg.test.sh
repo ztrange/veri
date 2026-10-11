@@ -1057,4 +1057,18 @@ current="$(find "$pruned_root" -mindepth 1 -maxdepth 1 -type d ! -name 'exp-earl
   problems+=("want the current run's cache directory kept, got: [$left]")
 report "$name"
 
+name="#1471: a VERI_PYCACHE_KEEP that is not a whole number of at least 1 (0, abc, 2.5) makes make unit and make test exit 2 before any suite runs, stderr naming VERI_PYCACHE_KEEP and the value"
+problems=()
+for keep in 0 abc 2.5; do
+  for target in unit test; do
+    check_refused "$target" VERI_PYTEST_IMPORTABLE=1 VERI_PYTEST_TIMEOUT_IMPORTABLE=1 VERI_VENV="$work/venv" \
+      VERI_PYCACHE_ROOT="$work/keep-cache-root" VERI_PYCACHE_KEEP="$keep"
+    [[ "$err" == *VERI_PYCACHE_KEEP* ]] ||
+      problems+=("make $target, VERI_PYCACHE_KEEP=$keep: want stderr to name VERI_PYCACHE_KEEP, got: $(flat "$err")")
+    [[ "$err" == *"$keep"* ]] ||
+      problems+=("make $target, VERI_PYCACHE_KEEP=$keep: want stderr to name the value $keep, got: $(flat "$err")")
+  done
+done
+report "$name"
+
 finish

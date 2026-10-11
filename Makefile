@@ -133,6 +133,7 @@ MAX_MAKE_DEPTH := 4
 test unit:
 	@if [ "$(MAKELEVEL)" -gt $(MAX_MAKE_DEPTH) ]; then printf 'make: refusing a make %s nested at depth %s, deeper than %s\n' "$@" "$(MAKELEVEL)" "$(MAX_MAKE_DEPTH)" >&2; exit 2; fi
 	@$(BASH_GUARD)
+	@case "$${VERI_PYCACHE_KEEP-8}" in ''|*[!0-9]*|0*) printf 'veri needs VERI_PYCACHE_KEEP to be a whole number of at least 1; got: %s\n' "$$VERI_PYCACHE_KEEP" >&2; exit 2 ;; esac
 	@[ -f "$(COUNT_LINE_GUARD)" ] || { printf 'make: %s is missing, so no suite can be held to its count line\n' "$(COUNT_LINE_GUARD)" >&2; exit 2; }
 	@unset BASH_ENV ENV; fail=0; reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
 	trap 'rm -f "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
