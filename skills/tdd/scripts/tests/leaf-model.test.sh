@@ -56,12 +56,12 @@ model_refuses() {
   rm -f "$out" "$err"
 }
 
-name="VERI_MODEL is printed for a leaf of either role; with no model variable set, nothing is printed and the exit is still 0"
+name="VERI_MODEL is printed for a leaf of either role; with no model variable set, the defaults print and the exit is 0"
 problems=()
 model_probe sonnet unset unset develop-red  sonnet
 model_probe sonnet unset unset verify-green sonnet
-model_probe unset unset unset develop-red  ""
-model_probe unset unset unset verify-green ""
+model_probe unset unset unset develop-red  sonnet
+model_probe unset unset unset verify-green sonnet
 report "$name"
 
 name="a role variable beats VERI_MODEL for that role's leaves only"

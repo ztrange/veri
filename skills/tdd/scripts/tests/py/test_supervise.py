@@ -457,15 +457,15 @@ def test_main_resolves_the_model_in_process_marks_it_on_the_launch_and_hands_the
 
     assert answers == {
         "chosen": (0, launch("opus-x", sha), leaf("opus-x", sha), [[]], 0),
-        "none": (0, launch("", sha), leaf("", sha), [[]], 0),
+        "none": (0, launch("sonnet", sha), leaf("sonnet", sha), [[]], 0),
         "whitespace": (0, launch("", sha), leaf("", sha), [[]], 1),
         "dash-n": (0, launch("", sha), leaf("", sha), [[]], 0),
         "dash-e": (0, launch("", sha), leaf("", sha), [[]], 0),
         "dash-E": (0, launch("", sha), leaf("", sha), [[]], 0),
-        "git-beats-inherited": (0, launch("", sha), leaf("", sha), [[]], 0),
-        "inherited": (0, launch("", "inherited"), leaf("", "inherited"), [[]], 0),
-        "inherited-empty": (0, launch("", "unknown"), leaf("", "unknown"), [[]], 0),
-        "unknown": (0, launch("", "unknown"), leaf("", "unknown"), [[]], 0),
+        "git-beats-inherited": (0, launch("sonnet", sha), leaf("sonnet", sha), [[]], 0),
+        "inherited": (0, launch("sonnet", "inherited"), leaf("sonnet", "inherited"), [[]], 0),
+        "inherited-empty": (0, launch("sonnet", "unknown"), leaf("sonnet", "unknown"), [[]], 0),
+        "unknown": (0, launch("sonnet", "unknown"), leaf("sonnet", "unknown"), [[]], 0),
     }
 
 
@@ -2980,7 +2980,7 @@ def test_cli_launches_a_supervised_run_leaf_with_model_in_claudes_argv_only_when
     today = ["-p", "pin the argv", "--output-format", "stream-json", "--verbose"]
     assert [launched("set", VERI_MODEL="sonnet"), launched("unset")] == [
         (0, today + ["--model", "sonnet"], []),
-        (0, today, []),
+        (0, today + ["--model", "sonnet"], []),
     ]
 
 
