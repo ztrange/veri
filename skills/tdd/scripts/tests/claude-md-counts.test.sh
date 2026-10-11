@@ -218,10 +218,11 @@ unit_count_matches "skills/tdd/scripts/tests/unit/github.test.sh"
 
 report "$name"
 
-name="$claude_md's counts moved with invisible-work.sh and its suite, and its prose names the script the procedure does not call"
+name="$claude_md's prose names invisible-work.sh, the script the procedure does not call"
 problems=()
 
-if moved_with "skills/tdd/scripts/invisible-work.sh" "skills/tdd/scripts/tests/invisible-work.test.sh"; then
+present "skills/tdd/scripts/invisible-work.sh"
+if [[ "${#problems[@]}" -eq 0 ]]; then
   if [[ -n "${intro// /}" && "$intro" != *"invisible-work.sh"* ]]; then
     problems+=("$claude_md's opening paragraph counts '<n> bash scripts it calls' without naming invisible-work.sh, a script the procedure never calls")
   fi
