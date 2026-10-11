@@ -160,7 +160,7 @@ test unit:
 	  pycache_root="$${VERI_PYCACHE_ROOT:-$$HOME/.veri-tools/pycache}"; \
 	  pycache="$$pycache_root/$$({ printf '%s\n' "$$py_sources"; printf '%s\n' "$$py_sources" | xargs "$$real_git" hash-object; } | "$$real_git" hash-object --stdin)"; \
 	  if [ -d "$$pycache/skills" ]; then cp -R "$$pycache/skills" .; fi; \
-	  UNIT_GUARD_LOG="$$reach_log" COLUMNS=200 $(OFFLINE_ENV) "$$py_bin" -m pytest --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || fail=1; \
+	  UNIT_GUARD_LOG="$$reach_log" COLUMNS=200 $(OFFLINE_ENV) env -u PYTHONDONTWRITEBYTECODE "$$py_bin" -m pytest --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || fail=1; \
 	  find skills/tdd/scripts -type d -name __pycache__ -prune | while IFS= read -r d; do mkdir -p "$$pycache/$$d" && cp -R "$$d/." "$$pycache/$$d/"; done; \
 	  if [ -d "$$pycache" ]; then touch "$$pycache"; ls -1t "$$pycache_root" | tail -n +$$(( $${VERI_PYCACHE_KEEP:-$(PYCACHE_KEEP_DEFAULT)} + 1 )) | while IFS= read -r d; do rm -rf "$$pycache_root/$$d"; done; fi; \
 	  $(call NAME_REACHED,pytest: tried to start); \

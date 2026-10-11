@@ -1071,4 +1071,33 @@ for keep in 0 abc 2.5; do
 done
 report "$name"
 
+dontwrite="$work/dontwrite"
+make_tree "$dontwrite"
+cat > "$dontwrite/$PY_DIR/test_leg_probe.py" <<'PY'
+import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
+
+from veri import comment_class
+
+
+def test_veri_probe_dontwrite():
+    assert comment_class is not None
+PY
+dontwrite_root="$work/dontwrite-cache-root"
+
+name="#1471: with PYTHONDONTWRITEBYTECODE set in the caller's environment, a run of the pytest leg still writes its cache directory under VERI_PYCACHE_ROOT, holding veri's bytecode"
+problems=()
+env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE -u PYTHONPYCACHEPREFIX \
+  PYTHONDONTWRITEBYTECODE=1 VERI_PYCACHE_ROOT="$dontwrite_root" \
+  make --no-print-directory -C "$dontwrite" unit > "$work/out" 2> "$work/err" < /dev/null &&
+  code=0 || code=$?
+check_green "make unit"
+written="$(find "$dontwrite_root" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null | tr '\n' ' ')"
+[[ -n "$written" ]] || problems+=("want a cache directory under $dontwrite_root, got none: [$written]")
+[[ -n "$(find "$dontwrite_root" -path '*/skills/tdd/scripts/veri/*comment_class*.pyc' 2> /dev/null)" ]] ||
+  problems+=("want veri's comment_class bytecode under $dontwrite_root, got: [$written]")
+report "$name"
+
 finish
