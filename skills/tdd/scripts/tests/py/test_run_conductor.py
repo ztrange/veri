@@ -461,46 +461,20 @@ def test_main_on_a_pinned_launch_seeds_the_gitignore_only_when_absent_writes_an_
     }
 
 
-def fake_event(monkeypatch, calls, event_code):
-    """event.sh faked as a process exiting as given, recording its argv, directory and VERI_ISSUE."""
-    events = []
-
-    def wrap(started):
-        def start(args, *a, **kwargs):
-            if list(args)[:1] and str(list(args)[0]).endswith("event.sh"):
-                env = kwargs.get("env") if kwargs.get("env") is not None else os.environ
-                events.append((list(args), os.path.realpath(kwargs.get("cwd") or os.getcwd()), env.get("VERI_ISSUE")))
-                done = subprocess.CompletedProcess(list(args), event_code, b"", b"")
-                if started is popen:
-                    process = FakeProcess(list(args))
-                    process.returncode = event_code
-                    process.wait = process.poll = lambda *_, **__: event_code
-                    return process
-                return done.returncode if started in (call, check_call) else done
-            return started(args, *a, **kwargs)
-        return start
-
-    run, call, check_call, popen = subprocess.run, subprocess.call, subprocess.check_call, subprocess.Popen
-    for name, started in (("run", run), ("call", call), ("check_call", check_call), ("Popen", popen)):
-        monkeypatch.setattr(subprocess, name, wrap(started))
-    return events
-
-
 def test_main_with_veri_new_skill_exactly_1_rewrites_a_readable_record_then_runs_the_live_event_sh_in_the_run_worktree_returning_2_on_its_failure_and_logs_nothing_on_a_first_launch_or_any_other_value(
-        tmp_path, monkeypatch, capfdbinary):
+        tmp_path, monkeypatch, capfdbinary, events):
     past_the_guards(monkeypatch)
-    monkeypatch.delenv("VERI_ISSUE", raising=False)
     scratch = scratch_tmpdir(tmp_path, monkeypatch)
     commit = "1111111111111111111111111111111111111111"
     run_conductor = importlib.import_module("veri.run_conductor")
     scenarios = {
-        "re-pin": ("1", "2222222\n", 0),
-        "re-pin-event-fails": ("1", "2222222\n", 1),
-        "first-launch": ("1", None, 0),
-        "other-value": ("true", "2222222\n", 0),
+        "re-pin": ("1", "2222222\n", True),
+        "re-pin-event-fails": ("1", "2222222\n", False),
+        "first-launch": ("1", None, True),
+        "other-value": ("true", "2222222\n", True),
     }
     answers = {}
-    for name, (new_skill, record, event_code) in scenarios.items():
+    for name, (new_skill, record, appendable) in scenarios.items():
         cwd = tmp_path / name
         cwd.mkdir()
         monkeypatch.chdir(cwd)
@@ -509,22 +483,24 @@ def test_main_with_veri_new_skill_exactly_1_rewrites_a_readable_record_then_runs
         if record is not None:
             (cwd / ".tdd").mkdir()
             path.write_text(record)
+        worktree = cwd / ".tdd" / "wt" / "4242"
+        if not appendable:
+            events.unappendable(worktree)
         calls = fake_pin(monkeypatch, commit, set())
-        events = fake_event(monkeypatch, calls, event_code)
+        events.through()
         fake_snapshot(monkeypatch, calls, 0, 0)
         code = run_conductor.main(["4242"])
         capfdbinary.readouterr()
         answers[name] = (path.read_text() if path.is_file() else None,
-                         (cwd / ".tdd" / "wt" / "4242").is_dir(), events,
+                         worktree.is_dir(), events.records(worktree), events.records(cwd),
                          code)
-    event = [str(SCRIPTS / "event.sh"), "skill-repin", "commit=" + commit]
+    repin = {"issue": "4242", "actor": "", "phase": "", "step": "", "event": "skill-repin", "attempt": "",
+             "skill_commit": "", "commit": commit}
     assert answers == {
-        "re-pin": (commit + "\n", True,
-                   [(event, os.path.realpath(tmp_path / "re-pin" / ".tdd" / "wt" / "4242"), "4242")], 0),
-        "re-pin-event-fails": (commit + "\n", True,
-                               [(event, os.path.realpath(tmp_path / "re-pin-event-fails" / ".tdd" / "wt" / "4242"), "4242")], 2),
-        "first-launch": (commit + "\n", False, [], 0),
-        "other-value": ("2222222\n", False, [], 2),
+        "re-pin": (commit + "\n", True, [repin], [], 0),
+        "re-pin-event-fails": (commit + "\n", True, [], [], 2),
+        "first-launch": (commit + "\n", False, [], [], 0),
+        "other-value": ("2222222\n", False, [], [], 2),
     }
 
 
@@ -979,7 +955,7 @@ def test_main_given_a_claude_bin_whose_path_carries_the_session_id_runs_that_bin
 
 
 def test_main_runs_event_sh_before_the_session_strip_then_hands_claude_no_veri_new_skill_every_other_veri_variable_and_an_ambient_veri_skill_commit_unpinned_or_veri_skill_unpinned_pinned(
-        tmp_path, monkeypatch, capfdbinary):
+        tmp_path, monkeypatch, capfdbinary, events):
     past_the_guards(monkeypatch)
     monkeypatch.setenv("VERI_NEW_SKILL", "1")
     monkeypatch.setenv("VERI_KEPT", "kept")
@@ -1006,11 +982,12 @@ def test_main_runs_event_sh_before_the_session_strip_then_hands_claude_no_veri_n
             monkeypatch.setenv("VERI_SKILL_COMMIT", "ambient")
             monkeypatch.delenv("VERI_SKILL_UNPINNED", raising=False)
             fake_claude_launch(monkeypatch)
+        events.through()
         run, started = subprocess.run, []
 
         def records_each_environment(args, *a, **kwargs):
             program = os.path.basename(str(list(args)[0]))
-            if program in ("event.sh", "fake-claude"):
+            if program == "fake-claude":
                 env = kwargs.get("env") if kwargs.get("env") is not None else os.environ
                 started.append((program, {n: env.get(n) for n in names}))
             return run(args, *a, **kwargs)
@@ -1018,15 +995,16 @@ def test_main_runs_event_sh_before_the_session_strip_then_hands_claude_no_veri_n
         monkeypatch.setattr(subprocess, "run", records_each_environment)
         code = run_conductor.main(["4242"])
         capfdbinary.readouterr()
-        answers[name] = (code, started)
+        answers[name] = (code, events.records(cwd / ".tdd" / "wt" / "4242"), started)
     assert answers == {
         "pinned": (0, [
-            ("event.sh", {"VERI_NEW_SKILL": "1", "CLAUDE_CODE_SESSION_ID": "sess-1077", "VERI_KEPT": "kept",
-                          "VERI_SKILL_COMMIT": None, "VERI_SKILL_UNPINNED": "ambient"}),
+            {"issue": "4242", "actor": "", "phase": "", "step": "", "event": "skill-repin", "attempt": "",
+             "skill_commit": "", "commit": commit},
+        ], [
             ("fake-claude", {"VERI_NEW_SKILL": None, "CLAUDE_CODE_SESSION_ID": None, "VERI_KEPT": "kept",
                              "VERI_SKILL_COMMIT": commit, "VERI_SKILL_UNPINNED": "ambient"}),
         ]),
-        "unpinned": (0, [
+        "unpinned": (0, [], [
             ("fake-claude", {"VERI_NEW_SKILL": None, "CLAUDE_CODE_SESSION_ID": None, "VERI_KEPT": "kept",
                              "VERI_SKILL_COMMIT": "ambient", "VERI_SKILL_UNPINNED": "1"}),
         ]),
