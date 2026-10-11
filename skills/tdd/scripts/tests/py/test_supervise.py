@@ -3110,3 +3110,50 @@ def test_cli_refuses_a_launch_under_another_name_or_the_same_name_even_after_the
         sup.wait()
         if leaf and alive(leaf):
             os.kill(leaf, signal.SIGKILL)
+
+
+@pytest.mark.process("a real supervise.sh run under run_cli, and a real leaf that launches a nested supervise.sh from inside its own live supervision")
+def test_cli_launches_when_the_recorded_leaf_is_gone_or_finished_under_the_same_name_or_another_and_a_verify_green_from_inside_a_live_verdict_green_supervision_471(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import shlex
+    import signal
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    clean_env(monkeypatch)
+    window = LIVE_LEAF_WINDOW
+    sup = str(SCRIPTS / "supervise.sh")
+
+    def launch(work, name, *argv):
+        code, _, err = run_cli(supervise, [name, *argv], cwd=work, env=window)
+        return code, [line for line in err.splitlines() if "refusing" in line]
+
+    gone = tmp_path / "gone"
+    (gone / ".tdd").mkdir(parents=True)
+    corpse = subprocess.Popen(["true"])
+    corpse.wait()
+    (gone / ".tdd" / "leaf.owner").write_text(f"{corpse.pid} revise-green-1\n")
+    gone_answer = (launch(gone, "revise-green-1", "sh", "-c", "echo ran > ran"), (gone / "ran").exists(),
+                   (gone / ".tdd" / "leaf.owner").read_text().endswith(" revise-green-1\n"))
+
+    done = tmp_path / "done"
+    done.mkdir()
+    done_answers = []
+    for name, word in (("revise-green-1", "first"), ("revise-green-1", "second"), ("verify-green", "third")):
+        for suffix in ("exit", "pid"):
+            (done / ".tdd" / f"{name}.{suffix}").unlink(missing_ok=True)
+        with monkeypatch.context() as finished:
+            finished.setattr(os, "getpid", lambda: corpse.pid)
+            done_answers.append(launch(done, name, "sh", "-c", f"echo {word} >> ran"))
+
+    nest = tmp_path / "nest"
+    nest.mkdir()
+    inner = f"{shlex.quote(sup)} verify-green sh -c 'echo inner >> ran' 2> inner-err; echo $? > inner-code"
+    nest_answer = (launch(nest, "verdict-green", "sh", "-c", inner),
+                   (nest / "inner-code").read_text().strip(), (nest / "ran").read_text(),
+                   "refusing" in (nest / "inner-err").read_text())
+
+    assert (gone_answer, done_answers, (done / "ran").read_text(), nest_answer) == (
+        ((0, []), True, True),
+        [(0, []), (0, []), (0, [])],
+        "first\nsecond\nthird\n",
+        ((0, []), "0", "inner\n", False),
+    )
