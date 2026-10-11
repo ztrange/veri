@@ -6,8 +6,12 @@ import re
 STOP_TIMEOUT_MAX = 2 ** 31 - 1
 
 
-def read(name):
-    return os.environ.get(name, "")
+def read(name, default=""):
+    return os.environ.get(name, default)
+
+
+def read_bytes(name, default=b""):
+    return os.environb.get(os.fsencode(name), default)
 
 
 def stop_timeout(raw):

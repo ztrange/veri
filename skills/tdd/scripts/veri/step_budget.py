@@ -3,6 +3,8 @@ import os
 import re
 import sys
 
+import tunables
+
 USAGE = "usage: step-budget.sh (takes no arguments)"
 NUMBER = re.compile(rb"[0-9]+(\.[0-9]+)?")
 
@@ -13,8 +15,8 @@ def _write(stream, data):
 
 
 def budgets():
-    step = os.environb.get(b"VERI_STEP_BUDGET", b"12")
-    run = os.environb.get(b"VERI_RUN_BUDGET", b"120")
+    step = tunables.read_bytes("VERI_STEP_BUDGET", b"12")
+    run = tunables.read_bytes("VERI_RUN_BUDGET", b"120")
     for name, value in ((b"VERI_STEP_BUDGET", step), (b"VERI_RUN_BUDGET", run)):
         if not NUMBER.fullmatch(value):
             _write(sys.stderr, b"step-budget: " + name + b" must be a non-negative decimal number: " + value)

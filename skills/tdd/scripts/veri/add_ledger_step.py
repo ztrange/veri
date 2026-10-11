@@ -1,7 +1,8 @@
 """add-ledger-step.sh's computations, run in-process."""
-import os
 import re
 import sys
+
+import tunables
 
 try:
     from .ledger import ADDED_MARK, CRITERION_TAG, ledger_steps, multi_tag_refusal, new_step
@@ -82,7 +83,7 @@ def main(argv):
         return refuse("add-ledger-step.sh: " + refusal)
     if sum(1 for line in lines if is_anchor_step(line, anchor)) != 1:
         return refuse("add-ledger-step.sh: anchor matches no single step: " + anchor)
-    budget = os.environ.get("VERI_STEP_GROWTH", "5")
+    budget = tunables.read("VERI_STEP_GROWTH", "5")
     if not re.fullmatch("[0-9]+", budget):
         return refuse("add-ledger-step.sh: VERI_STEP_GROWTH must be a whole number >= 0: " + budget)
     added = sum(record[4] == "1" for record in records)

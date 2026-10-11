@@ -1,7 +1,7 @@
 """leaf-model.sh's resolution, run in-process."""
-import os
 import sys
 
+import tunables
 from leaf_role import _write, leaf_role
 
 USAGE = "usage: leaf-model.sh <leaf-name>"
@@ -21,7 +21,7 @@ def _echo(value):
 
 
 def _env(key):
-    value = os.environ.get(key, "")
+    value = tunables.read(key, "")
     return "" if not value.strip(WHITESPACE) else value
 
 
