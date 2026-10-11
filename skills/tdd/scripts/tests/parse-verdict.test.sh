@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/parse-verdict.sh — the pure transform that extracts a blind
 # verifier leaf's structured verdict (PASS | REJECT + reason) from its raw output.
-# Zero-dependency plain-shell asserts, same idiom as tick-criterion.test.sh.
+# Zero-dependency plain-shell asserts, same idiom as the other suites here.
 #
 # Contract under test:
 #   stdin  = a verifier leaf's full raw output (free-form reasoning + a verdict block)
