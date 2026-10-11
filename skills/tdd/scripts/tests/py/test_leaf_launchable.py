@@ -213,3 +213,58 @@ def test_main_prints_the_full_failed_probe_diagnostic_naming_the_binary_as_given
         (2, b"", header + b"    [Errno 2] No such file or directory: 'missing/stub claude'\n" + closing),
         (2, b"", header + b"    [Errno 13] Permission denied: 'missing/stub claude'\n" + closing),
     ]
+
+
+def test_run_cli_refusing_a_binary_that_cannot_launch_starts_nothing_but_the_probe_and_leaves_no_file(
+        monkeypatch, tmp_path, run_cli, leaf_launchable):
+    work = tmp_path / "work"
+    work.mkdir()
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+    started = []
+
+    def fake_call(args, **kwargs):
+        started.append(list(args))
+        os.write(kwargs["stderr"].fileno(), b"Error: cannot be launched here.\n")
+        return 1
+
+    def refuse(args, **kwargs):
+        started.append(list(args))
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "call", fake_call)
+    monkeypatch.setattr(subprocess, "run", refuse)
+    monkeypatch.setattr(subprocess, "Popen", refuse)
+    code, out, err = run_cli(leaf_launchable, [], cwd=str(work))
+    assert (code, out, started) == (2, "", [["stub-claude", "--version"]])
+    assert "    Error: cannot be launched here.\n" in err and 'claude -p "/tdd <issue-number>"' in err
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["work"]
+    assert list(work.iterdir()) == []
+
+
+@pytest.mark.process("leaf-launchable.sh run as a real process through a symlink to the skill directory")
+def test_run_through_a_symlink_to_the_skill_directory_from_another_working_directory_answers_as_run_in_place_for_a_launching_and_a_failing_binary(
+        tmp_path):
+    scripts = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    skill = os.path.dirname(scripts)
+    os.symlink(skill, str(tmp_path / "skill"))
+    (tmp_path / "elsewhere").mkdir()
+    stubs = {
+        "launching": "#!/bin/sh\nprintf '%s\\n' '1.2.3 (Claude Code)'\nprintf '%s\\n' 'chatter' >&2\nexit 0\n",
+        "failing": "#!/bin/sh\nprintf '%s\\n' 'Error: cannot be launched here.' >&2\nexit 1\n",
+    }
+    answers = {}
+    for name, body in stubs.items():
+        stub = tmp_path / name
+        stub.write_text(body)
+        stub.chmod(0o755)
+        env = {key: value for key, value in os.environ.items() if key != "CLAUDECODE"}
+        env["CLAUDE_BIN"] = str(stub)
+
+        def run(command, cwd):
+            done = subprocess.run([command], cwd=cwd, env=env, capture_output=True)
+            return done.returncode, done.stdout, done.stderr
+
+        in_place = run(os.path.join(scripts, "leaf-launchable.sh"), scripts)
+        linked = run(str(tmp_path / "skill" / "scripts" / "leaf-launchable.sh"), str(tmp_path / "elsewhere"))
+        answers[name] = (in_place[0], linked == in_place)
+    assert answers == {"launching": (0, True), "failing": (2, True)}
