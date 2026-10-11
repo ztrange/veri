@@ -156,8 +156,9 @@ Two traps, both already cost something once:
   distribution; a cheaper **developer** shows up as more revise cycles and worse code, which
   costs the saving back. One knob over both would make "cheaper developer" and "weaker
   verifier" the same decision, and no run log could tell them apart afterwards. The measured
-  first experiment is `VERI_MODEL_VERIFIER`; all four ship unset, so a default run's
-  `claude` command line carries no `--model` at all.
+  first experiment is `VERI_MODEL_VERIFIER`; with all four unset a first-try developer
+  leaf and every verifier run on sonnet, every redo leaf (`VERI_MODEL_REVISE`'s scope) and the
+  conductor on opus.
 - **Selection is three bands, one sort key.** `solvable-issues.sh` prints its scope as the
   issues labelled `priority` first, then the `bug`s, then the rest, each band ascending by
   number; `VERI_PRIORITY_LABEL` names the first band's label (default `priority`,
