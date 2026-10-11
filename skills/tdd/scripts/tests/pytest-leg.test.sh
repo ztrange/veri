@@ -946,4 +946,52 @@ for target in unit test; do
 done
 report "$name"
 
+kept="$work/kept-bytecode"
+make_tree "$kept"
+cat > "$kept/$PY_DIR/test_leg_probe.py" <<'PY'
+import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
+
+from veri import comment_class
+
+
+def test_veri_probe_kept_bytecode():
+    assert comment_class is not None
+PY
+cache_root="$work/kept-cache-root"
+
+cache_dirs() { find "$cache_root" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null | sort | tr '\n' ' '; }
+
+run_kept() {
+  env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE -u PYTHONPYCACHEPREFIX -u PYTHONDONTWRITEBYTECODE \
+    VERI_PYCACHE_ROOT="$cache_root" \
+    make --no-print-directory -C "$kept" unit > "$work/out" 2> "$work/err" < /dev/null &&
+    code=0 || code=$?
+  check_green "make unit, $1"
+}
+
+name="#1471: two runs of the pytest leg over the same tree leave one cache directory under VERI_PYCACHE_ROOT holding veri's and the test file's bytecode (pytest's assertion rewrite included), the second reusing it; a changed .py under skills/tdd/scripts names a new directory"
+problems=()
+run_kept "first run"
+first="$(cache_dirs)"
+[[ "$first" =~ ^[^\ ]+\ $ ]] || problems+=("first run: want one cache directory under $cache_root, got: [$first]")
+dir="$cache_root/${first% }"
+[[ -n "$(find "$dir" -path '*/skills/tdd/scripts/veri/*comment_class*.pyc' 2> /dev/null)" ]] ||
+  problems+=("first run: want veri's comment_class bytecode under [$first]")
+[[ -n "$(find "$dir" -name 'test_leg_probe*pytest*.pyc' 2> /dev/null)" ]] ||
+  problems+=("first run: want pytest's assertion-rewritten test_leg_probe bytecode under [$first]")
+[[ -d "$dir" ]] && : > "$dir/exp-kept-marker"
+run_kept "second run"
+second="$(cache_dirs)"
+[[ "$second" == "$first" ]] || problems+=("second run: want the one directory [$first] again, got: [$second]")
+[[ -f "$dir/exp-kept-marker" ]] || problems+=("second run: want [$first] reused, its marker survived, but it is gone")
+printf '\n# changed\n' >> "$kept/skills/tdd/scripts/veri/comment_class.py"
+run_kept "after a change"
+third="$(cache_dirs)"
+[[ -n "$third" && "$third" != "$first" ]] ||
+  problems+=("after changing veri/comment_class.py: want a cache directory other than [$first], got: [$third]")
+report "$name"
+
 finish

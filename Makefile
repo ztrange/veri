@@ -154,7 +154,11 @@ test unit:
 	  printf '== pytest\n'; \
 	  : > "$$reach_log"; suite_guard=; \
 	  find skills/tdd/scripts -type d -name __pycache__ -prune -exec rm -rf {} +; \
+	  py_sources="$$(find skills/tdd/scripts -type f -name '*.py' | LC_ALL=C sort)"; \
+	  pycache="$${VERI_PYCACHE_ROOT:-$$HOME/.veri-tools/pycache}/$$({ printf '%s\n' "$$py_sources"; printf '%s\n' "$$py_sources" | xargs "$$real_git" hash-object; } | "$$real_git" hash-object --stdin)"; \
+	  if [ -d "$$pycache/skills" ]; then cp -R "$$pycache/skills" .; fi; \
 	  UNIT_GUARD_LOG="$$reach_log" COLUMNS=200 $(OFFLINE_ENV) "$$py_bin" -m pytest --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || fail=1; \
+	  find skills/tdd/scripts -type d -name __pycache__ -prune | while IFS= read -r d; do mkdir -p "$$pycache/$$d" && cp -R "$$d/." "$$pycache/$$d/"; done; \
 	  $(call NAME_REACHED,pytest: tried to start); \
 	fi; \
 	echo "----"; \
