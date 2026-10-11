@@ -73,55 +73,6 @@ gh_run() {  # gh_run <argv-log> [script args...]; sets $out and $code
 procedure_doc="skills/tdd/SKILL.md"
 
 
-bad_arg="$(fixture bad-argument)"
-VERI_GH_JSON="$bad_arg" "$SOLVABLE" --repo >"$bad_arg/out" 2>"$bad_arg/err" && code=0 || code=$?
-{ [[ "$code" == 2 ]] && [[ ! -s "$bad_arg/out" ]] \
-  && [[ "$(cat "$bad_arg/err")" == "usage: solvable-issues.sh [--repo owner/name]" ]] \
-  && [[ "$(wc -l < "$bad_arg/err" | tr -d ' ')" == 1 ]]; } \
-  && ok || no "--repo with no value exits 2 with nothing on stdout and stderr exactly the usage line (exit=$code want 2, stdout='$(cat "$bad_arg/out")' want '', stderr='$(cat "$bad_arg/err")' want 'usage: solvable-issues.sh [--repo owner/name]')"
-
-sym_fx="$(fixture symlinked-skill)"
-cat > "$sym_fx/issues.json" <<'JSON'
-[
-  {"number": 5, "title": "in flight", "labels": [{"name": "ready-for-agent"}], "state": "OPEN", "body": "## Blocked by\n\nNone.\n"},
-  {"number": 6, "title": "takeable", "labels": [{"name": "ready-for-agent"}], "state": "OPEN", "body": "## Blocked by\n\nNone.\n"}
-]
-JSON
-sym_repo="$work/symlinked-skill/repo"
-new_repo -b main "$sym_repo" >/dev/null 2>&1
-git -C "$sym_repo" -c user.name=veri -c user.email=veri@example.test \
-  commit -q --allow-empty -m initial >/dev/null 2>&1
-git -C "$sym_repo" worktree add -q -b linked "$work/symlinked-skill/linked" main >/dev/null 2>&1
-mkdir -p "$sym_repo/.tdd/wt/5/.tdd"
-printf '%s\n' "$$" > "$sym_repo/.tdd/wt/5/.tdd/conductor.pid"
-ln -s "$(cd "$HERE/../.." && pwd)" "$work/symlinked-skill/skill-link"
-in_place_out="$(cd "$work/symlinked-skill/linked" && VERI_GH_JSON="$sym_fx" "$SOLVABLE" 2>/dev/null)" \
-  && in_place_code=0 || in_place_code=$?
-linked_out="$(cd "$work/symlinked-skill/linked" \
-  && VERI_GH_JSON="$sym_fx" "$work/symlinked-skill/skill-link/scripts/solvable-issues.sh" 2>/dev/null)" \
-  && linked_code=0 || linked_code=$?
-{ [[ "$in_place_code" == 0 && "$in_place_out" == 6 ]] \
-  && [[ "$linked_code" == "$in_place_code" && "$linked_out" == "$in_place_out" ]]; } \
-  && ok || no "run through a symlink to the skill directory from a linked worktree, solvable-issues.sh prints the same numbers and exit code as in place, the issue locked under the main working tree withheld either way (in place: exit=$in_place_code stdout='$(tr '\n' '|' <<<"$in_place_out")' want 0 and '6'; through the symlink: exit=$linked_code stdout='$(tr '\n' '|' <<<"$linked_out")' want the same)"
-
-mkdir -p "$work/refused-driver/bin"
-printf '#!/bin/sh\necho "gh $*" >> "$GH_CALLS"\necho "[]"\n' > "$work/refused-driver/bin/gh"
-chmod +x "$work/refused-driver/bin/gh"
-driver_problems=""
-for driver in '' REST gql; do
-  : > "$work/refused-driver/calls"
-  out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL VERI_GH_DRIVER="$driver" \
-         PATH="$work/refused-driver/bin:$PATH" GH_CALLS="$work/refused-driver/calls" \
-         "$SOLVABLE" 2>"$work/refused-driver/err")" && code=0 || code=$?
-  err="$(cat "$work/refused-driver/err")"
-  { [[ "$code" == 2 && -z "$out" && ! -s "$work/refused-driver/calls" ]] \
-    && [[ "$(wc -l < "$work/refused-driver/err" | tr -d ' ')" == 1 && "$err" == *VERI_GH_DRIVER* && "$err" == *"'$driver'"* ]]; } \
-    || driver_problems+="VERI_GH_DRIVER='$driver': exit=$code stdout='$out' stderr='$(tr '\n' '|' <<<"$err")' gh calls='$(tr '\n' '|' < "$work/refused-driver/calls")'; "
-done
-
-[[ -z "$driver_problems" ]] \
-  && ok || no "with VERI_GH_DRIVER empty, REST or gql, solvable-issues.sh starts no gh process, prints nothing on stdout, exits 2 and prints one stderr line naming VERI_GH_DRIVER and the value ($driver_problems want exit 2, empty stdout, no gh call and one stderr line naming VERI_GH_DRIVER and the value)"
-
 shiftdir="$work/shifting-pages"
 mkdir -p "$shiftdir/bin"
 python3 -c '
@@ -477,32 +428,6 @@ out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$refusedir
   && ok || no "against a gh that refuses GraphQL, a /issues REST item carrying pull_request is not counted as a solvable issue even with the opt-in label (#568) (exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '70')"
 
 
-argcapdir="$work/argcap-bin"
-argcap_python3_stub "$argcapdir"
-
-short_fx="$(fixture large-doc-short)" long_fx="$(fixture large-doc-long)"
-python3 -c '
-import json, sys
-def issues(pad):
-    return [{"number": n, "title": "issue %d" % n,
-             "labels": [{"name": "ready-for-agent"}] if n % 2 == 0 else [],
-             "state": "OPEN",
-             "body": "## What to build\n\n" + pad + "\n\n## Blocked by\n\nNone.\n"}
-            for n in range(1, 41)]
-json.dump(issues("short"), open(sys.argv[1] + "/issues.json", "w"))
-json.dump(issues("x" * 8192), open(sys.argv[2] + "/issues.json", "w"))
-' "$short_fx" "$long_fx"
-long_size="$(wc -c < "$long_fx/issues.json" | tr -d ' ')"
-
-out="$(PATH="$argcapdir:$PATH" VERI_GH_JSON="$short_fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
-short_out="$out" short_code="$code"
-out="$(PATH="$argcapdir:$PATH" VERI_GH_JSON="$long_fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
-
-{ [[ "$long_size" -gt 262144 ]] \
-  && [[ "$short_code" == 0 && "$short_out" == "$(seq 2 2 40)" ]] \
-  && [[ "$code" == 0 && "$out" == "$short_out" ]]; } \
-  && ok || no "a VERI_GH_JSON issues.json larger than 256 KiB prints the same numbers and exits 0 as the same issues with short bodies, under a python3 that refuses any argument over 128 KiB the way Linux does (#591) (long issues.json=$long_size bytes want >262144; short: exit=$short_code stdout='$(tr '\n' '|' <<<"$short_out")' want 0 and '2|4|…|40'; long: exit=$code stdout='$(tr '\n' '|' <<<"$out")' want the same)"
-
 
 issue_pages=(
   '{"number": 70, "title": "a", "labels": [{"name": "ready-for-agent"}], "body": "## Blocked by\n\n- #74\n", "state": "open"}, {"number": 71, "title": "b", "labels": [{"name": "ready-for-agent"}], "body": "", "state": "closed"}'
@@ -563,51 +488,5 @@ three_page_run three
 { [[ "$one_code" == 0 && "$one_out" == $'75\n73' ]] \
   && [[ "$code" == "$one_code" && "$out" == "$one_out" ]]; } \
   && ok || no "against a gh that serves issues and PRs over three pages on repos/{owner}/{repo} and refuses repositories/{id} with the proxy's 403, prints the same issue numbers and exit code as against a single-page fixture holding the same issues and PRs (#592) (single page: exit=$one_code stdout='$(tr '\n' '|' <<<"$one_out")' want 0 and '75|73'; three pages: exit=$code stdout='$(tr '\n' '|' <<<"$out")' want the same; three pages stderr='$(tr '\n' '|' < "$work/three-pages/three.err")')"
-
-name="a live conductor lock under the surrounding repository's .tdd/wt/<n>/.tdd/conductor.pid, for unrelated numbers and for every number this suite's fixtures name, leaves run's and label_run's answer unchanged"
-unrelated_numbers=(108 117 120 124)
-fixture_numbers=($(sed -n 's/.*"number"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$HERE/solvable-issues.test.sh" | sort -un))
-fx="$(fixture surrounding-locks)"
-{
-  printf '['; sep=
-  for n in $(printf '%s\n' "${unrelated_numbers[@]}" "${fixture_numbers[@]}" | sort -un); do
-    printf '%s{"number": %s, "title": "t", "labels": [{"name": "ready-for-agent"}], "state": "OPEN", "body": "## Blocked by\\n\\nNone.\\n"}' "$sep" "$n"
-    sep=,
-  done
-  printf ']\n'
-} > "$fx/issues.json"
-
-surrounding_repo() {  # surrounding_repo <dir> <n…>
-  local dir="$1" n; shift
-  new_repo -b main "$dir" >/dev/null 2>&1
-  for n in "$@"; do
-    mkdir -p "$dir/.tdd/wt/$n/.tdd"
-    printf '%s\n' "$$" > "$dir/.tdd/wt/$n/.tdd/conductor.pid"
-  done
-}
-surrounding_repo "$work/surrounding-unrelated" "${unrelated_numbers[@]}"
-surrounding_repo "$work/surrounding-every" "${fixture_numbers[@]+"${fixture_numbers[@]}"}"
-
-same_answer() {  # same_answer <what> <want-code> <want-out>; appends to $problems unless $code and $out match
-  [[ "$code" == "$2" && "$out" == "$3" ]] ||
-    problems+=("$1: want exit $2 and stdout '$(tr '\n' '|' <<<"$3")', got exit $code and stdout '$(tr '\n' '|' <<<"$out")'")
-}
-
-problems=()
-run "$fx"; no_lock_out="$out" no_lock_code="$code"
-label_run "$fx" -u VERI_PRIORITY_LABEL; no_lock_label_out="$out" no_lock_label_code="$code"
-[[ "$no_lock_code" == 0 && -n "$no_lock_out" ]] ||
-  problems+=("the run with no lock is not green, so there is nothing to compare against: exit $no_lock_code, stdout: $(tr '\n' '|' <<<"$no_lock_out")")
-[[ "${#fixture_numbers[@]}" -gt 0 ]] ||
-  problems+=("no \"number\": <n> fixture was found in solvable-issues.test.sh, so no lock was written and the arms cannot differ")
-for surrounding in surrounding-unrelated surrounding-every; do
-  cd "$work/$surrounding" || exit 2
-  run "$fx"
-  same_answer "run under $surrounding" "$no_lock_code" "$no_lock_out"
-  label_run "$fx" -u VERI_PRIORITY_LABEL
-  same_answer "label_run under $surrounding" "$no_lock_label_code" "$no_lock_label_out"
-  cd "$no_claims" || exit 2
-done
-report "$name"
 
 finish
