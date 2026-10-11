@@ -809,6 +809,54 @@ def test_next_against_a_gh_that_serves_issues_over_three_pages_and_refuses_repos
     assert three == one
 
 
+def test_next_against_a_gh_that_refuses_graphql_with_the_403_and_answers_rest_a_page_at_a_time_prints_the_same_issue_stderr_and_exit_code_as_against_a_working_gh_across_more_than_one_page_of_issues(tmp_path, monkeypatch, run_cli, workqueue):
+    queue = tmp_path / ".tdd" / "workqueue"
+    queue.parent.mkdir()
+    queue.write_bytes(b"alpha\t20\tqueued\t\nalpha\t22\tqueued\t\n")
+    filler = [{"number": 100 + k, "state": "closed", "body": None} for k in range(110)]
+    issues = filler + [
+        {"number": 5, "state": "open", "body": None},
+        {"number": 6, "state": "closed", "body": None},
+        {"number": 20, "state": "open", "body": "Work.\n\n## Blocked by\n\n- #5\n"},
+        {"number": 22, "state": "open", "body": "Work.\n\n## Blocked by\n\n- #6\n"},
+    ]
+    refusal = "HTTP 403: GitHub GraphQL is not available from Claude Code sessions; use the REST API (gh api repos/{owner}/{repo}/...)\n"
+
+    def serve(graphql):
+        def gh_api(args):
+            if args[2] == "graphql":
+                assert graphql == "working"
+                return subprocess.CompletedProcess(args, 0, "{}\n", None)
+            page = int(args[2].rsplit("page=", 1)[1])
+            return subprocess.CompletedProcess(args, 0, json.dumps(issues[(page - 1) * 100:page * 100]) + "\n", None)
+
+        def run(args, **kwargs):
+            if list(args[:2]) in (["gh", "issue"], ["gh", "pr"], ["gh", "repo"]) or list(args[:3]) == ["gh", "api", "graphql"]:
+                if graphql == "refused":
+                    sys.stderr.write(refusal)
+                    return subprocess.CompletedProcess(args, 1, "", None)
+                return subprocess.CompletedProcess(args, 0, "[]\n", None)
+            return gh_api(args) if list(args[:2]) == ["gh", "api"] else real_run(args, **kwargs)
+
+        real_run = subprocess.run
+        fake_git(monkeypatch, tmp_path, origin="https://github.com/ztrange/veri.git", gh_api=gh_api)
+        fake = subprocess.run
+
+        def routed(args, **kwargs):
+            if list(args[:2]) in (["gh", "issue"], ["gh", "pr"], ["gh", "repo"]):
+                return run(args, **kwargs)
+            return fake(args, **kwargs)
+
+        monkeypatch.setattr(subprocess, "run", routed)
+
+    serve("working")
+    working = run_cli(workqueue, ["next", "alpha"])
+    serve("refused")
+    refused = run_cli(workqueue, ["next", "alpha"])
+    assert working == (0, "22\n", "")
+    assert refused == working
+
+
 def test_assign_through_the_cli_takes_an_issue_held_only_as_merged_parked_or_skipped(tmp_path, monkeypatch, run_cli, workqueue):
     fake_git(monkeypatch, tmp_path)
     queue = tmp_path / ".tdd" / "workqueue"
