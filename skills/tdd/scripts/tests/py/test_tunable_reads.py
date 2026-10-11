@@ -13,9 +13,26 @@ READS_DIRECTLY = frozenset((
 def direct_reads(path):
     source = path.read_text()
     lines = source.splitlines()
-    return ["%s:%d" % (path, node.lineno) for node in ast.walk(ast.parse(source))
+    tree = ast.parse(source)
+    parents = {child: node for node in ast.walk(tree) for child in ast.iter_child_nodes(node)}
+
+    def keyed_by_a_variable(node):
+        parent = parents.get(node)
+        if isinstance(parent, ast.Call):
+            return node is parent.func and bool(parent.args) and not isinstance(parent.args[0], ast.Constant)
+        if isinstance(parent, ast.Attribute) and isinstance(parents.get(parent), ast.Call):
+            args = parents[parent].args
+            return parent.attr in ("get", "pop", "setdefault") and bool(args) and not isinstance(args[0], ast.Constant)
+        if isinstance(parent, ast.Subscript):
+            return not isinstance(parent.slice, ast.Constant)
+        if isinstance(parent, ast.Compare):
+            return parent.comparators[0] is node and not isinstance(parent.left, ast.Constant)
+        return False
+
+    return ["%s:%d" % (path, node.lineno) for node in ast.walk(tree)
             if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "os"
-            and node.attr in ("environ", "environb", "getenv") and "VERI_" in lines[node.lineno - 1]]
+            and node.attr in ("environ", "environb", "getenv")
+            and ("VERI_" in lines[node.lineno - 1] or keyed_by_a_variable(node))]
 
 
 def test_no_module_but_the_reader_and_the_exempt_ones_reads_a_veri_name_from_the_environment():
@@ -55,3 +72,10 @@ def test_run_leaf_run_verdict_and_stop_run_take_their_veri_values_from_the_one_r
     modules = sorted(path for path in VERI.glob("*.py") if path.stem != "tunables")
 
     assert [read for path in modules for read in direct_reads(path)] == []
+
+
+def test_the_guard_names_the_line_of_a_planted_read_whose_veri_name_is_held_in_a_variable(tmp_path):
+    planted = tmp_path / "planted.py"
+    planted.write_text('import os\nname = "VERI_X"\nvalue = os.environ.get(name)\n')
+
+    assert direct_reads(planted) == ["%s:3" % planted]

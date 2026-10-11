@@ -7,6 +7,7 @@ import subprocess
 import sys
 
 import event
+import tunables
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 USAGE = "usage: push-branch.sh [--force-with-lease=<branch>:<sha>]"
@@ -41,7 +42,7 @@ def failed(attempts):
 
 
 def tunable(name, default):
-    value = os.environ.get(name) or default
+    value = tunables.read(name) or default
     if not re.fullmatch(r"[0-9]+", value):
         print(f"push-branch.sh: {name} must be a non-negative integer, got '{value}'",
               file=sys.stderr)

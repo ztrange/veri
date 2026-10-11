@@ -1,6 +1,7 @@
 """metrics.sh's report, rendered in-process."""
 import os
 import sys
+import tunables
 
 from event_log import read_events
 from ledger import decode_ledger, ledger_steps
@@ -377,7 +378,7 @@ def render(issue, path, ledger):
              "spending is not in it: this log carries no usage record of the conductor own"))
     if models:
         print("Models requested: %s; models that answered: %s."
-              % (", ".join("%s %s" % (knob, os.environ.get(knob) or "unset")
+              % (", ".join("%s %s" % (knob, tunables.read(knob) or "unset")
                            for knob in ["VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE"]),
                  ", ".join(sorted({m for answered in models.values() for m in answered.split(",") if m}))))
     section("#### By phase", "phase", PHASE_COLUMNS, counts)
