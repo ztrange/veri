@@ -543,3 +543,35 @@ def test_render_prints_the_same_bytes_as_before_1018_for_an_owed_file_with_a_ste
            "- t\n"
            "\n### Out-of-scope\n\n- o\n"
            "\n### Applied\n\n- x — abc1234\n")
+
+
+def test_append_list_and_render_answer_a_structural_and_cosmetic_report_as_before_test_only_existed(
+        monkeypatch, capsys, tmp_path, refactor_owed):
+    owed = tmp_path / "issue-505-refactor-owed.md"
+    for step, report in (
+            ("first step",
+             'RESULT: applied "split the verdict parser out of run-leaf.sh", suite green\n'
+             "FLAGS: none\n"
+             "CANDIDATES: structural | fold verify.sh's two mktemp calls into one helper\n"
+             "CANDIDATES: cosmetic | reflow the header comment to ninety columns\n"
+             "CANDIDATES: structural | hoist the ledger path into one variable\n"),
+            ("second step",
+             'RESULT: applied "name the ledger path once", suite green\n'
+             "FLAGS: none\n"
+             "CANDIDATES: cosmetic | rename $tmp to $prompt_file\n"
+             "CANDIDATES: structural | hoist the ledger path into one variable\n")):
+        monkeypatch.setattr(sys, "stdin", io.StringIO(report))
+        assert refactor_owed.main(["append", str(owed), step]) == 0
+    want_owed = ("### first step\n"
+                 "- fold verify.sh's two mktemp calls into one helper\n"
+                 "- hoist the ledger path into one variable\n"
+                 "### second step\n"
+                 "- hoist the ledger path into one variable\n")
+    assert (capsys.readouterr(), owed.read_text()) == (("", ""), want_owed)
+
+    code = refactor_owed.main(["list", str(owed)])
+    assert (code, *capsys.readouterr()) == (
+        0, "hoist the ledger path into one variable\nfold verify.sh's two mktemp calls into one helper\n", "")
+
+    code = refactor_owed.main(["render", str(owed)])
+    assert (code, *capsys.readouterr()) == (0, "## Refactor owed\n\n" + want_owed, "")
