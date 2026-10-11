@@ -1100,4 +1100,43 @@ written="$(find "$dontwrite_root" -mindepth 1 -maxdepth 1 -type d -exec basename
   problems+=("want veri's comment_class bytecode under $dontwrite_root, got: [$written]")
 report "$name"
 
+fresh="$work/fresh-source"
+make_tree "$fresh"
+printf 'BUDGET = "130000"\n' > "$fresh/skills/tdd/scripts/veri/exp_leg_probe.py"
+cat > "$fresh/$PY_DIR/test_leg_probe.py" <<'PY'
+import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
+
+from veri import exp_leg_probe
+
+
+def test_veri_probe_fresh_source():
+    assert exp_leg_probe.BUDGET
+PY
+fresh_pycs() { (cd "$fresh" && find . -name '*.pyc' | LC_ALL=C sort); }
+
+name="#1471: after make unit runs over a same-size, same-mtime mutation of a veri/ module, the worktree holds no .pyc the run did not find there, and once the module is reverted with that mtime a fresh python3 under PYTHONDONTWRITEBYTECODE=1 runs its reverted source"
+problems=()
+before="$(fresh_pycs)"
+touch -r "$fresh/skills/tdd/scripts/veri/exp_leg_probe.py" "$work/fresh.mtime"
+printf 'BUDGET = "120000"\n' > "$fresh/skills/tdd/scripts/veri/exp_leg_probe.py"
+touch -r "$work/fresh.mtime" "$fresh/skills/tdd/scripts/veri/exp_leg_probe.py"
+env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE -u PYTHONPYCACHEPREFIX -u PYTHONDONTWRITEBYTECODE \
+  VERI_PYCACHE_ROOT="$work/fresh-cache-root" \
+  make --no-print-directory -C "$fresh" unit > "$work/out" 2> "$work/err" < /dev/null &&
+  code=0 || code=$?
+check_green "make unit"
+left="$(comm -13 <(printf '%s\n' "$before") <(fresh_pycs) | sed '/^$/d')"
+[[ -z "$left" ]] || problems+=("want no .pyc the run did not find in the worktree, got: $(flat "$left")")
+printf 'BUDGET = "130000"\n' > "$fresh/skills/tdd/scripts/veri/exp_leg_probe.py"
+touch -r "$work/fresh.mtime" "$fresh/skills/tdd/scripts/veri/exp_leg_probe.py"
+fresh_py="$(bash -c '. "$1" && venv_python' _ "$ROOT/skills/tdd/scripts/lib/venv-python.sh")"
+read_back="$(cd "$fresh/skills/tdd/scripts" && env -u PYTHONPYCACHEPREFIX PYTHONDONTWRITEBYTECODE=1 \
+  "$fresh_py" -c 'from veri import exp_leg_probe; print(exp_leg_probe.BUDGET)' 2>&1)"
+[[ "$read_back" == 130000 ]] ||
+  problems+=("want a fresh python3 to read the reverted BUDGET 130000, got: $read_back")
+report "$name"
+
 finish

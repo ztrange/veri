@@ -163,6 +163,7 @@ test unit:
 	  if [ -d "$$pycache/skills" ]; then cp -R "$$pycache/skills" .; fi; \
 	  UNIT_GUARD_LOG="$$reach_log" COLUMNS=200 $(OFFLINE_ENV) env -u PYTHONDONTWRITEBYTECODE "$$py_bin" -m pytest --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || fail=1; \
 	  $(PYCACHE_DIRS) | while IFS= read -r d; do mkdir -p "$$pycache/$$d" && cp -R "$$d/." "$$pycache/$$d/"; done; \
+	  $(PYCACHE_DIRS) -exec rm -rf {} +; \
 	  if [ -d "$$pycache" ]; then touch "$$pycache"; ls -1t "$$pycache_root" | tail -n +$$(( $${VERI_PYCACHE_KEEP:-$(PYCACHE_KEEP_DEFAULT)} + 1 )) | while IFS= read -r d; do rm -rf "$$pycache_root/$$d"; done; fi; \
 	  $(call NAME_REACHED,pytest: tried to start); \
 	fi; \
