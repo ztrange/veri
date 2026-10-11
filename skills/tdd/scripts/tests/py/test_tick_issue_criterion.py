@@ -6,8 +6,6 @@ import subprocess
 
 import pytest
 
-from conftest import SCRIPTS
-
 
 @pytest.fixture
 def tick_issue_criterion():
@@ -49,7 +47,7 @@ def test_main_returns_3_with_no_patch_and_names_the_matcher_and_issue_when_no_un
     assert (code, capsys.readouterr().err, patches) == (3, "tick-issue-criterion: no unchecked criterion matched 'zeta' on #7\n", [])
 
 
-def test_main_ticks_the_box_and_patches_the_stripped_body_through_gh_api_reading_either_route_with_tick_criterion_run_beside_it(monkeypatch, capsys, tick_issue_criterion):
+def test_main_ticks_the_box_and_patches_the_stripped_body_through_gh_api_reading_either_route(monkeypatch, capsys, tick_issue_criterion):
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     real_run = subprocess.run
     body = "- [ ] alpha\n- [ ] beta\n\n\n"
@@ -76,26 +74,23 @@ def test_main_ticks_the_box_and_patches_the_stripped_body_through_gh_api_reading
                 return subprocess.CompletedProcess(args, 0, json.dumps({"body": body}), "")
             if args[0] == "gh":
                 raise AssertionError("unexpected gh call: %r" % (args,))
-            calls.append(("tick", os.path.realpath(args[0]), kwargs.get("input")))
             return real_run(args, **kwargs)
 
         monkeypatch.setattr(subprocess, "run", fake_run)
         code = tick_issue_criterion.main(argv)
         return code, capsys.readouterr().out, calls, [p for p in patched if os.path.exists(p)]
 
-    tick = os.path.realpath(SCRIPTS / "tick-criterion.sh")
-    fed = body.rstrip("\n")
     assert run_case(["7", "alpha"], True) == (0, "", [
-        ("view", "7"), ("tick", tick, fed),
+        ("view", "7"),
         ("patch", "repos/{owner}/{repo}/issues/7", "- [x] alpha\n- [ ] beta")], [])
     assert run_case(["7", "alpha"], False) == (0, "", [
-        ("view", "7"), ("api", "repos/{owner}/{repo}/issues/7"), ("tick", tick, fed),
+        ("view", "7"), ("api", "repos/{owner}/{repo}/issues/7"),
         ("patch", "repos/{owner}/{repo}/issues/7", "- [x] alpha\n- [ ] beta")], [])
     assert run_case(["7"], True) == (0, "", [
-        ("view", "7"), ("tick", tick, fed),
+        ("view", "7"),
         ("patch", "repos/{owner}/{repo}/issues/7", "- [x] alpha\n- [ ] beta")], [])
     assert run_case(["abc", "alpha", "extra"], True) == (0, "", [
-        ("view", "abc"), ("tick", tick, fed),
+        ("view", "abc"),
         ("patch", "repos/{owner}/{repo}/issues/abc", "- [x] alpha\n- [ ] beta")], [])
 
 
@@ -103,7 +98,7 @@ def test_main_keeps_every_failure_path_inside_0_to_3_and_lets_an_uncaught_except
     monkeypatch.setenv("VERI_GH_DRIVER", "auto")
     real_run = subprocess.run
 
-    def run_case(argv, view=(0, "- [ ] alpha\n"), api=(0, json.dumps({"body": "- [ ] alpha"})), patch=0, tick=None):
+    def run_case(argv, view=(0, "- [ ] alpha\n"), api=(0, json.dumps({"body": "- [ ] alpha"})), patch=0):
         patches = []
 
         def fake_run(args, **kwargs):
@@ -117,8 +112,6 @@ def test_main_keeps_every_failure_path_inside_0_to_3_and_lets_an_uncaught_except
                 return subprocess.CompletedProcess(args, api[0], api[1], "")
             if args[0] == "gh":
                 raise AssertionError("unexpected gh call: %r" % (args,))
-            if tick is not None:
-                return subprocess.CompletedProcess(args, tick, "", "")
             return real_run(args, **kwargs)
 
         monkeypatch.setattr(subprocess, "run", fake_run)
@@ -131,10 +124,6 @@ def test_main_keeps_every_failure_path_inside_0_to_3_and_lets_an_uncaught_except
     assert run_case(["7", "alpha"], view=(1, ""), api=(0, "")) == (
         2, "", "json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\n", 0)
     assert run_case(["7", "alpha"], patch=1) == (2, "", "", 1)
-    assert run_case(["7", "alpha"], tick=1) == (1, "", "", 0)
-    assert run_case(["7", "alpha"], tick=2) == (2, "", "", 0)
-    assert run_case(["7", "alpha"], tick=5) == (2, "", "", 0)
-    assert run_case(["7", "alpha"], tick=-9) == (2, "", "", 0)
     assert run_case(["7", ""], view=(0, "- [x] alpha\n")) == (
         3, "", "tick-issue-criterion: no unchecked criterion matched '' on #7\n", 0)
 
