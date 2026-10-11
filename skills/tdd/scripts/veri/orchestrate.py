@@ -9,8 +9,10 @@ import tunables
 
 try:
     from context_budget import START, watch
+    from solvable_issues import priority_label, refused_if_empty, solvable
 except ImportError:
     from .context_budget import START, watch
+    from .solvable_issues import priority_label, refused_if_empty, solvable
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONDUCTOR = os.path.join(SCRIPTS, "run-conductor.sh")
@@ -24,14 +26,14 @@ def main(argv):
     if stop_timeout is None:
         return 2
     while True:
-        answer = subprocess.run([os.path.join(SCRIPTS, "solvable-issues.sh")], stdout=subprocess.PIPE)
-        if answer.returncode == 3:
+        code, numbers = _solvable()
+        if code == 3:
             return 0
-        if answer.returncode != 0:
+        if code != 0:
             sys.stderr.write("orchestrate.sh: solvable-issues.sh exited %d; no answer about the solvable set\n"
-                             % answer.returncode)
+                             % code)
             return 2
-        issue = next((n for n in os.fsdecode(answer.stdout).split("\n") if n and not _parked(n)), "")
+        issue = next((str(n) for n in numbers if n != "" and not _parked(str(n))), "")
         if not issue:
             return 0
         try:
@@ -46,6 +48,15 @@ def main(argv):
         _drain(conductor.stdout, stop_timeout)
         if _parked(issue):
             _say("parked %s\n" % issue)
+
+
+def _solvable():
+    if refused_if_empty("VERI_LABEL"):
+        return 2, []
+    priority = priority_label()
+    if priority is None:
+        return 2, []
+    return solvable(os.environ.get("VERI_LABEL", "ready-for-agent"), priority)
 
 
 def _tunable(name):

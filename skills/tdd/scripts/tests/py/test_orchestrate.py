@@ -88,6 +88,26 @@ def _passes(monkeypatch, listing, answers, park_on_launch):
     return launches
 
 
+@pytest.mark.process("gh and git started for real behind a listing, solvable-issues.sh refused")
+def test_1354_a_refused_start_of_solvable_issues_sh_changes_no_answer_the_run_launches_and_ends_as_ever(
+        capfd, monkeypatch, tmp_path, orchestrate, listing):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+    conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
+    launches = _passes(monkeypatch, listing, [(0, "7\n"), (3, "")], lambda n, issue: None)
+    start = subprocess.run
+
+    def refusing(args, *rest, **kwargs):
+        if os.path.basename(args[0]) == "solvable-issues.sh":
+            raise OSError("starting a process is refused")
+        return start(args, *rest, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", refusing)
+    code = orchestrate.main([])
+    out, err = capfd.readouterr()
+    assert (code, out, err, launches) == (0, "", "", [[conductor, "7"]])
+
+
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_selection_takes_the_first_whole_unparked_line_per_pass_reports_and_skips_parked_issues_and_relaunches_unparked_ones(
         capfd, monkeypatch, tmp_path, orchestrate, listing):
