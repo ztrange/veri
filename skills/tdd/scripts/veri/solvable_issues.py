@@ -1,4 +1,5 @@
 """solvable-issues.sh's selection, run in-process."""
+import json
 import os
 import re
 import subprocess
@@ -64,6 +65,14 @@ def open_listing(fixture, path, *args):
 
 
 def solvable(label, priority="priority", repo=None):
+    """(exit code, the solvable issue numbers in selection order) for the opt-in <label>; 2 for an unreadable listing."""
+    try:
+        return select(label, priority, repo)
+    except json.JSONDecodeError:
+        return 2, []
+
+
+def select(label, priority="priority", repo=None):
     """(exit code, the solvable issue numbers in selection order) for the opt-in <label>."""
     scope = ["--repo", repo] if repo else []
     prefix = "repos/%s" % (repo or "{owner}/{repo}")
@@ -94,8 +103,8 @@ def main(argv):
         return 2
     if refused_if_empty("VERI_LABEL") or refused_if_empty("VERI_PRIORITY_LABEL"):
         return 2
-    code, numbers = solvable(tunables.read("VERI_LABEL", "ready-for-agent"),
-                             tunables.read("VERI_PRIORITY_LABEL", "priority"), repo)
+    code, numbers = select(tunables.read("VERI_LABEL", "ready-for-agent"),
+                           tunables.read("VERI_PRIORITY_LABEL", "priority"), repo)
     for number in numbers:
         print(number)
     return code
