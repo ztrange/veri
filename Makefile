@@ -163,9 +163,16 @@ test unit:
 	  $(PYCACHE_CLEAR); \
 	  pycache_root="$${VERI_PYCACHE_ROOT:-$$HOME/.veri-tools/pycache}"; \
 	  py_key="$$($(PY_KEY))"; pycache="$$pycache_root/$$py_key"; \
-	  if [ -d "$$pycache/skills" ] && [ -f "$$pycache/digest" ] && [ "$$(cat "$$pycache/digest")" = "$$($(ENTRY_DIGEST))" ]; then cp -R "$$pycache/skills" .; else rm -rf "$$pycache/skills" "$$pycache/digest"; fi; \
-	  UNIT_GUARD_LOG="$$reach_log" COLUMNS=200 $(OFFLINE_ENV) env -u PYTHONDONTWRITEBYTECODE "$$py_bin" -m pytest --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || fail=1; \
+	  if [ -d "$$pycache/skills" ] && [ -f "$$pycache/digest" ] && [ "$$(cat "$$pycache/digest")" = "$$($(ENTRY_DIGEST))" ]; then cp -R "$$pycache/skills" .; warm=1; else warm=0; rm -rf "$$pycache/skills" "$$pycache/digest"; fi; \
+	  UNIT_GUARD_LOG="$$reach_log" COLUMNS=200 $(OFFLINE_ENV) env PYTHONDONTWRITEBYTECODE=1 "$$py_bin" -m pytest --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || fail=1; \
 	  if [ "$$($(PY_KEY))" = "$$py_key" ]; then \
+	    if [ "$$warm" = 0 ]; then \
+	      scratch="$$(mktemp -d)"; \
+	      UNIT_GUARD_LOG="$$reach_log" $(OFFLINE_ENV) env -u PYTHONDONTWRITEBYTECODE PYTHONPYCACHEPREFIX="$$scratch" "$$py_bin" -m pytest --collect-only -q $(PY_SELECT) $(PY_TESTS) < /dev/null > /dev/null 2>&1 || :; \
+	      base="$$(find "$$scratch" -type d -path '*/skills/tdd/scripts' -prune -print -quit)"; base="$${base%/skills/tdd/scripts}"; \
+	      if [ -d "$$base/skills" ]; then (cd "$$base" && find skills -type f -name '*.pyc') | while IFS= read -r f; do mkdir -p "$$(dirname "$$f")/__pycache__" && cp "$$base/$$f" "$$(dirname "$$f")/__pycache__/"; done; fi; \
+	      rm -rf "$$scratch"; \
+	    fi; \
 	    "$$py_bin" -m compileall -f -qq --invalidation-mode checked-hash skills/tdd/scripts > /dev/null 2>&1 || :; \
 	    $(PYCACHE_DIRS) | while IFS= read -r d; do mkdir -p "$$pycache/$$d" && cp -R "$$d/." "$$pycache/$$d/"; done; \
 	    if [ -d "$$pycache/skills" ]; then digest="$$($(ENTRY_DIGEST))"; printf '%s\n' "$$digest" > "$$pycache/digest"; fi; \

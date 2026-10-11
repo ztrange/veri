@@ -1131,6 +1131,60 @@ read_back="$(cd "$fresh/skills/tdd/scripts" && env -u PYTHONPYCACHEPREFIX PYTHON
   problems+=("want a fresh python3 to read the reverted BUDGET 130000, got: $read_back")
 report "$name"
 
+killed="$work/killed"
+make_tree "$killed"
+killed_probe="$killed/skills/tdd/scripts/veri/exp_leg_probe.py"
+printf 'BUDGET = "130000"\n' > "$killed_probe"
+cat > "$killed/$PY_DIR/test_leg_probe.py" <<'PY'
+import pathlib
+import sys
+import time
+
+scripts = pathlib.Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(scripts))
+
+from veri import exp_leg_probe
+
+
+def test_veri_probe_waits_to_be_killed():
+    (pathlib.Path(__file__).resolve().parent / "exp-leg-started").touch()
+    time.sleep(120)
+PY
+killed_pycs() { (cd "$killed" && find . -name '*.pyc' | LC_ALL=C sort); }
+
+name="#1471: a pytest leg killed partway by SIGINT, SIGTERM or SIGKILL to its process group leaves no .pyc in the worktree that the run did not find there, and once a same-size module mutation it ran is reverted with the same mtime a fresh python3 under PYTHONDONTWRITEBYTECODE=1 runs the reverted source"
+problems=()
+touch -r "$killed_probe" "$work/killed.mtime"
+for sig in INT TERM KILL; do
+  rm -f "$killed/$PY_DIR/exp-leg-started"
+  before="$(killed_pycs)"
+  printf 'BUDGET = "120000"\n' > "$killed_probe"
+  touch -r "$work/killed.mtime" "$killed_probe"
+  set -m
+  env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE -u PYTHONPYCACHEPREFIX -u PYTHONDONTWRITEBYTECODE \
+    VERI_PYCACHE_ROOT="$work/killed-cache-root-$sig" \
+    make --no-print-directory -C "$killed" unit > "$work/out" 2> "$work/err" < /dev/null &
+  leg=$!
+  set +m
+  for _ in $(seq 1 600); do
+    [[ -e "$killed/$PY_DIR/exp-leg-started" ]] && break
+    sleep 0.1
+  done
+  [[ -e "$killed/$PY_DIR/exp-leg-started" ]] || problems+=("SIG$sig: want the leg to reach its case, it never did")
+  kill -"$sig" -- "-$leg" 2> /dev/null || :
+  wait "$leg" 2> /dev/null || :
+  left="$(comm -13 <(printf '%s\n' "$before") <(killed_pycs) | sed '/^$/d')"
+  [[ -z "$left" ]] || problems+=("SIG$sig: want no .pyc the killed run did not find in the worktree, got $(printf '%s\n' "$left" | wc -l | tr -d ' ') including $(printf '%s\n' "$left" | head -n 1)")
+  printf 'BUDGET = "130000"\n' > "$killed_probe"
+  touch -r "$work/killed.mtime" "$killed_probe"
+  read_back="$(cd "$killed/skills/tdd/scripts" && env -u PYTHONPYCACHEPREFIX PYTHONDONTWRITEBYTECODE=1 \
+    "$fresh_py" -c 'from veri import exp_leg_probe; print(exp_leg_probe.BUDGET)' 2>&1)"
+  [[ "$read_back" == 130000 ]] ||
+    problems+=("SIG$sig: want a fresh python3 to read the reverted BUDGET 130000, got: $read_back")
+  find "$killed" -name '*.pyc' -delete
+done
+report "$name"
+
 poisoned="$work/poisoned"
 make_tree "$poisoned"
 poisoned_probe="$poisoned/skills/tdd/scripts/veri/exp_leg_probe.py"
