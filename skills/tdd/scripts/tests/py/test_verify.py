@@ -17,6 +17,11 @@ USAGE = (b"usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issu
          b" <test-path> [<target-test-id>]")
 
 
+def record(event, *pairs, issue="", step="", phase="green"):
+    return {"issue": issue, "actor": "verifier", "phase": phase, "step": step, "event": event, "attempt": "1",
+            "skill_commit": "", **dict(pair.split("=", 1) for pair in pairs)}
+
+
 @pytest.mark.parametrize("argv", [[], ["green", "spec"], ["--step", "x", "green"]])
 def test_main_with_fewer_than_three_positionals_returns_2_with_the_usage_line_alone_and_starts_no_process(
         argv, tmp_path, monkeypatch, capfdbinary, fake_processes):
@@ -231,46 +236,32 @@ def test_main_drops_nul_bytes_from_the_leafs_output_so_a_verdict_carrying_them_i
     (b"VERDICT: REJECT\nwhy it fails\nmore\n", "REJECT", "why it fails"),
     (b"VERDICT: MAYBE\nundecided\n", "malformed", ""),
 ])
-def test_main_calls_event_sh_once_with_the_verdict_word_and_the_reasons_first_line_under_the_verifier_role(
-        phase, leaf_out, word, reason_line, tmp_path, monkeypatch):
+def test_main_appends_one_verdict_record_with_the_verdict_word_and_the_reasons_first_line_under_the_verifier_role(
+        phase, leaf_out, word, reason_line, tmp_path, monkeypatch, events):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_NO_VERDICT_RETRIES",
-                 "VERI_ACTOR", "VERI_PHASE", "VERI_ATTEMPT"):
+    for name in ("VERIFY_LEAF_ARGS", "VERI_NO_VERDICT_RETRIES"):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_ISSUE", "931")
     monkeypatch.setenv("VERI_STEP", "5")
-    monkeypatch.setenv("VERI_INHERITED_SENTINEL", "kept")
-    events = []
 
-    def fake(args, *_, **kwargs):
-        words = [str(a) for a in args]
-        env = dict(os.environ if kwargs.get("env") is None else kwargs["env"])
-        if os.path.basename(words[0]) == "env":
-            words = words[1:]
-            while words and "=" in words[0]:
-                key, _, value = words.pop(0).partition("=")
-                env[key] = value
-        name = os.path.basename(words[0])
+    def fake(args, *_, **__):
+        name = os.path.basename(str(args[0]))
         if name == "build-verify-prompt.sh":
             return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
         if name == "supervise.sh":
             return subprocess.CompletedProcess(args, 0, leaf_out, None)
-        if name == "event.sh":
-            events.append((words, env))
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
+    events.through()
     verify = importlib.import_module("veri.verify")
-    scripts = os.path.dirname(os.path.dirname(os.path.abspath(verify.__file__)))
-    expected_env = {**os.environ, "VERI_ACTOR": "verifier", "VERI_PHASE": phase, "VERI_ATTEMPT": "1"}
 
     verify.main([phase, "spec.md", "tests/x.test.sh"])
 
-    assert [words for words, _ in events] == [
-        [os.path.join(scripts, "event.sh"), "verdict", "verdict=" + word, "reason=" + reason_line]]
-    assert events[0][1] == expected_env
+    assert events.records() == [
+        record("verdict", "verdict=" + word, "reason=" + reason_line, issue="931", step="5", phase=phase)]
 
 
 def test_main_launches_the_leaf_with_verify_leaf_args_words_split_on_whitespace_and_glob_expanded_in_the_working_directory(
@@ -365,7 +356,7 @@ def test_main_refuses_a_literal_model_word_in_verify_leaf_args_beside_a_resolved
     (FileNotFoundError, (2, "\n")),
 ])
 def test_main_returns_2_on_a_killed_stuck_leaf_with_no_tamper_check_event_or_preservation_and_reads_an_unstartable_supervise_as_no_answer(
-        supervise, expected, tmp_path, monkeypatch, capfdbinary):
+        supervise, expected, tmp_path, monkeypatch, capfdbinary, events):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
     for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER"):
@@ -391,6 +382,7 @@ def test_main_returns_2_on_a_killed_stuck_leaf_with_no_tamper_check_event_or_pre
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
+    events.through()
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
@@ -400,14 +392,15 @@ def test_main_returns_2_on_a_killed_stuck_leaf_with_no_tamper_check_event_or_pre
     if supervise == 2:
         launch = [os.path.basename(words[0]) for words in started].index("supervise.sh")
         assert [words for words in started[launch + 1:]
-                if {os.path.basename(w) for w in words} & {"git", "event.sh", "preserve-attempt.sh"}] == []
+                if {os.path.basename(w) for w in words} & {"git", "preserve-attempt.sh"}] == []
+        assert events.records() == []
 
 
 NO_VERDICT = b"I looked around and have no opinion\n"
 NO_LINE = b"parse-verdict: no VERDICT: line found\n"
 
 
-@pytest.mark.parametrize("retries, leaf_outs, launches, events, expected_code, expected_err", [
+@pytest.mark.parametrize("retries, leaf_outs, launches, marks, expected_code, expected_err", [
     (None, [NO_VERDICT, b"VERDICT: PASS\nfine\n"], 2,
      [["relaunch", "cause=no-verdict"], ["verdict", "verdict=PASS", "reason=fine"]], 0, NO_LINE),
     ("", [NO_VERDICT, NO_VERDICT], 2,
@@ -423,8 +416,8 @@ NO_LINE = b"parse-verdict: no VERDICT: line found\n"
      b"parse-verdict: unrecognised verdict word 'MAYBE'\n"),
 ])
 def test_main_relaunches_a_leaf_with_no_verdict_line_up_to_the_no_verdict_budget_marking_each_relaunch_and_the_last_verdict_while_an_unrecognised_word_is_malformed_and_not_relaunched(
-        retries, leaf_outs, launches, events, expected_code, expected_err, tmp_path, monkeypatch,
-        capfdbinary):
+        retries, leaf_outs, launches, marks, expected_code, expected_err, tmp_path, monkeypatch,
+        capfdbinary, events):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
     for name in ("VERIFY_LEAF_ARGS", "VERI_ISSUE", "VERI_STEP", "VERI_MODEL", "VERI_MODEL_VERIFIER"):
@@ -434,14 +427,9 @@ def test_main_relaunches_a_leaf_with_no_verdict_line_up_to_the_no_verdict_budget
     else:
         monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", retries)
     supervised = []
-    marked = []
 
     def fake(args, *_, **__):
         words = [str(a) for a in args]
-        if os.path.basename(words[0]) == "env":
-            words = words[1:]
-            while words and "=" in words[0]:
-                words.pop(0)
         name = os.path.basename(words[0])
         if name == "build-verify-prompt.sh":
             return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
@@ -449,29 +437,28 @@ def test_main_relaunches_a_leaf_with_no_verdict_line_up_to_the_no_verdict_budget
             supervised.append(words)
             out = leaf_outs[min(len(supervised), len(leaf_outs)) - 1]
             return subprocess.CompletedProcess(args, 0, out, None)
-        if name == "event.sh":
-            marked.append(words[1:])
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
+    events.through()
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
 
-    assert (code, len(supervised), marked, capfdbinary.readouterr().err) == (
-        expected_code, launches, events, expected_err)
+    assert (code, len(supervised), events.records(), capfdbinary.readouterr().err) == (
+        expected_code, launches, [record(*mark) for mark in marks], expected_err)
 
 
-def test_main_returns_event_sh_own_non_zero_status_when_the_relaunch_mark_fails_and_makes_no_relaunch(
-        tmp_path, monkeypatch, capfdbinary):
+def test_main_returns_2_when_the_relaunch_record_cannot_be_appended_and_makes_no_relaunch(
+        tmp_path, monkeypatch, capfdbinary, events):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
     for name in ("VERIFY_LEAF_ARGS", "VERI_ISSUE", "VERI_STEP", "VERI_MODEL", "VERI_MODEL_VERIFIER",
                  "VERI_NO_VERDICT_RETRIES"):
         monkeypatch.delenv(name, raising=False)
+    events.unappendable()
     supervised = []
-    marked = []
 
     def fake(args, *_, **__):
         words = [str(a) for a in args]
@@ -482,30 +469,27 @@ def test_main_returns_event_sh_own_non_zero_status_when_the_relaunch_mark_fails_
             supervised.append(words)
             out = NO_VERDICT if len(supervised) == 1 else b"VERDICT: PASS\nfine\n"
             return subprocess.CompletedProcess(args, 0, out, None)
-        if name == "event.sh":
-            marked.append(words[1:])
-            return subprocess.CompletedProcess(args, 5, None, None)
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
+    events.through()
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
 
-    assert (code, len(supervised), marked, capfdbinary.readouterr().out) == (
-        5, 1, [["relaunch", "cause=no-verdict"]], b"")
+    assert (code, len(supervised), capfdbinary.readouterr().out) == (2, 1, b"")
 
 
-def test_main_returns_event_sh_own_non_zero_status_when_the_verdict_mark_fails_with_no_preservation_and_nothing_on_stdout(
-        tmp_path, monkeypatch, capfdbinary):
+def test_main_returns_2_when_the_verdict_record_cannot_be_appended_with_no_preservation_and_nothing_on_stdout(
+        tmp_path, monkeypatch, capfdbinary, events):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
     for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES"):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("VERI_ISSUE", "931")
     monkeypatch.setenv("VERI_STEP", "7")
-    marked = []
+    events.unappendable()
     preserved = []
 
     def fake(args, *_, **__):
@@ -519,54 +503,18 @@ def test_main_returns_event_sh_own_non_zero_status_when_the_verdict_mark_fails_w
             return subprocess.CompletedProcess(args, 0, b"a" * 40 + b"\n", b"")
         if name == "git" and "rev-parse" in words:
             return subprocess.CompletedProcess(args, 0, b"1" * 40 + b"\n", b"")
-        if name == "event.sh":
-            marked.append(words[1:])
-            return subprocess.CompletedProcess(args, 6, None, None)
         if name == "preserve-attempt.sh":
             preserved.append(words)
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
+    events.through()
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
 
-    assert (code, preserved, capfdbinary.readouterr().out) == (6, [], b"")
-    assert [words[0] for words in marked] == ["verdict"]
-
-
-@pytest.mark.parametrize("leaf_out, first_mark", [(NO_VERDICT, "relaunch"), (b"VERDICT: PASS\nfine\n", "verdict")])
-def test_main_returns_127_with_nothing_on_stdout_when_event_sh_cannot_be_started_at_either_mark(
-        tmp_path, monkeypatch, capfdbinary, leaf_out, first_mark):
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("HOME", str(tmp_path))
-    for name in ("VERIFY_LEAF_ARGS", "VERI_ISSUE", "VERI_STEP", "VERI_MODEL", "VERI_MODEL_VERIFIER",
-                 "VERI_NO_VERDICT_RETRIES"):
-        monkeypatch.delenv(name, raising=False)
-    supervised = []
-    marked = []
-
-    def fake(args, *_, **__):
-        words = [str(a) for a in args]
-        name = os.path.basename(words[0])
-        if name == "build-verify-prompt.sh":
-            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
-        if name == "supervise.sh":
-            supervised.append(words)
-            return subprocess.CompletedProcess(args, 0, leaf_out, None)
-        if name == "event.sh":
-            marked.append(words[1])
-            raise FileNotFoundError(2, "No such file or directory", words[0])
-        return subprocess.CompletedProcess(args, 0, b"", b"")
-
-    for name in ("run", "Popen", "call", "check_call", "check_output"):
-        monkeypatch.setattr(subprocess, name, fake)
-    verify = importlib.import_module("veri.verify")
-
-    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
-
-    assert (code, len(supervised), marked, capfdbinary.readouterr().out) == (127, 1, [first_mark], b"")
+    assert (code, preserved, capfdbinary.readouterr().out) == (2, [], b"")
 
 
 @pytest.mark.parametrize("retries, launches", [("", 2), ("010", 9), ("08", 1)])
@@ -661,7 +609,7 @@ def test_main_refuses_a_no_verdict_budget_that_is_not_a_non_negative_integer_aft
 
 
 def test_main_snapshots_the_tree_through_a_temporary_index_and_head_around_the_launch_and_returns_2_naming_the_changed_paths_then_head_with_no_verdict_event_or_preservation(
-        tmp_path, monkeypatch, capfdbinary):
+        tmp_path, monkeypatch, capfdbinary, events):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
     for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES"):
@@ -705,6 +653,7 @@ def test_main_snapshots_the_tree_through_a_temporary_index_and_head_around_the_l
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
+    events.through()
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
@@ -722,7 +671,7 @@ def test_main_snapshots_the_tree_through_a_temporary_index_and_head_around_the_l
     snapshots = indexes[:4]
     assert all(index and not pathlib.Path(index).is_relative_to(tmp_path) for _, index in snapshots)
     assert (snapshots[0][1] == snapshots[1][1], snapshots[2][1] == snapshots[3][1]) == (True, True)
-    assert ("event.sh" in order, "preserve-attempt.sh" in order) == (False, False)
+    assert ("preserve-attempt.sh" in order, events.records()) == (False, [])
 
 
 @pytest.mark.parametrize("failing", ["add", "git-missing", "write-tree", "diff-tree"])
@@ -830,7 +779,7 @@ def test_main_restores_a_modified_tree_through_a_fresh_temporary_index_and_a_mov
 
 
 def test_main_runs_the_tamper_check_after_a_relaunchs_launch_and_refuses_a_relaunched_leaf_that_modified_the_repository(
-        tmp_path, monkeypatch, capfdbinary):
+        tmp_path, monkeypatch, capfdbinary, events):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
     for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES",
@@ -839,7 +788,6 @@ def test_main_runs_the_tamper_check_after_a_relaunchs_launch_and_refuses_a_relau
     trees = [b"a" * 40 + b"\n", b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
     leaf_outs = [b"no verdict here\n", b"VERDICT: PASS\nfine\n"]
     supervised = []
-    marked = []
     writes = []
 
     def fake(args, *_, **__):
@@ -863,26 +811,25 @@ def test_main_runs_the_tamper_check_after_a_relaunchs_launch_and_refuses_a_relau
         if name == "supervise.sh":
             supervised.append(words)
             return subprocess.CompletedProcess(args, 0, leaf_outs[len(supervised) - 1], None)
-        if name == "event.sh":
-            marked.append(words[1:])
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
+    events.through()
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
 
     captured = capfdbinary.readouterr()
-    assert (code, len(supervised), captured.out, marked) == (
+    assert (code, len(supervised), captured.out, events.records()) == (
         2, 2, "verifier leaf modified the repository — verdict not accepted"
               " (see .tdd/verify-green.log); changed:\nsrc.txt\n".encode(),
-        [["relaunch", "cause=no-verdict"]])
+        [record("relaunch", "cause=no-verdict")])
 
 
 @pytest.mark.parametrize("where", ["not-a-repository", "git-missing", "add-fails"])
 def test_main_outside_a_repository_without_git_or_with_a_failing_add_takes_no_snapshot_runs_no_tamper_check_or_preservation_and_returns_the_verdict(
-        where, tmp_path, monkeypatch, capfdbinary):
+        where, tmp_path, monkeypatch, capfdbinary, events):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
     for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_NO_VERDICT_RETRIES"):
@@ -920,6 +867,7 @@ def test_main_outside_a_repository_without_git_or_with_a_failing_add_takes_no_sn
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
+    events.through()
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
@@ -928,7 +876,8 @@ def test_main_outside_a_repository_without_git_or_with_a_failing_add_takes_no_sn
     names = [os.path.basename(words[0]) for words in started]
     assert (code, captured.out) == (1, b"bad\n")
     assert [v for v in verbs if v in ("write-tree", "diff-tree", "read-tree", "update-ref")] == []
-    assert ("preserve-attempt.sh" in names, names.count("event.sh")) == (False, 1)
+    assert ("preserve-attempt.sh" in names, events.records()) == (
+        False, [record("verdict", "verdict=REJECT", "reason=bad", issue="7", step="2")])
 
 
 def test_main_in_a_repository_with_no_commit_reports_a_leaf_that_commits_as_head_and_makes_no_update_ref_call(
@@ -1116,7 +1065,7 @@ def test_main_returns_2_with_no_traceback_when_git_cannot_be_started_to_restore_
                                            (None, b"[user]\n\tname = leaf\n"),
                                            (b"[user]\n\tname = op\n", None)])
 def test_main_returns_2_naming_home_gitconfig_when_the_leaf_changed_created_or_deleted_it_and_restores_nothing(
-        before, after, tmp_path, monkeypatch, capfdbinary):
+        before, after, tmp_path, monkeypatch, capfdbinary, events):
     work = tmp_path / "work"
     work.mkdir()
     monkeypatch.chdir(work)
@@ -1152,6 +1101,7 @@ def test_main_returns_2_naming_home_gitconfig_when_the_leaf_changed_created_or_d
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
+    events.through()
     verify = importlib.import_module("veri.verify")
 
     code = verify.main(["green", "spec.md", "tests/x.test.sh"])
@@ -1161,7 +1111,7 @@ def test_main_returns_2_naming_home_gitconfig_when_the_leaf_changed_created_or_d
     assert (code, captured.out) == (
         2, ("verifier leaf modified the operator's global git config — verdict not accepted"
             " (see .tdd/verify-green.log); changed:\n%s\n" % os.path.join(str(home), ".gitconfig")).encode())
-    assert (left, "event.sh" in started, "preserve-attempt.sh" in started) == (after, False, False)
+    assert (left, events.records(), "preserve-attempt.sh" in started) == (after, [], False)
 
 
 def test_main_reports_a_leaf_that_changed_both_the_repository_and_home_gitconfig_for_the_repository_only(
@@ -1657,13 +1607,12 @@ KILLED = (2, KILLED_OUT, "", 1, [])
                  KILLED, id="no-verdict-retries-leave-stuck-count"),
 ])
 def test_verify_sh_reads_the_newest_verdict_across_result_records_and_relaunches_only_a_clean_no_verdict_exit_within_its_own_budget_marking_it_no_verdict(
-        env, leaf_outs, supervise_code, expected, run_cli, tmp_path, monkeypatch):
+        env, leaf_outs, supervise_code, expected, run_cli, tmp_path, monkeypatch, events):
     for name in ("VERIFY_LEAF_ARGS", "VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_ISSUE", "VERI_STEP",
                  "VERI_NO_VERDICT_RETRIES", "VERI_STUCK_RETRIES"):
         monkeypatch.delenv(name, raising=False)
     extract = importlib.import_module("veri.extract_result").extract
     stuck_seen = []
-    marked = []
 
     def fake(args, *_, **__):
         words = [str(a) for a in args]
@@ -1674,18 +1623,18 @@ def test_verify_sh_reads_the_newest_verdict_across_result_records_and_relaunches
             stuck_seen.append(os.environ.get("VERI_STUCK_RETRIES"))
             leaf = leaf_outs[min(len(stuck_seen), len(leaf_outs)) - 1]
             return subprocess.CompletedProcess(args, supervise_code, (leaf + "\n" + extract(leaf)).encode(), None)
-        if name == "event.sh":
-            marked.append(words[1:])
         return subprocess.CompletedProcess(args, 128 if name == "git" else 0, b"", None)
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
         monkeypatch.setattr(subprocess, name, fake)
+    events.through()
     verify = importlib.import_module("veri.verify")
 
     code, out, err = run_cli(verify, [*FAST, "green", "spec.md", "tests/test_slugify.py", "test_lowercases"],
                              env={"HOME": str(tmp_path), **env}, cwd=tmp_path)
 
-    assert (code, out, err, len(stuck_seen), marked) == expected
+    assert (code, out, err, len(stuck_seen), events.records(tmp_path)) == (
+        *expected[:4], [record(*mark) for mark in expected[4]])
     assert stuck_seen == [env.get("VERI_STUCK_RETRIES")] * len(stuck_seen)
 
 

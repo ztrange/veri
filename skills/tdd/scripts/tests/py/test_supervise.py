@@ -321,75 +321,50 @@ def test_main_maps_the_leaf_rc_to_its_exit_code_records_its_own_pid_and_clears_a
     }
 
 
-def test_main_marks_a_watched_names_launch_and_exit_through_event_sh_under_its_role_and_none_for_a_verdict_or_refused_name_whose_failure_changes_nothing(
-        monkeypatch, tmp_path, capsysbinary, supervise):
+def test_main_marks_a_watched_names_launch_and_exit_as_records_under_its_role_and_none_for_a_verdict_or_refused_name_whose_failure_changes_nothing(
+        monkeypatch, tmp_path, capsysbinary, supervise, events):
     import signal
     import time
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     monkeypatch.setattr(time, "sleep", lambda *_: None)
     monkeypatch.setattr(time, "clock_gettime", lambda *_: 5000.0)
-    event_sh = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(supervise.__file__))), "event.sh")
 
-    def run_one(label, name, event_rc, script, **env):
+    def run_one(label, name, appendable, script, **env):
         work = tmp_path / label
         work.mkdir()
         monkeypatch.chdir(work)
         clean_env(monkeypatch, **env)
+        if not appendable:
+            events.unappendable(work)
         fake_leaf_launch(monkeypatch)
-        launching, running = subprocess.Popen, subprocess.run
-        events = []
-
-        def is_event(args):
-            return event_sh in [str(a) for a in args]
-
-        def record(args, kwargs):
-            seen = kwargs.get("env")
-            seen = dict(os.environ if seen is None else seen)
-            events.append(([str(a) for a in args], seen.get("VERI_ISSUE"), seen.get("VERI_STEP")))
-
-        def popen(args, *a, **kwargs):
-            if is_event(args):
-                record(args, kwargs)
-                return launching(["sh", "-c", f"exit {event_rc}"])
-            return launching(args, *a, **kwargs)
-
-        def run(args, *a, **kwargs):
-            if is_event(args):
-                record(args, kwargs)
-                if kwargs.get("check") and event_rc:
-                    raise subprocess.CalledProcessError(event_rc, args)
-                return subprocess.CompletedProcess(args, event_rc, "", "")
-            return running(args, *a, **kwargs)
-
-        monkeypatch.setattr(subprocess, "Popen", popen)
-        monkeypatch.setattr(subprocess, "run", run)
-        monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, *a, **k).returncode)
+        events.through()
         code = supervise.main([name, "sh", "-c", script])
         out, err = capsysbinary.readouterr()
         exit_record = (work / ".tdd" / f"{name}.exit").read_bytes()
         role_lines = [line for line in err.splitlines() if line.startswith(b"leaf-role:")]
-        return code, out, exit_record, events, role_lines
+        return code, out, exit_record, events.records(work), role_lines
 
-    role = ["env", "VERI_ACTOR=developer", "VERI_PHASE=red", "VERI_ATTEMPT=1", event_sh]
+    context = {"issue": "1073", "actor": "developer", "phase": "red", "step": "4", "attempt": "1",
+               "skill_commit": "0123456789abcdef0123456789abcdef01234567"}
     marked = [
-        (role + ["launch", "name=develop-red", "cmd=sh -c printf 'leaf out\\n'; exit 1", "model=opus-x"],
-         "1073", "4"),
-        (role + ["exit", "status=1", "secs=0"], "1073", "4"),
+        {**context, "event": "launch", "name": "develop-red", "cmd": "sh -c printf 'leaf out\\n'; exit 1",
+         "model": "opus-x"},
+        {**context, "event": "exit", "status": "1", "secs": "0"},
     ]
     leaf = "printf 'leaf out\\n'; exit 1"
     env = {"VERI_ISSUE": "1073", "VERI_STEP": "4", "VERI_MODEL": "opus-x", "VERI_TIMEOUT": "900"}
-    assert run_one("ok", "develop-red", 0, leaf, **env) == (1, b"leaf out\n", b"1\n", marked, [])
-    assert run_one("failing", "develop-red", 1, leaf, **env) == (1, b"leaf out\n", b"1\n", marked, [])
+    assert run_one("ok", "develop-red", True, leaf, **env) == (1, b"leaf out\n", b"1\n", marked, [])
+    assert run_one("failing", "develop-red", False, leaf, **env) == (1, b"leaf out\n", b"1\n", [], [])
 
-    assert run_one("verdict", "verdict-plan", 0, leaf, **env) == (1, b"leaf out\n", b"1\n", [], [])
+    assert run_one("verdict", "verdict-plan", True, leaf, **env) == (1, b"leaf out\n", b"1\n", [], [])
 
-    code, out, exit_record, events, role_lines = run_one("bogus", "bogus-x", 0, "printf 'leaf out\\n'", **env)
+    code, out, exit_record, records, role_lines = run_one("bogus", "bogus-x", True, "printf 'leaf out\\n'", **env)
     diagnostic = b"leaf-role: leaf name 'bogus-x' has an unknown leading word (want develop-*|revise-*|verify-*|conductor-*)"
-    assert (code, out, exit_record, events, role_lines) == (0, b"leaf out\n", b"0\n", [], [diagnostic, diagnostic])
+    assert (code, out, exit_record, records, role_lines) == (0, b"leaf out\n", b"0\n", [], [diagnostic, diagnostic])
 
 
 def test_main_resolves_the_model_in_process_marks_it_on_the_launch_and_hands_the_leaf_its_own_environment_plus_veri_leaf_model_and_veri_skill_commit(
-        monkeypatch, tmp_path, capsysbinary, supervise):
+        monkeypatch, tmp_path, capsysbinary, supervise, events):
     import signal
     import time
     monkeypatch.setattr(signal, "signal", lambda *_: None)
@@ -398,7 +373,6 @@ def test_main_resolves_the_model_in_process_marks_it_on_the_launch_and_hands_the
     monkeypatch.setenv("VERI_LEAF_MODEL", "ambient")
     monkeypatch.setenv("VERI_SKILL_COMMIT", "ambient")
     here = os.path.dirname(os.path.dirname(os.path.abspath(supervise.__file__)))
-    event_sh = os.path.join(here, "event.sh")
     sha = "0123456789abcdef0123456789abcdef01234567"
     whitespace = b"leaf-model: model 'opus x' contains whitespace (a model id or alias is one word)"
 
@@ -409,7 +383,7 @@ def test_main_resolves_the_model_in_process_marks_it_on_the_launch_and_hands_the
         clean_env(monkeypatch, VERI_TIMEOUT="900", **env)
         fake_leaf_launch(monkeypatch)
         launching = subprocess.Popen
-        launch_models, leaf_envs = [], []
+        leaf_envs = []
 
         def git(args, kwargs):
             if list(args) == ["git", "-C", here, "rev-parse", "HEAD"] and git_ok:
@@ -418,10 +392,6 @@ def test_main_resolves_the_model_in_process_marks_it_on_the_launch_and_hands_the
 
         def run(args, *a, **kwargs):
             args = [str(x) for x in args]
-            if event_sh in args:
-                if "launch" in args:
-                    launch_models.append([f for f in args if f.startswith("model=")])
-                return subprocess.CompletedProcess(args, 0, "", "")
             if args[:1] == ["git"]:
                 code, out = git(args, kwargs)
                 if code and kwargs.get("check"):
@@ -448,17 +418,23 @@ def test_main_resolves_the_model_in_process_marks_it_on_the_launch_and_hands_the
         monkeypatch.setattr(subprocess, "check_output", check_output)
         monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, *a, **k).returncode)
         monkeypatch.setattr(subprocess, "Popen", popen)
+        events.through()
         before = dict(os.environ)
         code = supervise.main(["develop-red", "sh", "-c", "exit 0"])
         _, err = capsysbinary.readouterr()
+        launches = [{k: r[k] for k in ("actor", "phase", "attempt", "model", "skill_commit")}
+                    for r in events.records(work) if r["event"] == "launch"]
         handed = ("VERI_LEAF_MODEL", "VERI_SKILL_COMMIT")
         added = [{**{k: v for k, v in e.items() if k not in before or before[k] != v},
                   **{k: e.get(k) for k in handed}} for e in leaf_envs]
         dropped = [sorted(k for k in before if k not in e) for e in leaf_envs]
-        return code, launch_models, added, dropped, err.splitlines().count(whitespace)
+        return code, launches, added, dropped, err.splitlines().count(whitespace)
 
     def leaf(model, commit):
         return [{"VERI_LEAF_MODEL": model, "VERI_SKILL_COMMIT": commit}]
+
+    def launch(model, commit):
+        return [{"actor": "developer", "phase": "red", "attempt": "1", "model": model, "skill_commit": commit}]
 
     answers = {
         "chosen": run_one("chosen", True, VERI_MODEL="opus-x"),
@@ -474,21 +450,21 @@ def test_main_resolves_the_model_in_process_marks_it_on_the_launch_and_hands_the
     }
 
     assert answers == {
-        "chosen": (0, [["model=opus-x"]], leaf("opus-x", sha), [[]], 0),
-        "none": (0, [["model="]], leaf("", sha), [[]], 0),
-        "whitespace": (0, [["model="]], leaf("", sha), [[]], 1),
-        "dash-n": (0, [["model="]], leaf("", sha), [[]], 0),
-        "dash-e": (0, [["model="]], leaf("", sha), [[]], 0),
-        "dash-E": (0, [["model="]], leaf("", sha), [[]], 0),
-        "git-beats-inherited": (0, [["model="]], leaf("", sha), [[]], 0),
-        "inherited": (0, [["model="]], leaf("", "inherited"), [[]], 0),
-        "inherited-empty": (0, [["model="]], leaf("", "unknown"), [[]], 0),
-        "unknown": (0, [["model="]], leaf("", "unknown"), [[]], 0),
+        "chosen": (0, launch("opus-x", sha), leaf("opus-x", sha), [[]], 0),
+        "none": (0, launch("", sha), leaf("", sha), [[]], 0),
+        "whitespace": (0, launch("", sha), leaf("", sha), [[]], 1),
+        "dash-n": (0, launch("", sha), leaf("", sha), [[]], 0),
+        "dash-e": (0, launch("", sha), leaf("", sha), [[]], 0),
+        "dash-E": (0, launch("", sha), leaf("", sha), [[]], 0),
+        "git-beats-inherited": (0, launch("", sha), leaf("", sha), [[]], 0),
+        "inherited": (0, launch("", "inherited"), leaf("", "inherited"), [[]], 0),
+        "inherited-empty": (0, launch("", "unknown"), leaf("", "unknown"), [[]], 0),
+        "unknown": (0, launch("", "unknown"), leaf("", "unknown"), [[]], 0),
     }
 
 
 def test_main_runs_harvest_usage_sh_once_for_a_watched_name_onto_its_stderr_before_the_status_line_a_failing_one_changing_nothing_and_none_for_a_verdict_name(
-        monkeypatch, tmp_path, capfdbinary, supervise):
+        monkeypatch, tmp_path, capfdbinary, supervise, events):
     import signal
     import time
     monkeypatch.setattr(signal, "signal", lambda *_: None)
@@ -517,8 +493,6 @@ def test_main_runs_harvest_usage_sh_once_for_a_watched_name_onto_its_stderr_befo
             if harvest_sh in [str(x) for x in args]:
                 cmd, passed = as_harvester(args, kwargs)
                 return real_popen(cmd, **passed)
-            if os.path.join(here, "event.sh") in [str(x) for x in args]:
-                return launching(["true"])
             return launching(args, *a, **kwargs)
 
         def run(args, *a, **kwargs):
@@ -528,14 +502,13 @@ def test_main_runs_harvest_usage_sh_once_for_a_watched_name_onto_its_stderr_befo
                 if kwargs.get("check") and code:
                     raise subprocess.CalledProcessError(code, args)
                 return subprocess.CompletedProcess(args, code, None, None)
-            if os.path.join(here, "event.sh") in [str(x) for x in args]:
-                return subprocess.CompletedProcess(args, 0, "", "")
             return running(args, *a, **kwargs)
 
         monkeypatch.setattr(subprocess, "Popen", popen)
         monkeypatch.setattr(subprocess, "run", run)
         monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, *a, **k).returncode)
         monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: run(args, *a, check=True, **k).returncode)
+        events.through()
         code = supervise.main([name, "sh", "-c", "printf 'leaf out\\n'"])
         out, err = capfdbinary.readouterr()
         lines = [line for line in err.splitlines()
@@ -1620,7 +1593,7 @@ def test_main_keeps_a_killed_leaf_whose_log_cannot_be_opened_killed_stuck_writin
 
 
 def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_and_retries_a_killed_leaf_while_tries_are_below_veri_stuck_retries_read_as_bash_arithmetic(
-        monkeypatch, tmp_path, capsysbinary, supervise):
+        monkeypatch, tmp_path, capsysbinary, supervise, events):
     import signal
     import time
     monkeypatch.setattr(signal, "signal", lambda *_: None)
@@ -1633,7 +1606,7 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
         monkeypatch.chdir(work)
         clean_env(monkeypatch, VERI_TIMEOUT="5000", VERI_HEARTBEAT="3", VERI_KILL_POLL="0.25", **env)
         clock = {"wall": 1000, "dates": 0}
-        leaves, preserved, events = [], [], []
+        leaves, preserved = [], []
 
         class Leaf:
             pid = 4242
@@ -1680,8 +1653,6 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
                     sys.stdout.write(said)
                 else:
                     sys.stderr.write(said)
-            elif any(w.endswith("/event.sh") for w in words):
-                events.append(words[[w.endswith("/event.sh") for w in words].index(True) + 1:])
             out = as_asked(out, kwargs) if kwargs.get("stdout") == subprocess.PIPE else None
             return subprocess.CompletedProcess(args, code, out, None)
 
@@ -1700,6 +1671,7 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
         monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, **k).returncode)
         monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: run(args, **k).returncode)
         monkeypatch.setattr(subprocess, "Popen", popen)
+        events.through()
 
         try:
             code = supervise.main(["develop-red", "leaf-hang"])
@@ -1709,18 +1681,19 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
             code = repr(error)
         out, err = capsysbinary.readouterr()
         return {"code": code, "launches": len(leaves), "preserved": preserved,
-                "retries": [e for e in events if e[:1] == ["retry"]],
+                "retries": [r for r in events.records(work) if r["event"] == "retry"],
                 "out": out, "err": err.decode(errors="replace")}
 
     def kept(*attempts):
         return [["1073", "27", "develop-red", str(a), "stuck"] for a in attempts]
 
-    cause = "cause=no heartbeat for 4s (window 3s)"
+    retry = {"issue": "1073", "actor": "developer", "phase": "red", "step": "27", "event": "retry", "attempt": "1",
+             "skill_commit": "0123456789abcdef0123456789abcdef01234567", "cause": "no heartbeat for 4s (window 3s)"}
     issue_step = {"VERI_ISSUE": "1073", "VERI_STEP": "27"}
 
     default = stuck("default", **issue_step)
     assert (default["code"], default["launches"], default["preserved"], default["retries"], default["out"]) == (
-        2, 2, kept(1, 2), [["retry", cause]], b"")
+        2, 2, kept(1, 2), [retry], b"")
     assert "supervise[develop-red]: retry 1/1 after killed-stuck\n" in default["err"]
     assert "kept attempt 1\n" in default["err"] and "kept attempt 2\n" in default["err"]
 
@@ -1747,7 +1720,7 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
 
 
 def test_main_reads_veri_stuck_retries_with_leading_zeros_as_decimal_08_eight_retries_then_killed_stuck_1198(
-        monkeypatch, tmp_path, capsysbinary, supervise):
+        monkeypatch, tmp_path, capsysbinary, supervise, events):
     import signal
     import time
     monkeypatch.setattr(signal, "signal", lambda *_: None)
@@ -1755,7 +1728,7 @@ def test_main_reads_veri_stuck_retries_with_leading_zeros_as_decimal_08_eight_re
     clean_env(monkeypatch, VERI_TIMEOUT="5000", VERI_HEARTBEAT="3", VERI_KILL_POLL="0.25",
               VERI_STUCK_RETRIES="08")
     clock = {"wall": 1000, "dates": 0}
-    leaves, events = [], []
+    leaves = []
 
     class Leaf:
         pid = 4242
@@ -1789,8 +1762,6 @@ def test_main_reads_veri_stuck_retries_with_leading_zeros_as_decimal_08_eight_re
             out = f"{clock['wall']}\n"
         elif words[:1] == ["stat"]:
             out = "1000\n"
-        elif any(w.endswith("/event.sh") for w in words):
-            events.append(words[[w.endswith("/event.sh") for w in words].index(True) + 1:])
         out = as_asked(out, kwargs) if kwargs.get("stdout") == subprocess.PIPE else None
         return subprocess.CompletedProcess(args, 0, out, None)
 
@@ -1805,6 +1776,7 @@ def test_main_reads_veri_stuck_retries_with_leading_zeros_as_decimal_08_eight_re
     monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, **k).returncode)
     monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: run(args, **k).returncode)
     monkeypatch.setattr(subprocess, "Popen", popen)
+    events.through()
 
     try:
         code = supervise.main(["develop-red", "leaf-hang"])
@@ -1812,7 +1784,7 @@ def test_main_reads_veri_stuck_retries_with_leading_zeros_as_decimal_08_eight_re
         code = "<never ended>"
     capsysbinary.readouterr()
 
-    assert (code, len(leaves), len([e for e in events if e[:1] == ["retry"]])) == (2, 9, 8)
+    assert (code, len(leaves), len([r for r in events.records() if r["event"] == "retry"])) == (2, 9, 8)
 
 
 def test_main_refuses_a_veri_heartbeat_not_a_non_negative_decimal_integer_with_exit_2_naming_it_starting_nothing_but_git_1198(
@@ -1919,7 +1891,7 @@ def test_main_refuses_a_veri_stuck_retries_not_a_non_negative_decimal_integer_wi
 
 
 def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_and_records_itself_there_only_for_a_watched_name_not_a_conductor(
-        monkeypatch, tmp_path, capsysbinary, supervise):
+        monkeypatch, tmp_path, capsysbinary, supervise, events):
     import signal
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     clean_env(monkeypatch)
@@ -1935,6 +1907,7 @@ def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_an
             (tdd / f"{owner_exit}.exit").write_text("0\n")
         monkeypatch.chdir(work)
         calls = fake_git_only(monkeypatch, work)
+        events.through()
         probed = []
 
         def kill(pid, sig):
@@ -1955,7 +1928,8 @@ def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_an
 
         return (code, out, err.decode().splitlines()[-1:], read(f"{name}.exit"), read(f"{name}.pid"),
                 read("leaf.owner"), probed,
-                ["git", "-C", supervise.HERE, "rev-parse", "HEAD"] in calls)
+                ["git", "-C", supervise.HERE, "rev-parse", "HEAD"] in calls,
+                [(r["event"], r["actor"], r["name"]) for r in events.records(work)])
 
     refusal = "supervise: refusing to launch {}: leaf {} (pid {}) is still alive in this worktree"
     answers = {
@@ -1975,31 +1949,33 @@ def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_an
         "alive-verdict": supervised("alive-verdict", "verdict-red", "4242 develop-red\n"),
     }
 
+    launched, mine, verifier = ("launched", "date"), f"{me}\n", [("launch", "verifier", "verify-red")]
     assert answers == {
         "alive": (2, b"", [refusal.format("verify-red", "develop-red", 4242)], "2\n", None,
-                  "4242 develop-red\nignored line\n", [(4242, 0)], True),
+                  "4242 develop-red\nignored line\n", [(4242, 0)], True, []),
         "alive-same-name": (2, b"", [refusal.format("develop-red", "develop-red", 4242)], None, None,
-                            "4242 develop-red\n", [(4242, 0)], True),
+                            "4242 develop-red\n", [(4242, 0)], True, []),
         "alive-no-owner-name": (2, b"", [refusal.format("verify-red", "?", 4242)], "2\n", None,
-                                "4242\n", [(4242, 0)], True),
+                                "4242\n", [(4242, 0)], True, []),
         "alive-refused-role": (2, b"", [refusal.format("bogus-x", "develop-red", 4242)], "2\n", None,
-                               "4242 develop-red\n", [(4242, 0)], True),
-        "alive-zero": (("launched", "env"), b"", [], None, None, f"{me} verify-red\n", [], True),
-        "alive-negative": (("launched", "env"), b"", [], None, None, f"{me} verify-red\n", [], True),
-        "owner-exit": (("launched", "env"), b"", [], None, None, f"{me} verify-red\n", [], True),
-        "empty-pid": (("launched", "env"), b"", [], None, None, f"{me} verify-red\n", [], True),
-        "word-pid": (("launched", "env"), b"", [], None, None, f"{me} verify-red\n", [], True),
-        "dead": (("launched", "env"), b"", [], None, None, f"{me} verify-red\n", [(4242, 0)], True),
-        "none-watched": (("launched", "env"), b"", [], None, None, f"{me} develop-red\n", [], True),
-        "none-verdict": (("launched", "date"), b"", [], None, f"{me}\n", None, [], True),
-        "none-conductor": (("launched", "env"), b"", [], None, None, None, [], True),
+                               "4242 develop-red\n", [(4242, 0)], True, []),
+        "alive-zero": (launched, b"", [], None, mine, f"{me} verify-red\n", [], True, verifier),
+        "alive-negative": (launched, b"", [], None, mine, f"{me} verify-red\n", [], True, verifier),
+        "owner-exit": (launched, b"", [], None, mine, f"{me} verify-red\n", [], True, verifier),
+        "empty-pid": (launched, b"", [], None, mine, f"{me} verify-red\n", [], True, verifier),
+        "word-pid": (launched, b"", [], None, mine, f"{me} verify-red\n", [], True, verifier),
+        "dead": (launched, b"", [], None, mine, f"{me} verify-red\n", [(4242, 0)], True, verifier),
+        "none-watched": (launched, b"", [], None, mine, f"{me} develop-red\n", [], True,
+                         [("launch", "developer", "develop-red")]),
+        "none-verdict": (launched, b"", [], None, mine, None, [], True, []),
+        "none-conductor": (launched, b"", [], None, mine, None, [], True, [("launch", "conductor", "conductor-1")]),
         "alive-verdict": (2, b"", [refusal.format("verdict-red", "develop-red", 4242)], "2\n", None,
-                          "4242 develop-red\n", [(4242, 0)], True),
+                          "4242 develop-red\n", [(4242, 0)], True, []),
     }
 
 
 def test_main_treats_a_leaf_owner_pid_below_1_as_stale_and_launches_1200(
-        monkeypatch, tmp_path, capsysbinary, supervise):
+        monkeypatch, tmp_path, capsysbinary, supervise, events):
     import signal
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     clean_env(monkeypatch)
@@ -2013,16 +1989,19 @@ def test_main_treats_a_leaf_owner_pid_below_1_as_stale_and_launches_1200(
         (tdd / "leaf.owner").write_text(f"{owner_pid} develop-red\n")
         monkeypatch.chdir(work)
         fake_git_only(monkeypatch, work)
+        events.through()
         try:
             code = supervise.main(["verify-red", "true"])
         except Launched as launched:
             code = ("launched", launched.args[0][0])
         _, err = capsysbinary.readouterr()
         exitfile = tdd / "verify-red.exit"
-        return (code, err, exitfile.exists(), (tdd / "leaf.owner").read_text())
+        return (code, err, exitfile.exists(), (tdd / "leaf.owner").read_text(),
+                [(r["event"], r["actor"], r["name"]) for r in events.records(work)])
 
     assert {pid: supervised(pid) for pid in ("0", "-7")} == {
-        pid: (("launched", "env"), b"", False, f"{me} verify-red\n") for pid in ("0", "-7")
+        pid: (("launched", "date"), b"", False, f"{me} verify-red\n", [("launch", "verifier", "verify-red")])
+        for pid in ("0", "-7")
     }
 
 
@@ -2031,7 +2010,7 @@ class NoHandler(BaseException):
 
 
 def test_main_restores_sigint_then_traps_term_int_and_hup_after_the_stale_exit_goes_unless_ignored_at_start_and_the_trap_kills_the_last_leaf_writes_2_and_exits_2_silently(
-        monkeypatch, tmp_path, capsysbinary, supervise):
+        monkeypatch, tmp_path, capsysbinary, supervise, events):
     import re
     import signal
     import time
@@ -2062,7 +2041,7 @@ def test_main_restores_sigint_then_traps_term_int_and_hup_after_the_stale_exit_g
 
         monkeypatch.setattr(os, "_exit", exit_now)
         clock = {"wall": 1000, "dates": 0}
-        events = []
+        signals = []
         leaves = []
 
         class Leaf:
@@ -2079,7 +2058,7 @@ def test_main_restores_sigint_then_traps_term_int_and_hup_after_the_stale_exit_g
                 return self.returncode
 
         def signalled(how, target, sig):
-            events.append((how, target, sig))
+            signals.append((how, target, sig))
             for leaf in leaves:
                 if leaf.pid == target and sig in (term, signal.SIGKILL):
                     leaf.returncode = -sig
@@ -2090,7 +2069,7 @@ def test_main_restores_sigint_then_traps_term_int_and_hup_after_the_stale_exit_g
 
         def deliver():
             handler = dispositions.get(sent, signal.SIG_DFL)
-            events.append(("delivered", sent))
+            signals.append(("delivered", sent))
             if not callable(handler) or handler is signal.default_int_handler:
                 raise NoHandler(sent)
             handler(sent, None)
@@ -2138,6 +2117,7 @@ def test_main_restores_sigint_then_traps_term_int_and_hup_after_the_stale_exit_g
         monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: 0)
         monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: 0)
         monkeypatch.setattr(subprocess, "Popen", popen)
+        events.through()
 
         try:
             code = supervise.main(["develop-red", "leaf-hang"])
@@ -2148,7 +2128,7 @@ def test_main_restores_sigint_then_traps_term_int_and_hup_after_the_stale_exit_g
         except Runaway:
             code = "<never ended>"
         out, err = capsysbinary.readouterr()
-        delivered = next((i for i, e in enumerate(events) if e[0] == "delivered"), len(events))
+        delivered = next((i for i, e in enumerate(signals) if e[0] == "delivered"), len(signals))
         trapped = [(sig, present) for sig, handler, present in installs
                    if callable(handler) and handler is not signal.default_int_handler]
         return {
@@ -2157,12 +2137,12 @@ def test_main_restores_sigint_then_traps_term_int_and_hup_after_the_stale_exit_g
             "defaults set": [(sig, present) for sig, handler, present in installs if handler is signal.SIG_DFL],
             "trapped": sorted(trapped),
             "one handler": len({handler for _, handler, _ in installs if callable(handler)}) <= 1,
-            "kills after delivery": events[delivered + 1:],
+            "kills after delivery": signals[delivered + 1:],
             "exit file": exitfile.read_text() if exitfile.exists() else None,
             "stdout": out,
             "status lines": [line for line in err.splitlines()
                              if re.match(rb"supervise\[develop-red\]: (success|failure|killed-stuck)", line)],
-            "exit events": [r for r in runs if any(a.endswith("event.sh") for a in r) and "exit" in r],
+            "events": [r["event"] for r in events.records(work)],
             "harvests": [r for r in runs if any(a.endswith("harvest-usage.sh") for a in r)],
         }
 
@@ -2175,25 +2155,27 @@ def test_main_restores_sigint_then_traps_term_int_and_hup_after_the_stale_exit_g
         "term with int and hup ignored": supervised("ignored", ignoring, term, "first date"),
     }
 
-    silent = {"stdout": b"", "status lines": [], "exit events": [], "harvests": []}
+    silent = {"stdout": b"", "status lines": [], "harvests": []}
     trapped_all = [(hup, False), (sigint, False), (term, False)]
     assert answers == {
         "term mid second leaf": {
             "code": ("exited", 2), "first install": (sigint, True),
             "defaults set": [(sigint, True)], "trapped": trapped_all, "one handler": True,
-            "kills after delivery": [("group", 4243, term)], "exit file": "2\n", **silent},
+            "kills after delivery": [("group", 4243, term)], "exit file": "2\n", "events": ["launch", "retry"],
+            **silent},
         "hup before any leaf": {
             "code": ("exited", 2), "first install": (sigint, True),
             "defaults set": [(sigint, True)], "trapped": trapped_all, "one handler": True,
-            "kills after delivery": [], "exit file": "2\n", **silent},
+            "kills after delivery": [], "exit file": "2\n", "events": ["launch"], **silent},
         "int mid second leaf": {
             "code": ("exited", 2), "first install": (sigint, True),
             "defaults set": [(sigint, True)], "trapped": trapped_all, "one handler": True,
-            "kills after delivery": [("group", 4243, term)], "exit file": "2\n", **silent},
+            "kills after delivery": [("group", 4243, term)], "exit file": "2\n", "events": ["launch", "retry"],
+            **silent},
         "term with int and hup ignored": {
             "code": ("exited", 2), "first install": (term, False),
             "defaults set": [], "trapped": [(term, False)], "one handler": True,
-            "kills after delivery": [], "exit file": "2\n", **silent},
+            "kills after delivery": [], "exit file": "2\n", "events": ["launch"], **silent},
     }
 
 
@@ -2492,33 +2474,19 @@ def test_cli_kills_a_hung_or_runaway_leaf_stuck_on_the_default_180s_or_an_explic
 
 
 def test_cli_appends_one_retry_event_carrying_the_kill_cause_per_relaunch_and_one_exit_event_carrying_the_0_1_2_status_the_kill_cause_and_the_attempts_wall_seconds(
-        monkeypatch, tmp_path, supervise, run_cli):
+        monkeypatch, tmp_path, supervise, run_cli, events):
     import signal
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     clean_env(monkeypatch)
-    event_sh = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(supervise.__file__))), "event.sh")
 
-    def marked(monkeypatch_events):
-        running = subprocess.run
-
-        def run(args, *a, **kwargs):
-            args = [str(x) for x in args]
-            if event_sh in args:
-                monkeypatch_events.append(args[args.index(event_sh) + 1:])
-                return subprocess.CompletedProcess(args, 0, "", "")
-            return running(args, *a, **kwargs)
-
-        monkeypatch.setattr(subprocess, "run", run)
-
-    def kept(events):
-        return [f for f in events if f[0] in ("retry", "exit")]
+    def kept(work):
+        return [r for r in events.records(work) if r["event"] in ("retry", "exit")]
 
     def real_leaf(name, script):
         work = prepare_real_leaf(monkeypatch, tmp_path, name)
-        events = []
-        marked(events)
+        events.through()
         run_cli(supervise, [name, "sh", "-c", script], cwd=work, env=REAL_LEAF_ENV)
-        return kept(events)
+        return kept(work)
 
     def hung_leaf(name, retries):
         work = tmp_path / name
@@ -2532,28 +2500,30 @@ def test_cli_appends_one_retry_event_carrying_the_kill_cause_per_relaunch_and_on
             return leaf
 
         monkeypatch.setattr(subprocess, "Popen", popen)
-        events = []
-        marked(events)
+        events.through()
         run_cli(supervise, [name, "leaf"], cwd=work,
                 env={"VERI_STUCK_RETRIES": retries, "VERI_HEARTBEAT": "5", "VERI_TIMEOUT": "5000"})
-        return kept(events)
+        return kept(work)
 
-    def shape(events):
-        return [[f if not f.startswith("secs=") else "secs=" + ("n" if f[5:].isdigit() else f[5:]) for f in e]
-                for e in events]
+    def shape(records):
+        return [{k: v if k != "secs" else "n" if v.isdigit() else v for k, v in r.items()} for r in records]
 
     cause = "no heartbeat for 6s (window 5s)"
+    def context(phase):
+        return {"issue": "", "actor": "developer", "phase": phase, "step": "", "attempt": "1",
+                "skill_commit": "0123456789abcdef0123456789abcdef01234567"}
+
     ok = real_leaf("develop-ok", "exit 0")
     failed = real_leaf("develop-fail", "exit 3")
     hung = hung_leaf("develop-hung", "0")
     retried = hung_leaf("develop-retried", "1")
-    assert shape(ok) == [["exit", "status=0", "secs=n"]]
-    assert shape(failed) == [["exit", "status=1", "secs=n"]]
-    assert shape(hung) == [["exit", "status=2", f"cause={cause}", "secs=n"]]
-    assert int(hung[0][-1][5:]) >= 5
-    assert shape(retried)[:1] == [["retry", f"cause={cause}"]]
-    assert [e[0] for e in retried].count("retry") == 1
-    assert retried[-1][:3] == ["exit", "status=2", f"cause={cause}"]
+    assert shape(ok) == [{**context("ok"), "event": "exit", "status": "0", "secs": "n"}]
+    assert shape(failed) == [{**context("fail"), "event": "exit", "status": "1", "secs": "n"}]
+    assert shape(hung) == [{**context("hung"), "event": "exit", "status": "2", "cause": cause, "secs": "n"}]
+    assert int(hung[0]["secs"]) >= 5
+    assert shape(retried)[:1] == [{**context("retried"), "event": "retry", "cause": cause}]
+    assert [r["event"] for r in retried].count("retry") == 1
+    assert {k: retried[-1][k] for k in ("event", "status", "cause")} == {"event": "exit", "status": "2", "cause": cause}
 
 
 def test_cli_ends_a_killed_stuck_leaf_that_succeeds_on_its_retry_in_success_with_the_retrys_output(
