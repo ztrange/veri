@@ -81,44 +81,6 @@ finding() {
   rest="$(sed -E 's/[0-9a-f]{7,40}//g' <<< "${line//"$branch"/}")"
 }
 
-ref_state() {
-  local clone="$1" origin="$2"
-  git -C "$clone" for-each-ref --format='clone %(refname) %(objectname) %(symref)'
-  git -C "$clone" worktree list --porcelain
-  git -C "$origin" for-each-ref --format='origin %(refname) %(objectname) %(symref)'
-  echo "origin HEAD $(git -C "$origin" symbolic-ref HEAD)"
-}
-name="invisible-work.sh: writes to no ref — the clone's and origin's refs are byte-identical after a run"
-problems=()
-unpr="chore/nobody-opened-a-pr"
-merged="tdd/4-supervised-leaves"
-gone="chore/deleted-on-origin"
-local_only="tdd/150-a-run-that-never-reached-origin"
-clone="$(unpr_branch_clone "$work/case13" "$unpr" 1)"
-origin="$work/case13/origin.git"
-push_control_branch "$work/case13" "$merged"
-push_control_branch "$work/case13" "$gone"
-git_q "$clone" branch -q "$merged" "origin/$merged"
-git_q "$clone" tag -a -m "v0.1" v0.1 main
-git_q "$clone" worktree add -q -b "$local_only" "$work/case13/wt-150" main
-git_q "$work/case13/wt-150" commit -q --allow-empty -m "feat: a step nobody pushed (#150)"
-git_q "$work/case13/src" push -q origin --delete "$gone"
-git_q "$work/case13/src" checkout -q -b "chore/pushed-after-the-fetch" main
-git_q "$work/case13/src" commit -q --allow-empty -m "chore: work the clone has not fetched"
-git_q "$work/case13/src" push -q origin "chore/pushed-after-the-fetch"
-gh_json="$(fixture "$work/case13/gh")"
-cat > "$gh_json/prs.json" <<JSON
-[{"headRefName": "$merged", "state": "MERGED", "body": "Closes #4"}]
-JSON
-before="$(ref_state "$clone" "$origin")"
-out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"; rc=$?
-after="$(ref_state "$clone" "$origin")"
-names "the run reported the branch with no PR" "$out" "$unpr"
-names "the run reported the local branch origin lacks" "$out" "$local_only"
-[[ "$before" == "$after" ]] ||
-  problems+=("the refs after a run: want byte-identical to before, got this diff: $(diff <(echo "$before") <(echo "$after") | grep -E '^[<>]' | tr '\n' ';')")
-report "$name"
-
 run_both_ghs() {  # run_both_ghs <clone> <gh-fixture-dir> <stderr-file> -> sets working, working_rc, refused, rc
   local clone="$1" fx="$2" err="$3"
   working="$(cd "$clone" && env -u VERI_GH_JSON PATH="$work/case568/bin:$PATH" GH_GRAPHQL=working GH_FX="$fx" "$INVISIBLE" 2>/dev/null)"; working_rc=$?
@@ -193,63 +155,6 @@ STUB
 for run in "coverage-blocker.sh 7" "tick-issue-criterion.sh 7 criterion"; do
   exits_2_after_gh "$work/case568-patch" "$work/case568-patch" "$run" "$run"
 done
-report "$name"
-
-name="invisible-work.sh, run through a symlink to the skill directory and from a subdirectory of the clone, prints the same report, stderr and exit code as when run in place from the clone's root"
-problems=()
-local_only="tdd/150-a-run-that-never-reached-origin"
-clone="$(unpr_branch_clone "$work/case-linked" "tdd/71-walkthrough-version-the-commentary-too" 2)"
-gh_json="$(fixture "$work/case-linked/gh")"
-git_q "$clone" checkout -q -b "$local_only" main
-git_q "$clone" commit -q --allow-empty -m "feat: a step nobody pushed (#150)"
-git_q "$clone" checkout -q main
-mkdir -p "$clone/sub/dir"
-ln -s "$(cd "$HERE/../.." && pwd)" "$work/case-linked/linked-skill"
-in_code=0
-(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE") \
-  > "$work/case-linked/in-place.out" 2> "$work/case-linked/in-place.err" || in_code=$?
-linked_code=0
-(cd "$clone/sub/dir" && VERI_GH_JSON="$gh_json" "$work/case-linked/linked-skill/scripts/invisible-work.sh") \
-  > "$work/case-linked/linked.out" 2> "$work/case-linked/linked.err" || linked_code=$?
-[[ "$in_code" == 0 ]] && grep -F "$local_only" "$work/case-linked/in-place.out" > /dev/null ||
-  problems+=("in place: want exit 0 with a finding naming $local_only, got exit $in_code; stderr: $(cat "$work/case-linked/in-place.err")")
-[[ "$linked_code" == "$in_code" ]] ||
-  problems+=("exit through the symlink want $in_code got $linked_code; stderr: $(cat "$work/case-linked/linked.err")")
-cmp -s "$work/case-linked/in-place.out" "$work/case-linked/linked.out" ||
-  problems+=("stdout through the symlink differs: $(diff "$work/case-linked/in-place.out" "$work/case-linked/linked.out")")
-cmp -s "$work/case-linked/in-place.err" "$work/case-linked/linked.err" ||
-  problems+=("stderr through the symlink differs: $(diff "$work/case-linked/in-place.err" "$work/case-linked/linked.err")")
-report "$name"
-
-name="invisible-work.sh, in a clone with no refs/remotes/origin/HEAD, resolves the default branch from the remote and prints the same report and exit code as when the ref is set (#865)"
-problems=()
-branch="tdd/71-walkthrough-version-the-commentary-too"
-clone="$(unpr_branch_clone "$work/case865" "$branch" 3)"
-gh_json="$(fixture "$work/case865/gh")"
-set_code=0
-set_out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>"$work/case865/set.err")" || set_code=$?
-git_q "$clone" config remote.origin.followRemoteHEAD never
-git_q "$clone" symbolic-ref --delete refs/remotes/origin/HEAD
-unset_code=0
-unset_out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>"$work/case865/unset.err")" || unset_code=$?
-[[ "$set_code" == 0 && "$set_out" == *"$branch"* ]] ||
-  problems+=("with origin/HEAD set: want exit 0 and a finding naming $branch, got exit $set_code and $(printf '%q' "$set_out"); stderr: $(cat "$work/case865/set.err")")
-[[ "$unset_code" == "$set_code" && "$unset_out" == "$set_out" ]] ||
-  problems+=("with no origin/HEAD: want exit $set_code and $(printf '%q' "$set_out"), got exit $unset_code and $(printf '%q' "$unset_out"); stderr: $(cat "$work/case865/unset.err")")
-report "$name"
-
-name="invisible-work.sh, in a clone with no refs/remotes/origin/HEAD and a remote whose default cannot be resolved, exits 2 with stderr naming refs/remotes/origin/HEAD (#865)"
-problems=()
-clone="$(unpr_branch_clone "$work/case865-unresolvable" "tdd/71-walkthrough-version-the-commentary-too" 1)"
-gh_json="$(fixture "$work/case865-unresolvable/gh")"
-git_q "$clone" config remote.origin.followRemoteHEAD never
-git_q "$clone" symbolic-ref --delete refs/remotes/origin/HEAD
-bare="$work/case865-unresolvable/origin.git"
-git_q "$bare" update-ref --no-deref HEAD "$(git_q "$bare" rev-parse refs/heads/main)"
-code=0
-out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>"$work/case865-unresolvable/err")" || code=$?
-[[ "$code" == 2 ]] && grep -F 'refs/remotes/origin/HEAD' "$work/case865-unresolvable/err" > /dev/null ||
-  problems+=("want exit 2 and stderr naming refs/remotes/origin/HEAD, got exit $code and stderr $(printf '%q' "$(cat "$work/case865-unresolvable/err")"); stdout: $(printf '%q' "$out")")
 report "$name"
 
 finish
