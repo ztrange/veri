@@ -6,3 +6,5 @@
 - `leaf_model.py:59` `if model:` in `main` is always true now that `resolve` returns a non-empty model or `None`, so the guard is dead code (not duplication, so not applied here)
 ### With VERIFY_LEAF_ARGS carrying --model x and no model variable set, verify.sh does not exit 2 and the verifier leaf's command line names model x ⟦criterion 4⟧
 - test-only | extract the fake-subprocess setup in `test_main_lets_a_literal_model_word_in_verify_leaf_args_stand_when_no_model_variable_is_set` into a fixture shared with the neighbouring clash test in `test_verify.py`
+### model-knobs-recorded.test.sh goes red, naming the document, when SKILL.md's supervise.sh bullet or CLAUDE.md's model-knob invariant stops naming VERI_MODEL_REVISE ⟦criterion 5⟧
+- test-only | rename `names_all_three` (`model-knobs-recorded.test.sh:40`) to say four: it now requires `VERI_MODEL_REVISE` too. It is a rename, not duplication removal, so it is not applied here.
