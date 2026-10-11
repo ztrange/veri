@@ -56,8 +56,7 @@ def main(argv):
     model = resolve(argv[0])
     if model is None:
         return 2
-    if model:
-        _echo(model)
+    _echo(model)
     return 0
 
 
