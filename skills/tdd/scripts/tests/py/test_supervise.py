@@ -2722,6 +2722,31 @@ def test_cli_launches_a_supervised_run_leaf_with_model_in_claudes_argv_only_when
     ]
 
 
+@pytest.mark.process("run-leaf.sh run for real under a revise leaf, starting a stub claude")
+def test_cli_launches_a_revise_leaf_on_veri_model_revise_recording_it_on_the_launch_and_passing_it_as_claudes_model(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import json
+    import signal
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    clean_env(monkeypatch)
+    stub = tmp_path / "claude-stub"
+    stub.write_text('#!/bin/sh\nprintf \'%s\\n\' "$@" > "$OUT"\n'
+                    "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"ok\"}'\n")
+    stub.chmod(0o755)
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("redo the rejected work")
+    work = tmp_path / "revise"
+    work.mkdir()
+    out = tmp_path / "revise-claude.argv"
+    env = {"CLAUDE_BIN": str(stub), "OUT": str(out), **REAL_LEAF_ENV,
+           "VERI_MODEL_DEVELOPER": "sonnet", "VERI_MODEL_REVISE": "opus"}
+    code, _, _ = run_cli(supervise, ["revise-green-2", str(SCRIPTS / "run-leaf.sh"), str(prompt)], cwd=work, env=env)
+    launches = [json.loads(line) for line in (work / ".tdd" / "events.jsonl").read_text().splitlines()]
+    argv = out.read_text().splitlines() if out.exists() else []
+    model_flag = argv[argv.index("--model") + 1] if "--model" in argv else None
+    assert (code, [e.get("model") for e in launches if e.get("event") == "launch"], model_flag) == (0, ["opus"], "opus")
+
+
 @pytest.mark.process("git runs for real, and the launch event is appended in-process: a launch event's skill_commit is the skill clone's own HEAD, or unknown outside a clone")
 def test_cli_records_the_skill_clones_own_head_in_a_launch_events_skill_commit_and_the_literal_unknown_for_a_skill_outside_a_git_clone(
         monkeypatch, tmp_path, supervise, run_cli):
