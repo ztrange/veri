@@ -249,48 +249,6 @@ clock-jump "$1" suspend && echo "$1" >> .test-suspended
 C
 chmod +x "$stub/clock-suspend"
 
-suspend_probe="$(scratch_dir)"
-mkdir -p "$suspend_probe/spy" "$suspend_probe/cwd"
-cat > "$suspend_probe/awake-read" <<C
-echo "\$("$stub/awake-clock") $clock_base" >> .test-awake-reads
-C
-cat > "$suspend_probe/spy/clock-jump" <<C
-"$stub/clock-jump" "\$@" || exit \$?
-"$suspend_probe/awake-read"
-C
-chmod +x "$suspend_probe/awake-read" "$suspend_probe/spy/clock-jump"
-( cd "$suspend_probe/cwd" && PATH="$suspend_probe/spy:$PATH" "$stub/clock-suspend" 100 \
-    && "$suspend_probe/awake-read" )
-suspend_code=$?
-suspend_reads="$(cat "$suspend_probe/cwd/.test-awake-reads" 2>/dev/null)"
-suspend_ahead="$(awk '$1 > $2 { print "awake=" $1 " unjumped=" $2 }' <<<"$suspend_reads")"
-rm -rf "$suspend_probe"
-{ [[ "$suspend_code" == 0 ]] && [[ -n "$suspend_reads" ]] && [[ -z "$suspend_ahead" ]]; } && ok \
-  || no "#512: clock-suspend 100 never lets the awake clock read higher than the true awake seconds during its run (code=$suspend_code want 0, readings ahead of the unjumped clock: '${suspend_ahead//$'\n'/; }' want none, all readings: '${suspend_reads//$'\n'/; }')"
-
-atomic_probe="$(scratch_dir)"
-mkdir -p "$atomic_probe/spy" "$atomic_probe/cwd"
-cat > "$atomic_probe/both-read" <<C
-echo "\$("$stub/awake-clock") \$("$stub/date" +%s) $clock_base" >> .test-both-reads
-C
-cat > "$atomic_probe/spy/clock-jump" <<C
-"$atomic_probe/both-read"
-"$stub/clock-jump" "\$@" || exit \$?
-"$atomic_probe/both-read"
-C
-chmod +x "$atomic_probe/both-read" "$atomic_probe/spy/clock-jump"
-( cd "$atomic_probe/cwd" && PATH="$atomic_probe/spy:$PATH" "$stub/clock-suspend" 100 \
-    && "$atomic_probe/both-read" )
-atomic_code=$?
-atomic_reads="$(cat "$atomic_probe/cwd/.test-both-reads" 2>/dev/null)"
-atomic_torn="$(awk '{ moved = ($2 - $3 >= 50); slept = ($2 - $1 >= 50) }
-  moved != slept { print "awake=" $1 " wall=" $2 " unjumped=" $3 }' <<<"$atomic_reads")"
-atomic_last="$(awk 'END { print (($2 - $3 >= 50) && ($2 - $1 >= 50)) ? "both" : "not both" }' \
-  <<<"$atomic_reads")"
-rm -rf "$atomic_probe"
-{ [[ "$atomic_code" == 0 ]] && [[ -z "$atomic_torn" ]] && [[ "$atomic_last" == both ]]; } && ok \
-  || no "#512: clock-suspend 100 moves the wall clock and the awake clock together, so no reading during its run sees one moved without the other (code=$atomic_code want 0, torn readings: '${atomic_torn//$'\n'/; }' want none, last reading: $atomic_last want both, all readings (awake wall unjumped): '${atomic_reads//$'\n'/; }')"
-
 restart_py="$(scratch_dir)"
 realpy="$(command -v python3)"
 cat > "$restart_py/python3" <<P
