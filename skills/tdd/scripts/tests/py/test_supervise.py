@@ -510,6 +510,60 @@ def test_main_appends_one_usage_record_for_a_watched_leaf_with_its_role_and_skil
         0, closing.encode() + b"\n", b"0\n", [], [b"supervise[verdict-red]: success"])
 
 
+def test_main_gives_the_same_exit_stdout_stderr_and_usage_record_with_any_start_of_harvest_usage_sh_refused_at_the_process_boundary_for_a_log_with_a_closing_result_and_one_without(
+        monkeypatch, tmp_path, capfdbinary, supervise, events):
+    import json
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    monkeypatch.setattr(time, "sleep", lambda *_: None)
+    monkeypatch.setattr(time, "clock_gettime", lambda *_: 5000.0)
+    sha = "0123456789abcdef0123456789abcdef01234567"
+    closing = json.dumps(
+        {"type": "result", "subtype": "success", "is_error": False, "duration_ms": 91234, "duration_api_ms": 40118,
+         "num_turns": 7, "result": "done", "session_id": "4d1a", "total_cost_usd": 0.31,
+         "usage": {"input_tokens": 37, "cache_creation_input_tokens": 41002, "cache_read_input_tokens": 903117,
+                   "output_tokens": 5140}})
+    refused = []
+
+    def refuse_harvest_start(monkeypatch_target, attr):
+        inner = getattr(monkeypatch_target, attr)
+
+        def guarded(args, *a, **k):
+            if "harvest-usage.sh" in " ".join(map(str, args if isinstance(args, (list, tuple)) else [args])):
+                refused.append(args)
+                raise OSError("harvest-usage.sh start refused")
+            return inner(args, *a, **k)
+
+        monkeypatch.setattr(monkeypatch_target, attr, guarded)
+
+    def run_one(name, leaf_says):
+        work = tmp_path / f"{name}-{len(leaf_says)}"
+        work.mkdir()
+        monkeypatch.chdir(work)
+        clean_env(monkeypatch, VERI_TIMEOUT="900")
+        fake_leaf_launch(monkeypatch)
+        for attr in ("run", "Popen", "call", "check_call", "check_output"):
+            refuse_harvest_start(subprocess, attr)
+        code = supervise.main([name, "sh", "-c", f"printf '%s\\n' '{leaf_says}'"])
+        out, err = capfdbinary.readouterr()
+        lines = [line for line in err.splitlines()
+                 if line.startswith((b"harvest-usage.sh:", b"supervise["))]
+        usage = [{k: r.get(k) for k in ("actor", "phase", "attempt", "skill_commit", "num_turns")}
+                 for r in events.records(work) if r["event"] == "usage"]
+        return code, out, (work / ".tdd" / f"{name}.exit").read_bytes(), usage, lines
+
+    assert run_one("develop-red", closing) == (
+        0, closing.encode() + b"\n", b"0\n",
+        [{"actor": "developer", "phase": "red", "attempt": "1", "skill_commit": sha, "num_turns": "7"}],
+        [b"supervise[develop-red]: success"])
+    assert run_one("develop-red", "no result here") == (
+        0, b"no result here\n", b"0\n", [],
+        [b"harvest-usage.sh: no closing result record in .tdd/develop-red.log \xe2\x80\x94 no usage event appended for develop-red",
+         b"supervise[develop-red]: success"])
+    assert refused == []
+
+
 class Runaway(BaseException):
     """Raised by the fake sleep when main keeps polling a leaf it should long since have killed."""
 
