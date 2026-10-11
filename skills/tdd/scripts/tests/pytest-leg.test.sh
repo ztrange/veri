@@ -1222,4 +1222,47 @@ run_cached "$restored" "$work/restored-cache-root" "the run that changes and res
 run_cached "$restored" "$work/restored-cache-root" "the run after the restore"
 report "$name"
 
+isolated="$work/isolated"
+isolated_inner="$work/isolated-inner"
+make_tree "$isolated"
+make_tree "$isolated_inner"
+cat > "$isolated/$PY_DIR/test_leg_probe.py" <<'PY'
+def test_veri_probe_outer_run():
+    assert True
+PY
+cat > "$isolated_inner/$PY_DIR/test_leg_probe.py" <<'PY'
+def test_veri_probe_suite_run():
+    assert True
+PY
+cat > "$isolated/skills/tdd/scripts/tests/exp-cache-user.test.sh" <<EOF_SUITE
+#!/usr/bin/env bash
+make --no-print-directory -C "$isolated_inner" unit > /dev/null 2>&1
+echo "1 passed, 0 failed"
+EOF_SUITE
+chmod +x "$isolated/skills/tdd/scripts/tests/exp-cache-user.test.sh"
+isolated_home="$work/isolated-home"
+isolated_root="$work/isolated-root"
+mkdir -p "$isolated_home/.veri-tools/pycache/exp-earlier-home/skills"
+for i in 1 2 3; do mkdir -p "$isolated_root/exp-earlier-$i/skills"; done
+listing() { find "$1" -mindepth 1 -maxdepth 1 -exec basename {} \; 2> /dev/null | LC_ALL=C sort; }
+
+name="#1471: a suite that runs the pytest leg under make test reads, writes and evicts nothing under the real cache root, \$HOME/.veri-tools/pycache or \$VERI_PYCACHE_ROOT as the caller set it: both listings are the same after the run apart from the run's own entry"
+problems=()
+home_before="$(listing "$isolated_home/.veri-tools/pycache")"
+root_before="$(listing "$isolated_root")"
+env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE -u PYTHONPYCACHEPREFIX -u PYTHONDONTWRITEBYTECODE \
+  VERI_VENV="${VERI_VENV:-$HOME/.veri-tools/venv}" HOME="$isolated_home" VERI_PYCACHE_ROOT="$isolated_root" \
+  make --no-print-directory -C "$isolated" test > "$work/out" 2> "$work/err" < /dev/null &&
+  code=0 || code=$?
+check_green "make test"
+home_after="$(listing "$isolated_home/.veri-tools/pycache")"
+[[ "$home_after" == "$home_before" ]] ||
+  problems+=("want \$HOME/.veri-tools/pycache's listing unchanged, before: [$(flat "$home_before")] after: [$(flat "$home_after")]")
+root_added="$(comm -13 <(printf '%s\n' "$root_before") <(listing "$isolated_root") | sed '/^$/d')"
+root_removed="$(comm -23 <(printf '%s\n' "$root_before") <(listing "$isolated_root") | sed '/^$/d')"
+[[ -z "$root_removed" ]] || problems+=("want no entry evicted from \$VERI_PYCACHE_ROOT, gone: [$(flat "$root_removed")]")
+[[ -n "$root_added" ]] && (( $(wc -l <<< "$root_added") == 1 )) ||
+  problems+=("want \$VERI_PYCACHE_ROOT to gain only the run's own entry, gained: [$(flat "$root_added")]")
+report "$name"
+
 finish

@@ -6,6 +6,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -88,8 +89,16 @@ def main(argv):
     if not argv:
         sys.stderr.write("usage: run-suite.sh <suite>\n")
         return 2
-    suite = argv[0]
+    pycache_root = tempfile.mkdtemp(prefix="veri-pycache-")
+    try:
+        return run(argv[0], pycache_root)
+    finally:
+        shutil.rmtree(pycache_root, ignore_errors=True)
+
+
+def run(suite, pycache_root):
     env = {k: v for k, v in os.environ.items() if k == "VERI_VENV" or not k.startswith(("VERI_", "CLAUDE_"))}
+    env["VERI_PYCACHE_ROOT"] = pycache_root
     n = int(env.get("GIT_CONFIG_COUNT") or 0)
     env["GIT_CONFIG_KEY_%d" % n] = "maintenance.auto"
     env["GIT_CONFIG_VALUE_%d" % n] = "false"

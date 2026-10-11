@@ -207,7 +207,7 @@ def test_main_starts_the_suite_alone_on_dev_null_with_maintenance_auto_off_and_s
                 list(args) if not isinstance(args, str) else args,
                 kwargs.get("shell", False),
                 stdin is subprocess.DEVNULL or getattr(stdin, "name", None) == os.devnull,
-                {k: v for k, v in env.items() if caller.get(k) != v},
+                {k: v for k, v in env.items() if caller.get(k) != v and k != "VERI_PYCACHE_ROOT"},
                 sorted(set(caller) - set(env)),
             ))
             return FakeSuite(lines, capfd, seen)
@@ -380,7 +380,7 @@ def test_main_hands_a_bash_suite_no_ambient_veri_or_claude_variable_but_veri_ven
     code = run_suite.main([suite])
     capfd.readouterr()
     env = dict(line.split("=", 1) for line in seen_env.read_text().splitlines() if "=" in line)
-    leaked = sorted(k for k in env if k.startswith(("VERI_", "CLAUDE_")) and k != "VERI_VENV")
+    leaked = sorted(k for k in env if k.startswith(("VERI_", "CLAUDE_")) and k not in ("VERI_VENV", "VERI_PYCACHE_ROOT"))
     kept = {k: env.get(k) for k in ("VERI_VENV", "PATH", "OFFLINE_REACH_LOG", "HTTPS_PROXY",
                                     "GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0")}
     assert (code, leaked, kept, seen_child.read_text()) == (0, [], {
@@ -420,5 +420,5 @@ def test_main_hands_a_pytest_suite_no_ambient_veri_or_claude_variable_but_veri_v
     capfd.readouterr()
     ran_by, *lines = seen_env.read_text().splitlines()
     env = dict(line.split("=", 1) for line in lines if "=" in line)
-    leaked = sorted(k for k in env if k.startswith(("VERI_", "CLAUDE_")) and k != "VERI_VENV")
+    leaked = sorted(k for k in env if k.startswith(("VERI_", "CLAUDE_")) and k not in ("VERI_VENV", "VERI_PYCACHE_ROOT"))
     assert (code, ran_by, leaked, env.get("VERI_VENV")) == (0, str(venv_py), [], str(venv))
