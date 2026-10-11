@@ -1,6 +1,5 @@
 """orchestrate.sh's loop, run in-process."""
 import os
-import re
 import signal
 import subprocess
 import sys
@@ -9,10 +8,10 @@ import entry
 
 try:
     from context_budget import START, watch
-    from tunables import stop_timeout as _stop_timeout
+    from tunables import stop_timeout as _stop_timeout, tokens as _tokens
 except ImportError:
     from .context_budget import START, watch
-    from .tunables import stop_timeout as _stop_timeout
+    from .tunables import stop_timeout as _stop_timeout, tokens as _tokens
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONDUCTOR = os.path.join(SCRIPTS, "run-conductor.sh")
@@ -57,12 +56,6 @@ def _tunable(name, default, parse, must_be):
     except ValueError:
         sys.stderr.write("orchestrate.sh: %s must be %s: %s\n" % (name, must_be, raw))
         return None
-
-
-def _tokens(raw):
-    if not re.fullmatch(r"[0-9]+", raw):
-        raise ValueError
-    return int(raw)
 
 
 def _watch(issue, stream, budget):
