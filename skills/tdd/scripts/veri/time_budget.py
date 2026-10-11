@@ -11,7 +11,7 @@ def write(stream, data):
     stream.buffer.flush()
 
 
-def main(argv):
+def limits():
     budget = os.environb.get(b"VERI_UNIT_BUDGET") or b"10"
     ratio = os.environb.get(b"VERI_TIME_WARN_RATIO") or b"1.5"
     for value, what in (
@@ -20,9 +20,15 @@ def main(argv):
     ):
         if not NUMBER.fullmatch(value):
             write(sys.stderr, b"time-budget: " + what + b": " + value + b"\n")
-            return 2
-    write(sys.stdout, budget + b"\n" + ratio + b"\n")
-    return 0
+            return 2, budget, ratio
+    return 0, budget, ratio
+
+
+def main(argv):
+    code, budget, ratio = limits()
+    if code == 0:
+        write(sys.stdout, budget + b"\n" + ratio + b"\n")
+    return code
 
 
 if __name__ == "__main__":
