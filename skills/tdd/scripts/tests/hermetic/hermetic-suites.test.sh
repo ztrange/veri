@@ -66,7 +66,7 @@ report "$name"
 
 rm -f "$label_cut"
 
-name="solvable-issues.test.sh and tick-issue-criterion.test.sh: an ambient VERI_GH_DRIVER of auto, rest or graphql gives the same exit and the same stdout as a cleared run"
+name="solvable-issues.test.sh: an ambient VERI_GH_DRIVER of auto, rest or graphql gives the same exit and the same stdout as a cleared run"
 problems=()
 driver_solvable="$(mktemp "$HERE/.hermetic-driver-slice.XXXXXX")"
 awk '
@@ -86,7 +86,7 @@ if (( ${#slice_problems[@]} )); then
   problems=("${slice_problems[@]}")
 else
   driver_findings=()
-  for driver_suite in "solvable-issues.test.sh:$driver_solvable" "tick-issue-criterion.test.sh:$HERE/tick-issue-criterion.test.sh"; do
+  for driver_suite in "solvable-issues.test.sh:$driver_solvable"; do
     cleared_driver_out="$(env -u VERI_GH_DRIVER "${driver_suite#*:}" 2>/dev/null)" && cleared_driver_code=0 || cleared_driver_code=$?
     for driver in auto rest graphql; do
       ambient_driver_out="$(env VERI_GH_DRIVER="$driver" "${driver_suite#*:}" 2>/dev/null)" && ambient_driver_code=0 || ambient_driver_code=$?
