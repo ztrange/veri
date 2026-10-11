@@ -734,3 +734,38 @@ def test_assign_keeps_a_last_queue_line_that_has_no_trailing_newline_issue_777(t
     assert workqueue.main(["assign", "alpha", "13", "14"]) == 0
     assert capsys.readouterr() == ("", "")
     assert queue.read_bytes().splitlines() == [b"alpha\t12\tqueued\t", b"alpha\t13\tqueued\t", b"alpha\t14\tqueued\t"]
+
+
+def test_every_argument_refusal_through_the_cli_exits_2_with_its_usage_text_and_leaves_the_queue_byte_identical_creating_no_queue_file_or_temp_file(tmp_path, monkeypatch, run_cli, workqueue):
+    refusals = [
+        ([], "workqueue.sh: unknown subcommand: \n" + USAGE),
+        (["bogus"], "workqueue.sh: unknown subcommand: bogus\n" + USAGE),
+        (["assign"], USAGE),
+        (["assign", "alpha"], USAGE),
+        (["assign", "alpha", ""], "workqueue.sh: an issue argument is empty\n" + USAGE),
+        (["assign", "alpha", "12", "12"], "workqueue.sh: issue 12 is named twice\n" + USAGE),
+        (["start"], USAGE),
+        (["start", "alpha"], USAGE),
+        (["done", "alpha"], USAGE),
+        (["done", "alpha", "12"], USAGE),
+        (["done", "alpha", "12", ""], USAGE),
+        (["park", "alpha"], USAGE),
+        (["park", "alpha", "12"], USAGE),
+        (["park", "alpha", "12", "a\tb"], "workqueue.sh: a park reason may not hold a tab or a newline\n" + USAGE),
+        (["park", "alpha", "12", "a\nb"], "workqueue.sh: a park reason may not hold a tab or a newline\n" + USAGE),
+    ]
+    queued, bare = tmp_path / "queued", tmp_path / "bare"
+    (queued / ".tdd").mkdir(parents=True)
+    (bare / ".tdd").mkdir(parents=True)
+    queue = queued / ".tdd" / "workqueue"
+    before = b"alpha\t12\trunning\t\nbeta\t4\tqueued\t\n"
+    queue.write_bytes(before)
+
+    for tree in (queued, bare):
+        fake_git(monkeypatch, tree)
+        for argv, usage in refusals:
+            assert run_cli(workqueue, argv) == (2, "", usage), argv
+
+    assert queue.read_bytes() == before
+    assert sorted(path.name for path in (queued / ".tdd").iterdir()) == ["workqueue"]
+    assert list((bare / ".tdd").iterdir()) == []

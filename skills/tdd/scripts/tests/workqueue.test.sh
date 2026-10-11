@@ -99,56 +99,10 @@ expect_unchanged() {
   fi
 }
 
-expect_usage() {
-  local name="$1" what="$2" code
-  shift 2
-  make_repo "$work/$name"
-  (cd "$work/$name" && "$SCRIPT" "$@" > /dev/null 2>"$work/$name.err") && code=0 || code=$?
-  if [[ "$code" -eq 2 ]] &&
-    grep -F 'workqueue.sh: usage: workqueue.sh assign <worker> <issue>...' "$work/$name.err" > /dev/null &&
-    grep -F 'workqueue.sh show [<worker>]' "$work/$name.err" > /dev/null; then
-    ok
-  else
-    no "$what"
-    echo "    exit: $code (want 2), stderr: $(printf '%q' "$(cat "$work/$name.err")")"
-  fi
-}
-
 repo="$work/assign-order"
 make_repo "$repo"
 expect_queue assign-order 'alpha\t12\tqueued\t\nalpha\t7\tqueued\t\nalpha\t30\tqueued\t' \
   "assign appends one queued line per issue, in the order given" assign alpha 12 7 30
-
-repo="$work/unknown-subcommand"
-make_repo "$repo"
-seed_queue "$repo" 'beta\t4\tqueued\t\n'
-expect_unchanged unknown-subcommand 2 \
-  "an unknown subcommand exits 2 and leaves the queue file byte-identical" frobnicate alpha 12
-
-repo="$work/unknown-subcommand-no-queue"
-make_repo "$repo"
-out="$(cd "$repo" && "$SCRIPT" frobnicate alpha 12 2>&1)" && code=0 || code=$?
-if [[ "$code" -eq 2 && ! -e "$repo/.tdd/workqueue" ]]; then
-  ok
-else
-  no "an unknown subcommand in a repo with no queue exits 2 and creates no queue file"
-  echo "    exit: $code (want 2), output: $out"
-  echo "    .tdd/workqueue: $([[ -e "$repo/.tdd/workqueue" ]] && echo present || echo absent) (want absent)"
-fi
-
-expect_usage no-subcommand "workqueue.sh with no subcommand exits 2 with its own usage text on stderr"
-
-expect_usage empty-issue-usage "workqueue.sh given an empty issue exits 2 with its own usage text on stderr" \
-  assign alpha ''
-
-expect_usage twice-issue-usage "workqueue.sh given an issue named twice exits 2 with its own usage text on stderr" \
-  assign alpha 12 12
-
-expect_usage park-tab-usage "workqueue.sh given a park reason holding a tab exits 2 with its own usage text on stderr" \
-  park alpha 12 "$(printf 'first\tsecond')"
-
-expect_usage park-newline-usage "workqueue.sh given a park reason holding a newline exits 2 with its own usage text on stderr" \
-  park alpha 12 "$(printf 'first\nsecond')"
 
 repo="$work/assign-held"
 make_repo "$repo"
@@ -552,43 +506,6 @@ else
   echo "    terms not defined:$terms_missing (want none)"
 fi
 
-repo="$work/assign-missing-args"
-make_repo "$repo"
-seed_queue "$repo" 'beta\t4\tqueued\t\ngamma\t9\trunning\t\n'
-expect_unchanged assign-missing-args 2 \
-  "assign with no worker exits 2 and leaves the queue file byte-identical" assign
-expect_unchanged assign-missing-args 2 \
-  "assign with a worker and no issue exits 2 and leaves the queue file byte-identical" \
-  assign alpha
-
-repo="$work/assign-duplicate-issue"
-make_repo "$repo"
-seed_queue "$repo" 'beta\t4\tqueued\t\n'
-expect_unchanged assign-duplicate-issue 2 \
-  "assign naming the same issue twice in one call exits 2 and leaves the queue file byte-identical" \
-  assign alpha 12 12
-
-repo="$work/assign-empty-issue"
-make_repo "$repo"
-seed_queue "$repo" 'beta\t4\tqueued\t\n'
-expect_unchanged assign-empty-issue 2 \
-  "assign given an empty issue argument exits 2 and leaves the queue file byte-identical" \
-  assign alpha ''
-
-repo="$work/done-missing-sha"
-make_repo "$repo"
-seed_queue "$repo" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\n'
-expect_unchanged done-missing-sha 2 \
-  "done with a worker and an issue but no merge sha exits 2 and leaves the queue file byte-identical" \
-  done alpha 12
-
-repo="$work/done-empty-sha"
-make_repo "$repo"
-seed_queue "$repo" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\n'
-expect_unchanged done-empty-sha 2 \
-  "done given an empty merge sha argument exits 2 and leaves the queue file byte-identical" \
-  done alpha 12 ''
-
 park_outcome() {
   local name="$1" reason="$2" queue="$work/$1/.tdd/workqueue" code lines
   make_repo "$work/$name"
@@ -742,27 +659,6 @@ if [[ "$code" -eq 2 ]]; then
 else
   no "workqueue.sh, failing after take_lock has armed its EXIT trap, ends with exit 2"
   echo "    exit: $code (want 2), stderr: $(cat "$work/trap-lifetime.err")"
-fi
-
-repo="$work/missing-argument"
-make_repo "$repo"
-problems=()
-for args in "start" "start alpha" "park alpha 13"; do
-  seed_queue "$repo" 'alpha\t12\tqueued\t\nalpha\t13\trunning\t\n'
-  (cd "$repo" && "$SCRIPT" $args > /dev/null 2>"$work/missing-argument.err") && code=0 || code=$?
-  [[ "$code" -eq 2 ]] || problems+=("'$args': exit $code (want 2)")
-  grep -F 'workqueue.sh: usage: workqueue.sh assign <worker> <issue>...' "$work/missing-argument.err" > /dev/null &&
-    grep -F 'workqueue.sh show [<worker>]' "$work/missing-argument.err" > /dev/null ||
-    problems+=("'$args': stderr $(printf '%q' "$(cat "$work/missing-argument.err")") (want the usage text)")
-  leftover="$(cd "$repo/.tdd" && ls -d workqueue.tmp.* 2>/dev/null)"
-  [[ -z "$leftover" ]] || problems+=("'$args': left $leftover behind (want no .tdd/workqueue.tmp.*)")
-  rm -f "$repo"/.tdd/workqueue.tmp.*
-done
-if [[ ${#problems[@]} -eq 0 ]]; then
-  ok
-else
-  no "workqueue.sh with a missing worker, a missing issue or a missing park reason exits 2 with its usage text on stderr and leaves no .tdd/workqueue.tmp.* file (#775)"
-  printf '    %s\n' "${problems[@]}"
 fi
 
 finish
