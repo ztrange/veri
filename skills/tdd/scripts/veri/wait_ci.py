@@ -148,7 +148,7 @@ def main(argv):
             traceback.print_exc()
             total = span
     want = argv[3] if len(argv) > 3 else ""
-    poll = tunables.read("VERI_POLL") or "10"
+    poll = tunables.read("VERI_POLL", unless_empty="10")
     deadline = ""
     while True:
         try:

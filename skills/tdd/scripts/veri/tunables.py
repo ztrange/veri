@@ -6,8 +6,9 @@ import re
 STOP_TIMEOUT_MAX = 2 ** 31 - 1
 
 
-def read(name, default=""):
-    return os.environ.get(name, default)
+def read(name, default="", unless_empty=None):
+    value = os.environ.get(name, default)
+    return value if value or unless_empty is None else unless_empty
 
 
 def pop(name, default=""):
@@ -67,7 +68,7 @@ TABLE = {
 def resolve(name):
     """(value, None), or (None, (raw, must_be)) when the environment holds a bad value."""
     entry = TABLE[name]
-    raw = read(name) or entry.default
+    raw = read(name, unless_empty=entry.default)
     try:
         return entry(raw), None
     except ValueError:
