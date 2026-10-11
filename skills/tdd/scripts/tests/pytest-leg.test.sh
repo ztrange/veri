@@ -964,17 +964,17 @@ cache_root="$work/kept-cache-root"
 
 cache_dirs() { find "$cache_root" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2> /dev/null | sort | tr '\n' ' '; }
 
-run_kept() {
+run_cached() {
   env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE -u PYTHONPYCACHEPREFIX -u PYTHONDONTWRITEBYTECODE \
-    VERI_PYCACHE_ROOT="$cache_root" \
-    make --no-print-directory -C "$kept" unit > "$work/out" 2> "$work/err" < /dev/null &&
+    VERI_PYCACHE_ROOT="$2" \
+    make --no-print-directory -C "$1" unit > "$work/out" 2> "$work/err" < /dev/null &&
     code=0 || code=$?
-  check_green "make unit, $1"
+  check_green "make unit, $3"
 }
 
 name="#1471: two runs of the pytest leg over the same tree leave one cache directory under VERI_PYCACHE_ROOT holding veri's and the test file's bytecode (pytest's assertion rewrite included), the second reusing it; a changed .py under skills/tdd/scripts names a new directory"
 problems=()
-run_kept "first run"
+run_cached "$kept" "$cache_root" "first run"
 first="$(cache_dirs)"
 [[ "$first" =~ ^[^\ ]+\ $ ]] || problems+=("first run: want one cache directory under $cache_root, got: [$first]")
 dir="$cache_root/${first% }"
@@ -983,12 +983,12 @@ dir="$cache_root/${first% }"
 [[ -n "$(find "$dir" -name 'test_leg_probe*pytest*.pyc' 2> /dev/null)" ]] ||
   problems+=("first run: want pytest's assertion-rewritten test_leg_probe bytecode under [$first]")
 [[ -d "$dir" ]] && : > "$dir/exp-kept-marker"
-run_kept "second run"
+run_cached "$kept" "$cache_root" "second run"
 second="$(cache_dirs)"
 [[ "$second" == "$first" ]] || problems+=("second run: want the one directory [$first] again, got: [$second]")
 [[ -f "$dir/exp-kept-marker" ]] || problems+=("second run: want [$first] reused, its marker survived, but it is gone")
 printf '\n# changed\n' >> "$kept/skills/tdd/scripts/veri/comment_class.py"
-run_kept "after a change"
+run_cached "$kept" "$cache_root" "after a change"
 third="$(cache_dirs)"
 [[ -n "$third" && "$third" != "$first" ]] ||
   problems+=("after changing veri/comment_class.py: want a cache directory other than [$first], got: [$third]")
@@ -1011,21 +1011,13 @@ def test_veri_probe_runs_the_source_on_disk():
 PY
 rewritten_root="$work/rewritten-cache-root"
 
-run_rewritten() {
-  env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE -u PYTHONPYCACHEPREFIX -u PYTHONDONTWRITEBYTECODE \
-    VERI_PYCACHE_ROOT="$rewritten_root" \
-    make --no-print-directory -C "$rewritten" unit > "$work/out" 2> "$work/err" < /dev/null &&
-    code=0 || code=$?
-  check_green "make unit, $1"
-}
-
 name="#1127 #1471: a module under skills/tdd/scripts the pytest leg ran, rewritten to different content of the same size with its mtime restored, runs from its new source on the next leg run, never from the bytecode the first run cached"
 problems=()
-run_rewritten "first run"
+run_cached "$rewritten" "$rewritten_root" "first run"
 touch -r "$rewritten/$PY_DIR/kept_probe.py" "$work/rewritten.mtime"
 printf 'BUDGET = "120000"\n' > "$rewritten/$PY_DIR/kept_probe.py"
 touch -r "$work/rewritten.mtime" "$rewritten/$PY_DIR/kept_probe.py"
-run_rewritten "after the same-size rewrite"
+run_cached "$rewritten" "$rewritten_root" "after the same-size rewrite"
 report "$name"
 
 pruned="$work/pruned"
@@ -1167,28 +1159,20 @@ def test_veri_probe_runs_the_source_on_disk():
 PY
 poisoned_root="$work/poisoned-cache-root"
 
-run_poisoned() {
-  env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE -u PYTHONPYCACHEPREFIX -u PYTHONDONTWRITEBYTECODE \
-    VERI_PYCACHE_ROOT="$poisoned_root" \
-    make --no-print-directory -C "$poisoned" unit > "$work/out" 2> "$work/err" < /dev/null &&
-    code=0 || code=$?
-  check_green "make unit, $1"
-}
-
 name="#1471: a cache entry never holds bytecode for source other than the content its key names: a veri/ module changed during the leg and restored leaves the next two runs green, and a truncated entry is not reused, the run green and the entry replaced"
 problems=()
 touch -r "$poisoned_probe" "$work/poisoned.mtime"
 : > "$poisoned/$PY_DIR/exp-mutate-during-leg"
-run_poisoned "the run that changes the module"
+run_cached "$poisoned" "$poisoned_root" "the run that changes the module"
 printf 'BUDGET = "130000"\n' > "$poisoned_probe"
 touch -r "$work/poisoned.mtime" "$poisoned_probe"
-run_poisoned "first run after the restore"
-run_poisoned "second run after the restore"
+run_cached "$poisoned" "$poisoned_root" "first run after the restore"
+run_cached "$poisoned" "$poisoned_root" "second run after the restore"
 entry_pyc="$(find "$poisoned_root" -path '*/veri/__pycache__/exp_leg_probe*.pyc' -print -quit 2> /dev/null)"
 if [[ -f "$entry_pyc" ]]; then
   head -c "$(( $(wc -c < "$entry_pyc") / 2 ))" "$entry_pyc" > "$work/poisoned-truncated.pyc"
   cp "$work/poisoned-truncated.pyc" "$entry_pyc"
-  run_poisoned "over a truncated entry"
+  run_cached "$poisoned" "$poisoned_root" "over a truncated entry"
   while IFS= read -r kept_pyc; do
     ! cmp -s "$kept_pyc" "$work/poisoned-truncated.pyc" ||
       problems+=("over a truncated entry: want the entry replaced, $kept_pyc still holds the truncated bytes")
@@ -1231,19 +1215,11 @@ def test_veri_probe_runs_the_source_it_imported():
     assert exp_leg_probe.BUDGET == want, exp_leg_probe.BUDGET
 PY
 
-run_restored() {
-  env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE -u PYTHONPYCACHEPREFIX -u PYTHONDONTWRITEBYTECODE \
-    VERI_PYCACHE_ROOT="$work/restored-cache-root" \
-    make --no-print-directory -C "$restored" unit > "$work/out" 2> "$work/err" < /dev/null &&
-    code=0 || code=$?
-  check_green "make unit, $1"
-}
-
 name="#1471: a veri/ module changed to same-size content with its mtime kept and restored with that mtime, both while one pytest-leg run is still running, leaves no stale bytecode under the restored content's key: the next run loads the restored source's value"
 problems=()
 : > "$restored/$PY_DIR/exp-change-and-restore-during-leg"
-run_restored "the run that changes and restores the module"
-run_restored "the run after the restore"
+run_cached "$restored" "$work/restored-cache-root" "the run that changes and restores the module"
+run_cached "$restored" "$work/restored-cache-root" "the run after the restore"
 report "$name"
 
 finish
