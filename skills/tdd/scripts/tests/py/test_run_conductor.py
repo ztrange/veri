@@ -461,7 +461,7 @@ def test_main_on_a_pinned_launch_seeds_the_gitignore_only_when_absent_writes_an_
     }
 
 
-def test_main_with_veri_new_skill_exactly_1_rewrites_a_readable_record_then_runs_the_live_event_sh_in_the_run_worktree_returning_2_on_its_failure_and_logs_nothing_on_a_first_launch_or_any_other_value(
+def test_main_with_veri_new_skill_exactly_1_rewrites_a_readable_record_then_appends_a_skill_repin_event_in_the_run_worktree_returning_2_on_its_failure_and_logs_nothing_on_a_first_launch_or_any_other_value(
         tmp_path, monkeypatch, capfdbinary, events):
     past_the_guards(monkeypatch)
     scratch = scratch_tmpdir(tmp_path, monkeypatch)
@@ -502,6 +502,29 @@ def test_main_with_veri_new_skill_exactly_1_rewrites_a_readable_record_then_runs
         "first-launch": (commit + "\n", False, [], [], 0),
         "other-value": ("2222222\n", False, [], [], 2),
     }
+
+
+def test_main_on_a_re_pin_records_the_ambient_veri_context_in_the_skill_repin_event_with_the_argument_as_its_issue(
+        tmp_path, monkeypatch, capfdbinary, events):
+    past_the_guards(monkeypatch)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    commit = "1111111111111111111111111111111111111111"
+    run_conductor = importlib.import_module("veri.run_conductor")
+    monkeypatch.chdir(tmp_path)
+    for name, value in (("VERI_NEW_SKILL", "1"), ("CLAUDE_CODE_SESSION_ID", "sess-1353"), ("VERI_ISSUE", "9999"),
+                        ("VERI_ACTOR", "conductor"), ("VERI_PHASE", "red"), ("VERI_STEP", "3"),
+                        ("VERI_ATTEMPT", "2"), ("VERI_SKILL_COMMIT", "ambient")):
+        monkeypatch.setenv(name, value)
+    (tmp_path / ".tdd").mkdir()
+    (tmp_path / ".tdd" / "issue-4242-skill-commit").write_text("2222222\n")
+    calls = fake_pin(monkeypatch, commit, set())
+    events.refuse_event_sh()
+    fake_snapshot(monkeypatch, calls, 0, 0)
+    code = run_conductor.main(["4242"])
+    capfdbinary.readouterr()
+    assert (code, events.records(tmp_path / ".tdd" / "wt" / "4242")) == (0, [
+        {"issue": "4242", "actor": "conductor", "phase": "red", "step": "3", "event": "skill-repin", "attempt": "2",
+         "skill_commit": "ambient", "commit": commit}])
 
 
 def fake_snapshot(monkeypatch, calls, archive_code, tar_code):
@@ -954,7 +977,7 @@ def test_main_given_a_claude_bin_whose_path_carries_the_session_id_runs_that_bin
     assert (code, [launch["argv"][0] for launch in launches], environments) == (0, [stub], [stub])
 
 
-def test_main_runs_event_sh_before_the_session_strip_then_hands_claude_no_veri_new_skill_every_other_veri_variable_and_an_ambient_veri_skill_commit_unpinned_or_veri_skill_unpinned_pinned(
+def test_main_records_the_skill_repin_event_then_hands_claude_no_veri_new_skill_every_other_veri_variable_and_an_ambient_veri_skill_commit_unpinned_or_veri_skill_unpinned_pinned(
         tmp_path, monkeypatch, capfdbinary, events):
     past_the_guards(monkeypatch)
     monkeypatch.setenv("VERI_NEW_SKILL", "1")
