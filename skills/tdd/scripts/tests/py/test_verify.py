@@ -363,6 +363,7 @@ def test_main_refuses_a_literal_model_word_in_verify_leaf_args_beside_a_resolved
 def test_main_lets_a_literal_model_word_in_verify_leaf_args_stand_when_no_model_variable_is_set(
         tmp_path, monkeypatch, capfdbinary):
     monkeypatch.chdir(tmp_path)
+    write_inputs(tmp_path)
     monkeypatch.setenv("HOME", str(tmp_path))
     for name in ("VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_MODEL_DEVELOPER", "VERI_MODEL_REVISE",
                  "VERI_ISSUE", "VERI_STEP", "VERI_NO_VERDICT_RETRIES"):
@@ -373,8 +374,6 @@ def test_main_lets_a_literal_model_word_in_verify_leaf_args_stand_when_no_model_
     def fake(args, *_, **__):
         words = [str(a) for a in args]
         name = os.path.basename(words[0])
-        if name == "build-verify-prompt.sh":
-            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
         if name == "supervise.sh":
             supervised.append(words)
             return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine", None)
@@ -384,7 +383,8 @@ def test_main_lets_a_literal_model_word_in_verify_leaf_args_stand_when_no_model_
         monkeypatch.setattr(subprocess, name, fake)
     verify = importlib.import_module("veri.verify")
 
-    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+    code = verify.main(["--fast-cmd", "make unit", "green", "spec.md", "tests/x.test.sh"])
+    assert_prompt_rendered()
 
     captured = capfdbinary.readouterr()
     assert (code, captured.err, [words[-2:] for words in supervised]) == (0, b"", [["--model", "x"]])
