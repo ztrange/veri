@@ -224,3 +224,34 @@ def test_main_gives_revise_and_develop_exhausted_veri_model_revise_and_a_develop
         ("develop-exhausted", 0, "opus\n", ""),
         ("develop-red", 0, "sonnet\n", ""),
     ]
+
+
+def test_main_with_veri_model_revise_unset_gives_revise_and_develop_leaves_veri_model_developer_else_veri_model_else_nothing(
+        capsys, monkeypatch, leaf_model):
+    monkeypatch.delenv("VERI_MODEL_REVISE", raising=False)
+    environments = [
+        {"VERI_MODEL": "sonnet", "VERI_MODEL_DEVELOPER": "opus"},
+        {"VERI_MODEL": "sonnet"},
+        {},
+    ]
+    answers = []
+    for environment in environments:
+        for variable in MODEL_VARIABLES:
+            monkeypatch.delenv(variable, raising=False)
+        for variable, value in environment.items():
+            monkeypatch.setenv(variable, value)
+        for name in ("revise-green-2", "develop-exhausted", "develop-red"):
+            code = leaf_model.main([name])
+            captured = capsys.readouterr()
+            answers.append((name, code, captured.out, captured.err))
+    assert answers == [
+        ("revise-green-2", 0, "opus\n", ""),
+        ("develop-exhausted", 0, "opus\n", ""),
+        ("develop-red", 0, "opus\n", ""),
+        ("revise-green-2", 0, "sonnet\n", ""),
+        ("develop-exhausted", 0, "sonnet\n", ""),
+        ("develop-red", 0, "sonnet\n", ""),
+        ("revise-green-2", 0, "", ""),
+        ("develop-exhausted", 0, "", ""),
+        ("develop-red", 0, "", ""),
+    ]
