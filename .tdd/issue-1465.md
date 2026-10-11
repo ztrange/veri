@@ -5,5 +5,5 @@
 - [x] VERI_MODEL_REVISE set but empty makes leaf-model.sh exit 2 for a revise-* or develop-exhausted leaf name, with a stderr line naming VERI_MODEL_REVISE and nothing on stdout ⟦criterion 1⟧
 - [x] VERI_MODEL_REVISE containing whitespace makes leaf-model.sh exit 2 for a revise-* or develop-exhausted leaf name, with nothing on stdout ⟦criterion 1⟧
 - [x] A leaf launched through supervise.sh under a revise-* name runs with VERI_MODEL_REVISE's model, so the launch's recorded model and the claude --model flag it passes are that model ⟦criterion 1⟧
-- [ ] The metrics report's "Models requested" line lists VERI_MODEL_REVISE with its value, or unset, beside the other three model knobs ⟦criterion 2⟧
+- [x] The metrics report's "Models requested" line lists VERI_MODEL_REVISE with its value, or unset, beside the other three model knobs ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] CLAUDE.md's model-knob invariant, SKILL.md's knob list under supervise.sh, and the leaf-model.sh usage header name VERI_MODEL_REVISE and say it governs revise-* and develop-exhausted leaves, and SKILL.md's preflight step 6 also asks leaf-model.sh about a revise leaf name so a bad VERI_MODEL_REVISE stops the run before any leaf launches ⟦diff-checked⟧ ⟦criterion 2⟧
