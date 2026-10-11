@@ -1198,4 +1198,52 @@ else
 fi
 report "$name"
 
+restored="$work/restored"
+make_tree "$restored"
+restored_probe="$restored/skills/tdd/scripts/veri/exp_leg_probe.py"
+printf 'BUDGET = "130000"\n' > "$restored_probe"
+cat > "$restored/$PY_DIR/test_leg_probe.py" <<'PY'
+import os
+import pathlib
+import sys
+
+scripts = pathlib.Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(scripts))
+probe = scripts / "veri" / "exp_leg_probe.py"
+flag = pathlib.Path(__file__).resolve().parent / "exp-change-and-restore-during-leg"
+changed = flag.exists()
+if changed:
+    flag.unlink()
+    st = probe.stat()
+    original = probe.read_text()
+    probe.write_text('BUDGET = "120000"\n')
+    os.utime(probe, ns=(st.st_atime_ns, st.st_mtime_ns))
+
+from veri import exp_leg_probe
+
+if changed:
+    probe.write_text(original)
+    os.utime(probe, ns=(st.st_atime_ns, st.st_mtime_ns))
+
+
+def test_veri_probe_runs_the_source_it_imported():
+    want = "120000" if changed else probe.read_text().split('"')[1]
+    assert exp_leg_probe.BUDGET == want, exp_leg_probe.BUDGET
+PY
+
+run_restored() {
+  env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE -u PYTHONPYCACHEPREFIX -u PYTHONDONTWRITEBYTECODE \
+    VERI_PYCACHE_ROOT="$work/restored-cache-root" \
+    make --no-print-directory -C "$restored" unit > "$work/out" 2> "$work/err" < /dev/null &&
+    code=0 || code=$?
+  check_green "make unit, $1"
+}
+
+name="#1471: a veri/ module changed to same-size content with its mtime kept and restored with that mtime, both while one pytest-leg run is still running, leaves no stale bytecode under the restored content's key: the next run loads the restored source's value"
+problems=()
+: > "$restored/$PY_DIR/exp-change-and-restore-during-leg"
+run_restored "the run that changes and restores the module"
+run_restored "the run after the restore"
+report "$name"
+
 finish

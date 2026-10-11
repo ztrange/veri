@@ -166,6 +166,7 @@ test unit:
 	  if [ -d "$$pycache/skills" ] && [ -f "$$pycache/digest" ] && [ "$$(cat "$$pycache/digest")" = "$$($(ENTRY_DIGEST))" ]; then cp -R "$$pycache/skills" .; else rm -rf "$$pycache/skills" "$$pycache/digest"; fi; \
 	  UNIT_GUARD_LOG="$$reach_log" COLUMNS=200 $(OFFLINE_ENV) env -u PYTHONDONTWRITEBYTECODE "$$py_bin" -m pytest --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || fail=1; \
 	  if [ "$$($(PY_KEY))" = "$$py_key" ]; then \
+	    "$$py_bin" -m compileall -f -qq --invalidation-mode checked-hash skills/tdd/scripts > /dev/null 2>&1 || :; \
 	    $(PYCACHE_DIRS) | while IFS= read -r d; do mkdir -p "$$pycache/$$d" && cp -R "$$d/." "$$pycache/$$d/"; done; \
 	    if [ -d "$$pycache/skills" ]; then digest="$$($(ENTRY_DIGEST))"; printf '%s\n' "$$digest" > "$$pycache/digest"; fi; \
 	  fi; \
