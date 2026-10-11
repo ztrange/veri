@@ -45,7 +45,7 @@ def not_a_number(var, value):
 
 
 def numeric_env(var, default):
-    value = os.environ.get(var) or default
+    value = tunables.read(var) or default
     return value, not_a_number(var, value)
 
 
@@ -86,7 +86,7 @@ def leaf_dispositions(ignored):
 
 
 def awake_seconds():
-    command = os.environ.get("VERI_AWAKE_CLOCK", "")
+    command = tunables.read("VERI_AWAKE_CLOCK")
     if command:
         words = command.split()
         try:
@@ -193,7 +193,7 @@ def mark(role, env, *fields):
 
 
 def preserve_killed_attempt(name, attempt, env):
-    issue, step = os.environ.get("VERI_ISSUE", ""), os.environ.get("VERI_STEP", "")
+    issue, step = tunables.read("VERI_ISSUE"), tunables.read("VERI_STEP")
     if not issue or not step:
         return
     if captured("git", "rev-parse", "--verify", "-q", "HEAD").returncode != 0:
@@ -290,10 +290,10 @@ def main(argv):
         return refuse(USAGE)
     if len(argv) < 2:
         return refuse("supervise: missing <cmd>", USAGE)
-    timeout = os.environ.get("VERI_TIMEOUT", "")
+    timeout = tunables.read("VERI_TIMEOUT")
     if timeout and (refused := not_a_number("VERI_TIMEOUT", timeout)):
         return refused
-    issue = os.environ.get("VERI_ISSUE", "")
+    issue = tunables.read("VERI_ISSUE")
     if not timeout and issue:
         settled = f".tdd/issue-{issue}-timeout"
         top = answered("git", "rev-parse", "--show-toplevel")
@@ -307,7 +307,7 @@ def main(argv):
             if not timeout or int(timeout, 10) < 1:
                 return refuse(f"supervise: {settled} must hold a whole number of seconds >= 1: '{timeout}'")
     timeout = timeout or "900"
-    kill_poll = os.environ.get("VERI_KILL_POLL") or "0.1"
+    kill_poll = tunables.read("VERI_KILL_POLL") or "0.1"
     try:
         kill_poll = tunables.kill_poll(kill_poll)
     except ValueError:
@@ -318,7 +318,7 @@ def main(argv):
     retries, refused = numeric_env("VERI_STUCK_RETRIES", "1")
     if refused:
         return refused
-    poll = os.environ.get("VERI_POLL") or "1"
+    poll = tunables.read("VERI_POLL") or "1"
     name = argv[0]
     tolerated(name, "create", ".tdd", lambda: os.makedirs(".tdd", exist_ok=True))
     log, rcfile, exitfile = f".tdd/{name}.log", f".tdd/{name}.rc", f".tdd/{name}.exit"
@@ -329,8 +329,9 @@ def main(argv):
         if found is not None:
             role = " ".join(f"{k}={v}" for k, v in found.items())
         model = leaf_model(name)
-    skill_commit = answered("git", "-C", HERE, "rev-parse", "HEAD") or os.environ.get("VERI_SKILL_COMMIT") or "unknown"
-    leaf_env = {**os.environ, "VERI_LEAF_MODEL": model, "VERI_SKILL_COMMIT": skill_commit}
+    skill_commit = answered("git", "-C", HERE, "rev-parse", "HEAD") or tunables.read("VERI_SKILL_COMMIT") or "unknown"
+    leaf_env = {**os.environ}
+    leaf_env.update(VERI_LEAF_MODEL=model, VERI_SKILL_COMMIT=skill_commit)
     ownerfile = ".tdd/leaf.owner"
     owner = still_alive_owner(ownerfile)
     if owner is not None:

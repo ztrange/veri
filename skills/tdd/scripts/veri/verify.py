@@ -12,6 +12,7 @@ import build_verify_prompt
 import event
 import parse_verdict
 import preserve_attempt
+import tunables
 
 from leaf_model import _env, resolve
 from leaf_role import _write, leaf_role
@@ -168,7 +169,7 @@ def main(argv):
         gitconfig_before = gitconfig_snapshot(gitconfig)
     except OSError as error:
         return unreadable_gitconfig(gitconfig, error)
-    retries = os.environ.get("VERI_NO_VERDICT_RETRIES") or "1"
+    retries = tunables.read("VERI_NO_VERDICT_RETRIES") or "1"
     if not re.fullmatch("[0-9]+", retries):
         _write(sys.stderr, "verify: VERI_NO_VERDICT_RETRIES must be a non-negative integer,"
                " got '%s'" % retries)
@@ -213,7 +214,7 @@ def main(argv):
     marked = mark(role, "verdict", "verdict=" + word, "reason=" + reason.split("\n", 1)[0], *cause)
     if marked:
         return marked
-    issue, step = os.environ.get("VERI_ISSUE"), os.environ.get("VERI_STEP")
+    issue, step = tunables.read("VERI_ISSUE") or None, tunables.read("VERI_STEP") or None
     if word != "PASS" and tree_before and issue and step:
         preserve(issue, step, leaf, role["VERI_ATTEMPT"],
                  "no-verdict" if no_verdict else word.lower())

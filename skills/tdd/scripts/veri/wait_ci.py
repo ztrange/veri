@@ -10,9 +10,11 @@ from datetime import datetime
 try:
     from github import NoAnswer, _gh, gh_api, gh_rest_list
     from json_documents import documents
+    import tunables
 except ImportError:
     from .github import NoAnswer, _gh, gh_api, gh_rest_list
     from .json_documents import documents
+    from . import tunables
 
 USAGE = "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]"
 PASSING = ("success", "neutral", "skipped")
@@ -146,7 +148,7 @@ def main(argv):
             traceback.print_exc()
             total = span
     want = argv[3] if len(argv) > 3 else ""
-    poll = os.environ.get("VERI_POLL") or "10"
+    poll = tunables.read("VERI_POLL") or "10"
     deadline = ""
     while True:
         try:
