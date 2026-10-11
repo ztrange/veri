@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 
+import build_verify_prompt
 import event
 import parse_verdict
 import preserve_attempt
@@ -143,13 +144,22 @@ def main(argv):
                    " variable resolved '%s' — which one the leaf would run on is flag order;"
                    " unset one of them" % model)
             return 2
-    built = start([sibling("build-verify-prompt.sh"), *argv], stdout=subprocess.PIPE)
-    if built.returncode:
-        return to_contract(built.returncode)
+    options = {"--step": "", "--fast-cmd": ""}
+    words = list(argv)
+    while words[:1] and words[0] in options:
+        options[words[0]] = words[1]
+        words = words[2:]
+    if not all(words[:3]):
+        return to_contract(build_verify_prompt._refuse())
+    if len(words) > 4:
+        return to_contract(build_verify_prompt._refuse("build-verify-prompt: too many arguments"))
+    code, built = build_verify_prompt.build(options["--step"], options["--fast-cmd"], *words)
+    if code:
+        return to_contract(code)
     prompt_path = ".tdd/%s.prompt" % leaf
     os.makedirs(".tdd", exist_ok=True)
     with open(prompt_path, "wb") as prompt:
-        prompt.write(built.stdout.rstrip(b"\n"))
+        prompt.write(built.rstrip(b"\n"))
     tree_before = in_temp_index("write-tree")
     head_before = head_snapshot()
     gitconfig = os.environ["HOME"] + "/.gitconfig"
