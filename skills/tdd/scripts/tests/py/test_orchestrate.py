@@ -927,7 +927,8 @@ while [ $i -lt 1000 ] && [ ! -e "$MARKS.done" ]; do sleep 0.01; i=$((i + 1)); do
         served = listed_in_turn(listing, [(0, issue + "\n"), (3, "")])
 
         def run(args, *rest, **kwargs):
-            asked.append(args)
+            if os.path.basename(str(args[0])) != "git":
+                asked.append(args)
             if len(asked) == 2:
                 (tmp_path / "marks.release").touch()
                 (tmp_path / "marks.asked").touch()

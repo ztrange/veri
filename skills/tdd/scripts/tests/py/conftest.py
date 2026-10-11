@@ -198,13 +198,21 @@ def serve_listing(directory, monkeypatch=None, mirror=None):
     <directory>. <answer> is the numbers of the open ready-for-agent issues (a list, each a number or a
     string), [] for no labelled open issue, or None for a listing the selection cannot read; <priority>
     names those carrying the priority label. With <monkeypatch>, VERI_GH_JSON names <directory> in the test
-    process too; <mirror> is a directory that also receives issues.json when it exists."""
+    process too; <mirror> is a directory that also receives issues.json when it exists, and whose prs.json the
+    child is served when it is JSON."""
     directory.mkdir(exist_ok=True)
 
     def serve(answer, priority=(), label="ready-for-agent"):
         if monkeypatch is not None:
             monkeypatch.setenv("VERI_GH_JSON", str(directory))
-        (directory / "prs.json").write_text("[]")
+        prs = "[]"
+        if mirror is not None and (pathlib.Path(mirror) / "prs.json").exists():
+            try:
+                json.loads((pathlib.Path(mirror) / "prs.json").read_text())
+                prs = (pathlib.Path(mirror) / "prs.json").read_text()
+            except ValueError:
+                pass
+        (directory / "prs.json").write_text(prs)
         if answer is None:
             text = "not json"
         else:
@@ -251,10 +259,12 @@ def run_over_listing(listing, args, *rest, **kwargs):
 
 def listed_in_turn(listing, answers):
     """A subprocess.run that serves the next of <answers>, each (code, stdout[, priority numbers]), to
-    listing, then starts the process over it."""
+    listing, then starts the process over it; a git command is answered by git itself and takes no answer."""
     pending = [(listed(*answer[:2]), answer[2:]) for answer in answers]
 
     def run(args, *rest, **kwargs):
+        if os.path.basename(str(args[0])) == "git":
+            return REAL_RUN(args, *rest, **kwargs)
         answer, priority = pending.pop(0) if len(pending) > 1 else pending[0]
         listing(answer, *priority)
         return run_over_listing(listing, args, *rest, **kwargs)

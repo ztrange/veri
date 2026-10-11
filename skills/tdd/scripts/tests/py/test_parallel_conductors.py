@@ -60,6 +60,8 @@ def _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n"))
     def answer(args):
         if list(args) == ["git", "rev-parse", "--git-common-dir"]:
             return subprocess.CompletedProcess(args, 0, "%s\n" % common, "")
+        if list(args[:3]) == ["git", "worktree", "list"]:
+            return subprocess.CompletedProcess(args, 0, "worktree %s\n\n" % tmp_path, "")
         raise AssertionError("unexpected subprocess call: %r" % (args,))
 
     def fake_run(args, *rest, **kwargs):
