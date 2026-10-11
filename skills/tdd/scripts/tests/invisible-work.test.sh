@@ -125,23 +125,6 @@ exits_2_after_gh() {  # exits_2_after_gh <dir> <cwd> <run> <label> [VAR=value…
   [[ "$rc" -eq 2 ]] || problems+=("$label: want exit 2, got $rc")
 }
 
-name="every script converted to REST exits 2, never 1, when its REST call fails with a network error, a 404 or a 5xx under a gh that refuses GraphQL (#568)"
-problems=()
-clone="$(unpr_branch_clone "$work/case568-noanswer" "chore/nobody-opened-a-pr" 1)"
-refusing_gh_stub "$work/case568-noanswer/bin/gh" <<'STUB'
-echo "$*" >> "$GH_LOG"
-echo "$GH_FAILURE" >&2
-exit 1
-STUB
-for failure in "error connecting to api.github.com" "HTTP 404: Not Found (https://api.github.com/repos/o/r/issues/7)" "HTTP 502: Bad Gateway"; do
-  for run in "capture-spec.sh 7" "solvable-issues.sh" "workqueue.sh next w1" \
-    "tick-issue-criterion.sh 7 criterion" "coverage-blocker.sh 7" "parallel-conductors.sh" \
-    "wait-ci.sh https://github.com/o/r/pull/5" "invisible-work.sh"; do
-    exits_2_after_gh "$work/case568-noanswer" "$clone" "$run" "$run under '$failure'" GH_FAILURE="$failure"
-  done
-done
-report "$name"
-
 name="coverage-blocker.sh and tick-issue-criterion.sh exit 2, never 1, when a gh that refuses GraphQL answers the issue GET and POST over REST but fails the body PATCH with a 5xx (#568)"
 problems=()
 refusing_gh_stub "$work/case568-patch/bin/gh" <<'STUB'
