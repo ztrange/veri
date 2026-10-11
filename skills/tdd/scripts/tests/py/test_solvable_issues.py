@@ -830,3 +830,61 @@ def test_cli_answer_is_unchanged_by_live_conductor_locks_under_the_surrounding_r
 
     assert (bool(named), no_lock["run"][0], bool(no_lock["run"][1]), under) == (
         True, 0, True, {name: no_lock for name in surroundings})
+
+
+def fake_gh_api_shifting(monkeypatch, listings):
+    """subprocess.run answering `gh api <path>` from `listings` (endpoint -> items), closing the first item a listing serves once its first page has gone out; records the gh api paths and answers git with nothing."""
+    requests, closed = [], {}
+
+    def fake_run(args, *rest, **kwargs):
+        args = list(args)
+        if args[:4] == ["git", "worktree", "list", "--porcelain"]:
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[:2] != ["gh", "api"] or len(args) != 3:
+            raise AssertionError("unexpected command: %r" % (args,))
+        requests.append(args[2])
+        path, _, query = args[2].partition("?")
+        endpoint, params = path.rsplit("/", 1)[1], dict(pair.split("=") for pair in query.split("&"))
+        shut = closed.setdefault(endpoint, set())
+        items = [dict(item, state="closed") if item["number"] in shut else item for item in listings[endpoint]]
+        items = [item for item in items if params["state"] == "all" or item["state"].lower() == params["state"]]
+        items.sort(key=lambda item: item["number"], reverse=params.get("direction", "desc") == "desc")
+        size, page = int(params["per_page"]), int(params.get("page", 1))
+        served = items[(page - 1) * size:page * size]
+        if served and not shut:
+            shut.add(served[0]["number"])
+        return subprocess.CompletedProcess(args, 0, json.dumps(served) + "\n", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", fake_run)
+    return requests
+
+
+@pytest.mark.parametrize("endpoint", ["issues", "pulls"])
+def test_cli_reads_the_open_listing_in_one_request_under_100_open_items_and_the_grow_only_listing_at_100_or_more_even_as_pages_shift(endpoint, tmp_path, monkeypatch, run_cli, solvable_issues):
+    prefix = "repos/{owner}/{repo}/%s" % endpoint
+    open_page, grow_only = prefix + "?state=open&per_page=100", prefix + "?state=all&sort=created&direction=asc&per_page=100&page=%d"
+
+    def answer(count):
+        if endpoint == "issues":
+            listings = {"issues": [opted_in(n) if 1 < n < count else labelled(n) for n in range(1, count + 1)], "pulls": []}
+            solvable = range(2, count)
+        else:
+            claim = {40: 230, 100: 250, 130: 205}[count]
+            listings = {"issues": [opted_in(n) for n in range(1, 11)],
+                        "pulls": [{"number": n, "state": "open", "body": "Closes #5" if n == claim else "Tidies something."}
+                                  for n in range(201, 201 + count)]}
+            solvable = [n for n in range(1, 11) if n != 5]
+        requests = fake_gh_api_shifting(monkeypatch, listings)
+        code, out, err = run_cli(solvable_issues, [], cwd=tmp_path)
+        return (code, out, err, [path for path in requests if path.startswith(prefix)]), "".join("%d\n" % n for n in solvable)
+
+    observed = {count: answer(count) for count in (40, 100, 130)}
+
+    assert {count: got for count, (got, _) in observed.items()} == {
+        40: (0, observed[40][1], "", [open_page]),
+        100: (0, observed[100][1], "", [open_page, grow_only % 1, grow_only % 2]),
+        130: (0, observed[130][1], "", [open_page, grow_only % 1, grow_only % 2, grow_only % 3]),
+    }
+    assert [len(wanted.splitlines()) for _, wanted in observed.values()] == (
+        [38, 98, 128] if endpoint == "issues" else [9, 9, 9])
