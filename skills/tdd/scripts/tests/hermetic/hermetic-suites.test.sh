@@ -45,9 +45,9 @@ report "$name"
 
 label_cut="$(mktemp "$HERE/.hermetic-label-slice.XXXXXX")"
 awk '
-  /^fx="\$\(fixture in-flight\)"$/ {skip=1}
-  /^fx="\$\(fixture bug-band\)"$/ {skip=0}
-  /^narration="\$\(loop_bullet / {skip=1}
+  /^bad_arg="\$\(fixture bad-argument\)"$/ {skip=1}
+  /^argcapdir="/ {skip=0}
+  /^name="a live conductor lock / {skip=1}
   !skip
 ' "$HERE/solvable-issues.test.sh" > "$label_cut"
 printf '%s\n' 'echo "----"' 'echo "${pass:-0} passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$label_cut"
@@ -55,8 +55,8 @@ chmod +x "$label_cut"
 name="solvable-issues.test.sh: an ambient VERI_PRIORITY_LABEL gives the same exit and the same stdout as a cleared run"
 problems=()
 label_assertions="$(grep -c 'ok || no ' "$label_cut")"
-if [[ "$label_assertions" -ne 6 ]]; then
-  problems+=("the slice of solvable-issues.test.sh from the bug-band fixture to the narration case held $label_assertions assertions, want 6 — the markers may have moved")
+if [[ "$label_assertions" -ne 2 ]]; then
+  problems+=("the slice of solvable-issues.test.sh from the argcap stub to the live-lock case held $label_assertions assertions, want 2 — the markers may have moved")
 else
   cleared_label_out="$(env -u VERI_PRIORITY_LABEL "$label_cut" 2>/dev/null)" && cleared_label_code=0 || cleared_label_code=$?
   ambient_label_out="$(env VERI_PRIORITY_LABEL=ready-for-agent "$label_cut" 2>/dev/null)" && ambient_label_code=0 || ambient_label_code=$?
@@ -70,7 +70,7 @@ name="solvable-issues.test.sh: an ambient VERI_GH_DRIVER of auto, rest or graphq
 problems=()
 driver_solvable="$(mktemp "$HERE/.hermetic-driver-slice.XXXXXX")"
 awk '
-  /^fx="\$\(fixture in-flight\)"$/ {skip=1}
+  /^bad_arg="\$\(fixture bad-argument\)"$/ {skip=1}
   /^fx="\$\(fixture graphql-refused\)"$/ {skip=0}
   !skip
 ' "$HERE/solvable-issues.test.sh" > "$driver_solvable"
