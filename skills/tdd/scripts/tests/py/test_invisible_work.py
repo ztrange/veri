@@ -190,6 +190,33 @@ def test_main_reads_issues_and_prs_from_veri_gh_json_or_from_gh_list_falling_bac
         "invisible-work.sh: cannot read issues and PRs from gh (unauthenticated?)\n")
 
 
+def test_main_exits_2_never_1_after_reaching_gh_when_its_rest_call_fails_with_a_network_error_a_404_or_a_5xx_under_a_gh_that_refuses_graphql(
+        monkeypatch, run_cli, fake_processes):
+    invisible_work = importlib.import_module("veri.invisible_work")
+    monkeypatch.delenv("VERI_GH_JSON", raising=False)
+    monkeypatch.delenv("VERI_GH_DRIVER", raising=False)
+    refusal = "HTTP 403: GitHub GraphQL is not available from Claude Code sessions; use the REST API"
+    exits = []
+
+    for failure in ("error connecting to api.github.com",
+                    "HTTP 404: Not Found (https://api.github.com/repos/o/r/issues/7)",
+                    "HTTP 502: Bad Gateway"):
+        def answer(line, failure=failure, **_):
+            if not line.startswith("gh "):
+                return 0, "", ""
+            graphql = line.split()[1] in ("issue", "pr", "repo") or line.startswith("gh api graphql")
+            return 1, "", refusal if graphql else failure
+
+        calls = fake_processes(answer)
+        code, out, _ = run_cli(invisible_work, [])
+        exits.append((failure, code, out, any(line.startswith("gh api repos/") for line in calls)))
+
+    assert exits == [(failure, 2, "", True) for failure in (
+        "error connecting to api.github.com",
+        "HTTP 404: Not Found (https://api.github.com/repos/o/r/issues/7)",
+        "HTTP 502: Bad Gateway")]
+
+
 def test_main_keeps_the_report_rules_of_the_embedded_program_and_raises_on_a_malformed_answer(
         monkeypatch, tmp_path, capsys):
     invisible_work = importlib.import_module("veri.invisible_work")
