@@ -12,4 +12,4 @@
 - [x] CLAUDE.md's model-knob invariant and SKILL.md's supervise.sh bullet state the shipped defaults (sonnet for first tries and verifiers, opus for redo leaves and the conductor) instead of no --model ⟦criterion 5⟧
 - [x] supervise.sh's Tunables (env) header names all four model knobs and the shipped defaults instead of no --model ⟦criterion 5⟧
 - [x] The metrics footer's sentence on when dollars are comparable names VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_VERIFIER and VERI_MODEL_REVISE ⟦criterion 5⟧
-- [ ] model-knobs-recorded.test.sh was watched red with VERI_MODEL_REVISE removed from SKILL.md's bullet and from CLAUDE.md's invariant in turn ⟦human-owed⟧ ⟦criterion 5⟧
+- [x] model-knobs-recorded.test.sh was watched red with VERI_MODEL_REVISE removed from SKILL.md's bullet and from CLAUDE.md's invariant in turn ⟦human-owed⟧ ⟦criterion 5⟧ — watched red 2026-10-11 by the delegated review on b832099af: SKILL.md bullet removed alone → 13 passed / 2 failed; CLAUDE.md invariant removed alone → 13 / 2; both restored, cmp clean
