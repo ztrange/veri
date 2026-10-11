@@ -22,6 +22,10 @@ def read_bytes(name, default=b""):
     return os.environb.get(os.fsencode(name), default)
 
 
+def venv_dir():
+    return read("VERI_VENV") or os.path.join(os.environ.get("HOME", ""), ".veri-tools", "venv")
+
+
 def stop_timeout(raw):
     value = float(raw)
     if not math.isfinite(value) or value <= 0 or value > STOP_TIMEOUT_MAX:
