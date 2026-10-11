@@ -49,6 +49,13 @@ def refused_if_empty(name):
     return False
 
 
+def scope_label():
+    """The opt-in label, or None when VERI_LABEL is set but empty."""
+    if refused_if_empty("VERI_LABEL"):
+        return None
+    return os.environ.get("VERI_LABEL", "ready-for-agent")
+
+
 def priority_label():
     """The priority label, or None when VERI_PRIORITY_LABEL is set but empty."""
     if refused_if_empty("VERI_PRIORITY_LABEL"):
@@ -108,12 +115,11 @@ def main(argv):
     if repo == "":
         print(USAGE, file=sys.stderr)
         return 2
-    if refused_if_empty("VERI_LABEL"):
+    label = scope_label()
+    priority = label and priority_label()
+    if label is None or priority is None:
         return 2
-    priority = priority_label()
-    if priority is None:
-        return 2
-    code, numbers = select(tunables.read("VERI_LABEL", "ready-for-agent"), priority, repo)
+    code, numbers = select(label, priority, repo)
     for number in numbers:
         print(number)
     return code
