@@ -186,3 +186,27 @@ def test_main_files_the_skipped_file_s_candidates_when_list_exits_3_issue_777(
     captured = capsys.readouterr()
     assert calls == [issue(7, BODY_HEAD + "- a skipped candidate\n- another skipped")]
     assert (code, captured.out) == (0, "https://github.com/o/r/issues/9\n")
+
+
+@pytest.mark.parametrize("skipped, list_code", [("a skipped candidate\n", 1), (None, 4)])
+def test_main_returns_any_other_structural_lines_code_as_its_own_and_files_nothing(
+        monkeypatch, capsys, tmp_path, refactor_overflow, skipped, list_code):
+    owed = write_owed(tmp_path, ["first", "second"])
+    argv = ["7", owed, "0"]
+    if skipped is not None:
+        (tmp_path / "skipped.md").write_text(skipped)
+        argv.append(str(tmp_path / "skipped.md"))
+    asked = []
+
+    def structural_lines(file):
+        asked.append(file)
+        return list_code, ["first", "second"]
+
+    monkeypatch.setattr(refactor_overflow, "structural_lines", structural_lines)
+    calls = fake_gh(monkeypatch)
+
+    code = refactor_overflow.main(argv)
+
+    captured = capsys.readouterr()
+    assert (asked, calls) == ([owed], [])
+    assert (code, captured.out, captured.err) == (list_code, "", "")
