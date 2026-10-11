@@ -1,13 +1,15 @@
-"""In-process cases for veri/run_affordable.py, the module run-affordable.sh is a shim over."""
+"""Cases for veri/run_affordable.py, the module run-affordable.sh is a shim over, run against the real siblings.
+
+Each case sets VERI_STEP_BUDGET and VERI_RUN_BUDGET in its environment and writes .tdd/events.jsonl in its own scratch tree.
+"""
 import importlib
 import io
 import os
-import pathlib
-import re
-import subprocess
 import sys
 
 import pytest
+
+pytestmark = pytest.mark.process("run-affordable's own step-budget.sh and step-cost.sh starts")
 
 
 @pytest.fixture
@@ -15,30 +17,37 @@ def run_affordable():
     return importlib.import_module("veri.run_affordable")
 
 
-def _siblings(monkeypatch, budget, steps):
-    """subprocess.run answering step-budget.sh with <budget> and step-cost.sh --steps with <steps>; returns the calls made."""
-    calls = []
-
-    def fake_run(args, *rest, **kwargs):
-        calls.append(list(args))
-        name = pathlib.Path(args[0]).name
-        if name == "step-budget.sh":
-            return subprocess.CompletedProcess(args, 0, budget, "")
-        if name == "step-cost.sh" and list(args[1:]) == ["--steps"]:
-            return subprocess.CompletedProcess(args, 0, steps, "")
-        raise AssertionError("unexpected subprocess call: %r" % (args,))
-
-    def fake_popen(args, *rest, **kwargs):
-        raise AssertionError("unexpected subprocess.Popen: %r" % (args,))
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.setattr(subprocess, "Popen", fake_popen)
-    return calls
+@pytest.fixture
+def scratch(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".tdd").mkdir()
+    monkeypatch.delenv("VERI_STEP_BUDGET", raising=False)
+    monkeypatch.delenv("VERI_RUN_BUDGET", raising=False)
+    return tmp_path
 
 
-def test_main_refuses_a_bad_argument_with_2_and_answers_1_or_3_from_the_siblings(capsys, monkeypatch, run_affordable):
+def _log(scratch, steps):
+    """Write a usage event log in which each '<dollars> <leaves>' line of <steps> is one step."""
+    lines = []
+    for number, line in enumerate(steps.splitlines()):
+        dollars, leaves = line.split()
+        for leaf in range(int(leaves)):
+            lines.append('{"ts": 1, "event": "usage", "step": "step %d", "total_cost_usd": "%s"}\n'
+                         % (number, dollars if leaf == 0 else "0"))
+    (scratch / ".tdd" / "events.jsonl").write_text("".join(lines))
+
+
+def _answer(run_affordable, capsys, scratch, monkeypatch, remaining, ceiling, steps):
+    _log(scratch, steps)
+    monkeypatch.setenv("VERI_RUN_BUDGET", ceiling)
+    code = run_affordable.main([remaining])
+    out, err = capsys.readouterr()
+    return (code, out, err)
+
+
+def test_main_refuses_a_bad_argument_with_2_and_answers_1_or_3_from_the_siblings(capsys, monkeypatch, scratch, run_affordable):
     usage = "usage: run-affordable.sh <steps-remaining> (a whole number)\n"
-    calls = _siblings(monkeypatch, "12\n50\n", "5.25 6\n7.50 6\n9.75 6\n")
+    monkeypatch.setenv("VERI_RUN_BUDGET", "50")
     for argv, shown in (([], ""), ([""], ""), (["two"], "two")):
         code = run_affordable.main(argv)
         out, err = capsys.readouterr()
@@ -46,74 +55,37 @@ def test_main_refuses_a_bad_argument_with_2_and_answers_1_or_3_from_the_siblings
             argv, 2, "",
             "run-affordable.sh: <steps-remaining> is not a whole number: '%s'\n" % shown + usage,
         )
-    assert calls == []
 
-    code = run_affordable.main(["4"])
-    out, _ = capsys.readouterr()
-    assert (code, out) == (1, "spent 22.50, steps remaining 4, median 7.50, projection 52.50\n")
+    seen = _answer(run_affordable, capsys, scratch, monkeypatch, "4", "50", "5.25 6\n7.50 6\n9.75 6\n")
+    assert seen == (1, "spent 22.50, steps remaining 4, median 7.50, projection 52.50\n", "")
 
-    _siblings(monkeypatch, "12\n50\n", "100.00 2\n100.00 2\n")
-    code = run_affordable.main(["4"])
-    out, _ = capsys.readouterr()
-    assert (code, out) == (3, "")
+    seen = _answer(run_affordable, capsys, scratch, monkeypatch, "4", "50", "100.00 2\n100.00 2\n")
+    assert seen == (3, "", "")
 
 
-def test_main_runs_step_budget_then_step_cost_beside_its_scripts_and_passes_their_statuses_through(capsys, monkeypatch, run_affordable):
-    scripts = pathlib.Path(run_affordable.__file__).resolve().parent.parent
-    budget_sh, cost_sh = str(scripts / "step-budget.sh"), str(scripts / "step-cost.sh")
+def test_main_passes_the_exit_statuses_of_the_budget_and_the_log_through(capsys, monkeypatch, scratch, run_affordable):
     steps = "5.25 6\n7.50 6\n9.75 6\n"
+    assert _answer(run_affordable, capsys, scratch, monkeypatch, "4", "60", steps) == (0, "", "")
+    assert _answer(run_affordable, capsys, scratch, monkeypatch, "4", "50", steps)[:2] == (
+        1, "spent 22.50, steps remaining 4, median 7.50, projection 52.50\n")
 
-    def answer(budget, budget_status=0, cost_status=0):
-        calls = []
+    monkeypatch.setenv("VERI_STEP_BUDGET", "many")
+    assert _answer(run_affordable, capsys, scratch, monkeypatch, "4", "50", steps)[:2] == (2, "")
+    monkeypatch.delenv("VERI_STEP_BUDGET")
 
-        def fake_run(args, *rest, **kwargs):
-            env = kwargs.get("env")
-            calls.append((list(args), kwargs.get("cwd"), env is None or dict(env) == dict(os.environ)))
-            if args[0] == budget_sh:
-                status, out = budget_status, budget
-            elif args[0] == cost_sh:
-                status, out = cost_status, steps if cost_status == 0 else ""
-            else:
-                raise AssertionError("unexpected subprocess call: %r" % (args,))
-            if not (kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")):
-                out = out.encode()
-            if kwargs.get("check") and status:
-                raise subprocess.CalledProcessError(status, args, out, "")
-            return subprocess.CompletedProcess(args, status, out, "")
+    assert _answer(run_affordable, capsys, scratch, monkeypatch, "4", "fifty", steps)[:2] == (2, "")
+    assert _answer(run_affordable, capsys, scratch, monkeypatch, "4", "50", "1.00 2\n1.00 1\n")[:2] == (3, "")
 
-        def fake_popen(args, *rest, **kwargs):
-            raise AssertionError("unexpected subprocess.Popen: %r" % (args,))
-
-        monkeypatch.setattr(subprocess, "run", fake_run)
-        monkeypatch.setattr(subprocess, "Popen", fake_popen)
-        return calls
-
-    both = [([budget_sh], None, True), ([cost_sh, "--steps"], None, True)]
-
-    for budget, expected in (("12\n60\n", 0), ("99\n50\n", 1)):
-        calls = answer(budget)
-        code = run_affordable.main(["4"])
-        out, _ = capsys.readouterr()
-        assert (budget, code, out if code == 0 else "", calls) == (budget, expected, "", both)
-
-    for budget_status, cost_status, expected, ran in (
-        (2, 0, 2, both[:1]),
-        (5, 0, 2, both[:1]),
-        (0, 3, 3, both),
-        (0, 2, 2, both),
-        (0, 1, 2, both),
-        (0, 5, 2, both),
-    ):
-        calls = answer("12\n50\n", budget_status, cost_status)
-        code = run_affordable.main(["4"])
-        out, _ = capsys.readouterr()
-        assert ((budget_status, cost_status), code, out, calls) == ((budget_status, cost_status), expected, "", ran)
+    (scratch / ".tdd" / "events.jsonl").unlink()
+    code = run_affordable.main(["4"])
+    out, _ = capsys.readouterr()
+    assert (code, out) == (2, "")
 
 
-def test_main_reads_steps_remaining_first_refusing_all_but_whole_numbers_and_echoing_them_byte_for_byte(monkeypatch, run_affordable):
+def test_main_reads_steps_remaining_first_refusing_all_but_whole_numbers_and_echoing_them_byte_for_byte(monkeypatch, scratch, run_affordable):
     usage = b"usage: run-affordable.sh <steps-remaining> (a whole number)\n"
     monkeypatch.setenv("VERI_RUN_BUDGET", "fifty")
-    calls = _siblings(monkeypatch, "12\n40\n", "5.25 6\n7.50 6\n9.75 6\n")
+    _log(scratch, "5.25 6\n7.50 6\n9.75 6\n")
 
     def run(argv):
         out, err = io.BytesIO(), io.BytesIO()
@@ -130,9 +102,9 @@ def test_main_reads_steps_remaining_first_refusing_all_but_whole_numbers_and_ech
     seen = {arg: run([arg]) for arg in bad}
     wanted = {arg: (2, b"", b"run-affordable.sh: <steps-remaining> is not a whole number: '" + shown + b"'\n" + usage)
               for arg, shown in bad.items()}
-    assert (seen, calls) == (wanted, [])
+    assert seen == wanted
 
-    monkeypatch.delenv("VERI_RUN_BUDGET")
+    monkeypatch.setenv("VERI_RUN_BUDGET", "40")
     seen = {"007": run(["007"]), "3 extra": run(["3", "extra"]), "3": run(["3"])}
     assert seen == {
         "007": (1, b"spent 22.50, steps remaining 7, median 7.50, projection 75.00\n", b""),
@@ -141,12 +113,9 @@ def test_main_reads_steps_remaining_first_refusing_all_but_whole_numbers_and_ech
     }
 
 
-def test_main_projects_from_the_median_full_step_counting_every_step_toward_spent_and_comparing_strictly(capsys, monkeypatch, run_affordable):
+def test_main_projects_from_the_median_full_step_counting_every_step_toward_spent_and_comparing_strictly(capsys, monkeypatch, scratch, run_affordable):
     def run(remaining, ceiling, steps):
-        _siblings(monkeypatch, "12\n%s\n" % ceiling, steps)
-        code = run_affordable.main([remaining])
-        out, err = capsys.readouterr()
-        return (code, out, err)
+        return _answer(run_affordable, capsys, scratch, monkeypatch, remaining, ceiling, steps)
 
     seen = {
         "odd": run("1", "0", "5.00 6\n1.00 6\n2.00 2\n3.00 3\n"),
@@ -164,12 +133,9 @@ def test_main_projects_from_the_median_full_step_counting_every_step_toward_spen
     }
 
 
-def test_main_sums_in_sort_order_formats_unlocalised_wraps_the_count_and_returns_2_when_stdout_is_closed(capsys, monkeypatch, run_affordable):
+def test_main_sums_in_sort_order_formats_unlocalised_wraps_the_count_and_returns_2_when_stdout_is_closed(capsys, monkeypatch, scratch, run_affordable):
     def run(remaining, ceiling, steps):
-        _siblings(monkeypatch, "12\n%s\n" % ceiling, steps)
-        code = run_affordable.main([remaining])
-        out, err = capsys.readouterr()
-        return (code, out, err)
+        return _answer(run_affordable, capsys, scratch, monkeypatch, remaining, ceiling, steps)
 
     seen = {"sort order": run("0", "0", "62867166030098.60 6\n0.08 2\n0.69 2\n"),
             "half-cent median": run("1", "0", "1.02 6\n1.01 6\n")}
@@ -192,36 +158,11 @@ def test_main_sums_in_sort_order_formats_unlocalised_wraps_the_count_and_returns
     }
 
 
-def test_main_answers_the_contract_cases_from_step_budget_and_step_cost_as_run_affordable_sh_did(capsys, monkeypatch, tmp_path, run_affordable):
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / ".tdd").mkdir()
-    monkeypatch.delenv("VERI_STEP_BUDGET", raising=False)
-    state = {}
-
-    def fake_run(args, *rest, **kwargs):
-        name = pathlib.Path(args[0]).name
-        if name == "step-budget.sh":
-            budget = os.environ.get("VERI_RUN_BUDGET", "40")
-            if not re.fullmatch(r"[0-9]+(\.[0-9]+)?", budget):
-                return subprocess.CompletedProcess(args, 2, "", "")
-            return subprocess.CompletedProcess(args, 0, "12\n%s\n" % budget, "")
-        if name == "step-cost.sh" and list(args[1:]) == ["--steps"]:
-            if not (pathlib.Path.cwd() / ".tdd" / "events.jsonl").exists():
-                return subprocess.CompletedProcess(args, 2, "", "")
-            return subprocess.CompletedProcess(args, 0, state["steps"], "")
-        raise AssertionError("unexpected subprocess call: %r" % (args,))
-
-    def fake_popen(args, *rest, **kwargs):
-        raise AssertionError("unexpected subprocess.Popen: %r" % (args,))
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.setattr(subprocess, "Popen", fake_popen)
-
+def test_main_answers_the_contract_cases_from_step_budget_and_step_cost_as_run_affordable_sh_did(capsys, monkeypatch, scratch, run_affordable):
     def run(budget, argv, steps, log=True):
-        state["steps"] = steps
-        log_file = tmp_path / ".tdd" / "events.jsonl"
+        log_file = scratch / ".tdd" / "events.jsonl"
         if log:
-            log_file.write_text("")
+            _log(scratch, steps)
         elif log_file.exists():
             log_file.unlink()
         monkeypatch.setenv("VERI_RUN_BUDGET", budget)
