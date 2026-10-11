@@ -1182,6 +1182,15 @@ def test_main_after_claude_exits_keeps_the_record_when_the_run_worktree_is_its_o
                        for launch in ("pinned", "unpinned") for name in scenarios}
 
 
+def fake_tar(args, tar_code):
+    """tar exiting `tar_code` after dropping the real SKILL.md into its -C directory."""
+    process = FakeProcess(args)
+    pathlib.Path(args[-1], "SKILL.md").write_bytes((SCRIPTS.parent / "SKILL.md").read_bytes())
+    process.returncode = tar_code
+    process.wait = process.poll = lambda *_, **__: tar_code
+    return process
+
+
 def fake_claude_exiting(monkeypatch, child_code, tar_code):
     """git faked as a process with no origin whose HEAD resolves; tar exiting `tar_code` after dropping
     the real SKILL.md into its -C directory; fake-claude recorded with its argv and stdin, exiting `child_code`."""
@@ -1203,12 +1212,7 @@ def fake_claude_exiting(monkeypatch, child_code, tar_code):
 
     def popen(args, *_, **__):
         args = list(args)
-        process = FakeProcess(args)
-        if args[:1] == ["tar"]:
-            pathlib.Path(args[-1], "SKILL.md").write_bytes((SCRIPTS.parent / "SKILL.md").read_bytes())
-            process.returncode = tar_code
-            process.wait = process.poll = lambda *_, **__: tar_code
-        return process
+        return fake_tar(args, tar_code) if args[:1] == ["tar"] else FakeProcess(args)
 
     monkeypatch.setattr(subprocess, "run", answer)
     monkeypatch.setattr(subprocess, "Popen", popen)
@@ -1304,12 +1308,7 @@ def fake_claude_env(monkeypatch, origin, resolves, leaf):
         args = list(args)
         if args[:1] not in (["git"], ["tar"]):
             return REAL_POPEN(args, *rest, **kwargs)
-        process = FakeProcess(args)
-        if args[:1] == ["tar"]:
-            pathlib.Path(args[-1], "SKILL.md").write_bytes((SCRIPTS.parent / "SKILL.md").read_bytes())
-            process.returncode = 0
-            process.wait = process.poll = lambda *_, **__: 0
-        return process
+        return fake_tar(args, 0) if args[:1] == ["tar"] else FakeProcess(args)
 
     monkeypatch.setattr(subprocess, "run", answer)
     monkeypatch.setattr(subprocess, "Popen", popen)
