@@ -9,20 +9,18 @@ import tunables
 
 try:
     from context_budget import START, watch
-    from tunables import stop_timeout as _stop_timeout, tokens as _tokens
 except ImportError:
     from .context_budget import START, watch
-    from .tunables import stop_timeout as _stop_timeout, tokens as _tokens
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONDUCTOR = os.path.join(SCRIPTS, "run-conductor.sh")
 
 
 def main(argv):
-    budget = _tunable("VERI_CONDUCTOR_CTX_BUDGET", "120000", _tokens, "a whole number of tokens")
+    budget = _tunable("VERI_CONDUCTOR_CTX_BUDGET")
     if budget is None:
         return 2
-    stop_timeout = _tunable("VERI_CONDUCTOR_STOP_TIMEOUT", "10", _stop_timeout, "a positive number of seconds")
+    stop_timeout = _tunable("VERI_CONDUCTOR_STOP_TIMEOUT")
     if stop_timeout is None:
         return 2
     while True:
@@ -50,13 +48,11 @@ def main(argv):
             _say("parked %s\n" % issue)
 
 
-def _tunable(name, default, parse, must_be):
-    raw = tunables.read(name) or default
-    try:
-        return parse(raw)
-    except ValueError:
-        sys.stderr.write("orchestrate.sh: %s must be %s: %s\n" % (name, must_be, raw))
-        return None
+def _tunable(name):
+    value, bad = tunables.resolve(name)
+    if bad:
+        sys.stderr.write("orchestrate.sh: %s must be %s: %s\n" % (name, bad[1], bad[0]))
+    return value
 
 
 def _watch(issue, stream, budget):

@@ -49,8 +49,26 @@ def kill_poll(raw):
     return float(raw)
 
 
+class Tunable:
+    def __init__(self, parse, default, must_be):
+        self.parse, self.default, self.must_be = parse, default, must_be
+
+    def __call__(self, raw):
+        return self.parse(raw)
+
+
 TABLE = {
-    "VERI_CONDUCTOR_CTX_BUDGET": tokens,
-    "VERI_CONDUCTOR_STOP_TIMEOUT": stop_timeout,
-    "VERI_KILL_POLL": kill_poll,
+    "VERI_CONDUCTOR_CTX_BUDGET": Tunable(tokens, "120000", "a whole number of tokens"),
+    "VERI_CONDUCTOR_STOP_TIMEOUT": Tunable(stop_timeout, "10", "a positive number of seconds"),
+    "VERI_KILL_POLL": Tunable(kill_poll, "0.1", "a non-negative number"),
 }
+
+
+def resolve(name):
+    """(value, None), or (None, (raw, must_be)) when the environment holds a bad value."""
+    entry = TABLE[name]
+    raw = read(name) or entry.default
+    try:
+        return entry(raw), None
+    except ValueError:
+        return None, (raw, entry.must_be)
