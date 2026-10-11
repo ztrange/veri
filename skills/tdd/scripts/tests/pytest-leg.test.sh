@@ -994,4 +994,38 @@ third="$(cache_dirs)"
   problems+=("after changing veri/comment_class.py: want a cache directory other than [$first], got: [$third]")
 report "$name"
 
+rewritten="$work/rewritten"
+make_tree "$rewritten"
+printf 'BUDGET = "130000"\n' > "$rewritten/$PY_DIR/kept_probe.py"
+cat > "$rewritten/$PY_DIR/test_leg_probe.py" <<'PY'
+import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import kept_probe
+
+
+def test_veri_probe_runs_the_source_on_disk():
+    on_disk = pathlib.Path(kept_probe.__file__).read_text().split('"')[1]
+    assert kept_probe.BUDGET == on_disk, kept_probe.BUDGET
+PY
+rewritten_root="$work/rewritten-cache-root"
+
+run_rewritten() {
+  env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE -u PYTHONPYCACHEPREFIX -u PYTHONDONTWRITEBYTECODE \
+    VERI_PYCACHE_ROOT="$rewritten_root" \
+    make --no-print-directory -C "$rewritten" unit > "$work/out" 2> "$work/err" < /dev/null &&
+    code=0 || code=$?
+  check_green "make unit, $1"
+}
+
+name="#1127 #1471: a module under skills/tdd/scripts the pytest leg ran, rewritten to different content of the same size with its mtime restored, runs from its new source on the next leg run, never from the bytecode the first run cached"
+problems=()
+run_rewritten "first run"
+touch -r "$rewritten/$PY_DIR/kept_probe.py" "$work/rewritten.mtime"
+printf 'BUDGET = "120000"\n' > "$rewritten/$PY_DIR/kept_probe.py"
+touch -r "$work/rewritten.mtime" "$rewritten/$PY_DIR/kept_probe.py"
+run_rewritten "after the same-size rewrite"
+report "$name"
+
 finish
