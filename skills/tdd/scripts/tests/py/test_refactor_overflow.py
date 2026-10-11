@@ -9,9 +9,6 @@ import pytest
 USAGE = "refactor-overflow: usage: refactor-overflow.sh <n> <owed-file> <reached>\n"
 
 
-REAL_RUN = subprocess.run
-
-
 @pytest.fixture
 def refactor_overflow():
     return importlib.import_module("veri.refactor_overflow")
@@ -69,13 +66,13 @@ def write_owed(tmp_path, candidates):
 
 
 def fake_gh(monkeypatch, code=0, out="https://github.com/o/r/issues/9\n", err=None):
-    """Only gh is faked; refactor-owed.sh runs for real. Returns gh's argv lists, in order."""
+    """Only gh is faked, and any other process is refused. Returns gh's argv lists, in order."""
     calls = []
 
     def run(args, *rest, **kwargs):
         args = [str(a) for a in args]
         if args[0] != "gh":
-            return REAL_RUN(args, *rest, **kwargs)
+            raise AssertionError(f"started a process: {args}")
         calls.append(args[1:])
         if err is not None and not (kwargs.get("capture_output") or kwargs.get("stderr") is not None):
             sys.stderr.write(err)
@@ -90,7 +87,6 @@ def issue(n, body):
             "-f", f"body={body}", "-q", ".html_url"]
 
 
-@pytest.mark.process("refactor-owed.sh list, run as the sibling process")
 @pytest.mark.parametrize("n", ["504", "007"])
 def test_main_files_the_unreached_list_lines_through_gh_and_prints_its_url(
         monkeypatch, capsys, tmp_path, refactor_overflow, n):
@@ -110,7 +106,6 @@ def test_main_files_the_unreached_list_lines_through_gh_and_prints_its_url(
 BODY_HEAD = "Structural candidates #7's closing pass could not reach:\n\n"
 
 
-@pytest.mark.process("refactor-owed.sh list, run as the sibling process")
 @pytest.mark.parametrize("skipped, listed, reached, expected_code, expected_body", [
     ("skipped one\n\nskipped one\n", ["first", "second", "third"], "1", 0,
      "- skipped one\n- \n- skipped one\n- second\n- third"),
@@ -141,7 +136,6 @@ def test_main_builds_the_unreached_text_from_the_skipped_file_then_the_list_line
     assert (code, captured.out) == (expected_code, expected_out)
 
 
-@pytest.mark.process("refactor-owed.sh list, run as the sibling process")
 @pytest.mark.parametrize("gh_code, expected_code", [(0, 0), (1, 2)])
 def test_main_lets_what_gh_writes_to_stderr_through_to_the_callers_stderr_on_every_exit(
         monkeypatch, capsys, tmp_path, refactor_overflow, gh_code, expected_code):
@@ -158,7 +152,6 @@ def test_main_lets_what_gh_writes_to_stderr_through_to_the_callers_stderr_on_eve
 TEN = [f"l{i}" for i in range(1, 11)]
 
 
-@pytest.mark.process("refactor-owed.sh list, run as the sibling process")
 @pytest.mark.parametrize("reached, gh_code, expected_code, expected_out, expected_body", [
     ("1", 1, 2, "", "- l2\n- l3\n- l4\n- l5\n- l6\n- l7\n- l8\n- l9\n- l10"),
     ("1", 4, 2, "", "- l2\n- l3\n- l4\n- l5\n- l6\n- l7\n- l8\n- l9\n- l10"),
@@ -182,7 +175,6 @@ def test_main_returns_gh_s_own_failing_code_and_reads_reached_with_leading_zeros
     assert (code, captured.out) == (expected_code, expected_out)
 
 
-@pytest.mark.process("refactor-owed.sh list, run as the sibling process")
 def test_main_files_the_skipped_file_s_candidates_when_list_exits_3_issue_777(
         monkeypatch, capsys, tmp_path, refactor_overflow):
     owed = write_owed(tmp_path, [])
