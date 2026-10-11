@@ -58,6 +58,13 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture(autouse=True)
+def hermetic_environment(monkeypatch):
+    for name in list(os.environ):
+        if name.startswith(("VERI_", "CLAUDE_", "GH_", "GIT_")) and name != "VERI_VENV":
+            monkeypatch.delenv(name)
+
+
+@pytest.fixture(autouse=True)
 def small_case_guard(request, monkeypatch):
     if request.node.get_closest_marker("process") is None:
         monkeypatch.setenv("PATH", str(SCRIPTS / "tests" / "unit-guard") + os.pathsep + os.environ.get("PATH", ""))

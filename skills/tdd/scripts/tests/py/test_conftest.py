@@ -1,8 +1,13 @@
 """The search-path setup conftest.py gives every suite under tests/py, read by a suite with none of its own."""
 import importlib
+import json
+import os
 import pathlib
 import subprocess
+import sys
 from sys import path as search_path
+
+import pytest
 
 
 def test_a_suite_with_no_path_setup_reads_scripts_from_conftest_and_imports_veri_and_script_modules():
@@ -80,3 +85,23 @@ def test_fake_processes_hands_output_back_in_the_calls_mode_merges_stderr_on_req
         assert (raised.returncode, raised.cmd, raised.output, raised.stderr) == (3, ["tool", "check"], "out", "err")
     else:
         raise AssertionError("a non-zero answer under check=True returned rather than raising")
+
+
+@pytest.mark.process("a child pytest session started with ambient VERI_, CLAUDE_, GH_ and GIT_ variables")
+def test_every_case_starts_with_no_veri_claude_gh_or_git_variable_set_but_veri_venv_whatever_the_shell_had(tmp_path):
+    probe = tmp_path / "test_probe.py"
+    seen = tmp_path / "seen.json"
+    probe.write_text(
+        "import json, os\n"
+        "def test_probe():\n"
+        "    names = [n for n in os.environ if n.startswith(('VERI_', 'CLAUDE_', 'GH_', 'GIT_'))]\n"
+        "    open(%r, 'w').write(json.dumps(sorted(names)))\n" % str(seen))
+    ambient = {name: "1" for name in ("VERI_ISSUE", "VERI_VENV", "CLAUDE_X", "GH_TOKEN", "GIT_DIR")}
+    env = {**os.environ, **ambient, "PYTHONPATH": str(pathlib.Path(__file__).resolve().parent)}
+
+    ran = subprocess.run([sys.executable, "-m", "pytest", "-p", "conftest", "-p", "no:cacheprovider", "-q",
+                          "--rootdir", str(tmp_path), str(probe)],
+                         env=env, cwd=tmp_path, capture_output=True, text=True)
+
+    assert ran.returncode == 0, ran.stdout + ran.stderr
+    assert json.loads(seen.read_text()) == ["VERI_VENV"]
