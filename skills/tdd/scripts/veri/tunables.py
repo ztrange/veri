@@ -10,6 +10,10 @@ def read(name, default=""):
     return os.environ.get(name, default)
 
 
+def environment():
+    return dict(os.environ)
+
+
 def with_values(**values):
     return dict(os.environ, **values)
 

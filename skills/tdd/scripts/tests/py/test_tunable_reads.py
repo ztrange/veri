@@ -42,3 +42,10 @@ def test_parallel_conductors_orchestrate_run_conductor_workqueue_profile_and_sta
     modules = [VERI / ("%s.py" % name) for name in names]
 
     assert [read for path in modules for read in direct_reads(path)] == []
+
+
+def test_github_solvable_issues_skill_drift_launch_floor_run_suite_and_event_take_their_veri_values_from_the_one_reader():
+    names = ("github", "solvable_issues", "skill_drift", "launch_floor", "run_suite", "event")
+    modules = [VERI / ("%s.py" % name) for name in names]
+
+    assert [read for path in modules for read in direct_reads(path)] == []

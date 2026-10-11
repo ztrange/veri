@@ -5,6 +5,7 @@ import subprocess
 import sys
 
 import blocked_by
+import tunables
 from github import NoAnswer, gh_json, gh_json_page
 from json_documents import items
 
@@ -69,8 +70,8 @@ def main(argv):
         return 2
     if refused_if_empty("VERI_LABEL") or refused_if_empty("VERI_PRIORITY_LABEL"):
         return 2
-    label = os.environ.get("VERI_LABEL", "ready-for-agent")
-    priority = os.environ.get("VERI_PRIORITY_LABEL", "priority")
+    label = tunables.read("VERI_LABEL", "ready-for-agent")
+    priority = tunables.read("VERI_PRIORITY_LABEL", "priority")
     scope = ["--repo", repo] if repo else []
     prefix = "repos/%s" % (repo or "{owner}/{repo}")
     try:

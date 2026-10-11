@@ -3,6 +3,7 @@ import os
 import re
 import sys
 
+import tunables
 from git import git
 
 SUFFIX = re.compile(r"\(#(\d+)\)\s*$")
@@ -26,15 +27,15 @@ def unavailable(reason):
 
 
 def main(argv):
-    commit = os.environ.get("VERI_SKILL_COMMIT", "")
-    if os.environ.get("VERI_SKILL_UNPINNED") == "1" or not commit:
+    commit = tunables.read("VERI_SKILL_COMMIT")
+    if tunables.read("VERI_SKILL_UNPINNED") == "1" or not commit:
         return unavailable("run was not pinned to a skill commit")
-    clone = os.environ.get("VERI_SKILL_CLONE", "")
+    clone = tunables.read("VERI_SKILL_CLONE")
     if not clone or git_output(clone, "rev-parse", "--is-inside-work-tree").strip() != "true":
         return unavailable("skill clone not known")
     if not resolves(clone, commit):
         return unavailable("pinned commit %s is not in %s" % (commit, clone))
-    ref = os.environ.get("VERI_SKILL_REF", "")
+    ref = tunables.read("VERI_SKILL_REF")
     if not ref:
         return unavailable("skill ref not known")
     fetched = run(clone, "fetch", "-q", "origin").returncode == 0
