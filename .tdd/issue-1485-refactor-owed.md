@@ -8,3 +8,5 @@
 - test-only | extract the fake-subprocess setup in `test_main_lets_a_literal_model_word_in_verify_leaf_args_stand_when_no_model_variable_is_set` into a fixture shared with the neighbouring clash test in `test_verify.py`
 ### model-knobs-recorded.test.sh goes red, naming the document, when SKILL.md's supervise.sh bullet or CLAUDE.md's model-knob invariant stops naming VERI_MODEL_REVISE ⟦criterion 5⟧
 - test-only | rename `names_all_three` (`model-knobs-recorded.test.sh:40`) to say four: it now requires `VERI_MODEL_REVISE` too. It is a rename, not duplication removal, so it is not applied here.
+### CLAUDE.md's model-knob invariant and SKILL.md's supervise.sh bullet state the shipped defaults (sonnet for first tries and verifiers, opus for redo leaves and the conductor) instead of no --model ⟦criterion 5⟧
+- test-only | skills/tdd/scripts/tests/model-knobs-recorded.test.sh — the header, `names_all_three`, the probe names and the `$name` strings still say "three" or "all three" while the checks now require four knobs. Renaming them is a rename inside a `tests/` file, with no duplication removed.
