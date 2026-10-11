@@ -45,7 +45,7 @@ report "$name"
 
 label_cut="$(mktemp "$HERE/.hermetic-label-slice.XXXXXX")"
 awk '
-  /^fx="\$\(fixture unblocked\)"$/ {skip=1}
+  /^fx="\$\(fixture in-flight\)"$/ {skip=1}
   /^fx="\$\(fixture bug-band\)"$/ {skip=0}
   /^narration="\$\(loop_bullet / {skip=1}
   !skip
@@ -70,15 +70,13 @@ name="solvable-issues.test.sh and tick-issue-criterion.test.sh: an ambient VERI_
 problems=()
 driver_solvable="$(mktemp "$HERE/.hermetic-driver-slice.XXXXXX")"
 awk '
-  /^fx="\$\(fixture ordering\)"$/ {skip=1}
-  /^fx="\$\(fixture gh\)"$/ {skip=0}
-  /^fx="\$\(fixture default-label\)"$/ {skip=1}
+  /^fx="\$\(fixture in-flight\)"$/ {skip=1}
   /^fx="\$\(fixture graphql-refused\)"$/ {skip=0}
   !skip
 ' "$HERE/solvable-issues.test.sh" > "$driver_solvable"
 chmod +x "$driver_solvable"
 slice_problems=()
-for slice in "solvable-issues.test.sh:$driver_solvable:ok || no :11"; do
+for slice in "solvable-issues.test.sh:$driver_solvable:ok || no :6"; do
   IFS=: read -r slice_suite slice_path slice_pattern slice_want <<< "$slice"
   slice_got="$(grep -c -- "$slice_pattern" "$slice_path")"
   [[ "$slice_got" == "$slice_want" ]] ||
