@@ -431,4 +431,14 @@ got="$(
 expect_eq "$name" "$skill_md names it: yes
 $claude_md names it: yes" "$got"
 
+name="#1485: SKILL.md's supervise.sh bullet and CLAUDE.md's model-knob invariant state the shipped defaults, sonnet and opus, and no longer say a default run carries no --model"
+problems=()
+for probe in need_supervise_bullet need_claude_md_records; do
+  "$probe" || continue
+  says "the shipped defaults, sonnet and opus, beside VERI_MODEL_REVISE" "$MODEL_REV" 'sonnet' 'opus'
+  [[ "$passage_text" =~ no\ --model ]] &&
+    problems+=("$passage_from still says a default run carries no --model")
+done
+expect_eq "$name" "0 problems:" "${#problems[@]} problems:${problems[*]/#/ | }"
+
 finish

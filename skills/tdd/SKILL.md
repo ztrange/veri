@@ -86,8 +86,8 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   `VERI_MODEL_REVISE` (only the developer leaves that redo rejected work — `revise-*` and
   `develop-exhausted` — beating `VERI_MODEL_DEVELOPER` for them) and
   `VERI_MODEL_VERIFIER` (verifier leaves only — `verify-*`, `verify-pin` included). A role
-  variable beats `VERI_MODEL`; all four unset means no `--model` flag at all, which is the
-  default. The value goes through verbatim, so an alias (`sonnet`, `opus[1m]`) or a full id
+  variable beats `VERI_MODEL`; all four unset means the shipped defaults: sonnet for first-try
+  developer leaves and verifiers, opus for the redo leaves and the conductor. The value goes through verbatim, so an alias (`sonnet`, `opus[1m]`) or a full id
   (`claude-sonnet-5`) both work.
   Because leaves **stream** (below), the default
   `VERI_HEARTBEAT` is a real silence window — a working leaf keeps it fresh, a genuinely
