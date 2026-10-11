@@ -2073,11 +2073,9 @@ def test_main_restores_sigint_then_traps_term_int_and_hup_after_the_stale_exit_g
 
         monkeypatch.setattr(time, "sleep", sleep)
         monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["wall"] + 4000))
-        runs = []
 
         def answer(args):
             args = [str(a) for a in args]
-            runs.append(args)
             if args[:1] == ["git"]:
                 return "0123456789abcdef0123456789abcdef01234567\n"
             if args[:1] == ["date"]:
@@ -2136,7 +2134,7 @@ def test_main_restores_sigint_then_traps_term_int_and_hup_after_the_stale_exit_g
             "status lines": [line for line in err.splitlines()
                              if re.match(rb"supervise\[develop-red\]: (success|failure|killed-stuck)", line)],
             "events": [r["event"] for r in events.records(work)],
-            "harvests": [r for r in runs if any(a.endswith("harvest-usage.sh") for a in r)],
+            "harvest diagnostics": [line for line in err.splitlines() if line.startswith(b"harvest-usage.sh:")],
         }
 
     default = {sigint: signal.default_int_handler, term: signal.SIG_DFL, hup: signal.SIG_DFL}
@@ -2148,7 +2146,7 @@ def test_main_restores_sigint_then_traps_term_int_and_hup_after_the_stale_exit_g
         "term with int and hup ignored": supervised("ignored", ignoring, term, "first date"),
     }
 
-    silent = {"stdout": b"", "status lines": [], "harvests": []}
+    silent = {"stdout": b"", "status lines": [], "harvest diagnostics": []}
     trapped_all = [(hup, False), (sigint, False), (term, False)]
     assert answers == {
         "term mid second leaf": {
