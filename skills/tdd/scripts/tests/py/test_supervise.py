@@ -2575,31 +2575,76 @@ def test_cli_ends_a_killed_stuck_leaf_that_succeeds_on_its_retry_in_success_with
         0, "leaf: recovered on retry\n", ["supervise[flaky]: success"], b"0\n")
 
 
+def real_kill(tmp_path, supervise, run_cli, name, script, **env):
+    import re
+    import signal
+    work = tmp_path / name
+    work.mkdir()
+    try:
+        code, _, err = run_cli(supervise, [name, "sh", "-c", script], cwd=work,
+                               env={"VERI_STUCK_RETRIES": "0", "VERI_POLL": "0.05", "VERI_KILL_POLL": "0.05", **env})
+    finally:
+        pids = {file: int((work / file).read_text()) for file in ("stub.pid", "child.pid") if (work / file).is_file()}
+        survivors = [pid for pid in pids.values() if alive(pid)]
+        for pid in survivors:
+            os.kill(pid, signal.SIGKILL)
+    if survivors:
+        pytest.fail(f"real-kill {name}: recorded pids still alive after supervise returned, killed: {survivors} of {pids}")
+    return (code, [re.sub(r"for \d+s \(window", "for Ns (window", line) for line in err.splitlines() if line.startswith(f"supervise[{name}]")],
+            (work / ".tdd" / f"{name}.exit").read_bytes(), {file: alive(pid) for file, pid in pids.items()})
+
+
 @pytest.mark.process("a real hung and a real runaway leaf, killed by supervise.py's signal to their process group")
 def test_cli_kills_a_real_hung_leaf_by_heartbeat_and_a_real_runaway_leaf_by_hard_timeout_leaving_none_of_their_recorded_stub_or_child_pids_alive_1461(
         monkeypatch, tmp_path, supervise, run_cli):
-    import re
     import signal
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     clean_env(monkeypatch)
-
-    def real_kill(name, script, **env):
-        work = tmp_path / name
-        work.mkdir()
-        code, _, err = run_cli(supervise, [name, "sh", "-c", script], cwd=work,
-                               env={"VERI_STUCK_RETRIES": "0", "VERI_POLL": "0.05", "VERI_KILL_POLL": "0.05", **env})
-        pids = {file: int((work / file).read_text()) for file in ("stub.pid", "child.pid")}
-        return (code, [re.sub(r"for \d+s \(window", "for Ns (window", line) for line in err.splitlines() if line.startswith(f"supervise[{name}]")],
-                (work / ".tdd" / f"{name}.exit").read_bytes(), {file: alive(pid) for file, pid in pids.items()})
-
     assert [
-        real_kill("hung", "echo $$ > stub.pid; echo started; sleep 60 & echo $! > child.pid; wait", VERI_HEARTBEAT="1", VERI_TIMEOUT="60"),
-        real_kill("runaway", "echo $$ > stub.pid; sleep 60 & echo $! > child.pid; while true; do echo busy; sleep 0.1; done",
+        real_kill(tmp_path, supervise, run_cli, "hung", "echo $$ > stub.pid; echo started; sleep 60 & echo $! > child.pid; wait",
+                  VERI_HEARTBEAT="1", VERI_TIMEOUT="60"),
+        real_kill(tmp_path, supervise, run_cli, "runaway",
+                  "echo $$ > stub.pid; sleep 60 & echo $! > child.pid; while true; do echo busy; sleep 0.1; done",
                   VERI_HEARTBEAT="60", VERI_TIMEOUT="1"),
     ] == [
         (2, ["supervise[hung]: killed-stuck — no heartbeat for Ns (window 1s)"], b"2\n", {"stub.pid": False, "child.pid": False}),
         (2, ["supervise[runaway]: killed-stuck — hard timeout 1s exceeded"], b"2\n", {"stub.pid": False, "child.pid": False}),
     ]
+
+
+@pytest.mark.process("a real runaway leaf whose group supervise.py's kill misses, left for the real-kill case's teardown to kill by its recorded pids")
+def test_real_kill_teardown_kills_each_leaked_stub_pid_by_its_recorded_pid_and_fails_naming_every_survivor_1461(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+
+    def leader_only(pid, sig):
+        try:
+            os.kill(pid, sig)
+        except ProcessLookupError:
+            pass
+
+    monkeypatch.setattr(supervise, "signal_tree", leader_only)
+    clean_env(monkeypatch)
+    work = tmp_path / "runaway"
+    try:
+        failure = ""
+        try:
+            real_kill(tmp_path, supervise, run_cli, "runaway",
+                      "echo $$ > stub.pid; sleep 60 & echo $! > child.pid; while true; do echo busy; sleep 0.1; done",
+                      VERI_HEARTBEAT="60", VERI_TIMEOUT="1")
+        except (AssertionError, pytest.fail.Exception) as failed:
+            failure = str(failed)
+        pids = [int((work / file).read_text()) for file in ("stub.pid", "child.pid")]
+        deadline = time.monotonic() + 5
+        while any(alive(pid) for pid in pids) and time.monotonic() < deadline:
+            time.sleep(0.05)
+        assert ([str(pid) in failure for pid in pids], [alive(pid) for pid in pids]) == ([True, True], [False, False])
+    finally:
+        for file in ("stub.pid", "child.pid"):
+            if (work / file).is_file() and alive(pid := int((work / file).read_text())):
+                os.kill(pid, signal.SIGKILL)
 
 
 @pytest.mark.process("a real leaf tree and a supervisor with TERM ignored, killed by supervise.py's TERM then KILL to the process group (#1199)")
