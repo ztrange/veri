@@ -3501,7 +3501,7 @@ def test_run_cli_reports_a_leaf_awake_2s_and_suspended_100s_as_exit_status_0_wit
 
 
 def test_main_still_kills_a_4s_quiet_leaf_by_a_1s_hard_timeout_and_by_a_1s_heartbeat_when_time_monotonic_restarts_per_process(
-        monkeypatch, tmp_path, capsysbinary, supervise):
+        monkeypatch, tmp_path, run_cli, supervise):
     import signal
     import time
     monkeypatch.setattr(signal, "signal", lambda *_: None)
@@ -3509,7 +3509,7 @@ def test_main_still_kills_a_4s_quiet_leaf_by_a_1s_hard_timeout_and_by_a_1s_heart
     monkeypatch.setattr(time, "monotonic", lambda: 0.0)
 
     def watch(window):
-        clean_env(monkeypatch, VERI_STUCK_RETRIES="0", VERI_POLL="0.02", VERI_KILL_POLL="0.01", **window)
+        clean_env(monkeypatch)
         clock = {"wall": 1000, "awake": 5000, "sleeps": 0}
 
         leaf = StubLeaf()
@@ -3575,14 +3575,15 @@ def test_main_still_kills_a_4s_quiet_leaf_by_a_1s_hard_timeout_and_by_a_1s_heart
         monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: run(args, *a, check=True, **k).returncode)
         monkeypatch.setattr(subprocess, "Popen", popen)
         try:
-            code = supervise.main(["develop-red", "leaf-quiet"])
+            code, _, err = run_cli(supervise, ["develop-red", "leaf-quiet"], cwd=tmp_path,
+                                   env={"VERI_STUCK_RETRIES": "0", "VERI_POLL": "0.02",
+                                        "VERI_KILL_POLL": "0.01", **window})
         except Runaway:
-            code = "<never ended>"
-        _, err = capsysbinary.readouterr()
-        return code, [line for line in err.splitlines() if line.startswith(b"supervise[")][-1:]
+            return "<never ended>", []
+        return code, [line for line in err.splitlines() if line.startswith("supervise[")][-1:]
 
     timeout = watch({"VERI_HEARTBEAT": "999", "VERI_TIMEOUT": "1"})
     heartbeat = watch({"VERI_HEARTBEAT": "1", "VERI_TIMEOUT": "999"})
 
-    assert (timeout[0], b"hard timeout" in b"".join(timeout[1]),
-            heartbeat[0], b"no heartbeat" in b"".join(heartbeat[1])) == (2, True, 2, True), (timeout, heartbeat)
+    assert (timeout[0], "hard timeout" in "".join(timeout[1]),
+            heartbeat[0], "no heartbeat" in "".join(heartbeat[1])) == (2, True, 2, True), (timeout, heartbeat)
