@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 
+import event
 import parse_verdict
 
 from leaf_model import resolve
@@ -46,7 +47,7 @@ def start(args, **kwargs):
 
 
 def mark(role, *words):
-    return start([sibling("event.sh"), *words], env=role).returncode
+    return event.mark("", event.context(role), words[0], words[1:])
 
 
 def preserve(issue, step, leaf, attempt, outcome):
