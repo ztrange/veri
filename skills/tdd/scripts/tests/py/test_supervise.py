@@ -3361,3 +3361,20 @@ def test_cli_refuses_a_launch_while_a_recorded_leaf_is_alive_writing_2_for_anoth
         (2, "", [REFUSAL.format("verdict-green", "develop-green", os.getpid())], "2\n", live, False, 2),
         (2, "", [REFUSAL.format("develop-green", "develop-green", os.getpid())], None, live, False, 3),
     ]
+
+
+def test_header_names_the_watchdogs_clock_source_and_why_it_pauses_while_the_machine_is_suspended_for_macos_and_linux_472():
+    import re
+    header = []
+    for line in (SCRIPTS / "supervise.sh").read_text().splitlines()[1:]:
+        if not line.startswith("#"):
+            break
+        header.append(re.sub(r"^# ?", "", line))
+    text = " ".join(header)
+    claims = {
+        "clock-source": r"monotonic",
+        "macos": r"macOS.{0,200}(suspend|sleep)|(suspend|sleep).{0,200}macOS",
+        "linux": r"Linux.{0,200}(suspend|sleep)|(suspend|sleep).{0,200}Linux",
+        "pauses-in-suspend": r"(not advance|stop[a-z]* advancing|pause[a-z]*|stand[a-z]* still|stop[a-z]*).{0,160}(suspend|asleep|sleep)",
+    }
+    assert [name for name, pattern in claims.items() if not re.search(pattern, text)] == []
