@@ -9,6 +9,7 @@ import tempfile
 
 sys.dont_write_bytecode = True
 
+import event
 import launch_floor
 from git import symref_default
 from session_env import strip_session_env
@@ -85,9 +86,8 @@ def main(argv):
             if readable:
                 worktree = ".tdd/wt/" + argv[0]
                 os.makedirs(worktree, exist_ok=True)
-                if subprocess.run([os.path.join(here, "event.sh"), "skill-repin", "commit=" + commit],
-                                  cwd=worktree,
-                                  env=dict(os.environ, VERI_ISSUE=argv[0])).returncode != 0:
+                if event.mark(worktree, event.context(dict(os.environ, VERI_ISSUE=argv[0])),
+                              "skill-repin", ["commit=" + commit]) != 0:
                     return 2
         snapshot = tempfile.mkdtemp()
         try:
