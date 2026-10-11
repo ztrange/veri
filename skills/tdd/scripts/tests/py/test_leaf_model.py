@@ -270,3 +270,18 @@ def test_main_refuses_a_set_but_empty_veri_model_revise_for_revise_and_develop_e
         ("revise-green-2", 2, "", True),
         ("develop-exhausted", 2, "", True),
     ]
+
+
+def test_main_refuses_a_veri_model_revise_holding_whitespace_for_revise_and_develop_exhausted_with_2_and_no_stdout(
+        capsys, monkeypatch, leaf_model):
+    monkeypatch.setenv("VERI_MODEL_DEVELOPER", "sonnet")
+    monkeypatch.setenv("VERI_MODEL_REVISE", "op us")
+    answers = []
+    for name in ("revise-green-2", "develop-exhausted"):
+        code = leaf_model.main([name])
+        captured = capsys.readouterr()
+        answers.append((name, code, captured.out))
+    assert answers == [
+        ("revise-green-2", 2, ""),
+        ("develop-exhausted", 2, ""),
+    ]
