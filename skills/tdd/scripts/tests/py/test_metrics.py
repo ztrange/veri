@@ -871,6 +871,17 @@ def test_main_renders_per_phase_revise_cells_the_by_step_kind_and_the_note_namin
         assert word in note
 
 
+def test_main_footer_sentence_on_comparable_dollars_names_all_four_model_knobs(tmp_path, monkeypatch, capsys, metrics):
+    write_log(tmp_path, ONE_STEP)
+    monkeypatch.chdir(tmp_path)
+
+    out = render(metrics, capsys)
+
+    sentence = next(line for line in out.split("\n") if "comparable" in line and "dollars" in line)
+    assert [knob for knob in ("VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE")
+            if knob not in sentence] == []
+
+
 def test_main_renders_per_pass_refactor_rows_and_the_structural_pass_section_with_its_stops_and_inconsistent_marks(tmp_path, monkeypatch, capsys, metrics):
     def report(name, events):
         root = tmp_path / name
