@@ -776,9 +776,37 @@ def test_main_launches_exactly_one_claude_with_the_fixed_print_mode_argv_and_no_
     observed = [dict(launch, stdin=b"# the procedure, read from SKILL.md" in launch.get("stdin", b""))
                 for launch in launches]
     assert observed == [{"argv": [program, "-p", "--output-format", "stream-json", "--verbose",
-                                  "--permission-mode", "bypassPermissions"],
+                                  "--permission-mode", "bypassPermissions", "--model", "opus"],
                          "stdin": True, "stdout": None, "stderr": None, "capture_output": False,
                          "start_new_session": False, "process_group": None, "preexec_fn": None}]
+
+
+def test_main_with_no_model_variable_set_launches_claude_with_model_opus(tmp_path, monkeypatch, capfdbinary):
+    import importlib.util
+    monkeypatch.setenv("VERI_BASH_MAJOR", "5")
+    monkeypatch.setenv("VERI_PYTHON_VERSION", "3.12.0")
+    monkeypatch.setenv("CLAUDE_BIN", "fake-claude")
+    for name in ("VERI_NEW_SKILL", "VERI_MODEL", "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER", "VERI_MODEL_REVISE"):
+        monkeypatch.delenv(name, raising=False)
+    skill = tmp_path / "skill"
+    (skill / "scripts" / "veri").mkdir(parents=True)
+    (skill / "scripts" / "veri" / "run_conductor.py").symlink_to(SCRIPTS / "veri" / "run_conductor.py")
+    (skill / "SKILL.md").write_text("# the procedure, read from SKILL.md\n")
+    spec = importlib.util.spec_from_file_location("run_conductor_model", str(skill / "scripts" / "veri" / "run_conductor.py"))
+    run_conductor = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_conductor)
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    launches = fake_claude_launch(monkeypatch)
+
+    code = run_conductor.main(["4242"])
+
+    capfdbinary.readouterr()
+    assert code == 0
+    assert len(launches) == 1
+    argv = launches[0]["argv"]
+    assert [argv[i + 1] for i, word in enumerate(argv[:-1]) if word == "--model"] == ["opus"]
 
 
 def test_main_on_a_pinned_launch_whose_snapshot_holds_no_readable_skill_md_names_it_launches_no_claude_removes_the_snapshot_and_returns_2(
@@ -1248,7 +1276,7 @@ def test_cli_launches_claude_p_for_the_issue_in_stream_json_with_bypass_permissi
             "parked": (cwd / ".tdd" / "parked").exists(),
         }
     claude = ["fake-claude", "-p", "--output-format", "stream-json", "--verbose",
-              "--permission-mode", "bypassPermissions"]
+              "--permission-mode", "bypassPermissions", "--model", "opus"]
     launched = {"stdout": "", "stderr": None, "argvs": [claude], "issue in prompt": [True],
                 "orchestrate.sh adds": [], "parked": False}
     assert answers == {
