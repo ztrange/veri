@@ -129,17 +129,23 @@ def render(file):
     return 0
 
 
-def list_owed(file):
+def structural_lines(file):
+    if not os.path.exists(file) or os.path.getsize(file) == 0:
+        return 3, []
     lines = owed_lines(file)
     done = applied_records(lines)
     counts = Counter(l[2:] for l in lines
                      if l.startswith("- ") and not l.startswith((TEST_ONLY_MARK, OUT_OF_SCOPE_MARK))
                      and l[2:] not in done)
     listed = "\n".join(t for t, _ in counts.most_common()).rstrip("\n")
-    if not listed:
-        return 3
-    emit(listed + "\n")
-    return 0
+    return (0, listed.split("\n")) if listed else (3, [])
+
+
+def list_owed(file):
+    code, listed = structural_lines(file)
+    if code == 0:
+        emit(joined(listed))
+    return code
 
 
 def list_out_of_scope(file):
