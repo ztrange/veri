@@ -276,4 +276,27 @@ fi
 
 report "$name"
 
+name="#1473 $skill_md's Green section names the ⟦ci-repair⟧ verify-green variant and says its evidence is CI — the failing job's log before the fix and a green CI run on the pushed fix — not a local revert-goes-red check"
+problems=()
+
+if [[ -n "$unreadable" ]]; then
+  problems+=("$unreadable which verify-green judges a ⟦ci-repair⟧ step could not be established")
+else
+  variant="$(awk '{ gsub(/\. /, ".\n"); print }' <<<"$section" | grep -F '⟦ci-repair⟧' | grep -i 'verify-green')"
+  if [[ -z "$variant" ]]; then
+    problems+=("$skill_md's Green section has no sentence naming both ⟦ci-repair⟧ and a verify-green variant, so a CI-only repair is judged by the local revert-goes-red check it can never pass")
+  else
+    grep -iE 'variant' <<<"$variant" > /dev/null ||
+      problems+=("$skill_md's ⟦ci-repair⟧ verify-green sentence never calls it a variant")
+    grep -iE "failing job's log|log of the failing job" <<<"$variant" > /dev/null ||
+      problems+=("$skill_md's ⟦ci-repair⟧ verify-green sentence never names the failing job's log before the fix as evidence")
+    grep -iE 'green CI run' <<<"$variant" > /dev/null ||
+      problems+=("$skill_md's ⟦ci-repair⟧ verify-green sentence never names a green CI run on the pushed fix as evidence")
+    grep -iE 'not[^.]{0,80}(local )?revert' <<<"$variant" > /dev/null ||
+      problems+=("$skill_md's ⟦ci-repair⟧ verify-green sentence never says the local revert-goes-red check does not judge it")
+  fi
+fi
+
+report "$name"
+
 finish
