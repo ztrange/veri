@@ -3009,6 +3009,34 @@ def test_cli_launches_a_revise_leaf_on_veri_model_revise_recording_it_on_the_lau
     assert (code, [e.get("model") for e in launches if e.get("event") == "launch"], model_flag) == (0, ["opus"], "opus")
 
 
+@pytest.mark.process("run-leaf.sh run for real under four leaf names, starting a stub claude")
+def test_cli_launches_develop_red_and_verify_green_on_sonnet_and_revise_green_2_and_develop_exhausted_on_opus_when_no_model_variable_is_set(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import signal
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    clean_env(monkeypatch)
+    stub = tmp_path / "claude-stub"
+    stub.write_text('#!/bin/sh\nprintf \'%s\\n\' "$@" > "$OUT"\n'
+                    "printf '%s\\n' '{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"ok\"}'\n")
+    stub.chmod(0o755)
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("pick the model")
+
+    def model_flag(name):
+        work = tmp_path / name
+        work.mkdir()
+        out = tmp_path / f"{name}-claude.argv"
+        env = {"CLAUDE_BIN": str(stub), "OUT": str(out), **REAL_LEAF_ENV}
+        code, _, _ = run_cli(supervise, [name, str(SCRIPTS / "run-leaf.sh"), str(prompt)], cwd=work, env=env)
+        argv = out.read_text().splitlines() if out.exists() else []
+        return code, argv[argv.index("--model") + 1] if "--model" in argv else None
+
+    names = ["develop-red", "verify-green", "revise-green-2", "develop-exhausted"]
+    assert {n: model_flag(n) for n in names} == {
+        "develop-red": (0, "sonnet"), "verify-green": (0, "sonnet"),
+        "revise-green-2": (0, "opus"), "develop-exhausted": (0, "opus")}
+
+
 @pytest.mark.process("git runs for real, and the launch event is appended in-process: a launch event's skill_commit is the skill clone's own HEAD, or unknown outside a clone")
 def test_cli_records_the_skill_clones_own_head_in_a_launch_events_skill_commit_and_the_literal_unknown_for_a_skill_outside_a_git_clone(
         monkeypatch, tmp_path, supervise, run_cli):
