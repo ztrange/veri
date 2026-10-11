@@ -3062,3 +3062,49 @@ def test_cli_run_through_a_symlink_to_the_skill_directory_from_another_cwd_answe
         0, 2, 2, 2, ["7"], {head}, 1,
         ["develop-green.exit", "develop-green.log", "develop-green.pid",
          "develop-red.exit", "develop-red.log", "develop-red.pid"], True)
+
+
+@pytest.mark.process("a real supervise.sh with a live leaf, refusing a second launch through run_cli while that leaf's process is alive")
+def test_cli_refuses_a_launch_under_another_name_or_the_same_name_even_after_the_pre_launch_rm_of_exit_and_pid_exit_2_naming_the_live_leaf_and_its_supervisors_pid_running_nothing_while_a_leaf_is_alive_in_the_worktree_471(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    clean_env(monkeypatch)
+    work = tmp_path / "live"
+    work.mkdir()
+    window = {"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "30", "VERI_TIMEOUT": "60", "VERI_POLL": "0.02",
+              "VERI_KILL_POLL": "0.01"}
+    sup = subprocess.Popen([str(SCRIPTS / "supervise.sh"), "develop-red", "sh", "-c", "echo $$ > leaf-pid; exec sleep 60"],
+                           cwd=work, env={**os.environ, **window}, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    leaf = None
+    try:
+        for _ in range(500):
+            if (work / "leaf-pid").is_file() and (work / ".tdd" / "leaf.owner").is_file() \
+                    and (work / "leaf-pid").read_text().strip():
+                break
+            time.sleep(0.02)
+        else:
+            raise AssertionError("the first leaf never started")
+        leaf = int((work / "leaf-pid").read_text())
+
+        def second(name):
+            (work / "ran").unlink(missing_ok=True)
+            code, out, err = run_cli(supervise, [name, "sh", "-c", "echo ran > ran"], cwd=work, env=window)
+            return code, out, err.strip().splitlines()[-1:], (work / "ran").exists()
+
+        refusal = f"supervise: refusing to launch {{}}: leaf develop-red (pid {sup.pid}) is still alive in this worktree"
+        answers = [second("verify-red"), second("develop-red")]
+        for suffix in ("exit", "pid"):
+            (work / ".tdd" / f"develop-red.{suffix}").unlink(missing_ok=True)
+        answers.append(second("develop-red"))
+        assert answers == [
+            (2, "", [refusal.format("verify-red")], False),
+            (2, "", [refusal.format("develop-red")], False),
+            (2, "", [refusal.format("develop-red")], False),
+        ]
+    finally:
+        sup.send_signal(signal.SIGTERM)
+        sup.wait()
+        if leaf and alive(leaf):
+            os.kill(leaf, signal.SIGKILL)
