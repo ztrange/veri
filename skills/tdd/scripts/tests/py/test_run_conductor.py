@@ -1255,3 +1255,125 @@ def test_cli_launches_claude_p_for_the_issue_in_stream_json_with_bypass_permissi
         "no-argument": {"code": 2, "stdout": "", "stderr": "usage: run-conductor.sh <issue>\n", "argvs": [],
                         "issue in prompt": [], "orchestrate.sh adds": [], "parked": False},
     }
+
+
+REAL_RUN, REAL_POPEN = subprocess.run, subprocess.Popen
+
+
+def fake_claude_env(monkeypatch, origin, resolves, leaf):
+    """git faked as a process: origin and its fetch present when `origin`, its HEAD and the clone's resolving when
+    `resolves`; tar dropping the real SKILL.md into its -C directory; event.sh recorded and exiting 0; fake-claude
+    recorded with its environment, and, given a `leaf` directory, detaching a real develop-red leaf there through
+    supervise.sh and run-leaf.sh from that environment with a stub claude writing the VERI_GH_DRIVER it saw."""
+    launches, events = [], []
+
+    def answer(args, *_, **kwargs):
+        args = list(args)
+        code, out = 128, ""
+        if args[:1] == ["fake-claude"]:
+            launches.append(dict(kwargs["env"]))
+            if leaf is not None:
+                stub = leaf / "leaf-claude"
+                stub.write_text('#!/bin/sh\nprintf \'%s\\n\' "${VERI_GH_DRIVER-<unset>}" > "$LEAF_DRIVER_OUT"\n'
+                                'printf \'%s\\n\' \'{"type":"result","subtype":"success","is_error":false,"result":"ok"}\'\n')
+                stub.chmod(0o755)
+                leaf_env = dict(kwargs["env"], CLAUDE_BIN=str(stub), LEAF_DRIVER_OUT=str(leaf / "leaf-driver"),
+                                VERI_POLL="0.02")
+                REAL_RUN([str(SCRIPTS / "detach-leaf.sh"), str(SCRIPTS / "supervise.sh"), "develop-red",
+                          str(SCRIPTS / "run-leaf.sh"), "leaf.prompt"], cwd=leaf, env=leaf_env,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                REAL_RUN([str(SCRIPTS / "wait-leaf.sh"), "develop-red", "5"], cwd=leaf, env=leaf_env,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return subprocess.CompletedProcess(args, 0, None, None)
+        if args[0].endswith("event.sh"):
+            events.append(args[1:])
+            return subprocess.CompletedProcess(args, 0, None, None)
+        if args[3:] == ["remote", "get-url", "origin"] and origin:
+            code, out = 0, "https://example.invalid/skill.git\n"
+        elif args[3:] == ["fetch", "-q", "origin"] and origin:
+            code = 0
+        elif args[3:] == ["rev-parse", "-q", "--verify", "refs/remotes/origin/HEAD"] and origin:
+            code = 0
+        elif args[3:4] == ["rev-parse"] and args[4:] in (["HEAD"], ["refs/remotes/origin/HEAD"]) and resolves:
+            code, out = 0, "1111111111111111111111111111111111111111\n"
+        if not (kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")):
+            out = out.encode()
+        return subprocess.CompletedProcess(args, code, out, out[:0])
+
+    def popen(args, *rest, **kwargs):
+        args = list(args)
+        if args[:1] not in (["git"], ["tar"]):
+            return REAL_POPEN(args, *rest, **kwargs)
+        process = FakeProcess(args)
+        if args[:1] == ["tar"]:
+            pathlib.Path(args[-1], "SKILL.md").write_bytes((SCRIPTS.parent / "SKILL.md").read_bytes())
+            process.returncode = 0
+            process.wait = process.poll = lambda *_, **__: 0
+        return process
+
+    monkeypatch.setattr(subprocess, "run", answer)
+    monkeypatch.setattr(subprocess, "Popen", popen)
+    return launches, events
+
+
+HANDLES = {"CLAUDECODE": "1", "CLAUDE_CODE_SESSION_ID": "parent-session",
+           "CLAUDE_CODE_HOST_SESSION_ID": "parent-host-session", "CLAUDE_CODE_MESSAGING_SOCKET": "/tmp/parent.sock",
+           "CLAUDE_CODE_MESSAGING_TOKEN": "parent-token", "CLAUDE_PID": "4141", "CLAUDE_CODE_CHILD_SESSION": "1",
+           "CLAUDE_CODE_ENTRYPOINT": "cli"}
+
+
+@pytest.mark.process("a leaf detached through detach-leaf.sh, supervise.sh and run-leaf.sh from the conductor's environment")
+def test_cli_hands_claude_an_environment_without_the_session_handles_or_any_value_carrying_the_session_id_with_veri_variables_and_veri_gh_driver_through_to_a_detached_leaf_no_veri_new_skill_on_a_repin_and_the_pinned_clone_and_ref_only_when_pinned(
+        tmp_path, monkeypatch, run_cli):
+    past_the_guards(monkeypatch)
+    for name in ("VERI_NEW_SKILL", "VERI_GH_DRIVER", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED",
+                 "VERI_SKILL_COMMIT", "CLAUDE_CODE_REMOTE_SESSION_ID", "CLAUDE_AUTO_BACKGROUND_TASKS", *HANDLES):
+        monkeypatch.delenv(name, raising=False)
+    scratch_tmpdir(tmp_path, monkeypatch)
+    run_conductor = importlib.import_module("veri.run_conductor")
+    base = str(SCRIPTS.parent)
+    scenarios = {
+        "handles": (dict(HANDLES, CLAUDE_AUTO_BACKGROUND_TASKS="true", VERI_MODEL_VERIFIER="probe-verifier-model"),
+                    True, True, False, False),
+        "session-id-carrier": ({"CLAUDE_CODE_SESSION_ID": "sess-933-fake", "FAKE_CARRIER": "x-sess-933-fake-y"},
+                               True, True, False, False),
+        "remote-session-id": ({"CLAUDE_CODE_SESSION_ID": "sess-966-fake",
+                               "CLAUDE_CODE_REMOTE_SESSION_ID": "remote-unrelated-value"}, True, True, False, False),
+        "repin": ({"VERI_NEW_SKILL": "1"}, True, True, True, False),
+        "gh-driver": ({"VERI_GH_DRIVER": "graphql"}, True, True, False, True),
+        "unpinned": ({}, False, False, False, False),
+    }
+    watched = (*HANDLES, "CLAUDE_AUTO_BACKGROUND_TASKS", "CLAUDE_CODE_REMOTE_SESSION_ID", "FAKE_CARRIER",
+               "VERI_MODEL_VERIFIER", "VERI_NEW_SKILL", "VERI_GH_DRIVER", "VERI_SKILL_CLONE", "VERI_SKILL_REF",
+               "VERI_SKILL_UNPINNED")
+    answers = {}
+    for name, (env, origin, resolves, recorded, detaches) in scenarios.items():
+        cwd = tmp_path / name
+        (cwd / ".tdd").mkdir(parents=True)
+        if recorded:
+            (cwd / ".tdd" / "issue-4242-skill-commit").write_text("0" * 40 + "\n")
+        leaf = None
+        if detaches:
+            leaf = tmp_path / (name + "-leaf")
+            leaf.mkdir()
+            (leaf / "leaf.prompt").write_text("the leaf prompt\n")
+        for var in watched:
+            monkeypatch.delenv(var, raising=False)
+        launches, events = fake_claude_env(monkeypatch, origin, resolves, leaf)
+        code, _, _ = run_cli(run_conductor, ["4242"], env=env, cwd=cwd)
+        answers[name] = {
+            "code": code,
+            "seen": [{var: seen[var] for var in watched if var in seen} for seen in launches],
+            "repins": [event[0] for event in events],
+            "leaf": (leaf / "leaf-driver").read_text() if leaf is not None and (leaf / "leaf-driver").exists() else None,
+        }
+    pinned = {"VERI_SKILL_CLONE": base, "VERI_SKILL_REF": "refs/remotes/origin/HEAD"}
+    assert answers == {
+        "handles": {"code": 0, "seen": [dict(pinned, VERI_MODEL_VERIFIER="probe-verifier-model")], "repins": [],
+                    "leaf": None},
+        "session-id-carrier": {"code": 0, "seen": [pinned], "repins": [], "leaf": None},
+        "remote-session-id": {"code": 0, "seen": [pinned], "repins": [], "leaf": None},
+        "repin": {"code": 0, "seen": [pinned], "repins": ["skill-repin"], "leaf": None},
+        "gh-driver": {"code": 0, "seen": [dict(pinned, VERI_GH_DRIVER="graphql")], "repins": [], "leaf": "graphql\n"},
+        "unpinned": {"code": 0, "seen": [{"VERI_SKILL_UNPINNED": "1"}], "repins": [], "leaf": None},
+    }
