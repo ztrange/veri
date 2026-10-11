@@ -360,6 +360,36 @@ def test_main_refuses_a_literal_model_word_in_verify_leaf_args_beside_a_resolved
         assert (captured.out, started) == (b"", [])
 
 
+def test_main_lets_a_literal_model_word_in_verify_leaf_args_stand_when_no_model_variable_is_set(
+        tmp_path, monkeypatch, capfdbinary):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    for name in ("VERI_MODEL", "VERI_MODEL_VERIFIER", "VERI_MODEL_DEVELOPER", "VERI_MODEL_REVISE",
+                 "VERI_ISSUE", "VERI_STEP", "VERI_NO_VERDICT_RETRIES"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("VERIFY_LEAF_ARGS", "--model x")
+    supervised = []
+
+    def fake(args, *_, **__):
+        words = [str(a) for a in args]
+        name = os.path.basename(words[0])
+        if name == "build-verify-prompt.sh":
+            return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
+        if name == "supervise.sh":
+            supervised.append(words)
+            return subprocess.CompletedProcess(args, 0, b"VERDICT: PASS\nfine", None)
+        return subprocess.CompletedProcess(args, 0, b"", b"")
+
+    for name in ("run", "Popen", "call", "check_call", "check_output"):
+        monkeypatch.setattr(subprocess, name, fake)
+    verify = importlib.import_module("veri.verify")
+
+    code = verify.main(["green", "spec.md", "tests/x.test.sh"])
+
+    captured = capfdbinary.readouterr()
+    assert (code, captured.err, [words[-2:] for words in supervised]) == (0, b"", [["--model", "x"]])
+
+
 @pytest.mark.parametrize("supervise, expected", [
     (2, (2, "verifier leaf killed-stuck — no verdict rendered (see .tdd/verify-green.log)\n")),
     (FileNotFoundError, (2, "\n")),

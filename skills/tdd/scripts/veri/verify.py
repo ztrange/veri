@@ -13,7 +13,7 @@ import event
 import parse_verdict
 import preserve_attempt
 
-from leaf_model import resolve
+from leaf_model import _env, resolve
 from leaf_role import _write, leaf_role
 from run_verdict import SCRIPTS, takes_a_value
 
@@ -139,7 +139,8 @@ def main(argv):
     flags = leaf_args(words)
     if words:
         model = resolve(leaf)
-        if model and not is_echo_flag(model) and "--model" in flags:
+        if (model and not is_echo_flag(model) and "--model" in flags
+                and (_env("VERI_MODEL_VERIFIER") or _env("VERI_MODEL"))):
             _write(sys.stderr, "verify: VERIFY_LEAF_ARGS carries its own --model and a role model"
                    " variable resolved '%s' — which one the leaf would run on is flag order;"
                    " unset one of them" % model)
