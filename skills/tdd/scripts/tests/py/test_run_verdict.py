@@ -2,6 +2,7 @@
 import importlib.util
 import os
 import shutil
+import subprocess
 
 import pytest
 
@@ -380,3 +381,180 @@ def test_main_retries_an_enoexec_exec_under_bash_returns_2_for_any_other_exec_fa
         assert (code, execvps, captured.err) == (
             2, [],
             f"run-verdict.sh: cannot start the verifier: {verifier}: {os.strerror(getattr(errno, raised))}\n")
+
+
+
+NOISE = "the verifier wrote this to stderr\n"
+VERDICT_LINE = "the test pins the criterion and fails for the reason it names\n"
+APOSTROPHE = "A background process is killed by the pid recorded when it started, never by that shell's own job spec"
+
+
+def staged_tree(scripts):
+    run_verdict = staged_module(scripts)
+    (scripts / "verify.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
+    (scripts / "verify.sh").chmod(0o755)
+    return run_verdict
+
+
+def launch(run_verdict, argv, run, monkeypatch, run_cli, fake_processes, answer):
+    """run_cli over main, with the exec handed to the faked subprocess boundary and fd 2 put back afterwards."""
+    import signal
+    calls = fake_processes(answer)
+    handed = []
+
+    def exec_over_the_fake(path, args):
+        handed.append((path, list(args)))
+        raise SystemExit(subprocess.run(args).returncode)
+
+    monkeypatch.setattr(os, "execv", exec_over_the_fake)
+    monkeypatch.setattr(signal, "signal", lambda signum, handler: None)
+    saved = os.dup(2)
+    try:
+        result = run_cli(run_verdict, list(argv), cwd=run)
+    finally:
+        os.dup2(saved, 2)
+        os.close(saved)
+    return result, handed, calls
+
+
+@pytest.mark.parametrize("status", [0, 1, 5])
+def test_cli_exits_with_verify_shs_own_code_unmapped_handing_it_the_apostrophe_title_as_one_argument(
+        status, tmp_path, monkeypatch, run_cli, fake_processes):
+    scripts = tmp_path / "scripts"
+    run_verdict = staged_tree(scripts)
+    run = tmp_path / "run"
+    run.mkdir()
+    verifier = f"{scripts}/verify.sh"
+    argv = ["--step", APOSTROPHE, "red", "spec.md", "suite.test.sh", "a-target-test-id"]
+
+    result, handed, calls = launch(run_verdict, argv, run, monkeypatch, run_cli, fake_processes,
+                                   lambda line, **_: (status, "", ""))
+
+    assert (result, handed, len(calls)) == ((status, "", ""), [(verifier, [verifier, *argv])], 1)
+    assert [a for a in handed[0][1] if a == APOSTROPHE] == [APOSTROPHE]
+
+
+def test_cli_exits_2_and_never_1_when_verify_sh_refuses_an_empty_step_title_handed_to_it_unchanged(
+        tmp_path, monkeypatch, run_cli, fake_processes):
+    scripts = tmp_path / "scripts"
+    run_verdict = staged_tree(scripts)
+    run = tmp_path / "run"
+    run.mkdir()
+    verifier = f"{scripts}/verify.sh"
+    argv = ["--step", "", "red", "spec.md", "suite.test.sh", "a-target-test-id"]
+
+    result, handed, calls = launch(run_verdict, argv, run, monkeypatch, run_cli, fake_processes,
+                                   lambda line, **_: (2, "", ""))
+
+    assert (result, handed, len(calls)) == ((2, "", ""), [(verifier, [verifier, *argv])], 1)
+
+
+@pytest.mark.parametrize("verifier", ["absent", "not executable"])
+def test_cli_exits_2_and_never_1_naming_scripts_verify_sh_when_it_cannot_start_it(
+        verifier, tmp_path, monkeypatch, run_cli, fake_processes):
+    scripts = tmp_path / "scripts"
+    run_verdict = staged_module(scripts)
+    if verifier == "not executable":
+        (scripts / "verify.sh").write_text("#!/bin/sh\nexit 0\n")
+    run = tmp_path / "run"
+    run.mkdir()
+    argv = ["--step", APOSTROPHE, "red", "spec.md", "suite.test.sh", "a-target-test-id"]
+
+    result, handed, calls = launch(run_verdict, argv, run, monkeypatch, run_cli, fake_processes,
+                                   lambda line, **_: (0, "", ""))
+
+    assert (result, handed, calls) == (
+        (2, "", f"run-verdict.sh: cannot start the verifier: {scripts}/verify.sh is missing or not executable\n"),
+        [], [])
+
+
+def test_cli_empties_tdd_verify_red_reason_before_verify_sh_runs(
+        tmp_path, monkeypatch, run_cli, fake_processes):
+    scripts = tmp_path / "scripts"
+    run_verdict = staged_tree(scripts)
+    run = tmp_path / "run"
+    (run / ".tdd").mkdir(parents=True)
+    reason = run / ".tdd" / "verify-red.reason"
+    reason.write_text("REJECT: the previous step's test does not pin the criterion it names\n")
+    seen = []
+
+    def verify(line, **_):
+        seen.append(reason.read_text())
+        os.write(1, VERDICT_LINE.encode())
+        return 0, "", ""
+
+    result, _, _ = launch(run_verdict, ["--step", APOSTROPHE, "red", "spec.md", "suite.test.sh", "a-target-test-id"],
+                          run, monkeypatch, run_cli, fake_processes, verify)
+
+    assert (result, seen) == ((0, VERDICT_LINE, ""), [""])
+
+
+@pytest.mark.parametrize("tdd, argv", [
+    (False, ["--step", APOSTROPHE, "red", "spec.md", "suite.test.sh", "a-target-test-id"]),
+    (True, []),
+])
+def test_cli_leaves_verify_shs_stderr_on_its_own_with_no_tdd_or_no_phase(
+        tdd, argv, tmp_path, monkeypatch, run_cli, fake_processes):
+    scripts = tmp_path / "scripts"
+    run_verdict = staged_tree(scripts)
+    run = tmp_path / "run"
+    run.mkdir()
+    if tdd:
+        (run / ".tdd").mkdir()
+
+    def verify(line, **_):
+        os.write(2, NOISE.encode())
+        os.write(1, VERDICT_LINE.encode())
+        return 0, "", ""
+
+    result, _, _ = launch(run_verdict, argv, run, monkeypatch, run_cli, fake_processes, verify)
+
+    assert (result, sorted(p.name for p in run.rglob("*") if p.name != ".tdd")) == ((0, VERDICT_LINE, NOISE), [])
+
+
+@pytest.mark.process("a real supervise.sh running the real run-verdict.sh, whose real verify.sh refuses --step \"\"")
+def test_a_verdict_red_supervision_whose_verify_sh_refused_an_empty_step_records_2_and_exits_2_never_1(tmp_path):
+    run = tmp_path / "run"
+    run.mkdir()
+    (run / "spec.md").write_text("# spec\n")
+    (run / "suite.test.sh").write_text("# test\n")
+    env = {k: v for k, v in os.environ.items() if k == "VERI_VENV" or not k.startswith(("VERI_", "CLAUDE_"))}
+    env.update(VERI_STUCK_RETRIES="0", VERI_POLL="0.02")
+
+    done = subprocess.run(
+        [str(SCRIPTS / "supervise.sh"), "verdict-red", str(SCRIPTS / "run-verdict.sh"),
+         "--step", "", "red", "spec.md", "suite.test.sh", "a-target-test-id"],
+        cwd=run, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+
+    exit_file = run / ".tdd" / "verdict-red.exit"
+    assert (exit_file.read_text().strip() if exit_file.is_file() else None, done.returncode) == ("2", 2), done.stderr
+
+
+@pytest.mark.process("run_verdict.py loaded through a real symlink to the skill directory, run from another directory")
+def test_cli_run_through_a_symlinked_skill_from_another_directory_acts_on_the_callers_tdd(
+        tmp_path, monkeypatch, run_cli, fake_processes):
+    skill = tmp_path / "linked-skill"
+    staged_tree(skill / "scripts")
+    link = tmp_path / "skill-link"
+    link.symlink_to(skill)
+    spec = importlib.util.spec_from_file_location("linked_run_verdict", link / "scripts" / "veri" / "run_verdict.py")
+    run_verdict = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(run_verdict)
+    elsewhere = tmp_path / "elsewhere"
+    (elsewhere / ".tdd").mkdir(parents=True)
+    (elsewhere / ".tdd" / "verify-red.reason").write_text("REJECT: the previous step's reason\n")
+    (elsewhere / ".tdd" / "verify-red.stderr").write_text("an earlier verifier wrote this to stderr\n")
+    verifier = f"{link}/scripts/verify.sh"
+    argv = ["--step", APOSTROPHE, "red", "spec.md", "suite.test.sh", "a-target-test-id"]
+
+    def verify(line, **_):
+        os.write(2, NOISE.encode())
+        os.write(1, VERDICT_LINE.encode())
+        return 0, "", ""
+
+    result, handed, _ = launch(run_verdict, argv, elsewhere, monkeypatch, run_cli, fake_processes, verify)
+
+    assert (result, handed, (elsewhere / ".tdd" / "verify-red.reason").read_text(),
+            (elsewhere / ".tdd" / "verify-red.stderr").read_text()) == (
+        (0, VERDICT_LINE, ""), [(verifier, [verifier, *argv])], "",
+        "an earlier verifier wrote this to stderr\n" + NOISE)

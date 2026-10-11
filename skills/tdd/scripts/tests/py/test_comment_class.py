@@ -256,13 +256,6 @@ no-awk-v-patterns:# an unrelated line inserted above the exempt site
 no-awk-v-patterns:# and another
 refactor-owed:### step 2
 refactor-owed:### step 2
-run-verdict:#!/bin/sh
-run-verdict:# Stub verifier: record the argv handed to it, one argument per line, and answer like a
-run-verdict:# verifier that passed — what this case reads is the record, not the verdict.
-run-verdict:#!/bin/sh
-run-verdict:# Stub verifier: copy the phase's reason file, as it stands now, into the record this case
-run-verdict:# reads — an unreadable or absent file records as nothing, which is the same answer as a
-run-verdict:# cleared one and the answer this case wants.
 skill-refactor-pending:## The scripts (this skill's `scripts/` directory)
 skill-refactor-pending:## The scripts (this skill's `scripts/` directory)
 solvable-issues:#!/bin/sh
