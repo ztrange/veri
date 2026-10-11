@@ -830,22 +830,16 @@ def test_next_against_a_gh_that_refuses_graphql_with_the_403_and_answers_rest_a_
             page = int(args[2].rsplit("page=", 1)[1])
             return subprocess.CompletedProcess(args, 0, json.dumps(issues[(page - 1) * 100:page * 100]) + "\n", None)
 
-        def run(args, **kwargs):
-            if list(args[:2]) in (["gh", "issue"], ["gh", "pr"], ["gh", "repo"]) or list(args[:3]) == ["gh", "api", "graphql"]:
-                if graphql == "refused":
-                    sys.stderr.write(refusal)
-                    return subprocess.CompletedProcess(args, 1, "", None)
-                return subprocess.CompletedProcess(args, 0, "[]\n", None)
-            return gh_api(args) if list(args[:2]) == ["gh", "api"] else real_run(args, **kwargs)
-
-        real_run = subprocess.run
         fake_git(monkeypatch, tmp_path, origin="https://github.com/ztrange/veri.git", gh_api=gh_api)
         fake = subprocess.run
 
         def routed(args, **kwargs):
-            if list(args[:2]) in (["gh", "issue"], ["gh", "pr"], ["gh", "repo"]):
-                return run(args, **kwargs)
-            return fake(args, **kwargs)
+            if list(args[:2]) not in (["gh", "issue"], ["gh", "pr"], ["gh", "repo"]):
+                return fake(args, **kwargs)
+            if graphql == "refused":
+                sys.stderr.write(refusal)
+                return subprocess.CompletedProcess(args, 1, "", None)
+            return subprocess.CompletedProcess(args, 0, "[]\n", None)
 
         monkeypatch.setattr(subprocess, "run", routed)
 
