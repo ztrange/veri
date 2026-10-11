@@ -389,13 +389,19 @@ def test_main_sorts_survivors_by_priority_then_bug_band_then_number_never_wideni
     assert observed == [(0, "3\n8\n2\n1\n9\n"), (0, "9\n2\n8\n1\n3\n"), (3, "")]
 
 
-def test_cli_lists_an_open_opted_in_unblocked_issue_run_from_its_own_cwd_returning_0_with_empty_stderr(tmp_path, monkeypatch, run_cli, solvable_issues):
+def cli_fixtures(tmp_path, monkeypatch, issues):
+    """A VERI_GH_JSON directory holding `issues` and no PRs, a separate working directory, and git answering nothing."""
     fixtures, cwd = tmp_path / "fixtures", tmp_path / "cwd"
     fixtures.mkdir()
     cwd.mkdir()
-    (fixtures / "issues.json").write_text(json.dumps([opted_in(41)]))
+    (fixtures / "issues.json").write_text(json.dumps(issues))
     (fixtures / "prs.json").write_text("[]")
     fake_git_answering_nothing(monkeypatch)
+    return fixtures, cwd
+
+
+def test_cli_lists_an_open_opted_in_unblocked_issue_run_from_its_own_cwd_returning_0_with_empty_stderr(tmp_path, monkeypatch, run_cli, solvable_issues):
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [opted_in(41)])
 
     answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
 
@@ -403,12 +409,7 @@ def test_cli_lists_an_open_opted_in_unblocked_issue_run_from_its_own_cwd_returni
 
 
 def test_cli_with_the_label_tunable_unset_never_lists_an_issue_whose_only_label_extends_ready_for_agent(tmp_path, monkeypatch, run_cli, solvable_issues):
-    fixtures, cwd = tmp_path / "fixtures", tmp_path / "cwd"
-    fixtures.mkdir()
-    cwd.mkdir()
-    (fixtures / "issues.json").write_text(json.dumps([opted_in(62), labelled(63, "ready-for-agent:docs")]))
-    (fixtures / "prs.json").write_text("[]")
-    fake_git_answering_nothing(monkeypatch)
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [opted_in(62), labelled(63, "ready-for-agent:docs")])
 
     answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
 
@@ -416,12 +417,7 @@ def test_cli_with_the_label_tunable_unset_never_lists_an_issue_whose_only_label_
 
 
 def test_cli_prints_issues_fetched_out_of_order_one_per_line_ascending(tmp_path, monkeypatch, run_cli, solvable_issues):
-    fixtures, cwd = tmp_path / "fixtures", tmp_path / "cwd"
-    fixtures.mkdir()
-    cwd.mkdir()
-    (fixtures / "issues.json").write_text(json.dumps([opted_in(12), opted_in(3), opted_in(7)]))
-    (fixtures / "prs.json").write_text("[]")
-    fake_git_answering_nothing(monkeypatch)
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [opted_in(12), opted_in(3), opted_in(7)])
 
     answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
 
@@ -429,12 +425,7 @@ def test_cli_prints_issues_fetched_out_of_order_one_per_line_ascending(tmp_path,
 
 
 def test_cli_lists_an_issue_carrying_both_labels_under_the_default_label_and_under_the_docs_label(tmp_path, monkeypatch, run_cli, solvable_issues):
-    fixtures, cwd = tmp_path / "fixtures", tmp_path / "cwd"
-    fixtures.mkdir()
-    cwd.mkdir()
-    (fixtures / "issues.json").write_text(json.dumps([labelled(66, "ready-for-agent", "ready-for-agent:docs")]))
-    (fixtures / "prs.json").write_text("[]")
-    fake_git_answering_nothing(monkeypatch)
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [labelled(66, "ready-for-agent", "ready-for-agent:docs")])
 
     under_default = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
     under_docs = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures), "VERI_LABEL": "ready-for-agent:docs"}, cwd=cwd)
@@ -443,12 +434,7 @@ def test_cli_lists_an_issue_carrying_both_labels_under_the_default_label_and_und
 
 
 def test_cli_refuses_an_empty_label_tunable_with_2_nothing_on_stdout_and_a_diagnostic_on_stderr(tmp_path, monkeypatch, run_cli, solvable_issues):
-    fixtures, cwd = tmp_path / "fixtures", tmp_path / "cwd"
-    fixtures.mkdir()
-    cwd.mkdir()
-    (fixtures / "issues.json").write_text(json.dumps([opted_in(67), labelled(68, "ready-for-agent:docs")]))
-    (fixtures / "prs.json").write_text("[]")
-    fake_git_answering_nothing(monkeypatch)
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [opted_in(67), labelled(68, "ready-for-agent:docs")])
 
     answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures), "VERI_LABEL": ""}, cwd=cwd)
 
@@ -457,13 +443,8 @@ def test_cli_refuses_an_empty_label_tunable_with_2_nothing_on_stdout_and_a_diagn
 
 @pytest.mark.parametrize("state, listed", [("OPEN", "120\n"), ("CLOSED", "125\n")])
 def test_cli_withholds_an_issue_blocked_by_a_github_issue_url_exactly_while_that_issue_is_open(state, listed, tmp_path, monkeypatch, run_cli, solvable_issues):
-    fixtures, cwd = tmp_path / "fixtures", tmp_path / "cwd"
-    fixtures.mkdir()
-    cwd.mkdir()
-    (fixtures / "issues.json").write_text(json.dumps([
-        blocked_by(125, "https://github.com/ztrange/veri/issues/120"), dict(opted_in(120), state=state)]))
-    (fixtures / "prs.json").write_text("[]")
-    fake_git_answering_nothing(monkeypatch)
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [
+        blocked_by(125, "https://github.com/ztrange/veri/issues/120"), dict(opted_in(120), state=state)])
 
     answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
 
@@ -471,13 +452,8 @@ def test_cli_withholds_an_issue_blocked_by_a_github_issue_url_exactly_while_that
 
 
 def test_cli_under_repo_never_reads_a_url_naming_another_repositorys_issue_as_a_blocker(tmp_path, monkeypatch, run_cli, solvable_issues):
-    fixtures, cwd = tmp_path / "fixtures", tmp_path / "cwd"
-    fixtures.mkdir()
-    cwd.mkdir()
-    (fixtures / "issues.json").write_text(json.dumps([
-        blocked_by(131, "https://github.com/ztrange/veri-demo-node/issues/120"), opted_in(120)]))
-    (fixtures / "prs.json").write_text("[]")
-    fake_git_answering_nothing(monkeypatch)
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [
+        blocked_by(131, "https://github.com/ztrange/veri-demo-node/issues/120"), opted_in(120)])
 
     answer = run_cli(solvable_issues, ["--repo", "ztrange/veri"], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
 
