@@ -3497,3 +3497,102 @@ def test_run_cli_reports_a_leaf_awake_2s_and_suspended_100s_as_exit_status_0_wit
     exits = [r for r in events.records(work) if r["event"] == "exit"]
     assert (code, kills, [r["status"] for r in exits], [r["secs"] for r in exits],
             len(suspended_polls) >= 2, "killed-stuck" in err) == (0, [], ["0"], ["2"], True, False)
+
+
+def test_main_still_kills_a_4s_quiet_leaf_by_a_1s_hard_timeout_and_by_a_1s_heartbeat_when_time_monotonic_restarts_per_process(
+        monkeypatch, tmp_path, capsysbinary, supervise):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(time, "monotonic", lambda: 0.0)
+
+    def watch(window):
+        clean_env(monkeypatch, VERI_STUCK_RETRIES="0", VERI_POLL="0.02", VERI_KILL_POLL="0.01", **window)
+        clock = {"wall": 1000, "awake": 5000, "sleeps": 0}
+
+        class Leaf:
+            pid = 4242
+            returncode = None
+            args = []
+
+            def poll(self):
+                return self.returncode
+
+            def wait(self, timeout=None):
+                return self.returncode
+
+        leaf = Leaf()
+
+        def sleep(_):
+            clock["sleeps"] += 1
+            if clock["sleeps"] > 2000:
+                raise Runaway()
+            clock["wall"] += 1
+            clock["awake"] += 1
+            if clock["sleeps"] == 4:
+                leaf.returncode = 0
+
+        def killpg(pgid, sig):
+            if pgid == leaf.pid and sig:
+                leaf.returncode = -sig
+
+        def kill(pid, sig):
+            if pid < 0:
+                return killpg(-pid, sig)
+            if pid == leaf.pid and sig:
+                leaf.returncode = -sig
+
+        def answer(args):
+            args = [str(a) for a in args]
+            if args[:3] == ["git", "rev-parse", "--show-toplevel"]:
+                return 0, f"{tmp_path}\n"
+            if args[:1] == ["git"]:
+                return 0, "0123456789abcdef0123456789abcdef01234567\n"
+            if args[:1] == ["date"]:
+                return 0, f"{clock['wall']}\n"
+            if args[:3] == ["stat", "-c", "%Y"]:
+                return 0, "1000\n"
+            if args[:1] == ["stat"]:
+                return 1, ""
+            return 0, ""
+
+        def run(args, *_, **kwargs):
+            code, out = answer(args)
+            out = as_asked(out, kwargs)
+            if code and kwargs.get("check"):
+                raise subprocess.CalledProcessError(code, args, out)
+            return subprocess.CompletedProcess(args, code, out, "" if isinstance(out, str) else b"")
+
+        def check_output(args, *_, **kwargs):
+            code, out = answer(args)
+            if code:
+                raise subprocess.CalledProcessError(code, args)
+            return as_asked(out, kwargs)
+
+        def popen(args, *_, **kwargs):
+            if list(args[:2]) == ["/bin/sh", "-c"]:
+                return leaf
+            raise AssertionError(f"unexpected Popen: {args}")
+
+        monkeypatch.setattr(time, "sleep", sleep)
+        monkeypatch.setattr(time, "clock_gettime", lambda *_: clock["awake"] + 0.5)
+        monkeypatch.setattr(os, "killpg", killpg)
+        monkeypatch.setattr(os, "kill", kill)
+        monkeypatch.setattr(subprocess, "run", run)
+        monkeypatch.setattr(subprocess, "check_output", check_output)
+        monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, *a, **k).returncode)
+        monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: run(args, *a, check=True, **k).returncode)
+        monkeypatch.setattr(subprocess, "Popen", popen)
+        try:
+            code = supervise.main(["develop-red", "leaf-quiet"])
+        except Runaway:
+            code = "<never ended>"
+        _, err = capsysbinary.readouterr()
+        return code, [line for line in err.splitlines() if line.startswith(b"supervise[")][-1:]
+
+    timeout = watch({"VERI_HEARTBEAT": "999", "VERI_TIMEOUT": "1"})
+    heartbeat = watch({"VERI_HEARTBEAT": "1", "VERI_TIMEOUT": "999"})
+
+    assert (timeout[0], b"hard timeout" in b"".join(timeout[1]),
+            heartbeat[0], b"no heartbeat" in b"".join(heartbeat[1])) == (2, True, 2, True), (timeout, heartbeat)
