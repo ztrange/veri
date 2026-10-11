@@ -2,7 +2,7 @@
 
 - [x] The one reader, `veri/tunables.py`, serves VERI_CONDUCTOR_STOP_TIMEOUT (default 10, bounded above so `signal.setitimer` cannot overflow): `orchestrate.sh` run with `VERI_CONDUCTOR_STOP_TIMEOUT=1e12` exits 2 with exactly one stderr line naming the variable and the value, no traceback, and `solvable-issues.sh` never started ⟦criterion 2⟧
 - [x] `orchestrate.sh` reads VERI_CONDUCTOR_CTX_BUDGET through the one reader too: a value that is not a whole number exits 2 with one stderr line naming the variable and the value, no traceback, and nothing started ⟦criterion 2⟧
-- [ ] `orchestrate.sh`'s header documents VERI_CONDUCTOR_STOP_TIMEOUT with its default and its bounds, beside VERI_CONDUCTOR_CTX_BUDGET's ⟦diff-checked⟧ ⟦criterion 2⟧
+- [x] `orchestrate.sh`'s header documents VERI_CONDUCTOR_STOP_TIMEOUT with its default and its bounds, beside VERI_CONDUCTOR_CTX_BUDGET's ⟦diff-checked⟧ ⟦criterion 2⟧
 - [ ] `supervise.sh` run with a `VERI_KILL_POLL` that is not a number exits 2 with one stderr line naming VERI_KILL_POLL and the value, no traceback, before the leaf command is started, the value parsed by the one reader ⟦criterion 2⟧
 - [ ] Every tunable in the one reader's table refuses a malformed or out-of-bounds value the same way — exit 2, one stderr line naming the variable and the value, no traceback — pinned by one case parametrized over the reader's whole table, so a tunable added to the table is covered by existing ⟦criterion 2⟧
 - [ ] A small test fails, naming `file:line`, on any read of a VERI_* name from `os.environ`, `os.environb` or `os.getenv` in a module under `skills/tdd/scripts/veri/` other than the one reader, with an exemption list naming each module that still reads one directly today ⟦criterion 1⟧
