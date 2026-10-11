@@ -180,15 +180,6 @@ profile:
 	@$(OFFLINE_SCRATCH); \
 	$(OFFLINE_ENV) skills/tdd/scripts/profile.sh $(SUITES) < /dev/null
 
-# `make hermetic` re-runs slices of other suites under an ambient VERI_* value and fails, named,
-# when one's answer changes (#1258). On demand only: not part of `test` or `unit`.
-HERMETIC_SUITE := skills/tdd/scripts/tests/hermetic/hermetic-suites.test.sh
-.PHONY: hermetic
-hermetic:
-	@$(BASH_GUARD)
-	@$(OFFLINE_SCRATCH); \
-	$(OFFLINE_ENV) skills/tdd/scripts/run-suite.sh $(HERMETIC_SUITE) < /dev/null
-
 # `make unreachable` lists the scripts no declared entry point reaches, through unreachable.sh.
 .PHONY: unreachable
 unreachable:

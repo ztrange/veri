@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Unit tests for the docs guard suite's own case filter — like hermetic-suites.test.sh and
-# workflow-timeouts.test.sh this suite has no single script as its subject: its subject is
+# Unit tests for the docs guard suite's own case filter — like workflow-timeouts.test.sh this suite has no single script as its subject: its subject is
 # another suite, docs/tests/build-guards.test.sh, and the only way to ask what that suite
 # does with an environment variable is to run it as a child process.
 # Zero-dependency plain-shell asserts, same idiom as workflow-timeouts.test.sh.

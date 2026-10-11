@@ -60,7 +60,7 @@ plant() {
 
 probe_guard_is_there() {
   [[ -f "$GUARD_PATH" ]] || {
-    problems+=("there is no guard suite at $GUARD, so nothing outside hermetic-suites.test.sh checks that a suite invoking push-branch.sh sets VERI_PUSH_BACKOFF")
+    problems+=("there is no guard suite at $GUARD, so nothing checks that a suite invoking push-branch.sh sets VERI_PUSH_BACKOFF")
     return 1
   }
   [[ -x "$GUARD_PATH" ]] || {

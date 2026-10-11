@@ -23,7 +23,6 @@ veri: all tests: `make test`
 | `make install-hooks` | Installs the `reference-transaction` hook that says so when a version tag arrives the built page does not list. Run once per clone; `.git/hooks` is shared, so it covers every worktree. Refuses rather than clobbering a hook it does not recognise. |
 | `make merge-gates` | **Run before merging any PR**, in its worktree on the rebased tip. Diffs the branch against `origin/main` and runs only the docs gates the changed files warrant: nothing for a README change, **nothing for a change under `skills/`** (#125 — a development PR no longer owes a page; the lag is debt `docs/docs-owed.sh` files instead), **nothing for a change under `docs/adr/`** (#146 — the build reads no ADR, so one can neither make the page stale nor move a guard, and a development PR recording a decision should not pay ~5 min for it; `docs/tests/docs-gap-adr.test.sh` still covers ADRs in the docs lane's own runs), **nothing for a `Makefile` change** (#164 — the page goes stale by design on every tag and every script change; the freshness check on a development branch therefore failed for what `main` did while the branch was open, whatever the recipe edit was, and a broken docs target is the docs lane's to catch on its own cadence), `docs-fresh` (~2 s) for a hand-edited page, and `make docs-test` (every suite under `docs/tests/`, ~2 min) plus `docs-fresh` for a change anywhere else under `docs/` **except** `walkthrough.html` itself, which is the build's output rather than one of its inputs (#137 — the rule is the directory, not a list of its parts, so a script or suite added there is gated by existing). Exit 1 names the failing gate and, for a stale page, the fix. `VERI_GATES=all` forces both. |
 | `make docs-fresh` | Rebuild once and compare to the committed page — the half of `docs-check` that a merge usually owes. |
-| `make hermetic` | Runs `skills/tdd/scripts/tests/hermetic/hermetic-suites.test.sh`: re-runs slices of other suites under an ambient `VERI_*` value and fails, named, when one's answer changes. **On demand only** — not part of `make test` or `make unit`, whose glob does not reach `tests/hermetic/`; `run-suite.sh` strips every `VERI_*` and `CLAUDE_*` but `VERI_VENV` before a suite starts, so the isolation holds by construction and `make test` no longer re-runs anything to prove it (#1258). |
 | `make docs-check` | Two phases: the docs build guards still fire, then the committed page still matches a fresh build — and still agrees with the phases `build-verify-prompt.sh` accepts and the revise budget `SKILL.md` sets. |
 
 `docs-check` is deliberately **not** part of `test`, for the reason in the row above:
@@ -186,10 +185,10 @@ Plain-shell asserts, zero dependencies, under
 One suite belongs to no single
 script: `workflow-timeouts.test.sh` is the first to assert on
 something outside `skills/` at all — it reads `.github/workflows/ci.yml` as text, the way
-GitHub Actions does, and pins what the `gates` job declares and why (issue #99). The suites' independence from
-ambient `VERI_*` tunables is `run-suite.sh`'s strip, and the cross-suite re-runs that check it,
-`tests/hermetic/hermetic-suites.test.sh`, run only under `make hermetic`, outside `make test`. All
-keep `pass`/`fail` counters, print `FAIL - <name>` with a diff, and end with a count.
+GitHub Actions does, and pins what the `gates` job declares and why (issue #99). The bash suites' independence from
+ambient `VERI_*` tunables is `run-suite.sh`'s strip; the pytest leg's holds by construction, through
+the autouse `hermetic_environment` fixture in `tests/py/conftest.py` and the one reader of `VERI_*`
+tunables. All keep `pass`/`fail` counters, print `FAIL - <name>` with a diff, and end with a count.
 Match that style rather than introducing a framework.
 
 **The four `-recorded` suites no longer keep their own counters** — the rule that they did
