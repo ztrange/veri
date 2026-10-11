@@ -7,6 +7,7 @@ import sys
 import time
 
 import entry
+import tunables
 
 USAGE = "usage: event.sh <event> [key=value …]\n".encode()
 CONTEXT = ((b"issue", b"VERI_ISSUE"), (b"actor", b"VERI_ACTOR"), (b"phase", b"VERI_PHASE"),
@@ -104,7 +105,7 @@ def append(directory, context, event, fields=(), ts=None):
     tdd = os.path.join(os.fspath(directory), ".tdd")
     os.makedirs(tdd, exist_ok=True)
     ts = int(time.time()) if ts is None else ts
-    clock = os.environb.get(b"VERI_AWAKE_CLOCK", b"")
+    clock = tunables.read_bytes("VERI_AWAKE_CLOCK")
     if clock:
         result = run_clock(os.fsdecode(clock))
         if result is None:

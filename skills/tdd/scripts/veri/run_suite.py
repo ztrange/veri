@@ -7,6 +7,8 @@ import signal
 import subprocess
 import sys
 
+import tunables
+
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -63,7 +65,8 @@ def report_countless(stream, fmt, name, text, last_line):
 
 
 def venv_python():
-    venv = os.environ.get("VERI_VENV") or os.path.join(os.environ.get("HOME", ""), ".veri-tools", "venv")
+    home = os.environ.get("HOME", "")
+    venv = tunables.read("VERI_VENV") or os.path.join(home, ".veri-tools", "venv")
     py = os.path.join(venv, "bin", "python3")
     if os.access(py, os.X_OK):
         return py
@@ -89,7 +92,7 @@ def main(argv):
         sys.stderr.write("usage: run-suite.sh <suite>\n")
         return 2
     suite = argv[0]
-    env = {k: v for k, v in os.environ.items() if k == "VERI_VENV" or not k.startswith(("VERI_", "CLAUDE_"))}
+    env = {k: v for k, v in tunables.environment().items() if k == "VERI_VENV" or not k.startswith(("VERI_", "CLAUDE_"))}
     n = int(env.get("GIT_CONFIG_COUNT") or 0)
     env["GIT_CONFIG_KEY_%d" % n] = "maintenance.auto"
     env["GIT_CONFIG_VALUE_%d" % n] = "false"

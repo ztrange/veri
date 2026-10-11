@@ -14,6 +14,8 @@ import re
 import subprocess
 import sys
 
+import tunables
+
 
 class NoAnswer(Exception):
     def __init__(self, answer):
@@ -171,10 +173,10 @@ class FixtureAdapter:
 
 
 def _select(operation):
-    fixtures = os.environ.get("VERI_GH_JSON")
+    fixtures = tunables.read("VERI_GH_JSON") or None
     if operation == "json" and fixtures:
         return FixtureAdapter(fixtures)
-    driver = os.environ.get("VERI_GH_DRIVER", "rest")
+    driver = tunables.read("VERI_GH_DRIVER", "rest")
     if driver not in ("auto", "rest", "graphql"):
         print("VERI_GH_DRIVER is '%s': expected auto, rest or graphql" % driver, file=sys.stderr)
         raise NoAnswer("")

@@ -7,12 +7,14 @@ import shutil
 import subprocess
 import sys
 
+import tunables
+
 PROBE = 'printf "%s\\n%s\\n" "${BASH_VERSINFO[0]}" "$BASH_VERSION"'
 
 
 def bash_refusal(prefix):
     path = shutil.which("bash")
-    major = version = os.environ.get("VERI_BASH_MAJOR", "")
+    major = version = tunables.read("VERI_BASH_MAJOR")
     if not major and path:
         env = {k: v for k, v in os.environ.items() if k not in ("BASH_ENV", "ENV")}
         probe = subprocess.run([path, "-c", PROBE], env=env, stdout=subprocess.PIPE, text=True)
@@ -31,7 +33,7 @@ def python_refusal(prefix):
     lib = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib", "venv-python.sh")
     with open(lib) as f:
         floor = re.search("^VENV_FLOOR=(.*)$", f.read(), re.M).group(1)
-    version = os.environ.get("VERI_PYTHON_VERSION", "") or platform.python_version()
+    version = tunables.read("VERI_PYTHON_VERSION") or platform.python_version()
     major, dot, rest = version.partition(".")
     minor = rest.partition(".")[0] if dot else major
     numbers = [_bash_number(major), _bash_number(minor)]
@@ -46,7 +48,8 @@ def python_refusal(prefix):
 
 
 def venv_dir():
-    return os.environ.get("VERI_VENV", "") or os.path.join(os.environ.get("HOME", ""), ".veri-tools", "venv")
+    home = os.environ.get("HOME", "")
+    return tunables.read("VERI_VENV") or os.path.join(home, ".veri-tools", "venv")
 
 
 def _meets_floor(python, floor):
