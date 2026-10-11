@@ -129,11 +129,12 @@ BASH_GUARD := bash_major="$${VERI_BASH_MAJOR:-$$(bash -c 'echo "$${BASH_VERSINFO
 	fi
 
 MAX_MAKE_DEPTH := 4
+PYCACHE_KEEP_DEFAULT := 8
 
 test unit:
 	@if [ "$(MAKELEVEL)" -gt $(MAX_MAKE_DEPTH) ]; then printf 'make: refusing a make %s nested at depth %s, deeper than %s\n' "$@" "$(MAKELEVEL)" "$(MAX_MAKE_DEPTH)" >&2; exit 2; fi
 	@$(BASH_GUARD)
-	@case "$${VERI_PYCACHE_KEEP-8}" in ''|*[!0-9]*|0*) printf 'veri needs VERI_PYCACHE_KEEP to be a whole number of at least 1; got: %s\n' "$$VERI_PYCACHE_KEEP" >&2; exit 2 ;; esac
+	@case "$${VERI_PYCACHE_KEEP-$(PYCACHE_KEEP_DEFAULT)}" in ''|*[!0-9]*|0*) printf 'veri needs VERI_PYCACHE_KEEP to be a whole number of at least 1; got: %s\n' "$$VERI_PYCACHE_KEEP" >&2; exit 2 ;; esac
 	@[ -f "$(COUNT_LINE_GUARD)" ] || { printf 'make: %s is missing, so no suite can be held to its count line\n' "$(COUNT_LINE_GUARD)" >&2; exit 2; }
 	@unset BASH_ENV ENV; fail=0; reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
 	trap 'rm -f "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
@@ -161,7 +162,7 @@ test unit:
 	  if [ -d "$$pycache/skills" ]; then cp -R "$$pycache/skills" .; fi; \
 	  UNIT_GUARD_LOG="$$reach_log" COLUMNS=200 $(OFFLINE_ENV) "$$py_bin" -m pytest --timeout="$${VERI_PYTEST_TIMEOUT:-30}" $(PY_SELECT) $(PY_TESTS) < /dev/null || fail=1; \
 	  find skills/tdd/scripts -type d -name __pycache__ -prune | while IFS= read -r d; do mkdir -p "$$pycache/$$d" && cp -R "$$d/." "$$pycache/$$d/"; done; \
-	  if [ -d "$$pycache" ]; then touch "$$pycache"; ls -1t "$$pycache_root" | tail -n +$$(( $${VERI_PYCACHE_KEEP:-8} + 1 )) | while IFS= read -r d; do rm -rf "$$pycache_root/$$d"; done; fi; \
+	  if [ -d "$$pycache" ]; then touch "$$pycache"; ls -1t "$$pycache_root" | tail -n +$$(( $${VERI_PYCACHE_KEEP:-$(PYCACHE_KEEP_DEFAULT)} + 1 )) | while IFS= read -r d; do rm -rf "$$pycache_root/$$d"; done; fi; \
 	  $(call NAME_REACHED,pytest: tried to start); \
 	fi; \
 	echo "----"; \
