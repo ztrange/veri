@@ -133,3 +133,32 @@ def test_main_keeps_every_failure_path_inside_0_to_3_and_lets_an_uncaught_except
     monkeypatch.setattr(subprocess, "run", explode)
     with pytest.raises(RuntimeError, match="boom"):
         tick_issue_criterion.main(["7", "alpha"])
+
+
+def test_main_gives_its_full_answer_when_every_process_start_but_gh_is_refused(monkeypatch, capsys, tick_issue_criterion):
+    monkeypatch.setenv("VERI_GH_DRIVER", "auto")
+
+    def run_case(matcher):
+        patched = []
+
+        def fake_run(args, **kwargs):
+            args = [str(arg) for arg in args]
+            if args[:3] == ["gh", "issue", "view"]:
+                return subprocess.CompletedProcess(args, 0, "- [ ] alpha\n- [ ] beta\n", "")
+            if args[:4] == ["gh", "api", "-X", "PATCH"]:
+                with open(args[6][len("body=@"):]) as f:
+                    patched.append(f.read())
+                return subprocess.CompletedProcess(args, 0, "", "")
+            raise AssertionError("refused process start: %r" % (args,))
+
+        def refuse_popen(args, **kwargs):
+            raise AssertionError("refused process start: %r" % (args,))
+
+        monkeypatch.setattr(subprocess, "run", fake_run)
+        monkeypatch.setattr(subprocess, "Popen", refuse_popen)
+        code = tick_issue_criterion.main(["7", matcher])
+        captured = capsys.readouterr()
+        return code, captured.out, captured.err, patched
+
+    assert run_case("beta") == (0, "", "", ["- [ ] alpha\n- [x] beta"])
+    assert run_case("zeta") == (3, "", "tick-issue-criterion: no unchecked criterion matched 'zeta' on #7\n", [])
