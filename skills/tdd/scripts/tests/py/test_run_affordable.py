@@ -9,8 +9,6 @@ import sys
 
 import pytest
 
-pytestmark = pytest.mark.process("run-affordable's own step-cost.sh start")
-
 
 @pytest.fixture
 def run_affordable():
@@ -82,16 +80,13 @@ def test_main_passes_the_exit_statuses_of_the_budget_and_the_log_through(capsys,
     assert (code, out) == (2, "")
 
 
-def test_main_answers_in_full_when_starting_step_budget_sh_as_a_process_is_refused(capsys, monkeypatch, scratch, run_affordable):
+def test_main_answers_in_full_when_starting_any_process_is_refused(capsys, monkeypatch, scratch, run_affordable):
     import subprocess
-    real_run = subprocess.run
 
-    def refuse_step_budget(argv, *args, **kwargs):
-        if os.path.basename(argv[0]) == "step-budget.sh":
-            raise OSError("start refused: " + argv[0])
-        return real_run(argv, *args, **kwargs)
+    def refuse_start(self, argv, *args, **kwargs):
+        raise OSError("start refused: %s" % (argv,))
 
-    monkeypatch.setattr(subprocess, "run", refuse_step_budget)
+    monkeypatch.setattr(subprocess.Popen, "__init__", refuse_start)
     steps = "5.25 6\n7.50 6\n9.75 6\n"
     assert _answer(run_affordable, capsys, scratch, monkeypatch, "4", "50", steps) == (
         1, "spent 22.50, steps remaining 4, median 7.50, projection 52.50\n", "")
