@@ -230,6 +230,32 @@ def test_main_rewrites_every_blocked_by_section_replacing_none_lines_and_inserti
     assert run_with_body("## Parent\n\n#1\n\n\n") == (0, url, b"## Parent\n\n#1\n")
 
 
+def test_main_replaces_only_the_none_line_under_blocked_by_leaving_a_none_line_in_another_section_unchanged(tmpdir_env, monkeypatch, run_cli, coverage_blocker):
+    seen = {}
+
+    def fake_run(args, **kwargs):
+        args = [str(arg) for arg in args]
+        if args[2].startswith("repos/{owner}/{repo}/issues?"):
+            return subprocess.CompletedProcess(args, 0, "[]", "")
+        if args[:3] == ["gh", "api", "repos/{owner}/{repo}/issues"]:
+            return subprocess.CompletedProcess(args, 0, "https://github.com/owner/name/issues/77\n", "")
+        if args == ["gh", "api", "repos/{owner}/{repo}/issues/60"]:
+            body = "## What to build\n\nNone of the callers change.\n\n## Blocked by\n\nNone (can start immediately).\n"
+            return subprocess.CompletedProcess(args, 0, json.dumps({"body": body}), "")
+        if args[:4] == ["gh", "api", "-X", "PATCH"]:
+            path = args[args.index("-F") + 1].split("body=@", 1)[1]
+            seen["body"] = pathlib.Path(path).read_text()
+            return subprocess.CompletedProcess(args, 0, "", "")
+        raise AssertionError("unexpected command: %r" % (args,))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    code, out, err = run_cli(coverage_blocker, ["60"])
+
+    assert (code, out, err) == (0, "https://github.com/owner/name/issues/77\n", "")
+    assert seen["body"] == "## What to build\n\nNone of the callers change.\n\n## Blocked by\n\n- #77\n"
+
+
 def test_main_blocks_on_whatever_the_create_answers_ignores_extra_arguments_and_passes_a_failed_create_stderr_through(tmpdir_env, monkeypatch, capfd, coverage_blocker):
     def run(argv, create_answer, create_code=0):
         calls = []
@@ -575,3 +601,40 @@ def test_main_returns_2_after_reaching_the_body_patch_when_graphql_is_refused_an
     code, out, _ = run_cli(coverage_blocker, ["7"])
 
     assert (code, out, calls) == (2, "", ["post", "get", "patch"])
+
+
+@pytest.mark.process("coverage-blocker.sh run through a symlink to the skill directory from another working directory, with a stub gh on PATH")
+def test_the_shim_run_through_a_symlink_to_the_skill_directory_from_another_cwd_prints_the_same_url_patches_the_same_body_and_exits_as_when_run_in_place(tmp_path):
+    scripts = pathlib.Path(__file__).resolve().parents[2]
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    gh = bin_dir / "gh"
+    gh.write_text(
+        '#!/bin/sh\n'
+        'case "$*" in\n'
+        '  *PATCH*)\n'
+        '    for a in "$@"; do case "$a" in *=@*) cp "${a#*=@}" "$FAKE_OUT" ;; esac; done\n'
+        "    echo '{}' ;;\n"
+        '  "api "*"repos/"*"/issues/60"*) cat "$FAKE_VIEW" ;;\n'
+        "  \"api \"*\"repos/\"*\"/issues?\"*) echo '[]' ;;\n"
+        '  "api "*"repos/"*"/issues"*) echo "https://github.com/owner/name/issues/77" ;;\n'
+        'esac\n')
+    gh.chmod(0o755)
+    view = tmp_path / "view.json"
+    view.write_text(json.dumps({"body": "## What to build\n\nExtract the parser.\n\n## Blocked by\n\nNone (can start immediately).\n"}))
+    (tmp_path / "linked-skill").symlink_to(scripts.parent, target_is_directory=True)
+    (tmp_path / "elsewhere").mkdir()
+    env = {k: v for k, v in os.environ.items() if k != "VERI_GH_DRIVER"}
+    env.update(PATH="%s:%s" % (bin_dir, os.environ["PATH"]), FAKE_VIEW=str(view))
+
+    def run(script, cwd, edited):
+        ran = subprocess.run([str(script), "60"], cwd=cwd, env=dict(env, FAKE_OUT=str(edited)),
+                             stdin=subprocess.DEVNULL, capture_output=True, text=True)
+        return ran.returncode, ran.stdout, edited.read_text() if edited.exists() else None
+
+    in_place = run(scripts / "coverage-blocker.sh", tmp_path, tmp_path / "inplace-edit")
+    linked = run(tmp_path / "linked-skill" / "scripts" / "coverage-blocker.sh", tmp_path / "elsewhere", tmp_path / "linked-edit")
+
+    assert in_place[:2] == (0, "https://github.com/owner/name/issues/77\n")
+    assert in_place[2] is not None and "#77" in in_place[2]
+    assert linked == in_place
