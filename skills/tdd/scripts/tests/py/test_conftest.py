@@ -97,7 +97,7 @@ def test_every_case_starts_with_no_veri_claude_gh_or_git_variable_set_but_veri_v
         "    names = [n for n in os.environ if n.startswith(('VERI_', 'CLAUDE_', 'GH_', 'GIT_'))]\n"
         "    open(%r, 'w').write(json.dumps(sorted(names)))\n" % str(seen))
     ambient = {name: "1" for name in ("VERI_ISSUE", "VERI_VENV", "CLAUDE_X", "GH_TOKEN", "GIT_DIR")}
-    env = {**os.environ, **ambient, "PYTHONPATH": str(pathlib.Path(__file__).resolve().parent)}
+    env = {**{k: v for k, v in os.environ.items() if not k.startswith("GIT_CONFIG_")}, **ambient, "PYTHONPATH": str(pathlib.Path(__file__).resolve().parent)}
 
     ran = subprocess.run([sys.executable, "-m", "pytest", "-p", "conftest", "-p", "no:cacheprovider", "-q",
                           "--rootdir", str(tmp_path), str(probe)],
@@ -125,3 +125,27 @@ def test_every_case_starts_under_lc_all_c_with_every_other_lc_variable_and_lang_
 
     assert ran.returncode == 0, ran.stdout + ran.stderr
     assert json.loads(seen.read_text()) == {"LC_ALL": "C"}
+
+
+@pytest.mark.process("a child pytest session whose case runs a real git against an https remote")
+def test_a_medium_cases_git_still_refuses_a_remote_url_after_the_fixture_clears_git_variables_because_it_restores_the_offline_git_settings(tmp_path):
+    probe = tmp_path / "test_probe.py"
+    seen = tmp_path / "seen.json"
+    probe.write_text(
+        "import json, subprocess\n"
+        "import pytest\n"
+        "@pytest.mark.process('git against an https remote')\n"
+        "def test_probe():\n"
+        "    ran = subprocess.run(['git', 'ls-remote', 'https://127.0.0.1:1/x.git'], capture_output=True, text=True)\n"
+        "    open(%r, 'w').write(json.dumps(ran.stderr))\n" % str(seen))
+    offline = {"GIT_CONFIG_COUNT": "2",
+               "GIT_CONFIG_KEY_0": "protocol.allow", "GIT_CONFIG_VALUE_0": "never",
+               "GIT_CONFIG_KEY_1": "protocol.file.allow", "GIT_CONFIG_VALUE_1": "always"}
+    env = {**os.environ, **offline, "PYTHONPATH": str(pathlib.Path(__file__).resolve().parent)}
+
+    ran = subprocess.run([sys.executable, "-m", "pytest", "-p", "conftest", "-p", "no:cacheprovider", "-q",
+                          "--rootdir", str(tmp_path), str(probe)],
+                         env=env, cwd=tmp_path, capture_output=True, text=True)
+
+    assert ran.returncode == 0, ran.stdout + ran.stderr
+    assert "not allowed" in json.loads(seen.read_text())
