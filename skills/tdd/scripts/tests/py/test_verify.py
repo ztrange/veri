@@ -11,6 +11,11 @@ import sys
 
 import pytest
 
+
+def preserve_in_process(args, words):
+    code = importlib.import_module("veri.preserve_attempt").main(words[1:])
+    return subprocess.CompletedProcess(args, code, None, None)
+
 from conftest import SCRIPTS
 
 USAGE = (b"usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file>"
@@ -391,8 +396,7 @@ def test_main_returns_2_on_a_killed_stuck_leaf_with_no_tamper_check_event_or_pre
     assert (code, captured.out.decode("utf-8")) == expected
     if supervise == 2:
         launch = [os.path.basename(words[0]) for words in started].index("supervise.sh")
-        assert [words for words in started[launch + 1:]
-                if {os.path.basename(w) for w in words} & {"git", "preserve-attempt.sh"}] == []
+        assert [words for words in started[launch + 1:] if os.path.basename(words[0]) == "git"] == []
         assert events.records() == []
 
 
@@ -503,7 +507,7 @@ def test_main_returns_2_when_the_verdict_record_cannot_be_appended_with_no_prese
             return subprocess.CompletedProcess(args, 0, b"a" * 40 + b"\n", b"")
         if name == "git" and "rev-parse" in words:
             return subprocess.CompletedProcess(args, 0, b"1" * 40 + b"\n", b"")
-        if name == "preserve-attempt.sh":
+        if name == "git" and "update-ref" in words and words[2].startswith("refs/veri/attempts/"):
             preserved.append(words)
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
@@ -619,6 +623,7 @@ def test_main_snapshots_the_tree_through_a_temporary_index_and_head_around_the_l
     trees = [b"a" * 40 + b"\n", b"b" * 40 + b"\n"]
     heads = [b"1" * 40 + b"\n", b"2" * 40 + b"\n"]
     order = []
+    updated = []
     indexes = []
     diffed = []
 
@@ -634,6 +639,8 @@ def test_main_snapshots_the_tree_through_a_temporary_index_and_head_around_the_l
         if name == "git":
             verb = words[1]
             order.append(verb)
+            if verb == "update-ref":
+                updated.append(words[2])
             if verb in ("add", "write-tree"):
                 indexes.append((verb, env.get("GIT_INDEX_FILE")))
             if verb == "write-tree":
@@ -671,7 +678,7 @@ def test_main_snapshots_the_tree_through_a_temporary_index_and_head_around_the_l
     snapshots = indexes[:4]
     assert all(index and not pathlib.Path(index).is_relative_to(tmp_path) for _, index in snapshots)
     assert (snapshots[0][1] == snapshots[1][1], snapshots[2][1] == snapshots[3][1]) == (True, True)
-    assert ("preserve-attempt.sh" in order, events.records()) == (False, [])
+    assert ([r for r in updated if r.startswith("refs/veri/attempts/")], events.records()) == ([], [])
 
 
 @pytest.mark.parametrize("failing", ["add", "git-missing", "write-tree", "diff-tree"])
@@ -876,8 +883,7 @@ def test_main_outside_a_repository_without_git_or_with_a_failing_add_takes_no_sn
     names = [os.path.basename(words[0]) for words in started]
     assert (code, captured.out) == (1, b"bad\n")
     assert [v for v in verbs if v in ("write-tree", "diff-tree", "read-tree", "update-ref")] == []
-    assert ("preserve-attempt.sh" in names, events.records()) == (
-        False, [record("verdict", "verdict=REJECT", "reason=bad", issue="7", step="2")])
+    assert events.records() == [record("verdict", "verdict=REJECT", "reason=bad", issue="7", step="2")]
 
 
 def test_main_in_a_repository_with_no_commit_reports_a_leaf_that_commits_as_head_and_makes_no_update_ref_call(
@@ -1086,7 +1092,7 @@ def test_main_returns_2_naming_home_gitconfig_when_the_leaf_changed_created_or_d
         if os.path.basename(words[0]) == "env":
             words = [w for w in words[1:] if "=" not in w]
         name = os.path.basename(words[0])
-        started.append(name)
+        started.append(" ".join(words) if name == "git" else name)
         if name == "git":
             return subprocess.CompletedProcess(args, 128, b"", b"fatal: not a git repository\n")
         if name == "build-verify-prompt.sh":
@@ -1111,7 +1117,7 @@ def test_main_returns_2_naming_home_gitconfig_when_the_leaf_changed_created_or_d
     assert (code, captured.out) == (
         2, ("verifier leaf modified the operator's global git config — verdict not accepted"
             " (see .tdd/verify-green.log); changed:\n%s\n" % os.path.join(str(home), ".gitconfig")).encode())
-    assert (left, events.records(), "preserve-attempt.sh" in started) == (after, [], False)
+    assert (left, events.records(), any(" update-ref refs/veri/attempts/" in w for w in started)) == (after, [], False)
 
 
 def test_main_reports_a_leaf_that_changed_both_the_repository_and_home_gitconfig_for_the_repository_only(
@@ -1365,20 +1371,17 @@ def test_main_returns_2_naming_home_gitconfig_on_stderr_when_the_leaf_left_it_un
             leaf_ran) == (2, True, False, ["supervise.sh"])
 
 
-PRESERVED = b"preserve-attempt: stdout sentinel\n"
-
-
 @pytest.mark.parametrize("leaf_out, issue, step, preserver, expected_code, expected_mark", [
     (b"VERDICT: REJECT\nbad\n", "931", "7", 0, 1, "reject"),
     (b"VERDICT: MAYBE\nundecided\n", "931", "7", 0, 2, "malformed"),
     (NO_VERDICT, "931", "7", 0, 2, "no-verdict"),
     (b"VERDICT: REJECT\nbad\n", "931", "7", 1, 1, "reject"),
-    (NO_VERDICT, "931", "7", FileNotFoundError, 2, "no-verdict"),
+    (NO_VERDICT, "931", "7", 1, 2, "no-verdict"),
     (b"VERDICT: PASS\nfine\n", "931", "7", 0, 0, None),
     (b"VERDICT: REJECT\nbad\n", "", "7", 0, 1, None),
     (b"VERDICT: REJECT\nbad\n", "931", "", 0, 1, None),
 ])
-def test_main_preserves_a_reject_malformed_or_no_verdict_attempt_through_preserve_attempt_sh_with_its_stdout_on_stderr_naming_a_failed_preservation_and_still_returning_the_verdicts_code(
+def test_main_preserves_a_reject_malformed_or_no_verdict_attempt_under_its_attempts_ref_naming_a_failed_update_ref_and_still_returning_the_verdicts_code(
         leaf_out, issue, step, preserver, expected_code, expected_mark, tmp_path, monkeypatch,
         capfdbinary):
     monkeypatch.chdir(tmp_path)
@@ -1388,7 +1391,6 @@ def test_main_preserves_a_reject_malformed_or_no_verdict_attempt_through_preserv
     monkeypatch.setenv("VERI_ISSUE", issue)
     monkeypatch.setenv("VERI_STEP", step)
     monkeypatch.setenv("VERI_NO_VERDICT_RETRIES", "0")
-    builders = []
     preserved = []
 
     def fake(args, *_, **kwargs):
@@ -1399,22 +1401,22 @@ def test_main_preserves_a_reject_malformed_or_no_verdict_attempt_through_preserv
                 words.pop(0)
         name = os.path.basename(words[0])
         if name == "build-verify-prompt.sh":
-            builders.append(words[0])
             return subprocess.CompletedProcess(args, 0, b"blind prompt", b"")
         if name == "supervise.sh":
             return subprocess.CompletedProcess(args, 0, leaf_out, None)
+        if name == "preserve-attempt.sh":
+            return preserve_in_process(args, words)
+        if name == "git" and "--show-toplevel" in words:
+            return subprocess.CompletedProcess(args, 0, os.getcwd() + "\n", "")
+        if name == "git" and "commit-tree" in words:
+            return subprocess.CompletedProcess(args, 0, "c" * 40 + "\n", "")
+        if name == "git" and "update-ref" in words:
+            preserved.append(words)
+            return subprocess.CompletedProcess(args, preserver, b"", b"")
         if name == "git" and "write-tree" in words:
-            return subprocess.CompletedProcess(args, 0, b"a" * 40 + b"\n", b"")
+            return subprocess.CompletedProcess(args, 0, "a" * 40 + "\n" if kwargs.get("text") else b"a" * 40 + b"\n", b"")
         if name == "git" and "rev-parse" in words:
             return subprocess.CompletedProcess(args, 0, b"1" * 40 + b"\n", b"")
-        if name == "preserve-attempt.sh":
-            preserved.append(words)
-            if preserver is FileNotFoundError:
-                raise FileNotFoundError(2, "No such file or directory", words[0])
-            target = kwargs.get("stdout")
-            fd = 1 if target is None else target if isinstance(target, int) else target.fileno()
-            os.write(fd, PRESERVED)
-            return subprocess.CompletedProcess(args, preserver, None, None)
         return subprocess.CompletedProcess(args, 0, b"", b"")
 
     for name in ("run", "Popen", "call", "check_call", "check_output"):
@@ -1428,16 +1430,10 @@ def test_main_preserves_a_reject_malformed_or_no_verdict_attempt_through_preserv
     if expected_mark is None:
         assert preserved == []
         return
-    scripts = os.path.dirname(builders[0])
-    assert preserved == [[os.path.join(scripts, "preserve-attempt.sh"),
-                          issue, step, "verify-green", "1", expected_mark]]
-    assert PRESERVED not in captured.out
+    assert preserved == [["git", "update-ref", f"refs/veri/attempts/{issue}/{step}/verify-green-1", "c" * 40]]
     could_not = ("verify: could not preserve the %s attempt (issue %s step %s verify-green attempt 1)\n"
                  % (expected_mark, issue, step)).encode()
-    if preserver == 0:
-        assert (PRESERVED in captured.err, could_not in captured.err) == (True, False)
-    else:
-        assert could_not in captured.err
+    assert (could_not in captured.err) == (preserver != 0)
 
 
 def test_main_writes_every_line_it_prints_the_em_dash_in_its_refusals_included_as_utf8_bytes_under_lc_all_c(
