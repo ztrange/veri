@@ -105,3 +105,9 @@ def test_main_classifies_rebased_tip_red_as_a_process_failure_with_0(capsys, cla
     code = classify_bail.main(["rebased-tip-red"])
 
     assert (code, *capsys.readouterr()) == (0, "process\n", "")
+
+
+def test_main_classifies_unreplaced_cases_as_a_process_failure_with_0_1521(capsys, classify_bail):
+    code = classify_bail.main(["unreplaced-cases"])
+
+    assert (code, *capsys.readouterr()) == (0, "process\n", "")
