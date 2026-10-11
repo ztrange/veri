@@ -469,63 +469,54 @@ def test_main_resolves_the_model_in_process_marks_it_on_the_launch_and_hands_the
     }
 
 
-def test_main_runs_harvest_usage_sh_once_for_a_watched_name_onto_its_stderr_before_the_status_line_a_failing_one_changing_nothing_and_none_for_a_verdict_name(
+def test_main_appends_one_usage_record_for_a_watched_leaf_with_its_role_and_skill_commit_a_log_with_no_closing_result_gets_harvests_diagnostic_on_stderr_before_the_status_line_and_a_verdict_name_none(
         monkeypatch, tmp_path, capfdbinary, supervise, events):
+    import json
     import signal
     import time
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     monkeypatch.setattr(time, "sleep", lambda *_: None)
     monkeypatch.setattr(time, "clock_gettime", lambda *_: 5000.0)
-    here = os.path.dirname(os.path.dirname(os.path.abspath(supervise.__file__)))
-    harvest_sh = os.path.join(here, "harvest-usage.sh")
-    harvester = "printf 'harvest out\\n'; printf 'harvest err\\n' >&2; exit 1"
     real_popen = subprocess.Popen
+    sha = "0123456789abcdef0123456789abcdef01234567"
+    closing = json.dumps(
+        {"type": "result", "subtype": "success", "is_error": False, "duration_ms": 91234, "duration_api_ms": 40118,
+         "num_turns": 7, "result": "done", "session_id": "4d1a", "total_cost_usd": 0.31,
+         "usage": {"input_tokens": 37, "cache_creation_input_tokens": 41002, "cache_read_input_tokens": 903117,
+                   "output_tokens": 5140}})
 
-    def run_one(name):
-        work = tmp_path / name
+    def run_one(name, leaf_says):
+        work = tmp_path / f"{name}-{len(leaf_says)}"
         work.mkdir()
         monkeypatch.chdir(work)
         clean_env(monkeypatch, VERI_TIMEOUT="900")
         fake_leaf_launch(monkeypatch)
-        launching, running = subprocess.Popen, subprocess.run
-        harvests = []
+        faked_run = subprocess.run
 
-        def as_harvester(args, kwargs):
-            harvests.append([str(a) for a in args])
-            passed = {k: kwargs[k] for k in ("stdout", "stderr") if k in kwargs}
-            return ["sh", "-c", harvester], passed
+        def run(args, *a, **k):
+            if str(args[0]).endswith("harvest-usage.sh"):
+                return subprocess.CompletedProcess(args, real_popen(args, *a, **k).wait())
+            return faked_run(args, *a, **k)
 
-        def popen(args, *a, **kwargs):
-            if harvest_sh in [str(x) for x in args]:
-                cmd, passed = as_harvester(args, kwargs)
-                return real_popen(cmd, **passed)
-            return launching(args, *a, **kwargs)
-
-        def run(args, *a, **kwargs):
-            if harvest_sh in [str(x) for x in args]:
-                cmd, passed = as_harvester(args, kwargs)
-                code = real_popen(cmd, **passed).wait()
-                if kwargs.get("check") and code:
-                    raise subprocess.CalledProcessError(code, args)
-                return subprocess.CompletedProcess(args, code, None, None)
-            return running(args, *a, **kwargs)
-
-        monkeypatch.setattr(subprocess, "Popen", popen)
         monkeypatch.setattr(subprocess, "run", run)
-        monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, *a, **k).returncode)
-        monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: run(args, *a, check=True, **k).returncode)
-        events.refuse_event_sh()
-        code = supervise.main([name, "sh", "-c", "printf 'leaf out\\n'"])
+        code = supervise.main([name, "sh", "-c", f"printf '%s\\n' '{leaf_says}'"])
         out, err = capfdbinary.readouterr()
         lines = [line for line in err.splitlines()
-                 if line.startswith((b"harvest ", b"harvest-usage.sh:", b"supervise["))]
-        return code, out, (work / ".tdd" / f"{name}.exit").read_bytes(), harvests, lines
+                 if line.startswith((b"harvest-usage.sh:", b"supervise["))]
+        usage = [{k: r.get(k) for k in ("actor", "phase", "attempt", "skill_commit", "num_turns")}
+                 for r in events.records(work) if r["event"] == "usage"]
+        return code, out, (work / ".tdd" / f"{name}.exit").read_bytes(), usage, lines
 
-    assert run_one("develop-red") == (
-        0, b"leaf out\n", b"0\n", [[harvest_sh, "develop-red"]],
-        [b"harvest out", b"harvest err", b"supervise[develop-red]: success"])
-    assert run_one("verdict-red") == (
-        0, b"leaf out\n", b"0\n", [], [b"supervise[verdict-red]: success"])
+    assert run_one("develop-red", closing) == (
+        0, closing.encode() + b"\n", b"0\n",
+        [{"actor": "developer", "phase": "red", "attempt": "1", "skill_commit": sha, "num_turns": "7"}],
+        [b"supervise[develop-red]: success"])
+    assert run_one("develop-red", "no result here") == (
+        0, b"no result here\n", b"0\n", [],
+        [b"harvest-usage.sh: no closing result record in .tdd/develop-red.log \xe2\x80\x94 no usage event appended for develop-red",
+         b"supervise[develop-red]: success"])
+    assert run_one("verdict-red", closing) == (
+        0, closing.encode() + b"\n", b"0\n", [], [b"supervise[verdict-red]: success"])
 
 
 class Runaway(BaseException):
