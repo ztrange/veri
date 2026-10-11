@@ -302,46 +302,10 @@ exit 0
 L
 chmod +x "$stub/leaf-second"
 
-woke_with_own_exit() {
-  local susp_rc
-  susp_rc="$(cat "$work/.tdd/$1.rc" 2>/dev/null || echo '<missing>')"
-  rm -f "$work/.test-suspended"
-  { [[ "$code" == 1 ]] && [[ "$susp_rc" == 3 ]] && [[ "$out" == *'awake again'* ]]; } && ok \
-    || no "$2 (code=$code want 1, rc=$susp_rc want 3, err=$(cat "$work/err"))"
-}
-
 cat > "$stub/clock-suspend" <<'C'
 clock-jump "$1" suspend && echo "$1" >> .test-suspended
 C
-cat > "$stub/leaf-suspended" <<'L'
-: > .test-clock-reads
-echo "leaf: starting"
-clock-suspend "$(( ${VERI_HEARTBEAT:-999} + 1 ))"
-await-poll; await-poll
-echo "leaf: awake again"; exit 3
-L
-chmod +x "$stub/clock-suspend" "$stub/leaf-suspended"
-rm -f "$work/.test-suspended"
-sup suspended 2 30 leaf-suspended
-woke_with_own_exit suspended "#472: a leaf silent only across a 3s suspend against a 2s heartbeat is not killed and finishes with its own exit code"
-
-rm -f "$work/.test-suspended" "$work/.tdd/suspended.rc"
-unset VERI_AWAKE_CLOCK
-sup suspended 2 30 leaf-suspended
-export VERI_AWAKE_CLOCK="$stub/awake-clock"
-woke_with_own_exit suspended "#472: with VERI_AWAKE_CLOCK unset, a leaf silent only across a 3s suspend against a 2s heartbeat is not killed and finishes with its own exit code"
-
-cat > "$stub/leaf-suspended-timeout" <<'L'
-: > .test-clock-reads
-echo "leaf: starting"
-clock-suspend "$(( ${VERI_TIMEOUT:-999} + 1 ))"
-await-poll; await-poll
-echo "leaf: awake again"; exit 3
-L
-chmod +x "$stub/leaf-suspended-timeout"
-rm -f "$work/.test-suspended" "$work/.tdd/suspended-timeout.rc"
-sup suspended-timeout 30 2 leaf-suspended-timeout
-woke_with_own_exit suspended-timeout "#472: a leaf whose run spans a 3s suspend past a 2s VERI_TIMEOUT, awake time under it, is not killed for the timeout and finishes with its own exit code"
+chmod +x "$stub/clock-suspend"
 
 cat > "$stub/leaf-awake-silent" <<'L'
 : > .test-clock-reads
@@ -414,18 +378,6 @@ rm -rf "$work/.test-inside-window" "$work/.test-loaded" "$loaded_py"
 { [[ "$code" == 2 ]] && [[ "$loaded_inside" == yes ]] \
   && grep -F 'hard timeout 4s exceeded' "$work/err" > /dev/null; } && ok \
   || no "#972: the #472 awake-runaway leaf, with load stretching the real wall time between its injected clock jumps by 3s, still survives inside a 4s VERI_TIMEOUT and is killed on the hard timeout (code=$code want 2, survived inside the timeout=$loaded_inside want yes, err=$(cat "$work/err"))"
-
-cat > "$stub/leaf-asleep-an-hour" <<'L'
-: > .test-clock-reads
-echo "leaf: starting"
-clock-suspend 3600
-await-poll; await-poll
-echo "leaf: awake again"; exit 3
-L
-chmod +x "$stub/leaf-asleep-an-hour"
-rm -f "$work/.test-suspended" "$work/.tdd/asleep-an-hour.rc"
-sup asleep-an-hour 180 900 leaf-asleep-an-hour
-woke_with_own_exit asleep-an-hour "#472: a leaf asleep an hour across a simulated suspend, against the default 180s heartbeat and 900s VERI_TIMEOUT, is killed by neither and finishes with its own exit code"
 
 clock_misses="$(header_unstated <<'CLAIMS'
 clock-source|monotonic

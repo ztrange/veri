@@ -2427,6 +2427,80 @@ def test_cli_does_not_read_a_logs_real_lag_nor_a_verdict_wrappers_silence_as_a_h
     ]
 
 
+def test_cli_does_not_read_a_suspend_as_silence_or_runtime_a_3s_suspend_against_a_2s_heartbeat_with_the_awake_clock_set_or_unset_a_3s_suspend_past_a_2s_timeout_and_an_hour_against_the_defaults_each_ending_in_the_leafs_own_exit_3(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+
+    def sleep_through(awake_clock, heartbeat, timeout, suspended):
+        work = tmp_path / f"asleep-{len(list(tmp_path.iterdir()))}"
+        (work / ".tdd").mkdir(parents=True)
+        clean_env(monkeypatch, VERI_STUCK_RETRIES="0", VERI_HEARTBEAT=str(heartbeat), VERI_TIMEOUT=str(timeout),
+                  **({"VERI_AWAKE_CLOCK": "/fake/awake-clock"} if awake_clock else {}))
+        clock = {"wall": 1000, "awake": 5000, "sleeps": 0}
+        kills = []
+
+        class Leaf:
+            pid = 4242
+            returncode = None
+            args = []
+
+            def poll(self):
+                return self.returncode
+
+            def wait(self, timeout=None):
+                return self.returncode
+
+        leaf = Leaf()
+
+        def sleep(_):
+            clock["sleeps"] += 1
+            if clock["sleeps"] > 50:
+                raise AssertionError("never ended")
+            clock["wall"] += 1 + (suspended if clock["sleeps"] == 1 else 0)
+            clock["awake"] += 1
+            if clock["sleeps"] == 2:
+                (work / ".tdd" / "suspended.log").write_text("leaf: awake again\n")
+                (work / ".tdd" / "suspended.rc").write_text("3\n")
+                leaf.returncode = 3
+
+        def stop(_pid, sig):
+            if sig:
+                kills.append(sig)
+                leaf.returncode = -sig
+
+        def answer(args):
+            args = [str(a) for a in args]
+            if args[:1] == ["/fake/awake-clock"]:
+                return f"{clock['awake']}\n"
+            if args[:1] == ["git"]:
+                return "0123456789abcdef0123456789abcdef01234567\n"
+            if args[:1] == ["date"]:
+                return f"{clock['wall']}\n"
+            if args[:3] == ["stat", "-c", "%Y"]:
+                return "1000\n"
+            return ""
+
+        monkeypatch.setattr(time, "sleep", sleep)
+        monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["awake"]))
+        monkeypatch.setattr(os, "killpg", stop)
+        monkeypatch.setattr(os, "kill", stop)
+        monkeypatch.setattr(subprocess, "run", lambda args, *_, **k: subprocess.CompletedProcess(
+            args, 0, as_asked(answer(args), k), as_asked("", k)))
+        monkeypatch.setattr(subprocess, "check_output", lambda args, *_, **k: as_asked(answer(args), k))
+        monkeypatch.setattr(subprocess, "call", lambda *a, **k: 0)
+        monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: 0)
+        monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: leaf)
+        code, out, _ = run_cli(supervise, ["suspended", "leaf"], cwd=work)
+        rc = work / ".tdd" / "suspended.rc"
+        return (code, out, kills, rc.read_text() if rc.exists() else None)
+
+    woke = (1, "leaf: awake again\n", [], "3\n")
+    assert [sleep_through(True, 2, 30, 3), sleep_through(False, 2, 30, 3), sleep_through(True, 30, 2, 3),
+            sleep_through(True, 180, 900, 3600)] == [woke, woke, woke, woke]
+
+
 REAL_LEAF_ENV = {"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "5", "VERI_TIMEOUT": "10"}
 
 
