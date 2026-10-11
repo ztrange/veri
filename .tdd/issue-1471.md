@@ -6,4 +6,4 @@
 - [x] After runs over more distinct contents than the bound, the cache root holds no more than a bounded number of cache directories, the oldest pruned and the current one kept ⟦criterion 3⟧
 - [x] A VERI_PYCACHE_KEEP that is not a whole number of at least 1 makes make unit and make test refuse with exit 2 before any suite runs, naming the variable and the value, so the prune can never remove the current run's own cache directory ⟦added⟧ ⟦criterion 3⟧
 - [x] With PYTHONDONTWRITEBYTECODE set in the caller's environment, a run of the pytest leg still writes its cache directory ⟦criterion 3⟧
-- [ ] CLAUDE.md's pytest-leg paragraph describes the content-keyed cache, its pruning and its PYTHONDONTWRITEBYTECODE override in place of the fresh PYTHONPYCACHEPREFIX ⟦diff-checked⟧ ⟦criterion 4⟧
+- [x] CLAUDE.md's pytest-leg paragraph describes the content-keyed cache, its pruning and its PYTHONDONTWRITEBYTECODE override in place of the fresh PYTHONPYCACHEPREFIX ⟦diff-checked⟧ ⟦criterion 4⟧
