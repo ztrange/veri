@@ -484,16 +484,20 @@ def ref_state(clone, origin):
             + "origin HEAD " + run_git(origin, "symbolic-ref", "HEAD"))
 
 
-@pytest.mark.process("real git: a clone, its origin and a linked worktree, whose refs are read before and after the run")
-def test_main_writes_to_no_ref_so_the_refs_of_the_clone_and_of_origin_are_byte_identical_after_a_run(
-        run_cli, tmp_path):
-    invisible_work = importlib.import_module("veri.invisible_work")
-    src, origin, clone = tmp_path / "src", tmp_path / "origin.git", tmp_path / "clone"
+def seed_origin(src, origin):
     subprocess.run(["git", "init", "-q", "-b", "main", str(src)], check=True)
     run_git(src, "commit", "-q", "--allow-empty", "-m", "initial")
     subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
     run_git(src, "remote", "add", "origin", str(origin))
     run_git(src, "push", "-q", "-u", "origin", "main")
+
+
+@pytest.mark.process("real git: a clone, its origin and a linked worktree, whose refs are read before and after the run")
+def test_main_writes_to_no_ref_so_the_refs_of_the_clone_and_of_origin_are_byte_identical_after_a_run(
+        run_cli, tmp_path):
+    invisible_work = importlib.import_module("veri.invisible_work")
+    src, origin, clone = tmp_path / "src", tmp_path / "origin.git", tmp_path / "clone"
+    seed_origin(src, origin)
     for branch in ("chore/nobody-opened-a-pr", "tdd/4-supervised-leaves", "chore/deleted-on-origin"):
         run_git(src, "checkout", "-q", "-b", branch, "main")
         run_git(src, "commit", "-q", "--allow-empty", "-m", "chore: work with no PR")
@@ -523,11 +527,7 @@ def test_main_writes_to_no_ref_so_the_refs_of_the_clone_and_of_origin_are_byte_i
 
 def unpr_clone(tmp_path, branch, ahead):
     src, origin, clone = tmp_path / "src", tmp_path / "origin.git", tmp_path / "clone"
-    subprocess.run(["git", "init", "-q", "-b", "main", str(src)], check=True)
-    run_git(src, "commit", "-q", "--allow-empty", "-m", "initial")
-    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
-    run_git(src, "remote", "add", "origin", str(origin))
-    run_git(src, "push", "-q", "-u", "origin", "main")
+    seed_origin(src, origin)
     run_git(src, "checkout", "-q", "-b", branch)
     for i in range(1, ahead + 1):
         run_git(src, "commit", "-q", "--allow-empty", "-m", f"feat: step {i} of a run nobody can see (#71)")
