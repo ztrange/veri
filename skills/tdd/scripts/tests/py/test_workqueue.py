@@ -947,16 +947,20 @@ def test_assign_and_start_run_as_parallel_processes_leave_a_well_formed_queue_ho
     assert want - set(lines) == set()
 
 
+def git_repo_with_queue(path):
+    git = ["git", "-c", "user.name=veri", "-c", "user.email=veri@example.test"]
+    subprocess.run(git + ["init", "-q", "-b", "main", str(path)], check=True)
+    subprocess.run(git + ["-C", str(path), "commit", "-q", "--allow-empty", "-m", "initial"], check=True)
+    (path / ".tdd").mkdir()
+    (path / ".tdd" / "workqueue").write_bytes(b"beta\t4\tqueued\t\n")
+    return path
+
+
 @pytest.mark.process("a real linked git worktree whose `git worktree list` names the main working tree")
 def test_called_from_a_linked_worktree_through_the_cli_assign_and_show_act_on_the_main_working_tree_queue(tmp_path, run_cli, workqueue):
-    main = tmp_path / "main"
+    main = git_repo_with_queue(tmp_path / "main")
     linked = tmp_path / "linked"
-    git = ["git", "-c", "user.name=veri", "-c", "user.email=veri@example.test"]
-    subprocess.run(git + ["init", "-q", "-b", "main", str(main)], check=True)
-    subprocess.run(git + ["-C", str(main), "commit", "-q", "--allow-empty", "-m", "initial"], check=True)
     subprocess.run(["git", "-C", str(main), "worktree", "add", "-q", "-b", "side", str(linked)], check=True)
-    (main / ".tdd").mkdir()
-    (main / ".tdd" / "workqueue").write_bytes(b"beta\t4\tqueued\t\n")
 
     assert run_cli(workqueue, ["assign", "alpha", "7"], cwd=str(linked)) == (0, "", "")
     assert run_cli(workqueue, ["show"], cwd=str(linked)) == (0, "beta\n\t4\tqueued\nalpha\n\t7\tqueued\n", "")
@@ -980,13 +984,7 @@ SKILL_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.p
 
 @pytest.mark.process("workqueue.sh run through a symlink to the skill directory from a subdirectory of a real linked git worktree")
 def test_run_through_a_symlinked_skill_from_a_linked_worktree_subdirectory_assign_start_and_show_act_as_in_place_on_the_main_working_tree_queue(tmp_path):
-    git = ["git", "-c", "user.name=veri", "-c", "user.email=veri@example.test"]
-    in_place, main, linked = tmp_path / "in-place", tmp_path / "main", tmp_path / "linked"
-    for repo in (in_place, main):
-        subprocess.run(git + ["init", "-q", "-b", "main", str(repo)], check=True)
-        subprocess.run(git + ["-C", str(repo), "commit", "-q", "--allow-empty", "-m", "initial"], check=True)
-        (repo / ".tdd").mkdir()
-        (repo / ".tdd" / "workqueue").write_bytes(b"beta\t4\tqueued\t\n")
+    in_place, main, linked = git_repo_with_queue(tmp_path / "in-place"), git_repo_with_queue(tmp_path / "main"), tmp_path / "linked"
     subprocess.run(["git", "-C", str(main), "worktree", "add", "-q", "-b", "side", str(linked)], check=True)
     (linked / "sub" / "dir").mkdir(parents=True)
     (tmp_path / "skill-link").symlink_to(SKILL_DIR, target_is_directory=True)
