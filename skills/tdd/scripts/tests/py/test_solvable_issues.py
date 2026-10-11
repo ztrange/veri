@@ -832,6 +832,15 @@ def test_cli_answer_is_unchanged_by_live_conductor_locks_under_the_surrounding_r
         True, 0, True, {name: no_lock for name in surroundings})
 
 
+def rest_page(request, items):
+    """The page of `items` a `gh api` listing request path asks for: filtered by its state, sorted by its direction, cut by its per_page and page."""
+    params = dict(pair.split("=") for pair in request.partition("?")[2].split("&"))
+    items = [item for item in items if params["state"] == "all" or item["state"].lower() == params["state"]]
+    items.sort(key=lambda item: item["number"], reverse=params.get("direction", "desc") == "desc")
+    size, page = int(params["per_page"]), int(params.get("page", 1))
+    return items[(page - 1) * size:page * size]
+
+
 def fake_gh_api_shifting(monkeypatch, listings):
     """subprocess.run answering `gh api <path>` from `listings` (endpoint -> items), closing the first item a listing serves once its first page has gone out; records the gh api paths and answers git with nothing."""
     requests, closed = [], {}
@@ -843,14 +852,9 @@ def fake_gh_api_shifting(monkeypatch, listings):
         if args[:2] != ["gh", "api"] or len(args) != 3:
             raise AssertionError("unexpected command: %r" % (args,))
         requests.append(args[2])
-        path, _, query = args[2].partition("?")
-        endpoint, params = path.rsplit("/", 1)[1], dict(pair.split("=") for pair in query.split("&"))
+        endpoint = args[2].partition("?")[0].rsplit("/", 1)[1]
         shut = closed.setdefault(endpoint, set())
-        items = [dict(item, state="closed") if item["number"] in shut else item for item in listings[endpoint]]
-        items = [item for item in items if params["state"] == "all" or item["state"].lower() == params["state"]]
-        items.sort(key=lambda item: item["number"], reverse=params.get("direction", "desc") == "desc")
-        size, page = int(params["per_page"]), int(params.get("page", 1))
-        served = items[(page - 1) * size:page * size]
+        served = rest_page(args[2], [dict(item, state="closed") if item["number"] in shut else item for item in listings[endpoint]])
         if served and not shut:
             shut.add(served[0]["number"])
         return subprocess.CompletedProcess(args, 0, json.dumps(served) + "\n", "")
@@ -902,12 +906,8 @@ def fake_gh_refusing_graphql_serving_rest(monkeypatch, listings):
             return subprocess.CompletedProcess(args, 1, "", "HTTP 403: GitHub GraphQL is not available from Claude Code sessions\n")
         if args[1] != "api" or len(args) != 3 or not args[2].startswith("repos/{owner}/{repo}/"):
             raise AssertionError("unexpected command: %r" % (args,))
-        path, _, query = args[2].partition("?")
-        params = dict(pair.split("=") for pair in query.split("&"))
-        items = [item for item in listings[path.rsplit("/", 1)[1]] if params["state"] == "all" or item["state"].lower() == params["state"]]
-        items.sort(key=lambda item: item["number"], reverse=params.get("direction", "desc") == "desc")
-        size, page = int(params["per_page"]), int(params.get("page", 1))
-        return subprocess.CompletedProcess(args, 0, json.dumps(items[(page - 1) * size:page * size]) + "\n", "")
+        served = rest_page(args[2], listings[args[2].partition("?")[0].rsplit("/", 1)[1]])
+        return subprocess.CompletedProcess(args, 0, json.dumps(served) + "\n", "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.setattr(subprocess, "Popen", fake_run)
