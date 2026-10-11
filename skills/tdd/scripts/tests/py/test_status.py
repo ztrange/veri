@@ -225,6 +225,26 @@ def test_main_reads_a_run_as_running_again_after_a_resume_mark_follows_its_stop_
                                                   "develop-red 30s  attempt 1  $0.00  0 tokens  running\n")
 
 
+def test_main_reads_a_run_whose_done_mark_is_followed_by_a_ci_repair_step_added_as_running_and_not_done_in_its_totals_1431(tmp_path, monkeypatch, capsys, status):
+    run = ledger_run(tmp_path, "18", "# Plan for #18 — lamps glow\n\n- [x] a lamp glows\n"
+                                     "- [ ] fix the CI failure: lamp.test.sh — FAIL - a lamp glows ⟦ci-repair⟧\n")
+    write_events(run / ".tdd" / "events.jsonl", [
+        lamp_ev(9900, "18", "launch", name="develop-red"),
+        lamp_ev(9950, "18", "done", actor="conductor", phase="", step="", attempt="",
+                pr="https://github.com/o/r/pull/18"),
+        lamp_ev(9980, "18", "step-added", actor="conductor", phase="", attempt="",
+                anchor="a lamp glows", added="1"),
+    ])
+    lamp_git(monkeypatch, tmp_path, [run], lambda scope: (3, ""))
+    at_ten_thousand(monkeypatch)
+
+    code = status.main(["--scope", "lamps-label"])
+
+    assert (code, capsys.readouterr().out) == (0, "#18  lamps glow  tdd/18-lamps  step 2 of 2  red  developer  "
+                                                  "develop-red 100s  attempt 1  $0.00  0 tokens  running\n"
+                                                  "scope lamps-label  attempted 1  done 0  bailed 0  wall 80s  $0.00  solvable 0\n")
+
+
 def lamps_scope(tmp_path, monkeypatch, solvable):
     """Runs 21 (running), 22 (done) and 23 (bailed): attempted 3, done 1, bailed 1, wall 360s, $2.25."""
     endings = {"21": [],

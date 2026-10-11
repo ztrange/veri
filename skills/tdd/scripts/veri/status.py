@@ -25,12 +25,24 @@ def conductor_answers(pid_file):
         return False
 
 
+def end_mark(events):
+    """The run's standing done, bail or stop event, or {} when none stands."""
+    end = {}
+    for line in events:
+        if line.get("event") in ("done", "bail", "stop"):
+            end = line
+        elif line.get("event") in ("resume", "step-added"):
+            end = {}
+    return end
+
+
 def run_activity(events_path, pid_file, timeout, as_json=False):
     """The activity line for one run, or None when it has launched no leaf."""
     last, attempts = None, 0
-    newest, end = None, {}
+    newest = None
     events = read_events(events_path)
     dollars, tokens = usage_totals(events)
+    end = end_mark(events)
     for line in events:
         newest = line
         if line.get("event") == "launch":
@@ -38,10 +50,6 @@ def run_activity(events_path, pid_file, timeout, as_json=False):
                 attempts = 0
             last = line
             attempts += 1
-        elif line.get("event") in ("done", "bail", "stop"):
-            end = line
-        elif line.get("event") == "resume":
-            end = {}
 
     now = int(time.time())
     if end.get("event") == "done":
@@ -78,7 +86,7 @@ def scope_totals(name, solvable, event_paths, as_json=False):
         attempted += 1
         events = read_events(path)
         dollars += usage_totals(events)[0]
-        done += sum(1 for line in events if line.get("event") == "done")
+        done += end_mark(events).get("event") == "done"
         bailed += sum(1 for line in events if line.get("event") == "bail")
         if events:
             wall += int(events[-1]["ts"]) - int(events[0]["ts"])
