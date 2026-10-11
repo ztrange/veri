@@ -9,6 +9,8 @@ import time
 
 import pytest
 
+from conftest import listed, run_over_listing, serve_listing
+
 
 @pytest.fixture(autouse=True)
 def text_mode(monkeypatch):
@@ -34,7 +36,13 @@ def ledger_run(root, issue, text, number=None):
 
 def fake_git(monkeypatch, main_tree, branches=None, solvable=None, linked=None):
     """subprocess.run answering `git worktree list` with <main_tree>, then <linked> when given,
-    `symbolic-ref` from <branches>, and solvable-issues.sh with <solvable>(scope) -> (exit code, stdout)."""
+    `symbolic-ref` from <branches>, and starting any other command for real over the open-issue listing
+    <solvable> = (exit code, stdout) selects to, its issues carrying the lamps-label label."""
+    listing = serve_listing(main_tree / "solvable-listing")
+    if solvable is not None:
+        listing(listed(*solvable), label="lamps-label")
+        monkeypatch.chdir(main_tree)
+
     def fake_run(args, **kwargs):
         code = 0
         if list(args[:3]) == ["git", "worktree", "list"]:
@@ -43,8 +51,8 @@ def fake_git(monkeypatch, main_tree, branches=None, solvable=None, linked=None):
                 stdout += "worktree %s\nHEAD def\nbranch refs/heads/side\n\n" % linked
         elif "symbolic-ref" in args:
             stdout = branches[str(args[args.index("-C") + 1]).rstrip("/")] + "\n"
-        elif solvable is not None and str(args[0]).endswith("/solvable-issues.sh"):
-            code, stdout = solvable(kwargs["env"]["VERI_LABEL"])
+        elif solvable is not None:
+            return run_over_listing(listing, args, **kwargs)
         else:
             raise AssertionError("unexpected command: %r" % (args,))
         return subprocess.CompletedProcess(args, code, stdout, "")
@@ -263,16 +271,16 @@ def lamps_scope(tmp_path, monkeypatch, solvable):
     at_ten_thousand(monkeypatch)
 
 
-def two_lamps_solvable(scope):
-    return (0, "31\ta lamp dims\n32\ta lamp flickers\n") if scope == "lamps-label" else (3, "")
+TWO_LAMPS_SOLVABLE = (0, "31\n32\n")
 
 
 def last_line(out):
     return out.rstrip("\n").split("\n")[-1]
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_main_scope_adds_the_scopes_attempted_done_bailed_wall_and_dollars_totals(tmp_path, monkeypatch, capsys, status):
-    lamps_scope(tmp_path, monkeypatch, lambda scope: (3, ""))
+    lamps_scope(tmp_path, monkeypatch, (3, ""))
 
     code = status.main(["--scope", "lamps-label"])
 
@@ -280,8 +288,9 @@ def test_main_scope_adds_the_scopes_attempted_done_bailed_wall_and_dollars_total
         0, "scope lamps-label  attempted 3  done 1  bailed 1  wall 360s  $2.25  solvable 0")
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_main_with_no_scope_takes_the_scope_from_veri_label_and_adds_the_same_totals(tmp_path, monkeypatch, capsys, status):
-    lamps_scope(tmp_path, monkeypatch, lambda scope: (3, ""))
+    lamps_scope(tmp_path, monkeypatch, (3, ""))
     monkeypatch.setenv("VERI_LABEL", "lamps-label")
 
     code = status.main([])
@@ -290,16 +299,18 @@ def test_main_with_no_scope_takes_the_scope_from_veri_label_and_adds_the_same_to
         0, "scope lamps-label  attempted 3  done 1  bailed 1  wall 360s  $2.25  solvable 0")
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_main_scope_counts_what_solvable_issues_sh_lists_for_that_scope(tmp_path, monkeypatch, capsys, status):
-    lamps_scope(tmp_path, monkeypatch, two_lamps_solvable)
+    lamps_scope(tmp_path, monkeypatch, TWO_LAMPS_SOLVABLE)
 
     code = status.main(["--scope", "lamps-label"])
 
     assert (code, last_line(capsys.readouterr().out).endswith("  solvable 2")) == (0, True)
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_main_json_emits_the_runs_and_scope_totals_as_one_document(tmp_path, monkeypatch, capsys, status):
-    lamps_scope(tmp_path, monkeypatch, two_lamps_solvable)
+    lamps_scope(tmp_path, monkeypatch, TWO_LAMPS_SOLVABLE)
 
     code = status.main(["--json", "--scope", "lamps-label"])
     doc = json.loads(capsys.readouterr().out)
@@ -314,8 +325,9 @@ def test_main_json_emits_the_runs_and_scope_totals_as_one_document(tmp_path, mon
                             "wall_seconds": 360, "dollars": 2.25, "solvable": 2}
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_main_json_emits_scope_solvable_as_a_number(tmp_path, monkeypatch, capsys, status):
-    lamps_scope(tmp_path, monkeypatch, two_lamps_solvable)
+    lamps_scope(tmp_path, monkeypatch, TWO_LAMPS_SOLVABLE)
 
     code = status.main(["--json", "--scope", "lamps-label"])
     solvable = json.loads(capsys.readouterr().out)["scope"]["solvable"]
@@ -323,8 +335,9 @@ def test_main_json_emits_scope_solvable_as_a_number(tmp_path, monkeypatch, capsy
     assert (code, type(solvable), solvable) == (0, int, 2)
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_main_renders_solvable_as_a_question_mark_when_solvable_issues_sh_gives_no_answer(tmp_path, monkeypatch, capsys, status):
-    lamps_scope(tmp_path, monkeypatch, lambda scope: (2, ""))
+    lamps_scope(tmp_path, monkeypatch, (2, ""))
 
     text_code = status.main(["--scope", "lamps-label"])
     text = last_line(capsys.readouterr().out)
@@ -388,6 +401,7 @@ def test_main_counts_no_run_for_a_directory_without_its_own_ledger_and_is_not_an
     assert (text_code, text, json_code, doc) == (0, "", 0, {"runs": [], "scope": None})
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_main_takes_the_run_activity_and_scope_totals_lines_from_event_logs_one_parse_and_sum_with_figures_unchanged(tmp_path, monkeypatch, capsys, status):
     run = ledger_run(tmp_path, "9", "# Plan for #9 — cogs mesh\n\n- [x] a cog exists\n- [ ] two cogs mesh\n")
     cogs = [
@@ -401,7 +415,7 @@ def test_main_takes_the_run_activity_and_scope_totals_lines_from_event_logs_one_
     ]
     (run / ".tdd" / "events.jsonl").write_text("\n" + json.dumps(cogs[0]) + "\n" + json.dumps(cogs[1]) + "\n\n\n"
                                               + json.dumps(cogs[2]) + "\n" + json.dumps(cogs[3]) + "\n\n")
-    fake_git(monkeypatch, tmp_path, {str(run): "tdd/9-cogs-mesh"}, lambda scope: (3, ""))
+    fake_git(monkeypatch, tmp_path, {str(run): "tdd/9-cogs-mesh"}, (3, ""))
     at_ten_thousand(monkeypatch)
 
     text_code = status.main(["--scope", "cogs-label"])

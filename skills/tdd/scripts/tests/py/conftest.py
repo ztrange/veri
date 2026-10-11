@@ -16,6 +16,8 @@ for path in (SCRIPTS, SCRIPTS / "veri"):
 
 from veri import entry
 
+REAL_RUN, REAL_POPEN = subprocess.run, subprocess.Popen
+
 
 CANONICAL_SHIM = re.compile(r'exec python3 "\$\(dirname "\$0"\)/(veri/[\w-]+\.py)" "\$@"')
 
@@ -190,3 +192,66 @@ class Events:
 def events(monkeypatch):
     return Events(monkeypatch)
 
+
+def serve_listing(directory):
+    """serve(answer): the open-issue and PR listings the real solvable-issues.sh selects from, written to
+    <directory>. <answer> is the numbers of the open ready-for-agent issues (a list, each a number or a
+    string), [] for no labelled open issue, or None for a listing the selection cannot read; <priority>
+    names those carrying the priority label."""
+    directory.mkdir(exist_ok=True)
+
+    def serve(answer, priority=(), label="ready-for-agent"):
+        (directory / "prs.json").write_text("[]")
+        if answer is None:
+            (directory / "issues.json").write_text("not json")
+            return
+        issues = [{"number": n, "title": "an issue", "state": "OPEN", "body": "",
+                   "labels": [{"name": label}] + ([{"name": "priority"}] if n in priority else [])}
+                  for n in answer]
+        (directory / "issues.json").write_text(json.dumps(issues))
+
+    serve.directory = directory
+    return serve
+
+
+@pytest.fixture
+def listing(tmp_path):
+    return serve_listing(tmp_path / "solvable-listing")
+
+
+def listed(code, stdout):
+    """The listing answer that makes the selection exit <code> printing <stdout>: 0 with its lines
+    as issue numbers, 3 with none, 2 with an unreadable listing."""
+    if code == 2 and not stdout:
+        return None
+    if code == 3 and not stdout:
+        return []
+    assert code == 0 and stdout.endswith("\n"), "no listing selects to exit %d, stdout %r" % (code, stdout)
+    lines = stdout[:-1].split("\n")
+    return [int(line) for line in lines] if all(line.isdigit() for line in lines) else lines
+
+
+def run_over_listing(listing, args, *rest, **kwargs):
+    """subprocess.run started as a real process over <listing> alone, although subprocess.Popen is faked."""
+    env = dict(kwargs.pop("env", None) or os.environ, VERI_GH_JSON=str(listing.directory))
+    for name in ("VERI_GH_DRIVER", "VERI_PRIORITY_LABEL"):
+        env.pop(name, None)
+    faked = subprocess.Popen
+    subprocess.Popen = REAL_POPEN
+    try:
+        return REAL_RUN(args, *rest, env=env, **kwargs)
+    finally:
+        subprocess.Popen = faked
+
+
+def listed_in_turn(listing, answers):
+    """A subprocess.run that serves the next of <answers>, each (code, stdout[, priority numbers]), to
+    listing, then starts the process over it."""
+    pending = [(listed(*answer[:2]), answer[2:]) for answer in answers]
+
+    def run(args, *rest, **kwargs):
+        answer, priority = pending.pop(0) if len(pending) > 1 else pending[0]
+        listing(answer, *priority)
+        return run_over_listing(listing, args, *rest, **kwargs)
+
+    return run

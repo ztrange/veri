@@ -8,7 +8,7 @@ import sys
 
 import pytest
 
-from conftest import SCRIPTS
+from conftest import SCRIPTS, listed_in_turn
 
 
 @pytest.fixture
@@ -16,54 +16,45 @@ def orchestrate():
     return importlib.import_module("veri.orchestrate")
 
 
-def _boundaries(monkeypatch, solvable):
-    """Fake solvable-issues.sh answering <solvable> = (exit code, stdout) and the conductor launch;
-    return the lists of asks and launches they record."""
-    asks, launches = [], []
-
-    def fake_run(args, *rest, **kwargs):
-        if pathlib.Path(args[0]).name != "solvable-issues.sh":
-            raise AssertionError("unexpected subprocess.run call: %r" % (args,))
-        asks.append(list(args))
-        stdout = solvable[1]
-        if not (kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")):
-            stdout = stdout.encode()
-        return subprocess.CompletedProcess(args, solvable[0], stdout, None)
+def _boundaries(monkeypatch, listing, solvable):
+    """Serve <solvable> = (exit code, stdout) as the listing, fake the conductor launch and return its launches."""
+    launches = []
 
     def fake_popen(args, *rest, **kwargs):
         launches.append(list(args))
         raise AssertionError("no conductor should launch: %r" % (args,))
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "run", listed_in_turn(listing, [solvable]))
     monkeypatch.setattr(subprocess, "Popen", fake_popen)
-    return asks, launches
+    return launches
 
 
-def test_a_bad_budget_refuses_before_any_ask_and_a_solvable_answer_of_1_or_3_ends_the_run_with_its_exit_code(
-        capsys, monkeypatch, tmp_path, orchestrate):
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
+def test_a_bad_budget_refuses_before_any_launch_and_a_listing_with_no_labelled_open_issue_or_an_unreadable_one_ends_the_run(
+        capfd, monkeypatch, tmp_path, orchestrate, listing):
     monkeypatch.chdir(tmp_path)
 
     monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", "120k")
-    asks, launches = _boundaries(monkeypatch, (0, "7\n"))
+    launches = _boundaries(monkeypatch, listing, (0, "7\n"))
     code = orchestrate.main([])
-    out, err = capsys.readouterr()
+    out, err = capfd.readouterr()
     assert (code, out, err) == (
         2, "", "orchestrate.sh: VERI_CONDUCTOR_CTX_BUDGET must be a whole number of tokens: 120k\n")
-    assert (asks, launches) == ([], [])
+    assert launches == []
 
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET")
-    asks, launches = _boundaries(monkeypatch, (1, ""))
+    launches = _boundaries(monkeypatch, listing, (2, ""))
     code = orchestrate.main([])
-    out, err = capsys.readouterr()
-    assert (code, out, err) == (
-        2, "", "orchestrate.sh: solvable-issues.sh exited 1; no answer about the solvable set\n")
-    assert len(asks) == 1 and launches == []
+    out, err = capfd.readouterr()
+    assert (code, out) == (2, "")
+    assert err.endswith("orchestrate.sh: solvable-issues.sh exited 2; no answer about the solvable set\n")
+    assert launches == []
 
-    asks, launches = _boundaries(monkeypatch, (3, ""))
+    launches = _boundaries(monkeypatch, listing, (3, ""))
     code = orchestrate.main([])
-    out, err = capsys.readouterr()
+    out, err = capfd.readouterr()
     assert (code, out, err) == (0, "", "")
-    assert len(asks) == 1 and launches == []
+    assert launches == []
 
 
 class _FakeConductor:
@@ -79,44 +70,32 @@ class _FakeConductor:
         return 0
 
 
-def _passes(monkeypatch, answers, park_on_launch):
-    """Fake solvable-issues.sh answering each (exit code, stdout) of <answers> in turn, a conductor
-    launch whose stream ends at once after calling park_on_launch(<n>, <issue>), and the stop;
-    return the lists of asks and launches they record."""
-    asks, launches = [], []
-    answers = list(answers)
-
-    def fake_run(args, *rest, **kwargs):
-        if pathlib.Path(args[0]).name != "solvable-issues.sh":
-            raise AssertionError("unexpected subprocess.run call: %r" % (args,))
-        asks.append(list(args))
-        if not answers:
-            raise AssertionError("solvable-issues.sh asked once too often")
-        rc, stdout = answers.pop(0)
-        if not (kwargs.get("text") or kwargs.get("universal_newlines") or kwargs.get("encoding")):
-            stdout = stdout.encode()
-        return subprocess.CompletedProcess(args, rc, stdout, None)
+def _passes(monkeypatch, listing, answers, park_on_launch):
+    """Serve each (exit code, stdout) of <answers> in turn as the listing, fake a conductor launch
+    whose stream ends at once after calling park_on_launch(<n>, <issue>), and the stop;
+    return the list of launches."""
+    launches = []
+    monkeypatch.setattr(subprocess, "run", listed_in_turn(listing, answers))
 
     def fake_popen(args, *rest, **kwargs):
         launches.append(list(args))
         park_on_launch(len(launches), args[1])
         return _FakeConductor(4000 + len(launches))
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.setattr(subprocess, "Popen", fake_popen)
     monkeypatch.setattr(os, "killpg", lambda pid, sig: None)
     monkeypatch.setattr(os, "kill", lambda pid, sig: None)
-    return asks, launches
+    return launches
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_selection_takes_the_first_whole_unparked_line_per_pass_reports_and_skips_parked_issues_and_relaunches_unparked_ones(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        capfd, monkeypatch, tmp_path, orchestrate, listing):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
     parked = tmp_path / ".tdd" / "parked"
     (parked / "5.md").mkdir(parents=True)
     (tmp_path / "target").write_text("")
-    solvable = os.path.join(orchestrate.SCRIPTS, "solvable-issues.sh")
     conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
 
     def park(n, issue):
@@ -125,67 +104,70 @@ def test_selection_takes_the_first_whole_unparked_line_per_pass_reports_and_skip
         elif n == 3:
             (parked / ("%s.md" % issue)).symlink_to(tmp_path / "target")
 
-    asks, launches = _passes(monkeypatch, [
+    launches = _passes(monkeypatch, listing, [
         (0, "5\n6 x\n9\n\n\n"), (0, "5\n6 x\n9\n\n"), (0, "5\n6 x\n9\n"), (0, "5\n6 x\n9\n")], park)
     code = orchestrate.main([])
-    out, err = capsys.readouterr()
+    out, err = capfd.readouterr()
     assert (code, out, err) == (0, "parked 6 x\nparked 9\n", "")
-    assert asks == [[solvable]] * 4
     assert launches == [[conductor, "6 x"], [conductor, "6 x"], [conductor, "9"]]
 
-    asks, launches = _passes(monkeypatch, [(0, "7\n"), (2, "")], lambda n, issue: None)
+    launches = _passes(monkeypatch, listing, [(0, "7\n"), (2, "")], lambda n, issue: None)
     code = orchestrate.main([])
-    out, err = capsys.readouterr()
-    assert (code, out, err) == (
-        2, "", "orchestrate.sh: solvable-issues.sh exited 2; no answer about the solvable set\n")
-    assert (len(asks), launches) == (2, [[conductor, "7"]])
+    out, err = capfd.readouterr()
+    assert (code, out) == (2, "")
+    assert err.endswith("orchestrate.sh: solvable-issues.sh exited 2; no answer about the solvable set\n")
+    assert launches == [[conductor, "7"]]
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_1129_an_answer_whose_first_line_is_empty_launches_a_conductor_for_the_first_non_empty_unparked_line(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        capsys, monkeypatch, tmp_path, orchestrate, listing):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
     conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
-    asks, launches = _passes(monkeypatch, [(0, "\n7\n8\n"), (3, "")], lambda n, issue: None)
+    launches = _passes(monkeypatch, listing, [(0, "\n7\n8\n"), (3, "")], lambda n, issue: None)
     code = orchestrate.main([])
     out, err = capsys.readouterr()
-    assert (code, out, err, len(asks), launches) == (0, "", "", 2, [[conductor, "7"]])
+    assert (code, out, err, launches) == (0, "", "", [[conductor, "7"]])
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_1129_an_empty_line_between_a_parked_issue_and_an_unparked_one_is_skipped_and_the_unparked_one_launched(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        capsys, monkeypatch, tmp_path, orchestrate, listing):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
     (tmp_path / ".tdd" / "parked").mkdir(parents=True)
     (tmp_path / ".tdd" / "parked" / "5.md").write_text("")
     conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
-    asks, launches = _passes(monkeypatch, [(0, "5\n\n7\n"), (3, "")], lambda n, issue: None)
+    launches = _passes(monkeypatch, listing, [(0, "5\n\n7\n"), (3, "")], lambda n, issue: None)
     code = orchestrate.main([])
     out, err = capsys.readouterr()
-    assert (code, out, err, len(asks), launches) == (0, "", "", 2, [[conductor, "7"]])
+    assert (code, out, err, launches) == (0, "", "", [[conductor, "7"]])
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_1129_an_answer_whose_every_line_is_empty_or_parked_ends_the_run_with_exit_0_and_no_launch(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        capsys, monkeypatch, tmp_path, orchestrate, listing):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
     (tmp_path / ".tdd" / "parked").mkdir(parents=True)
     (tmp_path / ".tdd" / "parked" / "5.md").write_text("")
     (tmp_path / ".tdd" / "parked" / "6.md").write_text("")
-    asks, launches = _passes(monkeypatch, [(0, "\n5\n\n6\n\n")], lambda n, issue: None)
+    launches = _passes(monkeypatch, listing, [(0, "\n5\n\n6\n\n")], lambda n, issue: None)
     code = orchestrate.main([])
     out, err = capsys.readouterr()
-    assert (code, out, err, len(asks), launches) == (0, "", "", 1, [])
+    assert (code, out, err, launches) == (0, "", "", [])
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_a_conductor_launches_as_a_new_session_leader_with_signals_as_todays_launch_hands_them_and_nothing_else_starts(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        capsys, monkeypatch, tmp_path, orchestrate, listing):
     import signal
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
     watched = (signal.SIGINT, signal.SIGQUIT, signal.SIGPIPE, signal.SIGXFSZ)
     saved = {sig: signal.signal(sig, signal.SIG_DFL) for sig in watched}
-    asks, _ = _passes(monkeypatch, [(0, "7\n"), (3, "")], lambda n, issue: None)
+    _passes(monkeypatch, listing, [(0, "7\n"), (3, "")], lambda n, issue: None)
     calls = []
 
     def spy_popen(args, *rest, **kwargs):
@@ -212,15 +194,15 @@ def test_a_conductor_launches_as_a_new_session_leader_with_signals_as_todays_lau
     assert dispositions == {signal.SIGINT: signal.SIG_IGN, signal.SIGQUIT: signal.SIG_IGN,
                             signal.SIGPIPE: signal.SIG_DFL, signal.SIGXFSZ: signal.SIG_DFL}
     assert after == {sig: signal.SIG_DFL for sig in watched}
-    assert asks == [[os.path.join(orchestrate.SCRIPTS, "solvable-issues.sh")]] * 2
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_a_conductor_that_cannot_start_prints_one_line_sends_no_stop_and_exits_2(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        capsys, monkeypatch, tmp_path, orchestrate, listing):
     import errno
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
-    _passes(monkeypatch, [(0, "7\n"), (0, "7\n"), (3, "")], lambda n, issue: None)
+    _passes(monkeypatch, listing, [(0, "7\n"), (0, "7\n"), (3, "")], lambda n, issue: None)
     launches, stops = [], []
 
     def failing_popen(args, *rest, **kwargs):
@@ -238,12 +220,13 @@ def test_a_conductor_that_cannot_start_prints_one_line_sends_no_stop_and_exits_2
     assert launches == [[conductor, "7"]]
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_every_conductor_is_stopped_by_sigterm_to_its_group_else_its_pid_silently_and_never_waited_for(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        capsys, monkeypatch, tmp_path, orchestrate, listing):
     import signal
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
-    asks, _ = _passes(monkeypatch, [(0, "7\n")] * 4 + [(3, "")], lambda n, issue: None)
+    _passes(monkeypatch, listing, [(0, "7\n")] * 4 + [(3, "")], lambda n, issue: None)
     stops = []
     pids = iter(range(4001, 4005))
 
@@ -277,7 +260,6 @@ def test_every_conductor_is_stopped_by_sigterm_to_its_group_else_its_pid_silentl
     assert stops[:6] == [("killpg", 4001, term), ("killpg", 4002, term), ("kill", 4002, term),
                          ("killpg", 4003, term), ("kill", 4003, term), ("killpg", 4004, term)]
     assert stops[6:] in ([], [("kill", 4004, term)])
-    assert len(asks) == 5
 
 
 class _Stream:
@@ -315,12 +297,13 @@ class _Out:
         self.flushed, self.pending = self.flushed + self.pending, ""
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_the_watch_prints_each_assistant_lines_cache_read_plus_creation_and_stops_on_a_user_line_over_budget_after_step_done(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        capsys, monkeypatch, tmp_path, orchestrate, listing):
     import signal
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", "100")
-    asks, _ = _passes(monkeypatch, [(0, "7\n"), (0, "8\n"), (3, "")], lambda n, issue: None)
+    _passes(monkeypatch, listing, [(0, "7\n"), (0, "8\n"), (3, "")], lambda n, issue: None)
     out, snapshots, stops = _Out(), [], []
 
     def usage(read, creation):
@@ -361,11 +344,11 @@ def test_the_watch_prints_each_assistant_lines_cache_read_plus_creation_and_stop
     assert out.pending == ""
     assert snapshots[1] == "context 7 15\n"
     assert stops == [(4001, signal.SIGTERM), (4002, signal.SIGTERM)]
-    assert len(asks) == 3
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_the_budget_reads_as_bash_does_unset_or_empty_120000(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        capsys, monkeypatch, tmp_path, orchestrate, listing):
     monkeypatch.chdir(tmp_path)
 
     def step_done(read):
@@ -380,7 +363,7 @@ def test_the_budget_reads_as_bash_does_unset_or_empty_120000(
             monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
         else:
             monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", budget)
-        _passes(monkeypatch, [(0, "7\n"), (3, "")], lambda n, issue: None)
+        _passes(monkeypatch, listing, [(0, "7\n"), (3, "")], lambda n, issue: None)
 
         def fake_popen(args, *rest, **kwargs):
             conductor = _FakeConductor(4001)
@@ -396,8 +379,9 @@ def test_the_budget_reads_as_bash_does_unset_or_empty_120000(
     assert run("") == (0, "context 7 32768\ncontext 7 50000\ncontext 7 120000\ncontext 7 120001\n", "")
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_1250_an_unset_or_empty_stop_timeout_bounds_the_drain_at_10_seconds_and_a_positive_one_as_given(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        capsys, monkeypatch, tmp_path, orchestrate, listing):
     import signal
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
@@ -407,7 +391,7 @@ def test_1250_an_unset_or_empty_stop_timeout_bounds_the_drain_at_10_seconds_and_
             monkeypatch.delenv("VERI_CONDUCTOR_STOP_TIMEOUT", raising=False)
         else:
             monkeypatch.setenv("VERI_CONDUCTOR_STOP_TIMEOUT", timeout)
-        _passes(monkeypatch, [(0, "7\n"), (3, "")], lambda n, issue: None)
+        _passes(monkeypatch, listing, [(0, "7\n"), (3, "")], lambda n, issue: None)
         timers = []
         monkeypatch.setattr(signal, "setitimer", lambda which, seconds: timers.append((which, seconds)))
         code = orchestrate.main([])
@@ -420,32 +404,34 @@ def test_1250_an_unset_or_empty_stop_timeout_bounds_the_drain_at_10_seconds_and_
     assert run("0.5") == [(signal.ITIMER_REAL, 0.5), (signal.ITIMER_REAL, 0)]
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_1313_a_stop_timeout_too_great_for_setitimer_refuses_with_exit_2_one_line_naming_it_and_its_value_before_any_ask(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        capsys, monkeypatch, tmp_path, orchestrate, listing):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
     monkeypatch.setenv("VERI_CONDUCTOR_STOP_TIMEOUT", "1e12")
-    asks, launches = _boundaries(monkeypatch, (3, ""))
+    launches = _boundaries(monkeypatch, listing, (3, ""))
     code = orchestrate.main([])
     out, err = capsys.readouterr()
     assert (code, out, len(err.splitlines()), "VERI_CONDUCTOR_STOP_TIMEOUT" in err, "1e12" in err,
-            "Traceback" in err, asks, launches) == (2, "", 1, True, True, False, [], [])
+            "Traceback" in err, launches) == (2, "", 1, True, True, False, [])
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_1313_a_stop_timeout_above_the_macos_setitimer_ceiling_of_100000000_refuses_before_any_ask_and_the_header_states_it(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        capsys, monkeypatch, tmp_path, orchestrate, listing):
     import signal
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
     monkeypatch.setenv("VERI_CONDUCTOR_STOP_TIMEOUT", "100000001")
-    asks, launches = _boundaries(monkeypatch, (3, ""))
+    launches = _boundaries(monkeypatch, listing, (3, ""))
     code = orchestrate.main([])
     out, err = capsys.readouterr()
     assert (code, out, len(err.splitlines()), "VERI_CONDUCTOR_STOP_TIMEOUT" in err, "100000001" in err,
-            "Traceback" in err, asks, launches) == (2, "", 1, True, True, False, [], [])
+            "Traceback" in err, launches) == (2, "", 1, True, True, False, [])
 
     monkeypatch.setenv("VERI_CONDUCTOR_STOP_TIMEOUT", "100000000")
-    _passes(monkeypatch, [(0, "7\n"), (3, "")], lambda n, issue: None)
+    _passes(monkeypatch, listing, [(0, "7\n"), (3, "")], lambda n, issue: None)
     timers = []
     monkeypatch.setattr(signal, "setitimer", lambda which, seconds: timers.append((which, seconds)))
     code = orchestrate.main([])
@@ -456,25 +442,27 @@ def test_1313_a_stop_timeout_above_the_macos_setitimer_ceiling_of_100000000_refu
     assert "100000000" in header
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_1313_a_budget_that_is_not_a_whole_number_refuses_with_exit_2_one_line_naming_it_and_its_value_before_any_ask(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        capsys, monkeypatch, tmp_path, orchestrate, listing):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_STOP_TIMEOUT", raising=False)
     for value in ("-1", "1.5", "1_0", " 7", "1e5"):
         monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", value)
-        asks, launches = _boundaries(monkeypatch, (3, ""))
+        launches = _boundaries(monkeypatch, listing, (3, ""))
         code = orchestrate.main([])
         out, err = capsys.readouterr()
-        assert (value, code, out, err.splitlines(), asks, launches) == (
+        assert (value, code, out, err.splitlines(), launches) == (
             value, 2, "",
-            ["orchestrate.sh: VERI_CONDUCTOR_CTX_BUDGET must be a whole number of tokens: " + value], [], [])
+            ["orchestrate.sh: VERI_CONDUCTOR_CTX_BUDGET must be a whole number of tokens: " + value], [])
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_a_leading_zero_budget_reads_as_decimal_so_0100000_stops_a_conductor_over_100000_not_over_32768_1127(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        capsys, monkeypatch, tmp_path, orchestrate, listing):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", "0100000")
-    _passes(monkeypatch, [(0, "7\n"), (3, "")], lambda n, issue: None)
+    _passes(monkeypatch, listing, [(0, "7\n"), (3, "")], lambda n, issue: None)
     stream = b"".join(
         b'{"type":"assistant","input":"bash event.sh step-done 1",'
         b'"usage":{"cache_read_input_tokens":%d,"cache_creation_input_tokens":0}}\n'
@@ -491,11 +479,12 @@ def test_a_leading_zero_budget_reads_as_decimal_so_0100000_stops_a_conductor_ove
     assert (code, out, err) == (0, "context 7 50000\ncontext 7 100001\n", "")
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_a_08_budget_stops_a_conductor_over_8_tokens_with_no_value_too_great_for_base_line_1127(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        capsys, monkeypatch, tmp_path, orchestrate, listing):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", "08")
-    _passes(monkeypatch, [(0, "7\n"), (3, "")], lambda n, issue: None)
+    _passes(monkeypatch, listing, [(0, "7\n"), (3, "")], lambda n, issue: None)
     stream = b"".join(
         b'{"type":"assistant","input":"bash event.sh step-done 1",'
         b'"usage":{"cache_read_input_tokens":%d,"cache_creation_input_tokens":0}}\n'
@@ -512,8 +501,9 @@ def test_a_08_budget_stops_a_conductor_over_8_tokens_with_no_value_too_great_for
     assert (code, out, err) == (0, "context 7 8\ncontext 7 9\n", "")
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_stdout_carries_only_context_and_parked_lines_and_a_closed_stdout_raises_broken_pipe_out_of_the_next_context_write(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        capsys, monkeypatch, tmp_path, orchestrate, listing):
     import re
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_CONDUCTOR_CTX_BUDGET", "100")
@@ -524,7 +514,7 @@ def test_stdout_carries_only_context_and_parked_lines_and_a_closed_stdout_raises
         if n == 1:
             (parked / ("%s.md" % issue)).write_text("")
 
-    _passes(monkeypatch, [(0, "7\n"), (0, "7\n8\n"), (3, "")], lambda n, issue: None)
+    _passes(monkeypatch, listing, [(0, "7\n"), (0, "7\n8\n"), (3, "")], lambda n, issue: None)
     usage = b'"cache_read_input_tokens":%d,"cache_creation_input_tokens":%d'
     streams = [
         b'{"type":"assistant","usage":{%s}}\n' % (usage % (60, 10))
@@ -551,7 +541,7 @@ def test_stdout_carries_only_context_and_parked_lines_and_a_closed_stdout_raises
     assert all(re.fullmatch(r"(context [0-9]+ [0-9]+|parked [0-9]+)", line) for line in out.splitlines())
     assert stops == [4001, 4002]
 
-    _passes(monkeypatch, [(0, "9\n"), (3, "")], lambda n, issue: None)
+    _passes(monkeypatch, listing, [(0, "9\n"), (3, "")], lambda n, issue: None)
     first = b'{"type":"assistant","usage":{%s}}\n' % (usage % (1, 2))
     stream = io.BytesIO(first + b'{"type":"assistant","usage":{%s}}\n' % (usage % (3, 4)))
 
@@ -577,12 +567,13 @@ def test_stdout_carries_only_context_and_parked_lines_and_a_closed_stdout_raises
             pass
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_1128_a_missing_run_conductor_ends_the_run_with_exit_2_one_stderr_line_naming_it_and_the_reason_and_no_further_launch(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        capsys, monkeypatch, tmp_path, orchestrate, listing):
     import errno
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
-    _passes(monkeypatch, [(0, "7\n"), (0, "7\n"), (3, "")], lambda n, issue: None)
+    _passes(monkeypatch, listing, [(0, "7\n"), (0, "7\n"), (3, "")], lambda n, issue: None)
     launches = []
 
     def missing_popen(args, *rest, **kwargs):
@@ -598,12 +589,13 @@ def test_1128_a_missing_run_conductor_ends_the_run_with_exit_2_one_stderr_line_n
     assert "run-conductor.sh" in lines[0] and os.strerror(errno.ENOENT) in lines[0]
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_1128_a_run_conductor_that_is_not_executable_ends_the_run_with_exit_2_one_stderr_line_naming_it_and_the_reason_and_no_further_launch(
-        capsys, monkeypatch, tmp_path, orchestrate):
+        capsys, monkeypatch, tmp_path, orchestrate, listing):
     import errno
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
-    _passes(monkeypatch, [(0, "7\n"), (0, "7\n"), (3, "")], lambda n, issue: None)
+    _passes(monkeypatch, listing, [(0, "7\n"), (0, "7\n"), (3, "")], lambda n, issue: None)
     launches = []
 
     def unexecutable_popen(args, *rest, **kwargs):
@@ -619,49 +611,44 @@ def test_1128_a_run_conductor_that_is_not_executable_ends_the_run_with_exit_2_on
     assert "run-conductor.sh" in lines[0] and os.strerror(errno.EACCES) in lines[0]
 
 
-def test_1128_after_a_failed_conductor_launch_solvable_issues_is_asked_no_further_time(
-        capsys, monkeypatch, tmp_path, orchestrate):
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
+def test_1128_after_a_failed_conductor_launch_an_unreadable_listing_is_never_met_and_the_run_ends_with_the_launch_line_alone(
+        capfd, monkeypatch, tmp_path, orchestrate, listing):
     import errno
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
-    asks, _ = _passes(monkeypatch, [(0, "7\n"), (0, "7\n"), (3, "")], lambda n, issue: None)
+    _passes(monkeypatch, listing, [(0, "7\n"), (2, "")], lambda n, issue: None)
 
     def missing_popen(args, *rest, **kwargs):
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), args[0])
 
     monkeypatch.setattr(subprocess, "Popen", missing_popen)
-    orchestrate.main([])
-    capsys.readouterr()
-    assert asks == [[os.path.join(orchestrate.SCRIPTS, "solvable-issues.sh")]]
+    code = orchestrate.main([])
+    out, err = capfd.readouterr()
+    assert (code, out, err.count("\n"), "JSONDecodeError" in err) == (2, "", 1, False)
 
 
-def test_1128_a_conductor_that_starts_and_exits_with_its_issue_still_listed_and_unparked_is_relaunched_after_a_new_ask(
-        capsys, monkeypatch, tmp_path, orchestrate):
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
+def test_1128_a_conductor_that_starts_and_exits_with_its_issue_still_listed_and_unparked_is_relaunched_while_the_listing_still_names_it(
+        capsys, monkeypatch, tmp_path, orchestrate, listing):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
-    asks, launches = _passes(monkeypatch, [(0, "7\n"), (0, "7\n"), (3, "")], lambda n, issue: None)
+    launches = _passes(monkeypatch, listing, [(0, "7\n"), (0, "7\n"), (3, "")], lambda n, issue: None)
     code = orchestrate.main([])
     out, err = capsys.readouterr()
-    solvable = os.path.join(orchestrate.SCRIPTS, "solvable-issues.sh")
     conductor = os.path.join(orchestrate.SCRIPTS, "run-conductor.sh")
-    assert (code, out, err, asks, launches) == (
-        0, "", "", [[solvable]] * 3, [[conductor, "7"], [conductor, "7"]])
+    assert (code, out, err, launches) == (0, "", "", [[conductor, "7"], [conductor, "7"]])
 
 
-def _orchestrated(work, monkeypatch, orchestrate, fake_processes, run_cli, answers, conductor, env,
+def _orchestrated(work, monkeypatch, orchestrate, listing, run_cli, answers, conductor, env,
                   killpg=lambda pid, sig: None):
-    answers, launches = list(answers), []
-
-    def answer(line, **kwargs):
-        assert line == "solvable-issues.sh", line
-        code, out = answers.pop(0)
-        return code, out, ""
+    launches = []
+    monkeypatch.setattr(subprocess, "run", listed_in_turn(listing, answers))
 
     def popen(args, *rest, **kwargs):
         launches.append([os.path.basename(args[0])] + list(args[1:]))
         return conductor(4000 + len(launches), args[1])
 
-    fake_processes(answer)
     monkeypatch.setattr(subprocess, "Popen", popen)
     monkeypatch.setattr(os, "killpg", killpg)
     monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
@@ -686,8 +673,9 @@ def _step_done(issue, read, creation):
     return _assistant(read, creation, "VERI_ISSUE=%s VERI_ACTOR=conductor $S/event.sh step-done" % issue)
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_main_launches_per_solvable_issue_reports_context_and_stops_over_budget_only_after_the_next_step_done_result_then_relaunches(
-        tmp_path, monkeypatch, orchestrate, fake_processes, run_cli):
+        tmp_path, monkeypatch, orchestrate, run_cli, listing):
     def orchestrated(name, answers, streams, budget=None):
         work = tmp_path / name
         work.mkdir()
@@ -726,7 +714,7 @@ def test_main_launches_per_solvable_issue_reports_context_and_stops_over_budget_
             stops.append((conductors[pid].read, len(conductors[pid].lines)))
 
         env = {} if budget is None else {"VERI_CONDUCTOR_CTX_BUDGET": budget}
-        return _orchestrated(work, monkeypatch, orchestrate, fake_processes, run_cli, answers, launch, env,
+        return _orchestrated(work, monkeypatch, orchestrate, listing, run_cli, answers, launch, env,
                              killpg) + (stops,)
 
     observed = {
@@ -761,6 +749,8 @@ def test_main_launches_per_solvable_issue_reports_context_and_stops_over_budget_
         ], []], "100000"),
     }
 
+    broken = observed["solvable-issues.sh exits 2"]
+    observed["solvable-issues.sh exits 2"] = broken[:2] + (broken[2].splitlines()[-1] + "\n",) + broken[3:]
     conductor = "run-conductor.sh"
     assert observed == {
         "launches per solvable issue": (0, "", "", [[conductor, "101"], [conductor, "102"]], [(0, 0), (0, 0)]),
@@ -781,8 +771,9 @@ def test_main_launches_per_solvable_issue_reports_context_and_stops_over_budget_
     }
 
 
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_main_refuses_a_bad_budget_or_stop_timeout_relaunches_an_unfinished_conductor_and_skips_a_parked_one(
-        tmp_path, monkeypatch, orchestrate, fake_processes, run_cli):
+        tmp_path, monkeypatch, orchestrate, run_cli, listing):
     ledger = "# Plan\n- [x] first step\n- [ ] second step\n"
 
     def orchestrated(name, answers, env, on_launch=lambda work, issue: None, issue_ledger=None):
@@ -797,7 +788,7 @@ def test_main_refuses_a_bad_budget_or_stop_timeout_relaunches_an_unfinished_cond
             return _FakeConductor(pid)
 
         code, out, err, launches = _orchestrated(
-            work, monkeypatch, orchestrate, fake_processes, run_cli, answers, launch, env)
+            work, monkeypatch, orchestrate, listing, run_cli, answers, launch, env)
         kept = (work / ".tdd" / ("issue-%s.md" % issue_ledger)).read_text() if issue_ledger else None
         return code, out, err, launches, kept
 
@@ -831,7 +822,7 @@ def test_main_refuses_a_bad_budget_or_stop_timeout_relaunches_an_unfinished_cond
 
 @pytest.mark.process("a conductor's own session, signal dispositions, stdin, stderr and the SIGTERM it receives")
 def test_a_conductor_leads_a_new_session_with_stdin_dev_null_orchestrates_stderr_sigint_and_sigquit_ignored_sigpipe_and_sigxfsz_fatal_and_is_sigtermed_at_the_stop(
-        tmp_path, monkeypatch, orchestrate, fake_processes, run_cli):
+        tmp_path, monkeypatch, orchestrate, run_cli, listing):
     marks = tmp_path / "marks"
     stub = tmp_path / "run-conductor.sh"
     stub.write_text("""#!/usr/bin/env bash
@@ -855,8 +846,7 @@ echo "never stopped" >> "$MARKS"
 """)
     stub.chmod(0o755)
     real_popen, launched = subprocess.Popen, []
-    answers = [(0, "1301\n"), (3, "")]
-    fake_processes(lambda line, **kwargs: answers.pop(0) + ("",))
+    monkeypatch.setattr(subprocess, "run", listed_in_turn(listing, [(0, "1301\n"), (3, "")]))
 
     def popen(args, *rest, **kwargs):
         launched.append(real_popen([str(stub)] + list(args[1:]), *rest, **kwargs))
@@ -883,12 +873,11 @@ echo "never stopped" >> "$MARKS"
     assert marks.read_text().splitlines() == [
         "argv 1: [1301]", "trap -- '' SIGINT", "trap -- '' SIGQUIT", "new session led by its pid",
         "stdin /dev/null", "yes 141", "xfsz 153", "TERM to %d" % conductor.pid]
-    assert answers == []
 
 
 @pytest.mark.process("SIGTERM to a conductor's process group and the drain of its stdout until EOF or VERI_CONDUCTOR_STOP_TIMEOUT")
 def test_1126_1246_a_conductor_stopped_over_budget_gets_sigterm_to_its_group_whose_writer_after_it_ends_143_not_141_and_a_group_holding_its_stdout_past_the_stop_timeout_does_not_hang_the_run(
-        tmp_path, monkeypatch, orchestrate, fake_processes, run_cli):
+        tmp_path, monkeypatch, orchestrate, run_cli, listing):
     import signal
     marks = tmp_path / "marks"
     stubs = {
@@ -934,13 +923,15 @@ while [ $i -lt 1000 ] && [ ! -e "$MARKS.done" ]; do sleep 0.01; i=$((i + 1)); do
     real_popen, real_setitimer, real_killpg = subprocess.Popen, signal.setitimer, os.killpg
 
     def orchestrated(issue, stop_timeout):
-        answers, launched, stops = [(0, issue + "\n"), (3, "")], [], []
+        launched, stops, asked = [], [], []
+        served = listed_in_turn(listing, [(0, issue + "\n"), (3, "")])
 
-        def answer(line, **kwargs):
-            if not answers[1:]:
+        def run(args, *rest, **kwargs):
+            asked.append(args)
+            if len(asked) == 2:
                 (tmp_path / "marks.release").touch()
                 (tmp_path / "marks.asked").touch()
-            return answers.pop(0) + ("",)
+            return served(args, *rest, **kwargs)
 
         def popen(args, *rest, **kwargs):
             launched.append(real_popen([str(tmp_path / ("conductor-%s.sh" % args[1]))], *rest, **kwargs))
@@ -956,7 +947,7 @@ while [ $i -lt 1000 ] && [ ! -e "$MARKS.done" ]; do sleep 0.01; i=$((i + 1)); do
 
         for mark in ("marks", "marks.release", "marks.asked", "marks.done"):
             (tmp_path / mark).unlink(missing_ok=True)
-        fake_processes(answer)
+        monkeypatch.setattr(subprocess, "run", run)
         monkeypatch.setattr(subprocess, "Popen", popen)
         monkeypatch.setattr(signal, "setitimer", setitimer)
         monkeypatch.setattr(os, "killpg", killpg)
@@ -970,18 +961,19 @@ while [ $i -lt 1000 ] && [ ! -e "$MARKS.done" ]; do sleep 0.01; i=$((i + 1)); do
         running = "conductor running at exit" if conductor.poll() is None else "conductor gone at exit"
         (tmp_path / "marks.done").touch()
         conductor.wait(timeout=20)
-        return (code, out, err, running, stops == [(conductor.pid, signal.SIGTERM)], answers,
+        return (code, out, err, running, stops == [(conductor.pid, signal.SIGTERM)],
                 marks.read_text().splitlines())
 
     assert orchestrated("1355", None) == (
-        0, "context 1355 150100\n", "", "conductor running at exit", True, [], ["writer 143"])
+        0, "context 1355 150100\n", "", "conductor running at exit", True, ["writer 143"])
     assert orchestrated("1356", "0.1") == (
-        0, "context 1356 150100\n", "", "conductor running at exit", True, [],
+        0, "context 1356 150100\n", "", "conductor running at exit", True,
         ["asked again while the group held its stdout"])
 
 
-def test_1130_a_run_from_a_symlinked_scripts_directory_asks_and_launches_through_it_and_reads_parked_in_the_working_directory_and_a_closed_or_gone_stdout_sigterms_the_group_asks_no_more_and_exits_2_with_one_line(
-        tmp_path, monkeypatch, orchestrate, run_cli):
+@pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
+def test_1130_a_run_from_a_symlinked_scripts_directory_launches_through_it_and_reads_parked_in_the_working_directory_and_a_closed_or_gone_stdout_sigterms_the_group_reads_no_listing_again_and_exits_2_with_one_line(
+        tmp_path, monkeypatch, orchestrate, run_cli, listing):
     import importlib.util
     import signal
     import types
@@ -989,6 +981,7 @@ def test_1130_a_run_from_a_symlinked_scripts_directory_asks_and_launches_through
     (realskill / ".tdd" / "parked").mkdir(parents=True)
     (realskill / ".tdd" / "parked" / "1402.md").write_text("")
     (realskill / "veri").symlink_to(SCRIPTS / "veri")
+    (realskill / "solvable-issues.sh").symlink_to(SCRIPTS / "solvable-issues.sh")
     link = tmp_path / "link"
     link.symlink_to(realskill)
     elsewhere = tmp_path / "elsewhere"
@@ -999,12 +992,7 @@ def test_1130_a_run_from_a_symlinked_scripts_directory_asks_and_launches_through
     spec.loader.exec_module(linked)
 
     def orchestrated(module, answers, stream, cwd, stdout):
-        answers, events = list(answers), []
-
-        def run(args, *rest, **kwargs):
-            events.append(("ask", args[0]))
-            code, out = answers.pop(0) if answers else (3, "")
-            return subprocess.CompletedProcess(args, code, out.encode(), None)
+        events = []
 
         def popen(args, *rest, **kwargs):
             events.append(("launch",) + tuple(args))
@@ -1012,7 +1000,7 @@ def test_1130_a_run_from_a_symlinked_scripts_directory_asks_and_launches_through
             conductor.stdout = io.BytesIO(stream)
             return conductor
 
-        monkeypatch.setattr(subprocess, "run", run)
+        monkeypatch.setattr(subprocess, "run", listed_in_turn(listing, answers))
         monkeypatch.setattr(subprocess, "Popen", popen)
         monkeypatch.setattr(os, "killpg", lambda pid, sig: events.append(("killpg", pid, sig)))
         monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
@@ -1025,8 +1013,7 @@ def test_1130_a_run_from_a_symlinked_scripts_directory_asks_and_launches_through
         return code, out, err, events
 
     assert orchestrated(linked, [(0, "1401\n1402\n"), (0, "1401\n")], b"", elsewhere, sys.stdout) == (
-        0, "", "", [("ask", str(link / "solvable-issues.sh")), ("launch", str(link / "run-conductor.sh"), "1402"),
-                    ("killpg", 4002, signal.SIGTERM), ("ask", str(link / "solvable-issues.sh"))])
+        0, "", "", [("launch", str(link / "run-conductor.sh"), "1402"), ("killpg", 4001, signal.SIGTERM)])
 
     gone = "orchestrate.sh: stdout is gone: its reader has exited\n"
     line = (_assistant(1000, 0) + "\n").encode()
@@ -1036,18 +1023,17 @@ def test_1130_a_run_from_a_symlinked_scripts_directory_asks_and_launches_through
     try:
         observed = {
             "a pipe whose reader has exited": orchestrated(
-                orchestrate, [(0, "1601\n1602\n"), (0, "1602\n")], line, tmp_path, broken),
-            "closed": orchestrated(orchestrate, [(0, "1701\n1702\n"), (0, "1702\n")], line, tmp_path, None),
+                orchestrate, [(0, "1601\n1602\n"), (2, "")], line, tmp_path, broken),
+            "closed": orchestrated(orchestrate, [(0, "1701\n1702\n"), (2, "")], line, tmp_path, None),
         }
     finally:
         try:
             broken.close()
         except BrokenPipeError:
             pass
-    asks = str(SCRIPTS / "solvable-issues.sh")
     launch = str(SCRIPTS / "run-conductor.sh")
     assert observed == {
         "a pipe whose reader has exited": (
-            2, "", gone, [("ask", asks), ("launch", launch, "1601"), ("killpg", 4002, signal.SIGTERM)]),
-        "closed": (2, "", gone, [("ask", asks), ("launch", launch, "1701"), ("killpg", 4002, signal.SIGTERM)]),
+            2, "", gone, [("launch", launch, "1601"), ("killpg", 4001, signal.SIGTERM)]),
+        "closed": (2, "", gone, [("launch", launch, "1701"), ("killpg", 4001, signal.SIGTERM)]),
     }
