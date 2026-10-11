@@ -2427,10 +2427,35 @@ def test_cli_does_not_read_a_logs_real_lag_nor_a_verdict_wrappers_silence_as_a_h
     ]
 
 
+class AwakeLeaf:
+    pid = 4242
+    returncode = None
+    args = []
+
+    def poll(self):
+        return self.returncode
+
+    def wait(self, timeout=None):
+        return self.returncode
+
+
+def install_awake_fakes(monkeypatch, clock, leaf, sleep, stop, answer):
+    import time
+    monkeypatch.setattr(time, "sleep", sleep)
+    monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["awake"]))
+    monkeypatch.setattr(os, "killpg", stop)
+    monkeypatch.setattr(os, "kill", stop)
+    monkeypatch.setattr(subprocess, "run", lambda args, *_, **k: subprocess.CompletedProcess(
+        args, 0, as_asked(answer(args), k), as_asked("", k)))
+    monkeypatch.setattr(subprocess, "check_output", lambda args, *_, **k: as_asked(answer(args), k))
+    monkeypatch.setattr(subprocess, "call", lambda *a, **k: 0)
+    monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: 0)
+    monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: leaf)
+
+
 def test_cli_does_not_read_a_suspend_as_silence_or_runtime_a_3s_suspend_against_a_2s_heartbeat_with_the_awake_clock_set_or_unset_a_3s_suspend_past_a_2s_timeout_and_an_hour_against_the_defaults_each_ending_in_the_leafs_own_exit_3(
         monkeypatch, tmp_path, supervise, run_cli):
     import signal
-    import time
     monkeypatch.setattr(signal, "signal", lambda *_: None)
 
     def sleep_through(awake_clock, heartbeat, timeout, suspended):
@@ -2441,18 +2466,7 @@ def test_cli_does_not_read_a_suspend_as_silence_or_runtime_a_3s_suspend_against_
         clock = {"wall": 1000, "awake": 5000, "sleeps": 0}
         kills = []
 
-        class Leaf:
-            pid = 4242
-            returncode = None
-            args = []
-
-            def poll(self):
-                return self.returncode
-
-            def wait(self, timeout=None):
-                return self.returncode
-
-        leaf = Leaf()
+        leaf = AwakeLeaf()
 
         def sleep(_):
             clock["sleeps"] += 1
@@ -2482,16 +2496,7 @@ def test_cli_does_not_read_a_suspend_as_silence_or_runtime_a_3s_suspend_against_
                 return "1000\n"
             return ""
 
-        monkeypatch.setattr(time, "sleep", sleep)
-        monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["awake"]))
-        monkeypatch.setattr(os, "killpg", stop)
-        monkeypatch.setattr(os, "kill", stop)
-        monkeypatch.setattr(subprocess, "run", lambda args, *_, **k: subprocess.CompletedProcess(
-            args, 0, as_asked(answer(args), k), as_asked("", k)))
-        monkeypatch.setattr(subprocess, "check_output", lambda args, *_, **k: as_asked(answer(args), k))
-        monkeypatch.setattr(subprocess, "call", lambda *a, **k: 0)
-        monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: 0)
-        monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: leaf)
+        install_awake_fakes(monkeypatch, clock, leaf, sleep, stop, answer)
         code, out, _ = run_cli(supervise, ["suspended", "leaf"], cwd=work)
         rc = work / ".tdd" / "suspended.rc"
         return (code, out, kills, rc.read_text() if rc.exists() else None)
@@ -2504,7 +2509,6 @@ def test_cli_does_not_read_a_suspend_as_silence_or_runtime_a_3s_suspend_against_
 def test_cli_counts_awake_time_a_leaf_silent_1s_then_3s_against_a_2s_heartbeat_and_a_noisy_one_past_a_4s_timeout_with_or_without_load_stretching_the_wall_clock_3s_survives_the_first_and_is_killed_exit_2(
         monkeypatch, tmp_path, supervise, run_cli):
     import signal
-    import time
     monkeypatch.setattr(signal, "signal", lambda *_: None)
 
     def run_until_killed(name, silent, heartbeat, timeout, load):
@@ -2513,18 +2517,7 @@ def test_cli_counts_awake_time_a_leaf_silent_1s_then_3s_against_a_2s_heartbeat_a
         clean_env(monkeypatch, VERI_STUCK_RETRIES="0", VERI_HEARTBEAT=str(heartbeat), VERI_TIMEOUT=str(timeout))
         clock = {"wall": 1000, "awake": 5000, "sleeps": 0, "killed_at": None}
 
-        class Leaf:
-            pid = 4242
-            returncode = None
-            args = []
-
-            def poll(self):
-                return self.returncode
-
-            def wait(self, timeout=None):
-                return self.returncode
-
-        leaf = Leaf()
+        leaf = AwakeLeaf()
 
         def sleep(_):
             clock["sleeps"] += 1
@@ -2549,16 +2542,7 @@ def test_cli_counts_awake_time_a_leaf_silent_1s_then_3s_against_a_2s_heartbeat_a
                 return "1000\n" if silent else f"{clock['wall']}\n"
             return ""
 
-        monkeypatch.setattr(time, "sleep", sleep)
-        monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["awake"]))
-        monkeypatch.setattr(os, "killpg", stop)
-        monkeypatch.setattr(os, "kill", stop)
-        monkeypatch.setattr(subprocess, "run", lambda args, *_, **k: subprocess.CompletedProcess(
-            args, 0, as_asked(answer(args), k), as_asked("", k)))
-        monkeypatch.setattr(subprocess, "check_output", lambda args, *_, **k: as_asked(answer(args), k))
-        monkeypatch.setattr(subprocess, "call", lambda *a, **k: 0)
-        monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: 0)
-        monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: leaf)
+        install_awake_fakes(monkeypatch, clock, leaf, sleep, stop, answer)
         code, _, err = run_cli(supervise, [name, "leaf"], cwd=work)
         return code, clock["killed_at"], [line for line in err.splitlines() if "killed-stuck" in line or "no heartbeat" in line
                                           or "hard timeout" in line]
