@@ -210,3 +210,127 @@ def test_main_returns_any_other_structural_lines_code_as_its_own_and_files_nothi
     captured = capsys.readouterr()
     assert (asked, calls) == ([owed], [])
     assert (code, captured.out, captured.err) == (list_code, "", "")
+
+
+def test_cli_files_nothing_and_exits_3_when_every_unreached_candidate_in_the_owed_file_is_test_only(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = tmp_path / "issue-663-refactor-owed.md"
+    owed.write_text("### first step\n"
+                    "- test-only | fold the suite's two fixture writers into one helper\n"
+                    "- test-only | hoist the stub directory into the harness\n")
+    calls = fake_processes(lambda line, **kwargs: (0, "https://github.com/o/r/issues/9\n", ""))
+
+    result = run_cli(refactor_overflow, ["663", str(owed), "0"])
+
+    assert (result, calls) == ((3, "", ""), [])
+
+
+URL = "https://github.com/o/r/issues/9\n"
+FOLD = "fold verify.sh's two mktemp calls into one helper"
+HOIST = "hoist the ledger path into one variable"
+SPLIT = "split the verdict parser out of run-leaf.sh"
+
+
+def owed_504(directory):
+    owed = directory / "issue-504-refactor-owed.md"
+    owed.write_text(f"### first step\n- {FOLD}\n- {HOIST}\n### second step\n- {HOIST}\n- {SPLIT}\n")
+    return owed
+
+
+def filing(n, body):
+    return ["gh " + " ".join(issue(n, body))]
+
+
+def gh_files(line, **kwargs):
+    return 0, URL, ""
+
+
+def test_cli_files_one_issue_naming_the_parent_listing_every_candidate_after_the_first_reached_and_prints_its_url(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = owed_504(tmp_path)
+    calls = fake_processes(gh_files)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), "1"], cwd=tmp_path)
+
+    assert result == (0, URL, "")
+    assert calls == filing(504, f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}")
+
+
+@pytest.mark.parametrize("argv, expected", [
+    (lambda d, owed: ["504", str(d / "no-such-file.md"), "0"], (3, "", "")),
+    (lambda d, owed: ["504", str(d / "headed-only.md"), "0"], (3, "", "")),
+    (lambda d, owed: ["504", owed, "3"], (3, "", "")),
+    (lambda d, owed: ["504", owed], (2, "", USAGE)),
+    (lambda d, owed: ["504", owed, "two"], (2, "", USAGE)),
+    (lambda d, owed: ["five-oh-four", owed, "1"], (2, "", USAGE)),
+    (lambda d, owed: ["504", "", "1"], (2, "", USAGE)),
+    (lambda d, owed: [], (2, "", USAGE)),
+    (lambda d, owed: ["504", owed, "1", str(d / "no-such-skipped-file")],
+     lambda d: (2, "", f"refactor-overflow: no such skipped file: {d / 'no-such-skipped-file'}\n")),
+])
+def test_cli_files_nothing_exiting_3_with_no_candidate_unreached_and_2_with_its_usage_or_skipped_file_line_on_a_bad_argument(
+        tmp_path, refactor_overflow, run_cli, fake_processes, argv, expected):
+    owed = str(owed_504(tmp_path))
+    (tmp_path / "headed-only.md").write_text("### first step\n")
+    calls = fake_processes(gh_files)
+
+    result = run_cli(refactor_overflow, argv(tmp_path, owed), cwd=tmp_path)
+
+    assert (result, calls) == (expected(tmp_path) if callable(expected) else expected, [])
+
+
+@pytest.mark.parametrize("reached", ["1.5", "-1", "abc", "", " 7", "7x", "0x10"])
+def test_cli_refuses_a_reached_that_is_not_a_non_negative_whole_number_with_exit_2_naming_reached_issue_776(
+        tmp_path, refactor_overflow, run_cli, fake_processes, reached):
+    owed = owed_504(tmp_path)
+    calls = fake_processes(gh_files)
+
+    code, out, err = run_cli(refactor_overflow, ["504", str(owed), reached], cwd=tmp_path)
+
+    assert (code, out, calls) == (2, "", [])
+    assert "<reached>" in err
+
+
+def test_cli_files_a_two_class_owed_file_s_one_unreached_structural_candidate_as_before_test_only_existed(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    owed = tmp_path / "issue-505-refactor-owed.md"
+    owed.write_text(f"### first step\n- {FOLD}\n- {HOIST}\n### second step\n- {HOIST}\n")
+    calls = fake_processes(gh_files)
+
+    result = run_cli(refactor_overflow, ["505", str(owed), "1"], cwd=tmp_path)
+
+    assert result == (0, URL, "")
+    assert calls == filing(505, f"Structural candidates #505's closing pass could not reach:\n\n- {FOLD}")
+
+
+def test_cli_sends_no_label_makes_no_call_on_the_parent_and_writes_no_file_into_the_repository(
+        tmp_path, refactor_overflow, run_cli, fake_processes):
+    repo = tmp_path / "repo"
+    (repo / ".tdd").mkdir(parents=True)
+    owed_504(repo / ".tdd")
+
+    def snapshot():
+        return sorted((str(p.relative_to(repo)), p.read_bytes()) for p in repo.rglob("*") if p.is_file())
+
+    before = snapshot()
+    calls = fake_processes(gh_files)
+
+    result = run_cli(refactor_overflow, ["504", ".tdd/issue-504-refactor-owed.md", "1"], cwd=repo)
+
+    assert result == (0, URL, "")
+    assert calls == filing(504, f"Structural candidates #504's closing pass could not reach:\n\n- {FOLD}\n- {SPLIT}")
+    assert snapshot() == before
+
+
+@pytest.mark.parametrize("reached, listed", [("1", f"- {HOIST}\n- {FOLD}\n- {SPLIT}"), ("3", f"- {HOIST}")])
+def test_cli_files_the_skipped_file_s_candidates_beside_the_unreached_and_even_when_every_candidate_was_reached_issue_691(
+        tmp_path, refactor_overflow, run_cli, fake_processes, reached, listed):
+    owed = owed_504(tmp_path)
+    skipped = tmp_path / "issue-504-structural-skipped"
+    skipped.write_text(f"{HOIST}\n")
+    calls = fake_processes(gh_files)
+
+    result = run_cli(refactor_overflow, ["504", str(owed), reached, str(skipped)], cwd=tmp_path)
+
+    assert result == (0, URL, "")
+    assert calls == filing(504, f"Structural candidates #504's closing pass could not reach:\n\n{listed}")
