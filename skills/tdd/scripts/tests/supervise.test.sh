@@ -242,22 +242,6 @@ exec sleep 60
 L
 chmod +x "$stub/leaf-term-sleep"
 
-cat > "$stub/leaf-real-lag" <<'L'
-: > .test-clock-reads
-echo "leaf: starting"
-python3 -c '
-import os, sys
-s = os.stat(sys.argv[1])
-os.utime(sys.argv[1], (s.st_atime - 60, s.st_mtime - 60))' .tdd/reallag.log
-clock-jump 1
-await-poll
-echo "leaf: done"; exit 0
-L
-chmod +x "$stub/leaf-real-lag"
-sup reallag 5 30 leaf-real-lag
-{ [[ "$code" == 0 ]] && [[ "$out" == *'done'* ]]; } && ok \
-  || no "60s of real lag on the leaf's log is not silence: 1s injected against a 5s window → success (code=$code want 0, err=$(cat "$work/err"))"
-
 AUDIT="$HERE/real-clock-audit.sh"
 audit_work="$work/clock-audit"
 mkdir -p "$audit_work"
@@ -305,31 +289,6 @@ fi
 { [[ "${#audit_problems[@]}" -eq 0 ]]; } && ok \
   || no "a stub leaf whose silence is real waiting is named by the clock audit, a deliberate real-clock dependence recorded with a reason is not (${audit_problems[*]})"
 
-
-cat > "$stub/leaf-quiet-wrapper" <<'L'
-: > .test-clock-reads
-mkdir -p .tdd
-for i in 1 2 3 4 5 6; do
-  echo "verifier: tick $i" >> .tdd/verify-red.log
-  clock-jump 1; await-poll
-done
-printf 'The test pins the criterion as observable behavior.\n' > .tdd/verify-red.reason
-echo 0 > .tdd/verdict-red.exit
-exit 0
-L
-chmod +x "$stub/leaf-quiet-wrapper"
-
-quiet_wrapper_work="$work/quiet-wrapper"
-mkdir -p "$quiet_wrapper_work"
-( cd "$quiet_wrapper_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=2 VERI_TIMEOUT=30 \
-    VERI_POLL=0.02 VERI_KILL_POLL=0.01 "$SUP" verdict-red "$stub/leaf-quiet-wrapper" ) \
-  > /dev/null 2> "$quiet_wrapper_work/err"
-quiet_wrapper_code=$?
-quiet_wrapper_recorded="$(cat "$quiet_wrapper_work/.tdd/verdict-red.exit" 2>/dev/null || echo '<missing>')"
-quiet_wrapper_reason="$(cat "$quiet_wrapper_work/.tdd/verify-red.reason" 2>/dev/null)"
-{ [[ "$quiet_wrapper_code" == 0 ]] && [[ "$quiet_wrapper_recorded" == 0 ]] \
-  && [[ "$quiet_wrapper_reason" == 'The test pins the criterion as observable behavior.' ]]; } && ok \
-  || no "a working verification is not killed for its wrapper's silence: 6s of inner progress against a 2s window → the verdict the verifier recorded (code=$quiet_wrapper_code want 0, recorded=$quiet_wrapper_recorded want 0, reason='$quiet_wrapper_reason' want the verifier's own line, err=$(cat "$quiet_wrapper_work/err"))"
 
 sup_in() {
   local dir="$1"; shift

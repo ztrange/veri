@@ -2342,7 +2342,7 @@ def test_main_hands_the_leaf_its_dispositions_through_a_preexec_survives_a_close
     }
 
 
-def fake_clocked_leaf(monkeypatch, work, name, silent, ends_at, launches=None):
+def fake_clocked_leaf(monkeypatch, work, name, silent, ends_at, launches=None, lag=0):
     import time
     clock = {"wall": 1000}
 
@@ -2379,7 +2379,7 @@ def fake_clocked_leaf(monkeypatch, work, name, silent, ends_at, launches=None):
         if args[:1] == ["date"]:
             return f"{clock['wall']}\n"
         if args[:1] == ["stat"]:
-            return "1000\n" if silent else f"{clock['wall']}\n"
+            return "1000\n" if silent else f"{clock['wall'] - (lag if clock['wall'] > 1002 else 0)}\n"
         return ""
 
     def popen(args, *_, **k):
@@ -2397,6 +2397,34 @@ def fake_clocked_leaf(monkeypatch, work, name, silent, ends_at, launches=None):
     monkeypatch.setattr(subprocess, "call", lambda *a, **k: 0)
     monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: 0)
     monkeypatch.setattr(subprocess, "Popen", popen)
+
+
+def test_cli_does_not_read_a_logs_real_lag_nor_a_verdict_wrappers_silence_as_a_hung_leaf_60s_of_lag_with_1s_of_progress_against_a_5s_window_and_6s_of_inner_progress_against_a_2s_window_exit_0(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import signal
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+    clean_env(monkeypatch)
+    lagging = tmp_path / "reallag"
+    lagging.mkdir()
+    fake_clocked_leaf(monkeypatch, lagging, "reallag", silent=False, ends_at=1010, lag=60)
+    lag_code, _, lag_err = run_cli(supervise, ["reallag", "leaf"], cwd=lagging,
+                                   env={"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "5", "VERI_TIMEOUT": "30"})
+    wrapped = tmp_path / "quiet-wrapper"
+    (wrapped / ".tdd").mkdir(parents=True)
+    reason = "The test pins the criterion as observable behavior.\n"
+    (wrapped / ".tdd" / "verify-red.reason").write_text(reason)
+    (wrapped / ".tdd" / "verdict-red.exit").write_text("0\n")
+    fake_clocked_leaf(monkeypatch, wrapped, "verdict-red", silent=True, ends_at=1006)
+    wrap_code, _, wrap_err = run_cli(supervise, ["verdict-red", "leaf"], cwd=wrapped,
+                                     env={"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "2", "VERI_TIMEOUT": "30"})
+    assert [
+        (lag_code, lag_err.splitlines()[-1:], (lagging / ".tdd" / "reallag.exit").read_text()),
+        (wrap_code, wrap_err.splitlines()[-1:], (wrapped / ".tdd" / "verdict-red.exit").read_text(),
+         (wrapped / ".tdd" / "verify-red.reason").read_text()),
+    ] == [
+        (0, ["supervise[reallag]: success"], "0\n"),
+        (0, ["supervise[verdict-red]: success"], "0\n", reason),
+    ]
 
 
 REAL_LEAF_ENV = {"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "5", "VERI_TIMEOUT": "10"}
