@@ -49,6 +49,13 @@ def refused_if_empty(name):
     return False
 
 
+def priority_label():
+    """The priority label, or None when VERI_PRIORITY_LABEL is set but empty."""
+    if refused_if_empty("VERI_PRIORITY_LABEL"):
+        return None
+    return os.environ.get("VERI_PRIORITY_LABEL", "priority")
+
+
 def is_open(entry):
     return entry.get("state", "").upper() == "OPEN"
 
@@ -101,10 +108,12 @@ def main(argv):
     if repo == "":
         print(USAGE, file=sys.stderr)
         return 2
-    if refused_if_empty("VERI_LABEL") or refused_if_empty("VERI_PRIORITY_LABEL"):
+    if refused_if_empty("VERI_LABEL"):
         return 2
-    code, numbers = select(tunables.read("VERI_LABEL", "ready-for-agent"),
-                           tunables.read("VERI_PRIORITY_LABEL", "priority"), repo)
+    priority = priority_label()
+    if priority is None:
+        return 2
+    code, numbers = select(tunables.read("VERI_LABEL", "ready-for-agent"), priority, repo)
     for number in numbers:
         print(number)
     return code

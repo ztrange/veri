@@ -13,7 +13,7 @@ from event_log import read_events, usage_totals
 from ledger import ledger_steps
 from run_dir import run_file
 import tunables
-from solvable_issues import refused_if_empty, solvable
+from solvable_issues import priority_label, solvable
 
 
 def conductor_answers(pid_file):
@@ -127,9 +127,10 @@ def branch_of(run):
 
 def solvable_count(name):
     """"<count>" solvable_issues lists for scope <name>, or "?" when it gave no answer."""
-    if refused_if_empty("VERI_PRIORITY_LABEL"):
+    priority = priority_label()
+    if priority is None:
         return "?"
-    code, numbers = solvable(name, os.environ.get("VERI_PRIORITY_LABEL", "priority"))
+    code, numbers = solvable(name, priority)
     if code == 0:
         return str(len(numbers))
     if code == 3:
