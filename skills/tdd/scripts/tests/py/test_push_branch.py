@@ -26,7 +26,7 @@ def test_main_with_one_retry_runs_a_failed_push_to_its_push_failed_event(tmp_pat
         return 0, ""
 
     calls = fake_processes(merged(answer))
-    events.through()
+    events.refuse_event_sh()
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VERI_PUSH_RETRIES", "1")
     monkeypatch.delenv("VERI_PUSH_BACKOFF", raising=False)
@@ -82,7 +82,7 @@ def test_main_reports_a_non_fast_forward_rejection_once_and_records_push_rejecte
         return 0, ""
 
     calls = fake_processes(merged(answer))
-    events.through()
+    events.refuse_event_sh()
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("VERI_PUSH_RETRIES", raising=False)
     monkeypatch.delenv("VERI_PUSH_BACKOFF", raising=False)
@@ -108,7 +108,7 @@ def test_main_reads_retries_and_backoff_with_leading_zeros_as_decimal_and_record
 
     def run_with(retries, backoff):
         calls = fake_processes(merged(failing))
-        events.through()
+        events.refuse_event_sh()
         work = tmp_path / f"{retries}-{backoff}"
         work.mkdir()
         monkeypatch.chdir(work)
@@ -136,7 +136,7 @@ def test_main_lands_a_lease_push_silently_and_records_the_last_attempts_merged_o
 
     def run_with(argv, answers, retries="0"):
         calls = fake_processes(lambda line, **_: answers[line].pop(0) if line in answers else (0, "", ""))
-        events.through()
+        events.refuse_event_sh()
         runs.append(tmp_path / str(len(runs)))
         runs[-1].mkdir()
         monkeypatch.chdir(runs[-1])
@@ -193,7 +193,7 @@ def test_main_returns_2_on_a_failed_event_write_bad_tunable_or_bad_argument_and_
             return 0, ""
 
         calls = fake_processes(merged(answer))
-        events.through()
+        events.refuse_event_sh()
         runs.append(tmp_path / str(len(runs)))
         runs[-1].mkdir()
         if event_fails:
@@ -248,7 +248,7 @@ def test_main_retries_an_unreachable_origin_doubling_its_backoff_and_returns_2_o
             return 0, ""
 
         calls = fake_processes(merged(answer))
-        events.through()
+        events.refuse_event_sh()
         runs.append(tmp_path / str(len(runs)))
         runs[-1].mkdir()
         if event_fails:

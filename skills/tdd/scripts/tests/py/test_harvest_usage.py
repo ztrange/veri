@@ -29,6 +29,7 @@ def test_main_on_a_log_ending_in_a_closing_result_record_appends_one_usage_recor
     monkeypatch.setenv("VERI_ISSUE", "77")
     monkeypatch.setenv("VERI_STEP", "3")
 
+    events.refuse_event_sh()
     code = harvest_usage.main(["develop-green-2"])
 
     assert (code, events.records()) == (0, [{
@@ -57,6 +58,7 @@ def test_main_on_a_leaf_name_with_no_phase_says_so_appends_no_record_and_returns
     _closing_log(tmp_path, "develop")
     monkeypatch.chdir(tmp_path)
 
+    events.refuse_event_sh()
     code = harvest_usage.main(["develop"])
 
     captured = capsys.readouterr()
@@ -71,6 +73,7 @@ def test_main_returns_2_with_nothing_on_stdout_when_the_usage_record_cannot_be_a
     events.unappendable(tmp_path)
     monkeypatch.chdir(tmp_path)
 
+    events.refuse_event_sh()
     code = harvest_usage.main(["verify-green"])
 
     assert (code, capfd.readouterr().out, events.records()) == (2, "", [])
@@ -89,6 +92,7 @@ def test_main_on_a_closing_record_with_model_usage_appends_a_model_field_listing
     (tmp_path / ".tdd" / "verify-green.log").write_text(json.dumps(record) + "\n")
     monkeypatch.chdir(tmp_path)
 
+    events.refuse_event_sh()
     assert harvest_usage.main(["verify-green"]) == 0
 
     [record] = events.records()
@@ -114,6 +118,7 @@ def test_main_appends_a_model_usage_field_with_each_models_figures_only_when_the
     (tmp_path / ".tdd" / "verify-green.log").write_text(json.dumps(record) + "\n")
     monkeypatch.chdir(tmp_path)
 
+    events.refuse_event_sh()
     code = harvest_usage.main(["verify-green"])
 
     captured = capsys.readouterr()
@@ -155,6 +160,7 @@ def test_main_ports_harvest_usage_sh_quirks_exit_codes_closing_record_number_tex
         (tmp_path / ".tdd" / ("%s.log" % name)).write_text(log)
     monkeypatch.chdir(tmp_path)
 
+    events.refuse_event_sh()
     code = harvest_usage.main([name])
 
     captured = capsys.readouterr()

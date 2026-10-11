@@ -337,7 +337,7 @@ def test_main_marks_a_watched_names_launch_and_exit_as_records_under_its_role_an
         if not appendable:
             events.unappendable(work)
         fake_leaf_launch(monkeypatch)
-        events.through()
+        events.refuse_event_sh()
         code = supervise.main([name, "sh", "-c", script])
         out, err = capsysbinary.readouterr()
         exit_record = (work / ".tdd" / f"{name}.exit").read_bytes()
@@ -418,7 +418,7 @@ def test_main_resolves_the_model_in_process_marks_it_on_the_launch_and_hands_the
         monkeypatch.setattr(subprocess, "check_output", check_output)
         monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, *a, **k).returncode)
         monkeypatch.setattr(subprocess, "Popen", popen)
-        events.through()
+        events.refuse_event_sh()
         before = dict(os.environ)
         code = supervise.main(["develop-red", "sh", "-c", "exit 0"])
         _, err = capsysbinary.readouterr()
@@ -508,7 +508,7 @@ def test_main_runs_harvest_usage_sh_once_for_a_watched_name_onto_its_stderr_befo
         monkeypatch.setattr(subprocess, "run", run)
         monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, *a, **k).returncode)
         monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: run(args, *a, check=True, **k).returncode)
-        events.through()
+        events.refuse_event_sh()
         code = supervise.main([name, "sh", "-c", "printf 'leaf out\\n'"])
         out, err = capfdbinary.readouterr()
         lines = [line for line in err.splitlines()
@@ -1671,7 +1671,7 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
         monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, **k).returncode)
         monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: run(args, **k).returncode)
         monkeypatch.setattr(subprocess, "Popen", popen)
-        events.through()
+        events.refuse_event_sh()
 
         try:
             code = supervise.main(["develop-red", "leaf-hang"])
@@ -1776,7 +1776,7 @@ def test_main_reads_veri_stuck_retries_with_leading_zeros_as_decimal_08_eight_re
     monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: run(args, **k).returncode)
     monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: run(args, **k).returncode)
     monkeypatch.setattr(subprocess, "Popen", popen)
-    events.through()
+    events.refuse_event_sh()
 
     try:
         code = supervise.main(["develop-red", "leaf-hang"])
@@ -1907,7 +1907,7 @@ def test_main_refuses_a_launch_while_the_leaf_recorded_in_leaf_owner_is_alive_an
             (tdd / f"{owner_exit}.exit").write_text("0\n")
         monkeypatch.chdir(work)
         calls = fake_git_only(monkeypatch, work)
-        events.through()
+        events.refuse_event_sh()
         probed = []
 
         def kill(pid, sig):
@@ -1989,7 +1989,7 @@ def test_main_treats_a_leaf_owner_pid_below_1_as_stale_and_launches_1200(
         (tdd / "leaf.owner").write_text(f"{owner_pid} develop-red\n")
         monkeypatch.chdir(work)
         fake_git_only(monkeypatch, work)
-        events.through()
+        events.refuse_event_sh()
         try:
             code = supervise.main(["verify-red", "true"])
         except Launched as launched:
@@ -2117,7 +2117,7 @@ def test_main_restores_sigint_then_traps_term_int_and_hup_after_the_stale_exit_g
         monkeypatch.setattr(subprocess, "call", lambda args, *a, **k: 0)
         monkeypatch.setattr(subprocess, "check_call", lambda args, *a, **k: 0)
         monkeypatch.setattr(subprocess, "Popen", popen)
-        events.through()
+        events.refuse_event_sh()
 
         try:
             code = supervise.main(["develop-red", "leaf-hang"])
@@ -2484,7 +2484,7 @@ def test_cli_appends_one_retry_event_carrying_the_kill_cause_per_relaunch_and_on
 
     def real_leaf(name, script):
         work = prepare_real_leaf(monkeypatch, tmp_path, name)
-        events.through()
+        events.refuse_event_sh()
         run_cli(supervise, [name, "sh", "-c", script], cwd=work, env=REAL_LEAF_ENV)
         return kept(work)
 
@@ -2500,7 +2500,7 @@ def test_cli_appends_one_retry_event_carrying_the_kill_cause_per_relaunch_and_on
             return leaf
 
         monkeypatch.setattr(subprocess, "Popen", popen)
-        events.through()
+        events.refuse_event_sh()
         run_cli(supervise, [name, "leaf"], cwd=work,
                 env={"VERI_STUCK_RETRIES": retries, "VERI_HEARTBEAT": "5", "VERI_TIMEOUT": "5000"})
         return kept(work)
