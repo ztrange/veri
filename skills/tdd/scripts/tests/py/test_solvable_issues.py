@@ -484,3 +484,134 @@ def test_shim_header_comment_names_both_blocker_spellings():
     header = "\n".join(itertools.takewhile(lambda line: line.startswith("#"), shim))
 
     assert ("#<n>" in header, bool(re.search(r"https://github\.com/\S*/issues/", header))) == (True, True)
+
+
+@pytest.fixture
+def plant_claim():
+    """plant_claim(main_tree, number, pid) writes .tdd/wt/<number>/.tdd/conductor.pid under main_tree."""
+    def plant(main_tree, number, pid):
+        lock = main_tree / ".tdd" / "wt" / str(number) / ".tdd" / "conductor.pid"
+        lock.parent.mkdir(parents=True)
+        lock.write_text("%d\n" % pid)
+    return plant
+
+
+def test_cli_withholds_the_issue_whose_worktree_lock_holds_a_live_pid_and_lists_one_with_a_dead_pid_or_no_worktree(tmp_path, monkeypatch, run_cli, plant_claim, solvable_issues):
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [opted_in(170), opted_in(171), opted_in(172)])
+    main_tree = tmp_path / "main-tree"
+    plant_claim(main_tree, 170, os.getpid())
+    plant_claim(main_tree, 171, dead_pid())
+    fake_git_answering(monkeypatch, main_tree)
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (0, "171\n172\n", "")
+
+
+def test_cli_lists_again_a_bailed_runs_issue_whose_worktree_lock_holds_a_dead_pid_and_no_open_pr_closes(tmp_path, monkeypatch, run_cli, plant_claim, solvable_issues):
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [opted_in(173)])
+    main_tree = tmp_path / "main-tree"
+    plant_claim(main_tree, 173, dead_pid())
+    fake_git_answering(monkeypatch, main_tree)
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (0, "173\n", "")
+
+
+def test_cli_keeps_out_an_issue_an_open_pr_closes_though_its_worktree_lock_holds_a_dead_pid_returning_3(tmp_path, monkeypatch, run_cli, plant_claim, solvable_issues):
+    fixtures, cwd = cli_fixtures(tmp_path, monkeypatch, [opted_in(175)])
+    (fixtures / "prs.json").write_text(json.dumps([
+        {"state": "OPEN", "body": "Draft PR opened by a /tdd run that bailed.\n\nCloses #175\n"}]))
+    main_tree = tmp_path / "main-tree"
+    plant_claim(main_tree, 175, dead_pid())
+    fake_git_answering(monkeypatch, main_tree)
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=cwd)
+
+    assert answer == (3, "", "")
+
+
+@pytest.mark.process("git: a real repository whose worktree branch is pushed to a bare remote")
+def test_cli_lists_an_issue_whose_branch_is_on_the_remote_with_no_open_pr_and_no_live_pid(tmp_path, run_cli, solvable_issues):
+    def git(*args):
+        return subprocess.run(["git", "-c", "user.name=veri", "-c", "user.email=veri@example.test", *args],
+                              check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
+
+    fixtures, repo, remote = tmp_path / "fixtures", tmp_path / "pushed", tmp_path / "pushed-remote.git"
+    fixtures.mkdir()
+    (fixtures / "issues.json").write_text(json.dumps([opted_in(191)]))
+    (fixtures / "prs.json").write_text("[]")
+    git("init", "-q", "-b", "main", str(repo))
+    git("-C", str(repo), "commit", "-q", "--allow-empty", "-m", "initial")
+    git("init", "-q", "--bare", str(remote))
+    git("-C", str(repo), "remote", "add", "origin", str(remote))
+    worktree = repo / ".tdd" / "wt" / "191"
+    git("-C", str(repo), "worktree", "add", "-q", "-b", "tdd/191-slug", str(worktree), "main")
+    git("-C", str(worktree), "push", "-q", "--set-upstream", "origin", "HEAD")
+
+    on_remote = git("-C", str(repo), "ls-remote", "--heads", "origin", "tdd/191-slug")
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_JSON": str(fixtures)}, cwd=repo)
+
+    assert (bool(on_remote), answer) == (True, (0, "191\n", ""))
+
+
+def solvable_entry():
+    lines = (REPO_ROOT / "CONTEXT.md").read_text().splitlines()
+    start = next(i for i, line in enumerate(lines) if line.startswith("**Solvable**:"))
+    end = next((i for i, line in enumerate(lines) if i > start and line.startswith("**")), len(lines))
+    return "\n".join(lines[start + 1:end])
+
+
+def test_context_solvable_entry_names_the_conductor_pid_lock_and_a_live_holder_as_what_marks_a_run_in_flight():
+    entry = solvable_entry()
+
+    assert ("conductor.pid" in entry,
+            bool(re.search(r"kill -0|alive|still running|live (conductor|process|run)", entry, re.IGNORECASE))) == (True, True)
+
+
+def test_skill_preflight_writes_the_long_lived_ppid_not_the_shells_pid_into_the_conductor_lock():
+    lines = (REPO_ROOT / "skills" / "tdd" / "SKILL.md").read_text().splitlines()
+    start = next(i for i, line in enumerate(lines) if line.startswith("### 0."))
+    end = next((i for i, line in enumerate(lines) if i > start and line.startswith("### ")), len(lines))
+    preflight = "\n".join(lines[start + 1:end])
+
+    assert (bool(re.search(r'> *"?\.tdd/conductor\.pid', preflight)),
+            bool(re.search(r'\$PPID[^>\n]*> *"?\.tdd/conductor\.pid', preflight))) == (True, True)
+
+
+def header_paragraphs():
+    shim = (REPO_ROOT / "skills" / "tdd" / "scripts" / "solvable-issues.sh").read_text().splitlines()[1:]
+    paragraphs, current = [], []
+    for line in itertools.takewhile(lambda line: line.startswith("#"), shim):
+        text = re.sub(r"^#\s?", "", line)
+        if text.strip():
+            current.append(text)
+        elif current:
+            paragraphs.append(" ".join(current))
+            current = []
+    if current:
+        paragraphs.append(" ".join(current))
+    return [paragraph.lower() for paragraph in paragraphs]
+
+
+CLAIMS = {
+    "the-open-PR-as-the-claim-every-machine-sees": [
+        r"closes #|pull request|open pr|draft pr",
+        r"every machine|any machine|other machine|another machine|all machines|across machines|cross-machine|machine-independent",
+        r"claim"],
+    "the-lock-as-one-machines-worktree-guard": [
+        r"conductor\.pid|pid lock|the lock|the pid", r"worktree", r"guard", r"same[- ]machine|one machine|machine-local|local"],
+    "the-ADR-recording-the-decision": [r"adr[ -]?[0-9]{4}"],
+}
+
+
+@pytest.mark.parametrize("passage, records", [
+    ("CONTEXT.md", lambda: [" ".join(solvable_entry().splitlines()).lower()]),
+    ("solvable-issues.sh", header_paragraphs)], ids=["CONTEXT.md", "solvable-issues.sh"])
+def test_passage_says_the_open_pr_is_the_claim_and_the_pid_lock_one_machines_worktree_guard_citing_its_adr(passage, records):
+    texts = records()
+    missing = [tag for tag, patterns in CLAIMS.items()
+               if not any(all(re.search(pattern, text) for pattern in patterns) for text in texts)]
+
+    assert missing == []
