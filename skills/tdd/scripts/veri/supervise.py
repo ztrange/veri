@@ -10,6 +10,7 @@ from typing import NamedTuple
 
 import entry
 import event
+import harvest_usage
 import preserve_attempt
 from extract_result import extract
 from leaf_log import result_records
@@ -363,7 +364,7 @@ def main(argv):
     secs = awake_seconds() - a0
     if watched:
         sys.stderr.flush()
-        subprocess.run([os.path.join(HERE, "harvest-usage.sh"), name], stdout=2, env=leaf_env)
+        harvest_usage.harvest(name, leaf_env)
     print(f"supervise[{name}]: {status}" + (f" — {reason}" if reason else ""), file=sys.stderr)
     sys.stderr.flush()
     mark(role, leaf_env, "exit", f"status={ec}", *([f"cause={reason}"] if reason else []), f"secs={secs}")
