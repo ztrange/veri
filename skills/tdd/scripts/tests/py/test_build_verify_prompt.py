@@ -1061,6 +1061,32 @@ def test_main_renders_a_ci_repair_green_prompt_judged_by_ci_evidence_and_not_by_
             [rule for rule, pattern in rules.items() if says(unmarked, pattern)]) == ([], list(rules)[:0])
 
 
+def test_main_renders_a_ci_repair_green_prompt_that_passes_on_evidence_from_before_the_push_and_leaves_the_verdict_on_the_pushed_fix_to_wait_ci_1473(
+        tmp_path, capsysbinary, build_verify_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    code = build_verify_prompt.main(["--step", "zorblat sorts on CI only ⟦ci-repair⟧ ⟦criterion 1⟧",
+                                     "--fast-cmd", "make unit", "green", str(spec),
+                                     "tests/py/test_zorblat.py", "test_zorblat_frobs_a_nitz"])
+    out, _ = capsysbinary.readouterr()
+    prompt = re.sub(rb"\s+", b" ", out)
+    assert code == 0
+
+    rules = {
+        "passes on the quoted CI failure, a diff touching what it names and the local suites green": (
+            rb"PASS[^.]{0,200}(quote|log)[^.]{0,200}diff[^.]{0,120}touch[^.]{0,200}(local|suites?)[^.]{0,60}green"),
+        "never requires a CI run on the fix": (
+            rb"(never|not|no)[^.]{0,40}(require|need|expect|wait)[^.]{0,40}(CI run|run on the fix|green run)"),
+        "because none exists before the push": rb"(before|until|after)[^.]{0,40}(push|PASS)[^.]{0,120}(CI run|exists?)",
+        "the CI verdict on the pushed fix is wait-ci.sh's, red bailing ci-red": (
+            rb"wait-ci\.sh[^.]{0,200}ci-red|ci-red[^.]{0,200}wait-ci\.sh"),
+        "does not reject a step whose latest CI run is still the red one": (
+            rb"^(?!.*run still red is a REJECT)"),
+    }
+
+    assert [rule for rule, pattern in rules.items() if re.search(pattern, prompt, re.I) is None] == []
+
+
 def test_main_renders_an_expand_and_a_migrate_verify_prompt_stating_what_each_phase_changes_and_that_test_files_stay_frozen(
         tmp_path, capsysbinary, build_verify_prompt):
     spec = tmp_path / "spec.md"
