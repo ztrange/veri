@@ -255,3 +255,18 @@ def test_main_with_veri_model_revise_unset_gives_revise_and_develop_leaves_veri_
         ("develop-exhausted", 0, "", ""),
         ("develop-red", 0, "", ""),
     ]
+
+
+def test_main_refuses_a_set_but_empty_veri_model_revise_for_revise_and_develop_exhausted_with_2_naming_it_on_stderr(
+        capsys, monkeypatch, leaf_model):
+    monkeypatch.setenv("VERI_MODEL_DEVELOPER", "sonnet")
+    monkeypatch.setenv("VERI_MODEL_REVISE", "")
+    answers = []
+    for name in ("revise-green-2", "develop-exhausted"):
+        code = leaf_model.main([name])
+        captured = capsys.readouterr()
+        answers.append((name, code, captured.out, "VERI_MODEL_REVISE" in captured.err))
+    assert answers == [
+        ("revise-green-2", 2, "", True),
+        ("develop-exhausted", 2, "", True),
+    ]
