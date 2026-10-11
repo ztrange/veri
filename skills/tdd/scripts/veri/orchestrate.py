@@ -1,5 +1,4 @@
 """orchestrate.sh's loop, run in-process."""
-import math
 import os
 import re
 import signal
@@ -10,8 +9,10 @@ import entry
 
 try:
     from context_budget import START, watch
+    from tunables import stop_timeout as _stop_timeout
 except ImportError:
     from .context_budget import START, watch
+    from .tunables import stop_timeout as _stop_timeout
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONDUCTOR = os.path.join(SCRIPTS, "run-conductor.sh")
@@ -21,7 +22,7 @@ def main(argv):
     budget = _tunable("VERI_CONDUCTOR_CTX_BUDGET", "120000", _tokens, "a whole number of tokens")
     if budget is None:
         return 2
-    stop_timeout = _tunable("VERI_CONDUCTOR_STOP_TIMEOUT", "10", _seconds, "a positive number of seconds")
+    stop_timeout = _tunable("VERI_CONDUCTOR_STOP_TIMEOUT", "10", _stop_timeout, "a positive number of seconds")
     if stop_timeout is None:
         return 2
     while True:
@@ -62,13 +63,6 @@ def _tokens(raw):
     if not re.fullmatch(r"[0-9]+", raw):
         raise ValueError
     return int(raw)
-
-
-def _seconds(raw):
-    value = float(raw)
-    if not math.isfinite(value) or value <= 0:
-        raise ValueError
-    return value
 
 
 def _watch(issue, stream, budget):
