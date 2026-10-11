@@ -1276,6 +1276,46 @@ run_cached "$restored" "$work/restored-cache-root" "the run that changes and res
 run_cached "$restored" "$work/restored-cache-root" "the run after the restore"
 report "$name"
 
+rewrite="$work/rewrite"
+make_tree "$rewrite"
+cat > "$rewrite/$PY_DIR/test_a_leg_mutator.py" <<'PY'
+import os
+import pathlib
+
+here = pathlib.Path(__file__).resolve().parent
+flag = here / "exp-mutate-test-file"
+target = here / "test_b_leg_target.py"
+if flag.exists():
+    flag.unlink()
+    (here / "exp-mutated").write_text("")
+    st = target.stat()
+    target.write_text(target.read_text().replace("130000", "120000"))
+    os.utime(target, ns=(st.st_atime_ns, st.st_mtime_ns))
+PY
+cat > "$rewrite/$PY_DIR/test_b_leg_target.py" <<'PY'
+import pathlib
+
+VALUE = "130000"
+mutated = (pathlib.Path(__file__).resolve().parent / "exp-mutated").exists()
+
+
+def test_veri_probe_runs_the_test_file_source_it_collected():
+    want = "120000" if mutated else pathlib.Path(__file__).read_text().split('"')[1]
+    assert VALUE == want, VALUE
+PY
+rewrite_target="$rewrite/$PY_DIR/test_b_leg_target.py"
+
+name="#1471: a tests/py file mutated to same-size content with its mtime kept before collection, during one pytest-leg run, and restored with that mtime afterwards leaves the next two runs on the unchanged tree green, its assertion-rewrite bytecode included"
+problems=()
+cp -p "$rewrite_target" "$work/rewrite-original.py"
+: > "$rewrite/$PY_DIR/exp-mutate-test-file"
+run_cached "$rewrite" "$work/rewrite-cache-root" "the run that mutates the test file"
+cp -p "$work/rewrite-original.py" "$rewrite_target"
+rm -f "$rewrite/$PY_DIR/exp-mutated"
+run_cached "$rewrite" "$work/rewrite-cache-root" "first run after the restore"
+run_cached "$rewrite" "$work/rewrite-cache-root" "second run after the restore"
+report "$name"
+
 isolated="$work/isolated"
 isolated_inner="$work/isolated-inner"
 make_tree "$isolated"
