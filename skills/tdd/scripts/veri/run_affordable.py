@@ -4,6 +4,8 @@ import re
 import subprocess
 import sys
 
+import step_budget
+
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 USAGE = "usage: run-affordable.sh <steps-remaining> (a whole number)"
 
@@ -23,10 +25,10 @@ def main(argv):
         sys.stderr.buffer.write(os.fsencode("run-affordable.sh: <steps-remaining> is not a whole number: '%s'\n%s\n"
                                             % (remaining, USAGE)))
         return 2
-    status, budgets = _sibling("step-budget.sh")
+    status, _, run_budget = step_budget.budgets()
     if status:
-        return status
-    ceiling = float(budgets.splitlines()[-1])
+        return _passed(status)
+    ceiling = float(run_budget)
     status, steps = _sibling("step-cost.sh", "--steps")
     if status:
         return status if status == 3 else 2
