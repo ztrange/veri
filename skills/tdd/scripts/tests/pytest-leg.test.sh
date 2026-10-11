@@ -1028,4 +1028,33 @@ touch -r "$work/rewritten.mtime" "$rewritten/$PY_DIR/kept_probe.py"
 run_rewritten "after the same-size rewrite"
 report "$name"
 
+pruned="$work/pruned"
+make_tree "$pruned"
+cat > "$pruned/$PY_DIR/test_leg_probe.py" <<'PY'
+def test_veri_probe_pruned():
+    assert True
+PY
+pruned_root="$work/pruned-cache-root"
+pruned_bound=3
+for i in 1 2 3 4 5 6 7 8; do
+  mkdir -p "$pruned_root/exp-earlier-$i/skills"
+  touch -t "20200${i}010000" "$pruned_root/exp-earlier-$i"
+done
+
+name="#1471: after runs over more distinct contents than the bound, the pytest leg leaves at most $pruned_bound cache directories under VERI_PYCACHE_ROOT when VERI_PYCACHE_KEEP is $pruned_bound, the oldest pruned and the current run's kept"
+problems=()
+env -u PYTHONPATH -u VERI_PYTEST_IMPORTABLE -u PYTHONPYCACHEPREFIX -u PYTHONDONTWRITEBYTECODE \
+  VERI_PYCACHE_ROOT="$pruned_root" VERI_PYCACHE_KEEP="$pruned_bound" \
+  make --no-print-directory -C "$pruned" unit > "$work/out" 2> "$work/err" < /dev/null &&
+  code=0 || code=$?
+check_green "make unit"
+left="$(find "$pruned_root" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort | tr '\n' ' ')"
+current="$(find "$pruned_root" -mindepth 1 -maxdepth 1 -type d ! -name 'exp-earlier-*' -exec basename {} \;)"
+(( $(wc -w <<< "$left") <= pruned_bound )) ||
+  problems+=("want at most $pruned_bound cache directories under $pruned_root, got $(wc -w <<< "$left"): [$left]")
+[[ ! -d "$pruned_root/exp-earlier-1" ]] || problems+=("want the oldest, exp-earlier-1, pruned, got: [$left]")
+[[ -n "$current" && -d "$pruned_root/$current/skills" ]] ||
+  problems+=("want the current run's cache directory kept, got: [$left]")
+report "$name"
+
 finish
