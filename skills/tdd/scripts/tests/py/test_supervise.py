@@ -11,6 +11,10 @@ SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 USAGE = b"usage: supervise.sh <name> <cmd> [args...]\n"
 
 
+LIVE_LEAF_WINDOW = {"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "30", "VERI_TIMEOUT": "60", "VERI_POLL": "0.02",
+                    "VERI_KILL_POLL": "0.01"}
+
+
 def alive(pid):
     try:
         os.kill(pid, 0)
@@ -2910,8 +2914,7 @@ def test_cli_on_term_int_or_hup_writes_2_exits_2_and_leaves_no_leaf_while_an_ign
     clean_env(monkeypatch)
     sigs = (signal.SIGTERM, signal.SIGINT, signal.SIGHUP)
     saved = {sig: signal.getsignal(sig) for sig in sigs}
-    window = {"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "30", "VERI_TIMEOUT": "60", "VERI_POLL": "0.02",
-              "VERI_KILL_POLL": "0.01"}
+    window = LIVE_LEAF_WINDOW
     held = "echo $$ > leaf-pid; exec sleep 60"
 
     def exit_now(code):
@@ -3073,8 +3076,7 @@ def test_cli_refuses_a_launch_under_another_name_or_the_same_name_even_after_the
     clean_env(monkeypatch)
     work = tmp_path / "live"
     work.mkdir()
-    window = {"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "30", "VERI_TIMEOUT": "60", "VERI_POLL": "0.02",
-              "VERI_KILL_POLL": "0.01"}
+    window = LIVE_LEAF_WINDOW
     sup = subprocess.Popen([str(SCRIPTS / "supervise.sh"), "develop-red", "sh", "-c", "echo $$ > leaf-pid; exec sleep 60"],
                            cwd=work, env={**os.environ, **window}, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     leaf = None
