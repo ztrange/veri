@@ -142,7 +142,7 @@ def main(argv):
     if not argv:
         sys.stderr.buffer.write(USAGE)
         return 2
-    context = {key: os.environb.get(name, b"") for key, name in CONTEXT if name}
+    context = {key: tunables.read_bytes(name) for key, name in CONTEXT if name}
     return append("", context, argv[0], argv[1:])
 
 

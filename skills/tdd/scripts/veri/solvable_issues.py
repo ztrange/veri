@@ -42,7 +42,7 @@ def in_flight(main_tree, number):
 
 
 def refused_if_empty(name):
-    if os.environ.get(name) == "":
+    if tunables.read(name, None) == "":
         print("solvable-issues: %s is set but empty: name a label or leave it unset" % name, file=sys.stderr)
         return True
     return False

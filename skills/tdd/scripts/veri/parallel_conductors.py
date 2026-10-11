@@ -32,7 +32,7 @@ class _Conductor:
             os.remove(self.log)
         except FileNotFoundError:
             pass
-        words = ["%s=%s" % (name, os.environ[name]) for name in PASSED_THROUGH if name in os.environ]
+        words = ["%s=%s" % (name, tunables.read(name)) for name in PASSED_THROUGH if tunables.read(name, None) is not None]
         run_timeout = _run_timeout()
         env = tunables.with_values(VERI_HEARTBEAT=run_timeout, VERI_TIMEOUT=run_timeout, VERI_STUCK_RETRIES="0")
         self.sup = subprocess.Popen([os.path.join(SCRIPTS, "supervise.sh"), "conductor-%s" % n, "env",

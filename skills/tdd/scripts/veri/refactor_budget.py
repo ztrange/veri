@@ -2,6 +2,7 @@
 import os
 import re
 import sys
+import tunables
 
 DEFAULT_BUDGET = 5
 DEFAULT_ISSUE_BUDGET = 3
@@ -30,7 +31,7 @@ def main(argv):
     if argv[:1] == ["--issue"]:
         argv = argv[1:]
         budget_var, default = "VERI_ISSUE_REFACTOR_BUDGET", DEFAULT_ISSUE_BUDGET
-    budget = os.environ.get(budget_var) or str(default)
+    budget = tunables.read(budget_var) or str(default)
     count = argv[0] if argv else ""
     if _refused(budget_var, budget):
         return 2
