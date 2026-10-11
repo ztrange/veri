@@ -28,6 +28,7 @@ source "$HERE/lib/claude-md-records.sh"
 MODEL_ANY='veri_model([^_a-z]|$)'
 MODEL_DEV='veri_model_developer'
 MODEL_VER='veri_model_verifier'
+MODEL_REV='veri_model_revise'
 
 passage_text="" passage_from=""
 
@@ -41,8 +42,8 @@ need_supervise_bullet() {
 
 names_all_three() {
   local what="$1"
-  says "$what — it names no single passage carrying VERI_MODEL, VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER" \
-    "$MODEL_ANY" "$MODEL_DEV" "$MODEL_VER"
+  says "$what — it names no single passage carrying VERI_MODEL, VERI_MODEL_DEVELOPER, VERI_MODEL_REVISE and VERI_MODEL_VERIFIER" \
+    "$MODEL_ANY" "$MODEL_DEV" "$MODEL_REV" "$MODEL_VER"
 }
 
 probe_skill_bullet_lists_the_tunables() {
@@ -409,5 +410,25 @@ name="#1037: bullet given '^[-*] run\\.sh' starts at '- run.sh', not at '- runXs
 fixture="$(scratch_dir)"
 printf -- '- runXsh wrong\n- run.sh right\n- end\n' > "$fixture/SKILL.md"
 expect_eq "$name" '- run.sh right ' "$(skill_path="$fixture/SKILL.md" bullet '^[-*] run\.sh')"
+
+name="#1485: the knob probes name the document, in a problem, when SKILL.md's supervise.sh bullet or CLAUDE.md's model-knob invariant stops naming VERI_MODEL_REVISE"
+fixture="$(scratch_dir)"
+sed 's/VERI_MODEL_REVISE/VERI_MODEL_GONE/g' "$ROOT/$skill_md" > "$fixture/SKILL.md"
+sed 's/VERI_MODEL_REVISE/VERI_MODEL_GONE/g' "$ROOT/$claude_md" > "$fixture/CLAUDE.md"
+got="$(
+  skill_path="$fixture/SKILL.md" claude_path="$fixture/CLAUDE.md"
+  problems=()
+  probe_skill_bullet_lists_the_tunables
+  probe_claude_md_names_them_and_why
+  for doc in "$skill_md" "$claude_md"; do
+    named=no
+    for p in "${problems[@]}"; do
+      [[ "$p" == "$doc"* && "$p" == *VERI_MODEL_REVISE* ]] && named=yes
+    done
+    printf '%s names it: %s\n' "$doc" "$named"
+  done
+)"
+expect_eq "$name" "$skill_md names it: yes
+$claude_md names it: yes" "$got"
 
 finish
