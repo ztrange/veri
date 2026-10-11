@@ -15,7 +15,7 @@ def main(argv):
     step = STEP.search(argv[0])
     with open(step.group(2), encoding="utf-8") as f:
         suite = f.read()
-    survivors = [n for n in NAME.findall(step.group(1)) if n in suite]
+    survivors = [n for n in NAME.findall(step.group(1)) if f'"{n}"' in suite or f"'{n}'" in suite]
     for name in survivors:
         print(f"still present in {step.group(2)}: {name}")
     return 1 if survivors else 0
