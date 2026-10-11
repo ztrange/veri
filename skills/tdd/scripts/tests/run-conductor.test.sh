@@ -23,7 +23,7 @@ work="$(scratch_dir)"
 claude_stub "$stubdir" "$(cat <<'STUB'
 for arg in "$@"; do
   case "$arg" in
-    -p|--verbose|--output-format|--permission-mode) ;;
+    -p|--verbose|--output-format|--permission-mode|--model) ;;
     -*) echo "error: unknown option '$arg'" >&2; exit 1 ;;
   esac
 done
