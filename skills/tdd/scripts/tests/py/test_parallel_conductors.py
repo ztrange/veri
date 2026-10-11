@@ -54,7 +54,7 @@ def _boundaries(monkeypatch, tmp_path, on_launch, on_sleep, solvable=(0, "7\n"))
     (common / "info").mkdir(parents=True, exist_ok=True)
     supervisors = []
 
-    listed_run = listed_in_turn(serve_listing(tmp_path / "solvable-listing"),
+    listed_run = listed_in_turn(serve_listing(tmp_path / "solvable-listing", mirror=tmp_path / "gh"),
                                 solvable if isinstance(solvable, list) else [solvable])
 
     def answer(args):
