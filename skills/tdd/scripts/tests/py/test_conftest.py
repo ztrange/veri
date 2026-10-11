@@ -87,6 +87,13 @@ def test_fake_processes_hands_output_back_in_the_calls_mode_merges_stderr_on_req
         raise AssertionError("a non-zero answer under check=True returned rather than raising")
 
 
+def child_pytest(tmp_path, probe, env):
+    env = {**env, "PYTHONPATH": str(pathlib.Path(__file__).resolve().parent)}
+    return subprocess.run([sys.executable, "-m", "pytest", "-p", "conftest", "-p", "no:cacheprovider", "-q",
+                           "--rootdir", str(tmp_path), str(probe)],
+                          env=env, cwd=tmp_path, capture_output=True, text=True)
+
+
 @pytest.mark.process("a child pytest session started with ambient VERI_, CLAUDE_, GH_ and GIT_ variables")
 def test_every_case_starts_with_no_veri_claude_gh_or_git_variable_set_but_veri_venv_whatever_the_shell_had(tmp_path):
     probe = tmp_path / "test_probe.py"
@@ -97,11 +104,9 @@ def test_every_case_starts_with_no_veri_claude_gh_or_git_variable_set_but_veri_v
         "    names = [n for n in os.environ if n.startswith(('VERI_', 'CLAUDE_', 'GH_', 'GIT_'))]\n"
         "    open(%r, 'w').write(json.dumps(sorted(names)))\n" % str(seen))
     ambient = {name: "1" for name in ("VERI_ISSUE", "VERI_VENV", "CLAUDE_X", "GH_TOKEN", "GIT_DIR")}
-    env = {**{k: v for k, v in os.environ.items() if not k.startswith("GIT_CONFIG_")}, **ambient, "PYTHONPATH": str(pathlib.Path(__file__).resolve().parent)}
+    env = {**{k: v for k, v in os.environ.items() if not k.startswith("GIT_CONFIG_")}, **ambient}
 
-    ran = subprocess.run([sys.executable, "-m", "pytest", "-p", "conftest", "-p", "no:cacheprovider", "-q",
-                          "--rootdir", str(tmp_path), str(probe)],
-                         env=env, cwd=tmp_path, capture_output=True, text=True)
+    ran = child_pytest(tmp_path, probe, env)
 
     assert ran.returncode == 0, ran.stdout + ran.stderr
     assert json.loads(seen.read_text()) == ["VERI_VENV"]
@@ -117,11 +122,9 @@ def test_every_case_starts_under_lc_all_c_with_every_other_lc_variable_and_lang_
         "    locale = {n: v for n, v in os.environ.items() if n == 'LANG' or n.startswith('LC_')}\n"
         "    open(%r, 'w').write(json.dumps(locale))\n" % str(seen))
     ambient = {"LC_ALL": "en_US.UTF-8", "LANG": "en_US.UTF-8", "LC_TIME": "de_DE.UTF-8"}
-    env = {**os.environ, **ambient, "PYTHONPATH": str(pathlib.Path(__file__).resolve().parent)}
+    env = {**os.environ, **ambient}
 
-    ran = subprocess.run([sys.executable, "-m", "pytest", "-p", "conftest", "-p", "no:cacheprovider", "-q",
-                          "--rootdir", str(tmp_path), str(probe)],
-                         env=env, cwd=tmp_path, capture_output=True, text=True)
+    ran = child_pytest(tmp_path, probe, env)
 
     assert ran.returncode == 0, ran.stdout + ran.stderr
     assert json.loads(seen.read_text()) == {"LC_ALL": "C"}
@@ -141,11 +144,9 @@ def test_a_medium_cases_git_still_refuses_a_remote_url_after_the_fixture_clears_
     offline = {"GIT_CONFIG_COUNT": "2",
                "GIT_CONFIG_KEY_0": "protocol.allow", "GIT_CONFIG_VALUE_0": "never",
                "GIT_CONFIG_KEY_1": "protocol.file.allow", "GIT_CONFIG_VALUE_1": "always"}
-    env = {**os.environ, **offline, "PYTHONPATH": str(pathlib.Path(__file__).resolve().parent)}
+    env = {**os.environ, **offline}
 
-    ran = subprocess.run([sys.executable, "-m", "pytest", "-p", "conftest", "-p", "no:cacheprovider", "-q",
-                          "--rootdir", str(tmp_path), str(probe)],
-                         env=env, cwd=tmp_path, capture_output=True, text=True)
+    ran = child_pytest(tmp_path, probe, env)
 
     assert ran.returncode == 0, ran.stdout + ran.stderr
     assert "not allowed" in json.loads(seen.read_text())
