@@ -207,3 +207,20 @@ def test_main_writes_the_value_as_bytes_and_raises_rather_than_returning_when_st
     monkeypatch.setattr(sys, "stdout", None)
     with pytest.raises(Exception):
         leaf_model.main(["develop-red"])
+
+
+def test_main_gives_revise_and_develop_exhausted_veri_model_revise_and_a_develop_first_attempt_veri_model_developer(
+        capsys, monkeypatch, leaf_model):
+    monkeypatch.setenv("VERI_MODEL_DEVELOPER", "sonnet")
+    monkeypatch.setenv("VERI_MODEL_REVISE", "opus")
+    answers = []
+    for name in ("revise-green-2", "revise-red-1", "develop-exhausted", "develop-red"):
+        code = leaf_model.main([name])
+        captured = capsys.readouterr()
+        answers.append((name, code, captured.out, captured.err))
+    assert answers == [
+        ("revise-green-2", 0, "opus\n", ""),
+        ("revise-red-1", 0, "opus\n", ""),
+        ("develop-exhausted", 0, "opus\n", ""),
+        ("develop-red", 0, "sonnet\n", ""),
+    ]
