@@ -737,6 +737,12 @@ def test_cli_refuses_repo_with_no_value_with_2_nothing_on_stdout_and_stderr_exac
     assert answer == (2, "", USAGE)
 
 
+def write_gh_fixtures(directory, issues):
+    directory.mkdir()
+    (directory / "issues.json").write_text(json.dumps(issues))
+    (directory / "prs.json").write_text("[]")
+
+
 def git_in(*args):
     return subprocess.run(["git", "-c", "user.name=veri", "-c", "user.email=veri@example.test", *args],
                           check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout
@@ -745,9 +751,7 @@ def git_in(*args):
 @pytest.mark.process("git and solvable-issues.sh: a linked worktree's run through a symlink to the skill directory")
 def test_cli_run_through_a_symlink_to_the_skill_directory_from_a_linked_worktree_answers_as_in_place_withholding_the_issue_locked_under_the_main_tree(tmp_path, run_cli, plant_claim, solvable_issues):
     fixtures, repo, linked, link = tmp_path / "fixtures", tmp_path / "repo", tmp_path / "linked", tmp_path / "skill-link"
-    fixtures.mkdir()
-    (fixtures / "issues.json").write_text(json.dumps([opted_in(5), opted_in(6)]))
-    (fixtures / "prs.json").write_text("[]")
+    write_gh_fixtures(fixtures, [opted_in(5), opted_in(6)])
     git_in("init", "-q", "-b", "main", str(repo))
     git_in("-C", str(repo), "commit", "-q", "--allow-empty", "-m", "initial")
     git_in("-C", str(repo), "worktree", "add", "-q", "-b", "linked", str(linked), "main")
@@ -785,9 +789,7 @@ def test_cli_reads_an_issues_document_over_256_kib_to_the_same_answer_as_short_b
 
     short, long, cwd = tmp_path / "short", tmp_path / "long", tmp_path / "cwd"
     for fixtures, pad in ((short, "short"), (long, "x" * 8192)):
-        fixtures.mkdir()
-        (fixtures / "issues.json").write_text(json.dumps(issues(pad)))
-        (fixtures / "prs.json").write_text("[]")
+        write_gh_fixtures(fixtures, issues(pad))
     cwd.mkdir()
     fake_git_refusing_long_arguments(monkeypatch)
     want = (0, "".join("%d\n" % n for n in range(2, 41, 2)), "")
@@ -806,9 +808,7 @@ def numbers_this_files_fixtures_name():
 def test_cli_answer_is_unchanged_by_live_conductor_locks_under_the_surrounding_repository_for_unrelated_numbers_and_every_number_this_file_names(tmp_path, monkeypatch, run_cli, plant_claim, solvable_issues):
     unrelated, named = [108, 117, 120, 124], numbers_this_files_fixtures_name()
     fixtures, cwd = tmp_path / "fixtures", tmp_path / "no-claims"
-    fixtures.mkdir()
-    (fixtures / "issues.json").write_text(json.dumps([opted_in(n) for n in sorted(set(unrelated + named))]))
-    (fixtures / "prs.json").write_text("[]")
+    write_gh_fixtures(fixtures, [opted_in(n) for n in sorted(set(unrelated + named))])
     git_in("init", "-q", "-b", "main", str(cwd))
     surroundings = {"surrounding-unrelated": unrelated, "surrounding-every": named}
     for name, numbers in surroundings.items():
