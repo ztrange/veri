@@ -923,16 +923,9 @@ while [ $i -lt 1000 ] && [ ! -e "$MARKS.done" ]; do sleep 0.01; i=$((i + 1)); do
     real_popen, real_setitimer, real_killpg = subprocess.Popen, signal.setitimer, os.killpg
 
     def orchestrated(issue, stop_timeout):
-        launched, stops, asked = [], [], []
-        served = listed_in_turn(listing, [(0, issue + "\n"), (3, "")])
-
-        def run(args, *rest, **kwargs):
-            if os.path.basename(str(args[0])) != "git":
-                asked.append(args)
-            if len(asked) == 2:
-                (tmp_path / "marks.release").touch()
-                (tmp_path / "marks.asked").touch()
-            return served(args, *rest, **kwargs)
+        launched, stops = [], []
+        run = listed_in_turn(listing, [(0, issue + "\n"), (3, "")],
+                             touch={2: [tmp_path / "marks.release", tmp_path / "marks.asked"]})
 
         def popen(args, *rest, **kwargs):
             launched.append(real_popen([str(tmp_path / ("conductor-%s.sh" % args[1]))], *rest, **kwargs))
