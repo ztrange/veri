@@ -13,6 +13,7 @@ from event_log import read_events, usage_totals
 from ledger import ledger_steps
 from run_dir import run_file
 import tunables
+from solvable_issues import refused_if_empty, solvable
 
 SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -127,12 +128,13 @@ def branch_of(run):
 
 
 def solvable_count(name):
-    """"<count>" solvable-issues.sh lists for scope <name>, or "?" when it gave no answer."""
-    listed = subprocess.run([os.path.join(SCRIPTS, "solvable-issues.sh")], stdout=subprocess.PIPE,
-                            text=True, env=tunables.with_values(VERI_LABEL=name))
-    if listed.returncode == 0:
-        return str(sum(1 for line in listed.stdout.split("\n") if line))
-    if listed.returncode == 3:
+    """"<count>" solvable_issues lists for scope <name>, or "?" when it gave no answer."""
+    if refused_if_empty("VERI_PRIORITY_LABEL"):
+        return "?"
+    code, numbers = solvable(name, os.environ.get("VERI_PRIORITY_LABEL", "priority"))
+    if code == 0:
+        return str(len(numbers))
+    if code == 3:
         return "0"
     return "?"
 

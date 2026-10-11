@@ -325,6 +325,34 @@ def test_main_json_emits_the_runs_and_scope_totals_as_one_document(tmp_path, mon
                             "wall_seconds": 360, "dollars": 2.25, "solvable": 2}
 
 
+def test_main_counts_the_scopes_solvable_issues_when_starting_solvable_issues_sh_is_refused(tmp_path, monkeypatch, capsys, status):
+    lamps_scope(tmp_path, monkeypatch, TWO_LAMPS_SOLVABLE)
+    answering = subprocess.run
+
+    def refusing(args, **kwargs):
+        if any("solvable-issues.sh" in str(arg) for arg in args):
+            raise OSError("refused: %r" % (args,))
+        return answering(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", refusing)
+
+    code = status.main(["--scope", "lamps-label"])
+
+    assert (code, last_line(capsys.readouterr().out).endswith("  solvable 2")) == (0, True)
+
+
+def test_main_scope_solvable_is_unknown_and_named_on_stderr_when_veri_priority_label_is_set_but_empty(tmp_path, monkeypatch, capsys, status):
+    lamps_scope(tmp_path, monkeypatch, TWO_LAMPS_SOLVABLE)
+    monkeypatch.setenv("VERI_PRIORITY_LABEL", "")
+
+    code = status.main(["--scope", "lamps-label"])
+
+    captured = capsys.readouterr()
+    assert (code, last_line(captured.out), captured.err) == (
+        0, "scope lamps-label  attempted 3  done 1  bailed 1  wall 360s  $2.25  solvable ?",
+        "solvable-issues: VERI_PRIORITY_LABEL is set but empty: name a label or leave it unset\n")
+
+
 @pytest.mark.process("solvable-issues.sh started for real over a VERI_GH_JSON listing")
 def test_main_json_emits_scope_solvable_as_a_number(tmp_path, monkeypatch, capsys, status):
     lamps_scope(tmp_path, monkeypatch, TWO_LAMPS_SOLVABLE)
