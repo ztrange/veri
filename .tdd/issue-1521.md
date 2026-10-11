@@ -3,6 +3,6 @@
 - [x] `unreplaced-cases.sh`, run with no arguments, exits 2 with its usage line on stderr and nothing on stdout ⟦criterion 1⟧
 - [x] `unreplaced-cases.sh <step-text> <report-file>`, given a ⟦replaces-case⟧ step text naming three bash cases and a developer report whose `REPLACES: <case name> => <pytest test id>` lines cover only two of them, exits 1 and prints the third case's name on stdout, one unreplaced case per line ⟦criterion 1⟧
 - [x] `unreplaced-cases.sh <step-text> <report-file>` exits 0 with nothing on stdout when every case the step text names has a `REPLACES:` line in the report ⟦criterion 1⟧
-- [ ] `classify-bail.sh unreplaced-cases` prints `process` and exits 0 ⟦criterion 1⟧
+- [x] `classify-bail.sh unreplaced-cases` prints `process` and exits 0 ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] SKILL.md has the conductor run `unreplaced-cases.sh` on a ⟦replaces-case⟧ step against the latest red report before it launches verify-green (on the Green path and on the pin path's deletion green alike), and on exit 1 bail with cause `unreplaced-cases`, naming each case it printed, without launching verify-green; a skill-text suite goes red when that instruction is removed ⟦criterion 1⟧
 - [ ] The develop-red prompt built for a ⟦replaces-case⟧ step asks for one pytest replacement case per named bash case, and one `REPLACES: <case name> => <pytest test id>` report line per named case, in place of "one criterion, one case"; a prompt-builder case goes red when that instruction is reverted to "one criterion, one case" for ⟦replaces-case⟧ steps ⟦criterion 2⟧
