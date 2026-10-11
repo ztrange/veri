@@ -28,9 +28,11 @@ def workqueue():
     return importlib.import_module("veri.workqueue")
 
 
-def fake_git(monkeypatch, main_tree, origin=None):
-    """subprocess.run answering `git worktree list` with <main_tree> and `git remote get-url origin` with <origin>, or no origin."""
+def fake_git(monkeypatch, main_tree, origin=None, gh_api=None):
+    """subprocess.run answering `git worktree list` with <main_tree> and `git remote get-url origin` with <origin>, or no origin; `gh api` goes to <gh_api>(args) when given."""
     def fake_run(args, **kwargs):
+        if gh_api is not None and list(args[:2]) == ["gh", "api"]:
+            return gh_api(args)
         if list(args[:3]) == ["git", "worktree", "list"]:
             return subprocess.CompletedProcess(args, 0, "worktree %s\nHEAD abc\nbranch refs/heads/main\n\n" % main_tree, "")
         if list(args[:3]) == ["git", "remote", "get-url"]:
@@ -786,23 +788,17 @@ def test_next_against_a_gh_that_serves_issues_over_three_pages_and_refuses_repos
     proxy = "gh: Numeric-ID repository paths (repositories/{id}/...) are not supported through this proxy. (HTTP 403)\n"
 
     def serve(per_page):
-        def fake_run(args, **kwargs):
-            if list(args[:3]) == ["git", "worktree", "list"]:
-                return subprocess.CompletedProcess(args, 0, "worktree %s\n" % tmp_path, "")
-            if list(args[:3]) == ["git", "remote", "get-url"]:
-                return subprocess.CompletedProcess(args, 2, "", "error: No such remote 'origin'\n")
-            if list(args[:2]) == ["gh", "api"]:
-                path = args[2]
-                if "repositories/" in path:
-                    sys.stderr.write(proxy)
-                    return subprocess.CompletedProcess(args, 1, "", None)
-                assert path.startswith("repos/{owner}/{repo}/issues"), path
-                page = int(path.rsplit("page=", 1)[1])
-                chunk = issues[(page - 1) * per_page:page * per_page]
-                return subprocess.CompletedProcess(args, 0, json.dumps(chunk) + "\n", None)
-            raise AssertionError("unexpected command: %r" % (args,))
+        def gh_api(args):
+            path = args[2]
+            if "repositories/" in path:
+                sys.stderr.write(proxy)
+                return subprocess.CompletedProcess(args, 1, "", None)
+            assert path.startswith("repos/{owner}/{repo}/issues"), path
+            page = int(path.rsplit("page=", 1)[1])
+            chunk = issues[(page - 1) * per_page:page * per_page]
+            return subprocess.CompletedProcess(args, 0, json.dumps(chunk) + "\n", None)
 
-        monkeypatch.setattr(subprocess, "run", fake_run)
+        fake_git(monkeypatch, tmp_path, gh_api=gh_api)
 
     serve(len(issues))
     one = run_cli(workqueue, ["next", "alpha"])
