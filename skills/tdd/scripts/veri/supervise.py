@@ -307,11 +307,9 @@ def main(argv):
             if not timeout or int(timeout, 10) < 1:
                 return refuse(f"supervise: {settled} must hold a whole number of seconds >= 1: '{timeout}'")
     timeout = timeout or "900"
-    kill_poll = tunables.read("VERI_KILL_POLL") or "0.1"
-    try:
-        kill_poll = tunables.kill_poll(kill_poll)
-    except ValueError:
-        return refuse(f"supervise: VERI_KILL_POLL must be a non-negative number: {kill_poll}")
+    kill_poll, bad = tunables.resolve("VERI_KILL_POLL")
+    if bad:
+        return refuse(f"supervise: VERI_KILL_POLL must be {bad[1]}: {bad[0]}")
     heartbeat, refused = numeric_env("VERI_HEARTBEAT", "180")
     if refused:
         return refused
