@@ -17,9 +17,6 @@ for path in (SCRIPTS, SCRIPTS / "veri"):
 from veri import entry
 
 
-EVENT_CONTEXT = ("VERI_ISSUE", "VERI_ACTOR", "VERI_PHASE", "VERI_STEP", "VERI_ATTEMPT", "VERI_SKILL_COMMIT",
-                 "VERI_AWAKE_CLOCK")
-
 CANONICAL_SHIM = re.compile(r'exec python3 "\$\(dirname "\$0"\)/(veri/[\w-]+\.py)" "\$@"')
 
 
@@ -184,7 +181,5 @@ class Events:
 
 @pytest.fixture
 def events(monkeypatch):
-    for name in EVENT_CONTEXT:
-        monkeypatch.delenv(name, raising=False)
     return Events(monkeypatch)
 
