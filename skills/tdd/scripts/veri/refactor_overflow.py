@@ -4,7 +4,7 @@ import re
 import subprocess
 import sys
 
-from refactor_owed import out_of_scope_transforms
+from refactor_owed import out_of_scope_transforms, structural_lines
 
 USAGE = "usage: refactor-overflow.sh <n> <owed-file> <reached>"
 NUMBER = re.compile(r"[0-9]+")
@@ -21,18 +21,15 @@ def main(argv):
         return fail(USAGE, 2)
     if skipped and not os.path.isfile(skipped):
         return fail(f"no such skipped file: {skipped}", 2)
-    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    listed = subprocess.run([os.path.join(here, "refactor-owed.sh"), "list", owed],
-                            stdout=subprocess.PIPE, text=True)
-    if listed.returncode not in (0, 3):
-        return listed.returncode
-    candidates = listed.stdout if listed.returncode == 0 else ""
+    code, candidates = structural_lines(owed)
+    if code not in (0, 3):
+        return code
     skip = int(reached, 10)
     text = ""
     if skipped:
         with open(skipped) as f:
             text = f.read()
-    text += "\n".join(candidates.split("\n")[skip:])
+    text += "\n".join(candidates[skip:])
     text = text.rstrip("\n")
     structural = text.split("\n") if text else []
     out_of_scope = out_of_scope_transforms(owed)
