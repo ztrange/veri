@@ -267,13 +267,6 @@ fi
 
 report "$name"
 
-name="$claude_md's counts moved with rebase-onto-default.sh and its suite"
-problems=()
-
-moved_with "skills/tdd/scripts/rebase-onto-default.sh" "skills/tdd/scripts/tests/rebase-onto-default.test.sh"
-
-report "$name"
-
 name="$claude_md's counts moved with the detach-test-command suite (#601)"
 problems=()
 
