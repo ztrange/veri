@@ -26,6 +26,9 @@ def resolve(name):
         return None
     actor = role["VERI_ACTOR"]
     revise = name.startswith("revise-") or name == "develop-exhausted"
+    if revise and os.environ.get("VERI_MODEL_REVISE") == "":
+        _write(sys.stderr, "leaf-model: VERI_MODEL_REVISE is set but empty (unset it, or name a model)")
+        return None
     model = ((revise and os.environ.get("VERI_MODEL_REVISE"))
              or os.environ.get("VERI_MODEL_" + actor.upper()) or os.environ.get("VERI_MODEL", ""))
     if any(c in WHITESPACE for c in model):
