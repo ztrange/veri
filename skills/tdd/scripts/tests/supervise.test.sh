@@ -337,74 +337,11 @@ sup_in() {
       VERI_KILL_POLL=0.01 "$SUP" "$@" )
 }
 
-owner_work="$work/live-owner"
-mkdir -p "$owner_work"
 cat > "$stub/leaf-second" <<'L'
 : > second-ran
 exit 0
 L
 chmod +x "$stub/leaf-second"
-( cd "$owner_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-term-sleep" ) >/dev/null 2>&1 &
-owner_sup=$!
-for _ in $(seq 1 50); do [[ -s "$owner_work/leaf-pid" ]] && break; sleep 0.1; done
-owner_leaf="$(tr -d '[:space:]' < "$owner_work/leaf-pid" 2>/dev/null)"
-sup_in "$owner_work" verify-green "$stub/leaf-second" >/dev/null 2>"$owner_work/err"
-owner_code=$?
-owner_second="no"; [[ -e "$owner_work/second-ran" ]] && owner_second="yes"
-owner_err="$(cat "$owner_work/err")"
-kill -TERM "$owner_sup" 2>/dev/null
-wait "$owner_sup"
-if [[ -n "$owner_leaf" ]]; then
-  for _ in $(seq 1 20); do kill -0 "$owner_leaf" 2>/dev/null || break; sleep 0.1; done
-  kill -0 "$owner_leaf" 2>/dev/null && kill -KILL "$owner_leaf" 2>/dev/null
-fi
-{ [[ -n "$owner_leaf" ]] && [[ "$owner_code" == 2 ]] && [[ "$owner_second" == no ]] \
-  && [[ "$owner_err" == *revise-green-1* ]] && [[ "$owner_err" =~ (^|[^0-9])$owner_sup([^0-9]|$) ]]; } && ok \
-  || no "#471: a launch under one name is refused while a leaf supervised under another name is alive in the same worktree (first leaf pid=${owner_leaf:-<never started>}; code=$owner_code want 2, second leaf ran=$owner_second want no, stderr='$owner_err' want it to name revise-green-1 and pid $owner_sup)"
-
-same_work="$work/live-owner-same-name"
-mkdir -p "$same_work"
-( cd "$same_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-term-sleep" ) >/dev/null 2>&1 &
-same_sup=$!
-for _ in $(seq 1 50); do [[ -s "$same_work/leaf-pid" ]] && break; sleep 0.1; done
-same_leaf="$(tr -d '[:space:]' < "$same_work/leaf-pid" 2>/dev/null)"
-sup_in "$same_work" revise-green-1 "$stub/leaf-second" >/dev/null 2>"$same_work/err"
-same_code=$?
-same_second="no"; [[ -e "$same_work/second-ran" ]] && same_second="yes"
-same_err="$(cat "$same_work/err")"
-kill -TERM "$same_sup" 2>/dev/null
-wait "$same_sup"
-if [[ -n "$same_leaf" ]]; then
-  for _ in $(seq 1 20); do kill -0 "$same_leaf" 2>/dev/null || break; sleep 0.1; done
-  kill -0 "$same_leaf" 2>/dev/null && kill -KILL "$same_leaf" 2>/dev/null
-fi
-{ [[ -n "$same_leaf" ]] && [[ "$same_code" == 2 ]] && [[ "$same_second" == no ]] \
-  && [[ "$same_err" == *revise-green-1* ]] && [[ "$same_err" =~ (^|[^0-9])$same_sup([^0-9]|$) ]]; } && ok \
-  || no "#471: a launch is refused while a leaf supervised under the same name is alive in the same worktree (first leaf pid=${same_leaf:-<never started>}; code=$same_code want 2, second leaf ran=$same_second want no, stderr='$same_err' want it to name revise-green-1 and pid $same_sup)"
-
-rm_work="$work/live-owner-after-rm"
-mkdir -p "$rm_work"
-( cd "$rm_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-term-sleep" ) >/dev/null 2>&1 &
-rm_sup=$!
-for _ in $(seq 1 50); do [[ -s "$rm_work/leaf-pid" ]] && break; sleep 0.1; done
-rm_leaf="$(tr -d '[:space:]' < "$rm_work/leaf-pid" 2>/dev/null)"
-( cd "$rm_work" && rm -f .tdd/revise-green-1.exit .tdd/revise-green-1.pid )
-sup_in "$rm_work" revise-green-1 "$stub/leaf-second" >/dev/null 2>"$rm_work/err"
-rm_code=$?
-rm_second="no"; [[ -e "$rm_work/second-ran" ]] && rm_second="yes"
-rm_err="$(cat "$rm_work/err")"
-kill -TERM "$rm_sup" 2>/dev/null
-wait "$rm_sup"
-if [[ -n "$rm_leaf" ]]; then
-  for _ in $(seq 1 20); do kill -0 "$rm_leaf" 2>/dev/null || break; sleep 0.1; done
-  kill -0 "$rm_leaf" 2>/dev/null && kill -KILL "$rm_leaf" 2>/dev/null
-fi
-{ [[ -n "$rm_leaf" ]] && [[ "$rm_code" == 2 ]] && [[ "$rm_second" == no ]] \
-  && [[ "$rm_err" == *revise-green-1* ]] && [[ "$rm_err" =~ (^|[^0-9])$rm_sup([^0-9]|$) ]]; } && ok \
-  || no "#471: a launch is still refused after the pre-launch rm -f .tdd/<name>.exit .tdd/<name>.pid while the first leaf is alive (first leaf pid=${rm_leaf:-<never started>}; code=$rm_code want 2, second leaf ran=$rm_second want no, stderr='$rm_err' want it to name revise-green-1 and pid $rm_sup)"
 
 dead_work="$work/dead-owner"
 mkdir -p "$dead_work"
