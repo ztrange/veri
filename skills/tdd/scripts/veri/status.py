@@ -15,8 +15,6 @@ from run_dir import run_file
 import tunables
 from solvable_issues import refused_if_empty, solvable
 
-SCRIPTS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
 
 def conductor_answers(pid_file):
     try:
