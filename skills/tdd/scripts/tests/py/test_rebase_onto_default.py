@@ -459,3 +459,40 @@ def test_main_answers_each_ls_remote_shape_with_its_stdout_stderr_and_exit_code_
         0, f"{PRE}\n{ONTO}\n", "")
     assert run((0, f"{ONTO}\tHEAD\n")) == (2, "", refusal)
     assert run((128, "")) == (2, "", refusal)
+
+
+@pytest.mark.process("git: a real clone rebased onto an origin that moved")
+def test_main_rebases_a_real_branch_behind_origin_main_exits_0_prints_the_pre_rebase_and_onto_shas_and_keeps_its_commit_on_top(
+        monkeypatch, tmp_path, rebase_onto_default, run_cli):
+    for who in ("AUTHOR", "COMMITTER"):
+        monkeypatch.setenv(f"GIT_{who}_NAME", "veri")
+        monkeypatch.setenv(f"GIT_{who}_EMAIL", "veri@example.test")
+
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL).stdout.strip()
+
+    def commit(repo, name, body, message):
+        (repo / name).write_text(body)
+        git(repo, "add", "-A")
+        git(repo, "commit", "-q", "-m", message)
+
+    origin, seed, clone = tmp_path / "origin.git", tmp_path / "seed", tmp_path / "clone"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    subprocess.run(["git", "init", "-q", "-b", "main", str(seed)], check=True)
+    commit(seed, "file.txt", "base\n", "initial")
+    git(seed, "push", "-q", str(origin), "main")
+    subprocess.run(["git", "clone", "-q", str(origin), str(clone)], check=True, stderr=subprocess.DEVNULL)
+    git(clone, "checkout", "-q", "-b", "tdd/1-a-run")
+    commit(clone, "work.txt", "the run's work\n", "feat: a step's green commit (#1)")
+    commit(seed, "other.txt", "another run's work\n", "feat: another run merged (#2)")
+    git(seed, "push", "-q", str(origin), "main")
+    pre = git(clone, "rev-parse", "HEAD")
+    onto = git(seed, "rev-parse", "HEAD")
+
+    code, out, err = run_cli(rebase_onto_default, [], cwd=clone)
+
+    assert (code, out, err) == (0, f"{pre}\n{onto}\n", "")
+    assert git(clone, "rev-parse", "HEAD~1") == onto
+    assert git(clone, "log", "-1", "--format=%s") == "feat: a step's green commit (#1)"
+    assert git(clone, "status", "--porcelain=v1", "--untracked-files=all") == ""
