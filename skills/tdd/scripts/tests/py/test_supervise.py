@@ -19,6 +19,14 @@ def alive(pid):
     return True
 
 
+def group_alive(pgid):
+    try:
+        os.killpg(pgid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
 def skill_head():
     return subprocess.run(["git", "-C", str(SCRIPTS), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
 
@@ -2581,21 +2589,27 @@ def real_kill(tmp_path, supervise, run_cli, name, script, **env):
     work = tmp_path / name
     work.mkdir()
     try:
-        code, _, err = run_cli(supervise, [name, "sh", "-c", script], cwd=work,
+        code, _, err = run_cli(supervise, [name, "sh", "-c", "ps -o pgid= -p $$ > stub.pgid; " + script], cwd=work,
                                env={"VERI_STUCK_RETRIES": "0", "VERI_POLL": "0.05", "VERI_KILL_POLL": "0.05", **env})
     finally:
         pids = {file: int((work / file).read_text()) for file in ("stub.pid", "child.pid") if (work / file).is_file()}
+        group = int((work / "stub.pgid").read_text()) if (work / "stub.pgid").is_file() else None
         survivors = [pid for pid in pids.values() if alive(pid)]
         for pid in survivors:
             os.kill(pid, signal.SIGKILL)
-    if survivors:
-        pytest.fail(f"real-kill {name}: recorded pids still alive after supervise returned, killed: {survivors} of {pids}")
+        group_left = group is not None and group_alive(group)
+        if group_left:
+            os.killpg(group, signal.SIGKILL)
+    if survivors or group_left:
+        pytest.fail(f"real-kill {name}: recorded pids still alive after supervise returned, killed: {survivors} of {pids}"
+                    + (f"; process group {group} still had a member, killed" if group_left else ""))
     return (code, [re.sub(r"for \d+s \(window", "for Ns (window", line) for line in err.splitlines() if line.startswith(f"supervise[{name}]")],
-            (work / ".tdd" / f"{name}.exit").read_bytes(), {file: alive(pid) for file, pid in pids.items()})
+            (work / ".tdd" / f"{name}.exit").read_bytes(),
+            {**{file: alive(pid) for file, pid in pids.items()}, "stub.pgid": group is not None and group_alive(group)})
 
 
 @pytest.mark.process("a real hung and a real runaway leaf, killed by supervise.py's signal to their process group")
-def test_cli_kills_a_real_hung_leaf_by_heartbeat_and_a_real_runaway_leaf_by_hard_timeout_leaving_none_of_their_recorded_stub_or_child_pids_alive_1461(
+def test_cli_kills_a_real_hung_leaf_by_heartbeat_and_a_real_runaway_leaf_by_hard_timeout_leaving_none_of_their_recorded_stub_or_child_pids_nor_any_member_of_their_process_group_alive_1461(
         monkeypatch, tmp_path, supervise, run_cli):
     import signal
     monkeypatch.setattr(signal, "signal", lambda *_: None)
@@ -2607,8 +2621,10 @@ def test_cli_kills_a_real_hung_leaf_by_heartbeat_and_a_real_runaway_leaf_by_hard
                   "echo $$ > stub.pid; sleep 60 & echo $! > child.pid; while true; do echo busy; sleep 0.1; done",
                   VERI_HEARTBEAT="60", VERI_TIMEOUT="1"),
     ] == [
-        (2, ["supervise[hung]: killed-stuck — no heartbeat for Ns (window 1s)"], b"2\n", {"stub.pid": False, "child.pid": False}),
-        (2, ["supervise[runaway]: killed-stuck — hard timeout 1s exceeded"], b"2\n", {"stub.pid": False, "child.pid": False}),
+        (2, ["supervise[hung]: killed-stuck — no heartbeat for Ns (window 1s)"], b"2\n",
+         {"stub.pid": False, "child.pid": False, "stub.pgid": False}),
+        (2, ["supervise[runaway]: killed-stuck — hard timeout 1s exceeded"], b"2\n",
+         {"stub.pid": False, "child.pid": False, "stub.pgid": False}),
     ]
 
 
