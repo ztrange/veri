@@ -1266,10 +1266,10 @@ REAL_RUN, REAL_POPEN = subprocess.run, subprocess.Popen
 
 def fake_claude_env(monkeypatch, origin, resolves, leaf):
     """git faked as a process: origin and its fetch present when `origin`, its HEAD and the clone's resolving when
-    `resolves`; tar dropping the real SKILL.md into its -C directory; event.sh recorded and exiting 0; fake-claude
+    `resolves`; tar dropping the real SKILL.md into its -C directory; fake-claude
     recorded with its environment, and, given a `leaf` directory, detaching a real develop-red leaf there through
     supervise.sh and run-leaf.sh from that environment with a stub claude writing the VERI_GH_DRIVER it saw."""
-    launches, events = [], []
+    launches = []
 
     def answer(args, *_, **kwargs):
         args = list(args)
@@ -1288,9 +1288,6 @@ def fake_claude_env(monkeypatch, origin, resolves, leaf):
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 REAL_RUN([str(SCRIPTS / "wait-leaf.sh"), "develop-red", "5"], cwd=leaf, env=leaf_env,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            return subprocess.CompletedProcess(args, 0, None, None)
-        if args[0].endswith("event.sh"):
-            events.append(args[1:])
             return subprocess.CompletedProcess(args, 0, None, None)
         if args[3:] == ["remote", "get-url", "origin"] and origin:
             code, out = 0, "https://example.invalid/skill.git\n"
@@ -1312,7 +1309,7 @@ def fake_claude_env(monkeypatch, origin, resolves, leaf):
 
     monkeypatch.setattr(subprocess, "run", answer)
     monkeypatch.setattr(subprocess, "Popen", popen)
-    return launches, events
+    return launches
 
 
 HANDLES = {"CLAUDECODE": "1", "CLAUDE_CODE_SESSION_ID": "parent-session",
@@ -1323,7 +1320,7 @@ HANDLES = {"CLAUDECODE": "1", "CLAUDE_CODE_SESSION_ID": "parent-session",
 
 @pytest.mark.process("a leaf detached through detach-leaf.sh, supervise.sh and run-leaf.sh from the conductor's environment")
 def test_cli_hands_claude_an_environment_without_the_session_handles_or_any_value_carrying_the_session_id_with_veri_variables_and_veri_gh_driver_through_to_a_detached_leaf_no_veri_new_skill_on_a_repin_and_the_pinned_clone_and_ref_only_when_pinned(
-        tmp_path, monkeypatch, run_cli):
+        tmp_path, monkeypatch, run_cli, events):
     past_the_guards(monkeypatch)
     for name in ("VERI_NEW_SKILL", "VERI_GH_DRIVER", "VERI_SKILL_CLONE", "VERI_SKILL_REF", "VERI_SKILL_UNPINNED",
                  "VERI_SKILL_COMMIT", "CLAUDE_CODE_REMOTE_SESSION_ID", "CLAUDE_AUTO_BACKGROUND_TASKS", *HANDLES):
@@ -1358,12 +1355,12 @@ def test_cli_hands_claude_an_environment_without_the_session_handles_or_any_valu
             (leaf / "leaf.prompt").write_text("the leaf prompt\n")
         for var in watched:
             monkeypatch.delenv(var, raising=False)
-        launches, events = fake_claude_env(monkeypatch, origin, resolves, leaf)
+        launches = fake_claude_env(monkeypatch, origin, resolves, leaf)
         code, _, _ = run_cli(run_conductor, ["4242"], env=env, cwd=cwd)
         answers[name] = {
             "code": code,
             "seen": [{var: seen[var] for var in watched if var in seen} for seen in launches],
-            "repins": [event[0] for event in events],
+            "repins": [record["event"] for record in events.records(cwd / ".tdd" / "wt" / "4242")],
             "leaf": (leaf / "leaf-driver").read_text() if leaf is not None and (leaf / "leaf-driver").exists() else None,
         }
     pinned = {"VERI_SKILL_CLONE": base, "VERI_SKILL_REF": "refs/remotes/origin/HEAD"}
