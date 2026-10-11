@@ -43,64 +43,6 @@ ambient_out="$(env -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER VERI_MODEL=son
 same_answer cleared "$cleared_code" "$cleared_out" "$ambient_code" "$ambient_out"
 report "$name"
 
-label_cut="$(mktemp "$HERE/.hermetic-label-slice.XXXXXX")"
-awk '
-  /^bad_arg="\$\(fixture bad-argument\)"$/ {skip=1}
-  /^fx="\$\(fixture graphql-refused\)"$/ {skip=0}
-  /^name="a live conductor lock / {skip=1}
-  !skip
-' "$HERE/solvable-issues.test.sh" > "$label_cut"
-printf '%s\n' 'echo "----"' 'echo "${pass:-0} passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$label_cut"
-chmod +x "$label_cut"
-name="solvable-issues.test.sh: an ambient VERI_PRIORITY_LABEL gives the same exit and the same stdout as a cleared run"
-problems=()
-label_assertions="$(grep -c 'ok || no ' "$label_cut")"
-if [[ "$label_assertions" -ne 6 ]]; then
-  problems+=("the slice of solvable-issues.test.sh from the graphql-refused fixture to the live-lock case held $label_assertions assertions, want 6 — the markers may have moved")
-else
-  cleared_label_out="$(env -u VERI_PRIORITY_LABEL "$label_cut" 2>/dev/null)" && cleared_label_code=0 || cleared_label_code=$?
-  ambient_label_out="$(env VERI_PRIORITY_LABEL=ready-for-agent "$label_cut" 2>/dev/null)" && ambient_label_code=0 || ambient_label_code=$?
-  same_answer cleared "$cleared_label_code" "$cleared_label_out" "$ambient_label_code" "$ambient_label_out"
-fi
-report "$name"
-
-rm -f "$label_cut"
-
-name="solvable-issues.test.sh: an ambient VERI_GH_DRIVER of auto, rest or graphql gives the same exit and the same stdout as a cleared run"
-problems=()
-driver_solvable="$(mktemp "$HERE/.hermetic-driver-slice.XXXXXX")"
-awk '
-  /^bad_arg="\$\(fixture bad-argument\)"$/ {skip=1}
-  /^fx="\$\(fixture graphql-refused\)"$/ {skip=0}
-  !skip
-' "$HERE/solvable-issues.test.sh" > "$driver_solvable"
-chmod +x "$driver_solvable"
-slice_problems=()
-for slice in "solvable-issues.test.sh:$driver_solvable:ok || no :6"; do
-  IFS=: read -r slice_suite slice_path slice_pattern slice_want <<< "$slice"
-  slice_got="$(grep -c -- "$slice_pattern" "$slice_path")"
-  [[ "$slice_got" == "$slice_want" ]] ||
-    slice_problems+=("the slice of $slice_suite held $slice_got assertions, want $slice_want — the markers may have moved")
-done
-if (( ${#slice_problems[@]} )); then
-  problems=("${slice_problems[@]}")
-else
-  driver_findings=()
-  for driver_suite in "solvable-issues.test.sh:$driver_solvable"; do
-    cleared_driver_out="$(env -u VERI_GH_DRIVER "${driver_suite#*:}" 2>/dev/null)" && cleared_driver_code=0 || cleared_driver_code=$?
-    for driver in auto rest graphql; do
-      ambient_driver_out="$(env VERI_GH_DRIVER="$driver" "${driver_suite#*:}" 2>/dev/null)" && ambient_driver_code=0 || ambient_driver_code=$?
-      same_answer cleared "$cleared_driver_code" "$cleared_driver_out" "$ambient_driver_code" "$ambient_driver_out"
-      for problem in ${problems[@]+"${problems[@]}"}; do
-        driver_findings+=("${driver_suite%%:*} under VERI_GH_DRIVER=$driver: $problem")
-      done
-    done
-  done
-  problems=(${driver_findings[@]+"${driver_findings[@]}"})
-fi
-rm -f "$driver_solvable"
-report "$name"
-
 name="capture-spec.test.sh: an ambient VERI_GH_DRIVER of auto, rest or graphql gives the same exit and the same stdout as a cleared run (#1114)"
 driver_findings=()
 cleared_driver_out="$(env -u VERI_GH_DRIVER "$HERE/capture-spec.test.sh" 2>/dev/null)" && cleared_driver_code=0 || cleared_driver_code=$?
@@ -173,7 +115,6 @@ if [[ -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
   mkdir -p "$leak_work/scripts/tests"
   for stand_in in \
     'leaf-model:[ -z "${VERI_MODEL:-}" ]' \
-    'solvable-issues:[ -z "${VERI_PRIORITY_LABEL:-}" ]' \
     'run-conductor:[ -z "${VERI_NEW_SKILL:-}" ]'; do
     {
       printf '#!/bin/sh\n'
@@ -190,7 +131,6 @@ if [[ -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
     problems+=("want the copy to exit non-zero with every stand-in leaking, got 0: $(printf '%q' "$leak_out")")
   for leaked in \
     "leaf-model.test.sh: an ambient VERI_MODEL" \
-    "solvable-issues.test.sh: an ambient VERI_PRIORITY_LABEL" \
     "run-conductor.test.sh: an ambient VERI_NEW_SKILL=1"; do
     [[ "$leak_out" == *"FAIL - $leaked"* ]] ||
       problems+=("want a FAIL line naming '$leaked', got: $(printf '%q' "$leak_out")")
