@@ -55,11 +55,8 @@ def to_contract(code):
     return code if code in (0, 1, 2, 3) else 2
 
 
-def main(argv):
-    if not argv or not argv[0]:
-        print("usage: harvest-usage.sh <leaf-name>", file=sys.stderr)
-        return 2
-    name = argv[0]
+def harvest(name, env):
+    """Append the usage event for leaf name, reading the leaf's environment from env; diagnostics go to stderr."""
     log = ".tdd/%s.log" % name
     try:
         record = closing_result(log)
@@ -74,7 +71,14 @@ def main(argv):
     role = leaf_role(name)
     if role is None:
         return 2
-    return to_contract(event.mark("", event.context(dict(os.environ, **role)), "usage", pairs))
+    return to_contract(event.mark("", event.context(dict(env, **role)), "usage", pairs))
+
+
+def main(argv):
+    if not argv or not argv[0]:
+        print("usage: harvest-usage.sh <leaf-name>", file=sys.stderr)
+        return 2
+    return harvest(argv[0], os.environ)
 
 
 if __name__ == "__main__":
