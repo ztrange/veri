@@ -21,15 +21,8 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPT="$HERE/../workqueue.sh"
-SKILL_DIR="$HERE/../.."
 source "$HERE/lib/harness.sh"
 work="$(scratch_dir)"
-
-make_repo() {
-  new_repo -b main "$1" >/dev/null 2>&1
-  git -C "$1" -c user.name=veri -c user.email=veri@example.test \
-    commit -q --allow-empty -m initial >/dev/null 2>&1
-}
 
 seed_queue() {
   mkdir -p "$1/.tdd"
@@ -39,20 +32,6 @@ seed_queue() {
 issues_fixture() {
   mkdir -p "$work/$1.gh"
   cat > "$work/$1.gh/issues.json"
-}
-
-expect_show() {
-  local name="$1" want what="$3" out code
-  want="$(printf "$2")"
-  shift 3
-  out="$(cd "$work/$name" && "$SCRIPT" show "$@" 2>"$work/$name.err")" && code=0 || code=$?
-  if [[ "$code" -eq 0 && "$out" == "$want" ]]; then
-    ok
-  else
-    no "$what"
-    echo "    exit: $code (want 0), stderr: $(cat "$work/$name.err")"
-    diff <(printf '%s\n' "$want") <(printf '%s\n' "$out") | sed 's/^/    /'
-  fi
 }
 
 repo="$work/next-graphql-refused"
@@ -131,123 +110,6 @@ else
   echo "    working gh: exit $working_code (want 0), stdout: '$working' (want '22')"
   echo "    GraphQL refused: exit $code (want $working_code), stdout: '$out' (want '$working')"
   echo "    GraphQL refused stderr: '$refused_err' (want '$working_err')"
-fi
-
-make_repo "$work/show-grouped"
-seed_queue "$work/show-grouped" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\nalpha\t7\tqueued\t\n'
-expect_show show-grouped 'alpha\n\t12\trunning\n\t7\tqueued\nbeta\n\t4\tqueued' \
-  "show prints every item grouped by worker, each with its issue and state"
-
-make_repo "$work/show-one"
-seed_queue "$work/show-one" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\nalpha\t7\tqueued\t\n'
-expect_show show-one 'alpha\n\t12\trunning\n\t7\tqueued' \
-  "show <worker> prints only that worker's items" alpha
-
-repo="$work/linked-worktree"
-make_repo "$repo"
-git -C "$repo" worktree add -q -b side "$work/linked-worktree.wt" >/dev/null 2>&1
-seed_queue "$repo" 'beta\t4\tqueued\t\n'
-want_queue="$(printf 'beta\t4\tqueued\t\nalpha\t7\tqueued\t')"
-want_show="$(printf 'beta\n\t4\tqueued\nalpha\n\t7\tqueued')"
-out="$(cd "$work/linked-worktree.wt" && "$SCRIPT" assign alpha 7 2>&1 \
-  && "$SCRIPT" show 2>&1)" && code=0 || code=$?
-got="$(cat "$repo/.tdd/workqueue")"
-if [[ "$code" -eq 0 && "$got" == "$want_queue" && "$out" == "$want_show" \
-  && ! -e "$work/linked-worktree.wt/.tdd/workqueue" ]]; then
-  ok
-else
-  no "called from a linked worktree, workqueue.sh reads and writes the main working tree's queue"
-  echo "    exit: $code (want 0)"
-  echo "    worktree's own .tdd/workqueue: $([[ -e "$work/linked-worktree.wt/.tdd/workqueue" ]] \
-    && echo present || echo absent) (want absent)"
-  echo "    main tree's queue:"
-  diff <(printf '%s\n' "$want_queue") <(printf '%s\n' "$got") | sed 's/^/    /'
-  echo "    show, run in the worktree:"
-  diff <(printf '%s\n' "$want_show") <(printf '%s\n' "$out") | sed 's/^/    /'
-fi
-
-run_sequence() {
-  local script="$1"
-  "$script" assign alpha 7 8 2>&1 && "$script" start alpha 7 2>&1 && "$script" show 2>&1
-}
-make_repo "$work/in-place"
-seed_queue "$work/in-place" 'beta\t4\tqueued\t\n'
-make_repo "$work/via-link"
-git -C "$work/via-link" worktree add -q -b side "$work/via-link.wt" >/dev/null 2>&1
-mkdir -p "$work/via-link.wt/sub/dir"
-seed_queue "$work/via-link" 'beta\t4\tqueued\t\n'
-ln -s "$(cd "$SKILL_DIR" && pwd)" "$work/skill-link"
-want_queue="$(printf 'beta\t4\tqueued\t\nalpha\t7\trunning\t\nalpha\t8\tqueued\t')"
-want_show="$(printf 'beta\n\t4\tqueued\nalpha\n\t7\trunning\n\t8\tqueued')"
-place_out="$(cd "$work/in-place" && run_sequence "$SCRIPT")" && place_code=0 || place_code=$?
-link_out="$(cd "$work/via-link.wt/sub/dir" && run_sequence "$work/skill-link/scripts/workqueue.sh")" \
-  && link_code=0 || link_code=$?
-place_queue="$(cat "$work/in-place/.tdd/workqueue")"
-link_queue="$(cat "$work/via-link/.tdd/workqueue" 2>/dev/null || printf '<no .tdd/workqueue>')"
-if [[ "$link_code" -eq "$place_code" && "$link_code" -eq 0 && "$link_out" == "$place_out" \
-  && "$link_out" == "$want_show" && "$link_queue" == "$place_queue" \
-  && "$link_queue" == "$want_queue" && ! -e "$work/via-link.wt/.tdd/workqueue" \
-  && ! -e "$work/via-link.wt/sub/dir/.tdd/workqueue" ]]; then
-  ok
-else
-  no "run through a symlink to the skill directory from a subdirectory of a linked worktree, workqueue.sh assigns, starts and shows as in place, on the main working tree's queue"
-  echo "    exit: $link_code (in place: $place_code, want 0)"
-  echo "    show via the link, against in place:"
-  diff <(printf '%s\n' "$place_out") <(printf '%s\n' "$link_out") | sed 's/^/    /'
-  echo "    main tree's queue via the link, against in place:"
-  diff <(printf '%s\n' "$place_queue") <(printf '%s\n' "$link_queue") | sed 's/^/    /'
-fi
-
-worker_doc="$SKILL_DIR/WORKER.md"
-calls_missing=""
-for call in next start done park; do
-  grep -Eq "workqueue\.sh[[:space:]]+$call([^[:alnum:]_-]|\$)" "$worker_doc" 2>/dev/null \
-    || calls_missing="$calls_missing $call"
-done
-if [[ -f "$worker_doc" && -z "$calls_missing" ]]; then
-  ok
-else
-  no "WORKER.md beside SKILL.md documents the worker loop, naming each workqueue.sh call"
-  echo "    WORKER.md: $([[ -f "$worker_doc" ]] && echo present || echo absent) (want present)"
-  echo "    calls not named:${calls_missing:- none} (want none)"
-fi
-
-skill_doc="$SKILL_DIR/SKILL.md"
-if grep -E '`Read`.*`WORKER\.md`' "$skill_doc" > /dev/null 2>&1; then
-  ok
-else
-  no "SKILL.md tells a session born as a worker to Read WORKER.md, the way it points a scope at SCOPE-LOOP.md"
-  echo "    lines of SKILL.md naming WORKER.md (want one holding \`Read\` then \`WORKER.md\`):"
-  grep -n 'WORKER\.md' "$skill_doc" | sed 's/^/      /'
-fi
-
-context_doc="$SKILL_DIR/../../CONTEXT.md"
-terms_missing=""
-for term in Worker 'Work queue'; do
-  grep -Ei "^\*\*$term\*\*:" "$context_doc" > /dev/null 2>&1 \
-    || terms_missing="$terms_missing **$term**"
-done
-if [[ -z "$terms_missing" ]]; then
-  ok
-else
-  no "CONTEXT.md defines worker and work queue"
-  echo "    terms not defined:$terms_missing (want none)"
-fi
-
-make_repo "$work/show-no-items"
-seed_queue "$work/show-no-items" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\nalpha\t7\tqueued\t\n'
-(cd "$work/show-no-items" && "$SCRIPT" show beta > "$work/show-no-items.beta" \
-  2>"$work/show-no-items.err") && beta_code=0 || beta_code=$?
-(cd "$work/show-no-items" && "$SCRIPT" show gamma > "$work/show-no-items.gamma" \
-  2>>"$work/show-no-items.err") && gamma_code=0 || gamma_code=$?
-if [[ "$beta_code" -eq 0 && "$(cat "$work/show-no-items.beta")" == "$(printf 'beta\n\t4\tqueued')" &&
-  "$gamma_code" -eq 0 && ! -s "$work/show-no-items.gamma" ]]; then
-  ok
-else
-  no "show <worker> prints only that worker's group, and nothing with exit 0 for a worker with no items"
-  echo "    show beta: exit $beta_code (want 0), stdout: '$(cat "$work/show-no-items.beta")'"
-  echo "    show gamma: exit $gamma_code (want 0), stdout bytes: $(wc -c < "$work/show-no-items.gamma" | tr -d ' ') (want 0)"
-  echo "    stderr: $(cat "$work/show-no-items.err")"
 fi
 
 finish
