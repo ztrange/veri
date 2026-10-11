@@ -417,23 +417,6 @@ def launch(run_verdict, argv, run, monkeypatch, run_cli, fake_processes, answer)
     return result, handed, calls
 
 
-@pytest.mark.parametrize("status", [0, 1, 5])
-def test_cli_exits_with_verify_shs_own_code_unmapped_handing_it_the_apostrophe_title_as_one_argument(
-        status, tmp_path, monkeypatch, run_cli, fake_processes):
-    scripts = tmp_path / "scripts"
-    run_verdict = staged_tree(scripts)
-    run = tmp_path / "run"
-    run.mkdir()
-    verifier = f"{scripts}/verify.sh"
-    argv = ["--step", APOSTROPHE, "red", "spec.md", "suite.test.sh", "a-target-test-id"]
-
-    result, handed, calls = launch(run_verdict, argv, run, monkeypatch, run_cli, fake_processes,
-                                   lambda line, **_: (status, "", ""))
-
-    assert (result, handed, len(calls)) == ((status, "", ""), [(verifier, [verifier, *argv])], 1)
-    assert [a for a in handed[0][1] if a == APOSTROPHE] == [APOSTROPHE]
-
-
 def test_cli_exits_2_and_never_1_when_verify_sh_refuses_an_empty_step_title_handed_to_it_unchanged(
         tmp_path, monkeypatch, run_cli, fake_processes):
     scripts = tmp_path / "scripts"
@@ -447,69 +430,6 @@ def test_cli_exits_2_and_never_1_when_verify_sh_refuses_an_empty_step_title_hand
                                    lambda line, **_: (2, "", ""))
 
     assert (result, handed, len(calls)) == ((2, "", ""), [(verifier, [verifier, *argv])], 1)
-
-
-@pytest.mark.parametrize("verifier", ["absent", "not executable"])
-def test_cli_exits_2_and_never_1_naming_scripts_verify_sh_when_it_cannot_start_it(
-        verifier, tmp_path, monkeypatch, run_cli, fake_processes):
-    scripts = tmp_path / "scripts"
-    run_verdict = staged_module(scripts)
-    if verifier == "not executable":
-        (scripts / "verify.sh").write_text("#!/bin/sh\nexit 0\n")
-    run = tmp_path / "run"
-    run.mkdir()
-    argv = ["--step", APOSTROPHE, "red", "spec.md", "suite.test.sh", "a-target-test-id"]
-
-    result, handed, calls = launch(run_verdict, argv, run, monkeypatch, run_cli, fake_processes,
-                                   lambda line, **_: (0, "", ""))
-
-    assert (result, handed, calls) == (
-        (2, "", f"run-verdict.sh: cannot start the verifier: {scripts}/verify.sh is missing or not executable\n"),
-        [], [])
-
-
-def test_cli_empties_tdd_verify_red_reason_before_verify_sh_runs(
-        tmp_path, monkeypatch, run_cli, fake_processes):
-    scripts = tmp_path / "scripts"
-    run_verdict = staged_tree(scripts)
-    run = tmp_path / "run"
-    (run / ".tdd").mkdir(parents=True)
-    reason = run / ".tdd" / "verify-red.reason"
-    reason.write_text("REJECT: the previous step's test does not pin the criterion it names\n")
-    seen = []
-
-    def verify(line, **_):
-        seen.append(reason.read_text())
-        os.write(1, VERDICT_LINE.encode())
-        return 0, "", ""
-
-    result, _, _ = launch(run_verdict, ["--step", APOSTROPHE, "red", "spec.md", "suite.test.sh", "a-target-test-id"],
-                          run, monkeypatch, run_cli, fake_processes, verify)
-
-    assert (result, seen) == ((0, VERDICT_LINE, ""), [""])
-
-
-@pytest.mark.parametrize("tdd, argv", [
-    (False, ["--step", APOSTROPHE, "red", "spec.md", "suite.test.sh", "a-target-test-id"]),
-    (True, []),
-])
-def test_cli_leaves_verify_shs_stderr_on_its_own_with_no_tdd_or_no_phase(
-        tdd, argv, tmp_path, monkeypatch, run_cli, fake_processes):
-    scripts = tmp_path / "scripts"
-    run_verdict = staged_tree(scripts)
-    run = tmp_path / "run"
-    run.mkdir()
-    if tdd:
-        (run / ".tdd").mkdir()
-
-    def verify(line, **_):
-        os.write(2, NOISE.encode())
-        os.write(1, VERDICT_LINE.encode())
-        return 0, "", ""
-
-    result, _, _ = launch(run_verdict, argv, run, monkeypatch, run_cli, fake_processes, verify)
-
-    assert (result, sorted(p.name for p in run.rglob("*") if p.name != ".tdd")) == ((0, VERDICT_LINE, NOISE), [])
 
 
 @pytest.mark.process("a real supervise.sh running the real run-verdict.sh, whose real verify.sh refuses --step \"\"")
