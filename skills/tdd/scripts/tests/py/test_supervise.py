@@ -1406,10 +1406,12 @@ def test_main_ignores_a_kill_whose_group_and_pid_signals_both_raise_and_still_en
 
 
 def test_main_reports_a_killed_leaf_whose_log_ends_in_a_result_record_with_the_leafs_own_outcome_appending_its_result_text_and_otherwise_stays_killed_stuck(
-        monkeypatch, tmp_path, capsysbinary, supervise):
+        monkeypatch, tmp_path, capfdbinary, supervise):
+    import re
     import signal
     import time
     monkeypatch.setattr(signal, "signal", lambda *_: None)
+    real_popen = subprocess.Popen
 
     def killed(label, log_text, **env):
         work = tmp_path / label
@@ -1456,6 +1458,8 @@ def test_main_reports_a_killed_leaf_whose_log_ends_in_a_result_record_with_the_l
             return ""
 
         def run(args, *_, **kwargs):
+            if str(args[0]).endswith("harvest-usage.sh"):
+                return subprocess.CompletedProcess(args, real_popen(args, **kwargs).wait())
             out = as_asked(answer(args), kwargs)
             return subprocess.CompletedProcess(args, 0, out, "" if isinstance(out, str) else b"")
 
@@ -1478,9 +1482,10 @@ def test_main_reports_a_killed_leaf_whose_log_ends_in_a_result_record_with_the_l
             code = "<never ended>"
         except Exception as error:
             code = repr(error)
-        out, err = capsysbinary.readouterr()
+        out, err = capfdbinary.readouterr()
         log = work / ".tdd" / "develop-red.log"
-        return {"code": code, "err": err.decode(errors="replace"),
+        return {"code": code, "err": re.sub(r"Traceback \(most recent call last\):\n(?:  .*\n)+(\w+: .*\n)", r"harvest: \1",
+                                           err.decode(errors="replace")),
                 "appended": log.read_bytes()[len(log_text):] if log.exists() else None,
                 "stdout is log": log.exists() and out == log.read_bytes(),
                 "launches": len(launched),
@@ -1490,9 +1495,12 @@ def test_main_reports_a_killed_leaf_whose_log_ends_in_a_result_record_with_the_l
 
     def recovered(outcome):
         return (f"supervise[develop-red]: killed after the leaf had already written its result ({cause})"
-                f" — reporting the leaf's own {outcome}\nsupervise[develop-red]: {outcome}\n")
+                f" — reporting the leaf's own {outcome}\nharvest: KeyError: 'usage'\nsupervise[develop-red]: {outcome}\n")
 
-    stuck = f"supervise[develop-red]: killed-stuck — {cause}\n"
+    stuck = ("harvest-usage.sh: no closing result record in .tdd/develop-red.log \u2014 no usage event appended"
+             f" for develop-red\nsupervise[develop-red]: killed-stuck \u2014 {cause}\n")
+    undecodable_stuck = ("harvest: UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid"
+                         f" start byte\nsupervise[develop-red]: killed-stuck \u2014 {cause}\n")
     may_retry_and_preserve = {"VERI_STUCK_RETRIES": "1", "VERI_ISSUE": "1073", "VERI_STEP": "24"}
     erred = killed("erred", b'chatter\n{"type":"result","is_error":true,"result":"boom"}\n',
                    **may_retry_and_preserve)
@@ -1509,15 +1517,17 @@ def test_main_reports_a_killed_leaf_whose_log_ends_in_a_result_record_with_the_l
         (1, recovered("failure"), b"\nboom\n", True, 1, []),
         (0, recovered("success"), b"\nVERDICT: PASS\n", True, 1, []),
         (2, stuck, b"", True, 1, []),
-        (2, stuck, b"", True, 1, []),
+        (2, undecodable_stuck, b"", True, 1, []),
         (0, recovered("success"), b"", True, 1, []),
     ]
 
 
 def test_main_keeps_a_killed_leaf_whose_log_cannot_be_opened_killed_stuck_writing_2_to_its_exit_file_and_never_raising(
-        monkeypatch, tmp_path, capsysbinary, supervise):
+        monkeypatch, tmp_path, capfdbinary, supervise):
+    import re
     import signal
     import time
+    real_popen = subprocess.Popen
     monkeypatch.setattr(signal, "signal", lambda *_: None)
     monkeypatch.chdir(tmp_path)
     clean_env(monkeypatch, VERI_TIMEOUT="5000", VERI_STUCK_RETRIES="0", VERI_HEARTBEAT="3",
@@ -1560,6 +1570,8 @@ def test_main_keeps_a_killed_leaf_whose_log_cannot_be_opened_killed_stuck_writin
         return ""
 
     def run(args, *_, **kwargs):
+        if str(args[0]).endswith("harvest-usage.sh"):
+            return subprocess.CompletedProcess(args, real_popen(args, **kwargs).wait())
         out = as_asked(answer(args), kwargs)
         return subprocess.CompletedProcess(args, 0, out, "" if isinstance(out, str) else b"")
 
@@ -1583,10 +1595,17 @@ def test_main_keeps_a_killed_leaf_whose_log_cannot_be_opened_killed_stuck_writin
         code = "<never ended>"
     except Exception as error:
         code = repr(error)
-    _, err = capsysbinary.readouterr()
+    _, err = capfdbinary.readouterr()
     exitfile = tmp_path / ".tdd" / "develop-red.exit"
 
-    assert (code, exitfile.read_bytes() if exitfile.exists() else None, b"Traceback" in err) == (2, b"2\n", False)
+    err = re.sub(r"Traceback \(most recent call last\):\n(?:  .*\n)+(\w+: .*\n)", r"harvest: \1", err.decode(errors="replace"))
+
+    assert (code, exitfile.read_bytes() if exitfile.exists() else None, err) == (
+        2, b"2\n",
+        "supervise[develop-red]: [Errno 21] Is a directory: '.tdd/develop-red.log'\n"
+        "harvest: IsADirectoryError: [Errno 21] Is a directory: '.tdd/develop-red.log'\n"
+        "supervise[develop-red]: killed-stuck \u2014 no heartbeat for 4s (window 3s)\n"
+        "supervise[develop-red]: [Errno 21] Is a directory: '.tdd/develop-red.log'\n")
 
 
 def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_and_retries_a_killed_leaf_while_tries_are_below_veri_stuck_retries_read_as_bash_arithmetic(
