@@ -652,7 +652,7 @@ unauthenticated baseline never gets a cycle.
    `VERI_MODEL_VERIFIER` only for a verifier one, so a preflight that skipped a name would
    let that name's bad value through and kill every leaf it governs at launch.
    A variable that is empty or whitespace-only is treated as unset, so it never stops the run.
-   Only a value carrying a word and whitespace stops it, internal, leading or trailing alike (`sonnet 5`, `" sonnet"`, `"sonnet "`): **exit 2** means the value cannot be a
+   Only a value with internal whitespace stops it — and a word with a leading or trailing space counts (`sonnet 5`, `" sonnet"`, `"sonnet "`): **exit 2** means the value cannot be a
    model name — `sonnet 5` is two words where the CLI takes one — and is a preflight-class
    stop like step 5: report its stderr diagnostic verbatim and do not start. The resolver is
    otherwise first called at launch, by which time the branch, the worktree and the plan
