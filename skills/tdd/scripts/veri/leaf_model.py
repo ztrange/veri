@@ -25,7 +25,9 @@ def resolve(name):
     if role is None:
         return None
     actor = role["VERI_ACTOR"]
-    model = os.environ.get("VERI_MODEL_" + actor.upper()) or os.environ.get("VERI_MODEL", "")
+    revise = name.startswith("revise-") or name == "develop-exhausted"
+    model = ((revise and os.environ.get("VERI_MODEL_REVISE"))
+             or os.environ.get("VERI_MODEL_" + actor.upper()) or os.environ.get("VERI_MODEL", ""))
     if any(c in WHITESPACE for c in model):
         _write(sys.stderr, f"leaf-model: model '{model}' contains whitespace (a model id or alias is one word)")
         return None
