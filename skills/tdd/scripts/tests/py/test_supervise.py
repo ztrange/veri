@@ -196,6 +196,23 @@ def test_main_refuses_a_settled_timeout_not_a_whole_number_of_seconds_and_a_kill
     assert b"VERI_KILL_POLL" not in capsysbinary.readouterr().err
 
 
+def test_cli_refuses_a_kill_poll_that_is_not_a_number_through_run_cli_with_exit_2_one_stderr_line_naming_it_and_its_value_starting_nothing(
+        monkeypatch, tmp_path, supervise, run_cli, fake_processes):
+    monkeypatch.chdir(tmp_path)
+    calls = fake_processes()
+    clean_env(monkeypatch, VERI_TIMEOUT="900")
+
+    answers = [run_cli(supervise, ["develop-red", "true"], env={"VERI_KILL_POLL": value}, cwd=tmp_path)
+               for value in ("fast", "1e3")]
+
+    assert answers == [
+        (2, "", "supervise: VERI_KILL_POLL must be a non-negative number: fast\n"),
+        (2, "", "supervise: VERI_KILL_POLL must be a non-negative number: 1e3\n"),
+    ]
+    assert calls == []
+    assert sorted(os.listdir(tmp_path)) == []
+
+
 def fake_leaf_launch(monkeypatch):
     """date, stat and git answered in-process; a Popen of a /bin/sh -c wrapper runs that wrapper for real, to its end."""
     real_popen = subprocess.Popen
