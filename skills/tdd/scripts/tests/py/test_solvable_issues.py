@@ -888,3 +888,39 @@ def test_cli_reads_the_open_listing_in_one_request_under_100_open_items_and_the_
     }
     assert [len(wanted.splitlines()) for _, wanted in observed.values()] == (
         [38, 98, 128] if endpoint == "issues" else [9, 9, 9])
+
+
+def fake_gh_refusing_graphql_serving_rest(monkeypatch, listings):
+    """subprocess.run failing `gh issue`/`gh pr` with the 403 and answering `gh api repos/{owner}/{repo}/<endpoint>?...` a page at a time from `listings` (endpoint -> items); git answers nothing."""
+    def fake_run(args, *rest, **kwargs):
+        args = list(args)
+        if args[:4] == ["git", "worktree", "list", "--porcelain"]:
+            return subprocess.CompletedProcess(args, 0, "", "")
+        if args[:1] != ["gh"]:
+            raise AssertionError("unexpected command: %r" % (args,))
+        if args[1] in ("issue", "pr", "repo"):
+            return subprocess.CompletedProcess(args, 1, "", "HTTP 403: GitHub GraphQL is not available from Claude Code sessions\n")
+        if args[1] != "api" or len(args) != 3 or not args[2].startswith("repos/{owner}/{repo}/"):
+            raise AssertionError("unexpected command: %r" % (args,))
+        path, _, query = args[2].partition("?")
+        params = dict(pair.split("=") for pair in query.split("&"))
+        items = [item for item in listings[path.rsplit("/", 1)[1]] if params["state"] == "all" or item["state"].lower() == params["state"]]
+        items.sort(key=lambda item: item["number"], reverse=params.get("direction", "desc") == "desc")
+        size, page = int(params["per_page"]), int(params.get("page", 1))
+        return subprocess.CompletedProcess(args, 0, json.dumps(items[(page - 1) * size:page * size]) + "\n", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "Popen", fake_run)
+
+
+def test_cli_against_a_gh_that_refuses_graphql_with_the_403_and_answers_rest_under_repos_owner_repo_a_page_at_a_time_prints_the_same_issue_numbers_and_exit_code_with_empty_stderr_across_more_than_one_100_item_page(tmp_path, monkeypatch, run_cli, solvable_issues):
+    issues = [labelled(100 + k) for k in range(110)] + [
+        opted_in(70), dict(opted_in(71), body="## Blocked by\n\n#72\n"), labelled(72), opted_in(73),
+        dict(opted_in(74), labels=[{"name": "ready-for-agent"}, {"name": "priority"}])]
+    pulls = [{"number": 1 + k, "state": "OPEN", "body": ""} for k in range(105)] + [
+        {"number": 900, "state": "OPEN", "body": "Draft PR opened by a /tdd run.\n\nCloses #73\n"}]
+    fake_gh_refusing_graphql_serving_rest(monkeypatch, {"issues": issues, "pulls": pulls})
+
+    answer = run_cli(solvable_issues, [], env={"VERI_GH_DRIVER": "auto"}, cwd=tmp_path)
+
+    assert answer == (0, "74\n70\n", "")
