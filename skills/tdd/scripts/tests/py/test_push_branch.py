@@ -1,7 +1,11 @@
 """In-process cases for veri/push_branch.py, the module push-branch.sh is a shim over."""
 import importlib
+import os
+import subprocess
 
 import pytest
+
+from conftest import SCRIPTS
 
 
 @pytest.fixture
@@ -307,3 +311,75 @@ def test_main_refuses_a_retries_or_backoff_that_is_not_a_non_negative_whole_numb
         (2, [], f"push-branch.sh: {name} must be a non-negative integer, got '{value}'\n")
         for name in names for value in bad
     ]
+
+
+@pytest.mark.process("a real git pushing a branch to a bare remote, observed by the remote's own ref")
+def test_main_lands_a_push_on_a_real_remote_at_the_commit_head_is_on_writing_nothing_and_recording_no_event(tmp_path, run_cli, push_branch):
+    def git(repo, *args):
+        return subprocess.run(["git", "-C", str(repo), "-c", "user.name=veri", "-c", "user.email=veri@example.test", *args],
+                              check=True, capture_output=True, text=True).stdout.strip()
+
+    remote, repo = tmp_path / "origin.git", tmp_path / "work"
+    git(tmp_path, "init", "-q", "--bare", str(remote))
+    git(tmp_path, "init", "-q", "-b", "main", str(repo))
+    git(repo, "commit", "-q", "--allow-empty", "-m", "initial")
+    git(repo, "checkout", "-q", "-b", "tdd/191-run-commits-live-on-one-disk")
+    git(repo, "commit", "-q", "--allow-empty", "-m", "feat: a step's green commit (#191)")
+    git(repo, "remote", "add", "origin", str(remote))
+
+    code, out, err = run_cli(push_branch, [], env={"VERI_PUSH_BACKOFF": "0", "VERI_ISSUE": "191"}, cwd=repo)
+
+    assert (code, out, git(remote, "rev-parse", "refs/heads/tdd/191-run-commits-live-on-one-disk"),
+            (repo / ".tdd" / "events.jsonl").exists()) == (0, "", git(repo, "rev-parse", "HEAD"), False)
+
+
+def test_main_leaves_the_working_directorys_ledger_byte_identical_after_a_failed_push(tmp_path, monkeypatch, push_branch, fake_processes, events):
+    fake_processes(lambda line, **_: (128, "fatal: unable to access origin\n", ""))
+    (tmp_path / ".tdd").mkdir()
+    ledger = tmp_path / ".tdd" / "issue-191.md"
+    ledger.write_bytes(b"\n- [ ] push-branch.sh leaves the ledger alone\n")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VERI_ISSUE", "191")
+    monkeypatch.setenv("VERI_PUSH_RETRIES", "0")
+    monkeypatch.setenv("VERI_PUSH_BACKOFF", "0")
+
+    code = push_branch.main([])
+
+    assert (code, ledger.read_bytes(), [r["event"] for r in events.records()]) == (
+        0, b"\n- [ ] push-branch.sh leaves the ledger alone\n", ["push-failed"])
+
+
+def test_main_refuses_a_bare_force_an_unpinned_lease_and_a_bad_retries_with_nothing_on_stdout_and_no_process(tmp_path, run_cli, push_branch, fake_processes):
+    bad_argument = "push-branch.sh: the only argument is --force-with-lease=<branch>:<sha>, got '{}'\n" \
+                   "usage: push-branch.sh [--force-with-lease=<branch>:<sha>]\n"
+
+    def run_with(argv, retries="0"):
+        calls = fake_processes(lambda line, **_: (0, "", ""))
+        code, out, err = run_cli(push_branch, argv, env={"VERI_PUSH_RETRIES": retries, "VERI_PUSH_BACKOFF": "0"}, cwd=tmp_path)
+        return code, calls, out, err
+
+    refused = ("--force", "--force-with-lease", "--force-with-lease=feature")
+    observed = [run_with([arg]) for arg in refused] + [run_with([], retries="x")]
+
+    assert observed == [(2, [], "", bad_argument.format(arg)) for arg in refused] + [
+        (2, [], "", "push-branch.sh: VERI_PUSH_RETRIES must be a non-negative integer, got 'x'\n")]
+
+
+@pytest.mark.process("push-branch.sh run through a symlink to the skills directory against a missing origin")
+def test_the_shim_run_through_a_symlink_from_another_directory_answers_as_it_does_in_place_recording_push_failed_there(tmp_path, events):
+    (tmp_path / "skills").symlink_to(SCRIPTS.parents[1], target_is_directory=True)
+    env = dict(os.environ, VERI_PUSH_RETRIES="0", VERI_PUSH_BACKOFF="0", VERI_ISSUE="720")
+
+    def run_from(where, script):
+        repo = tmp_path / where
+        subprocess.run(["git", "init", "-q", str(repo)], check=True, capture_output=True)
+        subprocess.run(["git", "-C", str(repo), "remote", "add", "origin", str(tmp_path / "no-such-remote.git")],
+                       check=True, capture_output=True)
+        ran = subprocess.run([str(script)], cwd=repo, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+        return ran.returncode, ran.stdout, ran.stderr, [r["event"] for r in events.records(repo)]
+
+    in_place = run_from("in-place", SCRIPTS / "push-branch.sh")
+    linked = run_from("linked", tmp_path / "skills" / "tdd" / "scripts" / "push-branch.sh")
+
+    assert linked == in_place
+    assert (linked[0], linked[1], linked[3]) == (0, "", ["push-failed"])
