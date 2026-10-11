@@ -131,6 +131,8 @@ def main(argv):
     except _IncludeRefused as refusal:
         sys.stderr.buffer.write(refusal.args[0] + b"\n")
         return 2
+    if phase == "green" and "REPLACES_CASE" in marked and len(args) > 6 and args[6]:
+        values["REPLACES_CASE"] += b"\n\nStill owed for deletion: " + os.fsencode(args[6])
     values.update(ISSUE_SPEC=_read(spec), STEP=os.fsencode(step), TEST_CMD=os.fsencode(args[2]),
                   TIMED_TEST_RUN=os.fsencode(f"{HERE}/timed-test-run.sh"))
     for name, value in values.items():

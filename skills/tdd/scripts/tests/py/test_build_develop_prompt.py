@@ -1225,6 +1225,21 @@ def test_main_requires_a_replaces_case_green_to_delete_exactly_the_cases_its_ste
         rb"|delet[^.]{0,60}(is|are) required", prompt, re.I), prompt
 
 
+def test_main_names_the_surviving_cases_in_a_replaces_case_green_prompt_rebuilt_after_the_first_green_left_them_issue_1406(
+        tmp_path, capsysbinary, build_develop_prompt):
+    spec = tmp_path / "spec.md"
+    spec.write_bytes(b'zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux".\n')
+    step = ('⟦replaces-case⟧ tests/zorblat.test.sh: "zorblat frobs a nitz", "zorblat quuxes a frob" move to '
+            'tests/py/test_zorblat.py ⟦criterion 1⟧')
+    survivors = "still present in tests/zorblat.test.sh: zorblat quuxes a frob"
+    code = build_develop_prompt.main(["green", str(spec), step, "make test", "tests/py/test_zorblat.py",
+                                      "test_zorblat_frobs_a_nitz", "make unit", survivors])
+    out, _ = capsysbinary.readouterr()
+    prompt = re.sub(rb"\s+", b" ", out)
+
+    assert (code, survivors.encode() in prompt) == (0, True), prompt
+
+
 def test_main_renders_an_expand_and_a_migrate_prompt_stating_what_each_phase_changes_and_that_test_files_stay_frozen(
         tmp_path, capsysbinary, build_develop_prompt):
     spec = tmp_path / "spec.md"
