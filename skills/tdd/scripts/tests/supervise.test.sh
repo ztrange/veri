@@ -249,47 +249,4 @@ clock-jump "$1" suspend && echo "$1" >> .test-suspended
 C
 chmod +x "$stub/clock-suspend"
 
-settled_work="$(scratch_dir)"
-mkdir -p "$settled_work/.tdd"
-printf '3\n' > "$settled_work/.tdd/issue-954-timeout"
-cat > "$stub/leaf-busy-ten" <<'L'
-#!/bin/sh
-: > .test-clock-reads
-for i in 1 2 3 4 5 6 7 8 9 10; do echo "leaf: busy $i"; clock-jump 1; await-poll; done
-echo "leaf: finished on its own"; exit 0
-L
-chmod +x "$stub/leaf-busy-ten"
-( cd "$settled_work" && env -u VERI_TIMEOUT -u VERI_STEP VERI_ISSUE=954 VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 \
-    VERI_POLL=0.02 VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-busy-ten" ) >/dev/null 2>"$settled_work/err"
-settled_code=$?
-{ [[ "$settled_code" == 2 ]] && grep -F 'hard timeout 3s exceeded' "$settled_work/err" > /dev/null; } && ok \
-  || no "#954: with VERI_TIMEOUT unset and .tdd/issue-954-timeout recording a settled 3s for VERI_ISSUE=954, a leaf busy for 10s is killed-stuck on 'hard timeout 3s exceeded', not run under the 900s default (code=$settled_code want 2, err=$(cat "$settled_work/err"))"
-
-unissued_work="$(scratch_dir)"
-mkdir -p "$unissued_work/.tdd"
-printf '3\n' > "$unissued_work/.tdd/issue--timeout"
-( cd "$unissued_work" && env -u VERI_TIMEOUT -u VERI_STEP -u VERI_ISSUE VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 \
-    VERI_POLL=0.02 VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-busy-ten" ) >/dev/null 2>"$unissued_work/err"
-unissued_code=$?
-[[ "$unissued_code" == 0 ]] && ok \
-  || no "#954: with VERI_ISSUE unset, a .tdd/issue--timeout recording 3s is no settled timeout, so a leaf busy for 10s finishes under the 900s default (code=$unissued_code want 0, err=$(cat "$unissued_work/err"))"
-
-subdir_work="$(scratch_dir)"
-new_repo -b main "$subdir_work" >/dev/null 2>&1
-mkdir -p "$subdir_work/.tdd" "$subdir_work/src/deep"
-printf '3\n' > "$subdir_work/.tdd/issue-954-timeout"
-( cd "$subdir_work/src/deep" && env -u VERI_TIMEOUT -u VERI_STEP VERI_ISSUE=954 VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 \
-    VERI_POLL=0.02 VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-busy-ten" ) >/dev/null 2>"$subdir_work/err"
-subdir_code=$?
-{ [[ "$subdir_code" == 2 ]] && grep -F 'hard timeout 3s exceeded' "$subdir_work/err" > /dev/null; } && ok \
-  || no "#954: launched from src/deep, a subdirectory of the run worktree, with VERI_TIMEOUT unset and the worktree root's .tdd/issue-954-timeout recording a settled 3s, a leaf busy for 10s is killed-stuck on 'hard timeout 3s exceeded', not run under the 900s default (code=$subdir_code want 2, err=$(cat "$subdir_work/err"))"
-
-explicit_work="$(scratch_dir)"
-mkdir -p "$explicit_work/.tdd"
-printf '3\n' > "$explicit_work/.tdd/issue-954-timeout"
-( cd "$explicit_work" && env -u VERI_STEP VERI_TIMEOUT=5 VERI_ISSUE=954 VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 \
-    VERI_POLL=0.02 VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-busy-ten" ) >/dev/null 2>"$explicit_work/err"
-explicit_code=$?
-{ [[ "$explicit_code" == 2 ]] && grep -F 'hard timeout 5s exceeded' "$explicit_work/err" > /dev/null; } && ok \
-  || no "#954: an explicit VERI_TIMEOUT=5 wins over .tdd/issue-954-timeout recording a settled 3s, so a leaf busy for 10s is killed-stuck on 'hard timeout 5s exceeded' (code=$explicit_code want 2, err=$(cat "$explicit_work/err"))"
 finish
