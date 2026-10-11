@@ -10,6 +10,7 @@ import tempfile
 
 import event
 import parse_verdict
+import preserve_attempt
 
 from leaf_model import resolve
 from leaf_role import _write, leaf_role
@@ -51,8 +52,7 @@ def mark(role, *words):
 
 
 def preserve(issue, step, leaf, attempt, outcome):
-    if start([sibling("preserve-attempt.sh"), issue, step, leaf, attempt, outcome],
-             stdout=sys.stderr.fileno()).returncode:
+    if preserve_attempt.preserve(".", issue, step, leaf, attempt, outcome):
         _write(sys.stderr, "verify: could not preserve the %s attempt (issue %s step %s %s attempt %s)"
                % (outcome, issue, step, leaf, attempt))
 

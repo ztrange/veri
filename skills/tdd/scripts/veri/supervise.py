@@ -10,6 +10,7 @@ from typing import NamedTuple
 
 import entry
 import event
+import preserve_attempt
 from extract_result import extract
 from leaf_log import result_records
 from leaf_model import leaf_model
@@ -196,9 +197,7 @@ def preserve_killed_attempt(name, attempt, env):
     if captured("git", "rev-parse", "--verify", "-q", "HEAD").returncode != 0:
         return
     sys.stderr.flush()
-    done = subprocess.run([os.path.join(HERE, "preserve-attempt.sh"), issue, step, name, str(attempt), "stuck"],
-                          stdout=2, env=env)
-    if done.returncode != 0:
+    if preserve_attempt.preserve(".", issue, step, name, str(attempt), "stuck", env=env) != 0:
         print(f"supervise[{name}]: could not preserve the stuck attempt"
               f" (issue {issue} step {step} {name} attempt {attempt})", file=sys.stderr)
 
