@@ -432,6 +432,30 @@ def test_1313_a_stop_timeout_too_great_for_setitimer_refuses_with_exit_2_one_lin
             "Traceback" in err, asks, launches) == (2, "", 1, True, True, False, [], [])
 
 
+def test_1313_a_stop_timeout_above_the_macos_setitimer_ceiling_of_100000000_refuses_before_any_ask_and_the_header_states_it(
+        capsys, monkeypatch, tmp_path, orchestrate):
+    import signal
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("VERI_CONDUCTOR_CTX_BUDGET", raising=False)
+    monkeypatch.setenv("VERI_CONDUCTOR_STOP_TIMEOUT", "100000001")
+    asks, launches = _boundaries(monkeypatch, (3, ""))
+    code = orchestrate.main([])
+    out, err = capsys.readouterr()
+    assert (code, out, len(err.splitlines()), "VERI_CONDUCTOR_STOP_TIMEOUT" in err, "100000001" in err,
+            "Traceback" in err, asks, launches) == (2, "", 1, True, True, False, [], [])
+
+    monkeypatch.setenv("VERI_CONDUCTOR_STOP_TIMEOUT", "100000000")
+    _passes(monkeypatch, [(0, "7\n"), (3, "")], lambda n, issue: None)
+    timers = []
+    monkeypatch.setattr(signal, "setitimer", lambda which, seconds: timers.append((which, seconds)))
+    code = orchestrate.main([])
+    out, err = capsys.readouterr()
+    assert (code, out, err, timers[0]) == (0, "", "", (signal.ITIMER_REAL, 100000000.0))
+
+    header = "\n".join((pathlib.Path(__file__).resolve().parents[2] / "orchestrate.sh").read_text().splitlines()[:20])
+    assert "100000000" in header
+
+
 def test_1313_a_budget_that_is_not_a_whole_number_refuses_with_exit_2_one_line_naming_it_and_its_value_before_any_ask(
         capsys, monkeypatch, tmp_path, orchestrate):
     monkeypatch.chdir(tmp_path)
