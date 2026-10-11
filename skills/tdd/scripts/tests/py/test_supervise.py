@@ -2501,6 +2501,76 @@ def test_cli_does_not_read_a_suspend_as_silence_or_runtime_a_3s_suspend_against_
             sleep_through(True, 180, 900, 3600)] == [woke, woke, woke, woke]
 
 
+def test_cli_counts_awake_time_a_leaf_silent_1s_then_3s_against_a_2s_heartbeat_and_a_noisy_one_past_a_4s_timeout_with_or_without_load_stretching_the_wall_clock_3s_survives_the_first_and_is_killed_exit_2(
+        monkeypatch, tmp_path, supervise, run_cli):
+    import signal
+    import time
+    monkeypatch.setattr(signal, "signal", lambda *_: None)
+
+    def run_until_killed(name, silent, heartbeat, timeout, load):
+        work = tmp_path / name
+        (work / ".tdd").mkdir(parents=True)
+        clean_env(monkeypatch, VERI_STUCK_RETRIES="0", VERI_HEARTBEAT=str(heartbeat), VERI_TIMEOUT=str(timeout))
+        clock = {"wall": 1000, "awake": 5000, "sleeps": 0, "killed_at": None}
+
+        class Leaf:
+            pid = 4242
+            returncode = None
+            args = []
+
+            def poll(self):
+                return self.returncode
+
+            def wait(self, timeout=None):
+                return self.returncode
+
+        leaf = Leaf()
+
+        def sleep(_):
+            clock["sleeps"] += 1
+            if clock["sleeps"] > 50:
+                raise AssertionError("never ended")
+            clock["wall"] += 1 + (3 if load and clock["sleeps"] == 2 else 0)
+            clock["awake"] += 1
+
+        def stop(_pid, sig):
+            if sig:
+                if clock["killed_at"] is None:
+                    clock["killed_at"] = clock["sleeps"]
+                leaf.returncode = -sig
+
+        def answer(args):
+            args = [str(a) for a in args]
+            if args[:1] == ["git"]:
+                return "0123456789abcdef0123456789abcdef01234567\n"
+            if args[:1] == ["date"]:
+                return f"{clock['wall']}\n"
+            if args[:3] == ["stat", "-c", "%Y"]:
+                return "1000\n" if silent else f"{clock['wall']}\n"
+            return ""
+
+        monkeypatch.setattr(time, "sleep", sleep)
+        monkeypatch.setattr(time, "clock_gettime", lambda *_: float(clock["awake"]))
+        monkeypatch.setattr(os, "killpg", stop)
+        monkeypatch.setattr(os, "kill", stop)
+        monkeypatch.setattr(subprocess, "run", lambda args, *_, **k: subprocess.CompletedProcess(
+            args, 0, as_asked(answer(args), k), as_asked("", k)))
+        monkeypatch.setattr(subprocess, "check_output", lambda args, *_, **k: as_asked(answer(args), k))
+        monkeypatch.setattr(subprocess, "call", lambda *a, **k: 0)
+        monkeypatch.setattr(subprocess, "check_call", lambda *a, **k: 0)
+        monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: leaf)
+        code, _, err = run_cli(supervise, [name, "leaf"], cwd=work)
+        return code, clock["killed_at"], [line for line in err.splitlines() if "killed-stuck" in line or "no heartbeat" in line
+                                          or "hard timeout" in line]
+
+    assert [run_until_killed("silent", True, 2, 30, False), run_until_killed("runaway", False, 30, 4, False),
+            run_until_killed("loaded", False, 30, 4, True)] == [
+        (2, 3, ["supervise[silent]: killed-stuck — no heartbeat for 3s (window 2s)"]),
+        (2, 4, ["supervise[runaway]: killed-stuck — hard timeout 4s exceeded"]),
+        (2, 4, ["supervise[loaded]: killed-stuck — hard timeout 4s exceeded"]),
+    ]
+
+
 REAL_LEAF_ENV = {"VERI_STUCK_RETRIES": "0", "VERI_HEARTBEAT": "5", "VERI_TIMEOUT": "10"}
 
 
