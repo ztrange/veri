@@ -7,6 +7,11 @@ import sys
 
 import pytest
 
+
+def preserve_in_process(args, words):
+    code = importlib.import_module("veri.preserve_attempt").main(words[1:])
+    return subprocess.CompletedProcess(args, code, None, None)
+
 SCRIPTS = pathlib.Path(__file__).resolve().parents[2]
 USAGE = b"usage: supervise.sh <name> <cmd> [args...]\n"
 
@@ -1492,7 +1497,7 @@ def test_main_reports_a_killed_leaf_whose_log_ends_in_a_result_record_with_the_l
                 "appended": log.read_bytes()[len(log_text):] if log.exists() else None,
                 "stdout is log": log.exists() and out == log.read_bytes(),
                 "launches": len(launched),
-                "preserved": [a for a in ran if any(w.endswith("preserve-attempt.sh") for w in a)]}
+                "preserved": [a for a in ran if "update-ref" in a]}
 
     cause = "no heartbeat for 4s (window 3s)"
 
@@ -1639,6 +1644,13 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
                 if words[1:] == ["rev-parse", "--verify", "-q", "HEAD"]:
                     code = 0 if head_ok else 1
                 out = "0123456789abcdef0123456789abcdef01234567\n" if code == 0 else ""
+                if "--show-toplevel" in words:
+                    out = os.getcwd() + "\n"
+                elif "commit-tree" in words:
+                    out = "c" * 40 + "\n"
+                elif "update-ref" in words:
+                    preserved.append(words[2:])
+                    code, out = preserve_rc, ""
             elif words[:1] == ["date"]:
                 clock["dates"] += 1
                 if clock["dates"] > 2000:
@@ -1648,16 +1660,7 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
             elif words[:1] == ["stat"]:
                 out = "1000\n"
             elif words and words[0] == preserver:
-                preserved.append(words[1:])
-                code = preserve_rc
-                said = f"kept attempt {words[4]}\n"
-                dest = kwargs.get("stdout")
-                if dest == subprocess.PIPE:
-                    out = said
-                elif dest is None:
-                    sys.stdout.write(said)
-                else:
-                    sys.stderr.write(said)
+                return preserve_in_process(args, words)
             out = as_asked(out, kwargs) if kwargs.get("stdout") == subprocess.PIPE else None
             return subprocess.CompletedProcess(args, code, out, None)
 
@@ -1690,7 +1693,7 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
                 "out": out, "err": err.decode(errors="replace")}
 
     def kept(*attempts):
-        return [["1073", "27", "develop-red", str(a), "stuck"] for a in attempts]
+        return [[f"refs/veri/attempts/1073/27/develop-red-{a}", "c" * 40] for a in attempts]
 
     retry = {"issue": "1073", "actor": "developer", "phase": "red", "step": "27", "event": "retry", "attempt": "1",
              "skill_commit": "0123456789abcdef0123456789abcdef01234567", "cause": "no heartbeat for 4s (window 3s)"}
@@ -1700,7 +1703,6 @@ def test_main_preserves_each_killed_attempt_when_issue_step_and_head_are_there_a
     assert (default["code"], default["launches"], default["preserved"], default["retries"], default["out"]) == (
         2, 2, kept(1, 2), [retry], b"")
     assert "supervise[develop-red]: retry 1/1 after killed-stuck\n" in default["err"]
-    assert "kept attempt 1\n" in default["err"] and "kept attempt 2\n" in default["err"]
 
     failing = stuck("failing", preserve_rc=1, VERI_STUCK_RETRIES="0", **issue_step)
     assert (failing["code"], failing["preserved"]) == (2, kept(1))
