@@ -299,4 +299,29 @@ fi
 
 report "$name"
 
+name="#1473 $skill_md's Green section says the ⟦ci-repair⟧ verify-green variant judges only evidence that exists before the push and never requires a CI run on the fix, whose CI verdict is the post-push wait-ci.sh wait where red bails ci-red"
+problems=()
+
+if [[ -n "$unreadable" ]]; then
+  problems+=("$unreadable what the ⟦ci-repair⟧ verify-green variant judges could not be established")
+else
+  tail_text="$(awk '{ gsub(/\. /, ".\n"); print }' <<<"$section" | awk '/⟦ci-repair⟧/ && tolower($0) ~ /verify-green/ { on = 1 } on')"
+  if [[ -z "$tail_text" ]]; then
+    problems+=("$skill_md's Green section has no sentence naming both ⟦ci-repair⟧ and a verify-green variant")
+  else
+    grep -iE 'judges only[^.]{0,120}(before|prior to) the push' <<<"$tail_text" > /dev/null ||
+      problems+=("$skill_md's ⟦ci-repair⟧ verify-green variant never says it judges only evidence that exists before the push")
+    grep -iE 'never requires?[^.]{0,60}CI run' <<<"$tail_text" > /dev/null ||
+      problems+=("$skill_md's ⟦ci-repair⟧ verify-green variant never says it does not require a CI run on the fix")
+    grep -iE 'wait-ci\.sh' <<<"$tail_text" > /dev/null ||
+      problems+=("$skill_md's ⟦ci-repair⟧ verify-green variant never leaves the CI verdict on the fix to the post-push wait-ci.sh wait")
+    grep -F 'ci-red' <<<"$tail_text" > /dev/null ||
+      problems+=("$skill_md's ⟦ci-repair⟧ verify-green variant never says a red CI on the pushed fix bails ci-red")
+    ! grep -iE '(requires?|evidence is)[^.]{0,120}green CI run[^.]{0,40}(on|for) the (pushed )?fix' <<<"$tail_text" > /dev/null ||
+      problems+=("$skill_md's ⟦ci-repair⟧ verify-green variant requires a green CI run on the pushed fix, which does not exist until after its PASS")
+  fi
+fi
+
+report "$name"
+
 finish
